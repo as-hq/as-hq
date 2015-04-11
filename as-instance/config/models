@@ -1,9 +1,7 @@
-HSFunc
+ASFunc
 	alias Text
-	name Text
-
-PYfunc
-	alias Text
-	name Text
-	location Text
+	identifier Text
+	import Text
+	lang Text
+	deriving Show
 
