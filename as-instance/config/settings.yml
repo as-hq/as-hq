@@ -18,11 +18,12 @@ ip-from-header: "_env:IP_FROM_HEADER:false"
 # skip-combining: false
 
 database:
-  user:        "as-instance"
-  password:    "as-instance"
-  host:        "localhost"
-  database:    "as-instance"
-  connections: 10
+  user:     "_env:PGUSER:asinstance"
+  password: "_env:PGPASS:as-instance"
+  host:     "_env:PGHOST:localhost"
+  port:     "_env:PGPORT:5432"
+  database: "_env:PGDATABASE:asinstance"
+  poolsize: "_env:PGPOOLSIZE:10"
 
 copyright: Insert copyright statement here
 #analytics: UA-YOURCODE

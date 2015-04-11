@@ -3,32 +3,25 @@ module TestImport
     , module X
     ) where
 
-import Application              (makeFoundation)
-import ClassyPrelude            as X
-import Database.Persist         as X hiding (get)
-import Database.Persist.MongoDB hiding (master)
-import Foundation               as X
-import Model                    as X
-import Settings                 (appDatabaseConf)
-import Test.Hspec               as X
-import Yesod.Default.Config2    (ignoreEnv, loadAppSettings)
-import Yesod.Test               as X
--- Wiping the test database
-import Database.MongoDB.Query (allCollections)
-import Database.MongoDB.Admin (dropCollection)
-import Control.Monad.Trans.Control (MonadBaseControl)
+import Application           (makeFoundation)
+import ClassyPrelude         as X
+import Database.Persist      as X hiding (get)
+import Database.Persist.Sql  (SqlPersistM, SqlBackend, runSqlPersistMPool, rawExecute, rawSql, unSingle, connEscapeName)
+import Foundation            as X
+import Model                 as X
+import Test.Hspec            as X
+import Text.Shakespeare.Text (st)
+import Yesod.Default.Config2 (ignoreEnv, loadAppSettings)
+import Yesod.Test            as X
 
-runDB :: Action IO a -> YesodExample App a
-runDB action = do
-    master <- getTestYesod
-    liftIO $ runDBWithApp master action
+runDB :: SqlPersistM a -> YesodExample App a
+runDB query = do
+    app <- getTestYesod
+    liftIO $ runDBWithApp app query
 
-runDBWithApp :: App -> Action IO a -> IO a
-runDBWithApp app action = do
-    liftIO $ runMongoDBPool
-        (mgAccessMode $ appDatabaseConf $ appSettings app)
-        action
-        (appConnPool app)
+runDBWithApp :: App -> SqlPersistM a -> IO a
+runDBWithApp app query = runSqlPersistMPool query (appConnPool app)
+
 
 withApp :: SpecWith App -> Spec
 withApp = before $ do
@@ -36,18 +29,28 @@ withApp = before $ do
         ["config/test-settings.yml", "config/settings.yml"]
         []
         ignoreEnv
-    app <- makeFoundation settings
-    wipeDB app
-    return app
+    foundation <- makeFoundation settings
+    wipeDB foundation
+    return foundation
 
--- This function will wipe your database.
+-- This function will truncate all of the tables in your database.
 -- 'withApp' calls it before each test, creating a clean environment for each
 -- spec to run in.
 wipeDB :: App -> IO ()
-wipeDB app = void $ runDBWithApp app dropAllCollections
+wipeDB app = runDBWithApp app $ do
+    tables <- getTables
+    sqlBackend <- ask
 
-dropAllCollections :: (MonadIO m, MonadBaseControl IO m) => Action m [Bool]
-dropAllCollections = allCollections >>= return . filter (not . isSystemCollection) >>= mapM dropCollection
-      where
-        isSystemCollection = isPrefixOf "system."
+    let escapedTables = map (connEscapeName sqlBackend . DBName) tables
+        query = "TRUNCATE TABLE " ++ intercalate ", " escapedTables
+    rawExecute query []
 
+getTables :: MonadIO m => ReaderT SqlBackend m [Text]
+getTables = do
+    tables <- rawSql [st|
+        SELECT table_name
+        FROM information_schema.tables
+        WHERE table_schema = 'public';
+    |] []
+
+    return $ map unSingle tables

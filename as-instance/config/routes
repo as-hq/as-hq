@@ -5,4 +5,4 @@
 /robots.txt RobotsR GET
 
 / HomeR GET POST
-/repl/#String EvalReplR POST
+/eval/#String EvalReplR POST
