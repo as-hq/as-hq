@@ -1,23 +1,24 @@
 module Handler.EvalRepl where
 
 import Import
-import qualified CPython as py
-import Data.Text.Lazy
+--import qualified CPython as py
+import qualified Data.Text.Lazy (replace)
 
 postEvalReplR :: String -> Handler Value
 postEvalReplR cmd = do
 	filepath <- scrubCmd cmd
-	return $ evalPy filepath
+	return filepath
+	--return $ evalPy filepath
 
 -- take a command string, match & replace aliases, insert into template.py
 -- returns filepath for scrubbed py file (template'.py)
 scrubCmd :: String -> String
 scrubCmd "" = "No command specified."
 scrubCmd cmd = do
-	validFuncs <- runDB $ selectList [] [Entity ASfunc]
-	let vf = --todo
-
+	validFuncs <- runDB $ selectList [] []
+	let vf = map (\func -> (ASFuncAlias $ entityVal func, ASFuncApply $ entityVal func, ASFuncImport $ entityVal func))
 	let edited = replaceAliases (pack cmd) vf
+	return $ show $ fst edited
 
 	-- todo
 
@@ -25,14 +26,13 @@ scrubCmd cmd = do
 -- return tuple (cmd', [import])
 replaceAliases :: Text -> [(Text, Text, Text)] -> (Text, [Text])
 replaceAliases cmd [] = (cmd, [])
-replaceAliases cmd matches = (replaceAliases' cmd . (\(a,b,_)->(a,b)) presentStubs, 
-		(\(_,_,c)->c)) presentStubs)
-	-- filter present func usages
-	where presentStubs = (\(a,_,_)-> isInfixOf a cmd) matches
-		  -- actual work
-		  replaceAliases' m [] = m
-		  replaceAliases' m (x:xs) = replaceAliases' scrubbed xs
-		  	where scrubbed = replace (fst x) m (snd x)
+replaceAliases cmd matches = (replaceAliases' cmd (map ((\(a,b,_)->(a,b)) presentStubs)), 
+		map (\(_,_,c)->c) presentStubs)
+		where 
+			presentStubs = filter (\(a,_,_)-> isInfixOf a cmd) matches
+			replaceAliases' m [] = m
+			replaceAliases' m (x:xs) = replaceAliases' scrubbed xs
+				where scrubbed = Data.Text.Lazy.replace (fst x) m (snd x)
 
 
 -- takes filepath of template'.py

@@ -1,6 +1,16 @@
+User
+    ident Text
+    password Text Maybe
+    UniqueUser ident
+    deriving Typeable
+Email
+    email Text
+    user UserId Maybe
+    verkey Text Maybe
+    UniqueEmail email
 ASFunc
 	alias Text
-	identifier Text
+	apply Text
 	import Text
 	lang Text
 	deriving Show
