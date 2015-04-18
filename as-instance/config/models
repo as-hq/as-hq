@@ -1,3 +1,5 @@
+import AS.Types
+
 User
     ident Text
     password Text Maybe
@@ -8,6 +10,7 @@ Email
     user UserId Maybe
     verkey Text Maybe
     UniqueEmail email
+
 ASFunc
 	alias Text
 	apply Text
@@ -15,3 +18,10 @@ ASFunc
 	lang Text
 	deriving Show
 
+ASCell
+    location ASLocation
+    expression ASExpression
+    value ASValue
+
+ASDAG
+    edge (ASCell, ASCell)

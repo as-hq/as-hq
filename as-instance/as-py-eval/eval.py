@@ -1,18 +1,12 @@
 import re
-import psycopg2
+from pymongo import MongoClient
 
-#testing vars
-sheet = [[]]
-varlist = []
+client = MongoClient('localhost', 27017)
+db = client.asinstance
+collection = db.ASCell # ensure db is migrated to include ASCell collection
 
-try:
-    conn = psycopg2.connect("dbname='asinstance' user='asinstance' host='localhost' password='as-instance'")
-except:
-    print "DB connection error"
-
-cur = conn.cursor()
-
-def cells(coord):
+def cells(a,b):
+    collection
 
 
 def py_eval(cells,expression):
@@ -26,13 +20,14 @@ def py_eval(cells,expression):
                 # doesn't deal with items out of range
                 indices = [cell_to_python(excelRange.split(":")[i]) for i in [0, 1]]
                 # next like takes submatrix based on the range
-                unFlatList=[cells[row][indices[0][1]-1:indices[1][1]] for row in range(indices[0][0]-1, indices[1][0])]
+                unFlatList=cells([indices[0][0]-1, indices[1][0]], [indices[0][1]-1,indices[1][1]])
+                # check if row or column vector, else return 2d list
                 if (indices[0][0] == indices [1][0]) or (indices[0][1] == indices [1][1]): 
                         return [item for sublist in unFlatList for item in sublist]
                 else: return unFlatList
 
         def excel_cell_to_python_str (cell):
-                return str(cells[cell_to_python(cell)[0]-1][cell_to_python(cell)[1]-1])
+                return repr(cells(cell_to_python(cell)[0]-1, cell_to_python(cell)[1]-1))
 
         def parse(expression):
                 # doesn't deal with circular references, which will cause an infinite loop
