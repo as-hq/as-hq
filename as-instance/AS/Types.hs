@@ -1,4 +1,5 @@
-module AS.Types where
+module AS.Types (
+decomposeLocs) where
 
 -- NOTE: follow excel (col, row) ordering
 data ASLocation = Index (Int, Int) | Range ((Int, Int), (Int, Int))
@@ -20,6 +21,16 @@ expression (Expression a) = a
 
 
 -- convenience funcs
+
+--use this function to decompose list of into a list of cells
+--e.g. [B1:B5]-> [B1,B2,B3,B4,B5]
+decomposeLocs :: [ASLocation] -> [ASLocation]
+decomposeLocs [] =[]
+decomposeLocs ((Index x):rst) = (Index x):(decomposeLocs rst)
+decomposeLocs ((Range x):rst) = (map toIndex [(m,n)|m<-[a..c], n<-[b..d]])++(decomposeLocs rst)
+	where 
+	(a,b)= index(fst(range x))
+	(c,d)= index(snd(range x))
 
 locationToExcel :: ASLocation -> String
 locationToExcel loc = case loc of 
