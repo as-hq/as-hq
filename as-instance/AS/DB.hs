@@ -14,29 +14,31 @@ toDBCell (Cell l e v) =
 
 getCell :: ASLocation -> Handler (Maybe ASCell)
 getCell loc = do
-	maybeCell <- runDB $ getBy $ aSCellDBLocationString . show $ loc
-	return $ liftIO $ case maybeCell of
-		Nothing -> Nothing
-		Just (Entity cellId cell) -> Just . fromDBCell $ cell
+	cells <- runDB $ selectList [ASCellDBLocationString ==. show loc] []
+	return $ case cells of
+		[] -> Nothing
+		((Entity cellId cell):cs) -> Just . fromDBCell $ cell
 
-getCells :: [ASLocation] -> Handler [ASCell]
+getCells :: [ASLocation] -> Handler [Maybe ASCell]
 getCells locs = do
-	cells <- runDB $ [getBy $ aSCellDBLocationString . show $ loc | loc<-locs]
-	return $ liftIO [fromDBCell cell | (Entity cellId cell) <- cells]
+	cells <- runDB $ mapM (\loc -> selectList [ASCellDBLocationString ==. show loc] []) locs
+	return $ map (\cellList -> case cellList of 
+		[] -> Nothing
+		((Entity cellId cell):cs) -> Just . fromDBCell $ cell) cells
 
 setCell :: ASCell -> Handler ()
 setCell cell = do
-	maybeCell <- getCell . cellLocation $ cell
-	case maybeCell of
-		Nothing -> runDB $ insert (toDBCell cell)
-		Just (Entity foundCellDBId foundCellDB) -> runDB $ replace foundCellDBId (toDBCell cell) 
+	cells <- runDB $ selectList [ASCellDBLocationString ==. show (cellLocation cell)] []
+	case cells of
+		[] -> runDB $ insert (toDBCell cell)
+		((Entity cellDBId cellDB):cs) -> runDB $ replace cellDBId (toDBCell cell) 
 
 deleteCell :: ASLocation -> Handler ()
 deleteCell loc = do
-	maybeCell <- runDB $ getCell loc
-	case maybeCell of
-		Nothing -> Nothing
-		Just (Entity foundCellDBId foundCellDB) -> runDB $ delete foundCellDBId 
+	cells <- runDB $ selectList [ASCellDBLocationString ==. show loc] []
+	case cells of
+		[] -> Nothing
+		((Entity cellDBId cellDB):cs) -> runDB $ delete cellDBId
 
 -- insertRelation :: (Relation a) -> IO ()
 
@@ -48,13 +50,13 @@ deleteCell loc = do
 
 -- getDependency :: ASCell -> ASCell -> ASRelation
 
-putDAG :: [(ASCell, ASCell)] -> Handler ()
-putDAG [] = Nothing
-putDAG dag = do 
-	mapM_ (\edge -> runDB . insert . (show . cellLocation . fst $ edge, show . cellLocation . snd $ edge)) dag
+-- putDAG :: [(ASCell, ASCell)] -> Handler ()
+-- putDAG [] = Nothing
+-- putDAG dag = do 
+-- 	mapM_ (\edge -> runDB . insert . (show . cellLocation . fst $ edge, show . cellLocation . snd $ edge)) dag
 
-getDAG :: Handler [(ASLocation, ASLocation)]
-getDAG = do
-	dag <- runDB $ selectList [] []
-	let edges = [foundEdge | (Entity foundEdgeId foundEdge) <- dag]
-	return $ map (\edge -> (read . fst $ edge :: ASLocation, read . snd $ edge :: ASLocation)) edges
+-- getDAG :: Handler [(ASLocation, ASLocation)]
+-- getDAG = do
+-- 	dag <- runDB $ selectList [] []
+-- 	let edges = [foundEdge | (Entity foundEdgeId foundEdge) <- dag]
+-- 	return $ map (\edge -> (read . fst $ edge :: ASLocation, read . snd $ edge :: ASLocation)) edges

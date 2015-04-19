@@ -20,6 +20,7 @@ ASCellDB
     locationString String
     expressionString String
     valueString String
+    deriving Show
 
 ASDAG
     edge EdgeTuple
