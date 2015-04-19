@@ -23,6 +23,7 @@ library
                      Handler.Common
                      Handler.Home
                      Handler.UpdateDB
+                     Handler.Cells
 
     if flag(dev) || flag(library-only)
         cpp-options:   -DDEVELOPMENT

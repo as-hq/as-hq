@@ -3,12 +3,12 @@ module AS.DB where
 import AS.Types
 import Foundation (runDB)
 
-getCell :: ASLocation -> IO ASCell
+getCell :: ASLocation -> IO (Maybe ASCell)
 getCell loc = do
 	maybeCell <- runDB $ getBy $ ASCellLocation loc
-	case maybeCell of
+	return $ case maybeCell of
 		Nothing -> Nothing
-		Just (Entity cellId cell) -> cell
+		Just (Entity cellId cell) -> Just cell
 
 getCells :: [ASLocation] -> IO [ASCell]
 getCells locs = do
@@ -18,7 +18,7 @@ getCells locs = do
 setCell :: ASCell -> IO ()
 setCell cell = do
 	maybeCell <- runDB $ getBy $ ASCellLocation $ cellLoc cell
-	case maybeCell of
+	return $ case maybeCell of
 		Nothing -> runDB $ insert cell
 		Just (Entity foundCellId foundCell) -> runDB $ replace foundCellId cell 
 
