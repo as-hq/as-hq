@@ -90,6 +90,8 @@ library
                  , containers
                  , vector
                  , time
+                 , parsec
+                 , mtl
 
 executable         as-instance
     if flag(library-only)

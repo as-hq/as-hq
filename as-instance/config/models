@@ -19,9 +19,9 @@ ASFunc
 	deriving Show
 
 ASCell
-    location ASLocation
-    expression ASExpression
-    value ASValue
+    locationString Text
+    expressionString Text
+    valueString Text
 
 ASDAG
     edge (ASCell, ASCell)

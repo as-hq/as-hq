@@ -1,12 +1,12 @@
 module Foundation where
 
+import Database.Persist.MongoDB hiding (master)
 import Import.NoFoundation
-import Database.Persist.Sql (ConnectionPool, runSqlPool)
-import Text.Hamlet          (hamletFile)
-import Text.Jasmine         (minifym)
-import Yesod.Auth.BrowserId (authBrowserId)
-import Yesod.Default.Util   (addStaticContentExternal)
-import Yesod.Core.Types     (Logger)
+import Text.Hamlet                 (hamletFile)
+import Text.Jasmine                (minifym)
+import Yesod.Auth.BrowserId        (authBrowserId)
+import Yesod.Core.Types            (Logger)
+import Yesod.Default.Util          (addStaticContentExternal)
 import qualified Yesod.Core.Unsafe as Unsafe
 
 -- | The foundation datatype for your application. This can be a good place to
@@ -104,12 +104,13 @@ instance Yesod App where
 
 -- How to run database actions.
 instance YesodPersist App where
-    type YesodPersistBackend App = SqlBackend
+    type YesodPersistBackend App = MongoContext
     runDB action = do
         master <- getYesod
-        runSqlPool action $ appConnPool master
-instance YesodPersistRunner App where
-    getDBRunner = defaultGetDBRunner appConnPool
+        runMongoDBPool
+            (mgAccessMode $ appDatabaseConf $ appSettings master)
+            action
+            (appConnPool master)
 
 instance YesodAuth App where
     type AuthId App = UserId

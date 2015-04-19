@@ -1,42 +1,25 @@
-module AS.Types (
-decomposeLocs) where
+module AS.Types where
 
-import Text.ParserCombinators.Parsec
-import Data.Char
+import Database.Persist.TH
 
 -- NOTE: follow excel (col, row) ordering
-data ASLocation = Index {index :: (Int, Int)} | Range {range :: ((Int, Int), (Int, Int))} deriving (Show)
+data ASLocation = Index {index :: (Int, Int)} | Range {range :: ((Int, Int), (Int, Int))}
+	deriving (Show, Read, Eq)
+derivePersistField "ASLocation"
 
-data ASValue = ValueS String | ValueD Double deriving (Show)
+data ASValue = ValueS String | ValueD Double | ValueLD [Double] | ValueLS [String]
+	deriving (Show, Read, Eq)
+derivePersistField "ASValue"
 
 data ASCell = Cell {cellLocation :: ASLocation, 
 					cellExpression :: ASExpression,
-					cellValue :: ASValue} deriving (Show)
+					cellValue :: ASValue}
+	deriving (Show, Read, Eq)
+derivePersistField "ASCell"
 
-data ASExpression = Expression {expression :: String} deriving (Show)
+data ASExpression = Expression {expression :: String}
+	deriving (Show, Read, Eq)
+derivePersistField "ASExpression"
 
 -- convenience funcs
 
---use this function to decompose list of into a list of cells
---e.g. [B1:B5]-> [B1,B2,B3,B4,B5]
-decomposeLocs :: [ASLocation] -> [ASLocation]
-decomposeLocs [] =[]
-decomposeLocs ((Index x):rst) = (Index x):(decomposeLocs rst)
-decomposeLocs ((Range x):rst) = (map Index [(m,n)|m<-[a..c], n<-[b..d]])++(decomposeLocs rst)
-	where 
-	(a,b)= fst x 
-	(c,d)= snd x
-
-locationToExcel :: ASLocation -> String
-locationToExcel loc = case loc of 
-	(Index a) -> excelIndex a
-	(Range (a,b)) -> excelIndex a ++ ":" ++ excelIndex b
-	where
-		excelIndex :: (Int, Int) -> String
-		excelIndex (a,b) = (['A'..'Z'] !! (a-1)):(show b)
-
-sameCol :: ASCell -> ASCell -> Bool
-sameCol cell1 cell2 = (fst (index (cellLocation cell1))) == (fst (index (cellLocation cell2)))
-
-sameRow :: ASCell -> ASCell -> Bool
-sameRow cell1 cell2  = (snd (index (cellLocation cell1))) == (snd (index (cellLocation cell2)))

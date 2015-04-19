@@ -29,7 +29,7 @@ import Control.Monad.RWS
 
 import Data.List
 import qualified Data.Set as S  
-import qualified ASTypes as A 
+import AS.Types
 
 -- | A relation represented as a list of tuples.
 type Relation a = [(a,a)]
