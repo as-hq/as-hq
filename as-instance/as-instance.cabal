@@ -31,7 +31,6 @@ library
                      Handler.UpdateDB
                      Handler.Cells
                      Handler.Clear
-                     
 
     if flag(dev) || flag(library-only)
         cpp-options:   -DDEVELOPMENT
