@@ -2,12 +2,14 @@ module AS.Dispatch where
 
 import AS.Types
 import AS.Parsing
+import Import
 import qualified AS.Eval.Py as R (evalPy)
-import qualified Data.Map as M (insert, empty)
+import qualified Data.Map as M
 import qualified AS.DAG as D
 import qualified AS.DB as DB
 import Text.ParserCombinators.Parsec
 import Text.Regex.Posix
+import Control.Applicative
  
 evalCellSeq :: [ASCell] -> Handler [ASValue]
 evalCellSeq = evalChain M.empty
@@ -25,17 +27,17 @@ evalCells locs = do
   cells <- DB.getCells ancestors
   results <- evalCellSeq cells
   let newCells = Cell <$>
-                 ZipList (map cellLocation cell) <*>
-                 ZipList (map cellExpression cell) <*>
+                 ZipList (map cellLocation cells) <*>
+                 ZipList (map cellExpression cells) <*>
                  ZipList results
-  DB.saveResults newCells
+  DB.setCells newCells
   return newCells
 
 updateCell :: ASLocation -> ASExpression -> Handler [ASCell]
 updateCell loc xp = do
   descendants <- D.getSetDescendants [loc]
   cell <- DB.getCell loc
-  DB.setCell (loc, xp, nilASValue)
+  DB.setCell . Cell loc xp (ValueS "NaN")
   evalCells descendants
 
 cellValues :: [ASLocation] -> Handler (M.Map ASLocation ASValue)

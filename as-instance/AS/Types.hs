@@ -5,7 +5,7 @@ import Database.Persist.TH
 
 -- NOTE: follow excel (col, row) ordering
 data ASLocation = Index {index :: (Int, Int)} | Range {range :: ((Int, Int), (Int, Int))}
-	deriving (Show, Read, Eq)
+	deriving (Show, Read, Eq, Ord)
 derivePersistField "ASLocation"
 
 data ASValue = ValueS String | ValueD Double | ValueLD [Double] | ValueLS [String]

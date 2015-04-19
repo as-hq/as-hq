@@ -2,7 +2,7 @@ module AS.DB where
 
 import AS.Types
 import Import
-import Prelude (read, show)
+import Prelude (read, show, (!!))
 
 fromDBCell :: ASCellDB -> ASCell
 fromDBCell (ASCellDB locationString expressionString valueString) =
@@ -30,15 +30,24 @@ setCell :: ASCell -> Handler ()
 setCell cell = do
 	cells <- runDB $ selectList [ASCellDBLocationString ==. show (cellLocation cell)] []
 	case cells of
-		[] -> runDB $ insert (toDBCell cell)
-		((Entity cellDBId cellDB):cs) -> runDB $ replace cellDBId (toDBCell cell) 
+		[] -> (runDB $ insert (toDBCell cell)) >> return ()
+		((Entity cellDBId cellDB):cs) -> (runDB $ replace cellDBId (toDBCell cell)) >> return () 
+
+-- TODO FIX
+setCells :: [ASCell] -> Handler ()
+setCells cells = setCell $ cells !! 0
+	 -- retrievedCells <- runDB $ mapM_ (\cell -> selectList [ASCellDBLocationString ==. show (cellLocation cell)] []) cells
+	 -- runDB $ mapM_ (\cellTuple -> case (fst cellTuple) of 
+	 -- 	[] -> (insert (toDBCell (snd cellTuple))) >> return ()
+	 -- 	((Entity cellId cell):cs) -> (replace cellId (toDBCell (snd cellTuple))) >> return ()) (zip retrievedCells cells)
+
 
 deleteCell :: ASLocation -> Handler ()
 deleteCell loc = do
 	cells <- runDB $ selectList [ASCellDBLocationString ==. show loc] []
 	case cells of
-		[] -> Nothing
-		((Entity cellDBId cellDB):cs) -> runDB $ delete cellDBId
+		[] -> return ()
+		((Entity cellDBId cellDB):cs) -> (runDB $ delete cellDBId) >> return ()
 
 -- insertRelation :: (Relation a) -> IO ()
 
