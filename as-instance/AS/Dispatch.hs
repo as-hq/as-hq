@@ -14,38 +14,47 @@ import Control.Applicative
 evalCellSeq :: [ASCell] -> Handler [ASValue]
 evalCellSeq = evalChain M.empty
   where
-    evalChain :: M.Map ASLocation ASValue -> [ASCell] -> IO [ASValue]
+    evalChain :: M.Map ASLocation ASValue -> [ASCell] -> Handler [ASValue]
     evalChain mp (c:cs) = do
       cv <- R.evalPy mp (cellExpression c)
       let newMp = M.insert (cellLocation c) cv mp
       rest <- evalChain newMp cs
       return (cv:rest)
 
-evalCells :: [ASLocation] -> Handler [ASCell]
+--TODO change dbGetSetAncestors to have no flattening
+evalCells :: [ASLocation] -> Handler (Maybe [ASCell])
 evalCells locs = do
-  ancestors <- D.getSetAncestors locs
+  ancestors <- fmap concat $ D.dbGetSetAncestors locs
   cells <- DB.getCells ancestors
-  results <- evalCellSeq cells
-  let newCells = Cell <$>
-                 ZipList (map cellLocation cells) <*>
-                 ZipList (map cellExpression cells) <*>
-                 ZipList results
-  DB.setCells newCells
-  return newCells
+  if any isNothing cells
+    then return Nothing
+    else do
+      let filterCells = map (\(Just x) -> x) cells
+      results <- evalCellSeq filterCells
+      let ZipList newCells = Cell <$>
+                             ZipList (map cellLocation filterCells) <*>
+                             ZipList (map cellExpression filterCells) <*>
+                             ZipList results
+      DB.setCells newCells
+      return $ Just newCells
 
-updateCell :: ASLocation -> ASExpression -> Handler [ASCell]
+updateCell :: ASLocation -> ASExpression -> Handler (Maybe [ASCell])
 updateCell loc xp = do
-  descendants <- D.getSetDescendants [loc]
+  descendants <- fmap concat $ D.dbGetSetDescendants [loc]
   cell <- DB.getCell loc
-  DB.setCell . Cell loc xp (ValueS "NaN")
+  DB.setCell $ Cell loc xp (ValueS "NaN")
   evalCells descendants
 
-cellValues :: [ASLocation] -> Handler (M.Map ASLocation ASValue)
+cellValues :: [ASLocation] -> Handler (Maybe (M.Map ASLocation ASValue))
 cellValues locs = do
   cells <- DB.getCells locs
-  return $ fromList $ map (\cell -> (cellLocation cell, cellValue cell)) cells
+  if any isNothing cells
+    then return Nothing
+    else return $ Just $ M.fromList $ map (\cell -> (cellLocation cell, cellValue cell)) $ map (\(Just x) -> x) $ cells
 
-evalRepl :: String -> Handler ASValue
-evalRepl xp = cellValues deps >>= (\vals -> return $ R.evalPy vals expr)
+{-- TODO
+evalRepl :: String -> Handler (Maybe ASValue)
+evalRepl xp = cellValues deps >>= ((flip R.evalPy) expr)
   where deps = parseDependencies expr
         expr = Expression xp
+        --}

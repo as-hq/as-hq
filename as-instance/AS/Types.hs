@@ -5,11 +5,11 @@ import Database.Persist.TH
 
 -- NOTE: follow excel (col, row) ordering
 data ASLocation = Index {index :: (Int, Int)} | Range {range :: ((Int, Int), (Int, Int))}
-	deriving (Show, Read, Eq, Ord)
+	deriving (Show, Read, Eq, Ord, Generic)
 derivePersistField "ASLocation"
 
 data ASValue = ValueS String | ValueD Double | ValueLD [Double] | ValueLS [String]
-	deriving (Show, Read, Eq)
+	deriving (Show, Read, Eq, Generic)
 derivePersistField "ASValue"
 
 data ASExpression = Expression {expression :: String}
@@ -19,7 +19,7 @@ derivePersistField "ASExpression"
 data ASCell = Cell {cellLocation :: ASLocation, 
 					cellExpression :: ASExpression,
 					cellValue :: ASValue}
-	deriving (Show, Read, Eq)
+	deriving (Show, Read, Eq, Generic)
 
 -- convenience funcs
 

@@ -12,6 +12,8 @@ module AS.DAG (
   , descendants 
   , getSetDescendants
   , getSetAncestors
+  , dbGetSetDescendants
+  , dbGetSetAncestors
   , inverse
   , image
   , reachableSet
@@ -30,32 +32,40 @@ import Control.Monad.RWS hiding (foldM)
 import Data.List (intersect)
 import qualified Data.Set as S  
 import AS.Types
+import AS.DB as DB
 
 -- | A relation represented as a list of tuples.
 type Relation a = [(a,a)]
 
 
--- {--db interaction functions
+{--
+--db interaction functions
 
--- dbPutDAG :: (Eq a) => Relation a -> Handler ()
+dbPutDAG :: Relation ASCell -> Handler ()
+dbPutDAG = mapM_ (runDB . insert . (\edge -> (show . cellLocation . fst $ edge, show . cellLocation . snd $ edge)))
 
--- dbGetDAG :: (Eq a) => Handler (Relation a)
+dbGetDAG :: Handler (Relation ASCell)
+dbGetDAG = do
+  dag <- runDB $ selectList [] []
+  let edges = [ foundEdge | (Entity foundEdgeId foundEdge) <- dag ]
+  return $ map (\edge -> (read . fst $ edge :: ASLocation, read . snd $ edge :: ASLocation)) edges
 
--- dbInteract :: (Eq a) => (Relation a -> b -> Relation a) -> b -> Handler (Relation a)
--- dbInteract f x = do
---   currentDAG <- dbGetDAG
---   let finalDAG = f currentDAG x
---   dbPutDAG finalDAG
---   return finalDAG
+dbInteract :: (Eq a) => (Relation a -> b -> Relation a) -> b -> Handler (Relation a)
+dbInteract f x = do
+   currentDAG <- dbGetDAG
+   let finalDAG = f currentDAG x
+   dbPutDAG finalDAG
+   return finalDAG
 
--- dbInsertDAG :: (Eq a) => (a, [a]) -> Handler (Relation a)
--- dbInsertDAG = dbInteract insertDAG
+dbInsertDAG :: (Eq a) => (a, [a]) -> Handler (Relation a)
+dbInsertDAG = dbInteract insertDAG
 
--- dbDeleteDAG :: (Eq a) => a -> Handler (Relation a)
--- dbDeleteDAG = dbInteract deleteDAG
+dbDeleteDAG :: (Eq a) => a -> Handler (Relation a)
+dbDeleteDAG = dbInteract deleteDAG
 
--- dbUpdateDAG :: (Eq a) => (a, [a]) -> Handler (Relation a)
--- dbUpdateDAG = dbInteract updateDAG--}
+dbUpdateDAG :: (Eq a) => (a, [a]) -> Handler (Relation a)
+dbUpdateDAG = dbInteract updateDAG
+--}
 
 --General notes: we use Data.Set in this implemention; needs ASLocation to derive (Ord) 
 --Only represents edges (dependencies); does not hold the information that B1=2, for example
@@ -126,11 +136,16 @@ descendants node graph = ancestors node (map (\(a,b)->(b,a)) graph) --reverse gr
 getSetDescendants :: (Eq a, Ord a) => [a] -> Relation a -> [[a]]
 getSetDescendants [node] graph = map (\x -> descendants x graph) [node] 
 
+dbGetSetDescendants :: [ASLocation] -> Handler [[ASLocation]]
+dbGetSetDescendants locs = DB.dbGetDAG >>= (return . (getSetDescendants locs))
+
 --given list of nodes, gives ancestors (things that that list depends on)
 --things that first node depends on, followed by things second node depends on, etc. 
 getSetAncestors :: (Eq a, Ord a) => [a] -> Relation a -> [[a]]
 getSetAncestors [node] graph = map (\x -> ancestors x graph) [node] 
 
+dbGetSetAncestors :: [ASLocation] -> Handler [[ASLocation]]
+dbGetSetAncestors locs = DB.dbGetDAG >>= (return . (getSetAncestors locs))
 
 -- | Produce a topological sorting of the given relation. If the relation is
 -- cyclic, then the result is at least some permutation of all elements of

@@ -1,14 +1,20 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module AS.HandlerLibrary where
 
 import Import
+import Data.Aeson
+import Data.String
+import Data.Text
 
 interactHandlerJson :: (FromJSON a, ToJSON b) => String -> (a -> Handler b) -> Handler Value
 interactHandlerJson argName process = do
-  maybeData <- lookupGetParam argName
+  let stringName = fromString argName
+  maybeData <- lookupGetParam stringName
   case maybeData of
-    Nothing -> invalidArgs [argName]
+    Nothing -> invalidArgs [stringName]
     Just paramData ->
-      case (parseJSON paramData) of
-        Nothing -> invalidArgs [argName]
+      case (decode $ fromString $ Data.Text.unpack $ paramData) of
+        Nothing -> invalidArgs [stringName]
         Just procData -> process procData >>= returnJson
 

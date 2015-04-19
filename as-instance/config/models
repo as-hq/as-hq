@@ -10,11 +10,11 @@ Email
     UniqueEmail email
 
 ASFunc
-	alias Text
-	apply Text
-	import Text
-	lang Text
-	deriving Show
+    alias Text
+    apply Text
+    import Text
+    lang Text
+    deriving Show
 
 ASCellDB
     locationString String
@@ -22,5 +22,6 @@ ASCellDB
     valueString String
     deriving Show
 
-ASDAG
-    edge EdgeTuple
+RelationDB
+    firstEndpoint String
+    secondEndpoint String

@@ -51,6 +51,7 @@ library
                 EmptyDataDecls
                 NoMonomorphismRestriction
                 DeriveDataTypeable
+                DeriveGeneric
                 ViewPatterns
                 TupleSections
                 RecordWildCards

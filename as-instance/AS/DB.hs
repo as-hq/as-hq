@@ -12,6 +12,12 @@ toDBCell :: ASCell -> ASCellDB
 toDBCell (Cell l e v) =
 	ASCellDB (show l) (show e) (show v)
 
+fromDBRelation :: RelationDB -> (ASLocation, ASLocation)
+fromDBRelation (RelationDB firstEndpoint secondEndpoint) = (read firstEndpoint :: ASLocation, read secondEndpoint :: ASLocation)
+
+toDBRelation :: (ASLocation, ASLocation) -> RelationDB
+toDBRelation (x, y) = RelationDB (show x) (show y)
+
 getCell :: ASLocation -> Handler (Maybe ASCell)
 getCell loc = do
 	cells <- runDB $ selectList [ASCellDBLocationString ==. show loc] []
@@ -33,6 +39,7 @@ setCell cell = do
 		[] -> (runDB $ insert (toDBCell cell)) >> return ()
 		((Entity cellDBId cellDB):cs) -> (runDB $ replace cellDBId (toDBCell cell)) >> return () 
 
+{--
 -- TODO FIX
 setCells :: [ASCell] -> Handler ()
 setCells cells = setCell $ cells !! 0
@@ -40,7 +47,10 @@ setCells cells = setCell $ cells !! 0
 	 -- runDB $ mapM_ (\cellTuple -> case (fst cellTuple) of 
 	 -- 	[] -> (insert (toDBCell (snd cellTuple))) >> return ()
 	 -- 	((Entity cellId cell):cs) -> (replace cellId (toDBCell (snd cellTuple))) >> return ()) (zip retrievedCells cells)
+--}
 
+setCells :: [ASCell] -> Handler ()
+setCells = mapM_ setCell
 
 deleteCell :: ASLocation -> Handler ()
 deleteCell loc = do
@@ -49,13 +59,29 @@ deleteCell loc = do
 		[] -> return ()
 		((Entity cellDBId cellDB):cs) -> (runDB $ delete cellDBId) >> return ()
 
--- insertRelation :: (Relation a) -> IO ()
+dbInsertSingleRelation :: (ASLocation, ASLocation) -> Handler ()
+dbInsertSingleRelation rel = (runDB . insert . toDBRelation $ rel) >> return ()
 
--- updateRelation :: (Relation a) -> IO ()
+dbInsertRelation :: [(ASLocation, ASLocation)] -> Handler ()
+dbInsertRelation = mapM_ dbInsertSingleRelation
 
--- insertDependency :: (ASCell, ASCell) -> IO ()
+dbDeleteLocationDependencies :: ASLocation -> Handler ()
+dbDeleteLocationDependencies loc = runDB $ deleteWhere [RelationDBFirstEndpoint ==. (show loc)]
 
--- deleteDependency :: ASRelation -> IO ()
+dbUpdateLocationDependencies :: (ASLocation, [ASLocation]) -> Handler ()
+dbUpdateLocationDependencies (loc, deps) =
+  dbDeleteLocationDependencies loc >> dbInsertRelation (zip (repeat loc) deps)
+
+dbInsertDependency :: (ASCell, ASCell) -> Handler ()
+dbInsertDependency (x, y) = dbInsertSingleRelation (cellLocation x, cellLocation y)
+
+dbGetDAG :: Handler [(ASLocation, ASLocation)]
+dbGetDAG = do
+  dag <- runDB $ selectList [] []
+  let edges = [ foundEdge | (Entity foundEdgeId foundEdge) <- dag ]
+  return $ map fromDBRelation edges
+
+-- deleteDependency :: ASRelation -> Handler ()
 
 -- getDependency :: ASCell -> ASCell -> ASRelation
 
