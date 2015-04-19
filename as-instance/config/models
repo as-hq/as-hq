@@ -1,5 +1,3 @@
-import AS.Types
-
 User
     ident Text
     password Text Maybe
@@ -18,10 +16,10 @@ ASFunc
 	lang Text
 	deriving Show
 
-ASCell
-    locationString Text
-    expressionString Text
-    valueString Text
+ASCellDB
+    locationString String
+    expressionString String
+    valueString String
 
 ASDAG
-    edge (ASCell, ASCell)
+    edge EdgeTuple

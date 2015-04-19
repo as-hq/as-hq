@@ -1,36 +1,42 @@
 module AS.DB where
 
 import AS.Types
-import Foundation (runDB)
+import Import
+import Prelude (read, show)
 
-getCell :: ASLocation -> IO (Maybe ASCell)
+fromDBCell :: ASCellDB -> ASCell
+fromDBCell (ASCellDB locationString expressionString valueString) =
+	Cell (read locationString :: ASLocation) (read expressionString :: ASExpression) (read valueString :: ASValue)
+
+toDBCell :: ASCell -> ASCellDB
+toDBCell (Cell l e v) =
+	ASCellDB (show l) (show e) (show v)
+
+getCell :: ASLocation -> Handler (Maybe ASCell)
 getCell loc = do
-	maybeCell <- runDB $ getBy $ ASCellLocation loc
-	return $ case maybeCell of
+	maybeCell <- runDB $ getBy $ aSCellDBLocationString . show $ loc
+	return $ liftIO $ case maybeCell of
 		Nothing -> Nothing
-		Just (Entity cellId cell) -> Just cell
+		Just (Entity cellId cell) -> Just . fromDBCell $ cell
 
-getCells :: [ASLocation] -> IO [ASCell]
+getCells :: [ASLocation] -> Handler [ASCell]
 getCells locs = do
-	cells <- runDB $ [getBy $ ASCellLocation loc | loc->locs]
-	return [cell | (Entity cellId cell) <- cells]
+	cells <- runDB $ [getBy $ aSCellDBLocationString . show $ loc | loc<-locs]
+	return $ liftIO [fromDBCell cell | (Entity cellId cell) <- cells]
 
-setCell :: ASCell -> IO ()
+setCell :: ASCell -> Handler ()
 setCell cell = do
-	maybeCell <- runDB $ getBy $ ASCellLocation $ cellLoc cell
-	return $ case maybeCell of
-		Nothing -> runDB $ insert cell
-		Just (Entity foundCellId foundCell) -> runDB $ replace foundCellId cell 
+	maybeCell <- getCell . cellLocation $ cell
+	case maybeCell of
+		Nothing -> runDB $ insert (toDBCell cell)
+		Just (Entity foundCellDBId foundCellDB) -> runDB $ replace foundCellDBId (toDBCell cell) 
 
-deleteCell :: ASCell -> IO ()
-deleteCell cell = deleteCell $ cellLoc cell
-
-deleteCell :: ASlocation -> IO ()
+deleteCell :: ASLocation -> Handler ()
 deleteCell loc = do
-	maybeCell <- runDB $ getBy $ ASCellLocation loc
+	maybeCell <- runDB $ getCell loc
 	case maybeCell of
 		Nothing -> Nothing
-		Just (Entity foundCellId foundCell) -> runDB $ delete foundCellId 
+		Just (Entity foundCellDBId foundCellDB) -> runDB $ delete foundCellDBId 
 
 -- insertRelation :: (Relation a) -> IO ()
 
@@ -42,27 +48,13 @@ deleteCell loc = do
 
 -- getDependency :: ASCell -> ASCell -> ASRelation
 
-putDAG :: IO [(ASCell, ASCell)] -> IO ()
+putDAG :: [(ASCell, ASCell)] -> Handler ()
 putDAG [] = Nothing
-putDAG dag = do
-	mapM_ (\edge -> runDB (insert edge)) dag
+putDAG dag = do 
+	mapM_ (\edge -> runDB . insert . (show . cellLocation . fst $ edge, show . cellLocation . snd $ edge)) dag
 
-getDAG :: IO [(ASCell, ASCell)]
+getDAG :: Handler [(ASLocation, ASLocation)]
 getDAG = do
 	dag <- runDB $ selectList [] []
-	return dag
-
-insertDependency :: (ASCell, ASCell) -> IO ()
-insertDependency edge = runDB $ insert edge
-
-deleteDependency :: (ASCell, ASCell) -> IO ()
-deleteDependency edge = do
-	maybeEdge <- runDB $ getBy $ ASDAGEdge edge
-	case maybeEdge of 
-		Nothing -> Nothing
-		Just (Entity edgeId edge) -> runDB $ delete edgeId
-
--- getDependents :: ASCell -> IO [ASCell]
--- getDependents cell = do
--- 	foundCell <- getCell cell
--- 	runDB $ selectList 
+	let edges = [foundEdge | (Entity foundEdgeId foundEdge) <- dag]
+	return $ map (\edge -> (read . fst $ edge :: ASLocation, read . snd $ edge :: ASLocation)) edges

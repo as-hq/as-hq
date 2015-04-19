@@ -1,13 +1,15 @@
 module AS.Dispatch where
 
 import AS.Types
+import AS.Parsing
 import qualified AS.Eval.Py as R (evalPy)
 import qualified Data.Map as M (insert, empty)
 import qualified AS.DAG as D
 import qualified AS.DB as DB
 import Text.ParserCombinators.Parsec
-
-evalCellSeq :: [ASCell] -> IO [ASValue]
+import Text.Regex.Posix
+ 
+evalCellSeq :: [ASCell] -> Handler [ASValue]
 evalCellSeq = evalChain M.empty
   where
     evalChain :: M.Map ASLocation ASValue -> [ASCell] -> IO [ASValue]
@@ -17,7 +19,7 @@ evalCellSeq = evalChain M.empty
       rest <- evalChain newMp cs
       return (cv:rest)
 
-evalCells :: [ASLocation] -> IO [ASCell]
+evalCells :: [ASLocation] -> Handler [ASCell]
 evalCells locs = do
   ancestors <- D.getSetAncestors locs
   cells <- DB.getCells ancestors
@@ -29,19 +31,19 @@ evalCells locs = do
   DB.saveResults newCells
   return newCells
 
-updateCell :: ASLocation -> ASExpression -> IO [ASCell]
+updateCell :: ASLocation -> ASExpression -> Handler [ASCell]
 updateCell loc xp = do
   descendants <- D.getSetDescendants [loc]
   cell <- DB.getCell loc
   DB.setCell (loc, xp, nilASValue)
   evalCells descendants
 
-cellValues :: [ASLocation] -> IO (M.Map ASLocation ASValue)
+cellValues :: [ASLocation] -> Handler (M.Map ASLocation ASValue)
 cellValues locs = do
   cells <- DB.getCells locs
   return $ fromList $ map (\cell -> (cellLocation cell, cellValue cell)) cells
 
-evalRepl :: String -> IO ASValue
+evalRepl :: String -> Handler ASValue
 evalRepl xp = cellValues deps >>= (\vals -> return $ R.evalPy vals expr)
-  where deps = cellDependencies expr
+  where deps = parseDependencies expr
         expr = Expression xp

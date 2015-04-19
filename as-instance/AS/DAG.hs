@@ -20,14 +20,14 @@ module AS.DAG (
 
 ) where
 
-
+import Import hiding (intersect)
 import Control.Arrow
 import Control.Applicative
-import Control.Monad
-import Control.Monad.Writer
-import Control.Monad.RWS
+import Control.Monad hiding (foldM)
+import Control.Monad.Writer hiding (foldM)
+import Control.Monad.RWS hiding (foldM)
 
-import Data.List
+import Data.List (intersect)
 import qualified Data.Set as S  
 import AS.Types
 
@@ -35,28 +35,27 @@ import AS.Types
 type Relation a = [(a,a)]
 
 
-{--db interaction functions
+-- {--db interaction functions
 
-dbPutDAG :: (Eq a) => Relation a -> IO ()
+-- dbPutDAG :: (Eq a) => Relation a -> Handler ()
 
-dbGetDAG :: (Eq a) => IO (Relation a)
+-- dbGetDAG :: (Eq a) => Handler (Relation a)
 
-dbInteract :: (Eq a) => (Relation a -> b -> Relation a) -> b -> IO (Relation a)
-dbInteract f x = do
-  currentDAG <- dbGetDAG
-  let finalDAG = f currentDAG x
-  dbPutDAG finalDAG
-  return finalDAG
+-- dbInteract :: (Eq a) => (Relation a -> b -> Relation a) -> b -> Handler (Relation a)
+-- dbInteract f x = do
+--   currentDAG <- dbGetDAG
+--   let finalDAG = f currentDAG x
+--   dbPutDAG finalDAG
+--   return finalDAG
 
-dbInsertDAG :: (Eq a) => (a, [a]) -> IO (Relation a)
-dbInsertDAG = dbInteract insertDAG
+-- dbInsertDAG :: (Eq a) => (a, [a]) -> Handler (Relation a)
+-- dbInsertDAG = dbInteract insertDAG
 
-dbDeleteDAG :: (Eq a) => a -> IO (Relation a)
-dbDeleteDAG = dbInteract deleteDAG
+-- dbDeleteDAG :: (Eq a) => a -> Handler (Relation a)
+-- dbDeleteDAG = dbInteract deleteDAG
 
-dbUpdateDAG :: (Eq a) => (a, [a]) -> IO (Relation a)
-dbUpdateDAG = dbInteract updateDAG
---}
+-- dbUpdateDAG :: (Eq a) => (a, [a]) -> Handler (Relation a)
+-- dbUpdateDAG = dbInteract updateDAG--}
 
 --General notes: we use Data.Set in this implemention; needs ASLocation to derive (Ord) 
 --Only represents edges (dependencies); does not hold the information that B1=2, for example
@@ -86,7 +85,8 @@ deleteDAG :: (Eq a) => Relation a -> a -> Relation a
 deleteDAG g node = filter (\(a,b) -> node /= a) g
 
 -- Given ASLocation and list of ASLocations, delete current ASLocation and add new edges
---upon adding x to the dag, we delete all edges of the form (x,y); x depends on new things now
+--upon adding x to the dag, we delete a    Possible fix:
+-- ll edges of the form (x,y); x depends on new things now
 --example originally A1=B1+C1, so we have (A,B) and (A,C)
 -- if update to A1=C1+D1, we need to delete these and add (A,C) and (A,D)
 -- if edge (y,x) exists, we keep it; in above example, if E1=A1 and A1 is changed, keep dependency
@@ -110,10 +110,10 @@ updateDAG g (node, lst)
 -- includes loc as first cell in list
 ancestors :: (Eq a, Ord a) => a -> Relation a -> [a]
 --select things in ts (in order) that are in reach(node)
-ancestors node graph = intersect ts (S.toList reach)
-  where 
-  ts = toposort graph 
-  reach = reachableSet [node] graph 
+ancestors node graph = intersect ts reachList
+  where
+    ts = toposort graph 
+    reachList = S.toList $ reachableSet [node] graph 
 
 -- Given ASLocation loc, returns list of ASLocations that depend on loc
 -- useful for determining what order to update if a given cell is updated

@@ -92,6 +92,8 @@ library
                  , time
                  , parsec
                  , mtl
+                 , regex-posix
+                 , process
 
 executable         as-instance
     if flag(library-only)

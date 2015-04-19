@@ -1,7 +1,8 @@
 module AS.TypesHelper where 
 
 import AS.Types
-import Import
+import Import hiding (index)
+import Prelude ((!!))
 import Text.ParserCombinators.Parsec
 import Data.Char
 
@@ -28,3 +29,4 @@ sameCol cell1 cell2 = (fst (index (cellLocation cell1))) == (fst (index (cellLoc
 
 sameRow :: ASCell -> ASCell -> Bool
 sameRow cell1 cell2  = (snd (index (cellLocation cell1))) == (snd (index (cellLocation cell2)))
+

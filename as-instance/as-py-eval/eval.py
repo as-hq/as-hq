@@ -75,7 +75,7 @@ def scrubExcel(content):
 def exe(scriptPath):
 	with open(scriptPath, 'r') as f:
 		content = scrubExcel(f)
-		content[-1] = 'return ' + content[-1].split('=')[-1]
+		content[-1] = 'print(' + content[-1].split('=')[-1] + ')'
 	with open(scriptPath, 'w') as f: f.writelines(content)
 	execfile(scriptPath)
 	return ValueError('No result produced!')

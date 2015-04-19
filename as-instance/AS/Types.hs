@@ -1,5 +1,6 @@
 module AS.Types where
 
+import Import
 import Database.Persist.TH
 
 -- NOTE: follow excel (col, row) ordering
@@ -11,15 +12,14 @@ data ASValue = ValueS String | ValueD Double | ValueLD [Double] | ValueLS [Strin
 	deriving (Show, Read, Eq)
 derivePersistField "ASValue"
 
+data ASExpression = Expression {expression :: String}
+	deriving (Show, Read, Eq)
+derivePersistField "ASExpression"
+
 data ASCell = Cell {cellLocation :: ASLocation, 
 					cellExpression :: ASExpression,
 					cellValue :: ASValue}
 	deriving (Show, Read, Eq)
-derivePersistField "ASCell"
-
-data ASExpression = Expression {expression :: String}
-	deriving (Show, Read, Eq)
-derivePersistField "ASExpression"
 
 -- convenience funcs
 
