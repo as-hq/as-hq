@@ -1,20 +1,20 @@
-module Handler.EvalDispatch where
+module Handler.Cells where
 
 import Import
-import HandlerLibrary
-import qualified AS.Database as DB
+import AS.HandlerLibrary
+import qualified AS.DB as DB
 import qualified AS.Dispatch as DP
 
-getEvalCellsR :: Handler Value
-getEvalCellsR = interactHandlerJson "cells" process
+getCellsR :: Handler Value
+getCellsR = interactHandlerJson "cells" process
   where process stringCells = do
     let locs = map toLocation stringCells
     evaluatedCells <- liftIO . DP.evalCells $ locs
     liftIO . DB.saveResults $ evaluatedCells
     return . (map cellValue) $ evaluatedCells
 
-putEvalCellR :: Handler Value
-putEvalCellR = interactHandlerJson "cell" process
+putCellsR :: Handler Value
+putCellsR = interactHandlerJson "cell" process
   where process = liftIO . (DP.updateCell <$> cellLocation <*> cellExpression)
 
 getEvalReplR :: Handler Value

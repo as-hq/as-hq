@@ -7,3 +7,5 @@
 / HomeR GET POST
 /eval/#String EvalReplR POST
 /updatedb/#String UpdateDBR POST
+/cells CellsR GET POST PUT
+/clear ClearR GET

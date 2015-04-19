@@ -3,7 +3,7 @@
 -- License     : GPL v3 (see LICENSE)
 -- 
 -- Maintainer  : Simon Meier <iridcode@gmail.com>
-module ASDAG ( 
+module AS.DAG ( 
     Relation
   , insertDAG
   , deleteDAG

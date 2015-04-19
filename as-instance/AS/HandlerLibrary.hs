@@ -1,4 +1,4 @@
-module HandlerLibrary where
+module AS.HandlerLibrary where
 
 import Import
 

@@ -1,31 +1,18 @@
-module Dispatch where
+module AS.Dispatch where
 
-import qualified Handler.EvalRepl as R (evalPy)
+import AS.Types
+import qualified AS.Eval.Py as R (evalPy)
 import qualified Data.Map as M (insert, empty)
-import qualified Dag as D
-import qualified Database as DB
+import qualified AS.DAG as D
+import qualified AS.DB as DB
 import Text.ParserCombinators.Parsec
-
-toValue :: String -> ASValue
-
-toLocation :: String -> ASLocation
-toLocation = parse locationParser
-  where
-    letterIndex :: Char -> Int
-    letterIndex x = ord x - ord 'a'
-
-    locationParser :: Parser (Int, Int)
-    locationParser = do
-      firstIdx <- fmap letterIndex $ letter
-      secondIdx <- fmap read $ many digit
-      return (firstIdx, secondIdx)
 
 evalCellSeq :: [ASCell] -> IO [ASValue]
 evalCellSeq = evalChain M.empty
   where
     evalChain :: M.Map ASLocation ASValue -> [ASCell] -> IO [ASValue]
     evalChain mp (c:cs) = do
-      cv <- R.evalPy mp (expression c)
+      cv <- R.evalPy mp (cellExpression c)
       let newMp = M.insert (cellLocation c) cv mp
       rest <- evalChain newMp cs
       return (cv:rest)
@@ -35,7 +22,10 @@ evalCells locs = do
   ancestors <- D.getSetAncestors locs
   cells <- DB.getCells ancestors
   results <- evalCellSeq cells
-  let newCells = zip3 (map cellLocation cell) (map cellExpression cell) results
+  let newCells = Cell <$>
+                 ZipList (map cellLocation cell) <*>
+                 ZipList (map cellExpression cell) <*>
+                 ZipList results
   DB.saveResults newCells
   return newCells
 

@@ -17,12 +17,21 @@ library
                      Foundation
                      Import
                      Import.NoFoundation
+                     AS.Eval.Py
+                     AS.DAG
+                     AS.DB
+                     AS.Dispatch
+                     AS.HandlerLibrary
+                     AS.Types
                      Model
                      Settings
                      Settings.StaticFiles
                      Handler.Common
                      Handler.Home
                      Handler.UpdateDB
+                     Handler.Cells
+                     Handler.Clear
+                     
 
     if flag(dev) || flag(library-only)
         cpp-options:   -DDEVELOPMENT
@@ -89,7 +98,7 @@ executable         as-instance
 
     main-is:           main.hs
     hs-source-dirs:    app
-    build-depends:     base, as-test
+    build-depends:     base
 
     ghc-options:       -threaded -O2 -rtsopts -with-rtsopts=-N
 
