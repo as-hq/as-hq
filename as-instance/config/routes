@@ -6,3 +6,4 @@
 
 / HomeR GET POST
 /eval/#String EvalReplR POST
+/updatedb/#String UpdateDBR POST
