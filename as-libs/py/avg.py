@@ -1,2 +1,2 @@
-def avg(mylist):
-	return sum(myList)/len(myList)
+def avg(myList):
+	return sum(myList)/float(len(myList))

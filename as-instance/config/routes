@@ -8,3 +8,4 @@
 /updatedb/#String UpdateDBR POST
 /cells CellsR GET POST PUT
 /clear ClearR GET
+/libs LibsR GET POST

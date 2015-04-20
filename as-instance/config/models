@@ -12,7 +12,7 @@ Email
 ASFunc
     alias Text
     apply Text
-    import Text
+    path Text
     lang Text
     deriving Show
 

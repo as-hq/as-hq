@@ -20,11 +20,6 @@ evalPy dict expr = do
 	let matches = map (\(a,b) -> (toExcel a, showValue b)) (Data.Map.toList dict)
 	scrubbed <- scrubCmd $ replaceSubstrings (expression expr) matches
 	let filepath = py_run_path ++ scrubbed
-	-- contents <- readFile filepath
-	-- py_initialize
-	-- mapM_ (\x -> pyImport x) (snd scrubbed) 
-	-- obj <- pyRun_String ("exe("++filepath++")") (Py_file_input py_eval_file) (map (\(_,b,c)->(b,c)) matches)
-	-- return $ haskToASValue . fromPyObject $ obj
 	let execCmd = "python "++py_eval_file++" "++filepath 
 	$(logInfo) $ "EVALPY with command: " ++ (fromString $ show execCmd)
 	result <- liftIO $ eval execCmd
@@ -60,18 +55,19 @@ scrubCmd cmd = do
 	let edited = replaceAliases cmd vf
 	$(logInfo) $ "EVALPY with edited cmd: " ++ (fromString $ show edited)
 	contents <- Import.readFile $ py_eval_path ++ "template.py"
-	let contents' = (unlines (map (\x -> "import "++x++"\n") (snd edited))) ++ contents
+	let contents' = (unlines (map (\x -> "execfile(\""++x++"\")\n") (snd edited))) ++ contents
 	let contents'' = contents' ++ "\n" ++ (fst edited)
 	$(logInfo) $ "EVALPY with cmd'': " ++ (fromString $ show contents'')
 	Import.writeFile (py_eval_path++"run/temp.py") contents''
 	return "temp.py"
 
--- takes (1) cmd string, (2) tuples [(alias, identifier, import)]
--- return tuple (cmd', [import])
+-- takes (1) cmd string, (2) tuples [(alias, apply, path)]
+-- return tuple (cmd', [libpaths])
 replaceAliases :: String -> [ASFunc] -> (String, [String])
 replaceAliases cmd [] = (cmd, [])
 replaceAliases cmd matches = 
-	(replaceSubstrings cmd (map (\f->(unpack (aSFuncAlias f), unpack (aSFuncApply f))) presentStubs), 
-	map (\f-> unpack (aSFuncImport f)) presentStubs)
+	(replaceSubstrings cmd (map toReplacingImports presentStubs), 
+	map (\f-> unpack (aSFuncPath f)) presentStubs)
 		where 
+			toReplacingImports = (\f->(unpack (aSFuncAlias f), unpack (aSFuncApply f)))
 			presentStubs = filter (\x -> isInfixOf (unpack (aSFuncAlias x)) cmd) matches

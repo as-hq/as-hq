@@ -1,5 +1,4 @@
-testVal = "test!"; 
+execfile("/home/hal/code/alphasheets/as-libs/py/avg.py")
 
-
-# JOIN COMMAND HERE
-print(10.0+1)
+#ADD COMMANDS HERE
+print(avg([1,2]) + avg([4,7.6967697]))

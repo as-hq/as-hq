@@ -1,3 +1,5 @@
+{-# LANGUAGE FlexibleInstances #-}
+
 module Model where
 
 import ClassyPrelude.Yesod
@@ -15,3 +17,18 @@ type EdgeTuple = (Text, Text)
 let mongoSettings = (mkPersistSettings (ConT ''MongoContext))
  in share [mkPersist mongoSettings]
     $(persistFileWith upperCaseSettings "config/models")
+
+instance ToJSON (Entity ASFunc) where
+    toJSON (Entity funcId (ASFunc alias apply path lang)) = object
+        [ "alias" .= alias
+        , "apply" .= apply
+        , "path" .= path
+        , "lang" .= lang
+        ]
+instance FromJSON ASFunc where
+    parseJSON (Object o) = ASFunc
+        <$> o .: "alias"
+        <*> o .: "apply"
+        <*> o .: "path"
+        <*> o .: "lang"
+    parseJSON _ = fail "Invalid func declaration"

@@ -105,3 +105,22 @@ dbGetDAG = do
 -- 	dag <- runDB $ selectList [] []
 -- 	let edges = [foundEdge | (Entity foundEdgeId foundEdge) <- dag]
 -- 	return $ map (\edge -> (read . fst $ edge :: ASLocation, read . snd $ edge :: ASLocation)) edges
+
+setFunc :: ASFunc -> Handler ()
+setFunc func = do
+	funcs <- runDB $ selectList [ASFuncAlias ==. aSFuncAlias func] []
+	case funcs of 
+		[] -> (runDB $ insert func) >> return ()
+		((Entity foundFuncId foundFunc):funcs) -> (runDB $ replace foundFuncId func) >> return ()
+
+deleteFunc :: String -> Handler ()
+deleteFunc aliasStr = do
+	funcs <- runDB $ selectList [ASFuncAlias ==. pack aliasStr] []
+	case funcs of 
+		[] -> return ()
+		((Entity foundFuncId foundFunc):funcs) -> (runDB $ delete foundFuncId) >> return ()
+
+getFuncs :: Handler [ASFunc]
+getFuncs = do
+	result <- runDB $ selectList [] []
+	return [func | (Entity funcId func) <- result]

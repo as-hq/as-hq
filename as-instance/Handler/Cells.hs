@@ -35,3 +35,20 @@ getEvalReplR :: Handler Value
 getEvalReplR = interactHandlerJson "expression" process
   where process = liftIO . DP.evalRepl
         --}
+
+
+-- JSON Syntax: 
+
+-- {
+--     "cellLocation": {
+--       "tag": "Index",
+--       "range": []
+--     },
+--     "cellExpression": {
+--       "expression": "A1+1"
+--     },
+--     "cellValue": {
+--       "tag": "ValueS",
+--       "contents": "poop"
+--     }
+-- }
