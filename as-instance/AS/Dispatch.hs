@@ -52,6 +52,11 @@ cellValues locs = do
     then return Nothing
     else return $ Just $ M.fromList $ map (\cell -> (cellLocation cell, cellValue cell)) $ map (\(Just x) -> x) $ cells
 
+insertCell :: ASLocation -> ASExpression -> Handler (Maybe [ASCell])
+insertCell loc xp = do
+  DB.setCell $ Cell loc xp (ValueS "NaN")
+  evalCells (parseDependencies xp)
+
 {-- TODO
 evalRepl :: String -> Handler (Maybe ASValue)
 evalRepl xp = cellValues deps >>= ((flip R.evalPy) expr)

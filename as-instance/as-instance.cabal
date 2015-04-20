@@ -102,7 +102,7 @@ executable         as-instance
 
     main-is:           main.hs
     hs-source-dirs:    app
-    build-depends:     base
+    build-depends:     base, as-instance
 
     ghc-options:       -threaded -O2 -rtsopts -with-rtsopts=-N
 

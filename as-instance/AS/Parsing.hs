@@ -55,3 +55,8 @@ replaceSubstrings m (x:xs) = replaceSubstrings (unpack scrubbed) xs
 
 lastN :: Int -> [a] -> [a]
 lastN n xs = let m = length xs in drop (m-n) xs
+
+decomposeLocs :: ASLocation -> [ASLocation]
+decomposeLocs loc = case loc of 
+  (Index a) -> [loc]
+  (Range (ul, lr)) -> [Index (x,y) | x <- [(fst ul)..(fst lr)], y <- [(snd ul)..(snd lr)] ]

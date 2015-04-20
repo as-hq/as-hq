@@ -1,7 +1,8 @@
 module AS.DB where
 
 import AS.Types
-import Import
+import AS.Parsing
+import Import hiding (index)
 import Prelude (read, show, (!!))
 
 fromDBCell :: ASCellDB -> ASCell
@@ -34,10 +35,19 @@ getCells locs = do
 
 setCell :: ASCell -> Handler ()
 setCell cell = do
-	cells <- runDB $ selectList [ASCellDBLocationString ==. show (cellLocation cell)] []
-	case cells of
-		[] -> (runDB $ insert (toDBCell cell)) >> return ()
-		((Entity cellDBId cellDB):cs) -> (runDB $ replace cellDBId (toDBCell cell)) >> return () 
+	let loc = cellLocation cell
+	case loc of 
+		(Index a) -> do
+			cells <- runDB $ selectList [ASCellDBLocationString ==. show loc] []
+			case cells of 
+				[] -> (runDB $ insert (toDBCell cell)) >> return ()
+				((Entity cellDBId cellDB):cs) -> (runDB $ replace cellDBId (toDBCell cell)) >> return () 
+		(Range a) -> do
+			let locs = zip (decomposeLocs loc) [0..]
+			let vals = case (cellValue cell) of 
+				(ValueLD a) -> map ValueD a
+				(ValueLS a) -> map ValueS a
+			setCells [Cell (fst l) (Expression ((indexToExcel . index $ fst l) ++ "[" ++ show (snd l) ++ "]")) (vals !! (snd l)) | l<-locs]
 
 {--
 -- TODO FIX

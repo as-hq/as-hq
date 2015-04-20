@@ -22,6 +22,10 @@ putCellsR :: Handler Value
 putCellsR = interactHandlerJson "cell" process
   where process = DP.updateCell <$> cellLocation <*> cellExpression
 
+postCellsR :: Handler Value
+postCellsR = interactHandlerJson "cell" process
+  where process = DP.insertCell <$> cellLocation <*> cellExpression
+
 {--
 getEvalReplR :: Handler Value
 getEvalReplR = interactHandlerJson "expression" process
