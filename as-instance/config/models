@@ -11,8 +11,9 @@ Email
 
 ASFunc
     alias Text
-    apply Text
+    replace Text
     path Text
+    apply Text
     lang Text
     deriving Show
 

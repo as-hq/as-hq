@@ -55,19 +55,19 @@ scrubCmd cmd = do
 	let edited = replaceAliases cmd vf
 	$(logInfo) $ "EVALPY with edited cmd: " ++ (fromString $ show edited)
 	contents <- Import.readFile $ py_eval_path ++ "template.py"
-	let contents' = (unlines (map (\x -> "execfile(\""++x++"\")\n") (snd edited))) ++ contents
+	let contents' = (unlines (map (\(apply, path) -> apply++"(\""++path++"\")\n") (snd edited))) ++ contents
 	let contents'' = contents' ++ "\n" ++ (fst edited)
 	$(logInfo) $ "EVALPY with cmd'': " ++ (fromString $ show contents'')
 	Import.writeFile (py_eval_path++"run/temp.py") contents''
 	return "temp.py"
 
 -- takes (1) cmd string, (2) tuples [(alias, apply, path)]
--- return tuple (cmd', [libpaths])
-replaceAliases :: String -> [ASFunc] -> (String, [String])
+-- return tuple (cmd', [(applicative command, func path)])
+replaceAliases :: String -> [ASFunc] -> (String, [(String, String)])
 replaceAliases cmd [] = (cmd, [])
 replaceAliases cmd matches = 
 	(replaceSubstrings cmd (map toReplacingImports presentStubs), 
-	map (\f-> unpack (aSFuncPath f)) presentStubs)
+	map (\f-> (unpack (aSFuncApply f), unpack (aSFuncPath f))) presentStubs)
 		where 
-			toReplacingImports = (\f->(unpack (aSFuncAlias f), unpack (aSFuncApply f)))
+			toReplacingImports = (\f->(unpack (aSFuncAlias f), unpack (aSFuncReplace f)))
 			presentStubs = filter (\x -> isInfixOf (unpack (aSFuncAlias x)) cmd) matches
