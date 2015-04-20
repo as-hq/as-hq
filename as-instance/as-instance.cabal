@@ -22,7 +22,9 @@ library
                      AS.DB
                      AS.Dispatch
                      AS.HandlerLibrary
+                     AS.Parsing
                      AS.Types
+                     AS.TypesHelper
                      Model
                      Settings
                      Settings.StaticFiles
