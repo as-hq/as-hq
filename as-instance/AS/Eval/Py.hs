@@ -10,14 +10,14 @@ import Control.Applicative
 import System.IO                                             
 import System.Process   
 
-py_eval_path = "/home/hal/code/alphasheets-progress/as-test/as-py-eval/"
+py_eval_path = "/home/hal/code/alphasheets/as-instance/as-py-eval/"
 py_run_path = py_eval_path ++ "run/"
 py_eval_file = py_eval_path ++ "eval.py"
 
 -- use this method
 evalPy :: Map ASLocation ASValue -> ASExpression -> Handler ASValue
 evalPy dict expr = do
-	let matches = map (\(a,b) -> (toExcel a, show b)) (Data.Map.toList dict)
+	let matches = map (\(a,b) -> (toExcel a, showValue b)) (Data.Map.toList dict)
 	scrubbed <- scrubCmd $ replaceSubstrings (expression expr) matches
 	let filepath = py_run_path ++ scrubbed
 	-- contents <- readFile filepath
@@ -25,20 +25,17 @@ evalPy dict expr = do
 	-- mapM_ (\x -> pyImport x) (snd scrubbed) 
 	-- obj <- pyRun_String ("exe("++filepath++")") (Py_file_input py_eval_file) (map (\(_,b,c)->(b,c)) matches)
 	-- return $ haskToASValue . fromPyObject $ obj
-	(inn, out, err, idd) <- liftIO $ runInteractiveCommand $ "python "++filepath   
-	mapM_ (liftIO . ((flip hSetBinaryMode) False)) [inn, out]             
-	liftIO $ hSetBuffering inn LineBuffering                          
-	liftIO $ hSetBuffering out NoBuffering                            
-	parsedIntro <- liftIO $ parseUntilPrompt out                      
-	return $ ValueS . unlines $ parsedIntro
+	let execCmd = "python "++py_eval_file++" "++filepath 
+	$(logInfo) $ "EVALPY with command: " ++ (fromString $ show execCmd)
+	result <- liftIO $ eval execCmd
+	return $ parseValue (filter (/= '\n') result)
 
-parseUntilPrompt :: Handle -> IO [String]                    
-parseUntilPrompt out = do                                    
-	latest <- System.IO.hGetLine out                                     
-	if latest == ""                                            
-		then return []                                           
-		else (:) <$> return latest <*> parseUntilPrompt out
-
+eval :: String -> IO String
+eval s = do 
+	(_,hOutput,_,hProcess) <- runInteractiveCommand s
+	sOutput <- System.IO.hGetContents hOutput
+	foldr seq (waitForProcess hProcess) sOutput
+	return sOutput
 
 -- convenience method for string-only cmd, i.e. in evalRepl route
 -- evalPy :: String -> IO a
@@ -57,12 +54,16 @@ parseUntilPrompt out = do
 scrubCmd :: String -> Handler String
 scrubCmd "" = return "No command specified."
 scrubCmd cmd = do
+	$(logInfo) $ "EVALPY with init cmd: " ++ (fromString $ show cmd)
 	validFuncs <- runDB $ selectList [] []
 	let vf = [func | (Entity funcId func) <- validFuncs]
 	let edited = replaceAliases cmd vf
+	$(logInfo) $ "EVALPY with edited cmd: " ++ (fromString $ show edited)
 	contents <- Import.readFile $ py_eval_path ++ "template.py"
-	let contents' = (unlines (map (\x -> "import "++x++"\n") (snd edited))) ++ contents ++ (fst edited) ++ "\n"
-	Import.writeFile (py_eval_path++"run/temp.py") contents'
+	let contents' = (unlines (map (\x -> "import "++x++"\n") (snd edited))) ++ contents
+	let contents'' = contents' ++ "\n" ++ (fst edited)
+	$(logInfo) $ "EVALPY with cmd'': " ++ (fromString $ show contents'')
+	Import.writeFile (py_eval_path++"run/temp.py") contents''
 	return "temp.py"
 
 -- takes (1) cmd string, (2) tuples [(alias, identifier, import)]

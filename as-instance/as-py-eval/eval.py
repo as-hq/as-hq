@@ -1,12 +1,13 @@
 import re
-from pymongo import MongoClient
+# from pymongo import MongoClient
+import sys
 
-client = MongoClient('localhost', 27017)
-db = client.asinstance
-collection = db.ASCell # ensure db is migrated to include ASCell collection
+# client = MongoClient('localhost', 27017)
+# db = client.asinstance
+# collection = db.ASCell # ensure db is migrated to include ASCell collection
 
-def cells(a,b):
-    collection
+# def cells(a,b):
+#     collection
 
 
 def py_eval(cells,expression):
@@ -73,11 +74,13 @@ def scrubExcel(content):
 
 
 def exe(scriptPath):
-	with open(scriptPath, 'r') as f:
-		content = scrubExcel(f)
-		content[-1] = 'print(' + content[-1].split('=')[-1] + ')'
-	with open(scriptPath, 'w') as f: f.writelines(content)
-	execfile(scriptPath)
-	return ValueError('No result produced!')
+    with open(scriptPath, 'r') as f:
+		# content = scrubExcel(f)
+        content = f.readlines()
+        content[-1] = 'print(' + content[-1].split('=')[-1] + ')'
+    with open(scriptPath, 'w') as f: f.writelines(content)
+    execfile(scriptPath)
 
 
+if __name__ == "__main__":
+    exe(sys.argv[1])

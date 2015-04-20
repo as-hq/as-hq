@@ -53,6 +53,8 @@ makeFoundation appSettings = do
         (if appMutableStatic appSettings then staticDevel else static)
         (appStaticDir appSettings)
 
+        -- Create the database connection pool
+    appConnPool <- createPoolConfig $ appDatabaseConf appSettings
     return App {..}
 
 -- | Convert our foundation to a WAI Application by calling @toWaiAppPlain@ and

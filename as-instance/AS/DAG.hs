@@ -38,34 +38,28 @@ import AS.DB as DB
 type Relation a = [(a,a)]
 
 
-{--
---db interaction functions
-
-dbPutDAG :: Relation ASCell -> Handler ()
-dbPutDAG = mapM_ (runDB . insert . (\edge -> (show . cellLocation . fst $ edge, show . cellLocation . snd $ edge)))
-
-dbGetDAG :: Handler (Relation ASCell)
-dbGetDAG = do
-  dag <- runDB $ selectList [] []
-  let edges = [ foundEdge | (Entity foundEdgeId foundEdge) <- dag ]
-  return $ map (\edge -> (read . fst $ edge :: ASLocation, read . snd $ edge :: ASLocation)) edges
-
-dbInteract :: (Eq a) => (Relation a -> b -> Relation a) -> b -> Handler (Relation a)
-dbInteract f x = do
-   currentDAG <- dbGetDAG
-   let finalDAG = f currentDAG x
-   dbPutDAG finalDAG
-   return finalDAG
-
-dbInsertDAG :: (Eq a) => (a, [a]) -> Handler (Relation a)
-dbInsertDAG = dbInteract insertDAG
-
-dbDeleteDAG :: (Eq a) => a -> Handler (Relation a)
-dbDeleteDAG = dbInteract deleteDAG
-
-dbUpdateDAG :: (Eq a) => (a, [a]) -> Handler (Relation a)
-dbUpdateDAG = dbInteract updateDAG
---}
+-- {--
+-- --db interaction functions
+-- dbPutDAG :: Relation ASCell -> Handler ()
+-- dbPutDAG = mapM_ (runDB . insert . (\edge -> (show . cellLocation . fst $ edge, show . cellLocation . snd $ edge)))
+-- dbGetDAG :: Handler (Relation ASCell)
+-- dbGetDAG = do
+--   dag <- runDB $ selectList [] []
+--   let edges = [ foundEdge | (Entity foundEdgeId foundEdge) <- dag ]
+--   return $ map (\edge -> (read . fst $ edge :: ASLocation, read . snd $ edge :: ASLocation)) edges
+-- dbInteract :: (Eq a) => (Relation a -> b -> Relation a) -> b -> Handler (Relation a)
+-- dbInteract f x = do
+--    currentDAG <- dbGetDAG
+--    let finalDAG = f currentDAG x
+--    dbPutDAG finalDAG
+--    return finalDAG
+-- dbInsertDAG :: (Eq a) => (a, [a]) -> Handler (Relation a)
+-- dbInsertDAG = dbInteract insertDAG
+-- dbDeleteDAG :: (Eq a) => a -> Handler (Relation a)
+-- dbDeleteDAG = dbInteract deleteDAG
+-- dbUpdateDAG :: (Eq a) => (a, [a]) -> Handler (Relation a)
+-- dbUpdateDAG = dbInteract updateDAG
+-- --}
 
 --General notes: we use Data.Set in this implemention; needs ASLocation to derive (Ord) 
 --Only represents edges (dependencies); does not hold the information that B1=2, for example
@@ -78,8 +72,8 @@ dbUpdateDAG = dbInteract updateDAG
 insertDAGNoCycles :: (Eq a, Ord a) => Relation a -> (a, [a]) -> Relation a
 insertDAGNoCycles g (node, []) = g 
 insertDAGNoCycles g (node, (adj0:rest)) 
-	|elem (node,adj0) g || node==adj0 = insertDAGNoCycles g (node,rest) --don't add duplicate edges
-	|otherwise = (node,adj0):(insertDAGNoCycles g (node,rest))
+  |elem (node,adj0) g || node==adj0 = insertDAGNoCycles g (node,rest) --don't add duplicate edges
+  |otherwise = (node,adj0):(insertDAGNoCycles g (node,rest))
 
 --same as above, but deals with circular references
 insertDAG :: (Eq a, Ord a) => Relation a -> (a,[a]) -> Relation a
@@ -142,7 +136,7 @@ dbGetSetDescendants locs = DB.dbGetDAG >>= (return . (getSetDescendants locs))
 --given list of nodes, gives ancestors (things that that list depends on)
 --things that first node depends on, followed by things second node depends on, etc. 
 getSetAncestors :: (Eq a, Ord a) => [a] -> Relation a -> [[a]]
-getSetAncestors [node] graph = map (\x -> ancestors x graph) [node] 
+getSetAncestors locs graph = map (\x -> ancestors x graph) locs 
 
 dbGetSetAncestors :: [ASLocation] -> Handler [[ASLocation]]
 dbGetSetAncestors locs = DB.dbGetDAG >>= (return . (getSetAncestors locs))
@@ -197,3 +191,12 @@ image x rel = [ y' | (x', y') <- rel, x == x' ]
 -- | The inverse of a 'Relation'.
 inverse :: Relation a -> Relation a
 inverse rel = [ (y,x) | (x, y) <- rel ]
+-- Given ASLocation loc, returns list of ASLocations that loc depends on
+-- includes loc as first cell in list
+-- ancestors :: (Eq a, Ord a) => a -> Relation a -> [a]
+-- --select things in ts (in order) that are in reach(node)
+-- ancestors node graph = intersect ts r
+--   $(logInfo) $ "ancestors computed: " ++ (fromString $ show ancestors)eachList
+--   where
+--     ts = toposort graph 
+--     reachList = S.toList $ reachableSet [node] graph 

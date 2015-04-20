@@ -2,19 +2,22 @@
 
 module AS.HandlerLibrary where
 
-import Import
+import Import hiding (toStrict, toLazyText)
 import Data.Aeson
+import Data.Aeson.Encode
 import Data.String
 import Data.Text
+import Data.Text.Lazy (toStrict)
+import Data.Text.Lazy.Builder (toLazyText)
 
-interactHandlerJson :: (FromJSON a, ToJSON b) => String -> (a -> Handler b) -> Handler Value
-interactHandlerJson argName process = do
-  let stringName = fromString argName
-  maybeData <- lookupGetParam stringName
-  case maybeData of
-    Nothing -> invalidArgs [stringName]
-    Just paramData ->
-      case (decode $ fromString $ Data.Text.unpack $ paramData) of
-        Nothing -> invalidArgs [stringName]
-        Just procData -> process procData >>= returnJson
-
+interactHandlerJson :: (FromJSON a, ToJSON a, ToJSON b) => (a -> Handler b) -> Handler Value
+interactHandlerJson process = parseJsonBody >>= \obj ->
+	case obj of
+	    Error s -> do
+	    	$(logInfo) $ "Error: " ++ (fromString s)
+	    	invalidArgs []
+	    Success procData -> do
+	    	$(logInfo) $ "procData: " ++ (toStrict . toLazyText . encodeToTextBuilder . toJSON $ procData)
+	    	result <- process procData
+	    	$(logInfo) $ "Success: " ++ (toStrict . toLazyText . encodeToTextBuilder . toJSON $ result)
+	    	returnJson result

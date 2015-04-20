@@ -49,15 +49,15 @@ setCell cell = do
 				(ValueLS a) -> map ValueS a
 			setCells [Cell (fst l) (Expression ((indexToExcel . index $ fst l) ++ "[" ++ show (snd l) ++ "]")) (vals !! (snd l)) | l<-locs]
 
-{--
--- TODO FIX
-setCells :: [ASCell] -> Handler ()
-setCells cells = setCell $ cells !! 0
-	 -- retrievedCells <- runDB $ mapM_ (\cell -> selectList [ASCellDBLocationString ==. show (cellLocation cell)] []) cells
-	 -- runDB $ mapM_ (\cellTuple -> case (fst cellTuple) of 
-	 -- 	[] -> (insert (toDBCell (snd cellTuple))) >> return ()
-	 -- 	((Entity cellId cell):cs) -> (replace cellId (toDBCell (snd cellTuple))) >> return ()) (zip retrievedCells cells)
---}
+-- {--
+-- -- TODO FIX
+-- setCells :: [ASCell] -> Handler ()
+-- setCells cells = setCell $ cells !! 0
+-- 	 -- retrievedCells <- runDB $ mapM_ (\cell -> selectList [ASCellDBLocationString ==. show (cellLocation cell)] []) cells
+-- 	 -- runDB $ mapM_ (\cellTuple -> case (fst cellTuple) of 
+-- 	 -- 	[] -> (insert (toDBCell (snd cellTuple))) >> return ()
+-- 	 -- 	((Entity cellId cell):cs) -> (replace cellId (toDBCell (snd cellTuple))) >> return ()) (zip retrievedCells cells)
+-- --}
 
 setCells :: [ASCell] -> Handler ()
 setCells = mapM_ setCell

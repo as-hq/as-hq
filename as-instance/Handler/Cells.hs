@@ -7,7 +7,7 @@ import qualified AS.DB as DB
 import qualified AS.Dispatch as DP
 
 getCellsR :: Handler Value
-getCellsR = interactHandlerJson "cells" process
+getCellsR = interactHandlerJson process
   where
     process :: [ASCell] -> Handler [ASValue]
     process stringCells =
@@ -19,12 +19,16 @@ getCellsR = interactHandlerJson "cells" process
           Just justCells -> return . (map cellValue) $ justCells
 
 putCellsR :: Handler Value
-putCellsR = interactHandlerJson "cell" process
+putCellsR = interactHandlerJson process
   where process = DP.updateCell <$> cellLocation <*> cellExpression
 
 postCellsR :: Handler Value
-postCellsR = interactHandlerJson "cell" process
-  where process = DP.insertCell <$> cellLocation <*> cellExpression
+postCellsR = interactHandlerJson process
+  where
+    process cell = do
+      result <- DP.insertCell (cellLocation cell) (cellExpression cell)
+      $(logInfo) $ (fromString $ show result)
+      return result
 
 {--
 getEvalReplR :: Handler Value
