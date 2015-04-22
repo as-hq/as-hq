@@ -18,11 +18,18 @@ py_eval_file = py_eval_path ++ "eval.py"
 evalPy :: Map ASLocation ASValue -> ASExpression -> Handler ASValue
 evalPy dict expr = do
 	let matches = map (\(a,b) -> (toExcel a, showValue b)) (Data.Map.toList dict)
-	scrubbed <- scrubCmd $ replaceSubstrings (expression expr) matches
+
+	$(logInfo) $ "EVALPY with MATCHES: " ++ (fromString $ show dict)
+
+	let expr' = excelRangesToLists $ expression expr
+	scrubbed <- scrubCmd $ replaceSubstrings expr' matches
+
 	let filepath = py_run_path ++ scrubbed
 	let execCmd = "python "++py_eval_file++" "++filepath 
+
 	$(logInfo) $ "EVALPY with command: " ++ (fromString $ show execCmd)
 	result <- liftIO $ eval execCmd
+
 	return $ parseValue (filter (/= '\n') result)
 
 eval :: String -> IO String

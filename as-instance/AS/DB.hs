@@ -36,18 +36,20 @@ getCells locs = do
 setCell :: ASCell -> Handler ()
 setCell cell = do
 	let loc = cellLocation cell
+	cells <- runDB $ selectList [ASCellDBLocationString ==. show loc] []
+	case cells of 
+		[] -> (runDB $ insert (toDBCell cell)) >> return ()
+		((Entity cellDBId cellDB):cs) -> (runDB $ replace cellDBId (toDBCell cell)) >> return ()
 	case loc of 
-		(Index a) -> do
-			cells <- runDB $ selectList [ASCellDBLocationString ==. show loc] []
-			case cells of 
-				[] -> (runDB $ insert (toDBCell cell)) >> return ()
-				((Entity cellDBId cellDB):cs) -> (runDB $ replace cellDBId (toDBCell cell)) >> return () 
 		(Range a) -> do
 			let locs = zip (decomposeLocs loc) [0..]
+			$(logInfo) $ (fromString $ show $ cellValue cell)
 			let vals = case (cellValue cell) of 
-				(ValueLD a) -> map ValueD a
-				(ValueLS a) -> map ValueS a
+				(ValueNaN ()) -> repeat $ ValueNaN ()
+				(ValueLD b) -> map ValueD b
+				(ValueLS b) -> map ValueS b
 			setCells [Cell (fst l) (Expression ((indexToExcel . index $ fst l) ++ "[" ++ show (snd l) ++ "]")) (vals !! (snd l)) | l<-locs]
+		otherwise -> return ()
 
 -- {--
 -- -- TODO FIX

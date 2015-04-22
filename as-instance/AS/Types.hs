@@ -13,7 +13,7 @@ data ASLocation = Index {index :: (Int, Int)} | Range {range :: ((Int, Int), (In
 instance ToJSON ASLocation
 instance FromJSON ASLocation
 
-data ASValue = ValueS String | ValueD Double | ValueLD [Double] | ValueLS [String]
+data ASValue = ValueNaN () | ValueS String | ValueD Double | ValueLD [Double] | ValueLS [String]
 	deriving (Show, Read, Eq, Generic)
 
 instance ToJSON ASValue

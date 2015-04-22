@@ -128,7 +128,7 @@ descendants node graph = ancestors node (map (\(a,b)->(b,a)) graph) --reverse gr
 --given list of nodes, gives descendents (things that depend on that list) 
 --things that depend on first node, followed by things that depend on 2nd node, etc. 
 getSetDescendants :: (Eq a, Ord a) => [a] -> Relation a -> [[a]]
-getSetDescendants [node] graph = map (\x -> descendants x graph) [node] 
+getSetDescendants locs graph = map (\x -> descendants x graph) locs 
 
 dbGetSetDescendants :: [ASLocation] -> Handler [[ASLocation]]
 dbGetSetDescendants locs = DB.dbGetDAG >>= (return . (getSetDescendants locs))

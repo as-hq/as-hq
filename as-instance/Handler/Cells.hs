@@ -6,6 +6,11 @@ import AS.Types
 import qualified AS.DB as DB
 import qualified AS.Dispatch as DP
 
+optionsCellsR :: Handler RepPlain
+optionsCellsR = do
+    addCorsHeaders
+    return $ RepPlain $ toContent ("" :: Text)
+
 getCellsR :: Handler Value
 getCellsR = interactHandlerJson process
   where
@@ -20,13 +25,13 @@ getCellsR = interactHandlerJson process
 
 putCellsR :: Handler Value
 putCellsR = interactHandlerJson process
-  where process = DP.updateCell <$> cellLocation <*> cellExpression
+  where process = DP.propagateCell <$> cellLocation <*> cellExpression
 
 postCellsR :: Handler Value
 postCellsR = interactHandlerJson process
   where
     process cell = do
-      result <- DP.insertCell (cellLocation cell) (cellExpression cell)
+      result <- DP.propagateCell (cellLocation cell) (cellExpression cell)
       $(logInfo) $ (fromString $ show result)
       return result
 

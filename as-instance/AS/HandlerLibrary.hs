@@ -10,8 +10,14 @@ import Data.Text
 import Data.Text.Lazy (toStrict)
 import Data.Text.Lazy.Builder (toLazyText)
 
+addCorsHeaders :: Handler ()
+addCorsHeaders = do
+    addHeader "Access-Control-Allow-Origin" "*"
+    addHeader "Access-Control-Allow-Headers" "Origin, X-Requested-With, Content-Type, Accept"
+    addHeader "Access-Control-Allow-Methods" "PUT, POST, GET, OPTIONS"
+
 interactHandlerJson :: (FromJSON a, ToJSON a, ToJSON b) => (a -> Handler b) -> Handler Value
-interactHandlerJson process = parseJsonBody >>= \obj ->
+interactHandlerJson process = addCorsHeaders >> parseJsonBody >>= \obj ->
 	case obj of
 	    Error s -> do
 	    	$(logInfo) $ "Error: " ++ (fromString s)

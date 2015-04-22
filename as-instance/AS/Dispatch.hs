@@ -7,6 +7,8 @@ import qualified AS.Eval.Py as R (evalPy)
 import qualified Data.Map as M
 import qualified AS.DAG as D
 import qualified AS.DB as DB
+import Data.List (elemIndex)
+import Data.Maybe (fromJust)
 import Text.ParserCombinators.Parsec
 import Text.Regex.Posix
 import Control.Applicative
@@ -17,7 +19,7 @@ evalCellSeq = evalChain M.empty
     evalChain :: M.Map ASLocation ASValue -> [ASCell] -> Handler [ASValue]
     evalChain _ [] = return []
     evalChain mp (c:cs) = do
-      cv <- R.evalPy mp (cellExpression c)
+      cv <- R.evalPy mp (cellExpression c) --TODO: handle c being range
       $(logInfo) $ (fromString $ show cv)
       let newMp = M.insert (cellLocation c) cv mp
       rest <- evalChain newMp cs
@@ -30,7 +32,7 @@ evalCells locs = do
   ancestors <- fmap (concat . (zipWith (:) locs)) $ D.dbGetSetAncestors locs
   $(logInfo) $ "ancestors computed: " ++ (fromString $ show ancestors)
   cells <- DB.getCells ancestors
-  $(logInfo) $ "got cells"
+  $(logInfo) $ "got cells: " ++ (fromString $ show cells)
   if any isNothing cells
     then return Nothing
     else do
@@ -44,13 +46,6 @@ evalCells locs = do
       DB.setCells newCells
       return $ Just newCells
 
-updateCell :: ASLocation -> ASExpression -> Handler (Maybe [ASCell])
-updateCell loc xp = do
-  descendants <- fmap concat $ D.dbGetSetDescendants [loc]
-  cell <- DB.getCell loc
-  DB.setCell $ Cell loc xp (ValueS "NaN")
-  evalCells (loc:descendants)
-
 cellValues :: [ASLocation] -> Handler (Maybe (M.Map ASLocation ASValue))
 cellValues locs = do
   cells <- DB.getCells locs
@@ -58,18 +53,27 @@ cellValues locs = do
     then return Nothing
     else return $ Just $ M.fromList $ map (\cell -> (cellLocation cell, cellValue cell)) $ map (\(Just x) -> x) $ cells
 
-insertCell :: ASLocation -> ASExpression -> Handler (Maybe [ASCell])
-insertCell loc xp = do
-  $(logInfo) $ "insertCell: " ++ (fromString $ show loc) ++ ";" ++ (fromString $ show xp) 
-  let cell = Cell loc xp (ValueS "NaN")
-  DB.setCell $ cell
-  $(logInfo) $ "Cell set!"
-  let deps = parseDependencies xp
-  $(logInfo) $ "Dependencies: " ++ (fromString $ show deps)
-  result <- evalCells (deps ++ [loc])
-  $(logInfo) $ (fromString $ show result)
-  return result
+updateCell :: (ASLocation, ASExpression) -> Handler ()
+updateCell (loc, xp) =
+  DB.dbUpdateLocationDependencies (loc, deps) >> (DB.setCell $ Cell loc xp (ValueNaN ()))
+    where 
+      deps = normalizeRanges $ parseDependencies xp
 
+reevaluateCell :: ASLocation -> ASExpression -> Handler (Maybe [ASCell])
+reevaluateCell loc xp = do
+  let rdeps = normalizeRanges $ parseDependencies xp
+  descendants <- fmap concat $ D.dbGetSetDescendants $ [loc]
+  evalCells (rdeps ++ [loc] ++ descendants)
+
+propagateCell :: ASLocation -> ASExpression -> Handler (Maybe [ASCell])
+propagateCell loc xp = do
+  updateCell (loc, xp)
+  case loc of
+    Range (p1, p2) -> do
+      let ele = decomposeLocs loc
+      mapM_ (\eleLoc -> updateCell (eleLoc, Expression ((expression xp)++"["++(show $ fromJust $ elemIndex eleLoc ele)++"]"))) ele --TODO expression
+    otherwise -> return ()
+  reevaluateCell loc xp
 {-- TODO
 evalRepl :: String -> Handler (Maybe ASValue)
 evalRepl xp = cellValues deps >>= ((flip R.evalPy) expr)

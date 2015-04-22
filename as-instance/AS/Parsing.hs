@@ -10,10 +10,18 @@ import Data.Maybe
 import Data.Char
 import qualified Data.Text.Lazy (replace)
 
+deleteEmpty = filter ((/=) "")
+
+normalizeRanges :: [ASLocation] -> [ASLocation]
+normalizeRanges locs = do
+  loc <- locs
+  case loc of
+    Range (p1, p2) -> decomposeLocs loc
+    Index i        -> return loc
+
 parseDependencies :: ASExpression -> [ASLocation]
 parseDependencies expr = (map fromExcel rangeMatches) ++ (map fromExcel cellMatches)
   where
-    deleteEmpty = filter ((/=) "")
     rangeMatches = deleteEmpty $ regexList (expression expr) "([A-Z][0-9]:[A-Z][0-9])"
     cellMatches = deleteEmpty $ regexList noRangeExpr ("[A-Z][0-9]")
     	where
@@ -82,7 +90,18 @@ isDouble :: String -> Bool
 isDouble str = and . map (\c -> (isDigit c) || (c == '.')) $ str
 
 isDoubleList :: String -> Bool
-isDoubleList str = (and . map (\c -> (isDigit c) || (isSpace c) || (c == ',') || (c == '[') || (c == ']')) $ str) && (elem '[' str)
+isDoubleList str = (and . map (\c -> (isDigit c) || (isSpace c) || (c == ',') || (c == '.') || (c == '[') || (c == ']')) $ str) && (elem '[' str)
 
 isStringList :: String -> Bool
 isStringList str = (and . map (\c -> (isAlpha c) || (isSpace c) || (c == ',') || (c == '[') || (c == ']')) $ str) && (elem '[' str)
+
+excelRngToIdxs :: String -> String
+excelRngToIdxs rng = "["++(Prelude.init $ concat myList)++"]" 
+  where 
+    myList = [x:y:',':[] | x<-[(rng !! 0)..(rng !! 3)], y<-[(rng !! 1)..(rng !! 4)]]
+
+excelRangesToLists :: String -> String
+excelRangesToLists str = replaceSubstrings str (zip toReplace replaceWith)
+  where
+    toReplace = deleteEmpty $ regexList str "([A-Z][0-9]:[A-Z][0-9])"
+    replaceWith = map excelRngToIdxs toReplace
