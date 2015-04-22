@@ -59,21 +59,47 @@ updateCell (loc, xp) =
     where 
       deps = normalizeRanges $ parseDependencies xp
 
-reevaluateCell :: ASLocation -> ASExpression -> Handler (Maybe [ASCell])
-reevaluateCell loc xp = do
+createRangeCell :: (ASLocation, ASExpression) -> Handler ()
+createRangeCell (loc, xp) =
+  case loc of
+    Range (a,b) -> do
+      let eleLocs = decomposeLocs loc
+      mapM_ putElement eleLocs 
+        where
+          putElement x = updateCell (Index x, Expression $ (expression xp) ++ (idxRep $ Index x))
+          idxRep x
+            | fst a == fst b = "["++(show $ fst hd)++"]"
+            | otherwise      = "["++ (show $ fst hd)++"]["++(show $ snd hd)++"]"
+              where
+                hd = hammingDistance (Index a) x
+    otherwise -> return ()
+
+reevaluateCell :: (ASLocation, ASExpression) -> Handler (Maybe [ASCell])
+reevaluateCell (loc, xp) = do
   let rdeps = normalizeRanges $ parseDependencies xp
   descendants <- fmap concat $ D.dbGetSetDescendants $ [loc]
-  evalCells (rdeps ++ [loc] ++ descendants)
+  mCellResults <- evalCells (rdeps ++ [loc] ++ descendants)
+  case mCellResults of 
+    Just cellResults -> do
+      case loc of 
+        Index a -> do
+          let hammingDist = maxHammingDistance $ map cellLocation cellResults
+          let rng = Range (a, (fst a + fst hammingDist, snd a + snd hammingDist))
+          createRangeCell (rng, xp)
+          -- TODO: get this range cell
+          -- TODO: put the value we got in cellResults into this range cell
+          -- TODO: return these results
+        otherwise -> return ()
+      return $ Just cellResults
+    Nothing -> return Nothing
+  -- here, check if evalCells actually returns a list, but our loc is only an index. if it is, then create megacell, set expression to xp,
+    -- and call rangeCellCreate
 
 propagateCell :: ASLocation -> ASExpression -> Handler (Maybe [ASCell])
 propagateCell loc xp = do
   updateCell (loc, xp)
-  case loc of
-    Range (p1, p2) -> do
-      let ele = decomposeLocs loc
-      mapM_ (\eleLoc -> updateCell (eleLoc, Expression ((expression xp)++"["++(show $ fromJust $ elemIndex eleLoc ele)++"]"))) ele --TODO expression
-    otherwise -> return ()
-  reevaluateCell loc xp
+  createRangeCell (loc, xp)
+  reevaluateCell (loc, xp)
 {-- TODO
 evalRepl :: String -> Handler (Maybe ASValue)
 evalRepl xp = cellValues deps >>= ((flip R.evalPy) expr)

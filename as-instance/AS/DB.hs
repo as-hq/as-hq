@@ -42,7 +42,7 @@ setCell cell = do
 		((Entity cellDBId cellDB):cs) -> (runDB $ replace cellDBId (toDBCell cell)) >> return ()
 	case loc of 
 		(Range a) -> do
-			let locs = zip (decomposeLocs loc) [0..]
+			let locs = zip (map Index $ decomposeLocs loc) [0..]
 			$(logInfo) $ (fromString $ show $ cellValue cell)
 			let vals = case (cellValue cell) of 
 				(ValueNaN ()) -> repeat $ ValueNaN ()
