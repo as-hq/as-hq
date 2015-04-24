@@ -79,6 +79,8 @@ dbInsertRelation = mapM_ dbInsertSingleRelation
 dbDeleteLocationDependencies :: ASLocation -> Handler ()
 dbDeleteLocationDependencies loc = runDB $ deleteWhere [RelationDBFirstEndpoint ==. (show loc)]
 
+--TODO: also delete dependencies with expressions that are references
+
 dbUpdateLocationDependencies :: (ASLocation, [ASLocation]) -> Handler ()
 dbUpdateLocationDependencies (loc, deps) =
   dbDeleteLocationDependencies loc >> dbInsertRelation (zip (repeat loc) deps)

@@ -25,12 +25,15 @@ normalizeRanges locs = do
     Index i        -> return loc
 
 parseDependencies :: ASExpression -> [ASLocation]
-parseDependencies expr = (map fromExcel rangeMatches) ++ (map fromExcel cellMatches)
-  where
-    rangeMatches = deleteEmpty $ regexList (expression expr) "([A-Z][0-9]:[A-Z][0-9])"
-    cellMatches = deleteEmpty $ regexList noRangeExpr ("[A-Z][0-9]")
-    	where
-    		noRangeExpr = replaceSubstrings (expression expr) (zip rangeMatches (repeat ""))
+parseDependencies expr =
+  case expr of
+    Expression e -> (map fromExcel rangeMatches) ++ (map fromExcel cellMatches)
+      where
+        rangeMatches = deleteEmpty $ regexList e "([A-Z][0-9]:[A-Z][0-9])"
+        cellMatches = deleteEmpty $ regexList noRangeExpr ("[A-Z][0-9]")
+          where
+            noRangeExpr = replaceSubstrings e (zip rangeMatches (repeat ""))
+    Reference r _ -> [r]
 
 toExcel :: ASLocation -> String
 toExcel loc = case loc of 

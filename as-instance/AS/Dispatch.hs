@@ -3,27 +3,63 @@ module AS.Dispatch where
 import AS.Types
 import AS.Parsing
 import Import
-import qualified AS.Eval.Py as R (evalPy)
+import qualified AS.Eval.Py as R (evalExpression)
 import qualified Data.Map as M
 import qualified AS.DAG as D
 import qualified AS.DB as DB
-import Data.List (elemIndex)
+import Data.List (elemIndex, tail)
+import qualified Data.List (head)
 import Data.Maybe (fromJust)
 import Text.ParserCombinators.Parsec
 import Text.Regex.Posix
 import Control.Applicative
- 
-evalCellSeq :: [ASCell] -> Handler [ASValue]
+
+evalCellSeq :: [ASCell] -> Handler [ASCell]
 evalCellSeq = evalChain M.empty
   where
-    evalChain :: M.Map ASLocation ASValue -> [ASCell] -> Handler [ASValue]
+    evalChain :: M.Map ASLocation ASValue -> [ASCell] -> Handler [ASCell]
     evalChain _ [] = return []
     evalChain mp (c:cs) = do
-      cv <- R.evalPy mp (cellExpression c) --TODO: handle c being range
+      let xp  = cellExpression c
+          loc = cellLocation c
+      cv <- R.evalExpression mp xp
+      additionalCells <- case loc of
+        Index (a, b) -> case cv of
+          ValueL lst -> createListCells (Index (a, b)) lst
+          otherwise -> return []
+        otherwise -> return []
       $(logInfo) $ (fromString $ show cv)
       let newMp = M.insert (cellLocation c) cv mp
       rest <- evalChain newMp cs
-      return (cv:rest)
+      return $ [Cell loc xp cv] ++ additionalCells ++ rest
+
+createListCells :: ASLocation -> [ASValue] -> Handler [ASCell]
+createListCells (Index (a, b)) [] = return []
+createListCells (Index (a, b)) (x:xs) =
+  case x of
+    ValueL lst ->
+      do
+        a <- mapM process $ tail matchedFirstRow
+        b <- mapM processList $ tail matched
+        return $ a ++ concat b
+      where
+        numCols = length lst
+        matchedFirstRow = zip [(a + i, b) | i <- [0..numCols-1]] lst
+        processList ((col, row), ValueL val) = mapM process $ zip [(a + i, b) | i <- [0..numCols-1]] val
+    otherwise ->
+      mapM process $ tail matched
+  where
+    process ((col, row), val) = do
+      let loc  = Index (col, row)
+          cell = Cell loc (Reference origLoc (col - a, row - b)) val
+      DB.dbUpdateLocationDependencies (loc, [origLoc])
+      DB.setCell cell
+      return cell
+    matched  = zip [(a, b + i) | i <- [0..numRows-1]] values
+    origLoc  = Index (a, b - 1)
+    numRows  = length values
+    values   = x:xs
+
 
 --TODO change dbGetSetAncestors to have no flattening
 evalCells :: [ASLocation] -> Handler (Maybe [ASCell])
@@ -39,12 +75,8 @@ evalCells locs = do
       let filterCells = map (\(Just x) -> x) cells
       $(logInfo) $ "filtered cells: " ++ (fromString $ show filterCells)
       results <- evalCellSeq filterCells
-      let ZipList newCells = Cell <$>
-                             ZipList (map cellLocation filterCells) <*>
-                             ZipList (map cellExpression filterCells) <*>
-                             ZipList results
-      DB.setCells newCells
-      return $ Just newCells
+      DB.setCells results
+      return $ Just results
 
 cellValues :: [ASLocation] -> Handler (Maybe (M.Map ASLocation ASValue))
 cellValues locs = do
@@ -59,8 +91,16 @@ updateCell (loc, xp) =
     where 
       deps = normalizeRanges $ parseDependencies xp
 
-reevaluateCell :: ASLocation -> ASExpression -> Handler (Maybe [ASCell])
-reevaluateCell loc xp = do
+createRangeCells :: (ASLocation, ASExpression) -> Handler ()
+createRangeCells (loc, xp) =
+  case loc of
+    Range (p1, p2) -> do
+      let ele = decomposeLocs loc
+      mapM_ (\eleLoc -> updateCell (eleLoc, Expression ((expression xp)++"["++(show $ fromJust $ elemIndex eleLoc ele)++"]"))) ele --TODO expression
+    otherwise -> return ()
+
+reevaluateCell :: (ASLocation, ASExpression) -> Handler (Maybe [ASCell])
+reevaluateCell (loc, xp) = do
   let rdeps = normalizeRanges $ parseDependencies xp
   descendants <- fmap concat $ D.dbGetSetDescendants $ [loc]
   evalCells (rdeps ++ [loc] ++ descendants)
@@ -68,12 +108,9 @@ reevaluateCell loc xp = do
 propagateCell :: ASLocation -> ASExpression -> Handler (Maybe [ASCell])
 propagateCell loc xp = do
   updateCell (loc, xp)
-  case loc of
-    Range (p1, p2) -> do
-      let ele = decomposeLocs loc
-      mapM_ (\eleLoc -> updateCell (eleLoc, Expression ((expression xp)++"["++(show $ fromJust $ elemIndex eleLoc ele)++"]"))) ele --TODO expression
-    otherwise -> return ()
-  reevaluateCell loc xp
+  createRangeCells (loc, xp)
+  reevaluateCell (loc, xp)
+
 {-- TODO
 evalRepl :: String -> Handler (Maybe ASValue)
 evalRepl xp = cellValues deps >>= ((flip R.evalPy) expr)

@@ -4,7 +4,8 @@ import AS.Types
 import AS.TypesHelper
 import AS.Parsing
 import Import
-import qualified Data.Map
+import qualified Data.Map as M
+import qualified Data.List as L
 import qualified Data.Text.Lazy (replace)
 import Control.Applicative                                   
 import System.IO                                             
@@ -14,10 +15,22 @@ py_eval_path = "/home/hal/code/alphasheets/as-instance/as-py-eval/"
 py_run_path = py_eval_path ++ "run/"
 py_eval_file = py_eval_path ++ "eval.py"
 
+evalExpression :: Map ASLocation ASValue -> ASExpression -> Handler ASValue
+evalExpression dict expr =
+  case expr of
+    Expression _ -> evalPy dict expr
+    Reference _ _ -> evalRef dict expr
+
+evalRef :: Map ASLocation ASValue -> ASExpression -> Handler ASValue
+evalRef dict (Reference l (a, b)) = return $ row L.!! a
+  where
+    ValueL row = lst L.!! b
+    ValueL lst = dict M.! l
+
 -- use this method
 evalPy :: Map ASLocation ASValue -> ASExpression -> Handler ASValue
 evalPy dict expr = do
-	let matches = map (\(a,b) -> (toExcel a, showValue b)) (Data.Map.toList dict)
+	let matches = map (\(a,b) -> (toExcel a, showValue b)) (M.toList dict)
 
 	$(logInfo) $ "EVALPY with MATCHES: " ++ (fromString $ show dict)
 

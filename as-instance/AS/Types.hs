@@ -24,7 +24,9 @@ data ASValue =
 instance ToJSON ASValue
 instance FromJSON ASValue
 
-data ASExpression = Expression {expression :: String}
+data ASExpression =
+  Expression { expression :: String } |
+  Reference { location :: ASLocation, referenceIndex :: (Int, Int) }
 	deriving (Show, Read, Eq, Generic)
 
 instance ToJSON ASExpression
