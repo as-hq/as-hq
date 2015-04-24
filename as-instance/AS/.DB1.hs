@@ -46,7 +46,7 @@ setCell cell = do
 			$(logInfo) $ (fromString $ show $ cellValue cell)
 			let vals = case (cellValue cell) of
 				(ValueNaN ()) -> repeat $ ValueNaN ()
-				(ValueL b) -> b
+        (ValueL b) -> b
 			setCells [Cell (fst l) (Expression ((indexToExcel . index $ fst l) ++ "[" ++ show (snd l) ++ "]")) (vals !! (snd l)) | l<-locs]
 		otherwise -> return ()
 

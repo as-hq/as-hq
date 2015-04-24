@@ -1,13 +1,18 @@
 module AS.Parsing where
 
-import Import
-import qualified Prelude 
-import Prelude ((!!))
+import Import hiding ((<|>))
+import qualified Prelude
+import Prelude ((!!), read)
 import AS.Types
 import Text.Regex.Posix
 import Data.List (elemIndex)
 import Data.Maybe
 import Data.Char
+import qualified Data.Text as T
+import Text.Parsec
+import Text.Parsec.Text
+import Control.Applicative hiding ((<|>), many)
+import qualified Data.Map as M
 import qualified Data.Text.Lazy (replace)
 
 deleteEmpty = filter ((/=) "")
@@ -72,28 +77,68 @@ decomposeLocs loc = case loc of
   (Index a) -> [loc]
   (Range (ul, lr)) -> [Index (x,y) | x <- [(fst ul)..(fst lr)], y <- [(snd ul)..(snd lr)] ]
 
+--Parsing values
+
+(<++>) a b = (++) <$> a <*> b
+(<:>) a b  = (:) <$> a <*> b
+
+double :: Parser Double
+double = fmap rd $ int <++> dec
+  where
+    rd      = read :: String -> Double
+    number  = many1 digit
+    plus    = char '+' *> number
+    minus   = char '-' <:> number
+    int     = plus <|> minus <|> number
+    dec     = option "" $ char '.' <:> number
+
+valueD :: Parser ASValue
+valueD = ValueD <$> double
+
+valueS :: Parser ASValue
+valueS = ValueS <$> (between quote quote $ many $ noneOf ['"'])
+  where
+    quote = char '"'
+
+valueL :: Parser ASValue
+valueL = ValueL <$> (brackets $ sepBy asValue (comma >> spaces))
+  where
+    brackets  = between (char '[') (char ']')
+    comma     = char ','
+
+styledValue :: Parser ASValue
+styledValue = extractValue <$> extractMap
+  where
+    extractValue m  = StyledValue s v
+      where
+        ValueS s    = m M.! "style"
+        v           = m M.! "value"
+    braces          = between (char '{') (char '}')
+    comma           = char ','
+    colon           = char ':'
+    dictEntry       = do
+      ValueS str <- valueS <* (colon >> spaces)
+      dictValue <- asValue
+      return (str, dictValue)
+    extractMap      = M.fromList <$> (braces $ sepBy dictEntry (comma >> spaces))
+
+asValue :: Parser ASValue
+asValue = choice [valueD, valueS, valueL, styledValue, return $ ValueNaN ()]
+
 showValue :: ASValue -> String
-showValue (ValueS str) = str
-showValue (ValueD d) = show d
-showValue (ValueLD ld) = show ld
-showValue (ValueLS ls) = show ls
+showValue v = case v of
+  ValueNaN () -> "undefined"
+  ValueS s -> s
+  ValueD d -> show d
+  ValueL l -> "[" ++ (intercalate "," (fmap showValue l)) ++ "]"
+  StyledValue s v -> showValue v
 
 parseValue :: String -> ASValue
-parseValue str 
-  | str == "" = ValueS ""
-  | isDouble str = ValueD (Prelude.read str :: Double)
-  | isDoubleList str = ValueLD (Prelude.read str :: [Double])
-  | isStringList str = ValueLS (Prelude.read str :: [String])
-  | otherwise = ValueS str
+parseValue = fromRight . (parse asValue "") . T.pack
+  where
+    fromRight (Right v) = v
 
-isDouble :: String -> Bool
-isDouble str = and . map (\c -> (isDigit c) || (c == '.')) $ str
-
-isDoubleList :: String -> Bool
-isDoubleList str = (and . map (\c -> (isDigit c) || (isSpace c) || (c == ',') || (c == '.') || (c == '[') || (c == ']')) $ str) && (elem '[' str)
-
-isStringList :: String -> Bool
-isStringList str = (and . map (\c -> (isAlpha c) || (isSpace c) || (c == ',') || (c == '[') || (c == ']')) $ str) && (elem '[' str)
+--parsing ranges
 
 excelRngToIdxs :: String -> String
 excelRngToIdxs rng = "["++(Prelude.init $ concat myList)++"]" 
