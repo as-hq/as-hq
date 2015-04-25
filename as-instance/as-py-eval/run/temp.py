@@ -1,2 +1,2 @@
 #ADD COMMANDS HERE
-print(4)
+print([1,2,3])
