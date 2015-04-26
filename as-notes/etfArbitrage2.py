@@ -51,7 +51,7 @@ def profStrat(buy, sell,name):
         strat = "Maybe: "+strat
     if profit>0.10: #margin is suspiciously high
         profit = 0
-        strat = "Possible Data Error"
+        strat = "Possible Data Error: "+name
     return [profit, strat] 
 
 

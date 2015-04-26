@@ -12,7 +12,34 @@ fees: nx2 matrix of creation and redemption fees for each ETF
 '''
 
 '''
-IN SPREADSHEET (IGNORE, LOOK AT OO VERSION)
+IN SPREADSHEET:
+B2 = readData("etfData.txt",4,3)["ETFs"]
+B6 = readData("etfData.txt",4,3)["Weights"]
+B11 = readData("etfData.txt",4,3)["Fees"]
+
+G2 = readData("etfData.txt",4,3)["ORDs"]
+G6 = readData("etfData.txt",4,3)["Conversion Rate"]
+G11 = etfArb(B2:E4,G2:I4,B6:E9,B11:E13,G6) should be a 4x2 matrix
+
+Manually fill:
+A2="ETF"
+A3="Bid"
+A4="Ask"
+A6="RDSA LN"
+A7="HSBC LN
+A8="BP LN"
+A11="Fees"
+A12="Create"
+A13="Redeem"
+F2="ORDs"
+F3="Bid"
+F4="Ask"
+'''
+
+
+
+'''
+old (ignore)
 A2 = readData("etfData.txt",4,3)["ETFs"]
 A7 = readData("etfData.txt",4,3)["ORDs"]
 A11 = readData("etfData.txt",4,3)["Conversion Rate"]
@@ -21,7 +48,7 @@ E7 = readData("etfData.txt",4,3)["Fees"]
 J2 = etfArb(B2:C5,B7:C9,F2:H5,F7:G10,A11) should be a 4x2 matrix
 this is assuming that B2:C5 will be a list with 4 elements, each of size 2 etc. ; a horizontal-based matrix
 
-Manually fill:
+Manually fill: (old, ignore)
 B1="Bid"
 C1="Ask"
 E1="Weights"
@@ -32,22 +59,28 @@ J1="Strategy"
 
 def computeETFArb(etfPrices, ordPrices, weights, fees, conversionRate):
     profitAndStrategy=[]
+    weights=np.delete(np.array(weights),0,1).astype(np.float)
+    ordPrices=np.delete(np.array(ordPrices),0,1).astype(np.float)
+    print "weights"
+    print weights,np.shape(weights)
+    print "ords"
+    print ordPrices
     for etf in range(len(etfPrices)): #buy at the ask price, sell at the bid price
-        buyETF = -etfPrices[etf][1] + (ordImpliedETFPrice(ordPrices,weights)[etf][1])/conversionRate - fees[etf][1]
-        sellETF = etfPrices[etf][0] - (ordImpliedETFPrice(ordPrices,weights)[etf][0])/conversionRate - fees[etf][0]
-        profitAndStrategy.append(profStrat(buyETF,sellETF))
+        buyETF = -etfPrices[etf][2] + (ordImpliedETFPrice(ordPrices,weights)[etf][1])/conversionRate - fees[etf][2]
+        sellETF = etfPrices[etf][1] - (ordImpliedETFPrice(ordPrices,weights)[etf][0])/conversionRate - fees[etf][1]
+        profitAndStrategy.append(profStrat(buyETF,sellETF, etfPrices[etf][0]))
     return profitAndStrategy
 
 # takes in the profits from buying and selling the ETF, inteprets them correctly
 # conditioning is transparant; errors are easy to detect
-def profStrat(buy, sell):
+def profStrat(buy, sell, name):
     strat=""
     profit = 0 
     if buy>sell and buy>0:
-        strat = "Buy ETF, Sell ORDs"
+        strat = "Buy "+name+", Sell ORDs"
         profit = buy
     elif sell>buy and sell>0:
-        strat = "Sell ETF, Buy ORDs"
+        strat = "Sell "+name+", Buy ORDs"
         profit = sell
     else: #neither strategy is profitable
         return [0,"Nothing"]
@@ -55,20 +88,20 @@ def profStrat(buy, sell):
         strat = "Maybe: "+strat
     if profit>0.10: #margin is suspiciously high
         profit = 0
-        strat = "Possible Data Error"
+        strat = "Possible Data Error: " + name
     return [profit, strat] 
 
 # takes in the best bids/offers and weights, returns the implied prices
 def ordImpliedETFPrice(ordPrices, weights):
-    impliedBids = np.dot(np.array(weights), np.array(ordPrices)[:,1]) #weights*offers for adrs
-    impliedOffers = np.dot(np.array(weights), np.array(ordPrices)[:,0]) #weights*bid for adrs
+    impliedBids = np.dot(weights, ordPrices[:,1]) #weights*offers for adrs
+    impliedOffers = np.dot(weights, ordPrices[:,0]) #weights*bid for adrs 
     return np.column_stack((impliedBids,impliedOffers))
 
 # takes in the output/strats from computeETFArb and formats/processes it
 def etfArb(etfPrices, ordPrices, weights, fees, conversionRate):
     strats = computeETFArb(etfPrices, ordPrices, weights, fees , conversionRate)
     strats=[[math.ceil(x*1000.0)/1000.0,y] for [x,y] in strats]
-    return strats
+    return map(list,zip(*sorted(strats,key=lambda x:-x[0]))) #for display
     #TODO: color max profit green, color <0.01 orange, color>.10 red
 
 def readData(name,n,k):
