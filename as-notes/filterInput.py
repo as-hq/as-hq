@@ -27,6 +27,7 @@ def modifiedTickData (good, tickData):
             reasonablePrices.append(reasonablePrices[i-1])
     return reasonablePrices
 
+# returns a list of data
 def readData(name):
     with open(name) as f:
         data=f.readlines()
@@ -37,6 +38,7 @@ def readData(name):
 IN SPREAD6SHEET 
 A1 = readData("crazyData.txt")
 B1 = filterTickData(A1:A12,2,10)
+Assumes that A1:A12 will be a normal python list
 '''
 
 '''

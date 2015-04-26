@@ -26,13 +26,14 @@ def dataInp(name,nDays):
     with open(name) as f:
         data = f.readlines()
         x=[[data[i][:-1]]+[float(x) for x in data[i:i+nDays][1:]] for i in range(0,len(data),nDays)]
-    return x
+    return x 
 
 '''
 IN SPREADSHEET
 A1=dataInp("stockData.txt",14) (should fill A1:E14)
 F1=0.02
-G1=markovitz([x[1:] for x in dataInp("stockData.txt",14)],F1) (5 elem list)
+G1=markovitz(A2:E14,F1) (5 elem list)
+	assumes that A2:E14 will be a list of 5 elems, each elem is a 13-elem list
 '''
 '''
 Example (not real data)

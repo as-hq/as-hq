@@ -4,6 +4,7 @@
 
 def pivotTable(data, rows, cols, value, aggregator):
     # value is a column name
+    data=map(list,zip(*data)) #transpose
     rowList=True
     colList=True
     if not isinstance(rows,list):
@@ -43,12 +44,12 @@ def pivotTable(data, rows, cols, value, aggregator):
         else:
             answer[0][colIndex+1]=c[0]
     answer[0][0]="PTable"
-    return answer
+    return map(list,zip(*answer)) #for display
 
 
 '''
 IN SPREADSHEET (data from txt file not really needed here)
-A1=[["A","B","C","D"],[1,2,5,"hi"],[1,2,6,"bye"],[1,3,7,"bye"],[1,3,8,"bye"],[2,3,9,"hi"],[2,3,10,"hi"]]
+A1=[["A",1,1,1,1,2,2],["B",2,2,3,3,3,3],["C",5,6,7,8,9,10],["D","hi","bye","bye","bye","hi","hi"]]
 F1=pivotTable(A1:D7,["A","D"],"B","C",lambda x: sum(x))
 [['PTable', '[2]', '[3]'], ["[1, 'bye']", 6, 15], ["[1, 'hi']", 5, 'NoData'], ["[2, 'hi']", 'NoData', 19]]
 

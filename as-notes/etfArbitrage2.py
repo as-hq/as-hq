@@ -22,7 +22,7 @@ F1 = [x.ask for x in A]
 H1,I1,J1 = same as above, but for B (to get ORDs)
 
 
-L1=e2.etfArb(A1:A4,C1) (should be a 4x2 matrix); expects A1:A4 to be a list of etf objects
+L1=e2.etfArb(A1:A4,C1) (should be a 4x2 matrix)
 '''
 
 def computeETFArb(etfs, conversionRate):
@@ -61,7 +61,7 @@ def etfArb(etfs, conversionRate):
     #sort strategies in decreasing order of profit
     #this isn't transparent in excel
     strats=[[math.ceil(x*1000.0)/1000.0,y] for [x,y] in strats]
-    return sorted(strats,key=lambda x:-x[0])
+    return map(list,zip(*sorted(strats,key=lambda x:-x[0]))) #for display
     #TODO: color max profit green, color <0.01 orange, color>.10 red
 
 #n=num ETFs

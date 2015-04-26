@@ -12,7 +12,7 @@ fees: nx2 matrix of creation and redemption fees for each ETF
 '''
 
 '''
-IN SPREADSHEET 
+IN SPREADSHEET (IGNORE, LOOK AT OO VERSION)
 A2 = readData("etfData.txt",4,3)["ETFs"]
 A7 = readData("etfData.txt",4,3)["ORDs"]
 A11 = readData("etfData.txt",4,3)["Conversion Rate"]

@@ -5,16 +5,18 @@ from numpy import corrcoef, std, array, shape
 # useful for hedging in the market-making business; reduce variance/risk
 
 #takes in a list of lists
-def betas(stockData):
-    numStocks = shape(array(stockData))[1]
+def beta(stockData):
+    #stockData=map(list,zip(*stockData) #transpose
+    numStocks = shape(array(stockData))[0]
     betaMatrix = corrcoef(stockData) #numStocks x numStocks matrix
-    stdevs = std(stockData,axis=0,ddof=1) #sample std for each stock
+    stdevs = std(stockData,axis=1,ddof=1) #sample std for each stock
     for i in range(numStocks):
         for j in range(numStocks): 
             betaMatrix[i][j]*= stdevs[i]/stdevs[j]
-    return betaMatrix.tolist() 
+    return (betaMatrix.T).tolist()  #for display
 
 # 14 days of data for this example
+# returns lists of list; each inner list is a column of data for a stock
 def dataInp(name,nDays):
     with open(name) as f:
         data = f.readlines()
@@ -23,8 +25,7 @@ def dataInp(name,nDays):
 
 # IN SPREADSHEET:
     # A1=dataInp("stockData.txt",14) (should fill in A1 to E14)
-    # G1=betas([x[1:] for x in dataInp("stockData.txt",14)]) (should output 5x5 matrix)
-    # I would like to do betas(A2:E14), but I need a list of 5 elems, each with 13 prices. I think A2:E14 will give 13 elem list, each with 5 elements. 
+    # G1=betas(A2:E14) (should output 5x5 matrix)
     
 # in excel, need to do:
 # =CORREL(OFFSET($B$3:$B$50,,ROWS($1:2)-1),OFFSET($B$3:$B$50,,COLUMNS($A:C)-1))
