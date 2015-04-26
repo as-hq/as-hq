@@ -109,13 +109,24 @@ valueL = ValueL <$> (brackets $ sepBy asValue (comma >> spaces))
     brackets  = between (char '[') (char ']')
     comma     = char ','
 
-styledValue :: Parser ASValue
-styledValue = extractValue <$> extractMap
+extractValue :: M.Map String ASValue -> ASValue
+extractValue m =
+  if M.member "style" m
+    then extractStyledValue m
+    else extractDisplayValue m
   where
-    extractValue m  = StyledValue s v
+    extractStyledValue mm = StyledValue s v
       where
         ValueS s    = m M.! "style"
         v           = m M.! "value"
+    extractDisplayValue mm = DisplayValue s v
+      where
+        ValueS s    = m M.! "displayValue"
+        v           = m M.! "actualValue"
+
+styledValue :: Parser ASValue
+styledValue = extractValue <$> extractMap
+  where
     braces          = between (char '{') (char '}')
     comma           = char ','
     colon           = char ':'
@@ -135,6 +146,7 @@ showValue v = case v of
   ValueD d -> show d
   ValueL l -> "[" ++ (intercalate "," (fmap showValue l)) ++ "]"
   StyledValue s v -> showValue v
+  DisplayValue s v -> showValue v
 
 parseValue :: String -> ASValue
 parseValue = fromRight . (parse asValue "") . T.pack

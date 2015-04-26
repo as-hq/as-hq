@@ -18,7 +18,8 @@ data ASValue =
   ValueS String |
   ValueD Double |
   ValueL [ASValue] |
-  StyledValue { style :: String, value :: ASValue }
+  StyledValue { style :: String, value :: ASValue } |
+  DisplayValue { displayValue :: String, actualValue :: ASValue }
 	deriving (Show, Read, Eq, Generic)
 
 instance ToJSON ASValue

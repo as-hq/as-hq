@@ -45,7 +45,7 @@ createListCells (Index (a, b)) (x:xs) =
       where
         numCols = length lst
         matchedFirstRow = zip [(a + i, b) | i <- [0..numCols-1]] lst
-        processList ((col, row), ValueL val) = mapM process $ zip [(a + i, b) | i <- [0..numCols-1]] val
+        processList ((col, row), ValueL val) = mapM process $ zip [(col + i, row) | i <- [0..numCols-1]] val
     otherwise ->
       mapM process $ tail matched
   where
@@ -56,7 +56,7 @@ createListCells (Index (a, b)) (x:xs) =
       DB.setCell cell
       return cell
     matched  = zip [(a, b + i) | i <- [0..numRows-1]] values
-    origLoc  = Index (a, b - 1)
+    origLoc  = Index (a, b)
     numRows  = length values
     values   = x:xs
 
