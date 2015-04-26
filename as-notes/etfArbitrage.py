@@ -5,8 +5,8 @@ import math
 '''
 Input (assume that all n ETFs have the same k underlyings)
 etfPrices is an nx2 matrix with best bid and offer prices of all n ETFs
-adrPrices is a kx2 matrix of best bid/offers per ADR
-weights is an nxk matrix; row i has the weights of ADRs for ETF i
+adrPrices is a kx2 matrix of best bid/offers per ORD
+weights is an nxk matrix; row i has the weights of ORDs for ETF i
 conversionRate: 1 dollar = conversionRate GBP
 fees: nx2 matrix of creation and redemption fees for each ETF
 '''
@@ -14,7 +14,7 @@ fees: nx2 matrix of creation and redemption fees for each ETF
 '''
 IN SPREADSHEET 
 A2 = readData("etfData.txt",4,3)["ETFs"]
-A7 = readData("etfData.txt",4,3)["ADRs"]
+A7 = readData("etfData.txt",4,3)["ORDs"]
 A11 = readData("etfData.txt",4,3)["Conversion Rate"]
 E2 = readData("etfData.txt",4,3)["Weights"]
 E7 = readData("etfData.txt",4,3)["Fees"]
@@ -30,11 +30,11 @@ I1="Profit"
 J1="Strategy"
 '''
 
-def computeETFArb(etfPrices, adrPrices, weights, fees, conversionRate):
+def computeETFArb(etfPrices, ordPrices, weights, fees, conversionRate):
     profitAndStrategy=[]
     for etf in range(len(etfPrices)): #buy at the ask price, sell at the bid price
-        buyETF = -etfPrices[etf][1] + (adrImpliedETFPrice(adrPrices,weights)[etf][1])/conversionRate - fees[etf][1]
-        sellETF = etfPrices[etf][0] - (adrImpliedETFPrice(adrPrices,weights)[etf][0])/conversionRate - fees[etf][0]
+        buyETF = -etfPrices[etf][1] + (ordImpliedETFPrice(ordPrices,weights)[etf][1])/conversionRate - fees[etf][1]
+        sellETF = etfPrices[etf][0] - (ordImpliedETFPrice(ordPrices,weights)[etf][0])/conversionRate - fees[etf][0]
         profitAndStrategy.append(profStrat(buyETF,sellETF))
     return profitAndStrategy
 
@@ -44,10 +44,10 @@ def profStrat(buy, sell):
     strat=""
     profit = 0 
     if buy>sell and buy>0:
-        strat = "Buy ETF, Sell ADRs"
+        strat = "Buy ETF, Sell ORDs"
         profit = buy
     elif sell>buy and sell>0:
-        strat = "Sell ETF, Buy ADRs"
+        strat = "Sell ETF, Buy ORDs"
         profit = sell
     else: #neither strategy is profitable
         return [0,"Nothing"]
@@ -59,23 +59,21 @@ def profStrat(buy, sell):
     return [profit, strat] 
 
 # takes in the best bids/offers and weights, returns the implied prices
-def adrImpliedETFPrice(adrPrices, weights):
-    impliedBids = np.dot(np.array(weights), np.array(adrPrices)[:,1]) #weights*offers for adrs
-    impliedOffers = np.dot(np.array(weights), np.array(adrPrices)[:,0]) #weights*bid for adrs
+def ordImpliedETFPrice(ordPrices, weights):
+    impliedBids = np.dot(np.array(weights), np.array(ordPrices)[:,1]) #weights*offers for adrs
+    impliedOffers = np.dot(np.array(weights), np.array(ordPrices)[:,0]) #weights*bid for adrs
     return np.column_stack((impliedBids,impliedOffers))
 
 # takes in the output/strats from computeETFArb and formats/processes it
-def etfArb(etfPrices, adrPrices, weights, fees, conversionRate):
-    strats = computeETFArb(etfPrices, adrPrices, weights, fees , conversionRate)
-    #sort strategies in decreasing order of profit
-    #this isn't transparent in excel
+def etfArb(etfPrices, ordPrices, weights, fees, conversionRate):
+    strats = computeETFArb(etfPrices, ordPrices, weights, fees , conversionRate)
     strats=[[math.ceil(x*1000.0)/1000.0,y] for [x,y] in strats]
-    return sorted(strats,key=lambda x:-x[0])
+    return strats
     #TODO: color max profit green, color <0.01 orange, color>.10 red
 
 def readData(name,n,k):
     etfPrices=[]
-    adrPrices=[]
+    ordPrices=[]
     weights=[]
     fees=[]
     cRate=0
@@ -87,7 +85,7 @@ def readData(name,n,k):
         next(f)
         for x in xrange(k):
             line=next(f).strip().split(',')
-            adrPrices.append([line[0]]+[float(i) for i in line[1:]])     
+            ordPrices.append([line[0]]+[float(i) for i in line[1:]])     
         next(f)
         for x in xrange(n):
             line=next(f).strip().split(',')
@@ -98,4 +96,4 @@ def readData(name,n,k):
             fees.append([line[0]]+[float(i) for i in line[1:]])
         next(f)
         cRate=float(next(f).strip())
-    return {"ETFs":etfPrices,"ADRs": adrPrices,"Weights":weights,"Fees":fees,"Conversion Rate":cRate}
+    return {"ETFs":etfPrices,"ORDs": ordPrices,"Weights":weights,"Fees":fees,"Conversion Rate":cRate}
