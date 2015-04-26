@@ -27,10 +27,11 @@ def indexMatch(data, matchValues, matchCols, lookupCols,matchFuncs=None):
         return [data[row][i] for i in lookupCols]
 
 '''
+IN SPREADSHEET (input data from text file is not really needed here, can use the below example)
 Example:
-data=[["A","B","C","D"],[1,2,5,"hi"],[1,2,6,"bye"],[1,3,7,"bye"],[1,3,8,"bye"],[2,3,9,"hi"],[2,3,10,"hi"]]
-indexMatch(data,[1,3],["A","B"],"C")
+A1=[["A","B","C","D"],[1,2,5,"hi"],[1,2,6,"bye"],[1,3,7,"bye"],[1,3,8,"bye"],[2,3,9,"hi"],[2,3,10,"hi"]]
+F1=indexMatch(A1:D7,[1,3],["A","B"],"C") (what value in col C corresponds to first instance of (col A, col B)=(1,3))
 returns [7]
-indexMatch(data,2,"A","C")
+G1=indexMatch(A1:D7,2,"A","C")
 returns [9]
 '''

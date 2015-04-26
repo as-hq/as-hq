@@ -47,11 +47,11 @@ def pivotTable(data, rows, cols, value, aggregator):
 
 
 '''
-Example:
-data=[["A","B","C","D"],[1,2,5,"hi"],[1,2,6,"bye"],[1,3,7,"bye"],[1,3,8,"bye"],[2,3,9,"hi"],[2,3,10,"hi"]]
-pivotTable(data,["A","D"],"B","C",lambda x: sum(x))
+IN SPREADSHEET (data from txt file not really needed here)
+A1=[["A","B","C","D"],[1,2,5,"hi"],[1,2,6,"bye"],[1,3,7,"bye"],[1,3,8,"bye"],[2,3,9,"hi"],[2,3,10,"hi"]]
+F1=pivotTable(A1:D7,["A","D"],"B","C",lambda x: sum(x))
 [['PTable', '[2]', '[3]'], ["[1, 'bye']", 6, 15], ["[1, 'hi']", 5, 'NoData'], ["[2, 'hi']", 'NoData', 19]]
 
-pivotTable(data,"A","B","C",lambda x:sum(x))
+I1=pivotTable(A2:D7,"A","B","C",lambda x:sum(x))
 [['PTable', 2, 3], [2, 'NoData', 19], [1, 11, 15]]
 '''
