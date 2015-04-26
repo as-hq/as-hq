@@ -112,33 +112,33 @@ updateDAG g (node, lst)
 
 -- Given ASLocation loc, returns list of ASLocations that loc depends on
 -- includes loc as first cell in list
-ancestors :: (Eq a, Ord a) => a -> Relation a -> [a]
+ancestors :: (Eq a, Ord a) => [a] -> Relation a -> [a]
 --select things in ts (in order) that are in reach(node)
-ancestors node graph = intersect ts reachList
+ancestors locs graph = intersect ts reachList
   where
     ts = toposort graph 
-    reachList = S.toList $ reachableSet [node] graph 
+    reachList = S.toList $ reachableSet locs graph 
 
 -- Given ASLocation loc, returns list of ASLocations that depend on loc
 -- useful for determining what order to update if a given cell is updated
 -- returns given loc as first item on list
-descendants :: (Eq a, Ord a) => a -> Relation a -> [a]
-descendants node graph = ancestors node (map (\(a,b)->(b,a)) graph) --reverse graph 
+descendants :: (Eq a, Ord a) => [a] -> Relation a -> [a]
+descendants locs graph = ancestors locs (map (\(a,b)->(b,a)) graph) --reverse graph 
 
 --given list of nodes, gives descendents (things that depend on that list) 
 --things that depend on first node, followed by things that depend on 2nd node, etc. 
-getSetDescendants :: (Eq a, Ord a) => [a] -> Relation a -> [[a]]
-getSetDescendants locs graph = map (\x -> descendants x graph) locs 
+getSetDescendants :: (Eq a, Ord a) => [a] -> Relation a -> [a]
+getSetDescendants = descendants
 
-dbGetSetDescendants :: [ASLocation] -> Handler [[ASLocation]]
+dbGetSetDescendants :: [ASLocation] -> Handler [ASLocation]
 dbGetSetDescendants locs = DB.dbGetDAG >>= (return . (getSetDescendants locs))
 
 --given list of nodes, gives ancestors (things that that list depends on)
 --things that first node depends on, followed by things second node depends on, etc. 
-getSetAncestors :: (Eq a, Ord a) => [a] -> Relation a -> [[a]]
-getSetAncestors locs graph = map (\x -> ancestors x graph) locs 
+getSetAncestors :: (Eq a, Ord a) => [a] -> Relation a -> [a]
+getSetAncestors = ancestors
 
-dbGetSetAncestors :: [ASLocation] -> Handler [[ASLocation]]
+dbGetSetAncestors :: [ASLocation] -> Handler [ASLocation]
 dbGetSetAncestors locs = DB.dbGetDAG >>= (return . (getSetAncestors locs))
 
 -- | Produce a topological sorting of the given relation. If the relation is

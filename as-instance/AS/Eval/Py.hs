@@ -22,15 +22,17 @@ evalExpression dict expr =
     Reference _ _ -> evalRef dict expr
 
 evalRef :: Map ASLocation ASValue -> ASExpression -> Handler ASValue
-evalRef dict (Reference l (a, b)) = return $ row L.!! a
-  where
-    ValueL row = lst L.!! b
-    ValueL lst = dict M.! l
+evalRef dict (Reference l (a, b)) = do
+  $(logInfo) $ (fromString $ show dict ++ " select " ++ show (a, b))
+  return $ row L.!! a
+    where
+      ValueL row = lst L.!! b
+      ValueL lst = dict M.! l
 
 -- use this method
 evalPy :: Map ASLocation ASValue -> ASExpression -> Handler ASValue
 evalPy dict expr = do
-	let matches = map (\(a,b) -> (toExcel a, showValue b)) (M.toList dict)
+	let matches = map (\(a,b) -> (toExcel a, showFilteredValue a b)) (M.toList dict)
 
 	$(logInfo) $ "EVALPY with MATCHES: " ++ (fromString $ show dict)
 

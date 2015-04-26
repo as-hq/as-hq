@@ -16,22 +16,22 @@ import Control.Applicative
 
 evalCellSeq :: [ASCell] -> Handler [ASCell]
 evalCellSeq = evalChain M.empty
-  where
-    evalChain :: M.Map ASLocation ASValue -> [ASCell] -> Handler [ASCell]
-    evalChain _ [] = return []
-    evalChain mp (c:cs) = do
-      let xp  = cellExpression c
-          loc = cellLocation c
-      cv <- R.evalExpression mp xp
-      additionalCells <- case loc of
-        Index (a, b) -> case cv of
-          ValueL lst -> createListCells (Index (a, b)) lst
-          otherwise -> return []
-        otherwise -> return []
-      $(logInfo) $ (fromString $ show cv)
-      let newMp = M.insert (cellLocation c) cv mp
-      rest <- evalChain newMp cs
-      return $ [Cell loc xp cv] ++ additionalCells ++ rest
+
+evalChain :: M.Map ASLocation ASValue -> [ASCell] -> Handler [ASCell]
+evalChain _ [] = return []
+evalChain mp (c:cs) = do
+  let xp  = cellExpression c
+      loc = cellLocation c
+  cv <- R.evalExpression mp xp
+  additionalCells <- case loc of
+    Index (a, b) -> case cv of
+      ValueL lst -> createListCells (Index (a, b)) lst
+      otherwise -> return []
+    otherwise -> return []
+  $(logInfo) $ (fromString $ show cv)
+  let newMp = M.insert (cellLocation c) cv mp
+  rest <- evalChain newMp cs
+  return $ [Cell loc xp cv] ++ additionalCells ++ rest
 
 createListCells :: ASLocation -> [ASValue] -> Handler [ASCell]
 createListCells (Index (a, b)) [] = return []
@@ -65,16 +65,18 @@ createListCells (Index (a, b)) (x:xs) =
 evalCells :: [ASLocation] -> Handler (Maybe [ASCell])
 evalCells [] = return $ Just []
 evalCells locs = do
-  ancestors <- fmap (concat . (zipWith (:) locs)) $ D.dbGetSetAncestors locs
+  ancestors <- fmap reverse $ D.dbGetSetAncestors locs
   $(logInfo) $ "ancestors computed: " ++ (fromString $ show ancestors)
   cells <- DB.getCells ancestors
+  locsCells <- DB.getCells locs
   $(logInfo) $ "got cells: " ++ (fromString $ show cells)
   if any isNothing cells
     then return Nothing
     else do
       let filterCells = map (\(Just x) -> x) cells
+          filterLocsCells = map (\(Just x) -> x) locsCells
       $(logInfo) $ "filtered cells: " ++ (fromString $ show filterCells)
-      results <- evalCellSeq filterCells
+      results <- evalChain (M.fromList $ map (\c -> (cellLocation c, cellValue c)) $ filterCells) filterLocsCells
       DB.setCells results
       return $ Just results
 
@@ -101,9 +103,9 @@ createRangeCells (loc, xp) =
 
 reevaluateCell :: (ASLocation, ASExpression) -> Handler (Maybe [ASCell])
 reevaluateCell (loc, xp) = do
-  let rdeps = normalizeRanges $ parseDependencies xp
-  descendants <- fmap concat $ D.dbGetSetDescendants $ [loc]
-  evalCells (rdeps ++ [loc] ++ descendants)
+  --let rdeps = normalizeRanges $ parseDependencies xp
+  descendants <- D.dbGetSetDescendants $ [loc]
+  evalCells descendants
 
 propagateCell :: ASLocation -> ASExpression -> Handler (Maybe [ASCell])
 propagateCell loc xp = do

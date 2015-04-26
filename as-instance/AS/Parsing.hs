@@ -139,6 +139,13 @@ styledValue = extractValue <$> extractMap
 asValue :: Parser ASValue
 asValue = choice [valueD, valueS, valueL, styledValue, return $ ValueNaN ()]
 
+showFilteredValue :: ASLocation -> ASValue -> String
+showFilteredValue (Index i) (ValueL l) = showFilteredValue (Index i) (headOrNull l)
+  where
+    headOrNull [] = ValueNaN ()
+    headOrNull (x:xs) = x
+showFilteredValue _ a = showValue a
+
 showValue :: ASValue -> String
 showValue v = case v of
   ValueNaN () -> "undefined"
