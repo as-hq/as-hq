@@ -105,6 +105,9 @@ reevaluateCell :: (ASLocation, ASExpression) -> Handler (Maybe [ASCell])
 reevaluateCell (loc, xp) = do
   --let rdeps = normalizeRanges $ parseDependencies xp
   descendants <- D.dbGetSetDescendants $ [loc]
+
+  $(logInfo) $ "Descendants being calculated: " ++ (fromString $ show descendants)
+
   evalCells descendants
 
 propagateCell :: ASLocation -> ASExpression -> Handler (Maybe [ASCell])

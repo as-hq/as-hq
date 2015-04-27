@@ -114,8 +114,12 @@ updateDAG g (node, lst)
 -- includes loc as first cell in list
 ancestors :: (Eq a, Ord a) => [a] -> Relation a -> [a]
 --select things in ts (in order) that are in reach(node)
-ancestors locs graph = intersect ts reachList
+ancestors locs graph =
+  case result of
+    [] -> locs
+    (x:xs) -> result
   where
+    result = intersect ts reachList
     ts = toposort graph 
     reachList = S.toList $ reachableSet locs graph 
 

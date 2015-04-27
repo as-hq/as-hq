@@ -1,5 +1,6 @@
 module AS.Eval.Py where 
 
+import AS.DB
 import AS.Types
 import AS.TypesHelper
 import AS.Parsing
@@ -32,20 +33,22 @@ evalRef dict (Reference l (a, b)) = do
 -- use this method
 evalPy :: Map ASLocation ASValue -> ASExpression -> Handler ASValue
 evalPy dict expr = do
-	let matches = map (\(a,b) -> (toExcel a, showFilteredValue a b)) (M.toList dict)
+  let matches = map (\(a,b) -> (toExcel a, showFilteredValue a b)) (M.toList dict)
 
-	$(logInfo) $ "EVALPY with MATCHES: " ++ (fromString $ show dict)
+  $(logInfo) $ "EVALPY with MATCHES: " ++ (fromString $ show dict)
 
-	let expr' = excelRangesToLists $ expression expr
-	scrubbed <- scrubCmd $ replaceSubstrings expr' matches
+  let expr' = excelRangesToLists $ expression expr
+  scrubbed <- scrubCmd $ replaceSubstrings expr' matches
 
-	let filepath = py_run_path ++ scrubbed
-	let execCmd = "python "++py_eval_file++" "++filepath 
+  let filepath = py_run_path ++ scrubbed
+  let execCmd = "python "++py_eval_file++" "++filepath 
 
-	$(logInfo) $ "EVALPY with command: " ++ (fromString $ show execCmd)
-	result <- liftIO $ eval execCmd
+  $(logInfo) $ "EVALPY with command: " ++ (fromString $ show execCmd)
 
-	return $ parseValue (filter (/= '\n') result)
+  result <- liftIO $ eval execCmd
+  $(logInfo) $ "EVALPY returns result: " ++ (fromString $ result)
+
+  return $ parseValue (filter (/= '\n') result)
 
 eval :: String -> IO String
 eval s = do 
@@ -71,17 +74,21 @@ eval s = do
 scrubCmd :: String -> Handler String
 scrubCmd "" = return "No command specified."
 scrubCmd cmd = do
-	$(logInfo) $ "EVALPY with init cmd: " ++ (fromString $ show cmd)
-	validFuncs <- runDB $ selectList [] []
-	let vf = [func | (Entity funcId func) <- validFuncs]
-	let edited = replaceAliases cmd vf
-	$(logInfo) $ "EVALPY with edited cmd: " ++ (fromString $ show edited)
-	contents <- Import.readFile $ py_eval_path ++ "template.py"
-	let contents' = (unlines (map (\(apply, path) -> apply++"(\""++path++"\")\n") (snd edited))) ++ contents
-	let contents'' = contents' ++ "\n" ++ (fst edited)
-	$(logInfo) $ "EVALPY with cmd'': " ++ (fromString $ show contents'')
-	Import.writeFile (py_eval_path++"run/temp.py") contents''
-	return "temp.py"
+  $(logInfo) $ "EVALPY with init cmd: " ++ (fromString $ show cmd)
+
+  functions <- getFuncs
+  let (editedCmd, imports) = replaceAliases cmd functions
+      importCmds = unlines . map (\(apply, path) -> apply ++ "(\"" ++ path ++ "\")\n") $ imports
+
+  $(logInfo) $ "EVALPY with edited cmd: " ++ (fromString $ show (editedCmd, importCmds))
+
+  contents <- Import.readFile $ py_eval_path ++ "template.py"
+  let codeFile = importCmds ++ contents ++ "\n" ++ editedCmd
+
+  $(logInfo) $ "EVALPY with cmd'': " ++ (fromString $ show codeFile)
+
+  Import.writeFile (py_eval_path ++ "run/temp.py") codeFile
+  return "temp.py"
 
 -- takes (1) cmd string, (2) tuples [(alias, apply, path)]
 -- return tuple (cmd', [(applicative command, func path)])

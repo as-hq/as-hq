@@ -99,9 +99,15 @@ valueD :: Parser ASValue
 valueD = ValueD <$> double
 
 valueS :: Parser ASValue
-valueS = ValueS <$> (between quote quote $ many $ noneOf ['"'])
+valueS = ValueS <$> ((quotes $ many $ noneOf ['"']) <|> (apostrophes $ many $ noneOf ['\'']))
   where
+    quotes = between quote quote
     quote = char '"'
+    apostrophes = between apostrophe apostrophe
+    apostrophe = char '\''
+
+valueSFailsafe :: Parser ASValue
+valueSFailsafe = ValueS <$> (many $ noneOf "'\"")
 
 valueL :: Parser ASValue
 valueL = ValueL <$> (brackets $ sepBy asValue (comma >> spaces))
@@ -110,10 +116,10 @@ valueL = ValueL <$> (brackets $ sepBy asValue (comma >> spaces))
     comma     = char ','
 
 extractValue :: M.Map String ASValue -> ASValue
-extractValue m =
-  if M.member "style" m
-    then extractStyledValue m
-    else extractDisplayValue m
+extractValue m
+  | M.member "style" m = extractStyledValue m
+  | M.member "displayValue" m = extractDisplayValue m
+  | otherwise = extractObjectValue m
   where
     extractStyledValue mm = StyledValue s v
       where
@@ -123,9 +129,13 @@ extractValue m =
       where
         ValueS s    = m M.! "displayValue"
         v           = m M.! "actualValue"
+    extractObjectValue mm = ObjectValue typ rep
+      where
+        ValueS typ  = m M.! "objectType"
+        ValueS rep  = m M.! "jsonRepresentation"
 
-styledValue :: Parser ASValue
-styledValue = extractValue <$> extractMap
+complexValue :: Parser ASValue
+complexValue = extractValue <$> extractMap
   where
     braces          = between (char '{') (char '}')
     comma           = char ','
@@ -137,7 +147,7 @@ styledValue = extractValue <$> extractMap
     extractMap      = M.fromList <$> (braces $ sepBy dictEntry (comma >> spaces))
 
 asValue :: Parser ASValue
-asValue = choice [valueD, valueS, valueL, styledValue, return $ ValueNaN ()]
+asValue = choice [valueD, valueS, valueL, complexValue, return $ ValueNaN ()]
 
 showFilteredValue :: ASLocation -> ASValue -> String
 showFilteredValue (Index i) (ValueL l) = showFilteredValue (Index i) (headOrNull l)
@@ -153,7 +163,8 @@ showValue v = case v of
   ValueD d -> show d
   ValueL l -> "[" ++ (intercalate "," (fmap showValue l)) ++ "]"
   StyledValue s v -> showValue v
-  DisplayValue s v -> showValue v
+  DisplayValue d v -> showValue v
+  ObjectValue o js -> o ++ ".deserialize(" ++ js ++ ")"
 
 parseValue :: String -> ASValue
 parseValue = fromRight . (parse asValue "") . T.pack
