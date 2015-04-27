@@ -1,2 +1,2 @@
 #ADD COMMANDS HERE
-print(4)
+print(netw)

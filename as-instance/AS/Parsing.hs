@@ -72,11 +72,11 @@ decomposeLocs loc = case loc of
   (Index a) -> [a]
   (Range (ul, lr)) -> [(x,y) | x <- [(fst ul)..(fst lr)], y <- [(snd ul)..(snd lr)] ]
 
-hammingDistance :: ASLocation -> ASLocation -> (Int, Int)
-hammingDistance (Index a) (Index b) = (fst b - fst a, snd b - snd a)
+rangeDiff :: ASLocation -> ASLocation -> (Int, Int)
+rangeDiff (Index a) (Index b) = (fst b - fst a, snd b - snd a)
 
-maxHammingDistance :: [ASLocation] -> (Int,Int)
-maxHammingDistance locs = (diff $ map fst myTuples, diff $ map snd myTuples)
+maxRangeDiff :: [ASLocation] -> (Int,Int)
+maxRangeDiff locs = (diff $ map fst myTuples, diff $ map snd myTuples)
   where
     myTuples = concat $ map decomposeLocs locs
     diff = (-) <$> Prelude.maximum <*> Prelude.minimum

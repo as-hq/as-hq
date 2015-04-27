@@ -7,6 +7,7 @@ import Database.Persist.TH
 import Data.Aeson
 
 -- NOTE: follow excel (col, row) ordering
+-- why does ASLocation include a
 data ASLocation = Index {index :: (Int, Int)} | Range {range :: ((Int, Int), (Int, Int))}
 	deriving (Show, Read, Eq, Ord, Generic)
 

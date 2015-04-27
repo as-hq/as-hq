@@ -3,16 +3,13 @@ module AS.Eval.Py where
 import AS.Types
 import AS.TypesHelper
 import AS.Parsing
+import AS.Constants
 import Import
 import qualified Data.Map
 import qualified Data.Text.Lazy (replace)
 import Control.Applicative                                   
 import System.IO                                             
 import System.Process   
-
-py_eval_path = "/home/hal/code/alphasheets/as-instance/as-py-eval/"
-py_run_path = py_eval_path ++ "run/"
-py_eval_file = py_eval_path ++ "eval.py"
 
 -- use this method
 evalPy :: Map ASLocation ASValue -> ASExpression -> Handler ASValue
@@ -61,12 +58,12 @@ scrubCmd cmd = do
 	let vf = [func | (Entity funcId func) <- validFuncs]
 	let edited = replaceAliases cmd vf
 	$(logInfo) $ "EVALPY with edited cmd: " ++ (fromString $ show edited)
-	contents <- Import.readFile $ py_eval_path ++ "template.py"
+	contents <- Import.readFile $ AS.Constants.py_eval_path ++ AS.Constants.py_template_file
 	let contents' = (unlines (map (\(apply, path) -> apply++"(\""++path++"\")\n") (snd edited))) ++ contents
 	let contents'' = contents' ++ "\n" ++ (fst edited)
 	$(logInfo) $ "EVALPY with cmd'': " ++ (fromString $ show contents'')
-	Import.writeFile (py_eval_path++"run/temp.py") contents''
-	return "temp.py"
+	Import.writeFile (AS.Constants.py_run_path ++ AS.Constants.py_temp_run_file) contents''
+	return AS.Constants.py_temp_run_file
 
 -- takes (1) cmd string, (2) tuples [(alias, apply, path)]
 -- return tuple (cmd', [(applicative command, func path)])

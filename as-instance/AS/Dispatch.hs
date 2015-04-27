@@ -59,33 +59,46 @@ updateCell (loc, xp) =
     where 
       deps = normalizeRanges $ parseDependencies xp
 
-createRangeCell :: (ASLocation, ASExpression) -> Handler ()
-createRangeCell (loc, xp) =
+updateSubCell :: (ASLocation, ASExpression) -> Handler ()
+updateSubCell (loc, xp) = 
+  DB.dbUpdateLocationDependencies (loc, deps) >> (DB.setCell $ Cell loc xp (ValueNaN ()))
+    where 
+      deps = parseDependencies xp -- not normalizing since subcells should point to range, not everything in the range
+
+createRangeSubCells :: (ASLocation, ASExpression) -> Handler ()
+createRangeSubCells (loc, xp) =
   case loc of
     Range (a,b) -> do
       let eleLocs = decomposeLocs loc
+      -- TODO: another updateCell here for the entire range
+      -- but, already done in propagateCell
       mapM_ putElement eleLocs 
         where
-          putElement x = updateCell (Index x, Expression $ (expression xp) ++ (idxRep $ Index x))
+          putElement x = updateSubCell (Index x, Expression $ (expression xp) ++ (idxRep $ Index x))
           idxRep x
-            | fst a == fst b = "["++(show $ fst hd)++"]"
-            | otherwise      = "["++ (show $ fst hd)++"]["++(show $ snd hd)++"]"
+            | fst a == fst b = "["++(show $ snd diff)++"]"
+            | otherwise      = "["++ (show $ fst diff)++"]["++(show $ snd diff)++"]"
               where
-                hd = hammingDistance (Index a) x
+                diff = rangeDiff (Index a) x
     otherwise -> return ()
+
 
 reevaluateCell :: (ASLocation, ASExpression) -> Handler (Maybe [ASCell])
 reevaluateCell (loc, xp) = do
   let rdeps = normalizeRanges $ parseDependencies xp
-  descendants <- fmap concat $ D.dbGetSetDescendants $ [loc]
-  mCellResults <- evalCells (rdeps ++ [loc] ++ descendants)
+  --double counting loc in list of descendents, it seems
+  --fix descendants because descendants is defined in DAG
+  descendants' <- fmap concat $ D.dbGetSetDescendants $ [loc]
+  mCellResults <- evalCells (rdeps ++ [loc] ++ descendants')
   case mCellResults of 
     Just cellResults -> do
       case loc of 
         Index a -> do
-          let hammingDist = maxHammingDistance $ map cellLocation cellResults
-          let rng = Range (a, (fst a + fst hammingDist, snd a + snd hammingDist))
-          createRangeCell (rng, xp)
+          let rangeDist = maxRangeDiff $ map cellLocation cellResults
+          let rng = Range (a, (fst a + fst rangeDist, snd a + snd rangeDist))
+          createRangeSubCells (rng, xp) 
+          let rangeCell = Cell rng xp (ValueLD $ map (\(ValueD d) -> d) $ map cellValue cellResults)
+          updateCell (rng, xp)
           -- TODO: get this range cell
           -- TODO: put the value we got in cellResults into this range cell
           -- TODO: return these results
@@ -98,7 +111,7 @@ reevaluateCell (loc, xp) = do
 propagateCell :: ASLocation -> ASExpression -> Handler (Maybe [ASCell])
 propagateCell loc xp = do
   updateCell (loc, xp)
-  createRangeCell (loc, xp)
+  createRangeSubCells (loc, xp)
   reevaluateCell (loc, xp)
 {-- TODO
 evalRepl :: String -> Handler (Maybe ASValue)
