@@ -18,6 +18,7 @@ data ASValue =
   ValueS String |
   ValueD Double |
   ValueL [ASValue] |
+  ValueM [[ASValue]] |
   ObjectValue { objectType :: String, jsonRepresentation :: String } |
   StyledValue { style :: String, value :: ASValue } |
   DisplayValue { displayValue :: String, actualValue :: ASValue }

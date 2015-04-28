@@ -29,8 +29,8 @@ def computeETFArb(etfs, conversionRate):
     profitAndStrategy=[]
     print "hi"
     for etf in etfs: #buy at the ask price, sell at the bid price
-        buyETF = -etf.ask + etf.ordImpliedETFPrices()[1]/conversionRate - etf.rd #redeem
-        sellETF = etf.bid - etf.ordImpliedETFPrices()[0]/conversionRate - etf.cr #create
+        buyETF = -etf.ask + etf.ordImpliedETFPrices()[1]/float(conversionRate) - etf.rd #redeem
+        sellETF = etf.bid - etf.ordImpliedETFPrices()[0]/float(conversionRate) - etf.cr #create
         profitAndStrategy.append(profStrat(buyETF,sellETF,etf.name))
     return profitAndStrategy
 

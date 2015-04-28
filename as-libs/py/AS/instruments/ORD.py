@@ -9,11 +9,14 @@ class ORD(object):
     def deserialize(cls, js):
         return cls(js["name"], (js["bid"], js["ask"]))
 
+    def serializeJson(self):
+    	return { "name": self.name, "bid": self.bid, "ask": self.ask }
+
     def serialize(self):
         return str({ "name": self.name, "bid": self.bid, "ask": self.ask })
 
     def displayValue(self):
-        return "ORD: "+self.name+" ("+str(self.bid)+", "+str(self.ask)+")"
+        return self.name
 
     def __str__(self):
         return str({ "displayValue": self.displayValue(), "actualValue": { "objectType": "ORD", "jsonRepresentation": self.serialize() } })

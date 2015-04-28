@@ -1,0 +1,32 @@
+#A1
+ETF.loadSamples(4)
+
+#B1
+[x.bid for x in A2:A5]
+#C1
+[x.ask for x in A2:A5]
+
+#A7
+(np.multiply([x.weights for x in A2:A5],[[ord.bid for ord in etf.ords] for etf in A2:A5])).tolist()
+#D7
+(np.multiply([x.weights for x in A2:A5],[[ord.ask for ord in etf.ords] for etf in A2:A5])).tolist()
+
+#E2:E5 (can't extract matrices from sheet; only get degenerate list, maybe TODO)
+sum(A8:C8)
+sum(A9:C9)
+sum(A10:C10)
+sum(A11:C11)
+
+#F2:F5
+sum(D8:F8)
+sum(D9:F9)
+sum(D10:F10)
+sum(D11:F11)
+
+#H2
+a=(-np.array(C2:C5)+np.array(E2:E5)/ETF.convRate()-np.array([x.rd for x in A2:A5])).tolist()
+#I2
+a=(np.array(B2:B5)+np.array(F2:F5)/ETF.convRate()-np.array([x.cr for x in A2:A5])).tolist()
+
+#K2
+[green("BUY") if H2:H5[i]>I2:I5[i] and H2:H5[i]>0 else red("SELL") for i in range(4)]

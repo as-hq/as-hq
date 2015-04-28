@@ -1,5 +1,7 @@
+import numpy as np
+
 def space(lst, sp):
-	lst2 = map((lambda x: prefixPush(x, ['' for _ in range(sp)])), lst)
+	lst2 = map((lambda x: prefixPush(x, ["" for _ in range(sp)])), lst)
 	return flat(lst2)[:-sp]
 
 def flat(lst):
@@ -11,3 +13,7 @@ def prefixPush(elem, lst):
 
 def every(lst, k):
 	return lst[0::k]
+
+def sumWay(lst, axis):
+	return np.sum(lst, axis).tolist()
+

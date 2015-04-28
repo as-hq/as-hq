@@ -29,8 +29,8 @@ parseDependencies expr =
   case expr of
     Expression e -> (map fromExcel rangeMatches) ++ (map fromExcel cellMatches)
       where
-        rangeMatches = deleteEmpty $ regexList e "([A-Z][0-9]:[A-Z][0-9])"
-        cellMatches = deleteEmpty $ regexList noRangeExpr ("[A-Z][0-9]")
+        rangeMatches = deleteEmpty $ regexList e "([A-Z][0-9]+:[A-Z][0-9]+)"
+        cellMatches = deleteEmpty $ regexList noRangeExpr ("[A-Z][0-9]+")
           where
             noRangeExpr = replaceSubstrings e (zip rangeMatches (repeat ""))
     Reference r _ -> [r]
@@ -42,8 +42,10 @@ toExcel loc = case loc of
 
 fromExcel :: String -> ASLocation
 fromExcel str
-	| elem ':' str = Range (excelToIndex (take 2 str), excelToIndex (lastN 2 str))
+	| elem ':' str = Range (excelToIndex $ Prelude.head spt, excelToIndex $ Prelude.last spt)
 	| otherwise    = Index . excelToIndex $ str
+    where
+      spt = map unpack $ T.splitOn (pack ":") (pack str) 
 
 indexToExcel :: (Int, Int) -> String
 indexToExcel idx = (['A'..'Z'] !! ((fst idx) - 1)):(show (snd idx))
@@ -176,10 +178,12 @@ parseValue = fromRight . (parse asValue "") . T.pack
 excelRngToIdxs :: String -> String
 excelRngToIdxs rng = "["++(Prelude.init $ concat myList)++"]" 
   where 
-    myList = [x:y:',':[] | x<-[(rng !! 0)..(rng !! 3)], y<-[(rng !! 1)..(rng !! 4)]]
+    spt = map unpack $ T.splitOn (pack ":") (pack rng) 
+    myList = [x:(show y) ++ ',':[] | x<-[(Prelude.head (spt !! 0))..(Prelude.head (spt !! 1))], 
+      y<-[(read (Prelude.tail (spt !! 0))::Int)..(read (Prelude.tail (spt !! 1))::Int)]]
 
 excelRangesToLists :: String -> String
 excelRangesToLists str = replaceSubstrings str (zip toReplace replaceWith)
   where
-    toReplace = deleteEmpty $ regexList str "([A-Z][0-9]:[A-Z][0-9])"
+    toReplace = deleteEmpty $ regexList str "([A-Z][0-9]+:[A-Z][0-9]+)"
     replaceWith = map excelRngToIdxs toReplace

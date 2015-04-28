@@ -43,6 +43,12 @@ class ETF(object):
             comps.append(compSet)
         return comps
 
+    @staticmethod
+    def convRate():
+        data = samples('etf_samples').replace('ETF Prices', '|',).replace('ADR Prices', '|').replace('weights', '|').replace('fees', '|').replace('CRate', '|')
+        data = data.split('|')[1:]
+        data = [section.split('\n')[1:-1] for section in data]
+        return float(data[4][0])
 
     @staticmethod
     def all():
@@ -53,6 +59,9 @@ class ETF(object):
     def getComponents(etfs):
         components = [etf.components() for etf in etfs]
         return flat(components)
+
+    def underlyingAsks(etfs):
+        return [[x.ask for x in etf.ords] for etf in etfs]
 
     #sample data
     #n=num ETFs
@@ -97,16 +106,17 @@ class ETF(object):
     @classmethod
     def deserialize(cls, js):
         dOrds = [ORD.deserialize(x) for x in js["ords"]]
-        return cls(js["name"], (js["bid"], js["ask"])).setORDs(dOrds, js["weights"]).setFees((js["cr"], js["rd"]))
+        e = cls(js["name"], (js["bid"], js["ask"]))
+        e.setORDs(dOrds, js["weights"])
+        e.setFees((js["cr"], js["rd"]))
+        return e
 
     def serialize(self):
-        sOrds = [ORD.serialize(x) for x in self.ords]
+        sOrds = [ORD.serializeJson(x) for x in self.ords]
         return str({ "name": self.name, "bid": self.bid, "ask": self.ask, "ords": sOrds, "weights": self.weights, "cr": self.cr, "rd": self.rd})
 
     def displayValue(self):
-        if hasattr(self, 'bid') and hasattr(self, 'ask'):
-            return "ETF: "+self.name+" ("+str(self.bid)+", "+str(self.ask)+")"
-        else: return "ETF: "+self.name
+        return self.name
 
     def __str__(self):
         return str({ "displayValue": self.displayValue(), "actualValue": { "objectType": "ETF", "jsonRepresentation": self.serialize() } })
