@@ -1,32 +1,48 @@
-#A1
+#A2 -- ETF names
 ETF.loadSamples(4)
 
-#B1
+#B2 -- Bids
 [x.bid for x in A2:A5]
-#C1
+#C2 -- Asks
 [x.ask for x in A2:A5]
 
-#A7
-(np.multiply([x.weights for x in A2:A5],[[ord.bid for ord in etf.ords] for etf in A2:A5])).tolist()
-#D7
-(np.multiply([x.weights for x in A2:A5],[[ord.ask for ord in etf.ords] for etf in A2:A5])).tolist()
+#A8 -- Weighted Bids -- alternatives
+arr([x.weights for x in A2:A5])*arr([[ord.bid for ord in etf.ords] for etf in A2:A5])
 
-#E2:E5 (can't extract matrices from sheet; only get degenerate list, maybe TODO)
+multiply([x.weights for x in A2:A5],[[ord.bid for ord in etf.ords] for etf in A2:A5])
+
+#D8 -- Weighted Asks -- alternatives 
+arr([x.weights for x in A2:A5])*arr([[ord.ask for ord in etf.ords] for etf in A2:A5])
+
+multiply([x.weights for x in A2:A5],[[ord.ask for ord in etf.ords] for etf in A2:A5])
+
+#E2:E5 -- SumWeightedBids (can't extract matrices from sheet; only get degenerate list, using hacky reshape solution, maybe TODO)
+arr(A8:C11).reshape(3,4).transpose().sumWay(1)
+
 sum(A8:C8)
 sum(A9:C9)
 sum(A10:C10)
 sum(A11:C11)
 
-#F2:F5
+#F2:F5 -- SumWeightedAsks -- alternatives:
+arr(D8:F11).reshape(3,4).transpose().sumWay(1)
+
+map(lambda x: sum(x)) [[D8:F8],[D9:F9],[D10:F10],[D11:F11]]
+
 sum(D8:F8)
 sum(D9:F9)
 sum(D10:F10)
 sum(D11:F11)
 
-#H2
-a=(-np.array(C2:C5)+np.array(E2:E5)/ETF.convRate()-np.array([x.rd for x in A2:A5])).tolist()
-#I2
-a=(np.array(B2:B5)+np.array(F2:F5)/ETF.convRate()-np.array([x.cr for x in A2:A5])).tolist()
+#H2 -- BuyRating -- alternatives
+arr(C2:C5) + arr(E2:E5) / ETF.convRate() - arr([x.rd for x in A2:A5])
 
-#K2
+(-np.array(C2:C5)+np.array(E2:E5)/ETF.convRate()-np.array([x.rd for x in A2:A5])).tolist()
+
+#I2 -- SellRating -- alternatives
+arr(B2:B5) + arr(F2:F5) / ETF.convRate() - arr([x.cr for x in A2:A5])
+
+(np.array(B2:B5)+np.array(F2:F5)/ETF.convRate()-np.array([x.cr for x in A2:A5])).tolist()
+
+#K2 -- Decision
 [green("BUY") if H2:H5[i]>I2:I5[i] and H2:H5[i]>0 else red("SELL") for i in range(4)]
