@@ -3,4 +3,7 @@ module Handler.Clear where
 import Import
 
 getClearR :: Handler Html
-getClearR = error "Not yet implemented: getClearR"
+getClearR = runDB $ do
+	deleteWhere ([] :: [Filter ASCellDB])
+	deleteWhere ([] :: [Filter RelationDB])
+	redirect ("http://asrini-host.mit.edu/app" :: String)
