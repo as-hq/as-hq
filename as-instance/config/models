@@ -10,11 +10,11 @@ Email
     UniqueEmail email
 
 ASFunc
-    alias Text
-    replace Text
-    path Text
-    apply Text
-    lang Text
+    alias Text      -- function call
+    replace Text    -- function alias replacement (e.g. disambiguated funcs)
+    importName Text    -- e.g. 'numpy' or script name from as-libs/py
+    importCommand Text    -- should be "execfile" or "import importName as np" depending on module or script in as-libs
+    lang Text       -- "python"
     deriving Show
 
 ASCellDB

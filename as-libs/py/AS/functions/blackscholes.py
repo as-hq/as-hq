@@ -10,7 +10,7 @@ def CND(X):
         w = 1.0-w
     return w
 
-def BlackSholes(CallPutFlag,S,X,T,r,v):
+def BlackScholes(CallPutFlag,S,X,T,r,v):
     d1 = (log(S/X)+(r+v*v/2.)*T)/(v*sqrt(T))
     d2 = d1-v*sqrt(T)
     if CallPutFlag=='c':

@@ -16,18 +16,18 @@ let mongoSettings = (mkPersistSettings (ConT ''MongoContext))
     $(persistFileWith upperCaseSettings "config/models")
 
 instance ToJSON (Entity ASFunc) where
-    toJSON (Entity funcId (ASFunc alias replace path apply lang)) = object
+    toJSON (Entity funcId (ASFunc alias replace importName importCommand lang)) = object
         [ "alias" .= alias
         , "replace" .= replace
-        , "path" .= path
-        , "apply" .= apply
+        , "importName" .= importName
+        , "importCommand" .= importCommand
         , "lang" .= lang
         ]
 instance FromJSON ASFunc where
     parseJSON (Object o) = ASFunc
         <$> o .: "alias"
         <*> o .: "replace"
-        <*> o .: "path"
-        <*> o .: "apply"
+        <*> o .: "importName"
+        <*> o .: "importCommand"
         <*> o .: "lang"
     parseJSON _ = fail "Invalid func declaration"

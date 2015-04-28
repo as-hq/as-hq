@@ -27,9 +27,25 @@ def modifiedTickData (good, tickData):
             reasonablePrices.append(reasonablePrices[i-1])
     return reasonablePrices
 
-#Example: 
-#>>> good = lambda x: x>2 and x<10
-#>>> m=modifiedTickData(good,[3,1,1,4,5,11,12,13,6,7,8,-3])
-#>>> m
-#[3, 3, 3, 4, 5, 5, 5, 5, 6, 7, 8, 8]
+# returns a list of data
+def readData(name):
+    with open(name) as f:
+        data=f.readlines()
+    data= [x[:-1] for x in data]
+    return [float(x) for x in data]
+        
+'''
+IN SPREAD6SHEET 
+A1 = readData("crazyData.txt")
+B1 = filterTickData(A1:A12,2,10)
+Assumes that A1:A12 will be a normal python list
+'''
+
+'''
+Example:
+>>> good = lambda x: x>2 and x<10
+>>> m=modifiedTickData(good,[3,1,1,4,5,11,12,13,6,7,8,-3])
+>>> m
+[3, 3, 3, 4, 5, 5, 5, 5, 6, 7, 8, 8]
+'''
     

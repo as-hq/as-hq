@@ -77,7 +77,7 @@ def exe(scriptPath):
     with open(scriptPath, 'r') as f:
 		# content = scrubExcel(f)
         content = f.readlines()
-        content[-1] = 'print(' + content[-1].split('=')[-1] + ')'
+        content[-1] = 'print(repr(' + content[-1].split('=')[-1] + '))'
     with open(scriptPath, 'w') as f: f.writelines(content)
     execfile(scriptPath)
 

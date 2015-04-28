@@ -12,9 +12,12 @@ import Control.Applicative
 import System.IO                                             
 import System.Process   
 
-py_eval_path = "/Users/zeigjeder/Development/alphasheets/alpha-sheets/as-instance/as-py-eval/"
+py_eval_path = "/home/hal/code/alphasheets/as-instance/as-py-eval/"
+py_libs_path = "/home/hal/code/alphasheets/as-libs/py/"
 py_run_path = py_eval_path ++ "run/"
-py_eval_file = py_eval_path ++ "eval.py"
+py_template_file = "template.py"
+py_eval_file = "eval.py"
+py_run_file = "temp.py"
 
 evalExpression :: Map ASLocation ASValue -> ASExpression -> Handler ASValue
 evalExpression dict expr =
@@ -38,10 +41,10 @@ evalPy dict expr = do
   $(logInfo) $ "EVALPY with MATCHES: " ++ (fromString $ show dict)
 
   let expr' = excelRangesToLists $ expression expr
-  scrubbed <- scrubCmd $ replaceSubstrings expr' matches
+  scrubCmd $ replaceSubstrings expr' matches
 
-  let filepath = py_run_path ++ scrubbed
-  let execCmd = "python "++py_eval_file++" "++filepath 
+  let runfile = py_run_path ++ py_run_file
+  let execCmd = "python "++py_eval_path++py_eval_file++" "++runfile :: String
 
   $(logInfo) $ "EVALPY with command: " ++ (fromString $ show execCmd)
 
@@ -71,32 +74,35 @@ eval s = do
 
 -- take a command string, match & replace aliases, insert into template.py
 -- returns filename for scrubbed py file (temp.py) & list of improts
-scrubCmd :: String -> Handler String
-scrubCmd "" = return "No command specified."
+scrubCmd :: String -> Handler ()
 scrubCmd cmd = do
   $(logInfo) $ "EVALPY with init cmd: " ++ (fromString $ show cmd)
 
   functions <- getFuncs
-  let (editedCmd, imports) = replaceAliases cmd functions
-      importCmds = unlines . map (\(apply, path) -> apply ++ "(\"" ++ path ++ "\")\n") $ imports
+  let (cmd', imports) = replaceAliases cmd functions
+      editedCmd = replaceSubstrings cmd' [(";", "\n")]
+      importCmds = unlines . map (\(name,command) -> 
+        if command == "execfile" 
+          then command ++ "(\"" ++ py_libs_path ++ name ++ ".py" ++ "\")\n" 
+          else command ++ "\n"
+        ) $ imports
 
   $(logInfo) $ "EVALPY with edited cmd: " ++ (fromString $ show (editedCmd, importCmds))
 
-  contents <- Import.readFile $ py_eval_path ++ "template.py"
+  contents <- Import.readFile $ py_eval_path ++ py_template_file
   let codeFile = importCmds ++ contents ++ "\n" ++ editedCmd
 
   $(logInfo) $ "EVALPY with cmd'': " ++ (fromString $ show codeFile)
 
-  Import.writeFile (py_eval_path ++ "run/temp.py") codeFile
-  return "temp.py"
+  Import.writeFile (py_run_path ++ py_run_file) codeFile
 
--- takes (1) cmd string, (2) tuples [(alias, apply, path)]
--- return tuple (cmd', [(applicative command, func path)])
+-- takes (1) cmd string, (2) funcs [ASFunc]
+-- return tuple (cmd', [(importName, importCommand)])
 replaceAliases :: String -> [ASFunc] -> (String, [(String, String)])
 replaceAliases cmd [] = (cmd, [])
 replaceAliases cmd matches = 
 	(replaceSubstrings cmd (map toReplacingImports presentStubs), 
-	map (\f-> (unpack (aSFuncApply f), unpack (aSFuncPath f))) presentStubs)
+	map (\f-> (unpack (aSFuncImportName f), unpack (aSFuncImportCommand f))) presentStubs)
 		where 
 			toReplacingImports = (\f->(unpack (aSFuncAlias f), unpack (aSFuncReplace f)))
 			presentStubs = filter (\x -> isInfixOf (unpack (aSFuncAlias x)) cmd) matches
