@@ -1,11 +1,30 @@
 import numpy as np
 
 # purpose of this class is to be able to chain operations nicely
+class ASIterator:
+    def __init__(self, data):
+        self.data=data
+        self.idx=0
+
+    def __iter__(self):
+        return self
+
+    def next(self):
+        try:
+            result=self.data.get(self.idx)
+            self.idx+=1
+            return result
+        except IndexError:
+            raise StopIteration
+
 class ASIterable(object):
     def __init__(self, lst):
-        self.lst = np.array(lst)
-    def get(self, idx):
-        return self.lst[idx]
+        try:
+            _ = (e for e in lst) # check if iterable
+            self.lst = np.array(lst)
+        except TypeError:
+            self.lst = np.array([lst])
+
     def head(self):
         return self.lst[0]
     def tail(self):
@@ -84,6 +103,12 @@ class ASIterable(object):
     def __neg__(self):
         return ASIterable(-self.lst)
 
+    def __pos__(self):
+        return self;
+
+    def __abs__(self):
+        return ASIterable(np.abs(self.lst))
+
     def __mul__(self, other):
         if isinstance(other, ASIterable):
             try:
@@ -107,5 +132,17 @@ class ASIterable(object):
     def __rmul__(self, other):
         return self.__mul__(other)
 
+    # iteration
+    def get(self, idx):
+        return self.lst[idx]
+
+    def __iter__(self):
+        return ASIterator(self)
+
+    def map(self, func):
+        return ASIterable([func(x) for x in self])
+
+
     def __repr__(self):
         return repr(self.load())
+
