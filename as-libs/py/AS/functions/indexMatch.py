@@ -2,7 +2,7 @@
 # assumes that data matrix is fully filled
 def indexMatch(data, matchValues, matchCols, lookupCols,matchFuncs=None):
     # data entered in col form, we want row form
-    data=map(list,zip(*data)) #transpose
+    #data=map(list,zip(*data)) #transpose
     # deal with user entering one value vs. list
     if not isinstance(matchCols,list):
         matchCols=[matchCols]

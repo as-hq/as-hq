@@ -66,6 +66,7 @@ def etfArb(etfs, conversionRate):
 
 #n=num ETFs
 #k=num ORDs (all ETFs assumed to have same ord)
+# not exposing this -- doing so via standard python package data access, see loadSamples() from ETF class
 def readData(name,n,k):
     etfs=[]
     ords=[]

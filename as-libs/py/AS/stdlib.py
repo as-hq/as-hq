@@ -29,3 +29,6 @@ def reshape(lst,axis1,axis2):
 
 def transpose(lst):
 	return np.array(lst).transpose().tolist()
+
+def sumSquares(lst):
+	return sum(np.array(lst)**2)

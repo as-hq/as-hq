@@ -62,9 +62,12 @@ class ASIterable(object):
     def reshape(self,axis1,axis2):
         return ASIterable(self.lst.reshape((axis1, axis2)))
     def transpose(self):
-        return ASIterable(self.lst.transpose())
+        # turn column to row vector
+        if len(self.lst.shape) == 1: 
+            return ASIterable([self.load()])
+        else: return ASIterable(self.lst.transpose())
     def t(self):
-        return transpose(self)
+        return self.transpose()
     def dot(self, other):
         if isinstance(other, ASIterable):
             return ASIterable(np.dot(self.lst, other.lst))
@@ -145,4 +148,3 @@ class ASIterable(object):
 
     def __repr__(self):
         return repr(self.load())
-

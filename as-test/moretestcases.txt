@@ -1,0 +1,10 @@
+#betas
+TODO -- lift matrices from sheet
+
+#index match
+TODO -- fix column vs row in ritesh funcs
+
+#Todods
+-matrices -- Done!
+-strings in lists
+-easy list transpose

@@ -1,7 +1,7 @@
 module AS.Parsing where
 
 import Import hiding ((<|>))
-import qualified Prelude
+import qualified Prelude as P
 import Prelude ((!!), read)
 import AS.Types
 import Text.Regex.Posix
@@ -42,7 +42,7 @@ toExcel loc = case loc of
 
 fromExcel :: String -> ASLocation
 fromExcel str
-	| elem ':' str = Range (excelToIndex $ Prelude.head spt, excelToIndex $ Prelude.last spt)
+	| elem ':' str = Range (excelToIndex $ P.head spt, excelToIndex $ P.last spt)
 	| otherwise    = Index . excelToIndex $ str
     where
       spt = map unpack $ T.splitOn (pack ":") (pack str) 
@@ -51,7 +51,7 @@ indexToExcel :: (Int, Int) -> String
 indexToExcel idx = (['A'..'Z'] !! ((fst idx) - 1)):(show (snd idx))
 
 excelToIndex :: String -> (Int, Int)
-excelToIndex str = (toDigit (Prelude.head str), Prelude.read (Prelude.tail str) :: Int)
+excelToIndex str = (toDigit (P.head str), P.read (P.tail str) :: Int)
 
 toDigit :: Char -> Int
 toDigit x = fromJust (elemIndex x ['A'..'Z']) + 1
@@ -163,7 +163,7 @@ showValue v = case v of
   ValueNaN () -> "undefined"
   ValueS s -> s
   ValueD d -> show d
-  ValueL l -> "[" ++ (intercalate "," (fmap showValue l)) ++ "]"
+  ValueL l -> toListStr $ fmap showValue l
   StyledValue s v -> showValue v
   DisplayValue d v -> showValue v
   ObjectValue o js -> o ++ ".deserialize(" ++ js ++ ")"
@@ -176,14 +176,35 @@ parseValue = fromRight . (parse asValue "") . T.pack
 --parsing ranges
 
 excelRngToIdxs :: String -> String
-excelRngToIdxs rng = "["++(Prelude.init $ concat myList)++"]" 
-  where 
-    spt = map unpack $ T.splitOn (pack ":") (pack rng) 
-    myList = [x:(show y) ++ ',':[] | x<-[(Prelude.head (spt !! 0))..(Prelude.head (spt !! 1))], 
-      y<-[(read (Prelude.tail (spt !! 0))::Int)..(read (Prelude.tail (spt !! 1))::Int)]]
+excelRngToIdxs rng
+  | x1 /= x2 = toListStr $ map toListStr' [[x:(show y) ++ ',':[] | x<-[x1..x2]] | y<-[y1..y2]] 
+  | otherwise = toListStr' [x:(show y) ++ ',':[] | x<-[x1..x2], y<-[y1..y2]]
+    where
+      spt = map unpack $ T.splitOn (pack ":") (pack rng) 
+      x1 = (P.head (spt !! 0))
+      x2 = (P.head (spt !! 1))
+      y1 = (read (P.tail (spt !! 0))::Int)
+      y2 = (read (P.tail (spt !! 1))::Int)
+      toListStr' lst = "["++(P.init $ concat lst)++"]"
+
+toListStr :: [String] -> String
+toListStr lst  = "[" ++ (intercalate "," lst) ++ "]"
 
 excelRangesToLists :: String -> String
 excelRangesToLists str = replaceSubstrings str (zip toReplace replaceWith)
   where
     toReplace = deleteEmpty $ regexList str "([A-Z][0-9]+:[A-Z][0-9]+)"
     replaceWith = map excelRngToIdxs toReplace
+
+rangeDiff :: ((Int, Int), (Int, Int)) -> (Int, Int)
+rangeDiff (a,b) = (fst b - fst a + 1, snd b - snd a + 1)
+
+reshapeColArr :: [a] -> (Int, Int) -> [[a]]
+reshapeColArr lst@(x:xs) (m,n) = 
+  if (length lst) /= (m*n-m)
+    then (every m lst):(reshapeColArr xs (m,n))
+    else []
+
+-- always includes first element
+every :: Int -> [a] -> [a]
+every n = map P.head . takeWhile (not . null) . P.iterate (drop n)

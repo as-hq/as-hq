@@ -105,15 +105,18 @@ class ETF(object):
     #reps
     @classmethod
     def deserialize(cls, js):
-        dOrds = [ORD.deserialize(x) for x in js["ords"]]
         e = cls(js["name"], (js["bid"], js["ask"]))
-        e.setORDs(dOrds, js["weights"])
-        e.setFees((js["cr"], js["rd"]))
+        if "ords" in js:
+            dOrds = [ORD.deserialize(x) for x in js["ords"]]
+            e.setORDs(dOrds, js["weights"])
+            e.setFees((js["cr"], js["rd"]))
         return e
 
     def serialize(self):
-        sOrds = [ORD.serializeJson(x) for x in self.ords]
-        return str({ "name": self.name, "bid": self.bid, "ask": self.ask, "ords": sOrds, "weights": self.weights, "cr": self.cr, "rd": self.rd})
+        if hasattr(self, 'ords'):
+            sOrds = [ORD.serializeJson(x) for x in self.ords]
+            return str({ "name": self.name, "bid": self.bid, "ask": self.ask, "ords": sOrds, "weights": self.weights, "cr": self.cr, "rd": self.rd})
+        else: return str({ "name": self.name, "bid": self.bid, "ask": self.ask})
 
     def displayValue(self):
         return self.name

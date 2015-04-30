@@ -1,3 +1,4 @@
+Data: use adj close, adjusted for dividends/splits; last 20 days
 yhoo
 44.66
 44.45
