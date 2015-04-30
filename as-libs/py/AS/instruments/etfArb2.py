@@ -27,7 +27,6 @@ L1=e2.etfArb(A1:A4,C1) (should be a 4x2 matrix)
 
 def computeETFArb(etfs, conversionRate):
     profitAndStrategy=[]
-    print "hi"
     for etf in etfs: #buy at the ask price, sell at the bid price
         buyETF = -etf.ask + etf.ordImpliedETFPrices()[1]/float(conversionRate) - etf.rd #redeem
         sellETF = etf.bid - etf.ordImpliedETFPrices()[0]/float(conversionRate) - etf.cr #create

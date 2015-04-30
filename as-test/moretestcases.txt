@@ -8,3 +8,13 @@ TODO -- fix column vs row in ritesh funcs
 -matrices -- Done!
 -strings in lists
 -easy list transpose
+
+todo rand -- done
+
+##### TEST CASES
+#betas:
+#A1
+rand(14,5,1)
+#G1
+beta()
+

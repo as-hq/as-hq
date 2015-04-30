@@ -1,4 +1,5 @@
 import numpy as np
+import random
 from AS.iterable import ASIterable
 
 def arr(lst):
@@ -32,3 +33,12 @@ def transpose(lst):
 
 def sumSquares(lst):
 	return sum(np.array(lst)**2)
+
+def rand(m=1,n=1,upperbound=1):
+	if n==1 and m != 1:
+		return ASIterable(np.random.rand(m)*randint(1,upperbound))
+	elif m==1 and n!=1:
+		return ASIterable(np.random.rand(m)*randint(1,upperbound)).transpose()
+	elif m==1 and n==1:
+		return np.random_sample*random.randint(1,upperbound)
+	else: return ASIterable(np.random.rand(m,n)*random.randint(1,upperbound))

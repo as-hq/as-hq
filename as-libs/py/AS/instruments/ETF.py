@@ -7,7 +7,7 @@ from AS import samples
 
 class ETF(object):
     allETFs = None
-    convRate = None
+    conv_rate = None
 
     def __init__(self,etfName,(bid, ask)):
         self.name=etfName
@@ -48,6 +48,7 @@ class ETF(object):
         data = samples('etf_samples').replace('ETF Prices', '|',).replace('ADR Prices', '|').replace('weights', '|').replace('fees', '|').replace('CRate', '|')
         data = data.split('|')[1:]
         data = [section.split('\n')[1:-1] for section in data]
+
         return float(data[4][0])
 
     @staticmethod
@@ -99,7 +100,7 @@ class ETF(object):
                     e.setORDs(ords,w)  
                     e.setFees((float(feeSet[1]),float(feeSet[2])))
 
-        ETF.convRate = float(data[4][0])
+        ETF.conv_rate = float(data[4][0])
         return ETF.allETFs.load()
 
     #reps
