@@ -5,4 +5,4 @@ rand(4,6)
 beta(A2:F5)
 
 # etf arbitrage
-etfArb(ETF.loadSamples(4), ETF.convRate())
+etfArb(ETF.loadSamples(4), ETF.conv_rate)
