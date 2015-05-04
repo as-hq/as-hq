@@ -121,6 +121,7 @@ extractValue :: M.Map String ASValue -> ASValue
 extractValue m
   | M.member "style" m = extractStyledValue m
   | M.member "displayValue" m = extractDisplayValue m
+  | M.member "imagePath" m = extractImageValue m
   | otherwise = extractObjectValue m
   where
     extractStyledValue mm = StyledValue s v
@@ -131,6 +132,11 @@ extractValue m
       where
         ValueS s    = m M.! "displayValue"
         v           = m M.! "actualValue"
+    -- { 'imagePath': 'whatever the path is' }
+    -- print({ 'imagePath': 'whatever the path is' })
+    extractImageValue mm = ValueImage p
+      where
+        ValueS p    = m M.! "imagePath"
     extractObjectValue mm = ObjectValue typ rep
       where
         ValueS typ  = m M.! "objectType"
@@ -148,7 +154,7 @@ complexValue = extractValue <$> extractMap
       return (str, dictValue)
     extractMap      = M.fromList <$> (braces $ sepBy dictEntry (comma >> spaces))
 
-asValue :: Parser ASValue
+asValue :: Parser ASValue 
 asValue = choice [valueD, valueS, valueL, complexValue, return $ ValueNaN ()]
 
 showFilteredValue :: ASLocation -> ASValue -> String
@@ -160,7 +166,8 @@ showFilteredValue _ a = showValue a
 
 showValue :: ASValue -> String
 showValue v = case v of
-  ValueNaN () -> "undefined"
+  ValueImage path -> "PLOT"--ADDED, open file here?
+  ValueNaN () -> "UNDefined"
   ValueS s -> s
   ValueD d -> show d
   ValueL l -> toListStr $ fmap showValue l
@@ -168,11 +175,10 @@ showValue v = case v of
   DisplayValue d v -> showValue v
   ObjectValue o js -> o ++ ".deserialize(" ++ js ++ ")"
 
-parseValue :: String -> ASValue
-parseValue = fromRight . (parse asValue "") . T.pack
+parseValue :: String -> ASValue --needs to change to reflect ValueImage
+parseValue = fromRight . (parse asValue "") . T.pack 
   where
     fromRight (Right v) = v
-
 --parsing ranges
 
 excelRngToIdxs :: String -> String

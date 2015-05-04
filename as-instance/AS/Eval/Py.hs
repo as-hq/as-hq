@@ -12,8 +12,8 @@ import Control.Applicative
 import System.IO                                             
 import System.Process   
 
-py_eval_path = "/home/hal/code/alphasheets/as-instance/as-py-eval/"
-py_libs_path = "/home/hal/code/alphasheets/as-libs/py/"
+py_eval_path = "/home/riteshr/alphasheets/as-instance/as-py-eval/"
+py_libs_path = "/home/riteshr/alphasheets/as-libs/py/"
 py_run_path = py_eval_path ++ "run/"
 py_template_file = "template.py"
 py_eval_file = "eval.py"

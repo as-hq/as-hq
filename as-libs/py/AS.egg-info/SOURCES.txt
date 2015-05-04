@@ -9,7 +9,6 @@ AS.egg-info/dependency_links.txt
 AS.egg-info/not-zip-safe
 AS.egg-info/requires.txt
 AS.egg-info/top_level.txt
-AS/data/YHOO_samples.txt
 AS/data/crazyData.txt
 AS/data/etf_samples.txt
 AS/data/stock_samples.txt

@@ -1,6 +1,7 @@
 import numpy as np
 import random
 from AS.iterable import ASIterable
+import matplotlib.pyplot as plt
 
 def arr(lst):
 	return ASIterable(lst)
@@ -13,7 +14,7 @@ def flat(lst):
 	return [item for sublist in lst for item in sublist]
 
 def prefixPush(elem, lst):
-	lst.insert(0, elem)
+	lst.insert(0, elem) 
 	return lst
 
 def every(lst, k):
@@ -42,3 +43,11 @@ def rand(m=1,n=1,upperbound=1):
 	elif m==1 and n==1:
 		return np.random_sample*random.randint(1,upperbound)
 	else: return ASIterable(np.random.rand(m,n)*random.randint(1,upperbound))
+
+directory="/home/riteshr/alphasheets/as-instance/as-py-eval/"
+def plot(x,y,name):
+    plt.plot(x,y)
+    fig=plt.gcf()
+    path=directory+name+".png"
+    fig.savefig(path)
+    return {'imagePath':path}
