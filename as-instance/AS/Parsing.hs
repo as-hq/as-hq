@@ -202,6 +202,12 @@ excelRangesToLists str = replaceSubstrings str (zip toReplace replaceWith)
     toReplace = deleteEmpty $ regexList str "([A-Z][0-9]+:[A-Z][0-9]+)"
     replaceWith = map excelRngToIdxs toReplace
 
+excelRangesToIterables :: String -> String
+excelRangesToIterables str = replaceSubstrings str (zip toReplace replaceWith)
+  where
+    toReplace = deleteEmpty $ regexList str "([A-Z][0-9]+:[A-Z][0-9]+)"
+    replaceWith = map ((\x->"arr("++x++")") . excelRngToIdxs) toReplace
+
 rangeDiff :: ((Int, Int), (Int, Int)) -> (Int, Int)
 rangeDiff (a,b) = (fst b - fst a + 1, snd b - snd a + 1)
 

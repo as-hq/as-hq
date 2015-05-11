@@ -12,8 +12,8 @@ import Control.Applicative
 import System.IO                                             
 import System.Process   
 
-py_eval_path = "/Users/zeigjeder/Development/alphasheets/alpha-sheets/as-instance/as-py-eval/"
-py_libs_path = "/Users/zeigjeder/Development/alphasheets/alpha-sheets/as-libs/py/"
+py_eval_path = "/home/hal/code/branches/alphasheets/as-images/as-instance/as-py-eval/"
+py_libs_path = "/home/hal/code/branches/alphasheets/as-images/as-libs/py/"
 py_run_path = py_eval_path ++ "run/"
 py_template_file = "template.py"
 py_eval_file = "eval.py"
@@ -41,7 +41,8 @@ evalPy dict expr = do
 
   $(logInfo) $ "EVALPY with MATCHES: " ++ (fromString $ show dict)
 
-  let expr' = excelRangesToLists $ expression expr
+  let expr' = excelRangesToIterables $ expression expr
+  $(logInfo) $ "EVALPY with EXPANDED MATHCES: " ++ (fromString $ show expr')
   scrubCmd $ replaceSubstrings expr' matches
 
   let runfile = py_run_path ++ py_run_file
