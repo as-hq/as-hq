@@ -20,6 +20,7 @@ data ASValue =
   ValueB Bool |
   ValueL [ASValue] |
   ValueImage { imagePath :: String } |
+  StockChart { stockPrices :: ASValue, stockName :: String } |
   ObjectValue { objectType :: String, jsonRepresentation :: String } |
   StyledValue { style :: String, value :: ASValue } |
   DisplayValue { displayValue :: String, actualValue :: ASValue }

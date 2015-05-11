@@ -208,6 +208,7 @@ extractValue m
   | M.member "style" m = extractStyledValue m
   | M.member "displayValue" m = extractDisplayValue m
   | M.member "imagePath" m = extractImageValue m
+  | M.member "stockPrices" m = extractStockChart m
   | otherwise = extractObjectValue m
   where
     extractStyledValue mm = StyledValue s v
@@ -227,6 +228,10 @@ extractValue m
       where
         ValueS typ  = m M.! "objectType"
         ValueS rep  = m M.! "jsonRepresentation"
+    extractStockChart mm = StockChart prices name
+      where
+        prices      = m M.! "stockPrices"
+        ValueS name = m M.! "stockName"
 
 complexValue :: Parser ASValue
 complexValue = extractValue <$> extractMap
