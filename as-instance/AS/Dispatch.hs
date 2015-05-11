@@ -3,12 +3,13 @@ module AS.Dispatch where
 import AS.Types
 import AS.Parsing
 import Import
+import Prelude ((!!)) --ADDED FOR RANGES
 import qualified AS.Eval.Py as R (evalExpression)
 import qualified Data.Map as M
 import qualified AS.DAG as D
 import qualified AS.DB as DB
-import Data.List (elemIndex, tail)
-import qualified Data.List (head)
+import Data.List (elemIndex, tail, init)
+import qualified Data.List (head,last) --ADDED FOR RANGES
 import Data.Maybe (fromJust)
 import Text.ParserCombinators.Parsec
 import Text.Regex.Posix
@@ -20,18 +21,19 @@ evalCellSeq = evalChain M.empty
 evalChain :: M.Map ASLocation ASValue -> [ASCell] -> Handler [ASCell]
 evalChain _ [] = return []
 evalChain mp (c:cs) = do
-  let xp  = cellExpression c
+  let xp  = Expression $ removeBrackets $ deleteDollars $ expression $ cellExpression c --ADDED FOR RANGES
       loc = cellLocation c
-  cv <- R.evalExpression mp xp
+  $(logInfo) $ "EVALPY EXPRESSION: " ++ (fromString $ (expression xp))
+  cv <- R.evalExpression mp xp 
   additionalCells <- case loc of
     Index (a, b) -> case cv of
       ValueL lst -> createListCells (Index (a, b)) lst
-      otherwise -> return []
+      otherwise -> return [] 
     otherwise -> return []
   $(logInfo) $ (fromString $ show cv)
   let newMp = M.insert (cellLocation c) cv mp
   rest <- evalChain newMp cs
-  return $ [Cell loc xp cv] ++ additionalCells ++ rest
+  return $ [Cell loc (cellExpression c) cv] ++ additionalCells ++ rest --the cell should contain $ signs in expression
 
 createListCells :: ASLocation -> [ASValue] -> Handler [ASCell]
 createListCells (Index (a, b)) [] = return []
@@ -88,37 +90,38 @@ cellValues locs = do
     else return $ Just $ M.fromList $ map (\cell -> (cellLocation cell, cellValue cell)) $ map (\(Just x) -> x) $ cells
 
 updateCell :: (ASLocation, ASExpression) -> Handler ()
-updateCell (loc, xp) =
-  DB.dbUpdateLocationDependencies (loc, deps) >> (DB.setCell $ Cell loc xp (ValueNaN ()))
-    where 
-      deps = normalizeRanges $ parseDependencies xp
-
-createRangeCells :: (ASLocation, ASExpression) -> Handler ()
-createRangeCells (loc, xp) =
+updateCell (loc, xp) = 
   case loc of
-    Range (p1, p2) -> do
-      let ele = decomposeLocs loc
-      mapM_ (\eleLoc -> updateCell (eleLoc, Expression ((expression xp)++"["++(show $ fromJust $ elemIndex eleLoc ele)++"]"))) ele --TODO expression
-    otherwise -> return ()
+    Index a -> do
+      DB.dbUpdateLocationDependencies (loc, deps) >> (DB.setCell $ Cell loc xp (ValueNaN ()))
+      where 
+        deps = normalizeRanges $ parseDependencies xp
+    Range ((a,b),(c,d)) ->  --CHANGED FOR RANGES
+      if (Data.List.head (expression xp) == '{') && (Data.List.last (expression xp) == '}') --check for array formula
+        then do 
+          $(logInfo) $ "DB ARRAY BITCH"
+          let topLeftExpr = Expression $ topLeft (expression xp)
+          let deps = [fst (parseDependenciesRelative topLeftExpr rowOff colOff) | rowOff<-[0..c-a], colOff<-[0..d-b]]
+          let exps = [snd (parseDependenciesRelative topLeftExpr rowOff colOff) | rowOff<-[0..c-a], colOff<-[0..d-b]]
+          let locs = [Index (row,col) | row <-[a..c], col<-[b..d]]
+          DB.dbUpdateLocationDepsBatch (zip locs deps) >> DB.setCells [Cell (locs!!i) (exps!!i) (ValueNaN ()) | i<-[0..(c-a+1)*(d-b+1)-1]] 
+          $(logInfo) $ "DB ARRAY: "++ (fromString $ show exps) --DB expressions have $ signs
+        else do 
+          $(logInfo) $ "DB DOLLAR BITCH"
+          let deps = [fst (parseDependenciesRelative xp rowOff colOff) | rowOff<-[0..c-a], colOff<-[0..d-b]]
+          let exps = [snd (parseDependenciesRelative xp rowOff colOff) | rowOff<-[0..c-a], colOff<-[0..d-b]]
+          let locs = [Index (row,col) | row <-[a..c], col<-[b..d]]
+          DB.dbUpdateLocationDepsBatch (zip locs deps) >> DB.setCells [Cell (locs!!i) (exps!!i) (ValueNaN ()) | i<-[0..(c-a+1)*(d-b+1)-1]] 
+          $(logInfo) $ "DB DOLLARS: "++ (fromString $ show exps) --DB expressions have $ signs
 
 reevaluateCell :: (ASLocation, ASExpression) -> Handler (Maybe [ASCell])
 reevaluateCell (loc, xp) = do
-  --let rdeps = normalizeRanges $ parseDependencies xp
-  descendants <- D.dbGetSetDescendants $ [loc]
-
+  descendants <- D.dbGetSetDescendants $ decomposeLocs loc --CHANGED FOR RANGES
   $(logInfo) $ "Descendants being calculated: " ++ (fromString $ show descendants)
-
   evalCells descendants
 
 propagateCell :: ASLocation -> ASExpression -> Handler (Maybe [ASCell])
 propagateCell loc xp = do
   updateCell (loc, xp)
-  createRangeCells (loc, xp)
   reevaluateCell (loc, xp)
 
-{-- TODO
-evalRepl :: String -> Handler (Maybe ASValue)
-evalRepl xp = cellValues deps >>= ((flip R.evalPy) expr)
-  where deps = parseDependencies expr
-        expr = Expression xp
-        --}

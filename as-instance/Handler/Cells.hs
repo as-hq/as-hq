@@ -46,8 +46,8 @@ getEvalReplR = interactHandlerJson "expression" process
 
 -- {
 --     "cellLocation": {
---       "tag": "Index",
---       "range": []
+--       "tag": "Range",
+--       "range": [[2,1],[2,5]]
 --     },
 --     "cellExpression": {
 --       "expression": "A1+1"

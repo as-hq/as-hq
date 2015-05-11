@@ -85,6 +85,10 @@ dbUpdateLocationDependencies :: (ASLocation, [ASLocation]) -> Handler ()
 dbUpdateLocationDependencies (loc, deps) =
   dbDeleteLocationDependencies loc >> dbInsertRelation (zip (repeat loc) deps)
 
+-- ADDED FOR RANGES - should be optimized
+dbUpdateLocationDepsBatch :: [(ASLocation,[ASLocation])] -> Handler ()
+dbUpdateLocationDepsBatch = mapM_ dbUpdateLocationDependencies
+
 dbInsertDependency :: (ASCell, ASCell) -> Handler ()
 dbInsertDependency (x, y) = dbInsertSingleRelation (cellLocation x, cellLocation y)
 

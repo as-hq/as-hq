@@ -17,6 +17,7 @@ data ASValue =
   ValueNaN () |
   ValueS String |
   ValueD Double |
+  ValueB Bool |
   ValueL [ASValue] |
   ValueImage { imagePath :: String } |
   ObjectValue { objectType :: String, jsonRepresentation :: String } |
