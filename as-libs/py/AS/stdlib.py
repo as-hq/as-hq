@@ -43,14 +43,3 @@ def rand(m=1,n=1,upperbound=1):
 	elif m==1 and n==1:
 		return np.random_sample*random.randint(1,upperbound)
 	else: return ASIterable(np.random.rand(m,n)*random.randint(1,upperbound))
-
-directory="/home/riteshr/alphasheets/as-instance/as-py-eval/"
-def plot(x,y,name):
-    plt.plot(x,y)
-    fig=plt.gcf()
-    path=directory+name+".png"
-    fig.savefig(path)
-    return {'imagePath':path}
-
-def testStockChart():
-    return {'stockPrices':[["2014-01-01T23:28:56.782Z", 1.00, 1.50, 0.90, 1.20], ["2014-01-02T23:28:56.782Z", 1.30, 1.50, 1.00, 1.15]], 'stockName': 'TEST'}
