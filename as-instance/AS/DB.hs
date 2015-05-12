@@ -34,34 +34,34 @@ getCells locs = do
 		((Entity cellId cell):cs) -> Just . fromDBCell $ cell) cells
 
 setCell :: ASCell -> Handler ()
-setCell cell = do
-	let loc = cellLocation cell
-	cells <- runDB $ selectList [ASCellDBLocationString ==. show loc] []
-	case cells of 
-		[] -> (runDB $ insert (toDBCell cell)) >> return ()
-		((Entity cellDBId cellDB):cs) -> (runDB $ replace cellDBId (toDBCell cell)) >> return ()
-	case loc of 
-		(Range a) -> do
-			let locs = zip (map Index $ decomposeLocs loc) [0..]
-			$(logInfo) $ (fromString $ show $ cellValue cell)
-			let vals = case (cellValue cell) of
-				(ValueNaN ()) -> repeat $ ValueNaN ()
-				(ValueL b) -> b
-			setCells [Cell (fst l) (Expression ((indexToExcel . index $ fst l) ++ "[" ++ show (snd l) ++ "]")) (vals !! (snd l)) | l<-locs]
-		otherwise -> return ()
-
--- {--
--- -- TODO FIX
--- setCells :: [ASCell] -> Handler ()
--- setCells cells = setCell $ cells !! 0
--- 	 -- retrievedCells <- runDB $ mapM_ (\cell -> selectList [ASCellDBLocationString ==. show (cellLocation cell)] []) cells
--- 	 -- runDB $ mapM_ (\cellTuple -> case (fst cellTuple) of 
--- 	 -- 	[] -> (insert (toDBCell (snd cellTuple))) >> return ()
--- 	 -- 	((Entity cellId cell):cs) -> (replace cellId (toDBCell (snd cellTuple))) >> return ()) (zip retrievedCells cells)
--- --}
+setCell cell = setCells [cell]
 
 setCells :: [ASCell] -> Handler ()
-setCells = mapM_ setCell
+setCells cells = do
+	let rngCells = filter (\cell -> case (cellLocation cell) of 
+								(Range a) -> True
+								otherwise -> False) cells
+	let locs = (map cellLocation cells) ++ concat (map (decomposeLocs . cellLocation) rngCells)
+	foundCells <- runDB $ selectList [ASCellDBLocationString <-. (map show locs)] []
+	mapM_ (\(Entity cellDBId celldB) -> (runDB $ delete cellDBId) >> return ()) foundCells
+	insertCells cells
+	setRangeCells rngCells
+
+-- internal use only
+setRangeCells :: [ASCell] -> Handler ()
+setRangeCells cells = do
+	let locs = map (\cell -> zip (decomposeLocs $ cellLocation cell) [0..]) cells
+	let vals = map (\cell -> case (cellValue cell) of
+						(ValueNaN ()) -> repeat $ ValueNaN ()
+						(ValueL b) -> b) cells
+	let subCells = map(\(locSet, val) ->
+		[Cell (fst l) (Expression ((indexToExcel . index $ fst l) ++ "[" ++ show (snd l) ++ "]")) (val !! (snd l)) | l<-locSet]
+		) $ zip locs vals
+	insertCells $ concat subCells
+
+-- internal use only
+insertCells :: [ASCell] -> Handler ()
+insertCells cells = mapM_ (\cell -> (runDB $ insert $ toDBCell cell) >> return ()) cells
 
 deleteCell :: ASLocation -> Handler ()
 deleteCell loc = do

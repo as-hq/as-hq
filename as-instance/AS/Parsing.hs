@@ -22,7 +22,7 @@ normalizeRanges :: [ASLocation] -> [ASLocation]
 normalizeRanges locs = do
   loc <- locs
   case loc of
-    Range (p1, p2) -> map Index $ decomposeLocs loc
+    Range (p1, p2) -> decomposeLocs loc
     Index i        -> return loc
 
 parseDependencies :: ASExpression -> [ASLocation]
@@ -102,13 +102,13 @@ deleteDollars str = T.unpack $ T.concat $ T.splitOn (T.pack "$") (T.pack str)
 
 toExcel :: ASLocation -> String
 toExcel loc = case loc of 
-	(Index a) -> indexToExcel a
-	(Range a) -> (indexToExcel (fst a)) ++ ":" ++ (indexToExcel (snd a))
+  (Index a) -> indexToExcel a
+  (Range a) -> (indexToExcel (fst a)) ++ ":" ++ (indexToExcel (snd a))
 
 fromExcel :: String -> ASLocation
 fromExcel str
-	| elem ':' str = Range (excelToIndex $ P.head spt, excelToIndex $ P.last spt)
-	| otherwise    = Index . excelToIndex $ str
+  | elem ':' str = Range (excelToIndex $ P.head spt, excelToIndex $ P.last spt)
+  | otherwise    = Index . excelToIndex $ str
     where
       spt = map unpack $ T.splitOn (pack ":") (pack str) 
 
@@ -153,19 +153,10 @@ sortStrList (a1, b1) (a2, b2)
 lastN :: Int -> [a] -> [a]
 lastN n xs = let m = length xs in drop (m-n) xs
 
-decomposeLocs :: ASLocation -> [(Int, Int)]
+decomposeLocs :: ASLocation -> [ASLocation]
 decomposeLocs loc = case loc of 
-  (Index a) -> [a]
-  (Range (ul, lr)) -> [(x,y) | x <- [(fst ul)..(fst lr)], y <- [(snd ul)..(snd lr)] ]
-
-rangeDiff :: ASLocation -> ASLocation -> (Int, Int)
-rangeDiff (Index a) (Index b) = (fst b - fst a, snd b - snd a)
-
-maxRangeDiff :: [ASLocation] -> (Int,Int)
-maxRangeDiff locs = (diff $ map fst myTuples, diff $ map snd myTuples)
-  where
-    myTuples = concat $ map decomposeLocs locs
-    diff = (-) <$> Prelude.maximum <*> Prelude.minimum
+  (Index a) -> [loc]
+  (Range (ul, lr)) -> [Index (x,y) | x <- [(fst ul)..(fst lr)], y <- [(snd ul)..(snd lr)] ]
 
 --Parsing values
 
