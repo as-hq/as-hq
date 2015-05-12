@@ -124,4 +124,3 @@ propagateCell :: ASLocation -> ASExpression -> Handler (Maybe [ASCell])
 propagateCell loc xp = do
   updateCell (loc, xp)
   reevaluateCell (loc, xp)
-

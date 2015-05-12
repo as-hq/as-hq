@@ -4,6 +4,7 @@ import AS.DB
 import AS.Types
 import AS.TypesHelper
 import AS.Parsing
+import AS.Constants
 import Import
 import qualified Data.Map as M
 import qualified Data.List as L
@@ -100,6 +101,7 @@ scrubCmd cmd = do
 
 -- takes (1) cmd string, (2) funcs [ASFunc]
 -- return tuple (cmd', [(importName, importCommand)])
+
 replaceAliases :: String -> [ASFunc] -> (String, [(String, String)])
 replaceAliases cmd [] = (cmd, [])
 replaceAliases cmd matches = 
