@@ -19,12 +19,13 @@ class ASIterator:
 # purpose of this class is to be able to chain operations nicely
 class ASIterable(object):
     def __init__(self, lst):
-        self.repr = None
+        self.name = None
         try:
             _ = (e for e in lst) # check if iterable
             self.lst = np.array(lst)
         except TypeError:
             self.lst = np.array([lst])
+        self.repr = repr(self.lst.tolist())
 
     def head(self):
         return self.lst[0]
@@ -153,18 +154,30 @@ class ASIterable(object):
         return ASIterable([func(x) for x in self])
 
     # reps and conversions
+    @classmethod
+    def deserialize(cls, js):
+        e = cls(js["lst"])
+        if "name" in js:
+            e.hide(js["name"])
+        return e
+
+    def serialize(self):
+        if self.name is not None:
+            return str({ "name": self.name, "lst": self.load()})
+        else: return str({"lst": self.load()})
+
     def hide(self, name="HIDE"):
-        self.repr = repr(name)
+        self.name = name
+        self.repr = str({ "displayValue": self.name, "actualValue": { "objectType": "ASIterable", "jsonRepresentation": self.serialize() } })
         return self
 
     def unhide(self):
-        self.repr = None
+        self.name = None
+        self.repr = repr(self.load())
         return self
 
     def __repr__(self):
-        if self.repr is None:
-            return repr(self.load())
-        else: return self.repr
+        return self.repr
 
     def __str__(self):
         return self.__repr__()
