@@ -1,6 +1,5 @@
 import numpy as np
 
-# purpose of this class is to be able to chain operations nicely
 class ASIterator:
     def __init__(self, data):
         self.data=data
@@ -17,8 +16,10 @@ class ASIterator:
         except IndexError:
             raise StopIteration
 
+# purpose of this class is to be able to chain operations nicely
 class ASIterable(object):
     def __init__(self, lst):
+        self.repr = None
         try:
             _ = (e for e in lst) # check if iterable
             self.lst = np.array(lst)
@@ -28,25 +29,28 @@ class ASIterable(object):
     def head(self):
         return self.lst[0]
     def tail(self):
-        return self.lst[1:]
+        return ASIterable(self.lst[1:])
     def init(self):
-        return self.lst[:-1]
+        return ASIterable(self.lst[:-1])
     def last(self):
         return self.lst[-1]
     def push(self, elem):
         temp = self.lst.tolist()
         temp.insert(0,elem)
         self.lst = np.array(temp)
+        return self
     def append(self, elem):
         temp = self.lst.tolist()
         temp.append(elem)
         self.lst = np.array(temp)
+        return self
     def insert(self, elem, idx):
         temp = self.lst.tolist()
         temp.insert(idx, elem)
         self.lst = np.array(temp)
+        return self
     def take(self,n):
-        return self.lst[:n]
+        return ASIterable(self.lst[:n])
     def arr(self):
         return self.lst
     def load(self):
@@ -136,6 +140,9 @@ class ASIterable(object):
         return self.__mul__(other)
 
     # iteration
+    def __getitem__(self,idx):
+        return self.lst[idx]
+
     def get(self, idx):
         return self.lst[idx]
 
@@ -145,6 +152,19 @@ class ASIterable(object):
     def map(self, func):
         return ASIterable([func(x) for x in self])
 
+    # reps and conversions
+    def hide(self, name="HIDE"):
+        self.repr = repr(name)
+        return self
+
+    def unhide(self):
+        self.repr = None
+        return self
 
     def __repr__(self):
-        return repr(self.load())
+        if self.repr is None:
+            return repr(self.load())
+        else: return self.repr
+
+    def __str__(self):
+        return self.__repr__()
