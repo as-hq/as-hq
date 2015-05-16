@@ -4,7 +4,7 @@ import AS.Types
 import AS.Parsing
 import Import
 import Prelude ((!!)) --ADDED FOR RANGES
-import qualified AS.Eval.Py as R (evalExpression)
+import qualified AS.Eval as R (evalExpression)
 import qualified Data.Map as M
 import qualified AS.DAG as D
 import qualified AS.DB as DB
@@ -21,7 +21,7 @@ evalCellSeq = evalChain M.empty
 evalChain :: M.Map ASLocation ASValue -> [ASCell] -> Handler [ASCell]
 evalChain _ [] = return []
 evalChain mp (c:cs) = do
-  let xp  = Expression $ removeBrackets $ deleteDollars $ expression $ cellExpression c --ADDED FOR RANGES
+  let xp  = Expression (removeBrackets $ deleteDollars $ expression $ cellExpression c) (language $ cellExpression c) --ADDED FOR RANGES
       loc = cellLocation c
   $(logInfo) $ "EVALPY EXPRESSION: " ++ (fromString $ (expression xp))
   cv <- R.evalExpression mp xp 
@@ -100,7 +100,7 @@ updateCell (loc, xp) =
       if (Data.List.head (expression xp) == '{') && (Data.List.last (expression xp) == '}') --check for array formula
         then do 
           $(logInfo) $ "DB ARRAY BITCH"
-          let topLeftExpr = Expression $ topLeft (expression xp)
+          let topLeftExpr = Expression (topLeft $ expression xp) (language xp)
           let deps = [fst (parseDependenciesRelative topLeftExpr rowOff colOff) | rowOff<-[0..c-a], colOff<-[0..d-b]]
           let exps = [snd (parseDependenciesRelative topLeftExpr rowOff colOff) | rowOff<-[0..c-a], colOff<-[0..d-b]]
           let locs = [Index (row,col) | row <-[a..c], col<-[b..d]]

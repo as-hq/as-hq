@@ -50,14 +50,19 @@ setCells cells = do
 -- internal use only
 setRangeCells :: [ASCell] -> Handler ()
 setRangeCells cells = do
-	let locs = map (\cell -> zip (decomposeLocs $ cellLocation cell) [0..]) cells
+	let locs = map (\cell -> zip3 (repeat $ language . cellExpression $ cell) (decomposeLocs $ cellLocation cell) [0..]) cells
+
 	let vals = map (\cell -> case (cellValue cell) of
 						(ValueNaN ()) -> repeat $ ValueNaN ()
 						(ValueL b) -> b) cells
 	let subCells = map(\(locSet, val) ->
-		[Cell (fst l) (Expression ((indexToExcel . index $ fst l) ++ "[" ++ show (snd l) ++ "]")) (val !! (snd l)) | l<-locSet]
+		[Cell loc (Expression ((indexToExcel . index $ loc) ++ "[" ++ (show idx) ++ "]") lang) (val !! idx) | (lang, loc, idx)<-locSet]
 		) $ zip locs vals
+
 	insertCells $ concat subCells
+
+trd :: (a,b,c) -> c
+trd (a,b,c) = c
 
 -- internal use only
 insertCells :: [ASCell] -> Handler ()
@@ -117,8 +122,8 @@ setFunc :: ASFunc -> Handler ()
 setFunc func = do
 	funcs <- runDB $ selectList [ASFuncAlias ==. aSFuncAlias func] []
 	case funcs of 
-		[] -> (runDB $ insert func) >> return ()
-		((Entity foundFuncId foundFunc):funcs) -> (runDB $ replace foundFuncId func) >> return ()
+		[] 										-> (runDB $ insert func) >> return ()
+		((Entity foundFuncId foundFunc):funcs) 	-> (runDB $ (delete foundFuncId) >> (insert func)) >> return ()
 
 deleteFunc :: String -> Handler ()
 deleteFunc aliasStr = do
@@ -127,7 +132,13 @@ deleteFunc aliasStr = do
 		[] -> return ()
 		((Entity foundFuncId foundFunc):funcs) -> (runDB $ delete foundFuncId) >> return ()
 
-getFuncs :: Handler [ASFunc]
-getFuncs = do
+getFuncsNaive :: Handler [ASFunc]
+getFuncsNaive = do
 	result <- runDB $ selectList [] []
+	return [func | (Entity funcId func) <- result]
+
+
+getFuncs :: ASLanguage -> Handler [ASFunc]
+getFuncs lang = do
+	result <- runDB $ selectList [ASFuncLang ==. (pack $ show lang)] []
 	return [func | (Entity funcId func) <- result]

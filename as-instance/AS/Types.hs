@@ -30,10 +30,16 @@ data ASValue =
 instance ToJSON ASValue
 instance FromJSON ASValue
 
+data ASLanguage = R | Python | OCaml
+  deriving (Show, Read, Eq, Generic)
+
+instance ToJSON ASLanguage
+instance FromJSON ASLanguage
+
 data ASExpression =
-  Expression { expression :: String } |
+  Expression { expression :: String, language :: ASLanguage } | --TODO: incorporate language into ASE references everywhere
   Reference { location :: ASLocation, referenceIndex :: (Int, Int) }
-	deriving (Show, Read, Eq, Generic)
+  deriving (Show, Read, Eq, Generic)
 
 instance ToJSON ASExpression
 instance FromJSON ASExpression

@@ -1,0 +1,24 @@
+Default: &defaults
+  user: as-instance
+  password: as-instance
+  host: localhost
+  database: as-instance
+  connections: 10
+
+Development:
+  <<: *defaults
+
+Testing:
+  database: as-instance_test
+  <<: *defaults
+
+Staging:
+  database: as-instance_staging
+  connections: 100
+  <<: *defaults
+
+Production:
+  database: as-instance_production
+  connections: 100
+  host: localhost
+  <<: *defaults

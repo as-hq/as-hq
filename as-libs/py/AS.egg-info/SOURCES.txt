@@ -28,4 +28,5 @@ AS/instruments/etfArb.py
 AS/instruments/etfArb2.py
 AS/ui/__init__.py
 AS/ui/pivotTable.py
+AS/ui/plot.py
 AS/ui/styling.py

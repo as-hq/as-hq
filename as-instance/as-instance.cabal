@@ -17,10 +17,13 @@ library
                      Foundation
                      Import
                      Import.NoFoundation
-                     AS.Eval.Py
+                     AS.Config.Paths
+                     AS.Config.Logging
                      AS.DAG
                      AS.DB
                      AS.Dispatch
+                     AS.Eval
+                     AS.Eval.Lang
                      AS.HandlerLibrary
                      AS.Parsing
                      AS.Types
@@ -98,6 +101,7 @@ library
                  , mtl
                  , regex-posix
                  , process
+                 , filepath
 
 executable         as-instance
     if flag(library-only)

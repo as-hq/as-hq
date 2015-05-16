@@ -4,6 +4,7 @@ import Import hiding ((<|>))
 import qualified Prelude as P
 import Prelude ((!!), read)
 import AS.Types as Ty
+import AS.Eval.Lang
 import Text.Regex.Posix
 import Data.List (elemIndex)
 import Data.Maybe
@@ -28,7 +29,7 @@ normalizeRanges locs = do
 parseDependencies :: ASExpression -> [ASLocation]
 parseDependencies expr =
   case expr of
-    Expression e -> (map fromExcel rangeMatches) ++ (map fromExcel cellMatches)
+    Expression e _ -> (map fromExcel rangeMatches) ++ (map fromExcel cellMatches)
       where
         rangeMatches = deleteEmpty $ regexList e "([A-Z][0-9]+:[A-Z][0-9]+)"
         cellMatches = deleteEmpty $ regexList noRangeExpr ("[A-Z][0-9]+")
@@ -45,7 +46,9 @@ parseDependenciesRelative xp rowOff colOff = (concat $ map (\m -> fromExcelRelat
       where
         noRangeExpr = replaceSubstrings (expression xp) (zip rangeMatches (repeat ""))  --get rid of range matches, then look for index matches
     matches = rangeMatches ++ cellMatches
-    newExp = Expression $ replaceSubstrings (expression xp) (zip matches (map (\m -> fromExcelRelativeString m rowOff colOff) matches ))
+    lang = language xp
+    xp' = replaceSubstrings (expression xp) (zip matches (map (\m -> fromExcelRelativeString m rowOff colOff) matches ))
+    newExp = Expression xp' lang
 
 -- replaces any occurrences of A2:B4 with A2, keeps dollar signs
 topLeft :: String-> String
@@ -176,32 +179,49 @@ double = fmap rd $ int <++> dec
 valueD :: Parser ASValue
 valueD = ValueD <$> double
 
-bool :: Parser Bool 
-bool = fmap rd $ true <|> false 
+bool :: ASLanguage -> Parser Bool
+bool lang = fmap rd $ true <|> false
   where
     rd = read :: String -> Bool
-    true = string "True"
-    false = string "False"
+    true = case lang of 
+      R     -> string "true"
+      Python-> string "True"
+      OCaml -> string "true"
+    false = case lang of 
+      R     -> string "false"
+      Python-> string "False"
+      OCaml -> string "false" 
 
-valueB :: Parser ASValue 
-valueB = ValueB <$> bool
+valueB :: ASLanguage -> Parser ASValue
+valueB lang = ValueB <$> (bool lang)
 
-valueS :: Parser ASValue
-valueS = ValueS <$> ((quotes $ many $ noneOf ['"']) <|> (apostrophes $ many $ noneOf ['\'']))
+valueS :: ASLanguage -> Parser ASValue
+valueS lang = ValueS <$> ((quotes $ many $ noneOf ['"']) <|> (apostrophes $ many $ noneOf ['\'']))
   where
     quotes = between quote quote
-    quote = char '"'
+    quote = case lang of 
+      otherwise -> char '"' -- TODO quotes for langs
     apostrophes = between apostrophe apostrophe
-    apostrophe = char '\''
+    apostrophe = case lang of 
+      otherwise -> char '\'' -- TODO apostrophes also
+
 
 valueSFailsafe :: Parser ASValue
 valueSFailsafe = ValueS <$> (many $ noneOf "'\"")
 
-valueL :: Parser ASValue
-valueL = ValueL <$> (brackets $ sepBy asValue (comma >> spaces))
+valueL :: ASLanguage -> Parser ASValue
+valueL lang = ValueL <$> (brackets $ sepBy (asValue lang) (delim >> spaces))
   where
-    brackets  = between (char '[') (char ']')
-    comma     = char ','
+    brackets  = between (string start) (string end)
+      where
+        (start, end) = case lang of 
+          R -> ("[", "]")   -- TODO R array parsing
+          Python-> ("[", "]")
+          OCaml -> ("[" , "]")
+    delim     = case lang of 
+      R     -> char ','
+      Python-> char ','
+      OCaml -> char ';'
 
 extractValue :: M.Map String ASValue -> ASValue
 extractValue m
@@ -240,42 +260,42 @@ complexValue = extractValue <$> extractMap
     comma           = char ','
     colon           = char ':'
     dictEntry       = do
-      ValueS str <- valueS <* (colon >> spaces)
-      dictValue <- asValue
+      ValueS str <- (valueS Python) <* (colon >> spaces) --valueS Python good enough for json
+      dictValue <- asValue Python
       return (str, dictValue)
     extractMap      = M.fromList <$> (braces $ sepBy dictEntry (comma >> spaces))
 
-asValue :: Parser ASValue 
-asValue = choice [valueD, valueB, valueS, valueL, complexValue, return $ ValueNaN ()]
+asValue :: ASLanguage -> Parser ASValue 
+asValue lang = choice [valueD, (valueS lang), (valueL lang), complexValue, return $ ValueNaN ()]
 
-showFilteredValue :: ASLocation -> ASValue -> String
-showFilteredValue (Index i) (ValueL l) = showFilteredValue (Index i) (headOrNull l)
-  where
-    headOrNull [] = ValueNaN ()
-    headOrNull (x:xs) = x
-showFilteredValue _ a = showValue a
+-- showFilteredValue :: ASLocation -> ASValue -> String
+-- showFilteredValue (Index i) (ValueL l) = showFilteredValue (Index i) (headOrNull l)
+--   where
+--     headOrNull [] = ValueNaN ()
+--     headOrNull (x:xs) = x
+-- showFilteredValue _ a = showValue a
 
-showValue :: ASValue -> String
-showValue v = case v of
-  ValueImage path -> "PLOT"--ADDED, open file here?
-  ValueB b -> show b
-  ValueNaN () -> "UNDefined"
-  ValueS s -> s
-  ValueD d -> show d
-  ValueL l -> toListStr $ fmap showValue l
-  StyledValue s v -> showValue v
-  DisplayValue d v -> showValue v
-  ObjectValue o js -> o ++ ".deserialize(" ++ js ++ ")"
+-- showValue :: ASValue -> String
+-- showValue v = case v of
+--   ValueImage path -> "PLOT"--ADDED, open file here?
+--   ValueB b -> show b
+--   ValueNaN () -> "UNDefined"
+--   ValueS s -> s
+--   ValueD d -> show d
+--   ValueL l -> toListStr $ fmap showValue l
+--   StyledValue s v -> showValue v
+--   DisplayValue d v -> showValue v
+--   ObjectValue o js -> o ++ ".deserialize(" ++ js ++ ")"
 
-parseValue :: String -> ASValue --needs to change to reflect ValueImage
-parseValue = fromRight . (parse asValue "") . T.pack 
+parseValue :: ASLanguage -> String -> ASValue --needs to change to reflect ValueImage
+parseValue lang = fromRight . (parse (asValue lang) "") . T.pack 
   where
     fromRight (Right v) = v
 --parsing ranges
 
-excelRngToIdxs :: String -> String
-excelRngToIdxs rng
-  | x1 /= x2 = toListStr $ map toListStr' [[x:(show y) ++ ',':[] | x<-[x1..x2]] | y<-[y1..y2]] 
+excelRngToIdxs :: ASLanguage -> String -> String
+excelRngToIdxs lang rng
+  | x1 /= x2 = toListStr lang $ map toListStr' [[x:(show y) ++ ',':[] | x<-[x1..x2]] | y<-[y1..y2]] 
   | otherwise = toListStr' [x:(show y) ++ ',':[] | x<-[x1..x2], y<-[y1..y2]]
     where
       spt = map unpack $ T.splitOn (pack ":") (pack rng) 
@@ -283,22 +303,19 @@ excelRngToIdxs rng
       x2 = (P.head (spt !! 1))
       y1 = (read (P.tail (spt !! 0))::Int)
       y2 = (read (P.tail (spt !! 1))::Int)
-      toListStr' lst = "["++(P.init $ concat lst)++"]"
+      toListStr' lst = toListStr lang (P.init lst) 
 
-toListStr :: [String] -> String
-toListStr lst  = "[" ++ (intercalate "," lst) ++ "]"
-
-excelRangesToLists :: String -> String
-excelRangesToLists str = replaceSubstrings str (zip toReplace replaceWith)
+excelRangesToLists :: ASLanguage -> String -> String
+excelRangesToLists lang str = replaceSubstrings str (zip toReplace replaceWith)
   where
     toReplace = deleteEmpty $ regexList str "([A-Z][0-9]+:[A-Z][0-9]+)"
-    replaceWith = map excelRngToIdxs toReplace
+    replaceWith = map (excelRngToIdxs lang) toReplace
 
-excelRangesToIterables :: String -> String
-excelRangesToIterables str = replaceSubstrings str (zip toReplace replaceWith)
+excelRangesToIterables :: ASLanguage -> String -> String
+excelRangesToIterables lang str = replaceSubstrings str (zip toReplace replaceWith)
   where
     toReplace = deleteEmpty $ regexList str "([A-Z][0-9]+:[A-Z][0-9]+)"
-    replaceWith = map ((\x->"arr("++x++")") . excelRngToIdxs) toReplace
+    replaceWith = map ((\x->"arr("++x++")") . excelRngToIdxs lang) toReplace
 
 rangeDiff :: ((Int, Int), (Int, Int)) -> (Int, Int)
 rangeDiff (a,b) = (fst b - fst a + 1, snd b - snd a + 1)
@@ -312,3 +329,12 @@ reshapeColArr lst@(x:xs) (m,n) =
 -- always includes first element
 every :: Int -> [a] -> [a]
 every n = map P.head . takeWhile (not . null) . P.iterate (drop n)
+
+replaceAliases :: String -> [ASFunc] -> (String, [(String, String, String)])
+replaceAliases cmd [] = (cmd, [])
+replaceAliases cmd matches = 
+  (replaceSubstrings cmd (map toReplacingImports presentStubs), 
+  map (\f-> (unpack (aSFuncImportName f), unpack (aSFuncImportCommand f), unpack (aSFuncLocation f))) presentStubs)
+    where 
+      toReplacingImports = (\f->(unpack (aSFuncAlias f), unpack (aSFuncReplace f)))
+      presentStubs = filter (\x -> isInfixOf (unpack (aSFuncAlias x)) cmd) matches

@@ -142,7 +142,7 @@ class ASIterable(object):
 
     # iteration
     def __getitem__(self,idx):
-        return self.lst[idx]
+        return ASIterable(self.lst[idx])
 
     def get(self, idx):
         return self.lst[idx]
