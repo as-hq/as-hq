@@ -33,4 +33,4 @@ py_run_file = "temp.py"
 --   basepath <- liftIO $ getCurrentDirectory
 --   return $ (takeDirectory basepath) </> "Eval" </> "run"
 
-getEvalPath = "/home/hal-hp/code/alphasheets/as-instance/AS/Eval/run/"
+getEvalPath = "/Users/zeigjeder/Development/alphasheets/alpha-sheets/as-instance/AS/Eval/run/"

@@ -1,4 +1,4 @@
 
 library("rjson")
 
-cat(toJSON(c(Undefined,Undefined)))
+cat(toJSON(c(5.0,233.0)))

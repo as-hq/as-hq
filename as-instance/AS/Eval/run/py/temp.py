@@ -6,4 +6,4 @@ from AS.instruments.ETF import ETF
 import json
 
 
-print(repr(green("BUY")))
+print(repr(2))

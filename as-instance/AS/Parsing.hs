@@ -41,8 +41,8 @@ parseDependencies expr =
 parseDependenciesRelative:: ASExpression -> Int -> Int -> ([ASLocation],ASExpression)
 parseDependenciesRelative xp rowOff colOff = (concat $ map (\m -> fromExcelRelativeLoc m rowOff colOff) matches, newExp)
   where 
-    rangeMatches = deleteEmpty $ regexList (expression xp) "(\\${0,1}+[A-Z]+\\${0,1}+[0-9]+:+\\${0,1}+[A-Z]+\\${0,1}+[0-9]+)"
-    cellMatches = deleteEmpty $ regexList noRangeExpr ("\\${0,1}+[A-Z]+\\${0,1}++[0-9]+")
+    rangeMatches = deleteEmpty $ regexList (expression xp) "(\\${0,1}[A-Z]+\\${0,1}[0-9]+:\\${0,1}[A-Z]+\\${0,1}[0-9]+)"
+    cellMatches = deleteEmpty $ regexList noRangeExpr ("\\${0,1}[A-Z]+\\${0,1}[0-9]+")
       where
         noRangeExpr = replaceSubstrings (expression xp) (zip rangeMatches (repeat ""))  --get rid of range matches, then look for index matches
     matches = rangeMatches ++ cellMatches
@@ -166,15 +166,20 @@ decomposeLocs loc = case loc of
 (<++>) a b = (++) <$> a <*> b
 (<:>) a b  = (:) <$> a <*> b
 
+skip :: Parser a -> Parser String
+skip p = p >> (return "")
+
 double :: Parser Double
 double = fmap rd $ int <++> dec
   where
     rd      = read :: String -> Double
+    dNumber = int <++> dec
     number  = many1 digit
     plus    = char '+' *> number
     minus   = char '-' <:> number
     int     = plus <|> minus <|> number
-    dec     = option "" $ char '.' <:> number
+    dec     = option "" $ (Text.Parsec.try $ period <:> number) <|> (skip period)
+    period  = char '.'
 
 valueD :: Parser ASValue
 valueD = ValueD <$> double
@@ -295,15 +300,15 @@ parseValue lang = fromRight . (parse (asValue lang) "") . T.pack
 
 excelRngToIdxs :: ASLanguage -> String -> String
 excelRngToIdxs lang rng
-  | x1 /= x2 = toListStr lang $ map toListStr' [[x:(show y) ++ ',':[] | x<-[x1..x2]] | y<-[y1..y2]] 
-  | otherwise = toListStr' [x:(show y) ++ ',':[] | x<-[x1..x2], y<-[y1..y2]]
+  | x1 /= x2 = toListStr lang $ map toListStr' [[x:(show y) | x<-[x1..x2]] | y<-[y1..y2]] 
+  | otherwise = toListStr' [x:(show y) | x<-[x1..x2], y<-[y1..y2]]
     where
       spt = map unpack $ T.splitOn (pack ":") (pack rng) 
       x1 = (P.head (spt !! 0))
       x2 = (P.head (spt !! 1))
       y1 = (read (P.tail (spt !! 0))::Int)
       y2 = (read (P.tail (spt !! 1))::Int)
-      toListStr' lst = toListStr lang (P.init lst) 
+      toListStr' = toListStr lang
 
 excelRangesToLists :: ASLanguage -> String -> String
 excelRangesToLists lang str = replaceSubstrings str (zip toReplace replaceWith)
