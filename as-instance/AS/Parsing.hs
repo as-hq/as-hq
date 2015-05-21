@@ -233,6 +233,27 @@ valueL lang = ValueL <$> (brackets $ sepBy (asValue lang) (delim >> spaces))
       Python-> char ','
       OCaml -> char ';'
 
+valueError :: ASLanguage -> Parser ASValue
+valueError lang = do
+  pos <- positionParser lang
+  msg <- messageParser lang
+  return $ ValueError pos msg
+
+positionParser :: ASLanguage -> Parser (Int, Int)
+positionParser lang = case lang of 
+  Python -> fmap rd $ bounds $ many1 digit
+    where 
+      rd a = (read a :: Int, -1) -- python provides line no. only
+      bounds = between (string ", line ") (string ",") 
+
+messageParser :: ASLanguage -> Parser String
+messageParser lang = case lang of 
+  Python -> many anyChar --TODO
+
+-- moduleParser :: ASLanguage -> Parser String
+-- moduleParser lang = case lang of 
+--   Python -> 
+
 extractValue :: M.Map String ASValue -> ASValue
 extractValue m
   | M.member "style" m = extractStyledValue m
@@ -276,7 +297,7 @@ complexValue = extractValue <$> extractMap
     extractMap      = M.fromList <$> (braces $ sepBy dictEntry (comma >> spaces))
 
 asValue :: ASLanguage -> Parser ASValue 
-asValue lang = choice [valueD, (valueS lang), (valueL lang), complexValue, return $ ValueNaN ()]
+asValue lang = choice [valueD, (valueS lang), (valueL lang), complexValue, (valueError lang), return $ ValueNaN ()]
 
 -- showFilteredValue :: ASLocation -> ASValue -> String
 -- showFilteredValue (Index i) (ValueL l) = showFilteredValue (Index i) (headOrNull l)

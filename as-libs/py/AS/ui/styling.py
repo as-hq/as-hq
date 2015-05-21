@@ -3,7 +3,7 @@ import json
 def red(x):
     return {"style":"red","value":x}
 def green(x):
-    return {"style":"green","value":x}
+    return {"style":"green","value":x,"d":d}
 
 class Test:
     def __init__(self, aa):

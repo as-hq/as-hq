@@ -78,9 +78,11 @@ eval s = do
 a <++> b = (++) <$> a <*> b
 
 runFile :: ASLanguage -> Handler String
-runFile lang = eval terminalCmd
-	where
-		terminalCmd = addCompileCmd lang $ formatRunArgs lang (getRunnerCmd lang) (getRunFile lang) (getRunnerArgs lang)
+runFile lang = do
+	let terminalCmd = addCompileCmd lang $ formatRunArgs lang (getRunnerCmd lang) (getRunFile lang) (getRunnerArgs lang)
+	res <- eval terminalCmd
+	$(logInfo) $ "EVAL CMD returns: " ++ (fromString res)
+	return res
 
 evalRef :: Map ASLocation ASValue -> ASExpression -> Handler ASValue
 evalRef dict (Reference l (a, b)) = do

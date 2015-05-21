@@ -7,4 +7,4 @@ from AS.ui.plot import *
 import json
 
 
-print(repr(red("D")))
+print(repr(green("D")))

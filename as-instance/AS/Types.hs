@@ -20,6 +20,7 @@ data ASValue =
   ValueD Double |
   ValueB Bool |
   ValueL [ASValue] |
+  ValueError { position :: (Int,Int), message :: String } | 
   ValueImage { imagePath :: String } |
   StockChart { stockPrices :: ASValue, stockName :: String } |
   ObjectValue { objectType :: String, jsonRepresentation :: String } |
