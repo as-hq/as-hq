@@ -68,7 +68,7 @@ writeExecFile lang contents = liftIO $ writeFile ((getRunFile lang) :: System.IO
 
 eval :: String -> Handler String
 eval s = do 
-	$(logInfo) $ fromString s
+	$(logInfo) $ "EVAL CMD: " ++ (fromString s)
 	liftIO $ do
 		(_,hOutput,_,hProcess) <- runInteractiveCommand s
 		sOutput <- System.IO.hGetContents hOutput
@@ -95,7 +95,7 @@ evalCode values xp = do
 		interpolated <- interpolateFile lang finalXp
 		writeExecFile lang interpolated
 		result <- runFile lang
-		$(logInfo) $ fromString result
+		$(logInfo) $ "EVAL RETURNS: " ++ (fromString result)
 		return $ parseValue lang result
 	where
 		lang 	= language xp

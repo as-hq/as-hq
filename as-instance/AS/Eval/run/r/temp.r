@@ -1,4 +1,12 @@
 
 library("rjson")
+library("jpeg")
 
-cat(toJSON(c(5.0,233.0)))
+as.graph <- function (name, f) {
+    jpeg(file=name)
+    f()
+    dev.off()
+}
+
+
+cat(toJSON(1+1))

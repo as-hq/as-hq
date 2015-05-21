@@ -17,6 +17,11 @@ import Control.Applicative hiding ((<|>), many)
 import qualified Data.Map as M
 import qualified Data.Text.Lazy (replace)
 
+regexStr = "(\\[A-Z]+\\[0-9]+:\\[A-Z]+\\[0-9]+)"
+regexStrIdx = "(\\[A-Z]+\\[0-9]+)"
+regexStrDollars = "(\\${0,1}[A-Z]+\\${0,1}[0-9]+:\\${0,1}[A-Z]+\\${0,1}[0-9]+)"
+regexStrDollarsIdx = "(\\${0,1}[A-Z]+\\${0,1}[0-9]+)"
+
 deleteEmpty = filter ((/=) "")
 
 normalizeRanges :: [ASLocation] -> [ASLocation] 
@@ -24,15 +29,15 @@ normalizeRanges locs = do
   loc <- locs
   case loc of
     Range (p1, p2) -> decomposeLocs loc
-    Index i        -> return loc
+    Index _        -> return loc
 
 parseDependencies :: ASExpression -> [ASLocation]
 parseDependencies expr =
   case expr of
     Expression e _ -> (map fromExcel rangeMatches) ++ (map fromExcel cellMatches)
       where
-        rangeMatches = deleteEmpty $ regexList e "([A-Z][0-9]+:[A-Z][0-9]+)"
-        cellMatches = deleteEmpty $ regexList noRangeExpr ("[A-Z][0-9]+")
+        rangeMatches = deleteEmpty $ regexList e regexStr
+        cellMatches = deleteEmpty $ regexList noRangeExpr regexStrIdx
           where
             noRangeExpr = replaceSubstrings e (zip rangeMatches (repeat ""))
     Reference r _ -> [r]
@@ -41,8 +46,8 @@ parseDependencies expr =
 parseDependenciesRelative:: ASExpression -> Int -> Int -> ([ASLocation],ASExpression)
 parseDependenciesRelative xp rowOff colOff = (concat $ map (\m -> fromExcelRelativeLoc m rowOff colOff) matches, newExp)
   where 
-    rangeMatches = deleteEmpty $ regexList (expression xp) "(\\${0,1}[A-Z]+\\${0,1}[0-9]+:\\${0,1}[A-Z]+\\${0,1}[0-9]+)"
-    cellMatches = deleteEmpty $ regexList noRangeExpr ("\\${0,1}[A-Z]+\\${0,1}[0-9]+")
+    rangeMatches = deleteEmpty $ regexList (expression xp) regexStrDollars
+    cellMatches = deleteEmpty $ regexList noRangeExpr regexStrDollarsIdx
       where
         noRangeExpr = replaceSubstrings (expression xp) (zip rangeMatches (repeat ""))  --get rid of range matches, then look for index matches
     matches = rangeMatches ++ cellMatches
@@ -54,7 +59,7 @@ parseDependenciesRelative xp rowOff colOff = (concat $ map (\m -> fromExcelRelat
 topLeft :: String-> String
 topLeft str = tlString
   where 
-    rangeMatches = deleteEmpty $ regexList str "(\\${0,1}+[A-Z]+\\${0,1}+[0-9]+:+\\${0,1}+[A-Z]+\\${0,1}+[0-9]+)"
+    rangeMatches = deleteEmpty $ regexList str regexStrDollars
     tlString = replaceSubstrings str (zip rangeMatches (map tlFunc rangeMatches))
       where
         tlFunc m 
@@ -313,13 +318,13 @@ excelRngToIdxs lang rng
 excelRangesToLists :: ASLanguage -> String -> String
 excelRangesToLists lang str = replaceSubstrings str (zip toReplace replaceWith)
   where
-    toReplace = deleteEmpty $ regexList str "([A-Z][0-9]+:[A-Z][0-9]+)"
+    toReplace = deleteEmpty $ regexList str regexStr
     replaceWith = map (excelRngToIdxs lang) toReplace
 
 excelRangesToIterables :: ASLanguage -> String -> String
 excelRangesToIterables lang str = replaceSubstrings str (zip toReplace replaceWith)
   where
-    toReplace = deleteEmpty $ regexList str "([A-Z][0-9]+:[A-Z][0-9]+)"
+    toReplace = deleteEmpty $ regexList str regexStr
     replaceWith = map ((\x->"arr("++x++")") . excelRngToIdxs lang) toReplace
 
 rangeDiff :: ((Int, Int), (Int, Int)) -> (Int, Int)

@@ -19,9 +19,7 @@ getCellsR = interactHandlerJson process
       let locs = map cellLocation stringCells
       in do
         evaluatedCells <- DP.evalCells $ locs
-        case evaluatedCells of
-          Nothing -> error "Fuck you"
-          Just justCells -> return . (map cellValue) $ justCells
+        return . (map cellValue) $ evaluatedCells
 
 putCellsR :: Handler Value
 putCellsR = interactHandlerJson process

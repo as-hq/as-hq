@@ -26,12 +26,10 @@ getCell loc = do
 		[] -> Nothing
 		((Entity cellId cell):cs) -> Just . fromDBCell $ cell
 
-getCells :: [ASLocation] -> Handler [Maybe ASCell]
+getCells :: [ASLocation] -> Handler [ASCell]
 getCells locs = do
-	cells <- runDB $ mapM (\loc -> selectList [ASCellDBLocationString ==. show loc] []) locs
-	return $ map (\cellList -> case cellList of 
-		[] -> Nothing
-		((Entity cellId cell):cs) -> Just . fromDBCell $ cell) cells
+	cells <- runDB $ selectList [ASCellDBLocationString <-. map show locs] []
+	return $ map (\(Entity cellId cell) -> fromDBCell cell) cells
 
 setCell :: ASCell -> Handler ()
 setCell cell = setCells [cell]
@@ -42,8 +40,7 @@ setCells cells = do
 								(Range a) -> True
 								otherwise -> False) cells
 	let locs = (map cellLocation cells) ++ concat (map (decomposeLocs . cellLocation) rngCells)
-	foundCells <- runDB $ selectList [ASCellDBLocationString <-. (map show locs)] []
-	mapM_ (\(Entity cellDBId celldB) -> (runDB $ delete cellDBId) >> return ()) foundCells
+	runDB $ deleteWhere [ASCellDBLocationString <-. (map show locs)]
 	insertCells cells
 	setRangeCells rngCells
 
