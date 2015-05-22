@@ -25,7 +25,9 @@ library
                      AS.Eval
                      AS.Eval.Lang
                      AS.HandlerLibrary
-                     AS.Parsing
+                     AS.Parsing.Common
+                     AS.Parsing.Out
+                     AS.Parsing.In
                      AS.Types
                      AS.TypesHelper
                      Model

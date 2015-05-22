@@ -1,7 +1,8 @@
 module AS.DB where
 
 import AS.Types
-import AS.Parsing
+import AS.Parsing.Common
+import AS.Parsing.Out	
 import Import hiding (index)
 import Prelude (read, show, (!!))
 

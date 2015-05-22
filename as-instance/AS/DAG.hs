@@ -31,7 +31,7 @@ import Control.Monad.RWS hiding (foldM)
 
 import Data.List (intersect)
 import qualified Data.Set as S  
-import AS.Types
+import AS.Types hiding (error)
 import AS.DB as DB
 
 -- | A relation represented as a list of tuples.

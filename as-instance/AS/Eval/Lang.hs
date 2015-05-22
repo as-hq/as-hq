@@ -3,9 +3,19 @@ module AS.Eval.Lang where
 import AS.Types
 import AS.Config.Paths
 import AS.TypesHelper
+import AS.Parsing.Out
+import AS.Parsing.Common
+import AS.DB
+
 import Import
 import Control.Applicative                                   
 import System.Directory(getCurrentDirectory)
+
+import qualified Data.Text as T
+import qualified Data.List as L
+import qualified Data.Map as M
+import qualified Prelude as P
+import Prelude ((!!), read)
 
 importFile :: ASLanguage -> (String, String, String) -> String
 importFile lang (name, cmd, loc) = 
@@ -49,6 +59,14 @@ getRunnerArgs lang = case lang of
 			path = getEvalPath ++ "ocaml/"
 	otherwise -> [] -- in case we ever use more args
 
+layoutCodeFile :: ASLanguage -> (String, String, String) -> String
+layoutCodeFile lang (imports, template, cmd) = case lang of 
+	Python -> replaceSubstrings importedTemplate [("#CMD#", tabbedCmd)]
+		where
+			importedTemplate = intercalate "\n" [imports, template]
+			tabbedCmd = replaceSubstrings cmd [("\n", "\n\t")]
+	otherwise -> intercalate "\n" [imports, template, cmd]
+
 formatRunArgs :: ASLanguage -> String -> String -> [String] -> String
 formatRunArgs lang cmd filename args = case lang of 
 	otherwise -> cmd ++ filename ++ " " ++ (intercalate " " args)
@@ -60,42 +78,37 @@ addCompileCmd lang cmd = case lang of
 			path = getEvalPath ++ "ocaml/"
 	otherwise -> cmd
 
-toListStr :: ASLanguage -> [String] -> String
-toListStr lang lst  = end ++ (intercalate delim lst) ++ start
-  where
-    (end, delim, start) = case lang of 
-      R     -> ("c(", ",", ")")
-      Python-> ("[", ",", "]")
-      OCaml -> ("[", ";", "]")
 
-getLineDelim :: ASLanguage -> String
-getLineDelim lang = case lang of 
-  R     -> ""
-  Python-> ""
-  OCaml -> ";;"
+interpolateFile :: ASLanguage -> String -> Handler String
+interpolateFile lang execCmd = do
+	functions <- getFuncs lang
+	let (cleanCmd, imports) = replaceAliases execCmd functions
+	let editedCmd = insertPrintCmd lang $ splitLastCmd lang cleanCmd
+	let importCmds = unlines . map (importFile lang) $ imports
+	template <- getTemplate lang
+	return $ layoutCodeFile lang (importCmds, template, editedCmd)
 
-getInlineDelim :: ASLanguage -> String
-getInlineDelim lang = case lang of 
-  R     -> ";"
-  Python-> ";"
-  OCaml -> ";;"
+interpolate :: Map ASLocation ASValue -> ASExpression -> String
+interpolate values xp = execCmd
+	where
+		execCmd			= replaceSubstrings expandedLists matches
+		expandedLists 	= excelRangesToLists lang $ expression xp
+		matches 		= map (\(a, b) -> (toExcel a, showFilteredValue lang a b)) (M.toList values)
+		lang 			= language xp
 
-jsonDeserialize :: ASLanguage -> String -> String -> String
-jsonDeserialize lang objType jsonRep = 
+insertPrintCmd :: ASLanguage -> (String, String) -> String
+insertPrintCmd lang (s, lst) = s ++ process lst 
+	where
+		process l 	= case lang of 
+			R -> "cat(toJSON(" ++ l ++ "))" 
+			Python -> "print(repr(" ++ l ++ "))"
+			OCaml -> "print_string(Std.dump(" ++ l ++ "))"
+
+splitLastCmd :: ASLanguage -> String -> (String, String)
+splitLastCmd lang cmd = 
 	let 
-		dlm = getLineDelim lang
-	in case lang of 
-	  R       -> objType ++ "$(" ++ jsonRep ++ ")" ++ dlm
-	  Python  -> objType ++ ".deserialize(" ++ jsonRep ++ ")" ++ dlm
-	  OCaml   -> "Serialization# " ++ objType ++ " " ++ jsonRep ++ dlm-- TODO ocaml serialization class
-
-showValue :: ASLanguage -> ASValue -> String
-showValue lang v = case v of
-  ValueImage path 	-> "PLOT"--ADDED, open file here?
-  ValueNaN () 		-> "Undefined"
-  ValueS s 			-> s
-  ValueD d 			-> show d
-  ValueL l 			-> toListStr lang $ fmap (showValue lang) l
-  StyledValue s v 	-> showValue lang v
-  DisplayValue d v 	-> showValue lang v
-  ObjectValue o js 	-> jsonDeserialize lang o js
+		lines = T.splitOn (pack "\n") (pack cmd)
+		lastLine = T.splitOn (pack $ getInlineDelim lang) (P.last lines)
+		top = (concat $ map unpack (P.init lines)) ++ (concat (map unpack $ P.init lastLine)) ++ (getLineDelim lang) ++ "\n"
+		lastStmt = unpack $ P.last lastLine
+	in (top, lastStmt)

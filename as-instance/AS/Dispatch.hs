@@ -1,7 +1,6 @@
 module AS.Dispatch where
 
 import AS.Types
-import AS.Parsing
 import Import
 import Prelude ((!!)) --ADDED FOR RANGES
 import qualified AS.Eval    as R (evalExpression)
@@ -9,6 +8,9 @@ import qualified Data.Map   as M
 import qualified AS.DAG     as D
 import qualified AS.DB      as DB
 import qualified Data.List  as DL (head,last,tail) --ADDED FOR RANGES
+import AS.Parsing.Common
+import AS.Parsing.Out
+import AS.Parsing.In
 import Data.Maybe (fromJust)
 import Text.ParserCombinators.Parsec
 import Text.Regex.Posix
