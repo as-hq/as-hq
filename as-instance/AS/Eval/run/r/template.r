@@ -1,10 +1,19 @@
 library("rjson")
 library("jpeg")
 
-as.graph <- function (name, f) {
-    jpeg(file=name)
-    f()
-    dev.off()
+graph <- function(x){
+    name="test"
+    graphics.off()
+    fpath=paste("/home/hal/code/alphasheets/frontend/client/app/images/",name,".png",sep="")
+    if (file.exists(fpath)){
+    }
+    else {
+      file.create(fpath)
+    }
+    png(filename=fpath)
+    x
+    graphics.off()
+    return(list(imagePath=paste("images/",name,".png",sep="")))
 }
 
 result = tryCatch({

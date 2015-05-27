@@ -37,13 +37,13 @@ setCell cell = setCells [cell]
 
 setCells :: [ASCell] -> Handler ()
 setCells cells = do
-	let rngCells = filter (\cell -> case (cellLocation cell) of 
-								(Range a) -> True
-								otherwise -> False) cells
-	let locs = (map cellLocation cells) ++ concat (map (decomposeLocs . cellLocation) rngCells)
-	runDB $ deleteWhere [ASCellDBLocationString <-. (map show locs)]
-	insertCells cells
-	setRangeCells rngCells
+    let rngCells = filter (\cell -> case (cellLocation cell) of 
+                            (Range a) -> True
+                            otherwise -> False) cells
+    let locs = (map cellLocation cells) ++ concat (map (decomposeLocs . cellLocation) rngCells)
+    runDB $ deleteWhere [ASCellDBLocationString <-. (map show locs)]
+    insertCells cells
+    setRangeCells rngCells
 
 -- internal use only
 setRangeCells :: [ASCell] -> Handler ()
@@ -64,7 +64,9 @@ trd (a,b,c) = c
 
 -- internal use only
 insertCells :: [ASCell] -> Handler ()
-insertCells cells = mapM_ (\cell -> (runDB $ insert $ toDBCell cell) >> return ()) cells
+insertCells cells = do
+	runDB $ insertMany_ $ (map toDBCell cells)
+	return ()
 
 deleteCell :: ASLocation -> Handler ()
 deleteCell loc = do
@@ -90,7 +92,12 @@ dbUpdateLocationDependencies (loc, deps) =
 
 -- ADDED FOR RANGES - should be optimized
 dbUpdateLocationDepsBatch :: [(ASLocation,[ASLocation])] -> Handler ()
-dbUpdateLocationDepsBatch = mapM_ dbUpdateLocationDependencies
+dbUpdateLocationDepsBatch depList = do 
+	let locs = map fst depList
+	runDB $ deleteWhere [RelationDBFirstEndpoint <-. (map show locs)]
+	let newDeps = concat $ map (\(a,b)-> zip (repeat a) b) depList 
+	runDB $ insertMany_ (map toDBRelation newDeps)
+	return ()
 
 dbInsertDependency :: (ASCell, ASCell) -> Handler ()
 dbInsertDependency (x, y) = dbInsertSingleRelation (cellLocation x, cellLocation y)

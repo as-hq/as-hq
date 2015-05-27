@@ -10,12 +10,9 @@ import sys, os
 import traceback
 
 try:
-	def a():
-		b=1+1
-		return b
 	
 	
-	print(repr(a()))
+	print(repr(rand(25,25)))
 except Exception as e: 
 	exc_type, exc_obj, exc_tb = sys.exc_info()
 	fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
