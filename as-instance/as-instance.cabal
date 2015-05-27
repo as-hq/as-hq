@@ -18,6 +18,7 @@ library
                      Import
                      Import.NoFoundation
                      AS.Config.Paths
+                     AS.Config.Settings
                      AS.Config.Logging
                      AS.DAG
                      AS.DB

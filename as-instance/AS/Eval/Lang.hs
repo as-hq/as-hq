@@ -20,7 +20,7 @@ import Prelude ((!!), read)
 importFile :: ASLanguage -> (String, String, String) -> String
 importFile lang (name, cmd, loc) = 
 	let
-		dlm = getLineDelim lang
+		dlm = getBlockDelim lang
 	in case lang of 
 		R -> case cmd of 
 			"" 			-> "library(" ++ name ++ ", lib.loc=\"" ++ loc ++ "\")" ++ dlm ++ "\n"
@@ -61,10 +61,13 @@ getRunnerArgs lang = case lang of
 
 layoutCodeFile :: ASLanguage -> (String, String, String) -> String
 layoutCodeFile lang (imports, template, cmd) = case lang of 
-	Python -> replaceSubstrings importedTemplate [("#CMD#", tabbedCmd)]
+	Python 	-> replaceSubstrings importedTemplate [("#CMD#", tabbedCmd)]
 		where
 			importedTemplate = intercalate "\n" [imports, template]
 			tabbedCmd = replaceSubstrings cmd [("\n", "\n\t")]
+	R 		-> replaceSubstrings importedTemplate [("#CMD#", cmd)]
+		where
+			importedTemplate = intercalate "\n" [imports, template]
 	otherwise -> intercalate "\n" [imports, template, cmd]
 
 formatRunArgs :: ASLanguage -> String -> String -> [String] -> String
@@ -83,9 +86,12 @@ interpolateFile :: ASLanguage -> String -> Handler String
 interpolateFile lang execCmd = do
 	functions <- getFuncs lang
 	let (cleanCmd, imports) = replaceAliases execCmd functions
+	$(logInfo) $ "EVAL REPLACED XP: " ++ (fromString . show $ cleanCmd)
 	let editedCmd = insertPrintCmd lang $ splitLastCmd lang cleanCmd
 	let importCmds = unlines . map (importFile lang) $ imports
 	template <- getTemplate lang
+	$(logInfo) $ "EVAL EDITED XP: " ++ (fromString $ show editedCmd)
+	$(logInfo) $ "EVAL USING TEMPLATE: " ++ (fromString $ show template)
 	return $ layoutCodeFile lang (importCmds, template, editedCmd)
 
 interpolate :: Map ASLocation ASValue -> ASExpression -> String
@@ -100,15 +106,17 @@ insertPrintCmd :: ASLanguage -> (String, String) -> String
 insertPrintCmd lang (s, lst) = s ++ process lst 
 	where
 		process l 	= case lang of 
-			R -> "cat(toJSON(" ++ l ++ "))" 
-			Python -> "print(repr(" ++ l ++ "))"
-			OCaml -> "print_string(Std.dump(" ++ l ++ "))"
+			R 		-> l
+			Python 	-> "print(repr(" ++ l ++ "))"
+			OCaml 	-> "print_string(Std.dump(" ++ l ++ "))"
 
 splitLastCmd :: ASLanguage -> String -> (String, String)
 splitLastCmd lang cmd = 
 	let 
-		lines = T.splitOn (pack "\n") (pack cmd)
-		lastLine = T.splitOn (pack $ getInlineDelim lang) (P.last lines)
-		top = (concat $ map unpack (P.init lines)) ++ (concat (map unpack $ P.init lastLine)) ++ (getLineDelim lang) ++ "\n"
-		lastStmt = unpack $ P.last lastLine
-	in (top, lastStmt)
+		lines 			= T.splitOn (pack "\n") (pack cmd)
+		lastStmts 		= T.splitOn (pack $ getInlineDelim lang) (P.last lines)
+		initLines 		= intercalate "\n" $ map unpack (P.init lines)
+		initLastLines 	= intercalate "\n" $ map unpack (P.init lastStmts)
+		initStmts 		= initLines ++ "\n" ++ initLastLines ++ (getBlockDelim lang) ++ "\n"
+		lastStmt 		= unpack $ P.last lastStmts
+	in (initStmts, lastStmt)

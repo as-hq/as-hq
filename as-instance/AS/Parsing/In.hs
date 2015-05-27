@@ -13,6 +13,7 @@ import Data.Char
 import qualified Data.Text as T
 import qualified Data.List as L
 import Text.Parsec
+-- import Text.Parsec.String
 import Text.Parsec.Text
 import qualified Text.Parsec.Token as O
 import qualified Text.Parsec.Language as Lang (haskellDef)
@@ -42,7 +43,7 @@ double = fmap rd $ int <++> dec
     period  = char '.'
 
 valueD :: Parser ASValue
-valueD = ValueD <$> double
+valueD = ValueD <$> double 
 
 bool :: ASLanguage -> Parser Bool
 bool lang = fmap rd $ true <|> false
@@ -60,18 +61,22 @@ bool lang = fmap rd $ true <|> false
 valueB :: ASLanguage -> Parser ASValue
 valueB lang = ValueB <$> (bool lang)
 
--- valueS :: ASLanguage -> Parser ASValue
--- valueS lang = ValueS <$> ((quotes $ many $ noneOf ['"']) <|> (apostrophes $ many $ noneOf ['\'']))
---   where
---     quotes = between quote quote
---     quote = case lang of 
---       otherwise -> char '"' -- TODO quotes for langs
---     apostrophes = between apostrophe apostrophe
---     apostrophe = case lang of 
---       otherwise -> char '\'' -- TODO apostrophes also
-
 valueS :: Parser ASValue
-valueS = ValueS <$> (O.stringLiteral $ O.makeTokenParser Lang.haskellDef)
+valueS = ValueS <$> (quoteString <|> apostropheString)
+  where
+  	quoteString 		= quotes $ many $ escaped <|> noneOf ['"']
+  	apostropheString 	= apostrophes $ many $ escaped <|> noneOf ['\'']
+  	quotes = between quote quote
+  	quote = char '"' -- 
+  	apostrophes = between apostrophe apostrophe
+  	apostrophe = char '\'' -- TODO apostrophes also
+  	escaped = char '\\' >> choice (zipWith escapedChar codes replacements)
+  	escapedChar code replacement = char code >> return replacement
+  	codes        = ['b',  'n',  'f',  'r',  't',  '\\', '\"', '/']
+  	replacements = ['\b', '\n', '\f', '\r', '\t', '\\', '\"', '/']
+
+-- valueS :: Parser ASValue
+-- valueS = ValueS <$> (O.stringLiteral $ O.makeTokenParser Lang.haskellDef)
 
 -- valueSFailsafe :: Parser ASValue
 -- valueSFailsafe = ValueS <$> (many $ noneOf "'\"")
@@ -92,11 +97,11 @@ valueL lang = ValueL <$> (brackets $ sepBy (asValue lang) (delim >> spaces))
 
 extractValue :: M.Map String ASValue -> ASValue
 extractValue m
+  | M.member "error" m        = extractError m
   | M.member "style" m        = extractStyledValue m
   | M.member "displayValue" m = extractDisplayValue m
   | M.member "imagePath" m    = extractImageValue m
   | M.member "stockPrices" m  = extractStockChart m
-  | M.member "error" m        = extractError m
   | otherwise = extractObjectValue m
   where
     extractStyledValue mm = StyledValue s v
@@ -120,12 +125,12 @@ extractValue m
       where
         prices      = m M.! "stockPrices"
         ValueS name = m M.! "stockName"
-    extractError mm      = ValueError err typ file (read pos :: Int)
+    extractError mm      = ValueError err typ file (floor pos)
       where
         ValueS err         = m M.! "error"
         ValueS typ         = m M.! "err_type"
         ValueS file        = m M.! "file"
-        ValueS pos         = m M.! "position"
+        ValueD pos         = m M.! "position"
 
 complexValue :: Parser ASValue
 complexValue = extractValue <$> extractMap
@@ -143,6 +148,6 @@ asValue :: ASLanguage -> Parser ASValue
 asValue lang = choice [valueD, valueS, (valueL lang), complexValue, return $ ValueNaN ()]
 
 parseValue :: ASLanguage -> String -> ASValue --needs to change to reflect ValueImage
-parseValue lang = fromRight . (parse (asValue lang) "") . T.pack 
+parseValue lang = fromRight . (parse (asValue lang) "") . T.pack
   where
     fromRight (Right v) = v

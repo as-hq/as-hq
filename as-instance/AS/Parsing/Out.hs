@@ -25,8 +25,8 @@ toListStr lang lst  = end ++ (intercalate delim lst) ++ start
       Python-> ("[", ",", "]")
       OCaml -> ("[", ";", "]")
 
-getLineDelim :: ASLanguage -> String
-getLineDelim lang = case lang of 
+getBlockDelim :: ASLanguage -> String
+getBlockDelim lang = case lang of 
   R     -> ""
   Python-> ""
   OCaml -> ";;"
@@ -40,7 +40,7 @@ getInlineDelim lang = case lang of
 jsonDeserialize :: ASLanguage -> String -> String -> String
 jsonDeserialize lang objType jsonRep = 
 	let 
-		dlm = getLineDelim lang
+		dlm = getBlockDelim lang
 	in case lang of 
 	  R       -> objType ++ "$(" ++ jsonRep ++ ")" ++ dlm
 	  Python  -> objType ++ ".deserialize(" ++ jsonRep ++ ")" ++ dlm

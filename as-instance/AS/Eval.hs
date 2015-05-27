@@ -13,6 +13,8 @@ import AS.Parsing.In
 import System.IO                                       
 import System.Process   
 
+-- file interpolation -- (see Lang for definitions)
+
 evalExpression :: Map ASLocation ASValue -> ASExpression -> Handler ASValue
 evalExpression dict expr =
   case expr of
@@ -22,8 +24,11 @@ evalExpression dict expr =
 
 evalCode :: Map ASLocation ASValue -> ASExpression -> Handler ASValue
 evalCode values xp = do
+		$(logInfo) $ "EVAL RECEIVES XP: " ++ (fromString . show $ expression xp)
+		$(logInfo) $ "EVAL FINAL XP: " ++ (fromString . show $ finalXp)
 		interpolated <- interpolateFile lang finalXp
 		writeExecFile lang interpolated
+		$(logInfo) $ "EVAL EXECUTING: " ++ (fromString $ show interpolated)
 		result <- runFile lang
 		$(logInfo) $ "EVAL RETURNS: " ++ (fromString result)
 		return $ parseValue lang result
