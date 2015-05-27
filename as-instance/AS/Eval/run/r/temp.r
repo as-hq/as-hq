@@ -2,19 +2,29 @@
 library("rjson")
 library("jpeg")
 
-as.graph <- function (name, f) {
-    jpeg(file=name)
-    f()
-    dev.off()
+graph <- function(name, x){
+    graphics.off()
+    fpath=paste0("/home/hal/code/alphasheets/frontend/client/app/images/",name,".png",sep="")
+    if (file.exists(fpath)){
+    }
+    else {
+      file.create(fpath)
+    }
+    png(filename=fpath)
+    x
+    graphics.off()
+    return(list(imagePath=paste0("images/",name,".png",sep="")))
 }
 
+isError = FALSE
 result = tryCatch({
 
 
-1+'a'
+c(1,2)
 }, warning = function(w) {
 	# nothing here
 }, error = function(e) {
+    isError = TRUE
 	err = paste0("'error': \'Error: ", gsub("'",'"',e$message), "\'")
 	err_type = "'err_type': \'try-error\'"
 	position = "'position': -1" # TODO figure out line number of stacktrace in r
@@ -26,4 +36,4 @@ result = tryCatch({
 
 # traceback()
 
-cat(result)
+if (isError) cat(result) else cat(toJSON(result))

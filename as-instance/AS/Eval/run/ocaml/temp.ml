@@ -1,10 +1,8 @@
 
+(* try
+	(* CMD *)
+with
+| e -> print_string(Std.dump(e)) *)
 
-let main () = 
-	try
-		print_string("a");
-		print_string(Std.dump(1+1))
-	with
-	| _ -> failwith "Unknown"
-;;
-if !Sys.interactive then () else main ();;
+PLOT + 1;;
+print_string(Std.dump())

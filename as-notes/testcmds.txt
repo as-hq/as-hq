@@ -1,0 +1,7 @@
+let rec sumList list = match list with
+| [] -> 0.
+| head::tail -> head +. sumList tail
+
+sumList A1:A3
+
+as.graph(“Test”, function () { plot(c(1,2,3),c(1,2,3)) } )
