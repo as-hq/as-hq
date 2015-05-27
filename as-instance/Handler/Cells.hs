@@ -2,7 +2,7 @@ module Handler.Cells where
 
 import Import
 import AS.HandlerLibrary
-import AS.Types
+import AS.Types hiding (error)
 import qualified AS.DB as DB
 import qualified AS.Dispatch as DP
 
@@ -19,7 +19,9 @@ getCellsR = interactHandlerJson process
       let locs = map cellLocation stringCells
       in do
         evaluatedCells <- DP.evalCells $ locs
-        return . (map cellValue) $ evaluatedCells
+        case evaluatedCells of
+          Nothing -> error "Fuck you"
+          Just justCells -> return . (map cellValue) $ justCells
 
 putCellsR :: Handler Value
 putCellsR = interactHandlerJson process

@@ -67,10 +67,10 @@ showFilteredValue lang _ a = showValue lang a
 
 -- excel -----------------------------------------
 
-regexStr = "(\\[A-Z]+\\[0-9]+:\\[A-Z]+\\[0-9]+)"
-regexStrIdx = "(\\[A-Z]+\\[0-9]+)"
-regexStrDollars = "(\\${0,1}[A-Z]+\\${0,1}[0-9]+:\\${0,1}[A-Z]+\\${0,1}[0-9]+)"
-regexStrDollarsIdx = "(\\${0,1}[A-Z]+\\${0,1}[0-9]+)"
+regexStr = "([A-Z]+[0-9]+:[A-Z]+[0-9]+)"
+regexStrIdx = "([A-Z]+[0-9]+)"
+regexStrDollars = "(\\${0,1}+[A-Z]+\\${0,1}+[0-9]+:+\\${0,1}+[A-Z]+\\${0,1}+[0-9]+)"
+regexStrDollarsIdx = "\\${0,1}+[A-Z]+\\${0,1}++[0-9]+"
 
 fromExcelRelativeString :: String -> Int -> Int -> String
 fromExcelRelativeString str row col 

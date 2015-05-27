@@ -16,7 +16,7 @@ import Text.ParserCombinators.Parsec
 import Text.Regex.Posix
 import Control.Applicative
 
-propagateCell :: ASLocation -> ASExpression -> Handler [ASCell]
+propagateCell :: ASLocation -> ASExpression -> Handler (Maybe [ASCell])
 propagateCell loc xp = updateCell (loc, xp) >> reevaluateCell (loc, xp)
 
 
@@ -47,7 +47,7 @@ updateCell (loc, xp) =
           $(logInfo) $ "(1) updated Range cell"
 
 
-reevaluateCell :: (ASLocation, ASExpression) -> Handler [ASCell]
+reevaluateCell :: (ASLocation, ASExpression) -> Handler (Maybe [ASCell])
 reevaluateCell (loc, xp) = do
   descendants <- D.dbGetSetDescendants $ decomposeLocs loc --CHANGED FOR RANGES
   $(logInfo) $ "Descendants being calculated: " ++ (fromString $ show descendants)
@@ -69,11 +69,7 @@ evalChain mp (c:cs) = do
   cv <- R.evalExpression mp xp 
   additionalCells <- case loc of
     Index (a, b) -> case cv of
-      ValueL lst -> do 
-        $(logInfo) $ "Creating all list cells"
-        result <- createListCells (Index (a, b)) lst
-        $(logInfo) $ "Finished creating list cells"
-        return result
+      ValueL lst -> createListCells (Index (a, b)) lst
       otherwise -> return [] 
     otherwise -> return []
   $(logInfo) $ "Parsing returns: " ++ (fromString $ show cv)
@@ -119,23 +115,31 @@ createListCells (Index (a, b)) (x:xs) =
 
 
 --TODO change dbGetSetAncestors to have no flattening
-evalCells :: [ASLocation] -> Handler [ASCell]
-evalCells [] = return []
+evalCells :: [ASLocation] -> Handler (Maybe [ASCell])
+evalCells [] = return $ Just []
 evalCells locs = do
   ancestors <- fmap reverse $ D.dbGetSetAncestors locs
   $(logInfo) $ "ancestors computed: " ++ (fromString $ show ancestors)
   cells <- DB.getCells ancestors
   locsCells <- DB.getCells locs
   $(logInfo) $ "got cells: " ++ (fromString $ show cells)
-  results <- evalChain (M.fromList $ map (\c -> (cellLocation c, cellValue c)) $ cells) locsCells
-  DB.setCells results
-  return results
+  if any isNothing cells
+    then return Nothing
+    else do
+      let filterCells = map (\(Just x) -> x) cells
+          filterLocsCells = map (\(Just x) -> x) locsCells
+      $(logInfo) $ "filtered cells: " ++ (fromString $ show filterCells)
+      results <- evalChain (M.fromList $ map (\c -> (cellLocation c, cellValue c)) $ filterCells) filterLocsCells
+      DB.setCells results
+      return $ Just results
 
 
-cellValues :: [ASLocation] -> Handler (M.Map ASLocation ASValue)
+cellValues :: [ASLocation] -> Handler (Maybe (M.Map ASLocation ASValue))
 cellValues locs = do
   cells <- DB.getCells locs
-  return $ M.fromList $ map (\cell -> (cellLocation cell, cellValue cell)) cells
+  if any isNothing cells
+    then return Nothing
+    else return $ Just $ M.fromList $ map (\cell -> (cellLocation cell, cellValue cell)) $ map (\(Just x) -> x) $ cells
 
 
 

@@ -27,10 +27,13 @@ getCell loc = do
 		[] -> Nothing
 		((Entity cellId cell):cs) -> Just . fromDBCell $ cell
 
-getCells :: [ASLocation] -> Handler [ASCell]
+getCells :: [ASLocation] -> Handler [Maybe ASCell]
 getCells locs = do
-	cells <- runDB $ selectList [ASCellDBLocationString <-. map show locs] []
-	return $ map (\(Entity cellId cell) -> fromDBCell cell) cells
+	cells <- runDB $ mapM (\loc -> selectList [ASCellDBLocationString ==. show loc] []) locs
+	return $ map (\cellList -> case cellList of 
+		[] -> Nothing
+		((Entity cellId cell):cs) -> Just . fromDBCell $ cell) cells
+
 
 setCell :: ASCell -> Handler ()
 setCell cell = setCells [cell]

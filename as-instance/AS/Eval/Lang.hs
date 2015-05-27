@@ -98,7 +98,9 @@ interpolate :: Map ASLocation ASValue -> ASExpression -> String
 interpolate values xp = execCmd
 	where
 		execCmd			= replaceSubstrings expandedLists matches
-		expandedLists 	= excelRangesToLists lang $ expression xp
+		expandedLists 	= case lang of 
+			Python 		-> excelRangesToIterables lang $ expression xp
+			otherwise 	-> excelRangesToLists lang $ expression xp
 		matches 		= map (\(a, b) -> (toExcel a, showFilteredValue lang a b)) (M.toList values)
 		lang 			= language xp
 
