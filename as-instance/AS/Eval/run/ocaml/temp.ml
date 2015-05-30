@@ -3,6 +3,7 @@
 	(* CMD *)
 with
 | e -> print_string(Std.dump(e)) *)
-
-PLOT + 1;;
-print_string(Std.dump())
+let rec sumList lst = match lst with
+	| [ -> 0.
+;;
+print_string(Std.dump(ý))

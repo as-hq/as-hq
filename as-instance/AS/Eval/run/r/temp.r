@@ -16,11 +16,17 @@ graph <- function(name, x){
     return(list(imagePath=paste0("images/",name,".png",sep="")))
 }
 
+# as.graph <- function (name, f) {
+#     jpeg(file=name)
+#     f()
+#     dev.off()
+# }
+
 isError = FALSE
 result = tryCatch({
 
 
-c(1,2)
+c(1,2,3,4)
 }, warning = function(w) {
 	# nothing here
 }, error = function(e) {

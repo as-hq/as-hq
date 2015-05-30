@@ -3,6 +3,7 @@ from AS.stdlib import *
 from AS.ui.styling import *
 from AS.tests.min import *
 from AS.instruments.ETF import ETF
+from AS.instruments.Stock import Stock
 from AS.ui.plot import *
 import json
 import sys, os
@@ -15,6 +16,6 @@ except Exception as e:
 	fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
 	# err = traceback.format_exc().replace("'","")
 	err = repr(e).replace("\'","").replace("'",'"')
-	pos = exc_tb.tb_lineno - 12 # subtract template lines
+	pos = exc_tb.tb_lineno - 15 # subtract template lines
 	errJson = {'err_type': repr(exc_type), 'file': fname, 'position': pos, 'error': err}
 	print(errJson)
