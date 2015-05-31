@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import os.path 
 from AS.iterable import ASIterable
 from AS.instruments.Stock import Stock
+from AS.errors import *
 
 folder = os.path.dirname(__file__) 
 directory = os.path.abspath(os.path.join(folder, '..','..','..','..','frontend','client','app','images')) + '/'
@@ -52,6 +53,12 @@ def plotObj(x, name=None):
             prices.append([date,opn,high,low,close])
         rev = [e for e in reversed(prices)]
         return {'stockPrices':rev, 'stockName': x[0].symbol}
+
+def plotGeneric(x, name="Generic"):
+    lst = x.transpose().load()
+    if (len(lst) > 2):
+        raise MultiDimensionalDataException
+    return plot(x[0], x[1], name)
 
 def testStockChart():
     return {'stockPrices':[["2014-01-01T23:28:56.782Z", 1.00, 1.50, 0.90, 1.20], ["2014-01-02T23:28:56.782Z", 1.30, 1.50, 1.00, 1.15]], 'stockName': 'TEST'}

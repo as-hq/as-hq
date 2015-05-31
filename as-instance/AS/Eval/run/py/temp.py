@@ -13,7 +13,7 @@ import traceback
 try:
 	
 	
-	print(repr(1+a))
+	print(repr(plotGeneric(arr([[1.0,2.0],[3.0,4.0]]), "Plot of a1:b2")))
 except Exception as e: 
 	exc_type, exc_obj, exc_tb = sys.exc_info()
 	fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]

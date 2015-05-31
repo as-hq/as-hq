@@ -26,7 +26,7 @@ isError = FALSE
 result = tryCatch({
 
 
-c(1,2,3,4)
+c(1,2,3)
 }, warning = function(w) {
 	# nothing here
 }, error = function(e) {
