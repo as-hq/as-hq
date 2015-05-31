@@ -24,33 +24,37 @@ toListStr lang lst  = end ++ (intercalate delim lst) ++ start
       R     -> ("c(", ",", ")")
       Python-> ("[", ",", "]")
       OCaml -> ("[", ";", "]")
+      SQL   -> ("[", ",", "]")
 
 getBlockDelim :: ASLanguage -> String
 getBlockDelim lang = case lang of 
   R     -> ""
   Python-> ""
   OCaml -> ";;"
+  SQL   -> ""
 
 getInlineDelim :: ASLanguage -> String
 getInlineDelim lang = case lang of 
   R     -> ";"
   Python-> ";"
   OCaml -> ";;"
+  SQL   -> ";"
 
 jsonDeserialize :: ASLanguage -> String -> String -> String
 jsonDeserialize lang objType jsonRep = 
 	let 
 		dlm = getBlockDelim lang
 	in case lang of 
-	  R       -> objType ++ "$(" ++ jsonRep ++ ")" ++ dlm
-	  Python  -> objType ++ ".deserialize(" ++ jsonRep ++ ")" ++ dlm
-	  OCaml   -> "Serialization# " ++ objType ++ " " ++ jsonRep ++ dlm-- TODO ocaml serialization class
+    R       -> objType ++ "$(" ++ jsonRep ++ ")" ++ dlm
+    Python  -> objType ++ ".deserialize(" ++ jsonRep ++ ")" ++ dlm
+    OCaml   -> "Serialization# " ++ objType ++ " " ++ jsonRep ++ dlm
+    SQL     -> objType ++ ".deserialize(" ++ jsonRep ++ ")" ++ dlm
 
 showValue :: ASLanguage -> ASValue -> String
 showValue lang v = case v of
   ValueImage path 	-> "PLOT"--ADDED, open file here?
   ValueNaN () 		-> "Undefined"
-  ValueS s 			-> s
+  ValueS s 			-> show s
   ValueD d 			-> show d
   ValueL l 			-> toListStr lang $ fmap (showValue lang) l
   StyledValue s v 	-> showValue lang v
@@ -189,3 +193,6 @@ excelRangesToIterables lang str = replaceSubstrings str (zip toReplace replaceWi
   where
     toReplace = deleteEmpty $ regexList str regexStr
     replaceWith = map ((\x->"arr("++x++")") . excelRngToIdxs lang) toReplace
+
+getExcelMatches :: String -> [String]
+getExcelMatches xp = deleteEmpty $ regexList xp regexStr

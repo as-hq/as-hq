@@ -1,4 +1,6 @@
 import numpy as np
+import pandas as pd
+from AS.pandas.input import listToDataframe
 
 class ASIterator:
     def __init__(self, data):
@@ -152,6 +154,10 @@ class ASIterable(object):
 
     def map(self, func):
         return ASIterable([func(x) for x in self])
+
+    # pandas
+    def toDataframe(self):
+        return listToDataframe(self.lst)
 
     # reps and conversions
     @classmethod

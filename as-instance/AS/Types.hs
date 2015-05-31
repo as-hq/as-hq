@@ -31,7 +31,7 @@ data ASValue =
 instance ToJSON ASValue
 instance FromJSON ASValue
 
-data ASLanguage = R | Python | OCaml
+data ASLanguage = R | Python | OCaml | SQL
   deriving (Show, Read, Eq, Generic)
 
 instance ToJSON ASLanguage

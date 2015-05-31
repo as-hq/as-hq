@@ -10,6 +10,8 @@ import AS.Eval.Lang
 import AS.Types
 import AS.DB
 import AS.Parsing.In
+import AS.Parsing.Out
+import AS.Parsing.Common
 import System.IO                                       
 import System.Process   
 
@@ -26,7 +28,15 @@ evalCode :: Map ASLocation ASValue -> ASExpression -> Handler ASValue
 evalCode values xp = do
 		$(logInfo) $ "EVAL RECEIVES XP: " ++ (fromString . show $ expression xp)
 		$(logInfo) $ "EVAL FINAL XP: " ++ (fromString . show $ finalXp)
-		interpolated <- interpolateFile lang finalXp
+		simpleInterpolated <- interpolateFile lang finalXp
+		let interpolated = case lang of 
+			SQL -> formatSqlQuery simpleInterpolated (finalXp, rng, rangeVals)
+				where 
+					rng 			= P.head $ getExcelMatches finalXp
+					rangeVals 		= replaceSubstrings expandedLists matches
+					expandedLists 	= excelRangesToLists SQL rng
+					matches 		= map (\(a, b) -> (toExcel a, showFilteredValue SQL a b)) (M.toList values)
+			otherwise -> simpleInterpolated
 		writeExecFile lang interpolated
 		$(logInfo) $ "EVAL EXECUTING: " ++ (fromString $ show interpolated)
 		result <- runFile lang
