@@ -6,6 +6,6 @@
 
 / HomeR GET POST
 /updatedb/#String UpdateDBR POST
-/cells CellsR GET POST PUT OPTIONS
-/clear ClearR GET
+/cells CellsR GET POST PUT DELETE OPTIONS
+/clear ClearR GET POST OPTIONS
 /libs LibsR GET POST

@@ -72,11 +72,12 @@ insertCells cells = do
 	return ()
 
 deleteCell :: ASLocation -> Handler ()
-deleteCell loc = do
+deleteCell loc@(Index _) = do
 	cells <- runDB $ selectList [ASCellDBLocationString ==. show loc] []
 	case cells of
 		[] -> return ()
 		((Entity cellDBId cellDB):cs) -> (runDB $ delete cellDBId) >> return ()
+deleteCell loc@(Range _) = mapM_ deleteCell $ decomposeLocs loc
 
 dbInsertSingleRelation :: (ASLocation, ASLocation) -> Handler ()
 dbInsertSingleRelation rel = (runDB . insert . toDBRelation $ rel) >> return ()

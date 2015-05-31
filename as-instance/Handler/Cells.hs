@@ -35,6 +35,10 @@ postCellsR = interactHandlerJson process
       $(logInfo) $ (fromString $ show result)
       return result
 
+-- delete not working with angular -> workaround is post to /clear
+deleteCellsR :: Handler Value
+deleteCellsR = interactHandlerJson DB.deleteCell
+
 {--
 getEvalReplR :: Handler Value
 getEvalReplR = interactHandlerJson "expression" process

@@ -18,7 +18,9 @@ def getList(x,y):
     else: ylist = y
     return xlist, ylist
 
-def plot(x,y,name):
+def plot(x,y=None,name=None):
+    if y is None:
+        return plotObj(x)
     xlist, ylist = getList(x,y)
     plt.plot(xlist,ylist)
     plt.grid(True)

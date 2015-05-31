@@ -14,7 +14,7 @@ addCorsHeaders :: Handler ()
 addCorsHeaders = do
     addHeader "Access-Control-Allow-Origin" "*"
     addHeader "Access-Control-Allow-Headers" "Origin, X-Requested-With, Content-Type, Accept"
-    addHeader "Access-Control-Allow-Methods" "PUT, POST, GET, OPTIONS"
+    addHeader "Access-Control-Allow-Methods" "PUT, POST, GET, DELETE, OPTIONS"
 
 interactHandlerJson :: (FromJSON a, ToJSON a, ToJSON b) => (a -> Handler b) -> Handler Value
 interactHandlerJson process = addCorsHeaders >> parseJsonBody >>= \obj ->

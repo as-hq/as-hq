@@ -13,7 +13,7 @@ import traceback
 try:
 	
 	
-	print(repr(['b',5,6,7,8]))
+	print(repr(1+a))
 except Exception as e: 
 	exc_type, exc_obj, exc_tb = sys.exc_info()
 	fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
