@@ -17,15 +17,15 @@ import System.Process
 
 -- file interpolation -- (see Lang for definitions)
 
-evalExpression :: Map ASLocation ASValue -> ASExpression -> Handler ASValue
-evalExpression dict expr =
+evalExpression :: Map ASLocation ASValue -> ASExpression -> ASLocation -> Handler ASValue
+evalExpression dict expr loc =
   case expr of
-    Expression _ _ -> evalCode dict expr
-    Reference _ _ -> evalRef dict expr
+    Expression _ _ -> evalCode dict expr loc 
+    Reference _ _ -> evalRef dict expr loc 
 
 
-evalCode :: Map ASLocation ASValue -> ASExpression -> Handler ASValue
-evalCode values xp = do
+evalCode :: Map ASLocation ASValue -> ASExpression -> ASLocation -> Handler ASValue
+evalCode values xp loc = do
 		$(logInfo) $ "EVAL RECEIVES XP: " ++ (fromString . show $ expression xp)
 		$(logInfo) $ "EVAL FINAL XP: " ++ (fromString . show $ finalXp)
 		simpleInterpolated <- interpolateFile lang finalXp
@@ -35,7 +35,7 @@ evalCode values xp = do
 					rng 			= P.head $ getExcelMatches finalXp
 					rangeVals 		= replaceSubstrings expandedLists matches
 					expandedLists 	= excelRangesToLists SQL rng
-					matches 		= map (\(a, b) -> (toExcel a, showFilteredValue SQL a b)) (M.toList values)
+					matches 		= map (\(a, b) -> (toExcel a, showFilteredValue SQL b)) (M.toList values)
 			otherwise -> simpleInterpolated
 		writeExecFile lang interpolated
 		$(logInfo) $ "EVAL EXECUTING: " ++ (fromString $ show interpolated)
@@ -44,10 +44,11 @@ evalCode values xp = do
 		return $ parseValue lang result
 	where
 		lang 	= language xp
-		finalXp = interpolate values xp
+		finalXp = interpolate values xp loc
 
-evalRef :: Map ASLocation ASValue -> ASExpression -> Handler ASValue
-evalRef dict (Reference l (a, b)) = do
+-- TODO: take a closer look later
+evalRef :: Map ASLocation ASValue -> ASExpression -> ASLocation ->  Handler ASValue
+evalRef dict (Reference l (a, b)) loc = do
   $(logInfo) $ (fromString $ "EVALREF: "++show dict ++ "select " ++ show (a, b))
   return $ row L.!! a
     where
@@ -81,8 +82,6 @@ eval s = do
 			"" -> sErr
 			otherwise -> sOutput
 
-
--- Expression ASLanguage String
 
 
 

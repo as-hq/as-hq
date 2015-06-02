@@ -58,15 +58,15 @@ lastN n xs = let m = length xs in drop (m-n) xs
 
 decomposeLocs :: ASLocation -> [ASLocation]
 decomposeLocs loc = case loc of 
-  (Index a) -> [loc]
-  (Range (ul, lr)) -> [Index (x,y) | x <- [(fst ul)..(fst lr)], y <- [(snd ul)..(snd lr)] ]
+  (Index sheet a) -> [loc]
+  (Range sheet (ul, lr)) -> [Index sheet (x,y) | x <- [(fst ul)..(fst lr)], y <- [(snd ul)..(snd lr)] ]
 
 normalizeRanges :: [ASLocation] -> [ASLocation] 
 normalizeRanges locs = do
   loc <- locs
   case loc of
-    Range (p1, p2) -> decomposeLocs loc
-    Index _        -> return loc
+    Range sheet (p1, p2) -> decomposeLocs loc
+    Index _  _      -> return loc
 
 rangeDiff :: ((Int, Int), (Int, Int)) -> (Int, Int)
 rangeDiff (a,b) = (fst b - fst a + 1, snd b - snd a + 1)

@@ -6,6 +6,9 @@ import AS.Parsing.Out
 import Import hiding (index)
 import Prelude (read, show, (!!))
 
+-----------------------------------------------------------------------------------------------------------------------------------
+-- Conversion to and from AS Types and DB types
+
 fromDBCell :: ASCellDB -> ASCell
 fromDBCell (ASCellDB locationString expressionString valueString) =
 	Cell (read locationString :: ASLocation) (read expressionString :: ASExpression) (read valueString :: ASValue)
@@ -19,6 +22,9 @@ fromDBRelation (RelationDB firstEndpoint secondEndpoint) = (read firstEndpoint :
 
 toDBRelation :: (ASLocation, ASLocation) -> RelationDB
 toDBRelation (x, y) = RelationDB (show x) (show y)
+
+-----------------------------------------------------------------------------------------------------------------------------------
+-- Get and set cell methods (batched)
 
 getCell :: ASLocation -> Handler (Maybe ASCell)
 getCell loc = do
@@ -41,14 +47,13 @@ setCell cell = setCells [cell]
 setCells :: [ASCell] -> Handler ()
 setCells cells = do
     let rngCells = filter (\cell -> case (cellLocation cell) of 
-                            (Range a) -> True
+                            (Range sheet a) -> True
                             otherwise -> False) cells
     let locs = (map cellLocation cells) ++ concat (map (decomposeLocs . cellLocation) rngCells)
     runDB $ deleteWhere [ASCellDBLocationString <-. (map show locs)]
     insertCells cells
     setRangeCells rngCells
 
--- internal use only
 setRangeCells :: [ASCell] -> Handler ()
 setRangeCells cells = do
 	let locs = map (\cell -> zip3 (repeat $ language . cellExpression $ cell) (decomposeLocs $ cellLocation cell) [0..]) cells
@@ -65,19 +70,21 @@ setRangeCells cells = do
 trd :: (a,b,c) -> c
 trd (a,b,c) = c
 
--- internal use only
 insertCells :: [ASCell] -> Handler ()
 insertCells cells = do
 	runDB $ insertMany_ $ (map toDBCell cells)
 	return ()
 
 deleteCell :: ASLocation -> Handler ()
-deleteCell loc@(Index _) = do
+deleteCell loc@(Index _ _) = do
 	cells <- runDB $ selectList [ASCellDBLocationString ==. show loc] []
 	case cells of
 		[] -> return ()
 		((Entity cellDBId cellDB):cs) -> (runDB $ delete cellDBId) >> return ()
-deleteCell loc@(Range _) = mapM_ deleteCell $ decomposeLocs loc
+deleteCell loc@(Range _ _) = mapM_ deleteCell $ decomposeLocs loc
+
+-----------------------------------------------------------------------------------------------------------------------------------
+-- Inserting/updating/deleting relations (edges) in the DAG
 
 dbInsertSingleRelation :: (ASLocation, ASLocation) -> Handler ()
 dbInsertSingleRelation rel = (runDB . insert . toDBRelation $ rel) >> return ()
@@ -88,13 +95,10 @@ dbInsertRelation = mapM_ dbInsertSingleRelation
 dbDeleteLocationDependencies :: ASLocation -> Handler ()
 dbDeleteLocationDependencies loc = runDB $ deleteWhere [RelationDBFirstEndpoint ==. (show loc)]
 
---TODO: also delete dependencies with expressions that are references
-
 dbUpdateLocationDependencies :: (ASLocation, [ASLocation]) -> Handler ()
 dbUpdateLocationDependencies (loc, deps) =
   dbDeleteLocationDependencies loc >> dbInsertRelation (zip (repeat loc) deps)
 
--- ADDED FOR RANGES - should be optimized
 dbUpdateLocationDepsBatch :: [(ASLocation,[ASLocation])] -> Handler ()
 dbUpdateLocationDepsBatch depList = do 
 	let locs = map fst depList
@@ -112,20 +116,8 @@ dbGetDAG = do
   let edges = [ foundEdge | (Entity foundEdgeId foundEdge) <- dag ]
   return $ map fromDBRelation edges
 
--- deleteDependency :: ASRelation -> Handler ()
-
--- getDependency :: ASCell -> ASCell -> ASRelation
-
--- putDAG :: [(ASCell, ASCell)] -> Handler ()
--- putDAG [] = Nothing
--- putDAG dag = do 
--- 	mapM_ (\edge -> runDB . insert . (show . cellLocation . fst $ edge, show . cellLocation . snd $ edge)) dag
-
--- getDAG :: Handler [(ASLocation, ASLocation)]
--- getDAG = do
--- 	dag <- runDB $ selectList [] []
--- 	let edges = [foundEdge | (Entity foundEdgeId foundEdge) <- dag]
--- 	return $ map (\edge -> (read . fst $ edge :: ASLocation, read . snd $ edge :: ASLocation)) edges
+-----------------------------------------------------------------------------------------------------------------------------------
+-- Convenience functions
 
 setFunc :: ASFunc -> Handler ()
 setFunc func = do

@@ -108,16 +108,16 @@ interpolateFile lang execCmd = do
 
 	return $ layoutCodeFile lang (importCmds, template, editedCmd)
 
-interpolate :: Map ASLocation ASValue -> ASExpression -> String
-interpolate values xp = execCmd
+interpolate :: Map ASLocation ASValue -> ASExpression -> ASLocation -> String
+interpolate values xp loc = execCmd
 	where
 		execCmd			= case lang of 
 			SQL 		-> expression xp
-			otherwise 	-> replaceSubstrings expandedLists matches
-		expandedLists 	= case lang of 
-			Python 		-> excelRangesToIterables lang $ expression xp
-			otherwise 	-> excelRangesToLists lang $ expression xp
-		matches 		= map (\(a, b) -> (toExcel a, showFilteredValue lang a b)) (M.toList values)
+			otherwise 	-> replaceSubstrings expandedLists replaceWith
+		expandedLists 	= excelRangesToLists lang $ expression xp
+		replaceWith     = map (\str -> (str, showFilteredValue lang (values M.! stringToLocation str))) matches
+		stringToLocation s  = (fromExcelRelativeLoc (sheet loc) s 0 0) !! 0 
+		matches 		= getMatches xp
 		lang 			= language xp
 
 insertPrintCmd :: ASLanguage -> (String, String) -> String

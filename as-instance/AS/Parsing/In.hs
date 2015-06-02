@@ -106,8 +106,14 @@ extractValue m
   | M.member "displayValue" m = extractDisplayValue m
   | M.member "imagePath" m    = extractImageValue m
   | M.member "stockPrices" m  = extractStockChart m
+  | M.member "excelLocs"   m  = extractExcel m 
   | otherwise = extractObjectValue m
   where
+    extractExcel mm       = ExcelSheet l e v
+      where
+        l           = m M.! "excelLocs"
+        e           = m M.! "excelExprs"
+        v           = m M.! "excelVals"
     extractStyledValue mm = StyledValue s v
       where
         ValueS s    = m M.! "style"

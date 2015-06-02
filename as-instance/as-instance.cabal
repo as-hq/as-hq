@@ -105,6 +105,7 @@ library
                  , regex-posix
                  , process
                  , filepath
+                 , aeson
 
 executable         as-instance
     if flag(library-only)
@@ -116,7 +117,7 @@ executable         as-instance
 
     ghc-options:       -threaded -O2 -rtsopts -with-rtsopts=-N
 
-test-suite test
+test-suite ASTest
     type:              exitcode-stdio-1.0
     main-is:           Spec.hs
     hs-source-dirs:    test
@@ -154,3 +155,4 @@ test-suite test
                  , classy-prelude-yesod
                  , mongoDB
                  , monad-control
+                 , aeson

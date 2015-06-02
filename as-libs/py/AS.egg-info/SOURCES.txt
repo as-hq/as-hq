@@ -1,5 +1,6 @@
 setup.py
 AS/__init__.py
+AS/errors.py
 AS/iterable.py
 AS/samples.py
 AS/stdlib.py
@@ -14,6 +15,7 @@ AS/data/etf_samples.txt
 AS/data/stock_samples.txt
 AS/datasources/__init__.py
 AS/datasources/bloomberg.py
+AS/datasources/yahoo.py
 AS/functions/__init__.py
 AS/functions/avg.py
 AS/functions/betas.py
@@ -23,9 +25,16 @@ AS/functions/indexMatch.py
 AS/functions/markovitz.py
 AS/instruments/ETF.py
 AS/instruments/ORD.py
+AS/instruments/Stock.py
 AS/instruments/__init__.py
 AS/instruments/etfArb.py
 AS/instruments/etfArb2.py
+AS/pandas/__init__.py
+AS/pandas/input.py
+AS/pandas/output.py
+AS/tests/__init__.py
+AS/tests/main.py
+AS/tests/min.py
 AS/ui/__init__.py
 AS/ui/pivotTable.py
 AS/ui/plot.py
