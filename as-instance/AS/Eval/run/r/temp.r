@@ -26,7 +26,7 @@ isError = FALSE
 result = tryCatch({
 
 
--0.155315760460321
+c(A1,A2,A3,A4)
 }, warning = function(w) {
 	# nothing here
 }, error = function(e) {

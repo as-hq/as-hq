@@ -107,6 +107,7 @@ extractValue m
   | M.member "imagePath" m    = extractImageValue m
   | M.member "stockPrices" m  = extractStockChart m
   | M.member "excelLocs"   m  = extractExcel m 
+  | M.member "rickshawData" m = extractRick m 
   | otherwise = extractObjectValue m
   where
     extractExcel mm       = ExcelSheet l e v
@@ -135,6 +136,9 @@ extractValue m
       where
         prices      = m M.! "stockPrices"
         ValueS name = m M.! "stockName"
+    extractRick mm = Rickshaw d
+      where
+        d           = m M.! "rickshawData"
     extractError mm      = ValueError err typ file (floor pos)
       where
         ValueS err         = m M.! "error"

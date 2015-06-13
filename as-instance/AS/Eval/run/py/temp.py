@@ -13,7 +13,7 @@ import traceback
 try:
 	
 	
-	print(repr(33.0))
+	print(repr(plot([1,2],[3,4],"test")))
 except Exception as e: 
 	exc_type, exc_obj, exc_tb = sys.exc_info()
 	fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]

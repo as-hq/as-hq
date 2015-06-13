@@ -18,6 +18,7 @@ data ASValue =
   ValueB Bool |
   ValueL [ASValue] |
   ExcelSheet { locs :: ASValue, exprs :: ASValue, vals :: ASValue} |
+  Rickshaw {rickshawData :: ASValue} |
   ValueError { error :: String, err_type :: String, file :: String, position :: Int } | 
   ValueImage { imagePath :: String } |
   StockChart { stockPrices :: ASValue, stockName :: String } |
@@ -26,6 +27,7 @@ data ASValue =
   DisplayValue { displayValue :: String, actualValue :: ASValue }
   deriving (Show, Read, Eq, Generic)
   -- excel: locs=[[Int]], exprs = [String], loc = [ASValue]
+
 
 lst :: ASValue -> [ASValue]
 lst (ValueL l) = l
@@ -38,6 +40,7 @@ str v = []
 dbl :: ASValue -> Double
 dbl (ValueD d) = d
 dbl v = 0
+
 
 data ASLanguage = R | Python | OCaml | SQL deriving (Show, Read, Eq, Generic)
 

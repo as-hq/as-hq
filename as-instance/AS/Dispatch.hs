@@ -7,7 +7,7 @@ import qualified AS.Eval    as R (evalExpression)
 import qualified Data.Map   as M
 import qualified AS.DAG     as D
 import qualified AS.DB      as DB
-import qualified Data.List  as DL (head,last,tail) 
+import qualified Data.List  as L (head,last,tail,length) 
 import AS.Parsing.Common
 import AS.Parsing.Out
 import AS.Parsing.In
@@ -20,20 +20,13 @@ propagateCell :: ASLocation -> ASExpression -> Handler (Maybe [ASCell])
 propagateCell loc xp = updateCell (loc, xp) >> reevaluateCell (loc, xp)
 
 updateCell :: (ASLocation, ASExpression) -> Handler ()
-updateCell (loc, xp) = 
-  case loc of
-    Index _ _-> do
-      DB.dbUpdateLocationDependencies (loc, deps) >> (DB.setCell $ Cell loc xp (ValueNaN ()))
-      $(logInfo) $ "(1) updated Index cell"
-      where 
-        deps = normalizeRanges $ fst $ parseDependenciesRelative loc xp 0 0
-    Range sheet ((a,b),(c,d)) ->  do --neglect array formulas for now
-          let deps = [fst (parseDependenciesRelative loc xp rowOff colOff) | rowOff<-[0..c-a], colOff<-[0..d-b]]
-          let exps = [snd (parseDependenciesRelative loc xp rowOff colOff) | rowOff<-[0..c-a], colOff<-[0..d-b]]
-          $(logInfo) $ "range exps: " ++ (fromString $ show exps)
-          let locs = [Index sheet (row,col) | row <-[a..c], col<-[b..d]]
-          DB.dbUpdateLocationDepsBatch (zip locs deps) >> DB.setCells [Cell (locs!!i) (exps!!i) (ValueNaN ()) | i<-[0..(c-a+1)*(d-b+1)-1]] 
-          $(logInfo) $ "(1) updated Range cell"
+updateCell (loc, xp) = do
+  let offsets = getOffsets loc
+  let (deps,exprs) = getDependenciesAndExpressions loc xp offsets
+  let locs = decomposeLocs loc
+  DB.dbUpdateLocationDepsBatch (zip locs deps)
+  DB.setCells [Cell (locs!!i) (exprs!!i) (ValueNaN ()) | i<-[0..L.length(exprs)-1]] 
+  $(logInfo) $ "updated cell"
 
 reevaluateCell :: (ASLocation, ASExpression) -> Handler (Maybe [ASCell])
 reevaluateCell (loc, xp) = do
@@ -52,7 +45,7 @@ evalCells locs = do
   cells <- DB.getCells ancestors
   locsCells <- DB.getCells locs
   $(logInfo) $ "got cells: " ++ (fromString $ show cells)
-  if any isNothing cells
+  if any isNothing cells -- needed to ensure correct order
     then return Nothing
     else do
       let filterCells = map (\(Just x) -> x) cells
@@ -67,8 +60,19 @@ evalChain mp (c:cs) = do
   let xp  = cellExpression c
       loc = cellLocation c
   $(logInfo) $ "EVALPY EXPRESSION: " ++ (fromString $ (expression xp))
-  cv <- R.evalExpression mp xp loc -- eval expression needs to know current sheet
-  additionalCells <- case loc of
+  cv <- R.evalExpression loc mp xp -- eval expression needs to know current sheet
+  $(logInfo) $ "Parsing returns: " ++ (fromString $ show cv)
+  otherCells <- additionalCells loc cv 
+  let newMp = M.insert (cellLocation c) cv mp
+  rest <- evalChain newMp cs
+  ret <- case cv of 
+    ExcelSheet l e v -> return $ otherCells ++ rest -- don't include the cell itself for excel sheet loading
+    otherwise -> return $ [Cell loc (cellExpression c) cv] ++ otherCells ++ rest 
+  return ret
+
+additionalCells :: ASLocation -> ASValue -> Handler [ASCell]
+additionalCells loc cv = do
+  listCells <- case loc of
     Index sheet (a, b) -> case cv of
       ValueL lst -> createListCells (Index sheet (a, b)) lst
       otherwise -> return [] 
@@ -76,26 +80,20 @@ evalChain mp (c:cs) = do
   excelCells <- case cv of 
     ExcelSheet l e v-> createExcelCells cv loc
     otherwise -> return []
-  $(logInfo) $ "Parsing returns: " ++ (fromString $ show cv)
-  let newMp = M.insert (cellLocation c) cv mp
-  rest <- evalChain newMp cs
-  ret <- case cv of 
-    ExcelSheet l e v -> return $ additionalCells ++ excelCells ++ rest 
-    otherwise -> return $ [Cell loc (cellExpression c) cv] ++ additionalCells ++ excelCells ++ rest 
-  return ret
+  return $ listCells ++ excelCells
 
--- way too much non-batching?
+-- TODO: batch more. There should be NO setcells, and only one dbUpdate deps
 createListCells :: ASLocation -> [ASValue] -> Handler [ASCell]
 createListCells (Index sheet (a, b)) [] = return []
 createListCells (Index sheet (a, b)) (x:xs) =
   case x of
     ValueL lst ->
       do
-        cellTriples <- mapM process $ DL.tail matchedFirstRow
+        cellTriples <- mapM process $ L.tail matchedFirstRow
         let cells = map (\(cell,_,_)->cell) cellTriples
         DB.setCells cells
         DB.dbUpdateLocationDepsBatch $ map (\(_, loc, origLoc) -> (loc, [origLoc])) cellTriples
-        listCellTriplesUnflat <- mapM processList $ DL.tail matched
+        listCellTriplesUnflat <- mapM processList $ L.tail matched
         let listCellTriples = concat listCellTriplesUnflat
         let listCells = map(\(cell,_,_)->cell) listCellTriples
         DB.setCells listCells
@@ -106,7 +104,7 @@ createListCells (Index sheet (a, b)) (x:xs) =
         matchedFirstRow = zip [(a + i, b) | i <- [0..numCols-1]] lst
         processList ((col, row), ValueL val) = mapM process $ zip [(col + i, row) | i <- [0..numCols-1]] val
     otherwise -> do
-      result <- mapM process $ DL.tail matched
+      result <- mapM process $ L.tail matched
       $(logInfo) $ "created list cell on otherwise"
       return $ map (\(cell,_,_)->cell) result
   where

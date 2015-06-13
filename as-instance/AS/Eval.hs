@@ -15,52 +15,49 @@ import AS.Parsing.Common
 import System.IO                                       
 import System.Process   
 
--- file interpolation -- (see Lang for definitions)
+-----------------------------------------------------------------------------------------------------------------------
+-- File Interpolation (see Lang for details)
 
-evalExpression :: Map ASLocation ASValue -> ASExpression -> ASLocation -> Handler ASValue
-evalExpression dict expr loc =
+evalExpression :: ASLocation -> Map ASLocation ASValue -> ASExpression -> Handler ASValue
+evalExpression loc dict expr =
   case expr of
-    Expression _ _ -> evalCode dict expr loc 
-    Reference _ _ -> evalRef dict expr loc 
+    Expression _ _ -> evalCode loc dict expr  
+    Reference _ _ -> evalRef loc dict expr  
+
+evalCode :: ASLocation -> Map ASLocation ASValue -> ASExpression -> Handler ASValue
+evalCode loc values xp = do
+	let lang = language xp
+	let finalXp = interpolate loc values xp -- eval string
+
+	$(logInfo) $ "EVAL RECEIVES XP: " ++ (fromString . show $ expression xp)
+	$(logInfo) $ "EVAL FINAL XP: " ++ (fromString . show $ finalXp)
+
+	simpleInterpolated <- interpolateFile lang finalXp
+	let interpolated = simpleInterpolated -- TODO: deal with SQL 
+	writeExecFile lang interpolated
+
+	$(logInfo) $ "EVAL EXECUTING: " ++ (fromString $ show interpolated)
+	result <- runFile lang
+	$(logInfo) $ "EVAL RETURNS: " ++ (fromString result)
+	return $ parseValue lang result
 
 
-evalCode :: Map ASLocation ASValue -> ASExpression -> ASLocation -> Handler ASValue
-evalCode values xp loc = do
-		$(logInfo) $ "EVAL RECEIVES XP: " ++ (fromString . show $ expression xp)
-		$(logInfo) $ "EVAL FINAL XP: " ++ (fromString . show $ finalXp)
-		simpleInterpolated <- interpolateFile lang finalXp
-		let interpolated = case lang of 
-			SQL -> formatSqlQuery simpleInterpolated (finalXp, rng, rangeVals)
-				where 
-					rng 			= P.head $ getExcelMatches finalXp
-					rangeVals 		= replaceSubstrings expandedLists matches
-					expandedLists 	= excelRangesToLists SQL rng
-					matches 		= map (\(a, b) -> (toExcel a, showFilteredValue SQL b)) (M.toList values)
-			otherwise -> simpleInterpolated
-		writeExecFile lang interpolated
-		$(logInfo) $ "EVAL EXECUTING: " ++ (fromString $ show interpolated)
-		result <- runFile lang
-		$(logInfo) $ "EVAL RETURNS: " ++ (fromString result)
-		return $ parseValue lang result
-	where
-		lang 	= language xp
-		finalXp = interpolate values xp loc
-
--- TODO: take a closer look later
-evalRef :: Map ASLocation ASValue -> ASExpression -> ASLocation ->  Handler ASValue
-evalRef dict (Reference l (a, b)) loc = do
-  $(logInfo) $ (fromString $ "EVALREF: "++show dict ++ "select " ++ show (a, b))
+evalRef :: ASLocation -> Map ASLocation ASValue -> ASExpression ->  Handler ASValue
+evalRef loc dict (Reference l (a, b)) = do
+  $(logInfo) $ (fromString $ "evalref: "++ show dict ++ "select " ++ show (a, b))
   return $ row L.!! a
     where
       ValueL row = lst L.!! b
       ValueL lst = dict M.! l
 
--- file manipulation ------
+-----------------------------------------------------------------------------------------------------------------------
+-- File Manipulation
 
 writeExecFile :: ASLanguage -> String -> Handler ()
 writeExecFile lang contents = liftIO $ writeFile ((getRunFile lang) :: System.IO.FilePath) contents
 
--- evaluation in process ------
+-----------------------------------------------------------------------------------------------------------------------
+-- Evaluation in progress
 
 runFile :: ASLanguage -> Handler String
 runFile lang = do

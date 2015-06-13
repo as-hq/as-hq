@@ -93,32 +93,41 @@ addCompileCmd lang cmd = case lang of
 			path = getEvalPath ++ "ocaml/"
 	otherwise -> cmd
 
-
 interpolateFile :: ASLanguage -> String -> Handler String
 interpolateFile lang execCmd = do
 	functions <- getFuncs lang
 	let (cleanCmd, imports) = replaceAliases execCmd functions
 	$(logInfo) $ "EVAL REPLACED XP: " ++ (fromString . show $ cleanCmd)
-
 	let editedCmd = insertPrintCmd lang $ splitLastCmd lang cleanCmd
 	let importCmds = unlines . map (importFile lang) $ imports
 	template <- getTemplate lang
+
 	$(logInfo) $ "EVAL EDITED XP: " ++ (fromString $ show editedCmd)
 	$(logInfo) $ "EVAL USING TEMPLATE: " ++ (fromString $ show template)
-
 	return $ layoutCodeFile lang (importCmds, template, editedCmd)
 
-interpolate :: Map ASLocation ASValue -> ASExpression -> ASLocation -> String
-interpolate values xp loc = execCmd
+
+-- Helper function for interpolate
+lookupString :: ASLanguage -> Map ASLocation ASValue -> ASLocation -> String
+lookupString lang mp loc = modifiedStr
 	where
-		execCmd			= case lang of 
-			SQL 		-> expression xp
-			otherwise 	-> replaceSubstrings expandedLists replaceWith
-		expandedLists 	= excelRangesToLists lang $ expression xp
-		replaceWith     = map (\str -> (str, showFilteredValue lang (values M.! stringToLocation str))) matches
-		stringToLocation s  = (fromExcelRelativeLoc (sheet loc) s 0 0) !! 0 
-		matches 		= getMatches xp
-		lang 			= language xp
+		vals = map (mp M.!) (decomposeLocs loc)
+		strList = map (showFilteredValue lang) vals
+		str = case loc of 
+			Range _ _ -> toListStr lang strList -- intercalate with the correct delimiter, c() or [,] etc.
+			otherwise -> L.head strList
+		modifiedStr = case loc of
+			Range _ _ -> modifiedLists lang str -- add arr() for python/numpy etc. 
+			otherwise -> str 
+
+interpolate :: ASLocation -> Map ASLocation ASValue -> ASExpression -> String
+interpolate loc values xp = evalString
+	where
+		origString = expression xp
+		lang = language xp 
+		exLocToStringEval = (lookupString lang values) . (exLocToASLocation loc) -- ExLoc -> String
+		evalString = replaceMatches (getMatchesWithContext origString excelMatch) exLocToStringEval origString
+
 
 insertPrintCmd :: ASLanguage -> (String, String) -> String
 insertPrintCmd lang (s, lst) = s ++ process lst 

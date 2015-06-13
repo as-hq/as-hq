@@ -1,6 +1,6 @@
 module AS.Parsing.Out where
 
-import Import hiding ((<|>))
+import Import hiding ((<|>), try, index)
 import qualified Prelude as P
 import Prelude ((!!), read)
 import AS.Types as Ty
@@ -8,7 +8,7 @@ import AS.Parsing.Common
 import Text.Regex.Posix
 import Data.List (elemIndex)
 import Data.Maybe
-import Data.Char
+import Data.Char as C
 import qualified Data.Text as T
 import qualified Data.List as L
 import Text.Parsec
@@ -25,6 +25,11 @@ toListStr lang lst  = end ++ (intercalate delim lst) ++ start
       Python-> ("[", ",", "]")
       OCaml -> ("[", ";", "]")
       SQL   -> ("[", ",", "]")
+
+modifiedLists :: ASLanguage -> String -> String 
+modifiedLists lang str = case lang of
+  Python -> "arr(" ++ str ++ ")"
+  otherwise -> str
 
 getBlockDelim :: ASLanguage -> String
 getBlockDelim lang = case lang of 
@@ -68,138 +73,199 @@ showFilteredValue lang (ValueL l) = showFilteredValue lang (headOrNull l)
     headOrNull (x:xs) = x
 showFilteredValue lang v = showValue lang v
 
+-------------------------------------------------------------------------------------------------------------------------------------------------
+-- General parsing functions
 
--- excel -----------------------------------------
+-- P.parse (parseNext P.digit) "" "abc123"
+-- Right ("abc",'1')
+parseNext :: Parser t -> Parser (String, t)
+parseNext a = do 
+  r1 <- manyTill anyChar (lookAhead $ try a) -- need the try, otherwise it won't work
+  r2 <- a -- result of parser a 
+  return (r1,r2)
 
--- regexStr = "([A-Z]+[0-9]+:[A-Z]+[0-9]+)"
--- regexStrIdx = "([A-Z]+[0-9]+)"
-regexStrDollars = "(\\${0,1}+[A-Z]+\\${0,1}+[0-9]+:+\\${0,1}+[A-Z]+\\${0,1}+[0-9]+)"
-regexStrDollarsIdx = "\\${0,1}+[A-Z]+\\${0,1}++[0-9]+"
-regexStrSheet  ="[A-Za-z0-9_-]+\\!{0,1}"++regexStrDollars -- letters, numbers, dashes, underscores allowed in sheet name
-regexStrSheetIdx = "[A-Za-z0-9_-]+\\!{0,1}"++regexStrDollarsIdx
+-- P.parse (parseMatches (P.string "12")) "" "1212ab12"
+-- Right ["12","12","12"]
+parseMatches :: Parser t -> Parser [t]
+parseMatches a = many $ do
+  (inter, next) <- try $ parseNext a --consumes input if it succeeds
+  return next
 
+-- P.parse (parseMatchesWithContext (P.string "12")) "" "1212ab12"
+-- Right (["","","ab",""],["12","12","12"]) (alternating gives back str)
+parseMatchesWithContext :: Parser t -> Parser ([String],[t])
+parseMatchesWithContext a = do 
+  matchesWithContext <- many $ try $ parseNext a 
+  rest <- many anyChar
+  let inter = (map fst matchesWithContext) ++ [rest]
+      matches = (map snd matchesWithContext)
+  return (inter,matches)
 
--- takes in an ASExpression Range, row/col offset, parses expression, and gives list of parseDependencies, as well as new asexpression
--- parseDependencies = fst $ parseDependenciesRelative loc 0 0 
-parseDependenciesRelative:: ASLocation -> ASExpression -> Int -> Int -> ([ASLocation],ASExpression)
-parseDependenciesRelative loc xp rowOff colOff = (concat $ map (\m -> fromExcelRelativeLoc (sheet loc) m rowOff colOff) matches, newExp)
+getMatchesWithContext :: String -> Parser t -> ([String],[t])
+getMatchesWithContext target p = fromRight . (parse (parseMatchesWithContext p) "" ) . T.pack $ target
   where 
-    matches = getMatches xp
-    lang = language xp
-    xp' = replaceSubstrings (expression xp) (zip matches (map (\m -> fromExcelRelativeString m rowOff colOff) matches ))
-    newExp = Expression xp' lang
+    fromRight (Right x) = x 
 
-getMatches :: ASExpression -> [String]
-getMatches xp = matches
+-- does no work with Parsec/actual parsing
+replaceMatches :: ([String],[t]) -> (t -> String) -> String -> String
+replaceMatches (inter,matches) f target = blend inter matchReplacings
   where
-    sheetRangeMatches = deleteEmpty $ regexList (expression xp) regexStrSheet
-    sheetIdxMatches = deleteEmpty $ regexList noSheetRangeExpr regexStrSheetIdx
-      where 
-        noSheetRangeExpr = replaceSubstrings (expression xp) (zip sheetRangeMatches (repeat ""))
-    noSheets = replaceSubstrings (expression xp) (zip (sheetRangeMatches ++ sheetIdxMatches) (repeat ""))
-    rangeMatches = deleteEmpty $ regexList noSheets regexStrDollars
-    cellMatches = deleteEmpty $ regexList noRangeExpr regexStrDollarsIdx
+    blend [x] _ = x
+    blend (x:xs) (y:ys) = x ++  y ++ blend xs ys
+    matchReplacings = map f matches
+-------------------------------------------------------------------------------------------------------------------------------------------------
+-- Type for parsing Excel Locations
+
+data ExLoc = ExSheet {name :: String, sheetLoc :: ExLoc} |
+             ExRange {first :: ExLoc, second :: ExLoc}     |
+             ExIndex {d1 :: String, col :: String, d2 :: String, row :: String} deriving (Show,Read,Eq,Ord)
+             -- d1,d2 = "" or "$"
+
+exLocToString :: ExLoc -> String
+exLocToString exLoc = case exLoc of
+  ExSheet sheet rest -> sheet ++ "!" ++ (exLocToString rest)
+  ExRange first second -> (exLocToString first) ++ ":" ++ (exLocToString second)
+  ExIndex dol1 c dol2 r -> dol1 ++ c ++ dol2 ++ r
+
+-- excel location to list of as indexes
+exLocToASLocation :: ASLocation -> ExLoc -> ASLocation
+exLocToASLocation loc exLoc = case exLoc of 
+  ExSheet sh rest -> case (exLocToASLocation loc rest) of 
+    Range _ a -> Range sh a
+    Index _ a -> Index sh a
+  ExRange f s -> Range (sheet loc) (index (exLocToASLocation loc f),index (exLocToASLocation loc s))
+  ExIndex dol1 c dol2 r -> Index (sheet loc) (colStrToInt c, read r :: Int)
+-------------------------------------------------------------------------------------------------------------------------------------------------
+-- Parsers to match special excel characters
+
+dollar :: Parser String
+dollar = string "$" <|> string "" -- returns $ or ""; $ is not required for index
+
+colon :: Parser String
+colon = string ":" -- this character is necessary for range
+
+exc :: Parser String
+exc = string "!" -- required for sheet access
+
+-------------------------------------------------------------------------------------------------------------------------------------------------
+-- Parsers to match excel locations in strings
+
+-- matches a valid sheet name
+sheetName :: Parser String
+sheetName = many1 $ letter <|> digit <|> char '-' <|> char '_' <|> space
+
+-- matches $AB15 type things
+indexMatch :: Parser ExLoc
+indexMatch = do
+  a <- dollar
+  col <- many1 letter 
+  b <- dollar
+  row <- many1 digit
+  return $ ExIndex a col b row
+
+-- matches index:index
+rangeMatch :: Parser ExLoc
+rangeMatch = do 
+  topLeft <- indexMatch 
+  colon
+  bottomRight <- indexMatch
+  return $ ExRange topLeft bottomRight
+
+-- matches sheet reference; Sheet1!$A$11
+sheetRefMatch :: Parser ExLoc
+sheetRefMatch = do 
+  name <- sheetName 
+  exc
+  loc <- (try rangeMatch) <|> indexMatch -- order matters
+  return $ ExSheet name loc
+
+excelMatch :: Parser ExLoc
+excelMatch = (try sheetRefMatch) <|> (try rangeMatch) <|> indexMatch 
+------------------------------------------------------------------------------------------------------------------------------------------------
+-- Helper Functions
+
+-- "AA" -> 27
+colStrToInt :: String -> Int
+colStrToInt "" = 0
+colStrToInt (c:cs) = 26^(length(cs)) * coef + colStrToInt cs
+  where
+    coef = fromJust ( elemIndex (C.toUpper c) ['A'..'Z'] ) + 1
+
+-- 27 -> "AA",  218332954 ->"RITESH"
+intToColStr :: Int -> String
+intToColStr x
+  | x <= 26 = [['A'..'Z'] !! (x-1)]
+  | otherwise = intToColStr d ++ [['A'..'Z'] !! m]
       where
-        noRangeExpr = replaceSubstrings noSheets (zip rangeMatches (repeat ""))  
-    matches = rangeMatches ++ cellMatches ++ sheetRangeMatches ++ sheetIdxMatches
+        m = (x-1) `mod` 26
+        d = (x-1) `div` 26
 
--- only works for A-Z, needs changing
-fromExcelRelativeString :: String -> Int -> Int -> String
-fromExcelRelativeString str row col 
-  | elem '!' str =  (fst (spt str "!")) ++ "!" ++ (fromExcelRelativeString (snd (spt str "!")) row col)
-  | elem ':' str =  (fromExcelRelativeString (fst (spt str ":")) row col) ++ ":" ++ (fromExcelRelativeString (snd (spt str ":")) row col)
-  | otherwise = func str row col
-    where  
-      func ('$':letter:'$':num) row col = str --letter:num 
-      func ('$':letter:num) row col = '$':(letter:(show ((P.read num::Int)+col))) 
-      func (letter:'$':num:"") row col = (['A'..'Z']!!((toDigit letter)+row-1)):("$"++(num:""))  
-      func (letter:num) row col = (['A'..'Z']!!((toDigit letter)+row-1)):(show ((P.read num::Int)+col))
-      
--- splits a string at a character; assumes that only one instance of character
-spt :: String -> String -> (String,String)
-spt str char = (P.head split, P.last split)
-  where 
-    split = map T.unpack $ T.splitOn (T.pack char) (T.pack str) 
+-- used in DB Ranges
+indexToExcel :: (Int,Int) -> String
+indexToExcel (c,r) = (intToColStr c) ++ (show r)
 
--- ignore sheet name parameter if Sheet1!A1, otherwise, include it
--- takes in string ("$A$1", "A2:A5"), offset row, offset col, and gives a list of the correct ASLocations that they correspond to (relative references)
-fromExcelRelativeLoc :: String -> String -> Int -> Int -> [ASLocation]
-fromExcelRelativeLoc sheet str row col 
-  | elem '!' str = fromExcelRelativeLoc sheetName (snd (spt str "!")) row col 
-  | elem ':' str = decomposeLocs $ Range sheet (first,second)
-  | otherwise = [func str row col] 
-    where 
-      func ('$':letter:'$':num) row col = Index sheet ((toDigit letter),(P.read num::Int))
-      func ('$':letter:num) row col = Index sheet ((toDigit letter),(P.read num::Int)+col)
-      func (letter:'$':num) row col = Index sheet ((toDigit letter)+row,(P.read num::Int))
-      func (letter:num) row col = Index sheet ((toDigit letter)+row,(P.read num::Int)+col)
-      first = Ty.index ((fromExcelRelativeLoc sheet (fst (spt str ":")) row col)!!0)
-      second = Ty.index ((fromExcelRelativeLoc sheet (snd (spt str ":")) row col)!!0)
-      sheetName = fst (spt str "!")
-
--- depracated, used for sql?
-toExcel :: ASLocation -> String
-toExcel loc = case loc of 
-  (Index sheet a) -> indexToExcel a
-  (Range sheet a) -> (indexToExcel (fst a)) ++ ":" ++ (indexToExcel (snd a))
-
-indexToExcel :: (Int, Int) -> String
-indexToExcel idx = (['A'..'Z'] !! ((fst idx) - 1)):(show (snd idx))
-
-excelToIndex :: String -> (Int, Int)
-excelToIndex str = (toDigit (P.head str), P.read (P.tail str) :: Int)
-
--- THIS NEEDS TO EVENTUALLY CHANGE TO SUPPORT AA,AB etc, also true in other places
-toDigit :: Char -> Int
-toDigit x = fromJust (elemIndex x ['A'..'Z']) + 1
-
-
--- replaces any occurrences of A2:B4 with A2, keeps dollar signs
-topLeft :: String-> String
-topLeft str = tlString
-  where 
-    rangeMatches = deleteEmpty $ regexList str regexStrDollars
-    tlString = replaceSubstrings str (zip rangeMatches (map tlFunc rangeMatches))
-      where
-        tlFunc m 
-          |elem ':' m = first --this is the only case that will be used
-          |otherwise = m
-            where 
-              spt = map unpack $ T.splitOn (pack ":") (pack m) 
-              first = P.head spt
-
-excelRngToIdxs :: ASLanguage -> String -> String
-excelRngToIdxs lang rng
-  | x1 /= x2 = toListStr lang $ map toListStr' [[x:(show y) | x<-[x1..x2]] | y<-[y1..y2]] 
-  | otherwise = toListStr' [x:(show y) | x<-[x1..x2], y<-[y1..y2]]
+-- takes an excel location and an offset, and produces the new excel location (using relative range syntax)
+-- ex. ExIndex $A3 (1,1) -> ExIndex $A4
+-- doesn't do any work with Parsec/actual parsing
+shiftExLoc :: (Int,Int) -> ExLoc -> ExLoc
+shiftExLoc offset exLoc = case exLoc of
+  ExSheet sh rest -> ExSheet sh (shiftExLoc offset rest)
+  ExRange a b -> ExRange (shiftExLoc offset a) (shiftExLoc offset b)
+  ExIndex dol1 c dol2 r -> ExIndex dol1 newCol dol2 newRow
     where
-      spt = map unpack $ T.splitOn (pack ":") (pack rng) 
-      x1 = (P.head (spt !! 0))
-      x2 = (P.head (spt !! 1))
-      y1 = (read (P.tail (spt !! 0))::Int)
-      y2 = (read (P.tail (spt !! 1))::Int)
-      toListStr' = toListStr lang
+      newCol = case dol1 of
+        "$" -> c --fixed
+        ""  -> intToColStr $ (colStrToInt c) + (fst offset) --relative
+      newRow = case dol2 of
+        "$" -> r --fixed
+        ""  -> show $ (read r :: Int) + (snd offset) --relative
 
-excelRangesToLists :: ASLanguage -> String -> String
-excelRangesToLists lang str = replaceSubstrings str (zip toReplace replaceWith)
+shiftExLocs:: (Int,Int) -> [ExLoc] -> [ExLoc]
+shiftExLocs offset exLocs = map (shiftExLoc offset) exLocs
+
+-- return all dependencies for a particular excel location (takes in current location to deal with sheets)
+-- ex. ExIndex A3 just returns [Index A3]
+-- doesn't do any work with Parsec/actual parsing
+dependenciesFromExceLLoc :: ASLocation -> ExLoc -> [ASLocation]
+dependenciesFromExceLLoc loc exLoc = case exLoc of
+  ExSheet sh rest -> [Index sh (index dep) | dep <- dependenciesFromExceLLoc loc rest] --dependency locations are on other sheet
+  ExRange a b -> decomposeLocs $ Range (sheet loc) ((toCol a, toRow a), (toCol b, toRow b)) -- any range has full dependency
+    where
+      toCol = colStrToInt.col
+      toRow = read.row
+  ExIndex dol1 c dol2 r -> [Index (sheet loc) ((colStrToInt c),(read r::Int))]
+
+-------------------------------------------------------------------------------------------------------------------------------------------------
+-- Parse dependencies and replace relative expressions
+
+getDependenciesAndExpressions :: ASLocation -> ASExpression -> [(Int,Int)] -> ([[ASLocation]],[ASExpression])
+getDependenciesAndExpressions loc xp offsets = (newLocs,newExprs)
+  where 
+    origString = expression xp
+    (inter,exLocs) = getMatchesWithContext origString excelMatch -- the only place that Parsec is used
+    newLocs = getDependencies loc exLocs offsets 
+    newStrings = [replaceMatches (inter, shiftExLocs off exLocs) exLocToString origString | off <- offsets]
+    newExprs = map (\str -> Expression str (language xp)) newStrings
+
+-- gets dependencies from a list of excel locs and a list of offsets (there's a [ASLocation] for each offset, in that order)
+-- doesn't use Parsec/actual parsing
+getDependencies :: ASLocation -> [ExLoc] -> [(Int,Int)] -> [[ASLocation]]
+getDependencies loc matches offsets = [depsFromExcelLocs (shiftExLocs off matches) | off <- offsets]
   where
-    toReplace = deleteEmpty $ regexList str regexStrDollars
-    replaceWith = case lang of 
-                    Python -> map ((\x->"arr("++x++")") . excelRngToIdxs lang) toReplace
-                    otherwise -> map (excelRngToIdxs lang) toReplace
+    depsFromExcelLocs m = normalizeRanges $ concat $ map (dependenciesFromExceLLoc loc) m
 
-getExcelMatches :: String -> [String]
-getExcelMatches xp = deleteEmpty $ regexList xp regexStrDollars
+----------------------------------------------------------------------------------------------------------------------------------
+-- Functions for excel sheet loading
 
-unpackExcelLocs :: ASValue -> [(Int,Int)] -- unpackExcelLocs x = [(1,2),(2,2),(1,3),(2,3)]
+unpackExcelLocs :: ASValue -> [(Int,Int)] 
 unpackExcelLocs (ValueL locs) = map (tup.format.lst) locs -- d=[ValueD a, ValueD b]
-    where format= map (floor.dbl) -- format :: [ASValue] -> [Int]
+    where format = map (floor.dbl) -- format :: [ASValue] -> [Int]
           tup = \ints -> (ints!!0, ints!!1) -- tup :: [Int]-> (Int,Int)
 
 unpackExcelExprs :: ASValue -> [String]
-unpackExcelExprs (ValueL lst) = map str lst
+unpackExcelExprs (ValueL l) = map str l
 unpackExcelExprs v = []
 
 unpackExcelVals :: ASValue -> [ASValue]
-unpackExcelVals (ValueL lst) = lst
+unpackExcelVals (ValueL l) = l
 unpackExcelVals v = []

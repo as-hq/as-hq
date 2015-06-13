@@ -68,6 +68,11 @@ normalizeRanges locs = do
     Range sheet (p1, p2) -> decomposeLocs loc
     Index _  _      -> return loc
 
+getOffsets :: ASLocation -> [(Int,Int)]
+getOffsets loc = case loc of 
+    Index _ _ -> [(0,0)]
+    Range _ ((a,b),(c,d)) -> [(x,y)|x<-[0..(c-a)], y<-[0..(d-b)]]
+
 rangeDiff :: ((Int, Int), (Int, Int)) -> (Int, Int)
 rangeDiff (a,b) = (fst b - fst a + 1, snd b - snd a + 1)
 

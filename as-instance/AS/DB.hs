@@ -54,6 +54,7 @@ setCells cells = do
     insertCells cells
     setRangeCells rngCells
 
+--TODO: is this necessary? When is a range going to be in the DB? 
 setRangeCells :: [ASCell] -> Handler ()
 setRangeCells cells = do
 	let locs = map (\cell -> zip3 (repeat $ language . cellExpression $ cell) (decomposeLocs $ cellLocation cell) [0..]) cells
