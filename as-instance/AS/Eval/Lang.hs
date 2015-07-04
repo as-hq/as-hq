@@ -54,15 +54,25 @@ getRunFile lang = getEvalPath ++ case lang of
 	CPP 	-> "cpp/temp.cpp"
 	Java 	-> "java/Temp.java"
 
+getRunReplFile :: ASLanguage -> String
+getRunReplFile lang = getEvalPath ++ case lang of 
+	R 		-> "r/temp_repl.r"
+	Python 	-> "py/temp_repl.py"
+	OCaml 	-> "ocaml/temp_repl.ml"
+	SQL 	-> "sql/temp_repl.py"
 
 getRunnerCmd :: ASLanguage -> String
 getRunnerCmd lang = case lang of 
 	R 		-> "Rscript "
-	Python 	-> "python "
+	Python 	-> "pyrasite --output 'localterm' 9286 "
 	OCaml 	-> "ocamlfind ocamlc -linkpkg -package extlib "
 	SQL  	-> "python "
 	CPP 	-> "g++ -std=c++11 "
 	Java 	-> "javac "
+
+getRunnerCmdRepl :: ASLanguage -> String
+getRunnerCmdRepl lang = case lang of 
+	Python 	-> "pyrasite 9286 "
 
 getRunnerArgs :: ASLanguage -> [String]
 getRunnerArgs lang = case lang of 
@@ -105,6 +115,10 @@ addCompileCmd lang cmd = case lang of
 			path = getEvalPath ++ "java/"
 	otherwise -> cmd
 
+addCompileCmdRepl :: ASLanguage -> String -> String
+addCompileCmdRepl lang cmd = case lang of 
+	Python -> cmd ++ "; pyrasite --output 'localterm' 9286 " ++(getRunReplFile lang)
+
 interpolateFile :: ASLanguage -> String -> Handler String
 interpolateFile lang execCmd = do
 	functions <- getFuncs lang
@@ -114,8 +128,8 @@ interpolateFile lang execCmd = do
 	let importCmds = unlines . map (importFile lang) $ imports
 	template <- getTemplate lang
 
-	$(logInfo) $ "EVAL EDITED XP: " ++ (fromString $ show editedCmd)
-	$(logInfo) $ "EVAL USING TEMPLATE: " ++ (fromString $ show template)
+	-- $(logInfo) $ "EVAL EDITED XP: " ++ (fromString $ show editedCmd)
+	-- $(logInfo) $ "EVAL USING TEMPLATE: " ++ (fromString $ show template)
 	return $ layoutCodeFile lang (importCmds, template, editedCmd)
 
 

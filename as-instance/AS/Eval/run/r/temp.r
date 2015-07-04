@@ -26,7 +26,7 @@ isError = FALSE
 result = tryCatch({
 
 
-green("BUY")
+rnorm(1000)
 }, warning = function(w) {
 	# nothing here
 }, error = function(e) {

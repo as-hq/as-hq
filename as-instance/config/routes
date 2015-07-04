@@ -9,3 +9,4 @@
 /cells CellsR GET POST PUT DELETE OPTIONS
 /clear ClearR GET POST OPTIONS
 /libs LibsR GET POST
+/repl EvalReplR POST

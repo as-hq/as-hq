@@ -1,8 +1,5 @@
 
-(* try
-	(* CMD *)
-with
-| e -> print_string(Std.dump(e)) *)
 
+let square x = x * x ;;
 ;;
-print_string(Std.dump({'error': gg we failed}))
+print_string(Std.dump(square 3))
