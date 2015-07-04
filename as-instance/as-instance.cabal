@@ -29,6 +29,7 @@ library
                      AS.Parsing.Common
                      AS.Parsing.Out
                      AS.Parsing.In
+                     AS.Parsing.Regex
                      AS.Types
                      AS.TypesHelper
                      Model

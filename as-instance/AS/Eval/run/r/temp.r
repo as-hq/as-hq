@@ -26,7 +26,7 @@ isError = FALSE
 result = tryCatch({
 
 
-c(A1,A2,A3,A4)
+green("BUY")
 }, warning = function(w) {
 	# nothing here
 }, error = function(e) {

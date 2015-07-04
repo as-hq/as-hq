@@ -26,7 +26,7 @@ toListStr lang lst  = end ++ (intercalate delim lst) ++ start
       OCaml -> ("[", ";", "]")
       SQL   -> ("[", ",", "]")
 
-modifiedLists :: ASLanguage -> String -> String 
+modifiedLists :: ASLanguage -> String -> String  
 modifiedLists lang str = case lang of
   Python -> "arr(" ++ str ++ ")"
   otherwise -> str
@@ -37,6 +37,8 @@ getBlockDelim lang = case lang of
   Python-> ""
   OCaml -> ";;"
   SQL   -> ""
+  CPP   -> ""
+  Java  -> ""
 
 getInlineDelim :: ASLanguage -> String
 getInlineDelim lang = case lang of 
@@ -44,6 +46,8 @@ getInlineDelim lang = case lang of
   Python-> ";"
   OCaml -> ";;"
   SQL   -> ";"
+  CPP   -> ";"
+  Java  -> ";"
 
 jsonDeserialize :: ASLanguage -> String -> String -> String
 jsonDeserialize lang objType jsonRep = 

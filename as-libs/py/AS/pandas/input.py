@@ -1,5 +1,6 @@
 from AS.errors import ColumnHeaderNotPresent
 import pandas as pd
+import numpy as np
 # assumes lst is a list of columns -- not rows
 def listToDataframeColumnwise(lst):
 	Undefined = "NaN" #handling nonsquare yesod output
@@ -20,20 +21,23 @@ def listToDataframeColumnwise(lst):
 
 #assumes lst is list of rows
 def listToDataframe(lst): 
-	Undefined = "NaN" 
-	#first row must contain all strings
-	for colHeader in lst[0]:
-		if not isinstance(colHeader, basestring):
-			raise ColumnHeaderNotPresent
-		else:
-			continue
+	if len(np.array(lst).shape) == 1:
+		return listToDataframe([[a] for a in lst])
+	else :
+		Undefined = "NaN" 
+		#first row must contain all strings
+		for colHeader in lst[0]:
+			if not isinstance(colHeader, basestring):
+				raise ColumnHeaderNotPresent
+			else:
+				continue
 
-	maxVals = len(lst) - 1
-	data = [{} for _ in range(maxVals)]
-	for rowIdx in range(maxVals):
-		row = lst[rowIdx + 1]
-		for colIdx in range(len(lst[0])):
-			header = lst[0][colIdx]
-			data[rowIdx][header] = row[colIdx]
+		maxVals = len(lst) - 1
+		data = [{} for _ in range(maxVals)]
+		for rowIdx in range(maxVals):
+			row = lst[rowIdx + 1]
+			for colIdx in range(len(lst[0])):
+				header = lst[0][colIdx]
+				data[rowIdx][header] = row[colIdx]
 
-	return pd.DataFrame(data)
+		return pd.DataFrame(data)

@@ -42,6 +42,8 @@ getTemplate lang = Import.readFile $ getEvalPath ++ file
 			Python 	-> "py/template.py"
 			OCaml 	-> "ocaml/template.ml"
 			SQL		-> "sql/template.py"
+			CPP 	-> "cpp/template.cpp"
+			Java	-> "java/Template.java"
 
 getRunFile :: ASLanguage -> String
 getRunFile lang = getEvalPath ++ case lang of 
@@ -49,6 +51,8 @@ getRunFile lang = getEvalPath ++ case lang of
 	Python 	-> "py/temp.py"
 	OCaml 	-> "ocaml/temp.ml"
 	SQL 	-> "sql/temp.py"
+	CPP 	-> "cpp/temp.cpp"
+	Java 	-> "java/Temp.java"
 
 
 getRunnerCmd :: ASLanguage -> String
@@ -57,12 +61,17 @@ getRunnerCmd lang = case lang of
 	Python 	-> "python "
 	OCaml 	-> "ocamlfind ocamlc -linkpkg -package extlib "
 	SQL  	-> "python "
+	CPP 	-> "g++ -std=c++11 "
+	Java 	-> "javac "
 
 getRunnerArgs :: ASLanguage -> [String]
 getRunnerArgs lang = case lang of 
 	OCaml -> ["-o " ++ path ++ "test"]
 		where 
 			path = getEvalPath ++ "ocaml/"
+	CPP -> ["-o " ++ path ++ "testCPP && " ++ path ++ "testCPP"]
+		where
+			path = getEvalPath ++ "cpp/"
 	otherwise -> [] -- in case we ever use more args
 
 layoutCodeFile :: ASLanguage -> (String, String, String) -> String
@@ -91,6 +100,9 @@ addCompileCmd lang cmd = case lang of
 	OCaml -> cmd ++ "; " ++ path ++ "test"
 		where
 			path = getEvalPath ++ "ocaml/"
+	Java -> "cd "++ path ++ " && "++cmd ++ " && java Temp"
+		where
+			path = getEvalPath ++ "java/"
 	otherwise -> cmd
 
 interpolateFile :: ASLanguage -> String -> Handler String
@@ -137,6 +149,8 @@ insertPrintCmd lang (s, lst) = s ++ process lst
 			Python 	-> "print(repr(" ++ l ++ "))"
 			OCaml 	-> "print_string(Std.dump(" ++ l ++ "))"
 			SQL 	-> l  
+			CPP 	-> "int main() { std::cout << (" ++ l ++ "); }" 
+			Java 	-> "public static void main(String[] args) throws Exception{Object x = " ++ l ++ "; System.out.println(pprint(x));}}"
 
 splitLastCmd :: ASLanguage -> String -> (String, String)
 splitLastCmd lang cmd = 

@@ -14,7 +14,7 @@ data ASLocation = Index {sheet :: String, index :: (Int, Int)} |
 data ASValue =
   ValueNaN () |
   ValueS String |
-  ValueD Double |
+  ValueD Double | 
   ValueB Bool |
   ValueL [ASValue] |
   ExcelSheet { locs :: ASValue, exprs :: ASValue, vals :: ASValue} |
@@ -31,18 +31,18 @@ data ASValue =
 
 lst :: ASValue -> [ASValue]
 lst (ValueL l) = l
-lst v = []
+lst other = [other]
 
 str :: ASValue -> String
 str (ValueS s) = s
-str v = []
+str _ = []
 
 dbl :: ASValue -> Double
 dbl (ValueD d) = d
-dbl v = 0
+dbl _ = 0
 
 
-data ASLanguage = R | Python | OCaml | SQL deriving (Show, Read, Eq, Generic)
+data ASLanguage = R | Python | OCaml | CPP | Java | SQL deriving (Show, Read, Eq, Generic)
 
 data ASExpression =
   Expression { expression :: String, language :: ASLanguage } | 

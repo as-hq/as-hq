@@ -32,7 +32,7 @@ postCellsR = interactHandlerJson process
   where
     process cell = do
       result <- DP.propagateCell (cellLocation cell) (cellExpression cell)
-      $(logInfo) $ (fromString $ show result)
+      -- $(logInfo) $ (fromString $ show result)
       return result
 
 -- delete not working with angular -> workaround is post to /clear

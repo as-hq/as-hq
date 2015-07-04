@@ -23,7 +23,7 @@ interactHandlerJson process = addCorsHeaders >> parseJsonBody >>= \obj ->
 	    	$(logInfo) $ "Error: " ++ (fromString s)
 	    	invalidArgs []
 	    Success procData -> do
-	    	$(logInfo) $ "procData: " ++ (toStrict . toLazyText . encodeToTextBuilder . toJSON $ procData)
+	    	-- $(logInfo) $ "procData: " ++ (toStrict . toLazyText . encodeToTextBuilder . toJSON $ procData)
 	    	result <- process procData
-	    	$(logInfo) $ "Success: " ++ (toStrict . toLazyText . encodeToTextBuilder . toJSON $ result)
+	    	-- $(logInfo) $ "Success: " ++ (toStrict . toLazyText . encodeToTextBuilder . toJSON $ result)
 	    	returnJson result

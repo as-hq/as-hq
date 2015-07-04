@@ -54,11 +54,15 @@ bool lang = fmap rd $ true <|> false
       Python-> string "True"
       OCaml -> string "true"
       SQL   -> string "True"
+      CPP   -> string "true"
+      Java  -> string "true"
     false = case lang of 
       R     -> string "false"
       Python-> string "False"
       OCaml -> string "false" 
       SQL   -> string "False"
+      CPP   -> string "false"
+      Java  -> string "false"
 
 valueB :: ASLanguage -> Parser ASValue
 valueB lang = ValueB <$> (bool lang)
@@ -93,11 +97,16 @@ valueL lang = ValueL <$> (brackets $ sepBy (asValue lang) (delim >> spaces))
           Python-> ("[", "]")
           OCaml -> ("[" , "]")
           SQL   -> ("[", "]")
+          CPP   -> ("[", "]")
+          Java   -> ("[", "]")
+
     delim     = case lang of 
       R     -> char ','
       Python-> char ','
       OCaml -> char ';'
       SQL   -> char ','
+      CPP   -> char ','
+      Java  -> char ','
 
 extractValue :: M.Map String ASValue -> ASValue
 extractValue m

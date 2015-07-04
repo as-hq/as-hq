@@ -15,6 +15,9 @@ import AS.Parsing.Common
 import System.IO                                       
 import System.Process   
 
+-- REGEX DELETE
+import qualified AS.Parsing.Regex as R
+
 -----------------------------------------------------------------------------------------------------------------------
 -- File Interpolation (see Lang for details)
 
@@ -33,7 +36,20 @@ evalCode loc values xp = do
 	$(logInfo) $ "EVAL FINAL XP: " ++ (fromString . show $ finalXp)
 
 	simpleInterpolated <- interpolateFile lang finalXp
-	let interpolated = simpleInterpolated -- TODO: deal with SQL 
+
+	-- SQL REGEX DELETE
+	let interpolated = case lang of 
+				SQL -> formatSqlQuery simpleInterpolated ((expression xp), rng, rangeVals)
+					where 
+						rng 			= P.head $ R.getExcelMatches (expression xp)
+						rangeVals 		= replaceSubstrings expandedLists matches
+						expandedLists 	= R.excelRangesToLists SQL rng
+						matches 		= map (\(a, b) -> (R.toExcel a, R.showFilteredValue SQL a b)) (M.toList values)
+				otherwise -> simpleInterpolated
+
+
+
+
 	writeExecFile lang interpolated
 
 	$(logInfo) $ "EVAL EXECUTING: " ++ (fromString $ show interpolated)
