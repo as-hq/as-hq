@@ -3,7 +3,7 @@ module AS.Dispatch where
 import AS.Types
 import Import
 import Prelude ((!!)) 
-import qualified AS.Eval    as R (evalExpression)
+import qualified AS.Eval    as R (evalExpression,evalExcel)
 import qualified Data.Map   as M
 import qualified AS.DAG     as D
 import qualified AS.DB      as DB
@@ -17,7 +17,16 @@ import Text.Regex.Posix
 import Control.Applicative
 
 propagateCell :: ASLocation -> ASExpression -> Handler (Maybe [ASCell])
-propagateCell loc xp = updateCell (loc, xp) >> reevaluateCell (loc, xp)
+propagateCell loc xp = do
+  updateCell (loc, xp) 
+  if ((language xp)==Excel)
+    then do
+      newXp <- R.evalExcel xp
+      updateCell (loc, newXp) 
+      $(logInfo) $ "new excel xp: " ++ (fromString $ show newXp)
+      cells <- reevaluateCell (loc, newXp)
+      return $ Just $ map (\(Cell l (Expression e Python) v ) -> (Cell l xp v)) (fromJust cells)
+    else updateCell (loc,xp) >> reevaluateCell (loc, xp) 
 
 updateCell :: (ASLocation, ASExpression) -> Handler ()
 updateCell (loc, xp) = do

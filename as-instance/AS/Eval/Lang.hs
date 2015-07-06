@@ -17,6 +17,9 @@ import qualified Data.Map as M
 import qualified Prelude as P
 import Prelude ((!!), read)
 
+pid :: String
+pid = "2942"
+
 importFile :: ASLanguage -> (String, String, String) -> String
 importFile lang (name, cmd, loc) = 
 	let
@@ -64,15 +67,15 @@ getRunReplFile lang = getEvalPath ++ case lang of
 getRunnerCmd :: ASLanguage -> String
 getRunnerCmd lang = case lang of 
 	R 		-> "Rscript "
-	Python 	-> "pyrasite --output 'localterm' 9286 "
-	OCaml 	-> "ocamlfind ocamlc -linkpkg -package extlib "
+	Python 	-> "pyrasite --output 'localterm' " ++ pid ++ " "
+	OCaml 	-> "ocamlfind ocamlc -linkpkg -thread -package extlib -package core "
 	SQL  	-> "python "
 	CPP 	-> "g++ -std=c++11 "
 	Java 	-> "javac "
 
 getRunnerCmdRepl :: ASLanguage -> String
 getRunnerCmdRepl lang = case lang of 
-	Python 	-> "pyrasite 9286 "
+	Python 	-> "pyrasite "++pid++" "
 
 getRunnerArgs :: ASLanguage -> [String]
 getRunnerArgs lang = case lang of 
@@ -117,21 +120,31 @@ addCompileCmd lang cmd = case lang of
 
 addCompileCmdRepl :: ASLanguage -> String -> String
 addCompileCmdRepl lang cmd = case lang of 
-	Python -> cmd ++ "; pyrasite --output 'localterm' 9286 " ++(getRunReplFile lang)
+	Python -> cmd ++ "; pyrasite --output 'localterm' "++pid++ " " ++(getRunReplFile lang)
+
+--interpolateFile :: ASLanguage -> String -> Handler String
+--interpolateFile lang execCmd = do
+--	functions <- getFuncs lang
+--	let (cleanCmd, imports) = replaceAliases execCmd functions
+--	$(logInfo) $ "EVAL REPLACED XP: " ++ (fromString . show $ cleanCmd)
+--	let editedCmd = insertPrintCmd lang $ splitLastCmd lang cleanCmd
+--	let importCmds = unlines . map (importFile lang) $ imports
+--	template <- getTemplate lang
+
+--	-- $(logInfo) $ "EVAL EDITED XP: " ++ (fromString $ show editedCmd)
+--	-- $(logInfo) $ "EVAL USING TEMPLATE: " ++ (fromString $ show template)
+--	return $ layoutCodeFile lang (importCmds, template, editedCmd)
 
 interpolateFile :: ASLanguage -> String -> Handler String
 interpolateFile lang execCmd = do
-	functions <- getFuncs lang
-	let (cleanCmd, imports) = replaceAliases execCmd functions
-	$(logInfo) $ "EVAL REPLACED XP: " ++ (fromString . show $ cleanCmd)
-	let editedCmd = insertPrintCmd lang $ splitLastCmd lang cleanCmd
-	let importCmds = unlines . map (importFile lang) $ imports
+	let editedCmd = insertPrintCmd lang $ splitLastCmd lang execCmd
 	template <- getTemplate lang
+	return $ layoutCodeFile lang ("", template, editedCmd)
 
-	-- $(logInfo) $ "EVAL EDITED XP: " ++ (fromString $ show editedCmd)
-	-- $(logInfo) $ "EVAL USING TEMPLATE: " ++ (fromString $ show template)
-	return $ layoutCodeFile lang (importCmds, template, editedCmd)
-
+interpolateFileRepl :: ASLanguage -> String -> Handler String
+interpolateFileRepl lang execCmd = do
+	template <- getTemplate lang
+	return $ layoutCodeFile lang ("", template, execCmd)
 
 -- Helper function for interpolate
 lookupString :: ASLanguage -> Map ASLocation ASValue -> ASLocation -> String

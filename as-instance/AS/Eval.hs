@@ -47,9 +47,6 @@ evalCode loc values xp = do
 						matches 		= map (\(a, b) -> (R.toExcel a, R.showFilteredValue SQL a b)) (M.toList values)
 				otherwise -> simpleInterpolated
 
-
-
-
 	writeExecFile lang interpolated
 
 	$(logInfo) $ "EVAL EXECUTING: " -- ++ (fromString $ show interpolated)
@@ -57,10 +54,27 @@ evalCode loc values xp = do
 	$(logInfo) $ "EVAL RETURNS: " -- ++ (fromString result)
 	return $ parseValue lang result
 
+evalExcel :: ASExpression -> Handler ASExpression
+evalExcel xp = do
+	$(logInfo) $ "EXCEL RECEIVES XP: " ++ (fromString . show $ expression xp)
+	let newXp = "evalExcel(\'"++(expression xp)++"\')"
+	interpolated <- interpolateFile Python newXp
+	writeExecFile Python interpolated
+	result' <- runFile Python
+	let result = case (L.head result') of
+		'\'' -> L.init (L.tail result')
+		'\"' -> L.init (L.tail result')
+		otherwise -> result'
+	$(logInfo) $ "EXCEL RETURNS: " ++ (fromString result)
+	return $ Expression result Python
+
+
+
 evalCodeRepl :: ASExpression -> Handler ASValue
 evalCodeRepl xp = do
 	let lang = language xp
-	writeReplFile lang (expression xp)
+	finalXp <- interpolateFileRepl lang (expression xp)
+	writeReplFile lang finalXp
 	result <- runReplFile lang
 	return $ case lang of 
 		Python -> parseValue lang result

@@ -1,5 +1,5 @@
 
 
-let square x = x * x ;;
+
 ;;
-print_string(Std.dump(square 3))
+print_string(Std.dump([2;3;4;5;6]))

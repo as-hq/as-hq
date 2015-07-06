@@ -5,7 +5,7 @@ from AS.instruments.Stock import Stock
 from AS.errors import *
 
 folder = os.path.dirname(__file__) 
-directory = os.path.abspath(os.path.join(folder, '..','..','..','..','frontend','client','app','images')) + '/'
+directory = os.path.abspath(os.path.join(folder, '..','..','..','..','anand-frontend','client','app','images')) + '/'
 
 retPath = "images/"
 

@@ -17,7 +17,7 @@ pysqldf = lambda q: sqldf(q, globals())
 
 try:
 	queryStr = 'SELECT * FROM A1:B5 WHERE a>2'.replace('\n',' ')
-	(rangeStr, data) = ('A1:B5', [["a","b"],[1.0,2.0],[2.0,3.0],[3.0,4.0],[4.0,5.0]])
+	(rangeStr, data) = ('A1:B5', [["a","b"],[1.0,2.0],[2.0,5.0],[3.0,6.0],[4.0,5.0]])
 
 	objectMap = {} #  way of dealing with objects
 	for i in range(len(data)):

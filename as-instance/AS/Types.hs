@@ -42,7 +42,7 @@ dbl (ValueD d) = d
 dbl _ = 0
 
 
-data ASLanguage = R | Python | OCaml | CPP | Java | SQL deriving (Show, Read, Eq, Generic)
+data ASLanguage = R | Python | OCaml | CPP | Java | SQL | Excel deriving (Show, Read, Eq, Generic)
 
 data ASExpression =
   Expression { expression :: String, language :: ASLanguage } | 

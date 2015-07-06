@@ -5,6 +5,8 @@ import matplotlib.pyplot as plt
 from openpyxl import load_workbook
 import string
 from clusters import *
+from AS.pycel.excelcompiler import *
+from AS.pycel.excellib import * # mapping from excel to python
 
 def arr(lst):
 	return ASIterable(lst)
@@ -96,5 +98,12 @@ def exprToPython(cell):
             return s[1:] 
     except:
         return cell.value
-    
 
+def sillytest(a):
+    return a+1
+    
+def evalExcel(s):
+    e = shunting_yard(s)
+    G,root = build_ast(e)
+    r = root.emit(G,context = None)
+    return r

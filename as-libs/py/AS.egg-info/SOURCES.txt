@@ -34,6 +34,14 @@ AS/instruments/etfArb2.py
 AS/pandas/__init__.py
 AS/pandas/input.py
 AS/pandas/output.py
+AS/pycel/__init__.py
+AS/pycel/addin.py
+AS/pycel/excelcompiler.py
+AS/pycel/excellib.py
+AS/pycel/excelutil.py
+AS/pycel/excelwrapper.py
+AS/pycel/tokenizer.py
+AS/pycel/version.py
 AS/tests/__init__.py
 AS/tests/main.py
 AS/tests/min.py
