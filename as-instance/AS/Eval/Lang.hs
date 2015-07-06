@@ -18,7 +18,7 @@ import qualified Prelude as P
 import Prelude ((!!), read)
 
 pid :: String
-pid = "2942"
+pid = "5681"
 
 importFile :: ASLanguage -> (String, String, String) -> String
 importFile lang (name, cmd, loc) = 
@@ -67,7 +67,7 @@ getRunReplFile lang = getEvalPath ++ case lang of
 getRunnerCmd :: ASLanguage -> String
 getRunnerCmd lang = case lang of 
 	R 		-> "Rscript "
-	Python 	-> "pyrasite --output 'localterm' " ++ pid ++ " "
+	Python 	-> "python " -- "pyrasite --output 'localterm' " ++ pid ++ " "
 	OCaml 	-> "ocamlfind ocamlc -linkpkg -thread -package extlib -package core "
 	SQL  	-> "python "
 	CPP 	-> "g++ -std=c++11 "

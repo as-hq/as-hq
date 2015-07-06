@@ -18,4 +18,4 @@ public static String pprint(Object o){
 }
 
 
-public static void main(String[] args) throws Exception{Object x = RunIntradayTickDataRequest.RunExample("MSFT US Equity"); System.out.println(pprint(x));}}
+public static void main(String[] args) throws Exception{Object x = "Time"; System.out.println(pprint(x));}}

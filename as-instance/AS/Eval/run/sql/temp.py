@@ -16,8 +16,8 @@ from pandasql import sqldf
 pysqldf = lambda q: sqldf(q, globals())
 
 try:
-	queryStr = 'SELECT * FROM A1:B5 WHERE a>2'.replace('\n',' ')
-	(rangeStr, data) = ('A1:B5', [["a","b"],[1.0,2.0],[2.0,5.0],[3.0,6.0],[4.0,5.0]])
+	queryStr = 'SELECT * FROM A1:D5 WHERE Price>50'.replace('\n',' ')
+	(rangeStr, data) = ('A1:D5', [["Time","Trade","Price","Volume"],["14:00:00","TRADE",66.4,300.0],["14:28:00","TRADE",59.46,400.0],["14:32:00","TRADE",43.18,300.0],["14:58:00","TRADE",51.26,400.0]])
 
 	objectMap = {} #  way of dealing with objects
 	for i in range(len(data)):

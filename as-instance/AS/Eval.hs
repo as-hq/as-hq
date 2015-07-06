@@ -18,6 +18,9 @@ import System.Process
 -- REGEX DELETE
 import qualified AS.Parsing.Regex as R
 
+import Data.Time.Clock
+import Data.Text as T (unpack,pack)
+
 -----------------------------------------------------------------------------------------------------------------------
 -- File Interpolation (see Lang for details)
 
@@ -30,10 +33,17 @@ evalExpression loc dict expr =
 evalCode :: ASLocation -> Map ASLocation ASValue -> ASExpression -> Handler ASValue
 evalCode loc values xp = do
 	let lang = language xp
+
+	time <- liftIO (getCurrentTime >>= return . utctDayTime)
+	$logInfo $ "start interpolate " ++ (fromString $ show time)
+
 	let finalXp = interpolate loc values xp -- eval string
 
-	$(logInfo) $ "EVAL RECEIVES XP: " -- ++ (fromString . show $ expression xp)
-	$(logInfo) $ "EVAL FINAL XP: " -- ++ (fromString . show $ finalXp)
+	time <- liftIO (getCurrentTime >>= return . utctDayTime)
+	$logInfo $ "end interpolate " ++ (fromString $ show time)
+
+	$(logInfo) $ "EVAL RECEIVES XP: " ++ (fromString . show $ expression xp)
+	$(logInfo) $ "EVAL FINAL XP: " ++ (fromString . show $ finalXp)
 
 	simpleInterpolated <- interpolateFile lang finalXp
 
@@ -49,18 +59,45 @@ evalCode loc values xp = do
 
 	writeExecFile lang interpolated
 
-	$(logInfo) $ "EVAL EXECUTING: " -- ++ (fromString $ show interpolated)
+	time <- liftIO (getCurrentTime >>= return . utctDayTime)
+	$logInfo $ "done with writeexecfile " ++ (fromString $ show time)
+
+	$(logInfo) $ "EVAL EXECUTING: " ++ (fromString $ show interpolated)
 	result <- runFile lang
-	$(logInfo) $ "EVAL RETURNS: " -- ++ (fromString result)
-	return $ parseValue lang result
+
+	time <- liftIO (getCurrentTime >>= return . utctDayTime)
+	$logInfo $ "finished runFile eval " ++ (fromString $ show time)
+
+	$(logInfo) $ "EVAL RETURNS: "  ++ (fromString result)
+
+	let parsed = parseValue lang result
+
+	time <- liftIO (getCurrentTime >>= return . utctDayTime)
+	$logInfo $ "done parsing " ++ (fromString $ show time)
+
+	return parsed
 
 evalExcel :: ASExpression -> Handler ASExpression
 evalExcel xp = do
 	$(logInfo) $ "EXCEL RECEIVES XP: " ++ (fromString . show $ expression xp)
-	let newXp = "evalExcel(\'"++(expression xp)++"\')"
+	let newXp = "from AS.stdlib import evalExcel; evalExcel(\'"++(expression xp)++"\')"
+
 	interpolated <- interpolateFile Python newXp
+
+	time <- liftIO (getCurrentTime >>= return . utctDayTime)
+	$logInfo $ "done interpolating "  ++ (fromString $ show time)
+
 	writeExecFile Python interpolated
-	result' <- runFile Python
+
+	time <- liftIO (getCurrentTime >>= return . utctDayTime)
+	$logInfo $ "done writeexec " ++ (fromString $ show time)
+
+	resultInit <- runFile Python
+
+	time <- liftIO (getCurrentTime >>= return . utctDayTime)
+	$logInfo $ "finished runfile eval " ++ (fromString $ show time)
+
+	let result' = T.unpack (T.strip (T.pack resultInit)) -- no start/end whitespace
 	let result = case (L.head result') of
 		'\'' -> L.init (L.tail result')
 		'\"' -> L.init (L.tail result')
@@ -128,7 +165,7 @@ eval s lang = do
 
 readOutput :: ASLanguage -> String -> String
 readOutput lang res = case lang of
-	Python -> T.unpack $ (P.!!) (T.splitOn (T.pack "\n") (T.pack res)) 2
+	Python -> res -- T.unpack $ (P.!!) (T.splitOn (T.pack "\n") (T.pack res)) 2
 	otherwise -> res
 
 

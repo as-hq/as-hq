@@ -26,7 +26,7 @@ isError = FALSE
 result = tryCatch({
 
 
-19.0
+1:20
 }, warning = function(w) {
 	# nothing here
 }, error = function(e) {

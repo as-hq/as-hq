@@ -1,8 +1,5 @@
 from ORD import ORD
-import numpy as np
 import math
-from AS.iterable import ASIterable
-from AS.stdlib import flat
 from AS import samples
 
 class ETF(object):
@@ -10,6 +7,7 @@ class ETF(object):
     conv_rate = None
 
     def __init__(self,etfName,(bid, ask)):
+        from AS.iterable import ASIterable
         self.name=etfName
         self.bid = bid
         self.ask = ask
@@ -27,6 +25,7 @@ class ETF(object):
         self.cr=cr
         self.rd=rd
     def ordImpliedETFPrices(self):
+        import numpy as np
         bidComps=np.array(self.weights)*np.array([x.ask for x in self.ords])
         offComps=np.array(self.weights)*np.array([x.bid for x in self.ords])
         return (np.sum(bidComps),np.sum(offComps))
@@ -58,6 +57,7 @@ class ETF(object):
     # list of etfs, get matrix of all components
     @staticmethod
     def getComponents(etfs):
+        from AS.stdlib import flat
         components = [etf.components() for etf in etfs]
         return flat(components)
 

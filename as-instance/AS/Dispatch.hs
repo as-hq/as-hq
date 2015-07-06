@@ -16,14 +16,28 @@ import Text.ParserCombinators.Parsec
 import Text.Regex.Posix
 import Control.Applicative
 
+import Data.Time.Clock
+import Data.Text as T (unpack,pack)
+
+
+
 propagateCell :: ASLocation -> ASExpression -> Handler (Maybe [ASCell])
 propagateCell loc xp = do
-  updateCell (loc, xp) 
   if ((language xp)==Excel)
     then do
+      time <- liftIO (getCurrentTime >>= return . utctDayTime)
+      $logInfo $ "before eval excel " ++ (fromString $ show time)
+
       newXp <- R.evalExcel xp
+
+      time <- liftIO (getCurrentTime >>= return . utctDayTime)
+      $logInfo $ "after eval excel " ++ (fromString $ show time)
+
       updateCell (loc, newXp) 
       $(logInfo) $ "new excel xp: " ++ (fromString $ show newXp)
+      time <- liftIO (getCurrentTime >>= return . utctDayTime)
+      $logInfo $ "new cell xp " ++ (fromString $ show time)
+
       cells <- reevaluateCell (loc, newXp)
       return $ Just $ map (\(Cell l (Expression e Python) v ) -> (Cell l xp v)) (fromJust cells)
     else updateCell (loc,xp) >> reevaluateCell (loc, xp) 
@@ -33,27 +47,48 @@ updateCell (loc, xp) = do
   let offsets = getOffsets loc
   let (deps,exprs) = getDependenciesAndExpressions loc xp offsets
   let locs = decomposeLocs loc
+
+  time <- liftIO (getCurrentTime >>= return . utctDayTime)
+  $logInfo $ "starting db update " ++ (fromString $ show time)
+
   DB.dbUpdateLocationDepsBatch (zip locs deps)
-  DB.setCells $ map (\(l,e,v)-> Cell l e v) (zip3 locs exprs (repeat (ValueNaN ()) ))       
+  DB.setCells $ map (\(l,e,v)-> Cell l e v) (zip3 locs exprs (repeat (ValueNaN ()) ))  
+
+  time <- liftIO (getCurrentTime >>= return . utctDayTime)
+  $logInfo $ "done with db update " ++ (fromString $ show time)
+
   $(logInfo) $ "updated cell"
 
 reevaluateCell :: (ASLocation, ASExpression) -> Handler (Maybe [ASCell])
 reevaluateCell (loc, xp) = do
   descendants <- D.dbGetSetDescendants $ decomposeLocs loc
-  $(logInfo) $ "Descendants being calculated: " -- ++ (fromString $ show descendants)
+  time <- liftIO (getCurrentTime >>= return . utctDayTime)
+  $logInfo $ "calculated descendants " ++ (fromString $ show time)
+
   results <- evalCells descendants
-  $(logInfo) $ "(2) cell reevaluated"
+
+  time <- liftIO (getCurrentTime >>= return . utctDayTime)
+  $logInfo $ "cell reevaluated " ++ (fromString $ show time)
+
   DB.setCells $ fromJust results -- set cells here, not in eval cells
-  $(logInfo) $ "done with set cells"
+
+  time <- liftIO (getCurrentTime >>= return . utctDayTime)
+  $logInfo $ "done with set cells " ++ (fromString $ show time)
   return results
 
 evalCells :: [ASLocation] -> Handler (Maybe [ASCell])
 evalCells [] = return $ Just []
 evalCells locs = do
   ancestors <- fmap reverse $ D.dbGetSetAncestors locs
-  $(logInfo) $ "ancestors computed: " -- ++ (fromString $ show ancestors)
+  time <- liftIO (getCurrentTime >>= return . utctDayTime)
+  $logInfo $ "ancestors computed " ++ (fromString $ show time)
+
   cells <- DB.getCells ancestors
   locsCells <- DB.getCells locs
+
+  time <- liftIO (getCurrentTime >>= return . utctDayTime)
+  $logInfo $ "got ancestors from db " ++ (fromString $ show time)
+
   $(logInfo) $ "got cells: " -- ++ (fromString $ show cells)
   if any isNothing cells -- needed to ensure correct order
     then return Nothing

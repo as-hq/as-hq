@@ -2,12 +2,14 @@
 #from AS.stdlib import *
 #from AS.ui.styling import *
 #from AS.tests.min import *
-#from AS.instruments.ETF import ETF
+from AS.instruments.ETF import ETF
 #from AS.instruments.Stock import Stock
 #from AS.ui.plot import *
 #import json
 #import sys, os
 #import traceback
+from AS.pycel.excelcompiler import *
+from AS.pycel.excellib import * # mapping from excel to python
 
 try:
 	#CMD#

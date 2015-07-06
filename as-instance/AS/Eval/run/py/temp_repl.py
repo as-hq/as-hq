@@ -9,9 +9,11 @@
 #import json
 #import sys, os
 #import traceback
+from AS.pycel.excelcompiler import *
+from AS.pycel.excellib import * # mapping from excel to python
 
 try:
-	5+23
+	a=4
 except Exception as e: 
 	exc_type, exc_obj, exc_tb = sys.exc_info()
 	fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
