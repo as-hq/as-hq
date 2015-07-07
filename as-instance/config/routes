@@ -10,3 +10,4 @@
 /clear ClearR GET POST OPTIONS
 /libs LibsR GET POST OPTIONS
 /repl EvalReplR POST OPTIONS
+/values ValuesR POST OPTIONS

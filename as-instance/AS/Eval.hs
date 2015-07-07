@@ -1,6 +1,6 @@
 module AS.Eval where
 
-import Import hiding (writeFile)
+import Import hiding (writeFile, getLine)
 import qualified Prelude as P
 import Control.Applicative
 import qualified Data.Map as M
