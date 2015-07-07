@@ -1,6 +1,6 @@
 module AS.Parsing.In where
 
-import Import hiding ((<|>))
+import Import hiding ((<|>), try)
 import qualified Prelude as P
 import Prelude ((!!), read)
 import AS.Types as Ty
@@ -167,10 +167,20 @@ complexValue = extractValue <$> extractMap
       return (str, dictValue)
     extractMap      = M.fromList <$> (braces $ sepBy dictEntry (comma >> spaces))
 
+ocamlError :: Parser ASValue
+ocamlError = do
+  string "File "
+  file <- manyTill anyChar (try (string ", line "))
+  pos <- manyTill anyChar (try (string ", characters"))
+  manyTill anyChar (try (string "Error: "))
+  err <- manyTill anyChar (try eof)
+  return $ ValueError err "StdErr" file ((read pos :: Int) - 4)
+
 asValue :: ASLanguage -> Parser ASValue 
-asValue lang = choice [valueD, valueS, (valueL lang), complexValue, return $ ValueNaN ()]
+asValue lang = choice [valueD, valueS, (valueL lang), complexValue, ocamlError, return $ ValueNaN ()]
 
 parseValue :: ASLanguage -> String -> ASValue --needs to change to reflect ValueImage
-parseValue lang = fromRight . (parse (asValue lang) "") . T.pack
+parseValue lang = readOutput . (parse (asValue lang) "") . T.pack
   where
-    fromRight (Right v) = v
+    readOutput (Right v) = v
+    readOutput (Left e) = ValueError (show e) "Parsing error" "AlphaSheets evaluation engine" 0

@@ -197,5 +197,7 @@ createExcelCells v l = case v of
   otherwise -> return []
 
 
+----------------------
 
-
+evaluatePrimitive :: ASCell -> Handler ASCell
+evaluatePrimitive cell = DB.setCell cell >> return cell

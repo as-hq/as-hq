@@ -42,6 +42,7 @@ library
                      Handler.Clear
                      Handler.Libs
                      Handler.EvalRepl
+                     Handler.Values
 
     if flag(dev) || flag(library-only)
         cpp-options:   -DDEVELOPMENT

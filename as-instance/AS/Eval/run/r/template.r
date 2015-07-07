@@ -27,7 +27,7 @@ result = tryCatch({
 }, warning = function(w) {
 	# nothing here
 }, error = function(e) {
-    isError = TRUE
+    isError <<- TRUE
 	err = paste0("'error': \'Error: ", gsub("'",'"',e$message), "\'")
 	err_type = "'err_type': \'try-error\'"
 	position = "'position': -1" # TODO figure out line number of stacktrace in r

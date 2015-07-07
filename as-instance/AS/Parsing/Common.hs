@@ -95,3 +95,9 @@ replaceAliases cmd matches =
     where 
       toReplacingImports = (\f->(unpack (aSFuncAlias f), unpack (aSFuncReplace f)))
       presentStubs = filter (\x -> isInfixOf (unpack (aSFuncAlias x)) cmd) matches
+
+getDelimitedSubstring :: String -> String -> Int -> String
+getDelimitedSubstring str delim n = T.unpack $ (P.!!) (T.splitOn (T.pack delim) (T.pack str)) n
+
+getLine :: String -> Int -> String
+getLine str n = getDelimitedSubstring str "\n" n
