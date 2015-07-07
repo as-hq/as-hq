@@ -45,10 +45,16 @@ double = fmap rd $ int <++> dec
 valueD :: Parser ASValue
 valueD = ValueD <$> double 
 
+readBool :: String -> Bool
+readBool str = case (P.head str) of 
+  't' -> True
+  'T' -> True
+  'f' -> False
+  'F' -> False
+
 bool :: ASLanguage -> Parser Bool
-bool lang = fmap rd $ true <|> false
+bool lang = fmap readBool $ true <|> false
   where
-    rd = read :: String -> Bool
     true = case lang of 
       R     -> string "true"
       Python-> string "True"
@@ -64,7 +70,7 @@ bool lang = fmap rd $ true <|> false
       SQL   -> string "False"
       CPP   -> string "false"
       Java  -> string "false"
-      Excel -> string "True"
+      Excel -> string "False"
 
 valueB :: ASLanguage -> Parser ASValue
 valueB lang = ValueB <$> (bool lang)
@@ -181,7 +187,7 @@ ocamlError = do
   return $ ValueError err "StdErr" file ((read pos :: Int) - 4)
 
 asValue :: ASLanguage -> Parser ASValue 
-asValue lang = choice [valueD, valueS, (valueL lang), complexValue, ocamlError, return $ ValueNaN ()]
+asValue lang = choice [valueD, valueS, (valueB lang), (valueL lang), complexValue, ocamlError, return $ ValueNaN ()]
 
 parseValue :: ASLanguage -> String -> ASValue --needs to change to reflect ValueImage
 parseValue lang = readOutput . (parse (asValue lang) "") . T.pack

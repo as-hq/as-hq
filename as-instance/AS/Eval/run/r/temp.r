@@ -26,7 +26,7 @@ isError = FALSE
 result = tryCatch({
 
 
-a::c
+TRUE
 }, warning = function(w) {
 	# nothing here
 }, error = function(e) {
