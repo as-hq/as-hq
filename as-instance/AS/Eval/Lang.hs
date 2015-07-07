@@ -47,6 +47,7 @@ getTemplate lang = Import.readFile $ getEvalPath ++ file
 			SQL		-> "sql/template.py"
 			CPP 	-> "cpp/template.cpp"
 			Java	-> "java/Template.java"
+			Excel 	-> "excel/template.py"
 
 getRunFile :: ASLanguage -> String
 getRunFile lang = getEvalPath ++ case lang of 
@@ -56,6 +57,7 @@ getRunFile lang = getEvalPath ++ case lang of
 	SQL 	-> "sql/temp.py"
 	CPP 	-> "cpp/temp.cpp"
 	Java 	-> "java/Temp.java"
+	Excel 	-> "excel/temp.py"
 
 getRunReplFile :: ASLanguage -> String
 getRunReplFile lang = getEvalPath ++ case lang of 
@@ -72,6 +74,7 @@ getRunnerCmd lang = case lang of
 	SQL  	-> "python "
 	CPP 	-> "g++ -std=c++11 "
 	Java 	-> "javac "
+	Excel 	-> "python "
 
 getRunnerCmdRepl :: ASLanguage -> String
 getRunnerCmdRepl lang = case lang of 
@@ -97,6 +100,10 @@ layoutCodeFile lang (imports, template, cmd) = case lang of
 		where
 			importedTemplate = intercalate "\n" [imports, template]
 	SQL 	-> intercalate "\n" [imports, template]
+	Excel 	-> replaceSubstrings importedTemplate [("#CMD#", tabbedCmd)]
+		where
+			importedTemplate = intercalate "\n" [imports, template]
+			tabbedCmd = replaceSubstrings cmd [("\n", "\n\t")]
 	otherwise -> intercalate "\n" [imports, template, cmd]
 
 formatSqlQuery :: String -> (String, String, String) -> String
@@ -178,6 +185,7 @@ insertPrintCmd lang (s, lst) = s ++ process lst
 			SQL 	-> l  
 			CPP 	-> "int main() { std::cout << (" ++ l ++ "); }" 
 			Java 	-> "public static void main(String[] args) throws Exception{Object x = " ++ l ++ "; System.out.println(pprint(x));}}"
+			Excel 	-> "print(repr(" ++ l ++ "))"
 
 splitLastCmd :: ASLanguage -> String -> (String, String)
 splitLastCmd lang cmd = 

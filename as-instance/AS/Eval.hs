@@ -80,19 +80,19 @@ evalCode loc values xp = do
 evalExcel :: ASExpression -> Handler ASExpression
 evalExcel xp = do
 	$(logInfo) $ "EXCEL RECEIVES XP: " ++ (fromString . show $ expression xp)
-	let newXp = "from AS.stdlib import evalExcel; evalExcel(\'"++(expression xp)++"\')"
+	let newXp = "evalExcel(\'"++(expression xp)++"\')"
 
-	interpolated <- interpolateFile Python newXp
+	interpolated <- interpolateFile Excel newXp
 
 	time <- liftIO (getCurrentTime >>= return . utctDayTime)
-	$logInfo $ "done interpolating "  ++ (fromString $ show time)
+	$logInfo $ "done interpolating "  ++ (fromString $ show interpolated)
 
-	writeExecFile Python interpolated
+	writeExecFile Excel interpolated
 
 	time <- liftIO (getCurrentTime >>= return . utctDayTime)
 	$logInfo $ "done writeexec " ++ (fromString $ show time)
 
-	resultInit <- runFile Python
+	resultInit <- runFile Excel
 
 	time <- liftIO (getCurrentTime >>= return . utctDayTime)
 	$logInfo $ "finished runfile eval " ++ (fromString $ show time)
@@ -103,7 +103,7 @@ evalExcel xp = do
 		'\"' -> L.init (L.tail result')
 		otherwise -> result'
 	$(logInfo) $ "EXCEL RETURNS: " ++ (fromString result)
-	return $ Expression result Python
+	return $ Expression result Excel
 
 
 

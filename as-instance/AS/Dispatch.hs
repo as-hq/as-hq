@@ -39,7 +39,7 @@ propagateCell loc xp = do
       $logInfo $ "new cell xp " ++ (fromString $ show time)
 
       cells <- reevaluateCell (loc, newXp)
-      return $ Just $ map (\(Cell l (Expression e Python) v ) -> (Cell l xp v)) (fromJust cells)
+      return $ Just $ map (\(Cell l (Expression e Excel) v ) -> (Cell l xp v)) (fromJust cells)
     else updateCell (loc,xp) >> reevaluateCell (loc, xp) 
 
 updateCell :: (ASLocation, ASExpression) -> Handler ()

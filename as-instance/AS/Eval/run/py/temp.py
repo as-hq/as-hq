@@ -13,7 +13,7 @@ from sys import exc_info
 try:
 	
 	
-	print(repr([1,2,3,4]))
+	print(repr(range(10)))
 except Exception as e: 
 	exc_type, exc_obj, exc_tb = exc_info()
 	fname = 'AlphaSheets Python evaluator'

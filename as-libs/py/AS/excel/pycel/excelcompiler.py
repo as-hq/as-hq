@@ -1,12 +1,13 @@
 from AS.excel.pycel.excellib import *
 from AS.excel.pycel.excelutil import *
+import AS.excel.pycel.excellib as excellib
 from AS.excel.pycel.excelwrapper import ExcelComWrapper
 from math import *
 from networkx.classes.digraph import DiGraph
 from networkx.drawing.nx_pydot import write_dot
 from networkx.drawing.nx_pylab import draw, draw_circular
 from networkx.readwrite.gexf import write_gexf
-from tokenizer import ExcelParser, f_token, shunting_yard
+from AS.excel.pycel.tokenizer import ExcelParser, f_token, shunting_yard
 import cPickle
 import logging
 import networkx as nx
