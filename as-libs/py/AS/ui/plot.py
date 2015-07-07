@@ -39,7 +39,7 @@ def savePlot(plt, name):
 
 def plotObj(x, name=None):
     xlist = getList(x)
-    elif isinstance(xlist[0], Stock):
+    if isinstance(xlist[0], Stock):
         prices = []
         for stock in xlist:
             date = stock.data['Date'] + 'T23:28:56.782Z'
