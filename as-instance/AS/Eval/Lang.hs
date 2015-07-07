@@ -99,17 +99,11 @@ layoutCodeFile lang (imports, template, cmd) = case lang of
 	R 		-> replaceSubstrings importedTemplate [("#CMD#", cmd)]
 		where
 			importedTemplate = intercalate "\n" [imports, template]
-	SQL 	-> intercalate "\n" [imports, template]
 	Excel 	-> replaceSubstrings importedTemplate [("#CMD#", tabbedCmd)]
 		where
 			importedTemplate = intercalate "\n" [imports, template]
 			tabbedCmd = replaceSubstrings cmd [("\n", "\n\t")]
 	otherwise -> intercalate "\n" [imports, template, cmd]
-
-formatSqlQuery :: String -> (String, String, String) -> String
-formatSqlQuery template (query, rng, rangeVals) = replaceSubstrings template replacements
-	where
-		replacements = [("#QUERY#","'"++query++"'"),("#RANGE#","'"++rng++"'"),("#DATA#",rangeVals)]
 
 formatRunArgs :: ASLanguage -> String -> String -> [String] -> String
 formatRunArgs lang cmd filename args = case lang of 
@@ -155,16 +149,16 @@ interpolateFileRepl lang execCmd = do
 
 -- Helper function for interpolate
 lookupString :: ASLanguage -> Map ASLocation ASValue -> ASLocation -> String
-lookupString lang mp loc = modifiedStr
-	where
-		vals = map (mp M.!) (decomposeLocs loc)
-		strList = map (showFilteredValue lang) vals
-		str = case loc of 
-			Range _ _ -> toListStr lang strList -- intercalate with the correct delimiter, c() or [,] etc.
-			otherwise -> L.head strList
-		modifiedStr = case loc of
-			Range _ _ -> modifiedLists lang str -- add arr() for python/numpy etc. 
-			otherwise -> str 
+lookupString lang mp loc = case loc of
+	Index sh (a,b) -> (showFilteredValue lang) (mp M.! loc)
+	Range sh ((a,b),(c,d)) -> 
+		if (c==a)
+			then
+				modifiedLists lang (toListStr lang [ ((showFilteredValue lang) (mp M.! (Index sh (a,row)))) | row<-[b..d]])
+			else 
+				modifiedLists lang (toListStr lang [modifiedLists lang (toListStr lang ([(showFilteredValue lang) (mp M.! (Index sh (col,row)))| col <-[a..c]]))| row<-[b..d]])
+
+
 
 interpolate :: ASLocation -> Map ASLocation ASValue -> ASExpression -> String
 interpolate loc values xp = evalString
@@ -182,7 +176,7 @@ insertPrintCmd lang (s, lst) = s ++ process lst
 			R 		-> l
 			Python 	-> "print(repr(" ++ l ++ "))"
 			OCaml 	-> "print_string(Std.dump(" ++ l ++ "))"
-			SQL 	-> l  
+			SQL 	-> "print(pprint(" ++ l ++ "))"
 			CPP 	-> "int main() { std::cout << (" ++ l ++ "); }" 
 			Java 	-> "public static void main(String[] args) throws Exception{Object x = " ++ l ++ "; System.out.println(pprint(x));}}"
 			Excel 	-> "print(repr(" ++ l ++ "))"

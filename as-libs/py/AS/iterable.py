@@ -152,6 +152,13 @@ class ASIterable(object):
     def __iter__(self):
         return ASIterator(self)
 
+    def __eq__(self, elem):
+        dim = len(np.array(self.lst.tolist()).shape)
+        if dim==1:
+            return [elem==x for x in self.lst]
+        else:
+            return [[elem==x for x in xlist] for xlist in self.lst]
+
     def map(self, func):
         return ASIterable([func(x) for x in self])
 
