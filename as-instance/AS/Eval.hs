@@ -73,7 +73,7 @@ evalCode loc values xp = do
 	let parsed = parseValue lang result
 
 	time <- liftIO (getCurrentTime >>= return . utctDayTime)
-	$logInfo $ "done parsing " ++ (fromString $ show time)
+	$logInfo $ "done parsing " ++ (fromString $ show parsed)
 
 	return parsed
 
@@ -159,14 +159,17 @@ eval s lang = do
 		sErr <- System.IO.hGetContents stdErr
 		foldr seq (waitForProcess hProcess) sOutput
 		foldr seq (waitForProcess hProcess) sErr
-		return $ case sErr of 
-			"" -> sOutput
-			otherwise -> sErr
+		return $ readOutput lang sOutput sErr
 
-readOutput :: ASLanguage -> String -> String
-readOutput lang res = case lang of
-	Python -> res -- T.unpack $ (P.!!) (T.splitOn (T.pack "\n") (T.pack res)) 2
-	otherwise -> res
+readOutput :: ASLanguage -> String -> String -> String
+readOutput lang res err = case err of 
+	"" -> res
+	otherwise -> case lang of 
+		Python -> case res of 
+			"" -> "{\'error\':\'" ++ err ++ "\', \'err_type\':\'Evaluation\', \'position\':0, \'file\':\'temp.py\'}"
+			otherwise -> res
+		OCaml -> err
+		otherwise -> err
 
 
 

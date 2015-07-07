@@ -13,7 +13,7 @@ from sys import exc_info
 try:
 	
 	
-	print(repr(plot(arr([1.0,2.0,3.0]), arr([4.0,5.0,6.0]), "test")))
+	print(repr(range(15)))
 except Exception as e: 
 	exc_type, exc_obj, exc_tb = exc_info()
 	fname = 'AlphaSheets Python evaluator'
