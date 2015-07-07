@@ -52,7 +52,7 @@ setCells cells = do
     let locs = (map cellLocation cells) ++ concat (map (decomposeLocs . cellLocation) rngCells)
     runDB $ deleteWhere [ASCellDBLocationString <-. (map show locs)]
     insertCells cells
-    setRangeCells rngCells
+    -- setRangeCells rngCells
 
 --TODO: is this necessary? When is a range going to be in the DB? 
 setRangeCells :: [ASCell] -> Handler ()

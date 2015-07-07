@@ -6,16 +6,20 @@
 from AS.instruments.ETF import ETF
 #from AS.instruments.Stock import Stock
 #from AS.ui.plot import *
-#import json
-#import sys, os
-#import traceback
-from AS.pycel.excelcompiler import *
-from AS.pycel.excellib import * # mapping from excel to python
+import json
+import sys, os
+import traceback
+
+
 
 try:
+	from sqlalchemy import create_engine
+	import pandas as pd 
+	from AS.pandas.output import pprint 
+	e = create_engine('sqlite:////home/riteshr/testRit.db')
+	df = pd.read_sql_query("SELECT * FROM Cars",e)
 	
-	
-	print(repr(19.0+2))
+	print(repr(pprint(df)))
 except Exception as e: 
 	exc_type, exc_obj, exc_tb = sys.exc_info()
 	fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]

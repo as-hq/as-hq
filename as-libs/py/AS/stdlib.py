@@ -1,7 +1,6 @@
 import numpy as np
 import random
 from AS.iterable import ASIterable
-import matplotlib.pyplot as plt
 from openpyxl import load_workbook
 import string
 from clusters import *
