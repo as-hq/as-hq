@@ -1,7 +1,6 @@
-import excellib
-from excellib import *
-from excelutil import *
-from excelwrapper import ExcelComWrapper
+from AS.excel.pycel.excellib import *
+from AS.excel.pycel.excelutil import *
+from AS.excel.pycel.excelwrapper import ExcelComWrapper
 from math import *
 from networkx.classes.digraph import DiGraph
 from networkx.drawing.nx_pydot import write_dot

@@ -4,7 +4,7 @@ Python equivalents of various excel functions
 from __future__ import division
 import numpy as np
 from math import log
-from pycel.excelutil import flatten
+from AS.excel.pycel.excelutil import flatten
 from string import *
 
 ######################################################################################
