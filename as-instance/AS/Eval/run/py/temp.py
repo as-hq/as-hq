@@ -11,9 +11,9 @@ from AS.ui.plot import *
 # from AS.excel.pycel.excellib import * # mapping from excel to python
 from sys import exc_info
 try:
+	from AS.ui.plot import *
 	
-	
-	print(repr(True))
+	print(repr(testStockChart()))
 except Exception as e: 
 	exc_type, exc_obj, exc_tb = exc_info()
 	fname = 'AlphaSheets Python evaluator'

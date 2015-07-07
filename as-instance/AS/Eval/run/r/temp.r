@@ -26,7 +26,7 @@ isError = FALSE
 result = tryCatch({
 
 
-TRUE
+list(c(0.0,1.0), c(0.0,1.0))
 }, warning = function(w) {
 	# nothing here
 }, error = function(e) {
