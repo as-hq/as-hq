@@ -5,24 +5,20 @@ from AS.instruments.Stock import Stock
 from AS.errors import *
 
 folder = os.path.dirname(__file__) 
-directory = os.path.abspath(os.path.join(folder, '..','..','..','..','anand-frontend','client','app','images')) + '/'
+directory = os.path.abspath(os.path.join(folder, '..','..','..','..','frontend','client','app','images')) + '/'
 
 retPath = "images/"
 
-def getList(x,y):
-    xlist = []; ylist = []
+def getList(x):
     if isinstance(x, ASIterable):
-        xlist = x.load()
-    else: xlist = x
-    if isinstance(y, ASIterable):
-        ylist = y.load()
-    else: ylist = y
-    return xlist, ylist
+        return x.load()
+    else: return x
 
 def plot(x,y=None,name=None):
     if y is None:
         return plotObj(x)
-    xlist, ylist = getList(x,y)
+    xlist = getList(x)
+    ylist = getList(y)
     plt.plot(xlist,ylist)
     plt.grid(True)
     plt.title(name)
@@ -42,9 +38,10 @@ def savePlot(plt, name):
     return {'imagePath':retPath + name + ".png"}
 
 def plotObj(x, name=None):
-    if isinstance(x[0], Stock):
+    xlist = getList(x)
+    elif isinstance(xlist[0], Stock):
         prices = []
-        for stock in x:
+        for stock in xlist:
             date = stock.data['Date'] + 'T23:28:56.782Z'
             opn = float(stock.data['Open'])
             high = float(stock.data['High'])
@@ -52,7 +49,7 @@ def plotObj(x, name=None):
             close = float(stock.data['Adj_Close'])
             prices.append([date,opn,high,low,close])
         rev = [e for e in reversed(prices)]
-        return {'stockPrices':rev, 'stockName': x[0].symbol}
+        return {'stockPrices':rev, 'stockName': xlist[0].symbol}
 
 def plotGeneric(x, name="Generic"):
     lst = x.transpose().load()
