@@ -159,9 +159,9 @@ eval s lang = do
 		sErr <- System.IO.hGetContents stdErr
 		foldr seq (waitForProcess hProcess) sOutput
 		foldr seq (waitForProcess hProcess) sErr
-		return $ case sOutput of 
-			"" -> sErr
-			otherwise -> readOutput lang sOutput
+		return $ case sErr of 
+			"" -> sOutput
+			otherwise -> sErr
 
 readOutput :: ASLanguage -> String -> String
 readOutput lang res = case lang of

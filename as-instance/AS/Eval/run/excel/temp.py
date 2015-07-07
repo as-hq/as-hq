@@ -7,7 +7,7 @@ from sys import exc_info
 try:
 	
 	
-	print(repr(average([1.0,2.0])))
+	print(repr({'err_type': "<type 'exceptions.Exception'>", 'position': 2, 'file': 'AlphaSheets Python evaluator', 'error': 'Exception(Invalid address format A,)'}))
 except Exception as e: 
 	exc_type, exc_obj, exc_tb = exc_info()
 	fname = 'AlphaSheets Python evaluator'
