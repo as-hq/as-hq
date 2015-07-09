@@ -4,6 +4,7 @@ import Import
 import AS.Config.Settings
 import AS.HandlerLibrary
 import qualified AS.DB as DB
+import AS.Eval as E
 import AS.Types
 
 optionsClearR :: Handler RepPlain

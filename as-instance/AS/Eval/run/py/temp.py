@@ -1,5 +1,5 @@
 
-#ADD COMMANDS HERE
+execfile("/home/anand/Development/asl-demo/as-instance/AS/Eval/run/py/repl_record.py")
 #from AS.stdlib import *
 from AS.ui.styling import *
 # from AS.tests.min import *
@@ -17,8 +17,8 @@ def arr(lst):
 	
 try:
 	
-	from AS.ui.plot import *
-	print(repr( plotGeneric(arr([arr([1.0,5.0]),arr([2.0,6.0]),arr([3.0,7.0]),arr([4.0,8.0])]))))
+	
+	print(repr(a()))
 except Exception as e: 
 	exc_type, exc_obj, exc_tb = exc_info()
 	fname = 'AlphaSheets Python evaluator'

@@ -1,4 +1,4 @@
-#ADD COMMANDS HERE
+execfile("/home/anand/Development/asl-demo/as-instance/AS/Eval/run/py/repl_record.py")
 #from AS.stdlib import *
 from AS.ui.styling import *
 # from AS.tests.min import *

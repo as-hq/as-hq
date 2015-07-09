@@ -20,11 +20,7 @@ isError = FALSE
 result = tryCatch({
 
 
-<<<<<<< HEAD
-list(c(0.0,1.0), c(0.0,1.0))
-=======
-20:40
->>>>>>> d7856a3c889dcf6f2e1efc46730c637375e37085
+c(c(1.0,1.0),c(2.0,2.0))
 }, warning = function(w) {
 	# nothing here
 }, error = function(e) {

@@ -62,11 +62,22 @@ jsonDeserialize lang objType jsonRep =
     OCaml   -> "Serialization# " ++ objType ++ " " ++ jsonRep ++ dlm
     SQL     -> objType ++ ".deserialize(" ++ jsonRep ++ ")" ++ dlm
 
+bool :: ASLanguage -> String -> String
+bool lang str = case lang of 
+  Python -> str
+  R -> ((C.toLower (P.head str)): (P.tail str))
+  OCaml -> ((C.toLower (P.head str)): (P.tail str))
+  SQL -> str
+  CPP -> ((C.toLower (P.head str)): (P.tail str))
+  Java -> ((C.toLower (P.head str)): (P.tail str))
+  Excel -> str
+
 showValue :: ASLanguage -> ASValue -> String
 showValue lang v = case v of
   ValueNaN () 		-> "Undefined"
   ValueS s 			-> show s
   ValueD d 			-> show d
+  ValueB b      -> bool lang $ show b
   ValueL l 			-> toListStr lang $ fmap (showValue lang) l
   StyledValue s v 	-> showValue lang v
   DisplayValue d v 	-> showValue lang v

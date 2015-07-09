@@ -1,4 +1,7 @@
 import matplotlib.pyplot as plt
+import matplotlib
+matplotlib.use('Qt4Agg')
+matplotlib.rcParams['backend.qt4']='PySide'
 import os.path 
 from AS.iterable import ASIterable
 from AS.instruments.Stock import Stock

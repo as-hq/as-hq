@@ -41,7 +41,7 @@ propagateCell loc xp = do
       cells <- reevaluateCell (loc, newXp)
       return $ Just $ map (\(Cell l (Expression e Excel) v ) -> (Cell l xp v)) (fromJust cells)
     else updateCell (loc,xp) >> reevaluateCell (loc, xp) 
-
+ 
 updateCell :: (ASLocation, ASExpression) -> Handler ()
 updateCell (loc, xp) = do
   let offsets = getOffsets loc
@@ -142,7 +142,7 @@ createListCells (Index sheet (a,b)) values = do
   let exprs = map (\(Index _ (x,y)) -> Reference origLoc (x-a,y-b)) locs
   let cells = L.tail $ map (\(l,e,v) -> Cell l e v) (zip3 locs exprs vals)
   $(logInfo) $ "Cells: " -- ++ (fromString $ show cells)
-  -- DB.dbUpdateLocationDepsBatch (zip (L.tail locs) (repeat [origLoc]))
+  DB.dbUpdateLocationDepsBatch (zip (L.tail locs) (repeat [origLoc]))
   return cells
   where
     shift (ValueL v) r (a,b) = [(a+c,b+r) | c<-[0..length(v)-1] ]

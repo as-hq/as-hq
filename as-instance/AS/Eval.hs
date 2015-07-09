@@ -112,17 +112,30 @@ evalCodeRepl xp = do
 	finalXp <- interpolateFileRepl lang (expression xp)
 	writeReplFile lang finalXp
 	result <- runReplFile lang
+	replRecord <- getReplRecord lang
+	$(logInfo) $ (fromString $ "Current REPL record: "++ replRecord)
+	writeReplRecord lang (replRecord ++ "\n" ++ (expression xp))
 	return $ case lang of 
 		Python -> parseValue lang result
 		otherwise -> ValueS "NOT_IMPLEMENTED"
 
+--evalRef :: ASLocation -> Map ASLocation ASValue -> ASExpression ->  Handler ASValue
+--evalRef loc dict (Reference l (a, b)) = do
+--  $(logInfo) $ (fromString $ "evalref: "++ show dict ++ "select " ++ show (a, b))
+--  return $ row L.!! a
+--    where
+--      ValueL row = lst L.!! b
+--      ValueL lst = dict M.! l
+
 evalRef :: ASLocation -> Map ASLocation ASValue -> ASExpression ->  Handler ASValue
 evalRef loc dict (Reference l (a, b)) = do
-  $(logInfo) $ (fromString $ "evalref: "++ show dict ++ "select " ++ show (a, b))
-  return $ row L.!! a
-    where
-      ValueL row = lst L.!! b
-      ValueL lst = dict M.! l
+	$(logInfo) $ (fromString $ "evalref: "++ show dict ++ "select " ++ show (a, b))
+	let (ValueL lst) = dict M.! l
+	let x = lst L.!! b
+	let val = case x of
+		ValueL row -> (row L.!! a)
+		otherwise -> x
+	return val
 
 -----------------------------------------------------------------------------------------------------------------------
 -- File Manipulation
@@ -132,6 +145,12 @@ writeExecFile lang contents = liftIO $ writeFile ((getRunFile lang) :: System.IO
 
 writeReplFile :: ASLanguage -> String -> Handler ()
 writeReplFile lang contents = liftIO $ writeFile ((getRunReplFile lang) :: System.IO.FilePath) contents
+
+writeReplRecord :: ASLanguage -> String -> Handler ()
+writeReplRecord lang contents = liftIO $ writeFile ((getReplRecordFile lang) :: System.IO.FilePath) contents
+
+clearReplRecord :: ASLanguage -> Handler ()
+clearReplRecord lang = liftIO $ writeFile ((getRunReplFile lang) :: System.IO.FilePath)  ""
 -----------------------------------------------------------------------------------------------------------------------
 -- Evaluation in progress
 
@@ -144,7 +163,7 @@ runFile lang = do
 
 runReplFile :: ASLanguage -> Handler String
 runReplFile lang = do
-	let terminalCmd = addCompileCmdRepl lang $ formatRunArgs lang (getRunnerCmdRepl lang) (getRunReplFile lang) (getRunnerArgs lang)
+	let terminalCmd = formatRunArgs lang (getRunnerCmdRepl lang) (getRunReplFile lang) (getRunnerArgs lang)
 	res <- eval terminalCmd lang
 	$(logInfo) $ "EVAL CMD returns: " ++ (fromString res)
 	return res
@@ -165,11 +184,22 @@ readOutput lang res err = case err of
 	"" -> res
 	otherwise -> case lang of 
 		Python -> case res of 
-			"" -> "{\'error\':\'" ++ err ++ "\', \'err_type\':\'Evaluation\', \'position\':0, \'file\':\'temp.py\'}"
+			"" -> res
 			otherwise -> res
 		OCaml -> err
 		otherwise -> err
 
+
+-- until we fix matplotlibrc's bullshit
+--readOutput :: ASLanguage -> String -> String -> String
+--readOutput lang res err = case err of 
+--	"" -> res
+--	otherwise -> case lang of 
+--		Python -> case res of 
+--			"" -> "{\'error\':\'" ++ err ++ "\', \'err_type\':\'Evaluation\', \'position\':0, \'file\':\'temp.py\'}"
+--			otherwise -> res
+--		OCaml -> err
+--		otherwise -> err
 
 
 

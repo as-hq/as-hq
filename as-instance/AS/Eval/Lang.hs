@@ -66,6 +66,18 @@ getRunReplFile lang = getEvalPath ++ case lang of
 	OCaml 	-> "ocaml/temp_repl.ml"
 	SQL 	-> "sql/temp_repl.py"
 
+getReplRecord :: ASLanguage -> Handler String
+getReplRecord lang = Import.readFile $ getEvalPath ++ file
+	where
+		file = case lang of 
+			Python 	-> "py/repl_record.py"
+
+getReplRecordFile :: ASLanguage -> String
+getReplRecordFile lang = getEvalPath ++ file
+	where
+		file = case lang of 
+			Python 	-> "py/repl_record.py"
+
 getRunnerCmd :: ASLanguage -> String
 getRunnerCmd lang = case lang of 
 	R 		-> "Rscript "
@@ -78,7 +90,7 @@ getRunnerCmd lang = case lang of
 
 getRunnerCmdRepl :: ASLanguage -> String
 getRunnerCmdRepl lang = case lang of 
-	Python 	-> "pyrasite "++pid++" "
+	Python 	-> "python "
 
 getRunnerArgs :: ASLanguage -> [String]
 getRunnerArgs lang = case lang of 
@@ -105,6 +117,8 @@ layoutCodeFile lang (imports, template, cmd) = case lang of
 			tabbedCmd = replaceSubstrings cmd [("\n", "\n\t")]
 	otherwise -> intercalate "\n" [imports, template, cmd]
 
+
+
 formatRunArgs :: ASLanguage -> String -> String -> [String] -> String
 formatRunArgs lang cmd filename args = case lang of 
 	otherwise -> cmd ++ filename ++ " " ++ (intercalate " " args)
@@ -119,9 +133,9 @@ addCompileCmd lang cmd = case lang of
 			path = getEvalPath ++ "java/"
 	otherwise -> cmd
 
-addCompileCmdRepl :: ASLanguage -> String -> String
-addCompileCmdRepl lang cmd = case lang of 
-	Python -> cmd ++ "; pyrasite --output 'localterm' "++pid++ " " ++(getRunReplFile lang)
+--addCompileCmdRepl :: ASLanguage -> String -> String
+--addCompileCmdRepl lang cmd = case lang of 
+--	Python -> cmd ++ "; pyrasite --output 'localterm' "++pid++ " " ++(getRunReplFile lang)
 
 --interpolateFile :: ASLanguage -> String -> Handler String
 --interpolateFile lang execCmd = do
