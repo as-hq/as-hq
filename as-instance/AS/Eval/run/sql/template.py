@@ -1,5 +1,5 @@
 #ADD COMMANDS HERE
-from AS.stdlib import *
+#from AS.stdlib import *
 from AS.ui.styling import *
 # from AS.tests.min import *
 from AS.instruments.ETF import ETF
@@ -12,36 +12,22 @@ from AS.pandas.input import listToDataframe
 from AS.pandas.output import pprint
 from pandasql import sqldf
 
+from sqlalchemy import create_engine
+from pandas import read_sql_query
+
 pysqldf = lambda q: sqldf(q, globals())
 
-try:
-	queryStr = #QUERY#.replace('\n',' ')
-	(rangeStr, data) = (#RANGE#, #DATA#)
 
-	objectMap = {} #  way of dealing with objects
-	for i in range(len(data)):
-		for j in range(len(data[i])):
-			try:
-				objectMap[data[i][j].displayValue()] = data[i][j]
-				data[i][j]=data[i][j].displayValue()
-			except Exception as e: 
-				continue
+def db(dbCmd,dbName=""):
+	try:
+		return pysqldf(dbCmd).head()
+	except:
+		try:
+			e = create_engine('sqlite:///'+dbName) #absolute file path
+			return read_sql_query(dbCmd,e)
+		except Exception as e: 
+			return e
 
-	queryStr = queryStr.replace(rangeStr, "dataset")
-	dataset = listToDataframe(data)
-	cleaned = pprint(pysqldf(queryStr).head())
-
-	for i in range(len(cleaned)): 
-		for j in range(len(cleaned[i])):
-			if objectMap.has_key(cleaned[i][j]):
-				cleaned[i][j] = objectMap[cleaned[i][j]]
-
-	print(cleaned)
-
-except Exception as e: 
-	exc_type, exc_obj, exc_tb = sys.exc_info()
-	fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
-	err = repr(e).replace("\'","").replace("'",'"')
-	pos = exc_tb.tb_lineno - 15 # subtract template lines
-	errJson = {'err_type': repr(exc_type), 'file': fname, 'position': pos, 'error': err}
-	print(errJson)
+def setGlobals(context):
+	for i in range(len(context)):
+		globals()["dataset"+str(i)] = listToDataframe([row for row in eval(context[i])])

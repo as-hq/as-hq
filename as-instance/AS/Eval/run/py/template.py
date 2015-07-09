@@ -1,14 +1,19 @@
 #ADD COMMANDS HERE
-from AS.stdlib import *
+#from AS.stdlib import *
 from AS.ui.styling import *
 # from AS.tests.min import *
 from AS.instruments.ETF import ETF
 from AS.instruments.Stock import Stock
-from AS.ui.plot import *
+#from AS.ui.plot import *
 #import json
 # from AS.excel.pycel.excelcompiler import *
 # from AS.excel.pycel.excellib import * # mapping from excel to python
 from sys import exc_info
+from AS.iterable import ASIterable
+
+def arr(lst):
+	return ASIterable(lst)
+	
 try:
 	#CMD#
 except Exception as e: 

@@ -12,3 +12,6 @@ optionsValuesR = do
 
 postValuesR :: Handler Value
 postValuesR = interactHandlerJson DP.evaluatePrimitive
+
+putValuesR :: Handler Value
+putValuesR = interactHandlerJson DP.insertCellImmediate

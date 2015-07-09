@@ -14,9 +14,8 @@ import AS.Parsing.Out
 import AS.Parsing.Common
 import System.IO                                       
 import System.Process   
+import qualified Data.Maybe as MB
 
--- REGEX DELETE
-import qualified AS.Parsing.Regex as R
 
 import Data.Time.Clock
 import Data.Text as T (unpack,pack)
@@ -47,15 +46,15 @@ evalCode loc values xp = do
 
 	simpleInterpolated <- interpolateFile lang finalXp
 
-	-- SQL REGEX DELETE
-	let interpolated = case lang of 
-				SQL -> formatSqlQuery simpleInterpolated ((expression xp), rng, rangeVals)
-					where 
-						rng 			= P.head $ R.getExcelMatches (expression xp)
-						rangeVals 		= replaceSubstrings expandedLists matches
-						expandedLists 	= R.excelRangesToLists SQL rng
-						matches 		= map (\(a, b) -> (R.toExcel a, R.showFilteredValue SQL a b)) (M.toList values)
-				otherwise -> simpleInterpolated
+	interpolated <- case lang of
+		SQL -> interpolateFile SQL ("setGlobals("++(show context) ++")\n" ++ newExp)
+			where
+				exLocs = getMatchesWithContext (expression xp) excelMatch
+				matchLocs = map (exLocToASLocation loc) (snd exLocs)
+				context = map (lookupString SQL values) matchLocs
+				st = ["dataset"++(show i) | i<-[0..((L.length matchLocs)-1)]]
+				newExp = replaceMatches exLocs (\el -> (L.!!) st (MB.fromJust (L.findIndex (el==) (snd exLocs)))) (expression xp)
+		otherwise -> (return simpleInterpolated)
 
 	writeExecFile lang interpolated
 

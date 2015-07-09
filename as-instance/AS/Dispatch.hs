@@ -201,3 +201,12 @@ createExcelCells v l = case v of
 
 evaluatePrimitive :: ASCell -> Handler ASCell
 evaluatePrimitive cell = DB.setCell cell >> return cell
+
+insertCellImmediate :: ASCell -> Handler ()
+insertCellImmediate cell = do
+  let val = parseValue (language $ cellExpression cell) ((\(ValueS str) -> str) $ cellValue cell)
+  $(logInfo) $ "Inserting cell immediately with value: " ++ (fromString $ show val)
+  let locs = decomposeLocs (cellLocation cell)
+  let cells' = map (\loc -> Cell loc (cellExpression cell) val) locs
+  DB.setCells cells'
+  return ()

@@ -4,7 +4,7 @@ library("jpeg")
 
 graph <- function(name, x){
     graphics.off()
-    fpath=paste0("/home/hal/code/alphasheets/frontend/client/app/images/",name,".png",sep="")
+    fpath=paste0("/home/riteshr/asl-demo/frontend/client/app/images/",name,".png",sep="")
     if (file.exists(fpath)){
     }
     else {
@@ -16,17 +16,15 @@ graph <- function(name, x){
     return(list(imagePath=paste0("images/",name,".png",sep="")))
 }
 
-# as.graph <- function (name, f) {
-#     jpeg(file=name)
-#     f()
-#     dev.off()
-# }
-
 isError = FALSE
 result = tryCatch({
 
 
+<<<<<<< HEAD
 list(c(0.0,1.0), c(0.0,1.0))
+=======
+20:40
+>>>>>>> d7856a3c889dcf6f2e1efc46730c637375e37085
 }, warning = function(w) {
 	# nothing here
 }, error = function(e) {
