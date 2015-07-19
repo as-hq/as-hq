@@ -32,6 +32,75 @@ FUNCTION_MAP = {
 # List of excel equivalent functions
 # TODO: needs unit testing
 
+#statistical:
+
+def rank(num,arr,order):
+    if order == 1: 
+        return sorted(arr.lst).index(num)+1
+    elif order == 0: 
+        return len(arr.lst)+1-rank(num,arr,1)
+    else:
+        raise TypeError("Not a valid order type")
+
+
+# convert an excel column like AB to an integer
+def colToInt(col):
+    num = 0
+    for c in col:
+        if c in string.ascii_letters:
+            num = num * 26 + (ord(c.upper()) - ord('A')) + 1
+    return num
+
+# inverse of colToInt
+def intToCol(col):
+    letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+    result = []
+    while col:
+        col, rem = divmod(col-1, 26)
+        result[:0] = letters[rem]
+    return ''.join(result) 
+
+def transpose(lst):
+    return lst.transpose()
+
+def address(row,column,abs=0,sheet=""):
+    presheet = ""
+    if (abs==0):
+        presheet = '$'+intToCol(column)+'$'+int(row)
+    elif abs==1:
+        presheet = '$'+intToCol(column)+int(row)
+    elif abs==2:
+        presheet = intToCol(column) + '$' + int(row)
+    elif abs==3:
+        presheet = intTOCol(column) + int(row)
+    else:
+        raise ValueError("Invalid abs argument")
+    if sheet!="":
+        return sheet+presheet
+    else:
+        return presheet
+
+def xabs(a):
+    if isinstance(a,int) or isinstance(a,float):
+        return abs(a)
+    else:
+        return [abs(x) for x in lst]
+
+def even(a):
+    return math.ceil(a / 2.) * 2
+
+def sumproduct(*args):
+    product = args[0]
+    for i in range(1,len(args)):
+        product *= args[i]
+    return sum(product)
+
+def match(lst,key,type):
+    if (type==0):
+        return lst.index(key)+1
+    raise ValueError("Not yet implemented: match with these arguments")
+
+
 def trim(s):
     return strip(s)
 
@@ -120,24 +189,12 @@ def right(text,n):
         # TODO: get rid of the decimal
         return str(int(text))[-n:]
 
-    
-def index(*args):
-    array = args[0]
-    row = args[1]
-    
-    if len(args) == 3:
-        col = args[2]
+def index(lst,i,j=None):
+    if j!=None:
+        return lst[i-1][j-1]
     else:
-        col = 1
-        
-    if isinstance(array[0],(list,tuple,np.ndarray)):
-        # rectangular array
-        array[row-1][col-1]
-    elif row == 1 or col == 1:
-        return array[row-1] if col == 1 else array[col-1]
-    else:
-        raise Exception("index (%s,%s) out of range for %s" %(row,col,array))
-        
+        return lst[i-1]
+
 
 def lookup(value, lookup_range, result_range):
     

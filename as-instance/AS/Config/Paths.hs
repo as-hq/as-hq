@@ -12,4 +12,4 @@ py_template_file = "template.py"
 py_eval_file = "eval.py"
 py_run_file = "temp.py"
 
-getEvalPath = "/home/anand/Development/as/asl-demo/as-instance/AS/Eval/run/"
+getEvalPath = "/home/riteshr/demo-plus/as-instance/AS/Eval/run/"
