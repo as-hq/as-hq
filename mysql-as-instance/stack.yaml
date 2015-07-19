@@ -1,0 +1,8 @@
+flags:
+  as-instance-mysql:
+    library-only: false
+    dev: false
+packages:
+- '.'
+extra-deps: [pyfi-0.4.0.4]
+resolver: lts-2.17

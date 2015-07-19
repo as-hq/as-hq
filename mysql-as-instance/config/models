@@ -1,0 +1,31 @@
+User
+    ident Text
+    password Text Maybe
+    UniqueUser ident
+    deriving Typeable
+Email
+    email Text
+    user UserId Maybe
+    verkey Text Maybe
+    UniqueEmail email
+
+ -- By default this file is used in Model.hs (which is imported by Foundation.hs)
+
+ASCellDB
+    locationString String
+    expressionString String
+    valueString String
+    deriving Show
+
+RelationDB
+    firstEndpoint String
+    secondEndpoint String
+
+ASFunc
+    alias Text      -- function call
+    replace Text    -- function alias replacement (e.g. disambiguated funcs)
+    importName Text    -- e.g. 'numpy' or script name from as-libs/py
+    importCommand Text    -- should be "execfile" or "import importName as np" depending on module or script in as-libs
+    location Text
+    lang Text       -- "python"
+    deriving Show
