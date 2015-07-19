@@ -7,7 +7,7 @@ from sys import exc_info
 try:
 	
 	
-	result = (1+2)+3
+	result = range(6)
 except Exception as e: 
 	exc_type, exc_obj, exc_tb = exc_info()
 	fname = 'AlphaSheets Python evaluator'

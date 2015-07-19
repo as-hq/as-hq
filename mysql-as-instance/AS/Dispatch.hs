@@ -104,7 +104,6 @@ evalChain _ [] = return []
 evalChain mp (c:cs) = do
   let xp  = cellExpression c
       loc = cellLocation c
-  $(logInfo) $ "EVALPY EXPRESSION: " ++ (fromString $ (expression xp))
   cv <- R.evalExpression loc mp xp -- eval expression needs to know current sheet
   -- $(logInfo) $ "Parsing returns: " ++ (fromString $ show cv)
   otherCells <- additionalCells loc cv 

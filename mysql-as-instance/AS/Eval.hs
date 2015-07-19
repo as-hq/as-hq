@@ -124,12 +124,13 @@ evalCodeRepl xp = do
 evalRef :: ASLocation -> Map ASLocation ASValue -> ASExpression ->  Handler ASValue
 evalRef loc dict (Reference l (a, b)) = do
 	$(logInfo) $ (fromString $ "evalref: "++ show dict ++ "select " ++ show (a, b))
-	let (ValueL lst) = dict M.! l
-	let x = lst L.!! b
-	let val = case x of
-		ValueL row -> (row L.!! a)
-		otherwise -> x
-	return val
+	let d = dict M.! l 
+	let ret = case d of
+		(ValueL lst) -> case (lst L.!!b) of
+			(ValueL row) -> (row L.!! a)
+			otherwise -> (lst L.!!b)
+		otherwise -> dict M.! loc -- current reference
+	return ret
 
 handleEval :: ASLanguage -> String -> Handler String
 handleEval lang str = case lang of 
@@ -219,5 +220,5 @@ pyfiString evalStr = defVV (evalStr ++ pyString) ("Hello" :: String)
 pyString :: String
 pyString = [str|
 def export(x=1):
-	return repr(result)
+	return str(repr(result))
 |]
