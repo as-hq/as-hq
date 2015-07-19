@@ -121,20 +121,34 @@ evalCodeRepl xp = do
 --      ValueL row = lst L.!! b
 --      ValueL lst = dict M.! l
 
+{-
 evalRef :: ASLocation -> Map ASLocation ASValue -> ASExpression ->  Handler ASValue
 evalRef loc dict (Reference l (a, b)) = do
 	$(logInfo) $ (fromString $ "evalref: "++ show dict ++ "select " ++ show (a, b))
-	let d = dict M.! l 
-	let ret = case d of
-		(ValueL lst) -> case (lst L.!!b) of
-			(ValueL row) -> (row L.!! a)
-			otherwise -> (lst L.!!b)
-		otherwise -> dict M.! loc -- current reference
-	return ret
+<<<<<<< HEAD
+	let (ValueL lst) = dict M.! l
+	let x = lst L.!! b
+	let val = case x of
+		ValueL row -> (row L.!! a)
+		otherwise -> x
+	return val -}
+
+evalRef :: ASLocation -> Map ASLocation ASValue -> ASExpression ->  Handler ASValue
+evalRef loc dict (Reference l (a, b)) = do
+  -- $(logInfo) $ (fromString $ "evalref: "++ show dict ++ "select " ++ show (a, b))
+  let d = dict M.! l 
+  let ret = case d of
+  	(ValueL lst) -> case (lst L.!!b) of
+  		(ValueL row) -> (row L.!! a)
+  		otherwise -> (lst L.!!b)
+  	otherwise -> dict M.! loc -- current reference
+  return ret
+
 
 handleEval :: ASLanguage -> String -> Handler String
 handleEval lang str = case lang of 
 	Python -> return =<< liftIO $ pyfiString str
+	Excel  -> return =<< liftIO $ pyfiString str
 	otherwise -> do
 		writeExecFile lang str
 		time <- liftIO (getCurrentTime >>= return . utctDayTime)

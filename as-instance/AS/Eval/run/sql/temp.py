@@ -33,6 +33,6 @@ def setGlobals(context):
 	for i in range(len(context)):
 		globals()["dataset"+str(i)] = listToDataframe([row for row in eval(context[i])])
 
-setGlobals(["[[\"a\",\"b\"],[1.0,2.0],[3.0,4.0]]"])
+setGlobals([])
 
-print(pprint(select * from dataset0 where a>1))
+print(pprint(db("select * from Cars","/home/riteshr/testRit.db")))

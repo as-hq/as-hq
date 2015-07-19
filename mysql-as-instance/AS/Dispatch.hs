@@ -148,44 +148,6 @@ createListCells (Index sheet (a,b)) values = do
     shift (ValueL v) r (a,b) = [(a+c,b+r) | c<-[0..length(v)-1] ]
     shift other r (a,b)  = [(a,b+r)]
 
--- TODO: batch more. There should be NO setcells, and only one dbUpdate deps
-createListCells' :: ASLocation -> [ASValue] -> Handler [ASCell]
-createListCells' (Index sheet (a, b)) [] = return []
-createListCells' (Index sheet (a, b)) (x:xs) =
-  case x of
-    ValueL lst ->
-      do
-        cellTriples <- mapM process $ L.tail matchedFirstRow
-        let cells = map (\(cell,_,_)->cell) cellTriples
-        -- DB.setCells cells
-        DB.dbUpdateLocationDepsBatch $ map (\(_, loc, origLoc) -> (loc, [origLoc])) cellTriples
-        listCellTriplesUnflat <- mapM processList $ L.tail matched
-        let listCellTriples = concat listCellTriplesUnflat
-        let listCells = map(\(cell,_,_)->cell) listCellTriples
-        -- DB.setCells listCells
-        DB.dbUpdateLocationDepsBatch $ map (\(_, loc, origLoc) -> (loc, [origLoc])) listCellTriples
-        return $ cells ++ listCells
-      where
-        numCols = length lst
-        matchedFirstRow = zip [(a + i, b) | i <- [0..numCols-1]] lst
-        processList ((col, row), ValueL val) = mapM process $ zip [(col + i, row) | i <- [0..numCols-1]] val
-    otherwise -> do
-      result <- mapM process $ L.tail matched
-      -- $(logInfo) $ "created list cell on otherwise"
-      return $ map (\(cell,_,_)->cell) result
-  where
-    process ((col, row), val) = do
-      -- $(logInfo) $ "created list cell"
-      let loc  = Index sheet (col, row)
-          cell = Cell loc (Reference origLoc (col - a, row - b)) val
-      return (cell, loc, origLoc)
-    matched  = zip [(a, b + i) | i <- [0..numRows-1]] values
-    origLoc  = Index sheet (a, b)
-    numRows  = length values
-    values   = x:xs
-
-
-
 createExcelCells :: ASValue -> ASLocation -> Handler [ASCell]
 createExcelCells v l = case v of
   ExcelSheet locs exprs vals -> do
