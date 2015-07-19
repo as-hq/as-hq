@@ -1,3 +1,4 @@
+{-# LANGUAGE QuasiQuotes #-}
 module AS.Eval where
 
 import Import hiding (writeFile, getLine)
@@ -7,7 +8,7 @@ import qualified Data.Map as M
 import qualified Data.List as L
 import qualified Data.Text as T
 import AS.Eval.Lang
-import AS.Types
+import AS.Types hiding (str)
 import AS.DB
 import AS.Parsing.In
 import AS.Parsing.Out
@@ -16,6 +17,7 @@ import System.IO
 import System.Process   
 import qualified Data.Maybe as MB
 
+import Python
 
 import Data.Time.Clock
 import Data.Text as T (unpack,pack)
@@ -62,7 +64,7 @@ evalCode loc values xp = do
 	$logInfo $ "done with writeexecfile " ++ (fromString $ show time)
 
 	$(logInfo) $ "EVAL EXECUTING: " ++ (fromString $ show interpolated)
-	result <- runFile lang
+	result <- liftIO $ pyfiString interpolated
 
 	time <- liftIO (getCurrentTime >>= return . utctDayTime)
 	$logInfo $ "finished runFile eval " ++ (fromString $ show time)
@@ -113,8 +115,8 @@ evalCodeRepl xp = do
 	writeReplFile lang finalXp
 	result <- runReplFile lang
 	replRecord <- getReplRecord lang
-	$(logInfo) $ (fromString $ "Current REPL record: "++ replRecord)
-	writeReplRecord lang (replRecord ++ "\n" ++ (expression xp))
+	$(logInfo) $ (fromString $ "EVAL REPL returns value: " ++ (show result))
+	writeReplRecord lang (replRecord ++ "\n" ++ (removePrintStmt lang (expression xp)))
 	return $ case lang of 
 		Python -> parseValue lang result
 		otherwise -> ValueS "NOT_IMPLEMENTED"
@@ -156,8 +158,9 @@ clearReplRecord lang = liftIO $ writeFile ((getRunReplFile lang) :: System.IO.Fi
 
 runFile :: ASLanguage -> Handler String
 runFile lang = do
-	let terminalCmd = addCompileCmd lang $ formatRunArgs lang (getRunnerCmd lang) (getRunFile lang) (getRunnerArgs lang)
-	res <- eval terminalCmd lang
+	--let terminalCmd = addCompileCmd lang $ formatRunArgs lang (getRunnerCmd lang) (getRunFile lang) (getRunnerArgs lang)
+	let simpleEval = getRunFile lang
+	res <- liftIO $ pyfiString simpleEval
 	$(logInfo) $ "EVAL CMD returns: " ++ (fromString res)
 	return res
 
@@ -172,12 +175,13 @@ eval :: String -> ASLanguage -> Handler String
 eval s lang = do 
 	$(logInfo) $ "EVAL CMD: " ++ (fromString s)
 	liftIO $ do
-		(stdIn,stdOut,stdErr,hProcess) <- runInteractiveCommand s
+		(_,stdOut,_,hProcess) <- runInteractiveCommand s
 		sOutput <- System.IO.hGetContents stdOut
-		sErr <- System.IO.hGetContents stdErr
+		--sErr <- System.IO.hGetContents stdErr
 		foldr seq (waitForProcess hProcess) sOutput
-		foldr seq (waitForProcess hProcess) sErr
-		return $ readOutput lang sOutput sErr
+		--foldr seq (waitForProcess hProcess) sErr
+		--return $ readOutput lang sOutput sErr
+		return sOutput
 
 readOutput :: ASLanguage -> String -> String -> String
 readOutput lang res err = case err of 
@@ -202,13 +206,16 @@ readOutput lang res err = case err of
 --		otherwise -> err
 
 
+------------------- PYfi python evaluation --------------------
 
+evalString :: ASLanguage -> String -> IO ASValue 
+evalString lang evalStr = return . parseValue lang =<< pyfiString evalStr
 
+pyfiString :: String -> IO String
+pyfiString evalStr = defVV (evalStr ++ pyString) ("Hello" :: String)
 
-
-
-
-
-
-
-
+pyString :: String
+pyString = [str|
+def export(x=1):
+	return repr(result)
+|]

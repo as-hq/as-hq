@@ -109,6 +109,7 @@ library
                  , process
                  , filepath
                  , aeson
+                 , pyfi
 
 executable         as-instance
     if flag(library-only)

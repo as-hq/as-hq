@@ -1,5 +1,5 @@
 
-execfile("/home/anand/Development/asl-demo/as-instance/AS/Eval/run/py/repl_record.py")
+execfile("/home/anand/Development/as/asl-demo/as-instance/AS/Eval/run/py/repl_record.py")
 #from AS.stdlib import *
 from AS.ui.styling import *
 # from AS.tests.min import *
@@ -16,8 +16,7 @@ def arr(lst):
 	return ASIterable(lst)
 	
 try:
-	def a():
-		return "hi!"
+		return "sex money"
 except Exception as e: 
 	exc_type, exc_obj, exc_tb = exc_info()
 	fname = 'AlphaSheets Python evaluator'

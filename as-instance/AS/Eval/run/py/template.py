@@ -1,5 +1,5 @@
-execfile("/home/anand/Development/asl-demo/as-instance/AS/Eval/run/py/repl_record.py")
-#from AS.stdlib import *
+execfile("/home/anand/Development/as/asl-demo/as-instance/AS/Eval/run/py/repl_record.py")
+from AS.stdlib import *
 from AS.ui.styling import *
 # from AS.tests.min import *
 from AS.instruments.ETF import ETF
@@ -13,7 +13,7 @@ from AS.iterable import ASIterable
 
 def arr(lst):
 	return ASIterable(lst)
-	
+result = "DefaultValue"
 try:
 	#CMD#
 except Exception as e: 

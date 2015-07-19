@@ -20,7 +20,7 @@ isError = FALSE
 result = tryCatch({
 
 
-c(c(1.0,1.0),c(2.0,2.0))
+1.0+3.0
 }, warning = function(w) {
 	# nothing here
 }, error = function(e) {

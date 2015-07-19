@@ -81,7 +81,7 @@ getReplRecordFile lang = getEvalPath ++ file
 getRunnerCmd :: ASLanguage -> String
 getRunnerCmd lang = case lang of 
 	R 		-> "Rscript "
-	Python 	-> "python " -- "pyrasite --output 'localterm' " ++ pid ++ " "
+	Python 	-> "python -u " -- "pyrasite --output 'localterm' " ++ pid ++ " "
 	OCaml 	-> "ocamlfind ocamlc -linkpkg -thread -package extlib -package core "
 	SQL  	-> "python "
 	CPP 	-> "g++ -std=c++11 "
@@ -188,12 +188,21 @@ insertPrintCmd lang (s, lst) = s ++ process lst
 	where
 		process l 	= case lang of 
 			R 		-> l
-			Python 	-> "print(repr(" ++ l ++ "))"
+			Python 	-> "result = " ++ l
 			OCaml 	-> "print_string(Std.dump(" ++ l ++ "))"
 			SQL 	-> "print(pprint(" ++ l ++ "))"
 			CPP 	-> "int main() { std::cout << (" ++ l ++ "); }" 
 			Java 	-> "public static void main(String[] args) throws Exception{Object x = " ++ l ++ "; System.out.println(pprint(x));}}"
 			Excel 	-> "print(repr(" ++ l ++ "))"
+
+removePrintStmt :: ASLanguage -> String -> String
+removePrintStmt lang str = case lang of 
+	Python -> noPrints
+		where
+			(start, end) = splitLastCmd lang str
+			noPrints = if (isInfixOf "print" end)
+				then start
+				else start ++ "\n" ++ end
 
 splitLastCmd :: ASLanguage -> String -> (String, String)
 splitLastCmd lang cmd = 
