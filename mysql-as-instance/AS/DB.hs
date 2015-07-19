@@ -33,6 +33,7 @@ getCell loc = do
 		[] -> Nothing
 		((Entity cellId cell):cs) -> Just . fromDBCell $ cell
 
+
 getCells :: [ASLocation] -> Handler [Maybe ASCell]
 getCells locs = do
 	cells <- runDB $ mapM (\loc -> selectList [ASCellDBLocationString ==. show loc] []) locs
@@ -40,19 +41,23 @@ getCells locs = do
 		[] -> Nothing
 		((Entity cellId cell):cs) -> Just . fromDBCell $ cell) cells
 
+--getCells :: [ASLocation] -> Handler (Maybe [ASCell])
+--getCells locs = do
+--    resultsSource <- runDB $ selectSource [ASCellDBLocationString <-. (map show locs)] []
+
 
 setCell :: ASCell -> Handler ()
 setCell cell = setCells [cell]
 
 setCells :: [ASCell] -> Handler ()
 setCells cells = do
-    let rngCells = filter (\cell -> case (cellLocation cell) of 
-                            (Range sheet a) -> True
-                            otherwise -> False) cells
-    let locs = (map cellLocation cells) ++ concat (map (decomposeLocs . cellLocation) rngCells)
-    runDB $ deleteWhere [ASCellDBLocationString <-. (map show locs)]
-    insertCells cells
-    -- setRangeCells rngCells
+	let rngCells = filter (\cell -> case (cellLocation cell) of 
+							(Range sheet a) -> True
+							otherwise -> False) cells
+	let locs = (map cellLocation cells) ++ concat (map (decomposeLocs . cellLocation) rngCells)
+	runDB $ deleteWhere [ASCellDBLocationString <-. (map show locs)]
+	insertCells cells
+	-- setRangeCells rngCells
 
 --TODO: is this necessary? When is a range going to be in the DB? 
 setRangeCells :: [ASCell] -> Handler ()
@@ -78,6 +83,7 @@ insertCells cells = do
 
 deleteCell :: ASLocation -> Handler ()
 deleteCell loc@(Index _ _) = do
+	empty <- dbDeleteLocationDependencies loc
 	cells <- runDB $ selectList [ASCellDBLocationString ==. show loc] []
 	case cells of
 		[] -> return ()
@@ -93,8 +99,11 @@ dbInsertSingleRelation rel = (runDB . insert . toDBRelation $ rel) >> return ()
 dbInsertRelation :: [(ASLocation, ASLocation)] -> Handler ()
 dbInsertRelation = mapM_ dbInsertSingleRelation
 
+ --TODO propagate error through desccendants and send back these cells
 dbDeleteLocationDependencies :: ASLocation -> Handler ()
-dbDeleteLocationDependencies loc = runDB $ deleteWhere [RelationDBFirstEndpoint ==. (show loc)]
+dbDeleteLocationDependencies loc = runDB $ do
+	deleteWhere [RelationDBFirstEndpoint ==. (show loc)]
+	deleteWhere [RelationDBSecondEndpoint ==. (show loc)]
 
 dbUpdateLocationDependencies :: (ASLocation, [ASLocation]) -> Handler ()
 dbUpdateLocationDependencies (loc, deps) =
