@@ -193,7 +193,7 @@ insertPrintCmd lang (s, lst) = s ++ process lst
 			SQL 	-> "print(pprint(" ++ l ++ "))"
 			CPP 	-> "int main() { std::cout << (" ++ l ++ "); }" 
 			Java 	-> "public static void main(String[] args) throws Exception{Object x = " ++ l ++ "; System.out.println(pprint(x));}}"
-			Excel 	-> "print(repr(" ++ l ++ "))"
+			Excel 	-> "result = " ++ l
 
 removePrintStmt :: ASLanguage -> String -> String
 removePrintStmt lang str = case lang of 

@@ -12,11 +12,11 @@ optionsClearR = do
     addCorsHeaders
     return $ RepPlain $ toContent ("" :: Text)
 
-getClearR :: Handler Html
-getClearR = runDB $ do
+getClearR :: Handler ()
+getClearR = (runDB $ do
 	deleteWhere ([] :: [Filter ASCellDB])
-	deleteWhere ([] :: [Filter RelationDB])
-	redirect (frontend_url :: String)
+	deleteWhere ([] :: [Filter RelationDB]))
+	>> redirect (frontend_url :: String)
 
 postClearR :: Handler Value
 postClearR = interactHandlerJson DB.deleteCell

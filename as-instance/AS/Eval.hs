@@ -58,7 +58,7 @@ evalCode loc values xp = do
 				newExp = replaceMatches exLocs (\el -> (L.!!) st (MB.fromJust (L.findIndex (el==) (snd exLocs)))) (expression xp)
 		otherwise -> (return simpleInterpolated)
 
-	writeExecFile lang interpolated
+	--writeExecFile lang interpolated
 
 	time <- liftIO (getCurrentTime >>= return . utctDayTime)
 	$logInfo $ "done with writeexecfile " ++ (fromString $ show time)

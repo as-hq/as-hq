@@ -58,16 +58,13 @@ evalCode loc values xp = do
 				newExp = replaceMatches exLocs (\el -> (L.!!) st (MB.fromJust (L.findIndex (el==) (snd exLocs)))) (expression xp)
 		otherwise -> (return simpleInterpolated)
 
-	--writeExecFile lang interpolated
+	time <- liftIO (getCurrentTime >>= return . utctDayTime)
+	$(logInfo) $ "EVAL EXECUTING: " ++ (fromString $ show time)
+
+	result <- handleEval lang interpolated
 
 	time <- liftIO (getCurrentTime >>= return . utctDayTime)
-	$logInfo $ "done with writeexecfile " ++ (fromString $ show time)
-
-	$(logInfo) $ "EVAL EXECUTING: " ++ (fromString $ show interpolated)
-	result <- liftIO $ pyfiString interpolated
-
-	time <- liftIO (getCurrentTime >>= return . utctDayTime)
-	$logInfo $ "finished runFile eval " ++ (fromString $ show time)
+	$logInfo $ "EVAL FINISHED: " ++ (fromString $ show time)
 
 	$(logInfo) $ "EVAL RETURNS: "  ++ (fromString result)
 
@@ -88,12 +85,7 @@ evalExcel xp = do
 	time <- liftIO (getCurrentTime >>= return . utctDayTime)
 	$logInfo $ "done interpolating "  ++ (fromString $ show interpolated)
 
-	writeExecFile Excel interpolated
-
-	time <- liftIO (getCurrentTime >>= return . utctDayTime)
-	$logInfo $ "done writeexec " ++ (fromString $ show time)
-
-	resultInit <- runFile Excel
+	resultInit <- liftIO $ pyfiString interpolated
 
 	time <- liftIO (getCurrentTime >>= return . utctDayTime)
 	$logInfo $ "finished runfile eval " ++ (fromString $ show time)
@@ -139,6 +131,17 @@ evalRef loc dict (Reference l (a, b)) = do
 		otherwise -> x
 	return val
 
+handleEval :: ASLanguage -> String -> Handler String
+handleEval lang str = case lang of 
+	Python -> return =<< liftIO $ pyfiString str
+	otherwise -> do
+		writeExecFile lang str
+		time <- liftIO (getCurrentTime >>= return . utctDayTime)
+		$(logInfo) $ "done with writeexecfile " ++ (fromString $ show time)
+		return =<< runFile lang
+
+
+
 -----------------------------------------------------------------------------------------------------------------------
 -- File Manipulation
 
@@ -158,9 +161,8 @@ clearReplRecord lang = liftIO $ writeFile ((getRunReplFile lang) :: System.IO.Fi
 
 runFile :: ASLanguage -> Handler String
 runFile lang = do
-	--let terminalCmd = addCompileCmd lang $ formatRunArgs lang (getRunnerCmd lang) (getRunFile lang) (getRunnerArgs lang)
-	let simpleEval = getRunFile lang
-	res <- liftIO $ pyfiString simpleEval
+	let terminalCmd = addCompileCmd lang $ formatRunArgs lang (getRunnerCmd lang) (getRunFile lang) (getRunnerArgs lang)
+	res <- eval terminalCmd lang
 	$(logInfo) $ "EVAL CMD returns: " ++ (fromString res)
 	return res
 

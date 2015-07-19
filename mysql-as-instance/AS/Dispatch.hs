@@ -128,6 +128,7 @@ additionalCells loc cv = do
   excelCells <- case cv of 
     ExcelSheet l e v-> createExcelCells cv loc
     otherwise -> return []
+  $(logInfo) $ "got here!"
   return $ listCells ++ excelCells
 
 -- not currently handling [[[]]] type things
