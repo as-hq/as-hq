@@ -192,12 +192,12 @@ eval :: String -> ASLanguage -> Handler String
 eval s lang = do 
 	$(logInfo) $ "EVAL CMD: " ++ (fromString s)
 	liftIO $ do
-		(_,stdOut,_,hProcess) <- runInteractiveCommand s
+		(_,stdOut,stdErr,hProcess) <- runInteractiveCommand s
 		sOutput <- System.IO.hGetContents stdOut
-		--sErr <- System.IO.hGetContents stdErr
+		sErr <- System.IO.hGetContents stdErr
 		foldr seq (waitForProcess hProcess) sOutput
-		--foldr seq (waitForProcess hProcess) sErr
-		--return $ readOutput lang sOutput sErr
+		foldr seq (waitForProcess hProcess) sErr
+		return $ readOutput lang sOutput sErr
 		return sOutput
 
 readOutput :: ASLanguage -> String -> String -> String
@@ -234,5 +234,5 @@ pyfiString evalStr = defVV (evalStr ++ pyString) ("Hello" :: String)
 pyString :: String
 pyString = [str|
 def export(x=1):
-	return str(repr(result))
+	return repr(result)
 |]
