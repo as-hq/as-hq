@@ -38,7 +38,7 @@ def pprintErr(e):
 	exc_type, exc_obj, exc_tb = exc_info()
 	fname = 'AlphaSheets Python evaluator'
 	err = repr(e).replace("\'","").replace("'",'"')
-	pos = exc_tb.tb_lineno - 20 # subtract template lines
+	pos = exc_tb.tb_lineno - 52 # subtract template lines
 	return {'err_type': repr(exc_type), 'file': fname, 'position': pos, 'error': err}
 
 def pprintSql(res):
@@ -47,7 +47,9 @@ def pprintSql(res):
 	else: 
 		return res
 
-
-setGlobals(["[[\"a\",\"b\"],[1.0,1.0],[2.0,2.0],[3.0,3.0],[4.0,4.0]]"])
-
-result = pprintSql(db("select * from dataset0 * where a > 1"))
+try:
+	setGlobals([])
+	
+	result = pprintSql(1+dsfdfsdfdg)
+except Exception as e:
+	result = pprintErr(e)

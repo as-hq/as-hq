@@ -37,7 +37,7 @@ def pprintErr(e):
 	exc_type, exc_obj, exc_tb = exc_info()
 	fname = 'AlphaSheets Python evaluator'
 	err = repr(e).replace("\'","").replace("'",'"')
-	pos = exc_tb.tb_lineno - 20 # subtract template lines
+	pos = exc_tb.tb_lineno - 52 # subtract template lines
 	return {'err_type': repr(exc_type), 'file': fname, 'position': pos, 'error': err}
 
 def pprintSql(res):
@@ -46,3 +46,7 @@ def pprintSql(res):
 	else: 
 		return res
 
+try:
+	#CMD#
+except Exception as e:
+	result = pprintErr(e)

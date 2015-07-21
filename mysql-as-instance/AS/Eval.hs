@@ -149,7 +149,11 @@ handleEval :: ASLanguage -> String -> Handler String
 handleEval lang str = case lang of 
 	Python -> return =<< liftIO $ pyfiString str
 	Excel  -> return =<< liftIO $ pyfiString str
-	SQL	   -> return =<< liftIO $ pyfiString str
+	SQL	   -> do
+		writeExecFile lang str
+		time <- liftIO (getCurrentTime >>= return . utctDayTime)
+		$(logInfo) $ "done with writeexecfile " ++ (fromString $ show time)
+		return =<< liftIO $ pyfiString str
 	otherwise -> do
 		writeExecFile lang str
 		time <- liftIO (getCurrentTime >>= return . utctDayTime)

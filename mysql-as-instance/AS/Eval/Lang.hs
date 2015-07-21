@@ -115,6 +115,10 @@ layoutCodeFile lang (imports, template, cmd) = case lang of
 		where
 			importedTemplate = intercalate "\n" [imports, template]
 			tabbedCmd = replaceSubstrings cmd [("\n", "\n\t")]
+	SQL 	-> replaceSubstrings importedTemplate [("#CMD#", tabbedCmd)]
+		where
+			importedTemplate = intercalate "\n" [imports, template]
+			tabbedCmd = replaceSubstrings cmd [("\n", "\n\t")]
 	otherwise -> intercalate "\n" [imports, template, cmd]
 
 
