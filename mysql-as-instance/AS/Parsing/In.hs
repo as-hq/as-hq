@@ -35,11 +35,11 @@ double = fmap rd $ int <++> dec
   where
     rd      = read :: String -> Double
     dNumber = int <++> dec
-    number  = option "0" (many1 digit)
+    number  = many1 digit
     plus    = char '+' *> number
     minus   = char '-' <:> number
     int     = plus <|> minus <|> number
-    dec     = Text.Parsec.try $ period <:> (manyTill digit (try eof))
+    dec     = option "" $ (Text.Parsec.try $ period <:> number) <|> (skip period)
     period  = char '.'
 
 int :: Parser Int
@@ -199,7 +199,7 @@ ocamlError = do
   return $ ValueError err "StdErr" file ((read pos :: Int) - 4)
 
 asValue :: ASLanguage -> Parser ASValue 
-asValue lang = choice [(try valueI), (try valueD), valueS, (valueB lang), (valueL lang), complexValue, ocamlError, return $ ValueNaN ()]
+asValue lang = choice [valueD, valueS, (valueB lang), (valueL lang), complexValue, ocamlError, return $ ValueNaN ()]
 
 parseValue :: ASLanguage -> String -> ASValue --needs to change to reflect ValueImage
 parseValue lang = readOutput . (parse (asValue lang) "") . T.pack

@@ -149,6 +149,7 @@ handleEval :: ASLanguage -> String -> Handler String
 handleEval lang str = case lang of 
 	Python -> return =<< liftIO $ pyfiString str
 	Excel  -> return =<< liftIO $ pyfiString str
+	SQL	   -> return =<< liftIO $ pyfiString str
 	otherwise -> do
 		writeExecFile lang str
 		time <- liftIO (getCurrentTime >>= return . utctDayTime)
@@ -198,30 +199,16 @@ eval s lang = do
 		foldr seq (waitForProcess hProcess) sOutput
 		foldr seq (waitForProcess hProcess) sErr
 		return $ readOutput lang sOutput sErr
-		return sOutput
 
 readOutput :: ASLanguage -> String -> String -> String
 readOutput lang res err = case err of 
 	"" -> res
 	otherwise -> case lang of 
 		Python -> case res of 
-			"" -> res
+			"" -> err
 			otherwise -> res
 		OCaml -> err
 		otherwise -> err
-
-
--- until we fix matplotlibrc's bullshit
---readOutput :: ASLanguage -> String -> String -> String
---readOutput lang res err = case err of 
---	"" -> res
---	otherwise -> case lang of 
---		Python -> case res of 
---			"" -> "{\'error\':\'" ++ err ++ "\', \'err_type\':\'Evaluation\', \'position\':0, \'file\':\'temp.py\'}"
---			otherwise -> res
---		OCaml -> err
---		otherwise -> err
-
 
 ------------------- PYfi python evaluation --------------------
 

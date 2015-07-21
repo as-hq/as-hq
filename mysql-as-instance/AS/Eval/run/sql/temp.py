@@ -27,12 +27,19 @@ def db(dbCmd,dbName=""):
 			e = create_engine('sqlite:///'+dbName) #absolute file path
 			return read_sql_query(dbCmd,e)
 		except Exception as e: 
-			return e
+			return pprintErr(e)
 
 def setGlobals(context):
 	for i in range(len(context)):
 		globals()["dataset"+str(i)] = listToDataframe([row for row in eval(context[i])])
 
-setGlobals(["[[\"a\",\"b\"],[1.0,2.0],[3.0,4.0]]"])
+def pprintErr(e):
+	exc_type, exc_obj, exc_tb = exc_info()
+	fname = 'AlphaSheets Python evaluator'
+	err = repr(e).replace("\'","").replace("'",'"')
+	pos = exc_tb.tb_lineno - 20 # subtract template lines
+	return {'err_type': repr(exc_type), 'file': fname, 'position': pos, 'error': err}
 
-print(pprint(select * from dataset0 where a>1))
+setGlobals([])
+
+print(pprint(a))

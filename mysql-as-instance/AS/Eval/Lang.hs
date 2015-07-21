@@ -190,7 +190,7 @@ insertPrintCmd lang (s, lst) = s ++ process lst
 			R 		-> l
 			Python 	-> "result = " ++ l
 			OCaml 	-> "print_string(Std.dump(" ++ l ++ "))"
-			SQL 	-> "print(pprint(" ++ l ++ "))"
+			SQL 	-> "result = pprintSql(" ++ l ++ ")"
 			CPP 	-> "int main() { std::cout << (" ++ l ++ "); }" 
 			Java 	-> "public static void main(String[] args) throws Exception{Object x = " ++ l ++ "; System.out.println(pprint(x));}}"
 			Excel 	-> "result = " ++ l

@@ -9,6 +9,6 @@ except Exception as e:
 	exc_type, exc_obj, exc_tb = exc_info()
 	fname = 'AlphaSheets Python evaluator'
 	err = repr(e).replace("\'","").replace("'",'"')
-	pos = exc_tb.tb_lineno - 8 # subtract template lines
+	pos = exc_tb.tb_lineno - 9 # subtract template lines
 	errJson = {'err_type': repr(exc_type), 'file': fname, 'position': pos, 'error': err}
-	print(errJson)
+	result = errJson

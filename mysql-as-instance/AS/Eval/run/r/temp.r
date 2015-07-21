@@ -20,7 +20,7 @@ isError = FALSE
 result = tryCatch({
 
 
-1.0+3.0
+rnorm(4.0)
 }, warning = function(w) {
 	# nothing here
 }, error = function(e) {
