@@ -3,6 +3,7 @@ from AS.excel.pycel.excelcompiler import *
 from AS.excel.pycel.excellib import * # mapping from excel to python
 from AS.excel.io import evalExcel
 from sys import exc_info
+result = "EXERROR"
 try:
 	#CMD#
 except Exception as e: 

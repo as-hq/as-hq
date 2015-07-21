@@ -6,7 +6,7 @@ from AS.instruments.ETF import ETF
 from AS.instruments.Stock import Stock
 # from AS.ui.plot import *
 import json
-import sys, os
+from sys import exc_info
 import traceback
 from AS.pandas.input import listToDataframe
 from AS.pandas.output import pprint
@@ -41,7 +41,7 @@ def pprintErr(e):
 	return {'err_type': repr(exc_type), 'file': fname, 'position': pos, 'error': err}
 
 def pprintSql(res):
-	if isinstance(e, pd.DataFrame):
+	if isinstance(res, pd.DataFrame):
 		return pprint(res)
 	else: 
 		return res
