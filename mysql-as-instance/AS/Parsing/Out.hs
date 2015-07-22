@@ -76,6 +76,7 @@ showValue :: ASLanguage -> ASValue -> String
 showValue lang v = case v of
   ValueNaN () 		-> "Undefined"
   ValueS s 			-> show s
+  ValueI i      -> show i
   ValueD d 			-> show d
   ValueB b      -> bool lang $ show b
   ValueL l 			-> toListStr lang $ fmap (showValue lang) l

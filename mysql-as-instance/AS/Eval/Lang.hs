@@ -115,6 +115,10 @@ layoutCodeFile lang (imports, template, cmd) = case lang of
 		where
 			importedTemplate = intercalate "\n" [imports, template]
 			tabbedCmd = replaceSubstrings cmd [("\n", "\n\t")]
+	SQL 	-> replaceSubstrings importedTemplate [("#CMD#", tabbedCmd)]
+		where
+			importedTemplate = intercalate "\n" [imports, template]
+			tabbedCmd = replaceSubstrings cmd [("\n", "\n\t")]
 	otherwise -> intercalate "\n" [imports, template, cmd]
 
 
@@ -190,7 +194,7 @@ insertPrintCmd lang (s, lst) = s ++ process lst
 			R 		-> l
 			Python 	-> "result = " ++ l
 			OCaml 	-> "print_string(Std.dump(" ++ l ++ "))"
-			SQL 	-> "print(pprint(" ++ l ++ "))"
+			SQL 	-> "result = pprintSql(" ++ l ++ ")"
 			CPP 	-> "int main() { std::cout << (" ++ l ++ "); }" 
 			Java 	-> "public static void main(String[] args) throws Exception{Object x = " ++ l ++ "; System.out.println(pprint(x));}}"
 			Excel 	-> "result = " ++ l

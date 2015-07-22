@@ -6,10 +6,10 @@ import System.Directory(getCurrentDirectory)
 import System.FilePath.Posix
 import Control.Applicative   
 
-py_eval_path = "as-instance/as-py-eval/"
+py_eval_path = "mysql-as-instance/as-py-eval/"
 py_libs_path = "asl/as-libs/py/"
 py_template_file = "template.py"
 py_eval_file = "eval.py"
 py_run_file = "temp.py"
 
-getEvalPath = "/home/riteshr/demo-plus/as-instance/AS/Eval/run/"
+getEvalPath = "/home/riteshr/demo-plus/mysql-as-instance/AS/Eval/run/"

@@ -149,6 +149,11 @@ handleEval :: ASLanguage -> String -> Handler String
 handleEval lang str = case lang of 
 	Python -> return =<< liftIO $ pyfiString str
 	Excel  -> return =<< liftIO $ pyfiString str
+	SQL	   -> do
+		writeExecFile lang str
+		time <- liftIO (getCurrentTime >>= return . utctDayTime)
+		$(logInfo) $ "done with writeexecfile " ++ (fromString $ show time)
+		return =<< liftIO $ pyfiString str
 	otherwise -> do
 		writeExecFile lang str
 		time <- liftIO (getCurrentTime >>= return . utctDayTime)
@@ -192,36 +197,22 @@ eval :: String -> ASLanguage -> Handler String
 eval s lang = do 
 	$(logInfo) $ "EVAL CMD: " ++ (fromString s)
 	liftIO $ do
-		(_,stdOut,_,hProcess) <- runInteractiveCommand s
+		(_,stdOut,stdErr,hProcess) <- runInteractiveCommand s
 		sOutput <- System.IO.hGetContents stdOut
-		--sErr <- System.IO.hGetContents stdErr
+		sErr <- System.IO.hGetContents stdErr
 		foldr seq (waitForProcess hProcess) sOutput
-		--foldr seq (waitForProcess hProcess) sErr
-		--return $ readOutput lang sOutput sErr
-		return sOutput
+		foldr seq (waitForProcess hProcess) sErr
+		return $ readOutput lang sOutput sErr
 
 readOutput :: ASLanguage -> String -> String -> String
 readOutput lang res err = case err of 
 	"" -> res
 	otherwise -> case lang of 
 		Python -> case res of 
-			"" -> res
+			"" -> err
 			otherwise -> res
 		OCaml -> err
 		otherwise -> err
-
-
--- until we fix matplotlibrc's bullshit
---readOutput :: ASLanguage -> String -> String -> String
---readOutput lang res err = case err of 
---	"" -> res
---	otherwise -> case lang of 
---		Python -> case res of 
---			"" -> "{\'error\':\'" ++ err ++ "\', \'err_type\':\'Evaluation\', \'position\':0, \'file\':\'temp.py\'}"
---			otherwise -> res
---		OCaml -> err
---		otherwise -> err
-
 
 ------------------- PYfi python evaluation --------------------
 
@@ -234,5 +225,5 @@ pyfiString evalStr = defVV (evalStr ++ pyString) ("Hello" :: String)
 pyString :: String
 pyString = [str|
 def export(x=1):
-	return str(repr(result))
+	return repr(result)
 |]

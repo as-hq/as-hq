@@ -2,4 +2,4 @@
 
 
 ;;
-print_string(Std.dump(true))
+print_string(Std.dump(a))

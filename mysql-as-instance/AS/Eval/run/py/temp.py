@@ -25,4 +25,4 @@ except Exception as e:
 	err = repr(e).replace("\'","").replace("'",'"')
 	pos = exc_tb.tb_lineno - 15 # subtract template lines
 	errJson = {'err_type': repr(exc_type), 'file': fname, 'position': pos, 'error': err}
-	print(errJson)
+	result = errJson

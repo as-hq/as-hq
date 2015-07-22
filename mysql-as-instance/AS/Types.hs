@@ -14,6 +14,7 @@ data ASLocation = Index {sheet :: String, index :: (Int, Int)} |
 data ASValue =
   ValueNaN () |
   ValueS String |
+  ValueI Int |
   ValueD Double | 
   ValueB Bool |
   ValueL [ASValue] |
@@ -35,11 +36,9 @@ lst other = [other]
 
 str :: ASValue -> String
 str (ValueS s) = s
-str _ = []
 
 dbl :: ASValue -> Double
 dbl (ValueD d) = d
-dbl _ = 0
 
 
 data ASLanguage = R | Python | OCaml | CPP | Java | SQL | Excel deriving (Show, Read, Eq, Generic)

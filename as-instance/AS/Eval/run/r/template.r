@@ -1,5 +1,6 @@
-library("rjson")
-library("jpeg")
+suppressMessages(library("rjson"))
+suppressMessages(library("jpeg"))
+suppressMessages(library("party"))
 
 graph <- function(x){
     graphics.off()

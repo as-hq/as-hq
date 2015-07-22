@@ -42,8 +42,20 @@ double = fmap rd $ int <++> dec
     dec     = option "" $ (Text.Parsec.try $ period <:> number) <|> (skip period)
     period  = char '.'
 
+int :: Parser Int
+int = fmap rd $ int
+  where
+    rd      = read :: String -> Int
+    number  = manyTill digit (try eof)
+    plus    = char '+' *> number
+    minus   = char '-' <:> number
+    int     = plus <|> minus <|> number
+
 valueD :: Parser ASValue
 valueD = ValueD <$> double 
+
+valueI :: Parser ASValue
+valueI = ValueI <$> int
 
 readBool :: String -> Bool
 readBool str = case (P.head str) of 
