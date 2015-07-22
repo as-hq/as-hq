@@ -169,7 +169,7 @@ extractValue m
       where
         f (s, ValueL l) = (ValueS s):l
         f (s, o) = (ValueS s):[o]
-        listRep = map ValueL $ L.transpose $ map f (M.toList mm)
+        listRep = map ValueL $ L.transpose $ map f (M.toList mm) 
 
 
 complexValue :: Parser ASValue
