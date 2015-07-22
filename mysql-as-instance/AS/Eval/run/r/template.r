@@ -1,9 +1,9 @@
 library("rjson")
 library("jpeg")
 
-graph <- function(name, x){
+graph <- function(x){
     graphics.off()
-    fpath=paste0("/home/riteshr/asl-demo/frontend/client/app/images/",name,".png",sep="")
+    fpath=paste0("/home/riteshr/asl-js/frontend/client/app/images/","graph",".png",sep="")
     if (file.exists(fpath)){
     }
     else {
@@ -12,7 +12,7 @@ graph <- function(name, x){
     png(filename=fpath)
     x
     graphics.off()
-    return(list(imagePath=paste0("images/",name,".png",sep="")))
+    return(list(imagePath=paste0("images/","graph",".png",sep="")))
 }
 
 isError = FALSE
