@@ -9,7 +9,8 @@ from AS.errors import *
 import numpy as np
 
 folder = os.path.dirname(__file__) 
-directory = os.path.abspath(os.path.join(folder, '..','..','..','..','frontend','client','app','images')) + '/'
+directory = "/home/riteshr/asl-js/frontend/client/app/images/"
+#directory = os.path.abspath(os.path.join(folder, '..','..','..','..','frontend','client','app','images')) + '/'
 
 retPath = "images/"
 

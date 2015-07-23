@@ -139,7 +139,8 @@ extractValue m
   | M.member "stockPrices" m  = extractStockChart m
   | M.member "excelLocs"   m  = extractExcel m 
   | M.member "rickshawData" m = extractRick m 
-  | otherwise = extractObjectValue m
+  | M.member "objectValue" m  = extractObjectValue m
+  | otherwise                 = parseMap m  
   where
     extractExcel mm       = ExcelSheet l e v
       where
@@ -176,6 +177,12 @@ extractValue m
         ValueS typ         = m M.! "err_type"
         ValueS file        = m M.! "file"
         ValueD pos         = m M.! "position"
+    parseMap mm = ValueL listRep -- minimal amount of parsing to get maps to work, doesn't work for different sized lists
+      where
+        f (s, ValueL l) = (ValueS s):l
+        f (s, o) = (ValueS s):[o]
+        listRep = map ValueL $ L.transpose $ map f (M.toList mm) 
+
 
 complexValue :: Parser ASValue
 complexValue = extractValue <$> extractMap

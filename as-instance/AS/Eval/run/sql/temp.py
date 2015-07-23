@@ -35,4 +35,4 @@ def setGlobals(context):
 
 setGlobals([])
 
-print(pprint(db("select * from Cars","/home/riteshr/testRit.db")))
+print(pprint(db("SELECT * FROM Cars","/home/riteshr/testRit.db")))

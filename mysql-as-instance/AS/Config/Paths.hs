@@ -12,4 +12,4 @@ py_template_file = "template.py"
 py_eval_file = "eval.py"
 py_run_file = "temp.py"
 
-getEvalPath = "/home/anand/Development/as/asl-demo/mysql-as-instance/AS/Eval/run/"
+getEvalPath = "/home/anand/as/asl-demo/mysql-as-instance/AS/Eval/run/"
