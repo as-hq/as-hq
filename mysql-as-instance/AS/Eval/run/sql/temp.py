@@ -50,6 +50,6 @@ def pprintSql(res):
 try:
 	setGlobals([])
 	
-	result = pprintSql(1+dsfdfsdfdg)
+	result = pprintSql(4+)
 except Exception as e:
 	result = pprintErr(e)

@@ -1,6 +1,6 @@
 
-execfile("/home/riteshr/demo-plus/as-instance/AS/Eval/run/py/repl_record.py")
-#from AS.stdlib import *
+execfile("/home/anand/Development/as/asl-demo/mysql-as-instance/AS/Eval/run/py/repl_record.py")
+from AS.stdlib import *
 from AS.ui.styling import *
 # from AS.tests.min import *
 from AS.instruments.ETF import ETF
@@ -14,13 +14,15 @@ from AS.iterable import ASIterable
 
 def arr(lst):
 	return ASIterable(lst)
-	
+result = "error"
 try:
-		return "sex money"
+	from sklearn import svm, datasets
+	
+	result = iris = dataset.load_iris()
 except Exception as e: 
 	exc_type, exc_obj, exc_tb = exc_info()
 	fname = 'AlphaSheets Python evaluator'
 	err = repr(e).replace("\'","").replace("'",'"')
-	pos = exc_tb.tb_lineno - 15 # subtract template lines
+	pos = exc_tb.tb_lineno - 20 # subtract template lines
 	errJson = {'err_type': repr(exc_type), 'file': fname, 'position': pos, 'error': err}
-	print(errJson)
+	result = errJson

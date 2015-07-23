@@ -10,6 +10,7 @@ import AS.DB
 import Import
 import Control.Applicative                                   
 import System.Directory(getCurrentDirectory)
+import System.IO.Strict as S   
 
 import qualified Data.Text as T
 import qualified Data.List as L
@@ -67,7 +68,7 @@ getRunReplFile lang = getEvalPath ++ case lang of
 	SQL 	-> "sql/temp_repl.py"
 
 getReplRecord :: ASLanguage -> Handler String
-getReplRecord lang = Import.readFile $ getEvalPath ++ file
+getReplRecord lang = liftIO $ S.readFile $ getEvalPath ++ file
 	where
 		file = case lang of 
 			Python 	-> "py/repl_record.py"

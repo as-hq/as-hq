@@ -13,7 +13,7 @@ import AS.DB
 import AS.Parsing.In
 import AS.Parsing.Out
 import AS.Parsing.Common
-import System.IO                                       
+import System.IO                        
 import System.Process   
 import qualified Data.Maybe as MB
 
@@ -103,11 +103,11 @@ evalExcel xp = do
 evalCodeRepl :: ASExpression -> Handler ASValue
 evalCodeRepl xp = do
 	let lang = language xp
-	finalXp <- interpolateFileRepl lang (expression xp)
-	writeReplFile lang finalXp
-	result <- runReplFile lang
+	finalXp <- interpolateFile lang (expression xp)
+	result <- liftIO $ pyfiString finalXp
 	replRecord <- getReplRecord lang
 	$(logInfo) $ (fromString $ "EVAL REPL returns value: " ++ (show result))
+	writeReplFile lang finalXp
 	writeReplRecord lang (replRecord ++ "\n" ++ (removePrintStmt lang (expression xp)))
 	return $ case lang of 
 		Python -> parseValue lang result
@@ -147,8 +147,8 @@ evalRef loc dict (Reference l (a, b)) = do
 
 handleEval :: ASLanguage -> String -> Handler String
 handleEval lang str = case lang of 
-	Python -> return =<< liftIO $ pyfiString str
-	Excel  -> return =<< liftIO $ pyfiString str
+	Python -> liftIO $ pyfiString str
+	Excel  -> liftIO $ pyfiString str
 	SQL	   -> do
 		writeExecFile lang str
 		time <- liftIO (getCurrentTime >>= return . utctDayTime)
@@ -175,7 +175,7 @@ writeReplRecord :: ASLanguage -> String -> Handler ()
 writeReplRecord lang contents = liftIO $ writeFile ((getReplRecordFile lang) :: System.IO.FilePath) contents
 
 clearReplRecord :: ASLanguage -> Handler ()
-clearReplRecord lang = liftIO $ writeFile ((getRunReplFile lang) :: System.IO.FilePath)  ""
+clearReplRecord lang = liftIO $ writeFile ((getReplRecordFile lang) :: System.IO.FilePath)  ""
 -----------------------------------------------------------------------------------------------------------------------
 -- Evaluation in progress
 
