@@ -41,6 +41,11 @@ export default React.createClass({
 
         <RaisedButton label="Add Task" primary={true} onClick={onAddTask} />
         <RaisedButton label="Clear List" secondary={true} onClick={onClear} />
+
+        <fin-hypergrid>
+            <fin-hypergrid-behavior-json>
+            </fin-hypergrid-behavior-json>
+        </fin-hypergrid>
       </div>
     );
   }

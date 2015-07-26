@@ -1,6 +1,8 @@
 {
   "name": "alphasheets",
   "version": "0.1.0",
-  "dependencies": {}
+  "dependencies": {
+    "webcomponentsjs": "0.7.6",
+    "fin-hypergrid": "openfin/fin-hypergrid#9f31303b1a6c8752c14915ecec9b636bc9d9654a"
+  }
 }
-
