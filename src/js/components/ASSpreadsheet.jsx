@@ -2,6 +2,12 @@ import React from 'react';
 import ActionCreator from '../actions/ASSpreadsheetActionCreators';
 
 export default React.createClass({
+  getDefaultProps() {
+    return {
+      behavior: 'default'
+    };
+  },
+
   getSelectionArea() {
     let hg = this.refs.hypergrid;
     let selection = hg.getSelectionModel().selections[0];
@@ -21,7 +27,9 @@ export default React.createClass({
   componentDidMount() {
     //event listeners
     let self = this;
-    let hg = this.refs.hypergrid;
+    let hg = React.findDOMNode(this.refs.hypergrid);
+
+    console.log(hg); //TODO: hg.addFinEventListener() not working
 
     let callbacks = ({
       'fin-selection-changed': function (event) {
@@ -46,11 +54,19 @@ export default React.createClass({
       }
     });
 
-    callbacks.forEach((value, key) => hg.addFinEventListener(key, value));
+    for (var key in callbacks) {
+      var value = callbacks[key];
+      hg.addFinEventListener(key, value);
+    }
   },
 
   render() {
-    let {behavior} = this.props;
+    let {behavior, width, height} = this.props;
+
+    let style = {
+      width: width, height: height
+    };
+
     let behaviorElement;
     switch (behavior) {
       case 'json':
@@ -58,10 +74,11 @@ export default React.createClass({
         break;
       case 'default':
         behaviorElement = <fin-hypergrid-behavior-default />
+        break;
     }
 
     return (
-      <fin-hypergrid ref="hypergrid">
+      <fin-hypergrid style={style} ref="hypergrid">
         {behaviorElement}
       </fin-hypergrid>
     );
