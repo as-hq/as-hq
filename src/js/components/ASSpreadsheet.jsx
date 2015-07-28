@@ -4,7 +4,8 @@ import ActionCreator from '../actions/ASSpreadsheetActionCreators';
 export default React.createClass({
   getDefaultProps() {
     return {
-      behavior: 'default'
+      behavior: 'default',
+      onReady() { }
     };
   },
 
@@ -25,43 +26,50 @@ export default React.createClass({
 
   //core code follows
   componentDidMount() {
-    //event listeners
-    let self = this;
-    let hg = React.findDOMNode(this.refs.hypergrid);
+    document.addEventListener('polymer-ready', () => {
+      this.props.onReady();
+      //event listeners
+      let self = this;
+      let hg = React.findDOMNode(this.refs.hypergrid);
 
-    console.log(hg); //TODO: hg.addFinEventListener() not working
+      console.log(hg);
+      console.log(Object.getOwnPropertyNames(hg));
+      console.log(Object.getOwnPropertyNames(hg).filter((p) => {
+          return typeof hg[p] === 'function';
+      })); //TODO: fix hg.addFinEventListener bug
 
-    let callbacks = ({
-      'fin-selection-changed': function (event) {
-        let { locs, width, height } = self.getSelectionArea();
-        if (width === 1 && height === 1) {
-          ActionCreator.selectCell(locs[0]);
-        } else {
-          ActionCreator.selectRange(locs);
+      let callbacks = ({
+        'fin-selection-changed': function (event) {
+          let { locs, width, height } = self.getSelectionArea();
+          if (width === 1 && height === 1) {
+            ActionCreator.selectCell(locs[0]);
+          } else {
+            ActionCreator.selectRange(locs);
+          }
+        },
+
+        'fin-scroll-x': function (event) {
+          ActionCreator.scroll(self.getViewingWindow());
+        },
+        'fin-scroll-y': function (event) {
+          ActionCreator.scroll(self.getViewingWindow());
+        },
+
+        'fin-keydown': function (event) {
+        },
+        'fin-keyup': function (event) {
         }
-      },
+      });
 
-      'fin-scroll-x': function (event) {
-        ActionCreator.scroll(self.getViewingWindow());
-      },
-      'fin-scroll-y': function (event) {
-        ActionCreator.scroll(self.getViewingWindow());
-      },
-
-      'fin-keydown': function (event) {
-      },
-      'fin-keyup': function (event) {
+      for (var key in callbacks) {
+        var value = callbacks[key];
+        hg.addFinEventListener(key, value);
       }
     });
-
-    for (var key in callbacks) {
-      var value = callbacks[key];
-      hg.addFinEventListener(key, value);
-    }
   },
 
   render() {
-    let {behavior, width, height} = this.props;
+    let {behavior, width, height} = this.props; //should also have onReady
 
     let style = {
       width: width, height: height

@@ -3,10 +3,18 @@ import Constants from '../Constants';
 import BaseStore from './BaseStore';
 import assign from 'object-assign';
 
-let _data = [];
+let _data = {
+  currentCell: {
+    language: 'python',
+    expression: '',
+    location: [[-1, -1], [-1, -1]]
+  },
+  allCells: []
+};
 
 const ASEvaluationStore = assign({}, BaseStore, {
   getCurrentCell() {
+    return _data.currentCell;
   },
 
   dispatcherIndex: Dispatcher.register(function (payload) {

@@ -1,11 +1,12 @@
 import React from 'react';
-import brace from 'brace';
-import AceEditor from 'react-ace';
+import AceEditor from './AceEditor.jsx';
 import ActionCreator from '../actions/ASCodeEditorActionCreators';
 
-let _langs = ['python', 'java', 'mysql', 'ruby', 'cpp', 'ocaml'];
-_langs.forEach(lang => require('brace/mode/' + lang));
-
+require('brace/mode/python');
+require('brace/mode/r');
+require('brace/mode/ocaml');
+require('brace/mode/mysql');
+require('brace/mode/java');
 require('brace/theme/monokai');
 
 export default React.createClass({
@@ -17,9 +18,9 @@ export default React.createClass({
   },
 
   render() {
-    let {mode, theme, value} = this.props;
+    let {mode, theme, value, width, height} = this.props;
     return (
-      <AceEditor mode={mode} theme={theme} value={value} />
+      <AceEditor mode={mode} theme={theme} value={value} width={width} height={height} />
     );
   }
 });

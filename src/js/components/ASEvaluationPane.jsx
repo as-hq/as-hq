@@ -1,6 +1,6 @@
 import React from 'react';
-import ASCodeEditor from './ASCodeEditor';
-import ASSpreadsheet from './ASSpreadsheet';
+import ASCodeEditor from './ASCodeEditor.jsx';
+import ASSpreadsheet from './ASSpreadsheet.jsx';
 import ASEvaluationStore from '../stores/ASEvaluationStore';
 
 function getEvaluationState () {
@@ -26,7 +26,7 @@ export default React.createClass({
     let {language, expression} = this.state.currentCell;
 
     return (
-      <div>
+      <div className="full">
         <ASCodeEditor mode={language} value={expression}
           width="100%" height="200px" />
         <ASSpreadsheet width="100%" height="100%" />

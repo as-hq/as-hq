@@ -1,5 +1,5 @@
 import React, {PropTypes} from 'react';
-import ASSpreadsheet from './ASSpreadsheet.jsx';
+import ASEvaluationPane from './ASEvaluationPane.jsx';
 import {AppCanvas, RaisedButton, Styles} from 'material-ui';
 
 const ThemeManager = new Styles.ThemeManager();
@@ -30,7 +30,7 @@ export default React.createClass({
   render() {
     let {onAddTask, onClear, tasks} = this.props;
     return (
-      <ASSpreadsheet behavior="default" />
+      <ASEvaluationPane behavior="default" />
     );
   }
 });
