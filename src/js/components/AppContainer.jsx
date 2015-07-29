@@ -3,6 +3,9 @@ import TodoStore from '../stores/TodoStore';
 import ActionCreator from '../actions/TodoActionCreators';
 import App from './App.jsx';
 
+import injectTapEventPlugin from 'react-tap-event-plugin';
+injectTapEventPlugin();
+
 export default React.createClass({
   _onChange() {
     this.setState(TodoStore.getAll());

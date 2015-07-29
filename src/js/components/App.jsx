@@ -1,10 +1,14 @@
 import React, {PropTypes} from 'react';
 import ASEvaluationPane from './ASEvaluationPane.jsx';
-import {AppCanvas, RaisedButton, Styles} from 'material-ui';
+import {AppCanvas, RaisedButton, Styles, AppBar} from 'material-ui';
 
 const ThemeManager = new Styles.ThemeManager();
 
 export default React.createClass({
+  componentDidMount() {
+    ThemeManager.setTheme(ThemeManager.types.DARK);
+  },
+
   propTypes: {
     tasks: PropTypes.array.isRequired,
     onAddTask: PropTypes.func.isRequired,
@@ -30,7 +34,13 @@ export default React.createClass({
   render() {
     let {onAddTask, onClear, tasks} = this.props;
     return (
-      <ASEvaluationPane behavior="default" />
+      <div className="full">
+        <AppBar
+          style={{
+            backgroundColor: Styles.Colors.grey800
+          }} />
+        <ASEvaluationPane behavior="default" />
+      </div>
     );
   }
 });

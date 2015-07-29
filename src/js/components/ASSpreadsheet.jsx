@@ -2,6 +2,10 @@ import React from 'react';
 import ActionCreator from '../actions/ASSpreadsheetActionCreators';
 
 export default React.createClass({
+  _getHypergrid() {
+    return React.findDOMNode(this.refs.hypergrid);
+  },
+
   getDefaultProps() {
     return {
       behavior: 'default',
@@ -10,7 +14,7 @@ export default React.createClass({
   },
 
   getSelectionArea() {
-    let hg = this.refs.hypergrid;
+    let hg = this._getHypergrid();
     let selection = hg.getSelectionModel().selections[0];
     let ul = selection.origin;
     let lr = [ul[0] + selection.width(), ul[1] + selection.height()];
@@ -18,7 +22,7 @@ export default React.createClass({
   },
 
   getViewingWindow() {
-    let hg = this.refs.hypergrid;
+    let hg = this._getHypergrid();
     let [vs, hs] = [hg.vScrollValue, hg.hScrollValue];
     let [width, height] = [hg.getVisibleColumns(), hg.getVisibleRows()];
     return { locs: [[vs, hs], [vs + width - 1, hs + height - 1]], width: width, height: height };
@@ -28,15 +32,10 @@ export default React.createClass({
   componentDidMount() {
     document.addEventListener('polymer-ready', () => {
       this.props.onReady();
+
       //event listeners
       let self = this;
-      let hg = React.findDOMNode(this.refs.hypergrid);
-
-      console.log(hg);
-      console.log(Object.getOwnPropertyNames(hg));
-      console.log(Object.getOwnPropertyNames(hg).filter((p) => {
-          return typeof hg[p] === 'function';
-      })); //TODO: fix hg.addFinEventListener bug
+      let hg = this._getHypergrid();
 
       let callbacks = ({
         'fin-selection-changed': function (event) {
