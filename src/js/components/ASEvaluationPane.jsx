@@ -27,7 +27,11 @@ export default React.createClass({
 
     return (
       <div className="full">
-        <ASCodeEditor mode={language} value={expression}
+        <ASCodeEditor
+          mode={language}
+          onLanguageChange={this._setLanguage}
+          onExpressionChange={this._setExpression}
+          value={expression}
           width="100%" height="200px" />
         <ASSpreadsheet width="100%" height="100%" />
       </div>
@@ -36,5 +40,19 @@ export default React.createClass({
 
   _onChange() {
     this.setState(getEvaluationState());
+  },
+
+  _setLanguage(lang) {
+    let tmp = this.state.currentCell;
+    tmp.language = lang;
+
+    this.setState({ currentCell: tmp });
+  },
+
+  _setExpression(value) {
+    let tmp = this.state.currentCell;
+    tmp.expression = value;
+
+    this.setState({ currentCell: tmp });
   }
 });

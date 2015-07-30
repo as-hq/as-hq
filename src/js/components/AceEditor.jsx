@@ -82,7 +82,7 @@ module.exports = React.createClass({
     var divStyle = {
       width: this.props.width,
       height: this.props.height,
-      zIndex: -1
+      zIndex: 0
     };
     return (<div id={this.props.name} onChange={this.onChange} style={divStyle}></div>);
   }

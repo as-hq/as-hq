@@ -9,7 +9,17 @@ require('brace/mode/r');
 require('brace/mode/ocaml');
 require('brace/mode/mysql');
 require('brace/mode/java');
+require('brace/mode/c_cpp');
 require('brace/theme/monokai');
+
+let languages = [
+  { payload: 'python', text: 'Python' },
+  { payload: 'r', text: 'R' },
+  { payload: 'ocaml', text: 'OCaml' },
+  { payload: 'mysql', text: 'SQL' },
+  { payload: 'c_cpp', text: 'C++' },
+  { payload: 'java', text: 'Java' }
+];
 
 export default React.createClass({
   getDefaultProps() {
@@ -21,7 +31,6 @@ export default React.createClass({
 
   render() {
     let {mode, theme, value, width, height} = this.props;
-    let languages = ['Python', 'R', 'OCaml', 'SQL', 'Java'];
 
     return (
       <div>
@@ -31,17 +40,25 @@ export default React.createClass({
           }}
           showMenuIconButton={false} >
           <DropDownMenu
-            menuItems={
-              languages.map((lang) => ({ payload: lang, text: lang }))
-            } />
+            menuItems={languages}
+            onChange={this._onLanguageChange} />
         </AppBar>
-        <AceEditor mode={mode} theme={theme} value={value} width={width} height={height} />
+        <AceEditor ref="editor"
+          onChange={this._onExpressionChange}
+          mode={mode}
+          theme={theme}
+          value={value}
+          width={width} height={height} />
       </div>
     );
   },
 
-  _onActive(tab) {
-    let lang = tab.props.label;
-    //TODO
+  _onLanguageChange(e, selectedIndex, menuItem) {
+    //notify editor to change
+    this.props.onLanguageChange(menuItem.payload);
+  },
+
+  _onExpressionChange(value) {
+    this.props.onExpressionChange(value);
   }
 });
