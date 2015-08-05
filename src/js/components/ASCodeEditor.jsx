@@ -44,7 +44,9 @@ export default React.createClass({
             onChange={this._onLanguageChange} />
         </AppBar>
         <AceEditor ref="editor"
-          onChange={this._onExpressionChange}
+          onChange={this.props.onExpressionChange}
+          requestEval={this.props.onEvalRequest}
+          focusGrid={this.props.focusGrid}
           mode={mode}
           theme={theme}
           value={value}
@@ -60,5 +62,9 @@ export default React.createClass({
 
   _onExpressionChange(value) {
     this.props.onExpressionChange(value);
+  },
+
+  _onEvalRequest(req) {
+    this.props.onEvalRequest(req);
   }
 });

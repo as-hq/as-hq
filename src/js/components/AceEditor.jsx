@@ -1,5 +1,14 @@
+import Shortcuts from '../AS/Shortcuts';
+
 var ace = require('brace');
 var React = require('react');
+
+require('brace/mode/python');
+require('brace/mode/r');
+require('brace/mode/ocaml');
+require('brace/mode/mysql');
+require('brace/mode/java');
+require('brace/theme/monokai');
 
 module.exports = React.createClass({
   propTypes: {
@@ -16,15 +25,16 @@ module.exports = React.createClass({
     maxLines : React.PropTypes.number,
     readOnly : React.PropTypes.bool,
     highlightActiveLine : React.PropTypes.bool,
-    showPrintMargin : React.PropTypes.bool
+    showPrintMargin : React.PropTypes.bool,
+    sendBackExpression : React.PropTypes.func
   },
   getDefaultProps: function() {
     return {
       name   : 'brace-editor',
-      mode   : '',
-      theme  : '',
-      height : '500px',
-      width  : '500px',
+      mode   : 'python',
+      theme  : 'monokai',
+      height : '100px',
+      width  : '100%',
       value  : '',
       fontSize   : 12,
       showGutter : true,
@@ -33,15 +43,18 @@ module.exports = React.createClass({
       maxLines   : null,
       readOnly   : false,
       highlightActiveLine : true,
-      showPrintMargin     : true
+      showPrintMargin     : true,
+      sendBackExpression : null
     };
   },
+
   onChange: function() {
-    var value = this.editor.getValue();
+    let value = this.editor.getValue();
     if (this.props.onChange) {
       this.props.onChange(value);
     }
   },
+
   componentDidMount: function() {
     this.editor = ace.edit(this.props.name);
     this.editor.getSession().setMode('ace/mode/'+this.props.mode);
@@ -54,6 +67,9 @@ module.exports = React.createClass({
     this.editor.setOption('readOnly', this.props.readOnly);
     this.editor.setOption('highlightActiveLine', this.props.highlightActiveLine);
     this.editor.setShowPrintMargin(this.props.setShowPrintMargin);
+
+    // add shortcuts
+    Shortcuts.addEditorShortcuts(this.editor,this.props);
 
     if (this.props.onLoad) {
       this.props.onLoad(this.editor);
@@ -79,7 +95,7 @@ module.exports = React.createClass({
   },
 
   render: function() {
-    var divStyle = {
+    let divStyle = {
       width: this.props.width,
       height: this.props.height,
       zIndex: 0

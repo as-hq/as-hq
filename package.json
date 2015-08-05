@@ -26,7 +26,7 @@
     "build": "gulp build"
   },
   "jest": {
-    "scriptPreprocessor": "<rootDir>/node_modules/babel-jest",
+    "scriptPreprocessor": "<rootDir>/node_modules/babel-jest"
     "testFileExtensions": [
       "es6",
       "js"
@@ -50,6 +50,10 @@
     "object-assign": "^3.0.0",
     "react": "^0.13.3",
     "react-ace": "^2.0.2",
-    "react-tap-event-plugin": "^0.1.7"
+    "react-tap-event-plugin": "^0.1.7",
+    "ws": "0.4.x",
+    "bootstrap": "^3.3.5",
+    "jquery": "^2.1.4",
+    "react-draggable-tab": "~0.3.0"
   }
 }

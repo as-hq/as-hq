@@ -1,9 +1,14 @@
 import React from 'react';
 import ActionCreator from '../actions/ASSpreadsheetActionCreators';
+import Shortcuts from '../AS/Shortcuts';
 
 export default React.createClass({
   _getHypergrid() {
     return React.findDOMNode(this.refs.hypergrid);
+  },
+
+  _getModel(){
+    return this._getHypergrid().getBehavior();
   },
 
   getDefaultProps() {
@@ -18,7 +23,11 @@ export default React.createClass({
     let selection = hg.getSelectionModel().selections[0];
     let ul = selection.origin;
     let lr = [ul[0] + selection.width(), ul[1] + selection.height()];
-    return { locs: [ul, lr], width: selection.width() + 1, height: selection.height() + 1 };
+    return { topLeft: [ul.y+1, ul.x+1], width: selection.width() + 1, height: selection.height() + 1 };
+  },
+
+  makeSelection(loc) {
+    // TODO
   },
 
   getViewingWindow() {
@@ -28,10 +37,26 @@ export default React.createClass({
     return { locs: [[vs, hs], [vs + width - 1, hs + height - 1]], width: width, height: height };
   },
 
+  handleKeyDown(e) {
+    // console.log("keydown grid");
+    // console.log(e);
+    Shortcuts.killEvent(e);
+    if (Shortcuts.gridShouldDeferKey(e)){ // if anything but nav keys, bubble event to parent
+      this.props.onDeferredKey(e);
+    } else if (!Shortcuts.tryNavShortcut(e, this._getHypergrid()))
+      console.log("unhandled keydown event in grid");
+  },
+
   //core code follows
   componentDidMount() {
     document.addEventListener('polymer-ready', () => {
       this.props.onReady();
+
+      // initialize sheet to be blank
+      let model = this._getModel();
+      model.getValue = function(x, y) {
+          return '';
+      };
 
       //event listeners
       let self = this;
@@ -52,12 +77,11 @@ export default React.createClass({
         },
         'fin-scroll-y': function (event) {
           ActionCreator.scroll(self.getViewingWindow());
-        },
-
-        'fin-keydown': function (event) {
-        },
-        'fin-keyup': function (event) {
         }
+
+        // 'fin-keydown': self.handleKeyDown,
+
+        // 'fin-keyup':
       });
 
       for (var key in callbacks) {
@@ -65,6 +89,15 @@ export default React.createClass({
         hg.addFinEventListener(key, value);
       }
     });
+  },
+
+  updateCellValues(cells){
+    let model = this._getModel();
+    for (var key in cells){ // update the hypergrid values
+      let setValue = CellConverter.cellToSetValueFormat(cells[key]);
+      model.setValue(setValue[0],setValue[1], setValue[2]);
+    }
+    model.changed(); // causes hypergrid to show updated values
   },
 
   render() {
@@ -85,7 +118,7 @@ export default React.createClass({
     }
 
     return (
-      <fin-hypergrid style={style} ref="hypergrid">
+      <fin-hypergrid style={style} ref="hypergrid" onKeyDown={this.handleKeyDown}>
         {behaviorElement}
       </fin-hypergrid>
     );

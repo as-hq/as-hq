@@ -8,11 +8,22 @@ export default {
   ActionTypes: keyMirror({
     CELL_CHANGED: null,
     RANGE_CHANGED: null,
-    SCROLLED: null
+    SCROLLED: null,
+    GOT_UPDATED_CELLS: null
   }),
 
   ActionSources: keyMirror({
     SERVER_ACTION: null,
     VIEW_ACTION: null
-  })
+  }),
+
+  Languages: {
+    Python: 'python',
+    Excel: 'excel',
+    R: 'r',
+    OCaml: 'ocaml',
+    SQL: 'sql',
+    Java: 'java',
+    CPP: 'c_cpp'
+  }
 };
