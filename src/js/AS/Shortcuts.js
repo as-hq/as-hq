@@ -11,7 +11,7 @@ export default {
         // TODO change grid selection
       }
     }
-  ]},
+  ],
 
   CommonShortcuts: [
     {
@@ -51,7 +51,7 @@ export default {
         parent.toggleFocus();
       }
     }
-  ]},
+  ],
 
   NavKeys: ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End"],
 

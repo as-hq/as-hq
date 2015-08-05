@@ -10,15 +10,8 @@ export default React.createClass({
     ThemeManager.setTheme(ThemeManager.types.DARK);
   },
 
-  propTypes: {
-    tasks: PropTypes.array.isRequired,
-    onAddTask: PropTypes.func.isRequired,
-    onClear: PropTypes.func.isRequired
-  },
-
   getDefaultProps() {
     return {
-      tasks: []
     }
   },
 
@@ -33,7 +26,6 @@ export default React.createClass({
   },
 
   render() {
-    let {onAddTask, onClear, tasks} = this.props;
     return (
       <div className="full">
         <AppBar
