@@ -4,7 +4,6 @@ module AS.Types where
 
 import Prelude
 import GHC.Generics
-import Database.Persist.TH
 import Data.Aeson
 
 -- NOTE: follow excel (col, row) ordering

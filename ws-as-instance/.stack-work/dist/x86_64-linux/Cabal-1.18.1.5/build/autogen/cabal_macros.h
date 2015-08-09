@@ -63,27 +63,6 @@
   (major1) == 3 && (major2) <  1 || \
   (major1) == 3 && (major2) == 1 && (minor) <= 9)
 
-/* package persistent-2.1.6 */
-#define VERSION_persistent "2.1.6"
-#define MIN_VERSION_persistent(major1,major2,minor) (\
-  (major1) <  2 || \
-  (major1) == 2 && (major2) <  1 || \
-  (major1) == 2 && (major2) == 1 && (minor) <= 6)
-
-/* package persistent-mysql-2.1.3.1 */
-#define VERSION_persistent_mysql "2.1.3.1"
-#define MIN_VERSION_persistent_mysql(major1,major2,minor) (\
-  (major1) <  2 || \
-  (major1) == 2 && (major2) <  1 || \
-  (major1) == 2 && (major2) == 1 && (minor) <= 3)
-
-/* package persistent-template-2.1.3.4 */
-#define VERSION_persistent_template "2.1.3.4"
-#define MIN_VERSION_persistent_template(major1,major2,minor) (\
-  (major1) <  2 || \
-  (major1) == 2 && (major2) <  1 || \
-  (major1) == 2 && (major2) == 1 && (minor) <= 3)
-
 /* package process-1.2.0.0 */
 #define VERSION_process "1.2.0.0"
 #define MIN_VERSION_process(major1,major2,minor) (\
@@ -139,4 +118,11 @@
   (major1) <  0 || \
   (major1) == 0 && (major2) <  3 || \
   (major1) == 0 && (major2) == 3 && (minor) <= 0)
+
+/* package websockets-0.9.5.0 */
+#define VERSION_websockets "0.9.5.0"
+#define MIN_VERSION_websockets(major1,major2,minor) (\
+  (major1) <  0 || \
+  (major1) == 0 && (major2) <  9 || \
+  (major1) == 0 && (major2) == 9 && (minor) <= 5)
 
