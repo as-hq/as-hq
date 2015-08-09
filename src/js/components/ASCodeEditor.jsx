@@ -58,13 +58,5 @@ export default React.createClass({
   _onLanguageChange(e, selectedIndex, menuItem) {
     //notify editor to change
     this.props.onLanguageChange(menuItem.payload);
-  },
-
-  _onExpressionChange(value) {
-    this.props.onExpressionChange(value);
-  },
-
-  _onEvalRequest(req) {
-    this.props.onEvalRequest(req);
   }
 });

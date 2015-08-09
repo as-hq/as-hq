@@ -1,6 +1,7 @@
 import React from 'react';
 import ActionCreator from '../actions/ASSpreadsheetActionCreators';
 import Shortcuts from '../AS/Shortcuts';
+import CellConverter from '../AS/CellConverter';
 
 export default React.createClass({
   _getHypergrid() {
@@ -22,8 +23,8 @@ export default React.createClass({
     let hg = this._getHypergrid();
     let selection = hg.getSelectionModel().selections[0];
     let ul = selection.origin;
-    let lr = [ul[0] + selection.width(), ul[1] + selection.height()];
-    return { topLeft: [ul.y+1, ul.x+1], width: selection.width() + 1, height: selection.height() + 1 };
+    let lr = [ul.y + selection.width()+1, ul.x + selection.height()+1];
+    return { locs: [[ul.y+1,ul.x+1], lr], width: selection.width() + 1, height: selection.height() + 1 };
   },
 
   makeSelection(loc) {
@@ -38,13 +39,16 @@ export default React.createClass({
   },
 
   handleKeyDown(e) {
-    // console.log("keydown grid");
-    // console.log(e);
-    Shortcuts.killEvent(e);
+    e.persist(); // prevent react gc
     if (Shortcuts.gridShouldDeferKey(e)){ // if anything but nav keys, bubble event to parent
+      Shortcuts.killEvent(e);
       this.props.onDeferredKey(e);
-    } else if (!Shortcuts.tryNavShortcut(e, this._getHypergrid()))
+    } else if (Shortcuts.tryNavShortcut(e, this._getHypergrid())){ // try to handle as nav shortcut
+      Shortcuts.killEvent(e); // event already handled, kill it
+    } else {
       console.log("unhandled keydown event in grid");
+      console.log(e);
+    }
   },
 
   //core code follows
@@ -65,11 +69,8 @@ export default React.createClass({
       let callbacks = ({
         'fin-selection-changed': function (event) {
           let { locs, width, height } = self.getSelectionArea();
-          if (width === 1 && height === 1) {
-            ActionCreator.selectCell(locs[0]);
-          } else {
-            ActionCreator.selectRange(locs);
-          }
+          if (width === 1 && height === 1)
+            self.props.onSelectionChange(locs[0]);
         },
 
         'fin-scroll-x': function (event) {
@@ -118,8 +119,11 @@ export default React.createClass({
     }
 
     return (
-      <fin-hypergrid style={style} ref="hypergrid" onKeyDown={this.handleKeyDown}>
-        {behaviorElement}
+      <fin-hypergrid
+        style={style}
+        ref="hypergrid"
+        onKeyDown={this.handleKeyDown}>
+          {behaviorElement}
       </fin-hypergrid>
     );
   }

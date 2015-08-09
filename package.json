@@ -39,21 +39,22 @@
   },
   "dependencies": {
     "babel-eslint": "^3.1.23",
+    "bootstrap": "^3.3.5",
     "brace": "^0.5.1",
     "eslint": "^0.24.1",
     "eslint-plugin-react": "^2.7.0",
     "flux": "^2.0.3",
     "gulp-bower-files": "^0.2.7",
+    "jquery": "^2.1.4",
     "main-bower-files": "^2.9.0",
     "material-ui": "^0.10.1",
     "material-ui-sass": "^0.7.5",
     "object-assign": "^3.0.0",
     "react": "^0.13.3",
     "react-ace": "^2.0.2",
+    "react-draggable-tab": "~0.3.0",
+    "react-hotkeys": "^0.4.0",
     "react-tap-event-plugin": "^0.1.7",
-    "ws": "0.4.x",
-    "bootstrap": "^3.3.5",
-    "jquery": "^2.1.4",
-    "react-draggable-tab": "~0.3.0"
+    "ws": "0.4.x"
   }
 }

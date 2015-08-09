@@ -28,10 +28,6 @@ export default React.createClass({
   render() {
     return (
       <div className="full">
-        <AppBar
-          style={{
-            backgroundColor: Styles.Colors.grey800
-          }} />
         <ASTabs />
         <ASEvaluationPane behavior="default" />
       </div>

@@ -36,15 +36,15 @@ export default React.createClass({
   },
 
   render() {
-    let {language, expression} = this.state.currentCell;
+    let {expression, language} = this.state;
 
     return (
       <div className="full">
         <ASCodeEditor
           ref='editorPane'
           mode={language}
-          onLanguageChange={this._setLanguage}
-          onExpressionChange={this._setExpression}
+          onLanguageChange={this.setLanguage}
+          onExpressionChange={this.setExpression}
           onEvalRequest={this.handleEvalRequest}
           onDeferredKey={this._onEditorDeferredKey}
           focusGrid={this.focusGrid}
@@ -60,13 +60,12 @@ export default React.createClass({
     );
   },
 
-  _onChange() { // assumes that the fin-hypergrid has default behavior
+  _onChange() {
+    // this.setState(getEvaluationState());
     console.log("eval pane detected event change from store");
-    var model = this.refs.spreadsheet.getModel();
-    var updatedCells = ASEvaluationStore.getLastUpdatedCells();
-    var i = 0;
-    for (; i < updatedCells.length; i++) // update the hypergrid values
-      model.setValue(updatedCells[i].loc[1]-1, updatedCells[i].loc[0]-1, Util.showValue(updatedCells[i].value))
+    let updatedCells = ASEvaluationStore.getLastUpdatedCells();
+    this.refs.spreadsheet.updateCellValues(updatedCells);
+    console.log(updatedCells);
   },
 
   _onEditorDeferredKey(e) {
@@ -79,18 +78,21 @@ export default React.createClass({
   _onGridDeferredKey(e) {
     if (!Shortcuts.tryCommonShortcut(e, this)) { // try common shortcuts, else handoff to editor
       console.log("key deferred by grid:");
+      // console.log(e);
       let node = this._getEditor();
       let evt = Shortcuts.duplicateKeyDown(e.nativeEvent);
       console.log(evt);
+      // TODO event dispatch has no effect
       node.dispatchEvent(evt);
     }
   },
 
   setLanguage(lang) {
-    this.setState({ language: tmp });
+    this.setState({ language: lang });
   },
 
   setExpression(xp) {
+    console.log("setting expression: "+ xp);
     this.setState({ expression: xp });
   },
 
@@ -107,12 +109,15 @@ export default React.createClass({
   },
 
   toggleFocus() {
-    if (this.state.focus === 'grid') {
-      this._getEditor().focus();
-      this.setState({focus: 'editor'});
-    } else {
-      this._getSpreadsheet().focus();
-      this.setState({focus: 'grid'});
+    switch(this.state.focus) {
+      case 'grid':
+        this._getEditor().focus();
+        this.setState({focus: 'editor'});
+        break;
+      default:
+        this._getSpreadsheet().focus();
+        this.setState({focus: 'grid'});
+        break;
     }
   },
 

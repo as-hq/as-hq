@@ -2,13 +2,34 @@ import Util from './Util';
 import Constants from '../Constants';
 
 export default {
+  NavKeys: ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End"],
+
+  // TODO integrate react-hotkeys
+  KeyMap: {
+    "eval_request": ['ctrl', 'enter']
+  },
+
   NavShortcuts: [
     {
       name: "data_boundary",
       ctrlKey: true,
-      optionKeys: this.NavKeys,
+      // optionKeys: this.NavKeys,
       callback: function(e, grid) {
         // TODO change grid selection
+        switch(this.getKey(e)) {
+          case 'ArrowLeft':
+            break;
+          case 'ArrowRight':
+            break;
+          case 'ArrowUp':
+            break;
+          case 'ArrowDown':
+            break;
+          case 'Home':
+            break;
+          case 'End':
+            break;
+        }
       }
     }
   ],
@@ -48,17 +69,27 @@ export default {
       name: "toggle_focus",
       key: "F2",
       callback: function(e, parent) {
+        console.log("focus toggled");
         parent.toggleFocus();
       }
-    }
-  ],
+    },
+    {
+      name: 'quick_python_graph',
+      key: "F11",
+      callback: function(e, parent) {
+        var rng = Util.locToExcel(parent.getActiveLocation());
+        parent.setLanguage(Constants.Languages.Python);
+        parent.changeSelection('right');
+        parent.handleEvalRequest('from AS.ui.plot import *; plotGeneric('+rng+')');
+      }
+    },
 
-  NavKeys: ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End"],
+  ],
 
   tryShortcut(e, entity, set) {
     for (var key in set) {
       if (this.shortcutMatches(set[key], e)){
-        set[key].callback(e, parent);
+        set[key].callback(e, entity);
         return true;
       }
     }
@@ -66,15 +97,15 @@ export default {
   },
 
   tryCommonShortcut(e, parent) {
-    this.tryShortcut(e, parent, this.CommonShortcuts);
+    return this.tryShortcut(e, parent, this.CommonShortcuts);
   },
 
   tryNavShortcut(e, grid) {
-    this.tryShortcut(e, grid, this.NavShortcuts);
+    return this.tryShortcut(e, grid, this.NavShortcuts);
   },
 
   gridShouldDeferKey(e){
-    return Util.arrContains(this.NavKeys, this.getKey(e));
+    return !Util.arrContains(this.NavKeys, this.getKey(e));
   },
 
   changeGridSelection(e, grid) {
@@ -85,7 +116,7 @@ export default {
       } else {
         // TODO move to data boundary
       }
-    }
+    } else return false;
   },
 
   killEvent(e) {
@@ -120,14 +151,34 @@ export default {
   },
 
   duplicateKeyDown(e) {
-    let evt = new KeyboardEvent("keydown", {
+    console.log("duplicating event with keycode: " + e.keyCode);
+    console.log(e);
+    let rawEvt = {
       altKey: e.altKey,
-      bubbles: false,
-      charCode: e.charCode,
       ctrlKey: e.ctrlKey,
-      keyCode: e.keyCode,
       metaKey: e.metaKey,
-      shiftKey: e.shiftKey
+      shiftKey: e.shiftKey,
+      charCode: e.charCode
+    };
+
+    // chrome-specific
+    if (e.keyIdentifier)
+      rawEvt.keyIdentifier = e.keyIdentifier;
+
+    let evt = new KeyboardEvent("keydown", rawEvt);
+
+    // chrome webkit bug workaround
+    // TODO case on chrome
+    evt.keyCodeVal = e.keyCode;
+    Object.defineProperty(evt, 'keyCode', {
+                get : function() {
+                    return this.keyCodeVal;
+                }
+    });
+    Object.defineProperty(evt, 'which', {
+                get : function() {
+                    return this.keyCodeVal;
+                }
     });
     return evt;
   },
@@ -152,7 +203,7 @@ export default {
         },
           readOnly: true
         });
-    _editor.commands.addCommand({
+    editor.commands.addCommand({
         name: 'toggle_reference',
         bindKey: {win: 'F4',  mac: 'F4'},
         exec: function(_editor) {
@@ -163,7 +214,7 @@ export default {
           var sel = editor.selection;
           sel.setRange(range);
           // console.log(range);
-          var replace = toggleReferenceType(editor.getSelectedText());
+          var replace = Util.toggleReferenceType(editor.getSelectedText());
           sesh.replace(range, replace);
         },
           readOnly: true
