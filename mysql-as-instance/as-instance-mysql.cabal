@@ -110,6 +110,8 @@ library
                  , aeson
                  , pyfi
                  , strict
+                 , split
+                 , yesod-websockets
 
 executable         as-instance-mysql
     if flag(library-only)
@@ -118,7 +120,6 @@ executable         as-instance-mysql
     main-is:           main.hs
     hs-source-dirs:    app
     build-depends:     base, as-instance-mysql
-
     ghc-options:       -threaded -O2 -rtsopts -with-rtsopts=-N
 
 test-suite test

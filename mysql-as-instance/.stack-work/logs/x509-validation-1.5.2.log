@@ -1,0 +1,17 @@
+Configuring x509-validation-1.5.2...
+Building x509-validation-1.5.2...
+Preprocessing library x509-validation-1.5.2...
+[1 of 5] Compiling Data.X509.Validation.Fingerprint ( Data/X509/Validation/Fingerprint.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Data/X509/Validation/Fingerprint.o )
+[2 of 5] Compiling Data.X509.Validation.Signature ( Data/X509/Validation/Signature.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Data/X509/Validation/Signature.o )
+[3 of 5] Compiling Data.X509.Validation.Types ( Data/X509/Validation/Types.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Data/X509/Validation/Types.o )
+[4 of 5] Compiling Data.X509.Validation.Cache ( Data/X509/Validation/Cache.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Data/X509/Validation/Cache.o )
+[5 of 5] Compiling Data.X509.Validation ( Data/X509/Validation.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Data/X509/Validation.o )
+[1 of 5] Compiling Data.X509.Validation.Fingerprint ( Data/X509/Validation/Fingerprint.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Data/X509/Validation/Fingerprint.p_o )
+[2 of 5] Compiling Data.X509.Validation.Signature ( Data/X509/Validation/Signature.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Data/X509/Validation/Signature.p_o )
+[3 of 5] Compiling Data.X509.Validation.Types ( Data/X509/Validation/Types.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Data/X509/Validation/Types.p_o )
+[4 of 5] Compiling Data.X509.Validation.Cache ( Data/X509/Validation/Cache.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Data/X509/Validation/Cache.p_o )
+[5 of 5] Compiling Data.X509.Validation ( Data/X509/Validation.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Data/X509/Validation.p_o )
+In-place registering x509-validation-1.5.2...
+Installing library in
+/home/anand/.stack/snapshots/x86_64-linux/lts-2.17/7.8.4/lib/x86_64-linux-ghc-7.8.4/x509-validation-1.5.2
+Registering x509-validation-1.5.2...

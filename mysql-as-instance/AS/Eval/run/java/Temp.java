@@ -16,6 +16,7 @@ public static String pprint(Object o){
 	else 
 		return "undefined";
 }
-
-
-public static void main(String[] args) throws Exception{Object x = RunIntradayTickDataRequest.RunExample("MSFT US Equity"); System.out.println(pprint(x));}}
+int a = 1 + 1;
+int b = 1 + 1;
+a + b + 2.0
+public static void main(String[] args) throws Exception{Object x = ; System.out.println(pprint(x));}}

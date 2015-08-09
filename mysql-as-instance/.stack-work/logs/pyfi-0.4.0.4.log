@@ -41,5 +41,5 @@ Loading package vector-0.10.12.3 ... linking ... done.
 Loading package aeson-0.8.0.2 ... linking ... done.
 In-place registering pyfi-0.4.0.4...
 Installing library in
-/home/riteshr/demo-plus/mysql-as-instance/.stack-work/install/x86_64-linux/lts-2.17/7.8.4/lib/x86_64-linux-ghc-7.8.4/pyfi-0.4.0.4
+/home/anand/Development/as/asl-demo/mysql-as-instance/.stack-work/install/x86_64-linux/lts-2.17/7.8.4/lib/x86_64-linux-ghc-7.8.4/pyfi-0.4.0.4
 Registering pyfi-0.4.0.4...

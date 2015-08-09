@@ -1,0 +1,968 @@
+Configuring language-javascript-0.5.13.3...
+Building language-javascript-0.5.13.3...
+Preprocessing library language-javascript-0.5.13.3...
+unused terminals: 2
+shift/reduce conflicts:  134
+reduce/reduce conflicts: 198
+[ 1 of 12] Compiling Language.JavaScript.Parser.StringEscape ( src/Language/JavaScript/Parser/StringEscape.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Language/JavaScript/Parser/StringEscape.o )
+[ 2 of 12] Compiling Language.JavaScript.Parser.SrcLocation ( src/Language/JavaScript/Parser/SrcLocation.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Language/JavaScript/Parser/SrcLocation.o )
+[ 3 of 12] Compiling Language.JavaScript.Parser.Token ( src/Language/JavaScript/Parser/Token.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Language/JavaScript/Parser/Token.o )
+[ 4 of 12] Compiling Language.JavaScript.Parser.LexerUtils ( src/Language/JavaScript/Parser/LexerUtils.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Language/JavaScript/Parser/LexerUtils.o )
+
+src/Language/JavaScript/Parser/LexerUtils.hs:86:1: Warning:
+    Defined but not used: ‘stripLineContinuations’
+
+src/Language/JavaScript/Parser/LexerUtils.hs:89:1: Warning:
+    Defined but not used: ‘doStripLineContinuations’
+[ 5 of 12] Compiling Language.JavaScript.Parser.ParserMonad ( src/Language/JavaScript/Parser/ParserMonad.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Language/JavaScript/Parser/ParserMonad.o )
+[ 6 of 12] Compiling Language.JavaScript.Parser.Lexer ( .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Language/JavaScript/Parser/Lexer.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Language/JavaScript/Parser/Lexer.o )
+
+.stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Language/JavaScript/Parser/Lexer.hs:754:1: Warning:
+    Top-level binding with no type signature:
+      alexIndexInt32OffAddr :: AlexAddr -> Int# -> Int#
+
+.stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Language/JavaScript/Parser/Lexer.hs:779:1: Warning:
+    Top-level binding with no type signature:
+      quickIndex :: Array
+                      Int (AlexAcc (AlexInput -> Int -> Alex Token) Any)
+                    -> Int -> AlexAcc (AlexInput -> Int -> Alex Token) Any
+
+.stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Language/JavaScript/Parser/Lexer.hs:795:1: Warning:
+    Top-level binding with no type signature:
+      alexScan :: AlexInput
+                  -> Int -> AlexReturn (AlexInput -> Int -> Alex Token)
+
+.stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Language/JavaScript/Parser/Lexer.hs:798:1: Warning:
+    Top-level binding with no type signature:
+      alexScanUser :: forall t.
+                      t
+                      -> AlexInput -> Int -> AlexReturn (AlexInput -> Int -> Alex Token)
+
+.stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Language/JavaScript/Parser/Lexer.hs:829:1: Warning:
+    Top-level binding with no type signature:
+      alex_scan_tkn :: forall t t1.
+                       t
+                       -> t1
+                       -> Int#
+                       -> AlexInput
+                       -> Int#
+                       -> AlexLastAcc (AlexInput -> Int -> Alex Token)
+                       -> (AlexLastAcc (AlexInput -> Int -> Alex Token), AlexInput)
+
+src/Language/JavaScript/Parser/Lexer.x:361:1: Warning:
+    Top-level binding with no type signature: lexToken :: Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:369:11: Warning:
+    This binding for ‘token’ shadows the existing binding
+      defined at templates/wrappers.hs:254:1
+
+src/Language/JavaScript/Parser/Lexer.x:372:19: Warning:
+    Defined but not used: ‘inp'’
+
+src/Language/JavaScript/Parser/Lexer.x:380:11: Warning:
+    This binding for ‘token’ shadows the existing binding
+      defined at templates/wrappers.hs:254:1
+
+src/Language/JavaScript/Parser/Lexer.x:388:1: Warning:
+    Top-level binding with no type signature:
+      lexCont :: forall b. (Token -> Alex b) -> Alex b
+
+src/Language/JavaScript/Parser/Lexer.x:407:1: Warning:
+    Top-level binding with no type signature:
+      toCommentAnnotation :: [Token] -> [CommentAnnotation]
+
+src/Language/JavaScript/Parser/Lexer.x:452:9: Warning:
+    Defined but not used: ‘loc’
+
+src/Language/JavaScript/Parser/Lexer.x:452:14: Warning:
+    Defined but not used: ‘p’
+
+src/Language/JavaScript/Parser/Lexer.x:567:1: Warning:
+    Defined but not used: ‘bof’
+
+src/Language/JavaScript/Parser/Lexer.x:570:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_1 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:571:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_2 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:572:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_3 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:573:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_4 :: forall t t1.
+                       (AlexPosn, t, t1, [Char]) -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:573:19: Warning:
+    Defined but not used: ‘ap’
+
+src/Language/JavaScript/Parser/Lexer.x:574:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_5 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:575:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_6 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:576:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_7 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:577:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_8 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:578:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_9 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:579:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_11 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:580:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_12 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:581:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_13 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:582:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_14 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:583:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_15 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:584:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_16 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:585:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_17 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:586:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_18 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:587:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_19 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:588:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_20 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:589:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_21 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:590:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_22 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:591:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_23 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:592:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_24 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:593:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_25 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:594:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_26 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:595:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_27 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:596:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_28 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:597:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_29 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:598:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_30 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:599:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_31 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:600:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_32 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:601:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_33 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:602:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_34 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:603:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_35 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:604:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_36 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:605:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_37 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:606:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_38 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:607:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_39 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:608:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_40 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:609:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_41 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:610:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_42 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:611:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_43 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:612:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_44 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:613:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_45 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:614:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_46 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:615:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_47 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:616:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_48 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:617:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_49 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:618:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_50 :: AlexInput -> Int -> Alex Token
+
+templates/GenericTemplate.hs:60:1: Warning:
+    Top-level binding with no type signature:
+      alexIndexInt16OffAddr :: AlexAddr -> Int# -> Int#
+
+templates/GenericTemplate.hs:205:10: Warning:
+    Defined but not used: ‘f’
+
+templates/GenericTemplate.hs:207:10: Warning:
+    Defined but not used: ‘f’
+
+templates/GenericTemplate.hs:244:1: Warning:
+    Defined but not used: ‘iUnbox’
+
+templates/GenericTemplate.hs:244:1: Warning:
+    Top-level binding with no type signature: iUnbox :: Int -> Int#
+
+templates/wrappers.hs:61:1: Warning:
+    Defined but not used: ‘ignorePendingBytes’
+
+templates/wrappers.hs:61:25: Warning: Defined but not used: ‘ps’
+
+templates/wrappers.hs:64:1: Warning:
+    Defined but not used: ‘alexInputPrevChar’
+
+templates/wrappers.hs:64:20: Warning: Defined but not used: ‘p’
+
+templates/wrappers.hs:64:24: Warning: Defined but not used: ‘bs’
+
+templates/wrappers.hs:64:27: Warning: Defined but not used: ‘s’
+
+templates/wrappers.hs:68:14: Warning: Defined but not used: ‘p’
+
+templates/wrappers.hs:68:16: Warning: Defined but not used: ‘c’
+
+templates/wrappers.hs:142:22: Warning: Defined but not used: ‘c’
+
+templates/wrappers.hs:204:19: Warning:
+    This binding for ‘s’ shadows the existing binding
+      bound at templates/wrappers.hs:203:12
+
+templates/wrappers.hs:207:29: Warning: Defined but not used: ‘s’
+
+templates/wrappers.hs:210:1: Warning:
+    Defined but not used: ‘alexGetStartCode’
+
+templates/wrappers.hs:213:1: Warning:
+    Defined but not used: ‘alexSetStartCode’
+
+templates/wrappers.hs:217:1: Warning:
+    Defined but not used: ‘alexGetUserState’
+
+templates/wrappers.hs:220:1: Warning:
+    Defined but not used: ‘alexSetUserState’
+
+templates/wrappers.hs:223:1: Warning:
+    Defined but not used: ‘alexMonadScan’
+
+templates/wrappers.hs:223:1: Warning:
+    Top-level binding with no type signature:
+      alexMonadScan :: Alex Token
+
+templates/wrappers.hs:229:20: Warning: Defined but not used: ‘len’
+
+templates/wrappers.hs:243:1: Warning: Defined but not used: ‘skip’
+
+templates/wrappers.hs:243:1: Warning:
+    Top-level binding with no type signature:
+      skip :: forall t t1. t -> t1 -> Alex Token
+
+templates/wrappers.hs:243:6: Warning: Defined but not used: ‘input’
+
+templates/wrappers.hs:243:12: Warning: Defined but not used: ‘len’
+
+templates/wrappers.hs:247:1: Warning: Defined but not used: ‘begin’
+
+templates/wrappers.hs:247:1: Warning:
+    Top-level binding with no type signature:
+      begin :: forall t t1. Int -> t -> t1 -> Alex Token
+
+templates/wrappers.hs:247:12: Warning:
+    Defined but not used: ‘input’
+
+templates/wrappers.hs:247:18: Warning: Defined but not used: ‘len’
+
+templates/wrappers.hs:251:9: Warning:
+    Defined but not used: ‘andBegin’
+
+templates/wrappers.hs:254:1: Warning: Defined but not used: ‘token’
+
+templates/wrappers.hs:457:1: Warning:
+    Top-level binding with no type signature:
+      alex_accept :: forall user.
+                     Array Int (AlexAcc (AlexInput -> Int -> Alex Token) user)
+
+src/Language/JavaScript/Parser/Lexer.x:412:5: Warning:
+    Pattern match(es) are non-exhaustive
+    In an equation for ‘go’:
+        Patterns not matched:
+            IdentifierToken _ _ _
+            DecimalToken _ _ _
+            HexIntegerToken _ _ _
+            OctalToken _ _ _
+            ...
+[ 7 of 12] Compiling Language.JavaScript.Parser.ParseError ( src/Language/JavaScript/Parser/ParseError.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Language/JavaScript/Parser/ParseError.o )
+[ 8 of 12] Compiling Language.JavaScript.Parser.AST ( src/Language/JavaScript/Parser/AST.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Language/JavaScript/Parser/AST.o )
+[ 9 of 12] Compiling Language.JavaScript.Parser.Grammar5 ( .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Language/JavaScript/Parser/Grammar5.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Language/JavaScript/Parser/Grammar5.o )
+[10 of 12] Compiling Language.JavaScript.Parser.Parser ( src/Language/JavaScript/Parser/Parser.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Language/JavaScript/Parser/Parser.o )
+
+src/Language/JavaScript/Parser/Parser.hs:15:1: Warning:
+    The import of ‘Language.JavaScript.Parser.ParseError’ is redundant
+      except perhaps to import instances from ‘Language.JavaScript.Parser.ParseError’
+    To import instances alone, use: import Language.JavaScript.Parser.ParseError()
+[11 of 12] Compiling Language.JavaScript.Pretty.Printer ( src/Language/JavaScript/Pretty/Printer.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Language/JavaScript/Pretty/Printer.o )
+
+src/Language/JavaScript/Pretty/Printer.hs:19:1: Warning:
+    The import of ‘Debug.Trace’ is redundant
+      except perhaps to import instances from ‘Debug.Trace’
+    To import instances alone, use: import Debug.Trace()
+
+src/Language/JavaScript/Pretty/Printer.hs:32:1: Warning:
+    Defined but not used: ‘<+>’
+
+src/Language/JavaScript/Pretty/Printer.hs:38:1: Warning:
+    Defined but not used: ‘hcat’
+
+src/Language/JavaScript/Pretty/Printer.hs:47:1: Warning:
+    Defined but not used: ‘char’
+
+src/Language/JavaScript/Pretty/Printer.hs:50:1: Warning:
+    Defined but not used: ‘comma’
+
+src/Language/JavaScript/Pretty/Printer.hs:53:1: Warning:
+    Defined but not used: ‘punctuate’
+
+src/Language/JavaScript/Pretty/Printer.hs:58:1: Warning:
+    Defined but not used: ‘<!>’
+
+src/Language/JavaScript/Pretty/Printer.hs:86:26: Warning:
+    Defined but not used: ‘s’
+
+src/Language/JavaScript/Pretty/Printer.hs:94:28: Warning:
+    Defined but not used: ‘s’
+
+src/Language/JavaScript/Pretty/Printer.hs:96:29: Warning:
+    Defined but not used: ‘s’
+
+src/Language/JavaScript/Pretty/Printer.hs:122:17: Warning:
+    Defined but not used: ‘l’
+
+src/Language/JavaScript/Pretty/Printer.hs:148:8: Warning:
+    This binding for ‘foo’ shadows the existing binding
+      bound at src/Language/JavaScript/Pretty/Printer.hs:145:7
+
+src/Language/JavaScript/Pretty/Printer.hs:149:8: Warning:
+    This binding for ‘foo’ shadows the existing binding
+      bound at src/Language/JavaScript/Pretty/Printer.hs:145:7
+
+src/Language/JavaScript/Pretty/Printer.hs:150:8: Warning:
+    This binding for ‘foo’ shadows the existing binding
+      bound at src/Language/JavaScript/Pretty/Printer.hs:145:7
+
+src/Language/JavaScript/Pretty/Printer.hs:162:34: Warning:
+    This binding for ‘char’ shadows the existing binding
+      defined at src/Language/JavaScript/Pretty/Printer.hs:47:1
+
+src/Language/JavaScript/Pretty/Printer.hs:164:9: Warning:
+    This binding for ‘r’ shadows the existing binding
+      bound at src/Language/JavaScript/Pretty/Printer.hs:160:12
+
+src/Language/JavaScript/Pretty/Printer.hs:164:11: Warning:
+    This binding for ‘c’ shadows the existing binding
+      bound at src/Language/JavaScript/Pretty/Printer.hs:160:14
+
+src/Language/JavaScript/Pretty/Printer.hs:164:11: Warning:
+    Defined but not used: ‘c’
+
+src/Language/JavaScript/Pretty/Printer.hs:165:9: Warning:
+    This binding for ‘r’ shadows the existing binding
+      bound at src/Language/JavaScript/Pretty/Printer.hs:160:12
+
+src/Language/JavaScript/Pretty/Printer.hs:165:11: Warning:
+    This binding for ‘c’ shadows the existing binding
+      bound at src/Language/JavaScript/Pretty/Printer.hs:160:14
+
+src/Language/JavaScript/Pretty/Printer.hs:166:9: Warning:
+    This binding for ‘r’ shadows the existing binding
+      bound at src/Language/JavaScript/Pretty/Printer.hs:160:12
+
+src/Language/JavaScript/Pretty/Printer.hs:166:11: Warning:
+    This binding for ‘c’ shadows the existing binding
+      bound at src/Language/JavaScript/Pretty/Printer.hs:160:14
+
+src/Language/JavaScript/Pretty/Printer.hs:199:1: Warning:
+    Top-level binding with no type signature: _ax :: JSNode
+
+src/Language/JavaScript/Pretty/Printer.hs:211:1: Warning:
+    Top-level binding with no type signature: _r1 :: JSNode
+[12 of 12] Compiling Language.JavaScript.Parser ( src/Language/JavaScript/Parser.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Language/JavaScript/Parser.o )
+
+src/Language/JavaScript/Parser.hs:23:1: Warning:
+    The import of ‘Language.JavaScript.Parser.ParseError’ is redundant
+      except perhaps to import instances from ‘Language.JavaScript.Parser.ParseError’
+    To import instances alone, use: import Language.JavaScript.Parser.ParseError()
+[ 1 of 12] Compiling Language.JavaScript.Parser.StringEscape ( src/Language/JavaScript/Parser/StringEscape.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Language/JavaScript/Parser/StringEscape.p_o )
+[ 2 of 12] Compiling Language.JavaScript.Parser.SrcLocation ( src/Language/JavaScript/Parser/SrcLocation.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Language/JavaScript/Parser/SrcLocation.p_o )
+[ 3 of 12] Compiling Language.JavaScript.Parser.Token ( src/Language/JavaScript/Parser/Token.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Language/JavaScript/Parser/Token.p_o )
+[ 4 of 12] Compiling Language.JavaScript.Parser.LexerUtils ( src/Language/JavaScript/Parser/LexerUtils.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Language/JavaScript/Parser/LexerUtils.p_o )
+
+src/Language/JavaScript/Parser/LexerUtils.hs:86:1: Warning:
+    Defined but not used: ‘stripLineContinuations’
+
+src/Language/JavaScript/Parser/LexerUtils.hs:89:1: Warning:
+    Defined but not used: ‘doStripLineContinuations’
+[ 5 of 12] Compiling Language.JavaScript.Parser.ParserMonad ( src/Language/JavaScript/Parser/ParserMonad.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Language/JavaScript/Parser/ParserMonad.p_o )
+[ 6 of 12] Compiling Language.JavaScript.Parser.Lexer ( .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Language/JavaScript/Parser/Lexer.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Language/JavaScript/Parser/Lexer.p_o )
+
+.stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Language/JavaScript/Parser/Lexer.hs:754:1: Warning:
+    Top-level binding with no type signature:
+      alexIndexInt32OffAddr :: AlexAddr -> Int# -> Int#
+
+.stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Language/JavaScript/Parser/Lexer.hs:779:1: Warning:
+    Top-level binding with no type signature:
+      quickIndex :: Array
+                      Int (AlexAcc (AlexInput -> Int -> Alex Token) Any)
+                    -> Int -> AlexAcc (AlexInput -> Int -> Alex Token) Any
+
+.stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Language/JavaScript/Parser/Lexer.hs:795:1: Warning:
+    Top-level binding with no type signature:
+      alexScan :: AlexInput
+                  -> Int -> AlexReturn (AlexInput -> Int -> Alex Token)
+
+.stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Language/JavaScript/Parser/Lexer.hs:798:1: Warning:
+    Top-level binding with no type signature:
+      alexScanUser :: forall t.
+                      t
+                      -> AlexInput -> Int -> AlexReturn (AlexInput -> Int -> Alex Token)
+
+.stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Language/JavaScript/Parser/Lexer.hs:829:1: Warning:
+    Top-level binding with no type signature:
+      alex_scan_tkn :: forall t t1.
+                       t
+                       -> t1
+                       -> Int#
+                       -> AlexInput
+                       -> Int#
+                       -> AlexLastAcc (AlexInput -> Int -> Alex Token)
+                       -> (AlexLastAcc (AlexInput -> Int -> Alex Token), AlexInput)
+
+src/Language/JavaScript/Parser/Lexer.x:361:1: Warning:
+    Top-level binding with no type signature: lexToken :: Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:369:11: Warning:
+    This binding for ‘token’ shadows the existing binding
+      defined at templates/wrappers.hs:254:1
+
+src/Language/JavaScript/Parser/Lexer.x:372:19: Warning:
+    Defined but not used: ‘inp'’
+
+src/Language/JavaScript/Parser/Lexer.x:380:11: Warning:
+    This binding for ‘token’ shadows the existing binding
+      defined at templates/wrappers.hs:254:1
+
+src/Language/JavaScript/Parser/Lexer.x:388:1: Warning:
+    Top-level binding with no type signature:
+      lexCont :: forall b. (Token -> Alex b) -> Alex b
+
+src/Language/JavaScript/Parser/Lexer.x:407:1: Warning:
+    Top-level binding with no type signature:
+      toCommentAnnotation :: [Token] -> [CommentAnnotation]
+
+src/Language/JavaScript/Parser/Lexer.x:452:9: Warning:
+    Defined but not used: ‘loc’
+
+src/Language/JavaScript/Parser/Lexer.x:452:14: Warning:
+    Defined but not used: ‘p’
+
+src/Language/JavaScript/Parser/Lexer.x:567:1: Warning:
+    Defined but not used: ‘bof’
+
+src/Language/JavaScript/Parser/Lexer.x:570:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_1 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:571:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_2 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:572:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_3 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:573:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_4 :: forall t t1.
+                       (AlexPosn, t, t1, [Char]) -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:573:19: Warning:
+    Defined but not used: ‘ap’
+
+src/Language/JavaScript/Parser/Lexer.x:574:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_5 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:575:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_6 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:576:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_7 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:577:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_8 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:578:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_9 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:579:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_11 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:580:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_12 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:581:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_13 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:582:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_14 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:583:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_15 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:584:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_16 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:585:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_17 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:586:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_18 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:587:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_19 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:588:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_20 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:589:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_21 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:590:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_22 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:591:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_23 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:592:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_24 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:593:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_25 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:594:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_26 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:595:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_27 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:596:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_28 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:597:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_29 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:598:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_30 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:599:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_31 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:600:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_32 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:601:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_33 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:602:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_34 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:603:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_35 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:604:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_36 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:605:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_37 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:606:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_38 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:607:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_39 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:608:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_40 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:609:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_41 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:610:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_42 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:611:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_43 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:612:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_44 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:613:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_45 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:614:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_46 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:615:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_47 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:616:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_48 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:617:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_49 :: AlexInput -> Int -> Alex Token
+
+src/Language/JavaScript/Parser/Lexer.x:618:1: Warning:
+    Top-level binding with no type signature:
+      alex_action_50 :: AlexInput -> Int -> Alex Token
+
+templates/GenericTemplate.hs:60:1: Warning:
+    Top-level binding with no type signature:
+      alexIndexInt16OffAddr :: AlexAddr -> Int# -> Int#
+
+templates/GenericTemplate.hs:205:10: Warning:
+    Defined but not used: ‘f’
+
+templates/GenericTemplate.hs:207:10: Warning:
+    Defined but not used: ‘f’
+
+templates/GenericTemplate.hs:244:1: Warning:
+    Defined but not used: ‘iUnbox’
+
+templates/GenericTemplate.hs:244:1: Warning:
+    Top-level binding with no type signature: iUnbox :: Int -> Int#
+
+templates/wrappers.hs:61:1: Warning:
+    Defined but not used: ‘ignorePendingBytes’
+
+templates/wrappers.hs:61:25: Warning: Defined but not used: ‘ps’
+
+templates/wrappers.hs:64:1: Warning:
+    Defined but not used: ‘alexInputPrevChar’
+
+templates/wrappers.hs:64:20: Warning: Defined but not used: ‘p’
+
+templates/wrappers.hs:64:24: Warning: Defined but not used: ‘bs’
+
+templates/wrappers.hs:64:27: Warning: Defined but not used: ‘s’
+
+templates/wrappers.hs:68:14: Warning: Defined but not used: ‘p’
+
+templates/wrappers.hs:68:16: Warning: Defined but not used: ‘c’
+
+templates/wrappers.hs:142:22: Warning: Defined but not used: ‘c’
+
+templates/wrappers.hs:204:19: Warning:
+    This binding for ‘s’ shadows the existing binding
+      bound at templates/wrappers.hs:203:12
+
+templates/wrappers.hs:207:29: Warning: Defined but not used: ‘s’
+
+templates/wrappers.hs:210:1: Warning:
+    Defined but not used: ‘alexGetStartCode’
+
+templates/wrappers.hs:213:1: Warning:
+    Defined but not used: ‘alexSetStartCode’
+
+templates/wrappers.hs:217:1: Warning:
+    Defined but not used: ‘alexGetUserState’
+
+templates/wrappers.hs:220:1: Warning:
+    Defined but not used: ‘alexSetUserState’
+
+templates/wrappers.hs:223:1: Warning:
+    Defined but not used: ‘alexMonadScan’
+
+templates/wrappers.hs:223:1: Warning:
+    Top-level binding with no type signature:
+      alexMonadScan :: Alex Token
+
+templates/wrappers.hs:229:20: Warning: Defined but not used: ‘len’
+
+templates/wrappers.hs:243:1: Warning: Defined but not used: ‘skip’
+
+templates/wrappers.hs:243:1: Warning:
+    Top-level binding with no type signature:
+      skip :: forall t t1. t -> t1 -> Alex Token
+
+templates/wrappers.hs:243:6: Warning: Defined but not used: ‘input’
+
+templates/wrappers.hs:243:12: Warning: Defined but not used: ‘len’
+
+templates/wrappers.hs:247:1: Warning: Defined but not used: ‘begin’
+
+templates/wrappers.hs:247:1: Warning:
+    Top-level binding with no type signature:
+      begin :: forall t t1. Int -> t -> t1 -> Alex Token
+
+templates/wrappers.hs:247:12: Warning:
+    Defined but not used: ‘input’
+
+templates/wrappers.hs:247:18: Warning: Defined but not used: ‘len’
+
+templates/wrappers.hs:251:9: Warning:
+    Defined but not used: ‘andBegin’
+
+templates/wrappers.hs:254:1: Warning: Defined but not used: ‘token’
+
+templates/wrappers.hs:457:1: Warning:
+    Top-level binding with no type signature:
+      alex_accept :: forall user.
+                     Array Int (AlexAcc (AlexInput -> Int -> Alex Token) user)
+
+src/Language/JavaScript/Parser/Lexer.x:412:5: Warning:
+    Pattern match(es) are non-exhaustive
+    In an equation for ‘go’:
+        Patterns not matched:
+            IdentifierToken _ _ _
+            DecimalToken _ _ _
+            HexIntegerToken _ _ _
+            OctalToken _ _ _
+            ...
+[ 7 of 12] Compiling Language.JavaScript.Parser.ParseError ( src/Language/JavaScript/Parser/ParseError.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Language/JavaScript/Parser/ParseError.p_o )
+[ 8 of 12] Compiling Language.JavaScript.Parser.AST ( src/Language/JavaScript/Parser/AST.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Language/JavaScript/Parser/AST.p_o )
+[ 9 of 12] Compiling Language.JavaScript.Parser.Grammar5 ( .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Language/JavaScript/Parser/Grammar5.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Language/JavaScript/Parser/Grammar5.p_o )
+[10 of 12] Compiling Language.JavaScript.Parser.Parser ( src/Language/JavaScript/Parser/Parser.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Language/JavaScript/Parser/Parser.p_o )
+
+src/Language/JavaScript/Parser/Parser.hs:15:1: Warning:
+    The import of ‘Language.JavaScript.Parser.ParseError’ is redundant
+      except perhaps to import instances from ‘Language.JavaScript.Parser.ParseError’
+    To import instances alone, use: import Language.JavaScript.Parser.ParseError()
+[11 of 12] Compiling Language.JavaScript.Pretty.Printer ( src/Language/JavaScript/Pretty/Printer.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Language/JavaScript/Pretty/Printer.p_o )
+
+src/Language/JavaScript/Pretty/Printer.hs:19:1: Warning:
+    The import of ‘Debug.Trace’ is redundant
+      except perhaps to import instances from ‘Debug.Trace’
+    To import instances alone, use: import Debug.Trace()
+
+src/Language/JavaScript/Pretty/Printer.hs:32:1: Warning:
+    Defined but not used: ‘<+>’
+
+src/Language/JavaScript/Pretty/Printer.hs:38:1: Warning:
+    Defined but not used: ‘hcat’
+
+src/Language/JavaScript/Pretty/Printer.hs:47:1: Warning:
+    Defined but not used: ‘char’
+
+src/Language/JavaScript/Pretty/Printer.hs:50:1: Warning:
+    Defined but not used: ‘comma’
+
+src/Language/JavaScript/Pretty/Printer.hs:53:1: Warning:
+    Defined but not used: ‘punctuate’
+
+src/Language/JavaScript/Pretty/Printer.hs:58:1: Warning:
+    Defined but not used: ‘<!>’
+
+src/Language/JavaScript/Pretty/Printer.hs:86:26: Warning:
+    Defined but not used: ‘s’
+
+src/Language/JavaScript/Pretty/Printer.hs:94:28: Warning:
+    Defined but not used: ‘s’
+
+src/Language/JavaScript/Pretty/Printer.hs:96:29: Warning:
+    Defined but not used: ‘s’
+
+src/Language/JavaScript/Pretty/Printer.hs:122:17: Warning:
+    Defined but not used: ‘l’
+
+src/Language/JavaScript/Pretty/Printer.hs:148:8: Warning:
+    This binding for ‘foo’ shadows the existing binding
+      bound at src/Language/JavaScript/Pretty/Printer.hs:145:7
+
+src/Language/JavaScript/Pretty/Printer.hs:149:8: Warning:
+    This binding for ‘foo’ shadows the existing binding
+      bound at src/Language/JavaScript/Pretty/Printer.hs:145:7
+
+src/Language/JavaScript/Pretty/Printer.hs:150:8: Warning:
+    This binding for ‘foo’ shadows the existing binding
+      bound at src/Language/JavaScript/Pretty/Printer.hs:145:7
+
+src/Language/JavaScript/Pretty/Printer.hs:162:34: Warning:
+    This binding for ‘char’ shadows the existing binding
+      defined at src/Language/JavaScript/Pretty/Printer.hs:47:1
+
+src/Language/JavaScript/Pretty/Printer.hs:164:9: Warning:
+    This binding for ‘r’ shadows the existing binding
+      bound at src/Language/JavaScript/Pretty/Printer.hs:160:12
+
+src/Language/JavaScript/Pretty/Printer.hs:164:11: Warning:
+    This binding for ‘c’ shadows the existing binding
+      bound at src/Language/JavaScript/Pretty/Printer.hs:160:14
+
+src/Language/JavaScript/Pretty/Printer.hs:164:11: Warning:
+    Defined but not used: ‘c’
+
+src/Language/JavaScript/Pretty/Printer.hs:165:9: Warning:
+    This binding for ‘r’ shadows the existing binding
+      bound at src/Language/JavaScript/Pretty/Printer.hs:160:12
+
+src/Language/JavaScript/Pretty/Printer.hs:165:11: Warning:
+    This binding for ‘c’ shadows the existing binding
+      bound at src/Language/JavaScript/Pretty/Printer.hs:160:14
+
+src/Language/JavaScript/Pretty/Printer.hs:166:9: Warning:
+    This binding for ‘r’ shadows the existing binding
+      bound at src/Language/JavaScript/Pretty/Printer.hs:160:12
+
+src/Language/JavaScript/Pretty/Printer.hs:166:11: Warning:
+    This binding for ‘c’ shadows the existing binding
+      bound at src/Language/JavaScript/Pretty/Printer.hs:160:14
+
+src/Language/JavaScript/Pretty/Printer.hs:199:1: Warning:
+    Top-level binding with no type signature: _ax :: JSNode
+
+src/Language/JavaScript/Pretty/Printer.hs:211:1: Warning:
+    Top-level binding with no type signature: _r1 :: JSNode
+[12 of 12] Compiling Language.JavaScript.Parser ( src/Language/JavaScript/Parser.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Language/JavaScript/Parser.p_o )
+
+src/Language/JavaScript/Parser.hs:23:1: Warning:
+    The import of ‘Language.JavaScript.Parser.ParseError’ is redundant
+      except perhaps to import instances from ‘Language.JavaScript.Parser.ParseError’
+    To import instances alone, use: import Language.JavaScript.Parser.ParseError()
+In-place registering language-javascript-0.5.13.3...
+Installing library in
+/home/anand/.stack/snapshots/x86_64-linux/lts-2.17/7.8.4/lib/x86_64-linux-ghc-7.8.4/language-javascript-0.5.13.3
+Registering language-javascript-0.5.13.3...

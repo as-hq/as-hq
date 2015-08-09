@@ -1,0 +1,31 @@
+Configuring system-fileio-0.3.16.3...
+Building system-fileio-0.3.16.3...
+Preprocessing library system-fileio-0.3.16.3...
+[1 of 1] Compiling Filesystem       ( lib/Filesystem.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Filesystem.o )
+
+lib/Filesystem.hs:79:1: Warning:
+    The import of ‘when’ from module ‘Control.Monad’ is redundant
+
+lib/Filesystem.hs:95:1: Warning:
+    The import of ‘System.IO.Error’ is redundant
+      except perhaps to import instances from ‘System.IO.Error’
+    To import instances alone, use: import System.IO.Error()
+
+lib/Filesystem.hs:924:1: Warning:
+    Defined but not used: ‘throwErrnoPathIfMinus1’
+[1 of 1] Compiling Filesystem       ( lib/Filesystem.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Filesystem.p_o )
+
+lib/Filesystem.hs:79:1: Warning:
+    The import of ‘when’ from module ‘Control.Monad’ is redundant
+
+lib/Filesystem.hs:95:1: Warning:
+    The import of ‘System.IO.Error’ is redundant
+      except perhaps to import instances from ‘System.IO.Error’
+    To import instances alone, use: import System.IO.Error()
+
+lib/Filesystem.hs:924:1: Warning:
+    Defined but not used: ‘throwErrnoPathIfMinus1’
+In-place registering system-fileio-0.3.16.3...
+Installing library in
+/home/anand/.stack/snapshots/x86_64-linux/lts-2.17/7.8.4/lib/x86_64-linux-ghc-7.8.4/system-fileio-0.3.16.3
+Registering system-fileio-0.3.16.3...

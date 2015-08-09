@@ -9,6 +9,14 @@ Data/Strict/Tuple.hs:17:16: Warning:
 [3 of 5] Compiling Data.Strict.Maybe ( Data/Strict/Maybe.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Data/Strict/Maybe.o )
 [4 of 5] Compiling Data.Strict.Tuple ( Data/Strict/Tuple.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Data/Strict/Tuple.o )
 [5 of 5] Compiling Data.Strict      ( Data/Strict.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Data/Strict.o )
+
+Data/Strict/Tuple.hs:17:16: Warning:
+    -fglasgow-exts is deprecated: Use individual extensions instead
+[1 of 5] Compiling System.IO.Strict ( System/IO/Strict.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/System/IO/Strict.p_o )
+[2 of 5] Compiling Data.Strict.Either ( Data/Strict/Either.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Data/Strict/Either.p_o )
+[3 of 5] Compiling Data.Strict.Maybe ( Data/Strict/Maybe.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Data/Strict/Maybe.p_o )
+[4 of 5] Compiling Data.Strict.Tuple ( Data/Strict/Tuple.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Data/Strict/Tuple.p_o )
+[5 of 5] Compiling Data.Strict      ( Data/Strict.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Data/Strict.p_o )
 In-place registering strict-0.3.2...
 Installing library in
 /home/anand/.stack/snapshots/x86_64-linux/lts-2.17/7.8.4/lib/x86_64-linux-ghc-7.8.4/strict-0.3.2

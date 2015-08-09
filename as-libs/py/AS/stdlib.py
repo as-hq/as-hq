@@ -43,7 +43,11 @@ def rand(m=1,n=1,upperbound=1):
 		return np.random_sample*random.randint(1,upperbound)
 	else: return ASIterable(np.random.rand(m,n)*random.randint(1,upperbound))
 
-
+def as_pprint(val):
+	if isinstance(val, np.ndarray):
+		return val.tolist()
+	else:
+		return val
 
 
 

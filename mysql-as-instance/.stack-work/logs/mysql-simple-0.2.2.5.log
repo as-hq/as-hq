@@ -11,6 +11,16 @@ Database/MySQL/Simple/Result.hs:31:1: Warning:
 [4 of 6] Compiling Database.MySQL.Simple.Param ( Database/MySQL/Simple/Param.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Database/MySQL/Simple/Param.o )
 [5 of 6] Compiling Database.MySQL.Simple.QueryParams ( Database/MySQL/Simple/QueryParams.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Database/MySQL/Simple/QueryParams.o )
 [6 of 6] Compiling Database.MySQL.Simple ( Database/MySQL/Simple.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Database/MySQL/Simple.o )
+[1 of 6] Compiling Database.MySQL.Simple.Types ( Database/MySQL/Simple/Types.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Database/MySQL/Simple/Types.p_o )
+[2 of 6] Compiling Database.MySQL.Simple.Result ( Database/MySQL/Simple/Result.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Database/MySQL/Simple/Result.p_o )
+
+Database/MySQL/Simple/Result.hs:31:1: Warning:
+    Module ‘Data.Attoparsec.Char8’ is deprecated:
+      This module will be removed in the next major release.
+[3 of 6] Compiling Database.MySQL.Simple.QueryResults ( Database/MySQL/Simple/QueryResults.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Database/MySQL/Simple/QueryResults.p_o )
+[4 of 6] Compiling Database.MySQL.Simple.Param ( Database/MySQL/Simple/Param.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Database/MySQL/Simple/Param.p_o )
+[5 of 6] Compiling Database.MySQL.Simple.QueryParams ( Database/MySQL/Simple/QueryParams.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Database/MySQL/Simple/QueryParams.p_o )
+[6 of 6] Compiling Database.MySQL.Simple ( Database/MySQL/Simple.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Database/MySQL/Simple.p_o )
 In-place registering mysql-simple-0.2.2.5...
 Installing library in
 /home/anand/.stack/snapshots/x86_64-linux/lts-2.17/7.8.4/lib/x86_64-linux-ghc-7.8.4/mysql-simple-0.2.2.5

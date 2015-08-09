@@ -19,8 +19,6 @@ import Control.Applicative
 import Data.Time.Clock
 import Data.Text as T (unpack,pack)
 
-
-
 propagateCell :: ASLocation -> ASExpression -> Handler (Maybe [ASCell])
 propagateCell loc xp = do
   if ((language xp)==Excel)

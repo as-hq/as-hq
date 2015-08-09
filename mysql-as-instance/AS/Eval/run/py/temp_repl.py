@@ -14,11 +14,10 @@ from AS.iterable import ASIterable
 
 def arr(lst):
 	return ASIterable(lst)
-result = "error"
+result = ""
 try:
-	from sklearn import svm, datasets
-	
-	result = iris = dataset.load_iris()
+	def myFunc(x):
+		return x ** 2
 except Exception as e: 
 	exc_type, exc_obj, exc_tb = exc_info()
 	fname = 'AlphaSheets Python evaluator'

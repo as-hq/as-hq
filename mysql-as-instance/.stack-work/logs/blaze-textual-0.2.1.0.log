@@ -5,6 +5,10 @@ Preprocessing library blaze-textual-0.2.1.0...
 [2 of 4] Compiling Blaze.Text.Double.Native ( Blaze/Text/Double/Native.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Blaze/Text/Double/Native.o )
 [3 of 4] Compiling Blaze.Text.Double ( Blaze/Text/Double.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Blaze/Text/Double.o )
 [4 of 4] Compiling Blaze.Text       ( Blaze/Text.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Blaze/Text.o )
+[1 of 4] Compiling Blaze.Text.Int   ( Blaze/Text/Int.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Blaze/Text/Int.p_o )
+[2 of 4] Compiling Blaze.Text.Double.Native ( Blaze/Text/Double/Native.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Blaze/Text/Double/Native.p_o )
+[3 of 4] Compiling Blaze.Text.Double ( Blaze/Text/Double.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Blaze/Text/Double.p_o )
+[4 of 4] Compiling Blaze.Text       ( Blaze/Text.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Blaze/Text.p_o )
 In-place registering blaze-textual-0.2.1.0...
 Installing library in
 /home/anand/.stack/snapshots/x86_64-linux/lts-2.17/7.8.4/lib/x86_64-linux-ghc-7.8.4/blaze-textual-0.2.1.0

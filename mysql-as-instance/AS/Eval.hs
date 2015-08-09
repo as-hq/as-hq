@@ -103,15 +103,16 @@ evalExcel xp = do
 evalCodeRepl :: ASExpression -> Handler ASValue
 evalCodeRepl xp = do
 	let lang = language xp
-	finalXp <- interpolateFile lang (expression xp)
+	finalXp <- interpolateFileRepl lang (expression xp)
+	writeReplFile lang finalXp
 	result <- liftIO $ pyfiString finalXp
 	replRecord <- getReplRecord lang
 	$(logInfo) $ (fromString $ "EVAL REPL returns value: " ++ (show result))
-	writeReplFile lang finalXp
-	writeReplRecord lang (replRecord ++ "\n" ++ (removePrintStmt lang (expression xp)))
-	return $ case lang of 
-		Python -> parseValue lang result
-		otherwise -> ValueS "NOT_IMPLEMENTED"
+	let parsed = parseValue lang result
+	case parsed of 
+		(ValueError _ _ _ _) -> return ()
+		otherwise -> writeReplRecord lang (replRecord ++ "\n" ++ (removePrintStmt lang (expression xp)))
+	return parsed
 
 --evalRef :: ASLocation -> Map ASLocation ASValue -> ASExpression ->  Handler ASValue
 --evalRef loc dict (Reference l (a, b)) = do

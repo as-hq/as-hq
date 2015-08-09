@@ -19,10 +19,9 @@ graph <- function(x){
 
 isError = FALSE
 result = tryCatch({
-form <- Species ~ Sepal.Length + Sepal.Width + Petal.Length + Petal.Width
-dtree <- ctree(form, data=iris)
 
-graph(plot(dtree,type = "simple"))
+
+rnorm(20.0)
 }, warning = function(w) {
 	# nothing here
 }, error = function(e) {

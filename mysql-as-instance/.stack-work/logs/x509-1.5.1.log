@@ -1,0 +1,39 @@
+Configuring x509-1.5.1...
+Building x509-1.5.1...
+Preprocessing library x509-1.5.1...
+[ 1 of 12] Compiling Data.X509.Internal ( Data/X509/Internal.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Data/X509/Internal.o )
+
+Data/X509/Internal.hs:29:1: Warning:
+    Top-level binding with no type signature:
+      runErrT :: forall e (m :: * -> *) a. ErrorT e m a -> m (Either e a)
+[ 2 of 12] Compiling Data.X509.DistinguishedName ( Data/X509/DistinguishedName.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Data/X509/DistinguishedName.o )
+[ 3 of 12] Compiling Data.X509.ExtensionRaw ( Data/X509/ExtensionRaw.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Data/X509/ExtensionRaw.o )
+[ 4 of 12] Compiling Data.X509.Ext    ( Data/X509/Ext.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Data/X509/Ext.o )
+[ 5 of 12] Compiling Data.X509.AlgorithmIdentifier ( Data/X509/AlgorithmIdentifier.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Data/X509/AlgorithmIdentifier.o )
+[ 6 of 12] Compiling Data.X509.CRL    ( Data/X509/CRL.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Data/X509/CRL.o )
+[ 7 of 12] Compiling Data.X509.Signed ( Data/X509/Signed.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Data/X509/Signed.o )
+[ 8 of 12] Compiling Data.X509.PublicKey ( Data/X509/PublicKey.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Data/X509/PublicKey.o )
+[ 9 of 12] Compiling Data.X509.Cert   ( Data/X509/Cert.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Data/X509/Cert.o )
+[10 of 12] Compiling Data.X509.CertificateChain ( Data/X509/CertificateChain.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Data/X509/CertificateChain.o )
+[11 of 12] Compiling Data.X509.PrivateKey ( Data/X509/PrivateKey.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Data/X509/PrivateKey.o )
+[12 of 12] Compiling Data.X509        ( Data/X509.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Data/X509.o )
+[ 1 of 12] Compiling Data.X509.Internal ( Data/X509/Internal.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Data/X509/Internal.p_o )
+
+Data/X509/Internal.hs:29:1: Warning:
+    Top-level binding with no type signature:
+      runErrT :: forall e (m :: * -> *) a. ErrorT e m a -> m (Either e a)
+[ 2 of 12] Compiling Data.X509.DistinguishedName ( Data/X509/DistinguishedName.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Data/X509/DistinguishedName.p_o )
+[ 3 of 12] Compiling Data.X509.ExtensionRaw ( Data/X509/ExtensionRaw.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Data/X509/ExtensionRaw.p_o )
+[ 4 of 12] Compiling Data.X509.Ext    ( Data/X509/Ext.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Data/X509/Ext.p_o )
+[ 5 of 12] Compiling Data.X509.AlgorithmIdentifier ( Data/X509/AlgorithmIdentifier.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Data/X509/AlgorithmIdentifier.p_o )
+[ 6 of 12] Compiling Data.X509.CRL    ( Data/X509/CRL.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Data/X509/CRL.p_o )
+[ 7 of 12] Compiling Data.X509.Signed ( Data/X509/Signed.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Data/X509/Signed.p_o )
+[ 8 of 12] Compiling Data.X509.PublicKey ( Data/X509/PublicKey.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Data/X509/PublicKey.p_o )
+[ 9 of 12] Compiling Data.X509.Cert   ( Data/X509/Cert.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Data/X509/Cert.p_o )
+[10 of 12] Compiling Data.X509.CertificateChain ( Data/X509/CertificateChain.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Data/X509/CertificateChain.p_o )
+[11 of 12] Compiling Data.X509.PrivateKey ( Data/X509/PrivateKey.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Data/X509/PrivateKey.p_o )
+[12 of 12] Compiling Data.X509        ( Data/X509.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Data/X509.p_o )
+In-place registering x509-1.5.1...
+Installing library in
+/home/anand/.stack/snapshots/x86_64-linux/lts-2.17/7.8.4/lib/x86_64-linux-ghc-7.8.4/x509-1.5.1
+Registering x509-1.5.1...

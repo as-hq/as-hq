@@ -16,7 +16,8 @@ getClearR :: Handler ()
 getClearR = (runDB $ do
 	deleteWhere ([] :: [Filter ASCellDB])
 	deleteWhere ([] :: [Filter RelationDB]))
-	>> redirect (frontend_url :: String)
+	>> E.clearReplRecord Python
+    >> redirect (frontend_url :: String)
 
 postClearR :: Handler Value
 postClearR = interactHandlerJson DB.deleteCell

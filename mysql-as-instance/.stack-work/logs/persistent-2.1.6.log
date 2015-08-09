@@ -1,0 +1,225 @@
+Configuring persistent-2.1.6...
+Building persistent-2.1.6...
+Preprocessing library persistent-2.1.6...
+[ 1 of 23] Compiling Database.Persist.Class.PersistConfig ( Database/Persist/Class/PersistConfig.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Database/Persist/Class/PersistConfig.o )
+[ 2 of 23] Compiling Database.Persist.Types.Base ( Database/Persist/Types/Base.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Database/Persist/Types/Base.o )
+[ 3 of 23] Compiling Database.Persist.Class.PersistField ( Database/Persist/Class/PersistField.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Database/Persist/Class/PersistField.o )
+
+Database/Persist/Class/PersistField.hs:235:26: Warning:
+    This binding for ‘x’ shadows the existing binding
+      bound at Database/Persist/Class/PersistField.hs:229:22
+[ 4 of 23] Compiling Database.Persist.Class.PersistEntity ( Database/Persist/Class/PersistEntity.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Database/Persist/Class/PersistEntity.o )
+[ 5 of 23] Compiling Database.Persist.Types ( Database/Persist/Types.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Database/Persist/Types.o )
+[ 6 of 23] Compiling Database.Persist.Quasi ( Database/Persist/Quasi.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Database/Persist/Quasi.o )
+[ 7 of 23] Compiling Database.Persist.Class.PersistStore ( Database/Persist/Class/PersistStore.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Database/Persist/Class/PersistStore.o )
+
+Database/Persist/Class/PersistStore.hs:22:1: Warning:
+    The import of ‘Control.Monad.Trans.Error’ is redundant
+      except perhaps to import instances from ‘Control.Monad.Trans.Error’
+    To import instances alone, use: import Control.Monad.Trans.Error()
+
+Database/Persist/Class/PersistStore.hs:26:1: Warning:
+    The import of ‘Data.Conduit.Internal’ is redundant
+      except perhaps to import instances from ‘Data.Conduit.Internal’
+    To import instances alone, use: import Data.Conduit.Internal()
+[ 8 of 23] Compiling Database.Persist.Class.PersistQuery ( Database/Persist/Class/PersistQuery.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Database/Persist/Class/PersistQuery.o )
+
+Database/Persist/Class/PersistQuery.hs:19:1: Warning:
+    The import of ‘Control.Monad.Trans.Class’ is redundant
+      except perhaps to import instances from ‘Control.Monad.Trans.Class’
+    To import instances alone, use: import Control.Monad.Trans.Class()
+[ 9 of 23] Compiling Database.Persist.Class.DeleteCascade ( Database/Persist/Class/DeleteCascade.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Database/Persist/Class/DeleteCascade.o )
+[10 of 23] Compiling Database.Persist.Class.PersistUnique ( Database/Persist/Class/PersistUnique.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Database/Persist/Class/PersistUnique.o )
+
+Database/Persist/Class/PersistUnique.hs:13:1: Warning:
+    The qualified import of ‘Prelude’ is redundant
+      except perhaps to import instances from ‘Prelude’
+    To import instances alone, use: import Prelude()
+[11 of 23] Compiling Database.Persist.Class ( Database/Persist/Class.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Database/Persist/Class.o )
+[12 of 23] Compiling Database.Persist.Sql.Types ( Database/Persist/Sql/Types.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Database/Persist/Sql/Types.o )
+
+Database/Persist/Sql/Types.hs:13:1: Warning:
+    The import of ‘MonadResource’
+    from module ‘Control.Monad.Trans.Resource’ is redundant
+
+Database/Persist/Sql/Types.hs:16:1: Warning:
+    The import of ‘Control.Monad.Trans.Control’ is redundant
+      except perhaps to import instances from ‘Control.Monad.Trans.Control’
+    To import instances alone, use: import Control.Monad.Trans.Control()
+
+Database/Persist/Sql/Types.hs:21:1: Warning:
+    The import of ‘Control.Monad’ is redundant
+      except perhaps to import instances from ‘Control.Monad’
+    To import instances alone, use: import Control.Monad()
+[13 of 23] Compiling Database.Persist.Sql.Internal ( Database/Persist/Sql/Internal.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Database/Persist/Sql/Internal.o )
+[14 of 23] Compiling Database.Persist ( Database/Persist.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Database/Persist.o )
+[15 of 23] Compiling Database.Persist.Sql.Class ( Database/Persist/Sql/Class.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Database/Persist/Sql/Class.o )
+
+Database/Persist/Sql/Class.hs:25:1: Warning:
+    The import of ‘Control.Monad.IO.Class’ is redundant
+      except perhaps to import instances from ‘Control.Monad.IO.Class’
+    To import instances alone, use: import Control.Monad.IO.Class()
+
+Database/Persist/Sql/Class.hs:26:1: Warning:
+    The import of ‘Control.Monad.Trans.Class’ is redundant
+      except perhaps to import instances from ‘Control.Monad.Trans.Class’
+    To import instances alone, use: import Control.Monad.Trans.Class()
+
+Database/Persist/Sql/Class.hs:214:11: Warning:
+    In the use of ‘bitSize’ (imported from Data.Bits):
+    Deprecated: "Use 'bitSizeMaybe' or 'finiteBitSize' instead"
+[16 of 23] Compiling Database.Persist.Sql.Raw ( Database/Persist/Sql/Raw.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Database/Persist/Sql/Raw.o )
+[17 of 23] Compiling Database.Persist.Sql.Run ( Database/Persist/Sql/Run.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Database/Persist/Sql/Run.o )
+
+Database/Persist/Sql/Run.hs:18:1: Warning:
+    The import of ‘Control.Monad.Trans.Control’ is redundant
+      except perhaps to import instances from ‘Control.Monad.Trans.Control’
+    To import instances alone, use: import Control.Monad.Trans.Control()
+
+Database/Persist/Sql/Run.hs:21:1: Warning:
+    The import of ‘Control.Exception.Lifted’ is redundant
+      except perhaps to import instances from ‘Control.Exception.Lifted’
+    To import instances alone, use: import Control.Exception.Lifted()
+
+Database/Persist/Sql/Run.hs:22:1: Warning:
+    The import of ‘Control.Exception’ is redundant
+      except perhaps to import instances from ‘Control.Exception’
+    To import instances alone, use: import Control.Exception()
+
+Database/Persist/Sql/Run.hs:24:1: Warning:
+    The import of ‘System.Timeout’ is redundant
+      except perhaps to import instances from ‘System.Timeout’
+    To import instances alone, use: import System.Timeout()
+[18 of 23] Compiling Database.Persist.Sql.Migration ( Database/Persist/Sql/Migration.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Database/Persist/Sql/Migration.o )
+[19 of 23] Compiling Database.Persist.Sql.Orphan.PersistStore ( Database/Persist/Sql/Orphan/PersistStore.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Database/Persist/Sql/Orphan/PersistStore.o )
+[20 of 23] Compiling Database.Persist.Sql.Util ( Database/Persist/Sql/Util.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Database/Persist/Sql/Util.o )
+
+Database/Persist/Sql/Util.hs:16:1: Warning:
+    The import of ‘PersistException, PersistMarshalError’
+    from module ‘Database.Persist’ is redundant
+
+Database/Persist/Sql/Util.hs:23:1: Warning:
+    The import of ‘Control.Monad.IO.Class’ is redundant
+      except perhaps to import instances from ‘Control.Monad.IO.Class’
+    To import instances alone, use: import Control.Monad.IO.Class()
+
+Database/Persist/Sql/Util.hs:24:1: Warning:
+    The import of ‘Control.Exception’ is redundant
+      except perhaps to import instances from ‘Control.Exception’
+    To import instances alone, use: import Control.Exception()
+[21 of 23] Compiling Database.Persist.Sql.Orphan.PersistQuery ( Database/Persist/Sql/Orphan/PersistQuery.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Database/Persist/Sql/Orphan/PersistQuery.o )
+[22 of 23] Compiling Database.Persist.Sql.Orphan.PersistUnique ( Database/Persist/Sql/Orphan/PersistUnique.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Database/Persist/Sql/Orphan/PersistUnique.o )
+[23 of 23] Compiling Database.Persist.Sql ( Database/Persist/Sql.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Database/Persist/Sql.o )
+[ 1 of 23] Compiling Database.Persist.Class.PersistConfig ( Database/Persist/Class/PersistConfig.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Database/Persist/Class/PersistConfig.p_o )
+[ 2 of 23] Compiling Database.Persist.Types.Base ( Database/Persist/Types/Base.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Database/Persist/Types/Base.p_o )
+[ 3 of 23] Compiling Database.Persist.Class.PersistField ( Database/Persist/Class/PersistField.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Database/Persist/Class/PersistField.p_o )
+
+Database/Persist/Class/PersistField.hs:235:26: Warning:
+    This binding for ‘x’ shadows the existing binding
+      bound at Database/Persist/Class/PersistField.hs:229:22
+[ 4 of 23] Compiling Database.Persist.Class.PersistEntity ( Database/Persist/Class/PersistEntity.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Database/Persist/Class/PersistEntity.p_o )
+[ 5 of 23] Compiling Database.Persist.Types ( Database/Persist/Types.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Database/Persist/Types.p_o )
+[ 6 of 23] Compiling Database.Persist.Quasi ( Database/Persist/Quasi.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Database/Persist/Quasi.p_o )
+[ 7 of 23] Compiling Database.Persist.Class.PersistStore ( Database/Persist/Class/PersistStore.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Database/Persist/Class/PersistStore.p_o )
+
+Database/Persist/Class/PersistStore.hs:22:1: Warning:
+    The import of ‘Control.Monad.Trans.Error’ is redundant
+      except perhaps to import instances from ‘Control.Monad.Trans.Error’
+    To import instances alone, use: import Control.Monad.Trans.Error()
+
+Database/Persist/Class/PersistStore.hs:26:1: Warning:
+    The import of ‘Data.Conduit.Internal’ is redundant
+      except perhaps to import instances from ‘Data.Conduit.Internal’
+    To import instances alone, use: import Data.Conduit.Internal()
+[ 8 of 23] Compiling Database.Persist.Class.PersistQuery ( Database/Persist/Class/PersistQuery.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Database/Persist/Class/PersistQuery.p_o )
+
+Database/Persist/Class/PersistQuery.hs:19:1: Warning:
+    The import of ‘Control.Monad.Trans.Class’ is redundant
+      except perhaps to import instances from ‘Control.Monad.Trans.Class’
+    To import instances alone, use: import Control.Monad.Trans.Class()
+[ 9 of 23] Compiling Database.Persist.Class.DeleteCascade ( Database/Persist/Class/DeleteCascade.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Database/Persist/Class/DeleteCascade.p_o )
+[10 of 23] Compiling Database.Persist.Class.PersistUnique ( Database/Persist/Class/PersistUnique.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Database/Persist/Class/PersistUnique.p_o )
+
+Database/Persist/Class/PersistUnique.hs:13:1: Warning:
+    The qualified import of ‘Prelude’ is redundant
+      except perhaps to import instances from ‘Prelude’
+    To import instances alone, use: import Prelude()
+[11 of 23] Compiling Database.Persist.Class ( Database/Persist/Class.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Database/Persist/Class.p_o )
+[12 of 23] Compiling Database.Persist.Sql.Types ( Database/Persist/Sql/Types.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Database/Persist/Sql/Types.p_o )
+
+Database/Persist/Sql/Types.hs:13:1: Warning:
+    The import of ‘MonadResource’
+    from module ‘Control.Monad.Trans.Resource’ is redundant
+
+Database/Persist/Sql/Types.hs:16:1: Warning:
+    The import of ‘Control.Monad.Trans.Control’ is redundant
+      except perhaps to import instances from ‘Control.Monad.Trans.Control’
+    To import instances alone, use: import Control.Monad.Trans.Control()
+
+Database/Persist/Sql/Types.hs:21:1: Warning:
+    The import of ‘Control.Monad’ is redundant
+      except perhaps to import instances from ‘Control.Monad’
+    To import instances alone, use: import Control.Monad()
+[13 of 23] Compiling Database.Persist.Sql.Internal ( Database/Persist/Sql/Internal.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Database/Persist/Sql/Internal.p_o )
+[14 of 23] Compiling Database.Persist ( Database/Persist.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Database/Persist.p_o )
+[15 of 23] Compiling Database.Persist.Sql.Class ( Database/Persist/Sql/Class.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Database/Persist/Sql/Class.p_o )
+
+Database/Persist/Sql/Class.hs:25:1: Warning:
+    The import of ‘Control.Monad.IO.Class’ is redundant
+      except perhaps to import instances from ‘Control.Monad.IO.Class’
+    To import instances alone, use: import Control.Monad.IO.Class()
+
+Database/Persist/Sql/Class.hs:26:1: Warning:
+    The import of ‘Control.Monad.Trans.Class’ is redundant
+      except perhaps to import instances from ‘Control.Monad.Trans.Class’
+    To import instances alone, use: import Control.Monad.Trans.Class()
+
+Database/Persist/Sql/Class.hs:214:11: Warning:
+    In the use of ‘bitSize’ (imported from Data.Bits):
+    Deprecated: "Use 'bitSizeMaybe' or 'finiteBitSize' instead"
+[16 of 23] Compiling Database.Persist.Sql.Raw ( Database/Persist/Sql/Raw.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Database/Persist/Sql/Raw.p_o )
+[17 of 23] Compiling Database.Persist.Sql.Run ( Database/Persist/Sql/Run.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Database/Persist/Sql/Run.p_o )
+
+Database/Persist/Sql/Run.hs:18:1: Warning:
+    The import of ‘Control.Monad.Trans.Control’ is redundant
+      except perhaps to import instances from ‘Control.Monad.Trans.Control’
+    To import instances alone, use: import Control.Monad.Trans.Control()
+
+Database/Persist/Sql/Run.hs:21:1: Warning:
+    The import of ‘Control.Exception.Lifted’ is redundant
+      except perhaps to import instances from ‘Control.Exception.Lifted’
+    To import instances alone, use: import Control.Exception.Lifted()
+
+Database/Persist/Sql/Run.hs:22:1: Warning:
+    The import of ‘Control.Exception’ is redundant
+      except perhaps to import instances from ‘Control.Exception’
+    To import instances alone, use: import Control.Exception()
+
+Database/Persist/Sql/Run.hs:24:1: Warning:
+    The import of ‘System.Timeout’ is redundant
+      except perhaps to import instances from ‘System.Timeout’
+    To import instances alone, use: import System.Timeout()
+[18 of 23] Compiling Database.Persist.Sql.Migration ( Database/Persist/Sql/Migration.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Database/Persist/Sql/Migration.p_o )
+[19 of 23] Compiling Database.Persist.Sql.Orphan.PersistStore ( Database/Persist/Sql/Orphan/PersistStore.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Database/Persist/Sql/Orphan/PersistStore.p_o )
+[20 of 23] Compiling Database.Persist.Sql.Util ( Database/Persist/Sql/Util.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Database/Persist/Sql/Util.p_o )
+
+Database/Persist/Sql/Util.hs:16:1: Warning:
+    The import of ‘PersistException, PersistMarshalError’
+    from module ‘Database.Persist’ is redundant
+
+Database/Persist/Sql/Util.hs:23:1: Warning:
+    The import of ‘Control.Monad.IO.Class’ is redundant
+      except perhaps to import instances from ‘Control.Monad.IO.Class’
+    To import instances alone, use: import Control.Monad.IO.Class()
+
+Database/Persist/Sql/Util.hs:24:1: Warning:
+    The import of ‘Control.Exception’ is redundant
+      except perhaps to import instances from ‘Control.Exception’
+    To import instances alone, use: import Control.Exception()
+[21 of 23] Compiling Database.Persist.Sql.Orphan.PersistQuery ( Database/Persist/Sql/Orphan/PersistQuery.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Database/Persist/Sql/Orphan/PersistQuery.p_o )
+[22 of 23] Compiling Database.Persist.Sql.Orphan.PersistUnique ( Database/Persist/Sql/Orphan/PersistUnique.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Database/Persist/Sql/Orphan/PersistUnique.p_o )
+[23 of 23] Compiling Database.Persist.Sql ( Database/Persist/Sql.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Database/Persist/Sql.p_o )
+In-place registering persistent-2.1.6...
+Installing library in
+/home/anand/.stack/snapshots/x86_64-linux/lts-2.17/7.8.4/lib/x86_64-linux-ghc-7.8.4/persistent-2.1.6
+Registering persistent-2.1.6...

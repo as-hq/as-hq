@@ -1,0 +1,19 @@
+Configuring email-validate-2.0.1...
+Building email-validate-2.0.1...
+Preprocessing library email-validate-2.0.1...
+[1 of 2] Compiling Text.Email.Parser ( src/Text/Email/Parser.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Text/Email/Parser.o )
+[2 of 2] Compiling Text.Email.Validate ( src/Text/Email/Validate.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Text/Email/Validate.o )
+
+src/Text/Email/Validate.hs:14:1: Warning:
+    Module ‘Data.Attoparsec’ is deprecated:
+      This module will be removed in the next major release.
+[1 of 2] Compiling Text.Email.Parser ( src/Text/Email/Parser.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Text/Email/Parser.p_o )
+[2 of 2] Compiling Text.Email.Validate ( src/Text/Email/Validate.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Text/Email/Validate.p_o )
+
+src/Text/Email/Validate.hs:14:1: Warning:
+    Module ‘Data.Attoparsec’ is deprecated:
+      This module will be removed in the next major release.
+In-place registering email-validate-2.0.1...
+Installing library in
+/home/anand/.stack/snapshots/x86_64-linux/lts-2.17/7.8.4/lib/x86_64-linux-ghc-7.8.4/email-validate-2.0.1
+Registering email-validate-2.0.1...

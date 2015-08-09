@@ -1,0 +1,46 @@
+Configuring unix-time-0.3.5...
+checking for gcc... gcc
+checking whether the C compiler works... yes
+checking for C compiler default output file name... a.out
+checking for suffix of executables... 
+checking whether we are cross compiling... no
+checking for suffix of object files... o
+checking whether we are using the GNU C compiler... yes
+checking whether gcc accepts -g... yes
+checking for gcc option to accept ISO C89... none needed
+checking how to run the C preprocessor... gcc -E
+checking for grep that handles long lines and -e... /bin/grep
+checking for egrep... /bin/grep -E
+checking for ANSI C header files... yes
+checking for sys/types.h... yes
+checking for sys/stat.h... yes
+checking for stdlib.h... yes
+checking for string.h... yes
+checking for memory.h... yes
+checking for strings.h... yes
+checking for inttypes.h... yes
+checking for stdint.h... yes
+checking for unistd.h... yes
+checking xlocale.h usability... yes
+checking xlocale.h presence... yes
+checking for xlocale.h... yes
+checking for strptime_l... yes
+checking for timegm... yes
+configure: creating ./config.status
+config.status: creating cbits/config.h
+Building unix-time-0.3.5...
+Preprocessing library unix-time-0.3.5...
+[1 of 5] Compiling Data.UnixTime.Types ( .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Data/UnixTime/Types.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Data/UnixTime/Types.o )
+[2 of 5] Compiling Data.UnixTime.Diff ( Data/UnixTime/Diff.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Data/UnixTime/Diff.o )
+[3 of 5] Compiling Data.UnixTime.Sys ( .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Data/UnixTime/Sys.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Data/UnixTime/Sys.o )
+[4 of 5] Compiling Data.UnixTime.Conv ( Data/UnixTime/Conv.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Data/UnixTime/Conv.o )
+[5 of 5] Compiling Data.UnixTime    ( Data/UnixTime.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Data/UnixTime.o )
+[1 of 5] Compiling Data.UnixTime.Types ( .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Data/UnixTime/Types.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Data/UnixTime/Types.p_o )
+[2 of 5] Compiling Data.UnixTime.Diff ( Data/UnixTime/Diff.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Data/UnixTime/Diff.p_o )
+[3 of 5] Compiling Data.UnixTime.Sys ( .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Data/UnixTime/Sys.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Data/UnixTime/Sys.p_o )
+[4 of 5] Compiling Data.UnixTime.Conv ( Data/UnixTime/Conv.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Data/UnixTime/Conv.p_o )
+[5 of 5] Compiling Data.UnixTime    ( Data/UnixTime.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Data/UnixTime.p_o )
+In-place registering unix-time-0.3.5...
+Installing library in
+/home/anand/.stack/snapshots/x86_64-linux/lts-2.17/7.8.4/lib/x86_64-linux-ghc-7.8.4/unix-time-0.3.5
+Registering unix-time-0.3.5...

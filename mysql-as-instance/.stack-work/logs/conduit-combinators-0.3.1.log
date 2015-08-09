@@ -1,0 +1,355 @@
+Configuring conduit-combinators-0.3.1...
+Building conduit-combinators-0.3.1...
+Preprocessing library conduit-combinators-0.3.1...
+[1 of 5] Compiling Data.Conduit.Combinators.Stream ( Data/Conduit/Combinators/Stream.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Data/Conduit/Combinators/Stream.o )
+[2 of 5] Compiling Data.Conduit.Combinators.Internal ( Data/Conduit/Combinators/Internal.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Data/Conduit/Combinators/Internal.o )
+[3 of 5] Compiling Data.Conduit.Combinators ( Data/Conduit/Combinators.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Data/Conduit/Combinators.o )
+
+Data/Conduit/Combinators.hs:217:1: Warning:
+    The import of ‘</>’ from module ‘Filesystem.Path’ is redundant
+
+Data/Conduit/Combinators.hs:219:1: Warning:
+    The import of ‘||’ from module ‘Prelude’ is redundant
+
+Data/Conduit/Combinators.hs:237:1: Warning:
+    The qualified import of ‘System.PosixCompat.Files’ is redundant
+      except perhaps to import instances from ‘System.PosixCompat.Files’
+    To import instances alone, use: import System.PosixCompat.Files()
+
+Data/Conduit/Combinators.hs:242:1: Warning:
+    The qualified import of ‘System.Posix.Directory’ is redundant
+      except perhaps to import instances from ‘System.Posix.Directory’
+    To import instances alone, use: import System.Posix.Directory()
+
+Data/Conduit/Combinators.hs:544:10: Warning:
+    This binding for ‘seq’ shadows the existing binding
+      imported from ‘Prelude’ at Data/Conduit/Combinators.hs:222:72-74
+      (and originally defined in ‘ghc-prim:GHC.Prim’)
+
+Data/Conduit/Combinators.hs:576:8: Warning:
+    This binding for ‘seq’ shadows the existing binding
+      imported from ‘Prelude’ at Data/Conduit/Combinators.hs:222:72-74
+      (and originally defined in ‘ghc-prim:GHC.Prim’)
+
+Data/Conduit/Combinators.hs:806:23: Warning:
+    In the use of ‘Seq.elem’ (imported from Data.Sequences):
+    Deprecated: "use oelem"
+
+Data/Conduit/Combinators.hs:806:196: Warning:
+    In the use of ‘Seq.elem’ (imported from Data.Sequences):
+    Deprecated: "use oelem"
+
+Data/Conduit/Combinators.hs:828:26: Warning:
+    In the use of ‘Seq.notElem’ (imported from Data.Sequences):
+    Deprecated: "use onotElem"
+
+Data/Conduit/Combinators.hs:828:211: Warning:
+    In the use of ‘Seq.notElem’ (imported from Data.Sequences):
+    Deprecated: "use onotElem"
+
+Data/Conduit/Combinators.hs:1353:10: Warning:
+    This binding for ‘seq’ shadows the existing binding
+      imported from ‘Prelude’ at Data/Conduit/Combinators.hs:222:72-74
+      (and originally defined in ‘ghc-prim:GHC.Prim’)
+
+Data/Conduit/Combinators.hs:1392:8: Warning:
+    This binding for ‘seq’ shadows the existing binding
+      imported from ‘Prelude’ at Data/Conduit/Combinators.hs:222:72-74
+      (and originally defined in ‘ghc-prim:GHC.Prim’)
+[4 of 5] Compiling Data.Conduit.Combinators.Unqualified ( Data/Conduit/Combinators/Unqualified.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Data/Conduit/Combinators/Unqualified.o )
+
+Data/Conduit/Combinators/Unqualified.hs:178:1: Warning:
+    The qualified import of ‘Data.ByteString’ is redundant
+      except perhaps to import instances from ‘Data.ByteString’
+    To import instances alone, use: import Data.ByteString()
+
+Data/Conduit/Combinators/Unqualified.hs:179:1: Warning:
+    The qualified import of ‘Data.ByteString.Base16’ is redundant
+      except perhaps to import instances from ‘Data.ByteString.Base16’
+    To import instances alone, use: import Data.ByteString.Base16()
+
+Data/Conduit/Combinators/Unqualified.hs:180:1: Warning:
+    The qualified import of ‘Data.ByteString.Base64’ is redundant
+      except perhaps to import instances from ‘Data.ByteString.Base64’
+    To import instances alone, use: import Data.ByteString.Base64()
+
+Data/Conduit/Combinators/Unqualified.hs:181:1: Warning:
+    The qualified import of ‘Data.ByteString.Base64.URL’ is redundant
+      except perhaps to import instances from ‘Data.ByteString.Base64.URL’
+    To import instances alone, use: import Data.ByteString.Base64.URL()
+
+Data/Conduit/Combinators/Unqualified.hs:182:1: Warning:
+    The import of ‘Control.Applicative’ is redundant
+      except perhaps to import instances from ‘Control.Applicative’
+    To import instances alone, use: import Control.Applicative()
+
+Data/Conduit/Combinators/Unqualified.hs:183:1: Warning:
+    The import of ‘Control.Exception’ is redundant
+      except perhaps to import instances from ‘Control.Exception’
+    To import instances alone, use: import Control.Exception()
+
+Data/Conduit/Combinators/Unqualified.hs:184:1: Warning:
+    The import of ‘Control.Category’ is redundant
+      except perhaps to import instances from ‘Control.Category’
+    To import instances alone, use: import Control.Category()
+
+Data/Conduit/Combinators/Unqualified.hs:185:1: Warning:
+    The import of ‘Control.Monad’ is redundant
+      except perhaps to import instances from ‘Control.Monad’
+    To import instances alone, use: import Control.Monad()
+
+Data/Conduit/Combinators/Unqualified.hs:186:1: Warning:
+    The import of ‘liftBase’
+    from module ‘Control.Monad.Base’ is redundant
+
+Data/Conduit/Combinators/Unqualified.hs:189:1: Warning:
+    The import of ‘Control.Monad.Trans.Class’ is redundant
+      except perhaps to import instances from ‘Control.Monad.Trans.Class’
+    To import instances alone, use: import Control.Monad.Trans.Class()
+
+Data/Conduit/Combinators/Unqualified.hs:192:1: Warning:
+    The import of ‘Data.Conduit.Internal’ is redundant
+      except perhaps to import instances from ‘Data.Conduit.Internal’
+    To import instances alone, use: import Data.Conduit.Internal()
+
+Data/Conduit/Combinators/Unqualified.hs:193:1: Warning:
+    The qualified import of ‘Data.Conduit.List’ is redundant
+      except perhaps to import instances from ‘Data.Conduit.List’
+    To import instances alone, use: import Data.Conduit.List()
+
+Data/Conduit/Combinators/Unqualified.hs:200:1: Warning:
+    The qualified import of ‘Data.Vector.Generic.Mutable’ is redundant
+      except perhaps to import instances from ‘Data.Vector.Generic.Mutable’
+    To import instances alone, use: import Data.Vector.Generic.Mutable()
+
+Data/Conduit/Combinators/Unqualified.hs:201:1: Warning:
+    The import of ‘Data.Void’ is redundant
+      except perhaps to import instances from ‘Data.Void’
+    To import instances alone, use: import Data.Void()
+
+Data/Conduit/Combinators/Unqualified.hs:202:1: Warning:
+    The qualified import of ‘Filesystem’ is redundant
+      except perhaps to import instances from ‘Filesystem’
+    To import instances alone, use: import Filesystem()
+
+Data/Conduit/Combinators/Unqualified.hs:203:1: Warning:
+    The import of ‘</>’ from module ‘Filesystem.Path’ is redundant
+
+Data/Conduit/Combinators/Unqualified.hs:204:1: Warning:
+    The import of ‘Filesystem.Path.CurrentOS’ is redundant
+      except perhaps to import instances from ‘Filesystem.Path.CurrentOS’
+    To import instances alone, use: import Filesystem.Path.CurrentOS()
+
+Data/Conduit/Combinators/Unqualified.hs:205:1: Warning:
+    The import of ‘seq, otherwise, $, fromIntegral, Either, succ,
+                   maybe, $!, ||, mod’
+    from module ‘Prelude’ is redundant
+
+Data/Conduit/Combinators/Unqualified.hs:212:1: Warning:
+    The qualified import of ‘Prelude’ is redundant
+      except perhaps to import instances from ‘Prelude’
+    To import instances alone, use: import Prelude()
+
+Data/Conduit/Combinators/Unqualified.hs:216:1: Warning:
+    The qualified import of ‘Data.Conduit.Text’ is redundant
+      except perhaps to import instances from ‘Data.Conduit.Text’
+    To import instances alone, use: import Data.Conduit.Text()
+
+Data/Conduit/Combinators/Unqualified.hs:220:1: Warning:
+    The import of ‘Data.Conduit.Combinators.Internal’ is redundant
+      except perhaps to import instances from ‘Data.Conduit.Combinators.Internal’
+    To import instances alone, use: import Data.Conduit.Combinators.Internal()
+
+Data/Conduit/Combinators/Unqualified.hs:221:1: Warning:
+    The qualified import of ‘System.PosixCompat.Files’ is redundant
+      except perhaps to import instances from ‘System.PosixCompat.Files’
+    To import instances alone, use: import System.PosixCompat.Files()
+
+Data/Conduit/Combinators/Unqualified.hs:222:1: Warning:
+    The import of ‘Data.Primitive.MutVar’ is redundant
+      except perhaps to import instances from ‘Data.Primitive.MutVar’
+    To import instances alone, use: import Data.Primitive.MutVar()
+
+Data/Conduit/Combinators/Unqualified.hs:226:1: Warning:
+    The qualified import of ‘System.Posix.Directory’ is redundant
+      except perhaps to import instances from ‘System.Posix.Directory’
+    To import instances alone, use: import System.Posix.Directory()
+[5 of 5] Compiling Conduit          ( Conduit.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Conduit.o )
+[1 of 5] Compiling Data.Conduit.Combinators.Stream ( Data/Conduit/Combinators/Stream.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Data/Conduit/Combinators/Stream.p_o )
+[2 of 5] Compiling Data.Conduit.Combinators.Internal ( Data/Conduit/Combinators/Internal.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Data/Conduit/Combinators/Internal.p_o )
+[3 of 5] Compiling Data.Conduit.Combinators ( Data/Conduit/Combinators.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Data/Conduit/Combinators.p_o )
+
+Data/Conduit/Combinators.hs:217:1: Warning:
+    The import of ‘</>’ from module ‘Filesystem.Path’ is redundant
+
+Data/Conduit/Combinators.hs:219:1: Warning:
+    The import of ‘||’ from module ‘Prelude’ is redundant
+
+Data/Conduit/Combinators.hs:237:1: Warning:
+    The qualified import of ‘System.PosixCompat.Files’ is redundant
+      except perhaps to import instances from ‘System.PosixCompat.Files’
+    To import instances alone, use: import System.PosixCompat.Files()
+
+Data/Conduit/Combinators.hs:242:1: Warning:
+    The qualified import of ‘System.Posix.Directory’ is redundant
+      except perhaps to import instances from ‘System.Posix.Directory’
+    To import instances alone, use: import System.Posix.Directory()
+
+Data/Conduit/Combinators.hs:544:10: Warning:
+    This binding for ‘seq’ shadows the existing binding
+      imported from ‘Prelude’ at Data/Conduit/Combinators.hs:222:72-74
+      (and originally defined in ‘ghc-prim:GHC.Prim’)
+
+Data/Conduit/Combinators.hs:576:8: Warning:
+    This binding for ‘seq’ shadows the existing binding
+      imported from ‘Prelude’ at Data/Conduit/Combinators.hs:222:72-74
+      (and originally defined in ‘ghc-prim:GHC.Prim’)
+
+Data/Conduit/Combinators.hs:806:23: Warning:
+    In the use of ‘Seq.elem’ (imported from Data.Sequences):
+    Deprecated: "use oelem"
+
+Data/Conduit/Combinators.hs:806:196: Warning:
+    In the use of ‘Seq.elem’ (imported from Data.Sequences):
+    Deprecated: "use oelem"
+
+Data/Conduit/Combinators.hs:828:26: Warning:
+    In the use of ‘Seq.notElem’ (imported from Data.Sequences):
+    Deprecated: "use onotElem"
+
+Data/Conduit/Combinators.hs:828:211: Warning:
+    In the use of ‘Seq.notElem’ (imported from Data.Sequences):
+    Deprecated: "use onotElem"
+
+Data/Conduit/Combinators.hs:1353:10: Warning:
+    This binding for ‘seq’ shadows the existing binding
+      imported from ‘Prelude’ at Data/Conduit/Combinators.hs:222:72-74
+      (and originally defined in ‘ghc-prim:GHC.Prim’)
+
+Data/Conduit/Combinators.hs:1392:8: Warning:
+    This binding for ‘seq’ shadows the existing binding
+      imported from ‘Prelude’ at Data/Conduit/Combinators.hs:222:72-74
+      (and originally defined in ‘ghc-prim:GHC.Prim’)
+[4 of 5] Compiling Data.Conduit.Combinators.Unqualified ( Data/Conduit/Combinators/Unqualified.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Data/Conduit/Combinators/Unqualified.p_o )
+
+Data/Conduit/Combinators/Unqualified.hs:178:1: Warning:
+    The qualified import of ‘Data.ByteString’ is redundant
+      except perhaps to import instances from ‘Data.ByteString’
+    To import instances alone, use: import Data.ByteString()
+
+Data/Conduit/Combinators/Unqualified.hs:179:1: Warning:
+    The qualified import of ‘Data.ByteString.Base16’ is redundant
+      except perhaps to import instances from ‘Data.ByteString.Base16’
+    To import instances alone, use: import Data.ByteString.Base16()
+
+Data/Conduit/Combinators/Unqualified.hs:180:1: Warning:
+    The qualified import of ‘Data.ByteString.Base64’ is redundant
+      except perhaps to import instances from ‘Data.ByteString.Base64’
+    To import instances alone, use: import Data.ByteString.Base64()
+
+Data/Conduit/Combinators/Unqualified.hs:181:1: Warning:
+    The qualified import of ‘Data.ByteString.Base64.URL’ is redundant
+      except perhaps to import instances from ‘Data.ByteString.Base64.URL’
+    To import instances alone, use: import Data.ByteString.Base64.URL()
+
+Data/Conduit/Combinators/Unqualified.hs:182:1: Warning:
+    The import of ‘Control.Applicative’ is redundant
+      except perhaps to import instances from ‘Control.Applicative’
+    To import instances alone, use: import Control.Applicative()
+
+Data/Conduit/Combinators/Unqualified.hs:183:1: Warning:
+    The import of ‘Control.Exception’ is redundant
+      except perhaps to import instances from ‘Control.Exception’
+    To import instances alone, use: import Control.Exception()
+
+Data/Conduit/Combinators/Unqualified.hs:184:1: Warning:
+    The import of ‘Control.Category’ is redundant
+      except perhaps to import instances from ‘Control.Category’
+    To import instances alone, use: import Control.Category()
+
+Data/Conduit/Combinators/Unqualified.hs:185:1: Warning:
+    The import of ‘Control.Monad’ is redundant
+      except perhaps to import instances from ‘Control.Monad’
+    To import instances alone, use: import Control.Monad()
+
+Data/Conduit/Combinators/Unqualified.hs:186:1: Warning:
+    The import of ‘liftBase’
+    from module ‘Control.Monad.Base’ is redundant
+
+Data/Conduit/Combinators/Unqualified.hs:189:1: Warning:
+    The import of ‘Control.Monad.Trans.Class’ is redundant
+      except perhaps to import instances from ‘Control.Monad.Trans.Class’
+    To import instances alone, use: import Control.Monad.Trans.Class()
+
+Data/Conduit/Combinators/Unqualified.hs:192:1: Warning:
+    The import of ‘Data.Conduit.Internal’ is redundant
+      except perhaps to import instances from ‘Data.Conduit.Internal’
+    To import instances alone, use: import Data.Conduit.Internal()
+
+Data/Conduit/Combinators/Unqualified.hs:193:1: Warning:
+    The qualified import of ‘Data.Conduit.List’ is redundant
+      except perhaps to import instances from ‘Data.Conduit.List’
+    To import instances alone, use: import Data.Conduit.List()
+
+Data/Conduit/Combinators/Unqualified.hs:200:1: Warning:
+    The qualified import of ‘Data.Vector.Generic.Mutable’ is redundant
+      except perhaps to import instances from ‘Data.Vector.Generic.Mutable’
+    To import instances alone, use: import Data.Vector.Generic.Mutable()
+
+Data/Conduit/Combinators/Unqualified.hs:201:1: Warning:
+    The import of ‘Data.Void’ is redundant
+      except perhaps to import instances from ‘Data.Void’
+    To import instances alone, use: import Data.Void()
+
+Data/Conduit/Combinators/Unqualified.hs:202:1: Warning:
+    The qualified import of ‘Filesystem’ is redundant
+      except perhaps to import instances from ‘Filesystem’
+    To import instances alone, use: import Filesystem()
+
+Data/Conduit/Combinators/Unqualified.hs:203:1: Warning:
+    The import of ‘</>’ from module ‘Filesystem.Path’ is redundant
+
+Data/Conduit/Combinators/Unqualified.hs:204:1: Warning:
+    The import of ‘Filesystem.Path.CurrentOS’ is redundant
+      except perhaps to import instances from ‘Filesystem.Path.CurrentOS’
+    To import instances alone, use: import Filesystem.Path.CurrentOS()
+
+Data/Conduit/Combinators/Unqualified.hs:205:1: Warning:
+    The import of ‘seq, otherwise, $, fromIntegral, Either, succ,
+                   maybe, $!, ||, mod’
+    from module ‘Prelude’ is redundant
+
+Data/Conduit/Combinators/Unqualified.hs:212:1: Warning:
+    The qualified import of ‘Prelude’ is redundant
+      except perhaps to import instances from ‘Prelude’
+    To import instances alone, use: import Prelude()
+
+Data/Conduit/Combinators/Unqualified.hs:216:1: Warning:
+    The qualified import of ‘Data.Conduit.Text’ is redundant
+      except perhaps to import instances from ‘Data.Conduit.Text’
+    To import instances alone, use: import Data.Conduit.Text()
+
+Data/Conduit/Combinators/Unqualified.hs:220:1: Warning:
+    The import of ‘Data.Conduit.Combinators.Internal’ is redundant
+      except perhaps to import instances from ‘Data.Conduit.Combinators.Internal’
+    To import instances alone, use: import Data.Conduit.Combinators.Internal()
+
+Data/Conduit/Combinators/Unqualified.hs:221:1: Warning:
+    The qualified import of ‘System.PosixCompat.Files’ is redundant
+      except perhaps to import instances from ‘System.PosixCompat.Files’
+    To import instances alone, use: import System.PosixCompat.Files()
+
+Data/Conduit/Combinators/Unqualified.hs:222:1: Warning:
+    The import of ‘Data.Primitive.MutVar’ is redundant
+      except perhaps to import instances from ‘Data.Primitive.MutVar’
+    To import instances alone, use: import Data.Primitive.MutVar()
+
+Data/Conduit/Combinators/Unqualified.hs:226:1: Warning:
+    The qualified import of ‘System.Posix.Directory’ is redundant
+      except perhaps to import instances from ‘System.Posix.Directory’
+    To import instances alone, use: import System.Posix.Directory()
+[5 of 5] Compiling Conduit          ( Conduit.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Conduit.p_o )
+In-place registering conduit-combinators-0.3.1...
+Installing library in
+/home/anand/.stack/snapshots/x86_64-linux/lts-2.17/7.8.4/lib/x86_64-linux-ghc-7.8.4/conduit-combinators-0.3.1
+Registering conduit-combinators-0.3.1...

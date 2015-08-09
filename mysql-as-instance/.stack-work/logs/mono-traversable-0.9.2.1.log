@@ -1,0 +1,29 @@
+Configuring mono-traversable-0.9.2.1...
+Building mono-traversable-0.9.2.1...
+Preprocessing library mono-traversable-0.9.2.1...
+[1 of 7] Compiling Data.ByteVector  ( src/Data/ByteVector.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Data/ByteVector.o )
+[2 of 7] Compiling Data.MonoTraversable ( src/Data/MonoTraversable.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Data/MonoTraversable.o )
+makeCorePair: arity missing $cofoldMap{v acOQ} [lid]
+[3 of 7] Compiling Data.GrowingAppend ( src/Data/GrowingAppend.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Data/GrowingAppend.o )
+[4 of 7] Compiling Data.Containers  ( src/Data/Containers.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Data/Containers.o )
+[5 of 7] Compiling Data.Sequences   ( src/Data/Sequences.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Data/Sequences.o )
+[6 of 7] Compiling Data.MinLen      ( src/Data/MinLen.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Data/MinLen.o )
+
+src/Data/MinLen.hs:44:1: Warning:
+    The import of ‘otherwise, Bool’ from module ‘Prelude’ is redundant
+[7 of 7] Compiling Data.NonNull     ( src/Data/NonNull.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Data/NonNull.o )
+[1 of 7] Compiling Data.ByteVector  ( src/Data/ByteVector.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Data/ByteVector.p_o )
+[2 of 7] Compiling Data.MonoTraversable ( src/Data/MonoTraversable.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Data/MonoTraversable.p_o )
+makeCorePair: arity missing $cofoldMap{v acO3} [lid]
+[3 of 7] Compiling Data.GrowingAppend ( src/Data/GrowingAppend.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Data/GrowingAppend.p_o )
+[4 of 7] Compiling Data.Containers  ( src/Data/Containers.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Data/Containers.p_o )
+[5 of 7] Compiling Data.Sequences   ( src/Data/Sequences.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Data/Sequences.p_o )
+[6 of 7] Compiling Data.MinLen      ( src/Data/MinLen.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Data/MinLen.p_o )
+
+src/Data/MinLen.hs:44:1: Warning:
+    The import of ‘otherwise, Bool’ from module ‘Prelude’ is redundant
+[7 of 7] Compiling Data.NonNull     ( src/Data/NonNull.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Data/NonNull.p_o )
+In-place registering mono-traversable-0.9.2.1...
+Installing library in
+/home/anand/.stack/snapshots/x86_64-linux/lts-2.17/7.8.4/lib/x86_64-linux-ghc-7.8.4/mono-traversable-0.9.2.1
+Registering mono-traversable-0.9.2.1...

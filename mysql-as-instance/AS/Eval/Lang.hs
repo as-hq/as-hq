@@ -7,16 +7,17 @@ import AS.Parsing.Out
 import AS.Parsing.Common
 import AS.DB
 
-import Import
+import Import 
 import Control.Applicative                                   
 import System.Directory(getCurrentDirectory)
 import System.IO.Strict as S   
 
 import qualified Data.Text as T
 import qualified Data.List as L
+import Data.List.Split as SP
 import qualified Data.Map as M
 import qualified Prelude as P
-import Prelude ((!!), read)
+import Prelude as P ((!!), read, last, head)
 
 pid :: String
 pid = "1730"
@@ -49,6 +50,18 @@ getTemplate lang = Import.readFile $ getEvalPath ++ file
 			CPP 	-> "cpp/template.cpp"
 			Java	-> "java/Template.java"
 			Excel 	-> "excel/template.py"
+
+getReplTemplate :: ASLanguage -> Handler String
+getReplTemplate lang = Import.readFile $ getEvalPath ++ file
+	where
+		file = case lang of 
+			R 		-> "r/template_repl.r"
+			Python 	-> "py/template_repl.py"
+			OCaml 	-> "ocaml/template_repl.ml"
+			SQL		-> "sql/template_repl.py"
+			CPP 	-> "cpp/template_repl.cpp"
+			Java	-> "java/Template_repl.java"
+			Excel 	-> "excel/template_repl.py"
 
 getRunFile :: ASLanguage -> String
 getRunFile lang = getEvalPath ++ case lang of 
@@ -163,7 +176,8 @@ interpolateFile lang execCmd = do
 
 interpolateFileRepl :: ASLanguage -> String -> Handler String
 interpolateFileRepl lang execCmd = do
-	template <- getTemplate lang
+	let editedCmd = insertPrintCmdRepl lang $ splitLastCmd lang execCmd
+	template <- getReplTemplate lang
 	return $ layoutCodeFile lang ("", template, execCmd)
 
 -- Helper function for interpolate
@@ -193,12 +207,24 @@ insertPrintCmd lang (s, lst) = s ++ process lst
 	where
 		process l 	= case lang of 
 			R 		-> l
-			Python 	-> "result = " ++ l
+			Python 	-> "result = as_pprint(" ++ l ++ ")"
 			OCaml 	-> "print_string(Std.dump(" ++ l ++ "))"
-			SQL 	-> "result = pprintSql(" ++ l ++ ")"
+			SQL 	-> "result = pprintSql(db(\'" ++ l ++ "\'))" -- hardcoded db() function usage for demos
 			CPP 	-> "int main() { std::cout << (" ++ l ++ "); }" 
 			Java 	-> "public static void main(String[] args) throws Exception{Object x = " ++ l ++ "; System.out.println(pprint(x));}}"
 			Excel 	-> "result = " ++ l
+
+insertPrintCmdRepl :: ASLanguage -> (String, String) -> String
+insertPrintCmdRepl lang (s, lst) = s ++ "\n" ++ formatLastStmtRepl lang lst 
+
+formatLastStmtRepl :: ASLanguage -> String -> String
+formatLastStmtRepl lang str = case lang of 
+	Python -> printed 
+		where 
+			evalStmt = P.last $ SP.splitOn "=" str
+			printed = if (isInfixOf "print" evalStmt)
+				then P.init $ replaceSubstrings evalStmt [("print(", "result = ")]
+				else "result = " ++ evalStmt
 
 removePrintStmt :: ASLanguage -> String -> String
 removePrintStmt lang str = case lang of 

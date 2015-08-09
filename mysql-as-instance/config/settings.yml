@@ -22,7 +22,7 @@ database:
   password: "_env:MYSQL_PASSWORD:as-instance"
   host:     "_env:MYSQL_HOST:localhost"
   port:     "_env:MYSQL_PORT:5432"
-  database: "_env:MYSQL_DATABASE:as-instance"
+  database: "_env:MYSQL_DATABASE:asinstance"
   poolsize: "_env:MYSQL_POOLSIZE:10"
 
 copyright: Insert copyright statement here

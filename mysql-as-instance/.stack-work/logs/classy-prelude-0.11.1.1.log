@@ -1,0 +1,45 @@
+Configuring classy-prelude-0.11.1.1...
+Building classy-prelude-0.11.1.1...
+Preprocessing library classy-prelude-0.11.1.1...
+[1 of 1] Compiling ClassyPrelude    ( ClassyPrelude.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/ClassyPrelude.o )
+
+ClassyPrelude.hs:35:7: Warning:
+    ‘PrimMonad’ is exported by ‘PrimMonad’ and ‘module Data.Mutable’
+
+ClassyPrelude.hs:36:7: Warning:
+    ‘PrimState’ is exported by ‘PrimState’ and ‘module Data.Mutable’
+
+ClassyPrelude.hs:41:7: Warning:
+    ‘Prim’ is exported by ‘Prim’ and ‘module Data.Mutable’
+
+ClassyPrelude.hs:225:1: Warning:
+    The import of ‘PrimState, PrimMonad’
+    from module ‘Control.Monad.Primitive’ is redundant
+
+ClassyPrelude.hs:227:1: Warning:
+    The import of ‘Data.Primitive.Types’ is redundant
+      except perhaps to import instances from ‘Data.Primitive.Types’
+    To import instances alone, use: import Data.Primitive.Types()
+[1 of 1] Compiling ClassyPrelude    ( ClassyPrelude.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/ClassyPrelude.p_o )
+
+ClassyPrelude.hs:35:7: Warning:
+    ‘PrimMonad’ is exported by ‘PrimMonad’ and ‘module Data.Mutable’
+
+ClassyPrelude.hs:36:7: Warning:
+    ‘PrimState’ is exported by ‘PrimState’ and ‘module Data.Mutable’
+
+ClassyPrelude.hs:41:7: Warning:
+    ‘Prim’ is exported by ‘Prim’ and ‘module Data.Mutable’
+
+ClassyPrelude.hs:225:1: Warning:
+    The import of ‘PrimState, PrimMonad’
+    from module ‘Control.Monad.Primitive’ is redundant
+
+ClassyPrelude.hs:227:1: Warning:
+    The import of ‘Data.Primitive.Types’ is redundant
+      except perhaps to import instances from ‘Data.Primitive.Types’
+    To import instances alone, use: import Data.Primitive.Types()
+In-place registering classy-prelude-0.11.1.1...
+Installing library in
+/home/anand/.stack/snapshots/x86_64-linux/lts-2.17/7.8.4/lib/x86_64-linux-ghc-7.8.4/classy-prelude-0.11.1.1
+Registering classy-prelude-0.11.1.1...

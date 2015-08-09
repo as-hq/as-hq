@@ -1,0 +1,21 @@
+Configuring http-types-0.8.6...
+Building http-types-0.8.6...
+Preprocessing library http-types-0.8.6...
+[1 of 7] Compiling Network.HTTP.Types.Version ( Network/HTTP/Types/Version.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Network/HTTP/Types/Version.o )
+[2 of 7] Compiling Network.HTTP.Types.URI ( Network/HTTP/Types/URI.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Network/HTTP/Types/URI.o )
+[3 of 7] Compiling Network.HTTP.Types.Status ( Network/HTTP/Types/Status.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Network/HTTP/Types/Status.o )
+[4 of 7] Compiling Network.HTTP.Types.QueryLike ( Network/HTTP/Types/QueryLike.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Network/HTTP/Types/QueryLike.o )
+[5 of 7] Compiling Network.HTTP.Types.Method ( Network/HTTP/Types/Method.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Network/HTTP/Types/Method.o )
+[6 of 7] Compiling Network.HTTP.Types.Header ( Network/HTTP/Types/Header.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Network/HTTP/Types/Header.o )
+[7 of 7] Compiling Network.HTTP.Types ( Network/HTTP/Types.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Network/HTTP/Types.o )
+[1 of 7] Compiling Network.HTTP.Types.Version ( Network/HTTP/Types/Version.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Network/HTTP/Types/Version.p_o )
+[2 of 7] Compiling Network.HTTP.Types.URI ( Network/HTTP/Types/URI.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Network/HTTP/Types/URI.p_o )
+[3 of 7] Compiling Network.HTTP.Types.Status ( Network/HTTP/Types/Status.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Network/HTTP/Types/Status.p_o )
+[4 of 7] Compiling Network.HTTP.Types.QueryLike ( Network/HTTP/Types/QueryLike.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Network/HTTP/Types/QueryLike.p_o )
+[5 of 7] Compiling Network.HTTP.Types.Method ( Network/HTTP/Types/Method.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Network/HTTP/Types/Method.p_o )
+[6 of 7] Compiling Network.HTTP.Types.Header ( Network/HTTP/Types/Header.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Network/HTTP/Types/Header.p_o )
+[7 of 7] Compiling Network.HTTP.Types ( Network/HTTP/Types.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Network/HTTP/Types.p_o )
+In-place registering http-types-0.8.6...
+Installing library in
+/home/anand/.stack/snapshots/x86_64-linux/lts-2.17/7.8.4/lib/x86_64-linux-ghc-7.8.4/http-types-0.8.6
+Registering http-types-0.8.6...

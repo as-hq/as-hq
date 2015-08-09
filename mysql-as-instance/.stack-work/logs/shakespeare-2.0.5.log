@@ -1,0 +1,201 @@
+Configuring shakespeare-2.0.5...
+Building shakespeare-2.0.5...
+Preprocessing library shakespeare-2.0.5...
+[ 1 of 17] Compiling Text.MkSizeType  ( Text/MkSizeType.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Text/MkSizeType.o )
+[ 2 of 17] Compiling Text.IndentToBrace ( Text/IndentToBrace.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Text/IndentToBrace.o )
+[ 3 of 17] Compiling Text.Shakespeare.Base ( Text/Shakespeare/Base.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Text/Shakespeare/Base.o )
+[ 4 of 17] Compiling Text.Hamlet.Parse ( Text/Hamlet/Parse.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Text/Hamlet/Parse.o )
+[ 5 of 17] Compiling Text.Hamlet      ( Text/Hamlet.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Text/Hamlet.o )
+
+Text/Hamlet.hs:402:1: Warning: Defined but not used: ‘varName’
+
+Text/Hamlet.hs:406:1: Warning: Defined but not used: ‘strToExp’
+
+Text/Hamlet.hs:439:16: Warning: Defined but not used: ‘html’
+
+Text/Hamlet.hs:440:14: Warning: Defined but not used: ‘url’
+
+Text/Hamlet.hs:441:19: Warning: Defined but not used: ‘url’
+
+Text/Hamlet.hs:442:16: Warning: Defined but not used: ‘url’
+
+Text/Hamlet.hs:443:20: Warning: Defined but not used: ‘msg_url’
+
+Text/Hamlet.hs:444:14: Warning: Defined but not used: ‘msg’
+
+Text/Hamlet.hs:488:43: Warning:
+    This binding for ‘c’ shadows the existing binding
+      bound at Text/Hamlet.hs:484:13
+[ 6 of 17] Compiling Text.Hamlet.RT   ( Text/Hamlet/RT.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Text/Hamlet/RT.o )
+
+Text/Hamlet/RT.hs:78:13: Warning: Defined but not used: ‘x’
+
+Text/Hamlet/RT.hs:78:26: Warning: Defined but not used: ‘deref’
+
+Text/Hamlet/RT.hs:78:45: Warning: Defined but not used: ‘docs’
+
+Text/Hamlet/RT.hs:85:13: Warning: Defined but not used: ‘x’
+
+Text/Hamlet/RT.hs:85:25: Warning: Defined but not used: ‘deref’
+
+Text/Hamlet/RT.hs:85:44: Warning: Defined but not used: ‘jdocs’
+
+Text/Hamlet/RT.hs:85:50: Warning: Defined but not used: ‘ndocs’
+
+Text/Hamlet/RT.hs:115:37: Warning:
+    This binding for ‘x’ shadows the existing binding
+      bound at Text/Hamlet/RT.hs:108:13
+[ 7 of 17] Compiling Text.Shakespeare ( Text/Shakespeare.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Text/Shakespeare.o )
+[ 8 of 17] Compiling Text.Shakespeare.Text ( Text/Shakespeare/Text.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Text/Shakespeare/Text.o )
+[ 9 of 17] Compiling Text.Julius      ( Text/Julius.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Text/Julius.o )
+
+Text/Julius.hs:90:63: Warning:
+    In the use of ‘fromValue’ (imported from Data.Aeson.Encode):
+    Deprecated: "Use 'encodeToTextBuilder' instead"
+[10 of 17] Compiling Text.Roy         ( Text/Roy.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Text/Roy.o )
+[11 of 17] Compiling Text.Coffee      ( Text/Coffee.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Text/Coffee.o )
+[12 of 17] Compiling Text.Css         ( Text/Css.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Text/Css.o )
+
+Text/Css.hs:349:40: Warning: Defined but not used: ‘subblocks’
+
+Text/Css.hs:367:5: Warning: Defined but not used: ‘subGo’
+[13 of 17] Compiling Text.CssCommon   ( Text/CssCommon.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Text/CssCommon.o )
+Loading package ghc-prim ... linking ... done.
+Loading package integer-gmp ... linking ... done.
+Loading package base ... linking ... done.
+Loading package array-0.5.0.0 ... linking ... done.
+Loading package deepseq-1.3.0.2 ... linking ... done.
+Loading package filepath-1.3.0.2 ... linking ... done.
+Loading package old-locale-1.0.0.6 ... linking ... done.
+Loading package time-1.4.2 ... linking ... done.
+Loading package bytestring-0.10.4.0 ... linking ... done.
+Loading package unix-2.7.0.1 ... linking ... done.
+Loading package directory-1.2.1.0 ... linking ... done.
+Loading package process-1.2.0.0 ... linking ... done.
+Loading package transformers-0.3.0.0 ... linking ... done.
+Loading package mtl-2.1.3.1 ... linking ... done.
+Loading package text-1.2.0.6 ... linking ... done.
+Loading package parsec-3.1.9 ... linking ... done.
+Loading package stm-2.4.4 ... linking ... done.
+Loading package transformers-compat-0.4.0.3 ... linking ... done.
+Loading package exceptions-0.8.0.2 ... linking ... done.
+Loading package blaze-builder-0.4.0.1 ... linking ... done.
+Loading package blaze-markup-0.7.0.2 ... linking ... done.
+Loading package blaze-html-0.8.0.2 ... linking ... done.
+Loading package containers-0.5.5.1 ... linking ... done.
+Loading package hashable-1.2.3.3 ... linking ... done.
+Loading package scientific-0.3.3.8 ... linking ... done.
+Loading package attoparsec-0.12.1.6 ... linking ... done.
+Loading package dlist-0.7.1.1 ... linking ... done.
+Loading package syb-0.4.4 ... linking ... done.
+Loading package pretty-1.1.1.1 ... linking ... done.
+Loading package template-haskell ... linking ... done.
+Loading package unordered-containers-0.2.5.1 ... linking ... done.
+Loading package primitive-0.6 ... linking ... done.
+Loading package vector-0.10.12.3 ... linking ... done.
+Loading package aeson-0.8.0.2 ... linking ... done.
+[14 of 17] Compiling Text.Lucius      ( Text/Lucius.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Text/Lucius.o )
+[15 of 17] Compiling Text.Cassius     ( Text/Cassius.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Text/Cassius.o )
+[16 of 17] Compiling Text.TypeScript  ( Text/TypeScript.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Text/TypeScript.o )
+[17 of 17] Compiling Text.Shakespeare.I18N ( Text/Shakespeare/I18N.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Text/Shakespeare/I18N.o )
+[ 1 of 17] Compiling Text.MkSizeType  ( Text/MkSizeType.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Text/MkSizeType.p_o )
+[ 2 of 17] Compiling Text.IndentToBrace ( Text/IndentToBrace.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Text/IndentToBrace.p_o )
+[ 3 of 17] Compiling Text.Shakespeare.Base ( Text/Shakespeare/Base.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Text/Shakespeare/Base.p_o )
+[ 4 of 17] Compiling Text.Hamlet.Parse ( Text/Hamlet/Parse.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Text/Hamlet/Parse.p_o )
+[ 5 of 17] Compiling Text.Hamlet      ( Text/Hamlet.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Text/Hamlet.p_o )
+
+Text/Hamlet.hs:402:1: Warning: Defined but not used: ‘varName’
+
+Text/Hamlet.hs:406:1: Warning: Defined but not used: ‘strToExp’
+
+Text/Hamlet.hs:439:16: Warning: Defined but not used: ‘html’
+
+Text/Hamlet.hs:440:14: Warning: Defined but not used: ‘url’
+
+Text/Hamlet.hs:441:19: Warning: Defined but not used: ‘url’
+
+Text/Hamlet.hs:442:16: Warning: Defined but not used: ‘url’
+
+Text/Hamlet.hs:443:20: Warning: Defined but not used: ‘msg_url’
+
+Text/Hamlet.hs:444:14: Warning: Defined but not used: ‘msg’
+
+Text/Hamlet.hs:488:43: Warning:
+    This binding for ‘c’ shadows the existing binding
+      bound at Text/Hamlet.hs:484:13
+[ 6 of 17] Compiling Text.Hamlet.RT   ( Text/Hamlet/RT.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Text/Hamlet/RT.p_o )
+
+Text/Hamlet/RT.hs:78:13: Warning: Defined but not used: ‘x’
+
+Text/Hamlet/RT.hs:78:26: Warning: Defined but not used: ‘deref’
+
+Text/Hamlet/RT.hs:78:45: Warning: Defined but not used: ‘docs’
+
+Text/Hamlet/RT.hs:85:13: Warning: Defined but not used: ‘x’
+
+Text/Hamlet/RT.hs:85:25: Warning: Defined but not used: ‘deref’
+
+Text/Hamlet/RT.hs:85:44: Warning: Defined but not used: ‘jdocs’
+
+Text/Hamlet/RT.hs:85:50: Warning: Defined but not used: ‘ndocs’
+
+Text/Hamlet/RT.hs:115:37: Warning:
+    This binding for ‘x’ shadows the existing binding
+      bound at Text/Hamlet/RT.hs:108:13
+[ 7 of 17] Compiling Text.Shakespeare ( Text/Shakespeare.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Text/Shakespeare.p_o )
+[ 8 of 17] Compiling Text.Shakespeare.Text ( Text/Shakespeare/Text.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Text/Shakespeare/Text.p_o )
+[ 9 of 17] Compiling Text.Julius      ( Text/Julius.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Text/Julius.p_o )
+
+Text/Julius.hs:90:63: Warning:
+    In the use of ‘fromValue’ (imported from Data.Aeson.Encode):
+    Deprecated: "Use 'encodeToTextBuilder' instead"
+[10 of 17] Compiling Text.Roy         ( Text/Roy.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Text/Roy.p_o )
+[11 of 17] Compiling Text.Coffee      ( Text/Coffee.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Text/Coffee.p_o )
+[12 of 17] Compiling Text.Css         ( Text/Css.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Text/Css.p_o )
+
+Text/Css.hs:349:40: Warning: Defined but not used: ‘subblocks’
+
+Text/Css.hs:367:5: Warning: Defined but not used: ‘subGo’
+[13 of 17] Compiling Text.CssCommon   ( Text/CssCommon.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Text/CssCommon.p_o )
+Loading package ghc-prim ... linking ... done.
+Loading package integer-gmp ... linking ... done.
+Loading package base ... linking ... done.
+Loading package array-0.5.0.0 ... linking ... done.
+Loading package deepseq-1.3.0.2 ... linking ... done.
+Loading package filepath-1.3.0.2 ... linking ... done.
+Loading package old-locale-1.0.0.6 ... linking ... done.
+Loading package time-1.4.2 ... linking ... done.
+Loading package bytestring-0.10.4.0 ... linking ... done.
+Loading package unix-2.7.0.1 ... linking ... done.
+Loading package directory-1.2.1.0 ... linking ... done.
+Loading package process-1.2.0.0 ... linking ... done.
+Loading package transformers-0.3.0.0 ... linking ... done.
+Loading package mtl-2.1.3.1 ... linking ... done.
+Loading package text-1.2.0.6 ... linking ... done.
+Loading package parsec-3.1.9 ... linking ... done.
+Loading package stm-2.4.4 ... linking ... done.
+Loading package transformers-compat-0.4.0.3 ... linking ... done.
+Loading package exceptions-0.8.0.2 ... linking ... done.
+Loading package blaze-builder-0.4.0.1 ... linking ... done.
+Loading package blaze-markup-0.7.0.2 ... linking ... done.
+Loading package blaze-html-0.8.0.2 ... linking ... done.
+Loading package containers-0.5.5.1 ... linking ... done.
+Loading package hashable-1.2.3.3 ... linking ... done.
+Loading package scientific-0.3.3.8 ... linking ... done.
+Loading package attoparsec-0.12.1.6 ... linking ... done.
+Loading package dlist-0.7.1.1 ... linking ... done.
+Loading package syb-0.4.4 ... linking ... done.
+Loading package pretty-1.1.1.1 ... linking ... done.
+Loading package template-haskell ... linking ... done.
+Loading package unordered-containers-0.2.5.1 ... linking ... done.
+Loading package primitive-0.6 ... linking ... done.
+Loading package vector-0.10.12.3 ... linking ... done.
+Loading package aeson-0.8.0.2 ... linking ... done.
+[14 of 17] Compiling Text.Lucius      ( Text/Lucius.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Text/Lucius.p_o )
+[15 of 17] Compiling Text.Cassius     ( Text/Cassius.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Text/Cassius.p_o )
+[16 of 17] Compiling Text.TypeScript  ( Text/TypeScript.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Text/TypeScript.p_o )
+[17 of 17] Compiling Text.Shakespeare.I18N ( Text/Shakespeare/I18N.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/Text/Shakespeare/I18N.p_o )
+In-place registering shakespeare-2.0.5...
+Installing library in
+/home/anand/.stack/snapshots/x86_64-linux/lts-2.17/7.8.4/lib/x86_64-linux-ghc-7.8.4/shakespeare-2.0.5
+Registering shakespeare-2.0.5...

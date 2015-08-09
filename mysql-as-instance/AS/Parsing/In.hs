@@ -139,8 +139,7 @@ extractValue m
   | M.member "stockPrices" m  = extractStockChart m
   | M.member "excelLocs"   m  = extractExcel m 
   | M.member "rickshawData" m = extractRick m 
-  | M.member "objectValue" m  = extractObjectValue m
-  | otherwise                 = parseMap m  
+  | otherwise = extractObjectValue m
   where
     extractExcel mm       = ExcelSheet l e v
       where
@@ -177,11 +176,59 @@ extractValue m
         ValueS typ         = m M.! "err_type"
         ValueS file        = m M.! "file"
         ValueD pos         = m M.! "position"
-    parseMap mm = ValueL listRep -- minimal amount of parsing to get maps to work, doesn't work for different sized lists
-      where
-        f (s, ValueL l) = (ValueS s):l
-        f (s, o) = (ValueS s):[o]
-        listRep = map ValueL $ L.transpose $ map f (M.toList mm) 
+
+--extractValue :: M.Map String ASValue -> ASValue
+--extractValue m
+--  | M.member "error" m        = extractError m
+--  | M.member "style" m        = extractStyledValue m
+--  | M.member "displayValue" m = extractDisplayValue m
+--  | M.member "imagePath" m    = extractImageValue m
+--  | M.member "stockPrices" m  = extractStockChart m
+--  | M.member "excelLocs"   m  = extractExcel m 
+--  | M.member "rickshawData" m = extractRick m 
+--  | M.member "objectValue" m  = extractObjectValue m
+--  | otherwise                 = parseMap m  
+--  where
+--    extractExcel mm       = ExcelSheet l e v
+--      where
+--        l           = m M.! "excelLocs"
+--        e           = m M.! "excelExprs"
+--        v           = m M.! "excelVals"
+--    extractStyledValue mm = StyledValue s v
+--      where
+--        ValueS s    = m M.! "style"
+--        v           = m M.! "value"
+--    extractDisplayValue mm = DisplayValue s v
+--      where
+--        ValueS s    = m M.! "displayValue"
+--        v           = m M.! "actualValue"
+--    -- { 'imagePath': 'whatever the path is' }
+--    -- print({ 'imagePath': 'whatever the path is' })
+--    extractImageValue mm = ValueImage p
+--      where
+--        ValueS p    = m M.! "imagePath"
+--    extractObjectValue mm = ObjectValue typ rep
+--      where
+--        ValueS typ  = m M.! "objectType"
+--        ValueS rep  = m M.! "jsonRepresentation"
+--    extractStockChart mm = StockChart prices name
+--      where
+--        prices      = m M.! "stockPrices"
+--        ValueS name = m M.! "stockName"
+--    extractRick mm = Rickshaw d
+--      where
+--        d           = m M.! "rickshawData"
+--    extractError mm      = ValueError err typ file (floor pos)
+--      where
+--        ValueS err         = m M.! "error"
+--        ValueS typ         = m M.! "err_type"
+--        ValueS file        = m M.! "file"
+--        ValueD pos         = m M.! "position"
+--    --parseMap mm = ValueL listRep -- minimal amount of parsing to get maps to work, doesn't work for different sized lists
+--    --  where
+--    --    f (s, ValueL l) = (ValueS s):l
+--    --    f (s, o) = (ValueS s):[o]
+--    --    listRep = map ValueL $ L.transpose $ map f (M.toList mm) 
 
 
 complexValue :: Parser ASValue
@@ -212,4 +259,8 @@ parseValue :: ASLanguage -> String -> ASValue --needs to change to reflect Value
 parseValue lang = readOutput . (parse (asValue lang) "") . T.pack
   where
     readOutput (Right v) = v
-    readOutput (Left e) = ValueError (show e) "Parsing error" "AlphaSheets evaluation engine" 0
+    readOutput (Left e) = ValueError (show e) "Parsing error" "AlphaSheets evaluation engine" 0 -- minimal amount of parsing to get maps to work, doesn't work for different sized lists
+    --  where
+    --    f (s, ValueL l) = (ValueS s):l
+    --    f (s, o) = (ValueS s):[o]
+    --    listRep = map ValueL $ L.transpose $ map f (M.toList mm) 

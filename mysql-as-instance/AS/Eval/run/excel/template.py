@@ -1,4 +1,4 @@
-#ADD COMMANDS HERE
+execfile("/home/anand/Development/as/asl-demo/mysql-as-instance/AS/Eval/run/py/repl_record.py")
 from AS.excel.pycel.excelcompiler import *
 from AS.excel.pycel.excellib import * # mapping from excel to python
 from AS.excel.io import evalExcel
