@@ -18,6 +18,17 @@ import Control.Applicative
 import Data.Time.Clock
 import Data.Text as T (unpack,pack)
 
+---------------------- handlers ----------------------------------------
+
+handleEval :: ASPayload -> IO ASMessage
+handleEval (PayloadC cell) = do
+  result <- propagateCell (cellLocation cell) (cellExpression cell)
+  case result of 
+    Nothing -> return failureMessage
+    Just cells -> return $ Message NoAction Success (PayloadCL cells)
+
+---------------------- helpers -----------------------------------------
+
 propagateCell :: ASLocation -> ASExpression -> IO (Maybe [ASCell])
 propagateCell loc xp = do
   if ((language xp)==Excel)

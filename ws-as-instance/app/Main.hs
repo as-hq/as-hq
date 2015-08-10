@@ -3,6 +3,7 @@ module Main where
 
 import Lib
 
+import Prelude
 import Data.Char (isPunctuation, isSpace)
 import Data.Monoid (mappend)
 import Data.Text (Text)
@@ -12,8 +13,14 @@ import Control.Concurrent (MVar, newMVar, modifyMVar_, modifyMVar, readMVar)
 import Control.Monad.IO.Class (liftIO)
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
+import Data.Aeson
 
 import qualified Network.WebSockets as WS
+
+import AS.Types
+import AS.Dispatch as DP
+import AS.DB as DB
+import AS.Config.Settings as S
 
 ------- types ------------------------------
 type Client = (Text, WS.Connection)
@@ -46,7 +53,7 @@ broadcast message clients = do
 main :: IO ()
 main = do
     state <- newMVar newServerState
-    WS.runServer "0.0.0.0" 9160 $ application state
+    WS.runServer S.wsAddress S.wsPort $ application state
 
 -- We also fork a pinging thread in the background. This will ensure the connection
 -- stays alive on some browsers.
@@ -57,35 +64,24 @@ application state pending = do
 
     msg <- WS.receiveData conn
     clients <- liftIO $ readMVar state
-    case msg of
-        _   | not (prefix `T.isPrefixOf` msg) -> WS.sendTextData conn ("Wrong announcement" :: Text)
-            | any ($ fst client)
-                [T.null, T.any isPunctuation, T.any isSpace] ->
-                    WS.sendTextData conn ("Name cannot " `mappend`
-                        "contain punctuation or whitespace, and " `mappend`
-                        "cannot be empty" :: Text)
-            | clientExists client clients -> WS.sendTextData conn ("User already exists" :: Text)
-            | otherwise -> flip finally disconnect $ do
-               liftIO $ modifyMVar_ state $ \s -> do
-                   let s' = addClient client s
-                   WS.sendTextData conn $
-                       "Welcome! Users: " `mappend`
-                       T.intercalate ", " (map fst s)
-                   broadcast (fst client `mappend` " joined") s'
-                   return s'
-               talk conn state client
-          where
-            prefix     = "Hi! I am "
-            client     = (T.drop (T.length prefix) msg, conn)
-            disconnect = do
-                -- Remove client and return new state
-                s <- modifyMVar state $ \s ->
-                    let s' = removeClient client s in return (s', s')
-                broadcast (fst client `mappend` " disconnected") s
+    let msg' = decode msg
+    case msg' of 
+      Nothing -> return ()
+      Just m -> processMessage conn m
 
--- TODO
-processMessage :: Text -> ServerState -> IO ()
-processMessage msg clients = return ()
+-- TODO test
+processMessage :: WS.Connection -> ASMessage -> IO ()
+processMessage conn message = case (action message) of 
+  Evaluate  -> do
+    result <- DP.handleEval (payload message)
+    WS.sendTextData conn (encode result)
+  Get       -> do
+    result <- DB.handleGet (payload message)
+    WS.sendTextData conn (encode result)
+  Delete    -> do
+    result <- DB.handleDelete (payload message)
+    WS.sendTextData conn (encode result)
+
 
 --The talk function continues to read messages from a single client until he
 --disconnects. All messages are broadcasted to the other clients.

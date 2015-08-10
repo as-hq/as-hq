@@ -4,7 +4,7 @@ module AS.Types where
 
 import Prelude
 import GHC.Generics
-import Data.Aeson
+import Data.Aeson hiding (Success)
 
 -- NOTE: follow excel (col, row) ordering
 data ASLocation = Index {sheet :: String, index :: (Int, Int)} | 
@@ -29,18 +29,6 @@ data ASValue =
   deriving (Show, Read, Eq, Generic)
   -- excel: locs=[[Int]], exprs = [String], loc = [ASValue]
 
-
-lst :: ASValue -> [ASValue]
-lst (ValueL l) = l
-lst other = [other]
-
-str :: ASValue -> String
-str (ValueS s) = s
-
-dbl :: ASValue -> Double
-dbl (ValueD d) = d
-
-
 data ASLanguage = R | Python | OCaml | CPP | Java | SQL | Excel deriving (Show, Read, Eq, Generic)
 
 data ASExpression =
@@ -53,6 +41,51 @@ data ASCell = Cell {cellLocation :: ASLocation,
 					cellExpression :: ASExpression,
 					cellValue :: ASValue} deriving (Show, Read, Eq, Generic)
 
+data ASMessage = Message {
+  action :: ASAction,
+  result :: ASResult,
+  payload :: ASPayload
+} deriving (Show, Read, Eq, Generic)
+
+-- alphasheets "verbs"
+data ASAction = 
+  NoAction |
+  Evaluate | 
+  Get |
+  Delete 
+  deriving (Show, Read, Eq, Generic)
+
+data ASResult = 
+  Success | 
+  Failure
+  deriving (Show, Read, Eq, Generic)
+
+data ASPayload = 
+  PayloadN () |
+  PayloadC ASCell | 
+  PayloadCL [ASCell] | 
+  PayloadL ASLocation | 
+  PayloadLL [ASLocation]
+  deriving (Show, Read, Eq, Generic)
+
+------------------- convenience -------------------------------------------------
+
+failureMessage :: ASMessage
+failureMessage = Message NoAction Failure (PayloadN ())
+
+successMessage :: ASMessage
+successMessage = Message NoAction Success (PayloadN ())
+
+lst :: ASValue -> [ASValue]
+lst (ValueL l) = l
+lst other = [other]
+
+str :: ASValue -> String
+str (ValueS s) = s
+
+dbl :: ASValue -> Double
+dbl (ValueD d) = d
+
 instance ToJSON ASLocation
 instance FromJSON ASLocation
 instance ToJSON ASValue
@@ -63,5 +96,11 @@ instance ToJSON ASExpression
 instance FromJSON ASExpression
 instance ToJSON ASCell
 instance FromJSON ASCell
-
-
+instance ToJSON ASAction
+instance FromJSON ASAction
+instance ToJSON ASResult
+instance FromJSON ASResult
+instance ToJSON ASPayload
+instance FromJSON ASPayload
+instance ToJSON ASMessage
+instance FromJSON ASMessage

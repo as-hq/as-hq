@@ -1,10 +1,6 @@
 module AS.Config.Paths where
 
 import Prelude
-import System.IO 
-import System.Directory(getCurrentDirectory)
-import System.FilePath.Posix
-import Control.Applicative   
 
 py_eval_path = "mysql-as-instance/as-py-eval/"
 py_libs_path = "asl/as-libs/py/"
