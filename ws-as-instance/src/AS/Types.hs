@@ -50,6 +50,7 @@ data ASMessage = Message {
 -- alphasheets "verbs"
 data ASAction = 
   NoAction |
+  Acknowledge |
   Evaluate | 
   Get |
   Delete 

@@ -54,24 +54,26 @@ main :: IO ()
 main = do
     state <- newMVar newServerState
     WS.runServer S.wsAddress S.wsPort $ application state
+    putStrLn $ "server started on port " ++ (show S.wsPort)
 
 -- We also fork a pinging thread in the background. This will ensure the connection
 -- stays alive on some browsers.
 application :: MVar ServerState -> WS.ServerApp
 application state pending = do
-    conn <- WS.acceptRequest pending
-    WS.forkPingThread conn 30
+  conn <- WS.acceptRequest pending
+  WS.forkPingThread conn 30
 
-    msg <- WS.receiveData conn
-    clients <- liftIO $ readMVar state
-    let msg' = decode msg
-    case msg' of 
-      Nothing -> return ()
-      Just m -> processMessage conn m
+  msg <- WS.receiveData conn
+  putStrLn $ ("message received: " :: Text) `mappend` msg
+  clients <- liftIO $ readMVar state
+  case (decode msg) of 
+    Nothing -> return ()
+    Just m -> processMessage conn m
 
 -- TODO test
 processMessage :: WS.Connection -> ASMessage -> IO ()
 processMessage conn message = case (action message) of 
+  Acknowledge -> WS.sendTextData conn (encode ("ACK" :: Text))
   Evaluate  -> do
     result <- DP.handleEval (payload message)
     WS.sendTextData conn (encode result)
