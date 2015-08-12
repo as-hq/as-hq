@@ -123,17 +123,18 @@ additionalCells loc cv = do
 -- not currently handling [[[]]] type things
 createListCells :: ASLocation -> [ASValue] -> IO [ASCell]
 createListCells (Index sheet (a,b)) [] = return []
-createListCells (Index sheet (a,b)) values = do 
-  let origLoc = Index sheet (a,b)
-  let vals = concat $ map lst values
-  let locs = map (Index sheet) (concat $ [(shift (values!!row) row (a,b)) | row <- [0..(length values)-1]])
-  let exprs = map (\(Index _ (x,y)) -> Reference origLoc (x-a,y-b)) locs
-  let cells = L.tail $ map (\(l,e,v) -> Cell l e v) (zip3 locs exprs vals)
-  DB.dbUpdateLocationDepsBatch (zip (L.tail locs) (repeat [origLoc]))
-  return cells
-  where
+createListCells (Index sheet (a,b)) values = 
+  let
     shift (ValueL v) r (a,b) = [(a+c,b+r) | c<-[0..length(v)-1] ]
     shift other r (a,b)  = [(a,b+r)]
+    origLoc = Index sheet (a,b)
+    vals = concat $ map lst values
+    locs = map (Index sheet) (concat $ [(shift (values!!row) row (a,b)) | row <- [0..(length values)-1]])
+    exprs = map (\(Index _ (x,y)) -> Reference origLoc (x-a,y-b)) locs
+    cells = L.tail $ map (\(l,e,v) -> Cell l e v) (zip3 locs exprs vals)
+  in do
+    DB.dbUpdateLocationDepsBatch (zip (L.tail locs) (repeat [origLoc]))
+    return cells
 
 createExcelCells :: ASValue -> ASLocation -> IO [ASCell]
 createExcelCells v l = case v of
@@ -146,7 +147,7 @@ createExcelCells v l = case v of
   otherwise -> return []
 
 
-----------------------
+---------------------- primitives -----------------------------------------------
 
 evaluatePrimitive :: ASCell -> IO ASCell
 evaluatePrimitive cell = DB.setCell cell >> return cell

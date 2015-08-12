@@ -60,6 +60,8 @@ executable alphasheets-exe
                      , text
                      , transformers
                      , aeson
+                     , bytestring
+                     , time
   default-language:    Haskell2010
 
 test-suite alphasheets-test

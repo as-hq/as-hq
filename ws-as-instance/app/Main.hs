@@ -14,6 +14,8 @@ import Control.Monad.IO.Class (liftIO)
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
 import Data.Aeson
+import Data.ByteString.Lazy.Char8 as B (pack, unpack)
+import Data.Time.Clock
 
 import qualified Network.WebSockets as WS
 
@@ -53,8 +55,8 @@ broadcast message clients = do
 main :: IO ()
 main = do
     state <- newMVar newServerState
-    WS.runServer S.wsAddress S.wsPort $ application state
     putStrLn $ "server started on port " ++ (show S.wsPort)
+    WS.runServer S.wsAddress S.wsPort $ application state
 
 -- We also fork a pinging thread in the background. This will ensure the connection
 -- stays alive on some browsers.
@@ -64,11 +66,14 @@ application state pending = do
   WS.forkPingThread conn 30
 
   msg <- WS.receiveData conn
-  putStrLn $ ("message received: " :: Text) `mappend` msg
+  time <- getTime
+  putStrLn $ "[" ++ time ++ "] MESSAGE RECEIVED: " -- ++ (B.unpack msg)
   clients <- liftIO $ readMVar state
-  case (decode msg) of 
-    Nothing -> return ()
-    Just m -> processMessage conn m
+  case (decode msg :: Maybe ASMessage) of 
+    Nothing -> putStrLn "ERROR: unable to decode message" >> return ()
+    Just m -> do
+      time <- getTime
+      putStrLn ("[" ++ time ++ "] DECODED MESSAGE: " ++ (show m)) >> processMessage conn m
 
 -- TODO test
 processMessage :: WS.Connection -> ASMessage -> IO ()
@@ -76,9 +81,13 @@ processMessage conn message = case (action message) of
   Acknowledge -> WS.sendTextData conn (encode ("ACK" :: Text))
   Evaluate  -> do
     result <- DP.handleEval (payload message)
+    time <- getTime
+    putStrLn $ "[" ++ time ++ "] RESULT: " ++ (show result)
     WS.sendTextData conn (encode result)
   Get       -> do
     result <- DB.handleGet (payload message)
+    time <- getTime
+    putStrLn $ "[" ++ time ++ "] RESULT: " ++ (show result)
     WS.sendTextData conn (encode result)
   Delete    -> do
     result <- DB.handleDelete (payload message)
@@ -93,3 +102,6 @@ talk conn state (user, _) = forever $ do
     msg <- WS.receiveData conn
     liftIO $ readMVar state >>= broadcast
         (user `mappend` ": " `mappend` msg)
+
+getTime :: IO String
+getTime = fmap (show . utctDayTime) getCurrentTime
