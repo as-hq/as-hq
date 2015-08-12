@@ -150,37 +150,41 @@ export default {
     return e.key;
   },
 
+  // duplicateKeyDown(e) {
+  //   console.log("duplicating event with keycode: " + e.keyCode);
+  //   console.log(e);
+  //   let rawEvt = {
+  //     altKey: e.altKey,
+  //     ctrlKey: e.ctrlKey,
+  //     metaKey: e.metaKey,
+  //     shiftKey: e.shiftKey,
+  //     charCode: e.charCode
+  //   };
+
+  //   // chrome-specific
+  //   if (e.keyIdentifier)
+  //     rawEvt.keyIdentifier = e.keyIdentifier;
+
+  //   let evt = new KeyboardEvent("keydown", rawEvt);
+
+  //   // chrome webkit bug workaround
+  //   // TODO case on chrome
+  //   evt.keyCodeVal = e.keyCode;
+  //   Object.defineProperty(evt, 'keyCode', {
+  //               get : function() {
+  //                   return this.keyCodeVal;
+  //               }
+  //   });
+  //   Object.defineProperty(evt, 'which', {
+  //               get : function() {
+  //                   return this.keyCodeVal;
+  //               }
+  //   });
+  //   return evt;
+  // },
+
   duplicateKeyDown(e) {
-    console.log("duplicating event with keycode: " + e.keyCode);
-    console.log(e);
-    let rawEvt = {
-      altKey: e.altKey,
-      ctrlKey: e.ctrlKey,
-      metaKey: e.metaKey,
-      shiftKey: e.shiftKey,
-      charCode: e.charCode
-    };
-
-    // chrome-specific
-    if (e.keyIdentifier)
-      rawEvt.keyIdentifier = e.keyIdentifier;
-
-    let evt = new KeyboardEvent("keydown", rawEvt);
-
-    // chrome webkit bug workaround
-    // TODO case on chrome
-    evt.keyCodeVal = e.keyCode;
-    Object.defineProperty(evt, 'keyCode', {
-                get : function() {
-                    return this.keyCodeVal;
-                }
-    });
-    Object.defineProperty(evt, 'which', {
-                get : function() {
-                    return this.keyCodeVal;
-                }
-    });
-    return evt;
+    return KeyEvents.crossBrowser_initKeyboardEvent("keydown", e);
   },
 
   addEditorShortcuts(editor, props) {
@@ -188,9 +192,9 @@ export default {
         name: 'eval',
         bindKey: {win: 'Ctrl+Enter',  mac: 'Command+Enter'},
         exec: function(_editor) {
-          console.log("eval requested");
+          console.log("eval requested for language: " + JSON.stringify(props.language));
           // sends back the expression in _editor to the parent (evalpane) when user types ctrl+enter
-          props.requestEval({exp: _editor.getValue(), lang: props.mode});
+          props.requestEval({exp: _editor.getValue(), lang: props.language});
         },
           readOnly: true
         });

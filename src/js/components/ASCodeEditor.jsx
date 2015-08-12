@@ -1,6 +1,7 @@
 import React from 'react';
 import AceEditor from './AceEditor.jsx';
 import ActionCreator from '../actions/ASCodeEditorActionCreators';
+import Constants from '../Constants';
 
 import {AppBar, DropDownMenu, Styles} from 'material-ui';
 
@@ -12,25 +13,25 @@ require('brace/mode/java');
 require('brace/mode/c_cpp');
 require('brace/theme/monokai');
 
-let languages = [
-  { payload: 'python', text: 'Python' },
-  { payload: 'r', text: 'R' },
-  { payload: 'ocaml', text: 'OCaml' },
-  { payload: 'mysql', text: 'SQL' },
-  { payload: 'c_cpp', text: 'C++' },
-  { payload: 'java', text: 'Java' }
-];
+let languages = [];
+for (var key in Constants.Languages) {
+  languages.push({
+    payload: Constants.Languages[key],
+    text: Constants.Languages[key].Display
+  });
+}
 
 export default React.createClass({
+
   getDefaultProps() {
     return {
-      mode: 'python',
+      language: Constants.Languages.Python,
       theme: 'monokai'
     };
   },
 
   render() {
-    let {mode, theme, value, width, height} = this.props;
+    let {language, theme, value, width, height} = this.props;
 
     return (
       <div>
@@ -43,11 +44,13 @@ export default React.createClass({
             menuItems={languages}
             onChange={this._onLanguageChange} />
         </AppBar>
-        <AceEditor ref="editor"
+        <AceEditor
+          ref="editor"
           onChange={this.props.onExpressionChange}
           requestEval={this.props.onEvalRequest}
           focusGrid={this.props.focusGrid}
-          mode={mode}
+          mode={language.Editor}
+          language={language}
           theme={theme}
           value={value}
           width={width} height={height} />

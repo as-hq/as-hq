@@ -5,11 +5,12 @@ import ASEvaluationStore from '../stores/ASEvaluationStore';
 import API from '../actions/ASApiActionCreators';
 import Shortcuts from '../AS/Shortcuts';
 import Util from '../AS/Util';
+import Constants from '../Constants';
 
 function getEvaluationState () {
   return {
     expression: '',
-    language: 'python',
+    language: Constants.Languages.Python,
     focus: 'grid'
   };
 }
@@ -19,7 +20,11 @@ export default React.createClass({
     return React.findDOMNode(this.refs.spreadsheet.refs.hypergrid);
   },
 
-  _getEditor() {
+  _getRawEditor() {
+    return this.refs.editorPane.refs.editor.getRawEditor();
+  },
+
+  _getDomEditor() {
     return React.findDOMNode(this.refs.editorPane.refs.editor);
   },
 
@@ -42,14 +47,14 @@ export default React.createClass({
       <div className="full">
         <ASCodeEditor
           ref='editorPane'
-          mode={language}
+          language={language}
           onLanguageChange={this.setLanguage}
           onExpressionChange={this.setExpression}
           onEvalRequest={this.handleEvalRequest}
           onDeferredKey={this._onEditorDeferredKey}
           focusGrid={this.focusGrid}
           value={expression}
-          width="100%" height="200px" />
+          width="100%" height="100px" />
         <ASSpreadsheet
           ref='spreadsheet'
           onDeferredKey={this._onGridDeferredKey}
@@ -79,7 +84,7 @@ export default React.createClass({
     if (!Shortcuts.tryCommonShortcut(e, this)) { // try common shortcuts, else handoff to editor
       console.log("key deferred by grid:");
       // console.log(e);
-      let node = this._getEditor();
+      let node = this._getDomEditor();
       let evt = Shortcuts.duplicateKeyDown(e.nativeEvent);
       console.log(evt);
       // TODO event dispatch has no effect
@@ -92,7 +97,6 @@ export default React.createClass({
   },
 
   setExpression(xp) {
-    console.log("setting expression: "+ xp);
     this.setState({ expression: xp });
   },
 
@@ -125,7 +129,7 @@ export default React.createClass({
     console.log("eval requested!");
     let selectedRegion = this.refs.spreadsheet.getSelectionArea();
     console.log("topleft: " + selectedRegion.topLeft);
-    console.log("eval expression: " + editorState);
+    console.log("eval expression: " + JSON.stringify(editorState));
     API.sendEvalRequest(selectedRegion, editorState);
   }
 });

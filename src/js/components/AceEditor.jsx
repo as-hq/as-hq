@@ -55,6 +55,10 @@ module.exports = React.createClass({
     }
   },
 
+  getRawEditor() {
+    return this.editor;
+  },
+
   componentDidMount: function() {
     this.editor = ace.edit(this.props.name);
     this.editor.getSession().setMode('ace/mode/'+this.props.mode);

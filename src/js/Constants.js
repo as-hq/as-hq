@@ -1,6 +1,7 @@
 import keyMirror from 'react/lib/keyMirror';
 
 export default {
+  host_ws: 'ws://localhost:5000',
   // event name triggered from store, listened to by views
   CHANGE_EVENT: 'change',
 
@@ -18,12 +19,48 @@ export default {
   }),
 
   Languages: {
-    Python: 'python',
-    Excel: 'excel',
-    R: 'r',
-    OCaml: 'ocaml',
-    SQL: 'sql',
-    Java: 'java',
-    CPP: 'c_cpp'
+    Python: {
+      Display: 'Python',
+      Server: 'Python',
+      Editor: 'python'
+    },
+    Excel: {
+      Display: 'Excel',
+      Server: 'Excel',
+      Editor: 'python'
+    },
+    R: {
+      Display: 'R',
+      Server: 'R',
+      Editor: 'r'
+    },
+    OCaml: {
+      Display: 'OCaml',
+      Server: 'OCaml',
+      Editor: 'ocaml'
+    },
+    SQL: {
+      Display: 'SQL',
+      Server: 'SQL',
+      Editor: 'mysql'
+    },
+    Java: {
+      Display: 'Java',
+      Server: 'Java',
+      Editor: 'java'
+    },
+    CPP: {
+      Display: 'C++',
+      Server: 'CPP',
+      Editor: 'c_cpp'
+    }
+  },
+
+  ServerActions: {
+    NoAction: "NoAction",
+    Acknowledge: "Acknowledge",
+    Evaluate: "Evaluate",
+    Get: "Get",
+    Delete: "Delete"
   }
 };
