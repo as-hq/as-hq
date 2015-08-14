@@ -16,7 +16,7 @@ def arr(lst):
 	return ASIterable(lst)
 result = ""
 try:
-	def myFunc(x):
+	def someFunc(x):
 		return x ** 2
 except Exception as e: 
 	exc_type, exc_obj, exc_tb = exc_info()

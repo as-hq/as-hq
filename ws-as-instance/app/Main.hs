@@ -81,7 +81,6 @@ talk conn = forever $ do
       Just m -> printTimed ("SERVER decoded message: " ++ (show m)) >> processMessage conn m
 
 ------------------- message handling ---------------------------
--- TODO test
 processMessage :: WS.Connection -> ASMessage -> IO ()
 processMessage conn message = case (action message) of 
   Acknowledge -> WS.sendTextData conn ("ACK" :: Text)

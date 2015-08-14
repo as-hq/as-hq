@@ -119,6 +119,13 @@
   (major1) == 0 && (major2) <  3 || \
   (major1) == 0 && (major2) == 3 && (minor) <= 0)
 
+/* package vector-0.10.12.3 */
+#define VERSION_vector "0.10.12.3"
+#define MIN_VERSION_vector(major1,major2,minor) (\
+  (major1) <  0 || \
+  (major1) == 0 && (major2) <  10 || \
+  (major1) == 0 && (major2) == 10 && (minor) <= 12)
+
 /* package websockets-0.9.5.0 */
 #define VERSION_websockets "0.9.5.0"
 #define MIN_VERSION_websockets(major1,major2,minor) (\

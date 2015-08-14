@@ -48,7 +48,7 @@ def pprintSql(res):
 		return res
 
 try:
-	setGlobals(["[[\"a\",\"b\"],[10.0,5.0],[2.0,6.0],[3.0,7.0],[4.0,8.0]]"])
+	setGlobals(["[[\"a\",\"b\"],[10.0,4.0],[2.0,5.0],[3.0,6.0]]"])
 	
 	result = pprintSql(db('select * from dataset0 where a > 1'))
 except Exception as e:
