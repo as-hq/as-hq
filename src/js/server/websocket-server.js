@@ -36,22 +36,10 @@ var fakeCell = function(contents) {
         "language" : contents.cellExpression.language
       },
       "cellValue":{
-        "tag": "ValueD",
-        "contents": 10
+        "tag": "ValueS",
+        "contents": JSON.stringify(contents.cellLocation.index)
       }
   };
-};
-
-var fakeCellFromIndex = function(loc) {
-  return fakeCell({
-    cellExpression: {
-      expression: "TEST",
-      language: "Python"
-    },
-    cellLocation: {
-      index: loc
-    }
-  });
 };
 
 var getOrientedCorners = function(rng) {
@@ -78,32 +66,65 @@ var interpolateLocations = function(rng) {
   } else return rng;
 };
 
+var fakeCellFromIndex = function(idx) {
+  return fakeCell({
+      cellExpression: {
+        expression: "TEST",
+        language: "Python"
+      },
+      cellLocation: {
+        tag: "Index",
+        sheet: "Demo",
+        index: idx
+      }
+    });
+}
+
+var fakeCellFromASLoc = function(loc) {
+  if (loc.tag === "Index")
+    return fakeCell({
+      cellExpression: {
+        expression: "TEST",
+        language: "Python"
+      },
+      cellLocation: loc
+    });
+  else {
+    // console.log("generating fake cells for range: " + JSON.stringify(loc.range));
+    var locs = interpolateLocations(loc.range);
+    return locs.map(fakeCellFromIndex);
+  }
+};
+
 wss.on("connection", function(ws) {
-	console.log("websocket connection open");
-	ws.on("message", function(message){
-		console.log("message received by server: " + message); // the message will be an ASCell
-		parsed = JSON.parse(message);
+  console.log("websocket connection open");
+  ws.on("message", function(message){
+    console.log("message received by server: " + message); // the message will be an ASCell
+    parsed = JSON.parse(message);
 
     var msg = null;
-		// do some propagation in backend with message
-		// for now, send a fake cell
+    // do some propagation in backend with message
+    // for now, send a fake cell
     if (parsed.action === "Get") {
       if (parsed.payload.tag === "PayloadLL"){
-        var cells = interpolateLocations(parsed.payload.contents).map(fakeCellFromIndex);
+        var cells = parsed.payload.contents.map(fakeCellFromASLoc);
         msg = toServerMessageFormat("NoAction", "PayloadCL", cells);
       } else if (parsed.payload.tag === "PayloadL"){
-        var cell = fakeCellFromIndex(parsed.payload.contents);
-        msg = toServerMessageFormat("NoAction", "PayloadC", cell);
+        var result = fakeCellFromASLoc(parsed.payload.contents);
+        if (result.length)
+          msg = toServerMessageFormat("NoAction", "PayloadCL", result);
+        else
+          msg = toServerMessageFormat("NoAction", "PayloadC", result);
       }
     } else if (parsed.action === "Evaluate") {
       var cell = fakeCell(parsed.payload.contents);
       msg = toServerMessageFormat("NoAction", "PayloadC", cell);
     }
 
-		ws.send(JSON.stringify(msg));
-		console.log("just sent data from server " );
+    ws.send(JSON.stringify(msg));
+    console.log("just sent data from server " );
 
-	});
+  });
 
 });
 

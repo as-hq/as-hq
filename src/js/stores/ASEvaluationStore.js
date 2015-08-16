@@ -7,7 +7,7 @@ import CellConverter from '../AS/CellConverter';
 
 // indexed by row/column
 let _data = {
-  sheet: null,
+  sheet: "Demo",
   allCells: [],
   lastUpdatedCells: [],
   xscroll: 0,

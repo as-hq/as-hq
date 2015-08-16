@@ -100,10 +100,10 @@ export default React.createClass({
     this.setState({ expression: xp });
   },
 
-  _onSelectionChange(loc){
-    // get expression and lang of that loc from the store, and then change state to re-render editor
-    console.log("handling selection change: " + JSON.stringify(loc));
-    let {expression,language} = ASEvaluationStore.getExpressionAtLoc(loc[0]);
+  _onSelectionChange(rng){
+    // get expression and lang of that rng from the store, and then change state to re-render editor
+    console.log("handling selection change: " + JSON.stringify(rng));
+    let {expression,language} = ASEvaluationStore.getExpressionAtLoc(rng);
     console.log("expression: " + expression);
     this.setState({ expression: expression, language: language });
   },
@@ -126,9 +126,7 @@ export default React.createClass({
   },
 
   handleEvalRequest(editorState){
-    console.log("eval requested!");
     let selectedRegion = this.refs.spreadsheet.getSelectionArea();
-    console.log("topleft: " + selectedRegion.topLeft);
     console.log("eval expression: " + JSON.stringify(editorState));
     API.sendEvalRequest(selectedRegion, editorState);
   }

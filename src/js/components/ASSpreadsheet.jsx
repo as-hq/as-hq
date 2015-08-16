@@ -24,8 +24,21 @@ export default React.createClass({
     let hg = this._getHypergrid();
     let selection = hg.getSelectionModel().selections[0];
     let ul = selection.origin;
-    let lr = {row: ul.y + selection.width()+1, col: ul.x + selection.height()+1};
-    return { locs: [{row: ul.y+1, col: ul.x+1}, lr], width: selection.width() + 1, height: selection.height() + 1 };
+    let range = {row: ul.y+1,
+              col: ul.x+1,
+              row2: ul.y + selection.width()+1,
+              col2: ul.x + selection.height()+1};
+    if (range.row === range.row2 && range.col === range.col2)
+      return {
+        width: selection.width() + 1,
+        height: selection.height() + 1,
+        range: {row: range.row, col: range.col}
+      };
+    else return {
+        width: selection.width() + 1,
+        height: selection.height() + 1,
+        range:range
+    };
   },
 
   getScroll() {
@@ -79,9 +92,9 @@ export default React.createClass({
 
       let callbacks = ({
         'fin-selection-changed': function (event) {
-          let { locs, width, height } = self.getSelectionArea();
+          let { range, width, height } = self.getSelectionArea();
           if (width === 1 && height === 1)
-            self.props.onSelectionChange(locs);
+            self.props.onSelectionChange(range);
         },
 
         'fin-scroll-x': function (event) {

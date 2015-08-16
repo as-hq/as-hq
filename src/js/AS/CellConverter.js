@@ -1,4 +1,5 @@
 import Constants from '../Constants';
+import ASEvaluationStore from '../stores/ASEvaluationStore';
 
 function getSafeLoc(loc) {
   console.log(loc);
@@ -49,45 +50,30 @@ export default {
     };
   },
 
+  toASLoc(loc) {
+    if (loc.row2)
+      return {tag: "Range",
+              sheet: ASEvaluationStore.getSheet(),
+              range: this.standardToServerLoc(loc)};
+    else
+      return {tag: "Index",
+              sheet: ASEvaluationStore.getSheet(),
+              index: this.standardToServerLoc(loc)};
+  },
+
   toASCell(selRegion, editorState){
     console.log(editorState.lang)
-    if (selRegion.width==1 && selRegion.height==1){ // not a range
-      return  {
-        "cellLocation": {
-          "tag": "Index",
-          "sheet": "Demo",
-          "index": this.standardToServerLoc(selRegion.locs[0])
-        },
-        "cellExpression": {
-          "tag": "Expression",
-          "expression" : editorState.exp,
-          "language": editorState.lang.Server
-        },
-        "cellValue":{
-          "tag": "ValueS",
-          "contents": "initValue"
-        }
-      };
-    }
-    else {
-      return {
-        "cellLocation": {
-          "tag": "Range",
-          "sheet": "Demo",
-          "range": selRegion.locs.map(this.standardToServerLoc)
-        },
-        "cellExpression": {
-          "tag": "Expression",
-          "expression" : editorState.exp,
-          "language": editorState.lang.Server
-        },
-        "cellValue":{
-          "tag": "ValueS",
-          "contents": "initValue"
-        }
-      };
-
-    }
+    return  {
+      "cellLocation": this.toASLoc(selRegion.locs[0]),
+      "cellExpression": {
+        "tag": "Expression",
+        "expression" : editorState.exp,
+        "language": editorState.lang.Server
+      },
+      "cellValue":{
+        "tag": "ValueS",
+        "contents": "initValue"
+      }};
   },
 
   toServerMessageFormat(action, payloadTag, payload) {
@@ -130,12 +116,16 @@ export default {
   },
 
   toGetCellsMessage(locs) {
-    let tag = null;
-    if (locs.row2)
+    let tag = null,
+        sLocs = null;
+    if (locs.length){
       tag = "PayloadLL";
-    else
+      sLocs = locs.map(this.toASLoc);
+    }
+    else{
       tag = "PayloadL";
-    let sLocs = this.standardToServerLoc(locs);
+      sLocs = this.toASLoc(locs);
+    }
     return this.toServerMessageFormat(Constants.ServerActions.Get, tag, sLocs);
   }
 }

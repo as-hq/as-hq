@@ -57,8 +57,18 @@ export default {
         locs = {col: oldX - eX, row: oldY - eY + 1,
                 col2: newX - eX + 1, row2: oldY + vWindow.height + eY};
       }
-    } else
-      console.log("error: double scroll event");
+    } else{
+      // if (oldX < newX && oldY < newY )
+      //   locs = [{col: newX + vWindow.width, row: newY - eY,
+      //            col2: newX + vWindow.width + eX, row2: newY + vWindow.height + eY},
+      //           {col: newX - eX, row: newY + vWindow.height,
+      //            col2: newX + vWindow.width, row2: newY + vWindow.height + eY}];
+      // else if (oldX < newX && oldY > newY)
+      //   locs = [{col: newX + vWindow.width, row: newY - eY,
+      //            col2: newX + vWindow.width + eX, row2: newY + vWindow.height + eY},
+      //           {col: newX - eX, row: newY + vWindow.height,
+      //            col2: newX + vWindow.width, row2: newY + vWindow.height + eY}];
+    }
     console.log("unsafe scroll locs: " + JSON.stringify(locs));
     if (locs){
       let safeLocs = CellConverter.getSafeLoc(locs);
