@@ -74,6 +74,7 @@ export default {
   },
 
   intToExcelCol(i){
+    // TODO only double letters supported
     let c = i % 26;
     let n = Math.floor(i / 26);
     if (n <= 26)
