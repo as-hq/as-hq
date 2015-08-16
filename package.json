@@ -52,9 +52,13 @@
     "object-assign": "^3.0.0",
     "react": "^0.13.3",
     "react-ace": "^2.0.2",
-    "react-draggable-tab": "~0.3.0",
     "react-hotkeys": "^0.4.0",
     "react-tap-event-plugin": "^0.1.7",
-    "ws": "0.4.x"
+    "ws": "0.4.x",
+    "immutable": "^3.7.3",
+    "react-draggable": "^0.8.0",
+    "react-style": "^0.5.5",
+    "classnames": "^2.1.2",
+    "lodash": "^3.9.3"
   }
 }

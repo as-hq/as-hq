@@ -1,5 +1,7 @@
 import React from 'react';
-import {Tab,Tabs} from 'react-draggable-tab'
+import Tab from './tab-components/Tab.js'
+import Tabs from './tab-components/Tabs.js'
+
 
 export default React.createClass({
   getInitialState(){
@@ -10,7 +12,7 @@ export default React.createClass({
               </div>
             </Tab>)
           ],
-        selectedTab: 'tab1'
+        selectedTab: 'tab0'
       };
   },
 
