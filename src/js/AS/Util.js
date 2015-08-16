@@ -1,37 +1,31 @@
 import Constants from '../Constants';
 
-export default {
+function showValue(cv) {
+  switch (cv.tag) {
+    case "ValueNaN":
+      // console.log("got undefined");
+      return "undefined";
+    case "ValueB":
+    case "ValueD":
+    case "ValueI":
+    case "ValueS":
+    return cv.contents;
+    case "ValueL":
+    return showValue(cv.contents[0]);
+    case "ValueError":
+    return "ERROR";
+    case "StyledValue":
+    return showValue(cv.value);
+    case "DisplayValue":
+    return cv.displayValue;
+  }
+};
 
-  getLanguageFromEngine(eng) {
-    switch(eng) {
-      case Constants.Engines.Python:
-        return 'python';
-    }
-  },
+export default {
+  showValue: showValue,
 
   arrContains(arr, elem) {
     return arr.indexOf(elem) > -1;
-  },
-
-  showValue(cv) {
-    switch (cv.tag) {
-      case "ValueNaN":
-        console.log("got undefined");
-        return "undefined";
-      case "ValueB":
-      case "ValueD":
-      case "ValueI":
-      case "ValueS":
-      return cv.contents;
-      case "ValueL":
-      return this.showValue(cv.contents[0]);
-      case "ValueError":
-      return "ERROR";
-      case "StyledValue":
-      return this.showValue(cv.value);
-      case "DisplayValue":
-      return cv.displayValue;
-    }
   },
 
   getIndicesOf(searchStr, str) {
@@ -60,6 +54,18 @@ export default {
     return "ERROR";
   },
 
+  intToChar(i){
+    return 'ABCDEFGHIJKLMNOPQRSTUVXYZ'.charAt(i);
+  },
+
+  intToExcelCol(i){
+    // TODO only double letters supported
+    let c = i % 26;
+    let n = Math.floor(i / 26);
+    if (n <= 26)
+      return this.intToChar(n) + this.intToChar(c);
+  },
+
   locToExcel(loc) {
     if (loc.length == 2)
       return this.intToExcelCol(loc[1]) + (loc[0]+1);
@@ -71,16 +77,5 @@ export default {
         + ":"
         + this.intToExcelCol(br[1]) + (br[0]+1);
     }
-  },
-
-  intToExcelCol(i){
-    let c = i % 26;
-    let n = Math.floor(i / 26);
-    if (n <= 26)
-      return this.intToChar(n) + this.intToChar(c);
-  },
-
-  intToChar(i){
-    return 'ABCDEFGHIJKLMNOPQRSTUVXYZ'.charAt(i);
   }
 };

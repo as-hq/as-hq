@@ -102,8 +102,8 @@ export default React.createClass({
 
   _onSelectionChange(loc){
     // get expression and lang of that loc from the store, and then change state to re-render editor
-    console.log("handling selection change");
-    let {expression,language} = ASEvaluationStore.getExpressionAtLoc(loc);
+    console.log("handling selection change: " + JSON.stringify(loc));
+    let {expression,language} = ASEvaluationStore.getExpressionAtLoc(loc[0]);
     console.log("expression: " + expression);
     this.setState({ expression: expression, language: language });
   },

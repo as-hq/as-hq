@@ -2,6 +2,7 @@ import React from 'react';
 import ActionCreator from '../actions/ASSpreadsheetActionCreators';
 import Shortcuts from '../AS/Shortcuts';
 import CellConverter from '../AS/CellConverter';
+import API from '../actions/ASApiActionCreators';
 
 export default React.createClass({
   _getHypergrid() {
@@ -23,8 +24,13 @@ export default React.createClass({
     let hg = this._getHypergrid();
     let selection = hg.getSelectionModel().selections[0];
     let ul = selection.origin;
-    let lr = [ul.y + selection.width()+1, ul.x + selection.height()+1];
-    return { locs: [[ul.y+1,ul.x+1], lr], width: selection.width() + 1, height: selection.height() + 1 };
+    let lr = {row: ul.y + selection.width()+1, col: ul.x + selection.height()+1};
+    return { locs: [{row: ul.y+1, col: ul.x+1}, lr], width: selection.width() + 1, height: selection.height() + 1 };
+  },
+
+  getScroll() {
+    let hg = this._getHypergrid();
+    return {x: hg.hScrollValue, y: hg.vScrollValue};
   },
 
   makeSelection(loc) {
@@ -34,8 +40,8 @@ export default React.createClass({
   getViewingWindow() {
     let hg = this._getHypergrid();
     let [vs, hs] = [hg.vScrollValue, hg.hScrollValue];
-    let [width, height] = [hg.getVisibleColumns(), hg.getVisibleRows()];
-    return { locs: [[vs, hs], [vs + width - 1, hs + height - 1]], width: width, height: height };
+    let [cols, rows] = [hg.getVisibleColumns(), hg.getVisibleRows()];
+    return { locs: [[vs, hs], [vs + cols.length - 1, hs + rows.length - 1]], width: cols.length, height: rows.length };
   },
 
   handleKeyDown(e) {
@@ -62,6 +68,11 @@ export default React.createClass({
           return '';
       };
 
+      // init viewing window values
+      // let vwindow = this.getViewingWindow();
+      // console.log("initializing sheet with range: " + JSON.stringify(vwindow));
+      // API.getCells(vwindow.locs);
+
       //event listeners
       let self = this;
       let hg = this._getHypergrid();
@@ -70,14 +81,16 @@ export default React.createClass({
         'fin-selection-changed': function (event) {
           let { locs, width, height } = self.getSelectionArea();
           if (width === 1 && height === 1)
-            self.props.onSelectionChange(locs[0]);
+            self.props.onSelectionChange(locs);
         },
 
         'fin-scroll-x': function (event) {
-          ActionCreator.scroll(self.getViewingWindow());
+          let {x, y} = self.getScroll();
+          ActionCreator.scroll(x, y, self.getViewingWindow());
         },
         'fin-scroll-y': function (event) {
-          ActionCreator.scroll(self.getViewingWindow());
+          let {x, y} = self.getScroll();
+          ActionCreator.scroll(x, y, self.getViewingWindow());
         }
 
         // 'fin-keydown': self.handleKeyDown,
@@ -92,11 +105,17 @@ export default React.createClass({
     });
   },
 
+  setDisplayValue(val) {
+    let model = this._getModel();
+    model.setValue(val.index.col - 1, val.index.row - 1, val.display);
+  },
+
   updateCellValues(cells){
     let model = this._getModel();
     for (var key in cells){ // update the hypergrid values
-      let setValue = CellConverter.cellToSetValueFormat(cells[key]);
-      model.setValue(setValue[0],setValue[1], setValue[2]);
+      let val = CellConverter.cellToGridValue(cells[key]);
+      // console.log("display value: " + JSON.stringify(val));
+      this.setDisplayValue(val);
     }
     model.changed(); // causes hypergrid to show updated values
   },

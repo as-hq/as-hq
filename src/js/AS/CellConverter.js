@@ -1,6 +1,53 @@
 import Constants from '../Constants';
 
+function getSafeLoc(loc) {
+  console.log(loc);
+  if (loc.length)
+    return loc.map(getSafeLoc);
+  else {
+    let safeLoc = {
+      row: Math.min(Math.max(0, loc.row), Constants.numRows),
+      col: Math.min(Math.max(0, loc.col), Constants.numCols)
+    };
+    if (loc.row2){
+      safeLoc.row2 = Math.min(Math.max(0, loc.row2), Constants.numRows);
+      safeLoc.col2 = Math.min(Math.max(0, loc.col2), Constants.numCols);
+    }
+    return safeLoc;
+  }
+};
+
+function serverToStandardLoc(loc) {
+  // console.log(loc);
+  if (loc[0].length)
+    return {row: loc[0][1], col: loc[0][0], row2: loc[1][1], col2: loc[1][0]};
+  else return {row: loc[1], col: loc[0]};
+};
+
 export default {
+
+  getSafeLoc: getSafeLoc,
+
+  serverToStandardLoc: serverToStandardLoc,
+
+  standardToServerLoc(loc) {
+    if (loc.row2)
+      return [[loc.col, loc.row], [loc.col2, loc.row2]];
+    else return [loc.col, loc.row];
+  },
+
+  fromServerCell(cell) {
+    console.log(cell.cellLocation.index);
+    return {
+      cellLocation: {
+        tag: cell.cellLocation.tag,
+        sheet: cell.cellLocation.sheet,
+        index: serverToStandardLoc(cell.cellLocation.index)
+      },
+      cellExpression: cell.cellExpression,
+      cellValue: cell.cellValue
+    };
+  },
 
   toASCell(selRegion, editorState){
     console.log(editorState.lang)
@@ -9,7 +56,7 @@ export default {
         "cellLocation": {
           "tag": "Index",
           "sheet": "Demo",
-          "index": selRegion.locs[0]
+          "index": this.standardToServerLoc(selRegion.locs[0])
         },
         "cellExpression": {
           "tag": "Expression",
@@ -27,7 +74,7 @@ export default {
         "cellLocation": {
           "tag": "Range",
           "sheet": "Demo",
-          "range": selRegion.locs
+          "range": selRegion.locs.map(this.standardToServerLoc)
         },
         "cellExpression": {
           "tag": "Expression",
@@ -54,12 +101,15 @@ export default {
     };
   },
 
-  toServerEvalFormat(cell) {
+  toEvalCellsMessage(cell) {
     return this.toServerMessageFormat(Constants.ServerActions.Evaluate, "PayloadC", cell);
   },
 
-  cellToSetValueFormat(cell){
-    return [cell.cellLocation.index[1]-1, cell.cellLocation.index[0]-1, cell.cellValue.contents]
+  cellToGridValue(cell) {
+    return {
+      index: cell.cellLocation.index,
+      display: cell.cellValue.contents
+    };
   },
 
   getCellsFromMsg(msg) {
@@ -67,12 +117,25 @@ export default {
     if (msg.payload){
       if (msg.payload === 'ACK')
         console.log("SERVER ACKNOWLEDGES");
-      else
-        return msg.payload;
+      else if (msg.payload.tag === "PayloadC"){
+        return [this.fromServerCell(msg.payload.contents)];
+      }
+      else if (msg.payload.tag === "PayloadCL"){
+        console.log("cells received: " + msg.payload.contents.length);
+        return msg.payload.contents.map(this.fromServerCell);
+      }
     }
     else
       console.log("error parsing: no payload found in message");
+  },
+
+  toGetCellsMessage(locs) {
+    let tag = null;
+    if (locs.row2)
+      tag = "PayloadLL";
+    else
+      tag = "PayloadL";
+    let sLocs = this.standardToServerLoc(locs);
+    return this.toServerMessageFormat(Constants.ServerActions.Get, tag, sLocs);
   }
-
-
 }
