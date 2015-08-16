@@ -118,11 +118,10 @@ export default {
       if (msg.payload === 'ACK')
         console.log("SERVER ACKNOWLEDGES");
       else if (msg.payload.tag === "PayloadC"){
-        console.log("single cell");
         return [this.fromServerCell(msg.payload.contents)];
       }
       else if (msg.payload.tag === "PayloadCL"){
-        console.log("multi cell");
+        console.log("cells received: " + msg.payload.contents.length);
         return msg.payload.contents.map(this.fromServerCell);
       }
     }

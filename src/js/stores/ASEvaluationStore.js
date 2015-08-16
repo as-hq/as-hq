@@ -78,6 +78,32 @@ const ASEvaluationStore = assign({}, BaseStore, {
       // console.log("cell not present at loc: "+JSON.stringify(loc));
       return {expression: '', language: 'python'};
     }
+  },
+
+  // sets invisible rows in cache to null
+  // to limit memory usage
+  // TODO columns also, if actually necessary
+  deallocAfterScroll(newX, newY, oldX, oldY, vWindow) {
+    let eX = Constants.scrollCacheX,
+        eY = Constants.scrollCacheY;
+    if (oldX < newX) { // scroll right
+      for (var r = oldY - eY; i < oldY + vWindow.height + eX; r++)
+        if (_data.allCells[r])
+          for (var c = oldX - eX; c < newX - eX; c ++)
+            _data.allCells[r][c] = null;
+    } else if (oldX > newX) { // left
+      for (var r = oldY - eY; i < oldY + vWindow.height + eX; r++)
+        if (_data.allCells[r])
+          for (var c = newX + eX; x < oldX + eX; c++)
+            _data.allCells[r][c] = null;
+    }
+    if (newY > oldY) { // scroll down
+      for (var r = oldY - eY; r < newY - eY; r++)
+        _data.allCells[r] = null;
+    } else if (newY < oldY) { // up
+      for (var r = newY - eY; r < oldY - eY; r++)
+        _data.allCells[r] = null;
+    }
   }
 
 
@@ -93,6 +119,7 @@ dispatcherIndex: Dispatcher.register(function (action) {
         let {x,y} = ASEvaluationStore.getScroll();
         console.log("scrolling action: x "+ action.xscroll + ", y " + action.yscroll);
         let cells = API.getCellsForScroll(action.xscroll, action.yscroll, x, y, action.vWindow);
+        // ASEvaluationStore.deallocAfterScroll(action.xscroll, action.yscroll, x, y, action.vWindow);
         ASEvaluationStore.setScroll(action.xscroll, action.yscroll);
         ASEvaluationStore.updateData(cells);
         ASEvaluationStore.emitChange();
