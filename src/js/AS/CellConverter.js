@@ -101,9 +101,6 @@ export default {
     };
   },
 
-  toEvalCellsMessage(cell) {
-    return this.toServerMessageFormat(Constants.ServerActions.Evaluate, "PayloadC", cell);
-  },
 
   cellToGridValue(cell) {
     return {

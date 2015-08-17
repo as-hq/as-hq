@@ -24,7 +24,7 @@ export default React.createClass({
     let hg = this._getHypergrid();
     let selection = hg.getSelectionModel().selections[0];
     let ul = selection.origin;
-    let lr = {row: ul.y + selection.width()+1, col: ul.x + selection.height()+1};
+    let lr = {row: ul.y + selection.height()+1, col: ul.x + selection.width()+1};
     return { locs: [{row: ul.y+1, col: ul.x+1}, lr], width: selection.width() + 1, height: selection.height() + 1 };
   },
 

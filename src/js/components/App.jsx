@@ -2,12 +2,15 @@ import React, {PropTypes} from 'react';
 import ASEvaluationPane from './ASEvaluationPane.jsx';
 import ASTabs from './ASTabs.jsx';
 import {AppCanvas, RaisedButton, Styles, AppBar} from 'material-ui';
+import API from '../actions/ASApiActionCreators';
+
 
 const ThemeManager = new Styles.ThemeManager();
 
 export default React.createClass({
   componentDidMount() {
     ThemeManager.setTheme(ThemeManager.types.DARK);
+    API.sendInitialMessage("user" + Math.floor((Math.random()*100)+1));
   },
 
   getDefaultProps() {
@@ -28,8 +31,8 @@ export default React.createClass({
   render() {
     return (
       <div className="full">
-        <ASTabs />
-        <ASEvaluationPane behavior="default" />
+        <ASTabs ref="tabs"/>
+        <ASEvaluationPane behavior="default" ref="evalPane" />
       </div>
     );
   }

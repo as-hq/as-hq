@@ -12,7 +12,8 @@ export default React.createClass({
               </div>
             </Tab>)
           ],
-        selectedTab: 'tab0'
+        selectedTab: 'tab0',
+        numTabs: 1
       };
   },
 
@@ -33,8 +34,10 @@ export default React.createClass({
 
   handleTabAddButtonClick(e, currentTabs) {
       // key must be unique
-      const key = 'newTab_' + Date.now();
-      let newTab = (<Tab key={key} title='untitled'>
+      let numTabs = this.state.numTabs;
+      const key = 'sheet' + (numTabs+1);
+      const title = 'Sheet-'+ (numTabs+1);
+      let newTab = (<Tab key={key} title={title}>
                       <div>
                       </div>
                     </Tab>);

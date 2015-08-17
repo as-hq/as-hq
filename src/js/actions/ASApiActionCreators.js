@@ -7,8 +7,10 @@ var wss = new WebSocket(Constants.host_ws);
 
 // when the server responds with updates to make, call dispatcher to update stores, then view
 wss.onmessage = function (event) {
-    console.log("client received data from server: " );
+    console.log("client received data from server: " + JSON.stringify(event.data));
     let msg = JSON.parse(event.data);
+    if (msg.action === "Acknowledge")
+      return;
     let cells = CellConverter.getCellsFromMsg(msg);
     if (cells)
       Dispatcher.dispatch({
@@ -19,18 +21,45 @@ wss.onmessage = function (event) {
 
 export default {
 
+  sendInitialMessage(userName){
+    let msg = CellConverter.toServerMessageFormat(Constants.ServerActions.Acknowledge,"PayloadInit",{userName:userName});
+    console.log("sending init message: " + JSON.stringify(msg)); 
+    this.waitForSocketConnection(wss,function(){
+      wss.send(JSON.stringify(msg));
+    });
+  },
+
+  waitForSocketConnection(socket, callback){
+    setTimeout(
+        function () {
+            if (socket.readyState === 1) {
+                if(callback != null){
+                    callback();
+                }
+                return;
+
+            } else {
+                this.waitForSocketConnection(socket, callback);
+            }
+
+        }, 5);
+  },
+
+
   // this function submits an eval request to a websocket server
-  sendEvalRequest(selRegion,editorState){
+  sendEvalRequest(selRegion,editorState, vw){
     console.log("in eval action creator");
     let cell = CellConverter.toASCell(selRegion,editorState);
-    let msg = CellConverter.toEvalCellsMessage(cell)
-    console.log('sending msg to server: ' + JSON.stringify(msg))
+    let vwContents = {vwTopLeftCol:vw.locs[0][0], vwTopLeftRow: vw.locs[0][1], vwWidth:vw.width, vwHeight:vw.height};
+    let payload = {tag:"PayloadC", evalCell:cell, evalVW: vwContents}
+    let msg = {action:"Evaluate",result:"Failure",payload:payload};
+    console.log('sending msg to server: ' + JSON.stringify(msg));
     wss.send(JSON.stringify(msg));
   },
 
   getCells(locs) {
     let msg = CellConverter.toGetCellsMessage(locs);
-    console.log('sending msg to server: ' + JSON.stringify(msg))
+    console.log('sending msg to server: ' + JSON.stringify(msg));
     wss.send(JSON.stringify(msg));
   },
 

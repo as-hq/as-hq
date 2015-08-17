@@ -128,8 +128,10 @@ export default React.createClass({
   handleEvalRequest(editorState){
     console.log("eval requested!");
     let selectedRegion = this.refs.spreadsheet.getSelectionArea();
-    console.log("topleft: " + selectedRegion.topLeft);
+    let viewingWindow = this.refs.spreadsheet.getViewingWindow();
+    console.log("viewing window: " + JSON.stringify(viewingWindow)); 
+    console.log("selRegion " + JSON.stringify(selectedRegion));
     console.log("eval expression: " + JSON.stringify(editorState));
-    API.sendEvalRequest(selectedRegion, editorState);
+    API.sendEvalRequest(selectedRegion, editorState, viewingWindow);
   }
 });
