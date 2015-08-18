@@ -1,6 +1,48 @@
 import Util from './Util';
 import Constants from '../Constants';
 
+var _to_ascii = {
+        '188': '44',
+        '109': '45',
+        '190': '46',
+        '191': '47',
+        '192': '96',
+        '220': '92',
+        '222': '39',
+        '221': '93',
+        '219': '91',
+        '173': '45',
+        '187': '61', //IE Key codes
+        '186': '59', //IE Key codes
+        '189': '45'  //IE Key codes
+    },
+
+    shiftUps = {
+        "96": "~",
+        "49": "!",
+        "50": "@",
+        "51": "#",
+        "52": "$",
+        "53": "%",
+        "54": "^",
+        "55": "&",
+        "56": "*",
+        "57": "(",
+        "48": ")",
+        "45": "_",
+        "61": "+",
+        "91": "{",
+        "93": "}",
+        "92": "|",
+        "59": ":",
+        "39": "\"",
+        "44": "<",
+        "46": ">",
+        "47": "?"
+    },
+
+    modifiers = [16, 17, 18, 19];
+
 export default {
   NavKeys: ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End"],
 
@@ -38,28 +80,29 @@ export default {
     {
       name: "set_language",
       ctrlKey: true,
-      optionKeys: ['1','2','3','4','5','6','7'],
+      optionKeys: [49,50,51,52,53,54,55,56,57,58,59],
       callback: function(e, parent) {
-        switch(this.getKey(e)) {
-          case '1':
+        console.log("switching language!");
+        switch(e.which) {
+          case 49:
             parent.setLanguage(Constants.Languages.Excel);
             break;
-          case '2':
+          case 50:
             parent.setLanguage(Constants.Languages.Python);
             break;
-          case '3':
+          case 51:
             parent.setLanguage(Constants.Languages.R);
             break;
-          case '4':
+          case 52:
             parent.setLanguage(Constants.Languages.OCaml);
             break;
-          case '5':
+          case 53:
             parent.setLanguage(Constants.Languages.SQL);
             break;
-          case '6':
+          case 54:
             parent.setLanguage(Constants.Languages.Java);
             break;
-          case '7':
+          case 55:
             parent.setLanguage(Constants.Languages.CPP);
             break;
         }
@@ -68,6 +111,7 @@ export default {
     {
       name: "toggle_focus",
       key: "F2",
+      keyCode: 113,
       callback: function(e, parent) {
         console.log("focus toggled");
         parent.toggleFocus();
@@ -76,15 +120,51 @@ export default {
     {
       name: 'quick_python_graph',
       key: "F11",
+      keyCode: 122,
       callback: function(e, parent) {
-        var rng = Util.locToExcel(parent.getActiveLocation());
+        var rng = Util.locToExcel(parent.refs.spreadsheet.getSelectionArea().range);
         parent.setLanguage(Constants.Languages.Python);
         parent.changeSelection('right');
         parent.handleEvalRequest('from AS.ui.plot import *; plotGeneric('+rng+')');
       }
     },
+    {
+      name: 'cell_eval',
+      keyCode: 13,
+      ctrlKey: true,
+      callback: function(e, parent) {
+        console.log("evaling cell!");
+        let editorState = {
+          exp: parent._getRawEditor().getValue(),
+          lang: parent.state.language
+        };
+        parent.handleEvalRequest(editorState);
+      }
+    }
 
   ],
+
+  getKey(e) {
+    // TODO
+    return e.key;
+  },
+
+  isFunctionKey(e) {
+    return e.which >= 112 && e.which <= 123;
+  },
+
+  shortcutMatches(s, e) {
+    if (this.compareModifiers(s, e)) {
+      if (s.optionKeys && Util.arrContains(s.optionKeys, e.which))
+        return true;
+      else if (s.key && s.key === this.getKey(e))
+        return true;
+      else if (s.keyCode && s.keyCode === e.which)
+        return true;
+      else
+        return false
+    } else return false;
+  },
 
   tryShortcut(e, entity, set) {
     for (var key in set) {
@@ -126,67 +206,90 @@ export default {
       e.nativeEvent.stopImmediatePropagation();
   },
 
-  compareModifiers(e, ee) {
-    let s = e.shiftKey == ee.shiftKey;
-    let c = e.ctrlKey == ee.ctrlKey;
-    let a = e.altKey == ee.altKey;
-    let m = e.metaKey == ee.metaKey;
-    return (s && c && a && m);
+  compareModifiers(s, e) {
+    // s is the shortcut
+    let sh = (s.hasOwnProperty('shiftKey') && s.shiftKey == e.shiftKey) || (e.shiftKey === false);
+    let c = (s.hasOwnProperty('ctrlKey') && s.ctrlKey == e.ctrlKey) || (e.ctrlKey === false);
+    let a = (s.hasOwnProperty('altKey') && s.altKey == e.altKey) || (e.altKey === false);
+    let m = (s.hasOwnProperty('metaKey') && s.metaKey == e.metaKey) || (e.metaKey === false);
+    return (sh && c && a && m);
   },
-
-  shortcutMatches(s, e) {
-    if (this.compareModifiers(s, e)) {
-      if (s.optionKeys && Util.arrContains(s.optionKeys, this.getKey(e)))
-        return true;
-      else if (s.key && s.key === this.getKey(e))
-        return true;
-      else
-        return false
-    } else return false;
-  },
-
-  getKey(e) {
-    // TODO
-    return e.key;
-  },
-
-  // duplicateKeyDown(e) {
-  //   console.log("duplicating event with keycode: " + e.keyCode);
-  //   console.log(e);
-  //   let rawEvt = {
-  //     altKey: e.altKey,
-  //     ctrlKey: e.ctrlKey,
-  //     metaKey: e.metaKey,
-  //     shiftKey: e.shiftKey,
-  //     charCode: e.charCode
-  //   };
-
-  //   // chrome-specific
-  //   if (e.keyIdentifier)
-  //     rawEvt.keyIdentifier = e.keyIdentifier;
-
-  //   let evt = new KeyboardEvent("keydown", rawEvt);
-
-  //   // chrome webkit bug workaround
-  //   // TODO case on chrome
-  //   evt.keyCodeVal = e.keyCode;
-  //   Object.defineProperty(evt, 'keyCode', {
-  //               get : function() {
-  //                   return this.keyCodeVal;
-  //               }
-  //   });
-  //   Object.defineProperty(evt, 'which', {
-  //               get : function() {
-  //                   return this.keyCodeVal;
-  //               }
-  //   });
-  //   return evt;
-  // },
 
   duplicateKeyDown(e) {
-    return KeyEvents.crossBrowser_initKeyboardEvent("keydown", e);
+    console.log("duplicating event with keycode: " + e.keyCode);
+    console.log(e);
+    let rawEvt = {
+      altKey: e.altKey,
+      ctrlKey: e.ctrlKey,
+      metaKey: e.metaKey,
+      shiftKey: e.shiftKey,
+      code: e.keyCode,
+      charCode: e.charCode,
+      keyCode: e.keyCode
+    };
+
+    // chrome-specific
+    if (e.keyIdentifier)
+      rawEvt.keyIdentifier = e.keyIdentifier;
+
+    let evt = new KeyboardEvent("keydown", rawEvt);
+
+    // chrome webkit bug workaround
+    // TODO case on chrome
+    evt.keyCodeVal = e.keyCode;
+    Object.defineProperty(evt, 'keyCode', {
+                get : function() {
+                    return this.keyCodeVal;
+                }
+    });
+    Object.defineProperty(evt, 'which', {
+                get : function() {
+                    return this.keyCodeVal;
+                }
+    });
+    return evt;
   },
 
+  producesVisibleChar(e) {
+    return (!(e.ctrlKey || e.altKey || e.metaKey) &&
+            !Util.arrContains(modifiers, e.which) &&
+            !this.isFunctionKey(e)) ||
+           (e.ctrlKey && e.key === "Backspace"); // backspace
+  },
+
+  keyToString(e) {
+    let c = e.which;
+    console.log("key has code: " + c);
+    //normalize keyCode
+    if (_to_ascii.hasOwnProperty(c)) {
+        c = _to_ascii[c];
+    }
+
+    if (!e.shiftKey && (c >= 65 && c <= 90)) {
+        c = String.fromCharCode(c + 32);
+    } else if (e.shiftKey && shiftUps.hasOwnProperty(c)) {
+        //get shifted keyCode value
+        c = shiftUps[c];
+    } else {
+        c = String.fromCharCode(c);
+    }
+    return c;
+  },
+
+  modifyStringForKey(str, e) {
+    if (e.which === 8){ // backspace
+      if (e.ctrlKey){
+        let edited = Util.removeLastWord(str);
+        return edited;
+      }
+      else return str.substring(0, str.length-1);
+    } else {
+      return str + this.keyToString(e);
+    }
+  },
+
+// note: there will be some duplication between common and editor shortcuts,
+// since some are possible when either the editor or grid is in focus.
   addEditorShortcuts(editor, props) {
     editor.commands.addCommand({
         name: 'eval',

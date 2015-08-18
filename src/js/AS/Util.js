@@ -58,6 +58,12 @@ export default {
     return 'ABCDEFGHIJKLMNOPQRSTUVXYZ'.charAt(i);
   },
 
+  getOrientedCorners(rng) {
+    var tl = {row: Math.min(rng.row,rng.row2), col: Math.min(rng.col,rng.col2)},
+        br = {row: Math.max(rng.row,rng.row2), col: Math.max(rng.col,rng.col2)};
+    return {tl: tl, br: br};
+  },
+
   intToExcelCol(i){
     // TODO only double letters supported
     let c = i % 26;
@@ -67,15 +73,20 @@ export default {
   },
 
   locToExcel(loc) {
-    if (loc.length == 2)
-      return this.intToExcelCol(loc[1]) + (loc[0]+1);
-    else{
-      let corners = getOrientedCorners(loc),
-          tl = corners[0],
-          br = corners[1];
-      return this.intToExcelCol(tl[1]) + (tl[0]+1)
+    if (loc.row2){
+      let {tl, br} = this.getOrientedCorners(loc);
+      return this.intToExcelCol(tl.col) + tl.row
         + ":"
-        + this.intToExcelCol(br[1]) + (br[0]+1);
+        + this.intToExcelCol(br.col) + br.row;
+    } else {
+      return this.intToExcelCol(loc.col) + loc.row;
     }
+  },
+
+  removeLastWord(str){
+    let lastIndex = str.lastIndexOf(" ");
+    if (lastIndex > 0)
+      return str.substring(0, lastIndex);
+    else return "";
   }
 };

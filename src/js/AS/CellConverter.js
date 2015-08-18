@@ -64,7 +64,7 @@ export default {
   toASCell(selRegion, editorState){
     console.log(editorState.lang)
     return  {
-      "cellLocation": this.toASLoc(selRegion.locs[0]),
+      "cellLocation": this.toASLoc(selRegion.range),
       "cellExpression": {
         "tag": "Expression",
         "expression" : editorState.exp,

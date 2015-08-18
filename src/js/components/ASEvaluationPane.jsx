@@ -66,7 +66,6 @@ export default React.createClass({
   },
 
   _onChange() {
-    // this.setState(getEvaluationState());
     console.log("eval pane detected event change from store");
     let updatedCells = ASEvaluationStore.getLastUpdatedCells();
     this.refs.spreadsheet.updateCellValues(updatedCells);
@@ -74,21 +73,27 @@ export default React.createClass({
   },
 
   _onEditorDeferredKey(e) {
-    if (!Shortcuts.tryCommonShortcut(e, this)) {
-      console.log('unhandled keydown event!');
-      console.log(e);
+    if (Shortcuts.producesSelectionChange(e)){
+      // TODO
+    } else {
+      // TODO
     }
   },
 
   _onGridDeferredKey(e) {
-    if (!Shortcuts.tryCommonShortcut(e, this)) { // try common shortcuts, else handoff to editor
-      console.log("key deferred by grid:");
-      // console.log(e);
-      let node = this._getDomEditor();
-      let evt = Shortcuts.duplicateKeyDown(e.nativeEvent);
-      console.log(evt);
-      // TODO event dispatch has no effect
-      node.dispatchEvent(evt);
+    if (Shortcuts.producesVisibleChar(e)) {
+      console.log("key deferred by grid to editor");
+      console.log(e);
+      let editor = this._getRawEditor(),
+          str = Shortcuts.modifyStringForKey(editor.getValue(), e);
+      console.log(str);
+      if (str || str === "")
+        editor.setValue(str);
+    }
+    else {
+      console.log('trying common shortcut');
+      console.log(e);
+      Shortcuts.tryCommonShortcut(e, this);
     }
   },
 
@@ -115,7 +120,7 @@ export default React.createClass({
   toggleFocus() {
     switch(this.state.focus) {
       case 'grid':
-        this._getEditor().focus();
+        this._getRawEditor().focus();
         this.setState({focus: 'editor'});
         break;
       default:
