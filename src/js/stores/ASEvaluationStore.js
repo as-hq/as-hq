@@ -94,7 +94,7 @@ const ASEvaluationStore = assign({}, BaseStore, {
 
   // sets invisible rows in cache to null
   // to limit memory usage
-  // TODO columns also, if actually necessary
+  // TODO overlapping corners not handled... determine better way to dealloc than casework
   deallocAfterScroll(newX, newY, oldX, oldY, vWindow) {
     let eX = Constants.scrollCacheX,
         eY = Constants.scrollCacheY;
