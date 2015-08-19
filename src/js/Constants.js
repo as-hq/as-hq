@@ -20,7 +20,8 @@ export default {
     GOT_UPDATED_CELLS: null,
     GOT_UNDO:null,
     GOT_REDO:null,
-    FETCHED_CELLS:null
+    FETCHED_CELLS:null,
+    CLEARED: null
   }),
 
   ActionSources: keyMirror({

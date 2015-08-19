@@ -11,7 +11,7 @@ export default {
     cellLocation: {
         tag: 
         sheet: 
-        index: [col,row] (the only cells that will be updated are Index cells)
+        index: {col,row} (the only cells that will be updated are Index cells)
       },
       cellExpression: {
         "tag":
@@ -168,7 +168,7 @@ export default {
   },
 
   /**************************************************************************************************************************/
-  /* Message conversion and processing */
+  /* Message conversion */
 
   toServerMessageFormat(action, payloadTag, payload) {
     return {
@@ -222,6 +222,10 @@ export default {
     }
     return this.toServerMessageFormat(Constants.ServerActions.Get, tag, {vWindow:vWindow,getLocs:sLocs});
   },
+
+  /**************************************************************************************************************************/
+  /* Message creation */
+
   /* Used to create undo/redo messages to submit to server. Called by send Undo/Redo Request in API action creator */
   createUndoRequestForServer(){
     return {action:"Undo",result:{"tag":"NoResult","contents":[]},payload:{tag:"PayloadN", contents:[]}};
@@ -233,6 +237,9 @@ export default {
   createEvalRequestFromASCell(asCell){
     let payload = {tag:"PayloadC", contents:asCell};
     return {action:"Evaluate",result:{"tag":"NoResult","contents":[]},payload:payload};
+  },
+  createClearRequestForServer(){
+    return {action:"Clear",result:{"tag":"NoResult","contents":[]},payload:{tag:"PayloadN", contents:[]}};
   }
 
 }

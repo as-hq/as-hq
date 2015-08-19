@@ -72,7 +72,27 @@ dispatcherIndex: Dispatcher.register(function (action) {
         console.log("Last updated cells: " + JSON.stringify(_data.lastUpdatedCells)); 
         ASEvaluationStore.emitChange();
         break;
-    }
+      /*
+        The server has cleared everything from the DB
+        Need to delete the store
+        Called from Dispatcher, fired by API response from server
+      */
+      case Constants.ActionTypes.CLEARED:
+        _data.lastUpdatedCells = [];
+        let cellsToRemove = []; 
+        for (var s in _data.allCells){
+          for (var c in _data.allCells[s]){
+            for (var r in _data.allCells[s][c]){
+              cellsToRemove.push(_data.allCells[s][c][r]);
+            }
+          }
+        }
+        ASEvaluationStore.removeData(cellsToRemove);
+        _data.allCells = {};  
+        console.log("Last updated cells: " + JSON.stringify(_data.lastUpdatedCells)); 
+        ASEvaluationStore.emitChange();
+        break;
+      }
   })
 
 

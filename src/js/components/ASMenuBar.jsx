@@ -5,6 +5,11 @@ import Menu from './menu/Menu.jsx'
 import Separator from './menu/Separator.jsx'
 
 import API from '../actions/ASApiActionCreators.js'
+
+/* 
+  This component defines the top menu bar (File, Edit etc)
+  It has an onSelect method that allows callbacks for user clicks on different menu items
+*/
  
 export default React.createClass({
   render: function () {
@@ -12,6 +17,7 @@ export default React.createClass({
       <MenuBar onSelect={this.onSelect}>
         <MenuItem label="File">
           <Menu>
+            <MenuItem command="clear"> Clear </MenuItem>
           </Menu>
         </MenuItem>
  
@@ -42,11 +48,16 @@ export default React.createClass({
  
   onSelect: function (command) {
     console.log('Selected: %s', command);
-    if (command === "undo"){
-      API.sendUndoRequest();
-    }
-    if (command === "redo"){
-      API.sendRedoRequest();
+    switch (command){
+      case "undo":
+        API.sendUndoRequest(); 
+        break; 
+      case "redo":
+        API.sendRedoRequest(); 
+        break;
+      case "clear":
+        API.sendClearRequest(); 
+        break;
     }
   }
 

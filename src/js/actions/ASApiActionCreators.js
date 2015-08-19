@@ -54,6 +54,10 @@ wss.onmessage = function (event) {
         newCells: newCells
       });
       break; 
+    case "Clear":
+      Dispatcher.dispatch({
+        type: ActionTypes.CLEARED,
+      });
   }
 };
 
@@ -99,7 +103,7 @@ export default {
   },
 
   /**************************************************************************************************************************/
-  /* Sending undo/redo messages to the server */
+  /* Sending undo/redo/clear messages to the server */
 
   sendUndoRequest(){
     let msg = Converter.createUndoRequestForServer(); 
@@ -107,6 +111,10 @@ export default {
   },
   sendRedoRequest(){
     let msg = Converter.createRedoRequestForServer(); 
+    wss.send(JSON.stringify(msg));
+  },
+  sendClearRequest(){
+    let msg = Converter.createClearRequestForServer(); 
     wss.send(JSON.stringify(msg));
   },
 
