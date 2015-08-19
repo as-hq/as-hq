@@ -72,7 +72,7 @@ module.exports = React.createClass({
     this.editor.setOption('highlightActiveLine', this.props.highlightActiveLine);
     this.editor.setShowPrintMargin(this.props.setShowPrintMargin);
 
-    // add shortcuts
+    /* Add editor shortcuts */
     Shortcuts.addEditorShortcuts(this.editor,this.props);
 
     if (this.props.onLoad) {

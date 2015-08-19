@@ -5,30 +5,29 @@ import ASMenuBar from './ASMenuBar.jsx'
 import {AppCanvas, RaisedButton, Styles, AppBar} from 'material-ui';
 import API from '../actions/ASApiActionCreators';
 
-
 const ThemeManager = new Styles.ThemeManager();
 
 export default React.createClass({
+
+  /* When mounting, send a message to the backend to signify a connection */
   componentDidMount() {
     ThemeManager.setTheme(ThemeManager.types.DARK);
     API.sendInitialMessage("user" + Math.floor((Math.random()*100)+1));
   },
-
   getDefaultProps() {
-    return {
-    }
+    return {}
   },
-
   childContextTypes: {
     muiTheme: React.PropTypes.object
   },
-
   getChildContext() {
     return {
       muiTheme: ThemeManager.getCurrentTheme()
     };
   },
 
+  /**************************************************************************************************************************/
+  /* Core render method for the whole app */
 
   render() {
     return (

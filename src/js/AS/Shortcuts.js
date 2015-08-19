@@ -295,9 +295,13 @@ export default {
         name: 'eval',
         bindKey: {win: 'Ctrl+Enter',  mac: 'Command+Enter'},
         exec: function(_editor) {
-          console.log("eval requested for language: " + JSON.stringify(props.language));
-          // sends back the expression in _editor to the parent (evalpane) when user types ctrl+enter
-          props.requestEval({exp: _editor.getValue(), lang: props.language});
+          console.log("Eval requested for language: " + JSON.stringify(props.language));
+          /* 
+            When user wants to eval an expression
+            Sends back the expression and language in _editor from ace editor -> code editor -> eval pane via props 
+            The eval pane will get some spreadsheet state and send it to server for eval
+          */
+          props.onEvalRequest({exp: _editor.getValue(), lang: props.language});
         },
           readOnly: true
         });

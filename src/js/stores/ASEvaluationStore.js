@@ -3,24 +3,89 @@ import Constants from '../Constants';
 import BaseStore from './BaseStore';
 import assign from 'object-assign';
 import API from '../actions/ASApiActionCreators';
-import CellConverter from '../AS/CellConverter';
+import Converter from '../AS/Converter';
 
-// indexed by row/column
+/* 
+Private variable keeping track of a viewing window (cached) of cells. Stores:
+  1) Sheet name
+  2) All cells in viewing window, indexed [sheet][col][row]
+  3) Cells that were last updated by an eval or change event (so that components can easily access the update from the store)
+  4) Scroll position
+*/
 let _data = {
-  sheet: "Demo",
-  allCells: {},
+  currentSheet: "Demo",
+  allCells: {}, 
   lastUpdatedCells: [],
   xscroll: 0,
   yscroll: 0
 };
 
+/* This function describes the actions of the ASEvaluationStore upon recieving a message from Dispatcher */
+dispatcherIndex: Dispatcher.register(function (action) {
+    switch (action.type) {
+      case Constants.ActionTypes.CELL_CHANGED: 
+        break;
+      case Constants.ActionTypes.RANGE_CHANGED:
+        break;
+      /*
+        On an UNDO/REDO/UPDATE_CELLS, update the viewing window in the store based on the commit and 
+        send a change event to spreadsheet, which will rerender 
+      */
+      case Constants.ActionTypes.GOT_UNDO:
+        _data.lastUpdatedCells = []; 
+        ASEvaluationStore.removeData(action.commit.after);
+        ASEvaluationStore.updateData(action.commit.before); 
+        ASEvaluationStore.emitChange(); 
+        break;
+      case Constants.ActionTypes.GOT_REDO:
+        _data.lastUpdatedCells = []; 
+        ASEvaluationStore.removeData(action.commit.before);
+        ASEvaluationStore.updateData(action.commit.after); 
+        ASEvaluationStore.emitChange(); 
+        break;
+      case Constants.ActionTypes.GOT_UPDATED_CELLS:
+        _data.lastUpdatedCells = []; 
+        ASEvaluationStore.updateData(action.updatedCells);
+        console.log("Last updated cells: " + JSON.stringify(_data.lastUpdatedCells)); 
+        ASEvaluationStore.emitChange();
+        break;
+      /*
+        This action is sent to Dispatcher by the ASSpreadsheet action creator on a scroll event
+        It gets previous scroll state from the store and then uses the API to send a "get cells" message to server
+      */
+      case Constants.ActionTypes.SCROLLED:
+        let {x,y} = ASEvaluationStore.getScroll(); // current values of scroll position
+        console.log("scrolling action: x "+ action.xscroll + ", y " + action.yscroll);
+        let cells = API.sendGetRequestScroll(action.xscroll, action.yscroll, x, y, action.vWindow);
+        ASEvaluationStore.setScroll(action.xscroll, action.yscroll);
+        ASEvaluationStore.updateData(cells);
+        ASEvaluationStore.emitChange();
+        break;
+      /*
+        The cells have been fetched from the server for a get request (for example, when scrolling)
+        We now need to update the store based on these new values
+        Called from Dispatcher, fired by API response from server
+      */
+      case Constants.ActionTypes.FETCHED_CELLS:
+        _data.lastUpdatedCells = []; 
+        ASEvaluationStore.updateData(action.newCells);
+        console.log("Last updated cells: " + JSON.stringify(_data.lastUpdatedCells)); 
+        ASEvaluationStore.emitChange();
+        break;
+    }
+  })
+
+
 const ASEvaluationStore = assign({}, BaseStore, {
 
+  /**************************************************************************************************************************/
+  /* Sheet and scroll getter and setter methods */
+
   setSheet(sht) {
-    _data.sheet = sht;
+    _data.currentSheet = sht;
   },
   getSheet() {
-    return _data.sheet;
+    return _data.currentSheet;
   },
   setScroll(x, y){
     _data.xscroll = x;
@@ -29,86 +94,95 @@ const ASEvaluationStore = assign({}, BaseStore, {
   getScroll() {
     return {x: _data.xscroll, y: _data.yscroll};
   },
-
-  getLocationHash(cell){
-    return cell.cellLocation.index.col + cell.cellLocation.sheet + cell.cellLocation.index.row;
-  },
-
-  hash(cell){
-    return cell.cellLocation.index[0] + cell.cellLocation.sheet + cell.cellLocation.index[1];
-  },
-
-  // updates _allCells and _lastUpdatedCells after eval returns a list of ASCells
-  updateData(cells) {
-    console.log("About to update data in store: " + JSON.stringify(cells));
-    _data.lastUpdatedCells = [];
-    for (var key in cells){
-      _data.allCells[this.getLocationHash(cells[key])] = cells[key];
-      _data.lastUpdatedCells.push(cells[key]);
-    }
-  },
-  insData(cells) {
-    for (var key in cells){
-      let c = CellConverter.fromServerCell(cells[key]);
-      console.log("Inserting: " + JSON.stringify(c));
-      _data.allCells[this.getLocationHash(c)] = c;
-      _data.lastUpdatedCells.push(c);
-    }
-  },
-  removeData(cells) {
-    _data.lastUpdatedCells = [];
-    for (var key in cells){
-      let c = CellConverter.fromServerCell(cells[key]);
-      console.log("Removing: " + JSON.stringify(c));
-      let ce = {"tag":"Expression","expression":"","language":c.cellExpression.language}; 
-      let cv = {"tag":"ValueS","contents":""};
-      let emptyCell = {cellLocation:c.cellLocation,cellExpression:ce,cellValue:cv};
-      _data.allCells[this.getLocationHash(c)] = emptyCell;
-      _data.lastUpdatedCells.push(emptyCell);
-    }
-    this.showAllCells();
-    this.showUpdatedCells(); 
-  },
-
+  /* Usually called by AS components so that they can get the updated values of the store */
   getLastUpdatedCells(){
     console.log("Getting last updated cells: " + JSON.stringify(_data.lastUpdatedCells));
     return _data.lastUpdatedCells;
   },
 
-  showAllCells(){
-    console.log("All cells: " + JSON.stringify(_data.allCells));
-  },
-  showUpdatedCells(){
-    console.log("Last updated cells: " + JSON.stringify(_data.lastUpdatedCells));
-  },
+  /**************************************************************************************************************************/
+  /* 
+    Update methods to allCells and lastUpdatedCells. 
+    A cell in this class and stored in _data has the format from CellConverter, returned from eval
+  */
 
-  // used for updating expression when user clicks on a cell
-  getExpressionAtLoc(loc){
-    if (_data.allCells[loc.row] && _data.allCells[loc.row][loc.col])
-      return _data.allCells[loc.row][loc.col].cellExpression;
-    else {
-      // console.log("cell not present at loc: "+JSON.stringify(loc));
-      return {expression: '', language: 'python'};
+  /* Function to update cell related objects in store. Caller's responsibility to clear lastUpdatedCells if necessary */
+  updateData(cells) {
+    console.log("About to update data in store: " + JSON.stringify(cells));
+    for (var key in cells){
+      let c = cells[key];
+      let sheet = Converter.clientCellGetSheet(c); 
+      let col = Converter.clientCellGetCol(c);
+      let row = Converter.clientCellGetRow(c);
+      let xp = Converter.clientCellGetExpressionObj(c);
+      let val = Converter.clientCellGetValueObj(c);
+      if (!_data.allCells[sheet])
+        _data.allCells[sheet] = []; 
+      if (!_data.allCells[sheet][col])
+        _data.allCells[sheet][col] = []; 
+      _data.allCells[sheet][col][row] = c;
+      _data.lastUpdatedCells.push(c);
+    }
+  },
+  
+  /* Replace cells with empty ones. Caller's responsibility to clear lastUpdatedCells if necessary */
+  removeData(cells) {
+    console.log("About to remove data in store: " + JSON.stringify(cells));
+    for (var key in cells){
+      let c = cells[key];
+      let sheet = Converter.clientCellGetSheet(c); 
+      let col = Converter.clientCellGetCol(c);
+      let row = Converter.clientCellGetRow(c);
+      let emptyCell = Converter.clientCellEmptyVersion(c); 
+      if (!_data.allCells[sheet])
+        continue;      
+      if (!_data.allCells[sheet][col])
+        continue; 
+      _data.allCells[sheet][col][row] = emptyCell;
+      _data.lastUpdatedCells.push(emptyCell);
     }
   },
 
-  // sets invisible rows in cache to null
-  // to limit memory usage
-  // TODO overlapping corners not handled... determine better way to dealloc than casework
+  /**************************************************************************************************************************/
+  /* Updating expression when user clicks on a cell */
+
+  getCellAtLoc(col,row){
+    let currentSheet = this.getSheet(); 
+    if (_data.allCells[currentSheet] && _data.allCells[currentSheet][col] && _data.allCells[currentSheet][col][row])
+      return _data.allCells[currentSheet][col][row];
+    else {
+      return Converter.defaultCell();
+    }
+  },
+
+  /**************************************************************************************************************************/
+
+  /* 
+    Sets invisible rows in cache to null to limit memory usage
+    TODO overlapping corners not handled... determine better way to dealloc than casework
+  */
+  // NOT RIGHT
   deallocAfterScroll(newX, newY, oldX, oldY, vWindow) {
     let eX = Constants.scrollCacheX,
-        eY = Constants.scrollCacheY;
-    if (oldX < newX) { // scroll right
-      for (var r = oldY - eY; i < oldY + vWindow.height + eX; r++)
-        if (_data.allCells[r])
-          for (var c = oldX - eX; c < newX - eX; c ++)
-            _data.allCells[r][c] = null;
-    } else if (oldX > newX) { // left
-      for (var r = oldY - eY; i < oldY + vWindow.height + eX; r++)
-        if (_data.allCells[r])
-          for (var c = newX + eX; x < oldX + eX; c++)
-            _data.allCells[r][c] = null;
+        eY = Constnts.scrollCacheY;
+        sheet = _data.currentSheet; 
+    /* scroll right */
+    if (oldX < newX) { 
+      for (var c = oldX - eX; c < newX - eX; c ++)
+        _data.allCells[sheet][c] = null; 
+        /*if (_data.allCells[sheet][c])
+          for (var r = oldY - eY; i < oldY + vWindow.height + eX; r++)
+            _data.allCells[sheet][c][r] = null; */
+    } 
+    /* scroll left */
+    else if (oldX > newX) { 
+      for (var c = newX + eX; x < oldX + eX; c++)
+        _data.allCells[sheet][c] = null; 
+        /* if (_data.allCells[sheet][c])
+          for (var r = oldY - eY; i < oldY + vWindow.height + eX; r++)
+            _data.allCells[sheet][c][r] = null; */
     }
+    /* scroll down */
     if (newY > oldY) { // scroll down
       for (var r = oldY - eY; r < newY - eY; r++)
         _data.allCells[r] = null;
@@ -118,46 +192,7 @@ const ASEvaluationStore = assign({}, BaseStore, {
     }
   }
 
-
 });
 
-/* This function describes the actions of the ASEvaluationStore upon recieving a message from Dispatcher */
-dispatcherIndex: Dispatcher.register(function (action) {
-    switch (action.type) {
-      case Constants.ActionTypes.CELL_CHANGED: 
-        break;
-      case Constants.ActionTypes.RANGE_CHANGED:
-        break;
-      /*On an UNDO/REDO/UPDATE_CELLS, update the viewing window in the store based on the commit and 
-      send a change event to spreadsheet, which will rerender */
-      case Constants.ActionTypes.GOT_UNDO:
-        _data.lastUpdatedCells = []; 
-        ASEvaluationStore.removeData(action.commit.after);
-        ASEvaluationStore.insData(action.commit.before); 
-        ASEvaluationStore.emitChange(); 
-        break;
-      case Constants.ActionTypes.GOT_REDO:
-        _data.lastUpdatedCells = []; 
-        ASEvaluationStore.removeData(action.commit.before);
-        ASEvaluationStore.insData(action.commit.after); 
-        ASEvaluationStore.emitChange(); 
-        break;
-      case Constants.ActionTypes.GOT_UPDATED_CELLS:
-        console.log("In updated cells dispatch register");
-        ASEvaluationStore.updateData(action.updatedCells);
-        ASEvaluationStore.emitChange();
-        break;
-      /*On a SCROLL, get the relevant cells from the database and update the eval store and
-      send a change event to spreadsheet, which will rerender */
-      case Constants.ActionTypes.SCROLLED:
-        let {x,y} = ASEvaluationStore.getScroll();
-        console.log("scrolling action: x "+ action.xscroll + ", y " + action.yscroll);
-        let cells = API.getCellsForScroll(action.xscroll, action.yscroll, x, y, action.vWindow);
-        ASEvaluationStore.setScroll(action.xscroll, action.yscroll);
-        ASEvaluationStore.updateData(cells);
-        ASEvaluationStore.emitChange();
-        break;
-    }
-  })
 
 export default ASEvaluationStore;

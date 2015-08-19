@@ -1,29 +1,34 @@
 import Constants from '../Constants';
 
-function showValue(cv) {
-  switch (cv.tag) {
-    case "ValueNaN":
-      // console.log("got undefined");
-      return "undefined";
-    case "ValueB":
-    case "ValueD":
-    case "ValueI":
-    case "ValueS":
-    return cv.contents;
-    case "ValueL":
-    console.log("FOUND LIST");
-    return showValue(cv.contents[0]);
-    case "ValueError":
-    return "ERROR";
-    case "StyledValue":
-    return showValue(cv.value);
-    case "DisplayValue":
-    return cv.displayValue;
-  }
-};
+/* This module has general utility functions */
 
 export default {
-  showValue: showValue,
+  
+  /* Used to know what to display on the sheet */
+  showValue(cv) {
+    console.log("In show value: " + JSON.stringify(cv));
+    switch (cv.tag) {
+      case "ValueNaN":
+        return "valueNaN";
+      case "ValueB":
+        return cv.contents;
+      case "ValueD":
+        return cv.contents;
+      case "ValueI":
+        return cv.contents;
+      case "ValueS":
+        return cv.contents;
+      case "ValueL":
+        console.log("FOUND LIST");
+        return this.showValue(cv.contents[0]);
+      case "ValueError":
+        return "ERROR";
+      case "StyledValue":
+        return showValue(cv.value);
+      case "DisplayValue":
+        return cv.displayValue;
+    }
+  },
 
   arrContains(arr, elem) {
     return arr.indexOf(elem) > -1;

@@ -49,7 +49,7 @@ export default React.createClass({
         <AceEditor
           ref="editor"
           onChange={this.props.onExpressionChange}
-          requestEval={this.props.onEvalRequest}
+          onEvalRequest={this.props.onEvalRequest}
           focusGrid={this.props.focusGrid}
           mode={language.Editor}
           language={language}

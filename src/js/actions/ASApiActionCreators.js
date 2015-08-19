@@ -1,50 +1,74 @@
 import Dispatcher from '../Dispatcher';
 import Constants from '../Constants';
-import CellConverter from '../AS/CellConverter';
+import Converter from '../AS/Converter';
 
 var ActionTypes = Constants.ActionTypes;
-var wss = new WebSocket(Constants.host_ws);
+var wss = new WebSocket(Constants.HOST_WS);
 
-// Called whenever the websocket server returns a message
+/**************************************************************************************************************************/
+
+/* 
+  This action creator class serves two purposes
+  1) Create messages for the server and send them
+  2) Take messages received from the server and send them to dispatch
+*/
+
+/**************************************************************************************************************************/
+/* 
+  Called whenever the server returns a message 
+  Depending on the action type of the message, calls dispatcher differently to propagate to stores
+  Converts server to client types before going further
+*/
+
 wss.onmessage = function (event) {
-    console.log("Client received data from server: " + JSON.stringify(event.data));
-    let msg = JSON.parse(event.data);
-    if (msg.action === "Acknowledge")
-      return;
-    if (msg.action === "Undo"){
+  console.log("Client received data from server: " + JSON.stringify(event.data));
+  let msg = JSON.parse(event.data);
+  switch (msg.action) {
+    case "Acknowledge":
+      break;
+    case "Undo":
       Dispatcher.dispatch({
         type: ActionTypes.GOT_UNDO,
-        commit: msg.payload.contents
+        commit: Converter.serverToClientCommit(msg.payload.contents)
       });
-      return;
-    }
-    if (msg.action === "Redo"){
-     Dispatcher.dispatch({
+      break;
+    case "Redo":
+      Dispatcher.dispatch({
         type: ActionTypes.GOT_REDO,
-        commit: msg.payload.contents
+        commit: Converter.serverToClientCommit(msg.payload.contents)
       });
-     return;
-    }
-    let cells = CellConverter.getCellsFromMsg(msg);
-    if (cells){
+     break;
+    case "Evaluate":
+      let cells = Converter.clientCellsFromServerMessage(msg);
       Dispatcher.dispatch({
         type: ActionTypes.GOT_UPDATED_CELLS,
         updatedCells: cells
       });
-      return;
-    }
+      break;
+    case "NoAction":
+      break;
+    case "Get":
+      let newCells = Converter.clientCellsFromServerMessage(msg); // MAY NEED TO REPLACE 
+      Dispatcher.dispatch({
+        type: ActionTypes.FETCHED_CELLS,
+        newCells: newCells
+      });
+      break; 
+  }
 };
 
 export default {
 
+  /**************************************************************************************************************************/
+  /* Sending acknowledge message to server */
+
   sendInitialMessage(userName){
-    let msg = CellConverter.toServerMessageFormat(Constants.ServerActions.Acknowledge,"PayloadInit",{userName:userName});
+    let msg = Converter.toServerMessageFormat(Constants.ServerActions.Acknowledge,"PayloadInit",{userName:userName});
     console.log("Sending init message: " + JSON.stringify(msg)); 
     this.waitForSocketConnection(wss,function(){
       wss.send(JSON.stringify(msg));
     });
   },
-
   waitForSocketConnection(socket, callback){
     setTimeout(
         function () {
@@ -58,39 +82,49 @@ export default {
                 this.waitForSocketConnection(socket, callback);
             }
 
-        }, 5);
+        }, 5); // polling socket for readiness: 5 ms
   },
 
-  // this function submits an eval request to a websocket server
-  sendEvalRequest(selRegion,editorState, vw){
+  /**************************************************************************************************************************/
+  /* Sending an eval request to the server */
+
+  /* This function is called by handleEvalRequest in the eval pane */
+  sendEvalRequest(selRegion,editorState){
     console.log("In eval action creator");
-    let cell = CellConverter.toASCell(selRegion,editorState);
-    let vwContents = {vwTopLeftCol:vw.locs[0][0], vwTopLeftRow: vw.locs[0][1], vwWidth:vw.width, vwHeight:vw.height};
-    let payload = {tag:"PayloadC", evalCell:cell, evalVW: vwContents}
-    let msg = {action:"Evaluate",result:{"tag":"NoResult","contents":[]},payload:payload};
+    let cell = Converter.clientToASCell(selRegion,editorState);
+    console.log("AS cell created for eval: " + JSON.stringify(cell));
+    let msg = Converter.createEvalRequestFromASCell(cell); 
     console.log('Sending msg to server: ' + JSON.stringify(msg));
     wss.send(JSON.stringify(msg));
   },
 
+  /**************************************************************************************************************************/
+  /* Sending undo/redo messages to the server */
+
   sendUndoRequest(){
-    let msg = {action:"Undo",result:{"tag":"NoResult","contents":[]},payload:{tag:"PayloadN", contents:[]}};
+    let msg = Converter.createUndoRequestForServer(); 
     wss.send(JSON.stringify(msg));
   },
-
   sendRedoRequest(){
-    let msg = {action:"Redo",result:{"tag":"NoResult","contents":[]},payload:{tag:"PayloadN", contents:[]}};
+    let msg = Converter.createRedoRequestForServer(); 
     wss.send(JSON.stringify(msg));
   },
 
-  getCells(locs) {
-    let msg = CellConverter.toGetCellsMessage(locs);
-    console.log('sending msg to server: ' + JSON.stringify(msg));
+  /**************************************************************************************************************************/
+  /* Sending get messages to the server */
+
+  sendGetRequest(locs,vWindow) {
+    let msg = Converter.clientLocsToGetMessage(locs,vWindow);
+    console.log('Sending get message to server: ' + JSON.stringify(msg));
     wss.send(JSON.stringify(msg));
   },
-
-  getCellsForScroll(newX, newY, oldX, oldY, vWindow) {
-    // TODO test
-    console.log("getting scrolled cells");
+  // TODO: NEEDS TESTING
+  /* 
+    Submit a get request to the server in order to get new cells when a client scrolls
+    The eval store only maintains a cache based on viewing window
+  */
+  sendGetRequestScroll(newX, newY, oldX, oldY, vWindow) {
+    console.log("Getting scrolled cells");
     let eX = Constants.scrollCacheX,
         eY = Constants.scrollCacheY,
         locs = null;
@@ -113,10 +147,10 @@ export default {
       }
     } else{
     }
-    console.log("unsafe scroll locs: " + JSON.stringify(locs));
+    console.log("Unsafe scroll locs: " + JSON.stringify(locs));
     if (locs){
-      let safeLocs = CellConverter.getSafeLoc(locs);
-      this.getCells(safeLocs);
+      let safeLocs = Converter.getSafeLoc(locs);
+      this.sendGetRequest(safeLocs,vWindow);
     }
   }
 

@@ -1,7 +1,8 @@
 import keyMirror from 'react/lib/keyMirror';
 
 export default {
-  host_ws: 'ws://localhost:5000',
+  HOST_WS: 'ws://localhost:5000',
+  
   // event name triggered from store, listened to by views
   CHANGE_EVENT: 'change',
 
@@ -18,7 +19,8 @@ export default {
     SCROLLED: null,
     GOT_UPDATED_CELLS: null,
     GOT_UNDO:null,
-    GOT_REDO:null
+    GOT_REDO:null,
+    FETCHED_CELLS:null
   }),
 
   ActionSources: keyMirror({
@@ -63,6 +65,7 @@ export default {
       Editor: 'c_cpp'
     }
   },
+
 
   ServerActions: {
     NoAction: "NoAction",
