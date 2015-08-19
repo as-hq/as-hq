@@ -6,11 +6,10 @@ import qualified AS.Eval    as R (evalExpression,evalExcel)
 import qualified Data.Map   as M
 import qualified AS.DAG     as DAG
 import qualified AS.DB      as DB
-import qualified Data.List  as L (head,last,tail,length) 
+import qualified Data.List  as L (head,last,tail,length,splitAt) 
 import AS.Parsing.Common
-import AS.Parsing.Out
+import AS.Parsing.Out hiding (first)
 import AS.Parsing.In
-import AS.Util
 import Data.Maybe (fromJust, isNothing)
 import Text.ParserCombinators.Parsec
 import Text.Regex.Posix
@@ -18,74 +17,84 @@ import Control.Applicative
 
 import Data.Time.Clock
 import Data.Text as T (unpack,pack)
+import AS.Util
 
----------------------- handlers ----------------------------------------
+----------------------------------------------------------------------------------------------------------------------------------------------
+-- | Eval Handler
 
-handleEval :: ASPayload -> IO ASMessage
-handleEval (PayloadC cell) = do
-  result <- propagateCell (cellLocation cell) (cellExpression cell)
-  case result of 
-    Nothing -> return failureMessage
-    Just cells -> return $ Message NoAction Success (PayloadCL cells)
+handleEval :: ASPayload -> Client -> IO ASMessage
+handleEval (PayloadC cell) client = do
+  let vWindow = clientVW client
+  (descendants, updatedCells) <- propagateCell (cellLocation cell, cellExpression cell)
+  result <- case updatedCells of
+              Right cells -> do 
+                let desc = fromRight descendants
+                let commit = ASCommit (T.unpack (clientName client)) desc cells getUpdateTime
+                DB.pushCommit commit
+                _ <- putStrLn $ show commit
+                return $ Message Evaluate Success (PayloadCL cells)
+              Left e -> do 
+                failDesc <- case descendants of
+                  Right c -> generateErrorMessage e
+                  Left e' -> generateErrorMessage e'
+                return $ Message Evaluate (Failure failDesc) (PayloadN ())
+  return result
 
----------------------- helpers -----------------------------------------
+----------------------------------------------------------------------------------------------------------------------------------------------
+-- | Evaluation
 
-propagateCell :: ASLocation -> ASExpression -> IO (Maybe [ASCell])
-propagateCell loc xp = do
-  printTimed "just started propagate cell"
+propagateCell :: (ASLocation,ASExpression) -> IO (ASEitherCells,ASEitherCells)
+propagateCell (loc,xp) = do
+  printTime "just started propagate cell"
   if ((language xp)==Excel)
     then do
-      printTimed "before excel first eval"
       newXp <- R.evalExcel xp
-      printTimed "after excel first eval"
-      updateCell (loc, newXp) 
-      cells <- reevaluateCell (loc, newXp)
-      return $ Just $ map (\(Cell l (Expression e Excel) v ) -> (Cell l xp v)) (fromJust cells)
-    else updateCell (loc,xp) >> reevaluateCell (loc, xp) 
- 
-updateCell :: (ASLocation, ASExpression) -> IO ()
-updateCell (loc, xp) = do
+      reevaluateCell (loc, newXp) -- deal with expression renaming
+      -- return $ Just $ map (\(Cell l (Expression e Excel) v ) -> (Cell l xp v)) (fromJust cells)
+    else (reevaluateCell (loc, xp))
+
+
+reevaluateCell :: (ASLocation, ASExpression) -> IO (ASEitherCells,ASEitherCells)
+reevaluateCell (loc, xp) = do 
+  -- | Update DAG
   let (deps,exprs) = getDependenciesAndExpressions loc xp (getOffsets loc)
   let locs = decomposeLocs loc
-  DB.updateDAG (zip deps locs)
-  printTimed "updated deps in update cell"
-  DB.setCells $ map (\(l,e,v)-> Cell l e v) (zip3 locs exprs (repeat (ValueNaN ()) ))  
-  printTimed "set null cells in update cell"
-  return ()
+  let initCells = map (\(l,e,v)-> Cell l e v) (zip3 locs exprs (repeat (ValueNaN ()) ))  
+  _ <- DB.updateDAG (zip deps locs)
+  _ <- printTime "initially updated DAG in reevaluateCell"
+  -- | Get descendants and ancestors (return error if locked)
+  dag <- DB.getDAG
+  let locs = decomposeLocs loc
+  printTime "got all edges from DB in reevaluateCell"
+  let descendantLocs = DAG.descendants locs dag
+  printTime "got descendants from DB in reevaluateCell"
+  putStrLn $ "descendant locations: " ++ (show descendantLocs)
+  previousCells <- DB.getCells (descendantLocs)
+  let ancestorLocs = DAG.immediateAncestors descendantLocs dag
+  printTime "got immediate ancestor locations from DB relations"
+  putStrLn $ "immediate ancestor locations " ++ (show ancestorLocs)
+  _ <- DB.setCells initCells
+  cells <- DB.getCells (descendantLocs ++ ancestorLocs)
+  printTime "done with get cells"
+  putStrLn $ "D and A cells: " ++ (show cells)
+  let (descendants,ancestors) = L.splitAt (L.length descendantLocs) cells
 
-reevaluateCell :: (ASLocation, ASExpression) -> IO (Maybe [ASCell])
-reevaluateCell (loc, xp) = do
-  descendants <- DAG.getDescendants $ decomposeLocs loc
-  printTimed "got descendants from DB in reevaluateCell"
-  putStrLn $ "descendants: " ++ (show descendants)
-  results <- evalCells descendants
-  printTimed "finished all eval, back in reevaluateCell"
-  DB.setCells $ fromJust results -- set cells here, not in eval cells
-  printTimed "set actual cells in DB"
-  return results
-
-evalCells :: [ASLocation] -> IO (Maybe [ASCell])
-evalCells [] = return $ Just []
-evalCells locs = do
-  ancestors <- DAG.getImmediateAncestors locs
-  printTimed "got immediate ancestor locations from DB relations"
-  printTimed $ "ancestors " ++ (show ancestors)
-  cells <- DB.getCells ancestors
-  printTimed $ "cells " ++ (show cells)
-  locsCells <- DB.getCells locs
-  printTimed $ "locsCells " ++ (show locsCells)
-  printTimed "got ancestor cells"
-  if any isNothing cells 
-    then return Nothing
+  -- | Wrap up
+  if (L.length ancestors /= L.length ancestorLocs)
+    then 
+      return (Left DBNothingException,Left DBNothingException) -- user placed a dependency on non-existent cell
     else do
-      let filterCells = map (\(Just x) -> x) cells
-          filterLocsCells = map (\(Just x) -> x) locsCells
-      results <- evalChain (M.fromList $ map (\c -> (cellLocation c, cellValue c)) $ filterCells) filterLocsCells
-      return $ Just results
+      results <- evalChain (M.fromList (map (\c -> (cellLocation c, cellValue c)) ancestors)) descendants
+      printTime "finished all eval, back in reevaluateCell"
+      DB.setCells $ results 
+      printTime "set actual cells in DB"
+      return $ (Right previousCells,Right results)
 
 evalChain :: M.Map ASLocation ASValue -> [ASCell] -> IO [ASCell]
 evalChain _ [] = return []
 evalChain mp (c:cs) = do
+  printTime "Starting eval chain"
+  putStrLn $ "MAP " ++ (show mp)
   let xp  = cellExpression c
       loc = cellLocation c
   cv <- R.evalExpression loc mp xp 
@@ -136,7 +145,8 @@ createExcelCells v l = case v of
   otherwise -> return []
 
 
----------------------- primitives -----------------------------------------------
+----------------------------------------------------------------------------------------------------------------------------------------------
+-- | Deal with primitives
 
 evaluatePrimitive :: ASCell -> IO ASCell
 evaluatePrimitive cell = DB.setCell cell >> return cell

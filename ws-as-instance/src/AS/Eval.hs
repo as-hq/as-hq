@@ -22,6 +22,10 @@ import Python
 import Data.Time.Clock
 import Data.Text as T (unpack,pack)
 
+printTime str = do 
+  time <- (getCurrentTime >>= return . utctDayTime)
+  putStrLn $ str ++ " " ++ (show time)
+
 -----------------------------------------------------------------------------------------------------------------------
 -- File Interpolation (see Lang for details)
 
@@ -33,14 +37,9 @@ evalExpression loc dict expr =
 
 evalCode :: ASLocation -> M.Map ASLocation ASValue -> ASExpression -> IO ASValue
 evalCode loc values xp = do
+	printTime "Starting eval code"
 	let lang = language xp
-
-	time <- (getCurrentTime >>= return . utctDayTime)
-
 	let finalXp = interpolate loc values xp -- eval string
-
-	time <- (getCurrentTime >>= return . utctDayTime)
-
 	simpleInterpolated <- interpolateFile lang finalXp
 
 	interpolated <- case lang of
@@ -53,16 +52,12 @@ evalCode loc values xp = do
 				newExp = replaceMatches exLocs (\el -> (L.!!) st (MB.fromJust (L.findIndex (el==) (snd exLocs)))) (expression xp)
 		otherwise -> (return simpleInterpolated)
 
-	time <- (getCurrentTime >>= return . utctDayTime)
 
+	printTime "starting eval"
 	result <- handleEval lang interpolated
-
-	time <- (getCurrentTime >>= return . utctDayTime)
-
+	printTime "finished eval"
 	let parsed = parseValue lang result
-
-	time <- (getCurrentTime >>= return . utctDayTime)
-
+	printTime "eval result parsed"
 	return parsed
 
 evalExcel :: ASExpression -> IO ASExpression
@@ -200,7 +195,9 @@ evalString :: ASLanguage -> String -> IO ASValue
 evalString lang evalStr = return . parseValue lang =<< pyfiString evalStr
 
 pyfiString :: String -> IO String
-pyfiString evalStr = defVV (evalStr ++ pyString) ("Hello" :: String)
+pyfiString evalStr = do 
+	_ <- putStrLn $ "IN PYFI"
+	defVV (evalStr ++ pyString) ("Hello" :: String)
 
 pyString :: String
 pyString = [str|

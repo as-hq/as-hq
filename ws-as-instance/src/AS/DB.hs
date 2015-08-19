@@ -1,24 +1,21 @@
 {-# LANGUAGE ForeignFunctionInterface #-}
 {-# LANGUAGE CPP                      #-}
-{-# CFILES db_odbc.c #-}
+{-# CFILES hiredis/as_db.c #-}
 module AS.DB where
 
-import AS.Types hiding (location,expression,value)
+import AS.Types	hiding (location,expression,value)
 import Data.Maybe (isNothing)
 import Prelude
-
+import AS.Util
 
 import Control.Applicative
 import Control.Monad
-
 import Foreign
 import Foreign.C.Types
 import Foreign.C.String(CString(..))
 import Foreign.C
 import qualified Data.List as L
-
 import Data.Text.Unsafe
-
 import System.IO.Unsafe (unsafePerformIO)
 import Data.Vector.Storable hiding (mapM)
 
@@ -26,40 +23,50 @@ import Data.Vector.Storable hiding (mapM)
 -- | Handlers
 
 handleGet :: ASPayload -> IO ASMessage
-handleGet (PayloadLL locs) = do
-    cells <- getCells locs
-    if L.any isNothing cells
-        then return failureMessage
-        else return $ Message NoAction Success (PayloadCL (L.map (\(Just x)->x) cells))
+handleGet (PayloadLL locs vWindow) = do
+  cells <- getCells locs
+  if (L.length cells /= L.length locs)
+      then do 
+        failDesc <- (generateErrorMessage DBNothingException)
+        return $ Message Get (Failure failDesc) (PayloadN ())
+      else return $ Message Get Success (PayloadCL cells)
 
+-- | not yet implemented
 handleDelete :: ASPayload -> IO ASMessage 
-handleDelete (PayloadL loc) = deleteCell loc >> return successMessage
-handleDelete (PayloadLL locs) = deleteCells locs >> return successMessage
+handleDelete (PayloadLL locs vWindow) = (deleteCells locs) >> (return (Message NoAction Success (PayloadN ())))
+
+handleClear :: IO ASMessage
+handleClear = do 
+  c <- c_clear
+  return $ Message Clear Success (PayloadN ())
+
 
 --------------------------------------------------------------------------------------------------------------
 -- | Types to convert from C structs to Haskell data types
 
-data C_ASCell = C_Cell { location :: CString, expression :: CString, value :: CString} deriving Show
+data C_ASCell = C_Cell { location :: CString, expVal :: CString} deriving Show
 data C_ASCells = C_Cells {cells :: Ptr C_ASCell, numCells :: CInt} deriving Show
-data C_ASRelation = C_Relation {fromLoc :: CString, toLoc :: CString}
+data C_ASRelation = C_Relation {fromLoc :: CString, toLoc :: CString} deriving Show
 data C_ASDAG = C_DAG {dag :: Ptr C_ASRelation, numEdges :: CInt}
+
+data ExpVal = ExpVal {redisExp :: ASExpression, redisVal :: ASValue} deriving (Show,Eq,Read)
 
 --------------------------------------------------------------------------------------------------------------
 -- | Storable instances to marshall C/Haskell types from pointers
 
 instance Storable C_ASCell where
-    sizeOf    _ = (24)
+    sizeOf    _ = (16)
     alignment _ = alignment (undefined :: CString)
 
     poke p c = do
         (\hsc_ptr -> pokeByteOff hsc_ptr 0) p $ location c
-        (\hsc_ptr -> pokeByteOff hsc_ptr 8) p $ expression c
-        (\hsc_ptr -> pokeByteOff hsc_ptr 16) p $ value c
+        (\hsc_ptr -> pokeByteOff hsc_ptr 8) p $ expVal c
+        -- (\hsc_ptr -> pokeByteOff hsc_ptr 16) p $ value c
 
     peek p = return C_Cell
               `ap` ((\hsc_ptr -> peekByteOff hsc_ptr 0) p)
               `ap` ((\hsc_ptr -> peekByteOff hsc_ptr 8) p)
-              `ap` ((\hsc_ptr -> peekByteOff hsc_ptr 16) p)
+              --`ap` ((\hsc_ptr -> peekByteOff hsc_ptr 16) p)
 
 instance Storable C_ASCells where
     sizeOf    _ = (16)
@@ -100,21 +107,26 @@ instance Storable C_ASDAG where
 --------------------------------------------------------------------------------------------------------------
 -- | Function imports from db_odbc.c
 
-foreign import ccall unsafe "db_odbc.c getCells" c_getCells :: Ptr CString -> CInt -> IO (Ptr C_ASCells)
-foreign import ccall unsafe "db_odbc.c setCells" c_setCells :: Ptr CString -> Ptr CString -> Ptr CString -> CInt -> IO ()
-foreign import ccall unsafe "db_odbc.c deleteEdges" c_deleteEdges :: Ptr CString -> CInt -> IO ()
-foreign import ccall unsafe "db_odbc.c insertEdges" c_insertEdges :: Ptr CString -> Ptr CString -> CInt -> IO ()
-foreign import ccall unsafe "db_odbc.c getEdges" c_getEdges :: IO (Ptr C_ASDAG)
+foreign import ccall unsafe "hiredis/as_db.c getCells" c_getCells :: Ptr CString -> CInt -> IO (Ptr C_ASCells)
+foreign import ccall unsafe "hiredis/as_db.c setCells" c_setCells :: Ptr CString -> Ptr CString -> CInt -> IO ()
+foreign import ccall unsafe "hiredis/as_db.c deleteEdges" c_deleteEdges :: Ptr CString -> CInt -> IO ()
+foreign import ccall unsafe "hiredis/as_db.c insertEdges" c_insertEdges :: Ptr CString -> Ptr CString -> CInt -> IO ()
+foreign import ccall unsafe "hiredis/as_db.c getEdges" c_getEdges :: IO (Ptr C_ASDAG)
+foreign import ccall unsafe "hiredis/as_db.c pushCommit" c_pushCommit :: CString ->  IO () 
+foreign import ccall unsafe "hiredis/as_db.c undo" c_undo :: IO CString
+foreign import ccall unsafe "hiredis/as_db.c redo" c_redo :: IO CString
+foreign import ccall unsafe "hiredis/as_db/c clear" c_clear :: IO ()
+
 
 --------------------------------------------------------------------------------------------------------------
 -- | Conversion functions / helpers
 
-convertCell :: C_ASCell -> IO (Maybe ASCell)
+convertCell :: C_ASCell -> IO (ASCell)
 convertCell c = do 
   l <- peekCString (location c)
-  e <- peekCString (expression c) 
-  v <- peekCString (value c) 
-  return $ Just $ Cell (read l :: ASLocation) (read e :: ASExpression) (read v :: ASValue)
+  ev <- peekCString (expVal c) 
+  let asEv = read ev :: ExpVal
+  return $ Cell (read l :: ASLocation) (redisExp asEv) (redisVal asEv)
 
 convertRelation :: C_ASRelation -> IO (ASLocation,ASLocation)
 convertRelation (C_Relation a b) = do 
@@ -137,25 +149,34 @@ deleteCell loc = deleteCells [loc]
 deleteCells :: [ASLocation] -> IO ()
 deleteCells locs = return ()
 
-getCells :: [ASLocation] -> IO [Maybe ASCell]
+getCells :: [ASLocation] -> IO [ASCell]
 getCells [] = return []
 getCells locs = do
   putStrLn $ "locs in get cells: " L.++ (show locs)
   l <- getPtr (L.map show locs)
+  putStrLn $ "got cell ptr: " L.++ (show l)
   ptrCells <- c_getCells l (fromIntegral (L.length locs))
+  putStrLn $ "back to haskell from c in get cells: " 
   ccells <- peek ptrCells
   arrCells <- peekArray (fromIntegral (numCells ccells)) (cells ccells)
-  mapM convertCell arrCells
+  _ <- free l
+  _ <- free (cells ccells)
+  _ <- free ptrCells
+  res <- mapM convertCell arrCells
+  putStrLn $ "Get Cells: " L.++ (show res)
+  return res
 
 setCell :: ASCell -> IO ()
 setCell c = setCells [c]
 
 setCells :: [ASCell] -> IO ()
-setCells c = do 
-  locs <- getPtr $ L.map show (L.map cellLocation c)
-  exprs <- getPtr $ L.map show (L.map cellExpression c)
-  vals <- getPtr $ L.map show (L.map cellValue c)
-  c_setCells locs exprs vals (fromIntegral (L.length c))
+setCells cells = do 
+  locs <- getPtr $ L.map show (L.map cellLocation cells)
+  expVals <- getPtr $ L.map show (L.map (\c -> (ExpVal (cellExpression c) (cellValue c))) cells)
+  c_setCells locs expVals (fromIntegral (L.length cells))
+  _ <- free locs
+  free expVals
+
 
 --------------------------------------------------------------------------------------------------------------
 -- | DB DAG functions
@@ -164,28 +185,55 @@ setCells c = do
 getDAG :: IO [(ASLocation,ASLocation)]
 getDAG = do 
   ptrDAG <- c_getEdges
+  putStrLn $ "back in Haskell after getting all edges"
   d <- peek ptrDAG
-  putStrLn $ show (fromIntegral (numEdges d))
+  putStrLn $ "num edges in dag " L.++ show (fromIntegral (numEdges d))
   arrEdges <- peekArray (fromIntegral (numEdges d)) (dag d)
-  mapM convertRelation arrEdges
+  rels <- mapM convertRelation arrEdges
+  _ <- free (dag d)
+  _ <- free ptrDAG
+  putStrLn $ "DAG Edges: " L.++ (show rels)
+  return rels
 
 updateDAG :: [([ASLocation],ASLocation)] -> IO ()
 updateDAG update = do 
   _ <- deleteDAGEdges (L.map snd update)
+  putStrLn $ "deletion works"
   let edgeList = L.concat (L.map (\(a,b) -> zip a (L.repeat b)) update)
   insertDAGEdges (L.map fst edgeList) (L.map snd edgeList)
 
 deleteDAGEdges :: [ASLocation] -> IO ()
 deleteDAGEdges toLocs = do 
   tl <- getPtr (L.map show toLocs)
-  c_deleteEdges tl (fromIntegral (L.length toLocs))
+  (c_deleteEdges tl (fromIntegral (L.length toLocs))) >> (free tl)
 
 insertDAGEdges :: [ASLocation] -> [ASLocation] -> IO ()
 insertDAGEdges fromLocs toLocs = do 
   tl <- getPtr (L.map show toLocs)
   fl <- getPtr (L.map show fromLocs)
-  c_insertEdges fl tl (fromIntegral (L.length toLocs))
+  (c_insertEdges fl tl (fromIntegral (L.length toLocs))) >> (free tl) >> (free fl)
 
+
+--------------------------------------------------------------------------------------------------------------
+-- Commit functions
+
+pushCommit :: ASCommit -> IO ()
+pushCommit commit = do 
+  c <- newCString (show commit)
+  _ <- c_pushCommit c
+  free c
+
+handleUndo :: IO ASMessage
+handleUndo = do 
+  cs <- c_undo
+  s <- peekCString cs
+  return $ Message Undo Success (PayloadCommit (read s :: ASCommit)) 
+
+handleRedo :: IO ASMessage
+handleRedo = do 
+  cs <- c_redo
+  s <- peekCString cs
+  return $ Message Redo Success (PayloadCommit (read s :: ASCommit)) 
 
 
 -- hsc2hs DB.hsc -L -lodbc (ghc comes with hsc2hs)

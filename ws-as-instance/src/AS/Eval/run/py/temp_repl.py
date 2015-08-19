@@ -1,5 +1,5 @@
 
-execfile("/home/anand/Development/as/asl-demo/mysql-as-instance/AS/Eval/run/py/repl_record.py")
+execfile("/home/riteshr/alphasheets/mysql-as-instance/AS/Eval/run/py/repl_record.py")
 from AS.stdlib import *
 from AS.ui.styling import *
 # from AS.tests.min import *

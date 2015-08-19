@@ -2,7 +2,6 @@ module AS.Eval.Lang where
 
 import AS.Types
 import AS.Config.Paths
-import AS.TypesHelper
 import AS.Parsing.Out
 import AS.Parsing.Common
 import AS.DB hiding (expression)
@@ -207,7 +206,7 @@ insertPrintCmd lang (s, lst) = s ++ process lst
 	where
 		process l 	= case lang of 
 			R 		-> l
-			Python 	-> "result = as_pprint(" ++ l ++ ")"
+			Python 	-> "result = " ++ l 
 			OCaml 	-> "print_string(Std.dump(" ++ l ++ "))"
 			SQL 	-> "result = pprintSql(db(\'" ++ l ++ "\'))" -- hardcoded db() function usage for demos
 			CPP 	-> "int main() { std::cout << (" ++ l ++ "); }" 

@@ -16,10 +16,10 @@ cabal-version:       >=1.10
 library
   hs-source-dirs:      src
   exposed-modules:     Lib
-                       AS.Util
                        AS.DAG
                        AS.DB
                        AS.Dispatch
+                       AS.Util
                        AS.Config.Paths
                        AS.Config.Settings
                        AS.Eval
@@ -27,11 +27,8 @@ library
                        AS.Parsing.Common
                        AS.Parsing.Out
                        AS.Parsing.In
-                       AS.Parsing.Regex
                        AS.Types
-                       AS.TypesHelper
   build-depends:       base >= 4.7 && < 5
-                     , bytestring                    >= 0.9        && < 0.11
                      , text                          >= 0.11       && < 2.0
                      , filepath
                      , aeson
@@ -48,15 +45,19 @@ library
                      , transformers
                      , mtl
                      , vector
+                     , bytestring
+                     , websockets
   default-language:    Haskell2010
-  extensions:          QuasiQuotes
+  default-extensions:  QuasiQuotes
                        FlexibleContexts
+                       OverloadedStrings
+  other-extensions:  ForeignFunctionInterface
+                     CPP
 
 executable alphasheets-exe
   hs-source-dirs:      app
   main-is:             Main.hs
-  ghc-options:         -threaded -rtsopts -with-rtsopts=-N src/AS/db_odbc.o
-  extra-libraries: odbc
+  ghc-options:         -threaded -rtsopts -with-rtsopts=-N src/AS/hiredis/as_db.o src/AS/hiredis/libhiredis.a
   build-depends:       base
                      , alphasheets
                      , websockets
@@ -73,8 +74,7 @@ test-suite alphasheets-test
   main-is:             Spec.hs
   build-depends:       base
                      , alphasheets
-  ghc-options:         -threaded -rtsopts -with-rtsopts=-N src/AS/db_odbc.o
-  extra-libraries: odbc
+  ghc-options:         -threaded -rtsopts -with-rtsopts=-N src/AS/hiredis/as_db.o src/SS/hiredis/libhiredis.a
   default-language:    Haskell2010
 
 source-repository head

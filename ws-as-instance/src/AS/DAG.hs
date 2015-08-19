@@ -1,7 +1,4 @@
-module AS.DAG (
-  getDescendants,
-  getImmediateAncestors
-) where
+module AS.DAG where
 
 import Control.Arrow
 import Control.Applicative
