@@ -16,7 +16,9 @@ export default {
     CELL_CHANGED: null,
     RANGE_CHANGED: null,
     SCROLLED: null,
-    GOT_UPDATED_CELLS: null
+    GOT_UPDATED_CELLS: null,
+    GOT_UNDO:null,
+    GOT_REDO:null
   }),
 
   ActionSources: keyMirror({
@@ -67,6 +69,8 @@ export default {
     Acknowledge: "Acknowledge",
     Evaluate: "Evaluate",
     Get: "Get",
-    Delete: "Delete"
+    Delete: "Delete",
+    Undo: "Undo",
+    Redo: "Redo"
   }
 };

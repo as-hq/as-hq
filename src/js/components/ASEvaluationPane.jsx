@@ -66,11 +66,11 @@ export default React.createClass({
   },
 
   _onChange() {
-    // this.setState(getEvaluationState());
-    console.log("eval pane detected event change from store");
+    console.log("Eval pane detected event change from store");
     let updatedCells = ASEvaluationStore.getLastUpdatedCells();
+    console.log("Updated cells: " + JSON.stringify(updatedCells));
     this.refs.spreadsheet.updateCellValues(updatedCells);
-    console.log(updatedCells);
+    ASEvaluationStore.showAllCells(); 
   },
 
   _onEditorDeferredKey(e) {
@@ -100,10 +100,10 @@ export default React.createClass({
     this.setState({ expression: xp });
   },
 
-  _onSelectionChange(loc){
-    // get expression and lang of that loc from the store, and then change state to re-render editor
-    console.log("handling selection change: " + JSON.stringify(loc));
-    let {expression,language} = ASEvaluationStore.getExpressionAtLoc(loc[0]);
+  _onSelectionChange(rng){
+    // get expression and lang of that rng from the store, and then change state to re-render editor
+    console.log("handling selection change: " + JSON.stringify(rng));
+    let {expression,language} = ASEvaluationStore.getExpressionAtLoc(rng);
     console.log("expression: " + expression);
     this.setState({ expression: expression, language: language });
   },
@@ -126,7 +126,6 @@ export default React.createClass({
   },
 
   handleEvalRequest(editorState){
-    console.log("eval requested!");
     let selectedRegion = this.refs.spreadsheet.getSelectionArea();
     let viewingWindow = this.refs.spreadsheet.getViewingWindow();
     console.log("viewing window: " + JSON.stringify(viewingWindow)); 

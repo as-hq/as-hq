@@ -5,25 +5,41 @@ import CellConverter from '../AS/CellConverter';
 var ActionTypes = Constants.ActionTypes;
 var wss = new WebSocket(Constants.host_ws);
 
-// when the server responds with updates to make, call dispatcher to update stores, then view
+// Called whenever the websocket server returns a message
 wss.onmessage = function (event) {
-    console.log("client received data from server: " + JSON.stringify(event.data));
+    console.log("Client received data from server: " + JSON.stringify(event.data));
     let msg = JSON.parse(event.data);
     if (msg.action === "Acknowledge")
       return;
+    if (msg.action === "Undo"){
+      Dispatcher.dispatch({
+        type: ActionTypes.GOT_UNDO,
+        commit: msg.payload.contents
+      });
+      return;
+    }
+    if (msg.action === "Redo"){
+     Dispatcher.dispatch({
+        type: ActionTypes.GOT_REDO,
+        commit: msg.payload.contents
+      });
+     return;
+    }
     let cells = CellConverter.getCellsFromMsg(msg);
-    if (cells)
+    if (cells){
       Dispatcher.dispatch({
         type: ActionTypes.GOT_UPDATED_CELLS,
-        updatedCells: CellConverter.getCellsFromMsg(msg)
+        updatedCells: cells
       });
+      return;
+    }
 };
 
 export default {
 
   sendInitialMessage(userName){
     let msg = CellConverter.toServerMessageFormat(Constants.ServerActions.Acknowledge,"PayloadInit",{userName:userName});
-    console.log("sending init message: " + JSON.stringify(msg)); 
+    console.log("Sending init message: " + JSON.stringify(msg)); 
     this.waitForSocketConnection(wss,function(){
       wss.send(JSON.stringify(msg));
     });
@@ -45,15 +61,24 @@ export default {
         }, 5);
   },
 
-
   // this function submits an eval request to a websocket server
   sendEvalRequest(selRegion,editorState, vw){
-    console.log("in eval action creator");
+    console.log("In eval action creator");
     let cell = CellConverter.toASCell(selRegion,editorState);
     let vwContents = {vwTopLeftCol:vw.locs[0][0], vwTopLeftRow: vw.locs[0][1], vwWidth:vw.width, vwHeight:vw.height};
     let payload = {tag:"PayloadC", evalCell:cell, evalVW: vwContents}
-    let msg = {action:"Evaluate",result:"Failure",payload:payload};
-    console.log('sending msg to server: ' + JSON.stringify(msg));
+    let msg = {action:"Evaluate",result:{"tag":"NoResult","contents":[]},payload:payload};
+    console.log('Sending msg to server: ' + JSON.stringify(msg));
+    wss.send(JSON.stringify(msg));
+  },
+
+  sendUndoRequest(){
+    let msg = {action:"Undo",result:{"tag":"NoResult","contents":[]},payload:{tag:"PayloadN", contents:[]}};
+    wss.send(JSON.stringify(msg));
+  },
+
+  sendRedoRequest(){
+    let msg = {action:"Redo",result:{"tag":"NoResult","contents":[]},payload:{tag:"PayloadN", contents:[]}};
     wss.send(JSON.stringify(msg));
   },
 
@@ -86,8 +111,8 @@ export default {
         locs = {col: oldX - eX, row: oldY - eY + 1,
                 col2: newX - eX + 1, row2: oldY + vWindow.height + eY};
       }
-    } else
-      console.log("error: double scroll event");
+    } else{
+    }
     console.log("unsafe scroll locs: " + JSON.stringify(locs));
     if (locs){
       let safeLocs = CellConverter.getSafeLoc(locs);

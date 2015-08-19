@@ -11,6 +11,7 @@ function showValue(cv) {
     case "ValueS":
     return cv.contents;
     case "ValueL":
+    console.log("FOUND LIST");
     return showValue(cv.contents[0]);
     case "ValueError":
     return "ERROR";

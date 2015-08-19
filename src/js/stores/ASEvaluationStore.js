@@ -7,8 +7,8 @@ import CellConverter from '../AS/CellConverter';
 
 // indexed by row/column
 let _data = {
-  sheet: null,
-  allCells: [],
+  sheet: "Demo",
+  allCells: {},
   lastUpdatedCells: [],
   xscroll: 0,
   yscroll: 0
@@ -19,55 +19,67 @@ const ASEvaluationStore = assign({}, BaseStore, {
   setSheet(sht) {
     _data.sheet = sht;
   },
-
   getSheet() {
     return _data.sheet;
   },
-
   setScroll(x, y){
     _data.xscroll = x;
     _data.yscroll = y;
   },
-
   getScroll() {
     return {x: _data.xscroll, y: _data.yscroll};
   },
 
-  // takes a cell and extracts the location
-  getLocation(cell){
-    return cell.cellLocation.index;
+  getLocationHash(cell){
+    return cell.cellLocation.index.col + cell.cellLocation.sheet + cell.cellLocation.index.row;
   },
 
-  // takes a cell and extracts the expression
-  getExpression(cell){
-    return cell.cellExpression.expression;
-  },
-
-  // takes a cell and extracts the value
-  getValue(cell){
-    return cell.cellValue.contents;
+  hash(cell){
+    return cell.cellLocation.index[0] + cell.cellLocation.sheet + cell.cellLocation.index[1];
   },
 
   // updates _allCells and _lastUpdatedCells after eval returns a list of ASCells
   updateData(cells) {
-    console.log("cells: " + JSON.stringify(cells));
-
-    _data.lastUpdatedCells = [];
+    console.log("About to update data in store: " + JSON.stringify(cells));
     _data.lastUpdatedCells = [];
     for (var key in cells){
-      let loc = this.getLocation(cells[key]);
-      if (!_data.allCells[loc.row])
-        _data.allCells[loc.row] = [];
-      _data.allCells[loc.row][loc.col] = cells[key];
+      _data.allCells[this.getLocationHash(cells[key])] = cells[key];
       _data.lastUpdatedCells.push(cells[key]);
-
-      // TODO gc invisible cells in _data
     }
-    console.log("updated all cells and last updated cells");
+  },
+  insData(cells) {
+    for (var key in cells){
+      let c = CellConverter.fromServerCell(cells[key]);
+      console.log("Inserting: " + JSON.stringify(c));
+      _data.allCells[this.getLocationHash(c)] = c;
+      _data.lastUpdatedCells.push(c);
+    }
+  },
+  removeData(cells) {
+    _data.lastUpdatedCells = [];
+    for (var key in cells){
+      let c = CellConverter.fromServerCell(cells[key]);
+      console.log("Removing: " + JSON.stringify(c));
+      let ce = {"tag":"Expression","expression":"","language":c.cellExpression.language}; 
+      let cv = {"tag":"ValueS","contents":""};
+      let emptyCell = {cellLocation:c.cellLocation,cellExpression:ce,cellValue:cv};
+      _data.allCells[this.getLocationHash(c)] = emptyCell;
+      _data.lastUpdatedCells.push(emptyCell);
+    }
+    this.showAllCells();
+    this.showUpdatedCells(); 
   },
 
   getLastUpdatedCells(){
+    console.log("Getting last updated cells: " + JSON.stringify(_data.lastUpdatedCells));
     return _data.lastUpdatedCells;
+  },
+
+  showAllCells(){
+    console.log("All cells: " + JSON.stringify(_data.allCells));
+  },
+  showUpdatedCells(){
+    console.log("Last updated cells: " + JSON.stringify(_data.lastUpdatedCells));
   },
 
   // used for updating expression when user clicks on a cell
@@ -109,24 +121,40 @@ const ASEvaluationStore = assign({}, BaseStore, {
 
 });
 
+/* This function describes the actions of the ASEvaluationStore upon recieving a message from Dispatcher */
 dispatcherIndex: Dispatcher.register(function (action) {
     switch (action.type) {
-      case Constants.ActionTypes.CELL_CHANGED: // user selected a new cell
+      case Constants.ActionTypes.CELL_CHANGED: 
         break;
       case Constants.ActionTypes.RANGE_CHANGED:
         break;
+      /*On an UNDO/REDO/UPDATE_CELLS, update the viewing window in the store based on the commit and 
+      send a change event to spreadsheet, which will rerender */
+      case Constants.ActionTypes.GOT_UNDO:
+        _data.lastUpdatedCells = []; 
+        ASEvaluationStore.removeData(action.commit.after);
+        ASEvaluationStore.insData(action.commit.before); 
+        ASEvaluationStore.emitChange(); 
+        break;
+      case Constants.ActionTypes.GOT_REDO:
+        _data.lastUpdatedCells = []; 
+        ASEvaluationStore.removeData(action.commit.before);
+        ASEvaluationStore.insData(action.commit.after); 
+        ASEvaluationStore.emitChange(); 
+        break;
+      case Constants.ActionTypes.GOT_UPDATED_CELLS:
+        console.log("In updated cells dispatch register");
+        ASEvaluationStore.updateData(action.updatedCells);
+        ASEvaluationStore.emitChange();
+        break;
+      /*On a SCROLL, get the relevant cells from the database and update the eval store and
+      send a change event to spreadsheet, which will rerender */
       case Constants.ActionTypes.SCROLLED:
         let {x,y} = ASEvaluationStore.getScroll();
         console.log("scrolling action: x "+ action.xscroll + ", y " + action.yscroll);
         let cells = API.getCellsForScroll(action.xscroll, action.yscroll, x, y, action.vWindow);
-        // ASEvaluationStore.deallocAfterScroll(action.xscroll, action.yscroll, x, y, action.vWindow);
         ASEvaluationStore.setScroll(action.xscroll, action.yscroll);
         ASEvaluationStore.updateData(cells);
-        ASEvaluationStore.emitChange();
-        break;
-      case Constants.ActionTypes.GOT_UPDATED_CELLS:
-        console.log("in updated cells dispatch register");
-        ASEvaluationStore.updateData(action.updatedCells);
         ASEvaluationStore.emitChange();
         break;
     }

@@ -16,10 +16,12 @@ require('brace/theme/monokai');
 let languages = [];
 for (var key in Constants.Languages) {
   languages.push({
-    payload: Constants.Languages[key],
+    payload: Constants.Languages[key].Editor,
     text: Constants.Languages[key].Display
   });
 }
+
+console.log("languages: " + JSON.stringify(languages));
 
 export default React.createClass({
 

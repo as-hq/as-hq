@@ -1,4 +1,5 @@
 import Constants from '../Constants';
+import ASEvaluationStore from '../stores/ASEvaluationStore';
 
 function getSafeLoc(loc) {
   console.log(loc);
@@ -49,45 +50,30 @@ export default {
     };
   },
 
+  toASLoc(loc) {
+    if (loc.row2)
+      return {tag: "Range",
+              sheet: ASEvaluationStore.getSheet(),
+              range: this.standardToServerLoc(loc)};
+    else
+      return {tag: "Index",
+              sheet: ASEvaluationStore.getSheet(),
+              index: this.standardToServerLoc(loc)};
+  },
+
   toASCell(selRegion, editorState){
     console.log(editorState.lang)
-    if (selRegion.width==1 && selRegion.height==1){ // not a range
-      return  {
-        "cellLocation": {
-          "tag": "Index",
-          "sheet": "Demo",
-          "index": this.standardToServerLoc(selRegion.locs[0])
-        },
-        "cellExpression": {
-          "tag": "Expression",
-          "expression" : editorState.exp,
-          "language": editorState.lang.Server
-        },
-        "cellValue":{
-          "tag": "ValueS",
-          "contents": "initValue"
-        }
-      };
-    }
-    else {
-      return {
-        "cellLocation": {
-          "tag": "Range",
-          "sheet": "Demo",
-          "range": selRegion.locs.map(this.standardToServerLoc)
-        },
-        "cellExpression": {
-          "tag": "Expression",
-          "expression" : editorState.exp,
-          "language": editorState.lang.Server
-        },
-        "cellValue":{
-          "tag": "ValueS",
-          "contents": "initValue"
-        }
-      };
-
-    }
+    return  {
+      "cellLocation": this.toASLoc(selRegion.range),
+      "cellExpression": {
+        "tag": "Expression",
+        "expression" : editorState.exp,
+        "language": editorState.lang.Server
+      },
+      "cellValue":{
+        "tag": "ValueS",
+        "contents": "initValue"
+      }};
   },
 
   toServerMessageFormat(action, payloadTag, payload) {
@@ -97,7 +83,7 @@ export default {
         "tag": payloadTag,
         "contents": payload
       },
-      "result": "Failure"  //failure by default until server sets success
+      "result": {"tag":"NoResult","contents":[]}  // by default until server sets success
     };
   },
 
@@ -110,7 +96,7 @@ export default {
   },
 
   getCellsFromMsg(msg) {
-    console.log("message received: " + JSON.stringify(msg));
+    console.log("Trying to get cells from message received: " + JSON.stringify(msg));
     if (msg.payload){
       if (msg.payload === 'ACK')
         console.log("SERVER ACKNOWLEDGES");
@@ -118,21 +104,28 @@ export default {
         return [this.fromServerCell(msg.payload.contents)];
       }
       else if (msg.payload.tag === "PayloadCL"){
-        console.log("cells received: " + msg.payload.contents.length);
-        return msg.payload.contents.map(this.fromServerCell);
+        console.log("Number of eval cells received: " + msg.payload.contents.length);
+        let cells = msg.payload.contents.map(this.fromServerCell);
+        console.log("Eval cells JSON: " + JSON.stringify(cells)); 
+        return cells; 
       }
     }
     else
-      console.log("error parsing: no payload found in message");
+      console.log("Error parsing: no payload found in message");
   },
 
   toGetCellsMessage(locs) {
-    let tag = null;
-    if (locs.row2)
+    let tag = null,
+        sLocs = null;
+    if (locs.length){
       tag = "PayloadLL";
-    else
+      sLocs = locs.map(this.toASLoc);
+    }
+    else{
       tag = "PayloadL";
-    let sLocs = this.standardToServerLoc(locs);
+      sLocs = this.toASLoc(locs);
+    }
     return this.toServerMessageFormat(Constants.ServerActions.Get, tag, sLocs);
   }
+
 }

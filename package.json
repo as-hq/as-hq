@@ -59,6 +59,7 @@
     "react-draggable": "^0.8.0",
     "react-style": "^0.5.5",
     "classnames": "^2.1.2",
-    "lodash": "^3.9.3"
+    "lodash": "^3.9.3",
+    "react-menu-bar": "~2.0.4"
   }
 }
