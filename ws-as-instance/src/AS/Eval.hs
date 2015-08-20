@@ -2,63 +2,34 @@
 module AS.Eval where
 
 import Prelude
-import qualified Prelude as P
+import System.IO           
+import System.Process  
+import Python
 import Control.Applicative
+ 
+import qualified Data.Maybe as MB
+import Data.Time.Clock
+import Data.Text as T (unpack,pack)
 import qualified Data.Map as M
 import qualified Data.List as L
 import qualified Data.Text as T
+
 import AS.Eval.Lang
 import AS.Types hiding (str)
 import AS.DB hiding (expression)
 import AS.Parsing.In
 import AS.Parsing.Out
 import AS.Parsing.Common
-import System.IO                        
-import System.Process   
-import qualified Data.Maybe as MB
-
-import Python
-
-import Data.Time.Clock
-import Data.Text as T (unpack,pack)
-
-printTime str = do 
-  time <- (getCurrentTime >>= return . utctDayTime)
-  putStrLn $ str ++ " " ++ (show time)
+import AS.Util
 
 -----------------------------------------------------------------------------------------------------------------------
--- File Interpolation (see Lang for details)
+-- Exposed functions
 
 evalExpression :: ASLocation -> M.Map ASLocation ASValue -> ASExpression -> IO ASValue
 evalExpression loc dict expr =
   case expr of
     Expression _ _ -> evalCode loc dict expr  
     Reference _ _ -> evalRef loc dict expr  
-
-evalCode :: ASLocation -> M.Map ASLocation ASValue -> ASExpression -> IO ASValue
-evalCode loc values xp = do
-	printTime "Starting eval code"
-	let lang = language xp
-	let finalXp = interpolate loc values xp -- eval string
-	simpleInterpolated <- interpolateFile lang finalXp
-
-	interpolated <- case lang of
-		SQL -> interpolateFile SQL ("setGlobals("++(show context) ++")\n" ++ newExp)
-			where
-				exLocs = getMatchesWithContext (expression xp) excelMatch
-				matchLocs = map (exLocToASLocation loc) (snd exLocs)
-				context = map (lookupString SQL values) matchLocs
-				st = ["dataset"++(show i) | i<-[0..((L.length matchLocs)-1)]]
-				newExp = replaceMatches exLocs (\el -> (L.!!) st (MB.fromJust (L.findIndex (el==) (snd exLocs)))) (expression xp)
-		otherwise -> (return simpleInterpolated)
-
-
-	printTime "starting eval"
-	result <- handleEval lang interpolated
-	printTime "finished eval"
-	let parsed = parseValue lang result
-	printTime "eval result parsed"
-	return parsed
 
 evalExcel :: ASExpression -> IO ASExpression
 evalExcel xp = do
@@ -79,6 +50,33 @@ evalExcel xp = do
 		otherwise -> result'
 	return $ Expression result Excel
 
+-----------------------------------------------------------------------------------------------------------------------
+-- File Interpolation (see Lang for details)
+
+evalCode :: ASLocation -> M.Map ASLocation ASValue -> ASExpression -> IO ASValue
+evalCode loc values xp = do
+	printTimed "Starting eval code"
+	let lang = language xp
+	let finalXp = interpolate loc values xp -- eval string
+	simpleInterpolated <- interpolateFile lang finalXp
+
+	interpolated <- case lang of
+		SQL -> interpolateFile SQL ("setGlobals("++(show context) ++")\n" ++ newExp)
+			where
+				exLocs = getMatchesWithContext (expression xp) excelMatch
+				matchLocs = map (exLocToASLocation loc) (snd exLocs)
+				context = map (lookupString SQL values) matchLocs
+				st = ["dataset"++(show i) | i<-[0..((L.length matchLocs)-1)]]
+				newExp = replaceMatches exLocs (\el -> (L.!!) st (MB.fromJust (L.findIndex (el==) (snd exLocs)))) (expression xp)
+		otherwise -> (return simpleInterpolated)
+
+
+	printTimed "starting eval"
+	result <- handleEval lang interpolated
+	printTimed "finished eval"
+	let parsed = parseValue lang result
+	printTimed "eval result parsed"
+	return parsed
 
 
 evalCodeRepl :: ASExpression -> IO ASValue

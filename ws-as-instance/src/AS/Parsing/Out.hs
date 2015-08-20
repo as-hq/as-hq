@@ -132,10 +132,6 @@ replaceMatches (inter,matches) f target = blend inter matchReplacings
     matchReplacings = map f matches
 -------------------------------------------------------------------------------------------------------------------------------------------------
 -- Type for parsing Excel Locations
-
-data ExLoc = ExSheet {name :: String, sheetLoc :: ExLoc} |
-             ExRange {first :: ExLoc, second :: ExLoc}     |
-             ExIndex {d1 :: String, col :: String, d2 :: String, row :: String} deriving (Show,Read,Eq,Ord)
              -- d1,d2 = "" or "$"
 
 exLocToString :: ExLoc -> String
@@ -148,8 +144,8 @@ exLocToString exLoc = case exLoc of
 exLocToASLocation :: ASLocation -> ExLoc -> ASLocation
 exLocToASLocation loc exLoc = case exLoc of 
   ExSheet sh rest -> case (exLocToASLocation loc rest) of 
-    Range _ a -> Range sh a
-    Index _ a -> Index sh a
+    Range _ a -> Range (Sheet (sheetId . sheet $ loc) sh) a
+    Index _ a -> Index (Sheet (sheetId . sheet $ loc) sh) a
   ExRange f s -> Range (sheet loc) (index (exLocToASLocation loc f),index (exLocToASLocation loc s))
   ExIndex dol1 c dol2 r -> Index (sheet loc) (colStrToInt c, read r :: Int)
 -------------------------------------------------------------------------------------------------------------------------------------------------
@@ -168,8 +164,8 @@ exc = string "!" -- required for sheet access
 -- Parsers to match excel locations in strings
 
 -- matches a valid sheet name
-sheetName :: Parser String
-sheetName = many1 $ letter <|> digit <|> char '-' <|> char '_' <|> space
+sheetMatch :: Parser String
+sheetMatch = many1 $ letter <|> digit <|> char '-' <|> char '_' <|> space
 
 -- matches $AB15 type things
 indexMatch :: Parser ExLoc
@@ -191,7 +187,7 @@ rangeMatch = do
 -- matches sheet reference; Sheet1!$A$11
 sheetRefMatch :: Parser ExLoc
 sheetRefMatch = do 
-  name <- sheetName 
+  name <- sheetMatch 
   exc
   loc <- (try rangeMatch) <|> indexMatch -- order matters
   return $ ExSheet name loc
@@ -245,7 +241,7 @@ shiftExLocs offset exLocs = map (shiftExLoc offset) exLocs
 -- doesn't do any work with Parsec/actual parsing
 dependenciesFromExceLLoc :: ASLocation -> ExLoc -> [ASLocation]
 dependenciesFromExceLLoc loc exLoc = case exLoc of
-  ExSheet sh rest -> [Index sh (index dep) | dep <- dependenciesFromExceLLoc loc rest] --dependency locations are on other sheet
+  ExSheet sh rest -> [Index (Sheet (sheetId . sheet $ loc) sh) (index dep) | dep <- dependenciesFromExceLLoc loc rest] --dependency locations are on other sheet
   ExRange a b -> decomposeLocs $ Range (sheet loc) ((toCol a, toRow a), (toCol b, toRow b)) -- any range has full dependency
     where
       toCol = colStrToInt.col

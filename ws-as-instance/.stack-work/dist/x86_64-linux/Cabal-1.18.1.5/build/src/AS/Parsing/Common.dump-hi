@@ -1,0 +1,570 @@
+
+==================== FINAL INTERFACE ====================
+2015-08-20 07:09:05.649355 UTC
+
+interface alphasheets-0.1.0.0:AS.Parsing.Common 7084
+  interface hash: 0bd2147538e4d00797a442a6f6b440b9
+  ABI hash: 2fdb05fa6cb85dd95bd00704eb6e020b
+  export-list hash: 6373d90a9aaddcd2d18cba04a491c26c
+  orphan hash: 693e9af84d3dfcc71e640e005bdc5e2e
+  flag hash: 01dbfe2a4bc4387a8d0369737a5dc5cb
+  used TH splices: False
+  where
+exports:
+  AS.Parsing.Common.<++>
+  AS.Parsing.Common.<:>
+  AS.Parsing.Common.decomposeLocs
+  AS.Parsing.Common.deleteEmpty
+  AS.Parsing.Common.every
+  AS.Parsing.Common.getDelimitedSubstring
+  AS.Parsing.Common.getLine
+  AS.Parsing.Common.getOffsets
+  AS.Parsing.Common.lastN
+  AS.Parsing.Common.normalizeRanges
+  AS.Parsing.Common.rangeDiff
+  AS.Parsing.Common.regexList
+  AS.Parsing.Common.replaceSubstrings
+  AS.Parsing.Common.reshapeColArr
+  AS.Parsing.Common.skip
+  AS.Parsing.Common.sortStrList
+module dependencies: AS.Types
+package dependencies: SHA-1.6.4.2 aeson-0.8.0.2 array-0.5.0.0
+                      attoparsec-0.12.1.6 base base64-bytestring-1.0.0.1 binary-0.7.1.0
+                      blaze-builder-0.4.0.1 bytestring-0.10.4.0 case-insensitive-1.2.0.4
+                      containers-0.5.5.1 deepseq-1.3.0.2 dlist-0.7.1.1 entropy-0.3.7
+                      ghc-prim hashable-1.2.3.3 integer-gmp mtl-2.1.3.1 network-2.6.2.0
+                      old-locale-1.0.0.6 parsec-3.1.9 primitive-0.6 random-1.1
+                      regex-base-0.93.2 regex-posix-0.95.2 scientific-0.3.3.8
+                      text-1.2.0.6 time-1.4.2 transformers-0.3.0.0 unix-2.7.0.1
+                      unordered-containers-0.2.5.1 vector-0.10.12.3 websockets-0.9.5.0
+orphans: aeson-0.8.0.2:Data.Aeson.Types.Generic
+         aeson-0.8.0.2:Data.Aeson.Types.Instances
+         aeson-0.8.0.2:Data.Aeson.Types.Internal
+         attoparsec-0.12.1.6:Data.Attoparsec.ByteString.Char8 base:GHC.Base
+         base:GHC.Float base:GHC.Real binary-0.7.1.0:Data.Binary.Generic
+         bytestring-0.10.4.0:Data.ByteString.Builder
+         hashable-1.2.3.3:Data.Hashable.Generic
+         network-2.6.2.0:Network.Socket network-2.6.2.0:Network.Socket.Types
+         random-1.1:System.Random regex-base-0.93.2:Text.Regex.Base.Context
+         regex-posix-0.95.2:Text.Regex.Posix.ByteString
+         regex-posix-0.95.2:Text.Regex.Posix.ByteString.Lazy
+         regex-posix-0.95.2:Text.Regex.Posix.Sequence
+         regex-posix-0.95.2:Text.Regex.Posix.String text-1.2.0.6:Data.Text
+         text-1.2.0.6:Data.Text.Lazy time-1.4.2:Data.Time.Calendar.Gregorian
+         time-1.4.2:Data.Time.Format.Parse
+         time-1.4.2:Data.Time.LocalTime.LocalTime
+         transformers-0.3.0.0:Control.Monad.Trans.Error
+         vector-0.10.12.3:Data.Vector.Fusion.Stream
+         vector-0.10.12.3:Data.Vector.Unboxed
+family instance modules: alphasheets-0.1.0.0:AS.Types
+                         attoparsec-0.12.1.6:Data.Attoparsec.Internal.Types
+                         base:Control.Applicative base:Data.Either base:Data.Monoid
+                         base:Data.Type.Equality base:GHC.Exts base:GHC.Generics
+                         dlist-0.7.1.1:Data.DList primitive-0.6:Control.Monad.Primitive
+                         text-1.2.0.6:Data.Text text-1.2.0.6:Data.Text.Lazy
+                         unordered-containers-0.2.5.1:Data.HashMap.Base
+                         unordered-containers-0.2.5.1:Data.HashSet
+                         vector-0.10.12.3:Data.Vector vector-0.10.12.3:Data.Vector.Primitive
+                         vector-0.10.12.3:Data.Vector.Storable
+                         vector-0.10.12.3:Data.Vector.Unboxed
+                         vector-0.10.12.3:Data.Vector.Unboxed.Base
+import  -/  AS.Types b606c3629b6c721cf8b97ba4ece45fb1
+  exports: 66ecab93115eea25472e439473866aa8
+  ASLocation c3999fef437ba89bfafc0ba56adaa4e1
+  Index a3a1c51a9db8b7858642af330a1e8ef6
+  Range 1e8bee9c012b2f09e1603d7cb28278d0
+import  -/  base:Control.Applicative 30b769206cb5c020684e1bda0d7e7dd3
+import  -/  base:Data.Char 1ace810ea04187cd227c9ed982bb7d15
+import  -/  base:Data.Functor 2a75672109006aa68920c9629500622a
+import  -/  base:Data.List 8b77870d02d66076337587b759b7ee19
+import  -/  base:Data.Maybe 5034d40e23c3a7110309f188001df4ca
+import  -/  base:Data.Tuple cac4e06c48274e85317bd3e59867ef5b
+import  -/  base:GHC.Base 5d7c5f596f9a4c8a8abd8517c8bcd5dd
+import  -/  base:GHC.List 4cff382327e59a5787355ca0a4174450
+import  -/  base:GHC.Num 5e7786970581cacc802bf850d458a30b
+import  -/  base:GHC.Show cf1a7ff9edb0f41528085aad04d33753
+import  -/  base:GHC.Unicode 328b8e1d86fa0b0f8b798c018561e9b0
+import  -/  base:Prelude 74043f272d60acec1777d3461cfe5ef4
+import  -/  containers-0.5.5.1:Data.Map 39e9346954b9366e01d2c8afb617e216
+import  -/  ghc-prim:GHC.Classes 3e6cbe1e7e80480408cfa8d5450726a0
+import  -/  ghc-prim:GHC.Types dcba736fa3dfba12d307ab18354845d2
+import  -/  parsec-3.1.9:Text.Parsec 62fd9a2906998e77f1ce16ddb8634d92
+import  -/  parsec-3.1.9:Text.Parsec.Text 67fd77fda74c32335fc9086dab2a7fd6
+import  -/  regex-posix-0.95.2:Text.Regex.Posix ac2bb8a4caf67648cfb9326fa3deedd9
+import  -/  regex-posix-0.95.2:Text.Regex.Posix.Wrap eac496e4ce3c50f5730fe7352fe406f7
+import  -/  text-1.2.0.6:Data.Text 0a4e6ca8ca412aa3cbc86c5bc7204623
+import  -/  text-1.2.0.6:Data.Text.Lazy e143c21d39ea2c2a2b33f7cef87568ee
+83004e657901ae76d3165c1a81eacf63
+  $wgetDelimitedSubstring :: GHC.Base.String
+                             -> GHC.Base.String
+                             -> GHC.Prim.Int#
+                             -> GHC.Base.String
+    {- Arity: 3, Strictness: <S,1*U><S,1*U><S,U> -}
+292b0649e1c3cb1a955d4b8bd570f22e
+  $wlastN :: GHC.Prim.Int# -> [a] -> [a]
+    {- Arity: 2, HasNoCafRefs, Strictness: <L,U><S,U>,
+       Unfolding: (\ @ a ww :: GHC.Prim.Int# w :: [a] ->
+                   case GHC.List.$wlenAcc @ a w 0 of ww1 { DEFAULT ->
+                   let {
+                     n# :: GHC.Prim.Int# = GHC.Prim.-# ww1 ww
+                   } in
+                   case GHC.Prim.tagToEnum#
+                          @ GHC.Types.Bool
+                          (GHC.Prim.<# n# 0) of wild1 {
+                     GHC.Types.False -> GHC.List.drop_drop# @ a n# w
+                     GHC.Types.True -> w } }) -}
+c5e2cb5f6a9b4ec2d1905fe551a90be5
+  $wreshapeColArr :: [a] -> GHC.Prim.Int# -> GHC.Prim.Int# -> [[a]]
+    {- Arity: 3, Strictness: <S,1*U><L,U><L,U> -}
+065107e4c1de9a5af0d4c08cc2397fbd
+  $wsortStrList :: GHC.Base.String
+                   -> GHC.Base.String
+                   -> GHC.Types.Ordering
+    {- Arity: 2, Strictness: <L,U><L,U>,
+       Unfolding: (\ ww :: GHC.Base.String ww1 :: GHC.Base.String ->
+                   case GHC.Classes.$fOrd[]_$s$ccompare
+                          (GHC.Types.:
+                             @ GHC.Types.Char
+                             GHC.Show.$fShowChar1
+                             (GHC.Show.showLitString
+                                (GHC.List.dropWhile @ GHC.Types.Char GHC.Unicode.isUpper ww)
+                                AS.Parsing.Common.sortStrList1))
+                          (GHC.Types.:
+                             @ GHC.Types.Char
+                             GHC.Show.$fShowChar1
+                             (GHC.Show.showLitString
+                                (GHC.List.dropWhile @ GHC.Types.Char GHC.Unicode.isUpper ww1)
+                                AS.Parsing.Common.sortStrList1)) of wild {
+                     GHC.Types.LT -> GHC.Types.GT
+                     GHC.Types.EQ -> GHC.Types.EQ
+                     GHC.Types.GT -> GHC.Types.LT }) -}
+eff89ec6a28f0e825cee97d4388dfe5f
+  (<++>) :: Control.Applicative.Applicative f
+            -> f [a]
+            -> f [a]
+            -> f [a]
+    {- Arity: 3, HasNoCafRefs,
+       Strictness: <S(LLC(C(S))LL),U(1*U(1*C1(C1(U)),A),A,1*C1(C1(U)),A,A)><L,U><L,U>,
+       Unfolding: InlineRule (3, True, False)
+                  (\ @ (f::* -> *)
+                     @ a
+                     $dApplicative :: Control.Applicative.Applicative f
+                     eta :: f [a]
+                     eta1 :: f [a] ->
+                   Control.Applicative.<*>
+                     @ f
+                     $dApplicative
+                     @ [a]
+                     @ [a]
+                     (GHC.Base.fmap
+                        @ f
+                        (Control.Applicative.$p1Applicative @ f $dApplicative)
+                        @ [a]
+                        @ ([a] -> [a])
+                        (GHC.Base.++ @ a)
+                        eta)
+                     eta1) -}
+521f5bc97fd088207a8d2171c5a9beb7
+  (<:>) :: Control.Applicative.Applicative f -> f a -> f [a] -> f [a]
+    {- Arity: 3, HasNoCafRefs,
+       Strictness: <S(LLC(C(S))LL),U(1*U(1*C1(C1(U)),A),A,1*C1(C1(U)),A,A)><L,U><L,U>,
+       Unfolding: InlineRule (3, True, False)
+                  (\ @ (f::* -> *)
+                     @ a
+                     $dApplicative :: Control.Applicative.Applicative f
+                     eta :: f a
+                     eta1 :: f [a] ->
+                   Control.Applicative.<*>
+                     @ f
+                     $dApplicative
+                     @ [a]
+                     @ [a]
+                     (GHC.Base.fmap
+                        @ f
+                        (Control.Applicative.$p1Applicative @ f $dApplicative)
+                        @ a
+                        @ ([a] -> [a])
+                        (GHC.Types.: @ a)
+                        eta)
+                     eta1) -}
+a187d4df91fa5ae9a88d3b5f9b361b23
+  decomposeLocs :: AS.Types.ASLocation -> [AS.Types.ASLocation]
+    {- Arity: 1, HasNoCafRefs, Strictness: <S,1*U>,
+       Unfolding: (\ loc :: AS.Types.ASLocation ->
+                   case loc of wild {
+                     AS.Types.Index sheet a
+                     -> GHC.Types.:
+                          @ AS.Types.ASLocation
+                          wild
+                          (GHC.Types.[] @ AS.Types.ASLocation)
+                     AS.Types.Range sheet ds
+                     -> case ds of wild1 { (,) ul lr ->
+                        case ul of wild2 { (,) x ds1 ->
+                        case x of wild3 { GHC.Types.I# x1 ->
+                        case lr of wild4 { (,) x2 ds2 ->
+                        case x2 of wild5 { GHC.Types.I# y ->
+                        case GHC.Prim.tagToEnum#
+                               @ GHC.Types.Bool
+                               (GHC.Prim.># x1 y) of wild6 {
+                          GHC.Types.False
+                          -> let {
+                               lvl13 :: [GHC.Types.Int]
+                               = case ds1 of wild7 { GHC.Types.I# x3 ->
+                                 case ds2 of wild8 { GHC.Types.I# y1 -> GHC.Enum.eftInt x3 y1 } }
+                             } in
+                             letrec {
+                               go :: GHC.Prim.Int# -> [AS.Types.ASLocation]
+                                 {- Arity: 1, Strictness: <L,U> -}
+                               = \ x3 :: GHC.Prim.Int# ->
+                                 let {
+                                   z :: [AS.Types.ASLocation]
+                                   = case GHC.Prim.tagToEnum#
+                                            @ GHC.Types.Bool
+                                            (GHC.Prim.==# x3 y) of wild7 {
+                                       GHC.Types.False -> go (GHC.Prim.+# x3 1)
+                                       GHC.Types.True -> GHC.Types.[] @ AS.Types.ASLocation }
+                                 } in
+                                 let {
+                                   ds3 :: GHC.Types.Int {- Strictness: m -} = GHC.Types.I# x3
+                                 } in
+                                 letrec {
+                                   go1 :: [GHC.Types.Int] -> [AS.Types.ASLocation]
+                                     {- Arity: 1, Strictness: <S,1*U> -}
+                                   = \ ds4 :: [GHC.Types.Int] ->
+                                     case ds4 of wild7 {
+                                       [] -> z
+                                       : y1 ys
+                                       -> GHC.Types.:
+                                            @ AS.Types.ASLocation
+                                            (AS.Types.Index sheet (ds3, y1))
+                                            (go1 ys) }
+                                 } in
+                                 go1 lvl13
+                             } in
+                             go x1
+                          GHC.Types.True
+                          -> GHC.Types.[] @ AS.Types.ASLocation } } } } } } }) -}
+90792a6f3f24c0efb10a583f45f0153b
+  deleteEmpty :: [GHC.Base.String] -> [GHC.Base.String]
+    {- Arity: 1,
+       Unfolding: (GHC.List.filter
+                     @ GHC.Base.String
+                     AS.Parsing.Common.deleteEmpty1) -}
+bb7026f34080b03c5aed7cd48eb190ad
+  deleteEmpty1 :: [GHC.Types.Char] -> GHC.Types.Bool
+    {- Arity: 1,
+       Unfolding: (GHC.Classes.$fEq[]_$s$c/=
+                     (GHC.Types.[] @ GHC.Types.Char)) -}
+720e037eec4b0f9dace249544114ac64
+  every :: GHC.Types.Int -> [a] -> [a]
+    {- Arity: 2, Strictness: <L,U(U)><L,U>,
+       Unfolding: (\ @ a n :: GHC.Types.Int eta :: [a] ->
+                   case GHC.List.$witerate
+                          @ [a]
+                          (GHC.List.drop @ a n)
+                          eta of ww { (#,#) ww1 ww2 ->
+                   GHC.Base.map
+                     @ [a]
+                     @ a
+                     (GHC.List.head @ a)
+                     (GHC.List.takeWhile
+                        @ [a]
+                        (AS.Parsing.Common.every1 @ a)
+                        (GHC.Types.: @ [a] ww1 ww2)) }) -}
+79ce3686ebc6bc34b7d4e2e6aafe8a02
+  every1 :: [a] -> GHC.Types.Bool
+    {- Arity: 1, HasNoCafRefs, Strictness: <S,1*U>,
+       Unfolding: (\ @ a x :: [a] ->
+                   case x of wild {
+                     [] -> GHC.Types.False : ds1 ds2 -> GHC.Types.True }) -}
+7897c0e26d3f7f8f31bc3915619d7581
+  getDelimitedSubstring :: GHC.Base.String
+                           -> GHC.Base.String
+                           -> GHC.Types.Int
+                           -> GHC.Base.String
+    {- Arity: 3, Strictness: <S,1*U><S,1*U><S(S),1*U(U)>,
+       Inline: INLINE[0],
+       Unfolding: InlineRule (3, True, False)
+                  (\ w :: GHC.Base.String
+                     w1 :: GHC.Base.String
+                     w2 :: GHC.Types.Int ->
+                   case w2 of ww { GHC.Types.I# ww1 ->
+                   AS.Parsing.Common.$wgetDelimitedSubstring w w1 ww1 }) -}
+08e9df8df1b50c0baeab1ecc8af8cd9f
+  getLine :: GHC.Base.String -> GHC.Types.Int -> GHC.Base.String
+    {- Arity: 2, Strictness: <S,1*U><S(S),1*U(U)>,
+       Unfolding: InlineRule (2, True, False)
+                  (\ str :: GHC.Base.String n :: GHC.Types.Int ->
+                   AS.Parsing.Common.getDelimitedSubstring
+                     str
+                     AS.Parsing.Common.getLine1
+                     n) -}
+94bfa8a4d6bf15410f4647e4e25a80f6
+  getLine1 :: [GHC.Types.Char]
+    {- HasNoCafRefs, Strictness: m2,
+       Unfolding: (GHC.Types.:
+                     @ GHC.Types.Char
+                     AS.Parsing.Common.getLine2
+                     (GHC.Types.[] @ GHC.Types.Char)) -}
+4ab426007565576e770edcedddccd253
+  getLine2 :: GHC.Types.Char
+    {- HasNoCafRefs, Strictness: m, Unfolding: (GHC.Types.C# '\n') -}
+cdfaa6b022635997d81c2b3363008a00
+  getOffsets :: AS.Types.ASLocation
+                -> [(GHC.Types.Int, GHC.Types.Int)]
+    {- Arity: 1, HasNoCafRefs, Strictness: <S,1*U>,
+       Unfolding: (\ loc :: AS.Types.ASLocation ->
+                   case loc of wild {
+                     AS.Types.Index ds ds1 -> AS.Parsing.Common.getOffsets1
+                     AS.Types.Range ds ds1
+                     -> case ds1 of wild1 { (,) ds2 ds3 ->
+                        case ds2 of wild2 { (,) a b ->
+                        case ds3 of wild3 { (,) c d ->
+                        case c of wild4 { GHC.Types.I# x ->
+                        case a of wild5 { GHC.Types.I# y ->
+                        let {
+                          y1 :: GHC.Prim.Int# = GHC.Prim.-# x y
+                        } in
+                        case GHC.Prim.tagToEnum#
+                               @ GHC.Types.Bool
+                               (GHC.Prim.># 0 y1) of wild6 {
+                          GHC.Types.False
+                          -> let {
+                               lvl13 :: [GHC.Types.Int]
+                               = case d of wild7 { GHC.Types.I# x1 ->
+                                 case b of wild8 { GHC.Types.I# y2 ->
+                                 GHC.Enum.eftInt 0 (GHC.Prim.-# x1 y2) } }
+                             } in
+                             letrec {
+                               go :: GHC.Prim.Int# -> [(GHC.Types.Int, GHC.Types.Int)]
+                                 {- Arity: 1, Strictness: <L,U> -}
+                               = \ x1 :: GHC.Prim.Int# ->
+                                 let {
+                                   z :: [(GHC.Types.Int, GHC.Types.Int)]
+                                   = case GHC.Prim.tagToEnum#
+                                            @ GHC.Types.Bool
+                                            (GHC.Prim.==# x1 y1) of wild7 {
+                                       GHC.Types.False -> go (GHC.Prim.+# x1 1)
+                                       GHC.Types.True
+                                       -> GHC.Types.[] @ (GHC.Types.Int, GHC.Types.Int) }
+                                 } in
+                                 let {
+                                   ds4 :: GHC.Types.Int {- Strictness: m -} = GHC.Types.I# x1
+                                 } in
+                                 letrec {
+                                   go1 :: [GHC.Types.Int] -> [(GHC.Types.Int, GHC.Types.Int)]
+                                     {- Arity: 1, Strictness: <S,1*U> -}
+                                   = \ ds5 :: [GHC.Types.Int] ->
+                                     case ds5 of wild7 {
+                                       [] -> z
+                                       : y2 ys
+                                       -> GHC.Types.:
+                                            @ (GHC.Types.Int, GHC.Types.Int)
+                                            (ds4, y2)
+                                            (go1 ys) }
+                                 } in
+                                 go1 lvl13
+                             } in
+                             go 0
+                          GHC.Types.True
+                          -> GHC.Types.[] @ (GHC.Types.Int, GHC.Types.Int) } } } } } } }) -}
+8627a583383309c07451e17f9dddfcd0
+  getOffsets1 :: [(GHC.Types.Int, GHC.Types.Int)]
+    {- HasNoCafRefs, Strictness: m2,
+       Unfolding: (GHC.Types.:
+                     @ (GHC.Types.Int, GHC.Types.Int)
+                     AS.Parsing.Common.getOffsets2
+                     (GHC.Types.[] @ (GHC.Types.Int, GHC.Types.Int))) -}
+273e7186a381f46b5d17464bfb4c9171
+  getOffsets2 :: (GHC.Types.Int, GHC.Types.Int)
+    {- HasNoCafRefs, Strictness: m,
+       Unfolding: ((AS.Parsing.Common.getOffsets3,
+                    AS.Parsing.Common.getOffsets3)) -}
+cd6418b0b3ce310f4c29b4a399131a8c
+  getOffsets3 :: GHC.Types.Int
+    {- HasNoCafRefs, Strictness: m, Unfolding: (GHC.Types.I# 0) -}
+f028a417fa0e61c1797556dbbeedd5d0
+  lastN :: GHC.Types.Int -> [a] -> [a]
+    {- Arity: 2, HasNoCafRefs, Strictness: <S,1*U(U)><S,U>,
+       Inline: INLINE[0],
+       Unfolding: InlineRule (2, True, False)
+                  (\ @ a w :: GHC.Types.Int w1 :: [a] ->
+                   case w of ww { GHC.Types.I# ww1 ->
+                   AS.Parsing.Common.$wlastN @ a ww1 w1 }) -}
+b84908553215ac552bf2a4817a63c514
+  normalizeRanges :: [AS.Types.ASLocation] -> [AS.Types.ASLocation]
+    {- Arity: 1, HasNoCafRefs, Strictness: <S,1*U>,
+       Unfolding: (\ locs :: [AS.Types.ASLocation] ->
+                   AS.Parsing.Common.normalizeRanges_go locs) -}
+87f02becf57226474787a86e587e2b19
+  normalizeRanges_go :: [AS.Types.ASLocation]
+                        -> [AS.Types.ASLocation]
+    {- Arity: 1, HasNoCafRefs, Strictness: <S,1*U> -}
+38e81e67a63d7c298f7f14df784a5756
+  rangeDiff :: ((GHC.Types.Int, GHC.Types.Int),
+                (GHC.Types.Int, GHC.Types.Int))
+               -> (GHC.Types.Int, GHC.Types.Int)
+    {- Arity: 1, HasNoCafRefs,
+       Strictness: <S,1*U(U(1*U(U),1*U(U)),U(1*U(U),1*U(U)))>m,
+       Inline: INLINE[0],
+       Unfolding: InlineRule (1, True, False)
+                  (\ w :: ((GHC.Types.Int, GHC.Types.Int),
+                           (GHC.Types.Int, GHC.Types.Int)) ->
+                   case w of ww { (,) ww1 ww2 ->
+                   (case ww2 of wild { (,) x ds1 ->
+                    case x of wild1 { GHC.Types.I# x1 ->
+                    case ww1 of wild2 { (,) x2 ds2 ->
+                    case x2 of wild3 { GHC.Types.I# y ->
+                    GHC.Types.I# (GHC.Prim.+# (GHC.Prim.-# x1 y) 1) } } } },
+                    case ww2 of wild { (,) ds1 y ->
+                    case y of wild1 { GHC.Types.I# x ->
+                    case ww1 of wild2 { (,) ds2 y1 ->
+                    case y1 of wild3 { GHC.Types.I# y2 ->
+                    GHC.Types.I# (GHC.Prim.+# (GHC.Prim.-# x y2) 1) } } } }) }) -}
+423d997a2450a2fefad1ff44a456e2fd
+  regexList :: GHC.Base.String
+               -> GHC.Base.String
+               -> [GHC.Base.String]
+    {- Arity: 2, Strictness: <L,1*U><S,1*U> -}
+8848774ecf4804a2083b49a660e4dff1
+  replaceSubstrings :: GHC.Base.String
+                       -> [(GHC.Base.String, GHC.Base.String)]
+                       -> GHC.Base.String
+    {- Arity: 2, Strictness: <S,1*U><L,1*U> -}
+7541cc3718e7b6a2b064b3b231aa0183
+  reshapeColArr :: [a] -> (GHC.Types.Int, GHC.Types.Int) -> [[a]]
+    {- Arity: 2, Strictness: <S,1*U><S(SS),1*U(1*U(U),1*U(U))>,
+       Inline: INLINE[0],
+       Unfolding: InlineRule (2, True, False)
+                  (\ @ a w :: [a] w1 :: (GHC.Types.Int, GHC.Types.Int) ->
+                   case w1 of ww { (,) ww1 ww2 ->
+                   case ww1 of ww3 { GHC.Types.I# ww4 ->
+                   case ww2 of ww5 { GHC.Types.I# ww6 ->
+                   AS.Parsing.Common.$wreshapeColArr @ a w ww4 ww6 } } }) -}
+48eb1a44d69a22f3a5941c0b6c11a58d
+  skip :: Text.Parsec.Text.Parser a
+          -> Text.Parsec.Text.Parser GHC.Base.String
+    {- Arity: 6,
+       Strictness: <C(C(C(C(C(S))))),1*C1(C1(C1(C1(C1(U)))))><L,U><L,C(C1(C1(U)))><L,U><L,C(C1(C1(U)))><L,U>,
+       Unfolding: (AS.Parsing.Common.skip1
+                     `cast`
+                   (forall a.
+                    <Text.Parsec.Text.Parser a>_R
+                    ->_R Sym (Text.Parsec.Prim.NTCo:ParsecT[0]
+                                  <Data.Text.Internal.Text>_R
+                                  <()>_R
+                                  <Data.Functor.Identity.Identity>_R
+                                  <GHC.Base.String>_R))) -}
+50d22e0b6b566f7ebb2f8af1545b0189
+  skip1 :: Text.Parsec.Text.Parser a
+           -> Text.Parsec.Prim.State Data.Text.Internal.Text ()
+              -> (GHC.Base.String
+                  -> Text.Parsec.Prim.State Data.Text.Internal.Text ()
+                  -> Text.Parsec.Error.ParseError
+                  -> Data.Functor.Identity.Identity b)
+              -> (Text.Parsec.Error.ParseError
+                  -> Data.Functor.Identity.Identity b)
+              -> (GHC.Base.String
+                  -> Text.Parsec.Prim.State Data.Text.Internal.Text ()
+                  -> Text.Parsec.Error.ParseError
+                  -> Data.Functor.Identity.Identity b)
+              -> (Text.Parsec.Error.ParseError
+                  -> Data.Functor.Identity.Identity b)
+              -> Data.Functor.Identity.Identity b
+    {- Arity: 6,
+       Strictness: <C(C(C(C(C(S))))),1*C1(C1(C1(C1(C1(U)))))><L,U><L,C(C1(C1(U)))><L,U><L,C(C1(C1(U)))><L,U>,
+       Unfolding: (\ @ a
+                     p :: Text.Parsec.Text.Parser a
+                     @ b
+                     eta :: Text.Parsec.Prim.State Data.Text.Internal.Text ()
+                     eta1 :: GHC.Base.String
+                             -> Text.Parsec.Prim.State Data.Text.Internal.Text ()
+                             -> Text.Parsec.Error.ParseError
+                             -> Data.Functor.Identity.Identity b
+                     eta2 :: Text.Parsec.Error.ParseError
+                             -> Data.Functor.Identity.Identity b
+                     eta3 :: GHC.Base.String
+                             -> Text.Parsec.Prim.State Data.Text.Internal.Text ()
+                             -> Text.Parsec.Error.ParseError
+                             -> Data.Functor.Identity.Identity b
+                     eta4 :: Text.Parsec.Error.ParseError
+                             -> Data.Functor.Identity.Identity b ->
+                   p `cast`
+                   (Text.Parsec.Prim.NTCo:ParsecT[0]
+                        <Data.Text.Internal.Text>_R
+                        <()>_R
+                        <Data.Functor.Identity.Identity>_R
+                        <a>_R)
+                     @ b
+                     eta
+                     (\ x :: a
+                        s2 :: Text.Parsec.Prim.State Data.Text.Internal.Text ()
+                        err :: Text.Parsec.Error.ParseError ->
+                      eta1
+                        (GHC.Types.[] @ GHC.Types.Char)
+                        s2
+                        (case s2 of wild { Text.Parsec.Prim.State ds3 ds4 ds5 ->
+                         case ds4 of ww10 { Text.Parsec.Pos.SourcePos ww11 ww12 ww13 ->
+                         case err of ww { Text.Parsec.Error.ParseError ww1 ww2 ->
+                         case ww1 of ww3 { Text.Parsec.Pos.SourcePos ww4 ww5 ww6 ->
+                         case Text.Parsec.Error.$wmergeError
+                                ww4
+                                ww5
+                                ww6
+                                ww2
+                                ww11
+                                ww12
+                                ww13
+                                (GHC.Types.[]
+                                   @ Text.Parsec.Error.Message) of ww14 { (#,#) ww15 ww16 ->
+                         Text.Parsec.Error.ParseError ww15 ww16 } } } } }))
+                     eta2
+                     (\ x :: a
+                        s2 :: Text.Parsec.Prim.State Data.Text.Internal.Text ()
+                        err :: Text.Parsec.Error.ParseError ->
+                      eta3
+                        (GHC.Types.[] @ GHC.Types.Char)
+                        s2
+                        (case s2 of wild { Text.Parsec.Prim.State ds3 ds4 ds5 ->
+                         case ds4 of ww10 { Text.Parsec.Pos.SourcePos ww11 ww12 ww13 ->
+                         case err of ww { Text.Parsec.Error.ParseError ww1 ww2 ->
+                         case ww1 of ww3 { Text.Parsec.Pos.SourcePos ww4 ww5 ww6 ->
+                         case Text.Parsec.Error.$wmergeError
+                                ww4
+                                ww5
+                                ww6
+                                ww2
+                                ww11
+                                ww12
+                                ww13
+                                (GHC.Types.[]
+                                   @ Text.Parsec.Error.Message) of ww14 { (#,#) ww15 ww16 ->
+                         Text.Parsec.Error.ParseError ww15 ww16 } } } } }))
+                     eta4) -}
+cf78d2e4f49c8d9e0cb80c832953af34
+  sortStrList :: (GHC.Base.String, GHC.Base.String)
+                 -> (GHC.Base.String, GHC.Base.String)
+                 -> GHC.Types.Ordering
+    {- Arity: 2, Strictness: <S,1*U(U,A)><S,1*U(U,A)>,
+       Inline: INLINE[0],
+       Unfolding: InlineRule (2, True, False)
+                  (\ w :: (GHC.Base.String, GHC.Base.String)
+                     w1 :: (GHC.Base.String, GHC.Base.String) ->
+                   case w of ww { (,) ww1 ww2 ->
+                   case w1 of ww3 { (,) ww4 ww5 ->
+                   AS.Parsing.Common.$wsortStrList ww1 ww4 } }) -}
+f2fb564798fa41525bc958aeda292c11
+  sortStrList1 :: [GHC.Types.Char]
+    {- HasNoCafRefs,
+       Unfolding: (GHC.Types.:
+                     @ GHC.Types.Char
+                     GHC.Show.$fShowChar1
+                     (GHC.Types.[] @ GHC.Types.Char)) -}
+vectorised variables:
+vectorised tycons:
+vectorised reused tycons:
+parallel variables:
+parallel tycons:
+trusted: none
+require own pkg trusted: False
+

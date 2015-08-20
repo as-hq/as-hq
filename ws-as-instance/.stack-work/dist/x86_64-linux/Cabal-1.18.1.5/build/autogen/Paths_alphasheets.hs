@@ -17,11 +17,11 @@ version :: Version
 version = Version {versionBranch = [0,1,0,0], versionTags = []}
 bindir, libdir, datadir, libexecdir, sysconfdir :: FilePath
 
-bindir     = "/home/riteshr/as/ws-as-instance/.stack-work/install/x86_64-linux/lts-2.17/7.8.4/bin"
-libdir     = "/home/riteshr/as/ws-as-instance/.stack-work/install/x86_64-linux/lts-2.17/7.8.4/lib/x86_64-linux-ghc-7.8.4/alphasheets-0.1.0.0"
-datadir    = "/home/riteshr/as/ws-as-instance/.stack-work/install/x86_64-linux/lts-2.17/7.8.4/share/x86_64-linux-ghc-7.8.4/alphasheets-0.1.0.0"
-libexecdir = "/home/riteshr/.cabal/libexec"
-sysconfdir = "/home/riteshr/.cabal/etc"
+bindir     = "/home/anand/Development/as/backend/ws-as-instance/.stack-work/install/x86_64-linux/lts-2.17/7.8.4/bin"
+libdir     = "/home/anand/Development/as/backend/ws-as-instance/.stack-work/install/x86_64-linux/lts-2.17/7.8.4/lib/x86_64-linux-ghc-7.8.4/alphasheets-0.1.0.0"
+datadir    = "/home/anand/Development/as/backend/ws-as-instance/.stack-work/install/x86_64-linux/lts-2.17/7.8.4/share/x86_64-linux-ghc-7.8.4/alphasheets-0.1.0.0"
+libexecdir = "/home/anand/.cabal/libexec"
+sysconfdir = "/home/anand/.cabal/etc"
 
 getBinDir, getLibDir, getDataDir, getLibexecDir, getSysconfDir :: IO FilePath
 getBinDir = catchIO (getEnv "alphasheets_bindir") (\_ -> return bindir)

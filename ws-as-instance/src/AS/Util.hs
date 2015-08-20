@@ -15,29 +15,46 @@ generateErrorMessage e = return "hi"
 getTime :: IO String
 getTime = fmap (show . utctDayTime) getCurrentTime
 
-printTime :: String -> IO ()
-printTime str = do 
-  time <- (getCurrentTime >>= return . utctDayTime)
-  putStrLn $ str ++ " " ++ (show time)
+printTimed :: String -> IO ()
+printTimed str = do 
+  time <- getTime
+  putStrLn $ "[" ++ (show time) ++ "] " ++ str 
 
-getUpdateTime :: ASTime
-getUpdateTime = Time "hi" 1 2 3
+getASTime :: IO ASTime
+getASTime = return $ Time "hi" 1 2 3
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
+-- | viewing windows 
 
-intersectViewingWindow :: [ASCell] -> ASViewingWindow -> [ASCell]
+intersectViewingWindows :: [ASCell] -> [ASWindow] -> [ASCell]
+intersectViewingWindows cells vws = concat $ map (intersectViewingWindow cells) vws 
+
+intersectViewingWindow :: [ASCell] -> ASWindow -> [ASCell]
 intersectViewingWindow cells vw = filter (inVW vw) cells
   where
-    inVW :: ASViewingWindow -> ASCell -> Bool
-    inVW (ASViewingWindow tlc tlr w h) (Cell (Index _ (col,row)) _ _) = ((inRange col tlc w) && (inRange row tlr h))
-      where
-        inRange :: Int -> Int -> Int -> Bool
-        inRange elem start len = ((elem >= start) && (elem <= (start + len)))
-
-initialViewingWindow :: ASViewingWindow
-initialViewingWindow = ASViewingWindow 0 0 100 100 
-
+    inVW :: ASWindow -> ASCell -> Bool
+    inVW (Window wSheetId (tlc, tlr) (brc, brr)) (Cell (Index (Sheet cSheetId _) (col,row)) _ _ _) = ((wSheetId==cSheetId) && (inRange col tlc (brc-tlc)) && (inRange row tlr (brr-tlr)))
+    inRange :: Int -> Int -> Int -> Bool
+    inRange elem start len = ((elem >= start) && (elem <= (start + len)))
 
 fromRight :: Either a b -> b
 fromRight (Right b) = b
 
+----------------------------------------------------------------------------------------------------------------------------------------------
+-- | Users
+
+updateMessageUser :: ASUserId -> ASMessage -> ASMessage
+updateMessageUser uid (Message _ a r p) = Message uid a r p 
+
+----------------------------------------------------------------------------------------------------------------------------------------------
+-- | Tags
+
+containsStreamTag :: [ASCellTag] -> Bool
+containsStreamTag [] = False
+containsStreamTag ((Streaming _ _):tags) = True
+containsStreamTag (tag:tags) = containsStreamTag tags
+
+-- unsafe for empty lists
+getStreamTag :: [ASCellTag] -> ASCellTag
+getStreamTag (s@(Streaming _ _):tags) = s
+getStreamTag (tag:tags) = getStreamTag tags

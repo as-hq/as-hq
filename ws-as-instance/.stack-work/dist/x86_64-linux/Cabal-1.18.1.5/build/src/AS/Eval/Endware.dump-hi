@@ -1,0 +1,96 @@
+
+==================== FINAL INTERFACE ====================
+2015-08-20 07:09:21.965141 UTC
+
+interface alphasheets-0.1.0.0:AS.Eval.Endware 7084
+  interface hash: 0a51c5f001763533dacc96db4baa4a47
+  ABI hash: b014592c67859d9601e1416ce9176273
+  export-list hash: 7b3c1462effd2a9e5184331e1252e639
+  orphan hash: 693e9af84d3dfcc71e640e005bdc5e2e
+  flag hash: e156f5ccc0a4b7238641a9085ca60f8f
+  used TH splices: False
+  where
+exports:
+  AS.Eval.Endware.evalEndware
+  AS.Eval.Endware.tagStreamedCell
+  AS.Eval.Endware.tagStyledCell
+module dependencies: AS.Types
+package dependencies: SHA-1.6.4.2 aeson-0.8.0.2 array-0.5.0.0
+                      attoparsec-0.12.1.6 base base64-bytestring-1.0.0.1 binary-0.7.1.0
+                      blaze-builder-0.4.0.1 bytestring-0.10.4.0 case-insensitive-1.2.0.4
+                      containers-0.5.5.1 deepseq-1.3.0.2 dlist-0.7.1.1 entropy-0.3.7
+                      ghc-prim hashable-1.2.3.3 integer-gmp network-2.6.2.0
+                      old-locale-1.0.0.6 primitive-0.6 random-1.1 scientific-0.3.3.8
+                      text-1.2.0.6 time-1.4.2 transformers-0.3.0.0 unix-2.7.0.1
+                      unordered-containers-0.2.5.1 vector-0.10.12.3 websockets-0.9.5.0
+orphans: aeson-0.8.0.2:Data.Aeson.Types.Generic
+         aeson-0.8.0.2:Data.Aeson.Types.Instances
+         aeson-0.8.0.2:Data.Aeson.Types.Internal
+         attoparsec-0.12.1.6:Data.Attoparsec.ByteString.Char8 base:GHC.Base
+         base:GHC.Float base:GHC.Real binary-0.7.1.0:Data.Binary.Generic
+         bytestring-0.10.4.0:Data.ByteString.Builder
+         hashable-1.2.3.3:Data.Hashable.Generic
+         network-2.6.2.0:Network.Socket network-2.6.2.0:Network.Socket.Types
+         random-1.1:System.Random text-1.2.0.6:Data.Text
+         text-1.2.0.6:Data.Text.Lazy time-1.4.2:Data.Time.Calendar.Gregorian
+         time-1.4.2:Data.Time.Format.Parse
+         time-1.4.2:Data.Time.LocalTime.LocalTime
+         transformers-0.3.0.0:Control.Monad.Trans.Error
+         vector-0.10.12.3:Data.Vector.Fusion.Stream
+         vector-0.10.12.3:Data.Vector.Unboxed
+family instance modules: alphasheets-0.1.0.0:AS.Types
+                         attoparsec-0.12.1.6:Data.Attoparsec.Internal.Types
+                         base:Control.Applicative base:Data.Either base:Data.Monoid
+                         base:Data.Type.Equality base:GHC.Exts base:GHC.Generics
+                         dlist-0.7.1.1:Data.DList primitive-0.6:Control.Monad.Primitive
+                         text-1.2.0.6:Data.Text text-1.2.0.6:Data.Text.Lazy
+                         unordered-containers-0.2.5.1:Data.HashMap.Base
+                         unordered-containers-0.2.5.1:Data.HashSet
+                         vector-0.10.12.3:Data.Vector vector-0.10.12.3:Data.Vector.Primitive
+                         vector-0.10.12.3:Data.Vector.Storable
+                         vector-0.10.12.3:Data.Vector.Unboxed
+                         vector-0.10.12.3:Data.Vector.Unboxed.Base
+import  -/  AS.Types b606c3629b6c721cf8b97ba4ece45fb1
+  exports: 66ecab93115eea25472e439473866aa8
+  ASCell 9694dcec8d390971f2871a63000a945c
+  Cell 7c12ca84fa41249c90ef3c2fc51aa59b
+import  -/  base:GHC.Base 5d7c5f596f9a4c8a8abd8517c8bcd5dd
+import  -/  base:Prelude 74043f272d60acec1777d3461cfe5ef4
+import  -/  ghc-prim:GHC.Types dcba736fa3dfba12d307ab18354845d2
+092a21685f0aa9bf3a17752974dd3096
+  evalEndware :: AS.Types.ASCell -> GHC.Types.IO AS.Types.ASCell
+    {- Arity: 2, HasNoCafRefs, Strictness: <S,1*U><L,U>,
+       Unfolding: (AS.Eval.Endware.evalEndware1
+                     `cast`
+                   (<AS.Types.ASCell>_R
+                    ->_R Sym (GHC.Types.NTCo:IO[0] <AS.Types.ASCell>_R))) -}
+4dc34b66d1d207e0fac4393630139d43
+  evalEndware1 :: AS.Types.ASCell
+                  -> GHC.Prim.State# GHC.Prim.RealWorld
+                  -> (# GHC.Prim.State# GHC.Prim.RealWorld, AS.Types.ASCell #)
+    {- Arity: 2, HasNoCafRefs, Strictness: <S,1*U><L,U>,
+       Unfolding: (\ c :: AS.Types.ASCell
+                     eta :: GHC.Prim.State# GHC.Prim.RealWorld ->
+                   case c of wild { AS.Types.Cell l e v t -> (# eta, wild #) }) -}
+b0e8b6dcffc7b3ad44a7832af906093e
+  tagStreamedCell :: AS.Types.ASCell -> GHC.Types.IO AS.Types.ASCell
+    {- Arity: 2, HasNoCafRefs, Strictness: <S,1*U><L,U>,
+       Unfolding: (AS.Eval.Endware.evalEndware1
+                     `cast`
+                   (<AS.Types.ASCell>_R
+                    ->_R Sym (GHC.Types.NTCo:IO[0] <AS.Types.ASCell>_R))) -}
+27fbf4896140c633d5b89c9d32bde848
+  tagStyledCell :: AS.Types.ASCell -> GHC.Types.IO AS.Types.ASCell
+    {- Arity: 2, HasNoCafRefs, Strictness: <S,1*U><L,U>,
+       Unfolding: (AS.Eval.Endware.evalEndware1
+                     `cast`
+                   (<AS.Types.ASCell>_R
+                    ->_R Sym (GHC.Types.NTCo:IO[0] <AS.Types.ASCell>_R))) -}
+vectorised variables:
+vectorised tycons:
+vectorised reused tycons:
+parallel variables:
+parallel tycons:
+trusted: none
+require own pkg trusted: False
+

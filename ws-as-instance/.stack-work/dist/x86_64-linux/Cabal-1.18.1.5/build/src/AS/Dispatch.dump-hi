@@ -1,0 +1,694 @@
+
+==================== FINAL INTERFACE ====================
+2015-08-20 07:18:56.280386 UTC
+
+interface alphasheets-0.1.0.0:AS.Dispatch [orphan module] 7084
+  interface hash: 82880d739dc283d2d117ef514b5403b5
+  ABI hash: d75d21a083da555a33215a4b813b7ea9
+  export-list hash: 210b74a9c859a1646690ec7e20e35a71
+  orphan hash: 1a99f618a4e2fb15aece2bf0458b114f
+  flag hash: f8b866267ce58dc6290b8020b2e82f8c
+  used TH splices: False
+  where
+exports:
+  AS.Dispatch.additionalCells
+  AS.Dispatch.createExcelCells
+  AS.Dispatch.createListCells
+  AS.Dispatch.evalChain
+  AS.Dispatch.evaluatePrimitive
+  AS.Dispatch.getInitialCells
+  AS.Dispatch.handleEval
+  AS.Dispatch.insertCellImmediate
+  AS.Dispatch.reevaluateInitialCells
+  AS.Dispatch.sendResult
+module dependencies: AS.Config.Paths AS.DAG AS.DB AS.Eval
+                     AS.Eval.Endware AS.Eval.Lang AS.Eval.Middleware AS.Parsing.Common
+                     AS.Parsing.In AS.Parsing.Out AS.Types AS.Util
+package dependencies: SHA-1.6.4.2 aeson-0.8.0.2 array-0.5.0.0
+                      attoparsec-0.12.1.6 base base64-bytestring-1.0.0.1 binary-0.7.1.0
+                      blaze-builder-0.4.0.1 bytestring-0.10.4.0 case-insensitive-1.2.0.4
+                      cereal-0.4.1.1 containers-0.5.5.1 crypto-api-0.13.2 deepseq-1.3.0.2
+                      directory-1.2.1.0 dlist-0.7.1.1 entropy-0.3.7 filepath-1.3.0.2
+                      ghc-prim hashable-1.2.3.3 integer-gmp mtl-2.1.3.1 network-2.6.2.0
+                      old-locale-1.0.0.6 parsec-3.1.9 pretty-1.1.1.1 primitive-0.6
+                      process-1.2.0.0 pureMD5-2.1.2.1 pyfi-0.4.0.4 random-1.1
+                      regex-base-0.93.2 regex-posix-0.95.2 scientific-0.3.3.8 split-0.2.2
+                      strict-0.3.2 tagged-0.7.3 template-haskell text-1.2.0.6 time-1.4.2
+                      transformers-0.3.0.0 unix-2.7.0.1 unordered-containers-0.2.5.1
+                      vector-0.10.12.3 websockets-0.9.5.0
+orphans: aeson-0.8.0.2:Data.Aeson.Types.Generic
+         aeson-0.8.0.2:Data.Aeson.Types.Instances
+         aeson-0.8.0.2:Data.Aeson.Types.Internal alphasheets-0.1.0.0:AS.DAG
+         alphasheets-0.1.0.0:AS.Eval.Lang alphasheets-0.1.0.0:AS.Parsing.In
+         attoparsec-0.12.1.6:Data.Attoparsec.ByteString.Char8 base:GHC.Base
+         base:GHC.Float base:GHC.Real binary-0.7.1.0:Data.Binary.Generic
+         bytestring-0.10.4.0:Data.ByteString.Builder
+         crypto-api-0.13.2:Crypto.Classes crypto-api-0.13.2:Crypto.Random
+         hashable-1.2.3.3:Data.Hashable.Generic
+         network-2.6.2.0:Network.Socket network-2.6.2.0:Network.Socket.Types
+         pyfi-0.4.0.4:Python random-1.1:System.Random
+         regex-base-0.93.2:Text.Regex.Base.Context
+         regex-posix-0.95.2:Text.Regex.Posix.ByteString
+         regex-posix-0.95.2:Text.Regex.Posix.ByteString.Lazy
+         regex-posix-0.95.2:Text.Regex.Posix.Sequence
+         regex-posix-0.95.2:Text.Regex.Posix.String
+         template-haskell:Language.Haskell.TH.PprLib text-1.2.0.6:Data.Text
+         text-1.2.0.6:Data.Text.Lazy time-1.4.2:Data.Time.Calendar.Gregorian
+         time-1.4.2:Data.Time.Format.Parse
+         time-1.4.2:Data.Time.LocalTime.LocalTime
+         transformers-0.3.0.0:Control.Monad.Trans.Error
+         vector-0.10.12.3:Data.Vector.Fusion.Stream
+         vector-0.10.12.3:Data.Vector.Unboxed
+family instance modules: alphasheets-0.1.0.0:AS.Types
+                         attoparsec-0.12.1.6:Data.Attoparsec.Internal.Types
+                         base:Control.Applicative base:Data.Either base:Data.Monoid
+                         base:Data.Type.Equality base:GHC.Exts base:GHC.Generics
+                         dlist-0.7.1.1:Data.DList primitive-0.6:Control.Monad.Primitive
+                         text-1.2.0.6:Data.Text text-1.2.0.6:Data.Text.Lazy
+                         unordered-containers-0.2.5.1:Data.HashMap.Base
+                         unordered-containers-0.2.5.1:Data.HashSet
+                         vector-0.10.12.3:Data.Vector vector-0.10.12.3:Data.Vector.Primitive
+                         vector-0.10.12.3:Data.Vector.Storable
+                         vector-0.10.12.3:Data.Vector.Unboxed
+                         vector-0.10.12.3:Data.Vector.Unboxed.Base
+import  -/  AS.DAG 0220c8f9ab658f790741e16a6fb1054c
+  exports: b862f78ad2799c5db977b9ac3cb01a18
+  descendants c113759364febdefa7af105e5a4e228d
+  immediateAncestors d3abb31b7178b8a2cbafa0c53d45241a
+import  -/  AS.DB b12b1d3c11d94c6f9f9b9f3592040d65
+  exports: 3c362108996cc5146ac2250c1b1c6210
+  getCells 6ba3301401d23f17f8f7c1d851d4834f
+  getDAG 143855947bb9e585222d918122997131
+  pushCommit 4a8fd67b760f0952a64bf5ddb6a7a74f
+  setCell 5d4f6e7866838271bf4fcc8a44f7bf89
+  setCells 4be32ec4c4867e594c489b509e3c624e
+  updateDAG 1518bd50213189e8ca751d29ffcbed1b
+import  -/  AS.Eval b5ed8acff9b9c1efea56cfefc3843cec
+  exports: 53a629b4df3de569c8af7ea232a42844
+  evalExpression d57d768d17f493c3dd65aac2a0ccda7d
+import  -/  AS.Eval.Endware b014592c67859d9601e1416ce9176273
+  exports: 7b3c1462effd2a9e5184331e1252e639
+  evalEndware 092a21685f0aa9bf3a17752974dd3096
+import  -/  AS.Eval.Middleware c68d9a862d9468532a25a619d8f27186
+  exports: 86ad097a675cbd486913eeab82330a30
+  evalMiddleware a956fc64f863d41ba25a264a7fedc8e3
+import  -/  AS.Parsing.Common 2fdb05fa6cb85dd95bd00704eb6e020b
+  exports: 6373d90a9aaddcd2d18cba04a491c26c
+  decomposeLocs a187d4df91fa5ae9a88d3b5f9b361b23
+  getOffsets cdfaa6b022635997d81c2b3363008a00
+import  -/  AS.Parsing.In b6b481fc0bd8e9ceda0ab62e76f828d2
+  exports: 62019d4dda5ea5e6817c5777f94ba732
+  parseValue 031e722cba41d96e164b91f673792075
+import  -/  AS.Parsing.Out fba6f9deafe016118fae642fb99574ed
+  exports: a35a850caac02fe781c1c3ce3af3ec40
+  getDependenciesAndExpressions 80fa9728608910e4a01ccc1c352909fe
+  unpackExcelExprs 48b274407b90829998182721f8cc2891
+  unpackExcelLocs 2127a0b32f46d90039afb45500ea8d0b
+  unpackExcelVals 5d5ec8993ba355b1397cb04ad2b3b125
+import  -/  AS.Types b606c3629b6c721cf8b97ba4ece45fb1
+  exports: 66ecab93115eea25472e439473866aa8
+  ASCell 9694dcec8d390971f2871a63000a945c
+  ASCommit d3049183906dcc9360eb9744ebe08503
+  ASLocation c3999fef437ba89bfafc0ba56adaa4e1
+  ASMessage bc6381c35bc5db39b62b2fcf1105f390
+  ASPayload ef78e7e924cf74e65dbb749bb938f8a1
+  ASUser 26160ef22a78e8de26b13a18b6ee372c
+  ASValue b1acb5fd16e89609b5c353aa6b20e24f
+  Cell 7c12ca84fa41249c90ef3c2fc51aa59b
+  DBNothingException b81a889cfb4da68811ac63a070b90725
+  EitherCells 0d4d8488c64b31edbeea4dda11df3b31
+  Evaluate 9aa9b4b8dd66530e45137f68aa948713
+  ExcelSheet 10dbddd3914abd20bcb5ad3f9f161e22
+  Expression d3eb52f5348f449ca41cbf92f7270c44
+  Failure 5d1d555f7bb370771302b7add2b82533
+  Index a3a1c51a9db8b7858642af330a1e8ef6
+  Message 167f18e274772af17812eb5044da6b4b
+  NoValue 8aa7a469de0bec8fdad1e191a0fd47f5
+  PayloadC dffc84ab4e577149303c5ccf11155c82
+  PayloadCL 63ddeb76792f8697c6f7349b31e702d1
+  PayloadN 524ff0a9cd5653a48dd955220943e5d9
+  Python ce1f286eba669d7c31d15d8f4f9ce369
+  Reference ddd5f4288526870e17c56775be43379f
+  Success bf076a46521f6676f19edad3fd5ee1f2
+  ValueL 7f6bc38d21b476842e803fe228ce3ebe
+  ValueS ca16720e7303fc40a036682a9da10488
+  cellExpression 445a5d3169ac6be446511a89559ca7c8
+  cellLocation fa2f58e4098e46f81231f9d520360de4
+  cellValue 045ba7f24795d02c4824aa29edc4bcbe
+  language a464de82425c95b8fe43de0f0debbb43
+  lst 90b068cb6723e6cf98b5e81cfba84c1b
+  sheet 1fcb782c33118e138886e0efce286836
+  userId 9d253aa31f266e0f6efdaab888e5a2e4
+import  -/  AS.Util d80e7b17172dcaa38faa0d323bd0543a
+  exports: 22c6c0c3cabbbc0dbbfea98994afcbca
+  generateErrorMessage e5fdc9cce030cb4bdc2e2f639bbda31d
+  getASTime 2954b5d897f110e673a850034fad19e6
+  printTimed 11b90d9741b8dab38b3d34d2cb6d2915
+import  -/  base:Control.Applicative 30b769206cb5c020684e1bda0d7e7dd3
+import  -/  base:Control.Monad 483e787e07c2e49f1fb1c1b88665cb92
+import  -/  base:Data.Either d1c890129a7c6a9ec02a642c6c2f4ed3
+import  -/  base:Data.List 8b77870d02d66076337587b759b7ee19
+import  -/  base:Data.Maybe 5034d40e23c3a7110309f188001df4ca
+import  -/  base:GHC.Base 5d7c5f596f9a4c8a8abd8517c8bcd5dd
+import  -/  base:GHC.List 4cff382327e59a5787355ca0a4174450
+import  -/  base:GHC.Num 5e7786970581cacc802bf850d458a30b
+import  -/  base:GHC.Show cf1a7ff9edb0f41528085aad04d33753
+import  -/  base:Prelude 74043f272d60acec1777d3461cfe5ef4
+import  -/  base:System.IO cadd0efb01c47ddd8f52d750739fdbdf
+import  -/  containers-0.5.5.1:Data.Map 39e9346954b9366e01d2c8afb617e216
+import  -/  containers-0.5.5.1:Data.Map.Base 4216c6c0396261d88891bb4aaa09340a
+import  -/  ghc-prim:GHC.Classes 3e6cbe1e7e80480408cfa8d5450726a0
+import  -/  ghc-prim:GHC.Types dcba736fa3dfba12d307ab18354845d2
+import  -/  parsec-3.1.9:Text.ParserCombinators.Parsec eba6c99aa0637d8218be47bc78afb571
+import  -/  regex-posix-0.95.2:Text.Regex.Posix ac2bb8a4caf67648cfb9326fa3deedd9
+import  -/  text-1.2.0.6:Data.Text 0a4e6ca8ca412aa3cbc86c5bc7204623
+import  -/  time-1.4.2:Data.Time.Clock 86049c786591e38a79a841e152726f37
+9a47a788433ea61497e55b34fee4840c
+  $sfromList :: [(AS.Types.ASLocation, a)]
+                -> Data.Map.Base.Map AS.Types.ASLocation a
+    {- Arity: 1, Strictness: <S,1*U>,
+       Unfolding: (\ @ a ds :: [(AS.Types.ASLocation, a)] ->
+                   case ds of wild {
+                     [] -> Data.Map.Base.Tip @ AS.Types.ASLocation @ a
+                     : ds1 ds2
+                     -> case ds1 of wild1 { (,) kx x ->
+                        case ds2 of wild2 {
+                          []
+                          -> case kx of dt { DEFAULT ->
+                             Data.Map.Base.Bin
+                               @ AS.Types.ASLocation
+                               @ a
+                               1
+                               dt
+                               x
+                               (Data.Map.Base.Tip @ AS.Types.ASLocation @ a)
+                               (Data.Map.Base.Tip @ AS.Types.ASLocation @ a) }
+                          : ipv ipv1
+                          -> case ipv of wild3 { (,) ky ds3 ->
+                             case AS.Types.$fOrdASLocation_$c>= kx ky of wild4 {
+                               GHC.Types.False
+                               -> case kx of dt { DEFAULT ->
+                                  AS.Dispatch.$wpoly_go10
+                                    @ a
+                                    1
+                                    (Data.Map.Base.Bin
+                                       @ AS.Types.ASLocation
+                                       @ a
+                                       1
+                                       dt
+                                       x
+                                       (Data.Map.Base.Tip @ AS.Types.ASLocation @ a)
+                                       (Data.Map.Base.Tip @ AS.Types.ASLocation @ a))
+                                    wild2 }
+                               GHC.Types.True
+                               -> case kx of dt { DEFAULT ->
+                                  AS.Dispatch.$sfromList1
+                                    @ a
+                                    (Data.Map.Base.Bin
+                                       @ AS.Types.ASLocation
+                                       @ a
+                                       1
+                                       dt
+                                       x
+                                       (Data.Map.Base.Tip @ AS.Types.ASLocation @ a)
+                                       (Data.Map.Base.Tip @ AS.Types.ASLocation @ a))
+                                    wild2 } } } } } }) -}
+d8e941ccc330ada13858858b8ff9089e
+  $sfromList1 :: Data.Map.Base.Map AS.Types.ASLocation a1
+                 -> [(AS.Types.ASLocation, a1)]
+                 -> Data.Map.Base.Map AS.Types.ASLocation a1
+    {- Arity: 2, Strictness: <S,1*U><S,1*U> -}
+8c3150ae9cb525019d51de5ccb8d5869
+  $sinsert :: AS.Types.ASLocation
+              -> a
+              -> Data.Map.Base.Map AS.Types.ASLocation a
+              -> Data.Map.Base.Map AS.Types.ASLocation a
+    {- Arity: 3, Strictness: <S,1*U><L,U><S,1*U>,
+       Unfolding: (\ @ a
+                     eta :: AS.Types.ASLocation
+                     eta1 :: a
+                     eta2 :: Data.Map.Base.Map AS.Types.ASLocation a ->
+                   AS.Dispatch.$sinsert_$sgo10 @ a eta eta1 eta2) -}
+d97e1098bdfdce259c1613f1f967d4b4
+  $sinsert_$sgo10 :: AS.Types.ASLocation
+                     -> a1
+                     -> Data.Map.Base.Map AS.Types.ASLocation a1
+                     -> Data.Map.Base.Map AS.Types.ASLocation a1
+    {- Arity: 3, Strictness: <S,1*U><L,U><S,1*U> -}
+768295fd4f98cebc123703d6a0ec95ba
+  $wa :: AS.Types.ASLocation
+         -> AS.Types.ASExpression
+         -> AS.Types.ASValue
+         -> [AS.Types.ASCellTag]
+         -> GHC.Prim.State# GHC.Prim.RealWorld
+         -> (# GHC.Prim.State# GHC.Prim.RealWorld, [AS.Types.ASCell] #)
+    {- Arity: 5, Strictness: <L,U><L,U><S,1*U><L,U><L,U>,
+       Unfolding: (\ ww :: AS.Types.ASLocation
+                     ww1 :: AS.Types.ASExpression
+                     ww2 :: AS.Types.ASValue
+                     ww3 :: [AS.Types.ASCellTag]
+                     w :: GHC.Prim.State# GHC.Prim.RealWorld ->
+                   case ww2 of wild {
+                     DEFAULT
+                     -> case AS.Util.printTimed1
+                               AS.Dispatch.getInitialCells2
+                               w of ds1 { (#,#) ipv ipv1 ->
+                        (# ipv,
+                           GHC.Base.map
+                             @ (AS.Types.ASLocation, AS.Types.ASExpression, AS.Types.ASValue)
+                             @ AS.Types.ASCell
+                             (\ ds :: (AS.Types.ASLocation,
+                                       AS.Types.ASExpression,
+                                       AS.Types.ASValue) ->
+                              case ds of wild1 { (,,) l e v -> AS.Types.Cell l e v ww3 })
+                             (GHC.List.zip3
+                                @ AS.Types.ASLocation
+                                @ AS.Types.ASExpression
+                                @ AS.Types.ASValue
+                                (AS.Parsing.Common.decomposeLocs ww)
+                                (letrec {
+                                   xs :: [AS.Types.ASExpression]
+                                   = GHC.Types.: @ AS.Types.ASExpression ww1 xs
+                                 } in
+                                 xs)
+                                (letrec {
+                                   xs :: [AS.Types.ASValue] = GHC.Types.: @ AS.Types.ASValue wild xs
+                                 } in
+                                 xs)) #) }
+                     AS.Types.NoValue
+                     -> case AS.Util.printTimed1
+                               AS.Dispatch.getInitialCells2
+                               w of ds1 { (#,#) ipv ipv1 ->
+                        (# ipv,
+                           GHC.Base.map
+                             @ (AS.Types.ASLocation, AS.Types.ASExpression, AS.Types.ASValue)
+                             @ AS.Types.ASCell
+                             (\ ds :: (AS.Types.ASLocation,
+                                       AS.Types.ASExpression,
+                                       AS.Types.ASValue) ->
+                              case ds of wild1 { (,,) l e v -> AS.Types.Cell l e v ww3 })
+                             (GHC.List.zip3
+                                @ AS.Types.ASLocation
+                                @ AS.Types.ASExpression
+                                @ AS.Types.ASValue
+                                (AS.Parsing.Common.decomposeLocs ww)
+                                (case AS.Parsing.Out.$wgetDependenciesAndExpressions
+                                        ww
+                                        ww1
+                                        (AS.Parsing.Common.getOffsets ww) of ww4 { (#,#) ww5 ww6 ->
+                                 ww6 })
+                                AS.Dispatch.getInitialCells_xs) #) } }) -}
+03ea833add54a2244f7770d6e5221e35
+  $wa1 :: AS.Types.EitherCells
+          -> AS.Types.EitherCells
+          -> AS.Types.ASUser
+          -> GHC.Prim.State# GHC.Prim.RealWorld
+          -> (# GHC.Prim.State# GHC.Prim.RealWorld, AS.Types.ASMessage #)
+    {- Arity: 4, Strictness: <S,1*U><S,1*U><L,U(U(U,U,U),A,A)><L,U>,
+       Unfolding: (\ ww :: AS.Types.EitherCells
+                     ww1 :: AS.Types.EitherCells
+                     w :: AS.Types.ASUser
+                     w1 :: GHC.Prim.State# GHC.Prim.RealWorld ->
+                   case ww of wild {
+                     Data.Either.Left e
+                     -> case ww1 of wild1 { DEFAULT ->
+                        (# w1,
+                           AS.Types.Message
+                             (AS.Types.userId w)
+                             AS.Types.Evaluate
+                             AS.Dispatch.sendResult5
+                             AS.Dispatch.sendResult4 #) }
+                     Data.Either.Right cells
+                     -> case ww1 of wild1 {
+                          Data.Either.Left ipv
+                          -> case AS.Dispatch.sendResult3
+                             ret_ty (# GHC.Prim.State# GHC.Prim.RealWorld, AS.Types.ASMessage #)
+                             of {}
+                          Data.Either.Right descendants
+                          -> case AS.Dispatch.sendResult2 cells w1 of ds1 { (#,#) ipv ipv1 ->
+                             case GHC.IO.Handle.Text.hPutStr2
+                                    GHC.IO.Handle.FD.stdout
+                                    (AS.Types.$w$cshowsPrec5
+                                       0
+                                       (case w of wild2 { AS.Types.User ds2 ds3 ds4 -> ds2 })
+                                       descendants
+                                       ipv1
+                                       AS.Util.getASTime2
+                                       (GHC.Types.[] @ GHC.Types.Char))
+                                    GHC.Types.True
+                                    ipv of ds2 { (#,#) ipv2 ipv3 ->
+                             (# ipv2,
+                                AS.Types.Message
+                                  (AS.Types.userId w)
+                                  AS.Types.Evaluate
+                                  AS.Types.Success
+                                  (AS.Types.PayloadCL ipv1) #) } } } }) -}
+75c6c7251f38aadbac329b269dee4119
+  $wpoly_go10 :: GHC.Prim.Int#
+                 -> Data.Map.Base.Map AS.Types.ASLocation a
+                 -> [(AS.Types.ASLocation, a)]
+                 -> Data.Map.Base.Map AS.Types.ASLocation a
+    {- Arity: 3, Strictness: <L,U><S,1*U><S,1*U> -}
+3edbb0d1445aee5c422f8e9150f6a51a
+  additionalCells :: AS.Types.ASLocation
+                     -> AS.Types.ASValue
+                     -> GHC.Types.IO [AS.Types.ASCell]
+    {- Arity: 3, Strictness: <S,1*U><S,1*U><L,U>,
+       Unfolding: (AS.Dispatch.additionalCells1
+                     `cast`
+                   (<AS.Types.ASLocation>_R
+                    ->_R <AS.Types.ASValue>_R
+                    ->_R Sym (GHC.Types.NTCo:IO[0] <[AS.Types.ASCell]>_R))) -}
+f57563a0efbd842ca1fb112da34da0cd
+  additionalCells1 :: AS.Types.ASLocation
+                      -> AS.Types.ASValue
+                      -> GHC.Prim.State# GHC.Prim.RealWorld
+                      -> (# GHC.Prim.State# GHC.Prim.RealWorld, [AS.Types.ASCell] #)
+    {- Arity: 3, Strictness: <S,1*U><S,1*U><L,U>,
+       Unfolding: (\ loc :: AS.Types.ASLocation
+                     cv :: AS.Types.ASValue
+                     eta :: GHC.Prim.State# GHC.Prim.RealWorld ->
+                   case loc of wild {
+                     AS.Types.Index sheet ds
+                     -> case ds of wild1 { (,) a b ->
+                        case cv of wild2 {
+                          DEFAULT -> (# eta, GHC.Types.[] @ AS.Types.ASCell #)
+                          AS.Types.ValueL lstValues
+                          -> AS.Dispatch.additionalCells3 wild lstValues eta
+                          AS.Types.ExcelSheet l e v
+                          -> case AS.Dispatch.additionalCells2
+                                    wild2
+                                    wild
+                                    eta of ds1 { (#,#) ipv ipv1 ->
+                             (# ipv,
+                                GHC.Base.++
+                                  @ AS.Types.ASCell
+                                  (GHC.Types.[] @ AS.Types.ASCell)
+                                  ipv1 #) } } }
+                     AS.Types.Range ipv ipv1
+                     -> case cv of wild1 {
+                          DEFAULT -> (# eta, GHC.Types.[] @ AS.Types.ASCell #)
+                          AS.Types.ExcelSheet l e v
+                          -> case AS.Dispatch.additionalCells2
+                                    wild1
+                                    wild
+                                    eta of ds1 { (#,#) ipv2 ipv3 ->
+                             (# ipv2,
+                                GHC.Base.++
+                                  @ AS.Types.ASCell
+                                  (GHC.Types.[] @ AS.Types.ASCell)
+                                  ipv3 #) } } }) -}
+f2606efdda0621ea925e6f3d2bb0acb7
+  additionalCells2 :: AS.Types.ASValue
+                      -> AS.Types.ASLocation
+                      -> GHC.Prim.State# GHC.Prim.RealWorld
+                      -> (# GHC.Prim.State# GHC.Prim.RealWorld, [AS.Types.ASCell] #)
+    {- Arity: 3, Strictness: <S,1*U><L,1*U><L,U>,
+       Unfolding: (\ v :: AS.Types.ASValue
+                     l :: AS.Types.ASLocation
+                     eta :: GHC.Prim.State# GHC.Prim.RealWorld ->
+                   case v of wild {
+                     DEFAULT -> (# eta, GHC.Types.[] @ AS.Types.ASCell #)
+                     AS.Types.ExcelSheet locs exprs vals
+                     -> (# eta,
+                           case locs of wild1 {
+                             DEFAULT
+                             -> case AS.Parsing.Out.unpackExcelLocs3
+                                ret_ty [AS.Types.ASCell]
+                                of {}
+                             AS.Types.ValueL locs1
+                             -> let {
+                                  realLocs :: [(GHC.Types.Int, GHC.Types.Int)]
+                                  = GHC.Base.map
+                                      @ AS.Types.ASValue
+                                      @ (GHC.Types.Int, GHC.Types.Int)
+                                      AS.Parsing.Out.unpackExcelLocs1
+                                      locs1
+                                } in
+                                case GHC.List.$wlenAcc
+                                       @ (GHC.Types.Int, GHC.Types.Int)
+                                       realLocs
+                                       0 of ww { DEFAULT ->
+                                let {
+                                  y :: GHC.Prim.Int# = GHC.Prim.-# ww 1
+                                } in
+                                case GHC.Prim.tagToEnum#
+                                       @ GHC.Types.Bool
+                                       (GHC.Prim.># 0 y) of wild2 {
+                                  GHC.Types.False
+                                  -> let {
+                                       lvl17 :: AS.Types.ASSheet
+                                       = case l of wild3 {
+                                           AS.Types.Index ds1 ds2 -> ds1
+                                           AS.Types.Range ds1 ds2 -> ds1 }
+                                     } in
+                                     let {
+                                       realVals :: [AS.Types.ASValue]
+                                       = case vals of wild3 {
+                                           DEFAULT -> GHC.Types.[] @ AS.Types.ASValue
+                                           AS.Types.ValueL l1 -> l1 }
+                                     } in
+                                     let {
+                                       realExprs :: [GHC.Base.String]
+                                       = case exprs of wild3 {
+                                           DEFAULT -> GHC.Types.[] @ GHC.Base.String
+                                           AS.Types.ValueL l1
+                                           -> GHC.Base.map
+                                                @ AS.Types.ASValue
+                                                @ [GHC.Types.Char]
+                                                AS.Types.str
+                                                l1 }
+                                     } in
+                                     letrec {
+                                       go1 :: GHC.Prim.Int# -> [AS.Types.ASCell]
+                                         {- Arity: 1, Strictness: <L,U> -}
+                                       = \ x :: GHC.Prim.Int# ->
+                                         GHC.Types.:
+                                           @ AS.Types.ASCell
+                                           (AS.Types.Cell
+                                              (AS.Types.Index
+                                                 lvl17
+                                                 (case GHC.Prim.tagToEnum#
+                                                         @ GHC.Types.Bool
+                                                         (GHC.Prim.<# x 0) of wild3 {
+                                                    GHC.Types.False
+                                                    -> GHC.List.!!_sub
+                                                         @ (GHC.Types.Int, GHC.Types.Int)
+                                                         realLocs
+                                                         x
+                                                    GHC.Types.True
+                                                    -> GHC.List.!!1
+                                                         @ (GHC.Types.Int, GHC.Types.Int) }))
+                                              (AS.Types.Expression
+                                                 (case GHC.Prim.tagToEnum#
+                                                         @ GHC.Types.Bool
+                                                         (GHC.Prim.<# x 0) of wild3 {
+                                                    GHC.Types.False
+                                                    -> GHC.List.!!_sub @ GHC.Base.String realExprs x
+                                                    GHC.Types.True
+                                                    -> GHC.List.!!1 @ GHC.Base.String })
+                                                 AS.Types.Python)
+                                              (case GHC.Prim.tagToEnum#
+                                                      @ GHC.Types.Bool
+                                                      (GHC.Prim.<# x 0) of wild3 {
+                                                 GHC.Types.False
+                                                 -> GHC.List.!!_sub @ AS.Types.ASValue realVals x
+                                                 GHC.Types.True
+                                                 -> GHC.List.!!1 @ AS.Types.ASValue })
+                                              (GHC.Types.[] @ AS.Types.ASCellTag))
+                                           (case GHC.Prim.tagToEnum#
+                                                   @ GHC.Types.Bool
+                                                   (GHC.Prim.==# x y) of wild3 {
+                                              GHC.Types.False -> go1 (GHC.Prim.+# x 1)
+                                              GHC.Types.True -> GHC.Types.[] @ AS.Types.ASCell })
+                                     } in
+                                     go1 0
+                                  GHC.Types.True -> GHC.Types.[] @ AS.Types.ASCell } } } #) }) -}
+f6b72c6eae74929a38fefa503e0163fc
+  additionalCells3 :: AS.Types.ASLocation
+                      -> [AS.Types.ASValue]
+                      -> GHC.Prim.State# GHC.Prim.RealWorld
+                      -> (# GHC.Prim.State# GHC.Prim.RealWorld, [AS.Types.ASCell] #)
+    {- Arity: 3, Strictness: <S,1*U><S,1*U><L,U> -}
+9905c20dd00b19c1528e529c1562b13c
+  createExcelCells :: AS.Types.ASValue
+                      -> AS.Types.ASLocation
+                      -> GHC.Types.IO [AS.Types.ASCell]
+    {- Arity: 3, Strictness: <S,1*U><L,1*U><L,U>,
+       Unfolding: (AS.Dispatch.additionalCells2
+                     `cast`
+                   (<AS.Types.ASValue>_R
+                    ->_R <AS.Types.ASLocation>_R
+                    ->_R Sym (GHC.Types.NTCo:IO[0] <[AS.Types.ASCell]>_R))) -}
+11f90a6999322e48a507fde0a286c19e
+  createListCells :: AS.Types.ASLocation
+                     -> [AS.Types.ASValue]
+                     -> GHC.Types.IO [AS.Types.ASCell]
+    {- Arity: 3, Strictness: <S,1*U><S,1*U><L,U>,
+       Unfolding: (AS.Dispatch.additionalCells3
+                     `cast`
+                   (<AS.Types.ASLocation>_R
+                    ->_R <[AS.Types.ASValue]>_R
+                    ->_R Sym (GHC.Types.NTCo:IO[0] <[AS.Types.ASCell]>_R))) -}
+269dbb5256b1389802141286bc823751
+  evalChain :: Data.Map.Base.Map AS.Types.ASLocation AS.Types.ASValue
+               -> [AS.Types.ASCell]
+               -> GHC.Types.IO [AS.Types.ASCell]
+    {- Arity: 3, Strictness: <L,U><S,1*U><L,U>,
+       Unfolding: (AS.Dispatch.evalChain1
+                     `cast`
+                   (<Data.Map.Base.Map AS.Types.ASLocation AS.Types.ASValue>_R
+                    ->_R <[AS.Types.ASCell]>_R
+                    ->_R Sym (GHC.Types.NTCo:IO[0] <[AS.Types.ASCell]>_R))) -}
+cfbcfa1dcb6e44f44e2edd2c24980884
+  evalChain1 :: Data.Map.Base.Map
+                    AS.Types.ASLocation AS.Types.ASValue
+                -> [AS.Types.ASCell]
+                -> GHC.Prim.State# GHC.Prim.RealWorld
+                -> (# GHC.Prim.State# GHC.Prim.RealWorld, [AS.Types.ASCell] #)
+    {- Arity: 3, Strictness: <L,U><S,1*U><L,U> -}
+60ca7c3ef1698c893f93c5f44c4e6e5f
+  evaluatePrimitive :: AS.Types.ASCell
+                       -> GHC.Types.IO AS.Types.ASCell
+    {- Arity: 2, HasNoCafRefs, Strictness: <L,U><L,U>,
+       Unfolding: (AS.Dispatch.evaluatePrimitive1
+                     `cast`
+                   (<AS.Types.ASCell>_R
+                    ->_R Sym (GHC.Types.NTCo:IO[0] <AS.Types.ASCell>_R))) -}
+00112dd9861cca036d525fada00c6242
+  evaluatePrimitive1 :: AS.Types.ASCell
+                        -> GHC.Prim.State# GHC.Prim.RealWorld
+                        -> (# GHC.Prim.State# GHC.Prim.RealWorld, AS.Types.ASCell #)
+    {- Arity: 2, HasNoCafRefs, Strictness: <L,U><L,U>,
+       Unfolding: (\ cell :: AS.Types.ASCell
+                     eta :: GHC.Prim.State# GHC.Prim.RealWorld ->
+                   (# eta, cell #)) -}
+2d7f1aa2d98f8b28fdb6790a37b0c397
+  getInitialCells :: AS.Types.ASCell
+                     -> GHC.Types.IO [AS.Types.ASCell]
+    {- Arity: 2, Strictness: <S(LLSL),1*U(U,U,1*U,U)><L,U>,
+       Unfolding: InlineRule (0, True, True)
+                  AS.Dispatch.getInitialCells1
+                    `cast`
+                  (<AS.Types.ASCell>_R
+                   ->_R Sym (GHC.Types.NTCo:IO[0] <[AS.Types.ASCell]>_R)) -}
+1de36188d90f229a9cfb13f8f6c9b375
+  getInitialCells1 :: AS.Types.ASCell
+                      -> GHC.Prim.State# GHC.Prim.RealWorld
+                      -> (# GHC.Prim.State# GHC.Prim.RealWorld, [AS.Types.ASCell] #)
+    {- Arity: 2, Strictness: <S(LLSL),1*U(U,U,1*U,U)><L,U>,
+       Inline: INLINE[0],
+       Unfolding: InlineRule (2, True, False)
+                  (\ w :: AS.Types.ASCell w1 :: GHC.Prim.State# GHC.Prim.RealWorld ->
+                   case w of ww { AS.Types.Cell ww1 ww2 ww3 ww4 ->
+                   AS.Dispatch.$wa ww1 ww2 ww3 ww4 w1 }) -}
+534ff49c31ba834e48923a67f3ca348c
+  getInitialCells2 :: [GHC.Types.Char]
+    {- Unfolding: (GHC.CString.unpackCString# "got initial cells"#) -}
+045bb0cbb6dd955adfda7c33df5cea12
+  getInitialCells_xs :: [AS.Types.ASValue]
+    {- HasNoCafRefs, Strictness: m2 -}
+8be63062a94a66250593455bfe3277a4
+  handleEval :: AS.Types.ASPayload
+                -> AS.Types.ASUser
+                -> GHC.Types.IO AS.Types.ASMessage
+    {- Arity: 3, Strictness: <S,1*U><L,U(U(U,U,U),A,A)><L,U>,
+       Unfolding: (AS.Dispatch.handleEval1
+                     `cast`
+                   (<AS.Types.ASPayload>_R
+                    ->_R <AS.Types.ASUser>_R
+                    ->_R Sym (GHC.Types.NTCo:IO[0] <AS.Types.ASMessage>_R))) -}
+8eb41a86b0c4fad29c86b9b1e2b482cd
+  handleEval1 :: AS.Types.ASPayload
+                 -> AS.Types.ASUser
+                 -> GHC.Prim.State# GHC.Prim.RealWorld
+                 -> (# GHC.Prim.State# GHC.Prim.RealWorld, AS.Types.ASMessage #)
+    {- Arity: 3, Strictness: <S,1*U><L,U(U(U,U,U),A,A)><L,U> -}
+8f6e258205ba5e00d1aeaba252a7602e
+  insertCellImmediate :: AS.Types.ASCell -> GHC.Types.IO ()
+    {- Arity: 2, HasNoCafRefs, Strictness: <L,A><L,U>,
+       Unfolding: InlineRule (0, True, True)
+                  AS.Dispatch.insertCellImmediate1
+                    `cast`
+                  (<AS.Types.ASCell>_R ->_R Sym (GHC.Types.NTCo:IO[0] <()>_R)) -}
+74d5ca07a5350834ed89356987e542ad
+  insertCellImmediate1 :: AS.Types.ASCell
+                          -> GHC.Prim.State# GHC.Prim.RealWorld
+                          -> (# GHC.Prim.State# GHC.Prim.RealWorld, () #)
+    {- Arity: 2, HasNoCafRefs, Strictness: <L,A><L,U>,
+       Unfolding: InlineRule (2, True, True)
+                  (\ cell :: AS.Types.ASCell
+                     s :: GHC.Prim.State# GHC.Prim.RealWorld ->
+                   (# s, GHC.Tuple.() #)) -}
+8bf0c739821eab30cb19b15bf85d5b25
+  reevaluateInitialCells :: [AS.Types.ASCell]
+                            -> GHC.Types.IO (AS.Types.EitherCells, AS.Types.EitherCells)
+    {- Arity: 2, Strictness: <L,1*U><L,U>,
+       Unfolding: (AS.Dispatch.reevaluateInitialCells1
+                     `cast`
+                   (<[AS.Types.ASCell]>_R
+                    ->_R Sym (GHC.Types.NTCo:IO[0]
+                                  <(AS.Types.EitherCells, AS.Types.EitherCells)>_R))) -}
+ec146ba598754e2c62f55fbdf108d0ba
+  reevaluateInitialCells1 :: [AS.Types.ASCell]
+                             -> GHC.Prim.State# GHC.Prim.RealWorld
+                             -> (# GHC.Prim.State# GHC.Prim.RealWorld,
+                                   (AS.Types.EitherCells, AS.Types.EitherCells) #)
+    {- Arity: 2, Strictness: <L,1*U><L,U> -}
+01742fbef70c9b26dc8ab74876cb87db
+  sendResult :: (AS.Types.EitherCells, AS.Types.EitherCells)
+                -> AS.Types.ASUser
+                -> GHC.Types.IO AS.Types.ASMessage
+    {- Arity: 3,
+       Strictness: <S(SS),1*U(1*U,1*U)><L,U(U(U,U,U),A,A)><L,U>,
+       Unfolding: InlineRule (0, True, True)
+                  AS.Dispatch.sendResult1
+                    `cast`
+                  (<(AS.Types.EitherCells, AS.Types.EitherCells)>_R
+                   ->_R <AS.Types.ASUser>_R
+                   ->_R Sym (GHC.Types.NTCo:IO[0] <AS.Types.ASMessage>_R)) -}
+539c300f822e9efa2b7f96ab056867cc
+  sendResult1 :: (AS.Types.EitherCells, AS.Types.EitherCells)
+                 -> AS.Types.ASUser
+                 -> GHC.Prim.State# GHC.Prim.RealWorld
+                 -> (# GHC.Prim.State# GHC.Prim.RealWorld, AS.Types.ASMessage #)
+    {- Arity: 3,
+       Strictness: <S(SS),1*U(1*U,1*U)><L,U(U(U,U,U),A,A)><L,U>,
+       Inline: INLINE[0],
+       Unfolding: InlineRule (3, True, False)
+                  (\ w :: (AS.Types.EitherCells, AS.Types.EitherCells)
+                     w1 :: AS.Types.ASUser
+                     w2 :: GHC.Prim.State# GHC.Prim.RealWorld ->
+                   case w of ww { (,) ww1 ww2 -> AS.Dispatch.$wa1 ww1 ww2 w1 w2 }) -}
+aa8351622167b96bb6755c1d2476f9ab
+  sendResult2 :: [AS.Types.ASCell]
+                 -> GHC.Prim.State# GHC.Prim.RealWorld
+                 -> (# GHC.Prim.State# GHC.Prim.RealWorld, [AS.Types.ASCell] #)
+    {- Arity: 2, HasNoCafRefs, Strictness: <S,1*U><L,U> -}
+b1cce2aa6e4af93ff3322b5c222d6e5e
+  sendResult3 :: GHC.Types.IO AS.Types.ASMessage {- Strictness: b -}
+e63d335d22fcc0daee99f84719f2764f
+  sendResult4 :: AS.Types.ASPayload
+    {- HasNoCafRefs, Strictness: m1,
+       Unfolding: (AS.Types.PayloadN GHC.Tuple.()) -}
+7bb939604d149444e244e8378ae30bab
+  sendResult5 :: AS.Types.ASResult
+    {- Unfolding: (AS.Types.Failure AS.Util.generateErrorMessage2) -}
+"SPEC Data.Map.Base.fromList [AS.Types.ASLocation]" [ALWAYS] forall @ a
+                                                                    $dOrd :: GHC.Classes.Ord
+                                                                                 AS.Types.ASLocation
+  Data.Map.Base.fromList @ AS.Types.ASLocation @ a $dOrd
+  = AS.Dispatch.$sfromList @ a
+"SPEC Data.Map.Base.insert [AS.Types.ASLocation]" [ALWAYS] forall @ a
+                                                                  $dOrd :: GHC.Classes.Ord
+                                                                               AS.Types.ASLocation
+  Data.Map.Base.insert @ AS.Types.ASLocation @ a $dOrd
+  = AS.Dispatch.$sinsert @ a
+vectorised variables:
+vectorised tycons:
+vectorised reused tycons:
+parallel variables:
+parallel tycons:
+trusted: none
+require own pkg trusted: False
+

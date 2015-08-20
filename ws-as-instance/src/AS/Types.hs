@@ -11,11 +11,15 @@ import qualified Network.WebSockets as WS
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Core cell types
 
-data ASLocation = Index {sheet :: String, index :: (Int, Int)} | 
-                  Range {sheet :: String, range :: ((Int, Int), (Int, Int))}
-  deriving (Show, Read, Eq, Ord, Generic)
+type ASSheetId = Text
+data ASSheet = Sheet {sheetId :: ASSheetId, sheetName :: String} deriving (Show, Read, Eq, Generic, Ord)
+
+data ASLocation = Index {sheet :: ASSheet, index :: (Int, Int)} | 
+                  Range {sheet :: ASSheet, range :: ((Int, Int), (Int, Int))}
+                  deriving (Show, Read, Eq, Generic, Ord)
 
 data ASValue =
+  NoValue |
   ValueNaN () |
   ValueS String |
   ValueI Int |
@@ -42,15 +46,38 @@ data ASExpression =
   Reference { location :: ASLocation, referenceIndex :: (Int, Int) }
   deriving (Show, Read, Eq, Generic)
 
+data ASCellTag = 
+  Color String |
+  Size Int |
+  Money |
+  Percentage |
+  Streaming {streamSource :: StreamSource, streamFrequency :: Int} |
+  Tracking
+  deriving (Show, Read, Eq, Generic)
 
 data ASCell = Cell {cellLocation :: ASLocation, 
 					cellExpression :: ASExpression,
-					cellValue :: ASValue} deriving (Show, Read, Eq, Generic)
+					cellValue :: ASValue,
+          cellTags :: [ASCellTag]} deriving (Show, Read, Eq, Generic)
+
+
+-- TODO fix recursion
+data ExLoc = ExSheet {name :: String, sheetLoc :: ExLoc} |
+             ExRange {first :: ExLoc, second :: ExLoc}     |
+             ExIndex {d1 :: String, col :: String, d2 :: String, row :: String} deriving (Show,Read,Eq,Ord)
+
+----------------------------------------------------------------------------------------------------------------------------------------------
+-- | Streaming
+
+data StreamSource = 
+  Bloomberg {url :: String, key :: String} -- example stream source TODO rewrite based on actual API
+  deriving (Show, Read, Eq, Generic)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Message Types
 
 data ASMessage = Message {
+  messageUserId :: ASUserId,
   action :: ASAction,
   result :: ASResult,
   payload :: ASPayload
@@ -60,12 +87,15 @@ data ASAction =
   NoAction |
   Acknowledge |
   Evaluate | 
+  Update |
   Get |
   Delete |
   Undo |
   Redo |
   Commit |
-  Clear
+  Clear | 
+  UpdateWindow |
+  Tag
   deriving (Show, Read, Eq, Generic)
 
 data ASResult = 
@@ -79,42 +109,43 @@ data ASPayload =
   PayloadInit ASInitConnection |
   PayloadC ASCell | 
   PayloadCL [ASCell] | 
-  PayloadLL {getLocs::[ASLocation],vWindow:: ASViewingWindow} |
+  PayloadL ASLocation |
+  PayloadLL [ASLocation] |
+  PayloadW ASWindow |
   PayloadCommit ASCommit
   deriving (Show, Read, Eq, Generic)
 
-data ASInitConnection = ASInitConnection {userName :: Text} deriving (Show,Read,Eq,Generic)
+data ASInitConnection = ASInitConnection {connUserId :: ASUserId} deriving (Show,Read,Eq,Generic)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Eval Types
 
-data ASViewingWindow = ASViewingWindow {vwTopLeftCol :: Int, vwTopLeftRow :: Int, vwWidth :: Int, vwHeight :: Int} deriving (Show,Read,Eq,Generic)
-
 data ASExecError = 
   Timeout | 
-  DependenciesLocked {userLock :: ASUser} | 
+  DependenciesLocked {lockUserId :: ASUserId} | 
   DBNothingException | 
   NetworkDown | 
   ResourceLimitReached 
   deriving (Show, Read, Eq, Generic)
 
-type ASEitherCells = Either ASExecError [ASCell] 
+type EitherCells = Either ASExecError [ASCell] 
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Websocket types
 
-data Client = Client {clientName :: Text, clientConn :: WS.Connection, clientVW :: ASViewingWindow} 
-type ServerState = [Client]
+data ASWindow = Window {windowSheetId :: ASSheetId, topLeft :: (Int, Int), bottomRight :: (Int, Int)} deriving (Show, Read, Eq, Generic)
+type ASUserId = Text 
+data ASUser = User {userId :: ASUserId, userConn :: WS.Connection, userWindows :: [ASWindow]} 
+type ServerState = [ASUser]
 
-instance Eq Client where 
-  c1 == c2 = (clientName c1) == (clientName c2)
+instance Eq ASUser where 
+  c1 == c2 = (userId c1) == (userId c2)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Version Control
 
-data ASTime = Time {day :: String, hour :: Int, minute :: Int, second :: Int} deriving (Show,Read,Eq,Generic)
-type ASUser = String
-data ASCommit = ASCommit {user :: ASUser, before :: [ASCell], after :: [ASCell], time :: ASTime} deriving (Show,Read,Eq,Generic)
+data ASTime = Time {day :: String, hour :: Int, min :: Int, sec :: Int} deriving (Show,Read,Eq,Generic)
+data ASCommit = ASCommit {commitUserId :: ASUserId, before :: [ASCell], after :: [ASCell], time :: ASTime} deriving (Show,Read,Eq,Generic)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Convenience methods
@@ -128,6 +159,17 @@ str (ValueS s) = s
 
 dbl :: ASValue -> Double
 dbl (ValueD d) = d
+
+failureMessage :: ASMessage
+failureMessage = Message (pack "testUserId") NoAction (Failure "generic") (PayloadN ())
+-- TODO get user id
+
+initialViewingWindow :: ASWindow
+initialViewingWindow = Window "testSheetId" (0, 0) (100, 100)
+-- TODO generate Unique sheet id
+
+genericText :: Text
+genericText = pack ""
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Generic From/To JSON instances
@@ -152,11 +194,17 @@ instance ToJSON ASMessage
 instance FromJSON ASMessage
 instance ToJSON ASInitConnection
 instance FromJSON ASInitConnection 
-instance ToJSON ASViewingWindow
-instance FromJSON ASViewingWindow 
 instance ToJSON ASExecError
 instance FromJSON ASExecError
 instance FromJSON ASTime
 instance ToJSON ASTime
 instance ToJSON ASCommit 
 instance FromJSON ASCommit
+instance ToJSON ASCellTag
+instance FromJSON ASCellTag
+instance ToJSON ASWindow
+instance FromJSON ASWindow
+instance ToJSON ASSheet
+instance FromJSON ASSheet
+instance ToJSON StreamSource
+instance FromJSON StreamSource

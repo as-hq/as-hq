@@ -32,148 +32,141 @@ import qualified Data.List as L
 newServerState :: ServerState
 newServerState = []
 
-numClients :: ServerState -> Int
-numClients = length
+numUsers :: ServerState -> Int
+numUsers = length
 
--------- client management ------------------
-clientExists :: Client -> ServerState -> Bool
-clientExists client = any ((== clientName client) . clientName)
+-------- user management ------------------
+userExists :: ASUser -> ServerState -> Bool
+userExists user = any ((== userId user) . userId)
 
--- assumes that client exists
-getClientByName :: MVar ServerState -> Text -> IO Client
-getClientByName state name = liftIO $ do
-    allClients <- readMVar state
-    let f = filter (\c -> (clientName c == name)) allClients
+-- assumes that user exists
+getUserById :: MVar ServerState -> ASUserId -> IO ASUser
+getUserById state uid = liftIO $ do
+    allUsers <- readMVar state
+    let f = filter (\c -> (userId c == uid)) allUsers
     return $ L.head f
     
-addClient :: Client -> ServerState -> ServerState
-addClient client clients = client : clients
+addUser :: ASUser -> ServerState -> ServerState
+addUser user users = user : users
 
-removeClient :: Client -> ServerState -> ServerState
-removeClient client = filter ((/= clientName client) . clientName)
+removeUser :: ASUser -> ServerState -> ServerState
+removeUser user = filter ((/= userId user) . userId)
 
 broadcast :: Text -> ServerState -> IO ()
-broadcast message clients = do
+broadcast message users = do
     putStrLn $ "Broadcast msg " ++ (T.unpack message)
-    forM_ clients $ \(Client _ conn _) -> WS.sendTextData conn message
+    forM_ users $ \(User _ conn _) -> WS.sendTextData conn message
 
--- only send a cell to a client if its in their viewing window
-broadcastFiltered :: ASMessage -> Client -> [Client] -> IO ()
-broadcastFiltered (Message _ _ (PayloadCL cells)) user clients = mapM_ (send cells) clients 
+-- only send a cell to a user if its in their viewing window
+broadcastFiltered :: ASMessage -> [ASUser] -> IO ()
+broadcastFiltered (Message uid _ _ (PayloadCL cells)) users = mapM_ (sendCells cells) users 
   where
-    send :: [ASCell] -> Client -> IO ()
-    send cells client = do 
-      let cells' = intersectViewingWindow cells (clientVW client)
-      let msg = Message Evaluate Success (PayloadCL cells')
-      WS.sendTextData (clientConn client) (T.pack (B.unpack (encode msg)))
-broadcastFiltered msg user clients = do 
-  WS.sendTextData (clientConn user) (T.pack (B.unpack (encode msg)))
-  
+    sendCells :: [ASCell] -> ASUser -> IO ()
+    sendCells cells user = do 
+      let cells' = intersectViewingWindows cells (userWindows user)
+      let msg = Message uid Update Success (PayloadCL cells')
+      WS.sendTextData (userConn user) (encode msg)
 
-disconnect :: Client -> MVar ServerState -> IO ()
-disconnect client state = do 
-  ret <- liftIO $ modifyMVar_ state $ \s -> do
-      let s' = removeClient client s
-      return s'
+send :: ASMessage -> WS.Connection -> IO ()
+send msg conn = WS.sendTextData conn (encode msg)
+
+disconnect :: ASUser -> MVar ServerState -> IO ()
+disconnect user state = do 
+  ret <- liftIO $ modifyMVar_ state (\s -> return $ removeUser user s)
   return ret
 
 isInitConnection :: B.ByteString -> IO Bool
 isInitConnection msg = do
   b <- case (decode msg :: Maybe ASMessage) of 
-        Just (Message Acknowledge r (PayloadInit (ASInitConnection n))) -> (putStrLn "decoded init") >> return True
+        Just (Message _ Acknowledge r (PayloadInit (ASInitConnection n))) -> do
+          printTimed "decoded init" 
+          return True
         otherwise -> putStrLn (show (decode msg :: Maybe ASMessage)) >> return False
   putStrLn (show msg)
   return b
 
-getUsername :: B.ByteString -> Text
-getUsername msg = n
-  where
-    Just (Message Acknowledge r (PayloadInit (ASInitConnection n))) = (decode msg :: Maybe ASMessage)
+----------------------------------------------- main ----------------------------------
 
-
--------- main ----------------------------------
 main :: IO ()
 main = do
     state <- newMVar newServerState
     putStrLn $ "server started on port " ++ (show S.wsPort)
     WS.runServer S.wsAddress S.wsPort $ application state
 
-catchDisconnect :: Client -> MVar ServerState -> SomeException -> IO ()
-catchDisconnect client state e = case (fromException e) of
-  Just WS.ConnectionClosed -> do 
-    putStrLn $ "in connection closed catch"
-    ret <- liftIO $ modifyMVar_ state $ \s -> do
-      let s' = removeClient client s
-      return s'
-    return ret
-  otherwise -> return ()
-
 application :: MVar ServerState -> WS.ServerApp
 application state pending = do
   conn <- WS.acceptRequest pending
-  WS.forkPingThread conn 30
+  WS.forkPingThread conn 30 -- keepalive ping for certain browsers
   msg <- WS.receiveData conn
-  init <- isInitConnection (B.pack (T.unpack msg))
-  if (init)
-    then do 
-      let client = Client (getUsername (B.pack (T.unpack msg))) conn initialViewingWindow
-      (flip catch) (catchDisconnect client state) $ do
-        liftIO $ modifyMVar_ state $ \s -> do
-          let s' = addClient client s
-          broadcast (clientName client) s'
-          return s'
-        talk state client
-    else 
-      return ()
+  isInit <- isInitConnection msg
+  if isInit
+    then handleInitConnection state conn (decode msg :: Maybe ASMessage)
+    else send failureMessage conn
 
--- persistent connection until client disconnects
-talk :: MVar ServerState -> Client -> IO ()
-talk state client = forever $ do
-    msgOrError <- try (WS.receiveData (clientConn client)) :: IO (Either SomeException B.ByteString)
+handleInitConnection :: MVar ServerState -> WS.Connection -> Maybe ASMessage -> IO ()
+handleInitConnection state conn (Just message) = do
+  let user = User (messageUserId message) conn [initialViewingWindow]
+  (flip catch) (catchDisconnect user state) $ do
+    liftIO $ modifyMVar_ state (\s -> return $ addUser user s)
+    talk state user
+
+catchDisconnect :: ASUser -> MVar ServerState -> SomeException -> IO ()
+catchDisconnect user state e = case (fromException e) of
+  Just WS.ConnectionClosed -> do 
+    putStrLn $ "in connection closed catch"
+    liftIO $ modifyMVar_ state (\s -> return $ removeUser user s)
+
+-- persistent connection until user disconnects
+talk :: MVar ServerState -> ASUser -> IO ()
+talk state user = forever $ do
+    msgOrError <- try (WS.receiveData (userConn user)) :: IO (Either SomeException B.ByteString)
     case msgOrError of 
-      Left e -> return ()
+      Left e -> send failureMessage (userConn user)
       Right msg -> do
         putStrLn "=========================================================="
-        printTime $ "SERVER message received: " -- ++ (B.unpack msg)
+        printTimed $ "SERVER message received: " -- ++ (B.unpack msg)
         case (decode msg :: Maybe ASMessage) of 
-          Nothing -> printTime "SERVER ERROR: unable to decode message" >> return ()
-          Just m -> printTime ("SERVER decoded message: " ++ (show m)) >> processMessage state client m
+          Nothing -> printTimed "SERVER ERROR: unable to decode message" >> return ()
+          Just m -> printTimed ("SERVER decoded message: " ++ (show m)) >> processMessage state user m
 
-------------------- message handling ---------------------------
-processMessage :: MVar ServerState -> Client -> ASMessage -> IO ()
-processMessage state client message = case (action message) of 
-  Acknowledge -> WS.sendTextData (clientConn client) ("ACK" :: Text)
+--------------------------------------- message handling -----------------------------------
+
+processMessage :: MVar ServerState -> ASUser -> ASMessage -> IO ()
+processMessage state user message = case (action message) of 
+  Acknowledge -> WS.sendTextData (userConn user) ("ACK" :: Text)
   Evaluate  -> do
-    result <- DP.handleEval (payload message) client
+    result <- DP.handleEval (payload message) user
     liftIO $ do 
-      allClients <- readMVar state
-      broadcastFiltered result client allClients
+      allUsers <- readMVar state
+      broadcastFiltered (updateMessageUser (userId user) result) allUsers
   Get       -> do
-    -- | update state with viewing window
-    _ <- liftIO $ modifyMVar_ state $ \s -> do
-          c <- getClientByName state (clientName client)
-          let vw = vWindow (payload message)
-          let s1 = removeClient c s
-          let s2 = (Client (clientName c) (clientConn c) vw):s1
-          return s2
     result <- DB.handleGet (payload message) 
-    liftIO $ do 
-      allClients <- readMVar state
-      broadcast (T.pack (B.unpack (encode result))) allClients
+    printTimed "Handling get"
+    send (updateMessageUser (userId user) result) (userConn user)
   Delete    -> do
     result <- DB.handleDelete (payload message) 
     liftIO $ do 
-      allClients <- readMVar state
-      broadcast (T.pack (B.unpack (encode result))) allClients
+      allUsers <- readMVar state
+      broadcastFiltered (updateMessageUser (userId user) result) allUsers
   Undo -> do 
     result <- DB.handleUndo 
-    _ <- WS.sendTextData (clientConn client) (T.pack (B.unpack (encode result)))
-    putStrLn $ "Server processed undo"
+    send (updateMessageUser (userId user) result) (userConn user)
+    printTimed "Server processed undo"
   Redo -> do 
     result <- DB.handleRedo 
-    _ <- WS.sendTextData (clientConn client) (T.pack (B.unpack (encode result)))
-    putStrLn $ "Server processed redo"
+    send (updateMessageUser (userId user) result) (userConn user)
+    printTimed "Server processed redo"
   Clear -> do 
     result <- DB.handleClear
-    _ <- WS.sendTextData (clientConn client) (T.pack (B.unpack (encode result)))
-    putStrLn $ "Server processed clear"
+    send (updateMessageUser (userId user) result) (userConn user)
+    printTimed "Server processed clear"
+  UpdateWindow -> do
+    liftIO $ modifyMVar_ state $ \s -> do
+          c <- getUserById state (userId user)
+          let (PayloadW vw) = payload message
+          let s1 = removeUser c s
+          let s2 = (User (userId c) (userConn c) (vw:(userWindows c))):s1
+          return s2
+    -- TODO send cells for scroll
+
+
