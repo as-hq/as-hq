@@ -1,20 +1,19 @@
-min requirements: 
+## min requirements: 
 
 cabal 
 ghc 7.8+
 mongodb 3.0 (current)
 python 2.7/3.x
 
-full reqs: 
-{min}
-node 0.12.0 (use nvm to install manage/versions)
-npm
+## Building Redis files
 
-useful tools:
-mongo log visualizer: https://github.com/10gen-labs/edda
-general mongo interaction: http://robomongo.org/
+```bash
+$ cd src/AS/hiredis
+$ sudo make && sudo make install
+$ gcc -c as_db.c -fPIC
+```
 
-To set up DB: 
+## Setup Mysql ODBC driver 
 1) Install libmyodbc and unixodbc-dev with apt-get
 2) sudo chmod a+w+r odbc.ini in etc folder, edit config to add database, test with isql -v AlphaSheets
 
@@ -38,7 +37,7 @@ MinPoolSize=0
 
 
 
-TODO: 
+## TODO: 
 1) There is no need to do as many DB operations as we are in Dispatch
 For example, no need to do initial setCells or dbUpdateBatch
 The two getCells can be combined into one because we know getCells locs will return an array of length locs
@@ -46,4 +45,3 @@ etc.
 2) Frontend bug: ranges show up as transposes
 3) Figure out the lag between C cpu time and actual time
 4) Optimize mysql/innodb config
-

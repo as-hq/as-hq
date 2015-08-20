@@ -1,3 +1,5 @@
 #ignore 
 /logs/
 *.pyc
+/ws-as-instance/.stack-work
+/mysql-as-instance/.stack-work

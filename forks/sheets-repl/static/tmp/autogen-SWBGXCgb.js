@@ -1,1 +1,0 @@
-document.getElementById("hident4").innerHTML="This text was added by the Javascript part of the homepage widget."
