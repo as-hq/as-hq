@@ -3,6 +3,7 @@ import ActionCreator from '../actions/ASSpreadsheetActionCreators';
 import Shortcuts from '../AS/Shortcuts';
 import Converter from '../AS/Converter';
 import API from '../actions/ASApiActionCreators';
+import KeyUtils from '../AS/KeyUtils';
 
 export default React.createClass({
 
@@ -93,7 +94,7 @@ export default React.createClass({
   handleKeyDown(e) {
     e.persist(); // prevent react gc
     if (Shortcuts.gridShouldDeferKey(e)){ // if anything but nav keys, bubble event to parent
-      Shortcuts.killEvent(e);
+      KeyUtils.killEvent(e);
       this.props.onDeferredKey(e);
     } else {
       console.log("native grid event allowed");

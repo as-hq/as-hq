@@ -23,12 +23,15 @@ let _S = {
 export default {
 
   addShortcut(set, name, keyStr, callback) {
-    if (keyStr.length) // TODO fix array vs string checking
-      keyStr.map((k) => {addShortcut(set, name, k, callback)});
+    var self = this;
+    if (keyStr.constructor === Array) // TODO fix array vs string checking
+      keyStr.map((k) => {self.addShortcut(set, name, k, callback)});
     else {
       let s = {name: name};
       s = KeyUtils.parseIntoShortcut(s, keyStr);
       s.callback = callback;
+      console.log("add shortcut: " + name);
+      console.log(s);
       switch(set){
         case 'grid':
           _S.GridShortcuts.push(s);
@@ -96,56 +99,6 @@ export default {
     let a = (s.hasOwnProperty('altKey') && s.altKey == e.altKey) || (e.altKey === false);
     let m = (s.hasOwnProperty('metaKey') && s.metaKey == e.metaKey) || (e.metaKey === false);
     return (sh && c && a && m);
-  },
-
-
-
-
-
-
-
-// note: there will be some duplication between common and editor shortcuts,
-// since some are possible when either the editor or grid is in focus.
-  addEditorShortcuts(editor, props) {
-    editor.commands.addCommand({
-        name: 'eval',
-        bindKey: {win: 'Ctrl+Enter',  mac: 'Command+Enter'},
-        exec: function(_editor) {
-          console.log("Eval requested for language: " + JSON.stringify(props.language));
-          /*
-            When user wants to eval an expression
-            Sends back the expression and language in _editor from ace editor -> code editor -> eval pane via props
-            The eval pane will get some spreadsheet state and send it to server for eval
-          */
-          props.onEvalRequest({exp: _editor.getValue(), lang: props.language});
-        },
-          readOnly: true
-        });
-    editor.commands.addCommand({
-        name: 'esc',
-        bindKey: {win: 'Esc',  mac: 'Esc'},
-        exec: function(_editor) {
-          _editor.setValue("");
-          props.focusGrid();
-        },
-          readOnly: true
-        });
-    editor.commands.addCommand({
-        name: 'toggle_reference',
-        bindKey: {win: 'F4',  mac: 'F4'},
-        exec: function(_editor) {
-          // console.log('f4 pressed');
-          var sesh = editor.getSession();
-          var cursor = editor.getCursorPosition();
-          var range = sesh.getWordRange(cursor.row, cursor.column);
-          var sel = editor.selection;
-          sel.setRange(range);
-          // console.log(range);
-          var replace = Util.toggleReferenceType(editor.getSelectedText());
-          sesh.replace(range, replace);
-        },
-          readOnly: true
-        });
   }
 
 };

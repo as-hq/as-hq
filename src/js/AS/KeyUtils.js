@@ -1,75 +1,76 @@
 import Util from './Util';
 import Constants from '../Constants';
 
+// -----------------------------------------------------------------------------------------------------
+// Key constants
+
+var _to_ascii = {
+    '188': '44',
+    '109': '45',
+    '190': '46',
+    '191': '47',
+    '192': '96',
+    '220': '92',
+    '222': '39',
+    '221': '93',
+    '219': '91',
+    '173': '45',
+    '187': '61', //IE Key codes
+    '186': '59', //IE Key codes
+    '189': '45'  //IE Key codes
+};
+
+var shiftUps = {
+    "96": "~",
+    "49": "!",
+    "50": "@",
+    "51": "#",
+    "52": "$",
+    "53": "%",
+    "54": "^",
+    "55": "&",
+    "56": "*",
+    "57": "(",
+    "48": ")",
+    "45": "_",
+    "61": "+",
+    "91": "{",
+    "93": "}",
+    "92": "|",
+    "59": ":",
+    "39": "\"",
+    "44": "<",
+    "46": ">",
+    "47": "?"
+};
+
+var modifiers = [16, 17, 18, 19]; // TODO
+
+var keyMap = {
+  "Enter": 13,
+  "Down": 40,
+  "Up": 38,
+  "Left": 37,
+  "Right": 39,
+  "Home": 36,
+  "End": 35,
+  "Esc": 0, // TODO
+  "F1": 112,
+  "F2": 113,
+  "F3": 114,
+  "F4": 115,
+  "F5": 116,
+  "F6": 117,
+  "F7": 118,
+  "F8": 119,
+  "F9": 120,
+  "F10": 121,
+  "F11": 122
+};
+
+var navKeys = [37, 38, 39, 40];
+
 export default {
-  // -----------------------------------------------------------------------------------------------------
-  // Key constants
-
-  _to_ascii: {
-      '188': '44',
-      '109': '45',
-      '190': '46',
-      '191': '47',
-      '192': '96',
-      '220': '92',
-      '222': '39',
-      '221': '93',
-      '219': '91',
-      '173': '45',
-      '187': '61', //IE Key codes
-      '186': '59', //IE Key codes
-      '189': '45'  //IE Key codes
-  },
-
-  shiftUps: {
-      "96": "~",
-      "49": "!",
-      "50": "@",
-      "51": "#",
-      "52": "$",
-      "53": "%",
-      "54": "^",
-      "55": "&",
-      "56": "*",
-      "57": "(",
-      "48": ")",
-      "45": "_",
-      "61": "+",
-      "91": "{",
-      "93": "}",
-      "92": "|",
-      "59": ":",
-      "39": "\"",
-      "44": "<",
-      "46": ">",
-      "47": "?"
-  },
-
-  modifiers: [16, 17, 18, 19],
-
-  keyMap: {
-    "Enter": 13,
-    "Down": 0, // TODO
-    "Up": 0, // .
-    "Left": 0,// .
-    "Right": 0,// .
-    "Home": 0,// .
-    "End": 0, // TODO
-    "F1": 112,
-    "F2": 113,
-    "F3": 114,
-    "F4": 115,
-    "F5": 116,
-    "F6": 117,
-    "F7": 118,
-    "F8": 119,
-    "F9": 120,
-    "F10": 121,
-    "F11": 122
-  },
-
-  navKeys: [0,0,0,0], // TODO
-
   // -----------------------------------------------------------------------------------------------------
   // Key conversions and utils
 
@@ -86,15 +87,15 @@ export default {
     let c = e.which;
     console.log("key has code: " + c);
     //normalize keyCode
-    if (this._to_ascii.hasOwnProperty(c)) {
-        c = this._to_ascii[c];
+    if (_to_ascii.hasOwnProperty(c)) {
+        c = _to_ascii[c];
     }
 
     if (!e.shiftKey && (c >= 65 && c <= 90)) {
         c = String.fromCharCode(c + 32);
-    } else if (e.shiftKey && this.shiftUps.hasOwnProperty(c)) {
+    } else if (e.shiftKey && shiftUps.hasOwnProperty(c)) {
         //get shifted keyCode value
-        c = this.shiftUps[c];
+        c = shiftUps[c];
     } else {
         c = String.fromCharCode(c);
     }
@@ -128,11 +129,21 @@ export default {
   },
 
   stringToKey(k) {
-    if (this.keyMap.hasOwnProperty(k))
-      return this.keyMap[k];
-    else
-      return String.toCharCode(k); // TODO does this actually work?
+    if (keyMap.hasOwnProperty(k))
+      return keyMap[k];
+    else return k.charCodeAt(0)-32; // TODO test for pathological cases and mac keyboards
   },
+
+  keyToWildcard(e) {
+    for (var key in keyMap) {   // TODO avoid iteration
+      if (keyMap[key] === e.which)
+        return key;
+    }
+    return this.keyToString(e);
+  },
+
+// -----------------------------------------------------------------------------------------------------
+// Shortcut utils
 
   parseModifierIntoShortcut(s, m) {
     switch(m) {
@@ -156,7 +167,7 @@ export default {
 
   parseIntoShortcut(s, str) {
     // NOTE
-    // assumes fornat: modifier + modifer + .. + key(s)
+    // assumes fornat: modifier + modifer + .. + key/key/key/key..
     let tokens = str.split("+"),
         options = tokens[tokens.length-1].split("/");
     if (options.length == 1)
@@ -171,7 +182,7 @@ export default {
   // gets the matched wildcard, in string format
   getWildcard(e, s) {
     if (s.optionKeys){
-      return this.keyToString(e);
+      return this.keyToWildcard(e);
     } else return null;
   }
 };

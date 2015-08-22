@@ -68,17 +68,11 @@ export default {
   clientToASLocation(clientLoc) {
     if (clientLoc.row2)
       return {tag: "Range",
-              sheet: {
-                sheetId: "TEST_SHEET_ID",     // TODO get from store
-                sheetName: "TEST_SHEET_NAME"  // TODO
-              },
+              sheet: ASEvaluationStore.getCurrentSheet(),
               range: this.clientToServerLoc(clientLoc)};
     else
       return {tag: "Index",
-              sheet: {
-                sheetId: "TEST_SHEET_ID",     // TODO get from store
-                sheetName: "TEST_SHEET_NAME"  // TODO
-              },
+              sheet: ASEvaluationStore.getCurrentSheet(),
               index: this.clientToServerLoc(clientLoc)};
   },
   /*
@@ -113,9 +107,10 @@ export default {
         "language":
       },
       "cellValue":{
-        "tag": "ValueS",
-        "contents": "initValue"
-      }};
+        "tag": "NoValue",
+        "contents": []
+      },
+      "cellTags": []};
   */
 
   serverToClientCell(serverCell) {
@@ -148,14 +143,14 @@ export default {
         "tag": "NoValue",
         "contents": []
       },
-      "cellTags": []      // TODO
+      "cellTags": []      // TODO pass in tags as arguments
     };
   },
   defaultCell(){
     let cl = {tag:"Index",
               sheet:{
-                sheetId: "TEST_SHEET_ID",     // TODO
-                sheetName: "TEST_SHEET_NAME"  // TODO
+                sheetId: "TEST_SHEET_ID",
+                sheetName: "TEST_SHEET_NAME"
               },
               index:[-1,-1]},
         ce = {expression:"",language:"Python"},

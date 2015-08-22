@@ -17,7 +17,12 @@ let _data = {
   allCells: {},
   lastUpdatedCells: [],
   xscroll: 0,
-  yscroll: 0
+  yscroll: 0,
+  openSheets: [],
+  currentSheet: {
+    sheetId: "TEST_SHEET_ID",
+    sheetName: "TEST_SHEET_NAME"
+  }
 };
 
 /* This function describes the actions of the ASEvaluationStore upon recieving a message from Dispatcher */
@@ -106,6 +111,12 @@ const ASEvaluationStore = assign({}, BaseStore, {
   setUserId(id) {
     _data.userId = id;
   },
+  getCurrentSheet() {
+    return _data.currentSheet;
+  },
+  setCurrentSheet(sht) {
+    _data.currentSheet = sht;
+  },
   setScroll(x, y){
     _data.xscroll = x;
     _data.yscroll = y;
@@ -166,7 +177,7 @@ const ASEvaluationStore = assign({}, BaseStore, {
   /* Updating expression when user clicks on a cell */
 
   getCellAtLoc(col,row){
-    let currentSheet = this.getSheet();
+    let currentSheet = this.getCurrentSheet();
     if (_data.allCells[currentSheet] && _data.allCells[currentSheet][col] && _data.allCells[currentSheet][col][row])
       return _data.allCells[currentSheet][col][row];
     else {

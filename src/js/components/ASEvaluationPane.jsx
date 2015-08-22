@@ -116,39 +116,74 @@ export default React.createClass({
 
   addShortcuts() {
     // TODO
-    Shortcuts.addShortcut("common", "toggle_focus", "F2", this.toggleFocus());
+    let self = this;
+    console.log("adding shortcuts!");
+
+    // common shortcuts
+    Shortcuts.addShortcut("common", "toggle_focus", "F2", self.toggleFocus());
     Shortcuts.addShortcut("common", "cell_eval", ["Ctrl+Enter", "Command+Enter"], (wildcard) => {
       let editorState = {
-        exp: this._getRawEditor().getValue(),
-        lang: this.state.language
+        exp: self._getRawEditor().getValue(),
+        lang: self.state.language
       };
-      this.handleEvalRequest(editorState);
+      self.handleEvalRequest(editorState);
     });
     Shortcuts.addShortcut("common", "set_language", ["Ctrl+1/2/3/4/5/6/7/8/9", "Command+1/2/3/4/5/6/7/8/9"], (wildcard) => {
       switch(wildcard) {
           case "1":
-            this.setLanguage(Constants.Languages.Excel);
+            self.setLanguage(Constants.Languages.Excel);
             break;
           case "2":
-            this.setLanguage(Constants.Languages.Python);
+            self.setLanguage(Constants.Languages.Python);
             break;
           case "3":
-            this.setLanguage(Constants.Languages.R);
+            self.setLanguage(Constants.Languages.R);
             break;
           case "4":
-            this.setLanguage(Constants.Languages.OCaml);
+            self.setLanguage(Constants.Languages.OCaml);
             break;
           case "5":
-            this.setLanguage(Constants.Languages.SQL);
+            self.setLanguage(Constants.Languages.SQL);
             break;
           case "6":
-            this.setLanguage(Constants.Languages.Java);
+            self.setLanguage(Constants.Languages.Java);
             break;
           case "7":
-            this.setLanguage(Constants.Languages.CPP);
+            self.setLanguage(Constants.Languages.CPP);
             break;
         }
-    })
+    });
+
+    // editor shortcuts
+    Shortcuts.addShortcut("editor", "toggle_reference", "F4", (wildcard) => {
+      let editor = self._getRawEditor(),
+          sesh = editor.getSession(),
+          cursor = editor.getCursorPosition(),
+          range = sesh.getWordRange(cursor.row, cursor.column),
+          sel = editor.selection;
+      sel.setRange(range);
+      let replace = Util.toggleReferenceType(editor.getSelectedText());
+      sesh.replace(rannge, replace);
+    });
+    Shortcuts.addShortcut("editor", "esc_editor", "Esc", (wildcard) => {
+      let editor = self._getRawEditor();
+      editor.setValue("");
+      self.setState({focus: "grid"});
+    });
+
+    // grid shortcuts
+    Shortcuts.addShortcut("grid", "moveto_data_boundary", "Ctrl+Up/Down/Left/Right", (wildcard) => {
+      switch(wildcard) {
+        case "Up":
+          break; // TODO
+        case "Down":
+          break; // TODO
+        case "Left":
+          break; // TODO
+        case "Right":
+          break; // TODO
+      }
+    });
   },
 
   _onEditorDeferredKey(e) {
@@ -162,7 +197,7 @@ export default React.createClass({
     if (KeyUtils.producesVisibleChar(e)) {
       console.log("key deferred by grid to editor");
       console.log(e);
-      let editor = this._getRawEditor(),
+      let editor = self._getRawEditor(),
           str = Shortcuts.modifyStringForKey(editor.getValue(), e);
       console.log(str);
       if (str || str === "")
