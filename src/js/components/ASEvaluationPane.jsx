@@ -7,6 +7,7 @@ import Shortcuts from '../AS/Shortcuts';
 import Util from '../AS/Util';
 import Constants from '../Constants';
 import Converter from '../AS/Converter'
+import KeyUtils from '../AS/KeyUtils';
 
 var NotificationSystem = require('react-notification-system');
 
@@ -14,7 +15,7 @@ var NotificationSystem = require('react-notification-system');
 export default React.createClass({
 
   /* Used to create error messages */
-  _notificationSystem: null, 
+  _notificationSystem: null,
   _numNotifications: 0,
   maxNotifs: 3,
 
@@ -74,6 +75,7 @@ export default React.createClass({
   componentDidMount() {
     ASEvaluationStore.addChangeListener(this._onChange);
     this._notificationSystem = this.refs.notificationSystem;
+    this.addShortcuts();
   },
   componentWillUnmount() {
     ASEvaluationStore.removeChangeListener(this._onChange);
@@ -88,11 +90,11 @@ export default React.createClass({
               onRemove: function(){this._numNotifications -= 1;}
 
             });
-        this._numNotifications += 1; 
+        this._numNotifications += 1;
       }
     }
   },
-  /* 
+  /*
   Upon a change event from the eval store (for example, eval has already happened)
     1) Get the last updated cells
     2) Call a ASSpreadsheet component method that forces an update of values
@@ -112,15 +114,52 @@ export default React.createClass({
   /**************************************************************************************************************************/
   /* Keyboard shortcuts */
 
-  _onEditorDeferredKey(e) {
-    if (Shortcuts.producesSelectionChange(e)){
-      // TODO
-    } else {
-      // TODO
-    }
+  addShortcuts() {
+    // TODO
+    Shortcuts.addShortcut("common", "toggle_focus", "F2", this.toggleFocus());
+    Shortcuts.addShortcut("common", "cell_eval", ["Ctrl+Enter", "Command+Enter"], (wildcard) => {
+      let editorState = {
+        exp: this._getRawEditor().getValue(),
+        lang: this.state.language
+      };
+      this.handleEvalRequest(editorState);
+    });
+    Shortcuts.addShortcut("common", "set_language", ["Ctrl+1/2/3/4/5/6/7/8/9", "Command+1/2/3/4/5/6/7/8/9"], (wildcard) => {
+      switch(wildcard) {
+          case "1":
+            this.setLanguage(Constants.Languages.Excel);
+            break;
+          case "2":
+            this.setLanguage(Constants.Languages.Python);
+            break;
+          case "3":
+            this.setLanguage(Constants.Languages.R);
+            break;
+          case "4":
+            this.setLanguage(Constants.Languages.OCaml);
+            break;
+          case "5":
+            this.setLanguage(Constants.Languages.SQL);
+            break;
+          case "6":
+            this.setLanguage(Constants.Languages.Java);
+            break;
+          case "7":
+            this.setLanguage(Constants.Languages.CPP);
+            break;
+        }
+    })
   },
+
+  _onEditorDeferredKey(e) {
+    console.log('trying common shortcut');
+    console.log(e);
+    Shortcuts.tryCommonShortcut(e);
+    // TODO bubble up editor event
+  },
+
   _onGridDeferredKey(e) {
-    if (Shortcuts.producesVisibleChar(e)) {
+    if (KeyUtils.producesVisibleChar(e)) {
       console.log("key deferred by grid to editor");
       console.log(e);
       let editor = this._getRawEditor(),
@@ -132,14 +171,14 @@ export default React.createClass({
     else {
       console.log('trying common shortcut');
       console.log(e);
-      Shortcuts.tryCommonShortcut(e, this);
+      Shortcuts.tryCommonShortcut(e);
     }
   },
 
   /**************************************************************************************************************************/
   /* Core functionality methods */
 
-  /* 
+  /*
   This function is called by ASSpreadsheet on a selection change
   Deal with changing the expression in the editor when the selection in the sheet changes
     1) Get the expression at the current location clicked from the evaluation store
@@ -155,7 +194,7 @@ export default React.createClass({
     this.addError(val);
   },
 
-  /* 
+  /*
   The editor state (langage and expression) gets here via props from the ace editor component
   Route an eval request through an API handler (eval hasn't happened yet)
     1) Get the selected region from the ASSpreadsheet component

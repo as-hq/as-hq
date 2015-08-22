@@ -80,7 +80,7 @@ export default React.createClass({
       let c = clientCells[key];
       let gridCol = Converter.clientCellGetCol(c)-1; // hypergrid starts indexing at 0
       let gridRow = Converter.clientCellGetRow(c)-1; // hypergrid starts indexing at 0
-      let display = Converter.clientCellGetDisplay(c); 
+      let display = Converter.clientCellGetDisplay(c);
       console.log("Updating display value: " + gridCol + " " + gridRow + " " + display);
       model.setValue(gridCol,gridRow,display);
     }
@@ -95,11 +95,8 @@ export default React.createClass({
     if (Shortcuts.gridShouldDeferKey(e)){ // if anything but nav keys, bubble event to parent
       Shortcuts.killEvent(e);
       this.props.onDeferredKey(e);
-    } else if (Shortcuts.tryNavShortcut(e, this._getHypergrid())){ // try to handle as nav shortcut
-      Shortcuts.killEvent(e); // event already handled, kill it
     } else {
-      console.log("unhandled keydown event in grid");
-      console.log(e);
+      console.log("native grid event allowed");
     }
   },
 
@@ -109,11 +106,11 @@ export default React.createClass({
   componentDidMount() {
     document.addEventListener('polymer-ready', () => {
       this.props.onReady();
-      this.initializeBlank(); 
+      this.initializeBlank();
       let self = this;
       let hg = this._getHypergrid();
       let callbacks = ({
-        /* 
+        /*
           Call onSelectionChange method in eval pane to deal with selection change
           Need to also figure out the expression to render in the editor
         */
