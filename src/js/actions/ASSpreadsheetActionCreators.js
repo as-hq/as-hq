@@ -18,12 +18,10 @@ export default {
     });
   },
   /* Dispatches a scroll event. Called from fin-hypergrid event listener in ASSpreadsheet */
-  scroll(x, y, vWindow) {
+  scroll(vWindow) {
     Dispatcher.dispatch({
       type: Constants.ActionTypes.SCROLLED,
-      vWindow: vWindow,
-      xscroll: x,
-      yscroll: y
+      vWindow: vWindow
     });
   }
 };

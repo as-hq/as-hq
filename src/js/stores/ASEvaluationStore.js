@@ -59,10 +59,7 @@ dispatcherIndex: Dispatcher.register(function (action) {
         It gets previous scroll state from the store and then uses the API to send a "get cells" message to server
       */
       case Constants.ActionTypes.SCROLLED:
-        let {x,y} = ASEvaluationStore.getScroll(); // current values of scroll position
-        console.log("scrolling action: x "+ action.xscroll + ", y " + action.yscroll);
-        let cells = API.sendGetRequestScroll(action.xscroll, action.yscroll, x, y, action.vWindow);
-        ASEvaluationStore.setScroll(action.xscroll, action.yscroll);
+        let cells = API.updateViewingWindow(action.vWindow);
         ASEvaluationStore.updateData(cells);
         ASEvaluationStore.emitChange();
         break;

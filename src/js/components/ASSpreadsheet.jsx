@@ -56,7 +56,7 @@ export default React.createClass({
     let hg = this._getHypergrid();
     let [vs, hs] = [hg.vScrollValue, hg.hScrollValue];
     let [cols, rows] = [hg.getVisibleColumns(), hg.getVisibleRows()];
-    return { locs: [[vs, hs], [vs + cols.length - 1, hs + rows.length - 1]], width: cols.length, height: rows.length };
+    return { range: {row: vs, col: hs, row2: vs + cols.length - 1, col2: hs + rows.length - 1}, width: cols.length, height: rows.length };
   },
 
   /*************************************************************************************************************************/
@@ -121,12 +121,12 @@ export default React.createClass({
             self.props.onSelectionChange(range);
           },
         'fin-scroll-x': function (event) {
-          let {x, y} = self.getScroll();
-          ActionCreator.scroll(x, y, self.getViewingWindow());
+          // let {x, y} = self.getScroll();
+          ActionCreator.scroll(self.getViewingWindow());
           },
         'fin-scroll-y': function (event) {
-          let {x, y} = self.getScroll();
-          ActionCreator.scroll(x, y, self.getViewingWindow());
+          // let {x, y} = self.getScroll();
+          ActionCreator.scroll(self.getViewingWindow());
           }
       });
       for (var key in callbacks) {

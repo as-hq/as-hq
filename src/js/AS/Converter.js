@@ -96,6 +96,14 @@ export default {
     }
   },
 
+  clientWindowToServer(vWindow) {
+    return {
+      windowSheetId: ASEvaluationStore.getCurrentSheet().sheetId,
+      topLeft: [vWindow.range.row, vWindow.range.col],
+      bottomRight: [vWindow.range.row2, vWindow.range.col2]
+    };
+  },
+
   /**************************************************************************************************************************/
   /*
     Cell conversion and processing
@@ -218,7 +226,7 @@ export default {
     Used to make a Get request to the server for the cells at certain locations
     For example, when the store needs to update due to a scroll, query server
   */
-  clientLocsToGetMessage(locs,vWindow) {
+  clientLocsToGetMessage(locs) {
     let tag = null,
         sLocs = null;
     if (locs.length){
@@ -231,7 +239,7 @@ export default {
     else{
       console.log("Not going to handle only getting one cell");
     }
-    return this.toServerMessageFormat(Constants.ServerActions.Get, tag, {vWindow:vWindow,getLocs:sLocs});
+    return this.toServerMessageFormat(Constants.ServerActions.Get, tag, sLocs);
   },
 
   /**************************************************************************************************************************/

@@ -60,6 +60,7 @@ export default {
   tryShortcut(e, set) {
     for (var key in set) {
       if (this.shortcutMatches(set[key], e)){
+        console.log("shortcut matched!");
         set[key].callback(KeyUtils.getWildcard(e, set[key]));
         return true;
       }
@@ -68,11 +69,11 @@ export default {
   },
 
   tryCommonShortcut(e) {
-    return this.tryShortcut(e, this.CommonShortcuts);
+    return this.tryShortcut(e, _S.CommonShortcuts);
   },
 
-  tryNavShortcut(e) {
-    return this.tryShortcut(e, this.NavShortcuts);
+  tryGridShortcut(e) {
+    return this.tryShortcut(e, _S.GridShortcuts);
   },
 
   gridShouldDeferKey(e){
@@ -89,8 +90,6 @@ export default {
       }
     } else return false;
   },
-
-
 
   compareModifiers(s, e) {
     // s is the shortcut

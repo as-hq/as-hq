@@ -199,7 +199,6 @@ export default React.createClass({
       console.log(e);
       let editor = self._getRawEditor(),
           str = Shortcuts.modifyStringForKey(editor.getValue(), e);
-      console.log(str);
       if (str || str === "")
         editor.setValue(str);
     }

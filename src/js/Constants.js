@@ -76,6 +76,7 @@ export default {
     Delete: "Delete",
     Undo: "Undo",
     Redo: "Redo",
-    Clear: "Clear"
+    Clear: "Clear",
+    UpdateWindow: "UpdateWindow"
   }
 };

@@ -121,13 +121,14 @@ export default {
   /**************************************************************************************************************************/
   /* Sending get messages to the server */
 
-  sendGetRequest(locs,vWindow) {
-    let msg = Converter.clientLocsToGetMessage(locs,vWindow);
+  sendGetRequest(locs) {
+    let msg = Converter.clientLocsToGetMessage(locs);
     console.log('Sending get message to server: ' + JSON.stringify(msg));
     wss.send(JSON.stringify(msg));
   },
   // TODO: NEEDS TESTING
   /*
+    DEPRECATED in favor of updateViewingWindow
     Submit a get request to the server in order to get new cells when a client scrolls
     The eval store only maintains a cache based on viewing window
   */
@@ -154,12 +155,22 @@ export default {
                 col2: newX - eX + 1, row2: oldY + vWindow.height + eY};
       }
     } else{
+      console.log("unhandled double scroll event!");
     }
     console.log("Unsafe scroll locs: " + JSON.stringify(locs));
     if (locs){
       let safeLocs = Converter.getSafeLoc(locs);
       this.sendGetRequest(safeLocs,vWindow);
     }
+  },
+
+  updateViewingWindow(vWindow) {
+    let sWindow = Converter.clientWindowToServer(vWindow),
+        msg = Converter.toServerMessageFormat(Constants.ServerActions.UpdateWindow,
+                                              "PayloadW",
+                                              sWindow);
+    console.log("send scroll message: " + JSON.stringify(msg));
+    wss.send(JSON.stringify(msg));
   }
 
 };
