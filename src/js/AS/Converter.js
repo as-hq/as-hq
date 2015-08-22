@@ -5,12 +5,12 @@ import Util from '../AS/Util.js'
 export default {
 
   /**************************************************************************************************************************/
-  /* 
+  /*
     Methods so that stores/components doesn't have to worry about conversions dependent on the type system/object architecture
-    Here, clientCell (the type stored in eval store) is compliant with the current clientCell standard: 
+    Here, clientCell (the type stored in eval store) is compliant with the current clientCell standard:
     cellLocation: {
-        tag: 
-        sheet: 
+        tag:
+        sheet:
         index: {col,row} (the only cells that will be updated are Index cells)
       },
       cellExpression: {
@@ -36,11 +36,11 @@ export default {
     return clientCell.cellExpression;
   },
   clientCellGetValueObj(clientCell){
-    return clientCell.cellValue; 
+    return clientCell.cellValue;
   },
   clientCellEmptyVersion(clientCell){
-    let ce = {"tag":"Expression","expression":"","language":clientCell.cellExpression.language}; 
-    let cv = {"tag": "ValueS", "contents": ""};
+    let ce = {"tag":"Expression","expression":"","language":clientCell.cellExpression.language};
+    let cv = {"tag": "NoValue", "contents": []};
     return {cellLocation:clientCell.cellLocation,cellExpression:ce,cellValue:cv};
   },
   /* Convert a store cell to a grid display for hypergrid's format */
@@ -49,7 +49,7 @@ export default {
   },
 
   /**************************************************************************************************************************/
-  /* 
+  /*
     Location (excluding the tag) conversion and methods
     Server location: [c,r] or [[c,r],[c,r]]
     Client location: {row,col} {row,col,row2,col2}
@@ -68,14 +68,20 @@ export default {
   clientToASLocation(clientLoc) {
     if (clientLoc.row2)
       return {tag: "Range",
-              sheet: ASEvaluationStore.getSheet(),
+              sheet: {
+                sheetId: "TEST_SHEET_ID",     // TODO get from store
+                sheetName: "TEST_SHEET_NAME"  // TODO
+              },
               range: this.clientToServerLoc(clientLoc)};
     else
       return {tag: "Index",
-              sheet: ASEvaluationStore.getSheet(),
+              sheet: {
+                sheetId: "TEST_SHEET_ID",     // TODO get from store
+                sheetName: "TEST_SHEET_NAME"  // TODO
+              },
               index: this.clientToServerLoc(clientLoc)};
   },
-  /* 
+  /*
     Returns a location (index or range) if its inside the sheet boundaries; otherwise one of the corners of the sheet boundaries
     Works on an array of locations, uses the sheet format
   */
@@ -97,14 +103,14 @@ export default {
   },
 
   /**************************************************************************************************************************/
-  /* 
+  /*
     Cell conversion and processing
     Server cell standard (client cell standard is above)
       "cellLocation": serverLoc (see above),
       "cellExpression": {
         "tag": "Expression",
-        "expression" : 
-        "language": 
+        "expression" :
+        "language":
       },
       "cellValue":{
         "tag": "ValueS",
@@ -113,7 +119,7 @@ export default {
   */
 
   serverToClientCell(serverCell) {
-    let serverLoc = serverCell.cellLocation.index; 
+    let serverLoc = serverCell.cellLocation.index;
     console.log("Server cell: " + serverLoc);
     return {
       cellLocation: {
@@ -122,11 +128,12 @@ export default {
         index: this.serverToClientLoc(serverLoc)
       },
       cellExpression: serverCell.cellExpression,
-      cellValue: serverCell.cellValue
+      cellValue: serverCell.cellValue,
+      cellTags: serverCell.cellTags
     };
   },
-  /* 
-    Used to create an initial ASCell to send to server for eval 
+  /*
+    Used to create an initial ASCell to send to server for eval
     Selection region has width, height, and range, where range is in the client loc format
   */
   clientToASCell(selRegion, editorState){
@@ -138,15 +145,23 @@ export default {
         "language": editorState.lang.Server
       },
       "cellValue":{
-        "tag": "ValueS",
-        "contents": "initValue"
-      }};
+        "tag": "NoValue",
+        "contents": []
+      },
+      "cellTags": []      // TODO
+    };
   },
   defaultCell(){
-    let cl = {tag:"Index",sheet:"Default",index:[-1,-1]}; 
-    let ce = {expression:"",language:'Python'};
-    let cv = {tag:"ValueS", contents:""}
-    return {cellLocation:cl,cellExpression:ce,cellValue:cv};
+    let cl = {tag:"Index",
+              sheet:{
+                sheetId: "TEST_SHEET_ID",     // TODO
+                sheetName: "TEST_SHEET_NAME"  // TODO
+              },
+              index:[-1,-1]},
+        ce = {expression:"",language:"Python"},
+        cv = {tag:"NoValue", contents: []},
+        ct = [];
+    return {cellLocation:cl,cellExpression:ce,cellValue:cv,cellTags:ct};
   },
 
   /**************************************************************************************************************************/
@@ -155,7 +170,7 @@ export default {
   /* Commits have list of ASCells which need to get converted to client type cells */
   serverToClientCommit(commit){
     console.log("Converting commit to client format: " + JSON.stringify(commit));
-    let before = []; let after = []; 
+    let before = []; let after = [];
     for (var key in commit.before){
       let clientCell = this.serverToClientCell(commit.before[key]);
       before.push(clientCell);
@@ -172,6 +187,7 @@ export default {
 
   toServerMessageFormat(action, payloadTag, payload) {
     return {
+      "messageUserId": ASEvaluationStore.getUserId(),
       "action": action,
       "payload": {
         "tag": payloadTag,
@@ -196,23 +212,23 @@ export default {
           let clientCell = this.serverToClientCell(msg.payload.contents[key]);
           cells.push(clientCell);
         }
-        console.log("Eval cells JSON: " + JSON.stringify(cells)); 
-        return cells; 
+        console.log("Eval cells JSON: " + JSON.stringify(cells));
+        return cells;
       }
     }
     else
       console.log("Error parsing: no payload found in message");
   },
-  /* 
+  /*
     Used to make a Get request to the server for the cells at certain locations
-    For example, when the store needs to update due to a scroll, query server 
+    For example, when the store needs to update due to a scroll, query server
   */
   clientLocsToGetMessage(locs,vWindow) {
     let tag = null,
-        sLocs = null; 
+        sLocs = null;
     if (locs.length){
       tag = "PayloadLL";
-      sLocs = []; 
+      sLocs = [];
       for (var key in locs){
         sLocs.push(this.clientToASLocation(locs[key]));
       }
@@ -228,18 +244,17 @@ export default {
 
   /* Used to create undo/redo messages to submit to server. Called by send Undo/Redo Request in API action creator */
   createUndoRequestForServer(){
-    return {action:"Undo",result:{"tag":"NoResult","contents":[]},payload:{tag:"PayloadN", contents:[]}};
+    return this.toServerMessageFormat(Constants.ServerActions.Undo, "PayloadN", []);
   },
   createRedoRequestForServer(){
-    return {action:"Redo",result:{"tag":"NoResult","contents":[]},payload:{tag:"PayloadN", contents:[]}};
+    return this.toServerMessageFormat(Constants.ServerActions.Redo, "PayloadN", []);
   },
   /* Create an evaluation request in the message format. Called by sendEvalRequest in API action creator */
   createEvalRequestFromASCell(asCell){
-    let payload = {tag:"PayloadC", contents:asCell};
-    return {action:"Evaluate",result:{"tag":"NoResult","contents":[]},payload:payload};
+    return this.toServerMessageFormat(Constants.ServerActions.Evaluate, "PayloadC", asCell)
   },
   createClearRequestForServer(){
-    return {action:"Clear",result:{"tag":"NoResult","contents":[]},payload:{tag:"PayloadN", contents:[]}};
+    return this.toServerMessageFormat(Constants.ServerActions.Clear, "PayloadN", []);
   }
 
 }

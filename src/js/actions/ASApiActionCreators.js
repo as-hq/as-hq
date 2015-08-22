@@ -7,15 +7,15 @@ var wss = new WebSocket(Constants.HOST_WS);
 
 /**************************************************************************************************************************/
 
-/* 
+/*
   This action creator class serves two purposes
   1) Create messages for the server and send them
   2) Take messages received from the server and send them to dispatch
 */
 
 /**************************************************************************************************************************/
-/* 
-  Called whenever the server returns a message 
+/*
+  Called whenever the server returns a message
   Depending on the action type of the message, calls dispatcher differently to propagate to stores
   Converts server to client types before going further
 */
@@ -48,12 +48,12 @@ wss.onmessage = function (event) {
     case "NoAction":
       break;
     case "Get":
-      let newCells = Converter.clientCellsFromServerMessage(msg); // MAY NEED TO REPLACE 
+      let newCells = Converter.clientCellsFromServerMessage(msg); // MAY NEED TO REPLACE
       Dispatcher.dispatch({
         type: ActionTypes.FETCHED_CELLS,
         newCells: newCells
       });
-      break; 
+      break;
     case "Clear":
       Dispatcher.dispatch({
         type: ActionTypes.CLEARED,
@@ -66,13 +66,6 @@ export default {
   /**************************************************************************************************************************/
   /* Sending acknowledge message to server */
 
-  sendInitialMessage(userName){
-    let msg = Converter.toServerMessageFormat(Constants.ServerActions.Acknowledge,"PayloadInit",{userName:userName});
-    console.log("Sending init message: " + JSON.stringify(msg)); 
-    this.waitForSocketConnection(wss,function(){
-      wss.send(JSON.stringify(msg));
-    });
-  },
   waitForSocketConnection(socket, callback){
     setTimeout(
         function () {
@@ -86,7 +79,14 @@ export default {
                 this.waitForSocketConnection(socket, callback);
             }
 
-        }, 5); // polling socket for readiness: 5 ms
+        }, 5)}, // polling socket for readiness: 5 ms
+
+  sendInitialMessage(){
+    let msg = Converter.toServerMessageFormat(Constants.ServerActions.Acknowledge,"PayloadInit",[]);
+    console.log("Sending init message: " + JSON.stringify(msg));
+    this.waitForSocketConnection(wss,function(){
+      wss.send(JSON.stringify(msg));
+    })
   },
 
   /**************************************************************************************************************************/
@@ -97,7 +97,7 @@ export default {
     console.log("In eval action creator");
     let cell = Converter.clientToASCell(selRegion,editorState);
     console.log("AS cell created for eval: " + JSON.stringify(cell));
-    let msg = Converter.createEvalRequestFromASCell(cell); 
+    let msg = Converter.createEvalRequestFromASCell(cell);
     console.log('Sending msg to server: ' + JSON.stringify(msg));
     wss.send(JSON.stringify(msg));
   },
@@ -106,15 +106,15 @@ export default {
   /* Sending undo/redo/clear messages to the server */
 
   sendUndoRequest(){
-    let msg = Converter.createUndoRequestForServer(); 
+    let msg = Converter.createUndoRequestForServer();
     wss.send(JSON.stringify(msg));
   },
   sendRedoRequest(){
-    let msg = Converter.createRedoRequestForServer(); 
+    let msg = Converter.createRedoRequestForServer();
     wss.send(JSON.stringify(msg));
   },
   sendClearRequest(){
-    let msg = Converter.createClearRequestForServer(); 
+    let msg = Converter.createClearRequestForServer();
     wss.send(JSON.stringify(msg));
   },
 
@@ -127,7 +127,7 @@ export default {
     wss.send(JSON.stringify(msg));
   },
   // TODO: NEEDS TESTING
-  /* 
+  /*
     Submit a get request to the server in order to get new cells when a client scrolls
     The eval store only maintains a cache based on viewing window
   */

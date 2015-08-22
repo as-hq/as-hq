@@ -12,7 +12,7 @@ export default React.createClass({
   /* When mounting, send a message to the backend to signify a connection */
   componentDidMount() {
     ThemeManager.setTheme(ThemeManager.types.DARK);
-    API.sendInitialMessage("user" + Math.floor((Math.random()*100)+1));
+    API.sendInitialMessage();
   },
   getDefaultProps() {
     return {}
@@ -33,7 +33,7 @@ export default React.createClass({
     return (
       <div className="full">
           <ASTabs ref="tabs"/>
-          <ASMenuBar ref="menuBar" /> 
+          <ASMenuBar ref="menuBar" />
           <ASEvaluationPane behavior="default" ref="evalPane" />
       </div>
     );

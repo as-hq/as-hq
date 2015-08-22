@@ -2,7 +2,7 @@ import keyMirror from 'react/lib/keyMirror';
 
 export default {
   HOST_WS: 'ws://localhost:5000',
-  
+
   // event name triggered from store, listened to by views
   CHANGE_EVENT: 'change',
 
@@ -75,6 +75,7 @@ export default {
     Get: "Get",
     Delete: "Delete",
     Undo: "Undo",
-    Redo: "Redo"
+    Redo: "Redo",
+    Clear: "Clear"
   }
 };
