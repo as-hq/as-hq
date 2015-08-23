@@ -32,6 +32,8 @@ export default React.createClass({
     };
   },
   setLanguage(lang) {
+    // TODO change dropdown when triggered programmatically
+    console.log("setting language: "+JSON.stringify(lang));
     this.setState({ language: lang });
   },
 
@@ -120,7 +122,7 @@ export default React.createClass({
     console.log("adding shortcuts!");
 
     // common shortcuts
-    Shortcuts.addShortcut("common", "toggle_focus", "F2", self.toggleFocus());
+    Shortcuts.addShortcut("common", "toggle_focus", "F2", (wildcard) => {self.toggleFocus()});
     Shortcuts.addShortcut("common", "cell_eval", ["Ctrl+Enter", "Command+Enter"], (wildcard) => {
       let editorState = {
         exp: self._getRawEditor().getValue(),
@@ -187,7 +189,7 @@ export default React.createClass({
   },
 
   _onEditorDeferredKey(e) {
-    console.log('trying common shortcut');
+    console.log('editor deferred key; trying common shortcut');
     console.log(e);
     Shortcuts.tryCommonShortcut(e);
     // TODO bubble up editor event
@@ -197,8 +199,8 @@ export default React.createClass({
     if (KeyUtils.producesVisibleChar(e)) {
       console.log("key deferred by grid to editor");
       console.log(e);
-      let editor = self._getRawEditor(),
-          str = Shortcuts.modifyStringForKey(editor.getValue(), e);
+      let editor = this._getRawEditor(),
+          str = KeyUtils.modifyStringForKey(editor.getValue(), e);
       if (str || str === "")
         editor.setValue(str);
     }

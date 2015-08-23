@@ -3,13 +3,17 @@ import Constants from '../Constants';
 /* This module has general utility functions */
 
 export default {
-  
+
+/*************************************************************************************************************************/
+// Cell rendering
+
   /* Used to know what to display on the sheet */
   showValue(cv) {
     console.log("In show value: " + JSON.stringify(cv));
+    let self = this;
     switch (cv.tag) {
       case "ValueNaN":
-        return "valueNaN";
+        return "NaN";
       case "ValueB":
         return cv.contents;
       case "ValueD":
@@ -20,15 +24,60 @@ export default {
         return cv.contents;
       case "ValueL":
         console.log("FOUND LIST");
-        return this.showValue(cv.contents[0]);
+        return self.showValue(cv.contents[0]);
       case "ValueError":
         return "ERROR";
-      case "StyledValue":
-        return showValue(cv.value);
       case "DisplayValue":
         return cv.displayValue;
     }
   },
+
+  parseTagIntoRenderConfig(tag) {
+    let self = this;
+    switch(tag.tag) {
+      case "TextColor":
+        config.fgColor = self.colorToHtml(tag.contents);
+        return config;
+      case "BgColor":
+        config.bgColor = self.colorToHtml(tag.contents);
+        return config;
+      case "Align":
+        config.halign = tag.contents.toLowerCase();
+        return config;
+      case "Money":
+        config.value = self.formatMoney(config.value, tag.contents, 2);
+        return config;
+      case "Percentage":
+        config.value = self.formatPercentage(config.value);
+        return config;
+    }
+  },
+
+/*************************************************************************************************************************/
+// Formatting
+
+  formatMoney(currency, contents, dec) {
+    let delim = null,
+        val = contents.toString();
+    switch(currency) {
+      case "$":
+        delim = ".";
+        break;
+      default:
+        delim = ",";
+        break;
+    }
+    return currency + val.substring(0,2) + delim + val.substring(2,2+dec);
+  },
+
+  formatPercentage(contents) {
+    if (contents >= 0 && contents <= 100) {
+      return contents + "%";
+    } // TODO raise error otherwise
+  },
+
+/*************************************************************************************************************************/
+// Misc
 
   arrContains(arr, elem) {
     return arr.indexOf(elem) > -1;

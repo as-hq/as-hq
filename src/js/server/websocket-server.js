@@ -1,21 +1,22 @@
-var WebSocketServer = require("ws").Server
-var http = require("http")
-var express = require("express")
-var app = express()
-var port = process.env.PORT || 5000
+var WebSocketServer = require("ws").Server;
+var http = require("http");
+var express = require("express");
+var app = express();
+var port = process.env.PORT || 5000;
 
-app.use(express.static(__dirname + "/"))
+app.use(express.static(__dirname + "/"));
 
-var server = http.createServer(app)
-server.listen(port)
+var server = http.createServer(app);
+server.listen(port);
 
-console.log("http server listening on %d", port)
+console.log("http server listening on %d", port);
 
-var wss = new WebSocketServer({server: server})
-console.log("websocket server created")
+var wss = new WebSocketServer({server: server});
+console.log("websocket server created");
 
 var toServerMessageFormat = function (action, payloadTag, payload) {
     return ({
+      "messageUserId": "testUserId",
       "action": action,
       "payload": {
         "tag": payloadTag,
@@ -38,7 +39,8 @@ var fakeCell = function(contents) {
       "cellValue":{
         "tag": "ValueS",
         "contents": JSON.stringify(contents.cellLocation.index)
-      }
+      },
+      "cellTags": []
   };
 };
 
@@ -74,7 +76,7 @@ var fakeCellFromIndex = function(idx) {
       },
       cellLocation: {
         tag: "Index",
-        sheet: "Demo",
+        sheet: {sheetId: "testSheetId", sheetName: "Demo"},
         index: idx
       }
     });

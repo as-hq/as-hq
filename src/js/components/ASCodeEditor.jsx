@@ -55,7 +55,8 @@ export default React.createClass({
           language={language}
           theme={theme}
           value={value}
-          width={width} height={height} />
+          width={width} height={height}
+          onDeferredKey={this.props.onDeferredKey} />
       </div>
     );
   },

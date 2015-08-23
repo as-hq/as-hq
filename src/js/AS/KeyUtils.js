@@ -1,5 +1,6 @@
 import Util from './Util';
 import Constants from '../Constants';
+import _ from 'underscore';
 
 // -----------------------------------------------------------------------------------------------------
 // Key constants
@@ -44,7 +45,7 @@ var shiftUps = {
     "47": "?"
 };
 
-var modifiers = [16, 17, 18, 19]; // TODO
+var modifiers = [16, 17, 18, 19];
 
 var keyMap = {
   "Enter": 13,
@@ -54,7 +55,7 @@ var keyMap = {
   "Right": 39,
   "Home": 36,
   "End": 35,
-  "Esc": 0, // TODO
+  "Esc": 27,
   "F1": 112,
   "F2": 113,
   "F3": 114,
@@ -106,7 +107,7 @@ export default {
     return (!(e.ctrlKey || e.altKey || e.metaKey) &&
             !Util.arrContains(modifiers, e.which) &&
             !this.isFunctionKey(e)) ||
-           (e.ctrlKey && e.key === "Backspace"); // backspace
+           (e.ctrlKey && e.key === "Backspace"); // ctrl + backspace
   },
 
   modifyStringForKey(str, e) {
@@ -128,18 +129,23 @@ export default {
       e.nativeEvent.stopImmediatePropagation();
   },
 
-  stringToKey(k) {
+  stringToKey(k) { // TODO test for pathological cases and mac keyboards
     if (keyMap.hasOwnProperty(k))
       return keyMap[k];
-    else return k.charCodeAt(0)-32; // TODO test for pathological cases and mac keyboards
+    else {
+      let c = k.charCodeAt(0);
+      if ((c-32) >= 65 && (c-32) <= 90)
+        return c-32;
+      else
+        return c;
+    }
   },
 
   keyToWildcard(e) {
-    for (var key in keyMap) {   // TODO avoid iteration
-      if (keyMap[key] === e.which)
-        return key;
-    }
-    return this.keyToString(e);
+    let k = _.invert(keyMap);
+    if (k[e.which])
+      return k[e.which]
+    else return this.keyToString(e);
   },
 
 // -----------------------------------------------------------------------------------------------------

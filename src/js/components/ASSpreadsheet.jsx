@@ -4,6 +4,8 @@ import Shortcuts from '../AS/Shortcuts';
 import Converter from '../AS/Converter';
 import API from '../actions/ASApiActionCreators';
 import KeyUtils from '../AS/KeyUtils';
+import Store from '../stores/ASEvaluationStore';
+import Util from '../AS/Util';
 
 export default React.createClass({
 
@@ -13,7 +15,7 @@ export default React.createClass({
   _getHypergrid() {
     return React.findDOMNode(this.refs.hypergrid);
   },
-  _getModel(){
+  _getBehavior(){
     return this._getHypergrid().getBehavior();
   },
   getDefaultProps() {
@@ -64,7 +66,7 @@ export default React.createClass({
 
   /* Initial a sheet with blank entries */
   initializeBlank(){
-    let model = this._getModel();
+    let model = this._getBehavior();
     model.getValue = function(x, y) {
       return '';
     };
@@ -76,7 +78,7 @@ export default React.createClass({
   /* Called by eval pane's onChange method, when eval pane receives a change event from the store */
   updateCellValues(clientCells){
     console.log("About to display cells in sheet: " + JSON.stringify(clientCells));
-    let model = this._getModel();
+    let model = this._getBehavior();
     for (var key in clientCells){ // update the hypergrid values
       let c = clientCells[key];
       let gridCol = Converter.clientCellGetCol(c)-1; // hypergrid starts indexing at 0
@@ -108,6 +110,7 @@ export default React.createClass({
     document.addEventListener('polymer-ready', () => {
       this.props.onReady();
       this.initializeBlank();
+      this.setCellRenderer();
       let self = this;
       let hg = this._getHypergrid();
       let callbacks = ({
@@ -157,5 +160,28 @@ export default React.createClass({
           {behaviorElement}
       </fin-hypergrid>
     );
+  },
+
+  /*************************************************************************************************************************/
+  // Cell rendering
+
+  setCellRenderer() {
+    let model = this._getBehavior(),
+        cellProvider = model.getCellProvider();
+    cellProvider.getCell = function(config) {
+      let renderer = cellProvider.cellCache.simpleCellRenderer,
+          col = config.x + 1,
+          row = config.y + 1,
+          cell = Store.getCellAtLoc(col, row);
+      if (cell.cellTags) {
+        for (var i=0; i<cell.cellTags.length; i++)
+          config = Util.parseTagIntoRenderConfig(cell.cellTags[i]);
+      } else {
+        // TODO fill out default renderer
+        config.halign = 'center';
+      }
+      renderer.config = config;
+      return renderer;
+    }
   }
 });

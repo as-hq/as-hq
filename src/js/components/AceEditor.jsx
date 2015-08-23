@@ -1,4 +1,4 @@
-import Shortcuts from '../AS/Shortcuts';
+import KeyUtils from '../AS/KeyUtils';
 
 var ace = require('brace');
 var React = require('react');
@@ -59,6 +59,14 @@ module.exports = React.createClass({
     return this.editor;
   },
 
+  handleKeyDown(e) {
+    console.log("onkeydown editor");
+    if (!KeyUtils.producesVisibleChar(e)) {
+      KeyUtils.killEvent(e);
+      this.props.onDeferredKey(e);
+    }
+  },
+
   componentDidMount: function() {
     this.editor = ace.edit(this.props.name);
     this.editor.getSession().setMode('ace/mode/'+this.props.mode);
@@ -101,6 +109,11 @@ module.exports = React.createClass({
       height: this.props.height,
       zIndex: 0
     };
-    return (<div id={this.props.name} onChange={this.onChange} style={divStyle}></div>);
+    return (<div
+        id={this.props.name}
+        onChange={this.onChange}
+        style={divStyle}
+        onKeyDown={this.handleKeyDown} >
+      </div>);
   }
 });

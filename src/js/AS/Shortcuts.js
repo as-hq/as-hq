@@ -61,6 +61,7 @@ export default {
     for (var key in set) {
       if (this.shortcutMatches(set[key], e)){
         console.log("shortcut matched!");
+        console.log(JSON.stringify(set[key]));
         set[key].callback(KeyUtils.getWildcard(e, set[key]));
         return true;
       }
