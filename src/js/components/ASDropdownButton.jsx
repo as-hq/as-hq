@@ -1,8 +1,9 @@
 import React, {PropTypes} from 'react';
-import {AppCanvas, IconMenu, Styles} from 'material-ui';
+import {AppCanvas, Styles} from 'material-ui';
 import MenuItem from 'material-ui/lib/menus/menu-item';
 import MenuDivider from 'material-ui/lib/menus/menu-divider';
 
+import ASIconMenu from './ASIconMenu.jsx';
 import ASButton from './ASButton.jsx';
 
 import ReactClickAway from 'react-clickaway';
@@ -51,6 +52,7 @@ export default React.createClass({
         labelStyle={labelStyle}
         backgroundColor={(this.state.hover) ? Colors.red900 : Colors.grey800}
         style={{
+          minWidth: width,
           width: width,
           height: height
         }}
@@ -60,10 +62,12 @@ export default React.createClass({
     );
 
     return (
-      <IconMenu
+      <ASIconMenu
+        ref={'dropdown'}
         iconButtonElement={button}
         desktop={true}
         openDirection={'bottom-right'}
+        beforeTouchTap={this._onTouchTap}
         menuStyle={{
           top: height
         }}
@@ -71,7 +75,7 @@ export default React.createClass({
         {menuItems.map((itemTitle) =>
           <MenuItem primaryText={itemTitle} />
         )}
-      </IconMenu>
+      </ASIconMenu>
     );
   },
 
@@ -81,5 +85,13 @@ export default React.createClass({
 
   _onMouseLeave() {
     this.setState({ hover: false });
+  },
+
+  _onTouchTap() {
+    let dd = this.refs.dropdown;
+    console.log(dd);
+    if (dd.state.open()) {
+      dd.close();
+    }
   }
 });

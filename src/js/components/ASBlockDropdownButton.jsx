@@ -54,6 +54,9 @@ export default React.createClass({
             </div>
           </div>
         }
+        labelStyle={{
+          padding: '0px 7px'
+        }}
         width={width}
         height={height}
         menuItems={menuItems}
