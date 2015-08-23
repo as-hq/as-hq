@@ -9,14 +9,21 @@ export default React.createClass({
     muiTheme: React.PropTypes.object
   },
 
+  propTypes: {
+    width: React.PropTypes.string,
+    height: React.PropTypes.string,
+    iconClassName: React.PropTypes.string.isRequired,
+    label: React.PropTypes.string.isRequired,
+    menuItems: React.PropTypes.arrayOf(React.PropTypes.string).isRequired
+  },
+
   getDefaultProps() {
     return {
+      height: '24px'
     };
   },
 
   getTheme() {
-    console.log('outer theme:', JSON.stringify(this.context.muiTheme));
-    console.log('theme:', this.context.muiTheme.component.raisedButton);
     return this.context.muiTheme.component.raisedButton;
   },
 
@@ -34,15 +41,17 @@ export default React.createClass({
     let labelElementStyle = {
       position: 'relative',
       opacity: 1,
-      fontSize: '14px',
+      fontSize: '10px',
       letterSpacing: 0,
       textTransform: 'uppercase',
       fontWeight: Typography.fontWeightMedium,
       margin: 0,
-      padding: '0px ' + this.context.muiTheme.spacing.desktopGutterLess + 'px',
+      padding: '0px 7px',
       userSelect: 'none',
-      lineHeight: (this.props.style && this.props.style.height) ?
-       this.props.style.height : this.getThemeButton().height + 'px',
+      lineHeight:
+        (this.props.height) ? this.props.height :
+        (this.props.style && this.props.style.height) ?
+        this.props.style.height : this.getThemeButton().height + 'px',
       color:  this._getLabelColor()
     };
 
@@ -53,8 +62,8 @@ export default React.createClass({
             <FontIcon
               style={{
                 float: 'left',
-                fontSize: '24px',
-                lineHeight: '36px'
+                fontSize: '18px',
+                lineHeight: '24px'
               }}
               className={iconClassName}
               color={Colors.grey50}
@@ -65,14 +74,17 @@ export default React.createClass({
             <FontIcon
               style={{
                 float: 'right',
-                fontSize: '24px',
-                lineHeight: '36px'
+                fontSize: '18px',
+                lineHeight: '24px'
               }}
               className="muidocs-icon-navigation-expand-more"
               color={Colors.grey50}
             />
           </div>
         }
+        labelStyle={{
+          padding: '0px 7px'
+        }}
         width={width}
         height={height}
         menuItems={menuItems}

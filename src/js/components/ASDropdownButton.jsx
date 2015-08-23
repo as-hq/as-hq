@@ -12,7 +12,27 @@ let {Colors} = Styles;
 export default React.createClass({
   mixins: [ReactClickAway],
 
+  propTypes: {
+    labelElement: React.PropTypes.element.isRequired,
+    labelStyle: React.PropTypes.object,
+    width: React.PropTypes.oneOfType([
+      React.PropTypes.string,
+      React.PropTypes.number
+    ]),
+    height: React.PropTypes.oneOfType([
+      React.PropTypes.string,
+      React.PropTypes.number
+    ]),
+    menuItems: React.PropTypes.arrayOf(React.PropTypes.string).isRequired
+  },
+
   componentDidMount() {
+  },
+
+  getDefaultProps() {
+    return {
+      labelStyle: {}
+    };
   },
 
   getInitialState() {
@@ -23,11 +43,12 @@ export default React.createClass({
   },
 
   render() {
-    let {labelElement, width, height, menuItems} = this.props;
+    let {labelElement, labelStyle, width, height, menuItems} = this.props;
 
     let button = (
       <ASButton
         labelElement={labelElement}
+        labelStyle={labelStyle}
         backgroundColor={(this.state.hover) ? Colors.red900 : Colors.grey800}
         style={{
           width: width,
