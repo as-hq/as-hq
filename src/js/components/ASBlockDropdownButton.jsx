@@ -21,6 +21,10 @@ export default React.createClass({
     return this.context.muiTheme.component.raisedButton;
   },
 
+  _getLabelColor() {
+    return this.getTheme().textColor;
+  },
+
   render() {
     let {width, height, iconClassName, label, menuItems} = this.props;
     return (
@@ -35,7 +39,7 @@ export default React.createClass({
             <div>
               <FontIcon
                 className={iconClassName}
-                color={Colors.grey50}
+                color={this._getLabelColor()}
                 style={{
                   fontSize: height * 0.5
                 }}
@@ -45,7 +49,7 @@ export default React.createClass({
               {label}
               <FontIcon
                 className="muidocs-icon-navigation-expand-more"
-                color={Colors.grey50}
+                color={this._getLabelColor()}
               />
             </div>
           </div>

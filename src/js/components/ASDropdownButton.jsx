@@ -25,7 +25,7 @@ export default React.createClass({
   render() {
     let {labelElement, width, height, menuItems} = this.props;
 
-    let testButton = (
+    let button = (
       <ASButton
         labelElement={labelElement}
         backgroundColor={(this.state.hover) ? Colors.red900 : Colors.grey800}
@@ -40,7 +40,7 @@ export default React.createClass({
 
     return (
       <IconMenu
-        iconButtonElement={testButton}
+        iconButtonElement={button}
         desktop={true}
         openDirection={'bottom-right'}
         menuStyle={{
