@@ -134,12 +134,12 @@ wss.on("connection", function(ws) {
       switch(getExpressionFromPayload(parsed.payload)) {
         case "makeImage":
           console.log("making image!");
-          cell = fakeCellWithValue(parsed.payload.contents, {tag: "ValueImage", imagePath: "test.jpg"});
+          cell = fakeCellWithValue(parsed.payload.contents, {tag: "ValueImage", imagePath: "http://i.kinja-img.com/gawker-media/image/upload/s--6H_0NmnN--/c_fit,fl_progressive,q_80,w_636/q8ghv9du9ahfiifa9ezv.jpg"});
           break;
         case "makeColor":
           console.log("making color!");
           cell = fakeCell(parsed.payload.contents);
-          cell.cellTags = [{tag:"Color", contents:"blue"}];
+          cell.cellTags = [{tag:"TextColor", contents:"blue"}];
           break;
         default:
           cell = fakeCell(parsed.payload.contents);

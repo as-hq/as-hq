@@ -1,7 +1,7 @@
 import React from 'react';
 import ASCodeEditor from './ASCodeEditor.jsx';
 import ASSpreadsheet from './ASSpreadsheet.jsx';
-import ASEvaluationStore from '../stores/ASEvaluationStore';
+import Store from '../stores/ASEvaluationStore';
 import API from '../actions/ASApiActionCreators';
 import Shortcuts from '../AS/Shortcuts';
 import Util from '../AS/Util';
@@ -75,12 +75,12 @@ export default React.createClass({
   /* Make sure that the evaluation pane can receive change events from the evaluation store */
 
   componentDidMount() {
-    ASEvaluationStore.addChangeListener(this._onChange);
+    Store.addChangeListener(this._onChange);
     this._notificationSystem = this.refs.notificationSystem;
     this.addShortcuts();
   },
   componentWillUnmount() {
-    ASEvaluationStore.removeChangeListener(this._onChange);
+    Store.removeChangeListener(this._onChange);
   },
   addError(cv){
     if (cv.tag === "ValueError"){
@@ -104,7 +104,7 @@ export default React.createClass({
   */
   _onChange() {
     console.log("Eval pane detected event change from store");
-    let updatedCells = ASEvaluationStore.getLastUpdatedCells();
+    let updatedCells = Store.getLastUpdatedCells();
     console.log("Updated cells: " + JSON.stringify(updatedCells));
     this.refs.spreadsheet.updateCellValues(updatedCells);
     for (var key in updatedCells){
@@ -186,8 +186,24 @@ export default React.createClass({
           break; // TODO
       }
     });
+    Shortcuts.addShortcut("grid", "copy", "Ctrl+C", (wildcard) => {
+      let rng = Store.getActiveSelection();
+      Store.setClipboard(rng);
+      console.log("copying!");
+      // self.refs.spreadsheet.renderCellBorder({style: "dotted", color: "blue", rng: rng});
+    });
+    Shortcuts.addShortcut("grid", "cut", "Ctrl+X", (wildcard) => {
+      let rng = Store.getActiveSelection();
+      Store.setClipboard(rng);
+      // self.refs.spreadsheet.renderCellBorder({style: "dotted", color: "blue", rng: rng});
+      // TODO grey out range
+    });
+    Shortcuts.addShortcut("grid", "paste", "Ctrl+V", (wildcard) => {
+      // TODO
+    });
   },
 
+// element key deferrals
   _onEditorDeferredKey(e) {
     console.log('editor deferred key; trying common shortcut');
     console.log(e);
@@ -223,10 +239,10 @@ export default React.createClass({
   */
   _onSelectionChange(rng){
     console.log("Handling selection change: " + JSON.stringify(rng));
-    ASEvaluationStore.setActiveSelection(rng);
-    let cell = ASEvaluationStore.getCellAtLoc(rng.col,rng.row);
-    let {language,expression} = Converter.clientCellGetExpressionObj(cell);
-    let val = Converter.clientCellGetValueObj(cell);
+    Store.setActiveSelection(rng);
+    let cell = Store.getCellAtLoc(rng.col,rng.row),
+        {language,expression} = Converter.clientCellGetExpressionObj(cell),
+        val = Converter.clientCellGetValueObj(cell);
     this.setState({ expression: expression, language: language });
     this.addError(val);
   },

@@ -46,7 +46,7 @@ export default {
         return self.showValue(cv.contents[0]);
       case "ValueError":
         return "ERROR";
-      case "ValueImagE":
+      case "ValueImage":
         return "";
       case "DisplayValue":
         return cv.displayValue;
@@ -55,7 +55,7 @@ export default {
     }
   },
 
-  parseTagIntoRenderConfig(tag) {
+  parseTagIntoRenderConfig(config, tag) {
     let self = this;
     switch(tag.tag) {
       case "TextColor":
@@ -74,6 +74,46 @@ export default {
         config.value = self.formatPercentage(config.value);
         return config;
     }
+  },
+
+  getBorderPatternsForInteriorCell(col, row, rng) {
+    if (col >= rng.col && col <= rng.col2 && row >= rng.row && row <= rng.row2){
+      let borders = [];
+      if (col === rng.col) // left intersection
+        borders.push([[0,0],[0,1]]);
+      if (col === rng.col2) // right intersection
+        borders.push([[1,0],[1,1]]);
+      if (row === rng.row) // top intersection
+        borders.push([[0,0],[1,0]]);
+      if (row === rng.row2) // bottom intersection
+        borders.push([[0,1],[1,1]]);
+      return borders;
+    } else return [];
+  },
+
+// determines borders of a cell to be painted, given that it falls somewhere within a list of locs
+// returns a list of edges that can be painted in any order
+// each edge is a 2-length array [start, end]
+// executed by graphicscontext.moveTo(startx, starty) -> graphicscontext.lineTo(endx, endy)
+  getPaintedBorders(col, row, locs) {
+    if (locs.constructor === Array) {
+      for (var i=0; i<locs.length; i++) {
+        if (locs[i].row2)
+          return this.getBorderPatternsForInteriorCell(col, row, rng);
+        else if (col === locs[i].col && row === locs[i].row)
+          return [[[0,0],[1,0]],
+                  [[1,0],[1,1]],
+                  [[1,1],[0,1]],
+                  [[0,1],[0,0]]];
+      }
+      return [];
+    }
+    else if (col === locs.col && row === locs.row)
+      return [[[0,0],[1,0]],
+              [[1,0],[1,1]],
+              [[1,1],[0,1]],
+              [[0,1],[0,0]]];
+    else return [];
   },
 
 /*************************************************************************************************************************/
