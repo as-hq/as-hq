@@ -172,13 +172,37 @@ export default React.createClass({
       let renderer = cellProvider.cellCache.simpleCellRenderer,
           col = config.x + 1,
           row = config.y + 1,
-          cell = Store.getCellAtLoc(col, row);
+          cell = Store.getCellAtLoc(col, row),
+          sel = Store.getActiveSelection(),
+          activeCell = Store.getActiveCell(),
+          clipboard = Store.getClipboard();
+
+      // tag-based cell styling
       if (cell.cellTags) {
         for (var i=0; i<cell.cellTags.length; i++)
           config = Util.parseTagIntoRenderConfig(cell.cellTags[i]);
       } else {
-        // TODO fill out default renderer
+        // default renderer
         config.halign = 'center';
+      }
+
+      // selection dependency highlighting
+      if (sel && activeCell) {
+        let locs = activeCell.cellExpression.dependencies;
+        // console.log("highlighting dependency: "+JSON.stringify(activeCell));
+        if (Util.isContainedInLocs(col, row, locs)){
+        // TODO highlight dependencies
+        }
+      }
+
+      // clipboard highlighting
+      if (clipboard && Util.isContainedInLocs(col, row, clipboard)) {
+        // TODO dotted outline of clipboard
+      }
+
+      // image rendering
+      if (cell.cellValue.tag === "ValueImage"){
+        // TODO create new renderer for image
       }
       renderer.config = config;
       return renderer;

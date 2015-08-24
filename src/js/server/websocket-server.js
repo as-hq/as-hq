@@ -30,7 +30,8 @@ var fakeCell = function(contents) {
    return {
       "cellLocation": {
         "tag": "Index",
-        "index": contents.cellLocation.index
+        "index": contents.cellLocation.index,
+        "sheet": contents.cellLocation.sheet
       },
       "cellExpression": {
         "expression" : contents.cellExpression.expression,
@@ -82,6 +83,16 @@ var fakeCellFromIndex = function(idx) {
     });
 }
 
+var fakeCellWithValue = function(contents, val) {
+  var cell = fakeCell(contents);
+  cell.cellValue = val;
+  return cell;
+}
+
+var getExpressionFromPayload = function(p) {
+  return p.contents.cellExpression.expression;
+}
+
 var fakeCellFromASLoc = function(loc) {
   if (loc.tag === "Index")
     return fakeCell({
@@ -119,8 +130,22 @@ wss.on("connection", function(ws) {
           msg = toServerMessageFormat("NoAction", "PayloadC", result);
       }
     } else if (parsed.action === "Evaluate") {
-      var cell = fakeCell(parsed.payload.contents);
-      msg = toServerMessageFormat("NoAction", "PayloadC", cell);
+      var cell = null;
+      switch(getExpressionFromPayload(parsed.payload)) {
+        case "makeImage":
+          console.log("making image!");
+          cell = fakeCellWithValue(parsed.payload.contents, {tag: "ValueImage", imagePath: "test.jpg"});
+          break;
+        case "makeColor":
+          console.log("making color!");
+          cell = fakeCell(parsed.payload.contents);
+          cell.cellTags = [{tag:"Color", contents:"blue"}];
+          break;
+        default:
+          cell = fakeCell(parsed.payload.contents);
+          break;
+      }
+      msg = toServerMessageFormat("Evaluate", "PayloadC", cell);
     }
 
     ws.send(JSON.stringify(msg));

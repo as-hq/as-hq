@@ -4,6 +4,7 @@ import BaseStore from './BaseStore';
 import assign from 'object-assign';
 import API from '../actions/ASApiActionCreators';
 import Converter from '../AS/Converter';
+import Util from '../AS/Util';
 
 /*
 Private variable keeping track of a viewing window (cached) of cells. Stores:
@@ -22,7 +23,10 @@ let _data = {
   currentSheet: {
     sheetId: "TEST_SHEET_ID",
     sheetName: "TEST_SHEET_NAME"
-  }
+  },
+  activeSelection: null,
+  activeCell: null,
+  clipboard: null
 };
 
 /* This function describes the actions of the ASEvaluationStore upon recieving a message from Dispatcher */
@@ -113,6 +117,23 @@ const ASEvaluationStore = assign({}, BaseStore, {
   },
   setCurrentSheet(sht) {
     _data.currentSheet = sht;
+  },
+  setActiveSelection(rng) {
+    _data.activeSelection = rng;
+    _data.activeCell = this.getCellAtLoc(rng.col, rng.row);
+    _data.activeCell.cellExpression.dependencies = Util.parseDependencies(_data.activeCell.cellExpression.expression);
+  },
+  getActiveSelection() {
+    return _data.activeSelection;
+  },
+  getActiveCell() {
+    return _data.activeCell;
+  },
+  setClipboard(rng) {
+    _data.clipboard = rng;
+  },
+  getClipboard() {
+    return _data.clipboard;
   },
   setScroll(x, y){
     _data.xscroll = x;

@@ -223,6 +223,7 @@ export default React.createClass({
   */
   _onSelectionChange(rng){
     console.log("Handling selection change: " + JSON.stringify(rng));
+    ASEvaluationStore.setActiveSelection(rng);
     let cell = ASEvaluationStore.getCellAtLoc(rng.col,rng.row);
     let {language,expression} = Converter.clientCellGetExpressionObj(cell);
     let val = Converter.clientCellGetValueObj(cell);
