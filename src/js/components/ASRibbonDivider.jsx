@@ -18,6 +18,7 @@ export default React.createClass({
         style={{
           display: 'inline-block',
           marginLeft: '10px',
+          marginRight: '10px',
           width: '1px',
           height: height,
           verticalAlign: 'top',

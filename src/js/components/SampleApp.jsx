@@ -6,7 +6,9 @@ import ASCheckedButton from './ASCheckedButton.jsx';
 import ASDropdown from './ASDropdown.jsx';
 import ASBlockDropdownButton from './ASBlockDropdownButton.jsx';
 import ASHorizontalDropdownButton from './ASHorizontalDropdownButton.jsx';
+import ASRibbonSection from './ASRibbonSection.jsx';
 import ASRibbonDivider from './ASRibbonDivider.jsx';
+import ASRibbonTabContents from './ASRibbonTabContents.jsx';
 import {AppCanvas, LeftNav, Paper, Styles} from 'material-ui';
 
 let {Colors} = Styles;
@@ -98,23 +100,19 @@ export default React.createClass({
           onRibbonTabChange={this._onRibbonTabChange}
           onAlphaButtonTap={this._onAlphaButtonTap}
         />
-        <Paper style={{ backgroundColor: Colors.grey800 }}>
-          <Paper style={{ backgroundColor: Colors.grey800, height: ribbonHeight }}>
-            {ribbonTabs[this.state.activeRibbonTab]}
-          </Paper>
-          <div
-            style={{
-              color: '#ffffff',
-              textTransform: 'uppercase',
-              textShadow: '-1px -1px 1px #000000',
-              fontWeight: 'normal',
-              paddingTop: '3px',
-              paddingBottom: '3px'
-            }}
-          >
-            Test
-          </div>
-        </Paper>
+        <div>
+          <ASRibbonTabContents
+            sections={[
+              {
+                label: "Test",
+                contents: ribbonTabs[this.state.activeRibbonTab]
+              },
+              {
+                label: "Another Test",
+                contents: ribbonTabs[this.state.activeRibbonTab]
+              }
+            ]} />
+        </div>
       </div>
     );
   },
