@@ -92,7 +92,7 @@ export default React.createClass({
           minWidth: width,
           height: height
         }}
-        backgroundColor={ this.state.hover ? Colors.pink700 : Colors.grey800 }
+        backgroundColor={ this.state.hover ? Colors.cyan400 : Colors.grey800 }
         selectable={true}
         defaultPushedIn={defaultPushedIn}
         onMouseEnter={this._onMouseEnter}

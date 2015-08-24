@@ -6,7 +6,10 @@ import ASCheckedButton from './ASCheckedButton.jsx';
 import ASDropdown from './ASDropdown.jsx';
 import ASBlockDropdownButton from './ASBlockDropdownButton.jsx';
 import ASHorizontalDropdownButton from './ASHorizontalDropdownButton.jsx';
-import {AppCanvas, Paper, Styles} from 'material-ui';
+import ASRibbonDivider from './ASRibbonDivider.jsx';
+import {AppCanvas, LeftNav, Paper, Styles} from 'material-ui';
+
+let {Colors} = Styles;
 
 const ThemeManager = new Styles.ThemeManager();
 
@@ -16,6 +19,13 @@ export default React.createClass({
   },
 
   propTypes: {
+  },
+
+  getInitialState() {
+    return {
+      activeDocumentTab: 'test',
+      activeRibbonTab: 'Home'
+    }
   },
 
   getDefaultProps() {
@@ -35,10 +45,15 @@ export default React.createClass({
   },
 
   render() {
-    return (
-      <div className="full">
-        <ASNavBar />
-        <Paper>
+    let leftNavMenuItems = [
+      { route: 'all-files', text: 'All files' },
+      { route: 'logout', text: 'Log out' }
+    ];
+    let ribbonHeight = '110px';
+
+    let ribbonTabs = {
+      Home: (
+        <div>
           <ASHorizontalDropdownButton
             iconClassName="muidocs-icon-action-home"
             label="Home"
@@ -61,12 +76,61 @@ export default React.createClass({
             iconClassName="muidocs-icon-action-home"
             onCheckChange={this._onCheckChange}
           />
+          <ASRibbonDivider />
+        </div>
+      ),
+      Code: <div />,
+      Data: <div />,
+      Charts: <div />,
+      Team: <div />,
+      Layout: <div />
+    };
+
+    return (
+      <div className="full">
+        <LeftNav
+          ref="leftNav"
+          menuItems={leftNavMenuItems}
+          docked={false}
+        />
+        <ASNavBar
+          onDocumentTabChange={this._onDocumentTabChange}
+          onRibbonTabChange={this._onRibbonTabChange}
+          onAlphaButtonTap={this._onAlphaButtonTap}
+        />
+        <Paper style={{ backgroundColor: Colors.grey800 }}>
+          <Paper style={{ backgroundColor: Colors.grey800, height: ribbonHeight }}>
+            {ribbonTabs[this.state.activeRibbonTab]}
+          </Paper>
+          <div
+            style={{
+              color: '#ffffff',
+              textTransform: 'uppercase',
+              textShadow: '-1px -1px 1px #000000',
+              fontWeight: 'normal',
+              paddingTop: '3px',
+              paddingBottom: '3px'
+            }}
+          >
+            Test
+          </div>
         </Paper>
       </div>
     );
   },
 
   _onCheckChange(e) {
-    console.log('test', e);
+  },
+
+  _onDocumentTabChange(tabKey) {
+    this.setState({ activeDocumentTab: tabKey });
+  },
+
+  _onRibbonTabChange(tabTitle) {
+    this.setState({ activeRibbonTab: tabTitle });
+  },
+
+  _onAlphaButtonTap() {
+    this.refs.leftNav.toggle();
   }
 });

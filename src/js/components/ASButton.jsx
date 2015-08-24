@@ -8,7 +8,7 @@ import {
   Utils
 } from 'material-ui';
 
-let {Transitions, Typography} = Styles;
+let {Colors, Transitions, Typography} = Styles;
 let {StylePropable} = Mixins;
 let {ColorManipulator} = Utils;
 
@@ -71,7 +71,7 @@ export default React.createClass({
       this.getTheme().disabledColor;
 
     return this.props.disabled ? disabledColor :
-      this.state.pushedIn ? this.getTheme().primaryColor :
+      this.state.pushedIn ? Colors.cyan700 :
       this.props.backgroundColor ? this.props.backgroundColor :
       this.props.primary ? this.getTheme().primaryColor :
       this.props.secondary ? this.getTheme().secondaryColor :

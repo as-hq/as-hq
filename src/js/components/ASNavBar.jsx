@@ -9,7 +9,8 @@ let DocumentTab = DraggableTabs.Tab;
 export default React.createClass({
   propTypes: {
     onDocumentTabChange: React.PropTypes.func.isRequired,
-    onRibbonTabChange: React.PropTypes.func.isRequired
+    onRibbonTabChange: React.PropTypes.func.isRequired,
+    onAlphaButtonTap: React.PropTypes.func.isRequired
   },
 
   getInitialState() {
@@ -29,20 +30,24 @@ export default React.createClass({
 
   render() {
     let backgroundColor = Colors.grey900;
-    let tabs = ['File', 'Edit', 'View'];
+    let tabs = ['Home', 'Code', 'Data', 'Charts', 'Team', 'Layout'];
     let tabHeight = 40;
     let appBarHeight = 75;
+    let leftJustify = '65px';
     let topMargin = appBarHeight - tabHeight;
 
     return (
       <div>
-        <AppBar style={{
-          backgroundColor: backgroundColor,
-          height: appBarHeight + 'px'
-        }} />
+        <AppBar
+          style={{
+            backgroundColor: backgroundColor,
+            height: appBarHeight + 'px'
+          }}
+          onLeftIconButtonTouchTap={this._onAlphaButtonTap}
+        />
         <div style={{
           position: 'absolute',
-          left: '60px',
+          left: leftJustify,
           top: '5px',
           width: '100%'
         }}>
@@ -61,7 +66,7 @@ export default React.createClass({
         <Tabs
           style={{
             position: 'absolute',
-            left: '60px',
+            left: leftJustify,
             top: topMargin + 'px',
             height: tabHeight + 'px'
           }}
@@ -69,7 +74,7 @@ export default React.createClass({
             backgroundColor: backgroundColor,
             height: tabHeight + 'px'
           }}
-          tabWidth={80}
+          tabWidth={120}
         >
           { tabs.map((tabTitle) =>
             <Tab
@@ -109,7 +114,13 @@ export default React.createClass({
   },
 
   _onActive(tabTitle) {
-    this.props.onRibbonTabChange(tabTitle);
+    return () => {
+      this.props.onRibbonTabChange(tabTitle);
+    };
+  },
+
+  _onAlphaButtonTap() {
+    this.props.onAlphaButtonTap();
   }
 
 /*
