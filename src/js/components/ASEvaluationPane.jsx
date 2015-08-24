@@ -167,9 +167,10 @@ export default React.createClass({
       let replace = Util.toggleReferenceType(editor.getSelectedText());
       sesh.replace(rannge, replace);
     });
-    Shortcuts.addShortcut("editor", "esc_editor", "Esc", (wildcard) => {
+    Shortcuts.addShortcut("common", "esc", "Esc", (wildcard) => {
       let editor = self._getRawEditor();
       editor.setValue("");
+      Store.setClipboard(null);
       self.setState({focus: "grid"});
     });
 
@@ -224,6 +225,7 @@ export default React.createClass({
       console.log('trying common shortcut');
       console.log(e);
       Shortcuts.tryCommonShortcut(e);
+      Shortcuts.tryGridShortcut(e);
     }
   },
 

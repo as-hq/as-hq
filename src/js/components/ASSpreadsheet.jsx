@@ -34,17 +34,15 @@ export default React.createClass({
                   row2: ul.y + selection.height() + 1,
                   col2: ul.x + selection.width() + 1
                 };
-    if (range.row === range.row2 && range.col === range.col2)
-      return {
+    let area = {
         width:  selection.width() + 1,
         height: selection.height() + 1,
-        range: {row: range.row, col: range.col}
       };
-    else return {
-        width: selection.width() + 1,
-        height: selection.height() + 1,
-        range:range
-    };
+    if (range.row === range.row2 && range.col === range.col2)
+      area.range = {row: range.row, col: range.col};
+    else
+      area.range = range;
+    return area;
   },
   /* Returns the position of scroll */
   getScroll() {
@@ -120,8 +118,7 @@ export default React.createClass({
         */
         'fin-selection-changed': function (event) {
           let { range, width, height } = self.getSelectionArea();
-          if (width === 1 && height === 1)
-            self.props.onSelectionChange(range);
+          self.props.onSelectionChange(range);
           },
         'fin-scroll-x': function (event) {
           // let {x, y} = self.getScroll();
@@ -174,7 +171,7 @@ export default React.createClass({
     // TODO
   },
 
-  bordered: {
+  borderedCellRenderer: {
     paint: function(gc, x, y, width, height, isLink) {
       isLink = isLink || false;
       var colHEdgeOffset = this.config.properties.cellPadding,
@@ -188,8 +185,6 @@ export default React.createClass({
           borderType = this.config.borderType;
 
       var leftIcon, rightIcon, centerIcon, ixoffset, iyoffset;
-
-      //setting gc properties are expensive, lets not do it unnecessarily
 
       if (val && val.constructor === Array) {
           leftIcon = val[0];
@@ -250,11 +245,13 @@ export default React.createClass({
       // draw borders
       if (paintBorders.length > 0) {
         gc.beginPath();
+        gc.lineWidth = this.config.borderWidth;
+        gc.strokeStyle = this.config.borderColor;
         if (borderType === 1)
-          gc.setLineDash([4,2]); // 4px dash => 2px space
-        for (var i=1; i<paintBorders.length; i++){
-          gc.moveTo(x + paintBorders[i][0][0]*width, y + paintBorders[i][0][1]*height);
-          gc.lineTo(x + paintBorders[i][1][0]*width, y + paintBorders[i][1][1]*height);
+          gc.setLineDash([5,5]); // 5px dash, 5px space
+        for (var i=0; i<paintBorders.length; i++){
+          gc.moveTo(x + paintBorders[i][0][0] * width, y + paintBorders[i][0][1] * height);
+          gc.lineTo(x + paintBorders[i][1][0] * width, y + paintBorders[i][1][1] * height);
         }
         gc.stroke();
       }
@@ -347,19 +344,23 @@ export default React.createClass({
         if (Util.isContainedInLocs(col, row, locs)){
           renderer = self.borderedCellRenderer;
           config.paintBorders = Util.getPaintedBorders(col, row, locs);
+          console.log("drawing borders: " + JSON.stringify(config.paintBorders));
           config.bgColor = "#d3d3d3"; // light grey fill
           config.borderColor = "#000000"; // black border color
+          config.borderWidth = 2;
           config.borderType = 0; // default border type
         }
       }
 
       // clipboard highlighting
       if (clipboard && Util.isContainedInLocs(col, row, clipboard)) {
-        renderer = self.copyCellRenderer;
-        config.paintBorders = Util.getPaintedBorders(col, row, locs);
-        config.bgColor = "#d3d3d3"; // light grey fill
-        config.borderColor = "#000000"; // black border color
-        config.borderType = [4,2]; // dashed border: 4px dash => 2px space
+        renderer = self.borderedCellRenderer;
+        config.paintBorders = Util.getPaintedBorders(col, row, clipboard);
+        // console.log("drawing borders: " + JSON.stringify(config.paintBorders));
+        // config.bgColor = "#d3d3d3"; // light grey fill
+        config.borderColor = "#0000ff"; // blue border color
+        config.borderWidth = 3;
+        config.borderType = 1; // dashed border
       }
 
       // image rendering

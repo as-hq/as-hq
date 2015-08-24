@@ -130,6 +130,7 @@ const ASEvaluationStore = assign({}, BaseStore, {
     return _data.activeCell;
   },
   setClipboard(rng) {
+    console.log("setting clipboard: "+ JSON.stringify(rng));
     _data.clipboard = rng;
   },
   getClipboard() {

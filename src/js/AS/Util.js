@@ -97,17 +97,23 @@ export default {
 // executed by graphicscontext.moveTo(startx, starty) -> graphicscontext.lineTo(endx, endy)
   getPaintedBorders(col, row, locs) {
     if (locs.constructor === Array) {
+      // first try indices
       for (var i=0; i<locs.length; i++) {
-        if (locs[i].row2)
-          return this.getBorderPatternsForInteriorCell(col, row, rng);
-        else if (col === locs[i].col && row === locs[i].row)
+        if (!locs[i].row2 && (col === locs[i].col && row === locs[i].row))
           return [[[0,0],[1,0]],
                   [[1,0],[1,1]],
                   [[1,1],[0,1]],
                   [[0,1],[0,0]]];
       }
+      // then try interiors of ranges
+      for (var i=0; i<locs.length; i++) {
+        if (locs[i].row2)
+          return this.getBorderPatternsForInteriorCell(col, row, locs[i]);
+      }
       return [];
     }
+    else if (locs.row2)
+      return this.getBorderPatternsForInteriorCell(col, row, locs);
     else if (col === locs.col && row === locs.row)
       return [[[0,0],[1,0]],
               [[1,0],[1,1]],
@@ -198,21 +204,50 @@ export default {
     return 'ABCDEFGHIJKLMNOPQRSTUVXYZ'.charAt(i);
   },
 
+  charToInt(c) {
+    return c.charCodeAt(0) - 64;
+  },
+
   getOrientedCorners(rng) {
     var tl = {row: Math.min(rng.row,rng.row2), col: Math.min(rng.col,rng.col2)},
         br = {row: Math.max(rng.row,rng.row2), col: Math.max(rng.col,rng.col2)};
     return {tl: tl, br: br};
   },
 
+  excelToIdx(xp) {
+    var row=0, col=0, i=0, charIdx = 0;
+    while(i < xp.length && isNaN(xp.charAt(i))){
+      charIdx = i+1;
+      i++;
+    }
+    var rawCol = xp.substring(0, charIdx), rawRow = xp.substring(charIdx);
+    for (var c=0; c<charIdx; c++) {
+      col = col + this.charToInt(xp.charAt(c)) * Math.pow(26, charIdx - c-1);
+    }
+
+    return {col: col, row: parseInt(rawRow)};
+  },
+
+  excelToLoc(xp) {
+    let endpoints = xp.split(":");
+    if (endpoints.length === 1)
+      return this.excelToIdx(endpoints[0]);
+    else {
+      let start = this.excelToIdx(endpoints[0]),
+          end = this.excelToIdx(endpoints[1]);
+      return {row: start.row, col: start.col, row2: end.row, col2: end.col};
+    }
+  },
+
   intToExcelCol(i) {
-      var quo = Math.floor((i) / 26);
-      var rem = (i) % 26;
-      var code = '';
-      if (quo > 0) {
-          code += String.fromCharCode('A'.charCodeAt(0) + quo - 1);
-      }
-      code += String.fromCharCode('A'.charCodeAt(0) + rem);
-      return code;
+    var quo = Math.floor((i) / 26);
+    var rem = (i) % 26;
+    var code = '';
+    if (quo > 0) {
+        code += String.fromCharCode('A'.charCodeAt(0) + quo - 1);
+    }
+    code += String.fromCharCode('A'.charCodeAt(0) + rem);
+    return code;
   },
 
   locToExcel(loc) {
@@ -237,22 +272,43 @@ export default {
     if (str === "")
       return [];
     else{
-      return [];
-      // TODO
+      let regIdx = /[A-Z]+[0-9]+/g, regRng = /[A-Z]+[0-9]+:[A-Z]+[0-9]+/g;
+      let rngs = str.match(regRng);
+      let idxStr = str.replace(regRng, "");
+      let idxs = idxStr.match(regIdx);
+      let matches = null;
+      if (rngs && idxs)
+        matches = rngs.concat(idxs);
+      else if (rngs)
+        matches = rngs;
+      else if (idxs)
+        matches = idxs;
+      else
+        matches = [];
+      console.log("parsed deps: "+JSON.stringify(matches));
+      // return matches.map(this.excelToLoc);
+      let parsed = [];
+      for (var i=0; i<matches.length; i++)
+        parsed.push(this.excelToLoc(matches[i]));
+      console.log(JSON.stringify(parsed));
+      return parsed;
     }
+  },
+
+  isContainedInLoc(col, row, loc) {
+    if (loc.row2)
+      return (col >= loc.col && col <= loc.col2 && row >= loc.row && row <= loc.row2);
+    else return (col === loc.col && row === loc.row);
   },
 
   isContainedInLocs(col, row, locs) {
     if (locs.constructor === Array) {
       for (var i=0; i<locs.length; i++) {
-        if (locs[i].row2)
-          if (col >= locs[i].col && col <= locs[i].col2 && row >= locs[i].row && row <= locs[i].row2)
-            return true
-        else if (col === locs[i].col && row === locs[i].row)
+        if (this.isContainedInLoc(col, row, locs[i]))
           return true;
       }
       return false;
     }
-    else return (col === locs.col && row === locs.row);
+    else return this.isContainedInLoc(col, row, locs);
   }
 };

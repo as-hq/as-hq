@@ -30,8 +30,8 @@ export default {
       let s = {name: name};
       s = KeyUtils.parseIntoShortcut(s, keyStr);
       s.callback = callback;
-      console.log("add shortcut: " + name);
-      console.log(s);
+      // console.log("add shortcut: " + name);
+      // console.log(s);
       switch(set){
         case 'grid':
           _S.GridShortcuts.push(s);
