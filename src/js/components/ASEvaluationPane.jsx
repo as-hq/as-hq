@@ -56,7 +56,7 @@ export default React.createClass({
   },
 
   /***************************************************************************************************************************/
-  /* Getter methods for "children" components of the eval pane */
+  /* Getter methods for child components of the eval pane */
 
   _getSpreadsheet() {
     return React.findDOMNode(this.refs.spreadsheet.refs.hypergrid);
@@ -170,8 +170,9 @@ export default React.createClass({
     Shortcuts.addShortcut("common", "esc", "Esc", (wildcard) => {
       let editor = self._getRawEditor();
       editor.setValue("");
-      Store.setClipboard(null);
+      Store.setClipboard(null, false);
       self.setState({focus: "grid"});
+      this.refs.spreadsheet.repaint(); // render immediately
     });
 
     // grid shortcuts
@@ -189,27 +190,33 @@ export default React.createClass({
     });
     Shortcuts.addShortcut("grid", "copy", "Ctrl+C", (wildcard) => {
       let rng = Store.getActiveSelection();
-      Store.setClipboard(rng);
+      Store.setClipboard(rng, false);
       console.log("copying!");
-      // self.refs.spreadsheet.renderCellBorder({style: "dotted", color: "blue", rng: rng});
+      this.refs.spreadsheet.repaint(); // render immediately
     });
     Shortcuts.addShortcut("grid", "cut", "Ctrl+X", (wildcard) => {
       let rng = Store.getActiveSelection();
-      Store.setClipboard(rng);
-      // self.refs.spreadsheet.renderCellBorder({style: "dotted", color: "blue", rng: rng});
-      // TODO grey out range
+      Store.setClipboard(rng, true);
+      this.refs.spreadsheet.repaint(); // render immediately
     });
     Shortcuts.addShortcut("grid", "paste", "Ctrl+V", (wildcard) => {
-      // TODO
+      let rng = Store.getActiveSelection();
+      let clipboard = Store.getClipboard();
+      if (clipboard.range)
+        API.sendCopyRequest([clipboard.range, rng]);
+      if (clipboard.isCut)
+        API.sendDeleteRequest(clipboard.range);
+      Store.setClipboard(null, false);
+      this.refs.spreadsheet.repaint(); // render immediately
     });
   },
 
 // element key deferrals
+
   _onEditorDeferredKey(e) {
     console.log('editor deferred key; trying common shortcut');
     console.log(e);
-    Shortcuts.tryCommonShortcut(e);
-    // TODO bubble up editor event
+    Shortcuts.tryShortcut(e, 'common');
   },
 
   _onGridDeferredKey(e) {
@@ -224,8 +231,8 @@ export default React.createClass({
     else {
       console.log('trying common shortcut');
       console.log(e);
-      Shortcuts.tryCommonShortcut(e);
-      Shortcuts.tryGridShortcut(e);
+      Shortcuts.tryShortcut(e, 'common');
+      Shortcuts.tryShortcut(e, 'grid');
     }
   },
 

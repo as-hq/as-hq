@@ -15,9 +15,9 @@ import KeyUtils from './KeyUtils';
 // },
 
 let _S = {
-  GridShortcuts: [],
-  EditorShortcuts: [],
-  CommonShortcuts: []
+  'grid': [],
+  'editor': [],
+  'common': []
 };
 
 export default {
@@ -32,17 +32,7 @@ export default {
       s.callback = callback;
       // console.log("add shortcut: " + name);
       // console.log(s);
-      switch(set){
-        case 'grid':
-          _S.GridShortcuts.push(s);
-          break;
-        case 'editor':
-          _S.EditorShortcuts.push(s);
-          break;
-        case 'common':
-          _S.CommonShortcuts.push(s);
-          break;
-      }
+      _S[set].push(s);
     }
   },
 
@@ -58,23 +48,16 @@ export default {
   },
 
   tryShortcut(e, set) {
-    for (var key in set) {
-      if (this.shortcutMatches(set[key], e)){
+    let ss = _S[set]; // shortcut set to try
+    for (var key in ss) {
+      if (this.shortcutMatches(ss[key], e)){
         console.log("shortcut matched!");
-        console.log(JSON.stringify(set[key]));
-        set[key].callback(KeyUtils.getWildcard(e, set[key]));
+        console.log(JSON.stringify(ss[key]));
+        ss[key].callback(KeyUtils.getWildcard(e, ss[key]));
         return true;
       }
     }
     return false;
-  },
-
-  tryCommonShortcut(e) {
-    return this.tryShortcut(e, _S.CommonShortcuts);
-  },
-
-  tryGridShortcut(e) {
-    return this.tryShortcut(e, _S.GridShortcuts);
   },
 
   gridShouldDeferKey(e){

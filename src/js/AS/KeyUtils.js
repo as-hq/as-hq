@@ -47,6 +47,8 @@ var shiftUps = {
 
 var modifiers = [16, 17, 18, 19];
 
+var specials = [27]; //esc
+
 var keyMap = {
   "Enter": 13,
   "Down": 40,
@@ -106,6 +108,7 @@ export default {
   producesVisibleChar(e) {
     return (!(e.ctrlKey || e.altKey || e.metaKey) &&
             !Util.arrContains(modifiers, e.which) &&
+            !Util.arrContains(specials, e.which) &&
             !this.isFunctionKey(e)) ||
            (e.ctrlKey && e.key === "Backspace"); // ctrl + backspace
   },

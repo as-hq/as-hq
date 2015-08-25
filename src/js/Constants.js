@@ -77,6 +77,7 @@ export default {
     Undo: "Undo",
     Redo: "Redo",
     Clear: "Clear",
+    Copy: "Copy",
     UpdateWindow: "UpdateWindow"
   }
 };

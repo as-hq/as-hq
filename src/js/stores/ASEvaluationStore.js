@@ -26,7 +26,10 @@ let _data = {
   },
   activeSelection: null,
   activeCell: null,
-  clipboard: null
+  clipboard: {
+    range: null,
+    isCut: false
+  }
 };
 
 /* This function describes the actions of the ASEvaluationStore upon recieving a message from Dispatcher */
@@ -129,9 +132,10 @@ const ASEvaluationStore = assign({}, BaseStore, {
   getActiveCell() {
     return _data.activeCell;
   },
-  setClipboard(rng) {
+  setClipboard(rng, isCut) {
     console.log("setting clipboard: "+ JSON.stringify(rng));
-    _data.clipboard = rng;
+    _data.clipboard.range = rng;
+    _data.clipboard.isCut = isCut;
   },
   getClipboard() {
     return _data.clipboard;

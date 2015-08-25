@@ -24,20 +24,22 @@ export default React.createClass({
       onReady() { }
     };
   },
+  // produces oriented area -- row < row2 and col < col2 always
   getSelectionArea() {
     let hg = this._getHypergrid();
     let selection = hg.getSelectionModel().selections[0];
     let ul = selection.origin;
-    let range = {
+    let range = Util.getOrientedArea({
                   row:  ul.y + 1,
                   col:  ul.x + 1,
                   row2: ul.y + selection.height() + 1,
                   col2: ul.x + selection.width() + 1
-                };
+                });
     let area = {
-        width:  selection.width() + 1,
-        height: selection.height() + 1,
+        width:  range.col2 - range.col + 1,
+        height: range.row2 - range.row + 1,
       };
+
     if (range.row === range.row2 && range.col === range.col2)
       area.range = {row: range.row, col: range.col};
     else
@@ -102,7 +104,11 @@ export default React.createClass({
   },
 
   /*************************************************************************************************************************/
-  // React methods
+  // React methods & grid initialization
+
+  gridProperties: {
+    editorActivationKeys: [] // disable column picker
+  },
 
   componentDidMount() {
     document.addEventListener('polymer-ready', () => {
@@ -111,6 +117,7 @@ export default React.createClass({
       this.setCellRenderer();
       let self = this;
       let hg = this._getHypergrid();
+      hg.addGlobalProperties(this.gridProperties);
       let callbacks = ({
         /*
           Call onSelectionChange method in eval pane to deal with selection change
@@ -160,16 +167,14 @@ export default React.createClass({
   },
 
   /*************************************************************************************************************************/
+  // Hypergrid methods
+
+  repaint() {
+    this._getHypergrid().repaint();
+  },
+
+  /*************************************************************************************************************************/
   // Rendering
-
-  renderCellBorder(config) {
-    // TODO
-    let renderer = this._getHypergrid().getRenderer();
-  },
-
-  renderImage(fpath) {
-    // TODO
-  },
 
   borderedCellRenderer: {
     paint: function(gc, x, y, width, height, isLink) {
@@ -344,7 +349,7 @@ export default React.createClass({
         if (Util.isContainedInLocs(col, row, locs)){
           renderer = self.borderedCellRenderer;
           config.paintBorders = Util.getPaintedBorders(col, row, locs);
-          console.log("drawing borders: " + JSON.stringify(config.paintBorders));
+          // console.log("drawing borders: " + JSON.stringify(config.paintBorders));
           config.bgColor = "#d3d3d3"; // light grey fill
           config.borderColor = "#000000"; // black border color
           config.borderWidth = 2;
@@ -353,12 +358,15 @@ export default React.createClass({
       }
 
       // clipboard highlighting
-      if (clipboard && Util.isContainedInLocs(col, row, clipboard)) {
+      if (clipboard.range && Util.isContainedInLocs(col, row, clipboard.range)) {
         renderer = self.borderedCellRenderer;
-        config.paintBorders = Util.getPaintedBorders(col, row, clipboard);
+        config.paintBorders = Util.getPaintedBorders(col, row, clipboard.range);
         // console.log("drawing borders: " + JSON.stringify(config.paintBorders));
         // config.bgColor = "#d3d3d3"; // light grey fill
-        config.borderColor = "#0000ff"; // blue border color
+        if (clipboard.isCut)
+          config.borderColor = "#ff0000"; //red for cut
+        else
+          config.borderColor = "#4169e1"; // blue for copy
         config.borderWidth = 3;
         config.borderType = 1; // dashed border
       }

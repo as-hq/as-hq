@@ -117,6 +117,18 @@ export default {
     let msg = Converter.createClearRequestForServer();
     wss.send(JSON.stringify(msg));
   },
+  sendCopyRequest(locs) {
+    let msg = Converter.toServerMessageFormat(Constants.ServerActions.Copy, "PayloadLL", locs);
+    wss.send(JSON.stringify(msg));
+  },
+  sendDeleteRequest(locs){
+    let msg = null;
+    if (locs.constructor === Array)
+      msg = Converter.toServerMessageFormat(Constants.ServerActions.Delete, "PayloadLL", locs);
+    else
+      msg = Converter.toServerMessageFormat(Constants.ServerActions.Delete, "PayloadL", locs);
+    wss.send(JSON.stringify(msg));
+  },
 
   /**************************************************************************************************************************/
   /* Sending get messages to the server */

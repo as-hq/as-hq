@@ -214,6 +214,13 @@ export default {
     return {tl: tl, br: br};
   },
 
+  getOrientedArea(rng) {
+    return {
+      row: Math.min(rng.row, rng.row2), col: Math.min(rng.col, rng.col2),
+      row2: Math.max(rng.row, rng.row2), col2: Math.max(rng.col, rng.col2)
+    };
+  },
+
   excelToIdx(xp) {
     var row=0, col=0, i=0, charIdx = 0;
     while(i < xp.length && isNaN(xp.charAt(i))){
@@ -290,7 +297,7 @@ export default {
       let parsed = [];
       for (var i=0; i<matches.length; i++)
         parsed.push(this.excelToLoc(matches[i]));
-      console.log(JSON.stringify(parsed));
+      // console.log(JSON.stringify(parsed));
       return parsed;
     }
   },
