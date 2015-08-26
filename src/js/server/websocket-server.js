@@ -141,6 +141,11 @@ wss.on("connection", function(ws) {
           cell = fakeCell(parsed.payload.contents);
           cell.cellTags = [{tag:"TextColor", contents:"blue"}];
           break;
+        case "makeStreaming":
+          console.log("making stream cell");
+          cell = fakeCell(parsed.payload.contents);
+          cell.cellTags = [{tag: "Streaming", contents: ""}];
+          break;
         default:
           cell = fakeCell(parsed.payload.contents);
           break;

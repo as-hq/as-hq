@@ -73,6 +73,9 @@ export default {
       case "Percentage":
         config.value = self.formatPercentage(config.value);
         return config;
+      case "Streaming":
+        config.isStreaming = true;
+        return config;
     }
   },
 

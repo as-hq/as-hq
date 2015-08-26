@@ -176,7 +176,7 @@ export default React.createClass({
   /*************************************************************************************************************************/
   // Rendering
 
-  borderedCellRenderer: {
+  ASCellRenderer: {
     paint: function(gc, x, y, width, height, isLink) {
       isLink = isLink || false;
       var colHEdgeOffset = this.config.properties.cellPadding,
@@ -261,6 +261,7 @@ export default React.createClass({
         gc.stroke();
       }
 
+
       //draw text
       var theColor = this.config.isSelected ? this.config.fgSelColor : this.config.fgColor;
       if (gc.fillStyle !== theColor) {
@@ -269,6 +270,10 @@ export default React.createClass({
       }
       if (val !== null) {
           gc.fillText(val, x + halignOffset, y + valignOffset);
+      }
+      // streaming cell
+      if (this.config.isStreaming) {
+        gc.fillText("S", x + halignOffset, y + valignOffset);
       }
       if (isColumnHovered && isRowHovered) {
           gc.beginPath();
@@ -347,19 +352,30 @@ export default React.createClass({
         let locs = activeCell.cellExpression.dependencies;
         // console.log("highlighting dependency: "+JSON.stringify(activeCell));
         if (Util.isContainedInLocs(col, row, locs)){
-          renderer = self.borderedCellRenderer;
+          renderer = self.ASCellRenderer;
           config.paintBorders = Util.getPaintedBorders(col, row, locs);
           // console.log("drawing borders: " + JSON.stringify(config.paintBorders));
           config.bgColor = "#d3d3d3"; // light grey fill
           config.borderColor = "#000000"; // black border color
           config.borderWidth = 2;
-          config.borderType = 0; // default border type
+          config.borderType = 0; // solid border type
+        }
+      }
+
+      // range highlighting
+      if (sel && sel.row2) {
+        if (Util.isContainedInLocs(col, row, sel)) {
+          renderer = self.ASCellRenderer;
+          config.paintBorders = Util.getPaintedBorders(col, row, sel);
+          config.borderColor = "#4169e1"; // blue border
+          config.borderWidth = 3;
+          config.borderType = 0; // solid border type
         }
       }
 
       // clipboard highlighting
       if (clipboard.range && Util.isContainedInLocs(col, row, clipboard.range)) {
-        renderer = self.borderedCellRenderer;
+        renderer = self.ASCellRenderer;
         config.paintBorders = Util.getPaintedBorders(col, row, clipboard.range);
         // console.log("drawing borders: " + JSON.stringify(config.paintBorders));
         // config.bgColor = "#d3d3d3"; // light grey fill
