@@ -62,7 +62,7 @@ module.exports = React.createClass({
 
   handleKeyDown(e) {
     console.log("onkeydown editor");
-    if (!Shortcuts.editorShouldDeferKey(e)) {
+    if (Shortcuts.editorShouldDeferKey(e)) {
       KeyUtils.killEvent(e);
       this.props.onDeferredKey(e);
     }

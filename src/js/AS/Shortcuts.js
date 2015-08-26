@@ -65,8 +65,7 @@ export default {
   },
 
   editorShouldDeferKey(e) {
-    return !(KeyUtils.producesVisibleChar(e) ||
-             Util.arrContains(KeyUtils.navKeys, e.which));
+    return !KeyUtils.producesVisibleChar(e);
   },
 
   changeGridSelection(e, grid) {

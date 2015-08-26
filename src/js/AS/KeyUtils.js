@@ -106,6 +106,7 @@ export default {
   },
 
   producesVisibleChar(e) {
+    console.log(e.which);
     return (!(e.ctrlKey || e.altKey || e.metaKey) &&
             !Util.arrContains(modifiers, e.which) &&
             !Util.arrContains(specials, e.which) &&
