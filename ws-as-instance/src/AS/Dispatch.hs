@@ -1,5 +1,6 @@
 module AS.Dispatch where
 
+-- AlphaSheets and base
 import AS.Types
 import Prelude 
 import qualified AS.Eval    as R (evalExpression,evalExcel)
@@ -12,127 +13,87 @@ import AS.Parsing.Out hiding (first)
 import AS.Parsing.In
 import Data.Maybe (fromJust, isNothing)
 import Text.ParserCombinators.Parsec
-import Text.Regex.Posix
 import Control.Applicative
-
 import Data.Time.Clock
 import Data.Text as T (unpack,pack)
-import AS.Util
+import AS.Util as U
 import AS.Eval.Middleware as EM
 import AS.Eval.Endware as EE
 
-----------------------------------------------------------------------------------------------------------------------------------------------
--- | Eval Handler
-
-handleEval :: ASPayload -> ASUser -> IO ASMessage
-handleEval (PayloadC cell) user = do
-  cell' <- EM.evalMiddleware cell -- middleware for streaming, data integration, excel preevaluation, etc all happen here
-  initCells <- getInitialCells cell'
-  result <- reevaluateInitialCells initCells
-  sendResult result user
-
-sendResult :: (EitherCells, EitherCells) -> ASUser -> IO ASMessage
-sendResult ((Right cells),(Right descendants)) user = do
-  cells' <- mapM EE.evalEndware cells -- endware for producing tags post-eval (that either kickoff daemons or can be read by frontend), e.g. streaming or styling
-  time <- getASTime
-  let commit = ASCommit (userId user) descendants cells' time
-  DB.pushCommit commit
-  putStrLn $ show commit
-  return $ Message (userId user) Evaluate Success (PayloadCL cells')
-sendResult ((Left e),descendants) user = do 
-  failDesc <- case descendants of
-    Right c -> generateErrorMessage e
-    Left e' -> generateErrorMessage e'
-  return $ Message (userId user) Evaluate (Failure failDesc) (PayloadN ())
+-- Websockets
+import Control.Monad 
+import Control.Concurrent 
+import Control.Monad.IO.Class (liftIO)
+import qualified Data.Text as T
+import qualified Data.Text.IO as T
+import Data.Aeson hiding (Success)
+import qualified Data.ByteString.Char8 as C 
+import qualified Data.ByteString.Lazy.Char8 as B 
+import qualified Network.WebSockets as WS
 
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
--- | Evaluation
+-- | Eval building blocks
 
-getInitialCells :: ASCell -> IO [ASCell]
-getInitialCells (Cell loc xp NoValue ts) = do -- case that no middleware produced a value
+-- | Takes a cell and returns an error if it tries to access a non-existant cell
+-- | Otherwise, it returns all of the immediate ancestors (used to make the lookup map)
+updateCell :: ASCell -> IO (Either ASExecError [ASCell])
+updateCell (Cell loc xp val ts) = do 
+  let locs = decomposeLocs loc
   let (deps,exprs) = getDependenciesAndExpressions loc xp (getOffsets loc)
-  let locs = decomposeLocs loc
-  let initCells = map (\(l,e,v)-> Cell l e v ts) (zip3 locs exprs (repeat NoValue))  
-  DB.updateDAG (zip deps locs)
-  DB.setCells initCells
-  printTimed "got initial cells"
-  return initCells
-getInitialCells (Cell loc xp val ts) = do 
-  -- if the first cell has its value set, assume the same value and expression for all decomposed locs
-  let locs = decomposeLocs loc
-  -- preserve tags
-  let initCells = map (\(l,e,v)-> Cell l e v ts) (zip3 locs (repeat xp) (repeat val))  
-  DB.setCells initCells
-  printTimed "got initial cells"
-  return initCells
+  ancCells <- DB.getCells (concat deps)
+  printTimed $ "got cells"
+  if (any isNothing ancCells)
+    then do 
+      let bl = map snd $ filter (\(a,b) -> (a == Nothing)) (zip ancCells (concat deps))
+      return $ Left (DBNothingException bl)
+    else do 
+      let initCells = map (\(l,e,v)-> Cell l e v ts) (zip3 locs exprs (repeat NoValue))  
+      _ <- DB.updateDAG (zip deps locs)
+      _ <- DB.setCells initCells
+      printTimed $ "set init cells"
+      return $ Right (map fromJust ancCells)
 
-reevaluateInitialCells :: [ASCell] -> IO (EitherCells,EitherCells)
-reevaluateInitialCells initCells = do 
-  -- | Get descendants and ancestors (return error if locked)
-  let locs = map cellLocation initCells
+-- | Return the descendants of a cell, which will always exist but may be locked
+-- | TODO: throw exceptions for permissions/locking
+getDescendants :: ASCell -> IO (Either ASExecError [ASCell])
+getDescendants cell = do 
+  let locs = decomposeLocs (cellLocation cell)
   dag <- DB.getDAG
-  printTimed "got all edges from DB in reevaluateCell"
   let descendantLocs = DAG.descendants locs dag
-  printTimed "got descendants from DB in reevaluateCell"
-  putStrLn $ "descendant locations: " ++ (show descendantLocs)
-  previousCells <- DB.getCells (descendantLocs)
-  let ancestorLocs = DAG.immediateAncestors descendantLocs dag
-  printTimed "got immediate ancestor locations from DB relations"
-  putStrLn $ "immediate ancestor locations " ++ (show ancestorLocs)
-  cells <- DB.getCells (descendantLocs ++ ancestorLocs)
-  printTimed "done with get cells"
-  putStrLn $ "D and A cells: " ++ (show cells)
-  let (descendants,ancestors) = L.splitAt (L.length descendantLocs) cells
+  desc <- DB.getCells descendantLocs
+  printTimed $ "got descendant cells"
+  return $ Right $ map fromJust desc 
 
-  -- | Wrap up
-  if (L.length ancestors /= L.length ancestorLocs)
-    then 
-      return (Left DBNothingException,Left DBNothingException) -- user placed a dependency on non-existent cell
-    else do
-      results <- evalChain (M.fromList (map (\c -> (cellLocation c, cellValue c)) ancestors)) descendants
-      printTimed "finished all eval, back in reevaluateCell"
-      DB.setCells $ results 
-      printTimed "set actual cells in DB"
-      return $ (Right previousCells,Right results)
+-- | Takes ancestors and descendants, create lookup map, and run eval
+reEvalCell :: [ASCell] -> [ASCell] -> IO (Either ASExecError [ASCell])
+reEvalCell anc dec = do 
+  let mp = M.fromList $ map (\c -> (cellLocation c, cellValue c)) anc
+  result <- evalChain mp dec
+  return $ Right result
+
+-- | Note that the final setting of cells and other wrap-up operations will be done in endware
+
+----------------------------------------------------------------------------------------------------------------------------------------------
+-- | Eval helpers
 
 evalChain :: M.Map ASLocation ASValue -> [ASCell] -> IO [ASCell]
 evalChain _ [] = return []
-evalChain mp ((Cell loc xp NoValue ts):cs) = do  -- case: cell value not yet determined by middleware (streaming etc.)
-  printTimed "Starting eval chain"
-  putStrLn $ "MAP " ++ (show mp)
+evalChain mp ((Cell loc xp _ ts):cs) = do  
+  printTimed $ "Starting eval chain" ++ (show mp)
   cv <- R.evalExpression loc mp xp 
-  otherCells <- additionalCells loc cv 
-  let newMp = M.insert loc cv mp
-  rest <- evalChain newMp cs
-  ret <- case cv of 
-    ExcelSheet l e v -> return $ otherCells ++ rest -- don't include the cell itself for excel sheet loading
-    otherwise -> return $ [Cell loc xp cv ts] ++ otherCells ++ rest 
-  return ret
-evalChain mp ((Cell loc xp cv ts):cs) = do
-  printTimed "Starting eval chain"
-  putStrLn $ "MAP " ++ (show mp)
-  otherCells <- additionalCells loc cv 
-  let newMp = M.insert loc cv mp
-  rest <- evalChain newMp cs
-  ret <- case cv of 
-    ExcelSheet l e v -> return $ otherCells ++ rest -- don't include the cell itself for excel sheet loading
-    otherwise -> return $ [Cell loc xp cv ts] ++ otherCells ++ rest 
-  return ret
-
-additionalCells :: ASLocation -> ASValue -> IO [ASCell]
-additionalCells loc cv = do
-  listCells <- case loc of
+  otherCells <- case loc of
     Index sheet (a, b) -> case cv of
       ValueL lstValues -> createListCells (Index sheet (a, b)) lstValues
       otherwise -> return [] 
     otherwise -> return []
-  excelCells <- case cv of 
-    ExcelSheet l e v-> createExcelCells cv loc
-    otherwise -> return []
-  return $ listCells ++ excelCells
+  let newMp = M.insert loc cv mp
+  rest <- evalChain newMp cs
+  return $ [Cell loc xp cv ts] ++ otherCells ++ rest 
 
--- not currently handling [[[]]] type things
+
+-- | Create a list of cells, also modify the DB for references 
+-- | Not currently handling [[[]]] type things
 createListCells :: ASLocation -> [ASValue] -> IO [ASCell]
 createListCells (Index sheet (a,b)) [] = return []
 createListCells (Index sheet (a,b)) values = do 
@@ -146,29 +107,34 @@ createListCells (Index sheet (a,b)) values = do
     where
       shift (ValueL v) r (a,b) = [(a+c,b+r) | c<-[0..length(v)-1] ]
       shift other r (a,b)  = [(a,b+r)]
-    
-
-createExcelCells :: ASValue -> ASLocation -> IO [ASCell]
-createExcelCells v l = case v of
-  ExcelSheet locs exprs vals -> do
-    return [Cell (Index (sheet l) (realLocs!!i)) (Expression (realExprs!!i) Python ) (realVals!!i) [] | i<-[0..length realLocs-1]]
-      where
-        realLocs = unpackExcelLocs locs
-        realExprs = unpackExcelExprs exprs
-        realVals = unpackExcelVals vals
-  otherwise -> return []
-
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
--- | Deal with primitives
+-- | Regular eval route
 
-evaluatePrimitive :: ASCell -> IO ASCell
-evaluatePrimitive cell = DB.setCell cell >> return cell
+-- | Go through the regular eval route
+runDispatchCycle :: ASUser -> MVar ServerState -> ASMessage -> IO ASMessage
+runDispatchCycle user state msg@(Message _ _ _ (PayloadC c')) = do 
+  -- Apply middlewares
+  putStrLn $ "STARTING DISPATCH CYCLE " ++ (show c')
+  c <- EM.evalMiddleware c'
+  update <- updateCell c 
+  case update of 
+    Left e -> return $ U.getCellMessage user (Left e)
+    Right anc -> do 
+      d <- getDescendants c 
+      case d of -- for example, error if DB is locked
+        Left de -> return $  U.getCellMessage user (Left de)
+        Right desc -> do 
+          res <- reEvalCell anc desc 
+          case res of 
+            Left e' -> return $ U.getCellMessage user (Left e')
+            Right cells' -> do
+              -- Apply endwares
+              cells <- (EE.evalEndware user state msg) cells'
+              DB.updateAfterEval user c' desc cells -- does set cells and commit
+              return $ U.getCellMessage user (Right cells)
 
-insertCellImmediate :: ASCell -> IO ()
-insertCellImmediate cell = do
-  let val = parseValue (language $ cellExpression cell) ((\(ValueS str) -> str) $ cellValue cell)
-  let locs = decomposeLocs (cellLocation cell)
-  let cells' = map (\loc -> Cell loc (cellExpression cell) val []) locs
-  DB.setCells cells'
-  return ()
+----------------------------------------------------------------------------------------------------------------------------------------------
+
+ 
+

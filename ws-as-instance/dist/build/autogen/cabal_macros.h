@@ -28,6 +28,20 @@
   (major1) == 0 && (major2) <  5 || \
   (major1) == 0 && (major2) == 5 && (minor) <= 5)
 
+/* package daemons-0.2.1 */
+#define VERSION_daemons "0.2.1"
+#define MIN_VERSION_daemons(major1,major2,minor) (\
+  (major1) <  0 || \
+  (major1) == 0 && (major2) <  2 || \
+  (major1) == 0 && (major2) == 2 && (minor) <= 1)
+
+/* package data-default-0.5.3 */
+#define VERSION_data_default "0.5.3"
+#define MIN_VERSION_data_default(major1,major2,minor) (\
+  (major1) <  0 || \
+  (major1) == 0 && (major2) <  5 || \
+  (major1) == 0 && (major2) == 5 && (minor) <= 3)
+
 /* package directory-1.2.1.0 */
 #define VERSION_directory "1.2.1.0"
 #define MIN_VERSION_directory(major1,major2,minor) (\
@@ -41,6 +55,13 @@
   (major1) <  1 || \
   (major1) == 1 && (major2) <  3 || \
   (major1) == 1 && (major2) == 3 && (minor) <= 0)
+
+/* package hedis-0.6.5 */
+#define VERSION_hedis "0.6.5"
+#define MIN_VERSION_hedis(major1,major2,minor) (\
+  (major1) <  0 || \
+  (major1) == 0 && (major2) <  6 || \
+  (major1) == 0 && (major2) == 6 && (minor) <= 5)
 
 /* package monad-control-1.0.0.4 */
 #define VERSION_monad_control "1.0.0.4"

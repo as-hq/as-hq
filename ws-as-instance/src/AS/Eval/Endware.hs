@@ -1,26 +1,51 @@
 module AS.Eval.Endware where
 
 import Prelude
-
 import AS.Types
+import AS.DB
+import AS.Util as U
 
--- here, we apply a stack of endwares.
+import Data.Char (isPunctuation, isSpace)
+import Data.Monoid (mappend)
+import Data.Text (Text)
+import Control.Exception 
+import Control.Monad (forM_, forever)
+import Control.Concurrent (MVar, newMVar, modifyMVar_, modifyMVar, readMVar)
+import Control.Monad.IO.Class (liftIO)
+import qualified Data.Text as T
+import qualified Data.Text.IO as T
+import Data.Aeson hiding (Success)
+import Data.ByteString.Char8 hiding (putStrLn,filter,any,length)
+import Data.ByteString.Lazy.Char8 as B hiding (putStrLn,filter,any,length)
+import qualified Network.WebSockets as WS
 
--- examples: 
--- green(x) in python -> produces styled value with string in output -> string parsed to Color tag
--- Bloomberg(x) in java -> produces json with stream specs -> converted to Stream tag, kickoff daemon
+import AS.Daemon as DM
 
-evalEndware :: ASCell -> IO ASCell
-evalEndware cell = 
-    tagStyledCell cell >>= 
-        tagStreamedCell >>=
-            return
+
+-- | Here, we apply a stack of endwares.
+-- | Endware for producing tags post-eval e.g. streaming or styling
+-- | Examples: green(x) in python -> produces styled value with string in output -> string parsed to Color tag
+-- | Bloomberg(x) in java -> produces json with stream specs -> converted to Stream tag, kickoff daemon
+
+evalEndware :: ASUser -> MVar ServerState -> ASMessage -> [ASCell] -> IO [ASCell]
+evalEndware user state origMessage@(Message _ _ _ (PayloadC origCell)) finalCells = do 
+	let newCells = (tagStyledCells . (changeExcelExpressions origCell)) finalCells
+	_ <- DM.possiblyCreateDaemon user state origMessage 
+	return newCells
+   
+----------------------------------------------------------------------------------------------------------------------------------------------
+-- | Endwares
+
+tagStyledCells :: [ASCell] -> [ASCell]
+tagStyledCells = id
+
+changeExcelExpressions :: ASCell -> [ASCell] -> [ASCell]
+changeExcelExpressions cell = id -- TODO: implement
+
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
--- | endwares
 
-tagStyledCell :: ASCell -> IO ASCell 
-tagStyledCell c@(Cell l e v t) = return c -- TODO
 
-tagStreamedCell :: ASCell -> IO ASCell 
-tagStreamedCell c@(Cell l e v t) = return c -- TODO
+
+
+

@@ -51,8 +51,9 @@ data ASCellTag =
   Size Int |
   Money |
   Percentage |
-  Streaming {streamSource :: StreamSource, streamFrequency :: Int} |
-  Tracking
+  StreamTag Stream |
+  Tracking |
+  ReadOnly [ASUserId]
   deriving (Show, Read, Eq, Generic)
 
 data ASCell = Cell {cellLocation :: ASLocation, 
@@ -69,9 +70,12 @@ data ExLoc = ExSheet {name :: String, sheetLoc :: ExLoc} |
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Streaming
 
-data StreamSource = 
-  Bloomberg {url :: String, key :: String} -- example stream source TODO rewrite based on actual API
-  deriving (Show, Read, Eq, Generic)
+-- | Stream sources
+data Bloomberg = Bloomberg {url :: String, key :: String} deriving (Show, Read, Eq, Generic)
+data StreamSource = StreamB Bloomberg | NoSource deriving (Show, Read, Eq, Generic)
+
+-- | A stream just needs a source and a frequency
+data Stream = Stream {streamSource :: StreamSource, streamFreq :: Int} deriving (Show, Read, Eq, Generic)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Message Types
@@ -87,22 +91,16 @@ data ASAction =
   NoAction |
   Acknowledge |
   Evaluate | 
-  Update |
-  Get |
-  Delete |
-  Undo |
-  Redo |
-  Commit |
-  Clear | 
+  Update | 
+  Get | Delete |
+  Undo | Redo |
+  Commit | Clear | 
   UpdateWindow |
-  Tag
+  AddTags |
+  RemoveTags
   deriving (Show, Read, Eq, Generic)
 
-data ASResult = 
-  Success | 
-  Failure {failureDesc :: String} |
-  NoResult
-  deriving (Show, Read, Eq, Generic)
+data ASResult = Success | Failure {failDesc :: String} | NoResult deriving (Show, Read, Eq, Generic)
 
 data ASPayload = 
   PayloadN () |
@@ -112,7 +110,9 @@ data ASPayload =
   PayloadL ASLocation |
   PayloadLL [ASLocation] |
   PayloadW ASWindow |
-  PayloadCommit ASCommit
+  PayloadCommit ASCommit|
+  PayloadAddTags {addTags :: [ASCellTag], addTagsLoc :: ASLocation} |
+  PayloadRemoveTags {removeTags :: [ASCellTag], removeTagsLoc :: ASLocation}
   deriving (Show, Read, Eq, Generic)
 
 data ASInitConnection = ASInitConnection {connUserId :: ASUserId} deriving (Show,Read,Eq,Generic)
@@ -123,7 +123,7 @@ data ASInitConnection = ASInitConnection {connUserId :: ASUserId} deriving (Show
 data ASExecError = 
   Timeout | 
   DependenciesLocked {lockUserId :: ASUserId} | 
-  DBNothingException | 
+  DBNothingException {badLocs :: [ASLocation]} | 
   NetworkDown | 
   ResourceLimitReached 
   deriving (Show, Read, Eq, Generic)
@@ -136,7 +136,7 @@ type EitherCells = Either ASExecError [ASCell]
 data ASWindow = Window {windowSheetId :: ASSheetId, topLeft :: (Int, Int), bottomRight :: (Int, Int)} deriving (Show, Read, Eq, Generic)
 type ASUserId = Text 
 data ASUser = User {userId :: ASUserId, userConn :: WS.Connection, userWindows :: [ASWindow]} 
-type ServerState = [ASUser]
+data ServerState = State {userList :: [ASUser], streamingLocs :: [(ASLocation,WS.Connection)]} 
 
 instance Eq ASUser where 
   c1 == c2 = (userId c1) == (userId c2)
@@ -160,14 +160,14 @@ str (ValueS s) = s
 dbl :: ASValue -> Double
 dbl (ValueD d) = d
 
-failureMessage :: ASMessage
-failureMessage = Message (pack "testUserId") NoAction (Failure "generic") (PayloadN ())
--- TODO get user id
+failureMessage :: String -> ASMessage
+failureMessage s = Message genericText NoAction (Failure s) (PayloadN ())
 
 initialViewingWindow :: ASWindow
 initialViewingWindow = Window "testSheetId" (0, 0) (100, 100)
 -- TODO generate Unique sheet id
 
+-- | When sending data from server to client, the server doesn't have a userId 
 genericText :: Text
 genericText = pack ""
 
@@ -208,3 +208,9 @@ instance ToJSON ASSheet
 instance FromJSON ASSheet
 instance ToJSON StreamSource
 instance FromJSON StreamSource
+instance ToJSON Stream
+instance FromJSON Stream
+instance ToJSON Bloomberg
+instance FromJSON Bloomberg
+
+

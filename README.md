@@ -38,10 +38,4 @@ MinPoolSize=0
 
 
 ## TODO: 
-1) There is no need to do as many DB operations as we are in Dispatch
-For example, no need to do initial setCells or dbUpdateBatch
-The two getCells can be combined into one because we know getCells locs will return an array of length locs
-etc.
-2) Frontend bug: ranges show up as transposes
-3) Figure out the lag between C cpu time and actual time
-4) Optimize mysql/innodb config
+1) We shouldn't be sending cells to all connected users; there needs to be some permissions built in

@@ -59,7 +59,6 @@ evalCode loc values xp = do
 	let lang = language xp
 	let finalXp = interpolate loc values xp -- eval string
 	simpleInterpolated <- interpolateFile lang finalXp
-
 	interpolated <- case lang of
 		SQL -> interpolateFile SQL ("setGlobals("++(show context) ++")\n" ++ newExp)
 			where
@@ -69,13 +68,11 @@ evalCode loc values xp = do
 				st = ["dataset"++(show i) | i<-[0..((L.length matchLocs)-1)]]
 				newExp = replaceMatches exLocs (\el -> (L.!!) st (MB.fromJust (L.findIndex (el==) (snd exLocs)))) (expression xp)
 		otherwise -> (return simpleInterpolated)
-
-
 	printTimed "starting eval"
-	result <- handleEval lang interpolated
-	printTimed "finished eval"
+	result <- doEval lang interpolated
+	printTimed $ "finished eval " ++ (show result)
 	let parsed = parseValue lang result
-	printTimed "eval result parsed"
+	printTimed $ "eval result parsed " ++ (show parsed)
 	return parsed
 
 
@@ -92,29 +89,8 @@ evalCodeRepl xp = do
 		otherwise -> writeReplRecord lang (replRecord ++ "\n" ++ (removePrintStmt lang (expression xp)))
 	return parsed
 
---evalRef :: ASLocation -> Map ASLocation ASValue -> ASExpression ->  IO ASValue
---evalRef loc dict (Reference l (a, b)) = do
---  $(logInfo) $ (fromString $ "evalref: "++ show dict ++ "select " ++ show (a, b))
---  return $ row L.!! a
---    where
---      ValueL row = lst L.!! b
---      ValueL lst = dict M.! l
-
-{-
-evalRef :: ASLocation -> Map ASLocation ASValue -> ASExpression ->  IO ASValue
-evalRef loc dict (Reference l (a, b)) = do
-	$(logInfo) $ (fromString $ "evalref: "++ show dict ++ "select " ++ show (a, b))
-<<<<<<< HEAD
-	let (ValueL lst) = dict M.! l
-	let x = lst L.!! b
-	let val = case x of
-		ValueL row -> (row L.!! a)
-		otherwise -> x
-	return val -}
-
 evalRef :: ASLocation -> M.Map ASLocation ASValue -> ASExpression ->  IO ASValue
 evalRef loc dict (Reference l (a, b)) = do
-  -- $(logInfo) $ (fromString $ "evalref: "++ show dict ++ "select " ++ show (a, b))
   let d = dict M.! l 
   let ret = case d of
   	(ValueL lst) -> case (lst L.!!b) of
@@ -123,9 +99,8 @@ evalRef loc dict (Reference l (a, b)) = do
   	otherwise -> dict M.! loc -- current reference
   return ret
 
-
-handleEval :: ASLanguage -> String -> IO String
-handleEval lang str = case lang of 
+doEval :: ASLanguage -> String -> IO String
+doEval lang str = case lang of 
 	Python -> pyfiString str
 	Excel  -> pyfiString str
 	SQL	   -> do
@@ -136,8 +111,6 @@ handleEval lang str = case lang of
 		writeExecFile lang str
 		time <- getCurrentTime >>= return . utctDayTime
 		return =<< runFile lang
-
-
 
 -----------------------------------------------------------------------------------------------------------------------
 -- File Manipulation
@@ -153,6 +126,7 @@ writeReplRecord lang contents = writeFile ((getReplRecordFile lang) :: System.IO
 
 clearReplRecord :: ASLanguage -> IO ()
 clearReplRecord lang = writeFile ((getReplRecordFile lang) :: System.IO.FilePath)  ""
+
 -----------------------------------------------------------------------------------------------------------------------
 -- Evaluation in progress
 

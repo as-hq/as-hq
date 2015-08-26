@@ -1,280 +1,240 @@
-{-# LANGUAGE ForeignFunctionInterface #-}
-{-# LANGUAGE CPP                      #-}
-{-# CFILES hiredis/as_db.c #-}
 module AS.DB where
 
 import AS.Types	hiding (location,expression,value)
-import Data.Maybe (isNothing)
+import Data.Maybe (isNothing, fromJust)
 import Prelude
-import AS.Util
+import AS.Util as U
+
+import Data.List (zip4)
 
 import Control.Applicative
+import Control.Concurrent
 import Control.Monad
-import Foreign
-import Foreign.C.Types
-import Foreign.C.String(CString(..))
-import Foreign.C
-import qualified Data.List as L
-import Data.Text.Unsafe
-import System.IO.Unsafe (unsafePerformIO)
-import Data.Vector.Storable hiding (mapM)
+import Control.Monad.Trans
+import Data.Time
+import Database.Redis hiding (decode, Message)
 
---------------------------------------------------------------------------------------------------------------
--- | Handlers
+import qualified Data.Text as T
+import qualified Data.Text.IO as T
+import Data.Aeson hiding (Success)
+import qualified Data.ByteString.Char8 as B 
+import qualified Data.ByteString.Lazy.Char8 as C
+import Data.List.Split
 
-handleGet :: ASPayload -> IO ASMessage
-handleGet (PayloadLL locs) = return $ Message genericText Get Success (PayloadCL [])
+-- | Haskell Redis connection object
+cInfo :: ConnectInfo
+cInfo = ConnInfo
+    { connectHost           = "localhost"
+    , connectPort           = PortNumber 6379
+    , connectAuth           = Nothing
+    , connectDatabase       = 0               
+    , connectMaxConnections = 100
+    , connectMaxIdleTime    = 100
+    }
 
--- | not yet implemented
-handleDelete :: ASPayload -> IO ASMessage 
-handleDelete p@(PayloadLL locs) = return $ Message genericText Delete Success p
+----------------------------------------------------------------------------------------------------------------------
+-- | ByteString and Maybe conversions  
 
-handleClear :: IO ASMessage
-handleClear = return $ Message genericText Clear Success (PayloadN ())
+bStrToASExpression :: Maybe B.ByteString -> Maybe ASExpression
+bStrToASExpression (Just b) = Just (read (B.unpack b) :: ASExpression)
+bStrToASExpression Nothing = Nothing
 
-handleUndo :: IO ASMessage
-handleUndo = return $ Message genericText Undo Success (PayloadN ()) 
+bStrToASValue :: Maybe B.ByteString -> Maybe ASValue
+bStrToASValue (Just b) = Just (read (B.unpack b) :: ASValue)
+bStrToASValue Nothing = Nothing     
 
-handleRedo :: IO ASMessage
-handleRedo = return $ Message genericText Redo Success (PayloadN ()) 
+bStrToTags :: Maybe B.ByteString -> Maybe [ASCellTag]
+bStrToTags (Just b) = Just (read (B.unpack b) :: [ASCellTag])
+bStrToTags Nothing = Nothing 
 
-pushCommit :: ASCommit -> IO ()
-pushCommit commit = return ()
+maybeASCell :: (ASLocation,Maybe ASExpression,Maybe ASValue, Maybe [ASCellTag]) -> Maybe ASCell
+maybeASCell (l, Just e, Just v, Just tags) = Just $ Cell l e v tags
+maybeASCell _ = Nothing
 
--------------- boilerplate ------------------------------
-getDAG :: IO [(ASLocation,ASLocation)]
-getDAG = return []
+bStrToASLocation :: B.ByteString -> ASLocation
+bStrToASLocation b = (read (B.unpack b) :: ASLocation)
 
-deleteCell :: ASLocation -> IO ()
-deleteCell loc = return ()
+bStrToRelation :: (B.ByteString,B.ByteString) -> (ASLocation,ASLocation)
+bStrToRelation (r,s) = (bStrToASLocation r, bStrToASLocation s)
 
-deleteCells :: [ASLocation] -> IO ()
-deleteCells locs = return ()
+bStrToASCommit :: Maybe B.ByteString -> Maybe ASCommit 
+bStrToASCommit (Just b) = Just (read (B.unpack b) :: ASCommit)
+bStrToASCommit Nothing = Nothing
 
-getCells :: [ASLocation] -> IO [ASCell]
-getCells locs = return []
+----------------------------------------------------------------------------------------------------------------------
+-- | Chunking methods
+
+cellChunkSize :: Int
+cellChunkSize = 1000
+
+chunkM :: ([a] -> Redis [b]) -> (Int) -> [a] -> IO [b]
+chunkM f size lst = do 
+  let chunks = chunksOf size lst
+  conn <- connect cInfo 
+  runRedis conn $ do
+    res <- mapM f chunks
+    return $ concat res
+
+chunkM_ :: ([a] -> Redis ()) -> (Int) -> [a] -> IO ()
+chunkM_ f size lst = do 
+  let chunks = chunksOf size lst
+  conn <- connect cInfo 
+  runRedis conn $ mapM_ f chunks
+
+----------------------------------------------------------------------------------------------------------------------
+-- | DB Cell methods
+
+getCells :: [ASLocation] -> IO [Maybe ASCell]
+getCells [] = return []
+getCells locs = chunkM getChunkCells cellChunkSize locs
 
 setCell :: ASCell -> IO ()
-setCell c = return ()
+setCell c = setCells [c]
 
 setCells :: [ASCell] -> IO ()
-setCells cells = return ()
+setCells [] = return ()
+setCells cells = chunkM_ setChunkCells cellChunkSize cells
+
+deleteCells :: [ASCell] -> IO ()
+deleteCells [] = return ()
+deleteCells cells = chunkM_ deleteChunkCells cellChunkSize cells
+
+getChunkCells :: [ASLocation] -> Redis [Maybe ASCell]
+getChunkCells locs = do 
+  TxSuccess ((justExps, justVals), justTags) <- multiExec $ do 
+    let locStrs = map (B.pack . show) locs
+    xp <- hmget (B.pack "exp") locStrs
+    vs <- hmget (B.pack "val") locStrs
+    ts <- hmget (B.pack "tags") locStrs
+    let fstTuple = (,) <$> xp <*> vs
+    return $ (,) <$> fstTuple <*> ts 
+  let exps = map bStrToASExpression justExps
+  let vals = map bStrToASValue justVals
+  let tags = map bStrToTags justTags
+  return $ map maybeASCell (zip4 locs exps vals tags)
+
+setChunkCells :: [ASCell] -> Redis ()
+setChunkCells cells = do 
+  let expStrs = map (B.pack . show . cellExpression) cells
+  let valStrs = map (B.pack . show . cellValue) cells
+  let locStrs = map (B.pack . show . cellLocation) cells
+  let tagStrs = map (B.pack . show . cellTags) cells
+  TxSuccess _ <- multiExec $ do 
+      s1 <- hmset (B.pack "exp") (zip locStrs expStrs)
+      s2 <- hmset (B.pack "val") (zip locStrs valStrs)
+      s3 <- hmset (B.pack "tags") (zip locStrs tagStrs)
+      return $ (,) <$> s1 <*> s2 
+  return ()
+
+deleteChunkCells :: [ASCell] -> Redis ()
+deleteChunkCells cells = do 
+  let locStrs = map (B.pack . show . cellLocation) cells
+  TxSuccess _ <- multiExec $ do 
+      s1 <- hdel (B.pack "exp") locStrs
+      s2 <- hdel (B.pack "val") locStrs
+      s3 <- hdel (B.pack "tags") locStrs
+      return $ (,) <$> s1 <*> s2 
+  return ()
+
+----------------------------------------------------------------------------------------------------------------------
+-- | DB Edge methods
+
+dagChunkSize :: Int
+dagChunkSize = 1000
 
 updateDAG :: [([ASLocation],ASLocation)] -> IO ()
-updateDAG update = return ()
+updateDAG [] = return ()
+updateDAG rels = chunkM_ updateChunkDAG dagChunkSize rels
 
---handleGet :: ASPayload -> IO ASMessage
---handleGet (PayloadLL locs vWindow) = do
---  cells <- getCells locs
---  if (L.length cells /= L.length locs)
---      then do 
---        failDesc <- (generateErrorMessage DBNothingException)
---        return $ Message Get (Failure failDesc) (PayloadN ())
---      else return $ Message Get Success (PayloadCL cells)
+updateChunkDAG :: [([ASLocation],ASLocation)] -> Redis ()
+updateChunkDAG rels = do 
+  let update = filter (\(a,b) -> (a /= [])) $ map (\(a,b) -> (map (B.pack . show) a, (B.pack . show) b)) rels
+  if (update == [])
+    then return ()
+    else do 
+      TxSuccess _ <- multiExec $ do 
+          s1 <- mapM (\(a,b) -> sadd b a) update
+          s2 <- sadd (B.pack "toLocSet") (map snd update)
+          return s2
+      return ()
 
----- | not yet implemented
---handleDelete :: ASPayload -> IO ASMessage 
---handleDelete p@(PayloadLL locs) = (deleteCells locs) >> (return (Message Delete Success p)
+getDAG :: IO [(ASLocation,ASLocation)]
+getDAG = do 
+    conn <- connect cInfo
+    runRedis conn $ do
+        Right tl <- smembers (B.pack "toLocSet")
+        TxSuccess fromLocs <- multiExec $ do 
+            fl' <- mapM (\t -> (smembers t)) tl -- because Queued is a monad
+            return $ sequence fl'
+        let rels' = concat $ map (\(a,b) -> (zip a (repeat b))) (zip fromLocs tl)
+        let rels = map bStrToRelation rels'
+        return rels
 
---handleClear :: IO ASMessage
---handleClear = do 
---  c <- c_clear
---  return $ Message Clear Success (PayloadN ())
+----------------------------------------------------------------------------------------------------------------------
+-- | DB Commit methods
 
---handleUndo :: IO ASMessage
---handleUndo = do 
---  cs <- c_undo
---  s <- peekCString cs
---  return $ Message Undo Success (PayloadCommit (read s :: ASCommit)) 
+-- | TODO: need to deal with large commit sizes and max number of commits
 
---handleRedo :: IO ASMessage
---handleRedo = do 
---  cs <- c_redo
---  s <- peekCString cs
---  return $ Message Redo Success (PayloadCommit (read s :: ASCommit)) 
+pushCommit :: ASCommit -> IO ()
+pushCommit c = do 
+  let commit = (B.pack . show) c 
+  conn <- connect cInfo
+  runRedis conn $ do
+    TxSuccess _ <- multiExec $ do 
+      rpush (B.pack "commits1") [commit]
+      numCommits <- get (B.pack "numCommits")
+      incrbyfloat (B.pack "numCommits") 1
+      return numCommits
+    return ()
 
+-- | Return a commit if possible (not possible if you undo past the beginning of time, etc)
+-- | Update the DB so that there's always a source of truth (ie we will propagate undo to all relevant users)
+undo :: IO (Maybe ASCommit)
+undo = do 
+  conn <- connect cInfo
+  commit <- runRedis conn $ do 
+    TxSuccess justC <- multiExec $ do 
+      commit <- rpoplpush (B.pack "commits1") (B.pack "commits2")
+      return commit
+    return $ bStrToASCommit justC
+  case commit of
+    Nothing -> return Nothing
+    Just c@(ASCommit uid b a t) -> do 
+      deleteCells a 
+      setCells b
+      return $ Just c
 
+redo :: IO (Maybe ASCommit)
+redo = do 
+  conn <- connect cInfo
+  commit <- runRedis conn $ do 
+    Right (Just commit) <- lpop (B.pack "commits2") 
+    rpush (B.pack "commits1") [commit]
+    return $ bStrToASCommit (Just commit)
+  case commit of
+    Nothing -> return Nothing
+    Just c@(ASCommit uid b a t) -> do 
+      deleteCells b 
+      setCells a
+      return $ Just c
 
-----------------------------------------------------------------------------------------------------------------
----- | Types to convert from C structs to Haskell data types
+----------------------------------------------------------------------------------------------------------------------
 
---data C_ASCell = C_Cell { location :: CString, expVal :: CString} deriving Show
---data C_ASCells = C_Cells {cells :: Ptr C_ASCell, numCells :: CInt} deriving Show
---data C_ASRelation = C_Relation {fromLoc :: CString, toLoc :: CString} deriving Show
---data C_ASDAG = C_DAG {dag :: Ptr C_ASRelation, numEdges :: CInt}
+-- | Deal with updating all DB-related things after an eval
+updateAfterEval :: ASUser -> ASCell -> [ASCell] -> [ASCell] -> IO ()
+updateAfterEval user origCell desc cells = do 
+  setCells cells
+  addCommit user desc cells
+  if (U.containsTrackingTag (cellTags origCell))
+    then return () -- TODO: implement some redundancy in DB for tracking
+    else return ()
 
---data ExpVal = ExpVal {redisExp :: ASExpression, redisVal :: ASValue} deriving (Show,Eq,Read)
+-- | Creates and pushes a commit to the DB
+addCommit :: ASUser -> [ASCell] -> [ASCell] -> IO ()
+addCommit user b a = do 
+  time <- getASTime
+  let commit = ASCommit (userId user) b a time
+  pushCommit commit
+  putStrLn $ show commit
 
-----------------------------------------------------------------------------------------------------------------
----- | Storable instances to marshall C/Haskell types from pointers
-
---instance Storable C_ASCell where
---    sizeOf    _ = (16)
---    alignment _ = alignment (undefined :: CString)
-
---    poke p c = do
---        (\hsc_ptr -> pokeByteOff hsc_ptr 0) p $ location c
---        (\hsc_ptr -> pokeByteOff hsc_ptr 8) p $ expVal c
---        -- (\hsc_ptr -> pokeByteOff hsc_ptr 16) p $ value c
-
---    peek p = return C_Cell
---              `ap` ((\hsc_ptr -> peekByteOff hsc_ptr 0) p)
---              `ap` ((\hsc_ptr -> peekByteOff hsc_ptr 8) p)
---              --`ap` ((\hsc_ptr -> peekByteOff hsc_ptr 16) p)
-
---instance Storable C_ASCells where
---    sizeOf    _ = (16)
---    alignment _ = alignment (undefined :: CString)
-
---    poke p c = do
---        (\hsc_ptr -> pokeByteOff hsc_ptr 0) p $ cells c
---        (\hsc_ptr -> pokeByteOff hsc_ptr 8) p $ numCells c
-
---    peek p = return C_Cells
---              `ap` ((\hsc_ptr -> peekByteOff hsc_ptr 0) p)
---              `ap` ((\hsc_ptr -> peekByteOff hsc_ptr 8) p)
-
---instance Storable C_ASRelation where
---    sizeOf    _ = (16)
---    alignment _ = alignment (undefined :: CString)
-
---    poke p r = do
---        (\hsc_ptr -> pokeByteOff hsc_ptr 0) p $ fromLoc r
---        (\hsc_ptr -> pokeByteOff hsc_ptr 8) p $ toLoc r
-
---    peek p = return C_Relation
---              `ap` ((\hsc_ptr -> peekByteOff hsc_ptr 0) p)
---              `ap` ((\hsc_ptr -> peekByteOff hsc_ptr 8) p)
-
---instance Storable C_ASDAG where
---    sizeOf    _ = (16)
---    alignment _ = alignment (undefined :: CString)
-
---    poke p d = do
---        (\hsc_ptr -> pokeByteOff hsc_ptr 0) p $ dag d
---        (\hsc_ptr -> pokeByteOff hsc_ptr 8) p $ numEdges d
-
---    peek p = return C_DAG
---              `ap` ((\hsc_ptr -> peekByteOff hsc_ptr 0) p)
---              `ap` ((\hsc_ptr -> peekByteOff hsc_ptr 8) p)
-
-----------------------------------------------------------------------------------------------------------------
----- | Function imports from db_odbc.c
-
---foreign import ccall unsafe "hiredis/as_db.c getCells" c_getCells :: Ptr CString -> CInt -> IO (Ptr C_ASCells)
---foreign import ccall unsafe "hiredis/as_db.c setCells" c_setCells :: Ptr CString -> Ptr CString -> CInt -> IO ()
---foreign import ccall unsafe "hiredis/as_db.c deleteEdges" c_deleteEdges :: Ptr CString -> CInt -> IO ()
---foreign import ccall unsafe "hiredis/as_db.c insertEdges" c_insertEdges :: Ptr CString -> Ptr CString -> CInt -> IO ()
---foreign import ccall unsafe "hiredis/as_db.c getEdges" c_getEdges :: IO (Ptr C_ASDAG)
---foreign import ccall unsafe "hiredis/as_db.c pushCommit" c_pushCommit :: CString ->  IO () 
---foreign import ccall unsafe "hiredis/as_db.c undo" c_undo :: IO CString
---foreign import ccall unsafe "hiredis/as_db.c redo" c_redo :: IO CString
---foreign import ccall unsafe "hiredis/as_db/c clear" c_clear :: IO ()
-
-
-----------------------------------------------------------------------------------------------------------------
----- | Conversion functions / helpers
-
---convertCell :: C_ASCell -> IO (ASCell)
---convertCell c = do 
---  l <- peekCString (location c)
---  ev <- peekCString (expVal c) 
---  let asEv = read ev :: ExpVal
---  return $ Cell (read l :: ASLocation) (redisExp asEv) (redisVal asEv)
-
---convertRelation :: C_ASRelation -> IO (ASLocation,ASLocation)
---convertRelation (C_Relation a b) = do 
---  s1 <- peekCString a
---  s2 <- peekCString b
---  return ((read s1 :: ASLocation),(read s2 :: ASLocation))
-
----- | Converts Haskell array of strings to C-ptr
---getPtr :: [String] -> IO (Ptr CString)
---getPtr lst = do 
---  cstrings <- mapM newCString lst
---  newArray cstrings
-
-----------------------------------------------------------------------------------------------------------------
----- | DB ASCell functions
-
---deleteCell :: ASLocation -> IO ()
---deleteCell loc = deleteCells [loc]
-
---deleteCells :: [ASLocation] -> IO ()
---deleteCells locs = return ()
-
---getCells :: [ASLocation] -> IO [ASCell]
---getCells [] = return []
---getCells locs = do
---  putStrLn $ "locs in get cells: " L.++ (show locs)
---  l <- getPtr (L.map show locs)
---  putStrLn $ "got cell ptr: " L.++ (show l)
---  ptrCells <- c_getCells l (fromIntegral (L.length locs))
---  putStrLn $ "back to haskell from c in get cells: " 
---  ccells <- peek ptrCells
---  arrCells <- peekArray (fromIntegral (numCells ccells)) (cells ccells)
---  _ <- free l
---  _ <- free (cells ccells)
---  _ <- free ptrCells
---  res <- mapM convertCell arrCells
---  putStrLn $ "Get Cells: " L.++ (show res)
---  return res
-
---setCell :: ASCell -> IO ()
---setCell c = setCells [c]
-
---setCells :: [ASCell] -> IO ()
---setCells cells = do 
---  locs <- getPtr $ L.map show (L.map cellLocation cells)
---  expVals <- getPtr $ L.map show (L.map (\c -> (ExpVal (cellExpression c) (cellValue c))) cells)
---  c_setCells locs expVals (fromIntegral (L.length cells))
---  _ <- free locs
---  free expVals
-
-
-----------------------------------------------------------------------------------------------------------------
----- | DB DAG functions
-
-
---getDAG :: IO [(ASLocation,ASLocation)]
---getDAG = do 
---  ptrDAG <- c_getEdges
---  putStrLn $ "back in Haskell after getting all edges"
---  d <- peek ptrDAG
---  putStrLn $ "num edges in dag " L.++ show (fromIntegral (numEdges d))
---  arrEdges <- peekArray (fromIntegral (numEdges d)) (dag d)
---  rels <- mapM convertRelation arrEdges
---  _ <- free (dag d)
---  _ <- free ptrDAG
---  putStrLn $ "DAG Edges: " L.++ (show rels)
---  return rels
-
---updateDAG :: [([ASLocation],ASLocation)] -> IO ()
---updateDAG update = do 
---  _ <- deleteDAGEdges (L.map snd update)
---  putStrLn $ "deletion works"
---  let edgeList = L.concat (L.map (\(a,b) -> zip a (L.repeat b)) update)
---  insertDAGEdges (L.map fst edgeList) (L.map snd edgeList)
-
---deleteDAGEdges :: [ASLocation] -> IO ()
---deleteDAGEdges toLocs = do 
---  tl <- getPtr (L.map show toLocs)
---  (c_deleteEdges tl (fromIntegral (L.length toLocs))) >> (free tl)
-
---insertDAGEdges :: [ASLocation] -> [ASLocation] -> IO ()
---insertDAGEdges fromLocs toLocs = do 
---  tl <- getPtr (L.map show toLocs)
---  fl <- getPtr (L.map show fromLocs)
---  (c_insertEdges fl tl (fromIntegral (L.length toLocs))) >> (free tl) >> (free fl)
-
-
-----------------------------------------------------------------------------------------------------------------
----- Commit functions
-
---pushCommit :: ASCommit -> IO ()
---pushCommit commit = do 
---  c <- newCString (show commit)
---  _ <- c_pushCommit c
---  free c
-
----- hsc2hs DB.hsc -L -lodbc (ghc comes with hsc2hs)
+----------------------------------------------------------------------------------------------------------------------

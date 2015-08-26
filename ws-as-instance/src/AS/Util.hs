@@ -3,11 +3,23 @@ module AS.Util where
 import AS.Types
 import Data.Time.Clock
 
+--------------------------------------------------------------------------------------------------------------
+-- | Conversions and Helpers
+
+isJust :: Maybe ASCell -> Bool
+isJust (Just c) = True
+isJust Nothing = False
+
+getCellMessage :: ASUser -> Either ASExecError [ASCell] -> ASMessage
+getCellMessage user (Left e) = Message (userId user) Evaluate (Failure (generateErrorMessage e)) (PayloadN ())
+getCellMessage user (Right cells) = Message (userId user) Evaluate Success (PayloadCL cells)
+
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Error Handling
 
-generateErrorMessage :: ASExecError -> IO String
-generateErrorMessage e = return "hi"
+-- | Not yet implemented
+generateErrorMessage :: ASExecError -> String
+generateErrorMessage e = "hi"
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Time
@@ -20,6 +32,7 @@ printTimed str = do
   time <- getTime
   putStrLn $ "[" ++ (show time) ++ "] " ++ str 
 
+-- | Not yet implemented
 getASTime :: IO ASTime
 getASTime = return $ Time "hi" 1 2 3
 
@@ -49,12 +62,17 @@ updateMessageUser uid (Message _ a r p) = Message uid a r p
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Tags
 
-containsStreamTag :: [ASCellTag] -> Bool
-containsStreamTag [] = False
-containsStreamTag ((Streaming _ _):tags) = True
-containsStreamTag (tag:tags) = containsStreamTag tags
+containsTrackingTag :: [ASCellTag] -> Bool
+containsTrackingTag [] = False
+containsTrackingTag ((Tracking):tags) = True
+containsTrackingTag (tag:tags) = containsTrackingTag tags
 
--- unsafe for empty lists
-getStreamTag :: [ASCellTag] -> ASCellTag
-getStreamTag (s@(Streaming _ _):tags) = s
+getStreamTag :: [ASCellTag] -> Maybe Stream
+getStreamTag [] = Nothing
+getStreamTag ((StreamTag s):tags) = Just s
 getStreamTag (tag:tags) = getStreamTag tags
+
+-- | Would look at an expression like TODAY()+DAY() and get the stream tag (update every 10 seconds if any of today etc show up)
+-- | TODO: implement
+getStreamTagFromExpression :: ASExpression -> Maybe Stream
+getStreamTagFromExpression xp = Nothing

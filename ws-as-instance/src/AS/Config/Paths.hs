@@ -8,4 +8,4 @@ py_template_file = "template.py"
 py_eval_file = "eval.py"
 py_run_file = "temp.py"
 
-getEvalPath = "/home/anand/as/backend/ws-as-instance/AS/Eval/run/"
+getEvalPath = "/home/riteshr/alphasheets/mysql-as-instance/AS/Eval/run/"
