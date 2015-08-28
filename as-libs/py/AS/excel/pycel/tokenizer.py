@@ -2,35 +2,20 @@
 # Description: Tokenise an Excel formula using an implementation of
 #              E. W. Bachtal's algorithm, found here:
 #
-#                  http://ewbi.blogs.com/develops/2004/12/excel_formula_p.html
+# http://ewbi.blogs.com/develops/2004/12/excel_formula_p.html
 #
-#              Tested with Python v2.5 (win32)
-#      Author: Robin Macharg
-#   Copyright: Algorithm (c) E. W. Bachtal, this implementation (c) R. Macharg
-#
-# CVS Info:
-# $Header: T:\\cvsarchive/Excel\040export\040&\040import\040XML/ExcelXMLTransform/EWBI_Javascript_port/jsport.py,v 1.5 2006/12/07 13:41:08 rmacharg Exp $
-#
-# Modification History
-#
-# Date         Author Comment
-# =======================================================================
-# 2006/11/29 - RMM  - Made strictly class-based.
-#                     Added parse, render and pretty print methods
-# 2006/11    - RMM  - RMM = Robin Macharg
-#                           Created
-# 2011/10    - Dirk Gorissen - Patch to support scientific notation
 #========================================================================
+
 import re
 import collections
 
 #========================================================================
-#       Class: ExcelParserTokens
+# Class: ExcelParserTokens
 # Description: Inheritable container for token definitions
 #
-#  Attributes: Self explanatory
+# Attributes: Self explanatory
 #
-#     Methods: None
+# Methods: None
 #========================================================================
 class ExcelParserTokens:
     TOK_TYPE_NOOP           = "noop";
@@ -564,192 +549,4 @@ class ExcelParser(ExcelParserTokens):
                     indent += 1;
         return output
 
-class Operator:
-    def __init__(self,value,precedence,associativity):
-        self.value = value
-        self.precedence = precedence
-        self.associativity = associativity
 
-class ASTNode(object):
-    def __init__(self,token):
-        super(ASTNode,self).__init__()
-        self.token = token
-    def emit(self):
-        self.token.tvalue
-    def __str__(self):
-        return self.token.tvalue
-    
-class OperatorNode(ASTNode):
-    def __init__(self,*args):
-        super(OperatorNode,self).__init__(*args)
-    def emit(self):
-        pass
-
-class RangeNode(ASTNode):
-    def __init__(self,*args):
-        super(RangeNode,self).__init__(*args)
-    def emit(self):
-        pass
-    
-class FunctionNode(ASTNode):
-    def __init__(self,*args):
-        super(FunctionNode,self).__init__(*args)
-        self.num_args = 0
-        
-    def emit(self):
-        pass
-
-def create_node(t):
-    if t.ttype == "operand" and t.tsubtype == "range":
-        return RangeNode(t)
-    elif t.ttype == "function":
-        return FunctionNode(t)
-    elif t.ttype == "operator":
-        return OperatorNode(t)
-    else:
-        return ASTNode(t)
-
-def shunting_yard(expression):
-    
-    #remove leading =
-    if expression.startswith('='):
-        expression = expression[1:]
-        
-    p = ExcelParser();
-    p.parse(expression)
-
-    # insert tokens for '(' and ')', to make things cleaner below
-    tokens = []
-    for t in p.tokens.items:
-        if t.ttype == "function" and t.tsubtype == "start":
-            t.tsubtype = ""
-            tokens.append(t)
-            tokens.append(f_token('(','arglist','start'))
-        elif t.ttype == "function" and t.tsubtype == "stop":
-            #t.tsubtype = ""
-            #tokens.append(t)
-            tokens.append(f_token(')','arglist','stop'))
-        elif t.ttype == "subexpression" and t.tsubtype == "start":
-            t.tvalue = '('
-            tokens.append(t)
-        elif t.ttype == "subexpression" and t.tsubtype == "stop":
-            t.tvalue = ')'
-            tokens.append(t)
-        else:
-            tokens.append(t)
-
-    print "tokens: ", "|".join([x.tvalue for x in tokens])
-
-    #http://office.microsoft.com/en-us/excel-help/calculation-operators-and-precedence-HP010078886.aspx
-    operators = {}
-    operators[':'] = Operator(':',8,'left')
-    operators[''] = Operator(' ',8,'left')
-    operators[','] = Operator(',',8,'left')
-    operators['u-'] = Operator('u-',7,'left') #unary negation
-    operators['%'] = Operator('%',6,'left')
-    operators['^'] = Operator('^',5,'left')
-    operators['*'] = Operator('*',4,'left')
-    operators['/'] = Operator('/',4,'left')
-    operators['+'] = Operator('+',3,'left')
-    operators['-'] = Operator('-',3,'left')
-    operators['&'] = Operator('&',2,'left')
-    operators['='] = Operator('=',1,'left')
-    operators['<'] = Operator('<',1,'left')
-    operators['>'] = Operator('>',1,'left')
-    operators['<='] = Operator('<=',1,'left')
-    operators['>='] = Operator('>=',1,'left')
-    operators['<>'] = Operator('<>',1,'left')
-            
-    output = collections.deque()
-    stack = []
-    were_values = []
-    arg_count = []
-    
-    def po():
-        print "output: ", "|".join([x.tvalue for x in output])
-    def so():
-        print "stack:", "|".join([x.tvalue for x in stack])
-    
-    for t in tokens:
-        if t.ttype == "operand":
-            
-            output.append(create_node(t))
-
-            if were_values:
-                were_values.pop()
-                were_values.append(True)
-                
-        elif t.ttype == "function":
-            stack.append(t)
-            arg_count.append(0)
-            if were_values:
-                were_values.pop()
-                were_values.append(True)
-            were_values.append(False)
-            
-        elif t.ttype == "argument":
-            
-            while stack and (stack[-1].tsubtype != "start"):
-                output.append(create_node(stack.pop()))   
-            
-            if were_values.pop(): arg_count[-1] += 1
-            were_values.append(False)
-            
-            if not len(stack):
-                raise Exception("Mismatched or misplaced parentheses")
-        
-        elif t.ttype.startswith('operator'):
-            if t.ttype.endswith('-prefix') and t.tvalue =="-":
-                o1 = operators['u-']
-            else:
-                o1 = operators[t.tvalue]
-
-                
-            while stack and stack[-1].ttype.startswith('operator'):
-                
-                if stack[-1].ttype.endswith('-prefix') and stack[-1].tvalue =="-":
-                    o2 = operators['u-']
-                else:
-                    o2 = operators[stack[-1].tvalue]
-                
-                if ( (o1.associativity == "left" and o1.precedence <= o2.precedence)
-                        or
-                      (o1.associativity == "right" and o1.precedence < o2.precedence) ):
-                    
-                    output.append(create_node(stack.pop()))
-                else:
-                    break
-                
-            stack.append(t)
-        
-        elif t.tsubtype == "start":
-            stack.append(t)
-            
-        elif t.tsubtype == "stop":
-            
-            while stack and stack[-1].tsubtype != "start":
-                output.append(create_node(stack.pop()))
-            
-            if not stack:
-                raise Exception("Mismatched or misplaced parentheses")
-            
-            stack.pop()
-
-            if stack and stack[-1].ttype == "function":
-                f = create_node(stack.pop())
-                a = arg_count.pop()
-                w = were_values.pop()
-                if w: a += 1
-                f.num_args = a
-                print f, "has ",a," args"
-                output.append(f)
-
-    while stack:
-        if stack[-1].tsubtype == "start" or stack[-1].tsubtype == "stop":
-            raise Exception("Mismatched or misplaced parentheses")
-        
-        output.append(create_node(stack.pop()))
-
-    #print "Stack is: ", "|".join(stack)
-    #print "Ouput is: ", "|".join([x.tvalue for x in output])
-    return output

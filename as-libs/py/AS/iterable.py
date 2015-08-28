@@ -6,10 +6,8 @@ class ASIterator:
     def __init__(self, data):
         self.data=data
         self.idx=0
-
     def __iter__(self):
         return self
-
     def next(self):
         try:
             result=self.data.get(self.idx)
@@ -18,7 +16,7 @@ class ASIterator:
         except IndexError:
             raise StopIteration
 
-# purpose of this class is to be able to chain operations nicely
+# Purpose of this class is to be able to chain operations nicely
 class ASIterable(object):
     def __init__(self, lst):
         self.name = None

@@ -4,7 +4,7 @@ import Prelude
 import Data.List
 import AS.Types
 import AS.Eval as R
-import AS.Util
+import AS.Util as U
 
 {-
     Middlewares take a message (cells, etc) pushed to server, and process them before handing them off (to eval, etc)
@@ -21,10 +21,15 @@ evalMiddleware cell =
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Middlewares
 
-
+-- | Change the excel expression to a python one and also possibly add a volatile tag
 evalInitExcel :: ASCell -> IO ASCell
-evalInitExcel (Cell loc xp@(Expression rawXp Excel) val ts) = do
-    newXp <- R.evalExcel xp
+evalInitExcel c@(Cell loc xp@(Expression rawXp Excel) val ts) = do
+    (newXp,isVolatile) <- R.evalExcel xp 
+    case isVolatile of
+      True -> case (U.hasVolatileTag c) of 
+        True -> return $ Cell loc newXp val ts
+        False -> return $ Cell loc newXp val (Volatile:ts)
+      False -> return $ Cell loc newXp val ts
     return $ Cell loc newXp val ts
 evalInitExcel cell = return cell
 

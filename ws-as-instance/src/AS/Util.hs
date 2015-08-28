@@ -67,6 +67,14 @@ containsTrackingTag [] = False
 containsTrackingTag ((Tracking):tags) = True
 containsTrackingTag (tag:tags) = containsTrackingTag tags
 
+hasVolatileTag :: ASCell -> Bool
+hasVolatileTag = containsVolatileTag . cellTags
+
+containsVolatileTag :: [ASCellTag] -> Bool
+containsVolatileTag [] = False
+containsVolatileTag ((Volatile):tags) = True
+containsVolatileTag (tag:tags) = containsVolatileTag tags
+
 getStreamTag :: [ASCellTag] -> Maybe Stream
 getStreamTag [] = Nothing
 getStreamTag ((StreamTag s):tags) = Just s

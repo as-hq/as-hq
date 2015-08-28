@@ -1,13 +1,12 @@
-'''
-Python equivalents of various excel functions
-'''
 from __future__ import division
 import numpy as np
 from math import log
-from AS.excel.pycel.excelutil import flatten
 from string import *
+from AS.iterable import *
+import scipy.stats as st
 
-######################################################################################
+#############################################################################################################################
+
 # A dictionary that maps excel function names onto python equivalents. You should
 # only add an entry to this map if the python name is different to the excel name
 # (which it may need to be to  prevent conflicts with existing python functions 
@@ -19,6 +18,7 @@ from string import *
 
 # Note: some functions (if, pi, atan2, and, or, array, ...) are already taken care of
 # in the FunctionNode code, so adding them here will have no effect.
+
 FUNCTION_MAP = {
       "ln":"xlog",
       "min":"xmin",
@@ -27,21 +27,31 @@ FUNCTION_MAP = {
       "sum":"xsum",
       "gammaln":"lgamma"
       }
+VOLATILE_LIST  = ["today","offset"] # need to be lower-case
 
-######################################################################################
-# List of excel equivalent functions
-# TODO: needs unit testing
 
-#statistical:
+#############################################################################################################################
+# Implementation of Excel statistical functions in Python
 
-def rank(num,arr,order):
-    if order == 1: 
-        return sorted(arr.lst).index(num)+1
-    elif order == 0: 
-        return len(arr.lst)+1-rank(num,arr,1)
+def rank(elem,arr,order=0):
+    numArr = filter(numeric,arr.lst)
+    ind = numArr.index(elem)
+    if order == 0: 
+        return st.rankdata(numArr,'min')[ind] # Deals with ties correctly
+    elif order == 1: 
+        return len(numArr)+1-rank(elem,arr,1)
     else:
         raise TypeError("Not a valid order type")
 
+def xmax(*args):
+    return np.max()
+
+
+#############################################################################################################################
+# Utility methods
+
+def numeric(x):
+    return isinstance(x,int) or isinstance(x,long) or isinstance(x,float) 
 
 # convert an excel column like AB to an integer
 def colToInt(col):
@@ -140,46 +150,6 @@ def value(text):
     else:
         return int(text)
 
-def xlog(a):
-    if isinstance(a,(list,tuple,np.ndarray)):
-        return [log(x) for x in flatten(a)]
-    else:
-        #print a
-        return log(a)
-
-def xmax(*args):
-    # ignore non numeric cells
-    data = [x for x in flatten(args) if isinstance(x,(int,float))]
-    
-    # however, if no non numeric cells, return zero (is what excel does)
-    if len(data) < 1:
-        return 0
-    else:
-        return max(data)
-
-def xmin(*args):
-    # ignore non numeric cells
-    data = [x for x in flatten(args) if isinstance(x,(int,float))]
-    
-    # however, if no non numeric cells, return zero (is what excel does)
-    if len(data) < 1:
-        return 0
-    else:
-        return min(data)
-
-def xsum(*args):
-    # ignore non numeric cells
-    data = [x for x in flatten(args) if isinstance(x,(int,float))]
-    
-    # however, if no non numeric cells, return zero (is what excel does)
-    if len(data) < 1:
-        return 0
-    else:
-        return sum(data)
-
-def average(*args):
-    l = list(flatten(*args))
-    return sum(l) / len(l)
     
 def right(text,n):
     #TODO: hack to deal with naca section numbers
@@ -259,3 +229,4 @@ def npv(*args):
 
 if __name__ == '__main__':
     pass
+

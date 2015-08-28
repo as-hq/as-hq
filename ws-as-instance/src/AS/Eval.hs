@@ -31,24 +31,22 @@ evalExpression loc dict expr =
     Expression _ _ -> evalCode loc dict expr  
     Reference _ _ -> evalRef loc dict expr  
 
-evalExcel :: ASExpression -> IO ASExpression
+-- | Returns the new Python expression and a boolean for whether the expression is volatile or not
+evalExcel :: ASExpression -> IO (ASExpression,Bool)
 evalExcel xp = do
 	let newXp = "evalExcel(\'"++(expression xp)++"\')"
-
 	interpolated <- interpolateFile Excel newXp
-
-	time <- (getCurrentTime >>= return . utctDayTime)
-
 	resultInit <- pyfiString interpolated
-
-	time <- (getCurrentTime >>= return . utctDayTime)
-
-	let result' = T.unpack (T.strip (T.pack resultInit)) -- no start/end whitespace
-	let result = case (L.head result') of
-		'\'' -> L.init (L.tail result')
-		'\"' -> L.init (L.tail result')
-		otherwise -> result'
-	return $ Expression result Excel
+	putStrLn $ "EXCEL RESULT INIT: " ++ (show resultInit)
+	{-
+		let result' = T.unpack (T.strip (T.pack resultInit)) -- no start/end whitespace
+		let result = case (L.head result') of
+			'\'' -> L.init (L.tail result')
+			'\"' -> L.init (L.tail result')
+			otherwise -> result'
+	-}
+	let ValueL [ValueS s, ValueB b] = parseValue Excel resultInit
+	return (Expression s Excel, b)
 
 -----------------------------------------------------------------------------------------------------------------------
 -- File Interpolation (see Lang for details)
@@ -57,7 +55,8 @@ evalCode :: ASLocation -> M.Map ASLocation ASValue -> ASExpression -> IO ASValue
 evalCode loc values xp = do
 	printTimed "Starting eval code"
 	let lang = language xp
-	let finalXp = interpolate loc values xp -- eval string
+	let finalXp = interpolate loc values xp 
+	printTimed $ "Final eval xp: " ++ (show finalXp)
 	simpleInterpolated <- interpolateFile lang finalXp
 	interpolated <- case lang of
 		SQL -> interpolateFile SQL ("setGlobals("++(show context) ++")\n" ++ newExp)

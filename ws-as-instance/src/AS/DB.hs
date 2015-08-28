@@ -5,7 +5,7 @@ import Data.Maybe (isNothing, fromJust)
 import Prelude
 import AS.Util as U
 
-import Data.List (zip4)
+import Data.List (zip4,head)
 
 import Control.Applicative
 import Control.Concurrent
@@ -84,6 +84,11 @@ chunkM_ f size lst = do
 ----------------------------------------------------------------------------------------------------------------------
 -- | DB Cell methods
 
+getCell :: ASLocation -> IO (Maybe ASCell)
+getCell loc = do 
+  cells <- getCells [loc]
+  return $ head cells
+
 getCells :: [ASLocation] -> IO [Maybe ASCell]
 getCells [] = return []
 getCells locs = chunkM getChunkCells cellChunkSize locs
@@ -93,11 +98,14 @@ setCell c = setCells [c]
 
 setCells :: [ASCell] -> IO ()
 setCells [] = return ()
-setCells cells = chunkM_ setChunkCells cellChunkSize cells
+setCells cells = (chunkM_ setChunkCells cellChunkSize cells) >> (chunkM_ setChunkVolatileCells cellChunkSize cells)
 
 deleteCells :: [ASCell] -> IO ()
 deleteCells [] = return ()
-deleteCells cells = chunkM_ deleteChunkCells cellChunkSize cells
+deleteCells cells = (chunkM_ deleteChunkCells cellChunkSize cells) >> (chunkM_ deleteChunkVolatileCells cellChunkSize cells)
+
+----------------------------------------------------------------------------------------------------------------------
+-- | DB Cell Chunking methods
 
 getChunkCells :: [ASLocation] -> Redis [Maybe ASCell]
 getChunkCells locs = do 
@@ -137,6 +145,31 @@ deleteChunkCells cells = do
   return ()
 
 ----------------------------------------------------------------------------------------------------------------------
+-- | Volatile cell methods
+
+getVolatileLocs :: IO [ASLocation]
+getVolatileLocs = do 
+  conn <- connect cInfo
+  runRedis conn $ do
+      Right vl <- smembers (B.pack "volLocs")
+      return $ map bStrToASLocation vl
+
+-- TODO: some of the cells may change from volatile -> not volatile, but they're still in volLocs
+setChunkVolatileCells :: [ASCell] -> Redis ()
+setChunkVolatileCells cells = do 
+  let vLocs = map cellLocation $ filter (U.hasVolatileTag) cells
+  let locStrs = map (B.pack . show) vLocs
+  sadd "volLocs" locStrs
+  return ()
+
+deleteChunkVolatileCells :: [ASCell] -> Redis ()
+deleteChunkVolatileCells cells = do 
+  let vLocs = map cellLocation $ filter (U.hasVolatileTag) cells
+  let locStrs = map (B.pack . show) vLocs
+  srem "volLocs" locStrs
+  return ()
+
+----------------------------------------------------------------------------------------------------------------------
 -- | DB Edge methods
 
 dagChunkSize :: Int
@@ -160,15 +193,15 @@ updateChunkDAG rels = do
 
 getDAG :: IO [(ASLocation,ASLocation)]
 getDAG = do 
-    conn <- connect cInfo
-    runRedis conn $ do
-        Right tl <- smembers (B.pack "toLocSet")
-        TxSuccess fromLocs <- multiExec $ do 
-            fl' <- mapM (\t -> (smembers t)) tl -- because Queued is a monad
-            return $ sequence fl'
-        let rels' = concat $ map (\(a,b) -> (zip a (repeat b))) (zip fromLocs tl)
-        let rels = map bStrToRelation rels'
-        return rels
+  conn <- connect cInfo
+  runRedis conn $ do
+      Right tl <- smembers (B.pack "toLocSet")
+      TxSuccess fromLocs <- multiExec $ do 
+          fl' <- mapM (\t -> (smembers t)) tl -- because Queued is a monad
+          return $ sequence fl'
+      let rels' = concat $ map (\(a,b) -> (zip a (repeat b))) (zip fromLocs tl)
+      let rels = map bStrToRelation rels'
+      return rels
 
 ----------------------------------------------------------------------------------------------------------------------
 -- | DB Commit methods

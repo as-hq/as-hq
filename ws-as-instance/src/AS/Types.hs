@@ -53,6 +53,7 @@ data ASCellTag =
   Percentage |
   StreamTag Stream |
   Tracking |
+  Volatile |
   ReadOnly [ASUserId]
   deriving (Show, Read, Eq, Generic)
 
@@ -105,6 +106,7 @@ data ASResult = Success | Failure {failDesc :: String} | NoResult deriving (Show
 data ASPayload = 
   PayloadN () |
   PayloadInit ASInitConnection |
+  PayloadDaemonInit ASInitDaemonConnection |
   PayloadC ASCell | 
   PayloadCL [ASCell] | 
   PayloadL ASLocation |
@@ -115,7 +117,6 @@ data ASPayload =
   PayloadRemoveTags {removeTags :: [ASCellTag], removeTagsLoc :: ASLocation}
   deriving (Show, Read, Eq, Generic)
 
-data ASInitConnection = ASInitConnection {connUserId :: ASUserId} deriving (Show,Read,Eq,Generic)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Eval Types
@@ -133,13 +134,20 @@ type EitherCells = Either ASExecError [ASCell]
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Websocket types
 
+data ASInitConnection = ASInitConnection {connUserId :: ASUserId} deriving (Show,Read,Eq,Generic)
+data ASInitDaemonConnection = ASInitDaemonConnection {parentUserId :: ASUserId, initDaemonLoc :: ASLocation} deriving (Show,Read,Eq,Generic)
+
 data ASWindow = Window {windowSheetId :: ASSheetId, topLeft :: (Int, Int), bottomRight :: (Int, Int)} deriving (Show, Read, Eq, Generic)
 type ASUserId = Text 
 data ASUser = User {userId :: ASUserId, userConn :: WS.Connection, userWindows :: [ASWindow]} 
-data ServerState = State {userList :: [ASUser], streamingLocs :: [(ASLocation,WS.Connection)]} 
+data ASDaemon = ASDaemon {daemonLoc :: ASLocation, daemonConn :: WS.Connection}
+data ServerState = State {userList :: [(ASUser,[ASDaemon])]} 
 
 instance Eq ASUser where 
   c1 == c2 = (userId c1) == (userId c2)
+
+instance Eq ASDaemon where 
+  c1 == c2 = (daemonLoc c1) == (daemonLoc c2)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Version Control
@@ -212,5 +220,7 @@ instance ToJSON Stream
 instance FromJSON Stream
 instance ToJSON Bloomberg
 instance FromJSON Bloomberg
+instance FromJSON ASInitDaemonConnection
+instance ToJSON ASInitDaemonConnection
 
 

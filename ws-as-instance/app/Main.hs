@@ -17,6 +17,7 @@ import Data.ByteString.Char8 hiding (putStrLn,filter,any,length)
 import Data.ByteString.Lazy.Char8 as B hiding (putStrLn,filter,any,length)
 import qualified Network.WebSockets as WS
 
+import Data.Maybe (fromJust)
 
 import AS.Types
 import AS.Config.Settings as S
@@ -25,41 +26,99 @@ import qualified Data.List as L
 import AS.Handler as H
 
 -------------------------------------------------------------------------------------------------------------------------
--- | State 
+-- | State functions
 
 newServerState :: ServerState
-newServerState = State [] []
+newServerState = State []
 
 numUsers :: ServerState -> Int
 numUsers = length . userList 
 
+addToAL :: Eq key => [(key, elt)] -> key -> elt -> [(key, elt)]
+addToAL l key value = (key, value) : delFromAL l key
+
+delFromAL :: Eq key => [(key, a)] -> key -> [(key, a)]
+delFromAL l key = L.filter (\a -> (fst a) /= key) l
+
 -------------------------------------------------------------------------------------------------------------------------
--- | User management
+-- | User Management
+
+getUsers :: ServerState -> [ASUser]
+getUsers (State s) = L.map fst s
 
 userIdExists :: ASUserId -> ServerState -> Bool
-userIdExists uid state = L.elem uid (L.map userId (userList state))
+userIdExists uid state = L.elem uid (L.map userId (getUsers state))
 
 -- Assumes that user exists
-getUserById :: ASUserId -> ServerState -> ASUser
-getUserById uid (State allUsers _) = L.head $ filter (\c -> (userId c == uid)) allUsers
-    
-addUser :: ASUser -> ServerState -> ServerState
-addUser user state@(State users locs) = if (userIdExists (userId user) state)
-  then state
-  else (State (user : users) locs)
+getUserById :: ASUserId -> ServerState -> Maybe ASUser
+getUserById uid (State allUsers) = case (filter (\c -> (userId c == uid)) (L.map fst allUsers)) of
+  [] -> Nothing
+  l -> Just $ L.head l
 
-removeUser :: ASUser -> ServerState -> ServerState
-removeUser user (State us ls) = State us' ls
+addUser :: ASUser -> ServerState -> ServerState
+addUser user state@(State users) = state'
   where
-    us' = filter ((/= userId user) . userId) us
+    l = L.lookup user users
+    state' = case l of 
+      Nothing -> State ((user,[]):users)
+      Just _ -> state
+
+close :: WS.Connection -> IO ()
+close conn = WS.sendClose conn ("Bye" :: Text)
+
+removeUser :: ASUser -> ServerState -> IO ServerState -- need to deal with daemons 
+removeUser user s@(State us) = do 
+  let daemons = L.lookup user us
+  case daemons of 
+    Nothing -> return s
+    Just d -> do 
+      mapM_ close (L.map daemonConn d)
+      let us' = delFromAL us user
+      return $ State us'
+
+
+-------------------------------------------------------------------------------------------------------------------------
+-- | Daemon Management
+
+addDaemon :: ASUserId -> ASDaemon -> ServerState -> ServerState
+addDaemon uid daemon s@(State state) = state'
+  where
+    user = getUserById uid s
+    state' = case user of 
+      Nothing -> s
+      Just u -> State $ addToAL state u (daemon:(fromJust $ L.lookup u state))
+
+removeDaemon :: ASDaemon -> ServerState -> ServerState
+removeDaemon daemon s@(State state) = state'
+  where
+    user = getUserOfDaemon s daemon
+    state' = case user of 
+      Nothing -> s
+      Just u -> State $ addToAL state u (L.delete daemon (fromJust $ L.lookup u state))
+
+getUserOfDaemon :: ServerState -> ASDaemon -> (Maybe ASUser)
+getUserOfDaemon (State s) daemon = do 
+  let users = L.filter (\(a,b) -> L.elem daemon b) s
+  case users of 
+    [] -> Nothing
+    otherwise -> Just $ fst $ L.head users
 
 -------------------------------------------------------------------------------------------------------------------------
 -- | Start and end connections
 
-disconnect :: ASUser -> MVar ServerState -> IO ()
-disconnect user state = do 
-  ret <- liftIO $ modifyMVar_ state (\s -> return $ removeUser user s)
-  return ret
+catchDisconnect :: ASUser -> MVar ServerState -> SomeException -> IO ()
+catchDisconnect user state e = case (fromException e) of
+  Just WS.ConnectionClosed -> do 
+    putStrLn $ "in connection closed catch"
+    liftIO $ modifyMVar_ state (\s -> removeUser user s)
+  otherwise -> (putStrLn (show e)) >> return ()
+
+catchDisconnectDaemon :: ASDaemon -> MVar ServerState -> SomeException -> IO ()
+catchDisconnectDaemon daemon state e = case (fromException e) of
+  Just WS.ConnectionClosed -> do 
+    putStrLn $ "in connection closed catch daemon"
+    liftIO $ modifyMVar_ state (\s -> return $ removeDaemon daemon s)
+  otherwise -> (putStrLn (show e)) >> return ()
 
 isInitConnection :: B.ByteString -> IO Bool
 isInitConnection msg = do
@@ -72,6 +131,20 @@ isInitConnection msg = do
   putStrLn (show msg)
   return b
 
+isInitConnectionDaemon :: B.ByteString -> IO Bool
+isInitConnectionDaemon msg = do
+  putStrLn $ "TESTING FOR INIT DAEMON CONNECTION " ++ (show msg)
+  b <- case (decode msg :: Maybe ASMessage) of 
+        Just (Message _ Acknowledge r (PayloadDaemonInit (ASInitDaemonConnection i l))) -> do
+          printTimed "decoded init" 
+          return True
+        otherwise -> putStrLn (show (decode msg :: Maybe ASMessage)) >> return False
+  putStrLn (show msg)
+  return b
+
+-------------------------------------------------------------------------------------------------------------------------
+-- | Basic send
+
 send :: ASMessage -> WS.Connection -> IO ()
 send msg conn = WS.sendTextData conn (encode msg)
 
@@ -83,16 +156,23 @@ main = do
     state <- newMVar newServerState
     putStrLn $ "server started on port " ++ (show S.wsPort)
     WS.runServer S.wsAddress S.wsPort $ application state
+    putStrLn $ "DONE WITH MAIN"
 
 application :: MVar ServerState -> WS.ServerApp
 application state pending = do
   conn <- WS.acceptRequest pending
-  WS.forkPingThread conn 30 -- keepalive ping for certain browsers
+  -- WS.forkPingThread conn 30 -- Keepalive ping for certain browsers
   msg <- WS.receiveData conn
+  -- | After receiving data from a connection, see if it's a valid initial signal (for a daemon or a client)
   isInit <- isInitConnection msg
+  isInitDaemon <- isInitConnectionDaemon msg
   if isInit
     then handleInitConnection state conn (decode msg :: Maybe ASMessage)
-    else send (failureMessage "Cannot connect") conn
+    else 
+      if isInitDaemon
+        then handleInitConnectionDaemon state conn (decode msg :: Maybe ASMessage)
+        else send (failureMessage "Cannot connect") conn
+  putStrLn $ "DONE WITH APPLICATION"
 
 handleInitConnection :: MVar ServerState -> WS.Connection -> Maybe ASMessage -> IO ()
 handleInitConnection state conn (Just message) = do
@@ -102,30 +182,38 @@ handleInitConnection state conn (Just message) = do
     liftIO $ modifyMVar_ state (\s -> return $ addUser user s)
     talk state user
 
-catchDisconnect :: ASUser -> MVar ServerState -> SomeException -> IO ()
-catchDisconnect user state e = case (fromException e) of
-  Just WS.ConnectionClosed -> do 
-    putStrLn $ "in connection closed catch"
-    liftIO $ modifyMVar_ state (\s -> return $ removeUser user s)
-  otherwise -> (putStrLn (show e)) >> return ()
+handleInitConnectionDaemon :: MVar ServerState -> WS.Connection -> Maybe ASMessage -> IO ()
+handleInitConnectionDaemon state conn (Just (Message _ _ _ (PayloadDaemonInit (ASInitDaemonConnection pId loc)))) = do
+  let daemon = ASDaemon loc conn
+  (flip catch) (catchDisconnectDaemon daemon state) $ do
+    putStrLn $ "IN HANDLE INIT DAEMON CONNECTION"
+    liftIO $ modifyMVar_ state (\s -> return $ addDaemon pId daemon s)
+    talkDaemon state daemon
 
--- persistent connection until user disconnects
+-- Persistent connection until user disconnects
 talk :: MVar ServerState -> ASUser -> IO ()
-talk state user' = forever $ do
-    msgOrError <- try (WS.receiveData (userConn user')) :: IO (Either SomeException B.ByteString)
-    case msgOrError of 
-      Left e -> send (failureMessage "Could not receive data") (userConn user') 
-      Right msg -> do
-        putStrLn "=========================================================="
-        printTimed $ "SERVER message received: " -- ++ (B.unpack msg)
-        case (decode msg :: Maybe ASMessage) of 
-          Nothing -> printTimed "SERVER ERROR: unable to decode message" >> return ()
-          Just m -> do 
-            printTimed ("SERVER decoded message: " ++ (show m)) 
-            -- | Let the user be the one with user id dictacted by the message (useful for streaming daemons)
-            s <- readMVar state
-            let user =  getUserById (messageUserId m) s 
-            processMessage user state m
+talk state user = forever $ do
+  msg <- WS.receiveData (userConn user)
+  putStrLn "=========================================================="
+  printTimed $ "SERVER message received: " 
+  case (decode msg :: Maybe ASMessage) of 
+    Nothing -> printTimed ("SERVER ERROR: unable to decode message " ++ (show msg)) >> return ()
+    Just m -> do 
+      printTimed ("SERVER decoded message: " ++ (show m)) 
+      processMessage user state m
+
+talkDaemon :: MVar ServerState -> ASDaemon -> IO ()
+talkDaemon state daemon = forever $ do
+  msg <- WS.receiveData (daemonConn daemon)
+  putStrLn "=========================================================="
+  printTimed $ "SERVER message received: " 
+  case (decode msg :: Maybe ASMessage) of 
+    Nothing -> printTimed ("SERVER ERROR: unable to decode message " ++ (show msg)) >> return ()
+    Just m -> do 
+      s <- readMVar state
+      let user = fromJust $ getUserOfDaemon s daemon
+      printTimed ("SERVER decoded message: " ++ (show m)) 
+      processMessage user state m
 
 -------------------------------------------------------------------------------------------------------------------------
 -- | Message handling
@@ -141,13 +229,13 @@ processMessage user state message = case (action message) of
   Clear       -> H.handleClear user state
   AddTags     -> H.handleAddTags user state message
   RemoveTags  -> H.handleRemoveTags user state message
-  UpdateWindow -> do
-    liftIO $ modifyMVar_ state $ \s@(State us ls)-> do
-      let c = getUserById (userId user) s
+  {-UpdateWindow -> do
+    liftIO $ modifyMVar_ state $ \s@(State us)-> do
+      let c = fromJust $ getUserById (userId user) s
       let (PayloadW vw) = payload message
       let s1 = removeUser c s
       let s2 = State ((User (userId c) (userConn c) (vw:(userWindows c))):us) ls
-      return s2
+      return s2 -}
     -- TODO send cells for scroll
 
 

@@ -49,12 +49,14 @@ def exprToPython(cell):
 			return s[1:] 
 	except:
 		return cell.value
-
-# def sillytest(a):
-#     return a+1
 	
-def evalExcel(s):
-	e = shunting_yard(s)
-	G,root = build_ast(e)
-	r = root.emit(G,context = None)
-	return r
+def evalExcel(xp):
+    e = shunting_yard(xp)
+    G,root = build_ast(e)
+    newXp = root.emit(G,context=None)
+    vols = [node.isVolatile for node in G.nodes()]
+    hasVolatile = False
+    for v in vols:
+        if v:
+            hasVolatile = True
+    return [newXp,hasVolatile]

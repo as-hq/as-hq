@@ -60,7 +60,9 @@ getDescendants :: ASCell -> IO (Either ASExecError [ASCell])
 getDescendants cell = do 
   let locs = decomposeLocs (cellLocation cell)
   dag <- DB.getDAG
-  let descendantLocs = DAG.descendants locs dag
+  vLocs <- DB.getVolatileLocs
+  -- | Account for volatile cells being reevaluated each time
+  let descendantLocs = DAG.descendants (locs ++ vLocs) dag
   desc <- DB.getCells descendantLocs
   printTimed $ "got descendant cells"
   return $ Right $ map fromJust desc 
@@ -71,8 +73,6 @@ reEvalCell anc dec = do
   let mp = M.fromList $ map (\c -> (cellLocation c, cellValue c)) anc
   result <- evalChain mp dec
   return $ Right result
-
--- | Note that the final setting of cells and other wrap-up operations will be done in endware
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Eval helpers

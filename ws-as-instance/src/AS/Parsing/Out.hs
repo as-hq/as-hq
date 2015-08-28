@@ -28,6 +28,7 @@ toListStr lang lst  = end ++ (L.intercalate delim lst) ++ start
 modifiedLists :: ASLanguage -> String -> String  
 modifiedLists lang str = case lang of
   Python -> "arr(" ++ str ++ ")"
+  Excel  -> "arr(" ++ str ++ ")"
   otherwise -> str
 
 getBlockDelim :: ASLanguage -> String

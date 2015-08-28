@@ -22,12 +22,12 @@ import Data.List as L
 -- | Sending message to client(s)
 
 broadcast :: Text -> ServerState -> IO ()
-broadcast message (State users _) = forM_ users $ \(User _ conn _) -> WS.sendTextData conn message
+broadcast message (State u) = forM_ (L.map fst u) $ \(User _ conn _) -> WS.sendTextData conn message
 
 sendBroadcastFiltered :: ASUser -> MVar ServerState -> ASMessage -> IO ()
 sendBroadcastFiltered user state msg = liftIO $ do 
-	(State allUsers locs) <- readMVar state
-	broadcastFiltered (updateMessageUser (userId user) msg) allUsers
+	(State allUsers) <- readMVar state
+	broadcastFiltered (updateMessageUser (userId user) msg) (L.map fst allUsers)
 
 -- | Given a message (commit, cells, etc), only send (to each user) the cells in their viewing window
 broadcastFiltered :: ASMessage -> [ASUser] -> IO ()
@@ -98,20 +98,37 @@ handleRedo user state = do
 -- | Tag handlers
 
 processAddTag :: ASUser -> MVar ServerState -> ASLocation -> ASMessage -> ASCellTag -> IO ()
-processAddTag user state loc msg t = case t of 
-  StreamTag s -> do -- create daemon that sends an eval message
-    mCells <- DB.getCells [loc]
-    case (L.head mCells) of 
-      Nothing -> return ()
-      Just cell -> do 
-        let evalMsg = Message (messageUserId msg) Evaluate NoResult (PayloadC cell)
-        DM.modifyDaemon user state s loc evalMsg
-  otherwise -> return () -- TODO: implement the rest
+processAddTag user state loc msg t = do 
+  cell <- DB.getCell loc
+  case cell of 
+    Nothing -> return ()
+    Just c@(Cell l e v ts) -> do 
+      case (elem t ts) of 
+        True -> return ()
+        False -> do 
+          let c' = Cell l e v (t:ts)
+          DB.setCell c'
+  case t of 
+    StreamTag s -> do -- create daemon that sends an eval message
+      mCells <- DB.getCells [loc]
+      case (L.head mCells) of 
+        Nothing -> return ()
+        Just cell -> do 
+          let evalMsg = Message (messageUserId msg) Evaluate NoResult (PayloadC cell)
+          DM.modifyDaemon user state s loc evalMsg
+    otherwise -> return () -- TODO: implement the rest
 
 processRemoveTag :: ASLocation -> MVar ServerState -> ASCellTag -> IO ()
-processRemoveTag loc state t = case t of 
-  StreamTag s -> DM.removeDaemon loc state
-  otherwise -> return () -- TODO: implement the rest
+processRemoveTag loc state t = do 
+  cell <- DB.getCell loc 
+  case cell of 
+    Nothing -> return ()
+    Just c@(Cell l e v ts) -> do 
+      let c' = Cell l e v (L.delete t ts)
+      DB.setCell c'
+  case t of
+    StreamTag s -> DM.removeDaemon loc state
+    otherwise -> return () -- TODO: implement the rest
 
 handleAddTags :: ASUser -> MVar ServerState -> ASMessage -> IO ()
 handleAddTags user state msg@(Message _ _ _ (PayloadAddTags ts loc)) = do 

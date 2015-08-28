@@ -2,7 +2,12 @@ execfile("/home/riteshr/as/mysql-as-instance/AS/Eval/run/py/repl_record.py")
 from AS.excel.pycel.excelcompiler import *
 from AS.excel.pycel.excellib import * # mapping from excel to python
 from AS.excel.io import evalExcel
+from AS.iterable import ASIterable
 from sys import exc_info
+
+def arr(lst):
+	return ASIterable(lst)
+	
 result = "EXERROR"
 try:
 	#CMD#
