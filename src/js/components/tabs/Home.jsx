@@ -36,9 +36,9 @@ export default React.createClass({
                   <ASBlockDropdownButton height="94px" label="Paste" menuItems={["paste"]} iconClassName="home" />
                 </ASCol>
                 <ASCol width="30px">
-                  <ASCheckedButton iconClassName="home" onCheckChange={this.onCheckChange} />
-                  <ASCheckedButton iconClassName="home" onCheckChange={this.onCheckChange} />
-                  <ASCheckedButton iconClassName="home" onCheckChange={this.onCheckChange} />
+                  <ASCheckedButton iconClassName="content_cut" onCheckChange={this.onCheckChange} />
+                  <ASCheckedButton iconClassName="content_copy" onCheckChange={this.onCheckChange} />
+                  <ASCheckedButton iconClassName="content_paste" onCheckChange={this.onCheckChange} />
                 </ASCol>
                 <ASRibbonDivider />
               </div>
@@ -50,16 +50,16 @@ export default React.createClass({
                 <ASCol width="150px">
                   <ASDropdown
                     menuItems={[
-                      { payload: 'key1', text: 'Test' }
+                      { payload: 'key1', text: 'Font' }
                     ]}
                     style={{
                       width: '140px'
                     }}
                   />
                   <ASRow width="150px" >
-                    <ASCheckedButton iconClassName="home" onCheckChange={this.onCheckChange} />
-                    <ASCheckedButton iconClassName="home" onCheckChange={this.onCheckChange} />
-                    <ASCheckedButton iconClassName="home" onCheckChange={this.onCheckChange} />
+                    <ASCheckedButton iconClassName="format_bold" onCheckChange={this.onCheckChange} />
+                    <ASCheckedButton iconClassName="format_italic" onCheckChange={this.onCheckChange} />
+                    <ASCheckedButton iconClassName="format_underline" onCheckChange={this.onCheckChange} />
                   </ASRow>
                 </ASCol>
                 <ASCol width="80px">
@@ -72,8 +72,8 @@ export default React.createClass({
                     }}
                   />
                   <ASRow width="70px" >
-                    <ASCheckedButton iconClassName="home" onCheckChange={this.onCheckChange} />
-                    <ASCheckedButton iconClassName="home" onCheckChange={this.onCheckChange} />
+                    <ASCheckedButton iconClassName="format_color_fill" onCheckChange={this.onCheckChange} />
+                    <ASCheckedButton iconClassName="colorize" onCheckChange={this.onCheckChange} />
                   </ASRow>
                 </ASCol>
                 <ASCol width="70px">
@@ -95,15 +95,15 @@ export default React.createClass({
               <div>
                 <ASCol width="140px">
                   <ASRow width="140px" >
-                    <ASCheckedButton iconClassName="home" onCheckChange={this.onCheckChange} />
-                    <ASCheckedButton iconClassName="home" onCheckChange={this.onCheckChange} />
-                    <ASCheckedButton iconClassName="home" onCheckChange={this.onCheckChange} />
+                    <ASCheckedButton iconClassName="vertical_align_top" onCheckChange={this.onCheckChange} />
+                    <ASCheckedButton iconClassName="vertical_align_center" onCheckChange={this.onCheckChange} />
+                    <ASCheckedButton iconClassName="vertical_align_bottom" onCheckChange={this.onCheckChange} />
                     <ASCheckedButton iconClassName="home" onCheckChange={this.onCheckChange} />
                   </ASRow>
                   <ASRow width="140px" >
-                    <ASCheckedButton iconClassName="home" onCheckChange={this.onCheckChange} />
-                    <ASCheckedButton iconClassName="home" onCheckChange={this.onCheckChange} />
-                    <ASCheckedButton iconClassName="home" onCheckChange={this.onCheckChange} />
+                    <ASCheckedButton iconClassName="format_align_right" onCheckChange={this.onCheckChange} />
+                    <ASCheckedButton iconClassName="format_align_left" onCheckChange={this.onCheckChange} />
+                    <ASCheckedButton iconClassName="format_align_center" onCheckChange={this.onCheckChange} />
                     <ASCheckedButton iconClassName="home" onCheckChange={this.onCheckChange} />
                   </ASRow>
                    <ASRow width="140px" >
