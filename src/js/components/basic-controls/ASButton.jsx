@@ -177,7 +177,10 @@ export default React.createClass({
       finalizedLabelElement = React.cloneElement(labelElement, {
         style: this.mergeAndPrefix(styles.labelElement, this.props.labelStyle)
       });
-    } else if (label) {
+      // if (labelElement.props.source) {
+      //   debugger;
+      // }
+    } else if (label) { // __TODO__ #alex are we really keeping this
       finalizedLabelElement = (
         <span style={this.mergeAndPrefix(styles.label, this.props.labelStyle)}>
           {label}

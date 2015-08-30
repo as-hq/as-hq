@@ -12,10 +12,11 @@ export default React.createClass({
   propTypes: {
     width: React.PropTypes.string,
     height: React.PropTypes.string,
-    iconClassName: React.PropTypes.string.isRequired,
+    iconClassName: React.PropTypes.string,
     label: React.PropTypes.string,
     defaultPushedIn: React.PropTypes.bool,
-    onCheckChange: React.PropTypes.func.isRequired
+    onCheckChange: React.PropTypes.func.isRequired, 
+    iconImageSource: React.PropTypes.string, 
   },
 
   getInitialState() {
@@ -44,7 +45,7 @@ export default React.createClass({
   },
 
   render() {
-    let {width, height, iconClassName, label, defaultPushedIn} = this.props;
+    let {width, height, iconClassName, label, defaultPushedIn, iconImageSource} = this.props;
 
     let labelElementStyle = {
       position: 'relative',
@@ -63,29 +64,41 @@ export default React.createClass({
       color:  this._getLabelColor()
     };
 
+    let labelElement;
+    if (iconClassName) { 
+      labelElement = (
+        <div style={{ display: 'inline' }}>
+          <FontIcon
+            style={{
+              float: 'left',
+              fontSize: '18px',
+              lineHeight: '24px'
+            }}
+            className="material-icons"
+            color={Colors.grey50}
+          >
+            {iconClassName}
+          </FontIcon>
+          { label ?
+            <span style={labelElementStyle}>
+              {label}
+            </span> : null
+          }
+        </div>);
+    } else if (iconImageSource) { 
+      labelElement = (
+        <span style={labelElementStyle}>
+          <img src={iconImageSource} width="18" height="24" />
+        </span>
+      );
+    }
+
+    //__TODO__ #alex proposal: pass in an object that is either a font icon or an image. then do casework based on what that thing passed in is
+
     return (
       <ASButton
         ref="button"
-        labelElement={
-          <div style={{ display: 'inline' }}>
-            <FontIcon
-              style={{
-                float: 'left',
-                fontSize: '18px',
-                lineHeight: '24px'
-              }}
-              className="material-icons"
-              color={Colors.grey50}
-            >
-              {iconClassName}
-            </FontIcon>
-            { label ?
-              <span style={labelElementStyle}>
-                {label}
-              </span> : null
-            }
-          </div>
-        }
+        labelElement={labelElement}
         labelStyle={{
           padding: '0px 7px'
         }}
