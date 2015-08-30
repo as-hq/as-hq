@@ -47,7 +47,7 @@ var shiftUps = {
 
 var modifiers = [16, 17, 18, 19];
 
-var specials = [27]; //esc
+var specials = [27, 46]; //esc, delete
 
 var keyMap = {
   "Enter": 13,
@@ -57,6 +57,7 @@ var keyMap = {
   "Right": 39,
   "Home": 36,
   "End": 35,
+  "Del": 46,
   "Esc": 27,
   "F1": 112,
   "F2": 113,

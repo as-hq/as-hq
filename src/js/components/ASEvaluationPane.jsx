@@ -209,6 +209,11 @@ export default React.createClass({
       Store.setClipboard(null, false);
       this.refs.spreadsheet.repaint(); // render immediately
     });
+    Shortcuts.addShortcut("grid", "grid_delete", "Del", (wildcard) => {
+      let rng = Store.getActiveSelection();
+      console.log("deleting cells in range: " + JSON.stringify(rng));
+      API.sendDeleteRequest(rng);
+    })
   },
 
 // element key deferrals
