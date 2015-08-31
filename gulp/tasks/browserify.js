@@ -4,11 +4,12 @@ var source = require('vinyl-source-stream');
 var buffer = require('vinyl-buffer');
 var browserify = require('browserify');
 var watchify = require('watchify');
+var babel = require('babelify');
 var connect = require('gulp-connect');
 var config = require('../config').browserify;
 
 watchify.args.debug = config.debug;
-var bundler = watchify(browserify(config.src, watchify.args));
+var bundler = watchify(browserify(config.src, watchify.args).transform(babel));
 config.settings.transform.forEach(function(t) {
   bundler.transform(t);
 });

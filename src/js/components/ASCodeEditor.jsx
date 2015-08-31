@@ -3,7 +3,7 @@ import AceEditor from './AceEditor.jsx';
 import ActionCreator from '../actions/ASCodeEditorActionCreators';
 import Constants from '../Constants';
 
-import {AppBar, DropDownMenu, Styles} from 'material-ui';
+import {AppBar, Toolbar, DropDownMenu, Styles} from 'material-ui';
 
 require('brace/mode/python');
 require('brace/mode/r');
@@ -37,14 +37,15 @@ export default React.createClass({
 
     return (
       <div>
-        <AppBar
+        <Toolbar
           style={{
             backgroundColor: Styles.Colors.grey700
           }}
           showMenuIconButton={false} >
           <DropDownMenu
             menuItems={languages}
-            onChange={this._onLanguageChange} />
+            onChange={this._onLanguageChange}
+            underlineStyle={{ display: 'none' }} />
         </AppBar>
         <AceEditor
           ref="editor"
