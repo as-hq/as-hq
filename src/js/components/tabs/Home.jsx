@@ -58,7 +58,7 @@ export default React.createClass({
                   />
                   <ASRow width="150px" >
                     <ASCheckedButton iconClassName="format_bold" onCheckChange={this.onCheckChange} />
-                    <ASCheckedButton iconClassName="format_italic" onCheckChange={this.onCheckChange} />
+                    <ASCheckedButton iconImageSource="https://toggl.com/app/images/toggl-logo@2x.e9182b2e.png" onCheckChange={this.onCheckChange} />
                     <ASCheckedButton iconClassName="format_underline" onCheckChange={this.onCheckChange} />
                   </ASRow>
                 </ASCol>
