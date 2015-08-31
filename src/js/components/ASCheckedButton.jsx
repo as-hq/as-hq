@@ -1,5 +1,5 @@
 import React, {PropTypes} from 'react';
-import ASDropdownButton from './ASDropdownButton.jsx';
+import ASButton from './ASButton.jsx';
 import {AppCanvas, FontIcon, Styles} from 'material-ui';
 
 let {Colors, Typography} = Styles;
@@ -13,13 +13,21 @@ export default React.createClass({
     width: React.PropTypes.string,
     height: React.PropTypes.string,
     iconClassName: React.PropTypes.string.isRequired,
-    label: React.PropTypes.string.isRequired,
-    menuItems: React.PropTypes.arrayOf(React.PropTypes.string).isRequired
+    label: React.PropTypes.string,
+    defaultPushedIn: React.PropTypes.bool,
+    onCheckChange: React.PropTypes.func.isRequired
+  },
+
+  getInitialState() {
+    return {
+      hover: false
+    };
   },
 
   getDefaultProps() {
     return {
-      height: '24px'
+      height: '24px',
+      defaultPushedIn: false
     };
   },
 
@@ -36,7 +44,7 @@ export default React.createClass({
   },
 
   render() {
-    let {width, height, iconClassName, label, menuItems} = this.props;
+    let {width, height, iconClassName, label, defaultPushedIn} = this.props;
 
     let labelElementStyle = {
       position: 'relative',
@@ -56,7 +64,8 @@ export default React.createClass({
     };
 
     return (
-      <ASDropdownButton
+      <ASButton
+        ref="button"
         labelElement={
           <div style={{ display: 'inline' }}>
             <FontIcon
@@ -73,24 +82,35 @@ export default React.createClass({
                 {label}
               </span> : null
             }
-            <FontIcon
-              style={{
-                float: 'right',
-                fontSize: '18px',
-                lineHeight: '24px'
-              }}
-              className="muidocs-icon-navigation-expand-more"
-              color={Colors.grey50}
-            />
           </div>
         }
         labelStyle={{
           padding: '0px 7px'
         }}
-        width={width}
-        height={height}
-        menuItems={menuItems}
+        style={{
+          width: width,
+          minWidth: width,
+          height: height
+        }}
+        backgroundColor={ this.state.hover ? Colors.pink700 : Colors.grey800 }
+        selectable={true}
+        defaultPushedIn={defaultPushedIn}
+        onMouseEnter={this._onMouseEnter}
+        onMouseLeave={this._onMouseLeave}
+        onMouseUp={this._onMouseUp}
       />
     );
+  },
+
+  _onMouseEnter() {
+    this.setState({ hover: true });
+  },
+
+  _onMouseLeave() {
+    this.setState({ hover: false });
+  },
+
+  _onMouseUp() {
+    this.props.onCheckChange(this.refs.button.state.pushedIn);
   }
 });

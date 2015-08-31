@@ -42,7 +42,9 @@ export default React.createClass({
     labelColor: React.PropTypes.string,
     disabledBackgroundColor: React.PropTypes.string,
     disabledLabelColor: React.PropTypes.string,
-    fullWidth: React.PropTypes.bool
+    fullWidth: React.PropTypes.bool,
+    selectable: React.PropTypes.bool,
+    defaultPushedIn: React.PropTypes.bool
   },
 
   getInitialState() {
@@ -50,6 +52,7 @@ export default React.createClass({
     return {
       hovered: false,
       touched: false,
+      pushedIn: this.props.defaultPushedIn,
       initialZDepth: zDepth,
       zDepth: zDepth
     };
@@ -68,6 +71,7 @@ export default React.createClass({
       this.getTheme().disabledColor;
 
     return this.props.disabled ? disabledColor :
+      this.state.pushedIn ? this.getTheme().primaryColor :
       this.props.backgroundColor ? this.props.backgroundColor :
       this.props.primary ? this.getTheme().primaryColor :
       this.props.secondary ? this.getTheme().secondaryColor :
@@ -162,6 +166,8 @@ export default React.createClass({
       labelElement,
       primary,
       secondary,
+      selectable,
+      defaultPushedIn,
       ...other } = this.props;
 
     let styles = this.getStyles();
@@ -228,6 +234,10 @@ export default React.createClass({
 
   _handleMouseUp(e) {
     this.setState({ zDepth: this.state.initialZDepth });
+    if (this.props.selectable) {
+      this.setState({ pushedIn: !this.state.pushedIn });
+    }
+
     if (this.props.onMouseUp) this.props.onMouseUp(e);
   },
 

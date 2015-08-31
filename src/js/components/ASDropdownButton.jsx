@@ -89,8 +89,7 @@ export default React.createClass({
 
   _onTouchTap() {
     let dd = this.refs.dropdown;
-    console.log(dd);
-    if (dd.state.open()) {
+    if (dd.state.open) {
       dd.close();
     }
   }
