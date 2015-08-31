@@ -4,12 +4,21 @@ import Shortcuts from '../AS/Shortcuts';
 var ace = require('brace');
 var React = require('react');
 
-require('brace/mode/python');
-require('brace/mode/r');
-require('brace/mode/ocaml');
-require('brace/mode/mysql');
-require('brace/mode/java');
-require('brace/theme/monokai');
+
+function onPropsSet(editor, props) {
+  editor.getSession().setMode('ace/mode/'+props.mode);
+  editor.setTheme('ace/theme/'+props.theme);
+  editor.setFontSize(props.fontSize);
+  editor.renderer.setShowGutter(props.showGutter);
+  editor.setOption('maxLines', props.maxLines);
+  editor.setOption('readOnly', props.readOnly);
+  editor.setOption('highlightActiveLine', props.highlightActiveLine);
+  editor.setShowPrintMargin(props.setShowPrintMargin);
+
+  if (props.onLoad) {
+    props.onLoad(editor);
+  }
+}
 
 module.exports = React.createClass({
   propTypes: {
@@ -51,6 +60,7 @@ module.exports = React.createClass({
 
   onChange: function() {
     let value = this.editor.getValue();
+
     if (this.props.onChange) {
       this.props.onChange(value);
     }
@@ -70,38 +80,18 @@ module.exports = React.createClass({
 
   componentDidMount: function() {
     this.editor = ace.edit(this.props.name);
-    this.editor.getSession().setMode('ace/mode/'+this.props.mode);
-    this.editor.setTheme('ace/theme/'+this.props.theme);
-    this.editor.setFontSize(this.props.fontSize);
     this.editor.on('change', this.onChange);
     this.editor.setValue(this.props.value, 1);
-    this.editor.renderer.setShowGutter(this.props.showGutter);
-    this.editor.setOption('maxLines', this.props.maxLines);
-    this.editor.setOption('readOnly', this.props.readOnly);
-    this.editor.setOption('highlightActiveLine', this.props.highlightActiveLine);
-    this.editor.setShowPrintMargin(this.props.setShowPrintMargin);
 
-    if (this.props.onLoad) {
-      this.props.onLoad(this.editor);
-    }
+    onPropsSet(this.editor, this.props);
   },
 
   componentWillReceiveProps: function(nextProps) {
-    this.editor = ace.edit(nextProps.name);
-    this.editor.getSession().setMode('ace/mode/'+nextProps.mode);
-    this.editor.setTheme('ace/theme/'+nextProps.theme);
-    this.editor.setFontSize(nextProps.fontSize);
-    this.editor.setOption('maxLines', nextProps.maxLines);
-    this.editor.setOption('readOnly', nextProps.readOnly);
-    this.editor.setOption('highlightActiveLine', nextProps.highlightActiveLine);
-    this.editor.setShowPrintMargin(nextProps.setShowPrintMargin);
     if (this.editor.getValue() !== nextProps.value) {
-      this.editor.setValue(nextProps.value, 1);
+      this.editor.setValue(this.props.value, 1);
     }
-    this.editor.renderer.setShowGutter(nextProps.showGutter);
-    if (nextProps.onLoad) {
-      nextProps.onLoad(this.editor);
-    }
+
+    onPropsSet(this.editor, nextProps);
   },
 
   render: function() {

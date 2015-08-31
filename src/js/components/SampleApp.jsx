@@ -3,7 +3,7 @@ import React, {PropTypes} from 'react';
 import {HomeTab, ChartsTab, DataTab} from './tabs/index.jsx';
 
 import ASEvaluationPane from './ASEvaluationPane.jsx';
-import ASNavBar from './ASNavbar.jsx';
+import ASNavBar from './ASNavBar.jsx';
 
 import {AppCanvas, LeftNav, Paper, Styles} from 'material-ui';
 let {Colors} = Styles;
