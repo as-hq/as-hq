@@ -46,7 +46,7 @@ export default React.createClass({
             menuItems={languages}
             onChange={this._onLanguageChange}
             underlineStyle={{ display: 'none' }} />
-        </AppBar>
+        </Toolbar>
         <AceEditor
           ref="editor"
           onChange={this.props.onExpressionChange}
