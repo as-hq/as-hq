@@ -1,5 +1,5 @@
 import React from 'react';
-import SampleApp from './SampleApp.jsx';
+import App from './App.jsx';
 
 import injectTapEventPlugin from 'react-tap-event-plugin';
 injectTapEventPlugin();
@@ -14,7 +14,7 @@ export default React.createClass({
 
   render() {
     return (
-      <SampleApp />
+      <App />
     );
   }
 });

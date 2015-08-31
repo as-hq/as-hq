@@ -279,7 +279,7 @@ export default React.createClass({
   render() {
     let {expression, language} = this.state;
     return (
-      <div className="full">
+      <div >
         <ASCodeEditor
           ref='editorPane'
           language={language}
@@ -296,7 +296,7 @@ export default React.createClass({
           onSelectionChange={this._onSelectionChange}
           onToggle={this.toggleFocus}
           width="100%"
-          height="100%"  />
+          height="600px"  />
         <NotificationSystem ref="notificationSystem" />
       </div>
     );
