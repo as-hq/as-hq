@@ -6,7 +6,10 @@ import API from '../actions/ASApiActionCreators';
 import KeyUtils from '../AS/KeyUtils';
 import Store from '../stores/ASEvaluationStore';
 import Util from '../AS/Util';
+import Constants from '../Constants';
 import Render from '../AS/Render';
+
+import ASOverlay from './ASOverlay.jsx';
 
 export default React.createClass({
 
@@ -23,6 +26,15 @@ export default React.createClass({
     return {
       behavior: 'default',
       onReady() { }
+    };
+  },
+  getInitialState() {
+    return {
+      scroll: { // keep scroll values in state so overlays autoscroll with grid
+        x:0,
+        y:0
+      },
+      overlays: []
     };
   },
   // produces oriented area -- row < row2 and col < col2 always
@@ -52,8 +64,11 @@ export default React.createClass({
     let hg = this._getHypergrid();
     return {x: hg.hScrollValue, y: hg.vScrollValue};
   },
-  /* TODO */
   makeSelection(loc) {
+    if (loc.row2)
+      this._getHypergrid().select(loc.col-1, loc.row-1, loc.col2-loc.col, loc.row2-loc.row);
+    else
+      this._getHypergrid().select(loc.col-1, loc.row-1, 1, 1);
   },
   getViewingWindow() {
     let hg = this._getHypergrid();
@@ -61,7 +76,10 @@ export default React.createClass({
     let [cols, rows] = [hg.getVisibleColumns(), hg.getVisibleRows()];
     return { range: {row: vs, col: hs, row2: vs + cols.length - 1, col2: hs + rows.length - 1}, width: cols.length, height: rows.length };
   },
-
+  isVisible(col, row){ // faster than accessing hypergrid properties
+    return (this.state.scroll.x <= col && col <= this.state.scroll.x+Constants.numVisibleCols) &&
+           (this.state.scroll.y <= row && row <= this.state.scroll.y+Constants.numVisibleRows);
+  },
   /*************************************************************************************************************************/
   // Display values in spreadsheet
 
@@ -87,12 +105,24 @@ export default React.createClass({
       let display = Converter.clientCellGetDisplay(c);
       console.log("Updating display value: " + gridCol + " " + gridRow + " " + display);
       model.setValue(gridCol,gridRow,display);
+      let overlay = Util.getOverlay(c.cellValue, gridCol, gridRow);
+      if (overlay)
+        this.addOverlay(overlay);
     }
     model.changed(); // causes hypergrid to show updated values
+    Store.resetLastUpdatedCells();
+  },
+
+  // update grid overlays (images, charts, etc)
+  addOverlay(overlay) {
+    console.log("added overlay!");
+    let overlays = this.state.overlays;
+    overlays.push(overlay);
+    this.setState({overlays: overlays});
   },
 
   /*************************************************************************************************************************/
-  // Handling keyboard shortcuts
+  // Handling events
 
   handleKeyDown(e) {
     e.persist(); // prevent react gc
@@ -102,6 +132,11 @@ export default React.createClass({
     } else {
       console.log("native grid event allowed");
     }
+  },
+
+  onOverlayClick(col, row) {
+    console.log("overlay clicked!");
+    // this.makeSelection({col: col, row: row});
   },
 
   /*************************************************************************************************************************/
@@ -130,10 +165,12 @@ export default React.createClass({
           },
         'fin-scroll-x': function (event) {
           // let {x, y} = self.getScroll();
+          self.setState({scroll: self.getScroll()});
           ActionCreator.scroll(self.getViewingWindow());
           },
         'fin-scroll-y': function (event) {
           // let {x, y} = self.getScroll();
+          self.setState({scroll: self.getScroll()});
           ActionCreator.scroll(self.getViewingWindow());
           }
       });
@@ -148,6 +185,7 @@ export default React.createClass({
     let {behavior, width, height} = this.props; //should also have onReady
     let style = {width: width, height: height};
     let behaviorElement;
+    let self = this;
     switch (behavior) {
       case 'json':
         behaviorElement = <fin-hypergrid-behavior-json />;
@@ -163,6 +201,14 @@ export default React.createClass({
         ref="hypergrid"
         onKeyDown={this.handleKeyDown}>
           {behaviorElement}
+          {this.state.overlays.map(function (overlay) {
+            return (<ASOverlay key={overlay.id}
+                               overlay={overlay}
+                               scroll={self.state.scroll}
+                               getBounds={self.getBounds}
+                               onOverlayClick={self.onOverlayClick}
+                               isVisible={self.isVisible}/>);
+          })}
       </fin-hypergrid>
     );
   },
@@ -235,17 +281,6 @@ export default React.createClass({
                                  color: clipboard.isCut ? "#ff0000" : "#4169e1"}; // red cut, blue copy
       }
 
-      // image rendering
-      if (cell.cellValue.tag === "ValueImage"){
-        // console.log("setting image!");
-        renderer = Render.imageCellRenderer;
-        let img = document.createElement('img');
-        img.src = cell.cellValue.imagePath;
-        img.alt = "Error rendering image";
-        img.width = 100;
-        img.height = 100;
-        config.ASImage = img;
-      }
       renderer.config = config;
       return renderer;
     }

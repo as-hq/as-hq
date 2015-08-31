@@ -68,6 +68,7 @@
     "react-notification-system": "~0.1.14",
     "underscore": "^1.7.0",
     "react-clickaway": "0.0.2",
-    "react-draggable-tab": "~0.3.0"
+    "react-draggable-tab": "~0.3.0",
+    "shortid": "^2.2.2"
   }
 }

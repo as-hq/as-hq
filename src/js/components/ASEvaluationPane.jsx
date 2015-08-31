@@ -165,7 +165,7 @@ export default React.createClass({
           sel = editor.selection;
       sel.setRange(range);
       let replace = Util.toggleReferenceType(editor.getSelectedText());
-      sesh.replace(rannge, replace);
+      sesh.replace(range, replace);
     });
     Shortcuts.addShortcut("common", "esc", "Esc", (wildcard) => {
       let editor = self._getRawEditor();

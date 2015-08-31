@@ -1,4 +1,5 @@
 import Constants from '../Constants';
+import shortid from 'shortid';
 
 /* This module has general utility functions */
 
@@ -47,7 +48,7 @@ export default {
       case "ValueError":
         return "ERROR";
       case "ValueImage":
-        return "";
+        return "IMAGE";
       case "DisplayValue":
         return cv.displayValue;
       default:
@@ -125,6 +126,24 @@ export default {
     else return [];
   },
 
+  getOverlay(cv, col, row) {
+    let self = this;
+    switch(cv.tag) {
+      case "ValueImage":
+        return {
+          tag: cv.tag,
+          id: self.getUniqueId(),
+          src: cv.imagePath,
+          width: cv.imageWidth.toString(),
+          height: cv.imageHeight.toString(),
+          col: col,
+          row: row
+        };
+      default:
+        return null;
+    }
+  },
+
 /*************************************************************************************************************************/
 // Formatting
 
@@ -159,6 +178,10 @@ export default {
 
 /*************************************************************************************************************************/
 // Misc
+
+  getUniqueId() {
+    return shortid.generate();
+  },
 
   colorToHtml(str) {
     if (str.charAt(0) === "#" || str.substring(0,2) === "rgb") // if color already correct format

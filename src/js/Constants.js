@@ -12,6 +12,15 @@ export default {
   numCols: 100000,
   numRows: 100000,
 
+  numVisibleCols: 38,
+  numVisibleRows: 29,
+
+  cellWidthPx: 50,
+  cellHeightPx: 20,
+
+  gridXOffset: 25, // margin between left edge of div and cells
+  gridYOffset: 22, // '' top edge ''
+
   // Each time you add an action, add it here... They should be past-tense
   ActionTypes: keyMirror({
     CELL_CHANGED: null,

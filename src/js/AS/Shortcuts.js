@@ -24,7 +24,7 @@ export default {
 
   addShortcut(set, name, keyStr, callback) {
     var self = this;
-    if (keyStr.constructor === Array) // TODO fix array vs string checking
+    if (keyStr.constructor === Array)
       keyStr.map((k) => {self.addShortcut(set, name, k, callback)});
     else {
       let s = {name: name};
@@ -40,10 +40,7 @@ export default {
     if (this.compareModifiers(s, e)) {
       if (s.optionKeys && Util.arrContains(s.optionKeys, e.which))
         return true;
-      else if (s.keyCode && s.keyCode === e.which)
-        return true;
-      else
-        return false
+      else return (s.keyCode && s.keyCode === e.which);
     } else return false;
   },
 

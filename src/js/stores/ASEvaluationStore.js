@@ -152,6 +152,9 @@ const ASEvaluationStore = assign({}, BaseStore, {
     // console.log("Getting last updated cells: " + JSON.stringify(_data.lastUpdatedCells));
     return _data.lastUpdatedCells;
   },
+  resetLastUpdatedCells() {
+    _data.lastUpdatedCells = [];
+  },
 
   /**************************************************************************************************************************/
   /*

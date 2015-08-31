@@ -38,7 +38,7 @@ export default React.createClass({
           {ribbonTabs[this.props.activeTab]}
         </div>
     );
-  },
+  }
 
   // _onCheckChange(e) {
   // },
