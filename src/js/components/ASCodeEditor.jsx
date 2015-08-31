@@ -16,7 +16,7 @@ require('brace/theme/monokai');
 let languages = [];
 for (var key in Constants.Languages) {
   languages.push({
-    payload: Constants.Languages[key].Editor,
+    payload: Constants.Languages[key],
     text: Constants.Languages[key].Display
   });
 }
@@ -50,8 +50,6 @@ export default React.createClass({
         <AceEditor
           ref="editor"
           onChange={this.props.onExpressionChange}
-          onEvalRequest={this.props.onEvalRequest}
-          focusGrid={this.props.focusGrid}
           mode={language.Editor}
           language={language}
           theme={theme}
@@ -64,7 +62,7 @@ export default React.createClass({
 
   _onLanguageChange(e, selectedIndex, menuItem) {
     //notify editor to change
-    console.log("language changed; in ascodeeditor");
+    console.log("language changed in ascodeeditor: " + JSON.stringify(menuItem.payload));
     this.props.onLanguageChange(menuItem.payload);
   }
 });

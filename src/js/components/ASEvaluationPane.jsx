@@ -105,7 +105,7 @@ export default React.createClass({
   _onChange() {
     console.log("Eval pane detected event change from store");
     let updatedCells = Store.getLastUpdatedCells();
-    console.log("Updated cells: " + JSON.stringify(updatedCells));
+    // console.log("Updated cells: " + JSON.stringify(updatedCells));
     this.refs.spreadsheet.updateCellValues(updatedCells);
     for (var key in updatedCells){
       let cv = Converter.clientCellGetValueObj(updatedCells[key]);
@@ -222,6 +222,7 @@ export default React.createClass({
     console.log('editor deferred key; trying common shortcut');
     console.log(e);
     Shortcuts.tryShortcut(e, 'common');
+    Shortcuts.tryShortcut(e, 'editor');
   },
 
   _onGridDeferredKey(e) {
@@ -230,8 +231,10 @@ export default React.createClass({
       console.log(e);
       let editor = this._getRawEditor(),
           str = KeyUtils.modifyStringForKey(editor.getValue(), e);
-      if (str || str === "")
+      if (str || str === ""){
         editor.setValue(str);
+        editor.navigateFileEnd();
+      }
     }
     else {
       console.log('trying common shortcut');
@@ -257,7 +260,10 @@ export default React.createClass({
     let cell = Store.getCellAtLoc(rng.col,rng.row),
         {language,expression} = Converter.clientCellGetExpressionObj(cell),
         val = Converter.clientCellGetValueObj(cell);
-    this.setState({ expression: expression, language: language });
+    // console.log("cell expression: " + expression);
+    // here, language is a client/server agnostic object (see Constants.Languages)
+    this.setState({ expression: expression, language: Util.getAgnosticLanguageFromServer(language) });
+    this._getRawEditor().setValue(expression); // workaround for expression change bug
     this.addError(val);
   },
 
@@ -278,6 +284,7 @@ export default React.createClass({
   /* The eval pane is the code editor plus the spreadsheet */
   render() {
     let {expression, language} = this.state;
+    console.log("current expression: " + expression +", language: " + JSON.stringify(language));
     return (
       <div >
         <ASCodeEditor
@@ -285,21 +292,18 @@ export default React.createClass({
           language={language}
           onLanguageChange={this.setLanguage}
           onExpressionChange={this.setExpression}
-          onEvalRequest={this.handleEvalRequest}
           onDeferredKey={this._onEditorDeferredKey}
-          focusGrid={this.focusGrid}
           value={expression}
           width="100%" height="100px" />
         <ASSpreadsheet
           ref='spreadsheet'
           onDeferredKey={this._onGridDeferredKey}
           onSelectionChange={this._onSelectionChange}
-          onToggle={this.toggleFocus}
           width="100%"
           height="600px"  />
         <NotificationSystem ref="notificationSystem" />
       </div>
     );
-  },
+  }
 
 });

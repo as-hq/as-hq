@@ -320,5 +320,9 @@ export default {
       return false;
     }
     else return this.isContainedInLoc(col, row, locs);
+  },
+
+  getAgnosticLanguageFromServer(lang) {
+    return Constants.Languages[lang];
   }
 };

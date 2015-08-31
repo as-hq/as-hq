@@ -140,6 +140,7 @@ export default {
     Selection region has width, height, and range, where range is in the client loc format
   */
   clientToASCell(selRegion, editorState){
+    console.log("making cell with language: " + JSON.stringify(editorState.lang));
     return  {
       "cellLocation": this.clientToASLocation(selRegion.range),
       "cellExpression": {
@@ -161,7 +162,7 @@ export default {
                 sheetName: "TEST_SHEET_NAME"
               },
               index:[-1,-1]},
-        ce = {expression:"",language:"Python"},
+        ce = {tag:"Expression",expression:"",language:"Python"},
         cv = {tag:"NoValue", contents: []},
         ct = [];
     return {cellLocation:cl,cellExpression:ce,cellValue:cv,cellTags:ct};
@@ -201,7 +202,7 @@ export default {
   },
   /* If a server message has cells, they are in server cell format. Convert to client cell format */
   clientCellsFromServerMessage(msg) {
-    console.log("Trying to get cells from message received: " + JSON.stringify(msg));
+    // console.log("Trying to get cells from message received: " + JSON.stringify(msg));
     if (msg.payload){
       if (msg.payload === 'ACK')
         console.log("SERVER ACKNOWLEDGES");

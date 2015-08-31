@@ -60,6 +60,7 @@ module.exports = React.createClass({
 
   onChange: function() {
     let value = this.editor.getValue();
+    console.log("editor value changed: " + value);
 
     if (this.props.onChange) {
       this.props.onChange(value);

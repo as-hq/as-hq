@@ -96,7 +96,6 @@ export default {
   sendEvalRequest(selRegion,editorState){
     console.log("In eval action creator");
     let cell = Converter.clientToASCell(selRegion,editorState);
-    console.log("AS cell created for eval: " + JSON.stringify(cell));
     let msg = Converter.createEvalRequestFromASCell(cell);
     console.log('Sending msg to server: ' + JSON.stringify(msg));
     wss.send(JSON.stringify(msg));

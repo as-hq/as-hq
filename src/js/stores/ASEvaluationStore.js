@@ -58,7 +58,7 @@ dispatcherIndex: Dispatcher.register(function (action) {
       case Constants.ActionTypes.GOT_UPDATED_CELLS:
         _data.lastUpdatedCells = [];
         ASEvaluationStore.updateData(action.updatedCells);
-        console.log("Last updated cells: " + JSON.stringify(_data.lastUpdatedCells));
+        // console.log("Last updated cells: " + JSON.stringify(_data.lastUpdatedCells));
         ASEvaluationStore.emitChange();
         break;
       /*
@@ -78,7 +78,7 @@ dispatcherIndex: Dispatcher.register(function (action) {
       case Constants.ActionTypes.FETCHED_CELLS:
         _data.lastUpdatedCells = [];
         ASEvaluationStore.updateData(action.newCells);
-        console.log("Last updated cells: " + JSON.stringify(_data.lastUpdatedCells));
+        // console.log("Last updated cells: " + JSON.stringify(_data.lastUpdatedCells));
         ASEvaluationStore.emitChange();
         break;
       /*
@@ -98,7 +98,7 @@ dispatcherIndex: Dispatcher.register(function (action) {
         }
         ASEvaluationStore.removeData(cellsToRemove);
         _data.allCells = {};
-        console.log("Last updated cells: " + JSON.stringify(_data.lastUpdatedCells));
+        // console.log("Last updated cells: " + JSON.stringify(_data.lastUpdatedCells));
         ASEvaluationStore.emitChange();
         break;
       }
@@ -149,7 +149,7 @@ const ASEvaluationStore = assign({}, BaseStore, {
   },
   /* Usually called by AS components so that they can get the updated values of the store */
   getLastUpdatedCells(){
-    console.log("Getting last updated cells: " + JSON.stringify(_data.lastUpdatedCells));
+    // console.log("Getting last updated cells: " + JSON.stringify(_data.lastUpdatedCells));
     return _data.lastUpdatedCells;
   },
 
@@ -161,7 +161,7 @@ const ASEvaluationStore = assign({}, BaseStore, {
 
   /* Function to update cell related objects in store. Caller's responsibility to clear lastUpdatedCells if necessary */
   updateData(cells) {
-    console.log("About to update data in store: " + JSON.stringify(cells));
+    // console.log("About to update data in store: " + JSON.stringify(cells));
     for (var key in cells){
       let c = cells[key];
       let sheet = Converter.clientCellGetSheet(c);
@@ -180,7 +180,7 @@ const ASEvaluationStore = assign({}, BaseStore, {
 
   /* Replace cells with empty ones. Caller's responsibility to clear lastUpdatedCells if necessary */
   removeData(cells) {
-    console.log("About to remove data in store: " + JSON.stringify(cells));
+    // console.log("About to remove data in store: " + JSON.stringify(cells));
     for (var key in cells){
       let c = cells[key];
       let sheet = Converter.clientCellGetSheet(c);
