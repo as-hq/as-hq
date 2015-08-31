@@ -1,16 +1,11 @@
 import React, {PropTypes} from 'react';
+
+import {HomeTab, ChartsTab, DataTab} from './tabs/index.jsx';
+
 import ASEvaluationPane from './ASEvaluationPane.jsx';
 import ASNavBar from './ASNavbar.jsx';
-import ASButton from './ASButton.jsx';
-import ASCheckedButton from './ASCheckedButton.jsx';
-import ASDropdown from './ASDropdown.jsx';
-import ASBlockDropdownButton from './ASBlockDropdownButton.jsx';
-import ASHorizontalDropdownButton from './ASHorizontalDropdownButton.jsx';
-import ASRibbonSection from './ASRibbonSection.jsx';
-import ASRibbonDivider from './ASRibbonDivider.jsx';
-import ASRibbonTabContents from './ASRibbonTabContents.jsx';
-import {AppCanvas, LeftNav, Paper, Styles} from 'material-ui';
 
+import {AppCanvas, LeftNav, Paper, Styles} from 'material-ui';
 let {Colors} = Styles;
 
 const ThemeManager = new Styles.ThemeManager();
@@ -54,7 +49,7 @@ export default React.createClass({
     let ribbonHeight = '110px';
 
     let ribbonTabs = {
-      Home: (
+      Home: <HomeTab /> /*(
         <div>
           <ASHorizontalDropdownButton
             iconClassName="muidocs-icon-action-home"
@@ -80,10 +75,10 @@ export default React.createClass({
           />
           <ASRibbonDivider />
         </div>
-      ),
+      )*/,
       Code: <div />,
-      Data: <div />,
-      Charts: <div />,
+      Data: <DataTab />,
+      Charts: <ChartsTab />,
       Team: <div />,
       Layout: <div />
     };
@@ -101,18 +96,9 @@ export default React.createClass({
           onAlphaButtonTap={this._onAlphaButtonTap}
         />
         <div>
-          <ASRibbonTabContents
-            sections={[
-              {
-                label: "Test",
-                contents: ribbonTabs[this.state.activeRibbonTab]
-              },
-              {
-                label: "Another Test",
-                contents: ribbonTabs[this.state.activeRibbonTab]
-              }
-            ]} />
+          {ribbonTabs[this.state.activeRibbonTab]}
         </div>
+        <ASEvaluationPane behavior="default" />
       </div>
     );
   },

@@ -1,11 +1,5 @@
 import React, {PropTypes} from 'react';
 import ASEvaluationPane from './ASEvaluationPane.jsx';
-<<<<<<< HEAD
-import ASTabs from './ASTabs.jsx';
-import ASMenuBar from './ASMenuBar.jsx'
-=======
-import ASMenu from './ASMenu.jsx';
->>>>>>> 6aa9580... Checked button and selectable abstract ASButton
 import {AppCanvas, RaisedButton, Styles, AppBar} from 'material-ui';
 import API from '../actions/ASApiActionCreators';
 
@@ -36,18 +30,12 @@ export default React.createClass({
   render() {
     return (
       <div className="full">
-<<<<<<< HEAD
-          <ASTabs ref="tabs"/>
-          <ASMenuBar ref="menuBar" />
-          <ASEvaluationPane behavior="default" ref="evalPane" />
-=======
         <AppBar
           style={{
             backgroundColor: Styles.Colors.grey800
           }}
         />
-        <ASEvaluationPane behavior="default" />
->>>>>>> 6aa9580... Checked button and selectable abstract ASButton
+        <ASEvaluationPane behavior="default" ref="evalPane"/>
       </div>
     );
   }

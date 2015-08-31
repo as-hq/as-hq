@@ -38,12 +38,14 @@ export default React.createClass({
           >
             <div>
               <FontIcon
-                className={iconClassName}
+                className="material-icons"
                 color={this._getLabelColor()}
                 style={{
                   fontSize: height * 0.5
                 }}
-              />
+              >
+                {iconClassName}
+              </FontIcon>
             </div>
             <div>
               {label}

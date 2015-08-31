@@ -17,7 +17,7 @@ export default React.createClass({
     let {label, contents, labelHeight, contentsHeight} = this.props;
 
     return (
-      <div style={{ display: 'table-cell', height: (contentsHeight + labelHeight) + 'px' }}>
+      <div style={{ display: 'table-cell', verticalAlign: 'top', height: (contentsHeight + labelHeight) + 'px' }}>
         <div style={{ display: 'inline-block', height: contentsHeight + 'px' }}>
           {contents}
         </div>

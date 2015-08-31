@@ -111,7 +111,7 @@ export default React.createClass({
         position: 'relative',
         height: '100%',
         width: '100%',
-        padding: 0,
+        padding: '0',
         overflow: 'hidden',
         borderRadius: 2,
         transition: Transitions.easeOut(),

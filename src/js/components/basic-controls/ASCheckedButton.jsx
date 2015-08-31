@@ -74,9 +74,11 @@ export default React.createClass({
                 fontSize: '18px',
                 lineHeight: '24px'
               }}
-              className={iconClassName}
+              className="material-icons"
               color={Colors.grey50}
-            />
+            >
+              {iconClassName}
+            </FontIcon>
             { label ?
               <span style={labelElementStyle}>
                 {label}

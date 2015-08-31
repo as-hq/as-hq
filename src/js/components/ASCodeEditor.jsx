@@ -64,6 +64,7 @@ export default React.createClass({
 
   _onLanguageChange(e, selectedIndex, menuItem) {
     //notify editor to change
+    console.log("language changed; in ascodeeditor");
     this.props.onLanguageChange(menuItem.payload);
   }
 });

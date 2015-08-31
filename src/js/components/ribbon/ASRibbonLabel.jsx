@@ -21,7 +21,7 @@ export default React.createClass({
           textAlign: 'center',
           textTransform: 'uppercase',
           textShadow: '-1px -1px 1px #000000',
-          fontWeight: 'normal',
+          fontWeight: '500',
           paddingTop: '3px',
           paddingBottom: '3px',
           margin: '0 auto'
