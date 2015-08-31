@@ -81,4 +81,16 @@ fin-hypergrid {
   -webkit-border-radius: 6px 0 6px 6px;
   -moz-border-radius: 6px 0 6px 6px;
   border-radius: 6px 0 6px 6px;
+
+.rdTabBar {
+  padding-left: 20px;
+}
+
+.rdTabTitle {
+  padding-top: 0px;
+  margin-top: 6px;
+}
+
+.rdTabAddButton {
+  visibility: hidden;
 }

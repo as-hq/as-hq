@@ -1,5 +1,6 @@
 import React, {PropTypes} from 'react';
 import ASEvaluationPane from './ASEvaluationPane.jsx';
+import ASNavBar from './ASNavbar.jsx';
 import ASButton from './ASButton.jsx';
 import ASCheckedButton from './ASCheckedButton.jsx';
 import ASDropdown from './ASDropdown.jsx';
@@ -36,6 +37,7 @@ export default React.createClass({
   render() {
     return (
       <div className="full">
+        <ASNavBar />
         <Paper>
           <ASHorizontalDropdownButton
             iconClassName="muidocs-icon-action-home"
