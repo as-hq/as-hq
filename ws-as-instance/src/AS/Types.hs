@@ -9,13 +9,18 @@ import Data.Text
 import qualified Network.WebSockets as WS
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
--- | Core cell types
+-- | Sheets
 
 type ASSheetId = Text
-data ASSheet = Sheet {sheetId :: ASSheetId, sheetName :: String} deriving (Show, Read, Eq, Generic, Ord)
+type ASWorkbookId = Text
+data ASSheet = Sheet {sheetId :: ASSheetId, sheetName :: String, sheetPermissions :: ASPermissions} deriving (Show, Read, Eq, Generic, Ord)
+data ASWorkbook = Workbook {workbookId :: ASWorkbookId, workbookName :: String, workbookSheets :: [ASSheet]}  deriving (Show, Read, Eq, Generic, Ord)
 
-data ASLocation = Index {sheet :: ASSheet, index :: (Int, Int)} | 
-                  Range {sheet :: ASSheet, range :: ((Int, Int), (Int, Int))}
+----------------------------------------------------------------------------------------------------------------------------------------------
+-- | Core cell types
+
+data ASLocation = Index {locSheetId :: ASSheetId, index :: (Int, Int)} | 
+                  Range {locSheetId :: ASSheetId, range :: ((Int, Int), (Int, Int))}
                   deriving (Show, Read, Eq, Generic, Ord)
 
 data ASValue =
@@ -113,8 +118,7 @@ data ASPayload =
   PayloadLL [ASLocation] |
   PayloadW ASWindow |
   PayloadCommit ASCommit|
-  PayloadAddTags {addTags :: [ASCellTag], addTagsLoc :: ASLocation} |
-  PayloadRemoveTags {removeTags :: [ASCellTag], removeTagsLoc :: ASLocation}
+  PayloadTags {tags :: [ASCellTag], tagsLoc :: ASLocation} 
   deriving (Show, Read, Eq, Generic)
 
 
@@ -126,7 +130,8 @@ data ASExecError =
   DependenciesLocked {lockUserId :: ASUserId} | 
   DBNothingException {badLocs :: [ASLocation]} | 
   NetworkDown | 
-  ResourceLimitReached 
+  ResourceLimitReached |
+  InsufficientPermissions
   deriving (Show, Read, Eq, Generic)
 
 type EitherCells = Either ASExecError [ASCell] 
@@ -137,17 +142,31 @@ type EitherCells = Either ASExecError [ASCell]
 data ASInitConnection = ASInitConnection {connUserId :: ASUserId} deriving (Show,Read,Eq,Generic)
 data ASInitDaemonConnection = ASInitDaemonConnection {parentUserId :: ASUserId, initDaemonLoc :: ASLocation} deriving (Show,Read,Eq,Generic)
 
+data ASDaemon = ASDaemon {daemonLoc :: ASLocation, daemonConn :: WS.Connection}
+data ServerState = State {userList :: [(ASUser,[ASDaemon])]} 
+
+instance Eq ASDaemon where 
+  c1 == c2 = (daemonLoc c1) == (daemonLoc c2)
+
+----------------------------------------------------------------------------------------------------------------------------------------------
+-- | Users
+
 data ASWindow = Window {windowSheetId :: ASSheetId, topLeft :: (Int, Int), bottomRight :: (Int, Int)} deriving (Show, Read, Eq, Generic)
 type ASUserId = Text 
 data ASUser = User {userId :: ASUserId, userConn :: WS.Connection, userWindows :: [ASWindow]} 
-data ASDaemon = ASDaemon {daemonLoc :: ASLocation, daemonConn :: WS.Connection}
-data ServerState = State {userList :: [(ASUser,[ASDaemon])]} 
 
 instance Eq ASUser where 
   c1 == c2 = (userId c1) == (userId c2)
 
-instance Eq ASDaemon where 
-  c1 == c2 = (daemonLoc c1) == (daemonLoc c2)
+data ASUserGroup = Group {groupMembers :: [ASUserId], groupAdmins :: [ASUserId], groupName :: Text} deriving (Show, Read, Eq, Generic, Ord)
+data ASEntity = EntityGroup ASUserGroup|
+                EntityUser ASUserId
+                deriving (Show, Read, Eq, Generic, Ord)
+
+data ASPermissions = Blacklist [ASEntity] |
+                     Whitelist [ASEntity]
+                      deriving (Show, Read, Eq, Generic, Ord)
+
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Version Control
@@ -178,6 +197,9 @@ initialViewingWindow = Window "testSheetId" (0, 0) (100, 100)
 -- | When sending data from server to client, the server doesn't have a userId 
 genericText :: Text
 genericText = pack ""
+
+openPermissions :: ASPermissions
+openPermissions = Blacklist []
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Generic From/To JSON instances
@@ -222,5 +244,10 @@ instance ToJSON Bloomberg
 instance FromJSON Bloomberg
 instance FromJSON ASInitDaemonConnection
 instance ToJSON ASInitDaemonConnection
-
+instance FromJSON ASEntity
+instance ToJSON ASEntity
+instance FromJSON ASUserGroup
+instance ToJSON ASUserGroup
+instance FromJSON ASPermissions
+instance ToJSON ASPermissions
 

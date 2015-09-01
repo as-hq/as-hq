@@ -1,4 +1,4 @@
-execfile("/home/riteshr/alphasheets/mysql-as-instance/AS/Eval/run/py/repl_record.py")
+execfile("/home/anand/as/backend/ws-as-instance/AS/Eval/run/py/repl_record.py")
 from AS.excel.pycel.excelcompiler import *
 from AS.excel.pycel.excellib import * # mapping from excel to python
 from AS.excel.io import evalExcel

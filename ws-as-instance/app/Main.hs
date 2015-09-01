@@ -22,6 +22,7 @@ import Data.Maybe (fromJust)
 import AS.Types
 import AS.Config.Settings as S
 import AS.Util
+import AS.DB as DB
 import qualified Data.List as L
 import AS.Handler as H
 
@@ -219,7 +220,14 @@ talkDaemon state daemon = forever $ do
 -- | Message handling
 
 processMessage :: ASUser -> MVar ServerState -> ASMessage -> IO ()
-processMessage user state message = case (action message) of 
+processMessage user state message = do
+  isPermissible <- DB.isPermissibleMessage (userId user) message
+  if isPermissible
+    then handleMessage user state message
+    else send (failureMessage "Insufficient permissions") (userConn user)
+
+handleMessage :: ASUser -> MVar ServerState -> ASMessage -> IO ()
+handleMessage user state message = case (action message) of 
   Acknowledge -> WS.sendTextData (userConn user) ("ACK" :: Text)
   Evaluate    -> (H.handleEval user state message) 
   Get         -> H.handleGet user state (payload message)

@@ -46,7 +46,7 @@ intersectViewingWindow :: [ASCell] -> ASWindow -> [ASCell]
 intersectViewingWindow cells vw = filter (inVW vw) cells
   where
     inVW :: ASWindow -> ASCell -> Bool
-    inVW (Window wSheetId (tlc, tlr) (brc, brr)) (Cell (Index (Sheet cSheetId _) (col,row)) _ _ _) = ((wSheetId==cSheetId) && (inRange col tlc (brc-tlc)) && (inRange row tlr (brr-tlr)))
+    inVW (Window wSheetId (tlc, tlr) (brc, brr)) (Cell (Index cSheetId (col,row)) _ _ _) = ((wSheetId==cSheetId) && (inRange col tlc (brc-tlc)) && (inRange row tlr (brr-tlr)))
     inRange :: Int -> Int -> Int -> Bool
     inRange elem start len = ((elem >= start) && (elem <= (start + len)))
 
@@ -58,6 +58,20 @@ fromRight (Right b) = b
 
 updateMessageUser :: ASUserId -> ASMessage -> ASMessage
 updateMessageUser uid (Message _ a r p) = Message uid a r p 
+
+isGroupMember :: ASUserId -> ASUserGroup -> Bool
+isGroupMember uid group = any ((==) uid) (groupMembers group)
+
+isGroupAdmin :: ASUserId -> ASUserGroup -> Bool
+isGroupAdmin uid group = any ((==) uid) (groupAdmins group)
+
+isInEntity :: ASUserId -> ASEntity -> Bool
+isInEntity uid (EntityGroup group) = isGroupMember uid group
+isInEntity uid (EntityUser userid) = uid == userid 
+
+hasPermissions :: ASUserId -> ASPermissions -> Bool
+hasPermissions uid (Blacklist entities) = not $ any (isInEntity uid) entities
+hasPermissions uid (Whitelist entities) = any (isInEntity uid) entities
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Tags

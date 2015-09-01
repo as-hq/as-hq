@@ -58,20 +58,20 @@ handleEval :: ASUser -> MVar ServerState -> ASMessage -> IO ()
 handleEval user state msg  = do 
   putStrLn $ "IN EVAL HANDLER"
   msg <- DP.runDispatchCycle user state msg
-  sendToOriginalUser user msg
+  sendBroadcastFiltered user state msg
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | DB Handlers
 
 handleGet :: ASUser -> MVar ServerState -> ASPayload -> IO ()
 handleGet user state (PayloadLL locs) = do 
-	let msg = Message genericText Get Success (PayloadCL [])
-	sendBroadcastFiltered user state msg 
+	let msg = Message (userId user) Get Success (PayloadCL [])
+	sendToOriginalUser user msg 
 
 -- | Not yet implemented
 handleDelete :: ASUser -> MVar ServerState -> ASPayload -> IO ()
 handleDelete user state p@(PayloadLL locs) = do 
-	let msg = Message genericText Delete Success p
+	let msg = Message (userId user) Delete Success p
 	sendBroadcastFiltered user state msg 
 
 handleClear :: ASUser -> MVar ServerState -> IO ()
@@ -82,7 +82,7 @@ handleUndo user state = do
 	commit <- DB.undo 
 	msg <- case commit of 
 		Nothing -> return $ failureMessage "Too far back"
-		(Just c) -> return $ Message genericText Undo Success (PayloadCommit c)
+		(Just c) -> return $ Message (userId user) Undo Success (PayloadCommit c)
 	sendBroadcastFiltered user state msg
 
 handleRedo :: ASUser -> MVar ServerState -> IO ()
@@ -90,7 +90,7 @@ handleRedo user state = do
 	commit <- DB.redo 
 	msg <- case commit of 
 		Nothing -> return $ failureMessage "Too far forwards"
-		(Just c) -> return $ Message genericText Undo Success (PayloadCommit c)
+		(Just c) -> return $ Message (userId user) Undo Success (PayloadCommit c)
 	sendBroadcastFiltered user state msg
 
 
@@ -131,15 +131,15 @@ processRemoveTag loc state t = do
     otherwise -> return () -- TODO: implement the rest
 
 handleAddTags :: ASUser -> MVar ServerState -> ASMessage -> IO ()
-handleAddTags user state msg@(Message _ _ _ (PayloadAddTags ts loc)) = do 
+handleAddTags user state msg@(Message uid _ _ (PayloadTags ts loc)) = do 
   _ <- (mapM_ (processAddTag user state loc msg) ts) 
-  let sendMsg = Message genericText AddTags Success (PayloadN ())
+  let sendMsg = Message uid AddTags Success (PayloadN ())
   sendToOriginalUser user sendMsg
 
 handleRemoveTags :: ASUser -> MVar ServerState -> ASMessage -> IO ()
-handleRemoveTags user state msg@(Message _ _ _ (PayloadRemoveTags ts loc)) = do 
+handleRemoveTags user state msg@(Message uid _ _ (PayloadTags ts loc)) = do 
   _ <- (mapM_ (processRemoveTag loc state) ts) 
-  let sendMsg = Message genericText RemoveTags Success (PayloadN ())
+  let sendMsg = Message uid RemoveTags Success (PayloadN ())
   sendToOriginalUser user sendMsg
 
 

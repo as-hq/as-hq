@@ -105,6 +105,36 @@ deleteCells [] = return ()
 deleteCells cells = (chunkM_ deleteChunkCells cellChunkSize cells) >> (chunkM_ deleteChunkVolatileCells cellChunkSize cells)
 
 ----------------------------------------------------------------------------------------------------------------------
+-- | DB Sheet, workbook, permissions
+
+getSheet :: ASSheetId -> IO (Maybe ASSheet)
+getSheet sheet = return Nothing 
+
+getWorkbook :: ASWorkbookId -> IO (Maybe ASWorkbook)
+getWorkbook workbook = return Nothing
+
+canAccessSheet :: ASUserId -> ASSheetId -> IO Bool
+canAccessSheet uid sheetId = do
+  sheet <- getSheet sheetId
+  case sheet of 
+    Nothing -> return False
+    (Just someSheet) -> return $ hasPermissions uid (sheetPermissions someSheet)
+
+canAccess :: ASUserId -> ASLocation -> IO Bool
+canAccess uid loc = canAccessSheet uid (locSheetId loc)
+
+canAccessAll :: ASUserId -> [ASLocation] -> IO Bool
+canAccessAll uid locs = return . all id =<< mapM (canAccess uid) locs
+
+isPermissibleMessage :: ASUserId -> ASMessage -> IO Bool
+isPermissibleMessage uid (Message _ _ _ (PayloadC cell)) = canAccess uid (cellLocation cell)
+isPermissibleMessage uid (Message _ _ _ (PayloadCL cells)) = canAccessAll uid (map cellLocation cells)
+isPermissibleMessage uid (Message _ _ _ (PayloadL loc)) = canAccess uid loc
+isPermissibleMessage uid (Message _ _ _ (PayloadLL locs)) = canAccessAll uid locs
+isPermissibleMessage uid (Message _ _ _ (PayloadW window)) = canAccessSheet uid (windowSheetId window)
+isPermissibleMessage uid (Message _ _ _ (PayloadTags _ loc)) = canAccess uid loc
+
+----------------------------------------------------------------------------------------------------------------------
 -- | DB Cell Chunking methods
 
 getChunkCells :: [ASLocation] -> Redis [Maybe ASCell]

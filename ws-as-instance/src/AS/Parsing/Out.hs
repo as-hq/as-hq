@@ -145,10 +145,10 @@ exLocToString exLoc = case exLoc of
 exLocToASLocation :: ASLocation -> ExLoc -> ASLocation
 exLocToASLocation loc exLoc = case exLoc of 
   ExSheet sh rest -> case (exLocToASLocation loc rest) of 
-    Range _ a -> Range (Sheet (sheetId . sheet $ loc) sh) a
-    Index _ a -> Index (Sheet (sheetId . sheet $ loc) sh) a
-  ExRange f s -> Range (sheet loc) (index (exLocToASLocation loc f),index (exLocToASLocation loc s))
-  ExIndex dol1 c dol2 r -> Index (sheet loc) (colStrToInt c, read r :: Int)
+    Range _ a -> Range (locSheetId loc) a
+    Index _ a -> Index (locSheetId loc) a
+  ExRange f s -> Range (locSheetId loc) (index (exLocToASLocation loc f),index (exLocToASLocation loc s))
+  ExIndex dol1 c dol2 r -> Index (locSheetId loc) (colStrToInt c, read r :: Int)
 -------------------------------------------------------------------------------------------------------------------------------------------------
 -- Parsers to match special excel characters
 
@@ -242,12 +242,12 @@ shiftExLocs offset exLocs = map (shiftExLoc offset) exLocs
 -- doesn't do any work with Parsec/actual parsing
 dependenciesFromExceLLoc :: ASLocation -> ExLoc -> [ASLocation]
 dependenciesFromExceLLoc loc exLoc = case exLoc of
-  ExSheet sh rest -> [Index (Sheet (sheetId . sheet $ loc) sh) (index dep) | dep <- dependenciesFromExceLLoc loc rest] --dependency locations are on other sheet
-  ExRange a b -> decomposeLocs $ Range (sheet loc) ((toCol a, toRow a), (toCol b, toRow b)) -- any range has full dependency
+  ExSheet sh rest -> [Index (locSheetId loc) (index dep) | dep <- dependenciesFromExceLLoc loc rest] --dependency locations are on other sheet
+  ExRange a b -> decomposeLocs $ Range (locSheetId loc) ((toCol a, toRow a), (toCol b, toRow b)) -- any range has full dependency
     where
       toCol = colStrToInt.col
       toRow = read.row
-  ExIndex dol1 c dol2 r -> [Index (sheet loc) ((colStrToInt c),(read r::Int))]
+  ExIndex dol1 c dol2 r -> [Index (locSheetId loc) ((colStrToInt c),(read r::Int))]
 
 -------------------------------------------------------------------------------------------------------------------------------------------------
 -- Parse dependencies and replace relative expressions
