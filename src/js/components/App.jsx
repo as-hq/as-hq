@@ -20,7 +20,7 @@ export default React.createClass({
     return {
       activeDocumentTab: 'test',
       activeRibbonTab: 'Home',
-      currentPane: 'splash',
+      currentPane: 'eval',
       initEvalInfo: {} // object passed from splash pane specifying initial params: opened sheet, etc
     }
   },

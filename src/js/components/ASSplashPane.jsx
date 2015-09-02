@@ -15,14 +15,10 @@ export default React.createClass({
     this.props.onProceed('eval', {}); // TODO send initial info object with the opened sheet
   },
 
-  getHeight() {
-    return this.props.height.toString() + "px";
-  },
-
   render() {
     let style = {
       width: '100%',
-      height: this.getHeight(),
+      height: this.props.height + "px",
       backgroundColor: Util.colorToHtml('darkgray')
     };
     return (

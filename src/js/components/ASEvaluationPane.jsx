@@ -288,12 +288,12 @@ export default React.createClass({
   /**************************************************************************************************************************/
   /* The eval pane is the code editor plus the spreadsheet */
   getEditorHeight() { // for future use in resize events
-    return Constants.editorHeight.toString() + "px";
+    return Constants.editorHeight + "px";
   },
 
   getGridHeight() {
     let h = this.props.height - Constants.editorHeight;
-    return h.toString() + "px";
+    return h + "px";
   },
 
   render() {
