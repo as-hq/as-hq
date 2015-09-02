@@ -65,35 +65,33 @@ export default React.createClass({
     };
 
     let labelElement;
-    if (iconClassName) { 
-      labelElement = (
-        <div style={{ display: 'inline' }}>
-          <FontIcon
-            style={{
-              float: 'left',
-              fontSize: '18px',
-              lineHeight: '24px'
-            }}
-            className="material-icons"
-            color={Colors.grey50}
-          >
-            {iconClassName}
-          </FontIcon>
-          { label ?
-            <span style={labelElementStyle}>
-              {label}
-            </span> : null
-          }
-        </div>);
-    } else if (iconImageSource) { 
+    labelElement = (
+      <div style={{ display: 'inline' }}>
+        <FontIcon
+          style={{
+            float: 'left',
+            fontSize: '18px',
+            lineHeight: '24px'
+          }}
+          className="material-icons"
+          color={Colors.grey50}
+        >
+          {iconClassName}
+        </FontIcon>
+        { label ?
+          <span style={labelElementStyle}>
+            {label}
+          </span> : null
+        }
+      </div>);
+
+    if (iconImageSource) { 
       labelElement = (
         <span style={labelElementStyle}>
           <img src={iconImageSource} width="18" height="24" />
         </span>
       );
     }
-
-    //__TODO__ #alex proposal: pass in an object that is either a font icon or an image. then do casework based on what that thing passed in is
 
     return (
       <ASButton
