@@ -33,8 +33,9 @@ export default React.createClass({
     let tabs = ['Home', 'Code', 'Data', 'Charts', 'Team', 'Layout'];
     let tabHeight = 40;
     let appBarHeight = 75;
-    let leftJustify = '65px';
+    let leftJustify = 65;
     let topMargin = appBarHeight - tabHeight;
+    let tabsWidth = document.innerHeight - leftJustify;
 
     return (
       <div>
@@ -47,9 +48,9 @@ export default React.createClass({
         />
         <div style={{
           position: 'absolute',
-          left: leftJustify,
+          left: leftJustify + 'px',
           top: '5px',
-          width: '100%'
+          width: tabsWidth + 'px'
         }}>
           <DocumentTabs
             selectedTab={this.state.selectedTab}
