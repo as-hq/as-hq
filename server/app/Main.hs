@@ -36,7 +36,6 @@ newServerState = State []
 numUsers :: ServerState -> Int
 numUsers = length . userList 
 
-
 -------------------------------------------------------------------------------------------------------------------------
 -- | Daemon Management
 

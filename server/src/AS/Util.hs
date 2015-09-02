@@ -4,10 +4,11 @@ import AS.Types
 
 import Prelude
 import Data.Time.Clock
+import Data.Maybe (isNothing)
 import Data.UUID.V4 (nextRandom)
 import qualified Data.UUID as U (toString)
 import qualified Data.Text as T 
-import qualified Data.Text as L
+import qualified Data.List as L
 import Control.Applicative hiding ((<|>), many)
 
 --------------------------------------------------------------------------------------------------------------
@@ -27,10 +28,10 @@ every n = map head . takeWhile (not . null) . iterate (drop n)
 fromRight :: Either a b -> b
 fromRight (Right b) = b
 
-lookupLambda :: (b -> a) -> a -> [b] -> Maybe b
-lookupLambda func elm lst = case (filter (((\=) elm) . func) lst) of
+lookupLambda :: Eq a => (b -> a) -> a -> [b] -> Maybe b
+lookupLambda func elm lst = case (filter (((/=) elm) . func) lst) of
     [] -> Nothing
-    (x::xs) -> Just x
+    (x:xs) -> Just x
 
 max' :: Ord a => a -> a -> a
 max' j k = if j > k
@@ -45,11 +46,11 @@ min' j k = if j < k
 --------------------------------------------------------------------------------------------------------------
 -- | Key-value manip functions
 
-addToAL :: Eq key => [(key, elt)] -> key -> elt -> [(key, elt)]
-addToAL l key value = (key, value) : delFromAL l key
-
 delFromAL :: Eq key => [(key, a)] -> key -> [(key, a)]
 delFromAL l key = L.filter (\a -> (fst a) /= key) l
+
+addToAL :: Eq key => [(key, elt)] -> key -> elt -> [(key, elt)]
+addToAL l key value = (key, value) : delFromAL l key
 
 --------------------------------------------------------------------------------------------------------------
 -- | Conversions and Helpers
@@ -61,6 +62,14 @@ isJust Nothing = False
 getCellMessage :: ASUser -> Either ASExecError [ASCell] -> ASMessage
 getCellMessage user (Left e) = Message (userId user) Evaluate (Failure (generateErrorMessage e)) (PayloadN ())
 getCellMessage user (Right cells) = Message (userId user) Evaluate Success (PayloadCL cells)
+
+getBadLocs :: [ASLocation] -> [Maybe ASCell] -> [ASLocation]
+getBadLocs locs mcells = map fst $ filter (\(l,c)->isNothing c) (zip locs mcells)
+
+getDBCellMessage :: ASUser -> [ASLocation] -> [Maybe ASCell] -> ASMessage
+getDBCellMessage user locs mcells = if any isNothing mcells
+  then getCellMessage user (Left (DBNothingException (getBadLocs locs mcells)))
+  else getCellMessage user (Right (map (\(Just c)->c) mcells))
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Error Handling
@@ -106,10 +115,7 @@ intersectViewingWindow cells vw = filter (inVW vw) cells
 
 updateWindow :: ASWindow -> ASUser -> ASUser
 updateWindow window (User uid conn windows) = User uid conn windows'
-    where windows' = flip map windows $ \w ->
-        if (windowSheetId w) == (windowSheetId window)
-            then window
-            else w
+    where windows' = flip map windows (\w -> if (windowSheetId w) == (windowSheetId window) then window else w)
 
 getWindow :: ASSheetId -> ASUser -> Maybe ASWindow
 getWindow sheetid user = lookupLambda windowSheetId sheetid (userWindows user)

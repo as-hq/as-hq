@@ -4,6 +4,9 @@ import Prelude
 import Control.Concurrent (MVar, newMVar, modifyMVar_, modifyMVar, readMVar)
 import Control.Monad.IO.Class (liftIO)
 import qualified Data.List as L
+import qualified Data.Text as T 
+import qualified Network.WebSockets as WS
+import Data.Aeson hiding (Success)
 
 import AS.Types
 import AS.Util
@@ -15,7 +18,7 @@ send :: ASMessage -> WS.Connection -> IO ()
 send msg conn = WS.sendTextData conn (encode msg)
 
 close :: WS.Connection -> IO ()
-close conn = WS.sendClose conn ("Bye" :: Text)
+close conn = WS.sendClose conn ("Bye" :: T.Text)
 
 -------------------------------------------------------------------------------------------------------------------------
 -- | User Management
@@ -50,9 +53,9 @@ removeUser user s@(State us) = do
       let us' = delFromAL us user
       return $ State us'
 
-modifyUser :: (ASUser -> ASUser) -> ASUser -> ServerState -> IO ()
+modifyUser :: (ASUser -> ASUser) -> ASUser -> MVar ServerState -> IO ()
 modifyUser func user state = modifyMVar_ state $ \(State users) -> 
-    return $ flip map users (\u -> 
-        if u == user
+    return $ State $ flip map users (\u -> 
+        if (fst u) == user
             then (func (fst u), snd u)
             else u)

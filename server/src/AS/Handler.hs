@@ -1,7 +1,7 @@
 module AS.Handler where
 
 import Data.List as L
-import Data.Text hiding (head)
+import Data.Text hiding (head, filter)
 import Data.Maybe(fromJust)
 import Control.Concurrent
 import Control.Monad
@@ -51,7 +51,6 @@ broadcastFiltered (Message uid _ _ (PayloadCommit c)) users = mapM_ (sendCommit 
 
 sendToOriginalUser :: ASUser -> ASMessage -> IO ()
 sendToOriginalUser user msg = WS.sendTextData (userConn user) (encode (U.updateMessageUser (userId user) msg))  
-
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Open/close/import/new/window handlers
 
@@ -59,15 +58,15 @@ handleNew :: ASUser -> MVar ServerState -> ASMessage -> IO ()
 handleNew user state msg = case (payload msg) of 
   (PayloadSheet sheet) -> DB.createSheet sheet >>= 
     (\newSheet -> sendToOriginalUser user (Message (userId user) Update NoResult (PayloadSheet newSheet)))
-  (PayloadWorkbook workbook) -> DB.createWorkbook >> return ()
+  (PayloadWorkbook workbook) -> DB.createWorkbook workbook >> return ()
 
 handleOpen :: ASUser -> MVar ServerState -> ASMessage -> IO ()
-handleOpen user state (Message _ _ _ (PayloadSheet sheetid)) = C.modifyUser makeNewWindow user state
+handleOpen user state (Message _ _ _ (PayloadSheet (Sheet sheetid _ _))) = C.modifyUser makeNewWindow user state
   where makeNewWindow (User uid conn windows) = User uid conn ((Window sheetid (-1,-1) (-1,-1)):windows)
 
 handleClose :: ASUser -> MVar ServerState -> ASMessage -> IO ()
-handleClose user state (Message _ _ _ (PayloadSheet sheetid)) = C.modifyUser closeWindow user state
-  where closeWindow (User uid conn windows) = User uid conn (filter (((\=) sheetid) . windowSheetId) windows)
+handleClose user state (Message _ _ _ (PayloadSheet (Sheet sheetid _ _))) = C.modifyUser closeWindow user state
+  where closeWindow (User uid conn windows) = User uid conn (filter (((/=) sheetid) . windowSheetId) windows)
 
 handleUpdateWindow :: ASUser -> MVar ServerState -> ASMessage -> IO ()
 handleUpdateWindow user state (Message uid _ _ (PayloadW window)) = 
@@ -75,9 +74,13 @@ handleUpdateWindow user state (Message uid _ _ (PayloadW window)) =
   case maybeWindow of 
     Nothing -> putStrLn "ERROR: could not update nothing window" >> return ()
     (Just oldWindow) -> do
-      cells <- DB.getCells $ U.getScrolledLocs oldWindow window 
-      sendToOriginalUser user (Message uid NoAction Success (PayloadCL cells))
+      let locs = U.getScrolledLocs oldWindow window 
+      mcells <- DB.getCells locs
+      sendToOriginalUser user (U.getDBCellMessage user locs mcells)
       C.modifyUser (U.updateWindow window) user state
+
+handleImport :: ASUser -> MVar ServerState -> ASMessage -> IO ()
+handleImport user state msg = return () -- TODO 
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Eval handler 
@@ -93,8 +96,8 @@ handleEval user state msg  = do
 
 handleGet :: ASUser -> MVar ServerState -> ASPayload -> IO ()
 handleGet user state (PayloadLL locs) = do 
-	let msg = Message (userId user) Get Success (PayloadCL [])
-	sendToOriginalUser user msg 
+  mcells <- DB.getCells locs
+  sendToOriginalUser user (U.getDBCellMessage user locs mcells) 
 handleGet user state (PayloadList Sheets) = return () -- TODO
 handleGet user state (PayloadList Workbooks) = return () -- TODO
 
@@ -102,10 +105,11 @@ handleGet user state (PayloadList Workbooks) = return () -- TODO
 handleDelete :: ASUser -> MVar ServerState -> ASPayload -> IO ()
 handleDelete user state p@(PayloadLL locs) = do 
   DB.deleteLocs locs
-	let msg = Message (userId user) Delete Success p
-	sendBroadcastFiltered user state msg 
-handleDelete user state (PayloadSheet sheet) = DB.deleteSheet >> return ()
-handleDelete user state (PayloadWorkbook workbook) = DB.deleteWorkbook >> return ()
+  let msg = Message (userId user) Delete Success p
+  sendBroadcastFiltered user state msg
+  return () 
+handleDelete user state (PayloadSheet sheet) = DB.deleteSheet (sheetId sheet) >> return () -- TODO broadcast to other users
+handleDelete user state (PayloadWorkbook workbook) = DB.deleteWorkbook (workbookName workbook) >> return ()
 
 handleClear :: ASUser -> MVar ServerState -> IO ()
 handleClear user state = sendBroadcastFiltered user state (failureMessage "")
