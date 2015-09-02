@@ -174,7 +174,7 @@ talkDaemon state daemon = forever $ do
 processMessage :: ASUser -> MVar ServerState -> ASMessage -> IO ()
 processMessage user state message = do
   isPermissible <- DB.isPermissibleMessage (userId user) message
-  if isPermissible
+  if (isPermissible || isDebug)
     then handleMessage user state message
     else send (failureMessage "Insufficient permissions") (userConn user)
 
