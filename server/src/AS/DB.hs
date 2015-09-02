@@ -88,9 +88,7 @@ chunkM_ f size lst = do
 -- | DB Cell, location methods
 
 getCell :: ASLocation -> IO (Maybe ASCell)
-getCell loc = do 
-  cells <- getCells [loc]
-  return $ head cells
+getCell loc = return . head =<< getCells [loc]
 
 getCells :: [ASLocation] -> IO [Maybe ASCell]
 getCells [] = return []
@@ -118,25 +116,36 @@ deleteLocs locs = chunkM_ deleteChunkLocs genericChunkSize degenerateLocs
 createSheet :: ASSheet -> IO ASSheet
 createSheet (Sheet _ name permissions) = do
   sheetid <- U.getUniqueId
-  -- TODO set sheet in database
-  return $ Sheet sheetid name permissions
+  let sheet = Sheet sheetid name permissions
+  -- TODO insert sheet in DB
+  return sheet
 
 createWorkbook :: ASWorkbook -> IO ()
 createWorkbook workbook = return () -- TODO
 
 getSheet :: ASSheetId -> IO (Maybe ASSheet)
-getSheet sheet = return Nothing -- TODO
+getSheet sheet = return . head =<< getSheets [sheet] 
+
+getSheets :: [ASSheetId] -> IO [Maybe ASSheet]
+getSheets sheets = return [] -- TODO
+
+getAllSheets :: IO [ASSheet]
+getAllSheets = return [] -- TODO
 
 getWorkbook :: String -> IO (Maybe ASWorkbook)
-getWorkbook name = return Nothing -- TODO
+getWorkbook name = return . head =<< getWorkbooks [name]
+
+getWorkbooks :: [String] -> IO [Maybe ASWorkbook] 
+getWorkbooks names = return [] -- TODO
+
+getAllWorkbooks :: IO [ASWorkbook]
+getAllWorkbooks = return [] -- TODO
 
 deleteSheet :: ASSheetId -> IO ()
-deleteSheet sheet = return ()
+deleteSheet sheet = return () -- TODO all cells in sheet, then delete sheet, then remove sheet from workbooks
 
 deleteWorkbook :: String -> IO ()
-deleteWorkbook name = getWorkbook name >>= (\maybeworkbook -> case maybeworkbook of
-  Nothing -> return ()
-  (Just workbook) -> return ()) -- TODO
+deleteWorkbook name = return () -- TODO delete just the workbook, leave sheets and cells intact
 
 ----------------------------------------------------------------------------------------------------------------------
 -- | DB permissions
@@ -159,7 +168,7 @@ isPermissibleMessage uid (Message _ _ _ (PayloadC cell))      = canAccess uid (c
 isPermissibleMessage uid (Message _ _ _ (PayloadCL cells))    = canAccessAll uid (map cellLocation cells)
 isPermissibleMessage uid (Message _ _ _ (PayloadL loc))       = canAccess uid loc
 isPermissibleMessage uid (Message _ _ _ (PayloadLL locs))     = canAccessAll uid locs
-isPermissibleMessage uid (Message _ _ _ (PayloadSheet sheet)) = canAccessSheet uid (sheetId sheet)
+isPermissibleMessage uid (Message _ _ _ (PayloadS sheet))     = canAccessSheet uid (sheetId sheet)
 isPermissibleMessage uid (Message _ _ _ (PayloadW window))    = canAccessSheet uid (windowSheetId window)
 isPermissibleMessage uid (Message _ _ _ (PayloadTags _ loc))  = canAccess uid loc
 isPermissibleMessage _ _ = return True

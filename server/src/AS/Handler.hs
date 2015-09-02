@@ -56,16 +56,16 @@ sendToOriginalUser user msg = WS.sendTextData (userConn user) (encode (U.updateM
 
 handleNew :: ASUser -> MVar ServerState -> ASMessage -> IO ()
 handleNew user state msg = case (payload msg) of 
-  (PayloadSheet sheet) -> DB.createSheet sheet >>= 
-    (\newSheet -> sendToOriginalUser user (Message (userId user) Update NoResult (PayloadSheet newSheet)))
-  (PayloadWorkbook workbook) -> DB.createWorkbook workbook >> return ()
+  (PayloadS sheet) -> DB.createSheet sheet >>= 
+    (\newSheet -> sendToOriginalUser user (Message (userId user) Update NoResult (PayloadS newSheet)))
+  (PayloadWB workbook) -> DB.createWorkbook workbook >> return ()
 
 handleOpen :: ASUser -> MVar ServerState -> ASMessage -> IO ()
-handleOpen user state (Message _ _ _ (PayloadSheet (Sheet sheetid _ _))) = C.modifyUser makeNewWindow user state
+handleOpen user state (Message _ _ _ (PayloadS (Sheet sheetid _ _))) = C.modifyUser makeNewWindow user state
   where makeNewWindow (User uid conn windows) = User uid conn ((Window sheetid (-1,-1) (-1,-1)):windows)
 
 handleClose :: ASUser -> MVar ServerState -> ASMessage -> IO ()
-handleClose user state (Message _ _ _ (PayloadSheet (Sheet sheetid _ _))) = C.modifyUser closeWindow user state
+handleClose user state (Message _ _ _ (PayloadS (Sheet sheetid _ _))) = C.modifyUser closeWindow user state
   where closeWindow (User uid conn windows) = User uid conn (filter (((/=) sheetid) . windowSheetId) windows)
 
 handleUpdateWindow :: ASUser -> MVar ServerState -> ASMessage -> IO ()
@@ -98,8 +98,20 @@ handleGet :: ASUser -> MVar ServerState -> ASPayload -> IO ()
 handleGet user state (PayloadLL locs) = do 
   mcells <- DB.getCells locs
   sendToOriginalUser user (U.getDBCellMessage user locs mcells) 
-handleGet user state (PayloadList Sheets) = return () -- TODO
-handleGet user state (PayloadList Workbooks) = return () -- TODO
+handleGet user state (PayloadList Sheets) = do
+  ss <- DB.getAllSheets
+  let msg = Message (userId user) Update NoResult (PayloadSS ss)
+  sendToOriginalUser user msg
+handleGet user state (PayloadList Workbooks) = do
+  ws <- DB.getAllWorkbooks
+  let msg = Message (userId user) Update NoResult (PayloadWBS ws)
+  sendToOriginalUser user msg
+handleGet user state (PayloadList WorkbookSheets) = do
+  ws <- DB.getAllWorkbooks
+  ss <- DB.getAllSheets
+  let wss = U.matchSheets ws ss
+  let msg = Message (userId user) Update NoResult (PayloadWorkbookSheets wss)
+  sendToOriginalUser user msg
 
 -- | Not yet implemented
 handleDelete :: ASUser -> MVar ServerState -> ASPayload -> IO ()
@@ -108,8 +120,16 @@ handleDelete user state p@(PayloadLL locs) = do
   let msg = Message (userId user) Delete Success p
   sendBroadcastFiltered user state msg
   return () 
-handleDelete user state (PayloadSheet sheet) = DB.deleteSheet (sheetId sheet) >> return () -- TODO broadcast to other users
-handleDelete user state (PayloadWorkbook workbook) = DB.deleteWorkbook (workbookName workbook) >> return ()
+handleDelete user state p@(PayloadS sheet) = do
+  DB.deleteSheet (sheetId sheet) 
+  let msg = Message (userId user) Delete Success p
+  sendBroadcastFiltered user state msg
+  return () 
+handleDelete user state p@(PayloadWB workbook) = do
+  DB.deleteWorkbook (workbookName workbook) 
+  let msg = Message (userId user) Delete Success p
+  sendBroadcastFiltered user state msg
+  return () 
 
 handleClear :: ASUser -> MVar ServerState -> IO ()
 handleClear user state = sendBroadcastFiltered user state (failureMessage "")

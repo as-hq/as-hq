@@ -15,6 +15,7 @@ type ASSheetId = Text
 data ASSheet = Sheet {sheetId :: ASSheetId, sheetName :: String, sheetPermissions :: ASPermissions} deriving (Show, Read, Eq, Generic)
 data ASWorkbook = Workbook {workbookName :: String, workbookSheets :: [ASSheetId]}  deriving (Show, Read, Eq, Generic)
 
+data WorkbookSheet = WorkbookSheet {wsName :: String, wsSheets :: [ASSheet]} deriving (Show, Read, Eq, Generic)
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Core cell types
 
@@ -111,7 +112,8 @@ data ASResult = Success | Failure {failDesc :: String} | NoResult deriving (Show
 -- for open, close dialogs
 data QueryList = 
   Sheets |
-  Workbooks 
+  Workbooks |
+  WorkbookSheets
   deriving (Show, Read, Eq, Generic)
 
 data ASPayload = 
@@ -122,8 +124,11 @@ data ASPayload =
   PayloadCL [ASCell] | 
   PayloadL ASLocation |
   PayloadLL [ASLocation] |
-  PayloadSheet ASSheet |
-  PayloadWorkbook ASWorkbook |
+  PayloadS ASSheet |
+  PayloadSS [ASSheet] |
+  PayloadWB ASWorkbook |
+  PayloadWBS [ASWorkbook] |
+  PayloadWorkbookSheets [WorkbookSheet] |
   PayloadW ASWindow |
   PayloadU ASUserId |
   PayloadE ASExecError |
@@ -266,4 +271,6 @@ instance FromJSON QueryList
 instance ToJSON QueryList
 instance FromJSON ASWorkbook
 instance ToJSON ASWorkbook
+instance FromJSON WorkbookSheet
+instance ToJSON WorkbookSheet
 

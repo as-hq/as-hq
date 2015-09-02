@@ -43,6 +43,9 @@ min' j k = if j < k
     then k
     else j
 
+fromJustList :: [Maybe a] -> [a]
+fromJustList l = map (\(Just x) -> x) l
+
 --------------------------------------------------------------------------------------------------------------
 -- | Key-value manip functions
 
@@ -137,6 +140,10 @@ decomposeLocs :: ASLocation -> [ASLocation]
 decomposeLocs loc = case loc of 
   (Index sheet a) -> [loc]
   (Range sheet (ul, lr)) -> [Index sheet (x,y) | x <- [(fst ul)..(fst lr)], y <- [(snd ul)..(snd lr)] ]
+
+matchSheets :: [ASWorkbook] -> [ASSheet] -> [WorkbookSheet]
+matchSheets ws ss = [WorkbookSheet (workbookName w) (fromJustList $ lookupSheets w ss) | w <- ws]
+  where lookupSheets workbook sheets = map (\sid -> lookupLambda sheetId sid sheets) (workbookSheets workbook)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Users
