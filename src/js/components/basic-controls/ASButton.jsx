@@ -177,16 +177,21 @@ export default React.createClass({
       finalizedLabelElement = React.cloneElement(labelElement, {
         style: this.mergeAndPrefix(styles.labelElement, this.props.labelStyle)
       });
-      // if (labelElement.props.source) {
-      //   debugger;
-      // }
-    } else if (label) { // __TODO__ #alex are we really keeping this
+    } else if (label) { 
       finalizedLabelElement = (
         <span style={this.mergeAndPrefix(styles.label, this.props.labelStyle)}>
           {label}
         </span>
       );
     }
+    
+    /*
+      - actual button element
+      - plain text
+      - image 
+
+
+    */
 
     let rippleColor = styles.label.color;
     let rippleOpacity = !(primary || secondary) ? 0.1 : 0.16;

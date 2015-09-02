@@ -85,15 +85,15 @@ export default React.createClass({
             </span> : null
           }
         </div>);
-    } else if (iconImageSource) { 
+    }
+
+    if (iconImageSource) { 
       labelElement = (
         <span style={labelElementStyle}>
           <img src={iconImageSource} width="18" height="24" />
         </span>
       );
     }
-
-    //__TODO__ #alex proposal: pass in an object that is either a font icon or an image. then do casework based on what that thing passed in is
 
     return (
       <ASButton
