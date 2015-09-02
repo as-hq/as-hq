@@ -1,9 +1,11 @@
 import React, {PropTypes} from 'react';
 import ASEvaluationPane from './ASEvaluationPane.jsx';
+import ASSplashPane from './ASSplashPane.jsx';
 import {AppCanvas, LeftNav, Paper, Styles} from 'material-ui';
 import ASNavBar from './ASNavBar.jsx';
 import ASRibbon from './ASRibbon.jsx';
 import API from '../actions/ASApiActionCreators';
+import Constants from '../Constants';
 
 const ThemeManager = new Styles.ThemeManager();
 
@@ -17,7 +19,9 @@ export default React.createClass({
   getInitialState() {
     return {
       activeDocumentTab: 'test',
-      activeRibbonTab: 'Home'
+      activeRibbonTab: 'Home',
+      currentPane: 'splash',
+      initEvalInfo: {} // object passed from splash pane specifying initial params: opened sheet, etc
     }
   },
   getDefaultProps() {
@@ -35,11 +39,20 @@ export default React.createClass({
   /**************************************************************************************************************************/
   /* Core render method for the whole app */
 
+  getPaneHeight() {
+    return window.innerHeight - Constants.topbarTotalHeight;
+  },
+
   render() {
     let leftNavMenuItems = [
       { route: 'all-files', text: 'All files' },
       { route: 'logout', text: 'Log out' }
     ];
+
+    let panes = {
+      eval: <ASEvaluationPane behavior="default" ref="evalPane" initInfo={this.state.initEvalInfo} height={this.getPaneHeight()}/>,
+      splash: <ASSplashPane onProceed={this._onPaneChange} height={this.getPaneHeight()}/>
+    };
 
     return (
       <div className="full">
@@ -53,8 +66,8 @@ export default React.createClass({
           onRibbonTabChange={this._onRibbonTabChange}
           onAlphaButtonTap={this._onAlphaButtonTap}
         />
-        <ASRibbon activeTab={this.state.activeRibbonTab}/>
-        <ASEvaluationPane behavior="default" ref="evalPane"/>
+        <ASRibbon activeTab={this.state.activeRibbonTab} />
+        {panes[this.state.currentPane]}
       </div>
     );
   },
@@ -72,5 +85,13 @@ export default React.createClass({
 
   _onAlphaButtonTap() {
     this.refs.leftNav.toggle();
+  },
+
+  _onPaneChange(pane, initInfo) {
+    switch(pane) {
+      case 'eval':
+        this.setState({ currentPane: pane, initEvalInfo: initInfo });
+        break;
+    }
   }
 });

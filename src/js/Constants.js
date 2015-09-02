@@ -21,6 +21,9 @@ export default {
   gridXOffset: 25, // margin between left edge of div and cells
   gridYOffset: 22, // '' top edge ''
 
+  editorHeight: 100,
+  topbarTotalHeight: 226, // height of everything except pane
+
   // Each time you add an action, add it here... They should be past-tense
   ActionTypes: keyMirror({
     CELL_CHANGED: null,

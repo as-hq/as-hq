@@ -212,7 +212,13 @@ export default React.createClass({
       let rng = Store.getActiveSelection();
       console.log("deleting cells in range: " + JSON.stringify(rng));
       API.sendDeleteRequest(rng);
-    })
+    });
+    Shortcuts.addShortcut("grid", "grid_undo", "Ctrl+Z", (wildcard) => {
+      API.sendUndoRequest();
+    });
+    Shortcuts.addShortcut("grid", "grid_redo", "Ctrl+Shift+Z", (wildcard) => {
+      API.sendRedoRequest();
+    });
   },
 
 // element key deferrals
@@ -281,6 +287,15 @@ export default React.createClass({
 
   /**************************************************************************************************************************/
   /* The eval pane is the code editor plus the spreadsheet */
+  getEditorHeight() { // for future use in resize events
+    return Constants.editorHeight.toString() + "px";
+  },
+
+  getGridHeight() {
+    let h = this.props.height - Constants.editorHeight;
+    return h.toString() + "px";
+  },
+
   render() {
     let {expression, language} = this.state;
     console.log("current expression: " + expression +", language: " + JSON.stringify(language));
@@ -293,13 +308,13 @@ export default React.createClass({
           onExpressionChange={this.setExpression}
           onDeferredKey={this._onEditorDeferredKey}
           value={expression}
-          width="100%" height="100px" />
+          width="100%" height={this.getEditorHeight()} />
         <ASSpreadsheet
           ref='spreadsheet'
           onDeferredKey={this._onGridDeferredKey}
           onSelectionChange={this._onSelectionChange}
           width="100%"
-          height="600px"  />
+          height={this.getGridHeight()}  />
         <NotificationSystem ref="notificationSystem" />
       </div>
     );
