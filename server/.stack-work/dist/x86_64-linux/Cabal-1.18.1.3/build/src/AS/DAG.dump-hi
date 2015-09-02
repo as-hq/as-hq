@@ -1,0 +1,1130 @@
+
+==================== FINAL INTERFACE ====================
+2015-09-01 19:50:35.932392 UTC
+
+interface alphasheets-0.1.0.0:AS.DAG [orphan module] 7083
+  interface hash: 5f8fdb849f06b95dea77562397b28113
+  ABI hash: 5cd37df77ee304f970098ce369d5ef6c
+  export-list hash: 6d64e9f66985766f6e87a64a883728be
+  orphan hash: b0cf6aac5c69a99535c2047496dfdf27
+  flag hash: 5316f95d5f7b98addcee99ed907c3931
+  used TH splices: False
+  where
+exports:
+  AS.DAG.descendants
+  AS.DAG.getDescendants
+  AS.DAG.getImmediateAncestors
+  AS.DAG.image
+  AS.DAG.immediateAncestors
+  AS.DAG.inverse
+  AS.DAG.reachableSet
+  AS.DAG.toposort
+  AS.DAG.Relation
+module dependencies: AS.DB AS.Types AS.Util
+package dependencies: BoundedChan-1.0.3.0 SHA-1.6.4.2 aeson-0.8.1.1
+                      array-0.5.0.0 attoparsec-0.13.0.1 base base64-bytestring-1.0.0.1
+                      binary-0.7.1.0 blaze-builder-0.4.0.1 bytestring-0.10.4.0
+                      bytestring-lexing-0.5.0.2 case-insensitive-1.2.0.4
+                      containers-0.5.5.1 deepseq-1.3.0.2 dlist-0.7.1.1 entropy-0.3.7
+                      ghc-prim hashable-1.2.3.3 hedis-0.6.8 integer-gmp
+                      monad-control-1.0.0.4 mtl-2.2.1 network-2.6.2.1 primitive-0.5.2.1
+                      random-1.1 resource-pool-0.2.3.2 scientific-0.3.3.8 split-0.2.2
+                      stm-2.4.2 text-1.2.1.1 time-1.5.0.1 transformers-0.4.3.0
+                      transformers-base-0.4.4 unix-2.7.1.0 unordered-containers-0.2.5.1
+                      uuid-1.3.10 uuid-types-1.0.1 vector-0.10.9.1 websockets-0.9.5.0
+orphans: aeson-0.8.1.1:Data.Aeson.Types.Generic
+         aeson-0.8.1.1:Data.Aeson.Types.Instances
+         aeson-0.8.1.1:Data.Aeson.Types.Internal
+         attoparsec-0.13.0.1:Data.Attoparsec.ByteString.Char8 base:GHC.Base
+         base:GHC.Float base:GHC.Real binary-0.7.1.0:Data.Binary.Generic
+         bytestring-0.10.4.0:Data.ByteString.Builder
+         bytestring-lexing-0.5.0.2:Data.ByteString.Lex.Fractional
+         hashable-1.2.3.3:Data.Hashable.Generic
+         network-2.6.2.1:Network.Socket network-2.6.2.1:Network.Socket.Types
+         random-1.1:System.Random resource-pool-0.2.3.2:Data.Pool
+         stm-2.4.2:Control.Monad.STM text-1.2.1.1:Data.Text
+         text-1.2.1.1:Data.Text.Lazy text-1.2.1.1:Data.Text.Show
+         time-1.5.0.1:Data.Time.Calendar.Gregorian
+         time-1.5.0.1:Data.Time.Format.Parse
+         time-1.5.0.1:Data.Time.LocalTime.LocalTime
+         transformers-0.4.3.0:Control.Monad.Trans.Error
+         vector-0.10.9.1:Data.Vector.Fusion.Stream
+         vector-0.10.9.1:Data.Vector.Unboxed
+family instance modules: alphasheets-0.1.0.0:AS.Types
+                         attoparsec-0.13.0.1:Data.Attoparsec.Internal.Types
+                         base:Control.Applicative base:Data.Either base:Data.Monoid
+                         base:Data.Type.Equality base:GHC.Exts base:GHC.Generics
+                         dlist-0.7.1.1:Data.DList
+                         monad-control-1.0.0.4:Control.Monad.Trans.Control
+                         primitive-0.5.2.1:Control.Monad.Primitive text-1.2.1.1:Data.Text
+                         text-1.2.1.1:Data.Text.Lazy
+                         unordered-containers-0.2.5.1:Data.HashMap.Base
+                         unordered-containers-0.2.5.1:Data.HashSet
+                         uuid-types-1.0.1:Data.UUID.Types.Internal
+                         uuid-types-1.0.1:Data.UUID.Types.Internal.Builder
+                         vector-0.10.9.1:Data.Vector vector-0.10.9.1:Data.Vector.Primitive
+                         vector-0.10.9.1:Data.Vector.Storable
+                         vector-0.10.9.1:Data.Vector.Unboxed.Base
+import  -/  AS.DB d1da9735084f4def655f259d6291ea4a
+  exports: b8d3e216c017511efcdf8107eca94954
+  getDAG f5691fadd7a4f3020a8cefa211227ac8
+import  -/  AS.Types 57177fd753daf2295937f583773f48c2
+  exports: 6e42e59e48c9bd8a9ec1e6c5c6514bc2
+  ASLocation a0a8734170556a1370de82a1630a4c6d
+import  -/  base:Control.Applicative 30b769206cb5c020684e1bda0d7e7dd3
+import  -/  base:Control.Arrow 2ab1918996c07e39950ba6b2c8eaba3e
+import  -/  base:Control.Monad 483e787e07c2e49f1fb1c1b88665cb92
+import  -/  base:Data.List 0908c8f6208710e0f918cb6f09e882cc
+import  -/  base:Data.Tuple cac4e06c48274e85317bd3e59867ef5b
+import  -/  base:GHC.Base 5d7c5f596f9a4c8a8abd8517c8bcd5dd
+import  -/  base:GHC.List 4cff382327e59a5787355ca0a4174450
+import  -/  base:Prelude 74043f272d60acec1777d3461cfe5ef4
+import  -/  containers-0.5.5.1:Data.Set 05b98b00cb8b74ae1d4a7864b7acb535
+import  -/  containers-0.5.5.1:Data.Set.Base 22deee25b4ff71e0d10157ac6b455a4f
+import  -/  ghc-prim:GHC.Classes 3e6cbe1e7e80480408cfa8d5450726a0
+import  -/  ghc-prim:GHC.Types dcba736fa3dfba12d307ab18354845d2
+import  -/  mtl-2.2.1:Control.Monad.RWS e32fceeb3ff8cbee98072a1b7b286b7c
+import  -/  mtl-2.2.1:Control.Monad.Writer 6e8f672abd8ba9caf56d52f5dadf873e
+import  -/  mtl-2.2.1:Control.Monad.Writer.Class d8dda2be12fd2eab95a5d026825e3c78
+import  -/  transformers-0.4.3.0:Control.Monad.Trans.Writer.Lazy 8d7df54c0646fd93a1a5eee57e7bd4a6
+a0af46c50aae1ff9d9a3e69aeca83550
+  $sinsert :: AS.Types.ASLocation
+              -> Data.Set.Base.Set AS.Types.ASLocation
+              -> Data.Set.Base.Set AS.Types.ASLocation
+    {- Arity: 2, Strictness: <S,1*U><S,1*U>,
+       Unfolding: (\ eta :: AS.Types.ASLocation
+                     eta1 :: Data.Set.Base.Set AS.Types.ASLocation ->
+                   AS.DAG.$sinsert_$sgo5 eta eta1) -}
+689b069f5539f51c6a231961eb1fa680
+  $sinsert_$sgo5 :: AS.Types.ASLocation
+                    -> Data.Set.Base.Set AS.Types.ASLocation
+                    -> Data.Set.Base.Set AS.Types.ASLocation
+    {- Arity: 2, Strictness: <S,1*U><S,1*U> -}
+ffa272a020d211ccb14a16e3a1b7584e
+  $smember :: AS.Types.ASLocation
+              -> Data.Set.Base.Set AS.Types.ASLocation
+              -> GHC.Types.Bool
+    {- Arity: 2, HasNoCafRefs, Strictness: <S,1*U><S,1*U>,
+       Unfolding: (\ eta :: AS.Types.ASLocation
+                     eta1 :: Data.Set.Base.Set AS.Types.ASLocation ->
+                   AS.DAG.$smember_go5 eta eta1) -}
+79d5296c5cfc5b4b9b70f2b5f27f72d9
+  $smember_go5 :: AS.Types.ASLocation
+                  -> Data.Set.Base.Set AS.Types.ASLocation
+                  -> GHC.Types.Bool
+    {- Arity: 2, HasNoCafRefs, Strictness: <S,1*U><S,1*U> -}
+1ea3fd2fa620eb8bc39ac37939411502
+  $wdescendants :: GHC.Classes.Ord a
+                   -> [a]
+                   -> AS.DAG.Relation a
+                   -> [a]
+    {- Arity: 3,
+       Strictness: <L,U(U(U,U),C(C1(U)),A,A,A,A,A,A)><L,U><S,U>,
+       Unfolding: (\ @ a
+                     w :: GHC.Classes.Ord a
+                     w1 :: [a]
+                     w2 :: AS.DAG.Relation a ->
+                   case Data.List.intersectBy
+                          @ a
+                          (GHC.Classes.== @ a (GHC.Classes.$p1Ord @ a w))
+                          (AS.DAG.toposort @ a w w2)
+                          (Data.Set.Base.toAscList1
+                             @ a
+                             (GHC.Types.[] @ a)
+                             (AS.DAG.reachableSet @ a w w1 w2)) of wild {
+                     [] -> w1 : x xs -> wild }) -}
+c7056151d81ead33ff4e9b828a724bbd
+  $wimmediateAncestors :: GHC.Classes.Ord a
+                          -> [a]
+                          -> AS.DAG.Relation a
+                          -> [a]
+    {- Arity: 3, HasNoCafRefs,
+       Strictness: <L,1*U(1*U(U,U),A,A,A,A,A,A,A)><S,1*U><L,U>,
+       Unfolding: (\ @ a
+                     w :: GHC.Classes.Ord a
+                     w1 :: [a]
+                     w2 :: AS.DAG.Relation a ->
+                   let {
+                     $dEq :: GHC.Classes.Eq a = GHC.Classes.$p1Ord @ a w
+                   } in
+                   let {
+                     lvl :: a -> a -> GHC.Types.Bool = GHC.Classes.== @ a $dEq
+                   } in
+                   letrec {
+                     go :: [a] -> [a] {- Arity: 1, Strictness: <S,1*U> -}
+                     = \ ds :: [a] ->
+                       case ds of wild {
+                         [] -> GHC.Types.[] @ a
+                         : y ys
+                         -> letrec {
+                              go1 :: [(a, a)] -> [a] {- Arity: 1, Strictness: <S,1*U> -}
+                              = \ ds1 :: [(a, a)] ->
+                                case ds1 of wild1 {
+                                  [] -> GHC.Types.[] @ a
+                                  : y1 ys1
+                                  -> case y1 of wild2 { (,) x y2 ->
+                                     case lvl y2 y of wild3 {
+                                       GHC.Types.False -> go1 ys1
+                                       GHC.Types.True -> GHC.Types.: @ a x (go1 ys1) } } }
+                            } in
+                            GHC.Base.++ @ a (go1 w2) (go ys) }
+                   } in
+                   go w1) -}
+7e52c5fd2a10ea14d97fee9b52582709
+  type Relation a = [(a, a)]
+6ea32f366b32f8934a82420e376be8fe
+  descendants :: GHC.Classes.Eq a
+                 -> GHC.Classes.Ord a
+                 -> [a]
+                 -> AS.DAG.Relation a
+                 -> [a]
+    {- Arity: 4,
+       Strictness: <L,A><L,U(U(U,U),C(C1(U)),A,A,A,A,A,A)><L,U><S,U>,
+       Inline: INLINE[0],
+       Unfolding: InlineRule (4, True, True)
+                  (\ @ a
+                     w :: GHC.Classes.Eq a
+                     w1 :: GHC.Classes.Ord a
+                     w2 :: [a]
+                     w3 :: AS.DAG.Relation a ->
+                   AS.DAG.$wdescendants @ a w1 w2 w3) -}
+d7a1bc8a0f44ce4b655cae4a4737ee47
+  descendants1 :: Control.Monad.Trans.Writer.Lazy.WriterT
+                      [AS.Types.ASLocation] Data.Functor.Identity.Identity a1
+                  -> (a1
+                      -> Control.Monad.Trans.Writer.Lazy.WriterT
+                             [AS.Types.ASLocation] Data.Functor.Identity.Identity b)
+                  -> Data.Functor.Identity.Identity (b, [AS.Types.ASLocation])
+    {- Arity: 2, HasNoCafRefs,
+       Unfolding: (\ @ a1
+                     @ b
+                     w3 :: Control.Monad.Trans.Writer.Lazy.WriterT
+                               [AS.Types.ASLocation] Data.Functor.Identity.Identity a1
+                     w4 :: a1
+                           -> Control.Monad.Trans.Writer.Lazy.WriterT
+                                  [AS.Types.ASLocation] Data.Functor.Identity.Identity b ->
+                   let {
+                     a :: Control.Monad.Trans.Writer.Lazy.WriterT
+                              [AS.Types.ASLocation] Data.Functor.Identity.Identity b
+                     = w4
+                         (case w3
+                                 `cast`
+                               (Trans
+                                    (Control.Monad.Trans.Writer.Lazy.NTCo:WriterT[0]
+                                         <[AS.Types.ASLocation]>_N
+                                         <Data.Functor.Identity.Identity>_R
+                                         <a1>_N)
+                                    (Data.Functor.Identity.NTCo:Identity[0]
+                                         <(a1, [AS.Types.ASLocation])>_R)) of wild { (,) a2 w5 ->
+                          a2 })
+                   } in
+                   (case a `cast`
+                         (Trans
+                              (Control.Monad.Trans.Writer.Lazy.NTCo:WriterT[0]
+                                   <[AS.Types.ASLocation]>_N
+                                   <Data.Functor.Identity.Identity>_R
+                                   <b>_N)
+                              (Data.Functor.Identity.NTCo:Identity[0]
+                                   <(b, [AS.Types.ASLocation])>_R)) of wild { (,) b1 w' ->
+                    b1 },
+                    case w3
+                           `cast`
+                         (Trans
+                              (Control.Monad.Trans.Writer.Lazy.NTCo:WriterT[0]
+                                   <[AS.Types.ASLocation]>_N
+                                   <Data.Functor.Identity.Identity>_R
+                                   <a1>_N)
+                              (Data.Functor.Identity.NTCo:Identity[0]
+                                   <(a1, [AS.Types.ASLocation])>_R)) of wild { (,) a2 w5 ->
+                    GHC.Base.++
+                      @ AS.Types.ASLocation
+                      w5
+                      (case a `cast`
+                            (Trans
+                                 (Control.Monad.Trans.Writer.Lazy.NTCo:WriterT[0]
+                                      <[AS.Types.ASLocation]>_N
+                                      <Data.Functor.Identity.Identity>_R
+                                      <b>_N)
+                                 (Data.Functor.Identity.NTCo:Identity[0]
+                                      <(b, [AS.Types.ASLocation])>_R)) of wild1 { (,) b1 w' ->
+                       w' }) })
+                     `cast`
+                   (Sym (Data.Functor.Identity.NTCo:Identity[0]
+                             <(b, [AS.Types.ASLocation])>_R))) -}
+e9cc817c2e19c5f1145dea1787881036
+  descendants2 :: a1 -> (a1, [AS.Types.ASLocation])
+    {- Arity: 1, HasNoCafRefs,
+       Unfolding: (\ @ a1 a2 :: a1 ->
+                   (a2, GHC.Types.[] @ AS.Types.ASLocation)) -}
+168d955246975a216c41105fabc60b53
+  descendants3 :: Control.Monad.Trans.Writer.Lazy.WriterT
+                      [AS.Types.ASLocation] Data.Functor.Identity.Identity a1
+                  -> (a1
+                      -> Control.Monad.Trans.Writer.Lazy.WriterT
+                             [AS.Types.ASLocation] Data.Functor.Identity.Identity b)
+                  -> Data.Functor.Identity.Identity (b, [AS.Types.ASLocation])
+    {- Arity: 2, HasNoCafRefs,
+       Unfolding: (\ @ a1
+                     @ b
+                     w3 :: Control.Monad.Trans.Writer.Lazy.WriterT
+                               [AS.Types.ASLocation] Data.Functor.Identity.Identity a1
+                     w4 :: a1
+                           -> Control.Monad.Trans.Writer.Lazy.WriterT
+                                  [AS.Types.ASLocation] Data.Functor.Identity.Identity b ->
+                   let {
+                     a :: Control.Monad.Trans.Writer.Lazy.WriterT
+                              [AS.Types.ASLocation] Data.Functor.Identity.Identity b
+                     = w4
+                         (case w3
+                                 `cast`
+                               (Trans
+                                    (Control.Monad.Trans.Writer.Lazy.NTCo:WriterT[0]
+                                         <[AS.Types.ASLocation]>_N
+                                         <Data.Functor.Identity.Identity>_R
+                                         <a1>_N)
+                                    (Data.Functor.Identity.NTCo:Identity[0]
+                                         <(a1, [AS.Types.ASLocation])>_R)) of wild { (,) a2 w5 ->
+                          a2 })
+                   } in
+                   (case a `cast`
+                         (Trans
+                              (Control.Monad.Trans.Writer.Lazy.NTCo:WriterT[0]
+                                   <[AS.Types.ASLocation]>_N
+                                   <Data.Functor.Identity.Identity>_R
+                                   <b>_N)
+                              (Data.Functor.Identity.NTCo:Identity[0]
+                                   <(b, [AS.Types.ASLocation])>_R)) of wild { (,) b1 w' ->
+                    b1 },
+                    case w3
+                           `cast`
+                         (Trans
+                              (Control.Monad.Trans.Writer.Lazy.NTCo:WriterT[0]
+                                   <[AS.Types.ASLocation]>_N
+                                   <Data.Functor.Identity.Identity>_R
+                                   <a1>_N)
+                              (Data.Functor.Identity.NTCo:Identity[0]
+                                   <(a1, [AS.Types.ASLocation])>_R)) of wild { (,) a2 w5 ->
+                    GHC.Base.++
+                      @ AS.Types.ASLocation
+                      w5
+                      (case a `cast`
+                            (Trans
+                                 (Control.Monad.Trans.Writer.Lazy.NTCo:WriterT[0]
+                                      <[AS.Types.ASLocation]>_N
+                                      <Data.Functor.Identity.Identity>_R
+                                      <b>_N)
+                                 (Data.Functor.Identity.NTCo:Identity[0]
+                                      <(b, [AS.Types.ASLocation])>_R)) of wild1 { (,) b1 w' ->
+                       w' }) })
+                     `cast`
+                   (Sym (Data.Functor.Identity.NTCo:Identity[0]
+                             <(b, [AS.Types.ASLocation])>_R))) -}
+791a8aa52e1f420a573a4026aec5fe02
+  descendants_$sdescendants :: [AS.Types.ASLocation]
+                               -> AS.DAG.Relation AS.Types.ASLocation
+                               -> [AS.Types.ASLocation]
+    {- Arity: 2, Strictness: <L,U><S,U>,
+       Unfolding: (\ eta :: [AS.Types.ASLocation]
+                     eta1 :: AS.DAG.Relation AS.Types.ASLocation ->
+                   case Data.List.intersectBy
+                          @ AS.Types.ASLocation
+                          AS.Types.$fEqASCell_$c==3
+                          (AS.DAG.descendants_$stoposort eta1)
+                          (Data.Set.Base.toAscList1
+                             @ AS.Types.ASLocation
+                             (GHC.Types.[] @ AS.Types.ASLocation)
+                             (AS.DAG.descendants_$sreachableSet eta eta1)) of wild {
+                     [] -> eta : x xs -> wild }) -}
+a1db7839410fb565f2ccc44d21fa9c36
+  descendants_$simage :: AS.Types.ASLocation
+                         -> AS.DAG.Relation AS.Types.ASLocation
+                         -> [AS.Types.ASLocation]
+    {- Arity: 2, HasNoCafRefs, Strictness: <L,U><S,1*U>,
+       Unfolding: (\ x :: AS.Types.ASLocation
+                     rel :: AS.DAG.Relation AS.Types.ASLocation ->
+                   letrec {
+                     go :: [(AS.Types.ASLocation, AS.Types.ASLocation)]
+                           -> [AS.Types.ASLocation]
+                       {- Arity: 1, Strictness: <S,1*U> -}
+                     = \ ds :: [(AS.Types.ASLocation, AS.Types.ASLocation)] ->
+                       case ds of wild {
+                         [] -> GHC.Types.[] @ AS.Types.ASLocation
+                         : y ys
+                         -> case y of wild1 { (,) x' y' ->
+                            case AS.Types.$fEqASCell_$c==3 x x' of wild2 {
+                              GHC.Types.False -> go ys
+                              GHC.Types.True
+                              -> GHC.Types.: @ AS.Types.ASLocation y' (go ys) } } }
+                   } in
+                   go rel) -}
+89999b842a62c24ec987429075dcc989
+  descendants_$sreachableSet :: [AS.Types.ASLocation]
+                                -> [(AS.Types.ASLocation, AS.Types.ASLocation)]
+                                -> Data.Set.Base.Set AS.Types.ASLocation
+    {- Arity: 2, Strictness: <S,1*U><L,U>,
+       Unfolding: (\ eta :: [AS.Types.ASLocation]
+                     eta1 :: [(AS.Types.ASLocation, AS.Types.ASLocation)] ->
+                   letrec {
+                     lgo :: Data.Set.Base.Set AS.Types.ASLocation
+                            -> [AS.Types.ASLocation]
+                            -> Data.Set.Base.Set AS.Types.ASLocation
+                       {- Arity: 2, Strictness: <S,U><S,1*U> -}
+                     = \ z :: Data.Set.Base.Set AS.Types.ASLocation
+                         ds :: [AS.Types.ASLocation] ->
+                       case ds of wild {
+                         [] -> z : x xs -> case visit z x of z' { DEFAULT -> lgo z' xs } }
+                     visit :: Data.Set.Base.Set AS.Types.ASLocation
+                              -> AS.Types.ASLocation
+                              -> Data.Set.Base.Set AS.Types.ASLocation
+                       {- Arity: 2, Strictness: <S,U><S,U> -}
+                     = \ visited :: Data.Set.Base.Set AS.Types.ASLocation
+                         x :: AS.Types.ASLocation ->
+                       case AS.DAG.$smember_go5 x visited of wild {
+                         GHC.Types.False
+                         -> lgo
+                              (AS.DAG.$sinsert_$sgo5 x visited)
+                              (AS.DAG.descendants_$simage x eta1)
+                         GHC.Types.True -> visited }
+                   } in
+                   letrec {
+                     lgo1 :: Data.Set.Base.Set AS.Types.ASLocation
+                             -> [AS.Types.ASLocation]
+                             -> Data.Set.Base.Set AS.Types.ASLocation
+                       {- Arity: 2, Strictness: <S,U><S,1*U> -}
+                     = \ z :: Data.Set.Base.Set AS.Types.ASLocation
+                         ds :: [AS.Types.ASLocation] ->
+                       case ds of wild {
+                         [] -> z : x xs -> case visit z x of z' { DEFAULT -> lgo1 z' xs } }
+                   } in
+                   lgo1 (Data.Set.Base.Tip @ AS.Types.ASLocation) eta) -}
+8ce75fde24d9d7928c55f5fe6cabbd2a
+  descendants_$stoposort :: [(AS.Types.ASLocation,
+                              AS.Types.ASLocation)]
+                            -> [AS.Types.ASLocation]
+    {- Arity: 1, Strictness: <S,U>,
+       Unfolding: (\ dag :: [(AS.Types.ASLocation,
+                              AS.Types.ASLocation)] ->
+                   let {
+                     lvl :: AS.DAG.Relation AS.Types.ASLocation
+                     = AS.DAG.descendants_go dag
+                   } in
+                   let {
+                     z :: [AS.Types.ASLocation]
+                     = GHC.Base.map
+                         @ (AS.Types.ASLocation, AS.Types.ASLocation)
+                         @ AS.Types.ASLocation
+                         (Data.Tuple.snd @ AS.Types.ASLocation @ AS.Types.ASLocation)
+                         dag
+                   } in
+                   letrec {
+                     go :: [(AS.Types.ASLocation, AS.Types.ASLocation)]
+                           -> [AS.Types.ASLocation]
+                       {- Arity: 1, Strictness: <S,1*U> -}
+                     = \ ds :: [(AS.Types.ASLocation, AS.Types.ASLocation)] ->
+                       case ds of wild {
+                         [] -> z
+                         : y ys
+                         -> GHC.Types.:
+                              @ AS.Types.ASLocation
+                              (Data.Tuple.fst @ AS.Types.ASLocation @ AS.Types.ASLocation y)
+                              (go ys) }
+                   } in
+                   case (Control.Monad.$wfoldM
+                           @ (Data.Set.Base.Set AS.Types.ASLocation)
+                           @ AS.Types.ASLocation
+                           @ (Control.Monad.Trans.Writer.Lazy.WriterT
+                                  [AS.Types.ASLocation] Data.Functor.Identity.Identity)
+                           AS.DAG.descendants3
+                             `cast`
+                           (forall a1 b.
+                            <Control.Monad.Trans.Writer.Lazy.WriterT
+                                 [AS.Types.ASLocation] Data.Functor.Identity.Identity a1>_R
+                            ->_R <a1
+                                  -> Control.Monad.Trans.Writer.Lazy.WriterT
+                                         [AS.Types.ASLocation] Data.Functor.Identity.Identity b>_R
+                            ->_R Sym (Control.Monad.Trans.Writer.Lazy.NTCo:WriterT[0]
+                                          <[AS.Types.ASLocation]>_N
+                                          <Data.Functor.Identity.Identity>_R
+                                          <b>_N))
+                           AS.DAG.descendants2
+                             `cast`
+                           (forall a1.
+                            <a1>_R
+                            ->_R Trans
+                                     (Sym (Data.Functor.Identity.NTCo:Identity[0]
+                                               <(a1, [AS.Types.ASLocation])>_R))
+                                     (Sym (Control.Monad.Trans.Writer.Lazy.NTCo:WriterT[0]
+                                               <[AS.Types.ASLocation]>_N
+                                               <Data.Functor.Identity.Identity>_R
+                                               <a1>_N)))
+                           (letrec {
+                              visit :: Data.Set.Base.Set AS.Types.ASLocation
+                                       -> AS.Types.ASLocation
+                                       -> Control.Monad.Trans.Writer.Lazy.WriterT
+                                              [AS.Types.ASLocation]
+                                              Data.Functor.Identity.Identity
+                                              (Data.Set.Base.Set AS.Types.ASLocation)
+                                {- Arity: 2, Strictness: <S,U><S,U>m, Inline: INLINE[0],
+                                   Unfolding: InlineRule (2, True, False)
+                                              (\ w :: Data.Set.Base.Set AS.Types.ASLocation
+                                                 w1 :: AS.Types.ASLocation ->
+                                               case $wvisit w w1 of ww { (#,#) ww1 ww2 ->
+                                               (ww1, ww2)
+                                                 `cast`
+                                               (Trans
+                                                    (Sym (Data.Functor.Identity.NTCo:Identity[0]
+                                                              <(Data.Set.Base.Set
+                                                                    AS.Types.ASLocation,
+                                                                [AS.Types.ASLocation])>_R))
+                                                    (Sym (Control.Monad.Trans.Writer.Lazy.NTCo:WriterT[0]
+                                                              <[AS.Types.ASLocation]>_N
+                                                              <Data.Functor.Identity.Identity>_R
+                                                              <Data.Set.Base.Set
+                                                                   AS.Types.ASLocation>_N))) }) -}
+                              = \ w :: Data.Set.Base.Set AS.Types.ASLocation
+                                  w1 :: AS.Types.ASLocation ->
+                                case $wvisit w w1 of ww { (#,#) ww1 ww2 ->
+                                (ww1, ww2)
+                                  `cast`
+                                (Trans
+                                     (Sym (Data.Functor.Identity.NTCo:Identity[0]
+                                               <(Data.Set.Base.Set AS.Types.ASLocation,
+                                                 [AS.Types.ASLocation])>_R))
+                                     (Sym (Control.Monad.Trans.Writer.Lazy.NTCo:WriterT[0]
+                                               <[AS.Types.ASLocation]>_N
+                                               <Data.Functor.Identity.Identity>_R
+                                               <Data.Set.Base.Set AS.Types.ASLocation>_N))) }
+                              $wvisit :: Data.Set.Base.Set AS.Types.ASLocation
+                                         -> AS.Types.ASLocation
+                                         -> (# Data.Set.Base.Set AS.Types.ASLocation,
+                                               [AS.Types.ASLocation] #)
+                                {- Arity: 2, Strictness: <S,U><S,U> -}
+                              = \ w :: Data.Set.Base.Set AS.Types.ASLocation
+                                  w1 :: AS.Types.ASLocation ->
+                                case AS.DAG.$smember_go5 w1 w of wild {
+                                  GHC.Types.False
+                                  -> let {
+                                       a :: Control.Monad.Trans.Writer.Lazy.WriterT
+                                                [AS.Types.ASLocation]
+                                                Data.Functor.Identity.Identity
+                                                (Data.Set.Base.Set AS.Types.ASLocation)
+                                       = letrec {
+                                           go1 :: [(AS.Types.ASLocation, AS.Types.ASLocation)]
+                                                  -> [AS.Types.ASLocation]
+                                             {- Arity: 1, Strictness: <S,1*U> -}
+                                           = \ ds :: [(AS.Types.ASLocation, AS.Types.ASLocation)] ->
+                                             case ds of wild1 {
+                                               [] -> GHC.Types.[] @ AS.Types.ASLocation
+                                               : y ys
+                                               -> case y of wild2 { (,) x' y' ->
+                                                  case AS.Types.$fEqASCell_$c==3 w1 x' of wild3 {
+                                                    GHC.Types.False -> go1 ys
+                                                    GHC.Types.True
+                                                    -> GHC.Types.:
+                                                         @ AS.Types.ASLocation
+                                                         y'
+                                                         (go1 ys) } } }
+                                         } in
+                                         Control.Monad.$wfoldM
+                                           @ (Data.Set.Base.Set AS.Types.ASLocation)
+                                           @ AS.Types.ASLocation
+                                           @ (Control.Monad.Trans.Writer.Lazy.WriterT
+                                                  [AS.Types.ASLocation]
+                                                  Data.Functor.Identity.Identity)
+                                           AS.DAG.descendants1
+                                             `cast`
+                                           (forall a1 b.
+                                            <Control.Monad.Trans.Writer.Lazy.WriterT
+                                                 [AS.Types.ASLocation]
+                                                 Data.Functor.Identity.Identity
+                                                 a1>_R
+                                            ->_R <a1
+                                                  -> Control.Monad.Trans.Writer.Lazy.WriterT
+                                                         [AS.Types.ASLocation]
+                                                         Data.Functor.Identity.Identity
+                                                         b>_R
+                                            ->_R Sym (Control.Monad.Trans.Writer.Lazy.NTCo:WriterT[0]
+                                                          <[AS.Types.ASLocation]>_N
+                                                          <Data.Functor.Identity.Identity>_R
+                                                          <b>_N))
+                                           AS.DAG.descendants2
+                                             `cast`
+                                           (forall a1.
+                                            <a1>_R
+                                            ->_R Trans
+                                                     (Sym (Data.Functor.Identity.NTCo:Identity[0]
+                                                               <(a1, [AS.Types.ASLocation])>_R))
+                                                     (Sym (Control.Monad.Trans.Writer.Lazy.NTCo:WriterT[0]
+                                                               <[AS.Types.ASLocation]>_N
+                                                               <Data.Functor.Identity.Identity>_R
+                                                               <a1>_N)))
+                                           visit
+                                           (AS.DAG.$sinsert_$sgo5 w1 w)
+                                           (go1 lvl)
+                                     } in
+                                     (# case a `cast`
+                                             (Trans
+                                                  (Control.Monad.Trans.Writer.Lazy.NTCo:WriterT[0]
+                                                       <[AS.Types.ASLocation]>_N
+                                                       <Data.Functor.Identity.Identity>_R
+                                                       <Data.Set.Base.Set AS.Types.ASLocation>_N)
+                                                  (Data.Functor.Identity.NTCo:Identity[0]
+                                                       <(Data.Set.Base.Set AS.Types.ASLocation,
+                                                         [AS.Types.ASLocation])>_R)) of wild1 { (,) a2 w2 ->
+                                        a2 },
+                                        case a `cast`
+                                             (Trans
+                                                  (Control.Monad.Trans.Writer.Lazy.NTCo:WriterT[0]
+                                                       <[AS.Types.ASLocation]>_N
+                                                       <Data.Functor.Identity.Identity>_R
+                                                       <Data.Set.Base.Set AS.Types.ASLocation>_N)
+                                                  (Data.Functor.Identity.NTCo:Identity[0]
+                                                       <(Data.Set.Base.Set AS.Types.ASLocation,
+                                                         [AS.Types.ASLocation])>_R)) of wild1 { (,) a2 w2 ->
+                                        GHC.Base.++
+                                          @ AS.Types.ASLocation
+                                          w2
+                                          (GHC.Types.:
+                                             @ AS.Types.ASLocation
+                                             w1
+                                             (GHC.Types.[] @ AS.Types.ASLocation)) } #)
+                                  GHC.Types.True -> (# w, GHC.Types.[] @ AS.Types.ASLocation #) }
+                            } in
+                            visit)
+                           (Data.Set.Base.Tip @ AS.Types.ASLocation)
+                           (go dag))
+                          `cast`
+                        (Trans
+                             (Control.Monad.Trans.Writer.Lazy.NTCo:WriterT[0]
+                                  <[AS.Types.ASLocation]>_N
+                                  <Data.Functor.Identity.Identity>_R
+                                  <Data.Set.Base.Set AS.Types.ASLocation>_N)
+                             (Data.Functor.Identity.NTCo:Identity[0]
+                                  <(Data.Set.Base.Set AS.Types.ASLocation,
+                                    [AS.Types.ASLocation])>_R)) of wild { (,) ds1 y ->
+                   y }) -}
+23ed334ad40836cc84974f6c84670120
+  descendants_go :: [(AS.Types.ASLocation, AS.Types.ASLocation)]
+                    -> [(AS.Types.ASLocation, AS.Types.ASLocation)]
+    {- Arity: 1, HasNoCafRefs, Strictness: <S,1*U> -}
+588525eb56ea0af8b3787335a893bee7
+  getDescendants :: [AS.Types.ASLocation]
+                    -> GHC.Types.IO [AS.Types.ASLocation]
+    {- Arity: 2, Strictness: <L,U><L,U>,
+       Unfolding: (AS.DAG.getDescendants1
+                     `cast`
+                   (<[AS.Types.ASLocation]>_R
+                    ->_R Sym (GHC.Types.NTCo:IO[0] <[AS.Types.ASLocation]>_R))) -}
+c4909d9d4b1dcb263dd84095c8ec9895
+  getDescendants1 :: [AS.Types.ASLocation]
+                     -> GHC.Prim.State# GHC.Prim.RealWorld
+                     -> (# GHC.Prim.State# GHC.Prim.RealWorld, [AS.Types.ASLocation] #)
+    {- Arity: 2, Strictness: <L,U><L,U>,
+       Unfolding: (\ locs :: [AS.Types.ASLocation]
+                     eta :: GHC.Prim.State# GHC.Prim.RealWorld ->
+                   case Database.Redis.Core.$wa
+                          AS.DB.cInfo6
+                          AS.DB.cInfo4
+                          (Data.Maybe.Nothing @ Data.ByteString.Internal.ByteString)
+                          AS.DB.cInfo3
+                          100
+                          AS.DB.cInfo1
+                            `cast`
+                          (Trans
+                               (Sym (Data.Fixed.NTCo:Fixed[0] <Data.Fixed.E12>_P))
+                               (Sym (Data.Time.Clock.UTC.NTCo:NominalDiffTime[0])))
+                          eta of ds1 { (#,#) ipv ipv1 ->
+                   case (Data.Pool.withResource_$swithResource
+                           @ (Database.Redis.ProtocolPipelining.Connection
+                                  Database.Redis.Protocol.Reply)
+                           @ [(AS.Types.ASLocation, AS.Types.ASLocation)]
+                           ipv1 `cast` (Database.Redis.Core.NTCo:Connection[0])
+                           AS.DB.getDAG2
+                             `cast`
+                           (<Database.Redis.ProtocolPipelining.Connection
+                                 Database.Redis.Protocol.Reply>_R
+                            ->_R Sym (GHC.Types.NTCo:IO[0]
+                                          <[(AS.Types.ASLocation, AS.Types.ASLocation)]>_R)))
+                          `cast`
+                        (GHC.Types.NTCo:IO[0]
+                             <[(AS.Types.ASLocation, AS.Types.ASLocation)]>_R)
+                          ipv of ds2 { (#,#) ipv2 ipv3 ->
+                   (# ipv2, AS.DAG.descendants_$sdescendants locs ipv3 #) } }) -}
+e92b670864ef4f7eed8e3d5d75c07151
+  getImmediateAncestors :: [AS.Types.ASLocation]
+                           -> GHC.Types.IO [AS.Types.ASLocation]
+    {- Arity: 2, Strictness: <L,1*U><L,U>,
+       Unfolding: (AS.DAG.getImmediateAncestors1
+                     `cast`
+                   (<[AS.Types.ASLocation]>_R
+                    ->_R Sym (GHC.Types.NTCo:IO[0] <[AS.Types.ASLocation]>_R))) -}
+b93e65d763444bebd6396c853f451c86
+  getImmediateAncestors1 :: [AS.Types.ASLocation]
+                            -> GHC.Prim.State# GHC.Prim.RealWorld
+                            -> (# GHC.Prim.State# GHC.Prim.RealWorld, [AS.Types.ASLocation] #)
+    {- Arity: 2, Strictness: <L,1*U><L,U>,
+       Unfolding: (\ locs :: [AS.Types.ASLocation]
+                     eta :: GHC.Prim.State# GHC.Prim.RealWorld ->
+                   case Database.Redis.Core.$wa
+                          AS.DB.cInfo6
+                          AS.DB.cInfo4
+                          (Data.Maybe.Nothing @ Data.ByteString.Internal.ByteString)
+                          AS.DB.cInfo3
+                          100
+                          AS.DB.cInfo1
+                            `cast`
+                          (Trans
+                               (Sym (Data.Fixed.NTCo:Fixed[0] <Data.Fixed.E12>_P))
+                               (Sym (Data.Time.Clock.UTC.NTCo:NominalDiffTime[0])))
+                          eta of ds1 { (#,#) ipv ipv1 ->
+                   case (Data.Pool.withResource_$swithResource
+                           @ (Database.Redis.ProtocolPipelining.Connection
+                                  Database.Redis.Protocol.Reply)
+                           @ [(AS.Types.ASLocation, AS.Types.ASLocation)]
+                           ipv1 `cast` (Database.Redis.Core.NTCo:Connection[0])
+                           AS.DB.getDAG2
+                             `cast`
+                           (<Database.Redis.ProtocolPipelining.Connection
+                                 Database.Redis.Protocol.Reply>_R
+                            ->_R Sym (GHC.Types.NTCo:IO[0]
+                                          <[(AS.Types.ASLocation, AS.Types.ASLocation)]>_R)))
+                          `cast`
+                        (GHC.Types.NTCo:IO[0]
+                             <[(AS.Types.ASLocation, AS.Types.ASLocation)]>_R)
+                          ipv of ds2 { (#,#) ipv2 ipv3 ->
+                   (# ipv2,
+                      AS.DAG.getImmediateAncestors_$simmediateAncestors
+                        locs
+                        ipv3 #) } }) -}
+f373faa0984263fc8e045397f14e0c1e
+  getImmediateAncestors_$simmediateAncestors :: [AS.Types.ASLocation]
+                                                -> AS.DAG.Relation AS.Types.ASLocation
+                                                -> [AS.Types.ASLocation]
+    {- Arity: 2, HasNoCafRefs, Strictness: <S,1*U><L,U>,
+       Unfolding: (\ eta :: [AS.Types.ASLocation]
+                     eta1 :: AS.DAG.Relation AS.Types.ASLocation ->
+                   letrec {
+                     go :: [AS.Types.ASLocation] -> [AS.Types.ASLocation]
+                       {- Arity: 1, Strictness: <S,1*U> -}
+                     = \ ds :: [AS.Types.ASLocation] ->
+                       case ds of wild {
+                         [] -> GHC.Types.[] @ AS.Types.ASLocation
+                         : y ys
+                         -> letrec {
+                              go1 :: [(AS.Types.ASLocation, AS.Types.ASLocation)]
+                                     -> [AS.Types.ASLocation]
+                                {- Arity: 1, Strictness: <S,1*U> -}
+                              = \ ds1 :: [(AS.Types.ASLocation, AS.Types.ASLocation)] ->
+                                case ds1 of wild1 {
+                                  [] -> GHC.Types.[] @ AS.Types.ASLocation
+                                  : y1 ys1
+                                  -> case y1 of wild2 { (,) x y2 ->
+                                     case AS.Types.$fEqASCell_$c==3 y2 y of wild3 {
+                                       GHC.Types.False -> go1 ys1
+                                       GHC.Types.True
+                                       -> GHC.Types.: @ AS.Types.ASLocation x (go1 ys1) } } }
+                            } in
+                            GHC.Base.++ @ AS.Types.ASLocation (go1 eta1) (go ys) }
+                   } in
+                   go eta) -}
+ab86bdddd5335c6474e1fb67f0620458
+  image :: GHC.Classes.Eq a -> a -> AS.DAG.Relation a -> [a]
+    {- Arity: 3, HasNoCafRefs,
+       Strictness: <L,U(C(C1(U)),A)><L,U><S,1*U>,
+       Unfolding: (\ @ a
+                     $dEq :: GHC.Classes.Eq a
+                     x :: a
+                     rel :: AS.DAG.Relation a ->
+                   let {
+                     lvl :: a -> a -> GHC.Types.Bool = GHC.Classes.== @ a $dEq
+                   } in
+                   letrec {
+                     go :: [(a, a)] -> [a] {- Arity: 1, Strictness: <S,1*U> -}
+                     = \ ds :: [(a, a)] ->
+                       case ds of wild {
+                         [] -> GHC.Types.[] @ a
+                         : y ys
+                         -> case y of wild1 { (,) x' y' ->
+                            case lvl x x' of wild2 {
+                              GHC.Types.False -> go ys
+                              GHC.Types.True -> GHC.Types.: @ a y' (go ys) } } }
+                   } in
+                   go rel) -}
+53d2962e098b24e21b54b31a63869550
+  immediateAncestors :: GHC.Classes.Eq a
+                        -> GHC.Classes.Ord a
+                        -> [a]
+                        -> AS.DAG.Relation a
+                        -> [a]
+    {- Arity: 4, HasNoCafRefs,
+       Strictness: <L,A><L,1*U(1*U(U,U),A,A,A,A,A,A,A)><S,1*U><L,U>,
+       Inline: INLINE[0],
+       Unfolding: InlineRule (4, True, True)
+                  (\ @ a
+                     w :: GHC.Classes.Eq a
+                     w1 :: GHC.Classes.Ord a
+                     w2 :: [a]
+                     w3 :: AS.DAG.Relation a ->
+                   AS.DAG.$wimmediateAncestors @ a w1 w2 w3) -}
+2c56bdfa5eb0fb00dc48b9605f34f3dc
+  inverse :: AS.DAG.Relation a -> AS.DAG.Relation a
+    {- Arity: 1, HasNoCafRefs, Strictness: <S,1*U>,
+       Unfolding: (\ @ a rel :: AS.DAG.Relation a ->
+                   AS.DAG.inverse1 @ a rel) -}
+fbf69997e1bb45e011148a4cd411fe05
+  inverse1 :: [(a, a)] -> [(a, a)]
+    {- Arity: 1, HasNoCafRefs, Strictness: <S,1*U> -}
+ff1dfb67c451a69807bf51784f350b23
+  reachableSet :: GHC.Classes.Ord a
+                  -> [a]
+                  -> [(a, a)]
+                  -> Data.Set.Base.Set a
+    {- Arity: 3,
+       Strictness: <L,U(1*U(U,U),C(C1(U)),A,A,A,A,A,A)><S,1*U><L,U>,
+       Unfolding: (\ @ a
+                     $dOrd :: GHC.Classes.Ord a
+                     eta :: [a]
+                     eta1 :: [(a, a)] ->
+                   let {
+                     $dEq :: GHC.Classes.Eq a = GHC.Classes.$p1Ord @ a $dOrd
+                   } in
+                   letrec {
+                     lgo :: Data.Set.Base.Set a -> [a] -> Data.Set.Base.Set a
+                       {- Arity: 2, Strictness: <S,U><S,1*U> -}
+                     = \ z :: Data.Set.Base.Set a ds :: [a] ->
+                       case ds of wild {
+                         [] -> z : x xs -> case visit z x of z' { DEFAULT -> lgo z' xs } }
+                     visit :: Data.Set.Base.Set a -> a -> Data.Set.Base.Set a
+                       {- Arity: 2, Strictness: <S,U><S,U> -}
+                     = \ visited :: Data.Set.Base.Set a x :: a ->
+                       case Data.Set.Base.member @ a $dOrd x visited of wild {
+                         GHC.Types.False
+                         -> lgo
+                              (Data.Set.Base.insert @ a $dOrd x visited)
+                              (AS.DAG.image @ a $dEq x eta1)
+                         GHC.Types.True -> visited }
+                   } in
+                   letrec {
+                     lgo1 :: Data.Set.Base.Set a -> [a] -> Data.Set.Base.Set a
+                       {- Arity: 2, Strictness: <S,U><S,1*U> -}
+                     = \ z :: Data.Set.Base.Set a ds :: [a] ->
+                       case ds of wild {
+                         [] -> z : x xs -> case visit z x of z' { DEFAULT -> lgo1 z' xs } }
+                   } in
+                   lgo1 (Data.Set.Base.Tip @ a) eta) -}
+bd014da0a56a4aafb6892df67e6fa0a9
+  toposort :: GHC.Classes.Ord a -> [(a, a)] -> [a]
+    {- Arity: 2, Strictness: <L,U(1*U(U,U),C(C1(U)),A,A,A,A,A,A)><S,U>,
+       Unfolding: (\ @ a $dOrd :: GHC.Classes.Ord a eta :: [(a, a)] ->
+                   let {
+                     lvl :: AS.DAG.Relation a = AS.DAG.toposort4 @ a eta
+                   } in
+                   let {
+                     $dEq :: GHC.Classes.Eq a = GHC.Classes.$p1Ord @ a $dOrd
+                   } in
+                   let {
+                     z :: [a] = GHC.Base.map @ (a, a) @ a (Data.Tuple.snd @ a @ a) eta
+                   } in
+                   letrec {
+                     go :: [(a, a)] -> [a] {- Arity: 1, Strictness: <S,1*U> -}
+                     = \ ds :: [(a, a)] ->
+                       case ds of wild {
+                         [] -> z
+                         : y ys -> GHC.Types.: @ a (Data.Tuple.fst @ a @ a y) (go ys) }
+                   } in
+                   case (Control.Monad.$wfoldM
+                           @ (Data.Set.Base.Set a)
+                           @ a
+                           @ (Control.Monad.Trans.Writer.Lazy.WriterT
+                                  [a] Data.Functor.Identity.Identity)
+                           (AS.DAG.toposort3 @ a)
+                             `cast`
+                           (forall a1 b.
+                            <Control.Monad.Trans.Writer.Lazy.WriterT
+                                 [a] Data.Functor.Identity.Identity a1>_R
+                            ->_R <a1
+                                  -> Control.Monad.Trans.Writer.Lazy.WriterT
+                                         [a] Data.Functor.Identity.Identity b>_R
+                            ->_R Sym (Control.Monad.Trans.Writer.Lazy.NTCo:WriterT[0]
+                                          <[a]>_N <Data.Functor.Identity.Identity>_R <b>_N))
+                           (AS.DAG.toposort2 @ a)
+                             `cast`
+                           (forall a1.
+                            <a1>_R
+                            ->_R Trans
+                                     (Sym (Data.Functor.Identity.NTCo:Identity[0] <(a1, [a])>_R))
+                                     (Sym (Control.Monad.Trans.Writer.Lazy.NTCo:WriterT[0]
+                                               <[a]>_N <Data.Functor.Identity.Identity>_R <a1>_N)))
+                           (letrec {
+                              visit :: Data.Set.Base.Set a
+                                       -> a
+                                       -> Control.Monad.Trans.Writer.Lazy.WriterT
+                                              [a]
+                                              Data.Functor.Identity.Identity
+                                              (Data.Set.Base.Set a)
+                                {- Arity: 2, Strictness: <S,U><S,U>m, Inline: INLINE[0],
+                                   Unfolding: InlineRule (2, True, False)
+                                              (\ w :: Data.Set.Base.Set a w1 :: a ->
+                                               case $wvisit w w1 of ww { (#,#) ww1 ww2 ->
+                                               (ww1, ww2)
+                                                 `cast`
+                                               (Trans
+                                                    (Sym (Data.Functor.Identity.NTCo:Identity[0]
+                                                              <(Data.Set.Base.Set a, [a])>_R))
+                                                    (Sym (Control.Monad.Trans.Writer.Lazy.NTCo:WriterT[0]
+                                                              <[a]>_N
+                                                              <Data.Functor.Identity.Identity>_R
+                                                              <Data.Set.Base.Set a>_N))) }) -}
+                              = \ w :: Data.Set.Base.Set a w1 :: a ->
+                                case $wvisit w w1 of ww { (#,#) ww1 ww2 ->
+                                (ww1, ww2)
+                                  `cast`
+                                (Trans
+                                     (Sym (Data.Functor.Identity.NTCo:Identity[0]
+                                               <(Data.Set.Base.Set a, [a])>_R))
+                                     (Sym (Control.Monad.Trans.Writer.Lazy.NTCo:WriterT[0]
+                                               <[a]>_N
+                                               <Data.Functor.Identity.Identity>_R
+                                               <Data.Set.Base.Set a>_N))) }
+                              $wvisit :: Data.Set.Base.Set a
+                                         -> a
+                                         -> (# Data.Set.Base.Set a, [a] #)
+                                {- Arity: 2, Strictness: <S,U><S,U> -}
+                              = \ w :: Data.Set.Base.Set a w1 :: a ->
+                                case Data.Set.Base.member @ a $dOrd w1 w of wild {
+                                  GHC.Types.False
+                                  -> let {
+                                       a1 :: Control.Monad.Trans.Writer.Lazy.WriterT
+                                                 [a]
+                                                 Data.Functor.Identity.Identity
+                                                 (Data.Set.Base.Set a)
+                                       = Control.Monad.$wfoldM
+                                           @ (Data.Set.Base.Set a)
+                                           @ a
+                                           @ (Control.Monad.Trans.Writer.Lazy.WriterT
+                                                  [a] Data.Functor.Identity.Identity)
+                                           (AS.DAG.toposort1 @ a)
+                                             `cast`
+                                           (forall a2 b.
+                                            <Control.Monad.Trans.Writer.Lazy.WriterT
+                                                 [a] Data.Functor.Identity.Identity a2>_R
+                                            ->_R <a2
+                                                  -> Control.Monad.Trans.Writer.Lazy.WriterT
+                                                         [a] Data.Functor.Identity.Identity b>_R
+                                            ->_R Sym (Control.Monad.Trans.Writer.Lazy.NTCo:WriterT[0]
+                                                          <[a]>_N
+                                                          <Data.Functor.Identity.Identity>_R
+                                                          <b>_N))
+                                           (AS.DAG.toposort2 @ a)
+                                             `cast`
+                                           (forall a2.
+                                            <a2>_R
+                                            ->_R Trans
+                                                     (Sym (Data.Functor.Identity.NTCo:Identity[0]
+                                                               <(a2, [a])>_R))
+                                                     (Sym (Control.Monad.Trans.Writer.Lazy.NTCo:WriterT[0]
+                                                               <[a]>_N
+                                                               <Data.Functor.Identity.Identity>_R
+                                                               <a2>_N)))
+                                           visit
+                                           (Data.Set.Base.insert @ a $dOrd w1 w)
+                                           (AS.DAG.image @ a $dEq w1 lvl)
+                                     } in
+                                     (# case a1
+                                               `cast`
+                                             (Trans
+                                                  (Control.Monad.Trans.Writer.Lazy.NTCo:WriterT[0]
+                                                       <[a]>_N
+                                                       <Data.Functor.Identity.Identity>_R
+                                                       <Data.Set.Base.Set a>_N)
+                                                  (Data.Functor.Identity.NTCo:Identity[0]
+                                                       <(Data.Set.Base.Set a,
+                                                         [a])>_R)) of wild1 { (,) a2 w2 ->
+                                        a2 },
+                                        case a1
+                                               `cast`
+                                             (Trans
+                                                  (Control.Monad.Trans.Writer.Lazy.NTCo:WriterT[0]
+                                                       <[a]>_N
+                                                       <Data.Functor.Identity.Identity>_R
+                                                       <Data.Set.Base.Set a>_N)
+                                                  (Data.Functor.Identity.NTCo:Identity[0]
+                                                       <(Data.Set.Base.Set a,
+                                                         [a])>_R)) of wild1 { (,) a2 w2 ->
+                                        GHC.Base.++
+                                          @ a
+                                          w2
+                                          (GHC.Types.: @ a w1 (GHC.Types.[] @ a)) } #)
+                                  GHC.Types.True -> (# w, GHC.Types.[] @ a #) }
+                            } in
+                            visit)
+                           (Data.Set.Base.Tip @ a)
+                           (go eta))
+                          `cast`
+                        (Trans
+                             (Control.Monad.Trans.Writer.Lazy.NTCo:WriterT[0]
+                                  <[a]>_N
+                                  <Data.Functor.Identity.Identity>_R
+                                  <Data.Set.Base.Set a>_N)
+                             (Data.Functor.Identity.NTCo:Identity[0]
+                                  <(Data.Set.Base.Set a, [a])>_R)) of wild { (,) ds1 y ->
+                   y }) -}
+d525e3471436a7f1e61d01b1184038f2
+  toposort1 :: Control.Monad.Trans.Writer.Lazy.WriterT
+                   [a] Data.Functor.Identity.Identity a1
+               -> (a1
+                   -> Control.Monad.Trans.Writer.Lazy.WriterT
+                          [a] Data.Functor.Identity.Identity b)
+               -> Data.Functor.Identity.Identity (b, [a])
+    {- Arity: 2, HasNoCafRefs,
+       Unfolding: (\ @ a
+                     @ a1
+                     @ b
+                     w3 :: Control.Monad.Trans.Writer.Lazy.WriterT
+                               [a] Data.Functor.Identity.Identity a1
+                     w4 :: a1
+                           -> Control.Monad.Trans.Writer.Lazy.WriterT
+                                  [a] Data.Functor.Identity.Identity b ->
+                   let {
+                     a2 :: Control.Monad.Trans.Writer.Lazy.WriterT
+                               [a] Data.Functor.Identity.Identity b
+                     = w4
+                         (case w3
+                                 `cast`
+                               (Trans
+                                    (Control.Monad.Trans.Writer.Lazy.NTCo:WriterT[0]
+                                         <[a]>_N <Data.Functor.Identity.Identity>_R <a1>_N)
+                                    (Data.Functor.Identity.NTCo:Identity[0]
+                                         <(a1, [a])>_R)) of wild { (,) a3 w5 ->
+                          a3 })
+                   } in
+                   (case a2
+                           `cast`
+                         (Trans
+                              (Control.Monad.Trans.Writer.Lazy.NTCo:WriterT[0]
+                                   <[a]>_N <Data.Functor.Identity.Identity>_R <b>_N)
+                              (Data.Functor.Identity.NTCo:Identity[0]
+                                   <(b, [a])>_R)) of wild { (,) b1 w' ->
+                    b1 },
+                    case w3
+                           `cast`
+                         (Trans
+                              (Control.Monad.Trans.Writer.Lazy.NTCo:WriterT[0]
+                                   <[a]>_N <Data.Functor.Identity.Identity>_R <a1>_N)
+                              (Data.Functor.Identity.NTCo:Identity[0]
+                                   <(a1, [a])>_R)) of wild { (,) a3 w5 ->
+                    GHC.Base.++
+                      @ a
+                      w5
+                      (case a2
+                              `cast`
+                            (Trans
+                                 (Control.Monad.Trans.Writer.Lazy.NTCo:WriterT[0]
+                                      <[a]>_N <Data.Functor.Identity.Identity>_R <b>_N)
+                                 (Data.Functor.Identity.NTCo:Identity[0]
+                                      <(b, [a])>_R)) of wild1 { (,) b1 w' ->
+                       w' }) })
+                     `cast`
+                   (Sym (Data.Functor.Identity.NTCo:Identity[0] <(b, [a])>_R))) -}
+96b186a9c688a1e9d6729e55888b0296
+  toposort2 :: a1 -> (a1, [a])
+    {- Arity: 1, HasNoCafRefs,
+       Unfolding: (\ @ a @ a1 a2 :: a1 -> (a2, GHC.Types.[] @ a)) -}
+3c6e0f10ef8b4e91a310e084dbe88f86
+  toposort3 :: Control.Monad.Trans.Writer.Lazy.WriterT
+                   [a] Data.Functor.Identity.Identity a1
+               -> (a1
+                   -> Control.Monad.Trans.Writer.Lazy.WriterT
+                          [a] Data.Functor.Identity.Identity b)
+               -> Data.Functor.Identity.Identity (b, [a])
+    {- Arity: 2, HasNoCafRefs,
+       Unfolding: (\ @ a
+                     @ a1
+                     @ b
+                     w3 :: Control.Monad.Trans.Writer.Lazy.WriterT
+                               [a] Data.Functor.Identity.Identity a1
+                     w4 :: a1
+                           -> Control.Monad.Trans.Writer.Lazy.WriterT
+                                  [a] Data.Functor.Identity.Identity b ->
+                   let {
+                     a2 :: Control.Monad.Trans.Writer.Lazy.WriterT
+                               [a] Data.Functor.Identity.Identity b
+                     = w4
+                         (case w3
+                                 `cast`
+                               (Trans
+                                    (Control.Monad.Trans.Writer.Lazy.NTCo:WriterT[0]
+                                         <[a]>_N <Data.Functor.Identity.Identity>_R <a1>_N)
+                                    (Data.Functor.Identity.NTCo:Identity[0]
+                                         <(a1, [a])>_R)) of wild { (,) a3 w5 ->
+                          a3 })
+                   } in
+                   (case a2
+                           `cast`
+                         (Trans
+                              (Control.Monad.Trans.Writer.Lazy.NTCo:WriterT[0]
+                                   <[a]>_N <Data.Functor.Identity.Identity>_R <b>_N)
+                              (Data.Functor.Identity.NTCo:Identity[0]
+                                   <(b, [a])>_R)) of wild { (,) b1 w' ->
+                    b1 },
+                    case w3
+                           `cast`
+                         (Trans
+                              (Control.Monad.Trans.Writer.Lazy.NTCo:WriterT[0]
+                                   <[a]>_N <Data.Functor.Identity.Identity>_R <a1>_N)
+                              (Data.Functor.Identity.NTCo:Identity[0]
+                                   <(a1, [a])>_R)) of wild { (,) a3 w5 ->
+                    GHC.Base.++
+                      @ a
+                      w5
+                      (case a2
+                              `cast`
+                            (Trans
+                                 (Control.Monad.Trans.Writer.Lazy.NTCo:WriterT[0]
+                                      <[a]>_N <Data.Functor.Identity.Identity>_R <b>_N)
+                                 (Data.Functor.Identity.NTCo:Identity[0]
+                                      <(b, [a])>_R)) of wild1 { (,) b1 w' ->
+                       w' }) })
+                     `cast`
+                   (Sym (Data.Functor.Identity.NTCo:Identity[0] <(b, [a])>_R))) -}
+7c726e5db7974600578c2014135aaa9d
+  toposort4 :: [(a, a)] -> [(a, a)]
+    {- Arity: 1, HasNoCafRefs, Strictness: <S,1*U> -}
+"SPEC AS.DAG.descendants [AS.Types.ASLocation]" [ALWAYS] forall $dEq :: GHC.Classes.Eq
+                                                                            AS.Types.ASLocation
+                                                                $dOrd :: GHC.Classes.Ord
+                                                                             AS.Types.ASLocation
+  AS.DAG.descendants @ AS.Types.ASLocation $dEq $dOrd
+  = AS.DAG.descendants_$sdescendants
+"SPEC AS.DAG.image [AS.Types.ASLocation]" [ALWAYS] forall $dEq :: GHC.Classes.Eq
+                                                                      AS.Types.ASLocation
+  AS.DAG.image @ AS.Types.ASLocation $dEq
+  = AS.DAG.descendants_$simage
+"SPEC AS.DAG.immediateAncestors [AS.Types.ASLocation]" [ALWAYS] forall $dEq :: GHC.Classes.Eq
+                                                                                   AS.Types.ASLocation
+                                                                       $dOrd :: GHC.Classes.Ord
+                                                                                    AS.Types.ASLocation
+  AS.DAG.immediateAncestors @ AS.Types.ASLocation $dEq $dOrd
+  = AS.DAG.getImmediateAncestors_$simmediateAncestors
+"SPEC AS.DAG.reachableSet [AS.Types.ASLocation]" [ALWAYS] forall $dOrd :: GHC.Classes.Ord
+                                                                              AS.Types.ASLocation
+  AS.DAG.reachableSet @ AS.Types.ASLocation $dOrd
+  = AS.DAG.descendants_$sreachableSet
+"SPEC AS.DAG.toposort [AS.Types.ASLocation]" [ALWAYS] forall $dOrd :: GHC.Classes.Ord
+                                                                          AS.Types.ASLocation
+  AS.DAG.toposort @ AS.Types.ASLocation $dOrd
+  = AS.DAG.descendants_$stoposort
+"SPEC Data.Set.Base.insert [AS.Types.ASLocation]" [ALWAYS] forall $dOrd :: GHC.Classes.Ord
+                                                                               AS.Types.ASLocation
+  Data.Set.Base.insert @ AS.Types.ASLocation $dOrd = AS.DAG.$sinsert
+"SPEC Data.Set.Base.member [AS.Types.ASLocation]" [ALWAYS] forall $dOrd :: GHC.Classes.Ord
+                                                                               AS.Types.ASLocation
+  Data.Set.Base.member @ AS.Types.ASLocation $dOrd = AS.DAG.$smember
+vectorised variables:
+vectorised tycons:
+vectorised reused tycons:
+parallel variables:
+parallel tycons:
+trusted: none
+require own pkg trusted: False
+

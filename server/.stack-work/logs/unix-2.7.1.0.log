@@ -1,0 +1,293 @@
+Configuring unix-2.7.1.0...
+configure: WARNING: unrecognized options: --with-compiler, --with-gcc
+checking for gcc... gcc
+checking whether the C compiler works... yes
+checking for C compiler default output file name... a.out
+checking for suffix of executables... 
+checking whether we are cross compiling... no
+checking for suffix of object files... o
+checking whether we are using the GNU C compiler... yes
+checking whether gcc accepts -g... yes
+checking for gcc option to accept ISO C89... none needed
+checking how to run the C preprocessor... gcc -E
+checking for grep that handles long lines and -e... /bin/grep
+checking for egrep... /bin/grep -E
+checking for ANSI C header files... yes
+checking for sys/types.h... yes
+checking for sys/stat.h... yes
+checking for stdlib.h... yes
+checking for string.h... yes
+checking for memory.h... yes
+checking for strings.h... yes
+checking for inttypes.h... yes
+checking for stdint.h... yes
+checking for unistd.h... yes
+checking dlfcn.h usability... yes
+checking dlfcn.h presence... yes
+checking for dlfcn.h... yes
+checking for an ANSI C-conforming const... yes
+checking for special C compiler options needed for large files... no
+checking for _FILE_OFFSET_BITS value needed for large files... no
+checking dirent.h usability... yes
+checking dirent.h presence... yes
+checking for dirent.h... yes
+checking fcntl.h usability... yes
+checking fcntl.h presence... yes
+checking for fcntl.h... yes
+checking grp.h usability... yes
+checking grp.h presence... yes
+checking for grp.h... yes
+checking limits.h usability... yes
+checking limits.h presence... yes
+checking for limits.h... yes
+checking pwd.h usability... yes
+checking pwd.h presence... yes
+checking for pwd.h... yes
+checking signal.h usability... yes
+checking signal.h presence... yes
+checking for signal.h... yes
+checking for string.h... (cached) yes
+checking sys/resource.h usability... yes
+checking sys/resource.h presence... yes
+checking for sys/resource.h... yes
+checking for sys/stat.h... (cached) yes
+checking sys/times.h usability... yes
+checking sys/times.h presence... yes
+checking for sys/times.h... yes
+checking sys/time.h usability... yes
+checking sys/time.h presence... yes
+checking for sys/time.h... yes
+checking sys/utsname.h usability... yes
+checking sys/utsname.h presence... yes
+checking for sys/utsname.h... yes
+checking sys/wait.h usability... yes
+checking sys/wait.h presence... yes
+checking for sys/wait.h... yes
+checking bsd/libutil.h usability... no
+checking bsd/libutil.h presence... no
+checking for bsd/libutil.h... no
+checking libutil.h usability... no
+checking libutil.h presence... no
+checking for libutil.h... no
+checking pty.h usability... yes
+checking pty.h presence... yes
+checking for pty.h... yes
+checking utmp.h usability... yes
+checking utmp.h presence... yes
+checking for utmp.h... yes
+checking termios.h usability... yes
+checking termios.h presence... yes
+checking for termios.h... yes
+checking time.h usability... yes
+checking time.h presence... yes
+checking for time.h... yes
+checking for unistd.h... (cached) yes
+checking utime.h usability... yes
+checking utime.h presence... yes
+checking for utime.h... yes
+checking for getgrgid_r... yes
+checking for getgrnam_r... yes
+checking for getpwnam_r... yes
+checking for getpwuid_r... yes
+checking for getpwnam... yes
+checking for getpwuid... yes
+checking for getpwent... yes
+checking for getgrent... yes
+checking for lchown... yes
+checking for setenv... yes
+checking for sysconf... yes
+checking for unsetenv... yes
+checking for clearenv... yes
+checking for nanosleep... yes
+checking for ptsname... yes
+checking for setitimer... yes
+checking for readdir_r... yes
+checking for telldir... yes
+checking for seekdir... yes
+checking for execvpe... yes
+checking for struct stat.st_atim... yes
+checking for struct stat.st_mtim... yes
+checking for struct stat.st_ctim... yes
+checking for struct stat.st_atimespec... no
+checking for struct stat.st_mtimespec... no
+checking for struct stat.st_ctimespec... no
+checking for struct stat.st_atimensec... no
+checking for struct stat.st_mtimensec... no
+checking for struct stat.st_ctimensec... no
+checking for struct stat.st_atime_n... no
+checking for struct stat.st_mtime_n... no
+checking for struct stat.st_ctime_n... no
+checking for struct stat.st_uatime... no
+checking for struct stat.st_umtime... no
+checking for struct stat.st_uctime... no
+checking for struct passwd.pw_gecos... yes
+checking for utimensat... yes
+checking for futimens... yes
+checking for lutimes... yes
+checking for futimes... yes
+checking for mkstemps... yes
+checking for mkdtemp... yes
+checking for fsync... yes
+checking for fdatasync... yes
+checking for posix_fadvise... yes
+checking for posix_fallocate... yes
+checking for library containing shm_open... -lrt
+checking for shm_open... yes
+checking for shm_unlink... yes
+checking value of SIGABRT... 6
+checking value of SIGALRM... 14
+checking value of SIGBUS... 7
+checking value of SIGCHLD... 17
+checking value of SIGCONT... 18
+checking value of SIGFPE... 8
+checking value of SIGHUP... 1
+checking value of SIGILL... 4
+checking value of SIGINT... 2
+checking value of SIGKILL... 9
+checking value of SIGPIPE... 13
+checking value of SIGQUIT... 3
+checking value of SIGSEGV... 11
+checking value of SIGSTOP... 19
+checking value of SIGTERM... 15
+checking value of SIGTSTP... 20
+checking value of SIGTTIN... 21
+checking value of SIGTTOU... 22
+checking value of SIGUSR1... 10
+checking value of SIGUSR2... 12
+checking value of SIGPOLL... 29
+checking value of SIGPROF... 27
+checking value of SIGSYS... 31
+checking value of SIGTRAP... 5
+checking value of SIGURG... 23
+checking value of SIGVTALRM... 26
+checking value of SIGXCPU... 24
+checking value of SIGXFSZ... 25
+checking value of SIG_BLOCK... 0
+checking value of SIG_SETMASK... 2
+checking value of SIG_UNBLOCK... 1
+checking value of SIGINFO... -1
+checking value of SIGWINCH... 28
+checking for _SC_GETGR_R_SIZE_MAX... yes
+checking for _SC_GETPW_R_SIZE_MAX... yes
+checking return type of usleep... int
+checking return type of unsetenv... int
+checking for RTLD_NEXT from dlfcn.h... no
+checking for RTLD_DEFAULT from dlfcn.h... no
+checking for openpty... no
+checking for openpty in -lutil... yes
+checking for /dev/ptmx... yes
+checking for /dev/ptc... no
+checking for library containing dlopen... -ldl
+checking build system type... x86_64-unknown-linux-gnu
+checking host system type... x86_64-unknown-linux-gnu
+checking target system type... x86_64-unknown-linux-gnu
+checking for library containing sem_close... -lpthread
+configure: creating ./config.status
+config.status: creating unix.buildinfo
+config.status: creating include/HsUnixConfig.h
+configure: WARNING: unrecognized options: --with-compiler, --with-gcc
+Building unix-2.7.1.0...
+Preprocessing library unix-2.7.1.0...
+[ 1 of 39] Compiling System.Posix.Terminal.Common ( .stack-work/dist/x86_64-linux/Cabal-1.18.1.3/build/System/Posix/Terminal/Common.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.3/build/System/Posix/Terminal/Common.o )
+[ 2 of 39] Compiling System.Posix.Fcntl ( .stack-work/dist/x86_64-linux/Cabal-1.18.1.3/build/System/Posix/Fcntl.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.3/build/System/Posix/Fcntl.o )
+[ 3 of 39] Compiling System.Posix.IO.Common ( .stack-work/dist/x86_64-linux/Cabal-1.18.1.3/build/System/Posix/IO/Common.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.3/build/System/Posix/IO/Common.o )
+[ 4 of 39] Compiling System.Posix.Files.Common ( .stack-work/dist/x86_64-linux/Cabal-1.18.1.3/build/System/Posix/Files/Common.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.3/build/System/Posix/Files/Common.o )
+[ 5 of 39] Compiling System.Posix.DynamicLinker.Prim ( .stack-work/dist/x86_64-linux/Cabal-1.18.1.3/build/System/Posix/DynamicLinker/Prim.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.3/build/System/Posix/DynamicLinker/Prim.o )
+[ 6 of 39] Compiling System.Posix.DynamicLinker.Common ( .stack-work/dist/x86_64-linux/Cabal-1.18.1.3/build/System/Posix/DynamicLinker/Common.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.3/build/System/Posix/DynamicLinker/Common.o )
+[ 7 of 39] Compiling System.Posix.Directory.Common ( .stack-work/dist/x86_64-linux/Cabal-1.18.1.3/build/System/Posix/Directory/Common.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.3/build/System/Posix/Directory/Common.o )
+[ 8 of 39] Compiling System.Posix.Process.Internals ( System/Posix/Process/Internals.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.3/build/System/Posix/Process/Internals.o )
+[ 9 of 39] Compiling System.Posix.Process.Common ( .stack-work/dist/x86_64-linux/Cabal-1.18.1.3/build/System/Posix/Process/Common.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.3/build/System/Posix/Process/Common.o )
+[10 of 39] Compiling System.Posix.Error ( System/Posix/Error.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.3/build/System/Posix/Error.o )
+[11 of 39] Compiling System.Posix.ByteString.FilePath ( .stack-work/dist/x86_64-linux/Cabal-1.18.1.3/build/System/Posix/ByteString/FilePath.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.3/build/System/Posix/ByteString/FilePath.o )
+[12 of 39] Compiling System.Posix.DynamicLinker.ByteString ( .stack-work/dist/x86_64-linux/Cabal-1.18.1.3/build/System/Posix/DynamicLinker/ByteString.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.3/build/System/Posix/DynamicLinker/ByteString.o )
+[13 of 39] Compiling System.Posix.Terminal.ByteString ( .stack-work/dist/x86_64-linux/Cabal-1.18.1.3/build/System/Posix/Terminal/ByteString.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.3/build/System/Posix/Terminal/ByteString.o )
+[14 of 39] Compiling System.Posix.Process.ByteString ( .stack-work/dist/x86_64-linux/Cabal-1.18.1.3/build/System/Posix/Process/ByteString.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.3/build/System/Posix/Process/ByteString.o )
+[15 of 39] Compiling System.Posix.Env.ByteString ( .stack-work/dist/x86_64-linux/Cabal-1.18.1.3/build/System/Posix/Env/ByteString.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.3/build/System/Posix/Env/ByteString.o )
+[16 of 39] Compiling System.Posix.IO.ByteString ( .stack-work/dist/x86_64-linux/Cabal-1.18.1.3/build/System/Posix/IO/ByteString.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.3/build/System/Posix/IO/ByteString.o )
+[17 of 39] Compiling System.Posix.Files.ByteString ( .stack-work/dist/x86_64-linux/Cabal-1.18.1.3/build/System/Posix/Files/ByteString.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.3/build/System/Posix/Files/ByteString.o )
+[18 of 39] Compiling System.Posix.Directory.ByteString ( .stack-work/dist/x86_64-linux/Cabal-1.18.1.3/build/System/Posix/Directory/ByteString.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.3/build/System/Posix/Directory/ByteString.o )
+[19 of 39] Compiling System.Posix.DynamicLinker ( .stack-work/dist/x86_64-linux/Cabal-1.18.1.3/build/System/Posix/DynamicLinker.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.3/build/System/Posix/DynamicLinker.o )
+[20 of 39] Compiling System.Posix.DynamicLinker.Module ( .stack-work/dist/x86_64-linux/Cabal-1.18.1.3/build/System/Posix/DynamicLinker/Module.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.3/build/System/Posix/DynamicLinker/Module.o )
+[21 of 39] Compiling System.Posix.DynamicLinker.Module.ByteString ( .stack-work/dist/x86_64-linux/Cabal-1.18.1.3/build/System/Posix/DynamicLinker/Module/ByteString.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.3/build/System/Posix/DynamicLinker/Module/ByteString.o )
+[22 of 39] Compiling System.Posix.SharedMem ( .stack-work/dist/x86_64-linux/Cabal-1.18.1.3/build/System/Posix/SharedMem.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.3/build/System/Posix/SharedMem.o )
+[23 of 39] Compiling System.Posix.Semaphore ( .stack-work/dist/x86_64-linux/Cabal-1.18.1.3/build/System/Posix/Semaphore.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.3/build/System/Posix/Semaphore.o )
+[24 of 39] Compiling System.Posix.Resource ( .stack-work/dist/x86_64-linux/Cabal-1.18.1.3/build/System/Posix/Resource.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.3/build/System/Posix/Resource.o )
+[25 of 39] Compiling System.Posix.User ( .stack-work/dist/x86_64-linux/Cabal-1.18.1.3/build/System/Posix/User.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.3/build/System/Posix/User.o )
+/tmp/ghc11200_0/ghc11200_153.c: In function ‘ghczuwrapperZC0ZCunixzm2zi7zi1zi0ZCSystemziPosixziUserZCgetgrnamzur’:
+
+/tmp/ghc11200_0/ghc11200_153.c:8:166:
+     warning: passing argument 5 of ‘getgrnam_r’ from incompatible pointer type
+     HsInt32 ghczuwrapperZC0ZCunixzm2zi7zi1zi0ZCSystemziPosixziUserZCgetgrnamzur(void* a1, void* a2, void* a3, HsWord64 a4, void** a5) {return getgrnam_r(a1, a2, a3, a4, a5);}
+                                                                                                                                                                          ^
+
+In file included from include/HsUnix.h:72:0:
+    0,
+                     from /tmp/ghc11200_0/ghc11200_153.c:7:
+
+/usr/include/grp.h:151:12:
+     note: expected ‘struct group ** __restrict__’ but argument is of type ‘void **’
+     extern int getgrnam_r (const char *__restrict __name,
+                ^
+/tmp/ghc11200_0/ghc11200_153.c: In function ‘ghczuwrapperZC1ZCunixzm2zi7zi1zi0ZCSystemziPosixziUserZCgetgrgidzur’:
+
+/tmp/ghc11200_0/ghc11200_153.c:10:169:
+     warning: passing argument 5 of ‘getgrgid_r’ from incompatible pointer type
+     HsInt32 ghczuwrapperZC1ZCunixzm2zi7zi1zi0ZCSystemziPosixziUserZCgetgrgidzur(HsWord32 a1, void* a2, void* a3, HsWord64 a4, void** a5) {return getgrgid_r(a1, a2, a3, a4, a5);}
+                                                                                                                                                                             ^
+
+In file included from include/HsUnix.h:72:0:
+    0,
+                     from /tmp/ghc11200_0/ghc11200_153.c:7:
+
+/usr/include/grp.h:143:12:
+     note: expected ‘struct group ** __restrict__’ but argument is of type ‘void **’
+     extern int getgrgid_r (__gid_t __gid, struct group *__restrict __resultbuf,
+                ^
+/tmp/ghc11200_0/ghc11200_159.c: In function ‘ghczuwrapperZC0ZCunixzm2zi7zi1zi0ZCSystemziPosixziUserZCgetgrnamzur’:
+
+/tmp/ghc11200_0/ghc11200_159.c:8:166:
+     warning: passing argument 5 of ‘getgrnam_r’ from incompatible pointer type
+     HsInt32 ghczuwrapperZC0ZCunixzm2zi7zi1zi0ZCSystemziPosixziUserZCgetgrnamzur(void* a1, void* a2, void* a3, HsWord64 a4, void** a5) {return getgrnam_r(a1, a2, a3, a4, a5);}
+                                                                                                                                                                          ^
+
+In file included from include/HsUnix.h:72:0:
+    0,
+                     from /tmp/ghc11200_0/ghc11200_159.c:7:
+
+/usr/include/grp.h:151:12:
+     note: expected ‘struct group ** __restrict__’ but argument is of type ‘void **’
+     extern int getgrnam_r (const char *__restrict __name,
+                ^
+/tmp/ghc11200_0/ghc11200_159.c: In function ‘ghczuwrapperZC1ZCunixzm2zi7zi1zi0ZCSystemziPosixziUserZCgetgrgidzur’:
+
+/tmp/ghc11200_0/ghc11200_159.c:10:169:
+     warning: passing argument 5 of ‘getgrgid_r’ from incompatible pointer type
+     HsInt32 ghczuwrapperZC1ZCunixzm2zi7zi1zi0ZCSystemziPosixziUserZCgetgrgidzur(HsWord32 a1, void* a2, void* a3, HsWord64 a4, void** a5) {return getgrgid_r(a1, a2, a3, a4, a5);}
+                                                                                                                                                                             ^
+
+In file included from include/HsUnix.h:72:0:
+    0,
+                     from /tmp/ghc11200_0/ghc11200_159.c:7:
+
+/usr/include/grp.h:143:12:
+     note: expected ‘struct group ** __restrict__’ but argument is of type ‘void **’
+     extern int getgrgid_r (__gid_t __gid, struct group *__restrict __resultbuf,
+                ^
+[26 of 39] Compiling System.Posix.Time ( .stack-work/dist/x86_64-linux/Cabal-1.18.1.3/build/System/Posix/Time.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.3/build/System/Posix/Time.o )
+[27 of 39] Compiling System.Posix.Terminal ( .stack-work/dist/x86_64-linux/Cabal-1.18.1.3/build/System/Posix/Terminal.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.3/build/System/Posix/Terminal.o )
+[28 of 39] Compiling System.Posix.Process ( .stack-work/dist/x86_64-linux/Cabal-1.18.1.3/build/System/Posix/Process.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.3/build/System/Posix/Process.o )
+[29 of 39] Compiling System.Posix.Env ( .stack-work/dist/x86_64-linux/Cabal-1.18.1.3/build/System/Posix/Env.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.3/build/System/Posix/Env.o )
+[30 of 39] Compiling System.Posix.IO  ( .stack-work/dist/x86_64-linux/Cabal-1.18.1.3/build/System/Posix/IO.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.3/build/System/Posix/IO.o )
+[31 of 39] Compiling System.Posix.Temp ( .stack-work/dist/x86_64-linux/Cabal-1.18.1.3/build/System/Posix/Temp.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.3/build/System/Posix/Temp.o )
+[32 of 39] Compiling System.Posix.Temp.ByteString ( .stack-work/dist/x86_64-linux/Cabal-1.18.1.3/build/System/Posix/Temp/ByteString.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.3/build/System/Posix/Temp/ByteString.o )
+[33 of 39] Compiling System.Posix.Unistd ( .stack-work/dist/x86_64-linux/Cabal-1.18.1.3/build/System/Posix/Unistd.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.3/build/System/Posix/Unistd.o )
+[34 of 39] Compiling System.Posix.Files ( .stack-work/dist/x86_64-linux/Cabal-1.18.1.3/build/System/Posix/Files.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.3/build/System/Posix/Files.o )
+[35 of 39] Compiling System.Posix.Directory ( .stack-work/dist/x86_64-linux/Cabal-1.18.1.3/build/System/Posix/Directory.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.3/build/System/Posix/Directory.o )
+[36 of 39] Compiling System.Posix.Signals ( .stack-work/dist/x86_64-linux/Cabal-1.18.1.3/build/System/Posix/Signals.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.3/build/System/Posix/Signals.o )
+[37 of 39] Compiling System.Posix.ByteString ( System/Posix/ByteString.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.3/build/System/Posix/ByteString.o )
+[38 of 39] Compiling System.Posix.Signals.Exts ( .stack-work/dist/x86_64-linux/Cabal-1.18.1.3/build/System/Posix/Signals/Exts.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.3/build/System/Posix/Signals/Exts.o )
+[39 of 39] Compiling System.Posix     ( System/Posix.hs, .stack-work/dist/x86_64-linux/Cabal-1.18.1.3/build/System/Posix.o )
+In-place registering unix-2.7.1.0...
+Installing library in
+/home/anand/Development/as/backend/ws-as-instance/.stack-work/install/x86_64-linux/ghc-7.8/7.8.3/lib/x86_64-linux-ghc-7.8.3/unix-2.7.1.0
+Registering unix-2.7.1.0...

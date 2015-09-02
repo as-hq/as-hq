@@ -1,0 +1,189 @@
+
+==================== FINAL INTERFACE ====================
+2015-09-01 19:50:35.676891 UTC
+
+interface alphasheets-0.1.0.0:AS.Eval.Endware 7083
+  interface hash: bb73f6874ae8d65b0c834315aaf5e93b
+  ABI hash: cc5012d95f33e66247558fc2b6ec52d2
+  export-list hash: fe0c9afb2cf6a619a72e7a32759f9c31
+  orphan hash: 693e9af84d3dfcc71e640e005bdc5e2e
+  flag hash: b3e42bd95161d59a110147b096268a2e
+  used TH splices: False
+  where
+exports:
+  AS.Eval.Endware.changeExcelExpressions
+  AS.Eval.Endware.evalEndware
+  AS.Eval.Endware.tagStyledCells
+module dependencies: AS.Config.Settings AS.DB AS.Daemon AS.Types
+                     AS.Util
+package dependencies: BoundedChan-1.0.3.0 SHA-1.6.4.2 aeson-0.8.1.1
+                      array-0.5.0.0 attoparsec-0.13.0.1 base base64-bytestring-1.0.0.1
+                      binary-0.7.1.0 blaze-builder-0.4.0.1 bytestring-0.10.4.0
+                      bytestring-lexing-0.5.0.2 case-insensitive-1.2.0.4
+                      containers-0.5.5.1 daemons-0.2.1 data-default-0.5.3
+                      data-default-class-0.0.1 data-default-instances-base-0.0.1
+                      data-default-instances-containers-0.0.1
+                      data-default-instances-dlist-0.0.1
+                      data-default-instances-old-locale-0.0.1 deepseq-1.3.0.2
+                      directory-1.2.2.1 dlist-0.7.1.1 entropy-0.3.7 filepath-1.3.0.2
+                      ghc-prim hashable-1.2.3.3 hedis-0.6.8 integer-gmp
+                      monad-control-1.0.0.4 monad-loops-0.4.3 mtl-2.2.1 network-2.6.2.1
+                      old-locale-1.0.0.6 primitive-0.5.2.1 random-1.1
+                      resource-pool-0.2.3.2 scientific-0.3.3.8 split-0.2.2 stm-2.4.2
+                      text-1.2.1.1 time-1.5.0.1 transformers-0.4.3.0
+                      transformers-base-0.4.4 unix-2.7.1.0 unordered-containers-0.2.5.1
+                      uuid-1.3.10 uuid-types-1.0.1 vector-0.10.9.1 websockets-0.9.5.0
+orphans: aeson-0.8.1.1:Data.Aeson.Types.Generic
+         aeson-0.8.1.1:Data.Aeson.Types.Instances
+         aeson-0.8.1.1:Data.Aeson.Types.Internal
+         attoparsec-0.13.0.1:Data.Attoparsec.ByteString.Char8 base:GHC.Base
+         base:GHC.Float base:GHC.Real binary-0.7.1.0:Data.Binary.Generic
+         bytestring-0.10.4.0:Data.ByteString.Builder
+         bytestring-lexing-0.5.0.2:Data.ByteString.Lex.Fractional
+         data-default-instances-base-0.0.1:Data.Default.Instances.Base
+         data-default-instances-containers-0.0.1:Data.Default.Instances.Containers
+         data-default-instances-dlist-0.0.1:Data.Default.Instances.DList
+         data-default-instances-old-locale-0.0.1:Data.Default.Instances.OldLocale
+         hashable-1.2.3.3:Data.Hashable.Generic
+         network-2.6.2.1:Network.Socket network-2.6.2.1:Network.Socket.Types
+         random-1.1:System.Random resource-pool-0.2.3.2:Data.Pool
+         stm-2.4.2:Control.Monad.STM text-1.2.1.1:Data.Text
+         text-1.2.1.1:Data.Text.Lazy text-1.2.1.1:Data.Text.Show
+         time-1.5.0.1:Data.Time.Calendar.Gregorian
+         time-1.5.0.1:Data.Time.Format.Parse
+         time-1.5.0.1:Data.Time.LocalTime.LocalTime
+         transformers-0.4.3.0:Control.Monad.Trans.Error
+         vector-0.10.9.1:Data.Vector.Fusion.Stream
+         vector-0.10.9.1:Data.Vector.Unboxed
+family instance modules: alphasheets-0.1.0.0:AS.Types
+                         attoparsec-0.13.0.1:Data.Attoparsec.Internal.Types
+                         base:Control.Applicative base:Data.Either base:Data.Monoid
+                         base:Data.Type.Equality base:GHC.Exts base:GHC.Generics
+                         dlist-0.7.1.1:Data.DList
+                         monad-control-1.0.0.4:Control.Monad.Trans.Control
+                         primitive-0.5.2.1:Control.Monad.Primitive text-1.2.1.1:Data.Text
+                         text-1.2.1.1:Data.Text.Lazy
+                         unordered-containers-0.2.5.1:Data.HashMap.Base
+                         unordered-containers-0.2.5.1:Data.HashSet
+                         uuid-types-1.0.1:Data.UUID.Types.Internal
+                         uuid-types-1.0.1:Data.UUID.Types.Internal.Builder
+                         vector-0.10.9.1:Data.Vector vector-0.10.9.1:Data.Vector.Primitive
+                         vector-0.10.9.1:Data.Vector.Storable
+                         vector-0.10.9.1:Data.Vector.Unboxed.Base
+import  -/  aeson-0.8.1.1:Data.Aeson 2bcee634dc715d12e7154aed92c42567
+import  -/  AS.DB d1da9735084f4def655f259d6291ea4a
+  exports: b8d3e216c017511efcdf8107eca94954
+import  -/  AS.Daemon e9d154e13909019030f80685e023989d
+  exports: e4a05c6be422079bdfe78de061550413
+  possiblyCreateDaemon d8ba42d38b3ea6dc3736fa6286d1c223
+import  -/  AS.Types 57177fd753daf2295937f583773f48c2
+  exports: 6e42e59e48c9bd8a9ec1e6c5c6514bc2
+  ASCell 8aaaba72e62199ec29d193feeafd5149
+  ASMessage 4c981fc92afa9b0d3d0f889c5a8d7a7a
+  ASUser 4187706b5feca3cee412cd2a03a405bc
+  Message abb1a691675f78c4a5f27701b161e038
+  PayloadC 262ab299cea24e7cd35ffdd0e30144bc
+  ServerState 1b54447c73ee7cfaadd458565aeffd2c
+import  -/  AS.Util fcc8b95dc3c2bad9df28c51cf1f39293
+  exports: 47ea528d752de70f9f7cc438ef23ed30
+import  -/  base:Control.Concurrent 1be25cd1e2ac314074fafb26df0ff06b
+import  -/  base:Control.Exception 7d63ae88211a26e1cc154f7ca3a7313a
+import  -/  base:Control.Monad 483e787e07c2e49f1fb1c1b88665cb92
+import  -/  base:Data.Char 1ace810ea04187cd227c9ed982bb7d15
+import  -/  base:Data.Monoid fecb05e81c4e24b7968c0c4de9557077
+import  -/  base:GHC.Base 5d7c5f596f9a4c8a8abd8517c8bcd5dd
+import  -/  base:GHC.MVar 2c9d76ed3707c435c49b694504d09491
+import  -/  base:Prelude 74043f272d60acec1777d3461cfe5ef4
+import  -/  bytestring-0.10.4.0:Data.ByteString.Char8 6ba74203c82670d222b910afbd6fa1a4
+import  -/  bytestring-0.10.4.0:Data.ByteString.Lazy.Char8 a118adac239daed5c4f03b800d5d3693
+import  -/  ghc-prim:GHC.Types dcba736fa3dfba12d307ab18354845d2
+import  -/  text-1.2.1.1:Data.Text b3c4fa3023eabdced6a311d2fdbd8c54
+import  -/  text-1.2.1.1:Data.Text.IO 4fed59515c6adf3b8e249dd22b5b5fda
+import  -/  transformers-0.4.3.0:Control.Monad.IO.Class 1fe01dea961eadb0b037d705f6cb22bb
+import  -/  websockets-0.9.5.0:Network.WebSockets c11cd6465abe4dc4c3ad51897e46aaa0
+0d13839ec30fae2783d58176ed3724eb
+  $wa :: AS.Types.ASUserId
+         -> AS.Types.ASAction
+         -> AS.Types.ASResult
+         -> AS.Types.ASPayload
+         -> [AS.Types.ASCell]
+         -> GHC.Prim.State# GHC.Prim.RealWorld
+         -> (# GHC.Prim.State# GHC.Prim.RealWorld, [AS.Types.ASCell] #)
+    {- Arity: 6, Strictness: <L,U(U,U,U)><L,U><L,U><S,1*U><L,U><L,U>,
+       Unfolding: (\ ww :: AS.Types.ASUserId
+                     ww1 :: AS.Types.ASAction
+                     ww2 :: AS.Types.ASResult
+                     ww3 :: AS.Types.ASPayload
+                     w :: [AS.Types.ASCell]
+                     w1 :: GHC.Prim.State# GHC.Prim.RealWorld ->
+                   case ww3 of wild {
+                     DEFAULT
+                     -> case AS.Eval.Endware.evalEndware2
+                        ret_ty (# GHC.Prim.State# GHC.Prim.RealWorld, [AS.Types.ASCell] #)
+                        of {}
+                     AS.Types.PayloadC origCell
+                     -> case origCell of wild1 { AS.Types.Cell loc xp val ts ->
+                        case AS.Util.getStreamTag ts of wild2 {
+                          Data.Maybe.Nothing -> (# w1, w #)
+                          Data.Maybe.Just sTag
+                          -> case AS.Daemon.$wa
+                                    sTag
+                                    loc
+                                    (AS.Types.Message ww ww1 ww2 wild)
+                                    w1 of ds1 { (#,#) ipv ipv1 ->
+                             (# ipv, w #) } } } }) -}
+531454fa9ed5b19de228566ee278870d
+  changeExcelExpressions :: AS.Types.ASCell
+                            -> [AS.Types.ASCell]
+                            -> [AS.Types.ASCell]
+    {- Arity: 2, HasNoCafRefs, Strictness: <L,A><S,1*U>,
+       Unfolding: InlineRule (2, True, True)
+                  (\ cell :: AS.Types.ASCell eta :: [AS.Types.ASCell] -> eta) -}
+c6cc410b1bf00e58dfa83282a010a811
+  evalEndware :: AS.Types.ASUser
+                 -> GHC.MVar.MVar AS.Types.ServerState
+                 -> AS.Types.ASMessage
+                 -> [AS.Types.ASCell]
+                 -> GHC.Types.IO [AS.Types.ASCell]
+    {- Arity: 5,
+       Strictness: <L,A><L,A><S(LLLS),1*U(U(U,U,U),U,U,1*U)><L,U><L,U>,
+       Unfolding: InlineRule (0, True, True)
+                  AS.Eval.Endware.evalEndware1
+                    `cast`
+                  (<AS.Types.ASUser>_R
+                   ->_R <GHC.MVar.MVar AS.Types.ServerState>_R
+                   ->_R <AS.Types.ASMessage>_R
+                   ->_R <[AS.Types.ASCell]>_R
+                   ->_R Sym (GHC.Types.NTCo:IO[0] <[AS.Types.ASCell]>_R)) -}
+da041fc0567a1d74470b62f03c3aad49
+  evalEndware1 :: AS.Types.ASUser
+                  -> GHC.MVar.MVar AS.Types.ServerState
+                  -> AS.Types.ASMessage
+                  -> [AS.Types.ASCell]
+                  -> GHC.Prim.State# GHC.Prim.RealWorld
+                  -> (# GHC.Prim.State# GHC.Prim.RealWorld, [AS.Types.ASCell] #)
+    {- Arity: 5,
+       Strictness: <L,A><L,A><S(LLLS),1*U(U(U,U,U),U,U,1*U)><L,U><L,U>,
+       Inline: INLINE[0],
+       Unfolding: InlineRule (5, True, False)
+                  (\ w :: AS.Types.ASUser
+                     w1 :: GHC.MVar.MVar AS.Types.ServerState
+                     w2 :: AS.Types.ASMessage
+                     w3 :: [AS.Types.ASCell]
+                     w4 :: GHC.Prim.State# GHC.Prim.RealWorld ->
+                   case w2 of ww { AS.Types.Message ww1 ww2 ww3 ww4 ->
+                   AS.Eval.Endware.$wa ww1 ww2 ww3 ww4 w3 w4 }) -}
+7d04863b72cf89229c015a4636dcc284
+  evalEndware2 :: GHC.Types.IO [AS.Types.ASCell] {- Strictness: b -}
+fa0c0a6eae1a0120094935fecb65349f
+  tagStyledCells :: [AS.Types.ASCell] -> [AS.Types.ASCell]
+    {- Arity: 1, HasNoCafRefs, Strictness: <S,1*U>,
+       Unfolding: (GHC.Base.id @ [AS.Types.ASCell]) -}
+vectorised variables:
+vectorised tycons:
+vectorised reused tycons:
+parallel variables:
+parallel tycons:
+trusted: none
+require own pkg trusted: False
+
