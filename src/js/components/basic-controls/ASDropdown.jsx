@@ -5,14 +5,21 @@ export default React.createClass({
   componentDidMount() {
   },
 
+  getDefaultProps() {
+    return { height: '54px' };
+  },
+
   render() {
-    let {menuItems} = this.props;
+    let {width, height, menuItems} = this.props;
 
     return (
       <DropDownMenu
         menuItems={menuItems}
         underlineStyle={{
           display: 'none'
+        }}
+        style={{
+          height: height
         }}
       />
     );
