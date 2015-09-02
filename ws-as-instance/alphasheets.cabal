@@ -20,6 +20,7 @@ library
                        AS.DB
                        AS.Dispatch
                        AS.Util
+                       AS.Clients
                        AS.Config.Paths
                        AS.Config.Settings
                        AS.Eval
@@ -55,6 +56,7 @@ library
                      , daemons
                      , data-default
                      , monad-loops
+                     , uuid
   default-language:    Haskell2010
   default-extensions:  QuasiQuotes
                        FlexibleContexts

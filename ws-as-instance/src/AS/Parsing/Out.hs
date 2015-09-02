@@ -1,8 +1,6 @@
 module AS.Parsing.Out where
 
 import Prelude
-import AS.Types as Ty
-import AS.Parsing.Common
 import Text.Regex.Posix
 import Data.List (elemIndex)
 import Data.Maybe
@@ -14,6 +12,10 @@ import Text.Parsec.Text
 import Control.Applicative hiding ((<|>), many)
 import qualified Data.Map as M
 import qualified Data.Text.Lazy (replace)
+
+import AS.Types as Ty
+import AS.Parsing.Common
+import AS.Util
 
 toListStr :: ASLanguage -> [String] -> String
 toListStr lang lst  = end ++ (L.intercalate delim lst) ++ start

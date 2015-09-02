@@ -12,9 +12,8 @@ import qualified Network.WebSockets as WS
 -- | Sheets
 
 type ASSheetId = Text
-type ASWorkbookId = Text
-data ASSheet = Sheet {sheetId :: ASSheetId, sheetName :: String, sheetPermissions :: ASPermissions} deriving (Show, Read, Eq, Generic, Ord)
-data ASWorkbook = Workbook {workbookId :: ASWorkbookId, workbookName :: String, workbookSheets :: [ASSheet]}  deriving (Show, Read, Eq, Generic, Ord)
+data ASSheet = Sheet {sheetId :: ASSheetId, sheetName :: String, sheetPermissions :: ASPermissions} deriving (Show, Read, Eq, Generic)
+data ASWorkbook = Workbook {workbookName :: String, workbookSheets :: [ASSheetId]}  deriving (Show, Read, Eq, Generic)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Core cell types
@@ -96,17 +95,24 @@ data ASMessage = Message {
 data ASAction = 
   NoAction |
   Acknowledge |
+  New | Import | 
+  Open | Close |
   Evaluate | 
   Update | 
   Get | Delete |
   Undo | Redo |
   Commit | Clear | 
   UpdateWindow |
-  AddTags |
-  RemoveTags
+  AddTags | RemoveTags
   deriving (Show, Read, Eq, Generic)
 
 data ASResult = Success | Failure {failDesc :: String} | NoResult deriving (Show, Read, Eq, Generic)
+
+-- for open, close dialogs
+data QueryList = 
+  Sheets |
+  Workbooks 
+  deriving (Show, Read, Eq, Generic)
 
 data ASPayload = 
   PayloadN () |
@@ -116,9 +122,14 @@ data ASPayload =
   PayloadCL [ASCell] | 
   PayloadL ASLocation |
   PayloadLL [ASLocation] |
+  PayloadSheet ASSheet |
+  PayloadWorkbook ASWorkbook |
   PayloadW ASWindow |
-  PayloadCommit ASCommit|
-  PayloadTags {tags :: [ASCellTag], tagsLoc :: ASLocation} 
+  PayloadU ASUserId |
+  PayloadE ASExecError |
+  PayloadCommit ASCommit |
+  PayloadTags {tags :: [ASCellTag], tagsLoc :: ASLocation} |
+  PayloadList QueryList 
   deriving (Show, Read, Eq, Generic)
 
 
@@ -131,7 +142,8 @@ data ASExecError =
   DBNothingException {badLocs :: [ASLocation]} | 
   NetworkDown | 
   ResourceLimitReached |
-  InsufficientPermissions
+  InsufficientPermissions |
+  NonUniqueIdentifier
   deriving (Show, Read, Eq, Generic)
 
 type EitherCells = Either ASExecError [ASCell] 
@@ -151,21 +163,21 @@ instance Eq ASDaemon where
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Users
 
-data ASWindow = Window {windowSheetId :: ASSheetId, topLeft :: (Int, Int), bottomRight :: (Int, Int)} deriving (Show, Read, Eq, Generic)
+data ASWindow = Window {windowSheetId :: ASSheetId, topLeft :: (Int, Int), bottomRight :: (Int, Int)} deriving (Show,Read,Eq,Generic)
 type ASUserId = Text 
 data ASUser = User {userId :: ASUserId, userConn :: WS.Connection, userWindows :: [ASWindow]} 
 
 instance Eq ASUser where 
   c1 == c2 = (userId c1) == (userId c2)
 
-data ASUserGroup = Group {groupMembers :: [ASUserId], groupAdmins :: [ASUserId], groupName :: Text} deriving (Show, Read, Eq, Generic, Ord)
+data ASUserGroup = Group {groupMembers :: [ASUserId], groupAdmins :: [ASUserId], groupName :: Text} deriving (Show, Read, Eq, Generic)
 data ASEntity = EntityGroup ASUserGroup|
                 EntityUser ASUserId
-                deriving (Show, Read, Eq, Generic, Ord)
+                deriving (Show, Read, Eq, Generic)
 
 data ASPermissions = Blacklist [ASEntity] |
                      Whitelist [ASEntity]
-                      deriving (Show, Read, Eq, Generic, Ord)
+                      deriving (Show, Read, Eq, Generic)
 
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
@@ -250,4 +262,8 @@ instance FromJSON ASUserGroup
 instance ToJSON ASUserGroup
 instance FromJSON ASPermissions
 instance ToJSON ASPermissions
+instance FromJSON QueryList
+instance ToJSON QueryList
+instance FromJSON ASWorkbook
+instance ToJSON ASWorkbook
 

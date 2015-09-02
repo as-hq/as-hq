@@ -1,7 +1,6 @@
 module AS.Parsing.Common where
 
 import Prelude
-import AS.Types as Ty
 import Text.Regex.Posix
 import Data.List (elemIndex)
 import Data.Maybe
@@ -14,11 +13,10 @@ import Control.Applicative hiding ((<|>), many)
 import qualified Data.Map as M
 import qualified Data.Text.Lazy as LA
 
+import AS.Types as Ty
+import AS.Util
+
 deleteEmpty = filter ((/=) "")
-
-(<++>) a b = (++) <$> a <*> b
-
-(<:>) a b  = (:) <$> a <*> b
 
 skip :: Parser a -> Parser String
 skip p = p >> (return "")
@@ -51,14 +49,6 @@ sortStrList (a1, b1) (a2, b2)
   | (show $ dropWhile isUpper a1) > (show $ dropWhile isUpper a2) = LT
   | otherwise = EQ
 
-lastN :: Int -> [a] -> [a]
-lastN n xs = let m = length xs in drop (m-n) xs
-
-decomposeLocs :: ASLocation -> [ASLocation]
-decomposeLocs loc = case loc of 
-  (Index sheet a) -> [loc]
-  (Range sheet (ul, lr)) -> [Index sheet (x,y) | x <- [(fst ul)..(fst lr)], y <- [(snd ul)..(snd lr)] ]
-
 normalizeRanges :: [ASLocation] -> [ASLocation] 
 normalizeRanges locs = do
   loc <- locs
@@ -79,10 +69,6 @@ reshapeColArr lst@(x:xs) (m,n) =
   if (length lst) /= (m*n-m)
     then (every m lst):(reshapeColArr xs (m,n))
     else []
-
--- always includes first element
-every :: Int -> [a] -> [a]
-every n = map head . takeWhile (not . null) . iterate (drop n)
 
 
 getDelimitedSubstring :: String -> String -> Int -> String

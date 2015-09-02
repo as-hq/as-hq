@@ -67,6 +67,9 @@ bStrToASCommit Nothing = Nothing
 cellChunkSize :: Int
 cellChunkSize = 1000
 
+genericChunkSize :: Int
+genericChunkSize = 1000
+
 chunkM :: ([a] -> Redis [b]) -> (Int) -> [a] -> IO [b]
 chunkM f size lst = do 
   let chunks = chunksOf size lst
@@ -82,7 +85,7 @@ chunkM_ f size lst = do
   runRedis conn $ mapM_ f chunks
 
 ----------------------------------------------------------------------------------------------------------------------
--- | DB Cell methods
+-- | DB Cell, location methods
 
 getCell :: ASLocation -> IO (Maybe ASCell)
 getCell loc = do 
@@ -91,7 +94,8 @@ getCell loc = do
 
 getCells :: [ASLocation] -> IO [Maybe ASCell]
 getCells [] = return []
-getCells locs = chunkM getChunkCells cellChunkSize locs
+getCells locs = chunkM getChunkCells cellChunkSize degenerateLocs
+  where degenerateLocs = concat $ map U.decomposeLocs locs
 
 setCell :: ASCell -> IO ()
 setCell c = setCells [c]
@@ -104,14 +108,38 @@ deleteCells :: [ASCell] -> IO ()
 deleteCells [] = return ()
 deleteCells cells = (chunkM_ deleteChunkCells cellChunkSize cells) >> (chunkM_ deleteChunkVolatileCells cellChunkSize cells)
 
+deleteLocs :: [ASLocation] -> IO ()
+deleteLocs [] = return ()
+deleteLocs locs = chunkM_ deleteChunkLocs genericChunkSize degenerateLocs
+  where degenerateLocs = concat $ map U.decomposeLocs locs
 ----------------------------------------------------------------------------------------------------------------------
--- | DB Sheet, workbook, permissions
+-- | DB Sheet, workbook
+
+createSheet :: ASSheet -> IO ASSheet
+createSheet (Sheet _ name permissions) = do
+  sheetid <- U.getUniqueId
+  -- TODO set sheet in database
+  return $ Sheet sheetid name permissions
+
+createWorkbook :: ASWorkbook -> IO ()
+createWorkbook workbook = return () -- TODO
 
 getSheet :: ASSheetId -> IO (Maybe ASSheet)
-getSheet sheet = return Nothing 
+getSheet sheet = return Nothing -- TODO
 
-getWorkbook :: ASWorkbookId -> IO (Maybe ASWorkbook)
-getWorkbook workbook = return Nothing
+getWorkbook :: String -> IO (Maybe ASWorkbook)
+getWorkbook name = return Nothing -- TODO
+
+deleteSheet :: ASSheetId -> IO ()
+deleteSheet sheet = return ()
+
+deleteWorkbook :: String -> IO ()
+deleteWorkbook name = getWorkbook name >>= (\maybeworkbook -> case maybeworkbook of
+  Nothing -> return ()
+  (Just workbook) -> return ()) -- TODO
+
+----------------------------------------------------------------------------------------------------------------------
+-- | DB permissions
 
 canAccessSheet :: ASUserId -> ASSheetId -> IO Bool
 canAccessSheet uid sheetId = do
@@ -127,12 +155,14 @@ canAccessAll :: ASUserId -> [ASLocation] -> IO Bool
 canAccessAll uid locs = return . all id =<< mapM (canAccess uid) locs
 
 isPermissibleMessage :: ASUserId -> ASMessage -> IO Bool
-isPermissibleMessage uid (Message _ _ _ (PayloadC cell)) = canAccess uid (cellLocation cell)
-isPermissibleMessage uid (Message _ _ _ (PayloadCL cells)) = canAccessAll uid (map cellLocation cells)
-isPermissibleMessage uid (Message _ _ _ (PayloadL loc)) = canAccess uid loc
-isPermissibleMessage uid (Message _ _ _ (PayloadLL locs)) = canAccessAll uid locs
-isPermissibleMessage uid (Message _ _ _ (PayloadW window)) = canAccessSheet uid (windowSheetId window)
-isPermissibleMessage uid (Message _ _ _ (PayloadTags _ loc)) = canAccess uid loc
+isPermissibleMessage uid (Message _ _ _ (PayloadC cell))      = canAccess uid (cellLocation cell)
+isPermissibleMessage uid (Message _ _ _ (PayloadCL cells))    = canAccessAll uid (map cellLocation cells)
+isPermissibleMessage uid (Message _ _ _ (PayloadL loc))       = canAccess uid loc
+isPermissibleMessage uid (Message _ _ _ (PayloadLL locs))     = canAccessAll uid locs
+isPermissibleMessage uid (Message _ _ _ (PayloadSheet sheet)) = canAccessSheet uid (sheetId sheet)
+isPermissibleMessage uid (Message _ _ _ (PayloadW window))    = canAccessSheet uid (windowSheetId window)
+isPermissibleMessage uid (Message _ _ _ (PayloadTags _ loc))  = canAccess uid loc
+isPermissibleMessage _ _ = return True
 
 ----------------------------------------------------------------------------------------------------------------------
 -- | DB Cell Chunking methods
@@ -167,6 +197,16 @@ setChunkCells cells = do
 deleteChunkCells :: [ASCell] -> Redis ()
 deleteChunkCells cells = do 
   let locStrs = map (B.pack . show . cellLocation) cells
+  TxSuccess _ <- multiExec $ do 
+      s1 <- hdel (B.pack "exp") locStrs
+      s2 <- hdel (B.pack "val") locStrs
+      s3 <- hdel (B.pack "tags") locStrs
+      return $ (,) <$> s1 <*> s2 
+  return ()
+
+deleteChunkLocs :: [ASLocation] -> Redis ()
+deleteChunkLocs locs = do 
+  let locStrs = map (B.pack . show) locs
   TxSuccess _ <- multiExec $ do 
       s1 <- hdel (B.pack "exp") locStrs
       s2 <- hdel (B.pack "val") locStrs

@@ -1,8 +1,6 @@
 module AS.Parsing.In where
 
 import Prelude
-import AS.Types as Ty
-import AS.Parsing.Common
 import Text.Regex.Posix
 import qualified Data.Functor
 import Data.List (elemIndex)
@@ -18,6 +16,10 @@ import qualified Text.Parsec.Language as Lang (haskellDef)
 import Control.Applicative hiding ((<|>), many)
 import qualified Data.Map as M
 import qualified Data.Text.Lazy (replace)
+
+import AS.Types as Ty
+import AS.Parsing.Common
+import AS.Util
 
 -- removes the first and last brackets from expression, if they exist
 removeBrackets :: String -> String

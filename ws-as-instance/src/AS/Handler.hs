@@ -1,9 +1,6 @@
 module AS.Handler where
 
-import AS.DB as DB
-import AS.Types
-import AS.Util as U
-import AS.Dispatch as DP 
+import Data.List as L
 import Data.Text hiding (head)
 import Data.Maybe(fromJust)
 import Control.Concurrent
@@ -12,8 +9,12 @@ import Control.Monad.IO.Class (liftIO)
 import Data.Aeson hiding (Success)
 import qualified Network.WebSockets as WS
 
+import AS.Types
+import AS.DB as DB
+import AS.Util as U
+import AS.Dispatch as DP 
 import AS.Daemon as DM
-import Data.List as L
+import AS.Clients as C
 
 
 -- | Handlers take message payloads and send the response to the client(s)
@@ -52,6 +53,33 @@ sendToOriginalUser :: ASUser -> ASMessage -> IO ()
 sendToOriginalUser user msg = WS.sendTextData (userConn user) (encode (U.updateMessageUser (userId user) msg))  
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
+-- | Open/close/import/new/window handlers
+
+handleNew :: ASUser -> MVar ServerState -> ASMessage -> IO ()
+handleNew user state msg = case (payload msg) of 
+  (PayloadSheet sheet) -> DB.createSheet sheet >>= 
+    (\newSheet -> sendToOriginalUser user (Message (userId user) Update NoResult (PayloadSheet newSheet)))
+  (PayloadWorkbook workbook) -> DB.createWorkbook >> return ()
+
+handleOpen :: ASUser -> MVar ServerState -> ASMessage -> IO ()
+handleOpen user state (Message _ _ _ (PayloadSheet sheetid)) = C.modifyUser makeNewWindow user state
+  where makeNewWindow (User uid conn windows) = User uid conn ((Window sheetid (-1,-1) (-1,-1)):windows)
+
+handleClose :: ASUser -> MVar ServerState -> ASMessage -> IO ()
+handleClose user state (Message _ _ _ (PayloadSheet sheetid)) = C.modifyUser closeWindow user state
+  where closeWindow (User uid conn windows) = User uid conn (filter (((\=) sheetid) . windowSheetId) windows)
+
+handleUpdateWindow :: ASUser -> MVar ServerState -> ASMessage -> IO ()
+handleUpdateWindow user state (Message uid _ _ (PayloadW window)) = 
+  let maybeWindow = U.getWindow (windowSheetId window) user in 
+  case maybeWindow of 
+    Nothing -> putStrLn "ERROR: could not update nothing window" >> return ()
+    (Just oldWindow) -> do
+      cells <- DB.getCells $ U.getScrolledLocs oldWindow window 
+      sendToOriginalUser user (Message uid NoAction Success (PayloadCL cells))
+      C.modifyUser (U.updateWindow window) user state
+
+----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Eval handler 
 
 handleEval :: ASUser -> MVar ServerState -> ASMessage -> IO ()
@@ -67,12 +95,17 @@ handleGet :: ASUser -> MVar ServerState -> ASPayload -> IO ()
 handleGet user state (PayloadLL locs) = do 
 	let msg = Message (userId user) Get Success (PayloadCL [])
 	sendToOriginalUser user msg 
+handleGet user state (PayloadList Sheets) = return () -- TODO
+handleGet user state (PayloadList Workbooks) = return () -- TODO
 
 -- | Not yet implemented
 handleDelete :: ASUser -> MVar ServerState -> ASPayload -> IO ()
 handleDelete user state p@(PayloadLL locs) = do 
+  DB.deleteLocs locs
 	let msg = Message (userId user) Delete Success p
 	sendBroadcastFiltered user state msg 
+handleDelete user state (PayloadSheet sheet) = DB.deleteSheet >> return ()
+handleDelete user state (PayloadWorkbook workbook) = DB.deleteWorkbook >> return ()
 
 handleClear :: ASUser -> MVar ServerState -> IO ()
 handleClear user state = sendBroadcastFiltered user state (failureMessage "")

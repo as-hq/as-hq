@@ -15,6 +15,7 @@ import qualified Data.Text.IO as T
 import Data.Aeson hiding (Success)
 import Data.ByteString.Char8 hiding (putStrLn,filter,any,length)
 import Data.ByteString.Lazy.Char8 as B hiding (putStrLn,filter,any,length)
+import qualified Data.List as L
 import qualified Network.WebSockets as WS
 
 import Data.Maybe (fromJust)
@@ -22,8 +23,8 @@ import Data.Maybe (fromJust)
 import AS.Types
 import AS.Config.Settings as S
 import AS.Util
+import AS.Clients
 import AS.DB as DB
-import qualified Data.List as L
 import AS.Handler as H
 
 -------------------------------------------------------------------------------------------------------------------------
@@ -34,48 +35,6 @@ newServerState = State []
 
 numUsers :: ServerState -> Int
 numUsers = length . userList 
-
-addToAL :: Eq key => [(key, elt)] -> key -> elt -> [(key, elt)]
-addToAL l key value = (key, value) : delFromAL l key
-
-delFromAL :: Eq key => [(key, a)] -> key -> [(key, a)]
-delFromAL l key = L.filter (\a -> (fst a) /= key) l
-
--------------------------------------------------------------------------------------------------------------------------
--- | User Management
-
-getUsers :: ServerState -> [ASUser]
-getUsers (State s) = L.map fst s
-
-userIdExists :: ASUserId -> ServerState -> Bool
-userIdExists uid state = L.elem uid (L.map userId (getUsers state))
-
--- Assumes that user exists
-getUserById :: ASUserId -> ServerState -> Maybe ASUser
-getUserById uid (State allUsers) = case (filter (\c -> (userId c == uid)) (L.map fst allUsers)) of
-  [] -> Nothing
-  l -> Just $ L.head l
-
-addUser :: ASUser -> ServerState -> ServerState
-addUser user state@(State users) = state'
-  where
-    l = L.lookup user users
-    state' = case l of 
-      Nothing -> State ((user,[]):users)
-      Just _ -> state
-
-close :: WS.Connection -> IO ()
-close conn = WS.sendClose conn ("Bye" :: Text)
-
-removeUser :: ASUser -> ServerState -> IO ServerState -- need to deal with daemons 
-removeUser user s@(State us) = do 
-  let daemons = L.lookup user us
-  case daemons of 
-    Nothing -> return s
-    Just d -> do 
-      mapM_ close (L.map daemonConn d)
-      let us' = delFromAL us user
-      return $ State us'
 
 
 -------------------------------------------------------------------------------------------------------------------------
@@ -142,12 +101,6 @@ isInitConnectionDaemon msg = do
         otherwise -> putStrLn (show (decode msg :: Maybe ASMessage)) >> return False
   putStrLn (show msg)
   return b
-
--------------------------------------------------------------------------------------------------------------------------
--- | Basic send
-
-send :: ASMessage -> WS.Connection -> IO ()
-send msg conn = WS.sendTextData conn (encode msg)
 
 -------------------------------------------------------------------------------------------------------------------------
 -- | Main 
@@ -229,7 +182,11 @@ processMessage user state message = do
 handleMessage :: ASUser -> MVar ServerState -> ASMessage -> IO ()
 handleMessage user state message = case (action message) of 
   Acknowledge -> WS.sendTextData (userConn user) ("ACK" :: Text)
-  Evaluate    -> (H.handleEval user state message) 
+  New         -> H.handleNew user state message
+  Import      -> H.handleImport user state message
+  Open        -> H.handleOpen user state message
+  Close       -> H.handleClose user state message
+  Evaluate    -> H.handleEval user state message 
   Get         -> H.handleGet user state (payload message)
   Delete      -> H.handleDelete user state (payload message)
   Undo        -> (H.handleUndo user state) >> (printTimed "Server processed undo")
@@ -237,6 +194,7 @@ handleMessage user state message = case (action message) of
   Clear       -> H.handleClear user state
   AddTags     -> H.handleAddTags user state message
   RemoveTags  -> H.handleRemoveTags user state message
+  UpdateWindow-> H.handleUpdateWindow user state message
   {-UpdateWindow -> do
     liftIO $ modifyMVar_ state $ \s@(State us)-> do
       let c = fromJust $ getUserById (userId user) s
