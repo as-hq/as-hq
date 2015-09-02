@@ -205,7 +205,6 @@ export default React.createClass({
             return (<ASOverlay key={overlay.id}
                                overlay={overlay}
                                scroll={self.state.scroll}
-                               getBounds={self.getBounds}
                                onOverlayClick={self.onOverlayClick}
                                isVisible={self.isVisible}/>);
           })}

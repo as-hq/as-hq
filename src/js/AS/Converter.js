@@ -1,5 +1,5 @@
 import Constants from '../Constants';
-import ASEvaluationStore from '../stores/ASEvaluationStore';
+import Store from '../stores/ASEvaluationStore';
 import Util from '../AS/Util.js'
 
 export default {
@@ -68,11 +68,11 @@ export default {
   clientToASLocation(clientLoc) {
     if (clientLoc.row2)
       return {tag: "Range",
-              sheet: ASEvaluationStore.getCurrentSheet(),
+              locSheetId: Store.getCurrentSheet().sheetId,
               range: this.clientToServerLoc(clientLoc)};
     else
       return {tag: "Index",
-              sheet: ASEvaluationStore.getCurrentSheet(),
+              locSheetId: Store.getCurrentSheet().sheetId,
               index: this.clientToServerLoc(clientLoc)};
   },
   /*
@@ -98,7 +98,7 @@ export default {
 
   clientWindowToServer(vWindow) {
     return {
-      windowSheetId: ASEvaluationStore.getCurrentSheet().sheetId,
+      windowSheetId: Store.getCurrentSheet().sheetId,
       topLeft: [vWindow.range.row, vWindow.range.col],
       bottomRight: [vWindow.range.row2, vWindow.range.col2]
     };
@@ -191,7 +191,7 @@ export default {
 
   toServerMessageFormat(action, payloadTag, payload) {
     return {
-      "messageUserId": ASEvaluationStore.getUserId(),
+      "messageUserId": Store.getUserId(),
       "action": action,
       "payload": {
         "tag": payloadTag,
@@ -246,6 +246,9 @@ export default {
   /**************************************************************************************************************************/
   /* Message creation */
 
+  makeInitMessage() {
+    return this.toServerMessageFormat(Constants.ServerActions.Acknowledge, "PayloadInit", {"connUserId": Store.getUserId()});
+  },
   /* Used to create undo/redo messages to submit to server. Called by send Undo/Redo Request in API action creator */
   createUndoRequestForServer(){
     return this.toServerMessageFormat(Constants.ServerActions.Undo, "PayloadN", []);

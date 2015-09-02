@@ -18,14 +18,13 @@ export default React.createClass({
   },
 
   render() {
-    let self = this;
     let baseStyle = {display:'block',
                      position:'absolute',
                      width: this.props.overlay.width,
                      height: this.props.overlay.height,
-                     top: self.getY(),
-                     left: self.getX(),
-                     visibility: self.isVisible() ? 'visible' : 'hidden',
+                     top: this.getY(),
+                     left: this.getX(),
+                     visibility: this.isVisible() ? 'visible' : 'hidden',
                      zIndex: 5};
     let overlay;
     switch(this.props.overlay.tag) {

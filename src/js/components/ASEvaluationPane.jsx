@@ -117,7 +117,6 @@ export default React.createClass({
   /* Keyboard shortcuts */
 
   addShortcuts() {
-    // TODO
     let self = this;
     console.log("adding shortcuts!");
 

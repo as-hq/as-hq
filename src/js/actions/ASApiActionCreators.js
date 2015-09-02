@@ -82,7 +82,7 @@ export default {
         }, 5)}, // polling socket for readiness: 5 ms
 
   sendInitialMessage(){
-    let msg = Converter.toServerMessageFormat(Constants.ServerActions.Acknowledge,"PayloadInit",[]);
+    let msg = Converter.makeInitMessage();
     console.log("Sending init message: " + JSON.stringify(msg));
     this.waitForSocketConnection(wss,function(){
       wss.send(JSON.stringify(msg));
