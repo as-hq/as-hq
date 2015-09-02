@@ -185,14 +185,6 @@ export default React.createClass({
       );
     }
     
-    /*
-      - actual button element
-      - plain text
-      - image 
-
-
-    */
-
     let rippleColor = styles.label.color;
     let rippleOpacity = !(primary || secondary) ? 0.1 : 0.16;
 

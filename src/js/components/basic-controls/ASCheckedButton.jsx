@@ -65,27 +65,25 @@ export default React.createClass({
     };
 
     let labelElement;
-    if (iconClassName) { 
-      labelElement = (
-        <div style={{ display: 'inline' }}>
-          <FontIcon
-            style={{
-              float: 'left',
-              fontSize: '18px',
-              lineHeight: '24px'
-            }}
-            className="material-icons"
-            color={Colors.grey50}
-          >
-            {iconClassName}
-          </FontIcon>
-          { label ?
-            <span style={labelElementStyle}>
-              {label}
-            </span> : null
-          }
-        </div>);
-    }
+    labelElement = (
+      <div style={{ display: 'inline' }}>
+        <FontIcon
+          style={{
+            float: 'left',
+            fontSize: '18px',
+            lineHeight: '24px'
+          }}
+          className="material-icons"
+          color={Colors.grey50}
+        >
+          {iconClassName}
+        </FontIcon>
+        { label ?
+          <span style={labelElementStyle}>
+            {label}
+          </span> : null
+        }
+      </div>);
 
     if (iconImageSource) { 
       labelElement = (
