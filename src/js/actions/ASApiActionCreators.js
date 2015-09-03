@@ -90,6 +90,15 @@ export default {
   },
 
   /**************************************************************************************************************************/
+  /* Sending admin-related requests to the server */
+
+  sendGetWorkbooks() {
+    console.log("Getting workbooks");
+    let msg = Converter.toServerMessageFormat('Get', 'QueryList', 'WorkbookSheets');
+    wss.send(JSON.stringify(msg));
+  },
+
+  /**************************************************************************************************************************/
   /* Sending an eval request to the server */
 
   /* This function is called by handleEvalRequest in the eval pane */

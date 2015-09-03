@@ -1,4 +1,5 @@
 import React, {PropTypes} from 'react';
+import ASTreeNav from './ASTreeNav.jsx';
 import ASEvaluationPane from './ASEvaluationPane.jsx';
 import ASSplashPane from './ASSplashPane.jsx';
 import {AppCanvas, LeftNav, Paper, Styles} from 'material-ui';
@@ -67,7 +68,10 @@ export default React.createClass({
           onAlphaButtonTap={this._onAlphaButtonTap}
         />
         <ASRibbon activeTab={this.state.activeRibbonTab} />
-        {panes[this.state.currentPane]}
+        <div style={{display: 'inline-block'}}>
+          <ASTreeNav width="15%" onDocumentOpen={this._onDocumentOpen} />
+          {panes[this.state.currentPane]}
+        </div>
       </div>
     );
   },
@@ -93,5 +97,9 @@ export default React.createClass({
         this.setState({ currentPane: pane, initEvalInfo: initInfo });
         break;
     }
+  },
+
+  _onDocumentOpen(documentId) {
+
   }
 });
