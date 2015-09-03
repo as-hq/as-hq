@@ -149,6 +149,10 @@ wss.on("connection", function(ws) {
           cell = fakeCell(parsed.payload.contents);
           cell.cellTags = [{tag: "Streaming", contents: ""}];
           break;
+        case "makeError":
+          console.log("making error");
+          cell = fakeCellWithValue(parsed.payload.contents, {tag: "ValueError", error: "You fucked up, bitch!"});
+          break;
         default:
           cell = fakeCell(parsed.payload.contents);
           break;
