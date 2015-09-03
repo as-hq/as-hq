@@ -13,9 +13,12 @@ const ThemeManager = new Styles.ThemeManager();
 export default React.createClass({
 
   /* When mounting, send a message to the backend to signify a connection */
-  componentDidMount() {
+  componentWillMount() {
     ThemeManager.setTheme(ThemeManager.types.DARK);
     API.sendInitialMessage();
+  },
+  componentDidMount() {
+
   },
   getInitialState() {
     return {
@@ -68,9 +71,19 @@ export default React.createClass({
           onAlphaButtonTap={this._onAlphaButtonTap}
         />
         <ASRibbon activeTab={this.state.activeRibbonTab} />
+        {/*
         <div style={{display: 'inline-block'}}>
-          <ASTreeNav width="15%" onDocumentOpen={this._onDocumentOpen} />
-          {panes[this.state.currentPane]}
+          <ASTreeNav width="15%" onDocumentOpen={this._onDocumentOpen} />*/
+        }
+        <div>
+          <div style={{display: 'inline-block', width: '10%'}}>
+            <ASTreeNav onDocumentOpen={this._onDocumentOpen} />
+          </div>
+          <div style={{display: 'inline-block', width: '80%'}}>
+            {panes[this.state.currentPane]}
+          </div>
+          <div style={{display: 'inline-block', width: '10%'}}>
+          </div>
         </div>
       </div>
     );

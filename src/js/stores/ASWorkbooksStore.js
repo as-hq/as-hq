@@ -14,6 +14,7 @@ Private variable keeping track of a viewing window (cached) of cells. Stores:
   4) Scroll position
 */
 let _data = {
+  workbooks: []
 };
 
 const ASEvaluationStore = assign({}, BaseStore, {

@@ -54,6 +54,14 @@ wss.onmessage = function (event) {
         newCells: newCells
       });
       break;
+    //xcxc
+    case "GetWorkbookSheets":
+      let workbooks = Converter.clientWorkbooksFromServerMessage(msg);
+      Dispatcher.dispatch({
+        type: ActionTypes.GOT_UPDATED_WORKBOOKS,
+        workbooks: workbooks
+      });
+      break;
     case "Clear":
       Dispatcher.dispatch({
         type: ActionTypes.CLEARED,
@@ -67,26 +75,27 @@ export default {
   /* Sending acknowledge message to server */
 
   waitForSocketConnection(socket, callback){
-    setTimeout(
-        function () {
-            if (socket.readyState === 1) {
-                if(callback != null){
-                    callback();
-                }
-                return;
+    setTimeout(() => {
+      if (socket.readyState === 1) {
+        if(callback != null){
+            callback();
+        }
+        return;
+      } else {
+        this.waitForSocketConnection(socket, callback);
+      }
+    }, 5)}, // polling socket for readiness: 5 ms
 
-            } else {
-                this.waitForSocketConnection(socket, callback);
-            }
-
-        }, 5)}, // polling socket for readiness: 5 ms
+  send(msg) {
+    this.waitForSocketConnection(wss, () => {
+      this.send(msg);
+    });
+  },
 
   sendInitialMessage(){
     let msg = Converter.makeInitMessage();
     console.log("Sending init message: " + JSON.stringify(msg));
-    this.waitForSocketConnection(wss,function(){
-      wss.send(JSON.stringify(msg));
-    })
+    this.send(msg);
   },
 
   /**************************************************************************************************************************/
@@ -95,7 +104,7 @@ export default {
   sendGetWorkbooks() {
     console.log("Getting workbooks");
     let msg = Converter.toServerMessageFormat('Get', 'QueryList', 'WorkbookSheets');
-    wss.send(JSON.stringify(msg));
+    this.send(msg);
   },
 
   /**************************************************************************************************************************/
@@ -107,7 +116,7 @@ export default {
     let cell = Converter.clientToASCell(selRegion,editorState);
     let msg = Converter.createEvalRequestFromASCell(cell);
     console.log('Sending msg to server: ' + JSON.stringify(msg));
-    wss.send(JSON.stringify(msg));
+    this.send(msg);
   },
 
   /**************************************************************************************************************************/
@@ -115,19 +124,19 @@ export default {
 
   sendUndoRequest(){
     let msg = Converter.createUndoRequestForServer();
-    wss.send(JSON.stringify(msg));
+    this.send(msg);
   },
   sendRedoRequest(){
     let msg = Converter.createRedoRequestForServer();
-    wss.send(JSON.stringify(msg));
+    this.send(msg);
   },
   sendClearRequest(){
     let msg = Converter.createClearRequestForServer();
-    wss.send(JSON.stringify(msg));
+    this.send(msg);
   },
   sendCopyRequest(locs) {
     let msg = Converter.toServerMessageFormat(Constants.ServerActions.Copy, "PayloadLL", locs);
-    wss.send(JSON.stringify(msg));
+    this.send(msg);
   },
   sendDeleteRequest(locs){
     let msg = null;
@@ -135,7 +144,7 @@ export default {
       msg = Converter.toServerMessageFormat(Constants.ServerActions.Delete, "PayloadLL", locs);
     else
       msg = Converter.toServerMessageFormat(Constants.ServerActions.Delete, "PayloadL", locs);
-    wss.send(JSON.stringify(msg));
+    this.send(msg);
   },
 
   /**************************************************************************************************************************/
@@ -144,7 +153,7 @@ export default {
   sendGetRequest(locs) {
     let msg = Converter.clientLocsToGetMessage(locs);
     console.log('Sending get message to server: ' + JSON.stringify(msg));
-    wss.send(JSON.stringify(msg));
+    this.send(msg);
   },
   // TODO: NEEDS TESTING
   /*
@@ -190,7 +199,7 @@ export default {
                                               "PayloadW",
                                               sWindow);
     console.log("send scroll message: " + JSON.stringify(msg));
-    wss.send(JSON.stringify(msg));
+    this.send(msg);
   }
 
 };
