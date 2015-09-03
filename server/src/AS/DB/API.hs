@@ -25,6 +25,33 @@ import qualified Data.ByteString.Char8 as B
 import qualified Data.ByteString.Lazy.Char8 as C
 import Data.List.Split
 
+----------------------------------------------------------------------------------------------------------------------
+-- | Storage Documentation
+
+-- | Cells
+-- key-value hashes
+-- key is produced by cellLocation (see DU.getLocationKey) and is unique
+-- fields are "cellExpression", "cellValue", "cellTags" with corresponding stringified values
+
+-- | DAG
+-- same as before: a set of relations
+-- access set with key "DAGLocSet"
+
+-- | Sheets
+-- stored as key (DU.getSheetKey ASSheetId) value (stringified ASSheet)
+-- additionally, the set of all locations belonging to a sheet are stored as
+-- set key (DU.getSheetSetKey ASSheetId) members (ASLocationKey)
+-- this set is updated automatically during setCells.
+-- finally, a record of all sheetKeys is stored as a set with key "sheets" and members (DU.getSheetKey sheetid)
+
+-- | Workbooks
+-- stored identically to Sheets
+
+-- | Commits
+-- stored as before, as a list of commits
+
+-- | Volatile locs
+-- stored as before, as a set with key volatileLocs
 
 ----------------------------------------------------------------------------------------------------------------------
 -- | Cells
@@ -176,15 +203,17 @@ getAllSheets :: IO [ASSheet]
 getAllSheets = do
     conn <- connect cInfo 
     runRedis conn $ do
-        Right sheets <- smembers (B.pack "sheets")
-        return $ map (\s -> read (B.unpack s) :: ASSheet) sheets
+        Right sheetKeys <- smembers (B.pack "sheetKeys")
+        sheets <- mapM get sheetKeys
+        return $ map (\(Right (Just s)) -> read (B.unpack s) :: ASSheet) sheets
 
 getAllWorkbooks :: IO [ASWorkbook]
 getAllWorkbooks = do
     conn <- connect cInfo 
     runRedis conn $ do
-        Right wbs <- smembers (B.pack "workbooks")
-        return $ map (\w -> read (B.unpack w) :: ASWorkbook) wbs
+        Right wbKeys <- smembers (B.pack "workbookKeys")
+        wbs <- mapM get wbKeys
+        return $ map (\(Right (Just w)) -> read (B.unpack w) :: ASWorkbook) wbs
 
 -- creates a sheet with unique id
 createSheet :: ASSheet -> IO ASSheet
@@ -201,7 +230,7 @@ setSheet sheet = do
         let sheetKey = DU.getSheetKey . sheetId $ sheet
         TxSuccess _ <- multiExec $ do
             set sheetKey (B.pack . show $ sheet)  -- set the sheet as key-value
-            sadd (B.pack "sheets") [sheetKey]  -- add the sheet key to the set of all sheets  
+            sadd (B.pack "sheetKeys") [sheetKey]  -- add the sheet key to the set of all sheets  
         return ()
 
 setWorkbook :: ASWorkbook -> IO () 
@@ -211,7 +240,7 @@ setWorkbook wb = do
         let workbookKey = DU.getWorkbookKey . workbookName $ wb
         TxSuccess _ <- multiExec $ do
             set workbookKey (B.pack . show $ wb)  -- set the workbook as key-value
-            sadd (B.pack "workbooks") [workbookKey]  -- add the workbook key to the set of all sheets  
+            sadd (B.pack "workbookKeys") [workbookKey]  -- add the workbook key to the set of all sheets  
         return ()
 
 deleteSheet :: ASSheetId -> IO ()
@@ -229,7 +258,7 @@ deleteSheet sid = do
                 (Left _) -> return ()
             del [setKey]      -- delete the loc set
             del [sheetKey]    -- delete the sheet
-            srem (B.pack "sheets") [sheetKey] -- remove the sheet key from thet set of sheets
+            srem (B.pack "sheetKeys") [sheetKey] -- remove the sheet key from the set of sheets
         return ()
 
 -- only removes the workbook, not contained sheets
@@ -240,7 +269,7 @@ deleteWorkbook name = do
         let workbookKey = DU.getWorkbookKey name
         _ <- multiExec $ do
             del [workbookKey] 
-            srem (B.pack "workbooks") [workbookKey]
+            srem (B.pack "workbookKeys") [workbookKey]
         return ()
 
 -- note: this is an expensive operation
@@ -256,7 +285,7 @@ deleteWorkbookAndSheets name = do
                 let workbookKey = DU.getWorkbookKey name
                 TxSuccess _ <- multiExec $ do
                     del [workbookKey]   -- remove workbook from key-value
-                    srem (B.pack "workbooks") [workbookKey] -- remove workbook from set
+                    srem (B.pack "workbookKeys") [workbookKey] -- remove workbook from set
                 return ()
 
 ----------------------------------------------------------------------------------------------------------------------
