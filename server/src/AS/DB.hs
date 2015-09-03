@@ -1,3 +1,6 @@
+
+------------------------------ DEPRECATED -----------------------------------------------
+
 module AS.DB where
 
 import AS.Types	hiding (location,expression,value)
