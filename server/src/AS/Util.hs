@@ -29,7 +29,7 @@ fromRight :: Either a b -> b
 fromRight (Right b) = b
 
 lookupLambda :: Eq a => (b -> a) -> a -> [b] -> Maybe b
-lookupLambda func elm lst = case (filter (((/=) elm) . func) lst) of
+lookupLambda func elm lst = case (filter (((==) elm) . func) lst) of
     [] -> Nothing
     (x:xs) -> Just x
 
