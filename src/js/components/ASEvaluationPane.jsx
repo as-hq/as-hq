@@ -8,16 +8,9 @@ import Util from '../AS/Util';
 import Constants from '../Constants';
 import Converter from '../AS/Converter'
 import KeyUtils from '../AS/KeyUtils';
-
-var NotificationSystem = require('react-notification-system');
-
+import {Snackbar} from 'material-ui';
 
 export default React.createClass({
-
-  /* Used to create error messages */
-  _notificationSystem: null,
-  _numNotifications: 0,
-  maxNotifs: 3,
 
 
   /***************************************************************************************************************************/
@@ -28,7 +21,8 @@ export default React.createClass({
     return {
       expression: '',
       language: Constants.Languages.Python,
-      focus: 'grid'
+      focus: 'grid',
+      toastErrorMessasge: ''
     };
   },
   setLanguage(lang) {
@@ -84,17 +78,12 @@ export default React.createClass({
   },
   addError(cv){
     if (cv.tag === "ValueError"){
-      if (this._numNotifications < this.maxNotifs){
-        this._notificationSystem.addNotification({
-              message: cv.error,
-              level: 'error',
-              autoDismiss: 10,
-              onRemove: function(){this._numNotifications -= 1;}
-
-            });
-        this._numNotifications += 1;
-      }
+      this.setState({toastErrorMessasge: cv.error});
+      this.refs.snackbarError.show();
     }
+  },
+  handleErrorTap(e) {
+    // TODO
   },
   /*
   Upon a change event from the eval store (for example, eval has already happened)
@@ -315,7 +304,10 @@ export default React.createClass({
           onSelectionChange={this._onSelectionChange}
           width="100%"
           height={this.getGridHeight()}  />
-        <NotificationSystem ref="notificationSystem" />
+        <Snackbar ref="snackbarError"
+                  message={this.state.toastErrorMessasge}
+                  action="Error"
+                  onActionTouchTap={this._handleErrorTap} />
       </div>
     );
   }
