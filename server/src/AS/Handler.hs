@@ -61,7 +61,7 @@ handleNew user state msg = case (payload msg) of
   (PayloadWB workbook) -> DB.setWorkbook workbook >> return ()
 
 handleOpen :: ASUser -> MVar ServerState -> ASMessage -> IO ()
-handleOpen user state (Message _ _ _ (PayloadS (Sheet sheetid _ _))) = C.modifyUser makeNewWindow user state
+handleOpen user state (Message _ _ _ (PayloadS (Sheet sheetid _ _))) = C.modifyUser makeNewWindow user state 
   where makeNewWindow (User uid conn windows) = User uid conn ((Window sheetid (-1,-1) (-1,-1)):windows)
 
 handleClose :: ASUser -> MVar ServerState -> ASMessage -> IO ()
@@ -69,15 +69,22 @@ handleClose user state (Message _ _ _ (PayloadS (Sheet sheetid _ _))) = C.modify
   where closeWindow (User uid conn windows) = User uid conn (filter (((/=) sheetid) . windowSheetId) windows)
 
 handleUpdateWindow :: ASUser -> MVar ServerState -> ASMessage -> IO ()
-handleUpdateWindow user state (Message uid _ _ (PayloadW window)) = 
-  let maybeWindow = U.getWindow (windowSheetId window) user in 
+handleUpdateWindow user state (Message uid _ _ (PayloadW window)) = do
+  readState <- readMVar state
+  let (Just user') = C.getUserById (userId user) readState
+  let maybeWindow = U.getWindow (windowSheetId window) user' 
+  printTimed $ "Current user' windows before update: " ++ (show $ userWindows user')
   case maybeWindow of 
     Nothing -> putStrLn "ERROR: could not update nothing window" >> return ()
     (Just oldWindow) -> do
       let locs = U.getScrolledLocs oldWindow window 
+      printTimed $ "Sending locs: " -- ++ (show locs)
       mcells <- DB.getCells locs
-      sendToOriginalUser user (U.getDBCellMessage user locs mcells)
-      C.modifyUser (U.updateWindow window) user state
+      sendToOriginalUser user' (U.getDBCellMessage user' locs mcells)
+      C.modifyUser (U.updateWindow window) user' state
+      --readState' <- readMVar state
+      --let (Just user'') = C.getUserById (userId user) readState'
+      --printTimed $ "Current user' windows after update: " ++ (show $ userWindows user'')
 
 handleImport :: ASUser -> MVar ServerState -> ASMessage -> IO ()
 handleImport user state msg = return () -- TODO 

@@ -24,7 +24,7 @@ import AS.Types
 import AS.Config.Settings as S
 import AS.Util
 import AS.Clients
-import AS.DB as DB
+import AS.DB.API as DB
 import AS.Handler as H
 
 -------------------------------------------------------------------------------------------------------------------------
@@ -107,9 +107,18 @@ isInitConnectionDaemon msg = do
 main :: IO ()
 main = do
     state <- newMVar newServerState
+    if isDebug
+      then initDebug >> return ()
+      else return ()
     putStrLn $ "server started on port " ++ (show S.wsPort)
     WS.runServer S.wsAddress S.wsPort $ application state
     putStrLn $ "DONE WITH MAIN"
+
+-- initialize database with sheets, etc. for debugging
+initDebug :: IO ()
+initDebug = do
+  DB.setSheet $ Sheet (T.pack "TEST_SHEET_ID") "TEST_SHEET_NAME" (Blacklist [])
+  return  ()
 
 application :: MVar ServerState -> WS.ServerApp
 application state pending = do

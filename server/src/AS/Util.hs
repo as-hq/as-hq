@@ -133,6 +133,9 @@ getUncoveredLocs sheet o@(tl,br) w@(tl',br') = [Index sheet (x,y) | x <- xs, y <
     where xs = [(fst tl')..(fst tl)] ++ [(fst br')..(fst br)]
           ys = [(snd tl')..(snd tl)] ++ [(snd br')..(snd br)]
 
+getAllUserWindows :: ServerState -> [(ASUserId, [ASWindow])]
+getAllUserWindows state = map (\(u,d) -> (userId u, userWindows u)) (userList state)
+
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Locations
 
