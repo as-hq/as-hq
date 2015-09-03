@@ -6,7 +6,7 @@ import Prelude
 import qualified AS.Eval    as R (evalExpression,evalExcel)
 import qualified Data.Map   as M
 import qualified AS.DAG     as DAG
-import qualified AS.DB      as DB
+import qualified AS.DB.API  as DB
 import qualified Data.List  as L (head,last,tail,length,splitAt) 
 import AS.Parsing.Common
 import AS.Parsing.Out hiding (first)

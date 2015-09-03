@@ -18,6 +18,8 @@ library
   exposed-modules:     Lib
                        AS.DAG
                        AS.DB
+                       AS.DB.Util
+                       AS.DB.API
                        AS.Dispatch
                        AS.Util
                        AS.Clients

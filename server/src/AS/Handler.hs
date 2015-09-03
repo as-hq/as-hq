@@ -10,7 +10,7 @@ import Data.Aeson hiding (Success)
 import qualified Network.WebSockets as WS
 
 import AS.Types
-import AS.DB as DB
+import AS.DB.API as DB
 import AS.Util as U
 import AS.Dispatch as DP 
 import AS.Daemon as DM
@@ -58,7 +58,7 @@ handleNew :: ASUser -> MVar ServerState -> ASMessage -> IO ()
 handleNew user state msg = case (payload msg) of 
   (PayloadS sheet) -> DB.createSheet sheet >>= 
     (\newSheet -> sendToOriginalUser user (Message (userId user) Update NoResult (PayloadS newSheet)))
-  (PayloadWB workbook) -> DB.createWorkbook workbook >> return ()
+  (PayloadWB workbook) -> DB.setWorkbook workbook >> return ()
 
 handleOpen :: ASUser -> MVar ServerState -> ASMessage -> IO ()
 handleOpen user state (Message _ _ _ (PayloadS (Sheet sheetid _ _))) = C.modifyUser makeNewWindow user state

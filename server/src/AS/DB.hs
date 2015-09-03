@@ -61,6 +61,15 @@ bStrToASCommit :: Maybe B.ByteString -> Maybe ASCommit
 bStrToASCommit (Just b) = Just (read (B.unpack b) :: ASCommit)
 bStrToASCommit Nothing = Nothing
 
+bStrToSheet :: Maybe B.ByteString -> Maybe ASSheet
+bStrToSheet (Just b) = Just (read (B.unpack b) :: ASSheet)
+bStrToSheet Nothing = Nothing
+
+bStrToWorkbook :: Maybe B.ByteString -> Maybe ASWorkbook
+bStrToWorkbook (Just b) = Just (read (B.unpack b) :: ASWorkbook)
+bStrToWorkbook Nothing = Nothing
+
+
 ----------------------------------------------------------------------------------------------------------------------
 -- | Chunking methods
 
@@ -117,32 +126,86 @@ createSheet :: ASSheet -> IO ASSheet
 createSheet (Sheet _ name permissions) = do
   sheetid <- U.getUniqueId
   let sheet = Sheet sheetid name permissions
-  -- TODO insert sheet in DB
+  conn <- connect cInfo
+  runRedis conn $ do
+    s <- hset (B.pack "sheet") (B.pack . show $ sheetid) (B.pack . show $ sheet)
+    return ()
   return sheet
 
 createWorkbook :: ASWorkbook -> IO ()
-createWorkbook workbook = return () -- TODO
+createWorkbook workbook = do
+  conn <- connect cInfo
+  runRedis conn $ do
+    s <- hset (B.pack "workbook") (B.pack . workbookName $ workbook) (B.pack . show $ workbook)
+    return ()
+  return ()
 
 getSheet :: ASSheetId -> IO (Maybe ASSheet)
 getSheet sheet = return . head =<< getSheets [sheet] 
 
 getSheets :: [ASSheetId] -> IO [Maybe ASSheet]
-getSheets sheets = return [] -- TODO
+getSheets sheets = do
+  conn <- connect cInfo
+  runRedis conn $ do
+    let sheetstrings = map (B.pack . show) sheets
+    TxSuccess foundSheets <- multiExec $ do
+      ss <- hmget (B.pack "sheet") sheetstrings
+      return ss
+    return [] -- TODO
 
 getAllSheets :: IO [ASSheet]
-getAllSheets = return [] -- TODO
+getAllSheets = do
+  conn <- connect cInfo
+  runRedis conn $ do
+    ss <- hgetall (B.pack "sheet")
+    return [] -- TODO
 
 getWorkbook :: String -> IO (Maybe ASWorkbook)
 getWorkbook name = return . head =<< getWorkbooks [name]
 
 getWorkbooks :: [String] -> IO [Maybe ASWorkbook] 
-getWorkbooks names = return [] -- TODO
+getWorkbooks names = do
+  conn <- connect cInfo
+  runRedis conn $ do
+    let wbstrings = map B.pack names
+    TxSuccess foundWorkbooks <- multiExec $ do
+      ws <- hmget (B.pack "workbook") wbstrings
+      return ws
+    return [] -- TODO
 
 getAllWorkbooks :: IO [ASWorkbook]
-getAllWorkbooks = return [] -- TODO
+getAllWorkbooks = do
+  conn <- connect cInfo
+  runRedis conn $ do
+    ws <- hgetall (B.pack "workbook")
+    return [] -- TODO
+
+deleteSheetUnsafe :: ASSheetId -> IO ()
+deleteSheetUnsafe sid = do
+  conn <- connect cInfo
+  runRedis conn $ do
+    _ <- hdel (B.pack "sheet") [(B.pack . show $ sid)] 
+    return ()
 
 deleteSheet :: ASSheetId -> IO ()
-deleteSheet sheet = return () -- TODO all cells in sheet, then delete sheet, then remove sheet from workbooks
+deleteSheet sid = return ()
+-- TODO cannot delete locs from a sheet yet,
+-- figure out a better way than getting literally all locs and filtering by sheet
+--deleteSheet :: ASSheetId -> IO ()
+--deleteSheet sid = do
+--  sheet <- getSheet sid
+--  case sheet of 
+--    Nothing -> return ()
+--    (Just s) -> do
+--      deleteSheetUnsafe sid -- first delete the sheet only
+--      ws <- getAllWorkbooks
+--      let ws' = filter (\w -> elem sid $ workbookSheets w) ws -- get owning workbook
+--      case ws' of 
+--        [] -> return ()
+--        (oldWorkbook:xs) -> do
+--          let newWorkbook = Workbook (workbookName oldWorkbook) (filter ((/=) sid) (workbookSheets oldWorkbook))
+--          deleteWorkbook (workbookName oldWorkbook)
+--          createWorkbook newWorkbook -- replace the old with new
 
 deleteWorkbook :: String -> IO ()
 deleteWorkbook name = return () -- TODO delete just the workbook, leave sheets and cells intact
