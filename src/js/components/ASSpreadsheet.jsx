@@ -90,9 +90,11 @@ export default React.createClass({
       return '';
     };
   },
-  // TODO
   getInitialData(){
-
+    // expects that the current sheet has already been set
+    // e,g, by open/new dialog
+    API.sendOpenMessage(Store.getCurrentSheet());
+    API.updateViewingWindow({range: {row: 1, col: 1, row2: Constants.numVisibleRows, col2: Constants.numVisibleCols}});
   },
   /* Called by eval pane's onChange method, when eval pane receives a change event from the store */
   updateCellValues(clientCells){
@@ -154,6 +156,7 @@ export default React.createClass({
       let self = this;
       let hg = this._getHypergrid();
       hg.addGlobalProperties(this.gridProperties);
+      this.getInitialData();
       let callbacks = ({
         /*
           Call onSelectionChange method in eval pane to deal with selection change

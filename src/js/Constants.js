@@ -91,6 +91,9 @@ export default {
     Redo: "Redo",
     Clear: "Clear",
     Copy: "Copy",
-    UpdateWindow: "UpdateWindow"
+    UpdateWindow: "UpdateWindow",
+    Open: "Open",
+    Close: "Close",
+    Import: "Import"
   }
 };
