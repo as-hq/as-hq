@@ -82,7 +82,7 @@ export default React.createClass({
       this.refs.snackbarError.show();
     }
   },
-  handleErrorTap(e) {
+  _handleErrorTap(e) {
     // TODO
   },
   /*

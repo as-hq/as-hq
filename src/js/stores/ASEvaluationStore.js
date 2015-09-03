@@ -22,7 +22,11 @@ let _data = {
   openSheets: [],
   currentSheet: {
     sheetId: "TEST_SHEET_ID",
-    sheetName: "TEST_SHEET_NAME"
+    sheetName: "TEST_SHEET_NAME",
+    sheetPermissions: {
+      tag: 'Blacklist',
+      contents: []
+    }
   },
   activeSelection: null,
   activeCell: null,
@@ -66,9 +70,7 @@ dispatcherIndex: Dispatcher.register(function (action) {
         It gets previous scroll state from the store and then uses the API to send a "get cells" message to server
       */
       case Constants.ActionTypes.SCROLLED:
-        let cells = API.updateViewingWindow(action.vWindow);
-        ASEvaluationStore.updateData(cells);
-        ASEvaluationStore.emitChange();
+        API.updateViewingWindow(action.vWindow);
         break;
       /*
         The cells have been fetched from the server for a get request (for example, when scrolling)
