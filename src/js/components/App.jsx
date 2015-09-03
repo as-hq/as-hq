@@ -71,18 +71,14 @@ export default React.createClass({
           onAlphaButtonTap={this._onAlphaButtonTap}
         />
         <ASRibbon activeTab={this.state.activeRibbonTab} />
-        {/*
-        <div style={{display: 'inline-block'}}>
-          <ASTreeNav width="15%" onDocumentOpen={this._onDocumentOpen} />*/
-        }
-        <div>
-          <div style={{display: 'inline-block', width: '10%'}}>
+        <div style={{display: 'table', width: '100%', height: this.getPaneHeight()}}>
+          <div style={{display: 'table-cell', width: '10%', height: '100%', verticalAlign: 'top'}}>
             <ASTreeNav onDocumentOpen={this._onDocumentOpen} />
           </div>
-          <div style={{display: 'inline-block', width: '80%'}}>
+          <div style={{display: 'table-cell', width: '80%'}}>
             {panes[this.state.currentPane]}
           </div>
-          <div style={{display: 'inline-block', width: '10%'}}>
+          <div style={{display: 'table-cell', width: '10%'}}>
           </div>
         </div>
       </div>

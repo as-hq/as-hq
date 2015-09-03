@@ -29,7 +29,7 @@ export default React.createClass({
     let dropdownArrowClass = (id) => open[id] ? "side_dropdown_arrow" : "dropdown_arrow";
 
     return (
-      <Paper>
+      <Paper style={{height: '100%'}}>
         {workbooks.map((wb) =>
           <div>
             <span className={dropdownArrowClass(wb.id)} onClick={this._onDropdown(wb.id)}></span>
