@@ -85,12 +85,12 @@ export default {
       return loc.map(this.getSafeLoc);
     else {
       let safeLoc = {
-        row: Math.min(Math.max(0, loc.row), Constants.numRows),
-        col: Math.min(Math.max(0, loc.col), Constants.numCols)
+        row: Math.min(Math.max(1, loc.row), Constants.numRows),
+        col: Math.min(Math.max(1, loc.col), Constants.numCols)
       };
       if (loc.row2){
-        safeLoc.row2 = Math.min(Math.max(0, loc.row2), Constants.numRows);
-        safeLoc.col2 = Math.min(Math.max(0, loc.col2), Constants.numCols);
+        safeLoc.row2 = Math.min(Math.max(1, loc.row2), Constants.numRows);
+        safeLoc.col2 = Math.min(Math.max(1, loc.col2), Constants.numCols);
       }
       return safeLoc;
     }
@@ -99,8 +99,8 @@ export default {
   clientWindowToServer(vWindow) {
     return {
       windowSheetId: Store.getCurrentSheet().sheetId,
-      topLeft: [vWindow.range.row, vWindow.range.col],
-      bottomRight: [vWindow.range.row2, vWindow.range.col2]
+      topLeft: [vWindow.range.col, vWindow.range.row],
+      bottomRight: [vWindow.range.col2, vWindow.range.row2]
     };
   },
 

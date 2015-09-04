@@ -74,7 +74,14 @@ export default React.createClass({
     let hg = this._getHypergrid();
     let [vs, hs] = [hg.vScrollValue, hg.hScrollValue];
     let [cols, rows] = [hg.getVisibleColumns(), hg.getVisibleRows()];
-    return { range: {row: vs, col: hs, row2: vs + cols.length - 1, col2: hs + rows.length - 1}, width: cols.length, height: rows.length };
+    return { range: {row: vs+1, col: hs+1, row2: vs + rows.length, col2: hs + cols.length}, width: cols.length, height: rows.length };
+  },
+  getViewingWindowWithCache() {
+    console.log("sdF");
+    let vwindow = this.getViewingWindow(), rng = vwindow.range;
+    rng = {row: rng.row - Constants.scrollCacheY, col: rng.col - Constants.scrollCacheY,
+            row2: rng.row2 + Constants.scrollCacheY, col2: rng.col2 + Constants.scrollCacheX};
+    return {range: Converter.getSafeLoc(rng)};
   },
   isVisible(col, row){ // faster than accessing hypergrid properties
     return (this.state.scroll.x <= col && col <= this.state.scroll.x+Constants.numVisibleCols) &&
@@ -169,12 +176,12 @@ export default React.createClass({
         'fin-scroll-x': function (event) {
           // let {x, y} = self.getScroll();
           self.setState({scroll: self.getScroll()});
-          ActionCreator.scroll(self.getViewingWindow());
+          ActionCreator.scroll(self.getViewingWindowWithCache());
           },
         'fin-scroll-y': function (event) {
           // let {x, y} = self.getScroll();
           self.setState({scroll: self.getScroll()});
-          ActionCreator.scroll(self.getViewingWindow());
+          ActionCreator.scroll(self.getViewingWindowWithCache());
           }
       });
       for (var key in callbacks) {
