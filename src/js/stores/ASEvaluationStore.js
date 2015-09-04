@@ -103,6 +103,16 @@ dispatcherIndex: Dispatcher.register(function (action) {
         // console.log("Last updated cells: " + JSON.stringify(_data.lastUpdatedCells));
         ASEvaluationStore.emitChange();
         break;
+      case Constants.ActionTypes.RECEIVED_ERROR:
+        // TODO
+        break;
+      case Constants.ActionTypes.RECEIEVED_SHEET:
+        // TODO
+        break;
+      case Constants.ActionTypes.RECEIVED_WORKBOOK:
+        // TODO
+        break;
+
       }
   })
 

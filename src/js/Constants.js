@@ -33,7 +33,10 @@ export default {
     GOT_UNDO:null,
     GOT_REDO:null,
     FETCHED_CELLS:null,
-    CLEARED: null
+    CLEARED: null,
+    RECEIVED_ERROR: null,
+    RECEIVED_SHEET: null,
+    RECEIVED_WORKBOOK: null
   }),
 
   ActionSources: keyMirror({

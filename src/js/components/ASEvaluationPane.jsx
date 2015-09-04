@@ -23,7 +23,8 @@ export default React.createClass({
       expression: '',
       language: Constants.Languages.Python,
       focus: 'grid',
-      toastErrorMessasge: ''
+      toastMessage: '',
+      toastAction: ''
     };
   },
   setLanguage(lang) {
@@ -79,11 +80,14 @@ export default React.createClass({
   },
   addError(cv){
     if (cv.tag === "ValueError"){
-      this.setState({toastErrorMessasge: cv.error});
-      this.refs.snackbarError.show();
+      this.setToast(cv.error, "Error");
     }
   },
-  _handleErrorTap(e) {
+  setToast(msg, action) {
+    this.setState({toastMessage: msg, toastAction: action});
+    this.refs.snackbarError.show();
+  },
+  _handleToastTap(e) {
     // TODO
   },
   /*
@@ -199,9 +203,9 @@ export default React.createClass({
           width="100%"
           height={this.getGridHeight()}  />
         <Snackbar ref="snackbarError"
-                  message={this.state.toastErrorMessasge}
-                  action="Error"
-                  onActionTouchTap={this._handleErrorTap} />
+                  message={this.state.toastMessage}
+                  action={this.state.toastAction}
+                  onActionTouchTap={this._handleToastTap} />
       </div>
     );
   }
