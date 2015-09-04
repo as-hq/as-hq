@@ -200,6 +200,14 @@ export default {
       "result": {"tag":"NoResult","contents":[]}  // by default until server sets success
     };
   },
+  toServerMessageWithPayload(action, payload) {
+    return {
+      "messageUserId": Store.getUserId(),
+      "action": action,
+      "payload": payload,
+      "result": {"tag":"NoResult","contents":[]}  // by default until server sets success
+    };
+  },
   /* If a server message has cells, they are in server cell format. Convert to client cell format */
   clientCellsFromServerMessage(msg) {
     // console.log("Trying to get cells from message received: " + JSON.stringify(msg));

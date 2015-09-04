@@ -131,7 +131,14 @@ export default {
 
   /**************************************************************************************************************************/
   /* Sending get messages to the server */
-
+  sendTagsMessage(action, tags, col, row) {
+    let msg = Converter.toServerMessageWithPayload(action, {
+      "tag": "PayloadTags",
+      "tags": tags,
+      "tagsLoc": Converter.clientToASLocation({col: col, row: row})
+    });
+    wss.send(JSON.stringify(msg));
+  },
   sendGetRequest(locs) {
     let msg = Converter.clientLocsToGetMessage(locs);
     console.log('Sending get message to server: ' + JSON.stringify(msg));

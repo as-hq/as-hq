@@ -157,6 +157,13 @@ const ASEvaluationStore = assign({}, BaseStore, {
   resetLastUpdatedCells() {
     _data.lastUpdatedCells = [];
   },
+  addTag(tag, col, row) {
+    let s = _data.currentSheet;
+    if (_data.allCells[s] && _data.allCells[s][col] && _data.allCells[s][col][row]){
+      _data.allCells[s][col][row].cellTags.push(tag);
+      API.sendTagsMessage("AddTags", [tag], col, row);
+    }
+  },
 
   /**************************************************************************************************************************/
   /*

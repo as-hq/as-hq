@@ -4,6 +4,7 @@ import ASSpreadsheet from './ASSpreadsheet.jsx';
 import Store from '../stores/ASEvaluationStore';
 import API from '../actions/ASApiActionCreators';
 import Shortcuts from '../AS/Shortcuts';
+import ShortcutUtils from '../AS/ShortcutUtils';
 import Util from '../AS/Util';
 import Constants from '../Constants';
 import Converter from '../AS/Converter'
@@ -71,7 +72,7 @@ export default React.createClass({
   componentDidMount() {
     Store.addChangeListener(this._onChange);
     this._notificationSystem = this.refs.notificationSystem;
-    this.addShortcuts();
+    Shortcuts.addShortcuts(this);
   },
   componentWillUnmount() {
     Store.removeChangeListener(this._onChange);
@@ -103,120 +104,13 @@ export default React.createClass({
   },
 
   /**************************************************************************************************************************/
-  /* Keyboard shortcuts */
-
-  addShortcuts() {
-    let self = this;
-    console.log("adding shortcuts!");
-
-    // common shortcuts
-    Shortcuts.addShortcut("common", "toggle_focus", "F2", (wildcard) => {self.toggleFocus()});
-    Shortcuts.addShortcut("common", "cell_eval", ["Ctrl+Enter", "Command+Enter"], (wildcard) => {
-      let editorState = {
-        exp: self._getRawEditor().getValue(),
-        lang: self.state.language
-      };
-      self.handleEvalRequest(editorState);
-    });
-    Shortcuts.addShortcut("common", "set_language", ["Ctrl+1/2/3/4/5/6/7/8/9", "Command+1/2/3/4/5/6/7/8/9"], (wildcard) => {
-      switch(wildcard) {
-          case "1":
-            self.setLanguage(Constants.Languages.Excel);
-            break;
-          case "2":
-            self.setLanguage(Constants.Languages.Python);
-            break;
-          case "3":
-            self.setLanguage(Constants.Languages.R);
-            break;
-          case "4":
-            self.setLanguage(Constants.Languages.OCaml);
-            break;
-          case "5":
-            self.setLanguage(Constants.Languages.SQL);
-            break;
-          case "6":
-            self.setLanguage(Constants.Languages.Java);
-            break;
-          case "7":
-            self.setLanguage(Constants.Languages.CPP);
-            break;
-        }
-    });
-
-    // editor shortcuts
-    Shortcuts.addShortcut("editor", "toggle_reference", "F4", (wildcard) => {
-      let editor = self._getRawEditor(),
-          sesh = editor.getSession(),
-          cursor = editor.getCursorPosition(),
-          range = sesh.getWordRange(cursor.row, cursor.column),
-          sel = editor.selection;
-      sel.setRange(range);
-      let replace = Util.toggleReferenceType(editor.getSelectedText());
-      sesh.replace(range, replace);
-    });
-    Shortcuts.addShortcut("common", "esc", "Esc", (wildcard) => {
-      let editor = self._getRawEditor();
-      editor.setValue("");
-      Store.setClipboard(null, false);
-      self.setState({focus: "grid"});
-      this.refs.spreadsheet.repaint(); // render immediately
-    });
-
-    // grid shortcuts
-    Shortcuts.addShortcut("grid", "moveto_data_boundary", "Ctrl+Up/Down/Left/Right", (wildcard) => {
-      switch(wildcard) {
-        case "Up":
-          break; // TODO
-        case "Down":
-          break; // TODO
-        case "Left":
-          break; // TODO
-        case "Right":
-          break; // TODO
-      }
-    });
-    Shortcuts.addShortcut("grid", "copy", "Ctrl+C", (wildcard) => {
-      let rng = Store.getActiveSelection();
-      Store.setClipboard(rng, false);
-      console.log("copying!");
-      this.refs.spreadsheet.repaint(); // render immediately
-    });
-    Shortcuts.addShortcut("grid", "cut", "Ctrl+X", (wildcard) => {
-      let rng = Store.getActiveSelection();
-      Store.setClipboard(rng, true);
-      this.refs.spreadsheet.repaint(); // render immediately
-    });
-    Shortcuts.addShortcut("grid", "paste", "Ctrl+V", (wildcard) => {
-      let rng = Store.getActiveSelection();
-      let clipboard = Store.getClipboard();
-      if (clipboard.range)
-        API.sendCopyRequest([clipboard.range, rng]);
-      if (clipboard.isCut)
-        API.sendDeleteRequest(clipboard.range);
-      Store.setClipboard(null, false);
-      this.refs.spreadsheet.repaint(); // render immediately
-    });
-    Shortcuts.addShortcut("grid", "grid_delete", "Del", (wildcard) => {
-      let rng = Store.getActiveSelection();
-      console.log("deleting cells in range: " + JSON.stringify(rng));
-      API.sendDeleteRequest(rng);
-    });
-    Shortcuts.addShortcut("grid", "grid_undo", "Ctrl+Z", (wildcard) => {
-      API.sendUndoRequest();
-    });
-    Shortcuts.addShortcut("grid", "grid_redo", "Ctrl+Shift+Z", (wildcard) => {
-      API.sendRedoRequest();
-    });
-  },
-
-// element key deferrals
+  /* Key handling */
 
   _onEditorDeferredKey(e) {
     console.log('editor deferred key; trying common shortcut');
     console.log(e);
-    Shortcuts.tryShortcut(e, 'common');
-    Shortcuts.tryShortcut(e, 'editor');
+    ShortcutUtils.tryShortcut(e, 'common');
+    ShortcutUtils.tryShortcut(e, 'editor');
   },
 
   _onGridDeferredKey(e) {
@@ -233,8 +127,8 @@ export default React.createClass({
     else {
       console.log('trying common shortcut');
       console.log(e);
-      Shortcuts.tryShortcut(e, 'common');
-      Shortcuts.tryShortcut(e, 'grid');
+      ShortcutUtils.tryShortcut(e, 'common');
+      ShortcutUtils.tryShortcut(e, 'grid');
     }
   },
 
