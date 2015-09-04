@@ -40,8 +40,8 @@ max' j k = if j > k
 
 min' :: Ord a => a -> a -> a
 min' j k = if j < k
-    then k
-    else j
+    then j
+    else k
 
 fromJustList :: [Maybe a] -> [a]
 fromJustList l = map (\(Just x) -> x) l
@@ -129,9 +129,13 @@ getScrolledLocs (Window _ (y,x) (y2,x2)) (Window sheetid tl@(y',x') br@(y2',x2')
     where overlapping = ((max' y y', max' x x'), (min' y2 y2', min' x2 x2'))
 
 getUncoveredLocs :: ASSheetId -> ((Int,Int), (Int,Int)) -> ((Int,Int), (Int,Int)) -> [ASLocation]
-getUncoveredLocs sheet o@(tl,br) w@(tl',br') = [Index sheet (x,y) | x <- xs, y <- ys]
-    where xs = [(fst tl')..(fst tl)] ++ [(fst br')..(fst br)]
-          ys = [(snd tl')..(snd tl)] ++ [(snd br')..(snd br)]
+getUncoveredLocs sheet (tlo, bro) (tlw, brw) = [Range sheet corners | corners <- cs]
+    where 
+      trw = (fst brw, snd tlw)
+      blw = (fst tlw, snd brw)
+      tro = (fst bro, snd tlo)
+      blo = (fst tlo, snd bro)
+      cs = [(tlw, tro), (trw, bro), (brw, blo), (blw, tlo)]
 
 getAllUserWindows :: ServerState -> [(ASUserId, [ASWindow])]
 getAllUserWindows state = map (\(u,d) -> (userId u, userWindows u)) (userList state)
@@ -142,7 +146,12 @@ getAllUserWindows state = map (\(u,d) -> (userId u, userWindows u)) (userList st
 decomposeLocs :: ASLocation -> [ASLocation]
 decomposeLocs loc = case loc of 
   (Index sheet a) -> [loc]
-  (Range sheet (ul, lr)) -> [Index sheet (x,y) | x <- [(fst ul)..(fst lr)], y <- [(snd ul)..(snd lr)] ]
+  (Range sheet (ul, lr)) -> [Index sheet (x,y) | x <- [startx..endx], y <- [starty..endy] ]
+    where 
+      startx = min' (fst ul) (fst lr)
+      endx = max' (fst ul) (fst lr)
+      starty = min' (snd ul) (snd lr)
+      endy = max' (snd ul) (snd lr)
 
 matchSheets :: [ASWorkbook] -> [ASSheet] -> [WorkbookSheet]
 matchSheets ws ss = [WorkbookSheet (workbookName w) (fromJustList $ lookupSheets w ss) | w <- ws]

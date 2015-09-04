@@ -9,7 +9,9 @@ import qualified Network.WebSockets as WS
 import Data.Aeson hiding (Success)
 
 import AS.Types
-import AS.Util
+import AS.Util as U
+import AS.Config.Settings as S
+import AS.DB.API as DB
 
 -------------------------------------------------------------------------------------------------------------------------
 -- | Basic client comms
@@ -59,3 +61,13 @@ modifyUser func user state = modifyMVar_ state $ \(State users) ->
         if (fst u) == user
             then (func (fst u), snd u)
             else u)
+
+-------------------------------------------------------------------------------------------------------------------------
+-- | Debugging
+
+getScrollCells :: ASSheetId -> [ASLocation] -> IO [Maybe ASCell]
+getScrollCells sid locs = if ((sid == (T.pack "TEST_SHEET_ID")) && S.isDebug)
+  then do
+    let dlocs = concat $ map U.decomposeLocs locs
+    return $ map (\l -> Just $ Cell l (Expression "scrolled" Python) (ValueS (show . index $ l)) []) dlocs
+  else DB.getCells locs

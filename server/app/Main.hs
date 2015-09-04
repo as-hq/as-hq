@@ -161,7 +161,7 @@ talk state user = forever $ do
   case (decode msg :: Maybe ASMessage) of 
     Nothing -> printTimed ("SERVER ERROR: unable to decode message " ++ (show msg)) >> return ()
     Just m -> do 
-      printTimed ("SERVER decoded message: " ++ (show m)) 
+      printTimed $ "SERVER decoded message: " -- ++ (show m) 
       processMessage user state m
 
 talkDaemon :: MVar ServerState -> ASDaemon -> IO ()
@@ -174,7 +174,7 @@ talkDaemon state daemon = forever $ do
     Just m -> do 
       s <- readMVar state
       let user = fromJust $ getUserOfDaemon s daemon
-      printTimed ("SERVER decoded message: " ++ (show m)) 
+      printTimed $ "SERVER decoded message: " ++ (show m) 
       processMessage user state m
 
 -------------------------------------------------------------------------------------------------------------------------

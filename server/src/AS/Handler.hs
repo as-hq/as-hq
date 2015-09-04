@@ -78,13 +78,13 @@ handleUpdateWindow user state (Message uid _ _ (PayloadW window)) = do
     Nothing -> putStrLn "ERROR: could not update nothing window" >> return ()
     (Just oldWindow) -> do
       let locs = U.getScrolledLocs oldWindow window 
-      printTimed $ "Sending locs: " -- ++ (show locs)
-      mcells <- DB.getCells locs
+      printTimed $ "Sending locs: " ++ (show locs)
+      mcells <- C.getScrollCells (windowSheetId window) locs
       sendToOriginalUser user' (U.getDBCellMessage user' locs mcells)
       C.modifyUser (U.updateWindow window) user' state
-      --readState' <- readMVar state
-      --let (Just user'') = C.getUserById (userId user) readState'
-      --printTimed $ "Current user' windows after update: " ++ (show $ userWindows user'')
+      readState' <- readMVar state
+      let (Just user'') = C.getUserById (userId user) readState'
+      printTimed $ "Current user' windows after update: " ++ (show $ userWindows user'')
 
 handleImport :: ASUser -> MVar ServerState -> ASMessage -> IO ()
 handleImport user state msg = return () -- TODO 
