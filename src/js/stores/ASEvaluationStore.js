@@ -133,10 +133,16 @@ const ASEvaluationStore = assign({}, BaseStore, {
   setCurrentSheet(sht) {
     _data.currentSheet = sht;
   },
-  setActiveSelection(rng) {
+  setActiveSelection(rng, xp) {
     _data.activeSelection = rng;
     _data.activeCell = this.getCellAtLoc(rng.col, rng.row);
-    _data.activeCell.cellExpression.dependencies = Util.parseDependencies(_data.activeCell.cellExpression.expression);
+    if (_data.activeCell.cellExpression.tag === "Reference"){
+      let headCell = this.getReferenceCell(_data.activeCell.cellExpression),
+          headLoc = headCell.cellLocation.index,
+          listLength = headCell.cellValue.contents.length;
+      _data.activeCell.cellExpression.dependencies = Util.getListDependency(headLoc, listLength);
+    } else
+      _data.activeCell.cellExpression.dependencies = Util.parseDependencies(xp);
   },
   getActiveSelection() {
     return _data.activeSelection;
@@ -228,6 +234,19 @@ const ASEvaluationStore = assign({}, BaseStore, {
     else {
       return Converter.defaultCell();
     }
+  },
+
+  getReferenceCell(xp) {
+    let refLoc = xp.location;
+    let cloc = Converter.serverToClientLoc(refLoc.index);
+    return _data.allCells[refLoc.locSheetId][cloc.col][cloc.row];
+  },
+
+  getExpressionObjFromReferenceCell(cell) {
+    let refCell = this.getReferenceCell(cell.cellExpression);
+    let lang = refCell.cellExpression.language;
+    let xp = Util.showValue(cell.cellValue).toString();
+    return {expression: xp, language: lang};
   },
 
   /**************************************************************************************************************************/

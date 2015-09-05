@@ -302,6 +302,7 @@ export default {
   },
 
   parseDependencies(str) {
+    console.log("parsing dependencies of: " + str);
     if (str === "")
       return [];
     else{
@@ -326,6 +327,16 @@ export default {
       // console.log(JSON.stringify(parsed));
       return parsed;
     }
+  },
+
+  // TODO handle sideways lists?
+  getListDependency(headLocation, length) {
+    return [{
+      row: headLocation.row,
+      col: headLocation.col,
+      row2: headLocation.row + length - 1,
+      col2: headLocation.col
+    }];
   },
 
   isContainedInLoc(col, row, loc) {

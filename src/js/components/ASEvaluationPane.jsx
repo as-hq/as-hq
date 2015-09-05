@@ -146,12 +146,14 @@ export default React.createClass({
     2) Update the state of the evaluation pane, which forces React to rerender (and the editor to rerender)
     3) Treat the special case when the expression is an error/other styles
   */
+  // Note: if the selection is a Reference, we produce a 'pseudo' expression
+  // using Converter.clientCellGetExpressionObj
   _onSelectionChange(rng){
     console.log("Handling selection change: " + JSON.stringify(rng));
-    Store.setActiveSelection(rng);
     let cell = Store.getCellAtLoc(rng.col,rng.row),
         {language,expression} = Converter.clientCellGetExpressionObj(cell),
         val = Converter.clientCellGetValueObj(cell);
+    Store.setActiveSelection(rng, expression); // pass in an expression to get parsed dependencies
     console.log("current cell: " + JSON.stringify(cell));
     console.log("cell expression: " + expression);
     // here, language is a client/server agnostic object (see Constants.Languages)
