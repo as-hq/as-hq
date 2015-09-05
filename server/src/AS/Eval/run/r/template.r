@@ -1,3 +1,6 @@
+# ::TODO:: why on earth are we referencing some file in a completely different directory? 
+# this should change. 
+
 suppressMessages(library("rjson"))
 suppressMessages(library("jpeg"))
 suppressMessages(library("party"))

@@ -1,4 +1,7 @@
-execfile("/home/anand/Development/as/backend/server/src/AS/Eval/run/py/repl_record.py")
+import os
+filename = os.getcwd() + "/repl_record.py"
+execfile(filename)
+
 from AS.stdlib import *
 from AS.ui.styling import *
 # from AS.tests.min import *

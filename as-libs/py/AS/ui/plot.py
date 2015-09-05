@@ -1,3 +1,5 @@
+# ::TODO:: why are we referencing files outside of this project ????
+
 import matplotlib.pyplot as plt
 import matplotlib
 matplotlib.use('Qt4Agg')
