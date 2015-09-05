@@ -1,10 +1,45 @@
 import React, {PropTypes} from 'react';
+import {ASButton} from './basic-controls/index.jsx';
 import {FontIcon, Paper, Styles} from 'material-ui';
 import Store from '../stores/ASWorkbooksStore';
 import API from '../actions/ASApiActionCreators';
 import _ from 'underscore';
 
 let {Colors} = Styles;
+
+let SheetIcon = React.createClass({
+  render() {
+    return (
+      <FontIcon
+        className="material-icons"
+        style={{
+          verticalAlign: 'middle',
+          fontSize: '14px',
+          display: 'inline-block',
+          marginLeft: '5px',
+          marginRight: '5px'
+        }}
+      >insert_drive_file</FontIcon>
+    );
+  }
+});
+
+let WorkbookIcon = React.createClass({
+  render() {
+    return (
+      <FontIcon
+        className="material-icons"
+        style={{
+          verticalAlign: 'middle',
+          fontSize: '14px',
+          display: 'inline-block',
+          marginLeft: '5px',
+          marginRight: '5px'
+        }}
+      >collections_bookmark</FontIcon>
+    );
+  }
+});
 
 export default React.createClass({
   contextTypes: {
@@ -37,7 +72,17 @@ export default React.createClass({
     let dropdownArrowClass = (id) => open[id] ? "keyboard_arrow_down" : 'keyboard_arrow_right';
 
     return (
-      <Paper style={{height: '100%', paddingTop: '20px'}}>
+      <Paper style={{height: '100%', paddingTop: '20px', backgroundColor: '#515151'}}>
+        <ASButton
+          primary={true}
+          label="New"
+          style={{
+            display: 'block',
+            margin: '0px auto 15px auto',
+            width: '25%'
+          }}
+          onClick={this._onClickNew}
+        />
         {Object.keys(workbooks).map((wbid) => {
           let wb = workbooks[wbid];
           let {name, sheets, id} = wb;
@@ -45,7 +90,7 @@ export default React.createClass({
           return (
             <div
               style={{
-                marginLeft: '15px',
+                paddingLeft: '15px',
                 color: this._getTextColor(),
                 verticalAlign: 'middle'
               }}
@@ -55,15 +100,16 @@ export default React.createClass({
                   className="material-icons"
                   style={{
                     verticalAlign: 'middle',
-                    fontSize: '18px',
+                    fontSize: '14px',
                     display: 'inline-block'
                   }}
                 >
                   {dropdownArrowClass(id)}
                 </FontIcon>
+                <WorkbookIcon />
                 <div style={{
                   verticalAlign: 'middle',
-                  fontSize: '14px',
+                  fontSize: '12px',
                   lineHeight: '2',
                   display: 'inline-block'
                 }}>
@@ -76,12 +122,19 @@ export default React.createClass({
                     {sheets.map((s) => //TODO make sure it's a list
                       <div
                         style={{
-                          fontSize: '14px',
-                          lineHeight: '2'
+                          fontSize: '12px',
+                          lineHeight: '2',
+                          verticalAlign: 'middle'
                         }}
                         onClick={this._onClick(s.id)}
                       >
-                        {s.name}
+                        <SheetIcon />
+                        <div style={{
+                          verticalAlign: 'middle',
+                          display: 'inline-block'
+                        }}>
+                          {s.name}
+                        </div>
                       </div>
                     )}
                   </div>
@@ -111,5 +164,9 @@ export default React.createClass({
     return (() => {
       this.props.onDocumentOpen(id);
     });
+  },
+
+  _onClickNew() {
+    this.props.onDocumentCreate();
   }
 });

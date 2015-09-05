@@ -73,7 +73,10 @@ export default React.createClass({
         <ASRibbon activeTab={this.state.activeRibbonTab} />
         <div style={{display: 'table', width: '100%', height: this.getPaneHeight()}}>
           <div style={{display: 'table-cell', width: '10%', height: '100%', verticalAlign: 'top'}}>
-            <ASTreeNav onDocumentOpen={this._onDocumentOpen} />
+            <ASTreeNav
+              onDocumentOpen={this._onDocumentOpen}
+              onDocumentCreate={this._onDocumentCreate}
+            />
           </div>
           <div style={{display: 'table-cell', width: '80%'}}>
             {panes[this.state.currentPane]}
@@ -111,5 +114,10 @@ export default React.createClass({
   _onDocumentOpen(documentId) {
     //TODO
     console.log('App on document open', documentId);
+  },
+
+  _onDocumentCreate() {
+    //TODO
+    console.log('Document created');
   }
 });
