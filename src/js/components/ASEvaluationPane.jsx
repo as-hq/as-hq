@@ -22,6 +22,7 @@ export default React.createClass({
     return {
       expression: '',
       language: Constants.Languages.Python,
+      varName: '',
       focus: 'grid',
       toastMessage: '',
       toastAction: ''
@@ -158,6 +159,7 @@ export default React.createClass({
     console.log("cell expression: " + expression);
     // here, language is a client/server agnostic object (see Constants.Languages)
     this.setState({ expression: expression, language: Util.getAgnosticLanguageFromServer(language) });
+    // TODO: set var name as well
     this._getRawEditor().setValue(expression); // workaround for expression change bug
     this.addError(val);
   },
@@ -196,6 +198,7 @@ export default React.createClass({
           language={language}
           onLanguageChange={this.setLanguage}
           onExpressionChange={this.setExpression}
+          onSetVarName={this._onSetVarName}
           onDeferredKey={this._onEditorDeferredKey}
           value={expression}
           width="100%" height={this.getEditorHeight()} />
@@ -211,6 +214,11 @@ export default React.createClass({
                   onActionTouchTap={this._handleToastTap} />
       </div>
     );
-  }
+  },
 
+  _onSetVarName(name) {
+    console.log('var name set to', name);
+    this.setState({ varName: name });
+    //TODO: set var name on backend
+  }
 });
