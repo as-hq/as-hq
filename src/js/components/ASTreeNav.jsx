@@ -41,13 +41,31 @@ let WorkbookIcon = React.createClass({
   }
 });
 
+let HoverIndicator = React.createClass({
+  render() {
+    let {color} = this.props;
+
+    return (
+      <div
+        style={{
+          display: 'block',
+          height: '100%',
+          width: '4px',
+          float: 'left',
+          backgroundColor: color
+        }}
+      />
+    );
+  }
+});
+
 export default React.createClass({
   contextTypes: {
     muiTheme: PropTypes.object
   },
 
   getInitialState() {
-    return { workbooks: [], open: {} };
+    return { workbooks: [], open: {}, hoverItem: null, hovering: false };
   },
 
   componentDidMount() {
@@ -98,50 +116,76 @@ export default React.createClass({
           return (
             <div
               style={{
-                paddingLeft: '15px',
                 color: this._getTextColor(),
                 verticalAlign: 'middle'
               }}
             >
-              <a onClick={this._onDropdown(id)}>
-                <FontIcon
-                  className="material-icons"
+              <div
+                style={{ height: '24px', cursor: 'pointer' }}
+                onMouseOver={this._onMouseOverNavItem(id)}
+                onMouseOut={this._onMouseOutNavItem(id)}
+              >
+                <HoverIndicator color={this._isHovered(id) ? Colors.pink700 : null} />
+                <div
+                  onClick={this._onDropdown(id)}
                   style={{
+                    display: 'inline-block',
+                    paddingLeft: '10px',
+                    width: 'calc(100% - 4px)',
+                    backgroundColor: this._isHovered(id) ? Colors.grey700 : null
+                  }}>
+                  <FontIcon
+                    className="material-icons"
+                    style={{
+                      verticalAlign: 'middle',
+                      fontSize: '14px',
+                      display: 'inline-block'
+                    }}
+                  >
+                    {dropdownArrowClass(id)}
+                  </FontIcon>
+                  <WorkbookIcon />
+                  <div style={{
                     verticalAlign: 'middle',
-                    fontSize: '14px',
+                    fontSize: '12px',
+                    lineHeight: '2',
                     display: 'inline-block'
-                  }}
-                >
-                  {dropdownArrowClass(id)}
-                </FontIcon>
-                <WorkbookIcon />
-                <div style={{
-                  verticalAlign: 'middle',
-                  fontSize: '12px',
-                  lineHeight: '2',
-                  display: 'inline-block'
-                }}>
-                  {name}
+                  }}>
+                    {name}
+                  </div>
                 </div>
-              </a>
+              </div>
               {
                 open[id] ? (
-                  <div style={{marginLeft: '30px'}}>
+                  <div>
                     {sheets.map((s) => //TODO make sure it's a list
                       <div
+                        onMouseOver={this._onMouseOverNavItem(s.id)}
+                        onMouseOut={this._onMouseOutNavItem(s.id)}
                         style={{
-                          fontSize: '12px',
-                          lineHeight: '2',
-                          verticalAlign: 'middle'
-                        }}
-                        onClick={this._onClick(s.id)}
-                      >
-                        <SheetIcon />
-                        <div style={{
-                          verticalAlign: 'middle',
-                          display: 'inline-block'
+                          height: '24px',
+                          cursor: 'pointer'
                         }}>
-                          {s.name}
+                        <HoverIndicator color={this._isHovered(s.id) ? Colors.pink700 : null} />
+                        <div
+                          style={{
+                            display: 'inline-block',
+                            fontSize: '12px',
+                            lineHeight: '2',
+                            verticalAlign: 'middle',
+                            paddingLeft: '41px',
+                            width: 'calc(100% - 4px)',
+                            backgroundColor: this._isHovered(s.id) ? Colors.grey700 : null
+                          }}
+                          onClick={this._onClick(s.id)}
+                        >
+                          <SheetIcon />
+                          <div style={{
+                            verticalAlign: 'middle',
+                            display: 'inline-block'
+                          }}>
+                            {s.name}
+                          </div>
                         </div>
                       </div>
                     )}
@@ -181,5 +225,21 @@ export default React.createClass({
     } else if (itemTitle === 'Workbook') {
       this.props.onWorkbookCreate();
     }
+  },
+
+  _onMouseOverNavItem(id) {
+    return () => {
+      this.setState({ hoverItem: id, hovering: true });
+    };
+  },
+
+  _onMouseOutNavItem(id) {
+    return () => {
+      this.setState({ hovering: false });
+    };
+  },
+
+  _isHovered(id) {
+    return this.state.hovering && this.state.hoverItem == id;
   }
 });
