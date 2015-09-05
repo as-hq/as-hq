@@ -69,10 +69,16 @@ getCellMessage user (Right cells) = Message (userId user) Evaluate Success (Payl
 getBadLocs :: [ASLocation] -> [Maybe ASCell] -> [ASLocation]
 getBadLocs locs mcells = map fst $ filter (\(l,c)->isNothing c) (zip locs mcells)
 
+--getDBCellMessage :: ASUser -> [ASLocation] -> [Maybe ASCell] -> ASMessage
+--getDBCellMessage user locs mcells = if any isNothing mcells
+--  then getCellMessage user (Left (DBNothingException (getBadLocs locs mcells)))
+--  else getCellMessage user (Right (map (\(Just c)->c) mcells))
+
+-- bugfix for sending non-nothing locs (e.g. scrolling)
 getDBCellMessage :: ASUser -> [ASLocation] -> [Maybe ASCell] -> ASMessage
-getDBCellMessage user locs mcells = if any isNothing mcells
-  then getCellMessage user (Left (DBNothingException (getBadLocs locs mcells)))
-  else getCellMessage user (Right (map (\(Just c)->c) mcells))
+getDBCellMessage user locs mcells = getCellMessage user (Right cells)
+  where justCells = filter (not . isNothing) mcells 
+        cells = map (\(Just x) -> x) justCells
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Error Handling

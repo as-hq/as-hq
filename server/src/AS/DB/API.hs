@@ -66,7 +66,7 @@ getCells locs =
   do
     conn <- connect cInfo 
     runRedis conn $ do
-        cells <- mapM DU.getCellRedis locs
+        cells <- mapM DU.getCellRedis dlocs
         return cells
 
 setCell :: ASCell -> IO ()

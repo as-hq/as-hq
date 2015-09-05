@@ -80,7 +80,9 @@ handleUpdateWindow user state (Message uid _ _ (PayloadW window)) = do
       let locs = U.getScrolledLocs oldWindow window 
       printTimed $ "Sending locs: " ++ (show locs)
       mcells <- C.getScrollCells (windowSheetId window) locs
-      sendToOriginalUser user' (U.getDBCellMessage user' locs mcells)
+      let msg = U.getDBCellMessage user' locs mcells
+      printTimed $ "Sending scroll message: " ++ (show msg)
+      sendToOriginalUser user' msg
       C.modifyUser (U.updateWindow window) user' state
       readState' <- readMVar state
       let (Just user'') = C.getUserById (userId user) readState'

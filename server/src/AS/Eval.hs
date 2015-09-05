@@ -21,6 +21,7 @@ import AS.Parsing.In
 import AS.Parsing.Out
 import AS.Parsing.Common
 import AS.Util
+import AS.Config.Settings as S
 
 -----------------------------------------------------------------------------------------------------------------------
 -- Exposed functions
@@ -98,15 +99,18 @@ evalRef loc dict (Reference l (a, b)) = do
   	otherwise -> dict M.! loc -- current reference
   return ret
 
+-- TODO architectural decision of file-based vs kernel-based eval
 doEval :: ASLanguage -> String -> IO String
 doEval lang str = case lang of 
 	Python -> pyfiString str
 	Excel  -> pyfiString str
-	SQL	   -> do
-		writeExecFile lang str
-		time <- getCurrentTime >>= return . utctDayTime
-		return =<< pyfiString str
-	otherwise -> do
+	SQL	   -> if S.isDebug  -- if isDebug, write the python exec file
+		then do
+			writeExecFile lang str
+			printTimed "did eval!"
+			return =<< pyfiString str
+		else pyfiString str
+	otherwise -> do 		-- all other languages follow file-based eval for now
 		writeExecFile lang str
 		time <- getCurrentTime >>= return . utctDayTime
 		return =<< runFile lang
