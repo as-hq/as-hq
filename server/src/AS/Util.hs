@@ -50,6 +50,13 @@ fromJustList l = map (\(Just x) -> x) l
 filterNothing :: [Maybe a] -> [a]
 filterNothing l = fromJustList $ filter (not . isNothing) l
 
+isoFilter :: (a -> Bool) -> [a] -> [b] -> [b]
+isoFilter f pimg img = map snd $ filter (\(a,b) -> f a) $ zip pimg img
+
+isSubsetOf :: Eq a => [a] -> [a] -> Bool
+isSubsetOf [] _ = True
+isSubsetOf f s = all id $ map (\i-> L.elem i s) f
+
 --------------------------------------------------------------------------------------------------------------
 -- | Key-value manip functions
 
@@ -79,6 +86,7 @@ getBadLocs locs mcells = map fst $ filter (\(l,c)->isNothing c) (zip locs mcells
 --  else getCellMessage user (Right (map (\(Just c)->c) mcells))
 
 -- bugfix for sending non-nothing locs (e.g. scrolling)
+-- TODO send empty cells for nothings -- updates deletes that happened past viewing window
 getDBCellMessage :: ASUser -> [ASLocation] -> [Maybe ASCell] -> ASMessage
 getDBCellMessage user locs mcells = getCellMessage user (Right cells)
   where justCells = filter (not . isNothing) mcells 
@@ -89,8 +97,8 @@ getDBCellMessage user locs mcells = getCellMessage user (Right cells)
 
 -- | Not yet implemented
 generateErrorMessage :: ASExecError -> String
-generateErrorMessage CopyNonexistentDependencies = "Dependencies nonexistent in copied cell expressions"
-generateErrorMessage (DBNothingException _) = "Unable to fetch cells from database"
+generateErrorMessage CopyNonexistentDependencies = "Some dependencies nonexistent in copied cell expressions."
+generateErrorMessage (DBNothingException _) = "Unable to fetch cells from database."
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Time

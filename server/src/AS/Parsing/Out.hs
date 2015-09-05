@@ -297,6 +297,6 @@ shiftCell offset (Cell loc (Expression str lang) v ts) = (shiftedCell, shiftedDe
     (inter,exLocs) = getMatchesWithContext str excelMatch
     shiftedExLocs = shiftExLocs offset exLocs
     shiftedDeps = concat $ getDependencies sheetid shiftedExLocs [(0,0)] -- expecting a single cell has Index, not range
-    newStr = concat $ zipWith (++) inter (map exLocToString shiftedExLocs)
+    newStr = replaceMatches (inter, shiftedExLocs) exLocToString str
     shiftedXp = Expression newStr lang
     shiftedCell = Cell shiftedLoc shiftedXp v ts

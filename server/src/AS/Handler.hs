@@ -123,8 +123,12 @@ handleGet user state (PayloadList WorkbookSheets) = do
   let msg = Message (userId user) Update NoResult (PayloadWorkbookSheets wss)
   sendToOriginalUser user msg
 
--- | Not yet implemented
 handleDelete :: ASUser -> MVar ServerState -> ASPayload -> IO ()
+handleDelete user state p@(PayloadL loc) = do 
+  DB.deleteLocs [loc]
+  let msg = Message (userId user) Delete Success p
+  sendBroadcastFiltered user state msg
+  return () 
 handleDelete user state p@(PayloadLL locs) = do 
   DB.deleteLocs locs
   let msg = Message (userId user) Delete Success p
@@ -174,12 +178,17 @@ handleCopy user state (PayloadLL (from:to:[])) = do -- this is a list of 2 locat
   let offset = U.getOffsetBetweenLocs from to
   let toCellsAndDeps = map (O.shiftCell offset) fromCells
   let shiftedDeps = map snd toCellsAndDeps
-  allExist <- DB.locationsExist $ concat shiftedDeps 
-  if (all id allExist)
+  let allDeps = concat shiftedDeps
+  let toCells = map fst toCellsAndDeps
+  let toLocs = map cellLocation toCells
+  printTimed $ "Copying cells: "
+  allExistDB <- DB.locationsExist allDeps   -- check if deps exist in DB
+  let allNonexistentDB = U.isoFilter not allExistDB allDeps  
+  let allExist = U.isSubsetOf allNonexistentDB toLocs -- else if the dep was something we copied
+  if allExist
     then do
-      let toCells = map fst toCellsAndDeps
       DB.setCells toCells
-      DB.updateDAG $ zip shiftedDeps (map cellLocation toCells)
+      DB.updateDAG $ zip shiftedDeps toLocs
       let msg = Message (userId user) Update Success (PayloadCL toCells)
       sendBroadcastFiltered user state msg
     else do
