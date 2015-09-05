@@ -37,5 +37,7 @@ module.exports = {
   watch: {
     src: 'src/**/*.*',
     tasks: ['build']
+  },
+  mockback: {
   }
 };

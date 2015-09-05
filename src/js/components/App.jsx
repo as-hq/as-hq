@@ -109,6 +109,7 @@ export default React.createClass({
   },
 
   _onDocumentOpen(documentId) {
-
+    //TODO
+    console.log('App on document open', documentId);
   }
 });

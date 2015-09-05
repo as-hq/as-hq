@@ -74,21 +74,22 @@ export default {
   /**************************************************************************************************************************/
   /* Sending acknowledge message to server */
 
-  waitForSocketConnection(socket, callback){
+  waitForSocketConnection(socket, callback) {
     setTimeout(() => {
       if (socket.readyState === 1) {
         if(callback != null){
-            callback();
+          callback();
         }
         return;
       } else {
         this.waitForSocketConnection(socket, callback);
       }
-    }, 5)}, // polling socket for readiness: 5 ms
+    }, 5);
+  }, // polling socket for readiness: 5 ms
 
   send(msg) {
     this.waitForSocketConnection(wss, () => {
-      this.send(msg);
+      wss.send(JSON.stringify(msg));
     });
   },
 
@@ -103,7 +104,7 @@ export default {
 
   sendGetWorkbooks() {
     console.log("Getting workbooks");
-    let msg = Converter.toServerMessageFormat('Get', 'QueryList', 'WorkbookSheets');
+    let msg = Converter.toServerMessageFormat('Get', 'PayloadList', 'WorkbookSheets');
     this.send(msg);
   },
 
