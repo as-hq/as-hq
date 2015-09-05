@@ -1,5 +1,5 @@
 import React, {PropTypes} from 'react';
-import {ASButton} from './basic-controls/index.jsx';
+import {ASHorizontalDropdownButton} from './basic-controls/index.jsx';
 import {FontIcon, Paper, Styles} from 'material-ui';
 import Store from '../stores/ASWorkbooksStore';
 import API from '../actions/ASApiActionCreators';
@@ -73,15 +73,23 @@ export default React.createClass({
 
     return (
       <Paper style={{height: '100%', paddingTop: '20px', backgroundColor: '#515151'}}>
-        <ASButton
+        <ASHorizontalDropdownButton
           primary={true}
           label="New"
+          height="36px"
           style={{
             display: 'block',
-            margin: '0px auto 15px auto',
-            width: '25%'
+            margin: '0px auto 15px auto'
           }}
-          onClick={this._onClickNew}
+          buttonStyle={{
+            display: 'block',
+            width: '70%',
+            height: '36px',
+            fontSize: '12px',
+            margin: '0 auto'
+          }}
+          onItemClick={this._onClickNew}
+          menuItems={['Sheet', 'Workbook']}
         />
         {Object.keys(workbooks).map((wbid) => {
           let wb = workbooks[wbid];
@@ -166,7 +174,12 @@ export default React.createClass({
     });
   },
 
-  _onClickNew() {
-    this.props.onDocumentCreate();
+  _onClickNew(itemTitle) {
+    console.log(itemTitle);
+    if (itemTitle === 'Sheet') {
+      this.props.onSheetCreate();
+    } else if (itemTitle === 'Workbook') {
+      this.props.onWorkbookCreate();
+    }
   }
 });

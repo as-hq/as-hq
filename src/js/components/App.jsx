@@ -75,7 +75,8 @@ export default React.createClass({
           <div style={{display: 'table-cell', width: '10%', height: '100%', verticalAlign: 'top'}}>
             <ASTreeNav
               onDocumentOpen={this._onDocumentOpen}
-              onDocumentCreate={this._onDocumentCreate}
+              onSheetCreate={this._onSheetCreate}
+              onWorkbookCreate={this._onWorkbookCreate}
             />
           </div>
           <div style={{display: 'table-cell', width: '80%'}}>
@@ -116,8 +117,13 @@ export default React.createClass({
     console.log('App on document open', documentId);
   },
 
-  _onDocumentCreate() {
+  _onSheetCreate() {
     //TODO
-    console.log('Document created');
+    console.log('Created sheet');
+  },
+
+  _onWorkbookCreate() {
+    //TODO
+    console.log('Created workbook');
   }
 });
