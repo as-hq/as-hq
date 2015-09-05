@@ -140,7 +140,7 @@ const ASEvaluationStore = assign({}, BaseStore, {
       let headCell = this.getReferenceCell(_data.activeCell.cellExpression),
           headLoc = headCell.cellLocation.index,
           listLength = headCell.cellValue.contents.length;
-      _data.activeCell.cellExpression.dependencies = Util.getListDependency(headLoc, listLength);
+      _data.activeCell.cellExpression.dependencies = Util.getListDependency(rng, headLoc, listLength);
     } else
       _data.activeCell.cellExpression.dependencies = Util.parseDependencies(xp);
   },
