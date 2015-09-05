@@ -23,10 +23,14 @@ const ASEvaluationStore = assign({}, BaseStore, {
     Dispatcher.register(function (action) {
       switch (action.type) {
         case Constants.ActionTypes.GOT_UPDATED_WORKBOOKS:
-          ASEvaluationStore.updateData(action.updatedWorkbooks);
+          ASEvaluationStore.updateData(action.workbooks);
           ASEvaluationStore.emitChange();
       }
     }),
+
+  updateData(wbs) {
+    _data.workbooks = wbs;
+  },
 
   getWorkbooks() {
     return _data.workbooks;

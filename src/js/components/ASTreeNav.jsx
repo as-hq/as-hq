@@ -30,23 +30,28 @@ export default React.createClass({
 
     return (
       <Paper style={{height: '100%'}}>
-        {workbooks.map((wb) =>
-          <div>
-            <span className={dropdownArrowClass(wb.id)} onClick={this._onDropdown(wb.id)}></span>
-            {wb.name}
-            {
-              open[wb.id] ? (
-                <div style={{marginLeft: '15px'}}>
-                  {wb.sheets.map((s) => //TODO make sure it's a list
-                    <div>
-                      {s.name}
-                    </div>
-                  )}
-                </div>
-              ) : null
-            }
-          </div>
-        )}
+        {Object.keys(workbooks).map((wbid) => {
+          let wb = workbooks[wbid];
+          let {name, sheets, id} = wb;
+
+          return (
+            <div>
+              <span className={dropdownArrowClass(id)} onClick={this._onDropdown(id)}></span>
+              {name}
+              {
+                open[id] ? (
+                  <div style={{marginLeft: '15px'}}>
+                    {sheets.map((s) => //TODO make sure it's a list
+                      <div>
+                        {s.name}
+                      </div>
+                    )}
+                  </div>
+                ) : null
+              }
+            </div>
+          );
+        })}
       </Paper>
     );
   },

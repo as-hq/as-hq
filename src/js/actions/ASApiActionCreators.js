@@ -55,7 +55,7 @@ wss.onmessage = function (event) {
       });
       break;
     //xcxc
-    case "GetWorkbookSheets":
+    case "Update":
       let workbooks = Converter.clientWorkbooksFromServerMessage(msg);
       Dispatcher.dispatch({
         type: ActionTypes.GOT_UPDATED_WORKBOOKS,
