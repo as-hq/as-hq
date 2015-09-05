@@ -300,3 +300,8 @@ shiftCell offset (Cell loc (Expression str lang) v ts) = (shiftedCell, shiftedDe
     newStr = replaceMatches (inter, shiftedExLocs) exLocToString str
     shiftedXp = Expression newStr lang
     shiftedCell = Cell shiftedLoc shiftedXp v ts
+shiftCell offset (Cell loc (Reference _ _) v ts) = (shiftedCell, []) -- for copying sublists
+  where
+    pseudoXp = Expression (showValue Python v) Python
+    shiftedLoc = shiftLoc offset loc 
+    shiftedCell = Cell shiftedLoc pseudoXp v ts
