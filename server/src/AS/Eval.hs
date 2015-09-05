@@ -29,7 +29,7 @@ import AS.Config.Settings as S
 evalExpression :: ASLocation -> M.Map ASLocation ASValue -> ASExpression -> IO ASValue
 evalExpression loc dict expr =
   case expr of
-    Expression _ _ -> evalCode loc dict expr  
+    Expression _ _ -> evalCode (locSheetId loc) dict expr  
     Reference _ _ -> evalRef loc dict expr  
 
 -- | Returns the new Python expression and a boolean for whether the expression is volatile or not
@@ -52,18 +52,18 @@ evalExcel xp = do
 -----------------------------------------------------------------------------------------------------------------------
 -- File Interpolation (see Lang for details)
 
-evalCode :: ASLocation -> M.Map ASLocation ASValue -> ASExpression -> IO ASValue
-evalCode loc values xp = do
+evalCode :: ASSheetId -> M.Map ASLocation ASValue -> ASExpression -> IO ASValue
+evalCode sheetid values xp = do
 	printTimed "Starting eval code"
 	let lang = language xp
-	let finalXp = interpolate loc values xp 
+	let finalXp = interpolate sheetid values xp 
 	printTimed $ "Final eval xp: " ++ (show finalXp)
 	simpleInterpolated <- interpolateFile lang finalXp
 	interpolated <- case lang of
 		SQL -> interpolateFile SQL ("setGlobals("++(show context) ++")\n" ++ newExp)
 			where
 				exLocs = getMatchesWithContext (expression xp) excelMatch
-				matchLocs = map (exLocToASLocation loc) (snd exLocs)
+				matchLocs = map (exLocToASLocation sheetid) (snd exLocs)
 				context = map (lookupString SQL values) matchLocs
 				st = ["dataset"++(show i) | i<-[0..((L.length matchLocs)-1)]]
 				newExp = replaceMatches exLocs (\el -> (L.!!) st (MB.fromJust (L.findIndex (el==) (snd exLocs)))) (expression xp)

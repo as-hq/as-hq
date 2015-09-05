@@ -197,6 +197,8 @@ handleMessage user state message = case (action message) of
   Evaluate    -> H.handleEval user state message 
   Get         -> H.handleGet user state (payload message)
   Delete      -> H.handleDelete user state (payload message)
+  Copy        -> H.handleCopy user state (payload message)
+  CopyForced  -> H.handleCopyForced user state (payload message)
   Undo        -> (H.handleUndo user state) >> (printTimed "Server processed undo")
   Redo        -> (H.handleRedo user state) >> (printTimed "Server processed redo")
   Clear       -> H.handleClear user state

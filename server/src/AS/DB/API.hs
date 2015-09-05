@@ -94,6 +94,15 @@ deleteLocs locs =
             _ <- mapM_ DU.deleteLocRedis locs
             return ()
 
+locationsExist :: [ASLocation] -> IO [Bool]
+locationsExist locs = do
+  conn <- connect cInfo 
+  runRedis conn $ do
+    TxSuccess results <- multiExec $ do
+      bools <- mapM (\l -> exists $ DU.getLocationKey l) locs
+      return $ sequence bools
+    return results
+
 ----------------------------------------------------------------------------------------------------------------------
 -- | DAG
 

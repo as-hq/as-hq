@@ -1,8 +1,8 @@
 module AS.Handler where
 
-import Data.List as L
-import Data.Text hiding (head, filter)
-import Data.Maybe(fromJust)
+import qualified Data.List as L hiding (any, zip, map, all)
+import Data.Text hiding (head, any, filter, zip, map, all, concat)
+import Data.Maybe(fromJust, isNothing)
 import Control.Concurrent
 import Control.Monad
 import Control.Monad.IO.Class (liftIO)
@@ -15,6 +15,7 @@ import AS.Util as U
 import AS.Dispatch as DP 
 import AS.Daemon as DM
 import AS.Clients as C
+import AS.Parsing.Out as O
 
 
 -- | Handlers take message payloads and send the response to the client(s)
@@ -23,12 +24,12 @@ import AS.Clients as C
 -- | Sending message to client(s)
 
 broadcast :: Text -> ServerState -> IO ()
-broadcast message (State u) = forM_ (L.map fst u) $ \(User _ conn _) -> WS.sendTextData conn message
+broadcast message (State u) = forM_ (map fst u) $ \(User _ conn _) -> WS.sendTextData conn message
 
 sendBroadcastFiltered :: ASUser -> MVar ServerState -> ASMessage -> IO ()
 sendBroadcastFiltered user state msg = liftIO $ do 
 	(State allUsers) <- readMVar state
-	broadcastFiltered (updateMessageUser (userId user) msg) (L.map fst allUsers)
+	broadcastFiltered (updateMessageUser (userId user) msg) (map fst allUsers)
 
 -- | Given a message (commit, cells, etc), only send (to each user) the cells in their viewing window
 broadcastFiltered :: ASMessage -> [ASUser] -> IO ()
@@ -159,6 +160,35 @@ handleRedo user state = do
 		(Just c) -> return $ Message (userId user) Undo Success (PayloadCommit c)
 	sendBroadcastFiltered user state msg
 
+-- parse deps
+-- check that all locations exist, else throw error
+-- shift deps 
+-- show deps into exlocs
+-- update expression
+-- update dag
+-- insert new cells into db
+handleCopy :: ASUser -> MVar ServerState -> ASPayload -> IO ()
+handleCopy user state (PayloadLL (from:to:[])) = do -- this is a list of 2 locations
+  maybeCells <- DB.getCells [from]
+  let fromCells = filterNothing maybeCells
+  let offset = U.getOffsetBetweenLocs from to
+  let toCellsAndDeps = map (O.shiftCell offset) fromCells
+  let shiftedDeps = map snd toCellsAndDeps
+  allExist <- DB.locationsExist $ concat shiftedDeps 
+  if (all id allExist)
+    then do
+      let toCells = map fst toCellsAndDeps
+      DB.setCells toCells
+      DB.updateDAG $ zip shiftedDeps (map cellLocation toCells)
+      let msg = Message (userId user) Update Success (PayloadCL toCells)
+      sendBroadcastFiltered user state msg
+    else do
+      let msg = Message (userId user) Update (Failure $ generateErrorMessage CopyNonexistentDependencies) (PayloadE CopyNonexistentDependencies)
+      sendToOriginalUser user msg
+
+-- same without checking
+handleCopyForced :: ASUser -> MVar ServerState -> ASPayload -> IO ()
+handleCopyForced user state (PayloadLL (from:[to])) = return ()
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Tag handlers

@@ -40,7 +40,7 @@ import qualified Network.WebSockets as WS
 updateCell :: ASCell -> IO (Either ASExecError [ASCell])
 updateCell (Cell loc xp val ts) = do 
   let locs = decomposeLocs loc
-  let (deps,exprs) = getDependenciesAndExpressions loc xp (getOffsets loc)
+  let (deps,exprs) = getDependenciesAndExpressions (locSheetId loc) xp (getOffsets loc)
   ancCells <- DB.getCells (concat deps)
   printTimed $ "got cells"
   if (any isNothing ancCells)

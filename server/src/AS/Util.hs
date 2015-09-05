@@ -10,6 +10,7 @@ import qualified Data.UUID as U (toString)
 import qualified Data.Text as T 
 import qualified Data.List as L
 import Control.Applicative hiding ((<|>), many)
+import Data.Maybe (isNothing)
 
 --------------------------------------------------------------------------------------------------------------
 -- | Misc
@@ -45,6 +46,9 @@ min' j k = if j < k
 
 fromJustList :: [Maybe a] -> [a]
 fromJustList l = map (\(Just x) -> x) l
+
+filterNothing :: [Maybe a] -> [a]
+filterNothing l = fromJustList $ filter (not . isNothing) l
 
 --------------------------------------------------------------------------------------------------------------
 -- | Key-value manip functions
@@ -85,7 +89,8 @@ getDBCellMessage user locs mcells = getCellMessage user (Right cells)
 
 -- | Not yet implemented
 generateErrorMessage :: ASExecError -> String
-generateErrorMessage e = "hi"
+generateErrorMessage CopyNonexistentDependencies = "Dependencies nonexistent in copied cell expressions"
+generateErrorMessage (DBNothingException _) = "Unable to fetch cells from database"
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Time
@@ -162,6 +167,21 @@ decomposeLocs loc = case loc of
 matchSheets :: [ASWorkbook] -> [ASSheet] -> [WorkbookSheet]
 matchSheets ws ss = [WorkbookSheet (workbookName w) (fromJustList $ lookupSheets w ss) | w <- ws]
   where lookupSheets workbook sheets = map (\sid -> lookupLambda sheetId sid sheets) (workbookSheets workbook)
+
+shiftLoc :: (Int, Int) -> ASLocation -> ASLocation
+shiftLoc (dy, dx) (Index sh (y,x)) = Index sh (y+dy, x+dx)
+shiftLoc (dy, dx) (Range sh ((y,x),(y2,x2))) = Range sh ((y+dy, x+dx), (y2+dy, x2+dx))
+
+getTopLeft :: ASLocation -> ASLocation
+getTopLeft (Range sh (tl,_)) = Index sh tl
+getTopLeft loc = loc
+
+getOffsetBetweenLocs :: ASLocation -> ASLocation -> (Int, Int)
+getOffsetBetweenLocs from to = getOffsetFromIndices from' to'
+  where 
+    from' = getTopLeft from
+    to' = getTopLeft to
+    getOffsetFromIndices (Index _ (y, x)) (Index _ (y', x')) = (y'-y, x'-x)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Users

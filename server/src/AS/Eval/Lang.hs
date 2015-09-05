@@ -192,12 +192,12 @@ lookupString lang mp loc = case loc of
 
 
 
-interpolate :: ASLocation -> M.Map ASLocation ASValue -> ASExpression -> String
-interpolate loc values xp = evalString
+interpolate :: ASSheetId -> M.Map ASLocation ASValue -> ASExpression -> String
+interpolate sheetid values xp = evalString
 	where
 		origString = expression xp
 		lang = language xp 
-		exLocToStringEval = (lookupString lang values) . (exLocToASLocation loc) -- ExLoc -> String
+		exLocToStringEval = (lookupString lang values) . (exLocToASLocation sheetid) -- ExLoc -> String
 		evalString = replaceMatches (getMatchesWithContext origString excelMatch) exLocToStringEval origString
 
 

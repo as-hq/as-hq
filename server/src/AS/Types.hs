@@ -46,6 +46,7 @@ type ASEvalError = String
 
 data ASLanguage = R | Python | OCaml | CPP | Java | SQL | Excel deriving (Show, Read, Eq, Generic)
 
+-- TODO consider migration to exLocs record
 data ASExpression =
   Expression { expression :: String, language :: ASLanguage } | 
   Reference { location :: ASLocation, referenceIndex :: (Int, Int) }
@@ -101,6 +102,7 @@ data ASAction =
   Evaluate | 
   Update | 
   Get | Delete |
+  Copy | CopyForced |
   Undo | Redo |
   Commit | Clear | 
   UpdateWindow |
@@ -148,7 +150,8 @@ data ASExecError =
   NetworkDown | 
   ResourceLimitReached |
   InsufficientPermissions |
-  NonUniqueIdentifier
+  NonUniqueIdentifier |
+  CopyNonexistentDependencies
   deriving (Show, Read, Eq, Generic)
 
 type EitherCells = Either ASExecError [ASCell] 
