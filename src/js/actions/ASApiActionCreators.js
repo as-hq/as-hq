@@ -45,6 +45,18 @@ wss.onmessage = function (event) {
         updatedCells: cells
       });
       break;
+    case "Update":
+      if (msg.result === "Success" ||
+          msg.payload.tag === "PayloadC" ||
+          msg.payload.tag === "PayloadCL"){
+        let cells = Converter.clientCellsFromServerMessage(msg);
+        Dispatcher.dispatch({
+          type: ActionTypes.GOT_UPDATED_CELLS,
+          updatedCells: cells
+        });
+      }
+      // TODO cases for sheets and workbooks
+      break;
     case "NoAction":
       break;
     case "Get":
@@ -58,6 +70,13 @@ wss.onmessage = function (event) {
       Dispatcher.dispatch({
         type: ActionTypes.CLEARED,
       });
+      break;
+    // case "Delete": TODO
+    //   if (msg.result === "Success")
+    //     Dispatcher.dispatch({
+    //       type: ActionTypes.DELETED_CELLS,
+    //       locs:
+    //     });
   }
 };
 
@@ -117,15 +136,22 @@ export default {
     wss.send(JSON.stringify(msg));
   },
   sendCopyRequest(locs) {
-    let msg = Converter.toServerMessageFormat(Constants.ServerActions.Copy, "PayloadLL", locs);
+    let sLocs = [Converter.clientToASLocation(locs[0]), Converter.clientToASLocation(locs[1])];
+    console.log(sLocs);
+    let msg = Converter.toServerMessageFormat(Constants.ServerActions.Copy, "PayloadLL", sLocs);
     wss.send(JSON.stringify(msg));
   },
   sendDeleteRequest(locs){
     let msg = null;
-    if (locs.constructor === Array)
+    if (locs.constructor === Array){
+      for (var i in locs)
+        locs[i] = Converter.clientToASLocation(locs[i]);
       msg = Converter.toServerMessageFormat(Constants.ServerActions.Delete, "PayloadLL", locs);
-    else
-      msg = Converter.toServerMessageFormat(Constants.ServerActions.Delete, "PayloadL", locs);
+    }
+    else{
+      locs = Converter.clientToASLocation(locs);
+      msg = Converter.toServerMessageFormat(Constants.ServerActions.Delete, "PayloadLL", [locs]);
+    }
     wss.send(JSON.stringify(msg));
   },
 

@@ -152,7 +152,8 @@ export default React.createClass({
     let cell = Store.getCellAtLoc(rng.col,rng.row),
         {language,expression} = Converter.clientCellGetExpressionObj(cell),
         val = Converter.clientCellGetValueObj(cell);
-    // console.log("cell expression: " + expression);
+    console.log("current cell: " + JSON.stringify(cell));
+    console.log("cell expression: " + expression);
     // here, language is a client/server agnostic object (see Constants.Languages)
     this.setState({ expression: expression, language: Util.getAgnosticLanguageFromServer(language) });
     this._getRawEditor().setValue(expression); // workaround for expression change bug

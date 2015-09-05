@@ -23,8 +23,8 @@ export default {
         "contents":
       }
   */
-  clientCellGetSheet(clientCell){
-    return clientCell.cellLocation.sheet
+  clientCellGetSheetId(clientCell){
+    return clientCell.cellLocation.locSheetId;
   },
   clientCellGetCol(clientCell){
     return clientCell.cellLocation.index.col;
@@ -127,7 +127,7 @@ export default {
     return {
       cellLocation: {
         tag: serverCell.cellLocation.tag,
-        sheet: serverCell.cellLocation.sheet,
+        locSheetId: serverCell.cellLocation.locSheetId,
         index: this.serverToClientLoc(serverLoc)
       },
       cellExpression: serverCell.cellExpression,
@@ -157,10 +157,7 @@ export default {
   },
   defaultCell(){
     let cl = {tag:"Index",
-              sheet:{
-                sheetId: "TEST_SHEET_ID",
-                sheetName: "TEST_SHEET_NAME"
-              },
+              locSheetId: "TEST_SHEET_ID",
               index:[-1,-1]},
         ce = {tag:"Expression",expression:"",language:"Python"},
         cv = {tag:"NoValue", contents: []},
