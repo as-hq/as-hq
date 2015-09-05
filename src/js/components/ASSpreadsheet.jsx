@@ -1,6 +1,6 @@
 import React from 'react';
 import ActionCreator from '../actions/ASSpreadsheetActionCreators';
-import Shortcuts from '../AS/Shortcuts';
+import ShortcutUtils from '../AS/ShortcutUtils';
 import Converter from '../AS/Converter';
 import API from '../actions/ASApiActionCreators';
 import KeyUtils from '../AS/KeyUtils';
@@ -135,7 +135,7 @@ export default React.createClass({
 
   handleKeyDown(e) {
     e.persist(); // prevent react gc
-    if (Shortcuts.gridShouldDeferKey(e)){ // if anything but nav keys, bubble event to parent
+    if (ShortcutUtils.gridShouldDeferKey(e)){ // if anything but nav keys, bubble event to parent
       KeyUtils.killEvent(e);
       this.props.onDeferredKey(e);
     } else {

@@ -14,14 +14,14 @@ Private variable keeping track of a viewing window (cached) of cells. Stores:
   4) Scroll position
 */
 let _data = {
-  userId: "TEST_USER_ID",
+  userId: "TEST_USER_ID2",
   allCells: {},
   lastUpdatedCells: [],
   xscroll: 0,
   yscroll: 0,
   openSheets: [],
   currentSheet: {
-    sheetId: "TEST_SHEET_ID",
+    sheetId: "TEST_SHEET_ID2",
     sheetName: "TEST_SHEET_NAME",
     sheetPermissions: {
       tag: 'Blacklist',
@@ -103,6 +103,16 @@ dispatcherIndex: Dispatcher.register(function (action) {
         // console.log("Last updated cells: " + JSON.stringify(_data.lastUpdatedCells));
         ASEvaluationStore.emitChange();
         break;
+      case Constants.ActionTypes.RECEIVED_ERROR:
+        // TODO
+        break;
+      case Constants.ActionTypes.RECEIEVED_SHEET:
+        // TODO
+        break;
+      case Constants.ActionTypes.RECEIVED_WORKBOOK:
+        // TODO
+        break;
+
       }
   })
 
@@ -157,6 +167,13 @@ const ASEvaluationStore = assign({}, BaseStore, {
   resetLastUpdatedCells() {
     _data.lastUpdatedCells = [];
   },
+  addTag(tag, col, row) {
+    let sheetid = _data.currentSheet.sheetId;
+    if (_data.allCells[sheetid] && _data.allCells[sheetid][col] && _data.allCells[sheetid][col][row]){
+      _data.allCells[sheetid][col][row].cellTags.push(tag);
+      API.sendTagsMessage("AddTags", [tag], col, row);
+    }
+  },
 
   /**************************************************************************************************************************/
   /*
@@ -166,37 +183,37 @@ const ASEvaluationStore = assign({}, BaseStore, {
 
   /* Function to update cell related objects in store. Caller's responsibility to clear lastUpdatedCells if necessary */
   updateData(cells) {
-    // console.log("About to update data in store: " + JSON.stringify(cells));
+    console.log("About to update data in store: " + JSON.stringify(cells));
     for (var key in cells){
       let c = cells[key];
-      let sheet = Converter.clientCellGetSheet(c);
+      let sheetid = Converter.clientCellGetSheetId(c);
       let col = Converter.clientCellGetCol(c);
       let row = Converter.clientCellGetRow(c);
       let xp = Converter.clientCellGetExpressionObj(c);
       let val = Converter.clientCellGetValueObj(c);
-      if (!_data.allCells[sheet])
-        _data.allCells[sheet] = [];
-      if (!_data.allCells[sheet][col])
-        _data.allCells[sheet][col] = [];
-      _data.allCells[sheet][col][row] = c;
+      if (!_data.allCells[sheetid])
+        _data.allCells[sheetid] = [];
+      if (!_data.allCells[sheetid][col])
+        _data.allCells[sheetid][col] = [];
+      _data.allCells[sheetid][col][row] = c;
       _data.lastUpdatedCells.push(c);
     }
   },
 
   /* Replace cells with empty ones. Caller's responsibility to clear lastUpdatedCells if necessary */
   removeData(cells) {
-    // console.log("About to remove data in store: " + JSON.stringify(cells));
+    console.log("About to remove data in store: " + JSON.stringify(cells));
     for (var key in cells){
       let c = cells[key];
-      let sheet = Converter.clientCellGetSheet(c);
+      let sheetid = Converter.clientCellGetSheetId(c);
       let col = Converter.clientCellGetCol(c);
       let row = Converter.clientCellGetRow(c);
       let emptyCell = Converter.clientCellEmptyVersion(c);
-      if (!_data.allCells[sheet])
+      if (!_data.allCells[sheetid])
         continue;
-      if (!_data.allCells[sheet][col])
+      if (!_data.allCells[sheetid][col])
         continue;
-      _data.allCells[sheet][col][row] = emptyCell;
+      _data.allCells[sheetid][col][row] = emptyCell;
       _data.lastUpdatedCells.push(emptyCell);
     }
   },
@@ -205,9 +222,9 @@ const ASEvaluationStore = assign({}, BaseStore, {
   /* Updating expression when user clicks on a cell */
 
   getCellAtLoc(col,row){
-    let currentSheet = this.getCurrentSheet();
-    if (_data.allCells[currentSheet] && _data.allCells[currentSheet][col] && _data.allCells[currentSheet][col][row])
-      return _data.allCells[currentSheet][col][row];
+    let sheetid = _data.currentSheet.sheetId;
+    if (_data.allCells[sheetid] && _data.allCells[sheetid][col] && _data.allCells[sheetid][col][row])
+      return _data.allCells[sheetid][col][row];
     else {
       return Converter.defaultCell();
     }

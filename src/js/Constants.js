@@ -34,7 +34,10 @@ export default {
     GOT_REDO:null,
     FETCHED_CELLS:null,
     CLEARED: null,
-    GOT_UPDATED_WORKBOOKS: null
+    GOT_UPDATED_WORKBOOKS: null,
+    RECEIVED_ERROR: null,
+    RECEIVED_SHEET: null,
+    RECEIVED_WORKBOOK: null
   }),
 
   ActionSources: keyMirror({

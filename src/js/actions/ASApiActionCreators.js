@@ -45,6 +45,23 @@ wss.onmessage = function (event) {
         updatedCells: cells
       });
       break;
+    case "Update":
+      if (msg.payload.tag === "PayloadC" ||
+          msg.payload.tag === "PayloadCL"){
+        let cells = Converter.clientCellsFromServerMessage(msg);
+        Dispatcher.dispatch({
+          type: ActionTypes.GOT_UPDATED_CELLS,
+          updatedCells: cells
+        });
+      } else if (msg.payload.tag === "PayloadWorkbookSheets") {
+        let workbooks = Converter.clientWorkbooksFromServerMessage(msg);
+        Dispatcher.dispatch({
+          type: ActionTypes.GOT_UPDATED_WORKBOOKS,
+          workbooks: workbooks
+        });
+      }
+      // TODO cases for sheets and workbooks
+      break;
     case "NoAction":
       break;
     case "Get":
@@ -55,17 +72,17 @@ wss.onmessage = function (event) {
       });
       break;
     //xcxc
-    case "Update":
-      let workbooks = Converter.clientWorkbooksFromServerMessage(msg);
-      Dispatcher.dispatch({
-        type: ActionTypes.GOT_UPDATED_WORKBOOKS,
-        workbooks: workbooks
-      });
-      break;
     case "Clear":
       Dispatcher.dispatch({
         type: ActionTypes.CLEARED,
       });
+      break;
+    // case "Delete": TODO
+    //   if (msg.result === "Success")
+    //     Dispatcher.dispatch({
+    //       type: ActionTypes.DELETED_CELLS,
+    //       locs:
+    //     });
   }
 };
 
@@ -136,21 +153,35 @@ export default {
     this.send(msg);
   },
   sendCopyRequest(locs) {
-    let msg = Converter.toServerMessageFormat(Constants.ServerActions.Copy, "PayloadLL", locs);
+    let sLocs = [Converter.clientToASLocation(locs[0]), Converter.clientToASLocation(locs[1])];
+    console.log(sLocs);
+    let msg = Converter.toServerMessageFormat(Constants.ServerActions.Copy, "PayloadLL", sLocs);
     this.send(msg);
   },
   sendDeleteRequest(locs){
     let msg = null;
-    if (locs.constructor === Array)
+    if (locs.constructor === Array){
+      for (var i in locs)
+        locs[i] = Converter.clientToASLocation(locs[i]);
       msg = Converter.toServerMessageFormat(Constants.ServerActions.Delete, "PayloadLL", locs);
-    else
-      msg = Converter.toServerMessageFormat(Constants.ServerActions.Delete, "PayloadL", locs);
+    }
+    else{
+      locs = Converter.clientToASLocation(locs);
+      msg = Converter.toServerMessageFormat(Constants.ServerActions.Delete, "PayloadLL", [locs]);
+    }
     this.send(msg);
   },
 
   /**************************************************************************************************************************/
   /* Sending get messages to the server */
-
+  sendTagsMessage(action, tags, col, row) {
+    let msg = Converter.toServerMessageWithPayload(action, {
+      "tag": "PayloadTags",
+      "tags": tags,
+      "tagsLoc": Converter.clientToASLocation({col: col, row: row})
+    });
+    this.send(msg);
+  },
   sendGetRequest(locs) {
     let msg = Converter.clientLocsToGetMessage(locs);
     console.log('Sending get message to server: ' + JSON.stringify(msg));

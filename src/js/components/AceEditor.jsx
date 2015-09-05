@@ -1,5 +1,5 @@
 import KeyUtils from '../AS/KeyUtils';
-import Shortcuts from '../AS/Shortcuts';
+import ShortcutUtils from '../AS/ShortcutUtils';
 
 var ace = require('brace');
 var React = require('react');
@@ -73,7 +73,7 @@ module.exports = React.createClass({
 
   handleKeyDown(e) {
     console.log("onkeydown editor");
-    if (Shortcuts.editorShouldDeferKey(e)) {
+    if (ShortcutUtils.editorShouldDeferKey(e)) {
       KeyUtils.killEvent(e);
       this.props.onDeferredKey(e);
     }
