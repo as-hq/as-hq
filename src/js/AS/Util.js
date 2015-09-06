@@ -330,19 +330,13 @@ export default {
   },
 
   // TODO handle sideways lists?
-  getListDependency(refLocation, headLocation, length) {
-    if (headLocation.col === refLocation.col) // not a sideways list
-      return [{
-        row: headLocation.row,
-        col: headLocation.col,
-        row2: headLocation.row + length - 1,
-        col2: headLocation.col
-      }];
-    else
-      return [{
-        row: headLocation.row,
-        col: headLocation.col,
-      }];
+  getListDependency(refLocation, headLocation, height, width) {
+    return [{
+      row: headLocation.row,
+      col: headLocation.col,
+      row2: headLocation.row + height - 1,
+      col2: headLocation.col + width - 1
+    }];
   },
 
   isContainedInLoc(col, row, loc) {
