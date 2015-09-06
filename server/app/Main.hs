@@ -117,7 +117,9 @@ main = do
 -- initialize database with sheets, etc. for debugging
 initDebug :: IO ()
 initDebug = do
-  DB.setSheet $ Sheet (T.pack "TEST_SHEET_ID") "TEST_SHEET_NAME" (Blacklist [])
+  let sheetid = T.pack "TEST_SHEET_ID"
+  DB.setSheet $ Sheet sheetid "TEST_SHEET_NAME" (Blacklist [])
+  DB.setWorkbook $ Workbook "TEST_WORKBOOK_NAME" sheetid
   return  ()
 
 application :: MVar ServerState -> WS.ServerApp
