@@ -103,10 +103,9 @@ export default React.createClass({
     let updatedCells = Store.getLastUpdatedCells();
     // console.log("Updated cells: " + JSON.stringify(updatedCells));
     this.refs.spreadsheet.updateCellValues(updatedCells);
-    for (var key in updatedCells){
-      let cv = Converter.clientCellGetValueObj(updatedCells[key]);
-      this.addError(cv);
-    }
+    updatedCells.forEach((cell) => {
+      this.addError(Converter.clientCellGetValueObj(cell));
+    });
   },
 
   /**************************************************************************************************************************/
