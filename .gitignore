@@ -2,3 +2,4 @@
 logs/
 *.pyc
 server/.stack-work/*
+ws-as-instance/.stack-work/*

@@ -1,4 +1,7 @@
-execfile("/home/anand/Development/as/backend/server/src/AS/Eval/run/py/repl_record.py")
+import os
+filename = os.getcwd() + "/repl_record.py"
+execfile(filename)
+
 from AS.excel.pycel.excelcompiler import *
 from AS.excel.pycel.excellib import * # mapping from excel to python
 from AS.excel.io import evalExcel
