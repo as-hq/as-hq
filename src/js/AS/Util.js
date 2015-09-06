@@ -179,6 +179,26 @@ export default {
 /*************************************************************************************************************************/
 // Misc
 
+  isEmptyString(str) {
+    return /\S/.test(str);
+  },
+
+  removeEmptyLines(str){
+    var lines = str.split("\n");
+    var filtered = lines.filter(this.isEmptyString);
+    return filtered.join("\n");
+  },
+
+  getIndicesOf(searchStr, str) {
+    var startIndex = 0, searchStrLen = searchStr.length;
+    var index, indices = [];
+    while ((index = str.indexOf(searchStr, startIndex)) > -1) {
+        indices.push(index);
+        startIndex = index + searchStrLen;
+    }
+    return indices;
+  },
+
   getUniqueId() {
     return shortid.generate();
   },
@@ -197,17 +217,6 @@ export default {
 
   arrContains(arr, elem) {
     return arr.indexOf(elem) > -1;
-  },
-
-  getIndicesOf(searchStr, str) {
-    console.log("indexing string: "+str);
-    let startIndex = 0, searchStrLen = searchStr.length;
-    let index, indices = [];
-    while ((index = str.indexOf(searchStr, startIndex)) > -1) {
-        indices.push(index);
-        startIndex = index + searchStrLen;
-    }
-    return indices;
   },
 
   toggleReferenceType(xp) {

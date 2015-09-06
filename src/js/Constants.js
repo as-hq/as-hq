@@ -37,7 +37,9 @@ export default {
     GOT_UPDATED_WORKBOOKS: null,
     RECEIVED_ERROR: null,
     RECEIVED_SHEET: null,
-    RECEIVED_WORKBOOK: null
+    RECEIVED_WORKBOOK: null,
+    REPL_LEFT:null,
+    GOT_REPL_RESP:null,
   }),
 
   ActionSources: keyMirror({
@@ -97,6 +99,7 @@ export default {
     UpdateWindow: "UpdateWindow",
     Open: "Open",
     Close: "Close",
-    Import: "Import"
+    Import: "Import",
+    Repl: "Repl"
   }
 };

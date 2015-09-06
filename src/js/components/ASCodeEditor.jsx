@@ -3,7 +3,7 @@ import AceEditor from './AceEditor.jsx';
 import ActionCreator from '../actions/ASCodeEditorActionCreators';
 import Constants from '../Constants';
 
-import {AppBar, Toolbar, TextField, DropDownMenu, Styles} from 'material-ui';
+import {AppBar, Toolbar, ToolbarGroup, FlatButton, TextField, DropDownMenu, Styles} from 'material-ui';
 
 require('brace/mode/python');
 require('brace/mode/r');
@@ -38,28 +38,26 @@ export default React.createClass({
     return (
       <div>
         <Toolbar
-          style={{
-            backgroundColor: Styles.Colors.grey700,
-            height: '65px'
-          }}
+          style={{backgroundColor: Styles.Colors.grey700, height:'65px'}}
           showMenuIconButton={false} >
-          <TextField
-            ref="varNameField"
-            hintText="varName"
-            floatingLabelText="Variable name"
-            style={{
-              position: 'relative',
-              top: '-14px',
-              fontFamily: '"Lucida Console", Monaco, monospace'
-            }}
-            floatingLabelStyle={{
-              fontFamily: 'Roboto, sans-serif'
-            }}
-            onBlur={this._onBlurVarName} />
-          <DropDownMenu
-            menuItems={languages}
-            onChange={this._onLanguageChange}
-            underlineStyle={{ display: 'none' }} />
+            <TextField
+              ref="varNameField"
+              hintText="varName"
+              floatingLabelText="Variable name"
+              style={{
+                position: 'relative',
+                top: '-14px',
+                fontFamily: '"Lucida Console", Monaco, monospace'
+              }}
+              floatingLabelStyle={{
+                fontFamily: 'Roboto, sans-serif'
+              }}
+              onBlur={this._onBlurVarName} />
+            <DropDownMenu
+              menuItems={languages}
+              onChange={this._onLanguageChange}
+              underlineStyle={{ display: 'none' }} />
+            <FlatButton label="REPL" onClick={this.props.onReplClick} />
         </Toolbar>
         <AceEditor
           ref="editor"

@@ -38,6 +38,13 @@ wss.onmessage = function (event) {
         commit: Converter.serverToClientCommit(msg.payload.contents)
       });
      break;
+    //TODO: get response correctly
+    case "Repl":
+      Dispatcher.dispatch({
+        type: ActionTypes.GOT_REPL_RESP,
+        response:{lang:"Python",value:"44"}
+      });
+      break;
     case "Evaluate":
       let cells = Converter.clientCellsFromServerMessage(msg);
       Dispatcher.dispatch({
@@ -175,6 +182,20 @@ export default {
     }
     this.send(msg);
   },
+
+  /**************************************************************************************************************************/
+  /* Sending REPL messages to the server */
+
+  // TODO: correctly implement
+  sendReplRequest(editorState){
+    let msg = Converter.toServerMessageFormat(Constants.ServerActions.Repl, "PayloadRepl", editorState);
+    //this.send(msg);
+    Dispatcher.dispatch({
+      type: ActionTypes.GOT_REPL_RESP,
+      response:{lang:"Python",value:"44"}
+    });
+  },
+
 
   /**************************************************************************************************************************/
   /* Sending get messages to the server */

@@ -25,7 +25,8 @@ export default React.createClass({
       activeDocumentTab: 'test',
       activeRibbonTab: 'Home',
       currentPane: 'eval',
-      initEvalInfo: {} // object passed from splash pane specifying initial params: opened sheet, etc
+      /* object passed from splash pane specifying initial params: opened sheet, etc */
+      initEvalInfo: {} 
     }
   },
   getDefaultProps() {
@@ -59,7 +60,7 @@ export default React.createClass({
     };
 
     return (
-      <div className="full">
+       <div className="full">
         <LeftNav
           ref="leftNav"
           menuItems={leftNavMenuItems}
@@ -76,8 +77,7 @@ export default React.createClass({
             <ASTreeNav
               onDocumentOpen={this._onDocumentOpen}
               onSheetCreate={this._onSheetCreate}
-              onWorkbookCreate={this._onWorkbookCreate}
-            />
+              onWorkbookCreate={this._onWorkbookCreate}/>
           </div>
           <div style={{display: 'table-cell', width: '80%'}}>
             {panes[this.state.currentPane]}
@@ -86,8 +86,50 @@ export default React.createClass({
           </div>
         </div>
       </div>
+      
     );
   },
+
+  /*
+  <div className="full">
+        <LeftNav
+          ref="leftNav"
+          menuItems={leftNavMenuItems}
+          docked={false}/>
+        <ASNavBar
+          onDocumentTabChange={this._onDocumentTabChange}
+          onRibbonTabChange={this._onRibbonTabChange}
+          onAlphaButtonTap={this._onAlphaButtonTap}/>
+        <ASRibbon activeTab={this.state.activeRibbonTab} />
+        {panes[this.state.currentPane]}
+      </div>
+      */
+
+  /*
+  <div className="full">
+        <LeftNav
+          ref="leftNav"
+          menuItems={leftNavMenuItems}
+          docked={false}/>
+        <ASNavBar
+          onDocumentTabChange={this._onDocumentTabChange}
+          onRibbonTabChange={this._onRibbonTabChange}
+          onAlphaButtonTap={this._onAlphaButtonTap}/>
+        <ASRibbon activeTab={this.state.activeRibbonTab} />
+        <div style={{display: 'table', width: '100%', height: this.getPaneHeight()}}>
+          <div style={{display: 'table-cell', width: '10%', height: '100%', verticalAlign: 'top'}}>
+            <ASTreeNav
+              onDocumentOpen={this._onDocumentOpen}
+              onSheetCreate={this._onSheetCreate}
+              onWorkbookCreate={this._onWorkbookCreate}/>
+          </div>
+          <div style={{display: 'table-cell', width: '10%', verticalAlign: 'top'}}>
+            {panes[this.state.currentPane]}
+          </div>
+          
+        </div>
+      </div>
+      */
 
 /**************************************************************************************************************************/
 /* Top-level ui state changes */

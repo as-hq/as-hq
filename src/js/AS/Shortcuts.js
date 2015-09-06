@@ -58,6 +58,24 @@ export default {
       // TODO
     });
 
+    // repl shortcuts -------------------------------------------------------------------------------
+    ShortcutUtils.addShortcut("repl", "repl_submit", ["Ctrl+Enter", "Command+Enter"], (wildcard) => {
+      /* Preprocessing of repl value to get the "last" part to send to server */
+      let strs = self._replValue().split(">>>").slice(-1)[0],
+          idxs = Util.getIndicesOf("\n", strs),
+          lines = strs.substring(idxs[0]).split("\n"),
+          send = Util.removeEmptyLines(strs.substring(idxs[0]));
+         
+      console.log("SEND: " + send);
+
+      let editorState = {
+        exp: send,
+        lang: self.state.replLanguage.Server
+      };
+      // parse exp to get the last thing
+      self.handleReplRequest(editorState);
+    });
+
     // editor shortcuts -------------------------------------------------------------------------------
     ShortcutUtils.addShortcut("editor", "toggle_reference", "F4", (wildcard) => {
       let editor = self._getRawEditor(),

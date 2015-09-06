@@ -60,7 +60,7 @@ module.exports = React.createClass({
 
   onChange: function() {
     let value = this.editor.getValue();
-    console.log("editor value changed: " + value);
+    console.log("the editor value changed: " + value);
 
     if (this.props.onChange) {
       this.props.onChange(value);
@@ -81,6 +81,7 @@ module.exports = React.createClass({
 
   componentDidMount: function() {
     this.editor = ace.edit(this.props.name);
+    this.editor.$blockScrolling = Infinity;
     this.editor.on('change', this.onChange);
     this.editor.setValue(this.props.value, 1);
 
@@ -89,8 +90,9 @@ module.exports = React.createClass({
 
   componentWillReceiveProps: function(nextProps) {
     if (this.editor.getValue() !== nextProps.value) {
-      this.editor.setValue(this.props.value, 1);
+      this.editor.setValue(nextProps.value, 1);
     }
+
 
     onPropsSet(this.editor, nextProps);
   },
