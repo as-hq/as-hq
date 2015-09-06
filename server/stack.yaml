@@ -60,6 +60,8 @@ extra-deps:
 - data-default-instances-old-locale-0.0.1
 - mmorph-1.0.4
 
+- system-filepath-0.4.13.4
+
 - monad-loops-0.4.3
 
 

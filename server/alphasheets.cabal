@@ -59,6 +59,7 @@ library
                      , data-default
                      , monad-loops
                      , uuid
+                     , system-filepath
   default-language:    Haskell2010
   default-extensions:  QuasiQuotes
                        FlexibleContexts

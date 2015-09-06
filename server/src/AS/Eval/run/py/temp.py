@@ -1,3 +1,7 @@
+# ::TODO::
+# if we want to keep this file: 
+#   os.getcwd() + "/repl_record.py"
+# is the thing we want
 
 execfile("/home/riteshr/alphasheets/mysql-as-instance/AS/Eval/run/py/repl_record.py")
 from AS.stdlib import *
