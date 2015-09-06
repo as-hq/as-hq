@@ -44,17 +44,19 @@ export default React.createClass({
   },
 
   render() {
-    let {labelElement, labelStyle, width, height, menuItems} = this.props;
+    let {labelElement, labelStyle, width, height, menuItems, style, buttonStyle, primary} = this.props;
 
     let button = (
       <ASButton
         labelElement={labelElement}
         labelStyle={labelStyle}
-        backgroundColor={(this.state.hover) ? Colors.red900 : Colors.grey800}
+        backgroundColor={primary ? null : (this.state.hover) ? Colors.red900 : Colors.grey800}
+        primary={primary}
         style={{
           minWidth: width,
           width: width,
-          height: height
+          height: height,
+          ...buttonStyle
         }}
         onMouseEnter={this._onMouseEnter}
         onMouseLeave={this._onMouseLeave}
@@ -68,12 +70,14 @@ export default React.createClass({
         desktop={true}
         openDirection={'bottom-right'}
         beforeTouchTap={this._onTouchTap}
+        onItemTouchTap={this._onItemTouchTap}
+        style={style}
         menuStyle={{
           top: height
         }}
       >
         {menuItems.map((itemTitle) =>
-          <MenuItem primaryText={itemTitle} />
+          <MenuItem primaryText={itemTitle} key={itemTitle} />
         )}
       </ASIconMenu>
     );
@@ -92,5 +96,9 @@ export default React.createClass({
     if (dd.state.open) {
       dd.close();
     }
+  },
+
+  _onItemTouchTap(e, item) {
+    this.props.onItemClick(item.key);
   }
 });

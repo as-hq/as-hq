@@ -36,22 +36,23 @@ export default React.createClass({
   },
 
   render() {
-    let {width, height, iconClassName, label, menuItems} = this.props;
+    let {primary, width, height, iconClassName, label, menuItems, style, buttonStyle, onItemClick} = this.props;
+
+    let lineHeight = (this.props.height) ? this.props.height :
+      (this.props.style && this.props.style.height) ?
+      this.props.style.height : this.getThemeButton().height + 'px';
 
     let labelElementStyle = {
       position: 'relative',
       opacity: 1,
-      fontSize: '10px',
+      fontSize: (buttonStyle && buttonStyle.fontSize) ? buttonStyle.fontSize : '10px',
       letterSpacing: 0,
       textTransform: 'uppercase',
       fontWeight: Typography.fontWeightMedium,
       margin: 0,
       padding: '0px 7px',
       userSelect: 'none',
-      lineHeight:
-        (this.props.height) ? this.props.height :
-        (this.props.style && this.props.style.height) ?
-        this.props.style.height : this.getThemeButton().height + 'px',
+      lineHeight: lineHeight,
       color:  this._getLabelColor()
     };
 
@@ -63,7 +64,7 @@ export default React.createClass({
               style={{
                 float: 'left',
                 fontSize: '18px',
-                lineHeight: '24px'
+                lineHeight: lineHeight
               }}
               className={iconClassName}
               color={Colors.grey50}
@@ -77,19 +78,23 @@ export default React.createClass({
               style={{
                 float: 'right',
                 fontSize: '18px',
-                lineHeight: '24px'
+                lineHeight: lineHeight
               }}
               className="muidocs-icon-navigation-expand-more"
               color={Colors.grey50}
             />
           </div>
         }
+        primary={primary}
         labelStyle={{
           padding: '0px 7px'
         }}
+        style={style}
+        buttonStyle={buttonStyle}
         width={width}
         height={height}
         menuItems={menuItems}
+        onItemClick={onItemClick}
       />
     );
   }

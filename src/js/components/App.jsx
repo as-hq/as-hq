@@ -1,4 +1,5 @@
 import React, {PropTypes} from 'react';
+import ASTreeNav from './ASTreeNav.jsx';
 import ASEvaluationPane from './ASEvaluationPane.jsx';
 import ASSplashPane from './ASSplashPane.jsx';
 import {AppCanvas, LeftNav, Paper, Styles} from 'material-ui';
@@ -12,9 +13,12 @@ const ThemeManager = new Styles.ThemeManager();
 export default React.createClass({
 
   /* When mounting, send a message to the backend to signify a connection */
-  componentDidMount() {
+  componentWillMount() {
     ThemeManager.setTheme(ThemeManager.types.DARK);
     API.sendInitialMessage();
+  },
+  componentDidMount() {
+
   },
   getInitialState() {
     return {
@@ -67,7 +71,20 @@ export default React.createClass({
           onAlphaButtonTap={this._onAlphaButtonTap}
         />
         <ASRibbon activeTab={this.state.activeRibbonTab} />
-        {panes[this.state.currentPane]}
+        <div style={{display: 'table', width: '100%', height: this.getPaneHeight()}}>
+          <div style={{display: 'table-cell', width: '10%', height: '100%', verticalAlign: 'top'}}>
+            <ASTreeNav
+              onDocumentOpen={this._onDocumentOpen}
+              onSheetCreate={this._onSheetCreate}
+              onWorkbookCreate={this._onWorkbookCreate}
+            />
+          </div>
+          <div style={{display: 'table-cell', width: '80%'}}>
+            {panes[this.state.currentPane]}
+          </div>
+          <div style={{display: 'table-cell', width: '10%'}}>
+          </div>
+        </div>
       </div>
     );
   },
@@ -93,5 +110,20 @@ export default React.createClass({
         this.setState({ currentPane: pane, initEvalInfo: initInfo });
         break;
     }
+  },
+
+  _onDocumentOpen(documentId) {
+    //TODO
+    console.log('App on document open', documentId);
+  },
+
+  _onSheetCreate() {
+    //TODO
+    console.log('Created sheet');
+  },
+
+  _onWorkbookCreate() {
+    //TODO
+    console.log('Created workbook');
   }
 });
