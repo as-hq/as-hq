@@ -119,7 +119,7 @@ initDebug :: IO ()
 initDebug = do
   let sheetid = T.pack "TEST_SHEET_ID"
   DB.setSheet $ Sheet sheetid "TEST_SHEET_NAME" (Blacklist [])
-  DB.setWorkbook $ Workbook "TEST_WORKBOOK_NAME" sheetid
+  DB.setWorkbook $ Workbook "TEST_WORKBOOK_NAME" [sheetid]
   return  ()
 
 application :: MVar ServerState -> WS.ServerApp

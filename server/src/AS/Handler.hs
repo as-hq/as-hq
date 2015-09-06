@@ -57,8 +57,12 @@ sendToOriginalUser user msg = WS.sendTextData (userConn user) (encode (U.updateM
 
 handleNew :: ASUser -> MVar ServerState -> ASMessage -> IO ()
 handleNew user state msg = case (payload msg) of 
-  (PayloadS sheet) -> DB.createSheet sheet >>= 
-    (\newSheet -> sendToOriginalUser user (Message (userId user) Update NoResult (PayloadS newSheet)))
+  (PayloadS sheet) -> do
+    newSheet <- DB.createSheet sheet 
+    let wb = Workbook "Untitled" [sheetId newSheet] -- TODO don't hardcode; flow needs to change.
+    DB.setWorkbook wb
+    let wbs = U.matchSheets [wb] [newSheet]
+    sendToOriginalUser user (Message (userId user) Update NoResult (PayloadWorkbookSheets wbs))
   (PayloadWB workbook) -> DB.setWorkbook workbook >> return ()
 
 handleOpen :: ASUser -> MVar ServerState -> ASMessage -> IO ()
