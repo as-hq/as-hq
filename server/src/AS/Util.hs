@@ -126,12 +126,24 @@ getUniqueId = return . T.pack . U.toString =<< nextRandom
 
 intersectViewingWindows :: [ASCell] -> [ASWindow] -> [ASCell]
 intersectViewingWindows cells vws = concat $ map (intersectViewingWindow cells) vws 
-
-intersectViewingWindow :: [ASCell] -> ASWindow -> [ASCell]
-intersectViewingWindow cells vw = filter (inVW vw) cells
   where
+    intersectViewingWindow :: [ASCell] -> ASWindow -> [ASCell]
+    intersectViewingWindow cells vw = filter (inVW vw) cells
     inVW :: ASWindow -> ASCell -> Bool
     inVW (Window wSheetId (tlc, tlr) (brc, brr)) (Cell (Index cSheetId (col,row)) _ _ _) = ((wSheetId==cSheetId) && (inRange col tlc (brc-tlc)) && (inRange row tlr (brr-tlr)))
+    inRange :: Int -> Int -> Int -> Bool
+    inRange elem start len = ((elem >= start) && (elem <= (start + len)))
+
+-- new function, so that we don't have to do the extra filter/lookup by using just one
+intersectViewingWindowsLocs :: [ASLocation] -> [ASWindow] -> [ASLocation]
+intersectViewingWindowsLocs locs vws = concat $ map (intersectViewingWindow dlocs) vws 
+  where
+    dlocs = concat $ map decomposeLocs locs
+    intersectViewingWindow :: [ASLocation] -> ASWindow -> [ASLocation]
+    intersectViewingWindow locs vw = filter (inVW vw) locs
+    inVW :: ASWindow -> ASLocation -> Bool
+    inVW (Window wSheetId (tlc, tlr) (brc, brr)) (Index cSheetId (col,row)) = 
+      ((wSheetId==cSheetId) && (inRange col tlc (brc-tlc)) && (inRange row tlr (brr-tlr)))
     inRange :: Int -> Int -> Int -> Bool
     inRange elem start len = ((elem >= start) && (elem <= (start + len)))
 

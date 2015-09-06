@@ -91,7 +91,7 @@ deleteLocs locs =
     do
         conn <- connect cInfo 
         runRedis conn $ do
-            _ <- mapM_ DU.deleteLocRedis locs
+            _ <- mapM_ DU.deleteLocRedis degenerateLocs
             return ()
 
 locationsExist :: [ASLocation] -> IO [Bool]

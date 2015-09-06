@@ -41,6 +41,14 @@ broadcastFiltered (Message uid _ _ (PayloadCL cells)) users = mapM_ (sendCells c
       let msg = Message uid Update Success (PayloadCL cells')
       putStrLn $ "Sending msg to client: " ++ (show msg)
       WS.sendTextData (userConn user) (encode msg)
+broadcastFiltered (Message uid a r (PayloadLL locs)) users = mapM_ (sendLocs locs) users 
+  where
+    sendLocs :: [ASLocation] -> ASUser -> IO ()
+    sendLocs locs user = do 
+      let locs' = intersectViewingWindowsLocs locs (userWindows user)
+      let msg = Message uid Update Success (PayloadLL locs')
+      putStrLn $ "Sending msg to client: " ++ (show msg)
+      WS.sendTextData (userConn user) (encode msg)
 broadcastFiltered (Message uid _ _ (PayloadCommit c)) users = mapM_ (sendCommit c) users
   where
     sendCommit :: ASCommit -> ASUser -> IO ()
