@@ -39,7 +39,9 @@ importFile lang (name, cmd, loc) =
 			
 
 getTemplate :: ASLanguage -> IO String
-getTemplate lang = P.readFile $ getEvalPath ++ file
+getTemplate lang = do
+	path <- getEvalPath
+	P.readFile $ path ++ file
 	where
 		file = case lang of 
 			R 		-> "r/template.r"
@@ -51,7 +53,9 @@ getTemplate lang = P.readFile $ getEvalPath ++ file
 			Excel 	-> "excel/template.py"
 
 getReplTemplate :: ASLanguage -> IO String
-getReplTemplate lang = P.readFile $ getEvalPath ++ file
+getReplTemplate lang = do
+	path <- getEvalPath
+	P.readFile $ path ++ file
 	where
 		file = case lang of 
 			R 		-> "r/template_repl.r"
@@ -62,31 +66,39 @@ getReplTemplate lang = P.readFile $ getEvalPath ++ file
 			Java	-> "java/Template_repl.java"
 			Excel 	-> "excel/template_repl.py"
 
-getRunFile :: ASLanguage -> String
-getRunFile lang = getEvalPath ++ case lang of 
-	R 		-> "r/temp.r"
-	Python 	-> "py/temp.py"
-	OCaml 	-> "ocaml/temp.ml"
-	SQL 	-> "sql/temp.py"
-	CPP 	-> "cpp/temp.cpp"
-	Java 	-> "java/Temp.java"
-	Excel 	-> "excel/temp.py"
+getRunFile :: ASLanguage -> IO String
+getRunFile lang = do
+	path <- getEvalPath 
+	return $ path ++ case lang of 
+		R 		-> "r/temp.r"
+		Python 	-> "py/temp.py"
+		OCaml 	-> "ocaml/temp.ml"
+		SQL 	-> "sql/temp.py"
+		CPP 	-> "cpp/temp.cpp"
+		Java 	-> "java/Temp.java"
+		Excel 	-> "excel/temp.py"
 
-getRunReplFile :: ASLanguage -> String
-getRunReplFile lang = getEvalPath ++ case lang of 
-	R 		-> "r/temp_repl.r"
-	Python 	-> "py/temp_repl.py"
-	OCaml 	-> "ocaml/temp_repl.ml"
-	SQL 	-> "sql/temp_repl.py"
+getRunReplFile :: ASLanguage -> IO String
+getRunReplFile lang = do
+	path <- getEvalPath 
+	return $ path ++ case lang of 
+		R 		-> "r/temp_repl.r"
+		Python 	-> "py/temp_repl.py"
+		OCaml 	-> "ocaml/temp_repl.ml"
+		SQL 	-> "sql/temp_repl.py"
 
 getReplRecord :: ASLanguage -> IO String
-getReplRecord lang = liftIO $ S.readFile $ getEvalPath ++ file
+getReplRecord lang = do
+	path <- getEvalPath
+	S.readFile $ path ++ file
 	where
 		file = case lang of 
 			Python 	-> "py/repl_record.py"
 
-getReplRecordFile :: ASLanguage -> String
-getReplRecordFile lang = getEvalPath ++ file
+getReplRecordFile :: ASLanguage -> IO String
+getReplRecordFile lang = do
+	path <- getEvalPath 
+	return $ path ++ file
 	where
 		file = case lang of 
 			Python 	-> "py/repl_record.py"
@@ -105,15 +117,17 @@ getRunnerCmdRepl :: ASLanguage -> String
 getRunnerCmdRepl lang = case lang of 
 	Python 	-> "python "
 
-getRunnerArgs :: ASLanguage -> [String]
-getRunnerArgs lang = case lang of 
-	OCaml -> ["-o " ++ path ++ "test"]
-		where 
-			path = getEvalPath ++ "ocaml/"
-	CPP -> ["-o " ++ path ++ "testCPP && " ++ path ++ "testCPP"]
-		where
-			path = getEvalPath ++ "cpp/"
-	otherwise -> [] -- in case we ever use more args
+getRunnerArgs :: ASLanguage -> IO [String]
+getRunnerArgs lang = do
+	evalPath <- getEvalPath
+	return $ case lang of 
+		OCaml -> ["-o " ++ path ++ "test"]
+			where 
+				path = evalPath ++ "ocaml/"
+		CPP -> ["-o " ++ path ++ "testCPP && " ++ path ++ "testCPP"]
+			where
+				path = evalPath ++ "cpp/"
+		otherwise -> [] -- in case we ever use more args
 
 layoutCodeFile :: ASLanguage -> (String, String, String) -> String
 layoutCodeFile lang (imports, template, cmd) = case lang of 
@@ -140,15 +154,17 @@ formatRunArgs :: ASLanguage -> String -> String -> [String] -> String
 formatRunArgs lang cmd filename args = case lang of 
 	otherwise -> cmd ++ filename ++ " " ++ (L.intercalate " " args)
 
-addCompileCmd :: ASLanguage -> String -> String
-addCompileCmd lang cmd = case lang of 
-	OCaml -> cmd ++ "; " ++ path ++ "test"
-		where
-			path = getEvalPath ++ "ocaml/"
-	Java -> "cd "++ path ++ " && "++cmd ++ " && java Temp"
-		where
-			path = getEvalPath ++ "java/"
-	otherwise -> cmd
+addCompileCmd :: ASLanguage -> String -> IO String
+addCompileCmd lang cmd = do
+	evalPath <- getEvalPath
+	return $ case lang of 
+		OCaml -> cmd ++ "; " ++ path ++ "test"
+			where
+				path = evalPath ++ "ocaml/"
+		Java -> "cd "++ path ++ " && "++cmd ++ " && java Temp"
+			where
+				path = evalPath ++ "java/"
+		otherwise -> cmd
 
 --addCompileCmdRepl :: ASLanguage -> String -> String
 --addCompileCmdRepl lang cmd = case lang of 

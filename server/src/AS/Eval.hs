@@ -115,29 +115,33 @@ doEval lang str = case lang of
 -- File Manipulation
 
 writeExecFile :: ASLanguage -> String -> IO ()
-writeExecFile lang contents = writeFile ((getRunFile lang) :: System.IO.FilePath) contents
+writeExecFile lang contents = getRunFile lang >>= \f -> writeFile (f :: System.IO.FilePath) contents
 
 writeReplFile :: ASLanguage -> String -> IO ()
-writeReplFile lang contents = writeFile ((getRunReplFile lang) :: System.IO.FilePath) contents
+writeReplFile lang contents = getRunReplFile lang >>= \f -> writeFile (f :: System.IO.FilePath) contents
 
 writeReplRecord :: ASLanguage -> String -> IO ()
-writeReplRecord lang contents = writeFile ((getReplRecordFile lang) :: System.IO.FilePath) contents
+writeReplRecord lang contents = getReplRecordFile lang >>= \f -> writeFile (f :: System.IO.FilePath) contents
 
 clearReplRecord :: ASLanguage -> IO ()
-clearReplRecord lang = writeFile ((getReplRecordFile lang) :: System.IO.FilePath)  ""
+clearReplRecord lang = getReplRecordFile lang >>= \f -> writeFile (f :: System.IO.FilePath)  ""
 
 -----------------------------------------------------------------------------------------------------------------------
 -- Evaluation in progress
 
 runFile :: ASLanguage -> IO String
 runFile lang = do
-	let terminalCmd = addCompileCmd lang $ formatRunArgs lang (getRunnerCmd lang) (getRunFile lang) (getRunnerArgs lang)
+	args <- getRunnerArgs lang
+	file <- getRunFile lang
+	terminalCmd <- addCompileCmd lang $ formatRunArgs lang (getRunnerCmd lang) file args
 	res <- eval terminalCmd lang
 	return res
 
 runReplFile :: ASLanguage -> IO String
 runReplFile lang = do
-	let terminalCmd = formatRunArgs lang (getRunnerCmdRepl lang) (getRunReplFile lang) (getRunnerArgs lang)
+	args <- getRunnerArgs lang
+	file <- getRunReplFile lang
+	let terminalCmd = formatRunArgs lang (getRunnerCmdRepl lang) file args
 	res <- eval terminalCmd lang
 	return res
 
