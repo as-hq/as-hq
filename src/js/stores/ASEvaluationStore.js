@@ -139,8 +139,10 @@ const ASEvaluationStore = assign({}, BaseStore, {
     if (_data.activeCell.cellExpression.tag === "Reference"){
       let headCell = this.getReferenceCell(_data.activeCell.cellExpression),
           headLoc = headCell.cellLocation.index,
-          listLength = headCell.cellValue.contents.length;
-      _data.activeCell.cellExpression.dependencies = Util.getListDependency(headLoc, listLength);
+          height = headCell.cellValue.contents.length,
+          width = headCell.cellValue.contents[0].contents.length || 1;
+       console.log("head location value: " + JSON.stringify(headCell.cellValue));
+      _data.activeCell.cellExpression.dependencies = Util.getListDependency(rng, headLoc, height, width);
     } else
       _data.activeCell.cellExpression.dependencies = Util.parseDependencies(xp);
   },

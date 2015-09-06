@@ -105,15 +105,15 @@ export default React.createClass({
   },
   /* Called by eval pane's onChange method, when eval pane receives a change event from the store */
   updateCellValues(clientCells){
-    console.log("About to display cells in sheet: " + JSON.stringify(clientCells));
+    // console.log("About to display cells in sheet: " + JSON.stringify(clientCells));
     let model = this._getBehavior();
     for (var key in clientCells){ // update the hypergrid values
       let c = clientCells[key];
       let gridCol = Converter.clientCellGetCol(c)-1; // hypergrid starts indexing at 0
       let gridRow = Converter.clientCellGetRow(c)-1; // hypergrid starts indexing at 0
       let display = Converter.clientCellGetDisplay(c);
-      console.log("Updating display value: " + gridCol + " " + gridRow + " " + display);
-      model.setValue(gridCol,gridRow,display);
+      // console.log("Updating display value: " + gridCol + " " + gridRow + " " + display);
+      model.setValue(gridCol,gridRow,display.toString());
       let overlay = Util.getOverlay(c.cellValue, gridCol, gridRow);
       if (overlay)
         this.addOverlay(overlay);
@@ -248,6 +248,8 @@ export default React.createClass({
       // initialize custom config attributes for every cell
       // (hypergrid reuses the config object for performance; attributes must be set explicitly null)
       config.paintBorders = [];
+
+      // console.log(config.value)
 
       // tag-based cell styling
       if (cell.cellTags.length > 0) {

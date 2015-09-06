@@ -77,6 +77,7 @@ export default React.createClass({
     Shortcuts.addShortcuts(this);
   },
   componentWillUnmount() {
+    API.sendClose();
     Store.removeChangeListener(this._onChange);
   },
   addError(cv){
