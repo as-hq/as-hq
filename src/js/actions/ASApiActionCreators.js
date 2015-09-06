@@ -54,6 +54,8 @@ wss.onmessage = function (event) {
           type: ActionTypes.GOT_UPDATED_CELLS,
           updatedCells: cells
         });
+      } else {
+        //TODO
       }
       // TODO cases for sheets and workbooks
       break;
@@ -106,6 +108,10 @@ export default {
     this.waitForSocketConnection(wss,function(){
       wss.send(JSON.stringify(msg));
     })
+  },
+
+  sendClose() {
+    wss.close();
   },
 
   /**************************************************************************************************************************/
