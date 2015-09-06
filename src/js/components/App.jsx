@@ -112,9 +112,10 @@ export default React.createClass({
     }
   },
 
-  _onDocumentOpen(documentId) {
-    //TODO
-    console.log('App on document open', documentId);
+  _onDocumentOpen(sheet) {
+    //TODO add sheet name to tabs
+    this.refs.evalPane.openSheet(sheet);
+    console.log('App on document open', sheet.sheetId);
   },
 
   _onSheetCreate() {

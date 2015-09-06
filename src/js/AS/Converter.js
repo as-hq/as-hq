@@ -3,30 +3,14 @@ import Store from '../stores/ASEvaluationStore';
 import Util from '../AS/Util.js'
 
 export default {
-  clientSheetFromServerFormat(sh) {
-    return {
-      id: sh.sheetId,
-      name: sh.sheetName,
-      permissions: sh.sheetPermissions
-    }
-  },
-
-  clientWorkbookFromServerFormat(wb) {
-    return {
-      id: wb.wsId,
-      name: wb.wsName,
-      sheets: wb.wsSheets.map(this.clientSheetFromServerFormat)
-    };
-  },
 
   clientWorkbooksFromServerMessage(msg) {
     let {payload} = msg;
     let {contents, tag} = payload;
 
     if (tag === 'PayloadWorkbookSheets') {
-      return contents.reduce((acc, cur) => {
-        let wb = this.clientWorkbookFromServerFormat(cur);
-        acc[wb.id] = wb;
+      return contents.reduce((acc, wb) => {
+        acc[wb.wsName] = wb;
         return acc;
       }, {});
     } else {
@@ -299,6 +283,17 @@ export default {
   },
   createClearRequestForServer(){
     return this.toServerMessageFormat(Constants.ServerActions.Clear, "PayloadN", []);
+  },
+
+  createSheetRequest(sheetName) {
+    return this.toServerMessageFormat(Constants.ServerActions.New, "PayloadS", {
+      sheetId: "",
+      sheetName: sheetName,
+      sheetPermissions: {
+        tag: 'Blacklist',
+        contents: []
+      }
+    });
   }
 
 }

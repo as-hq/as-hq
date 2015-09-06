@@ -87,6 +87,7 @@ export default React.createClass({
 
   render() {
     let {workbooks, open} = this.state;
+    console.log(workbooks);
     let dropdownArrowClass = (id) => open[id] ? "keyboard_arrow_down" : 'keyboard_arrow_right';
 
     return (
@@ -109,9 +110,9 @@ export default React.createClass({
           onItemClick={this._onClickNew}
           menuItems={['Sheet', 'Workbook']}
         />
-        {Object.keys(workbooks).map((wbid) => {
-          let wb = workbooks[wbid];
-          let {name, sheets, id} = wb;
+        {Object.keys(workbooks).map((key) => {
+          let wb = workbooks[key];
+          let {wsSheets, wsName} = wb;
 
           return (
             <div
@@ -122,17 +123,17 @@ export default React.createClass({
             >
               <div
                 style={{ height: '24px', cursor: 'pointer' }}
-                onMouseOver={this._onMouseOverNavItem(id)}
-                onMouseOut={this._onMouseOutNavItem(id)}
+                onMouseOver={this._onMouseOverNavItem(wsName)}
+                onMouseOut={this._onMouseOutNavItem(wsName)}
               >
-                <HoverIndicator color={this._isHovered(id) ? Colors.pink700 : null} />
+                <HoverIndicator color={this._isHovered(wsName) ? Colors.pink700 : null} />
                 <div
-                  onClick={this._onDropdown(id)}
+                  onClick={this._onDropdown(wsName)}
                   style={{
                     display: 'inline-block',
                     paddingLeft: '10px',
                     width: 'calc(100% - 4px)',
-                    backgroundColor: this._isHovered(id) ? Colors.grey700 : null
+                    backgroundColor: this._isHovered(wsName) ? Colors.grey700 : null
                   }}>
                   <FontIcon
                     className="material-icons"
@@ -142,7 +143,7 @@ export default React.createClass({
                       display: 'inline-block'
                     }}
                   >
-                    {dropdownArrowClass(id)}
+                    {dropdownArrowClass(wsName)}
                   </FontIcon>
                   <WorkbookIcon />
                   <div style={{
@@ -151,22 +152,22 @@ export default React.createClass({
                     lineHeight: '2',
                     display: 'inline-block'
                   }}>
-                    {name}
+                    {wsName}
                   </div>
                 </div>
               </div>
               {
-                open[id] ? (
+                open[wsName] ? (
                   <div>
-                    {sheets.map((s) => //TODO make sure it's a list
+                    {wsSheets.map((s) => //TODO make sure it's a list
                       <div
-                        onMouseOver={this._onMouseOverNavItem(s.id)}
-                        onMouseOut={this._onMouseOutNavItem(s.id)}
+                        onMouseOver={this._onMouseOverNavItem(s.sheetId)}
+                        onMouseOut={this._onMouseOutNavItem(s.sheetId)}
                         style={{
                           height: '24px',
                           cursor: 'pointer'
                         }}>
-                        <HoverIndicator color={this._isHovered(s.id) ? Colors.pink700 : null} />
+                        <HoverIndicator color={this._isHovered(s.shetId) ? Colors.pink700 : null} />
                         <div
                           style={{
                             display: 'inline-block',
@@ -175,16 +176,16 @@ export default React.createClass({
                             verticalAlign: 'middle',
                             paddingLeft: '41px',
                             width: 'calc(100% - 4px)',
-                            backgroundColor: this._isHovered(s.id) ? Colors.grey700 : null
+                            backgroundColor: this._isHovered(s.sheetId) ? Colors.grey700 : null
                           }}
-                          onClick={this._onClick(s.id)}
+                          onClick={this._onClick(s)}
                         >
                           <SheetIcon />
                           <div style={{
                             verticalAlign: 'middle',
                             display: 'inline-block'
                           }}>
-                            {s.name}
+                            {s.sheetName}
                           </div>
                         </div>
                       </div>
@@ -212,9 +213,9 @@ export default React.createClass({
     });
   },
 
-  _onClick(id) {
+  _onClick(s) {
     return (() => {
-      this.props.onDocumentOpen(id);
+      this.props.onDocumentOpen(s);
     });
   },
 

@@ -133,6 +133,12 @@ const ASEvaluationStore = assign({}, BaseStore, {
   setCurrentSheet(sht) {
     _data.currentSheet = sht;
   },
+  setCurrentSheetById(sheetid) {
+    _data.currentSheet = {sheetId: sheetid, sheetName: "", sheetPermissions: {
+      tag: 'Blacklist',
+      contents: []
+    }};
+  },
   setActiveSelection(rng, xp) {
     _data.activeSelection = rng;
     _data.activeCell = this.getCellAtLoc(rng.col, rng.row);
@@ -224,6 +230,10 @@ const ASEvaluationStore = assign({}, BaseStore, {
       _data.allCells[sheetid][col][row] = emptyCell;
       _data.lastUpdatedCells.push(emptyCell);
     }
+  },
+
+  clearSheetCacheById(sheetid) {
+    _data.allCells[sheetid] = null;
   },
 
   /**************************************************************************************************************************/

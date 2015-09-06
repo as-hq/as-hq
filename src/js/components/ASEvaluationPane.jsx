@@ -177,6 +177,12 @@ export default React.createClass({
     API.sendEvalRequest(selectedRegion, editorState);
   },
 
+  openSheet(sheet) {
+    Store.setCurrentSheet(sheet);
+    this.refs.spreadsheet.initializeBlank();
+    this.refs.spreadsheet.getInitialData();
+  },
+
   /**************************************************************************************************************************/
   /* The eval pane is the code editor plus the spreadsheet */
   getEditorHeight() { // for future use in resize events

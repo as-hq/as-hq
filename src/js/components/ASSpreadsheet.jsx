@@ -77,7 +77,6 @@ export default React.createClass({
     return { range: {row: vs+1, col: hs+1, row2: vs + rows.length, col2: hs + cols.length}, width: cols.length, height: rows.length };
   },
   getViewingWindowWithCache() {
-    console.log("sdF");
     let vwindow = this.getViewingWindow(), rng = vwindow.range;
     rng = {row: rng.row - Constants.scrollCacheY, col: rng.col - Constants.scrollCacheY,
             row2: rng.row2 + Constants.scrollCacheY, col2: rng.col2 + Constants.scrollCacheX};
