@@ -46,16 +46,19 @@ wss.onmessage = function (event) {
       });
       break;
     case "Update":
-      if (msg.result === "Success" ||
-          msg.payload.tag === "PayloadC" ||
+      if (msg.payload.tag === "PayloadC" ||
           msg.payload.tag === "PayloadCL"){
         let cells = Converter.clientCellsFromServerMessage(msg);
         Dispatcher.dispatch({
           type: ActionTypes.GOT_UPDATED_CELLS,
           updatedCells: cells
         });
-      } else {
-        //TODO
+      } else if (msg.payload.tag === "PayloadWorkbookSheets") {
+        let workbooks = Converter.clientWorkbooksFromServerMessage(msg);
+        Dispatcher.dispatch({
+          type: ActionTypes.GOT_UPDATED_WORKBOOKS,
+          workbooks: workbooks
+        });
       }
       // TODO cases for sheets and workbooks
       break;
@@ -68,6 +71,7 @@ wss.onmessage = function (event) {
         newCells: newCells
       });
       break;
+    //xcxc
     case "Clear":
       Dispatcher.dispatch({
         type: ActionTypes.CLEARED,
@@ -87,27 +91,38 @@ export default {
   /**************************************************************************************************************************/
   /* Sending acknowledge message to server */
 
-  waitForSocketConnection(socket, callback){
-    setTimeout(
-        function () {
-            if (socket.readyState === 1) {
-                if(callback != null){
-                    callback();
-                }
-                return;
+  waitForSocketConnection(socket, callback) {
+    setTimeout(() => {
+      if (socket.readyState === 1) {
+        if(callback != null){
+          callback();
+        }
+        return;
+      } else {
+        this.waitForSocketConnection(socket, callback);
+      }
+    }, 5);
+  }, // polling socket for readiness: 5 ms
 
-            } else {
-                this.waitForSocketConnection(socket, callback);
-            }
-
-        }, 5)}, // polling socket for readiness: 5 ms
+  send(msg) {
+    this.waitForSocketConnection(wss, () => {
+      wss.send(JSON.stringify(msg));
+    });
+  },
 
   sendInitialMessage(){
     let msg = Converter.makeInitMessage();
     console.log("Sending init message: " + JSON.stringify(msg));
-    this.waitForSocketConnection(wss,function(){
-      wss.send(JSON.stringify(msg));
-    })
+    this.send(msg);
+  },
+
+  /**************************************************************************************************************************/
+  /* Sending admin-related requests to the server */
+
+  sendGetWorkbooks() {
+    console.log("Getting workbooks");
+    let msg = Converter.toServerMessageFormat('Get', 'PayloadList', 'WorkbookSheets');
+    this.send(msg);
   },
 
   sendClose() {
@@ -123,7 +138,7 @@ export default {
     let cell = Converter.clientToASCell(selRegion,editorState);
     let msg = Converter.createEvalRequestFromASCell(cell);
     console.log('Sending msg to server: ' + JSON.stringify(msg));
-    wss.send(JSON.stringify(msg));
+    this.send(msg);
   },
 
   /**************************************************************************************************************************/
@@ -131,21 +146,21 @@ export default {
 
   sendUndoRequest(){
     let msg = Converter.createUndoRequestForServer();
-    wss.send(JSON.stringify(msg));
+    this.send(msg);
   },
   sendRedoRequest(){
     let msg = Converter.createRedoRequestForServer();
-    wss.send(JSON.stringify(msg));
+    this.send(msg);
   },
   sendClearRequest(){
     let msg = Converter.createClearRequestForServer();
-    wss.send(JSON.stringify(msg));
+    this.send(msg);
   },
   sendCopyRequest(locs) {
     let sLocs = [Converter.clientToASLocation(locs[0]), Converter.clientToASLocation(locs[1])];
     console.log(sLocs);
     let msg = Converter.toServerMessageFormat(Constants.ServerActions.Copy, "PayloadLL", sLocs);
-    wss.send(JSON.stringify(msg));
+    this.send(msg);
   },
   sendDeleteRequest(locs){
     let msg = null;
@@ -158,7 +173,7 @@ export default {
       locs = Converter.clientToASLocation(locs);
       msg = Converter.toServerMessageFormat(Constants.ServerActions.Delete, "PayloadLL", [locs]);
     }
-    wss.send(JSON.stringify(msg));
+    this.send(msg);
   },
 
   /**************************************************************************************************************************/
@@ -169,18 +184,18 @@ export default {
       "tags": tags,
       "tagsLoc": Converter.clientToASLocation({col: col, row: row})
     });
-    wss.send(JSON.stringify(msg));
+    this.send(msg);
   },
   sendGetRequest(locs) {
     let msg = Converter.clientLocsToGetMessage(locs);
     console.log('Sending get message to server: ' + JSON.stringify(msg));
-    wss.send(JSON.stringify(msg));
+    this.send(msg);
   },
 
   sendOpenMessage(sheet) {
     let msg = Converter.toServerMessageFormat(Constants.ServerActions.Open, "PayloadS", sheet);
     console.log("send open message: " + JSON.stringify(msg));
-    wss.send(JSON.stringify(msg));
+    this.send(msg);
   },
 
   updateViewingWindow(vWindow) {
@@ -189,7 +204,7 @@ export default {
                                               "PayloadW",
                                               sWindow);
     console.log("send scroll message: " + JSON.stringify(msg));
-    wss.send(JSON.stringify(msg));
+    this.send(msg);
   }
 
 };

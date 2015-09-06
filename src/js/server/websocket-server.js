@@ -109,6 +109,33 @@ var fakeCellFromASLoc = function(loc) {
   }
 };
 
+var fakeWorkbookSheets = function() {
+  return [
+    {
+      tag: 'WorkbookSheet',
+      wsId: '1',
+      wsName: 'Test',
+      wsSheets: [
+        {
+          tag: 'ASSheet',
+          sheetId: '2',
+          sheetName: 'Test',
+          sheetPermissions: [
+          ]
+        },
+        {
+          tag: 'ASSheet',
+          sheetId: '3',
+          sheetName: 'Test2',
+          sheetPermissions: [
+            
+          ]
+        }
+      ]
+    }
+  ];
+};
+
 wss.on("connection", function(ws) {
   console.log("websocket connection open");
   ws.on("message", function(message){
@@ -128,6 +155,8 @@ wss.on("connection", function(ws) {
           msg = toServerMessageFormat("NoAction", "PayloadCL", result);
         else
           msg = toServerMessageFormat("NoAction", "PayloadC", result);
+      } else if (parsed.payload.tag === 'PayloadList') {
+        var msg = toServerMessageFormat('Update', 'PayloadWorkbookSheets', fakeWorkbookSheets());
       }
     } else if (parsed.action === "Evaluate") {
       var cell = null;
@@ -161,9 +190,8 @@ wss.on("connection", function(ws) {
     }
 
     ws.send(JSON.stringify(msg));
-    console.log("just sent data from server " );
+    console.log("just sent data from server ", JSON.stringify(msg));
 
   });
 
 });
-
