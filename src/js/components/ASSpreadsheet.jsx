@@ -101,7 +101,9 @@ export default React.createClass({
     // expects that the current sheet has already been set
     // e,g, by open/new dialog
     API.sendOpenMessage(Store.getCurrentSheet());
-    API.updateViewingWindow({range: {row: 1, col: 1, row2: Constants.numVisibleRows, col2: Constants.numVisibleCols}});
+    API.updateViewingWindow({range: {row: 1, col: 1,
+        row2: Constants.numVisibleRows + Constants.scrollCacheY,
+        col2: Constants.numVisibleCols + Constants.scrollCacheX}});
   },
   /* Called by eval pane's onChange method, when eval pane receives a change event from the store */
   updateCellValues(clientCells){
@@ -176,12 +178,14 @@ export default React.createClass({
         'fin-scroll-x': function (event) {
           // let {x, y} = self.getScroll();
           self.setState({scroll: self.getScroll()});
-          ActionCreator.scroll(self.getViewingWindowWithCache());
+          if ((self.getScroll()).x % 50 === 0)
+            ActionCreator.scroll(self.getViewingWindowWithCache());
           },
         'fin-scroll-y': function (event) {
           // let {x, y} = self.getScroll();
           self.setState({scroll: self.getScroll()});
-          ActionCreator.scroll(self.getViewingWindowWithCache());
+          if ((self.getScroll()).y % 50 === 0)
+            ActionCreator.scroll(self.getViewingWindowWithCache());
           }
       });
       for (var key in callbacks) {

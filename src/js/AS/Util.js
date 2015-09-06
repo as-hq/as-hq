@@ -30,7 +30,7 @@ export default {
 
   /* Used to know what to display on the sheet */
   showValue(cv) {
-    console.log("In show value: " + JSON.stringify(cv));
+    // console.log("In show value: " + JSON.stringify(cv));
     let self = this;
     switch (cv.tag) {
       case "ValueNaN":

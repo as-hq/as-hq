@@ -6,8 +6,8 @@ export default {
   // event name triggered from store, listened to by views
   CHANGE_EVENT: 'change',
 
-  scrollCacheX: 10,
-  scrollCacheY: 10,
+  scrollCacheX: 200,
+  scrollCacheY: 200,
 
   numCols: 100000,
   numRows: 100000,
