@@ -53,12 +53,17 @@ wss.onmessage = function (event) {
           type: ActionTypes.GOT_UPDATED_CELLS,
           updatedCells: cells
         });
+<<<<<<< HEAD
       } else if (msg.payload.tag === "PayloadWorkbookSheets") {
         let workbooks = Converter.clientWorkbooksFromServerMessage(msg);
         Dispatcher.dispatch({
           type: ActionTypes.GOT_UPDATED_WORKBOOKS,
           workbooks: workbooks
         });
+=======
+      } else {
+        //TODO
+>>>>>>> 0414bc4bd0afb05c0a67d14faee68dc5c1a530ad
       }
       // TODO cases for sheets and workbooks
       break;
@@ -123,6 +128,10 @@ export default {
     console.log("Getting workbooks");
     let msg = Converter.toServerMessageFormat('Get', 'PayloadList', 'WorkbookSheets');
     this.send(msg);
+  },
+
+  sendClose() {
+    wss.close();
   },
 
   /**************************************************************************************************************************/
