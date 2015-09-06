@@ -84,14 +84,14 @@ handleUpdateWindow user state (Message uid _ _ (PayloadW window)) = do
     (Just oldWindow) -> do
       let locs = U.getScrolledLocs oldWindow window 
       printTimed $ "Sending locs: " ++ (show locs)
-      mcells <- C.getScrollCells (windowSheetId window) locs
+      mcells <- DB.getCells locs
       let msg = U.getDBCellMessage user' locs mcells
       printTimed $ "Sending scroll message: " ++ (show msg)
       sendToOriginalUser user' msg
       C.modifyUser (U.updateWindow window) user' state
-      readState' <- readMVar state
-      let (Just user'') = C.getUserById (userId user) readState'
-      printTimed $ "Current user' windows after update: " ++ (show $ userWindows user'')
+      --readState' <- readMVar state
+      --let (Just user'') = C.getUserById (userId user) readState'
+      --printTimed $ "Current user' windows after update: " ++ (show $ userWindows user'')
 
 handleImport :: ASUser -> MVar ServerState -> ASMessage -> IO ()
 handleImport user state msg = return () -- TODO 
@@ -114,17 +114,17 @@ handleGet user state (PayloadLL locs) = do
   sendToOriginalUser user (U.getDBCellMessage user locs mcells) 
 handleGet user state (PayloadList Sheets) = do
   ss <- DB.getAllSheets
-  let msg = Message (userId user) Update NoResult (PayloadSS ss)
+  let msg = Message (userId user) Update Success (PayloadSS ss)
   sendToOriginalUser user msg
 handleGet user state (PayloadList Workbooks) = do
   ws <- DB.getAllWorkbooks
-  let msg = Message (userId user) Update NoResult (PayloadWBS ws)
+  let msg = Message (userId user) Update Success (PayloadWBS ws)
   sendToOriginalUser user msg
 handleGet user state (PayloadList WorkbookSheets) = do
   ws <- DB.getAllWorkbooks
   ss <- DB.getAllSheets
   let wss = U.matchSheets ws ss
-  let msg = Message (userId user) Update NoResult (PayloadWorkbookSheets wss)
+  let msg = Message (userId user) Update Success (PayloadWorkbookSheets wss)
   sendToOriginalUser user msg
 
 handleDelete :: ASUser -> MVar ServerState -> ASPayload -> IO ()

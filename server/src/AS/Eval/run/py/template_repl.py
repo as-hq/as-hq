@@ -1,5 +1,5 @@
 import os
-filename = os.getcwd() + "/repl_record.py"
+filename = os.getcwd() + "/src/AS/Eval/run/py/repl_record.py"
 execfile(filename)
 
 from AS.stdlib import *
