@@ -56,47 +56,47 @@ import Data.List.Split
 ----------------------------------------------------------------------------------------------------------------------
 -- | Cells
 
-getCell :: ASLocation -> IO (Maybe ASCell)
-getCell loc = return . head =<< getCells [loc]
+getCell :: Connection -> ASLocation -> IO (Maybe ASCell)
+getCell conn loc = return . head =<< getCells conn [loc]
 
-getCells :: [ASLocation] -> IO [Maybe ASCell]
-getCells [] = return []
-getCells locs = 
+getCells :: Connection -> [ASLocation] -> IO [Maybe ASCell]
+getCells _ [] = return []
+getCells conn locs = 
   let dlocs = concat $ map U.decomposeLocs locs in 
   do
-    conn <- connect cInfo 
+    printTimed "redis about to run"
     runRedis conn $ do
-        cells <- mapM DU.getCellRedis dlocs
-        return cells
+      liftIO $ printTimed "redis about to get cells"
+      cells <- mapM DU.getCellRedis dlocs
+      liftIO $ printTimed "redis got cells"
+      return cells
 
-setCell :: ASCell -> IO ()
-setCell c = setCells [c]
+setCell :: Connection -> ASCell -> IO ()
+setCell conn c = setCells conn [c]
 
-setCells :: [ASCell] -> IO ()
-setCells [] = return ()
-setCells cells = do
-    conn <- connect cInfo 
+setCells :: Connection -> [ASCell] -> IO ()
+setCells _ [] = return ()
+setCells conn cells = do
     runRedis conn $ do
-        _ <- mapM_ DU.setCellRedis cells
+        mapM_ DU.setCellRedis cells
+        liftIO $ printTimed "redis set cells"
         return ()
 
-deleteCells :: [ASCell] -> IO ()
-deleteCells [] = return ()
-deleteCells cells = deleteLocs $ map cellLocation cells
+deleteCells :: Connection -> [ASCell] -> IO ()
+deleteCells _ [] = return ()
+deleteCells conn cells = deleteLocs conn $ map cellLocation cells
 
-deleteLocs :: [ASLocation] -> IO ()
-deleteLocs [] = return ()
-deleteLocs locs = 
+deleteLocs :: Connection -> [ASLocation] -> IO ()
+deleteLocs _ [] = return ()
+deleteLocs conn locs = 
     let degenerateLocs = concat $ map U.decomposeLocs locs in
     do
-        conn <- connect cInfo 
         runRedis conn $ do
             _ <- mapM_ DU.deleteLocRedis degenerateLocs
             return ()
 
-locationsExist :: [ASLocation] -> IO [Bool]
-locationsExist locs = do
-  conn <- connect cInfo 
+locationsExist :: Connection -> [ASLocation] -> IO [Bool]
+locationsExist conn locs = do
   runRedis conn $ do
     TxSuccess results <- multiExec $ do
       bools <- mapM (\l -> exists $ DU.getLocationKey l) locs
@@ -106,9 +106,8 @@ locationsExist locs = do
 ----------------------------------------------------------------------------------------------------------------------
 -- | DAG
 
-getDAG :: IO [(ASLocation,ASLocation)]
-getDAG = do 
-  conn <- connect cInfo
+getDAG :: Connection -> IO [(ASLocation,ASLocation)]
+getDAG conn = do 
   runRedis conn $ do
       Right tl <- smembers (B.pack "DAGLocSet")
       TxSuccess fromLocs <- multiExec $ do 
@@ -118,9 +117,9 @@ getDAG = do
       let rels = map bStrToRelation rels'
       return rels
 
-updateDAG :: [([ASLocation],ASLocation)] -> IO ()
-updateDAG [] = return ()
-updateDAG rels = DU.chunkM_ DU.updateChunkDAG DU.dagChunkSize rels
+updateDAG :: Connection -> [([ASLocation],ASLocation)] -> IO ()
+updateDAG _ [] = return ()
+updateDAG conn rels = (DU.chunkM_ conn) DU.updateChunkDAG DU.dagChunkSize rels
 
 ----------------------------------------------------------------------------------------------------------------------
 -- | Commits
@@ -128,27 +127,29 @@ updateDAG rels = DU.chunkM_ DU.updateChunkDAG DU.dagChunkSize rels
 -- | TODO: need to deal with large commit sizes and max number of commits
 
 -- | Deal with updating all DB-related things after an eval
-updateAfterEval :: ASUser -> ASCell -> [ASCell] -> [ASCell] -> IO ()
-updateAfterEval user origCell desc cells = do 
-  setCells cells
-  addCommit user desc cells
+updateAfterEval :: Connection -> ASUser -> ASCell -> [ASCell] -> [ASCell] -> IO ()
+updateAfterEval conn user origCell desc cells = do 
+  printTimed "begin set cells"
+  setCells conn cells
+  printTimed "finished set cells"
+  addCommit conn user desc cells
+  printTimed "added commit"
   if (U.containsTrackingTag (cellTags origCell))
     then return () -- TODO: implement some redundancy in DB for tracking
     else return ()
 
 -- | Creates and pushes a commit to the DB
-addCommit :: ASUser -> [ASCell] -> [ASCell] -> IO ()
-addCommit user b a = do 
+addCommit :: Connection -> ASUser -> [ASCell] -> [ASCell] -> IO ()
+addCommit conn user b a = do 
   time <- getASTime
   let commit = ASCommit (userId user) b a time
-  pushCommit commit
-  putStrLn $ show commit
+  pushCommit conn commit
+  --putStrLn $ show commit
 
 -- | Return a commit if possible (not possible if you undo past the beginning of time, etc)
 -- | Update the DB so that there's always a source of truth (ie we will propagate undo to all relevant users)
-undo :: IO (Maybe ASCommit)
-undo = do 
-  conn <- connect cInfo
+undo :: Connection -> IO (Maybe ASCommit)
+undo conn = do 
   commit <- runRedis conn $ do 
     TxSuccess justC <- multiExec $ do 
       commit <- rpoplpush (B.pack "commits1") (B.pack "commits2")
@@ -157,13 +158,12 @@ undo = do
   case commit of
     Nothing -> return Nothing
     Just c@(ASCommit uid b a t) -> do 
-      deleteCells a 
-      setCells b
+      deleteCells conn a 
+      setCells conn b
       return $ Just c
 
-redo :: IO (Maybe ASCommit)
-redo = do 
-  conn <- connect cInfo
+redo :: Connection -> IO (Maybe ASCommit)
+redo conn = do 
   commit <- runRedis conn $ do 
     Right (Just commit) <- lpop (B.pack "commits2") 
     rpush (B.pack "commits1") [commit]
@@ -171,14 +171,13 @@ redo = do
   case commit of
     Nothing -> return Nothing
     Just c@(ASCommit uid b a t) -> do 
-      deleteCells b 
-      setCells a
+      deleteCells conn b 
+      setCells conn a
       return $ Just c
 
-pushCommit :: ASCommit -> IO ()
-pushCommit c = do 
+pushCommit :: Connection -> ASCommit -> IO ()
+pushCommit conn c = do 
   let commit = (B.pack . show) c 
-  conn <- connect cInfo
   runRedis conn $ do
     TxSuccess _ <- multiExec $ do 
       rpush (B.pack "commits1") [commit]
@@ -190,51 +189,46 @@ pushCommit c = do
 ----------------------------------------------------------------------------------------------------------------------
 -- | Sheets and workbooks
 
-getSheet :: ASSheetId -> IO (Maybe ASSheet)
-getSheet sid = do
-    conn <- connect cInfo 
+getSheet :: Connection -> ASSheetId -> IO (Maybe ASSheet)
+getSheet conn sid = do
     runRedis conn $ do
         msheet <- get $ DU.getSheetKey sid
         case msheet of 
             (Right sheet) -> return $ DU.bStrToSheet sheet
             (Left _) -> return Nothing
 
-getWorkbook :: String -> IO (Maybe ASWorkbook)
-getWorkbook name = do
-    conn <- connect cInfo 
+getWorkbook :: Connection -> String -> IO (Maybe ASWorkbook)
+getWorkbook conn name = do
     runRedis conn $ do
         mwb <- get $ DU.getWorkbookKey name
         case mwb of 
             (Right wb) -> return $ DU.bStrToWorkbook wb
             (Left _) -> return Nothing
 
-getAllSheets :: IO [ASSheet]
-getAllSheets = do
-    conn <- connect cInfo 
+getAllSheets :: Connection -> IO [ASSheet]
+getAllSheets conn = do
     runRedis conn $ do
         Right sheetKeys <- smembers (B.pack "sheetKeys")
         sheets <- mapM get sheetKeys
         return $ map (\(Right (Just s)) -> read (B.unpack s) :: ASSheet) sheets
 
-getAllWorkbooks :: IO [ASWorkbook]
-getAllWorkbooks = do
-    conn <- connect cInfo 
+getAllWorkbooks :: Connection -> IO [ASWorkbook]
+getAllWorkbooks conn = do
     runRedis conn $ do
         Right wbKeys <- smembers (B.pack "workbookKeys")
         wbs <- mapM get wbKeys
         return $ map (\(Right (Just w)) -> read (B.unpack w) :: ASWorkbook) wbs
 
 -- creates a sheet with unique id
-createSheet :: ASSheet -> IO ASSheet
-createSheet (Sheet sid sname sperms) = do
+createSheet :: Connection -> ASSheet -> IO ASSheet
+createSheet conn (Sheet sid sname sperms) = do
     sid' <- U.getUniqueId
     let newSheet = Sheet sid' sname sperms
-    setSheet newSheet
+    setSheet conn newSheet
     return newSheet
 
-setSheet :: ASSheet -> IO ()
-setSheet sheet = do
-    conn <- connect cInfo 
+setSheet :: Connection -> ASSheet -> IO ()
+setSheet conn sheet = do
     runRedis conn $ do
         let sheetKey = DU.getSheetKey . sheetId $ sheet
         TxSuccess _ <- multiExec $ do
@@ -242,9 +236,8 @@ setSheet sheet = do
             sadd (B.pack "sheetKeys") [sheetKey]  -- add the sheet key to the set of all sheets  
         return ()
 
-setWorkbook :: ASWorkbook -> IO () 
-setWorkbook wb = do
-    conn <- connect cInfo 
+setWorkbook :: Connection -> ASWorkbook -> IO () 
+setWorkbook conn wb = do
     runRedis conn $ do
         let workbookKey = DU.getWorkbookKey . workbookName $ wb
         TxSuccess _ <- multiExec $ do
@@ -252,9 +245,8 @@ setWorkbook wb = do
             sadd (B.pack "workbookKeys") [workbookKey]  -- add the workbook key to the set of all sheets  
         return ()
 
-deleteSheet :: ASSheetId -> IO ()
-deleteSheet sid = do
-    conn <- connect cInfo 
+deleteSheet :: Connection -> ASSheetId -> IO ()
+deleteSheet conn sid = do
     runRedis conn $ do
         let setKey = DU.getSheetSetKey sid
             sheetKey = DU.getSheetKey sid
@@ -271,9 +263,8 @@ deleteSheet sid = do
         return ()
 
 -- only removes the workbook, not contained sheets
-deleteWorkbook :: String -> IO ()
-deleteWorkbook name = do
-    conn <- connect cInfo 
+deleteWorkbook :: Connection -> String -> IO ()
+deleteWorkbook conn name = do
     runRedis conn $ do
         let workbookKey = DU.getWorkbookKey name
         _ <- multiExec $ do
@@ -282,14 +273,13 @@ deleteWorkbook name = do
         return ()
 
 -- note: this is an expensive operation
-deleteWorkbookAndSheets :: String -> IO ()
-deleteWorkbookAndSheets name = do
-    mwb <- getWorkbook name
+deleteWorkbookAndSheets :: Connection -> String -> IO ()
+deleteWorkbookAndSheets conn name = do
+    mwb <- getWorkbook conn name
     case mwb of 
         Nothing -> return ()
         (Just wb) -> do
-            mapM_ deleteSheet (workbookSheets wb) -- remove sheets
-            conn <- connect cInfo 
+            mapM_ (deleteSheet conn) (workbookSheets wb) -- remove sheets
             runRedis conn $ do
                 let workbookKey = DU.getWorkbookKey name
                 TxSuccess _ <- multiExec $ do
@@ -300,9 +290,8 @@ deleteWorkbookAndSheets name = do
 ----------------------------------------------------------------------------------------------------------------------
 -- | Volatile cell methods
 
-getVolatileLocs :: IO [ASLocation]
-getVolatileLocs = do 
-  conn <- connect cInfo
+getVolatileLocs :: Connection -> IO [ASLocation]
+getVolatileLocs conn = do 
   runRedis conn $ do
       Right vl <- smembers (B.pack "volatileLocs")
       return $ map bStrToASLocation vl
@@ -325,28 +314,28 @@ deleteChunkVolatileCells cells = do
 ----------------------------------------------------------------------------------------------------------------------
 -- | Permissions
 
-canAccessSheet :: ASUserId -> ASSheetId -> IO Bool
-canAccessSheet uid sheetId = do
-  sheet <- getSheet sheetId
+canAccessSheet :: Connection -> ASUserId -> ASSheetId -> IO Bool
+canAccessSheet conn uid sheetId = do
+  sheet <- getSheet conn sheetId
   case sheet of 
     Nothing -> return False
     (Just someSheet) -> return $ hasPermissions uid (sheetPermissions someSheet)
 
-canAccess :: ASUserId -> ASLocation -> IO Bool
-canAccess uid loc = canAccessSheet uid (locSheetId loc)
+canAccess :: Connection -> ASUserId -> ASLocation -> IO Bool
+canAccess conn uid loc = canAccessSheet conn uid (locSheetId loc)
 
-canAccessAll :: ASUserId -> [ASLocation] -> IO Bool
-canAccessAll uid locs = return . all id =<< mapM (canAccess uid) locs
+canAccessAll :: Connection -> ASUserId -> [ASLocation] -> IO Bool
+canAccessAll conn uid locs = return . all id =<< mapM (canAccess conn uid) locs
 
-isPermissibleMessage :: ASUserId -> ASMessage -> IO Bool
-isPermissibleMessage uid (Message _ _ _ (PayloadC cell))      = canAccess uid (cellLocation cell)
-isPermissibleMessage uid (Message _ _ _ (PayloadCL cells))    = canAccessAll uid (map cellLocation cells)
-isPermissibleMessage uid (Message _ _ _ (PayloadL loc))       = canAccess uid loc
-isPermissibleMessage uid (Message _ _ _ (PayloadLL locs))     = canAccessAll uid locs
-isPermissibleMessage uid (Message _ _ _ (PayloadS sheet))     = canAccessSheet uid (sheetId sheet)
-isPermissibleMessage uid (Message _ _ _ (PayloadW window))    = canAccessSheet uid (windowSheetId window)
-isPermissibleMessage uid (Message _ _ _ (PayloadTags _ loc))  = canAccess uid loc
-isPermissibleMessage _ _ = return True
+isPermissibleMessage :: Connection -> ASUserId -> ASMessage -> IO Bool
+isPermissibleMessage conn uid (Message _ _ _ (PayloadC cell))      = canAccess conn uid (cellLocation cell)
+isPermissibleMessage conn uid (Message _ _ _ (PayloadCL cells))    = canAccessAll conn uid (map cellLocation cells)
+isPermissibleMessage conn uid (Message _ _ _ (PayloadL loc))       = canAccess conn uid loc
+isPermissibleMessage conn uid (Message _ _ _ (PayloadLL locs))     = canAccessAll conn uid locs
+isPermissibleMessage conn uid (Message _ _ _ (PayloadS sheet))     = canAccessSheet conn uid (sheetId sheet)
+isPermissibleMessage conn uid (Message _ _ _ (PayloadW window))    = canAccessSheet conn uid (windowSheetId window)
+isPermissibleMessage conn uid (Message _ _ _ (PayloadTags _ loc))  = canAccess conn uid loc
+isPermissibleMessage _ _ _ = return True
 
 
 ----------------------------------------------------------------------------------------------------------------------

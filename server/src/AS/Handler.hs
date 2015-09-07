@@ -24,11 +24,11 @@ import AS.Parsing.Out as O
 -- | Sending message to client(s)
 
 broadcast :: Text -> ServerState -> IO ()
-broadcast message (State u) = forM_ (map fst u) $ \(User _ conn _) -> WS.sendTextData conn message
+broadcast message (State u _) = forM_ (map fst u) $ \(User _ conn _) -> WS.sendTextData conn message
 
 sendBroadcastFiltered :: ASUser -> MVar ServerState -> ASMessage -> IO ()
 sendBroadcastFiltered user state msg = liftIO $ do 
-	(State allUsers) <- readMVar state
+	(State allUsers _) <- readMVar state
 	broadcastFiltered (updateMessageUser (userId user) msg) (map fst allUsers)
 
 -- | Given a message (commit, cells, etc), only send (to each user) the cells in their viewing window
@@ -39,15 +39,15 @@ broadcastFiltered (Message uid _ _ (PayloadCL cells)) users = mapM_ (sendCells c
     sendCells cells user = do 
       let cells' = intersectViewingWindows cells (userWindows user)
       let msg = Message uid Update Success (PayloadCL cells')
-      putStrLn $ "Sending msg to client: " ++ (show msg)
+      --putStrLn $ "Sending msg to client: " ++ (show msg)
       WS.sendTextData (userConn user) (encode msg)
 broadcastFiltered (Message uid a r (PayloadLL locs)) users = mapM_ (sendLocs locs) users 
   where
     sendLocs :: [ASLocation] -> ASUser -> IO ()
     sendLocs locs user = do 
       let locs' = intersectViewingWindowsLocs locs (userWindows user)
-      let msg = Message uid Update Success (PayloadLL locs')
-      putStrLn $ "Sending msg to client: " ++ (show msg)
+      let msg = Message uid Delete r (PayloadLL locs')
+      --putStrLn $ "Sending msg to client: " ++ (show msg)
       WS.sendTextData (userConn user) (encode msg)
 broadcastFiltered (Message uid _ _ (PayloadCommit c)) users = mapM_ (sendCommit c) users
   where
@@ -66,12 +66,13 @@ sendToOriginalUser user msg = WS.sendTextData (userConn user) (encode (U.updateM
 handleNew :: ASUser -> MVar ServerState -> ASMessage -> IO ()
 handleNew user state msg = case (payload msg) of 
   (PayloadS sheet) -> do
-    newSheet <- DB.createSheet sheet 
+    conn <- fmap dbConn $ readMVar state
+    newSheet <- DB.createSheet conn sheet 
     let wb = Workbook "Untitled" [sheetId newSheet] -- TODO don't hardcode; flow needs to change.
-    DB.setWorkbook wb
+    DB.setWorkbook conn wb 
     let wbs = U.matchSheets [wb] [newSheet]
     sendToOriginalUser user (Message (userId user) Update NoResult (PayloadWorkbookSheets wbs))
-  (PayloadWB workbook) -> DB.setWorkbook workbook >> return ()
+  (PayloadWB workbook) -> fmap dbConn (readMVar state) >>= \conn -> DB.setWorkbook conn workbook >> return ()
 
 handleOpen :: ASUser -> MVar ServerState -> ASMessage -> IO ()
 handleOpen user state (Message _ _ _ (PayloadS (Sheet sheetid _ _))) = C.modifyUser makeNewWindow user state 
@@ -83,18 +84,18 @@ handleClose user state (Message _ _ _ (PayloadS (Sheet sheetid _ _))) = C.modify
 
 handleUpdateWindow :: ASUser -> MVar ServerState -> ASMessage -> IO ()
 handleUpdateWindow user state (Message uid _ _ (PayloadW window)) = do
-  readState <- readMVar state
-  let (Just user') = C.getUserById (userId user) readState
+  curState <- readMVar state
+  let (Just user') = C.getUserById (userId user) curState
   let maybeWindow = U.getWindow (windowSheetId window) user' 
-  printTimed $ "Current user' windows before update: " ++ (show $ userWindows user')
+  --printTimed $ "Current user' windows before update: " ++ (show $ userWindows user')
   case maybeWindow of 
     Nothing -> putStrLn "ERROR: could not update nothing window" >> return ()
     (Just oldWindow) -> do
       let locs = U.getScrolledLocs oldWindow window 
       printTimed $ "Sending locs: " ++ (show locs)
-      mcells <- DB.getCells locs
+      mcells <- DB.getCells (dbConn curState) locs
       let msg = U.getDBCellMessage user' locs mcells
-      printTimed $ "Sending scroll message: " ++ (show msg)
+      --printTimed $ "Sending scroll message: " ++ (show msg)
       sendToOriginalUser user' msg
       C.modifyUser (U.updateWindow window) user' state
       --readState' <- readMVar state
@@ -118,41 +119,49 @@ handleEval user state msg  = do
 
 handleGet :: ASUser -> MVar ServerState -> ASPayload -> IO ()
 handleGet user state (PayloadLL locs) = do 
-  mcells <- DB.getCells locs
+  curState <- readMVar state
+  mcells <- DB.getCells (dbConn curState) locs 
   sendToOriginalUser user (U.getDBCellMessage user locs mcells) 
 handleGet user state (PayloadList Sheets) = do
-  ss <- DB.getAllSheets
+  curState <- readMVar state
+  ss <- DB.getAllSheets (dbConn curState)
   let msg = Message (userId user) Update Success (PayloadSS ss)
   sendToOriginalUser user msg
 handleGet user state (PayloadList Workbooks) = do
-  ws <- DB.getAllWorkbooks
+  curState <- readMVar state
+  ws <- DB.getAllWorkbooks (dbConn curState)
   let msg = Message (userId user) Update Success (PayloadWBS ws)
   sendToOriginalUser user msg
 handleGet user state (PayloadList WorkbookSheets) = do
-  ws <- DB.getAllWorkbooks
-  ss <- DB.getAllSheets
+  curState <- readMVar state
+  ws <- DB.getAllWorkbooks (dbConn curState)
+  ss <- DB.getAllSheets (dbConn curState)
   let wss = U.matchSheets ws ss
   let msg = Message (userId user) Update Success (PayloadWorkbookSheets wss)
   sendToOriginalUser user msg
 
 handleDelete :: ASUser -> MVar ServerState -> ASPayload -> IO ()
 handleDelete user state p@(PayloadL loc) = do 
-  DB.deleteLocs [loc]
+  conn <- fmap dbConn $ readMVar state
+  DB.deleteLocs conn [loc]
   let msg = Message (userId user) Delete Success p
   sendBroadcastFiltered user state msg
   return () 
 handleDelete user state p@(PayloadLL locs) = do 
-  DB.deleteLocs locs
+  conn <- fmap dbConn $ readMVar state
+  DB.deleteLocs conn locs
   let msg = Message (userId user) Delete Success p
   sendBroadcastFiltered user state msg
   return () 
 handleDelete user state p@(PayloadS sheet) = do
-  DB.deleteSheet (sheetId sheet) 
+  conn <- fmap dbConn $ readMVar state
+  DB.deleteSheet conn (sheetId sheet) 
   let msg = Message (userId user) Delete Success p
   sendBroadcastFiltered user state msg
   return () 
 handleDelete user state p@(PayloadWB workbook) = do
-  DB.deleteWorkbook (workbookName workbook) 
+  conn <- fmap dbConn $ readMVar state
+  DB.deleteWorkbook conn (workbookName workbook) 
   let msg = Message (userId user) Delete Success p
   sendBroadcastFiltered user state msg
   return () 
@@ -162,19 +171,21 @@ handleClear user state = sendBroadcastFiltered user state (failureMessage "")
 
 handleUndo :: ASUser -> MVar ServerState -> IO ()
 handleUndo user state = do 
-	commit <- DB.undo 
-	msg <- case commit of 
-		Nothing -> return $ failureMessage "Too far back"
-		(Just c) -> return $ Message (userId user) Undo Success (PayloadCommit c)
-	sendBroadcastFiltered user state msg
+  conn <- fmap dbConn $ readMVar state
+  commit <- DB.undo conn
+  msg <- case commit of 
+    Nothing -> return $ failureMessage "Too far back"
+    (Just c) -> return $ Message (userId user) Undo Success (PayloadCommit c)
+  sendBroadcastFiltered user state msg
 
 handleRedo :: ASUser -> MVar ServerState -> IO ()
 handleRedo user state = do 
-	commit <- DB.redo 
-	msg <- case commit of 
+  curState <- readMVar state
+  commit <- DB.redo (dbConn curState)
+  msg <- case commit of 
 		Nothing -> return $ failureMessage "Too far forwards"
 		(Just c) -> return $ Message (userId user) Undo Success (PayloadCommit c)
-	sendBroadcastFiltered user state msg
+  sendBroadcastFiltered user state msg
 
 -- parse deps
 -- check that all locations exist, else throw error
@@ -185,7 +196,9 @@ handleRedo user state = do
 -- insert new cells into db
 handleCopy :: ASUser -> MVar ServerState -> ASPayload -> IO ()
 handleCopy user state (PayloadLL (from:to:[])) = do -- this is a list of 2 locations
-  maybeCells <- DB.getCells [from]
+  curState <- readMVar state
+  let conn = dbConn curState
+  maybeCells <- DB.getCells conn [from]
   let fromCells = filterNothing maybeCells
   let offset = U.getOffsetBetweenLocs from to
   let toCellsAndDeps = map (O.shiftCell offset) fromCells
@@ -194,13 +207,13 @@ handleCopy user state (PayloadLL (from:to:[])) = do -- this is a list of 2 locat
   let toCells = map fst toCellsAndDeps
   let toLocs = map cellLocation toCells
   printTimed $ "Copying cells: "
-  allExistDB <- DB.locationsExist allDeps   -- check if deps exist in DB
+  allExistDB <- DB.locationsExist conn allDeps   -- check if deps exist in DB
   let allNonexistentDB = U.isoFilter not allExistDB allDeps  
   let allExist = U.isSubsetOf allNonexistentDB toLocs -- else if the dep was something we copied
   if allExist
     then do
-      DB.setCells toCells
-      DB.updateDAG $ zip shiftedDeps toLocs
+      DB.setCells conn toCells
+      DB.updateDAG conn $ zip shiftedDeps toLocs
       let msg = Message (userId user) Update Success (PayloadCL toCells)
       sendBroadcastFiltered user state msg
     else do
@@ -216,7 +229,8 @@ handleCopyForced user state (PayloadLL (from:[to])) = return ()
 
 processAddTag :: ASUser -> MVar ServerState -> ASLocation -> ASMessage -> ASCellTag -> IO ()
 processAddTag user state loc msg t = do 
-  cell <- DB.getCell loc
+  curState <- readMVar state
+  cell <- DB.getCell (dbConn curState) loc
   case cell of 
     Nothing -> return ()
     Just c@(Cell l e v ts) -> do 
@@ -224,10 +238,10 @@ processAddTag user state loc msg t = do
         True -> return ()
         False -> do 
           let c' = Cell l e v (t:ts)
-          DB.setCell c'
+          DB.setCell (dbConn curState) c'
   case t of 
     StreamTag s -> do -- create daemon that sends an eval message
-      mCells <- DB.getCells [loc]
+      mCells <- DB.getCells (dbConn curState) [loc]
       case (L.head mCells) of 
         Nothing -> return ()
         Just cell -> do 
@@ -237,12 +251,13 @@ processAddTag user state loc msg t = do
 
 processRemoveTag :: ASLocation -> MVar ServerState -> ASCellTag -> IO ()
 processRemoveTag loc state t = do 
-  cell <- DB.getCell loc 
+  curState <- readMVar state
+  cell <- DB.getCell (dbConn curState) loc 
   case cell of 
     Nothing -> return ()
     Just c@(Cell l e v ts) -> do 
       let c' = Cell l e v (L.delete t ts)
-      DB.setCell c'
+      DB.setCell (dbConn curState) c'
   case t of
     StreamTag s -> DM.removeDaemon loc state
     otherwise -> return () -- TODO: implement the rest

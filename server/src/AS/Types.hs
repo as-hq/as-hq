@@ -7,6 +7,7 @@ import GHC.Generics
 import Data.Aeson hiding (Success)
 import Data.Text
 import qualified Network.WebSockets as WS
+import qualified Database.Redis as R
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Sheets
@@ -163,10 +164,14 @@ data ASInitConnection = ASInitConnection {connUserId :: ASUserId} deriving (Show
 data ASInitDaemonConnection = ASInitDaemonConnection {parentUserId :: ASUserId, initDaemonLoc :: ASLocation} deriving (Show,Read,Eq,Generic)
 
 data ASDaemon = ASDaemon {daemonLoc :: ASLocation, daemonConn :: WS.Connection}
-data ServerState = State {userList :: [(ASUser,[ASDaemon])]} 
 
 instance Eq ASDaemon where 
   c1 == c2 = (daemonLoc c1) == (daemonLoc c2)
+
+----------------------------------------------------------------------------------------------------------------------------------------------
+-- | Database and state
+
+data ServerState = State {userList :: [(ASUser,[ASDaemon])], dbConn :: R.Connection} 
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Users

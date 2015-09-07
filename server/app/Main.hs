@@ -20,18 +20,18 @@ import qualified Network.WebSockets as WS
 
 import Data.Maybe (fromJust)
 
+import qualified Database.Redis as R
+
 import AS.Types
 import AS.Config.Settings as S
 import AS.Util
 import AS.Clients
 import AS.DB.API as DB
+import AS.DB.Util as DBU
 import AS.Handler as H
 
 -------------------------------------------------------------------------------------------------------------------------
 -- | State functions
-
-newServerState :: ServerState
-newServerState = State []
 
 numUsers :: ServerState -> Int
 numUsers = length . userList 
@@ -40,23 +40,23 @@ numUsers = length . userList
 -- | Daemon Management
 
 addDaemon :: ASUserId -> ASDaemon -> ServerState -> ServerState
-addDaemon uid daemon s@(State state) = state'
+addDaemon uid daemon s@(State users conn) = state'
   where
     user = getUserById uid s
     state' = case user of 
       Nothing -> s
-      Just u -> State $ addToAL state u (daemon:(fromJust $ L.lookup u state))
+      Just u -> flip State conn $ addToAL users u (daemon:(fromJust $ L.lookup u users))
 
 removeDaemon :: ASDaemon -> ServerState -> ServerState
-removeDaemon daemon s@(State state) = state'
+removeDaemon daemon s@(State state conn) = state'
   where
     user = getUserOfDaemon s daemon
     state' = case user of 
       Nothing -> s
-      Just u -> State $ addToAL state u (L.delete daemon (fromJust $ L.lookup u state))
+      Just u -> flip State conn $ addToAL state u (L.delete daemon (fromJust $ L.lookup u state))
 
 getUserOfDaemon :: ServerState -> ASDaemon -> (Maybe ASUser)
-getUserOfDaemon (State s) daemon = do 
+getUserOfDaemon (State s _) daemon = do 
   let users = L.filter (\(a,b) -> L.elem daemon b) s
   case users of 
     [] -> Nothing
@@ -106,23 +106,24 @@ isInitConnectionDaemon msg = do
 
 main :: IO ()
 main = do
-    state <- newMVar newServerState
+    conn <- R.connect DBU.cInfo
+    state <- newMVar $ State [] conn
     if isDebug
-      then initDebug >> return ()
+      then initDebug conn >> return ()
       else return ()
     putStrLn $ "server started on port " ++ (show S.wsPort)
     WS.runServer S.wsAddress S.wsPort $ application state
     putStrLn $ "DONE WITH MAIN"
 
 -- initialize database with sheets, etc. for debugging
-initDebug :: IO ()
-initDebug = do
+initDebug :: R.Connection -> IO ()
+initDebug conn = do
   let sheetid = T.pack "TEST_SHEET_ID"
       sheetid2 = T.pack "TEST_SHEET_ID2"
-  DB.setSheet $ Sheet sheetid "TEST_SHEET_NAME" (Blacklist [])
-  DB.setWorkbook $ Workbook "TEST_WORKBOOK_NAME" [sheetid]
-  DB.setSheet $ Sheet sheetid2 "TEST_SHEET_NAME" (Blacklist [])
-  DB.setWorkbook $ Workbook "TEST_WORKBOOK_NAME2" [sheetid2]
+  DB.setSheet conn $ Sheet sheetid "TEST_SHEET_NAME" (Blacklist [])
+  DB.setWorkbook conn $ Workbook "TEST_WORKBOOK_NAME" [sheetid]
+  DB.setSheet conn $ Sheet sheetid2 "TEST_SHEET_NAME" (Blacklist [])
+  DB.setWorkbook conn $ Workbook "TEST_WORKBOOK_NAME2" [sheetid2]
   return  ()
 
 application :: MVar ServerState -> WS.ServerApp
@@ -145,7 +146,7 @@ handleInitConnection :: MVar ServerState -> WS.Connection -> Maybe ASMessage -> 
 handleInitConnection state conn (Just message) = do
   let user = User (messageUserId message) conn [initialViewingWindow]
   (flip catch) (catchDisconnect user state) $ do
-    putStrLn $ "IN HANDLE INIT CONNECTION"
+    --putStrLn $ "IN HANDLE INIT CONNECTION"
     liftIO $ modifyMVar_ state (\s -> return $ addUser user s)
     talk state user
 
@@ -153,7 +154,7 @@ handleInitConnectionDaemon :: MVar ServerState -> WS.Connection -> Maybe ASMessa
 handleInitConnectionDaemon state conn (Just (Message _ _ _ (PayloadDaemonInit (ASInitDaemonConnection pId loc)))) = do
   let daemon = ASDaemon loc conn
   (flip catch) (catchDisconnectDaemon daemon state) $ do
-    putStrLn $ "IN HANDLE INIT DAEMON CONNECTION"
+    --putStrLn $ "IN HANDLE INIT DAEMON CONNECTION"
     liftIO $ modifyMVar_ state (\s -> return $ addDaemon pId daemon s)
     talkDaemon state daemon
 
@@ -166,7 +167,7 @@ talk state user = forever $ do
   case (decode msg :: Maybe ASMessage) of 
     Nothing -> printTimed ("SERVER ERROR: unable to decode message " ++ (show msg)) >> return ()
     Just m -> do 
-      printTimed $ "SERVER decoded message: " ++ (show m) 
+      --printTimed $ "SERVER decoded message: " ++ (show m) 
       processMessage user state m
 
 talkDaemon :: MVar ServerState -> ASDaemon -> IO ()
@@ -175,11 +176,11 @@ talkDaemon state daemon = forever $ do
   putStrLn "=========================================================="
   printTimed $ "SERVER message received: " 
   case (decode msg :: Maybe ASMessage) of 
-    Nothing -> printTimed ("SERVER ERROR: unable to decode message " ++ (show msg)) >> return ()
+    --Nothing -> printTimed ("SERVER ERROR: unable to decode message " ++ (show msg)) >> return ()
     Just m -> do 
       s <- readMVar state
       let user = fromJust $ getUserOfDaemon s daemon
-      printTimed $ "SERVER decoded message: " ++ (show m) 
+      --printTimed $ "SERVER decoded message: " ++ (show m) 
       processMessage user state m
 
 -------------------------------------------------------------------------------------------------------------------------
@@ -187,7 +188,8 @@ talkDaemon state daemon = forever $ do
 
 processMessage :: ASUser -> MVar ServerState -> ASMessage -> IO ()
 processMessage user state message = do
-  isPermissible <- DB.isPermissibleMessage (userId user) message
+  conn <- fmap dbConn $ readMVar state
+  isPermissible <- DB.isPermissibleMessage conn (userId user) message
   if (isPermissible || isDebug)
     then handleMessage user state message
     else send (failureMessage "Insufficient permissions") (userConn user)

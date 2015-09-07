@@ -29,8 +29,8 @@ cInfo = ConnInfo
     , connectPort           = PortNumber 6379
     , connectAuth           = Nothing
     , connectDatabase       = 0               
-    , connectMaxConnections = 100
-    , connectMaxIdleTime    = 100
+    , connectMaxConnections = 200
+    , connectMaxIdleTime    = 1000000
     }
 
 ----------------------------------------------------------------------------------------------------------------------
@@ -51,6 +51,14 @@ bStrToTags Nothing = Nothing
 maybeASCell :: (ASLocation,Maybe ASExpression,Maybe ASValue, Maybe [ASCellTag]) -> Maybe ASCell
 maybeASCell (l, Just e, Just v, Just tags) = Just $ Cell l e v tags
 maybeASCell _ = Nothing
+
+maybeASCellFromFields :: ASLocation -> [Maybe B.ByteString] -> Maybe ASCell
+maybeASCellFromFields loc ((Just xpstr):(Just valstr):(Just tagstr):[]) = Just $ Cell loc e v ts
+  where
+    e = read (B.unpack xpstr) :: ASExpression
+    v = read (B.unpack valstr) :: ASValue
+    ts = read (B.unpack tagstr) :: [ASCellTag]
+maybeASCellFromFields _ _ = Nothing
 
 bStrToASLocation :: B.ByteString -> ASLocation
 bStrToASLocation b = (read (B.unpack b) :: ASLocation)
@@ -98,12 +106,8 @@ cellFields = [(B.pack "cellExpression"), (B.pack "cellValue"), (B.pack "cellTags
 getCellRedis :: ASLocation -> Redis (Maybe ASCell)
 getCellRedis loc = do
     let key = getLocationKey loc
-    TxSuccess (mval, mxp, mtags) <- multiExec $ do
-        valstr <- hget key (B.pack "cellValue")
-        xpstr <- hget key (B.pack "cellExpression")
-        tagstr <- hget key (B.pack "cellTags")
-        return $ pure tuple3 <*> valstr <*> xpstr <*> tagstr
-    return $ maybeASCell (loc,(bStrToASExpression mxp),(bStrToASValue mval),(bStrToTags mtags))
+    Right strs <- hmget key cellFields
+    return $ maybeASCellFromFields loc strs
 
 setCellRedis :: ASCell -> Redis ()
 setCellRedis cell = do
@@ -133,10 +137,9 @@ updateChunkDAG rels = do
           return s2
       return ()
 
-chunkM_ :: ([a] -> Redis ()) -> (Int) -> [a] -> IO ()
-chunkM_ f size lst = do 
+chunkM_ :: Connection -> ([a] -> Redis ()) -> (Int) -> [a] -> IO ()
+chunkM_ conn f size lst = do 
   let chunks = chunksOf size lst
-  conn <- connect cInfo 
   runRedis conn $ mapM_ f chunks
 
 

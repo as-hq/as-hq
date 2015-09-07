@@ -38,7 +38,7 @@ evalExcel xp = do
 	let newXp = "evalExcel(\'"++(expression xp)++"\')"
 	interpolated <- interpolateFile Excel newXp
 	resultInit <- pyfiString interpolated
-	putStrLn $ "EXCEL RESULT INIT: " ++ (show resultInit)
+	--putStrLn $ "EXCEL RESULT INIT: " ++ (show resultInit)
 	{-
 		let result' = T.unpack (T.strip (T.pack resultInit)) -- no start/end whitespace
 		let result = case (L.head result') of
@@ -57,7 +57,7 @@ evalCode sheetid values xp = do
 	printTimed "Starting eval code"
 	let lang = language xp
 	let finalXp = interpolate sheetid values xp 
-	printTimed $ "Final eval xp: " ++ (show finalXp)
+	--printTimed $ "Final eval xp: " ++ (show finalXp)
 	simpleInterpolated <- interpolateFile lang finalXp
 	interpolated <- case lang of
 		SQL -> interpolateFile SQL ("setGlobals("++(show context) ++")\n" ++ newExp)
@@ -70,9 +70,9 @@ evalCode sheetid values xp = do
 		otherwise -> (return simpleInterpolated)
 	printTimed "starting eval"
 	result <- doEval lang interpolated
-	printTimed $ "finished eval " ++ (show result)
+	--printTimed $ "finished eval " ++ (show result)
 	let parsed = parseValue lang result
-	printTimed $ "eval result parsed " ++ (show parsed)
+	--printTimed $ "eval result parsed " ++ (show parsed)
 	return parsed
 
 
@@ -107,7 +107,7 @@ doEval lang str = case lang of
 	SQL	   -> if S.isDebug  -- if isDebug, write the python exec file
 		then do
 			writeExecFile lang str
-			printTimed "did eval!"
+			--printTimed "did eval!"
 			return =<< pyfiString str
 		else pyfiString str
 	otherwise -> do 		-- all other languages follow file-based eval for now
@@ -175,7 +175,7 @@ evalString lang evalStr = return . parseValue lang =<< pyfiString evalStr
 
 pyfiString :: String -> IO String
 pyfiString evalStr = do 
-	_ <- putStrLn $ "IN PYFI"
+	--_ <- putStrLn $ "IN PYFI"
 	defVV (evalStr ++ pyString) ("Hello" :: String)
 
 pyString :: String

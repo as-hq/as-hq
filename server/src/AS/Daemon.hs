@@ -36,7 +36,7 @@ getDaemonName loc = (show loc) ++ ".pid"
 
 daemonExists :: ASUser -> ASLocation -> MVar ServerState -> IO Bool
 daemonExists user loc state = do 
-  (State s)<- readMVar state
+  (State s _)<- readMVar state
   let l = L.lookup user s
   case l of 
     Nothing -> return False
@@ -46,7 +46,7 @@ daemonExists user loc state = do
 
 getConnByLoc :: ASLocation -> MVar ServerState -> IO (Maybe WS.Connection)
 getConnByLoc loc state = do 
-  (State s) <- readMVar state
+  (State s _) <- readMVar state
   let daemons = L.concat (L.map snd s)
   let daemon = L.filter (\(ASDaemon l c) -> (l == loc)) daemons
   case daemon of 

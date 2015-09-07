@@ -30,6 +30,7 @@ import Data.Aeson hiding (Success)
 import qualified Data.ByteString.Char8 as C 
 import qualified Data.ByteString.Lazy.Char8 as B 
 import qualified Network.WebSockets as WS
+import Database.Redis (Connection)
 
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
@@ -37,11 +38,11 @@ import qualified Network.WebSockets as WS
 
 -- | Takes a cell and returns an error if it tries to access a non-existant cell
 -- | Otherwise, it returns all of the immediate ancestors (used to make the lookup map)
-updateCell :: ASCell -> IO (Either ASExecError [ASCell])
-updateCell (Cell loc xp val ts) = do 
+updateCell :: Connection -> ASCell -> IO (Either ASExecError [ASCell])
+updateCell conn (Cell loc xp val ts) = do 
   let locs = decomposeLocs loc
   let (deps,exprs) = getDependenciesAndExpressions (locSheetId loc) xp (getOffsets loc)
-  ancCells <- DB.getCells (concat deps)
+  ancCells <- DB.getCells conn (concat deps)
   printTimed $ "got cells"
   if (any isNothing ancCells)
     then do 
@@ -49,60 +50,63 @@ updateCell (Cell loc xp val ts) = do
       return $ Left (DBNothingException bl)
     else do 
       let initCells = map (\(l,e,v)-> Cell l e v ts) (zip3 locs exprs (repeat NoValue))  
-      _ <- DB.updateDAG (zip deps locs)
-      _ <- DB.setCells initCells
+      _ <- DB.updateDAG conn (zip deps locs)
+      _ <- DB.setCells conn initCells
       printTimed $ "set init cells"
       return $ Right (map fromJust ancCells)
 
 -- | Return the descendants of a cell, which will always exist but may be locked
 -- | TODO: throw exceptions for permissions/locking
-getDescendants :: ASCell -> IO (Either ASExecError [ASCell])
-getDescendants cell = do 
+getDescendants :: Connection -> ASCell -> IO (Either ASExecError [ASCell])
+getDescendants conn cell = do 
   let locs = decomposeLocs (cellLocation cell)
-  dag <- DB.getDAG
-  vLocs <- DB.getVolatileLocs
-  -- | Account for volatile cells being reevaluated each time
+  dag <- DB.getDAG conn
+  printTimed "got dag"
+  vLocs <- DB.getVolatileLocs conn
+  printTimed "got volatile locs"
+   --| Account for volatile cells being reevaluated each time
   let descendantLocs = DAG.descendants (locs ++ vLocs) dag
-  desc <- DB.getCells descendantLocs
+  printTimed $ "got descendant locs: " ++ (show descendantLocs)
+  desc <- DB.getCells conn locs
   printTimed $ "got descendant cells"
   return $ Right $ map fromJust desc 
 
 -- | Takes ancestors and descendants, create lookup map, and run eval
-reEvalCell :: [ASCell] -> [ASCell] -> IO (Either ASExecError [ASCell])
-reEvalCell anc dec = do 
+reEvalCell :: Connection -> [ASCell] -> [ASCell] -> IO (Either ASExecError [ASCell])
+reEvalCell conn anc dec = do 
   let mp = M.fromList $ map (\c -> (cellLocation c, cellValue c)) anc
-  result <- evalChain mp dec
+  result <- evalChain conn mp dec
   return $ Right result
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Eval helpers
 
-evalChain :: M.Map ASLocation ASValue -> [ASCell] -> IO [ASCell]
-evalChain _ [] = return []
-evalChain mp ((Cell loc xp _ ts):cs) = do  
+evalChain :: Connection -> M.Map ASLocation ASValue -> [ASCell] -> IO [ASCell]
+evalChain _ _ [] = return []
+evalChain conn mp ((Cell loc xp _ ts):cs) = do  
   printTimed $ "Starting eval chain" ++ (show mp)
   cv <- R.evalExpression loc mp xp 
   otherCells <- case loc of
     Index sheet (a, b) -> case cv of
-      ValueL lstValues -> createListCells (Index sheet (a, b)) lstValues
+      ValueL lstValues -> createListCells conn (Index sheet (a, b)) lstValues
       otherwise -> return [] 
     otherwise -> return []
   let newMp = M.insert loc cv mp
-  rest <- evalChain newMp cs
+  rest <- evalChain conn newMp cs
   return $ [Cell loc xp cv ts] ++ otherCells ++ rest 
 
 
 -- | Create a list of cells, also modify the DB for references 
 -- | Not currently handling [[[]]] type things
-createListCells :: ASLocation -> [ASValue] -> IO [ASCell]
-createListCells (Index sheet (a,b)) [] = return []
-createListCells (Index sheet (a,b)) values = do 
+createListCells :: Connection -> ASLocation -> [ASValue] -> IO [ASCell]
+createListCells conn (Index sheet (a,b)) [] = return []
+createListCells conn (Index sheet (a,b)) values = do 
   let origLoc = Index sheet (a,b)
   let vals = concat $ map lst values
   let locs = map (Index sheet) (concat $ [(shift (values!!row) row (a,b)) | row <- [0..(length values)-1]])
   let exprs = map (\(Index _ (x,y)) -> Reference origLoc (x-a,y-b)) locs
   let cells = L.tail $ map (\(l,e,v) -> Cell l e v []) (zip3 locs exprs vals)
-  DB.updateDAG (zip (repeat [origLoc]) (L.tail locs))
+  DB.updateDAG conn (zip (repeat [origLoc]) (L.tail locs))
   return cells
     where
       shift (ValueL v) r (a,b) = [(a+c,b+r) | c<-[0..length(v)-1] ]
@@ -117,21 +121,22 @@ runDispatchCycle user state msg@(Message _ _ _ (PayloadC c')) = do
   -- Apply middlewares
   putStrLn $ "STARTING DISPATCH CYCLE " ++ (show c')
   c <- EM.evalMiddleware c'
-  update <- updateCell c 
+  conn <- fmap dbConn (readMVar state)
+  update <- updateCell conn c 
   case update of 
     Left e -> return $ U.getCellMessage user (Left e)
     Right anc -> do 
-      d <- getDescendants c 
+      d <- getDescendants conn c 
       case d of -- for example, error if DB is locked
         Left de -> return $  U.getCellMessage user (Left de)
         Right desc -> do 
-          res <- reEvalCell anc desc 
+          res <- reEvalCell conn anc desc 
           case res of 
             Left e' -> return $ U.getCellMessage user (Left e')
             Right cells' -> do
               -- Apply endwares
               cells <- (EE.evalEndware user state msg) cells'
-              DB.updateAfterEval user c' desc cells -- does set cells and commit
+              DB.updateAfterEval conn user c' desc cells -- does set cells and commit
               return $ U.getCellMessage user (Right cells)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
