@@ -44,7 +44,7 @@ export default React.createClass({
             underlineStyle={{ display: 'none' }} />
         </Toolbar>
         <AceEditor
-          ref="editor" name="repl"
+          ref="editor" name="repl" isRepl={true}
           onChange={function(){}}
           mode={this.props.replLanguage.Editor}
           language={this.props.replLanguage}

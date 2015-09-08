@@ -197,6 +197,7 @@ export default React.createClass({
 
   render() {
     let {behavior, width, height} = this.props; //should also have onReady
+    console.log("SPREADSHEET HEIGHT,WIDTH " + height + " " + width);
     let style = {width: width, height: height};
     let behaviorElement;
     let self = this;

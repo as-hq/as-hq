@@ -239,15 +239,17 @@ export default React.createClass({
     return Constants.editorHeight + "px";
   },
 
-  getGridHeight() { //setting to 100% for now in render
+  getGridHeight() { 
+    console.log("EVAL PANE HEIGHT: " +  this.props.height);
     let h = this.props.height - Constants.editorHeight;
+    console.log("GRID HEIGHT: " + h);
     return h + "px";
   },
 
   render() {
     let {expression, language} = this.state;
     let leftEvalPane = 
-      <div style={{width:"100%",height:"100%"}} >
+      <div >
         <ASCodeEditor
           ref='editorPane'
           language={language}

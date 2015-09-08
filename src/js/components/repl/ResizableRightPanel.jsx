@@ -9,23 +9,28 @@ const config = {
   defaultLeft:"60%"
 };
 
-const styles = {
-  root: {
-    position: 'absolute',
-    width:'100%',
-    height:"100%",
-    overflow: 'hidden' /* The sidebar can't go past the left comp, and vice versa */
-  },
-  splitBar: {
-    backgroundColor:'black',
-    height:'100%',
-    float: 'left',
-    width: config.splitBarWidth,
-    cursor: 'col-resize'
-  }
-};
 
 export default React.createClass({
+  
+  getStyles(){
+    return {
+      root: {
+        position: 'absolute',
+        width:'100%', 
+        height:'100%',
+        overflow: 'hidden' /* The sidebar can't go past the left comp, and vice versa */
+      },
+      splitBar: {
+        backgroundColor:'black',
+        height:'100%',
+        float: 'left',
+        width: config.splitBarWidth,
+        cursor: 'col-resize'
+      }
+
+    };
+  },
+
   getInitialState() {
     return {
       dragging:false,
@@ -98,7 +103,7 @@ export default React.createClass({
 
   onMouseMove(e) {
     if (!this.state.dragging) return;
-    let parentWidth = parseFloat(styles.root.width)/100 * $(window).width();
+    let parentWidth = parseFloat(this.getStyles().root.width)/100 * $(window).width();
     let x = (e.pageX - $(React.findDOMNode(this.refs.leftComp)).offset().left)/parentWidth*100;
     if (x > config.minLeft && x < config.maxLeft)
       this.setState({leftWidth:(x+"%")});
@@ -108,8 +113,8 @@ export default React.createClass({
   },
 
   render() {
-    let splitBarStyle = styles.splitBar,
-        rootProps = {style: styles.root},
+    let splitBarStyle = this.getStyles().splitBar,
+        rootProps = {style: this.getStyles().root},
         sidebarWidth = (100 - parseFloat(this.state.leftWidth))+ "%";
 
     let sidebarDivStyle = {
