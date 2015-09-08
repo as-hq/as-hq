@@ -147,7 +147,8 @@ data ASPayload =
 data ASExecError = 
   Timeout | 
   DependenciesLocked {lockUserId :: ASUserId} | 
-  DBNothingException {badLocs :: [ASLocation]} | 
+  DBNothingException {badLocs :: [ASLocation]} |
+  DBGraphUnreachable | 
   NetworkDown | 
   ResourceLimitReached |
   InsufficientPermissions |
@@ -173,6 +174,10 @@ instance Eq ASDaemon where
 
 data ServerState = State {userList :: [(ASUser,[ASDaemon])], dbConn :: R.Connection} 
 
+data GraphQuery = 
+  GetDescendants | 
+  SetRelation 
+  deriving (Show)
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Users
 

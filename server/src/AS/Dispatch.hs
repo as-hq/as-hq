@@ -19,6 +19,7 @@ import Data.Text as T (unpack,pack)
 import AS.Util as U
 import AS.Eval.Middleware as EM
 import AS.Eval.Endware as EE
+import qualified AS.DB.Graph as G
 
 -- Websockets
 import Control.Monad 
@@ -32,6 +33,32 @@ import qualified Data.ByteString.Lazy.Char8 as B
 import qualified Network.WebSockets as WS
 import Database.Redis (Connection)
 
+----------------------------------------------------------------------------------------------------------------------------------------------
+-- | Regular eval route
+
+-- | Go through the regular eval route
+runDispatchCycle :: ASUser -> MVar ServerState -> ASMessage -> IO ASMessage
+runDispatchCycle user state msg@(Message _ _ _ (PayloadC c')) = do 
+  -- Apply middlewares
+  putStrLn $ "STARTING DISPATCH CYCLE " ++ (show c')
+  c <- EM.evalMiddleware c'
+  conn <- fmap dbConn (readMVar state)
+  update <- updateCell conn c 
+  case update of 
+    Left e -> return $ U.getCellMessage user (Left e)
+    Right anc -> do 
+      d <- getDescendants conn c 
+      case d of -- for example, error if DB is locked
+        Left de -> return $  U.getCellMessage user (Left de)
+        Right desc -> do 
+          res <- reEvalCell conn anc desc 
+          case res of 
+            Left e' -> return $ U.getCellMessage user (Left e')
+            Right cells' -> do
+              -- Apply endwares
+              cells <- (EE.evalEndware user state msg) cells'
+              DB.updateAfterEval conn user c' desc cells -- does set cells and commit
+              return $ U.getCellMessage user (Right cells)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Eval building blocks
@@ -50,26 +77,31 @@ updateCell conn (Cell loc xp val ts) = do
       return $ Left (DBNothingException bl)
     else do 
       let initCells = map (\(l,e,v)-> Cell l e v ts) (zip3 locs exprs (repeat NoValue))  
-      _ <- DB.updateDAG conn (zip deps locs)
+      setResult <- G.setRelations (zip locs deps)
       _ <- DB.setCells conn initCells
       printTimed $ "set init cells"
-      return $ Right (map fromJust ancCells)
+      return $ case setResult of 
+        (Right ()) -> Right (map fromJust ancCells)
+        (Left e) -> Left e 
 
 -- | Return the descendants of a cell, which will always exist but may be locked
 -- | TODO: throw exceptions for permissions/locking
 getDescendants :: Connection -> ASCell -> IO (Either ASExecError [ASCell])
 getDescendants conn cell = do 
   let locs = decomposeLocs (cellLocation cell)
-  dag <- DB.getDAG conn
-  printTimed "got dag"
+  --dag <- DB.getDAG conn
+  --printTimed "got dag"
   vLocs <- DB.getVolatileLocs conn
   printTimed "got volatile locs"
-   --| Account for volatile cells being reevaluated each time
-  let descendantLocs = DAG.descendants (locs ++ vLocs) dag
-  printTimed $ "got descendant locs: " ++ (show descendantLocs)
-  desc <- DB.getCells conn locs
-  printTimed $ "got descendant cells"
-  return $ Right $ map fromJust desc 
+ --Account for volatile cells being reevaluated each time
+  graphResult <- G.getDescendants (locs ++ vLocs) 
+  case graphResult of
+    (Right descendantLocs) -> do
+      printTimed $ "got descendant locs: " ++ (show descendantLocs)
+      desc <- DB.getCells conn descendantLocs
+      printTimed $ "got descendant cells"
+      return $ Right $ map fromJust desc 
+    (Left e) -> return $ Left e
 
 -- | Takes ancestors and descendants, create lookup map, and run eval
 reEvalCell :: Connection -> [ASCell] -> [ASCell] -> IO (Either ASExecError [ASCell])
@@ -111,35 +143,3 @@ createListCells conn (Index sheet (a,b)) values = do
     where
       shift (ValueL v) r (a,b) = [(a+c,b+r) | c<-[0..length(v)-1] ]
       shift other r (a,b)  = [(a,b+r)]
-
-----------------------------------------------------------------------------------------------------------------------------------------------
--- | Regular eval route
-
--- | Go through the regular eval route
-runDispatchCycle :: ASUser -> MVar ServerState -> ASMessage -> IO ASMessage
-runDispatchCycle user state msg@(Message _ _ _ (PayloadC c')) = do 
-  -- Apply middlewares
-  putStrLn $ "STARTING DISPATCH CYCLE " ++ (show c')
-  c <- EM.evalMiddleware c'
-  conn <- fmap dbConn (readMVar state)
-  update <- updateCell conn c 
-  case update of 
-    Left e -> return $ U.getCellMessage user (Left e)
-    Right anc -> do 
-      d <- getDescendants conn c 
-      case d of -- for example, error if DB is locked
-        Left de -> return $  U.getCellMessage user (Left de)
-        Right desc -> do 
-          res <- reEvalCell conn anc desc 
-          case res of 
-            Left e' -> return $ U.getCellMessage user (Left e')
-            Right cells' -> do
-              -- Apply endwares
-              cells <- (EE.evalEndware user state msg) cells'
-              DB.updateAfterEval conn user c' desc cells -- does set cells and commit
-              return $ U.getCellMessage user (Right cells)
-
-----------------------------------------------------------------------------------------------------------------------------------------------
-
- 
-
