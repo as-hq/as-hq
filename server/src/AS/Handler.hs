@@ -27,6 +27,7 @@ broadcast :: Text -> ServerState -> IO ()
 broadcast message (State u _) = forM_ (map fst u) $ \(User _ conn _) -> WS.sendTextData conn message
 
 sendBroadcastFiltered :: ASUser -> MVar ServerState -> ASMessage -> IO ()
+sendBroadcastFiltered user state msg@(Message _ _ (Failure e) _) = sendToOriginalUser user msg  
 sendBroadcastFiltered user state msg = liftIO $ do 
 	(State allUsers _) <- readMVar state
 	broadcastFiltered (updateMessageUser (userId user) msg) (map fst allUsers)
