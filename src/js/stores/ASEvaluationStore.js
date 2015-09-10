@@ -149,8 +149,8 @@ const ASEvaluationStore = assign({}, BaseStore, {
   },
   setActiveSelection(rng, xp) {
     _data.activeSelection = rng;
-    _data.activeCell = this.getCellAtLoc(rng.col, rng.row);
-    if (_data.activeCell && _data.activeCell.cellExpression.tag === "Reference"){
+    _data.activeCell = this.getCellAtLoc(rng.col, rng.row) || Converter.defaultCell();
+    if (_data.activeCell.cellExpression.tag === "Reference"){
       let headCell = this.getReferenceCell(_data.activeCell.cellExpression),
           headLoc = headCell.cellLocation.index,
           height = headCell.cellValue.contents.length,
@@ -161,7 +161,7 @@ const ASEvaluationStore = assign({}, BaseStore, {
       else width = 1;
       console.log("head location value: " + JSON.stringify(headCell.cellValue));
       _data.activeCell.cellExpression.dependencies = Util.getListDependency(headLoc, height, width);
-    } else if (_data.activeCell && _data.activeCell.cellValue.tag === "ValueL") {
+    } else if (_data.activeCell.cellValue.tag === "ValueL") {
       let val = _data.activeCell.cellValue,
           loc = _data.activeCell.cellLocation.index,
           height = val.contents.length,
@@ -169,9 +169,9 @@ const ASEvaluationStore = assign({}, BaseStore, {
       if (val.contents[0].contents)
         width = val.contents[0].contents.length || 1;
       else width = 1;
-      _data.activeCell.cellExpression.dependencies = Util.getListDependency(loc, height, width);
-    } else if (_data.activeCell)
-      _data.activeCell.cellExpression.dependencies = Util.parseDependencies(xp);
+      this.setActiveCellDependencies(Util.getListDependency(loc, height, width));
+    } else
+      this.setActiveCellDependencies(Util.parseDependencies(xp));
   },
   getActiveSelection() {
     return _data.activeSelection;
@@ -276,6 +276,10 @@ const ASEvaluationStore = assign({}, BaseStore, {
 
   clearSheetCacheById(sheetid) {
     _data.allCells[sheetid] = null;
+  },
+
+  setActiveCellDependencies(deps) {
+    _data.activeCell.cellExpression.dependencies = deps;
   },
 
   /**************************************************************************************************************************/

@@ -36,6 +36,9 @@ export default React.createClass({
 
   setExpression(xp) {
     this.setState({ expression: xp });
+    let deps = Util.parseDependencies(xp);
+    Store.setActiveCellDependencies(deps);
+    this.refs.spreadsheet.repaint();
   },
   /* Update the focus between the editor and the grid */
   toggleFocus() {

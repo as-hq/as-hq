@@ -268,7 +268,7 @@ export default React.createClass({
       }
 
       // selection dependency highlighting
-      if (sel && activeCell) {
+      if (sel && activeCell && activeCell.cellExpression.dependencies) {
         let locs = activeCell.cellExpression.dependencies;
         // console.log("highlighting dependency: "+JSON.stringify(activeCell));
         if (Util.isContainedInLocs(col, row, locs)){
