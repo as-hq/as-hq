@@ -149,6 +149,7 @@ data ASPayload =
 
 data ASExecError = 
   Timeout | 
+  EvaluationError {evalErrorDesc :: String} |
   DependenciesLocked {lockUserId :: ASUserId} | 
   DBNothingException {badLocs :: [ASLocation]} |
   DBGraphUnreachable | 

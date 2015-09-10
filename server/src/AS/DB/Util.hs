@@ -30,7 +30,7 @@ cInfo = ConnInfo
     , connectPort           = PortNumber 6379
     , connectAuth           = Nothing
     , connectDatabase       = 0               
-    , connectMaxConnections = 200
+    , connectMaxConnections = 100
     , connectMaxIdleTime    = 1000000
     }
 

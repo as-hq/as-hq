@@ -33,10 +33,12 @@ evalExpression loc dict expr =
     Reference _ _ -> evalRef loc dict expr  
 
 -- | Returns the new Python expression and a boolean for whether the expression is volatile or not
-evalExcel :: ASExpression -> IO (ASExpression,Bool)
+evalExcel :: ASExpression -> IO (Either ASValue (ASExpression,Bool)) 
 evalExcel xp = do
-	let newXp = "evalExcel(\'"++(expression xp)++"\')"
+	--printTimed $ "eval inital excel xp: " ++ (show . expression $ xp)
+	let newXp = "evalExcel('"++(expression xp)++"')"
 	interpolated <- interpolateFile Excel newXp
+	--putStrLn $ "EXCEL evaluating file: \n" ++ interpolated
 	resultInit <- pyfiString interpolated
 	--putStrLn $ "EXCEL RESULT INIT: " ++ (show resultInit)
 	{-
@@ -46,8 +48,10 @@ evalExcel xp = do
 			'\"' -> L.init (L.tail result')
 			otherwise -> result'
 	-}
-	let ValueL [ValueS s, ValueB b] = parseValue Excel resultInit
-	return (Expression s Excel, b)
+	let result = parseValue Excel resultInit
+	return $ case result of 
+		(ValueL [ValueS s, ValueB b]) -> Right (Expression s Excel, b)
+		e@(ValueError _ _ _ _) -> Left e
 
 -----------------------------------------------------------------------------------------------------------------------
 -- File Interpolation (see Lang for details)
@@ -103,7 +107,7 @@ evalRef loc dict (Reference l (a, b)) = do
 doEval :: ASLanguage -> String -> IO String
 doEval lang str = case lang of 
 	Python -> pyfiString str
-	Excel  -> pyfiString str
+	Excel  -> writeExecFile lang str >> pyfiString str
 	SQL	   -> if S.isDebug  -- if isDebug, write the python exec file
 		then do
 			writeExecFile lang str

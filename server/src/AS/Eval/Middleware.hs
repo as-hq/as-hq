@@ -24,13 +24,14 @@ evalMiddleware cell =
 -- | Change the excel expression to a python one and also possibly add a volatile tag
 evalInitExcel :: ASCell -> IO ASCell
 evalInitExcel c@(Cell loc xp@(Expression rawXp Excel) val ts) = do
-    (newXp,isVolatile) <- R.evalExcel xp 
-    case isVolatile of
-      True -> case (U.hasVolatileTag c) of 
-        True -> return $ Cell loc newXp val ts
-        False -> return $ Cell loc newXp val (Volatile:ts)
-      False -> return $ Cell loc newXp val ts
-    return $ Cell loc newXp val ts
+    initResult <- R.evalExcel xp
+    return $ case initResult of 
+        (Left valueE) -> Cell loc xp valueE ts
+        (Right (newXp, isVolatile)) -> case isVolatile of
+            False -> Cell loc newXp val ts
+            True -> case (U.hasVolatileTag c) of 
+                True -> Cell loc newXp val ts
+                False -> Cell loc newXp val (Volatile:ts)
 evalInitExcel cell = return cell
 
 evalConnector :: ASCell -> IO ASCell

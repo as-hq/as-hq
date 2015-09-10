@@ -35,7 +35,9 @@ query q locs = runZMQ $ do
     connect reqSocket S.graphDbHost
     let msg = (:) (B.pack . show $ q) (map (B.pack . show) locs)
     sendMulti reqSocket $ N.fromList msg 
+    liftIO $ printTimed "sent message"  
     reply <- receiveMulti reqSocket
+    liftIO $ printTimed "received message"  
     --liftIO $ printTimed $ "graph db reply:  " ++ (show reply)
     case (B.unpack $ last reply) of
         "OK" -> do
@@ -52,10 +54,14 @@ queryMulti q locSets = runZMQ $ do
     reqSocket <- socket Req
     connect reqSocket S.graphDbHost
     let locs = map (\l -> map (B.pack . show) l) locSets
-    let msg = intercalate [(B.pack "|")] locs
+    liftIO $ printTimed "building message"  
+    let msg = (:) (B.pack . show $ q) $! intercalate [(B.pack "|")] locs
+    liftIO $ printTimed "built message"  
     --liftIO $ printTimed $ "sending message: " ++ (show msg)
-    sendMulti reqSocket $ N.fromList $ (B.pack . show $ q):msg
+    _ <- sendMulti reqSocket $ N.fromList msg
+    liftIO $ printTimed "sent message"  
     reply <- receiveMulti reqSocket
+    liftIO $ printTimed $ "received message of length: " ++ (show . length $ reply)  
     --liftIO $ printTimed $ "graph db reply multi: " ++ (show reply)
     --liftIO $ printTimed $ "query type: " ++ (show q)
     return $ case (B.unpack $ last reply) of
