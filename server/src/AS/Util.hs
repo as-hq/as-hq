@@ -57,6 +57,28 @@ isSubsetOf :: Eq a => [a] -> [a] -> Bool
 isSubsetOf [] _ = True
 isSubsetOf f s = all id $ map (\i-> L.elem i s) f
 
+maxBy :: Ord a => (b -> a) -> [b] -> b
+maxBy f (x:xs) = helper x (f x) $ zip (map f xs) xs
+  where
+    helper m _ [] = m
+    helper m fm ((fx, x):fxs) = if (fx > fm)
+      then helper x fx fxs
+      else helper m fm fxs
+
+minBy :: Ord a => (b -> a) -> [b] -> b
+minBy f (x:xs) = helper x (f x) $ zip (map f xs) xs
+  where
+    helper m _ [] = m
+    helper m fm ((fx, x):fxs) = if (fx < fm)
+      then helper x fx fxs
+      else helper m fm fxs
+
+isRight :: Either a b -> Bool
+isRight (Right _) = True
+isRight _ = False
+
+isAllRight :: [Either a b] -> Bool
+isAllRight results = all id $ map isRight results 
 --------------------------------------------------------------------------------------------------------------
 -- | Key-value manip functions
 
@@ -91,6 +113,10 @@ getDBCellMessage :: ASUser -> [ASLocation] -> [Maybe ASCell] -> ASMessage
 getDBCellMessage user locs mcells = getCellMessage user (Right cells)
   where justCells = filter (not . isNothing) mcells 
         cells = map (\(Just x) -> x) justCells
+
+isColumn :: ASLocation -> Bool
+isColumn (Column _ _) = True
+isColumn _ = False
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Error Handling

@@ -3,6 +3,7 @@ module AS.DB.Util where
 import Prelude
 
 import AS.Types 
+import AS.Util
 
 import Data.List (zip4,head)
 
@@ -52,13 +53,15 @@ maybeASCell :: (ASLocation,Maybe ASExpression,Maybe ASValue, Maybe [ASCellTag]) 
 maybeASCell (l, Just e, Just v, Just tags) = Just $ Cell l e v tags
 maybeASCell _ = Nothing
 
-maybeASCellFromFields :: ASLocation -> [Maybe B.ByteString] -> Maybe ASCell
-maybeASCellFromFields loc ((Just xpstr):(Just valstr):(Just tagstr):[]) = Just $ Cell loc e v ts
+maybeASCellFromFields :: [Maybe B.ByteString] -> Maybe ASCell
+maybeASCellFromFields ((Just locstr):(Just xpstr):(Just valstr):(Just tagstr):[]) = 
+  Just $ Cell l e v ts
   where
+    l = read (B.unpack locstr) :: ASLocation
     e = read (B.unpack xpstr) :: ASExpression
     v = read (B.unpack valstr) :: ASValue
     ts = read (B.unpack tagstr) :: [ASCellTag]
-maybeASCellFromFields _ _ = Nothing
+maybeASCellFromFields _ = Nothing
 
 bStrToASLocation :: B.ByteString -> ASLocation
 bStrToASLocation b = (read (B.unpack b) :: ASLocation)
@@ -85,8 +88,8 @@ tuple3 :: a -> b -> c -> (a,b,c)
 tuple3 a b c = (a,b,c)
 
 getLocationKey :: ASLocation -> B.ByteString
-getLocationKey (Index sheetid idx) = B.pack $ (show sheetid) ++ (show idx)
-getLocationKey (Range sheetid rng) = B.pack $ (show sheetid) ++ (show rng)
+getLocationKey (Index sheetid idx) = B.pack $ (show sheetid) ++ ('|':(show idx))
+getLocationKey (Range sheetid rng) = B.pack $ (show sheetid) ++ ('|':(show rng))
 
 getSheetKey :: ASSheetId -> B.ByteString -- for storing the actual sheet as key-value
 getSheetKey = B.pack . show
@@ -98,25 +101,39 @@ getWorkbookKey :: String -> B.ByteString
 getWorkbookKey = B.pack
 
 cellFields :: [B.ByteString]
-cellFields = [(B.pack "cellExpression"), (B.pack "cellValue"), (B.pack "cellTags")]
+cellFields = [(B.pack "cellLocation"), (B.pack "cellExpression"), (B.pack "cellValue"), (B.pack "cellTags")]
+
+keyToRow :: B.ByteString -> Int
+keyToRow str = row
+  where
+    (col, row) = read idxStr :: (Int, Int)
+    idxStr = B.unpack $ last $ B.split '|' str
+
+incrementLocKey :: (Int, Int) -> B.ByteString -> B.ByteString
+incrementLocKey (dx, dy) key = B.pack $ ks ++ '|':kidx
+  where
+    (sh:idxStr:[]) = B.split '|' key
+    ks = B.unpack sh
+    (col, row) = read (B.unpack idxStr) :: (Int, Int)
+    kidx = show (col + dx, row + dy)
 
 ----------------------------------------------------------------------------------------------------------------------
 -- | Private functions
 
-getCellRedis :: ASLocation -> Redis (Maybe ASCell)
-getCellRedis loc = do
-    let key = getLocationKey loc
+getCellByKeyRedis :: B.ByteString -> Redis (Maybe ASCell)
+getCellByKeyRedis key = do
     Right strs <- hmget key cellFields
-    return $ maybeASCellFromFields loc strs
+    return $ maybeASCellFromFields strs
 
 setCellRedis :: ASCell -> Redis ()
 setCellRedis cell = do
     let loc = cellLocation cell
         key = getLocationKey loc
+        locstr = (B.pack . show) loc
         xpstr = (B.pack . show) (cellExpression cell)
         valstr = (B.pack . show) (cellValue cell)
         tagstr = (B.pack . show) (cellTags cell)
-        hash = zip cellFields [xpstr, valstr, tagstr]
+        hash = zip cellFields [locstr, xpstr, valstr, tagstr]
     _ <- hmset key hash -- set cell hash
     let setKey = getSheetSetKey (locSheetId loc)
     _ <- sadd setKey [key] -- add the location key to the set of locs in a sheet (for sheet deletion etc)
@@ -124,6 +141,11 @@ setCellRedis cell = do
 
 deleteLocRedis :: ASLocation -> Redis ()
 deleteLocRedis loc = del [getLocationKey loc] >> return ()
+
+getSheetLocsRedis :: ASSheetId -> Redis [B.ByteString]
+getSheetLocsRedis sheetid = do
+  Right keys <- smembers $ getSheetSetKey sheetid
+  return keys
 
 updateChunkDAG :: [([ASLocation],ASLocation)] -> Redis ()
 updateChunkDAG rels = do 
@@ -142,4 +164,5 @@ chunkM_ conn f size lst = do
   let chunks = chunksOf size lst
   runRedis conn $ mapM_ f chunks
 
-
+getLastRowKey :: [B.ByteString] -> B.ByteString
+getLastRowKey keys = maxBy keyToRow keys

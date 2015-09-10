@@ -4,11 +4,11 @@ module AS.DB.API where
 
 import Prelude
 
-import AS.Types hiding (location,expression,value)
+import AS.Types hiding (location,expression,value,min)
 import AS.Util as U
 import AS.DB.Util as DU
 
-import Data.List (zip4,head)
+import Data.List (zip4,head,partition)
 import Data.Maybe (isNothing, fromJust)
 
 import Control.Applicative
@@ -62,14 +62,25 @@ getCell conn loc = return . head =<< getCells conn [loc]
 getCells :: Connection -> [ASLocation] -> IO [Maybe ASCell]
 getCells _ [] = return []
 getCells conn locs = 
-  let dlocs = concat $ map U.decomposeLocs locs in 
-  do
-    printTimed "redis about to run"
-    runRedis conn $ do
-      liftIO $ printTimed "redis about to get cells"
-      cells <- mapM DU.getCellRedis dlocs
-      liftIO $ printTimed "redis got cells"
-      return cells
+  let 
+    (cols, nonCols) = partition isColumn locs
+    dlocs = concat $ map U.decomposeLocs nonCols
+    keys = map DU.getLocationKey dlocs
+  in do
+    cells <- getCellsByKeys conn keys
+    columnCells <- mapM (getColumnCells conn) cols
+    return $ cells ++ (concat columnCells) 
+    
+
+getCellsByKeys :: Connection -> [B.ByteString] -> IO [Maybe ASCell]
+getCellsByKeys _ [] = return []
+getCellsByKeys conn keys = do
+  printTimed "redis about to run"
+  runRedis conn $ do
+    liftIO $ printTimed "redis about to get cells"
+    cells <- mapM DU.getCellByKeyRedis keys
+    liftIO $ printTimed "redis got cells"
+    return cells
 
 setCell :: Connection -> ASCell -> IO ()
 setCell conn c = setCells conn [c]
@@ -102,6 +113,18 @@ locationsExist conn locs = do
       bools <- mapM (\l -> exists $ DU.getLocationKey l) locs
       return $ sequence bools
     return results
+
+getColumnCells :: Connection -> ASLocation -> IO [Maybe ASCell]
+getColumnCells conn (Column sheetid col) = do
+  runRedis conn $ do
+    locKeys <- DU.getSheetLocsRedis sheetid
+    liftIO $ printTimed "redis got column"
+    let rows = map DU.keyToRow locKeys
+    let firstRowKey = minBy keyToRow locKeys
+    let locKeys = map (\i -> DU.incrementLocKey (1,i) firstRowKey) [(minimum rows)..(maximum rows)]
+    cells <- mapM DU.getCellByKeyRedis locKeys
+    liftIO $ printTimed "redis got cells"
+    return cells
 
 ----------------------------------------------------------------------------------------------------------------------
 -- | DAG

@@ -72,7 +72,7 @@ library
 executable alphasheets-exe
   hs-source-dirs:      app
   main-is:             Main.hs
-  ghc-options:         -O2 -threaded -fprof-auto "-with-rtsopts=-N -p -s -h -i0.01"
+  ghc-options:         -O2 -threaded -with-rtsopts=-N 
   build-depends:       base
                      , alphasheets
                      , aeson

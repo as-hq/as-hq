@@ -53,8 +53,9 @@ normalizeRanges :: [ASLocation] -> [ASLocation]
 normalizeRanges locs = do
   loc <- locs
   case loc of
-    Range sheet (p1, p2) -> decomposeLocs loc
-    Index _  _      -> return loc
+    Range sheet (p1, p2)  -> decomposeLocs loc
+    Index _  _            -> return loc
+    Column _ _            -> return loc
 
 getOffsets :: ASLocation -> [(Int,Int)]
 getOffsets loc = case loc of 

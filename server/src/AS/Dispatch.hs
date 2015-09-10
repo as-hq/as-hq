@@ -46,42 +46,45 @@ runDispatchCycle user state msg@(Message _ _ _ (PayloadC c')) = do
   update <- updateCell conn c 
   case update of 
     Left e -> return $ U.getCellMessage user (Left e)
-    Right anc -> do 
+    Right () -> do 
       d <- getDescendants conn c 
       case d of -- for example, error if DB is locked
         Left de -> return $  U.getCellMessage user (Left de)
         Right desc -> do 
-          res <- reEvalCell conn anc desc 
-          case res of 
-            Left e' -> return $ U.getCellMessage user (Left e')
-            Right cells' -> do
-              -- Apply endwares
-              cells <- (EE.evalEndware user state msg) cells'
-              DB.updateAfterEval conn user c' desc cells -- does set cells and commit
-              return $ U.getCellMessage user (Right cells)
+          ancResult <- G.getImmediateAncestors $ map cellLocation desc
+          case ancResult of 
+            (Left e') -> return $ U.getCellMessage user (Left e') 
+            (Right ancLocs) -> do
+              anc <- fmap U.fromJustList $ DB.getCells conn ancLocs
+              res <- reEvalCell conn anc desc 
+              case res of 
+                Left e' -> return $ U.getCellMessage user (Left e')
+                Right cells' -> do
+                  -- Apply endwares
+                  cells <- (EE.evalEndware user state msg) cells'
+                  DB.updateAfterEval conn user c' desc cells -- does set cells and commit
+                  return $ U.getCellMessage user (Right cells)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Eval building blocks
 
 -- | Takes a cell and returns an error if it tries to access a non-existant cell
 -- | Otherwise, it returns all of the immediate ancestors (used to make the lookup map)
-updateCell :: Connection -> ASCell -> IO (Either ASExecError [ASCell])
+updateCell :: Connection -> ASCell -> IO (Either ASExecError ())
 updateCell conn (Cell loc xp val ts) = do 
   let locs = decomposeLocs loc
   let (deps,exprs) = getDependenciesAndExpressions (locSheetId loc) xp (getOffsets loc)
   ancCells <- DB.getCells conn (concat deps)
-  printTimed $ "got cells"
+  printTimed $ "got cells: "
   if (any isNothing ancCells)
-    then do 
-      let bl = map snd $ filter (\(a,b) -> (a == Nothing)) (zip ancCells (concat deps))
-      return $ Left (DBNothingException bl)
+    then return $ Left (DBNothingException [])
     else do 
       let initCells = map (\(l,e,v)-> Cell l e v ts) (zip3 locs exprs (repeat NoValue))  
       setResult <- G.setRelations (zip locs deps)
-      _ <- DB.setCells conn initCells
+      DB.setCells conn initCells
       printTimed $ "set init cells"
       return $ case setResult of 
-        (Right ()) -> Right (map fromJust ancCells)
+        (Right ()) -> Right ()
         (Left e) -> Left e 
 
 -- | Return the descendants of a cell, which will always exist but may be locked
@@ -95,6 +98,9 @@ getDescendants conn cell = do
   printTimed "got volatile locs"
  --Account for volatile cells being reevaluated each time
   graphResult <- G.getDescendants (locs ++ vLocs) 
+  --let descendantLocs = DAG.descendants (locs ++ vLocs) dag
+  --desc <- DB.getCells conn descendantLocs
+  --let graphResult = Right descendantLocs
   case graphResult of
     (Right descendantLocs) -> do
       printTimed $ "got descendant locs: " ++ (show descendantLocs)
@@ -138,7 +144,7 @@ createListCells conn (Index sheet (a,b)) values = do
   let locs = map (Index sheet) (concat $ [(shift (values!!row) row (a,b)) | row <- [0..(length values)-1]])
   let exprs = map (\(Index _ (x,y)) -> Reference origLoc (x-a,y-b)) locs
   let cells = L.tail $ map (\(l,e,v) -> Cell l e v []) (zip3 locs exprs vals)
-  DB.updateDAG conn (zip (repeat [origLoc]) (L.tail locs))
+  G.setRelations (zip (L.tail locs) (repeat [origLoc]))
   return cells
     where
       shift (ValueL v) r (a,b) = [(a+c,b+r) | c<-[0..length(v)-1] ]

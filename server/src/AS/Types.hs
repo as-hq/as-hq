@@ -21,7 +21,8 @@ data WorkbookSheet = WorkbookSheet {wsName :: String, wsSheets :: [ASSheet]} der
 -- | Core cell types
 
 data ASLocation = Index {locSheetId :: ASSheetId, index :: (Int, Int)} | 
-                  Range {locSheetId :: ASSheetId, range :: ((Int, Int), (Int, Int))}
+                  Range {locSheetId :: ASSheetId, range :: ((Int, Int), (Int, Int))} |
+                  Column {locSheetId :: ASSheetId, column :: Int}
                   deriving (Show, Read, Eq, Generic, Ord)
 
 data ASValue =
@@ -73,7 +74,9 @@ data ASCell = Cell {cellLocation :: ASLocation,
 -- TODO fix recursion
 data ExLoc = ExSheet {name :: String, sheetLoc :: ExLoc} |
              ExRange {first :: ExLoc, second :: ExLoc}     |
-             ExIndex {d1 :: String, col :: String, d2 :: String, row :: String} deriving (Show,Read,Eq,Ord)
+             ExIndex {d1 :: String, col :: String, d2 :: String, row :: String} |
+             ExColumn Int
+             deriving (Show,Read,Eq,Ord)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Streaming
@@ -175,8 +178,9 @@ instance Eq ASDaemon where
 data ServerState = State {userList :: [(ASUser,[ASDaemon])], dbConn :: R.Connection} 
 
 data GraphQuery = 
-  GetDescendants | 
-  SetRelation 
+  GetDescendants |
+  GetImmediateAncestors |
+  SetRelations 
   deriving (Show)
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Users
