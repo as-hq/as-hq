@@ -44,7 +44,11 @@ def rank(elem,arr,order=0):
         raise TypeError("Not a valid order type")
 
 def xmax(*args):
-    return np.max()
+    lst = [x for count, x in enumerate(args)]
+    return ASIterable(lst).flatten()
+
+def xsum(*args):
+    return np.sum()
 
 
 #############################################################################################################################

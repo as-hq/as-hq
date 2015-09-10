@@ -66,6 +66,8 @@ class ASIterable(object):
         return ASIterable(np.sum(self.lst))
     def reshape(self,axis1,axis2):
         return ASIterable(self.lst.reshape((axis1, axis2)))
+    def flatten(self):
+        return ASIterable([item for sublist in l for item in self.lst])
     def transpose(self):
         # turn column to row vector
         if len(self.lst.shape) == 1: 

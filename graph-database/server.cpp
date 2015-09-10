@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <vector>
 #include "graph.cpp"
+#include <time.h>       
 
 /* 
     Cases on type of request and calls the correct handler 
@@ -55,6 +56,7 @@ int main () {
         /* Wait for next multi-part message from client */
         std::vector<std::string> request;
         zmq::message_t requestPart;
+        clock_t begin = clock(); 
         socket.recv(&requestPart, rcvMore); // blocks until receives a message
         std::string requestPartStr = std::string(static_cast<char*>(requestPart.data()), requestPart.size());
         // std::cout << "server got " << requestPartStr << std::endl;
@@ -73,6 +75,8 @@ int main () {
             bRcvMore = (rcvMore == 1);
         }
         // std::cout << "Received message" << std::endl;
+        clock_t end = clock(); 
+        std::cout << "Time taken: " << (double)(end - begin)/CLOCKS_PER_SEC << " for action: " << request[0] << std::endl; 
 
         std::vector<std::string> response = processRequest(dag,request);
         response.push_back("OK"); //TODO: error handling
