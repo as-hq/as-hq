@@ -67,3 +67,18 @@ queryMulti q locSets = runZMQ $ do
     return $ case (B.unpack $ last reply) of
         "OK" -> Right []
         "ERROR" -> Left DBGraphUnreachable
+
+--queryMulti :: GraphQuery -> [[ASLocation]] -> IO (Either ASExecError [ASLocation])
+--queryMulti q locSets = do
+--    let locs = map (\l -> map (B.pack . show) l) locSets
+--    liftIO $ printTimed "building message"  
+--    let msg = (:) (B.pack . show $ q) $! intercalate [(B.pack "|")] locs
+--    liftIO $ printTimed "built message"  
+--    liftIO $ printTimed "sent message"  
+--    liftIO $ printTimed $ "received message of length: "   
+--    --liftIO $ printTimed $ "graph db reply multi: " ++ (show reply)
+--    --liftIO $ printTimed $ "query type: " ++ (show q)
+--    let reply = ["OK"]
+--    return $ case (B.unpack $ last reply) of
+--        "OK" -> Right []
+--        "ERROR" -> Left DBGraphUnreachable
