@@ -23,66 +23,74 @@ var wss = new WebSocket(Constants.HOST_WS);
 wss.onmessage = function (event) {
   console.log("Client received data from server: " + JSON.stringify(event.data));
   let msg = JSON.parse(event.data);
-  switch (msg.action) {
-    case "Acknowledge":
-      break;
-    case "Undo":
-      Dispatcher.dispatch({
-        type: ActionTypes.GOT_UNDO,
-        commit: Converter.serverToClientCommit(msg.payload.contents)
+  if (msg.result.tag === "Failure") {
+    Dispatcher.dispatch({
+        type: ActionTypes.GOT_FAILURE,
+        error: msg.result.failDesc
       });
-      break;
-    case "Redo":
-      Dispatcher.dispatch({
-        type: ActionTypes.GOT_REDO,
-        commit: Converter.serverToClientCommit(msg.payload.contents)
-      });
-     break;
-    case "Evaluate":
-      let cells = Converter.clientCellsFromServerMessage(msg);
-      Dispatcher.dispatch({
-        type: ActionTypes.GOT_UPDATED_CELLS,
-        updatedCells: cells
-      });
-      break;
-    case "Update":
-      if (msg.payload.tag === "PayloadC" ||
-          msg.payload.tag === "PayloadCL"){
+  } else {
+    switch (msg.action) {
+      case "Acknowledge":
+        break;
+      case "Undo":
+        Dispatcher.dispatch({
+          type: ActionTypes.GOT_UNDO,
+          commit: Converter.serverToClientCommit(msg.payload.contents)
+        });
+        break;
+      case "Redo":
+        Dispatcher.dispatch({
+          type: ActionTypes.GOT_REDO,
+          commit: Converter.serverToClientCommit(msg.payload.contents)
+        });
+       break;
+      case "Evaluate":
         let cells = Converter.clientCellsFromServerMessage(msg);
         Dispatcher.dispatch({
           type: ActionTypes.GOT_UPDATED_CELLS,
           updatedCells: cells
         });
-      } else if (msg.payload.tag === "PayloadWorkbookSheets") {
-        let workbooks = Converter.clientWorkbooksFromServerMessage(msg);
+        break;
+      case "Update":
+        if (msg.payload.tag === "PayloadC" ||
+            msg.payload.tag === "PayloadCL"){
+          let cells = Converter.clientCellsFromServerMessage(msg);
+          Dispatcher.dispatch({
+            type: ActionTypes.GOT_UPDATED_CELLS,
+            updatedCells: cells
+          });
+        } else if (msg.payload.tag === "PayloadWorkbookSheets") {
+          let workbooks = Converter.clientWorkbooksFromServerMessage(msg);
+          Dispatcher.dispatch({
+            type: ActionTypes.GOT_UPDATED_WORKBOOKS,
+            workbooks: workbooks
+          });
+        }
+        // TODO cases for sheets and workbooks
+        break;
+      case "NoAction":
+        break;
+      case "Get":
+        let newCells = Converter.clientCellsFromServerMessage(msg); // MAY NEED TO REPLACE
         Dispatcher.dispatch({
-          type: ActionTypes.GOT_UPDATED_WORKBOOKS,
-          workbooks: workbooks
+          type: ActionTypes.FETCHED_CELLS,
+          newCells: newCells
         });
-      }
-      // TODO cases for sheets and workbooks
-      break;
-    case "NoAction":
-      break;
-    case "Get":
-      let newCells = Converter.clientCellsFromServerMessage(msg); // MAY NEED TO REPLACE
-      Dispatcher.dispatch({
-        type: ActionTypes.FETCHED_CELLS,
-        newCells: newCells
-      });
-      break;
-    //xcxc
-    case "Clear":
-      Dispatcher.dispatch({
-        type: ActionTypes.CLEARED,
-      });
-      break;
-    // case "Delete": TODO
-    //   if (msg.result === "Success")
-    //     Dispatcher.dispatch({
-    //       type: ActionTypes.DELETED_CELLS,
-    //       locs:
-    //     });
+        break;
+      //xcxc
+      case "Clear":
+        Dispatcher.dispatch({
+          type: ActionTypes.CLEARED,
+        });
+        break;
+      case "Delete":
+        console.log("got delete");
+        Dispatcher.dispatch({
+          type: ActionTypes.DELETED_LOCS,
+          locs: Converter.clientLocsFromServerMessage(msg)
+        });
+        break;
+    }
   }
 };
 

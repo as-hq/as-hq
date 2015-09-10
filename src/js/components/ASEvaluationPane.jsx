@@ -106,6 +106,11 @@ export default React.createClass({
     updatedCells.forEach((cell) => {
       this.addError(Converter.clientCellGetValueObj(cell));
     });
+    let extError = Store.getExternalError();
+    if (extError) {
+      this.setToast(extError, "ERROR");
+      Store.setExternalError(null);
+    }
   },
 
   /**************************************************************************************************************************/

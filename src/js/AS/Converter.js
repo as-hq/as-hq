@@ -54,10 +54,10 @@ export default {
   clientCellGetValueObj(clientCell){
     return clientCell.cellValue;
   },
-  clientCellEmptyVersion(clientCell){
-    let ce = {"tag":"Expression","expression":"","language":clientCell.cellExpression.language};
+  clientCellEmpty(loc){
+    let ce = {"tag":"Expression","expression":"","language":"Python"};
     let cv = {"tag": "NoValue", "contents": []};
-    return {cellLocation:clientCell.cellLocation,cellExpression:ce,cellValue:cv};
+    return {cellLocation:loc,cellExpression:ce,cellValue:cv,cellTags:[]};
   },
   /* Convert a store cell to a grid display for hypergrid's format */
   clientCellGetDisplay(clientCell) {
@@ -136,6 +136,19 @@ export default {
       },
       "cellTags": []};
   */
+
+  ASLocToClient(loc) {
+
+    let cloc = {
+        tag: loc.tag,
+        locSheetId: loc.locSheetId
+      };
+    if (loc.range)
+      cloc.range = this.serverToClientLoc(loc.range);
+    else
+      cloc.index = this.serverToClientLoc(loc.index);
+    return cloc;
+  },
 
   serverToClientCell(serverCell) {
     let serverLoc = serverCell.cellLocation.index;
@@ -239,6 +252,25 @@ export default {
         }
         console.log("Eval cells JSON: " + JSON.stringify(cells));
         return cells;
+      }
+    }
+    else
+      console.log("Error parsing: no payload found in message");
+  },
+  clientLocsFromServerMessage(msg) {
+    // console.log("Trying to get cells from message received: " + JSON.stringify(msg));
+    if (msg.payload){
+      if (msg.payload.tag === "PayloadL"){ // one cell
+        return [this.ASLocToClient(msg.payload.contents)];
+      }
+      else if (msg.payload.tag === "PayloadLL"){ // list of cells
+        let locs = [];
+        for (var key in msg.payload.contents){
+          let clientLoc = this.ASLocToClient(msg.payload.contents[key]);
+          locs.push(clientLoc);
+        }
+        console.log(locs);
+        return locs;
       }
     }
     else

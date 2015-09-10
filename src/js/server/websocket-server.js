@@ -128,7 +128,7 @@ var fakeWorkbookSheets = function() {
           sheetId: '3',
           sheetName: 'Test2',
           sheetPermissions: [
-            
+
           ]
         }
       ]
@@ -164,7 +164,7 @@ wss.on("connection", function(ws) {
         case "makeImage":
           console.log("making image!");
           cell = fakeCellWithValue(parsed.payload.contents, {tag: "ValueImage",
-            imagePath: "http://i.kinja-img.com/gawker-media/image/upload/s--6H_0NmnN--/c_fit,fl_progressive,q_80,w_636/q8ghv9du9ahfiifa9ezv.jpg",
+            imagePath: "http://www.somebodymarketing.com/wp-content/uploads/2013/05/Stock-Dock-House.jpg",
             imageWidth: 100,
             imageHeight: 100});
           break;

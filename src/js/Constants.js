@@ -6,8 +6,8 @@ export default {
   // event name triggered from store, listened to by views
   CHANGE_EVENT: 'change',
 
-  scrollCacheX: 200,
-  scrollCacheY: 200,
+  scrollCacheX: 50,
+  scrollCacheY: 50,
 
   numCols: 100000,
   numRows: 100000,
@@ -37,7 +37,8 @@ export default {
     GOT_UPDATED_WORKBOOKS: null,
     RECEIVED_ERROR: null,
     RECEIVED_SHEET: null,
-    RECEIVED_WORKBOOK: null
+    RECEIVED_WORKBOOK: null,
+    DELETED_LOCS: null
   }),
 
   ActionSources: keyMirror({

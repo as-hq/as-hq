@@ -33,6 +33,8 @@ export default {
     // console.log("In show value: " + JSON.stringify(cv));
     let self = this;
     switch (cv.tag) {
+      case "NoValue":
+        return "";
       case "ValueNaN":
         return "NaN";
       case "ValueB":
@@ -292,6 +294,34 @@ export default {
     } else {
       return this.intToExcelCol(loc.col) + loc.row;
     }
+  },
+
+  decomposeLocs(loc) {
+    if (loc.index)
+      return [loc];
+    else {
+      let dlocs = [];
+      for (var r = loc.row; r < loc.row2 + 1; r++){
+        for (var c = loc.col; c < loc.col2 + 1; c++) {
+          dlocs.push({
+            tag: 'index',
+            locSheetId: loc.locSheetId,
+            index: {row: r, col: c}
+          });
+        }
+      }
+      return dlocs;
+    }
+  },
+
+  getDegenerateLocs(locs) {
+    if (locs.length){
+      let dlocs = locs.map((l) => {return this.getDegenerateLocs(l)});
+      console.log("degenerate locs: " + JSON.stringify(dlocs));
+      let merged = [];
+      return merged.concat.apply(merged, dlocs);
+    }
+    else return this.decomposeLocs(locs);
   },
 
   removeLastWord(str){

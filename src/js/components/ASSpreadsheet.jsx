@@ -106,7 +106,7 @@ export default React.createClass({
   },
   /* Called by eval pane's onChange method, when eval pane receives a change event from the store */
   updateCellValues(clientCells){
-    // console.log("About to display cells in sheet: " + JSON.stringify(clientCells));
+    console.log("About to display cells in sheet: " + JSON.stringify(clientCells));
     let model = this._getBehavior();
     for (var key in clientCells){ // update the hypergrid values
       let c = clientCells[key];
@@ -177,13 +177,13 @@ export default React.createClass({
         'fin-scroll-x': function (event) {
           // let {x, y} = self.getScroll();
           self.setState({scroll: self.getScroll()});
-          if ((self.getScroll()).x % 50 === 0)
+          if ((self.getScroll()).x % 20 === 0)
             ActionCreator.scroll(self.getViewingWindowWithCache());
           },
         'fin-scroll-y': function (event) {
           // let {x, y} = self.getScroll();
           self.setState({scroll: self.getScroll()});
-          if ((self.getScroll()).y % 50 === 0)
+          if ((self.getScroll()).y % 20 === 0)
             ActionCreator.scroll(self.getViewingWindowWithCache());
           }
       });

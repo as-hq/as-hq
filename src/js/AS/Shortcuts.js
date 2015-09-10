@@ -12,7 +12,7 @@ export default {
     // common shortcuts -------------------------------------------------------------------------------
 
     ShortcutUtils.addShortcut("common", "toggle_focus", "F2", (wildcard) => {self.toggleFocus()});
-    ShortcutUtils.addShortcut("common", "cell_eval", ["Ctrl+Enter", "Command+Enter"], (wildcard) => {
+    ShortcutUtils.addShortcut("common", "cell_eval", ["Ctrl+Enter", "Command+Enter", "Ctrl+D", "Ctrl+R"], (wildcard) => {
       let editorState = {
         exp: self._getRawEditor().getValue(),
         lang: self.state.language
@@ -20,6 +20,7 @@ export default {
       self.handleEvalRequest(editorState);
     });
     ShortcutUtils.addShortcut("common", "set_language", ["Ctrl+1/2/3/4/5/6/7/8/9", "Command+1/2/3/4/5/6/7/8/9"], (wildcard) => {
+      // TODO propagate dropdown
       switch(wildcard) {
           case "1":
             self.setLanguage(Constants.Languages.Excel);
@@ -44,8 +45,9 @@ export default {
             break;
         }
     });
-    ShortcutUtils.addShortcut("common", "format_value", "Ctrl+Shift+4/5", (wildcard) => {
+    ShortcutUtils.addShortcut("common", "format_value", "Ctrl+Shift+2/3/4/5/6", (wildcard) => {
       let tag;
+      // TODO other wildcards
       if (wildcard === '4')
         tag = {tag: "Money", contents: []};
       else
@@ -55,6 +57,10 @@ export default {
       self.refs.hypergrid.repaint();
     });
     ShortcutUtils.addShortcut("common", "toggle_repl", "Alt+F11", (wildcard) => {
+      // TODO
+    });
+
+    ShortcutUtils.addShortcut("common", "new_sheet", "Shift+F11", (wildcard) => {
       // TODO
     });
 
@@ -89,6 +95,24 @@ export default {
         case "Right":
           break; // TODO
       }
+    });
+    ShortcutUtils.addShortcut("grid", "grid_home", "Home", (wildcard) => {
+      //TODO
+    });
+    ShortcutUtils.addShortcut("grid", "grid_moveto_start_row", "Home", (wildcard) => {
+      //TODO
+    });
+    ShortcutUtils.addShortcut("grid", "grid_moveto_start_sheet", "Ctrl+Home", (wildcard) => {
+      //TODO
+    });
+    ShortcutUtils.addShortcut("grid", "grid_moveto_end_sheet", "Ctrl+End", (wildcard) => {
+      //TODO
+    });
+    ShortcutUtils.addShortcut("grid", "move_vwindow_above", "PageUp", (wildcard) => {
+      //TODO
+    });
+    ShortcutUtils.addShortcut("grid", "move_vwindow_above", "PageDown", (wildcard) => {
+      //TODO
     });
     ShortcutUtils.addShortcut("grid", "copy", "Ctrl+C", (wildcard) => {
       let rng = Store.getActiveSelection();
@@ -137,5 +161,21 @@ export default {
     ShortcutUtils.addShortcut("grid", "insert_col", "Ctrl+Shift+]", (wildcard) => {
       // TODO
     });
+    ShortcutUtils.addShortcut("grid", "grid_outline_range", "Ctrl+Shift+5", (wildcard) => {
+      // TODO
+    });
+
+    ShortcutUtils.addShortcut("grid", "copy_cell_above", "Ctrl+Shift+'", (wildcard) => {
+      // TODO
+    });
+
+    // top level shortcuts -------------------------------------------------------------------------------
+    ShortcutUtils.addShortcut("toplevel", "select_tab_right", "Ctrl+PageDown", (wildcard) => {
+      //TODO
+    });
+    ShortcutUtils.addShortcut("toplevel", "select_tab_left", "Ctrl+PageUp", (wildcard) => {
+      //TODO
+    });
+
   }
 }

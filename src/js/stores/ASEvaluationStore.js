@@ -33,7 +33,8 @@ let _data = {
   clipboard: {
     range: null,
     isCut: false
-  }
+  },
+  externalError: null
 };
 
 /* This function describes the actions of the ASEvaluationStore upon recieving a message from Dispatcher */
@@ -103,8 +104,15 @@ dispatcherIndex: Dispatcher.register(function (action) {
         // console.log("Last updated cells: " + JSON.stringify(_data.lastUpdatedCells));
         ASEvaluationStore.emitChange();
         break;
-      case Constants.ActionTypes.RECEIVED_ERROR:
-        // TODO
+      case Constants.ActionTypes.DELETED_LOCS:
+        console.log("deleting locs from store: " + JSON.stringify(action.locs));
+        ASEvaluationStore.removeLocs(action.locs);
+        ASEvaluationStore.emitChange();
+        break;
+      case Constants.ActionTypes.GOT_FAILURE:
+        console.log("setting external error");
+        ASEvaluationStore.setExternalError(action.error);
+        ASEvaluationStore.emitChange();
         break;
       case Constants.ActionTypes.RECEIEVED_SHEET:
         // TODO
@@ -188,6 +196,12 @@ const ASEvaluationStore = assign({}, BaseStore, {
       API.sendTagsMessage("AddTags", [tag], col, row);
     }
   },
+  setExternalError(err) {
+    _data.externalError = err;
+  },
+  getExternalError(){
+    return _data.externalError;
+  },
 
   /**************************************************************************************************************************/
   /*
@@ -222,12 +236,27 @@ const ASEvaluationStore = assign({}, BaseStore, {
       let sheetid = Converter.clientCellGetSheetId(c);
       let col = Converter.clientCellGetCol(c);
       let row = Converter.clientCellGetRow(c);
-      let emptyCell = Converter.clientCellEmptyVersion(c);
+      let emptyCell = Converter.clientCellEmpty(c.cellLocation);
       if (!_data.allCells[sheetid])
         continue;
       if (!_data.allCells[sheetid][col])
         continue;
       _data.allCells[sheetid][col][row] = emptyCell;
+      _data.lastUpdatedCells.push(emptyCell);
+    }
+  },
+
+  removeLocs(locs) {
+    let dlocs = Util.getDegenerateLocs(locs);
+    console.log("removing locs: " + JSON.stringify(dlocs));
+    for (var key in dlocs){
+      let l = dlocs[key];
+      if (!_data.allCells[l.locSheetId])
+        continue;
+      if (!_data.allCells[l.locSheetId][l.index.col])
+        continue;
+      let emptyCell = Converter.clientCellEmpty(l);
+      _data.allCells[l.locSheetId][l.index.col][l.index.row] = emptyCell;
       _data.lastUpdatedCells.push(emptyCell);
     }
   },
