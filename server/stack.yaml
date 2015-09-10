@@ -20,7 +20,7 @@ extra-deps:
 - dlist-0.7.1.1
 - entropy-0.3.7
 - hashable-1.2.3.3
-- hedis-0.6.8
+- hedis-0.6.9
 - monad-control-1.0.0.4
 - mtl-2.2.1
 - network-2.6.2.1
@@ -66,5 +66,12 @@ extra-deps:
 - exceptions-0.8.0.2
 - semigroups-0.16.2.2
 - nats-1
+
+- async-2.0.2
+- split-0.2.2
+- stm-2.4.4
+- syb-0.5.1
+- vector-0.11.0.0
+- primitive-0.6
 
 resolver: ghc-7.8
