@@ -360,7 +360,7 @@ export default {
   },
 
   // TODO handle sideways lists?
-  getListDependency(refLocation, headLocation, height, width) {
+  getListDependency(headLocation, height, width) {
     return [{
       row: headLocation.row,
       col: headLocation.col,

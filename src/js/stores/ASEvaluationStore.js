@@ -154,9 +154,22 @@ const ASEvaluationStore = assign({}, BaseStore, {
       let headCell = this.getReferenceCell(_data.activeCell.cellExpression),
           headLoc = headCell.cellLocation.index,
           height = headCell.cellValue.contents.length,
-          width = headCell.cellValue.contents[0].contents.length || 1;
-       console.log("head location value: " + JSON.stringify(headCell.cellValue));
-      _data.activeCell.cellExpression.dependencies = Util.getListDependency(rng, headLoc, height, width);
+          width;
+      // console.log("head cell has contents: " + JSON.stringify(headCell.cellValue.contents));
+      if (headCell.cellValue.contents[0].contents)
+        width = headCell.cellValue.contents[0].contents.length || 1;
+      else width = 1;
+      console.log("head location value: " + JSON.stringify(headCell.cellValue));
+      _data.activeCell.cellExpression.dependencies = Util.getListDependency(headLoc, height, width);
+    } else if (_data.activeCell && _data.activeCell.cellValue.tag === "ValueL") {
+      let val = _data.activeCell.cellValue,
+          loc = _data.activeCell.cellLocation.index,
+          height = val.contents.length,
+          width;
+      if (val.contents[0].contents)
+        width = val.contents[0].contents.length || 1;
+      else width = 1;
+      _data.activeCell.cellExpression.dependencies = Util.getListDependency(loc, height, width);
     } else if (_data.activeCell)
       _data.activeCell.cellExpression.dependencies = Util.parseDependencies(xp);
   },
