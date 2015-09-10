@@ -156,17 +156,25 @@ export default React.createClass({
   // using Converter.clientCellGetExpressionObj
   _onSelectionChange(rng){
     console.log("Handling selection change: " + JSON.stringify(rng));
-    let cell = Store.getCellAtLoc(rng.col,rng.row),
-        {language,expression} = Converter.clientCellGetExpressionObj(cell),
-        val = Converter.clientCellGetValueObj(cell);
-    Store.setActiveSelection(rng, expression); // pass in an expression to get parsed dependencies
-    console.log("current cell: " + JSON.stringify(cell));
-    console.log("cell expression: " + expression);
-    // here, language is a client/server agnostic object (see Constants.Languages)
-    this.setState({ expression: expression, language: Util.getAgnosticLanguageFromServer(language) });
-    // TODO: set var name as well
-    this._getRawEditor().setValue(expression); // workaround for expression change bug
-    this.addError(val);
+    let cell = Store.getCellAtLoc(rng.col,rng.row);
+    if (cell) {
+      let {language,expression} = Converter.clientCellGetExpressionObj(cell),
+          val = Converter.clientCellGetValueObj(cell);
+      Store.setActiveSelection(rng, expression); // pass in an expression to get parsed dependencies
+      console.log("current cell: " + JSON.stringify(cell));
+      console.log("cell expression: " + expression);
+      // here, language is a client/server agnostic object (see Constants.Languages)
+      this.setState({ expression: expression, language: Util.getAgnosticLanguageFromServer(language) });
+      // TODO: set var name as well
+      this._getRawEditor().setValue(expression); // workaround for expression change bug
+      this.addError(val);
+    } else {
+      Store.setActiveSelection(rng, "");
+      console.log("empty cell");
+      this.setState({ expression: ""});
+      this._getRawEditor().setValue("");
+    }
+
   },
 
   /*

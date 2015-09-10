@@ -17,7 +17,8 @@ import KeyUtils from './KeyUtils';
 let _S = {
   'grid': [],
   'editor': [],
-  'common': []
+  'common': [],
+  'toplevel': []
 };
 
 export default {

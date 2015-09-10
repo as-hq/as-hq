@@ -57,6 +57,8 @@ var keyMap = {
   "Right": 39,
   "Home": 36,
   "End": 35,
+  "PageUp": 33,
+  "PageDown": 34,
   "Del": 46,
   "Space": 32,
   "[": 219,

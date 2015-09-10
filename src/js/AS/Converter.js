@@ -188,7 +188,7 @@ export default {
     let cl = {tag:"Index",
               locSheetId: "TEST_SHEET_ID",
               index:[-1,-1]},
-        ce = {tag:"Expression",expression:"",language:"Python"},
+        ce = {tag:"Expression",expression:"",language:null},
         cv = {tag:"NoValue", contents: []},
         ct = [];
     return {cellLocation:cl,cellExpression:ce,cellValue:cv,cellTags:ct};

@@ -253,11 +253,15 @@ export default React.createClass({
       config.paintBorders = [];
 
       // console.log(config.value)
-
+      if (cell && activeCell) {
+        console.log("rendering non null cells");
+      }
       // tag-based cell styling
-      if (cell.cellTags.length > 0) {
-        for (var i=0; i<cell.cellTags.length; i++)
-          config = Util.parseTagIntoRenderConfig(config, cell.cellTags[i]);
+      if (cell) {
+        if (cell.cellTags.length > 0){
+          for (var i=0; i<cell.cellTags.length; i++)
+            config = Util.parseTagIntoRenderConfig(config, cell.cellTags[i]);
+        }
       } else {
         // default renderer
         config.halign = 'center';

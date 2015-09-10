@@ -150,14 +150,14 @@ const ASEvaluationStore = assign({}, BaseStore, {
   setActiveSelection(rng, xp) {
     _data.activeSelection = rng;
     _data.activeCell = this.getCellAtLoc(rng.col, rng.row);
-    if (_data.activeCell.cellExpression.tag === "Reference"){
+    if (_data.activeCell && _data.activeCell.cellExpression.tag === "Reference"){
       let headCell = this.getReferenceCell(_data.activeCell.cellExpression),
           headLoc = headCell.cellLocation.index,
           height = headCell.cellValue.contents.length,
           width = headCell.cellValue.contents[0].contents.length || 1;
        console.log("head location value: " + JSON.stringify(headCell.cellValue));
       _data.activeCell.cellExpression.dependencies = Util.getListDependency(rng, headLoc, height, width);
-    } else
+    } else if (_data.activeCell)
       _data.activeCell.cellExpression.dependencies = Util.parseDependencies(xp);
   },
   getActiveSelection() {
@@ -255,8 +255,8 @@ const ASEvaluationStore = assign({}, BaseStore, {
         continue;
       if (!_data.allCells[l.locSheetId][l.index.col])
         continue;
+      _data.allCells[l.locSheetId][l.index.col][l.index.row] = null;
       let emptyCell = Converter.clientCellEmpty(l);
-      _data.allCells[l.locSheetId][l.index.col][l.index.row] = emptyCell;
       _data.lastUpdatedCells.push(emptyCell);
     }
   },
@@ -273,7 +273,7 @@ const ASEvaluationStore = assign({}, BaseStore, {
     if (_data.allCells[sheetid] && _data.allCells[sheetid][col] && _data.allCells[sheetid][col][row])
       return _data.allCells[sheetid][col][row];
     else {
-      return Converter.defaultCell();
+      return null;
     }
   },
 
