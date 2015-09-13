@@ -3,7 +3,7 @@ import AceEditor from './AceEditor.jsx';
 import ActionCreator from '../actions/ASCodeEditorActionCreators';
 import Constants from '../Constants';
 
-import {AppBar, Toolbar, TextField, DropDownMenu, Styles} from 'material-ui';
+import {AppBar, Toolbar, ToolbarGroup, FlatButton, TextField, DropDownMenu, Styles} from 'material-ui';
 
 require('brace/mode/python');
 require('brace/mode/r');
@@ -34,33 +34,45 @@ export default React.createClass({
 
   render() {
     let {language, theme, value, width, height} = this.props;
+    console.log("CODE EDITOR HEIGHT, WIDTH: " + height +  " " + width);
+
 
     return (
       <div>
-        <Toolbar
-          style={{
-            backgroundColor: Styles.Colors.grey700,
-            height: '65px'
-          }}
-          showMenuIconButton={false} >
-          <TextField
-            ref="varNameField"
-            hintText="varName"
-            floatingLabelText="Variable name"
-            style={{
-              position: 'relative',
-              top: '-14px',
-              fontFamily: '"Lucida Console", Monaco, monospace'
-            }}
-            floatingLabelStyle={{
-              fontFamily: 'Roboto, sans-serif'
-            }}
-            onBlur={this._onBlurVarName} />
-          <DropDownMenu
-            menuItems={languages}
-            onChange={this._onLanguageChange}
-            underlineStyle={{ display: 'none' }} />
-        </Toolbar>
+      <Toolbar
+              style={{backgroundColor: Styles.Colors.grey700, height:'60px'}}
+              showMenuIconButton={false} >
+                <TextField
+                  ref="varNameField"
+                  hintText="varName"
+                  style={{
+                    position: 'relative',
+                    left: '-5px',
+                    top: '-15px',
+                    fontFamily: '"Lucida Console", Monaco, monospace'
+                  }}
+                  floatingLabelStyle={{
+                    fontFamily: 'Roboto, sans-serif'
+                  }}
+                  onBlur={this._onBlurVarName} />
+                <DropDownMenu
+                  menuItems={languages}
+                  onChange={this._onLanguageChange}
+                  underlineStyle={{ display: 'none' }}
+                  style={{
+                    position: 'relative',
+                    left: '40px',
+                    top: '0px'
+                  }}/>
+                <FlatButton
+                  label="REPL"
+                  onClick={this.props.onReplClick}
+                  style={{
+                    position: 'relative',
+                    left: '40px',
+                    top: '-13px'
+                  }} />
+            </Toolbar>
         <AceEditor
           ref="editor"
           onChange={this.props.onExpressionChange}
@@ -73,6 +85,7 @@ export default React.createClass({
       </div>
     );
   },
+
 
   _onLanguageChange(e, selectedIndex, menuItem) {
     //notify editor to change

@@ -21,7 +21,7 @@ export default {
   gridXOffset: 25, // margin between left edge of div and cells
   gridYOffset: 22, // '' top edge ''
 
-  editorHeight: 100,
+  editorHeight: 180,
   topbarTotalHeight: 226, // height of everything except pane
 
   // Each time you add an action, add it here... They should be past-tense
@@ -38,7 +38,9 @@ export default {
     RECEIVED_ERROR: null,
     RECEIVED_SHEET: null,
     RECEIVED_WORKBOOK: null,
-    DELETED_LOCS: null
+    DELETED_LOCS: null,
+    REPL_LEFT:null,
+    GOT_REPL_RESP:null
   }),
 
   ActionSources: keyMirror({
@@ -98,6 +100,7 @@ export default {
     UpdateWindow: "UpdateWindow",
     Open: "Open",
     Close: "Close",
-    Import: "Import"
+    Import: "Import",
+    Repl: "EvaluateRepl"
   }
 };

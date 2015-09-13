@@ -18,7 +18,8 @@ let _S = {
   'grid': [],
   'editor': [],
   'common': [],
-  'toplevel': []
+  'toplevel': [],
+  'repl':[]
 };
 
 export default {

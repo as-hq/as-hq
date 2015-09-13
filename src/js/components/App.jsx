@@ -25,7 +25,8 @@ export default React.createClass({
       activeDocumentTab: 'test',
       activeRibbonTab: 'Home',
       currentPane: 'eval',
-      initEvalInfo: {} // object passed from splash pane specifying initial params: opened sheet, etc
+      /* object passed from splash pane specifying initial params: opened sheet, etc */
+      initEvalInfo: {} 
     }
   },
   getDefaultProps() {
@@ -44,7 +45,8 @@ export default React.createClass({
   /* Core render method for the whole app */
 
   getPaneHeight() {
-    return window.innerHeight - Constants.topbarTotalHeight;
+    console.log("WINDOW HEIGHT: " + window.innerHeight);
+    return window.innerHeight;
   },
 
   render() {
@@ -53,41 +55,41 @@ export default React.createClass({
       { route: 'logout', text: 'Log out' }
     ];
 
+    console.log("PANE HEIGHT: " + this.getPaneHeight());
+
     let panes = {
       eval: <ASEvaluationPane behavior="default" ref="evalPane" initInfo={this.state.initEvalInfo} height={this.getPaneHeight()}/>,
       splash: <ASSplashPane onProceed={this._onPaneChange} height={this.getPaneHeight()}/>
     };
 
     return (
-      <div className="full">
+       <div style={{width:"100%",height:"100%"}} >
         <LeftNav
           ref="leftNav"
           menuItems={leftNavMenuItems}
-          docked={false}
-        />
+          docked={false}/>
         <ASNavBar
           onDocumentTabChange={this._onDocumentTabChange}
           onRibbonTabChange={this._onRibbonTabChange}
-          onAlphaButtonTap={this._onAlphaButtonTap}
-        />
+          onAlphaButtonTap={this._onAlphaButtonTap}/>
         <ASRibbon activeTab={this.state.activeRibbonTab} />
-        <div style={{display: 'table', width: '100%', height: this.getPaneHeight()}}>
-          <div style={{display: 'table-cell', width: '10%', height: '100%', verticalAlign: 'top'}}>
+        <div style={{width: '100%', height: this.getPaneHeight()}}>
+          <div style={{display: 'inline-block', width: '10%', height: '100%', verticalAlign: 'top'}}>
             <ASTreeNav
               onDocumentOpen={this._onDocumentOpen}
               onSheetCreate={this._onSheetCreate}
-              onWorkbookCreate={this._onWorkbookCreate}
-            />
+              onWorkbookCreate={this._onWorkbookCreate}/>
           </div>
-          <div style={{display: 'table-cell', width: '80%'}}>
+          <div style={{display: 'inline-block', width:'90%', height:'100%',verticalAlign:'top'}}>
             {panes[this.state.currentPane]}
-          </div>
-          <div style={{display: 'table-cell', width: '10%'}}>
           </div>
         </div>
       </div>
+      
     );
   },
+
+ 
 
 /**************************************************************************************************************************/
 /* Top-level ui state changes */

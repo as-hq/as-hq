@@ -29,7 +29,7 @@ export default {
 // Cell rendering
 
   /* Used to know what to display on the sheet */
-  showValue(cv) {
+  showValue(cv, isRepl) {
     // console.log("In show value: " + JSON.stringify(cv));
     let self = this;
     switch (cv.tag) {
@@ -46,9 +46,13 @@ export default {
       case "ValueS":
         return cv.contents;
       case "ValueL":
-        return self.showValue(cv.contents[0]);
+        if (isRepl)
+          return self.showFullValueList(cv);
+        else return self.showValue(cv.contents[0]);
       case "ValueError":
-        return "ERROR";
+        if (isRepl)
+          return cv.error;
+        else return "ERROR";
       case "ValueImage":
         return "IMAGE";
       case "DisplayValue":
@@ -56,6 +60,10 @@ export default {
       default:
         return JSON.stringify(cv.contents);
     }
+  },
+
+  showFullValueList(cv) {
+    return JSON.stringify(cv.contents.map(this.showValue));
   },
 
   parseTagIntoRenderConfig(config, tag) {
@@ -181,6 +189,26 @@ export default {
 /*************************************************************************************************************************/
 // Misc
 
+  isEmptyString(str) {
+    return /\S/.test(str);
+  },
+
+  removeEmptyLines(str){
+    var lines = str.split("\n");
+    var filtered = lines.filter(this.isEmptyString);
+    return filtered.join("\n");
+  },
+
+  getIndicesOf(searchStr, str) {
+    var startIndex = 0, searchStrLen = searchStr.length;
+    var index, indices = [];
+    while ((index = str.indexOf(searchStr, startIndex)) > -1) {
+        indices.push(index);
+        startIndex = index + searchStrLen;
+    }
+    return indices;
+  },
+
   getUniqueId() {
     return shortid.generate();
   },
@@ -199,17 +227,6 @@ export default {
 
   arrContains(arr, elem) {
     return arr.indexOf(elem) > -1;
-  },
-
-  getIndicesOf(searchStr, str) {
-    console.log("indexing string: "+str);
-    let startIndex = 0, searchStrLen = searchStr.length;
-    let index, indices = [];
-    while ((index = str.indexOf(searchStr, startIndex)) > -1) {
-        indices.push(index);
-        startIndex = index + searchStrLen;
-    }
-    return indices;
   },
 
   toggleReferenceType(xp) {

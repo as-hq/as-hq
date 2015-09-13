@@ -68,8 +68,6 @@ wss.onmessage = function (event) {
         }
         // TODO cases for sheets and workbooks
         break;
-      case "NoAction":
-        break;
       case "Get":
         let newCells = Converter.clientCellsFromServerMessage(msg); // MAY NEED TO REPLACE
         Dispatcher.dispatch({
@@ -90,7 +88,15 @@ wss.onmessage = function (event) {
           locs: Converter.clientLocsFromServerMessage(msg)
         });
         break;
-    }
+      case "NoAction":
+        break;
+      case "EvaluateRepl":
+        Dispatcher.dispatch({
+          type: ActionTypes.GOT_REPL_RESP,
+          response:msg.payload.contents
+        });
+        break;
+      }
   }
 };
 
@@ -183,6 +189,24 @@ export default {
     }
     this.send(msg);
   },
+
+  /**************************************************************************************************************************/
+  /* Sending REPL messages to the server */
+
+  // TODO: correctly implement
+  sendReplRequest(editorState){
+    let msg = Converter.toServerMessageFormat(Constants.ServerActions.Repl, "PayloadXp", {
+      tag: "Expression",
+      expression: editorState.exp,
+      language: editorState.lang
+    });
+    this.send(msg);
+    // Dispatcher.dispatch({
+    //   type: ActionTypes.GOT_REPL_RESP,
+    //   response:{lang:"Python",value:"44"}
+    // });
+  },
+
 
   /**************************************************************************************************************************/
   /* Sending get messages to the server */

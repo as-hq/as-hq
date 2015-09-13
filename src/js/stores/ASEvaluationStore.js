@@ -13,6 +13,7 @@ Private variable keeping track of a viewing window (cached) of cells. Stores:
   3) Cells that were last updated by an eval or change event (so that components can easily access the update from the store)
   4) Scroll position
 */
+
 let _data = {
   userId: "TEST_USER_ID2",
   allCells: {},
@@ -120,7 +121,6 @@ dispatcherIndex: Dispatcher.register(function (action) {
       case Constants.ActionTypes.RECEIVED_WORKBOOK:
         // TODO
         break;
-
       }
   })
 
@@ -216,6 +216,7 @@ const ASEvaluationStore = assign({}, BaseStore, {
     return _data.externalError;
   },
 
+ 
   /**************************************************************************************************************************/
   /*
     Update methods to allCells and lastUpdatedCells.

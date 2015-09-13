@@ -2,7 +2,9 @@ import React from 'react';
 import ASCodeEditor from './ASCodeEditor.jsx';
 import ASSpreadsheet from './ASSpreadsheet.jsx';
 import Store from '../stores/ASEvaluationStore';
+import ReplStore from '../stores/ASReplStore'
 import API from '../actions/ASApiActionCreators';
+import ReplActionCreator from '../actions/ASReplActionCreators';
 import Shortcuts from '../AS/Shortcuts';
 import ShortcutUtils from '../AS/ShortcutUtils';
 import Util from '../AS/Util';
@@ -10,6 +12,9 @@ import Constants from '../Constants';
 import Converter from '../AS/Converter'
 import KeyUtils from '../AS/KeyUtils';
 import {Snackbar} from 'material-ui';
+
+import Repl from './repl/Repl.jsx'
+import ResizableRightPanel from './repl/ResizableRightPanel.jsx'
 
 export default React.createClass({
 
@@ -25,7 +30,10 @@ export default React.createClass({
       varName: '',
       focus: 'grid',
       toastMessage: '',
-      toastAction: ''
+      toastAction: '',
+      replOpen: false,
+      replLanguage: Constants.Languages.Python,
+      replSubmittedLanguage: null
     };
   },
   setLanguage(lang) {
@@ -67,6 +75,9 @@ export default React.createClass({
   _getDomEditor() {
     return React.findDOMNode(this.refs.editorPane.refs.editor);
   },
+  _getReplEditor(){
+    return this.refs.repl.refs.editor.getRawEditor();
+  },
   focusGrid() {
     this._getSpreadsheet().focus();
   },
@@ -76,12 +87,15 @@ export default React.createClass({
 
   componentDidMount() {
     Store.addChangeListener(this._onChange);
+    ReplStore.addChangeListener(this._onReplChange);
     this._notificationSystem = this.refs.notificationSystem;
     Shortcuts.addShortcuts(this);
   },
   componentWillUnmount() {
     API.sendClose();
     Store.removeChangeListener(this._onChange);
+    ReplStore.removeChangeListener(this._onReplChange);
+
   },
   addError(cv){
     if (cv.tag === "ValueError"){
@@ -116,6 +130,11 @@ export default React.createClass({
     }
   },
 
+  _onReplChange() {
+    console.log("Eval pane detected event change from repl store");
+    this.setState({replSubmittedLanguage:ReplStore.getSubmittedLanguage()})
+  },
+
   /**************************************************************************************************************************/
   /* Key handling */
 
@@ -143,6 +162,12 @@ export default React.createClass({
       ShortcutUtils.tryShortcut(e, 'common');
       ShortcutUtils.tryShortcut(e, 'grid');
     }
+  },
+
+  _onReplDeferredKey(e){
+    console.log('REPL deferred key');
+    console.log(e);
+    ShortcutUtils.tryShortcut(e, 'repl');
   },
 
   /**************************************************************************************************************************/
@@ -199,6 +224,39 @@ export default React.createClass({
     this.refs.spreadsheet.getInitialData();
   },
 
+  /* When a REPl request is made, first update the store and then send the request to the backend */
+  handleReplRequest(editorState){
+    ReplActionCreator.replLeft(this.state.replLanguage.Display,this._replValue());
+    console.log('handling repl request ' +  JSON.stringify(editorState));
+    console.log("exps: " + JSON.stringify(ReplStore.getExps()));
+    API.sendReplRequest(editorState);
+  },
+
+  /**************************************************************************************************************************/
+  /* REPL handling methods */
+
+  _replValue(){
+    return this._getReplEditor().getValue();
+  },
+
+  /* Method for tucking in/out the REPL. */
+  _toggleRepl(){
+    /* Save expression in store if repl is about to close */
+    if (this.state.replOpen){
+      ReplActionCreator.replLeft(this.state.replLanguage.Display,this._replValue());
+    }
+    this.setState({replOpen: !this.state.replOpen});
+  },
+
+  /*  When the REPL language changes, set state, save current text value, and set the next text value of the REPL editor */
+  _onReplLanguageChange(e,index,menuItem){
+    ReplActionCreator.replLeft(this.state.replLanguage.Display,this._replValue());
+    let newLang = menuItem.payload;
+    let newValue = ReplStore.getReplExp(newLang.Display);
+    console.log("REPL lang changed from " + this.state.replLanguage.Display + " to " + newLang.Display + ", new value: "+ newValue);
+    this.setState({replLanguage:newLang});
+  },
+
   /**************************************************************************************************************************/
   /* The eval pane is the code editor plus the spreadsheet */
   getEditorHeight() { // for future use in resize events
@@ -206,18 +264,20 @@ export default React.createClass({
   },
 
   getGridHeight() {
+    console.log("EVAL PANE HEIGHT: " +  this.props.height);
     let h = this.props.height - Constants.editorHeight;
+    console.log("GRID HEIGHT: " + h);
     return h + "px";
   },
 
   render() {
     let {expression, language} = this.state;
-    console.log("current expression: " + expression +", language: " + JSON.stringify(language));
-    return (
+    let leftEvalPane =
       <div >
         <ASCodeEditor
           ref='editorPane'
           language={language}
+          onReplClick={this._toggleRepl}
           onLanguageChange={this.setLanguage}
           onExpressionChange={this.setExpression}
           onSetVarName={this._onSetVarName}
@@ -234,9 +294,22 @@ export default React.createClass({
                   message={this.state.toastMessage}
                   action={this.state.toastAction}
                   onActionTouchTap={this._handleToastTap} />
-      </div>
+      </div>;
+
+    let sidebarContent = <Repl
+      ref="repl"
+      replLanguage={this.state.replLanguage}
+      onDeferredKey={this._onReplDeferredKey}
+      onClick={this._toggleRepl}
+      replValue={ReplStore.getReplExp(this.state.replLanguage.Display)}
+      onReplLanguageChange={this._onReplLanguageChange} />;
+
+    return (
+      <ResizableRightPanel leftComp={leftEvalPane} sidebar={sidebarContent} docked={this.state.replOpen} />
     );
   },
+
+
 
   _onSetVarName(name) {
     console.log('var name set to', name);
