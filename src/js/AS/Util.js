@@ -48,7 +48,9 @@ export default {
           return self.showFullValueList(cv);
         else return self.showValue(cv.contents[0]);
       case "ValueError":
-        return "ERROR";
+        if (isRepl)
+          return cv.error;
+        else return "ERROR";
       case "ValueImage":
         return "IMAGE";
       case "DisplayValue":

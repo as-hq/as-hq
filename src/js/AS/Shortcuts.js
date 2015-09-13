@@ -76,7 +76,7 @@ export default {
         else return l;
       }).join("\n");
 
-      console.log("SEND REPL: " + send);
+      console.log("SEND REPL: " + JSON.stringify(send));
       let editorState = {
         exp: send,
         lang: self.state.replLanguage.Server
