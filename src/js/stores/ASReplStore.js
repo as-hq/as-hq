@@ -55,12 +55,14 @@ const ASReplStore = assign({}, BaseStore, {
   },
 
   updateUponResponse(resp){
-    console.log("In repl store, updating response repl data "+ resp.lang + " " + resp.value);
-    _data.replShow = this.shouldShowResponse(resp); 
-    _data.replSubmitLang = resp.lang;
-    console.log("previous data: " +_data.replExps[resp.lang] );
+    console.log("In repl store, updating response repl data "+ JSON.stringify(resp));
+    let lang = resp.lang,
+        val = Util.showValue(resp.langValue, true);
+    _data.replShow = this.shouldShowResponse(val);
+    _data.replSubmitLang = lang
+    console.log("previous data: " +_data.replExps[lang] );
     if (_data.replShow){
-      _data.replExps[_data.replSubmitLang] += "\n>>> " + resp.value + "\n>>> ";
+      _data.replExps[_data.replSubmitLang] += "\n>>> " + val + "\n>>> ";
     }
     else{
       _data.replExps[_data.replSubmitLang] += "\n>>> ";
@@ -72,8 +74,8 @@ const ASReplStore = assign({}, BaseStore, {
     return true;
   }
 
-  
+
 });
-       
+
 
 export default ASReplStore;

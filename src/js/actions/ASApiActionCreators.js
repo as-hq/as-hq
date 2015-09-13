@@ -84,12 +84,12 @@ wss.onmessage = function (event) {
         type: ActionTypes.CLEARED,
       });
       break;
-    // case "Delete": TODO
-    //   if (msg.result === "Success")
-    //     Dispatcher.dispatch({
-    //       type: ActionTypes.DELETED_CELLS,
-    //       locs:
-    //     });
+    case "EvaluateRepl":
+      Dispatcher.dispatch({
+        type: ActionTypes.GOT_REPL_RESP,
+        response:msg.payload.contents
+      });
+      break;
   }
 };
 
@@ -188,12 +188,16 @@ export default {
 
   // TODO: correctly implement
   sendReplRequest(editorState){
-    let msg = Converter.toServerMessageFormat(Constants.ServerActions.Repl, "PayloadRepl", editorState);
-    //this.send(msg);
-    Dispatcher.dispatch({
-      type: ActionTypes.GOT_REPL_RESP,
-      response:{lang:"Python",value:"44"}
+    let msg = Converter.toServerMessageFormat(Constants.ServerActions.Repl, "PayloadXp", {
+      tag: "Expression",
+      expression: editorState.exp,
+      language: editorState.lang
     });
+    this.send(msg);
+    // Dispatcher.dispatch({
+    //   type: ActionTypes.GOT_REPL_RESP,
+    //   response:{lang:"Python",value:"44"}
+    // });
   },
 
 

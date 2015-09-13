@@ -15,26 +15,28 @@ function onPropsSet(editor, props) {
   editor.setOption('highlightActiveLine', props.highlightActiveLine);
   editor.setShowPrintMargin(props.setShowPrintMargin);
 
+  if (props.onLoad) {
+    props.onLoad(editor);
+  }
+  if (props.isRepl)
+    editor.getSession().setUseSoftTabs(false);
+
   /* Deal with >>> readonly for repl */
   editor.container.addEventListener('keydown', function(e) {
       if ((editor.selection.getCursor().column < 4 ) && props.isRepl){
         e.preventDefault();
         e.stopPropagation();
         return;
-      } 
+      }
       else if ((editor.selection.getCursor().column == 4 ) && props.isRepl){
         let key = e.keyCode || e.charCode;
-        if( key == 8 || key == 46 ){ //backspace
+        if( key == 8 || key == 46 || key == 37){ //backspace
           e.preventDefault();
           e.stopPropagation();
           return;
         }
       }
   }, true);
-
-  if (props.onLoad) {
-    props.onLoad(editor);
-  }
 }
 
 module.exports = React.createClass({
@@ -96,6 +98,48 @@ module.exports = React.createClass({
     }
   },
 
+  handleKeyUp(e) {
+    if (this.props.isRepl){
+      console.log("current xp: " + JSON.stringify(this.editor.getValue()));
+      let val = this.editor.getValue();
+      let cursor = this.editor.selection.getCursor();
+      let lastChar = val.substring(val.length-1);
+      if (e.which === 13) { // pressed enter
+        // KeyUtils.killEvent(e);
+        if (lastChar === "\t") {
+          if (cursor.column === 4){
+            console.log("padding automatic tabs");
+            this.editor.getSession().indentRow(cursor.row, cursor.row, "    ");
+          }
+          else if (cursor.column === 1){
+            val = val.substring(0,val.length-1) + "    \t";
+            this.editor.setValue(val);
+          }
+        }
+        else if (cursor.column < 4){
+          console.log("padding illegal cursor position of " + cursor.column);
+          val = val.trim() + "\n    ";
+          this.editor.setValue(val);
+        }
+        this.editor.selection.clearSelection();
+      }
+      else if (lastChar === "\n"){
+        console.log("padding singular newline");
+        this.editor.setValue(val + "    ");
+        this.editor.selection.clearSelection();
+      }
+    }
+  },
+
+  handleClick(e) {
+    console.log("clicked repl!");
+    let cursor = this.editor.selection.getCursor();
+    if (cursor.column <= 4){
+      this.editor.selection.moveCursorToPosition({row: cursor.row, column: 4});
+      this.editor.selection.clearSelection();
+    }
+  },
+
   componentDidMount: function() {
     this.editor = ace.edit(this.props.name);
     this.editor.$blockScrolling = Infinity;
@@ -123,7 +167,9 @@ module.exports = React.createClass({
         id={this.props.name}
         onChange={this.onChange}
         style={divStyle}
-        onKeyDown={this.handleKeyDown} >
+        onKeyDown={this.handleKeyDown}
+        onKeyUp={this.handleKeyUp}
+        onClick={this.handleClick}>
       </div>);
   }
 });

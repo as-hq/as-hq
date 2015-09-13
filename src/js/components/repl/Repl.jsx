@@ -34,9 +34,8 @@ export default React.createClass({
 
     return (
       <div style={{width:"100%",height:"100%",marginLeft:"6px"}} >
-        <AppBar title="REPL" style={{backgroundColor:Styles.Colors.grey900}} showMenuIconButton={false} iconElementRight={<FlatButton onClick={this.props.onClick}><NavigationClose /></FlatButton>} />
         <Toolbar
-          style={{backgroundColor: Styles.Colors.grey700}}
+          style={{backgroundColor:Styles.Colors.grey900}}
           showMenuIconButton={false} >
           <DropDownMenu
             menuItems={languages}
@@ -63,4 +62,4 @@ export default React.createClass({
 
 
 
- 
+

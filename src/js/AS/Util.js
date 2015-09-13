@@ -29,7 +29,7 @@ export default {
 // Cell rendering
 
   /* Used to know what to display on the sheet */
-  showValue(cv) {
+  showValue(cv, isRepl) {
     // console.log("In show value: " + JSON.stringify(cv));
     let self = this;
     switch (cv.tag) {
@@ -44,7 +44,9 @@ export default {
       case "ValueS":
         return cv.contents;
       case "ValueL":
-        return self.showValue(cv.contents[0]);
+        if (isRepl)
+          return self.showFullValueList(cv);
+        else return self.showValue(cv.contents[0]);
       case "ValueError":
         return "ERROR";
       case "ValueImage":
@@ -54,6 +56,10 @@ export default {
       default:
         return JSON.stringify(cv.contents);
     }
+  },
+
+  showFullValueList(cv) {
+    return JSON.stringify(cv.contents.map(this.showValue));
   },
 
   parseTagIntoRenderConfig(config, tag) {

@@ -72,6 +72,9 @@ export default React.createClass({
   _getDomEditor() {
     return React.findDOMNode(this.refs.editorPane.refs.editor);
   },
+  _getReplEditor(){
+    return this.refs.repl.refs.editor.getRawEditor();
+  },
   focusGrid() {
     this._getSpreadsheet().focus();
   },
@@ -153,6 +156,12 @@ export default React.createClass({
     }
   },
 
+  _onReplDeferredKey(e){
+    console.log('REPL deferred key');
+    console.log(e);
+    ShortcutUtils.tryShortcut(e, 'repl');
+  },
+
   /**************************************************************************************************************************/
   /* Core functionality methods */
 
@@ -193,11 +202,19 @@ export default React.createClass({
     API.sendEvalRequest(selectedRegion, editorState);
   },
 
+  /* When a REPl request is made, first update the store and then send the request to the backend */
+  handleReplRequest(editorState){
+    ReplActionCreator.replLeft(this.state.replLanguage.Display,this._replValue());
+    console.log('handling repl request ' +  JSON.stringify(editorState));
+    console.log("exps: " + JSON.stringify(ReplStore.getExps()));
+    API.sendReplRequest(editorState);
+  },
+
   /**************************************************************************************************************************/
   /* REPL handling methods */
 
   _replValue(){
-    return this._getReplEditor().getSession().getValue();
+    return this._getReplEditor().getValue();
   },
 
   /* Method for tucking in/out the REPL. */
@@ -208,29 +225,14 @@ export default React.createClass({
     }
     this.setState({replOpen: !this.state.replOpen});
   },
-  _onReplDeferredKey(e){
-    console.log('REPL deferred key');
-    console.log(e);
-    ShortcutUtils.tryShortcut(e, 'repl');
-  },
+
   /*  When the REPL language changes, set state, save current text value, and set the next text value of the REPL editor */
   _onReplLanguageChange(e,index,menuItem){
     ReplActionCreator.replLeft(this.state.replLanguage.Display,this._replValue());
     let newLang = menuItem.payload;
     let newValue = ReplStore.getReplExp(newLang.Display);
     console.log("REPL lang changed from " + this.state.replLanguage.Display + " to " + newLang.Display + ", new value: "+ newValue);
-    this.setState({replLanguage:newLang}); 
-  },
-  /* Return the REPL editor associated with the Eval Pane */
-  _getReplEditor(){
-    return this.refs.repl.refs.editor.getRawEditor();
-  },
-  /* When a REPl request is made, first update the store and then send the request to the backend */
-  handleReplRequest(editorState){
-    ReplActionCreator.replLeft(this.state.replLanguage.Display,this._replValue());
-    console.log('handling repl request ' +  JSON.stringify(editorState));
-    console.log("exps: " + JSON.stringify(ReplStore.getExps()));
-    API.sendReplRequest(editorState);
+    this.setState({replLanguage:newLang});
   },
 
   /**************************************************************************************************************************/
@@ -239,7 +241,7 @@ export default React.createClass({
     return Constants.editorHeight + "px";
   },
 
-  getGridHeight() { 
+  getGridHeight() {
     console.log("EVAL PANE HEIGHT: " +  this.props.height);
     let h = this.props.height - Constants.editorHeight;
     console.log("GRID HEIGHT: " + h);
@@ -248,7 +250,7 @@ export default React.createClass({
 
   render() {
     let {expression, language} = this.state;
-    let leftEvalPane = 
+    let leftEvalPane =
       <div >
         <ASCodeEditor
           ref='editorPane'
@@ -264,7 +266,7 @@ export default React.createClass({
           ref='spreadsheet'
           onDeferredKey={this._onGridDeferredKey}
           onSelectionChange={this._onSelectionChange}
-          width="100%" 
+          width="100%"
           height={this.getGridHeight()}  />
         <Snackbar ref="snackbarError"
                   message={this.state.toastMessage}
@@ -272,10 +274,10 @@ export default React.createClass({
                   onActionTouchTap={this._handleToastTap} />
       </div>;
 
-    let sidebarContent = <Repl 
-      ref="repl" 
+    let sidebarContent = <Repl
+      ref="repl"
       replLanguage={this.state.replLanguage}
-      onDeferredKey={this._onReplDeferredKey} 
+      onDeferredKey={this._onReplDeferredKey}
       onClick={this._toggleRepl}
       replValue={ReplStore.getReplExp(this.state.replLanguage.Display)}
       onReplLanguageChange={this._onReplLanguageChange} />;
@@ -285,7 +287,7 @@ export default React.createClass({
     );
   },
 
- 
+
 
   _onSetVarName(name) {
     console.log('var name set to', name);

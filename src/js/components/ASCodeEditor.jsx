@@ -40,15 +40,15 @@ export default React.createClass({
     return (
       <div>
       <Toolbar
-              style={{backgroundColor: Styles.Colors.grey700, height:'70px'}}
+              style={{backgroundColor: Styles.Colors.grey700, height:'60px'}}
               showMenuIconButton={false} >
                 <TextField
                   ref="varNameField"
                   hintText="varName"
-                  floatingLabelText="Variable name"
                   style={{
                     position: 'relative',
-                    top: '-14px',
+                    left: '-5px',
+                    top: '-15px',
                     fontFamily: '"Lucida Console", Monaco, monospace'
                   }}
                   floatingLabelStyle={{
@@ -58,8 +58,20 @@ export default React.createClass({
                 <DropDownMenu
                   menuItems={languages}
                   onChange={this._onLanguageChange}
-                  underlineStyle={{ display: 'none' }} />
-                <FlatButton label="REPL"  onClick={this.props.onReplClick} />
+                  underlineStyle={{ display: 'none' }}
+                  style={{
+                    position: 'relative',
+                    left: '40px',
+                    top: '0px'
+                  }}/>
+                <FlatButton
+                  label="REPL"
+                  onClick={this.props.onReplClick}
+                  style={{
+                    position: 'relative',
+                    left: '40px',
+                    top: '-13px'
+                  }} />
             </Toolbar>
         <AceEditor
           ref="editor"

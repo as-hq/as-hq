@@ -55,19 +55,28 @@ export default {
       self.refs.hypergrid.repaint();
     });
     ShortcutUtils.addShortcut("common", "toggle_repl", "Alt+F11", (wildcard) => {
-      // TODO
+      self._toggleRepl();
+    });
+    ShortcutUtils.addShortcut("common", "esc", "Esc", (wildcard) => {
+      let editor = self._getRawEditor();
+      editor.setValue("");
+      Store.setClipboard(null, false);
+      self.setState({focus: "grid"});
+      self.refs.spreadsheet.repaint(); // render immediately
     });
 
     // repl shortcuts -------------------------------------------------------------------------------
     ShortcutUtils.addShortcut("repl", "repl_submit", ["Ctrl+Enter", "Command+Enter"], (wildcard) => {
       /* Preprocessing of repl value to get the "last" part to send to server */
-      let strs = self._replValue().split(">>>").slice(-1)[0],
-          idxs = Util.getIndicesOf("\n", strs),
-          lines = strs.substring(idxs[0]).split("\n"),
-          send = Util.removeEmptyLines(strs.substring(idxs[0]));
-         
-      console.log("SEND: " + send);
+      let strs = self._replValue().split(">>>").slice(-1)[0].substring(1);
+      let lines = strs.split("\n");
+      let send = lines.map((l) => {
+        if (l.substring(0,4) === "    ")
+          return l.substring(4);
+        else return l;
+      }).join("\n");
 
+      console.log("SEND REPL: " + send);
       let editorState = {
         exp: send,
         lang: self.state.replLanguage.Server
@@ -86,13 +95,6 @@ export default {
       sel.setRange(range);
       let replace = Util.toggleReferenceType(editor.getSelectedText());
       sesh.replace(range, replace);
-    });
-    ShortcutUtils.addShortcut("common", "esc", "Esc", (wildcard) => {
-      let editor = self._getRawEditor();
-      editor.setValue("");
-      Store.setClipboard(null, false);
-      self.setState({focus: "grid"});
-      self.refs.spreadsheet.repaint(); // render immediately
     });
 
     // grid shortcuts -------------------------------------------------------------------------------
