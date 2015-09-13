@@ -8,6 +8,7 @@ import qualified Data.List as L
 
 import AS.Types
 import AS.Eval.Lang as LA
+import AS.Parsing.Common as C
 
 printed :: ASLanguage -> Parser String -- TODO generalize beyond python
 printed lang = case lang of 
@@ -43,9 +44,9 @@ tryPrintingLast :: ASLanguage -> String -> Either () (String, String)
 tryPrintingLast lang str = 
     let 
         (initLines, lastLine) = LA.splitLastCmd lang str
-    in if (L.isInfixOf "=" lastLine)
+    in if (L.isInfixOf "=" lastLine) || (L.isInfixOf "return" lastLine)
         then (Left ())
-        else (Right (initLines, LA.printCmd lang lastLine))
+        else (Right (C.stripString initLines, LA.printCmd lang lastLine))
 
 -- returns (repl record string, repl eval string)
 getReplExpressions :: ASLanguage -> String -> (String, String)

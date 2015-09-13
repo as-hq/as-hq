@@ -1,50 +1,12 @@
 
-a=4
-b=3
+def f(x):
+	return x * 4
 
-
-a=11
-b=20
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-a=5
-b=2
 
 
 def myFunc(x):
-	return x ** 2
+	return f(f(x))
 
-c = [1,2,3,4]
-
+a = 6
+b = 10
+c = myFunc(a+b)

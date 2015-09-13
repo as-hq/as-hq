@@ -77,3 +77,6 @@ getDelimitedSubstring str delim n = T.unpack $ (!!) (T.splitOn (T.pack delim) (T
 
 getLine :: String -> Int -> String
 getLine str n = getDelimitedSubstring str "\n" n
+
+stripString :: String -> String
+stripString = T.unpack . T.strip . T.pack 
