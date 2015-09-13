@@ -37,11 +37,11 @@ query q locs = runZMQ $ do
     sendMulti reqSocket $ N.fromList msg 
     liftIO $ printTimed "sent message"  
     reply <- receiveMulti reqSocket
-    liftIO $ printTimed "received message"  
     --liftIO $ printTimed $ "graph db reply:  " ++ (show reply)
     case (B.unpack $ last reply) of
         "OK" -> do
-            let result = Right $ map (\l -> read (B.unpack l) :: ASLocation) $ init reply 
+            let filtered = filter ((/=) "|") $ map B.unpack $ init reply
+            let result = Right $ map (\l -> read l:: ASLocation) filtered
             --liftIO $ printTimed $ "Graph DB result: " ++ (show $ init reply)
             return result
         "ERROR" -> do

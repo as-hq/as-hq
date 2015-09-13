@@ -20,6 +20,7 @@ data WorkbookSheet = WorkbookSheet {wsName :: String, wsSheets :: [ASSheet]} der
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Core cell types
 
+-- -1 in "row" for Index signifies an entire column
 data ASLocation = Index {locSheetId :: ASSheetId, index :: (Int, Int)} | 
                   Range {locSheetId :: ASSheetId, range :: ((Int, Int), (Int, Int))} |
                   Column {locSheetId :: ASSheetId, column :: Int}
@@ -36,13 +37,15 @@ data ASValue =
   ExcelSheet { locs :: ASValue, exprs :: ASValue, vals :: ASValue} |
   Rickshaw {rickshawData :: ASValue} |
   ValueError { error :: String, err_type :: String, file :: String, position :: Int } | 
-  ValueImage { imagePath :: String } |
+  ValueImage { imagePath :: String} |
   StockChart { stockPrices :: ASValue, stockName :: String } |
   ObjectValue { objectType :: String, jsonRepresentation :: String } |
   StyledValue { style :: String, value :: ASValue } |
   DisplayValue { displayValue :: String, actualValue :: ASValue }|
   ValueE ASEvalError
   deriving (Show, Read, Eq, Generic)
+
+data ASLangValue = LangValue {langValue :: ASValue, lang :: ASLanguage} deriving (Show, Read, Eq, Generic)
 
 type ASEvalError = String
 
@@ -74,8 +77,7 @@ data ASCell = Cell {cellLocation :: ASLocation,
 -- TODO fix recursion
 data ExLoc = ExSheet {name :: String, sheetLoc :: ExLoc} |
              ExRange {first :: ExLoc, second :: ExLoc}     |
-             ExIndex {d1 :: String, col :: String, d2 :: String, row :: String} |
-             ExColumn Int
+             ExIndex {d1 :: String, col :: String, d2 :: String, row :: String} 
              deriving (Show,Read,Eq,Ord)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
@@ -103,7 +105,7 @@ data ASAction =
   Acknowledge |
   New | Import | 
   Open | Close |
-  Evaluate | 
+  Evaluate | EvaluateRepl |
   Update | 
   Get | Delete |
   Copy | CopyForced |
@@ -140,6 +142,8 @@ data ASPayload =
   PayloadE ASExecError |
   PayloadCommit ASCommit |
   PayloadTags {tags :: [ASCellTag], tagsLoc :: ASLocation} |
+  PayloadXp ASExpression |
+  PayloadLangValue ASLangValue |
   PayloadList QueryList 
   deriving (Show, Read, Eq, Generic)
 
@@ -291,4 +295,5 @@ instance FromJSON ASWorkbook
 instance ToJSON ASWorkbook
 instance FromJSON WorkbookSheet
 instance ToJSON WorkbookSheet
-
+instance FromJSON ASLangValue
+instance ToJSON ASLangValue

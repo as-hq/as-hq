@@ -5,7 +5,7 @@ def red(x):
 def green(x):
     return {"style":"green","value":x}
 def color(cl, x):
-    return {"style":cl, "value":x}
+    return {"color":cl, "value":x}
 
 class Test:
     def __init__(self, aa):

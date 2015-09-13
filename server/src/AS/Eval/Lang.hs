@@ -191,7 +191,6 @@ interpolateFile lang execCmd = do
 
 interpolateFileRepl :: ASLanguage -> String -> IO String
 interpolateFileRepl lang execCmd = do
-	let editedCmd = insertPrintCmdRepl lang $ splitLastCmd lang execCmd
 	template <- getReplTemplate lang
 	return $ layoutCodeFile lang ("", template, execCmd)
 
@@ -218,37 +217,17 @@ interpolate sheetid values xp = evalString
 
 
 insertPrintCmd :: ASLanguage -> (String, String) -> String
-insertPrintCmd lang (s, lst) = s ++ process lst 
-	where
-		process l 	= case lang of 
-			R 		-> l
-			Python 	-> "result = " ++ l 
-			OCaml 	-> "print_string(Std.dump(" ++ l ++ "))"
-			SQL 	-> "result = pprintSql(db(\'" ++ l ++ "\'))" -- hardcoded db() function usage for demos
-			CPP 	-> "int main() { std::cout << (" ++ l ++ "); }" 
-			Java 	-> "public static void main(String[] args) throws Exception{Object x = " ++ l ++ "; System.out.println(pprint(x));}}"
-			Excel 	-> "result = " ++ l
+insertPrintCmd lang (s, lst) = s ++ (printCmd lang lst) 
 
-insertPrintCmdRepl :: ASLanguage -> (String, String) -> String
-insertPrintCmdRepl lang (s, lst) = s ++ "\n" ++ formatLastStmtRepl lang lst 
-
-formatLastStmtRepl :: ASLanguage -> String -> String
-formatLastStmtRepl lang str = case lang of 
-	Python -> printed 
-		where 
-			evalStmt = P.last $ SP.splitOn "=" str
-			printed = if (L.isInfixOf "print" evalStmt)
-				then P.init $ replaceSubstrings evalStmt [("print(", "result = ")]
-				else "result = " ++ evalStmt
-
-removePrintStmt :: ASLanguage -> String -> String
-removePrintStmt lang str = case lang of 
-	Python -> noPrints
-		where
-			(start, end) = splitLastCmd lang str
-			noPrints = if (L.isInfixOf "print" end)
-				then start
-				else start ++ "\n" ++ end
+printCmd :: ASLanguage -> String -> String
+printCmd lang str = case lang of 
+	R 		-> str
+	Python 	-> "result = " ++ str 
+	OCaml 	-> "print_string(Std.dump(" ++ str ++ "))"
+	SQL 	-> "result = pprintSql(db(\'" ++ str ++ "\'))" -- hardcoded db() function usage for demos
+	CPP 	-> "int main() { std::cout << (" ++ str ++ "); }" 
+	Java 	-> "public static void main(String[] args) throws Exception{Object x = " ++ str ++ "; System.out.println(pprint(x));}}"
+	Excel 	-> "result = " ++ str
 
 splitLastCmd :: ASLanguage -> String -> (String, String)
 splitLastCmd lang cmd = 

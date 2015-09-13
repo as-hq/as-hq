@@ -21,7 +21,8 @@ library
                        AS.DB.Util
                        AS.DB.API
                        AS.DB.Graph
-                       AS.Dispatch
+                       AS.Dispatch.Core
+                       AS.Dispatch.Repl
                        AS.Util
                        AS.Clients
                        AS.Config.Paths
@@ -33,6 +34,7 @@ library
                        AS.Parsing.Common
                        AS.Parsing.Out
                        AS.Parsing.In
+                       AS.Parsing.Eval
                        AS.Types
                        AS.Handler
                        AS.Daemon

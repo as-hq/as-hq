@@ -11,7 +11,7 @@ result = "EXERROR"
 try:
 	
 	
-	result = arr([0.0,1.0,2.0,3.0,4.0,5.0,6.0,7.0,8.0,9.0])
+	result = 0.0+1.0
 except Exception as e: 
 	exc_type, exc_obj, exc_tb = exc_info()
 	fname = 'AlphaSheets Python evaluator'

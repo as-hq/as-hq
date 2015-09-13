@@ -1,9 +1,8 @@
-# ::TODO::
-# if we want to keep this file: 
-#   os.getcwd() + "/repl_record.py"
-# is the thing we want
 
-execfile("/home/riteshr/alphasheets/mysql-as-instance/AS/Eval/run/py/repl_record.py")
+import os
+filename = os.getcwd() + "/src/AS/Eval/run/py/repl_record.py"
+execfile(filename)
+
 from AS.stdlib import *
 from AS.ui.styling import *
 # from AS.tests.min import *
@@ -20,8 +19,7 @@ def arr(lst):
 	return ASIterable(lst)
 result = ""
 try:
-	def myFunc(x):
-		return x ** 2
+	result = [myFunc(x) for x in c]
 except Exception as e: 
 	exc_type, exc_obj, exc_tb = exc_info()
 	fname = 'AlphaSheets Python evaluator'

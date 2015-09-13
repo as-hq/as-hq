@@ -67,9 +67,12 @@ modifyUser func user state = modifyMVar_ state $ \(State users conn) ->
 -------------------------------------------------------------------------------------------------------------------------
 -- | Debugging
 
+--getScrollCells :: Connection -> ASSheetId -> [ASLocation] -> IO [Maybe ASCell]
+--getScrollCells conn sid locs = if ((sid == (T.pack "SHEET_ID")) && S.isDebug)
+--  then do
+--    let dlocs = concat $ map U.decomposeLocs locs
+--    return $ map (\l -> Just $ Cell l (Expression "scrolled" Python) (ValueS (show . index $ l)) []) dlocs
+--  else DB.getCells conn locs
+
 getScrollCells :: Connection -> ASSheetId -> [ASLocation] -> IO [Maybe ASCell]
-getScrollCells conn sid locs = if ((sid == (T.pack "TEST_SHEET_ID")) && S.isDebug)
-  then do
-    let dlocs = concat $ map U.decomposeLocs locs
-    return $ map (\l -> Just $ Cell l (Expression "scrolled" Python) (ValueS (show . index $ l)) []) dlocs
-  else DB.getCells conn locs
+getScrollCells conn sid locs = DB.getCells conn locs

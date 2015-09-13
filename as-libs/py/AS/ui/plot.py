@@ -11,10 +11,10 @@ from AS.errors import *
 import numpy as np
 
 folder = os.path.dirname(__file__) 
-directory = "/home/anand/Development/as/asl-demo/frontend/client/app/images/"
+directory = "/home/anand/Development/as/frontend/images/"
 #directory = os.path.abspath(os.path.join(folder, '..','..','..','..','frontend','client','app','images')) + '/'
 
-retPath = "images/"
+retPath = ""
 
 def getList(x):
     if isinstance(x, ASIterable):

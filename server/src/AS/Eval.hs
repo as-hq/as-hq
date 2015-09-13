@@ -20,6 +20,7 @@ import AS.DB hiding (expression)
 import AS.Parsing.In
 import AS.Parsing.Out
 import AS.Parsing.Common
+import AS.Parsing.Eval
 import AS.Util
 import AS.Config.Settings as S
 
@@ -81,16 +82,21 @@ evalCode sheetid values xp = do
 
 
 evalCodeRepl :: ASExpression -> IO ASValue
-evalCodeRepl xp = do
-	let lang = language xp
-	finalXp <- interpolateFileRepl lang (expression xp)
-	writeReplFile lang finalXp
-	result <- pyfiString finalXp
+evalCodeRepl (Expression str lang) = do
+	-- preprocess expression
+	let (recordXp, evalXp) = getReplExpressions lang str
+	evalFile <- interpolateFileRepl lang evalXp
+	writeReplFile lang evalFile
+	-- write record
 	replRecord <- getReplRecord lang
+	writeReplRecord lang (replRecord ++ "\n" ++ recordXp)
+	-- perform eval
+	result <- doEval lang evalFile
 	let parsed = parseValue lang result
+	-- if error, undo the write to repl record
 	case parsed of 
-		(ValueError _ _ _ _) -> return ()
-		otherwise -> writeReplRecord lang (replRecord ++ "\n" ++ (removePrintStmt lang (expression xp)))
+		(ValueError _ _ _ _) -> writeReplRecord lang replRecord
+		otherwise -> return ()
 	return parsed
 
 evalRef :: ASLocation -> M.Map ASLocation ASValue -> ASExpression ->  IO ASValue
@@ -106,7 +112,12 @@ evalRef loc dict (Reference l (a, b)) = do
 -- TODO architectural decision of file-based vs kernel-based eval
 doEval :: ASLanguage -> String -> IO String
 doEval lang str = case lang of 
-	Python -> pyfiString str
+	Python -> if S.isDebug  -- if isDebug, write the python exec file
+		then do
+			writeExecFile lang str
+			--printTimed "did eval!"
+			return =<< pyfiString str
+		else pyfiString str
 	Excel  -> writeExecFile lang str >> pyfiString str
 	SQL	   -> if S.isDebug  -- if isDebug, write the python exec file
 		then do
@@ -116,7 +127,6 @@ doEval lang str = case lang of
 		else pyfiString str
 	otherwise -> do 		-- all other languages follow file-based eval for now
 		writeExecFile lang str
-		time <- getCurrentTime >>= return . utctDayTime
 		return =<< runFile lang
 
 -----------------------------------------------------------------------------------------------------------------------

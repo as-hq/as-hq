@@ -1,4 +1,4 @@
-module AS.Dispatch where
+module AS.Dispatch.Core where
 
 -- AlphaSheets and base
 import AS.Types

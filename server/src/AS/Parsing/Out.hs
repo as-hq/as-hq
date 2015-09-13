@@ -187,13 +187,6 @@ rangeMatch = do
   bottomRight <- indexMatch
   return $ ExRange topLeft bottomRight
 
-columnMatch :: Parser ExLoc
-columnMatch = do
-  col <- many1 letter
-  colon
-  col' <- string col
-  return $ ExColumn (read col' :: Int)
-
 -- matches sheet reference; Sheet1!$A$11
 sheetRefMatch :: Parser ExLoc
 sheetRefMatch = do 
@@ -203,7 +196,7 @@ sheetRefMatch = do
   return $ ExSheet name loc
 
 excelMatch :: Parser ExLoc
-excelMatch = (try sheetRefMatch) <|> (try rangeMatch) <|> (try indexMatch) <|> (try columnMatch)
+excelMatch = (try sheetRefMatch) <|> (try rangeMatch) <|> (try indexMatch)
 ------------------------------------------------------------------------------------------------------------------------------------------------
 -- Helper Functions
 
@@ -242,7 +235,6 @@ shiftExLoc offset exLoc = case exLoc of
       newRow = case dol2 of
         "$" -> r --fixed
         ""  -> show $ (read r :: Int) + (snd offset) --relative
-  ExColumn c -> ExColumn $ c + (fst offset)
 
 shiftExLocs:: (Int,Int) -> [ExLoc] -> [ExLoc]
 shiftExLocs offset exLocs = map (shiftExLoc offset) exLocs
@@ -258,7 +250,6 @@ dependenciesFromExceLLoc sheetid exLoc = case exLoc of
       toCol = colStrToInt.col
       toRow = read.row
   ExIndex dol1 c dol2 r -> [Index sheetid ((colStrToInt c),(read r::Int))]
-  ExColumn c -> [Column sheetid c]
 
 -------------------------------------------------------------------------------------------------------------------------------------------------
 -- Parse dependencies and replace relative expressions

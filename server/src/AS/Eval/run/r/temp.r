@@ -1,4 +1,6 @@
-# ::TODO:: are we keeping this file? 
+
+# ::TODO:: why on earth are we referencing some file in a completely different directory? 
+# this should change. 
 
 suppressMessages(library("rjson"))
 suppressMessages(library("jpeg"))
@@ -22,7 +24,7 @@ isError = FALSE
 result = tryCatch({
 
 
-rnorm(20.0)
+rnorm(30.0)
 }, warning = function(w) {
 	# nothing here
 }, error = function(e) {

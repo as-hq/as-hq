@@ -7,7 +7,7 @@ from AS.ui.styling import *
 # from AS.tests.min import *
 from AS.instruments.ETF import ETF
 from AS.instruments.Stock import Stock
-#from AS.ui.plot import *
+from AS.ui.plot import *
 #import json
 # from AS.excel.pycel.excelcompiler import *
 # from AS.excel.pycel.excellib import * # mapping from excel to python

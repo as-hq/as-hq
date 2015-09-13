@@ -12,7 +12,8 @@ import qualified Network.WebSockets as WS
 import AS.Types
 import AS.DB.API as DB
 import AS.Util as U
-import AS.Dispatch as DP 
+import AS.Dispatch.Core as DP
+import AS.Dispatch.Repl as DR 
 import AS.Daemon as DM
 import AS.Clients as C
 import AS.Parsing.Out as O
@@ -106,14 +107,20 @@ handleUpdateWindow user state (Message uid _ _ (PayloadW window)) = do
 handleImport :: ASUser -> MVar ServerState -> ASMessage -> IO ()
 handleImport user state msg = return () -- TODO 
 
-----------------------------------------------------------------------------------------------------------------------------------------------
+----msg------------------------------------------------------------------------------------------------------------------------------------------
 -- | Eval handler 
 
 handleEval :: ASUser -> MVar ServerState -> ASMessage -> IO ()
 handleEval user state msg  = do 
   putStrLn $ "IN EVAL HANDLER"
-  msg <- DP.runDispatchCycle user state msg
-  sendBroadcastFiltered user state msg
+  msg' <- DP.runDispatchCycle user state msg
+  sendBroadcastFiltered user state msg'
+
+handleEvalRepl :: ASUser -> MVar ServerState -> ASMessage -> IO ()
+handleEvalRepl user state msg = do
+  putStrLn $ "IN EVAL HANDLER"
+  msg' <- DR.runReplDispatch user state msg
+  sendToOriginalUser user msg'
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | DB Handlers
@@ -138,6 +145,7 @@ handleGet user state (PayloadList WorkbookSheets) = do
   ws <- DB.getAllWorkbooks (dbConn curState)
   ss <- DB.getAllSheets (dbConn curState)
   let wss = U.matchSheets ws ss
+  printTimed $ "getting all workbooks: "  ++ (show wss)
   let msg = Message (userId user) Update Success (PayloadWorkbookSheets wss)
   sendToOriginalUser user msg
 

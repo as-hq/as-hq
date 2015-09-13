@@ -118,12 +118,12 @@ main = do
 -- initialize database with sheets, etc. for debugging
 initDebug :: R.Connection -> IO ()
 initDebug conn = do
-  let sheetid = T.pack "TEST_SHEET_ID"
-      sheetid2 = T.pack "TEST_SHEET_ID2"
-  DB.setSheet conn $ Sheet sheetid "TEST_SHEET_NAME" (Blacklist [])
-  DB.setWorkbook conn $ Workbook "TEST_WORKBOOK_NAME" [sheetid]
-  DB.setSheet conn $ Sheet sheetid2 "TEST_SHEET_NAME" (Blacklist [])
-  DB.setWorkbook conn $ Workbook "TEST_WORKBOOK_NAME2" [sheetid2]
+  let sheetid = T.pack "SHEET_ID"
+      sheetid2 = T.pack "SHEET_ID2"
+  DB.setSheet conn $ Sheet sheetid "SHEET_NAME" (Blacklist [])
+  DB.setWorkbook conn $ Workbook "WORKBOOK_NAME" [sheetid]
+  DB.setSheet conn $ Sheet sheetid2 "SHEET_NAME" (Blacklist [])
+  DB.setWorkbook conn $ Workbook "WORKBOOK_NAME2" [sheetid2]
   return  ()
 
 application :: MVar ServerState -> WS.ServerApp
@@ -202,6 +202,7 @@ handleMessage user state message = case (action message) of
   Open        -> H.handleOpen user state message
   Close       -> H.handleClose user state message
   Evaluate    -> H.handleEval user state message 
+  EvaluateRepl-> H.handleEvalRepl user state message
   Get         -> H.handleGet user state (payload message)
   Delete      -> H.handleDelete user state (payload message)
   Copy        -> H.handleCopy user state (payload message)
