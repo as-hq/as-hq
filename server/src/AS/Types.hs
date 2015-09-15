@@ -110,7 +110,7 @@ data ASAction =
   Get | Delete |
   Copy | CopyForced |
   Undo | Redo |
-  Commit | Clear | 
+  Clear | 
   UpdateWindow |
   AddTags | RemoveTags
   deriving (Show, Read, Eq, Generic)

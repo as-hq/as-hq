@@ -1,12 +1,16 @@
 
-def f(x):
-	return x * 4
+def myFunc(x):
+	return x ** 2
+def myFunc(x):
+	return x ** 3
+a=5
+b=6
 
+def myFunc(x):
+	return x ** 3
 
 
 def myFunc(x):
-	return f(f(x))
-
-a = 6
-b = 10
-c = myFunc(a+b)
+	return x ** 3
+a=5
+b=6

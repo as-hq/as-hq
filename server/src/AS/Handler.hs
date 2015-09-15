@@ -51,13 +51,13 @@ broadcastFiltered (Message uid a r (PayloadLL locs)) users = mapM_ (sendLocs loc
       let msg = Message uid Delete r (PayloadLL locs')
       --putStrLn $ "Sending msg to client: " ++ (show msg)
       WS.sendTextData (userConn user) (encode msg)
-broadcastFiltered (Message uid _ _ (PayloadCommit c)) users = mapM_ (sendCommit c) users
+broadcastFiltered (Message uid act res (PayloadCommit c)) users = mapM_ (sendCommit c) users
   where
     sendCommit :: ASCommit -> ASUser -> IO ()
     sendCommit commit user = do 
       let b = intersectViewingWindows (before commit) (userWindows user)
       let a = intersectViewingWindows (after commit) (userWindows user)
-      let msg = Message uid Commit Success (PayloadCommit (ASCommit (commitUserId c) b a (time c)))
+      let msg = Message uid act res (PayloadCommit (ASCommit (commitUserId c) b a (time c)))
       WS.sendTextData (userConn user) (encode msg)
 
 sendToOriginalUser :: ASUser -> ASMessage -> IO ()
@@ -193,7 +193,7 @@ handleRedo user state = do
   commit <- DB.redo (dbConn curState)
   msg <- case commit of 
 		Nothing -> return $ failureMessage "Too far forwards"
-		(Just c) -> return $ Message (userId user) Undo Success (PayloadCommit c)
+		(Just c) -> return $ Message (userId user) Redo Success (PayloadCommit c)
   sendBroadcastFiltered user state msg
 
 -- parse deps
