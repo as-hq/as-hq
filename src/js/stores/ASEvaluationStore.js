@@ -50,6 +50,7 @@ dispatcherIndex: Dispatcher.register(function (action) {
         send a change event to spreadsheet, which will rerender
       */
       case Constants.ActionTypes.GOT_UNDO:
+        console.log("action undo");
         _data.lastUpdatedCells = [];
         ASEvaluationStore.removeData(action.commit.after);
         ASEvaluationStore.updateData(action.commit.before);
@@ -216,7 +217,7 @@ const ASEvaluationStore = assign({}, BaseStore, {
     return _data.externalError;
   },
 
- 
+
   /**************************************************************************************************************************/
   /*
     Update methods to allCells and lastUpdatedCells.
@@ -247,15 +248,16 @@ const ASEvaluationStore = assign({}, BaseStore, {
     console.log("About to remove data in store: " + JSON.stringify(cells));
     for (var key in cells){
       let c = cells[key];
+      console.log("deleting cell: " + JSON.stringify(c));
       let sheetid = Converter.clientCellGetSheetId(c);
       let col = Converter.clientCellGetCol(c);
       let row = Converter.clientCellGetRow(c);
-      let emptyCell = Converter.clientCellEmpty(c.cellLocation);
       if (!_data.allCells[sheetid])
         continue;
       if (!_data.allCells[sheetid][col])
         continue;
-      _data.allCells[sheetid][col][row] = emptyCell;
+      _data.allCells[sheetid][col][row] = null;
+      let emptyCell = Converter.clientCellEmpty(c.cellLocation);
       _data.lastUpdatedCells.push(emptyCell);
     }
   },

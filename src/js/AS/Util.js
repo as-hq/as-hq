@@ -143,9 +143,9 @@ export default {
         return {
           tag: cv.tag,
           id: self.getUniqueId(),
-          src: cv.imagePath,
-          width: cv.imageWidth.toString(),
-          height: cv.imageHeight.toString(),
+          src: "http://localhost:8000/" + cv.imagePath,
+          width: "300",
+          height: "300",
           col: col,
           row: row
         };
