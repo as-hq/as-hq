@@ -4,8 +4,10 @@ import Prelude
 
 import AS.Types 
 import AS.Util
+import AS.Parsing.Common (tryParseInOrder)
+import AS.Parsing.In (int)
 
-import Data.List (zip4,head)
+import Data.List (zip4,head,isPrefixOf)
 
 import qualified Data.Text as T
 import qualified Data.ByteString.Char8 as B 
@@ -82,7 +84,7 @@ bStrToWorkbook (Just b) = Just (read (B.unpack b) :: ASWorkbook)
 bStrToWorkbook Nothing = Nothing
 
 ----------------------------------------------------------------------------------------------------------------------
--- | Redis hash utilities
+-- | Redis key utilities
 
 tuple3 :: a -> b -> c -> (a,b,c)
 tuple3 a b c = (a,b,c)
@@ -116,6 +118,15 @@ incrementLocKey (dx, dy) key = B.pack $ ks ++ '|':kidx
     ks = B.unpack sh
     (col, row) = read (B.unpack idxStr) :: (Int, Int)
     kidx = show (col + dx, row + dy)
+
+getUniquePrefixedName :: String -> [String] -> String
+getUniquePrefixedName pref strs = pref ++ (show idx)
+  where
+    strs' = sort $ filter (isPrefixOf pref) strs
+    strs'' = map (drop . length $ pref) strs'
+    idx = case (tryParseInOrder int strs'') of 
+      (Just i) -> i
+      Nothing -> 1
 
 ----------------------------------------------------------------------------------------------------------------------
 -- | Private functions

@@ -67,12 +67,12 @@ sendToOriginalUser user msg = WS.sendTextData (userConn user) (encode (U.updateM
 handleNew :: ASUser -> MVar ServerState -> ASMessage -> IO ()
 handleNew user state (Message uid a _ p@(PayloadWorkbookSheets (wbs:[]))) = do
   conn <- fmap dbConn $ readMVar state
-  DB.createWorkbookSheet conn wbs
-  broadcast state (Message uid a Success p)
-handleNew user state msg@(Message uid _ _(PayloadWB workbook)) = do
+  wbs' <- DB.createWorkbookSheet conn wbs
+  broadcast state (Message uid a Success (PayloadWorkbookSheets [wbs']))
+handleNew user state (Message uid a _(PayloadWB wb)) = do
   conn <- fmap dbConn $ readMVar state 
-  DB.setWorkbook conn workbook 
-  broadcast state msg
+  wb' <- DB.createWorkbook conn wb
+  broadcast state $ Message uid a Success (PayloadWB wb')
   return () -- TODO determine whether users should be notified
 
 handleOpen :: ASUser -> MVar ServerState -> ASMessage -> IO ()

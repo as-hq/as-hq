@@ -18,6 +18,10 @@ import Data.Maybe (isNothing)
 lastN :: Int -> [a] -> [a]
 lastN n xs = let m = length xs in drop (m-n) xs
 
+-- faster
+lastN' :: Int -> [a] -> [a]
+lastN' n xs = L.foldl' (const . drop 1) xs (drop n xs)
+
 -- always includes first element
 every :: Int -> [a] -> [a]
 every n = map head . takeWhile (not . null) . iterate (drop n)

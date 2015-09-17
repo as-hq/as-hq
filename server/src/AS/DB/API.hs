@@ -8,7 +8,7 @@ import AS.Types hiding (location,expression,value,min)
 import AS.Util as U
 import AS.DB.Util as DU
 
-import Data.List (zip4,head,partition, nub)
+import Data.List (zip4,head,partition,nub)
 import Data.Maybe (isNothing, fromJust)
 
 import Control.Applicative
@@ -220,15 +220,17 @@ getAllWorkbookSheets conn = do
   ss <- getAllSheets conn
   return $ U.matchSheets ws ss
 
-createWorkbookSheet :: Connection -> WorkbookSheet -> IO ()
+createWorkbookSheet :: Connection -> WorkbookSheet -> IO WorkbookSheet
 createWorkbookSheet conn wbs = do
   let newSheets = wsSheets wbs
   newSheets' <- mapM (createSheet conn) newSheets
   let newSheetIds = map sheetId newSheets'
   wbResult <- getWorkbook conn $ wsName wbs
   case wbResult of 
-    (Just wb) -> modifyWorkbookSheets conn (\ss -> nub $ newSheetIds ++ ss) (workbookName wb)
-    Nothing -> setWorkbook conn $ Workbook "Untitled" newSheetIds
+    (Just wb) -> do
+      modifyWorkbookSheets conn (\ss -> nub $ newSheetIds ++ ss) (workbookName wb)
+      return wbs
+    Nothing -> createWorkbook conn newSheetIds
 
 deleteWorkbookSheet :: Connection -> WorkbookSheet -> IO ()
 deleteWorkbookSheet conn wbs = do
@@ -247,6 +249,18 @@ modifyWorkbookSheets conn f wName = do
 
 ----------------------------------------------------------------------------------------------------------------------
 -- | Raw workbooks
+
+createWorkbook :: Connection -> [ASSheetId] -> IO ASWorkbook
+createWorkbook conn sheetids = do
+  wbName <- getUniqueWbName conn
+  let wb = Workbook wbName sheetids
+  setWorkbook wb
+  return wb
+
+getUniqueWbName :: Connection -> IO String
+getUniqueWbName conn = do
+  wbs <- getAllWorkbooks conn
+  return $ DU.getUniquePrefixedName "Untitled" $ map workbookName wbs
 
 getWorkbook :: Connection -> String -> IO (Maybe ASWorkbook)
 getWorkbook conn name = do

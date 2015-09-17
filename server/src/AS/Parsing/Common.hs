@@ -80,3 +80,9 @@ getLine str n = getDelimitedSubstring str "\n" n
 
 stripString :: String -> String
 stripString = T.unpack . T.strip . T.pack 
+
+tryParseInOrder :: Parser a -> [String] -> Maybe a
+tryParseInOrder _ [] = Nothing
+tryParseInOrder p (s:ss) = case (parse p "" (T.pack s)) of
+  Left err -> tryParseInOrder p ss
+  Right result -> Just result
