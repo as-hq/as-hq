@@ -29,3 +29,6 @@ def myFunc(x):
 
 
 
+
+def myFunc(x):
+	return x * x

@@ -24,7 +24,7 @@ isError = FALSE
 result = tryCatch({
 
 
-rnorm(20.0)
+range(1000)
 }, warning = function(w) {
 	# nothing here
 }, error = function(e) {

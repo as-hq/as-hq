@@ -19,7 +19,7 @@ def arr(lst):
 	return ASIterable(lst)
 result = ""
 try:
-	result = a0sd0s3
+	result = [1,2,3,4]
 except Exception as e: 
 	exc_type, exc_obj, exc_tb = exc_info()
 	fname = 'AlphaSheets Python evaluator'

@@ -7,6 +7,7 @@ import Data.Maybe
 import Data.Char
 import qualified Data.Text as T
 import qualified Data.List as L
+import qualified Data.Either as E
 import Text.Parsec
 import Text.Parsec.Text
 import Control.Applicative hiding ((<|>), many)
@@ -81,8 +82,17 @@ getLine str n = getDelimitedSubstring str "\n" n
 stripString :: String -> String
 stripString = T.unpack . T.strip . T.pack 
 
-tryParseInOrder :: Parser a -> [String] -> Maybe a
-tryParseInOrder _ [] = Nothing
-tryParseInOrder p (s:ss) = case (parse p "" (T.pack s)) of
-  Left err -> tryParseInOrder p ss
-  Right result -> Just result
+-- note: cannot take empty strings
+tryParseList :: Parser a -> [String] -> [Maybe a]
+tryParseList p ss = map readOutput parsed
+  where
+    parsed = map ((parse p "") . T.pack) ss
+    readOutput (Left err) = Nothing
+    readOutput (Right res) = Just res
+
+-- note: can take empty strinsg
+tryParseListNonIso :: Parser a -> [String] -> [a]
+tryParseListNonIso p ss = E.rights parsed
+  where
+    ss' = filter ((/=) "") ss
+    parsed = map ((parse p "") . T.pack) ss'

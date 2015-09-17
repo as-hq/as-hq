@@ -230,7 +230,9 @@ createWorkbookSheet conn wbs = do
     (Just wb) -> do
       modifyWorkbookSheets conn (\ss -> nub $ newSheetIds ++ ss) (workbookName wb)
       return wbs
-    Nothing -> createWorkbook conn newSheetIds
+    Nothing -> do
+      wb <- createWorkbook conn newSheetIds
+      return $ WorkbookSheet (workbookName wb) newSheets'
 
 deleteWorkbookSheet :: Connection -> WorkbookSheet -> IO ()
 deleteWorkbookSheet conn wbs = do
@@ -254,7 +256,7 @@ createWorkbook :: Connection -> [ASSheetId] -> IO ASWorkbook
 createWorkbook conn sheetids = do
   wbName <- getUniqueWbName conn
   let wb = Workbook wbName sheetids
-  setWorkbook wb
+  setWorkbook conn wb
   return wb
 
 getUniqueWbName :: Connection -> IO String

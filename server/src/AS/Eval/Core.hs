@@ -166,9 +166,7 @@ evalString :: ASLanguage -> String -> IO ASValue
 evalString lang evalStr = return . parseValue lang =<< pyfiString evalStr
 
 pyfiString :: String -> IO String
-pyfiString evalStr = do 
-	--_ <- putStrLn $ "IN PYFI"
-	defVV (evalStr ++ pyString) ("Hello" :: String)
+pyfiString evalStr = defVV (evalStr ++ pyString) ("Hello" :: String)
 
 pyString :: String
 pyString = [str|

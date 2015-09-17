@@ -71,7 +71,7 @@ handleNew user state (Message uid a _ p@(PayloadWorkbookSheets (wbs:[]))) = do
   broadcast state (Message uid a Success (PayloadWorkbookSheets [wbs']))
 handleNew user state (Message uid a _(PayloadWB wb)) = do
   conn <- fmap dbConn $ readMVar state 
-  wb' <- DB.createWorkbook conn wb
+  wb' <- DB.createWorkbook conn (workbookSheets wb)
   broadcast state $ Message uid a Success (PayloadWB wb')
   return () -- TODO determine whether users should be notified
 
