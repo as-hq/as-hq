@@ -1,5 +1,5 @@
 {-# LANGUAGE QuasiQuotes #-}
-module AS.Eval where
+module AS.Eval.Core where
 
 import Prelude
 import System.IO           
@@ -32,27 +32,6 @@ evalExpression loc dict expr =
   case expr of
     Expression _ _ -> evalCode (locSheetId loc) dict expr  
     Reference _ _ -> evalRef loc dict expr  
-
--- | Returns the new Python expression and a boolean for whether the expression is volatile or not
-evalExcel :: ASExpression -> IO (Either ASValue (ASExpression,Bool)) 
-evalExcel xp = do
-	--printTimed $ "eval inital excel xp: " ++ (show . expression $ xp)
-	let newXp = "evalExcel('"++(expression xp)++"')"
-	interpolated <- interpolateFile Excel newXp
-	--putStrLn $ "EXCEL evaluating file: \n" ++ interpolated
-	resultInit <- pyfiString interpolated
-	--putStrLn $ "EXCEL RESULT INIT: " ++ (show resultInit)
-	{-
-		let result' = T.unpack (T.strip (T.pack resultInit)) -- no start/end whitespace
-		let result = case (L.head result') of
-			'\'' -> L.init (L.tail result')
-			'\"' -> L.init (L.tail result')
-			otherwise -> result'
-	-}
-	let result = parseValue Excel resultInit
-	return $ case result of 
-		(ValueL [ValueS s, ValueB b]) -> Right (Expression s Excel, b)
-		e@(ValueError _ _ _ _) -> Left e
 
 -----------------------------------------------------------------------------------------------------------------------
 -- File Interpolation (see Lang for details)

@@ -11,7 +11,7 @@ from AS.errors import *
 import numpy as np
 
 folder = os.path.dirname(__file__) 
-directory = "/home/anand/Development/as/frontend/images/"
+directory = "/home/anand/Development/as/backend/static/images/"
 #directory = os.path.abspath(os.path.join(folder, '..','..','..','..','frontend','client','app','images')) + '/'
 
 retPath = ""

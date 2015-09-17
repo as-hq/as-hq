@@ -1,6 +1,5 @@
 import os
 filename = os.getcwd() + "/src/AS/Eval/run/py/repl_record.py"
-execfile(filename)
 
 from AS.stdlib import *
 from AS.ui.styling import *
@@ -18,6 +17,7 @@ def arr(lst):
 	return ASIterable(lst)
 result = "error"
 try:
+	execfile(filename)
 	#CMD#
 except Exception as e: 
 	exc_type, exc_obj, exc_tb = exc_info()

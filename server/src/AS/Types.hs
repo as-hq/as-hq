@@ -74,15 +74,29 @@ data ASCell = Cell {cellLocation :: ASLocation,
           cellTags :: [ASCellTag]} deriving (Show, Read, Eq, Generic)
 
 
+----------------------------------------------------------------------------------------------------------------------------------------------
+-- | Excel
+
 -- TODO fix recursion
 data ExLoc = ExSheet {name :: String, sheetLoc :: ExLoc} |
              ExRange {first :: ExLoc, second :: ExLoc}     |
              ExIndex {d1 :: String, col :: String, d2 :: String, row :: String} 
              deriving (Show,Read,Eq,Ord)
 
+data ExcelAction = 
+  Lookup |
+  CheckIndirectRef |
+  LookupSheets |
+  LookupWorkbooks |
+  CurrentLocation 
+  deriving (Show,Read)
+
+data ExcelPayload = 
+  NoPayload 
+  deriving (Show,Read)
+  
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Streaming
-
 -- | Stream sources
 data Bloomberg = Bloomberg {url :: String, key :: String} deriving (Show, Read, Eq, Generic)
 data StreamSource = StreamB Bloomberg | NoSource deriving (Show, Read, Eq, Generic)

@@ -27,7 +27,7 @@ library
                        AS.Clients
                        AS.Config.Paths
                        AS.Config.Settings
-                       AS.Eval
+                       AS.Eval.Core
                        AS.Eval.Lang
                        AS.Eval.Middleware
                        AS.Eval.Endware

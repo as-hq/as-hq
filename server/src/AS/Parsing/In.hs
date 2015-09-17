@@ -139,6 +139,7 @@ extractValue m
   | M.member "stockPrices" m  = extractStockChart m
   | M.member "excelLocs"   m  = extractExcel m 
   | M.member "rickshawData" m = extractRick m 
+  | M.member "objectType" m   = extractObjectValue m
   | otherwise = extractObjectValue m
   where
     extractExcel mm       = ExcelSheet l e v

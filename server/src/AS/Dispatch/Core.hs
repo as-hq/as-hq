@@ -3,7 +3,7 @@ module AS.Dispatch.Core where
 -- AlphaSheets and base
 import AS.Types
 import Prelude 
-import qualified AS.Eval    as R (evalExpression,evalExcel)
+import qualified AS.Eval.Core as R (evalExpression)
 import qualified Data.Map   as M
 import qualified AS.DAG     as DAG
 import qualified AS.DB.API  as DB
@@ -49,14 +49,14 @@ runDispatchCycle user state msg@(Message _ _ _ (PayloadC c')) = do
     Right () -> do 
       d <- getDescendants conn c 
       case d of -- for example, error if DB is locked
-        Left de -> return $  U.getCellMessage user (Left de)
+        Left de -> return $ U.getCellMessage user (Left de)
         Right desc -> do 
           ancResult <- G.getImmediateAncestors $ map cellLocation desc
           case ancResult of 
             (Left e') -> return $ U.getCellMessage user (Left e') 
             (Right ancLocs) -> do
               anc <- fmap U.fromJustList $ DB.getCells conn ancLocs
-              res <- reEvalCell conn anc desc 
+              res <- propagate conn anc desc 
               case res of 
                 Left e' -> return $ U.getCellMessage user (Left e')
                 Right cells' -> do
@@ -110,8 +110,8 @@ getDescendants conn cell = do
     (Left e) -> return $ Left e
 
 -- | Takes ancestors and descendants, create lookup map, and run eval
-reEvalCell :: Connection -> [ASCell] -> [ASCell] -> IO (Either ASExecError [ASCell])
-reEvalCell conn anc dec = do 
+propagate :: Connection -> [ASCell] -> [ASCell] -> IO (Either ASExecError [ASCell])
+propagate conn anc dec = do 
   let mp = M.fromList $ map (\c -> (cellLocation c, cellValue c)) anc
   result <- evalChain conn mp dec
   return $ Right result

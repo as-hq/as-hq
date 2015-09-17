@@ -175,7 +175,7 @@ undo :: Connection -> IO (Maybe ASCommit)
 undo conn = do 
   commit <- runRedis conn $ do 
     TxSuccess justC <- multiExec $ do 
-      commit <- rpoplpush (B.pack "commits1") (B.pack "commits2")
+      commit <- rpoplpush (B.pack "pushed") (B.pack "popped")
       return commit
     return $ bStrToASCommit justC
   case commit of
@@ -188,9 +188,12 @@ undo conn = do
 redo :: Connection -> IO (Maybe ASCommit)
 redo conn = do 
   commit <- runRedis conn $ do 
-    Right (Just commit) <- lpop (B.pack "commits2") 
-    rpush (B.pack "commits1") [commit]
-    return $ bStrToASCommit (Just commit)
+    Right result <- lpop (B.pack "popped") 
+    case result of 
+      (Just commit) -> do
+        rpush (B.pack "pushed") [commit]
+        return $ bStrToASCommit (Just commit)
+      _ -> return Nothing
   case commit of
     Nothing -> return Nothing
     Just c@(ASCommit uid b a t) -> do 
@@ -203,9 +206,10 @@ pushCommit conn c = do
   let commit = (B.pack . show) c 
   runRedis conn $ do
     TxSuccess _ <- multiExec $ do 
-      rpush (B.pack "commits1") [commit]
+      rpush (B.pack "pushed") [commit]
       numCommits <- get (B.pack "numCommits")
       incrbyfloat (B.pack "numCommits") 1
+      del [(B.pack "popped")]
       return numCommits
     return ()
 
