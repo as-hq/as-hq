@@ -4,7 +4,6 @@ import AS.Types
 import AS.Config.Paths
 import AS.Parsing.Out
 import AS.Parsing.Common
-import AS.DB hiding (expression)
 
 import Prelude
 import Control.Applicative     

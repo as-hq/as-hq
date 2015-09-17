@@ -79,6 +79,9 @@ isRight _ = False
 
 isAllRight :: [Either a b] -> Bool
 isAllRight results = all id $ map isRight results 
+
+deleteSubset :: (Eq a) => [a] -> [a] -> [a]
+deleteSubset subset = filter (\e -> L.notElem e subset)
 --------------------------------------------------------------------------------------------------------------
 -- | Key-value manip functions
 

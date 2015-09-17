@@ -16,7 +16,6 @@ import qualified Data.Text as T
 
 import AS.Eval.Lang
 import AS.Types hiding (str)
-import AS.DB hiding (expression)
 import AS.Parsing.In
 import AS.Parsing.Out
 import AS.Parsing.Common

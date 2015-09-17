@@ -24,8 +24,10 @@ import AS.Parsing.Out as O
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Sending message to client(s)
 
-broadcast :: Text -> ServerState -> IO ()
-broadcast message (State u _) = forM_ (map fst u) $ \(User _ conn _) -> WS.sendTextData conn message
+broadcast :: MVar ServerState -> ASMessage -> IO ()
+broadcast state message = do
+  (State u _) <- readMVar state
+  forM_ (map fst u) $ \(User _ conn _) -> WS.sendTextData conn (encode message)
 
 sendBroadcastFiltered :: ASUser -> MVar ServerState -> ASMessage -> IO ()
 sendBroadcastFiltered user state msg@(Message _ _ (Failure e) _) = sendToOriginalUser user msg  
@@ -35,29 +37,26 @@ sendBroadcastFiltered user state msg = liftIO $ do
 
 -- | Given a message (commit, cells, etc), only send (to each user) the cells in their viewing window
 broadcastFiltered :: ASMessage -> [ASUser] -> IO ()
-broadcastFiltered (Message uid _ _ (PayloadCL cells)) users = mapM_ (sendCells cells) users 
+broadcastFiltered msg@(Message uid _ _ (PayloadCL cells)) users = mapM_ (sendCells cells) users 
   where
     sendCells :: [ASCell] -> ASUser -> IO ()
     sendCells cells user = do 
       let cells' = intersectViewingWindows cells (userWindows user)
-      let msg = Message uid Update Success (PayloadCL cells')
       --putStrLn $ "Sending msg to client: " ++ (show msg)
       WS.sendTextData (userConn user) (encode msg)
-broadcastFiltered (Message uid a r (PayloadLL locs)) users = mapM_ (sendLocs locs) users 
+broadcastFiltered msg@(Message uid a r (PayloadLL locs)) users = mapM_ (sendLocs locs) users 
   where
     sendLocs :: [ASLocation] -> ASUser -> IO ()
     sendLocs locs user = do 
       let locs' = intersectViewingWindowsLocs locs (userWindows user)
-      let msg = Message uid Delete r (PayloadLL locs')
       --putStrLn $ "Sending msg to client: " ++ (show msg)
       WS.sendTextData (userConn user) (encode msg)
-broadcastFiltered (Message uid act res (PayloadCommit c)) users = mapM_ (sendCommit c) users
+broadcastFiltered msg@(Message uid act res (PayloadCommit c)) users = mapM_ (sendCommit c) users
   where
     sendCommit :: ASCommit -> ASUser -> IO ()
     sendCommit commit user = do 
       let b = intersectViewingWindows (before commit) (userWindows user)
       let a = intersectViewingWindows (after commit) (userWindows user)
-      let msg = Message uid act res (PayloadCommit (ASCommit (commitUserId c) b a (time c)))
       WS.sendTextData (userConn user) (encode msg)
 
 sendToOriginalUser :: ASUser -> ASMessage -> IO ()
@@ -66,15 +65,15 @@ sendToOriginalUser user msg = WS.sendTextData (userConn user) (encode (U.updateM
 -- | Open/close/import/new/window handlers
 
 handleNew :: ASUser -> MVar ServerState -> ASMessage -> IO ()
-handleNew user state msg = case (payload msg) of 
-  (PayloadS sheet) -> do
-    conn <- fmap dbConn $ readMVar state
-    newSheet <- DB.createSheet conn sheet 
-    let wb = Workbook "Untitled" [sheetId newSheet] -- TODO don't hardcode; flow needs to change.
-    DB.setWorkbook conn wb 
-    let wbs = U.matchSheets [wb] [newSheet]
-    sendToOriginalUser user (Message (userId user) Update NoResult (PayloadWorkbookSheets wbs))
-  (PayloadWB workbook) -> fmap dbConn (readMVar state) >>= \conn -> DB.setWorkbook conn workbook >> return ()
+handleNew user state (Message uid a _ p@(PayloadWorkbookSheets (wbs:[]))) = do
+  conn <- fmap dbConn $ readMVar state
+  DB.createWorkbookSheet conn wbs
+  broadcast state (Message uid a Success p)
+handleNew user state msg@(Message uid _ _(PayloadWB workbook)) = do
+  conn <- fmap dbConn $ readMVar state 
+  DB.setWorkbook conn workbook 
+  broadcast state msg
+  return () -- TODO determine whether users should be notified
 
 handleOpen :: ASUser -> MVar ServerState -> ASMessage -> IO ()
 handleOpen user state (Message _ _ _ (PayloadS (Sheet sheetid _ _))) = C.modifyUser makeNewWindow user state 
@@ -142,9 +141,7 @@ handleGet user state (PayloadList Workbooks) = do
   sendToOriginalUser user msg
 handleGet user state (PayloadList WorkbookSheets) = do
   curState <- readMVar state
-  ws <- DB.getAllWorkbooks (dbConn curState)
-  ss <- DB.getAllSheets (dbConn curState)
-  let wss = U.matchSheets ws ss
+  wss <- DB.getAllWorkbookSheets (dbConn curState)
   printTimed $ "getting all workbooks: "  ++ (show wss)
   let msg = Message (userId user) Update Success (PayloadWorkbookSheets wss)
   sendToOriginalUser user msg
@@ -162,11 +159,11 @@ handleDelete user state p@(PayloadLL locs) = do
   let msg = Message (userId user) Delete Success p
   sendBroadcastFiltered user state msg
   return () 
-handleDelete user state p@(PayloadS sheet) = do
+handleDelete user state p@(PayloadWorkbookSheets (wbs:[])) = do
   conn <- fmap dbConn $ readMVar state
-  DB.deleteSheet conn (sheetId sheet) 
+  DB.deleteWorkbookSheet conn wbs
   let msg = Message (userId user) Delete Success p
-  sendBroadcastFiltered user state msg
+  broadcast state msg
   return () 
 handleDelete user state p@(PayloadWB workbook) = do
   conn <- fmap dbConn $ readMVar state

@@ -8,7 +8,7 @@ import AS.Types hiding (location,expression,value,min)
 import AS.Util as U
 import AS.DB.Util as DU
 
-import Data.List (zip4,head,partition)
+import Data.List (zip4,head,partition, nub)
 import Data.Maybe (isNothing, fromJust)
 
 import Control.Applicative
@@ -207,22 +207,46 @@ pushCommit conn c = do
   runRedis conn $ do
     TxSuccess _ <- multiExec $ do 
       rpush (B.pack "pushed") [commit]
-      numCommits <- get (B.pack "numCommits")
       incrbyfloat (B.pack "numCommits") 1
       del [(B.pack "popped")]
-      return numCommits
     return ()
 
 ----------------------------------------------------------------------------------------------------------------------
--- | Sheets and workbooks
+-- | WorkbookSheets (for frontend API)
 
-getSheet :: Connection -> ASSheetId -> IO (Maybe ASSheet)
-getSheet conn sid = do
-    runRedis conn $ do
-        msheet <- get $ DU.getSheetKey sid
-        case msheet of 
-            (Right sheet) -> return $ DU.bStrToSheet sheet
-            (Left _) -> return Nothing
+getAllWorkbookSheets :: Connection -> IO [WorkbookSheet]
+getAllWorkbookSheets conn = do
+  ws <- getAllWorkbooks conn
+  ss <- getAllSheets conn
+  return $ U.matchSheets ws ss
+
+createWorkbookSheet :: Connection -> WorkbookSheet -> IO ()
+createWorkbookSheet conn wbs = do
+  let newSheets = wsSheets wbs
+  newSheets' <- mapM (createSheet conn) newSheets
+  let newSheetIds = map sheetId newSheets'
+  wbResult <- getWorkbook conn $ wsName wbs
+  case wbResult of 
+    (Just wb) -> modifyWorkbookSheets conn (\ss -> nub $ newSheetIds ++ ss) (workbookName wb)
+    Nothing -> setWorkbook conn $ Workbook "Untitled" newSheetIds
+
+deleteWorkbookSheet :: Connection -> WorkbookSheet -> IO ()
+deleteWorkbookSheet conn wbs = do
+  let delSheets = map sheetId $ wsSheets wbs
+  mapM_ (deleteSheetUnsafe conn) delSheets
+  wbResult <- getWorkbook conn $ wsName wbs
+  case wbResult of 
+    (Just wb) -> modifyWorkbookSheets conn (\ss -> deleteSubset delSheets ss) (workbookName wb)
+    Nothing -> return ()
+
+modifyWorkbookSheets :: Connection -> ([ASSheetId] -> [ASSheetId]) -> String -> IO ()
+modifyWorkbookSheets conn f wName = do
+  (Just (Workbook wsName sheetIds)) <- getWorkbook conn wName
+  let wbNew = Workbook wsName $ f sheetIds
+  setWorkbook conn wbNew
+
+----------------------------------------------------------------------------------------------------------------------
+-- | Raw workbooks
 
 getWorkbook :: Connection -> String -> IO (Maybe ASWorkbook)
 getWorkbook conn name = do
@@ -232,36 +256,12 @@ getWorkbook conn name = do
             (Right wb) -> return $ DU.bStrToWorkbook wb
             (Left _) -> return Nothing
 
-getAllSheets :: Connection -> IO [ASSheet]
-getAllSheets conn = do
-    runRedis conn $ do
-        Right sheetKeys <- smembers (B.pack "sheetKeys")
-        sheets <- mapM get sheetKeys
-        return $ map (\(Right (Just s)) -> read (B.unpack s) :: ASSheet) sheets
-
 getAllWorkbooks :: Connection -> IO [ASWorkbook]
 getAllWorkbooks conn = do
     runRedis conn $ do
         Right wbKeys <- smembers (B.pack "workbookKeys")
         wbs <- mapM get wbKeys
         return $ map (\(Right (Just w)) -> read (B.unpack w) :: ASWorkbook) wbs
-
--- creates a sheet with unique id
-createSheet :: Connection -> ASSheet -> IO ASSheet
-createSheet conn (Sheet sid sname sperms) = do
-    sid' <- U.getUniqueId
-    let newSheet = Sheet sid' sname sperms
-    setSheet conn newSheet
-    return newSheet
-
-setSheet :: Connection -> ASSheet -> IO ()
-setSheet conn sheet = do
-    runRedis conn $ do
-        let sheetKey = DU.getSheetKey . sheetId $ sheet
-        TxSuccess _ <- multiExec $ do
-            set sheetKey (B.pack . show $ sheet)  -- set the sheet as key-value
-            sadd (B.pack "sheetKeys") [sheetKey]  -- add the sheet key to the set of all sheets  
-        return ()
 
 setWorkbook :: Connection -> ASWorkbook -> IO () 
 setWorkbook conn wb = do
@@ -272,22 +272,11 @@ setWorkbook conn wb = do
             sadd (B.pack "workbookKeys") [workbookKey]  -- add the workbook key to the set of all sheets  
         return ()
 
-deleteSheet :: Connection -> ASSheetId -> IO ()
-deleteSheet conn sid = do
-    runRedis conn $ do
-        let setKey = DU.getSheetSetKey sid
-            sheetKey = DU.getSheetKey sid
-        mlocKeys <- smembers setKey
-        TxSuccess _ <- multiExec $ do
-            case mlocKeys of 
-                (Right locKeys) -> do
-                    del locKeys -- delete all locs in the sheet
-                    return ()
-                (Left _) -> return ()
-            del [setKey]      -- delete the loc set
-            del [sheetKey]    -- delete the sheet
-            srem (B.pack "sheetKeys") [sheetKey] -- remove the sheet key from the set of sheets
-        return ()
+workbookExists :: Connection -> String -> IO Bool
+workbookExists conn wName = do
+  runRedis conn $ do
+    Right result <- exists $ DU.getWorkbookKey wName
+    return result
 
 -- only removes the workbook, not contained sheets
 deleteWorkbook :: Connection -> String -> IO ()
@@ -306,13 +295,68 @@ deleteWorkbookAndSheets conn name = do
     case mwb of 
         Nothing -> return ()
         (Just wb) -> do
-            mapM_ (deleteSheet conn) (workbookSheets wb) -- remove sheets
+            mapM_ (deleteSheetUnsafe conn) (workbookSheets wb) -- remove sheets
             runRedis conn $ do
                 let workbookKey = DU.getWorkbookKey name
                 TxSuccess _ <- multiExec $ do
                     del [workbookKey]   -- remove workbook from key-value
                     srem (B.pack "workbookKeys") [workbookKey] -- remove workbook from set
                 return ()
+
+----------------------------------------------------------------------------------------------------------------------
+-- | Raw sheets
+
+getSheet :: Connection -> ASSheetId -> IO (Maybe ASSheet)
+getSheet conn sid = do
+    runRedis conn $ do
+        msheet <- get $ DU.getSheetKey sid
+        case msheet of 
+            (Right sheet) -> return $ DU.bStrToSheet sheet
+            (Left _) -> return Nothing
+
+getAllSheets :: Connection -> IO [ASSheet]
+getAllSheets conn = do
+    runRedis conn $ do
+        Right sheetKeys <- smembers (B.pack "sheetKeys")
+        sheets <- mapM get sheetKeys
+        return $ map (\(Right (Just s)) -> read (B.unpack s) :: ASSheet) sheets
+
+-- creates a sheet with unique id
+createSheet :: Connection -> ASSheet -> IO ASSheet
+createSheet conn (Sheet sid sname sperms) = do
+    sid' <- U.getUniqueId
+    let newSheet = Sheet sid' sname sperms
+    setSheet conn newSheet
+    return newSheet
+
+setSheet :: Connection -> ASSheet -> IO ()
+setSheet conn sheet = do
+    runRedis conn $ do
+        let sheetKey = DU.getSheetKey . sheetId $ sheet
+        TxSuccess _ <- multiExec $ do
+            set sheetKey (B.pack . show $ sheet)  -- set the sheet as key-value
+            sadd (B.pack "sheetKeys") [sheetKey]  -- add the sheet key to the set of all sheets  
+        return ()
+
+-- deletes the sheet only, does not remove from any containing workbooks
+deleteSheetUnsafe :: Connection -> ASSheetId -> IO ()
+deleteSheetUnsafe conn sid = do
+    runRedis conn $ do
+        let setKey = DU.getSheetSetKey sid
+            sheetKey = DU.getSheetKey sid
+
+        mlocKeys <- smembers setKey
+        TxSuccess _ <- multiExec $ do
+            case mlocKeys of 
+                (Right []) -> return () -- hedis can't delete empty list
+                (Right locKeys) -> do
+                    del locKeys -- delete all locs in the sheet
+                    return ()
+                (Left _) -> return ()
+            del [setKey]      -- delete the loc set
+            del [sheetKey]    -- delete the sheet
+            srem (B.pack "sheetKeys") [sheetKey] -- remove the sheet key from the set of sheets
+        return ()
 
 ----------------------------------------------------------------------------------------------------------------------
 -- | Volatile cell methods

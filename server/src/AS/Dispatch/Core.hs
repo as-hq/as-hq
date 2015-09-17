@@ -5,7 +5,6 @@ import AS.Types
 import Prelude 
 import qualified AS.Eval.Core as R (evalExpression)
 import qualified Data.Map   as M
-import qualified AS.DAG     as DAG
 import qualified AS.DB.API  as DB
 import qualified Data.List  as L (head,last,tail,length,splitAt) 
 import AS.Parsing.Common

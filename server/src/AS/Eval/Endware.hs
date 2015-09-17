@@ -2,7 +2,6 @@ module AS.Eval.Endware where
 
 import Prelude
 import AS.Types
-import AS.DB
 import AS.Util as U
 
 import Data.Char (isPunctuation, isSpace)
