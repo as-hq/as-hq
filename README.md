@@ -5,11 +5,31 @@ libboost-all-dev
 libzmq3-dev
 
 # Building
+## Server 
+```bash
+$ cd server
+$ stack install
+```
 ## Graph db
 ```bash
 $ cd graph-database
 $ g++ -o server server.cpp -lzmq -std=c++11
+```
+# Running
+(Redis must be started beforehand with '''redis-server''')
+## Server 
+```bash
+$ stack exec alphasheets-exe
+```
+## Graph db
+```bash
+$ cd graph-database
 $ ./server
+```
+## Static content server
+```bash
+$ cd server/static
+$ python -m SimpleHTTPServer
 ```
 
 # Testing

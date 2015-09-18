@@ -19,7 +19,8 @@ def arr(lst):
 	return ASIterable(lst)
 result = ""
 try:
-	result = [1,2,3,4]
+	def someFunction(x):
+		return "hello"
 except Exception as e: 
 	exc_type, exc_obj, exc_tb = exc_info()
 	fname = 'AlphaSheets Python evaluator'

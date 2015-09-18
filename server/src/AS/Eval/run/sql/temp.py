@@ -48,8 +48,8 @@ def pprintSql(res):
 		return res
 
 try:
-	setGlobals(["\"b\"","[[\"a\",\"b\"],[1.0,3.0],[2.0,4.0]]","\"a\""])
+	setGlobals(["[[\"a\",\"b\"],[0.0,0.0],[1.0,1.0],[2.0,4.0],[3.0,9.0],[4.0,16.0],[5.0,25.0],[6.0,36.0],[7.0,49.0]]"])
 	
-	result = pprintSql(db('select dataset0 from dataset1 where dataset2 = 1'))
+	result = pprintSql(db('select * from dataset0'))
 except Exception as e:
 	result = pprintErr(e)
