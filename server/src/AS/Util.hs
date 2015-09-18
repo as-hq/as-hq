@@ -135,10 +135,11 @@ generateErrorMessage (DBNothingException _) = "Unable to fetch cells from databa
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Time
-
 getTime :: IO String
 getTime = fmap (show . utctDayTime) getCurrentTime
 
+
+-- ::ALEX:: rename to printWithTime
 printTimed :: String -> IO ()
 printTimed str = do 
   time <- getTime

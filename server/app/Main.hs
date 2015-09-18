@@ -86,7 +86,9 @@ isInitConnection msg = do
         Just (Message _ Acknowledge r (PayloadInit (ASInitConnection n))) -> do
           printTimed "decoded init" 
           return True
-        otherwise -> putStrLn (show (decode msg :: Maybe ASMessage)) >> return False
+        otherwise -> do 
+          putStrLn (show (decode msg :: Maybe ASMessage))
+          return False
   putStrLn (show msg)
   return b
 
@@ -102,20 +104,22 @@ isInitConnectionDaemon msg = do
   return b
 
 -------------------------------------------------------------------------------------------------------------------------
--- | Main 
+-- | Main
 
 main :: IO ()
 main = do
+    -- initializations
     conn <- R.connect DBU.cInfo
     state <- newMVar $ State [] conn
-    if isDebug
+    if isDebug -- set in Settings.hs 
       then initDebug conn >> return ()
       else return ()
-    putStrLn $ "server started on port " ++ (show S.wsPort)
+    -- where the heavy lifting is done
     WS.runServer S.wsAddress S.wsPort $ application state
+    putStrLn $ "server started on port " ++ (show S.wsPort)
     putStrLn $ "DONE WITH MAIN"
 
--- initialize database with sheets, etc. for debugging
+-- | Initializes database with sheets, etc. for debugging mode. Only called if isDebug is true. 
 initDebug :: R.Connection -> IO ()
 initDebug conn = do
   let sheetid = T.pack "SHEET_ID"
@@ -128,16 +132,14 @@ initDebug conn = do
 
 application :: MVar ServerState -> WS.ServerApp
 application state pending = do
-  conn <- WS.acceptRequest pending
-  -- WS.forkPingThread conn 30 -- Keepalive ping for certain browsers
-  msg <- WS.receiveData conn
-  -- | After receiving data from a connection, see if it's a valid initial signal (for a daemon or a client)
+  conn <- WS.acceptRequest pending -- initialize connection
+  msg <- WS.receiveData conn -- waits until it receives data
   isInit <- isInitConnection msg
   isInitDaemon <- isInitConnectionDaemon msg
   if isInit
     then handleInitConnection state conn (decode msg :: Maybe ASMessage)
     else 
-      if isInitDaemon
+      if isInitDaemon 
         then handleInitConnectionDaemon state conn (decode msg :: Maybe ASMessage)
         else send (failureMessage "Cannot connect") conn
   putStrLn $ "DONE WITH APPLICATION"
@@ -146,41 +148,37 @@ handleInitConnection :: MVar ServerState -> WS.Connection -> Maybe ASMessage -> 
 handleInitConnection state conn (Just message) = do
   let user = User (messageUserId message) conn [initialViewingWindow]
   (flip catch) (catchDisconnect user state) $ do
-    --putStrLn $ "IN HANDLE INIT CONNECTION"
+    -- adds client to state
     liftIO $ modifyMVar_ state (\s -> return $ addUser user s)
+    -- handles all future exchanges with this client
     talk state user
 
 handleInitConnectionDaemon :: MVar ServerState -> WS.Connection -> Maybe ASMessage -> IO ()
 handleInitConnectionDaemon state conn (Just (Message _ _ _ (PayloadDaemonInit (ASInitDaemonConnection pId loc)))) = do
   let daemon = ASDaemon loc conn
   (flip catch) (catchDisconnectDaemon daemon state) $ do
-    --putStrLn $ "IN HANDLE INIT DAEMON CONNECTION"
     liftIO $ modifyMVar_ state (\s -> return $ addDaemon pId daemon s)
     talkDaemon state daemon
 
--- Persistent connection until user disconnects
+-- | Persistent connection until user disconnects
 talk :: MVar ServerState -> ASUser -> IO ()
 talk state user = forever $ do
   msg <- WS.receiveData (userConn user)
   putStrLn "=========================================================="
-  printTimed $ "SERVER message received: " 
+  printTimed "SERVER message received: " 
   case (decode msg :: Maybe ASMessage) of 
+    Just m  -> processMessage user state m
     Nothing -> printTimed ("SERVER ERROR: unable to decode message " ++ (show msg)) >> return ()
-    Just m -> do 
-      --printTimed $ "SERVER decoded message: " ++ (show m) 
-      processMessage user state m
 
 talkDaemon :: MVar ServerState -> ASDaemon -> IO ()
 talkDaemon state daemon = forever $ do
   msg <- WS.receiveData (daemonConn daemon)
   putStrLn "=========================================================="
-  printTimed $ "SERVER message received: " 
+  printTimed "SERVER message received: " 
   case (decode msg :: Maybe ASMessage) of 
-    --Nothing -> printTimed ("SERVER ERROR: unable to decode message " ++ (show msg)) >> return ()
     Just m -> do 
       s <- readMVar state
       let user = fromJust $ getUserOfDaemon s daemon
-      --printTimed $ "SERVER decoded message: " ++ (show m) 
       processMessage user state m
 
 -------------------------------------------------------------------------------------------------------------------------
@@ -188,7 +186,7 @@ talkDaemon state daemon = forever $ do
 
 processMessage :: ASUser -> MVar ServerState -> ASMessage -> IO ()
 processMessage user state message = do
-  conn <- fmap dbConn $ readMVar state
+  conn <- fmap dbConn (readMVar state) -- state stores connection to db; pull it out
   isPermissible <- DB.isPermissibleMessage conn (userId user) message
   if (isPermissible || isDebug)
     then handleMessage user state message
