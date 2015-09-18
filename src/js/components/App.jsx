@@ -1,7 +1,6 @@
 import React, {PropTypes} from 'react';
 import ASTreeNav from './ASTreeNav.jsx';
 import ASEvaluationPane from './ASEvaluationPane.jsx';
-import ASSplashPane from './ASSplashPane.jsx';
 import {AppCanvas, LeftNav, Paper, Styles} from 'material-ui';
 import ASNavBar from './ASNavBar.jsx';
 import ASRibbon from './ASRibbon.jsx';
@@ -26,7 +25,7 @@ export default React.createClass({
       activeRibbonTab: 'Home',
       currentPane: 'eval',
       /* object passed from splash pane specifying initial params: opened sheet, etc */
-      initEvalInfo: {} 
+      initEvalInfo: {}
     }
   },
   getDefaultProps() {
@@ -45,7 +44,7 @@ export default React.createClass({
   /* Core render method for the whole app */
 
   getPaneHeight() {
-    console.log("WINDOW HEIGHT: " + window.innerHeight);
+    // console.log("WINDOW HEIGHT: " + window.innerHeight);
     return window.innerHeight;
   },
 
@@ -54,13 +53,6 @@ export default React.createClass({
       { route: 'all-files', text: 'All files' },
       { route: 'logout', text: 'Log out' }
     ];
-
-    console.log("PANE HEIGHT: " + this.getPaneHeight());
-
-    let panes = {
-      eval: <ASEvaluationPane behavior="default" ref="evalPane" initInfo={this.state.initEvalInfo} height={this.getPaneHeight()}/>,
-      splash: <ASSplashPane onProceed={this._onPaneChange} height={this.getPaneHeight()}/>
-    };
 
     return (
        <div style={{width:"100%",height:"100%"}} >
@@ -81,15 +73,15 @@ export default React.createClass({
               onWorkbookCreate={this._onWorkbookCreate}/>
           </div>
           <div style={{display: 'inline-block', width:'90%', height:'100%',verticalAlign:'top'}}>
-            {panes[this.state.currentPane]}
+            <ASEvaluationPane behavior="default" ref="evalPane" initInfo={this.state.initEvalInfo} height={this.getPaneHeight()}/>
           </div>
         </div>
       </div>
-      
+
     );
   },
 
- 
+
 
 /**************************************************************************************************************************/
 /* Top-level ui state changes */
@@ -117,16 +109,18 @@ export default React.createClass({
   _onDocumentOpen(sheet) {
     //TODO add sheet name to tabs
     this.refs.evalPane.openSheet(sheet);
-    console.log('App on document open', sheet.sheetId);
+    // console.log('App on document open', sheet.sheetId);
   },
 
   _onSheetCreate() {
     //TODO
     console.log('Created sheet');
+    API.sendCreateSheetMessage();
   },
 
   _onWorkbookCreate() {
     //TODO
     console.log('Created workbook');
+    API.sendCreateWorkbookMessage();
   }
 });

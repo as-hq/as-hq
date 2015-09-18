@@ -18,11 +18,45 @@ const ASWorkbookStore = assign({}, BaseStore, {
         case Constants.ActionTypes.GOT_UPDATED_WORKBOOKS:
           ASWorkbookStore.updateData(action.workbooks);
           ASWorkbookStore.emitChange();
+          break;
+        case Constants.ActionTypes.GOT_NEW_WORKBOOKS:
+          ASWorkbookStore.mergeWorkbooks(action.workbooks);
+          ASWorkbookStore.emitChange();
+          break;
+        case Constants.ActionTypes.DELETED_WORKBOOKS:
+          ASWorkbookStore.deleteWorkbooks(action.workbooks);
       }
     }),
 
+/**************************************************************************************************************************/
+// store modification methods
+
   updateData(wbs) {
     _data.workbooks = wbs;
+  },
+
+  mergeWorkbooks(wbs) {
+    for (var key in wbs) {
+      let wb = wbs[key];
+      if (_data.workbooks[key]){
+        // assumes the sheets are actually new
+        _data.workbooks[key].wsSheets =
+            Util.mergeSheets(_data.workbooks[key].wsSheets,
+              wb.wsSheets);
+      } else
+        _data.workbooks[key] = wbs[key];
+    }
+  },
+
+  deleteWorkbooks(wbs) {
+    // TODO
+    for (var key in wbs) {
+      if (_data.workbooks[key]){
+        _data.workbooks[key] =
+            Util.removeSheets(_data.workbooks[key].wsSheets,
+              wbs[key].wsSheets);
+      }
+    }
   },
 
   getWorkbooks() {

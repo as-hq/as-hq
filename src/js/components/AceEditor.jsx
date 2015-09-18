@@ -91,7 +91,7 @@ module.exports = React.createClass({
   },
 
   handleKeyDown(e) {
-    console.log("onkeydown editor");
+    // console.log("onkeydown editor");
     if (ShortcutUtils.editorShouldDeferKey(e)) {
       KeyUtils.killEvent(e);
       this.props.onDeferredKey(e);
@@ -100,7 +100,7 @@ module.exports = React.createClass({
 
   handleKeyUp(e) {
     if (this.props.isRepl){
-      console.log("current xp: " + JSON.stringify(this.editor.getValue()));
+      // console.log("current xp: " + JSON.stringify(this.editor.getValue()));
       let val = this.editor.getValue();
       let cursor = this.editor.selection.getCursor();
       let lastChar = val.substring(val.length-1);
@@ -108,7 +108,7 @@ module.exports = React.createClass({
         // KeyUtils.killEvent(e);
         if (lastChar === "\t") {
           if (cursor.column === 4){
-            console.log("padding automatic tabs");
+            // console.log("padding automatic tabs");
             this.editor.getSession().indentRow(cursor.row, cursor.row, "    ");
           }
           else if (cursor.column === 1){
@@ -117,14 +117,14 @@ module.exports = React.createClass({
           }
         }
         else if (cursor.column < 4){
-          console.log("padding illegal cursor position of " + cursor.column);
+          // console.log("padding illegal cursor position of " + cursor.column);
           val = val.trim() + "\n    ";
           this.editor.setValue(val);
         }
         this.editor.selection.clearSelection();
       }
       else if (lastChar === "\n"){
-        console.log("padding singular newline");
+        // console.log("padding singular newline");
         this.editor.setValue(val + "    ");
         this.editor.selection.clearSelection();
       }
@@ -132,7 +132,7 @@ module.exports = React.createClass({
   },
 
   handleClick(e) {
-    console.log("clicked repl!");
+    // console.log("clicked repl!");
     let cursor = this.editor.selection.getCursor();
     if (cursor.column <= 4){
       this.editor.selection.moveCursorToPosition({row: cursor.row, column: 4});
@@ -162,7 +162,7 @@ module.exports = React.createClass({
       height: this.props.height,
       zIndex: 0
     };
-    console.log("ACE EDITOR HEIGHT, WIDTH: " + this.props.height + this.props.width);
+    // console.log("ACE EDITOR HEIGHT, WIDTH: " + this.props.height + this.props.width);
     return (<div
         id={this.props.name}
         onChange={this.onChange}

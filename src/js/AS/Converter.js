@@ -96,7 +96,7 @@ export default {
     Works on an array of locations, uses the sheet format
   */
   getSafeLoc(loc) {
-    console.log("Location in get safe loc: " + loc);
+    // console.log("Location in get safe loc: " + loc);
     if (loc.length)
       return loc.map(this.getSafeLoc);
     else {
@@ -152,7 +152,7 @@ export default {
 
   serverToClientCell(serverCell) {
     let serverLoc = serverCell.cellLocation.index;
-    console.log("Server cell: " + serverLoc);
+    // console.log("Server cell: " + serverLoc);
     return {
       cellLocation: {
         tag: serverCell.cellLocation.tag,
@@ -169,7 +169,7 @@ export default {
     Selection region has width, height, and range, where range is in the client loc format
   */
   clientToASCell(selRegion, editorState){
-    console.log("making cell with language: " + JSON.stringify(editorState.lang));
+    // console.log("making cell with language: " + JSON.stringify(editorState.lang));
     return  {
       "cellLocation": this.clientToASLocation(selRegion.range),
       "cellExpression": {
@@ -199,7 +199,7 @@ export default {
 
   /* Commits have list of ASCells which need to get converted to client type cells */
   serverToClientCommit(commit){
-    console.log("Converting commit to client format: " + JSON.stringify(commit));
+    // console.log("Converting commit to client format: " + JSON.stringify(commit));
     let before = []; let after = [];
     for (var key in commit.before){
       let clientCell = this.serverToClientCell(commit.before[key]);
@@ -244,13 +244,13 @@ export default {
         return [this.serverToClientCell(msg.payload.contents)];
       }
       else if (msg.payload.tag === "PayloadCL"){ // list of cells
-        console.log("Number of eval cells received: " + msg.payload.contents.length);
+        // console.log("Number of eval cells received: " + msg.payload.contents.length);
         let cells = [];
         for (var key in msg.payload.contents){
           let clientCell = this.serverToClientCell(msg.payload.contents[key]);
           cells.push(clientCell);
         }
-        console.log("Eval cells JSON: " + JSON.stringify(cells));
+        // console.log("Eval cells JSON: " + JSON.stringify(cells));
         return cells;
       }
     }
@@ -269,7 +269,7 @@ export default {
           let clientLoc = this.ASLocToClient(msg.payload.contents[key]);
           locs.push(clientLoc);
         }
-        console.log(locs);
+        // console.log(locs);
         return locs;
       }
     }
@@ -294,6 +294,29 @@ export default {
       console.log("Not going to handle only getting one cell");
     }
     return this.toServerMessageFormat(Constants.ServerActions.Get, tag, sLocs);
+  },
+
+/**************************************************************************************************************************/
+  /* Workbooks and sheets */
+  newWorkbookSheet() {
+    return {
+      wsName: "",
+      wsSheets: [{
+        sheetId: "",
+        sheetName: "",
+        sheetPermissions:{
+          tag: "Blacklist",
+          contents: []
+        }
+      }]
+    };
+  },
+
+  newWorkbook() {
+    return {
+      workbookName: "",
+      workbookSheets: []
+    };
   },
 
   /**************************************************************************************************************************/

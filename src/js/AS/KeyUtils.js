@@ -94,7 +94,7 @@ export default {
 
   keyToString(e) {
     let c = e.which;
-    console.log("key has code: " + c);
+    // console.log("key has code: " + c);
     //normalize keyCode
     if (_to_ascii.hasOwnProperty(c)) {
         c = _to_ascii[c];
@@ -112,7 +112,7 @@ export default {
   },
 
   producesVisibleChar(e) {
-    console.log(e.which);
+    // console.log(e.which);
     return (!(e.ctrlKey || e.altKey || e.metaKey) &&
             !Util.arrContains(modifiers, e.which) &&
             !Util.arrContains(specials, e.which) &&

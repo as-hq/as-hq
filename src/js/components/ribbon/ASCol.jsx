@@ -40,7 +40,7 @@ export default React.createClass({
             };
           }
           children.push(<div style={firstStyle}>{child}</div>);
-          console.log("COL " + sumHeights + " " + JSON.stringify(firstStyle));
+          // console.log("COL " + sumHeights + " " + JSON.stringify(firstStyle));
         }
         else if (key == this.props.children.length-1){
           let pb = (parseFloat(this.props.height)-sumHeights-(numChildren-1)*defaultPad)/2 + 'px';
@@ -49,14 +49,14 @@ export default React.createClass({
             paddingBottom: pb
           };
           children.push(<div style={firstStyle}>{child}</div>);
-          console.log("COL " + sumHeights + " " + JSON.stringify(firstStyle));
+          // console.log("COL " + sumHeights + " " + JSON.stringify(firstStyle));
         }
         else {
           let divStyle = {
             paddingTop: defaultPad + 'px'
           };
           children.push(<div style={divStyle}>{child}</div>);
-          console.log("COL " + sumHeights + " " + JSON.stringify(divStyle));
+          // console.log("COL " + sumHeights + " " + JSON.stringify(divStyle));
         }
       }
     }

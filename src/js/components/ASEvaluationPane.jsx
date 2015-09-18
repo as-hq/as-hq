@@ -38,7 +38,7 @@ export default React.createClass({
   },
   setLanguage(lang) {
     // TODO change dropdown when triggered programmatically
-    console.log("setting language: "+JSON.stringify(lang));
+    // console.log("setting language: "+JSON.stringify(lang));
     this.setState({ language: lang });
   },
 
@@ -50,7 +50,7 @@ export default React.createClass({
   },
   /* Update the focus between the editor and the grid */
   toggleFocus() {
-    console.log("In toggle focus function");
+    // console.log("In toggle focus function");
     switch(this.state.focus) {
       case 'grid':
         this._getRawEditor().focus();
@@ -131,7 +131,7 @@ export default React.createClass({
   },
 
   _onReplChange() {
-    console.log("Eval pane detected event change from repl store");
+    // console.log("Eval pane detected event change from repl store");
     this.setState({replSubmittedLanguage:ReplStore.getSubmittedLanguage()})
   },
 
@@ -139,16 +139,16 @@ export default React.createClass({
   /* Key handling */
 
   _onEditorDeferredKey(e) {
-    console.log('editor deferred key; trying common shortcut');
-    console.log(e);
+    // console.log('editor deferred key; trying common shortcut');
+    // console.log(e);
     ShortcutUtils.tryShortcut(e, 'common');
     ShortcutUtils.tryShortcut(e, 'editor');
   },
 
   _onGridDeferredKey(e) {
     if (KeyUtils.producesVisibleChar(e)) {
-      console.log("key deferred by grid to editor");
-      console.log(e);
+      // console.log("key deferred by grid to editor");
+      // console.log(e);
       let editor = this._getRawEditor(),
           str = KeyUtils.modifyStringForKey(editor.getValue(), e);
       if (str || str === ""){
@@ -157,16 +157,16 @@ export default React.createClass({
       }
     }
     else {
-      console.log('trying common shortcut');
-      console.log(e);
+      // console.log('trying common shortcut');
+      // console.log(e);
       ShortcutUtils.tryShortcut(e, 'common');
       ShortcutUtils.tryShortcut(e, 'grid');
     }
   },
 
   _onReplDeferredKey(e){
-    console.log('REPL deferred key');
-    console.log(e);
+    // console.log('REPL deferred key');
+    // console.log(e);
     ShortcutUtils.tryShortcut(e, 'repl');
   },
 
@@ -183,14 +183,14 @@ export default React.createClass({
   // Note: if the selection is a Reference, we produce a 'pseudo' expression
   // using Converter.clientCellGetExpressionObj
   _onSelectionChange(rng){
-    console.log("Handling selection change: " + JSON.stringify(rng));
+    // console.log("Handling selection change: " + JSON.stringify(rng));
     let cell = Store.getCellAtLoc(rng.col,rng.row);
     if (cell) {
       let {language,expression} = Converter.clientCellGetExpressionObj(cell),
           val = Converter.clientCellGetValueObj(cell);
       Store.setActiveSelection(rng, expression); // pass in an expression to get parsed dependencies
-      console.log("current cell: " + JSON.stringify(cell));
-      console.log("cell expression: " + expression);
+      // console.log("current cell: " + JSON.stringify(cell));
+      // console.log("cell expression: " + expression);
       // here, language is a client/server agnostic object (see Constants.Languages)
       this.setState({ expression: expression, language: Util.getAgnosticLanguageFromServer(language) });
       // TODO: set var name as well
@@ -198,7 +198,7 @@ export default React.createClass({
       this.addError(val);
     } else {
       Store.setActiveSelection(rng, "");
-      console.log("empty cell");
+      // console.log("empty cell");
       this.setState({ expression: ""});
       this._getRawEditor().setValue("");
     }
@@ -213,7 +213,7 @@ export default React.createClass({
   */
   handleEvalRequest(editorState){
     let selectedRegion = this.refs.spreadsheet.getSelectionArea();
-    console.log("Selected region " + JSON.stringify(selectedRegion));
+    // console.log("Selected region " + JSON.stringify(selectedRegion));
     console.log("Editor state: " + JSON.stringify(editorState));
     API.sendEvalRequest(selectedRegion, editorState);
   },
@@ -227,8 +227,8 @@ export default React.createClass({
   /* When a REPl request is made, first update the store and then send the request to the backend */
   handleReplRequest(editorState){
     ReplActionCreator.replLeft(this.state.replLanguage.Display,this._replValue());
-    console.log('handling repl request ' +  JSON.stringify(editorState));
-    console.log("exps: " + JSON.stringify(ReplStore.getExps()));
+    // console.log('handling repl request ' +  JSON.stringify(editorState));
+    console.log("repl exps: " + JSON.stringify(ReplStore.getExps()));
     API.sendReplRequest(editorState);
   },
 
@@ -253,7 +253,7 @@ export default React.createClass({
     ReplActionCreator.replLeft(this.state.replLanguage.Display,this._replValue());
     let newLang = menuItem.payload;
     let newValue = ReplStore.getReplExp(newLang.Display);
-    console.log("REPL lang changed from " + this.state.replLanguage.Display + " to " + newLang.Display + ", new value: "+ newValue);
+    // console.log("REPL lang changed from " + this.state.replLanguage.Display + " to " + newLang.Display + ", new value: "+ newValue);
     this.setState({replLanguage:newLang});
   },
 
@@ -264,9 +264,9 @@ export default React.createClass({
   },
 
   getGridHeight() {
-    console.log("EVAL PANE HEIGHT: " +  this.props.height);
+    // console.log("EVAL PANE HEIGHT: " +  this.props.height);
     let h = this.props.height - Constants.editorHeight;
-    console.log("GRID HEIGHT: " + h);
+    // console.log("GRID HEIGHT: " + h);
     return h + "px";
   },
 

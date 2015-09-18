@@ -21,7 +21,7 @@ var wss = new WebSocket(Constants.HOST_WS);
 */
 
 wss.onmessage = function (event) {
-  console.log("Client received data from server: " + JSON.stringify(event.data));
+  // console.log("Client received data from server: " + JSON.stringify(event.data));
   let msg = JSON.parse(event.data);
   if (msg.result.tag === "Failure") {
     Dispatcher.dispatch({
@@ -30,6 +30,18 @@ wss.onmessage = function (event) {
       });
   } else {
     switch (msg.action) {
+      // TODO add cases for new
+      case "New":
+        if (msg.payload.tag === "PayloadWorkbookSheets") {
+          let workbooks = Converter.clientWorkbooksFromServerMessage(msg);
+          Dispatcher.dispatch({
+            type: ActionTypes.GOT_NEW_WORKBOOKS,
+            workbooks: workbooks
+          });
+        }
+        break;
+      case "NoAction":
+        break;
       case "Acknowledge":
         break;
       case "Undo":
@@ -82,13 +94,20 @@ wss.onmessage = function (event) {
         });
         break;
       case "Delete":
-        console.log("got delete");
-        Dispatcher.dispatch({
-          type: ActionTypes.DELETED_LOCS,
-          locs: Converter.clientLocsFromServerMessage(msg)
-        });
-        break;
-      case "NoAction":
+        // console.log("got delete");
+        if (msg.payload.tag === "PayloadL" ||
+            msg.payload.tag === "PayloadLL"){
+          Dispatcher.dispatch({
+            type: ActionTypes.DELETED_LOCS,
+            updatedCells: Converter.clientLocsFromServerMessage(msg)
+          });
+        } else if (msg.payload.tag === "PayloadWorkbookSheets") {
+          let workbooks = Converter.clientWorkbooksFromServerMessage(msg);
+          Dispatcher.dispatch({
+            type: ActionTypes.DELETED_WORKBOOKS,
+            workbooks: workbooks
+          });
+        }
         break;
       case "EvaluateRepl":
         Dispatcher.dispatch({
@@ -134,7 +153,7 @@ export default {
   /* Sending admin-related requests to the server */
 
   sendGetWorkbooks() {
-    console.log("Getting workbooks");
+    // console.log("Getting workbooks");
     let msg = Converter.toServerMessageFormat('Get', 'PayloadList', 'WorkbookSheets');
     this.send(msg);
   },
@@ -143,15 +162,15 @@ export default {
     wss.close();
   },
 
-  /**************************************************************************************************************************/
+  // ************************************************************************************************************************
   /* Sending an eval request to the server */
 
   /* This function is called by handleEvalRequest in the eval pane */
   sendEvalRequest(selRegion,editorState){
-    console.log("In eval action creator");
+    // console.log("In eval action creator");
     let cell = Converter.clientToASCell(selRegion,editorState);
     let msg = Converter.createEvalRequestFromASCell(cell);
-    console.log('Sending msg to server: ' + JSON.stringify(msg));
+    // console.log('Sending msg to server: ' + JSON.stringify(msg));
     this.send(msg);
   },
 
@@ -172,7 +191,7 @@ export default {
   },
   sendCopyRequest(locs) {
     let sLocs = [Converter.clientToASLocation(locs[0]), Converter.clientToASLocation(locs[1])];
-    console.log(sLocs);
+    // console.log(sLocs);
     let msg = Converter.toServerMessageFormat(Constants.ServerActions.Copy, "PayloadLL", sLocs);
     this.send(msg);
   },
@@ -220,13 +239,29 @@ export default {
   },
   sendGetRequest(locs) {
     let msg = Converter.clientLocsToGetMessage(locs);
-    console.log('Sending get message to server: ' + JSON.stringify(msg));
+    // console.log('Sending get message to server: ' + JSON.stringify(msg));
     this.send(msg);
   },
 
   sendOpenMessage(sheet) {
     let msg = Converter.toServerMessageFormat(Constants.ServerActions.Open, "PayloadS", sheet);
-    console.log("send open message: " + JSON.stringify(msg));
+    // console.log("send open message: " + JSON.stringify(msg));
+    this.send(msg);
+  },
+
+  sendCreateSheetMessage() {
+    let wbs = Converter.newWorkbookSheet();
+    let msg = Converter.toServerMessageFormat(Constants.ServerActions.New,
+      "PayloadWorkbookSheets",
+      [wbs]);
+    this.send(msg);
+  },
+
+  sendCreateWorkbookMessage() {
+    let wb = Converter.newWorkbook();
+    let msg = Converter.toServerMessageFormat(Constants.ServerActions.New,
+      "PayloadWB",
+      wb);
     this.send(msg);
   },
 
@@ -235,7 +270,7 @@ export default {
         msg = Converter.toServerMessageFormat(Constants.ServerActions.UpdateWindow,
                                               "PayloadW",
                                               sWindow);
-    console.log("send scroll message: " + JSON.stringify(msg));
+    // console.log("send scroll message: " + JSON.stringify(msg));
     this.send(msg);
   }
 

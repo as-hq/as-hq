@@ -106,7 +106,7 @@ export default React.createClass({
   },
   /* Called by eval pane's onChange method, when eval pane receives a change event from the store */
   updateCellValues(clientCells){
-    console.log("About to display cells in sheet: " + JSON.stringify(clientCells));
+    // console.log("About to display cells in sheet: " + JSON.stringify(clientCells));
     let model = this._getBehavior();
     for (var key in clientCells){ // update the hypergrid values
       let c = clientCells[key];
@@ -140,12 +140,12 @@ export default React.createClass({
       KeyUtils.killEvent(e);
       this.props.onDeferredKey(e);
     } else {
-      console.log("native grid event allowed");
+      // console.log("native grid event allowed");
     }
   },
 
   onOverlayClick(col, row) {
-    console.log("overlay clicked!");
+    // console.log("overlay clicked!");
     // this.makeSelection({col: col, row: row});
   },
 
@@ -196,7 +196,7 @@ export default React.createClass({
 
   render() {
     let {behavior, width, height} = this.props; //should also have onReady
-    console.log("SPREADSHEET HEIGHT,WIDTH " + height + " " + width);
+    // console.log("SPREADSHEET HEIGHT,WIDTH " + height + " " + width);
     let style = {width: width, height: height};
     let behaviorElement;
     let self = this;
@@ -255,7 +255,7 @@ export default React.createClass({
 
       // console.log(config.value)
       if (cell && activeCell) {
-        console.log("rendering non null cells");
+        // console.log("rendering non null cells");
       }
       // tag-based cell styling
       if (cell) {

@@ -40,7 +40,9 @@ export default {
     RECEIVED_WORKBOOK: null,
     DELETED_LOCS: null,
     REPL_LEFT:null,
-    GOT_REPL_RESP:null
+    GOT_REPL_RESP:null,
+    GOT_NEW_WORKBOOKS: null,
+    DELETED_WORKBOOKS: null
   }),
 
   ActionSources: keyMirror({
@@ -101,6 +103,7 @@ export default {
     Open: "Open",
     Close: "Close",
     Import: "Import",
-    Repl: "EvaluateRepl"
+    Repl: "EvaluateRepl",
+    New: "New"
   }
 };

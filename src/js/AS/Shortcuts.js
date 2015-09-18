@@ -7,7 +7,7 @@ import Util from '../AS/Util';
 export default {
   addShortcuts(evalPane) {
     let self = evalPane;
-    console.log("adding shortcuts!");
+    // console.log("adding shortcuts!");
 
     // common shortcuts -------------------------------------------------------------------------------
 
@@ -157,7 +157,7 @@ export default {
     });
     ShortcutUtils.addShortcut("grid", "grid_delete", "Del", (wildcard) => {
       let rng = Store.getActiveSelection();
-      console.log("deleting cells in range: " + JSON.stringify(rng));
+      // console.log("deleting cells in range: " + JSON.stringify(rng));
       API.sendDeleteRequest(rng);
     });
     ShortcutUtils.addShortcut("grid", "grid_undo", "Ctrl+Z", (wildcard) => {

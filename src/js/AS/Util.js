@@ -189,6 +189,28 @@ export default {
 /*************************************************************************************************************************/
 // Misc
 
+  // merge arrays of sheet objects
+  mergeSheets(arr1, arr2) {
+    for (var i=0; i<arr1.length; i++) {
+      for (var j=0; i<arr2.length; j++) {
+        if (arr1[i].sheetId === arr2[j].sheetId)
+          arr1[i] = arr2[j];
+        delete arr2[j];
+      }
+    }
+    return arr1.concat(arr2);
+  },
+
+  // deletes elements from
+  removeSheets(delFrom, del) {
+    for (var i=0; i<delFrom.length; i++) {
+      for (var j=0; j<del.length; j++) {
+        if (delFrom[i].sheetId === del[i].sheetId)
+          delete delFrom[i];
+      }
+    }
+  },
+
   isEmptyString(str) {
     return /\S/.test(str);
   },
@@ -349,7 +371,7 @@ export default {
   },
 
   parseDependencies(str) {
-    console.log("parsing dependencies of: " + str);
+    // console.log("parsing dependencies of: " + str);
     if (str === "")
       return [];
     else{
@@ -366,7 +388,7 @@ export default {
         matches = idxs;
       else
         matches = [];
-      console.log("parsed deps: "+JSON.stringify(matches));
+      // console.log("parsed deps: "+JSON.stringify(matches));
       // return matches.map(this.excelToLoc);
       let parsed = [];
       for (var i=0; i<matches.length; i++)
