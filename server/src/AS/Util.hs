@@ -48,6 +48,9 @@ min' j k = if j < k
     then j
     else k
 
+tuple3 :: a -> b -> c -> (a,b,c)
+tuple3 a b c = (a,b,c)
+
 fromJustList :: [Maybe a] -> [a]
 fromJustList l = map (\(Just x) -> x) l
 

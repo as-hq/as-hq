@@ -10,13 +10,14 @@ import Data.Aeson hiding (Success)
 import qualified Network.WebSockets as WS
 
 import AS.Types
-import AS.DB.API as DB
-import AS.Util as U
-import AS.Dispatch.Core as DP
-import AS.Dispatch.Repl as DR 
-import AS.Daemon as DM
-import AS.Clients as C
-import AS.Parsing.Out as O
+import AS.DB.API            as DB
+import AS.DB.Graph          as G
+import AS.Util              as U
+import AS.Dispatch.Core     as DP
+import AS.Dispatch.Repl     as DR 
+import AS.Daemon            as DM
+import AS.Clients           as C
+import AS.Parsing.Out       as O
 
 
 -- | Handlers take message payloads and send the response to the client(s)
@@ -219,7 +220,7 @@ handleCopy user state (PayloadLL (from:to:[])) = do -- this is a list of 2 locat
   if allExist
     then do
       DB.setCells conn toCells
-      DB.updateDAG conn $ zip shiftedDeps toLocs
+      G.setRelations $ zip toLocs shiftedDeps 
       let msg = Message (userId user) Update Success (PayloadCL toCells)
       sendBroadcastFiltered user state msg
     else do

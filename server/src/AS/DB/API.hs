@@ -67,10 +67,8 @@ getCells conn locs =
     dlocs = concat $ map U.decomposeLocs nonCols
     keys = map DU.getLocationKey dlocs
   in do
-    cells <- getCellsByKeys conn keys
-    columnCells <- mapM (getColumnCells conn) cols
-    return $ cells ++ (concat columnCells) 
-    
+    cells <- getCellsByKeys conn keys    
+    return cells
 
 getCellsByKeys :: Connection -> [B.ByteString] -> IO [Maybe ASCell]
 getCellsByKeys _ [] = return []
@@ -125,24 +123,6 @@ getColumnCells conn (Column sheetid col) = do
     cells <- mapM DU.getCellByKeyRedis locKeys
     liftIO $ printTimed "redis got cells"
     return cells
-
-----------------------------------------------------------------------------------------------------------------------
--- | DAG
-
-getDAG :: Connection -> IO [(ASLocation,ASLocation)]
-getDAG conn = do 
-  runRedis conn $ do
-      Right tl <- smembers (B.pack "DAGLocSet")
-      TxSuccess fromLocs <- multiExec $ do 
-          fl' <- mapM (\t -> (smembers t)) tl -- because Queued is a monad
-          return $ sequence fl'
-      let rels' = concat $ map (\(a,b) -> (zip a (repeat b))) (zip fromLocs tl)
-      let rels = map bStrToRelation rels'
-      return rels
-
-updateDAG :: Connection -> [([ASLocation],ASLocation)] -> IO ()
-updateDAG _ [] = return ()
-updateDAG conn rels = (DU.chunkM_ conn) DU.updateChunkDAG DU.dagChunkSize rels
 
 ----------------------------------------------------------------------------------------------------------------------
 -- | Commits
