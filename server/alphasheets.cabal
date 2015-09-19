@@ -73,7 +73,11 @@ library
 executable alphasheets-exe
   hs-source-dirs:      app
   main-is:             Main.hs
-  ghc-options:         -O2 -threaded -with-rtsopts=-N 
+  ghc-options:         src/hiredis/redis_db.o 
+                       -O2 
+                       -threaded 
+                       -with-rtsopts=-N
+                       -lhiredis 
   build-depends:       base
                      , alphasheets
                      , aeson

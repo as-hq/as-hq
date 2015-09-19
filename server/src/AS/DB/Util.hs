@@ -49,16 +49,16 @@ cInfo = ConnInfo
 -- | Redis key utilities
 
 getLocationKey :: ASLocation -> B.ByteString
-getLocationKey = pack2 . show2
+getLocationKey = showB . show2
 
 getSheetKey :: ASSheetId -> B.ByteString -- for storing the actual sheet as key-value
-getSheetKey = pack2 . T.unpack 
+getSheetKey = showB . T.unpack 
 
 getSheetSetKey :: ASSheetId -> B.ByteString -- for storing set of locations in single sheet
-getSheetSetKey sid = pack2 $! (T.unpack sid) ++ "Locations"
+getSheetSetKey sid = showB $! (T.unpack sid) ++ "Locations"
 
 getWorkbookKey :: String -> B.ByteString
-getWorkbookKey = pack2
+getWorkbookKey = showB
 
 keyToRow :: B.ByteString -> Int
 keyToRow str = row
@@ -70,7 +70,7 @@ getLastRowKey :: [B.ByteString] -> B.ByteString
 getLastRowKey keys = maxBy keyToRow keys
 
 incrementLocKey :: (Int, Int) -> B.ByteString -> B.ByteString
-incrementLocKey (dx, dy) key = pack2 $ ks ++ '|':kidx
+incrementLocKey (dx, dy) key = showB $ ks ++ '|':kidx
   where
     (sh:idxStr:[]) = BC.split '|' key
     ks = BC.unpack sh
@@ -99,7 +99,7 @@ setCellRedis :: ASCell -> Redis ()
 setCellRedis cell = do
     let loc = cellLocation cell
         key = getLocationKey loc
-        cellstr = pack2 . show2 $ cell
+        cellstr = showB . show2 $ cell
     _ <- set key cellstr
     let setKey = getSheetSetKey (locSheetId loc)
     _ <- sadd setKey [key] -- add the location key to the set of locs in a sheet (for sheet deletion etc)
@@ -128,8 +128,8 @@ toStrict2 lb = BI.unsafeCreate len $ go lb
             BI.memcpy ptr (p `plusPtr` s) (fromIntegral l)
             go r (ptr `plusPtr` l)
 
-pack2 :: String -> B.ByteString
-pack2 str = toStrict2 . BS.show $! str
+showB :: (BS.Show a) => a -> B.ByteString
+showB a = toStrict2 . BS.show $! a
 
 ----------------------------------------------------------------------------------------------------------------------
 -- | Reading bytestrings

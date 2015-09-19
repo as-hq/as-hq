@@ -219,7 +219,7 @@ handleCopy user state (PayloadLL (from:to:[])) = do -- this is a list of 2 locat
   let allExist = U.isSubsetOf allNonexistentDB toLocs -- else if the dep was something we copied
   if allExist
     then do
-      DB.setCells conn toCells
+      DB.setCells toCells
       G.setRelations $ zip toLocs shiftedDeps 
       let msg = Message (userId user) Update Success (PayloadCL toCells)
       sendBroadcastFiltered user state msg
@@ -245,7 +245,7 @@ processAddTag user state loc msg t = do
         True -> return ()
         False -> do 
           let c' = Cell l e v (t:ts)
-          DB.setCell (dbConn curState) c'
+          DB.setCell c'
   case t of 
     StreamTag s -> do -- create daemon that sends an eval message
       mCells <- DB.getCells (dbConn curState) [loc]
@@ -264,7 +264,7 @@ processRemoveTag loc state t = do
     Nothing -> return ()
     Just c@(Cell l e v ts) -> do 
       let c' = Cell l e v (L.delete t ts)
-      DB.setCell (dbConn curState) c'
+      DB.setCell c'
   case t of
     StreamTag s -> DM.removeDaemon loc state
     otherwise -> return () -- TODO: implement the rest

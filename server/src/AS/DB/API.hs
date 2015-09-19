@@ -11,6 +11,11 @@ import AS.DB.Util as DU
 import Data.List (zip4,head,partition,nub)
 import Data.Maybe (isNothing, fromJust)
 
+import Foreign
+import Foreign.C.Types
+import Foreign.C.String(CString(..))
+import Foreign.C
+
 import Control.Applicative
 import Control.Concurrent
 import Control.Monad
@@ -23,6 +28,7 @@ import qualified Data.Text.IO as T
 import Data.Aeson hiding (Success)
 import qualified Data.ByteString.Char8 as B 
 import qualified Data.ByteString.Lazy.Char8 as C
+import Data.ByteString.Unsafe as BU
 import Data.List.Split
 
 ----------------------------------------------------------------------------------------------------------------------
@@ -54,6 +60,13 @@ import Data.List.Split
 -- stored as before, as a set with key volatileLocs
 
 ----------------------------------------------------------------------------------------------------------------------
+-- | FFI 
+
+foreign import ccall unsafe "hiredis/redis_db.c getCells" c_getCells :: CString -> CInt -> IO CString
+foreign import ccall unsafe "hiredis/redis_db.c setCells" c_setCells :: CString -> CInt -> IO ()
+
+
+----------------------------------------------------------------------------------------------------------------------
 -- | Cells
 
 getCell :: Connection -> ASLocation -> IO (Maybe ASCell)
@@ -63,33 +76,25 @@ getCells :: Connection -> [ASLocation] -> IO [Maybe ASCell]
 getCells _ [] = return []
 getCells conn locs = 
   let 
-    (cols, nonCols) = partition isColumn locs
-    dlocs = concat $ map U.decomposeLocs nonCols
-    keys = map DU.getLocationKey dlocs
+    dlocs = concat $ map U.decomposeLocs locs
+    msg = showB $ map show2 dlocs
   in do
-    cells <- getCellsByKeys conn keys    
-    return cells
+    cellsPtr <- BU.unsafeUseAsCString msg $ \str -> c_getCells str (fromIntegral . length $ dlocs)
+    cCells <- peekCString cellsPtr
+    let cells = readCells cCells
+    return $ map Just cells 
 
-getCellsByKeys :: Connection -> [B.ByteString] -> IO [Maybe ASCell]
-getCellsByKeys _ [] = return []
-getCellsByKeys conn keys = do
-  printTimed "redis about to run"
-  runRedis conn $ do
-    liftIO $ printTimed "redis about to get cells"
-    cells <- mapM DU.getCellByKeyRedis keys
-    liftIO $ printTimed "redis got cells"
-    return cells
+setCell :: ASCell -> IO ()
+setCell c = setCells [c]
 
-setCell :: Connection -> ASCell -> IO ()
-setCell conn c = setCells conn [c]
-
-setCells :: Connection -> [ASCell] -> IO ()
-setCells _ [] = return ()
-setCells conn cells = do
-    runRedis conn $ do
-        mapM_ DU.setCellRedis cells
-        liftIO $ printTimed "redis set cells"
-        return ()
+setCells :: [ASCell] -> IO ()
+setCells [] = return ()
+setCells cells = do
+  let str = (map show2 cells) ++ (map (show2 . cellLocation) cells)
+  let msg = showB str
+  _ <- unsafeUseAsCString msg $ \lstr -> 
+    c_setCells lstr (fromIntegral . length $ cells)
+  return ()
 
 deleteCells :: Connection -> [ASCell] -> IO ()
 deleteCells _ [] = return ()
@@ -133,7 +138,7 @@ getColumnCells conn (Column sheetid col) = do
 updateAfterEval :: Connection -> ASUser -> ASCell -> [ASCell] -> [ASCell] -> IO ()
 updateAfterEval conn user origCell desc cells = do 
   printTimed "begin set cells"
-  setCells conn cells
+  setCells cells
   printTimed "finished set cells"
   addCommit conn user desc cells
   printTimed "added commit"
@@ -162,7 +167,7 @@ undo conn = do
     Nothing -> return Nothing
     Just c@(ASCommit uid b a t) -> do 
       deleteCells conn a 
-      setCells conn b
+      setCells b
       return $ Just c
 
 redo :: Connection -> IO (Maybe ASCommit)
@@ -178,7 +183,7 @@ redo conn = do
     Nothing -> return Nothing
     Just c@(ASCommit uid b a t) -> do 
       deleteCells conn b 
-      setCells conn a
+      setCells a
       return $ Just c
 
 pushCommit :: Connection -> ASCommit -> IO ()

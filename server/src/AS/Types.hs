@@ -5,7 +5,7 @@ module AS.Types where
 import Prelude
 import GHC.Generics
 import Data.Aeson hiding (Success)
-import Data.Text hiding (foldr)
+import Data.Text hiding (foldr, map)
 import qualified Network.WebSockets as WS
 import qualified Database.Redis as R
 
@@ -311,6 +311,9 @@ instance (Read2 ASExpression)
 instance (Read2 ASValue)
   where 
     read2 = read -- TODO optimize
+
+readCells :: String -> [ASCell]
+readCells str = map (\c -> read2 c :: ASCell) $ splitBy ',' str
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Generic From/To JSON instances

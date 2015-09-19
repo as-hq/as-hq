@@ -80,7 +80,7 @@ updateCell conn (Cell loc xp val ts) = do
     else do 
       let initCells = map (\(l,e,v)-> Cell l e v ts) (zip3 locs exprs (repeat NoValue))  
       setResult <- G.setRelations (zip locs deps)
-      DB.setCells conn initCells
+      DB.setCells initCells
       printTimed $ "set init cells"
       return $ case setResult of 
         (Right ()) -> Right ()
