@@ -42,7 +42,7 @@ runDispatchCycle user state msg@(Message _ _ _ (PayloadC c')) = do
   putStrLn $ "STARTING DISPATCH CYCLE " ++ (show c')
   c <- EM.evalMiddleware c'
   conn <- fmap dbConn (readMVar state)
-  update <- updateCell conn c 
+  update <- updateCell c 
   case update of 
     Left e -> return $ U.getCellMessage user (Left e)
     Right () -> do 
@@ -54,7 +54,7 @@ runDispatchCycle user state msg@(Message _ _ _ (PayloadC c')) = do
           case ancResult of 
             (Left e') -> return $ U.getCellMessage user (Left e') 
             (Right ancLocs) -> do
-              anc <- fmap U.fromJustList $ DB.getCells conn ancLocs
+              anc <- fmap U.fromJustList $ DB.getCells ancLocs
               res <- propagate conn anc desc 
               case res of 
                 Left e' -> return $ U.getCellMessage user (Left e')
@@ -69,11 +69,11 @@ runDispatchCycle user state msg@(Message _ _ _ (PayloadC c')) = do
 
 -- | Takes a cell and returns an error if it tries to access a non-existant cell
 -- | Otherwise, it returns all of the immediate ancestors (used to make the lookup map)
-updateCell :: Connection -> ASCell -> IO (Either ASExecError ())
-updateCell conn (Cell loc xp val ts) = do 
+updateCell :: ASCell -> IO (Either ASExecError ())
+updateCell (Cell loc xp val ts) = do 
   let locs = decomposeLocs loc
   let (deps,exprs) = getDependenciesAndExpressions (locSheetId loc) xp (getOffsets loc)
-  ancCells <- DB.getCells conn (concat deps)
+  ancCells <- DB.getCells (concat deps)
   printTimed $ "got cells: "
   if (any isNothing ancCells)
     then return $ Left (DBNothingException [])
@@ -103,7 +103,7 @@ getDescendants conn cell = do
   case graphResult of
     (Right descendantLocs) -> do
       printTimed $ "got descendant locs: " ++ (show descendantLocs)
-      desc <- DB.getCells conn descendantLocs
+      desc <- DB.getCells descendantLocs
       printTimed $ "got descendant cells"
       return $ Right $ map fromJust desc 
     (Left e) -> return $ Left e

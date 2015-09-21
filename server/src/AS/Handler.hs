@@ -95,7 +95,7 @@ handleUpdateWindow user state (Message uid _ _ (PayloadW window)) = do
     (Just oldWindow) -> do
       let locs = U.getScrolledLocs oldWindow window 
       printTimed $ "Sending locs: " ++ (show locs)
-      mcells <- DB.getCells (dbConn curState) locs
+      mcells <- DB.getCells locs
       let msg = U.getDBCellMessage user' locs mcells
       --printTimed $ "Sending scroll message: " ++ (show msg)
       sendToOriginalUser user' msg
@@ -127,8 +127,7 @@ handleEvalRepl user state msg = do
 
 handleGet :: ASUser -> MVar ServerState -> ASPayload -> IO ()
 handleGet user state (PayloadLL locs) = do 
-  curState <- readMVar state
-  mcells <- DB.getCells (dbConn curState) locs 
+  mcells <- DB.getCells locs 
   sendToOriginalUser user (U.getDBCellMessage user locs mcells) 
 handleGet user state (PayloadList Sheets) = do
   curState <- readMVar state
@@ -205,7 +204,7 @@ handleCopy :: ASUser -> MVar ServerState -> ASPayload -> IO ()
 handleCopy user state (PayloadLL (from:to:[])) = do -- this is a list of 2 locations
   curState <- readMVar state
   let conn = dbConn curState
-  maybeCells <- DB.getCells conn [from]
+  maybeCells <- DB.getCells [from]
   let fromCells = filterNothing maybeCells
   let offset = U.getOffsetBetweenLocs from to
   let toCellsAndDeps = map (O.shiftCell offset) fromCells
@@ -236,8 +235,7 @@ handleCopyForced user state (PayloadLL (from:[to])) = return ()
 
 processAddTag :: ASUser -> MVar ServerState -> ASLocation -> ASMessage -> ASCellTag -> IO ()
 processAddTag user state loc msg t = do 
-  curState <- readMVar state
-  cell <- DB.getCell (dbConn curState) loc
+  cell <- DB.getCell loc
   case cell of 
     Nothing -> return ()
     Just c@(Cell l e v ts) -> do 
@@ -248,7 +246,7 @@ processAddTag user state loc msg t = do
           DB.setCell c'
   case t of 
     StreamTag s -> do -- create daemon that sends an eval message
-      mCells <- DB.getCells (dbConn curState) [loc]
+      mCells <- DB.getCells [loc]
       case (L.head mCells) of 
         Nothing -> return ()
         Just cell -> do 
@@ -259,7 +257,7 @@ processAddTag user state loc msg t = do
 processRemoveTag :: ASLocation -> MVar ServerState -> ASCellTag -> IO ()
 processRemoveTag loc state t = do 
   curState <- readMVar state
-  cell <- DB.getCell (dbConn curState) loc 
+  cell <- DB.getCell loc 
   case cell of 
     Nothing -> return ()
     Just c@(Cell l e v ts) -> do 

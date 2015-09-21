@@ -33,3 +33,6 @@ import AS.Eval.Core (pyfiString)
 --parseLookupMap :: [a] -> Either ASValue [ExcelAction, ExcelPayload]
 --parseLookupMap lst = 
 --    
+
+--performExcelAction :: ExcelAction -> ExcelPayload -> ExcelResult
+--performExcelAction Lookup (PayloadE a) = 

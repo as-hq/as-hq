@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 import AS.Types
 import AS.DB.API as DB
 import AS.DB.Util as DU
@@ -9,10 +11,10 @@ import qualified Data.List as L
 import Database.Redis as R
 
 testLocs :: Int -> [ASLocation]
-testLocs n = [Index (T.pack "hi") (i,i) | i <-[0..n]]
+testLocs n = [Index "hi" (i,i) | i <-[0..n]]
 
 testCells :: Int -> [ASCell]
-testCells n =  L.map (\l -> Cell (Index (T.pack "") (l,1)) (Expression "hi" Python) (ValueS "Str") []) [1..n]
+testCells n =  L.map (\l -> Cell (Index "" (l,1)) (Expression "hi" Python) (ValueS "Str") []) [1..n]
 
 testEdges :: Int -> [(ASLocation,ASLocation)]
 testEdges n = L.zip (testLocs n) (testLocs n)
@@ -23,12 +25,12 @@ main = do
     conn <- R.connect DU.cInfo
     printTimed "got connection"
     --testSheetCreation conn
-    testSetCells conn
+    testSetCells
 
-testSetCells :: R.Connection -> IO ()
-testSetCells conn = do
+testSetCells :: IO ()
+testSetCells = do
     let cells = testCells 100000
-    DB.setCells conn cells
+    DB.setCells cells
     printTimed "cells set"
 
 testSheetCreation :: R.Connection -> IO ()

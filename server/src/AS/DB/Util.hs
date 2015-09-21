@@ -7,11 +7,9 @@ import AS.Util
 import AS.Parsing.Common (tryParseListNonIso)
 import AS.Parsing.In (int)
 
-import qualified Data.List as L
-
-import qualified Data.Text as T
-import Database.Redis hiding (decode, Message)
-import Data.List.Split
+import qualified Data.List                     as L
+import qualified Data.Text                     as T
+import           Data.List.Split
 
 import qualified Data.ByteString.Char8         as BC
 import qualified Data.ByteString               as B
@@ -21,6 +19,9 @@ import qualified Data.ByteString.Lazy          as BL
 import qualified Data.ByteString.Lazy.Internal as BLI
 import           Foreign.ForeignPtr
 import           Foreign.Ptr
+import           Foreign.C.String(CString, peekCString)
+
+import Database.Redis hiding (decode, Message)
 
 import Control.Applicative
 import Control.Concurrent
@@ -112,6 +113,13 @@ getSheetLocsRedis :: ASSheetId -> Redis [B.ByteString]
 getSheetLocsRedis sheetid = do
   Right keys <- smembers $ getSheetSetKey sheetid
   return keys
+
+cToASCell :: CString -> IO (Maybe ASCell)
+cToASCell str = do
+  str' <- peekCString str
+  return $ case str' of
+    "Nothing" -> Nothing
+    _ -> Just (read2 str' :: ASCell)
 
 ----------------------------------------------------------------------------------------------------------------------
 -- | ByteString utils

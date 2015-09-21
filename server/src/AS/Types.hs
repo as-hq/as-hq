@@ -84,17 +84,13 @@ data ExLoc = ExSheet {name :: String, sheetLoc :: ExLoc} |
              deriving (Show,Read,Eq,Ord)
 
 data ExcelAction = 
-  Lookup |
-  CheckIndirectRef |
-  LookupSheets |
-  LookupWorkbooks |
-  CurrentLocation 
+  Lookup String |
+  CheckIndirectRef String |
+  LookupSheets () |
+  LookupWorkbooks () |
+  CurrentLocation () 
   deriving (Show,Read)
 
-data ExcelPayload = 
-  NoPayload 
-  deriving (Show,Read)
-  
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Streaming
 -- | Stream sources
@@ -274,9 +270,6 @@ instance (Show2 ASExpression) where
 instance (Show2 ASValue) where
   show2 = show -- TODO optimize
 
-splitBy delimiter = foldr f [[]] 
-  where f c l@(x:xs) | c == delimiter = []:l
-                     | otherwise = (c:x):xs
 
 class Read2 a where
   read2 :: (Show2 a) => String -> a
@@ -303,10 +296,10 @@ instance (Read2 ASExpression)
   where
     read2 str = xp
       where
-        [tag, xpstr, laststr] = splitBy '/' str
+        [tag, midstr, laststr] = splitBy '/' str
         xp = case tag of 
-          "E" -> Expression xpstr (read laststr :: ASLanguage)
-          "R" -> Reference (read2 xpstr :: ASLocation) (read laststr :: (Int, Int))
+          "E" -> Expression midstr (read laststr :: ASLanguage)
+          "R" -> Reference (read2 midstr :: ASLocation) (read laststr :: (Int, Int))
 
 instance (Read2 ASValue)
   where 
@@ -314,6 +307,11 @@ instance (Read2 ASValue)
 
 readCells :: String -> [ASCell]
 readCells str = map (\c -> read2 c :: ASCell) $ splitBy ',' str
+
+splitBy :: (Eq a) => a -> [a] -> [[a]]
+splitBy delimiter = foldr f [[]] 
+  where f c l@(x:xs) | c == delimiter = []:l
+                     | otherwise = (c:x):xs
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Generic From/To JSON instances

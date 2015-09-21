@@ -74,5 +74,5 @@ modifyUser func user state = modifyMVar_ state $ \(State users conn) ->
 --    return $ map (\l -> Just $ Cell l (Expression "scrolled" Python) (ValueS (show . index $ l)) []) dlocs
 --  else DB.getCells conn locs
 
-getScrollCells :: Connection -> ASSheetId -> [ASLocation] -> IO [Maybe ASCell]
-getScrollCells conn sid locs = DB.getCells conn locs
+getScrollCells :: ASSheetId -> [ASLocation] -> IO [Maybe ASCell]
+getScrollCells sid locs = DB.getCells locs

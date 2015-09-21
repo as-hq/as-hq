@@ -213,17 +213,3 @@ handleMessage user state message = case (action message) of
   AddTags     -> H.handleAddTags user state message
   RemoveTags  -> H.handleRemoveTags user state message
   UpdateWindow-> H.handleUpdateWindow user state message
-  {-UpdateWindow -> do
-    liftIO $ modifyMVar_ state $ \s@(State us)-> do
-      let c = fromJust $ getUserById (userId user) s
-      let (PayloadW vw) = payload message
-      let s1 = removeUser c s
-      let s2 = State ((User (userId c) (userConn c) (vw:(userWindows c))):us) ls
-      return s2 -}
-    -- TODO send cells for scroll
-
-
-
-
-
-

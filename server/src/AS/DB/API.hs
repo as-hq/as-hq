@@ -62,27 +62,29 @@ import Data.List.Split
 ----------------------------------------------------------------------------------------------------------------------
 -- | FFI 
 
-foreign import ccall unsafe "hiredis/redis_db.c getCells" c_getCells :: CString -> CInt -> IO CString
+foreign import ccall unsafe "hiredis/redis_db.c getCells" c_getCells :: CString -> CInt -> IO (Ptr CString)
 foreign import ccall unsafe "hiredis/redis_db.c setCells" c_setCells :: CString -> CInt -> IO ()
 
 
 ----------------------------------------------------------------------------------------------------------------------
 -- | Cells
 
-getCell :: Connection -> ASLocation -> IO (Maybe ASCell)
-getCell conn loc = return . head =<< getCells conn [loc]
+getCell :: ASLocation -> IO (Maybe ASCell)
+getCell loc = return . head =<< getCells [loc]
 
-getCells :: Connection -> [ASLocation] -> IO [Maybe ASCell]
-getCells _ [] = return []
-getCells conn locs = 
+getCells :: [ASLocation] -> IO [Maybe ASCell]
+getCells [] = return []
+getCells locs = 
   let 
     dlocs = concat $ map U.decomposeLocs locs
     msg = showB $ map show2 dlocs
+    num = length dlocs
   in do
-    cellsPtr <- BU.unsafeUseAsCString msg $ \str -> c_getCells str (fromIntegral . length $ dlocs)
-    cCells <- peekCString cellsPtr
-    let cells = readCells cCells
-    return $ map Just cells 
+    ptrCells <- BU.unsafeUseAsCString msg $ \str -> c_getCells str (fromIntegral num)
+    cCells <- peekArray (fromIntegral num) ptrCells
+    res <- mapM DU.cToASCell cCells
+    free ptrCells
+    return res
 
 setCell :: ASCell -> IO ()
 setCell c = setCells [c]
@@ -160,7 +162,7 @@ undo :: Connection -> IO (Maybe ASCommit)
 undo conn = do 
   commit <- runRedis conn $ do 
     TxSuccess justC <- multiExec $ do 
-      commit <- rpoplpush (B.pack "pushed") (B.pack "popped")
+      commit <- rpoplpush "pushed" "popped"
       return commit
     return $ bStrToASCommit justC
   case commit of
@@ -173,10 +175,10 @@ undo conn = do
 redo :: Connection -> IO (Maybe ASCommit)
 redo conn = do 
   commit <- runRedis conn $ do 
-    Right result <- lpop (B.pack "popped") 
+    Right result <- lpop "popped" 
     case result of 
       (Just commit) -> do
-        rpush (B.pack "pushed") [commit]
+        rpush "pushed" [commit]
         return $ bStrToASCommit (Just commit)
       _ -> return Nothing
   case commit of
@@ -191,9 +193,9 @@ pushCommit conn c = do
   let commit = (B.pack . show) c 
   runRedis conn $ do
     TxSuccess _ <- multiExec $ do 
-      rpush (B.pack "pushed") [commit]
-      incrbyfloat (B.pack "numCommits") 1
-      del [(B.pack "popped")]
+      rpush "pushed" [commit]
+      incrbyfloat "numCommits" 1
+      del ["popped"]
     return ()
 
 ----------------------------------------------------------------------------------------------------------------------
@@ -260,7 +262,7 @@ getWorkbook conn name = do
 getAllWorkbooks :: Connection -> IO [ASWorkbook]
 getAllWorkbooks conn = do
     runRedis conn $ do
-        Right wbKeys <- smembers (B.pack "workbookKeys")
+        Right wbKeys <- smembers "workbookKeys"
         wbs <- mapM get wbKeys
         return $ map (\(Right (Just w)) -> read (B.unpack w) :: ASWorkbook) wbs
 
@@ -270,7 +272,7 @@ setWorkbook conn wb = do
         let workbookKey = DU.getWorkbookKey . workbookName $ wb
         TxSuccess _ <- multiExec $ do
             set workbookKey (B.pack . show $ wb)  -- set the workbook as key-value
-            sadd (B.pack "workbookKeys") [workbookKey]  -- add the workbook key to the set of all sheets  
+            sadd "workbookKeys" [workbookKey]  -- add the workbook key to the set of all sheets  
         return ()
 
 workbookExists :: Connection -> String -> IO Bool
@@ -286,7 +288,7 @@ deleteWorkbook conn name = do
         let workbookKey = DU.getWorkbookKey name
         _ <- multiExec $ do
             del [workbookKey] 
-            srem (B.pack "workbookKeys") [workbookKey]
+            srem "workbookKeys" [workbookKey]
         return ()
 
 -- note: this is an expensive operation
@@ -301,7 +303,7 @@ deleteWorkbookAndSheets conn name = do
                 let workbookKey = DU.getWorkbookKey name
                 TxSuccess _ <- multiExec $ do
                     del [workbookKey]   -- remove workbook from key-value
-                    srem (B.pack "workbookKeys") [workbookKey] -- remove workbook from set
+                    srem "workbookKeys" [workbookKey] -- remove workbook from set
                 return ()
 
 ----------------------------------------------------------------------------------------------------------------------
@@ -318,7 +320,7 @@ getSheet conn sid = do
 getAllSheets :: Connection -> IO [ASSheet]
 getAllSheets conn = do
     runRedis conn $ do
-        Right sheetKeys <- smembers (B.pack "sheetKeys")
+        Right sheetKeys <- smembers "sheetKeys"
         sheets <- mapM get sheetKeys
         return $ map (\(Right (Just s)) -> read (B.unpack s) :: ASSheet) sheets
 
@@ -336,7 +338,7 @@ setSheet conn sheet = do
         let sheetKey = DU.getSheetKey . sheetId $ sheet
         TxSuccess _ <- multiExec $ do
             set sheetKey (B.pack . show $ sheet)  -- set the sheet as key-value
-            sadd (B.pack "sheetKeys") [sheetKey]  -- add the sheet key to the set of all sheets  
+            sadd "sheetKeys" [sheetKey]  -- add the sheet key to the set of all sheets  
         return ()
 
 -- deletes the sheet only, does not remove from any containing workbooks
@@ -356,7 +358,7 @@ deleteSheetUnsafe conn sid = do
                 (Left _) -> return ()
             del [setKey]      -- delete the loc set
             del [sheetKey]    -- delete the sheet
-            srem (B.pack "sheetKeys") [sheetKey] -- remove the sheet key from the set of sheets
+            srem "sheetKeys" [sheetKey] -- remove the sheet key from the set of sheets
         return ()
 
 ----------------------------------------------------------------------------------------------------------------------
@@ -365,7 +367,7 @@ deleteSheetUnsafe conn sid = do
 getVolatileLocs :: Connection -> IO [ASLocation]
 getVolatileLocs conn = do 
   runRedis conn $ do
-      Right vl <- smembers (B.pack "volatileLocs")
+      Right vl <- smembers "volatileLocs"
       return $ map bStrToASLocation vl
 
 -- TODO: some of the cells may change from volatile -> not volatile, but they're still in volLocs
