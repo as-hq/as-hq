@@ -10,3 +10,4 @@ server/alphasheets-test.hp
 server/alphasheets-test.prof
 server/alphasheets-test.ps
 server/src/Eval/run/py/temp.py
+static/images/*
