@@ -65,7 +65,7 @@ export default React.createClass({
           onRibbonTabChange={this._onRibbonTabChange}
           onAlphaButtonTap={this._onAlphaButtonTap}/>
         <ASRibbon activeTab={this.state.activeRibbonTab} />
-        <div style={{width: '100%', height: this.getPaneHeight()}}>
+        <div style={{width: '100%', height: 'calc(100% - 200px)'}}>
           <div style={{display: 'inline-block', width: '10%', height: '100%', verticalAlign: 'top'}}>
             <ASTreeNav
               onDocumentOpen={this._onDocumentOpen}
