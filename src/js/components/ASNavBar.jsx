@@ -1,10 +1,7 @@
 import React, {PropTypes} from 'react';
 import {AppBar, Tabs, Tab, Styles} from 'material-ui';
-import DraggableTabs from 'react-draggable-tab';
 
 let {Colors} = Styles;
-let DocumentTabs = DraggableTabs.Tabs;
-let DocumentTab = DraggableTabs.Tab;
 
 export default React.createClass({
   propTypes: {
@@ -15,16 +12,6 @@ export default React.createClass({
 
   getInitialState() {
     return {
-      tabs: [
-        <DocumentTab
-          key="document1"
-          title="Document 1"
-        >
-          <div>
-          </div>
-        </DocumentTab>
-      ],
-      selectedTab: 'document1'
     }
   },
 
@@ -32,10 +19,9 @@ export default React.createClass({
     let backgroundColor = Colors.grey900;
     let tabs = ['Home', 'Code', 'Data', 'Charts', 'Team', 'Layout'];
     let tabHeight = 40;
-    let appBarHeight = 75;
+    let appBarHeight = 64;
     let leftJustify = 65;
     let topMargin = appBarHeight - tabHeight;
-    let tabsWidth = document.innerHeight - leftJustify;
 
     return (
       <div>
@@ -46,24 +32,6 @@ export default React.createClass({
           }}
           onLeftIconButtonTouchTap={this._onAlphaButtonTap}
         />
-        <div style={{
-          position: 'absolute',
-          left: leftJustify + 'px',
-          top: '5px',
-          width: tabsWidth + 'px'
-        }}>
-          <DocumentTabs
-            selectedTab={this.state.selectedTab}
-            onTabSelect={this._onDocumentTabSelect}
-            onTabClose={this._onDocumentTabClose}
-            onTabPositionChange={this._onDocumentTabPositionChange}
-            tabs={this.state.tabs}
-            tabAddButton={
-              <div style={{ display: 'none' }}>
-              </div>
-            }
-          />
-        </div>
         <Tabs
           style={{
             position: 'absolute',
@@ -91,29 +59,6 @@ export default React.createClass({
     );
   },
 
-  _onDocumentTabSelect(e, key, currentTabs) {
-    if (key === this.state.selectedTab) return;
-
-    this.setState({
-      selectedTab: key,
-      tabs: currentTabs
-    });
-
-    this.props.onDocumentTabChange(key);
-  },
-
-  _onDocumentTabClose(e, key, currentTabs) {
-    this.setState({
-      tabs: currentTabs
-    });
-  },
-
-  _onDocumentTabPositionChange(e, key, currentTabs) {
-    this.setState({
-      tabs: currentTabs
-    });
-  },
-
   _onActive(tabTitle) {
     return () => {
       this.props.onRibbonTabChange(tabTitle);
@@ -123,26 +68,4 @@ export default React.createClass({
   _onAlphaButtonTap() {
     this.props.onAlphaButtonTap();
   }
-
-/*
-  _onDocumentTabAddButtonClick(e, currentTabs) {
-    let key = 'newTab_' + Date.now();
-    let newTab = (
-      <DocumentTab
-        key={key}
-        title="untitled"
-      >
-        <div>
-        </div>
-      </DocumentTab>
-    );
-    let newTabs = currentTabs.concat([newTab]);
-
-    this.setState({
-      tabs: newTabs,
-      selectedTab: key
-    });
-
-    this.props.onDocumentTabChange(key);
-  }*/
 });
