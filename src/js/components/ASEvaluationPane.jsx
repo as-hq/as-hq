@@ -263,17 +263,10 @@ export default React.createClass({
     return Constants.editorHeight + "px";
   },
 
-  getGridHeight() {
-    // console.log("EVAL PANE HEIGHT: " +  this.props.height);
-    let h = this.props.height - Constants.editorHeight;
-    // console.log("GRID HEIGHT: " + h);
-    return h + "px";
-  },
-
   render() {
     let {expression, language} = this.state;
     let leftEvalPane =
-      <div >
+      <div style={{height: '100%'}}>
         <ASCodeEditor
           ref='editorPane'
           language={language}
@@ -289,7 +282,7 @@ export default React.createClass({
           onDeferredKey={this._onGridDeferredKey}
           onSelectionChange={this._onSelectionChange}
           width="100%"
-          height={this.getGridHeight()}  />
+          height={`calc(100% - ${this.getEditorHeight()})`}  />
         <Snackbar ref="snackbarError"
                   message={this.state.toastMessage}
                   action={this.state.toastAction}

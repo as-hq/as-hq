@@ -43,11 +43,6 @@ export default React.createClass({
   /**************************************************************************************************************************/
   /* Core render method for the whole app */
 
-  getPaneHeight() {
-    // console.log("WINDOW HEIGHT: " + window.innerHeight);
-    return window.innerHeight;
-  },
-
   render() {
     let leftNavMenuItems = [
       { route: 'all-files', text: 'All files' },
@@ -73,7 +68,7 @@ export default React.createClass({
               onWorkbookCreate={this._onWorkbookCreate}/>
           </div>
           <div style={{display: 'inline-block', width:'90%', height:'100%',verticalAlign:'top'}}>
-            <ASEvaluationPane behavior="default" ref="evalPane" initInfo={this.state.initEvalInfo} height={this.getPaneHeight()}/>
+            <ASEvaluationPane behavior="default" ref="evalPane" initInfo={this.state.initEvalInfo} height='100%'/>
           </div>
         </div>
       </div>
