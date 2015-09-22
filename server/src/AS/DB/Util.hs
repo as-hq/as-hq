@@ -2,7 +2,8 @@ module AS.DB.Util where
 
 import Prelude
 
-import AS.Types 
+import AS.Types.Core
+import AS.Types.DB
 import AS.Util
 import AS.Parsing.Common (tryParseListNonIso)
 import AS.Parsing.In (int)
@@ -119,7 +120,7 @@ cToASCell str = do
   str' <- peekCString str
   return $ case str' of
     "Nothing" -> Nothing
-    _ -> Just (read2 str' :: ASCell)
+    otherwise -> Just (read2 str' :: ASCell)
 
 ----------------------------------------------------------------------------------------------------------------------
 -- | ByteString utils

@@ -7,9 +7,10 @@ import Data.List.NonEmpty as N (fromList)
 import Control.Monad (forM)
 import Data.List
 
-import AS.Types
+import AS.Types.Core
+import AS.Types.DB
 import AS.Config.Settings as S
-import AS.DB.Util as DBU
+import AS.DB.Util 
 import AS.Util
 
 getDescendants :: [ASLocation] -> IO (Either ASExecError [ASLocation])

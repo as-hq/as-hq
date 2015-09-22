@@ -1,6 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-import AS.Types
+import AS.Types.Core
+import AS.Types.DB
 import AS.DB.API as DB
 import AS.DB.Util as DU
 import AS.Util
@@ -11,7 +12,7 @@ import qualified Data.List as L
 import Database.Redis as R
 
 testLocs :: Int -> [ASLocation]
-testLocs n = [Index "hi" (i,i) | i <-[0..n]]
+testLocs n = [Index "" (i,1) | i <-[1..n]]
 
 testCells :: Int -> [ASCell]
 testCells n =  L.map (\l -> Cell (Index "" (l,1)) (Expression "hi" Python) (ValueS "Str") []) [1..n]
@@ -26,12 +27,20 @@ main = do
     printTimed "got connection"
     --testSheetCreation conn
     testSetCells
+    printTimed "cells set"
+    cells <- testGetCells
+    printTimed $ "got cells: " ++ (show cells)
 
 testSetCells :: IO ()
 testSetCells = do
-    let cells = testCells 100000
+    let cells = testCells 10
+    --printTimed $ L.concat $ L.map show2 cells
     DB.setCells cells
-    printTimed "cells set"
+
+testGetCells :: IO [Maybe ASCell]
+testGetCells = do
+    let locs = testLocs 11
+    DB.getCells locs
 
 testSheetCreation :: R.Connection -> IO ()
 testSheetCreation conn = do

@@ -149,8 +149,11 @@ exLocToASLocation sheetid exLoc = case exLoc of
 
 -- does not consider sheetid
 asLocationToExLoc :: ASLocation -> ExLoc
-asLocationToExLoc (Index _ i) = indexToExcel i
-asLocationToExLoc (Range _ (i1, i2)) = (indexToExcel i1) ++ (':':(indexToExcel i2))
+asLocationToExLoc (Index _ (a,b)) = ExIndex "" (intToColStr a) "" (intToColStr b)
+asLocationToExLoc (Range s (i1, i2)) = ExRange i1' i2'
+  where
+    i1' = asLocationToExLoc $ Index s i1
+    i2' = asLocationToExLoc $ Index s i2
 -------------------------------------------------------------------------------------------------------------------------------------------------
 -- Parsers to match special excel characters
 

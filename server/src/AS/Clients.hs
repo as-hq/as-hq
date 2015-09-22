@@ -10,7 +10,7 @@ import Data.Aeson hiding (Success)
 
 import Database.Redis hiding (decode, Message)
 
-import AS.Types
+import AS.Types.Core
 import AS.Util as U
 import AS.Config.Settings as S
 import AS.DB.API as DB

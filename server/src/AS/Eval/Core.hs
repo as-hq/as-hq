@@ -15,7 +15,7 @@ import qualified Data.List as L
 import qualified Data.Text as T
 
 import AS.Eval.Lang
-import AS.Types hiding (str)
+import AS.Types.Core hiding (str)
 import AS.Parsing.In
 import AS.Parsing.Out
 import AS.Parsing.Common

@@ -4,11 +4,12 @@ module AS.DB.API where
 
 import Prelude
 
-import AS.Types hiding (location,expression,value,min)
+import AS.Types.Core hiding (location,expression,value,min)
+import AS.Types.DB
 import AS.Util as U
 import AS.DB.Util as DU
 
-import Data.List (zip4,head,partition,nub)
+import Data.List (zip4,head,partition,nub,intercalate)
 import Data.Maybe (isNothing, fromJust)
 
 import Foreign
@@ -65,7 +66,7 @@ import Data.List.Split
 foreign import ccall unsafe "hiredis/redis_db.c getCells" c_getCells :: CString -> CInt -> IO (Ptr CString)
 foreign import ccall unsafe "hiredis/redis_db.c setCells" c_setCells :: CString -> CInt -> IO ()
 
-
+ 
 ----------------------------------------------------------------------------------------------------------------------
 -- | Cells
 
@@ -73,28 +74,30 @@ getCell :: ASLocation -> IO (Maybe ASCell)
 getCell loc = return . head =<< getCells [loc]
 
 getCells :: [ASLocation] -> IO [Maybe ASCell]
-getCells [] = return []
+getCells [] = return [] 
 getCells locs = 
   let 
-    dlocs = concat $ map U.decomposeLocs locs
-    msg = showB $ map show2 dlocs
-    num = length dlocs
+    dlocs = concat $ map U.decomposeLocs locs 
+    msg = showB $ intercalate ">" $ map show2 dlocs
+    num = length dlocs 
   in do
     ptrCells <- BU.unsafeUseAsCString msg $ \str -> c_getCells str (fromIntegral num)
     cCells <- peekArray (fromIntegral num) ptrCells
     res <- mapM DU.cToASCell cCells
-    free ptrCells
+    free ptrCells 
     return res
 
 setCell :: ASCell -> IO ()
 setCell c = setCells [c]
 
-setCells :: [ASCell] -> IO ()
-setCells [] = return ()
+setCells :: [ASCell] -> IO () 
+setCells [] = return () 
 setCells cells = do
-  let str = (map show2 cells) ++ (map (show2 . cellLocation) cells)
+  let str = intercalate ">" $ (map (show2 . cellLocation) cells) ++ (map show2 cells)
   let msg = showB str
-  _ <- unsafeUseAsCString msg $ \lstr -> 
+  --B.putStrLn msg
+  _ <- unsafeUseAsCString msg $ \lstr -> do
+    liftIO $ printTimed "packed message" 
     c_setCells lstr (fromIntegral . length $ cells)
   return ()
 

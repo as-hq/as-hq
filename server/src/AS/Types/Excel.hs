@@ -1,8 +1,8 @@
 module AS.Types.Excel where
 
-import AS.Types
+import AS.Types.Core
 import Database.Redis (Connection)
-
+import Data.List 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Excel
 
@@ -53,9 +53,30 @@ getJsonPairs ctx = jsons
     buckets = getBuckets ctx
     jsons = map bucketToJson buckets
 
+getBuckets  :: ExcelContext -> [[(ExcelAction, ExcelResult)]]
+getBuckets ctx = [lookups, indirects, sheets, workbooks, currentlocation]
+  where
+    lookups = filter (\b -> case b of 
+      ((Lookup _ ),_) -> True
+      _ -> False) ctx
+    indirects = filter (\b -> case b of 
+      ((CheckIndirectRef _ ),_) -> True
+      _ -> False) ctx
+    sheets = filter (\b -> case b of 
+      ((LookupSheets _ ),_) -> True
+      _ -> False) ctx
+    workbooks = filter (\b -> case b of 
+      ((LookupWorkbooks _ ),_) -> True
+      _ -> False) ctx
+    currentlocation = filter (\b -> case b of 
+      ((CurrentLocation _ ),_) -> True
+      _ -> False) ctx
+
 bucketToJson :: [(ExcelAction, ExcelResult)] -> String
-bucketToJson b@((Lookup _,_):_) = map lookupToJson b
-  where lookupToJson ((Lookup l), r) = "'" ++ (showExcelLoc l) ++ "':" ++ (show r)
+bucketToJson b@((Lookup _,_):_) = intercalate "," jsons
+  where 
+    lookupToJson ((Lookup l), r) = "'" ++ (showExcelLoc l) ++ "':" ++ (show r)
+    jsons = map lookupToJson b
 bucketToJson b@((CheckIndirectRef _,_):_) = "IndirectRefs:{" ++ jsonBody ++ "}"
   where 
     jsons = map checkToJson b
@@ -72,13 +93,13 @@ showExcelLoc exLoc = case exLoc of
   ExIndex dol1 c dol2 r -> dol1 ++ c ++ dol2 ++ r
 
 showExcelValue :: ASValue -> String
-showExcelValue val = case v of
+showExcelValue val = case val of
   ValueNaN ()   -> "Undefined"
   ValueS s      -> show s
   ValueI i      -> show i
   ValueD d      -> show d
   ValueB b      -> show b 
-  ValueL l      -> toExcelList $ fmap (showValue lang) l
+  ValueL l      -> toExcelList $ fmap showExcelValue l
 
 toExcelList :: [String] -> String
-toExcelList lst  = "[" ++ (L.intercalate delim lst) ++ start
+toExcelList lst  = "[" ++ (intercalate "," lst) ++ "]"

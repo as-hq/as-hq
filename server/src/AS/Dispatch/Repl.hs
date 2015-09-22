@@ -2,7 +2,7 @@ module AS.Dispatch.Repl where
 
 import Prelude
 
-import AS.Types
+import AS.Types.Core
 import AS.Eval.Core as R
 import Control.Concurrent (MVar, newMVar, modifyMVar_, modifyMVar, readMVar)
 

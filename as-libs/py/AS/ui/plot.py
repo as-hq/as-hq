@@ -2,8 +2,8 @@
 
 import matplotlib.pyplot as plt
 import matplotlib
-matplotlib.use('Qt4Agg')
-matplotlib.rcParams['backend.qt4']='PySide'
+# matplotlib.use('Qt4Agg')
+# matplotlib.rcParams['backend.qt4']='PySide'
 import os.path 
 from AS.iterable import ASIterable
 from AS.instruments.Stock import Stock
@@ -11,7 +11,7 @@ from AS.errors import *
 import numpy as np
 
 folder = os.path.dirname(__file__) 
-directory = "/home/anand/Development/as/backend/static/images/"
+directory = os.getcwd() + "/../static/images/"
 #directory = os.path.abspath(os.path.join(folder, '..','..','..','..','frontend','client','app','images')) + '/'
 
 retPath = ""

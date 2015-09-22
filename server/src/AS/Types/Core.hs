@@ -140,6 +140,12 @@ data ASPayload =
   PayloadList QueryList 
   deriving (Show, Read, Eq, Generic)
 
+----------------------------------------------------------------------------------------------------------------------------------------------
+-- | Version Control
+
+data ASTime = Time {day :: String, hour :: Int, min :: Int, sec :: Int} deriving (Show,Read,Eq,Generic)
+data ASCommit = ASCommit {commitUserId :: ASUserId, before :: [ASCell], after :: [ASCell], time :: ASTime} deriving (Show,Read,Eq,Generic)
+
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Eval Types
@@ -224,7 +230,7 @@ openPermissions = Blacklist []
 
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
--- | Generic From/To JSON instances
+-- | JSON
 
 instance ToJSON ASLocation
 instance FromJSON ASLocation
@@ -248,10 +254,6 @@ instance ToJSON ASInitConnection
 instance FromJSON ASInitConnection 
 instance ToJSON ASExecError
 instance FromJSON ASExecError
-instance FromJSON ASTime
-instance ToJSON ASTime
-instance ToJSON ASCommit 
-instance FromJSON ASCommit
 instance ToJSON ASCellTag
 instance FromJSON ASCellTag
 instance ToJSON ASWindow
@@ -280,3 +282,7 @@ instance FromJSON WorkbookSheet
 instance ToJSON WorkbookSheet
 instance FromJSON ASLangValue
 instance ToJSON ASLangValue
+instance FromJSON ASTime
+instance ToJSON ASTime
+instance FromJSON ASCommit
+instance ToJSON ASCommit

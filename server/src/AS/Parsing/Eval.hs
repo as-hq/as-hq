@@ -6,7 +6,7 @@ import Text.Parsec.Text
 import qualified Data.Text as T
 import qualified Data.List as L
 
-import AS.Types
+import AS.Types.Core
 import AS.Eval.Lang as LA
 import AS.Parsing.Common as C
 

@@ -1,6 +1,6 @@
 module AS.Util where
 
-import AS.Types
+import AS.Types.Core
 
 import Prelude
 import Data.Time.Clock

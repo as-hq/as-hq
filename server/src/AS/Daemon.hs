@@ -1,7 +1,7 @@
 module AS.Daemon where
 
 import Prelude
-import AS.Types
+import AS.Types.Core
 
 import Data.Char (isPunctuation, isSpace)
 import Data.Monoid (mappend)

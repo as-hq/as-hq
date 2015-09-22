@@ -17,7 +17,7 @@ import Control.Applicative hiding ((<|>), many)
 import qualified Data.Map as M
 import qualified Data.Text.Lazy (replace)
 
-import AS.Types as Ty
+import AS.Types.Core
 import AS.Parsing.Common
 import AS.Util
 

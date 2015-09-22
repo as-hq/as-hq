@@ -2,6 +2,10 @@ module AS.Types.DB where
 
 import AS.Types.Core
 
+import Prelude
+import GHC.Generics
+import Data.Aeson hiding (Success)
+import Data.Text hiding (foldr, map)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Queries
@@ -12,14 +16,9 @@ data GraphQuery =
   SetRelations 
   deriving (Show)
 
-----------------------------------------------------------------------------------------------------------------------------------------------
--- | Version Control
-
-data ASTime = Time {day :: String, hour :: Int, min :: Int, sec :: Int} deriving (Show,Read,Eq,Generic)
-data ASCommit = ASCommit {commitUserId :: ASUserId, before :: [ASCell], after :: [ASCell], time :: ASTime} deriving (Show,Read,Eq,Generic)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
--- | read/show compressed
+-- | compressed read/show 
 
 class Show2 a where
   show2 :: a -> String

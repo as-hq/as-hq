@@ -9,7 +9,7 @@ import Control.Monad.IO.Class (liftIO)
 import Data.Aeson hiding (Success)
 import qualified Network.WebSockets as WS
 
-import AS.Types
+import AS.Types.Core
 import AS.DB.API            as DB
 import AS.DB.Graph          as G
 import AS.Util              as U

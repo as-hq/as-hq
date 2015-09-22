@@ -1,7 +1,7 @@
 module AS.Dispatch.Core where
 
 -- AlphaSheets and base
-import AS.Types
+import AS.Types.Core
 import Prelude 
 import qualified AS.Eval.Core as R (evalExpression)
 import qualified Data.Map   as M

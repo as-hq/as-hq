@@ -22,7 +22,7 @@ import Data.Maybe (fromJust)
 
 import qualified Database.Redis as R
 
-import AS.Types
+import AS.Types.Core
 import AS.Config.Settings as S
 import AS.Util
 import AS.Clients

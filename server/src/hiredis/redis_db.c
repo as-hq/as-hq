@@ -67,48 +67,93 @@ char** str_split(char* a_str, const char a_delim){
     return result;
 }
 
+char* squeeze(char* str, const char ch) {
+  char *p = str; /* p points to the most current "accepted" char. */
+  while (*str) {
+      /* If we accept a char we store it and we advance p. */
+      if (*str != ch)
+          *p++ = *str;
+
+      /* We always advance s. */
+      str++;
+  }
+  /* We 0-terminate p. */
+  *p = 0;
+  return p;
+}
+
 /*************************************************************************************************************************/
 
 /* Haskell will free the mallocs here */
-char** getCells(char** locs, int length){
+char** getCells(char* msg, int length){
   redisContext *c;
   redisReply *reply;
-  int i,j; 
-  int count = 0; 
   c = redisConnect((const char*)HOST, PORT);
 
+  char *pmsg = msg; pmsg++; // removes first char '"'
+  pmsg[strlen(pmsg) - 1] = 0; // removes last char '"'
+
+  // printf("Get cells input: %s \n",pmsg);
+
+  char** locs = str_split(pmsg, '>');
   char** cells = malloc(length * sizeof(char*));
+
+  int i,j,k; 
+  int count = 0; 
   int batch = determineBatchSize(length);
+  int nBatches = length/batch;
+
 
   if (batch != 0){
-    for (i = 0; i < length/batch; ++i) {
+    for (i = 0; i < nBatches; ++i) {
       for (j = 0; j < batch; ++j) {
         char* key = locs[i*batch+j];
+        // printf("getting key: %s\n", key);
         redisAppendCommand(c,"GET %s",key);
       }
       for (j = 0; j < batch; ++j) {
         redisGetReply(c,(void **) &reply);
         if (reply->type == REDIS_REPLY_STRING) {
-          cells[count] = reply->str;
+          // printf("got redis reply: %s", reply->str);
+          cells[count] = strdup(reply->str);
           count++;
-        } else if (reply->type == REDIS_REPLY_ERROR) {
+        } else {
+          // puts("got nothing!\n");
           cells[count] = "Nothing";
+          count++;
         }
         freeReplyObject(reply);
       }
     }
+    // handle remainder after batching
+    for (k = count; k < length; ++k) {
+      char* key = locs[k];
+      // printf("getting key: %s\n", key);
+      redisAppendCommand(c, "GET %s", key);
+    }
+    for (k = count; k < length; ++k) {
+      redisGetReply(c,(void **) &reply);
+      if (reply->type == REDIS_REPLY_STRING) {
+        // printf("got redis reply: %s", reply->str);
+        cells[count] = strdup(reply->str);
+        count++;
+      } else {
+        // puts("got nothing!");
+        cells[count] = "Nothing";
+        count++;
+      }
+      freeReplyObject(reply);
+    }
   }
-  
   redisFree(c);
   assert(length == count);
   return cells; 
 }
 
-void setCells(char* locs, char* cells, int length){
+void setCells(char* msg, int length){
   clock_t begin = clock(); 
   redisContext *c;
   redisReply *reply;
-  int i,j; 
   c = redisConnect((const char*)HOST, PORT);
   if (c->err) {
     freeRedis(c,reply); 
@@ -116,29 +161,40 @@ void setCells(char* locs, char* cells, int length){
   clock_t connect = clock(); 
   printf("Set cells connecting: %f seconds\n", (double)(connect - begin) / CLOCKS_PER_SEC);
 
-  printf("Set cells input: %s %s\n",locs,cells);
 
-  char *plocs = locs; plocs++; // removes first characcter '['
-  plocs[strlen(plocs) - 1] = 0; // removes last char ']'
-  char *pcells = cells; pcells++;
-  pcells[strlen(pcells) - 1] = 0;
+  char *pmsg = msg; pmsg++; // removes first char '"'
+  pmsg[strlen(pmsg) - 1] = 0; // removes last char '"'
+  squeeze(pmsg, '\\'); // remove double-escaped strings
+  // printf("Set cells input: %s \n",pmsg);
 
-  char** lstLocs = str_split(plocs,',');
-  char** lstCells = str_split(pcells,',');
+  char** lstMsg = str_split(pmsg,'>');
 
+  int i,j,k; 
   int batch = determineBatchSize(length);
+
   if (batch !=0) {
     for (i = 0; i < length/batch; ++i) {
       for (j = 0; j < batch; ++j) {
         int index = i * batch + j; 
-        char* key = lstLocs[index];
-        char* val = lstCells[index];
+        // printf("current index: %d\n", index);
+        char* key = lstMsg[index];
+        char* val = lstMsg[index + length];
         redisAppendCommand(c,"SET %s %s",key,val); 
       }
       for (j = 0; j < batch; ++j){
         redisGetReply(c, (void **) &reply);
         freeReplyObject(reply);
       }
+    }
+    // handle remainder after batching
+    for (k = (length/batch)*batch; k<length; ++k) {
+      char* key = lstMsg[k];
+      char* val = lstMsg[k + length];
+      redisAppendCommand(c,"SET %s %s",key,val); 
+    }
+    for (k = (length/batch)*batch; k<length; ++k) {
+      redisGetReply(c, (void **) &reply);
+      freeReplyObject(reply);
     }
   }
   redisFree(c);
