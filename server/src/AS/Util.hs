@@ -182,11 +182,11 @@ intersectViewingWindowsLocs locs vws = concat $ map (intersectViewingWindow dloc
     inRange elem start len = ((elem >= start) && (elem <= (start + len)))
 
 updateWindow :: ASWindow -> ASUser -> ASUser
-updateWindow window (User uid conn windows) = User uid conn windows'
+updateWindow window (UserClient uid conn windows) = UserClient uid conn windows'
     where windows' = flip map windows (\w -> if (windowSheetId w) == (windowSheetId window) then window else w)
 
 getWindow :: ASSheetId -> ASUser -> Maybe ASWindow
-getWindow sheetid user = lookupLambda windowSheetId sheetid (userWindows user)
+getWindow sheetid user = lookupLambda windowSheetId sheetid (windows user)
 
 getScrolledLocs :: ASWindow -> ASWindow -> [ASLocation]
 getScrolledLocs (Window _ (-1,-1) (-1,-1)) (Window sheetid tl br) = [(Range sheetid (tl, br))] 
@@ -203,7 +203,7 @@ getUncoveredLocs sheet (tlo, bro) (tlw, brw) = [Range sheet corners | corners <-
       cs = [(tlw, tro), (trw, bro), (brw, blo), (blw, tlo)]
 
 getAllUserWindows :: ServerState -> [(ASUserId, [ASWindow])]
-getAllUserWindows state = map (\(u,d) -> (userId u, userWindows u)) (userList state)
+getAllUserWindows state = map (\u -> (userId u, windows u)) (userClients state)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Locations

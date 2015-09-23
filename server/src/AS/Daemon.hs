@@ -34,20 +34,9 @@ import System.Posix.Daemon
 getDaemonName :: ASLocation -> String
 getDaemonName loc = (show loc) ++ ".pid"
 
-daemonExists :: ASUser -> ASLocation -> MVar ServerState -> IO Bool
-daemonExists user loc state = do 
-  (State s _)<- readMVar state
-  let l = L.lookup user s
-  case l of 
-    Nothing -> return False
-    Just daemons -> do 
-      let locs = L.map daemonLoc daemons
-      return $ L.elem loc locs
-
 getConnByLoc :: ASLocation -> MVar ServerState -> IO (Maybe WS.Connection)
 getConnByLoc loc state = do 
-  (State s _) <- readMVar state
-  let daemons = L.concat (L.map snd s)
+  (State users daemons _) <- readMVar state
   let daemon = L.filter (\(ASDaemon l c) -> (l == loc)) daemons
   case daemon of 
 		[] -> return Nothing

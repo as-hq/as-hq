@@ -8,9 +8,10 @@ import Data.Aeson hiding (Success)
 import Data.Text
 import qualified Network.WebSockets as WS
 import qualified Database.Redis as R
+import Control.Concurrent (MVar)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
--- | Sheets
+-- Sheets
 
 type ASSheetId = Text
 data ASSheet = Sheet {sheetId :: ASSheetId, sheetName :: String, sheetPermissions :: ASPermissions} deriving (Show, Read, Eq, Generic)
@@ -18,7 +19,7 @@ data ASWorkbook = Workbook {workbookName :: String, workbookSheets :: [ASSheetId
 
 data WorkbookSheet = WorkbookSheet {wsName :: String, wsSheets :: [ASSheet]} deriving (Show, Read, Eq, Generic)
 ----------------------------------------------------------------------------------------------------------------------------------------------
--- | Core cell types
+-- Core cell types
 
 -- -1 in "row" for Index signifies an entire column
 data ASLocation = Index {locSheetId :: ASSheetId, index :: (Int, Int)} | 
@@ -75,7 +76,7 @@ data ASCell = Cell {cellLocation :: ASLocation,
 
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
--- | Excel
+-- Excel
 
 -- TODO fix recursion
 data ExLoc = ExSheet {name :: String, sheetLoc :: ExLoc} |
@@ -96,16 +97,16 @@ data ExcelPayload =
   deriving (Show,Read)
   
 ----------------------------------------------------------------------------------------------------------------------------------------------
--- | Streaming
--- | Stream sources
+-- Streaming
+-- Stream sources
 data Bloomberg = Bloomberg {url :: String, key :: String} deriving (Show, Read, Eq, Generic)
 data StreamSource = StreamB Bloomberg | NoSource deriving (Show, Read, Eq, Generic)
 
--- | A stream just needs a source and a frequency
+-- A stream just needs a source and a frequency
 data Stream = Stream {streamSource :: StreamSource, streamFreq :: Int} deriving (Show, Read, Eq, Generic)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
--- | Message Types
+-- Message Types
 
 data ASMessage = Message {
   messageUserId :: ASUserId,
@@ -163,7 +164,7 @@ data ASPayload =
 
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
--- | Eval Types
+-- Eval Types
 
 data ASExecError = 
   Timeout | 
@@ -181,10 +182,33 @@ data ASExecError =
 type EitherCells = Either ASExecError [ASCell] 
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
--- | Websocket types
+-- Websocket types
 
-data ASInitConnection = ASInitConnection {connUserId :: ASUserId} deriving (Show,Read,Eq,Generic)
+data ASInitConnection = ASInitConnection deriving (Show,Read,Eq,Generic)
 data ASInitDaemonConnection = ASInitDaemonConnection {parentUserId :: ASUserId, initDaemonLoc :: ASLocation} deriving (Show,Read,Eq,Generic)
+
+----------------------------------------------------------------------------------------------------------------------------------------------
+-- Database and state
+
+data ServerState = State {userClients :: [ASUser], daemonClients :: [ASDaemon], dbConn :: R.Connection} 
+
+data GraphQuery = 
+  GetDescendants |
+  GetImmediateAncestors |
+  SetRelations 
+  deriving (Show)
+
+----------------------------------------------------------------------------------------------------------------------------------------------
+-- Clients
+
+class Client c where
+  conn :: c -> WS.Connection
+  addClient :: c -> ServerState -> ServerState
+  removeClient :: c -> ServerState -> ServerState
+  handleMessage :: c -> MVar ServerState -> ASMessage -> IO ()
+
+----------------------------------------------------------------------------------------------------------------------------------------------
+-- Daemons
 
 data ASDaemon = ASDaemon {daemonLoc :: ASLocation, daemonConn :: WS.Connection}
 
@@ -192,21 +216,12 @@ instance Eq ASDaemon where
   c1 == c2 = (daemonLoc c1) == (daemonLoc c2)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
--- | Database and state
-
-data ServerState = State {userList :: [(ASUser,[ASDaemon])], dbConn :: R.Connection} 
-
-data GraphQuery = 
-  GetDescendants |
-  GetImmediateAncestors |
-  SetRelations 
-  deriving (Show)
-----------------------------------------------------------------------------------------------------------------------------------------------
--- | Users
+-- Users
 
 data ASWindow = Window {windowSheetId :: ASSheetId, topLeft :: (Int, Int), bottomRight :: (Int, Int)} deriving (Show,Read,Eq,Generic)
 type ASUserId = Text 
-data ASUser = User {userId :: ASUserId, userConn :: WS.Connection, userWindows :: [ASWindow]} 
+-- data ASUser = User { userId :: ASUserId }
+data ASUser = UserClient {userId :: ASUserId, userConn :: WS.Connection, windows :: [ASWindow]} 
 
 instance Eq ASUser where 
   c1 == c2 = (userId c1) == (userId c2)
@@ -222,13 +237,13 @@ data ASPermissions = Blacklist [ASEntity] |
 
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
--- | Version Control
+-- Version Control
 
 data ASTime = Time {day :: String, hour :: Int, min :: Int, sec :: Int} deriving (Show,Read,Eq,Generic)
 data ASCommit = ASCommit {commitUserId :: ASUserId, before :: [ASCell], after :: [ASCell], time :: ASTime} deriving (Show,Read,Eq,Generic)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
--- | Convenience methods
+-- Convenience methods
 
 lst :: ASValue -> [ASValue]
 lst (ValueL l) = l
@@ -247,7 +262,7 @@ initialViewingWindow :: ASWindow
 initialViewingWindow = Window "testSheetId" (0, 0) (100, 100)
 -- TODO generate Unique sheet id
 
--- | When sending data from server to client, the server doesn't have a userId 
+-- When sending data from server to client, the server doesn't have a userId 
 genericText :: Text
 genericText = pack ""
 
@@ -255,7 +270,7 @@ openPermissions :: ASPermissions
 openPermissions = Blacklist []
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
--- | Generic From/To JSON instances
+-- Generic From/To JSON instances
 
 instance ToJSON ASLocation
 instance FromJSON ASLocation

@@ -401,6 +401,8 @@ deleteChunkVolatileCells cells = do
 ----------------------------------------------------------------------------------------------------------------------
 -- | Permissions
 
+-- ::ALEX:: get rid of IO Bool
+
 canAccessSheet :: Connection -> ASUserId -> ASSheetId -> IO Bool
 canAccessSheet conn uid sheetId = do
   sheet <- getSheet conn sheetId

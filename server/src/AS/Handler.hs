@@ -26,14 +26,14 @@ import AS.Parsing.Out as O
 
 broadcast :: MVar ServerState -> ASMessage -> IO ()
 broadcast state message = do
-  (State u _) <- readMVar state
-  forM_ (map fst u) $ \(User _ conn _) -> WS.sendTextData conn (encode message)
+  (State u _ _) <- readMVar state
+  forM_ u $ \(UserClient _ conn _) -> WS.sendTextData conn (encode message)
 
 sendBroadcastFiltered :: ASUser -> MVar ServerState -> ASMessage -> IO ()
 sendBroadcastFiltered user state msg@(Message _ _ (Failure e) _) = sendToOriginalUser user msg  
 sendBroadcastFiltered user state msg = liftIO $ do 
-	(State allUsers _) <- readMVar state
-	broadcastFiltered (updateMessageUser (userId user) msg) (map fst allUsers)
+	(State allUsers _ _) <- readMVar state
+	broadcastFiltered (updateMessageUser (userId user) msg) allUsers
 
 -- | Given a message (commit, cells, etc), only send (to each user) the cells in their viewing window
 broadcastFiltered :: ASMessage -> [ASUser] -> IO ()
@@ -41,22 +41,23 @@ broadcastFiltered msg@(Message uid _ _ (PayloadCL cells)) users = mapM_ (sendCel
   where
     sendCells :: [ASCell] -> ASUser -> IO ()
     sendCells cells user = do 
-      let cells' = intersectViewingWindows cells (userWindows user)
+      let cells' = intersectViewingWindows cells (windows user)
       --putStrLn $ "Sending msg to client: " ++ (show msg)
       WS.sendTextData (userConn user) (encode msg)
+
 broadcastFiltered msg@(Message uid a r (PayloadLL locs)) users = mapM_ (sendLocs locs) users 
   where
     sendLocs :: [ASLocation] -> ASUser -> IO ()
     sendLocs locs user = do 
-      let locs' = intersectViewingWindowsLocs locs (userWindows user)
+      let locs' = intersectViewingWindowsLocs locs (windows user)
       --putStrLn $ "Sending msg to client: " ++ (show msg)
       WS.sendTextData (userConn user) (encode msg)
 broadcastFiltered msg@(Message uid act res (PayloadCommit c)) users = mapM_ (sendCommit c) users
   where
     sendCommit :: ASCommit -> ASUser -> IO ()
     sendCommit commit user = do 
-      let b = intersectViewingWindows (before commit) (userWindows user)
-      let a = intersectViewingWindows (after commit) (userWindows user)
+      let b = intersectViewingWindows (before commit) (windows user)
+      let a = intersectViewingWindows (after commit) (windows user)
       WS.sendTextData (userConn user) (encode msg)
 
 sendToOriginalUser :: ASUser -> ASMessage -> IO ()
@@ -77,18 +78,18 @@ handleNew user state (Message uid a _(PayloadWB wb)) = do
 
 handleOpen :: ASUser -> MVar ServerState -> ASMessage -> IO ()
 handleOpen user state (Message _ _ _ (PayloadS (Sheet sheetid _ _))) = C.modifyUser makeNewWindow user state 
-  where makeNewWindow (User uid conn windows) = User uid conn ((Window sheetid (-1,-1) (-1,-1)):windows)
+  where makeNewWindow (UserClient uid conn windows) = UserClient uid conn ((Window sheetid (-1,-1) (-1,-1)):windows)
 
 handleClose :: ASUser -> MVar ServerState -> ASMessage -> IO ()
 handleClose user state (Message _ _ _ (PayloadS (Sheet sheetid _ _))) = C.modifyUser closeWindow user state
-  where closeWindow (User uid conn windows) = User uid conn (filter (((/=) sheetid) . windowSheetId) windows)
+  where closeWindow (UserClient uid conn windows) = UserClient uid conn (filter (((/=) sheetid) . windowSheetId) windows)
 
 handleUpdateWindow :: ASUser -> MVar ServerState -> ASMessage -> IO ()
 handleUpdateWindow user state (Message uid _ _ (PayloadW window)) = do
   curState <- readMVar state
   let (Just user') = C.getUserById (userId user) curState
   let maybeWindow = U.getWindow (windowSheetId window) user' 
-  --printTimed $ "Current user' windows before update: " ++ (show $ userWindows user')
+  --printTimed $ "Current user' windows before update: " ++ (show $ windows user')
   case maybeWindow of 
     Nothing -> putStrLn "ERROR: could not update nothing window" >> return ()
     (Just oldWindow) -> do
@@ -101,7 +102,7 @@ handleUpdateWindow user state (Message uid _ _ (PayloadW window)) = do
       C.modifyUser (U.updateWindow window) user' state
       --readState' <- readMVar state
       --let (Just user'') = C.getUserById (userId user) readState'
-      --printTimed $ "Current user' windows after update: " ++ (show $ userWindows user'')
+      --printTimed $ "Current user' windows after update: " ++ (show $ windows user'')
 
 handleImport :: ASUser -> MVar ServerState -> ASMessage -> IO ()
 handleImport user state msg = return () -- TODO 
