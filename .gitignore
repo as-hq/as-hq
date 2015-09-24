@@ -3,10 +3,10 @@ logs/
 *.pyc
 #server/.stack-work/*
 ws-as-instance/.stack-work/*
-server/alphasheets-exe.hp
-server/alphasheets-exe.prof
-server/alphasheets-test.aux
-server/alphasheets-test.hp
-server/alphasheets-test.prof
-server/alphasheets-test.ps
+#server/alphasheets-exe.hp
+#server/alphasheets-exe.prof
+#server/alphasheets-test.aux
+#server/alphasheets-test.hp
+#server/alphasheets-test.prof
+#server/alphasheets-test.ps
 server/src/Eval/run/py/temp.py
