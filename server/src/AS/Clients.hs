@@ -1,69 +1,65 @@
 module AS.Clients where
 
 import Prelude
-import Control.Concurrent (MVar, newMVar, modifyMVar_, modifyMVar, readMVar)
-import Control.Monad.IO.Class (liftIO)
-import qualified Data.List as L
-import qualified Data.Text as T 
-import qualified Network.WebSockets as WS
-import Data.Aeson hiding (Success)
-
-import Database.Redis hiding (decode, Message)
-
 import AS.Types
-import AS.Util as U
-import AS.Config.Settings as S
-import AS.DB.API as DB
+import AS.Handler as H
+import qualified Data.List as L
+import Data.Text (Text)
+import Data.Maybe
+import Control.Concurrent (MVar)
+import AS.Util
+import qualified Network.WebSockets as WS
 
 
+initDaemonFromMessageAndConn :: ASMessage -> WS.Connection -> Maybe ASDaemon
+initDaemonFromMessageAndConn m c' = case m of 
+  (Message _ _ _ (PayloadDaemonInit (ASInitDaemonConnection _ loc))) -> Just $ ASDaemon loc c'
+  otherwise -> Nothing 
 
--- from AS.Types
--- class Client c where
---   conn :: c -> WS.Connection
---   addClient :: c -> ServerState -> ServerState
---   removeClient :: c -> ServerState -> ServerState
---   initFromMessageAndConn :: ASMessage -> WS.Connection -> Maybe c
-
--------------------------------------------------------------------------------------------------------------------------
--- | Basic client comms
-
-send :: ASMessage -> WS.Connection -> IO ()
-send msg conn = WS.sendTextData conn (encode msg)
-
-close :: WS.Connection -> IO ()
-close conn = WS.sendClose conn ("Bye" :: T.Text)
+initUserFromMessageAndConn :: ASMessage -> WS.Connection -> ASUser
+initUserFromMessageAndConn m c' = UserClient (messageUserId m) c' [initialViewingWindow]
 
 -------------------------------------------------------------------------------------------------------------------------
--- | User Management
+-- ASUser is a client
 
-getUsers :: ServerState -> [ASUser]
-getUsers (State us _ _) = us
-
-userIdExists :: ASUserId -> ServerState -> Bool
-userIdExists uid state = L.elem uid (L.map userId (getUsers state))
-
--- Assumes that user exists
-getUserById :: ASUserId -> ServerState -> Maybe ASUser
-getUserById uid (State allUsers _ _) = case (filter (\c -> (userId c == uid)) (allUsers)) of
-  [] -> Nothing
-  l -> Just $ L.head l
-
--- ::ALEX:: seems sketchy
-modifyUser :: (ASUser -> ASUser) -> ASUser -> MVar ServerState -> IO ()
-modifyUser func user state = modifyMVar_ state $ \(State users daemons conn) ->
-  do 
-    let users' = flip map users (\u -> if (u == user) then (func u) else u)
-    return $ State users' daemons conn 
+instance Client ASUser where 
+  conn = userConn
+  addClient uc s@(State ucs dcs dbc)
+    | uc `elem` ucs = s
+    | otherwise = State (uc:ucs) dcs dbc 
+  removeClient uc s@(State ucs dcs dbc)
+    | uc `elem` ucs = State (L.delete uc ucs) dcs dbc
+    | otherwise = s
+  handleMessage user state message = case (action message) of 
+    Acknowledge -> WS.sendTextData (userConn user) ("ACK" :: Text)
+    New         -> H.handleNew user state message
+    Import      -> H.handleImport user state message
+    Open        -> H.handleOpen user state message
+    Close       -> H.handleClose user state message
+    Evaluate    -> H.handleEval user state message 
+    EvaluateRepl-> H.handleEvalRepl user state message
+    Get         -> H.handleGet user state (payload message)
+    Delete      -> H.handleDelete user state (payload message)
+    Copy        -> H.handleCopy user state (payload message)
+    CopyForced  -> H.handleCopyForced user state (payload message)
+    Undo        -> (H.handleUndo user state) >> (printTimed "Server processed undo")
+    Redo        -> (H.handleRedo user state) >> (printTimed "Server processed redo")
+    Clear       -> H.handleClear user state
+    AddTags     -> H.handleAddTags user state message
+    RemoveTags  -> H.handleRemoveTags user state message
+    UpdateWindow-> H.handleUpdateWindow user state message
 
 -------------------------------------------------------------------------------------------------------------------------
--- | Debugging
+-- | ASDaemon is a client
 
---getScrollCells :: Connection -> ASSheetId -> [ASLocation] -> IO [Maybe ASCell]
---getScrollCells conn sid locs = if ((sid == (T.pack "SHEET_ID")) && S.isDebug)
---  then do
---    let dlocs = concat $ map U.decomposeLocs locs
---    return $ map (\l -> Just $ Cell l (Expression "scrolled" Python) (ValueS (show . index $ l)) []) dlocs
---  else DB.getCells conn locs
-
-getScrollCells :: Connection -> ASSheetId -> [ASLocation] -> IO [Maybe ASCell]
-getScrollCells conn sid locs = DB.getCells conn locs
+instance Client ASDaemon where 
+  conn = daemonConn
+  addClient dc s@(State ucs dcs dbc)
+    | dc `elem` dcs = s
+    | otherwise = State ucs (dc:dcs) dbc 
+  removeClient dc s@(State ucs dcs dbc)
+    | dc `elem` dcs = State ucs (L.delete dc dcs) dbc
+    | otherwise = s
+  handleMessage daemon state message = handleMessage user state message 
+      where user = initUserFromMessageAndConn message (daemonConn daemon)
+  -- ::ALEX:: refactor above

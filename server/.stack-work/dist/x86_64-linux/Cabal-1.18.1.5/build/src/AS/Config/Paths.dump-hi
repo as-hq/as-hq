@@ -1,9 +1,9 @@
 
 ==================== FINAL INTERFACE ====================
-2015-09-23 05:31:08.631949 UTC
+2015-09-24 03:38:24.312603 UTC
 
 interface alphasheets-0.1.0.0:AS.Config.Paths 7084
-  interface hash: e8cdc6bab7e67e2d0aaaf0582447205a
+  interface hash: 8d9cd8e1e2a9eaa2680dff669b3d6cd4
   ABI hash: 383b11f52f4251137d3fdd3ce58b74ae
   export-list hash: fbf8dc02266f89ec0a8c7dc0738f3506
   orphan hash: 693e9af84d3dfcc71e640e005bdc5e2e
@@ -64,8 +64,8 @@ family instance modules: alphasheets-0.1.0.0:AS.Types
                          vector-0.11.0.0:Data.Vector.Storable
                          vector-0.11.0.0:Data.Vector.Unboxed
                          vector-0.11.0.0:Data.Vector.Unboxed.Base
-import  -/  AS.Util c260c8c85c79d71155fc15b28260cb67
-  exports: 889a698e7d9664843475615b4d8a95b2
+import  -/  AS.Util 7d03dc2552b02355618f794279df874f
+  exports: 061da0521eb01812fd74bf75a38cb988
 import  -/  base:GHC.Base 5d7c5f596f9a4c8a8abd8517c8bcd5dd
 import  -/  base:Prelude 74043f272d60acec1777d3461cfe5ef4
 import  -/  directory-1.2.2.1:System.Directory 2c067e3baa72dc2e9bfa0bef5698bda8

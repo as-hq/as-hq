@@ -16,7 +16,6 @@ cabal-version:       >=1.10
 library
   hs-source-dirs:      src
   exposed-modules:     Lib
-                       AS.ClientsImplementations
                        AS.DB.Util
                        AS.DB.API
                        AS.DB.Graph
@@ -35,6 +34,7 @@ library
                        AS.Parsing.In
                        AS.Parsing.Eval
                        AS.Types
+                       AS.Users
                        AS.Handler
                        AS.Daemon
   build-depends:       base >= 4.7 && < 5

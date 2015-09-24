@@ -1,10 +1,10 @@
 
 ==================== FINAL INTERFACE ====================
-2015-09-24 01:36:32.232902 UTC
+2015-09-24 03:38:27.751087 UTC
 
 interface alphasheets-0.1.0.0:AS.Daemon 7084
-  interface hash: 8dfa09928d182b0aa2c9460991253b3e
-  ABI hash: 60cb783761383950303a712b97fc229e
+  interface hash: 582ffd1ada74e5a054a92a48eca1bdb9
+  ABI hash: cfc45b7414723a732894cacbc6196d30
   export-list hash: 57b814dc83bb6b6b7ab65dff633d1809
   orphan hash: 693e9af84d3dfcc71e640e005bdc5e2e
   flag hash: f8b866267ce58dc6290b8020b2e82f8c
@@ -80,27 +80,27 @@ import  -/  AS.Config.Settings b59cada5dab6da716812ef29c8d0a55f
   exports: 0c823ce19dbdd82846e3dcfdd9e8e922
   wsAddress 7a8d106fec918735077efbed78ffc247
   wsPort cc50d45d8b9abe99ce63ebfe94d2e478
-import  -/  AS.Types 4f94c2927cba4cb4617d17e571d71325
+import  -/  AS.Types e3666650dafeff86b49d80330a77be8c
   exports: f8584b3856684401ece78f5d630831a9
   ASDaemon d9493e21917542a993ab6555c27832e9
   ASInitDaemonConnection c5119ed237776f8b0a36e26dc881efd1
   ASLocation 42b88bd590b6186a8f42af5a0deb461a
-  ASMessage dcbe93300b2953c897bbc3e5c986250a
+  ASMessage b488c6e303af3ec316847aa09e9ef416
   ASUser 8f65613dded3aab26fae493435f0f314
   Acknowledge 9fb938c25199125afed92e15e05c6217
   Cell cf2ab8ae076f48bff57c162753f8fec8
-  Message 346287d25369198e5c487b6d103d23d0
+  Message 84f4a46e37fa757190dd82d855281e02
   NoResult 831122f3f735d80c6bed31d49d86608d
-  PayloadC 99be5183b9c2f57a215fd931874c1c51
-  PayloadDaemonInit 60f9f23fe94e32b6835ef3d118a23188
+  PayloadC cf0873b14638e9746503b4b1a556d217
+  PayloadDaemonInit def90e6deb12aea113fc46a53ba05729
   ServerState 9ce35b4af6c18edb38f6401544fc8edb
   State 2d6c62b0809c3be7755965f6cdb8f5c9
   Stream 78922c57c505bbb57489546fb8ecbb83
   Stream 6c81d33552c532c9efe28662ad204551
   daemonConn a3f8f8cd3f59785160fd0c5fa0bb7ad0
-  messageUserId 7ee1f225420f9bf296b6c394fe8fdb78
-import  -/  AS.Util a1b456ad35c8f7a97ddaaa58328f3cd8
-  exports: 889a698e7d9664843475615b4d8a95b2
+  messageUserId a47f06dbba51bd08a4344136c32afe4f
+import  -/  AS.Util 7d03dc2552b02355618f794279df874f
+  exports: 061da0521eb01812fd74bf75a38cb988
   getStreamTag 74bc43d8d661010b1e29214632bf275f
   getStreamTagFromExpression df969df1b164014d22a7e1d5c349f9b1
 import  -/  base:Control.Concurrent 1be25cd1e2ac314074fafb26df0ff06b
@@ -133,7 +133,7 @@ import  -/  transformers-0.4.3.0:Control.Monad.IO.Class 1fe01dea961eadb0b037d705
 import  -/  websockets-0.9.5.0:Network.WebSockets c11cd6465abe4dc4c3ad51897e46aaa0
 import  -/  websockets-0.9.5.0:Network.WebSockets.Client b2a24cb346cf5476a898626caa5f4300
 import  -/  websockets-0.9.5.0:Network.WebSockets.Connection ae39d52893470d43c0bc592e95fce2c0
-409edf9b3f475c12ab479f41676e891b
+0a1cc65aaf1d0885e2ab126506e9dcde
   $wa :: AS.Types.Stream
          -> AS.Types.ASLocation
          -> AS.Types.ASMessage
@@ -141,7 +141,7 @@ import  -/  websockets-0.9.5.0:Network.WebSockets.Connection ae39d52893470d43c0b
          -> (# GHC.Prim.State# GHC.Prim.RealWorld, () #)
     {- Arity: 4,
        Strictness: <L,U(A,U(U))><L,U><L,U(U(U,U,U),U,U,U)><L,U> -}
-f7413a91d301c2b4772c9159cbeaa8d9
+4eb5378dd245f04eb91eac0e08f3d9af
   $wa1 :: GHC.Types.Int
           -> AS.Types.ASMessage
           -> GHC.Types.IO ()
@@ -229,7 +229,7 @@ de8ea267135d664d44000832c20c42d6
                              @ Network.WebSockets.Connection.Connection
                              (case ipv2 of wild2 { AS.Types.ASDaemon ds2 ds3 ->
                               ds3 }) #) } } }) -}
-8a227fbbb8cb9fdcf7cefddf23315c53
+3028ae832ae774917be0193746c01e83
   $wa3 :: AS.Types.ASUserId
           -> AS.Types.ASAction
           -> AS.Types.ASResult
@@ -257,7 +257,7 @@ de8ea267135d664d44000832c20c42d6
                                loc
                                (AS.Types.Message ww ww1 ww2 wild)
                                w } } }) -}
-0ec38bc004e81e3be9406f2a5987dcff
+7ef796e4df2a8da1f1e74132a9367cc3
   addDaemon :: AS.Types.ASUser
                -> GHC.MVar.MVar AS.Types.ServerState
                -> AS.Types.Stream
@@ -275,7 +275,7 @@ de8ea267135d664d44000832c20c42d6
                    ->_R <AS.Types.ASLocation>_R
                    ->_R <AS.Types.ASMessage>_R
                    ->_R Sym (GHC.Types.NTCo:IO[0] <()>_R)) -}
-6a60871c630b8b2af5068faa66f06286
+13217f54c27bd6ef15dc5a0962258bc0
   addDaemon1 :: AS.Types.ASUser
                 -> GHC.MVar.MVar AS.Types.ServerState
                 -> AS.Types.Stream
@@ -294,7 +294,7 @@ de8ea267135d664d44000832c20c42d6
                      w4 :: AS.Types.ASMessage
                      w5 :: GHC.Prim.State# GHC.Prim.RealWorld ->
                    AS.Daemon.$wa w2 w3 w4 w5) -}
-66f312592468905a3534e3e3bc6eb3d3
+d478a2c953673300ad962680c2de5eb1
   daemonFunc :: AS.Types.Stream
                 -> AS.Types.ASLocation
                 -> AS.Types.ASMessage
@@ -310,7 +310,7 @@ de8ea267135d664d44000832c20c42d6
                    ->_R <AS.Types.ASMessage>_R
                    ->_R <Network.WebSockets.Connection.Connection>_R
                    ->_R Sym (GHC.Types.NTCo:IO[0] <()>_R)) -}
-7b5f59cce8d39bd95a54867c5eb06af5
+9e0d13420a9acdc9572f489c9d7707e1
   daemonFunc1 :: AS.Types.Stream
                  -> AS.Types.ASLocation
                  -> AS.Types.ASMessage
@@ -366,7 +366,7 @@ ae1149926bb727715019fe27fcfb3353
 3bd0d7a5204e5107fe3b0fb8b958f90f
   getDaemonName1 :: [GHC.Types.Char]
     {- Unfolding: (GHC.CString.unpackCString# ".pid"#) -}
-ae5adcdc7e08b9d9bb15d46ed38ff84a
+d12b1c80ddb976661a80ea944d2f210c
   modifyDaemon :: AS.Types.ASUser
                   -> GHC.MVar.MVar AS.Types.ServerState
                   -> AS.Types.Stream
@@ -384,7 +384,7 @@ ae5adcdc7e08b9d9bb15d46ed38ff84a
                    ->_R <AS.Types.ASLocation>_R
                    ->_R <AS.Types.ASMessage>_R
                    ->_R Sym (GHC.Types.NTCo:IO[0] <()>_R)) -}
-9f9de21d57598d78eac4b4c837401748
+3a3eb3b11f5fb066752d950740de73e1
   modifyDaemon1 :: AS.Types.ASUser
                    -> GHC.MVar.MVar AS.Types.ServerState
                    -> AS.Types.Stream
@@ -499,7 +499,7 @@ b2e72e9fe3b40776a4cb5fb7de51a8b4
 d676106f6869c1acd1f31314a9fce880
   modifyDaemon6 :: Data.Text.Internal.Text
     {- Unfolding: (Data.Text.Show.unpackCString# "Bye"#) -}
-1bd39f4ab22d291db4cf58a9d48f680f
+bb568b12b0cf044afcf5de745eac5d3e
   possiblyCreateDaemon :: AS.Types.ASUser
                           -> GHC.MVar.MVar AS.Types.ServerState
                           -> AS.Types.ASMessage
@@ -513,7 +513,7 @@ d676106f6869c1acd1f31314a9fce880
                    ->_R <GHC.MVar.MVar AS.Types.ServerState>_R
                    ->_R <AS.Types.ASMessage>_R
                    ->_R Sym (GHC.Types.NTCo:IO[0] <()>_R)) -}
-4c75f84ee9be6c2ebe14d20113240145
+615caa46c3d186579a02eefdcfa8181a
   possiblyCreateDaemon1 :: AS.Types.ASUser
                            -> GHC.MVar.MVar AS.Types.ServerState
                            -> AS.Types.ASMessage

@@ -1,9 +1,9 @@
 
 ==================== FINAL INTERFACE ====================
-2015-09-24 01:36:26.488782 UTC
+2015-09-24 03:38:25.578188 UTC
 
 interface alphasheets-0.1.0.0:AS.Parsing.In [orphan module] 7084
-  interface hash: 605e715175690bed35dd2df75302b381
+  interface hash: e28b94b7d5f53d94f34d77135b339c35
   ABI hash: 98eb4c4c40887c46f7e5ad3d1e6d68e6
   export-list hash: 906b8f0955301c1a3a8c568e58f43d5d
   orphan hash: d6174961f79791bf3d1fe9f9784b3e70
@@ -81,7 +81,7 @@ family instance modules: alphasheets-0.1.0.0:AS.Types
 import  -/  AS.Parsing.Common ceccfbae6a55ecc56f531616855b9b06
   exports: b53f07d91299e788b6ffa7cfbc3e8f8f
   skip ec72fca9002c558b9355e8d8c805042d
-import  -/  AS.Types 4f94c2927cba4cb4617d17e571d71325
+import  -/  AS.Types e3666650dafeff86b49d80330a77be8c
   exports: f8584b3856684401ece78f5d630831a9
   ASLanguage 37e5d158f6c905c972eb637f34e85db0
   ASValue cf27945d6d550d5b2c4aa963af53bf25
@@ -106,8 +106,8 @@ import  -/  AS.Types 4f94c2927cba4cb4617d17e571d71325
   ValueL 3869c969a355ac446978790d8e12a1f0
   ValueNaN 9e0f3faeba6e71df041fdc817c723f2a
   ValueS 97f070b8b9566616b532060fcfb55d89
-import  -/  AS.Util a1b456ad35c8f7a97ddaaa58328f3cd8
-  exports: 889a698e7d9664843475615b4d8a95b2
+import  -/  AS.Util 7d03dc2552b02355618f794279df874f
+  exports: 061da0521eb01812fd74bf75a38cb988
   <++> 54de46b97b92869b2708595c03113312
   <:> f315b93a3f6b3b1c6bb44d252a0a0b4d
 import  -/  base:Control.Applicative 30b769206cb5c020684e1bda0d7e7dd3

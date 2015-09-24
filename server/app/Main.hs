@@ -23,10 +23,10 @@ import Data.Maybe (fromJust)
 import qualified Database.Redis as R
 
 import AS.Types
-import AS.ClientsImplementations
+import AS.Clients
 import AS.Config.Settings as S
 import AS.Util
-import AS.Clients
+import AS.Users
 import AS.DB.API as DB
 import AS.DB.Util as DBU
 import AS.Handler as H
@@ -45,43 +45,16 @@ getUserOfDaemon :: ServerState -> ASDaemon -> (Maybe ASUser)
 getUserOfDaemon (State s _ _) daemon = Nothing 
 
 -------------------------------------------------------------------------------------------------------------------------
--- | Start and end connections
-
-catchDisconnect :: (Client c) => c -> MVar ServerState -> SomeException -> IO ()
-catchDisconnect user state e = case (fromException e) of
-  Just WS.ConnectionClosed -> do 
-    putStrLn $ "\n\n\nin connection closed catch\n\n\n"
-    liftIO $ modifyMVar_ state (\s -> return $ removeClient user s)
-  otherwise -> (putStrLn (show e)) >> return ()
-
-isInitConnection :: B.ByteString -> IO Bool
-isInitConnection msg = do
-  putStrLn $ "TESTING FOR INIT CONNECTION " ++ (show msg)
-  b <- case (decode msg :: Maybe ASMessage) of 
-        Just (Message _ Acknowledge r (PayloadInit (ASInitConnection _))) -> do
-          printTimed "decoded init" 
-          return True
-        Just (Message _ Acknowledge r (PayloadDaemonInit (ASInitDaemonConnection i l))) -> do
-          printTimed "decoded init" 
-          return True
-        otherwise -> do 
-          putStrLn (show (decode msg :: Maybe ASMessage))
-          return False
-  putStrLn (show msg)
-  return b
-
--------------------------------------------------------------------------------------------------------------------------
 -- | Main
 
 main :: IO ()
 main = do
     -- initializations
     conn <- R.connect DBU.cInfo
-    state <- newMVar $ State [] [] conn
+    state <- newMVar $ State [] [] conn -- server state
     if isDebug -- set in Settings.hs 
       then initDebug conn >> return ()
       else return ()
-    -- where the heavy lifting is done
     putStrLn $ "server started on port " ++ (show S.wsPort)
     WS.runServer S.wsAddress S.wsPort $ application state
     putStrLn $ "DONE WITH MAIN"
@@ -98,37 +71,35 @@ initDebug conn = do
   return  ()
 
 application :: MVar ServerState -> WS.ServerApp
-application state pending = do
+application state pending = do -- ::ALEX_LATER:: how does this have two args?
   conn <- WS.acceptRequest pending -- initialize connection
   msg <- WS.receiveData conn -- waits until it receives data
-  isInit <- isInitConnection msg
-  if isInit
-    then handleInitConnection state conn (decode msg :: Maybe ASMessage)
-    else send (failureMessage "Cannot connect") conn
-  putStrLn $ "DONE WITH APPLICATION" -- ::ALEX:: what??
+  handleFirstMessage state conn msg 
 
-handleInitConnection :: MVar ServerState -> WS.Connection -> Maybe ASMessage -> IO ()
-handleInitConnection state conn (Just message) = do
-  case (initDaemonFromMessageAndConn message conn) of 
-    Just daemon -> something daemon state
-    Nothing -> something (initUserFromMessageAndConn message conn) state
+handleFirstMessage ::  MVar ServerState -> WS.Connection -> B.ByteString -> IO ()
+handleFirstMessage state conn msg = do
+  case (decode msg :: Maybe ASMessage) of 
+    Just m@(Message _ Acknowledge _ (PayloadInit (ASInitConnection _))) -> do -- first mesage is user init
+      initClient (initUserFromMessageAndConn m conn) state 
+    Just m@(Message _ Acknowledge _ (PayloadDaemonInit (ASInitDaemonConnection _ _))) -> do -- first message is daemon init
+      initClient (fromJust $ initDaemonFromMessageAndConn m conn) state
+    otherwise -> do -- first message is neither
+      putStrLn "First message not an initialization message"
+      sendMessage (failureMessage "Cannot connect") conn
+      -- application state pending ?? ::ALEX::
 
-something :: (Client c) => c -> MVar ServerState -> IO ()
-something client state = (flip catch) (catchDisconnect client state) $ do
-    -- adds client to state
-    liftIO $ modifyMVar_ state (\s -> return $ addClient client s)
-    -- handles all future exchanges with this client
-    talk state client
-
+initClient :: (Client c) => c -> MVar ServerState -> IO ()
+initClient client state = do 
+  liftIO $ modifyMVar_ state (\s -> return $ addClient client s) -- add client to state
+  catch (talk state client) (catchDisconnect client state)
 
 -- | Persistent connection until user disconnects
 talk :: (Client c) => MVar ServerState -> c -> IO ()
 talk state client = forever $ do
   msg <- WS.receiveData (conn client)
   putStrLn "=========================================================="
-  printTimed "SERVER message received: " 
   case (decode msg :: Maybe ASMessage) of 
-    Just m  -> processMessage client state m
+    Just m  -> printTimed ("SERVER message received:  " ++ (show msg)) >> processMessage client state m
     Nothing -> printTimed ("SERVER ERROR: unable to decode message " ++ (show msg)) >> return ()
 
 -------------------------------------------------------------------------------------------------------------------------
@@ -142,11 +113,9 @@ processMessage client state message = do
     then handleMessage client state message
     else (return ()) -- send (failureMessage "Insufficient permissions") (userConn client)
 
-  {-UpdateWindow -> do
-    liftIO $ modifyMVar_ state $ \s@(State us)-> do
-      let c = fromJust $ getUserById (userId user) s
-      let (PayloadW vw) = payload message
-      let s1 = removeUser c s
-      let s2 = State ((User (userId c) (userConn c) (vw:(userWindows c))):us) ls
-      return s2 -}
-    -- TODO send cells for scroll
+catchDisconnect :: (Client c) => c -> MVar ServerState -> SomeException -> IO ()
+catchDisconnect user state e = case (fromException e) of
+  Just WS.ConnectionClosed -> do 
+    putStrLn $ "\n\n\nin connection closed catch\n\n\n"
+    liftIO $ modifyMVar_ state (\s -> return $ removeClient user s) -- remove user from server state
+  otherwise -> (putStrLn (show e)) >> return ()

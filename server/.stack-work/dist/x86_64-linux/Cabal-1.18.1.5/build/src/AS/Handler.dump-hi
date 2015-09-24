@@ -1,10 +1,10 @@
 
 ==================== FINAL INTERFACE ====================
-2015-09-24 01:36:32.884362 UTC
+2015-09-24 03:39:09.13923 UTC
 
 interface alphasheets-0.1.0.0:AS.Handler 7084
-  interface hash: 703aedc7dd32ffd215770ad4a27b0388
-  ABI hash: 649c1dcb80309381e752657f307c8190
+  interface hash: e10acfa9c73a6ea6fd02a96598859959
+  ABI hash: 1d6b2dd30f2c6c5201ed17518f2190dc
   export-list hash: 66f69e6ed4721e215177ec932be984bd
   orphan hash: 693e9af84d3dfcc71e640e005bdc5e2e
   flag hash: f8b866267ce58dc6290b8020b2e82f8c
@@ -33,11 +33,11 @@ exports:
   AS.Handler.processRemoveTag
   AS.Handler.sendBroadcastFiltered
   AS.Handler.sendToOriginalUser
-module dependencies: AS.Clients AS.Config.Paths AS.Config.Settings
-                     AS.DB.API AS.DB.Graph AS.DB.Util AS.Daemon AS.Dispatch.Core
-                     AS.Dispatch.Repl AS.Eval.Core AS.Eval.Endware AS.Eval.Lang
-                     AS.Eval.Middleware AS.Parsing.Common AS.Parsing.Eval AS.Parsing.In
-                     AS.Parsing.Out AS.Types AS.Util
+module dependencies: AS.Config.Paths AS.Config.Settings AS.DB.API
+                     AS.DB.Graph AS.DB.Util AS.Daemon AS.Dispatch.Core AS.Dispatch.Repl
+                     AS.Eval.Core AS.Eval.Endware AS.Eval.Lang AS.Eval.Middleware
+                     AS.Parsing.Common AS.Parsing.Eval AS.Parsing.In AS.Parsing.Out
+                     AS.Types AS.Users AS.Util
 package dependencies: BoundedChan-1.0.3.0 SHA-1.6.4.2 aeson-0.8.1.1
                       array-0.5.0.0 async-2.0.2 attoparsec-0.13.0.1 base
                       base64-bytestring-1.0.0.1 binary-0.7.1.0 blaze-builder-0.4.0.1
@@ -111,11 +111,7 @@ family instance modules: alphasheets-0.1.0.0:AS.Types
                          zeromq4-haskell-0.6.3:System.ZMQ4
 import  -/  aeson-0.8.1.1:Data.Aeson 4717cd565317ade519445bba111351ae
 import  -/  aeson-0.8.1.1:Data.Aeson.Encode.ByteString 0b7a0357ab6c702b385f6d74bfdda8e2
-import  -/  AS.Clients 173bf6d382c65e051d7ddd34fbeb24fa
-  exports: 03b45c4ec680909d7f81e09daf6d7fc2
-  getUserById d54864577edc17303771d1ce79b921ed
-  modifyUser 77d7cc648931f3dd48ddfcebf38de131
-import  -/  AS.DB.API 337a0c2c60eddf207b61768b9fd1edb4
+import  -/  AS.DB.API 803eb460c2d32c4cdf889b44c1df2c6d
   exports: f4205431df73a6774c712eb5aa073d13
   createWorkbook 5875e271bbee37d26f1718c2f0235a49
   createWorkbookSheet 66a3e1645d0d0033218a5f0d92100de8
@@ -123,7 +119,7 @@ import  -/  AS.DB.API 337a0c2c60eddf207b61768b9fd1edb4
   deleteWorkbook 6319acefa1c204c9bdd8a2c181d7de9c
   deleteWorkbookSheet 728ba23b0dee9fb70c682bc51f636881
   getAllSheets 03e1fb0e8027a007148c1a5b7c7cbcb2
-  getAllWorkbookSheets dd7379818dca535eadf0e0e28093608a
+  getAllWorkbookSheets cd55802ba2f8600e8a779c3f50f154cd
   getAllWorkbooks b73084c68344135fa7971775345bf7f3
   getCell f5bd89f23687f71b1590f17381eeaa0f
   getCells d90192bcedf26c1010f64a7bb030e60d
@@ -133,27 +129,27 @@ import  -/  AS.DB.API 337a0c2c60eddf207b61768b9fd1edb4
   setCells cdb1a72e695590454ca44323763d8dfb
   undo c36df94ccf95e5dca358c1bf7fb7e7ef
   updateDAG bcbead2b607b8220aa845eb128bc390a
-import  -/  AS.Daemon 60cb783761383950303a712b97fc229e
+import  -/  AS.Daemon cfc45b7414723a732894cacbc6196d30
   exports: 57b814dc83bb6b6b7ab65dff633d1809
-  modifyDaemon ae5adcdc7e08b9d9bb15d46ed38ff84a
+  modifyDaemon d12b1c80ddb976661a80ea944d2f210c
   removeDaemon 2db8a72ec1564634884c89249df04e6f
-import  -/  AS.Dispatch.Core e9f1e64601df503fac2e8441a1722282
+import  -/  AS.Dispatch.Core dc54c633078188a0a9f5f06636603402
   exports: 7408245679348183a46622955942e273
-  runDispatchCycle e3aea045f7f65f4c580d2abf42e329b7
-import  -/  AS.Dispatch.Repl bd13ab6e0bc070b137c4e7c347fffdaa
+  runDispatchCycle 2d7acab4e080f16080a86dfdf3e75b50
+import  -/  AS.Dispatch.Repl 2743c858e6878621de60e31546456340
   exports: b0ab7c62ba7eb78ca2d447fc618e5ff8
-  runReplDispatch 25c49773f9b91763403ea7a8f2f75c37
+  runReplDispatch 5239828baf1f9dc41e208e9e73a94cd0
 import  -/  AS.Parsing.Out dd270cee574919ef59c3b5c824275231
   exports: b4cc2ee9878e9c201d4134316c957a72
   shiftCell a98b7ddc2a759cd336050fa0d7b58cf7
-import  -/  AS.Types 4f94c2927cba4cb4617d17e571d71325
+import  -/  AS.Types e3666650dafeff86b49d80330a77be8c
   exports: f8584b3856684401ece78f5d630831a9
   ASCell bede131762bf9e6165d28069305c9a8f
   ASCellTag 41914e4ed00db1adb7aa05558d91cd06
   ASCommit cd37bafad7a1ba0bf823b5565484da25
   ASLocation 42b88bd590b6186a8f42af5a0deb461a
-  ASMessage dcbe93300b2953c897bbc3e5c986250a
-  ASPayload 5513641e8f2a7cd4d500cf76acfdc97d
+  ASMessage b488c6e303af3ec316847aa09e9ef416
+  ASPayload 11aec08e8dd419af745af089eecdc8d0
   ASUser 8f65613dded3aab26fae493435f0f314
   AddTags ceb01b8892b566c57dfe1b63145b1baa
   Cell cf2ab8ae076f48bff57c162753f8fec8
@@ -161,23 +157,23 @@ import  -/  AS.Types 4f94c2927cba4cb4617d17e571d71325
   Delete c9343008fb26d1b5bba554f2675bb479
   Evaluate 0016d98b7ff475be6a9673f425925dbc
   Failure 9946650b22bb6e567b42b8da3b105d7a
-  Message 346287d25369198e5c487b6d103d23d0
+  Message 84f4a46e37fa757190dd82d855281e02
   NoResult 831122f3f735d80c6bed31d49d86608d
-  PayloadC 99be5183b9c2f57a215fd931874c1c51
-  PayloadCL b406e63fdc61d6ff507d0e33b744b6b6
-  PayloadCommit 0be2478b3175ee882953681bf2116864
-  PayloadE 9c3352ff67e75909ec8b236c27dfa2a2
-  PayloadL bd326e671ed4275a64e98bddf7623de3
-  PayloadLL 2beb19740eff6e69ddcfbcee9304570c
-  PayloadList 791c4ac2405f7a4c6ba78c64628ad05c
-  PayloadN 9e862096c163d9f87002fd0c78ed615b
-  PayloadS a761afac80311f24a935b00e09aeac89
-  PayloadSS 13404122ca522f9c0d42ea90a40e2c45
-  PayloadTags b0223cd048ff05b67533b42bcb2a911a
-  PayloadW abccecf9e5a9e4eecbe2727851434d87
-  PayloadWB d7349811d6b2332672cf9f34e0e0eabc
-  PayloadWBS 8569f5ba8826d1d70949bcc680065323
-  PayloadWorkbookSheets a9d4c2305489132dd0ed392b9b98f836
+  PayloadC cf0873b14638e9746503b4b1a556d217
+  PayloadCL 986b2bbb852717bf17df4cc79495cabe
+  PayloadCommit 0376b8d0c45dbf0284cec420e98db3ad
+  PayloadE 0f4ebe1c626086e67db4fceb7a3edb72
+  PayloadL a2d0427388bd6428f59503b5e212ace5
+  PayloadLL bcd89933b71bfbabdea5ca6d4a61bdd0
+  PayloadList bd33190f2a6d5e10d839360d2a4c3f48
+  PayloadN b41903296b9876a7e39be149f2893a16
+  PayloadS bdb42d7d8eded81f79a495640a8bb962
+  PayloadSS 1fef6f267e79ec9480b8531569263927
+  PayloadTags a07d0e7a253d0c0e56c11876f2df0ecf
+  PayloadW c8441fb392de8d26154362026c0227b6
+  PayloadWB e1f59bae7e9c84891efc59dd7aed05b1
+  PayloadWBS 6bbe3a908160647445a3221d65b784e9
+  PayloadWorkbookSheets 1fd24eb204f7e4f8ce329ee64762a5ab
   Redo 668e7de413aa0c69a3d1e17e29e0c36a
   RemoveTags 62f303945a26e14570d29b45218e4008
   ServerState 9ce35b4af6c18edb38f6401544fc8edb
@@ -196,19 +192,23 @@ import  -/  AS.Types 4f94c2927cba4cb4617d17e571d71325
   before 48a29fee99082ed8de0c508d2686c878
   cellLocation 57eff0be9dcc5df8973c2d9de1095be4
   dbConn 8322ea2cd349a8dd93b7785150bce0cf
-  failureMessage 9bb9e07e72e35fc083fcc9cb940b48c7
-  messageUserId 7ee1f225420f9bf296b6c394fe8fdb78
+  failureMessage 789568aa44108a849956a7ba8056a3d2
+  messageUserId a47f06dbba51bd08a4344136c32afe4f
   userConn 162633061242d173c03acd2ac9d51cab
   userId 85217dd9f2d9550b6e0817800ca98d66
   windowSheetId 63930e183ffb681090da00d843f4e165
   windows 515a1209c81b93b4e7054b1ad120a76f
   workbookName 94e7971a7eb0201351e161b545d4bebe
   workbookSheets 26d6100b8bd17c2ca420063ca816064d
-import  -/  AS.Util a1b456ad35c8f7a97ddaaa58328f3cd8
-  exports: 889a698e7d9664843475615b4d8a95b2
+import  -/  AS.Users e1438f0faddefa8ee035d8c7af689004
+  exports: 504f367f0f4fc0f122f958c4e63ec0f9
+  getUserById 58604b4a16eacfd942d63bbf08ff6cab
+  modifyUser 98bd738756947fe53170761e563a72a4
+import  -/  AS.Util 7d03dc2552b02355618f794279df874f
+  exports: 061da0521eb01812fd74bf75a38cb988
   filterNothing fe7e1f608e50ce271b2415f3a19f7abe
   generateErrorMessage 4b74e131547a8909b0158ddcb9c53148
-  getDBCellMessage 456a8021a699c19c85521d69da537a4f
+  getDBCellMessage 2c8a906d579164ccf3348818c11c2236
   getOffsetBetweenLocs a6607d93da5d86670e923e68c1680f29
   getScrolledLocs 39e5e61832aeb02226917a0b7f89dca3
   getWindow eb52a544b59037659d20819a8d3d5a97
@@ -217,7 +217,7 @@ import  -/  AS.Util a1b456ad35c8f7a97ddaaa58328f3cd8
   isSubsetOf 82e5b136dfc8cfd4c920a761825edbb8
   isoFilter 9a6dba2f2000b050cd4cfdc1f0c7dec0
   printTimed 35cb21e1f23638a3173441d7200c130f
-  updateMessageUser abfaaeaf925ec0af586cf3efad6488e4
+  updateMessageUser a4f40572f7d98429b194998fe54e662c
   updateWindow d5d0ed20133a00f072c0d43e9a6ce529
 import  -/  base:Control.Concurrent 1be25cd1e2ac314074fafb26df0ff06b
 import  -/  base:Control.Exception 7d63ae88211a26e1cc154f7ca3a7313a
@@ -239,7 +239,7 @@ import  -/  text-1.2.1.1:Data.Text ddf865ef7152d1de0d03707558cc6523
 import  -/  transformers-0.4.3.0:Control.Monad.IO.Class 1fe01dea961eadb0b037d705f6cb22bb
 import  -/  websockets-0.9.5.0:Network.WebSockets c11cd6465abe4dc4c3ad51897e46aaa0
 import  -/  websockets-0.9.5.0:Network.WebSockets.Connection ae39d52893470d43c0bc592e95fce2c0
-9f964846d7b80a1561dbf3e97ec82f01
+6f580c2e9343a385c9413292f091f45c
   $wa :: GHC.Prim.MVar# GHC.Prim.RealWorld AS.Types.ServerState
          -> AS.Types.ASMessage
          -> GHC.Prim.State# GHC.Prim.RealWorld
@@ -286,7 +286,7 @@ import  -/  websockets-0.9.5.0:Network.WebSockets.Connection ae39d52893470d43c0b
                             a2 ys ipv2 } } } }
                    } in
                    a2 u ipv } }) -}
-0d96b5163583221cc325dd798547e54d
+edd5ad08b0a9789ab47854354504272f
   $wa1 :: AS.Types.ASUserId
           -> AS.Types.ASAction
           -> AS.Types.ASResult
@@ -296,7 +296,7 @@ import  -/  websockets-0.9.5.0:Network.WebSockets.Connection ae39d52893470d43c0b
           -> (# GHC.Prim.State# GHC.Prim.RealWorld, () #)
     {- Arity: 6,
        Strictness: <L,1*U><L,1*U><L,1*U><S,1*U><S,1*U><L,U> -}
-c33706086d2e9d199917ce5e4599d503
+e81d6d2cb3d3308d1072ceed10d4507f
   $wa10 :: AS.Types.ASUser
            -> GHC.Prim.MVar# GHC.Prim.RealWorld AS.Types.ServerState
            -> AS.Types.ASPayload
@@ -304,7 +304,7 @@ c33706086d2e9d199917ce5e4599d503
            -> (# GHC.Prim.State# GHC.Prim.RealWorld, () #)
     {- Arity: 4,
        Strictness: <L,1*U(1*U,1*U(1*H,1*H,1*H,C1(C1(U(U,U))),A),A)><L,U><S,1*U><L,U> -}
-6f20a0bb9bc381a0ebf07db1c58ced5a
+82aabe28ceb9734680228952c7145841
   $wa11 :: GHC.Prim.MVar# GHC.Prim.RealWorld AS.Types.ServerState
            -> AS.Types.ASUserId
            -> AS.Types.ASAction
@@ -413,7 +413,7 @@ c33706086d2e9d199917ce5e4599d503
                                -> case AS.Handler.handleNew2
                                   ret_ty (# GHC.Prim.State# GHC.Prim.RealWorld, () #)
                                   of {} } } }) -}
-d04d671e8f347d843d82e567fc0812ab
+2ca4a286a716a91791f57e8b058dfb6e
   $wa12 :: AS.Types.ASUser
            -> GHC.MVar.MVar AS.Types.ServerState
            -> AS.Types.ASPayload
@@ -438,7 +438,7 @@ d04d671e8f347d843d82e567fc0812ab
                               AS.Handler.handleOpen2
                               AS.Handler.handleOpen2
                         } in
-                        AS.Clients.modifyUser1
+                        AS.Users.modifyUser1
                           (\ ds3 :: AS.Types.ASUser ->
                            case ds3 of wild2 { AS.Types.UserClient uid conn windows ->
                            AS.Types.UserClient
@@ -448,7 +448,7 @@ d04d671e8f347d843d82e567fc0812ab
                           w
                           w1
                           w2 } }) -}
-edc91d238b9d4d5168065c8d9878701c
+352c8f304aaaef05c8fed89b13aaf517
   $wa13 :: AS.Types.ASUser
            -> GHC.Prim.MVar# GHC.Prim.RealWorld AS.Types.ServerState
            -> GHC.Prim.State# GHC.Prim.RealWorld
@@ -498,7 +498,7 @@ edc91d238b9d4d5168065c8d9878701c
                           (AS.Types.PayloadCommit c)
                           allUsers
                           ipv4 } } } } }) -}
-e4e08401a1b754aede946241b1f2e42f
+cf9f7e3081182f2f5c8e540599b24e5d
   $wa14 :: AS.Types.ASUser
            -> GHC.MVar.MVar AS.Types.ServerState
            -> AS.Types.ASPayload
@@ -547,7 +547,7 @@ e4e08401a1b754aede946241b1f2e42f
                           `cast`
                         (GHC.Types.NTCo:IO[0] <()>_R)
                           ipv } } } }) -}
-4e93929a3054ad287d7e17d87842016d
+b34ec33789c07701f6912219d4ef1377
   $wa15 :: AS.Types.ASLocation
            -> GHC.Prim.MVar# GHC.Prim.RealWorld AS.Types.ServerState
            -> AS.Types.ASCellTag
@@ -587,21 +587,6 @@ e4e08401a1b754aede946241b1f2e42f
                                     ipv2 }
                           Data.Maybe.Just c
                           -> case c of wild2 { AS.Types.Cell l e v ts ->
-                             let {
-                               a1 :: [AS.Types.ASCellTag]
-                               = Data.List.deleteBy
-                                   @ AS.Types.ASCellTag
-                                   AS.Types.$fEqASCellTag_$c==
-                                   w1
-                                   ts
-                             } in
-                             let {
-                               c1 :: AS.Types.ASCell {- Strictness: m -} = AS.Types.Cell l e v a1
-                             } in
-                             let {
-                               lvl9 :: [AS.Types.ASCell]
-                               = GHC.Types.: @ AS.Types.ASCell c1 (GHC.Types.[] @ AS.Types.ASCell)
-                             } in
                              case (Data.Pool.withResource_$swithResource
                                      @ (Database.Redis.ProtocolPipelining.Connection
                                             Database.Redis.Protocol.Reply)
@@ -612,7 +597,19 @@ e4e08401a1b754aede946241b1f2e42f
                                      (\ eta1 :: Database.Redis.ProtocolPipelining.Connection
                                                     Database.Redis.Protocol.Reply
                                         eta2 :: GHC.Prim.State# GHC.Prim.RealWorld ->
-                                      case ((AS.DB.API.setCell_go lvl9)
+                                      case ((AS.DB.API.setCell_go
+                                               (GHC.Types.:
+                                                  @ AS.Types.ASCell
+                                                  (AS.Types.Cell
+                                                     l
+                                                     e
+                                                     v
+                                                     (Data.List.deleteBy
+                                                        @ AS.Types.ASCellTag
+                                                        AS.Types.$fEqASCellTag_$c==
+                                                        w1
+                                                        ts))
+                                                  (GHC.Types.[] @ AS.Types.ASCell)))
                                               `cast`
                                             (Trans
                                                  (Database.Redis.Core.NTCo:Redis[0] <()>_N)
@@ -643,7 +640,7 @@ e4e08401a1b754aede946241b1f2e42f
                                     w
                                     (GHC.MVar.MVar @ AS.Types.ServerState ww)
                                     ipv4 } } } } } } }) -}
-b034c1785b3d1e55e668f0f5b27cec0f
+31ddcf963a7b9588e01d0196b748b966
   $wa16 :: AS.Types.ASUser
            -> GHC.Prim.MVar# GHC.Prim.RealWorld AS.Types.ServerState
            -> GHC.Prim.State# GHC.Prim.RealWorld
@@ -693,7 +690,7 @@ b034c1785b3d1e55e668f0f5b27cec0f
                           (AS.Types.PayloadCommit c)
                           allUsers
                           ipv4 } } } } }) -}
-a57fdcb18a4ff6afcb013daef893bafa
+e9745a49df060a65a6e47949d8744777
   $wa17 :: AS.Types.ASUser
            -> GHC.Prim.MVar# GHC.Prim.RealWorld AS.Types.ServerState
            -> AS.Types.ASPayload
@@ -701,7 +698,7 @@ a57fdcb18a4ff6afcb013daef893bafa
            -> (# GHC.Prim.State# GHC.Prim.RealWorld, () #)
     {- Arity: 4,
        Strictness: <L,1*U(1*U(U,U,U),A,A)><L,U><S,1*U><L,U> -}
-8479a7666261ea154eabfe047bd48b98
+f51b7ec750b1bb79d5301085edb2bcfd
   $wa2 :: AS.Types.ASUser
           -> GHC.MVar.MVar AS.Types.ServerState
           -> AS.Types.ASUserId
@@ -760,7 +757,7 @@ a57fdcb18a4ff6afcb013daef893bafa
                           `cast`
                         (GHC.Types.NTCo:IO[0] <()>_R)
                           ipv } } } }) -}
-756bce7c2192ea0db2fe12072f34ed36
+d137ed5f78617df89c4d9d996f9c3ec7
   $wa3 :: GHC.Prim.MVar# GHC.Prim.RealWorld AS.Types.ServerState
           -> AS.Types.ASLocation
           -> AS.Types.ASMessage
@@ -841,22 +838,7 @@ a57fdcb18a4ff6afcb013daef893bafa
                                     w2
                                     ts of wild3 {
                                GHC.Types.False
-                               -> let {
-                                    a1 :: [AS.Types.ASCellTag]
-                                    = GHC.Types.: @ AS.Types.ASCellTag w2 ts
-                                  } in
-                                  let {
-                                    c1 :: AS.Types.ASCell {- Strictness: m -}
-                                    = AS.Types.Cell l e v a1
-                                  } in
-                                  let {
-                                    lvl9 :: [AS.Types.ASCell]
-                                    = GHC.Types.:
-                                        @ AS.Types.ASCell
-                                        c1
-                                        (GHC.Types.[] @ AS.Types.ASCell)
-                                  } in
-                                  case (Data.Pool.withResource_$swithResource
+                               -> case (Data.Pool.withResource_$swithResource
                                           @ (Database.Redis.ProtocolPipelining.Connection
                                                  Database.Redis.Protocol.Reply)
                                           @ ()
@@ -866,7 +848,15 @@ a57fdcb18a4ff6afcb013daef893bafa
                                           (\ eta1 :: Database.Redis.ProtocolPipelining.Connection
                                                          Database.Redis.Protocol.Reply
                                              eta2 :: GHC.Prim.State# GHC.Prim.RealWorld ->
-                                           case ((AS.DB.API.setCell_go lvl9)
+                                           case ((AS.DB.API.setCell_go
+                                                    (GHC.Types.:
+                                                       @ AS.Types.ASCell
+                                                       (AS.Types.Cell
+                                                          l
+                                                          e
+                                                          v
+                                                          (GHC.Types.: @ AS.Types.ASCellTag w2 ts))
+                                                       (GHC.Types.[] @ AS.Types.ASCell)))
                                                    `cast`
                                                  (Trans
                                                       (Database.Redis.Core.NTCo:Redis[0] <()>_N)
@@ -892,7 +882,7 @@ a57fdcb18a4ff6afcb013daef893bafa
                                          ipv2 of ds4 { (#,#) ipv4 ipv5 ->
                                   $w$j ipv4 }
                                GHC.Types.True -> $w$j ipv2 } } } } } }) -}
-a1a5fb86dbb62b723905835d3ff9ee89
+1ec66c477b510d1dff1d1b83bb56ebc4
   $wa4 :: AS.Types.ASUser
           -> GHC.MVar.MVar AS.Types.ServerState
           -> AS.Types.ASPayload
@@ -958,7 +948,7 @@ a1a5fb86dbb62b723905835d3ff9ee89
                             case ww2 of ww5 { Data.Text.Internal.Text ww6 ww7 ww8 ->
                             $wlvl ww6 ww7 ww8 } }
                         } in
-                        AS.Clients.modifyUser1
+                        AS.Users.modifyUser1
                           (\ ds3 :: AS.Types.ASUser ->
                            case ds3 of wild2 { AS.Types.UserClient uid conn windows ->
                            AS.Types.UserClient
@@ -968,7 +958,7 @@ a1a5fb86dbb62b723905835d3ff9ee89
                           w
                           w1
                           w2 } }) -}
-257e48d8b445c64fa796a0732a6f62ab
+36b7f912c2218352d60cb82838d5d9ef
   $wa5 :: AS.Types.ASUser
           -> GHC.Prim.MVar# GHC.Prim.RealWorld AS.Types.ServerState
           -> AS.Types.ASPayload
@@ -976,7 +966,7 @@ a1a5fb86dbb62b723905835d3ff9ee89
           -> (# GHC.Prim.State# GHC.Prim.RealWorld, () #)
     {- Arity: 4,
        Strictness: <L,1*U(1*U(U,U,U),1*U(1*H,1*H,1*H,C1(C1(U(U,U))),A),A)><L,U><S,1*U><L,U> -}
-6ba9b5fc49af72ad248777c8c4767a20
+80f634083be4a8270de5b26687ffdca8
   $wa6 :: AS.Types.ASPayload
           -> GHC.Prim.State# GHC.Prim.RealWorld
           -> (# GHC.Prim.State# GHC.Prim.RealWorld, () #)
@@ -1007,7 +997,7 @@ a1a5fb86dbb62b723905835d3ff9ee89
                                     -> case AS.Handler.handleCopyForced2
                                        ret_ty (# GHC.Prim.State# GHC.Prim.RealWorld, () #)
                                        of {} } } } }) -}
-c98391d0c95220c897f4c1a4819f0756
+a14fba086030ff3d0d8f4a3a5d1b5e15
   $wa7 :: AS.Types.ASUser
           -> GHC.Prim.MVar# GHC.Prim.RealWorld AS.Types.ServerState
           -> AS.Types.ASPayload
@@ -1015,7 +1005,7 @@ c98391d0c95220c897f4c1a4819f0756
           -> (# GHC.Prim.State# GHC.Prim.RealWorld, () #)
     {- Arity: 4,
        Strictness: <L,1*U(1*U(U,U,U),A,A)><L,U><S,1*U><L,U> -}
-bd666a9eb7b66110b809c4f2040208d0
+4884d3e660a958971d35674eb6622d11
   $wa8 :: AS.Types.ASUser
           -> GHC.MVar.MVar AS.Types.ServerState
           -> AS.Types.ASAction
@@ -1058,7 +1048,7 @@ bd666a9eb7b66110b809c4f2040208d0
                           `cast`
                         (GHC.Types.NTCo:IO[0] <()>_R)
                           w2 } } }) -}
-647f1b1c84c3bfb88f0cec072c7e4f65
+99c52446ade70e6abceecc6e4a689f96
   $wa9 :: AS.Types.ASUser
           -> AS.Types.ASMessage
           -> GHC.Prim.State# GHC.Prim.RealWorld
@@ -1105,7 +1095,7 @@ bd666a9eb7b66110b809c4f2040208d0
                           `cast`
                         (GHC.Types.NTCo:IO[0] <()>_R)
                           ipv2 } } } } } }) -}
-86c4189be9096dff2ed36bbbfd8e4c62
+bf8ab7f9e6895b3b03e3858a2c8637b3
   broadcast :: GHC.MVar.MVar AS.Types.ServerState
                -> AS.Types.ASMessage
                -> GHC.Types.IO ()
@@ -1116,7 +1106,7 @@ bd666a9eb7b66110b809c4f2040208d0
                   (<GHC.MVar.MVar AS.Types.ServerState>_R
                    ->_R <AS.Types.ASMessage>_R
                    ->_R Sym (GHC.Types.NTCo:IO[0] <()>_R)) -}
-3803b68bb4976ae3f9a30ea58f90d431
+da17768663827b2bd5e3c8b31cdf7ce6
   broadcast1 :: GHC.MVar.MVar AS.Types.ServerState
                 -> AS.Types.ASMessage
                 -> GHC.Prim.State# GHC.Prim.RealWorld
@@ -1128,7 +1118,7 @@ bd666a9eb7b66110b809c4f2040208d0
                      w1 :: AS.Types.ASMessage
                      w2 :: GHC.Prim.State# GHC.Prim.RealWorld ->
                    case w of ww { GHC.MVar.MVar ww1 -> AS.Handler.$wa ww1 w1 w2 }) -}
-08de8c524141954879f21081e415d423
+c35766cf00462ef7ac37aec438777150
   broadcastFiltered :: AS.Types.ASMessage
                        -> [AS.Types.ASUser]
                        -> GHC.Types.IO ()
@@ -1140,7 +1130,7 @@ bd666a9eb7b66110b809c4f2040208d0
                   (<AS.Types.ASMessage>_R
                    ->_R <[AS.Types.ASUser]>_R
                    ->_R Sym (GHC.Types.NTCo:IO[0] <()>_R)) -}
-8a0eeb3ab675824a1eb639ef4309c7d9
+0f69bdd46238656e6af4ae93e689f813
   broadcastFiltered1 :: AS.Types.ASMessage
                         -> [AS.Types.ASUser]
                         -> GHC.Prim.State# GHC.Prim.RealWorld
@@ -1154,7 +1144,7 @@ bd666a9eb7b66110b809c4f2040208d0
                      w2 :: GHC.Prim.State# GHC.Prim.RealWorld ->
                    case w of ww { AS.Types.Message ww1 ww2 ww3 ww4 ->
                    AS.Handler.$wa1 ww1 ww2 ww3 ww4 w1 w2 }) -}
-e677f622dffa61c278e5a302e2dfb5d1
+b55e1a38022d11f703a7df1003ccebda
   handleAddTags :: AS.Types.ASUser
                    -> GHC.MVar.MVar AS.Types.ServerState
                    -> AS.Types.ASMessage
@@ -1168,7 +1158,7 @@ e677f622dffa61c278e5a302e2dfb5d1
                    ->_R <GHC.MVar.MVar AS.Types.ServerState>_R
                    ->_R <AS.Types.ASMessage>_R
                    ->_R Sym (GHC.Types.NTCo:IO[0] <()>_R)) -}
-afffae0a40de75417d32a118097c8d73
+3aeb4fc901a05b31adca6fe34dc0f3b0
   handleAddTags1 :: AS.Types.ASUser
                     -> GHC.MVar.MVar AS.Types.ServerState
                     -> AS.Types.ASMessage
@@ -1184,7 +1174,7 @@ afffae0a40de75417d32a118097c8d73
                      w3 :: GHC.Prim.State# GHC.Prim.RealWorld ->
                    case w2 of ww { AS.Types.Message ww1 ww2 ww3 ww4 ->
                    AS.Handler.$wa2 w w1 ww1 ww4 w3 }) -}
-c1136abb37a60fced0998690300d9205
+660ad16f9b3f1c51da17a0e1ea95445a
   handleAddTags2 :: AS.Types.ASPayload
     {- HasNoCafRefs, Strictness: m1,
        Unfolding: (AS.Types.PayloadN GHC.Tuple.()) -}
@@ -1194,7 +1184,7 @@ e6064dcaf18efd5104d0df50e5a94fd4
   handleAddTags4 :: AS.Types.ASAction {- Strictness: b -}
 2ac15358001aa37bf9c16981b8be02bc
   handleAddTags5 :: GHC.Types.IO () {- Strictness: b -}
-65a12bcef450b05ee7a56396d41b3231
+fcf069369c2918d1583e7e4aad5d08a3
   handleClear :: AS.Types.ASUser
                  -> GHC.MVar.MVar AS.Types.ServerState
                  -> GHC.Types.IO ()
@@ -1205,7 +1195,7 @@ e6064dcaf18efd5104d0df50e5a94fd4
                    (<AS.Types.ASUser>_R
                     ->_R <GHC.MVar.MVar AS.Types.ServerState>_R
                     ->_R Sym (GHC.Types.NTCo:IO[0] <()>_R))) -}
-b2fdd104f71439751b6923fa19162be5
+ae19c749775eebf2b323ca8c6121024c
   handleClear1 :: AS.Types.ASUser
                   -> GHC.MVar.MVar AS.Types.ServerState
                   -> GHC.Prim.State# GHC.Prim.RealWorld
@@ -1235,7 +1225,7 @@ a39037bbbd8fa0cd84040f44e6078ca6
   handleClear2 :: AS.Types.ASResult
     {- HasNoCafRefs, Strictness: m2,
        Unfolding: (AS.Types.Failure (GHC.Types.[] @ GHC.Types.Char)) -}
-e0bb02fec77f778db8436114e030edd9
+af6ca3365a615db6ddf68ac28a8e7581
   handleClose :: AS.Types.ASUser
                  -> GHC.MVar.MVar AS.Types.ServerState
                  -> AS.Types.ASMessage
@@ -1249,7 +1239,7 @@ e0bb02fec77f778db8436114e030edd9
                    ->_R <GHC.MVar.MVar AS.Types.ServerState>_R
                    ->_R <AS.Types.ASMessage>_R
                    ->_R Sym (GHC.Types.NTCo:IO[0] <()>_R)) -}
-6d56c5f580c5d012790dda1d9fc94a7e
+bd54976b12eae282a23fa76d5200e969
   handleClose1 :: AS.Types.ASUser
                   -> GHC.MVar.MVar AS.Types.ServerState
                   -> AS.Types.ASMessage
@@ -1267,7 +1257,7 @@ e0bb02fec77f778db8436114e030edd9
                    AS.Handler.$wa4 w w1 ww4 w3 }) -}
 75bfb117cfdef7ce74e6c335ab48f138
   handleClose2 :: GHC.Types.IO () {- Strictness: b -}
-de42a7e404c8e65e08e9a740853b7475
+2cf51d8fb4e9befe58e00ceba9e67bcd
   handleCopy :: AS.Types.ASUser
                 -> GHC.MVar.MVar AS.Types.ServerState
                 -> AS.Types.ASPayload
@@ -1281,7 +1271,7 @@ de42a7e404c8e65e08e9a740853b7475
                    ->_R <GHC.MVar.MVar AS.Types.ServerState>_R
                    ->_R <AS.Types.ASPayload>_R
                    ->_R Sym (GHC.Types.NTCo:IO[0] <()>_R)) -}
-b1eee5cd8ad41bf68824a4e555a77622
+c0d2dfcdf91058597e18b0899fb75c55
   handleCopy1 :: AS.Types.ASUser
                  -> GHC.MVar.MVar AS.Types.ServerState
                  -> AS.Types.ASPayload
@@ -1297,7 +1287,7 @@ b1eee5cd8ad41bf68824a4e555a77622
                      w3 :: GHC.Prim.State# GHC.Prim.RealWorld ->
                    case w1 of ww { GHC.MVar.MVar ww1 ->
                    AS.Handler.$wa5 w ww1 w2 w3 }) -}
-d8ab075f648d7f1782d4106d48f9d380
+a8242851c77ea82ac97851e2a7ecadcb
   handleCopyForced :: AS.Types.ASUser
                       -> GHC.MVar.MVar AS.Types.ServerState
                       -> AS.Types.ASPayload
@@ -1310,7 +1300,7 @@ d8ab075f648d7f1782d4106d48f9d380
                    ->_R <GHC.MVar.MVar AS.Types.ServerState>_R
                    ->_R <AS.Types.ASPayload>_R
                    ->_R Sym (GHC.Types.NTCo:IO[0] <()>_R)) -}
-14ac311f02cd020bdadc3897fbd91c70
+7bce512969e4bf78452a7624cfe55d39
   handleCopyForced1 :: AS.Types.ASUser
                        -> GHC.MVar.MVar AS.Types.ServerState
                        -> AS.Types.ASPayload
@@ -1325,7 +1315,7 @@ d8ab075f648d7f1782d4106d48f9d380
                    AS.Handler.$wa6 w2 w3) -}
 f79224129c428a19b87fc11bcdc41d8c
   handleCopyForced2 :: GHC.Types.IO () {- Strictness: b -}
-9c0f8ac9a727a284f36bbcdec6ab8bda
+90ec430a9fbd602522f868e671a77725
   handleDelete :: AS.Types.ASUser
                   -> GHC.MVar.MVar AS.Types.ServerState
                   -> AS.Types.ASPayload
@@ -1339,7 +1329,7 @@ f79224129c428a19b87fc11bcdc41d8c
                    ->_R <GHC.MVar.MVar AS.Types.ServerState>_R
                    ->_R <AS.Types.ASPayload>_R
                    ->_R Sym (GHC.Types.NTCo:IO[0] <()>_R)) -}
-5d9c32d6d6e2329aa500ab1316431132
+8d28524075f0a6005223a2ad24171555
   handleDelete1 :: AS.Types.ASUser
                    -> GHC.MVar.MVar AS.Types.ServerState
                    -> AS.Types.ASPayload
@@ -1355,7 +1345,7 @@ f79224129c428a19b87fc11bcdc41d8c
                      w3 :: GHC.Prim.State# GHC.Prim.RealWorld ->
                    case w1 of ww { GHC.MVar.MVar ww1 ->
                    AS.Handler.$wa7 w ww1 w2 w3 }) -}
-0b085247b2755e0f8ea7c6185e293358
+cc2061ff9fc4e77479a640e50d6f7ec3
   handleEval :: AS.Types.ASUser
                 -> GHC.MVar.MVar AS.Types.ServerState
                 -> AS.Types.ASMessage
@@ -1368,7 +1358,7 @@ f79224129c428a19b87fc11bcdc41d8c
                     ->_R <GHC.MVar.MVar AS.Types.ServerState>_R
                     ->_R <AS.Types.ASMessage>_R
                     ->_R Sym (GHC.Types.NTCo:IO[0] <()>_R))) -}
-568b0a0f9d9bb613a5449adfb4130f0d
+dabb5cc2f406c56ffa0a05b53f134d27
   handleEval1 :: AS.Types.ASUser
                  -> GHC.MVar.MVar AS.Types.ServerState
                  -> AS.Types.ASMessage
@@ -1420,7 +1410,7 @@ f79224129c428a19b87fc11bcdc41d8c
                            (GHC.Types.[] @ GHC.Types.Char) }))
                      GHC.Types.True
                      eta) -}
-4a9238eb0b13173fabd2fa57d56c320b
+f77f8501d8a9b6218259af0379adbb94
   handleEval3 :: AS.Types.ASUser
                  -> GHC.MVar.MVar AS.Types.ServerState
                  -> AS.Types.ASMessage
@@ -1439,7 +1429,7 @@ f79224129c428a19b87fc11bcdc41d8c
 bec3ce7c1b1027ee49370a68640e2182
   handleEval4 :: [GHC.Types.Char]
     {- Unfolding: (GHC.CString.unpackCString# "IN EVAL HANDLER"#) -}
-1b0fac44b9fe5495dd8c8ec98b1c7ccd
+5a903d526c35c605506c0d241ffbfb55
   handleEvalRepl :: AS.Types.ASUser
                     -> GHC.MVar.MVar AS.Types.ServerState
                     -> AS.Types.ASMessage
@@ -1453,7 +1443,7 @@ bec3ce7c1b1027ee49370a68640e2182
                    ->_R <GHC.MVar.MVar AS.Types.ServerState>_R
                    ->_R <AS.Types.ASMessage>_R
                    ->_R Sym (GHC.Types.NTCo:IO[0] <()>_R)) -}
-422ac0a3ae8b8120d2d68de3219c37ec
+42c4e689ccde2ca6e229183b2bb1feb0
   handleEvalRepl1 :: AS.Types.ASUser
                      -> GHC.MVar.MVar AS.Types.ServerState
                      -> AS.Types.ASMessage
@@ -1468,7 +1458,7 @@ bec3ce7c1b1027ee49370a68640e2182
                      w2 :: AS.Types.ASMessage
                      w3 :: GHC.Prim.State# GHC.Prim.RealWorld ->
                    AS.Handler.$wa9 w w2 w3) -}
-98e508e2e8a89de93a80e899ef6c982b
+8e714cec7b7bb57578830221afc090ec
   handleGet :: AS.Types.ASUser
                -> GHC.MVar.MVar AS.Types.ServerState
                -> AS.Types.ASPayload
@@ -1482,7 +1472,7 @@ bec3ce7c1b1027ee49370a68640e2182
                    ->_R <GHC.MVar.MVar AS.Types.ServerState>_R
                    ->_R <AS.Types.ASPayload>_R
                    ->_R Sym (GHC.Types.NTCo:IO[0] <()>_R)) -}
-6b8d2b79e879f8d3d3ade136ec96ace0
+bbd14de35a3f7abfd860c8cd30cce7b4
   handleGet1 :: AS.Types.ASUser
                 -> GHC.MVar.MVar AS.Types.ServerState
                 -> AS.Types.ASPayload
@@ -1498,7 +1488,7 @@ bec3ce7c1b1027ee49370a68640e2182
                      w3 :: GHC.Prim.State# GHC.Prim.RealWorld ->
                    case w1 of ww { GHC.MVar.MVar ww1 ->
                    AS.Handler.$wa10 w ww1 w2 w3 }) -}
-0e8bdad95da0318917bd9a9424115d1f
+21289b92d8b9edfe2565d3ab5e5da78d
   handleImport :: AS.Types.ASUser
                   -> GHC.MVar.MVar AS.Types.ServerState
                   -> AS.Types.ASMessage
@@ -1511,7 +1501,7 @@ bec3ce7c1b1027ee49370a68640e2182
                    ->_R <GHC.MVar.MVar AS.Types.ServerState>_R
                    ->_R <AS.Types.ASMessage>_R
                    ->_R Sym (GHC.Types.NTCo:IO[0] <()>_R)) -}
-038e8e669277a1fd9a5dfe407b70bbb2
+69d4f32deb3f02fe61cdfd55f3969f2e
   handleImport1 :: AS.Types.ASUser
                    -> GHC.MVar.MVar AS.Types.ServerState
                    -> AS.Types.ASMessage
@@ -1524,7 +1514,7 @@ bec3ce7c1b1027ee49370a68640e2182
                      msg :: AS.Types.ASMessage
                      eta :: GHC.Prim.State# GHC.Prim.RealWorld ->
                    (# eta, GHC.Tuple.() #)) -}
-92152c83619e1c8dfc4ef87326fa4b4e
+7478dcefff5f0854ba61f2e307e593fc
   handleNew :: AS.Types.ASUser
                -> GHC.MVar.MVar AS.Types.ServerState
                -> AS.Types.ASMessage
@@ -1538,7 +1528,7 @@ bec3ce7c1b1027ee49370a68640e2182
                    ->_R <GHC.MVar.MVar AS.Types.ServerState>_R
                    ->_R <AS.Types.ASMessage>_R
                    ->_R Sym (GHC.Types.NTCo:IO[0] <()>_R)) -}
-8841e1a6bfd7c5223927b31576eb9e2a
+3bc5e2bba039d850e2e7ed2085ff524d
   handleNew1 :: AS.Types.ASUser
                 -> GHC.MVar.MVar AS.Types.ServerState
                 -> AS.Types.ASMessage
@@ -1557,7 +1547,7 @@ bec3ce7c1b1027ee49370a68640e2182
                    AS.Handler.$wa11 ww1 ww3 ww4 ww6 w3 } }) -}
 18cc01b0f73aebad3e7cdfe991c0e0f9
   handleNew2 :: GHC.Types.IO () {- Strictness: b -}
-4637139a61efeb1ae5b0a2f3f3b2f3d2
+ab4e45d1e18f16061e9753f3e3ccd0e6
   handleOpen :: AS.Types.ASUser
                 -> GHC.MVar.MVar AS.Types.ServerState
                 -> AS.Types.ASMessage
@@ -1571,7 +1561,7 @@ bec3ce7c1b1027ee49370a68640e2182
                    ->_R <GHC.MVar.MVar AS.Types.ServerState>_R
                    ->_R <AS.Types.ASMessage>_R
                    ->_R Sym (GHC.Types.NTCo:IO[0] <()>_R)) -}
-3df0774f29350b0a9d8d09869ad298f3
+058974c183698f6404b9d476de0bce96
   handleOpen1 :: AS.Types.ASUser
                  -> GHC.MVar.MVar AS.Types.ServerState
                  -> AS.Types.ASMessage
@@ -1596,7 +1586,7 @@ e6b9bc8f96e5ed0b54c55024f97f2623
     {- HasNoCafRefs, Strictness: m, Unfolding: (GHC.Types.I# (-1)) -}
 2691e0b9a4e8cfc7516bde9fe5d246b4
   handleOpen4 :: GHC.Types.IO () {- Strictness: b -}
-578bfbd9428591c0b74ee1b849453065
+23f8784e096ef5fa3b2cbda1089b53ee
   handleRedo :: AS.Types.ASUser
                 -> GHC.MVar.MVar AS.Types.ServerState
                 -> GHC.Types.IO ()
@@ -1608,7 +1598,7 @@ e6b9bc8f96e5ed0b54c55024f97f2623
                   (<AS.Types.ASUser>_R
                    ->_R <GHC.MVar.MVar AS.Types.ServerState>_R
                    ->_R Sym (GHC.Types.NTCo:IO[0] <()>_R)) -}
-f3f55fa025fae95fa627d9dad65e9f22
+8cc20de6480e3999690043a04c534974
   handleRedo1 :: AS.Types.ASUser
                  -> GHC.MVar.MVar AS.Types.ServerState
                  -> GHC.Prim.State# GHC.Prim.RealWorld
@@ -1628,7 +1618,7 @@ f3f55fa025fae95fa627d9dad65e9f22
 b1483d6f8641e390aa21fd0e3047bdb6
   handleRedo3 :: [GHC.Types.Char]
     {- Unfolding: (GHC.CString.unpackCString# "Too far forwards"#) -}
-c08bbe75c0f78e48c2a560016813586b
+38c2c3b74848284715d94c7ed41741a5
   handleRemoveTags :: AS.Types.ASUser
                       -> GHC.MVar.MVar AS.Types.ServerState
                       -> AS.Types.ASMessage
@@ -1642,7 +1632,7 @@ c08bbe75c0f78e48c2a560016813586b
                    ->_R <GHC.MVar.MVar AS.Types.ServerState>_R
                    ->_R <AS.Types.ASMessage>_R
                    ->_R Sym (GHC.Types.NTCo:IO[0] <()>_R)) -}
-66243d518ed38cabc47e0343a967a3ab
+b7e42cd5b0bc2bc5b74500b3bea81632
   handleRemoveTags1 :: AS.Types.ASUser
                        -> GHC.MVar.MVar AS.Types.ServerState
                        -> AS.Types.ASMessage
@@ -1660,7 +1650,7 @@ c08bbe75c0f78e48c2a560016813586b
                    AS.Handler.$wa14 w w1 ww4 w3 }) -}
 2cc60264b33545da82bdbd0dfe73b4fb
   handleRemoveTags2 :: GHC.Types.IO () {- Strictness: b -}
-7774fb1b5d1457e5aed5ee41fb84e364
+5efce18927d414e10308d956fd480d1d
   handleUndo :: AS.Types.ASUser
                 -> GHC.MVar.MVar AS.Types.ServerState
                 -> GHC.Types.IO ()
@@ -1672,7 +1662,7 @@ c08bbe75c0f78e48c2a560016813586b
                   (<AS.Types.ASUser>_R
                    ->_R <GHC.MVar.MVar AS.Types.ServerState>_R
                    ->_R Sym (GHC.Types.NTCo:IO[0] <()>_R)) -}
-78f395475e96c6532186f5463f4d1873
+cb3827ac809a4d402ba833db93b424ff
   handleUndo1 :: AS.Types.ASUser
                  -> GHC.MVar.MVar AS.Types.ServerState
                  -> GHC.Prim.State# GHC.Prim.RealWorld
@@ -1692,7 +1682,7 @@ c08bbe75c0f78e48c2a560016813586b
 1bd00387eccce207f88aec54a75b79f0
   handleUndo3 :: [GHC.Types.Char]
     {- Unfolding: (GHC.CString.unpackCString# "Too far back"#) -}
-3cc4c6d59ac629874b2f6dc79e801187
+986acd2125f114fadd807c92222ca1f2
   handleUpdateWindow :: AS.Types.ASUser
                         -> GHC.MVar.MVar AS.Types.ServerState
                         -> AS.Types.ASMessage
@@ -1706,7 +1696,7 @@ c08bbe75c0f78e48c2a560016813586b
                    ->_R <GHC.MVar.MVar AS.Types.ServerState>_R
                    ->_R <AS.Types.ASMessage>_R
                    ->_R Sym (GHC.Types.NTCo:IO[0] <()>_R)) -}
-4c5597ba9b4db95d307a46c673165a71
+c99174df7cdbf7b03b7946880dcf3787
   handleUpdateWindow1 :: AS.Types.ASUser
                          -> GHC.MVar.MVar AS.Types.ServerState
                          -> AS.Types.ASMessage
@@ -1723,7 +1713,7 @@ c08bbe75c0f78e48c2a560016813586b
                    case w1 of ww { GHC.MVar.MVar ww1 ->
                    case w2 of ww2 { AS.Types.Message ww3 ww4 ww5 ww6 ->
                    AS.Handler.$wa17 w ww1 ww6 w3 } }) -}
-cf033538370ef586561e42cbbc425cca
+035412b975ade9697a35ffd0bf9d036e
   processAddTag :: AS.Types.ASUser
                    -> GHC.MVar.MVar AS.Types.ServerState
                    -> AS.Types.ASLocation
@@ -1741,7 +1731,7 @@ cf033538370ef586561e42cbbc425cca
                    ->_R <AS.Types.ASMessage>_R
                    ->_R <AS.Types.ASCellTag>_R
                    ->_R Sym (GHC.Types.NTCo:IO[0] <()>_R)) -}
-f02f23c93de34ef4dba8af32a5a0f153
+8d8b7bec699d76862e0ca1ffe299589c
   processAddTag1 :: AS.Types.ASUser
                     -> GHC.MVar.MVar AS.Types.ServerState
                     -> AS.Types.ASLocation
@@ -1761,7 +1751,7 @@ f02f23c93de34ef4dba8af32a5a0f153
                      w5 :: GHC.Prim.State# GHC.Prim.RealWorld ->
                    case w1 of ww { GHC.MVar.MVar ww1 ->
                    AS.Handler.$wa3 ww1 w2 w3 w4 w5 }) -}
-68c5a1960c50cf9adc8007523e9f9c5e
+8cb90d3c74e5dc7030b59a5c9ddc024f
   processRemoveTag :: AS.Types.ASLocation
                       -> GHC.MVar.MVar AS.Types.ServerState
                       -> AS.Types.ASCellTag
@@ -1774,7 +1764,7 @@ f02f23c93de34ef4dba8af32a5a0f153
                    ->_R <GHC.MVar.MVar AS.Types.ServerState>_R
                    ->_R <AS.Types.ASCellTag>_R
                    ->_R Sym (GHC.Types.NTCo:IO[0] <()>_R)) -}
-28c8468e891e788ae2c6b991462d79b4
+7639589482c4a382aabd0ff45b1ab285
   processRemoveTag1 :: AS.Types.ASLocation
                        -> GHC.MVar.MVar AS.Types.ServerState
                        -> AS.Types.ASCellTag
@@ -1789,7 +1779,7 @@ f02f23c93de34ef4dba8af32a5a0f153
                      w3 :: GHC.Prim.State# GHC.Prim.RealWorld ->
                    case w1 of ww { GHC.MVar.MVar ww1 ->
                    AS.Handler.$wa15 w ww1 w2 w3 }) -}
-e152c2a99983c0534fa148600457b61c
+1652a13624e963535e833c64c9302698
   sendBroadcastFiltered :: AS.Types.ASUser
                            -> GHC.MVar.MVar AS.Types.ServerState
                            -> AS.Types.ASMessage
@@ -1803,7 +1793,7 @@ e152c2a99983c0534fa148600457b61c
                    ->_R <GHC.MVar.MVar AS.Types.ServerState>_R
                    ->_R <AS.Types.ASMessage>_R
                    ->_R Sym (GHC.Types.NTCo:IO[0] <()>_R)) -}
-8f7785a2033f291039d84e8b553c467d
+d1d4133e0a27086d847076038b04b0d3
   sendToOriginalUser :: AS.Types.ASUser
                         -> AS.Types.ASMessage
                         -> GHC.Types.IO ()
@@ -1815,7 +1805,7 @@ e152c2a99983c0534fa148600457b61c
                   (<AS.Types.ASUser>_R
                    ->_R <AS.Types.ASMessage>_R
                    ->_R Sym (GHC.Types.NTCo:IO[0] <()>_R)) -}
-dfae2f25d5a6b9433c3302cbd8822151
+d4cf081e366dfebd6ed5bd900a26eaa4
   sendToOriginalUser1 :: AS.Types.ASUser
                          -> AS.Types.ASMessage
                          -> GHC.Prim.State# GHC.Prim.RealWorld

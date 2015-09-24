@@ -1,10 +1,10 @@
 
 ==================== FINAL INTERFACE ====================
-2015-09-24 01:36:32.47448 UTC
+2015-09-24 03:38:30.589216 UTC
 
 interface alphasheets-0.1.0.0:AS.Dispatch.Core [orphan module] 7084
-  interface hash: 7fd3f2a1ef081b6ab60bdebe6d6fa21f
-  ABI hash: e9f1e64601df503fac2e8441a1722282
+  interface hash: 6e7d5181c2b2df9ba142cebb05c03e41
+  ABI hash: dc54c633078188a0a9f5f06636603402
   export-list hash: 7408245679348183a46622955942e273
   orphan hash: 080c22adfde972d2575bb5df4a72ed7a
   flag hash: 1cb6a063e15d848b08cbd86d75583f42
@@ -92,7 +92,7 @@ family instance modules: alphasheets-0.1.0.0:AS.Types
                          vector-0.11.0.0:Data.Vector.Unboxed.Base
                          zeromq4-haskell-0.6.3:System.ZMQ4
 import  -/  aeson-0.8.1.1:Data.Aeson 4717cd565317ade519445bba111351ae
-import  -/  AS.DB.API 337a0c2c60eddf207b61768b9fd1edb4
+import  -/  AS.DB.API 803eb460c2d32c4cdf889b44c1df2c6d
   exports: f4205431df73a6774c712eb5aa073d13
   getCells d90192bcedf26c1010f64a7bb030e60d
   getVolatileLocs 0202c2d961997932ff3c10b303476c26
@@ -106,9 +106,9 @@ import  -/  AS.DB.Graph 90830a4d5d87ba9b622d69b650eb54e8
 import  -/  AS.Eval.Core 0a0d946149f3ecace6e4fde0a14640e4
   exports: a8fd7d5e67e40ad69836b4f35807868b
   evalExpression 8ae1aeda6f33d76e88082801b7a86e17
-import  -/  AS.Eval.Endware 2d42c3e7ad372fd9701fb7fe317e7d9c
+import  -/  AS.Eval.Endware 90a5699a5caa369806f28722330c80f0
   exports: e94b49c34ba307da69a91e8fe248bb9a
-  evalEndware ef1cdc065beecaf6881f0cef28824f68
+  evalEndware 5c474aaa4b3aae7d088fbb97071a0b81
 import  -/  AS.Eval.Middleware ba3ec09922f0f13de0d2341f6b6ea058
   exports: 1621f53a69f838314e0f8662f8e71592
   evalMiddleware ed7666e82857bc512264b2183d7b11e5
@@ -120,20 +120,20 @@ import  -/  AS.Parsing.In 98eb4c4c40887c46f7e5ad3d1e6d68e6
 import  -/  AS.Parsing.Out dd270cee574919ef59c3b5c824275231
   exports: b4cc2ee9878e9c201d4134316c957a72
   getDependenciesAndExpressions 3761b931ab014e1e7065360543d7d2a1
-import  -/  AS.Types 4f94c2927cba4cb4617d17e571d71325
+import  -/  AS.Types e3666650dafeff86b49d80330a77be8c
   exports: f8584b3856684401ece78f5d630831a9
   ASCell bede131762bf9e6165d28069305c9a8f
   ASExecError ac2b16a41a3fdddbc18d87357a01cd53
   ASLocation 42b88bd590b6186a8f42af5a0deb461a
-  ASMessage dcbe93300b2953c897bbc3e5c986250a
+  ASMessage b488c6e303af3ec316847aa09e9ef416
   ASUser 8f65613dded3aab26fae493435f0f314
   ASValue cf27945d6d550d5b2c4aa963af53bf25
   Cell cf2ab8ae076f48bff57c162753f8fec8
   DBNothingException a2fedf534617a8e871d31936d55eb10c
   Index 32bc2c9c50c80ae6c93286c30ef7b208
-  Message 346287d25369198e5c487b6d103d23d0
+  Message 84f4a46e37fa757190dd82d855281e02
   NoValue 2071d054e9ccb7241519b4cc7663e823
-  PayloadC 99be5183b9c2f57a215fd931874c1c51
+  PayloadC cf0873b14638e9746503b4b1a556d217
   Reference 07c3f14712d76d5812c8dbd70307f517
   ServerState 9ce35b4af6c18edb38f6401544fc8edb
   ValueL 3869c969a355ac446978790d8e12a1f0
@@ -142,11 +142,11 @@ import  -/  AS.Types 4f94c2927cba4cb4617d17e571d71325
   dbConn 8322ea2cd349a8dd93b7785150bce0cf
   locSheetId 0eb45f0ce468cda62d570bcb8b46f9d1
   lst 6888a75abf96ee61d5f94e9dfa1944df
-import  -/  AS.Util a1b456ad35c8f7a97ddaaa58328f3cd8
-  exports: 889a698e7d9664843475615b4d8a95b2
+import  -/  AS.Util 7d03dc2552b02355618f794279df874f
+  exports: 061da0521eb01812fd74bf75a38cb988
   decomposeLocs 029ee6d579cad48c88473e01acb70f98
-  fromJustList 452ba098c7bc5b9e295b477e6f7bdeb3
-  getCellMessage 51ccb943945c03221b49044f058ed8a1
+  fromJustList 11e560cad18f43ed5fbccc630a5926b2
+  getCellMessage 9b3fe8a8ce1ccf9e6f73bff76237f8db
   printTimed 35cb21e1f23638a3173441d7200c130f
 import  -/  base:Control.Applicative 30b769206cb5c020684e1bda0d7e7dd3
 import  -/  base:Control.Concurrent 1be25cd1e2ac314074fafb26df0ff06b
@@ -258,7 +258,7 @@ c2be4447c039d9e074690c8349d87d1d
           -> GHC.Prim.State# GHC.Prim.RealWorld
           -> (# GHC.Prim.State# GHC.Prim.RealWorld, [AS.Types.ASCell] #)
     {- Arity: 3, Strictness: <L,U><S,1*U><L,U> -}
-59d975c4a029a698ecdf9d395d9bfbc7
+26eddc854d331bfb974488657afe16bb
   $wa2 :: AS.Types.ASUser
           -> GHC.MVar.MVar AS.Types.ServerState
           -> AS.Types.ASUserId
@@ -578,7 +578,7 @@ eba48bfcf7b61593502e02f6b26bbb1e
        Unfolding: InlineRule (1, True, False)
                   (\ c :: AS.Types.ASCell ->
                    (AS.Types.cellLocation c, AS.Types.cellValue c)) -}
-e3aea045f7f65f4c580d2abf42e329b7
+2d7acab4e080f16080a86dfdf3e75b50
   runDispatchCycle :: AS.Types.ASUser
                       -> GHC.MVar.MVar AS.Types.ServerState
                       -> AS.Types.ASMessage
@@ -592,7 +592,7 @@ e3aea045f7f65f4c580d2abf42e329b7
                    ->_R <GHC.MVar.MVar AS.Types.ServerState>_R
                    ->_R <AS.Types.ASMessage>_R
                    ->_R Sym (GHC.Types.NTCo:IO[0] <AS.Types.ASMessage>_R)) -}
-d53b03a8c19445fd7d1d8326d9e8cfa3
+ce18bbb3b044a618cf9f2c50e6ca4df8
   runDispatchCycle1 :: AS.Types.ASUser
                        -> GHC.MVar.MVar AS.Types.ServerState
                        -> AS.Types.ASMessage

@@ -16,7 +16,7 @@ import AS.Util as U
 import AS.Dispatch.Core as DP
 import AS.Dispatch.Repl as DR 
 import AS.Daemon as DM
-import AS.Clients as C
+import AS.Users as Users
 import AS.Parsing.Out as O
 
 
@@ -78,17 +78,17 @@ handleNew user state (Message uid a _(PayloadWB wb)) = do
   return () -- TODO determine whether users should be notified
 
 handleOpen :: ASUser -> MVar ServerState -> ASMessage -> IO ()
-handleOpen user state (Message _ _ _ (PayloadS (Sheet sheetid _ _))) = C.modifyUser makeNewWindow user state 
+handleOpen user state (Message _ _ _ (PayloadS (Sheet sheetid _ _))) = Users.modifyUser makeNewWindow user state 
   where makeNewWindow (UserClient uid conn windows) = UserClient uid conn ((Window sheetid (-1,-1) (-1,-1)):windows)
 
 handleClose :: ASUser -> MVar ServerState -> ASMessage -> IO ()
-handleClose user state (Message _ _ _ (PayloadS (Sheet sheetid _ _))) = C.modifyUser closeWindow user state
+handleClose user state (Message _ _ _ (PayloadS (Sheet sheetid _ _))) = Users.modifyUser closeWindow user state
   where closeWindow (UserClient uid conn windows) = UserClient uid conn (filter (((/=) sheetid) . windowSheetId) windows)
 
 handleUpdateWindow :: ASUser -> MVar ServerState -> ASMessage -> IO ()
 handleUpdateWindow user state (Message uid _ _ (PayloadW window)) = do
   curState <- readMVar state
-  let (Just user') = C.getUserById (userId user) curState
+  let (Just user') = Users.getUserById (userId user) curState
   let maybeWindow = U.getWindow (windowSheetId window) user' 
   -- printTimed $ "Current user' windows before update: " ++ (show $ windows user')
   case maybeWindow of 
@@ -100,9 +100,9 @@ handleUpdateWindow user state (Message uid _ _ (PayloadW window)) = do
       let msg = U.getDBCellMessage user' locs mcells
       catch (sendToOriginalUser user' msg) (\e -> putStrLn $ "error" ++ (show $ (e :: SomeException)))
       -- sendToOriginalUser user' msg
-      C.modifyUser (U.updateWindow window) user' state
+      Users.modifyUser (U.updateWindow window) user' state
       --readState' <- readMVar state
-      --let (Just user'') = C.getUserById (userId user) readState'
+      --let (Just user'') = Users.getUserById (userId user) readState'
       --printTimed $ "Current user' windows after update: " ++ (show $ windows user'')
 
 handleImport :: ASUser -> MVar ServerState -> ASMessage -> IO ()

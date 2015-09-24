@@ -1,9 +1,9 @@
 
 ==================== FINAL INTERFACE ====================
-2015-09-24 01:36:30.083404 UTC
+2015-09-24 03:38:26.564336 UTC
 
 interface alphasheets-0.1.0.0:AS.Parsing.Out 7084
-  interface hash: a52813a1d1fc8ebc8f2bdcb7e91d3658
+  interface hash: 7755832553cc5d8a36c63350214b8d71
   ABI hash: dd270cee574919ef59c3b5c824275231
   export-list hash: b4cc2ee9878e9c201d4134316c957a72
   orphan hash: 693e9af84d3dfcc71e640e005bdc5e2e
@@ -101,7 +101,7 @@ family instance modules: alphasheets-0.1.0.0:AS.Types
 import  -/  AS.Parsing.Common ceccfbae6a55ecc56f531616855b9b06
   exports: b53f07d91299e788b6ffa7cfbc3e8f8f
   normalizeRanges ea8463b15018b62a4936eafd37fe728a
-import  -/  AS.Types 4f94c2927cba4cb4617d17e571d71325
+import  -/  AS.Types e3666650dafeff86b49d80330a77be8c
   exports: f8584b3856684401ece78f5d630831a9
   ASCell bede131762bf9e6165d28069305c9a8f
   ASExpression 64e605941635d5560dadb6b522a83662
@@ -143,8 +143,8 @@ import  -/  AS.Types 4f94c2927cba4cb4617d17e571d71325
   lst 6888a75abf96ee61d5f94e9dfa1944df
   row 3b28ea2638c6faaf0da7f6669c872531
   str 80baf2033a55f7bb10a3954c4c5024cd
-import  -/  AS.Util a1b456ad35c8f7a97ddaaa58328f3cd8
-  exports: 889a698e7d9664843475615b4d8a95b2
+import  -/  AS.Util 7d03dc2552b02355618f794279df874f
+  exports: 061da0521eb01812fd74bf75a38cb988
   decomposeLocs 029ee6d579cad48c88473e01acb70f98
   shiftLoc c2040badac463b15eadb7d547dbdd831
 import  -/  base:Control.Applicative 30b769206cb5c020684e1bda0d7e7dd3

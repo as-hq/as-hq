@@ -1,11 +1,11 @@
 
 ==================== FINAL INTERFACE ====================
-2015-09-24 01:36:24.768024 UTC
+2015-09-24 03:38:23.810016 UTC
 
 interface alphasheets-0.1.0.0:AS.Util 7084
-  interface hash: 49b3cca8bd805b5478e4637ebe68d6b7
-  ABI hash: a1b456ad35c8f7a97ddaaa58328f3cd8
-  export-list hash: 889a698e7d9664843475615b4d8a95b2
+  interface hash: a48feac2e7ae726c8dde2e22a2b5f316
+  ABI hash: 7d03dc2552b02355618f794279df874f
+  export-list hash: 061da0521eb01812fd74bf75a38cb988
   orphan hash: 693e9af84d3dfcc71e640e005bdc5e2e
   flag hash: f8b866267ce58dc6290b8020b2e82f8c
   used TH splices: False
@@ -60,6 +60,7 @@ exports:
   AS.Util.min'
   AS.Util.minBy
   AS.Util.printTimed
+  AS.Util.sendMessage
   AS.Util.shiftLoc
   AS.Util.updateMessageUser
   AS.Util.updateWindow
@@ -109,7 +110,9 @@ family instance modules: alphasheets-0.1.0.0:AS.Types
                          vector-0.11.0.0:Data.Vector.Storable
                          vector-0.11.0.0:Data.Vector.Unboxed
                          vector-0.11.0.0:Data.Vector.Unboxed.Base
-import  -/  AS.Types 4f94c2927cba4cb4617d17e571d71325
+import  -/  aeson-0.8.1.1:Data.Aeson 4717cd565317ade519445bba111351ae
+import  -/  aeson-0.8.1.1:Data.Aeson.Encode.ByteString 0b7a0357ab6c702b385f6d74bfdda8e2
+import  -/  AS.Types e3666650dafeff86b49d80330a77be8c
   exports: f8584b3856684401ece78f5d630831a9
   ASCell bede131762bf9e6165d28069305c9a8f
   ASCellTag 41914e4ed00db1adb7aa05558d91cd06
@@ -117,7 +120,7 @@ import  -/  AS.Types 4f94c2927cba4cb4617d17e571d71325
   ASExecError ac2b16a41a3fdddbc18d87357a01cd53
   ASExpression 64e605941635d5560dadb6b522a83662
   ASLocation 42b88bd590b6186a8f42af5a0deb461a
-  ASMessage dcbe93300b2953c897bbc3e5c986250a
+  ASMessage b488c6e303af3ec316847aa09e9ef416
   ASPermissions 4e2fdc3425c5d9cb0fcfc5baa7b7c726
   ASSheet e94846da4cf11f1951bc25078de1fc76
   ASSheetId 4ed60fa4a266e9c370748b465970547f
@@ -137,9 +140,9 @@ import  -/  AS.Types 4f94c2927cba4cb4617d17e571d71325
   Evaluate 0016d98b7ff475be6a9673f425925dbc
   Failure 9946650b22bb6e567b42b8da3b105d7a
   Index 32bc2c9c50c80ae6c93286c30ef7b208
-  Message 346287d25369198e5c487b6d103d23d0
-  PayloadCL b406e63fdc61d6ff507d0e33b744b6b6
-  PayloadN 9e862096c163d9f87002fd0c78ed615b
+  Message 84f4a46e37fa757190dd82d855281e02
+  PayloadCL 986b2bbb852717bf17df4cc79495cabe
+  PayloadN b41903296b9876a7e39be149f2893a16
   Range 1619818a9064827107fb6d04d8e72cf3
   ServerState 9ce35b4af6c18edb38f6401544fc8edb
   Stream 6c81d33552c532c9efe28662ad204551
@@ -185,6 +188,8 @@ import  -/  time-1.5.0.1:Data.Time.Clock.UTC 7927937dd12ffaa17ee662d46375a511
 import  -/  uuid-1.3.10:Data.UUID 395d991de21b28ec4fbe226664b86083
 import  -/  uuid-1.3.10:Data.UUID.V4 bd7a477668faee84c8b59694fd2e4e3f
 import  -/  uuid-types-1.0.1:Data.UUID.Types.Internal 012f81cee28268edb831bd70b73da23e
+import  -/  websockets-0.9.5.0:Network.WebSockets c11cd6465abe4dc4c3ad51897e46aaa0
+import  -/  websockets-0.9.5.0:Network.WebSockets.Connection ae39d52893470d43c0bc592e95fce2c0
 f7815de7e630a4d2443f2ee95084de39
   $wgetOffsetBetweenLocs :: AS.Types.ASLocation
                             -> AS.Types.ASLocation
@@ -693,7 +698,7 @@ fe7e1f608e50ce271b2415f3a19f7abe
 8945d4169100bbc72011c3203f5b5c3a
   filterNothing1 :: [Data.Maybe.Maybe a] -> [a]
     {- Arity: 1, Strictness: <S,1*U> -}
-452ba098c7bc5b9e295b477e6f7bdeb3
+11e560cad18f43ed5fbccc630a5926b2
   fromJustList :: [Data.Maybe.Maybe a] -> [a]
     {- Arity: 1, Strictness: <S,1*U>,
        Unfolding: (\ @ a l :: [Data.Maybe.Maybe a] ->
@@ -702,7 +707,7 @@ fe7e1f608e50ce271b2415f3a19f7abe
                      @ a
                      (AS.Util.fromJustList1 @ a)
                      l) -}
-aa2ed1e687da8aefe3d0eb6df81b1d6a
+4116d9664c759eee96e8315d3f37dbd9
   fromJustList1 :: Data.Maybe.Maybe a -> a
     {- Arity: 1, Strictness: <S,1*U>,
        Unfolding: (\ @ a ds :: Data.Maybe.Maybe a ->
@@ -710,7 +715,7 @@ aa2ed1e687da8aefe3d0eb6df81b1d6a
                      Data.Maybe.Nothing
                      -> Control.Exception.Base.patError
                           @ a
-                          "src/AS/Util.hs:52:23-36|lambda"#
+                          "src/AS/Util.hs:57:23-36|lambda"#
                      Data.Maybe.Just x -> x }) -}
 d0b1ec9e971d90745b6b8595595a2478
   fromRight :: Data.Either.Either a b -> b
@@ -814,7 +819,7 @@ f5ea8b102b97744f04af1f4be4c044a3
                    -> [Data.Maybe.Maybe AS.Types.ASCell]
                    -> [AS.Types.ASLocation]
     {- Arity: 2, HasNoCafRefs, Strictness: <S,1*U><L,1*U> -}
-51ccb943945c03221b49044f058ed8a1
+9b3fe8a8ce1ccf9e6f73bff76237f8db
   getCellMessage :: AS.Types.ASUser
                     -> Data.Either.Either AS.Types.ASExecError [AS.Types.ASCell]
                     -> AS.Types.ASMessage
@@ -836,11 +841,11 @@ f5ea8b102b97744f04af1f4be4c044a3
                           AS.Types.Evaluate
                           AS.Types.Success
                           (AS.Types.PayloadCL cells) }) -}
-e6c3320391415ec93cdee5ef03f0cd17
+ff05502a27e8d8f1d3016e2266b01b99
   getCellMessage1 :: AS.Types.ASPayload
     {- HasNoCafRefs, Strictness: m1,
        Unfolding: (AS.Types.PayloadN GHC.Tuple.()) -}
-456a8021a699c19c85521d69da537a4f
+2c8a906d579164ccf3348818c11c2236
   getDBCellMessage :: AS.Types.ASUser
                       -> [AS.Types.ASLocation]
                       -> [Data.Maybe.Maybe AS.Types.ASCell]
@@ -1439,7 +1444,7 @@ e9668b25b8d40b546a91c9ff3895e26f
                                   DEFAULT -> GHC.Types.False 0 -> GHC.Types.True } } } } })
                           lst of wild {
                      [] -> Data.Maybe.Nothing @ b : x xs -> Data.Maybe.Just @ b x }) -}
-3132e6a05ccacc38a525a07792a94759
+bde1481a9bbfbfac6514d9b29bebffcb
   matchSheets :: [AS.Types.ASWorkbook]
                  -> [AS.Types.ASSheet]
                  -> [AS.Types.WorkbookSheet]
@@ -1505,7 +1510,7 @@ e9668b25b8d40b546a91c9ff3895e26f
                               (go1 ys) }
                    } in
                    go1 ws) -}
-2c9b8b577f940bf08b8b66c3ed073c52
+8caeda53f03a8bf51044a38e948a43b0
   matchSheets1 :: AS.Types.ASSheet
     {- Unfolding: (AS.Util.fromJustList1
                      @ AS.Types.ASSheet
@@ -1698,6 +1703,40 @@ c65464f20488f15bea864de6cbc4cee4
 a8d10502782038942e9023664728fad9
   printTimed3 :: GHC.Types.Char
     {- HasNoCafRefs, Unfolding: (GHC.Types.C# '[') -}
+77465655c193647f9a51f8882bab535c
+  sendMessage :: AS.Types.ASMessage
+                 -> Network.WebSockets.Connection.Connection
+                 -> GHC.Types.IO ()
+    {- Arity: 3,
+       Strictness: <L,1*U(1*U,1*U,1*U,1*U)><S(SSSC(C(S))L),1*U(1*H,1*H,1*H,C1(C1(U(U,U))),A)><L,U>,
+       Unfolding: InlineRule (0, True, True)
+                  AS.Util.sendMessage1
+                    `cast`
+                  (<AS.Types.ASMessage>_R
+                   ->_R <Network.WebSockets.Connection.Connection>_R
+                   ->_R Sym (GHC.Types.NTCo:IO[0] <()>_R)) -}
+c958297494a336e0c45ece015498bb89
+  sendMessage1 :: AS.Types.ASMessage
+                  -> Network.WebSockets.Connection.Connection
+                  -> GHC.Prim.State# GHC.Prim.RealWorld
+                  -> (# GHC.Prim.State# GHC.Prim.RealWorld, () #)
+    {- Arity: 3,
+       Strictness: <L,1*U(1*U,1*U,1*U,1*U)><S(SSSC(C(S))L),1*U(1*H,1*H,1*H,C1(C1(U(U,U))),A)><L,U>,
+       Inline: INLINE[0],
+       Unfolding: InlineRule (3, True, False)
+                  (\ w :: AS.Types.ASMessage
+                     w1 :: Network.WebSockets.Connection.Connection
+                     w2 :: GHC.Prim.State# GHC.Prim.RealWorld ->
+                   case w1 of ww { Network.WebSockets.Connection.Connection ww1 ww2 ww3 ww4 ww5 ->
+                   (ww4
+                      (Network.WebSockets.Types.DataMessage
+                         (Network.WebSockets.Types.Text
+                            (Data.ByteString.Builder.toLazyByteString
+                               (Data.Aeson.Encode.ByteString.encodeToByteStringBuilder
+                                  (AS.Types.$fToJSONASMessage_$ctoJSON w))))))
+                     `cast`
+                   (GHC.Types.NTCo:IO[0] <()>_R)
+                     w2 }) -}
 c2040badac463b15eadb7d547dbdd831
   shiftLoc :: (GHC.Types.Int, GHC.Types.Int)
               -> AS.Types.ASLocation
@@ -1709,7 +1748,7 @@ c2040badac463b15eadb7d547dbdd831
                    case w of ww { (,) ww1 ww2 -> AS.Util.$wshiftLoc ww1 ww2 w1 }) -}
 9264f2424ccb0d85fae175e133f8ee1a
   shiftLoc1 :: AS.Types.ASLocation {- Strictness: b -}
-abfaaeaf925ec0af586cf3efad6488e4
+a4f40572f7d98429b194998fe54e662c
   updateMessageUser :: AS.Types.ASUserId
                        -> AS.Types.ASMessage
                        -> AS.Types.ASMessage

@@ -6,6 +6,8 @@ import Prelude
 import Data.Time.Clock
 import Data.Maybe (isNothing)
 import Data.UUID.V4 (nextRandom)
+import Data.Aeson hiding (Success)
+import qualified Network.WebSockets as WS
 import qualified Data.UUID as U (toString)
 import qualified Data.Text as T 
 import qualified Data.List as L
@@ -14,6 +16,9 @@ import Data.Maybe (isNothing)
 
 --------------------------------------------------------------------------------------------------------------
 -- | Misc
+
+sendMessage :: ASMessage -> WS.Connection -> IO ()
+sendMessage msg conn = WS.sendTextData conn (encode msg)
 
 lastN :: Int -> [a] -> [a]
 lastN n xs = let m = length xs in drop (m-n) xs

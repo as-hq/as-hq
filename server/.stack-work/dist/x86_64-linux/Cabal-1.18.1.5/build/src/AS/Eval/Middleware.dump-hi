@@ -1,9 +1,9 @@
 
 ==================== FINAL INTERFACE ====================
-2015-09-24 01:36:32.077595 UTC
+2015-09-24 03:38:27.607852 UTC
 
 interface alphasheets-0.1.0.0:AS.Eval.Middleware 7084
-  interface hash: 657f4cc8c1653850b2038a49ca888f09
+  interface hash: 438b403a5366a8e3e037e147943aed56
   ABI hash: ba3ec09922f0f13de0d2341f6b6ea058
   export-list hash: 1621f53a69f838314e0f8662f8e71592
   orphan hash: 693e9af84d3dfcc71e640e005bdc5e2e
@@ -75,11 +75,11 @@ family instance modules: alphasheets-0.1.0.0:AS.Types
                          vector-0.11.0.0:Data.Vector.Unboxed.Base
 import  -/  AS.Eval.Core 0a0d946149f3ecace6e4fde0a14640e4
   exports: a8fd7d5e67e40ad69836b4f35807868b
-import  -/  AS.Types 4f94c2927cba4cb4617d17e571d71325
+import  -/  AS.Types e3666650dafeff86b49d80330a77be8c
   exports: f8584b3856684401ece78f5d630831a9
   ASCell bede131762bf9e6165d28069305c9a8f
-import  -/  AS.Util a1b456ad35c8f7a97ddaaa58328f3cd8
-  exports: 889a698e7d9664843475615b4d8a95b2
+import  -/  AS.Util 7d03dc2552b02355618f794279df874f
+  exports: 061da0521eb01812fd74bf75a38cb988
 import  -/  base:Data.List 8b77870d02d66076337587b759b7ee19
 import  -/  base:GHC.Base 5d7c5f596f9a4c8a8abd8517c8bcd5dd
 import  -/  base:Prelude 74043f272d60acec1777d3461cfe5ef4

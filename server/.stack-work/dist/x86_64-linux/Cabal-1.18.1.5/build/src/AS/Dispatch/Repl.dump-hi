@@ -1,10 +1,10 @@
 
 ==================== FINAL INTERFACE ====================
-2015-09-24 01:36:32.097055 UTC
+2015-09-24 03:16:35.710682 UTC
 
 interface alphasheets-0.1.0.0:AS.Dispatch.Repl 7084
-  interface hash: 70066dcfcf4a086657dd8dc624ca4d31
-  ABI hash: bd13ab6e0bc070b137c4e7c347fffdaa
+  interface hash: 8c8e556d90bca8286b81d843207576d2
+  ABI hash: 2743c858e6878621de60e31546456340
   export-list hash: b0ab7c62ba7eb78ca2d447fc618e5ff8
   orphan hash: 693e9af84d3dfcc71e640e005bdc5e2e
   flag hash: 1cb6a063e15d848b08cbd86d75583f42
@@ -75,14 +75,14 @@ family instance modules: alphasheets-0.1.0.0:AS.Types
 import  -/  AS.Eval.Core 0a0d946149f3ecace6e4fde0a14640e4
   exports: a8fd7d5e67e40ad69836b4f35807868b
   evalCodeRepl e774f8bb552f1ac4eac6ae71e33d0655
-import  -/  AS.Types 4f94c2927cba4cb4617d17e571d71325
+import  -/  AS.Types e3666650dafeff86b49d80330a77be8c
   exports: f8584b3856684401ece78f5d630831a9
-  ASMessage dcbe93300b2953c897bbc3e5c986250a
+  ASMessage b488c6e303af3ec316847aa09e9ef416
   ASUser 8f65613dded3aab26fae493435f0f314
   LangValue ccc9805813e6283b108937cf8e5439cd
-  Message 346287d25369198e5c487b6d103d23d0
-  PayloadLangValue 1b73967ad95a572583ea8e2dbb12ae7a
-  PayloadXp 96b7ebffd9bd4a39f9d781565c7100c3
+  Message 84f4a46e37fa757190dd82d855281e02
+  PayloadLangValue edd6a875dd0fd90e53f476b1ff264759
+  PayloadXp f5cc235443f8965f070ed41b12aa6c40
   ServerState 9ce35b4af6c18edb38f6401544fc8edb
   Success caf3e41f68e7099b0d98b6a27765d4ec
   language 96d4cc4ee6772e20c09c6cc6a5feae9a
@@ -91,7 +91,7 @@ import  -/  base:GHC.Base 5d7c5f596f9a4c8a8abd8517c8bcd5dd
 import  -/  base:GHC.MVar 2c9d76ed3707c435c49b694504d09491
 import  -/  base:Prelude 74043f272d60acec1777d3461cfe5ef4
 import  -/  ghc-prim:GHC.Types dcba736fa3dfba12d307ab18354845d2
-25c49773f9b91763403ea7a8f2f75c37
+5239828baf1f9dc41e208e9e73a94cd0
   runReplDispatch :: AS.Types.ASUser
                      -> GHC.MVar.MVar AS.Types.ServerState
                      -> AS.Types.ASMessage
@@ -104,7 +104,7 @@ import  -/  ghc-prim:GHC.Types dcba736fa3dfba12d307ab18354845d2
                    ->_R <GHC.MVar.MVar AS.Types.ServerState>_R
                    ->_R <AS.Types.ASMessage>_R
                    ->_R Sym (GHC.Types.NTCo:IO[0] <AS.Types.ASMessage>_R)) -}
-9e4ccfce322306d409ef2d9e1c2ae4e2
+29cb0d88fffa3159c632c929fd0cb897
   runReplDispatch1 :: AS.Types.ASUser
                       -> GHC.MVar.MVar AS.Types.ServerState
                       -> AS.Types.ASMessage
@@ -138,7 +138,7 @@ import  -/  ghc-prim:GHC.Types dcba736fa3dfba12d307ab18354845d2
                                       AS.Types.Expression ds4 ds5 -> ds5
                                       AS.Types.Reference ipv3 ipv4
                                       -> AS.Types.language1 }))) #) } } }) -}
-d3a371fc98ce8800fafe01ab50c12626
+28a4f831867de6e9c3d7ba8a9d8ee3d5
   runReplDispatch2 :: GHC.Types.IO AS.Types.ASMessage
     {- Strictness: b -}
 vectorised variables:

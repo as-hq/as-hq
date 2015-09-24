@@ -1,55 +1,70 @@
 
 ==================== FINAL INTERFACE ====================
-2015-09-24 01:36:30.661536 UTC
+2015-09-24 03:39:09.553207 UTC
 
-interface alphasheets-0.1.0.0:AS.Clients 7084
-  interface hash: 17d7e8919b329c1eb4c1291138d3b654
-  ABI hash: 173bf6d382c65e051d7ddd34fbeb24fa
-  export-list hash: 03b45c4ec680909d7f81e09daf6d7fc2
-  orphan hash: 693e9af84d3dfcc71e640e005bdc5e2e
+interface alphasheets-0.1.0.0:AS.Clients [orphan module] 7084
+  interface hash: 324a740eb1369079e6d11fa68129effb
+  ABI hash: 9f352bff0926aa2433c3f62bd36c52ac
+  export-list hash: e04afa1a57d6468f6e24454359658baf
+  orphan hash: 8aa1a167525fd8e702f551e25db924a7
   flag hash: f8b866267ce58dc6290b8020b2e82f8c
   used TH splices: False
   where
 exports:
-  AS.Clients.close
-  AS.Clients.getScrollCells
-  AS.Clients.getUserById
-  AS.Clients.getUsers
-  AS.Clients.modifyUser
-  AS.Clients.send
-  AS.Clients.userIdExists
-module dependencies: AS.Config.Settings AS.DB.API AS.DB.Util
-                     AS.Parsing.Common AS.Parsing.In AS.Types AS.Util
+  AS.Clients.initDaemonFromMessageAndConn
+  AS.Clients.initUserFromMessageAndConn
+module dependencies: AS.Config.Paths AS.Config.Settings AS.DB.API
+                     AS.DB.Graph AS.DB.Util AS.Daemon AS.Dispatch.Core AS.Dispatch.Repl
+                     AS.Eval.Core AS.Eval.Endware AS.Eval.Lang AS.Eval.Middleware
+                     AS.Handler AS.Parsing.Common AS.Parsing.Eval AS.Parsing.In
+                     AS.Parsing.Out AS.Types AS.Users AS.Util
 package dependencies: BoundedChan-1.0.3.0 SHA-1.6.4.2 aeson-0.8.1.1
-                      array-0.5.0.0 attoparsec-0.13.0.1 base base64-bytestring-1.0.0.1
-                      binary-0.7.1.0 blaze-builder-0.4.0.1 bytestring-0.10.4.0
-                      bytestring-lexing-0.5.0.2 case-insensitive-1.2.0.4
-                      containers-0.5.5.1 deepseq-1.3.0.2 dlist-0.7.1.1 entropy-0.3.7
-                      ghc-prim hashable-1.2.3.3 hedis-0.6.9 integer-gmp
-                      monad-control-1.0.0.4 mtl-2.2.1 network-2.6.2.1 parsec-3.1.9
-                      primitive-0.6 random-1.1 regex-base-0.93.2 regex-posix-0.95.2
-                      resource-pool-0.2.3.2 scientific-0.3.3.8 split-0.2.2 stm-2.4.4
-                      text-1.2.1.1 time-1.5.0.1 transformers-0.4.3.0
-                      transformers-base-0.4.4 unix-2.7.1.0 unordered-containers-0.2.5.1
-                      uuid-1.3.10 uuid-types-1.0.1 vector-0.11.0.0 websockets-0.9.5.0
+                      array-0.5.0.0 async-2.0.2 attoparsec-0.13.0.1 base
+                      base64-bytestring-1.0.0.1 binary-0.7.1.0 blaze-builder-0.4.0.1
+                      bytestring-0.10.4.0 bytestring-lexing-0.5.0.2
+                      case-insensitive-1.2.0.4 cereal-0.4.1.1 containers-0.5.5.1
+                      crypto-api-0.13.2 daemons-0.2.1 data-default-0.5.3
+                      data-default-class-0.0.1 data-default-instances-base-0.0.1
+                      data-default-instances-containers-0.0.1
+                      data-default-instances-dlist-0.0.1
+                      data-default-instances-old-locale-0.0.1 deepseq-1.3.0.2
+                      directory-1.2.2.1 dlist-0.7.1.1 entropy-0.3.7 exceptions-0.8.0.2
+                      filepath-1.3.0.2 ghc-prim hashable-1.2.3.3 hedis-0.6.9 integer-gmp
+                      monad-control-1.0.0.4 monad-loops-0.4.3 mtl-2.2.1 network-2.6.2.1
+                      old-locale-1.0.0.6 parsec-3.1.9 pretty-1.1.1.1 primitive-0.6
+                      process-1.2.3.0 pureMD5-2.1.2.1 pyfi-0.4.0.4 random-1.1
+                      regex-base-0.93.2 regex-posix-0.95.2 resource-pool-0.2.3.2
+                      scientific-0.3.3.8 semigroups-0.16.2.2 split-0.2.2 stm-2.4.4
+                      strict-0.3.2 tagged-0.8.1 template-haskell text-1.2.1.1
+                      time-1.5.0.1 transformers-0.4.3.0 transformers-base-0.4.4
+                      unix-2.7.1.0 unordered-containers-0.2.5.1 uuid-1.3.10
+                      uuid-types-1.0.1 vector-0.11.0.0 websockets-0.9.5.0
+                      zeromq4-haskell-0.6.3
 orphans: aeson-0.8.1.1:Data.Aeson.Types.Generic
          aeson-0.8.1.1:Data.Aeson.Types.Instances
          aeson-0.8.1.1:Data.Aeson.Types.Internal
-         alphasheets-0.1.0.0:AS.Parsing.In
+         alphasheets-0.1.0.0:AS.Dispatch.Core
+         alphasheets-0.1.0.0:AS.Eval.Lang alphasheets-0.1.0.0:AS.Parsing.In
          attoparsec-0.13.0.1:Data.Attoparsec.ByteString.Char8 base:GHC.Base
          base:GHC.Float base:GHC.Real binary-0.7.1.0:Data.Binary.Generic
          bytestring-0.10.4.0:Data.ByteString.Builder
          bytestring-lexing-0.5.0.2:Data.ByteString.Lex.Fractional
+         crypto-api-0.13.2:Crypto.Classes crypto-api-0.13.2:Crypto.Random
+         data-default-instances-base-0.0.1:Data.Default.Instances.Base
+         data-default-instances-containers-0.0.1:Data.Default.Instances.Containers
+         data-default-instances-dlist-0.0.1:Data.Default.Instances.DList
+         data-default-instances-old-locale-0.0.1:Data.Default.Instances.OldLocale
          hashable-1.2.3.3:Data.Hashable.Generic
          network-2.6.2.1:Network.Socket network-2.6.2.1:Network.Socket.Types
-         random-1.1:System.Random regex-base-0.93.2:Text.Regex.Base.Context
+         pyfi-0.4.0.4:Python random-1.1:System.Random
+         regex-base-0.93.2:Text.Regex.Base.Context
          regex-posix-0.95.2:Text.Regex.Posix.ByteString
          regex-posix-0.95.2:Text.Regex.Posix.ByteString.Lazy
          regex-posix-0.95.2:Text.Regex.Posix.Sequence
          regex-posix-0.95.2:Text.Regex.Posix.String
          resource-pool-0.2.3.2:Data.Pool stm-2.4.4:Control.Monad.STM
-         text-1.2.1.1:Data.Text text-1.2.1.1:Data.Text.Lazy
-         text-1.2.1.1:Data.Text.Show
+         template-haskell:Language.Haskell.TH.PprLib text-1.2.1.1:Data.Text
+         text-1.2.1.1:Data.Text.Lazy text-1.2.1.1:Data.Text.Show
          time-1.5.0.1:Data.Time.Calendar.Gregorian
          time-1.5.0.1:Data.Time.Format.Parse
          time-1.5.0.1:Data.Time.LocalTime.LocalTime
@@ -62,8 +77,9 @@ family instance modules: alphasheets-0.1.0.0:AS.Types
                          base:Data.Type.Equality base:GHC.Exts base:GHC.Generics
                          dlist-0.7.1.1:Data.DList
                          monad-control-1.0.0.4:Control.Monad.Trans.Control
-                         primitive-0.6:Control.Monad.Primitive text-1.2.1.1:Data.Text
-                         text-1.2.1.1:Data.Text.Lazy
+                         primitive-0.6:Control.Monad.Primitive
+                         semigroups-0.16.2.2:Data.List.NonEmpty tagged-0.8.1:Data.Tagged
+                         text-1.2.1.1:Data.Text text-1.2.1.1:Data.Text.Lazy
                          unordered-containers-0.2.5.1:Data.HashMap.Base
                          unordered-containers-0.2.5.1:Data.HashSet
                          uuid-types-1.0.1:Data.UUID.Types.Internal
@@ -72,399 +88,293 @@ family instance modules: alphasheets-0.1.0.0:AS.Types
                          vector-0.11.0.0:Data.Vector.Storable
                          vector-0.11.0.0:Data.Vector.Unboxed
                          vector-0.11.0.0:Data.Vector.Unboxed.Base
-import  -/  aeson-0.8.1.1:Data.Aeson 4717cd565317ade519445bba111351ae
-import  -/  aeson-0.8.1.1:Data.Aeson.Encode.ByteString 0b7a0357ab6c702b385f6d74bfdda8e2
-import  -/  AS.Config.Settings b59cada5dab6da716812ef29c8d0a55f
-  exports: 0c823ce19dbdd82846e3dcfdd9e8e922
-import  -/  AS.DB.API 337a0c2c60eddf207b61768b9fd1edb4
-  exports: f4205431df73a6774c712eb5aa073d13
-  getCells d90192bcedf26c1010f64a7bb030e60d
-import  -/  AS.Types 4f94c2927cba4cb4617d17e571d71325
+                         zeromq4-haskell-0.6.3:System.ZMQ4
+import  -/  AS.Handler 1d6b2dd30f2c6c5201ed17518f2190dc
+  exports: 66f69e6ed4721e215177ec932be984bd
+  handleAddTags b55e1a38022d11f703a7df1003ccebda
+  handleClear fcf069369c2918d1583e7e4aad5d08a3
+  handleClose af6ca3365a615db6ddf68ac28a8e7581
+  handleCopy 2cf51d8fb4e9befe58e00ceba9e67bcd
+  handleCopyForced a8242851c77ea82ac97851e2a7ecadcb
+  handleDelete 90ec430a9fbd602522f868e671a77725
+  handleEval cc2061ff9fc4e77479a640e50d6f7ec3
+  handleEvalRepl 5a903d526c35c605506c0d241ffbfb55
+  handleGet 8e714cec7b7bb57578830221afc090ec
+  handleImport 21289b92d8b9edfe2565d3ab5e5da78d
+  handleNew 7478dcefff5f0854ba61f2e307e593fc
+  handleOpen ab4e45d1e18f16061e9753f3e3ccd0e6
+  handleRedo 23f8784e096ef5fa3b2cbda1089b53ee
+  handleRemoveTags 38c2c3b74848284715d94c7ed41741a5
+  handleUndo 5efce18927d414e10308d956fd480d1d
+  handleUpdateWindow 986acd2125f114fadd807c92222ca1f2
+import  -/  AS.Types e3666650dafeff86b49d80330a77be8c
   exports: f8584b3856684401ece78f5d630831a9
-  ASCell bede131762bf9e6165d28069305c9a8f
-  ASLocation 42b88bd590b6186a8f42af5a0deb461a
-  ASMessage dcbe93300b2953c897bbc3e5c986250a
-  ASSheetId 4ed60fa4a266e9c370748b465970547f
+  ASDaemon d9493e21917542a993ab6555c27832e9
+  ASDaemon 3b989a344150da917127ae81ddc3db25
+  ASInitDaemonConnection c5119ed237776f8b0a36e26dc881efd1
+  ASMessage b488c6e303af3ec316847aa09e9ef416
   ASUser 8f65613dded3aab26fae493435f0f314
-  ASUserId 3094df477896c468afcf617b4934d3e3
-  ServerState 9ce35b4af6c18edb38f6401544fc8edb
+  Acknowledge 9fb938c25199125afed92e15e05c6217
+  AddTags ceb01b8892b566c57dfe1b63145b1baa
+  Clear 8e1c28a4010f6747c938acb9bada444e
+  Client ee5485f604ed801b326c5bbd405661b0
+  Close 4b5afe8d7ebffc493e767cd5314a213a
+  Copy 912202dc1651fa13a78b03ed2abc6475
+  CopyForced 5fdda7eed96a3e8d4a894bd2e9312954
+  Delete c9343008fb26d1b5bba554f2675bb479
+  Evaluate 0016d98b7ff475be6a9673f425925dbc
+  EvaluateRepl c25deeed90bc977a553b589f8c149e1d
+  Get 742ca01702a913dd6006500bd6d579fb
+  Import 98204305d231e60a099aa6533b6a94bc
+  Message 84f4a46e37fa757190dd82d855281e02
+  New 948c6acd3be914502b5c261b164470d6
+  Open 906979e5cf76d756ea6b2e74578299ae
+  PayloadDaemonInit def90e6deb12aea113fc46a53ba05729
+  Redo 668e7de413aa0c69a3d1e17e29e0c36a
+  RemoveTags 62f303945a26e14570d29b45218e4008
   State 2d6c62b0809c3be7755965f6cdb8f5c9
-  userId 85217dd9f2d9550b6e0817800ca98d66
-import  -/  AS.Util a1b456ad35c8f7a97ddaaa58328f3cd8
-  exports: 889a698e7d9664843475615b4d8a95b2
+  Undo 1c1f8dd9742524901a76569c0be32ec9
+  UpdateWindow 5da17139886b3622b4380b249f6567e5
+  UserClient cace6434106bd6cda012c66a0b1ec25f
+  action 576c1be0a3000567ea144be6bed04c3d
+  addClient 5f22c1fd3b054b5bc2ae7a557a030224
+  conn 38acf3fe18deef42ecc9013344e2743f
+  daemonConn a3f8f8cd3f59785160fd0c5fa0bb7ad0
+  handleMessage 86f7c70390440437456970338a714c0f
+  initialViewingWindow 88a5747a4e70c1cbce8f3d04749b612c
+  messageUserId a47f06dbba51bd08a4344136c32afe4f
+  payload 6d0d9b14bfa85719a9d828bcc2ac18a0
+  removeClient 0823d89d7c6e5680cc8c0e916acc3131
+  userConn 162633061242d173c03acd2ac9d51cab
+import  -/  AS.Util 7d03dc2552b02355618f794279df874f
+  exports: 061da0521eb01812fd74bf75a38cb988
+  printTimed 35cb21e1f23638a3173441d7200c130f
 import  -/  base:Control.Concurrent 1be25cd1e2ac314074fafb26df0ff06b
-import  -/  base:Control.Concurrent.MVar 47f6cad20e8acd25bbaa337e785e68f9
 import  -/  base:Data.List 8b77870d02d66076337587b759b7ee19
 import  -/  base:Data.Maybe 5034d40e23c3a7110309f188001df4ca
 import  -/  base:GHC.Base 5d7c5f596f9a4c8a8abd8517c8bcd5dd
 import  -/  base:GHC.List 4cff382327e59a5787355ca0a4174450
-import  -/  base:GHC.MVar 2c9d76ed3707c435c49b694504d09491
 import  -/  base:Prelude 74043f272d60acec1777d3461cfe5ef4
-import  -/  ghc-prim:GHC.Classes 3e6cbe1e7e80480408cfa8d5450726a0
-import  -/  ghc-prim:GHC.Types dcba736fa3dfba12d307ab18354845d2
-import  -/  hedis-0.6.9:Database.Redis 528220caf3eba6c7f6dc7e85c445c8d5
-import  -/  hedis-0.6.9:Database.Redis.Core c109b2f50ce35a47c8d801b7ab048487
 import  -/  text-1.2.1.1:Data.Text ddf865ef7152d1de0d03707558cc6523
 import  -/  text-1.2.1.1:Data.Text.Internal 5c7132affaaf11c5fb226a9fff83be01
-import  -/  transformers-0.4.3.0:Control.Monad.IO.Class 1fe01dea961eadb0b037d705f6cb22bb
 import  -/  websockets-0.9.5.0:Network.WebSockets c11cd6465abe4dc4c3ad51897e46aaa0
 import  -/  websockets-0.9.5.0:Network.WebSockets.Connection ae39d52893470d43c0bc592e95fce2c0
-5f6de9110185000bd3a9c19d49024898
-  $wgetUserById :: AS.Types.ASUserId
-                   -> [AS.Types.ASUser]
-                   -> Data.Maybe.Maybe AS.Types.ASUser
-    {- Arity: 2, HasNoCafRefs, Strictness: <L,U(U,U,U)><S,1*U>,
-       Unfolding: (\ w :: AS.Types.ASUserId ww :: [AS.Types.ASUser] ->
-                   case GHC.List.filter
-                          @ AS.Types.ASUser
-                          (\ c :: AS.Types.ASUser ->
-                           case c of wild { AS.Types.UserClient ds1 ds2 ds3 ->
-                           case ds1 of wild1 { Data.Text.Internal.Text dt dt1 dt2 ->
-                           case w of wild2 { Data.Text.Internal.Text dt3 dt4 dt5 ->
-                           case GHC.Prim.tagToEnum#
-                                  @ GHC.Types.Bool
-                                  (GHC.Prim.==# dt2 dt5) of wild3 {
-                             GHC.Types.False -> GHC.Types.False
-                             GHC.Types.True
-                             -> case {__pkg_ccall text-1.2.1.1 _hs_text_memcmp GHC.Prim.ByteArray#
-                                                                               -> GHC.Prim.Word#
-                                                                               -> GHC.Prim.ByteArray#
-                                                                               -> GHC.Prim.Word#
-                                                                               -> GHC.Prim.Word#
-                                                                               -> GHC.Prim.State#
-                                                                                      GHC.Prim.RealWorld
-                                                                               -> (# GHC.Prim.State#
-                                                                                         GHC.Prim.RealWorld,
-                                                                                     GHC.Prim.Int# #)}
-                                       dt
-                                       (GHC.Prim.int2Word# dt1)
-                                       dt3
-                                       (GHC.Prim.int2Word# dt4)
-                                       (GHC.Prim.int2Word# dt2)
-                                       GHC.Prim.realWorld# of wild4 { (#,#) ds11 ds12 ->
-                                case GHC.Prim.narrow32Int# ds12 of wild5 {
-                                  DEFAULT -> GHC.Types.False 0 -> GHC.Types.True } } } } } })
-                          ww of wild {
-                     [] -> Data.Maybe.Nothing @ AS.Types.ASUser
-                     : ipv ipv1 -> Data.Maybe.Just @ AS.Types.ASUser ipv }) -}
-72e11a90548abdda94d826efc51081f3
-  close :: Network.WebSockets.Connection.Connection
-           -> GHC.Types.IO ()
-    {- Arity: 2,
-       Strictness: <S(SSSC(C(S))L),1*U(1*H,1*H,1*H,C1(C1(U(U,U))),U)><L,U>,
-       Unfolding: InlineRule (0, True, True)
-                  AS.Clients.close1
-                    `cast`
-                  (<Network.WebSockets.Connection.Connection>_R
-                   ->_R Sym (GHC.Types.NTCo:IO[0] <()>_R)) -}
-ef6daf3963fa7774903e2617912653de
-  close1 :: Network.WebSockets.Connection.Connection
-            -> GHC.Prim.State# GHC.Prim.RealWorld
-            -> (# GHC.Prim.State# GHC.Prim.RealWorld, () #)
-    {- Arity: 2,
-       Strictness: <S(SSSC(C(S))L),1*U(1*H,1*H,1*H,C1(C1(U(U,U))),U)><L,U>,
-       Unfolding: InlineRule (2, True, False)
-                  (\ conn :: Network.WebSockets.Connection.Connection
-                     eta :: GHC.Prim.State# GHC.Prim.RealWorld ->
-                   case conn of wild { Network.WebSockets.Connection.Connection dt ds ds1 ds2 dt1 ->
-                   case GHC.Prim.writeMutVar#
-                          @ GHC.Prim.RealWorld
-                          @ GHC.Types.Bool
-                          dt1
-                          GHC.Types.True
-                          eta of s2# { DEFAULT ->
-                   (ds2
-                      (Network.WebSockets.Types.ControlMessage
-                         (Network.WebSockets.Types.Close
-                            Network.WebSockets.Connection.sendClose2
-                            (Network.WebSockets.Types.$fWebSocketsDataText_$ctoLazyByteString
-                               AS.Clients.close2))))
-                     `cast`
-                   (GHC.Types.NTCo:IO[0] <()>_R)
-                     s2# } }) -}
-161647b5225a578478bdcb1cd3e3dee1
-  close2 :: Data.Text.Internal.Text
-    {- Unfolding: (Data.Text.Show.unpackCString# "Bye"#) -}
-73a80d6930347af9a0f15cb53d314542
-  getScrollCells :: Database.Redis.Core.Connection
-                    -> AS.Types.ASSheetId
-                    -> [AS.Types.ASLocation]
-                    -> GHC.Types.IO [Data.Maybe.Maybe AS.Types.ASCell]
+55b6e1932cebeae91972b391c8c12202
+  $fClientASDaemon :: AS.Types.Client AS.Types.ASDaemon
+    DFunId[0]
+    {- Strictness: m, Inline: [ALWAYS] CONLIKE,
+       Unfolding: DFun:.
+                    @ AS.Types.ASDaemon
+                    AS.Types.daemonConn
+                    AS.Clients.$fClientASDaemon_$caddClient
+                    AS.Clients.$fClientASDaemon_$cremoveClient
+                    AS.Clients.$fClientASDaemon_$chandleMessage -}
+966198b4108da857deb5a603b65fce31
+  $fClientASDaemon1 :: AS.Types.ASDaemon
+                       -> GHC.MVar.MVar AS.Types.ServerState
+                       -> AS.Types.ASMessage
+                       -> GHC.Prim.State# GHC.Prim.RealWorld
+                       -> (# GHC.Prim.State# GHC.Prim.RealWorld, () #)
     {- Arity: 4,
-       Strictness: <L,U(C(U),C(C1(U)),U(U),A,U(U),U(U,U,U),A)><L,A><S,1*U><L,U>,
-       Unfolding: InlineRule (0, True, True)
-                  AS.Clients.getScrollCells1
-                    `cast`
-                  (<Database.Redis.Core.Connection>_R
-                   ->_R <AS.Types.ASSheetId>_R
-                   ->_R <[AS.Types.ASLocation]>_R
-                   ->_R Sym (GHC.Types.NTCo:IO[0]
-                                 <[Data.Maybe.Maybe AS.Types.ASCell]>_R)) -}
-f123cd759518b7335cad1860c2806a4d
-  getScrollCells1 :: Database.Redis.Core.Connection
-                     -> AS.Types.ASSheetId
-                     -> [AS.Types.ASLocation]
-                     -> GHC.Prim.State# GHC.Prim.RealWorld
-                     -> (# GHC.Prim.State# GHC.Prim.RealWorld,
-                           [Data.Maybe.Maybe AS.Types.ASCell] #)
-    {- Arity: 4,
-       Strictness: <L,U(C(U),C(C1(U)),U(U),A,U(U),U(U,U,U),A)><L,A><S,1*U><L,U>,
-       Unfolding: InlineRule (4, True, True)
-                  (\ conn :: Database.Redis.Core.Connection
-                     sid :: AS.Types.ASSheetId
-                     locs :: [AS.Types.ASLocation]
-                     eta :: GHC.Prim.State# GHC.Prim.RealWorld ->
-                   AS.DB.API.getCell2 conn locs eta) -}
-d54864577edc17303771d1ce79b921ed
-  getUserById :: AS.Types.ASUserId
-                 -> AS.Types.ServerState
-                 -> Data.Maybe.Maybe AS.Types.ASUser
-    {- Arity: 2, HasNoCafRefs,
-       Strictness: <L,U(U,U,U)><S(SLL),1*U(1*U,A,A)>, Inline: INLINE[0],
-       Unfolding: InlineRule (2, True, False)
-                  (\ w :: AS.Types.ASUserId w1 :: AS.Types.ServerState ->
-                   case w1 of ww { AS.Types.State ww1 ww2 ww3 ->
-                   AS.Clients.$wgetUserById w ww1 }) -}
-f2159a6c61031fe12df5e278f132da46
-  getUsers :: AS.Types.ServerState -> [AS.Types.ASUser]
-    {- Arity: 1, HasNoCafRefs, Strictness: <S(SLL),1*U(1*U,A,A)>,
-       Unfolding: InlineRule (1, True, False)
-                  (\ ds :: AS.Types.ServerState ->
-                   case ds of wild { AS.Types.State us ds1 ds2 -> us }) -}
-77d7cc648931f3dd48ddfcebf38de131
-  modifyUser :: (AS.Types.ASUser -> AS.Types.ASUser)
-                -> AS.Types.ASUser
-                -> GHC.MVar.MVar AS.Types.ServerState
-                -> GHC.Types.IO ()
-    {- Arity: 4, HasNoCafRefs,
-       Strictness: <L,C(U(U,U,U))><L,U(U(U,U,U),A,A)><L,1*U(U)><L,U>,
-       Unfolding: (AS.Clients.modifyUser1
-                     `cast`
-                   (<AS.Types.ASUser -> AS.Types.ASUser>_R
-                    ->_R <AS.Types.ASUser>_R
-                    ->_R <GHC.MVar.MVar AS.Types.ServerState>_R
-                    ->_R Sym (GHC.Types.NTCo:IO[0] <()>_R))) -}
-43dc8afd1381581ba5f8041a02764cf6
-  modifyUser1 :: (AS.Types.ASUser -> AS.Types.ASUser)
-                 -> AS.Types.ASUser
-                 -> GHC.MVar.MVar AS.Types.ServerState
-                 -> GHC.Prim.State# GHC.Prim.RealWorld
-                 -> (# GHC.Prim.State# GHC.Prim.RealWorld, () #)
-    {- Arity: 4, HasNoCafRefs,
-       Strictness: <L,C(U(U,U,U))><L,U(U(U,U,U),A,A)><L,1*U(U)><L,U>,
-       Unfolding: (\ func :: AS.Types.ASUser -> AS.Types.ASUser
-                     user :: AS.Types.ASUser
+       Strictness: <L,1*U(A,1*U(U,U,U,U,U))><L,U(U)><S(LSLL),U(U(U,U,U),U,U,U)><L,U>,
+       Unfolding: InlineRule (4, True, False)
+                  (\ daemon :: AS.Types.ASDaemon
                      state :: GHC.MVar.MVar AS.Types.ServerState
+                     message :: AS.Types.ASMessage
                      eta :: GHC.Prim.State# GHC.Prim.RealWorld ->
-                   case GHC.Prim.getMaskingState# eta of ds { (#,#) ipv ipv1 ->
-                   let {
-                     $wlvl :: GHC.Prim.ByteArray#
-                              -> GHC.Prim.Int#
-                              -> GHC.Prim.Int#
-                              -> Network.WebSockets.Connection.Connection
-                              -> [AS.Types.ASWindow]
-                              -> AS.Types.ASUser
-                       {- Arity: 5, Strictness: <L,U><L,U><L,U><L,U><L,U> -}
-                     = \ ww :: GHC.Prim.ByteArray#
-                         ww1 :: GHC.Prim.Int#
-                         ww2 :: GHC.Prim.Int#
-                         ww3 :: Network.WebSockets.Connection.Connection
-                         ww4 :: [AS.Types.ASWindow] ->
-                       case user of ww8 { AS.Types.UserClient ww9 ww10 ww11 ->
-                       case ww9 of ww12 { Data.Text.Internal.Text ww13 ww14 ww15 ->
-                       case GHC.Prim.tagToEnum#
-                              @ GHC.Types.Bool
-                              (GHC.Prim.==# ww2 ww15) of wild2 {
-                         GHC.Types.False
-                         -> AS.Types.UserClient (Data.Text.Internal.Text ww ww1 ww2) ww3 ww4
-                         GHC.Types.True
-                         -> case {__pkg_ccall text-1.2.1.1 _hs_text_memcmp GHC.Prim.ByteArray#
-                                                                           -> GHC.Prim.Word#
-                                                                           -> GHC.Prim.ByteArray#
-                                                                           -> GHC.Prim.Word#
-                                                                           -> GHC.Prim.Word#
-                                                                           -> GHC.Prim.State#
-                                                                                  GHC.Prim.RealWorld
-                                                                           -> (# GHC.Prim.State#
-                                                                                     GHC.Prim.RealWorld,
-                                                                                 GHC.Prim.Int# #)}
-                                   ww
-                                   (GHC.Prim.int2Word# ww1)
-                                   ww13
-                                   (GHC.Prim.int2Word# ww14)
-                                   (GHC.Prim.int2Word# ww2)
-                                   GHC.Prim.realWorld# of wild { (#,#) ds11 ds12 ->
-                            case GHC.Prim.narrow32Int# ds12 of wild1 {
-                              DEFAULT
-                              -> AS.Types.UserClient (Data.Text.Internal.Text ww ww1 ww2) ww3 ww4
-                              0
-                              -> func
-                                   (AS.Types.UserClient
-                                      (Data.Text.Internal.Text ww ww1 ww2)
-                                      ww3
-                                      ww4) } } } } }
-                   } in
-                   let {
-                     lvl3 :: AS.Types.ASUser -> AS.Types.ASUser
-                       {- Arity: 1, Strictness: <S(SLL),1*U(U(U,U,U),U,U)>,
-                          Inline: INLINE[0],
-                          Unfolding: InlineRule (1, True, False)
-                                     (\ w :: AS.Types.ASUser ->
-                                      case w of ww { AS.Types.UserClient ww1 ww2 ww3 ->
-                                      case ww1 of ww4 { Data.Text.Internal.Text ww5 ww6 ww7 ->
-                                      $wlvl ww5 ww6 ww7 ww2 ww3 } }) -}
-                     = \ w :: AS.Types.ASUser ->
-                       case w of ww { AS.Types.UserClient ww1 ww2 ww3 ->
-                       case ww1 of ww4 { Data.Text.Internal.Text ww5 ww6 ww7 ->
-                       $wlvl ww5 ww6 ww7 ww2 ww3 } }
-                   } in
-                   case ipv1 of ds1 {
-                     DEFAULT
-                     -> case state of wild { GHC.MVar.MVar mvar# ->
-                        case GHC.Prim.takeMVar#
-                               @ GHC.Prim.RealWorld
-                               @ AS.Types.ServerState
-                               mvar#
-                               ipv of ds2 { (#,#) ipv2 ipv3 ->
-                        case GHC.Prim.catch#
-                               @ AS.Types.ServerState
-                               @ GHC.Exception.SomeException
-                               (\ eta1 :: GHC.Prim.State# GHC.Prim.RealWorld ->
-                                case ipv3 of wild1 { AS.Types.State users daemons conn ->
-                                (# eta1,
-                                   AS.Types.State
-                                     (GHC.Base.map @ AS.Types.ASUser @ AS.Types.ASUser lvl3 users)
-                                     daemons
-                                     conn #) })
-                               (\ e1 :: GHC.Exception.SomeException
-                                  eta1 :: GHC.Prim.State# GHC.Prim.RealWorld ->
-                                case GHC.Prim.putMVar#
-                                       @ GHC.Prim.RealWorld
-                                       @ AS.Types.ServerState
-                                       mvar#
-                                       ipv3
-                                       eta1 of s2# { DEFAULT ->
-                                GHC.Prim.raiseIO#
-                                  @ GHC.Exception.SomeException
-                                  @ AS.Types.ServerState
-                                  e1
-                                  s2# })
-                               ipv2 of ds3 { (#,#) ipv4 ipv5 ->
-                        case GHC.Prim.putMVar#
-                               @ GHC.Prim.RealWorld
-                               @ AS.Types.ServerState
-                               mvar#
-                               ipv5
-                               ipv4 of s2# { DEFAULT ->
-                        (# s2#, GHC.Tuple.() #) } } } }
-                     0
-                     -> GHC.Prim.maskAsyncExceptions#
-                          @ ()
-                          (\ eta1 :: GHC.Prim.State# GHC.Prim.RealWorld ->
-                           case state of wild { GHC.MVar.MVar mvar# ->
-                           case GHC.Prim.takeMVar#
-                                  @ GHC.Prim.RealWorld
-                                  @ AS.Types.ServerState
-                                  mvar#
-                                  eta1 of ds2 { (#,#) ipv2 ipv3 ->
-                           case GHC.Prim.catch#
-                                  @ AS.Types.ServerState
-                                  @ GHC.Exception.SomeException
-                                  (GHC.Prim.unmaskAsyncExceptions#
-                                     @ AS.Types.ServerState
-                                     (\ eta2 :: GHC.Prim.State# GHC.Prim.RealWorld ->
-                                      case ipv3 of wild1 { AS.Types.State users daemons conn ->
-                                      (# eta2,
-                                         AS.Types.State
-                                           (GHC.Base.map
-                                              @ AS.Types.ASUser
-                                              @ AS.Types.ASUser
-                                              lvl3
-                                              users)
-                                           daemons
-                                           conn #) }))
-                                  (\ e1 :: GHC.Exception.SomeException
-                                     eta2 :: GHC.Prim.State# GHC.Prim.RealWorld ->
-                                   case GHC.Prim.putMVar#
-                                          @ GHC.Prim.RealWorld
-                                          @ AS.Types.ServerState
-                                          mvar#
-                                          ipv3
-                                          eta2 of s2# { DEFAULT ->
-                                   GHC.Prim.raiseIO#
-                                     @ GHC.Exception.SomeException
-                                     @ AS.Types.ServerState
-                                     e1
-                                     s2# })
-                                  ipv2 of ds3 { (#,#) ipv4 ipv5 ->
-                           case GHC.Prim.putMVar#
-                                  @ GHC.Prim.RealWorld
-                                  @ AS.Types.ServerState
-                                  mvar#
-                                  ipv5
-                                  ipv4 of s2# { DEFAULT ->
-                           (# s2#, GHC.Tuple.() #) } } } })
-                          ipv } }) -}
-f1ec1324bdc4e00568b0f7ab1e4a3a7c
-  send :: AS.Types.ASMessage
-          -> Network.WebSockets.Connection.Connection
-          -> GHC.Types.IO ()
-    {- Arity: 3,
-       Strictness: <L,1*U(1*U,1*U,1*U,1*U)><S(SSSC(C(S))L),1*U(1*H,1*H,1*H,C1(C1(U(U,U))),A)><L,U>,
-       Unfolding: InlineRule (0, True, True)
-                  AS.Clients.send1
-                    `cast`
-                  (<AS.Types.ASMessage>_R
-                   ->_R <Network.WebSockets.Connection.Connection>_R
-                   ->_R Sym (GHC.Types.NTCo:IO[0] <()>_R)) -}
-cd1729891f956b0f21aaa43b69ce750b
-  send1 :: AS.Types.ASMessage
-           -> Network.WebSockets.Connection.Connection
-           -> GHC.Prim.State# GHC.Prim.RealWorld
-           -> (# GHC.Prim.State# GHC.Prim.RealWorld, () #)
-    {- Arity: 3,
-       Strictness: <L,1*U(1*U,1*U,1*U,1*U)><S(SSSC(C(S))L),1*U(1*H,1*H,1*H,C1(C1(U(U,U))),A)><L,U>,
+                   AS.Clients.$fClientASDaemon3
+                     (AS.Types.UserClient
+                        (AS.Types.messageUserId message)
+                        (AS.Types.daemonConn daemon)
+                        AS.Clients.$fClientASDaemon2)
+                     state
+                     message
+                     eta) -}
+f7c32af5271e886f2a85d7977f28ff10
+  $fClientASDaemon2 :: [AS.Types.ASWindow]
+    {- Strictness: m2,
+       Unfolding: (GHC.Types.:
+                     @ AS.Types.ASWindow
+                     AS.Types.initialViewingWindow
+                     (GHC.Types.[] @ AS.Types.ASWindow)) -}
+bc215b604d1b1b1b51064f209a912ab7
+  $fClientASDaemon3 :: AS.Types.ASUser
+                       -> GHC.MVar.MVar AS.Types.ServerState
+                       -> AS.Types.ASMessage
+                       -> GHC.Prim.State# GHC.Prim.RealWorld
+                       -> (# GHC.Prim.State# GHC.Prim.RealWorld, () #)
+    {- Arity: 4,
+       Strictness: <L,U(U(U,U,U),U(H,H,H,C(C1(U(U,U))),A),A)><L,U(U)><S(LSLL),1*U(U(U,U,U),U,U,U)><L,U>,
        Inline: INLINE[0],
-       Unfolding: InlineRule (3, True, False)
-                  (\ w :: AS.Types.ASMessage
-                     w1 :: Network.WebSockets.Connection.Connection
-                     w2 :: GHC.Prim.State# GHC.Prim.RealWorld ->
-                   case w1 of ww { Network.WebSockets.Connection.Connection ww1 ww2 ww3 ww4 ww5 ->
-                   (ww4
-                      (Network.WebSockets.Types.DataMessage
-                         (Network.WebSockets.Types.Text
-                            (Data.ByteString.Builder.toLazyByteString
-                               (Data.Aeson.Encode.ByteString.encodeToByteStringBuilder
-                                  (AS.Types.$fToJSONASMessage_$ctoJSON w))))))
-                     `cast`
-                   (GHC.Types.NTCo:IO[0] <()>_R)
-                     w2 }) -}
-65b9d553036958984982e608e36bdf66
-  userIdExists :: AS.Types.ASUserId
-                  -> AS.Types.ServerState
-                  -> GHC.Types.Bool
-    {- Arity: 2, HasNoCafRefs, Strictness: <L,U><S(SLL),1*U(1*U,A,A)>,
+       Unfolding: InlineRule (4, True, False)
+                  (\ w :: AS.Types.ASUser
+                     w1 :: GHC.MVar.MVar AS.Types.ServerState
+                     w2 :: AS.Types.ASMessage
+                     w3 :: GHC.Prim.State# GHC.Prim.RealWorld ->
+                   case w2 of ww { AS.Types.Message ww1 ww2 ww3 ww4 ->
+                   AS.Clients.$wa w w1 ww1 ww2 ww3 ww4 w3 }) -}
+96c85486c3ecb311d9937dab97b3ba36
+  $fClientASDaemon_$caddClient :: AS.Types.ASDaemon
+                                  -> AS.Types.ServerState
+                                  -> AS.Types.ServerState
+    {- Arity: 2, HasNoCafRefs, Strictness: <L,U><S(LSL),1*U(U,U,U)>m,
        Unfolding: InlineRule (2, True, False)
-                  (\ uid :: AS.Types.ASUserId state :: AS.Types.ServerState ->
-                   case state of wild { AS.Types.State us ds ds1 ->
-                   GHC.List.elem
-                     @ AS.Types.ASUserId
-                     Data.Text.$fEqText
-                     uid
-                     (GHC.Base.build
-                        @ Data.Text.Internal.Text
-                        (\ @ b1 c :: Data.Text.Internal.Text -> b1 -> b1 n :: b1 ->
-                         GHC.Base.foldr
-                           @ AS.Types.ASUser
-                           @ b1
-                           (GHC.Base.mapFB
-                              @ Data.Text.Internal.Text
-                              @ b1
-                              @ AS.Types.ASUser
-                              c
-                              AS.Types.userId)
-                           n
-                           us)) }) -}
+                  (\ dc :: AS.Types.ASDaemon s :: AS.Types.ServerState ->
+                   case s of wild { AS.Types.State ucs dcs dbc ->
+                   case GHC.List.elem
+                          @ AS.Types.ASDaemon
+                          AS.Types.$fEqASDaemon
+                          dc
+                          dcs of wild1 {
+                     GHC.Types.False
+                     -> AS.Types.State ucs (GHC.Types.: @ AS.Types.ASDaemon dc dcs) dbc
+                     GHC.Types.True -> wild } }) -}
+a82d47cdd8cfa10a5d0fff08ca745f7a
+  $fClientASDaemon_$chandleMessage :: AS.Types.ASDaemon
+                                      -> GHC.MVar.MVar AS.Types.ServerState
+                                      -> AS.Types.ASMessage
+                                      -> GHC.Types.IO ()
+    {- Arity: 4,
+       Strictness: <L,1*U(A,1*U(U,U,U,U,U))><L,U(U)><S(LSLL),U(U(U,U,U),U,U,U)><L,U>,
+       Unfolding: InlineRule (0, True, True)
+                  AS.Clients.$fClientASDaemon1
+                    `cast`
+                  (<AS.Types.ASDaemon>_R
+                   ->_R <GHC.MVar.MVar AS.Types.ServerState>_R
+                   ->_R <AS.Types.ASMessage>_R
+                   ->_R Sym (GHC.Types.NTCo:IO[0] <()>_R)) -}
+55c02e4d12e0d697efab9d9b927e93af
+  $fClientASDaemon_$cremoveClient :: AS.Types.ASDaemon
+                                     -> AS.Types.ServerState
+                                     -> AS.Types.ServerState
+    {- Arity: 2, HasNoCafRefs, Strictness: <L,U><S(LSL),1*U(U,U,U)>m,
+       Inline: INLINE[0],
+       Unfolding: InlineRule (2, True, False)
+                  (\ w :: AS.Types.ASDaemon w1 :: AS.Types.ServerState ->
+                   case w1 of ww { AS.Types.State ww1 ww2 ww3 ->
+                   case GHC.List.elem
+                          @ AS.Types.ASDaemon
+                          AS.Types.$fEqASDaemon
+                          w
+                          ww2 of wild {
+                     GHC.Types.False -> AS.Types.State ww1 ww2 ww3
+                     GHC.Types.True
+                     -> AS.Types.State
+                          ww1
+                          (Data.List.deleteBy
+                             @ AS.Types.ASDaemon
+                             AS.Types.$fEqASDaemon_$c==
+                             w
+                             ww2)
+                          ww3 } }) -}
+6bbae70af7ab8550c40672c93ac28459
+  $fClientASUser :: AS.Types.Client AS.Types.ASUser
+    DFunId[0]
+    {- Strictness: m, Inline: [ALWAYS] CONLIKE,
+       Unfolding: DFun:.
+                    @ AS.Types.ASUser
+                    AS.Types.userConn
+                    AS.Clients.$fClientASUser_$caddClient
+                    AS.Clients.$fClientASUser_$cremoveClient
+                    AS.Clients.$fClientASUser_$chandleMessage -}
+0d682729adb1e6d51f390beb0f1214f5
+  $fClientASUser_$caddClient :: AS.Types.ASUser
+                                -> AS.Types.ServerState
+                                -> AS.Types.ServerState
+    {- Arity: 2, HasNoCafRefs, Strictness: <L,U><S(SLL),1*U(U,U,U)>m,
+       Unfolding: InlineRule (2, True, False)
+                  (\ uc :: AS.Types.ASUser s :: AS.Types.ServerState ->
+                   case s of wild { AS.Types.State ucs dcs dbc ->
+                   case GHC.List.elem
+                          @ AS.Types.ASUser
+                          AS.Types.$fEqASUser
+                          uc
+                          ucs of wild1 {
+                     GHC.Types.False
+                     -> AS.Types.State (GHC.Types.: @ AS.Types.ASUser uc ucs) dcs dbc
+                     GHC.Types.True -> wild } }) -}
+eddd902e6db07125cbe8c3fe004a0837
+  $fClientASUser_$chandleMessage :: AS.Types.ASUser
+                                    -> GHC.MVar.MVar AS.Types.ServerState
+                                    -> AS.Types.ASMessage
+                                    -> GHC.Types.IO ()
+    {- Arity: 4,
+       Strictness: <L,U(U(U,U,U),U(H,H,H,C(C1(U(U,U))),A),A)><L,U(U)><S(LSLL),1*U(U(U,U,U),U,U,U)><L,U>,
+       Unfolding: InlineRule (0, True, True)
+                  AS.Clients.$fClientASDaemon3
+                    `cast`
+                  (<AS.Types.ASUser>_R
+                   ->_R <GHC.MVar.MVar AS.Types.ServerState>_R
+                   ->_R <AS.Types.ASMessage>_R
+                   ->_R Sym (GHC.Types.NTCo:IO[0] <()>_R)) -}
+3c6e9e90f5bc9526ec9b912b952f2df8
+  $fClientASUser_$cremoveClient :: AS.Types.ASUser
+                                   -> AS.Types.ServerState
+                                   -> AS.Types.ServerState
+    {- Arity: 2, HasNoCafRefs, Strictness: <L,U><S(SLL),1*U(U,U,U)>m,
+       Inline: INLINE[0],
+       Unfolding: InlineRule (2, True, False)
+                  (\ w :: AS.Types.ASUser w1 :: AS.Types.ServerState ->
+                   case w1 of ww { AS.Types.State ww1 ww2 ww3 ->
+                   case GHC.List.elem
+                          @ AS.Types.ASUser
+                          AS.Types.$fEqASUser
+                          w
+                          ww1 of wild {
+                     GHC.Types.False -> AS.Types.State ww1 ww2 ww3
+                     GHC.Types.True
+                     -> AS.Types.State
+                          (Data.List.deleteBy
+                             @ AS.Types.ASUser
+                             AS.Types.$fEqASUser_$c==
+                             w
+                             ww1)
+                          ww2
+                          ww3 } }) -}
+ff76c16ee14f066583a34af6121cf890
+  $wa :: AS.Types.ASUser
+         -> GHC.MVar.MVar AS.Types.ServerState
+         -> AS.Types.ASUserId
+         -> AS.Types.ASAction
+         -> AS.Types.ASResult
+         -> AS.Types.ASPayload
+         -> GHC.Prim.State# GHC.Prim.RealWorld
+         -> (# GHC.Prim.State# GHC.Prim.RealWorld, () #)
+    {- Arity: 7,
+       Strictness: <L,U(U(U,U,U),U(H,H,H,C(C1(U(U,U))),A),A)><L,U(U)><L,U(U,U,U)><S,U><L,U><L,U><L,U> -}
+5cada572e290b2a571c5fbaf47331158
+  initDaemonFromMessageAndConn :: AS.Types.ASMessage
+                                  -> Network.WebSockets.Connection.Connection
+                                  -> Data.Maybe.Maybe AS.Types.ASDaemon
+    {- Arity: 2, HasNoCafRefs,
+       Strictness: <S(LLLS),1*U(A,A,A,1*U)><L,U>,
+       Unfolding: InlineRule (2, True, False)
+                  (\ m :: AS.Types.ASMessage
+                     c' :: Network.WebSockets.Connection.Connection ->
+                   case m of wild { AS.Types.Message ds ds1 ds2 ds3 ->
+                   case ds3 of wild1 {
+                     DEFAULT -> Data.Maybe.Nothing @ AS.Types.ASDaemon
+                     AS.Types.PayloadDaemonInit ds4
+                     -> case ds4 of wild2 { AS.Types.ASInitDaemonConnection ds5 loc ->
+                        Data.Maybe.Just
+                          @ AS.Types.ASDaemon
+                          (AS.Types.ASDaemon loc c') } } }) -}
+0eccc48b0f73d0db97e50edf9300fd02
+  initUserFromMessageAndConn :: AS.Types.ASMessage
+                                -> Network.WebSockets.Connection.Connection
+                                -> AS.Types.ASUser
+    {- Arity: 2, Strictness: <L,1*U(1*U(U,U,U),A,A,A)><L,U>m,
+       Unfolding: InlineRule (2, True, False)
+                  (\ m :: AS.Types.ASMessage
+                     c' :: Network.WebSockets.Connection.Connection ->
+                   AS.Types.UserClient
+                     (AS.Types.messageUserId m)
+                     c'
+                     AS.Clients.$fClientASDaemon2) -}
+instance AS.Types.Client [AS.Types.ASDaemon]
+  = AS.Clients.$fClientASDaemon
+instance AS.Types.Client [AS.Types.ASUser]
+  = AS.Clients.$fClientASUser
 vectorised variables:
 vectorised tycons:
 vectorised reused tycons:

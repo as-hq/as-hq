@@ -21,7 +21,7 @@ try:
 	execfile(filename)
 	
 	
-	result = =2.0
+	result = 15
 except Exception as e: 
 	exc_type, exc_obj, exc_tb = exc_info()
 	fname = 'AlphaSheets Python evaluator'

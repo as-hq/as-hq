@@ -1,10 +1,10 @@
 
 ==================== FINAL INTERFACE ====================
-2015-09-24 01:36:28.363682 UTC
+2015-09-24 03:38:29.146408 UTC
 
 interface alphasheets-0.1.0.0:AS.DB.API 7084
-  interface hash: 0b947d8a1c47c842b248b8a33a2f1819
-  ABI hash: 337a0c2c60eddf207b61768b9fd1edb4
+  interface hash: a1fb8176dd9ed8b525acb68be43dfa86
+  ABI hash: 803eb460c2d32c4cdf889b44c1df2c6d
   export-list hash: f4205431df73a6774c712eb5aa073d13
   orphan hash: 693e9af84d3dfcc71e640e005bdc5e2e
   flag hash: e0641befbfbeeab6ef9f97d2cff44d7e
@@ -127,27 +127,27 @@ import  -/  AS.DB.Util 8faef730f5e860a7aaf757e2bcc6ca9f
   keyToRow 0c07dff2df37fb082a1a5c76294f4716
   setCellRedis 468629620e07755957a5bc4074cf3a63
   updateChunkDAG df7890c5e3e10833936679140224819c
-import  -/  AS.Types 4f94c2927cba4cb4617d17e571d71325
+import  -/  AS.Types e3666650dafeff86b49d80330a77be8c
   exports: f8584b3856684401ece78f5d630831a9
   ASCell bede131762bf9e6165d28069305c9a8f
   ASCommit 3363c5610de870b18b16cbd39ed6bb5c
   ASCommit cd37bafad7a1ba0bf823b5565484da25
   ASLocation 42b88bd590b6186a8f42af5a0deb461a
-  ASMessage dcbe93300b2953c897bbc3e5c986250a
+  ASMessage b488c6e303af3ec316847aa09e9ef416
   ASSheet e94846da4cf11f1951bc25078de1fc76
   ASSheetId 4ed60fa4a266e9c370748b465970547f
   ASUser 8f65613dded3aab26fae493435f0f314
   ASUserId 3094df477896c468afcf617b4934d3e3
   ASWorkbook dc570e9d01415111185b1ff1b63cbb38
   Column 2c1479dadfed776d27f89a4215e28321
-  Message 346287d25369198e5c487b6d103d23d0
-  PayloadC 99be5183b9c2f57a215fd931874c1c51
-  PayloadCL b406e63fdc61d6ff507d0e33b744b6b6
-  PayloadL bd326e671ed4275a64e98bddf7623de3
-  PayloadLL 2beb19740eff6e69ddcfbcee9304570c
-  PayloadS a761afac80311f24a935b00e09aeac89
-  PayloadTags b0223cd048ff05b67533b42bcb2a911a
-  PayloadW abccecf9e5a9e4eecbe2727851434d87
+  Message 84f4a46e37fa757190dd82d855281e02
+  PayloadC cf0873b14638e9746503b4b1a556d217
+  PayloadCL 986b2bbb852717bf17df4cc79495cabe
+  PayloadL a2d0427388bd6428f59503b5e212ace5
+  PayloadLL bcd89933b71bfbabdea5ca6d4a61bdd0
+  PayloadS bdb42d7d8eded81f79a495640a8bb962
+  PayloadTags a07d0e7a253d0c0e56c11876f2df0ecf
+  PayloadW c8441fb392de8d26154362026c0227b6
   Sheet 16d04131564501ec6ba23cf63f7d666e
   Workbook 269d38c5ec30bfb77cccc13110302910
   WorkbookSheet 5597d2398faf32cb9835f468c56e0c68
@@ -163,8 +163,8 @@ import  -/  AS.Types 4f94c2927cba4cb4617d17e571d71325
   workbookSheets 26d6100b8bd17c2ca420063ca816064d
   wsName 69d1ea9617b303f0de03d257be714d41
   wsSheets d9c8aebfecadf151194fd8240d58dd87
-import  -/  AS.Util a1b456ad35c8f7a97ddaaa58328f3cd8
-  exports: 889a698e7d9664843475615b4d8a95b2
+import  -/  AS.Util 7d03dc2552b02355618f794279df874f
+  exports: 061da0521eb01812fd74bf75a38cb988
   containsTrackingTag 2196c333077ef38aff8753db9bcff343
   decomposeLocs 029ee6d579cad48c88473e01acb70f98
   deleteSubset 118ce46cb867d1c8609a416db4079cfd
@@ -173,7 +173,7 @@ import  -/  AS.Util a1b456ad35c8f7a97ddaaa58328f3cd8
   hasPermissions 9f47a0b70f2205349a100a882f597d7d
   hasVolatileTag 4b57ae6da4a9da6dfb64560add96b341
   isColumn af7950958e920f07b68519d8f38dddb1
-  matchSheets 3132e6a05ccacc38a525a07792a94759
+  matchSheets bde1481a9bbfbfac6514d9b29bebffcb
   minBy 2c307afd2345594083bac94e1d79d3a6
   printTimed 35cb21e1f23638a3173441d7200c130f
 import  -/  base:Control.Applicative 30b769206cb5c020684e1bda0d7e7dd3
@@ -549,7 +549,7 @@ import  -/  transformers-0.4.3.0:Control.Monad.IO.Class 1fe01dea961eadb0b037d705
                              @ AS.Types.ASLocation
                              AS.DB.Util.bStrToASLocation
                              vl #) } } }) -}
-c039bcabd00ec1ce82fce4710bed8fdf
+f93dbc933cc0eeb9fd4556600973834b
   $wa6 :: Database.Redis.Core.Connection
           -> AS.Types.ASUserId
           -> AS.Types.ASPayload
@@ -1839,7 +1839,7 @@ d99e31f94ad51b4edd335f9e13b03112
   getAllSheets_lvl9 :: Data.ByteString.Internal.ByteString
     {- Unfolding: (Database.Redis.Protocol.renderRequest
                      AS.DB.API.getAllSheets7) -}
-dd7379818dca535eadf0e0e28093608a
+cd55802ba2f8600e8a779c3f50f154cd
   getAllWorkbookSheets :: Database.Redis.Core.Connection
                           -> GHC.Types.IO [AS.Types.WorkbookSheet]
     {- Arity: 2,
@@ -1848,7 +1848,7 @@ dd7379818dca535eadf0e0e28093608a
                      `cast`
                    (<Database.Redis.Core.Connection>_R
                     ->_R Sym (GHC.Types.NTCo:IO[0] <[AS.Types.WorkbookSheet]>_R))) -}
-b338f49e47d47013c9953deae6e23e3f
+32cbe3696eca66a91349c4cf6562109c
   getAllWorkbookSheets1 :: Database.Redis.Core.Connection
                            -> GHC.Prim.State# GHC.Prim.RealWorld
                            -> (# GHC.Prim.State# GHC.Prim.RealWorld,
@@ -2760,7 +2760,7 @@ f02c7b4bbb79223ad517843107edafb9
   getWorkbook2 :: Data.Maybe.Maybe AS.Types.ASWorkbook
     {- Unfolding: (AS.DB.Util.bStrToWorkbook
                      (Data.Maybe.Nothing @ Data.ByteString.Internal.ByteString)) -}
-c362f63cff4ecdc7baa5a3a5d4fd86cf
+d10abf7bc251cae33a1ac8566d050af3
   isPermissibleMessage :: Database.Redis.Core.Connection
                           -> AS.Types.ASUserId
                           -> AS.Types.ASMessage
@@ -2774,7 +2774,7 @@ c362f63cff4ecdc7baa5a3a5d4fd86cf
                    ->_R <AS.Types.ASUserId>_R
                    ->_R <AS.Types.ASMessage>_R
                    ->_R Sym (GHC.Types.NTCo:IO[0] <GHC.Types.Bool>_R)) -}
-0527386acb49f21d1438f3d737b69bcd
+623bb964d7fb91d37a57df0bcf2c486c
   isPermissibleMessage1 :: Database.Redis.Core.Connection
                            -> AS.Types.ASUserId
                            -> AS.Types.ASMessage
