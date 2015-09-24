@@ -1,7 +1,7 @@
 #ignore 
 logs/
 *.pyc
-server/.stack-work/*
+#server/.stack-work/*
 ws-as-instance/.stack-work/*
 server/alphasheets-exe.hp
 server/alphasheets-exe.prof

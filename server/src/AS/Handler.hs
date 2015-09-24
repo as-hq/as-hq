@@ -1,5 +1,6 @@
 module AS.Handler where
 
+import Control.Exception
 import qualified Data.List as L hiding (any, zip, map, all)
 import Data.Text hiding (head, any, filter, zip, map, all, concat)
 import Data.Maybe(fromJust, isNothing)
@@ -61,7 +62,7 @@ broadcastFiltered msg@(Message uid act res (PayloadCommit c)) users = mapM_ (sen
       WS.sendTextData (userConn user) (encode msg)
 
 sendToOriginalUser :: ASUser -> ASMessage -> IO ()
-sendToOriginalUser user msg = WS.sendTextData (userConn user) (encode (U.updateMessageUser (userId user) msg))  
+sendToOriginalUser user msg = WS.sendTextData (userConn user) (encode (U.updateMessageUser (userId user) msg))
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Open/close/import/new/window handlers
 
@@ -89,16 +90,16 @@ handleUpdateWindow user state (Message uid _ _ (PayloadW window)) = do
   curState <- readMVar state
   let (Just user') = C.getUserById (userId user) curState
   let maybeWindow = U.getWindow (windowSheetId window) user' 
-  --printTimed $ "Current user' windows before update: " ++ (show $ windows user')
+  -- printTimed $ "Current user' windows before update: " ++ (show $ windows user')
   case maybeWindow of 
     Nothing -> putStrLn "ERROR: could not update nothing window" >> return ()
     (Just oldWindow) -> do
       let locs = U.getScrolledLocs oldWindow window 
-      printTimed $ "Sending locs: " ++ (show locs)
+      -- printTimed $ "Sending locs: " ++ (show locs)
       mcells <- DB.getCells (dbConn curState) locs
       let msg = U.getDBCellMessage user' locs mcells
-      --printTimed $ "Sending scroll message: " ++ (show msg)
-      sendToOriginalUser user' msg
+      catch (sendToOriginalUser user' msg) (\e -> putStrLn $ "error" ++ (show $ (e :: SomeException)))
+      -- sendToOriginalUser user' msg
       C.modifyUser (U.updateWindow window) user' state
       --readState' <- readMVar state
       --let (Just user'') = C.getUserById (userId user) readState'
@@ -114,7 +115,7 @@ handleEval :: ASUser -> MVar ServerState -> ASMessage -> IO ()
 handleEval user state msg  = do 
   putStrLn $ "IN EVAL HANDLER"
   msg' <- DP.runDispatchCycle user state msg
-  sendBroadcastFiltered user state msg'
+  catch (sendBroadcastFiltered user state msg') (\e -> putStrLn $ "error" ++ (show $ (e :: SomeException)))
 
 handleEvalRepl :: ASUser -> MVar ServerState -> ASMessage -> IO ()
 handleEvalRepl user state msg = do

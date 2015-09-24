@@ -184,7 +184,7 @@ type EitherCells = Either ASExecError [ASCell]
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Websocket types
 
-data ASInitConnection = ASInitConnection deriving (Show,Read,Eq,Generic)
+data ASInitConnection = ASInitConnection {connUserId :: ASUserId} deriving (Show,Read,Eq,Generic)
 data ASInitDaemonConnection = ASInitDaemonConnection {parentUserId :: ASUserId, initDaemonLoc :: ASLocation} deriving (Show,Read,Eq,Generic)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------

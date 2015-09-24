@@ -1,0 +1,1635 @@
+
+==================== FINAL INTERFACE ====================
+2015-09-24 01:36:27.363168 UTC
+
+interface alphasheets-0.1.0.0:AS.DB.Util 7084
+  interface hash: f85af83739add3264b1e883043b747fb
+  ABI hash: 8faef730f5e860a7aaf757e2bcc6ca9f
+  export-list hash: 8bb4b27cf6d2068724cc60765ef29cc9
+  orphan hash: 693e9af84d3dfcc71e640e005bdc5e2e
+  flag hash: e0641befbfbeeab6ef9f97d2cff44d7e
+  used TH splices: False
+  where
+exports:
+  AS.DB.Util.bStrToASCommit
+  AS.DB.Util.bStrToASExpression
+  AS.DB.Util.bStrToASLocation
+  AS.DB.Util.bStrToASValue
+  AS.DB.Util.bStrToRelation
+  AS.DB.Util.bStrToSheet
+  AS.DB.Util.bStrToTags
+  AS.DB.Util.bStrToWorkbook
+  AS.DB.Util.cInfo
+  AS.DB.Util.cellFields
+  AS.DB.Util.chunkM_
+  AS.DB.Util.dagChunkSize
+  AS.DB.Util.deleteLocRedis
+  AS.DB.Util.getCellByKeyRedis
+  AS.DB.Util.getLastRowKey
+  AS.DB.Util.getLocationKey
+  AS.DB.Util.getSheetKey
+  AS.DB.Util.getSheetLocsRedis
+  AS.DB.Util.getSheetSetKey
+  AS.DB.Util.getUniquePrefixedName
+  AS.DB.Util.getWorkbookKey
+  AS.DB.Util.incrementLocKey
+  AS.DB.Util.keyToRow
+  AS.DB.Util.maybeASCell
+  AS.DB.Util.maybeASCellFromFields
+  AS.DB.Util.setCellRedis
+  AS.DB.Util.tuple3
+  AS.DB.Util.updateChunkDAG
+module dependencies: AS.Parsing.Common AS.Parsing.In AS.Types
+                     AS.Util
+package dependencies: BoundedChan-1.0.3.0 SHA-1.6.4.2 aeson-0.8.1.1
+                      array-0.5.0.0 attoparsec-0.13.0.1 base base64-bytestring-1.0.0.1
+                      binary-0.7.1.0 blaze-builder-0.4.0.1 bytestring-0.10.4.0
+                      bytestring-lexing-0.5.0.2 case-insensitive-1.2.0.4
+                      containers-0.5.5.1 deepseq-1.3.0.2 dlist-0.7.1.1 entropy-0.3.7
+                      ghc-prim hashable-1.2.3.3 hedis-0.6.9 integer-gmp
+                      monad-control-1.0.0.4 mtl-2.2.1 network-2.6.2.1 parsec-3.1.9
+                      primitive-0.6 random-1.1 regex-base-0.93.2 regex-posix-0.95.2
+                      resource-pool-0.2.3.2 scientific-0.3.3.8 split-0.2.2 stm-2.4.4
+                      text-1.2.1.1 time-1.5.0.1 transformers-0.4.3.0
+                      transformers-base-0.4.4 unix-2.7.1.0 unordered-containers-0.2.5.1
+                      uuid-1.3.10 uuid-types-1.0.1 vector-0.11.0.0 websockets-0.9.5.0
+orphans: aeson-0.8.1.1:Data.Aeson.Types.Generic
+         aeson-0.8.1.1:Data.Aeson.Types.Instances
+         aeson-0.8.1.1:Data.Aeson.Types.Internal
+         alphasheets-0.1.0.0:AS.Parsing.In
+         attoparsec-0.13.0.1:Data.Attoparsec.ByteString.Char8 base:GHC.Base
+         base:GHC.Float base:GHC.Real binary-0.7.1.0:Data.Binary.Generic
+         bytestring-0.10.4.0:Data.ByteString.Builder
+         bytestring-lexing-0.5.0.2:Data.ByteString.Lex.Fractional
+         hashable-1.2.3.3:Data.Hashable.Generic
+         network-2.6.2.1:Network.Socket network-2.6.2.1:Network.Socket.Types
+         random-1.1:System.Random regex-base-0.93.2:Text.Regex.Base.Context
+         regex-posix-0.95.2:Text.Regex.Posix.ByteString
+         regex-posix-0.95.2:Text.Regex.Posix.ByteString.Lazy
+         regex-posix-0.95.2:Text.Regex.Posix.Sequence
+         regex-posix-0.95.2:Text.Regex.Posix.String
+         resource-pool-0.2.3.2:Data.Pool stm-2.4.4:Control.Monad.STM
+         text-1.2.1.1:Data.Text text-1.2.1.1:Data.Text.Lazy
+         text-1.2.1.1:Data.Text.Show
+         time-1.5.0.1:Data.Time.Calendar.Gregorian
+         time-1.5.0.1:Data.Time.Format.Parse
+         time-1.5.0.1:Data.Time.LocalTime.LocalTime
+         transformers-0.4.3.0:Control.Monad.Trans.Error
+         vector-0.11.0.0:Data.Vector.Fusion.Bundle
+         vector-0.11.0.0:Data.Vector.Unboxed
+family instance modules: alphasheets-0.1.0.0:AS.Types
+                         attoparsec-0.13.0.1:Data.Attoparsec.Internal.Types
+                         base:Control.Applicative base:Data.Either base:Data.Monoid
+                         base:Data.Type.Equality base:GHC.Exts base:GHC.Generics
+                         dlist-0.7.1.1:Data.DList
+                         monad-control-1.0.0.4:Control.Monad.Trans.Control
+                         primitive-0.6:Control.Monad.Primitive text-1.2.1.1:Data.Text
+                         text-1.2.1.1:Data.Text.Lazy
+                         unordered-containers-0.2.5.1:Data.HashMap.Base
+                         unordered-containers-0.2.5.1:Data.HashSet
+                         uuid-types-1.0.1:Data.UUID.Types.Internal
+                         uuid-types-1.0.1:Data.UUID.Types.Internal.Builder
+                         vector-0.11.0.0:Data.Vector vector-0.11.0.0:Data.Vector.Primitive
+                         vector-0.11.0.0:Data.Vector.Storable
+                         vector-0.11.0.0:Data.Vector.Unboxed
+                         vector-0.11.0.0:Data.Vector.Unboxed.Base
+import  -/  AS.Parsing.Common ceccfbae6a55ecc56f531616855b9b06
+  exports: b53f07d91299e788b6ffa7cfbc3e8f8f
+  tryParseListNonIso 772f98377cc0e2b8503d6d074e574a22
+import  -/  AS.Parsing.In 98eb4c4c40887c46f7e5ad3d1e6d68e6
+  exports: 906b8f0955301c1a3a8c568e58f43d5d
+  int 190b6c6c3242071df8cb4e72d3bcf3b7
+import  -/  AS.Types 4f94c2927cba4cb4617d17e571d71325
+  exports: f8584b3856684401ece78f5d630831a9
+  ASCell bede131762bf9e6165d28069305c9a8f
+  ASCellTag 41914e4ed00db1adb7aa05558d91cd06
+  ASCommit cd37bafad7a1ba0bf823b5565484da25
+  ASExpression 64e605941635d5560dadb6b522a83662
+  ASLocation 42b88bd590b6186a8f42af5a0deb461a
+  ASSheet e94846da4cf11f1951bc25078de1fc76
+  ASSheetId 4ed60fa4a266e9c370748b465970547f
+  ASValue cf27945d6d550d5b2c4aa963af53bf25
+  ASWorkbook dc570e9d01415111185b1ff1b63cbb38
+  Cell cf2ab8ae076f48bff57c162753f8fec8
+  Index 32bc2c9c50c80ae6c93286c30ef7b208
+  Range 1619818a9064827107fb6d04d8e72cf3
+  cellExpression d098ac0556715ffe1312d0ac1b230760
+  cellLocation 57eff0be9dcc5df8973c2d9de1095be4
+  cellTags 5949cba85c1e509f832ed1017c3f9981
+  cellValue 0daae8e60f731af1d49564cbdc41f741
+  locSheetId 0eb45f0ce468cda62d570bcb8b46f9d1
+import  -/  AS.Util a1b456ad35c8f7a97ddaaa58328f3cd8
+  exports: 889a698e7d9664843475615b4d8a95b2
+  maxBy 6854e661462a46e1a6a60b68508e1eb4
+import  -/  base:Control.Applicative 30b769206cb5c020684e1bda0d7e7dd3
+import  -/  base:Control.Concurrent 1be25cd1e2ac314074fafb26df0ff06b
+import  -/  base:Control.Monad 483e787e07c2e49f1fb1c1b88665cb92
+import  -/  base:Data.Either d1c890129a7c6a9ec02a642c6c2f4ed3
+import  -/  base:Data.List 8b77870d02d66076337587b759b7ee19
+import  -/  base:Data.Maybe 5034d40e23c3a7110309f188001df4ca
+import  -/  base:Data.Tuple cac4e06c48274e85317bd3e59867ef5b
+import  -/  base:GHC.Base 5d7c5f596f9a4c8a8abd8517c8bcd5dd
+import  -/  base:GHC.List 4cff382327e59a5787355ca0a4174450
+import  -/  base:GHC.Num 5e7786970581cacc802bf850d458a30b
+import  -/  base:GHC.Show cf1a7ff9edb0f41528085aad04d33753
+import  -/  base:Prelude 74043f272d60acec1777d3461cfe5ef4
+import  -/  base:Text.Read 6fe10a0a6d0a38c215de3b09e72ca556
+import  -/  bytestring-0.10.4.0:Data.ByteString.Char8 0e73f8a26c4441d5a78efb34452f1bd2
+import  -/  bytestring-0.10.4.0:Data.ByteString.Internal 669ec56255d0f8ce20adaad94dfc8b92
+import  -/  ghc-prim:GHC.Classes 3e6cbe1e7e80480408cfa8d5450726a0
+import  -/  ghc-prim:GHC.Types dcba736fa3dfba12d307ab18354845d2
+import  -/  hedis-0.6.9:Database.Redis 528220caf3eba6c7f6dc7e85c445c8d5
+import  -/  hedis-0.6.9:Database.Redis.Commands ba029e02b8ac5f5f02c588d1025e14f2
+import  -/  hedis-0.6.9:Database.Redis.Core c109b2f50ce35a47c8d801b7ab048487
+import  -/  hedis-0.6.9:Database.Redis.Transactions 18db708e008d6694dd59f269efab1064
+import  -/  mtl-2.2.1:Control.Monad.Trans a895895592675f11fcf1e6c722171af2
+import  -/  network-2.6.2.1:Network 75c31e6848d384743e777db056b493d8
+import  -/  split-0.2.2:Data.List.Split 9e8c4182840695ff3a75320d1faeebd2
+import  -/  split-0.2.2:Data.List.Split.Internals 9eba89d19ec7034f3a51e3d7887f4bdb
+import  -/  text-1.2.1.1:Data.Text ddf865ef7152d1de0d03707558cc6523
+86aa43313dca54a699adaccfb3aafb29
+  $wincrementLocKey :: GHC.Types.Int
+                       -> GHC.Types.Int
+                       -> Data.ByteString.Internal.ByteString
+                       -> Data.ByteString.Internal.ByteString
+    {- Arity: 3, Strictness: <L,1*U(U)><L,1*U(U)><L,1*U(U,U,U,1*U)> -}
+05cbc4ca8cd2e765fd995dc9bf51a1b4
+  $wlgo :: GHC.Prim.Int# -> [GHC.Types.Int] -> GHC.Prim.Int#
+    {- Arity: 2, HasNoCafRefs, Strictness: <L,U><S,1*U> -}
+f3b6bdfbaac1735810ea2f6abc5cfb07
+  $wmaybeASCell :: AS.Types.ASLocation
+                   -> Data.Maybe.Maybe AS.Types.ASExpression
+                   -> Data.Maybe.Maybe AS.Types.ASValue
+                   -> Data.Maybe.Maybe [AS.Types.ASCellTag]
+                   -> Data.Maybe.Maybe AS.Types.ASCell
+    {- Arity: 4, HasNoCafRefs, Strictness: <L,U><S,1*U><L,1*U><L,1*U>,
+       Unfolding: (\ ww :: AS.Types.ASLocation
+                     ww1 :: Data.Maybe.Maybe AS.Types.ASExpression
+                     ww2 :: Data.Maybe.Maybe AS.Types.ASValue
+                     ww3 :: Data.Maybe.Maybe [AS.Types.ASCellTag] ->
+                   case ww1 of wild {
+                     Data.Maybe.Nothing -> Data.Maybe.Nothing @ AS.Types.ASCell
+                     Data.Maybe.Just e
+                     -> case ww2 of wild1 {
+                          Data.Maybe.Nothing -> Data.Maybe.Nothing @ AS.Types.ASCell
+                          Data.Maybe.Just v
+                          -> case ww3 of wild2 {
+                               Data.Maybe.Nothing -> Data.Maybe.Nothing @ AS.Types.ASCell
+                               Data.Maybe.Just tags
+                               -> Data.Maybe.Just
+                                    @ AS.Types.ASCell
+                                    (AS.Types.Cell ww e v tags) } } }) -}
+72f2978d188248a6fb72c7068538c367
+  bStrToASCommit :: Data.Maybe.Maybe
+                        Data.ByteString.Internal.ByteString
+                    -> Data.Maybe.Maybe AS.Types.ASCommit
+    {- Arity: 1, Strictness: <S,1*U>,
+       Unfolding: (\ ds :: Data.Maybe.Maybe
+                               Data.ByteString.Internal.ByteString ->
+                   case ds of wild {
+                     Data.Maybe.Nothing -> Data.Maybe.Nothing @ AS.Types.ASCommit
+                     Data.Maybe.Just b
+                     -> Data.Maybe.Just
+                          @ AS.Types.ASCommit
+                          (case Text.Read.readEither6
+                                  @ AS.Types.ASCommit
+                                  (Text.ParserCombinators.ReadP.run
+                                     @ AS.Types.ASCommit
+                                     AS.DB.Util.bStrToASCommit3
+                                     (case b of ww { Data.ByteString.Internal.PS ww1 ww2 ww3 ww4 ->
+                                      Data.ByteString.Internal.$wunpackAppendCharsLazy
+                                        ww1
+                                        ww2
+                                        ww3
+                                        ww4
+                                        (GHC.Types.[] @ GHC.Types.Char) })) of wild1 {
+                             [] -> AS.DB.Util.bStrToASCommit2
+                             : x ds1
+                             -> case ds1 of wild2 {
+                                  [] -> x : ipv ipv1 -> AS.DB.Util.bStrToASCommit1 } }) }) -}
+ef1b0162ae5eafcbd932c5b5e3b801f3
+  bStrToASCommit1 :: AS.Types.ASCommit {- Strictness: b -}
+6497e1527b45d802609d3face532aa4b
+  bStrToASCommit2 :: AS.Types.ASCommit {- Strictness: b -}
+ba4377bee59f934f28d2c103f5e14887
+  bStrToASCommit3 :: Text.ParserCombinators.ReadP.P AS.Types.ASCommit
+    {- Unfolding: ((GHC.Read.parens1
+                      @ AS.Types.ASCommit
+                      AS.Types.$fReadASCommit3
+                        `cast`
+                      (Trans
+                           (<Text.ParserCombinators.ReadPrec.Prec>_R
+                            ->_R Sym (Text.ParserCombinators.ReadP.NTCo:ReadP[0]
+                                          <AS.Types.ASCommit>_R))
+                           (Sym (Text.ParserCombinators.ReadPrec.NTCo:ReadPrec[0]
+                                     <AS.Types.ASCommit>_R)))
+                      Text.ParserCombinators.ReadPrec.minPrec)
+                     `cast`
+                   (Text.ParserCombinators.ReadP.NTCo:ReadP[0] <AS.Types.ASCommit>_R)
+                     @ AS.Types.ASCommit
+                     (Text.Read.readEither5 @ AS.Types.ASCommit)) -}
+bc2e8712e3082682abc8348b96b2c5ae
+  bStrToASExpression :: Data.Maybe.Maybe
+                            Data.ByteString.Internal.ByteString
+                        -> Data.Maybe.Maybe AS.Types.ASExpression
+    {- Arity: 1, Strictness: <S,1*U>,
+       Unfolding: (\ ds :: Data.Maybe.Maybe
+                               Data.ByteString.Internal.ByteString ->
+                   case ds of wild {
+                     Data.Maybe.Nothing -> Data.Maybe.Nothing @ AS.Types.ASExpression
+                     Data.Maybe.Just b
+                     -> Data.Maybe.Just
+                          @ AS.Types.ASExpression
+                          (case Text.Read.readEither6
+                                  @ AS.Types.ASExpression
+                                  (Text.ParserCombinators.ReadP.run
+                                     @ AS.Types.ASExpression
+                                     AS.DB.Util.bStrToASExpression3
+                                     (case b of ww { Data.ByteString.Internal.PS ww1 ww2 ww3 ww4 ->
+                                      Data.ByteString.Internal.$wunpackAppendCharsLazy
+                                        ww1
+                                        ww2
+                                        ww3
+                                        ww4
+                                        (GHC.Types.[] @ GHC.Types.Char) })) of wild1 {
+                             [] -> AS.DB.Util.bStrToASExpression2
+                             : x ds1
+                             -> case ds1 of wild2 {
+                                  [] -> x : ipv ipv1 -> AS.DB.Util.bStrToASExpression1 } }) }) -}
+a80e473445e167a2fc1641b70c0c0cb1
+  bStrToASExpression1 :: AS.Types.ASExpression {- Strictness: b -}
+4c3bc2f4438e40460897e351955c7096
+  bStrToASExpression2 :: AS.Types.ASExpression {- Strictness: b -}
+86e56571a739e387323dc599ab2a9618
+  bStrToASExpression3 :: Text.ParserCombinators.ReadP.P
+                             AS.Types.ASExpression
+    {- Unfolding: ((GHC.Read.parens1
+                      @ AS.Types.ASExpression
+                      AS.Types.$fReadASExpression3
+                        `cast`
+                      (Trans
+                           (<Text.ParserCombinators.ReadPrec.Prec>_R
+                            ->_R Sym (Text.ParserCombinators.ReadP.NTCo:ReadP[0]
+                                          <AS.Types.ASExpression>_R))
+                           (Sym (Text.ParserCombinators.ReadPrec.NTCo:ReadPrec[0]
+                                     <AS.Types.ASExpression>_R)))
+                      Text.ParserCombinators.ReadPrec.minPrec)
+                     `cast`
+                   (Text.ParserCombinators.ReadP.NTCo:ReadP[0]
+                        <AS.Types.ASExpression>_R)
+                     @ AS.Types.ASExpression
+                     (Text.Read.readEither5 @ AS.Types.ASExpression)) -}
+67b42adf66640c6c025dfdb0a0ad004d
+  bStrToASLocation :: Data.ByteString.Internal.ByteString
+                      -> AS.Types.ASLocation
+    {- Arity: 1, Strictness: <L,1*U(U,U,U,U)>,
+       Unfolding: (\ b :: Data.ByteString.Internal.ByteString ->
+                   case Text.Read.readEither6
+                          @ AS.Types.ASLocation
+                          (Text.ParserCombinators.ReadP.run
+                             @ AS.Types.ASLocation
+                             AS.DB.Util.bStrToASLocation3
+                             (case b of ww { Data.ByteString.Internal.PS ww1 ww2 ww3 ww4 ->
+                              Data.ByteString.Internal.$wunpackAppendCharsLazy
+                                ww1
+                                ww2
+                                ww3
+                                ww4
+                                (GHC.Types.[] @ GHC.Types.Char) })) of wild {
+                     [] -> AS.DB.Util.bStrToASLocation2
+                     : x ds
+                     -> case ds of wild1 {
+                          [] -> x : ipv ipv1 -> AS.DB.Util.bStrToASLocation1 } }) -}
+1a9ff88f44c11a17cc84a59cdeb2f20c
+  bStrToASLocation1 :: AS.Types.ASLocation {- Strictness: b -}
+c21f57e0771f02e4960797047138517a
+  bStrToASLocation2 :: AS.Types.ASLocation {- Strictness: b -}
+de46bf5cce09b674a926154361a09d1d
+  bStrToASLocation3 :: Text.ParserCombinators.ReadP.P
+                           AS.Types.ASLocation
+    {- Unfolding: ((GHC.Read.parens1
+                      @ AS.Types.ASLocation
+                      AS.Types.$fReadASLocation3
+                        `cast`
+                      (Trans
+                           (<Text.ParserCombinators.ReadPrec.Prec>_R
+                            ->_R Sym (Text.ParserCombinators.ReadP.NTCo:ReadP[0]
+                                          <AS.Types.ASLocation>_R))
+                           (Sym (Text.ParserCombinators.ReadPrec.NTCo:ReadPrec[0]
+                                     <AS.Types.ASLocation>_R)))
+                      Text.ParserCombinators.ReadPrec.minPrec)
+                     `cast`
+                   (Text.ParserCombinators.ReadP.NTCo:ReadP[0]
+                        <AS.Types.ASLocation>_R)
+                     @ AS.Types.ASLocation
+                     (Text.Read.readEither5 @ AS.Types.ASLocation)) -}
+aa7bdcd77415097bb7517d3845764c7e
+  bStrToASValue :: Data.Maybe.Maybe
+                       Data.ByteString.Internal.ByteString
+                   -> Data.Maybe.Maybe AS.Types.ASValue
+    {- Arity: 1, Strictness: <S,1*U>,
+       Unfolding: (\ ds :: Data.Maybe.Maybe
+                               Data.ByteString.Internal.ByteString ->
+                   case ds of wild {
+                     Data.Maybe.Nothing -> Data.Maybe.Nothing @ AS.Types.ASValue
+                     Data.Maybe.Just b
+                     -> Data.Maybe.Just
+                          @ AS.Types.ASValue
+                          (case Text.Read.readEither6
+                                  @ AS.Types.ASValue
+                                  (Text.ParserCombinators.ReadP.run
+                                     @ AS.Types.ASValue
+                                     AS.DB.Util.bStrToASValue3
+                                     (case b of ww { Data.ByteString.Internal.PS ww1 ww2 ww3 ww4 ->
+                                      Data.ByteString.Internal.$wunpackAppendCharsLazy
+                                        ww1
+                                        ww2
+                                        ww3
+                                        ww4
+                                        (GHC.Types.[] @ GHC.Types.Char) })) of wild1 {
+                             [] -> AS.DB.Util.bStrToASValue2
+                             : x ds1
+                             -> case ds1 of wild2 {
+                                  [] -> x : ipv ipv1 -> AS.DB.Util.bStrToASValue1 } }) }) -}
+96d1170fd5cff0021598e121c50583b3
+  bStrToASValue1 :: AS.Types.ASValue {- Strictness: b -}
+a2071c0e633854c7a857d57548053874
+  bStrToASValue2 :: AS.Types.ASValue {- Strictness: b -}
+be65e2e190c9e6ffecc80e9c5c73528f
+  bStrToASValue3 :: Text.ParserCombinators.ReadP.P AS.Types.ASValue
+    {- Unfolding: ((GHC.Read.parens1
+                      @ AS.Types.ASValue
+                      AS.Types.$fReadASValue3
+                        `cast`
+                      (Trans
+                           (<Text.ParserCombinators.ReadPrec.Prec>_R
+                            ->_R Sym (Text.ParserCombinators.ReadP.NTCo:ReadP[0]
+                                          <AS.Types.ASValue>_R))
+                           (Sym (Text.ParserCombinators.ReadPrec.NTCo:ReadPrec[0]
+                                     <AS.Types.ASValue>_R)))
+                      Text.ParserCombinators.ReadPrec.minPrec)
+                     `cast`
+                   (Text.ParserCombinators.ReadP.NTCo:ReadP[0] <AS.Types.ASValue>_R)
+                     @ AS.Types.ASValue
+                     (Text.Read.readEither5 @ AS.Types.ASValue)) -}
+de5bb69a12ddd8e3af7147ce0e811044
+  bStrToRelation :: (Data.ByteString.Internal.ByteString,
+                     Data.ByteString.Internal.ByteString)
+                    -> (AS.Types.ASLocation, AS.Types.ASLocation)
+    {- Arity: 1, Strictness: <S,1*U(1*U(U,U,U,U),1*U(U,U,U,U))>m,
+       Unfolding: InlineRule (1, True, False)
+                  (\ ds :: (Data.ByteString.Internal.ByteString,
+                            Data.ByteString.Internal.ByteString) ->
+                   case ds of wild { (,) r s ->
+                   (AS.DB.Util.bStrToASLocation r,
+                    AS.DB.Util.bStrToASLocation s) }) -}
+0b5e141b036d5f6bbb36ff95bbb4f615
+  bStrToSheet :: Data.Maybe.Maybe Data.ByteString.Internal.ByteString
+                 -> Data.Maybe.Maybe AS.Types.ASSheet
+    {- Arity: 1, Strictness: <S,1*U>,
+       Unfolding: (\ ds :: Data.Maybe.Maybe
+                               Data.ByteString.Internal.ByteString ->
+                   case ds of wild {
+                     Data.Maybe.Nothing -> Data.Maybe.Nothing @ AS.Types.ASSheet
+                     Data.Maybe.Just b
+                     -> Data.Maybe.Just
+                          @ AS.Types.ASSheet
+                          (case Text.Read.readEither6
+                                  @ AS.Types.ASSheet
+                                  (Text.ParserCombinators.ReadP.run
+                                     @ AS.Types.ASSheet
+                                     AS.DB.Util.bStrToSheet3
+                                     (case b of ww { Data.ByteString.Internal.PS ww1 ww2 ww3 ww4 ->
+                                      Data.ByteString.Internal.$wunpackAppendCharsLazy
+                                        ww1
+                                        ww2
+                                        ww3
+                                        ww4
+                                        (GHC.Types.[] @ GHC.Types.Char) })) of wild1 {
+                             [] -> AS.DB.Util.bStrToSheet2
+                             : x ds1
+                             -> case ds1 of wild2 {
+                                  [] -> x : ipv ipv1 -> AS.DB.Util.bStrToSheet1 } }) }) -}
+a5c3ae56e9c0d7c192872f40a153c174
+  bStrToSheet1 :: AS.Types.ASSheet {- Strictness: b -}
+dce571b9051cc388a90f040bc8044105
+  bStrToSheet2 :: AS.Types.ASSheet {- Strictness: b -}
+34d56b0254022097264b66424c2d26d8
+  bStrToSheet3 :: Text.ParserCombinators.ReadP.P AS.Types.ASSheet
+    {- Unfolding: ((GHC.Read.parens1
+                      @ AS.Types.ASSheet
+                      AS.Types.$fReadASSheet3
+                        `cast`
+                      (Trans
+                           (<Text.ParserCombinators.ReadPrec.Prec>_R
+                            ->_R Sym (Text.ParserCombinators.ReadP.NTCo:ReadP[0]
+                                          <AS.Types.ASSheet>_R))
+                           (Sym (Text.ParserCombinators.ReadPrec.NTCo:ReadPrec[0]
+                                     <AS.Types.ASSheet>_R)))
+                      Text.ParserCombinators.ReadPrec.minPrec)
+                     `cast`
+                   (Text.ParserCombinators.ReadP.NTCo:ReadP[0] <AS.Types.ASSheet>_R)
+                     @ AS.Types.ASSheet
+                     (Text.Read.readEither5 @ AS.Types.ASSheet)) -}
+7129a56067559d8f34519474c9fe60e2
+  bStrToTags :: Data.Maybe.Maybe Data.ByteString.Internal.ByteString
+                -> Data.Maybe.Maybe [AS.Types.ASCellTag]
+    {- Arity: 1, Strictness: <S,1*U>,
+       Unfolding: (\ ds :: Data.Maybe.Maybe
+                               Data.ByteString.Internal.ByteString ->
+                   case ds of wild {
+                     Data.Maybe.Nothing -> Data.Maybe.Nothing @ [AS.Types.ASCellTag]
+                     Data.Maybe.Just b
+                     -> Data.Maybe.Just
+                          @ [AS.Types.ASCellTag]
+                          (case Text.Read.readEither6
+                                  @ [AS.Types.ASCellTag]
+                                  (Text.ParserCombinators.ReadP.run
+                                     @ [AS.Types.ASCellTag]
+                                     AS.DB.Util.bStrToTags3
+                                     (case b of ww { Data.ByteString.Internal.PS ww1 ww2 ww3 ww4 ->
+                                      Data.ByteString.Internal.$wunpackAppendCharsLazy
+                                        ww1
+                                        ww2
+                                        ww3
+                                        ww4
+                                        (GHC.Types.[] @ GHC.Types.Char) })) of wild1 {
+                             [] -> AS.DB.Util.bStrToTags2
+                             : x ds1
+                             -> case ds1 of wild2 {
+                                  [] -> x : ipv ipv1 -> AS.DB.Util.bStrToTags1 } }) }) -}
+f8ebbaf15fcda3e50af3e95fab8f03b3
+  bStrToTags1 :: [AS.Types.ASCellTag] {- Strictness: b -}
+a7f6dc76b4ea6ece2fae2f09f81740c7
+  bStrToTags2 :: [AS.Types.ASCellTag] {- Strictness: b -}
+166d1e92adddc7ceec2580b4a61b7adc
+  bStrToTags3 :: Text.ParserCombinators.ReadP.P [AS.Types.ASCellTag]
+    {- Unfolding: (GHC.Read.$wa
+                     @ AS.Types.ASCellTag
+                     AS.Types.$fReadASCellTag2
+                       `cast`
+                     (Sym (Text.ParserCombinators.ReadPrec.NTCo:ReadPrec[0]
+                               <AS.Types.ASCellTag>_R))
+                     @ [AS.Types.ASCellTag]
+                     (Text.Read.readEither5 @ [AS.Types.ASCellTag])) -}
+2a8071d5fe89a869748f1b542fa9de60
+  bStrToWorkbook :: Data.Maybe.Maybe
+                        Data.ByteString.Internal.ByteString
+                    -> Data.Maybe.Maybe AS.Types.ASWorkbook
+    {- Arity: 1, Strictness: <S,1*U>,
+       Unfolding: (\ ds :: Data.Maybe.Maybe
+                               Data.ByteString.Internal.ByteString ->
+                   case ds of wild {
+                     Data.Maybe.Nothing -> Data.Maybe.Nothing @ AS.Types.ASWorkbook
+                     Data.Maybe.Just b
+                     -> Data.Maybe.Just
+                          @ AS.Types.ASWorkbook
+                          (case Text.Read.readEither6
+                                  @ AS.Types.ASWorkbook
+                                  (Text.ParserCombinators.ReadP.run
+                                     @ AS.Types.ASWorkbook
+                                     AS.DB.Util.bStrToWorkbook3
+                                     (case b of ww { Data.ByteString.Internal.PS ww1 ww2 ww3 ww4 ->
+                                      Data.ByteString.Internal.$wunpackAppendCharsLazy
+                                        ww1
+                                        ww2
+                                        ww3
+                                        ww4
+                                        (GHC.Types.[] @ GHC.Types.Char) })) of wild1 {
+                             [] -> AS.DB.Util.bStrToWorkbook2
+                             : x ds1
+                             -> case ds1 of wild2 {
+                                  [] -> x : ipv ipv1 -> AS.DB.Util.bStrToWorkbook1 } }) }) -}
+7a8d15cb266f1dd78bee348bbaf636a3
+  bStrToWorkbook1 :: AS.Types.ASWorkbook {- Strictness: b -}
+032e1b495a6c0106c199a7ce250673c2
+  bStrToWorkbook2 :: AS.Types.ASWorkbook {- Strictness: b -}
+18de15e7b159edfd0c60b8ceab7ecacb
+  bStrToWorkbook3 :: Text.ParserCombinators.ReadP.P
+                         AS.Types.ASWorkbook
+    {- Unfolding: ((GHC.Read.parens1
+                      @ AS.Types.ASWorkbook
+                      AS.Types.$fReadASWorkbook3
+                        `cast`
+                      (Trans
+                           (<Text.ParserCombinators.ReadPrec.Prec>_R
+                            ->_R Sym (Text.ParserCombinators.ReadP.NTCo:ReadP[0]
+                                          <AS.Types.ASWorkbook>_R))
+                           (Sym (Text.ParserCombinators.ReadPrec.NTCo:ReadPrec[0]
+                                     <AS.Types.ASWorkbook>_R)))
+                      Text.ParserCombinators.ReadPrec.minPrec)
+                     `cast`
+                   (Text.ParserCombinators.ReadP.NTCo:ReadP[0]
+                        <AS.Types.ASWorkbook>_R)
+                     @ AS.Types.ASWorkbook
+                     (Text.Read.readEither5 @ AS.Types.ASWorkbook)) -}
+a14d95d089ddfcdcf83959a613db149d
+  cInfo :: Database.Redis.Core.ConnectInfo
+    {- Strictness: m,
+       Unfolding: (Database.Redis.Core.ConnInfo
+                     AS.DB.Util.cInfo6
+                     AS.DB.Util.cInfo4
+                     (Data.Maybe.Nothing @ Data.ByteString.Internal.ByteString)
+                     AS.DB.Util.cInfo3
+                     AS.DB.Util.cInfo2
+                     AS.DB.Util.cInfo1
+                       `cast`
+                     (Trans
+                          (Sym (Data.Fixed.NTCo:Fixed[0] <Data.Fixed.E12>_P))
+                          (Sym (Data.Time.Clock.UTC.NTCo:NominalDiffTime[0])))) -}
+64d5e306f8c970b8bb01aad5066c79dc
+  cInfo1 :: GHC.Integer.Type.Integer
+    {- Unfolding: (__integer 1000000000000000000) -}
+ddaa5feedca8832158d1f1401ab5351a
+  cInfo2 :: GHC.Types.Int
+    {- HasNoCafRefs, Strictness: m, Unfolding: (GHC.Types.I# 100) -}
+f34fdf5181da97007076e7bcc23fe024
+  cInfo3 :: GHC.Integer.Type.Integer {- Unfolding: (__integer 0) -}
+d36545c64ee9b4db2141c3990e2c2e4c
+  cInfo4 :: Network.PortID
+    {- Strictness: m2,
+       Unfolding: (Network.PortNumber AS.DB.Util.cInfo5) -}
+3534047bcff741bd4ef4f1e32c9a47b4
+  cInfo5 :: Network.Socket.Types.PortNumber
+    {- Unfolding: (case {__pkg_ccall network-2.6.2.1 htons GHC.Prim.Word#
+                                                           -> GHC.Prim.State# GHC.Prim.RealWorld
+                                                           -> (# GHC.Prim.State# GHC.Prim.RealWorld,
+                                                                 GHC.Prim.Word# #)}
+                          __word 6379
+                          GHC.Prim.realWorld# of wild1 { (#,#) ds ds1 ->
+                   (GHC.Word.W16# (GHC.Prim.narrow16Word# ds1))
+                     `cast`
+                   (Sym (Network.Socket.Types.NTCo:PortNumber[0])) }) -}
+897c441e1a8f88c27efa26fa7cabd46d
+  cInfo6 :: [GHC.Types.Char]
+    {- Unfolding: (GHC.CString.unpackCString# "localhost"#) -}
+943145adaf3886d738e76b49ab49584a
+  cellFields :: [Data.ByteString.Internal.ByteString]
+    {- Strictness: m2,
+       Unfolding: (GHC.Types.:
+                     @ Data.ByteString.Internal.ByteString
+                     AS.DB.Util.cellFields7
+                     AS.DB.Util.cellFields1) -}
+b971f0baa4939525ed05975de2467488
+  cellFields1 :: [Data.ByteString.Internal.ByteString]
+    {- Strictness: m2,
+       Unfolding: (GHC.Types.:
+                     @ Data.ByteString.Internal.ByteString
+                     AS.DB.Util.cellFields6
+                     AS.DB.Util.cellFields2) -}
+e0dd9f691243a4e6b9cd71a5791a2a96
+  cellFields2 :: [Data.ByteString.Internal.ByteString]
+    {- Strictness: m2,
+       Unfolding: (GHC.Types.:
+                     @ Data.ByteString.Internal.ByteString
+                     AS.DB.Util.cellFields5
+                     AS.DB.Util.cellFields3) -}
+4a6fb95a9f09f3b0f36fc342fd852a9f
+  cellFields3 :: [Data.ByteString.Internal.ByteString]
+    {- Strictness: m2,
+       Unfolding: (GHC.Types.:
+                     @ Data.ByteString.Internal.ByteString
+                     AS.DB.Util.cellFields4
+                     (GHC.Types.[] @ Data.ByteString.Internal.ByteString)) -}
+a722cb6758bdb4763b2bae074fc640cb
+  cellFields4 :: Data.ByteString.Internal.ByteString
+    {- Unfolding: (case GHC.Prim.newMutVar#
+                          @ GHC.ForeignPtr.Finalizers
+                          @ GHC.Prim.RealWorld
+                          GHC.ForeignPtr.NoFinalizers
+                          GHC.Prim.realWorld# of ds1 { (#,#) ipv ipv1 ->
+                   let {
+                     addr# :: GHC.Prim.Addr# = "cellTags"#
+                   } in
+                   case {__pkg_ccall bytestring-0.10.4.0 strlen GHC.Prim.Addr#
+                                                                -> GHC.Prim.State#
+                                                                       GHC.Prim.RealWorld
+                                                                -> (# GHC.Prim.State#
+                                                                          GHC.Prim.RealWorld,
+                                                                      GHC.Prim.Word# #)}
+                          addr#
+                          ipv of wild { (#,#) ds3 ds4 ->
+                   Data.ByteString.Internal.PS
+                     addr#
+                     (GHC.ForeignPtr.PlainForeignPtr ipv1)
+                     0
+                     (GHC.Prim.word2Int# ds4) } }) -}
+3310bd85638abaed086798086405e96a
+  cellFields5 :: Data.ByteString.Internal.ByteString
+    {- Unfolding: (case GHC.Prim.newMutVar#
+                          @ GHC.ForeignPtr.Finalizers
+                          @ GHC.Prim.RealWorld
+                          GHC.ForeignPtr.NoFinalizers
+                          GHC.Prim.realWorld# of ds1 { (#,#) ipv ipv1 ->
+                   let {
+                     addr# :: GHC.Prim.Addr# = "cellValue"#
+                   } in
+                   case {__pkg_ccall bytestring-0.10.4.0 strlen GHC.Prim.Addr#
+                                                                -> GHC.Prim.State#
+                                                                       GHC.Prim.RealWorld
+                                                                -> (# GHC.Prim.State#
+                                                                          GHC.Prim.RealWorld,
+                                                                      GHC.Prim.Word# #)}
+                          addr#
+                          ipv of wild { (#,#) ds3 ds4 ->
+                   Data.ByteString.Internal.PS
+                     addr#
+                     (GHC.ForeignPtr.PlainForeignPtr ipv1)
+                     0
+                     (GHC.Prim.word2Int# ds4) } }) -}
+7b0de91fdbcf303cd6764b2077035998
+  cellFields6 :: Data.ByteString.Internal.ByteString
+    {- Unfolding: (case GHC.Prim.newMutVar#
+                          @ GHC.ForeignPtr.Finalizers
+                          @ GHC.Prim.RealWorld
+                          GHC.ForeignPtr.NoFinalizers
+                          GHC.Prim.realWorld# of ds1 { (#,#) ipv ipv1 ->
+                   let {
+                     addr# :: GHC.Prim.Addr# = "cellExpression"#
+                   } in
+                   case {__pkg_ccall bytestring-0.10.4.0 strlen GHC.Prim.Addr#
+                                                                -> GHC.Prim.State#
+                                                                       GHC.Prim.RealWorld
+                                                                -> (# GHC.Prim.State#
+                                                                          GHC.Prim.RealWorld,
+                                                                      GHC.Prim.Word# #)}
+                          addr#
+                          ipv of wild { (#,#) ds3 ds4 ->
+                   Data.ByteString.Internal.PS
+                     addr#
+                     (GHC.ForeignPtr.PlainForeignPtr ipv1)
+                     0
+                     (GHC.Prim.word2Int# ds4) } }) -}
+1d13d998194d81f8a55cf68336a44a71
+  cellFields7 :: Data.ByteString.Internal.ByteString
+    {- Unfolding: (case GHC.Prim.newMutVar#
+                          @ GHC.ForeignPtr.Finalizers
+                          @ GHC.Prim.RealWorld
+                          GHC.ForeignPtr.NoFinalizers
+                          GHC.Prim.realWorld# of ds1 { (#,#) ipv ipv1 ->
+                   let {
+                     addr# :: GHC.Prim.Addr# = "cellLocation"#
+                   } in
+                   case {__pkg_ccall bytestring-0.10.4.0 strlen GHC.Prim.Addr#
+                                                                -> GHC.Prim.State#
+                                                                       GHC.Prim.RealWorld
+                                                                -> (# GHC.Prim.State#
+                                                                          GHC.Prim.RealWorld,
+                                                                      GHC.Prim.Word# #)}
+                          addr#
+                          ipv of wild { (#,#) ds3 ds4 ->
+                   Data.ByteString.Internal.PS
+                     addr#
+                     (GHC.ForeignPtr.PlainForeignPtr ipv1)
+                     0
+                     (GHC.Prim.word2Int# ds4) } }) -}
+486ac4cdf9d399cd822a3b555792b29e
+  chunkM_ :: Database.Redis.Core.Connection
+             -> ([a] -> Database.Redis.Core.Redis ())
+             -> GHC.Types.Int
+             -> [a]
+             -> GHC.Types.IO ()
+    {- Arity: 5,
+       Strictness: <L,U(C(U),C(C1(U)),U(U),A,U(U),U(U,U,U),A)><L,C(U)><L,U(U)><L,1*U><L,U>,
+       Unfolding: (AS.DB.Util.chunkM_1
+                     `cast`
+                   (forall a1.
+                    <Database.Redis.Core.Connection>_R
+                    ->_R <[a1] -> Database.Redis.Core.Redis ()>_R
+                    ->_R <GHC.Types.Int>_R
+                    ->_R <[a1]>_R
+                    ->_R Sym (GHC.Types.NTCo:IO[0] <()>_R))) -}
+fa8595064d7e53003cbc93971c981ea0
+  chunkM_1 :: Database.Redis.Core.Connection
+              -> ([a] -> Database.Redis.Core.Redis ())
+              -> GHC.Types.Int
+              -> [a]
+              -> GHC.Prim.State# GHC.Prim.RealWorld
+              -> (# GHC.Prim.State# GHC.Prim.RealWorld, () #)
+    {- Arity: 5,
+       Strictness: <L,U(C(U),C(C1(U)),U(U),A,U(U),U(U,U,U),A)><L,C(U)><L,U(U)><L,1*U><L,U>,
+       Unfolding: (\ @ a1
+                     conn :: Database.Redis.Core.Connection
+                     f :: [a1] -> Database.Redis.Core.Redis ()
+                     size :: GHC.Types.Int
+                     lst :: [a1]
+                     eta :: GHC.Prim.State# GHC.Prim.RealWorld ->
+                   (Data.Pool.withResource_$swithResource
+                      @ (Database.Redis.ProtocolPipelining.Connection
+                             Database.Redis.Protocol.Reply)
+                      @ ()
+                      conn `cast` (Database.Redis.Core.NTCo:Connection[0])
+                      (\ conn1 :: Database.Redis.ProtocolPipelining.Connection
+                                      Database.Redis.Protocol.Reply ->
+                       letrec {
+                         go :: [[a1]] -> Database.Redis.Core.Redis ()
+                           {- Arity: 1, Strictness: <S,1*U> -}
+                         = \ ds :: [[a1]] ->
+                           case ds of wild {
+                             []
+                             -> AS.DB.Util.chunkM_2
+                                  `cast`
+                                (Trans
+                                     (<Database.Redis.ProtocolPipelining.Connection
+                                           Database.Redis.Protocol.Reply>_R
+                                      ->_R Sym (GHC.Types.NTCo:IO[0] <()>_R))
+                                     (Trans
+                                          (Sym (Control.Monad.Trans.Reader.NTCo:ReaderT[0]
+                                                    <Database.Redis.ProtocolPipelining.Connection
+                                                         Database.Redis.Protocol.Reply>_R
+                                                    <GHC.Types.IO>_R
+                                                    <()>_N))
+                                          (Sym (Database.Redis.Core.NTCo:Redis[0]) <()>_N)))
+                             : y ys
+                             -> let {
+                                  a2 :: Database.Redis.Core.Redis () = f y
+                                } in
+                                let {
+                                  ys1 :: Database.Redis.Core.Redis () = go ys
+                                } in
+                                (\ eta1 :: Database.Redis.ProtocolPipelining.Connection
+                                               Database.Redis.Protocol.Reply
+                                   eta2 :: GHC.Prim.State# GHC.Prim.RealWorld ->
+                                 case (a2
+                                         `cast`
+                                       (Trans
+                                            (Database.Redis.Core.NTCo:Redis[0] <()>_N)
+                                            (Control.Monad.Trans.Reader.NTCo:ReaderT[0]
+                                                 <Database.Redis.ProtocolPipelining.Connection
+                                                      Database.Redis.Protocol.Reply>_R
+                                                 <GHC.Types.IO>_R
+                                                 <()>_N))
+                                         eta1)
+                                        `cast`
+                                      (GHC.Types.NTCo:IO[0] <()>_R)
+                                        eta2 of ds1 { (#,#) ipv ipv1 ->
+                                 (ys1
+                                    `cast`
+                                  (Trans
+                                       (Database.Redis.Core.NTCo:Redis[0] <()>_N)
+                                       (Control.Monad.Trans.Reader.NTCo:ReaderT[0]
+                                            <Database.Redis.ProtocolPipelining.Connection
+                                                 Database.Redis.Protocol.Reply>_R
+                                            <GHC.Types.IO>_R
+                                            <()>_N))
+                                    eta1)
+                                   `cast`
+                                 (GHC.Types.NTCo:IO[0] <()>_R)
+                                   ipv })
+                                  `cast`
+                                (Trans
+                                     (<Database.Redis.ProtocolPipelining.Connection
+                                           Database.Redis.Protocol.Reply>_R
+                                      ->_R Sym (GHC.Types.NTCo:IO[0] <()>_R))
+                                     (Trans
+                                          (Sym (Control.Monad.Trans.Reader.NTCo:ReaderT[0]
+                                                    <Database.Redis.ProtocolPipelining.Connection
+                                                         Database.Redis.Protocol.Reply>_R
+                                                    <GHC.Types.IO>_R
+                                                    <()>_N))
+                                          (Sym (Database.Redis.Core.NTCo:Redis[0]) <()>_N))) }
+                       } in
+                       (go (Data.List.Split.Internals.chunksOf @ a1 size lst))
+                         `cast`
+                       (Trans
+                            (Database.Redis.Core.NTCo:Redis[0] <()>_N)
+                            (Control.Monad.Trans.Reader.NTCo:ReaderT[0]
+                                 <Database.Redis.ProtocolPipelining.Connection
+                                      Database.Redis.Protocol.Reply>_R
+                                 <GHC.Types.IO>_R
+                                 <()>_N))
+                         conn1))
+                     `cast`
+                   (GHC.Types.NTCo:IO[0] <()>_R)
+                     eta) -}
+f3670ebc913729f51cc18d349746761e
+  chunkM_2 :: Database.Redis.ProtocolPipelining.Connection
+                  Database.Redis.Protocol.Reply
+              -> GHC.Prim.State# GHC.Prim.RealWorld
+              -> (# GHC.Prim.State# GHC.Prim.RealWorld, () #)
+    {- Arity: 2, HasNoCafRefs, Strictness: <L,A><L,U>,
+       Unfolding: InlineRule (2, True, True)
+                  (\ eta1 :: Database.Redis.ProtocolPipelining.Connection
+                                 Database.Redis.Protocol.Reply
+                     eta2 :: GHC.Prim.State# GHC.Prim.RealWorld ->
+                   (# eta2, GHC.Tuple.() #)) -}
+c31c77ce9a7c717461f0c38e441b6c59
+  dagChunkSize :: GHC.Types.Int
+    {- HasNoCafRefs, Strictness: m, Unfolding: (GHC.Types.I# 1000) -}
+4dc8a1cc2f6d214eeffc6fef0c07e1b7
+  deleteLocRedis :: AS.Types.ASLocation
+                    -> Database.Redis.Core.Redis ()
+    {- Arity: 1, Strictness: <L,1*U>,
+       Unfolding: (\ loc :: AS.Types.ASLocation ->
+                   let {
+                     lvl9 :: Data.ByteString.Internal.ByteString
+                     = Database.Redis.Protocol.renderRequest
+                         (GHC.Types.:
+                            @ Data.ByteString.Internal.ByteString
+                            Database.Redis.Commands.del1
+                            (GHC.Base.map
+                               @ Data.ByteString.Internal.ByteString
+                               @ Data.ByteString.Internal.ByteString
+                               (GHC.Base.id @ Data.ByteString.Internal.ByteString)
+                               (GHC.Types.:
+                                  @ Data.ByteString.Internal.ByteString
+                                  (AS.DB.Util.getLocationKey loc)
+                                  (GHC.Types.[] @ Data.ByteString.Internal.ByteString))))
+                   } in
+                   (\ eta :: Database.Redis.ProtocolPipelining.Connection
+                                 Database.Redis.Protocol.Reply
+                      eta1 :: GHC.Prim.State# GHC.Prim.RealWorld ->
+                    case eta of ww { Database.Redis.ProtocolPipelining.Conn ww1 ww2 ww3 ww4 ->
+                    case lvl9 of ww5 { Data.ByteString.Internal.PS ww6 ww7 ww8 ww9 ->
+                    case Database.Redis.ProtocolPipelining.$wa2
+                           @ Database.Redis.Protocol.Reply
+                           ww1
+                           ww2
+                           ww3
+                           ww6
+                           ww7
+                           ww8
+                           ww9
+                           eta1 of ds1 { (#,#) ipv ipv1 ->
+                    (# ipv, GHC.Tuple.() #) } } })
+                     `cast`
+                   (Trans
+                        (<Database.Redis.ProtocolPipelining.Connection
+                              Database.Redis.Protocol.Reply>_R
+                         ->_R Sym (GHC.Types.NTCo:IO[0] <()>_R))
+                        (Trans
+                             (Sym (Control.Monad.Trans.Reader.NTCo:ReaderT[0]
+                                       <Database.Redis.ProtocolPipelining.Connection
+                                            Database.Redis.Protocol.Reply>_R
+                                       <GHC.Types.IO>_R
+                                       <()>_N))
+                             (Sym (Database.Redis.Core.NTCo:Redis[0]) <()>_N)))) -}
+a00c6d91828ae4734afb74b8854f1563
+  getCellByKeyRedis :: Data.ByteString.Internal.ByteString
+                       -> Database.Redis.Core.Redis (Data.Maybe.Maybe AS.Types.ASCell)
+    {- Arity: 1, Strictness: <L,U>,
+       Unfolding: (\ key :: Data.ByteString.Internal.ByteString ->
+                   let {
+                     lvl9 :: Data.ByteString.Internal.ByteString
+                     = Database.Redis.Protocol.renderRequest
+                         (GHC.Types.:
+                            @ Data.ByteString.Internal.ByteString
+                            Database.Redis.Commands.hmget1
+                            (GHC.Types.:
+                               @ Data.ByteString.Internal.ByteString
+                               key
+                               AS.DB.Util.getCellByKeyRedis2))
+                   } in
+                   (\ r1 :: Database.Redis.ProtocolPipelining.Connection
+                                Database.Redis.Protocol.Reply
+                      s :: GHC.Prim.State# GHC.Prim.RealWorld ->
+                    case r1 of ww { Database.Redis.ProtocolPipelining.Conn ww1 ww2 ww3 ww4 ->
+                    case lvl9 of ww5 { Data.ByteString.Internal.PS ww6 ww7 ww8 ww9 ->
+                    case Database.Redis.ProtocolPipelining.$wa2
+                           @ Database.Redis.Protocol.Reply
+                           ww1
+                           ww2
+                           ww3
+                           ww6
+                           ww7
+                           ww8
+                           ww9
+                           s of ds1 { (#,#) ipv ipv1 ->
+                    case Database.Redis.Types.$fRedisResult[]0_$cdecode
+                           @ (Data.Maybe.Maybe Data.ByteString.Internal.ByteString)
+                           Database.Redis.Commands.brpoplpush2
+                             `cast`
+                           (Sym (Database.Redis.Types.NTCo:RedisResult[0]
+                                     <Data.Maybe.Maybe Data.ByteString.Internal.ByteString>_N))
+                           ipv1 of wild {
+                      Data.Either.Left ipv2
+                      -> (GHC.IO.failIO
+                            @ (Data.Maybe.Maybe AS.Types.ASCell)
+                            AS.DB.Util.getCellByKeyRedis1)
+                           `cast`
+                         (GHC.Types.NTCo:IO[0] <Data.Maybe.Maybe AS.Types.ASCell>_R)
+                           ipv
+                      Data.Either.Right strs
+                      -> (# ipv, AS.DB.Util.maybeASCellFromFields strs #) } } } })
+                     `cast`
+                   (Trans
+                        (<Database.Redis.ProtocolPipelining.Connection
+                              Database.Redis.Protocol.Reply>_R
+                         ->_R Sym (GHC.Types.NTCo:IO[0]
+                                       <Data.Maybe.Maybe AS.Types.ASCell>_R))
+                        (Trans
+                             (Sym (Control.Monad.Trans.Reader.NTCo:ReaderT[0]
+                                       <Database.Redis.ProtocolPipelining.Connection
+                                            Database.Redis.Protocol.Reply>_R
+                                       <GHC.Types.IO>_R
+                                       <Data.Maybe.Maybe AS.Types.ASCell>_N))
+                             (Sym (Database.Redis.Core.NTCo:Redis[0]) <Data.Maybe.Maybe
+                                                                           AS.Types.ASCell>_N)))) -}
+626333f07189ed63e810e7b51b6fcbe9
+  getCellByKeyRedis1 :: [GHC.Types.Char]
+    {- Unfolding: (GHC.CString.unpackCString#
+                     "Pattern match failure in do expression at src/AS/DB/Util.hs:137:5-14"#) -}
+726621bfb3c61b90987942df7b16061e
+  getCellByKeyRedis2 :: [Data.ByteString.Internal.ByteString]
+    {- Unfolding: (GHC.Base.map
+                     @ Data.ByteString.Internal.ByteString
+                     @ Data.ByteString.Internal.ByteString
+                     (GHC.Base.id @ Data.ByteString.Internal.ByteString)
+                     AS.DB.Util.cellFields) -}
+d97ecef91b0dcb6bd3089d12203368a0
+  getLastRowKey :: [Data.ByteString.Internal.ByteString]
+                   -> Data.ByteString.Internal.ByteString
+    {- Arity: 1, Strictness: <S,1*U>,
+       Unfolding: (\ keys :: [Data.ByteString.Internal.ByteString] ->
+                   AS.Util.maxBy
+                     @ Data.ByteString.Internal.ByteString
+                     @ GHC.Types.Int
+                     GHC.Classes.$fOrdInt
+                     AS.DB.Util.keyToRow
+                     keys) -}
+32898ee4482d81d07925a2b5747a65d0
+  getLocationKey :: AS.Types.ASLocation
+                    -> Data.ByteString.Internal.ByteString
+    {- Arity: 1, Strictness: <S,1*U> -}
+842a7c7c6924d71b4a4efc6c74d18896
+  getSheetKey :: AS.Types.ASSheetId
+                 -> Data.ByteString.Internal.ByteString
+    {- Arity: 1, Strictness: <L,1*U(U,U,U)>,
+       Unfolding: (\ x :: AS.Types.ASSheetId ->
+                   let {
+                     cs :: [GHC.Types.Char]
+                     = case Data.Text.Show.$w$cshow x of ww { (#,#) ww1 ww2 ->
+                       GHC.Types.: @ GHC.Types.Char ww1 ww2 }
+                   } in
+                   Data.ByteString.Internal.unsafePackLenChars
+                     (case GHC.List.$wlenAcc @ GHC.Types.Char cs 0 of ww { DEFAULT ->
+                      GHC.Types.I# ww })
+                     cs) -}
+f6a52176a8d275177162b26b74b6ad8c
+  getSheetLocsRedis :: AS.Types.ASSheetId
+                       -> Database.Redis.Core.Redis [Data.ByteString.Internal.ByteString]
+    {- Arity: 1, Strictness: <L,1*U(U,U,U)>,
+       Unfolding: (\ sheetid :: AS.Types.ASSheetId ->
+                   let {
+                     lvl9 :: Data.ByteString.Internal.ByteString
+                     = Database.Redis.Protocol.renderRequest
+                         (GHC.Types.:
+                            @ Data.ByteString.Internal.ByteString
+                            Database.Redis.Commands.smembers1
+                            (GHC.Types.:
+                               @ Data.ByteString.Internal.ByteString
+                               (AS.DB.Util.getSheetSetKey sheetid)
+                               (GHC.Types.[] @ Data.ByteString.Internal.ByteString)))
+                   } in
+                   (\ r1 :: Database.Redis.ProtocolPipelining.Connection
+                                Database.Redis.Protocol.Reply
+                      s :: GHC.Prim.State# GHC.Prim.RealWorld ->
+                    case r1 of ww { Database.Redis.ProtocolPipelining.Conn ww1 ww2 ww3 ww4 ->
+                    case lvl9 of ww5 { Data.ByteString.Internal.PS ww6 ww7 ww8 ww9 ->
+                    case Database.Redis.ProtocolPipelining.$wa2
+                           @ Database.Redis.Protocol.Reply
+                           ww1
+                           ww2
+                           ww3
+                           ww6
+                           ww7
+                           ww8
+                           ww9
+                           s of ds1 { (#,#) ipv ipv1 ->
+                    case Database.Redis.Types.$fRedisResult[]0_$cdecode
+                           @ Data.ByteString.Internal.ByteString
+                           Database.Redis.Types.$fRedisResultByteString_$cdecode
+                             `cast`
+                           (Sym (Database.Redis.Types.NTCo:RedisResult[0]
+                                     <Data.ByteString.Internal.ByteString>_N))
+                           ipv1 of wild {
+                      Data.Either.Left ipv2
+                      -> (GHC.IO.failIO
+                            @ [Data.ByteString.Internal.ByteString]
+                            AS.DB.Util.getSheetLocsRedis1)
+                           `cast`
+                         (GHC.Types.NTCo:IO[0] <[Data.ByteString.Internal.ByteString]>_R)
+                           ipv
+                      Data.Either.Right keys -> (# ipv, keys #) } } } })
+                     `cast`
+                   (Trans
+                        (<Database.Redis.ProtocolPipelining.Connection
+                              Database.Redis.Protocol.Reply>_R
+                         ->_R Sym (GHC.Types.NTCo:IO[0]
+                                       <[Data.ByteString.Internal.ByteString]>_R))
+                        (Trans
+                             (Sym (Control.Monad.Trans.Reader.NTCo:ReaderT[0]
+                                       <Database.Redis.ProtocolPipelining.Connection
+                                            Database.Redis.Protocol.Reply>_R
+                                       <GHC.Types.IO>_R
+                                       <[Data.ByteString.Internal.ByteString]>_N))
+                             (Sym (Database.Redis.Core.NTCo:Redis[0]) <[Data.ByteString.Internal.ByteString]>_N)))) -}
+6e84925b6b803dbe5c0e2a8e5e4a7488
+  getSheetLocsRedis1 :: [GHC.Types.Char]
+    {- Unfolding: (GHC.CString.unpackCString#
+                     "Pattern match failure in do expression at src/AS/DB/Util.hs:159:3-12"#) -}
+7e0148556acfb768ab318babec2d645f
+  getSheetSetKey :: AS.Types.ASSheetId
+                    -> Data.ByteString.Internal.ByteString
+    {- Arity: 1, Strictness: <L,1*U(U,U,U)>,
+       Unfolding: (\ sid :: AS.Types.ASSheetId ->
+                   let {
+                     cs :: [GHC.Types.Char]
+                     = case Data.Text.Show.$w$cshow sid of ww { (#,#) ww1 ww2 ->
+                       GHC.Base.++
+                         @ GHC.Types.Char
+                         (GHC.Types.: @ GHC.Types.Char ww1 ww2)
+                         AS.DB.Util.getSheetSetKey1 }
+                   } in
+                   Data.ByteString.Internal.unsafePackLenChars
+                     (case GHC.List.$wlenAcc @ GHC.Types.Char cs 0 of ww { DEFAULT ->
+                      GHC.Types.I# ww })
+                     cs) -}
+0af3e481bec954222f724ac739d56a5a
+  getSheetSetKey1 :: [GHC.Types.Char]
+    {- Unfolding: (GHC.CString.unpackCString# "Locations"#) -}
+6b4f7fef01ca4af10f5254b88f9bbb3f
+  getUniquePrefixedName :: GHC.Base.String
+                           -> [GHC.Base.String]
+                           -> GHC.Base.String
+    {- Arity: 2, Strictness: <S,U><L,1*U>,
+       Unfolding: (\ pref :: GHC.Base.String strs :: [GHC.Base.String] ->
+                   GHC.Base.++
+                     @ GHC.Types.Char
+                     pref
+                     (let {
+                        ds :: GHC.Types.Int
+                        = case GHC.List.$wlenAcc @ GHC.Types.Char pref 0 of ww { DEFAULT ->
+                          GHC.Types.I# ww }
+                      } in
+                      letrec {
+                        go :: [[GHC.Types.Char]] -> [[GHC.Types.Char]]
+                          {- Arity: 1, Strictness: <S,1*U> -}
+                        = \ ds1 :: [[GHC.Types.Char]] ->
+                          case ds1 of wild {
+                            [] -> GHC.Types.[] @ [GHC.Types.Char]
+                            : y ys
+                            -> case Data.List.isPrefixOf
+                                      @ GHC.Types.Char
+                                      GHC.Classes.$fEqChar
+                                      pref
+                                      y of wild1 {
+                                 GHC.Types.False -> go ys
+                                 GHC.Types.True
+                                 -> GHC.Types.:
+                                      @ [GHC.Types.Char]
+                                      (case ds of wild2 { GHC.Types.I# n# ->
+                                       case GHC.Prim.tagToEnum#
+                                              @ GHC.Types.Bool
+                                              (GHC.Prim.<# n# 0) of wild3 {
+                                         GHC.Types.False
+                                         -> GHC.List.drop_drop# @ GHC.Types.Char n# y
+                                         GHC.Types.True -> y } })
+                                      (go ys) } }
+                      } in
+                      case AS.Parsing.Common.tryParseListNonIso
+                             @ GHC.Types.Int
+                             AS.Parsing.In.int1
+                               `cast`
+                             (Sym (Text.Parsec.Prim.NTCo:ParsecT[0]
+                                       <Data.Text.Internal.Text>_R
+                                       <()>_R
+                                       <Data.Functor.Identity.Identity>_R
+                                       <GHC.Types.Int>_R))
+                             (go strs) of wild {
+                        []
+                        -> case GHC.Show.$wshowSignedInt
+                                  0
+                                  1
+                                  (GHC.Types.[] @ GHC.Types.Char) of ww4 { (#,#) ww5 ww6 ->
+                           GHC.Types.: @ GHC.Types.Char ww5 ww6 }
+                        : ipv ipv1
+                        -> case ipv of ww { GHC.Types.I# ww1 ->
+                           case AS.DB.Util.$wlgo ww1 ipv1 of ww2 { DEFAULT ->
+                           case GHC.Show.$wshowSignedInt
+                                  0
+                                  (GHC.Prim.+# ww2 1)
+                                  (GHC.Types.[] @ GHC.Types.Char) of ww4 { (#,#) ww5 ww6 ->
+                           GHC.Types.: @ GHC.Types.Char ww5 ww6 } } } })) -}
+cfc8a77101ede20f47c7078bdc5b2bf7
+  getWorkbookKey :: GHC.Base.String
+                    -> Data.ByteString.Internal.ByteString
+    {- Arity: 1, Strictness: <L,U>,
+       Unfolding: (Data.ByteString.Internal.packChars) -}
+5ea01908ca16a1bd5dadba1c6a7aec2f
+  incrementLocKey :: (GHC.Types.Int, GHC.Types.Int)
+                     -> Data.ByteString.Internal.ByteString
+                     -> Data.ByteString.Internal.ByteString
+    {- Arity: 2, Strictness: <S,1*U(1*U(U),1*U(U))><L,1*U(U,U,U,1*U)>,
+       Inline: INLINE[0],
+       Unfolding: InlineRule (2, True, False)
+                  (\ w :: (GHC.Types.Int, GHC.Types.Int)
+                     w1 :: Data.ByteString.Internal.ByteString ->
+                   case w of ww { (,) ww1 ww2 ->
+                   AS.DB.Util.$wincrementLocKey ww1 ww2 w1 }) -}
+0c07dff2df37fb082a1a5c76294f4716
+  keyToRow :: Data.ByteString.Internal.ByteString -> GHC.Types.Int
+    {- Arity: 1, Strictness: <L,1*U(U,U,U,1*U)>,
+       Unfolding: (\ str :: Data.ByteString.Internal.ByteString ->
+                   case Text.Read.readEither6
+                          @ (GHC.Types.Int, GHC.Types.Int)
+                          (Text.ParserCombinators.ReadP.run
+                             @ (GHC.Types.Int, GHC.Types.Int)
+                             AS.DB.Util.keyToRow3
+                             (case str of wild { Data.ByteString.Internal.PS dt dt1 dt2 dt3 ->
+                              case dt3 of ds2 {
+                                DEFAULT
+                                -> letrec {
+                                     $wloop :: GHC.Prim.Int#
+                                               -> [Data.ByteString.Internal.ByteString]
+                                       {- Arity: 1, Strictness: <L,U> -}
+                                     = \ ww :: GHC.Prim.Int# ->
+                                       case {__pkg_ccall bytestring-0.10.4.0 memchr GHC.Prim.Addr#
+                                                                                    -> GHC.Prim.Int#
+                                                                                    -> GHC.Prim.Word#
+                                                                                    -> GHC.Prim.State#
+                                                                                           GHC.Prim.RealWorld
+                                                                                    -> (# GHC.Prim.State#
+                                                                                              GHC.Prim.RealWorld,
+                                                                                          GHC.Prim.Addr# #)}
+                                              (GHC.Prim.plusAddr# dt (GHC.Prim.+# dt2 ww))
+                                              124
+                                              (GHC.Prim.int2Word# (GHC.Prim.-# ds2 ww))
+                                              GHC.Prim.realWorld# of wild1 { (#,#) ds4 ds5 ->
+                                       case GHC.Prim.touch#
+                                              @ GHC.ForeignPtr.ForeignPtrContents
+                                              dt1
+                                              ds4 of s' { DEFAULT ->
+                                       case GHC.Prim.tagToEnum#
+                                              @ GHC.Types.Bool
+                                              (GHC.Prim.eqAddr# ds5 __NULL) of wild2 {
+                                         GHC.Types.False
+                                         -> let {
+                                              i :: GHC.Types.Int
+                                              = case GHC.Prim.touch#
+                                                       @ GHC.ForeignPtr.ForeignPtrContents
+                                                       dt1
+                                                       GHC.Prim.realWorld# of s'1 { DEFAULT ->
+                                                GHC.Types.I#
+                                                  (GHC.Prim.minusAddr#
+                                                     ds5
+                                                     (GHC.Prim.plusAddr# dt dt2)) }
+                                            } in
+                                            GHC.Types.:
+                                              @ Data.ByteString.Internal.ByteString
+                                              (case i of wild3 { GHC.Types.I# x ->
+                                               Data.ByteString.Internal.PS
+                                                 dt
+                                                 dt1
+                                                 (GHC.Prim.+# dt2 ww)
+                                                 (GHC.Prim.-# x ww) })
+                                              (case i of wild3 { GHC.Types.I# x ->
+                                               $wloop (GHC.Prim.+# x 1) })
+                                         GHC.Types.True
+                                         -> GHC.Types.:
+                                              @ Data.ByteString.Internal.ByteString
+                                              (Data.ByteString.Internal.PS
+                                                 dt
+                                                 dt1
+                                                 (GHC.Prim.+# dt2 ww)
+                                                 (GHC.Prim.-# ds2 ww))
+                                              (GHC.Types.[]
+                                                 @ Data.ByteString.Internal.ByteString) } } }
+                                   } in
+                                   case $wloop 0 of wild1 {
+                                     [] -> case GHC.List.last2 ret_ty GHC.Base.String of {}
+                                     : x xs
+                                     -> case GHC.List.last1
+                                               @ Data.ByteString.Internal.ByteString
+                                               x
+                                               xs of ww { Data.ByteString.Internal.PS ww1 ww2 ww3 ww4 ->
+                                        Data.ByteString.Internal.$wunpackAppendCharsLazy
+                                          ww1
+                                          ww2
+                                          ww3
+                                          ww4
+                                          (GHC.Types.[] @ GHC.Types.Char) } }
+                                0
+                                -> case GHC.List.last2 ret_ty GHC.Base.String of {} } })) of wild {
+                     [] -> case AS.DB.Util.keyToRow2 ret_ty GHC.Types.Int of {}
+                     : x ds
+                     -> case ds of wild1 {
+                          [] -> case x of wild2 { (,) col row -> row }
+                          : ipv ipv1
+                          -> case AS.DB.Util.keyToRow1 ret_ty GHC.Types.Int of {} } }) -}
+d0e426eeb1e942f6dc9c8e8e78d67b24
+  keyToRow1 :: (GHC.Types.Int, GHC.Types.Int) {- Strictness: b -}
+fab2b648d409b628d719de5ac541f1d8
+  keyToRow2 :: (GHC.Types.Int, GHC.Types.Int) {- Strictness: b -}
+5f53b3701b96c0977aee3a0638f70ed5
+  keyToRow3 :: Text.ParserCombinators.ReadP.P
+                   (GHC.Types.Int, GHC.Types.Int)
+    {- Unfolding: (GHC.Read.$wa2
+                     @ (GHC.Types.Int, GHC.Types.Int)
+                     AS.DB.Util.keyToRow4
+                       `cast`
+                     (Sym (Text.ParserCombinators.ReadPrec.NTCo:ReadPrec[0]
+                               <(GHC.Types.Int, GHC.Types.Int)>_R))
+                     @ (GHC.Types.Int, GHC.Types.Int)
+                     (Text.Read.readEither5 @ (GHC.Types.Int, GHC.Types.Int))) -}
+c762d381078c0a9f2670dd0120eb3444
+  keyToRow4 :: Text.ParserCombinators.ReadPrec.Prec
+               -> Text.ParserCombinators.ReadP.ReadP
+                      (GHC.Types.Int, GHC.Types.Int)
+    {- Arity: 1,
+       Unfolding: (GHC.Read.$fRead(,)3
+                     @ GHC.Types.Int
+                     @ GHC.Types.Int
+                     GHC.Read.$fReadInt
+                     GHC.Read.$fReadInt) -}
+cc13dd320c743f044a4606fa00cbe460
+  maybeASCell :: (AS.Types.ASLocation,
+                  Data.Maybe.Maybe AS.Types.ASExpression,
+                  Data.Maybe.Maybe AS.Types.ASValue,
+                  Data.Maybe.Maybe [AS.Types.ASCellTag])
+                 -> Data.Maybe.Maybe AS.Types.ASCell
+    {- Arity: 1, HasNoCafRefs,
+       Strictness: <S(LSLL),1*U(U,1*U,1*U,1*U)>, Inline: INLINE[0],
+       Unfolding: InlineRule (1, True, False)
+                  (\ w :: (AS.Types.ASLocation,
+                           Data.Maybe.Maybe AS.Types.ASExpression,
+                           Data.Maybe.Maybe AS.Types.ASValue,
+                           Data.Maybe.Maybe [AS.Types.ASCellTag]) ->
+                   case w of ww { (,,,) ww1 ww2 ww3 ww4 ->
+                   AS.DB.Util.$wmaybeASCell ww1 ww2 ww3 ww4 }) -}
+e980af4fd7e65250bd2b3cdf0029a860
+  maybeASCellFromFields :: [Data.Maybe.Maybe
+                                Data.ByteString.Internal.ByteString]
+                           -> Data.Maybe.Maybe AS.Types.ASCell
+    {- Arity: 1, Strictness: <S,1*U>,
+       Unfolding: (\ ds :: [Data.Maybe.Maybe
+                                Data.ByteString.Internal.ByteString] ->
+                   case ds of wild {
+                     [] -> Data.Maybe.Nothing @ AS.Types.ASCell
+                     : ds1 ds2
+                     -> case ds1 of wild1 {
+                          Data.Maybe.Nothing -> Data.Maybe.Nothing @ AS.Types.ASCell
+                          Data.Maybe.Just locstr
+                          -> case ds2 of wild2 {
+                               [] -> Data.Maybe.Nothing @ AS.Types.ASCell
+                               : ds3 ds4
+                               -> case ds3 of wild3 {
+                                    Data.Maybe.Nothing -> Data.Maybe.Nothing @ AS.Types.ASCell
+                                    Data.Maybe.Just xpstr
+                                    -> case ds4 of wild4 {
+                                         [] -> Data.Maybe.Nothing @ AS.Types.ASCell
+                                         : ds5 ds6
+                                         -> case ds5 of wild5 {
+                                              Data.Maybe.Nothing
+                                              -> Data.Maybe.Nothing @ AS.Types.ASCell
+                                              Data.Maybe.Just valstr
+                                              -> case ds6 of wild6 {
+                                                   [] -> Data.Maybe.Nothing @ AS.Types.ASCell
+                                                   : ds7 ds8
+                                                   -> case ds7 of wild7 {
+                                                        Data.Maybe.Nothing
+                                                        -> Data.Maybe.Nothing @ AS.Types.ASCell
+                                                        Data.Maybe.Just tagstr
+                                                        -> case ds8 of wild8 {
+                                                             []
+                                                             -> Data.Maybe.Just
+                                                                  @ AS.Types.ASCell
+                                                                  (AS.Types.Cell
+                                                                     (case Text.Read.readEither6
+                                                                             @ AS.Types.ASLocation
+                                                                             (Text.ParserCombinators.ReadP.run
+                                                                                @ AS.Types.ASLocation
+                                                                                AS.DB.Util.bStrToASLocation3
+                                                                                (case locstr of ww { Data.ByteString.Internal.PS ww1 ww2 ww3 ww4 ->
+                                                                                 Data.ByteString.Internal.$wunpackAppendCharsLazy
+                                                                                   ww1
+                                                                                   ww2
+                                                                                   ww3
+                                                                                   ww4
+                                                                                   (GHC.Types.[]
+                                                                                      @ GHC.Types.Char) })) of wild9 {
+                                                                        []
+                                                                        -> AS.DB.Util.bStrToASLocation2
+                                                                        : x ds9
+                                                                        -> case ds9 of wild10 {
+                                                                             [] -> x
+                                                                             : ipv ipv1
+                                                                             -> AS.DB.Util.bStrToASLocation1 } })
+                                                                     (case Text.Read.readEither6
+                                                                             @ AS.Types.ASExpression
+                                                                             (Text.ParserCombinators.ReadP.run
+                                                                                @ AS.Types.ASExpression
+                                                                                AS.DB.Util.bStrToASExpression3
+                                                                                (case xpstr of ww { Data.ByteString.Internal.PS ww1 ww2 ww3 ww4 ->
+                                                                                 Data.ByteString.Internal.$wunpackAppendCharsLazy
+                                                                                   ww1
+                                                                                   ww2
+                                                                                   ww3
+                                                                                   ww4
+                                                                                   (GHC.Types.[]
+                                                                                      @ GHC.Types.Char) })) of wild9 {
+                                                                        []
+                                                                        -> AS.DB.Util.bStrToASExpression2
+                                                                        : x ds9
+                                                                        -> case ds9 of wild10 {
+                                                                             [] -> x
+                                                                             : ipv ipv1
+                                                                             -> AS.DB.Util.bStrToASExpression1 } })
+                                                                     (case Text.Read.readEither6
+                                                                             @ AS.Types.ASValue
+                                                                             (Text.ParserCombinators.ReadP.run
+                                                                                @ AS.Types.ASValue
+                                                                                AS.DB.Util.bStrToASValue3
+                                                                                (case valstr of ww { Data.ByteString.Internal.PS ww1 ww2 ww3 ww4 ->
+                                                                                 Data.ByteString.Internal.$wunpackAppendCharsLazy
+                                                                                   ww1
+                                                                                   ww2
+                                                                                   ww3
+                                                                                   ww4
+                                                                                   (GHC.Types.[]
+                                                                                      @ GHC.Types.Char) })) of wild9 {
+                                                                        []
+                                                                        -> AS.DB.Util.bStrToASValue2
+                                                                        : x ds9
+                                                                        -> case ds9 of wild10 {
+                                                                             [] -> x
+                                                                             : ipv ipv1
+                                                                             -> AS.DB.Util.bStrToASValue1 } })
+                                                                     (case Text.Read.readEither6
+                                                                             @ [AS.Types.ASCellTag]
+                                                                             (Text.ParserCombinators.ReadP.run
+                                                                                @ [AS.Types.ASCellTag]
+                                                                                AS.DB.Util.bStrToTags3
+                                                                                (case tagstr of ww { Data.ByteString.Internal.PS ww1 ww2 ww3 ww4 ->
+                                                                                 Data.ByteString.Internal.$wunpackAppendCharsLazy
+                                                                                   ww1
+                                                                                   ww2
+                                                                                   ww3
+                                                                                   ww4
+                                                                                   (GHC.Types.[]
+                                                                                      @ GHC.Types.Char) })) of wild9 {
+                                                                        [] -> AS.DB.Util.bStrToTags2
+                                                                        : x ds9
+                                                                        -> case ds9 of wild10 {
+                                                                             [] -> x
+                                                                             : ipv ipv1
+                                                                             -> AS.DB.Util.bStrToTags1 } }))
+                                                             : ipv ipv1
+                                                             -> Data.Maybe.Nothing
+                                                                  @ AS.Types.ASCell } } } } } } } } }) -}
+468629620e07755957a5bc4074cf3a63
+  setCellRedis :: AS.Types.ASCell -> Database.Redis.Core.Redis ()
+    {- Arity: 1, Strictness: <L,U(1*U,1*U,1*U,1*U)> -}
+20ce501158cd332a1451de41e6a623bf
+  tuple3 :: a -> b -> c -> (a, b, c)
+    {- Arity: 3, HasNoCafRefs, Strictness: <L,U><L,U><L,U>m,
+       Unfolding: InlineRule (0, True, True) GHC.Tuple.(,,) -}
+df7890c5e3e10833936679140224819c
+  updateChunkDAG :: [([AS.Types.ASLocation], AS.Types.ASLocation)]
+                    -> Database.Redis.Core.Redis ()
+    {- Arity: 1, Strictness: <S,1*U>,
+       Unfolding: (\ rels :: [([AS.Types.ASLocation],
+                               AS.Types.ASLocation)] ->
+                   let {
+                     update :: [([Data.ByteString.Internal.ByteString],
+                                 Data.ByteString.Internal.ByteString)]
+                     = AS.DB.Util.updateChunkDAG_go1 rels
+                   } in
+                   case GHC.Classes.$fEq[]_$c==
+                          @ ([Data.ByteString.Internal.ByteString],
+                             Data.ByteString.Internal.ByteString)
+                          AS.DB.Util.updateChunkDAG3
+                          update
+                          (GHC.Types.[]
+                             @ ([Data.ByteString.Internal.ByteString],
+                                Data.ByteString.Internal.ByteString)) of wild {
+                     GHC.Types.False
+                     -> let {
+                          a1 :: Database.Redis.Transactions.RedisTx
+                                    [Database.Redis.Transactions.Queued GHC.Integer.Type.Integer]
+                          = AS.DB.Util.updateChunkDAG_go update
+                        } in
+                        let {
+                          lvl9 :: Data.ByteString.Internal.ByteString
+                          = Database.Redis.Protocol.renderRequest
+                              (GHC.Types.:
+                                 @ Data.ByteString.Internal.ByteString
+                                 Database.Redis.Commands.sadd1
+                                 (GHC.Types.:
+                                    @ Data.ByteString.Internal.ByteString
+                                    AS.DB.Util.updateChunkDAG2
+                                    (GHC.Base.map
+                                       @ Data.ByteString.Internal.ByteString
+                                       @ Data.ByteString.Internal.ByteString
+                                       (GHC.Base.id @ Data.ByteString.Internal.ByteString)
+                                       (GHC.Base.map
+                                          @ ([Data.ByteString.Internal.ByteString],
+                                             Data.ByteString.Internal.ByteString)
+                                          @ Data.ByteString.Internal.ByteString
+                                          (Data.Tuple.snd
+                                             @ [Data.ByteString.Internal.ByteString]
+                                             @ Data.ByteString.Internal.ByteString)
+                                          update))))
+                        } in
+                        let {
+                          a2 :: GHC.Types.Int
+                                -> Database.Redis.Core.Redis
+                                       (Database.Redis.Transactions.Queued GHC.Integer.Type.Integer,
+                                        GHC.Types.Int)
+                            {- Arity: 1, Strictness: <L,U> -}
+                          = \ eta :: GHC.Types.Int ->
+                            let {
+                              a3 :: Database.Redis.Core.Redis
+                                        ([Database.Redis.Transactions.Queued
+                                              GHC.Integer.Type.Integer],
+                                         GHC.Types.Int)
+                              = a1
+                                  `cast`
+                                (Trans
+                                     (Database.Redis.Transactions.NTCo:RedisTx[0] <[Database.Redis.Transactions.Queued
+                                                                                        GHC.Integer.Type.Integer]>_N)
+                                     (Control.Monad.Trans.State.Strict.NTCo:StateT[0]
+                                          <GHC.Types.Int>_N
+                                          <Database.Redis.Core.Redis>_R
+                                          <[Database.Redis.Transactions.Queued
+                                                GHC.Integer.Type.Integer]>_N))
+                                  eta
+                            } in
+                            (\ r1 :: Database.Redis.ProtocolPipelining.Connection
+                                         Database.Redis.Protocol.Reply
+                               s :: GHC.Prim.State# GHC.Prim.RealWorld ->
+                             case (a3
+                                     `cast`
+                                   (Trans
+                                        (Database.Redis.Core.NTCo:Redis[0] <([Database.Redis.Transactions.Queued
+                                                                                  GHC.Integer.Type.Integer],
+                                                                             GHC.Types.Int)>_N)
+                                        (Control.Monad.Trans.Reader.NTCo:ReaderT[0]
+                                             <Database.Redis.ProtocolPipelining.Connection
+                                                  Database.Redis.Protocol.Reply>_R
+                                             <GHC.Types.IO>_R
+                                             <([Database.Redis.Transactions.Queued
+                                                    GHC.Integer.Type.Integer],
+                                               GHC.Types.Int)>_N))
+                                     r1)
+                                    `cast`
+                                  (GHC.Types.NTCo:IO[0]
+                                       <([Database.Redis.Transactions.Queued
+                                              GHC.Integer.Type.Integer],
+                                         GHC.Types.Int)>_R)
+                                    s of ds1 { (#,#) ipv ipv1 ->
+                             case ipv1 of wild1 { (,) a4 s' ->
+                             case r1 of ww { Database.Redis.ProtocolPipelining.Conn ww1 ww2 ww3 ww4 ->
+                             case lvl9 of ww5 { Data.ByteString.Internal.PS ww6 ww7 ww8 ww9 ->
+                             case Database.Redis.ProtocolPipelining.$wa2
+                                    @ Database.Redis.Protocol.Reply
+                                    ww1
+                                    ww2
+                                    ww3
+                                    ww6
+                                    ww7
+                                    ww8
+                                    ww9
+                                    ipv of ds2 { (#,#) ipv2 ipv3 ->
+                             case Database.Redis.Transactions.$wa
+                                    @ GHC.Integer.Type.Integer
+                                    Database.Redis.Types.$fRedisResultInteger_$cdecode
+                                      `cast`
+                                    (Sym (Database.Redis.Types.NTCo:RedisResult[0]
+                                              <GHC.Integer.Type.Integer>_N))
+                                    s'
+                                    ipv2 of ds3 { (#,#) ipv4 ipv5 ->
+                             case ipv5 of wild2 { (,) a5 s'1 -> ds3 } } } } } } })
+                              `cast`
+                            (Trans
+                                 (<Database.Redis.ProtocolPipelining.Connection
+                                       Database.Redis.Protocol.Reply>_R
+                                  ->_R Sym (GHC.Types.NTCo:IO[0]
+                                                <(Database.Redis.Transactions.Queued
+                                                      GHC.Integer.Type.Integer,
+                                                  GHC.Types.Int)>_R))
+                                 (Trans
+                                      (Sym (Control.Monad.Trans.Reader.NTCo:ReaderT[0]
+                                                <Database.Redis.ProtocolPipelining.Connection
+                                                     Database.Redis.Protocol.Reply>_R
+                                                <GHC.Types.IO>_R
+                                                <(Database.Redis.Transactions.Queued
+                                                      GHC.Integer.Type.Integer,
+                                                  GHC.Types.Int)>_N))
+                                      (Sym (Database.Redis.Core.NTCo:Redis[0]) <(Database.Redis.Transactions.Queued
+                                                                                     GHC.Integer.Type.Integer,
+                                                                                 GHC.Types.Int)>_N)))
+                        } in
+                        (\ r1 :: Database.Redis.ProtocolPipelining.Connection
+                                     Database.Redis.Protocol.Reply
+                           s :: GHC.Prim.State# GHC.Prim.RealWorld ->
+                         case Database.Redis.Transactions.multiExec1
+                                @ GHC.Integer.Type.Integer
+                                a2
+                                  `cast`
+                                (Trans
+                                     (Sym (Control.Monad.Trans.State.Strict.NTCo:StateT[0]
+                                               <GHC.Types.Int>_N
+                                               <Database.Redis.Core.Redis>_R
+                                               <Database.Redis.Transactions.Queued
+                                                    GHC.Integer.Type.Integer>_N))
+                                     (Sym (Database.Redis.Transactions.NTCo:RedisTx[0]) <Database.Redis.Transactions.Queued
+                                                                                             GHC.Integer.Type.Integer>_N))
+                                r1
+                                s of ds1 { (#,#) ipv ipv1 ->
+                         case ipv1 of wild1 {
+                           DEFAULT
+                           -> (GHC.IO.failIO @ () AS.DB.Util.updateChunkDAG1)
+                                `cast`
+                              (GHC.Types.NTCo:IO[0] <()>_R)
+                                ipv
+                           Database.Redis.Transactions.TxSuccess ds
+                           -> (# ipv, GHC.Tuple.() #) } })
+                          `cast`
+                        (Trans
+                             (<Database.Redis.ProtocolPipelining.Connection
+                                   Database.Redis.Protocol.Reply>_R
+                              ->_R Sym (GHC.Types.NTCo:IO[0] <()>_R))
+                             (Trans
+                                  (Sym (Control.Monad.Trans.Reader.NTCo:ReaderT[0]
+                                            <Database.Redis.ProtocolPipelining.Connection
+                                                 Database.Redis.Protocol.Reply>_R
+                                            <GHC.Types.IO>_R
+                                            <()>_N))
+                                  (Sym (Database.Redis.Core.NTCo:Redis[0]) <()>_N)))
+                     GHC.Types.True
+                     -> AS.DB.Util.chunkM_2
+                          `cast`
+                        (Trans
+                             (<Database.Redis.ProtocolPipelining.Connection
+                                   Database.Redis.Protocol.Reply>_R
+                              ->_R Sym (GHC.Types.NTCo:IO[0] <()>_R))
+                             (Trans
+                                  (Sym (Control.Monad.Trans.Reader.NTCo:ReaderT[0]
+                                            <Database.Redis.ProtocolPipelining.Connection
+                                                 Database.Redis.Protocol.Reply>_R
+                                            <GHC.Types.IO>_R
+                                            <()>_N))
+                                  (Sym (Database.Redis.Core.NTCo:Redis[0]) <()>_N))) }) -}
+ee552632b103990d26a23de8c2cb2c7f
+  updateChunkDAG1 :: [GHC.Types.Char]
+    {- Unfolding: (GHC.CString.unpackCString#
+                     "Pattern match failure in do expression at src/AS/DB/Util.hs:168:7-17"#) -}
+b7a6830d9117cb050f4b9fbf93178512
+  updateChunkDAG2 :: Data.ByteString.Internal.ByteString
+    {- Unfolding: (case GHC.Prim.newMutVar#
+                          @ GHC.ForeignPtr.Finalizers
+                          @ GHC.Prim.RealWorld
+                          GHC.ForeignPtr.NoFinalizers
+                          GHC.Prim.realWorld# of ds1 { (#,#) ipv ipv1 ->
+                   let {
+                     addr# :: GHC.Prim.Addr# = "DAGLocSet"#
+                   } in
+                   case {__pkg_ccall bytestring-0.10.4.0 strlen GHC.Prim.Addr#
+                                                                -> GHC.Prim.State#
+                                                                       GHC.Prim.RealWorld
+                                                                -> (# GHC.Prim.State#
+                                                                          GHC.Prim.RealWorld,
+                                                                      GHC.Prim.Word# #)}
+                          addr#
+                          ipv of wild { (#,#) ds3 ds4 ->
+                   Data.ByteString.Internal.PS
+                     addr#
+                     (GHC.ForeignPtr.PlainForeignPtr ipv1)
+                     0
+                     (GHC.Prim.word2Int# ds4) } }) -}
+d708e21426b5b3a9a98e6a31f7dc9eb0
+  updateChunkDAG3 :: GHC.Classes.Eq
+                         ([Data.ByteString.Internal.ByteString],
+                          Data.ByteString.Internal.ByteString)
+    {- Unfolding: (GHC.Classes.$fEq(,)
+                     @ [Data.ByteString.Internal.ByteString]
+                     @ Data.ByteString.Internal.ByteString
+                     AS.DB.Util.updateChunkDAG4
+                     Data.ByteString.Internal.$fEqByteString) -}
+ce008a972a430944df3556dc7b944c1a
+  updateChunkDAG4 :: GHC.Classes.Eq
+                         [Data.ByteString.Internal.ByteString]
+    {- Unfolding: (GHC.Classes.$fEq[]
+                     @ Data.ByteString.Internal.ByteString
+                     Data.ByteString.Internal.$fEqByteString) -}
+ce49c5fd4529215ef82acecb1d1d53c4
+  updateChunkDAG_go :: [([Data.ByteString.Internal.ByteString],
+                         Data.ByteString.Internal.ByteString)]
+                       -> Database.Redis.Transactions.RedisTx
+                              [Database.Redis.Transactions.Queued GHC.Integer.Type.Integer]
+    {- Arity: 1, Strictness: <S,1*U> -}
+310cf96684b1382e83981bd240536aa3
+  updateChunkDAG_go1 :: [([AS.Types.ASLocation],
+                          AS.Types.ASLocation)]
+                        -> [([Data.ByteString.Internal.ByteString],
+                             Data.ByteString.Internal.ByteString)]
+    {- Arity: 1, Strictness: <S,1*U> -}
+vectorised variables:
+vectorised tycons:
+vectorised reused tycons:
+parallel variables:
+parallel tycons:
+trusted: none
+require own pkg trusted: False
+

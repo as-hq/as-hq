@@ -1,0 +1,243 @@
+
+==================== FINAL INTERFACE ====================
+2015-09-24 01:36:29.286956 UTC
+
+interface alphasheets-0.1.0.0:AS.DB.Graph 7084
+  interface hash: a7942fb73f9b75bfd76022c539321fe3
+  ABI hash: 90830a4d5d87ba9b622d69b650eb54e8
+  export-list hash: 51273daef87f43170642569e11d191c0
+  orphan hash: 693e9af84d3dfcc71e640e005bdc5e2e
+  flag hash: e0641befbfbeeab6ef9f97d2cff44d7e
+  used TH splices: False
+  where
+exports:
+  AS.DB.Graph.getDescendants
+  AS.DB.Graph.getImmediateAncestors
+  AS.DB.Graph.query
+  AS.DB.Graph.queryMulti
+  AS.DB.Graph.setRelations
+module dependencies: AS.Config.Settings AS.DB.Util
+                     AS.Parsing.Common AS.Parsing.In AS.Types AS.Util
+package dependencies: BoundedChan-1.0.3.0 SHA-1.6.4.2 aeson-0.8.1.1
+                      array-0.5.0.0 async-2.0.2 attoparsec-0.13.0.1 base
+                      base64-bytestring-1.0.0.1 binary-0.7.1.0 blaze-builder-0.4.0.1
+                      bytestring-0.10.4.0 bytestring-lexing-0.5.0.2
+                      case-insensitive-1.2.0.4 containers-0.5.5.1 deepseq-1.3.0.2
+                      dlist-0.7.1.1 entropy-0.3.7 exceptions-0.8.0.2 ghc-prim
+                      hashable-1.2.3.3 hedis-0.6.9 integer-gmp monad-control-1.0.0.4
+                      mtl-2.2.1 network-2.6.2.1 parsec-3.1.9 primitive-0.6 random-1.1
+                      regex-base-0.93.2 regex-posix-0.95.2 resource-pool-0.2.3.2
+                      scientific-0.3.3.8 semigroups-0.16.2.2 split-0.2.2 stm-2.4.4
+                      text-1.2.1.1 time-1.5.0.1 transformers-0.4.3.0
+                      transformers-base-0.4.4 unix-2.7.1.0 unordered-containers-0.2.5.1
+                      uuid-1.3.10 uuid-types-1.0.1 vector-0.11.0.0 websockets-0.9.5.0
+                      zeromq4-haskell-0.6.3
+orphans: aeson-0.8.1.1:Data.Aeson.Types.Generic
+         aeson-0.8.1.1:Data.Aeson.Types.Instances
+         aeson-0.8.1.1:Data.Aeson.Types.Internal
+         alphasheets-0.1.0.0:AS.Parsing.In
+         attoparsec-0.13.0.1:Data.Attoparsec.ByteString.Char8 base:GHC.Base
+         base:GHC.Float base:GHC.Real binary-0.7.1.0:Data.Binary.Generic
+         bytestring-0.10.4.0:Data.ByteString.Builder
+         bytestring-lexing-0.5.0.2:Data.ByteString.Lex.Fractional
+         hashable-1.2.3.3:Data.Hashable.Generic
+         network-2.6.2.1:Network.Socket network-2.6.2.1:Network.Socket.Types
+         random-1.1:System.Random regex-base-0.93.2:Text.Regex.Base.Context
+         regex-posix-0.95.2:Text.Regex.Posix.ByteString
+         regex-posix-0.95.2:Text.Regex.Posix.ByteString.Lazy
+         regex-posix-0.95.2:Text.Regex.Posix.Sequence
+         regex-posix-0.95.2:Text.Regex.Posix.String
+         resource-pool-0.2.3.2:Data.Pool stm-2.4.4:Control.Monad.STM
+         text-1.2.1.1:Data.Text text-1.2.1.1:Data.Text.Lazy
+         text-1.2.1.1:Data.Text.Show
+         time-1.5.0.1:Data.Time.Calendar.Gregorian
+         time-1.5.0.1:Data.Time.Format.Parse
+         time-1.5.0.1:Data.Time.LocalTime.LocalTime
+         transformers-0.4.3.0:Control.Monad.Trans.Error
+         vector-0.11.0.0:Data.Vector.Fusion.Bundle
+         vector-0.11.0.0:Data.Vector.Unboxed
+family instance modules: alphasheets-0.1.0.0:AS.Types
+                         attoparsec-0.13.0.1:Data.Attoparsec.Internal.Types
+                         base:Control.Applicative base:Data.Either base:Data.Monoid
+                         base:Data.Type.Equality base:GHC.Exts base:GHC.Generics
+                         dlist-0.7.1.1:Data.DList
+                         monad-control-1.0.0.4:Control.Monad.Trans.Control
+                         primitive-0.6:Control.Monad.Primitive
+                         semigroups-0.16.2.2:Data.List.NonEmpty text-1.2.1.1:Data.Text
+                         text-1.2.1.1:Data.Text.Lazy
+                         unordered-containers-0.2.5.1:Data.HashMap.Base
+                         unordered-containers-0.2.5.1:Data.HashSet
+                         uuid-types-1.0.1:Data.UUID.Types.Internal
+                         uuid-types-1.0.1:Data.UUID.Types.Internal.Builder
+                         vector-0.11.0.0:Data.Vector vector-0.11.0.0:Data.Vector.Primitive
+                         vector-0.11.0.0:Data.Vector.Storable
+                         vector-0.11.0.0:Data.Vector.Unboxed
+                         vector-0.11.0.0:Data.Vector.Unboxed.Base
+                         zeromq4-haskell-0.6.3:System.ZMQ4
+import  -/  AS.Config.Settings b59cada5dab6da716812ef29c8d0a55f
+  exports: 0c823ce19dbdd82846e3dcfdd9e8e922
+  graphDbHost 381c5e86b83c35c374d053ec26db5062
+import  -/  AS.DB.Util 8faef730f5e860a7aaf757e2bcc6ca9f
+  exports: 8bb4b27cf6d2068724cc60765ef29cc9
+import  -/  AS.Types 4f94c2927cba4cb4617d17e571d71325
+  exports: f8584b3856684401ece78f5d630831a9
+  ASExecError ac2b16a41a3fdddbc18d87357a01cd53
+  ASLocation 42b88bd590b6186a8f42af5a0deb461a
+  DBGraphUnreachable 84afa235eb4f0d1d975ba35a714dc35d
+  GetDescendants 27bc75b799448dff9c2f6b9a3345d5bd
+  GetImmediateAncestors a8da2d6805c0e78dfe71468a5af4df23
+  GraphQuery 562b29b7c8eb2831d0569d7c878219b5
+  SetRelations d8f21861c1e4b92ff5901a94194c8b1a
+import  -/  AS.Util a1b456ad35c8f7a97ddaaa58328f3cd8
+  exports: 889a698e7d9664843475615b4d8a95b2
+  printTimed 35cb21e1f23638a3173441d7200c130f
+import  -/  base:Control.Monad 483e787e07c2e49f1fb1c1b88665cb92
+import  -/  base:Data.Either d1c890129a7c6a9ec02a642c6c2f4ed3
+import  -/  base:Data.List 8b77870d02d66076337587b759b7ee19
+import  -/  base:GHC.Base 5d7c5f596f9a4c8a8abd8517c8bcd5dd
+import  -/  base:GHC.List 4cff382327e59a5787355ca0a4174450
+import  -/  base:GHC.Show cf1a7ff9edb0f41528085aad04d33753
+import  -/  base:Prelude 74043f272d60acec1777d3461cfe5ef4
+import  -/  base:Text.Read 6fe10a0a6d0a38c215de3b09e72ca556
+import  -/  bytestring-0.10.4.0:Data.ByteString.Char8 0e73f8a26c4441d5a78efb34452f1bd2
+import  -/  ghc-prim:GHC.Classes 3e6cbe1e7e80480408cfa8d5450726a0
+import  -/  ghc-prim:GHC.Types dcba736fa3dfba12d307ab18354845d2
+import  -/  semigroups-0.16.2.2:Data.List.NonEmpty a3b60d77af4bbdbe3947cb3c1f657a1e
+import  -/  transformers-0.4.3.0:Control.Monad.IO.Class 1fe01dea961eadb0b037d705f6cb22bb
+import  -/  zeromq4-haskell-0.6.3:System.ZMQ4 c8474bcd60656bf7f5c75a9fe5376f6f
+import  -/  zeromq4-haskell-0.6.3:System.ZMQ4.Monadic eedab17031d1126a4874bfbe03b132e7
+1742ae7b53d94c0151b39a4936d353e1
+  getDescendants :: [AS.Types.ASLocation]
+                    -> GHC.Types.IO
+                           (Data.Either.Either AS.Types.ASExecError [AS.Types.ASLocation])
+    {- Unfolding: (AS.DB.Graph.getDescendants1
+                     `cast`
+                   (<[AS.Types.ASLocation]>_R
+                    ->_R Sym (GHC.Types.NTCo:IO[0]
+                                  <Data.Either.Either
+                                       AS.Types.ASExecError [AS.Types.ASLocation]>_R))) -}
+2b8b93b2a73834f75cebe735255fcbf4
+  getDescendants1 :: [AS.Types.ASLocation]
+                     -> GHC.Prim.State# GHC.Prim.RealWorld
+                     -> (# GHC.Prim.State# GHC.Prim.RealWorld,
+                           Data.Either.Either AS.Types.ASExecError [AS.Types.ASLocation] #)
+    {- Arity: 2,
+       Unfolding: (AS.DB.Graph.getDescendants2 AS.Types.GetDescendants) -}
+3190ac96756fe915117a190b58b86d85
+  getDescendants2 :: AS.Types.GraphQuery
+                     -> [AS.Types.ASLocation]
+                     -> GHC.Prim.State# GHC.Prim.RealWorld
+                     -> (# GHC.Prim.State# GHC.Prim.RealWorld,
+                           Data.Either.Either AS.Types.ASExecError [AS.Types.ASLocation] #)
+    {- Arity: 3, Strictness: <L,1*U><L,1*U><L,U> -}
+81efea6d590d6311e69f8de567cd869a
+  getImmediateAncestors :: [AS.Types.ASLocation]
+                           -> GHC.Types.IO
+                                  (Data.Either.Either AS.Types.ASExecError [AS.Types.ASLocation])
+    {- Unfolding: (AS.DB.Graph.getImmediateAncestors1
+                     `cast`
+                   (<[AS.Types.ASLocation]>_R
+                    ->_R Sym (GHC.Types.NTCo:IO[0]
+                                  <Data.Either.Either
+                                       AS.Types.ASExecError [AS.Types.ASLocation]>_R))) -}
+321d976b8678e6ab37e0508ae7f68d18
+  getImmediateAncestors1 :: [AS.Types.ASLocation]
+                            -> GHC.Prim.State# GHC.Prim.RealWorld
+                            -> (# GHC.Prim.State# GHC.Prim.RealWorld,
+                                  Data.Either.Either AS.Types.ASExecError [AS.Types.ASLocation] #)
+    {- Arity: 2,
+       Unfolding: (AS.DB.Graph.getDescendants2
+                     AS.Types.GetImmediateAncestors) -}
+0360bd5ead8c6ac63d24a5fdaa7217ed
+  query :: AS.Types.GraphQuery
+           -> [AS.Types.ASLocation]
+           -> GHC.Types.IO
+                  (Data.Either.Either AS.Types.ASExecError [AS.Types.ASLocation])
+    {- Arity: 3, Strictness: <L,1*U><L,1*U><L,U>,
+       Unfolding: (AS.DB.Graph.getDescendants2
+                     `cast`
+                   (<AS.Types.GraphQuery>_R
+                    ->_R <[AS.Types.ASLocation]>_R
+                    ->_R Sym (GHC.Types.NTCo:IO[0]
+                                  <Data.Either.Either
+                                       AS.Types.ASExecError [AS.Types.ASLocation]>_R))) -}
+16293472f86a3436dc4c14da670e6ef4
+  queryMulti :: AS.Types.GraphQuery
+                -> [[AS.Types.ASLocation]]
+                -> GHC.Types.IO
+                       (Data.Either.Either AS.Types.ASExecError [AS.Types.ASLocation])
+    {- Arity: 3, Strictness: <L,1*U><L,1*U><L,U>,
+       Unfolding: (AS.DB.Graph.queryMulti1
+                     `cast`
+                   (<AS.Types.GraphQuery>_R
+                    ->_R <[[AS.Types.ASLocation]]>_R
+                    ->_R Sym (GHC.Types.NTCo:IO[0]
+                                  <Data.Either.Either
+                                       AS.Types.ASExecError [AS.Types.ASLocation]>_R))) -}
+ecc43511a143781314b54aa108dafab1
+  queryMulti1 :: AS.Types.GraphQuery
+                 -> [[AS.Types.ASLocation]]
+                 -> GHC.Prim.State# GHC.Prim.RealWorld
+                 -> (# GHC.Prim.State# GHC.Prim.RealWorld,
+                       Data.Either.Either AS.Types.ASExecError [AS.Types.ASLocation] #)
+    {- Arity: 3, Strictness: <L,1*U><L,1*U><L,U> -}
+0603cb2ac0020601354710529d05932a
+  setRelations :: [(AS.Types.ASLocation, [AS.Types.ASLocation])]
+                  -> GHC.Types.IO (Data.Either.Either AS.Types.ASExecError ())
+    {- Arity: 2, Strictness: <L,1*U><L,U>,
+       Unfolding: (AS.DB.Graph.setRelations1
+                     `cast`
+                   (<[(AS.Types.ASLocation, [AS.Types.ASLocation])]>_R
+                    ->_R Sym (GHC.Types.NTCo:IO[0]
+                                  <Data.Either.Either AS.Types.ASExecError ()>_R))) -}
+e2202b3999025143156ee611b608c788
+  setRelations1 :: [(AS.Types.ASLocation, [AS.Types.ASLocation])]
+                   -> GHC.Prim.State# GHC.Prim.RealWorld
+                   -> (# GHC.Prim.State# GHC.Prim.RealWorld,
+                         Data.Either.Either AS.Types.ASExecError () #)
+    {- Arity: 2, Strictness: <L,1*U><L,U>,
+       Unfolding: (\ rels :: [(AS.Types.ASLocation,
+                               [AS.Types.ASLocation])]
+                     s :: GHC.Prim.State# GHC.Prim.RealWorld ->
+                   case AS.DB.Graph.queryMulti1
+                          AS.Types.SetRelations
+                          (GHC.Base.map
+                             @ (AS.Types.ASLocation, [AS.Types.ASLocation])
+                             @ [AS.Types.ASLocation]
+                             AS.DB.Graph.setRelations4
+                             rels)
+                          s of ds1 { (#,#) ipv ipv1 ->
+                   (# ipv,
+                      case ipv1 of wild {
+                        Data.Either.Left e -> AS.DB.Graph.setRelations3
+                        Data.Either.Right ds -> AS.DB.Graph.setRelations2 } #) }) -}
+b964df0eb9a400b32c0a0c0e0f75d3a2
+  setRelations2 :: Data.Either.Either AS.Types.ASExecError ()
+    {- HasNoCafRefs,
+       Unfolding: (Data.Either.Right
+                     @ AS.Types.ASExecError
+                     @ ()
+                     GHC.Tuple.()) -}
+cc0f2e31ca2d6399c28d99e0ddee334b
+  setRelations3 :: Data.Either.Either AS.Types.ASExecError ()
+    {- HasNoCafRefs,
+       Unfolding: (Data.Either.Left
+                     @ AS.Types.ASExecError
+                     @ ()
+                     AS.Types.DBGraphUnreachable) -}
+62e58a4244708b6a5ed61dcfc1fab29e
+  setRelations4 :: (AS.Types.ASLocation, [AS.Types.ASLocation])
+                   -> [AS.Types.ASLocation]
+    {- Arity: 1, HasNoCafRefs, Strictness: <S,1*U(U,U)>m2,
+       Unfolding: InlineRule (1, True, False)
+                  (\ ds :: (AS.Types.ASLocation, [AS.Types.ASLocation]) ->
+                   case ds of wild { (,) root deps ->
+                   GHC.Types.: @ AS.Types.ASLocation root deps }) -}
+vectorised variables:
+vectorised tycons:
+vectorised reused tycons:
+parallel variables:
+parallel tycons:
+trusted: none
+require own pkg trusted: False
+

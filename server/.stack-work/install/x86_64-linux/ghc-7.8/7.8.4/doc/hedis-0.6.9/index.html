@@ -1,0 +1,25 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" /><title>hedis-0.6.9: Client library for the Redis datastore: supports full command set,
+pipelining.</title><link href="ocean.css" rel="stylesheet" type="text/css" title="Ocean" /><script src="haddock-util.js" type="text/javascript"></script><script type="text/javascript">//<![CDATA[
+window.onload = function () {pageLoad();};
+//]]>
+</script></head><body><div id="package-header"><ul class="links" id="page-menu"><li><a href="index.html">Contents</a></li><li><a href="doc-index.html">Index</a></li></ul><p class="caption">hedis-0.6.9: Client library for the Redis datastore: supports full command set,
+pipelining.</p></div><div id="content"><div id="description"><h1>hedis-0.6.9: Client library for the Redis datastore: supports full command set,
+pipelining.</h1><div class="doc"><p>Redis is an open source, advanced key-value store. It is often referred to
+as a data structure server since keys can contain strings, hashes, lists,
+sets and sorted sets. This library is a Haskell client for the Redis
+datastore. Compared to other Haskell client libraries it has some
+advantages:</p><dl><dt>Complete Redis 2.6 command set:</dt><dd>All Redis commands
+(<a href="http://redis.io/commands">http://redis.io/commands</a>) are available as haskell functions, except
+for the MONITOR and SYNC commands. Additionally, a low-level API is
+exposed that  makes it easy for the library user to implement further
+commands, such as new commands from an experimental Redis version.</dd><dt>Automatic Optimal Pipelining:</dt><dd>Commands are pipelined
+(<a href="http://redis.io/topics/pipelining">http://redis.io/topics/pipelining</a>) as much as possible without any
+work by the user. See
+<a href="http://informatikr.com/2012/redis-pipelining.html">http://informatikr.com/2012/redis-pipelining.html</a> for a
+technical explanation of automatic optimal pipelining.</dd><dt>Enforced Pub/Sub semantics:</dt><dd>When subscribed to the Redis Pub/Sub server
+(<a href="http://redis.io/topics/pubsub">http://redis.io/topics/pubsub</a>), clients are not allowed to issue
+commands other than subscribing to or unsubscribing from channels. This
+library uses the type system to enforce the correct behavior.</dd><dt>Connect via TCP or Unix Domain Socket:</dt><dd>TCP sockets are the default way to
+connect to a Redis server. For connections to a server on the same
+machine, Unix domain sockets offer higher performance than the standard
+TCP connection.</dd></dl><p>For detailed documentation, see the <a href="Database-Redis.html">Database.Redis</a> module.</p></div></div><div id="module-list"><p class="caption">Modules</p><ul><li><span id="control.n.1" class="module collapser" onclick="toggleSection('n.1')">Database</span><ul id="section.n.1" class="show"><li><span class="module"><a href="Database-Redis.html">Database.Redis</a></span></li></ul></li></ul></div></div><div id="footer"><p>Produced by <a href="http://www.haskell.org/haddock/">Haddock</a> version 2.14.3</p></div></body></html>

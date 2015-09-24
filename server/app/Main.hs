@@ -50,7 +50,7 @@ getUserOfDaemon (State s _ _) daemon = Nothing
 catchDisconnect :: (Client c) => c -> MVar ServerState -> SomeException -> IO ()
 catchDisconnect user state e = case (fromException e) of
   Just WS.ConnectionClosed -> do 
-    putStrLn $ "in connection closed catch"
+    putStrLn $ "\n\n\nin connection closed catch\n\n\n"
     liftIO $ modifyMVar_ state (\s -> return $ removeClient user s)
   otherwise -> (putStrLn (show e)) >> return ()
 
@@ -58,23 +58,15 @@ isInitConnection :: B.ByteString -> IO Bool
 isInitConnection msg = do
   putStrLn $ "TESTING FOR INIT CONNECTION " ++ (show msg)
   b <- case (decode msg :: Maybe ASMessage) of 
-        Just (Message _ Acknowledge r (PayloadInit (ASInitConnection))) -> do
+        Just (Message _ Acknowledge r (PayloadInit (ASInitConnection _))) -> do
+          printTimed "decoded init" 
+          return True
+        Just (Message _ Acknowledge r (PayloadDaemonInit (ASInitDaemonConnection i l))) -> do
           printTimed "decoded init" 
           return True
         otherwise -> do 
           putStrLn (show (decode msg :: Maybe ASMessage))
           return False
-  putStrLn (show msg)
-  return b
-
-isInitConnectionDaemon :: B.ByteString -> IO Bool
-isInitConnectionDaemon msg = do
-  putStrLn $ "TESTING FOR INIT DAEMON CONNECTION " ++ (show msg)
-  b <- case (decode msg :: Maybe ASMessage) of 
-        Just (Message _ Acknowledge r (PayloadDaemonInit (ASInitDaemonConnection i l))) -> do
-          printTimed "decoded init" 
-          return True
-        otherwise -> putStrLn (show (decode msg :: Maybe ASMessage)) >> return False
   putStrLn (show msg)
   return b
 

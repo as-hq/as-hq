@@ -1,0 +1,699 @@
+
+==================== FINAL INTERFACE ====================
+2015-09-24 01:36:32.47448 UTC
+
+interface alphasheets-0.1.0.0:AS.Dispatch.Core [orphan module] 7084
+  interface hash: 7fd3f2a1ef081b6ab60bdebe6d6fa21f
+  ABI hash: e9f1e64601df503fac2e8441a1722282
+  export-list hash: 7408245679348183a46622955942e273
+  orphan hash: 080c22adfde972d2575bb5df4a72ed7a
+  flag hash: 1cb6a063e15d848b08cbd86d75583f42
+  used TH splices: False
+  where
+exports:
+  AS.Dispatch.Core.createListCells
+  AS.Dispatch.Core.evalChain
+  AS.Dispatch.Core.getDescendants
+  AS.Dispatch.Core.propagate
+  AS.Dispatch.Core.runDispatchCycle
+  AS.Dispatch.Core.updateCell
+module dependencies: AS.Config.Paths AS.Config.Settings AS.DB.API
+                     AS.DB.Graph AS.DB.Util AS.Daemon AS.Eval.Core AS.Eval.Endware
+                     AS.Eval.Lang AS.Eval.Middleware AS.Parsing.Common AS.Parsing.Eval
+                     AS.Parsing.In AS.Parsing.Out AS.Types AS.Util
+package dependencies: BoundedChan-1.0.3.0 SHA-1.6.4.2 aeson-0.8.1.1
+                      array-0.5.0.0 async-2.0.2 attoparsec-0.13.0.1 base
+                      base64-bytestring-1.0.0.1 binary-0.7.1.0 blaze-builder-0.4.0.1
+                      bytestring-0.10.4.0 bytestring-lexing-0.5.0.2
+                      case-insensitive-1.2.0.4 cereal-0.4.1.1 containers-0.5.5.1
+                      crypto-api-0.13.2 daemons-0.2.1 data-default-0.5.3
+                      data-default-class-0.0.1 data-default-instances-base-0.0.1
+                      data-default-instances-containers-0.0.1
+                      data-default-instances-dlist-0.0.1
+                      data-default-instances-old-locale-0.0.1 deepseq-1.3.0.2
+                      directory-1.2.2.1 dlist-0.7.1.1 entropy-0.3.7 exceptions-0.8.0.2
+                      filepath-1.3.0.2 ghc-prim hashable-1.2.3.3 hedis-0.6.9 integer-gmp
+                      monad-control-1.0.0.4 monad-loops-0.4.3 mtl-2.2.1 network-2.6.2.1
+                      old-locale-1.0.0.6 parsec-3.1.9 pretty-1.1.1.1 primitive-0.6
+                      process-1.2.3.0 pureMD5-2.1.2.1 pyfi-0.4.0.4 random-1.1
+                      regex-base-0.93.2 regex-posix-0.95.2 resource-pool-0.2.3.2
+                      scientific-0.3.3.8 semigroups-0.16.2.2 split-0.2.2 stm-2.4.4
+                      strict-0.3.2 tagged-0.8.1 template-haskell text-1.2.1.1
+                      time-1.5.0.1 transformers-0.4.3.0 transformers-base-0.4.4
+                      unix-2.7.1.0 unordered-containers-0.2.5.1 uuid-1.3.10
+                      uuid-types-1.0.1 vector-0.11.0.0 websockets-0.9.5.0
+                      zeromq4-haskell-0.6.3
+orphans: aeson-0.8.1.1:Data.Aeson.Types.Generic
+         aeson-0.8.1.1:Data.Aeson.Types.Instances
+         aeson-0.8.1.1:Data.Aeson.Types.Internal
+         alphasheets-0.1.0.0:AS.Eval.Lang alphasheets-0.1.0.0:AS.Parsing.In
+         attoparsec-0.13.0.1:Data.Attoparsec.ByteString.Char8 base:GHC.Base
+         base:GHC.Float base:GHC.Real binary-0.7.1.0:Data.Binary.Generic
+         bytestring-0.10.4.0:Data.ByteString.Builder
+         bytestring-lexing-0.5.0.2:Data.ByteString.Lex.Fractional
+         crypto-api-0.13.2:Crypto.Classes crypto-api-0.13.2:Crypto.Random
+         data-default-instances-base-0.0.1:Data.Default.Instances.Base
+         data-default-instances-containers-0.0.1:Data.Default.Instances.Containers
+         data-default-instances-dlist-0.0.1:Data.Default.Instances.DList
+         data-default-instances-old-locale-0.0.1:Data.Default.Instances.OldLocale
+         hashable-1.2.3.3:Data.Hashable.Generic
+         network-2.6.2.1:Network.Socket network-2.6.2.1:Network.Socket.Types
+         pyfi-0.4.0.4:Python random-1.1:System.Random
+         regex-base-0.93.2:Text.Regex.Base.Context
+         regex-posix-0.95.2:Text.Regex.Posix.ByteString
+         regex-posix-0.95.2:Text.Regex.Posix.ByteString.Lazy
+         regex-posix-0.95.2:Text.Regex.Posix.Sequence
+         regex-posix-0.95.2:Text.Regex.Posix.String
+         resource-pool-0.2.3.2:Data.Pool stm-2.4.4:Control.Monad.STM
+         template-haskell:Language.Haskell.TH.PprLib text-1.2.1.1:Data.Text
+         text-1.2.1.1:Data.Text.Lazy text-1.2.1.1:Data.Text.Show
+         time-1.5.0.1:Data.Time.Calendar.Gregorian
+         time-1.5.0.1:Data.Time.Format.Parse
+         time-1.5.0.1:Data.Time.LocalTime.LocalTime
+         transformers-0.4.3.0:Control.Monad.Trans.Error
+         vector-0.11.0.0:Data.Vector.Fusion.Bundle
+         vector-0.11.0.0:Data.Vector.Unboxed
+family instance modules: alphasheets-0.1.0.0:AS.Types
+                         attoparsec-0.13.0.1:Data.Attoparsec.Internal.Types
+                         base:Control.Applicative base:Data.Either base:Data.Monoid
+                         base:Data.Type.Equality base:GHC.Exts base:GHC.Generics
+                         dlist-0.7.1.1:Data.DList
+                         monad-control-1.0.0.4:Control.Monad.Trans.Control
+                         primitive-0.6:Control.Monad.Primitive
+                         semigroups-0.16.2.2:Data.List.NonEmpty tagged-0.8.1:Data.Tagged
+                         text-1.2.1.1:Data.Text text-1.2.1.1:Data.Text.Lazy
+                         unordered-containers-0.2.5.1:Data.HashMap.Base
+                         unordered-containers-0.2.5.1:Data.HashSet
+                         uuid-types-1.0.1:Data.UUID.Types.Internal
+                         uuid-types-1.0.1:Data.UUID.Types.Internal.Builder
+                         vector-0.11.0.0:Data.Vector vector-0.11.0.0:Data.Vector.Primitive
+                         vector-0.11.0.0:Data.Vector.Storable
+                         vector-0.11.0.0:Data.Vector.Unboxed
+                         vector-0.11.0.0:Data.Vector.Unboxed.Base
+                         zeromq4-haskell-0.6.3:System.ZMQ4
+import  -/  aeson-0.8.1.1:Data.Aeson 4717cd565317ade519445bba111351ae
+import  -/  AS.DB.API 337a0c2c60eddf207b61768b9fd1edb4
+  exports: f4205431df73a6774c712eb5aa073d13
+  getCells d90192bcedf26c1010f64a7bb030e60d
+  getVolatileLocs 0202c2d961997932ff3c10b303476c26
+  setCells cdb1a72e695590454ca44323763d8dfb
+  updateAfterEval 520bf74d973b458f4d401873e500276a
+import  -/  AS.DB.Graph 90830a4d5d87ba9b622d69b650eb54e8
+  exports: 51273daef87f43170642569e11d191c0
+  getDescendants 1742ae7b53d94c0151b39a4936d353e1
+  getImmediateAncestors 81efea6d590d6311e69f8de567cd869a
+  setRelations 0603cb2ac0020601354710529d05932a
+import  -/  AS.Eval.Core 0a0d946149f3ecace6e4fde0a14640e4
+  exports: a8fd7d5e67e40ad69836b4f35807868b
+  evalExpression 8ae1aeda6f33d76e88082801b7a86e17
+import  -/  AS.Eval.Endware 2d42c3e7ad372fd9701fb7fe317e7d9c
+  exports: e94b49c34ba307da69a91e8fe248bb9a
+  evalEndware ef1cdc065beecaf6881f0cef28824f68
+import  -/  AS.Eval.Middleware ba3ec09922f0f13de0d2341f6b6ea058
+  exports: 1621f53a69f838314e0f8662f8e71592
+  evalMiddleware ed7666e82857bc512264b2183d7b11e5
+import  -/  AS.Parsing.Common ceccfbae6a55ecc56f531616855b9b06
+  exports: b53f07d91299e788b6ffa7cfbc3e8f8f
+  getOffsets 2f20df3ee3460f05e72d3e0645e582ce
+import  -/  AS.Parsing.In 98eb4c4c40887c46f7e5ad3d1e6d68e6
+  exports: 906b8f0955301c1a3a8c568e58f43d5d
+import  -/  AS.Parsing.Out dd270cee574919ef59c3b5c824275231
+  exports: b4cc2ee9878e9c201d4134316c957a72
+  getDependenciesAndExpressions 3761b931ab014e1e7065360543d7d2a1
+import  -/  AS.Types 4f94c2927cba4cb4617d17e571d71325
+  exports: f8584b3856684401ece78f5d630831a9
+  ASCell bede131762bf9e6165d28069305c9a8f
+  ASExecError ac2b16a41a3fdddbc18d87357a01cd53
+  ASLocation 42b88bd590b6186a8f42af5a0deb461a
+  ASMessage dcbe93300b2953c897bbc3e5c986250a
+  ASUser 8f65613dded3aab26fae493435f0f314
+  ASValue cf27945d6d550d5b2c4aa963af53bf25
+  Cell cf2ab8ae076f48bff57c162753f8fec8
+  DBNothingException a2fedf534617a8e871d31936d55eb10c
+  Index 32bc2c9c50c80ae6c93286c30ef7b208
+  Message 346287d25369198e5c487b6d103d23d0
+  NoValue 2071d054e9ccb7241519b4cc7663e823
+  PayloadC 99be5183b9c2f57a215fd931874c1c51
+  Reference 07c3f14712d76d5812c8dbd70307f517
+  ServerState 9ce35b4af6c18edb38f6401544fc8edb
+  ValueL 3869c969a355ac446978790d8e12a1f0
+  cellLocation 57eff0be9dcc5df8973c2d9de1095be4
+  cellValue 0daae8e60f731af1d49564cbdc41f741
+  dbConn 8322ea2cd349a8dd93b7785150bce0cf
+  locSheetId 0eb45f0ce468cda62d570bcb8b46f9d1
+  lst 6888a75abf96ee61d5f94e9dfa1944df
+import  -/  AS.Util a1b456ad35c8f7a97ddaaa58328f3cd8
+  exports: 889a698e7d9664843475615b4d8a95b2
+  decomposeLocs 029ee6d579cad48c88473e01acb70f98
+  fromJustList 452ba098c7bc5b9e295b477e6f7bdeb3
+  getCellMessage 51ccb943945c03221b49044f058ed8a1
+  printTimed 35cb21e1f23638a3173441d7200c130f
+import  -/  base:Control.Applicative 30b769206cb5c020684e1bda0d7e7dd3
+import  -/  base:Control.Concurrent 1be25cd1e2ac314074fafb26df0ff06b
+import  -/  base:Control.Monad 483e787e07c2e49f1fb1c1b88665cb92
+import  -/  base:Data.Either d1c890129a7c6a9ec02a642c6c2f4ed3
+import  -/  base:Data.List 8b77870d02d66076337587b759b7ee19
+import  -/  base:Data.Maybe 5034d40e23c3a7110309f188001df4ca
+import  -/  base:GHC.Base 5d7c5f596f9a4c8a8abd8517c8bcd5dd
+import  -/  base:GHC.List 4cff382327e59a5787355ca0a4174450
+import  -/  base:GHC.MVar 2c9d76ed3707c435c49b694504d09491
+import  -/  base:GHC.Num 5e7786970581cacc802bf850d458a30b
+import  -/  base:GHC.Show cf1a7ff9edb0f41528085aad04d33753
+import  -/  base:Prelude 74043f272d60acec1777d3461cfe5ef4
+import  -/  base:System.IO cadd0efb01c47ddd8f52d750739fdbdf
+import  -/  bytestring-0.10.4.0:Data.ByteString.Char8 0e73f8a26c4441d5a78efb34452f1bd2
+import  -/  bytestring-0.10.4.0:Data.ByteString.Lazy.Char8 b08a48a005349ba04667fda0e4b7b27f
+import  -/  containers-0.5.5.1:Data.Map 39e9346954b9366e01d2c8afb617e216
+import  -/  containers-0.5.5.1:Data.Map.Base 4216c6c0396261d88891bb4aaa09340a
+import  -/  ghc-prim:GHC.Types dcba736fa3dfba12d307ab18354845d2
+import  -/  hedis-0.6.9:Database.Redis 528220caf3eba6c7f6dc7e85c445c8d5
+import  -/  hedis-0.6.9:Database.Redis.Core c109b2f50ce35a47c8d801b7ab048487
+import  -/  parsec-3.1.9:Text.ParserCombinators.Parsec 97ee74e913b9eff80cc5ace4d023a967
+import  -/  text-1.2.1.1:Data.Text ddf865ef7152d1de0d03707558cc6523
+import  -/  text-1.2.1.1:Data.Text.IO d86a0ceb57d506ee515123c456145d23
+import  -/  time-1.5.0.1:Data.Time.Clock f41c6b331f55aebceef7fdef0c152e53
+import  -/  transformers-0.4.3.0:Control.Monad.IO.Class 1fe01dea961eadb0b037d705f6cb22bb
+import  -/  websockets-0.9.5.0:Network.WebSockets c11cd6465abe4dc4c3ad51897e46aaa0
+7d5f7b45f19071552f6309e1494bff6e
+  $sfromList :: [(AS.Types.ASLocation, a)]
+                -> Data.Map.Base.Map AS.Types.ASLocation a
+    {- Arity: 1, Strictness: <S,1*U>,
+       Unfolding: (\ @ a ds :: [(AS.Types.ASLocation, a)] ->
+                   case ds of wild {
+                     [] -> Data.Map.Base.Tip @ AS.Types.ASLocation @ a
+                     : ds1 ds2
+                     -> case ds1 of wild1 { (,) kx x ->
+                        case ds2 of wild2 {
+                          []
+                          -> case kx of dt { DEFAULT ->
+                             Data.Map.Base.Bin
+                               @ AS.Types.ASLocation
+                               @ a
+                               1
+                               dt
+                               x
+                               (Data.Map.Base.Tip @ AS.Types.ASLocation @ a)
+                               (Data.Map.Base.Tip @ AS.Types.ASLocation @ a) }
+                          : ipv ipv1
+                          -> case ipv of wild3 { (,) ky ds3 ->
+                             case AS.Types.$fOrdASLocation_$c>= kx ky of wild4 {
+                               GHC.Types.False
+                               -> case kx of dt { DEFAULT ->
+                                  AS.Dispatch.Core.$wpoly_go10
+                                    @ a
+                                    1
+                                    (Data.Map.Base.Bin
+                                       @ AS.Types.ASLocation
+                                       @ a
+                                       1
+                                       dt
+                                       x
+                                       (Data.Map.Base.Tip @ AS.Types.ASLocation @ a)
+                                       (Data.Map.Base.Tip @ AS.Types.ASLocation @ a))
+                                    wild2 }
+                               GHC.Types.True
+                               -> case kx of dt { DEFAULT ->
+                                  AS.Dispatch.Core.$sfromList1
+                                    @ a
+                                    (Data.Map.Base.Bin
+                                       @ AS.Types.ASLocation
+                                       @ a
+                                       1
+                                       dt
+                                       x
+                                       (Data.Map.Base.Tip @ AS.Types.ASLocation @ a)
+                                       (Data.Map.Base.Tip @ AS.Types.ASLocation @ a))
+                                    wild2 } } } } } }) -}
+c2f3b190fa55d79f6b036e8ca0d76c6b
+  $sfromList1 :: Data.Map.Base.Map AS.Types.ASLocation a1
+                 -> [(AS.Types.ASLocation, a1)]
+                 -> Data.Map.Base.Map AS.Types.ASLocation a1
+    {- Arity: 2, Strictness: <S,1*U><S,1*U> -}
+12812bd9aca3a3563334bd92c1d63733
+  $sinsert :: AS.Types.ASLocation
+              -> a
+              -> Data.Map.Base.Map AS.Types.ASLocation a
+              -> Data.Map.Base.Map AS.Types.ASLocation a
+    {- Arity: 3, Strictness: <S,1*U><L,U><S,1*U>,
+       Unfolding: (\ @ a
+                     eta :: AS.Types.ASLocation
+                     eta1 :: a
+                     eta2 :: Data.Map.Base.Map AS.Types.ASLocation a ->
+                   AS.Dispatch.Core.$sinsert_$sgo10 @ a eta eta1 eta2) -}
+22b6f538481718182f08c5eb83227766
+  $sinsert_$sgo10 :: AS.Types.ASLocation
+                     -> a1
+                     -> Data.Map.Base.Map AS.Types.ASLocation a1
+                     -> Data.Map.Base.Map AS.Types.ASLocation a1
+    {- Arity: 3, Strictness: <S,1*U><L,U><S,1*U> -}
+c10fe8848c8ac5615d62ceeeb075832b
+  $wa :: AS.Types.ASLocation
+         -> [AS.Types.ASValue]
+         -> GHC.Prim.State# GHC.Prim.RealWorld
+         -> (# GHC.Prim.State# GHC.Prim.RealWorld, [AS.Types.ASCell] #)
+    {- Arity: 3, Strictness: <S,1*U><S,1*U><L,U> -}
+c2be4447c039d9e074690c8349d87d1d
+  $wa1 :: Data.Map.Base.Map AS.Types.ASLocation AS.Types.ASValue
+          -> [AS.Types.ASCell]
+          -> GHC.Prim.State# GHC.Prim.RealWorld
+          -> (# GHC.Prim.State# GHC.Prim.RealWorld, [AS.Types.ASCell] #)
+    {- Arity: 3, Strictness: <L,U><S,1*U><L,U> -}
+59d975c4a029a698ecdf9d395d9bfbc7
+  $wa2 :: AS.Types.ASUser
+          -> GHC.MVar.MVar AS.Types.ServerState
+          -> AS.Types.ASUserId
+          -> AS.Types.ASAction
+          -> AS.Types.ASResult
+          -> AS.Types.ASPayload
+          -> GHC.Prim.State# GHC.Prim.RealWorld
+          -> (# GHC.Prim.State# GHC.Prim.RealWorld, AS.Types.ASMessage #)
+    {- Arity: 7,
+       Strictness: <L,U(U(U,U,U),A,A)><L,1*U(U)><L,U(U,U,U)><L,U><L,U><S,1*U><L,U> -}
+7f3d8d49729d7b6c702c2dc7e0a2a700
+  $wa3 :: Database.Redis.Core.Connection
+          -> AS.Types.ASLocation
+          -> AS.Types.ASExpression
+          -> [AS.Types.ASCellTag]
+          -> GHC.Prim.State# GHC.Prim.RealWorld
+          -> (# GHC.Prim.State# GHC.Prim.RealWorld,
+                Data.Either.Either AS.Types.ASExecError () #)
+    {- Arity: 5,
+       Strictness: <L,U(C(U),C(C1(U)),U(U),A,U(U),U(U,U,U),A)><L,U><L,U><L,U><L,U>,
+       Unfolding: (\ w :: Database.Redis.Core.Connection
+                     ww :: AS.Types.ASLocation
+                     ww1 :: AS.Types.ASExpression
+                     ww2 :: [AS.Types.ASCellTag]
+                     w1 :: GHC.Prim.State# GHC.Prim.RealWorld ->
+                   case AS.Parsing.Out.$wgetDependenciesAndExpressions
+                          (AS.Types.locSheetId ww)
+                          ww1
+                          (AS.Parsing.Common.getOffsets ww) of ww3 { (#,#) ww4 ww5 ->
+                   case AS.DB.API.getCell2
+                          w
+                          (AS.Dispatch.Core.updateCell_go1 ww4)
+                          w1 of ds1 { (#,#) ipv ipv1 ->
+                   case AS.Util.printTimed1
+                          AS.Dispatch.Core.updateCell7
+                          ipv of ds2 { (#,#) ipv2 ipv3 ->
+                   case GHC.List.any
+                          @ (Data.Maybe.Maybe AS.Types.ASCell)
+                          (Data.Maybe.isNothing @ AS.Types.ASCell)
+                          ipv1 of wild {
+                     GHC.Types.False
+                     -> let {
+                          locs :: [AS.Types.ASLocation] = AS.Util.decomposeLocs ww
+                        } in
+                        case AS.DB.Graph.queryMulti1
+                               AS.Types.SetRelations
+                               (AS.Dispatch.Core.updateCell_go locs ww4)
+                               ipv2 of ds3 { (#,#) ipv4 ipv5 ->
+                        case GHC.Base.map
+                               @ (AS.Types.ASLocation, AS.Types.ASExpression, AS.Types.ASValue)
+                               @ AS.Types.ASCell
+                               (\ ds :: (AS.Types.ASLocation,
+                                         AS.Types.ASExpression,
+                                         AS.Types.ASValue) ->
+                                case ds of wild1 { (,,) l e v -> AS.Types.Cell l e v ww2 })
+                               (GHC.List.zip3
+                                  @ AS.Types.ASLocation
+                                  @ AS.Types.ASExpression
+                                  @ AS.Types.ASValue
+                                  locs
+                                  ww5
+                                  AS.Dispatch.Core.updateCell_xs) of wild1 {
+                          []
+                          -> case AS.Util.printTimed1
+                                    AS.Dispatch.Core.updateCell6
+                                    ipv4 of ds4 { (#,#) ipv6 ipv7 ->
+                             (# ipv6,
+                                case ipv5 of wild2 {
+                                  Data.Either.Left e -> AS.Dispatch.Core.updateCell5
+                                  Data.Either.Right ds -> AS.Dispatch.Core.updateCell4 } #) }
+                          : ipv6 ipv7
+                          -> case (Data.Pool.withResource_$swithResource
+                                     @ (Database.Redis.ProtocolPipelining.Connection
+                                            Database.Redis.Protocol.Reply)
+                                     @ ()
+                                     w `cast` (Database.Redis.Core.NTCo:Connection[0])
+                                     (\ eta1 :: Database.Redis.ProtocolPipelining.Connection
+                                                    Database.Redis.Protocol.Reply
+                                        eta2 :: GHC.Prim.State# GHC.Prim.RealWorld ->
+                                      case ((AS.DB.API.setCell_go wild1)
+                                              `cast`
+                                            (Trans
+                                                 (Database.Redis.Core.NTCo:Redis[0] <()>_N)
+                                                 (Control.Monad.Trans.Reader.NTCo:ReaderT[0]
+                                                      <Database.Redis.ProtocolPipelining.Connection
+                                                           Database.Redis.Protocol.Reply>_R
+                                                      <GHC.Types.IO>_R
+                                                      <()>_N))
+                                              eta1)
+                                             `cast`
+                                           (GHC.Types.NTCo:IO[0] <()>_R)
+                                             eta2 of ds4 { (#,#) ipv8 ipv9 ->
+                                      case AS.Util.printTimed1
+                                             AS.DB.API.redo2
+                                             ipv8 of ds5 { (#,#) ipv10 ipv11 ->
+                                      (# ipv10, GHC.Tuple.() #) } })
+                                       `cast`
+                                     (<Database.Redis.ProtocolPipelining.Connection
+                                           Database.Redis.Protocol.Reply>_R
+                                      ->_R Sym (GHC.Types.NTCo:IO[0] <()>_R)))
+                                    `cast`
+                                  (GHC.Types.NTCo:IO[0] <()>_R)
+                                    ipv4 of ds4 { (#,#) ipv8 ipv9 ->
+                             case AS.Util.printTimed1
+                                    AS.Dispatch.Core.updateCell6
+                                    ipv8 of ds5 { (#,#) ipv10 ipv11 ->
+                             (# ipv10,
+                                case ipv5 of wild2 {
+                                  Data.Either.Left e -> AS.Dispatch.Core.updateCell5
+                                  Data.Either.Right ds -> AS.Dispatch.Core.updateCell4 } #) } } } }
+                     GHC.Types.True
+                     -> (# ipv2, AS.Dispatch.Core.updateCell2 #) } } } }) -}
+e04d91f9e0cfb6fbe21420144188e10f
+  $wpoly_go10 :: GHC.Prim.Int#
+                 -> Data.Map.Base.Map AS.Types.ASLocation a
+                 -> [(AS.Types.ASLocation, a)]
+                 -> Data.Map.Base.Map AS.Types.ASLocation a
+    {- Arity: 3, Strictness: <L,U><S,1*U><S,1*U> -}
+af0f85833099b87756af603358ff0481
+  createListCells :: Database.Redis.Core.Connection
+                     -> AS.Types.ASLocation
+                     -> [AS.Types.ASValue]
+                     -> GHC.Types.IO [AS.Types.ASCell]
+    {- Arity: 4, Strictness: <L,A><S,1*U><S,1*U><L,U>,
+       Unfolding: InlineRule (0, True, True)
+                  AS.Dispatch.Core.createListCells1
+                    `cast`
+                  (<Database.Redis.Core.Connection>_R
+                   ->_R <AS.Types.ASLocation>_R
+                   ->_R <[AS.Types.ASValue]>_R
+                   ->_R Sym (GHC.Types.NTCo:IO[0] <[AS.Types.ASCell]>_R)) -}
+4a3e4bc81dda6a55381ca29a678405a6
+  createListCells1 :: Database.Redis.Core.Connection
+                      -> AS.Types.ASLocation
+                      -> [AS.Types.ASValue]
+                      -> GHC.Prim.State# GHC.Prim.RealWorld
+                      -> (# GHC.Prim.State# GHC.Prim.RealWorld, [AS.Types.ASCell] #)
+    {- Arity: 4, Strictness: <L,A><S,1*U><S,1*U><L,U>,
+       Inline: INLINE[0],
+       Unfolding: InlineRule (4, True, True)
+                  (\ w :: Database.Redis.Core.Connection
+                     w1 :: AS.Types.ASLocation
+                     w2 :: [AS.Types.ASValue]
+                     w3 :: GHC.Prim.State# GHC.Prim.RealWorld ->
+                   AS.Dispatch.Core.$wa w1 w2 w3) -}
+d20e57e78f47d286239f09cfff28bcc4
+  evalChain :: Database.Redis.Core.Connection
+               -> Data.Map.Base.Map AS.Types.ASLocation AS.Types.ASValue
+               -> [AS.Types.ASCell]
+               -> GHC.Types.IO [AS.Types.ASCell]
+    {- Arity: 4, Strictness: <L,A><L,U><S,1*U><L,U>,
+       Unfolding: InlineRule (0, True, True)
+                  AS.Dispatch.Core.evalChain1
+                    `cast`
+                  (<Database.Redis.Core.Connection>_R
+                   ->_R <Data.Map.Base.Map AS.Types.ASLocation AS.Types.ASValue>_R
+                   ->_R <[AS.Types.ASCell]>_R
+                   ->_R Sym (GHC.Types.NTCo:IO[0] <[AS.Types.ASCell]>_R)) -}
+e6972df928e2d05513ed00f3cd4e5e05
+  evalChain1 :: Database.Redis.Core.Connection
+                -> Data.Map.Base.Map AS.Types.ASLocation AS.Types.ASValue
+                -> [AS.Types.ASCell]
+                -> GHC.Prim.State# GHC.Prim.RealWorld
+                -> (# GHC.Prim.State# GHC.Prim.RealWorld, [AS.Types.ASCell] #)
+    {- Arity: 4, Strictness: <L,A><L,U><S,1*U><L,U>, Inline: INLINE[0],
+       Unfolding: InlineRule (4, True, True)
+                  (\ w :: Database.Redis.Core.Connection
+                     w1 :: Data.Map.Base.Map AS.Types.ASLocation AS.Types.ASValue
+                     w2 :: [AS.Types.ASCell]
+                     w3 :: GHC.Prim.State# GHC.Prim.RealWorld ->
+                   AS.Dispatch.Core.$wa1 w1 w2 w3) -}
+ee31b1812fddaa3173b83623d3ed8511
+  getDescendants :: Database.Redis.Core.Connection
+                    -> AS.Types.ASCell
+                    -> GHC.Types.IO
+                           (Data.Either.Either AS.Types.ASExecError [AS.Types.ASCell])
+    {- Arity: 3,
+       Strictness: <L,U(C(U),C(C1(U)),U(U),A,U(U),U(U,U,U),A)><L,1*U(1*U,A,A,A)><L,U>,
+       Unfolding: (AS.Dispatch.Core.getDescendants1
+                     `cast`
+                   (<Database.Redis.Core.Connection>_R
+                    ->_R <AS.Types.ASCell>_R
+                    ->_R Sym (GHC.Types.NTCo:IO[0]
+                                  <Data.Either.Either
+                                       AS.Types.ASExecError [AS.Types.ASCell]>_R))) -}
+a33eab7bd46b99c08313d396afe5a6f1
+  getDescendants1 :: Database.Redis.Core.Connection
+                     -> AS.Types.ASCell
+                     -> GHC.Prim.State# GHC.Prim.RealWorld
+                     -> (# GHC.Prim.State# GHC.Prim.RealWorld,
+                           Data.Either.Either AS.Types.ASExecError [AS.Types.ASCell] #)
+    {- Arity: 3,
+       Strictness: <L,U(C(U),C(C1(U)),U(U),A,U(U),U(U,U,U),A)><L,1*U(1*U,A,A,A)><L,U>,
+       Unfolding: (\ conn :: Database.Redis.Core.Connection
+                     cell :: AS.Types.ASCell
+                     eta :: GHC.Prim.State# GHC.Prim.RealWorld ->
+                   case (Data.Pool.withResource_$swithResource
+                           @ (Database.Redis.ProtocolPipelining.Connection
+                                  Database.Redis.Protocol.Reply)
+                           @ [AS.Types.ASLocation]
+                           conn `cast` (Database.Redis.Core.NTCo:Connection[0])
+                           AS.DB.API.getVolatileLocs2
+                             `cast`
+                           (<Database.Redis.ProtocolPipelining.Connection
+                                 Database.Redis.Protocol.Reply>_R
+                            ->_R Sym (GHC.Types.NTCo:IO[0] <[AS.Types.ASLocation]>_R)))
+                          `cast`
+                        (GHC.Types.NTCo:IO[0] <[AS.Types.ASLocation]>_R)
+                          eta of ds1 { (#,#) ipv ipv1 ->
+                   case AS.Util.printTimed1
+                          AS.Dispatch.Core.getDescendants3
+                          ipv of ds2 { (#,#) ipv2 ipv3 ->
+                   case AS.DB.Graph.getDescendants2
+                          AS.Types.GetDescendants
+                          (case cell of wild { AS.Types.Cell ds3 ds4 ds5 ds6 ->
+                           GHC.Base.++
+                             @ AS.Types.ASLocation
+                             (AS.Util.decomposeLocs ds3)
+                             ipv1 })
+                          ipv2 of ds3 { (#,#) ipv4 ipv5 ->
+                   case ipv5 of wild {
+                     Data.Either.Left e
+                     -> (# ipv4,
+                           Data.Either.Left @ AS.Types.ASExecError @ [AS.Types.ASCell] e #)
+                     Data.Either.Right descendantLocs
+                     -> case AS.Util.printTimed1
+                               (GHC.CString.unpackAppendCString#
+                                  "got descendant locs: "#
+                                  (GHC.Show.showList__
+                                     @ AS.Types.ASLocation
+                                     AS.Types.$fShowASLocation1
+                                     descendantLocs
+                                     (GHC.Types.[] @ GHC.Types.Char)))
+                               ipv4 of ds4 { (#,#) ipv6 ipv7 ->
+                        case AS.DB.API.getCell2
+                               conn
+                               descendantLocs
+                               ipv6 of ds5 { (#,#) ipv8 ipv9 ->
+                        case AS.Util.printTimed1
+                               AS.Dispatch.Core.getDescendants2
+                               ipv8 of ds6 { (#,#) ipv10 ipv11 ->
+                        (# ipv10,
+                           Data.Either.Right
+                             @ AS.Types.ASExecError
+                             @ [AS.Types.ASCell]
+                             (GHC.Base.map
+                                @ (Data.Maybe.Maybe AS.Types.ASCell)
+                                @ AS.Types.ASCell
+                                (Data.Maybe.fromJust @ AS.Types.ASCell)
+                                ipv9) #) } } } } } } }) -}
+6ef618b8bc45033df50ba55dcac8c2ad
+  getDescendants2 :: [GHC.Types.Char]
+    {- Unfolding: (GHC.CString.unpackCString#
+                     "got descendant cells"#) -}
+eba48bfcf7b61593502e02f6b26bbb1e
+  getDescendants3 :: [GHC.Types.Char]
+    {- Unfolding: (GHC.CString.unpackCString# "got volatile locs"#) -}
+61206272b587ed98c33d3fb8b6607400
+  propagate :: Database.Redis.Core.Connection
+               -> [AS.Types.ASCell]
+               -> [AS.Types.ASCell]
+               -> GHC.Types.IO
+                      (Data.Either.Either AS.Types.ASExecError [AS.Types.ASCell])
+    {- Arity: 4, Strictness: <L,A><L,1*U><S,1*U><L,U>,
+       Unfolding: InlineRule (0, True, True)
+                  AS.Dispatch.Core.propagate1
+                    `cast`
+                  (<Database.Redis.Core.Connection>_R
+                   ->_R <[AS.Types.ASCell]>_R
+                   ->_R <[AS.Types.ASCell]>_R
+                   ->_R Sym (GHC.Types.NTCo:IO[0]
+                                 <Data.Either.Either AS.Types.ASExecError [AS.Types.ASCell]>_R)) -}
+1ca08eae027cceb0fde7833f378f7fc9
+  propagate1 :: Database.Redis.Core.Connection
+                -> [AS.Types.ASCell]
+                -> [AS.Types.ASCell]
+                -> GHC.Prim.State# GHC.Prim.RealWorld
+                -> (# GHC.Prim.State# GHC.Prim.RealWorld,
+                      Data.Either.Either AS.Types.ASExecError [AS.Types.ASCell] #)
+    {- Arity: 4, Strictness: <L,A><L,1*U><S,1*U><L,U>,
+       Unfolding: InlineRule (4, True, False)
+                  (\ conn :: Database.Redis.Core.Connection
+                     anc :: [AS.Types.ASCell]
+                     dec :: [AS.Types.ASCell]
+                     s :: GHC.Prim.State# GHC.Prim.RealWorld ->
+                   case AS.Dispatch.Core.evalChain1
+                          conn
+                          (AS.Dispatch.Core.$sfromList
+                             @ AS.Types.ASValue
+                             (GHC.Base.build
+                                @ (AS.Types.ASLocation, AS.Types.ASValue)
+                                (\ @ b1
+                                   c :: (AS.Types.ASLocation, AS.Types.ASValue) -> b1 -> b1
+                                   n :: b1 ->
+                                 GHC.Base.foldr
+                                   @ AS.Types.ASCell
+                                   @ b1
+                                   (GHC.Base.mapFB
+                                      @ (AS.Types.ASLocation, AS.Types.ASValue)
+                                      @ b1
+                                      @ AS.Types.ASCell
+                                      c
+                                      AS.Dispatch.Core.propagate2)
+                                   n
+                                   anc)))
+                          dec
+                          s of ds1 { (#,#) ipv ipv1 ->
+                   (# ipv,
+                      Data.Either.Right
+                        @ AS.Types.ASExecError
+                        @ [AS.Types.ASCell]
+                        ipv1 #) }) -}
+9847dbce93fc1d1fb3ad4b00763a4d89
+  propagate2 :: AS.Types.ASCell
+                -> (AS.Types.ASLocation, AS.Types.ASValue)
+    {- Arity: 1, HasNoCafRefs, Strictness: <L,U(1*U,A,1*U,A)>m,
+       Unfolding: InlineRule (1, True, False)
+                  (\ c :: AS.Types.ASCell ->
+                   (AS.Types.cellLocation c, AS.Types.cellValue c)) -}
+e3aea045f7f65f4c580d2abf42e329b7
+  runDispatchCycle :: AS.Types.ASUser
+                      -> GHC.MVar.MVar AS.Types.ServerState
+                      -> AS.Types.ASMessage
+                      -> GHC.Types.IO AS.Types.ASMessage
+    {- Arity: 4,
+       Strictness: <L,U(U(U,U,U),A,A)><L,1*U(U)><S(LLLS),1*U(U(U,U,U),U,U,1*U)><L,U>,
+       Unfolding: InlineRule (0, True, True)
+                  AS.Dispatch.Core.runDispatchCycle1
+                    `cast`
+                  (<AS.Types.ASUser>_R
+                   ->_R <GHC.MVar.MVar AS.Types.ServerState>_R
+                   ->_R <AS.Types.ASMessage>_R
+                   ->_R Sym (GHC.Types.NTCo:IO[0] <AS.Types.ASMessage>_R)) -}
+d53b03a8c19445fd7d1d8326d9e8cfa3
+  runDispatchCycle1 :: AS.Types.ASUser
+                       -> GHC.MVar.MVar AS.Types.ServerState
+                       -> AS.Types.ASMessage
+                       -> GHC.Prim.State# GHC.Prim.RealWorld
+                       -> (# GHC.Prim.State# GHC.Prim.RealWorld, AS.Types.ASMessage #)
+    {- Arity: 4,
+       Strictness: <L,U(U(U,U,U),A,A)><L,1*U(U)><S(LLLS),1*U(U(U,U,U),U,U,1*U)><L,U>,
+       Inline: INLINE[0],
+       Unfolding: InlineRule (4, True, False)
+                  (\ w :: AS.Types.ASUser
+                     w1 :: GHC.MVar.MVar AS.Types.ServerState
+                     w2 :: AS.Types.ASMessage
+                     w3 :: GHC.Prim.State# GHC.Prim.RealWorld ->
+                   case w2 of ww { AS.Types.Message ww1 ww2 ww3 ww4 ->
+                   AS.Dispatch.Core.$wa2 w w1 ww1 ww2 ww3 ww4 w3 }) -}
+a0e17459b2846ffc9d783aaf0cafdd7e
+  updateCell :: Database.Redis.Core.Connection
+                -> AS.Types.ASCell
+                -> GHC.Types.IO (Data.Either.Either AS.Types.ASExecError ())
+    {- Arity: 3,
+       Strictness: <L,U(C(U),C(C1(U)),U(U),A,U(U),U(U,U,U),A)><S,1*U(U,U,A,U)><L,U>,
+       Unfolding: InlineRule (0, True, True)
+                  AS.Dispatch.Core.updateCell1
+                    `cast`
+                  (<Database.Redis.Core.Connection>_R
+                   ->_R <AS.Types.ASCell>_R
+                   ->_R Sym (GHC.Types.NTCo:IO[0]
+                                 <Data.Either.Either AS.Types.ASExecError ()>_R)) -}
+fb78ac8564fa2e99c05e2a1d4a89da8c
+  updateCell1 :: Database.Redis.Core.Connection
+                 -> AS.Types.ASCell
+                 -> GHC.Prim.State# GHC.Prim.RealWorld
+                 -> (# GHC.Prim.State# GHC.Prim.RealWorld,
+                       Data.Either.Either AS.Types.ASExecError () #)
+    {- Arity: 3,
+       Strictness: <L,U(C(U),C(C1(U)),U(U),A,U(U),U(U,U,U),A)><S,1*U(U,U,A,U)><L,U>,
+       Inline: INLINE[0],
+       Unfolding: InlineRule (3, True, False)
+                  (\ w :: Database.Redis.Core.Connection
+                     w1 :: AS.Types.ASCell
+                     w2 :: GHC.Prim.State# GHC.Prim.RealWorld ->
+                   case w1 of ww { AS.Types.Cell ww1 ww2 ww3 ww4 ->
+                   AS.Dispatch.Core.$wa3 w ww1 ww2 ww4 w2 }) -}
+8cabd90b9478fdf57e9b0b9bd1a430c5
+  updateCell2 :: Data.Either.Either AS.Types.ASExecError ()
+    {- HasNoCafRefs,
+       Unfolding: (Data.Either.Left
+                     @ AS.Types.ASExecError
+                     @ ()
+                     AS.Dispatch.Core.updateCell3) -}
+ffd244da6d488ef348fd3a15aa21824c
+  updateCell3 :: AS.Types.ASExecError
+    {- HasNoCafRefs,
+       Unfolding: (AS.Types.DBNothingException
+                     (GHC.Types.[] @ AS.Types.ASLocation)) -}
+67c591b5adc3672db4217fb2b5eef4e2
+  updateCell4 :: Data.Either.Either AS.Types.ASExecError ()
+    {- HasNoCafRefs, Strictness: m2,
+       Unfolding: (Data.Either.Right
+                     @ AS.Types.ASExecError
+                     @ ()
+                     GHC.Tuple.()) -}
+646124fb6201964430f3ce1e46c24261
+  updateCell5 :: Data.Either.Either AS.Types.ASExecError ()
+    {- HasNoCafRefs,
+       Unfolding: (Data.Either.Left
+                     @ AS.Types.ASExecError
+                     @ ()
+                     AS.Types.DBGraphUnreachable) -}
+55077002b7bc92a8d43d5836739ee6c8
+  updateCell6 :: [GHC.Types.Char]
+    {- Unfolding: (GHC.CString.unpackCString# "set init cells"#) -}
+ff1afa34f2b6217cb37fba05f3af143a
+  updateCell7 :: [GHC.Types.Char]
+    {- Unfolding: (GHC.CString.unpackCString# "got cells: "#) -}
+b83a8a9684b705707058b9c8a5f85627
+  updateCell_go :: [AS.Types.ASLocation]
+                   -> [[AS.Types.ASLocation]]
+                   -> [[AS.Types.ASLocation]]
+    {- Arity: 2, HasNoCafRefs, Strictness: <S,1*U><L,1*U> -}
+0148c60b9831e98f7530266971177f08
+  updateCell_go1 :: [[AS.Types.ASLocation]] -> [AS.Types.ASLocation]
+    {- Arity: 1, HasNoCafRefs, Strictness: <S,1*U> -}
+4dbd164ffd9c0c501ff19611d6930380
+  updateCell_xs :: [AS.Types.ASValue]
+    {- HasNoCafRefs, Strictness: m2 -}
+"SPEC Data.Map.Base.fromList [AS.Types.ASLocation]" [ALWAYS] forall @ a
+                                                                    $dOrd :: GHC.Classes.Ord
+                                                                                 AS.Types.ASLocation
+  Data.Map.Base.fromList @ AS.Types.ASLocation @ a $dOrd
+  = AS.Dispatch.Core.$sfromList @ a
+"SPEC Data.Map.Base.insert [AS.Types.ASLocation]" [ALWAYS] forall @ a
+                                                                  $dOrd :: GHC.Classes.Ord
+                                                                               AS.Types.ASLocation
+  Data.Map.Base.insert @ AS.Types.ASLocation @ a $dOrd
+  = AS.Dispatch.Core.$sinsert @ a
+vectorised variables:
+vectorised tycons:
+vectorised reused tycons:
+parallel variables:
+parallel tycons:
+trusted: none
+require own pkg trusted: False
+
