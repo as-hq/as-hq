@@ -31,34 +31,33 @@ broadcast state message = do
   forM_ (map fst u) $ \(User _ conn _) -> WS.sendTextData conn (encode message)
 
 sendBroadcastFiltered :: ASUser -> MVar ServerState -> ASMessage -> IO ()
-sendBroadcastFiltered user state msg@(Message _ _ (Failure e) _) = sendToOriginalUser user msg  
+sendBroadcastFiltered user state msg@(Message _ _ (Failure e) _) = sendToOriginalUser user msg     -- send error to original user only
+sendBroadcastFiltered user state msg@(Message _ Delete Success _) = broadcast state msg            -- broadcast all deletes (scrolling only refreshes non-deleted cells)
+sendBroadcastFiltered user state msg@(Message _ _ Success (PayloadCommit _)) = broadcast state msg -- broadcast all undo/redos for same reason
 sendBroadcastFiltered user state msg = liftIO $ do 
 	(State allUsers _) <- readMVar state
-	broadcastFiltered (updateMessageUser (userId user) msg) (map fst allUsers)
+	broadcastFiltered msg (map fst allUsers)
 
 -- | Given a message (commit, cells, etc), only send (to each user) the cells in their viewing window
 broadcastFiltered :: ASMessage -> [ASUser] -> IO ()
-broadcastFiltered msg@(Message uid _ _ (PayloadCL cells)) users = mapM_ (sendCells cells) users 
+broadcastFiltered msg@(Message uid a r (PayloadCL cells)) users = mapM_ (sendCells cells) users 
   where
     sendCells :: [ASCell] -> ASUser -> IO ()
     sendCells cells user = do 
       let cells' = intersectViewingWindows cells (userWindows user)
       --putStrLn $ "Sending msg to client: " ++ (show msg)
-      WS.sendTextData (userConn user) (encode msg)
+      case cells' of 
+        [] -> return ()
+        _ -> WS.sendTextData (userConn user) (encode (Message uid a r (PayloadCL cells')))
 broadcastFiltered msg@(Message uid a r (PayloadLL locs)) users = mapM_ (sendLocs locs) users 
   where
     sendLocs :: [ASLocation] -> ASUser -> IO ()
     sendLocs locs user = do 
       let locs' = intersectViewingWindowsLocs locs (userWindows user)
       --putStrLn $ "Sending msg to client: " ++ (show msg)
-      WS.sendTextData (userConn user) (encode msg)
-broadcastFiltered msg@(Message uid act res (PayloadCommit c)) users = mapM_ (sendCommit c) users
-  where
-    sendCommit :: ASCommit -> ASUser -> IO ()
-    sendCommit commit user = do 
-      let b = intersectViewingWindows (before commit) (userWindows user)
-      let a = intersectViewingWindows (after commit) (userWindows user)
-      WS.sendTextData (userConn user) (encode msg)
+      case locs' of 
+        [] -> return ()
+        _ -> WS.sendTextData (userConn user) (encode (Message uid a r (PayloadLL locs')))
 
 sendToOriginalUser :: ASUser -> ASMessage -> IO ()
 sendToOriginalUser user msg = WS.sendTextData (userConn user) (encode (U.updateMessageUser (userId user) msg))  
