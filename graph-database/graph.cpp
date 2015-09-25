@@ -3,13 +3,17 @@
 
 /****************************************************************************************************************************************/
 
-DAG& DAG::updateDAG(const std::string &toLoc, const std::vector<std::string> &fromLocs){
+DAG& DAG::updateDAG(const std::vector<std::string>& relation){
 	// std::cout << "In dag update with toloc: " << toLoc << std::endl; 
 	// std::cout << "fromlocs: " << std::endl; 
 	//for (const auto& l : fromLocs)
 		// std::cout << "\t" << l << std::endl; 
 	/* Loop over the current fromLocs of toLoc and delete from forward adjacency list */
+
+	std::string toLoc = relation[0];
+
 	DAG::vertexSet vl = this->toFromAdjList[toLoc];
+
 	for (const auto& oldFl : vl){
 		this->fromToAdjList[oldFl].erase(toLoc);
 		/* If a vertex no longer has fromLocs, delete it */
@@ -17,13 +21,13 @@ DAG& DAG::updateDAG(const std::string &toLoc, const std::vector<std::string> &fr
 			this->fromToAdjList.erase(oldFl);
 	}
 	/* Loop over the new fromLocs and add to  the forward adjacency list */
-	for (const auto& newFl : fromLocs){
-		this->fromToAdjList[newFl].insert(toLoc);
+	for (int i = 1; i < relation.size(); i++){
+		this->fromToAdjList[relation[i]].insert(toLoc);
 	}
 	/* Replace toLoc entry in backwards adjacency list */
 	this->toFromAdjList.erase(toLoc);
-	for (const auto& newFl : fromLocs){
-		this->toFromAdjList[toLoc].insert(newFl);
+	for (int i = 1; i < relation.size(); i++){
+		this->toFromAdjList[toLoc].insert(relation[i]);
 	}
 	// std::cout << "Updated graph in update dag: " << std::endl;
 	// this->showGraph(); 
@@ -46,6 +50,7 @@ std::vector<std::string> DAG::getDescendants(const std::vector<std::string>& loc
 	// std::cout << "In dag descendants" << std::endl; 
 	std::unordered_map<std::string,bool> visited;
 	std::vector<std::string> order; 
+
 	for (const auto& loc: locs){
         visited[loc] = false;
     }   
@@ -59,7 +64,7 @@ std::vector<std::string> DAG::getDescendants(const std::vector<std::string>& loc
 }
 
 /****************************************************************************************************************************************/
-// not needed
+
 std::vector<std::string> DAG::getImmediateAncestors(const std::vector<std::string>& locs){
 	// std::cout << "in dag get immediate ancestors " << std::endl; 
 	std::unordered_set<std::string> ancestors;
