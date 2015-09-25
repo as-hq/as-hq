@@ -284,3 +284,12 @@ getStreamTag (tag:tags) = getStreamTag tags
 -- | TODO: implement
 getStreamTagFromExpression :: ASExpression -> Maybe Stream
 getStreamTagFromExpression xp = Nothing
+
+----------------------------------------------------------------------------------------------------------------------
+-- | Testing
+
+testLocs :: Int -> [ASLocation]
+testLocs n = [Index "" (i,1) | i <-[1..n]]
+
+testCells :: Int -> [ASCell]
+testCells n =  L.map (\l -> Cell (Index "" (l,1)) (Expression "hi" Python) (ValueS "Str") []) [1..n]

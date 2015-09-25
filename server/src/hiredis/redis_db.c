@@ -90,6 +90,7 @@ char** getCells(char* msg, int length){
   redisReply *reply;
   c = redisConnect((const char*)HOST, PORT);
 
+  // removes first and last quotes from string (artifact of ByteString show)
   char *pmsg = msg; pmsg++; // removes first char '"'
   pmsg[strlen(pmsg) - 1] = 0; // removes last char '"'
 
@@ -161,10 +162,11 @@ void setCells(char* msg, int length){
   clock_t connect = clock(); 
   printf("Set cells connecting: %f seconds\n", (double)(connect - begin) / CLOCKS_PER_SEC);
 
-
+  // removes first and last quotes from string (artifact of ByteString show)
   char *pmsg = msg; pmsg++; // removes first char '"'
   pmsg[strlen(pmsg) - 1] = 0; // removes last char '"'
   squeeze(pmsg, '\\'); // remove double-escaped strings
+
   // printf("Set cells input: %s \n",pmsg);
 
   char** lstMsg = str_split(pmsg,'>');

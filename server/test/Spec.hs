@@ -11,12 +11,6 @@ import qualified Data.List as L
 
 import Database.Redis as R
 
-testLocs :: Int -> [ASLocation]
-testLocs n = [Index "" (i,1) | i <-[1..n]]
-
-testCells :: Int -> [ASCell]
-testCells n =  L.map (\l -> Cell (Index "" (l,1)) (Expression "hi" Python) (ValueS "Str") []) [1..n]
-
 testEdges :: Int -> [(ASLocation,ASLocation)]
 testEdges n = L.zip (testLocs n) (testLocs n)
 

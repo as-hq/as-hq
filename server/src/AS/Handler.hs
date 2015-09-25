@@ -205,16 +205,16 @@ handleCopy user state (PayloadLL (from:to:[])) = do -- this is a list of 2 locat
   let conn = dbConn curState
   maybeCells <- DB.getCells [from]
   let fromCells = filterNothing maybeCells
-  let offset = U.getOffsetBetweenLocs from to
-  let toCellsAndDeps = map (O.shiftCell offset) fromCells
-  let shiftedDeps = map snd toCellsAndDeps
-  let allDeps = concat shiftedDeps
-  let toCells = map fst toCellsAndDeps
-  let toLocs = map cellLocation toCells
+      offset = U.getOffsetBetweenLocs from to
+      toCellsAndDeps = map (O.shiftCell offset) fromCells
+      shiftedDeps = map snd toCellsAndDeps
+      allDeps = concat shiftedDeps
+      toCells = map fst toCellsAndDeps
+      toLocs = map cellLocation toCells
   printTimed $ "Copying cells: "
   allExistDB <- DB.locationsExist conn allDeps   -- check if deps exist in DB
   let allNonexistentDB = U.isoFilter not allExistDB allDeps  
-  let allExist = U.isSubsetOf allNonexistentDB toLocs -- else if the dep was something we copied
+      allExist = U.isSubsetOf allNonexistentDB toLocs -- else if the dep was something we copied
   if allExist
     then do
       DB.setCells toCells
