@@ -1,10 +1,10 @@
 
 ==================== FINAL INTERFACE ====================
-2015-09-24 03:38:27.837128 UTC
+2015-09-25 03:12:26.120777 UTC
 
 interface alphasheets-0.1.0.0:AS.Eval.Endware 7084
-  interface hash: 00295dc51a8b4d375a1802203dac42e1
-  ABI hash: 90a5699a5caa369806f28722330c80f0
+  interface hash: 1cdd282905475a922a26afa2dc3b243d
+  ABI hash: 3f81f4db8ebb25b0ce495b2fedc44334
   export-list hash: e94b49c34ba307da69a91e8fe248bb9a
   orphan hash: 693e9af84d3dfcc71e640e005bdc5e2e
   flag hash: e156f5ccc0a4b7238641a9085ca60f8f
@@ -71,18 +71,17 @@ family instance modules: alphasheets-0.1.0.0:AS.Types
                          vector-0.11.0.0:Data.Vector.Unboxed
                          vector-0.11.0.0:Data.Vector.Unboxed.Base
 import  -/  aeson-0.8.1.1:Data.Aeson 4717cd565317ade519445bba111351ae
-import  -/  AS.Daemon cfc45b7414723a732894cacbc6196d30
-  exports: 57b814dc83bb6b6b7ab65dff633d1809
-  possiblyCreateDaemon bb568b12b0cf044afcf5de745eac5d3e
-import  -/  AS.Types e3666650dafeff86b49d80330a77be8c
-  exports: f8584b3856684401ece78f5d630831a9
+import  -/  AS.Daemon 977df210d8d26e098f04d2b6450c3554
+  exports: 2537a350c375a00f711ce7d1b9c65b96
+  possiblyCreateDaemon 6e5c6dd7cc94352c807593550b7aaa47
+import  -/  AS.Types ac0aeb8d2661160e6345f7fec8fc36e5
+  exports: 4f33e2305e9f32540a30fe3603c0662c
   ASCell bede131762bf9e6165d28069305c9a8f
   ASMessage b488c6e303af3ec316847aa09e9ef416
-  ASUser 8f65613dded3aab26fae493435f0f314
   Message 84f4a46e37fa757190dd82d855281e02
   PayloadC cf0873b14638e9746503b4b1a556d217
   ServerState 9ce35b4af6c18edb38f6401544fc8edb
-import  -/  AS.Util 7d03dc2552b02355618f794279df874f
+import  -/  AS.Util 417e4f2db7aca39e7f1871a4d7aab2a3
   exports: 061da0521eb01812fd74bf75a38cb988
 import  -/  base:Control.Concurrent 1be25cd1e2ac314074fafb26df0ff06b
 import  -/  base:Control.Exception 7d63ae88211a26e1cc154f7ca3a7313a
@@ -137,40 +136,36 @@ c0f62a60d9707aef59df4e494b3d5953
     {- Arity: 2, HasNoCafRefs, Strictness: <L,A><S,1*U>,
        Unfolding: InlineRule (2, True, True)
                   (\ cell :: AS.Types.ASCell eta :: [AS.Types.ASCell] -> eta) -}
-5c474aaa4b3aae7d088fbb97071a0b81
-  evalEndware :: AS.Types.ASUser
-                 -> GHC.MVar.MVar AS.Types.ServerState
+5b326d7d68a941c22f73dd12b5ef9a1b
+  evalEndware :: GHC.MVar.MVar AS.Types.ServerState
                  -> AS.Types.ASMessage
                  -> [AS.Types.ASCell]
                  -> GHC.Types.IO [AS.Types.ASCell]
-    {- Arity: 5,
-       Strictness: <L,A><L,A><S(LLLS),1*U(U(U,U,U),U,U,1*U)><L,U><L,U>,
+    {- Arity: 4,
+       Strictness: <L,A><S(LLLS),1*U(U(U,U,U),U,U,1*U)><L,U><L,U>,
        Unfolding: InlineRule (0, True, True)
                   AS.Eval.Endware.evalEndware1
                     `cast`
-                  (<AS.Types.ASUser>_R
-                   ->_R <GHC.MVar.MVar AS.Types.ServerState>_R
+                  (<GHC.MVar.MVar AS.Types.ServerState>_R
                    ->_R <AS.Types.ASMessage>_R
                    ->_R <[AS.Types.ASCell]>_R
                    ->_R Sym (GHC.Types.NTCo:IO[0] <[AS.Types.ASCell]>_R)) -}
-94129f6c1e48890a2ac067c442127b3e
-  evalEndware1 :: AS.Types.ASUser
-                  -> GHC.MVar.MVar AS.Types.ServerState
+4a6081d751e5dc9994940a9352822a0f
+  evalEndware1 :: GHC.MVar.MVar AS.Types.ServerState
                   -> AS.Types.ASMessage
                   -> [AS.Types.ASCell]
                   -> GHC.Prim.State# GHC.Prim.RealWorld
                   -> (# GHC.Prim.State# GHC.Prim.RealWorld, [AS.Types.ASCell] #)
-    {- Arity: 5,
-       Strictness: <L,A><L,A><S(LLLS),1*U(U(U,U,U),U,U,1*U)><L,U><L,U>,
+    {- Arity: 4,
+       Strictness: <L,A><S(LLLS),1*U(U(U,U,U),U,U,1*U)><L,U><L,U>,
        Inline: INLINE[0],
-       Unfolding: InlineRule (5, True, False)
-                  (\ w :: AS.Types.ASUser
-                     w1 :: GHC.MVar.MVar AS.Types.ServerState
-                     w2 :: AS.Types.ASMessage
-                     w3 :: [AS.Types.ASCell]
-                     w4 :: GHC.Prim.State# GHC.Prim.RealWorld ->
-                   case w2 of ww { AS.Types.Message ww1 ww2 ww3 ww4 ->
-                   AS.Eval.Endware.$wa ww1 ww2 ww3 ww4 w3 w4 }) -}
+       Unfolding: InlineRule (4, True, False)
+                  (\ w :: GHC.MVar.MVar AS.Types.ServerState
+                     w1 :: AS.Types.ASMessage
+                     w2 :: [AS.Types.ASCell]
+                     w3 :: GHC.Prim.State# GHC.Prim.RealWorld ->
+                   case w1 of ww { AS.Types.Message ww1 ww2 ww3 ww4 ->
+                   AS.Eval.Endware.$wa ww1 ww2 ww3 ww4 w2 w3 }) -}
 7a9866bd8aeb20b91ffdf0051b5d513a
   evalEndware2 :: GHC.Types.IO [AS.Types.ASCell] {- Strictness: b -}
 74e73772a545cb9eeb3408bcd75f5f9e

@@ -1,12 +1,12 @@
 
 ==================== FINAL INTERFACE ====================
-2015-09-24 03:39:09.553207 UTC
+2015-09-25 03:27:34.725806 UTC
 
 interface alphasheets-0.1.0.0:AS.Clients [orphan module] 7084
-  interface hash: 324a740eb1369079e6d11fa68129effb
-  ABI hash: 9f352bff0926aa2433c3f62bd36c52ac
-  export-list hash: e04afa1a57d6468f6e24454359658baf
-  orphan hash: 8aa1a167525fd8e702f551e25db924a7
+  interface hash: a6d7d6623e0b6bca5efc80e738d0eaa7
+  ABI hash: 1c873f7ba4595bfe4849765b48cd2e44
+  export-list hash: 54860351c7473f49901eba9a9652b7ed
+  orphan hash: 6eef47fcbdb5ac1ed62b877f176e8816
   flag hash: f8b866267ce58dc6290b8020b2e82f8c
   used TH splices: False
   where
@@ -89,26 +89,28 @@ family instance modules: alphasheets-0.1.0.0:AS.Types
                          vector-0.11.0.0:Data.Vector.Unboxed
                          vector-0.11.0.0:Data.Vector.Unboxed.Base
                          zeromq4-haskell-0.6.3:System.ZMQ4
-import  -/  AS.Handler 1d6b2dd30f2c6c5201ed17518f2190dc
-  exports: 66f69e6ed4721e215177ec932be984bd
-  handleAddTags b55e1a38022d11f703a7df1003ccebda
-  handleClear fcf069369c2918d1583e7e4aad5d08a3
-  handleClose af6ca3365a615db6ddf68ac28a8e7581
+import  -/  aeson-0.8.1.1:Data.Aeson 4717cd565317ade519445bba111351ae
+import  -/  AS.Handler 2aadedd4b8e8b8c4b26725a411ed4337
+  exports: bf8f91b083d8a1f61df86db1c70dd9dc
+  handleAcknowledge bf36e479278580be77b6a9949b877ee4
+  handleAddTags 0514065ba76f88a505a793a25fd064ec
+  handleClear a9707b169b4a7440076ce2f443f8d2dd
+  handleClose c8d3f863ac558d628f93cd8b990ca984
   handleCopy 2cf51d8fb4e9befe58e00ceba9e67bcd
   handleCopyForced a8242851c77ea82ac97851e2a7ecadcb
   handleDelete 90ec430a9fbd602522f868e671a77725
-  handleEval cc2061ff9fc4e77479a640e50d6f7ec3
-  handleEvalRepl 5a903d526c35c605506c0d241ffbfb55
-  handleGet 8e714cec7b7bb57578830221afc090ec
-  handleImport 21289b92d8b9edfe2565d3ab5e5da78d
-  handleNew 7478dcefff5f0854ba61f2e307e593fc
-  handleOpen ab4e45d1e18f16061e9753f3e3ccd0e6
-  handleRedo 23f8784e096ef5fa3b2cbda1089b53ee
-  handleRemoveTags 38c2c3b74848284715d94c7ed41741a5
-  handleUndo 5efce18927d414e10308d956fd480d1d
-  handleUpdateWindow 986acd2125f114fadd807c92222ca1f2
-import  -/  AS.Types e3666650dafeff86b49d80330a77be8c
-  exports: f8584b3856684401ece78f5d630831a9
+  handleEval f6c22b27b7339ddd7979b32d1827d522
+  handleEvalRepl fe13b6f24da567092ffdf62818a65a16
+  handleGet 709a9c9b8822aa17a9ee190804a56c03
+  handleImport d167f53ee0783a259517a9718e8204a2
+  handleNew a597563fb25f86d0974c2ae2c1f7a4c8
+  handleOpen df93443dfe8a4f8c7297cebbe96684ce
+  handleRedo 938a30225383fc0200925d8b981dde2a
+  handleRemoveTags 8ea62d9777643877d1ff1a3dc44cc443
+  handleUndo b6188ef9b75fe04bbe701a6b73b7b307
+  handleUpdateWindow d5a64852d5e18e03ea42e86236e9de4e
+import  -/  AS.Types ac0aeb8d2661160e6345f7fec8fc36e5
+  exports: 4f33e2305e9f32540a30fe3603c0662c
   ASDaemon d9493e21917542a993ab6555c27832e9
   ASDaemon 3b989a344150da917127ae81ddc3db25
   ASInitDaemonConnection c5119ed237776f8b0a36e26dc881efd1
@@ -117,7 +119,7 @@ import  -/  AS.Types e3666650dafeff86b49d80330a77be8c
   Acknowledge 9fb938c25199125afed92e15e05c6217
   AddTags ceb01b8892b566c57dfe1b63145b1baa
   Clear 8e1c28a4010f6747c938acb9bada444e
-  Client ee5485f604ed801b326c5bbd405661b0
+  Client 7b366a93992761368abf84f5d9163e12
   Close 4b5afe8d7ebffc493e767cd5314a213a
   Copy 912202dc1651fa13a78b03ed2abc6475
   CopyForced 5fdda7eed96a3e8d4a894bd2e9312954
@@ -137,18 +139,18 @@ import  -/  AS.Types e3666650dafeff86b49d80330a77be8c
   UpdateWindow 5da17139886b3622b4380b249f6567e5
   UserClient cace6434106bd6cda012c66a0b1ec25f
   action 576c1be0a3000567ea144be6bed04c3d
-  addClient 5f22c1fd3b054b5bc2ae7a557a030224
-  conn 38acf3fe18deef42ecc9013344e2743f
+  addClient 92fbe757d7118cc2f5756afab19862ed
+  conn cc605255962a99c83cf3ebd44a46ecf2
   daemonConn a3f8f8cd3f59785160fd0c5fa0bb7ad0
-  handleMessage 86f7c70390440437456970338a714c0f
+  handleClientMessage a631c50f034582eac78319bc21b800e4
   initialViewingWindow 88a5747a4e70c1cbce8f3d04749b612c
   messageUserId a47f06dbba51bd08a4344136c32afe4f
   payload 6d0d9b14bfa85719a9d828bcc2ac18a0
-  removeClient 0823d89d7c6e5680cc8c0e916acc3131
+  removeClient 53395f9c610adc5a489956ae25c4db7a
   userConn 162633061242d173c03acd2ac9d51cab
-import  -/  AS.Util 7d03dc2552b02355618f794279df874f
+  userId 85217dd9f2d9550b6e0817800ca98d66
+import  -/  AS.Util 417e4f2db7aca39e7f1871a4d7aab2a3
   exports: 061da0521eb01812fd74bf75a38cb988
-  printTimed 35cb21e1f23638a3173441d7200c130f
 import  -/  base:Control.Concurrent 1be25cd1e2ac314074fafb26df0ff06b
 import  -/  base:Data.List 8b77870d02d66076337587b759b7ee19
 import  -/  base:Data.Maybe 5034d40e23c3a7110309f188001df4ca
@@ -156,10 +158,9 @@ import  -/  base:GHC.Base 5d7c5f596f9a4c8a8abd8517c8bcd5dd
 import  -/  base:GHC.List 4cff382327e59a5787355ca0a4174450
 import  -/  base:Prelude 74043f272d60acec1777d3461cfe5ef4
 import  -/  text-1.2.1.1:Data.Text ddf865ef7152d1de0d03707558cc6523
-import  -/  text-1.2.1.1:Data.Text.Internal 5c7132affaaf11c5fb226a9fff83be01
 import  -/  websockets-0.9.5.0:Network.WebSockets c11cd6465abe4dc4c3ad51897e46aaa0
 import  -/  websockets-0.9.5.0:Network.WebSockets.Connection ae39d52893470d43c0bc592e95fce2c0
-55b6e1932cebeae91972b391c8c12202
+757a83f5370acfbd5c9f5795e03b9a56
   $fClientASDaemon :: AS.Types.Client AS.Types.ASDaemon
     DFunId[0]
     {- Strictness: m, Inline: [ALWAYS] CONLIKE,
@@ -168,51 +169,29 @@ import  -/  websockets-0.9.5.0:Network.WebSockets.Connection ae39d52893470d43c0b
                     AS.Types.daemonConn
                     AS.Clients.$fClientASDaemon_$caddClient
                     AS.Clients.$fClientASDaemon_$cremoveClient
-                    AS.Clients.$fClientASDaemon_$chandleMessage -}
-966198b4108da857deb5a603b65fce31
+                    AS.Clients.$fClientASDaemon_$chandleClientMessage -}
+8a26d1eced70e22261517713633633db
   $fClientASDaemon1 :: AS.Types.ASDaemon
                        -> GHC.MVar.MVar AS.Types.ServerState
                        -> AS.Types.ASMessage
                        -> GHC.Prim.State# GHC.Prim.RealWorld
                        -> (# GHC.Prim.State# GHC.Prim.RealWorld, () #)
     {- Arity: 4,
-       Strictness: <L,1*U(A,1*U(U,U,U,U,U))><L,U(U)><S(LSLL),U(U(U,U,U),U,U,U)><L,U>,
+       Strictness: <L,A><L,U(U)><S(LSLL),1*U(U(U,U,U),U,U,1*U)><L,U>,
        Unfolding: InlineRule (4, True, False)
                   (\ daemon :: AS.Types.ASDaemon
                      state :: GHC.MVar.MVar AS.Types.ServerState
                      message :: AS.Types.ASMessage
                      eta :: GHC.Prim.State# GHC.Prim.RealWorld ->
-                   AS.Clients.$fClientASDaemon3
-                     (AS.Types.UserClient
-                        (AS.Types.messageUserId message)
-                        (AS.Types.daemonConn daemon)
-                        AS.Clients.$fClientASDaemon2)
-                     state
-                     message
-                     eta) -}
-f7c32af5271e886f2a85d7977f28ff10
-  $fClientASDaemon2 :: [AS.Types.ASWindow]
-    {- Strictness: m2,
-       Unfolding: (GHC.Types.:
-                     @ AS.Types.ASWindow
-                     AS.Types.initialViewingWindow
-                     (GHC.Types.[] @ AS.Types.ASWindow)) -}
-bc215b604d1b1b1b51064f209a912ab7
-  $fClientASDaemon3 :: AS.Types.ASUser
-                       -> GHC.MVar.MVar AS.Types.ServerState
-                       -> AS.Types.ASMessage
-                       -> GHC.Prim.State# GHC.Prim.RealWorld
-                       -> (# GHC.Prim.State# GHC.Prim.RealWorld, () #)
-    {- Arity: 4,
-       Strictness: <L,U(U(U,U,U),U(H,H,H,C(C1(U(U,U))),A),A)><L,U(U)><S(LSLL),1*U(U(U,U,U),U,U,U)><L,U>,
-       Inline: INLINE[0],
-       Unfolding: InlineRule (4, True, False)
-                  (\ w :: AS.Types.ASUser
-                     w1 :: GHC.MVar.MVar AS.Types.ServerState
-                     w2 :: AS.Types.ASMessage
-                     w3 :: GHC.Prim.State# GHC.Prim.RealWorld ->
-                   case w2 of ww { AS.Types.Message ww1 ww2 ww3 ww4 ->
-                   AS.Clients.$wa w w1 ww1 ww2 ww3 ww4 w3 }) -}
+                   case message of wild { AS.Types.Message ds1 ds2 ds3 ds4 ->
+                   case ds2 of wild1 {
+                     DEFAULT
+                     -> case AS.Clients.$fClientASDaemon2
+                        ret_ty (# GHC.Prim.State# GHC.Prim.RealWorld, () #)
+                        of {}
+                     AS.Types.Evaluate -> AS.Handler.handleEval1 state wild eta } }) -}
+bd8c98a1c8389eead54b2733550a3e74
+  $fClientASDaemon2 :: GHC.Types.IO () {- Strictness: b -}
 96c85486c3ecb311d9937dab97b3ba36
   $fClientASDaemon_$caddClient :: AS.Types.ASDaemon
                                   -> AS.Types.ServerState
@@ -229,13 +208,13 @@ bc215b604d1b1b1b51064f209a912ab7
                      GHC.Types.False
                      -> AS.Types.State ucs (GHC.Types.: @ AS.Types.ASDaemon dc dcs) dbc
                      GHC.Types.True -> wild } }) -}
-a82d47cdd8cfa10a5d0fff08ca745f7a
-  $fClientASDaemon_$chandleMessage :: AS.Types.ASDaemon
-                                      -> GHC.MVar.MVar AS.Types.ServerState
-                                      -> AS.Types.ASMessage
-                                      -> GHC.Types.IO ()
+1022b158d31e6882a991672645cd096c
+  $fClientASDaemon_$chandleClientMessage :: AS.Types.ASDaemon
+                                            -> GHC.MVar.MVar AS.Types.ServerState
+                                            -> AS.Types.ASMessage
+                                            -> GHC.Types.IO ()
     {- Arity: 4,
-       Strictness: <L,1*U(A,1*U(U,U,U,U,U))><L,U(U)><S(LSLL),U(U(U,U,U),U,U,U)><L,U>,
+       Strictness: <L,A><L,U(U)><S(LSLL),1*U(U(U,U,U),U,U,1*U)><L,U>,
        Unfolding: InlineRule (0, True, True)
                   AS.Clients.$fClientASDaemon1
                     `cast`
@@ -267,7 +246,7 @@ a82d47cdd8cfa10a5d0fff08ca745f7a
                              w
                              ww2)
                           ww3 } }) -}
-6bbae70af7ab8550c40672c93ac28459
+0c90decbd50dafb50cdf7068d968567e
   $fClientASUser :: AS.Types.Client AS.Types.ASUser
     DFunId[0]
     {- Strictness: m, Inline: [ALWAYS] CONLIKE,
@@ -276,7 +255,23 @@ a82d47cdd8cfa10a5d0fff08ca745f7a
                     AS.Types.userConn
                     AS.Clients.$fClientASUser_$caddClient
                     AS.Clients.$fClientASUser_$cremoveClient
-                    AS.Clients.$fClientASUser_$chandleMessage -}
+                    AS.Clients.$fClientASUser_$chandleClientMessage -}
+94acd2ad860d03383ec2e95d54d24b7c
+  $fClientASUser1 :: AS.Types.ASUser
+                     -> GHC.MVar.MVar AS.Types.ServerState
+                     -> AS.Types.ASMessage
+                     -> GHC.Prim.State# GHC.Prim.RealWorld
+                     -> (# GHC.Prim.State# GHC.Prim.RealWorld, () #)
+    {- Arity: 4,
+       Strictness: <L,U(U(U,U,U),1*U(1*H,1*H,1*H,C1(C1(U(U,U))),A),A)><L,U(U)><S(LSLL),1*U(U(U,U,U),U,U,U)><L,U>,
+       Inline: INLINE[0],
+       Unfolding: InlineRule (4, True, False)
+                  (\ w :: AS.Types.ASUser
+                     w1 :: GHC.MVar.MVar AS.Types.ServerState
+                     w2 :: AS.Types.ASMessage
+                     w3 :: GHC.Prim.State# GHC.Prim.RealWorld ->
+                   case w2 of ww { AS.Types.Message ww1 ww2 ww3 ww4 ->
+                   AS.Clients.$wa w w1 ww1 ww2 ww3 ww4 w3 }) -}
 0d682729adb1e6d51f390beb0f1214f5
   $fClientASUser_$caddClient :: AS.Types.ASUser
                                 -> AS.Types.ServerState
@@ -293,15 +288,15 @@ a82d47cdd8cfa10a5d0fff08ca745f7a
                      GHC.Types.False
                      -> AS.Types.State (GHC.Types.: @ AS.Types.ASUser uc ucs) dcs dbc
                      GHC.Types.True -> wild } }) -}
-eddd902e6db07125cbe8c3fe004a0837
-  $fClientASUser_$chandleMessage :: AS.Types.ASUser
-                                    -> GHC.MVar.MVar AS.Types.ServerState
-                                    -> AS.Types.ASMessage
-                                    -> GHC.Types.IO ()
+99ec02fccda710d4c72a2bb547666fe3
+  $fClientASUser_$chandleClientMessage :: AS.Types.ASUser
+                                          -> GHC.MVar.MVar AS.Types.ServerState
+                                          -> AS.Types.ASMessage
+                                          -> GHC.Types.IO ()
     {- Arity: 4,
-       Strictness: <L,U(U(U,U,U),U(H,H,H,C(C1(U(U,U))),A),A)><L,U(U)><S(LSLL),1*U(U(U,U,U),U,U,U)><L,U>,
+       Strictness: <L,U(U(U,U,U),1*U(1*H,1*H,1*H,C1(C1(U(U,U))),A),A)><L,U(U)><S(LSLL),1*U(U(U,U,U),U,U,U)><L,U>,
        Unfolding: InlineRule (0, True, True)
-                  AS.Clients.$fClientASDaemon3
+                  AS.Clients.$fClientASUser1
                     `cast`
                   (<AS.Types.ASUser>_R
                    ->_R <GHC.MVar.MVar AS.Types.ServerState>_R
@@ -331,7 +326,7 @@ eddd902e6db07125cbe8c3fe004a0837
                              ww1)
                           ww2
                           ww3 } }) -}
-ff76c16ee14f066583a34af6121cf890
+f21a2f8c3c1408f3e7171802e1309933
   $wa :: AS.Types.ASUser
          -> GHC.MVar.MVar AS.Types.ServerState
          -> AS.Types.ASUserId
@@ -341,7 +336,7 @@ ff76c16ee14f066583a34af6121cf890
          -> GHC.Prim.State# GHC.Prim.RealWorld
          -> (# GHC.Prim.State# GHC.Prim.RealWorld, () #)
     {- Arity: 7,
-       Strictness: <L,U(U(U,U,U),U(H,H,H,C(C1(U(U,U))),A),A)><L,U(U)><L,U(U,U,U)><S,U><L,U><L,U><L,U> -}
+       Strictness: <L,U(U(U,U,U),1*U(1*H,1*H,1*H,C1(C1(U(U,U))),A),A)><L,U(U)><L,U(U,U,U)><S,U><L,U><L,U><L,U> -}
 5cada572e290b2a571c5fbaf47331158
   initDaemonFromMessageAndConn :: AS.Types.ASMessage
                                   -> Network.WebSockets.Connection.Connection
@@ -359,7 +354,7 @@ ff76c16ee14f066583a34af6121cf890
                         Data.Maybe.Just
                           @ AS.Types.ASDaemon
                           (AS.Types.ASDaemon loc c') } } }) -}
-0eccc48b0f73d0db97e50edf9300fd02
+f596a7ab945c55d98fdb7e31b74bd8ee
   initUserFromMessageAndConn :: AS.Types.ASMessage
                                 -> Network.WebSockets.Connection.Connection
                                 -> AS.Types.ASUser
@@ -370,7 +365,14 @@ ff76c16ee14f066583a34af6121cf890
                    AS.Types.UserClient
                      (AS.Types.messageUserId m)
                      c'
-                     AS.Clients.$fClientASDaemon2) -}
+                     AS.Clients.initUserFromMessageAndConn1) -}
+abe73d1c97084eb785172495b7613cae
+  initUserFromMessageAndConn1 :: [AS.Types.ASWindow]
+    {- Strictness: m2,
+       Unfolding: (GHC.Types.:
+                     @ AS.Types.ASWindow
+                     AS.Types.initialViewingWindow
+                     (GHC.Types.[] @ AS.Types.ASWindow)) -}
 instance AS.Types.Client [AS.Types.ASDaemon]
   = AS.Clients.$fClientASDaemon
 instance AS.Types.Client [AS.Types.ASUser]

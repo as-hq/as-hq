@@ -32,20 +32,7 @@ import AS.DB.Util as DBU
 import AS.Handler as H
 
 -------------------------------------------------------------------------------------------------------------------------
--- | State functions
-
-numUsers :: ServerState -> Int
-numUsers = length . userClients
-
--------------------------------------------------------------------------------------------------------------------------
--- | Daemon Management
-
--- ::ALEX:: add attribute to Daemon later?? 
-getUserOfDaemon :: ServerState -> ASDaemon -> (Maybe ASUser)
-getUserOfDaemon (State s _ _) daemon = Nothing 
-
--------------------------------------------------------------------------------------------------------------------------
--- | Main
+-- Main
 
 main :: IO ()
 main = do
@@ -71,7 +58,7 @@ initDebug conn = do
   return  ()
 
 application :: MVar ServerState -> WS.ServerApp
-application state pending = do -- ::ALEX_LATER:: how does this have two args?
+application state pending = do
   conn <- WS.acceptRequest pending -- initialize connection
   msg <- WS.receiveData conn -- waits until it receives data
   handleFirstMessage state conn msg 
@@ -86,14 +73,13 @@ handleFirstMessage state conn msg = do
     otherwise -> do -- first message is neither
       putStrLn "First message not an initialization message"
       sendMessage (failureMessage "Cannot connect") conn
-      -- application state pending ?? ::ALEX::
 
 initClient :: (Client c) => c -> MVar ServerState -> IO ()
 initClient client state = do 
   liftIO $ modifyMVar_ state (\s -> return $ addClient client s) -- add client to state
-  catch (talk state client) (catchDisconnect client state)
+  catch (talk state client) (catchDisconnect client state) -- ::ALEX:: should the liftIO be inside the catch ? 
 
--- | Persistent connection until user disconnects
+-- | Maintains connection until user disconnects
 talk :: (Client c) => MVar ServerState -> c -> IO ()
 talk state client = forever $ do
   msg <- WS.receiveData (conn client)
@@ -107,15 +93,15 @@ talk state client = forever $ do
 
 processMessage :: (Client c) => c -> MVar ServerState -> ASMessage -> IO ()
 processMessage client state message = do
-  conn <- fmap dbConn (readMVar state) -- state stores connection to db; pull it out
-  let isPermissible = True -- <- DB.isPermissibleMessage conn (userId user) message -- ::ALEX::
+  dbConnection <- fmap dbConn (readMVar state) -- state stores connection to db; pull it out
+  isPermissible <- DB.isPermissibleMessage dbConnection message
   if (isPermissible || isDebug)
-    then handleMessage client state message
-    else (return ()) -- send (failureMessage "Insufficient permissions") (userConn client)
+    then handleClientMessage client state message
+    else sendMessage (failureMessage "Insufficient permissions") (conn client)
 
 catchDisconnect :: (Client c) => c -> MVar ServerState -> SomeException -> IO ()
 catchDisconnect user state e = case (fromException e) of
   Just WS.ConnectionClosed -> do 
     putStrLn $ "\n\n\nin connection closed catch\n\n\n"
-    liftIO $ modifyMVar_ state (\s -> return $ removeClient user s) -- remove user from server state
+    liftIO $ modifyMVar_ state (\s -> return $ removeClient user s) -- remove client from server state
   otherwise -> (putStrLn (show e)) >> return ()

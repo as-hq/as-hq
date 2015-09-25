@@ -1,10 +1,10 @@
 
 ==================== FINAL INTERFACE ====================
-2015-09-24 03:38:23.810016 UTC
+2015-09-25 00:27:12.198782 UTC
 
 interface alphasheets-0.1.0.0:AS.Util 7084
-  interface hash: a48feac2e7ae726c8dde2e22a2b5f316
-  ABI hash: 7d03dc2552b02355618f794279df874f
+  interface hash: 11ed56d698bb9ca8aae8e8ed8bfd4293
+  ABI hash: 417e4f2db7aca39e7f1871a4d7aab2a3
   export-list hash: 061da0521eb01812fd74bf75a38cb988
   orphan hash: 693e9af84d3dfcc71e640e005bdc5e2e
   flag hash: f8b866267ce58dc6290b8020b2e82f8c
@@ -112,8 +112,8 @@ family instance modules: alphasheets-0.1.0.0:AS.Types
                          vector-0.11.0.0:Data.Vector.Unboxed.Base
 import  -/  aeson-0.8.1.1:Data.Aeson 4717cd565317ade519445bba111351ae
 import  -/  aeson-0.8.1.1:Data.Aeson.Encode.ByteString 0b7a0357ab6c702b385f6d74bfdda8e2
-import  -/  AS.Types e3666650dafeff86b49d80330a77be8c
-  exports: f8584b3856684401ece78f5d630831a9
+import  -/  AS.Types ac0aeb8d2661160e6345f7fec8fc36e5
+  exports: 4f33e2305e9f32540a30fe3603c0662c
   ASCell bede131762bf9e6165d28069305c9a8f
   ASCellTag 41914e4ed00db1adb7aa05558d91cd06
   ASEntity c718e8f93c15da8eb67c72089ab671c4
@@ -819,25 +819,24 @@ f5ea8b102b97744f04af1f4be4c044a3
                    -> [Data.Maybe.Maybe AS.Types.ASCell]
                    -> [AS.Types.ASLocation]
     {- Arity: 2, HasNoCafRefs, Strictness: <S,1*U><L,1*U> -}
-9b3fe8a8ce1ccf9e6f73bff76237f8db
-  getCellMessage :: AS.Types.ASUser
+475635160056f0516e3393a653499730
+  getCellMessage :: AS.Types.ASUserId
                     -> Data.Either.Either AS.Types.ASExecError [AS.Types.ASCell]
                     -> AS.Types.ASMessage
-    {- Arity: 2, Strictness: <L,1*U(1*U(U,U,U),A,A)><S,1*U>m,
-       Inline: INLINE[0],
+    {- Arity: 2, Strictness: <L,U><S,1*U>m,
        Unfolding: InlineRule (2, True, False)
-                  (\ w :: AS.Types.ASUser
-                     w1 :: Data.Either.Either AS.Types.ASExecError [AS.Types.ASCell] ->
-                   case w1 of wild {
+                  (\ uid :: AS.Types.ASUserId
+                     ds :: Data.Either.Either AS.Types.ASExecError [AS.Types.ASCell] ->
+                   case ds of wild {
                      Data.Either.Left e
                      -> AS.Types.Message
-                          (AS.Types.userId w)
+                          uid
                           AS.Types.Evaluate
                           (AS.Types.Failure (AS.Util.generateErrorMessage e))
                           AS.Util.getCellMessage1
                      Data.Either.Right cells
                      -> AS.Types.Message
-                          (AS.Types.userId w)
+                          uid
                           AS.Types.Evaluate
                           AS.Types.Success
                           (AS.Types.PayloadCL cells) }) -}
@@ -845,20 +844,19 @@ ff05502a27e8d8f1d3016e2266b01b99
   getCellMessage1 :: AS.Types.ASPayload
     {- HasNoCafRefs, Strictness: m1,
        Unfolding: (AS.Types.PayloadN GHC.Tuple.()) -}
-2c8a906d579164ccf3348818c11c2236
+c3e7a66f93259db8bbb69c6e7c1ad1a5
   getDBCellMessage :: AS.Types.ASUser
                       -> [AS.Types.ASLocation]
                       -> [Data.Maybe.Maybe AS.Types.ASCell]
                       -> AS.Types.ASMessage
     {- Arity: 3, HasNoCafRefs,
-       Strictness: <L,1*U(1*U(U,U,U),A,A)><L,A><L,1*U>m,
-       Inline: INLINE[0],
+       Strictness: <L,1*U(1*U,A,A)><L,A><L,1*U>m, Inline: INLINE[0],
        Unfolding: InlineRule (3, True, False)
                   (\ w :: AS.Types.ASUser
                      w1 :: [AS.Types.ASLocation]
                      w2 :: [Data.Maybe.Maybe AS.Types.ASCell] ->
                    AS.Types.Message
-                     (AS.Types.userId w)
+                     (case w of wild { AS.Types.UserClient ds1 ds2 ds3 -> ds1 })
                      AS.Types.Evaluate
                      AS.Types.Success
                      (AS.Types.PayloadCL

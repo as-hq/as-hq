@@ -1,10 +1,10 @@
 
 ==================== FINAL INTERFACE ====================
-2015-09-24 03:38:29.146408 UTC
+2015-09-25 00:27:19.184546 UTC
 
 interface alphasheets-0.1.0.0:AS.DB.API 7084
-  interface hash: a1fb8176dd9ed8b525acb68be43dfa86
-  ABI hash: 803eb460c2d32c4cdf889b44c1df2c6d
+  interface hash: 64d04078962bd3c8e0a8d52895e4fa9c
+  ABI hash: 41e4bd1545bc4e2723f20b3037ddaed3
   export-list hash: f4205431df73a6774c712eb5aa073d13
   orphan hash: 693e9af84d3dfcc71e640e005bdc5e2e
   flag hash: e0641befbfbeeab6ef9f97d2cff44d7e
@@ -127,8 +127,8 @@ import  -/  AS.DB.Util 8faef730f5e860a7aaf757e2bcc6ca9f
   keyToRow 0c07dff2df37fb082a1a5c76294f4716
   setCellRedis 468629620e07755957a5bc4074cf3a63
   updateChunkDAG df7890c5e3e10833936679140224819c
-import  -/  AS.Types e3666650dafeff86b49d80330a77be8c
-  exports: f8584b3856684401ece78f5d630831a9
+import  -/  AS.Types ac0aeb8d2661160e6345f7fec8fc36e5
+  exports: 4f33e2305e9f32540a30fe3603c0662c
   ASCell bede131762bf9e6165d28069305c9a8f
   ASCommit 3363c5610de870b18b16cbd39ed6bb5c
   ASCommit cd37bafad7a1ba0bf823b5565484da25
@@ -136,7 +136,6 @@ import  -/  AS.Types e3666650dafeff86b49d80330a77be8c
   ASMessage b488c6e303af3ec316847aa09e9ef416
   ASSheet e94846da4cf11f1951bc25078de1fc76
   ASSheetId 4ed60fa4a266e9c370748b465970547f
-  ASUser 8f65613dded3aab26fae493435f0f314
   ASUserId 3094df477896c468afcf617b4934d3e3
   ASWorkbook dc570e9d01415111185b1ff1b63cbb38
   Column 2c1479dadfed776d27f89a4215e28321
@@ -157,13 +156,12 @@ import  -/  AS.Types e3666650dafeff86b49d80330a77be8c
   locSheetId 0eb45f0ce468cda62d570bcb8b46f9d1
   sheetId b59632ae8c59173b4c3b1b899644d078
   sheetPermissions cf1cef7dd810da2e626023221da3453d
-  userId 85217dd9f2d9550b6e0817800ca98d66
   windowSheetId 63930e183ffb681090da00d843f4e165
   workbookName 94e7971a7eb0201351e161b545d4bebe
   workbookSheets 26d6100b8bd17c2ca420063ca816064d
   wsName 69d1ea9617b303f0de03d257be714d41
   wsSheets d9c8aebfecadf151194fd8240d58dd87
-import  -/  AS.Util 7d03dc2552b02355618f794279df874f
+import  -/  AS.Util 417e4f2db7aca39e7f1871a4d7aab2a3
   exports: 061da0521eb01812fd74bf75a38cb988
   containsTrackingTag 2196c333077ef38aff8753db9bcff343
   decomposeLocs 029ee6d579cad48c88473e01acb70f98
@@ -711,38 +709,38 @@ beb2938953f9a231c15c560d0263496a
 85b64024d5329dfc28e6cbdcfb488b30
   $wlgo1 :: GHC.Prim.Int# -> [GHC.Types.Int] -> GHC.Prim.Int#
     {- Arity: 2, HasNoCafRefs, Strictness: <L,U><S,1*U> -}
-4925e3db0e7f07f3963cea93a042badf
+3c3770bee8d5923183c24e2d4da48a4a
   addCommit :: Database.Redis.Core.Connection
-               -> AS.Types.ASUser
+               -> AS.Types.ASUserId
                -> [AS.Types.ASCell]
                -> [AS.Types.ASCell]
                -> GHC.Types.IO ()
     {- Arity: 5,
-       Strictness: <L,U(C(U),C(C1(U)),U(U),A,U(U),U(U,U,U),A)><L,1*U(1*U(U,U,U),A,A)><L,1*U><L,1*U><L,U>,
+       Strictness: <L,U(C(U),C(C1(U)),U(U),A,U(U),U(U,U,U),A)><L,1*U(U,U,U)><L,1*U><L,1*U><L,U>,
        Unfolding: (AS.DB.API.addCommit1
                      `cast`
                    (<Database.Redis.Core.Connection>_R
-                    ->_R <AS.Types.ASUser>_R
+                    ->_R <AS.Types.ASUserId>_R
                     ->_R <[AS.Types.ASCell]>_R
                     ->_R <[AS.Types.ASCell]>_R
                     ->_R Sym (GHC.Types.NTCo:IO[0] <()>_R))) -}
-c64b75a6af59a4ca189334f67092395a
+a108449a88b087803a02e44a733e99bb
   addCommit1 :: Database.Redis.Core.Connection
-                -> AS.Types.ASUser
+                -> AS.Types.ASUserId
                 -> [AS.Types.ASCell]
                 -> [AS.Types.ASCell]
                 -> GHC.Prim.State# GHC.Prim.RealWorld
                 -> (# GHC.Prim.State# GHC.Prim.RealWorld, () #)
     {- Arity: 5,
-       Strictness: <L,U(C(U),C(C1(U)),U(U),A,U(U),U(U,U,U),A)><L,1*U(1*U(U,U,U),A,A)><L,1*U><L,1*U><L,U>,
+       Strictness: <L,U(C(U),C(C1(U)),U(U),A,U(U),U(U,U,U),A)><L,1*U(U,U,U)><L,1*U><L,1*U><L,U>,
        Unfolding: (\ conn :: Database.Redis.Core.Connection
-                     user :: AS.Types.ASUser
+                     uid :: AS.Types.ASUserId
                      b :: [AS.Types.ASCell]
                      a6 :: [AS.Types.ASCell]
                      eta :: GHC.Prim.State# GHC.Prim.RealWorld ->
                    AS.DB.API.addCommit2
                      conn
-                     (AS.Types.ASCommit (AS.Types.userId user) b a6 AS.Util.getASTime2)
+                     (AS.Types.ASCommit uid b a6 AS.Util.getASTime2)
                      eta) -}
 e4189e00b43818f9f4128d5450e9da90
   addCommit2 :: Database.Redis.Core.Connection
@@ -2760,36 +2758,32 @@ f02c7b4bbb79223ad517843107edafb9
   getWorkbook2 :: Data.Maybe.Maybe AS.Types.ASWorkbook
     {- Unfolding: (AS.DB.Util.bStrToWorkbook
                      (Data.Maybe.Nothing @ Data.ByteString.Internal.ByteString)) -}
-d10abf7bc251cae33a1ac8566d050af3
+ca0e335b69f8361f2d1f6271e929fc30
   isPermissibleMessage :: Database.Redis.Core.Connection
-                          -> AS.Types.ASUserId
                           -> AS.Types.ASMessage
                           -> GHC.Types.IO GHC.Types.Bool
-    {- Arity: 4,
-       Strictness: <L,U(C(U),C(C1(U)),U(U),A,U(U),U(U,U,U),A)><L,U(U,U,U)><S(LLLS),1*U(A,A,A,1*U)><L,U>,
+    {- Arity: 3,
+       Strictness: <L,U(C(U),C(C1(U)),U(U),A,U(U),U(U,U,U),A)><S(LLLS),1*U(U(U,U,U),A,A,1*U)><L,U>,
        Unfolding: InlineRule (0, True, True)
                   AS.DB.API.isPermissibleMessage1
                     `cast`
                   (<Database.Redis.Core.Connection>_R
-                   ->_R <AS.Types.ASUserId>_R
                    ->_R <AS.Types.ASMessage>_R
                    ->_R Sym (GHC.Types.NTCo:IO[0] <GHC.Types.Bool>_R)) -}
-623bb964d7fb91d37a57df0bcf2c486c
+466c504691ec553f16287d20aca984cd
   isPermissibleMessage1 :: Database.Redis.Core.Connection
-                           -> AS.Types.ASUserId
                            -> AS.Types.ASMessage
                            -> GHC.Prim.State# GHC.Prim.RealWorld
                            -> (# GHC.Prim.State# GHC.Prim.RealWorld, GHC.Types.Bool #)
-    {- Arity: 4,
-       Strictness: <L,U(C(U),C(C1(U)),U(U),A,U(U),U(U,U,U),A)><L,U(U,U,U)><S(LLLS),1*U(A,A,A,1*U)><L,U>,
+    {- Arity: 3,
+       Strictness: <L,U(C(U),C(C1(U)),U(U),A,U(U),U(U,U,U),A)><S(LLLS),1*U(U(U,U,U),A,A,1*U)><L,U>,
        Inline: INLINE[0],
-       Unfolding: InlineRule (4, True, False)
+       Unfolding: InlineRule (3, True, False)
                   (\ w :: Database.Redis.Core.Connection
-                     w1 :: AS.Types.ASUserId
-                     w2 :: AS.Types.ASMessage
-                     w3 :: GHC.Prim.State# GHC.Prim.RealWorld ->
-                   case w2 of ww { AS.Types.Message ww1 ww2 ww3 ww4 ->
-                   AS.DB.API.$wa6 w w1 ww4 w3 }) -}
+                     w1 :: AS.Types.ASMessage
+                     w2 :: GHC.Prim.State# GHC.Prim.RealWorld ->
+                   case w1 of ww { AS.Types.Message ww1 ww2 ww3 ww4 ->
+                   AS.DB.API.$wa6 w ww1 ww4 w2 }) -}
 989cc6b94455e10e64478e8278d90193
   locationsExist :: Database.Redis.Core.Connection
                     -> [AS.Types.ASLocation]
@@ -3791,35 +3785,35 @@ d79afb17c81dc3257db9e728664b12b6
   undo_lvl9 :: Data.ByteString.Internal.ByteString
     {- Unfolding: (Database.Redis.Protocol.renderRequest
                      AS.DB.API.undo5) -}
-520bf74d973b458f4d401873e500276a
+07f8b4532510daa94b8ba320e7c386d4
   updateAfterEval :: Database.Redis.Core.Connection
-                     -> AS.Types.ASUser
+                     -> AS.Types.ASUserId
                      -> AS.Types.ASCell
                      -> [AS.Types.ASCell]
                      -> [AS.Types.ASCell]
                      -> GHC.Types.IO ()
     {- Arity: 6,
-       Strictness: <L,U(C(U),C(C1(U)),U(U),A,U(U),U(U,U,U),A)><L,1*U(1*U(U,U,U),A,A)><L,1*U(A,A,A,1*U)><L,1*U><L,U><L,U>,
+       Strictness: <L,U(C(U),C(C1(U)),U(U),A,U(U),U(U,U,U),A)><L,1*U(U,U,U)><L,1*U(A,A,A,1*U)><L,1*U><L,U><L,U>,
        Unfolding: (AS.DB.API.updateAfterEval1
                      `cast`
                    (<Database.Redis.Core.Connection>_R
-                    ->_R <AS.Types.ASUser>_R
+                    ->_R <AS.Types.ASUserId>_R
                     ->_R <AS.Types.ASCell>_R
                     ->_R <[AS.Types.ASCell]>_R
                     ->_R <[AS.Types.ASCell]>_R
                     ->_R Sym (GHC.Types.NTCo:IO[0] <()>_R))) -}
-3187929cb994066949e4df7df40cda14
+7ca40e812d259c059fbabcb4b2d7cc13
   updateAfterEval1 :: Database.Redis.Core.Connection
-                      -> AS.Types.ASUser
+                      -> AS.Types.ASUserId
                       -> AS.Types.ASCell
                       -> [AS.Types.ASCell]
                       -> [AS.Types.ASCell]
                       -> GHC.Prim.State# GHC.Prim.RealWorld
                       -> (# GHC.Prim.State# GHC.Prim.RealWorld, () #)
     {- Arity: 6,
-       Strictness: <L,U(C(U),C(C1(U)),U(U),A,U(U),U(U,U,U),A)><L,1*U(1*U(U,U,U),A,A)><L,1*U(A,A,A,1*U)><L,1*U><L,U><L,U>,
+       Strictness: <L,U(C(U),C(C1(U)),U(U),A,U(U),U(U,U,U),A)><L,1*U(U,U,U)><L,1*U(A,A,A,1*U)><L,1*U><L,U><L,U>,
        Unfolding: (\ conn :: Database.Redis.Core.Connection
-                     user :: AS.Types.ASUser
+                     uid :: AS.Types.ASUserId
                      origCell :: AS.Types.ASCell
                      desc :: [AS.Types.ASCell]
                      cells :: [AS.Types.ASCell]
@@ -3837,11 +3831,7 @@ d79afb17c81dc3257db9e728664b12b6
                               w of ds2 { (#,#) ipv2 ipv3 ->
                        case AS.DB.API.addCommit2
                               conn
-                              (AS.Types.ASCommit
-                                 (AS.Types.userId user)
-                                 desc
-                                 cells
-                                 AS.Util.getASTime2)
+                              (AS.Types.ASCommit uid desc cells AS.Util.getASTime2)
                               ipv2 of ds3 { (#,#) ipv4 ipv5 ->
                        case AS.Util.printTimed1
                               AS.DB.API.updateAfterEval2

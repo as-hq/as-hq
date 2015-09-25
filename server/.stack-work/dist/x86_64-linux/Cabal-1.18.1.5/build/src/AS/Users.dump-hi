@@ -1,9 +1,9 @@
 
 ==================== FINAL INTERFACE ====================
-2015-09-24 03:38:30.121534 UTC
+2015-09-25 00:27:20.064885 UTC
 
 interface alphasheets-0.1.0.0:AS.Users 7084
-  interface hash: 0493cf715cc09f0516ac0df500366ba7
+  interface hash: 5535f96badb2c96d1dde99827448df8b
   ABI hash: e1438f0faddefa8ee035d8c7af689004
   export-list hash: 504f367f0f4fc0f122f958c4e63ec0f9
   orphan hash: 693e9af84d3dfcc71e640e005bdc5e2e
@@ -72,16 +72,16 @@ family instance modules: alphasheets-0.1.0.0:AS.Types
 import  -/  aeson-0.8.1.1:Data.Aeson 4717cd565317ade519445bba111351ae
 import  -/  AS.Config.Settings b59cada5dab6da716812ef29c8d0a55f
   exports: 0c823ce19dbdd82846e3dcfdd9e8e922
-import  -/  AS.DB.API 803eb460c2d32c4cdf889b44c1df2c6d
+import  -/  AS.DB.API 41e4bd1545bc4e2723f20b3037ddaed3
   exports: f4205431df73a6774c712eb5aa073d13
-import  -/  AS.Types e3666650dafeff86b49d80330a77be8c
-  exports: f8584b3856684401ece78f5d630831a9
+import  -/  AS.Types ac0aeb8d2661160e6345f7fec8fc36e5
+  exports: 4f33e2305e9f32540a30fe3603c0662c
   ASUser 8f65613dded3aab26fae493435f0f314
   ASUserId 3094df477896c468afcf617b4934d3e3
   ServerState 9ce35b4af6c18edb38f6401544fc8edb
   State 2d6c62b0809c3be7755965f6cdb8f5c9
   userId 85217dd9f2d9550b6e0817800ca98d66
-import  -/  AS.Util 7d03dc2552b02355618f794279df874f
+import  -/  AS.Util 417e4f2db7aca39e7f1871a4d7aab2a3
   exports: 061da0521eb01812fd74bf75a38cb988
 import  -/  base:Control.Concurrent 1be25cd1e2ac314074fafb26df0ff06b
 import  -/  base:Control.Concurrent.MVar 47f6cad20e8acd25bbaa337e785e68f9

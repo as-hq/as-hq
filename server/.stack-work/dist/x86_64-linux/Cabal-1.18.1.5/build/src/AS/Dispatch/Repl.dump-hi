@@ -1,9 +1,9 @@
 
 ==================== FINAL INTERFACE ====================
-2015-09-24 03:16:35.710682 UTC
+2015-09-25 00:27:17.222433 UTC
 
 interface alphasheets-0.1.0.0:AS.Dispatch.Repl 7084
-  interface hash: 8c8e556d90bca8286b81d843207576d2
+  interface hash: 6a883dbff3704894da38f0dcfb898afa
   ABI hash: 2743c858e6878621de60e31546456340
   export-list hash: b0ab7c62ba7eb78ca2d447fc618e5ff8
   orphan hash: 693e9af84d3dfcc71e640e005bdc5e2e
@@ -75,8 +75,8 @@ family instance modules: alphasheets-0.1.0.0:AS.Types
 import  -/  AS.Eval.Core 0a0d946149f3ecace6e4fde0a14640e4
   exports: a8fd7d5e67e40ad69836b4f35807868b
   evalCodeRepl e774f8bb552f1ac4eac6ae71e33d0655
-import  -/  AS.Types e3666650dafeff86b49d80330a77be8c
-  exports: f8584b3856684401ece78f5d630831a9
+import  -/  AS.Types ac0aeb8d2661160e6345f7fec8fc36e5
+  exports: 4f33e2305e9f32540a30fe3603c0662c
   ASMessage b488c6e303af3ec316847aa09e9ef416
   ASUser 8f65613dded3aab26fae493435f0f314
   LangValue ccc9805813e6283b108937cf8e5439cd

@@ -107,9 +107,9 @@ isJust :: Maybe ASCell -> Bool
 isJust (Just c) = True
 isJust Nothing = False
 
-getCellMessage :: ASUser -> Either ASExecError [ASCell] -> ASMessage
-getCellMessage user (Left e) = Message (userId user) Evaluate (Failure (generateErrorMessage e)) (PayloadN ())
-getCellMessage user (Right cells) = Message (userId user) Evaluate Success (PayloadCL cells)
+getCellMessage :: ASUserId -> Either ASExecError [ASCell] -> ASMessage
+getCellMessage uid (Left e) = Message uid Evaluate (Failure (generateErrorMessage e)) (PayloadN ())
+getCellMessage uid (Right cells) = Message uid Evaluate Success (PayloadCL cells)
 
 getBadLocs :: [ASLocation] -> [Maybe ASCell] -> [ASLocation]
 getBadLocs locs mcells = map fst $ filter (\(l,c)->isNothing c) (zip locs mcells)
@@ -122,7 +122,7 @@ getBadLocs locs mcells = map fst $ filter (\(l,c)->isNothing c) (zip locs mcells
 -- bugfix for sending non-nothing locs (e.g. scrolling)
 -- TODO send empty cells for nothings -- updates deletes that happened past viewing window
 getDBCellMessage :: ASUser -> [ASLocation] -> [Maybe ASCell] -> ASMessage
-getDBCellMessage user locs mcells = getCellMessage user (Right cells)
+getDBCellMessage user locs mcells = getCellMessage (userId user) (Right cells)
   where justCells = filter (not . isNothing) mcells 
         cells = map (\(Just x) -> x) justCells
 

@@ -205,15 +205,9 @@ class Client c where
   conn :: c -> WS.Connection
   addClient :: c -> ServerState -> ServerState
   removeClient :: c -> ServerState -> ServerState
-  handleMessage :: c -> MVar ServerState -> ASMessage -> IO ()
+  handleClientMessage :: c -> MVar ServerState -> ASMessage -> IO ()
 
-----------------------------------------------------------------------------------------------------------------------------------------------
--- Daemons
-
-data ASDaemon = ASDaemon {daemonLoc :: ASLocation, daemonConn :: WS.Connection}
-
-instance Eq ASDaemon where 
-  c1 == c2 = (daemonLoc c1) == (daemonLoc c2)
+data ASRecipients = Original | All | Custom [ASUser]
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Users
@@ -234,6 +228,14 @@ data ASEntity = EntityGroup ASUserGroup|
 data ASPermissions = Blacklist [ASEntity] |
                      Whitelist [ASEntity]
                       deriving (Show, Read, Eq, Generic)
+
+----------------------------------------------------------------------------------------------------------------------------------------------
+-- Daemons
+
+data ASDaemon = ASDaemon {daemonLoc :: ASLocation, daemonConn :: WS.Connection}
+
+instance Eq ASDaemon where 
+  c1 == c2 = (daemonLoc c1) == (daemonLoc c2)
 
 
 ----------------------------------------------------------------------------------------------------------------------------------------------

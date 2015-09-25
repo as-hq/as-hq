@@ -1,11 +1,11 @@
 
 ==================== FINAL INTERFACE ====================
-2015-09-24 03:39:09.13923 UTC
+2015-09-25 03:22:39.180426 UTC
 
 interface alphasheets-0.1.0.0:AS.Handler 7084
-  interface hash: e10acfa9c73a6ea6fd02a96598859959
-  ABI hash: 1d6b2dd30f2c6c5201ed17518f2190dc
-  export-list hash: 66f69e6ed4721e215177ec932be984bd
+  interface hash: 88bdc96ccb45ad5d12f1a1a42536b6a9
+  ABI hash: 2aadedd4b8e8b8c4b26725a411ed4337
+  export-list hash: bf8f91b083d8a1f61df86db1c70dd9dc
   orphan hash: 693e9af84d3dfcc71e640e005bdc5e2e
   flag hash: f8b866267ce58dc6290b8020b2e82f8c
   used TH splices: False
@@ -13,6 +13,7 @@ interface alphasheets-0.1.0.0:AS.Handler 7084
 exports:
   AS.Handler.broadcast
   AS.Handler.broadcastFiltered
+  AS.Handler.handleAcknowledge
   AS.Handler.handleAddTags
   AS.Handler.handleClear
   AS.Handler.handleClose
@@ -111,7 +112,7 @@ family instance modules: alphasheets-0.1.0.0:AS.Types
                          zeromq4-haskell-0.6.3:System.ZMQ4
 import  -/  aeson-0.8.1.1:Data.Aeson 4717cd565317ade519445bba111351ae
 import  -/  aeson-0.8.1.1:Data.Aeson.Encode.ByteString 0b7a0357ab6c702b385f6d74bfdda8e2
-import  -/  AS.DB.API 803eb460c2d32c4cdf889b44c1df2c6d
+import  -/  AS.DB.API 41e4bd1545bc4e2723f20b3037ddaed3
   exports: f4205431df73a6774c712eb5aa073d13
   createWorkbook 5875e271bbee37d26f1718c2f0235a49
   createWorkbookSheet 66a3e1645d0d0033218a5f0d92100de8
@@ -129,21 +130,21 @@ import  -/  AS.DB.API 803eb460c2d32c4cdf889b44c1df2c6d
   setCells cdb1a72e695590454ca44323763d8dfb
   undo c36df94ccf95e5dca358c1bf7fb7e7ef
   updateDAG bcbead2b607b8220aa845eb128bc390a
-import  -/  AS.Daemon cfc45b7414723a732894cacbc6196d30
-  exports: 57b814dc83bb6b6b7ab65dff633d1809
-  modifyDaemon d12b1c80ddb976661a80ea944d2f210c
-  removeDaemon 2db8a72ec1564634884c89249df04e6f
-import  -/  AS.Dispatch.Core dc54c633078188a0a9f5f06636603402
+import  -/  AS.Daemon 977df210d8d26e098f04d2b6450c3554
+  exports: 2537a350c375a00f711ce7d1b9c65b96
+  modifyDaemon e2f3ecfdff1be5fc644207172f416708
+  removeDaemon 2a286b9115a586e0f1fa20aff70d5aff
+import  -/  AS.Dispatch.Core bad3eb07973419e30b9625ecbc8dc5ae
   exports: 7408245679348183a46622955942e273
-  runDispatchCycle 2d7acab4e080f16080a86dfdf3e75b50
+  runDispatchCycle 1af8d06774cac153d441681f4c6a32e5
 import  -/  AS.Dispatch.Repl 2743c858e6878621de60e31546456340
   exports: b0ab7c62ba7eb78ca2d447fc618e5ff8
   runReplDispatch 5239828baf1f9dc41e208e9e73a94cd0
 import  -/  AS.Parsing.Out dd270cee574919ef59c3b5c824275231
   exports: b4cc2ee9878e9c201d4134316c957a72
   shiftCell a98b7ddc2a759cd336050fa0d7b58cf7
-import  -/  AS.Types e3666650dafeff86b49d80330a77be8c
-  exports: f8584b3856684401ece78f5d630831a9
+import  -/  AS.Types ac0aeb8d2661160e6345f7fec8fc36e5
+  exports: 4f33e2305e9f32540a30fe3603c0662c
   ASCell bede131762bf9e6165d28069305c9a8f
   ASCellTag 41914e4ed00db1adb7aa05558d91cd06
   ASCommit cd37bafad7a1ba0bf823b5565484da25
@@ -151,6 +152,7 @@ import  -/  AS.Types e3666650dafeff86b49d80330a77be8c
   ASMessage b488c6e303af3ec316847aa09e9ef416
   ASPayload 11aec08e8dd419af745af089eecdc8d0
   ASUser 8f65613dded3aab26fae493435f0f314
+  ASUserId 3094df477896c468afcf617b4934d3e3
   AddTags ceb01b8892b566c57dfe1b63145b1baa
   Cell cf2ab8ae076f48bff57c162753f8fec8
   CopyNonexistentDependencies 455a8cd8ce200827158d3e62707c0369
@@ -204,11 +206,11 @@ import  -/  AS.Users e1438f0faddefa8ee035d8c7af689004
   exports: 504f367f0f4fc0f122f958c4e63ec0f9
   getUserById 58604b4a16eacfd942d63bbf08ff6cab
   modifyUser 98bd738756947fe53170761e563a72a4
-import  -/  AS.Util 7d03dc2552b02355618f794279df874f
+import  -/  AS.Util 417e4f2db7aca39e7f1871a4d7aab2a3
   exports: 061da0521eb01812fd74bf75a38cb988
   filterNothing fe7e1f608e50ce271b2415f3a19f7abe
   generateErrorMessage 4b74e131547a8909b0158ddcb9c53148
-  getDBCellMessage 2c8a906d579164ccf3348818c11c2236
+  getDBCellMessage c3e7a66f93259db8bbb69c6e7c1ad1a5
   getOffsetBetweenLocs a6607d93da5d86670e923e68c1680f29
   getScrolledLocs 39e5e61832aeb02226917a0b7f89dca3
   getWindow eb52a544b59037659d20819a8d3d5a97
@@ -236,10 +238,11 @@ import  -/  base:System.IO cadd0efb01c47ddd8f52d750739fdbdf
 import  -/  ghc-prim:GHC.Classes 3e6cbe1e7e80480408cfa8d5450726a0
 import  -/  ghc-prim:GHC.Types dcba736fa3dfba12d307ab18354845d2
 import  -/  text-1.2.1.1:Data.Text ddf865ef7152d1de0d03707558cc6523
+import  -/  text-1.2.1.1:Data.Text.Internal 5c7132affaaf11c5fb226a9fff83be01
 import  -/  transformers-0.4.3.0:Control.Monad.IO.Class 1fe01dea961eadb0b037d705f6cb22bb
 import  -/  websockets-0.9.5.0:Network.WebSockets c11cd6465abe4dc4c3ad51897e46aaa0
 import  -/  websockets-0.9.5.0:Network.WebSockets.Connection ae39d52893470d43c0bc592e95fce2c0
-6f580c2e9343a385c9413292f091f45c
+d97d6dcdc027766ad9c864952b00afc0
   $wa :: GHC.Prim.MVar# GHC.Prim.RealWorld AS.Types.ServerState
          -> AS.Types.ASMessage
          -> GHC.Prim.State# GHC.Prim.RealWorld
@@ -254,19 +257,19 @@ import  -/  websockets-0.9.5.0:Network.WebSockets.Connection ae39d52893470d43c0b
                           @ AS.Types.ServerState
                           ww
                           w1 of ds1 { (#,#) ipv ipv1 ->
-                   case ipv1 of wild { AS.Types.State u ds ds2 ->
+                   case ipv1 of wild { AS.Types.State ucs ds ds2 ->
                    let {
-                     lvl9 :: Data.ByteString.Lazy.Internal.ByteString
+                     lvl12 :: Data.ByteString.Lazy.Internal.ByteString
                      = Data.ByteString.Builder.toLazyByteString
                          (Data.Aeson.Encode.ByteString.encodeToByteStringBuilder
                             (AS.Types.$fToJSONASMessage_$ctoJSON w))
                    } in
                    let {
                      a1 :: Network.WebSockets.Types.DataMessage
-                     = Network.WebSockets.Types.Text lvl9
+                     = Network.WebSockets.Types.Text lvl12
                    } in
                    let {
-                     lvl10 :: Network.WebSockets.Types.Message
+                     lvl13 :: Network.WebSockets.Types.Message
                      = Network.WebSockets.Types.DataMessage a1
                    } in
                    letrec {
@@ -281,11 +284,11 @@ import  -/  websockets-0.9.5.0:Network.WebSockets.Connection ae39d52893470d43c0b
                          : y ys
                          -> case y of wild2 { AS.Types.UserClient ds4 conn ds5 ->
                             case conn of wild3 { Network.WebSockets.Connection.Connection dt ds6 ds7 ds8 dt1 ->
-                            case (ds8 lvl10) `cast` (GHC.Types.NTCo:IO[0] <()>_R)
+                            case (ds8 lvl13) `cast` (GHC.Types.NTCo:IO[0] <()>_R)
                                    eta of ds9 { (#,#) ipv2 ipv3 ->
                             a2 ys ipv2 } } } }
                    } in
-                   a2 u ipv } }) -}
+                   a2 ucs ipv } }) -}
 edd5ad08b0a9789ab47854354504272f
   $wa1 :: AS.Types.ASUserId
           -> AS.Types.ASAction
@@ -296,16 +299,8 @@ edd5ad08b0a9789ab47854354504272f
           -> (# GHC.Prim.State# GHC.Prim.RealWorld, () #)
     {- Arity: 6,
        Strictness: <L,1*U><L,1*U><L,1*U><S,1*U><S,1*U><L,U> -}
-e81d6d2cb3d3308d1072ceed10d4507f
-  $wa10 :: AS.Types.ASUser
-           -> GHC.Prim.MVar# GHC.Prim.RealWorld AS.Types.ServerState
-           -> AS.Types.ASPayload
-           -> GHC.Prim.State# GHC.Prim.RealWorld
-           -> (# GHC.Prim.State# GHC.Prim.RealWorld, () #)
-    {- Arity: 4,
-       Strictness: <L,1*U(1*U,1*U(1*H,1*H,1*H,C1(C1(U(U,U))),A),A)><L,U><S,1*U><L,U> -}
-82aabe28ceb9734680228952c7145841
-  $wa11 :: GHC.Prim.MVar# GHC.Prim.RealWorld AS.Types.ServerState
+582df73869203ecc42d80a1205ef4855
+  $wa10 :: GHC.Prim.MVar# GHC.Prim.RealWorld AS.Types.ServerState
            -> AS.Types.ASUserId
            -> AS.Types.ASAction
            -> AS.Types.ASPayload
@@ -413,8 +408,8 @@ e81d6d2cb3d3308d1072ceed10d4507f
                                -> case AS.Handler.handleNew2
                                   ret_ty (# GHC.Prim.State# GHC.Prim.RealWorld, () #)
                                   of {} } } }) -}
-2ca4a286a716a91791f57e8b058dfb6e
-  $wa12 :: AS.Types.ASUser
+d7840fb388cb82c3d2824db92c5279e9
+  $wa11 :: AS.Types.ASUser
            -> GHC.MVar.MVar AS.Types.ServerState
            -> AS.Types.ASPayload
            -> GHC.Prim.State# GHC.Prim.RealWorld
@@ -432,7 +427,7 @@ e81d6d2cb3d3308d1072ceed10d4507f
                      AS.Types.PayloadS ds
                      -> case ds of wild1 { AS.Types.Sheet sheetid ds1 ds2 ->
                         let {
-                          lvl9 :: AS.Types.ASWindow {- Strictness: m -}
+                          lvl12 :: AS.Types.ASWindow {- Strictness: m -}
                           = AS.Types.Window
                               sheetid
                               AS.Handler.handleOpen2
@@ -444,18 +439,17 @@ e81d6d2cb3d3308d1072ceed10d4507f
                            AS.Types.UserClient
                              uid
                              conn
-                             (GHC.Types.: @ AS.Types.ASWindow lvl9 windows) })
+                             (GHC.Types.: @ AS.Types.ASWindow lvl12 windows) })
                           w
                           w1
                           w2 } }) -}
-352c8f304aaaef05c8fed89b13aaf517
-  $wa13 :: AS.Types.ASUser
+83a9576022106d6b0e693fb6d8a22804
+  $wa12 :: AS.Types.ASUserId
            -> GHC.Prim.MVar# GHC.Prim.RealWorld AS.Types.ServerState
            -> GHC.Prim.State# GHC.Prim.RealWorld
            -> (# GHC.Prim.State# GHC.Prim.RealWorld, () #)
-    {- Arity: 3,
-       Strictness: <L,1*U(1*U(U,U,U),1*U(1*H,1*H,1*H,C1(C1(U(U,U))),A),A)><L,U><L,U>,
-       Unfolding: (\ w :: AS.Types.ASUser
+    {- Arity: 3, Strictness: <L,1*U><L,U><L,U>,
+       Unfolding: (\ w :: AS.Types.ASUserId
                      ww :: GHC.Prim.MVar# GHC.Prim.RealWorld AS.Types.ServerState
                      w1 :: GHC.Prim.State# GHC.Prim.RealWorld ->
                    case GHC.Prim.readMVar#
@@ -468,38 +462,37 @@ e81d6d2cb3d3308d1072ceed10d4507f
                           ipv of ds2 { (#,#) ipv2 ipv3 ->
                    case ipv3 of wild {
                      Data.Maybe.Nothing
-                     -> case w of ww1 { AS.Types.UserClient ww2 ww3 ww4 ->
-                        case ww3 of ww5 { Network.WebSockets.Connection.Connection ww6 ww7 ww8 ww9 ww10 ->
-                        (ww9
-                           (Network.WebSockets.Types.DataMessage
-                              (Network.WebSockets.Types.Text
-                                 (Data.ByteString.Builder.toLazyByteString
-                                    (case AS.Types.$w$ctoJSON3
-                                            ww2
-                                            AS.Types.NoAction
-                                            AS.Handler.handleRedo2
-                                            AS.Types.failureMessage1 of ww11 { (##) ww12 ->
-                                     Data.Aeson.Encode.ByteString.encodeToByteStringBuilder
-                                       (Data.Aeson.Types.Internal.Object ww12) })))))
-                          `cast`
-                        (GHC.Types.NTCo:IO[0] <()>_R)
-                          ipv2 } }
+                     -> case GHC.Prim.readMVar#
+                               @ GHC.Prim.RealWorld
+                               @ AS.Types.ServerState
+                               ww
+                               ipv2 of ds3 { (#,#) ipv4 ipv5 ->
+                        case ipv5 of wild1 { AS.Types.State ucs ds ds4 ->
+                        case AS.Handler.$wa1
+                               Data.Text.Internal.empty_
+                               AS.Types.NoAction
+                               AS.Handler.handleRedo3
+                               AS.Types.failureMessage1
+                               ucs
+                               ipv4 of ds5 { (#,#) ipv6 ipv7 ->
+                        AS.Util.printTimed1 AS.Handler.handleRedo2 ipv6 } } }
                      Data.Maybe.Just c
                      -> case GHC.Prim.readMVar#
                                @ GHC.Prim.RealWorld
                                @ AS.Types.ServerState
                                ww
                                ipv2 of ds3 { (#,#) ipv4 ipv5 ->
-                        case ipv5 of wild1 { AS.Types.State allUsers ds ds4 ->
-                        AS.Handler.$wa1
-                          (AS.Types.userId w)
-                          AS.Types.Redo
-                          AS.Types.Success
-                          (AS.Types.PayloadCommit c)
-                          allUsers
-                          ipv4 } } } } }) -}
-cf9f7e3081182f2f5c8e540599b24e5d
-  $wa14 :: AS.Types.ASUser
+                        case ipv5 of wild1 { AS.Types.State ucs ds ds4 ->
+                        case AS.Handler.$wa1
+                               w
+                               AS.Types.Redo
+                               AS.Types.Success
+                               (AS.Types.PayloadCommit c)
+                               ucs
+                               ipv4 of ds5 { (#,#) ipv6 ipv7 ->
+                        AS.Util.printTimed1 AS.Handler.handleRedo2 ipv6 } } } } } }) -}
+ac43a280a94541a1c7c150da2e8e5558
+  $wa13 :: AS.Types.ASUser
            -> GHC.MVar.MVar AS.Types.ServerState
            -> AS.Types.ASPayload
            -> GHC.Prim.State# GHC.Prim.RealWorld
@@ -527,7 +520,7 @@ cf9f7e3081182f2f5c8e540599b24e5d
                               [] -> (# eta, GHC.Tuple.() #)
                               : y ys
                               -> case w1 of ww1 { GHC.MVar.MVar ww2 ->
-                                 case AS.Handler.$wa15 loc ww2 y eta of ds1 { (#,#) ipv ipv1 ->
+                                 case AS.Handler.$wa14 loc ww2 y eta of ds1 { (#,#) ipv ipv1 ->
                                  a1 ys ipv } } }
                         } in
                         case a1 ts w2 of ds1 { (#,#) ipv ipv1 ->
@@ -547,8 +540,8 @@ cf9f7e3081182f2f5c8e540599b24e5d
                           `cast`
                         (GHC.Types.NTCo:IO[0] <()>_R)
                           ipv } } } }) -}
-b34ec33789c07701f6912219d4ef1377
-  $wa15 :: AS.Types.ASLocation
+93b50ae1fa6887312aff597c1419f2b8
+  $wa14 :: AS.Types.ASLocation
            -> GHC.Prim.MVar# GHC.Prim.RealWorld AS.Types.ServerState
            -> AS.Types.ASCellTag
            -> GHC.Prim.State# GHC.Prim.RealWorld
@@ -640,14 +633,13 @@ b34ec33789c07701f6912219d4ef1377
                                     w
                                     (GHC.MVar.MVar @ AS.Types.ServerState ww)
                                     ipv4 } } } } } } }) -}
-31ddcf963a7b9588e01d0196b748b966
-  $wa16 :: AS.Types.ASUser
+0c15306f7ed110840a5f3996361f063a
+  $wa15 :: AS.Types.ASUserId
            -> GHC.Prim.MVar# GHC.Prim.RealWorld AS.Types.ServerState
            -> GHC.Prim.State# GHC.Prim.RealWorld
            -> (# GHC.Prim.State# GHC.Prim.RealWorld, () #)
-    {- Arity: 3,
-       Strictness: <L,1*U(1*U(U,U,U),1*U(1*H,1*H,1*H,C1(C1(U(U,U))),A),A)><L,U><L,U>,
-       Unfolding: (\ w :: AS.Types.ASUser
+    {- Arity: 3, Strictness: <L,1*U><L,U><L,U>,
+       Unfolding: (\ w :: AS.Types.ASUserId
                      ww :: GHC.Prim.MVar# GHC.Prim.RealWorld AS.Types.ServerState
                      w1 :: GHC.Prim.State# GHC.Prim.RealWorld ->
                    case GHC.Prim.readMVar#
@@ -660,45 +652,43 @@ b34ec33789c07701f6912219d4ef1377
                           ipv of ds1 { (#,#) ipv2 ipv3 ->
                    case ipv3 of wild {
                      Data.Maybe.Nothing
-                     -> case w of ww1 { AS.Types.UserClient ww2 ww3 ww4 ->
-                        case ww3 of ww5 { Network.WebSockets.Connection.Connection ww6 ww7 ww8 ww9 ww10 ->
-                        (ww9
-                           (Network.WebSockets.Types.DataMessage
-                              (Network.WebSockets.Types.Text
-                                 (Data.ByteString.Builder.toLazyByteString
-                                    (case AS.Types.$w$ctoJSON3
-                                            ww2
-                                            AS.Types.NoAction
-                                            AS.Handler.handleUndo2
-                                            AS.Types.failureMessage1 of ww11 { (##) ww12 ->
-                                     Data.Aeson.Encode.ByteString.encodeToByteStringBuilder
-                                       (Data.Aeson.Types.Internal.Object ww12) })))))
-                          `cast`
-                        (GHC.Types.NTCo:IO[0] <()>_R)
-                          ipv2 } }
+                     -> case GHC.Prim.readMVar#
+                               @ GHC.Prim.RealWorld
+                               @ AS.Types.ServerState
+                               ww
+                               ipv2 of ds2 { (#,#) ipv4 ipv5 ->
+                        case ipv5 of wild1 { AS.Types.State ucs ds3 ds4 ->
+                        case AS.Handler.$wa1
+                               Data.Text.Internal.empty_
+                               AS.Types.NoAction
+                               AS.Handler.handleUndo3
+                               AS.Types.failureMessage1
+                               ucs
+                               ipv4 of ds5 { (#,#) ipv6 ipv7 ->
+                        AS.Util.printTimed1 AS.Handler.handleUndo2 ipv6 } } }
                      Data.Maybe.Just c
                      -> case GHC.Prim.readMVar#
                                @ GHC.Prim.RealWorld
                                @ AS.Types.ServerState
                                ww
                                ipv2 of ds2 { (#,#) ipv4 ipv5 ->
-                        case ipv5 of wild1 { AS.Types.State allUsers ds3 ds4 ->
-                        AS.Handler.$wa1
-                          (AS.Types.userId w)
-                          AS.Types.Undo
-                          AS.Types.Success
-                          (AS.Types.PayloadCommit c)
-                          allUsers
-                          ipv4 } } } } }) -}
-e9745a49df060a65a6e47949d8744777
-  $wa17 :: AS.Types.ASUser
-           -> GHC.Prim.MVar# GHC.Prim.RealWorld AS.Types.ServerState
+                        case ipv5 of wild1 { AS.Types.State ucs ds3 ds4 ->
+                        case AS.Handler.$wa1
+                               w
+                               AS.Types.Undo
+                               AS.Types.Success
+                               (AS.Types.PayloadCommit c)
+                               ucs
+                               ipv4 of ds5 { (#,#) ipv6 ipv7 ->
+                        AS.Util.printTimed1 AS.Handler.handleUndo2 ipv6 } } } } } }) -}
+bd01c792dd44dd5cab8b50f6ddd48579
+  $wa16 :: GHC.Prim.MVar# GHC.Prim.RealWorld AS.Types.ServerState
+           -> AS.Types.ASUserId
            -> AS.Types.ASPayload
            -> GHC.Prim.State# GHC.Prim.RealWorld
            -> (# GHC.Prim.State# GHC.Prim.RealWorld, () #)
-    {- Arity: 4,
-       Strictness: <L,1*U(1*U(U,U,U),A,A)><L,U><S,1*U><L,U> -}
-f51b7ec750b1bb79d5301085edb2bcfd
+    {- Arity: 4, Strictness: <L,U><L,U(U,U,U)><S,1*U><L,U> -}
+cfe9f8a3cbf76aae827ae28876c75a1b
   $wa2 :: AS.Types.ASUser
           -> GHC.MVar.MVar AS.Types.ServerState
           -> AS.Types.ASUserId
@@ -757,7 +747,7 @@ f51b7ec750b1bb79d5301085edb2bcfd
                           `cast`
                         (GHC.Types.NTCo:IO[0] <()>_R)
                           ipv } } } }) -}
-d137ed5f78617df89c4d9d996f9c3ec7
+41e2b1fbef5bdcdb2bdcc2d2f5ea84b5
   $wa3 :: GHC.Prim.MVar# GHC.Prim.RealWorld AS.Types.ServerState
           -> AS.Types.ASLocation
           -> AS.Types.ASMessage
@@ -882,7 +872,7 @@ d137ed5f78617df89c4d9d996f9c3ec7
                                          ipv2 of ds4 { (#,#) ipv4 ipv5 ->
                                   $w$j ipv4 }
                                GHC.Types.True -> $w$j ipv2 } } } } } }) -}
-1ec66c477b510d1dff1d1b83bb56ebc4
+6a12c02779bcdbadad33c5054c2dd47d
   $wa4 :: AS.Types.ASUser
           -> GHC.MVar.MVar AS.Types.ServerState
           -> AS.Types.ASPayload
@@ -935,7 +925,7 @@ d137ed5f78617df89c4d9d996f9c3ec7
                                    DEFAULT -> GHC.Types.True 0 -> GHC.Types.False } } } }
                         } in
                         let {
-                          lvl9 :: AS.Types.ASWindow -> GHC.Types.Bool
+                          lvl12 :: AS.Types.ASWindow -> GHC.Types.Bool
                             {- Arity: 1, Strictness: <S(SLL),1*U(1*U(U,U,U),A,A)>,
                                Inline: INLINE[0],
                                Unfolding: InlineRule (1, True, False)
@@ -954,7 +944,7 @@ d137ed5f78617df89c4d9d996f9c3ec7
                            AS.Types.UserClient
                              uid
                              conn
-                             (GHC.List.filter @ AS.Types.ASWindow lvl9 windows) })
+                             (GHC.List.filter @ AS.Types.ASWindow lvl12 windows) })
                           w
                           w1
                           w2 } }) -}
@@ -1005,51 +995,8 @@ a14fba086030ff3d0d8f4a3a5d1b5e15
           -> (# GHC.Prim.State# GHC.Prim.RealWorld, () #)
     {- Arity: 4,
        Strictness: <L,1*U(1*U(U,U,U),A,A)><L,U><S,1*U><L,U> -}
-4884d3e660a958971d35674eb6622d11
+c1062c781c8fe9794e067ea592e8ae46
   $wa8 :: AS.Types.ASUser
-          -> GHC.MVar.MVar AS.Types.ServerState
-          -> AS.Types.ASAction
-          -> AS.Types.ASResult
-          -> AS.Types.ASPayload
-          -> GHC.Prim.State# GHC.Prim.RealWorld
-          -> (# GHC.Prim.State# GHC.Prim.RealWorld, () #)
-    {- Arity: 6,
-       Strictness: <L,1*U(1*U(U,U,U),1*U(1*H,1*H,1*H,C1(C1(U(U,U))),A),A)><L,1*U(U)><L,U><S,U><L,U><L,U>,
-       Unfolding: (\ w :: AS.Types.ASUser
-                     w1 :: GHC.MVar.MVar AS.Types.ServerState
-                     ww :: AS.Types.ASAction
-                     ww1 :: AS.Types.ASResult
-                     ww2 :: AS.Types.ASPayload
-                     w2 :: GHC.Prim.State# GHC.Prim.RealWorld ->
-                   case ww1 of wild {
-                     DEFAULT
-                     -> case w1 of wild1 { GHC.MVar.MVar mvar# ->
-                        case GHC.Prim.readMVar#
-                               @ GHC.Prim.RealWorld
-                               @ AS.Types.ServerState
-                               mvar#
-                               w2 of ds1 { (#,#) ipv ipv1 ->
-                        case ipv1 of wild2 { AS.Types.State allUsers ds ds2 ->
-                        AS.Handler.$wa1 (AS.Types.userId w) ww wild ww2 allUsers ipv } } }
-                     AS.Types.Failure e
-                     -> case w of ww3 { AS.Types.UserClient ww4 ww5 ww6 ->
-                        case ww5 of ww7 { Network.WebSockets.Connection.Connection ww8 ww9 ww10 ww11 ww12 ->
-                        (ww11
-                           (Network.WebSockets.Types.DataMessage
-                              (Network.WebSockets.Types.Text
-                                 (Data.ByteString.Builder.toLazyByteString
-                                    (case AS.Types.$w$ctoJSON3
-                                            ww4
-                                            ww
-                                            wild
-                                            ww2 of ww13 { (##) ww14 ->
-                                     Data.Aeson.Encode.ByteString.encodeToByteStringBuilder
-                                       (Data.Aeson.Types.Internal.Object ww14) })))))
-                          `cast`
-                        (GHC.Types.NTCo:IO[0] <()>_R)
-                          w2 } } }) -}
-99c52446ade70e6abceecc6e4a689f96
-  $wa9 :: AS.Types.ASUser
           -> AS.Types.ASMessage
           -> GHC.Prim.State# GHC.Prim.RealWorld
           -> (# GHC.Prim.State# GHC.Prim.RealWorld, () #)
@@ -1095,7 +1042,15 @@ a14fba086030ff3d0d8f4a3a5d1b5e15
                           `cast`
                         (GHC.Types.NTCo:IO[0] <()>_R)
                           ipv2 } } } } } }) -}
-bf8ab7f9e6895b3b03e3858a2c8637b3
+8272f33a3dac7ec95c781dc8418f6ca5
+  $wa9 :: AS.Types.ASUser
+          -> GHC.Prim.MVar# GHC.Prim.RealWorld AS.Types.ServerState
+          -> AS.Types.ASPayload
+          -> GHC.Prim.State# GHC.Prim.RealWorld
+          -> (# GHC.Prim.State# GHC.Prim.RealWorld, () #)
+    {- Arity: 4,
+       Strictness: <L,1*U(1*U,1*U(1*H,1*H,1*H,C1(C1(U(U,U))),A),A)><L,U><S,1*U><L,U> -}
+f425ffaa7b3c2074c1b265c199481881
   broadcast :: GHC.MVar.MVar AS.Types.ServerState
                -> AS.Types.ASMessage
                -> GHC.Types.IO ()
@@ -1106,7 +1061,7 @@ bf8ab7f9e6895b3b03e3858a2c8637b3
                   (<GHC.MVar.MVar AS.Types.ServerState>_R
                    ->_R <AS.Types.ASMessage>_R
                    ->_R Sym (GHC.Types.NTCo:IO[0] <()>_R)) -}
-da17768663827b2bd5e3c8b31cdf7ce6
+7e040bb3e223945b11a864fb6d2a1ea4
   broadcast1 :: GHC.MVar.MVar AS.Types.ServerState
                 -> AS.Types.ASMessage
                 -> GHC.Prim.State# GHC.Prim.RealWorld
@@ -1144,7 +1099,37 @@ c35766cf00462ef7ac37aec438777150
                      w2 :: GHC.Prim.State# GHC.Prim.RealWorld ->
                    case w of ww { AS.Types.Message ww1 ww2 ww3 ww4 ->
                    AS.Handler.$wa1 ww1 ww2 ww3 ww4 w1 w2 }) -}
-b55e1a38022d11f703a7df1003ccebda
+bf36e479278580be77b6a9949b877ee4
+  handleAcknowledge :: AS.Types.ASUser -> GHC.Types.IO ()
+    {- Arity: 2,
+       Strictness: <S(LS(SSSC(C(S))L)L),1*U(A,1*U(1*H,1*H,1*H,C1(C1(U(U,U))),A),A)><L,U>,
+       Unfolding: InlineRule (0, True, True)
+                  AS.Handler.handleAcknowledge1
+                    `cast`
+                  (<AS.Types.ASUser>_R ->_R Sym (GHC.Types.NTCo:IO[0] <()>_R)) -}
+8f7c13a6f4097de588641bcf81bc9bcf
+  handleAcknowledge1 :: AS.Types.ASUser
+                        -> GHC.Prim.State# GHC.Prim.RealWorld
+                        -> (# GHC.Prim.State# GHC.Prim.RealWorld, () #)
+    {- Arity: 2,
+       Strictness: <S(LS(SSSC(C(S))L)L),1*U(A,1*U(1*H,1*H,1*H,C1(C1(U(U,U))),A),A)><L,U>,
+       Unfolding: InlineRule (2, True, False)
+                  (\ user :: AS.Types.ASUser
+                     eta :: GHC.Prim.State# GHC.Prim.RealWorld ->
+                   case user of wild { AS.Types.UserClient ds1 ds2 ds3 ->
+                   case ds2 of wild1 { Network.WebSockets.Connection.Connection dt ds ds4 ds5 dt1 ->
+                   (ds5
+                      (Network.WebSockets.Types.DataMessage
+                         (Network.WebSockets.Types.Text
+                            (Network.WebSockets.Types.$fWebSocketsDataText_$ctoLazyByteString
+                               AS.Handler.handleAcknowledge2))))
+                     `cast`
+                   (GHC.Types.NTCo:IO[0] <()>_R)
+                     eta } }) -}
+7bf877574189b70678ab4c72fdc0ab75
+  handleAcknowledge2 :: Data.Text.Internal.Text
+    {- Unfolding: (Data.Text.Show.unpackCString# "ACK"#) -}
+0514065ba76f88a505a793a25fd064ec
   handleAddTags :: AS.Types.ASUser
                    -> GHC.MVar.MVar AS.Types.ServerState
                    -> AS.Types.ASMessage
@@ -1158,7 +1143,7 @@ b55e1a38022d11f703a7df1003ccebda
                    ->_R <GHC.MVar.MVar AS.Types.ServerState>_R
                    ->_R <AS.Types.ASMessage>_R
                    ->_R Sym (GHC.Types.NTCo:IO[0] <()>_R)) -}
-3aeb4fc901a05b31adca6fe34dc0f3b0
+dc16e8ee0aad5735d9018c36f287089c
   handleAddTags1 :: AS.Types.ASUser
                     -> GHC.MVar.MVar AS.Types.ServerState
                     -> AS.Types.ASMessage
@@ -1184,48 +1169,47 @@ e6064dcaf18efd5104d0df50e5a94fd4
   handleAddTags4 :: AS.Types.ASAction {- Strictness: b -}
 2ac15358001aa37bf9c16981b8be02bc
   handleAddTags5 :: GHC.Types.IO () {- Strictness: b -}
-fcf069369c2918d1583e7e4aad5d08a3
-  handleClear :: AS.Types.ASUser
-                 -> GHC.MVar.MVar AS.Types.ServerState
+a9707b169b4a7440076ce2f443f8d2dd
+  handleClear :: GHC.MVar.MVar AS.Types.ServerState
                  -> GHC.Types.IO ()
-    {- Arity: 3,
-       Strictness: <L,1*U(1*U(U,U,U),1*U(1*H,1*H,1*H,C1(C1(U(U,U))),A),A)><L,1*U(U)><L,U>,
-       Unfolding: (AS.Handler.handleClear1
-                     `cast`
-                   (<AS.Types.ASUser>_R
-                    ->_R <GHC.MVar.MVar AS.Types.ServerState>_R
-                    ->_R Sym (GHC.Types.NTCo:IO[0] <()>_R))) -}
-ae19c749775eebf2b323ca8c6121024c
-  handleClear1 :: AS.Types.ASUser
-                  -> GHC.MVar.MVar AS.Types.ServerState
+    {- Arity: 2, Strictness: <S,1*U(U)><L,U>,
+       Unfolding: InlineRule (0, True, True)
+                  AS.Handler.handleClear1
+                    `cast`
+                  (<GHC.MVar.MVar AS.Types.ServerState>_R
+                   ->_R Sym (GHC.Types.NTCo:IO[0] <()>_R)) -}
+dc0b3a52b5fc478dc481326fef8b3418
+  handleClear1 :: GHC.MVar.MVar AS.Types.ServerState
                   -> GHC.Prim.State# GHC.Prim.RealWorld
                   -> (# GHC.Prim.State# GHC.Prim.RealWorld, () #)
-    {- Arity: 3,
-       Strictness: <L,1*U(1*U(U,U,U),1*U(1*H,1*H,1*H,C1(C1(U(U,U))),A),A)><L,1*U(U)><L,U>,
-       Unfolding: (\ user :: AS.Types.ASUser
-                     state :: GHC.MVar.MVar AS.Types.ServerState
-                     eta :: GHC.Prim.State# GHC.Prim.RealWorld ->
-                   case user of ww { AS.Types.UserClient ww1 ww2 ww3 ->
-                   case ww2 of ww4 { Network.WebSockets.Connection.Connection ww5 ww6 ww7 ww8 ww9 ->
-                   (ww8
-                      (Network.WebSockets.Types.DataMessage
-                         (Network.WebSockets.Types.Text
-                            (Data.ByteString.Builder.toLazyByteString
-                               (case AS.Types.$w$ctoJSON3
-                                       ww1
-                                       AS.Types.NoAction
-                                       AS.Handler.handleClear2
-                                       AS.Types.failureMessage1 of ww10 { (##) ww11 ->
-                                Data.Aeson.Encode.ByteString.encodeToByteStringBuilder
-                                  (Data.Aeson.Types.Internal.Object ww11) })))))
-                     `cast`
-                   (GHC.Types.NTCo:IO[0] <()>_R)
-                     eta } }) -}
-a39037bbbd8fa0cd84040f44e6078ca6
-  handleClear2 :: AS.Types.ASResult
+    {- Arity: 2, Strictness: <S,1*U(U)><L,U>,
+       Unfolding: InlineRule (2, True, False)
+                  (\ state :: GHC.MVar.MVar AS.Types.ServerState
+                     s :: GHC.Prim.State# GHC.Prim.RealWorld ->
+                   case state of wild { GHC.MVar.MVar mvar# ->
+                   case GHC.Prim.readMVar#
+                          @ GHC.Prim.RealWorld
+                          @ AS.Types.ServerState
+                          mvar#
+                          s of ds1 { (#,#) ipv ipv1 ->
+                   case ipv1 of wild1 { AS.Types.State ucs ds ds2 ->
+                   AS.Handler.broadcastFiltered1
+                     AS.Handler.handleClear2
+                     ucs
+                     ipv } } }) -}
+5ac214c378ff408cd410582557307192
+  handleClear2 :: AS.Types.ASMessage
+    {- Strictness: m,
+       Unfolding: (AS.Types.Message
+                     Data.Text.Internal.empty_
+                     AS.Types.NoAction
+                     AS.Handler.handleClear3
+                     AS.Types.failureMessage1) -}
+2858ce0e5ed2a28449b110abeaeacdd9
+  handleClear3 :: AS.Types.ASResult
     {- HasNoCafRefs, Strictness: m2,
        Unfolding: (AS.Types.Failure (GHC.Types.[] @ GHC.Types.Char)) -}
-af6ca3365a615db6ddf68ac28a8e7581
+c8d3f863ac558d628f93cd8b990ca984
   handleClose :: AS.Types.ASUser
                  -> GHC.MVar.MVar AS.Types.ServerState
                  -> AS.Types.ASMessage
@@ -1239,7 +1223,7 @@ af6ca3365a615db6ddf68ac28a8e7581
                    ->_R <GHC.MVar.MVar AS.Types.ServerState>_R
                    ->_R <AS.Types.ASMessage>_R
                    ->_R Sym (GHC.Types.NTCo:IO[0] <()>_R)) -}
-bd54976b12eae282a23fa76d5200e969
+fa21cc3672b9e0eb9c4bb4d8f602bdea
   handleClose1 :: AS.Types.ASUser
                   -> GHC.MVar.MVar AS.Types.ServerState
                   -> AS.Types.ASMessage
@@ -1345,29 +1329,23 @@ f79224129c428a19b87fc11bcdc41d8c
                      w3 :: GHC.Prim.State# GHC.Prim.RealWorld ->
                    case w1 of ww { GHC.MVar.MVar ww1 ->
                    AS.Handler.$wa7 w ww1 w2 w3 }) -}
-cc2061ff9fc4e77479a640e50d6f7ec3
-  handleEval :: AS.Types.ASUser
-                -> GHC.MVar.MVar AS.Types.ServerState
+f6c22b27b7339ddd7979b32d1827d522
+  handleEval :: GHC.MVar.MVar AS.Types.ServerState
                 -> AS.Types.ASMessage
                 -> GHC.Types.IO ()
-    {- Arity: 4,
-       Strictness: <L,U(U(U,U,U),1*U(1*H,1*H,1*H,C1(C1(U(U,U))),A),A)><L,U(U)><L,1*U(U(U,U,U),U,U,1*U)><L,U>,
+    {- Arity: 3, Strictness: <L,U(U)><L,1*U(U(U,U,U),U,U,1*U)><L,U>,
        Unfolding: (AS.Handler.handleEval1
                      `cast`
-                   (<AS.Types.ASUser>_R
-                    ->_R <GHC.MVar.MVar AS.Types.ServerState>_R
+                   (<GHC.MVar.MVar AS.Types.ServerState>_R
                     ->_R <AS.Types.ASMessage>_R
                     ->_R Sym (GHC.Types.NTCo:IO[0] <()>_R))) -}
-dabb5cc2f406c56ffa0a05b53f134d27
-  handleEval1 :: AS.Types.ASUser
-                 -> GHC.MVar.MVar AS.Types.ServerState
+92400494eeb027c9b0653d9877a8d12f
+  handleEval1 :: GHC.MVar.MVar AS.Types.ServerState
                  -> AS.Types.ASMessage
                  -> GHC.Prim.State# GHC.Prim.RealWorld
                  -> (# GHC.Prim.State# GHC.Prim.RealWorld, () #)
-    {- Arity: 4,
-       Strictness: <L,U(U(U,U,U),1*U(1*H,1*H,1*H,C1(C1(U(U,U))),A),A)><L,U(U)><L,1*U(U(U,U,U),U,U,1*U)><L,U>,
-       Unfolding: (\ user :: AS.Types.ASUser
-                     state :: GHC.MVar.MVar AS.Types.ServerState
+    {- Arity: 3, Strictness: <L,U(U)><L,1*U(U(U,U,U),U,U,1*U)><L,U>,
+       Unfolding: (\ state :: GHC.MVar.MVar AS.Types.ServerState
                      msg :: AS.Types.ASMessage
                      s :: GHC.Prim.State# GHC.Prim.RealWorld ->
                    case GHC.IO.Handle.Text.hPutStr2
@@ -1377,7 +1355,6 @@ dabb5cc2f406c56ffa0a05b53f134d27
                           s of ds1 { (#,#) ipv ipv1 ->
                    case msg of ww { AS.Types.Message ww1 ww2 ww3 ww4 ->
                    case AS.Dispatch.Core.$wa2
-                          user
                           state
                           ww1
                           ww2
@@ -1387,7 +1364,7 @@ dabb5cc2f406c56ffa0a05b53f134d27
                    GHC.Prim.catch#
                      @ ()
                      @ GHC.Exception.SomeException
-                     (AS.Handler.handleEval3 user state ipv3)
+                     (AS.Handler.handleEval3 state ipv3)
                      AS.Handler.handleEval2
                      ipv2 } } }) -}
 9dfdd173b067da522abc15d64e78e181
@@ -1410,26 +1387,28 @@ dabb5cc2f406c56ffa0a05b53f134d27
                            (GHC.Types.[] @ GHC.Types.Char) }))
                      GHC.Types.True
                      eta) -}
-f77f8501d8a9b6218259af0379adbb94
-  handleEval3 :: AS.Types.ASUser
-                 -> GHC.MVar.MVar AS.Types.ServerState
+518ad00795db96a68d7b8bb1d7af6b1a
+  handleEval3 :: GHC.MVar.MVar AS.Types.ServerState
                  -> AS.Types.ASMessage
                  -> GHC.Prim.State# GHC.Prim.RealWorld
                  -> (# GHC.Prim.State# GHC.Prim.RealWorld, () #)
-    {- Arity: 4,
-       Strictness: <L,1*U(1*U(U,U,U),1*U(1*H,1*H,1*H,C1(C1(U(U,U))),A),A)><L,1*U(U)><S(LLSL),1*U(A,U,U,U)><L,U>,
-       Inline: INLINE[0],
-       Unfolding: InlineRule (4, True, False)
-                  (\ w :: AS.Types.ASUser
-                     w1 :: GHC.MVar.MVar AS.Types.ServerState
-                     w2 :: AS.Types.ASMessage
-                     w3 :: GHC.Prim.State# GHC.Prim.RealWorld ->
-                   case w2 of ww { AS.Types.Message ww1 ww2 ww3 ww4 ->
-                   AS.Handler.$wa8 w w1 ww2 ww3 ww4 w3 }) -}
+    {- Arity: 3, Strictness: <S,1*U(U)><L,1*U(1*U,1*U,1*U,1*U)><L,U>,
+       Unfolding: InlineRule (3, True, False)
+                  (\ state :: GHC.MVar.MVar AS.Types.ServerState
+                     msg :: AS.Types.ASMessage
+                     s :: GHC.Prim.State# GHC.Prim.RealWorld ->
+                   case state of wild { GHC.MVar.MVar mvar# ->
+                   case GHC.Prim.readMVar#
+                          @ GHC.Prim.RealWorld
+                          @ AS.Types.ServerState
+                          mvar#
+                          s of ds1 { (#,#) ipv ipv1 ->
+                   case ipv1 of wild1 { AS.Types.State ucs ds ds2 ->
+                   AS.Handler.broadcastFiltered1 msg ucs ipv } } }) -}
 bec3ce7c1b1027ee49370a68640e2182
   handleEval4 :: [GHC.Types.Char]
     {- Unfolding: (GHC.CString.unpackCString# "IN EVAL HANDLER"#) -}
-5a903d526c35c605506c0d241ffbfb55
+fe13b6f24da567092ffdf62818a65a16
   handleEvalRepl :: AS.Types.ASUser
                     -> GHC.MVar.MVar AS.Types.ServerState
                     -> AS.Types.ASMessage
@@ -1443,7 +1422,7 @@ bec3ce7c1b1027ee49370a68640e2182
                    ->_R <GHC.MVar.MVar AS.Types.ServerState>_R
                    ->_R <AS.Types.ASMessage>_R
                    ->_R Sym (GHC.Types.NTCo:IO[0] <()>_R)) -}
-42c4e689ccde2ca6e229183b2bb1feb0
+588231bd473c88504b57d497eb5c21cb
   handleEvalRepl1 :: AS.Types.ASUser
                      -> GHC.MVar.MVar AS.Types.ServerState
                      -> AS.Types.ASMessage
@@ -1457,8 +1436,8 @@ bec3ce7c1b1027ee49370a68640e2182
                      w1 :: GHC.MVar.MVar AS.Types.ServerState
                      w2 :: AS.Types.ASMessage
                      w3 :: GHC.Prim.State# GHC.Prim.RealWorld ->
-                   AS.Handler.$wa9 w w2 w3) -}
-8e714cec7b7bb57578830221afc090ec
+                   AS.Handler.$wa8 w w2 w3) -}
+709a9c9b8822aa17a9ee190804a56c03
   handleGet :: AS.Types.ASUser
                -> GHC.MVar.MVar AS.Types.ServerState
                -> AS.Types.ASPayload
@@ -1472,7 +1451,7 @@ bec3ce7c1b1027ee49370a68640e2182
                    ->_R <GHC.MVar.MVar AS.Types.ServerState>_R
                    ->_R <AS.Types.ASPayload>_R
                    ->_R Sym (GHC.Types.NTCo:IO[0] <()>_R)) -}
-bbd14de35a3f7abfd860c8cd30cce7b4
+84b5e8cad4e29bf022914d8f37218dff
   handleGet1 :: AS.Types.ASUser
                 -> GHC.MVar.MVar AS.Types.ServerState
                 -> AS.Types.ASPayload
@@ -1487,67 +1466,59 @@ bbd14de35a3f7abfd860c8cd30cce7b4
                      w2 :: AS.Types.ASPayload
                      w3 :: GHC.Prim.State# GHC.Prim.RealWorld ->
                    case w1 of ww { GHC.MVar.MVar ww1 ->
-                   AS.Handler.$wa10 w ww1 w2 w3 }) -}
-21289b92d8b9edfe2565d3ab5e5da78d
-  handleImport :: AS.Types.ASUser
-                  -> GHC.MVar.MVar AS.Types.ServerState
+                   AS.Handler.$wa9 w ww1 w2 w3 }) -}
+d167f53ee0783a259517a9718e8204a2
+  handleImport :: GHC.MVar.MVar AS.Types.ServerState
                   -> AS.Types.ASMessage
                   -> GHC.Types.IO ()
-    {- Arity: 4, HasNoCafRefs, Strictness: <L,A><L,A><L,A><L,U>,
+    {- Arity: 3, HasNoCafRefs, Strictness: <L,A><L,A><L,U>,
        Unfolding: InlineRule (0, True, True)
                   AS.Handler.handleImport1
                     `cast`
-                  (<AS.Types.ASUser>_R
-                   ->_R <GHC.MVar.MVar AS.Types.ServerState>_R
+                  (<GHC.MVar.MVar AS.Types.ServerState>_R
                    ->_R <AS.Types.ASMessage>_R
                    ->_R Sym (GHC.Types.NTCo:IO[0] <()>_R)) -}
-69d4f32deb3f02fe61cdfd55f3969f2e
-  handleImport1 :: AS.Types.ASUser
-                   -> GHC.MVar.MVar AS.Types.ServerState
+371d18ba9c302d432c785f84aa9125b0
+  handleImport1 :: GHC.MVar.MVar AS.Types.ServerState
                    -> AS.Types.ASMessage
                    -> GHC.Prim.State# GHC.Prim.RealWorld
                    -> (# GHC.Prim.State# GHC.Prim.RealWorld, () #)
-    {- Arity: 4, HasNoCafRefs, Strictness: <L,A><L,A><L,A><L,U>,
-       Unfolding: InlineRule (4, True, True)
-                  (\ user :: AS.Types.ASUser
-                     state :: GHC.MVar.MVar AS.Types.ServerState
+    {- Arity: 3, HasNoCafRefs, Strictness: <L,A><L,A><L,U>,
+       Unfolding: InlineRule (3, True, True)
+                  (\ state :: GHC.MVar.MVar AS.Types.ServerState
                      msg :: AS.Types.ASMessage
                      eta :: GHC.Prim.State# GHC.Prim.RealWorld ->
                    (# eta, GHC.Tuple.() #)) -}
-7478dcefff5f0854ba61f2e307e593fc
-  handleNew :: AS.Types.ASUser
-               -> GHC.MVar.MVar AS.Types.ServerState
+a597563fb25f86d0974c2ae2c1f7a4c8
+  handleNew :: GHC.MVar.MVar AS.Types.ServerState
                -> AS.Types.ASMessage
                -> GHC.Types.IO ()
-    {- Arity: 4,
-       Strictness: <L,A><S,1*U(U)><S(LLLS),1*U(1*U,1*U,A,1*U)><L,U>,
+    {- Arity: 3,
+       Strictness: <S,1*U(U)><S(LLLS),1*U(1*U,1*U,A,1*U)><L,U>,
        Unfolding: InlineRule (0, True, True)
                   AS.Handler.handleNew1
                     `cast`
-                  (<AS.Types.ASUser>_R
-                   ->_R <GHC.MVar.MVar AS.Types.ServerState>_R
+                  (<GHC.MVar.MVar AS.Types.ServerState>_R
                    ->_R <AS.Types.ASMessage>_R
                    ->_R Sym (GHC.Types.NTCo:IO[0] <()>_R)) -}
-3bc5e2bba039d850e2e7ed2085ff524d
-  handleNew1 :: AS.Types.ASUser
-                -> GHC.MVar.MVar AS.Types.ServerState
+d073e90059948d627c47284b5c5ddc42
+  handleNew1 :: GHC.MVar.MVar AS.Types.ServerState
                 -> AS.Types.ASMessage
                 -> GHC.Prim.State# GHC.Prim.RealWorld
                 -> (# GHC.Prim.State# GHC.Prim.RealWorld, () #)
-    {- Arity: 4,
-       Strictness: <L,A><S,1*U(U)><S(LLLS),1*U(1*U,1*U,A,1*U)><L,U>,
+    {- Arity: 3,
+       Strictness: <S,1*U(U)><S(LLLS),1*U(1*U,1*U,A,1*U)><L,U>,
        Inline: INLINE[0],
-       Unfolding: InlineRule (4, True, False)
-                  (\ w :: AS.Types.ASUser
-                     w1 :: GHC.MVar.MVar AS.Types.ServerState
-                     w2 :: AS.Types.ASMessage
-                     w3 :: GHC.Prim.State# GHC.Prim.RealWorld ->
-                   case w1 of ww { GHC.MVar.MVar ww1 ->
-                   case w2 of ww2 { AS.Types.Message ww3 ww4 ww5 ww6 ->
-                   AS.Handler.$wa11 ww1 ww3 ww4 ww6 w3 } }) -}
+       Unfolding: InlineRule (3, True, False)
+                  (\ w :: GHC.MVar.MVar AS.Types.ServerState
+                     w1 :: AS.Types.ASMessage
+                     w2 :: GHC.Prim.State# GHC.Prim.RealWorld ->
+                   case w of ww { GHC.MVar.MVar ww1 ->
+                   case w1 of ww2 { AS.Types.Message ww3 ww4 ww5 ww6 ->
+                   AS.Handler.$wa10 ww1 ww3 ww4 ww6 w2 } }) -}
 18cc01b0f73aebad3e7cdfe991c0e0f9
   handleNew2 :: GHC.Types.IO () {- Strictness: b -}
-ab4e45d1e18f16061e9753f3e3ccd0e6
+df93443dfe8a4f8c7297cebbe96684ce
   handleOpen :: AS.Types.ASUser
                 -> GHC.MVar.MVar AS.Types.ServerState
                 -> AS.Types.ASMessage
@@ -1561,7 +1532,7 @@ ab4e45d1e18f16061e9753f3e3ccd0e6
                    ->_R <GHC.MVar.MVar AS.Types.ServerState>_R
                    ->_R <AS.Types.ASMessage>_R
                    ->_R Sym (GHC.Types.NTCo:IO[0] <()>_R)) -}
-058974c183698f6404b9d476de0bce96
+b350ccd59f5ea97ffaa2f2339ab87677
   handleOpen1 :: AS.Types.ASUser
                  -> GHC.MVar.MVar AS.Types.ServerState
                  -> AS.Types.ASMessage
@@ -1576,7 +1547,7 @@ ab4e45d1e18f16061e9753f3e3ccd0e6
                      w2 :: AS.Types.ASMessage
                      w3 :: GHC.Prim.State# GHC.Prim.RealWorld ->
                    case w2 of ww { AS.Types.Message ww1 ww2 ww3 ww4 ->
-                   AS.Handler.$wa12 w w1 ww4 w3 }) -}
+                   AS.Handler.$wa11 w w1 ww4 w3 }) -}
 90d1b0cb0a882d2d8d323f7ed1d69e45
   handleOpen2 :: (GHC.Types.Int, GHC.Types.Int)
     {- HasNoCafRefs, Strictness: m,
@@ -1586,39 +1557,40 @@ e6b9bc8f96e5ed0b54c55024f97f2623
     {- HasNoCafRefs, Strictness: m, Unfolding: (GHC.Types.I# (-1)) -}
 2691e0b9a4e8cfc7516bde9fe5d246b4
   handleOpen4 :: GHC.Types.IO () {- Strictness: b -}
-23f8784e096ef5fa3b2cbda1089b53ee
-  handleRedo :: AS.Types.ASUser
+938a30225383fc0200925d8b981dde2a
+  handleRedo :: AS.Types.ASUserId
                 -> GHC.MVar.MVar AS.Types.ServerState
                 -> GHC.Types.IO ()
-    {- Arity: 3,
-       Strictness: <L,1*U(1*U(U,U,U),1*U(1*H,1*H,1*H,C1(C1(U(U,U))),A),A)><S,1*U(U)><L,U>,
+    {- Arity: 3, Strictness: <L,1*U><S,1*U(U)><L,U>,
        Unfolding: InlineRule (0, True, True)
                   AS.Handler.handleRedo1
                     `cast`
-                  (<AS.Types.ASUser>_R
+                  (<AS.Types.ASUserId>_R
                    ->_R <GHC.MVar.MVar AS.Types.ServerState>_R
                    ->_R Sym (GHC.Types.NTCo:IO[0] <()>_R)) -}
-8cc20de6480e3999690043a04c534974
-  handleRedo1 :: AS.Types.ASUser
+6a323a0c623e316124714d5e7fc49d4d
+  handleRedo1 :: AS.Types.ASUserId
                  -> GHC.MVar.MVar AS.Types.ServerState
                  -> GHC.Prim.State# GHC.Prim.RealWorld
                  -> (# GHC.Prim.State# GHC.Prim.RealWorld, () #)
-    {- Arity: 3,
-       Strictness: <L,1*U(1*U(U,U,U),1*U(1*H,1*H,1*H,C1(C1(U(U,U))),A),A)><S,1*U(U)><L,U>,
-       Inline: INLINE[0],
+    {- Arity: 3, Strictness: <L,1*U><S,1*U(U)><L,U>, Inline: INLINE[0],
        Unfolding: InlineRule (3, True, False)
-                  (\ w :: AS.Types.ASUser
+                  (\ w :: AS.Types.ASUserId
                      w1 :: GHC.MVar.MVar AS.Types.ServerState
                      w2 :: GHC.Prim.State# GHC.Prim.RealWorld ->
                    case w1 of ww { GHC.MVar.MVar ww1 ->
-                   AS.Handler.$wa13 w ww1 w2 }) -}
-06a743a7c84938ddce5c715bb841fae8
-  handleRedo2 :: AS.Types.ASResult
-    {- Unfolding: (AS.Types.Failure AS.Handler.handleRedo3) -}
-b1483d6f8641e390aa21fd0e3047bdb6
-  handleRedo3 :: [GHC.Types.Char]
+                   AS.Handler.$wa12 w ww1 w2 }) -}
+6cd3ae2f19d22385df5ff78575cf23f7
+  handleRedo2 :: [GHC.Types.Char]
+    {- Unfolding: (GHC.CString.unpackCString#
+                     "Server processed redo"#) -}
+91c48ab1af9c1b5c818d9bf9a4f73ab0
+  handleRedo3 :: AS.Types.ASResult
+    {- Unfolding: (AS.Types.Failure AS.Handler.handleRedo4) -}
+5d733a7825a5e76d2db4282635a79ba4
+  handleRedo4 :: [GHC.Types.Char]
     {- Unfolding: (GHC.CString.unpackCString# "Too far forwards"#) -}
-38c2c3b74848284715d94c7ed41741a5
+8ea62d9777643877d1ff1a3dc44cc443
   handleRemoveTags :: AS.Types.ASUser
                       -> GHC.MVar.MVar AS.Types.ServerState
                       -> AS.Types.ASMessage
@@ -1632,7 +1604,7 @@ b1483d6f8641e390aa21fd0e3047bdb6
                    ->_R <GHC.MVar.MVar AS.Types.ServerState>_R
                    ->_R <AS.Types.ASMessage>_R
                    ->_R Sym (GHC.Types.NTCo:IO[0] <()>_R)) -}
-b7e42cd5b0bc2bc5b74500b3bea81632
+646b3a235851f040f141873847d9b31e
   handleRemoveTags1 :: AS.Types.ASUser
                        -> GHC.MVar.MVar AS.Types.ServerState
                        -> AS.Types.ASMessage
@@ -1647,73 +1619,70 @@ b7e42cd5b0bc2bc5b74500b3bea81632
                      w2 :: AS.Types.ASMessage
                      w3 :: GHC.Prim.State# GHC.Prim.RealWorld ->
                    case w2 of ww { AS.Types.Message ww1 ww2 ww3 ww4 ->
-                   AS.Handler.$wa14 w w1 ww4 w3 }) -}
+                   AS.Handler.$wa13 w w1 ww4 w3 }) -}
 2cc60264b33545da82bdbd0dfe73b4fb
   handleRemoveTags2 :: GHC.Types.IO () {- Strictness: b -}
-5efce18927d414e10308d956fd480d1d
-  handleUndo :: AS.Types.ASUser
+b6188ef9b75fe04bbe701a6b73b7b307
+  handleUndo :: AS.Types.ASUserId
                 -> GHC.MVar.MVar AS.Types.ServerState
                 -> GHC.Types.IO ()
-    {- Arity: 3,
-       Strictness: <L,1*U(1*U(U,U,U),1*U(1*H,1*H,1*H,C1(C1(U(U,U))),A),A)><S,1*U(U)><L,U>,
+    {- Arity: 3, Strictness: <L,1*U><S,1*U(U)><L,U>,
        Unfolding: InlineRule (0, True, True)
                   AS.Handler.handleUndo1
                     `cast`
-                  (<AS.Types.ASUser>_R
+                  (<AS.Types.ASUserId>_R
                    ->_R <GHC.MVar.MVar AS.Types.ServerState>_R
                    ->_R Sym (GHC.Types.NTCo:IO[0] <()>_R)) -}
-cb3827ac809a4d402ba833db93b424ff
-  handleUndo1 :: AS.Types.ASUser
+a21bf27884a0f13cd27e5f4bcbd5b423
+  handleUndo1 :: AS.Types.ASUserId
                  -> GHC.MVar.MVar AS.Types.ServerState
                  -> GHC.Prim.State# GHC.Prim.RealWorld
                  -> (# GHC.Prim.State# GHC.Prim.RealWorld, () #)
-    {- Arity: 3,
-       Strictness: <L,1*U(1*U(U,U,U),1*U(1*H,1*H,1*H,C1(C1(U(U,U))),A),A)><S,1*U(U)><L,U>,
-       Inline: INLINE[0],
+    {- Arity: 3, Strictness: <L,1*U><S,1*U(U)><L,U>, Inline: INLINE[0],
        Unfolding: InlineRule (3, True, False)
-                  (\ w :: AS.Types.ASUser
+                  (\ w :: AS.Types.ASUserId
                      w1 :: GHC.MVar.MVar AS.Types.ServerState
                      w2 :: GHC.Prim.State# GHC.Prim.RealWorld ->
                    case w1 of ww { GHC.MVar.MVar ww1 ->
-                   AS.Handler.$wa16 w ww1 w2 }) -}
-48009e784ff3d2b99e35617dd1fa35fc
-  handleUndo2 :: AS.Types.ASResult
-    {- Unfolding: (AS.Types.Failure AS.Handler.handleUndo3) -}
-1bd00387eccce207f88aec54a75b79f0
-  handleUndo3 :: [GHC.Types.Char]
+                   AS.Handler.$wa15 w ww1 w2 }) -}
+c2dfa9ab552213b077a76a4df5b23ba1
+  handleUndo2 :: [GHC.Types.Char]
+    {- Unfolding: (GHC.CString.unpackCString#
+                     "Server processed undo"#) -}
+564af25f9afcef1349734b22a9810b64
+  handleUndo3 :: AS.Types.ASResult
+    {- Unfolding: (AS.Types.Failure AS.Handler.handleUndo4) -}
+6285473ff0a54ff639eb65cd97276aa4
+  handleUndo4 :: [GHC.Types.Char]
     {- Unfolding: (GHC.CString.unpackCString# "Too far back"#) -}
-986acd2125f114fadd807c92222ca1f2
-  handleUpdateWindow :: AS.Types.ASUser
-                        -> GHC.MVar.MVar AS.Types.ServerState
+d5a64852d5e18e03ea42e86236e9de4e
+  handleUpdateWindow :: GHC.MVar.MVar AS.Types.ServerState
                         -> AS.Types.ASMessage
                         -> GHC.Types.IO ()
-    {- Arity: 4,
-       Strictness: <L,1*U(1*U(U,U,U),A,A)><S,1*U(U)><S(LLLS),1*U(A,A,A,1*U)><L,U>,
+    {- Arity: 3,
+       Strictness: <S,1*U(U)><S(LLLS),1*U(U(U,U,U),A,A,1*U)><L,U>,
        Unfolding: InlineRule (0, True, True)
                   AS.Handler.handleUpdateWindow1
                     `cast`
-                  (<AS.Types.ASUser>_R
-                   ->_R <GHC.MVar.MVar AS.Types.ServerState>_R
+                  (<GHC.MVar.MVar AS.Types.ServerState>_R
                    ->_R <AS.Types.ASMessage>_R
                    ->_R Sym (GHC.Types.NTCo:IO[0] <()>_R)) -}
-c99174df7cdbf7b03b7946880dcf3787
-  handleUpdateWindow1 :: AS.Types.ASUser
-                         -> GHC.MVar.MVar AS.Types.ServerState
+330d0bc4a71a7794151580576e86d9a9
+  handleUpdateWindow1 :: GHC.MVar.MVar AS.Types.ServerState
                          -> AS.Types.ASMessage
                          -> GHC.Prim.State# GHC.Prim.RealWorld
                          -> (# GHC.Prim.State# GHC.Prim.RealWorld, () #)
-    {- Arity: 4,
-       Strictness: <L,1*U(1*U(U,U,U),A,A)><S,1*U(U)><S(LLLS),1*U(A,A,A,1*U)><L,U>,
+    {- Arity: 3,
+       Strictness: <S,1*U(U)><S(LLLS),1*U(U(U,U,U),A,A,1*U)><L,U>,
        Inline: INLINE[0],
-       Unfolding: InlineRule (4, True, False)
-                  (\ w :: AS.Types.ASUser
-                     w1 :: GHC.MVar.MVar AS.Types.ServerState
-                     w2 :: AS.Types.ASMessage
-                     w3 :: GHC.Prim.State# GHC.Prim.RealWorld ->
-                   case w1 of ww { GHC.MVar.MVar ww1 ->
-                   case w2 of ww2 { AS.Types.Message ww3 ww4 ww5 ww6 ->
-                   AS.Handler.$wa17 w ww1 ww6 w3 } }) -}
-035412b975ade9697a35ffd0bf9d036e
+       Unfolding: InlineRule (3, True, False)
+                  (\ w :: GHC.MVar.MVar AS.Types.ServerState
+                     w1 :: AS.Types.ASMessage
+                     w2 :: GHC.Prim.State# GHC.Prim.RealWorld ->
+                   case w of ww { GHC.MVar.MVar ww1 ->
+                   case w1 of ww2 { AS.Types.Message ww3 ww4 ww5 ww6 ->
+                   AS.Handler.$wa16 ww1 ww3 ww6 w2 } }) -}
+fece0c4a54bade7d329667b0dd89755d
   processAddTag :: AS.Types.ASUser
                    -> GHC.MVar.MVar AS.Types.ServerState
                    -> AS.Types.ASLocation
@@ -1731,7 +1700,7 @@ c99174df7cdbf7b03b7946880dcf3787
                    ->_R <AS.Types.ASMessage>_R
                    ->_R <AS.Types.ASCellTag>_R
                    ->_R Sym (GHC.Types.NTCo:IO[0] <()>_R)) -}
-8d8b7bec699d76862e0ca1ffe299589c
+bbf0f370736204b3cfefc9087773b085
   processAddTag1 :: AS.Types.ASUser
                     -> GHC.MVar.MVar AS.Types.ServerState
                     -> AS.Types.ASLocation
@@ -1751,7 +1720,7 @@ c99174df7cdbf7b03b7946880dcf3787
                      w5 :: GHC.Prim.State# GHC.Prim.RealWorld ->
                    case w1 of ww { GHC.MVar.MVar ww1 ->
                    AS.Handler.$wa3 ww1 w2 w3 w4 w5 }) -}
-8cb90d3c74e5dc7030b59a5c9ddc024f
+41ad28375d663f7592e5d79b7893734a
   processRemoveTag :: AS.Types.ASLocation
                       -> GHC.MVar.MVar AS.Types.ServerState
                       -> AS.Types.ASCellTag
@@ -1764,7 +1733,7 @@ c99174df7cdbf7b03b7946880dcf3787
                    ->_R <GHC.MVar.MVar AS.Types.ServerState>_R
                    ->_R <AS.Types.ASCellTag>_R
                    ->_R Sym (GHC.Types.NTCo:IO[0] <()>_R)) -}
-7639589482c4a382aabd0ff45b1ab285
+3173484c970fcafe1a564589f977fa95
   processRemoveTag1 :: AS.Types.ASLocation
                        -> GHC.MVar.MVar AS.Types.ServerState
                        -> AS.Types.ASCellTag
@@ -1778,19 +1747,16 @@ c99174df7cdbf7b03b7946880dcf3787
                      w2 :: AS.Types.ASCellTag
                      w3 :: GHC.Prim.State# GHC.Prim.RealWorld ->
                    case w1 of ww { GHC.MVar.MVar ww1 ->
-                   AS.Handler.$wa15 w ww1 w2 w3 }) -}
-1652a13624e963535e833c64c9302698
-  sendBroadcastFiltered :: AS.Types.ASUser
-                           -> GHC.MVar.MVar AS.Types.ServerState
+                   AS.Handler.$wa14 w ww1 w2 w3 }) -}
+cef8932a8056dba70e84eb6df1e02ef5
+  sendBroadcastFiltered :: GHC.MVar.MVar AS.Types.ServerState
                            -> AS.Types.ASMessage
                            -> GHC.Types.IO ()
-    {- Arity: 4,
-       Strictness: <L,1*U(1*U(U,U,U),1*U(1*H,1*H,1*H,C1(C1(U(U,U))),A),A)><L,1*U(U)><S(LLSL),1*U(A,U,U,U)><L,U>,
+    {- Arity: 3, Strictness: <S,1*U(U)><L,1*U(1*U,1*U,1*U,1*U)><L,U>,
        Unfolding: InlineRule (0, True, True)
                   AS.Handler.handleEval3
                     `cast`
-                  (<AS.Types.ASUser>_R
-                   ->_R <GHC.MVar.MVar AS.Types.ServerState>_R
+                  (<GHC.MVar.MVar AS.Types.ServerState>_R
                    ->_R <AS.Types.ASMessage>_R
                    ->_R Sym (GHC.Types.NTCo:IO[0] <()>_R)) -}
 d1d4133e0a27086d847076038b04b0d3

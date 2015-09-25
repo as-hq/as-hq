@@ -36,33 +36,34 @@ import Database.Redis (Connection)
 -- | Regular eval route
 
 -- | Go through the regular eval route
-runDispatchCycle :: ASUser -> MVar ServerState -> ASMessage -> IO ASMessage
-runDispatchCycle user state msg@(Message _ _ _ (PayloadC c')) = do 
+runDispatchCycle :: MVar ServerState -> ASMessage -> IO ASMessage
+runDispatchCycle state msg@(Message _ _ _ (PayloadC c')) = do 
   -- Apply middlewares
+  let uid = messageUserId msg
   putStrLn $ "STARTING DISPATCH CYCLE " ++ (show c')
   c <- EM.evalMiddleware c'
   conn <- fmap dbConn (readMVar state)
   update <- updateCell conn c 
   case update of 
-    Left e -> return $ U.getCellMessage user (Left e)
+    Left e -> return $ U.getCellMessage uid (Left e)
     Right () -> do 
       d <- getDescendants conn c 
       case d of -- for example, error if DB is locked
-        Left de -> return $ U.getCellMessage user (Left de)
+        Left de -> return $ U.getCellMessage uid (Left de)
         Right desc -> do 
           ancResult <- G.getImmediateAncestors $ map cellLocation desc
           case ancResult of 
-            (Left e') -> return $ U.getCellMessage user (Left e') 
+            (Left e') -> return $ U.getCellMessage uid (Left e') 
             (Right ancLocs) -> do
               anc <- fmap U.fromJustList $ DB.getCells conn ancLocs
               res <- propagate conn anc desc 
               case res of 
-                Left e' -> return $ U.getCellMessage user (Left e')
+                Left e' -> return $ U.getCellMessage uid (Left e')
                 Right cells' -> do
                   -- Apply endwares
-                  cells <- (EE.evalEndware user state msg) cells'
-                  DB.updateAfterEval conn user c' desc cells -- does set cells and commit
-                  return $ U.getCellMessage user (Right cells)
+                  cells <- (EE.evalEndware state msg) cells'
+                  DB.updateAfterEval conn uid c' desc cells -- does set cells and commit
+                  return $ U.getCellMessage uid (Right cells)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Eval building blocks

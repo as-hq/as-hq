@@ -27,14 +27,13 @@ import AS.Parsing.Out as O
 
 broadcast :: MVar ServerState -> ASMessage -> IO ()
 broadcast state message = do
-  (State u _ _) <- readMVar state
-  forM_ u $ \(UserClient _ conn _) -> WS.sendTextData conn (encode message)
+  (State ucs _ _) <- readMVar state
+  forM_ ucs $ \(UserClient _ conn _) -> WS.sendTextData conn (encode message)
 
-sendBroadcastFiltered :: ASUser -> MVar ServerState -> ASMessage -> IO ()
-sendBroadcastFiltered user state msg@(Message _ _ (Failure e) _) = sendToOriginalUser user msg  
-sendBroadcastFiltered user state msg = liftIO $ do 
-	(State allUsers _ _) <- readMVar state
-	broadcastFiltered (updateMessageUser (userId user) msg) allUsers
+sendBroadcastFiltered :: MVar ServerState -> ASMessage -> IO ()
+sendBroadcastFiltered state msg = liftIO $ do 
+	(State ucs _ _) <- readMVar state
+	broadcastFiltered msg ucs
 
 -- | Given a message (commit, cells, etc), only send (to each user) the cells in their viewing window
 broadcastFiltered :: ASMessage -> [ASUser] -> IO ()
@@ -66,17 +65,28 @@ sendToOriginalUser user msg = WS.sendTextData (userConn user) (encode (U.updateM
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Open/close/import/new/window handlers
 
-handleNew :: ASUser -> MVar ServerState -> ASMessage -> IO ()
-handleNew user state (Message uid a _ p@(PayloadWorkbookSheets (wbs:[]))) = do
+handleAcknowledge :: ASUser -> IO ()
+handleAcknowledge user = WS.sendTextData (userConn user) ("ACK" :: Text)
+
+handleNew :: MVar ServerState -> ASMessage -> IO ()
+handleNew state (Message uid a _ p@(PayloadWorkbookSheets (wbs:[]))) = do
   conn <- fmap dbConn $ readMVar state
   wbs' <- DB.createWorkbookSheet conn wbs
   broadcast state (Message uid a Success (PayloadWorkbookSheets [wbs']))
-handleNew user state (Message uid a _(PayloadWB wb)) = do
+handleNew state (Message uid a _(PayloadWB wb)) = do
   conn <- fmap dbConn $ readMVar state 
   wb' <- DB.createWorkbook conn (workbookSheets wb)
   broadcast state $ Message uid a Success (PayloadWB wb')
   return () -- TODO determine whether users should be notified
 
+-- do these modifications upon returning a message to send. modifications = changes to client that connected. 
+-- but then need to define 
+-- or do them in place. but then you have to pass the user in. 
+-- conceptually: handleOpen run on a dameon client should die. 
+-- handleMessage fundamentally relies on the client being passed in, because a number of operations...
+-- wait. handleMessage just DOESN'T MAKE SENSE if the client being "passed in" is actually not a UserClient. 
+-- And the only extent to which that matters is... ok. 
+-- toUserClient : 
 handleOpen :: ASUser -> MVar ServerState -> ASMessage -> IO ()
 handleOpen user state (Message _ _ _ (PayloadS (Sheet sheetid _ _))) = Users.modifyUser makeNewWindow user state 
   where makeNewWindow (UserClient uid conn windows) = UserClient uid conn ((Window sheetid (-1,-1) (-1,-1)):windows)
@@ -85,37 +95,34 @@ handleClose :: ASUser -> MVar ServerState -> ASMessage -> IO ()
 handleClose user state (Message _ _ _ (PayloadS (Sheet sheetid _ _))) = Users.modifyUser closeWindow user state
   where closeWindow (UserClient uid conn windows) = UserClient uid conn (filter (((/=) sheetid) . windowSheetId) windows)
 
-handleUpdateWindow :: ASUser -> MVar ServerState -> ASMessage -> IO ()
-handleUpdateWindow user state (Message uid _ _ (PayloadW window)) = do
+-- ::ALEX:: point of user' ?? 
+handleUpdateWindow :: MVar ServerState -> ASMessage -> IO ()
+handleUpdateWindow state (Message uid _ _ (PayloadW window)) = do
   curState <- readMVar state
-  let (Just user') = Users.getUserById (userId user) curState
+  let (Just user') = Users.getUserById uid curState
   let maybeWindow = U.getWindow (windowSheetId window) user' 
-  -- printTimed $ "Current user' windows before update: " ++ (show $ windows user')
   case maybeWindow of 
     Nothing -> putStrLn "ERROR: could not update nothing window" >> return ()
     (Just oldWindow) -> do
       let locs = U.getScrolledLocs oldWindow window 
-      -- printTimed $ "Sending locs: " ++ (show locs)
+      printTimed $ "Sending locs: " ++ (show locs)
       mcells <- DB.getCells (dbConn curState) locs
       let msg = U.getDBCellMessage user' locs mcells
-      catch (sendToOriginalUser user' msg) (\e -> putStrLn $ "error" ++ (show $ (e :: SomeException)))
-      -- sendToOriginalUser user' msg
+      -- catch (sendToOriginalUser user' msg) (\e -> putStrLn $ "error" ++ (show $ (e :: SomeException)))
+      sendToOriginalUser user' msg
       Users.modifyUser (U.updateWindow window) user' state
-      --readState' <- readMVar state
-      --let (Just user'') = Users.getUserById (userId user) readState'
-      --printTimed $ "Current user' windows after update: " ++ (show $ windows user'')
 
-handleImport :: ASUser -> MVar ServerState -> ASMessage -> IO ()
-handleImport user state msg = return () -- TODO 
+handleImport :: MVar ServerState -> ASMessage -> IO ()
+handleImport state msg = return () -- TODO 
 
-----msg------------------------------------------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Eval handler 
 
-handleEval :: ASUser -> MVar ServerState -> ASMessage -> IO ()
-handleEval user state msg  = do 
+handleEval :: MVar ServerState -> ASMessage -> IO ()
+handleEval state msg  = do 
   putStrLn $ "IN EVAL HANDLER"
-  msg' <- DP.runDispatchCycle user state msg
-  catch (sendBroadcastFiltered user state msg') (\e -> putStrLn $ "error" ++ (show $ (e :: SomeException)))
+  msg' <- DP.runDispatchCycle state msg
+  catch (sendBroadcastFiltered state msg') (\e -> putStrLn $ "error" ++ (show $ (e :: SomeException)))
 
 handleEvalRepl :: ASUser -> MVar ServerState -> ASMessage -> IO ()
 handleEvalRepl user state msg = do
@@ -153,13 +160,13 @@ handleDelete user state p@(PayloadL loc) = do
   conn <- fmap dbConn $ readMVar state
   DB.deleteLocs conn [loc]
   let msg = Message (userId user) Delete Success p
-  sendBroadcastFiltered user state msg
+  sendBroadcastFiltered state msg
   return () 
 handleDelete user state p@(PayloadLL locs) = do 
   conn <- fmap dbConn $ readMVar state
   DB.deleteLocs conn locs
   let msg = Message (userId user) Delete Success p
-  sendBroadcastFiltered user state msg
+  sendBroadcastFiltered state msg
   return () 
 handleDelete user state p@(PayloadWorkbookSheets (wbs:[])) = do
   conn <- fmap dbConn $ readMVar state
@@ -171,29 +178,31 @@ handleDelete user state p@(PayloadWB workbook) = do
   conn <- fmap dbConn $ readMVar state
   DB.deleteWorkbook conn (workbookName workbook) 
   let msg = Message (userId user) Delete Success p
-  sendBroadcastFiltered user state msg
+  sendBroadcastFiltered state msg
   return () 
 
-handleClear :: ASUser -> MVar ServerState -> IO ()
-handleClear user state = sendBroadcastFiltered user state (failureMessage "")
+handleClear :: MVar ServerState -> IO ()
+handleClear state = sendBroadcastFiltered state (failureMessage "")
 
-handleUndo :: ASUser -> MVar ServerState -> IO ()
-handleUndo user state = do 
+handleUndo :: ASUserId -> MVar ServerState -> IO ()
+handleUndo userId state = do 
   conn <- fmap dbConn $ readMVar state
   commit <- DB.undo conn
   msg <- case commit of 
     Nothing -> return $ failureMessage "Too far back"
-    (Just c) -> return $ Message (userId user) Undo Success (PayloadCommit c)
-  sendBroadcastFiltered user state msg
+    (Just c) -> return $ Message userId Undo Success (PayloadCommit c)
+  sendBroadcastFiltered state msg
+  printTimed "Server processed undo"
 
-handleRedo :: ASUser -> MVar ServerState -> IO ()
-handleRedo user state = do 
+handleRedo :: ASUserId -> MVar ServerState -> IO ()
+handleRedo userId state = do 
   curState <- readMVar state
   commit <- DB.redo (dbConn curState)
   msg <- case commit of 
 		Nothing -> return $ failureMessage "Too far forwards"
-		(Just c) -> return $ Message (userId user) Redo Success (PayloadCommit c)
-  sendBroadcastFiltered user state msg
+		(Just c) -> return $ Message userId Redo Success (PayloadCommit c)
+  sendBroadcastFiltered state msg
+  printTimed "Server processed redo"
 
 -- parse deps
 -- check that all locations exist, else throw error
@@ -223,7 +232,7 @@ handleCopy user state (PayloadLL (from:to:[])) = do -- this is a list of 2 locat
       DB.setCells conn toCells
       DB.updateDAG conn $ zip shiftedDeps toLocs
       let msg = Message (userId user) Update Success (PayloadCL toCells)
-      sendBroadcastFiltered user state msg
+      sendBroadcastFiltered state msg
     else do
       let msg = Message (userId user) Update (Failure $ generateErrorMessage CopyNonexistentDependencies) (PayloadE CopyNonexistentDependencies)
       sendToOriginalUser user msg
@@ -254,7 +263,7 @@ processAddTag user state loc msg t = do
         Nothing -> return ()
         Just cell -> do 
           let evalMsg = Message (messageUserId msg) Evaluate NoResult (PayloadC cell)
-          DM.modifyDaemon user state s loc evalMsg
+          DM.modifyDaemon state s loc evalMsg
     otherwise -> return () -- TODO: implement the rest
 
 processRemoveTag :: ASLocation -> MVar ServerState -> ASCellTag -> IO ()
@@ -272,13 +281,13 @@ processRemoveTag loc state t = do
 
 handleAddTags :: ASUser -> MVar ServerState -> ASMessage -> IO ()
 handleAddTags user state msg@(Message uid _ _ (PayloadTags ts loc)) = do 
-  _ <- (mapM_ (processAddTag user state loc msg) ts) 
+  mapM_ (processAddTag user state loc msg) ts
   let sendMsg = Message uid AddTags Success (PayloadN ())
   sendToOriginalUser user sendMsg
 
 handleRemoveTags :: ASUser -> MVar ServerState -> ASMessage -> IO ()
 handleRemoveTags user state msg@(Message uid _ _ (PayloadTags ts loc)) = do 
-  _ <- (mapM_ (processRemoveTag loc state) ts) 
+  mapM_ (processRemoveTag loc state) ts
   let sendMsg = Message uid RemoveTags Success (PayloadN ())
   sendToOriginalUser user sendMsg
 
