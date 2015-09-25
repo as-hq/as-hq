@@ -42,7 +42,6 @@ broadcastFiltered msg@(Message uid _ _ (PayloadCL cells)) users = mapM_ (sendCel
     sendCells :: [ASCell] -> ASUser -> IO ()
     sendCells cells user = do 
       let cells' = intersectViewingWindows cells (windows user)
-      --putStrLn $ "Sending msg to client: " ++ (show msg)
       WS.sendTextData (userConn user) (encode msg)
 
 broadcastFiltered msg@(Message uid a r (PayloadLL locs)) users = mapM_ (sendLocs locs) users 
@@ -263,7 +262,8 @@ processAddTag user state loc msg t = do
         Nothing -> return ()
         Just cell -> do 
           let evalMsg = Message (messageUserId msg) Evaluate NoResult (PayloadC cell)
-          DM.modifyDaemon state s loc evalMsg
+          putStrLn "\n\n\nMADE IT HERE!!!!!!!!\n\n\n"
+          DM.modifyDaemon state s loc evalMsg -- ::ALEX:: make this clearer
     otherwise -> return () -- TODO: implement the rest
 
 processRemoveTag :: ASLocation -> MVar ServerState -> ASCellTag -> IO ()
@@ -281,6 +281,7 @@ processRemoveTag loc state t = do
 
 handleAddTags :: ASUser -> MVar ServerState -> ASMessage -> IO ()
 handleAddTags user state msg@(Message uid _ _ (PayloadTags ts loc)) = do 
+  putStrLn "\n\n\nMADE IT INTO handleAddTags!!!!!!!!\n\n\n"
   mapM_ (processAddTag user state loc msg) ts
   let sendMsg = Message uid AddTags Success (PayloadN ())
   sendToOriginalUser user sendMsg
@@ -290,5 +291,3 @@ handleRemoveTags user state msg@(Message uid _ _ (PayloadTags ts loc)) = do
   mapM_ (processRemoveTag loc state) ts
   let sendMsg = Message uid RemoveTags Success (PayloadN ())
   sendToOriginalUser user sendMsg
-
-

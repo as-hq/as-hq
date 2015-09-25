@@ -46,13 +46,13 @@ instance Client ASUser where
     Undo         -> H.handleUndo (userId user) state
     Redo         -> H.handleRedo (userId user) state
     Copy         -> H.handleCopy user state (payload message)
-    -- Undo         -> putStrLn "\n\n\nHI!!!!\n\n\n" >> H.handleAddTags user state (Message (userId user) AddTags (NoResult) (PayloadTags [StreamTag (Stream NoSource 1000)] (Index (T.pack "TEST_SHEET_ID2") (1,1))))
     CopyForced   -> H.handleCopyForced user state (payload message)
     AddTags      -> H.handleAddTags user state message
     RemoveTags   -> H.handleRemoveTags user state message
+-- Undo         -> putStrLn "\n\n\nHI!!!!\n\n\n" >> H.handleAddTags user state (Message (userId user) AddTags (NoResult) (PayloadTags [StreamTag (Stream NoSource 5000)] (Index (T.pack "TEST_SHEET_ID2") (1,1)))) <-- to test streaming when frontend hasn't been implemented yet
 
 -------------------------------------------------------------------------------------------------------------------------
--- | ASDaemon is a client
+-- ASDaemon is a client
 
 instance Client ASDaemon where 
   conn = daemonConn
