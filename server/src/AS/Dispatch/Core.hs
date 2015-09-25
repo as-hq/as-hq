@@ -33,7 +33,7 @@ import qualified Network.WebSockets as WS
 import Database.Redis (Connection)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
--- | Regular eval route
+-- Regular eval route
 
 -- | Go through the regular eval route
 runDispatchCycle :: MVar ServerState -> ASMessage -> IO ASMessage
@@ -66,7 +66,7 @@ runDispatchCycle state msg@(Message _ _ _ (PayloadC c')) = do
                   return $ U.getCellMessage uid (Right cells)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
--- | Eval building blocks
+-- Eval building blocks
 
 -- | Takes a cell and returns an error if it tries to access a non-existant cell
 -- | Otherwise, it returns all of the immediate ancestors (used to make the lookup map)
@@ -117,7 +117,7 @@ propagate conn anc dec = do
   return $ Right result
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
--- | Eval helpers
+-- Eval helpers
 
 evalChain :: Connection -> M.Map ASLocation ASValue -> [ASCell] -> IO [ASCell]
 evalChain _ _ [] = return []

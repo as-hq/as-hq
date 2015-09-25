@@ -20,7 +20,7 @@ import Control.Monad
 import Control.Monad.Trans
 
 ----------------------------------------------------------------------------------------------------------------------
--- | Settings
+-- Settings
 
 dagChunkSize :: Int
 dagChunkSize = 1000
@@ -37,7 +37,7 @@ cInfo = ConnInfo
     }
 
 ----------------------------------------------------------------------------------------------------------------------
--- | ByteString and Maybe conversions  
+-- ByteString and Maybe conversions  
 
 bStrToASExpression :: Maybe B.ByteString -> Maybe ASExpression
 bStrToASExpression (Just b) = Just (read (B.unpack b) :: ASExpression)
@@ -84,7 +84,7 @@ bStrToWorkbook (Just b) = Just (read (B.unpack b) :: ASWorkbook)
 bStrToWorkbook Nothing = Nothing
 
 ----------------------------------------------------------------------------------------------------------------------
--- | Redis key utilities
+-- Redis key utilities
 
 tuple3 :: a -> b -> c -> (a,b,c)
 tuple3 a b c = (a,b,c)
@@ -130,7 +130,7 @@ getUniquePrefixedName pref strs = pref ++ (show idx)
       _ -> (L.maximum idxs) + 1
 
 ----------------------------------------------------------------------------------------------------------------------
--- | Private functions
+-- Private functions
 
 getCellByKeyRedis :: B.ByteString -> Redis (Maybe ASCell)
 getCellByKeyRedis key = do

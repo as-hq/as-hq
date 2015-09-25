@@ -23,12 +23,12 @@ import AS.Parsing.Out as O
 -- | Handlers take message payloads and send the response to the client(s)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
--- | Sending message to client(s)
+-- Sending message to client(s)
 
 broadcast :: MVar ServerState -> ASMessage -> IO ()
 broadcast state message = do
   (State ucs _ _) <- readMVar state
-  forM_ ucs $ \(UserClient _ conn _) -> WS.sendTextData conn (encode message)
+  forM_ ucs $ \(UserClient _ conn _) -> U.sendMessage message conn
 
 sendBroadcastFiltered :: MVar ServerState -> ASMessage -> IO ()
 sendBroadcastFiltered state msg = liftIO $ do 
@@ -42,7 +42,7 @@ broadcastFiltered msg@(Message uid _ _ (PayloadCL cells)) users = mapM_ (sendCel
     sendCells :: [ASCell] -> ASUser -> IO ()
     sendCells cells user = do 
       let cells' = intersectViewingWindows cells (windows user)
-      WS.sendTextData (userConn user) (encode msg)
+      U.sendMessage msg (userConn user)
 
 broadcastFiltered msg@(Message uid a r (PayloadLL locs)) users = mapM_ (sendLocs locs) users 
   where
@@ -50,19 +50,20 @@ broadcastFiltered msg@(Message uid a r (PayloadLL locs)) users = mapM_ (sendLocs
     sendLocs locs user = do 
       let locs' = intersectViewingWindowsLocs locs (windows user)
       --putStrLn $ "Sending msg to client: " ++ (show msg)
-      WS.sendTextData (userConn user) (encode msg)
+      U.sendMessage msg (userConn user)
+
 broadcastFiltered msg@(Message uid act res (PayloadCommit c)) users = mapM_ (sendCommit c) users
   where
     sendCommit :: ASCommit -> ASUser -> IO ()
     sendCommit commit user = do 
       let b = intersectViewingWindows (before commit) (windows user)
       let a = intersectViewingWindows (after commit) (windows user)
-      WS.sendTextData (userConn user) (encode msg)
+      U.sendMessage msg (userConn user)
 
 sendToOriginalUser :: ASUser -> ASMessage -> IO ()
 sendToOriginalUser user msg = WS.sendTextData (userConn user) (encode (U.updateMessageUser (userId user) msg))
 ----------------------------------------------------------------------------------------------------------------------------------------------
--- | Open/close/import/new/window handlers
+-- Open/close/import/new/window handlers
 
 handleAcknowledge :: ASUser -> IO ()
 handleAcknowledge user = WS.sendTextData (userConn user) ("ACK" :: Text)
@@ -106,8 +107,7 @@ handleUpdateWindow state (Message uid _ _ (PayloadW window)) = do
       let locs = U.getScrolledLocs oldWindow window 
       printTimed $ "Sending locs: " ++ (show locs)
       mcells <- DB.getCells (dbConn curState) locs
-      let msg = U.getDBCellMessage user' locs mcells
-      -- catch (sendToOriginalUser user' msg) (\e -> putStrLn $ "error" ++ (show $ (e :: SomeException)))
+      let msg = U.getDBCellMessage (userId user') locs mcells
       sendToOriginalUser user' msg
       Users.modifyUser (U.updateWindow window) user' state
 
@@ -115,7 +115,7 @@ handleImport :: MVar ServerState -> ASMessage -> IO ()
 handleImport state msg = return () -- TODO 
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
--- | Eval handler 
+-- Eval handler 
 
 handleEval :: MVar ServerState -> ASMessage -> IO ()
 handleEval state msg  = do 
@@ -130,13 +130,13 @@ handleEvalRepl user state msg = do
   sendToOriginalUser user msg'
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
--- | DB Handlers
+-- DB Handlers
 
 handleGet :: ASUser -> MVar ServerState -> ASPayload -> IO ()
 handleGet user state (PayloadLL locs) = do 
   curState <- readMVar state
   mcells <- DB.getCells (dbConn curState) locs 
-  sendToOriginalUser user (U.getDBCellMessage user locs mcells) 
+  sendToOriginalUser user (U.getDBCellMessage (userId user) locs mcells) 
 handleGet user state (PayloadList Sheets) = do
   curState <- readMVar state
   ss <- DB.getAllSheets (dbConn curState)
@@ -241,7 +241,7 @@ handleCopyForced :: ASUser -> MVar ServerState -> ASPayload -> IO ()
 handleCopyForced user state (PayloadLL (from:[to])) = return ()
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
--- | Tag handlers
+-- Tag handlers
 
 processAddTag :: ASUser -> MVar ServerState -> ASLocation -> ASMessage -> ASCellTag -> IO ()
 processAddTag user state loc msg t = do 

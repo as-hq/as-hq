@@ -15,7 +15,7 @@ import Control.Applicative hiding ((<|>), many)
 import Data.Maybe (isNothing)
 
 --------------------------------------------------------------------------------------------------------------
--- | Misc
+-- Misc
 
 sendMessage :: ASMessage -> WS.Connection -> IO ()
 sendMessage msg conn = WS.sendTextData conn (encode msg)
@@ -92,7 +92,7 @@ isAllRight results = all id $ map isRight results
 deleteSubset :: (Eq a) => [a] -> [a] -> [a]
 deleteSubset subset = filter (\e -> L.notElem e subset)
 --------------------------------------------------------------------------------------------------------------
--- | Key-value manip functions
+-- Key-value manip functions
 
 delFromAL :: Eq key => [(key, a)] -> key -> [(key, a)]
 delFromAL l key = L.filter (\a -> (fst a) /= key) l
@@ -101,7 +101,7 @@ addToAL :: Eq key => [(key, elt)] -> key -> elt -> [(key, elt)]
 addToAL l key value = (key, value) : delFromAL l key
 
 --------------------------------------------------------------------------------------------------------------
--- | Conversions and Helpers
+-- Conversions and Helpers
 
 isJust :: Maybe ASCell -> Bool
 isJust (Just c) = True
@@ -121,8 +121,8 @@ getBadLocs locs mcells = map fst $ filter (\(l,c)->isNothing c) (zip locs mcells
 
 -- bugfix for sending non-nothing locs (e.g. scrolling)
 -- TODO send empty cells for nothings -- updates deletes that happened past viewing window
-getDBCellMessage :: ASUser -> [ASLocation] -> [Maybe ASCell] -> ASMessage
-getDBCellMessage user locs mcells = getCellMessage (userId user) (Right cells)
+getDBCellMessage :: ASUserId -> [ASLocation] -> [Maybe ASCell] -> ASMessage
+getDBCellMessage uid locs mcells = getCellMessage uid (Right cells)
   where justCells = filter (not . isNothing) mcells 
         cells = map (\(Just x) -> x) justCells
 
@@ -131,7 +131,7 @@ isColumn (Column _ _) = True
 isColumn _ = False
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
--- | Error Handling
+-- Error Handling
 
 -- | Not yet implemented
 generateErrorMessage :: ASExecError -> String
@@ -139,12 +139,10 @@ generateErrorMessage CopyNonexistentDependencies = "Some dependencies nonexisten
 generateErrorMessage (DBNothingException _) = "Unable to fetch cells from database."
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
--- | Time
+-- Time
 getTime :: IO String
 getTime = fmap (show . utctDayTime) getCurrentTime
 
-
--- ::ALEX:: rename to printWithTime
 printTimed :: String -> IO ()
 printTimed str = do 
   time <- getTime
@@ -155,13 +153,13 @@ getASTime :: IO ASTime
 getASTime = return $ Time "hi" 1 2 3
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
--- | Id management
+-- Id management
 
 getUniqueId :: IO T.Text
 getUniqueId = return . T.pack . U.toString =<< nextRandom
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
--- | viewing windows 
+-- viewing windows 
 
 intersectViewingWindows :: [ASCell] -> [ASWindow] -> [ASCell]
 intersectViewingWindows cells vws = concat $ map (intersectViewingWindow cells) vws 
@@ -211,7 +209,7 @@ getAllUserWindows :: ServerState -> [(ASUserId, [ASWindow])]
 getAllUserWindows state = map (\u -> (userId u, windows u)) (userClients state)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
--- | Locations
+-- Locations
 
 decomposeLocs :: ASLocation -> [ASLocation]
 decomposeLocs loc = case loc of 
@@ -243,7 +241,7 @@ getOffsetBetweenLocs from to = getOffsetFromIndices from' to'
     getOffsetFromIndices (Index _ (y, x)) (Index _ (y', x')) = (y'-y, x'-x)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
--- | Users
+-- Users
 
 updateMessageUser :: ASUserId -> ASMessage -> ASMessage
 updateMessageUser uid (Message _ a r p) = Message uid a r p 
@@ -263,7 +261,7 @@ hasPermissions uid (Blacklist entities) = not $ any (isInEntity uid) entities
 hasPermissions uid (Whitelist entities) = any (isInEntity uid) entities
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
--- | Tags
+-- Tags
 
 containsTrackingTag :: [ASCellTag] -> Bool
 containsTrackingTag [] = False

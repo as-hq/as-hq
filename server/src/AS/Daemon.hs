@@ -65,17 +65,17 @@ createDaemon state s loc msg = do
   	then return ()
   	else do 
       runDetached (Just name) def $ do 
-        let pId = messageUserId msg -- ::ALEX:: um... 
+        let pId = messageUserId msg
         let initMsg = Message pId Acknowledge NoResult (PayloadDaemonInit (ASInitDaemonConnection pId loc))
         -- creates a daemon client that talks to the server, pinging it with the regularity specified by the user
         WS.runClient S.wsAddress S.wsPort "/" $ \conn -> do 
-          WS.sendTextData conn (encode initMsg)
+          U.sendMessage initMsg conn
           regularlyReEval s loc msg conn -- the original msg is an eval message on the cell
       putStrLn $ "DONE WITH createDaemon"
 
 regularlyReEval :: Stream -> ASLocation -> ASMessage -> WS.Connection -> IO ()
 regularlyReEval (Stream src x) loc msg conn = forever $ do 
-  WS.sendTextData conn (encode msg)
+  U.sendMessage msg conn
   threadDelay (1000*x) -- microseconds to milliseconds
 
 removeDaemon :: ASLocation -> MVar ServerState -> IO ()

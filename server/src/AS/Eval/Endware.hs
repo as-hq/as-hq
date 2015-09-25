@@ -33,7 +33,7 @@ evalEndware state origMessage@(Message _ _ _ (PayloadC origCell)) finalCells = d
 	return newCells
    
 ----------------------------------------------------------------------------------------------------------------------------------------------
--- | Endwares
+-- Endwares
 
 tagStyledCells :: [ASCell] -> [ASCell]
 tagStyledCells = id

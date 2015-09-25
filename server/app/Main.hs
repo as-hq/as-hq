@@ -89,7 +89,7 @@ talk state client = forever $ do
     Nothing -> printTimed ("SERVER ERROR: unable to decode message " ++ (show msg)) >> return ()
 
 -------------------------------------------------------------------------------------------------------------------------
--- | Message handling
+-- Message handling
 
 processMessage :: (Client c) => c -> MVar ServerState -> ASMessage -> IO ()
 processMessage client state message = do

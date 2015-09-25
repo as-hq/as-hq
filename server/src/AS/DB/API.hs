@@ -26,7 +26,7 @@ import qualified Data.ByteString.Lazy.Char8 as C
 import Data.List.Split
 
 ----------------------------------------------------------------------------------------------------------------------
--- | Storage Documentation
+-- Storage Documentation
 
 -- | Cells
 -- key-value hashes
@@ -54,7 +54,7 @@ import Data.List.Split
 -- stored as before, as a set with key volatileLocs
 
 ----------------------------------------------------------------------------------------------------------------------
--- | Cells
+-- Cells
 
 getCell :: Connection -> ASLocation -> IO (Maybe ASCell)
 getCell conn loc = return . head =<< getCells conn [loc]
@@ -127,7 +127,7 @@ getColumnCells conn (Column sheetid col) = do
     return cells
 
 ----------------------------------------------------------------------------------------------------------------------
--- | DAG
+-- DAG
 
 getDAG :: Connection -> IO [(ASLocation,ASLocation)]
 getDAG conn = do 
@@ -145,7 +145,7 @@ updateDAG _ [] = return ()
 updateDAG conn rels = (DU.chunkM_ conn) DU.updateChunkDAG DU.dagChunkSize rels
 
 ----------------------------------------------------------------------------------------------------------------------
--- | Commits
+-- Commits
 
 -- | TODO: need to deal with large commit sizes and max number of commits
 
@@ -212,7 +212,7 @@ pushCommit conn c = do
     return ()
 
 ----------------------------------------------------------------------------------------------------------------------
--- | WorkbookSheets (for frontend API)
+-- WorkbookSheets (for frontend API)
 
 getAllWorkbookSheets :: Connection -> IO [WorkbookSheet]
 getAllWorkbookSheets conn = do
@@ -250,7 +250,7 @@ modifyWorkbookSheets conn f wName = do
   setWorkbook conn wbNew
 
 ----------------------------------------------------------------------------------------------------------------------
--- | Raw workbooks
+-- Raw workbooks
 
 createWorkbook :: Connection -> [ASSheetId] -> IO ASWorkbook
 createWorkbook conn sheetids = do
@@ -320,7 +320,7 @@ deleteWorkbookAndSheets conn name = do
                 return ()
 
 ----------------------------------------------------------------------------------------------------------------------
--- | Raw sheets
+-- Raw sheets
 
 getSheet :: Connection -> ASSheetId -> IO (Maybe ASSheet)
 getSheet conn sid = do
@@ -375,7 +375,7 @@ deleteSheetUnsafe conn sid = do
         return ()
 
 ----------------------------------------------------------------------------------------------------------------------
--- | Volatile cell methods
+-- Volatile cell methods
 
 getVolatileLocs :: Connection -> IO [ASLocation]
 getVolatileLocs conn = do 
@@ -399,7 +399,7 @@ deleteChunkVolatileCells cells = do
   return ()
 
 ----------------------------------------------------------------------------------------------------------------------
--- | Permissions
+-- Permissions
 
 canAccessSheet :: Connection -> ASUserId -> ASSheetId -> IO Bool
 canAccessSheet conn uid sheetId = do
@@ -426,5 +426,5 @@ isPermissibleMessage _ _ = return True
 
 
 ----------------------------------------------------------------------------------------------------------------------
--- | Users and Permissons TODO
+-- Users and Permissons TODO
 

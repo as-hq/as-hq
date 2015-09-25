@@ -21,7 +21,7 @@ try:
 	execfile(filename)
 	
 	
-	result = rnorm(5)
+	result = 1
 except Exception as e: 
 	exc_type, exc_obj, exc_tb = exc_info()
 	fname = 'AlphaSheets Python evaluator'
