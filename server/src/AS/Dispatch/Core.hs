@@ -1,7 +1,7 @@
 module AS.Dispatch.Core where
 
 -- AlphaSheets and base
-import AS.Types
+import AS.Types.Core
 import Prelude 
 import qualified AS.Eval.Core as R (evalExpression)
 import qualified Data.Map   as M
@@ -40,10 +40,10 @@ runDispatchCycle :: MVar ServerState -> ASMessage -> IO ASMessage
 runDispatchCycle state msg@(Message _ _ _ (PayloadC c')) = do 
   -- Apply middlewares
   let uid = messageUserId msg
-  putStrLn $ "STARTING DISPATCH CYCLE " ++ (show c')
+  putStrLn $ "STARTING DISPATCH CYCLE WITH PAYLOADC " ++ (show c')
   c <- EM.evalMiddleware c'
   conn <- fmap dbConn (readMVar state)
-  update <- updateCell conn c 
+  update <- updateCell c 
   case update of 
     Left e -> return $ U.getCellMessage uid (Left e)
     Right () -> do 
@@ -55,7 +55,8 @@ runDispatchCycle state msg@(Message _ _ _ (PayloadC c')) = do
           case ancResult of 
             (Left e') -> return $ U.getCellMessage uid (Left e') 
             (Right ancLocs) -> do
-              anc <- fmap U.fromJustList $ DB.getCells conn ancLocs
+              printTimed $ "got ancestor locs: " ++ (show ancLocs)
+              anc <- fmap U.fromJustList $ DB.getCells ancLocs
               res <- propagate conn anc desc 
               case res of 
                 Left e' -> return $ U.getCellMessage uid (Left e')
@@ -63,25 +64,26 @@ runDispatchCycle state msg@(Message _ _ _ (PayloadC c')) = do
                   -- Apply endwares
                   cells <- (EE.evalEndware state msg) cells'
                   DB.updateAfterEval conn uid c' desc cells -- does set cells and commit
-                  return $ U.getCellMessage uid (Right cells)
+                  return $ U.getCellMessage uid (Right cells) -- reply message
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Eval building blocks
 
 -- | Takes a cell and returns an error if it tries to access a non-existant cell
 -- | Otherwise, it returns all of the immediate ancestors (used to make the lookup map)
-updateCell :: Connection -> ASCell -> IO (Either ASExecError ())
-updateCell conn (Cell loc xp val ts) = do 
+updateCell :: ASCell -> IO (Either ASExecError ())
+updateCell (Cell loc xp val ts) = do 
   let locs = decomposeLocs loc
   let (deps,exprs) = getDependenciesAndExpressions (locSheetId loc) xp (getOffsets loc)
-  ancCells <- DB.getCells conn (concat deps)
+  ancCells <- DB.getCells (concat deps)
   printTimed $ "got cells: "
   if (any isNothing ancCells)
     then return $ Left (DBNothingException [])
     else do 
       let initCells = map (\(l,e,v)-> Cell l e v ts) (zip3 locs exprs (repeat NoValue))  
       setResult <- G.setRelations (zip locs deps)
-      DB.setCells conn initCells
+      printTimed $ "init cells: " ++ (show initCells)
+      DB.setCells initCells
       printTimed $ "set init cells"
       return $ case setResult of 
         (Right ()) -> Right ()
@@ -103,10 +105,10 @@ getDescendants conn cell = do
   --let graphResult = Right descendantLocs
   case graphResult of
     (Right descendantLocs) -> do
-      printTimed $ "got descendant locs: " ++ (show descendantLocs)
-      desc <- DB.getCells conn descendantLocs
-      printTimed $ "got descendant cells"
-      return $ Right $ map fromJust desc 
+      printTimed $ "got descendant locs: " -- ++ (show descendantLocs)
+      desc <- DB.getCells descendantLocs
+      printTimed $ "got descendant cells: " -- ++ (show desc)
+      return . Right $ map fromJust desc 
     (Left e) -> return $ Left e
 
 -- | Takes ancestors and descendants, create lookup map, and run eval
@@ -122,7 +124,7 @@ propagate conn anc dec = do
 evalChain :: Connection -> M.Map ASLocation ASValue -> [ASCell] -> IO [ASCell]
 evalChain _ _ [] = return []
 evalChain conn mp ((Cell loc xp _ ts):cs) = do  
-  printTimed $ "Starting eval chain" ++ (show mp)
+  printTimed $ "Starting eval chain" -- ++ (show mp)
   cv <- R.evalExpression loc mp xp 
   otherCells <- case loc of
     Index sheet (a, b) -> case cv of
@@ -138,14 +140,15 @@ evalChain conn mp ((Cell loc xp _ ts):cs) = do
 -- | Not currently handling [[[]]] type things
 createListCells :: Connection -> ASLocation -> [ASValue] -> IO [ASCell]
 createListCells conn (Index sheet (a,b)) [] = return []
-createListCells conn (Index sheet (a,b)) values = do 
-  let origLoc = Index sheet (a,b)
-  let vals = concat $ map lst values
-  let locs = map (Index sheet) (concat $ [(shift (values!!row) row (a,b)) | row <- [0..(length values)-1]])
-  let exprs = map (\(Index _ (x,y)) -> Reference origLoc (x-a,y-b)) locs
-  let cells = L.tail $ map (\(l,e,v) -> Cell l e v []) (zip3 locs exprs vals)
-  G.setRelations (zip (L.tail locs) (repeat [origLoc]))
-  return cells
-    where
-      shift (ValueL v) r (a,b) = [(a+c,b+r) | c<-[0..length(v)-1] ]
-      shift other r (a,b)  = [(a,b+r)]
+createListCells conn (Index sheet (a,b)) values = 
+  let 
+    origLoc = Index sheet (a,b)
+    vals = concat $ map lst values
+    locs = map (Index sheet) (concat $ [(shift (values!!row) row (a,b)) | row <- [0..(length values)-1]])
+    exprs = map (\(Index _ (x,y)) -> Reference origLoc (x-a,y-b)) locs
+    cells = L.tail $ map (\(l,e,v) -> Cell l e v []) (zip3 locs exprs vals)
+    shift (ValueL v) r (a,b) = [(a+c,b+r) | c<-[0..length(v)-1] ]
+    shift other r (a,b)  = [(a,b+r)]
+  in do
+    G.setRelations (zip (L.tail locs) (repeat [origLoc]))
+    return cells

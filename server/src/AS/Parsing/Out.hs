@@ -13,7 +13,8 @@ import Control.Applicative hiding ((<|>), many)
 import qualified Data.Map as M
 import qualified Data.Text.Lazy (replace)
 
-import AS.Types as Ty
+import AS.Types.Core
+import AS.Types.Excel
 import AS.Parsing.Common
 import AS.Util
 
@@ -137,12 +138,6 @@ replaceMatches (inter,matches) f target = blend inter matchReplacings
 -- Type for parsing Excel Locations
              -- d1,d2 = "" or "$"
 
-exLocToString :: ExLoc -> String
-exLocToString exLoc = case exLoc of
-  ExSheet sheet rest -> sheet ++ "!" ++ (exLocToString rest)
-  ExRange first second -> (exLocToString first) ++ ":" ++ (exLocToString second)
-  ExIndex dol1 c dol2 r -> dol1 ++ c ++ dol2 ++ r
-
 -- excel location to list of as indexes
 exLocToASLocation :: ASSheetId -> ExLoc -> ASLocation
 exLocToASLocation sheetid exLoc = case exLoc of 
@@ -151,6 +146,14 @@ exLocToASLocation sheetid exLoc = case exLoc of
     Index _ a -> Index sheetid a
   ExRange f s -> Range sheetid (index (exLocToASLocation sheetid f),index (exLocToASLocation sheetid s))
   ExIndex dol1 c dol2 r -> Index sheetid (colStrToInt c, read r :: Int)
+
+-- does not consider sheetid
+asLocationToExLoc :: ASLocation -> ExLoc
+asLocationToExLoc (Index _ (a,b)) = ExIndex "" (intToColStr a) "" (intToColStr b)
+asLocationToExLoc (Range s (i1, i2)) = ExRange i1' i2'
+  where
+    i1' = asLocationToExLoc $ Index s i1
+    i2' = asLocationToExLoc $ Index s i2
 -------------------------------------------------------------------------------------------------------------------------------------------------
 -- Parsers to match special excel characters
 
@@ -236,15 +239,15 @@ shiftExLoc offset exLoc = case exLoc of
         "$" -> r --fixed
         ""  -> show $ (read r :: Int) + (snd offset) --relative
 
-shiftExLocs:: (Int,Int) -> [ExLoc] -> [ExLoc]
+shiftExLocs :: (Int,Int) -> [ExLoc] -> [ExLoc]
 shiftExLocs offset exLocs = map (shiftExLoc offset) exLocs
 
 -- return all dependencies for a particular excel location (takes in current location to deal with sheets)
 -- ex. ExIndex A3 just returns [Index A3]
 -- doesn't do any work with Parsec/actual parsing
-dependenciesFromExceLLoc :: ASSheetId -> ExLoc -> [ASLocation]
-dependenciesFromExceLLoc sheetid exLoc = case exLoc of
-  ExSheet sh rest -> [Index sheetid (index dep) | dep <- dependenciesFromExceLLoc sheetid rest] --dependency locations are on other sheet
+dependenciesFromExcelLoc :: ASSheetId -> ExLoc -> [ASLocation]
+dependenciesFromExcelLoc sheetid exLoc = case exLoc of
+  ExSheet sh rest -> [Index sheetid (index dep) | dep <- dependenciesFromExcelLoc sheetid rest] --dependency locations are on other sheet
   ExRange a b -> decomposeLocs $ Range sheetid ((toCol a, toRow a), (toCol b, toRow b)) -- any range has full dependency
     where
       toCol = colStrToInt.col
@@ -260,7 +263,7 @@ getDependenciesAndExpressions sheetid xp offsets = (newLocs,newExprs)
     origString = expression xp
     (inter,exLocs) = getMatchesWithContext origString excelMatch -- the only place that Parsec is used
     newLocs = getDependencies sheetid exLocs offsets 
-    newStrings = [replaceMatches (inter, shiftExLocs off exLocs) exLocToString origString | off <- offsets]
+    newStrings = [replaceMatches (inter, shiftExLocs off exLocs) showExcelLoc origString | off <- offsets]
     newExprs = map (\str -> Expression str (language xp)) newStrings
 
 -- gets dependencies from a list of excel locs and a list of offsets (there's a [ASLocation] for each offset, in that order)
@@ -268,7 +271,7 @@ getDependenciesAndExpressions sheetid xp offsets = (newLocs,newExprs)
 getDependencies :: ASSheetId -> [ExLoc] -> [(Int,Int)] -> [[ASLocation]]
 getDependencies sheetid matches offsets = [depsFromExcelLocs (shiftExLocs off matches) | off <- offsets]
   where
-    depsFromExcelLocs m = normalizeRanges $ concat $ map (dependenciesFromExceLLoc sheetid) m
+    depsFromExcelLocs m = normalizeRanges $ concat $ map (dependenciesFromExcelLoc sheetid) m
 
 ----------------------------------------------------------------------------------------------------------------------------------
 -- Functions for excel sheet loading
@@ -297,7 +300,7 @@ shiftCell offset (Cell loc (Expression str lang) v ts) = (shiftedCell, shiftedDe
     (inter,exLocs) = getMatchesWithContext str excelMatch
     shiftedExLocs = shiftExLocs offset exLocs
     shiftedDeps = concat $ getDependencies sheetid shiftedExLocs [(0,0)] -- expecting a single cell has Index, not range
-    newStr = replaceMatches (inter, shiftedExLocs) exLocToString str
+    newStr = replaceMatches (inter, shiftedExLocs) showExcelLoc str
     shiftedXp = Expression newStr lang
     shiftedCell = Cell shiftedLoc shiftedXp v ts
 shiftCell offset (Cell loc (Reference _ _) v ts) = (shiftedCell, []) -- for copying sublists

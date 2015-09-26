@@ -14,7 +14,7 @@ import Control.Applicative hiding ((<|>), many)
 import qualified Data.Map as M
 import qualified Data.Text.Lazy as LA
 
-import AS.Types as Ty
+import AS.Types.Core
 import AS.Util
 
 deleteEmpty = filter ((/=) "")

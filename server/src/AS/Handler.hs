@@ -10,14 +10,15 @@ import Control.Monad.IO.Class (liftIO)
 import Data.Aeson hiding (Success)
 import qualified Network.WebSockets as WS
 
-import AS.Types
-import AS.DB.API as DB
-import AS.Util as U
-import AS.Dispatch.Core as DP
-import AS.Dispatch.Repl as DR 
-import AS.Daemon as DM
-import AS.Users as Users
-import AS.Parsing.Out as O
+import AS.Types.Core
+import AS.DB.API            as DB
+import AS.DB.Graph          as G
+import AS.Util              as U
+import AS.Dispatch.Core     as DP
+import AS.Dispatch.Repl     as DR 
+import AS.Daemon            as DM
+import AS.Users             as US
+import AS.Parsing.Out       as O
 
 
 -- | Handlers take message payloads and send the response to the client(s)
@@ -30,35 +31,42 @@ broadcast state message = do
   (State ucs _ _) <- readMVar state
   forM_ ucs $ \(UserClient _ conn _ _) -> U.sendMessage message conn
 
+-- ::ALEX:: do we actually want to not send back failure message? 
 sendBroadcastFiltered :: MVar ServerState -> ASMessage -> IO ()
+sendBroadcastFiltered state msg@(Message _ Delete Success _) = broadcast state msg            -- broadcast all deletes (scrolling only refreshes non-deleted cells)
+sendBroadcastFiltered state msg@(Message _ _ Success (PayloadCommit _)) = broadcast state msg -- broadcast all undo/redos for same reason
 sendBroadcastFiltered state msg = liftIO $ do 
 	(State ucs _ _) <- readMVar state
 	broadcastFiltered msg ucs
 
 -- | Given a message (commit, cells, etc), only send (to each user) the cells in their viewing window
 broadcastFiltered :: ASMessage -> [ASUser] -> IO ()
-broadcastFiltered msg@(Message uid _ _ (PayloadCL cells)) users = mapM_ (sendCells cells) users 
+broadcastFiltered msg@(Message uid a r (PayloadCL cells)) users = mapM_ (sendCells cells) users 
   where
     sendCells :: [ASCell] -> ASUser -> IO ()
     sendCells cells user = do 
       let cells' = intersectViewingWindows cells (windows user)
-      U.sendMessage msg (userConn user)
+      case cells' of 
+        [] -> return ()
+        _ -> U.sendMessage (Message uid a r (PayloadCL cells')) (userConn user)
 
 broadcastFiltered msg@(Message uid a r (PayloadLL locs)) users = mapM_ (sendLocs locs) users 
   where
     sendLocs :: [ASLocation] -> ASUser -> IO ()
     sendLocs locs user = do 
       let locs' = intersectViewingWindowsLocs locs (windows user)
-      --putStrLn $ "Sending msg to client: " ++ (show msg)
-      U.sendMessage msg (userConn user)
+      case locs' of 
+        [] -> return ()
+        _ -> U.sendMessage (Message uid a r (PayloadLL locs')) (userConn user)
 
-broadcastFiltered msg@(Message uid act res (PayloadCommit c)) users = mapM_ (sendCommit c) users
-  where
-    sendCommit :: ASCommit -> ASUser -> IO ()
-    sendCommit commit user = do 
-      let b = intersectViewingWindows (before commit) (windows user)
-      let a = intersectViewingWindows (after commit) (windows user)
-      U.sendMessage msg (userConn user)
+-- ::ALEX:: are we just ignoring commits now? 
+-- broadcastFiltered msg@(Message uid act res (PayloadCommit c)) users = mapM_ (sendCommit c) users
+--   where
+--     sendCommit :: ASCommit -> ASUser -> IO ()
+--     sendCommit commit user = do 
+--       let b = intersectViewingWindows (before commit) (windows user)
+--       let a = intersectViewingWindows (after commit) (windows user)
+--       U.sendMessage msg (userConn user)
 
 sendToOriginalUser :: ASUser -> ASMessage -> IO ()
 sendToOriginalUser user msg = WS.sendTextData (userConn user) (encode (U.updateMessageUser (userId user) msg))
@@ -80,28 +88,28 @@ handleNew state (Message uid a _(PayloadWB wb)) = do
   return () -- TODO determine whether users should be notified
 
 handleOpen :: ASUser -> MVar ServerState -> ASMessage -> IO ()
-handleOpen user state (Message _ _ _ (PayloadS (Sheet sheetid _ _))) = Users.modifyUser makeNewWindow user state 
+handleOpen user state (Message _ _ _ (PayloadS (Sheet sheetid _ _))) = US.modifyUser makeNewWindow user state 
   where makeNewWindow (UserClient uid conn windows sid) = UserClient uid conn ((Window sheetid (-1,-1) (-1,-1)):windows) sid
 
 handleClose :: ASUser -> MVar ServerState -> ASMessage -> IO ()
-handleClose user state (Message _ _ _ (PayloadS (Sheet sheetid _ _))) = Users.modifyUser closeWindow user state
+handleClose user state (Message _ _ _ (PayloadS (Sheet sheetid _ _))) = US.modifyUser closeWindow user state
   where closeWindow (UserClient uid conn windows sid) = UserClient uid conn (filter (((/=) sheetid) . windowSheetId) windows) sid
 
 -- ::ALEX:: point of user' ?? 
 handleUpdateWindow :: SessionId -> MVar ServerState -> ASMessage -> IO ()
 handleUpdateWindow sid state (Message uid _ _ (PayloadW window)) = do
   curState <- readMVar state
-  let (Just user') = Users.getUserBySessionId sid curState -- if this fails then somehow your connection isn't stored in the state
+  let (Just user') = US.getUserBySessionId sid curState -- if this fails then somehow your connection isn't stored in the state
   let maybeWindow = U.getWindow (windowSheetId window) user' 
   case maybeWindow of 
     Nothing -> putStrLn "ERROR: could not update nothing window" >> return ()
     (Just oldWindow) -> do
       let locs = U.getScrolledLocs oldWindow window 
       printTimed $ "Sending locs: " ++ (show locs)
-      mcells <- DB.getCells (dbConn curState) locs
+      mcells <- DB.getCells locs
       let msg = U.getDBCellMessage (userId user') locs mcells
       sendToOriginalUser user' msg
-      Users.modifyUser (U.updateWindow window) user' state
+      US.modifyUser (U.updateWindow window) user' state
 
 handleImport :: MVar ServerState -> ASMessage -> IO ()
 handleImport state msg = return () -- TODO 
@@ -127,7 +135,7 @@ handleEvalRepl user state msg = do
 handleGet :: ASUser -> MVar ServerState -> ASPayload -> IO ()
 handleGet user state (PayloadLL locs) = do 
   curState <- readMVar state
-  mcells <- DB.getCells (dbConn curState) locs 
+  mcells <- DB.getCells locs 
   sendToOriginalUser user (U.getDBCellMessage (userId user) locs mcells) 
 handleGet user state (PayloadList Sheets) = do
   curState <- readMVar state
@@ -206,22 +214,22 @@ handleCopy :: ASUser -> MVar ServerState -> ASPayload -> IO ()
 handleCopy user state (PayloadLL (from:to:[])) = do -- this is a list of 2 locations
   curState <- readMVar state
   let conn = dbConn curState
-  maybeCells <- DB.getCells conn [from]
+  maybeCells <- DB.getCells [from]
   let fromCells = filterNothing maybeCells
-  let offset = U.getOffsetBetweenLocs from to
-  let toCellsAndDeps = map (O.shiftCell offset) fromCells
-  let shiftedDeps = map snd toCellsAndDeps
-  let allDeps = concat shiftedDeps
-  let toCells = map fst toCellsAndDeps
-  let toLocs = map cellLocation toCells
+      offset = U.getOffsetBetweenLocs from to
+      toCellsAndDeps = map (O.shiftCell offset) fromCells
+      shiftedDeps = map snd toCellsAndDeps
+      allDeps = concat shiftedDeps
+      toCells = map fst toCellsAndDeps
+      toLocs = map cellLocation toCells
   printTimed $ "Copying cells: "
   allExistDB <- DB.locationsExist conn allDeps   -- check if deps exist in DB
   let allNonexistentDB = U.isoFilter not allExistDB allDeps  
-  let allExist = U.isSubsetOf allNonexistentDB toLocs -- else if the dep was something we copied
+      allExist = U.isSubsetOf allNonexistentDB toLocs -- else if the dep was something we copied
   if allExist
     then do
-      DB.setCells conn toCells
-      DB.updateDAG conn $ zip shiftedDeps toLocs
+      DB.setCells toCells
+      G.setRelations $ zip toLocs shiftedDeps 
       let msg = Message (userId user) Update Success (PayloadCL toCells)
       sendBroadcastFiltered state msg
     else do
@@ -237,8 +245,7 @@ handleCopyForced user state (PayloadLL (from:[to])) = return ()
 
 processAddTag :: ASUser -> MVar ServerState -> ASLocation -> ASMessage -> ASCellTag -> IO ()
 processAddTag user state loc msg t = do 
-  curState <- readMVar state
-  cell <- DB.getCell (dbConn curState) loc
+  cell <- DB.getCell loc
   case cell of 
     Nothing -> return ()
     Just c@(Cell l e v ts) -> do 
@@ -246,10 +253,10 @@ processAddTag user state loc msg t = do
         True -> return ()
         False -> do 
           let c' = Cell l e v (t:ts)
-          DB.setCell (dbConn curState) c'
+          DB.setCell c'
   case t of 
     StreamTag s -> do -- create daemon that sends an eval message
-      mCells <- DB.getCells (dbConn curState) [loc]
+      mCells <- DB.getCells [loc]
       case (L.head mCells) of 
         Nothing -> return ()
         Just cell -> do 
@@ -261,12 +268,12 @@ processAddTag user state loc msg t = do
 processRemoveTag :: ASLocation -> MVar ServerState -> ASCellTag -> IO ()
 processRemoveTag loc state t = do 
   curState <- readMVar state
-  cell <- DB.getCell (dbConn curState) loc 
+  cell <- DB.getCell loc 
   case cell of 
     Nothing -> return ()
     Just c@(Cell l e v ts) -> do 
       let c' = Cell l e v (L.delete t ts)
-      DB.setCell (dbConn curState) c'
+      DB.setCell c'
   case t of
     StreamTag s -> DM.removeDaemon loc state
     otherwise -> return () -- TODO: implement the rest

@@ -15,8 +15,7 @@ cabal-version:       >=1.10
 
 library
   hs-source-dirs:      src
-  exposed-modules:     Lib
-                       AS.DB.Util
+  exposed-modules:     AS.DB.Util
                        AS.DB.API
                        AS.DB.Graph
                        AS.Dispatch.Core
@@ -33,7 +32,9 @@ library
                        AS.Parsing.Out
                        AS.Parsing.In
                        AS.Parsing.Eval
-                       AS.Types
+                       AS.Types.Core
+                       AS.Types.DB
+                       AS.Types.Excel
                        AS.Users
                        AS.Handler
                        AS.Daemon
@@ -63,17 +64,24 @@ library
                      , uuid
                      , zeromq4-haskell
                      , semigroups
+                     , bytestring-show
   default-language:    Haskell2010
   default-extensions:  QuasiQuotes
                        FlexibleContexts
                        OverloadedStrings
+                       TypeSynonymInstances
+                       FlexibleInstances
   other-extensions:  ForeignFunctionInterface
                      CPP
 
 executable alphasheets-exe
   hs-source-dirs:      app
   main-is:             Main.hs
-  ghc-options:         -O2 -threaded -with-rtsopts=-N 
+  ghc-options:         src/hiredis/redis_db.o 
+                       -O2 
+                       -threaded 
+                       -with-rtsopts=-N
+                       -lhiredis 
   build-depends:       base
                      , alphasheets
                      , aeson
@@ -95,7 +103,13 @@ test-suite alphasheets-test
                      , alphasheets
                      , text
                      , hedis
-  ghc-options:         -O2 -threaded -with-rtsopts=-N
+                     , bytestring
+  ghc-options:         src/hiredis/redis_db.o 
+                       -lhiredis
+                       -fglasgow-exts
+                       -O
+                       -threaded 
+                       -with-rtsopts=-N
   default-language:    Haskell2010
 
 source-repository head

@@ -1,7 +1,7 @@
 module AS.Clients where
 
+import AS.Types.Core
 import Prelude
-import AS.Types
 import AS.Handler as H
 import qualified Data.List as L
 import Data.Text as T
@@ -12,6 +12,8 @@ import Data.Aeson hiding (Success)
 import AS.Daemon (getDaemonName)
 import qualified Network.WebSockets as WS
 
+-------------------------------------------------------------------------------------------------------------------------
+-- Initializations
 
 initDaemonFromMessageAndConn :: ASMessage -> WS.Connection -> Maybe ASDaemon
 initDaemonFromMessageAndConn m c' = case m of 
@@ -54,7 +56,8 @@ instance Client ASUser where
     CopyForced   -> H.handleCopyForced user state (payload message)
     AddTags      -> H.handleAddTags user state message
     RemoveTags   -> H.handleRemoveTags user state message
--- Undo         -> putStrLn "\n\n\nHI!!!!\n\n\n" >> H.handleAddTags user state (Message (userId user) AddTags (NoResult) (PayloadTags [StreamTag (Stream NoSource 5000)] (Index (T.pack "TEST_SHEET_ID2") (1,1)))) <-- to test streaming when frontend hasn't been implemented yet
+-- Undo         -> putStrLn "\n\n\nHI!!!!\n\n\n" >> H.handleAddTags user state (Message (userId user) AddTags (NoResult) (PayloadTags [StreamTag (Stream NoSource 5000)] (Index (T.pack "TEST_SHEET_ID2") (1,1))))
+-- ^^ above is to test streaming when frontend hasn't been implemented yet
 
 -------------------------------------------------------------------------------------------------------------------------
 -- ASDaemon is a client
@@ -70,3 +73,14 @@ instance Client ASDaemon where
     | otherwise = s
   handleClientMessage daemon state message = case (action message) of 
     Evaluate -> H.handleEval state message
+
+
+-- Debugging
+--getScrollCells :: Connection -> ASSheetId -> [ASLocation] -> IO [Maybe ASCell]
+--getScrollCells conn sid locs = if ((sid == (T.pack "SHEET_ID")) && S.isDebug)
+--  then do
+--    let dlocs = concat $ map U.decomposeLocs locs
+--    return $ map (\l -> Just $ Cell l (Expression "scrolled" Python) (ValueS (show . index $ l)) []) dlocs
+-- --  else DB.getCells conn locs
+-- getScrollCells :: ASSheetId -> [ASLocation] -> IO [Maybe ASCell]
+-- getScrollCells sid locs = DB.getCells locs

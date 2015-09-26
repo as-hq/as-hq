@@ -1,6 +1,6 @@
 module AS.Util where
 
-import AS.Types
+import AS.Types.Core
 
 import Prelude
 import Data.Time.Clock
@@ -52,6 +52,9 @@ min' :: Ord a => a -> a -> a
 min' j k = if j < k
     then j
     else k
+
+tuple3 :: a -> b -> c -> (a,b,c)
+tuple3 a b c = (a,b,c)
 
 fromJustList :: [Maybe a] -> [a]
 fromJustList l = map (\(Just x) -> x) l
@@ -285,3 +288,12 @@ getStreamTag (tag:tags) = getStreamTag tags
 -- | TODO: implement
 getStreamTagFromExpression :: ASExpression -> Maybe Stream
 getStreamTagFromExpression xp = Nothing
+
+----------------------------------------------------------------------------------------------------------------------
+-- | Testing
+
+testLocs :: Int -> [ASLocation]
+testLocs n = [Index "" (i,1) | i <-[1..n]]
+
+testCells :: Int -> [ASCell]
+testCells n =  L.map (\l -> Cell (Index "" (l,1)) (Expression "hi" Python) (ValueS "Str") []) [1..n]

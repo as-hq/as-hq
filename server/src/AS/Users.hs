@@ -7,13 +7,7 @@ import qualified Data.List as L
 import qualified Data.Text as T 
 import qualified Network.WebSockets as WS
 import Data.Aeson hiding (Success)
-
-import Database.Redis hiding (decode, Message)
-
-import AS.Types
-import AS.Util as U
-import AS.Config.Settings as S
-import AS.DB.API as DB
+import AS.Types.Core
 
 -------------------------------------------------------------------------------------------------------------------------
 -- Users management 

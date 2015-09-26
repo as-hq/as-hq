@@ -1,11 +1,11 @@
 {-# LANGUAGE DeriveGeneric #-}
 
-module AS.Types where
+module AS.Types.Core where
 
 import Prelude
 import GHC.Generics
 import Data.Aeson hiding (Success)
-import Data.Text
+import Data.Text hiding (foldr, map)
 import qualified Network.WebSockets as WS
 import qualified Database.Redis as R
 import Control.Concurrent (MVar)
@@ -35,6 +35,7 @@ data ASValue =
   ValueD Double | 
   ValueB Bool |
   ValueL [ASValue] |
+  ValueT (ASValue, ASValue) |
   ExcelSheet { locs :: ASValue, exprs :: ASValue, vals :: ASValue} |
   Rickshaw {rickshawData :: ASValue} |
   ValueError { error :: String, err_type :: String, file :: String, position :: Int } | 
@@ -74,30 +75,9 @@ data ASCell = Cell {cellLocation :: ASLocation,
 					cellValue :: ASValue,
           cellTags :: [ASCellTag]} deriving (Show, Read, Eq, Generic)
 
-
-----------------------------------------------------------------------------------------------------------------------------------------------
--- Excel
-
--- TODO fix recursion
-data ExLoc = ExSheet {name :: String, sheetLoc :: ExLoc} |
-             ExRange {first :: ExLoc, second :: ExLoc}     |
-             ExIndex {d1 :: String, col :: String, d2 :: String, row :: String} 
-             deriving (Show,Read,Eq,Ord)
-
-data ExcelAction = 
-  Lookup |
-  CheckIndirectRef |
-  LookupSheets |
-  LookupWorkbooks |
-  CurrentLocation 
-  deriving (Show,Read)
-
-data ExcelPayload = 
-  NoPayload 
-  deriving (Show,Read)
-  
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Streaming
+
 -- Stream sources
 data Bloomberg = Bloomberg {url :: String, key :: String} deriving (Show, Read, Eq, Generic)
 data StreamSource = StreamB Bloomberg | NoSource deriving (Show, Read, Eq, Generic)
@@ -162,6 +142,12 @@ data ASPayload =
   PayloadList QueryList 
   deriving (Show, Read, Eq, Generic)
 
+----------------------------------------------------------------------------------------------------------------------------------------------
+-- Version Control
+
+data ASTime = Time {day :: String, hour :: Int, min :: Int, sec :: Int} deriving (Show,Read,Eq,Generic)
+data ASCommit = ASCommit {commitUserId :: ASUserId, before :: [ASCell], after :: [ASCell], time :: ASTime} deriving (Show,Read,Eq,Generic)
+
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Eval Types
@@ -188,15 +174,9 @@ data ASInitConnection = ASInitConnection {connUserId :: ASUserId} deriving (Show
 data ASInitDaemonConnection = ASInitDaemonConnection {parentUserId :: ASUserId, initDaemonLoc :: ASLocation} deriving (Show,Read,Eq,Generic)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
--- Database and state
+-- State
 
 data ServerState = State {userClients :: [ASUser], daemonClients :: [ASDaemon], dbConn :: R.Connection} 
-
-data GraphQuery = 
-  GetDescendants |
-  GetImmediateAncestors |
-  SetRelations 
-  deriving (Show)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Clients
@@ -242,12 +222,6 @@ instance Eq ASDaemon where
 
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
--- Version Control
-
-data ASTime = Time {day :: String, hour :: Int, min :: Int, sec :: Int} deriving (Show,Read,Eq,Generic)
-data ASCommit = ASCommit {commitUserId :: ASUserId, before :: [ASCell], after :: [ASCell], time :: ASTime} deriving (Show,Read,Eq,Generic)
-
-----------------------------------------------------------------------------------------------------------------------------------------------
 -- Convenience methods
 
 lst :: ASValue -> [ASValue]
@@ -274,8 +248,9 @@ genericText = pack ""
 openPermissions :: ASPermissions
 openPermissions = Blacklist []
 
+
 ----------------------------------------------------------------------------------------------------------------------------------------------
--- Generic From/To JSON instances
+-- JSON
 
 instance ToJSON ASLocation
 instance FromJSON ASLocation
@@ -299,10 +274,6 @@ instance ToJSON ASInitConnection
 instance FromJSON ASInitConnection 
 instance ToJSON ASExecError
 instance FromJSON ASExecError
-instance FromJSON ASTime
-instance ToJSON ASTime
-instance ToJSON ASCommit 
-instance FromJSON ASCommit
 instance ToJSON ASCellTag
 instance FromJSON ASCellTag
 instance ToJSON ASWindow
@@ -331,3 +302,7 @@ instance FromJSON WorkbookSheet
 instance ToJSON WorkbookSheet
 instance FromJSON ASLangValue
 instance ToJSON ASLangValue
+instance FromJSON ASTime
+instance ToJSON ASTime
+instance FromJSON ASCommit
+instance ToJSON ASCommit

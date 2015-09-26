@@ -1,6 +1,6 @@
 module AS.Eval.Lang where
 
-import AS.Types
+import AS.Types.Core
 import AS.Config.Paths
 import AS.Parsing.Out
 import AS.Parsing.Common
