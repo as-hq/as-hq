@@ -31,8 +31,9 @@ import System.Posix.Daemon
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- This module handles daemon creation and management
 
+-- | Returns what the daemon named at ASLocation is named / would be named if it existed. 
 getDaemonName :: ASLocation -> String
-getDaemonName loc = (show loc) ++ ".pid"
+getDaemonName loc = (show loc) ++ "daemon"
 
 getConnByLoc :: ASLocation -> MVar ServerState -> IO (Maybe WS.Connection)
 getConnByLoc loc state = do 
@@ -65,8 +66,8 @@ createDaemon state s loc msg = do
   	then return ()
   	else do 
       runDetached (Just name) def $ do 
-        let pId = messageUserId msg
-        let initMsg = Message pId Acknowledge NoResult (PayloadDaemonInit (ASInitDaemonConnection pId loc))
+        let daemonId = T.pack $ getDaemonName loc
+        let initMsg = Message daemonId Acknowledge NoResult (PayloadDaemonInit (ASInitDaemonConnection daemonId loc))
         -- creates a daemon client that talks to the server, pinging it with the regularity specified by the user
         WS.runClient S.wsAddress S.wsPort "/" $ \conn -> do 
           U.sendMessage initMsg conn
@@ -87,7 +88,7 @@ removeDaemon loc state = do
     WS.sendClose (fromJust mConn) ("Bye" :: Text)
     killAndWait name
 
--- | Replaces state and stream of daemon at loc. 
+-- | Replaces state and stream of daemon at loc, if it exists. If not, create daemon at that location. 
+-- (Ideal implementation would look more like modifyUser, but this works for now.)
 modifyDaemon :: MVar ServerState -> Stream -> ASLocation -> ASMessage-> IO ()
 modifyDaemon state stream loc msg = (removeDaemon loc state) >> (createDaemon state stream loc msg)
-

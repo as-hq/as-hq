@@ -185,7 +185,7 @@ intersectViewingWindowsLocs locs vws = concat $ map (intersectViewingWindow dloc
     inRange elem start len = ((elem >= start) && (elem <= (start + len)))
 
 updateWindow :: ASWindow -> ASUser -> ASUser
-updateWindow window (UserClient uid conn windows) = UserClient uid conn windows'
+updateWindow window (UserClient uid conn windows sid) = UserClient uid conn windows' sid
     where windows' = flip map windows (\w -> if (windowSheetId w) == (windowSheetId window) then window else w)
 
 getWindow :: ASSheetId -> ASUser -> Maybe ASWindow

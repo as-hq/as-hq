@@ -28,7 +28,7 @@ import AS.Parsing.Out as O
 broadcast :: MVar ServerState -> ASMessage -> IO ()
 broadcast state message = do
   (State ucs _ _) <- readMVar state
-  forM_ ucs $ \(UserClient _ conn _) -> U.sendMessage message conn
+  forM_ ucs $ \(UserClient _ conn _ _) -> U.sendMessage message conn
 
 sendBroadcastFiltered :: MVar ServerState -> ASMessage -> IO ()
 sendBroadcastFiltered state msg = liftIO $ do 
@@ -79,27 +79,19 @@ handleNew state (Message uid a _(PayloadWB wb)) = do
   broadcast state $ Message uid a Success (PayloadWB wb')
   return () -- TODO determine whether users should be notified
 
--- do these modifications upon returning a message to send. modifications = changes to client that connected. 
--- but then need to define 
--- or do them in place. but then you have to pass the user in. 
--- conceptually: handleOpen run on a dameon client should die. 
--- handleMessage fundamentally relies on the client being passed in, because a number of operations...
--- wait. handleMessage just DOESN'T MAKE SENSE if the client being "passed in" is actually not a UserClient. 
--- And the only extent to which that matters is... ok. 
--- toUserClient : 
 handleOpen :: ASUser -> MVar ServerState -> ASMessage -> IO ()
 handleOpen user state (Message _ _ _ (PayloadS (Sheet sheetid _ _))) = Users.modifyUser makeNewWindow user state 
-  where makeNewWindow (UserClient uid conn windows) = UserClient uid conn ((Window sheetid (-1,-1) (-1,-1)):windows)
+  where makeNewWindow (UserClient uid conn windows sid) = UserClient uid conn ((Window sheetid (-1,-1) (-1,-1)):windows) sid
 
 handleClose :: ASUser -> MVar ServerState -> ASMessage -> IO ()
 handleClose user state (Message _ _ _ (PayloadS (Sheet sheetid _ _))) = Users.modifyUser closeWindow user state
-  where closeWindow (UserClient uid conn windows) = UserClient uid conn (filter (((/=) sheetid) . windowSheetId) windows)
+  where closeWindow (UserClient uid conn windows sid) = UserClient uid conn (filter (((/=) sheetid) . windowSheetId) windows) sid
 
 -- ::ALEX:: point of user' ?? 
-handleUpdateWindow :: MVar ServerState -> ASMessage -> IO ()
-handleUpdateWindow state (Message uid _ _ (PayloadW window)) = do
+handleUpdateWindow :: SessionId -> MVar ServerState -> ASMessage -> IO ()
+handleUpdateWindow sid state (Message uid _ _ (PayloadW window)) = do
   curState <- readMVar state
-  let (Just user') = Users.getUserById uid curState
+  let (Just user') = Users.getUserBySessionId sid curState -- if this fails then somehow your connection isn't stored in the state
   let maybeWindow = U.getWindow (windowSheetId window) user' 
   case maybeWindow of 
     Nothing -> putStrLn "ERROR: could not update nothing window" >> return ()

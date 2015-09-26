@@ -9,6 +9,7 @@ import Data.Maybe
 import Control.Concurrent (MVar)
 import AS.Util
 import Data.Aeson hiding (Success)
+import AS.Daemon (getDaemonName)
 import qualified Network.WebSockets as WS
 
 
@@ -17,14 +18,18 @@ initDaemonFromMessageAndConn m c' = case m of
   (Message _ _ _ (PayloadDaemonInit (ASInitDaemonConnection _ loc))) -> Just $ ASDaemon loc c'
   otherwise -> Nothing 
 
-initUserFromMessageAndConn :: ASMessage -> WS.Connection -> ASUser
-initUserFromMessageAndConn m c' = UserClient (messageUserId m) c' [initialViewingWindow]
+initUserFromMessageAndConn :: ASMessage -> WS.Connection -> IO ASUser
+initUserFromMessageAndConn m c' = do 
+    let uid = messageUserId m 
+    time <- getTime
+    return $ UserClient uid c' [initialViewingWindow] ((show uid) ++ (show time))
 
 -------------------------------------------------------------------------------------------------------------------------
 -- ASUser is a client
 
 instance Client ASUser where 
   conn = userConn
+  clientId = sessionId
   addClient uc s@(State ucs dcs dbc)
     | uc `elem` ucs = s
     | otherwise = State (uc:ucs) dcs dbc 
@@ -36,7 +41,7 @@ instance Client ASUser where
     New          -> H.handleNew state message
     Open         -> H.handleOpen user state message
     Close        -> H.handleClose user state message
-    UpdateWindow -> H.handleUpdateWindow state message
+    UpdateWindow -> H.handleUpdateWindow (sessionId user) state message
     Import       -> H.handleImport state message
     Evaluate     -> H.handleEval state message
     EvaluateRepl -> H.handleEvalRepl user state message
@@ -56,6 +61,7 @@ instance Client ASUser where
 
 instance Client ASDaemon where 
   conn = daemonConn
+  clientId d = getDaemonName (daemonLoc d)
   addClient dc s@(State ucs dcs dbc)
     | dc `elem` dcs = s
     | otherwise = State ucs (dc:dcs) dbc 

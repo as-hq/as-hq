@@ -67,7 +67,8 @@ handleFirstMessage ::  MVar ServerState -> WS.Connection -> B.ByteString -> IO (
 handleFirstMessage state conn msg = do
   case (decode msg :: Maybe ASMessage) of 
     Just m@(Message _ Acknowledge _ (PayloadInit (ASInitConnection _))) -> do -- first mesage is user init
-      initClient (initUserFromMessageAndConn m conn) state 
+      user <- initUserFromMessageAndConn m conn
+      initClient user state 
     Just m@(Message _ Acknowledge _ (PayloadDaemonInit (ASInitDaemonConnection _ _))) -> do -- first message is daemon init
       initClient (fromJust $ initDaemonFromMessageAndConn m conn) state
     otherwise -> do -- first message is neither

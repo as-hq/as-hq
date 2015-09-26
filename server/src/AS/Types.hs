@@ -201,8 +201,11 @@ data GraphQuery =
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Clients
 
+type SessionId = String
+
 class Client c where
   conn :: c -> WS.Connection
+  clientId :: c -> SessionId
   addClient :: c -> ServerState -> ServerState
   removeClient :: c -> ServerState -> ServerState
   handleClientMessage :: c -> MVar ServerState -> ASMessage -> IO ()
@@ -215,10 +218,10 @@ data ASRecipients = Original | All | Custom [ASUser]
 data ASWindow = Window {windowSheetId :: ASSheetId, topLeft :: (Int, Int), bottomRight :: (Int, Int)} deriving (Show,Read,Eq,Generic)
 type ASUserId = Text 
 -- data ASUser = User { userId :: ASUserId }
-data ASUser = UserClient {userId :: ASUserId, userConn :: WS.Connection, windows :: [ASWindow]} 
+data ASUser = UserClient {userId :: ASUserId, userConn :: WS.Connection, windows :: [ASWindow], sessionId :: String} 
 
 instance Eq ASUser where 
-  c1 == c2 = (userId c1) == (userId c2)
+  c1 == c2 = (sessionId c1) == (sessionId c2)
 
 data ASUserGroup = Group {groupMembers :: [ASUserId], groupAdmins :: [ASUserId], groupName :: Text} deriving (Show, Read, Eq, Generic)
 data ASEntity = EntityGroup ASUserGroup|
