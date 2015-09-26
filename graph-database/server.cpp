@@ -16,7 +16,7 @@ std::vector<std::string> processRequest(DAG& dag, std::string& request){
 
     // split the message 
     std::vector<std::string> requestParts;
-    boost::split(requestParts, request, boost::is_any_of(">"));
+    boost::split(requestParts, request, boost::is_any_of("@"));
 
     // handle different request types
     std::string type = requestParts[0];

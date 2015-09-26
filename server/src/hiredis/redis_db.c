@@ -89,14 +89,15 @@ char** getCells(char* msg, int length){
   redisContext *c;
   redisReply *reply;
   c = redisConnect((const char*)HOST, PORT);
+  // printf("Get cells raw input: %s \n",msg);
 
   // removes first and last quotes from string (artifact of ByteString show)
   char *pmsg = msg; pmsg++; // removes first char '"'
   pmsg[strlen(pmsg) - 1] = 0; // removes last char '"'
 
-  // printf("Get cells input: %s \n",pmsg);
+  // printf("Get cells input: %s \n",msg);
 
-  char** locs = str_split(pmsg, '>');
+  char** locs = str_split(pmsg, '@');
   char** cells = malloc(length * sizeof(char*));
 
   int i,j,k; 
@@ -162,14 +163,16 @@ void setCells(char* msg, int length){
   clock_t connect = clock(); 
   printf("Set cells connecting: %f seconds\n", (double)(connect - begin) / CLOCKS_PER_SEC);
 
+  // printf("Set cells raw message: %s \n",msg);
   // removes first and last quotes from string (artifact of ByteString show)
   char *pmsg = msg; pmsg++; // removes first char '"'
   pmsg[strlen(pmsg) - 1] = 0; // removes last char '"'
+  // printf("Set cells raw input: %s \n",pmsg);
   squeeze(pmsg, '\\'); // remove double-escaped strings
 
   // printf("Set cells input: %s \n",pmsg);
 
-  char** lstMsg = str_split(pmsg,'>');
+  char** lstMsg = str_split(pmsg,'@');
 
   int i,j,k; 
   int batch = determineBatchSize(length);

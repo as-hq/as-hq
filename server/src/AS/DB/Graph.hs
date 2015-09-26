@@ -24,7 +24,7 @@ query :: GraphQuery -> [ASLocation] -> IO (Either ASExecError [ASLocation])
 query q locs = 
     let
         elements = (show q):(map show2 locs)
-        msg = BS.show $ intercalate ">" elements
+        msg = BS.show $ intercalate msgPartDelimiter elements
 
     in runZMQ $ do
         liftIO $ printTimed "Connecting to graph database."  
@@ -32,9 +32,9 @@ query q locs =
         connect reqSocket S.graphDbHost
 
         send' reqSocket [] msg   -- using lazy bytestring send function
-        liftIO $ printTimed "sent message"  
+        liftIO $ printTimed "sent message to graph db"  
         reply <- receiveMulti reqSocket
-        liftIO $ printTimed $ "graph db reply:  " ++ (show reply)
+        --liftIO $ printTimed $ "graph db reply:  " ++ (show reply)
         case (B.unpack $ last reply) of
             "OK" -> do
                 let filtered = map B.unpack $ init reply
@@ -49,9 +49,9 @@ setRelations :: [(ASLocation, [ASLocation])] -> IO (Either ASExecError ())
 setRelations rels = 
     let
         locSets = map (\(root, deps)-> (root:deps)) rels
-        relations = map (\lset -> intercalate "&" $ map show2 lset) locSets
+        relations = map (\lset -> intercalate relationDelimiter $ map show2 lset) locSets
         elements = (show SetRelations):relations
-        msg = BS.show $ intercalate ">" elements 
+        msg = BS.show $ intercalate msgPartDelimiter elements 
 
     in runZMQ $ do
         liftIO $ printTimed "Connecting to graph database for multi query."  

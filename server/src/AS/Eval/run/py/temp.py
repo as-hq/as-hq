@@ -21,7 +21,7 @@ try:
 	execfile(filename)
 	
 	
-	result = range(10)
+	result = 14.0+2.23123123e8
 except Exception as e: 
 	exc_type, exc_obj, exc_tb = exc_info()
 	fname = 'AlphaSheets Python evaluator'

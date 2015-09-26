@@ -74,30 +74,34 @@ getCell :: ASLocation -> IO (Maybe ASCell)
 getCell loc = return . head =<< getCells [loc]
 
 getCells :: [ASLocation] -> IO [Maybe ASCell]
-getCells [] = return [] 
+getCells [] = return []
 getCells locs = 
-  let 
+  let  
     dlocs = concat $ map U.decomposeLocs locs 
-    msg = showB $ intercalate ">" $ map show2 dlocs
+    msg = showB $ intercalate "@" $ map show2 dlocs
+    --str = intercalate msgPartDelimiter $ map show2 dlocs
     num = length dlocs 
   in do
+    --B.putStrLn msg
     ptrCells <- BU.unsafeUseAsCString msg $ \str -> c_getCells str (fromIntegral num)
-    cCells <- peekArray (fromIntegral num) ptrCells
-    res <- mapM DU.cToASCell cCells
-    free ptrCells 
-    return res
 
-setCell :: ASCell -> IO ()
-setCell c = setCells [c]
+    --ptrCells <- withCString str $ \cstr ->  c_getCells cstr (fromIntegral num)
+    cCells <- peekArray (fromIntegral num) ptrCells
+    res <- mapM DU.cToASCell cCells  
+    free ptrCells 
+    return res 
+ 
+setCell :: ASCell -> IO () 
+setCell c = setCells [c] 
 
 setCells :: [ASCell] -> IO () 
 setCells [] = return () 
 setCells cells = do
-  let str = intercalate ">" $ (map (show2 . cellLocation) cells) ++ (map show2 cells)
+  let str = intercalate "@" $ (map (show2 . cellLocation) cells) ++ (map show2 cells)
   let msg = showB str
   --B.putStrLn msg
   _ <- unsafeUseAsCString msg $ \lstr -> do
-    liftIO $ printTimed "packed message" 
+    --liftIO $ printTimed "packed message" 
     c_setCells lstr (fromIntegral . length $ cells)
   return ()
 

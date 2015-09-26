@@ -39,7 +39,7 @@ import Database.Redis (Connection)
 runDispatchCycle :: ASUser -> MVar ServerState -> ASMessage -> IO ASMessage
 runDispatchCycle user state msg@(Message _ _ _ (PayloadC c')) = do 
   -- Apply middlewares
-  putStrLn $ "STARTING DISPATCH CYCLE " ++ (show c')
+  putStrLn $ "STARTING DISPATCH CYCLE " -- ++ (show c')
   c <- EM.evalMiddleware c'
   conn <- fmap dbConn (readMVar state)
   update <- updateCell c 
@@ -54,6 +54,7 @@ runDispatchCycle user state msg@(Message _ _ _ (PayloadC c')) = do
           case ancResult of 
             (Left e') -> return $ U.getCellMessage user (Left e') 
             (Right ancLocs) -> do
+              printTimed $ "got ancestor locs: " ++ (show ancLocs)
               anc <- fmap U.fromJustList $ DB.getCells ancLocs
               res <- propagate conn anc desc 
               case res of 
@@ -62,7 +63,9 @@ runDispatchCycle user state msg@(Message _ _ _ (PayloadC c')) = do
                   -- Apply endwares
                   cells <- (EE.evalEndware user state msg) cells'
                   DB.updateAfterEval conn user c' desc cells -- does set cells and commit
-                  return $ U.getCellMessage user (Right cells)
+                  let replyMsg = U.getCellMessage user (Right cells)
+                  --printTimed $ "Dispatch returned message: " ++ (show replyMsg)
+                  return replyMsg
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Eval building blocks
@@ -80,6 +83,7 @@ updateCell (Cell loc xp val ts) = do
     else do 
       let initCells = map (\(l,e,v)-> Cell l e v ts) (zip3 locs exprs (repeat NoValue))  
       setResult <- G.setRelations (zip locs deps)
+      printTimed $ "init cells: " ++ (show initCells)
       DB.setCells initCells
       printTimed $ "set init cells"
       return $ case setResult of 
@@ -102,10 +106,10 @@ getDescendants conn cell = do
   --let graphResult = Right descendantLocs
   case graphResult of
     (Right descendantLocs) -> do
-      printTimed $ "got descendant locs: " ++ (show descendantLocs)
+      printTimed $ "got descendant locs: " -- ++ (show descendantLocs)
       desc <- DB.getCells descendantLocs
-      printTimed $ "got descendant cells"
-      return $ Right $ map fromJust desc 
+      printTimed $ "got descendant cells: " -- ++ (show desc)
+      return . Right $ map fromJust desc 
     (Left e) -> return $ Left e
 
 -- | Takes ancestors and descendants, create lookup map, and run eval
@@ -121,7 +125,7 @@ propagate conn anc dec = do
 evalChain :: Connection -> M.Map ASLocation ASValue -> [ASCell] -> IO [ASCell]
 evalChain _ _ [] = return []
 evalChain conn mp ((Cell loc xp _ ts):cs) = do  
-  printTimed $ "Starting eval chain" ++ (show mp)
+  printTimed $ "Starting eval chain" -- ++ (show mp)
   cv <- R.evalExpression loc mp xp 
   otherCells <- case loc of
     Index sheet (a, b) -> case cv of
@@ -137,14 +141,15 @@ evalChain conn mp ((Cell loc xp _ ts):cs) = do
 -- | Not currently handling [[[]]] type things
 createListCells :: Connection -> ASLocation -> [ASValue] -> IO [ASCell]
 createListCells conn (Index sheet (a,b)) [] = return []
-createListCells conn (Index sheet (a,b)) values = do 
-  let origLoc = Index sheet (a,b)
-  let vals = concat $ map lst values
-  let locs = map (Index sheet) (concat $ [(shift (values!!row) row (a,b)) | row <- [0..(length values)-1]])
-  let exprs = map (\(Index _ (x,y)) -> Reference origLoc (x-a,y-b)) locs
-  let cells = L.tail $ map (\(l,e,v) -> Cell l e v []) (zip3 locs exprs vals)
-  G.setRelations (zip (L.tail locs) (repeat [origLoc]))
-  return cells
-    where
-      shift (ValueL v) r (a,b) = [(a+c,b+r) | c<-[0..length(v)-1] ]
-      shift other r (a,b)  = [(a,b+r)]
+createListCells conn (Index sheet (a,b)) values = 
+  let 
+    origLoc = Index sheet (a,b)
+    vals = concat $ map lst values
+    locs = map (Index sheet) (concat $ [(shift (values!!row) row (a,b)) | row <- [0..(length values)-1]])
+    exprs = map (\(Index _ (x,y)) -> Reference origLoc (x-a,y-b)) locs
+    cells = L.tail $ map (\(l,e,v) -> Cell l e v []) (zip3 locs exprs vals)
+    shift (ValueL v) r (a,b) = [(a+c,b+r) | c<-[0..length(v)-1] ]
+    shift other r (a,b)  = [(a,b+r)]
+  in do
+    G.setRelations (zip (L.tail locs) (repeat [origLoc]))
+    return cells

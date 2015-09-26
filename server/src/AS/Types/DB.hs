@@ -31,8 +31,8 @@ instance (Show2 ASLocation) where
   show2 (Range sid a) = "R/" ++ (unpack sid) ++ ('/':(show a))
 
 instance (Show2 ASExpression) where
-  show2 (Expression xp lang) = "E/" ++ xp ++ ('/':(show lang))
-  show2 (Reference loc ref) = "R/" ++ (show2 loc) ++ ('/':(show ref))
+  show2 (Expression xp lang) = "E?" ++ xp ++ ('?':(show lang))
+  show2 (Reference loc ref) = "R?" ++ (show2 loc) ++ ('?':(show ref))
 
 instance (Show2 ASValue) where
   show2 = show -- TODO optimize
@@ -63,7 +63,7 @@ instance (Read2 ASExpression)
   where
     read2 str = xp
       where
-        [tag, midstr, laststr] = splitBy '/' str
+        [tag, midstr, laststr] = splitBy '?' str
         xp = case tag of 
           "E" -> Expression midstr (read laststr :: ASLanguage)
           "R" -> Reference (read2 midstr :: ASLocation) (read laststr :: (Int, Int))

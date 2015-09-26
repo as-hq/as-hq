@@ -11,6 +11,7 @@ import AS.Parsing.In (int)
 import qualified Data.List                     as L
 import qualified Data.Text                     as T
 import           Data.List.Split
+import Data.Word (Word8)
 
 import qualified Data.ByteString.Char8         as BC
 import qualified Data.ByteString               as B
@@ -49,6 +50,10 @@ cInfo = ConnInfo
 
 ----------------------------------------------------------------------------------------------------------------------
 -- | Redis key utilities
+
+msgPartDelimiter = "@"
+
+relationDelimiter = "&"
 
 getLocationKey :: ASLocation -> B.ByteString
 getLocationKey = showB . show2
@@ -102,9 +107,9 @@ setCellRedis cell = do
     let loc = cellLocation cell
         key = getLocationKey loc
         cellstr = showB . show2 $ cell
-    _ <- set key cellstr
+    set key cellstr
     let setKey = getSheetSetKey (locSheetId loc)
-    _ <- sadd setKey [key] -- add the location key to the set of locs in a sheet (for sheet deletion etc)
+    sadd setKey [key] -- add the location key to the set of locs in a sheet (for sheet deletion etc)
     return ()
 
 deleteLocRedis :: ASLocation -> Redis ()
@@ -138,7 +143,7 @@ toStrict2 lb = BI.unsafeCreate len $ go lb
             go r (ptr `plusPtr` l)
 
 showB :: (BS.Show a) => a -> B.ByteString
-showB a = toStrict2 . BS.show $! a
+showB a = toStrict2 (BL.snoc (BS.show $! a) (0::Word8))
 
 ----------------------------------------------------------------------------------------------------------------------
 -- | Reading bytestrings
