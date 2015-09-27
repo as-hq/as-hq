@@ -116,8 +116,6 @@ sendToOriginal :: (Client c) => c -> ASServerMessage -> IO ()
 sendToOriginal cl msg = WS.sendTextData (conn cl) (encode msg)
 
 
--- ::ALEX:: will need to update frontend JSON objects
-
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Open/close/import/new/window handlers
 
@@ -154,8 +152,7 @@ handleUpdateWindow sid state (PayloadW window) = do
       let locs = U.getScrolledLocs oldWindow window 
       printTimed $ "Sending locs: " ++ (show locs)
       mcells <- DB.getCells locs
-      let msg = U.getDBCellMessage locs mcells
-      sendToOriginal user' msg
+      sendToOriginal user' $ U.getDBCellMessage locs mcells
       US.modifyUser (U.updateWindow window) user' state
 
 handleImport :: MVar ServerState -> ASPayload -> IO ()
@@ -270,8 +267,7 @@ handleCopy user state (PayloadLL (from:to:[])) = do -- this is a list of 2 locat
     then do
       DB.setCells toCells
       G.setRelations $ zip toLocs shiftedDeps 
-      let msg = ServerMessage Update Success (PayloadCL toCells)
-      sendBroadcastFiltered user state msg
+      sendBroadcastFiltered user state $ ServerMessage Update Success (PayloadCL toCells)
     else do
       let msg = ServerMessage Update (Failure $ generateErrorMessage CopyNonexistentDependencies) (PayloadE CopyNonexistentDependencies)
       sendToOriginal user msg

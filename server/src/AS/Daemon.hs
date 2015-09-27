@@ -22,7 +22,6 @@ import AS.Config.Settings as S
 import AS.Util as U
 import Data.List as L
 
--- daemons
 import Control.Monad
 import Data.Default
 import Data.Maybe
