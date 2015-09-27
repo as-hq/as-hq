@@ -18,7 +18,7 @@ evalMiddleware :: ASCell -> IO ASCell
 evalMiddleware cell = return cell
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
--- | Middlewares
+-- Middlewares
 
 -- | Change the excel expression to a python one and also possibly add a volatile tag
 --evalInitExcel :: ASCell -> IO ASCell

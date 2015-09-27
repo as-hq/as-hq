@@ -6,6 +6,8 @@ import Prelude
 import Data.Time.Clock
 import Data.Maybe (isNothing)
 import Data.UUID.V4 (nextRandom)
+import Data.Aeson hiding (Success)
+import qualified Network.WebSockets as WS
 import qualified Data.UUID as U (toString)
 import qualified Data.Text as T 
 import qualified Data.List as L
@@ -13,7 +15,10 @@ import Control.Applicative hiding ((<|>), many)
 import Data.Maybe (isNothing)
 
 --------------------------------------------------------------------------------------------------------------
--- | Misc
+-- Misc
+
+sendMessage :: ASMessage -> WS.Connection -> IO ()
+sendMessage msg conn = WS.sendTextData conn (encode msg)
 
 lastN :: Int -> [a] -> [a]
 lastN n xs = let m = length xs in drop (m-n) xs
@@ -90,7 +95,7 @@ isAllRight results = all id $ map isRight results
 deleteSubset :: (Eq a) => [a] -> [a] -> [a]
 deleteSubset subset = filter (\e -> L.notElem e subset)
 --------------------------------------------------------------------------------------------------------------
--- | Key-value manip functions
+-- Key-value manip functions
 
 delFromAL :: Eq key => [(key, a)] -> key -> [(key, a)]
 delFromAL l key = L.filter (\a -> (fst a) /= key) l
@@ -99,15 +104,15 @@ addToAL :: Eq key => [(key, elt)] -> key -> elt -> [(key, elt)]
 addToAL l key value = (key, value) : delFromAL l key
 
 --------------------------------------------------------------------------------------------------------------
--- | Conversions and Helpers
+-- Conversions and Helpers
 
 isJust :: Maybe ASCell -> Bool
 isJust (Just c) = True
 isJust Nothing = False
 
-getCellMessage :: ASUser -> Either ASExecError [ASCell] -> ASMessage
-getCellMessage user (Left e) = Message (userId user) Evaluate (Failure (generateErrorMessage e)) (PayloadN ())
-getCellMessage user (Right cells) = Message (userId user) Evaluate Success (PayloadCL cells)
+getCellMessage :: ASUserId -> Either ASExecError [ASCell] -> ASMessage
+getCellMessage uid (Left e) = Message uid Evaluate (Failure (generateErrorMessage e)) (PayloadN ())
+getCellMessage uid (Right cells) = Message uid Evaluate Success (PayloadCL cells)
 
 getBadLocs :: [ASLocation] -> [Maybe ASCell] -> [ASLocation]
 getBadLocs locs mcells = map fst $ filter (\(l,c)->isNothing c) (zip locs mcells)
@@ -119,8 +124,8 @@ getBadLocs locs mcells = map fst $ filter (\(l,c)->isNothing c) (zip locs mcells
 
 -- bugfix for sending non-nothing locs (e.g. scrolling)
 -- TODO send empty cells for nothings -- updates deletes that happened past viewing window
-getDBCellMessage :: ASUser -> [ASLocation] -> [Maybe ASCell] -> ASMessage
-getDBCellMessage user locs mcells = getCellMessage user (Right cells)
+getDBCellMessage :: ASUserId -> [ASLocation] -> [Maybe ASCell] -> ASMessage
+getDBCellMessage uid locs mcells = getCellMessage uid (Right cells)
   where justCells = filter (not . isNothing) mcells 
         cells = map (\(Just x) -> x) justCells
 
@@ -129,7 +134,7 @@ isColumn (Column _ _) = True
 isColumn _ = False
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
--- | Error Handling
+-- Error Handling
 
 -- | Not yet implemented
 generateErrorMessage :: ASExecError -> String
@@ -137,8 +142,7 @@ generateErrorMessage CopyNonexistentDependencies = "Some dependencies nonexisten
 generateErrorMessage (DBNothingException _) = "Unable to fetch cells from database."
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
--- | Time
-
+-- Time
 getTime :: IO String
 getTime = fmap (show . utctDayTime) getCurrentTime
 
@@ -152,13 +156,13 @@ getASTime :: IO ASTime
 getASTime = return $ Time "hi" 1 2 3
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
--- | Id management
+-- Id management
 
 getUniqueId :: IO T.Text
 getUniqueId = return . T.pack . U.toString =<< nextRandom
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
--- | viewing windows 
+-- viewing windows 
 
 intersectViewingWindows :: [ASCell] -> [ASWindow] -> [ASCell]
 intersectViewingWindows cells vws = concat $ map (intersectViewingWindow cells) vws 
@@ -184,11 +188,11 @@ intersectViewingWindowsLocs locs vws = concat $ map (intersectViewingWindow dloc
     inRange elem start len = ((elem >= start) && (elem <= (start + len)))
 
 updateWindow :: ASWindow -> ASUser -> ASUser
-updateWindow window (User uid conn windows) = User uid conn windows'
+updateWindow window (UserClient uid conn windows sid) = UserClient uid conn windows' sid
     where windows' = flip map windows (\w -> if (windowSheetId w) == (windowSheetId window) then window else w)
 
 getWindow :: ASSheetId -> ASUser -> Maybe ASWindow
-getWindow sheetid user = lookupLambda windowSheetId sheetid (userWindows user)
+getWindow sheetid user = lookupLambda windowSheetId sheetid (windows user)
 
 getScrolledLocs :: ASWindow -> ASWindow -> [ASLocation]
 getScrolledLocs (Window _ (-1,-1) (-1,-1)) (Window sheetid tl br) = [(Range sheetid (tl, br))] 
@@ -205,10 +209,10 @@ getUncoveredLocs sheet (tlo, bro) (tlw, brw) = [Range sheet corners | corners <-
       cs = [(tlw, tro), (trw, bro), (brw, blo), (blw, tlo)]
 
 getAllUserWindows :: ServerState -> [(ASUserId, [ASWindow])]
-getAllUserWindows state = map (\(u,d) -> (userId u, userWindows u)) (userList state)
+getAllUserWindows state = map (\u -> (userId u, windows u)) (userClients state)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
--- | Locations
+-- Locations
 
 decomposeLocs :: ASLocation -> [ASLocation]
 decomposeLocs loc = case loc of 
@@ -240,7 +244,7 @@ getOffsetBetweenLocs from to = getOffsetFromIndices from' to'
     getOffsetFromIndices (Index _ (y, x)) (Index _ (y', x')) = (y'-y, x'-x)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
--- | Users
+-- Users
 
 updateMessageUser :: ASUserId -> ASMessage -> ASMessage
 updateMessageUser uid (Message _ a r p) = Message uid a r p 
@@ -260,7 +264,7 @@ hasPermissions uid (Blacklist entities) = not $ any (isInEntity uid) entities
 hasPermissions uid (Whitelist entities) = any (isInEntity uid) entities
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
--- | Tags
+-- Tags
 
 containsTrackingTag :: [ASCellTag] -> Bool
 containsTrackingTag [] = False

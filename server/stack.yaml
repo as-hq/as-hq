@@ -18,7 +18,7 @@ extra-deps:
 - cereal-0.4.1.1
 - crypto-api-0.13.2
 - dlist-0.7.1.1
-- entropy-0.3.7
+- entropy-0.2.2
 - hashable-1.2.3.3
 - hedis-0.6.9
 - monad-control-1.0.0.4

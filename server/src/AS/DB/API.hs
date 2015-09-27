@@ -33,7 +33,7 @@ import Data.ByteString.Unsafe as BU
 import Data.List.Split
 
 ----------------------------------------------------------------------------------------------------------------------
--- | Storage Documentation
+-- Storage Documentation
 
 -- | Cells
 -- key-value hashes
@@ -61,14 +61,14 @@ import Data.List.Split
 -- stored as before, as a set with key volatileLocs
 
 ----------------------------------------------------------------------------------------------------------------------
--- | FFI 
+-- FFI 
 
 foreign import ccall unsafe "hiredis/redis_db.c getCells" c_getCells :: CString -> CInt -> IO (Ptr CString)
 foreign import ccall unsafe "hiredis/redis_db.c setCells" c_setCells :: CString -> CInt -> IO ()
 
  
 ----------------------------------------------------------------------------------------------------------------------
--- | Cells
+-- Cells
 
 getCell :: ASLocation -> IO (Maybe ASCell)
 getCell loc = return . head =<< getCells [loc]
@@ -139,27 +139,27 @@ getColumnCells conn (Column sheetid col) = do
     return cells
 
 ----------------------------------------------------------------------------------------------------------------------
--- | Commits
+-- Commits
 
 -- | TODO: need to deal with large commit sizes and max number of commits
 
 -- | Deal with updating all DB-related things after an eval
-updateAfterEval :: Connection -> ASUser -> ASCell -> [ASCell] -> [ASCell] -> IO ()
-updateAfterEval conn user origCell desc cells = do 
+updateAfterEval :: Connection -> ASUserId -> ASCell -> [ASCell] -> [ASCell] -> IO ()
+updateAfterEval conn uid origCell desc cells = do 
   printTimed "begin set cells"
   setCells cells
   printTimed "finished set cells"
-  addCommit conn user desc cells
+  addCommit conn uid desc cells
   printTimed "added commit"
   if (U.containsTrackingTag (cellTags origCell))
     then return () -- TODO: implement some redundancy in DB for tracking
     else return ()
 
 -- | Creates and pushes a commit to the DB
-addCommit :: Connection -> ASUser -> [ASCell] -> [ASCell] -> IO ()
-addCommit conn user b a = do 
+addCommit :: Connection -> ASUserId -> [ASCell] -> [ASCell] -> IO ()
+addCommit conn uid b a = do 
   time <- getASTime
-  let commit = ASCommit (userId user) b a time
+  let commit = ASCommit uid b a time
   pushCommit conn commit
   --putStrLn $ show commit
 
@@ -206,7 +206,7 @@ pushCommit conn c = do
     return ()
 
 ----------------------------------------------------------------------------------------------------------------------
--- | WorkbookSheets (for frontend API)
+-- WorkbookSheets (for frontend API)
 
 getAllWorkbookSheets :: Connection -> IO [WorkbookSheet]
 getAllWorkbookSheets conn = do
@@ -244,7 +244,7 @@ modifyWorkbookSheets conn f wName = do
   setWorkbook conn wbNew
 
 ----------------------------------------------------------------------------------------------------------------------
--- | Raw workbooks
+-- Raw workbooks
 
 createWorkbook :: Connection -> [ASSheetId] -> IO ASWorkbook
 createWorkbook conn sheetids = do
@@ -314,7 +314,7 @@ deleteWorkbookAndSheets conn name = do
                 return ()
 
 ----------------------------------------------------------------------------------------------------------------------
--- | Raw sheets
+-- Raw sheets
 
 getSheet :: Connection -> ASSheetId -> IO (Maybe ASSheet)
 getSheet conn sid = do
@@ -369,7 +369,7 @@ deleteSheetUnsafe conn sid = do
         return ()
 
 ----------------------------------------------------------------------------------------------------------------------
--- | Volatile cell methods
+-- Volatile cell methods
 
 getVolatileLocs :: Connection -> IO [ASLocation]
 getVolatileLocs conn = do 
@@ -393,7 +393,7 @@ deleteChunkVolatileCells cells = do
   return ()
 
 ----------------------------------------------------------------------------------------------------------------------
--- | Permissions
+-- Permissions
 
 canAccessSheet :: Connection -> ASUserId -> ASSheetId -> IO Bool
 canAccessSheet conn uid sheetId = do
@@ -408,17 +408,17 @@ canAccess conn uid loc = canAccessSheet conn uid (locSheetId loc)
 canAccessAll :: Connection -> ASUserId -> [ASLocation] -> IO Bool
 canAccessAll conn uid locs = return . all id =<< mapM (canAccess conn uid) locs
 
-isPermissibleMessage :: Connection -> ASUserId -> ASMessage -> IO Bool
-isPermissibleMessage conn uid (Message _ _ _ (PayloadC cell))      = canAccess conn uid (cellLocation cell)
-isPermissibleMessage conn uid (Message _ _ _ (PayloadCL cells))    = canAccessAll conn uid (map cellLocation cells)
-isPermissibleMessage conn uid (Message _ _ _ (PayloadL loc))       = canAccess conn uid loc
-isPermissibleMessage conn uid (Message _ _ _ (PayloadLL locs))     = canAccessAll conn uid locs
-isPermissibleMessage conn uid (Message _ _ _ (PayloadS sheet))     = canAccessSheet conn uid (sheetId sheet)
-isPermissibleMessage conn uid (Message _ _ _ (PayloadW window))    = canAccessSheet conn uid (windowSheetId window)
-isPermissibleMessage conn uid (Message _ _ _ (PayloadTags _ loc))  = canAccess conn uid loc
-isPermissibleMessage _ _ _ = return True
+isPermissibleMessage :: Connection -> ASMessage -> IO Bool
+isPermissibleMessage conn (Message uid _ _ (PayloadC cell))      = canAccess conn uid (cellLocation cell)
+isPermissibleMessage conn (Message uid _ _ (PayloadCL cells))    = canAccessAll conn uid (map cellLocation cells)
+isPermissibleMessage conn (Message uid _ _ (PayloadL loc))       = canAccess conn uid loc
+isPermissibleMessage conn (Message uid _ _ (PayloadLL locs))     = canAccessAll conn uid locs
+isPermissibleMessage conn (Message uid _ _ (PayloadS sheet))     = canAccessSheet conn uid (sheetId sheet)
+isPermissibleMessage conn (Message uid _ _ (PayloadW window))    = canAccessSheet conn uid (windowSheetId window)
+isPermissibleMessage conn (Message uid _ _ (PayloadTags _ loc))  = canAccess conn uid loc
+isPermissibleMessage _ _ = return True
 
 
 ----------------------------------------------------------------------------------------------------------------------
--- | Users and Permissons TODO
+-- Users and Permissons TODO
 

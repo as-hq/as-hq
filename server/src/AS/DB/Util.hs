@@ -31,7 +31,7 @@ import Control.Monad
 import Control.Monad.Trans
 
 ----------------------------------------------------------------------------------------------------------------------
--- | Settings
+-- Settings
 
 dagChunkSize :: Int
 dagChunkSize = 1000
@@ -47,9 +47,8 @@ cInfo = ConnInfo
     , connectMaxIdleTime    = 1000000
     }
 
-
 ----------------------------------------------------------------------------------------------------------------------
--- | Redis key utilities
+-- Redis key utilities
 
 msgPartDelimiter = "@"
 
@@ -95,7 +94,7 @@ getUniquePrefixedName pref strs = pref ++ (show idx)
       _ -> (L.maximum idxs) + 1
 
 ----------------------------------------------------------------------------------------------------------------------
--- | private DB functions
+-- Private DB functions
 
 getCellByKeyRedis :: B.ByteString -> Redis (Maybe ASCell)
 getCellByKeyRedis key = do
@@ -146,7 +145,7 @@ showB :: (BS.Show a) => a -> B.ByteString
 showB a = toStrict2 (BL.snoc (BS.show $! a) (0::Word8))
 
 ----------------------------------------------------------------------------------------------------------------------
--- | Reading bytestrings
+-- Reading bytestrings
 
 bStrToASExpression :: Maybe B.ByteString -> Maybe ASExpression
 bStrToASExpression (Just b) = Just (read2 (BC.unpack b) :: ASExpression)

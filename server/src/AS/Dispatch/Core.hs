@@ -33,42 +33,41 @@ import qualified Network.WebSockets as WS
 import Database.Redis (Connection)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
--- | Regular eval route
+-- Regular eval route
 
 -- | Go through the regular eval route
-runDispatchCycle :: ASUser -> MVar ServerState -> ASMessage -> IO ASMessage
-runDispatchCycle user state msg@(Message _ _ _ (PayloadC c')) = do 
+runDispatchCycle :: MVar ServerState -> ASMessage -> IO ASMessage
+runDispatchCycle state msg@(Message _ _ _ (PayloadC c')) = do 
   -- Apply middlewares
-  putStrLn $ "STARTING DISPATCH CYCLE " -- ++ (show c')
+  let uid = messageUserId msg
+  putStrLn $ "STARTING DISPATCH CYCLE WITH PAYLOADC " ++ (show c')
   c <- EM.evalMiddleware c'
   conn <- fmap dbConn (readMVar state)
   update <- updateCell c 
   case update of 
-    Left e -> return $ U.getCellMessage user (Left e)
+    Left e -> return $ U.getCellMessage uid (Left e)
     Right () -> do 
       d <- getDescendants conn c 
       case d of -- for example, error if DB is locked
-        Left de -> return $ U.getCellMessage user (Left de)
+        Left de -> return $ U.getCellMessage uid (Left de)
         Right desc -> do 
           ancResult <- G.getImmediateAncestors $ map cellLocation desc
           case ancResult of 
-            (Left e') -> return $ U.getCellMessage user (Left e') 
+            (Left e') -> return $ U.getCellMessage uid (Left e') 
             (Right ancLocs) -> do
               printTimed $ "got ancestor locs: " ++ (show ancLocs)
               anc <- fmap U.fromJustList $ DB.getCells ancLocs
               res <- propagate conn anc desc 
               case res of 
-                Left e' -> return $ U.getCellMessage user (Left e')
+                Left e' -> return $ U.getCellMessage uid (Left e')
                 Right cells' -> do
                   -- Apply endwares
-                  cells <- (EE.evalEndware user state msg) cells'
-                  DB.updateAfterEval conn user c' desc cells -- does set cells and commit
-                  let replyMsg = U.getCellMessage user (Right cells)
-                  --printTimed $ "Dispatch returned message: " ++ (show replyMsg)
-                  return replyMsg
+                  cells <- (EE.evalEndware state msg) cells'
+                  DB.updateAfterEval conn uid c' desc cells -- does set cells and commit
+                  return $ U.getCellMessage uid (Right cells) -- reply message
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
--- | Eval building blocks
+-- Eval building blocks
 
 -- | Takes a cell and returns an error if it tries to access a non-existant cell
 -- | Otherwise, it returns all of the immediate ancestors (used to make the lookup map)
@@ -120,7 +119,7 @@ propagate conn anc dec = do
   return $ Right result
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
--- | Eval helpers
+-- Eval helpers
 
 evalChain :: Connection -> M.Map ASLocation ASValue -> [ASCell] -> IO [ASCell]
 evalChain _ _ [] = return []

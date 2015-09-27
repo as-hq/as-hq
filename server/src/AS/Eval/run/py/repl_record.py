@@ -35,3 +35,7 @@ def myFunc(x):
 
 def someFunction(x):
 	return "hello"
+import random
+
+import random
+a=5

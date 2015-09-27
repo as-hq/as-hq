@@ -29,47 +29,35 @@ import Data.Maybe
 import System.Posix.Daemon
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
--- | This module just does daemon creation and management
+-- This module handles daemon creation and management
 
+-- | Returns what the daemon named at ASLocation is named / would be named if it existed. 
 getDaemonName :: ASLocation -> String
-getDaemonName loc = (show loc) ++ ".pid"
-
-daemonExists :: ASUser -> ASLocation -> MVar ServerState -> IO Bool
-daemonExists user loc state = do 
-  (State s _)<- readMVar state
-  let l = L.lookup user s
-  case l of 
-    Nothing -> return False
-    Just daemons -> do 
-      let locs = L.map daemonLoc daemons
-      return $ L.elem loc locs
+getDaemonName loc = (show loc) ++ "daemon"
 
 getConnByLoc :: ASLocation -> MVar ServerState -> IO (Maybe WS.Connection)
 getConnByLoc loc state = do 
-  (State s _) <- readMVar state
-  let daemons = L.concat (L.map snd s)
-  let daemon = L.filter (\(ASDaemon l c) -> (l == loc)) daemons
+  (State users daemons _) <- readMVar state
+  let daemon = L.filter (\(ASDaemon l _) -> (l == loc)) daemons
   case daemon of 
 		[] -> return Nothing
 		d -> return $ Just $ daemonConn $  L.head d 
 
-possiblyCreateDaemon :: ASUser -> MVar ServerState -> ASMessage -> IO ()
-possiblyCreateDaemon user state origMsg@(Message _ _ _ (PayloadC (Cell loc xp val ts))) = do 
+-- | Creates a streaming daemon for this cell if one of the tags is a streaming tag. 
+possiblyCreateDaemon :: MVar ServerState -> ASMessage -> IO ()
+possiblyCreateDaemon state origMsg@(Message _ _ _ (PayloadC (Cell loc xp val ts))) = do 
   case (U.getStreamTag ts) of 
     Nothing -> do 
       let mTag = U.getStreamTagFromExpression xp 
       case mTag of 
         Nothing -> return ()
-        Just tag -> addDaemon user state tag loc origMsg
-    Just sTag -> addDaemon user state sTag loc origMsg
+        Just tag -> createDaemon state tag loc origMsg
+    Just sTag -> createDaemon state sTag loc origMsg
 
-daemonFunc :: Stream -> ASLocation -> ASMessage -> WS.Connection -> IO ()
-daemonFunc (Stream src x) loc msg conn = forever $ do 
-  WS.sendTextData conn (encode msg)
-  threadDelay (1000*x)
-  
-addDaemon :: ASUser -> MVar ServerState -> Stream -> ASLocation -> ASMessage -> IO ()
-addDaemon user state s loc msg = do 
+-- | Creates a streaming daemon to regularly update the cell at a location. 
+-- Does so by creating client that talks to server. 
+createDaemon :: MVar ServerState -> Stream -> ASLocation -> ASMessage -> IO ()
+createDaemon state s loc msg = do 
   putStrLn $ "POTENTIALLY CREATING A DAEMON"
   let name = getDaemonName loc
   putStrLn $ "NAME: " ++ (show name)
@@ -78,14 +66,19 @@ addDaemon user state s loc msg = do
   	then return ()
   	else do 
       runDetached (Just name) def $ do 
-        let pId = messageUserId msg
-        let initMsg = Message pId Acknowledge NoResult (PayloadDaemonInit (ASInitDaemonConnection pId loc))
+        let daemonId = T.pack $ getDaemonName loc
+        let initMsg = Message daemonId Acknowledge NoResult (PayloadDaemonInit (ASInitDaemonConnection daemonId loc))
+        -- creates a daemon client that talks to the server, pinging it with the regularity specified by the user
         WS.runClient S.wsAddress S.wsPort "/" $ \conn -> do 
-          WS.sendTextData conn (encode initMsg)
-          daemonFunc s loc msg conn
-      putStrLn $ "DONE WITH ADD DAEMON"
-       
-  						
+          U.sendMessage initMsg conn
+          regularlyReEval s loc msg conn -- the original msg is an eval message on the cell
+      putStrLn $ "DONE WITH createDaemon"
+
+regularlyReEval :: Stream -> ASLocation -> ASMessage -> WS.Connection -> IO ()
+regularlyReEval (Stream src x) loc msg conn = forever $ do 
+  U.sendMessage msg conn
+  threadDelay (1000*x) -- microseconds to milliseconds
+
 removeDaemon :: ASLocation -> MVar ServerState -> IO ()
 removeDaemon loc state = do 
   let name = getDaemonName loc
@@ -95,6 +88,7 @@ removeDaemon loc state = do
     WS.sendClose (fromJust mConn) ("Bye" :: Text)
     killAndWait name
 
-modifyDaemon :: ASUser -> MVar ServerState -> Stream -> ASLocation -> ASMessage-> IO ()
-modifyDaemon user state stream loc msg = (removeDaemon loc state) >> (addDaemon user state stream loc msg)
-
+-- | Replaces state and stream of daemon at loc, if it exists. If not, create daemon at that location. 
+-- (Ideal implementation would look more like modifyUser, but this works for now.)
+modifyDaemon :: MVar ServerState -> Stream -> ASLocation -> ASMessage-> IO ()
+modifyDaemon state stream loc msg = (removeDaemon loc state) >> (createDaemon state stream loc msg)
