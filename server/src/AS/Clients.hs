@@ -66,8 +66,8 @@ instance Client ASUser where
     CopyForced   -> handleCopyForced user state (payload message)
     AddTags      -> handleAddTags user state message
     RemoveTags   -> handleRemoveTags user state message
-    -- Undo         -> putStrLn "\n\n\nHI!!!!\n\n\n" >> handleAddTags user state (Message (userId user) AddTags (NoResult) (PayloadTags [StreamTag (Stream NoSource 1000)] (Index (T.pack "TEST_SHEET_ID2") (1,1))))
--- ^^ above is to test streaming when frontend hasn't been implemented yet
+    -- Undo         -> handleAddTags user state (Message (userId user) AddTags (NoResult) (PayloadTags [StreamTag (Stream NoSource 1000)] (Index (T.pack "TEST_SHEET_ID2") (1,1))))
+    -- ^^ above is to test streaming when frontend hasn't been implemented yet
 
 -------------------------------------------------------------------------------------------------------------------------
 -- ASDaemon is a client
@@ -316,8 +316,7 @@ processAddTag user state loc msg t = do
         Nothing -> return ()
         Just cell -> do 
           let evalMsg = Message (messageUserId msg) Evaluate NoResult (PayloadC cell)
-          putStrLn "\n\n\nMADE IT HERE!!!!!!!!\n\n\n"
-          DM.modifyDaemon state s loc evalMsg -- ::ALEX:: make this clearer
+          DM.modifyDaemon state s loc evalMsg -- put the daemon with loc and evalMsg on that cell -- overwrite if already exists, create if not
     otherwise -> return () -- TODO: implement the rest
 
 processRemoveTag :: ASLocation -> MVar ServerState -> ASCellTag -> IO ()
@@ -335,7 +334,6 @@ processRemoveTag loc state t = do
 
 handleAddTags :: ASUser -> MVar ServerState -> ASMessage -> IO ()
 handleAddTags user state msg@(Message uid _ _ (PayloadTags ts loc)) = do 
-  putStrLn "\n\n\nMADE IT INTO handleAddTags!!!!!!!!\n\n\n"
   mapM_ (processAddTag user state loc msg) ts
   let sendMsg = Message uid AddTags Success (PayloadN ())
   sendToOriginal user sendMsg
