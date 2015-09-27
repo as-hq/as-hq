@@ -9,7 +9,7 @@ import Control.Concurrent
 import Control.Monad
 import Control.Monad.IO.Class (liftIO)
 import Data.Aeson hiding (Success)
-import AS.DaemonClient (getDaemonClientName)
+import AS.Daemon (getDaemonName)
 import qualified Network.WebSockets as WS
 
 import AS.Types.Core
@@ -20,7 +20,7 @@ import AS.Dispatch.Core     as DP
 import AS.Dispatch.Repl     as DR 
 import AS.Users             as US
 import AS.Parsing.Out       as O
-import AS.DaemonClient            as DM
+import AS.Daemon            as DM
 
 -------------------------------------------------------------------------------------------------------------------------
 -- ASUser is a client
@@ -61,17 +61,17 @@ instance Client ASUser where
 -- ASDaemonClient is a client
 
 instance Client ASDaemonClient where 
-  conn = DaemonClientConn
-  clientId = T.pack . getDaemonClientName . DaemonClientLoc
-  ownerName = DaemonClientOwner
+  conn = daemonConn
+  clientId = T.pack . getDaemonName . daemonLoc
+  ownerName = daemonOwner
   addClient dc s@(State ucs dcs dbc)
     | dc `elem` dcs = s
     | otherwise = State ucs (dc:dcs) dbc 
   removeClient dc s@(State ucs dcs dbc)
     | dc `elem` dcs = State ucs (L.delete dc dcs) dbc
     | otherwise = s
-  handleClientMessage DaemonClient state message = case (clientAction message) of 
-    Evaluate -> handleEval DaemonClient state (clientPayload message)
+  handleClientMessage daemon state message = case (clientAction message) of 
+    Evaluate -> handleEval daemon state (clientPayload message)
 
 -- Handlers take message payloads and send the response to the client(s)
 
@@ -295,13 +295,13 @@ processAddTag user state loc t = do
           let c' = Cell l e v (t:ts)
           DB.setCell c'
   case t of 
-    StreamTag s -> do -- create DaemonClient that sends an eval message
+    StreamTag s -> do -- create daemon that sends an eval message
       mCells <- DB.getCells [loc]
       case (L.head mCells) of 
         Nothing -> return ()
         Just cell -> do 
           let evalMsg = ClientMessage Evaluate (PayloadC cell)
-          DM.modifyDaemonClient state s loc evalMsg -- put the DaemonClient with loc and evalMsg on that cell -- overwrite if already exists, create if not
+          DM.modifyDaemon state s loc evalMsg -- put the daemon with loc and evalMsg on that cell -- overwrite if already exists, create if not
     otherwise -> return () -- TODO: implement the rest
 
 processRemoveTag :: ASLocation -> MVar ServerState -> ASCellTag -> IO ()
@@ -314,7 +314,7 @@ processRemoveTag loc state t = do
       let c' = Cell l e v (L.delete t ts)
       DB.setCell c'
   case t of
-    StreamTag s -> DM.removeDaemonClient loc state
+    StreamTag s -> DM.removeDaemon loc state
     otherwise -> return () -- TODO: implement the rest
 
 handleAddTags :: ASUser -> MVar ServerState -> ASPayload -> IO ()

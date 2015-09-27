@@ -17,8 +17,8 @@ import Data.Maybe (isNothing)
 -------------------------------------------------------------------------------------------------------------------------
 -- Initializations
 
-initDaemonClientFromMessageAndConn :: ASClientMessage -> WS.Connection -> ASDaemonClient
-initDaemonClientFromMessageAndConn (ClientMessage _ (PayloadDaemonClientInit (ASInitDaemonClientConnection uid loc))) c = DaemonClient loc c uid
+initDaemonFromMessageAndConn :: ASClientMessage -> WS.Connection -> ASDaemonClient
+initDaemonFromMessageAndConn (ClientMessage _ (PayloadDaemonInit (ASInitDaemonConnection uid loc))) c = Daemon loc c uid
 
 initUserFromMessageAndConn :: ASClientMessage -> WS.Connection -> IO ASUser
 initUserFromMessageAndConn (ClientMessage _ (PayloadInit (ASInitConnection uid))) c = do 
@@ -26,7 +26,7 @@ initUserFromMessageAndConn (ClientMessage _ (PayloadInit (ASInitConnection uid))
     return $ UserClient uid c [initialViewingWindow] $ T.pack ((show uid) ++ (show time))
 
 --------------------------------------------------------------------------------------------------------------
--- Misc
+-- Misc 
 
 sendMessage :: (ToJSON a) => a -> WS.Connection -> IO ()
 sendMessage msg conn = WS.sendTextData conn (encode msg)

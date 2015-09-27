@@ -127,7 +127,7 @@ data QueryList =
 data ASPayload = 
   PayloadN () |
   PayloadInit ASInitConnection |
-  PayloadDaemonClientInit ASInitDaemonClientConnection |
+  PayloadDaemonInit ASInitDaemonConnection |
   PayloadC ASCell | 
   PayloadCL [ASCell] | 
   PayloadL ASLocation |
@@ -176,12 +176,12 @@ type EitherCells = Either ASExecError [ASCell]
 -- Websocket types
 
 data ASInitConnection = ASInitConnection {connUserId :: ASUserId} deriving (Show,Read,Eq,Generic)
-data ASInitDaemonClientConnection = ASInitDaemonClientConnection {parentUserId :: ASUserId, initDaemonClientLoc :: ASLocation} deriving (Show,Read,Eq,Generic)
+data ASInitDaemonConnection = ASInitDaemonConnection {parentUserId :: ASUserId, initDaemonLoc :: ASLocation} deriving (Show,Read,Eq,Generic)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- State
 
-data ServerState = State {userClients :: [ASUser], DaemonClientClients :: [ASDaemonClient], dbConn :: R.Connection} 
+data ServerState = State {userClients :: [ASUser], daemonClients :: [ASDaemonClient], dbConn :: R.Connection} 
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Clients
@@ -219,12 +219,12 @@ data ASPermissions = Blacklist [ASEntity] |
                       deriving (Show, Read, Eq, Generic)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
--- DaemonClients
+-- daemons
 
-data ASDaemonClient = DaemonClient {DaemonClientLoc :: ASLocation, DaemonClientConn :: WS.Connection, DaemonClientOwner :: ASUserId}
+data ASDaemonClient = Daemon {daemonLoc :: ASLocation, daemonConn :: WS.Connection, daemonOwner :: ASUserId}
 
 instance Eq ASDaemonClient where 
-  c1 == c2 = (DaemonClientLoc c1) == (DaemonClientLoc c2)
+  c1 == c2 = (daemonLoc c1) == (daemonLoc c2)
 
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
@@ -286,8 +286,8 @@ instance ToJSON Stream
 instance FromJSON Stream
 instance ToJSON Bloomberg
 instance FromJSON Bloomberg
-instance FromJSON ASInitDaemonClientConnection
-instance ToJSON ASInitDaemonClientConnection
+instance FromJSON ASInitDaemonConnection
+instance ToJSON ASInitDaemonConnection
 instance FromJSON ASEntity
 instance ToJSON ASEntity
 instance FromJSON ASUserGroup

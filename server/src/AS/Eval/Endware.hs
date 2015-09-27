@@ -18,18 +18,18 @@ import Data.ByteString.Char8 hiding (putStrLn,filter,any,length)
 import Data.ByteString.Lazy.Char8 as B hiding (putStrLn,filter,any,length)
 import qualified Network.WebSockets as WS
 
-import AS.DaemonClient as DM
+import AS.Daemon as DM
 
 
 -- | Here, we apply a stack of endwares.
 -- | Endware for producing tags post-eval e.g. streaming or styling
 -- | Examples: green(x) in python -> produces styled value with string in output -> string parsed to Color tag
--- | Bloomberg(x) in java -> produces json with stream specs -> converted to Stream tag, kickoff DaemonClient
+-- | Bloomberg(x) in java -> produces json with stream specs -> converted to Stream tag, kickoff daemon
 
 evalEndware :: MVar ServerState -> ASCell -> [ASCell] -> ASUserId -> IO [ASCell]
 evalEndware state origCell finalCells uid = do 
 	let newCells = (tagStyledCells . (changeExcelExpressions origCell)) finalCells
-	DM.possiblyCreateDaemonClient state uid origCell
+	DM.possiblyCreateDaemon state uid origCell
 	return newCells
    
 ----------------------------------------------------------------------------------------------------------------------------------------------
