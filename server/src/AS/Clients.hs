@@ -23,20 +23,6 @@ import AS.Parsing.Out       as O
 import AS.Daemon            as DM
 
 -------------------------------------------------------------------------------------------------------------------------
--- Initializations
-
-initDaemonFromMessageAndConn :: ASMessage -> WS.Connection -> Maybe ASDaemon
-initDaemonFromMessageAndConn m c' = case m of 
-  (Message _ _ _ (PayloadDaemonInit (ASInitDaemonConnection _ loc))) -> Just $ ASDaemon loc c'
-  otherwise -> Nothing 
-
-initUserFromMessageAndConn :: ASMessage -> WS.Connection -> IO ASUser
-initUserFromMessageAndConn m c' = do 
-    let uid = messageUserId m 
-    time <- getTime
-    return $ UserClient uid c' [initialViewingWindow] $ T.pack ((show uid) ++ (show time))
-
--------------------------------------------------------------------------------------------------------------------------
 -- ASUser is a client
 
 instance Client ASUser where 

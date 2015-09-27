@@ -88,9 +88,6 @@ talk state client = forever $ do
     Just m  -> printTimed ("SERVER message received:  " ++ (show msg)) >> processMessage client state m
     Nothing -> printTimed ("SERVER ERROR: unable to decode message " ++ (show msg)) >> return ()
 
--------------------------------------------------------------------------------------------------------------------------
--- Message handling
-
 processMessage :: (Client c) => c -> MVar ServerState -> ASMessage -> IO ()
 processMessage client state message = do
   dbConnection <- fmap dbConn (readMVar state) -- state stores connection to db; pull it out

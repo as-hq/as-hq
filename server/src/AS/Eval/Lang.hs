@@ -69,13 +69,13 @@ getRunFile :: ASLanguage -> IO String
 getRunFile lang = do
 	path <- getEvalPath 
 	return $ path ++ case lang of 
-		R 		-> "r/temp.r"
-		Python 	-> "py/temp.py"
-		OCaml 	-> "ocaml/temp.ml"
-		SQL 	-> "sql/temp.py"
-		CPP 	-> "cpp/temp.cpp"
-		Java 	-> "java/Temp.java"
-		Excel 	-> "excel/temp.py"
+		R 		-> "r/run.r"
+		Python 	-> "py/run.py"
+		OCaml 	-> "ocaml/run.ml"
+		SQL 	-> "sql/run.py"
+		CPP 	-> "cpp/run.cpp"
+		Java 	-> "java/Run.java"
+		Excel 	-> "excel/run.py"
 
 getRunReplFile :: ASLanguage -> IO String
 getRunReplFile lang = do

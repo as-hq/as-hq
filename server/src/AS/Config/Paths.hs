@@ -10,7 +10,7 @@ py_eval_path = "server/as-py-eval/"
 py_libs_path = "asl/as-libs/py/"
 py_template_file = "template.py"
 py_eval_file = "eval.py"
-py_run_file = "temp.py"
+py_run_file = "run.py"
 
 getEvalPath :: IO String
 getEvalPath = do
