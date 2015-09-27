@@ -77,7 +77,7 @@ handleFirstMessage state conn msg = do
 initClient :: (Client c) => c -> MVar ServerState -> IO ()
 initClient client state = do 
   liftIO $ modifyMVar_ state (\s -> return $ addClient client s) -- add client to state
-  catch (talk state client) (catchDisconnect client state)
+  finally (talk state client) (onDisconnect client state)
 
 -- | Maintains connection until user disconnects
 talk :: (Client c) => MVar ServerState -> c -> IO ()
@@ -99,9 +99,7 @@ processMessage client state message = do
     then handleClientMessage client state message
     else sendMessage (failureMessage "Insufficient permissions") (conn client)
 
-catchDisconnect :: (Client c) => c -> MVar ServerState -> SomeException -> IO ()
-catchDisconnect user state e = case (fromException e) of
-  Just WS.ConnectionClosed -> do 
-    putStrLn $ "\n\n\nin connection closed catch\n\n\n"
-    liftIO $ modifyMVar_ state (\s -> return $ removeClient user s) -- remove client from server state
-  otherwise -> (putStrLn (show e)) >> return ()
+onDisconnect :: (Client c) => c -> MVar ServerState -> IO ()
+onDisconnect user state = do 
+  printTimed "Client disconnected"
+  liftIO $ modifyMVar_ state (\s -> return $ removeClient user s) -- remove client from server
