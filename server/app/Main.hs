@@ -29,7 +29,6 @@ import AS.Util
 import AS.Users
 import AS.DB.API as DB
 import AS.DB.Util as DBU
-import AS.Handler as H
 
 -------------------------------------------------------------------------------------------------------------------------
 -- Main

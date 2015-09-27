@@ -36,7 +36,6 @@ library
                        AS.Types.DB
                        AS.Types.Excel
                        AS.Users
-                       AS.Handler
                        AS.Daemon
   build-depends:       base >= 4.7 && < 5
                      , text                          >= 0.11       && < 2.0

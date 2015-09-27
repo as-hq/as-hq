@@ -20,8 +20,8 @@ getUsers (State us _ _) = us
 userIdExists :: ASUserId -> ServerState -> Bool
 userIdExists uid state = L.elem uid (L.map userId (getUsers state))
 
-getUserBySessionId :: SessionId -> ServerState -> Maybe ASUser
-getUserBySessionId sid (State allUsers _ _) = case (filter (\c -> (sessionId c == sid)) (allUsers)) of
+getUserByClientId :: ClientId -> ServerState -> Maybe ASUser
+getUserByClientId sid (State allUsers _ _) = case (filter (\c -> (sessionId c == sid)) (allUsers)) of
   [] -> Nothing
   l -> Just $ L.head l
 
