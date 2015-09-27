@@ -22,9 +22,9 @@ import AS.Parsing.Out       as O
 import AS.Daemon            as DM
 
 -------------------------------------------------------------------------------------------------------------------------
--- ASUser is a client
+-- ASUserClient is a client
 
-instance Client ASUser where 
+instance Client ASUserClient where 
   conn = userConn
   clientId = sessionId
   ownerName = userId
@@ -92,10 +92,10 @@ sendBroadcastFiltered _ state msg = liftIO $ do
   broadcastFiltered msg ucs
 
 -- | Given a message (commit, cells, etc), only send (to each user) the cells in their viewing window
-broadcastFiltered :: ASServerMessage -> [ASUser] -> IO ()
+broadcastFiltered :: ASServerMessage -> [ASUserClient] -> IO ()
 broadcastFiltered msg@(ServerMessage a r (PayloadCL cells)) users = mapM_ (sendCells cells) users 
   where
-    sendCells :: [ASCell] -> ASUser -> IO ()
+    sendCells :: [ASCell] -> ASUserClient -> IO ()
     sendCells cells user = do 
       let cells' = intersectViewingWindows cells (windows user)
       case cells' of 
@@ -104,7 +104,7 @@ broadcastFiltered msg@(ServerMessage a r (PayloadCL cells)) users = mapM_ (sendC
 
 broadcastFiltered msg@(ServerMessage a r (PayloadLL locs)) users = mapM_ (sendLocs locs) users 
   where
-    sendLocs :: [ASLocation] -> ASUser -> IO ()
+    sendLocs :: [ASLocation] -> ASUserClient -> IO ()
     sendLocs locs user = do 
       let locs' = intersectViewingWindowsLocs locs (windows user)
       case locs' of 
@@ -118,7 +118,7 @@ sendToOriginal cl msg = WS.sendTextData (conn cl) (encode msg)
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Open/close/import/new/window handlers
 
-handleAcknowledge :: ASUser -> IO ()
+handleAcknowledge :: ASUserClient -> IO ()
 handleAcknowledge user = WS.sendTextData (userConn user) ("ACK" :: T.Text)
 
 handleNew :: MVar ServerState -> ASPayload -> IO ()
@@ -132,11 +132,11 @@ handleNew state (PayloadWB wb) = do
   broadcast state $ ServerMessage New Success (PayloadWB wb')
   return () -- TODO determine whether users should be notified
 
-handleOpen :: ASUser -> MVar ServerState -> ASPayload -> IO ()
+handleOpen :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
 handleOpen user state (PayloadS (Sheet sheetid _ _)) = US.modifyUser makeNewWindow user state 
   where makeNewWindow (UserClient uid conn windows sid) = UserClient uid conn ((Window sheetid (-1,-1) (-1,-1)):windows) sid
 
-handleClose :: ASUser -> MVar ServerState -> ASPayload -> IO ()
+handleClose :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
 handleClose user state (PayloadS (Sheet sheetid _ _)) = US.modifyUser closeWindow user state
   where closeWindow (UserClient uid conn windows sid) = UserClient uid conn (filter (((/=) sheetid) . windowSheetId) windows) sid
 
@@ -175,7 +175,7 @@ handleEvalRepl cl state (PayloadXp xp) = do
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- DB Handlers
 
-handleGet :: ASUser -> MVar ServerState -> ASPayload -> IO ()
+handleGet :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
 handleGet user state (PayloadLL locs) = do 
   curState <- readMVar state
   mcells <- DB.getCells locs 
@@ -194,7 +194,7 @@ handleGet user state (PayloadList WorkbookSheets) = do
   printTimed $ "getting all workbooks: "  ++ (show wss)
   sendToOriginal user $ ServerMessage Update Success (PayloadWorkbookSheets wss)
 
-handleDelete :: ASUser -> MVar ServerState -> ASPayload -> IO ()
+handleDelete :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
 handleDelete user state p@(PayloadL loc) = do 
   conn <- fmap dbConn $ readMVar state
   DB.deleteLocs conn [loc]
@@ -216,10 +216,10 @@ handleDelete user state p@(PayloadWB workbook) = do
   sendBroadcastFiltered user state $ ServerMessage Delete Success p
   return () 
 
-handleClear :: ASUser -> MVar ServerState -> IO ()
+handleClear :: ASUserClient -> MVar ServerState -> IO ()
 handleClear user state = sendBroadcastFiltered user state (failureMessage "")
 
-handleUndo :: ASUser -> MVar ServerState -> IO ()
+handleUndo :: ASUserClient -> MVar ServerState -> IO ()
 handleUndo user state = do 
   conn <- fmap dbConn $ readMVar state
   commit <- DB.undo conn
@@ -229,7 +229,7 @@ handleUndo user state = do
   sendBroadcastFiltered user state msg
   printTimed "Server processed undo"
 
-handleRedo :: ASUser -> MVar ServerState -> IO ()
+handleRedo :: ASUserClient -> MVar ServerState -> IO ()
 handleRedo user state = do 
   curState <- readMVar state
   commit <- DB.redo (dbConn curState)
@@ -246,7 +246,7 @@ handleRedo user state = do
 -- update expression
 -- update dag
 -- insert new cells into db
-handleCopy :: ASUser -> MVar ServerState -> ASPayload -> IO ()
+handleCopy :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
 handleCopy user state (PayloadLL (from:to:[])) = do -- this is a list of 2 locations
   curState <- readMVar state
   let conn = dbConn curState
@@ -272,13 +272,13 @@ handleCopy user state (PayloadLL (from:to:[])) = do -- this is a list of 2 locat
       sendToOriginal user msg
 
 -- same without checking
-handleCopyForced :: ASUser -> MVar ServerState -> ASPayload -> IO ()
+handleCopyForced :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
 handleCopyForced user state (PayloadLL (from:[to])) = return ()
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Tag handlers
 
-processAddTag :: ASUser -> MVar ServerState -> ASLocation -> ASCellTag -> IO ()
+processAddTag :: ASUserClient -> MVar ServerState -> ASLocation -> ASCellTag -> IO ()
 processAddTag user state loc t = do 
   cell <- DB.getCell loc
   case cell of 
@@ -312,12 +312,12 @@ processRemoveTag loc state t = do
     StreamTag s -> DM.removeDaemon loc state
     otherwise -> return () -- TODO: implement the rest
 
-handleAddTags :: ASUser -> MVar ServerState -> ASPayload -> IO ()
+handleAddTags :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
 handleAddTags user state (PayloadTags ts loc) = do 
   mapM_ (processAddTag user state loc) ts
   sendToOriginal user $ ServerMessage AddTags Success (PayloadN ())
 
-handleRemoveTags :: ASUser -> MVar ServerState -> ASPayload -> IO ()
+handleRemoveTags :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
 handleRemoveTags user state (PayloadTags ts loc) = do 
   mapM_ (processRemoveTag loc state) ts
   sendToOriginal user $ ServerMessage RemoveTags Success (PayloadN ())

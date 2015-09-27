@@ -181,7 +181,7 @@ data ASInitDaemonConnection = ASInitDaemonConnection {parentUserId :: ASUserId, 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- State
 
-data ServerState = State {userClients :: [ASUser], daemonClients :: [ASDaemonClient], dbConn :: R.Connection} 
+data ServerState = State {userClients :: [ASUserClient], daemonClients :: [ASDaemonClient], dbConn :: R.Connection} 
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Clients
@@ -196,17 +196,17 @@ class Client c where
   removeClient :: c -> ServerState -> ServerState
   handleClientMessage :: c -> MVar ServerState -> ASClientMessage -> IO ()
 
-data ASRecipients = Original | All | Custom [ASUser]
+data ASRecipients = Original | All | Custom [ASUserClient]
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Users
 
 data ASWindow = Window {windowSheetId :: ASSheetId, topLeft :: (Int, Int), bottomRight :: (Int, Int)} deriving (Show,Read,Eq,Generic)
 type ASUserId = Text 
--- data ASUser = User { userId :: ASUserId }
-data ASUser = UserClient {userId :: ASUserId, userConn :: WS.Connection, windows :: [ASWindow], sessionId :: ClientId} 
+-- data ASUserClient = User { userId :: ASUserId }
+data ASUserClient = UserClient {userId :: ASUserId, userConn :: WS.Connection, windows :: [ASWindow], sessionId :: ClientId} 
 
-instance Eq ASUser where 
+instance Eq ASUserClient where 
   c1 == c2 = (sessionId c1) == (sessionId c2)
 
 data ASUserGroup = Group {groupMembers :: [ASUserId], groupAdmins :: [ASUserId], groupName :: Text} deriving (Show, Read, Eq, Generic)

@@ -20,7 +20,7 @@ import Data.Maybe (isNothing)
 initDaemonFromMessageAndConn :: ASClientMessage -> WS.Connection -> ASDaemonClient
 initDaemonFromMessageAndConn (ClientMessage _ (PayloadDaemonInit (ASInitDaemonConnection uid loc))) c = DaemonClient loc c uid
 
-initUserFromMessageAndConn :: ASClientMessage -> WS.Connection -> IO ASUser
+initUserFromMessageAndConn :: ASClientMessage -> WS.Connection -> IO ASUserClient
 initUserFromMessageAndConn (ClientMessage _ (PayloadInit (ASInitConnection uid))) c = do 
     time <- getTime
     return $ UserClient uid c [initialViewingWindow] $ T.pack ((show uid) ++ (show time))
@@ -128,7 +128,7 @@ getCellMessage (Right cells) = ServerMessage Evaluate Success (PayloadCL cells)
 getBadLocs :: [ASLocation] -> [Maybe ASCell] -> [ASLocation]
 getBadLocs locs mcells = map fst $ filter (\(l,c)->isNothing c) (zip locs mcells)
 
---getDBCellMessage :: ASUser -> [ASLocation] -> [Maybe ASCell] -> ASMessage
+--getDBCellMessage :: ASUserClient -> [ASLocation] -> [Maybe ASCell] -> ASMessage
 --getDBCellMessage user locs mcells = if any isNothing mcells
 --  then getCellMessage user (Left (DBNothingException (getBadLocs locs mcells)))
 --  else getCellMessage user (Right (map (\(Just c)->c) mcells))
@@ -198,11 +198,11 @@ intersectViewingWindowsLocs locs vws = concat $ map (intersectViewingWindow dloc
     inRange :: Int -> Int -> Int -> Bool
     inRange elem start len = ((elem >= start) && (elem <= (start + len)))
 
-updateWindow :: ASWindow -> ASUser -> ASUser
+updateWindow :: ASWindow -> ASUserClient -> ASUserClient
 updateWindow window (UserClient uid conn windows sid) = UserClient uid conn windows' sid
     where windows' = flip map windows (\w -> if (windowSheetId w) == (windowSheetId window) then window else w)
 
-getWindow :: ASSheetId -> ASUser -> Maybe ASWindow
+getWindow :: ASSheetId -> ASUserClient -> Maybe ASWindow
 getWindow sheetid user = lookupLambda windowSheetId sheetid (windows user)
 
 getScrolledLocs :: ASWindow -> ASWindow -> [ASLocation]
