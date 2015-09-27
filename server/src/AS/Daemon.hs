@@ -29,6 +29,8 @@ import System.Posix.Daemon
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- This module handles daemon creation and management
+-- NOTE: for now, "Daemon" is something of a misnomer -- it refers specifically to daemons created 
+-- for streaming cells (cells that get re-evaluated at regular intervals), not to daemons generally. 
 
 -- | Returns what the daemon named at ASLocation is named / would be named if it existed. 
 getDaemonName :: ASLocation -> String
@@ -37,7 +39,7 @@ getDaemonName loc = (show loc) ++ "daemon"
 getConnByLoc :: ASLocation -> MVar ServerState -> IO (Maybe WS.Connection)
 getConnByLoc loc state = do 
   (State users daemons _) <- readMVar state
-  let daemon = L.filter (\(Daemon l _ _) -> (l == loc)) daemons
+  let daemon = L.filter (\(DaemonClient l _ _) -> (l == loc)) daemons
   case daemon of 
 		[] -> return Nothing
 		d -> return $ Just $ daemonConn $  L.head d 

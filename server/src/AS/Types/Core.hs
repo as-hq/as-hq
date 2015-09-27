@@ -219,9 +219,9 @@ data ASPermissions = Blacklist [ASEntity] |
                       deriving (Show, Read, Eq, Generic)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
--- daemons
+-- Daemons
 
-data ASDaemonClient = Daemon {daemonLoc :: ASLocation, daemonConn :: WS.Connection, daemonOwner :: ASUserId}
+data ASDaemonClient = DaemonClient {daemonLoc :: ASLocation, daemonConn :: WS.Connection, daemonOwner :: ASUserId}
 
 instance Eq ASDaemonClient where 
   c1 == c2 = (daemonLoc c1) == (daemonLoc c2)

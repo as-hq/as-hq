@@ -18,7 +18,7 @@ import Data.Maybe (isNothing)
 -- Initializations
 
 initDaemonFromMessageAndConn :: ASClientMessage -> WS.Connection -> ASDaemonClient
-initDaemonFromMessageAndConn (ClientMessage _ (PayloadDaemonInit (ASInitDaemonConnection uid loc))) c = Daemon loc c uid
+initDaemonFromMessageAndConn (ClientMessage _ (PayloadDaemonInit (ASInitDaemonConnection uid loc))) c = DaemonClient loc c uid
 
 initUserFromMessageAndConn :: ASClientMessage -> WS.Connection -> IO ASUser
 initUserFromMessageAndConn (ClientMessage _ (PayloadInit (ASInitConnection uid))) c = do 

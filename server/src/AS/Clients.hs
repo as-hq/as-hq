@@ -9,7 +9,6 @@ import Control.Concurrent
 import Control.Monad
 import Control.Monad.IO.Class (liftIO)
 import Data.Aeson hiding (Success)
-import AS.Daemon (getDaemonName)
 import qualified Network.WebSockets as WS
 
 import AS.Types.Core
@@ -62,7 +61,7 @@ instance Client ASUser where
 
 instance Client ASDaemonClient where 
   conn = daemonConn
-  clientId = T.pack . getDaemonName . daemonLoc
+  clientId = T.pack . DM.getDaemonName . daemonLoc
   ownerName = daemonOwner
   addClient dc s@(State ucs dcs dbc)
     | dc `elem` dcs = s
