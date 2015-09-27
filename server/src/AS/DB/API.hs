@@ -22,7 +22,7 @@ import Control.Concurrent
 import Control.Monad
 import Control.Monad.Trans
 import Data.Time
-import Database.Redis hiding (decode, Message)
+import Database.Redis hiding (decode)
 
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
@@ -408,15 +408,15 @@ canAccess conn uid loc = canAccessSheet conn uid (locSheetId loc)
 canAccessAll :: Connection -> ASUserId -> [ASLocation] -> IO Bool
 canAccessAll conn uid locs = return . all id =<< mapM (canAccess conn uid) locs
 
-isPermissibleMessage :: Connection -> ASMessage -> IO Bool
-isPermissibleMessage conn (Message uid _ _ (PayloadC cell))      = canAccess conn uid (cellLocation cell)
-isPermissibleMessage conn (Message uid _ _ (PayloadCL cells))    = canAccessAll conn uid (map cellLocation cells)
-isPermissibleMessage conn (Message uid _ _ (PayloadL loc))       = canAccess conn uid loc
-isPermissibleMessage conn (Message uid _ _ (PayloadLL locs))     = canAccessAll conn uid locs
-isPermissibleMessage conn (Message uid _ _ (PayloadS sheet))     = canAccessSheet conn uid (sheetId sheet)
-isPermissibleMessage conn (Message uid _ _ (PayloadW window))    = canAccessSheet conn uid (windowSheetId window)
-isPermissibleMessage conn (Message uid _ _ (PayloadTags _ loc))  = canAccess conn uid loc
-isPermissibleMessage _ _ = return True
+isPermissibleMessage :: ASUserId -> Connection -> ASClientMessage -> IO Bool
+isPermissibleMessage uid conn (ClientMessage _ (PayloadC cell))      = canAccess conn uid (cellLocation cell)
+isPermissibleMessage uid conn (ClientMessage _ (PayloadCL cells))    = canAccessAll conn uid (map cellLocation cells)
+isPermissibleMessage uid conn (ClientMessage _ (PayloadL loc))       = canAccess conn uid loc
+isPermissibleMessage uid conn (ClientMessage _ (PayloadLL locs))     = canAccessAll conn uid locs
+isPermissibleMessage uid conn (ClientMessage _ (PayloadS sheet))     = canAccessSheet conn uid (sheetId sheet)
+isPermissibleMessage uid conn (ClientMessage _ (PayloadW window))    = canAccessSheet conn uid (windowSheetId window)
+isPermissibleMessage uid conn (ClientMessage _ (PayloadTags _ loc))  = canAccess conn uid loc
+isPermissibleMessage _ _ _ = return True
 
 
 ----------------------------------------------------------------------------------------------------------------------

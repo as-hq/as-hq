@@ -27,7 +27,7 @@ getUserByClientId sid (State allUsers _ _) = case (filter (\c -> (sessionId c ==
 
 -- | Applies a (user -> user) function to a user in the server state
 modifyUser :: (ASUser -> ASUser) -> ASUser -> MVar ServerState -> IO ()
-modifyUser func user state = modifyMVar_ state $ \(State users daemons conn) ->
+modifyUser func user state = modifyMVar_ state $ \(State users DaemonClients conn) ->
   do 
     let users' = flip map users (\u -> if (u == user) then (func u) else u)
-    return $ State users' daemons conn 
+    return $ State users' DaemonClients conn 

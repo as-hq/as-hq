@@ -9,6 +9,7 @@ import Data.Text hiding (foldr, map)
 import qualified Network.WebSockets as WS
 import qualified Database.Redis as R
 import Control.Concurrent (MVar)
+import Control.Applicative
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Sheets
@@ -88,11 +89,15 @@ data Stream = Stream {streamSource :: StreamSource, streamFreq :: Int} deriving 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Message Types
 
-data ASMessage = Message {
-  messageUserId :: ASUserId,
-  action :: ASAction,
-  result :: ASResult,
-  payload :: ASPayload
+data ASClientMessage = ClientMessage {
+  clientAction :: ASAction,
+  clientPayload :: ASPayload
+} deriving (Show, Read, Eq, Generic)
+
+data ASServerMessage = ServerMessage { 
+  serverAction :: ASAction,
+  serverResult :: ASResult,
+  serverPayload :: ASPayload
 } deriving (Show, Read, Eq, Generic)
 
 data ASAction = 
@@ -122,7 +127,7 @@ data QueryList =
 data ASPayload = 
   PayloadN () |
   PayloadInit ASInitConnection |
-  PayloadDaemonInit ASInitDaemonConnection |
+  PayloadDaemonClientInit ASInitDaemonClientConnection |
   PayloadC ASCell | 
   PayloadCL [ASCell] | 
   PayloadL ASLocation |
@@ -171,12 +176,12 @@ type EitherCells = Either ASExecError [ASCell]
 -- Websocket types
 
 data ASInitConnection = ASInitConnection {connUserId :: ASUserId} deriving (Show,Read,Eq,Generic)
-data ASInitDaemonConnection = ASInitDaemonConnection {parentUserId :: ASUserId, initDaemonLoc :: ASLocation} deriving (Show,Read,Eq,Generic)
+data ASInitDaemonClientConnection = ASInitDaemonClientConnection {parentUserId :: ASUserId, initDaemonClientLoc :: ASLocation} deriving (Show,Read,Eq,Generic)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- State
 
-data ServerState = State {userClients :: [ASUser], daemonClients :: [ASDaemon], dbConn :: R.Connection} 
+data ServerState = State {userClients :: [ASUser], DaemonClientClients :: [ASDaemonClient], dbConn :: R.Connection} 
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Clients
@@ -186,9 +191,10 @@ type ClientId = Text
 class Client c where
   conn :: c -> WS.Connection
   clientId :: c -> ClientId
+  ownerName :: c -> ASUserId
   addClient :: c -> ServerState -> ServerState
   removeClient :: c -> ServerState -> ServerState
-  handleClientMessage :: c -> MVar ServerState -> ASMessage -> IO ()
+  handleClientMessage :: c -> MVar ServerState -> ASClientMessage -> IO ()
 
 data ASRecipients = Original | All | Custom [ASUser]
 
@@ -213,12 +219,12 @@ data ASPermissions = Blacklist [ASEntity] |
                       deriving (Show, Read, Eq, Generic)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
--- Daemons
+-- DaemonClients
 
-data ASDaemon = ASDaemon {daemonLoc :: ASLocation, daemonConn :: WS.Connection}
+data ASDaemonClient = DaemonClient {DaemonClientLoc :: ASLocation, DaemonClientConn :: WS.Connection, DaemonClientOwner :: ASUserId}
 
-instance Eq ASDaemon where 
-  c1 == c2 = (daemonLoc c1) == (daemonLoc c2)
+instance Eq ASDaemonClient where 
+  c1 == c2 = (DaemonClientLoc c1) == (DaemonClientLoc c2)
 
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
@@ -234,16 +240,12 @@ str (ValueS s) = s
 dbl :: ASValue -> Double
 dbl (ValueD d) = d
 
-failureMessage :: String -> ASMessage
-failureMessage s = Message genericText NoAction (Failure s) (PayloadN ())
+failureMessage :: String -> ASServerMessage
+failureMessage s = ServerMessage NoAction (Failure s) (PayloadN ())
 
 initialViewingWindow :: ASWindow
 initialViewingWindow = Window "testSheetId" (0, 0) (100, 100)
 -- TODO generate Unique sheet id
-
--- When sending data from server to client, the server doesn't have a userId 
-genericText :: Text
-genericText = pack ""
 
 openPermissions :: ASPermissions
 openPermissions = Blacklist []
@@ -268,8 +270,6 @@ instance ToJSON ASResult
 instance FromJSON ASResult
 instance ToJSON ASPayload
 instance FromJSON ASPayload
-instance ToJSON ASMessage
-instance FromJSON ASMessage
 instance ToJSON ASInitConnection
 instance FromJSON ASInitConnection 
 instance ToJSON ASExecError
@@ -286,8 +286,8 @@ instance ToJSON Stream
 instance FromJSON Stream
 instance ToJSON Bloomberg
 instance FromJSON Bloomberg
-instance FromJSON ASInitDaemonConnection
-instance ToJSON ASInitDaemonConnection
+instance FromJSON ASInitDaemonClientConnection
+instance ToJSON ASInitDaemonClientConnection
 instance FromJSON ASEntity
 instance ToJSON ASEntity
 instance FromJSON ASUserGroup
@@ -306,3 +306,20 @@ instance FromJSON ASTime
 instance ToJSON ASTime
 instance FromJSON ASCommit
 instance ToJSON ASCommit
+-- The format Frontend uses for both client->server and server->client is 
+-- { messageUserId: blah, action: blah, result: blah, payload: blah }
+instance ToJSON ASClientMessage where 
+  toJSON (ClientMessage action payload) = object ["action" .= action, "payload" .= payload]
+instance FromJSON ASClientMessage where 
+  parseJSON (Object v) = ClientMessage <$>
+                           v .: "action" <*>
+                           v .: "payload"
+  parseJSON _          = fail "client message JSON attributes missing"
+instance ToJSON ASServerMessage where 
+  toJSON (ServerMessage action result payload) = object ["action" .= action, "result" .= result, "payload" .= payload]
+instance FromJSON ASServerMessage where 
+  parseJSON (Object v) = ServerMessage <$>
+                           v .: "action" <*>
+                           v .: "result" <*>
+                           v .: "payload"
+  parseJSON _          = fail "server message JSON attributes missing"

@@ -17,21 +17,18 @@ import Data.Maybe (isNothing)
 -------------------------------------------------------------------------------------------------------------------------
 -- Initializations
 
-initDaemonFromMessageAndConn :: ASMessage -> WS.Connection -> Maybe ASDaemon
-initDaemonFromMessageAndConn m c' = case m of 
-  (Message _ _ _ (PayloadDaemonInit (ASInitDaemonConnection _ loc))) -> Just $ ASDaemon loc c'
-  otherwise -> Nothing 
+initDaemonClientFromMessageAndConn :: ASClientMessage -> WS.Connection -> ASDaemonClient
+initDaemonClientFromMessageAndConn (ClientMessage _ (PayloadDaemonClientInit (ASInitDaemonClientConnection uid loc))) c = DaemonClient loc c uid
 
-initUserFromMessageAndConn :: ASMessage -> WS.Connection -> IO ASUser
-initUserFromMessageAndConn m c' = do 
-    let uid = messageUserId m 
+initUserFromMessageAndConn :: ASClientMessage -> WS.Connection -> IO ASUser
+initUserFromMessageAndConn (ClientMessage _ (PayloadInit (ASInitConnection uid))) c = do 
     time <- getTime
-    return $ UserClient uid c' [initialViewingWindow] $ T.pack ((show uid) ++ (show time))
+    return $ UserClient uid c [initialViewingWindow] $ T.pack ((show uid) ++ (show time))
 
 --------------------------------------------------------------------------------------------------------------
 -- Misc
 
-sendMessage :: ASMessage -> WS.Connection -> IO ()
+sendMessage :: (ToJSON a) => a -> WS.Connection -> IO ()
 sendMessage msg conn = WS.sendTextData conn (encode msg)
 
 lastN :: Int -> [a] -> [a]
@@ -124,9 +121,9 @@ isJust :: Maybe ASCell -> Bool
 isJust (Just c) = True
 isJust Nothing = False
 
-getCellMessage :: ASUserId -> Either ASExecError [ASCell] -> ASMessage
-getCellMessage uid (Left e) = Message uid Evaluate (Failure (generateErrorMessage e)) (PayloadN ())
-getCellMessage uid (Right cells) = Message uid Evaluate Success (PayloadCL cells)
+getCellMessage :: Either ASExecError [ASCell] -> ASServerMessage
+getCellMessage (Left e) = ServerMessage Evaluate (Failure (generateErrorMessage e)) (PayloadN ())
+getCellMessage (Right cells) = ServerMessage Evaluate Success (PayloadCL cells)
 
 getBadLocs :: [ASLocation] -> [Maybe ASCell] -> [ASLocation]
 getBadLocs locs mcells = map fst $ filter (\(l,c)->isNothing c) (zip locs mcells)
@@ -138,8 +135,8 @@ getBadLocs locs mcells = map fst $ filter (\(l,c)->isNothing c) (zip locs mcells
 
 -- bugfix for sending non-nothing locs (e.g. scrolling)
 -- TODO send empty cells for nothings -- updates deletes that happened past viewing window
-getDBCellMessage :: ASUserId -> [ASLocation] -> [Maybe ASCell] -> ASMessage
-getDBCellMessage uid locs mcells = getCellMessage uid (Right cells)
+getDBCellMessage :: [ASLocation] -> [Maybe ASCell] -> ASServerMessage
+getDBCellMessage locs mcells = getCellMessage (Right cells)
   where justCells = filter (not . isNothing) mcells 
         cells = map (\(Just x) -> x) justCells
 
@@ -259,9 +256,6 @@ getOffsetBetweenLocs from to = getOffsetFromIndices from' to'
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Users
-
-updateMessageUser :: ASUserId -> ASMessage -> ASMessage
-updateMessageUser uid (Message _ a r p) = Message uid a r p 
 
 isGroupMember :: ASUserId -> ASUserGroup -> Bool
 isGroupMember uid group = any ((==) uid) (groupMembers group)

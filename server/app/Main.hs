@@ -64,12 +64,12 @@ application state pending = do
 
 handleFirstMessage ::  MVar ServerState -> WS.Connection -> B.ByteString -> IO ()
 handleFirstMessage state conn msg = do
-  case (decode msg :: Maybe ASMessage) of 
-    Just m@(Message _ Acknowledge _ (PayloadInit (ASInitConnection _))) -> do -- first mesage is user init
+  case (decode msg :: Maybe ASClientMessage) of 
+    Just m@(ClientMessage Acknowledge (PayloadInit (ASInitConnection _))) -> do -- first mesage is user init
       user <- initUserFromMessageAndConn m conn
       initClient user state 
-    Just m@(Message _ Acknowledge _ (PayloadDaemonInit (ASInitDaemonConnection _ _))) -> do -- first message is daemon init
-      initClient (fromJust $ initDaemonFromMessageAndConn m conn) state
+    Just m@(ClientMessage Acknowledge (PayloadDaemonInit (ASInitDaemonConnection _ _))) -> do -- first message is daemon init
+      initClient (initDaemonFromMessageAndConn m conn) state
     otherwise -> do -- first message is neither
       putStrLn "First message not an initialization message"
       sendMessage (failureMessage "Cannot connect") conn
@@ -84,14 +84,14 @@ talk :: (Client c) => MVar ServerState -> c -> IO ()
 talk state client = forever $ do
   msg <- WS.receiveData (conn client)
   putStrLn "=========================================================="
-  case (decode msg :: Maybe ASMessage) of 
+  case (decode msg :: Maybe ASClientMessage) of 
     Just m  -> printTimed ("SERVER message received:  " ++ (show msg)) >> processMessage client state m
     Nothing -> printTimed ("SERVER ERROR: unable to decode message " ++ (show msg)) >> return ()
 
-processMessage :: (Client c) => c -> MVar ServerState -> ASMessage -> IO ()
+processMessage :: (Client c) => c -> MVar ServerState -> ASClientMessage -> IO ()
 processMessage client state message = do
   dbConnection <- fmap dbConn (readMVar state) -- state stores connection to db; pull it out
-  isPermissible <- DB.isPermissibleMessage dbConnection message
+  isPermissible <- DB.isPermissibleMessage (ownerName client) dbConnection message
   if (isPermissible || isDebug)
     then handleClientMessage client state message
     else sendMessage (failureMessage "Insufficient permissions") (conn client)
