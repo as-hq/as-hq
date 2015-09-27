@@ -77,7 +77,7 @@ handleFirstMessage state conn msg = do
 initClient :: (Client c) => c -> MVar ServerState -> IO ()
 initClient client state = do 
   liftIO $ modifyMVar_ state (\s -> return $ addClient client s) -- add client to state
-  catch (talk state client) (catchDisconnect client state) -- ::ALEX:: should the liftIO be inside the catch ? 
+  catch (talk state client) (catchDisconnect client state)
 
 -- | Maintains connection until user disconnects
 talk :: (Client c) => MVar ServerState -> c -> IO ()
