@@ -189,12 +189,6 @@ export default {
     let msg = Converter.createClearRequestForServer();
     this.send(msg);
   },
-  sendCopyRequest(locs) {
-    let sLocs = [Converter.clientToASLocation(locs[0]), Converter.clientToASLocation(locs[1])];
-    // console.log(sLocs);
-    let msg = Converter.toServerMessageFormat(Constants.ServerActions.Copy, "PayloadLL", sLocs);
-    this.send(msg);
-  },
   sendDeleteRequest(locs){
     let msg = null;
     if (locs.constructor === Array){
@@ -202,9 +196,9 @@ export default {
         locs[i] = Converter.clientToASLocation(locs[i]);
       msg = Converter.toServerMessageFormat(Constants.ServerActions.Delete, "PayloadLL", locs);
     }
-    else{
-      locs = Converter.clientToASLocation(locs);
-      msg = Converter.toServerMessageFormat(Constants.ServerActions.Delete, "PayloadLL", [locs]);
+    else {
+      locs = Converter.clientToASRange(locs);
+      msg = Converter.toServerMessageFormat(Constants.ServerActions.Delete, "PayloadR", locs);
     }
     this.send(msg);
   },
@@ -234,6 +228,14 @@ export default {
       "tag": "PayloadTags",
       "tags": tags,
       "tagsLoc": Converter.clientToASLocation({col: col, row: row})
+    });
+    this.send(msg);
+  },
+  sendCopyRequest(locs) {
+    let msg = Converter.toServerMessageWithPayload(Constants.ServerActions.Copy, { 
+      tag: "PayloadCopy", 
+      copyRange: Converter.clientToASRange(locs[0]), 
+      copyTo: Converter.clientToASLocation(locs[1])
     });
     this.send(msg);
   },

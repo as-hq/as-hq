@@ -91,6 +91,16 @@ export default {
               locSheetId: Store.getCurrentSheet().sheetId,
               index: this.clientToServerLoc(clientLoc)};
   },
+  clientToASRange(clientLoc) { 
+    if (clientLoc.row2)
+      return {tag: "Range",
+              rangeSheetId: Store.getCurrentSheet().sheetId,
+              range: this.clientToServerLoc(clientLoc)};
+    else
+      return {tag: "Range",
+              rangeSheetId: Store.getCurrentSheet().sheetId,
+              range:  [this.clientToServerLoc(clientLoc), this.clientToServerLoc(clientLoc)]};
+  },
   /*
     Returns a location (index or range) if its inside the sheet boundaries; otherwise one of the corners of the sheet boundaries
     Works on an array of locations, uses the sheet format
