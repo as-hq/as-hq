@@ -205,6 +205,11 @@ handleDelete user state p@(PayloadLL locs) = do
   DB.deleteLocs conn locs
   sendBroadcastFiltered user state $ ServerMessage Delete Success p
   return () 
+handleDelete user state p@(PayloadR rng) = do 
+  conn <- fmap dbConn $ readMVar state
+  DB.deleteLocs conn (rangeToIndices rng)
+  sendBroadcastFiltered user state $ ServerMessage Delete Success p
+  return () 
 handleDelete user state p@(PayloadWorkbookSheets (wbs:[])) = do
   conn <- fmap dbConn $ readMVar state
   DB.deleteWorkbookSheet conn wbs
@@ -271,7 +276,7 @@ handleCopy user state (PayloadCopy from to) = do
       let msg = ServerMessage Update (Failure $ generateErrorMessage CopyNonexistentDependencies) (PayloadE CopyNonexistentDependencies)
       sendToOriginal user msg
 
--- same without checking
+-- same without checking. This might be broken. 
 handleCopyForced :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
 handleCopyForced user state (PayloadLL (from:[to])) = return ()
 

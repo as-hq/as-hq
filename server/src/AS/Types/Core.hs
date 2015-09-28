@@ -138,6 +138,7 @@ data ASPayload =
   PayloadCL [ASCell] | 
   PayloadL ASLocation |
   PayloadLL [ASLocation] |
+  PayloadR ASRange |
   PayloadS ASSheet |
   PayloadSS [ASSheet] |
   PayloadWB ASWorkbook |
@@ -260,6 +261,8 @@ openPermissions = Blacklist []
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- JSON
 
+instance ToJSON ASReference
+instance FromJSON ASReference
 instance ToJSON ASLocation
 instance FromJSON ASLocation
 instance ToJSON ASRange

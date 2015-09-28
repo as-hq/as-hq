@@ -196,13 +196,13 @@ interpolateFileRepl lang execCmd = do
 -- Helper function for interpolate
 lookupString :: ASLanguage -> M.Map ASReference ASValue -> ASReference -> String
 lookupString lang mp ref = case ref of
-	Indexref (Index sh (a,b)) -> (showFilteredValue lang) (mp M.! ref)
-	Rangeref (Range sh ((a,b),(c,d))) -> 
+	IndexLoc (Index sh (a,b)) -> (showFilteredValue lang) (mp M.! ref)
+	RangeLoc (Range sh ((a,b),(c,d))) -> 
 		if (c==a)
 			then
-				modifiedLists lang (toListStr lang [ ((showFilteredValue lang) (mp M.! (Indexref $ Index sh (a,row)))) | row<-[b..d]])
+				modifiedLists lang (toListStr lang [ ((showFilteredValue lang) (mp M.! (IndexLoc $ Index sh (a,row)))) | row<-[b..d]])
 			else 
-				modifiedLists lang (toListStr lang [modifiedLists lang (toListStr lang ([(showFilteredValue lang) (mp M.! (Indexref $ Index sh (col,row)))| col <-[a..c]]))| row<-[b..d]])
+				modifiedLists lang (toListStr lang [modifiedLists lang (toListStr lang ([(showFilteredValue lang) (mp M.! (IndexLoc $ Index sh (col,row)))| col <-[a..c]]))| row<-[b..d]])
 
 interpolate :: ASSheetId -> M.Map ASReference ASValue -> ASExpression -> String
 interpolate sheetid values xp = evalString
