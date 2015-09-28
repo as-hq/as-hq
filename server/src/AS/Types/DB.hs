@@ -36,9 +36,9 @@ instance (Show2 ASColumn) where
   show2 (Column sid a) = "C/" ++ (unpack sid) ++ ('/':(show a))
 
 instance (Show2 ASReference) where
-  show2 (IndexLoc il) = show2 il 
-  show2 (RangeLoc rl) = show2 rl
-  show2 (ColumnLoc cl) = show2 cl
+  show2 (IndexRef il) = show2 il 
+  show2 (RangeRef rl) = show2 rl
+  show2 (ColumnRef cl) = show2 cl
 
 instance (Show2 ASExpression) where
   show2 (Expression xp lang) = "E?" ++ xp ++ ('?':(show lang))
@@ -65,20 +65,20 @@ instance (Read2 ASReference) where
     where
       [tag, sid, locstr] = splitBy '/' str
       loc = case tag of 
-        "I" -> IndexLoc $ Index (pack sid) (read locstr :: (Int, Int))
-        "R" -> RangeLoc $ Range (pack sid) (read locstr :: ((Int, Int), (Int, Int)))
+        "I" -> IndexRef $ Index (pack sid) (read locstr :: (Int, Int))
+        "R" -> RangeRef $ Range (pack sid) (read locstr :: ((Int, Int), (Int, Int)))
 
 instance (Read2 ASLocation) where 
   read2 str = case ((read2 :: String -> ASReference) str) of 
-    IndexLoc i -> i
+    IndexRef i -> i
 
 instance (Read2 ASRange) where 
   read2 str = case ((read2 :: String -> ASReference) str) of 
-    RangeLoc r -> r
+    RangeRef r -> r
 
 instance (Read2 ASColumn) where 
   read2 str = case ((read2 :: String -> ASReference) str) of 
-    ColumnLoc c -> c
+    ColumnRef c -> c
 
 instance (Read2 ASExpression)
   where

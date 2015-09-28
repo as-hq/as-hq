@@ -33,7 +33,7 @@ data ASSheet = Sheet {sheetId :: ASSheetId, sheetName :: String} deriving (Show,
 data ASLocation = Index {locSheetId :: ASSheetId, index :: (Int, Int)} deriving (Show, Read, Eq, Generic, Ord)
 data ASRange = Range {locSheetId :: ASSheetId, range :: ((Int, Int), (Int, Int))} deriving (Show, Read, Eq, Generic, Ord)
 data ASColumn = Column {locSheetId :: ASSheetId, column :: Int} deriving (Show, Read, Eq, Generic, Ord)
-data ASReference = IndexLoc ASLocation | RangeLoc ASRange | ColumnLoc ASColumn deriving (Show, Read, Eq, Generic, Ord)
+data ASReference = IndexRef ASLocation | RangeRef ASRange | ColumnRef ASColumn deriving (Show, Read, Eq, Generic, Ord)
 
 data ASValue =
   NoValue |

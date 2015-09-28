@@ -26,13 +26,13 @@ data WorkbookSheet = WorkbookSheet {wsName :: String, wsSheets :: [ASSheet]} der
 data ASLocation = Index {locSheetId :: ASSheetId, index :: (Int, Int)} deriving (Show, Read, Eq, Generic, Ord)
 data ASRange = Range {rangeSheetId :: ASSheetId, range :: ((Int, Int), (Int, Int))} deriving (Show, Read, Eq, Generic, Ord)
 data ASColumn = Column {columnSheetId :: ASSheetId, column :: Int} deriving (Show, Read, Eq, Generic, Ord)
-data ASReference = IndexLoc ASLocation | RangeLoc ASRange | ColumnLoc ASColumn deriving (Show, Read, Eq, Generic, Ord)
+data ASReference = IndexRef ASLocation | RangeRef ASRange | ColumnRef ASColumn deriving (Show, Read, Eq, Generic, Ord)
 
 refSheetId :: ASReference -> ASSheetId
 refSheetId loc = case loc of 
-  IndexLoc i -> locSheetId i 
-  RangeLoc r -> rangeSheetId r
-  ColumnLoc c -> columnSheetId c
+  IndexRef i -> locSheetId i 
+  RangeRef r -> rangeSheetId r
+  ColumnRef c -> columnSheetId c
 
 data ASValue =
   NoValue |

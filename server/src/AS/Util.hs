@@ -225,8 +225,8 @@ getAllUserWindows state = map (\u -> (userId u, windows u)) (userClients state)
 -- of just that index. It cannot take in a column. 
 -- decomposeLocs :: ASReference -> [ASLocation]
 -- decomposeLocs loc = case loc of 
---   (IndexLoc ind) -> [ind]
-  -- (RangeLoc (Range sheet (ul, lr))) -> [Index sheet (x,y) | x <- [startx..endx], y <- [starty..endy] ]
+--   (IndexRef ind) -> [ind]
+  -- (RangeRef (Range sheet (ul, lr))) -> [Index sheet (x,y) | x <- [startx..endx], y <- [starty..endy] ]
   --   where 
   --     startx = min' (fst ul) (fst lr)
   --     endx = max' (fst ul) (fst lr)
@@ -247,8 +247,8 @@ matchSheets ws ss = [WorkbookSheet (workbookName w) (fromJustList $ lookupSheets
 
 
 shiftLoc :: (Int, Int) -> ASReference -> ASReference
-shiftLoc (dy, dx) (IndexLoc (Index sh (y,x))) = IndexLoc $ Index sh (y+dy, x+dx)
-shiftLoc (dy, dx) (RangeLoc (Range sh ((y,x),(y2,x2)))) = RangeLoc $ Range sh ((y+dy, x+dx), (y2+dy, x2+dx))
+shiftLoc (dy, dx) (IndexRef (Index sh (y,x))) = IndexRef $ Index sh (y+dy, x+dx)
+shiftLoc (dy, dx) (RangeRef (Range sh ((y,x),(y2,x2)))) = RangeRef $ Range sh ((y+dy, x+dx), (y2+dy, x2+dx))
 
 shiftInd :: (Int, Int) -> ASLocation -> ASLocation
 shiftInd (dy, dx) (Index sh (y,x)) = Index sh (y+dy, x+dx)

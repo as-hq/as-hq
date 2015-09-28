@@ -140,24 +140,24 @@ replaceMatches (inter,matches) f target = blend inter matchReplacings
 
 asLocationToAsIndex :: ASReference -> ASLocation 
 asLocationToAsIndex loc = case loc of 
-  IndexLoc i -> i
+  IndexRef i -> i
 
 -- excel location to list of as indexes
 exLocToASLocation :: ASSheetId -> ExLoc -> ASReference
 exLocToASLocation sheetid exLoc = case exLoc of 
   ExSheet sh rest -> case (exLocToASLocation sheetid rest) of 
-    RangeLoc (Range _ a) -> RangeLoc $ Range sheetid a
-    IndexLoc (Index _ a) -> IndexLoc $ Index sheetid a
-  ExRange f s -> RangeLoc $ Range sheetid ((index . asLocationToAsIndex) ((exLocToASLocation) sheetid f), (index . asLocationToAsIndex) (exLocToASLocation sheetid s))
-  ExIndex dol1 c dol2 r -> IndexLoc $ Index sheetid (colStrToInt c, read r :: Int)
+    RangeRef (Range _ a) -> RangeRef $ Range sheetid a
+    IndexRef (Index _ a) -> IndexRef $ Index sheetid a
+  ExRange f s -> RangeRef $ Range sheetid ((index . asLocationToAsIndex) ((exLocToASLocation) sheetid f), (index . asLocationToAsIndex) (exLocToASLocation sheetid s))
+  ExIndex dol1 c dol2 r -> IndexRef $ Index sheetid (colStrToInt c, read r :: Int)
 
 -- does not consider sheetid
 asLocationToExLoc :: ASReference -> ExLoc
-asLocationToExLoc (IndexLoc (Index _ (a,b))) = ExIndex "" (intToColStr a) "" (intToColStr b)
-asLocationToExLoc (RangeLoc (Range s (i1, i2))) = ExRange i1' i2'
+asLocationToExLoc (IndexRef (Index _ (a,b))) = ExIndex "" (intToColStr a) "" (intToColStr b)
+asLocationToExLoc (RangeRef (Range s (i1, i2))) = ExRange i1' i2'
   where
-    i1' = asLocationToExLoc $ IndexLoc $ Index s i1
-    i2' = asLocationToExLoc $ IndexLoc $ Index s i2
+    i1' = asLocationToExLoc $ IndexRef $ Index s i1
+    i2' = asLocationToExLoc $ IndexRef $ Index s i2
 -------------------------------------------------------------------------------------------------------------------------------------------------
 -- Parsers to match special excel characters
 

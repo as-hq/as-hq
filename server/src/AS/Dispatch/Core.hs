@@ -113,7 +113,7 @@ getDescendants conn cell = do
 -- | Takes ancestors and descendants, create lookup map, and run eval
 propagate :: Connection -> [ASCell] -> [ASCell] -> IO (Either ASExecError [ASCell])
 propagate conn anc dec = do 
-  let mp = M.fromList $ map (\c -> (IndexLoc $ cellLocation c, cellValue c)) anc
+  let mp = M.fromList $ map (\c -> (IndexRef $ cellLocation c, cellValue c)) anc
   result <- evalChain conn mp dec
   return $ Right result
 
@@ -124,13 +124,13 @@ evalChain :: Connection -> M.Map ASReference ASValue -> [ASCell] -> IO [ASCell]
 evalChain _ _ [] = return []
 evalChain conn mp ((Cell loc xp _ ts):cs) = do  
   printTimed $ "Starting eval chain" -- ++ (show mp)
-  cv <- R.evalExpression (IndexLoc loc) mp xp 
+  cv <- R.evalExpression (IndexRef loc) mp xp 
   otherCells <- case loc of
     Index sheet (a, b) -> case cv of
       ValueL lstValues -> createListCells conn (Index sheet (a, b)) lstValues
       otherwise -> return [] 
     otherwise -> return []
-  let newMp = M.insert (IndexLoc loc) cv mp
+  let newMp = M.insert (IndexRef loc) cv mp
   rest <- evalChain conn newMp cs
   return $ [Cell loc xp cv ts] ++ otherCells ++ rest 
 
@@ -144,7 +144,7 @@ createListCells conn (Index sheet (a,b)) values =
     origLoc = Index sheet (a,b)
     vals = concat $ map lst values
     locs = map (Index sheet) (concat $ [(shift (values!!row) row (a,b)) | row <- [0..(length values)-1]])
-    exprs = map (\(Index _ (x,y)) -> Reference (IndexLoc origLoc) (x-a,y-b)) locs
+    exprs = map (\(Index _ (x,y)) -> Reference (IndexRef origLoc) (x-a,y-b)) locs
     cells = L.tail $ map (\(l,e,v) -> Cell l e v []) (zip3 locs exprs vals)
     shift (ValueL v) r (a,b) = [(a+c,b+r) | c<-[0..length(v)-1] ]
     shift other r (a,b)  = [(a,b+r)]
