@@ -26,7 +26,7 @@ class Show2 a where
 instance Show2 ASCell where
   show2 (Cell l e v ts) = (show2 l) ++ ('|':(show2 e)) ++ ('|':(show2 v)) ++ ('|':(show ts))
 
-instance (Show2 ASIndex) where 
+instance (Show2 ASLocation) where 
   show2 (Index sid a) = "I/" ++ (unpack sid) ++ ('/':(show a))
 
 instance (Show2 ASRange) where 
@@ -35,7 +35,7 @@ instance (Show2 ASRange) where
 instance (Show2 ASColumn) where 
   show2 (Column sid a) = "C/" ++ (unpack sid) ++ ('/':(show a))
 
-instance (Show2 ASLocation) where
+instance (Show2 ASReference) where
   show2 (IndexLoc il) = show2 il 
   show2 (RangeLoc rl) = show2 rl
   show2 (ColumnLoc cl) = show2 cl
@@ -55,12 +55,12 @@ instance (Read2 ASCell) where
   read2 str = Cell l xp v ts
     where
       [locstr, xpstr, valstr, tagstr] = splitBy '|' str
-      l = read2 locstr :: ASIndex
+      l = read2 locstr :: ASLocation
       xp = read2 xpstr :: ASExpression
       v = read2 valstr :: ASValue
       ts = read tagstr :: [ASCellTag]
 
-instance (Read2 ASLocation) where
+instance (Read2 ASReference) where
   read2 str = loc
     where
       [tag, sid, locstr] = splitBy '/' str
@@ -68,16 +68,16 @@ instance (Read2 ASLocation) where
         "I" -> IndexLoc $ Index (pack sid) (read locstr :: (Int, Int))
         "R" -> RangeLoc $ Range (pack sid) (read locstr :: ((Int, Int), (Int, Int)))
 
-instance (Read2 ASIndex) where 
-  read2 str = case ((read2 :: String -> ASLocation) str) of 
+instance (Read2 ASLocation) where 
+  read2 str = case ((read2 :: String -> ASReference) str) of 
     IndexLoc i -> i
 
 instance (Read2 ASRange) where 
-  read2 str = case ((read2 :: String -> ASLocation) str) of 
+  read2 str = case ((read2 :: String -> ASReference) str) of 
     RangeLoc r -> r
 
 instance (Read2 ASColumn) where 
-  read2 str = case ((read2 :: String -> ASLocation) str) of 
+  read2 str = case ((read2 :: String -> ASReference) str) of 
     ColumnLoc c -> c
 
 instance (Read2 ASExpression)
@@ -87,7 +87,7 @@ instance (Read2 ASExpression)
         [tag, midstr, laststr] = splitBy '?' str
         xp = case tag of 
           "E" -> Expression midstr (read laststr :: ASLanguage)
-          "R" -> Reference (read2 midstr :: ASLocation) (read laststr :: (Int, Int))
+          "R" -> Reference (read2 midstr :: ASReference) (read laststr :: (Int, Int))
 
 instance (Read2 ASValue)
   where 

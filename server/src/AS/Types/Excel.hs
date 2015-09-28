@@ -29,7 +29,7 @@ data ExcelResult =
 
 type ExcelContext = [(ExcelAction, ExcelResult)]
 
-type BaseContext = (Connection, ASExpression, ASLocation)
+type BaseContext = (Connection, ASExpression, ASReference)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | String conversions

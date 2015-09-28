@@ -27,7 +27,7 @@ import AS.Config.Settings as S
 -- Exposed functions
 
 -- ::ALEX:: ::EXPLAIN:: what are all these arguments? 
-evalExpression :: ASLocation -> M.Map ASLocation ASValue -> ASExpression -> IO ASValue
+evalExpression :: ASReference -> M.Map ASReference ASValue -> ASExpression -> IO ASValue
 evalExpression loc dict expr =
   case expr of
     Expression _ _ -> evalCode (refSheetId loc) dict expr  
@@ -36,7 +36,7 @@ evalExpression loc dict expr =
 -----------------------------------------------------------------------------------------------------------------------
 -- File Interpolation (see Lang for details)
 
-evalCode :: ASSheetId -> M.Map ASLocation ASValue -> ASExpression -> IO ASValue
+evalCode :: ASSheetId -> M.Map ASReference ASValue -> ASExpression -> IO ASValue
 evalCode sheetid values xp = do
 	printTimed "Starting eval code"
 	let lang = language xp
@@ -78,7 +78,7 @@ evalCodeRepl (Expression str lang) = do
 		otherwise -> return ()
 	return parsed
 
-evalRef :: ASLocation -> M.Map ASLocation ASValue -> ASExpression ->  IO ASValue
+evalRef :: ASReference -> M.Map ASReference ASValue -> ASExpression ->  IO ASValue
 evalRef loc dict (Reference l (a, b)) = do
   let d = dict M.! l 
   let ret = case d of

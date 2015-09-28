@@ -125,10 +125,10 @@ getCellMessage :: Either ASExecError [ASCell] -> ASServerMessage
 getCellMessage (Left e) = ServerMessage Evaluate (Failure (generateErrorMessage e)) (PayloadN ())
 getCellMessage (Right cells) = ServerMessage Evaluate Success (PayloadCL cells)
 
--- getBadLocs :: [ASLocation] -> [Maybe ASCell] -> [ASLocation]
+-- getBadLocs :: [ASReference] -> [Maybe ASCell] -> [ASReference]
 -- getBadLocs locs mcells = map fst $ filter (\(l,c)->isNothing c) (zip locs mcells)
 
---getDBCellMessage :: ASUserClient -> [ASLocation] -> [Maybe ASCell] -> ASMessage
+--getDBCellMessage :: ASUserClient -> [ASReference] -> [Maybe ASCell] -> ASMessage
 --getDBCellMessage user locs mcells = if any isNothing mcells
 --  then getCellMessage user (Left (DBNothingException (getBadLocs locs mcells)))
 --  else getCellMessage user (Right (map (\(Just c)->c) mcells))
@@ -139,10 +139,6 @@ getDBCellMessage :: [Maybe ASCell] -> ASServerMessage
 getDBCellMessage mcells = getCellMessage (Right cells)
   where justCells = filter (not . isNothing) mcells 
         cells = map (\(Just x) -> x) justCells
-
-isColumn :: ASLocation -> Bool
-isColumn (ColumnLoc _) = True
-isColumn _ = False
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Error Handling
@@ -187,12 +183,12 @@ intersectViewingWindows cells vws = concat $ map (intersectViewingWindow cells) 
 
 -- new function, so that we don't have to do the extra filter/lookup by using just one
 -- ::ALEX:: ::EXPLAIN::
-intersectViewingWindowsLocs :: [ASIndex] -> [ASWindow] -> [ASIndex]
+intersectViewingWindowsLocs :: [ASLocation] -> [ASWindow] -> [ASLocation]
 intersectViewingWindowsLocs locs vws = concat $ map (intersectViewingWindow locs) vws 
   where
-    intersectViewingWindow :: [ASIndex] -> ASWindow -> [ASIndex]
+    intersectViewingWindow :: [ASLocation] -> ASWindow -> [ASLocation]
     intersectViewingWindow locs vw = filter (inViewingWindow vw) locs
-    inViewingWindow :: ASWindow -> ASIndex -> Bool
+    inViewingWindow :: ASWindow -> ASLocation -> Bool
     inViewingWindow (Window wSheetId (tlc, tlr) (brc, brr)) (Index cSheetId (col,row)) = 
       ((wSheetId==cSheetId) && (inRange col tlc (brc-tlc)) && (inRange row tlr (brr-tlr)))
     inRange :: Int -> Int -> Int -> Bool
@@ -226,10 +222,10 @@ getAllUserWindows state = map (\u -> (userId u, windows u)) (userClients state)
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Locations
 
--- | ASLocation is either a cell index, range, or column. When decomposeLocs takes a range, it returns
+-- | ASReference is either a cell index, range, or column. When decomposeLocs takes a range, it returns
 -- the list of indices that compose the range. When it takes in an index, it returns a list consisting
 -- of just that index. It cannot take in a column. 
--- decomposeLocs :: ASLocation -> [ASIndex]
+-- decomposeLocs :: ASReference -> [ASLocation]
 -- decomposeLocs loc = case loc of 
 --   (IndexLoc ind) -> [ind]
   -- (RangeLoc (Range sheet (ul, lr))) -> [Index sheet (x,y) | x <- [startx..endx], y <- [starty..endy] ]
@@ -239,7 +235,7 @@ getAllUserWindows state = map (\u -> (userId u, windows u)) (userClients state)
   --     starty = min' (snd ul) (snd lr)
   --     endy = max' (snd ul) (snd lr)
 
-rangeToIndices :: ASRange -> [ASIndex]
+rangeToIndices :: ASRange -> [ASLocation]
 rangeToIndices (Range sheet (ul, lr)) = [Index sheet (x,y) | x <- [startx..endx], y <- [starty..endy] ]
   where 
     startx = min' (fst ul) (fst lr)
@@ -252,20 +248,20 @@ matchSheets ws ss = [WorkbookSheet (workbookName w) (fromJustList $ lookupSheets
   where lookupSheets workbook sheets = map (\sid -> lookupLambda sheetId sid sheets) (workbookSheets workbook)
 
 
-shiftLoc :: (Int, Int) -> ASLocation -> ASLocation
+shiftLoc :: (Int, Int) -> ASReference -> ASReference
 shiftLoc (dy, dx) (IndexLoc (Index sh (y,x))) = IndexLoc $ Index sh (y+dy, x+dx)
 shiftLoc (dy, dx) (RangeLoc (Range sh ((y,x),(y2,x2)))) = RangeLoc $ Range sh ((y+dy, x+dx), (y2+dy, x2+dx))
 
-shiftInd :: (Int, Int) -> ASIndex -> ASIndex
+shiftInd :: (Int, Int) -> ASLocation -> ASLocation
 shiftInd (dy, dx) (Index sh (y,x)) = Index sh (y+dy, x+dx)
 
 
 -- ::ALEX:: ugly 
-getTopLeft :: ASRange -> ASIndex
+getTopLeft :: ASRange -> ASLocation
 getTopLeft (Range sh (tl,_)) = Index sh tl
 
 -- ::ALEX:: ugly 
-getIndicesOffsets :: ASIndex -> ASIndex -> (Int, Int)
+getIndicesOffsets :: ASLocation -> ASLocation -> (Int, Int)
 getIndicesOffsets (Index _ (y, x)) (Index _ (y', x')) = (y'-y, x'-x)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
@@ -314,7 +310,7 @@ getStreamTagFromExpression xp = Nothing
 ----------------------------------------------------------------------------------------------------------------------
 -- | Testing
 
-testLocs :: Int -> [ASIndex]
+testLocs :: Int -> [ASLocation]
 testLocs n = [Index "" (i,1) | i <-[1..n]]
 
 testCells :: Int -> [ASCell]

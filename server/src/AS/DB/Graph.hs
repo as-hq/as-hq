@@ -14,13 +14,13 @@ import AS.Config.Settings as S
 import AS.DB.Util 
 import AS.Util
 
-getDescendants :: [ASIndex] -> IO (Either ASExecError [ASIndex])
+getDescendants :: [ASLocation] -> IO (Either ASExecError [ASLocation])
 getDescendants = query GetDescendants
 
-getImmediateAncestors :: [ASIndex] -> IO (Either ASExecError [ASIndex])
+getImmediateAncestors :: [ASLocation] -> IO (Either ASExecError [ASLocation])
 getImmediateAncestors = query GetImmediateAncestors
 
-query :: GraphQuery -> [ASIndex] -> IO (Either ASExecError [ASIndex])
+query :: GraphQuery -> [ASLocation] -> IO (Either ASExecError [ASLocation])
 query q locs = 
     let
         elements = (show q):(map show2 locs)
@@ -44,7 +44,7 @@ query q locs =
                 liftIO $ printTimed "Graph DB error"
                 return $ Left DBGraphUnreachable
 
-setRelations :: [(ASIndex, [ASIndex])] -> IO (Either ASExecError ())
+setRelations :: [(ASLocation, [ASLocation])] -> IO (Either ASExecError ())
 setRelations rels = 
     let
         locSets = map (\(root, deps)-> (root:deps)) rels

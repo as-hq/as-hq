@@ -25,12 +25,12 @@ data WorkbookSheet = WorkbookSheet {wsName :: String, wsSheets :: [ASSheet]} der
 -- ::ALEX:: what???? VVV 
 -- -1 in "row" for Index signifies an entire column
 
-data ASIndex = Index {locSheetId :: ASSheetId, index :: (Int, Int)} deriving (Show, Read, Eq, Generic, Ord)
+data ASLocation = Index {locSheetId :: ASSheetId, index :: (Int, Int)} deriving (Show, Read, Eq, Generic, Ord)
 data ASRange = Range {rangeSheetId :: ASSheetId, range :: ((Int, Int), (Int, Int))} deriving (Show, Read, Eq, Generic, Ord)
 data ASColumn = Column {columnSheetId :: ASSheetId, column :: Int} deriving (Show, Read, Eq, Generic, Ord)
-data ASLocation = IndexLoc ASIndex | RangeLoc ASRange | ColumnLoc ASColumn deriving (Show, Read, Eq, Generic, Ord)
+data ASReference = IndexLoc ASLocation | RangeLoc ASRange | ColumnLoc ASColumn deriving (Show, Read, Eq, Generic, Ord)
 
-refSheetId :: ASLocation -> ASSheetId
+refSheetId :: ASReference -> ASSheetId
 refSheetId loc = case loc of 
   IndexLoc i -> locSheetId i 
   RangeLoc r -> rangeSheetId r
@@ -65,7 +65,7 @@ data ASLanguage = R | Python | OCaml | CPP | Java | SQL | Excel deriving (Show, 
 -- TODO consider migration to exLocs record
 data ASExpression =
   Expression { expression :: String, language :: ASLanguage } | 
-  Reference { location :: ASLocation, referenceIndex :: (Int, Int) }
+  Reference { location :: ASReference, referenceIndex :: (Int, Int) }
   deriving (Show, Read, Eq, Generic)
 
 data ASCellTag = 
@@ -79,7 +79,7 @@ data ASCellTag =
   ReadOnly [ASUserId]
   deriving (Show, Read, Eq, Generic)
 
-data ASCell = Cell {cellLocation :: ASIndex, 
+data ASCell = Cell {cellLocation :: ASLocation, 
 					cellExpression :: ASExpression,
 					cellValue :: ASValue,
           cellTags :: [ASCellTag]} deriving (Show, Read, Eq, Generic)
@@ -138,8 +138,8 @@ data ASPayload =
   PayloadDaemonInit ASInitDaemonConnection |
   PayloadC ASCell | 
   PayloadCL [ASCell] | 
-  PayloadL ASIndex |
-  PayloadLL [ASIndex] |
+  PayloadL ASLocation |
+  PayloadLL [ASLocation] |
   PayloadS ASSheet |
   PayloadSS [ASSheet] |
   PayloadWB ASWorkbook |
@@ -149,8 +149,8 @@ data ASPayload =
   PayloadU ASUserId |
   PayloadE ASExecError |
   PayloadCommit ASCommit |
-  PayloadCopy {copyRange :: ASRange, copyTo :: ASIndex} |
-  PayloadTags {tags :: [ASCellTag], tagsLoc :: ASIndex} |
+  PayloadCopy {copyRange :: ASRange, copyTo :: ASLocation} |
+  PayloadTags {tags :: [ASCellTag], tagsLoc :: ASLocation} |
   PayloadXp ASExpression |
   PayloadLangValue ASLangValue |
   PayloadList QueryList 
@@ -170,7 +170,7 @@ data ASExecError =
   Timeout | 
   EvaluationError {evalErrorDesc :: String} |
   DependenciesLocked {lockUserId :: ASUserId} | 
-  DBNothingException {badLocs :: [ASIndex]} |
+  DBNothingException {badLocs :: [ASLocation]} |
   DBGraphUnreachable | 
   NetworkDown | 
   ResourceLimitReached |
@@ -185,7 +185,7 @@ type EitherCells = Either ASExecError [ASCell]
 -- Websocket types
 
 data ASInitConnection = ASInitConnection {connUserId :: ASUserId} deriving (Show,Read,Eq,Generic)
-data ASInitDaemonConnection = ASInitDaemonConnection {parentUserId :: ASUserId, initDaemonLoc :: ASIndex} deriving (Show,Read,Eq,Generic)
+data ASInitDaemonConnection = ASInitDaemonConnection {parentUserId :: ASUserId, initDaemonLoc :: ASLocation} deriving (Show,Read,Eq,Generic)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- State
@@ -230,7 +230,7 @@ data ASPermissions = Blacklist [ASEntity] |
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Daemons
 
-data ASDaemonClient = DaemonClient {daemonLoc :: ASIndex, daemonConn :: WS.Connection, daemonOwner :: ASUserId}
+data ASDaemonClient = DaemonClient {daemonLoc :: ASLocation, daemonConn :: WS.Connection, daemonOwner :: ASUserId}
 
 instance Eq ASDaemonClient where 
   c1 == c2 = (daemonLoc c1) == (daemonLoc c2)
@@ -263,8 +263,8 @@ openPermissions = Blacklist []
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- JSON
 
-instance ToJSON ASIndex
-instance FromJSON ASIndex
+instance ToJSON ASLocation
+instance FromJSON ASLocation
 instance ToJSON ASRange
 instance FromJSON ASRange
 instance ToJSON ASColumn -- ::ALEX:: currently not implemented in frontend afaik
@@ -361,16 +361,16 @@ instance FromJSON ASServerMessage where
 
 
 -- ::ALEX:: hmm... this will probably go away later
-instance ToJSON ASLocation where 
+instance ToJSON ASReference where 
   toJSON loc = case loc of 
     IndexLoc i -> toJSON i 
     RangeLoc r -> toJSON r 
     ColumnLoc c -> toJSON c 
 
-instance FromJSON ASLocation where 
+instance FromJSON ASReference where 
   parseJSON (Object v) = liftA IndexLoc $ Index <$> 
                            v .: "locsheetId" <*>
                            v .: "index"
-  parseJSON _          = fail "improper ASLocation JSON format"
+  parseJSON _          = fail "improper ASReference JSON format"
 
 -- ::ALEX:: refactor Expression too

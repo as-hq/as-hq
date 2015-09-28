@@ -138,12 +138,12 @@ replaceMatches (inter,matches) f target = blend inter matchReplacings
 -- Type for parsing Excel Locations
              -- d1,d2 = "" or "$"
 
-asLocationToAsIndex :: ASLocation -> ASIndex 
+asLocationToAsIndex :: ASReference -> ASLocation 
 asLocationToAsIndex loc = case loc of 
   IndexLoc i -> i
 
 -- excel location to list of as indexes
-exLocToASLocation :: ASSheetId -> ExLoc -> ASLocation
+exLocToASLocation :: ASSheetId -> ExLoc -> ASReference
 exLocToASLocation sheetid exLoc = case exLoc of 
   ExSheet sh rest -> case (exLocToASLocation sheetid rest) of 
     RangeLoc (Range _ a) -> RangeLoc $ Range sheetid a
@@ -152,7 +152,7 @@ exLocToASLocation sheetid exLoc = case exLoc of
   ExIndex dol1 c dol2 r -> IndexLoc $ Index sheetid (colStrToInt c, read r :: Int)
 
 -- does not consider sheetid
-asLocationToExLoc :: ASLocation -> ExLoc
+asLocationToExLoc :: ASReference -> ExLoc
 asLocationToExLoc (IndexLoc (Index _ (a,b))) = ExIndex "" (intToColStr a) "" (intToColStr b)
 asLocationToExLoc (RangeLoc (Range s (i1, i2))) = ExRange i1' i2'
   where
@@ -249,7 +249,7 @@ shiftExLocs offset exLocs = map (shiftExLoc offset) exLocs
 -- return all dependencies for a particular excel location (takes in current location to deal with sheets)
 -- ex. ExIndex A3 just returns [Index A3]
 -- doesn't do any work with Parsec/actual parsing
-dependenciesFromExcelLoc :: ASSheetId -> ExLoc -> [ASIndex]
+dependenciesFromExcelLoc :: ASSheetId -> ExLoc -> [ASLocation]
 dependenciesFromExcelLoc sheetid exLoc = case exLoc of
   ExSheet sh rest -> [Index sheetid (index dep) | dep <- dependenciesFromExcelLoc sheetid rest] --dependency locations are on other sheet
   ExRange a b -> rangeToIndices $ Range sheetid ((toCol a, toRow a), (toCol b, toRow b)) -- any range has full dependency
@@ -262,7 +262,7 @@ dependenciesFromExcelLoc sheetid exLoc = case exLoc of
 -- Parse dependencies and replace relative expressions
 
 -- ::ALEX:: make sure this still makes sense... definitely needs refactor too
-getDependenciesAndExpressions :: ASSheetId -> ASExpression -> ([ASIndex], ASExpression)
+getDependenciesAndExpressions :: ASSheetId -> ASExpression -> ([ASLocation], ASExpression)
 getDependenciesAndExpressions sheetid xp = (newLocs, newExpr)
   where 
     origString = expression xp
@@ -271,9 +271,9 @@ getDependenciesAndExpressions sheetid xp = (newLocs, newExpr)
     newString = replaceMatches (inter, exLocs) showExcelLoc origString
     newExpr = Expression newString (language xp)
 
--- gets dependencies from a list of excel locs and a list of offsets (there's a [ASIndex] for each offset, in that order)
+-- gets dependencies from a list of excel locs and a list of offsets (there's a [ASLocation] for each offset, in that order)
 -- doesn't use Parsec/actual parsing
-getDependencies :: ASSheetId -> [ExLoc] -> [ASIndex]
+getDependencies :: ASSheetId -> [ExLoc] -> [ASLocation]
 getDependencies sheetid matches = depsFromExcelLocs matches
   where
     depsFromExcelLocs m = concat $ map (dependenciesFromExcelLoc sheetid) m
@@ -298,7 +298,7 @@ unpackExcelVals v = []
 -- Copy/paste
 
 -- ::ALEX:: horribly named, and horribly implemented. wtf variable name repeats
-shiftCell :: (Int, Int) -> ASCell -> (ASCell, [ASIndex])
+shiftCell :: (Int, Int) -> ASCell -> (ASCell, [ASLocation])
 shiftCell offset (Cell loc (Expression str lang) v ts) = (shiftedCell, shiftedDeps)
   where
     sheetid = locSheetId loc

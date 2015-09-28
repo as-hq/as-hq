@@ -70,10 +70,10 @@ foreign import ccall unsafe "hiredis/redis_db.c setCells" c_setCells :: CString 
 ----------------------------------------------------------------------------------------------------------------------
 -- Cells
 
-getCell :: ASIndex -> IO (Maybe ASCell)
+getCell :: ASLocation -> IO (Maybe ASCell)
 getCell loc = return . head =<< getCells [loc]
 
-getCells :: [ASIndex] -> IO [Maybe ASCell]
+getCells :: [ASLocation] -> IO [Maybe ASCell]
 getCells [] = return []
 getCells locs = 
   let  
@@ -105,14 +105,14 @@ deleteCells :: Connection -> [ASCell] -> IO ()
 deleteCells _ [] = return ()
 deleteCells conn cells = deleteLocs conn $ map cellLocation cells
 
-deleteLocs :: Connection -> [ASIndex] -> IO ()
+deleteLocs :: Connection -> [ASLocation] -> IO ()
 deleteLocs _ [] = return ()
 deleteLocs conn locs = do
   runRedis conn $ do
       _ <- mapM_ DU.deleteLocRedis locs
       return ()
 
-locationsExist :: Connection -> [ASIndex] -> IO [Bool]
+locationsExist :: Connection -> [ASLocation] -> IO [Bool]
 locationsExist conn locs = do
   runRedis conn $ do
     TxSuccess results <- multiExec $ do
@@ -365,7 +365,7 @@ deleteSheetUnsafe conn sid = do
 ----------------------------------------------------------------------------------------------------------------------
 -- Volatile cell methods
 
-getVolatileLocs :: Connection -> IO [ASIndex]
+getVolatileLocs :: Connection -> IO [ASLocation]
 getVolatileLocs conn = do 
   runRedis conn $ do
       Right vl <- smembers "volatileLocs"
@@ -396,10 +396,10 @@ canAccessSheet conn uid sheetId = do
     Nothing -> return False
     (Just someSheet) -> return $ hasPermissions uid (sheetPermissions someSheet)
 
-canAccess :: Connection -> ASUserId -> ASIndex -> IO Bool
+canAccess :: Connection -> ASUserId -> ASLocation -> IO Bool
 canAccess conn uid loc = canAccessSheet conn uid (locSheetId loc)
 
-canAccessAll :: Connection -> ASUserId -> [ASIndex] -> IO Bool
+canAccessAll :: Connection -> ASUserId -> [ASLocation] -> IO Bool
 canAccessAll conn uid locs = return . all id =<< mapM (canAccess conn uid) locs
 
 isPermissibleMessage :: ASUserId -> Connection -> ASClientMessage -> IO Bool

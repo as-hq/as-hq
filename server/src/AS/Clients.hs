@@ -104,7 +104,7 @@ broadcastFiltered msg@(ServerMessage a r (PayloadCL cells)) users = mapM_ (sendC
 
 broadcastFiltered msg@(ServerMessage a r (PayloadLL locs)) users = mapM_ (sendLocs locs) users 
   where
-    sendLocs :: [ASIndex] -> ASUserClient -> IO ()
+    sendLocs :: [ASLocation] -> ASUserClient -> IO ()
     sendLocs locs user = do 
       let locs' = intersectViewingWindowsLocs locs (windows user)
       case locs' of 
@@ -278,7 +278,7 @@ handleCopyForced user state (PayloadLL (from:[to])) = return ()
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Tag handlers
 
-processAddTag :: ASUserClient -> MVar ServerState -> ASIndex -> ASCellTag -> IO ()
+processAddTag :: ASUserClient -> MVar ServerState -> ASLocation -> ASCellTag -> IO ()
 processAddTag user state loc t = do 
   cell <- DB.getCell loc
   case cell of 
@@ -299,7 +299,7 @@ processAddTag user state loc t = do
           DM.modifyDaemon state s loc evalMsg -- put the daemon with loc and evalMsg on that cell -- overwrite if already exists, create if not
     otherwise -> return () -- TODO: implement the rest
 
-processRemoveTag :: ASIndex -> MVar ServerState -> ASCellTag -> IO ()
+processRemoveTag :: ASLocation -> MVar ServerState -> ASCellTag -> IO ()
 processRemoveTag loc state t = do 
   curState <- readMVar state
   cell <- DB.getCell loc 
@@ -323,11 +323,11 @@ handleRemoveTags user state (PayloadTags ts loc) = do
   sendToOriginal user $ ServerMessage RemoveTags Success (PayloadN ())
 
 -- Debugging
---getScrollCells :: Connection -> ASSheetId -> [ASIndex] -> IO [Maybe ASCell]
+--getScrollCells :: Connection -> ASSheetId -> [ASLocation] -> IO [Maybe ASCell]
 --getScrollCells conn sid locs = if ((sid == (T.pack "SHEET_ID")) && S.isDebug)
 --  then do
 --    let dlocs = locs
 --    return $ map (\l -> Just $ Cell l (Expression "scrolled" Python) (ValueS (show . index $ l)) []) dlocs
 -- --  else DB.getCells conn locs
--- getScrollCells :: ASSheetId -> [ASIndex] -> IO [Maybe ASCell]
+-- getScrollCells :: ASSheetId -> [ASLocation] -> IO [Maybe ASCell]
 -- getScrollCells sid locs = DB.getCells locs

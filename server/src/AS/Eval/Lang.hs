@@ -194,8 +194,8 @@ interpolateFileRepl lang execCmd = do
 	return $ layoutCodeFile lang ("", template, execCmd)
 
 -- Helper function for interpolate
--- ^^ THEN WHY THE FUCK ARE YOU CALLING IT FROM CORE.HS 
-lookupString :: ASLanguage -> M.Map ASLocation ASValue -> ASLocation -> String
+-- ^^ THEN WHY THE FUCK ARE YOU CALLING IT FROM CORE.HS ::ALEX::
+lookupString :: ASLanguage -> M.Map ASReference ASValue -> ASReference -> String
 lookupString lang mp loc = case loc of
 	IndexLoc (Index sh (a,b)) -> (showFilteredValue lang) (mp M.! loc)
 	RangeLoc (Range sh ((a,b),(c,d))) -> 
@@ -205,7 +205,7 @@ lookupString lang mp loc = case loc of
 			else 
 				modifiedLists lang (toListStr lang [modifiedLists lang (toListStr lang ([(showFilteredValue lang) (mp M.! (IndexLoc $ Index sh (col,row)))| col <-[a..c]]))| row<-[b..d]])
 
-interpolate :: ASSheetId -> M.Map ASLocation ASValue -> ASExpression -> String
+interpolate :: ASSheetId -> M.Map ASReference ASValue -> ASExpression -> String
 interpolate sheetid values xp = evalString
 	where
 		origString = expression xp

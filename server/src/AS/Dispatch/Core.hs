@@ -120,7 +120,7 @@ propagate conn anc dec = do
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Eval helpers
 
-evalChain :: Connection -> M.Map ASLocation ASValue -> [ASCell] -> IO [ASCell]
+evalChain :: Connection -> M.Map ASReference ASValue -> [ASCell] -> IO [ASCell]
 evalChain _ _ [] = return []
 evalChain conn mp ((Cell loc xp _ ts):cs) = do  
   printTimed $ "Starting eval chain" -- ++ (show mp)
@@ -137,7 +137,7 @@ evalChain conn mp ((Cell loc xp _ ts):cs) = do
 
 -- | Create a list of cells, also modify the DB for references 
 -- Not currently handling [[[]]] type things
-createListCells :: Connection -> ASIndex -> [ASValue] -> IO [ASCell]
+createListCells :: Connection -> ASLocation -> [ASValue] -> IO [ASCell]
 createListCells conn (Index sheet (a,b)) [] = return []
 createListCells conn (Index sheet (a,b)) values = 
   let 
