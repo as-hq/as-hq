@@ -15,17 +15,19 @@ import Control.Concurrent (MVar)
 
 type ASSheetId = Text
 data ASSheet = Sheet {sheetId :: ASSheetId, sheetName :: String, sheetPermissions :: ASPermissions} deriving (Show, Read, Eq, Generic)
-data ASWorkbook = Workbook {workbookName :: String, workbookSheets :: [ASSheetId]}  deriving (Show, Read, Eq, Generic)
+data ASWorkbook = Workbook {workbookName :: String, workbookSheets :: [ASSheetId]} deriving (Show, Read, Eq, Generic)
 
 data WorkbookSheet = WorkbookSheet {wsName :: String, wsSheets :: [ASSheet]} deriving (Show, Read, Eq, Generic)
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Core cell types
 
+-- ::ALEX:: what???? VVV 
 -- -1 in "row" for Index signifies an entire column
-data ASLocation = Index {locSheetId :: ASSheetId, index :: (Int, Int)} | 
-                  Range {locSheetId :: ASSheetId, range :: ((Int, Int), (Int, Int))} |
-                  Column {locSheetId :: ASSheetId, column :: Int}
-                  deriving (Show, Read, Eq, Generic, Ord)
+
+data ASIndex = Index {locSheetId :: ASSheetId, index :: (Int, Int)} deriving (Show, Read, Eq, Generic, Ord)
+data ASRange = Range {locSheetId :: ASSheetId, range :: ((Int, Int), (Int, Int))} deriving (Show, Read, Eq, Generic, Ord)
+data ASColumn = Column {locSheetId :: ASSheetId, column :: Int} deriving (Show, Read, Eq, Generic, Ord)
+data ASLocation = IndexLoc ASIndex | RangeLoc ASRange | ColumnLoc ASColumn
 
 data ASValue =
   NoValue |
@@ -70,7 +72,7 @@ data ASCellTag =
   ReadOnly [ASUserId]
   deriving (Show, Read, Eq, Generic)
 
-data ASCell = Cell {cellLocation :: ASLocation, 
+data ASCell = Cell {cellLocation :: ASIndex, 
 					cellExpression :: ASExpression,
 					cellValue :: ASValue,
           cellTags :: [ASCellTag]} deriving (Show, Read, Eq, Generic)
@@ -125,8 +127,8 @@ data ASPayload =
   PayloadDaemonInit ASInitDaemonConnection |
   PayloadC ASCell | 
   PayloadCL [ASCell] | 
-  PayloadL ASLocation |
-  PayloadLL [ASLocation] |
+  PayloadL ASIndex |
+  PayloadLL [ASIndex] |
   PayloadS ASSheet |
   PayloadSS [ASSheet] |
   PayloadWB ASWorkbook |

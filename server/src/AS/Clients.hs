@@ -102,7 +102,7 @@ broadcastFiltered msg@(Message uid a r (PayloadCL cells)) users = mapM_ (sendCel
 
 broadcastFiltered msg@(Message uid a r (PayloadLL locs)) users = mapM_ (sendLocs locs) users 
   where
-    sendLocs :: [ASLocation] -> ASUser -> IO ()
+    sendLocs :: [ASIndex] -> ASUser -> IO ()
     sendLocs locs user = do 
       let locs' = intersectViewingWindowsLocs locs (windows user)
       case locs' of 

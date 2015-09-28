@@ -128,8 +128,8 @@ getCellMessage :: ASUserId -> Either ASExecError [ASCell] -> ASMessage
 getCellMessage uid (Left e) = Message uid Evaluate (Failure (generateErrorMessage e)) (PayloadN ())
 getCellMessage uid (Right cells) = Message uid Evaluate Success (PayloadCL cells)
 
-getBadLocs :: [ASLocation] -> [Maybe ASCell] -> [ASLocation]
-getBadLocs locs mcells = map fst $ filter (\(l,c)->isNothing c) (zip locs mcells)
+-- getBadLocs :: [ASLocation] -> [Maybe ASCell] -> [ASLocation]
+-- getBadLocs locs mcells = map fst $ filter (\(l,c)->isNothing c) (zip locs mcells)
 
 --getDBCellMessage :: ASUser -> [ASLocation] -> [Maybe ASCell] -> ASMessage
 --getDBCellMessage user locs mcells = if any isNothing mcells
@@ -138,13 +138,14 @@ getBadLocs locs mcells = map fst $ filter (\(l,c)->isNothing c) (zip locs mcells
 
 -- bugfix for sending non-nothing locs (e.g. scrolling)
 -- TODO send empty cells for nothings -- updates deletes that happened past viewing window
+
 getDBCellMessage :: ASUserId -> [ASLocation] -> [Maybe ASCell] -> ASMessage
 getDBCellMessage uid locs mcells = getCellMessage uid (Right cells)
   where justCells = filter (not . isNothing) mcells 
         cells = map (\(Just x) -> x) justCells
 
 isColumn :: ASLocation -> Bool
-isColumn (Column _ _) = True
+isColumn (ColumnLoc _) = True
 isColumn _ = False
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
@@ -189,6 +190,7 @@ intersectViewingWindows cells vws = concat $ map (intersectViewingWindow cells) 
     inRange elem start len = ((elem >= start) && (elem <= (start + len)))
 
 -- new function, so that we don't have to do the extra filter/lookup by using just one
+-- ::ALEX:: ::EXPLAIN::
 intersectViewingWindowsLocs :: [ASLocation] -> [ASWindow] -> [ASLocation]
 intersectViewingWindowsLocs locs vws = concat $ map (intersectViewingWindow dlocs) vws 
   where
@@ -208,12 +210,13 @@ updateWindow window (UserClient uid conn windows sid) = UserClient uid conn wind
 getWindow :: ASSheetId -> ASUser -> Maybe ASWindow
 getWindow sheetid user = lookupLambda windowSheetId sheetid (windows user)
 
-getScrolledLocs :: ASWindow -> ASWindow -> [ASLocation]
+getScrolledLocs :: ASWindow -> ASWindow -> [ASRange]
 getScrolledLocs (Window _ (-1,-1) (-1,-1)) (Window sheetid tl br) = [(Range sheetid (tl, br))] 
 getScrolledLocs (Window _ (y,x) (y2,x2)) (Window sheetid tl@(y',x') br@(y2',x2')) = getUncoveredLocs sheetid overlapping (tl, br)
     where overlapping = ((max' y y', max' x x'), (min' y2 y2', min' x2 x2'))
 
-getUncoveredLocs :: ASSheetId -> ((Int,Int), (Int,Int)) -> ((Int,Int), (Int,Int)) -> [ASLocation]
+-- | ::ALEX:: what is this
+getUncoveredLocs :: ASSheetId -> ((Int,Int), (Int,Int)) -> ((Int,Int), (Int,Int)) -> [ASRange]
 getUncoveredLocs sheet (tlo, bro) (tlw, brw) = [Range sheet corners | corners <- cs]
     where 
       trw = (fst brw, snd tlw)
@@ -228,10 +231,13 @@ getAllUserWindows state = map (\u -> (userId u, windows u)) (userClients state)
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Locations
 
-decomposeLocs :: ASLocation -> [ASLocation]
+-- | ASLocation is either a cell index, range, or column. When decomposeLocs takes a range, it returns
+-- the list of indices that compose the range. When it takes in an index, it returns a list consisting
+-- of just that index. It cannot take in a column. 
+decomposeLocs :: ASLocation -> [ASIndex]
 decomposeLocs loc = case loc of 
-  (Index sheet a) -> [loc]
-  (Range sheet (ul, lr)) -> [Index sheet (x,y) | x <- [startx..endx], y <- [starty..endy] ]
+  (IndexLoc ind) -> [ind]
+  (RangeLoc (Range sheet (ul, lr))) -> [Index sheet (x,y) | x <- [startx..endx], y <- [starty..endy] ]
     where 
       startx = min' (fst ul) (fst lr)
       endx = max' (fst ul) (fst lr)
@@ -242,20 +248,22 @@ matchSheets :: [ASWorkbook] -> [ASSheet] -> [WorkbookSheet]
 matchSheets ws ss = [WorkbookSheet (workbookName w) (fromJustList $ lookupSheets w ss) | w <- ws]
   where lookupSheets workbook sheets = map (\sid -> lookupLambda sheetId sid sheets) (workbookSheets workbook)
 
+-- ::ALEX:: what about columns? 
 shiftLoc :: (Int, Int) -> ASLocation -> ASLocation
-shiftLoc (dy, dx) (Index sh (y,x)) = Index sh (y+dy, x+dx)
-shiftLoc (dy, dx) (Range sh ((y,x),(y2,x2))) = Range sh ((y+dy, x+dx), (y2+dy, x2+dx))
+shiftLoc (dy, dx) (IndexLoc (Index sh (y,x))) = Index sh (y+dy, x+dx)
+shiftLoc (dy, dx) (RangeLoc (Range sh ((y,x),(y2,x2)))) = Range sh ((y+dy, x+dx), (y2+dy, x2+dx))
 
-getTopLeft :: ASLocation -> ASLocation
-getTopLeft (Range sh (tl,_)) = Index sh tl
-getTopLeft loc = loc
 
+-- ::ALEX:: what about columns? 
 getOffsetBetweenLocs :: ASLocation -> ASLocation -> (Int, Int)
 getOffsetBetweenLocs from to = getOffsetFromIndices from' to'
   where 
     from' = getTopLeft from
     to' = getTopLeft to
     getOffsetFromIndices (Index _ (y, x)) (Index _ (y', x')) = (y'-y, x'-x)
+      where 
+        getTopLeft (Range sh (tl,_)) = Index sh tl
+        getTopLeft loc = loc
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Users

@@ -26,9 +26,15 @@ class Show2 a where
 instance Show2 ASCell where
   show2 (Cell l e v ts) = (show2 l) ++ ('|':(show2 e)) ++ ('|':(show2 v)) ++ ('|':(show ts))
 
-instance (Show2 ASLocation) where
+instance (Show2 ASIndex) where 
   show2 (Index sid a) = "I/" ++ (unpack sid) ++ ('/':(show a))
+
+instance (Show2 ASRange) where 
   show2 (Range sid a) = "R/" ++ (unpack sid) ++ ('/':(show a))
+
+instance (Show2 ASLocation) where
+  show2 (IndexLoc il) = show2 il 
+  show2 (RangeLoc rk) = show2 rl
 
 instance (Show2 ASExpression) where
   show2 (Expression xp lang) = "E?" ++ xp ++ ('?':(show lang))

@@ -69,8 +69,8 @@ runDispatchCycle state msg@(Message _ _ _ (PayloadC c')) = do
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Eval building blocks
 
--- | Takes a cell and returns an error if it tries to access a non-existant cell
--- | Otherwise, it returns all of the immediate ancestors (used to make the lookup map)
+-- | Takes a cell and returns an error if it tries to access a non-existent cell
+-- Otherwise, it returns all of the immediate ancestors (used to make the lookup map)
 updateCell :: ASCell -> IO (Either ASExecError ())
 updateCell (Cell loc xp val ts) = do 
   let locs = decomposeLocs loc
@@ -90,7 +90,7 @@ updateCell (Cell loc xp val ts) = do
         (Left e) -> Left e 
 
 -- | Return the descendants of a cell, which will always exist but may be locked
--- | TODO: throw exceptions for permissions/locking
+-- TODO: throw exceptions for permissions/locking
 getDescendants :: Connection -> ASCell -> IO (Either ASExecError [ASCell])
 getDescendants conn cell = do 
   let locs = decomposeLocs (cellLocation cell)
@@ -137,7 +137,7 @@ evalChain conn mp ((Cell loc xp _ ts):cs) = do
 
 
 -- | Create a list of cells, also modify the DB for references 
--- | Not currently handling [[[]]] type things
+-- Not currently handling [[[]]] type things
 createListCells :: Connection -> ASLocation -> [ASValue] -> IO [ASCell]
 createListCells conn (Index sheet (a,b)) [] = return []
 createListCells conn (Index sheet (a,b)) values = 
