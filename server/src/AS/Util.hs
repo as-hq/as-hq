@@ -223,15 +223,10 @@ getAllUserWindows state = map (\u -> (userId u, windows u)) (userClients state)
 -- | ASReference is either a cell index, range, or column. When decomposeLocs takes a range, it returns
 -- the list of indices that compose the range. When it takes in an index, it returns a list consisting
 -- of just that index. It cannot take in a column. 
--- decomposeLocs :: ASReference -> [ASLocation]
--- decomposeLocs loc = case loc of 
---   (IndexRef ind) -> [ind]
-  -- (RangeRef (Range sheet (ul, lr))) -> [Index sheet (x,y) | x <- [startx..endx], y <- [starty..endy] ]
-  --   where 
-  --     startx = min' (fst ul) (fst lr)
-  --     endx = max' (fst ul) (fst lr)
-  --     starty = min' (snd ul) (snd lr)
-  --     endy = max' (snd ul) (snd lr)
+refToIndices :: ASReference -> [ASLocation]
+refToIndices loc = case loc of 
+  (IndexRef ind) -> [ind]
+  (RangeRef r) -> rangeToIndices r
 
 rangeToIndices :: ASRange -> [ASLocation]
 rangeToIndices (Range sheet (ul, lr)) = [Index sheet (x,y) | x <- [startx..endx], y <- [starty..endy] ]

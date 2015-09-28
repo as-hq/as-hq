@@ -27,15 +27,15 @@ evalExcel conn c@(Cell l xp v ts) = do
 -------------------------------------------------------------------------------------------------------------------------
 ---- Excel helpers
 
-getInitialContext :: ASCell -> IO [(ExLoc, ASValue)]
+getInitialContext :: ASCell -> IO [(ExRef, ASValue)]
 getInitialContext cell = do
     ancs <- DB.getCells (concat deps)
     vals = map cellValue ancs
-    return $ zip exLocs vals
+    return $ zip exRefs vals
     where
         sheetid = locSheetId l
-        (inter,exLocs) = getMatchesWithContext str excelMatch
-        deps = getDependencies sheetid exLocs (getOffsets l)
+        (inter, exRefs) = getMatchesWithContext str excelMatch
+        deps = getDependenciesFromExRefs sheetid exRefs (getOffsets l)
 
 transformExpression :: BaseContext -> ExcelContext -> IO (Either ASValue ASExpression) 
 transformExpression bc@(conn,xp,loc) ctx = do
@@ -65,16 +65,16 @@ performExcelAction :: BaseContext -> ExcelAction -> IO ExcelResult
 performExcelAction _ (Lookup loc) = DB.getCell loc' >>= \c -> 
     | (Just cell) = return . ERV $ cellValue cell
     | Nothing  = return $ ERN ()
-    where loc' = O.exLocToASLocation loc 
+    where loc' = O.exRefToASRef loc 
 performExcelAction (_,_,loc) (CheckIndirectRef l) = do
     let sheetid = locSheetId loc
-    c <- DB.getCell $ exLocToASLocation sheetid l
+    c <- DB.getCell $ exRefToASRef sheetid l
     case c of 
         Nothing -> return $ ERB False
         (Just cell) -> case (parseExcelLoc . cellValue $ c) of
             (Left e) -> return $ ERB False
             (Right l) -> do
-                c' <- DB.getCell $ exLocToASLocation sheetid l'
+                c' <- DB.getCell $ exRefToASRef sheetid l'
                 case c' of 
                     Nothing -> return $ ERB False
                     (Just cell') -> return . ERV . cellValue $ cell'
@@ -86,4 +86,4 @@ performExcelAction (conn,_,_) (LookupWorkbooks _) = do
     workbooks <- DB.getAllWorkbooks conn
     let str = intercalate "," $ map workbookName workbooks
     return $ ERS str
-performExcelAction (_,_,loc) (CurrentLocation _) = return $ ERE (O.asLocationToExLoc loc) 
+performExcelAction (_,_,loc) (CurrentLocation _) = return $ ERE (O.asRefToExRef loc) 

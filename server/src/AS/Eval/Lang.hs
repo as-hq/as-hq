@@ -209,8 +209,8 @@ interpolate sheetid values xp = evalString
 	where
 		origString = expression xp
 		lang = language xp 
-		exLocToStringEval = (lookupString lang values) . (exLocToASLocation sheetid) -- ExLoc -> String
-		evalString = replaceMatches (getMatchesWithContext origString excelMatch) exLocToStringEval origString
+		exRefToStringEval = (lookupString lang values) . (exRefToASRef sheetid) -- ExLoc -> String
+		evalString = replaceMatches (getMatchesWithContext origString excelMatch) exRefToStringEval origString
 
 
 insertPrintCmd :: ASLanguage -> (String, String) -> String

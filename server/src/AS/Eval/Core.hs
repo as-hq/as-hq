@@ -46,7 +46,7 @@ evalCode sheetid values xp = do
 		SQL -> interpolateFile SQL ("setGlobals("++(show context) ++")\n" ++ newExp)
 			where
 				exLocs = getMatchesWithContext (expression xp) excelMatch
-				matchLocs = map (exLocToASLocation sheetid) (snd exLocs)
+				matchLocs = map (exRefToASRef sheetid) (snd exLocs)
 				context = map (lookupString SQL values) matchLocs
 				st = ["dataset"++(show i) | i<-[0..((L.length matchLocs)-1)]]
 				newExp = replaceMatches exLocs (\el -> (L.!!) st (MB.fromJust (L.findIndex (el==) (snd exLocs)))) (expression xp)
