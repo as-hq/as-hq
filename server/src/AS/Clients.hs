@@ -34,7 +34,7 @@ instance Client ASUserClient where
   removeClient uc s@(State ucs dcs dbc)
     | uc `elem` ucs = State (L.delete uc ucs) dcs dbc
     | otherwise = s
-  handleClientMessage user state message = case (clientAction message) of 
+  handleClientMessage user state message = printTimed ("\n\nMessage: " ++ (show $ message)) >> case (clientAction message) of 
     Acknowledge  -> handleAcknowledge user
     New          -> handleNew state payload
     Open         -> handleOpen user state payload
@@ -150,7 +150,7 @@ handleUpdateWindow sid state (PayloadW window) = do
     (Just oldWindow) -> do
       let locs = U.getScrolledLocs oldWindow window 
       printTimed $ "Sending locs: " ++ (show locs)
-      mcells <- DB.getCells locs
+      mcells <- DB.getCells $ concat $ map rangeToIndices locs
       sendToOriginal user' $ U.getDBCellMessage mcells
       US.modifyUser (U.updateWindow window) user' state
 
@@ -247,12 +247,12 @@ handleRedo user state = do
 -- update dag
 -- insert new cells into db
 handleCopy :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
-handleCopy user state (PayloadLL (from:to:[])) = do -- this is a list of 2 locations
+handleCopy user state (PayloadCopy from to) = do
   curState <- readMVar state
   let conn = dbConn curState
-  maybeCells <- DB.getCells [from]
+  maybeCells <- DB.getCells (rangeToIndices from)
   let fromCells = filterNothing maybeCells
-      offset = U.getOffsetBetweenLocs from to
+      offset = U.getIndicesOffsets (getTopLeft from) to
       toCellsAndDeps = map (O.shiftCell offset) fromCells
       shiftedDeps = map snd toCellsAndDeps
       allDeps = concat shiftedDeps

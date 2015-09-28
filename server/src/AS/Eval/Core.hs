@@ -30,7 +30,7 @@ import AS.Config.Settings as S
 evalExpression :: ASLocation -> M.Map ASLocation ASValue -> ASExpression -> IO ASValue
 evalExpression loc dict expr =
   case expr of
-    Expression _ _ -> evalCode (locSheetId loc) dict expr  
+    Expression _ _ -> evalCode (refSheetId loc) dict expr  
     Reference _ _ -> evalRef loc dict expr  
 
 -----------------------------------------------------------------------------------------------------------------------

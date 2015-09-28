@@ -138,13 +138,17 @@ replaceMatches (inter,matches) f target = blend inter matchReplacings
 -- Type for parsing Excel Locations
              -- d1,d2 = "" or "$"
 
+asLocationToAsIndex :: ASLocation -> ASIndex 
+asLocationToAsIndex loc = case loc of 
+  IndexLoc i -> i
+
 -- excel location to list of as indexes
 exLocToASLocation :: ASSheetId -> ExLoc -> ASLocation
 exLocToASLocation sheetid exLoc = case exLoc of 
   ExSheet sh rest -> case (exLocToASLocation sheetid rest) of 
-    Range _ a -> RangeLoc $ Range sheetid a
-    Index _ a -> IndexLoc $ Index sheetid a
-  ExRange f s -> RangeLoc $ Range sheetid (index (exLocToASLocation sheetid f),index (exLocToASLocation sheetid s))
+    RangeLoc (Range _ a) -> RangeLoc $ Range sheetid a
+    IndexLoc (Index _ a) -> IndexLoc $ Index sheetid a
+  ExRange f s -> RangeLoc $ Range sheetid ((index . asLocationToAsIndex) ((exLocToASLocation) sheetid f), (index . asLocationToAsIndex) (exLocToASLocation sheetid s))
   ExIndex dol1 c dol2 r -> IndexLoc $ Index sheetid (colStrToInt c, read r :: Int)
 
 -- does not consider sheetid
@@ -152,8 +156,8 @@ asLocationToExLoc :: ASLocation -> ExLoc
 asLocationToExLoc (IndexLoc (Index _ (a,b))) = ExIndex "" (intToColStr a) "" (intToColStr b)
 asLocationToExLoc (RangeLoc (Range s (i1, i2))) = ExRange i1' i2'
   where
-    i1' = asLocationToExLoc $ Index s i1
-    i2' = asLocationToExLoc $ Index s i2
+    i1' = asLocationToExLoc $ IndexLoc $ Index s i1
+    i2' = asLocationToExLoc $ IndexLoc $ Index s i2
 -------------------------------------------------------------------------------------------------------------------------------------------------
 -- Parsers to match special excel characters
 
@@ -248,7 +252,7 @@ shiftExLocs offset exLocs = map (shiftExLoc offset) exLocs
 dependenciesFromExcelLoc :: ASSheetId -> ExLoc -> [ASIndex]
 dependenciesFromExcelLoc sheetid exLoc = case exLoc of
   ExSheet sh rest -> [Index sheetid (index dep) | dep <- dependenciesFromExcelLoc sheetid rest] --dependency locations are on other sheet
-  ExRange a b -> decomposeLocs $ Range sheetid ((toCol a, toRow a), (toCol b, toRow b)) -- any range has full dependency
+  ExRange a b -> rangeToIndices $ Range sheetid ((toCol a, toRow a), (toCol b, toRow b)) -- any range has full dependency
     where
       toCol = colStrToInt.col
       toRow = read.row
@@ -257,15 +261,15 @@ dependenciesFromExcelLoc sheetid exLoc = case exLoc of
 -------------------------------------------------------------------------------------------------------------------------------------------------
 -- Parse dependencies and replace relative expressions
 
--- ::ALEX:: make sure this still makes sense... 
-getDependenciesAndExpressions :: ASSheetId -> ASExpression -> ([ASIndex],[ASExpression])
-getDependenciesAndExpressions sheetid xp = (newLocs, newExprs)
+-- ::ALEX:: make sure this still makes sense... definitely needs refactor too
+getDependenciesAndExpressions :: ASSheetId -> ASExpression -> ([ASIndex], ASExpression)
+getDependenciesAndExpressions sheetid xp = (newLocs, newExpr)
   where 
     origString = expression xp
     (inter,exLocs) = getMatchesWithContext origString excelMatch -- the only place that Parsec is used
     newLocs = getDependencies sheetid exLocs
-    newStrings = replaceMatches (inter, exLocs) showExcelLoc origString
-    newExprs = map (\str -> Expression str (language xp)) newStrings
+    newString = replaceMatches (inter, exLocs) showExcelLoc origString
+    newExpr = Expression newString (language xp)
 
 -- gets dependencies from a list of excel locs and a list of offsets (there's a [ASIndex] for each offset, in that order)
 -- doesn't use Parsec/actual parsing
@@ -293,20 +297,20 @@ unpackExcelVals v = []
 ----------------------------------------------------------------------------------------------------------------------------------
 -- Copy/paste
 
--- ::ALEX:: horribly named
+-- ::ALEX:: horribly named, and horribly implemented. wtf variable name repeats
 shiftCell :: (Int, Int) -> ASCell -> (ASCell, [ASIndex])
 shiftCell offset (Cell loc (Expression str lang) v ts) = (shiftedCell, shiftedDeps)
   where
     sheetid = locSheetId loc
-    shiftedLoc = shiftLoc offset loc
+    shiftedLoc = shiftInd offset loc
     (inter,exLocs) = getMatchesWithContext str excelMatch
     shiftedExLocs = shiftExLocs offset exLocs
-    shiftedDeps = concat $ getDependencies sheetid shiftedExLocs [(0,0)] -- expecting a single cell has Index, not range
+    shiftedDeps = getDependencies sheetid shiftedExLocs
     newStr = replaceMatches (inter, shiftedExLocs) showExcelLoc str
     shiftedXp = Expression newStr lang
     shiftedCell = Cell shiftedLoc shiftedXp v ts
-shiftCell offset (Cell loc (Reference _ _) v ts) = (shiftedCell, []) -- for copying sublists
-  where
-    pseudoXp = Expression (showValue Python v) Python -- TODO get the damn language
-    shiftedLoc = shiftLoc offset loc 
-    shiftedCell = Cell shiftedLoc pseudoXp v ts
+    shiftCell offset (Cell loc (Reference _ _) v ts) = (shiftedCell, []) -- for copying sublists
+      where
+        pseudoXp = Expression (showValue Python v) Python -- TODO get the damn language
+        shiftedLoc = shiftInd offset loc 
+        shiftedCell = Cell shiftedLoc pseudoXp v ts

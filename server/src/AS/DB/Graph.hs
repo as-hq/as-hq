@@ -34,12 +34,11 @@ query q locs =
         send' reqSocket [] msg   -- using lazy bytestring send function
         liftIO $ printTimed "sent message to graph db"  
         reply <- receiveMulti reqSocket
-        --liftIO $ printTimed $ "graph db reply:  " ++ (show reply)
+        -- liftIO $ printTimed $ "graph db reply:  " ++ (show reply)
         case (B.unpack $ last reply) of
             "OK" -> do
                 let filtered = map B.unpack $ init reply
-                let result = Right $ map (\l -> read2 (l :: ASIndex)) filtered
-                --liftIO $ printTimed $ "Graph DB result: " ++ (show $ init reply)
+                let result = Right $ map read2 filtered
                 return result
             "ERROR" -> do
                 liftIO $ printTimed "Graph DB error"

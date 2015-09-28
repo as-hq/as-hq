@@ -188,7 +188,7 @@ intersectViewingWindows cells vws = concat $ map (intersectViewingWindow cells) 
 -- new function, so that we don't have to do the extra filter/lookup by using just one
 -- ::ALEX:: ::EXPLAIN::
 intersectViewingWindowsLocs :: [ASIndex] -> [ASWindow] -> [ASIndex]
-intersectViewingWindowsLocs locs vws = concat $ map (intersectViewingWindow dlocs) vws 
+intersectViewingWindowsLocs locs vws = concat $ map (intersectViewingWindow locs) vws 
   where
     intersectViewingWindow :: [ASIndex] -> ASWindow -> [ASIndex]
     intersectViewingWindow locs vw = filter (inViewingWindow vw) locs
@@ -229,36 +229,44 @@ getAllUserWindows state = map (\u -> (userId u, windows u)) (userClients state)
 -- | ASLocation is either a cell index, range, or column. When decomposeLocs takes a range, it returns
 -- the list of indices that compose the range. When it takes in an index, it returns a list consisting
 -- of just that index. It cannot take in a column. 
-decomposeLocs :: ASLocation -> [ASIndex]
-decomposeLocs loc = case loc of 
-  (IndexLoc ind) -> [ind]
-  (RangeLoc (Range sheet (ul, lr))) -> [Index sheet (x,y) | x <- [startx..endx], y <- [starty..endy] ]
-    where 
-      startx = min' (fst ul) (fst lr)
-      endx = max' (fst ul) (fst lr)
-      starty = min' (snd ul) (snd lr)
-      endy = max' (snd ul) (snd lr)
+-- decomposeLocs :: ASLocation -> [ASIndex]
+-- decomposeLocs loc = case loc of 
+--   (IndexLoc ind) -> [ind]
+  -- (RangeLoc (Range sheet (ul, lr))) -> [Index sheet (x,y) | x <- [startx..endx], y <- [starty..endy] ]
+  --   where 
+  --     startx = min' (fst ul) (fst lr)
+  --     endx = max' (fst ul) (fst lr)
+  --     starty = min' (snd ul) (snd lr)
+  --     endy = max' (snd ul) (snd lr)
+
+rangeToIndices :: ASRange -> [ASIndex]
+rangeToIndices (Range sheet (ul, lr)) = [Index sheet (x,y) | x <- [startx..endx], y <- [starty..endy] ]
+  where 
+    startx = min' (fst ul) (fst lr)
+    endx = max' (fst ul) (fst lr)
+    starty = min' (snd ul) (snd lr)
+    endy = max' (snd ul) (snd lr)
 
 matchSheets :: [ASWorkbook] -> [ASSheet] -> [WorkbookSheet]
 matchSheets ws ss = [WorkbookSheet (workbookName w) (fromJustList $ lookupSheets w ss) | w <- ws]
   where lookupSheets workbook sheets = map (\sid -> lookupLambda sheetId sid sheets) (workbookSheets workbook)
 
--- ::ALEX:: what about columns? 
+
 shiftLoc :: (Int, Int) -> ASLocation -> ASLocation
 shiftLoc (dy, dx) (IndexLoc (Index sh (y,x))) = IndexLoc $ Index sh (y+dy, x+dx)
 shiftLoc (dy, dx) (RangeLoc (Range sh ((y,x),(y2,x2)))) = RangeLoc $ Range sh ((y+dy, x+dx), (y2+dy, x2+dx))
 
+shiftInd :: (Int, Int) -> ASIndex -> ASIndex
+shiftInd (dy, dx) (Index sh (y,x)) = Index sh (y+dy, x+dx)
 
--- ::ALEX:: what about columns? 
-getOffsetBetweenLocs :: ASLocation -> ASLocation -> (Int, Int)
-getOffsetBetweenLocs from to = getOffsetFromIndices from' to'
-  where 
-    from' = getTopLeft from
-    to' = getTopLeft to
-    getOffsetFromIndices (Index _ (y, x)) (Index _ (y', x')) = (y'-y, x'-x)
-      where 
-        getTopLeft (Range sh (tl,_)) = Index sh tl
-        getTopLeft loc = loc
+
+-- ::ALEX:: ugly 
+getTopLeft :: ASRange -> ASIndex
+getTopLeft (Range sh (tl,_)) = Index sh tl
+
+-- ::ALEX:: ugly 
+getIndicesOffsets :: ASIndex -> ASIndex -> (Int, Int)
+getIndicesOffsets (Index _ (y, x)) (Index _ (y', x')) = (y'-y, x'-x)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Users

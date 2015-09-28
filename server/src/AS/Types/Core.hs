@@ -26,9 +26,15 @@ data WorkbookSheet = WorkbookSheet {wsName :: String, wsSheets :: [ASSheet]} der
 -- -1 in "row" for Index signifies an entire column
 
 data ASIndex = Index {locSheetId :: ASSheetId, index :: (Int, Int)} deriving (Show, Read, Eq, Generic, Ord)
-data ASRange = Range {locSheetId :: ASSheetId, range :: ((Int, Int), (Int, Int))} deriving (Show, Read, Eq, Generic, Ord)
-data ASColumn = Column {locSheetId :: ASSheetId, column :: Int} deriving (Show, Read, Eq, Generic, Ord)
-data ASLocation = IndexLoc ASIndex | RangeLoc ASRange | ColumnLoc ASColumn
+data ASRange = Range {rangeSheetId :: ASSheetId, range :: ((Int, Int), (Int, Int))} deriving (Show, Read, Eq, Generic, Ord)
+data ASColumn = Column {columnSheetId :: ASSheetId, column :: Int} deriving (Show, Read, Eq, Generic, Ord)
+data ASLocation = IndexLoc ASIndex | RangeLoc ASRange | ColumnLoc ASColumn deriving (Show, Read, Eq, Generic, Ord)
+
+refSheetId :: ASLocation -> ASSheetId
+refSheetId loc = case loc of 
+  IndexLoc i -> locSheetId i 
+  RangeLoc r -> rangeSheetId r
+  ColumnLoc c -> columnSheetId c
 
 data ASValue =
   NoValue |
@@ -59,7 +65,7 @@ data ASLanguage = R | Python | OCaml | CPP | Java | SQL | Excel deriving (Show, 
 -- TODO consider migration to exLocs record
 data ASExpression =
   Expression { expression :: String, language :: ASLanguage } | 
-  Reference { location :: ASIndex, referenceIndex :: (Int, Int) }
+  Reference { location :: ASLocation, referenceIndex :: (Int, Int) }
   deriving (Show, Read, Eq, Generic)
 
 data ASCellTag = 
@@ -143,7 +149,8 @@ data ASPayload =
   PayloadU ASUserId |
   PayloadE ASExecError |
   PayloadCommit ASCommit |
-  PayloadTags {tags :: [ASCellTag], tagsLoc :: ASLocation} |
+  PayloadCopy {copyRange :: ASRange, copyTo :: ASIndex} |
+  PayloadTags {tags :: [ASCellTag], tagsLoc :: ASIndex} |
   PayloadXp ASExpression |
   PayloadLangValue ASLangValue |
   PayloadList QueryList 
@@ -163,7 +170,7 @@ data ASExecError =
   Timeout | 
   EvaluationError {evalErrorDesc :: String} |
   DependenciesLocked {lockUserId :: ASUserId} | 
-  DBNothingException {badLocs :: [ASLocation]} |
+  DBNothingException {badLocs :: [ASIndex]} |
   DBGraphUnreachable | 
   NetworkDown | 
   ResourceLimitReached |
@@ -178,7 +185,7 @@ type EitherCells = Either ASExecError [ASCell]
 -- Websocket types
 
 data ASInitConnection = ASInitConnection {connUserId :: ASUserId} deriving (Show,Read,Eq,Generic)
-data ASInitDaemonConnection = ASInitDaemonConnection {parentUserId :: ASUserId, initDaemonLoc :: ASLocation} deriving (Show,Read,Eq,Generic)
+data ASInitDaemonConnection = ASInitDaemonConnection {parentUserId :: ASUserId, initDaemonLoc :: ASIndex} deriving (Show,Read,Eq,Generic)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- State
@@ -223,7 +230,7 @@ data ASPermissions = Blacklist [ASEntity] |
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Daemons
 
-data ASDaemonClient = DaemonClient {daemonLoc :: ASLocation, daemonConn :: WS.Connection, daemonOwner :: ASUserId}
+data ASDaemonClient = DaemonClient {daemonLoc :: ASIndex, daemonConn :: WS.Connection, daemonOwner :: ASUserId}
 
 instance Eq ASDaemonClient where 
   c1 == c2 = (daemonLoc c1) == (daemonLoc c2)
@@ -256,8 +263,12 @@ openPermissions = Blacklist []
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- JSON
 
-instance ToJSON ASLocation
-instance FromJSON ASLocation
+instance ToJSON ASIndex
+instance FromJSON ASIndex
+instance ToJSON ASRange
+instance FromJSON ASRange
+instance ToJSON ASColumn -- ::ALEX:: currently not implemented in frontend afaik
+instance FromJSON ASColumn 
 instance ToJSON ASValue
 instance FromJSON ASValue
 instance ToJSON ASLanguage
@@ -308,6 +319,7 @@ instance FromJSON ASTime
 instance ToJSON ASTime
 instance FromJSON ASCommit
 instance ToJSON ASCommit
+
 -- The format Frontend uses for both client->server and server->client is 
 -- { messageUserId: blah, action: blah, result: blah, payload: blah }
 instance ToJSON ASClientMessage where 
@@ -325,3 +337,40 @@ instance FromJSON ASServerMessage where
                            v .: "result" <*>
                            v .: "payload"
   parseJSON _          = fail "server message JSON attributes missing"
+
+
+
+-- ::ALEX:: this is ugly, and there's probably a way to prevent this...
+-- instance ToJSON ASRange where 
+--   toJSON (Range sid rng) = object ["locSheetId" .= sid, "range" .= rng]
+
+-- instance FromJSON ASRange where 
+--   parseJSON (Object v) = Range <$>
+--                            v .: "locSheetId" <*>
+--                            v .: "range"
+--   parseJSON _          = fail "ASRange JSON attributes missing"
+
+-- instance ToJSON ASColumn where 
+--   toJSON (Column sid c) = object ["locSheetId" .= sid, "column" .= c]
+
+-- instance FromJSON ASColumn where 
+--   parseJSON (Object v) = Column <$>
+--                            v .: "locSheetId" <*>
+--                            v .: "column"
+--   parseJSON _          = fail "ASColumn JSON attributes missing"
+
+
+-- ::ALEX:: hmm... this will probably go away later
+instance ToJSON ASLocation where 
+  toJSON loc = case loc of 
+    IndexLoc i -> toJSON i 
+    RangeLoc r -> toJSON r 
+    ColumnLoc c -> toJSON c 
+
+instance FromJSON ASLocation where 
+  parseJSON (Object v) = liftA IndexLoc $ Index <$> 
+                           v .: "locsheetId" <*>
+                           v .: "index"
+  parseJSON _          = fail "improper ASLocation JSON format"
+
+-- ::ALEX:: refactor Expression too

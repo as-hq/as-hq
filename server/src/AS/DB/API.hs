@@ -365,7 +365,7 @@ deleteSheetUnsafe conn sid = do
 ----------------------------------------------------------------------------------------------------------------------
 -- Volatile cell methods
 
-getVolatileLocs :: Connection -> IO [ASLocation]
+getVolatileLocs :: Connection -> IO [ASIndex]
 getVolatileLocs conn = do 
   runRedis conn $ do
       Right vl <- smembers "volatileLocs"

@@ -201,9 +201,9 @@ lookupString lang mp loc = case loc of
 	RangeLoc (Range sh ((a,b),(c,d))) -> 
 		if (c==a)
 			then
-				modifiedLists lang (toListStr lang [ ((showFilteredValue lang) (mp M.! (Index sh (a,row)))) | row<-[b..d]])
+				modifiedLists lang (toListStr lang [ ((showFilteredValue lang) (mp M.! (IndexLoc $ Index sh (a,row)))) | row<-[b..d]])
 			else 
-				modifiedLists lang (toListStr lang [modifiedLists lang (toListStr lang ([(showFilteredValue lang) (mp M.! (Index sh (col,row)))| col <-[a..c]]))| row<-[b..d]])
+				modifiedLists lang (toListStr lang [modifiedLists lang (toListStr lang ([(showFilteredValue lang) (mp M.! (IndexLoc $ Index sh (col,row)))| col <-[a..c]]))| row<-[b..d]])
 
 interpolate :: ASSheetId -> M.Map ASLocation ASValue -> ASExpression -> String
 interpolate sheetid values xp = evalString

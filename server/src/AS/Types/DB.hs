@@ -32,9 +32,13 @@ instance (Show2 ASIndex) where
 instance (Show2 ASRange) where 
   show2 (Range sid a) = "R/" ++ (unpack sid) ++ ('/':(show a))
 
+instance (Show2 ASColumn) where 
+  show2 (Column sid a) = "C/" ++ (unpack sid) ++ ('/':(show a))
+
 instance (Show2 ASLocation) where
   show2 (IndexLoc il) = show2 il 
-  show2 (RangeLoc rk) = show2 rl
+  show2 (RangeLoc rl) = show2 rl
+  show2 (ColumnLoc cl) = show2 cl
 
 instance (Show2 ASExpression) where
   show2 (Expression xp lang) = "E?" ++ xp ++ ('?':(show lang))
@@ -56,24 +60,25 @@ instance (Read2 ASCell) where
       v = read2 valstr :: ASValue
       ts = read tagstr :: [ASCellTag]
 
-instance (Read2 ASLocation) 
-  where
-    read2 str = loc
-      where
-        [tag, sid, locstr] = splitBy '/' str
-        loc = case tag of 
-          "I" -> IndexLoc $ Index (pack sid) (read locstr :: (Int, Int))
-          "R" -> RangeLoc $ Range (pack sid) (read locstr :: ((Int, Int), (Int, Int)))
-
--- ::ALEX:: columns ?? 
+instance (Read2 ASLocation) where
+  read2 str = loc
+    where
+      [tag, sid, locstr] = splitBy '/' str
+      loc = case tag of 
+        "I" -> IndexLoc $ Index (pack sid) (read locstr :: (Int, Int))
+        "R" -> RangeLoc $ Range (pack sid) (read locstr :: ((Int, Int), (Int, Int)))
 
 instance (Read2 ASIndex) where 
   read2 str = case ((read2 :: String -> ASLocation) str) of 
-    IndexLoc i -> i  
+    IndexLoc i -> i
 
 instance (Read2 ASRange) where 
   read2 str = case ((read2 :: String -> ASLocation) str) of 
     RangeLoc r -> r
+
+instance (Read2 ASColumn) where 
+  read2 str = case ((read2 :: String -> ASLocation) str) of 
+    ColumnLoc c -> c
 
 instance (Read2 ASExpression)
   where
@@ -82,7 +87,7 @@ instance (Read2 ASExpression)
         [tag, midstr, laststr] = splitBy '?' str
         xp = case tag of 
           "E" -> Expression midstr (read laststr :: ASLanguage)
-          "R" -> Reference (read2 midstr :: ASIndex) (read laststr :: (Int, Int))
+          "R" -> Reference (read2 midstr :: ASLocation) (read laststr :: (Int, Int))
 
 instance (Read2 ASValue)
   where 
