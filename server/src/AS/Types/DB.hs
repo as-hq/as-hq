@@ -51,7 +51,7 @@ instance (Read2 ASCell) where
   read2 str = Cell l xp v ts
     where
       [locstr, xpstr, valstr, tagstr] = splitBy '|' str
-      l = read2 locstr :: ASLocation
+      l = read2 locstr :: ASIndex
       xp = read2 xpstr :: ASExpression
       v = read2 valstr :: ASValue
       ts = read tagstr :: [ASCellTag]
@@ -62,8 +62,18 @@ instance (Read2 ASLocation)
       where
         [tag, sid, locstr] = splitBy '/' str
         loc = case tag of 
-          "I" -> Index (pack sid) (read locstr :: (Int, Int))
-          "R" -> Range (pack sid) (read locstr :: ((Int, Int), (Int, Int)))
+          "I" -> IndexLoc $ Index (pack sid) (read locstr :: (Int, Int))
+          "R" -> RangeLoc $ Range (pack sid) (read locstr :: ((Int, Int), (Int, Int)))
+
+-- ::ALEX:: columns ?? 
+
+instance (Read2 ASIndex) where 
+  read2 str = case ((read2 :: String -> ASLocation) str) of 
+    IndexLoc i -> i  
+
+instance (Read2 ASRange) where 
+  read2 str = case ((read2 :: String -> ASLocation) str) of 
+    RangeLoc r -> r
 
 instance (Read2 ASExpression)
   where
@@ -72,7 +82,7 @@ instance (Read2 ASExpression)
         [tag, midstr, laststr] = splitBy '?' str
         xp = case tag of 
           "E" -> Expression midstr (read laststr :: ASLanguage)
-          "R" -> Reference (read2 midstr :: ASLocation) (read laststr :: (Int, Int))
+          "R" -> Reference (read2 midstr :: ASIndex) (read laststr :: (Int, Int))
 
 instance (Read2 ASValue)
   where 

@@ -38,7 +38,7 @@ query q locs =
         case (B.unpack $ last reply) of
             "OK" -> do
                 let filtered = map B.unpack $ init reply
-                let result = Right $ map (\l -> read2 l:: ASLocation) filtered
+                let result = Right $ map (\l -> read2 (l :: ASIndex)) filtered
                 --liftIO $ printTimed $ "Graph DB result: " ++ (show $ init reply)
                 return result
             "ERROR" -> do

@@ -17,21 +17,18 @@ import Data.Maybe (isNothing)
 -------------------------------------------------------------------------------------------------------------------------
 -- Initializations
 
-initDaemonFromMessageAndConn :: ASMessage -> WS.Connection -> Maybe ASDaemon
-initDaemonFromMessageAndConn m c' = case m of 
-  (Message _ _ _ (PayloadDaemonInit (ASInitDaemonConnection _ loc))) -> Just $ ASDaemon loc c'
-  otherwise -> Nothing 
+initDaemonFromMessageAndConn :: ASClientMessage -> WS.Connection -> ASDaemonClient
+initDaemonFromMessageAndConn (ClientMessage _ (PayloadDaemonInit (ASInitDaemonConnection uid loc))) c = DaemonClient loc c uid
 
-initUserFromMessageAndConn :: ASMessage -> WS.Connection -> IO ASUser
-initUserFromMessageAndConn m c' = do 
-    let uid = messageUserId m 
+initUserFromMessageAndConn :: ASClientMessage -> WS.Connection -> IO ASUserClient
+initUserFromMessageAndConn (ClientMessage _ (PayloadInit (ASInitConnection uid))) c = do 
     time <- getTime
-    return $ UserClient uid c' [initialViewingWindow] $ T.pack ((show uid) ++ (show time))
+    return $ UserClient uid c [initialViewingWindow] $ T.pack ((show uid) ++ (show time))
 
 --------------------------------------------------------------------------------------------------------------
--- Misc
+-- Misc 
 
-sendMessage :: ASMessage -> WS.Connection -> IO ()
+sendMessage :: (ToJSON a) => a -> WS.Connection -> IO ()
 sendMessage msg conn = WS.sendTextData conn (encode msg)
 
 lastN :: Int -> [a] -> [a]
@@ -124,23 +121,22 @@ isJust :: Maybe ASCell -> Bool
 isJust (Just c) = True
 isJust Nothing = False
 
-getCellMessage :: ASUserId -> Either ASExecError [ASCell] -> ASMessage
-getCellMessage uid (Left e) = Message uid Evaluate (Failure (generateErrorMessage e)) (PayloadN ())
-getCellMessage uid (Right cells) = Message uid Evaluate Success (PayloadCL cells)
+getCellMessage :: Either ASExecError [ASCell] -> ASServerMessage
+getCellMessage (Left e) = ServerMessage Evaluate (Failure (generateErrorMessage e)) (PayloadN ())
+getCellMessage (Right cells) = ServerMessage Evaluate Success (PayloadCL cells)
 
 -- getBadLocs :: [ASLocation] -> [Maybe ASCell] -> [ASLocation]
 -- getBadLocs locs mcells = map fst $ filter (\(l,c)->isNothing c) (zip locs mcells)
 
---getDBCellMessage :: ASUser -> [ASLocation] -> [Maybe ASCell] -> ASMessage
+--getDBCellMessage :: ASUserClient -> [ASLocation] -> [Maybe ASCell] -> ASMessage
 --getDBCellMessage user locs mcells = if any isNothing mcells
 --  then getCellMessage user (Left (DBNothingException (getBadLocs locs mcells)))
 --  else getCellMessage user (Right (map (\(Just c)->c) mcells))
 
 -- bugfix for sending non-nothing locs (e.g. scrolling)
 -- TODO send empty cells for nothings -- updates deletes that happened past viewing window
-
-getDBCellMessage :: ASUserId -> [ASLocation] -> [Maybe ASCell] -> ASMessage
-getDBCellMessage uid locs mcells = getCellMessage uid (Right cells)
+getDBCellMessage :: [Maybe ASCell] -> ASServerMessage
+getDBCellMessage mcells = getCellMessage (Right cells)
   where justCells = filter (not . isNothing) mcells 
         cells = map (\(Just x) -> x) justCells
 
@@ -183,31 +179,30 @@ intersectViewingWindows :: [ASCell] -> [ASWindow] -> [ASCell]
 intersectViewingWindows cells vws = concat $ map (intersectViewingWindow cells) vws 
   where
     intersectViewingWindow :: [ASCell] -> ASWindow -> [ASCell]
-    intersectViewingWindow cells vw = filter (inVW vw) cells
-    inVW :: ASWindow -> ASCell -> Bool
-    inVW (Window wSheetId (tlc, tlr) (brc, brr)) (Cell (Index cSheetId (col,row)) _ _ _) = ((wSheetId==cSheetId) && (inRange col tlc (brc-tlc)) && (inRange row tlr (brr-tlr)))
+    intersectViewingWindow cells vw = filter (inViewingWindow vw) cells
+    inViewingWindow :: ASWindow -> ASCell -> Bool
+    inViewingWindow (Window wSheetId (tlc, tlr) (brc, brr)) (Cell (Index cSheetId (col,row)) _ _ _) = ((wSheetId==cSheetId) && (inRange col tlc (brc-tlc)) && (inRange row tlr (brr-tlr)))
     inRange :: Int -> Int -> Int -> Bool
     inRange elem start len = ((elem >= start) && (elem <= (start + len)))
 
 -- new function, so that we don't have to do the extra filter/lookup by using just one
 -- ::ALEX:: ::EXPLAIN::
-intersectViewingWindowsLocs :: [ASLocation] -> [ASWindow] -> [ASLocation]
+intersectViewingWindowsLocs :: [ASIndex] -> [ASWindow] -> [ASIndex]
 intersectViewingWindowsLocs locs vws = concat $ map (intersectViewingWindow dlocs) vws 
   where
-    dlocs = concat $ map decomposeLocs locs
-    intersectViewingWindow :: [ASLocation] -> ASWindow -> [ASLocation]
-    intersectViewingWindow locs vw = filter (inVW vw) locs
-    inVW :: ASWindow -> ASLocation -> Bool
-    inVW (Window wSheetId (tlc, tlr) (brc, brr)) (Index cSheetId (col,row)) = 
+    intersectViewingWindow :: [ASIndex] -> ASWindow -> [ASIndex]
+    intersectViewingWindow locs vw = filter (inViewingWindow vw) locs
+    inViewingWindow :: ASWindow -> ASIndex -> Bool
+    inViewingWindow (Window wSheetId (tlc, tlr) (brc, brr)) (Index cSheetId (col,row)) = 
       ((wSheetId==cSheetId) && (inRange col tlc (brc-tlc)) && (inRange row tlr (brr-tlr)))
     inRange :: Int -> Int -> Int -> Bool
     inRange elem start len = ((elem >= start) && (elem <= (start + len)))
 
-updateWindow :: ASWindow -> ASUser -> ASUser
+updateWindow :: ASWindow -> ASUserClient -> ASUserClient
 updateWindow window (UserClient uid conn windows sid) = UserClient uid conn windows' sid
     where windows' = flip map windows (\w -> if (windowSheetId w) == (windowSheetId window) then window else w)
 
-getWindow :: ASSheetId -> ASUser -> Maybe ASWindow
+getWindow :: ASSheetId -> ASUserClient -> Maybe ASWindow
 getWindow sheetid user = lookupLambda windowSheetId sheetid (windows user)
 
 getScrolledLocs :: ASWindow -> ASWindow -> [ASRange]
@@ -250,8 +245,8 @@ matchSheets ws ss = [WorkbookSheet (workbookName w) (fromJustList $ lookupSheets
 
 -- ::ALEX:: what about columns? 
 shiftLoc :: (Int, Int) -> ASLocation -> ASLocation
-shiftLoc (dy, dx) (IndexLoc (Index sh (y,x))) = Index sh (y+dy, x+dx)
-shiftLoc (dy, dx) (RangeLoc (Range sh ((y,x),(y2,x2)))) = Range sh ((y+dy, x+dx), (y2+dy, x2+dx))
+shiftLoc (dy, dx) (IndexLoc (Index sh (y,x))) = IndexLoc $ Index sh (y+dy, x+dx)
+shiftLoc (dy, dx) (RangeLoc (Range sh ((y,x),(y2,x2)))) = RangeLoc $ Range sh ((y+dy, x+dx), (y2+dy, x2+dx))
 
 
 -- ::ALEX:: what about columns? 
@@ -267,9 +262,6 @@ getOffsetBetweenLocs from to = getOffsetFromIndices from' to'
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Users
-
-updateMessageUser :: ASUserId -> ASMessage -> ASMessage
-updateMessageUser uid (Message _ a r p) = Message uid a r p 
 
 isGroupMember :: ASUserId -> ASUserGroup -> Bool
 isGroupMember uid group = any ((==) uid) (groupMembers group)
@@ -314,7 +306,7 @@ getStreamTagFromExpression xp = Nothing
 ----------------------------------------------------------------------------------------------------------------------
 -- | Testing
 
-testLocs :: Int -> [ASLocation]
+testLocs :: Int -> [ASIndex]
 testLocs n = [Index "" (i,1) | i <-[1..n]]
 
 testCells :: Int -> [ASCell]

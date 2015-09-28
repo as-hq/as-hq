@@ -54,7 +54,7 @@ msgPartDelimiter = "@"
 
 relationDelimiter = "&"
 
-getLocationKey :: ASLocation -> B.ByteString
+getLocationKey :: ASIndex -> B.ByteString
 getLocationKey = showB . show2
 
 getSheetKey :: ASSheetId -> B.ByteString -- for storing the actual sheet as key-value
@@ -111,7 +111,7 @@ setCellRedis cell = do
     sadd setKey [key] -- add the location key to the set of locs in a sheet (for sheet deletion etc)
     return ()
 
-deleteLocRedis :: ASLocation -> Redis ()
+deleteLocRedis :: ASIndex -> Redis ()
 deleteLocRedis loc = del [getLocationKey loc] >> return ()
 
 getSheetLocsRedis :: ASSheetId -> Redis [B.ByteString]

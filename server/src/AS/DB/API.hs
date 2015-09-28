@@ -22,7 +22,7 @@ import Control.Concurrent
 import Control.Monad
 import Control.Monad.Trans
 import Data.Time
-import Database.Redis hiding (decode, Message)
+import Database.Redis hiding (decode)
 
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
@@ -70,21 +70,17 @@ foreign import ccall unsafe "hiredis/redis_db.c setCells" c_setCells :: CString 
 ----------------------------------------------------------------------------------------------------------------------
 -- Cells
 
-getCell :: ASLocation -> IO (Maybe ASCell)
+getCell :: ASIndex -> IO (Maybe ASCell)
 getCell loc = return . head =<< getCells [loc]
 
-getCells :: [ASLocation] -> IO [Maybe ASCell]
+getCells :: [ASIndex] -> IO [Maybe ASCell]
 getCells [] = return []
 getCells locs = 
   let  
-    dlocs = concat $ map U.decomposeLocs locs 
-    msg = showB $ intercalate "@" $ map show2 dlocs
-    --str = intercalate msgPartDelimiter $ map show2 dlocs
-    num = length dlocs 
+    msg = showB $ intercalate "@" $ map show2 locs
+    num = length locs 
   in do
-    --B.putStrLn msg
     ptrCells <- BU.unsafeUseAsCString msg $ \str -> c_getCells str (fromIntegral num)
-
     --ptrCells <- withCString str $ \cstr ->  c_getCells cstr (fromIntegral num)
     cCells <- peekArray (fromIntegral num) ptrCells
     res <- mapM DU.cToASCell cCells  
@@ -109,16 +105,14 @@ deleteCells :: Connection -> [ASCell] -> IO ()
 deleteCells _ [] = return ()
 deleteCells conn cells = deleteLocs conn $ map cellLocation cells
 
-deleteLocs :: Connection -> [ASLocation] -> IO ()
+deleteLocs :: Connection -> [ASIndex] -> IO ()
 deleteLocs _ [] = return ()
-deleteLocs conn locs = 
-    let degenerateLocs = concat $ map U.decomposeLocs locs in
-    do
-        runRedis conn $ do
-            _ <- mapM_ DU.deleteLocRedis degenerateLocs
-            return ()
+deleteLocs conn locs = do
+  runRedis conn $ do
+      _ <- mapM_ DU.deleteLocRedis locs
+      return ()
 
-locationsExist :: Connection -> [ASLocation] -> IO [Bool]
+locationsExist :: Connection -> [ASIndex] -> IO [Bool]
 locationsExist conn locs = do
   runRedis conn $ do
     TxSuccess results <- multiExec $ do
@@ -126,7 +120,7 @@ locationsExist conn locs = do
       return $ sequence bools
     return results
 
-getColumnCells :: Connection -> ASLocation -> IO [Maybe ASCell]
+getColumnCells :: Connection -> ASColumn -> IO [Maybe ASCell]
 getColumnCells conn (Column sheetid col) = do
   runRedis conn $ do
     locKeys <- DU.getSheetLocsRedis sheetid
@@ -402,21 +396,21 @@ canAccessSheet conn uid sheetId = do
     Nothing -> return False
     (Just someSheet) -> return $ hasPermissions uid (sheetPermissions someSheet)
 
-canAccess :: Connection -> ASUserId -> ASLocation -> IO Bool
+canAccess :: Connection -> ASUserId -> ASIndex -> IO Bool
 canAccess conn uid loc = canAccessSheet conn uid (locSheetId loc)
 
-canAccessAll :: Connection -> ASUserId -> [ASLocation] -> IO Bool
+canAccessAll :: Connection -> ASUserId -> [ASIndex] -> IO Bool
 canAccessAll conn uid locs = return . all id =<< mapM (canAccess conn uid) locs
 
-isPermissibleMessage :: Connection -> ASMessage -> IO Bool
-isPermissibleMessage conn (Message uid _ _ (PayloadC cell))      = canAccess conn uid (cellLocation cell)
-isPermissibleMessage conn (Message uid _ _ (PayloadCL cells))    = canAccessAll conn uid (map cellLocation cells)
-isPermissibleMessage conn (Message uid _ _ (PayloadL loc))       = canAccess conn uid loc
-isPermissibleMessage conn (Message uid _ _ (PayloadLL locs))     = canAccessAll conn uid locs
-isPermissibleMessage conn (Message uid _ _ (PayloadS sheet))     = canAccessSheet conn uid (sheetId sheet)
-isPermissibleMessage conn (Message uid _ _ (PayloadW window))    = canAccessSheet conn uid (windowSheetId window)
-isPermissibleMessage conn (Message uid _ _ (PayloadTags _ loc))  = canAccess conn uid loc
-isPermissibleMessage _ _ = return True
+isPermissibleMessage :: ASUserId -> Connection -> ASClientMessage -> IO Bool
+isPermissibleMessage uid conn (ClientMessage _ (PayloadC cell))      = canAccess conn uid (cellLocation cell)
+isPermissibleMessage uid conn (ClientMessage _ (PayloadCL cells))    = canAccessAll conn uid (map cellLocation cells)
+isPermissibleMessage uid conn (ClientMessage _ (PayloadL loc))       = canAccess conn uid loc
+isPermissibleMessage uid conn (ClientMessage _ (PayloadLL locs))     = canAccessAll conn uid locs
+isPermissibleMessage uid conn (ClientMessage _ (PayloadS sheet))     = canAccessSheet conn uid (sheetId sheet)
+isPermissibleMessage uid conn (ClientMessage _ (PayloadW window))    = canAccessSheet conn uid (windowSheetId window)
+isPermissibleMessage uid conn (ClientMessage _ (PayloadTags _ loc))  = canAccess conn uid loc
+isPermissibleMessage _ _ _ = return True
 
 
 ----------------------------------------------------------------------------------------------------------------------
