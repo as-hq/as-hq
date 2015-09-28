@@ -182,7 +182,6 @@ intersectViewingWindows cells vws = concat $ map (intersectViewingWindow cells) 
     inRange elem start len = ((elem >= start) && (elem <= (start + len)))
 
 -- new function, so that we don't have to do the extra filter/lookup by using just one
--- ::ALEX:: ::EXPLAIN::
 intersectViewingWindowsLocs :: [ASLocation] -> [ASWindow] -> [ASLocation]
 intersectViewingWindowsLocs locs vws = concat $ map (intersectViewingWindow locs) vws 
   where
@@ -206,7 +205,6 @@ getScrolledLocs (Window _ (-1,-1) (-1,-1)) (Window sheetid tl br) = [(Range shee
 getScrolledLocs (Window _ (y,x) (y2,x2)) (Window sheetid tl@(y',x') br@(y2',x2')) = getUncoveredLocs sheetid overlapping (tl, br)
     where overlapping = ((max' y y', max' x x'), (min' y2 y2', min' x2 x2'))
 
--- | ::ALEX:: what is this
 getUncoveredLocs :: ASSheetId -> ((Int,Int), (Int,Int)) -> ((Int,Int), (Int,Int)) -> [ASRange]
 getUncoveredLocs sheet (tlo, bro) (tlw, brw) = [Range sheet corners | corners <- cs]
     where 
@@ -255,12 +253,9 @@ shiftLoc (dy, dx) (RangeLoc (Range sh ((y,x),(y2,x2)))) = RangeLoc $ Range sh ((
 shiftInd :: (Int, Int) -> ASLocation -> ASLocation
 shiftInd (dy, dx) (Index sh (y,x)) = Index sh (y+dy, x+dx)
 
-
--- ::ALEX:: ugly 
 getTopLeft :: ASRange -> ASLocation
 getTopLeft (Range sh (tl,_)) = Index sh tl
 
--- ::ALEX:: ugly 
 getIndicesOffsets :: ASLocation -> ASLocation -> (Int, Int)
 getIndicesOffsets (Index _ (y, x)) (Index _ (y', x')) = (y'-y, x'-x)
 

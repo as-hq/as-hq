@@ -26,7 +26,6 @@ import AS.Config.Settings as S
 -----------------------------------------------------------------------------------------------------------------------
 -- Exposed functions
 
--- ::ALEX:: ::EXPLAIN:: what are all these arguments? 
 evalExpression :: ASReference -> M.Map ASReference ASValue -> ASExpression -> IO ASValue
 evalExpression loc dict expr =
   case expr of

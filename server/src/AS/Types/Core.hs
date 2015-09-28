@@ -22,9 +22,7 @@ data WorkbookSheet = WorkbookSheet {wsName :: String, wsSheets :: [ASSheet]} der
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Core cell types
 
--- ::ALEX:: what???? VVV 
 -- -1 in "row" for Index signifies an entire column
-
 data ASLocation = Index {locSheetId :: ASSheetId, index :: (Int, Int)} deriving (Show, Read, Eq, Generic, Ord)
 data ASRange = Range {rangeSheetId :: ASSheetId, range :: ((Int, Int), (Int, Int))} deriving (Show, Read, Eq, Generic, Ord)
 data ASColumn = Column {columnSheetId :: ASSheetId, column :: Int} deriving (Show, Read, Eq, Generic, Ord)
@@ -212,7 +210,6 @@ data ASRecipients = Original | All | Custom [ASUserClient]
 
 data ASWindow = Window {windowSheetId :: ASSheetId, topLeft :: (Int, Int), bottomRight :: (Int, Int)} deriving (Show,Read,Eq,Generic)
 type ASUserId = Text 
--- data ASUserClient = User { userId :: ASUserId }
 data ASUserClient = UserClient {userId :: ASUserId, userConn :: WS.Connection, windows :: [ASWindow], sessionId :: ClientId} 
 
 instance Eq ASUserClient where 
@@ -267,7 +264,7 @@ instance ToJSON ASLocation
 instance FromJSON ASLocation
 instance ToJSON ASRange
 instance FromJSON ASRange
-instance ToJSON ASColumn -- ::ALEX:: currently not implemented in frontend afaik
+instance ToJSON ASColumn -- note: not mentioned at all in frontend, as of 9/28
 instance FromJSON ASColumn 
 instance ToJSON ASValue
 instance FromJSON ASValue
@@ -337,40 +334,3 @@ instance FromJSON ASServerMessage where
                            v .: "result" <*>
                            v .: "payload"
   parseJSON _          = fail "server message JSON attributes missing"
-
-
-
--- ::ALEX:: this is ugly, and there's probably a way to prevent this...
--- instance ToJSON ASRange where 
---   toJSON (Range sid rng) = object ["locSheetId" .= sid, "range" .= rng]
-
--- instance FromJSON ASRange where 
---   parseJSON (Object v) = Range <$>
---                            v .: "locSheetId" <*>
---                            v .: "range"
---   parseJSON _          = fail "ASRange JSON attributes missing"
-
--- instance ToJSON ASColumn where 
---   toJSON (Column sid c) = object ["locSheetId" .= sid, "column" .= c]
-
--- instance FromJSON ASColumn where 
---   parseJSON (Object v) = Column <$>
---                            v .: "locSheetId" <*>
---                            v .: "column"
---   parseJSON _          = fail "ASColumn JSON attributes missing"
-
-
--- ::ALEX:: hmm... this will probably go away later
-instance ToJSON ASReference where 
-  toJSON loc = case loc of 
-    IndexLoc i -> toJSON i 
-    RangeLoc r -> toJSON r 
-    ColumnLoc c -> toJSON c 
-
-instance FromJSON ASReference where 
-  parseJSON (Object v) = liftA IndexLoc $ Index <$> 
-                           v .: "locsheetId" <*>
-                           v .: "index"
-  parseJSON _          = fail "improper ASReference JSON format"
-
--- ::ALEX:: refactor Expression too

@@ -261,7 +261,6 @@ dependenciesFromExcelLoc sheetid exLoc = case exLoc of
 -------------------------------------------------------------------------------------------------------------------------------------------------
 -- Parse dependencies and replace relative expressions
 
--- ::ALEX:: make sure this still makes sense... definitely needs refactor too
 getDependenciesAndExpressions :: ASSheetId -> ASExpression -> ([ASLocation], ASExpression)
 getDependenciesAndExpressions sheetid xp = (newLocs, newExpr)
   where 
@@ -297,7 +296,6 @@ unpackExcelVals v = []
 ----------------------------------------------------------------------------------------------------------------------------------
 -- Copy/paste
 
--- ::ALEX:: horribly named, and horribly implemented. wtf variable name repeats
 shiftCell :: (Int, Int) -> ASCell -> (ASCell, [ASLocation])
 shiftCell offset (Cell loc (Expression str lang) v ts) = (shiftedCell, shiftedDeps)
   where
@@ -309,8 +307,8 @@ shiftCell offset (Cell loc (Expression str lang) v ts) = (shiftedCell, shiftedDe
     newStr = replaceMatches (inter, shiftedExLocs) showExcelLoc str
     shiftedXp = Expression newStr lang
     shiftedCell = Cell shiftedLoc shiftedXp v ts
-    shiftCell offset (Cell loc (Reference _ _) v ts) = (shiftedCell, []) -- for copying sublists
-      where
-        pseudoXp = Expression (showValue Python v) Python -- TODO get the damn language
-        shiftedLoc = shiftInd offset loc 
-        shiftedCell = Cell shiftedLoc pseudoXp v ts
+shiftCell offset (Cell loc (Reference _ _) v ts) = (shiftedCell, []) -- for copying sublists
+  where
+    pseudoXp = Expression (showValue Python v) Python -- TODO get the damn language
+    shiftedLoc = shiftInd offset loc 
+    shiftedCell = Cell shiftedLoc pseudoXp v ts
