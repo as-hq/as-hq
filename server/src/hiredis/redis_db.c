@@ -161,7 +161,7 @@ void setCells(char* msg, int length){
     freeRedis(c,reply); 
   }
   clock_t connect = clock(); 
-  printf("Set cells connecting: %f seconds\n", (double)(connect - begin) / CLOCKS_PER_SEC);
+  // printf("Set cells connecting: %f seconds\n", (double)(connect - begin) / CLOCKS_PER_SEC);
 
   // printf("Set cells raw message: %s \n",msg);
   // removes first and last quotes from string (artifact of ByteString show)
@@ -204,7 +204,7 @@ void setCells(char* msg, int length){
   }
   redisFree(c);
   clock_t end = clock();
-  printf("Set cells setting time: %f seconds\n", (double)(end - connect) / CLOCKS_PER_SEC);
+  // printf("Set cells setting time: %f seconds\n", (double)(end - connect) / CLOCKS_PER_SEC);
 
 }
 

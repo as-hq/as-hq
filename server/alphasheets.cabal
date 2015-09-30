@@ -76,7 +76,7 @@ library
 executable alphasheets-exe
   hs-source-dirs:      app
   main-is:             Main.hs
-  ghc-options:         src/hiredis/redis_db.o 
+  ghc-options:         
                        -O2 
                        -threaded 
                        -with-rtsopts=-N
@@ -91,7 +91,7 @@ executable alphasheets-exe
                      , hedis
                      , daemons
                      , data-default
-
+  c-sources:           src/hiredis/redis_db.c
   default-language:    Haskell2010
 
 test-suite alphasheets-test
@@ -103,11 +103,12 @@ test-suite alphasheets-test
                      , text
                      , hedis
                      , bytestring
-  ghc-options:         src/hiredis/redis_db.o 
+  ghc-options:         
                        -lhiredis
                        -O2
                        -threaded 
                        -with-rtsopts=-N
+  c-sources:           src/hiredis/redis_db.c
   default-language:    Haskell2010
 
 source-repository head
