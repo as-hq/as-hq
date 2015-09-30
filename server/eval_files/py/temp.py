@@ -18,7 +18,7 @@ def arr(lst):
 result = "error"
 try:
 	execfile(filename)
-	result = 1+a
+	result = random.random()
 except Exception as e: 
 	exc_type, exc_obj, exc_tb = exc_info()
 	fname = 'AlphaSheets Python evaluator'

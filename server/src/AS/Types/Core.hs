@@ -60,6 +60,8 @@ data ASExpression =
   Reference { location :: ASLocation, referenceIndex :: (Int, Int) }
   deriving (Show, Read, Eq, Generic)
 
+emptyExpression = ""
+
 data ASCellTag = 
     Color String
   | Size Int

@@ -39,7 +39,7 @@ introspectCode lang str = case (tryPrintingLast lang str) of
 -- returns (repl record code, repl eval code)
 introspectCodeRepl :: ASLanguage -> String -> IO (String, String)
 introspectCodeRepl lang str = case (tryPrintingLast lang str) of
-    (Left _) -> return $ (str, "")
+    (Left _) -> return $ (str, emptyExpression) -- nothing to print, so nothing to evaluate
     (Right (recordXp, printedLine)) -> do
         evalXp <- wrapCode lang True $ recombineLines (recordXp, printedLine)
         return (recordXp, evalXp)
@@ -53,9 +53,7 @@ tryPrintingLast lang str =
         (startLines, endLine) = splitLastLine lang str
     in if (containsAny [assignOp lang, returnOp lang, importOp lang] endLine)
         then (Left ())
-        else case endLine of 
-            "" -> Right (printCmd lang startLines, endLine)
-            _  -> Right (startLines, printCmd lang endLine)
+        else Right (startLines, printCmd lang endLine)
 
 printCmd :: ASLanguage -> String -> String
 printCmd lang str = case (tryParse (replacePrintStmt lang) str) of 
@@ -76,7 +74,7 @@ replacePrintStmt lang = case lang of
 splitLastLine :: ASLanguage -> String -> (String, String)
 splitLastLine lang str = case (tryParse (parseLastline lang) (reverse str)) of 
     (Right result)  -> result
-    (Left _)        -> ("", str)
+    (Left _)        -> (emptyExpression, str) -- only one line, which becomes the 'last' line
 
 parseLastline :: ASLanguage -> Parser (String, String)
 parseLastline lang = do

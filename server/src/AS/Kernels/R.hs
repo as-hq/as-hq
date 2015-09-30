@@ -19,6 +19,7 @@ import AS.Util
 -- | Exposed functions
 
 evaluate :: String -> IO (Either ASExecError ASValue)
+evaluate "" = return $ Right NoValue
 evaluate str = do
     if isDebug 
         then writeExecFile R str
@@ -28,6 +29,7 @@ evaluate str = do
     return $ parseValue R result
 
 evaluateRepl :: String -> IO (Either ASExecError ASValue)
+evaluateRepl "" = return $ Right NoValue
 evaluateRepl str = return $ Left ExecError -- TODO
 
 ----------------------------------------------------------------------------------------------------------------------------------------------

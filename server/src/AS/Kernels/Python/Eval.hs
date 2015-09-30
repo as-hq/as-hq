@@ -17,6 +17,7 @@ import AS.Config.Settings
 
 -- | python
 evaluate :: String -> IO (Either ASExecError ASValue)
+evaluate "" = return $ Right NoValue
 evaluate str = do
     code <- introspectCode Python str
     case code of 
@@ -29,6 +30,7 @@ evaluate str = do
             return $ parseValue Python result
 
 evaluateRepl :: String -> IO (Either ASExecError ASValue)
+evaluateRepl "" = return $ Right NoValue
 evaluateRepl str = do
     -- preprocess expression
     (recordCode, evalCode) <- introspectCodeRepl Python str
@@ -39,7 +41,7 @@ evaluateRepl str = do
     replRecord <- getReplRecord Python
     writeReplRecord Python (replRecord ++ "\n" ++ recordCode)
     -- perform eval
-    parsed <- if (evalCode == "")
+    parsed <- if (evalCode == emptyExpression)
         then return $ Right NoValue
         else do
             result <- pyfiString evalCode
@@ -53,6 +55,7 @@ evaluateRepl str = do
 
 -- | SQL
 evaluateSql :: String -> IO (Either ASExecError ASValue)
+evaluateSql "" = return $ Right NoValue
 evaluateSql str = do
     code <- introspectCode SQL str
     case code of
@@ -65,7 +68,8 @@ evaluateSql str = do
             return $ parseValue Python result
 
 evaluateSqlRepl :: String -> IO (Either ASExecError ASValue)
-evaluateSqlRepl = evaluateSql 
+evaluateSqlRepl "" = return $ Right NoValue
+evaluateSqlRepl str = evaluateSql str
 
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
