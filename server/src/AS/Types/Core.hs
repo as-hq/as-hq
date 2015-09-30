@@ -174,6 +174,7 @@ data ASExecError =
   | ExpressionNotEvaluable
   | ExecError
   | ExcelSyntaxError {excelErr :: String}
+  | SyntaxError
   deriving (Show, Read, Eq, Generic)
 
 type EitherCells = Either ASExecError [ASCell] 

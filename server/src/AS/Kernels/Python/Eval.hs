@@ -12,6 +12,7 @@ import AS.Parsing.In
 import AS.Util
 import AS.Config.Settings
 
+import Control.Exception (catch, SomeException)
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Exposed functions
 
@@ -26,8 +27,7 @@ evaluate str = do
             if isDebug 
                 then writeExecFile Python validCode
                 else return ()
-            result <- pyfiString validCode
-            return $ parseValue Python result
+            execWrappedCode validCode
 
 evaluateRepl :: String -> IO (Either ASExecError ASValue)
 evaluateRepl "" = return $ Right NoValue
@@ -43,9 +43,7 @@ evaluateRepl str = do
     -- perform eval
     parsed <- if (evalCode == emptyExpression)
         then return $ Right NoValue
-        else do
-            result <- pyfiString evalCode
-            return $ parseValue Python result
+        else execWrappedCode evalCode
     -- if error, undo the write to repl record
     case parsed of 
         (Left _)                        -> writeReplRecord Python replRecord
@@ -64,8 +62,7 @@ evaluateSql str = do
             if isDebug 
                 then writeExecFile SQL validCode
                 else return ()
-            result <- pyfiString validCode
-            return $ parseValue Python result
+            execWrappedCode validCode
 
 evaluateSqlRepl :: String -> IO (Either ASExecError ASValue)
 evaluateSqlRepl "" = return $ Right NoValue
@@ -75,8 +72,18 @@ evaluateSqlRepl str = evaluateSql str
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | helpers
 
-pyfiString :: String -> IO String
-pyfiString evalStr = defVV (evalStr ++ pyString) ("Hello" :: String)
+execWrappedCode :: String -> IO (Either ASExecError ASValue)
+execWrappedCode evalCode = do
+    result <- pyfiString evalCode
+    return $ case result of 
+        (Left SyntaxError) -> Left SyntaxError
+        (Right s) -> parseValue Python s
+
+pyfiString :: String -> IO (Either ASExecError String)
+pyfiString evalStr = catch (fmap Right execString) whenCaught
+    where 
+        execString = defVV (evalStr ++ pyString) ("Hello" :: String)
+        whenCaught = (\e -> return $ Left SyntaxError) :: (SomeException -> IO (Either ASExecError String))
 
 pyString :: String
 pyString = [str|

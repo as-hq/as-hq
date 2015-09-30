@@ -149,8 +149,13 @@ isColumn _ = False
 
 -- | Not yet implemented
 generateErrorMessage :: ASExecError -> String
-generateErrorMessage CopyNonexistentDependencies = "Some dependencies nonexistent in copied cell expressions."
-generateErrorMessage (DBNothingException _) = "Unable to fetch cells from database."
+generateErrorMessage e = case e of 
+  CopyNonexistentDependencies -> "Some dependencies nonexistent in copied cell expressions."
+  (DBNothingException _)      -> "Unable to fetch cells from database."
+  ExpressionNotEvaluable      -> "Expression not does not contain evaluable statement."
+  ExecError                   -> "Error while evaluating expression."
+  (ExcelSyntaxError s)        -> "Formula syntax error: " ++ s
+  SyntaxError                 -> "Syntax error."
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Time

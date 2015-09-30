@@ -1,6 +1,6 @@
 module AS.Kernels.Excel.Compiler where
 
-import AS.Types.Core hiding (str,error)
+import AS.Types.Core hiding (str,error,SyntaxError)
 import AS.Types.Excel
 
 

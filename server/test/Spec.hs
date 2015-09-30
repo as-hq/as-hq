@@ -49,6 +49,8 @@ testEvaluate = do
     printTimed $ "python evaluate: " ++ (showResult testResult)
     (Right (ValueError _ _ _ _)) <- KP.evaluate "1+a"
     printTimed $ "python error: PASSED"
+    (Left SyntaxError) <- KP.evaluate "1+"
+    printTimed $ "python syntax error: PASSED"
 
 testEvaluateRepl :: IO ()
 testEvaluateRepl = do
