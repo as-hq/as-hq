@@ -27,15 +27,21 @@ main = do
     conn <- R.connect DU.cInfo
     printTimed "got connection"
     --testSheetCreation conn
-    testSetCellsRaw
-    printTimed "cells set"
+    --testSetCells
+    --printTimed "cells set"
     --cells <- testGetCells
     --printTimed $ "got cells: " ++ (show cells)
     --let loc = Index "" (1,1)
     --DB.setCells $ [Cell loc (Expression "1" Python) (ValueD 1.0) []]
     --cell <- DB.getCells [loc]
     --putStrLn $ "got cell" ++ (show cell)
+    testLocationKey conn $ Index "" (1,1)
 
+testLocationKey :: Connection -> ASLocation -> IO ()
+testLocationKey conn loc = do
+    let key = DU.getLocationKey loc
+    result <- runRedis conn $ exists key
+    printTimed $ "got result: " ++ (show result)
 
 testSetCells :: IO () 
 testSetCells = do
@@ -43,15 +49,15 @@ testSetCells = do
     --printTimed $ L.concat $ L.map show2 cells
     DB.setCells cells
 
-testSetCellsRaw :: IO () 
-testSetCellsRaw = do
-    let cells = testCells 100000
-    let str = L.intercalate "@" $ (L.map (show2 . cellLocation) cells) ++ (L.map show2 cells)
-    let msg = BU.unsafePackAddressLen (length str) str
-    --printTimed $ L.concat $ L.map show2 cells
-    _ <- BU.unsafeUseAsCString msg $ \lstr -> do
-       c_setCells lstr (fromIntegral . L.length $ cells)
-    return ()
+--testSetCellsRaw :: IO () 
+--testSetCellsRaw = do
+--    let cells = testCells 100000
+--    let str = L.intercalate "@" $ (L.map (show2 . cellLocation) cells) ++ (L.map show2 cells)
+--    let msg = BU.unsafePackAddressLen (length str) str
+--    --printTimed $ L.concat $ L.map show2 cells
+--    _ <- BU.unsafeUseAsCString msg $ \lstr -> do
+--       c_setCells lstr (fromIntegral . L.length $ cells)
+--    return ()
 
 testGetCells :: IO [Maybe ASCell] 
 testGetCells = do

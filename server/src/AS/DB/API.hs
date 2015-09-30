@@ -126,17 +126,18 @@ locationsExist conn locs = do
       return $ sequence bools
     return results
 
-getColumnCells :: Connection -> ASLocation -> IO [Maybe ASCell]
-getColumnCells conn (Column sheetid col) = do
-  runRedis conn $ do
-    locKeys <- DU.getSheetLocsRedis sheetid
-    liftIO $ printTimed "redis got column"
-    let rows = map DU.keyToRow locKeys
-    let firstRowKey = minBy keyToRow locKeys
-    let locKeys = map (\i -> DU.incrementLocKey (1,i) firstRowKey) [(minimum rows)..(maximum rows)]
-    cells <- mapM DU.getCellByKeyRedis locKeys
-    liftIO $ printTimed "redis got cells"
-    return cells
+-- TODO fix
+--getColumnCells :: Connection -> ASLocation -> IO [Maybe ASCell]
+--getColumnCells conn (Column sheetid col) = do
+--  runRedis conn $ do
+--    locKeys <- DU.getSheetLocsRedis sheetid
+--    liftIO $ printTimed "redis got column"
+--    let rows = map DU.keyToRow locKeys
+--    let firstRowKey = minBy keyToRow locKeys
+--    let locKeys = map (\i -> DU.incrementLocKey (1,i) firstRowKey) [(minimum rows)..(maximum rows)]
+--    cells <- mapM DU.getCellByKeyRedis locKeys
+--    liftIO $ printTimed "redis got cells"
+--    return cells
 
 ----------------------------------------------------------------------------------------------------------------------
 -- Commits
