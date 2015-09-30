@@ -3,6 +3,8 @@ module AS.Types.Excel where
 import AS.Types.Core
 import Database.Redis (Connection)
 import Data.List 
+
+import Data.Vector as V hiding ((++), map, filter)
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Excel
 
@@ -30,6 +32,70 @@ data ExcelResult =
 type ExcelContext = [(ExcelAction, ExcelResult)]
 
 type BaseContext = (Connection, ASExpression, ASLocation)
+
+----------------------------------------------------------------------------------------------------------------------------------------------
+-- | Compiler types
+
+data ERef = ERef ASLocation deriving (Show, Read)
+
+data ExcelValue = 
+ EBlank |
+ EValueI Integer |
+ EValueD Double |
+ EValueB Bool |
+ EValueS String |
+ EValueFromAS -- mapped from ASValue but not a valid Excel primitive
+ deriving (Show, Read)
+
+type ExcelMatrix = V.Vector (V.Vector ExcelValue)
+
+data ExcelEntity = EntityRef ERef | EntityVal ExcelValue | EntityMatrix ExcelMatrix 
+ deriving (Show, Read)
+
+ -----------------------------------------------------------------------------
+-- * Abstract syntax
+
+data ExcelLoc = Loc CellRef (Maybe CellRef) deriving (Show, Read)
+
+-- | The type of formulas.
+data BasicFormula = 
+   Var ExcelValue                  -- ^ Variables
+ | Fun String [Formula]            -- ^ Fun
+ | Ref ExcelLoc                    -- ^ Reference
+ deriving (Show, Read)
+
+data Formula = ArrayConst [[BasicFormula]] | Basic BasicFormula deriving (Show, Read)
+
+type ContextualFormula = (Formula, Bool) -- designates arrayFormula or not
+
+---- Not supporting 3D ranges or R1C1 notation yet 
+--data ExcelLoc = BareLoc ExcelBareLoc | SheetLoc ExcelSheetLoc | WorkbookLoc ExcelWorkbookLoc 
+--data ExcelBareLoc = IndexLoc ExcelIndexLoc | RangeLoc ExcelRangeLoc 
+--data ExcelIndexLoc = ExIndex {fixedRow :: Bool, fixedCol :: Bool, col :: String, row :: Int} 
+--data ExcelRangeLoc = ExRange {topLeftLoc :: ExcelIndexLoc, bottomRightLoc :: ExcelIndexLoc} 
+--data ExcelSheetLoc = ExSheet String ExcelBareLoc 
+--data ExcelWorkbookLoc = ExWorkbook String ExcelSheetLoc
+
+-- | Type of cell references
+data CellRef = CellRef {
+      sheet :: String,     -- ^ Sheet name
+      colNr :: Int,        -- ^ Column index
+      rowNr :: Int         -- ^ Row index
+    } deriving (Eq,Show,Read,Ord)
+
+----------------------------------------------------------------------------------------------------------------------------------------------
+-- | Excel context
+
+data Context = Context {curLoc :: ASLocation}
+
+data ExcelError = 
+ SyntaxError |
+ NotFunction String |
+ FunctionNotExpectingArray String ERef |
+ InvalidArrayConstEntity |
+ NumArgs String Int |
+ Default String
+ deriving (Show, Read)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | String conversions

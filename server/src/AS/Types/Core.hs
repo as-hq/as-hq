@@ -29,26 +29,26 @@ data ASLocation = Index {locSheetId :: ASSheetId, index :: (Int, Int)} |
                   deriving (Show, Read, Eq, Generic, Ord)
 
 data ASValue =
-  NoValue |
-  ValueNaN () |
-  ValueS String |
-  ValueI Int |
-  ValueD Double | 
-  ValueB Bool |
-  ValueL [ASValue] |
-  ValueT (ASValue, ASValue) |
-  ExcelSheet { locs :: ASValue, exprs :: ASValue, vals :: ASValue} |
-  Rickshaw {rickshawData :: ASValue} |
-  ValueError { error :: String, err_type :: String, file :: String, position :: Int } | 
-  ValueImage { imagePath :: String} |
-  StockChart { stockPrices :: ASValue, stockName :: String } |
-  ObjectValue { objectType :: String, jsonRepresentation :: String } |
-  StyledValue { style :: String, value :: ASValue } |
-  DisplayValue { displayValue :: String, actualValue :: ASValue }|
-  ValueE ASEvalError
+    NoValue
+  | ValueNaN ()
+  | ValueS String
+  | ValueI Int
+  | ValueD Double 
+  | ValueB Bool
+  | ValueL [ASValue]
+  | ValueT (ASValue, ASValue)
+  | ValueImage { imagePath :: String}
+  | ValueObject { objectType :: String, jsonRepresentation :: String }
+  | ValueStyled { style :: String, value :: ASValue }
+  | ValueError { error :: String, err_type :: String, file :: String, position :: Int } 
+  | ValueE ASEvalError
+  | ExcelSheet { locs :: ASValue, exprs :: ASValue, vals :: ASValue}
+  | Rickshaw {rickshawData :: ASValue}
+  | StockChart { stockPrices :: ASValue, stockName :: String }
+  | DisplayValue { displayValue :: String, actualValue :: ASValue }
   deriving (Show, Read, Eq, Generic)
 
-data ASLangValue = LangValue {langValue :: ASValue, lang :: ASLanguage} deriving (Show, Read, Eq, Generic)
+data ASReplValue = ReplValue {replValue :: ASValue, replLang :: ASLanguage} deriving (Show, Read, Eq, Generic)
 
 type ASEvalError = String
 
@@ -61,14 +61,14 @@ data ASExpression =
   deriving (Show, Read, Eq, Generic)
 
 data ASCellTag = 
-  Color String |
-  Size Int |
-  Money |
-  Percentage |
-  StreamTag Stream |
-  Tracking |
-  Volatile |
-  ReadOnly [ASUserId]
+    Color String
+  | Size Int
+  | Money
+  | Percentage
+  | StreamTag Stream
+  | Tracking
+  | Volatile
+  | ReadOnly [ASUserId]
   deriving (Show, Read, Eq, Generic)
 
 data ASCell = Cell {cellLocation :: ASLocation, 
@@ -101,18 +101,18 @@ data ASServerMessage = ServerMessage {
 } deriving (Show, Read, Eq, Generic)
 
 data ASAction = 
-  NoAction |
-  Acknowledge |
-  New | Import | 
-  Open | Close |
-  Evaluate | EvaluateRepl |
-  Update | 
-  Get | Delete |
-  Copy | CopyForced |
-  Undo | Redo |
-  Clear | 
-  UpdateWindow |
-  AddTags | RemoveTags
+    NoAction
+  | Acknowledge
+  | New | Import 
+  | Open | Close
+  | Evaluate | EvaluateRepl
+  | Update
+  | Get | Delete
+  | Copy | CopyForced
+  | Undo | Redo
+  | Clear
+  | UpdateWindow
+  | AddTags | RemoveTags
   deriving (Show, Read, Eq, Generic)
 
 data ASResult = Success | Failure {failDesc :: String} | NoResult deriving (Show, Read, Eq, Generic)
@@ -125,26 +125,26 @@ data QueryList =
   deriving (Show, Read, Eq, Generic)
 
 data ASPayload = 
-  PayloadN () |
-  PayloadInit ASInitConnection |
-  PayloadDaemonInit ASInitDaemonConnection |
-  PayloadC ASCell | 
-  PayloadCL [ASCell] | 
-  PayloadL ASLocation |
-  PayloadLL [ASLocation] |
-  PayloadS ASSheet |
-  PayloadSS [ASSheet] |
-  PayloadWB ASWorkbook |
-  PayloadWBS [ASWorkbook] |
-  PayloadWorkbookSheets [WorkbookSheet] |
-  PayloadW ASWindow |
-  PayloadU ASUserId |
-  PayloadE ASExecError |
-  PayloadCommit ASCommit |
-  PayloadTags {tags :: [ASCellTag], tagsLoc :: ASLocation} |
-  PayloadXp ASExpression |
-  PayloadLangValue ASLangValue |
-  PayloadList QueryList 
+    PayloadN ()
+  | PayloadInit ASInitConnection
+  | PayloadDaemonInit ASInitDaemonConnection
+  | PayloadC ASCell
+  | PayloadCL [ASCell]
+  | PayloadL ASLocation
+  | PayloadLL [ASLocation]
+  | PayloadS ASSheet
+  | PayloadSS [ASSheet]
+  | PayloadWB ASWorkbook
+  | PayloadWBS [ASWorkbook]
+  | PayloadWorkbookSheets [WorkbookSheet]
+  | PayloadW ASWindow
+  | PayloadU ASUserId
+  | PayloadE ASExecError
+  | PayloadCommit ASCommit
+  | PayloadTags {tags :: [ASCellTag], tagsLoc :: ASLocation}
+  | PayloadXp ASExpression
+  | PayloadReplValue ASReplValue
+  | PayloadList QueryList 
   deriving (Show, Read, Eq, Generic)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
@@ -158,16 +158,20 @@ data ASCommit = ASCommit {commitUserId :: ASUserId, before :: [ASCell], after ::
 -- Eval Types
 
 data ASExecError = 
-  Timeout | 
-  EvaluationError {evalErrorDesc :: String} |
-  DependenciesLocked {lockUserId :: ASUserId} | 
-  DBNothingException {badLocs :: [ASLocation]} |
-  DBGraphUnreachable | 
-  NetworkDown | 
-  ResourceLimitReached |
-  InsufficientPermissions |
-  NonUniqueIdentifier |
-  CopyNonexistentDependencies
+    Timeout
+  | EvaluationError {evalErrorDesc :: String}
+  | DependenciesLocked {lockUserId :: ASUserId} 
+  | DBNothingException {badLocs :: [ASLocation]}
+  | DBGraphUnreachable 
+  | NetworkDown
+  | ResourceLimitReached
+  | InsufficientPermissions
+  | NonUniqueIdentifier
+  | CopyNonexistentDependencies
+  | ParseError
+  | ExpressionNotEvaluable
+  | ExecError
+  | ExcelSyntaxError {excelErr :: String}
   deriving (Show, Read, Eq, Generic)
 
 type EitherCells = Either ASExecError [ASCell] 
@@ -300,8 +304,8 @@ instance FromJSON ASWorkbook
 instance ToJSON ASWorkbook
 instance FromJSON WorkbookSheet
 instance ToJSON WorkbookSheet
-instance FromJSON ASLangValue
-instance ToJSON ASLangValue
+instance FromJSON ASReplValue
+instance ToJSON ASReplValue
 instance FromJSON ASTime
 instance ToJSON ASTime
 instance FromJSON ASCommit

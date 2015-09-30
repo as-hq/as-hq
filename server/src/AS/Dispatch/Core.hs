@@ -3,7 +3,7 @@ module AS.Dispatch.Core where
 -- AlphaSheets and base
 import AS.Types.Core
 import Prelude 
-import qualified AS.Eval.Core as R (evalExpression)
+import qualified AS.Eval.Core as R (evaluateLanguage)
 import qualified Data.Map   as M
 import qualified AS.DB.API  as DB
 import qualified Data.List  as L (head,last,tail,length,splitAt) 
@@ -114,25 +114,29 @@ getDescendants conn cell = do
 propagate :: Connection -> [ASCell] -> [ASCell] -> IO (Either ASExecError [ASCell])
 propagate conn anc dec = do 
   let mp = M.fromList $ map (\c -> (cellLocation c, cellValue c)) anc
-  result <- evalChain conn mp dec
-  return $ Right result
+  evalChain conn mp dec
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Eval helpers
 
-evalChain :: Connection -> M.Map ASLocation ASValue -> [ASCell] -> IO [ASCell]
-evalChain _ _ [] = return []
+evalChain :: Connection -> M.Map ASLocation ASValue -> [ASCell] -> IO (Either ASExecError [ASCell])
+evalChain _ _ [] = return $ Right []
 evalChain conn mp ((Cell loc xp _ ts):cs) = do  
   printTimed $ "Starting eval chain" -- ++ (show mp)
-  cv <- R.evalExpression loc mp xp 
-  otherCells <- case loc of
-    Index sheet (a, b) -> case cv of
-      ValueL lstValues -> createListCells conn (Index sheet (a, b)) lstValues
-      otherwise -> return [] 
-    otherwise -> return []
-  let newMp = M.insert loc cv mp
-  rest <- evalChain conn newMp cs
-  return $ [Cell loc xp cv ts] ++ otherCells ++ rest 
+  evalResult <- R.evaluateLanguage xp loc mp
+  case evalResult of 
+    (Left e) -> return $ Left e
+    (Right cv) -> do
+      otherCells <- case loc of
+        Index sheet (a, b) -> case cv of
+          ValueL lstValues -> createListCells conn (Index sheet (a, b)) lstValues
+          otherwise -> return [] 
+        otherwise -> return []
+      let newMp = M.insert loc cv mp
+      rest <- evalChain conn newMp cs
+      return $ case rest of 
+        (Left e) -> Left e
+        (Right moreCells) -> Right $ (Cell loc xp cv ts):(otherCells ++ moreCells)
 
 
 -- | Create a list of cells, also modify the DB for references 

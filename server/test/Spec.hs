@@ -6,6 +6,9 @@ import AS.DB.API as DB
 import AS.DB.Util as DU
 import AS.Util
 
+import AS.Kernels.Python.Eval as KP
+import AS.Kernels.LanguageUtils
+
 import qualified Data.ByteString.Char8 as BC
 import qualified Data.ByteString.Unsafe as BU
 import Foreign
@@ -27,17 +30,32 @@ main = do
     printTimed "Running tests..."
     conn <- R.connect DU.cInfo
     printTimed "hedis database connection: PASSED"
-    --testSheetCreation conn
-    testSetCells
-    --printTimed "cells set"
-    --cells <- testGetCells
-    --printTimed $ "got cells: " ++ (show cells)
-    --let loc = Index "" (1,1)
-    --DB.setCells $ [Cell loc (Expression "1" Python) (ValueD 1.0) []]
-    --cell <- DB.getCells [loc]
-    --putStrLn $ "got cell" ++ (show cell)
+
+    --testSetCells
     testLocationKey conn
     testSheetCreation conn
+    testEvaluate
+    testEvaluateRepl
+    --testIntrospect
+
+testIntrospect :: IO ()
+testIntrospect = do
+    putStrLn . show =<< introspectCodeRepl Python "import random"
+
+testEvaluate :: IO ()
+testEvaluate = do
+    result <- KP.evaluate "a=4;b=5\na+b"
+    let testResult = (==) result $ Right (ValueD 9.0)
+    printTimed $ "python evaluate: " ++ (showResult testResult)
+    (Right (ValueError _ _ _ _)) <- KP.evaluate "1+a"
+    printTimed $ "python error: PASSED"
+
+testEvaluateRepl :: IO ()
+testEvaluateRepl = do
+    result <- KP.evaluateRepl "import random"
+    printTimed $ "python repl import: " ++ (showResult $ result == (Right NoValue))
+    (Right (ValueD _)) <- KP.evaluate "random.random()"
+    printTimed $ "python repl cell call: PASSED"
 
 testLocationKey :: Connection -> IO ()
 testLocationKey conn = do

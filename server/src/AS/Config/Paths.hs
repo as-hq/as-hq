@@ -15,4 +15,4 @@ py_run_file = "run.py"
 getEvalPath :: IO String
 getEvalPath = do
     mainDir <- getCurrentDirectory
-    return $ mainDir </> "src" </> "AS" </> "Eval" </> "run/"
+    return $ mainDir </> "eval_files/"
