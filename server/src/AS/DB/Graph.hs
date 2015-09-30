@@ -28,6 +28,7 @@ query q locs =
 
     in runZMQ $ do
         liftIO $ printTimed "Connecting to graph database."  
+        liftIO $ printTimed $ "graph query:  " ++ (show elements)
         reqSocket <- socket Req
         connect reqSocket S.graphDbHost
 

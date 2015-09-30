@@ -11,6 +11,7 @@ import qualified Network.WebSockets as WS
 import qualified Data.UUID as U (toString)
 import qualified Data.Text as T 
 import qualified Data.List as L
+import qualified Data.Set as S
 import Control.Applicative hiding ((<|>), many)
 import Data.Maybe (isNothing)
 
@@ -251,8 +252,8 @@ shiftInd (dy, dx) (Index sh (y,x)) = Index sh (y+dy, x+dx)
 getTopLeft :: ASRange -> ASLocation
 getTopLeft (Range sh (tl,_)) = Index sh tl
 
-getIndicesOffsets :: ASLocation -> ASLocation -> (Int, Int)
-getIndicesOffsets (Index _ (y, x)) (Index _ (y', x')) = (y'-y, x'-x)
+getIndicesOffset :: ASLocation -> ASLocation -> (Int, Int)
+getIndicesOffset (Index _ (y, x)) (Index _ (y', x')) = (y'-y, x'-x)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Users

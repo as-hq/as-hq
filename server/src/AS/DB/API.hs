@@ -112,6 +112,7 @@ deleteLocs conn locs = do
       _ <- mapM_ DU.deleteLocRedis locs
       return ()
 
+-- bug: not working correctly for Alex
 locationsExist :: Connection -> [ASLocation] -> IO [Bool]
 locationsExist conn locs = do
   runRedis conn $ do
@@ -119,6 +120,11 @@ locationsExist conn locs = do
       bools <- mapM (\l -> exists $ DU.getLocationKey l) locs
       return $ sequence bools
     return results
+
+-- locationsExist :: [ASLocation] -> IO [Bool]
+-- locationsExist locs = do 
+--     mCells <- getCells locs 
+--     return $ map isJust mCells 
 
 getColumnCells :: Connection -> ASColumn -> IO [Maybe ASCell]
 getColumnCells conn (Column sheetid col) = do

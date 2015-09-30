@@ -92,12 +92,11 @@ updateCell (Cell loc xp val ts) = do
 getDescendants :: Connection -> ASCell -> IO (Either ASExecError [ASCell])
 getDescendants conn cell = do 
   let loc = cellLocation cell
-  printTimed $ "output 1: " ++ (show $ locSheetId loc)
-  printTimed $ "output 2: " ++ (show $ index loc)
   --dag <- DB.getDAG conn
   --printTimed "got dag"
   vLocs <- DB.getVolatileLocs conn
   printTimed "got volatile locs"
+  printTimed $ ("descendants query: " ++ (show $ loc:vLocs))
  --Account for volatile cells being reevaluated each time
   graphResult <- G.getDescendants (loc:vLocs) 
   --let descendantLocs = DAG.descendants (locs ++ vLocs) dag
@@ -106,7 +105,7 @@ getDescendants conn cell = do
   case graphResult of
     (Right descendantLocs) -> do
       desc <- DB.getCells descendantLocs
-      printTimed $ "got descendant cells: " -- ++ (show desc)
+      printTimed $ "got descendant cells: " ++ (show desc)
       return . Right $ map fromJust desc 
     (Left e) -> return $ Left e
 
@@ -125,18 +124,16 @@ evalChain _ _ [] = return []
 evalChain conn mp ((Cell loc xp _ ts):cs) = do  
   printTimed $ "Starting eval chain" -- ++ (show mp)
   cv <- R.evalExpression (IndexRef loc) mp xp 
-  otherCells <- case loc of
-    Index sheet (a, b) -> case cv of
-      ValueL lstValues -> createListCells conn (Index sheet (a, b)) lstValues
-      otherwise -> return [] 
-    otherwise -> return []
+  otherCells <- case cv of
+    ValueL lstValues -> createListCells conn loc lstValues
+    otherwise -> return [] 
   let newMp = M.insert (IndexRef loc) cv mp
   rest <- evalChain conn newMp cs
   return $ [Cell loc xp cv ts] ++ otherCells ++ rest 
 
 
--- | Create a list of cells, also modify the DB for references 
--- Not currently handling [[[]]] type things
+-- | If a cell C contains an array, createListCells makes the cells at C and below reflect the elements
+-- of that array. 
 createListCells :: Connection -> ASLocation -> [ASValue] -> IO [ASCell]
 createListCells conn (Index sheet (a,b)) [] = return []
 createListCells conn (Index sheet (a,b)) values = 

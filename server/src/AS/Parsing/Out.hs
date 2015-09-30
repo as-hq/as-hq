@@ -256,6 +256,7 @@ shiftExRefs offset exRefs = map (shiftExRef offset) exRefs
 -------------------------------------------------------------------------------------------------------------------------------------------------
 -- Parse dependencies and replace relative expressions
 
+-- | Returns the list of dependencies you get, and an expression with all the excel references replaced
 getDependenciesAndExpressions :: ASSheetId -> ASExpression -> ([ASLocation], ASExpression)
 getDependenciesAndExpressions sheetid xp = (newLocs, newExpr)
   where 
@@ -265,9 +266,7 @@ getDependenciesAndExpressions sheetid xp = (newLocs, newExpr)
     newString = replaceMatches (inter, exRefs) showExcelRef origString
     newExpr = Expression newString (language xp)
 
--- gets dependencies from a list of excel locs and a list of offsets (there's a [ASLocation] for each offset, in that order)
--- doesn't use Parsec/actual parsing
--- ::ALEX:: can def make this prettier :D
+-- gets dependencies from a list of excel locs
 getDependenciesFromExRefs :: ASSheetId -> [ExRef] -> [ASLocation]
 getDependenciesFromExRefs sheetid matches = concat $ map refToIndices $ map (exRefToASRef sheetid) matches
 
@@ -306,3 +305,5 @@ shiftCell offset (Cell loc (Reference _ _) v ts) = (shiftedCell, []) -- for copy
     pseudoXp = Expression (showValue Python v) Python -- TODO get the damn language
     shiftedLoc = shiftInd offset loc 
     shiftedCell = Cell shiftedLoc pseudoXp v ts
+
+-- shiftCellExpr :: (Int, Int) -> ASExpression -> 
