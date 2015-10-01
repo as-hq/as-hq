@@ -21,7 +21,9 @@ for (var key in Constants.Languages) {
   });
 }
 
-console.log("languages: " + JSON.stringify(languages));
+function languageIndex(lang) {
+  return languages.map((l) => l.text).indexOf(lang.Display);
+}
 
 export default React.createClass({
 
@@ -35,7 +37,6 @@ export default React.createClass({
   render() {
     let {language, theme, value, width, height} = this.props;
     console.log("CODE EDITOR HEIGHT, WIDTH: " + height +  " " + width);
-
 
     return (
       <div>
@@ -56,6 +57,7 @@ export default React.createClass({
                   }}
                   onBlur={this._onBlurVarName} />
                 <DropDownMenu
+                  selectedIndex={languageIndex(language)}
                   menuItems={languages}
                   onChange={this._onLanguageChange}
                   underlineStyle={{ display: 'none' }}
