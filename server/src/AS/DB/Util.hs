@@ -54,7 +54,7 @@ msgPartDelimiter = "@"
 
 relationDelimiter = "&"
 
-getLocationKey :: ASLocation -> B.ByteString
+getLocationKey :: ASIndex -> B.ByteString
 getLocationKey = BC.pack . show2
 
 getSheetKey :: ASSheetId -> B.ByteString -- for storing the actual sheet as key-value
@@ -111,7 +111,7 @@ getUniquePrefixedName pref strs = pref ++ (show idx)
 --    sadd setKey [key] -- add the location key to the set of locs in a sheet (for sheet deletion etc)
 --    return ()
 
-deleteLocRedis :: ASLocation -> Redis ()
+deleteLocRedis :: ASIndex -> Redis ()
 deleteLocRedis loc = del [getLocationKey loc] >> return ()
 
 getSheetLocsRedis :: ASSheetId -> Redis [B.ByteString]
@@ -159,12 +159,12 @@ bStrToTags :: Maybe B.ByteString -> Maybe [ASCellTag]
 bStrToTags (Just b) = Just (read (BC.unpack b) :: [ASCellTag])
 bStrToTags Nothing = Nothing 
 
-maybeASCell :: (ASLocation,Maybe ASExpression,Maybe ASValue, Maybe [ASCellTag]) -> Maybe ASCell
+maybeASCell :: (ASIndex, Maybe ASExpression,Maybe ASValue, Maybe [ASCellTag]) -> Maybe ASCell
 maybeASCell (l, Just e, Just v, Just tags) = Just $ Cell l e v tags
 maybeASCell _ = Nothing
 
-bStrToASLocation :: B.ByteString -> ASLocation
-bStrToASLocation b = (read2 (BC.unpack b) :: ASLocation)
+bStrToASLocation :: B.ByteString -> ASIndex
+bStrToASLocation b = (read2 (BC.unpack b) :: ASIndex)
 
 bStrToASCommit :: Maybe B.ByteString -> Maybe ASCommit 
 bStrToASCommit (Just b) = Just (read (BC.unpack b) :: ASCommit)

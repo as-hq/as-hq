@@ -16,15 +16,20 @@ import Control.Applicative
 
 type ASSheetId = Text
 data ASSheet = Sheet {sheetId :: ASSheetId, sheetName :: String, sheetPermissions :: ASPermissions} deriving (Show, Read, Eq, Generic)
-data ASWorkbook = Workbook {workbookName :: String, workbookSheets :: [ASSheetId]}  deriving (Show, Read, Eq, Generic)
+data ASWorkbook = Workbook {workbookName :: String, workbookSheets :: [ASSheetId]} deriving (Show, Read, Eq, Generic)
 
 data WorkbookSheet = WorkbookSheet {wsName :: String, wsSheets :: [ASSheet]} deriving (Show, Read, Eq, Generic)
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Core cell types
 
-data ASLocation = Index {locSheetId :: ASSheetId, index :: (Int, Int)} | 
-                  Range {locSheetId :: ASSheetId, range :: ((Int, Int), (Int, Int))}
-                  deriving (Show, Read, Eq, Generic, Ord)
+data ASIndex = Index {locSheetId :: ASSheetId, index :: (Int, Int)} deriving (Show, Read, Eq, Generic, Ord)
+data ASRange = Range {rangeSheetId :: ASSheetId, range :: ((Int, Int), (Int, Int))} deriving (Show, Read, Eq, Generic, Ord)
+data ASReference = IndexRef ASIndex | RangeRef ASRange deriving (Show, Read, Eq, Generic, Ord)
+
+refSheetId :: ASReference -> ASSheetId
+refSheetId loc = case loc of 
+  IndexRef i -> locSheetId i 
+  RangeRef r -> rangeSheetId r
 
 data ASValue =
     NoValue
@@ -54,7 +59,7 @@ data ASLanguage = R | Python | OCaml | CPP | Java | SQL | Excel deriving (Show, 
 -- TODO consider migration to exLocs record
 data ASExpression =
   Expression { expression :: String, language :: ASLanguage } | 
-  Reference { location :: ASLocation, referenceIndex :: (Int, Int) }
+  Reference { location :: ASReference, referenceIndex :: (Int, Int) }
   deriving (Show, Read, Eq, Generic)
 
 emptyExpression = ""
@@ -70,7 +75,7 @@ data ASCellTag =
   | ReadOnly [ASUserId]
   deriving (Show, Read, Eq, Generic)
 
-data ASCell = Cell {cellLocation :: ASLocation, 
+data ASCell = Cell {cellLocation :: ASIndex, 
 					cellExpression :: ASExpression,
 					cellValue :: ASValue,
           cellTags :: [ASCellTag]} deriving (Show, Read, Eq, Generic)
@@ -129,8 +134,9 @@ data ASPayload =
   | PayloadDaemonInit ASInitDaemonConnection
   | PayloadC ASCell
   | PayloadCL [ASCell]
-  | PayloadL ASLocation
-  | PayloadLL [ASLocation]
+  | PayloadL ASIndex
+  | PayloadLL [ASIndex]
+  | PayloadR ASRange
   | PayloadS ASSheet
   | PayloadSS [ASSheet]
   | PayloadWB ASWorkbook
@@ -140,7 +146,8 @@ data ASPayload =
   | PayloadU ASUserId
   | PayloadE ASExecError
   | PayloadCommit ASCommit
-  | PayloadTags {tags :: [ASCellTag], tagsLoc :: ASLocation}
+  | PayloadCopy {copyRange :: ASRange, copyTo :: ASIndex}
+  | PayloadTags {tags :: [ASCellTag], tagsLoc :: ASIndex}
   | PayloadXp ASExpression
   | PayloadReplValue ASReplValue
   | PayloadList QueryList 
@@ -160,7 +167,7 @@ data ASExecError =
     Timeout
   | EvaluationError {evalErrorDesc :: String}
   | DependenciesLocked {lockUserId :: ASUserId} 
-  | DBNothingException {badLocs :: [ASLocation]}
+  | DBNothingException {badLocs :: [ASIndex]}
   | DBGraphUnreachable 
   | NetworkDown
   | ResourceLimitReached
@@ -180,7 +187,7 @@ type EitherCells = Either ASExecError [ASCell]
 -- Websocket types
 
 data ASInitConnection = ASInitConnection {connUserId :: ASUserId} deriving (Show,Read,Eq,Generic)
-data ASInitDaemonConnection = ASInitDaemonConnection {parentUserId :: ASUserId, initDaemonLoc :: ASLocation} deriving (Show,Read,Eq,Generic)
+data ASInitDaemonConnection = ASInitDaemonConnection {parentUserId :: ASUserId, initDaemonLoc :: ASIndex} deriving (Show,Read,Eq,Generic)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- State
@@ -207,7 +214,6 @@ data ASRecipients = Original | All | Custom [ASUserClient]
 
 data ASWindow = Window {windowSheetId :: ASSheetId, topLeft :: (Int, Int), bottomRight :: (Int, Int)} deriving (Show,Read,Eq,Generic)
 type ASUserId = Text 
--- data ASUserClient = User { userId :: ASUserId }
 data ASUserClient = UserClient {userId :: ASUserId, userConn :: WS.Connection, windows :: [ASWindow], sessionId :: ClientId} 
 
 instance Eq ASUserClient where 
@@ -225,7 +231,7 @@ data ASPermissions = Blacklist [ASEntity] |
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Daemons
 
-data ASDaemonClient = DaemonClient {daemonLoc :: ASLocation, daemonConn :: WS.Connection, daemonOwner :: ASUserId}
+data ASDaemonClient = DaemonClient {daemonLoc :: ASIndex, daemonConn :: WS.Connection, daemonOwner :: ASUserId}
 
 instance Eq ASDaemonClient where 
   c1 == c2 = (daemonLoc c1) == (daemonLoc c2)
@@ -258,8 +264,12 @@ openPermissions = Blacklist []
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- JSON
 
-instance ToJSON ASLocation
-instance FromJSON ASLocation
+instance ToJSON ASReference
+instance FromJSON ASReference
+instance ToJSON ASIndex
+instance FromJSON ASIndex
+instance ToJSON ASRange
+instance FromJSON ASRange
 instance ToJSON ASValue
 instance FromJSON ASValue
 instance ToJSON ASLanguage
@@ -310,6 +320,7 @@ instance FromJSON ASTime
 instance ToJSON ASTime
 instance FromJSON ASCommit
 instance ToJSON ASCommit
+
 -- The format Frontend uses for both client->server and server->client is 
 -- { messageUserId: blah, action: blah, result: blah, payload: blah }
 instance ToJSON ASClientMessage where 

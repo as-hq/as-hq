@@ -32,11 +32,11 @@ import System.Posix.Daemon
 -- NOTE: for now, "Daemon" is something of a misnomer -- it refers specifically to daemons created 
 -- for streaming cells (cells that get re-evaluated at regular intervals), not to daemons generally. 
 
--- | Returns what the daemon named at ASLocation is named / would be named if it existed. 
-getDaemonName :: ASLocation -> String
+-- | Returns what the daemon named at location is named / would be named if it existed. 
+getDaemonName :: ASIndex -> String
 getDaemonName loc = (show loc) ++ "daemon"
 
-getConnByLoc :: ASLocation -> MVar ServerState -> IO (Maybe WS.Connection)
+getConnByLoc :: ASIndex -> MVar ServerState -> IO (Maybe WS.Connection)
 getConnByLoc loc state = do 
   (State users daemons _) <- readMVar state
   let daemon = L.filter (\(DaemonClient l _ _) -> (l == loc)) daemons
@@ -59,7 +59,7 @@ possiblyCreateDaemon state owner cell@(Cell loc xp val ts) = do
 -- | Creates a streaming daemon to regularly update the cell at a location. 
 -- Does so by creating client that talks to server, pinging it with the regularity 
 -- specified by the user. 
-createDaemon :: MVar ServerState -> Stream -> ASLocation -> ASClientMessage -> IO ()
+createDaemon :: MVar ServerState -> Stream -> ASIndex -> ASClientMessage -> IO ()
 createDaemon state s loc msg = do -- msg is the message that the daemon will send to the server regularly
   putStrLn $ "POTENTIALLY CREATING A daemon"
   let name = getDaemonName loc
@@ -76,12 +76,12 @@ createDaemon state s loc msg = do -- msg is the message that the daemon will sen
           regularlyReEval s loc msg conn -- is an eval message on the cell
       putStrLn $ "DONE WITH createDaemon"
 
-regularlyReEval :: Stream -> ASLocation -> ASClientMessage -> WS.Connection -> IO ()
+regularlyReEval :: Stream -> ASIndex -> ASClientMessage -> WS.Connection -> IO ()
 regularlyReEval (Stream src x) loc msg conn = forever $ do 
   U.sendMessage msg conn
   threadDelay (1000*x) -- microseconds to milliseconds
 
-removeDaemon :: ASLocation -> MVar ServerState -> IO ()
+removeDaemon :: ASIndex -> MVar ServerState -> IO ()
 removeDaemon loc state = do 
   let name = getDaemonName loc
   running <- isRunning name
@@ -92,5 +92,5 @@ removeDaemon loc state = do
 
 -- | Replaces state and stream of daemon at loc, if it exists. If not, create daemon at that location. 
 -- (Ideal implementation would look more like modifyUser, but this works for now.)
-modifyDaemon :: MVar ServerState -> Stream -> ASLocation -> ASClientMessage-> IO ()
+modifyDaemon :: MVar ServerState -> Stream -> ASIndex -> ASClientMessage-> IO ()
 modifyDaemon state stream loc msg = (removeDaemon loc state) >> (createDaemon state stream loc msg)

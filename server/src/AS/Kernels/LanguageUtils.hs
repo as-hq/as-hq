@@ -164,17 +164,17 @@ addCompileCmd OCaml cmd = do
     return $ cmd ++ "; " ++ path ++ "test"
 
 -- Helper function for insertValues
-lookupString :: ASLanguage -> M.Map ASLocation ASValue -> ASLocation -> String
+lookupString :: ASLanguage -> M.Map ASReference ASValue -> ASReference -> String
 lookupString lang mp loc = case loc of
-    Index sh (a,b) -> (showFilteredValue lang) (mp M.! loc)
-    Range sh ((a,b),(c,d)) -> 
+    IndexRef (Index sh (a,b)) -> (showFilteredValue lang) (mp M.! loc)
+    RangeRef (Range sh ((a,b),(c,d))) -> 
         if (c==a)
-            then modifiedLists lang (toListStr lang [ ((showFilteredValue lang) (mp M.! (Index sh (a,row)))) | row<-[b..d]])
-            else modifiedLists lang (toListStr lang [modifiedLists lang (toListStr lang ([(showFilteredValue lang) (mp M.! (Index sh (col,row)))| col <-[a..c]]))| row<-[b..d]])
+            then modifiedLists lang (toListStr lang [ ((showFilteredValue lang) (mp M.! (IndexRef $ Index sh (a,row)))) | row<-[b..d]])
+            else modifiedLists lang (toListStr lang [modifiedLists lang (toListStr lang ([(showFilteredValue lang) (mp M.! (IndexRef $ Index sh (col,row)))| col <-[a..c]]))| row<-[b..d]])
 
 
 
-insertValues :: ASSheetId -> M.Map ASLocation ASValue -> ASExpression -> String
+insertValues :: ASSheetId -> M.Map ASReference ASValue -> ASExpression -> String
 insertValues sheetid values xp = evalString
     where
         origString = expression xp

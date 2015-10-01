@@ -34,7 +34,7 @@ instance Client ASUserClient where
   removeClient uc s@(State ucs dcs dbc)
     | uc `elem` ucs = State (L.delete uc ucs) dcs dbc
     | otherwise = s
-  handleClientMessage user state message = case (clientAction message) of 
+  handleClientMessage user state message = printTimed ("\n\nMessage: " ++ (show $ message)) >> case (clientAction message) of 
     Acknowledge  -> handleAcknowledge user
     New          -> handleNew state payload
     Open         -> handleOpen user state payload
@@ -104,7 +104,7 @@ broadcastFiltered msg@(ServerMessage a r (PayloadCL cells)) users = mapM_ (sendC
 
 broadcastFiltered msg@(ServerMessage a r (PayloadLL locs)) users = mapM_ (sendLocs locs) users 
   where
-    sendLocs :: [ASLocation] -> ASUserClient -> IO ()
+    sendLocs :: [ASIndex] -> ASUserClient -> IO ()
     sendLocs locs user = do 
       let locs' = intersectViewingWindowsLocs locs (windows user)
       case locs' of 
@@ -150,8 +150,8 @@ handleUpdateWindow sid state (PayloadW window) = do
     (Just oldWindow) -> do
       let locs = U.getScrolledLocs oldWindow window 
       printTimed $ "Sending locs: " ++ (show locs)
-      mcells <- DB.getCells locs
-      sendToOriginal user' $ U.getDBCellMessage locs mcells
+      mcells <- DB.getCells $ concat $ map rangeToIndices locs
+      sendToOriginal user' $ U.getDBCellMessage mcells
       US.modifyUser (U.updateWindow window) user' state
 
 handleImport :: MVar ServerState -> ASPayload -> IO ()
@@ -179,7 +179,7 @@ handleGet :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
 handleGet user state (PayloadLL locs) = do 
   curState <- readMVar state
   mcells <- DB.getCells locs 
-  sendToOriginal user (U.getDBCellMessage locs mcells) 
+  sendToOriginal user (U.getDBCellMessage mcells) 
 handleGet user state (PayloadList Sheets) = do
   curState <- readMVar state
   ss <- DB.getAllSheets (dbConn curState)
@@ -203,6 +203,11 @@ handleDelete user state p@(PayloadL loc) = do
 handleDelete user state p@(PayloadLL locs) = do 
   conn <- fmap dbConn $ readMVar state
   DB.deleteLocs conn locs
+  sendBroadcastFiltered user state $ ServerMessage Delete Success p
+  return () 
+handleDelete user state p@(PayloadR rng) = do 
+  conn <- fmap dbConn $ readMVar state
+  DB.deleteLocs conn (rangeToIndices rng)
   sendBroadcastFiltered user state $ ServerMessage Delete Success p
   return () 
 handleDelete user state p@(PayloadWorkbookSheets (wbs:[])) = do
@@ -247,12 +252,12 @@ handleRedo user state = do
 -- update dag
 -- insert new cells into db
 handleCopy :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
-handleCopy user state (PayloadLL (from:to:[])) = do -- this is a list of 2 locations
+handleCopy user state (PayloadCopy from to) = do
   curState <- readMVar state
   let conn = dbConn curState
-  maybeCells <- DB.getCells [from]
+  maybeCells <- DB.getCells (rangeToIndices from)
   let fromCells = filterNothing maybeCells
-      offset = U.getOffsetBetweenLocs from to
+      offset = U.getIndicesOffsets (getTopLeft from) to
       toCellsAndDeps = map (O.shiftCell offset) fromCells
       shiftedDeps = map snd toCellsAndDeps
       allDeps = concat shiftedDeps
@@ -271,14 +276,14 @@ handleCopy user state (PayloadLL (from:to:[])) = do -- this is a list of 2 locat
       let msg = ServerMessage Update (Failure $ generateErrorMessage CopyNonexistentDependencies) (PayloadE CopyNonexistentDependencies)
       sendToOriginal user msg
 
--- same without checking
+-- same without checking. This might be broken. 
 handleCopyForced :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
 handleCopyForced user state (PayloadLL (from:[to])) = return ()
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Tag handlers
 
-processAddTag :: ASUserClient -> MVar ServerState -> ASLocation -> ASCellTag -> IO ()
+processAddTag :: ASUserClient -> MVar ServerState -> ASIndex -> ASCellTag -> IO ()
 processAddTag user state loc t = do 
   cell <- DB.getCell loc
   case cell of 
@@ -299,7 +304,7 @@ processAddTag user state loc t = do
           DM.modifyDaemon state s loc evalMsg -- put the daemon with loc and evalMsg on that cell -- overwrite if already exists, create if not
     otherwise -> return () -- TODO: implement the rest
 
-processRemoveTag :: ASLocation -> MVar ServerState -> ASCellTag -> IO ()
+processRemoveTag :: ASIndex -> MVar ServerState -> ASCellTag -> IO ()
 processRemoveTag loc state t = do 
   curState <- readMVar state
   cell <- DB.getCell loc 
@@ -323,11 +328,11 @@ handleRemoveTags user state (PayloadTags ts loc) = do
   sendToOriginal user $ ServerMessage RemoveTags Success (PayloadN ())
 
 -- Debugging
---getScrollCells :: Connection -> ASSheetId -> [ASLocation] -> IO [Maybe ASCell]
+--getScrollCells :: Connection -> ASSheetId -> [ASIndex] -> IO [Maybe ASCell]
 --getScrollCells conn sid locs = if ((sid == (T.pack "SHEET_ID")) && S.isDebug)
 --  then do
---    let dlocs = concat $ map U.decomposeLocs locs
+--    let dlocs = locs
 --    return $ map (\l -> Just $ Cell l (Expression "scrolled" Python) (ValueS (show . index $ l)) []) dlocs
 -- --  else DB.getCells conn locs
--- getScrollCells :: ASSheetId -> [ASLocation] -> IO [Maybe ASCell]
+-- getScrollCells :: ASSheetId -> [ASIndex] -> IO [Maybe ASCell]
 -- getScrollCells sid locs = DB.getCells locs

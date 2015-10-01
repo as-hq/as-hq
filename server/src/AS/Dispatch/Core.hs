@@ -68,43 +68,43 @@ runDispatchCycle state c' uid = do
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Eval building blocks
 
--- | Takes a cell and returns an error if it tries to access a non-existant cell
--- | Otherwise, it returns all of the immediate ancestors (used to make the lookup map)
+-- | Takes a cell and returns an error if it tries to access a non-existent cell
+-- Otherwise, it returns all of the immediate ancestors (used to make the lookup map)
 updateCell :: ASCell -> IO (Either ASExecError ())
 updateCell (Cell loc xp val ts) = do 
-  let locs = decomposeLocs loc
-  let (deps,exprs) = getDependenciesAndExpressions (locSheetId loc) xp (getOffsets loc)
-  ancCells <- DB.getCells (concat deps)
+  let (deps, expr) = getDependenciesAndExpressions (locSheetId loc) xp
+  ancCells <- DB.getCells deps
   printTimed $ "got cells: "
   if (any isNothing ancCells)
     then return $ Left (DBNothingException [])
     else do 
-      let initCells = map (\(l,e,v)-> Cell l e v ts) (zip3 locs exprs (repeat NoValue))  
-      setResult <- G.setRelations (zip locs deps)
-      printTimed $ "init cells: " ++ (show initCells)
-      DB.setCells initCells
+      let initCell = Cell loc expr NoValue ts
+      setResult <- G.setRelations [(loc, deps)]
+      printTimed $ "init cells: " ++ (show initCell)
+      DB.setCell initCell
       printTimed $ "set init cells"
       return $ case setResult of 
         (Right ()) -> Right ()
         (Left e) -> Left e 
 
 -- | Return the descendants of a cell, which will always exist but may be locked
--- | TODO: throw exceptions for permissions/locking
+-- TODO: throw exceptions for permissions/locking
 getDescendants :: Connection -> ASCell -> IO (Either ASExecError [ASCell])
 getDescendants conn cell = do 
-  let locs = decomposeLocs (cellLocation cell)
+  let loc = cellLocation cell
+  printTimed $ "output 1: " ++ (show $ locSheetId loc)
+  printTimed $ "output 2: " ++ (show $ index loc)
   --dag <- DB.getDAG conn
   --printTimed "got dag"
   vLocs <- DB.getVolatileLocs conn
   printTimed "got volatile locs"
  --Account for volatile cells being reevaluated each time
-  graphResult <- G.getDescendants (locs ++ vLocs) 
+  graphResult <- G.getDescendants (loc:vLocs) 
   --let descendantLocs = DAG.descendants (locs ++ vLocs) dag
   --desc <- DB.getCells conn descendantLocs
   --let graphResult = Right descendantLocs
   case graphResult of
     (Right descendantLocs) -> do
-      printTimed $ "got descendant locs: " -- ++ (show descendantLocs)
       desc <- DB.getCells descendantLocs
       printTimed $ "got descendant cells: " -- ++ (show desc)
       return . Right $ map fromJust desc 
@@ -113,13 +113,13 @@ getDescendants conn cell = do
 -- | Takes ancestors and descendants, create lookup map, and run eval
 propagate :: Connection -> [ASCell] -> [ASCell] -> IO (Either ASExecError [ASCell])
 propagate conn anc dec = do 
-  let mp = M.fromList $ map (\c -> (cellLocation c, cellValue c)) anc
+  let mp = M.fromList $ map (\c -> (IndexRef $ cellLocation c, cellValue c)) anc
   evalChain conn mp dec
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Eval helpers
 
-evalChain :: Connection -> M.Map ASLocation ASValue -> [ASCell] -> IO (Either ASExecError [ASCell])
+evalChain :: Connection -> M.Map ASReference ASValue -> [ASCell] -> IO (Either ASExecError [ASCell])
 evalChain _ _ [] = return $ Right []
 evalChain conn mp ((Cell loc xp _ ts):cs) = do  
   printTimed $ "Starting eval chain" -- ++ (show mp)
@@ -132,7 +132,7 @@ evalChain conn mp ((Cell loc xp _ ts):cs) = do
           ValueL lstValues -> createListCells conn (Index sheet (a, b)) lstValues
           otherwise -> return [] 
         otherwise -> return []
-      let newMp = M.insert loc cv mp
+      let newMp = M.insert (IndexRef loc) cv mp
       rest <- evalChain conn newMp cs
       return $ case rest of 
         (Left e) -> Left e
@@ -140,15 +140,15 @@ evalChain conn mp ((Cell loc xp _ ts):cs) = do
 
 
 -- | Create a list of cells, also modify the DB for references 
--- | Not currently handling [[[]]] type things
-createListCells :: Connection -> ASLocation -> [ASValue] -> IO [ASCell]
+-- Not currently handling [[[]]] type things
+createListCells :: Connection -> ASIndex -> [ASValue] -> IO [ASCell]
 createListCells conn (Index sheet (a,b)) [] = return []
 createListCells conn (Index sheet (a,b)) values = 
   let 
     origLoc = Index sheet (a,b)
     vals = concat $ map lst values
     locs = map (Index sheet) (concat $ [(shift (values!!row) row (a,b)) | row <- [0..(length values)-1]])
-    exprs = map (\(Index _ (x,y)) -> Reference origLoc (x-a,y-b)) locs
+    exprs = map (\(Index _ (x,y)) -> Reference (IndexRef origLoc) (x-a,y-b)) locs
     cells = L.tail $ map (\(l,e,v) -> Cell l e v []) (zip3 locs exprs vals)
     shift (ValueL v) r (a,b) = [(a+c,b+r) | c<-[0..length(v)-1] ]
     shift other r (a,b)  = [(a,b+r)]

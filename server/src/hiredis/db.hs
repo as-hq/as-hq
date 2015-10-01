@@ -30,9 +30,10 @@ data ASSheet = Sheet {sheetId :: ASSheetId, sheetName :: String} deriving (Show,
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Core cell types
 
-data ASLocation = Index {locSheetId :: ASSheetId, index :: (Int, Int)} | 
-                  Range {locSheetId :: ASSheetId, range :: ((Int, Int), (Int, Int))}
-                  deriving (Show, Read, Eq, Ord)
+data ASLocation = Index {locSheetId :: ASSheetId, index :: (Int, Int)} deriving (Show, Read, Eq, Generic, Ord)
+data ASRange = Range {locSheetId :: ASSheetId, range :: ((Int, Int), (Int, Int))} deriving (Show, Read, Eq, Generic, Ord)
+data ASColumn = Column {locSheetId :: ASSheetId, column :: Int} deriving (Show, Read, Eq, Generic, Ord)
+data ASReference = IndexRef ASLocation | RangeRef ASRange | ColumnRef ASColumn deriving (Show, Read, Eq, Generic, Ord)
 
 data ASValue =
   NoValue |

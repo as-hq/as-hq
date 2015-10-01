@@ -23,7 +23,7 @@ import qualified Data.List as L
 import Database.Redis as R
 import Text.ParserCombinators.Parsec
 
-testEdges :: Int -> [(ASLocation,ASLocation)]
+testEdges :: Int -> [(ASIndex,ASIndex)]
 testEdges n = L.zip (testLocs n) (testLocs n)
 
 main :: IO ()
@@ -33,11 +33,11 @@ main = do
     conn <- R.connect DU.cInfo
     printTimed "hedis database connection: PASSED"
 
-    --testSetCells
-    --testLocationKey conn
-    --testSheetCreation conn
-    --testEvaluate
-    --testEvaluateRepl
+    testSetCells
+    testLocationKey conn
+    testSheetCreation conn
+    testEvaluate
+    testEvaluateRepl
     --testIntrospect
     --testExcelExpr
 

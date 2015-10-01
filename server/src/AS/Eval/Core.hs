@@ -31,10 +31,10 @@ import AS.Config.Settings
 -----------------------------------------------------------------------------------------------------------------------
 -- | Exposed functions
 
-evaluateLanguage :: ASExpression -> ASLocation -> M.Map ASLocation ASValue -> IO (Either ASExecError ASValue)
-evaluateLanguage xp loc mp = case xp of 
-	Expression _ _ -> evalCode (locSheetId loc) mp xp  
-	Reference _ _ -> return . Right $ evalRef loc mp xp
+evaluateLanguage :: ASExpression -> ASIndex -> M.Map ASReference ASValue -> IO (Either ASExecError ASValue)
+evaluateLanguage xp ref mp = case xp of 
+	Expression _ _ -> evalCode (locSheetId ref) mp xp  
+	Reference _ _ -> return . Right $ evalRef ref mp xp
 
 evaluateLanguageRepl :: ASExpression -> IO (Either ASExecError ASValue)
 evaluateLanguageRepl (Expression str lang) = case lang of
@@ -46,8 +46,8 @@ evaluateLanguageRepl (Expression str lang) = case lang of
 -----------------------------------------------------------------------------------------------------------------------
 -- | Helpers
 
-evalCode :: ASSheetId -> M.Map ASLocation ASValue -> ASExpression -> IO (Either ASExecError ASValue)
-evalCode sheetid values xp@(Expression str lang) = do
+evalCode :: ASSheetId -> M.Map ASReference ASValue -> ASExpression -> IO (Either ASExecError ASValue)
+evalCode sheetid values xp@(Expression _ lang) = do
 	printTimed "Starting eval code"
 	let purified = insertValues sheetid values xp 
 	--printTimed $ "Final eval xp: " ++ (show finalXp)
@@ -62,11 +62,11 @@ execEvaluateLang lang str = case lang of
 	SQL 	-> KP.evaluateSql str
 	OCaml 	-> KO.evaluate str
 
-evalRef :: ASLocation -> M.Map ASLocation ASValue -> ASExpression ->  ASValue
+evalRef :: ASIndex -> M.Map ASReference ASValue -> ASExpression ->  ASValue
 evalRef loc dict (Reference l (a, b)) = 
 	case (dict M.! l) of
 	  	(ValueL lst) -> case (lst L.!!b) of
 	  		(ValueL row) -> (row L.!! a)
 	  		otherwise -> (lst L.!!b)
 	  	(ValueObject _ _) -> NoValue -- TODO implement direct object field reference
-	  	otherwise -> dict M.! loc -- current reference
+	  	otherwise -> dict M.! (IndexRef loc) -- current reference

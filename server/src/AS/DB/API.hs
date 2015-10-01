@@ -70,21 +70,17 @@ foreign import ccall unsafe "hiredis/redis_db.c setCells" c_setCells :: CString 
 ----------------------------------------------------------------------------------------------------------------------
 -- Cells
 
-getCell :: ASLocation -> IO (Maybe ASCell)
+getCell :: ASIndex -> IO (Maybe ASCell)
 getCell loc = return . head =<< getCells [loc]
 
-getCells :: [ASLocation] -> IO [Maybe ASCell]
+getCells :: [ASIndex] -> IO [Maybe ASCell]
 getCells [] = return []
 getCells locs = 
   let  
-    dlocs = concat $ map U.decomposeLocs locs 
-    msg = showB $ intercalate "@" $ map show2 dlocs
-    --str = intercalate msgPartDelimiter $ map show2 dlocs
-    num = length dlocs 
+    msg = showB $ intercalate "@" $ map show2 locs
+    num = length locs 
   in do
-    --B.putStrLn msg
     ptrCells <- BU.unsafeUseAsCString msg $ \str -> c_getCells str (fromIntegral num)
-
     --ptrCells <- withCString str $ \cstr ->  c_getCells cstr (fromIntegral num)
     cCells <- peekArray (fromIntegral num) ptrCells
     res <- mapM DU.cToASCell cCells  
@@ -109,16 +105,14 @@ deleteCells :: Connection -> [ASCell] -> IO ()
 deleteCells _ [] = return ()
 deleteCells conn cells = deleteLocs conn $ map cellLocation cells
 
-deleteLocs :: Connection -> [ASLocation] -> IO ()
+deleteLocs :: Connection -> [ASIndex] -> IO ()
 deleteLocs _ [] = return ()
-deleteLocs conn locs = 
-    let degenerateLocs = concat $ map U.decomposeLocs locs in
-    do
-        runRedis conn $ do
-            _ <- mapM_ DU.deleteLocRedis degenerateLocs
-            return ()
+deleteLocs conn locs = do
+  runRedis conn $ do
+      _ <- mapM_ DU.deleteLocRedis locs
+      return ()
 
-locationsExist :: Connection -> [ASLocation] -> IO [Bool]
+locationsExist :: Connection -> [ASIndex] -> IO [Bool]
 locationsExist conn locs = do
   runRedis conn $ do
     TxSuccess results <- multiExec $ do
@@ -127,7 +121,7 @@ locationsExist conn locs = do
     return results
 
 -- TODO fix
---getColumnCells :: Connection -> ASLocation -> IO [Maybe ASCell]
+--getColumnCells :: Connection -> ASIndex -> IO [Maybe ASCell]
 --getColumnCells conn (Column sheetid col) = do
 --  runRedis conn $ do
 --    locKeys <- DU.getSheetLocsRedis sheetid
@@ -372,7 +366,7 @@ deleteSheetUnsafe conn sid = do
 ----------------------------------------------------------------------------------------------------------------------
 -- Volatile cell methods
 
-getVolatileLocs :: Connection -> IO [ASLocation]
+getVolatileLocs :: Connection -> IO [ASIndex]
 getVolatileLocs conn = do 
   runRedis conn $ do
       Right vl <- smembers "volatileLocs"
@@ -403,10 +397,10 @@ canAccessSheet conn uid sheetId = do
     Nothing -> return False
     (Just someSheet) -> return $ hasPermissions uid (sheetPermissions someSheet)
 
-canAccess :: Connection -> ASUserId -> ASLocation -> IO Bool
+canAccess :: Connection -> ASUserId -> ASIndex -> IO Bool
 canAccess conn uid loc = canAccessSheet conn uid (locSheetId loc)
 
-canAccessAll :: Connection -> ASUserId -> [ASLocation] -> IO Bool
+canAccessAll :: Connection -> ASUserId -> [ASIndex] -> IO Bool
 canAccessAll conn uid locs = return . all id =<< mapM (canAccess conn uid) locs
 
 isPermissibleMessage :: ASUserId -> Connection -> ASClientMessage -> IO Bool

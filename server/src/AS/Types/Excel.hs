@@ -31,12 +31,12 @@ data ExcelResult =
 
 type ExcelContext = [(ExcelAction, ExcelResult)]
 
-type BaseContext = (Connection, ASExpression, ASLocation)
+type BaseContext = (Connection, ASExpression, ASReference)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Compiler types
 
-data ERef = ERef ASLocation deriving (Show, Read)
+data ERef = ERef ASReference deriving (Show, Read)
 
 data ExcelValue = 
  EBlank |
@@ -84,7 +84,7 @@ data CellRef = CellRef {
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Excel context
 
-data Context = Context {curLoc :: ASLocation}
+data Context = Context {curLoc :: ASIndex}
 
 data ExcelError = 
  SyntaxError |

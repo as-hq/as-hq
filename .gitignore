@@ -20,3 +20,4 @@ server/src/AS/Eval/run/ocaml/run.mi
 server/src/AS/Eval/run/py/run.py
 server/src/AS/Eval/run/r/run.r
 server/src/AS/Eval/run/sql/run.py
+graph-database/dump.rdb

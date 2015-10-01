@@ -14,13 +14,13 @@ import AS.Config.Settings as S
 import AS.DB.Util 
 import AS.Util
 
-getDescendants :: [ASLocation] -> IO (Either ASExecError [ASLocation])
+getDescendants :: [ASIndex] -> IO (Either ASExecError [ASIndex])
 getDescendants = query GetDescendants
 
-getImmediateAncestors :: [ASLocation] -> IO (Either ASExecError [ASLocation])
+getImmediateAncestors :: [ASIndex] -> IO (Either ASExecError [ASIndex])
 getImmediateAncestors = query GetImmediateAncestors
 
-query :: GraphQuery -> [ASLocation] -> IO (Either ASExecError [ASLocation])
+query :: GraphQuery -> [ASIndex] -> IO (Either ASExecError [ASIndex])
 query q locs = 
     let
         elements = (show q):(map show2 locs)
@@ -34,24 +34,23 @@ query q locs =
         send' reqSocket [] msg   -- using lazy bytestring send function
         liftIO $ printTimed "sent message to graph db"  
         reply <- receiveMulti reqSocket
-        --liftIO $ printTimed $ "graph db reply:  " ++ (show reply)
+        -- liftIO $ printTimed $ "graph db reply:  " ++ (show reply)
         case (B.unpack $ last reply) of
             "OK" -> do
                 let filtered = map B.unpack $ init reply
-                let result = Right $ map (\l -> read2 l:: ASLocation) filtered
-                --liftIO $ printTimed $ "Graph DB result: " ++ (show $ init reply)
+                let result = Right $ map read2 filtered
                 return result
             "ERROR" -> do
                 liftIO $ printTimed "Graph DB error"
                 return $ Left DBGraphUnreachable
 
-setRelations :: [(ASLocation, [ASLocation])] -> IO (Either ASExecError ())
+setRelations :: [(ASIndex, [ASIndex])] -> IO (Either ASExecError ())
 setRelations rels = 
     let
         locSets = map (\(root, deps)-> (root:deps)) rels
         relations = map (\lset -> intercalate relationDelimiter $ map show2 lset) locSets
         elements = (show SetRelations):relations
-        msg = BS.show $ intercalate msgPartDelimiter elements 
+        msg = BS.show $ intercalate msgPartDelimiter elements
 
     in runZMQ $ do
         liftIO $ printTimed "Connecting to graph database for multi query."  

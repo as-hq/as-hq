@@ -50,18 +50,6 @@ sortStrList (a1, b1) (a2, b2)
   | (show $ dropWhile isUpper a1) > (show $ dropWhile isUpper a2) = LT
   | otherwise = EQ
 
-normalizeRanges :: [ASLocation] -> [ASLocation] 
-normalizeRanges locs = do
-  loc <- locs
-  case loc of
-    Range sheet (p1, p2)  -> decomposeLocs loc
-    Index _  _            -> return loc
-
-getOffsets :: ASLocation -> [(Int,Int)]
-getOffsets loc = case loc of 
-    Index _ _ -> [(0,0)]
-    Range _ ((a,b),(c,d)) -> [(x,y)|x<-[0..(c-a)], y<-[0..(d-b)]]
-
 rangeDiff :: ((Int, Int), (Int, Int)) -> (Int, Int)
 rangeDiff (a,b) = (fst b - fst a + 1, snd b - snd a + 1)
 

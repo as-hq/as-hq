@@ -136,22 +136,26 @@ replaceMatches (inter,matches) f target = blend inter matchReplacings
 -- Type for parsing Excel Locations
              -- d1,d2 = "" or "$"
 
+asLocationToAsIndex :: ASReference -> ASIndex 
+asLocationToAsIndex loc = case loc of 
+  IndexRef i -> i
+
 -- excel location to list of as indexes
-exLocToASLocation :: ASSheetId -> ExLoc -> ASLocation
+exLocToASLocation :: ASSheetId -> ExLoc -> ASReference
 exLocToASLocation sheetid exLoc = case exLoc of 
   ExSheet sh rest -> case (exLocToASLocation sheetid rest) of 
-    Range _ a -> Range sheetid a
-    Index _ a -> Index sheetid a
-  ExRange f s -> Range sheetid (index (exLocToASLocation sheetid f),index (exLocToASLocation sheetid s))
-  ExIndex dol1 c dol2 r -> Index sheetid (colStrToInt c, read r :: Int)
+    RangeRef (Range _ a) -> RangeRef $ Range sheetid a
+    IndexRef (Index _ a) -> IndexRef $ Index sheetid a
+  ExRange f s -> RangeRef $ Range sheetid ((index . asLocationToAsIndex) ((exLocToASLocation) sheetid f), (index . asLocationToAsIndex) (exLocToASLocation sheetid s))
+  ExIndex dol1 c dol2 r -> IndexRef $ Index sheetid (colStrToInt c, read r :: Int)
 
 -- does not consider sheetid
-asLocationToExLoc :: ASLocation -> ExLoc
-asLocationToExLoc (Index _ (a,b)) = ExIndex "" (intToColStr a) "" (intToColStr b)
-asLocationToExLoc (Range s (i1, i2)) = ExRange i1' i2'
+asLocationToExLoc :: ASReference -> ExLoc
+asLocationToExLoc (IndexRef (Index _ (a,b))) = ExIndex "" (intToColStr a) "" (intToColStr b)
+asLocationToExLoc (RangeRef (Range s (i1, i2))) = ExRange i1' i2'
   where
-    i1' = asLocationToExLoc $ Index s i1
-    i2' = asLocationToExLoc $ Index s i2
+    i1' = asLocationToExLoc $ IndexRef $ Index s i1
+    i2' = asLocationToExLoc $ IndexRef $ Index s i2
 -------------------------------------------------------------------------------------------------------------------------------------------------
 -- Parsers to match special excel characters
 
@@ -243,10 +247,10 @@ shiftExLocs offset exLocs = map (shiftExLoc offset) exLocs
 -- return all dependencies for a particular excel location (takes in current location to deal with sheets)
 -- ex. ExIndex A3 just returns [Index A3]
 -- doesn't do any work with Parsec/actual parsing
-dependenciesFromExcelLoc :: ASSheetId -> ExLoc -> [ASLocation]
+dependenciesFromExcelLoc :: ASSheetId -> ExLoc -> [ASIndex]
 dependenciesFromExcelLoc sheetid exLoc = case exLoc of
   ExSheet sh rest -> [Index sheetid (index dep) | dep <- dependenciesFromExcelLoc sheetid rest] --dependency locations are on other sheet
-  ExRange a b -> decomposeLocs $ Range sheetid ((toCol a, toRow a), (toCol b, toRow b)) -- any range has full dependency
+  ExRange a b -> rangeToIndices $ Range sheetid ((toCol a, toRow a), (toCol b, toRow b)) -- any range has full dependency
     where
       toCol = colStrToInt.col
       toRow = read.row
@@ -255,21 +259,21 @@ dependenciesFromExcelLoc sheetid exLoc = case exLoc of
 -------------------------------------------------------------------------------------------------------------------------------------------------
 -- Parse dependencies and replace relative expressions
 
-getDependenciesAndExpressions :: ASSheetId -> ASExpression -> [(Int,Int)] -> ([[ASLocation]],[ASExpression])
-getDependenciesAndExpressions sheetid xp offsets = (newLocs,newExprs)
+getDependenciesAndExpressions :: ASSheetId -> ASExpression -> ([ASIndex], ASExpression)
+getDependenciesAndExpressions sheetid xp = (newLocs, newExpr)
   where 
     origString = expression xp
     (inter,exLocs) = getMatchesWithContext origString excelMatch -- the only place that Parsec is used
-    newLocs = getDependencies sheetid exLocs offsets 
-    newStrings = [replaceMatches (inter, shiftExLocs off exLocs) showExcelLoc origString | off <- offsets]
-    newExprs = map (\str -> Expression str (language xp)) newStrings
+    newLocs = getDependencies sheetid exLocs
+    newString = replaceMatches (inter, exLocs) showExcelLoc origString
+    newExpr = Expression newString (language xp)
 
--- gets dependencies from a list of excel locs and a list of offsets (there's a [ASLocation] for each offset, in that order)
+-- gets dependencies from a list of excel locs and a list of offsets (there's a [ASIndex] for each offset, in that order)
 -- doesn't use Parsec/actual parsing
-getDependencies :: ASSheetId -> [ExLoc] -> [(Int,Int)] -> [[ASLocation]]
-getDependencies sheetid matches offsets = [depsFromExcelLocs (shiftExLocs off matches) | off <- offsets]
+getDependencies :: ASSheetId -> [ExLoc] -> [ASIndex]
+getDependencies sheetid matches = depsFromExcelLocs matches
   where
-    depsFromExcelLocs m = normalizeRanges $ concat $ map (dependenciesFromExcelLoc sheetid) m
+    depsFromExcelLocs m = concat $ map (dependenciesFromExcelLoc sheetid) m
 
 ----------------------------------------------------------------------------------------------------------------------------------
 -- Functions for excel sheet loading
@@ -291,19 +295,19 @@ unpackExcelVals v = []
 -- Copy/paste
 
 -- returns (shifted cell, new dependencies)
-shiftCell :: (Int, Int) -> ASCell -> (ASCell, [ASLocation])
+shiftCell :: (Int, Int) -> ASCell -> (ASCell, [ASIndex])
 shiftCell offset (Cell loc (Expression str lang) v ts) = (shiftedCell, shiftedDeps)
   where
     sheetid = locSheetId loc
-    shiftedLoc = shiftLoc offset loc
+    shiftedLoc = shiftInd offset loc
     (inter,exLocs) = getMatchesWithContext str excelMatch
     shiftedExLocs = shiftExLocs offset exLocs
-    shiftedDeps = concat $ getDependencies sheetid shiftedExLocs [(0,0)] -- expecting a single cell has Index, not range
+    shiftedDeps = getDependencies sheetid shiftedExLocs
     newStr = replaceMatches (inter, shiftedExLocs) showExcelLoc str
     shiftedXp = Expression newStr lang
     shiftedCell = Cell shiftedLoc shiftedXp v ts
 shiftCell offset (Cell loc (Reference _ _) v ts) = (shiftedCell, []) -- for copying sublists
   where
     pseudoXp = Expression (showValue Python v) Python -- TODO get the damn language
-    shiftedLoc = shiftLoc offset loc 
+    shiftedLoc = shiftInd offset loc 
     shiftedCell = Cell shiftedLoc pseudoXp v ts
