@@ -55,13 +55,11 @@ data ExcelEntity = EntityRef ERef | EntityVal ExcelValue | EntityMatrix ExcelMat
  -----------------------------------------------------------------------------
 -- * Abstract syntax
 
-data ExcelLoc = Loc CellRef (Maybe CellRef) deriving (Show, Read)
-
 -- | The type of formulas.
 data BasicFormula = 
    Var ExcelValue                  -- ^ Variables
  | Fun String [Formula]            -- ^ Fun
- | Ref ExcelLoc                    -- ^ Reference
+ | Ref CellRef                    -- ^ Reference
  deriving (Show, Read)
 
 data Formula = ArrayConst [[BasicFormula]] | Basic BasicFormula deriving (Show, Read)

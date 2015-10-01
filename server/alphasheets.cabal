@@ -113,6 +113,7 @@ test-suite alphasheets-test
                      , text
                      , hedis
                      , bytestring
+                     , parsec
   ghc-options:         -O2
                        -threaded 
                        -with-rtsopts=-N

@@ -46,7 +46,8 @@ expr    =   buildExpressionParser table leaf
 
 -- | Table to build expression grammar.        
 table :: OperatorTable Char () Formula
-table   = [ [prefixRepeated $ choice [pos, neg]]
+table   = [ [binary ":" AssocLeft]
+          , [prefixRepeated $ choice [pos, neg]]
           , [postfix "%"]
           , [binary "^" AssocLeft]
           , [binary "*" AssocLeft, binary "/"  AssocLeft ]
@@ -173,12 +174,7 @@ singleCellReference = do
   return $ CellRef {sheet="", colNr=toColNr ls, rowNr=toRowNr ds}
 
 cellReference :: Parser Formula
-cellReference = do 
-  c1 <- (try (sheetCellReference) <|> singleCellReference) 
-  c2 <- optionMaybe' $ do
-    char ':'
-    singleCellReference
-  return . Basic . Ref $ Loc c1 c2
+cellReference = fmap (Basic . Ref) $ try (sheetCellReference) <|> singleCellReference
   
 -- | Function application.
 functionApplication :: Parser Formula
@@ -289,8 +285,7 @@ addSheetName name (ArrayConst rows) = ArrayConst $ map (\r -> map (addSheetNameB
 addSheetNameBasic :: String -> BasicFormula -> BasicFormula
 addSheetNameBasic _ v@(Var _) = v
 addSheetNameBasic name (Fun s formulas) = Fun s (map (addSheetName name) formulas)
-addSheetNameBasic name (Ref (Loc a Nothing)) = Ref $ Loc (addSheetNameCellRef name a) Nothing
-addSheetNameBasic name (Ref (Loc a (Just b))) = Ref $ Loc (addSheetNameCellRef name a) (Just (addSheetNameCellRef name b))
+addSheetNameBasic name (Ref a) = Ref $ addSheetNameCellRef name a
 
 -- | Add sheet name to CellRef
 addSheetNameCellRef name a 

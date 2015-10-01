@@ -8,6 +8,7 @@ import AS.Util
 
 import AS.Kernels.Python.Eval as KP
 import AS.Kernels.LanguageUtils
+import AS.Kernels.Excel.Compiler as E
 
 import qualified Data.ByteString.Char8 as BC
 import qualified Data.ByteString.Unsafe as BU
@@ -20,6 +21,7 @@ import Data.Text as T hiding (index, length)
 import qualified Data.List as L
 
 import Database.Redis as R
+import Text.ParserCombinators.Parsec
 
 testEdges :: Int -> [(ASLocation,ASLocation)]
 testEdges n = L.zip (testLocs n) (testLocs n)
@@ -32,11 +34,18 @@ main = do
     printTimed "hedis database connection: PASSED"
 
     --testSetCells
-    testLocationKey conn
-    testSheetCreation conn
-    testEvaluate
-    testEvaluateRepl
+    --testLocationKey conn
+    --testSheetCreation conn
+    --testEvaluate
+    --testEvaluateRepl
     --testIntrospect
+    testExcelExpr
+
+testExcelExpr :: IO ()
+testExcelExpr = do
+    let str = "=f(B2:index(A2:C6,5,2))"
+    let val = parse E.formula "" str
+    putStrLn $ "parsed xp: " ++ (show val)
 
 testIntrospect :: IO ()
 testIntrospect = do
