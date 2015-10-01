@@ -254,7 +254,7 @@ ocamlError = do
   return $ ValueError err "StdErr" file ((read pos :: Int) - 4)
 
 asValue :: ASLanguage -> Parser ASValue 
-asValue lang = choice [valueD, valueS, (valueB lang), (valueL lang), complexValue, ocamlError, return $ ValueNaN ()]
+asValue lang = choice [valueD, valueS, (valueB lang), (valueL lang), complexValue, ocamlError, return $ NoValue]
 
 parseValue :: ASLanguage -> String -> Either ASExecError ASValue --needs to change to reflect ValueImage
 parseValue lang = readOutput . (parse (asValue lang) "") . T.pack

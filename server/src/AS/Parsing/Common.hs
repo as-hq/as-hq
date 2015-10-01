@@ -56,7 +56,6 @@ normalizeRanges locs = do
   case loc of
     Range sheet (p1, p2)  -> decomposeLocs loc
     Index _  _            -> return loc
-    Column _ _            -> return loc
 
 getOffsets :: ASLocation -> [(Int,Int)]
 getOffsets loc = case loc of 

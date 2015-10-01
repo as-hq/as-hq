@@ -53,7 +53,13 @@ table   = [ [binary ":" AssocLeft]
           , [binary "*" AssocLeft, binary "/"  AssocLeft ]
           , [binary "+" AssocLeft, binary "-"  AssocLeft ]
           , [binary "&" AssocLeft]
-          , [binary "=" AssocLeft, binary "<>" AssocLeft, binary "<="  AssocLeft , binary ">=" AssocLeft, binary "<" AssocLeft, binary ">" AssocLeft ]
+          , [binary "=" AssocLeft
+              , binary "<>" AssocLeft
+              , binary "<="  AssocLeft 
+              , binary ">=" AssocLeft
+              , binary "<" AssocLeft
+              , binary ">" AssocLeft 
+              ]
           ]
 
 -- | Helper.
@@ -66,7 +72,7 @@ prefix :: String -> Operator Char () Formula
 prefix name       
   = Prefix (do{ reservedOp name; return $ \x -> Basic $ Fun name [x] })
 
--- NOTE: this parser assumes its operator takes highest precedence
+-- NOTE: this parser will not check if there exists a higher-precedence operator that's a superset
 topLevelPrefixParser op = string op >> return (\x -> Basic $ Fun op [x])
 
 pos = topLevelPrefixParser "+"

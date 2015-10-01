@@ -128,21 +128,15 @@ getCellMessage (Right cells) = ServerMessage Evaluate Success (PayloadCL cells)
 getBadLocs :: [ASLocation] -> [Maybe ASCell] -> [ASLocation]
 getBadLocs locs mcells = map fst $ filter (\(l,c)->isNothing c) (zip locs mcells)
 
---getDBCellMessage :: ASUserClient -> [ASLocation] -> [Maybe ASCell] -> ASMessage
---getDBCellMessage user locs mcells = if any isNothing mcells
---  then getCellMessage user (Left (DBNothingException (getBadLocs locs mcells)))
---  else getCellMessage user (Right (map (\(Just c)->c) mcells))
-
--- bugfix for sending non-nothing locs (e.g. scrolling)
--- TODO send empty cells for nothings -- updates deletes that happened past viewing window
 getDBCellMessage :: [ASLocation] -> [Maybe ASCell] -> ASServerMessage
 getDBCellMessage locs mcells = getCellMessage (Right cells)
   where justCells = filter (not . isNothing) mcells 
         cells = map (\(Just x) -> x) justCells
 
-isColumn :: ASLocation -> Bool
-isColumn (Column _ _) = True
-isColumn _ = False
+-- DEPRECATED 
+--isColumn :: ASLocation -> Bool
+--isColumn (Column _ _) = True
+--isColumn _ = False
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Error Handling

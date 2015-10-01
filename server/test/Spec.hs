@@ -39,7 +39,7 @@ main = do
     --testEvaluate
     --testEvaluateRepl
     --testIntrospect
-    testExcelExpr
+    --testExcelExpr
 
 testExcelExpr :: IO ()
 testExcelExpr = do

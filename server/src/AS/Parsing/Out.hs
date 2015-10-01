@@ -76,7 +76,6 @@ bool lang str = case lang of
 
 showValue :: ASLanguage -> ASValue -> String
 showValue lang v = case v of
-  ValueNaN () 		-> "Undefined"
   ValueS s 			-> show s
   ValueI i      -> show i
   ValueD d 			-> show d
@@ -85,12 +84,11 @@ showValue lang v = case v of
   ValueStyled s v 	-> showValue lang v
   DisplayValue d v 	-> showValue lang v
   ValueObject o js 	-> jsonDeserialize lang o js
-  otherwise -> "not cased on"
 
 showFilteredValue :: ASLanguage -> ASValue -> String
 showFilteredValue lang (ValueL l) = showFilteredValue lang (headOrNull l)
   where
-    headOrNull [] = ValueNaN ()
+    headOrNull [] = NoValue
     headOrNull (x:xs) = x
 showFilteredValue lang v = showValue lang v
 
@@ -292,6 +290,7 @@ unpackExcelVals v = []
 ----------------------------------------------------------------------------------------------------------------------------------
 -- Copy/paste
 
+-- returns (shifted cell, new dependencies)
 shiftCell :: (Int, Int) -> ASCell -> (ASCell, [ASLocation])
 shiftCell offset (Cell loc (Expression str lang) v ts) = (shiftedCell, shiftedDeps)
   where

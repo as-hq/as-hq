@@ -22,15 +22,12 @@ data WorkbookSheet = WorkbookSheet {wsName :: String, wsSheets :: [ASSheet]} der
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Core cell types
 
--- -1 in "row" for Index signifies an entire column
 data ASLocation = Index {locSheetId :: ASSheetId, index :: (Int, Int)} | 
-                  Range {locSheetId :: ASSheetId, range :: ((Int, Int), (Int, Int))} |
-                  Column {locSheetId :: ASSheetId, column :: Int}
+                  Range {locSheetId :: ASSheetId, range :: ((Int, Int), (Int, Int))}
                   deriving (Show, Read, Eq, Generic, Ord)
 
 data ASValue =
     NoValue
-  | ValueNaN ()
   | ValueS String
   | ValueI Int
   | ValueD Double 

@@ -158,7 +158,6 @@ showExcelLoc exLoc = case exLoc of
 
 showExcelValue :: ASValue -> String
 showExcelValue val = case val of
-  ValueNaN ()   -> "Undefined"
   ValueS s      -> show s
   ValueI i      -> show i
   ValueD d      -> show d
