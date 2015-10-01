@@ -185,7 +185,7 @@ export default React.createClass({
   _onSelectionChange(rng){
     // console.log("Handling selection change: " + JSON.stringify(rng));
     let cell = Store.getCellAtLoc(rng.col,rng.row);
-    if (cell) {
+    if (cell && Converter.clientCellGetExpressionObj(cell)) {
       let {language,expression} = Converter.clientCellGetExpressionObj(cell),
           val = Converter.clientCellGetValueObj(cell);
       Store.setActiveSelection(rng, expression); // pass in an expression to get parsed dependencies

@@ -72,8 +72,13 @@ export default {
   */
 
   serverToClientLoc(serverLoc){
-    if (serverLoc[0].length) // range
-      return {row: serverLoc[0][1], col: serverLoc[0][0], row2: serverLoc[1][1], col2: serverLoc[1][0]};
+    // console.log("converting server loc: " + JSON.stringify(serverLoc));
+    if (serverLoc[0].length) {// range
+      if (serverLoc[0][0] === serverLoc [1][0] && serverLoc[0][1] === serverLoc[1][1])
+        return {row: serverLoc[0][1], col: serverLoc[0][0]};
+      else
+        return {row: serverLoc[0][1], col: serverLoc[0][0], row2: serverLoc[1][1], col2: serverLoc[1][0]};
+    }
     else return {row: serverLoc[1], col: serverLoc[0]};
   },
   clientToServerLoc(clientLoc) {
@@ -91,7 +96,7 @@ export default {
               locSheetId: Store.getCurrentSheet().sheetId,
               index: this.clientToServerLoc(clientLoc)};
   },
-  clientToASRange(clientLoc) { 
+  clientToASRange(clientLoc) {
     if (clientLoc.row2)
       return {tag: "Range",
               rangeSheetId: Store.getCurrentSheet().sheetId,
@@ -148,13 +153,17 @@ export default {
   */
 
   ASLocToClient(loc) {
-
+    console.log("converting loc: "+JSON.stringify(loc));
     let cloc = {
-        tag: loc.tag,
-        locSheetId: loc.locSheetId
+        locSheetId: loc.locSheetId || loc.rangeSheetId
       };
-    if (loc.range)
-      cloc.range = this.serverToClientLoc(loc.range);
+    if (loc.range){
+      let rng = this.serverToClientLoc(loc.range)
+      if (rng.row2)
+        cloc.range = rng;
+      else
+        cloc.index = rng;
+    }
     else
       cloc.index = this.serverToClientLoc(loc.index);
     return cloc;
@@ -270,7 +279,7 @@ export default {
   clientLocsFromServerMessage(msg) {
     // console.log("Trying to get cells from message received: " + JSON.stringify(msg));
     if (msg.payload){
-      if (msg.payload.tag === "PayloadL"){ // one cell
+      if (msg.payload.tag === "PayloadL" || msg.payload.tag === "PayloadR"){ // one cell
         return [this.ASLocToClient(msg.payload.contents)];
       }
       else if (msg.payload.tag === "PayloadLL"){ // list of cells

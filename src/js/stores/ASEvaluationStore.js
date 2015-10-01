@@ -152,16 +152,18 @@ const ASEvaluationStore = assign({}, BaseStore, {
     _data.activeSelection = rng;
     _data.activeCell = this.getCellAtLoc(rng.col, rng.row) || Converter.defaultCell();
     if (_data.activeCell.cellExpression.tag === "Reference"){
-      let headCell = this.getReferenceCell(_data.activeCell.cellExpression),
-          headLoc = headCell.cellLocation.index,
-          height = headCell.cellValue.contents.length,
-          width;
-      // console.log("head cell has contents: " + JSON.stringify(headCell.cellValue.contents));
-      if (headCell.cellValue.contents[0].contents)
-        width = headCell.cellValue.contents[0].contents.length || 1;
-      else width = 1;
-      console.log("head location value: " + JSON.stringify(headCell.cellValue));
-      _data.activeCell.cellExpression.dependencies = Util.getListDependency(headLoc, height, width);
+      let headCell = this.getReferenceCell(_data.activeCell.cellExpression);
+      if (headCell) {
+        let headLoc = headCell.cellLocation.index,
+            height = headCell.cellValue.contents.length,
+            width;
+        // console.log("head cell has contents: " + JSON.stringify(headCell.cellValue.contents));
+        if (headCell.cellValue.contents[0].contents)
+          width = headCell.cellValue.contents[0].contents.length || 1;
+        else width = 1;
+        console.log("head location value: " + JSON.stringify(headCell.cellValue));
+        _data.activeCell.cellExpression.dependencies = Util.getListDependency(headLoc, height, width);
+      }
     } else if (_data.activeCell.cellValue.tag === "ValueL") {
       let val = _data.activeCell.cellValue,
           loc = _data.activeCell.cellLocation.index,
@@ -285,12 +287,24 @@ const ASEvaluationStore = assign({}, BaseStore, {
     _data.activeCell.cellExpression.dependencies = deps;
   },
 
+  locationExists(sheetid, col, row) {
+    return (_data.allCells[sheetid] && _data.allCells[sheetid][col] && _data.allCells[sheetid][col][row]);
+  },
+
   /**************************************************************************************************************************/
   /* Updating expression when user clicks on a cell */
 
   getCellAtLoc(col,row){
     let sheetid = _data.currentSheet.sheetId;
-    if (_data.allCells[sheetid] && _data.allCells[sheetid][col] && _data.allCells[sheetid][col][row])
+    if (this.locationExists(sheetid, col, row))
+      return _data.allCells[sheetid][col][row];
+    else {
+      return null;
+    }
+  },
+
+  getCellAtLocSheet(sheetid, col,row){
+    if (this.locationExists(sheetid, col, row))
       return _data.allCells[sheetid][col][row];
     else {
       return null;
@@ -298,16 +312,21 @@ const ASEvaluationStore = assign({}, BaseStore, {
   },
 
   getReferenceCell(xp) {
-    let refLoc = xp.location;
+    let refLoc = xp.location.contents;
+    console.log("reference loc: " + JSON.stringify(refLoc));
     let cloc = Converter.serverToClientLoc(refLoc.index);
-    return _data.allCells[refLoc.locSheetId][cloc.col][cloc.row];
+
+    return this.getCellAtLocSheet(refLoc.locSheetId, cloc.col, cloc.row);
   },
 
   getExpressionObjFromReferenceCell(cell) {
     let refCell = this.getReferenceCell(cell.cellExpression);
-    let lang = refCell.cellExpression.language;
-    let xp = Util.showValue(cell.cellValue).toString();
-    return {expression: xp, language: lang};
+    if (refCell){
+      let lang = refCell.cellExpression.language;
+      let xp = Util.showValue(cell.cellValue).toString();
+      return {expression: xp, language: lang};
+    }
+    else return null;
   },
 
   /**************************************************************************************************************************/

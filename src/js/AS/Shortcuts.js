@@ -152,7 +152,7 @@ export default {
         API.sendCopyRequest([clipboard.range, rng]);
       if (clipboard.isCut)
         API.sendDeleteRequest(clipboard.range);
-      Store.setClipboard(null, false);
+      // Store.setClipboard(null, false); // allow multi-copy
       self.refs.spreadsheet.repaint(); // render immediately
     });
     ShortcutUtils.addShortcut("grid", "grid_delete", "Del", (wildcard) => {

@@ -36,7 +36,7 @@ export default React.createClass({
 
   render() {
     let {language, theme, value, width, height} = this.props;
-    console.log("CODE EDITOR HEIGHT, WIDTH: " + height +  " " + width);
+    // console.log("CODE EDITOR HEIGHT, WIDTH: " + height +  " " + width);
 
     return (
       <div>

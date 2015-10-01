@@ -21,7 +21,7 @@ var wss = new WebSocket(Constants.HOST_WS);
 */
 
 wss.onmessage = function (event) {
-  // console.log("Client received data from server: " + JSON.stringify(event.data));
+  console.log("Client received data from server: " + JSON.stringify(event.data));
   let msg = JSON.parse(event.data);
   if (msg.result.tag === "Failure") {
     Dispatcher.dispatch({
@@ -95,11 +95,10 @@ wss.onmessage = function (event) {
         break;
       case "Delete":
         // console.log("got delete");
-        if (msg.payload.tag === "PayloadL" ||
-            msg.payload.tag === "PayloadLL"){
+        if (msg.payload.tag === "PayloadR"){
           Dispatcher.dispatch({
             type: ActionTypes.DELETED_LOCS,
-            updatedCells: Converter.clientLocsFromServerMessage(msg)
+            locs: Converter.clientLocsFromServerMessage(msg)
           });
         } else if (msg.payload.tag === "PayloadWorkbookSheets") {
           let workbooks = Converter.clientWorkbooksFromServerMessage(msg);
@@ -232,9 +231,9 @@ export default {
     this.send(msg);
   },
   sendCopyRequest(locs) {
-    let msg = Converter.toServerMessageWithPayload(Constants.ServerActions.Copy, { 
-      tag: "PayloadCopy", 
-      copyRange: Converter.clientToASRange(locs[0]), 
+    let msg = Converter.toServerMessageWithPayload(Constants.ServerActions.Copy, {
+      tag: "PayloadCopy",
+      copyRange: Converter.clientToASRange(locs[0]),
       copyTo: Converter.clientToASLocation(locs[1])
     });
     this.send(msg);

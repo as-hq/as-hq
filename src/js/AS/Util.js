@@ -340,10 +340,9 @@ export default {
       return [loc];
     else {
       let dlocs = [];
-      for (var r = loc.row; r < loc.row2 + 1; r++){
-        for (var c = loc.col; c < loc.col2 + 1; c++) {
+      for (var r = loc.range.row; r < loc.range.row2 + 1; r++){
+        for (var c = loc.range.col; c < loc.range.col2 + 1; c++) {
           dlocs.push({
-            tag: 'index',
             locSheetId: loc.locSheetId,
             index: {row: r, col: c}
           });
