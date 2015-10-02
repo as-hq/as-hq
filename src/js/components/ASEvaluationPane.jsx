@@ -253,6 +253,7 @@ export default React.createClass({
     ReplActionCreator.replLeft(this.state.replLanguage.Display,this._replValue());
     let newLang = menuItem.payload;
     let newValue = ReplStore.getReplExp(newLang.Display);
+    ReplStore.setLanguage(newLang);
     // console.log("REPL lang changed from " + this.state.replLanguage.Display + " to " + newLang.Display + ", new value: "+ newValue);
     this.setState({replLanguage:newLang});
   },

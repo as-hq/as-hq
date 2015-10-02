@@ -16,7 +16,8 @@ for (var key in Constants.Languages) {
 let _data = {
   replExps: replExps,
   replShow: null,
-  replSubmitLang: null
+  replSubmitLang: null,
+  currentLanguage: Constants.Languages.Python
 };
 
 /* This function describes the actions of the ASReplStore upon recieving a message from Dispatcher */
@@ -56,17 +57,26 @@ const ASReplStore = assign({}, BaseStore, {
 
   updateUponResponse(resp){
     console.log("In repl store, updating response repl data "+ JSON.stringify(resp));
-    let lang = resp.lang,
-        val = Util.showValue(resp.langValue, true);
+    let lang = resp.replLang,
+        val = Util.showValue(resp.replValue, true);
     _data.replShow = this.shouldShowResponse(val);
     _data.replSubmitLang = lang
     console.log("previous data: " +_data.replExps[lang] );
     if (_data.replShow){
-      _data.replExps[_data.replSubmitLang] += "\n>>> " + val + "\n>>> ";
+      _data.replExps[lang] += "\n>>> " + val + "\n>>> ";
     }
-    else{
-      _data.replExps[_data.replSubmitLang] += "\n>>> ";
-    }
+    else advanceLine(lang);
+  },
+
+  advanceLine(lang) {
+    if (lang)
+      _data.replExps[lang] += "\n>>> ";
+    else
+      _data.replExps[_data.currentLanguage.Server] += "\n>>> ";
+  },
+
+  setLanguage(lang) {
+    _data.currentLanguage = lang;
   },
 
   // TODO: implement based on backend

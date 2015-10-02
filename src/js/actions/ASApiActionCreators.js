@@ -26,7 +26,7 @@ wss.onmessage = function (event) {
   if (msg.result.tag === "Failure") {
     Dispatcher.dispatch({
         type: ActionTypes.GOT_FAILURE,
-        error: msg.result.failDesc
+        errorMsg: msg
       });
   } else {
     switch (msg.action) {

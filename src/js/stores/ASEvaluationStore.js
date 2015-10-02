@@ -1,6 +1,7 @@
 import Dispatcher from '../Dispatcher';
 import Constants from '../Constants';
 import BaseStore from './BaseStore';
+import ReplStore from  './ASReplStore';
 import assign from 'object-assign';
 import API from '../actions/ASApiActionCreators';
 import Converter from '../AS/Converter';
@@ -113,7 +114,11 @@ dispatcherIndex: Dispatcher.register(function (action) {
         break;
       case Constants.ActionTypes.GOT_FAILURE:
         console.log("setting external error");
-        ASEvaluationStore.setExternalError(action.error);
+        ASEvaluationStore.setExternalError(action.errorMsg.result.failDesc);
+        if (action.errorMsg.action === "EvaluateRepl"){
+          console.log("repl error!");
+          ReplStore.advanceLine();
+        }
         ASEvaluationStore.emitChange();
         break;
       case Constants.ActionTypes.RECEIEVED_SHEET:
