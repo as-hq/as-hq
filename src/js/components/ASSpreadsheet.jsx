@@ -64,11 +64,16 @@ export default React.createClass({
     let hg = this._getHypergrid();
     return {x: hg.hScrollValue, y: hg.vScrollValue};
   },
+  // TODO this does not work... select is clearly a function in the API, but javascript thinks it doesn't exist
   makeSelection(loc) {
-    if (loc.row2)
-      this._getHypergrid().select(loc.col-1, loc.row-1, loc.col2-loc.col, loc.row2-loc.row);
+    console.log("making selection!");
+    let hg = this._getHypergrid();
+    if (loc.row2){
+      hg.select(loc.col-1, loc.row-1, loc.col2-loc.col, loc.row2-loc.row);
+    }
     else
-      this._getHypergrid().select(loc.col-1, loc.row-1, 1, 1);
+      hg.select(loc.col-1, loc.row-1, 1, 1);
+    this.repaint();
   },
   getViewingWindow() {
     let hg = this._getHypergrid();
