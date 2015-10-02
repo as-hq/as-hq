@@ -33,11 +33,12 @@ main = do
     conn <- R.connect DU.cInfo
     printTimed "hedis database connection: PASSED"
 
-    testSetCells
-    testLocationKey conn
-    testSheetCreation conn
-    testEvaluate
-    testEvaluateRepl
+    --testSetCells
+    --testLocationKey conn
+    --testSheetCreation conn
+    --testEvaluate
+    --testEvaluateRepl
+    putStrLn $ trimWhitespace Python "  1+1;  \t \n "
     --testIntrospect
     --testExcelExpr
 

@@ -30,30 +30,37 @@ import AS.Parsing.Common as C
 -- | Exposed functions
 
 introspectCode :: ASLanguage -> String -> IO (Either ASExecError String)
-introspectCode SQL str = fmap Right $ wrapCode SQL False str
-introspectCode lang str = case (tryPrintingLast lang str) of
-    (Left _) -> return $ Left ExpressionNotEvaluable
-    (Right result) -> fmap Right $ wrapCode lang False recombined
-        where recombined = recombineLines result
+introspectCode lang str = 
+    let trimmed = trimWhitespace lang str
+    in case lang of 
+        SQL         -> fmap Right $ wrapCode SQL False trimmed
+        otherwise   -> case (tryPrintingLast lang trimmed) of
+            (Left _)        -> return $ Left ExpressionNotEvaluable
+            (Right result)  -> fmap Right $ wrapCode lang False recombined
+                where recombined = recombineLines result
 
 -- returns (repl record code, repl eval code)
 introspectCodeRepl :: ASLanguage -> String -> IO (String, String)
-introspectCodeRepl lang str = case (tryPrintingLast lang str) of
-    (Left _) -> return $ (str, emptyExpression) -- nothing to print, so nothing to evaluate
-    (Right (recordXp, printedLine)) -> do
-        evalXp <- wrapCode lang True $ recombineLines (recordXp, printedLine)
-        return (recordXp, evalXp)
+introspectCodeRepl lang str = 
+    let trimmed = trimWhitespace lang str
+    in case (tryPrintingLast lang trimmed) of
+        (Left _) -> return $ (trimmed, emptyExpression) -- nothing to print, so nothing to evaluate
+        (Right (recordXp, printedLine)) -> do
+            evalXp <- wrapCode lang True $ recombineLines (recordXp, printedLine)
+            return (recordXp, evalXp)
 
 -----------------------------------------------------------------------------------------------------------------------
 -- | Helpers
 
 tryPrintingLast :: ASLanguage -> String -> Either () (String, String)
 tryPrintingLast lang str = 
-    let 
-        (startLines, endLine) = splitLastLine lang str
-    in if (containsAny [assignOp lang, returnOp lang, importOp lang] endLine)
+    let (startLines, endLine) = splitLastLine lang str
+    in if (isPrintable lang endLine)
         then (Left ())
         else Right (startLines, printCmd lang endLine)
+
+isPrintable :: ASLanguage -> String -> Bool
+isPrintable lang = containsAny [assignOp lang, returnOp lang, importOp lang]
 
 printCmd :: ASLanguage -> String -> String
 printCmd lang str = case (tryParse (replacePrintStmt lang) str) of 
@@ -98,6 +105,27 @@ recombineLines :: (String, String) -> String
 recombineLines ("", endLine) = endLine
 recombineLines (startLines, "") = startLines
 recombineLines (startLines, endLine) = startLines ++ "\n" ++ endLine
+
+trimWhitespace :: ASLanguage -> String -> String 
+trimWhitespace lang = L.dropWhileEnd isWhitespace . L.dropWhile isWhitespace
+    where isWhitespace c = (c == ' ') || (c == '\n') || (c == '\t') || (c == ';')
+
+-- TODO fix
+--trim :: ASLanguage -> Parser String
+--trim lang = do
+--    try $ skipMany1 (whitespace lang)
+--    manyTill anyChar (try eof) 
+
+--whitespace :: ASLanguage -> Parser ()
+--whitespace SQL = 
+--        (spaces >> return ())
+--    <|> (char '\n' >> return ())
+--    <|> (char '\t' >> return ())
+--whitespace lang = 
+--        (spaces >> return ())
+--    <|> (char '\n' >> return ())
+--    <|> (char '\t' >> return ())
+--    <|> (string (lineDelim lang) >> return ())
 
 wrapCode :: ASLanguage -> Bool -> String -> IO String
 wrapCode lang isRepl str =  
@@ -171,7 +199,6 @@ lookupString lang mp loc = case loc of
         if (c==a)
             then modifiedLists lang (toListStr lang [ ((showFilteredValue lang) (mp M.! (IndexRef $ Index sh (a,row)))) | row<-[b..d]])
             else modifiedLists lang (toListStr lang [modifiedLists lang (toListStr lang ([(showFilteredValue lang) (mp M.! (IndexRef $ Index sh (col,row)))| col <-[a..c]]))| row<-[b..d]])
-
 
 
 insertValues :: ASSheetId -> M.Map ASReference ASValue -> ASExpression -> String
