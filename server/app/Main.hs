@@ -30,20 +30,28 @@ import AS.Users
 import AS.DB.API as DB
 import AS.DB.Util as DBU
 
+import AS.Kernels.Python.Eval as KP
+
 -------------------------------------------------------------------------------------------------------------------------
 -- Main
 
 main :: IO ()
 main = do
     -- initializations
-    conn <- R.connect DBU.cInfo
-    state <- newMVar $ State [] [] conn -- server state
+    (conn, state) <- initApp
     if isDebug -- set in Settings.hs 
       then initDebug conn >> return ()
       else return ()
     putStrLn $ "server started on port " ++ (show S.wsPort)
     WS.runServer S.wsAddress S.wsPort $ application state
     putStrLn $ "DONE WITH MAIN"
+
+initApp :: IO (R.Connection, MVar ServerState)
+initApp = do
+  KP.evaluate "\'test!\'" -- force load C python sources so that first eval isn't slow
+  conn <- R.connect DBU.cInfo
+  state <- newMVar $ State [] [] conn -- server state
+  return (conn, state)
 
 -- | Initializes database with sheets, etc. for debugging mode. Only called if isDebug is true. 
 initDebug :: R.Connection -> IO ()

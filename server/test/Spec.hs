@@ -66,6 +66,7 @@ testEvaluateRepl = do
     result <- KP.evaluateRepl "import random"
     printTimed $ "python repl import: " ++ (showResult $ result == (Right NoValue))
     (Right (ValueD _)) <- KP.evaluate "random.random()"
+    (Right NoValue) <- KP.evaluateRepl "def myFunc(x):\n\treturn x ** 3"
     printTimed $ "python repl cell call: PASSED"
 
 testLocationKey :: Connection -> IO ()
