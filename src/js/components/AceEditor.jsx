@@ -18,25 +18,49 @@ function onPropsSet(editor, props) {
   if (props.onLoad) {
     props.onLoad(editor);
   }
-  if (props.isRepl)
+  if (props.isRepl){
     editor.getSession().setUseSoftTabs(false);
-
-  /* Deal with >>> readonly for repl */
-  editor.container.addEventListener('keydown', function(e) {
-      if ((editor.selection.getCursor().column < 4 ) && props.isRepl){
-        e.preventDefault();
-        e.stopPropagation();
-        return;
-      }
-      else if ((editor.selection.getCursor().column == 4 ) && props.isRepl){
+    /* Deal with >>> readonly for repl */
+    editor.container.addEventListener('keydown', function(e) {
         let key = e.keyCode || e.charCode;
-        if( key == 8 || key == 46 || key == 37){ //backspace
+        let pos = editor.getCursorPosition();
+        let line = editor.getSession().getLine(pos.row);
+        if (editor.selection.getCursor().column < 4 ){
           e.preventDefault();
           e.stopPropagation();
           return;
         }
-      }
-  }, true);
+        else if (editor.selection.getCursor().column == 4 ){ // begin line cases
+          console.log(pos);
+          if( key == 8 || key == 37){ // backspace,
+            e.preventDefault();
+            e.stopPropagation();
+            // console.log(JSON.stringify(line));
+            let isAtPrompt = line.substring(0,4) === ">>> ";
+            if (!isAtPrompt) {
+              if (key == 8){
+                editor.removeToLineStart();
+                editor.gotoLine(pos.row , Infinity);
+              }
+              else if (pos.row != 0) {
+                editor.gotoLine(pos.row , Infinity);
+              }
+            }
+          }
+        } else if (key == 39) {
+          // console.log("forward key");
+          // console.log("row length: " + line.length + ", col: " + pos.column);
+          if (pos.column === line.length) {
+            // console.log("eol key triggered");
+            e.preventDefault();
+            e.stopPropagation();
+            editor.gotoLine(pos.row + 2 , 4);
+          }
+        }
+    }, true);
+  }
+
+
 }
 
 module.exports = React.createClass({
