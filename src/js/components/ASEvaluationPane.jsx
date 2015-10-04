@@ -90,7 +90,6 @@ export default React.createClass({
     ReplStore.addChangeListener(this._onReplChange);
     this._notificationSystem = this.refs.notificationSystem;
     Shortcuts.addShortcuts(this);
-    this.refs.spreadsheet.makeSelection({row: 1, col: 1}); // on load, select topleft cell
   },
   componentWillUnmount() {
     API.sendClose();

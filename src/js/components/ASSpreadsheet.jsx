@@ -64,16 +64,18 @@ export default React.createClass({
     let hg = this._getHypergrid();
     return {x: hg.hScrollValue, y: hg.vScrollValue};
   },
-  // TODO this does not work... select is clearly a function in the API, but javascript thinks it doesn't exist
+
+  // do not call before polymer is ready.
   makeSelection(loc) {
     console.log("making selection!");
     let hg = this._getHypergrid();
-    if (loc.row2){
-      hg.select(loc.col-1, loc.row-1, loc.col2-loc.col, loc.row2-loc.row);
-    }
-    else
-      hg.select(loc.col-1, loc.row-1, 1, 1);
+    let c = loc.col - 1,
+        r = loc.row - 1,
+        dC = loc.row2 ? loc.col2 - loc.col : 0,
+        dR = loc.col2 ? loc.row2 - loc.row : 0;
+    hg.select(c, r, dC, dR);
     this.repaint();
+    this.props.onSelectionChange(loc, dC, dR);
   },
   getViewingWindow() {
     let hg = this._getHypergrid();
@@ -95,11 +97,12 @@ export default React.createClass({
   // Display values in spreadsheet
 
   /* Initial a sheet with blank entries */
-  initializeBlank(){
+  initialize(){
     let model = this._getBehavior();
     model.getValue = function(x, y) {
       return '';
     };
+    this.makeSelection({row: 1, col: 1});
   },
   getInitialData(){
     // expects that the current sheet has already been set
@@ -164,7 +167,7 @@ export default React.createClass({
   componentDidMount() {
     document.addEventListener('polymer-ready', () => {
       this.props.onReady();
-      this.initializeBlank();
+      this.initialize();
       this.setCellRenderer();
       let self = this;
       let hg = this._getHypergrid();

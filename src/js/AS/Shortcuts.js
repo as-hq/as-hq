@@ -12,6 +12,9 @@ export default {
     // common shortcuts -------------------------------------------------------------------------------
 
     ShortcutUtils.addShortcut("common", "toggle_focus", "F2", (wildcard) => {self.toggleFocus()});
+    ShortcutUtils.addShortcut("common", "new_sheet", "Shift+F11", (wildcard) => {
+      // TODO
+    });
     ShortcutUtils.addShortcut("common", "cell_eval", ["Ctrl+Enter", "Command+Enter", "Ctrl+D", "Ctrl+R"], (wildcard) => {
       let editorState = {
         exp: self._getRawEditor().getValue(),
@@ -85,10 +88,6 @@ export default {
       };
       // parse exp to get the last thing
       self.handleReplRequest(editorState);
-    });
-
-    ShortcutUtils.addShortcut("common", "new_sheet", "Shift+F11", (wildcard) => {
-      // TODO
     });
 
     // editor shortcuts -------------------------------------------------------------------------------
@@ -171,9 +170,12 @@ export default {
     });
     ShortcutUtils.addShortcut("grid", "select_row", "Shift+Space", (wildcard) => {
       // TODO
+      let sel = Store.getActiveSelection();
+      self.refs.spreadsheet.makeSelection({row: sel.row, col: 1, row2: sel.row, col2: Infinity});
     });
     ShortcutUtils.addShortcut("grid", "select_col", "Ctrl+Space", (wildcard) => {
-      // TODO
+      let sel = Store.getActiveSelection();
+      self.refs.spreadsheet.makeSelection({row: 1, col: sel.col, row2: Infinity, col2: sel.col});
     });
     ShortcutUtils.addShortcut("grid", "insert_row", "Ctrl+Shift+[", (wildcard) => {
       // TODO
