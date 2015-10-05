@@ -65,7 +65,7 @@ isPrintable lang = containsAny [assignOp lang, returnOp lang, importOp lang]
 printCmd :: ASLanguage -> String -> String
 printCmd lang str = case (tryParse (replacePrintStmt lang) str) of 
     (Left _) -> addPrintCmd lang str
-    (Right printed) -> printed
+    (Right printed) -> printed 
 
 replacePrintStmt :: ASLanguage -> Parser String -- TODO generalize
 replacePrintStmt lang = case lang of 

@@ -18,7 +18,13 @@ def arr(lst):
 	return ASIterable(lst)
 result = ""
 try:
-	result = 1+
+	sd
+	fsd
+	f
+	sdf
+	sd
+	f
+	result = sdfds
 except Exception as e: 
 	exc_type, exc_obj, exc_tb = exc_info()
 	fname = 'AlphaSheets Python evaluator'

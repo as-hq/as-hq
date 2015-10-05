@@ -251,7 +251,7 @@ createWorkbook conn sheetids = do
 getUniqueWbName :: Connection -> IO String
 getUniqueWbName conn = do
   wbs <- getAllWorkbooks conn
-  return $ DU.getUniquePrefixedName "Untitled" $ map workbookName wbs
+  return $ DU.getUniquePrefixedName "Workbook" $ map workbookName wbs
 
 getWorkbook :: Connection -> String -> IO (Maybe ASWorkbook)
 getWorkbook conn name = do
@@ -328,11 +328,17 @@ getAllSheets conn = do
 
 -- creates a sheet with unique id
 createSheet :: Connection -> ASSheet -> IO ASSheet
-createSheet conn (Sheet sid sname sperms) = do
+createSheet conn (Sheet sid _ sperms) = do
     sid' <- U.getUniqueId
+    sname <- getUniqueSheetName conn
     let newSheet = Sheet sid' sname sperms
     setSheet conn newSheet
     return newSheet
+
+getUniqueSheetName :: Connection -> IO String
+getUniqueSheetName conn = do
+  ss <- getAllSheets conn
+  return $ DU.getUniquePrefixedName "Sheet" $ map sheetName ss
 
 setSheet :: Connection -> ASSheet -> IO ()
 setSheet conn sheet = do

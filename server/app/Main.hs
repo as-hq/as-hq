@@ -31,6 +31,7 @@ import AS.DB.API as DB
 import AS.DB.Util as DBU
 
 import AS.Kernels.Python.Eval as KP
+import AS.Kernels.LanguageUtils as KL
 
 -------------------------------------------------------------------------------------------------------------------------
 -- Main
@@ -48,6 +49,7 @@ main = do
 
 initApp :: IO (R.Connection, MVar ServerState)
 initApp = do
+  mapM_ KL.clearReplRecord [Python] -- clear/write repl record files 
   KP.evaluate "\'test!\'" -- force load C python sources so that first eval isn't slow
   conn <- R.connect DBU.cInfo
   state <- newMVar $ State [] [] conn -- server state
@@ -55,14 +57,8 @@ initApp = do
 
 -- | Initializes database with sheets, etc. for debugging mode. Only called if isDebug is true. 
 initDebug :: R.Connection -> IO ()
-initDebug conn = do
-  let sheetid = T.pack "SHEET_ID"
-      sheetid2 = T.pack "SHEET_ID2"
-  DB.setSheet conn $ Sheet sheetid "SHEET_NAME" (Blacklist [])
-  DB.setWorkbook conn $ Workbook "WORKBOOK_NAME" [sheetid]
-  DB.setSheet conn $ Sheet sheetid2 "SHEET_NAME" (Blacklist [])
-  DB.setWorkbook conn $ Workbook "WORKBOOK_NAME2" [sheetid2]
-  return  ()
+initDebug conn = return () 
+  --DB.createWorkbookSheet conn $ WorkbookSheet
 
 application :: MVar ServerState -> WS.ServerApp
 application state pending = do
