@@ -3,6 +3,7 @@ import Store from '../stores/ASEvaluationStore';
 import ShortcutUtils from './ShortcutUtils';
 import API from '../actions/ASApiActionCreators';
 import Util from '../AS/Util';
+import Converter from '../AS/Converter';
 
 export default {
   addShortcuts(evalPane) {
@@ -147,8 +148,11 @@ export default {
     ShortcutUtils.addShortcut("grid", "paste", "Ctrl+V", (wildcard) => {
       let rng = Store.getActiveSelection();
       let clipboard = Store.getClipboard();
+      window.clipboardData.getData('Text');
       if (clipboard.range)
         API.sendCopyRequest([clipboard.range, rng]);
+      else
+        self.setToast("Nothing in clipboard.", "Error");
       if (clipboard.isCut)
         API.sendDeleteRequest(clipboard.range);
       // Store.setClipboard(null, false); // allow multi-copy
@@ -168,15 +172,17 @@ export default {
     ShortcutUtils.addShortcut("grid", "chart", "F11", (wildcard) => {
       // TODO
     });
-    ShortcutUtils.addShortcut("grid", "select_row", "Shift+Space", (wildcard) => {
-      // TODO
-      let sel = Store.getActiveSelection();
-      self.refs.spreadsheet.makeSelection({row: sel.row, col: 1, row2: sel.row, col2: Infinity});
-    });
-    ShortcutUtils.addShortcut("grid", "select_col", "Ctrl+Space", (wildcard) => {
-      let sel = Store.getActiveSelection();
-      self.refs.spreadsheet.makeSelection({row: 1, col: sel.col, row2: Infinity, col2: sel.col});
-    });
+    // These shortcuts are annoying as fuck. TODO ask if they're necessary.
+
+    // ShortcutUtils.addShortcut("grid", "select_row", "Shift+Space", (wildcard) => {
+    //   // TODO
+    //   let sel = Store.getActiveSelection();
+    //   self.refs.spreadsheet.makeSelection({row: sel.row, col: 1, row2: sel.row, col2: Infinity});
+    // });
+    // ShortcutUtils.addShortcut("grid", "select_col", "Ctrl+Space", (wildcard) => {
+    //   let sel = Store.getActiveSelection();
+    //   self.refs.spreadsheet.makeSelection({row: 1, col: sel.col, row2: Infinity, col2: sel.col});
+    // });
     ShortcutUtils.addShortcut("grid", "insert_row", "Ctrl+Shift+[", (wildcard) => {
       // TODO
     });
@@ -187,8 +193,23 @@ export default {
       // TODO
     });
 
-    ShortcutUtils.addShortcut("grid", "copy_cell_above", "Ctrl+Shift+'", (wildcard) => {
-      // TODO
+    ShortcutUtils.addShortcut("grid", "copy_expression_above", "Ctrl+Shift+'", (wildcard) => {
+      // TODO test
+      let sel = Store.getActiveSelection(),
+          cell = Store.getCellAtLoc(sel.col, sel.row-1);
+      if (cell) {
+        let xp = Converter.clientCellGetExpressionObj(cell).expression || "";
+        self.setExpression(xp);
+      } else self.setToast("No cell above.", "Error");
+    });
+    ShortcutUtils.addShortcut("grid", "copy_value_above", "Ctrl+'", (wildcard) => {
+      // TODO test
+      let sel = Store.getActiveSelection(),
+          cell = Store.getCellAtLoc(sel.col, sel.row-1);
+      if (cell) {
+        let xp = Util.showValue(Converter.clientCellGetValueObj(cell)) || "";
+        self.setExpression(xp);
+      } else self.setToast("No cell above.", "Error");
     });
 
     // top level shortcuts -------------------------------------------------------------------------------
