@@ -19,6 +19,7 @@ import System.IO
 
 import qualified Data.Text as T
 import qualified Data.List as L
+import qualified Data.Maybe as MB
 import Data.List.Split as SP
 import qualified Data.Map as M
 import qualified Prelude as P
@@ -99,7 +100,7 @@ addPrintCmd lang str = case lang of
     R       -> str
     Python  -> "result = " ++ str 
     OCaml   -> "print_string(Std.dump(" ++ str ++ "))"
-    SQL     -> "result = pprintSql(\'" ++ str ++ "\')" -- hardcoded db() function usage for demos
+    SQL     -> "result = pprintSql(db(\'" ++ str ++ "\'))" -- hardcoded db() function usage for demos
 
 recombineLines :: (String, String) -> String
 recombineLines ("", endLine) = endLine
@@ -201,11 +202,20 @@ lookupString lang mp loc = case loc of
             else modifiedLists lang (toListStr lang [modifiedLists lang (toListStr lang ([(showFilteredValue lang) (mp M.! (IndexRef $ Index sh (col,row)))| col <-[a..c]]))| row<-[b..d]])
 
 
+-- TODO clean up SQL mess
 insertValues :: ASSheetId -> M.Map ASReference ASValue -> ASExpression -> String
-insertValues sheetid values xp = evalString
+insertValues sheetid values (Expression origString SQL) = contextStmt ++ evalStmt
     where
-        origString = expression xp
-        lang = language xp 
+        exLocs = getMatchesWithContext origString excelMatch
+        matchLocs = map (exLocToASLocation sheetid) (snd exLocs)
+        context = map (lookupString SQL values) matchLocs
+        st = ["dataset"++(show i) | i<-[0..((L.length matchLocs)-1)]]
+        newExp = replaceMatches exLocs (\el -> (L.!!) st (MB.fromJust (L.findIndex (el==) (snd exLocs)))) origString
+        contextStmt = "setGlobals("++(show context) ++")\n"
+        evalStmt = "result = pprintSql(db(\'" ++ newExp ++ "\'))"
+
+insertValues sheetid values (Expression origString lang) = evalString
+    where
         exLocToStringEval = (lookupString lang values) . (exLocToASLocation sheetid) -- ExLoc -> String
         evalString = replaceMatches (getMatchesWithContext origString excelMatch) exLocToStringEval origString
 

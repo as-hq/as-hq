@@ -38,8 +38,8 @@ main = do
     --testSheetCreation conn
     --testEvaluate
     --testEvaluateRepl
-    putStrLn $ trimWhitespace Python "  1+1;  \t \n "
-    --testIntrospect
+    --putStrLn $ trimWhitespace Python "  1+1;  \t \n "
+    testIntrospect
     --testExcelExpr
 
 testExcelExpr :: IO ()
@@ -50,7 +50,7 @@ testExcelExpr = do
 
 testIntrospect :: IO ()
 testIntrospect = do
-    putStrLn . show =<< introspectCodeRepl Python "import random"
+    putStrLn . show =<< introspectCode SQL "select * from A1:B4 where a > 1"
 
 testEvaluate :: IO ()
 testEvaluate = do

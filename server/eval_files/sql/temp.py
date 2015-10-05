@@ -1,4 +1,3 @@
-
 #ADD COMMANDS HERE
 #from AS.stdlib import *
 from AS.ui.styling import *
@@ -48,8 +47,7 @@ def pprintSql(res):
 		return res
 
 try:
-	setGlobals(["[[\"a\",\"b\"],[0.0,0.0],[1.0,1.0],[2.0,4.0],[3.0,9.0],[4.0,16.0],[5.0,25.0],[6.0,36.0],[7.0,49.0]]"])
-	
-	result = pprintSql(db('select * from dataset0'))
+	setGlobals(["[[\"a\",\"b\"],[110.0,3.0],[2.0,4.0]]"])
+	result = pprintSql(db('select * from dataset0 where a > 1'))
 except Exception as e:
 	result = pprintErr(e)
