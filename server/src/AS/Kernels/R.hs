@@ -15,22 +15,26 @@ import AS.Util
 --import Language.R.Instance as R
 --import Language.R.QQ
 
+-- EitherT
+import Control.Monad.Trans.Class
+import Control.Monad.Trans.Either
+
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Exposed functions
 
-evaluate :: String -> IO (Either ASExecError ASValue)
-evaluate "" = return $ Right NoValue
+evaluate :: String -> EitherTExec ASValue
+evaluate "" = return NoValue
 evaluate str = do
     if isDebug 
-        then writeExecFile R str
+        then lift $ writeExecFile R str
         else return ()
-    printTimed "starting R eval"
+    showTime "starting R eval"
     result <- execR str
-    return $ parseValue R result
+    hoistEither $ parseValue R result
 
-evaluateRepl :: String -> IO (Either ASExecError ASValue)
-evaluateRepl "" = return $ Right NoValue
-evaluateRepl str = return $ Left ExecError -- TODO
+evaluateRepl :: String -> EitherTExec ASValue
+evaluateRepl "" = return NoValue
+evaluateRepl str = left ExecError -- TODO
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Helpers

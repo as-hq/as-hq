@@ -28,15 +28,19 @@ import AS.Parsing.Common
 import AS.Util
 import AS.Config.Settings
 
+-- EitherT
+import Control.Monad.Trans.Class
+import Control.Monad.Trans.Either
+
 -----------------------------------------------------------------------------------------------------------------------
 -- | Exposed functions
 
-evaluateLanguage :: ASExpression -> ASIndex -> M.Map ASReference ASValue -> IO (Either ASExecError ASValue)
+evaluateLanguage :: ASExpression -> ASIndex -> M.Map ASReference ASValue -> EitherTExec ASValue
 evaluateLanguage xp ref mp = case xp of 
 	Expression _ _ -> evalCode (locSheetId ref) mp xp  
-	Reference _ _ -> return . Right $ evalRef ref mp xp
+	Reference _ _ -> return $ evalRef ref mp xp
 
-evaluateLanguageRepl :: ASExpression -> IO (Either ASExecError ASValue)
+evaluateLanguageRepl :: ASExpression -> EitherTExec ASValue
 evaluateLanguageRepl (Expression str lang) = case lang of
 	Python 	-> KP.evaluateRepl str
 	R 		-> KR.evaluateRepl str
@@ -46,15 +50,15 @@ evaluateLanguageRepl (Expression str lang) = case lang of
 -----------------------------------------------------------------------------------------------------------------------
 -- | Helpers
 
-evalCode :: ASSheetId -> M.Map ASReference ASValue -> ASExpression -> IO (Either ASExecError ASValue)
+evalCode :: ASSheetId -> M.Map ASReference ASValue -> ASExpression -> EitherTExec ASValue
 evalCode sheetid values xp@(Expression _ lang) = do
-	printTimed "Starting eval code"
+	showTime "Starting eval code"
 	let purified = insertValues sheetid values xp 
 	--printTimed $ "Final eval xp: " ++ (show finalXp)
 	execEvaluateLang lang purified
 	
 
-execEvaluateLang :: ASLanguage -> String -> IO (Either ASExecError ASValue)
+execEvaluateLang :: ASLanguage -> String -> EitherTExec ASValue
 execEvaluateLang lang str = case lang of 
 	Python 	-> KP.evaluate str
 	Excel 	-> KE.evaluate str

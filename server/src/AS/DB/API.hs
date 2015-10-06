@@ -7,7 +7,7 @@ import Prelude
 import AS.Types.Core hiding (location,expression,value,min)
 import AS.Types.DB
 import AS.Util as U
-import AS.DB.Util as DU
+import qualified AS.DB.Util as DU
 
 import Data.List (zip4,head,partition,nub,intercalate)
 import Data.Maybe (isNothing, fromJust)
@@ -61,7 +61,6 @@ import Data.List.Split
 -- | Volatile locs
 -- stored as before, as a set with key volatileLocs
 
-
 ----------------------------------------------------------------------------------------------------------------------
 -- Cells
 
@@ -72,7 +71,7 @@ getCells :: [ASIndex] -> IO [Maybe ASCell]
 getCells [] = return []
 getCells locs = DU.getCellsByMessage msg num
   where
-    msg = showB $ intercalate "@" $ map show2 locs
+    msg = DU.showB $ intercalate "@" $ map show2 locs
     num = length locs 
 
 setCell :: ASCell -> IO () 
@@ -83,7 +82,7 @@ setCells [] = return ()
 setCells cells = DU.setCellsByMessage msg num
   where
     str = intercalate "@" $ (map (show2 . cellLocation) cells) ++ (map show2 cells)
-    msg = showB str
+    msg = DU.showB str
     num = length cells
 
 deleteCells :: Connection -> [ASCell] -> IO ()
@@ -94,7 +93,7 @@ deleteLocs :: Connection -> [ASIndex] -> IO ()
 deleteLocs _ [] = return ()
 deleteLocs conn locs = runRedis conn $ do
   _ <- mapM_ DU.deleteLocRedis locs
-  return ()
+  return () 
 
 locationsExist :: Connection -> [ASIndex] -> IO [Bool]
 locationsExist conn locs = do
@@ -104,14 +103,21 @@ locationsExist conn locs = do
       return $ sequence bools
     return results
 
-decoupleList :: Connection -> ASIndex -> IO [ASCell]
-decoupleList conn idx = do
+setList :: Connection -> [ASIndex] -> IO ()
+setList conn locs = runRedis conn $ do
+  let listKey = B.pack $ DU.getListKey (head locs)
+  let locKeys = map DU.getLocationKey locs
+  sadd listKey locKeys 
+  return ()
+
+decoupleList :: Connection -> BS.ByteString -> IO [ASCell]
+decoupleList conn listKey = do
   locs <- runRedis conn $ do
-    let listKey = B.pack $ getListKey idx
     Right result <- smembers listKey
+    del [listKey]
     return result
+  printTimed $ "got coupled locs: " ++ (show locs) 
   listCells <- DU.getCellsByKeys locs
-  printTimed "got here!"
   let newCells = map DU.decoupleCell $ filterNothing listCells 
   setCells newCells 
   return newCells
@@ -162,7 +168,7 @@ undo conn = do
     TxSuccess justC <- multiExec $ do 
       commit <- rpoplpush "pushed" "popped"
       return commit
-    return $ bStrToASCommit justC
+    return $ DU.bStrToASCommit justC
   case commit of
     Nothing -> return Nothing
     Just c@(ASCommit uid b a t) -> do 
@@ -177,7 +183,7 @@ redo conn = do
     case result of 
       (Just commit) -> do
         rpush "pushed" [commit]
-        return $ bStrToASCommit (Just commit)
+        return $ DU.bStrToASCommit (Just commit)
       _ -> return Nothing
   case commit of
     Nothing -> return Nothing
@@ -372,7 +378,7 @@ getVolatileLocs :: Connection -> IO [ASIndex]
 getVolatileLocs conn = do 
   runRedis conn $ do
       Right vl <- smembers "volatileLocs"
-      return $ map bStrToASLocation vl
+      return $ map DU.bStrToASLocation vl
 
 -- TODO: some of the cells may change from volatile -> not volatile, but they're still in volLocs
 setChunkVolatileCells :: [ASCell] -> Redis ()

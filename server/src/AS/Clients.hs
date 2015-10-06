@@ -21,6 +21,10 @@ import AS.Users             as US
 import AS.Parsing.Out       as O
 import AS.Daemon            as DM
 
+-- EitherT
+import Control.Monad.Trans.Class
+import Control.Monad.Trans.Either
+
 -------------------------------------------------------------------------------------------------------------------------
 -- ASUserClient is a client
 
@@ -270,7 +274,7 @@ handleCopy user state (PayloadCopy from to) = do
   if allExist
     then do
       DB.setCells toCells
-      G.setRelations $ zip toLocs shiftedDeps 
+      runEitherT $ G.setRelations $ zip toLocs shiftedDeps 
       sendBroadcastFiltered user state $ ServerMessage Update Success (PayloadCL toCells)
     else do
       let msg = ServerMessage Update (Failure $ generateErrorMessage CopyNonexistentDependencies) (PayloadE CopyNonexistentDependencies)

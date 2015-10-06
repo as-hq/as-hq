@@ -140,13 +140,14 @@ foreign import ccall unsafe "hiredis/redis_db.c setCells" c_setCells :: CString 
 getCellsByKeys :: [B.ByteString] -> IO [Maybe ASCell]
 getCellsByKeys keys = getCellsByMessage msg num
   where
-    msg = B.snoc (B.intercalate (BC.pack "@") keys) (0::Word8) 
+    msg = B.concat $ [BC.pack "\"", internal, BC.pack "\"\NUL"]
+    internal = B.intercalate (BC.pack "@") keys 
     num = length keys
 
 -- takes a message and number of locations queried
 getCellsByMessage :: B.ByteString -> Int -> IO [Maybe ASCell]   
 getCellsByMessage msg num = do
-  putStrLn (show msg) 
+  --putStrLn $ "get cells by key with num: " ++ (show num) ++ ", " ++ (show msg) 
   ptrCells <- BU.unsafeUseAsCString msg $ \str -> c_getCells str (fromIntegral num)
   cCells <- peekArray (fromIntegral num) ptrCells
   res <- mapM cToASCell cCells  
