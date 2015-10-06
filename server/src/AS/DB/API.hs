@@ -110,8 +110,11 @@ setList conn locs = runRedis conn $ do
   sadd listKey locKeys 
   return ()
 
-decoupleList :: Connection -> BS.ByteString -> IO [ASCell]
-decoupleList conn listKey = do
+-- | Note: this operation is O(n)
+decoupleList :: Connection -> ASCell -> IO [ASCell]
+decoupleList conn cell@(Cell idx _ _ ts) = do
+  let (Just (ListMember listString)) = getListTag cell
+  let listKey = B.pack listString
   locs <- runRedis conn $ do
     Right result <- smembers listKey
     del [listKey]
@@ -119,8 +122,9 @@ decoupleList conn listKey = do
   printTimed $ "got coupled locs: " ++ (show locs) 
   listCells <- DU.getCellsByKeys locs
   let newCells = map DU.decoupleCell $ filterNothing listCells 
-  setCells newCells 
-  return newCells
+  let decoupledCells = filter (((/=) idx) . cellLocation) newCells
+  setCells decoupledCells
+  return decoupledCells
 
 -- TODO fix
 --getColumnCells :: Connection -> ASIndex -> IO [Maybe ASCell]

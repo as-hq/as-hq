@@ -223,8 +223,8 @@ getAllUserWindows state = map (\u -> (userId u, windows u)) (userClients state)
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Locations
 
-isList :: ASCell -> Bool
-isList (Cell _ _ _ ts) = any id $ map (\t -> case t of 
+isListMember :: ASCell -> Bool
+isListMember (Cell _ _ _ ts) = any id $ map (\t -> case t of 
   (ListMember _) -> True
   _ -> False) ts
 

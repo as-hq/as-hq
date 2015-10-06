@@ -70,9 +70,9 @@ updateCell conn (Cell loc xp val ts) = do
   oldCell <- lift $ DB.getCell loc
   lift $ putStrLn "got shit"
   unlistCells <- case oldCell of 
-    Just cell -> case (getListTag cell) of  
-      Just (ListMember listKey) -> lift $ DB.decoupleList conn $ C.pack listKey
-      Nothing                   ->  return []
+    Just cell -> if (isListMember cell) 
+      then lift $ DB.decoupleList conn cell
+      else return []
     Nothing   -> return []
   let (deps, expr) = getDependenciesAndExpressions (locSheetId loc) xp
   ancCells <- lift $ DB.getCells deps
