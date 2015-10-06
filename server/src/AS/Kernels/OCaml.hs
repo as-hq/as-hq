@@ -10,22 +10,26 @@ import AS.Parsing.In
 import AS.Config.Settings
 import AS.Util
 
+-- EitherT
+import Control.Monad.Trans.Class
+import Control.Monad.Trans.Either
+
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Exposed functions
 
-evaluate :: String -> IO (Either ASExecError ASValue)
-evaluate "" = return $ Right NoValue
+evaluate :: String -> EitherTExec ASValue
+evaluate "" = return NoValue
 evaluate str = do
     if isDebug 
-        then writeExecFile OCaml str
+        then lift $ writeExecFile OCaml str
         else return ()
-    printTimed "starting OCaml eval"
-    result <- execOcaml
-    return $ parseValue OCaml result
+    showTime "starting OCaml eval"
+    result <- lift $ execOcaml
+    hoistEither $ parseValue OCaml result
 
-evaluateRepl :: String -> IO (Either ASExecError ASValue)
-evaluateRepl "" = return $ Right NoValue
-evaluateRepl str = return $ Left ExecError -- TODO
+evaluateRepl :: String -> EitherTExec ASValue
+evaluateRepl "" = return NoValue
+evaluateRepl str = left ExecError -- TODO
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Helpers

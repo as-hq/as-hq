@@ -33,6 +33,10 @@ import AS.DB.Util as DBU
 import AS.Kernels.Python.Eval as KP
 import AS.Kernels.LanguageUtils as KL
 
+-- EitherT
+import Control.Monad.Trans.Class
+import Control.Monad.Trans.Either
+
 -------------------------------------------------------------------------------------------------------------------------
 -- Main
 
@@ -50,7 +54,7 @@ main = do
 initApp :: IO (R.Connection, MVar ServerState)
 initApp = do
   mapM_ KL.clearReplRecord [Python] -- clear/write repl record files 
-  KP.evaluate "\'test!\'" -- force load C python sources so that first eval isn't slow
+  runEitherT $ KP.evaluate "\'test!\'" -- force load C python sources so that first eval isn't slow
   conn <- R.connect DBU.cInfo
   state <- newMVar $ State [] [] conn -- server state
   return (conn, state)

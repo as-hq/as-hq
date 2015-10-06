@@ -13,74 +13,74 @@ import AS.Util
 import AS.Config.Settings
 
 import Control.Exception (catch, SomeException)
+
+-- EitherT
+import Control.Monad.Trans.Class
+import Control.Monad.Trans.Either
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Exposed functions
 
--- | python
-evaluate :: String -> IO (Either ASExecError ASValue)
-evaluate "" = return $ Right NoValue
-evaluate str = do
-    code <- introspectCode Python str
-    case code of 
-        (Left e) -> return $ Left e
-        (Right validCode) -> do
-            if isDebug 
-                then writeExecFile Python validCode
-                else return ()
-            execWrappedCode validCode
+-- | Helper for evaluateRepl
+onParseSuccess :: String -> ASValue -> IO ()
+onParseSuccess replRecord (ValueError _ _ _ _) = writeReplRecord Python replRecord
+onParseSuccess _ _ = return ()
 
-evaluateRepl :: String -> IO (Either ASExecError ASValue)
-evaluateRepl "" = return $ Right NoValue
+onParseFailure :: String -> ASExecError -> IO ()
+onParseFailure replRecord _ = writeReplRecord Python replRecord
+
+-- | python
+evaluate :: String -> EitherTExec ASValue
+evaluate "" = return NoValue
+evaluate str = do
+    validCode <- introspectCode Python str
+    if isDebug 
+        then lift $ writeExecFile Python validCode
+        else return ()
+    execWrappedCode validCode
+
+evaluateRepl :: String -> EitherTExec ASValue
+evaluateRepl "" = return  NoValue
 evaluateRepl str = do
     -- preprocess expression
-    (recordCode, evalCode) <- introspectCodeRepl Python str
+    (recordCode, evalCode) <- lift $ introspectCodeRepl Python str
     if isDebug
-        then writeReplFile Python evalCode
+        then lift $ writeReplFile Python evalCode
         else return ()
     -- write record
-    replRecord <- getReplRecord Python
-    writeReplRecord Python (replRecord ++ "\n" ++ recordCode)
+    replRecord <- lift $ getReplRecord Python
+    lift $ writeReplRecord Python (replRecord ++ "\n" ++ recordCode)
     -- perform eval
-    parsed <- if (evalCode == emptyExpression)
-        then return $ Right NoValue
+    let parsed = if (evalCode == emptyExpression)
+        then return NoValue
         else execWrappedCode evalCode
-    -- if error, undo the write to repl record
-    case parsed of 
-        (Left _)                        -> writeReplRecord Python replRecord
-        (Right (ValueError _ _ _ _))    -> writeReplRecord Python replRecord
-        otherwise -> return ()
-    return parsed
+    lift $ eitherT (onParseFailure replRecord) (onParseSuccess replRecord) parsed
+    parsed
 
 -- | SQL
-evaluateSql :: String -> IO (Either ASExecError ASValue)
-evaluateSql "" = return $ Right NoValue
+evaluateSql :: String -> EitherTExec ASValue
+evaluateSql "" = return NoValue
 evaluateSql str = do
-    code <- introspectCode SQL str
-    case code of
-        (Left e) -> return $ Left e
-        (Right validCode) -> do
-            if isDebug 
-                then writeExecFile SQL validCode
-                else return ()
-            execWrappedCode validCode
+    validCode <- introspectCode SQL str
+    if isDebug 
+        then lift $ writeExecFile SQL validCode
+        else return ()
+    execWrappedCode validCode
 
-evaluateSqlRepl :: String -> IO (Either ASExecError ASValue)
-evaluateSqlRepl "" = return $ Right NoValue
+evaluateSqlRepl :: String -> EitherTExec ASValue
+evaluateSqlRepl "" = return NoValue
 evaluateSqlRepl str = evaluateSql str
 
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | helpers
 
-execWrappedCode :: String -> IO (Either ASExecError ASValue)
+execWrappedCode :: String -> EitherTExec ASValue
 execWrappedCode evalCode = do
     result <- pyfiString evalCode
-    return $ case result of 
-        (Left SyntaxError) -> Left SyntaxError
-        (Right s) -> parseValue Python s
+    hoistEither $ parseValue Python result
 
-pyfiString :: String -> IO (Either ASExecError String)
-pyfiString evalStr = catch (fmap Right execString) whenCaught
+pyfiString :: String -> EitherTExec String
+pyfiString evalStr = EitherT $ catch (fmap Right execString) whenCaught
     where 
         execString = defVV (evalStr ++ pyString) ("Hello" :: String)
         whenCaught = (\e -> return $ Left SyntaxError) :: (SomeException -> IO (Either ASExecError String))

@@ -11,6 +11,10 @@ import qualified Database.Redis as R
 import Control.Concurrent (MVar)
 import Control.Applicative
 
+-- EitherT
+import Control.Monad.Trans.Class
+import Control.Monad.Trans.Either
+
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Sheets
 
@@ -182,6 +186,7 @@ data ASExecError =
   deriving (Show, Read, Eq, Generic)
 
 type EitherCells = Either ASExecError [ASCell] 
+type EitherTExec = EitherT ASExecError IO
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Websocket types

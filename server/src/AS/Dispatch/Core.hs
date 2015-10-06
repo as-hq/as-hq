@@ -10,7 +10,7 @@ import qualified Data.List  as L (head,last,tail,length,splitAt)
 import AS.Parsing.Common
 import AS.Parsing.Out hiding (first)
 import AS.Parsing.In
-import Data.Maybe (fromJust, isNothing)
+import Data.Maybe (fromJust, isNothing,catMaybes)
 import Text.ParserCombinators.Parsec
 import Control.Applicative
 import Data.Time.Clock
@@ -32,86 +32,68 @@ import qualified Data.ByteString.Lazy.Char8 as B
 import qualified Network.WebSockets as WS
 import Database.Redis (Connection)
 
+-- EitherT
+import Control.Monad.Trans.Class
+import Control.Monad.Trans.Either
+
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Regular eval route
 
--- | Go through the regular eval route
 runDispatchCycle :: MVar ServerState -> ASCell -> ASUserId -> IO ASServerMessage
-runDispatchCycle state c' uid = do 
-  -- Apply middlewares
-  putStrLn $ "STARTING DISPATCH CYCLE WITH PAYLOADC " ++ (show c')
-  c <- EM.evalMiddleware c'
-  conn <- fmap dbConn (readMVar state)
-  update <- updateCell c 
-  case update of 
-    Left e -> return $ U.getCellMessage (Left e)
-    Right () -> do 
-      d <- getDescendants conn c 
-      case d of -- for example, error if DB is locked
-        Left de -> return $ U.getCellMessage (Left de)
-        Right desc -> do 
-          ancResult <- G.getImmediateAncestors $ map cellLocation desc
-          case ancResult of 
-            (Left e') -> return $ U.getCellMessage (Left e') 
-            (Right ancLocs) -> do
-              printTimed $ "got ancestor locs: " ++ (show ancLocs)
-              anc <- fmap U.fromJustList $ DB.getCells ancLocs
-              res <- propagate conn anc desc 
-              case res of 
-                Left e' -> return $ U.getCellMessage (Left e')
-                Right cells' -> do
-                  -- Apply endwares
-                  cells <- EE.evalEndware state c' cells' uid
-                  DB.updateAfterEval conn uid c' desc cells -- does set cells and commit
-                  return $ U.getCellMessage (Right cells) -- reply message
+runDispatchCycle state c' uid = do
+  errOrCells <- runEitherT $ do
+    lift $ putStrLn $ "STARTING DISPATCH CYCLE WITH PAYLOADC " ++ (show c')
+    c <- lift $ EM.evalMiddleware c'
+    conn <- lift $ fmap dbConn $ readMVar state
+    update <- updateCell c
+    desc <- getDescendants conn c
+    ancLocs <- G.getImmediateAncestors $ map cellLocation desc
+    showTime $ "got ancestor locs: " ++ (show ancLocs)
+    anc <- lift $ fmap catMaybes $ DB.getCells ancLocs
+    cells' <- propagate conn anc desc 
+    -- Apply endware
+    cells <- lift $  EE.evalEndware state c' cells' uid
+    lift $ DB.updateAfterEval conn uid c' desc cells -- does set cells and commit
+    return cells
+  return $ U.getCellMessage errOrCells
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Eval building blocks
 
 -- | Takes a cell and returns an error if it tries to access a non-existent cell
 -- Otherwise, it returns all of the immediate ancestors (used to make the lookup map)
-updateCell :: ASCell -> IO (Either ASExecError ())
+updateCell :: ASCell -> EitherTExec ()
 updateCell (Cell loc xp val ts) = do 
   let (deps, expr) = getDependenciesAndExpressions (locSheetId loc) xp
-  ancCells <- DB.getCells deps
-  printTimed $ "got cells: "
+  ancCells <- lift $ DB.getCells deps
+  showTime $ "got cells: "
   if (any isNothing ancCells)
-    then return $ Left (DBNothingException [])
+    then left $ DBNothingException []
     else do 
       let initCell = Cell loc expr NoValue ts
-      setResult <- G.setRelations [(loc, deps)]
-      printTimed $ "init cells: " ++ (show initCell)
-      DB.setCell initCell
-      printTimed $ "set init cells"
-      return $ case setResult of 
-        (Right ()) -> Right ()
-        (Left e) -> Left e 
+      G.setRelations [(loc, deps)]
+      showTime $ "init cells: " ++ (show initCell)
+      lift $ DB.setCell initCell
+      showTime "set init cells"
 
 -- | Return the descendants of a cell, which will always exist but may be locked
 -- TODO: throw exceptions for permissions/locking
-getDescendants :: Connection -> ASCell -> IO (Either ASExecError [ASCell])
+getDescendants :: Connection -> ASCell -> EitherTExec [ASCell]
 getDescendants conn cell = do 
   let loc = cellLocation cell
-  printTimed $ "output 1: " ++ (show $ locSheetId loc)
-  printTimed $ "output 2: " ++ (show $ index loc)
-  --dag <- DB.getDAG conn
-  --printTimed "got dag"
-  vLocs <- DB.getVolatileLocs conn
-  printTimed "got volatile locs"
- --Account for volatile cells being reevaluated each time
-  graphResult <- G.getDescendants (loc:vLocs) 
-  --let descendantLocs = DAG.descendants (locs ++ vLocs) dag
-  --desc <- DB.getCells conn descendantLocs
-  --let graphResult = Right descendantLocs
-  case graphResult of
-    (Right descendantLocs) -> do
-      desc <- DB.getCells descendantLocs
-      printTimed $ "got descendant cells: " -- ++ (show desc)
-      return . Right $ map fromJust desc 
-    (Left e) -> return $ Left e
+  showTime $ "output 1: " ++ (show $ locSheetId loc)
+  showTime $ "output 2: " ++ (show $ index loc)
+  vLocs <- lift $ DB.getVolatileLocs conn
+  showTime "got volatile locs"
+  --Account for volatile cells being reevaluated each time
+  indexes <- G.getDescendants (loc:vLocs) 
+  desc <- lift $ DB.getCells indexes
+  showTime $ "got descendant cells"
+  return $ map fromJust desc
+
 
 -- | Takes ancestors and descendants, create lookup map, and run eval
-propagate :: Connection -> [ASCell] -> [ASCell] -> IO (Either ASExecError [ASCell])
+propagate :: Connection -> [ASCell] -> [ASCell] -> EitherTExec [ASCell]
 propagate conn anc dec = do 
   let mp = M.fromList $ map (\c -> (IndexRef $ cellLocation c, cellValue c)) anc
   evalChain conn mp dec
@@ -119,24 +101,19 @@ propagate conn anc dec = do
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Eval helpers
 
-evalChain :: Connection -> M.Map ASReference ASValue -> [ASCell] -> IO (Either ASExecError [ASCell])
-evalChain _ _ [] = return $ Right []
+evalChain :: Connection -> M.Map ASReference ASValue -> [ASCell] -> EitherTExec [ASCell]
+evalChain _ _ [] = return []
 evalChain conn mp ((Cell loc xp _ ts):cs) = do  
-  printTimed $ "Starting eval chain" -- ++ (show mp)
-  evalResult <- R.evaluateLanguage xp loc mp
-  case evalResult of 
-    (Left e) -> return $ Left e
-    (Right cv) -> do
-      otherCells <- case loc of
-        Index sheet (a, b) -> case cv of
-          ValueL lstValues -> createListCells conn (Index sheet (a, b)) lstValues
-          otherwise -> return [] 
-        otherwise -> return []
-      let newMp = M.insert (IndexRef loc) cv mp
-      rest <- evalChain conn newMp cs
-      return $ case rest of 
-        (Left e) -> Left e
-        (Right moreCells) -> Right $ (Cell loc xp cv ts):(otherCells ++ moreCells)
+  showTime $ "Starting eval chain" 
+  cv <- R.evaluateLanguage xp loc mp
+  otherCells <- case loc of
+    Index sheet (a, b) -> case cv of
+      ValueL lstValues -> lift $ createListCells conn (Index sheet (a, b)) lstValues
+      otherwise -> return [] 
+    otherwise -> return []
+  let newMp = M.insert (IndexRef loc) cv mp
+  rest <- evalChain conn newMp cs
+  return $ (Cell loc xp cv ts):(otherCells ++ rest)
 
 
 -- | Create a list of cells, also modify the DB for references 
@@ -153,5 +130,5 @@ createListCells conn (Index sheet (a,b)) values =
     shift (ValueL v) r (a,b) = [(a+c,b+r) | c<-[0..length(v)-1] ]
     shift other r (a,b)  = [(a,b+r)]
   in do
-    G.setRelations (zip (L.tail locs) (repeat [origLoc]))
+    runEitherT $ G.setRelations (zip (L.tail locs) (repeat [origLoc]))
     return cells

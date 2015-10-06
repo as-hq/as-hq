@@ -12,7 +12,11 @@ import qualified Data.UUID as U (toString)
 import qualified Data.Text as T 
 import qualified Data.List as L
 import Control.Applicative hiding ((<|>), many)
-import Data.Maybe (isNothing)
+import Data.Maybe (isNothing,catMaybes)
+
+-- EitherT
+import Control.Monad.Trans.Class
+import Control.Monad.Trans.Either
 
 -------------------------------------------------------------------------------------------------------------------------
 -- Initializations
@@ -67,11 +71,8 @@ min' j k = if j < k
 tuple3 :: a -> b -> c -> (a,b,c)
 tuple3 a b c = (a,b,c)
 
-fromJustList :: [Maybe a] -> [a]
-fromJustList l = map (\(Just x) -> x) l
-
 filterNothing :: [Maybe a] -> [a]
-filterNothing l = fromJustList $ filter (not . isNothing) l
+filterNothing l = catMaybes $ filter (not . isNothing) l
 
 isoFilter :: (a -> Bool) -> [a] -> [b] -> [b]
 isoFilter f pimg img = map snd $ filter (\(a,b) -> f a) $ zip pimg img
@@ -146,6 +147,7 @@ generateErrorMessage e = case e of
   (ExcelSyntaxError s)        -> "Formula syntax error: " ++ s
   SyntaxError                 -> "Syntax error."
 
+
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Time
 getTime :: IO String
@@ -155,6 +157,9 @@ printTimed :: String -> IO ()
 printTimed str = do 
   time <- getTime
   putStrLn $ "[" ++ (show time) ++ "] " ++ str 
+
+showTime :: String -> EitherTExec ()
+showTime = lift . printTimed
 
 -- | Not yet implemented
 getASTime :: IO ASTime
@@ -240,7 +245,7 @@ rangeToIndices (Range sheet (ul, lr)) = [Index sheet (x,y) | x <- [startx..endx]
     endy = max' (snd ul) (snd lr)
 
 matchSheets :: [ASWorkbook] -> [ASSheet] -> [WorkbookSheet]
-matchSheets ws ss = [WorkbookSheet (workbookName w) (fromJustList $ lookupSheets w ss) | w <- ws]
+matchSheets ws ss = [WorkbookSheet (workbookName w) (catMaybes $ lookupSheets w ss) | w <- ws]
   where lookupSheets workbook sheets = map (\sid -> lookupLambda sheetId sid sheets) (workbookSheets workbook)
 
 
