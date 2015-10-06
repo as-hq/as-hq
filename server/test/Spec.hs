@@ -17,7 +17,7 @@ import Foreign.C.Types
 import Foreign.C.String(CString(..))
 import Foreign.C
 
-import Data.Text as T hiding (index, length)
+import Data.Text as T hiding (index, length, map)
 import qualified Data.List as L
 
 import Database.Redis as R
@@ -39,8 +39,9 @@ main = do
     --testEvaluate
     --testEvaluateRepl
     --putStrLn $ trimWhitespace Python "  1+1;  \t \n "
-    testIntrospect
+    --testIntrospect
     --testExcelExpr
+    testGetCells
 
 testExcelExpr :: IO ()
 testExcelExpr = do
@@ -83,7 +84,8 @@ testSetCells = do
     let cells = testCells 100000
     --printTimed $ L.concat $ L.map show2 cells
     DB.setCells cells
-    cells' <- testGetCells 
+    let locs = testLocs 100000
+    cells' <- DB.getCells locs 
     let result = (==) 100000 $ length . filterNothing $ cells'
     printTimed $ "set 100K cells: " ++ (showResult result)
 
@@ -101,10 +103,13 @@ showResult False = "FAILED"
 --       c_setCells lstr (fromIntegral . L.length $ cells)
 --    return ()
 
-testGetCells :: IO [Maybe ASCell] 
+testGetCells :: IO ()
 testGetCells = do
-    let locs = testLocs 100000
+    let locs = testLocs 10
+    let keys = map DU.getLocationKey locs
+    cells <- DU.getCellsByKeys keys
     DB.getCells locs
+    printTimed $ show cells
 
 testSheetCreation :: Connection -> IO ()
 testSheetCreation conn = do

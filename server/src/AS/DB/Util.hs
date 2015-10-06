@@ -7,6 +7,7 @@ import AS.Types.DB
 import AS.Util
 import AS.Parsing.Common (tryParseListNonIso)
 import AS.Parsing.In (int)
+import AS.Parsing.Out (showValue)
 
 import qualified Data.List                     as L
 import qualified Data.Text                     as T
@@ -19,6 +20,7 @@ import qualified Text.Show.ByteString          as BS
 import qualified Data.ByteString.Internal      as BI
 import qualified Data.ByteString.Lazy          as BL
 import qualified Data.ByteString.Lazy.Internal as BLI
+import qualified Data.ByteString.Unsafe        as BU
 import           Foreign.ForeignPtr
 import           Foreign.Ptr
 import           Foreign.C.String(CString, peekCString)
@@ -29,6 +31,11 @@ import Control.Applicative
 import Control.Concurrent
 import Control.Monad
 import Control.Monad.Trans
+
+import Foreign
+import Foreign.C.Types
+import Foreign.C.String(CString(..))
+import Foreign.C
 
 ----------------------------------------------------------------------------------------------------------------------
 -- Settings
@@ -53,6 +60,9 @@ cInfo = ConnInfo
 msgPartDelimiter = "@"
 
 relationDelimiter = "&"
+
+getListKey :: ASIndex -> String
+getListKey idx = (show2 idx) ++ "LIST" 
 
 getLocationKey :: ASIndex -> B.ByteString
 getLocationKey = BC.pack . show2
@@ -93,6 +103,22 @@ getUniquePrefixedName pref strs = pref ++ (show idx)
       [] -> 1
       _ -> (L.maximum idxs) + 1
 
+decoupleCell :: ASCell -> ASCell
+decoupleCell (Cell l e v ts) = Cell l e' v ts'
+  where
+    lang = language e
+    e' = Expression (showValue lang v) lang
+    ts' = filter (\t -> case t of 
+      ListMember _ -> False
+      _ -> True) ts
+
+----------------------------------------------------------------------------------------------------------------------
+-- FFI 
+
+foreign import ccall unsafe "hiredis/redis_db.c getCells" c_getCells :: CString -> CInt -> IO (Ptr CString)
+foreign import ccall unsafe "hiredis/redis_db.c setCells" c_setCells :: CString -> CInt -> IO ()
+
+
 ----------------------------------------------------------------------------------------------------------------------
 -- Private DB functions
 
@@ -110,6 +136,27 @@ getUniquePrefixedName pref strs = pref ++ (show idx)
 --    let setKey = getSheetSetKey (locSheetId loc)
 --    sadd setKey [key] -- add the location key to the set of locs in a sheet (for sheet deletion etc)
 --    return ()
+
+getCellsByKeys :: [B.ByteString] -> IO [Maybe ASCell]
+getCellsByKeys keys = getCellsByMessage msg num
+  where
+    msg = B.snoc (B.intercalate (BC.pack "@") keys) (0::Word8) 
+    num = length keys
+
+-- takes a message and number of locations queried
+getCellsByMessage :: B.ByteString -> Int -> IO [Maybe ASCell]   
+getCellsByMessage msg num = do
+  putStrLn (show msg) 
+  ptrCells <- BU.unsafeUseAsCString msg $ \str -> c_getCells str (fromIntegral num)
+  cCells <- peekArray (fromIntegral num) ptrCells
+  res <- mapM cToASCell cCells  
+  free ptrCells 
+  return res 
+
+setCellsByMessage :: B.ByteString -> Int -> IO ()
+setCellsByMessage msg num = do
+  _ <- BU.unsafeUseAsCString msg $ \lstr -> c_setCells lstr (fromIntegral num)
+  return ()
 
 deleteLocRedis :: ASIndex -> Redis ()
 deleteLocRedis loc = del [getLocationKey loc] >> return ()
@@ -142,7 +189,7 @@ toStrict2 lb = BI.unsafeCreate len $ go lb
             go r (ptr `plusPtr` l)
 
 showB :: (BS.Show a) => a -> B.ByteString
-showB a = toStrict2 (BL.snoc (BS.show $! a) (0::Word8))
+showB a = toStrict2 $ BL.snoc (BS.show $! a) (0::Word8)
 
 ----------------------------------------------------------------------------------------------------------------------
 -- Reading bytestrings

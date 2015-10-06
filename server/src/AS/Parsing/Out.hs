@@ -279,7 +279,7 @@ getDependencies sheetid matches = depsFromExcelLocs matches
 -- Functions for excel sheet loading
 
 unpackExcelLocs :: ASValue -> [(Int,Int)] 
-unpackExcelLocs (ValueL locs) = map (tup.format.lst) locs -- d=[ValueD a, ValueD b]
+unpackExcelLocs (ValueL locs) = map (tup . format . toList) locs -- d=[ValueD a, ValueD b]
     where format = map (floor.dbl) -- format :: [ASValue] -> [Int]
           tup = \ints -> (ints!!0, ints!!1) -- tup :: [Int]-> (Int,Int)
 

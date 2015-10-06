@@ -218,6 +218,11 @@ getAllUserWindows state = map (\u -> (userId u, windows u)) (userClients state)
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Locations
 
+isList :: ASCell -> Bool
+isList (Cell _ _ _ ts) = any id $ map (\t -> case t of 
+  (ListMember _) -> True
+  _ -> False) ts
+
 -- | ASReference is either a cell index, range, or column. When decomposeLocs takes a range, it returns
 -- the list of indices that compose the range. When it takes in an index, it returns a list consisting
 -- of just that index. It cannot take in a column. 

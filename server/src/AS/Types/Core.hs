@@ -5,7 +5,10 @@ module AS.Types.Core where
 import Prelude
 import GHC.Generics
 import Data.Aeson hiding (Success)
+import Data.Aeson.Types (defaultOptions)
 import Data.Text hiding (foldr, map)
+import Data.ByteString (ByteString)
+import Data.ByteString.Char8 as BC
 import qualified Network.WebSockets as WS
 import qualified Database.Redis as R
 import Control.Concurrent (MVar)
@@ -73,6 +76,7 @@ data ASCellTag =
   | Tracking
   | Volatile
   | ReadOnly [ASUserId]
+  | ListMember {listKey :: String}
   deriving (Show, Read, Eq, Generic)
 
 data ASCell = Cell {cellLocation :: ASIndex, 
@@ -240,9 +244,9 @@ instance Eq ASDaemonClient where
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Convenience methods
 
-lst :: ASValue -> [ASValue]
-lst (ValueL l) = l
-lst other = [other]
+toList :: ASValue -> [ASValue]
+toList (ValueL l) = l
+toList other = [other]
 
 str :: ASValue -> String
 str (ValueS s) = s
@@ -263,7 +267,6 @@ openPermissions = Blacklist []
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- JSON
-
 instance ToJSON ASReference
 instance FromJSON ASReference
 instance ToJSON ASIndex
@@ -288,8 +291,6 @@ instance ToJSON ASInitConnection
 instance FromJSON ASInitConnection 
 instance ToJSON ASExecError
 instance FromJSON ASExecError
-instance ToJSON ASCellTag
-instance FromJSON ASCellTag
 instance ToJSON ASWindow
 instance FromJSON ASWindow
 instance ToJSON ASSheet
@@ -338,3 +339,15 @@ instance FromJSON ASServerMessage where
                            v .: "result" <*>
                            v .: "payload"
   parseJSON _          = fail "server message JSON attributes missing"
+
+instance FromJSON ASCellTag
+instance ToJSON ASCellTag
+--instance ToJSON ASCellTag where
+--  toJSON (ListMember k) = object ["listKey" .= (BC.unpack k)]
+--  toJSON a = genericToJSON defaultOptions a
+--instance FromJSON ASCellTag where
+--  parseJSON obj@(Object v) = do
+--    listField <- v .:? "listKey"
+--    case listField of 
+--      Nothing -> genericParseJSON defaultOptions obj
+--      (Just k) -> return . ListMember $ BC.pack k

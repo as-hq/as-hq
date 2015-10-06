@@ -28,6 +28,7 @@ import qualified Data.Text as T
 import qualified Data.Text.IO as T
 import Data.Aeson hiding (Success)
 import qualified Data.ByteString.Char8 as B 
+import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy.Char8 as C
 import Data.ByteString.Unsafe as BU
 import Data.List.Split
@@ -60,13 +61,7 @@ import Data.List.Split
 -- | Volatile locs
 -- stored as before, as a set with key volatileLocs
 
-----------------------------------------------------------------------------------------------------------------------
--- FFI 
 
-foreign import ccall unsafe "hiredis/redis_db.c getCells" c_getCells :: CString -> CInt -> IO (Ptr CString)
-foreign import ccall unsafe "hiredis/redis_db.c setCells" c_setCells :: CString -> CInt -> IO ()
-
- 
 ----------------------------------------------------------------------------------------------------------------------
 -- Cells
 
@@ -75,31 +70,21 @@ getCell loc = return . head =<< getCells [loc]
 
 getCells :: [ASIndex] -> IO [Maybe ASCell]
 getCells [] = return []
-getCells locs = 
-  let  
+getCells locs = DU.getCellsByMessage msg num
+  where
     msg = showB $ intercalate "@" $ map show2 locs
     num = length locs 
-  in do
-    ptrCells <- BU.unsafeUseAsCString msg $ \str -> c_getCells str (fromIntegral num)
-    --ptrCells <- withCString str $ \cstr ->  c_getCells cstr (fromIntegral num)
-    cCells <- peekArray (fromIntegral num) ptrCells
-    res <- mapM DU.cToASCell cCells  
-    free ptrCells 
-    return res 
- 
+
 setCell :: ASCell -> IO () 
 setCell c = setCells [c] 
 
 setCells :: [ASCell] -> IO () 
 setCells [] = return () 
-setCells cells = do
-  let str = intercalate "@" $ (map (show2 . cellLocation) cells) ++ (map show2 cells)
-  let msg = showB str
-  --B.putStrLn msg
-  _ <- unsafeUseAsCString msg $ \lstr -> do
-    --liftIO $ printTimed "packed message" 
-    c_setCells lstr (fromIntegral . length $ cells)
-  return ()
+setCells cells = DU.setCellsByMessage msg num
+  where
+    str = intercalate "@" $ (map (show2 . cellLocation) cells) ++ (map show2 cells)
+    msg = showB str
+    num = length cells
 
 deleteCells :: Connection -> [ASCell] -> IO ()
 deleteCells _ [] = return ()
@@ -107,10 +92,9 @@ deleteCells conn cells = deleteLocs conn $ map cellLocation cells
 
 deleteLocs :: Connection -> [ASIndex] -> IO ()
 deleteLocs _ [] = return ()
-deleteLocs conn locs = do
-  runRedis conn $ do
-      _ <- mapM_ DU.deleteLocRedis locs
-      return ()
+deleteLocs conn locs = runRedis conn $ do
+  _ <- mapM_ DU.deleteLocRedis locs
+  return ()
 
 locationsExist :: Connection -> [ASIndex] -> IO [Bool]
 locationsExist conn locs = do
@@ -119,6 +103,18 @@ locationsExist conn locs = do
       bools <- mapM (\l -> exists $ DU.getLocationKey l) locs
       return $ sequence bools
     return results
+
+decoupleList :: Connection -> ASIndex -> IO [ASCell]
+decoupleList conn idx = do
+  locs <- runRedis conn $ do
+    let listKey = B.pack $ getListKey idx
+    Right result <- smembers listKey
+    return result
+  listCells <- DU.getCellsByKeys locs
+  printTimed "got here!"
+  let newCells = map DU.decoupleCell $ filterNothing listCells 
+  setCells newCells 
+  return newCells
 
 -- TODO fix
 --getColumnCells :: Connection -> ASIndex -> IO [Maybe ASCell]
