@@ -72,6 +72,7 @@ library
                      , bytestring-show
                      , template-haskell
                      , pureMD5
+                     , either
   default-language:    Haskell2010
   default-extensions:  QuasiQuotes
                        FlexibleContexts
@@ -98,6 +99,7 @@ executable alphasheets-exe
                      , hedis
                      , daemons
                      , data-default
+                     , either
   PkgConfig-Depends:   python
   extra-libraries:     hiredis
   c-sources:           src/hiredis/redis_db.c

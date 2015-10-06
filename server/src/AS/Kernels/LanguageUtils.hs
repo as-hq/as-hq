@@ -27,24 +27,29 @@ import qualified Prelude as P
 
 import AS.Parsing.Common as C
 
+-- EitherT
+import Control.Monad.Trans.Class
+import Control.Monad.Trans.Either
+
 -----------------------------------------------------------------------------------------------------------------------
 -- | Exposed functions
 
-introspectCode :: ASLanguage -> String -> IO (Either ASExecError String)
-introspectCode lang str = 
+introspectCode :: ASLanguage -> String -> EitherTExec String
+introspectCode lang str = do 
     let trimmed = trimWhitespace lang str
-    in case lang of 
-        SQL         -> fmap Right $ wrapCode SQL False trimmed
+    let onSuccess = (wrapCode lang False) . recombineLines 
+    let onFailure _ = return ExpressionNotEvaluable
+    case lang of 
+        SQL         -> lift $ wrapCode SQL False trimmed
         otherwise   -> case (tryPrintingLast lang trimmed) of
-            (Left _)        -> return $ Left ExpressionNotEvaluable
-            (Right result)  -> fmap Right $ wrapCode lang False recombined
-                where recombined = recombineLines result
+            (Left _)        -> left ExpressionNotEvaluable
+            (Right result)  -> lift $ wrapCode lang False $ recombineLines result
 
 -- returns (repl record code, repl eval code)
 introspectCodeRepl :: ASLanguage -> String -> IO (String, String)
-introspectCodeRepl lang str = 
+introspectCodeRepl lang str = do
     let trimmed = trimWhitespace lang str
-    in case (tryPrintingLast lang trimmed) of
+    case (tryPrintingLast lang trimmed) of
         (Left _) -> return $ (trimmed, emptyExpression) -- nothing to print, so nothing to evaluate
         (Right (recordXp, printedLine)) -> do
             evalXp <- wrapCode lang True $ recombineLines (recordXp, printedLine)
