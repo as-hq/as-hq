@@ -185,7 +185,7 @@ cellReference = fmap (Basic . Ref) $ try (sheetCellReference) <|> singleCellRefe
 -- | Function application.
 functionApplication :: Parser Formula
 functionApplication = do
-  i <- option "union" $ try identifier
+  i <- option "tuple" $ try identifier
   fs <- parens (commaSep expr)
   return . Basic $ Fun i fs
 
@@ -277,7 +277,7 @@ excelValue = fmap (Basic . Var) $
   <|> try (EValueS <$> str)
 
 blankValue :: Parser Formula
-blankValue = spaces >> (return . Basic $ Var EBlank)
+blankValue = spaces >> (return . Basic $ Var EMissing)
 
 
 ----------------------------------------------------------------------------------------------------------------------------------------------

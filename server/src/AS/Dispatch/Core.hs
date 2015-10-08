@@ -44,14 +44,14 @@ runDispatchCycle :: MVar ServerState -> ASCell -> ASUserId -> IO ASServerMessage
 runDispatchCycle state c' uid = do
   errOrCells <- runEitherT $ do
     lift $ putStrLn $ "STARTING DISPATCH CYCLE WITH PAYLOADC " ++ (show c')
-    c <- lift $ EM.evalMiddleware c'
-    conn <- lift $ fmap dbConn $ readMVar state
+    c           <- lift $ EM.evalMiddleware c'
+    conn        <- lift $ fmap dbConn $ readMVar state
     updateCells <- updateCell conn c
-    desc <- getDescendants conn c
-    ancLocs <- G.getImmediateAncestors $ map cellLocation desc
+    desc        <- getDescendants conn c
+    ancLocs     <- G.getImmediateAncestors $ map cellLocation desc
     showTime $ "got ancestor locs: " ++ (show ancLocs)
-    anc <- lift $ fmap catMaybes $ DB.getCells ancLocs
-    cells' <- propagate conn anc desc 
+    anc     <- lift $ fmap catMaybes $ DB.getCells ancLocs
+    cells'  <- propagate conn anc desc 
     -- Apply endware
     cells <- lift $  EE.evalEndware state c' cells' uid
     lift $ DB.updateAfterEval conn uid c' desc cells -- does set cells and commit
@@ -68,7 +68,6 @@ runDispatchCycle state c' uid = do
 updateCell :: Connection -> ASCell -> EitherTExec [ASCell] 
 updateCell conn (Cell loc xp val ts) = do 
   oldCell <- lift $ DB.getCell loc
-  lift $ putStrLn "got shit"
   unlistCells <- case oldCell of 
     Just cell -> if (isListMember cell) 
       then lift $ DB.decoupleList conn cell
@@ -76,7 +75,6 @@ updateCell conn (Cell loc xp val ts) = do
     Nothing   -> return []
   let (deps, expr) = getDependenciesAndExpressions (locSheetId loc) xp
   ancCells <- lift $ DB.getCells deps
-  showTime $ "got cells: "
   if (any isNothing ancCells)
     then left $ DBNothingException []
     else do 

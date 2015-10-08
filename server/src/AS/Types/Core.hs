@@ -115,6 +115,7 @@ data ASServerMessage = ServerMessage {
 data ASAction = 
     NoAction
   | Acknowledge
+  | SetInitialSheet
   | New | Import 
   | Open | Close
   | Evaluate | EvaluateRepl

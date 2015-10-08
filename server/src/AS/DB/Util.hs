@@ -148,7 +148,11 @@ getCellsByKeys keys = getCellsByMessage msg num
 getCellsByMessage :: B.ByteString -> Int -> IO [Maybe ASCell]   
 getCellsByMessage msg num = do
   --putStrLn $ "get cells by key with num: " ++ (show num) ++ ", " ++ (show msg) 
-  ptrCells <- BU.unsafeUseAsCString msg $ \str -> c_getCells str (fromIntegral num)
+  ptrCells <- BU.unsafeUseAsCString msg $ \str -> do
+    printTimed "built message"
+    c <- c_getCells str (fromIntegral num)
+    printTimed "got cells"
+    return c
   cCells <- peekArray (fromIntegral num) ptrCells
   res <- mapM cToASCell cCells  
   free ptrCells 

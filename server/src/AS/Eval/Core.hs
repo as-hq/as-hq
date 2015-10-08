@@ -59,12 +59,12 @@ evalCode sheetid values xp@(Expression _ lang) = do
 	
 
 execEvaluateLang :: ASLanguage -> String -> EitherTExec ASValue
-execEvaluateLang lang str = case lang of 
-	Python 	-> KP.evaluate str
-	Excel 	-> KE.evaluate str
-	R 		-> KR.evaluate str
-	SQL 	-> KP.evaluateSql str
-	OCaml 	-> KO.evaluate str
+execEvaluateLang lang = case lang of 
+	Python 	-> KP.evaluate
+	Excel 	-> KE.evaluate
+	R 		-> KR.evaluate
+	SQL 	-> KP.evaluateSql
+	OCaml 	-> KO.evaluate
 
 evalRef :: ASIndex -> M.Map ASReference ASValue -> ASExpression ->  ASValue
 evalRef loc dict (Reference l (a, b)) = 

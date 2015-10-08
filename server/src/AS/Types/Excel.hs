@@ -40,6 +40,7 @@ data ERef = ERef ASReference deriving (Show, Read)
 
 data ExcelValue = 
  EBlank |
+ EMissing |
  EValueI Integer |
  EValueD Double |
  EValueB Bool |
