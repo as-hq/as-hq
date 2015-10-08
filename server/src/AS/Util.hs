@@ -13,7 +13,11 @@ import qualified Data.Text as T
 import qualified Data.List as L
 import qualified Data.Set as S
 import Control.Applicative hiding ((<|>), many)
-import Data.Maybe (isNothing)
+import Data.Maybe (isNothing,catMaybes)
+
+-- EitherT
+import Control.Monad.Trans.Class
+import Control.Monad.Trans.Either
 
 -------------------------------------------------------------------------------------------------------------------------
 -- Initializations
@@ -68,11 +72,8 @@ min' j k = if j < k
 tuple3 :: a -> b -> c -> (a,b,c)
 tuple3 a b c = (a,b,c)
 
-fromJustList :: [Maybe a] -> [a]
-fromJustList l = map (\(Just x) -> x) l
-
 filterNothing :: [Maybe a] -> [a]
-filterNothing l = fromJustList $ filter (not . isNothing) l
+filterNothing l = catMaybes $ filter (not . isNothing) l
 
 isoFilter :: (a -> Bool) -> [a] -> [b] -> [b]
 isoFilter f pimg img = map snd $ filter (\(a,b) -> f a) $ zip pimg img
@@ -129,13 +130,6 @@ getCellMessage (Right cells) = ServerMessage Evaluate Success (PayloadCL cells)
 -- getBadLocs :: [ASReference] -> [Maybe ASCell] -> [ASReference]
 -- getBadLocs locs mcells = map fst $ filter (\(l,c)->isNothing c) (zip locs mcells)
 
---getDBCellMessage :: ASUserClient -> [ASReference] -> [Maybe ASCell] -> ASMessage
---getDBCellMessage user locs mcells = if any isNothing mcells
---  then getCellMessage user (Left (DBNothingException (getBadLocs locs mcells)))
---  else getCellMessage user (Right (map (\(Just c)->c) mcells))
-
--- bugfix for sending non-nothing locs (e.g. scrolling)
--- TODO send empty cells for nothings -- updates deletes that happened past viewing window
 getDBCellMessage :: [Maybe ASCell] -> ASServerMessage
 getDBCellMessage mcells = getCellMessage (Right cells)
   where justCells = filter (not . isNothing) mcells 
@@ -146,8 +140,14 @@ getDBCellMessage mcells = getCellMessage (Right cells)
 
 -- | Not yet implemented
 generateErrorMessage :: ASExecError -> String
-generateErrorMessage CopyNonexistentDependencies = "Some dependencies nonexistent in copied cell expressions."
-generateErrorMessage (DBNothingException _) = "Unable to fetch cells from database."
+generateErrorMessage e = case e of 
+  CopyNonexistentDependencies -> "Some dependencies nonexistent in copied cell expressions."
+  (DBNothingException _)      -> "Unable to fetch cells from database."
+  ExpressionNotEvaluable      -> "Expression not does not contain evaluable statement."
+  ExecError                   -> "Error while evaluating expression."
+  (ExcelSyntaxError s)        -> "Formula syntax error: " ++ s
+  SyntaxError                 -> "Syntax error."
+
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Time
@@ -158,6 +158,9 @@ printTimed :: String -> IO ()
 printTimed str = do 
   time <- getTime
   putStrLn $ "[" ++ (show time) ++ "] " ++ str 
+
+showTime :: String -> EitherTExec ()
+showTime = lift . printTimed
 
 -- | Not yet implemented
 getASTime :: IO ASTime
@@ -183,12 +186,12 @@ intersectViewingWindows cells vws = concat $ map (intersectViewingWindow cells) 
     inRange elem start len = ((elem >= start) && (elem <= (start + len)))
 
 -- new function, so that we don't have to do the extra filter/lookup by using just one
-intersectViewingWindowsLocs :: [ASLocation] -> [ASWindow] -> [ASLocation]
+intersectViewingWindowsLocs :: [ASIndex] -> [ASWindow] -> [ASIndex]
 intersectViewingWindowsLocs locs vws = concat $ map (intersectViewingWindow locs) vws 
   where
-    intersectViewingWindow :: [ASLocation] -> ASWindow -> [ASLocation]
+    intersectViewingWindow :: [ASIndex] -> ASWindow -> [ASIndex]
     intersectViewingWindow locs vw = filter (inViewingWindow vw) locs
-    inViewingWindow :: ASWindow -> ASLocation -> Bool
+    inViewingWindow :: ASWindow -> ASIndex -> Bool
     inViewingWindow (Window wSheetId (tlc, tlr) (brc, brr)) (Index cSheetId (col,row)) = 
       ((wSheetId==cSheetId) && (inRange col tlc (brc-tlc)) && (inRange row tlr (brr-tlr)))
     inRange :: Int -> Int -> Int -> Bool
@@ -221,15 +224,38 @@ getAllUserWindows state = map (\u -> (userId u, windows u)) (userClients state)
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Locations
 
+isListMember :: ASCell -> Bool
+isListMember (Cell _ _ _ ts) = any id $ map (\t -> case t of 
+  (ListMember _) -> True
+  _ -> False) ts
+
+getListTag :: ASCell -> Maybe ASCellTag
+getListTag (Cell _ _ _ ts) = getTag foundTags
+  where 
+    foundTags = filter (\t -> case t of 
+      (ListMember _) -> True
+      _ -> False) ts
+    getTag [] = Nothing
+    getTag (t:[]) = Just t
+
 -- | ASReference is either a cell index, range, or column. When decomposeLocs takes a range, it returns
 -- the list of indices that compose the range. When it takes in an index, it returns a list consisting
 -- of just that index. It cannot take in a column. 
-refToIndices :: ASReference -> [ASLocation]
+refToIndices :: ASReference -> [ASIndex]
 refToIndices loc = case loc of 
   (IndexRef ind) -> [ind]
   (RangeRef r) -> rangeToIndices r
+-- decomposeLocs :: ASReference -> [ASIndex]
+-- decomposeLocs loc = case loc of 
+--   (IndexRef ind) -> [ind]
+  -- (RangeRef (Range sheet (ul, lr))) -> [Index sheet (x,y) | x <- [startx..endx], y <- [starty..endy] ]
+  --   where 
+  --     startx = min' (fst ul) (fst lr)
+  --     endx = max' (fst ul) (fst lr)
+  --     starty = min' (snd ul) (snd lr)
+  --     endy = max' (snd ul) (snd lr)
 
-rangeToIndices :: ASRange -> [ASLocation]
+rangeToIndices :: ASRange -> [ASIndex]
 rangeToIndices (Range sheet (ul, lr)) = [Index sheet (x,y) | x <- [startx..endx], y <- [starty..endy] ]
   where 
     startx = min' (fst ul) (fst lr)
@@ -238,7 +264,7 @@ rangeToIndices (Range sheet (ul, lr)) = [Index sheet (x,y) | x <- [startx..endx]
     endy = max' (snd ul) (snd lr)
 
 matchSheets :: [ASWorkbook] -> [ASSheet] -> [WorkbookSheet]
-matchSheets ws ss = [WorkbookSheet (workbookName w) (fromJustList $ lookupSheets w ss) | w <- ws]
+matchSheets ws ss = [WorkbookSheet (workbookName w) (catMaybes $ lookupSheets w ss) | w <- ws]
   where lookupSheets workbook sheets = map (\sid -> lookupLambda sheetId sid sheets) (workbookSheets workbook)
 
 
@@ -246,13 +272,13 @@ shiftLoc :: (Int, Int) -> ASReference -> ASReference
 shiftLoc (dy, dx) (IndexRef (Index sh (y,x))) = IndexRef $ Index sh (y+dy, x+dx)
 shiftLoc (dy, dx) (RangeRef (Range sh ((y,x),(y2,x2)))) = RangeRef $ Range sh ((y+dy, x+dx), (y2+dy, x2+dx))
 
-shiftInd :: (Int, Int) -> ASLocation -> ASLocation
+shiftInd :: (Int, Int) -> ASIndex -> ASIndex
 shiftInd (dy, dx) (Index sh (y,x)) = Index sh (y+dy, x+dx)
 
-getTopLeft :: ASRange -> ASLocation
+getTopLeft :: ASRange -> ASIndex
 getTopLeft (Range sh (tl,_)) = Index sh tl
 
-getIndicesOffset :: ASLocation -> ASLocation -> (Int, Int)
+getIndicesOffset :: ASIndex -> ASIndex -> (Int, Int)
 getIndicesOffset (Index _ (y, x)) (Index _ (y', x')) = (y'-y, x'-x)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
@@ -301,7 +327,7 @@ getStreamTagFromExpression xp = Nothing
 ----------------------------------------------------------------------------------------------------------------------
 -- | Testing
 
-testLocs :: Int -> [ASLocation]
+testLocs :: Int -> [ASIndex]
 testLocs n = [Index "" (i,1) | i <-[1..n]]
 
 testCells :: Int -> [ASCell]

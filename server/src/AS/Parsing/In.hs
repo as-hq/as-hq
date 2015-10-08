@@ -147,7 +147,7 @@ extractValue m
         l           = m M.! "excelLocs"
         e           = m M.! "excelExprs"
         v           = m M.! "excelVals"
-    extractStyledValue mm = StyledValue s v
+    extractStyledValue mm = ValueStyled s v
       where
         ValueS s    = m M.! "style"
         v           = m M.! "value"
@@ -160,7 +160,7 @@ extractValue m
     extractImageValue mm = ValueImage p
       where
         ValueS p    = m M.! "imagePath"
-    extractObjectValue mm = ObjectValue typ rep
+    extractObjectValue mm = ValueObject typ rep
       where
         ValueS typ  = m M.! "objectType"
         ValueS rep  = m M.! "jsonRepresentation"
@@ -254,14 +254,10 @@ ocamlError = do
   return $ ValueError err "StdErr" file ((read pos :: Int) - 4)
 
 asValue :: ASLanguage -> Parser ASValue 
-asValue lang = choice [valueD, valueS, (valueB lang), (valueL lang), complexValue, ocamlError, return $ ValueNaN ()]
+asValue lang = choice [valueD, valueS, (valueB lang), (valueL lang), complexValue, ocamlError, return $ NoValue]
 
-parseValue :: ASLanguage -> String -> ASValue --needs to change to reflect ValueImage
+parseValue :: ASLanguage -> String -> Either ASExecError ASValue --needs to change to reflect ValueImage
 parseValue lang = readOutput . (parse (asValue lang) "") . T.pack
   where
-    readOutput (Right v) = v
-    readOutput (Left e) = ValueError (show e) "Parsing error" "AlphaSheets evaluation engine" 0 -- minimal amount of parsing to get maps to work, doesn't work for different sized lists
-    --  where
-    --    f (s, ValueL l) = (ValueS s):l
-    --    f (s, o) = (ValueS s):[o]
-    --    listRep = map ValueL $ L.transpose $ map f (M.toList mm) 
+    readOutput (Right v) = Right v
+    readOutput (Left e) = Left ParseError

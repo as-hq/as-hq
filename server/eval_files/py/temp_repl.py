@@ -1,5 +1,5 @@
 import os
-filename = os.getcwd() + "/src/AS/Eval/run/py/repl_record.py"
+filename = os.getcwd() + "/eval_files/py/repl_record.py"
 execfile(filename)
 
 from AS.stdlib import *
@@ -18,7 +18,13 @@ def arr(lst):
 	return ASIterable(lst)
 result = ""
 try:
-	#CMD#
+	sd
+	fsd
+	f
+	sdf
+	sd
+	f
+	result = sdfds
 except Exception as e: 
 	exc_type, exc_obj, exc_tb = exc_info()
 	fname = 'AlphaSheets Python evaluator'

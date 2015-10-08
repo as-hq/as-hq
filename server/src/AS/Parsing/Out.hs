@@ -76,21 +76,20 @@ bool lang str = case lang of
 
 showValue :: ASLanguage -> ASValue -> String
 showValue lang v = case v of
-  ValueNaN () 		-> "Undefined"
   ValueS s 			-> show s
   ValueI i      -> show i
   ValueD d 			-> show d
   ValueB b      -> bool lang $ show b
   ValueL l 			-> toListStr lang $ fmap (showValue lang) l
-  StyledValue s v 	-> showValue lang v
+  ValueStyled s v 	-> showValue lang v
   DisplayValue d v 	-> showValue lang v
-  ObjectValue o js 	-> jsonDeserialize lang o js
-  otherwise -> "not cased on"
+  ValueObject o js 	-> jsonDeserialize lang o js
+
 
 showFilteredValue :: ASLanguage -> ASValue -> String
 showFilteredValue lang (ValueL l) = showFilteredValue lang (headOrNull l)
   where
-    headOrNull [] = ValueNaN ()
+    headOrNull [] = NoValue
     headOrNull (x:xs) = x
 showFilteredValue lang v = showValue lang v
 
@@ -114,6 +113,7 @@ parseMatches a = many $ do
 
 -- P.parse (parseMatchesWithContext (P.string "12")) "" "1212ab12"
 -- Right (["","","ab",""],["12","12","12"]) (alternating gives back str)
+-- | needs better documentation. What are the arguments and what's getting returned? (-Alex, 10/8)
 parseMatchesWithContext :: Parser t -> Parser ([String],[t])
 parseMatchesWithContext a = do 
   matchesWithContext <- many $ try $ parseNext a 
@@ -122,6 +122,7 @@ parseMatchesWithContext a = do
       matches = (map snd matchesWithContext)
   return (inter,matches)
 
+-- | needs better documentation. What are the arguments and what's getting returned? (-Alex, 10/8)
 getMatchesWithContext :: String -> Parser t -> ([String],[t])
 getMatchesWithContext target p = fromRight . (parse (parseMatchesWithContext p) "" ) . T.pack $ target
   where 
@@ -139,16 +140,16 @@ replaceMatches (inter,matches) f target = blend inter matchReplacings
 -- Type for parsing Excel Locations
              -- d1,d2 = "" or "$"
 
--- ::ALEX:: refactor
-asLocationToAsIndex :: ASReference -> ASLocation 
-asLocationToAsIndex loc = case loc of 
+asRefToAsIndex :: ASReference -> ASIndex 
+asRefToAsIndex loc = case loc of 
   IndexRef i -> i
 
--- excel location to list of as indexes
+-- | Turns an Excel reference to an AlphaSheets reference. (first arg is the sheet of the 
+-- ref, unless it's a part of the ExRef)
 exRefToASRef :: ASSheetId -> ExRef -> ASReference
 exRefToASRef sheetid exRef = case exRef of 
   ExLocOrRangeRef (ExLoc1 (ExIndex dol1 c dol2 r)) -> IndexRef $ Index sheetid (colStrToInt c, read r :: Int)
-  ExLocOrRangeRef (ExRange1 (ExRange f s)) -> RangeRef $ Range sheetid ((index . asLocationToAsIndex) (exRefToASRef sheetid $ ExLocOrRangeRef $ ExLoc1 $ f), (index . asLocationToAsIndex) (exRefToASRef sheetid $ ExLocOrRangeRef $ ExLoc1 $ s))
+  ExLocOrRangeRef (ExRange1 (ExRange f s)) -> RangeRef $ Range sheetid ((index . asRefToAsIndex) (exRefToASRef sheetid $ ExLocOrRangeRef $ ExLoc1 $ f), (index . asRefToAsIndex) (exRefToASRef sheetid $ ExLocOrRangeRef $ ExLoc1 $ s))
   ExSheetLocOrRangeRef sh rest -> case (exRefToASRef sheetid (ExLocOrRangeRef rest)) of 
     IndexRef (Index _ a) -> IndexRef $ Index (T.pack sh) a
     RangeRef (Range _ a) -> RangeRef $ Range (T.pack sh) a
@@ -257,7 +258,7 @@ shiftExRefs offset exRefs = map (shiftExRef offset) exRefs
 -- Parse dependencies and replace relative expressions
 
 -- | Returns the list of dependencies you get, and an expression with all the excel references replaced
-getDependenciesAndExpressions :: ASSheetId -> ASExpression -> ([ASLocation], ASExpression)
+getDependenciesAndExpressions :: ASSheetId -> ASExpression -> ([ASIndex], ASExpression)
 getDependenciesAndExpressions sheetid xp = (newLocs, newExpr)
   where 
     origString = expression xp
@@ -267,14 +268,14 @@ getDependenciesAndExpressions sheetid xp = (newLocs, newExpr)
     newExpr = Expression newString (language xp)
 
 -- gets dependencies from a list of excel locs
-getDependenciesFromExRefs :: ASSheetId -> [ExRef] -> [ASLocation]
+getDependenciesFromExRefs :: ASSheetId -> [ExRef] -> [ASIndex]
 getDependenciesFromExRefs sheetid matches = concat $ map refToIndices $ map (exRefToASRef sheetid) matches
 
 ----------------------------------------------------------------------------------------------------------------------------------
 -- Functions for excel sheet loading
 
 unpackExcelLocs :: ASValue -> [(Int,Int)] 
-unpackExcelLocs (ValueL locs) = map (tup.format.lst) locs -- d=[ValueD a, ValueD b]
+unpackExcelLocs (ValueL locs) = map (tup . format . toList) locs -- d=[ValueD a, ValueD b]
     where format = map (floor.dbl) -- format :: [ASValue] -> [Int]
           tup = \ints -> (ints!!0, ints!!1) -- tup :: [Int]-> (Int,Int)
 
@@ -289,7 +290,8 @@ unpackExcelVals v = []
 ----------------------------------------------------------------------------------------------------------------------------------
 -- Copy/paste
 
-shiftCell :: (Int, Int) -> ASCell -> (ASCell, [ASLocation])
+-- returns (shifted cell, new dependencies)
+shiftCell :: (Int, Int) -> ASCell -> (ASCell, [ASIndex])
 shiftCell offset (Cell loc (Expression str lang) v ts) = (shiftedCell, shiftedDeps)
   where
     sheetid = locSheetId loc

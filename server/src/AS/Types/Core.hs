@@ -5,11 +5,18 @@ module AS.Types.Core where
 import Prelude
 import GHC.Generics
 import Data.Aeson hiding (Success)
+import Data.Aeson.Types (defaultOptions)
 import Data.Text hiding (foldr, map)
+import Data.ByteString (ByteString)
+import Data.ByteString.Char8 as BC
 import qualified Network.WebSockets as WS
 import qualified Database.Redis as R
 import Control.Concurrent (MVar)
 import Control.Applicative
+
+-- EitherT
+import Control.Monad.Trans.Class
+import Control.Monad.Trans.Either
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Sheets
@@ -22,39 +29,35 @@ data WorkbookSheet = WorkbookSheet {wsName :: String, wsSheets :: [ASSheet]} der
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Core cell types
 
--- -1 in "row" for Index signifies an entire column
-data ASLocation = Index {locSheetId :: ASSheetId, index :: (Int, Int)} deriving (Show, Read, Eq, Generic, Ord)
+data ASIndex = Index {locSheetId :: ASSheetId, index :: (Int, Int)} deriving (Show, Read, Eq, Generic, Ord)
 data ASRange = Range {rangeSheetId :: ASSheetId, range :: ((Int, Int), (Int, Int))} deriving (Show, Read, Eq, Generic, Ord)
-data ASColumn = Column {columnSheetId :: ASSheetId, column :: Int} deriving (Show, Read, Eq, Generic, Ord)
-data ASReference = IndexRef ASLocation | RangeRef ASRange | ColumnRef ASColumn deriving (Show, Read, Eq, Generic, Ord)
+data ASReference = IndexRef ASIndex | RangeRef ASRange deriving (Show, Read, Eq, Generic, Ord)
 
 refSheetId :: ASReference -> ASSheetId
 refSheetId loc = case loc of 
   IndexRef i -> locSheetId i 
   RangeRef r -> rangeSheetId r
-  ColumnRef c -> columnSheetId c
 
 data ASValue =
-  NoValue |
-  ValueNaN () |
-  ValueS String |
-  ValueI Int |
-  ValueD Double | 
-  ValueB Bool |
-  ValueL [ASValue] |
-  ValueT (ASValue, ASValue) |
-  ExcelSheet { locs :: ASValue, exprs :: ASValue, vals :: ASValue} |
-  Rickshaw {rickshawData :: ASValue} |
-  ValueError { error :: String, err_type :: String, file :: String, position :: Int } | 
-  ValueImage { imagePath :: String} |
-  StockChart { stockPrices :: ASValue, stockName :: String } |
-  ObjectValue { objectType :: String, jsonRepresentation :: String } |
-  StyledValue { style :: String, value :: ASValue } |
-  DisplayValue { displayValue :: String, actualValue :: ASValue }|
-  ValueE ASEvalError
+    NoValue
+  | ValueS String
+  | ValueI Int
+  | ValueD Double 
+  | ValueB Bool
+  | ValueL [ASValue]
+  | ValueT (ASValue, ASValue)
+  | ValueImage { imagePath :: String}
+  | ValueObject { objectType :: String, jsonRepresentation :: String }
+  | ValueStyled { style :: String, value :: ASValue }
+  | ValueError { error :: String, err_type :: String, file :: String, position :: Int } 
+  | ValueE ASEvalError
+  | ExcelSheet { locs :: ASValue, exprs :: ASValue, vals :: ASValue}
+  | Rickshaw {rickshawData :: ASValue}
+  | StockChart { stockPrices :: ASValue, stockName :: String }
+  | DisplayValue { displayValue :: String, actualValue :: ASValue }
   deriving (Show, Read, Eq, Generic)
 
-data ASLangValue = LangValue {langValue :: ASValue, lang :: ASLanguage} deriving (Show, Read, Eq, Generic)
+data ASReplValue = ReplValue {replValue :: ASValue, replLang :: ASLanguage} deriving (Show, Read, Eq, Generic)
 
 type ASEvalError = String
 
@@ -66,18 +69,21 @@ data ASExpression =
   Reference { location :: ASReference, referenceIndex :: (Int, Int) }
   deriving (Show, Read, Eq, Generic)
 
+emptyExpression = ""
+
 data ASCellTag = 
-  Color String |
-  Size Int |
-  Money |
-  Percentage |
-  StreamTag Stream |
-  Tracking |
-  Volatile |
-  ReadOnly [ASUserId]
+    Color String
+  | Size Int
+  | Money
+  | Percentage
+  | StreamTag Stream
+  | Tracking
+  | Volatile
+  | ReadOnly [ASUserId]
+  | ListMember {listKey :: String}
   deriving (Show, Read, Eq, Generic)
 
-data ASCell = Cell {cellLocation :: ASLocation, 
+data ASCell = Cell {cellLocation :: ASIndex, 
 					cellExpression :: ASExpression,
 					cellValue :: ASValue,
           cellTags :: [ASCellTag]} deriving (Show, Read, Eq, Generic)
@@ -107,18 +113,18 @@ data ASServerMessage = ServerMessage {
 } deriving (Show, Read, Eq, Generic)
 
 data ASAction = 
-  NoAction |
-  Acknowledge |
-  New | Import | 
-  Open | Close |
-  Evaluate | EvaluateRepl |
-  Update | 
-  Get | Delete |
-  Copy | CopyForced |
-  Undo | Redo |
-  Clear | 
-  UpdateWindow |
-  AddTags | RemoveTags
+    NoAction
+  | Acknowledge
+  | New | Import 
+  | Open | Close
+  | Evaluate | EvaluateRepl
+  | Update
+  | Get | Delete
+  | Copy | CopyForced
+  | Undo | Redo
+  | Clear
+  | UpdateWindow
+  | AddTags | RemoveTags
   deriving (Show, Read, Eq, Generic)
 
 data ASResult = Success | Failure {failDesc :: String} | NoResult deriving (Show, Read, Eq, Generic)
@@ -131,28 +137,28 @@ data QueryList =
   deriving (Show, Read, Eq, Generic)
 
 data ASPayload = 
-  PayloadN () |
-  PayloadInit ASInitConnection |
-  PayloadDaemonInit ASInitDaemonConnection |
-  PayloadC ASCell | 
-  PayloadCL [ASCell] | 
-  PayloadL ASLocation |
-  PayloadLL [ASLocation] |
-  PayloadR ASRange |
-  PayloadS ASSheet |
-  PayloadSS [ASSheet] |
-  PayloadWB ASWorkbook |
-  PayloadWBS [ASWorkbook] |
-  PayloadWorkbookSheets [WorkbookSheet] |
-  PayloadW ASWindow |
-  PayloadU ASUserId |
-  PayloadE ASExecError |
-  PayloadCommit ASCommit |
-  PayloadCopy {copyRange :: ASRange, copyTo :: ASLocation} |
-  PayloadTags {tags :: [ASCellTag], tagsLoc :: ASLocation} |
-  PayloadXp ASExpression |
-  PayloadLangValue ASLangValue |
-  PayloadList QueryList 
+    PayloadN ()
+  | PayloadInit ASInitConnection
+  | PayloadDaemonInit ASInitDaemonConnection
+  | PayloadC ASCell
+  | PayloadCL [ASCell]
+  | PayloadL ASIndex
+  | PayloadLL [ASIndex]
+  | PayloadR ASRange
+  | PayloadS ASSheet
+  | PayloadSS [ASSheet]
+  | PayloadWB ASWorkbook
+  | PayloadWBS [ASWorkbook]
+  | PayloadWorkbookSheets [WorkbookSheet]
+  | PayloadW ASWindow
+  | PayloadU ASUserId
+  | PayloadE ASExecError
+  | PayloadCommit ASCommit
+  | PayloadCopy {copyRange :: ASRange, copyTo :: ASIndex}
+  | PayloadTags {tags :: [ASCellTag], tagsLoc :: ASIndex}
+  | PayloadXp ASExpression
+  | PayloadReplValue ASReplValue
+  | PayloadList QueryList 
   deriving (Show, Read, Eq, Generic)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
@@ -166,25 +172,31 @@ data ASCommit = ASCommit {commitUserId :: ASUserId, before :: [ASCell], after ::
 -- Eval Types
 
 data ASExecError = 
-  Timeout | 
-  EvaluationError {evalErrorDesc :: String} |
-  DependenciesLocked {lockUserId :: ASUserId} | 
-  DBNothingException {badLocs :: [ASLocation]} |
-  DBGraphUnreachable | 
-  NetworkDown | 
-  ResourceLimitReached |
-  InsufficientPermissions |
-  NonUniqueIdentifier |
-  CopyNonexistentDependencies
+    Timeout
+  | EvaluationError {evalErrorDesc :: String}
+  | DependenciesLocked {lockUserId :: ASUserId} 
+  | DBNothingException {badLocs :: [ASIndex]}
+  | DBGraphUnreachable 
+  | NetworkDown
+  | ResourceLimitReached
+  | InsufficientPermissions
+  | NonUniqueIdentifier
+  | CopyNonexistentDependencies
+  | ParseError
+  | ExpressionNotEvaluable
+  | ExecError
+  | ExcelSyntaxError {excelErr :: String}
+  | SyntaxError
   deriving (Show, Read, Eq, Generic)
 
 type EitherCells = Either ASExecError [ASCell] 
-
+type EitherTExec = EitherT ASExecError IO
+ 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Websocket types
 
 data ASInitConnection = ASInitConnection {connUserId :: ASUserId} deriving (Show,Read,Eq,Generic)
-data ASInitDaemonConnection = ASInitDaemonConnection {parentUserId :: ASUserId, initDaemonLoc :: ASLocation} deriving (Show,Read,Eq,Generic)
+data ASInitDaemonConnection = ASInitDaemonConnection {parentUserId :: ASUserId, initDaemonLoc :: ASIndex} deriving (Show,Read,Eq,Generic)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- State
@@ -228,7 +240,7 @@ data ASPermissions = Blacklist [ASEntity] |
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Daemons
 
-data ASDaemonClient = DaemonClient {daemonLoc :: ASLocation, daemonConn :: WS.Connection, daemonOwner :: ASUserId}
+data ASDaemonClient = DaemonClient {daemonLoc :: ASIndex, daemonConn :: WS.Connection, daemonOwner :: ASUserId}
 
 instance Eq ASDaemonClient where 
   c1 == c2 = (daemonLoc c1) == (daemonLoc c2)
@@ -237,9 +249,9 @@ instance Eq ASDaemonClient where
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Convenience methods
 
-lst :: ASValue -> [ASValue]
-lst (ValueL l) = l
-lst other = [other]
+toList :: ASValue -> [ASValue]
+toList (ValueL l) = l
+toList other = [other]
 
 str :: ASValue -> String
 str (ValueS s) = s
@@ -260,15 +272,12 @@ openPermissions = Blacklist []
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- JSON
-
 instance ToJSON ASReference
 instance FromJSON ASReference
-instance ToJSON ASLocation
-instance FromJSON ASLocation
+instance ToJSON ASIndex
+instance FromJSON ASIndex
 instance ToJSON ASRange
 instance FromJSON ASRange
-instance ToJSON ASColumn -- note: not mentioned at all in frontend, as of 9/28
-instance FromJSON ASColumn 
 instance ToJSON ASValue
 instance FromJSON ASValue
 instance ToJSON ASLanguage
@@ -287,8 +296,6 @@ instance ToJSON ASInitConnection
 instance FromJSON ASInitConnection 
 instance ToJSON ASExecError
 instance FromJSON ASExecError
-instance ToJSON ASCellTag
-instance FromJSON ASCellTag
 instance ToJSON ASWindow
 instance FromJSON ASWindow
 instance ToJSON ASSheet
@@ -313,8 +320,8 @@ instance FromJSON ASWorkbook
 instance ToJSON ASWorkbook
 instance FromJSON WorkbookSheet
 instance ToJSON WorkbookSheet
-instance FromJSON ASLangValue
-instance ToJSON ASLangValue
+instance FromJSON ASReplValue
+instance ToJSON ASReplValue
 instance FromJSON ASTime
 instance ToJSON ASTime
 instance FromJSON ASCommit
@@ -337,3 +344,15 @@ instance FromJSON ASServerMessage where
                            v .: "result" <*>
                            v .: "payload"
   parseJSON _          = fail "server message JSON attributes missing"
+
+instance FromJSON ASCellTag
+instance ToJSON ASCellTag
+--instance ToJSON ASCellTag where
+--  toJSON (ListMember k) = object ["listKey" .= (BC.unpack k)]
+--  toJSON a = genericToJSON defaultOptions a
+--instance FromJSON ASCellTag where
+--  parseJSON obj@(Object v) = do
+--    listField <- v .:? "listKey"
+--    case listField of 
+--      Nothing -> genericParseJSON defaultOptions obj
+--      (Just k) -> return . ListMember $ BC.pack k

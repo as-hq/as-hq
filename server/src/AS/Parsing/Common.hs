@@ -83,3 +83,8 @@ tryParseListNonIso p ss = E.rights parsed
   where
     ss' = filter ((/=) "") ss
     parsed = map ((parse p "") . T.pack) ss'
+
+tryParse p s = parse p "" (T.pack s)
+
+containsAny :: [String] -> String -> Bool
+containsAny lst s = any (flip L.isInfixOf s) lst

@@ -14,28 +14,29 @@ import AS.Config.Settings as S
 import AS.DB.Util 
 import AS.Util
 
-getDescendants :: [ASLocation] -> IO (Either ASExecError [ASLocation])
+-- EitherT
+import Control.Monad.Trans.Class
+import Control.Monad.Trans.Either
+
+getDescendants :: [ASIndex] -> EitherTExec [ASIndex]
 getDescendants = query GetDescendants
 
-getImmediateAncestors :: [ASLocation] -> IO (Either ASExecError [ASLocation])
+getImmediateAncestors :: [ASIndex] -> EitherTExec [ASIndex]
 getImmediateAncestors = query GetImmediateAncestors
 
-query :: GraphQuery -> [ASLocation] -> IO (Either ASExecError [ASLocation])
+query :: GraphQuery -> [ASIndex] -> EitherTExec [ASIndex]
 query q locs = 
     let
         elements = (show q):(map show2 locs)
         msg = BS.show $ intercalate msgPartDelimiter elements
-
-    in runZMQ $ do
+    in EitherT $ runZMQ $ do
         liftIO $ printTimed "Connecting to graph database."  
         liftIO $ printTimed $ "graph query:  " ++ (show elements)
         reqSocket <- socket Req
         connect reqSocket S.graphDbHost
-
         send' reqSocket [] msg   -- using lazy bytestring send function
         liftIO $ printTimed "sent message to graph db"  
         reply <- receiveMulti reqSocket
-        -- liftIO $ printTimed $ "graph db reply:  " ++ (show reply)
         case (B.unpack $ last reply) of
             "OK" -> do
                 let filtered = map B.unpack $ init reply
@@ -45,24 +46,19 @@ query q locs =
                 liftIO $ printTimed "Graph DB error"
                 return $ Left DBGraphUnreachable
 
-setRelations :: [(ASLocation, [ASLocation])] -> IO (Either ASExecError ())
+setRelations :: [(ASIndex, [ASIndex])] -> EitherTExec ()
 setRelations rels = 
     let
         locSets = map (\(root, deps)-> (root:deps)) rels
         relations = map (\lset -> intercalate relationDelimiter $ map show2 lset) locSets
         elements = (show SetRelations):relations
         msg = BS.show $ intercalate msgPartDelimiter elements
-
-    in runZMQ $ do
+    in EitherT $ runZMQ $ do
         liftIO $ printTimed "Connecting to graph database for multi query."  
         reqSocket <- socket Req
         connect reqSocket S.graphDbHost
-
-        --liftIO $ printTimed $ "sending message: " ++ (show msg)
-
         send' reqSocket [] msg
         liftIO $ printTimed "sent message"  
-
         reply <- receiveMulti reqSocket
         liftIO $ printTimed $ "received message of length: " ++ (show . length $ reply)  
         --liftIO $ printTimed $ "graph db reply multi: " ++ (show reply)

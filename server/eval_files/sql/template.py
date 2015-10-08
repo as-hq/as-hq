@@ -21,6 +21,8 @@ pysqldf = lambda q: sqldf(q, globals())
 result = "DefaultSqlValue"
 def db(dbCmd,dbName=""):
 	try:
+		if "replaceCmd" in globals():
+			dbCmd = replaceCmd(dbCmd)
 		return pysqldf(dbCmd).head()
 	except:
 		try:
@@ -29,9 +31,20 @@ def db(dbCmd,dbName=""):
 		except Exception as e: 
 			return pprintErr(e)
 
+def modifyReplace(i,e):
+	if "replaceCmd" in globals():
+		return lambda s : replaceCmd(s).replace("dataset"+str(i),e)
+	else:
+		return lambda s : s.replace("dataset"+str(i),e)
+
+
 def setGlobals(context):
 	for i in range(len(context)):
-		globals()["dataset"+str(i)] = listToDataframe([row for row in eval(context[i])])
+		e = eval(context[i])
+		if isinstance(e,list):
+			globals()["dataset"+str(i)] = listToDataframe(e)
+		else:
+			globals()["replaceCmd"] = modifyReplace(i,e)
 
 def pprintErr(e):
 	exc_type, exc_obj, exc_tb = exc_info()
@@ -47,6 +60,6 @@ def pprintSql(res):
 		return res
 
 try:
-	#CMD#
+	#CODE#
 except Exception as e:
 	result = pprintErr(e)

@@ -25,24 +25,30 @@ library
                        AS.Config.Paths
                        AS.Config.Settings
                        AS.Eval.Core
-                       AS.Eval.Lang
                        AS.Eval.Middleware
                        AS.Eval.Endware
+                       AS.Kernels.Python.Eval
+                       AS.Kernels.Python.Pyfi
+                       AS.Kernels.Python.Str
+                       AS.Kernels.Excel.Compiler
+                       AS.Kernels.Excel.Eval
+                       AS.Kernels.R
+                       AS.Kernels.OCaml
+                       AS.Kernels.Common
+                       AS.Kernels.LanguageUtils
                        AS.Parsing.Common
                        AS.Parsing.Out
                        AS.Parsing.In
-                       AS.Parsing.Eval
                        AS.Types.Core
                        AS.Types.DB
                        AS.Types.Excel
                        AS.Users
                        AS.Daemon
   build-depends:       base >= 4.7 && < 5
-                     , text                          >= 0.11       && < 2.0
+                     , text >= 0.11 && < 2.0
                      , filepath
                      , time
                      , aeson
-                     , pyfi
                      , monad-control
                      , parsec
                      , split
@@ -64,23 +70,25 @@ library
                      , zeromq4-haskell
                      , semigroups
                      , bytestring-show
+                     , template-haskell
+                     , pureMD5
+                     , either
   default-language:    Haskell2010
   default-extensions:  QuasiQuotes
                        FlexibleContexts
                        OverloadedStrings
                        TypeSynonymInstances
                        FlexibleInstances
-  other-extensions:  ForeignFunctionInterface
-                     CPP
+  PkgConfig-Depends:   python
+  other-extensions:    ForeignFunctionInterface
+                       CPP
 
 executable alphasheets-exe
   hs-source-dirs:      app
   main-is:             Main.hs
-  ghc-options:         src/hiredis/redis_db.o 
-                       -O2 
+  ghc-options:         -O2 
                        -threaded 
                        -with-rtsopts=-N
-                       -lhiredis 
   build-depends:       base
                      , alphasheets
                      , aeson
@@ -91,7 +99,11 @@ executable alphasheets-exe
                      , hedis
                      , daemons
                      , data-default
-
+                     , either
+  PkgConfig-Depends:   python
+  extra-libraries:     hiredis
+  c-sources:           src/hiredis/redis_db.c
+                     , src/AS/Kernels/Python/cdefs.c
   default-language:    Haskell2010
 
 test-suite alphasheets-test
@@ -103,12 +115,15 @@ test-suite alphasheets-test
                      , text
                      , hedis
                      , bytestring
-  ghc-options:         src/hiredis/redis_db.o 
-                       -lhiredis
-                       -fglasgow-exts
-                       -O
+                     , parsec
+                     , either
+  ghc-options:         -O2
                        -threaded 
                        -with-rtsopts=-N
+  PkgConfig-Depends:   python
+  extra-libraries:     hiredis
+  c-sources:           src/hiredis/redis_db.c
+                     , src/AS/Kernels/Python/cdefs.c
   default-language:    Haskell2010
 
 source-repository head
