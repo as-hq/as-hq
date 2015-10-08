@@ -148,7 +148,7 @@ export default {
     ShortcutUtils.addShortcut("grid", "paste", "Ctrl+V", (wildcard) => {
       let rng = Store.getActiveSelection();
       let clipboard = Store.getClipboard();
-      window.clipboardData.getData('Text');
+      // window.clipboardData.getData('Text');
       if (clipboard.range)
         API.sendCopyRequest([clipboard.range, rng]);
       else
