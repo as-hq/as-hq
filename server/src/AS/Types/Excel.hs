@@ -12,7 +12,7 @@ import Data.Vector as V hiding ((++), map, filter)
 data ExLoc   = ExIndex {d1 :: String, col :: String, d2 :: String, row :: String} deriving (Show, Read, Eq, Ord)
 data ExRange = ExRange {first :: ExLoc, second :: ExLoc} deriving (Show, Read, Eq, Ord)
 data ExLocOrRange = ExLoc1 ExLoc | ExRange1 ExRange deriving (Show, Read, Eq, Ord)
-data ExRef = ExLocOrRangeRef ExLocOrRange | ExSheetLocOrRangeRef { sheetName :: String, locOrRange :: ExLocOrRange } deriving (Show, Read, Eq, Ord)
+data ExRef = ExLocOrRangeRef ExLocOrRange | ExSheetLocOrRangeRef String ExLocOrRange deriving (Show, Read, Eq, Ord)
 -- I think this is the simplest grammar we can write that actually correctly captures the type we want. 
 -- It's quite ugly as it is though -- I imagine it can be refactored with lenses / better names, but this
 -- seems not very urgent as of now. (9/30) 
