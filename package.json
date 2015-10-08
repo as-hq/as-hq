@@ -27,7 +27,7 @@
     "dev": "gulp --type dev",
     "start": "gulp",
     "build": "gulp build",
-    "test": "jest"
+    "test": "jest --verbose"
   },
   "jest": {
     "scriptPreprocessor": "<rootDir>/node_modules/babel-jest",
@@ -39,6 +39,9 @@
       "js",
       "json",
       "es6"
+    ],
+    "unmockedModulePathPatterns": [
+      "/node_modules/"
     ]
   },
   "dependencies": {
@@ -53,6 +56,7 @@
     "gulp-bower-files": "^0.2.7",
     "gulp-develop-server": "^0.4.3",
     "immutable": "^3.7.3",
+    "jasmine-pit": "^2.0.2",
     "jquery": "^2.1.4",
     "keymaster": "~1.6.2",
     "lodash": "^3.9.3",
