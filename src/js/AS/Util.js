@@ -87,6 +87,11 @@ export default {
       case "Streaming":
         config.isStreaming = true;
         return config;
+      case "ListMember":
+        // TODO change config to identify visually as list member
+        return config;
+      default:
+        return config;
     }
   },
 
