@@ -56,12 +56,14 @@ initApp = do
   -- init eval
   mapM_ KL.clearReplRecord [Python] -- clear/write repl record files 
   runEitherT $ KP.evaluate "\'test!\'" -- force load C python sources so that first eval isn't slow
-  -- init workbooks
-  let sheet = Sheet "INIT_SHEET_ID" "Sheet1" (Blacklist [])
-  DB.createWorkbookSheet conn $ WorkbookSheet "INIT_WORKBOOK_ID"  [sheet]
-  -- init DB and state
+  -- init workbooks-- init DB and state
   conn <- R.connect DBU.cInfo
-  state <- newMVar $ State [] [] conn -- server state
+  state <- newMVar $ State [] [] conn 
+  -- server state
+  let sheet = Sheet "INIT_SHEET_ID" "Sheet1" (Blacklist [])
+  DB.setSheet conn sheet
+  DB.setWorkbook conn $ Workbook "Workbook1"  ["INIT_SHEET_ID"]
+  
   return (conn, state)
 
 -- | Initializes database with sheets, etc. for debugging mode. Only called if isDebug is true. 
