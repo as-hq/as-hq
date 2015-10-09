@@ -1,3 +1,5 @@
+jest.autoMockOff();
+
 import _ from 'underscore';
 import fs from 'fs';
 import jasminePit from 'jasmine-pit';
@@ -5,9 +7,9 @@ import jasminePit from 'jasmine-pit';
 jasminePit.install(window);
 
 describe('backend', () => {
-  const API = require('../src/js/actions/ASApiActionCreators.js');
-  const Converter = require('../src/js/AS/Converter.js');
-  const Util = require('../src/js/AS/Util.js');
+  const API = require('../src/js/actions/ASApiActionCreators');
+  const Converter = require('../src/js/AS/Converter');
+  const Util = require('../src/js/AS/Util');
 
   function empty() {
     return new Promise((fulfill, reject) => { fulfill(); });
@@ -97,7 +99,7 @@ describe('backend', () => {
       }, {
         fulfill: (result) => {
           let [{ cellValue }] = Converter.clientCellsFromServerMessage(result);
-          expect(cellValue).toEqual(val);
+          expect(equalValues(cellValue, val)).toBe(true);
 
           fulfill();
         },

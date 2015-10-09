@@ -3,7 +3,9 @@ import Constants from '../Constants';
 import Converter from '../AS/Converter';
 
 import isNode from 'detect-node';
-let ws = isNode ? require('ws') : WebSocket;
+let [ws, timeout] = isNode ?
+  [require('ws'), (f) => { f(); }] :
+  [WebSocket, setTimeout];
 
 var ActionTypes = Constants.ActionTypes;
 var wss = new ws(Constants.HOST_WS);
@@ -141,7 +143,7 @@ export default {
   /* Sending acknowledge message to server */
 
   waitForSocketConnection(socket, callback) {
-    setTimeout(() => {
+    timeout(() => {
       if (socket.readyState === 1) {
         if(callback != null){
           callback();
