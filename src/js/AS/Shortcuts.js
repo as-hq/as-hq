@@ -54,11 +54,11 @@ export default {
       // TODO other wildcards
       if (wildcard === '4')
         tag = {tag: "Money", contents: []};
-      else
+      else if (wildcard === '5')
         tag = {tag: "Percentage", contents: []};
       let rng = Store.getActiveSelection();
       Store.addTag(tag, rng.col, rng.row);
-      self.refs.hypergrid.repaint();
+      self.refs.spreadsheet.repaint();
     });
     ShortcutUtils.addShortcut("common", "toggle_repl", "Alt+F11", (wildcard) => {
       self._toggleRepl();
@@ -175,7 +175,6 @@ export default {
     // These shortcuts are annoying as fuck. TODO ask if they're necessary.
 
     // ShortcutUtils.addShortcut("grid", "select_row", "Shift+Space", (wildcard) => {
-    //   // TODO
     //   let sel = Store.getActiveSelection();
     //   self.refs.spreadsheet.makeSelection({row: sel.row, col: 1, row2: sel.row, col2: Infinity});
     // });

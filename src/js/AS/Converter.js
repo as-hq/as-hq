@@ -47,9 +47,7 @@ export default {
     return clientCell.cellLocation.index.row;
   },
   clientCellGetExpressionObj(clientCell){
-    if (clientCell.cellExpression.tag === "Expression")
-      return clientCell.cellExpression;
-    else return Store.getExpressionObjFromReferenceCell(clientCell);
+    return clientCell.cellExpression;
   },
   clientCellGetValueObj(clientCell){
     return clientCell.cellValue;

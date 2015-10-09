@@ -16,15 +16,15 @@ Private variable keeping track of a viewing window (cached) of cells. Stores:
 */
 
 let _data = {
-  userId: "TEST_USER_ID2",
+  userId: "TEST_USER_ID",
   allCells: {},
   lastUpdatedCells: [],
   xscroll: 0,
   yscroll: 0,
   openSheets: [],
   currentSheet: {
-    sheetId: "TEST_SHEET_ID2",
-    sheetName: "TEST_SHEET_NAME",
+    sheetId: "INIT_SHEET_ID",
+    sheetName: "Sheet1",
     sheetPermissions: {
       tag: 'Blacklist',
       contents: []
@@ -156,30 +156,7 @@ const ASEvaluationStore = assign({}, BaseStore, {
   setActiveSelection(rng, xp) {
     _data.activeSelection = rng;
     _data.activeCell = this.getCellAtLoc(rng.col, rng.row) || Converter.defaultCell();
-    if (_data.activeCell.cellExpression.tag === "Reference"){
-      let headCell = this.getReferenceCell(_data.activeCell.cellExpression);
-      if (headCell) {
-        let headLoc = headCell.cellLocation.index,
-            height = headCell.cellValue.contents.length,
-            width;
-        // console.log("head cell has contents: " + JSON.stringify(headCell.cellValue.contents));
-        if (headCell.cellValue.contents[0].contents)
-          width = headCell.cellValue.contents[0].contents.length || 1;
-        else width = 1;
-        console.log("head location value: " + JSON.stringify(headCell.cellValue));
-        _data.activeCell.cellExpression.dependencies = Util.getListDependency(headLoc, height, width);
-      }
-    } else if (_data.activeCell.cellValue.tag === "ValueL") {
-      let val = _data.activeCell.cellValue,
-          loc = _data.activeCell.cellLocation.index,
-          height = val.contents.length,
-          width;
-      if (val.contents[0].contents)
-        width = val.contents[0].contents.length || 1;
-      else width = 1;
-      this.setActiveCellDependencies(Util.getListDependency(loc, height, width));
-    } else
-      this.setActiveCellDependencies(Util.parseDependencies(xp));
+    this.setActiveCellDependencies(Util.parseDependencies(xp));
   },
   getActiveSelection() {
     return _data.activeSelection;
@@ -314,24 +291,6 @@ const ASEvaluationStore = assign({}, BaseStore, {
     else {
       return null;
     }
-  },
-
-  getReferenceCell(xp) {
-    let refLoc = xp.location.contents;
-    console.log("reference loc: " + JSON.stringify(refLoc));
-    let cloc = Converter.serverToClientLoc(refLoc.index);
-
-    return this.getCellAtLocSheet(refLoc.locSheetId, cloc.col, cloc.row);
-  },
-
-  getExpressionObjFromReferenceCell(cell) {
-    let refCell = this.getReferenceCell(cell.cellExpression);
-    if (refCell){
-      let lang = refCell.cellExpression.language;
-      let xp = Util.showValue(cell.cellValue).toString();
-      return {expression: xp, language: lang};
-    }
-    else return null;
   },
 
   /**************************************************************************************************************************/
