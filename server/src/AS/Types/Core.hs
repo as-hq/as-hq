@@ -154,7 +154,7 @@ data ASPayload =
   | PayloadU ASUserId
   | PayloadE ASExecError
   | PayloadCommit ASCommit
-  | PayloadCopy {copyRange :: ASRange, copyTo :: ASIndex}
+  | PayloadCopy {copyRange :: ASRange, copyTo :: ASRange}
   | PayloadTags {tags :: [ASCellTag], tagsLoc :: ASIndex}
   | PayloadXp ASExpression
   | PayloadReplValue ASReplValue

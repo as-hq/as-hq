@@ -278,6 +278,22 @@ shiftInd (dy, dx) (Index sh (y,x)) = Index sh (y+dy, x+dx)
 getTopLeft :: ASRange -> ASIndex
 getTopLeft (Range sh (tl,_)) = Index sh tl
 
+getRangeDims :: ASRange -> (Int, Int)
+getRangeDims (Range _ ((y1, x1), (y2, x2))) = (1 + abs (y2 - y1), 1 + abs (x2 - x1))
+
+getPasteOffsets :: ASRange -> ASRange -> [(Int, Int)]
+getPasteOffsets from to = offsets 
+  where 
+    (fromYDim, fromXDim) = getRangeDims from 
+    (toYDim, toXDim) = getRangeDims to 
+    yRep = max 1 (toYDim `div` fromYDim)
+    xRep = max 1 (toXDim `div` fromXDim)
+    (topYOffset, topXOffset) = getIndicesOffset (getTopLeft from) (getTopLeft to)
+    yRepOffsets = take yRep [0,fromYDim..]
+    xRepOffsets = take xRep [0,fromXDim..]
+    offsets = [(topYOffset + y, topXOffset + x) | y <- yRepOffsets, x <- xRepOffsets]
+
+
 getIndicesOffset :: ASIndex -> ASIndex -> (Int, Int)
 getIndicesOffset (Index _ (y, x)) (Index _ (y', x')) = (y'-y, x'-x)
 

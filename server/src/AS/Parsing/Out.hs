@@ -282,7 +282,7 @@ unpackExcelVals v = []
 ----------------------------------------------------------------------------------------------------------------------------------
 -- Copy/paste
 
--- returns (shifted cell, new dependencies)
+-- | Returns (shifted cell, new dependencies)
 shiftCell :: (Int, Int) -> ASCell -> (ASCell, [ASIndex])
 shiftCell offset (Cell loc (Expression str lang) v ts) = (shiftedCell, shiftedDeps)
   where
