@@ -50,6 +50,7 @@
     "bootstrap": "^3.3.5",
     "brace": "^0.5.1",
     "classnames": "^2.1.2",
+    "detect-node": "^2.0.3",
     "eslint": "^0.24.1",
     "eslint-plugin-react": "^2.7.0",
     "express": "^4.4.5",
@@ -76,6 +77,6 @@
     "react-tap-event-plugin": "^0.1.7",
     "shortid": "^2.2.2",
     "underscore": "^1.7.0",
-    "ws": "0.4.x"
+    "ws": "^0.4.32"
   }
 }

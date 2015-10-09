@@ -2,8 +2,11 @@ import Dispatcher from '../Dispatcher';
 import Constants from '../Constants';
 import Converter from '../AS/Converter';
 
+import isNode from 'detect-node';
+let ws = isNode ? require('ws') : WebSocket;
+
 var ActionTypes = Constants.ActionTypes;
-var wss = new WebSocket(Constants.HOST_WS);
+var wss = new ws(Constants.HOST_WS);
 
 let currentCbs = undefined;
 let isRunningTest = false;

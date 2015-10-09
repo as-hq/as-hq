@@ -13,7 +13,7 @@ describe('backend', () => {
     return new Promise((fulfill, reject) => { fulfill(); });
   }
 
-  function cellFile(testId, excFormatPos) {
+  function cellFile(filename) {
     //TODO
   }
 
@@ -68,13 +68,12 @@ describe('backend', () => {
         'py': 'Python',
         'R': 'R'
       };
-
       let cell = Converter.clientToASCell(
         { range: Util.excelToLoc(loc) },
         { exp: xp, lang: { Server: langMap[lang] } }
       );
       let msg = Converter.createEvalRequestFromASCell(cell);
-      this.send(msg);
+      API.send(msg);
     });
     /*
     return () => {
