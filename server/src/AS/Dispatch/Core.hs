@@ -50,12 +50,12 @@ runDispatchCycle state c' uid = do
     desc        <- getDescendants conn c
     ancLocs     <- G.getImmediateAncestors $ map cellLocation desc
     showTime $ "got ancestor locs: " ++ (show ancLocs)
-    anc     <- lift $ fmap catMaybes $ DB.getCells ancLocs
-    cells'  <- propagate conn anc desc 
+    anc         <- lift $ fmap catMaybes $ DB.getCells ancLocs
+    cells'      <- propagate conn anc desc 
     -- Apply endware
-    cells <- lift $  EE.evalEndware state c' cells' uid
-    lift $ DB.updateAfterEval conn uid c' desc cells -- does set cells and commit
+    cells       <- lift $  EE.evalEndware state c' cells' uid
     let allCells = cells ++ updateCells
+    lift $ DB.updateAfterEval conn uid c' desc allCells -- does set cells and commit
     return allCells
   return $ U.getCellMessage errOrCells
 
@@ -65,6 +65,8 @@ runDispatchCycle state c' uid = do
 -- | Takes a cell and returns an error if it tries to access a non-existent cell
 -- Otherwise, it returns all of the immediate ancestors (used to make the lookup map)
 -- returns cells that were created by side effects (e.g. list mutation)
+-- NOTE: this is expensive when modifying a list.
+-- TODO when modifying a list, asynchronously send the modified cell without blocking on all the other expressions being modified.
 updateCell :: Connection -> ASCell -> EitherTExec [ASCell] 
 updateCell conn (Cell loc xp val ts) = do 
   oldCell <- lift $ DB.getCell loc

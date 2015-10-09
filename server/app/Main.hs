@@ -62,7 +62,7 @@ initApp = do
   -- server state
   let sheet = Sheet "INIT_SHEET_ID" "Sheet1" (Blacklist [])
   DB.setSheet conn sheet
-  DB.setWorkbook conn $ Workbook "Workbook1"  ["INIT_SHEET_ID"]
+  DB.setWorkbook conn $ Workbook "Workbook1" ["INIT_SHEET_ID"]
   
   return (conn, state)
 
