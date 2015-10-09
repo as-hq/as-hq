@@ -5,6 +5,9 @@ import Converter from '../AS/Converter';
 var ActionTypes = Constants.ActionTypes;
 var wss = new WebSocket(Constants.HOST_WS);
 
+let currentCbs = undefined;
+let isRunningTest = false;
+
 /**************************************************************************************************************************/
 
 /*
@@ -28,8 +31,19 @@ wss.onmessage = function (event) {
         type: ActionTypes.GOT_FAILURE,
         errorMsg: msg
       });
+
+    if (isRunningTest) {
+      currentCbs.reject(msg);
+      isRunningTest = false;
+    }
   } else {
     switch (msg.action) {
+      default:
+        if (isRunningTest) {
+          currentCbs.fulfill(msg);
+          isRunningTest = false;
+        }
+
       // TODO add cases for new
       case "New":
         if (msg.payload.tag === "PayloadWorkbookSheets") {
@@ -273,6 +287,13 @@ export default {
                                               sWindow);
     // console.log("send scroll message: " + JSON.stringify(msg));
     this.send(msg);
-  }
+  },
 
+
+  test(f, cbs) {
+    currentCbs = cbs;
+    isRunningTest = true;
+
+    f();
+  }
 };
