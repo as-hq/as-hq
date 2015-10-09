@@ -105,6 +105,7 @@ parseMatches a = many $ do
 
 -- P.parse (parseMatchesWithContext (P.string "12")) "" "1212ab12"
 -- Right (["","","ab",""],["12","12","12"]) (alternating gives back str)
+-- | needs better documentation. What are the arguments and what's getting returned? (-Alex, 10/8)
 parseMatchesWithContext :: Parser t -> Parser ([String],[t])
 parseMatchesWithContext a = do 
   matchesWithContext <- many $ try $ parseNext a 
@@ -113,6 +114,7 @@ parseMatchesWithContext a = do
       matches = (map snd matchesWithContext)
   return (inter,matches)
 
+-- | needs better documentation. What are the arguments and what's getting returned? (-Alex, 10/8)
 getMatchesWithContext :: String -> Parser t -> ([String],[t])
 getMatchesWithContext target p = fromRight . (parse (parseMatchesWithContext p) "" ) . T.pack $ target
   where 
@@ -125,30 +127,32 @@ replaceMatches (inter,matches) f target = blend inter matchReplacings
     blend [x] _ = x
     blend (x:xs) (y:ys) = x ++  y ++ blend xs ys
     matchReplacings = map f matches
+
 -------------------------------------------------------------------------------------------------------------------------------------------------
 -- Type for parsing Excel Locations
              -- d1,d2 = "" or "$"
 
-asLocationToAsIndex :: ASReference -> ASIndex 
-asLocationToAsIndex loc = case loc of 
+asRefToAsIndex :: ASReference -> ASIndex 
+asRefToAsIndex loc = case loc of 
   IndexRef i -> i
 
--- excel location to list of as indexes
-exLocToASLocation :: ASSheetId -> ExLoc -> ASReference
-exLocToASLocation sheetid exLoc = case exLoc of 
-  ExSheet sh rest -> case (exLocToASLocation sheetid rest) of 
-    RangeRef (Range _ a) -> RangeRef $ Range sheetid a
-    IndexRef (Index _ a) -> IndexRef $ Index sheetid a
-  ExRange f s -> RangeRef $ Range sheetid ((index . asLocationToAsIndex) ((exLocToASLocation) sheetid f), (index . asLocationToAsIndex) (exLocToASLocation sheetid s))
-  ExIndex dol1 c dol2 r -> IndexRef $ Index sheetid (colStrToInt c, read r :: Int)
+-- | Turns an Excel reference to an AlphaSheets reference. (first arg is the sheet of the 
+-- ref, unless it's a part of the ExRef)
+exRefToASRef :: ASSheetId -> ExRef -> ASReference
+exRefToASRef sheetid exRef = case exRef of 
+  ExLocOrRangeRef (ExLoc1 (ExIndex dol1 c dol2 r)) -> IndexRef $ Index sheetid (colStrToInt c, read r :: Int)
+  ExLocOrRangeRef (ExRange1 (ExRange f s)) -> RangeRef $ Range sheetid ((index . asRefToAsIndex) (exRefToASRef sheetid $ ExLocOrRangeRef $ ExLoc1 $ f), (index . asRefToAsIndex) (exRefToASRef sheetid $ ExLocOrRangeRef $ ExLoc1 $ s))
+  ExSheetLocOrRangeRef sh rest -> case (exRefToASRef sheetid (ExLocOrRangeRef rest)) of 
+    IndexRef (Index _ a) -> IndexRef $ Index (T.pack sh) a
+    RangeRef (Range _ a) -> RangeRef $ Range (T.pack sh) a
 
 -- does not consider sheetid
-asLocationToExLoc :: ASReference -> ExLoc
-asLocationToExLoc (IndexRef (Index _ (a,b))) = ExIndex "" (intToColStr a) "" (intToColStr b)
-asLocationToExLoc (RangeRef (Range s (i1, i2))) = ExRange i1' i2'
+asRefToExRef :: ASReference -> ExRef
+asRefToExRef (IndexRef (Index _ (a,b))) = ExLocOrRangeRef $ ExLoc1 $ ExIndex "" (intToColStr a) "" (intToColStr b)
+asRefToExRef (RangeRef (Range s (i1, i2))) = ExLocOrRangeRef $ ExRange1 $ ExRange i1' i2'
   where
-    i1' = asLocationToExLoc $ IndexRef $ Index s i1
-    i2' = asLocationToExLoc $ IndexRef $ Index s i2
+    ExLocOrRangeRef (ExLoc1 i1') = asRefToExRef $ IndexRef $ Index s i1
+    ExLocOrRangeRef (ExLoc1 i2') = asRefToExRef $ IndexRef $ Index s i2
 -------------------------------------------------------------------------------------------------------------------------------------------------
 -- Parsers to match special excel characters
 
@@ -168,32 +172,32 @@ exc = string "!" -- required for sheet access
 sheetMatch :: Parser String
 sheetMatch = many1 $ letter <|> digit <|> char '-' <|> char '_' <|> space
 
--- matches $AB15 type things
-indexMatch :: Parser ExLoc
+-- | matches $AB15 type things
+indexMatch :: Parser ExRef
 indexMatch = do
   a <- dollar
   col <- many1 letter 
   b <- dollar
   row <- many1 digit
-  return $ ExIndex a col b row
+  return $ ExLocOrRangeRef $ ExLoc1 $ ExIndex a col b row
 
--- matches index:index
-rangeMatch :: Parser ExLoc
+-- | matches index:index
+rangeMatch :: Parser ExRef
 rangeMatch = do 
-  topLeft <- indexMatch 
+  ExLocOrRangeRef (ExLoc1 topLeft) <- indexMatch 
   colon
-  bottomRight <- indexMatch
-  return $ ExRange topLeft bottomRight
+  ExLocOrRangeRef (ExLoc1 bottomRight) <- indexMatch
+  return $ ExLocOrRangeRef $ ExRange1 $ ExRange topLeft bottomRight
 
--- matches sheet reference; Sheet1!$A$11
-sheetRefMatch :: Parser ExLoc
+-- | matches sheet reference, e.g., Sheet1!$A$11
+sheetRefMatch :: Parser ExRef
 sheetRefMatch = do 
   name <- sheetMatch 
   exc
-  loc <- (try rangeMatch) <|> indexMatch -- order matters
-  return $ ExSheet name loc
+  ExLocOrRangeRef lor <- (try rangeMatch) <|> indexMatch -- order matters
+  return $ ExSheetLocOrRangeRef name lor
 
-excelMatch :: Parser ExLoc
+excelMatch :: Parser ExRef
 excelMatch = (try sheetRefMatch) <|> (try rangeMatch) <|> (try indexMatch)
 ------------------------------------------------------------------------------------------------------------------------------------------------
 -- Helper Functions
@@ -221,11 +225,9 @@ indexToExcel (c,r) = (intToColStr c) ++ (show r)
 -- takes an excel location and an offset, and produces the new excel location (using relative range syntax)
 -- ex. ExIndex $A3 (1,1) -> ExIndex $A4
 -- doesn't do any work with Parsec/actual parsing
-shiftExLoc :: (Int,Int) -> ExLoc -> ExLoc
-shiftExLoc offset exLoc = case exLoc of
-  ExSheet sh rest -> ExSheet sh (shiftExLoc offset rest)
-  ExRange a b -> ExRange (shiftExLoc offset a) (shiftExLoc offset b)
-  ExIndex dol1 c dol2 r -> ExIndex dol1 newCol dol2 newRow
+shiftExRef :: (Int,Int) -> ExRef -> ExRef
+shiftExRef offset exRef = case exRef of
+  ExLocOrRangeRef (ExLoc1 (ExIndex dol1 c dol2 r)) -> ExLocOrRangeRef $ ExLoc1 $ ExIndex dol1 newCol dol2 newRow
     where
       newCol = case dol1 of
         "$" -> c --fixed
@@ -233,40 +235,33 @@ shiftExLoc offset exLoc = case exLoc of
       newRow = case dol2 of
         "$" -> r --fixed
         ""  -> show $ (read r :: Int) + (snd offset) --relative
+  ExLocOrRangeRef (ExRange1 (ExRange a b)) -> ExLocOrRangeRef $ ExRange1 $ ExRange a' b' 
+      where 
+        ExLocOrRangeRef (ExLoc1 a') = shiftExRef offset (ExLocOrRangeRef $ ExLoc1 $ a)
+        ExLocOrRangeRef (ExLoc1 b') = shiftExRef offset (ExLocOrRangeRef $ ExLoc1 $ b)
+  ExSheetLocOrRangeRef sh rest -> ExSheetLocOrRangeRef sh rest' 
+      where 
+        ExLocOrRangeRef rest' = shiftExRef offset (ExLocOrRangeRef rest)
 
-shiftExLocs :: (Int,Int) -> [ExLoc] -> [ExLoc]
-shiftExLocs offset exLocs = map (shiftExLoc offset) exLocs
-
--- return all dependencies for a particular excel location (takes in current location to deal with sheets)
--- ex. ExIndex A3 just returns [Index A3]
--- doesn't do any work with Parsec/actual parsing
-dependenciesFromExcelLoc :: ASSheetId -> ExLoc -> [ASIndex]
-dependenciesFromExcelLoc sheetid exLoc = case exLoc of
-  ExSheet sh rest -> [Index sheetid (index dep) | dep <- dependenciesFromExcelLoc sheetid rest] --dependency locations are on other sheet
-  ExRange a b -> rangeToIndices $ Range sheetid ((toCol a, toRow a), (toCol b, toRow b)) -- any range has full dependency
-    where
-      toCol = colStrToInt.col
-      toRow = read.row
-  ExIndex dol1 c dol2 r -> [Index sheetid ((colStrToInt c),(read r::Int))]
+shiftExRefs :: (Int,Int) -> [ExRef] -> [ExRef]
+shiftExRefs offset exRefs = map (shiftExRef offset) exRefs
 
 -------------------------------------------------------------------------------------------------------------------------------------------------
 -- Parse dependencies and replace relative expressions
 
+-- | Returns the list of dependencies you get, and an expression with all the excel references replaced
 getDependenciesAndExpressions :: ASSheetId -> ASExpression -> ([ASIndex], ASExpression)
 getDependenciesAndExpressions sheetid xp = (newLocs, newExpr)
   where 
     origString = expression xp
-    (inter,exLocs) = getMatchesWithContext origString excelMatch -- the only place that Parsec is used
-    newLocs = getDependencies sheetid exLocs
-    newString = replaceMatches (inter, exLocs) showExcelLoc origString
+    (inter, exRefs) = getMatchesWithContext origString excelMatch -- the only place that Parsec is used
+    newLocs = getDependenciesFromExRefs sheetid exRefs
+    newString = replaceMatches (inter, exRefs) showExcelRef origString
     newExpr = Expression newString (language xp)
 
--- gets dependencies from a list of excel locs and a list of offsets (there's a [ASIndex] for each offset, in that order)
--- doesn't use Parsec/actual parsing
-getDependencies :: ASSheetId -> [ExLoc] -> [ASIndex]
-getDependencies sheetid matches = depsFromExcelLocs matches
-  where
-    depsFromExcelLocs m = concat $ map (dependenciesFromExcelLoc sheetid) m
+-- gets dependencies from a list of excel locs
+getDependenciesFromExRefs :: ASSheetId -> [ExRef] -> [ASIndex]
+getDependenciesFromExRefs sheetid matches = concat $ map refToIndices $ map (exRefToASRef sheetid) matches
 
 ----------------------------------------------------------------------------------------------------------------------------------
 -- Functions for excel sheet loading
@@ -293,9 +288,16 @@ shiftCell offset (Cell loc (Expression str lang) v ts) = (shiftedCell, shiftedDe
   where
     sheetid = locSheetId loc
     shiftedLoc = shiftInd offset loc
-    (inter,exLocs) = getMatchesWithContext str excelMatch
-    shiftedExLocs = shiftExLocs offset exLocs
-    shiftedDeps = getDependencies sheetid shiftedExLocs
-    newStr = replaceMatches (inter, shiftedExLocs) showExcelLoc str
+    (inter,exRefs) = getMatchesWithContext str excelMatch
+    shiftedExRefs = shiftExRefs offset exRefs
+    shiftedDeps = getDependenciesFromExRefs sheetid shiftedExRefs
+    newStr = replaceMatches (inter, shiftedExRefs) showExcelRef str
     shiftedXp = Expression newStr lang
     shiftedCell = Cell shiftedLoc shiftedXp v ts
+shiftCell offset (Cell loc (Reference _ _) v ts) = (shiftedCell, []) -- for copying sublists
+  where
+    pseudoXp = Expression (showValue Python v) Python -- TODO get the damn language
+    shiftedLoc = shiftInd offset loc 
+    shiftedCell = Cell shiftedLoc pseudoXp v ts
+
+-- shiftCellExpr :: (Int, Int) -> ASExpression -> 

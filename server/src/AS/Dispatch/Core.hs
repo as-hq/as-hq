@@ -102,7 +102,6 @@ getDescendants conn cell = do
   showTime $ "got descendant cells"
   return $ map fromJust desc
 
-
 -- | Takes ancestors and descendants, create lookup map, and run eval
 propagate :: Connection -> [ASCell] -> [ASCell] -> EitherTExec [ASCell]
 propagate conn anc dec = do 
@@ -129,8 +128,8 @@ evalChain conn mp (c@(Cell loc xp _ ts):cs) = do
       rest <- evalChain conn newMp cs
       return $ (Cell loc xp cv ts):rest
 
-
--- | Create a list of cells
+-- | If a cell C contains an array, createListCells makes the cells at C and below reflect the elements
+-- of that array. 
 createListCells :: Connection -> ASCell -> [ASValue] -> [ASCell]
 createListCells _ _ [] = []
 createListCells conn (Cell (Index sheet (a,b)) xp _ ts) values = cells

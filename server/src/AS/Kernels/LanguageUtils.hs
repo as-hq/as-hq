@@ -211,17 +211,17 @@ lookupString lang mp loc = case loc of
 insertValues :: ASSheetId -> M.Map ASReference ASValue -> ASExpression -> String
 insertValues sheetid values (Expression origString SQL) = contextStmt ++ evalStmt
     where
-        exLocs = getMatchesWithContext origString excelMatch
-        matchLocs = map (exLocToASLocation sheetid) (snd exLocs)
+        exRefs = getMatchesWithContext origString excelMatch
+        matchLocs = map (exRefToASRef sheetid) (snd exRefs)
         context = map (lookupString SQL values) matchLocs
         st = ["dataset"++(show i) | i<-[0..((L.length matchLocs)-1)]]
-        newExp = replaceMatches exLocs (\el -> (L.!!) st (MB.fromJust (L.findIndex (el==) (snd exLocs)))) origString
+        newExp = replaceMatches exRefs (\el -> (L.!!) st (MB.fromJust (L.findIndex (el==) (snd exRefs)))) origString
         contextStmt = "setGlobals("++(show context) ++")\n"
         evalStmt = "result = pprintSql(db(\'" ++ newExp ++ "\'))"
 
 insertValues sheetid values (Expression origString lang) = evalString
     where
-        exLocToStringEval = (lookupString lang values) . (exLocToASLocation sheetid) -- ExLoc -> String
+        exLocToStringEval = (lookupString lang values) . (exRefToASRef sheetid) -- ExLoc -> String
         evalString = replaceMatches (getMatchesWithContext origString excelMatch) exLocToStringEval origString
 
 -----------------------------------------------------------------------------------------------------------------------

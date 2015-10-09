@@ -48,7 +48,7 @@ import Data.List.Split
 -- | Sheets
 -- stored as key (DU.getSheetKey ASSheetId) value (stringified ASSheet)
 -- additionally, the set of all locations belonging to a sheet are stored as
--- set key (DU.getSheetSetKey ASSheetId) members (ASLocationKey)
+-- set key (DU.getSheetSetKey ASSheetId) members (ASIndexKey)
 -- this set is updated automatically during setCells.
 -- finally, a record of all sheetKeys is stored as a set with key "sheets" and members (DU.getSheetKey sheetid)
 
@@ -143,7 +143,7 @@ decoupleList conn cell@(Cell idx _ _ ts) = do
 ----------------------------------------------------------------------------------------------------------------------
 -- Commits
 
--- | TODO: need to deal with large commit sizes and max number of commits
+-- TODO: need to deal with large commit sizes and max number of commits
 
 -- | Deal with updating all DB-related things after an eval
 updateAfterEval :: Connection -> ASUserId -> ASCell -> [ASCell] -> [ASCell] -> IO ()
@@ -383,7 +383,7 @@ getVolatileLocs :: Connection -> IO [ASIndex]
 getVolatileLocs conn = do 
   runRedis conn $ do
       Right vl <- smembers "volatileLocs"
-      return $ map DU.bStrToASLocation vl
+      return $ map DU.bStrToASIndex vl
 
 -- TODO: some of the cells may change from volatile -> not volatile, but they're still in volLocs
 setChunkVolatileCells :: [ASCell] -> Redis ()

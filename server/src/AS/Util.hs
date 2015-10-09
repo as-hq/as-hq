@@ -11,6 +11,7 @@ import qualified Network.WebSockets as WS
 import qualified Data.UUID as U (toString)
 import qualified Data.Text as T 
 import qualified Data.List as L
+import qualified Data.Set as S
 import Control.Applicative hiding ((<|>), many)
 import Data.Maybe (isNothing,catMaybes)
 
@@ -240,6 +241,10 @@ getListTag (Cell _ _ _ ts) = getTag foundTags
 -- | ASReference is either a cell index, range, or column. When decomposeLocs takes a range, it returns
 -- the list of indices that compose the range. When it takes in an index, it returns a list consisting
 -- of just that index. It cannot take in a column. 
+refToIndices :: ASReference -> [ASIndex]
+refToIndices loc = case loc of 
+  (IndexRef ind) -> [ind]
+  (RangeRef r) -> rangeToIndices r
 -- decomposeLocs :: ASReference -> [ASIndex]
 -- decomposeLocs loc = case loc of 
 --   (IndexRef ind) -> [ind]
@@ -273,8 +278,8 @@ shiftInd (dy, dx) (Index sh (y,x)) = Index sh (y+dy, x+dx)
 getTopLeft :: ASRange -> ASIndex
 getTopLeft (Range sh (tl,_)) = Index sh tl
 
-getIndicesOffsets :: ASIndex -> ASIndex -> (Int, Int)
-getIndicesOffsets (Index _ (y, x)) (Index _ (y', x')) = (y'-y, x'-x)
+getIndicesOffset :: ASIndex -> ASIndex -> (Int, Int)
+getIndicesOffset (Index _ (y, x)) (Index _ (y', x')) = (y'-y, x'-x)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Users

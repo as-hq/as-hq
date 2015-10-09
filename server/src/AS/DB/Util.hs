@@ -215,8 +215,8 @@ maybeASCell :: (ASIndex, Maybe ASExpression,Maybe ASValue, Maybe [ASCellTag]) ->
 maybeASCell (l, Just e, Just v, Just tags) = Just $ Cell l e v tags
 maybeASCell _ = Nothing
 
-bStrToASLocation :: B.ByteString -> ASIndex
-bStrToASLocation b = (read2 (BC.unpack b) :: ASIndex)
+bStrToASIndex :: B.ByteString -> ASIndex
+bStrToASIndex b = (read2 (BC.unpack b) :: ASIndex)
 
 bStrToASCommit :: Maybe B.ByteString -> Maybe ASCommit 
 bStrToASCommit (Just b) = Just (read (BC.unpack b) :: ASCommit)

@@ -30,10 +30,10 @@ data ASSheet = Sheet {sheetId :: ASSheetId, sheetName :: String} deriving (Show,
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Core cell types
 
-data ASLocation = Index {locSheetId :: ASSheetId, index :: (Int, Int)} deriving (Show, Read, Eq, Generic, Ord)
+data ASIndex = Index {locSheetId :: ASSheetId, index :: (Int, Int)} deriving (Show, Read, Eq, Generic, Ord)
 data ASRange = Range {locSheetId :: ASSheetId, range :: ((Int, Int), (Int, Int))} deriving (Show, Read, Eq, Generic, Ord)
 data ASColumn = Column {locSheetId :: ASSheetId, column :: Int} deriving (Show, Read, Eq, Generic, Ord)
-data ASReference = IndexRef ASLocation | RangeRef ASRange | ColumnRef ASColumn deriving (Show, Read, Eq, Generic, Ord)
+data ASReference = IndexRef ASIndex | RangeRef ASRange | ColumnRef ASColumn deriving (Show, Read, Eq, Generic, Ord)
 
 data ASValue =
   NoValue |
@@ -61,7 +61,7 @@ data ASLanguage = R | Python | OCaml | CPP | Java | SQL | Excel deriving (Show, 
 -- TODO consider migration to exLocs record
 data ASExpression =
   Expression { expression :: String, language :: ASLanguage } | 
-  Reference { location :: ASLocation, referenceIndex :: (Int, Int) }
+  Reference { location :: ASIndex, referenceIndex :: (Int, Int) }
   deriving (Show, Read, Eq)
 
 data ASCellTag = 
@@ -73,7 +73,7 @@ data ASCellTag =
   Volatile 
   deriving (Show, Read, Eq)
 
-data ASCell = Cell {cellLocation :: ASLocation, 
+data ASCell = Cell {cellLocation :: ASIndex, 
 					cellExpression :: ASExpression,
 					cellValue :: ASValue,
           cellTags :: [ASCellTag]} deriving (Show, Read, Eq)
@@ -124,7 +124,7 @@ convertCell c = do
   l <- peekCString (location c)
   e <- peekCString (expression c) 
   v <- peekCString (value c) 
-  return $ Just $ Cell (read l :: ASLocation) (read e :: ASExpression) (read v :: ASValue)
+  return $ Just $ Cell (read l :: ASIndex) (read e :: ASExpression) (read v :: ASValue)
 
 -- | Converts Haskell array of strings to C-ptr
 getPtr :: [String] -> IO (Ptr CString)
@@ -133,7 +133,7 @@ getPtr lst = do
   newArray cstrings
 
 
-getCells :: [ASLocation] -> IO [Maybe ASCell]
+getCells :: [ASIndex] -> IO [Maybe ASCell]
 getCells [] = return []
 getCells locs = do
   putStrLn $ "locs in get cells: " L.++ (show locs)

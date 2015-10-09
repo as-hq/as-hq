@@ -168,7 +168,7 @@ handleEval :: (Client c) => c -> MVar ServerState -> ASPayload -> IO ()
 handleEval cl state (PayloadC cell)  = do 
   putStrLn $ "IN EVAL HANDLER"
   msg' <- DP.runDispatchCycle state cell (ownerName cl)
-  catch (sendBroadcastFiltered cl state msg') (\e -> putStrLn $ "handleEval error: " ++ (show $ (e :: SomeException)))
+  sendBroadcastFiltered cl state msg'
 
 handleEvalRepl :: (Client c) => c -> MVar ServerState -> ASPayload -> IO ()
 handleEvalRepl cl state (PayloadXp xp) = do
@@ -255,25 +255,27 @@ handleRedo user state = do
 -- update expression
 -- update dag
 -- insert new cells into db
+-- TODO: doesn't cause re-eval
 handleCopy :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
 handleCopy user state (PayloadCopy from to) = do
   curState <- readMVar state
   let conn = dbConn curState
   maybeCells <- DB.getCells (rangeToIndices from)
-  let fromCells = filterNothing maybeCells
-      offset = U.getIndicesOffsets (getTopLeft from) to
-      toCellsAndDeps = map (O.shiftCell offset) fromCells
-      shiftedDeps = map snd toCellsAndDeps
-      allDeps = concat shiftedDeps
-      toCells = map fst toCellsAndDeps
-      toLocs = map cellLocation toCells
+  let fromCells = filterNothing maybeCells                  -- list of cells you're copying from
+      offset = U.getIndicesOffset (getTopLeft from) to      -- how much to shift these cells for ccopy/copy/paste
+      toCellsAndDeps = map (O.shiftCell offset) fromCells 
+      toCells = map fst toCellsAndDeps                      -- [set of cells we'll be landing on]
+      shiftedDeps = map snd toCellsAndDeps                
+      allDeps = concat shiftedDeps                          -- the set of dependencies present among the shifted cells
+      toLocs = map cellLocation toCells                     -- [new set of cell locations]
   printTimed $ "Copying cells: "
-  allExistDB <- DB.locationsExist conn allDeps   -- check if deps exist in DB
-  let allNonexistentDB = U.isoFilter not allExistDB allDeps  
+  allExistDB <- DB.locationsExist conn allDeps                   -- check if deps exist in DB. (Bug on Alex's machine 9/30: not working properly here)
+  let allNonexistentDB = U.isoFilter not allExistDB allDeps -- the list of dependencies that currently don't refer to anything
       allExist = U.isSubsetOf allNonexistentDB toLocs -- else if the dep was something we copied
   if allExist
     then do
       DB.setCells toCells
+      -- bug: needs to re-eval copied code
       runEitherT $ G.setRelations $ zip toLocs shiftedDeps 
       sendBroadcastFiltered user state $ ServerMessage Update Success (PayloadCL toCells)
     else do
