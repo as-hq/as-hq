@@ -6,7 +6,7 @@ import AS.Types.Core
 import AS.Types.DB
 import AS.Util
 import AS.Parsing.Common (tryParseListNonIso)
-import AS.Parsing.In (int)
+import AS.Parsing.In (integer)
 import AS.Parsing.Out (showValue)
 
 import qualified Data.List                     as L
@@ -80,7 +80,7 @@ keyToRow :: B.ByteString -> Int
 keyToRow str = row
   where
     (col, row) = read idxStr :: (Int, Int)
-    idxStr = BC.unpack $ last $ BC.split '|' str
+    idxStr     = BC.unpack $ last $ BC.split '|' str
 
 getLastRowKey :: [B.ByteString] -> B.ByteString
 getLastRowKey keys = maxBy keyToRow keys
@@ -89,26 +89,26 @@ incrementLocKey :: (Int, Int) -> B.ByteString -> B.ByteString
 incrementLocKey (dx, dy) key = BC.pack $ ks ++ '|':kidx
   where
     (sh:idxStr:[]) = BC.split '|' key
-    ks = BC.unpack sh
-    (col, row) = read (BC.unpack idxStr) :: (Int, Int)
-    kidx = show (col + dx, row + dy)
+    ks             = BC.unpack sh
+    (col, row)     = read (BC.unpack idxStr) :: (Int, Int)
+    kidx           = show (col + dx, row + dy)
 
 getUniquePrefixedName :: String -> [String] -> String
 getUniquePrefixedName pref strs = pref ++ (show idx)
   where
-    strs' = filter (L.isPrefixOf pref) strs
-    strs'' = map (drop . length $ pref) strs'
-    idxs = tryParseListNonIso int strs''
-    idx = case idxs of 
+    strs'   = filter (L.isPrefixOf pref) strs
+    strs''  = map (drop . length $ pref) strs'
+    idxs    = tryParseListNonIso integer strs''
+    idx     = case idxs of 
       [] -> 1
-      _ -> (L.maximum idxs) + 1
+      _  -> (L.maximum idxs) + 1
 
 decoupleCell :: ASCell -> ASCell
 decoupleCell (Cell l e v ts) = Cell l e' v ts'
   where
-    lang = language e
-    e' = Expression (showValue lang v) lang
-    ts' = filter (\t -> case t of 
+    lang  = language e
+    e'    = Expression (showValue lang v) lang
+    ts'   = filter (\t -> case t of 
       ListMember _ -> False
       _ -> True) ts
 
@@ -140,15 +140,19 @@ foreign import ccall unsafe "hiredis/redis_db.c setCells" c_setCells :: CString 
 getCellsByKeys :: [B.ByteString] -> IO [Maybe ASCell]
 getCellsByKeys keys = getCellsByMessage msg num
   where
-    msg = B.concat $ [BC.pack "\"", internal, BC.pack "\"\NUL"]
+    msg      = B.concat $ [BC.pack "\"", internal, BC.pack "\"\NUL"]
     internal = B.intercalate (BC.pack "@") keys 
-    num = length keys
+    num      = length keys
 
 -- takes a message and number of locations queried
 getCellsByMessage :: B.ByteString -> Int -> IO [Maybe ASCell]   
 getCellsByMessage msg num = do
   --putStrLn $ "get cells by key with num: " ++ (show num) ++ ", " ++ (show msg) 
-  ptrCells <- BU.unsafeUseAsCString msg $ \str -> c_getCells str (fromIntegral num)
+  ptrCells <- BU.unsafeUseAsCString msg $ \str -> do
+    printTimed "built message"
+    c <- c_getCells str (fromIntegral num)
+    printTimed "got cells"
+    return c
   cCells <- peekArray (fromIntegral num) ptrCells
   res <- mapM cToASCell cCells  
   free ptrCells 

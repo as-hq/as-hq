@@ -185,7 +185,7 @@ cellReference = fmap (Basic . Ref) $ try (sheetCellReference) <|> singleCellRefe
 -- | Function application.
 functionApplication :: Parser Formula
 functionApplication = do
-  i <- option "union" $ try identifier
+  i <- option "tuple" $ try identifier
   fs <- parens (commaSep expr)
   return . Basic $ Fun i fs
 
@@ -204,7 +204,7 @@ arrayConst = do
 -- | Parses array contents by building up array elements.
 arrayContents :: Parser [[BasicFormula]]
 arrayContents = do
-  elm <- arrayElement
+  elm  <- arrayElement
   elms <- option [] $ try (delimit ';' >> arrayContents) -- option terminates the recursion
   return (elm:elms)
 
@@ -220,7 +220,7 @@ arrayRow =
     bfs <- arrayRowContents
     case rowOpener of 
       '{' -> char '}'
-      _ -> return ' '
+      _   -> return ' '
     return bfs
 
 -- | Parses row contents by building up row elements (basic formulas).
@@ -249,7 +249,7 @@ optionMaybe' p
 
 readBool :: String -> Bool
 readBool str = case str of 
-  "TRUE" -> True
+  "TRUE"  -> True
   "FALSE" -> False
 
 bool :: Parser Bool
@@ -258,16 +258,16 @@ bool = fmap readBool $ string "TRUE" <|> string "FALSE"
 str :: Parser String
 str = (quoteString <|> apostropheString)
   where
-    quoteString     = quotes $ many $ escaped <|> noneOf ['"']
-    apostropheString  = apostrophes $ many $ escaped <|> noneOf ['\'']
-    quotes = between quote quote
-    quote = char '"' -- 
-    apostrophes = between apostrophe apostrophe
-    apostrophe = char '\'' -- TODO apostrophes also
-    escaped = char '\\' >> choice (zipWith escapedChar codes replacements)
+    quoteString      = quotes $ many $ escaped <|> noneOf ['"']
+    apostropheString = apostrophes $ many $ escaped <|> noneOf ['\'']
+    quotes           = between quote quote
+    quote            = char '"' -- 
+    apostrophes      = between apostrophe apostrophe
+    apostrophe       = char '\'' -- TODO apostrophes also
+    escaped          = char '\\' >> choice (zipWith escapedChar codes replacements)
     escapedChar code replacement = char code >> return replacement
-    codes        = ['b',  'n',  'f',  'r',  't',  '\\', '\"', '/']
-    replacements = ['\b', '\n', '\f', '\r', '\t', '\\', '\"', '/']
+    codes            = ['b',  'n',  'f',  'r',  't',  '\\', '\"', '/']
+    replacements     = ['\b', '\n', '\f', '\r', '\t', '\\', '\"', '/']
 
 excelValue :: Parser Formula
 excelValue = fmap (Basic . Var) $
@@ -277,7 +277,7 @@ excelValue = fmap (Basic . Var) $
   <|> try (EValueS <$> str)
 
 blankValue :: Parser Formula
-blankValue = spaces >> (return . Basic $ Var EBlank)
+blankValue = spaces >> (return . Basic $ Var EMissing)
 
 
 ----------------------------------------------------------------------------------------------------------------------------------------------

@@ -106,13 +106,13 @@ showResult False = "FAILED"
 
 testGetCells :: IO ()
 testGetCells = do
-    let locs = testLocs 1
+    let locs = testLocs 1000000
     --let cells = testCells 1
     --let keys = map DU.getLocationKey locs
     --DB.setCells cells
     --cells <- DB.getCells locs
-    cells <- DB.getCell $ head locs
-    printTimed $ show cells
+    cells <- DB.getCells locs
+    printTimed $ "done"
 
 testSheetCreation :: Connection -> IO ()
 testSheetCreation conn = do

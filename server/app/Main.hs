@@ -53,16 +53,22 @@ main = do
 
 initApp :: IO (R.Connection, MVar ServerState)
 initApp = do
+  -- init eval
   mapM_ KL.clearReplRecord [Python] -- clear/write repl record files 
   runEitherT $ KP.evaluate "\'test!\'" -- force load C python sources so that first eval isn't slow
+  -- init workbooks-- init DB and state
   conn <- R.connect DBU.cInfo
-  state <- newMVar $ State [] [] conn -- server state
+  state <- newMVar $ State [] [] conn 
+  -- server state
+  let sheet = Sheet "INIT_SHEET_ID" "Sheet1" (Blacklist [])
+  DB.setSheet conn sheet
+  DB.setWorkbook conn $ Workbook "Workbook1" ["INIT_SHEET_ID"]
+  
   return (conn, state)
 
 -- | Initializes database with sheets, etc. for debugging mode. Only called if isDebug is true. 
 initDebug :: R.Connection -> IO ()
-initDebug conn = return () 
-  --DB.createWorkbookSheet conn $ WorkbookSheet
+initDebug conn = return ()
 
 application :: MVar ServerState -> WS.ServerApp
 application state pending = do

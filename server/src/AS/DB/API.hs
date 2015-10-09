@@ -111,6 +111,7 @@ setList conn locs = runRedis conn $ do
   return ()
 
 -- | Note: this operation is O(n)
+-- TODO move to C client because it's expensive
 decoupleList :: Connection -> ASCell -> IO [ASCell]
 decoupleList conn cell@(Cell idx _ _ ts) = do
   let (Just (ListMember listString)) = getListTag cell

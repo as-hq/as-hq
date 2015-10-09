@@ -31,7 +31,6 @@ toListStr lang lst  = end ++ (L.intercalate delim lst) ++ start
 modifiedLists :: ASLanguage -> String -> String  
 modifiedLists lang str = case lang of
   Python -> "arr(" ++ str ++ ")"
-  Excel  -> "arr(" ++ str ++ ")"
   otherwise -> str
 
 getBlockDelim :: ASLanguage -> String
@@ -40,8 +39,6 @@ getBlockDelim lang = case lang of
   Python-> ""
   OCaml -> ";;"
   SQL   -> ""
-  CPP   -> ""
-  Java  -> ""
   Excel -> ""
 
 getInlineDelim :: ASLanguage -> String
@@ -50,8 +47,6 @@ getInlineDelim lang = case lang of
   Python-> ";"
   OCaml -> ";;"
   SQL   -> ";"
-  CPP   -> ";"
-  Java  -> ";"
   Excel -> ";"
 
 jsonDeserialize :: ASLanguage -> String -> String -> String
@@ -66,12 +61,10 @@ jsonDeserialize lang objType jsonRep =
 
 bool :: ASLanguage -> String -> String
 bool lang str = case lang of 
-  Python -> str
-  R -> ((C.toLower (head str)): (tail str))
+  Python-> str
+  R     -> ((C.toLower (head str)): (tail str))
   OCaml -> ((C.toLower (head str)): (tail str))
-  SQL -> str
-  CPP -> ((C.toLower (head str)): (tail str))
-  Java -> ((C.toLower (head str)): (tail str))
+  SQL   -> str
   Excel -> str
 
 showValue :: ASLanguage -> ASValue -> String
@@ -96,8 +89,7 @@ showFilteredValue lang v = showValue lang v
 -------------------------------------------------------------------------------------------------------------------------------------------------
 -- General parsing functions
 
--- P.parse (parseNext P.digit) "" "abc123"
--- Right ("abc",'1')
+-- P.parse (parseNext P.digit) "" "abc123" == Right ("abc",'1')
 parseNext :: Parser t -> Parser (String, t)
 parseNext a = do 
   r1 <- manyTill anyChar (lookAhead $ try a) -- need the try, otherwise it won't work

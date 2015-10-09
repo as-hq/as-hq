@@ -65,8 +65,7 @@ data ASLanguage = R | Python | OCaml | CPP | Java | SQL | Excel deriving (Show, 
 
 -- TODO consider migration to exLocs record
 data ASExpression =
-  Expression { expression :: String, language :: ASLanguage } | 
-  Reference { location :: ASReference, referenceIndex :: (Int, Int) }
+  Expression { expression :: String, language :: ASLanguage } 
   deriving (Show, Read, Eq, Generic)
 
 emptyExpression = ""
@@ -115,6 +114,7 @@ data ASServerMessage = ServerMessage {
 data ASAction = 
     NoAction
   | Acknowledge
+  | SetInitialSheet
   | New | Import 
   | Open | Close
   | Evaluate | EvaluateRepl
