@@ -17,6 +17,7 @@ describe('backend', () => {
     //TODO
   }
 
+  //(a -> (), a -> ()) -> (() -> Promise a)
   function promise(fn) {
     return () => {
       return new Promise(fn);
@@ -45,21 +46,24 @@ describe('backend', () => {
     };
   }
 
+  // monadic log operation, String -> (() -> Promise ())
+  function logP(str) {
+    return promise((fulfill, reject) => {
+      console.log(str);
+      fulfill();
+    });
+  }
+
   function clear() {
     return apiExec(() => {
       API.sendClearRequest();
     });
-    /*
-    return () => {
-      return new Promise((fulfill, reject) => {
-        API.test(() => {
-          API.sendClearRequest();
-        }, {
-          fulfill: fulfill,
-          reject: reject
-        });
-      });
-    };*/
+  }
+
+  function init() {
+    return apiExec(() => {
+      API.sendInitialMessage();
+    });
   }
 
   function cell(loc, xp, lang) {
@@ -75,27 +79,6 @@ describe('backend', () => {
       let msg = Converter.createEvalRequestFromASCell(cell);
       API.send(msg);
     });
-    /*
-    return () => {
-      let langMap = {
-        'py': 'Python',
-        'R': 'R'
-      };
-
-      return new Promise((fulfill, reject) => {
-        API.test(() => {
-          let cell = Converter.clientToASCell(
-            { range: Util.excelToLoc(loc) },
-            { exp: xp, lang: { Server: langMap[lang] } }
-          );
-          let msg = Converter.createEvalRequestFromASCell(cell);
-          this.send(msg);
-        }, {
-          fulfill: fulfill,
-          reject: reject
-        });
-      });
-    };*/
   }
 
   function valueD(val) {
@@ -189,10 +172,14 @@ describe('backend', () => {
     describe('initial eval', () => {
       beforeEach((done) => {
         _do([
+          logP('Initializing...'),
+          init(),
+          logP('Clearing sheet...'),
           clear()
         ]).then(done);
       });
 
+      //pit: a jest-compatible promise version of "it()"
       pit('should evaluate at all', () => {
         return _do([
           cell('A1', '1 + 1', 'py'),

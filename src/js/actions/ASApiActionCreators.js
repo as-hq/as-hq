@@ -159,7 +159,7 @@ export default {
     });
   },
 
-  sendInitialMessage(){
+  sendInitialMessage() {
     let msg = Converter.makeInitMessage();
     console.log("Sending init message: " + JSON.stringify(msg));
     this.send(msg);
