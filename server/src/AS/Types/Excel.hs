@@ -15,7 +15,9 @@ data ExLocOrRange = ExLoc1 ExLoc | ExRange1 ExRange deriving (Show, Read, Eq, Or
 data ExRef = ExLocOrRangeRef ExLocOrRange | ExSheetLocOrRangeRef String ExLocOrRange deriving (Show, Read, Eq, Ord)
 -- I think this is the simplest grammar we can write that actually correctly captures the type we want. 
 -- It's quite ugly as it is though -- I imagine it can be refactored with lenses / better names, but this
--- seems not very urgent as of now. (9/30) 
+-- seems not very urgent as of now. (10/9) 
+-- 
+-- Also doesn't have any support for columns, workbooks, or 3D reference. (10/9) 
 
 data ExcelAction = 
   Lookup ExRef |
