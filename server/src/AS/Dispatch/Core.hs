@@ -44,7 +44,7 @@ import Control.Monad.Trans.Either
 runDispatchCycle :: MVar ServerState -> ASCell -> ASUserId -> IO ASServerMessage
 runDispatchCycle state c' uid = do
   errOrCells <- runEitherT $ do
-    showTime $ "STARTING DISPATCH CYCLE WITH PAYLOADC " ++ (show c')
+    printWithTimeT $ "STARTING DISPATCH CYCLE WITH PAYLOADC " ++ (show c')
     c              <- lift $ EM.evalMiddleware c'
     conn           <- lift $ fmap dbConn $ readMVar state
     setCellInDb conn c
@@ -52,9 +52,10 @@ runDispatchCycle state c' uid = do
     decoupledCells <- decoupleCells conn c
     desc           <- getDescendants conn c
     ancLocs        <- G.getImmediateAncestors $ map cellLocation desc
-    showTime $ "got ancestor locs: " ++ (show ancLocs)
+    printWithTimeT $ "got ancestor locs: " ++ (show ancLocs)
     anc            <- lift $ fmap catMaybes $ DB.getCells ancLocs
     cells          <- initEval conn anc desc 
+
     -- Apply endware
     finalizedCells <- lift $ EE.evalEndware state c' cells uid
     let allCells = finalizedCells ++ decoupledCells
@@ -70,14 +71,14 @@ setCellInDb :: Connection -> ASCell -> EitherTExec ()
 setCellInDb conn (Cell loc expr _ ts) = do 
   let initCell = Cell loc expr NoValue ts -- NoValue because the value hasn't been computed yet
   lift $ DB.setCell initCell
-  showTime "set init cells"
+  printWithTimeT "set init cells"
 
 -- | Get the ancestors of a cell, and set the ancestor relationships in the DB. 
 setCellAncestorsInDb :: Connection -> ASCell -> EitherTExec ()
 setCellAncestorsInDb conn (Cell loc expr _ ts) = do
   let deps = fst $ getDependenciesAndExpressions (locSheetId loc) expr
   ancestorCells <- lift $ DB.getCells deps
-  showTime "got ancestor cells"
+  printWithTimeT "got ancestor cells"
   if (all isJust ancestorCells)
     then G.setRelations [(loc, deps)]
     else left $ DBNothingException [] -- one of the ancestors doesn't exist. TODO: return list of missing ancestors.
@@ -94,14 +95,14 @@ decoupleCells conn cell = if (isListMember cell)
 getDescendants :: Connection -> ASCell -> EitherTExec [ASCell]
 getDescendants conn cell = do 
   let loc = cellLocation cell
-  showTime $ "output 1: " ++ (show $ locSheetId loc)
-  showTime $ "output 2: " ++ (show $ index loc)
+  printWithTimeT $ "output 1: " ++ (show $ locSheetId loc)
+  printWithTimeT $ "output 2: " ++ (show $ index loc)
   vLocs <- lift $ DB.getVolatileLocs conn
-  showTime "got volatile locs"
+  printWithTimeT "got volatile locs"
   --Account for volatile cells being reevaluated each time
   indexes <- G.getDescendants (loc:vLocs) 
   desc <- lift $ DB.getCells indexes
-  showTime $ "got descendant cells"
+  printWithTimeT $ "got descendant cells"
   return $ map fromJust desc
 
 -- | Takes ancestors and descendants, create lookup map, and starts eval
@@ -120,7 +121,7 @@ initEval conn anc dec = do
 evalChain :: Connection -> RefValMap -> [ASCell] -> EitherTExec [ASCell]
 evalChain _ _ [] = return []
 evalChain conn mp (c@(Cell loc xp _ ts):cs) = do  
-  showTime $ "Starting eval chain" -- ++ (show mp)
+  printWithTimeT "Starting eval chain" -- ++ (show mp)
   cv <- R.evalCode (locSheetId loc) mp xp
   case cv of 
     ValueL lst -> do
@@ -136,8 +137,8 @@ evalChain conn mp (c@(Cell loc xp _ ts):cs) = do
 
 -- | If a cell C contains a 1D or 2D list, it'll be represented in the grid as a matrix. 
 -- This function takes in the starting cell with the starting expression, and creates the list 
--- of cells. For example, [[1,2],[3,4]] entered into A1 should put values of 1 in A1, 2 in A2, 
--- 3 in B1, and 4 in B4. createListCells called on A1 with the expression [[1,2],[3,4]] in it
+-- of cells. For example, [[1,2],[3,4]] entered into A1 should put values of 1 in A1, 2 in B1, 
+-- 3 in A2, and 4 in B2. createListCells called on A1 with the expression [[1,2],[3,4]] in it
 -- should return a list of cells located at A1, A2, B1, B2, with:
 --   1) the values 1, 2, 3, and 4, in them,
 --   2) references to the original cell being called

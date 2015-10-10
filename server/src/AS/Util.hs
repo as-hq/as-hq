@@ -59,16 +59,6 @@ lookupLambda func elm lst = case (filter (((==) elm) . func) lst) of
     [] -> Nothing
     (x:xs) -> Just x
 
-max' :: Ord a => a -> a -> a
-max' j k = if j > k
-    then j
-    else k
-
-min' :: Ord a => a -> a -> a
-min' j k = if j < k
-    then j
-    else k
-
 tuple3 :: a -> b -> c -> (a,b,c)
 tuple3 a b c = (a,b,c)
 
@@ -154,13 +144,17 @@ generateErrorMessage e = case e of
 getTime :: IO String
 getTime = fmap (show . utctDayTime) getCurrentTime
 
-printTimed :: String -> IO ()
-printTimed str = do 
+printWithTime :: String -> IO ()
+printWithTime str = do 
   time <- getTime
   putStrLn $ "[" ++ (show time) ++ "] " ++ str 
 
-showTime :: String -> EitherTExec ()
-showTime = lift . printTimed
+printWithTimeT :: String -> EitherTExec ()
+printWithTimeT = lift . printWithTime
+
+-- | For debugging purposes
+printDebug :: (Show a) => String -> a -> IO ()
+printDebug name obj = printWithTime (name ++ ": " ++ (show obj))
 
 -- | Not yet implemented
 getASTime :: IO ASTime
@@ -207,7 +201,7 @@ getWindow sheetid user = lookupLambda windowSheetId sheetid (windows user)
 getScrolledLocs :: ASWindow -> ASWindow -> [ASRange]
 getScrolledLocs (Window _ (-1,-1) (-1,-1)) (Window sheetid tl br) = [(Range sheetid (tl, br))] 
 getScrolledLocs (Window _ (y,x) (y2,x2)) (Window sheetid tl@(y',x') br@(y2',x2')) = getUncoveredLocs sheetid overlapping (tl, br)
-    where overlapping = ((max' y y', max' x x'), (min' y2 y2', min' x2 x2'))
+    where overlapping = ((max y y', max x x'), (min y2 y2', min x2 x2'))
 
 getUncoveredLocs :: ASSheetId -> ((Int,Int), (Int,Int)) -> ((Int,Int), (Int,Int)) -> [ASRange]
 getUncoveredLocs sheet (tlo, bro) (tlw, brw) = [Range sheet corners | corners <- cs]
@@ -250,18 +244,18 @@ refToIndices loc = case loc of
 --   (IndexRef ind) -> [ind]
   -- (RangeRef (Range sheet (ul, lr))) -> [Index sheet (x,y) | x <- [startx..endx], y <- [starty..endy] ]
   --   where 
-  --     startx = min' (fst ul) (fst lr)
-  --     endx = max' (fst ul) (fst lr)
-  --     starty = min' (snd ul) (snd lr)
-  --     endy = max' (snd ul) (snd lr)
+  --     startx = min (fst ul) (fst lr)
+  --     endx = max (fst ul) (fst lr)
+  --     starty = min (snd ul) (snd lr)
+  --     endy = max (snd ul) (snd lr)
 
 rangeToIndices :: ASRange -> [ASIndex]
 rangeToIndices (Range sheet (ul, lr)) = [Index sheet (x,y) | x <- [startx..endx], y <- [starty..endy] ]
   where 
-    startx = min' (fst ul) (fst lr)
-    endx = max' (fst ul) (fst lr)
-    starty = min' (snd ul) (snd lr)
-    endy = max' (snd ul) (snd lr)
+    startx = min (fst ul) (fst lr)
+    endx = max (fst ul) (fst lr)
+    starty = min (snd ul) (snd lr)
+    endy = max (snd ul) (snd lr)
 
 matchSheets :: [ASWorkbook] -> [ASSheet] -> [WorkbookSheet]
 matchSheets ws ss = [WorkbookSheet (workbookName w) (catMaybes $ lookupSheets w ss) | w <- ws]

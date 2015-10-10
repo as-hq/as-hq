@@ -47,7 +47,7 @@ evalReplExpression (Expression str lang) = case lang of
 
 evalCode :: ASSheetId -> RefValMap -> ASExpression -> EitherTExec ASValue
 evalCode sheetid values xp@(Expression _ lang) = do
-	showTime "Starting eval code"
+	printWithTimeT "Starting eval code"
 	let xpWithValuesSubstituted = insertValues sheetid values xp 
 	execEvalInLang lang xpWithValuesSubstituted	
 

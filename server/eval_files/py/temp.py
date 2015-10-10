@@ -18,7 +18,11 @@ def arr(lst):
 result = "error"
 try:
 	execfile(filename)
+<<<<<<< HEAD
 	result = 15
+=======
+	result = 123
+>>>>>>> master
 except Exception as e: 
 	exc_type, exc_obj, exc_tb = exc_info()
 	fname = 'AlphaSheets Python evaluator'
