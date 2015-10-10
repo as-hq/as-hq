@@ -8,17 +8,10 @@ server/alphasheets-test.hp
 server/alphasheets-test.prof
 server/alphasheets-test.ps
 
-static/images/*
-server/dump.rdb
 dump.rdb
-server/temp-*
+server/Index*
 server/*.pid
-server/eval_files/py/temp.py
-server/src/AS/Eval/run/cpp/run.cpp
-server/src/AS/Eval/run/excel/run.py
-server/src/AS/Eval/run/java/Run.java
-server/src/AS/Eval/run/ocaml/run.mi
-server/src/AS/Eval/run/py/run.py
-server/src/AS/Eval/run/r/run.r
-server/src/AS/Eval/run/sql/run.py
-graph-database/dump.rdb
+
+server/eval_files/*
+!server/eval_files/*/template.*
+!server/eval_files/*/Template.*
