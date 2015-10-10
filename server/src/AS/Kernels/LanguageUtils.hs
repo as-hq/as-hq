@@ -270,19 +270,19 @@ getRunFile :: ASLanguage -> IO String
 getRunFile lang = do
     path <- getEvalPath 
     return $ path ++ case lang of 
-        R       -> "r/temp.r"
-        Python  -> "py/temp.py"
-        OCaml   -> "ocaml/temp.ml"
-        SQL     -> "sql/temp.py"
+        R       -> "r/run.r"
+        Python  -> "py/run.py"
+        OCaml   -> "ocaml/run.ml"
+        SQL     -> "sql/run.py"
 
 getRunReplFile :: ASLanguage -> IO String
 getRunReplFile lang = do
     path <- getEvalPath 
     return $ path ++ case lang of 
-        R       -> "r/temp_repl.r"
-        Python  -> "py/temp_repl.py"
-        OCaml   -> "ocaml/temp_repl.ml"
-        SQL     -> "sql/temp_repl.py"
+        R       -> "r/run_repl.r"
+        Python  -> "py/run_repl.py"
+        OCaml   -> "ocaml/run_repl.ml"
+        SQL     -> "sql/run_repl.py"
 
 getReplRecord :: ASLanguage -> IO String
 getReplRecord lang = do

@@ -30,12 +30,12 @@ query q locs =
         elements = (show q):(map show2 locs)
         msg = BS.show $ intercalate msgPartDelimiter elements
     in EitherT $ runZMQ $ do
-        liftIO $ printTimed "Connecting to graph database."  
-        liftIO $ printTimed $ "graph query:  " ++ (show elements)
+        liftIO $ printWithTime "Connecting to graph database."  
+        liftIO $ printWithTime $ "graph query:  " ++ (show elements)
         reqSocket <- socket Req
         connect reqSocket S.graphDbHost
         send' reqSocket [] msg   -- using lazy bytestring send function
-        liftIO $ printTimed "sent message to graph db"  
+        liftIO $ printWithTime "sent message to graph db"  
         reply <- receiveMulti reqSocket
         case (B.unpack $ last reply) of
             "OK" -> do
@@ -43,7 +43,7 @@ query q locs =
                 let result = Right $ map read2 filtered
                 return result
             "ERROR" -> do
-                liftIO $ printTimed "Graph DB error"
+                liftIO $ printWithTime "Graph DB error"
                 return $ Left DBGraphUnreachable
 
 setRelations :: [(ASIndex, [ASIndex])] -> EitherTExec ()
@@ -54,15 +54,15 @@ setRelations rels =
         elements = (show SetRelations):relations
         msg = BS.show $ intercalate msgPartDelimiter elements
     in EitherT $ runZMQ $ do
-        liftIO $ printTimed "Connecting to graph database for multi query."  
+        liftIO $ printWithTime "Connecting to graph database for multi query."  
         reqSocket <- socket Req
         connect reqSocket S.graphDbHost
         send' reqSocket [] msg
-        liftIO $ printTimed "sent message"  
+        liftIO $ printWithTime "sent message"  
         reply <- receiveMulti reqSocket
-        liftIO $ printTimed $ "received message of length: " ++ (show . length $ reply)  
-        --liftIO $ printTimed $ "graph db reply multi: " ++ (show reply)
-        --liftIO $ printTimed $ "query type: " ++ (show q)
+        liftIO $ printWithTime $ "received message of length: " ++ (show . length $ reply)  
+        --liftIO $ printWithTime $ "graph db reply multi: " ++ (show reply)
+        --liftIO $ printWithTime $ "query type: " ++ (show q)
         return $ case (B.unpack $ last reply) of
             "OK" -> Right ()
             "ERROR" -> Left DBGraphUnreachable

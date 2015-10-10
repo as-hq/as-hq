@@ -155,9 +155,8 @@ data ASPayload =
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Version Control
 
-data ASTime = Time {day :: String, hour :: Int, min :: Int, sec :: Int} deriving (Show,Read,Eq,Generic)
+data ASTime = Time {day :: String, hour :: Int, minute :: Int, sec :: Int} deriving (Show,Read,Eq,Generic)
 data ASCommit = ASCommit {commitUserId :: ASUserId, before :: [ASCell], after :: [ASCell], time :: ASTime} deriving (Show,Read,Eq,Generic)
-
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Eval Types

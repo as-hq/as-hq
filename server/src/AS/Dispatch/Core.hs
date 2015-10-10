@@ -49,7 +49,7 @@ runDispatchCycle state c' uid = do
     updateCells <- updateCell conn c
     desc        <- getDescendants conn c
     ancLocs     <- G.getImmediateAncestors $ map cellLocation desc
-    showTime $ "got ancestor locs: " ++ (show ancLocs)
+    printWithTimeT $ "got ancestor locs: " ++ (show ancLocs)
     anc         <- lift $ fmap catMaybes $ DB.getCells ancLocs
     cells'      <- propagate conn anc desc 
     -- Apply endware
@@ -82,9 +82,9 @@ updateCell conn (Cell loc xp val ts) = do
     else do 
       let initCell = Cell loc expr NoValue ts
       G.setRelations [(loc, deps)]
-      showTime $ "init cells: " ++ (show initCell)
+      printWithTimeT $ "init cells: " ++ (show initCell)
       lift $ DB.setCell initCell
-      showTime "set init cells"
+      printWithTimeT "set init cells"
       return unlistCells
 
 -- | Return the descendants of a cell, which will always exist but may be locked
@@ -92,14 +92,14 @@ updateCell conn (Cell loc xp val ts) = do
 getDescendants :: Connection -> ASCell -> EitherTExec [ASCell]
 getDescendants conn cell = do 
   let loc = cellLocation cell
-  showTime $ "output 1: " ++ (show $ locSheetId loc)
-  showTime $ "output 2: " ++ (show $ index loc)
+  printWithTimeT $ "output 1: " ++ (show $ locSheetId loc)
+  printWithTimeT $ "output 2: " ++ (show $ index loc)
   vLocs <- lift $ DB.getVolatileLocs conn
-  showTime "got volatile locs"
+  printWithTimeT "got volatile locs"
   --Account for volatile cells being reevaluated each time
   indexes <- G.getDescendants (loc:vLocs) 
   desc <- lift $ DB.getCells indexes
-  showTime $ "got descendant cells"
+  printWithTimeT $ "got descendant cells"
   return $ map fromJust desc
 
 -- | Takes ancestors and descendants, create lookup map, and run eval
@@ -114,7 +114,7 @@ propagate conn anc dec = do
 evalChain :: Connection -> M.Map ASReference ASValue -> [ASCell] -> EitherTExec [ASCell]
 evalChain _ _ [] = return []
 evalChain conn mp (c@(Cell loc xp _ ts):cs) = do  
-  showTime $ "Starting eval chain" -- ++ (show mp)
+  printWithTimeT $ "Starting eval chain" -- ++ (show mp)
   cv <- R.evaluateLanguage xp loc mp
   case cv of 
     ValueL lst -> do
