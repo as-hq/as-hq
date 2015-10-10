@@ -58,7 +58,7 @@ runDispatchCycle state c' uid = do
 
     -- Apply endware
     finalizedCells <- lift $ EE.evalEndware state c' cells uid
-    let allCells = finalizedCells ++ decoupledCells
+    let allCells = decoupledCells ++ finalizedCells -- ORDER IS IMPORTANT, since decoupledCells and finalizedCells might overlap. Further right in list = higher precedence
     lift $ DB.updateAfterEval conn uid c' desc allCells -- does set cells and commit
     return allCells
   return $ U.getCellMessage errOrCells
@@ -118,9 +118,9 @@ getDescendants conn cell = do
 
 -- | Takes ancestors and descendants, create lookup map, and starts eval
 initEval :: Connection -> [ASCell] -> [ASCell] -> EitherTExec [ASCell]
-initEval conn anc dec = do 
+initEval conn anc desc = do 
   let mp = M.fromList $ map (\c -> (IndexRef $ cellLocation c, cellValue c)) anc
-  evalChain conn mp dec
+  evalChain conn mp desc
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Eval helpers
@@ -145,6 +145,7 @@ evalChain conn mp (c@(Cell loc xp _ ts):cs) = do
       let newMp = M.insert (IndexRef loc) cv mp
       rest <- evalChain conn newMp cs
       return $ (Cell loc xp cv ts):rest
+-- The Haskell way is probably to write this using foldM somehow, but that's not very urgent. 
 
 -- | If a cell C contains a 1D or 2D list, it'll be represented in the grid as a matrix. 
 -- This function takes in the starting cell with the starting expression, and creates the list 

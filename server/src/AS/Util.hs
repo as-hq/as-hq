@@ -33,8 +33,10 @@ initUserFromMessageAndConn (ClientMessage _ (PayloadInit (ASInitConnection uid))
 --------------------------------------------------------------------------------------------------------------
 -- Misc 
 
-sendMessage :: (ToJSON a) => a -> WS.Connection -> IO ()
-sendMessage msg conn = WS.sendTextData conn (encode msg)
+sendMessage :: (ToJSON a, Show a) => a -> WS.Connection -> IO ()
+sendMessage msg conn = do 
+  WS.sendTextData conn (encode msg)
+  printWithTime $ "Server sent message: " ++ (show msg)
 
 lastN :: Int -> [a] -> [a]
 lastN n xs = let m = length xs in drop (m-n) xs
