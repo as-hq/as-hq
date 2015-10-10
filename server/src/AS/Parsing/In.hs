@@ -129,6 +129,7 @@ complexValue = extractValue <$> extractMap
       return (str, dictValue)
     extractMap      = M.fromList <$> (braces $ sepBy dictEntry (comma >> spaces))
 
+-- TODO should create general error parser later, which parses ocamlError as a special case. (Alex 10/10)
 ocamlError :: Parser ASValue
 ocamlError = do
   string "File "

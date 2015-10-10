@@ -76,13 +76,6 @@ showValue lang v = case v of
   ValueL l 			-> toListStr lang $ fmap (showValue lang) l
   ValueObject o js 	-> jsonDeserialize lang o js
 
-showFilteredValue :: ASLanguage -> ASValue -> String
-showFilteredValue lang (ValueL l) = showFilteredValue lang (headOrNull l)
-  where
-    headOrNull [] = NoValue
-    headOrNull (x:xs) = x
-showFilteredValue lang v = showValue lang v
-
 -------------------------------------------------------------------------------------------------------------------------------------------------
 -- General parsing functions
 

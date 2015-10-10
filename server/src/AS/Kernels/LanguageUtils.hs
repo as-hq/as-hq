@@ -201,11 +201,11 @@ addCompileCmd OCaml cmd = do
 -- the value as a string. 
 lookupString :: ASLanguage -> RefValMap -> ASReference -> String
 lookupString lang mp loc = case loc of
-    IndexRef (Index sh (a,b)) -> (showFilteredValue lang) (mp M.! loc)
+    IndexRef (Index sh (a,b)) -> (showValue lang) (mp M.! loc)
     RangeRef (Range sh ((a,b),(c,d))) -> 
         if (c==a)
-            then modifiedLists lang (toListStr lang [ ((showFilteredValue lang) (mp M.! (IndexRef $ Index sh (a,row)))) | row<-[b..d]])
-            else modifiedLists lang (toListStr lang [modifiedLists lang (toListStr lang ([(showFilteredValue lang) (mp M.! (IndexRef $ Index sh (col,row)))| col <-[a..c]]))| row<-[b..d]])
+            then modifiedLists lang (toListStr lang [ ((showValue lang) (mp M.! (IndexRef $ Index sh (a,row)))) | row<-[b..d]])
+            else modifiedLists lang (toListStr lang [modifiedLists lang (toListStr lang ([(showValue lang) (mp M.! (IndexRef $ Index sh (col,row)))| col <-[a..c]]))| row<-[b..d]])
 
 
 -- | Replaces all the Excel references in an expression with the values corresponding to them. 
