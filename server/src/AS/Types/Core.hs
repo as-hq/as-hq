@@ -11,6 +11,7 @@ import Data.ByteString (ByteString)
 import Data.ByteString.Char8 as BC
 import qualified Network.WebSockets as WS
 import qualified Database.Redis as R
+import qualified Data.Map as M
 import Control.Concurrent (MVar)
 import Control.Applicative
 
@@ -182,7 +183,9 @@ data ASExecError =
 
 type EitherCells = Either ASExecError [ASCell] 
 type EitherTExec = EitherT ASExecError IO
- 
+
+type RefValMap = M.Map ASReference ASValue
+
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Websocket types
 

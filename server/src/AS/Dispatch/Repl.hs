@@ -17,7 +17,7 @@ import Control.Monad.Trans.Either
 runReplDispatch :: MVar ServerState -> ASExpression -> IO ASServerMessage
 runReplDispatch state xp = do
     let lang = language xp
-    val <- runEitherT $ R.evaluateLanguageRepl xp 
+    val <- runEitherT $ R.evalReplExpression xp 
     return $ case val of 
         (Left e) -> ServerMessage EvaluateRepl (Failure $ generateErrorMessage e) (PayloadE e)
         (Right v) -> ServerMessage EvaluateRepl Success (PayloadReplValue $ ReplValue v lang)

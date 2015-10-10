@@ -263,7 +263,7 @@ handleCopy user state (PayloadCopy from to) = do
   maybeCells <- DB.getCells (rangeToIndices from)
   let fromCells = filterNothing maybeCells                  -- list of cells you're copying from
       offsets = U.getPasteOffsets from to                   -- how much to shift these cells for copy/copy/paste
-      toCellsAndDeps = concat $ map (\o -> map (O.shiftCell o) fromCells) offsets
+      toCellsAndDeps = concat $ map (\o -> map (O.getShiftedCellWithShiftedDeps o) fromCells) offsets
       toCells = map fst toCellsAndDeps                      -- [set of cells we'll be landing on]
       shiftedDeps = map snd toCellsAndDeps                
       allDeps = concat shiftedDeps                          -- the set of dependencies present among the shifted cells

@@ -33,31 +33,26 @@ import Control.Monad.Trans.Class
 import Control.Monad.Trans.Either
 
 -----------------------------------------------------------------------------------------------------------------------
--- | Exposed functions
+-- Exposed functions
 
-evaluateLanguage :: ASExpression -> ASIndex -> M.Map ASReference ASValue -> EitherTExec ASValue
-evaluateLanguage xp ref mp = evalCode (locSheetId ref) mp xp  
-
-evaluateLanguageRepl :: ASExpression -> EitherTExec ASValue
-evaluateLanguageRepl (Expression str lang) = case lang of
+evalReplExpression :: ASExpression -> EitherTExec ASValue
+evalReplExpression (Expression str lang) = case lang of
 	Python 	-> KP.evaluateRepl str
 	R 		-> KR.evaluateRepl str
 	SQL 	-> KP.evaluateSqlRepl str
 	OCaml 	-> KO.evaluateRepl str
 
 -----------------------------------------------------------------------------------------------------------------------
--- | Helpers
+-- Helpers
 
-evalCode :: ASSheetId -> M.Map ASReference ASValue -> ASExpression -> EitherTExec ASValue
+evalCode :: ASSheetId -> RefValMap -> ASExpression -> EitherTExec ASValue
 evalCode sheetid values xp@(Expression _ lang) = do
 	showTime "Starting eval code"
-	let purified = insertValues sheetid values xp 
-	--printTimed $ "Final eval xp: " ++ (show finalXp)
-	execEvaluateLang lang purified
-	
+	let xpWithValuesSubstituted = insertValues sheetid values xp 
+	execEvalInLang lang xpWithValuesSubstituted	
 
-execEvaluateLang :: ASLanguage -> String -> EitherTExec ASValue
-execEvaluateLang lang = case lang of 
+execEvalInLang :: ASLanguage -> String -> EitherTExec ASValue
+execEvalInLang lang = case lang of 
 	Python 	-> KP.evaluate
 	Excel 	-> KE.evaluate
 	R 		-> KR.evaluate
@@ -66,7 +61,7 @@ execEvaluateLang lang = case lang of
 
 -- Deprecated. 
 
---evalRef :: ASIndex -> M.Map ASReference ASValue -> ASExpression ->  ASValue
+--evalRef :: ASIndex -> RefValMap -> ASExpression ->  ASValue
 --evalRef loc dict (Reference l (a, b)) = 
 --	case (dict M.! l) of
 --	  	(ValueL lst) -> case (lst L.!!b) of
