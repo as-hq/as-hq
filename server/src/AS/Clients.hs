@@ -199,31 +199,27 @@ handleGet user state (PayloadList WorkbookSheets) = do
   sendToOriginal user $ ServerMessage Update Success (PayloadWorkbookSheets wss)
 
 handleDelete :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
-handleDelete user state p@(PayloadL loc) = do 
-  conn <- fmap dbConn $ readMVar state
-  DB.deleteLocs conn [loc]
-  sendBroadcastFiltered user state $ ServerMessage Delete Success p
-  return () 
-handleDelete user state p@(PayloadLL locs) = do 
+handleDelete user state payload = do 
+  let locs = case payload of 
+    PayloadL loc -> [loc]
+    PayloadLL locs' -> locs' 
+    PayloadR rng -> rangeToIndices rng
   conn <- fmap dbConn $ readMVar state
   DB.deleteLocs conn locs
   sendBroadcastFiltered user state $ ServerMessage Delete Success p
   return () 
-handleDelete user state p@(PayloadR rng) = do 
-  conn <- fmap dbConn $ readMVar state
-  DB.deleteLocs conn (rangeToIndices rng)
-  sendBroadcastFiltered user state $ ServerMessage Delete Success p
-  return () 
-handleDelete user state p@(PayloadWorkbookSheets (wbs:[])) = do
-  conn <- fmap dbConn $ readMVar state
-  DB.deleteWorkbookSheet conn wbs
-  broadcast state $ ServerMessage Delete Success p
-  return () 
-handleDelete user state p@(PayloadWB workbook) = do
-  conn <- fmap dbConn $ readMVar state
-  DB.deleteWorkbook conn (workbookName workbook) 
-  sendBroadcastFiltered user state $ ServerMessage Delete Success p
-  return () 
+
+-- TODO needs re-implementing -- should probably have a separate handler. 
+-- handleDelete user state p@(PayloadWorkbookSheets (wbs:[])) = do
+--   conn <- fmap dbConn $ readMVar state
+--   DB.deleteWorkbookSheet conn wbs
+--   broadcast state $ ServerMessage Delete Success p
+--   return () 
+-- handleDelete user state p@(PayloadWB workbook) = do
+--   conn <- fmap dbConn $ readMVar state
+--   DB.deleteWorkbook conn (workbookName workbook) 
+--   sendBroadcastFiltered user state $ ServerMessage Delete Success p
+--   return () 
 
 handleClear :: ASUserClient -> MVar ServerState -> IO ()
 handleClear user state = sendBroadcastFiltered user state (failureMessage "")
