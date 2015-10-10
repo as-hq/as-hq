@@ -197,7 +197,8 @@ addCompileCmd OCaml cmd = do
     let path = evalPath ++ "ocaml/"
     return $ cmd ++ "; " ++ path ++ "test"
 
--- Helper function for insertValues
+-- | Helper function for interpolate. Takes in a RefValMap and a reference and returns
+-- the value as a string. 
 lookupString :: ASLanguage -> RefValMap -> ASReference -> String
 lookupString lang mp loc = case loc of
     IndexRef (Index sh (a,b)) -> (showFilteredValue lang) (mp M.! loc)
@@ -207,8 +208,14 @@ lookupString lang mp loc = case loc of
             else modifiedLists lang (toListStr lang [modifiedLists lang (toListStr lang ([(showFilteredValue lang) (mp M.! (IndexRef $ Index sh (col,row)))| col <-[a..c]]))| row<-[b..d]])
 
 
+-- | Replaces all the Excel references in an expression with the values corresponding to them. 
 -- TODO clean up SQL mess
 insertValues :: ASSheetId -> RefValMap -> ASExpression -> String
+insertValues sheetid values (Expression origString lang) = evalString
+    where
+        exRefToStringEval = (lookupString lang values) . (exRefToASRef sheetid) -- ExRef -> String. (Takes in ExRef, returns the ASValue corresponding to it, as a string.)
+        evalString = replaceMatches (getMatchesWithContext origString excelMatch) exRefToStringEval origString
+
 insertValues sheetid values (Expression origString SQL) = contextStmt ++ evalStmt
     where
         exRefs = getMatchesWithContext origString excelMatch
@@ -218,11 +225,6 @@ insertValues sheetid values (Expression origString SQL) = contextStmt ++ evalStm
         newExp = replaceMatches exRefs (\el -> (L.!!) st (MB.fromJust (L.findIndex (el==) (snd exRefs)))) origString
         contextStmt = "setGlobals("++(show context) ++")\n"
         evalStmt = "result = pprintSql(db(\'" ++ newExp ++ "\'))"
-
-insertValues sheetid values (Expression origString lang) = evalString
-    where
-        exLocToStringEval = (lookupString lang values) . (exRefToASRef sheetid) -- ExLoc -> String
-        evalString = replaceMatches (getMatchesWithContext origString excelMatch) exLocToStringEval origString
 
 -----------------------------------------------------------------------------------------------------------------------
 -- | File management
