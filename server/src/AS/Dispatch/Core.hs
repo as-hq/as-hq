@@ -47,9 +47,9 @@ runDispatchCycle state c' uid = do
     printWithTimeT $ "STARTING DISPATCH CYCLE WITH PAYLOADC " ++ (show c')
     c              <- lift $ EM.evalMiddleware c'
     conn           <- lift $ fmap dbConn $ readMVar state
+    decoupledCells <- decoupleCells conn c 
     setCellInDb conn c
     setCellAncestorsInDb conn c
-    decoupledCells <- decoupleCells conn c
     desc           <- getDescendants conn c
     ancLocs        <- G.getImmediateAncestors $ map cellLocation desc
     printWithTimeT $ "got ancestor locs: " ++ (show ancLocs)
@@ -66,6 +66,24 @@ runDispatchCycle state c' uid = do
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Eval building blocks
 
+-- | If a cell is not a part of any list or reference, do nothing and return nothing. Otherwise, 
+-- decouple all the cells associated with that cell and return the list of decoupled cells. 
+decoupleCells :: Connection -> ASCell -> EitherTExec [ASCell] 
+decoupleCells conn cell = do 
+  oldCell <- lift $ DB.getCell (cellLocation cell)
+  case oldCell of 
+    Just cell' -> if (isListMember cell') 
+      then lift $ DB.decoupleList conn cell'
+      else return []
+    Nothing -> return []
+
+-- for some very strange reason, it sometimes happens that a cell is tagged as a part of the list in the
+-- backend, but the cell that gets passed to us from the frontend doesn't have that. this is why
+-- we need to pull oldCell to make this work right now. Otherwise we can just use the below:  
+-- decoupleCells conn cell = if (isListMember cell) 
+--   then lift $ DB.decoupleList conn cell
+--   else return []
+
 -- | Puts the cell in the database for the first time / overwrites cell in DB with fresh new cell. 
 setCellInDb :: Connection -> ASCell -> EitherTExec ()
 setCellInDb conn (Cell loc expr _ ts) = do 
@@ -73,7 +91,7 @@ setCellInDb conn (Cell loc expr _ ts) = do
   lift $ DB.setCell initCell
   printWithTimeT "set init cells"
 
--- | Get the ancestors of a cell, and set the ancestor relationships in the DB. 
+-- | Update the ancestors of a cell, and set the ancestor relationships in the DB. 
 setCellAncestorsInDb :: Connection -> ASCell -> EitherTExec ()
 setCellAncestorsInDb conn (Cell loc expr _ ts) = do
   let deps = fst $ getDependenciesAndExpressions (locSheetId loc) expr
@@ -82,13 +100,6 @@ setCellAncestorsInDb conn (Cell loc expr _ ts) = do
   if (all isJust ancestorCells)
     then G.setRelations [(loc, deps)]
     else left $ DBNothingException [] -- one of the ancestors doesn't exist. TODO: return list of missing ancestors.
-
--- | If a cell is not a part of any list or reference, do nothing and return nothing. Otherwise, 
--- decouple all the cells associated with that cell and return the list of decoupled cells. 
-decoupleCells :: Connection -> ASCell -> EitherTExec [ASCell] 
-decoupleCells conn cell = if (isListMember cell) 
-  then lift $ DB.decoupleList conn cell
-  else return []
 
 -- | Return the descendants of a cell, which will always exist but may be locked
 -- TODO: throw exceptions for permissions/locking

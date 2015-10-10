@@ -246,7 +246,7 @@ shiftExRefs offset exRefs = map (shiftExRef offset) exRefs
 -------------------------------------------------------------------------------------------------------------------------------------------------
 -- Parse dependencies and replace relative expressions
 
--- | Returns the list of dependencies you get, and an expression with all the excel references replaced
+-- | Returns the list of dependencies in ASExpression, and an expression with all the excel references replaced
 getDependenciesAndExpressions :: ASSheetId -> ASExpression -> ([ASIndex], ASExpression)
 getDependenciesAndExpressions sheetid xp = (newLocs, newExpr)
   where 
