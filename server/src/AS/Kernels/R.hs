@@ -28,7 +28,7 @@ evaluate str = do
     if isDebug 
         then lift $ writeExecFile R str
         else return ()
-    showTime "starting R eval"
+    printWithTimeT "starting R eval"
     result <- execR str
     hoistEither $ parseValue R result
 

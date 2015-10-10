@@ -120,7 +120,7 @@ decoupleList conn cell@(Cell idx _ _ ts) = do
     Right result <- smembers listKey
     del [listKey]
     return result
-  printTimed $ "got coupled locs: " ++ (show locs) 
+  printWithTime $ "got coupled locs: " ++ (show locs) 
   listCells <- DU.getCellsByKeys locs
   let newCells = map DU.decoupleCell $ filterNothing listCells 
   let decoupledCells = filter (((/=) idx) . cellLocation) newCells
@@ -132,12 +132,12 @@ decoupleList conn cell@(Cell idx _ _ ts) = do
 --getColumnCells conn (Column sheetid col) = do
 --  runRedis conn $ do
 --    locKeys <- DU.getSheetLocsRedis sheetid
---    liftIO $ printTimed "redis got column"
+--    liftIO $ printWithTime "redis got column"
 --    let rows = map DU.keyToRow locKeys
 --    let firstRowKey = minBy keyToRow locKeys
 --    let locKeys = map (\i -> DU.incrementLocKey (1,i) firstRowKey) [(minimum rows)..(maximum rows)]
 --    cells <- mapM DU.getCellByKeyRedis locKeys
---    liftIO $ printTimed "redis got cells"
+--    liftIO $ printWithTime "redis got cells"
 --    return cells
 
 ----------------------------------------------------------------------------------------------------------------------
@@ -148,11 +148,11 @@ decoupleList conn cell@(Cell idx _ _ ts) = do
 -- | Deal with updating all DB-related things after an eval
 updateAfterEval :: Connection -> ASUserId -> ASCell -> [ASCell] -> [ASCell] -> IO ()
 updateAfterEval conn uid origCell desc cells = do 
-  printTimed "begin set cells"
+  printWithTime "begin set cells"
   setCells cells
-  printTimed "finished set cells"
+  printWithTime "finished set cells"
   addCommit conn uid desc cells
-  printTimed "added commit"
+  printWithTime "added commit"
   if (U.containsTrackingTag (cellTags origCell))
     then return () -- TODO: implement some redundancy in DB for tracking
     else return ()

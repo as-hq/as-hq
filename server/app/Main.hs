@@ -99,8 +99,8 @@ talk state client = forever $ do
   msg <- WS.receiveData (conn client)
   putStrLn "=========================================================="
   case (decode msg :: Maybe ASClientMessage) of 
-    Just m  -> printTimed ("SERVER message received:  " ++ (show msg)) >> processMessage client state m
-    Nothing -> printTimed ("SERVER ERROR: unable to decode message " ++ (show msg)) >> return ()
+    Just m  -> printWithTime ("SERVER message received:  " ++ (show msg)) >> processMessage client state m
+    Nothing -> printWithTime ("SERVER ERROR: unable to decode message " ++ (show msg)) >> return ()
 
 processMessage :: (Client c) => c -> MVar ServerState -> ASClientMessage -> IO ()
 processMessage client state message = do
@@ -112,5 +112,5 @@ processMessage client state message = do
 
 onDisconnect :: (Client c) => c -> MVar ServerState -> IO ()
 onDisconnect user state = do 
-  printTimed "Client disconnected"
+  printWithTime "Client disconnected"
   liftIO $ modifyMVar_ state (\s -> return $ removeClient user s) -- remove client from server

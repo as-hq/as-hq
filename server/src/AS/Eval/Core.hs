@@ -50,9 +50,9 @@ evaluateLanguageRepl (Expression str lang) = case lang of
 
 evalCode :: ASSheetId -> M.Map ASReference ASValue -> ASExpression -> EitherTExec ASValue
 evalCode sheetid values xp@(Expression _ lang) = do
-	showTime "Starting eval code"
+	printWithTimeT "Starting eval code"
 	let purified = insertValues sheetid values xp 
-	--printTimed $ "Final eval xp: " ++ (show finalXp)
+	--printWithTime $ "Final eval xp: " ++ (show finalXp)
 	execEvaluateLang lang purified
 	
 

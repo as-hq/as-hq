@@ -38,7 +38,7 @@ instance Client ASUserClient where
   removeClient uc s@(State ucs dcs dbc)
     | uc `elem` ucs = State (L.delete uc ucs) dcs dbc
     | otherwise = s
-  handleClientMessage user state message = printTimed ("\n\nMessage: " ++ (show $ message)) >> case (clientAction message) of 
+  handleClientMessage user state message = printWithTime ("\n\nMessage: " ++ (show $ message)) >> case (clientAction message) of 
     Acknowledge  -> handleAcknowledge user
     New          -> handleNew state payload
     Open         -> handleOpen user state payload
@@ -153,7 +153,7 @@ handleUpdateWindow sid state (PayloadW window) = do
     Nothing -> putStrLn "ERROR: could not update nothing window" >> return ()
     (Just oldWindow) -> do
       let locs = U.getScrolledLocs oldWindow window 
-      printTimed $ "Sending locs: " ++ (show locs)
+      printWithTime $ "Sending locs: " ++ (show locs)
       mcells <- DB.getCells $ concat $ map rangeToIndices locs
       sendToOriginal user' $ U.getDBCellMessage mcells
       US.modifyUser (U.updateWindow window) user' state
@@ -195,7 +195,7 @@ handleGet user state (PayloadList Workbooks) = do
 handleGet user state (PayloadList WorkbookSheets) = do
   curState <- readMVar state
   wss <- DB.getAllWorkbookSheets (dbConn curState)
-  printTimed $ "getting all workbooks: "  ++ (show wss)
+  printWithTime $ "getting all workbooks: "  ++ (show wss)
   sendToOriginal user $ ServerMessage Update Success (PayloadWorkbookSheets wss)
 
 handleDelete :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
@@ -236,7 +236,7 @@ handleUndo user state = do
     Nothing -> return $ failureMessage "Too far back"
     (Just c) -> return $ ServerMessage Undo Success (PayloadCommit c)
   sendBroadcastFiltered user state msg
-  printTimed "Server processed undo"
+  printWithTime "Server processed undo"
 
 handleRedo :: ASUserClient -> MVar ServerState -> IO ()
 handleRedo user state = do 
@@ -246,7 +246,7 @@ handleRedo user state = do
     Nothing -> return $ failureMessage "Too far forwards"
     (Just c) -> return $ ServerMessage Redo Success (PayloadCommit c)
   sendBroadcastFiltered user state msg
-  printTimed "Server processed redo"
+  printWithTime "Server processed redo"
 
 -- parse deps
 -- check that all locations exist, else throw error
@@ -268,7 +268,7 @@ handleCopy user state (PayloadCopy from to) = do
       shiftedDeps = map snd toCellsAndDeps                
       allDeps = concat shiftedDeps                          -- the set of dependencies present among the shifted cells
       toLocs = map cellLocation toCells                     -- [new set of cell locations]
-  printTimed $ "Copying cells: "
+  printWithTime $ "Copying cells: "
   allExistDB <- DB.locationsExist conn allDeps                   -- check if deps exist in DB. (Bug on Alex's machine 9/30: not working properly here)
   let allNonexistentDB = U.isoFilter not allExistDB allDeps -- the list of dependencies that currently don't refer to anything
       allExist = U.isSubsetOf allNonexistentDB toLocs -- else if the dep was something we copied

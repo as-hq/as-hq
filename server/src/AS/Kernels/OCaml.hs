@@ -23,7 +23,7 @@ evaluate str = do
     if isDebug 
         then lift $ writeExecFile OCaml str
         else return ()
-    showTime "starting OCaml eval"
+    printWithTimeT "starting OCaml eval"
     result <- lift $ execOcaml
     hoistEither $ parseValue OCaml result
 
