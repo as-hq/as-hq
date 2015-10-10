@@ -74,10 +74,7 @@ showValue lang v = case v of
   ValueD d 			-> show d
   ValueB b      -> bool lang $ show b
   ValueL l 			-> toListStr lang $ fmap (showValue lang) l
-  ValueStyled s v 	-> showValue lang v
-  DisplayValue d v 	-> showValue lang v
   ValueObject o js 	-> jsonDeserialize lang o js
-
 
 showFilteredValue :: ASLanguage -> ASValue -> String
 showFilteredValue lang (ValueL l) = showFilteredValue lang (headOrNull l)

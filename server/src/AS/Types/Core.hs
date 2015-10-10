@@ -45,21 +45,12 @@ data ASValue =
   | ValueD Double 
   | ValueB Bool
   | ValueL [ASValue]
-  | ValueT (ASValue, ASValue)
-  | ValueImage { imagePath :: String}
+  | ValueImage { imagePath :: String }
   | ValueObject { objectType :: String, jsonRepresentation :: String }
-  | ValueStyled { style :: String, value :: ASValue }
-  | ValueError { error :: String, err_type :: String, file :: String, position :: Int } 
-  | ValueE ASEvalError
-  | ExcelSheet { locs :: ASValue, exprs :: ASValue, vals :: ASValue}
-  | Rickshaw {rickshawData :: ASValue}
-  | StockChart { stockPrices :: ASValue, stockName :: String }
-  | DisplayValue { displayValue :: String, actualValue :: ASValue }
+  | ValueError { errMsg :: String, errType :: String, file :: String, position :: Int } 
   deriving (Show, Read, Eq, Generic)
 
 data ASReplValue = ReplValue {replValue :: ASValue, replLang :: ASLanguage} deriving (Show, Read, Eq, Generic)
-
-type ASEvalError = String
 
 data ASLanguage = R | Python | OCaml | CPP | Java | SQL | Excel deriving (Show, Read, Eq, Generic)
 

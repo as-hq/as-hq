@@ -43,12 +43,6 @@ transformExpression bc@(conn,xp,loc) ctx = do
     resultInit <- pyfiString interpolated
     let result = parseValue Excel resultInit
     case result of 
-        (ValueT (xp', [])) -> return $ Right xp'
-        (ValueT (xp', mp)) -> case parseLookupMap mp of 
-            (Left _) -> return . Left $ ValueError "Could not transform Excel expression" "ExcelParse" "" -1
-            (Right lookupMap) -> do
-                ctx' <- getNewContext bc ctx lookupMap
-                transformExpression xp' ctx'
         e@(ValueError _ _ _ _) -> return $ Left e
         _ -> return . Left $ ValueError "Could not transform Excel expression" "ExcelParse" "" -1
 

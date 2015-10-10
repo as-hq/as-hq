@@ -98,31 +98,11 @@ valueL lang = ValueL <$> (brackets $ sepBy (asValue lang) (delim >> spaces))
 
 extractValue :: M.Map String ASValue -> ASValue
 extractValue m
-  | M.member "error" m        = extractError m
-  | M.member "style" m        = extractStyledValue m
-  | M.member "displayValue" m = extractDisplayValue m
   | M.member "imagePath" m    = extractImageValue m
-  | M.member "stockPrices" m  = extractStockChart m
-  | M.member "excelLocs"   m  = extractExcel m 
-  | M.member "rickshawData" m = extractRick m 
   | M.member "objectType" m   = extractObjectValue m
+  | M.member "error" m        = extractError m
   | otherwise = extractObjectValue m
   where
-    extractExcel mm       = ExcelSheet l e v
-      where
-        l           = m M.! "excelLocs"
-        e           = m M.! "excelExprs"
-        v           = m M.! "excelVals"
-    extractStyledValue mm = ValueStyled s v
-      where
-        ValueS s    = m M.! "style"
-        v           = m M.! "value"
-    extractDisplayValue mm = DisplayValue s v
-      where
-        ValueS s    = m M.! "displayValue"
-        v           = m M.! "actualValue"
-    -- { 'imagePath': 'whatever the path is' }
-    -- print({ 'imagePath': 'whatever the path is' })
     extractImageValue mm = ValueImage p
       where
         ValueS p    = m M.! "imagePath"
@@ -130,13 +110,6 @@ extractValue m
       where
         ValueS typ  = m M.! "objectType"
         ValueS rep  = m M.! "jsonRepresentation"
-    extractStockChart mm = StockChart prices name
-      where
-        prices      = m M.! "stockPrices"
-        ValueS name = m M.! "stockName"
-    extractRick mm = Rickshaw d
-      where
-        d           = m M.! "rickshawData"
     extractError mm = ValueError err typ file (floor pos)
       where
         ValueS err         = m M.! "error"
