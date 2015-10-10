@@ -154,7 +154,7 @@ printWithTimeT = lift . printWithTime
 
 -- | For debugging purposes
 printDebug :: (Show a) => String -> a -> IO ()
-printDebug name obj = printWithTime (name ++ ": " ++ (show obj))
+printDebug name obj = printWithTime ("\n\n" ++ name ++ ": " ++ (show obj))
 
 -- | Not yet implemented
 getASTime :: IO ASTime

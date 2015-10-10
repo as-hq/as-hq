@@ -194,7 +194,7 @@ interpolateFileRepl lang execCmd = do
 	return $ layoutCodeFile lang ("", template, execCmd)
 
 -- Helper function for interpolate
-lookupString :: ASLanguage -> M.Map ASReference ASValue -> ASReference -> String
+lookupString :: ASLanguage -> RefValMap -> ASReference -> String
 lookupString lang mp ref = case ref of
 	IndexRef (Index sh (a,b)) -> (showFilteredValue lang) (mp M.! ref)
 	RangeRef (Range sh ((a,b),(c,d))) -> 
@@ -204,7 +204,7 @@ lookupString lang mp ref = case ref of
 			else 
 				modifiedLists lang (toListStr lang [modifiedLists lang (toListStr lang ([(showFilteredValue lang) (mp M.! (IndexRef $ Index sh (col,row)))| col <-[a..c]]))| row<-[b..d]])
 
-interpolate :: ASSheetId -> M.Map ASReference ASValue -> ASExpression -> String
+interpolate :: ASSheetId -> RefValMap -> ASExpression -> String
 interpolate sheetid values xp = evalString
 	where
 		origString = expression xp

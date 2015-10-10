@@ -3,7 +3,7 @@ module AS.Dispatch.Core where
 -- AlphaSheets and base
 import AS.Types.Core
 import Prelude 
-import qualified AS.Eval.Core as R (evaluateLanguage)
+import qualified AS.Eval.Core as R (evalCode)
 import qualified Data.Map   as M
 import qualified AS.DB.API  as DB
 import qualified AS.DB.Util as DU
@@ -20,6 +20,7 @@ import AS.Util as U
 import AS.Eval.Middleware as EM
 import AS.Eval.Endware as EE
 import qualified AS.DB.Graph as G
+import Control.Exception.Base
 
 -- Websockets
 import Control.Monad 
@@ -43,18 +44,21 @@ import Control.Monad.Trans.Either
 runDispatchCycle :: MVar ServerState -> ASCell -> ASUserId -> IO ASServerMessage
 runDispatchCycle state c' uid = do
   errOrCells <- runEitherT $ do
-    lift $ putStrLn $ "STARTING DISPATCH CYCLE WITH PAYLOADC " ++ (show c')
-    c           <- lift $ EM.evalMiddleware c'
-    conn        <- lift $ fmap dbConn $ readMVar state
-    updateCells <- updateCell conn c
-    desc        <- getDescendants conn c
-    ancLocs     <- G.getImmediateAncestors $ map cellLocation desc
+    printWithTimeT $ "STARTING DISPATCH CYCLE WITH PAYLOADC " ++ (show c')
+    c              <- lift $ EM.evalMiddleware c'
+    conn           <- lift $ fmap dbConn $ readMVar state
+    decoupledCells <- decoupleCells conn c 
+    setCellInDb conn c
+    setCellAncestorsInDb conn c
+    desc           <- getDescendants conn c
+    ancLocs        <- G.getImmediateAncestors $ map cellLocation desc
     printWithTimeT $ "got ancestor locs: " ++ (show ancLocs)
-    anc         <- lift $ fmap catMaybes $ DB.getCells ancLocs
-    cells'      <- propagate conn anc desc 
+    anc            <- lift $ fmap catMaybes $ DB.getCells ancLocs
+    cells          <- initEval conn anc desc 
+
     -- Apply endware
-    cells       <- lift $  EE.evalEndware state c' cells' uid
-    let allCells = cells ++ updateCells
+    finalizedCells <- lift $ EE.evalEndware state c' cells uid
+    let allCells = finalizedCells ++ decoupledCells
     lift $ DB.updateAfterEval conn uid c' desc allCells -- does set cells and commit
     return allCells
   return $ U.getCellMessage errOrCells
@@ -62,30 +66,40 @@ runDispatchCycle state c' uid = do
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Eval building blocks
 
--- | Takes a cell and returns an error if it tries to access a non-existent cell
--- Otherwise, it returns all of the immediate ancestors (used to make the lookup map)
--- returns cells that were created by side effects (e.g. list mutation)
--- NOTE: this is expensive when modifying a list.
--- TODO when modifying a list, asynchronously send the modified cell without blocking on all the other expressions being modified.
-updateCell :: Connection -> ASCell -> EitherTExec [ASCell] 
-updateCell conn (Cell loc xp val ts) = do 
-  oldCell <- lift $ DB.getCell loc
-  unlistCells <- case oldCell of 
-    Just cell -> if (isListMember cell) 
-      then lift $ DB.decoupleList conn cell
+-- | If a cell is not a part of any list or reference, do nothing and return nothing. Otherwise, 
+-- decouple all the cells associated with that cell and return the list of decoupled cells. 
+decoupleCells :: Connection -> ASCell -> EitherTExec [ASCell] 
+decoupleCells conn cell = do 
+  oldCell <- lift $ DB.getCell (cellLocation cell)
+  case oldCell of 
+    Just cell' -> if (isListMember cell') 
+      then lift $ DB.decoupleList conn cell'
       else return []
-    Nothing   -> return []
-  let (deps, expr) = getDependenciesAndExpressions (locSheetId loc) xp
-  ancCells <- lift $ DB.getCells deps
-  if (any isNothing ancCells)
-    then left $ DBNothingException []
-    else do 
-      let initCell = Cell loc expr NoValue ts
-      G.setRelations [(loc, deps)]
-      printWithTimeT $ "init cells: " ++ (show initCell)
-      lift $ DB.setCell initCell
-      printWithTimeT "set init cells"
-      return unlistCells
+    Nothing -> return []
+
+-- for some very strange reason, it sometimes happens that a cell is tagged as a part of the list in the
+-- backend, but the cell that gets passed to us from the frontend doesn't have that. this is why
+-- we need to pull oldCell to make this work right now. Otherwise we can just use the below:  
+-- decoupleCells conn cell = if (isListMember cell) 
+--   then lift $ DB.decoupleList conn cell
+--   else return []
+
+-- | Puts the cell in the database for the first time / overwrites cell in DB with fresh new cell. 
+setCellInDb :: Connection -> ASCell -> EitherTExec ()
+setCellInDb conn (Cell loc expr _ ts) = do 
+  let initCell = Cell loc expr NoValue ts -- NoValue because the value hasn't been computed yet
+  lift $ DB.setCell initCell
+  printWithTimeT "set init cells"
+
+-- | Update the ancestors of a cell, and set the ancestor relationships in the DB. 
+setCellAncestorsInDb :: Connection -> ASCell -> EitherTExec ()
+setCellAncestorsInDb conn (Cell loc expr _ ts) = do
+  let deps = fst $ getDependenciesAndExpressions (locSheetId loc) expr
+  ancestorCells <- lift $ DB.getCells deps
+  printWithTimeT "got ancestor cells"
+  if (all isJust ancestorCells)
+    then G.setRelations [(loc, deps)]
+    else left $ DBNothingException [] -- one of the ancestors doesn't exist. TODO: return list of missing ancestors.
 
 -- | Return the descendants of a cell, which will always exist but may be locked
 -- TODO: throw exceptions for permissions/locking
@@ -102,20 +116,24 @@ getDescendants conn cell = do
   printWithTimeT $ "got descendant cells"
   return $ map fromJust desc
 
--- | Takes ancestors and descendants, create lookup map, and run eval
-propagate :: Connection -> [ASCell] -> [ASCell] -> EitherTExec [ASCell]
-propagate conn anc dec = do 
+-- | Takes ancestors and descendants, create lookup map, and starts eval
+initEval :: Connection -> [ASCell] -> [ASCell] -> EitherTExec [ASCell]
+initEval conn anc dec = do 
   let mp = M.fromList $ map (\c -> (IndexRef $ cellLocation c, cellValue c)) anc
   evalChain conn mp dec
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Eval helpers
 
-evalChain :: Connection -> M.Map ASReference ASValue -> [ASCell] -> EitherTExec [ASCell]
+-- | Evaluates expression in current cell (first element of 3rd argument). Once that's done, continue doing
+-- this down the list of cells. The list of cells is guaranteed to be be topologically sorted -- by the time
+-- we reach any cell, all references to any of its ancestors should already have been computed
+-- and stored in the second argument. Returns the list of all the cells it's evaluated  
+evalChain :: Connection -> RefValMap -> [ASCell] -> EitherTExec [ASCell]
 evalChain _ _ [] = return []
 evalChain conn mp (c@(Cell loc xp _ ts):cs) = do  
-  printWithTimeT $ "Starting eval chain" -- ++ (show mp)
-  cv <- R.evaluateLanguage xp loc mp
+  printWithTimeT "Starting eval chain" -- ++ (show mp)
+  cv <- R.evalCode (locSheetId loc) mp xp
   case cv of 
     ValueL lst -> do
       let listCells = createListCells conn c lst
@@ -128,8 +146,14 @@ evalChain conn mp (c@(Cell loc xp _ ts):cs) = do
       rest <- evalChain conn newMp cs
       return $ (Cell loc xp cv ts):rest
 
--- | If a cell C contains an array, createListCells makes the cells at C and below reflect the elements
--- of that array. 
+-- | If a cell C contains a 1D or 2D list, it'll be represented in the grid as a matrix. 
+-- This function takes in the starting cell with the starting expression, and creates the list 
+-- of cells. For example, [[1,2],[3,4]] entered into A1 should put values of 1 in A1, 2 in B1, 
+-- 3 in A2, and 4 in B2. createListCells called on A1 with the expression [[1,2],[3,4]] in it
+-- should return a list of cells located at A1, A2, B1, B2, with:
+--   1) the values 1, 2, 3, and 4, in them,
+--   2) references to the original cell being called
+--   3) the expression [[1,2],[3,4]] stored in them. 
 createListCells :: Connection -> ASCell -> [ASValue] -> [ASCell]
 createListCells _ _ [] = []
 createListCells conn (Cell (Index sheet (a,b)) xp _ ts) values = cells

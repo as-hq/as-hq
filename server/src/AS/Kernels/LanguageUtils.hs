@@ -198,7 +198,7 @@ addCompileCmd OCaml cmd = do
     return $ cmd ++ "; " ++ path ++ "test"
 
 -- Helper function for insertValues
-lookupString :: ASLanguage -> M.Map ASReference ASValue -> ASReference -> String
+lookupString :: ASLanguage -> RefValMap -> ASReference -> String
 lookupString lang mp loc = case loc of
     IndexRef (Index sh (a,b)) -> (showFilteredValue lang) (mp M.! loc)
     RangeRef (Range sh ((a,b),(c,d))) -> 
@@ -208,7 +208,7 @@ lookupString lang mp loc = case loc of
 
 
 -- TODO clean up SQL mess
-insertValues :: ASSheetId -> M.Map ASReference ASValue -> ASExpression -> String
+insertValues :: ASSheetId -> RefValMap -> ASExpression -> String
 insertValues sheetid values (Expression origString SQL) = contextStmt ++ evalStmt
     where
         exRefs = getMatchesWithContext origString excelMatch

@@ -246,19 +246,19 @@ shiftExRefs offset exRefs = map (shiftExRef offset) exRefs
 -------------------------------------------------------------------------------------------------------------------------------------------------
 -- Parse dependencies and replace relative expressions
 
--- | Returns the list of dependencies you get, and an expression with all the excel references replaced
+-- | Returns the list of dependencies in ASExpression, and an expression with all the excel references replaced
 getDependenciesAndExpressions :: ASSheetId -> ASExpression -> ([ASIndex], ASExpression)
 getDependenciesAndExpressions sheetid xp = (newLocs, newExpr)
   where 
     origString = expression xp
     (inter, exRefs) = getMatchesWithContext origString excelMatch -- the only place that Parsec is used
-    newLocs = getDependenciesFromExRefs sheetid exRefs
+    newLocs = getASIndicesFromExRefs sheetid exRefs
     newString = replaceMatches (inter, exRefs) showExcelRef origString
     newExpr = Expression newString (language xp)
 
--- gets dependencies from a list of excel locs
-getDependenciesFromExRefs :: ASSheetId -> [ExRef] -> [ASIndex]
-getDependenciesFromExRefs sheetid matches = concat $ map refToIndices $ map (exRefToASRef sheetid) matches
+-- | Takes in a list of ExRef's and converts them to a list of ASIndex's.
+getASIndicesFromExRefs :: ASSheetId -> [ExRef] -> [ASIndex]
+getASIndicesFromExRefs sheetid matches = concat $ map refToIndices $ map (exRefToASRef sheetid) matches
 
 ----------------------------------------------------------------------------------------------------------------------------------
 -- Functions for excel sheet loading
@@ -279,15 +279,17 @@ unpackExcelVals v = []
 ----------------------------------------------------------------------------------------------------------------------------------
 -- Copy/paste
 
--- | Returns (shifted cell, new dependencies)
-shiftCell :: (Int, Int) -> ASCell -> (ASCell, [ASIndex])
-shiftCell offset (Cell loc (Expression str lang) v ts) = (shiftedCell, shiftedDeps)
+-- | Takes in an offset and a cell. Returns (shifted cell, new dependencies). Helper for copy/paste. 
+-- If A1 is a dep in the cell, and it's shifted by (2,2), the new dep is C3. If A$1 is a dep
+-- then the shift by (2,2) goes to C$1. 
+getShiftedCellWithShiftedDeps :: (Int, Int) -> ASCell -> (ASCell, [ASIndex])
+getShiftedCellWithShiftedDeps offset (Cell loc (Expression str lang) v ts) = (shiftedCell, shiftedDeps)
   where
     sheetid = locSheetId loc
     shiftedLoc = shiftInd offset loc
     (inter,exRefs) = getMatchesWithContext str excelMatch
     shiftedExRefs = shiftExRefs offset exRefs
-    shiftedDeps = getDependenciesFromExRefs sheetid shiftedExRefs
+    shiftedDeps = getASIndicesFromExRefs sheetid shiftedExRefs
     newStr = replaceMatches (inter, shiftedExRefs) showExcelRef str
     shiftedXp = Expression newStr lang
     shiftedCell = Cell shiftedLoc shiftedXp v ts

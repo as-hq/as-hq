@@ -10,7 +10,7 @@ import AS.Util as U
 import qualified AS.DB.Util as DU
 
 import Data.List (zip4,head,partition,nub,intercalate)
-import Data.Maybe (isNothing, fromJust)
+import Data.Maybe (isNothing,fromJust)
 
 import Foreign
 import Foreign.C.Types
@@ -110,7 +110,8 @@ setList conn locs = runRedis conn $ do
   sadd listKey locKeys 
   return ()
 
--- | Note: this operation is O(n)
+-- | Takes in a cell that's tied to a list. Decouples all the cells in that list from that
+-- list in the db, and returns the list of decoupled cells. Note: this operation is O(n).
 -- TODO move to C client because it's expensive
 decoupleList :: Connection -> ASCell -> IO [ASCell]
 decoupleList conn cell@(Cell idx _ _ ts) = do
@@ -166,7 +167,7 @@ addCommit conn uid b a = do
   --putStrLn $ show commit
 
 -- | Return a commit if possible (not possible if you undo past the beginning of time, etc)
--- | Update the DB so that there's always a source of truth (ie we will propagate undo to all relevant users)
+-- | Update the DB so that there's always a source of truth (ie we will initEval undo to all relevant users)
 undo :: Connection -> IO (Maybe ASCommit)
 undo conn = do 
   commit <- runRedis conn $ do 

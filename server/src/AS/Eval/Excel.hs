@@ -35,7 +35,7 @@ getInitialContext cell = do
     where
         sheetid = locSheetId l
         (inter, exRefs) = getMatchesWithContext str excelMatch
-        deps = getDependenciesFromExRefs sheetid exRefs (getOffsets l)
+        deps = getASIndicesFromExRefs sheetid exRefs (getOffsets l)
 
 transformExpression :: BaseContext -> ExcelContext -> IO (Either ASValue ASExpression) 
 transformExpression bc@(conn,xp,loc) ctx = do
