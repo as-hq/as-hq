@@ -46,10 +46,21 @@ evalReplExpression (Expression str lang) = case lang of
 -- Helpers
 
 evalCode :: ASSheetId -> RefValMap -> ASExpression -> EitherTExec ASValue
-evalCode sheetid values xp@(Expression _ lang) = do
+evalCode sheetid valuesMap xp@(Expression _ lang) = do
 	printWithTimeT "Starting eval code"
-	let xpWithValuesSubstituted = insertValues sheetid values xp 
+	checkForValueErrors sheetid valuesMap xp
+	let xpWithValuesSubstituted = insertValues sheetid valuesMap xp 
 	execEvalInLang lang xpWithValuesSubstituted	
+
+checkForValueErrors :: ASSheetId -> RefValMap -> ASExpression -> EitherTExec ()
+checkForValueErrors sheetid valuesMap xp = do 
+	let depIndices = getDependencies sheetid xp 
+	let refs   = fmap IndexRef depIndices
+	let values = map (valuesMap M.!) $ refs
+	flip mapM_ (zip depIndices values) (\(di, v) -> case v of 
+		NoValue            -> left $ DBNothingException [di]
+		ValueError _ _ _ _ -> left $ EvaluationError "referenced cell with error in it"
+		otherwise    -> return ())
 
 execEvalInLang :: ASLanguage -> String -> EitherTExec ASValue
 execEvalInLang lang = case lang of 

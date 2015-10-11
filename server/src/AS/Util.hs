@@ -99,6 +99,10 @@ isAllRight results = all id $ map isRight results
 
 deleteSubset :: (Eq a) => [a] -> [a] -> [a]
 deleteSubset subset = filter (\e -> L.notElem e subset)
+
+isNonEmptyCell :: ASCell -> Bool 
+isNonEmptyCell = ((/=) "") . expression . cellExpression
+
 --------------------------------------------------------------------------------------------------------------
 -- Key-value manip functions
 

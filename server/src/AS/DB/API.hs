@@ -149,10 +149,14 @@ decoupleList conn cell@(Cell idx _ _ ts) = do
 -- | Deal with updating all DB-related things after an eval
 updateAfterEval :: Connection -> ASUserId -> [ASCell] -> [ASCell] -> [ASCell] -> IO ()
 updateAfterEval conn uid origCells desc cells = do 
+  printWithTime "remove empty cells"
+  let emptyCells = filter (not . U.isNonEmptyCell) cells
+  deleteLocs conn (map cellLocation emptyCells)
+  let cells' = filter U.isNonEmptyCell cells
   printWithTime "begin set cells"
-  setCells cells
+  setCells cells'
   printWithTime "finished set cells"
-  addCommit conn uid desc cells
+  addCommit conn uid desc cells'
   printWithTime "added commit"
   -- if (U.containsTrackingTag (cellTags origCells))
   --   then return () -- TODO: implement some redundancy in DB for tracking

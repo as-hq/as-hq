@@ -93,7 +93,7 @@ setCellsInDb conn cells = (flip mapM_) cells (\(Cell loc expr _ ts) -> do
 -- | Update the ancestors of a cell, and set the ancestor relationships in the DB. 
 setCellsAncestorsInDb :: Connection -> [ASCell] -> EitherTExec ()
 setCellsAncestorsInDb conn cells = (flip mapM_) cells (\(Cell loc expr _ ts) -> do
-  let deps = fst $ getDependenciesAndExpressions (locSheetId loc) expr
+  let deps = getDependencies (locSheetId loc) expr
   ancestorCells <- lift $ DB.getCells deps
   printWithTimeT "got ancestor cells"
   if (all isJust ancestorCells)
@@ -114,8 +114,8 @@ getDescendants conn cells = do
 -- | Takes ancestors and descendants, create lookup map, and starts eval
 initEval :: Connection -> [ASCell] -> [ASCell] -> EitherTExec [ASCell]
 initEval conn anc desc = do 
-  let mp = M.fromList $ map (\c -> (IndexRef $ cellLocation c, cellValue c)) anc
-  evalChain conn mp desc
+  let valuesMap = M.fromList $ map (\c -> (IndexRef $ cellLocation c, cellValue c)) anc
+  evalChain conn valuesMap desc
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Eval helpers
@@ -126,19 +126,19 @@ initEval conn anc desc = do
 -- and stored in the second argument. Returns the list of all the cells it's evaluated  
 evalChain :: Connection -> RefValMap -> [ASCell] -> EitherTExec [ASCell]
 evalChain _ _ [] = return []
-evalChain conn mp (c@(Cell loc xp _ ts):cs) = do  
-  printWithTimeT "Starting eval chain" -- ++ (show mp)
-  cv <- R.evalCode (locSheetId loc) mp xp
+evalChain conn valuesMap (c@(Cell loc xp _ ts):cs) = do  
+  printWithTimeT "Starting eval chain" -- ++ (show valuesMap)
+  cv <- R.evalCode (locSheetId loc) valuesMap xp
   case cv of 
     ValueL lst -> do
-      let listCells = createListCells conn c lst
-          newMp     = M.insert (IndexRef loc) (head lst) mp
+      let listCells    = createListCells conn c lst
+          newValuesMap = M.insert (IndexRef loc) (head lst) valuesMap
       lift $ DB.setList conn $ map cellLocation listCells
-      rest <- evalChain conn newMp cs
+      rest <- evalChain conn newValuesMap cs
       return $ listCells ++ rest
     _ -> do
-      let newMp = M.insert (IndexRef loc) cv mp
-      rest <- evalChain conn newMp cs
+      let newValuesMap = M.insert (IndexRef loc) cv valuesMap
+      rest <- evalChain conn newValuesMap cs
       return $ (Cell loc xp cv ts):rest
 -- The Haskell way is probably to write this using foldM somehow, but that's not very urgent. 
 

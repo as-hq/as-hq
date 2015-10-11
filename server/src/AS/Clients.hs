@@ -199,31 +199,28 @@ handleGet user state (PayloadList WorkbookSheets) = do
   sendToOriginal user $ ServerMessage Update Success (PayloadWorkbookSheets wss)
 
 handleDelete :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
-handleDelete user state p@(PayloadL loc) = do 
+handleDelete user state payload = do 
+  let locs = case payload of 
+               PayloadL loc -> [loc] 
+               PayloadLL locs' -> locs' 
+               PayloadR rng -> rangeToIndices rng
   conn <- fmap dbConn $ readMVar state
-  DB.deleteLocs conn [loc]
-  sendBroadcastFiltered user state $ ServerMessage Delete Success p
-  return () 
-handleDelete user state p@(PayloadLL locs) = do 
-  conn <- fmap dbConn $ readMVar state
-  DB.deleteLocs conn locs
-  sendBroadcastFiltered user state $ ServerMessage Delete Success p
-  return () 
-handleDelete user state p@(PayloadR rng) = do 
-  conn <- fmap dbConn $ readMVar state
-  DB.deleteLocs conn (rangeToIndices rng)
-  sendBroadcastFiltered user state $ ServerMessage Delete Success p
-  return () 
-handleDelete user state p@(PayloadWorkbookSheets (wbs:[])) = do
-  conn <- fmap dbConn $ readMVar state
-  DB.deleteWorkbookSheet conn wbs
-  broadcast state $ ServerMessage Delete Success p
-  return () 
-handleDelete user state p@(PayloadWB workbook) = do
-  conn <- fmap dbConn $ readMVar state
-  DB.deleteWorkbook conn (workbookName workbook) 
-  sendBroadcastFiltered user state $ ServerMessage Delete Success p
-  return () 
+  let newCells = map (\l -> Cell l (Expression "" Excel) NoValue []) locs
+  msg' <- DP.runDispatchCycle state newCells (userId user)
+  sendBroadcastFiltered user state msg'
+
+-- should probably create separate handlers for these cases -- it's conceptually different. 
+-- OR: write a function that converts workbooks to lists of cells.(Alex 10/10)
+-- handleDelete user state p@(PayloadWorkbookSheets (wbs:[])) = do
+--   conn <- fmap dbConn $ readMVar state
+--   DB.deleteWorkbookSheet conn wbs
+--   broadcast state $ ServerMessage Delete Success p
+--   return () 
+-- handleDelete user state p@(PayloadWB workbook) = do
+--   conn <- fmap dbConn $ readMVar state
+--   DB.deleteWorkbook conn (workbookName workbook) 
+--   sendBroadcastFiltered user state $ ServerMessage Delete Success p
+--   return () 
 
 handleClear :: ASUserClient -> MVar ServerState -> IO ()
 handleClear user state = sendBroadcastFiltered user state (failureMessage "")
