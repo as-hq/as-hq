@@ -211,11 +211,6 @@ lookupString lang mp loc = case loc of
 -- | Replaces all the Excel references in an expression with the values corresponding to them. 
 -- TODO clean up SQL mess
 insertValues :: ASSheetId -> RefValMap -> ASExpression -> String
-insertValues sheetid values (Expression origString lang) = evalString
-    where
-        exRefToStringEval = (lookupString lang values) . (exRefToASRef sheetid) -- ExRef -> String. (Takes in ExRef, returns the ASValue corresponding to it, as a string.)
-        evalString = replaceMatches (getMatchesWithContext origString excelMatch) exRefToStringEval origString
-
 insertValues sheetid values (Expression origString SQL) = contextStmt ++ evalStmt
     where
         exRefs = getMatchesWithContext origString excelMatch
@@ -225,6 +220,11 @@ insertValues sheetid values (Expression origString SQL) = contextStmt ++ evalStm
         newExp = replaceMatches exRefs (\el -> (L.!!) st (MB.fromJust (L.findIndex (el==) (snd exRefs)))) origString
         contextStmt = "setGlobals("++(show context) ++")\n"
         evalStmt = "result = pprintSql(db(\'" ++ newExp ++ "\'))"
+
+insertValues sheetid values (Expression origString lang) = evalString
+    where
+        exRefToStringEval = (lookupString lang values) . (exRefToASRef sheetid) -- ExRef -> String. (Takes in ExRef, returns the ASValue corresponding to it, as a string.)
+        evalString = replaceMatches (getMatchesWithContext origString excelMatch) exRefToStringEval origString
 
 -----------------------------------------------------------------------------------------------------------------------
 -- | File management

@@ -93,7 +93,7 @@ setCellsInDb conn cells = (flip mapM_) cells (\(Cell loc expr _ ts) -> do
 -- | Update the ancestors of a cell, and set the ancestor relationships in the DB. 
 setCellsAncestorsInDb :: Connection -> [ASCell] -> EitherTExec ()
 setCellsAncestorsInDb conn cells = (flip mapM_) cells (\(Cell loc expr _ ts) -> do
-  let deps = fst $ getDependenciesAndExpressions (locSheetId loc) expr
+  let deps = getDependencies (locSheetId loc) expr
   ancestorCells <- lift $ DB.getCells deps
   printWithTimeT "got ancestor cells"
   if (all isJust ancestorCells)

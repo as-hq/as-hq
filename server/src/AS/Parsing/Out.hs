@@ -240,14 +240,12 @@ shiftExRefs offset exRefs = map (shiftExRef offset) exRefs
 -- Parse dependencies and replace relative expressions
 
 -- | Returns the list of dependencies in ASExpression, and an expression with all the excel references replaced
-getDependenciesAndExpressions :: ASSheetId -> ASExpression -> ([ASIndex], ASExpression)
-getDependenciesAndExpressions sheetid xp = (newLocs, newExpr)
+getDependencies :: ASSheetId -> ASExpression -> [ASIndex]
+getDependencies sheetid xp = newLocs
   where 
     origString = expression xp
-    (inter, exRefs) = getMatchesWithContext origString excelMatch -- the only place that Parsec is used
+    (_, exRefs) = getMatchesWithContext origString excelMatch -- the only place that Parsec is used
     newLocs = getASIndicesFromExRefs sheetid exRefs
-    newString = replaceMatches (inter, exRefs) showExcelRef origString
-    newExpr = Expression newString (language xp)
 
 -- | Takes in a list of ExRef's and converts them to a list of ASIndex's.
 getASIndicesFromExRefs :: ASSheetId -> [ExRef] -> [ASIndex]
