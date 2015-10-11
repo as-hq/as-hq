@@ -147,16 +147,17 @@ decoupleList conn cell@(Cell idx _ _ ts) = do
 -- TODO: need to deal with large commit sizes and max number of commits
 
 -- | Deal with updating all DB-related things after an eval
-updateAfterEval :: Connection -> ASUserId -> ASCell -> [ASCell] -> [ASCell] -> IO ()
-updateAfterEval conn uid origCell desc cells = do 
+updateAfterEval :: Connection -> ASUserId -> [ASCell] -> [ASCell] -> [ASCell] -> IO ()
+updateAfterEval conn uid origCells desc cells = do 
   printWithTime "begin set cells"
   setCells cells
   printWithTime "finished set cells"
   addCommit conn uid desc cells
   printWithTime "added commit"
-  if (U.containsTrackingTag (cellTags origCell))
-    then return () -- TODO: implement some redundancy in DB for tracking
-    else return ()
+  -- if (U.containsTrackingTag (cellTags origCells))
+  --   then return () -- TODO: implement some redundancy in DB for tracking
+  --   else return ()
+  return () 
 
 -- | Creates and pushes a commit to the DB
 addCommit :: Connection -> ASUserId -> [ASCell] -> [ASCell] -> IO ()

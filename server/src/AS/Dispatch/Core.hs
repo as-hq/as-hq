@@ -41,25 +41,24 @@ import Control.Monad.Trans.Either
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Regular eval route
 
-runDispatchCycle :: MVar ServerState -> ASCell -> ASUserId -> IO ASServerMessage
-runDispatchCycle state c' uid = do
+runDispatchCycle :: MVar ServerState -> [ASCell] -> ASUserId -> IO ASServerMessage
+runDispatchCycle state cs uid = do
   errOrCells <- runEitherT $ do
-    printWithTimeT $ "STARTING DISPATCH CYCLE WITH PAYLOADC " ++ (show c')
-    c              <- lift $ EM.evalMiddleware c'
+    printWithTimeT $ "STARTING DISPATCH CYCLE WITH CELLS: " ++ (show cs)
+    cs'            <- lift $ EM.evalMiddleware cs
     conn           <- lift $ fmap dbConn $ readMVar state
-    decoupledCells <- decoupleCells conn c 
-    setCellInDb conn c
-    setCellAncestorsInDb conn c
-    desc           <- getDescendants conn c
+    decoupledCells <- decoupleCells conn cs' 
+    setCellsInDb conn cs'
+    setCellsAncestorsInDb conn cs'
+    desc           <- getDescendants conn cs'
     ancLocs        <- G.getImmediateAncestors $ map cellLocation desc
     printWithTimeT $ "got ancestor locs: " ++ (show ancLocs)
     anc            <- lift $ fmap catMaybes $ DB.getCells ancLocs
-    cells          <- initEval conn anc desc 
-
+    cs''           <- initEval conn anc desc 
     -- Apply endware
-    finalizedCells <- lift $ EE.evalEndware state c' cells uid
+    finalizedCells <- lift $ EE.evalEndware state cs'' uid cs
     let allCells = decoupledCells ++ finalizedCells -- ORDER IS IMPORTANT, since decoupledCells and finalizedCells might overlap. Further right in list = higher precedence
-    lift $ DB.updateAfterEval conn uid c' desc allCells -- does set cells and commit
+    lift $ DB.updateAfterEval conn uid cs desc allCells -- does set cells and commit
     return allCells
   return $ U.getCellMessage errOrCells
 
@@ -68,14 +67,14 @@ runDispatchCycle state c' uid = do
 
 -- | If a cell is not a part of any list or reference, do nothing and return nothing. Otherwise, 
 -- decouple all the cells associated with that cell and return the list of decoupled cells. 
-decoupleCells :: Connection -> ASCell -> EitherTExec [ASCell] 
-decoupleCells conn cell = do 
-  oldCell <- lift $ DB.getCell (cellLocation cell)
-  case oldCell of 
+decoupleCells :: Connection -> [ASCell] -> EitherTExec [ASCell] 
+decoupleCells conn cells = do 
+  oldCells <- lift $ DB.getCells (map cellLocation cells)
+  lift $ (fmap concat) $ (flip mapM) oldCells (\oldCell -> case oldCell of 
     Just cell' -> if (isListMember cell') 
-      then lift $ DB.decoupleList conn cell'
+      then DB.decoupleList conn cell'
       else return []
-    Nothing -> return []
+    _ -> return [])
 
 -- for some very strange reason, it sometimes happens that a cell is tagged as a part of the list in the
 -- backend, but the cell that gets passed to us from the frontend doesn't have that. this is why
@@ -84,34 +83,31 @@ decoupleCells conn cell = do
 --   then lift $ DB.decoupleList conn cell
 --   else return []
 
--- | Puts the cell in the database for the first time / overwrites cell in DB with fresh new cell. 
-setCellInDb :: Connection -> ASCell -> EitherTExec ()
-setCellInDb conn (Cell loc expr _ ts) = do 
+-- | Puts the cells in the database for the first time / overwrites cell in DB with fresh new cell. 
+setCellsInDb :: Connection -> [ASCell] -> EitherTExec ()
+setCellsInDb conn cells = (flip mapM_) cells (\(Cell loc expr _ ts) -> do 
   let initCell = Cell loc expr NoValue ts -- NoValue because the value hasn't been computed yet
   lift $ DB.setCell initCell
-  printWithTimeT "set init cells"
+  printWithTimeT "set init cells")
 
 -- | Update the ancestors of a cell, and set the ancestor relationships in the DB. 
-setCellAncestorsInDb :: Connection -> ASCell -> EitherTExec ()
-setCellAncestorsInDb conn (Cell loc expr _ ts) = do
+setCellsAncestorsInDb :: Connection -> [ASCell] -> EitherTExec ()
+setCellsAncestorsInDb conn cells = (flip mapM_) cells (\(Cell loc expr _ ts) -> do
   let deps = fst $ getDependenciesAndExpressions (locSheetId loc) expr
   ancestorCells <- lift $ DB.getCells deps
   printWithTimeT "got ancestor cells"
   if (all isJust ancestorCells)
     then G.setRelations [(loc, deps)]
-    else left $ DBNothingException [] -- one of the ancestors doesn't exist. TODO: return list of missing ancestors.
+    else left $ DBNothingException []) -- one of the ancestors doesn't exist. TODO: return list of missing ancestors.
 
 -- | Return the descendants of a cell, which will always exist but may be locked
 -- TODO: throw exceptions for permissions/locking
-getDescendants :: Connection -> ASCell -> EitherTExec [ASCell]
-getDescendants conn cell = do 
-  let loc = cellLocation cell
-  printWithTimeT $ "output 1: " ++ (show $ locSheetId loc)
-  printWithTimeT $ "output 2: " ++ (show $ index loc)
+getDescendants :: Connection -> [ASCell] -> EitherTExec [ASCell]
+getDescendants conn cells = do 
+  let locs = map cellLocation cells
   vLocs <- lift $ DB.getVolatileLocs conn
-  printWithTimeT "got volatile locs"
   --Account for volatile cells being reevaluated each time
-  indexes <- G.getDescendants (loc:vLocs) 
+  indexes <- G.getDescendants (locs ++ vLocs) 
   desc <- lift $ DB.getCells indexes
   printWithTimeT $ "got descendant cells"
   return $ map fromJust desc
