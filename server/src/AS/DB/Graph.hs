@@ -46,6 +46,7 @@ query q locs =
                 liftIO $ printWithTime "Graph DB error"
                 return $ Left DBGraphUnreachable
 
+-- | Takes in a list of (cell, [list of ancestors of that cell])'s and sets the ancestor relationship in the DB. 
 setRelations :: [(ASIndex, [ASIndex])] -> EitherTExec ()
 setRelations rels = 
     let
