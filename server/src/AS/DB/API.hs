@@ -150,9 +150,8 @@ decoupleList conn cell@(Cell idx _ _ ts) = do
 updateAfterEval :: Connection -> ASUserId -> [ASCell] -> [ASCell] -> [ASCell] -> IO ()
 updateAfterEval conn uid origCells desc cells = do 
   printWithTime "remove empty cells"
-  let emptyCells = filter (not . U.isNonEmptyCell) cells
+  let (cells', emptyCells) = partition (U.isNonEmptyCell) cells
   deleteLocs conn (map cellLocation emptyCells)
-  let cells' = filter U.isNonEmptyCell cells
   printWithTime "begin set cells"
   setCells cells'
   printWithTime "finished set cells"
