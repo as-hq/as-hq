@@ -105,8 +105,7 @@ setCellsAncestorsInDb conn cells = (flip mapM_) cells (\(Cell loc expr _ ts) -> 
 getDescendants :: Connection -> [ASCell] -> EitherTExec [ASCell]
 getDescendants conn cells = do 
   let locs = map cellLocation cells
-  vLocs <- lift $ DB.getVolatileLocs conn
-  --Account for volatile cells being reevaluated each time
+  vLocs <- lift $ DB.getVolatileLocs conn -- Accounts for volatile cells being reevaluated each time
   indexes <- G.getDescendants (locs ++ vLocs) 
   desc <- lift $ DB.getCells indexes
   printWithTimeT $ "got descendant cells"
