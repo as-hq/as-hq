@@ -101,7 +101,7 @@ extractValue m
   | M.member "imagePath" m    = extractImageValue m
   | M.member "objectType" m   = extractObjectValue m
   | M.member "error" m        = extractError m
-  | otherwise = extractObjectValue m
+  | otherwise                 = extractObjectValue m
   where
     extractImageValue mm = ValueImage p
       where
@@ -110,12 +110,12 @@ extractValue m
       where
         ValueS typ  = m M.! "objectType"
         ValueS rep  = m M.! "jsonRepresentation"
-    extractError mm = ValueError err typ file (floor pos)
+    extractError mm = ValueError err typ file pos
       where
         ValueS err         = m M.! "error"
         ValueS typ         = m M.! "err_type"
         ValueS file        = m M.! "file"
-        ValueD pos         = m M.! "position"
+        ValueI pos         = m M.! "position"
 
 complexValue :: Parser ASValue
 complexValue = extractValue <$> extractMap
