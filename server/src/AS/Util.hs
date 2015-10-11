@@ -116,8 +116,8 @@ isJust (Just c) = True
 isJust Nothing = False
 
 getCellMessage :: Either ASExecError [ASCell] -> ASServerMessage
-getCellMessage (Left e) = ServerMessage Evaluate (Failure (generateErrorMessage e)) (PayloadN ())
-getCellMessage (Right cells) = ServerMessage Evaluate Success (PayloadCL cells)
+getCellMessage (Left e) = ServerMessage Update (Failure (generateErrorMessage e)) (PayloadN ())
+getCellMessage (Right cells) = ServerMessage Update Success (PayloadCL cells)
 
 -- getBadLocs :: [ASReference] -> [Maybe ASCell] -> [ASReference]
 -- getBadLocs locs mcells = map fst $ filter (\(l,c)->isNothing c) (zip locs mcells)

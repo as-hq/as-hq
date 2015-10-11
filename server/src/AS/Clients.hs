@@ -274,10 +274,8 @@ handleCopy user state (PayloadCopy from to) = do
       allExist = U.isSubsetOf allNonexistentDB toLocs -- else if the dep was something we copied
   if allExist
     then do
-      DB.setCells toCells
-      -- bug: needs to re-eval copied code
-      runEitherT $ G.setRelations $ zip toLocs shiftedDeps 
-      sendBroadcastFiltered user state $ ServerMessage Update Success (PayloadCL toCells)
+      msg' <- DP.runDispatchCycle state toCells (userId user)
+      sendBroadcastFiltered user state msg'
     else do
       let msg = ServerMessage Update (Failure $ generateErrorMessage CopyNonexistentDependencies) (PayloadE CopyNonexistentDependencies)
       sendToOriginal user msg
