@@ -44,7 +44,7 @@ transformExpression bc@(conn,xp,loc) ctx = do
     let result = parseValue Excel resultInit
     case result of 
         e@(ValueError _ _ _ _) -> return $ Left e
-        _ -> return . Left $ ValueError "Could not transform Excel expression" "ExcelParse" "" -1
+        _ -> return . Left $ ValueError "Could not transform Excel expression" ExcelParse "" -1
 
 
 parseLookupMap :: [a] -> Either ASValue [ExcelAction]
