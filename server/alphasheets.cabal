@@ -32,6 +32,8 @@ library
                        AS.Kernels.Python.Str
                        AS.Kernels.Excel.Compiler
                        AS.Kernels.Excel.Eval
+                       AS.Kernels.Excel.Lib
+                       AS.Kernels.Excel.Util
                        AS.Kernels.R
                        AS.Kernels.OCaml
                        AS.Kernels.Common
@@ -73,6 +75,8 @@ library
                      , template-haskell
                      , pureMD5
                      , either
+                     , statistics
+                     , MissingH
   default-language:    Haskell2010
   default-extensions:  QuasiQuotes
                        FlexibleContexts
@@ -117,6 +121,10 @@ test-suite alphasheets-test
                      , bytestring
                      , parsec
                      , either
+                     , containers
+                     , vector
+                     , mtl
+                     , transformers
   ghc-options:         -O2
                        -threaded 
                        -with-rtsopts=-N

@@ -2,7 +2,7 @@ module AS.Kernels.Excel.Compiler where
 
 import AS.Types.Core hiding (str,error,SyntaxError)
 import AS.Types.Excel
-
+import AS.Parsing.Out (excelMatch)
 
 import Text.ParserCombinators.Parsec
 import qualified Text.ParserCombinators.Parsec.Token as P
@@ -12,17 +12,11 @@ import Control.Applicative hiding ((<|>), many)
 
 import Data.List (elemIndices)
 
-
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Top-level parsers.
 
-parseFormula :: String -> String -> String -> Either ExcelError ContextualFormula
-parseFormula sheetName sourceName s
-  = case (parse formula sourceName s) of
-      (Left parseError)
-        -> Left SyntaxError
-      (Right (f, isArray))
-        -> Right $ (addSheetName sheetName f, isArray)
+parseFormula :: String -> ThrowsError ContextualFormula
+parseFormula s = either (\_ -> Left ExcelSyntaxError) return $ parse formula "" s
 
 -- | Formulas.
 formula :: Parser ContextualFormula
@@ -59,7 +53,7 @@ table   = [ [binary ":" AssocLeft]
               , binary ">=" AssocLeft
               , binary "<" AssocLeft
               , binary ">" AssocLeft 
-              ]
+            ]
           ]
 
 -- | Helper.
@@ -150,21 +144,6 @@ word = many1 (letter <|> digit)
 separator :: Parser ()
 separator = skipMany1 space
 
-parseCellRef :: String -> String -> CellRef
-parseCellRef sourceName s
-  = case (parse sheetCellReference sourceName s) of
-      (Left parseError)
-        -> error $ show parseError
-      (Right cellref)
-        ->  cellref
-
-sheetCellReference :: Parser CellRef
-sheetCellReference = do
-  sheetName <- sepBy1 word separator
-  char '!'
-  ls <- many1 upper
-  ds <- many1 digit
-  return $ CellRef (head sheetName) (toColNr ls) (toRowNr ds)
 
 referenceIntersection :: Parser Formula
 referenceIntersection = do
@@ -173,14 +152,9 @@ referenceIntersection = do
   c2 <- cellReference 
   return . Basic $ Fun " " [c1,c2]
 
-singleCellReference :: Parser CellRef
-singleCellReference = do
-  ls <- many1 upper
-  ds  <- many1 digit
-  return $ CellRef {sheet="", colNr=toColNr ls, rowNr=toRowNr ds}
 
 cellReference :: Parser Formula
-cellReference = fmap (Basic . Ref) $ try (sheetCellReference) <|> singleCellReference
+cellReference = fmap (Basic . Ref) excelMatch
   
 -- | Function application.
 functionApplication :: Parser Formula
@@ -271,47 +245,11 @@ str = (quoteString <|> apostropheString)
 
 excelValue :: Parser Formula
 excelValue = fmap (Basic . Var) $
-      try (EValueD <$> float)
-  <|> try (EValueI <$> integer)
+      try ((EValueNum . EValueD) <$> float)
+  <|> try ((EValueNum . EValueI . fromInteger) <$> integer)
   <|> try (EValueB <$> bool)
   <|> try (EValueS <$> str)
 
 blankValue :: Parser Formula
 blankValue = spaces >> (return . Basic $ Var EBlank)
 
-
-----------------------------------------------------------------------------------------------------------------------------------------------
--- | Utilities
-
--- | Add sheetname to all CellRef elements on Formula
-addSheetName :: String -> Formula -> Formula
-addSheetName name (Basic f) = Basic $ addSheetNameBasic name f
-addSheetName name (ArrayConst rows) = ArrayConst $ map (\r -> map (addSheetNameBasic name) r) rows
-
-addSheetNameBasic :: String -> BasicFormula -> BasicFormula
-addSheetNameBasic _ v@(Var _) = v
-addSheetNameBasic name (Fun s formulas) = Fun s (map (addSheetName name) formulas)
-addSheetNameBasic name (Ref a) = Ref $ addSheetNameCellRef name a
-
--- | Add sheet name to CellRef
-addSheetNameCellRef name a 
-  = case (sheet a) of
-    "" -> CellRef name (colNr a) (rowNr a)
-    _ -> a
-
--- | Infinite sequence of letter combinations that identify spreadsheet columns.
-columns :: [String]  
-columns 
-  = [ xs++[x] | xs <- "":columns, x <- ['A'..'Z'] ]
-
--- | Convert a column name into a column number. For instance, "A" becomes
---   0 and "AA" becomes 26.
-toColNr :: String -> Int
-toColNr colName
-  = head (elemIndices colName columns)
-
--- | Convert a row name into a row number. For instance, "1" becomes
---   0 and "10" becomes 9.
-toRowNr :: String -> Int
-toRowNr rowName
-  = (read rowName)-1

@@ -3,7 +3,7 @@ module AS.Dispatch.Core where
 -- AlphaSheets and base
 import AS.Types.Core
 import Prelude 
-import qualified AS.Eval.Core as R (evaluateLanguage)
+import qualified AS.Eval.Core as EC (evaluateLanguage)
 import qualified Data.Map   as M
 import qualified AS.DB.API  as DB
 import qualified AS.DB.Util as DU
@@ -106,26 +106,26 @@ getDescendants conn cell = do
 -- | Takes ancestors and descendants, create lookup map, and run eval
 propagate :: Connection -> [ASCell] -> [ASCell] -> EitherTExec [ASCell]
 propagate conn anc dec = do 
-  let mp = M.fromList $ map (\c -> (IndexRef $ cellLocation c, cellValue c)) anc
+  let mp = M.fromList $ map (\c -> (cellLocation c, cellValue c)) anc
   evalChain conn mp dec
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Eval helpers
 
-evalChain :: Connection -> M.Map ASReference ASValue -> [ASCell] -> EitherTExec [ASCell]
+evalChain :: Connection -> M.Map ASIndex ASValue -> [ASCell] -> EitherTExec [ASCell]
 evalChain _ _ [] = return []
 evalChain conn mp (c@(Cell loc xp _ ts):cs) = do  
   showTime $ "Starting eval chain" -- ++ (show mp)
-  cv <- R.evaluateLanguage xp loc mp
+  cv <- EC.evaluateLanguage xp loc mp
   case cv of 
     ValueL lst -> do
       let listCells = createListCells conn c lst
-          newMp     = M.insert (IndexRef loc) (head lst) mp
+          newMp     = M.insert (loc) (head lst) mp
       lift $ DB.setList conn $ map cellLocation listCells
       rest <- evalChain conn newMp cs
       return $ listCells ++ rest
     _ -> do
-      let newMp = M.insert (IndexRef loc) cv mp
+      let newMp = M.insert loc cv mp
       rest <- evalChain conn newMp cs
       return $ (Cell loc xp cv ts):rest
 

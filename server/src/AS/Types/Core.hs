@@ -38,6 +38,31 @@ refSheetId loc = case loc of
   IndexRef i -> locSheetId i 
   RangeRef r -> rangeSheetId r
 
+-- | TODO: create custom show instance that takes REF/NA/VALUE etc into account
+data EError = 
+  ExcelSyntaxError |
+  EmptyMatrix String | 
+  NotFunction String |
+  TooManyArgs String |
+  ArrayConstantDim |
+  CannotIntersectRefs |
+  CannotScalarizeArrConst |
+  EmptyArrayConstant |
+  CannotNormalizeDimensions |
+  ScalarizeIntersectionError ASReference ASReference |
+  CannotConvertToExcelValue ASReference |
+  InvalidArrayConstEntity |
+  NumArgs {fNameNA :: String, expectedNumArgs :: Int, actualNumArgs :: Int} |
+  RequiredArgMissing {fNameRAM :: String, argNumRAM :: Int} |
+  ArgType {fNameAT :: String, argNumAT :: Int, expectedType :: String, actualType :: String} |
+  Default String |
+  VAL String |
+  REF String |
+  NA String  |
+  NUM String |
+  DIV0
+  deriving (Show, Read, Eq, Ord, Generic)
+
 data ASValue =
     NoValue
   | ValueS String
@@ -164,7 +189,7 @@ data ASPayload =
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Version Control
 
-data ASTime = Time {day :: String, hour :: Int, min :: Int, sec :: Int} deriving (Show,Read,Eq,Generic)
+data ASTime = Time {day :: String, hour :: Int, minute :: Int, sec :: Int} deriving (Show,Read,Eq,Generic)
 data ASCommit = ASCommit {commitUserId :: ASUserId, before :: [ASCell], after :: [ASCell], time :: ASTime} deriving (Show,Read,Eq,Generic)
 
 
@@ -185,7 +210,7 @@ data ASExecError =
   | ParseError
   | ExpressionNotEvaluable
   | ExecError
-  | ExcelSyntaxError {excelErr :: String}
+  | ExecExcelError EError
   | SyntaxError
   deriving (Show, Read, Eq, Generic)
 
@@ -296,6 +321,8 @@ instance ToJSON ASInitConnection
 instance FromJSON ASInitConnection 
 instance ToJSON ASExecError
 instance FromJSON ASExecError
+instance FromJSON EError
+instance ToJSON EError
 instance ToJSON ASWindow
 instance FromJSON ASWindow
 instance ToJSON ASSheet

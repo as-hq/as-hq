@@ -198,17 +198,17 @@ addCompileCmd OCaml cmd = do
     return $ cmd ++ "; " ++ path ++ "test"
 
 -- Helper function for insertValues
-lookupString :: ASLanguage -> M.Map ASReference ASValue -> ASReference -> String
+lookupString :: ASLanguage -> M.Map ASIndex ASValue -> ASReference -> String
 lookupString lang mp loc = case loc of
-    IndexRef (Index sh (a,b)) -> (showFilteredValue lang) (mp M.! loc)
+    IndexRef i@(Index sh (a,b)) -> (showFilteredValue lang) (mp M.! i)
     RangeRef (Range sh ((a,b),(c,d))) -> 
         if (c==a)
-            then modifiedLists lang (toListStr lang [ ((showFilteredValue lang) (mp M.! (IndexRef $ Index sh (a,row)))) | row<-[b..d]])
-            else modifiedLists lang (toListStr lang [modifiedLists lang (toListStr lang ([(showFilteredValue lang) (mp M.! (IndexRef $ Index sh (col,row)))| col <-[a..c]]))| row<-[b..d]])
+            then modifiedLists lang (toListStr lang [ ((showFilteredValue lang) (mp M.! (Index sh (a,row)))) | row<-[b..d]])
+            else modifiedLists lang (toListStr lang [modifiedLists lang (toListStr lang ([(showFilteredValue lang) (mp M.! (Index sh (col,row)))| col <-[a..c]]))| row<-[b..d]])
 
 
 -- TODO clean up SQL mess
-insertValues :: ASSheetId -> M.Map ASReference ASValue -> ASExpression -> String
+insertValues :: ASSheetId -> M.Map ASIndex ASValue -> ASExpression -> String
 insertValues sheetid values (Expression origString SQL) = contextStmt ++ evalStmt
     where
         exLocs = getMatchesWithContext origString excelMatch

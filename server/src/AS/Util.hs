@@ -144,7 +144,7 @@ generateErrorMessage e = case e of
   (DBNothingException _)      -> "Unable to fetch cells from database."
   ExpressionNotEvaluable      -> "Expression not does not contain evaluable statement."
   ExecError                   -> "Error while evaluating expression."
-  (ExcelSyntaxError s)        -> "Formula syntax error: " ++ s
+  (ExecExcelError s)        -> "Formula syntax error: " ++ show s
   SyntaxError                 -> "Syntax error."
 
 
