@@ -103,6 +103,18 @@ deleteSubset subset = filter (\e -> L.notElem e subset)
 isNonEmptyCell :: ASCell -> Bool 
 isNonEmptyCell = ((/=) "") . expression . cellExpression
 
+liftEitherTuple :: Either b (a0, a1) -> (Either b a0, Either b a1)
+liftEitherTuple (Left b) = (Left b, Left b)
+liftEitherTuple (Right (a0, a1)) = (Right a0, Right a1)
+
+liftListTuple :: [([a],[b])] -> ([a], [b])
+liftListTuple t = (concat $ map fst t, concat $ map snd t)
+
+splitBy :: (Eq a) => a -> [a] -> [[a]]
+splitBy delimiter = foldr f [[]] 
+  where f c l@(x:xs) | c == delimiter = []:l
+                     | otherwise = (c:x):xs
+
 --------------------------------------------------------------------------------------------------------------
 -- Key-value manip functions
 
@@ -229,14 +241,11 @@ isListMember (Cell _ _ _ ts) = any id $ map (\t -> case t of
   (ListMember _) -> True
   _ -> False) ts
 
-getListTag :: ASCell -> Maybe ASCellTag
-getListTag (Cell _ _ _ ts) = getTag foundTags
-  where 
-    foundTags = filter (\t -> case t of 
-      (ListMember _) -> True
-      _ -> False) ts
-    getTag [] = Nothing
-    getTag (t:[]) = Just t
+mergeCells :: [ASCell] -> [ASCell] -> [ASCell]
+mergeCells c1 c2 = L.unionBy isColocated c1 c2
+
+removeCell :: ASIndex -> [ASCell] -> [ASCell]
+removeCell idx = filter (((/=) idx) . cellLocation)
 
 -- | ASReference is either a cell index, range, or column. When decomposeLocs takes a range, it returns
 -- the list of indices that compose the range. When it takes in an index, it returns a list consisting
@@ -254,6 +263,12 @@ refToIndices loc = case loc of
   --     endx = max (fst ul) (fst lr)
   --     starty = min (snd ul) (snd lr)
   --     endy = max (snd ul) (snd lr)
+
+rangeContainsRect :: ASRange -> ((Int, Int), (Int, Int)) -> Bool
+rangeContainsRect (Range _ ((x,y),(x2,y2))) ((x',y'),(x2',y2')) = tl && br
+  where
+    tl = (x' >= x) && (y' >= y)
+    br = (x2' <= x2) && (y2' <= y2)
 
 rangeToIndices :: ASRange -> [ASIndex]
 rangeToIndices (Range sheet (ul, lr)) = [Index sheet (x,y) | x <- [startx..endx], y <- [starty..endy] ]
@@ -316,6 +331,15 @@ hasPermissions uid (Whitelist entities) = any (isInEntity uid) entities
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Tags
+
+getListTag :: ASCell -> Maybe ASCellTag
+getListTag (Cell _ _ _ ts) = getTag foundTags
+  where 
+    foundTags = filter (\t -> case t of 
+      (ListMember _) -> True
+      _ -> False) ts
+    getTag [] = Nothing
+    getTag (t:[]) = Just t
 
 containsTrackingTag :: [ASCellTag] -> Bool
 containsTrackingTag [] = False

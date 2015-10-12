@@ -2,6 +2,7 @@ module AS.Dispatch.Core where
 
 -- AlphaSheets and base
 import AS.Types.Core
+import AS.Types.DB 
 import Prelude 
 import qualified AS.Eval.Core as R (evalCode)
 import qualified Data.Map   as M
@@ -41,39 +42,28 @@ import Control.Monad.Trans.Either
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Regular eval route
 
+-- assumes all evaled cells are in the same sheet
 runDispatchCycle :: MVar ServerState -> [ASCell] -> ASUserId -> IO ASServerMessage
 runDispatchCycle state cs uid = do
+  let sid = locSheetId . cellLocation $ head cs 
   errOrCells <- runEitherT $ do
     printWithTimeT $ "STARTING DISPATCH CYCLE WITH CELLS: " ++ (show cs)
-    cs'            <- lift $ EM.evalMiddleware cs
+    roots          <- lift $ EM.evalMiddleware cs
     conn           <- lift $ fmap dbConn $ readMVar state
-    decoupledCells <- decoupleCells conn cs' 
-    desc <- getDescendants conn cs'
-    ancLocs <- getNewAncLocs conn cs' desc 
+    desc           <- getDescendants conn roots
+    ancLocs        <- getNewAncLocs conn roots desc 
     printWithTimeT $ "got ancestor locs: " ++ (show ancLocs)
     initValuesMap  <- lift $ getValuesMap ancLocs
-    cs''           <- evalChain conn initValuesMap (cs' ++ desc) -- start with current cells, then go through descendants
+    (afterCells, cellLists) <- evalChain conn initValuesMap (roots ++ desc) -- start with current cells, then go through descendants
     -- Apply endware
-    finalizedCells <- lift $ EE.evalEndware state cs'' uid cs
-    let allCells = decoupledCells ++ finalizedCells -- ORDER IS IMPORTANT, since decoupledCells and finalizedCells might overlap. Further right in list = higher precedence
-    lift $ DB.updateAfterEval conn uid cs desc allCells -- does set cells and commit (should rename)
-    setCellsAncestorsInDb conn cs' -- move to upateAfterEval, maybe? 
-    return allCells
+    finalizedCells <- lift $ EE.evalEndware state afterCells uid roots
+    let transaction = Transaction uid sid roots desc finalizedCells cellLists
+    broadcastCells <- DB.updateAfterEval conn transaction -- atomically performs DB ops
+    return broadcastCells
   return $ U.getCellMessage errOrCells
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Eval building blocks
-
--- | If a cell is not a part of any list or reference, do nothing and return nothing. Otherwise, 
--- decouple all the cells associated with that cell and return the list of decoupled cells. 
-decoupleCells :: Connection -> [ASCell] -> EitherTExec [ASCell] 
-decoupleCells conn cells = do 
-  oldCells <- lift $ DB.getCells (map cellLocation cells)
-  lift $ (fmap concat) $ (flip mapM) oldCells (\oldCell -> case oldCell of 
-    Just cell' -> if (isListMember cell') 
-      then DB.decoupleList conn cell'
-      else return []
-    _ -> return [])
 
 -- for some very strange reason, it sometimes happens that a cell is tagged as a part of the list in the
 -- backend, but the cell that gets passed to us from the frontend doesn't have that. this is why
@@ -89,12 +79,6 @@ getNewAncLocs conn curCells desc = do
   descAncLocs <- G.getImmediateAncestors $ map cellLocation desc
   let curCellsDeps = map (\(Cell loc expr _ _) -> getDependencies (locSheetId loc) expr) curCells
   return $ descAncLocs ++ (concat curCellsDeps)
-
--- | Update the ancestors of a cell, and set the ancestor relationships in the DB. 
-setCellsAncestorsInDb :: Connection -> [ASCell] -> EitherTExec ()
-setCellsAncestorsInDb conn cells = (flip mapM_) cells (\(Cell loc expr _ ts) -> do
-  let deps = getDependencies (locSheetId loc) expr
-  G.setRelations [(loc, deps)])
 
 -- | Return the descendants of a cell, which will always exist but may be locked
 -- TODO: throw exceptions for permissions/locking
@@ -136,22 +120,21 @@ getValuesMap locs = do
 -- cell that's updated. The cells passed in are guaranteed to be topologically sorted, i.e., 
 -- if a cell references an ancestor, that ancestor is guaranteed to already have been 
 -- added in the map. 
-evalChain :: Connection -> RefValMap -> [ASCell] -> EitherTExec [ASCell]
-evalChain _ _ [] = return []
+evalChain :: Connection -> RefValMap -> [ASCell] -> EitherTExec ([ASCell], [ASList])
+evalChain _ _ [] = return ([], [])
 evalChain conn valuesMap (c@(Cell loc xp _ ts):cs) = do  
   printWithTimeT "Starting eval chain"
   cv <- R.evalCode (locSheetId loc) valuesMap xp
   case cv of 
     ValueL lst -> do
-      let listCells    = createListCells conn c lst
-          newValuesMap = M.insert (IndexRef loc) (head lst) valuesMap
-      lift $ DB.setList conn $ map cellLocation listCells
-      rest <- evalChain conn newValuesMap cs
-      return $ listCells ++ rest
+      let cellsList = createListCells conn c lst
+          newMp     = M.insert (IndexRef loc) (head lst) valuesMap
+      (restCells, restLists) <- evalChain conn newMp cs
+      return (restCells, cellsList:restLists)
     _ -> do
       let newValuesMap = M.insert (IndexRef loc) cv valuesMap
-      rest <- evalChain conn newValuesMap cs
-      return $ (Cell loc xp cv ts):rest
+      (restCells, restLists) <- evalChain conn newValuesMap cs
+      return $ ((Cell loc xp cv ts):restCells, restLists)
 -- The Haskell way is probably to write this using foldM somehow, but that's not very urgent. 
 
 -- | If a cell C contains a 1D or 2D list, it'll be represented in the grid as a matrix. 
@@ -162,16 +145,18 @@ evalChain conn valuesMap (c@(Cell loc xp _ ts):cs) = do
 --   1) the values 1, 2, 3, and 4, in them,
 --   2) references to the original cell being called
 --   3) the expression [[1,2],[3,4]] stored in them. 
-createListCells :: Connection -> ASCell -> [ASValue] -> [ASCell]
-createListCells _ _ [] = []
-createListCells conn (Cell (Index sheet (a,b)) xp _ ts) values = cells
+createListCells :: Connection -> ASCell -> [ASValue] -> ASList
+createListCells _ _ [] = ("",[])
+createListCells conn (Cell (Index sheet (a,b)) xp _ ts) values = (listKey, cells)
   where
     origLoc   = Index sheet (a,b)
-    vals      = concat $ map toList values
+    rows      = map toList values
     zipVals   = zip [0..] values
     locs      = map (Index sheet) (concat $ map (\(row, val) -> shift val row (a,b)) zipVals)
-    listKey   = DU.getListKey origLoc
-    cells     = map (\(loc, val) -> Cell loc xp val [ListMember listKey]) $ zip locs vals
+    height    = length values
+    width     = maximum $ map length rows
+    listKey   = DU.getListKey origLoc (height, width)
+    cells     = map (\(loc, val) -> Cell loc xp val [ListMember listKey]) $ zip locs (concat rows)
 
     shift (ValueL v) r (a,b)  = [(a+c,b+r) | c<-[0..length(v)-1] ]
     shift other r (a,b)       = [(a,b+r)]

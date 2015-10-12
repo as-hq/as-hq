@@ -1,11 +1,20 @@
 module AS.Types.DB where
 
 import AS.Types.Core
+import AS.Util (splitBy)
 
 import Prelude
 import GHC.Generics
 import Data.Aeson hiding (Success)
 import Data.Text hiding (foldr, map)
+
+
+data ASTransaction = Transaction {transactionUserId :: ASUserId,
+                                  transactionSheetId :: ASSheetId,
+                                  roots :: [ASCell], 
+                                  beforeCells :: [ASCell], 
+                                  afterCells :: [ASCell],
+                                  lists :: [ASList]}
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Queries
@@ -85,8 +94,3 @@ instance (Read2 ASValue)
 
 readCells :: String -> [ASCell]
 readCells str = map (\c -> read2 c :: ASCell) $ splitBy ',' str
-
-splitBy :: (Eq a) => a -> [a] -> [[a]]
-splitBy delimiter = foldr f [[]] 
-  where f c l@(x:xs) | c == delimiter = []:l
-                     | otherwise = (c:x):xs

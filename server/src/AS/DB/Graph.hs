@@ -30,7 +30,7 @@ query q locs =
         elements = (show q):(map show2 locs)
         msg = BS.show $ intercalate msgPartDelimiter elements
     in EitherT $ runZMQ $ do
-        liftIO $ printWithTime $ "graph query:  " ++ (show elements)
+        liftIO $ printWithTime $ "graph query:  " -- ++ (show elements)
         reqSocket <- socket Req
         connect reqSocket S.graphDbHost
         send' reqSocket [] msg   -- using lazy bytestring send function

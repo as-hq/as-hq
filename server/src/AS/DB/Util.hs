@@ -61,8 +61,20 @@ msgPartDelimiter = "@"
 
 relationDelimiter = "&"
 
-getListKey :: ASIndex -> String
-getListKey idx = (show2 idx) ++ "LIST" 
+keyPartDelimiter = '?'
+
+getListKey :: ASIndex -> (Int, Int) -> ListKey
+getListKey idx dims = (show2 idx) ++ (keyPartDelimiter:(show dims)) ++ (keyPartDelimiter:"LIST")
+
+getSheetListsKey :: ASSheetId -> B.ByteString
+getSheetListsKey sid = BC.pack $ (T.unpack sid) ++ (keyPartDelimiter:"ALL_LISTS") 
+
+getRectFromListKey :: ListKey -> ((Int, Int),(Int, Int)) 
+getRectFromListKey key = ((col, row), (col + width, row + height))
+  where 
+    parts                = splitBy keyPartDelimiter key 
+    (Index _ (col, row)) = read2 (head parts) :: ASIndex
+    (height, width)      = read (parts !! 1) :: (Int, Int)
 
 getLocationKey :: ASIndex -> B.ByteString
 getLocationKey = BC.pack . show2
@@ -111,6 +123,11 @@ decoupleCell (Cell l e v ts) = Cell l e' v ts'
     ts'   = filter (\t -> case t of 
       ListMember _ -> False
       _ -> True) ts
+
+isListHead :: ASCell -> Bool
+isListHead cell = case (getListTag cell) of 
+  Nothing -> False
+  (Just (ListMember key)) -> (show2 . cellLocation $ cell) == (head $ splitBy keyPartDelimiter key)
 
 ----------------------------------------------------------------------------------------------------------------------
 -- FFI 
@@ -178,6 +195,20 @@ cToASCell str = do
     "Nothing" -> Nothing
     otherwise -> Just (read2 str' :: ASCell)
 
+getListKeysInSheet :: Connection -> ASSheetId -> IO [ListKey]
+getListKeysInSheet conn sid = runRedis conn $ do
+  Right result <- smembers $ getSheetListsKey sid 
+  return $ map BC.unpack result
+
+getListIntersections :: Connection -> ASSheetId -> [ASIndex] -> IO [ListKey]
+getListIntersections conn sid locs = do
+  listKeys <- getListKeysInSheet conn sid 
+  return $ filter (\key -> anyLocsContainedInRect locs (getRectFromListKey key)) listKeys
+  where
+    anyLocsContainedInRect :: [ASIndex] -> ((Int, Int),(Int, Int)) -> Bool
+    anyLocsContainedInRect lss r = any id $ map (indexInRect r) lss
+    indexInRect :: ((Int, Int),(Int, Int)) -> ASIndex -> Bool
+    indexInRect ((a',b'),(a2',b2')) (Index _ (a,b)) = a >= a' && b >= b' &&  a <= a2' && b <= b2'
 ----------------------------------------------------------------------------------------------------------------------
 -- | ByteString utils
 
