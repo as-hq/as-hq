@@ -10,7 +10,7 @@ import AS.Util as U
 import qualified AS.DB.Util as DU
 
 import Data.List (zip4,head,partition,nub,intercalate)
-import Data.Maybe (isNothing, fromJust)
+import Data.Maybe (isNothing,fromJust)
 
 import Foreign
 import Foreign.C.Types
@@ -48,7 +48,7 @@ import Data.List.Split
 -- | Sheets
 -- stored as key (DU.getSheetKey ASSheetId) value (stringified ASSheet)
 -- additionally, the set of all locations belonging to a sheet are stored as
--- set key (DU.getSheetSetKey ASSheetId) members (ASLocationKey)
+-- set key (DU.getSheetSetKey ASSheetId) members (ASIndexKey)
 -- this set is updated automatically during setCells.
 -- finally, a record of all sheetKeys is stored as a set with key "sheets" and members (DU.getSheetKey sheetid)
 
@@ -110,7 +110,9 @@ setList conn locs = runRedis conn $ do
   sadd listKey locKeys 
   return ()
 
--- | Note: this operation is O(n)
+-- | Takes in a cell that's tied to a list. Decouples all the cells in that list from that
+-- list in the db, and returns the list of decoupled cells. Note: this operation is O(n).
+-- TODO move to C client because it's expensive
 decoupleList :: Connection -> ASCell -> IO [ASCell]
 decoupleList conn cell@(Cell idx _ _ ts) = do
   let (Just (ListMember listString)) = getListTag cell
@@ -119,7 +121,7 @@ decoupleList conn cell@(Cell idx _ _ ts) = do
     Right result <- smembers listKey
     del [listKey]
     return result
-  printTimed $ "got coupled locs: " ++ (show locs) 
+  printWithTime $ "got coupled locs: " ++ (show locs) 
   listCells <- DU.getCellsByKeys locs
   let newCells = map DU.decoupleCell $ filterNothing listCells 
   let decoupledCells = filter (((/=) idx) . cellLocation) newCells
@@ -131,30 +133,31 @@ decoupleList conn cell@(Cell idx _ _ ts) = do
 --getColumnCells conn (Column sheetid col) = do
 --  runRedis conn $ do
 --    locKeys <- DU.getSheetLocsRedis sheetid
---    liftIO $ printTimed "redis got column"
+--    liftIO $ printWithTime "redis got column"
 --    let rows = map DU.keyToRow locKeys
 --    let firstRowKey = minBy keyToRow locKeys
 --    let locKeys = map (\i -> DU.incrementLocKey (1,i) firstRowKey) [(minimum rows)..(maximum rows)]
 --    cells <- mapM DU.getCellByKeyRedis locKeys
---    liftIO $ printTimed "redis got cells"
+--    liftIO $ printWithTime "redis got cells"
 --    return cells
 
 ----------------------------------------------------------------------------------------------------------------------
 -- Commits
 
--- | TODO: need to deal with large commit sizes and max number of commits
+-- TODO: need to deal with large commit sizes and max number of commits
 
 -- | Deal with updating all DB-related things after an eval
-updateAfterEval :: Connection -> ASUserId -> ASCell -> [ASCell] -> [ASCell] -> IO ()
-updateAfterEval conn uid origCell desc cells = do 
-  printTimed "begin set cells"
+updateAfterEval :: Connection -> ASUserId -> [ASCell] -> [ASCell] -> [ASCell] -> IO ()
+updateAfterEval conn uid origCells desc cells = do 
+  printWithTime "begin set cells"
   setCells cells
-  printTimed "finished set cells"
+  printWithTime "finished set cells"
   addCommit conn uid desc cells
-  printTimed "added commit"
-  if (U.containsTrackingTag (cellTags origCell))
-    then return () -- TODO: implement some redundancy in DB for tracking
-    else return ()
+  printWithTime "added commit"
+  -- if (U.containsTrackingTag (cellTags origCells))
+  --   then return () -- TODO: implement some redundancy in DB for tracking
+  --   else return ()
+  return () 
 
 -- | Creates and pushes a commit to the DB
 addCommit :: Connection -> ASUserId -> [ASCell] -> [ASCell] -> IO ()
@@ -165,7 +168,7 @@ addCommit conn uid b a = do
   --putStrLn $ show commit
 
 -- | Return a commit if possible (not possible if you undo past the beginning of time, etc)
--- | Update the DB so that there's always a source of truth (ie we will propagate undo to all relevant users)
+-- | Update the DB so that there's always a source of truth (ie we will initEval undo to all relevant users)
 undo :: Connection -> IO (Maybe ASCommit)
 undo conn = do 
   commit <- runRedis conn $ do 
@@ -382,7 +385,7 @@ getVolatileLocs :: Connection -> IO [ASIndex]
 getVolatileLocs conn = do 
   runRedis conn $ do
       Right vl <- smembers "volatileLocs"
-      return $ map DU.bStrToASLocation vl
+      return $ map DU.bStrToASIndex vl
 
 -- TODO: some of the cells may change from volatile -> not volatile, but they're still in volLocs
 setChunkVolatileCells :: [ASCell] -> Redis ()

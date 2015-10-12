@@ -20,17 +20,22 @@ import qualified Data.Vector.Unboxed as VU
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Excel Location Parsing
 
--- TODO fix recursion
-data ExLoc = ExSheet {name :: String, sheetLoc :: ExLoc} |
-             ExRange {first :: ExLoc, second :: ExLoc}     |
-             ExIndex {d1 :: String, col :: String, d2 :: String, row :: String} 
-             deriving (Show,Read,Eq,Ord)
+-- d1 = $ or nothing; $ means absolute column, nothing means relative. ditto for d2 but for rows
+data ExLoc   = ExIndex {d1 :: String, col :: String, d2 :: String, row :: String} deriving (Show, Read, Eq, Ord)
+data ExRange = ExRange {first :: ExLoc, second :: ExLoc} deriving (Show, Read, Eq, Ord)
+data ExLocOrRange = ExLoc1 ExLoc | ExRange1 ExRange deriving (Show, Read, Eq, Ord)
+data ExRef = ExLocOrRangeRef ExLocOrRange | ExSheetLocOrRangeRef String ExLocOrRange deriving (Show, Read, Eq, Ord)
+-- I think this is the simplest grammar we can write that actually correctly captures the type we want. 
+-- It's quite ugly as it is though -- I imagine it can be refactored with lenses / better names, but this
+-- seems not very urgent as of now. (10/9) 
+-- 
+-- Also doesn't have any support for columns, workbooks, or 3D reference. (10/9) 
 
-showExcelLoc :: ExLoc -> String
-showExcelLoc exLoc = case exLoc of
-  ExSheet sheet rest -> sheet ++ "!" ++ (showExcelLoc rest)
-  ExRange first second -> (showExcelLoc first) ++ ":" ++ (showExcelLoc second)
-  ExIndex dol1 c dol2 r -> dol1 ++ c ++ dol2 ++ r
+showExcelRef :: ExRef -> String
+showExcelRef exRef = case exRef of
+  ExSheetLocOrRangeRef sheet rest -> sheet ++ "!" ++ (showExcelRef (ExLocOrRangeRef rest))
+  ExLocOrRangeRef (ExRange1 (ExRange first second)) -> (showExcelRef $ ExLocOrRangeRef $ ExLoc1 $ first) ++ ":" ++ (showExcelRef $ ExLocOrRangeRef $ ExLoc1 second)
+  ExLocOrRangeRef (ExLoc1 (ExIndex dol1 c dol2 r)) -> dol1 ++ c ++ dol2 ++ r
 
 showExcelValue :: ASValue -> String
 showExcelValue val = case val of
@@ -74,6 +79,7 @@ instance Fractional ENumeric where
 
 data EValue = 
   EBlank |
+  EMissing |
   EValueNum ENumeric |
   EValueB Bool |
   EValueS String |
@@ -92,7 +98,7 @@ data EEntity =
 --------------------------------------------------------------------------------------------------------------------------------------------
 -- | Excel evaluation types
 
-data Context = Context {evalMap :: M.Map ASIndex ASValue, curLoc :: ASReference}
+data Context = Context {evalMap :: M.Map ASReference ASValue, curLoc :: ASReference}
 
 type ThrowsError = Either EError
 type EResult = ThrowsError EEntity
@@ -172,24 +178,17 @@ getType (EntityVal (EValueB _)) = "bool"
 getType (EntityMatrix m) = "matrix"
 getType (EntityVal v) = "value"
 
-
------------------------------------------------------------------------------
+ -----------------------------------------------------------------------------
 -- * Abstract syntax
 
 -- | The type of formulas.
 data BasicFormula = 
    Var EValue                      -- ^ Variables
  | Fun String [Formula]            -- ^ Fun
- | Ref ExLoc                    -- ^ Reference
+ | Ref ExRef                    -- ^ Reference
  deriving (Show, Read)
 
 data Formula = ArrayConst [[BasicFormula]] | Basic BasicFormula deriving (Show, Read)
 
 type ContextualFormula = (Formula, Bool) -- designates arrayFormula or not
 
---data ExcelLoc = BareLoc ExcelBareLoc | SheetLoc ExcelSheetLoc | WorkbookLoc ExcelWorkbookLoc 
---data ExcelBareLoc = IndexLoc ExcelIndexLoc | RangeLoc ExcelRangeLoc 
---data ExcelIndexLoc = ExIndex {fixedRow :: Bool, fixedCol :: Bool, col :: String, row :: Int} 
---data ExcelRangeLoc = ExRange {topLeftLoc :: ExcelIndexLoc, bottomRightLoc :: ExcelIndexLoc} 
---data ExcelSheetLoc = ExSheet String ExcelBareLoc 
---data ExcelWorkbookLoc = ExWorkbook String ExcelSheetLoc

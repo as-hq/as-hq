@@ -11,6 +11,7 @@ import qualified Network.WebSockets as WS
 import qualified Data.UUID as U (toString)
 import qualified Data.Text as T 
 import qualified Data.List as L
+import qualified Data.Set as S
 import Control.Applicative hiding ((<|>), many)
 import Data.Maybe (isNothing,catMaybes)
 
@@ -32,8 +33,10 @@ initUserFromMessageAndConn (ClientMessage _ (PayloadInit (ASInitConnection uid))
 --------------------------------------------------------------------------------------------------------------
 -- Misc 
 
-sendMessage :: (ToJSON a) => a -> WS.Connection -> IO ()
-sendMessage msg conn = WS.sendTextData conn (encode msg)
+sendMessage :: (ToJSON a, Show a) => a -> WS.Connection -> IO ()
+sendMessage msg conn = do 
+  WS.sendTextData conn (encode msg)
+  printWithTime $ "Server sent message: " ++ (show msg)
 
 lastN :: Int -> [a] -> [a]
 lastN n xs = let m = length xs in drop (m-n) xs
@@ -57,16 +60,6 @@ lookupLambda :: Eq a => (b -> a) -> a -> [b] -> Maybe b
 lookupLambda func elm lst = case (filter (((==) elm) . func) lst) of
     [] -> Nothing
     (x:xs) -> Just x
-
-max' :: Ord a => a -> a -> a
-max' j k = if j > k
-    then j
-    else k
-
-min' :: Ord a => a -> a -> a
-min' j k = if j < k
-    then j
-    else k
 
 tuple3 :: a -> b -> c -> (a,b,c)
 tuple3 a b c = (a,b,c)
@@ -123,8 +116,8 @@ isJust (Just c) = True
 isJust Nothing = False
 
 getCellMessage :: Either ASExecError [ASCell] -> ASServerMessage
-getCellMessage (Left e) = ServerMessage Evaluate (Failure (generateErrorMessage e)) (PayloadN ())
-getCellMessage (Right cells) = ServerMessage Evaluate Success (PayloadCL cells)
+getCellMessage (Left e) = ServerMessage Update (Failure (generateErrorMessage e)) (PayloadN ())
+getCellMessage (Right cells) = ServerMessage Update Success (PayloadCL cells)
 
 -- getBadLocs :: [ASReference] -> [Maybe ASCell] -> [ASReference]
 -- getBadLocs locs mcells = map fst $ filter (\(l,c)->isNothing c) (zip locs mcells)
@@ -153,13 +146,17 @@ generateErrorMessage e = case e of
 getTime :: IO String
 getTime = fmap (show . utctDayTime) getCurrentTime
 
-printTimed :: String -> IO ()
-printTimed str = do 
+printWithTime :: String -> IO ()
+printWithTime str = do 
   time <- getTime
   putStrLn $ "[" ++ (show time) ++ "] " ++ str 
 
-showTime :: String -> EitherTExec ()
-showTime = lift . printTimed
+printWithTimeT :: String -> EitherTExec ()
+printWithTimeT = lift . printWithTime
+
+-- | For debugging purposes
+printDebug :: (Show a) => String -> a -> IO ()
+printDebug name obj = printWithTime ("\n\n" ++ name ++ ": " ++ (show obj))
 
 -- | Not yet implemented
 getASTime :: IO ASTime
@@ -206,7 +203,7 @@ getWindow sheetid user = lookupLambda windowSheetId sheetid (windows user)
 getScrolledLocs :: ASWindow -> ASWindow -> [ASRange]
 getScrolledLocs (Window _ (-1,-1) (-1,-1)) (Window sheetid tl br) = [(Range sheetid (tl, br))] 
 getScrolledLocs (Window _ (y,x) (y2,x2)) (Window sheetid tl@(y',x') br@(y2',x2')) = getUncoveredLocs sheetid overlapping (tl, br)
-    where overlapping = ((max' y y', max' x x'), (min' y2 y2', min' x2 x2'))
+    where overlapping = ((max y y', max x x'), (min y2 y2', min x2 x2'))
 
 getUncoveredLocs :: ASSheetId -> ((Int,Int), (Int,Int)) -> ((Int,Int), (Int,Int)) -> [ASRange]
 getUncoveredLocs sheet (tlo, bro) (tlw, brw) = [Range sheet corners | corners <- cs]
@@ -240,23 +237,27 @@ getListTag (Cell _ _ _ ts) = getTag foundTags
 -- | ASReference is either a cell index, range, or column. When decomposeLocs takes a range, it returns
 -- the list of indices that compose the range. When it takes in an index, it returns a list consisting
 -- of just that index. It cannot take in a column. 
+refToIndices :: ASReference -> [ASIndex]
+refToIndices loc = case loc of 
+  (IndexRef ind) -> [ind]
+  (RangeRef r) -> rangeToIndices r
 -- decomposeLocs :: ASReference -> [ASIndex]
 -- decomposeLocs loc = case loc of 
 --   (IndexRef ind) -> [ind]
   -- (RangeRef (Range sheet (ul, lr))) -> [Index sheet (x,y) | x <- [startx..endx], y <- [starty..endy] ]
   --   where 
-  --     startx = min' (fst ul) (fst lr)
-  --     endx = max' (fst ul) (fst lr)
-  --     starty = min' (snd ul) (snd lr)
-  --     endy = max' (snd ul) (snd lr)
+  --     startx = min (fst ul) (fst lr)
+  --     endx = max (fst ul) (fst lr)
+  --     starty = min (snd ul) (snd lr)
+  --     endy = max (snd ul) (snd lr)
 
 rangeToIndices :: ASRange -> [ASIndex]
 rangeToIndices (Range sheet (ul, lr)) = [Index sheet (x,y) | x <- [startx..endx], y <- [starty..endy] ]
   where 
-    startx = min' (fst ul) (fst lr)
-    endx = max' (fst ul) (fst lr)
-    starty = min' (snd ul) (snd lr)
-    endy = max' (snd ul) (snd lr)
+    startx = min (fst ul) (fst lr)
+    endx = max (fst ul) (fst lr)
+    starty = min (snd ul) (snd lr)
+    endy = max (snd ul) (snd lr)
 
 matchSheets :: [ASWorkbook] -> [ASSheet] -> [WorkbookSheet]
 matchSheets ws ss = [WorkbookSheet (workbookName w) (catMaybes $ lookupSheets w ss) | w <- ws]
@@ -273,8 +274,24 @@ shiftInd (dy, dx) (Index sh (y,x)) = Index sh (y+dy, x+dx)
 getTopLeft :: ASRange -> ASIndex
 getTopLeft (Range sh (tl,_)) = Index sh tl
 
-getIndicesOffsets :: ASIndex -> ASIndex -> (Int, Int)
-getIndicesOffsets (Index _ (y, x)) (Index _ (y', x')) = (y'-y, x'-x)
+getRangeDims :: ASRange -> (Int, Int)
+getRangeDims (Range _ ((y1, x1), (y2, x2))) = (1 + abs (y2 - y1), 1 + abs (x2 - x1))
+
+getPasteOffsets :: ASRange -> ASRange -> [(Int, Int)]
+getPasteOffsets from to = offsets 
+  where 
+    (fromYDim, fromXDim) = getRangeDims from 
+    (toYDim, toXDim) = getRangeDims to 
+    yRep = max 1 (toYDim `div` fromYDim)
+    xRep = max 1 (toXDim `div` fromXDim)
+    (topYOffset, topXOffset) = getIndicesOffset (getTopLeft from) (getTopLeft to)
+    yRepOffsets = take yRep [0,fromYDim..]
+    xRepOffsets = take xRep [0,fromXDim..]
+    offsets = [(topYOffset + y, topXOffset + x) | y <- yRepOffsets, x <- xRepOffsets]
+
+
+getIndicesOffset :: ASIndex -> ASIndex -> (Int, Int)
+getIndicesOffset (Index _ (y, x)) (Index _ (y', x')) = (y'-y, x'-x)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Users

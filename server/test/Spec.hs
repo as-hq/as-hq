@@ -34,16 +34,16 @@ testEdges n = L.zip (testLocs n) (testLocs n)
 
 testExcel :: String -> IO ()
 testExcel s = do 
-    let col1 = [(Index (T.pack "") (i,j), ValueI i)| i <- [1..100], j <- [1..100]]
+    let col1 = [(IndexRef (Index (T.pack "") (i,j)), ValueI i)| i <- [1..100], j <- [1..100]]
     let mp = M.fromList col1
-    ex <- runEitherT $ EE.evaluate s (Index (T.pack "") (1,1)) mp 
+    ex <- runEitherT $ EE.evaluate s (IndexRef (Index (T.pack "") (1,1))) mp 
     putStrLn $ show ex
 
 
 main :: IO ()
 main = do 
     putStrLn ""
-    printTimed "Running tests..."
+    printWithTime "Running tests..."
     -- conn <- R.connect DU.cInfo
     -- printTimed "hedis database connection: PASSED"
 
@@ -72,19 +72,19 @@ testEvaluate :: IO ()
 testEvaluate = do
     result <- runEitherT $ KP.evaluate "a=4;b=5\na+b"
     let testResult = (==) result $ Right (ValueD 9.0)
-    printTimed $ "python evaluate: " ++ (showResult testResult)
+    printWithTime $ "python evaluate: " ++ (showResult testResult)
     (Right (ValueError _ _ _ _)) <- runEitherT $ KP.evaluate "1+a"
-    printTimed $ "python error: PASSED"
+    printWithTime $ "python error: PASSED"
     (Left SyntaxError) <- runEitherT $ KP.evaluate "1+"
-    printTimed $ "python syntax error: PASSED"
+    printWithTime $ "python syntax error: PASSED"
 
 testEvaluateRepl :: IO ()
 testEvaluateRepl = do
     result <- runEitherT $ KP.evaluateRepl "import random"
-    printTimed $ "python repl import: " ++ (showResult $ result == (Right NoValue))
+    printWithTime $ "python repl import: " ++ (showResult $ result == (Right NoValue))
     (Right (ValueD _)) <- runEitherT $ KP.evaluate "random.random()"
     (Right NoValue) <- runEitherT $ KP.evaluateRepl "def myFunc(x):\n\treturn x ** 3"
-    printTimed $ "python repl cell call: PASSED"
+    printWithTime $ "python repl cell call: PASSED"
 
 testLocationKey :: Connection -> IO ()
 testLocationKey conn = do
@@ -92,7 +92,7 @@ testLocationKey conn = do
     let loc = Index "" (1,1)
     let key = DU.getLocationKey loc
     (Right result) <- runRedis conn $ exists key
-    printTimed $ "location key exists: " ++ (showResult result)
+    printWithTime $ "location key exists: " ++ (showResult result)
 
 testSetCells :: IO () 
 testSetCells = do
@@ -102,7 +102,7 @@ testSetCells = do
     let locs = testLocs 10
     cells' <- DB.getCells locs 
     let result = (==) 10 $ length . filterNothing $ cells'
-    printTimed $ "set 100K cells: " ++ (showResult result)
+    printWithTime $ "set 100K cells: " ++ (showResult result)
 
 showResult :: Bool -> String
 showResult True = "PASSED"
@@ -120,13 +120,13 @@ showResult False = "FAILED"
 
 testGetCells :: IO ()
 testGetCells = do
-    let locs = testLocs 1
+    let locs = testLocs 1000000
     --let cells = testCells 1
     --let keys = map DU.getLocationKey locs
     --DB.setCells cells
     --cells <- DB.getCells locs
-    cells <- DB.getCell $ head locs
-    printTimed $ show cells
+    cells <- DB.getCells locs
+    printWithTime $ "done"
 
 testSheetCreation :: Connection -> IO ()
 testSheetCreation conn = do
@@ -142,4 +142,4 @@ testSheetCreation conn = do
     allWbs' <- getAllWorkbookSheets conn
     --printTimed $ "set 2: " ++ (show allWbs')
     let result = (length allWbs') > (length allWbs)
-    printTimed $ "new workbooksheet creation: " ++ (showResult result)
+    printWithTime $ "new workbooksheet creation: " ++ (showResult result)

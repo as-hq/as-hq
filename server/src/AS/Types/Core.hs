@@ -11,6 +11,7 @@ import Data.ByteString (ByteString)
 import Data.ByteString.Char8 as BC
 import qualified Network.WebSockets as WS
 import qualified Database.Redis as R
+import qualified Data.Map as M
 import Control.Concurrent (MVar)
 import Control.Applicative
 
@@ -70,28 +71,18 @@ data ASValue =
   | ValueD Double 
   | ValueB Bool
   | ValueL [ASValue]
-  | ValueT (ASValue, ASValue)
-  | ValueImage { imagePath :: String}
+  | ValueImage { imagePath :: String }
   | ValueObject { objectType :: String, jsonRepresentation :: String }
-  | ValueStyled { style :: String, value :: ASValue }
-  | ValueError { error :: String, err_type :: String, file :: String, position :: Int } 
-  | ValueE ASEvalError
-  | ExcelSheet { locs :: ASValue, exprs :: ASValue, vals :: ASValue}
-  | Rickshaw {rickshawData :: ASValue}
-  | StockChart { stockPrices :: ASValue, stockName :: String }
-  | DisplayValue { displayValue :: String, actualValue :: ASValue }
+  | ValueError { errMsg :: String, errType :: String, file :: String, position :: Int } 
   deriving (Show, Read, Eq, Generic)
 
 data ASReplValue = ReplValue {replValue :: ASValue, replLang :: ASLanguage} deriving (Show, Read, Eq, Generic)
-
-type ASEvalError = String
 
 data ASLanguage = R | Python | OCaml | CPP | Java | SQL | Excel deriving (Show, Read, Eq, Generic)
 
 -- TODO consider migration to exLocs record
 data ASExpression =
-  Expression { expression :: String, language :: ASLanguage } | 
-  Reference { location :: ASReference, referenceIndex :: (Int, Int) }
+  Expression { expression :: String, language :: ASLanguage } 
   deriving (Show, Read, Eq, Generic)
 
 emptyExpression = ""
@@ -140,6 +131,7 @@ data ASServerMessage = ServerMessage {
 data ASAction = 
     NoAction
   | Acknowledge
+  | SetInitialSheet
   | New | Import 
   | Open | Close
   | Evaluate | EvaluateRepl
@@ -179,7 +171,7 @@ data ASPayload =
   | PayloadU ASUserId
   | PayloadE ASExecError
   | PayloadCommit ASCommit
-  | PayloadCopy {copyRange :: ASRange, copyTo :: ASIndex}
+  | PayloadCopy {copyRange :: ASRange, copyTo :: ASRange}
   | PayloadTags {tags :: [ASCellTag], tagsLoc :: ASIndex}
   | PayloadXp ASExpression
   | PayloadReplValue ASReplValue
@@ -191,7 +183,6 @@ data ASPayload =
 
 data ASTime = Time {day :: String, hour :: Int, minute :: Int, sec :: Int} deriving (Show,Read,Eq,Generic)
 data ASCommit = ASCommit {commitUserId :: ASUserId, before :: [ASCell], after :: [ASCell], time :: ASTime} deriving (Show,Read,Eq,Generic)
-
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Eval Types
@@ -216,7 +207,9 @@ data ASExecError =
 
 type EitherCells = Either ASExecError [ASCell] 
 type EitherTExec = EitherT ASExecError IO
- 
+
+type RefValMap = M.Map ASReference ASValue
+
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Websocket types
 

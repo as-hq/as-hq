@@ -267,7 +267,7 @@ arrConstToResult c es = do
 dbLookup :: ASReference -> ASValue
 dbLookup l = ValueS "DBLOOKUP"
 
-dbLookupBulk :: [ASIndex] -> [ASValue]
+dbLookupBulk :: [ASReference] -> [ASValue]
 dbLookupBulk _ = []
 
 -- | Given context, maps a reference to an entity by lookup, then converting ASValue -> EEntity (matrix)
@@ -278,7 +278,7 @@ refToEntity c (ERef l@(IndexRef i)) = case (asValueToEntity v) of
 	Nothing -> Left $ CannotConvertToExcelValue l 
 	Just e  -> Right e
 	where
-		v = case (M.lookup i (evalMap c)) of
+		v = case (M.lookup l (evalMap c)) of
 			Nothing -> dbLookup l
 			Just v' -> v'
 refToEntity c (ERef (l@(RangeRef r))) = if any isNothing vals
@@ -286,7 +286,7 @@ refToEntity c (ERef (l@(RangeRef r))) = if any isNothing vals
 	else Right $ EntityMatrix $ EMatrix (getWidth l) (getHeight l) $ V.fromList $ catMaybes vals
 	where
 		mp = evalMap c
-		idxs = rangeToIndices r
+		idxs = map IndexRef $ rangeToIndices r
 		(inMap,needDB) = partition ((flip M.member) mp) idxs
 		mapVals = catMaybes $ map ((flip M.lookup) mp) inMap
 		dbVals = dbLookupBulk needDB

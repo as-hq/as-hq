@@ -8,8 +8,7 @@ import Data.Char
 import qualified Data.Text as T
 import qualified Data.List as L
 import qualified Data.Either as E
-import Text.Parsec
-import Text.Parsec.Text
+import Text.ParserCombinators.Parsec
 import Control.Applicative hiding ((<|>), many)
 import qualified Data.Map as M
 import qualified Data.Text.Lazy as LA
@@ -73,7 +72,7 @@ stripString = T.unpack . T.strip . T.pack
 tryParseList :: Parser a -> [String] -> [Maybe a]
 tryParseList p ss = map readOutput parsed
   where
-    parsed = map ((parse p "") . T.pack) ss
+    parsed = map (parse p "") ss
     readOutput (Left err) = Nothing
     readOutput (Right res) = Just res
 
@@ -82,7 +81,7 @@ tryParseListNonIso :: Parser a -> [String] -> [a]
 tryParseListNonIso p ss = E.rights parsed
   where
     ss' = filter ((/=) "") ss
-    parsed = map ((parse p "") . T.pack) ss'
+    parsed = map (parse p "") ss'
 
 tryParse p s = parse p "" (T.pack s)
 

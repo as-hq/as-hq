@@ -14,8 +14,8 @@ import AS.Util as U
 -}
 
 -- | This is middleware for evaluation; we take a cell recieved with the "Evaluate" action tag and preprocess it
-evalMiddleware :: ASCell -> IO ASCell
-evalMiddleware cell = return cell
+evalMiddleware :: [ASCell] -> IO [ASCell]
+evalMiddleware = return
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Middlewares

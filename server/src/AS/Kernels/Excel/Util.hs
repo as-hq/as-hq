@@ -3,7 +3,7 @@ module AS.Kernels.Excel.Util where
 import AS.Types.Core
 import AS.Types.Excel
 import qualified Data.Text as T
-import AS.Parsing.Out (exLocToASLocation)
+import AS.Parsing.Out (exRefToASRef)
 
 
 import AS.Kernels.Excel.Compiler
@@ -86,8 +86,8 @@ flattenValue :: ASValue -> [ASValue]
 flattenValue (ValueL l) = l
 flattenValue x = [x]
 
-toASLoc :: ASSheetId -> ExLoc -> ASReference
-toASLoc s e = exLocToASLocation s e
+toASLoc :: ASSheetId -> ExRef -> ASReference
+toASLoc s e = exRefToASRef s e
 
 valToResult :: EValue -> EResult
 valToResult = Right . EntityVal

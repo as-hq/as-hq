@@ -38,7 +38,6 @@ instance (Show2 ASReference) where
 
 instance (Show2 ASExpression) where
   show2 (Expression xp lang) = "E?" ++ xp ++ ('?':(show lang))
-  show2 (Reference loc ref) = "R?" ++ (show2 loc) ++ ('?':(show ref))
 
 instance (Show2 ASValue) where
   show2 = show -- TODO optimize
@@ -79,7 +78,6 @@ instance (Read2 ASExpression)
         [tag, midstr, laststr] = splitBy '?' str
         xp = case tag of 
           "E" -> Expression midstr (read laststr :: ASLanguage)
-          "R" -> Reference (read2 midstr :: ASReference) (read laststr :: (Int, Int))
 
 instance (Read2 ASValue)
   where 

@@ -32,14 +32,14 @@ entityToASValue (EntityMatrix (EMatrix 1 r v)) = ValueL $ V.toList $ V.map toASV
 
 
 -- | In the Excel Error monad; parse the formula and then evaluate
-evalExcel :: String -> ASIndex -> M.Map ASIndex ASValue -> EResult
-evalExcel s idx mp = do 
-	let context = Context mp (IndexRef idx)
+evalExcel :: String -> ASReference -> RefValMap -> EResult
+evalExcel s ref mp = do 
+	let context = Context mp ref
 	(formula,isArray) <- C.parseFormula s
 	if isArray
 		then L.evalArrayFormula context formula
 		else L.evalFormula context formula
 
 
-evaluate :: String -> ASIndex -> M.Map ASIndex ASValue -> EitherTExec ASValue
-evaluate s idx mp = convertEither $ evalExcel s idx mp
+evaluate :: String -> ASReference -> RefValMap -> EitherTExec ASValue
+evaluate s ref mp = convertEither $ evalExcel s ref mp

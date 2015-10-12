@@ -197,32 +197,35 @@ addCompileCmd OCaml cmd = do
     let path = evalPath ++ "ocaml/"
     return $ cmd ++ "; " ++ path ++ "test"
 
--- Helper function for insertValues
-lookupString :: ASLanguage -> M.Map ASIndex ASValue -> ASReference -> String
+
+-- | Helper function for interpolate. Takes in a RefValMap and a reference and returns
+-- the value as a string. 
+lookupString :: ASLanguage -> RefValMap -> ASReference -> String
 lookupString lang mp loc = case loc of
-    IndexRef i@(Index sh (a,b)) -> (showFilteredValue lang) (mp M.! i)
+    IndexRef (Index sh (a,b)) -> (showValue lang) (mp M.! loc)
     RangeRef (Range sh ((a,b),(c,d))) -> 
         if (c==a)
-            then modifiedLists lang (toListStr lang [ ((showFilteredValue lang) (mp M.! (Index sh (a,row)))) | row<-[b..d]])
-            else modifiedLists lang (toListStr lang [modifiedLists lang (toListStr lang ([(showFilteredValue lang) (mp M.! (Index sh (col,row)))| col <-[a..c]]))| row<-[b..d]])
+            then modifiedLists lang (toListStr lang [ ((showValue lang) (mp M.! (IndexRef $ Index sh (a,row)))) | row<-[b..d]])
+            else modifiedLists lang (toListStr lang [modifiedLists lang (toListStr lang ([(showValue lang) (mp M.! (IndexRef $ Index sh (col,row)))| col <-[a..c]]))| row<-[b..d]])
 
 
+-- | Replaces all the Excel references in an expression with the values corresponding to them. 
 -- TODO clean up SQL mess
-insertValues :: ASSheetId -> M.Map ASIndex ASValue -> ASExpression -> String
+
+insertValues :: ASSheetId -> RefValMap -> ASExpression -> String
 insertValues sheetid values (Expression origString SQL) = contextStmt ++ evalStmt
     where
-        exLocs = getMatchesWithContext origString excelMatch
-        matchLocs = map (exLocToASLocation sheetid) (snd exLocs)
+        exRefs = getMatchesWithContext origString excelMatch
+        matchLocs = map (exRefToASRef sheetid) (snd exRefs)
         context = map (lookupString SQL values) matchLocs
         st = ["dataset"++(show i) | i<-[0..((L.length matchLocs)-1)]]
-        newExp = replaceMatches exLocs (\el -> (L.!!) st (MB.fromJust (L.findIndex (el==) (snd exLocs)))) origString
+        newExp = replaceMatches exRefs (\el -> (L.!!) st (MB.fromJust (L.findIndex (el==) (snd exRefs)))) origString
         contextStmt = "setGlobals("++(show context) ++")\n"
         evalStmt = "result = pprintSql(db(\'" ++ newExp ++ "\'))"
-
 insertValues sheetid values (Expression origString lang) = evalString
     where
-        exLocToStringEval = (lookupString lang values) . (exLocToASLocation sheetid) -- ExLoc -> String
-        evalString = replaceMatches (getMatchesWithContext origString excelMatch) exLocToStringEval origString
+        exRefToStringEval = (lookupString lang values) . (exRefToASRef sheetid) -- ExRef -> String. (Takes in ExRef, returns the ASValue corresponding to it, as a string.)
+        evalString = replaceMatches (getMatchesWithContext origString excelMatch) exRefToStringEval origString
 
 -----------------------------------------------------------------------------------------------------------------------
 -- | File management
@@ -270,19 +273,19 @@ getRunFile :: ASLanguage -> IO String
 getRunFile lang = do
     path <- getEvalPath 
     return $ path ++ case lang of 
-        R       -> "r/temp.r"
-        Python  -> "py/temp.py"
-        OCaml   -> "ocaml/temp.ml"
-        SQL     -> "sql/temp.py"
+        R       -> "r/run.r"
+        Python  -> "py/run.py"
+        OCaml   -> "ocaml/run.ml"
+        SQL     -> "sql/run.py"
 
 getRunReplFile :: ASLanguage -> IO String
 getRunReplFile lang = do
     path <- getEvalPath 
     return $ path ++ case lang of 
-        R       -> "r/temp_repl.r"
-        Python  -> "py/temp_repl.py"
-        OCaml   -> "ocaml/temp_repl.ml"
-        SQL     -> "sql/temp_repl.py"
+        R       -> "r/run_repl.r"
+        Python  -> "py/run_repl.py"
+        OCaml   -> "ocaml/run_repl.ml"
+        SQL     -> "sql/run_repl.py"
 
 getReplRecord :: ASLanguage -> IO String
 getReplRecord lang = do
