@@ -57,7 +57,7 @@ runDispatchCycle state cs uid = do
     finalizedCells <- lift $ EE.evalEndware state cs'' uid cs
     let allCells = decoupledCells ++ finalizedCells -- ORDER IS IMPORTANT, since decoupledCells and finalizedCells might overlap. Further right in list = higher precedence
     lift $ DB.updateAfterEval conn uid cs desc allCells -- does set cells and commit (should rename)
-    setCellsAncestorsInDb conn cs' -- move to upateAfterEval, maybe? 
+    setCellsAncestorsInDb conn cs' -- should move to upateAfterEval, which should be the only place that changes stuff in DB or server
     return allCells
   return $ U.getCellMessage errOrCells
 
@@ -96,6 +96,7 @@ setCellsAncestorsInDb conn cells = (flip mapM_) cells (\(Cell loc expr _ ts) -> 
   let deps = getDependencies (locSheetId loc) expr
   G.setRelations [(loc, deps)])
 
+-- not named well. this is more "list of cells in DB we need to re-eval". 
 -- | Return the descendants of a cell, which will always exist but may be locked
 -- TODO: throw exceptions for permissions/locking
 getDescendants :: Connection -> [ASCell] -> EitherTExec [ASCell]
@@ -105,12 +106,8 @@ getDescendants conn cells = do
   indexes <- G.getDescendants (locs ++ vLocs) 
   let indexes' = minus indexes (map cellLocation cells)
   desc <- lift $ DB.getCells indexes'
-  -- lift $ printDebug "locs" locs
-  -- lift $ printDebug "cells" cells
-  -- lift $ printDebug "indexes" indexes
-  -- lift $ printDebug "vLocs" vLocs 
   printWithTimeT $ "got descendant cells"
-  return $ map fromJust desc
+  return $ map fromJust desc -- if you clear the redis DB but don't restart the server, you might run into trouble here
 
 -- temporary, until getDescendants is re-implemented to not include the current cell as a descendant. 
 -- ALSO, this is currently wrong. (if you pass in a list [C1, C2] and C2 is a descendant of C1, 

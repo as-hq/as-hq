@@ -35,6 +35,15 @@ import Control.Monad.Trans.Either
 -----------------------------------------------------------------------------------------------------------------------
 -- Exposed functions
 
+evalCode :: ASSheetId -> RefValMap -> ASExpression -> EitherTExec ASValue
+evalCode sheetid valuesMap xp@(Expression _ lang) = do
+	printWithTimeT "Starting eval code"
+	let maybeError = possiblyShortCircuit sheetid valuesMap xp
+	case maybeError of 
+		Just e -> return e -- short-circuited, return this error
+		Nothing -> execEvalInLang lang xpWithValuesSubstituted -- didn't short-circuit, proceed with eval as usual
+       where xpWithValuesSubstituted = insertValues sheetid valuesMap xp 
+
 evalReplExpression :: ASExpression -> EitherTExec ASValue
 evalReplExpression (Expression str lang) = case lang of
 	Python 	-> KP.evaluateRepl str
@@ -44,15 +53,6 @@ evalReplExpression (Expression str lang) = case lang of
 
 -----------------------------------------------------------------------------------------------------------------------
 -- Helpers
-
-evalCode :: ASSheetId -> RefValMap -> ASExpression -> EitherTExec ASValue
-evalCode sheetid valuesMap xp@(Expression _ lang) = do
-	printWithTimeT "Starting eval code"
-	let maybeError = possiblyShortCircuit sheetid valuesMap xp
-	case maybeError of 
-		Just e -> return e -- short-circuited, return this error
-		Nothing -> execEvalInLang lang xpWithValuesSubstituted -- didn't short-circuit, proceed with eval as usual
-       where xpWithValuesSubstituted = insertValues sheetid valuesMap xp 
 
 -- | Checks for potentially bad inputs (NoValue or ValueError) among the arguments passed in. If no bad inputs, 
 -- return Nothing. Otherwise, if there are errors that can't be dealt with, return appropriate ASValue error.
