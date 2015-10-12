@@ -48,17 +48,16 @@ runDispatchCycle state cs uid = do
     cs'            <- lift $ EM.evalMiddleware cs
     conn           <- lift $ fmap dbConn $ readMVar state
     decoupledCells <- decoupleCells conn cs' 
-    setCellsInDb conn cs'
-    setCellsAncestorsInDb conn cs'
-    desc           <- getDescendants conn cs'
-    ancLocs        <- G.getImmediateAncestors $ map cellLocation desc
+    desc <- getDescendants conn cs'
+    ancLocs <- getNewAncLocs conn cs' desc 
     printWithTimeT $ "got ancestor locs: " ++ (show ancLocs)
-    anc            <- lift $ fmap catMaybes $ DB.getCells ancLocs
-    cs''           <- initEval conn anc desc 
+    initValuesMap  <- lift $ getValuesMap ancLocs
+    cs''           <- evalChain conn initValuesMap (cs' ++ desc) -- start with current cells, then go through descendants
     -- Apply endware
     finalizedCells <- lift $ EE.evalEndware state cs'' uid cs
     let allCells = decoupledCells ++ finalizedCells -- ORDER IS IMPORTANT, since decoupledCells and finalizedCells might overlap. Further right in list = higher precedence
-    lift $ DB.updateAfterEval conn uid cs desc allCells -- does set cells and commit
+    lift $ DB.updateAfterEval conn uid cs desc allCells -- does set cells and commit (should rename)
+    setCellsAncestorsInDb conn cs' -- move to upateAfterEval, maybe? 
     return allCells
   return $ U.getCellMessage errOrCells
 
@@ -83,22 +82,19 @@ decoupleCells conn cells = do
 --   then lift $ DB.decoupleList conn cell
 --   else return []
 
--- | Puts the cells in the database for the first time / overwrites cell in DB with fresh new cell. 
-setCellsInDb :: Connection -> [ASCell] -> EitherTExec ()
-setCellsInDb conn cells = (flip mapM_) cells (\(Cell loc expr _ ts) -> do 
-  let initCell = Cell loc expr NoValue ts -- NoValue because the value hasn't been computed yet
-  lift $ DB.setCell initCell
-  printWithTimeT "set init cells")
+-- | Given a set of cells and their descendants, return the new set of cell locations they will
+-- depend on for evaluation. 
+getNewAncLocs :: Connection -> [ASCell] -> [ASCell] -> EitherTExec [ASIndex]
+getNewAncLocs conn curCells desc = do 
+  descAncLocs <- G.getImmediateAncestors $ map cellLocation desc
+  let curCellsDeps = map (\(Cell loc expr _ _) -> getDependencies (locSheetId loc) expr) curCells
+  return $ descAncLocs ++ (concat curCellsDeps)
 
 -- | Update the ancestors of a cell, and set the ancestor relationships in the DB. 
 setCellsAncestorsInDb :: Connection -> [ASCell] -> EitherTExec ()
 setCellsAncestorsInDb conn cells = (flip mapM_) cells (\(Cell loc expr _ ts) -> do
   let deps = getDependencies (locSheetId loc) expr
-  ancestorCells <- lift $ DB.getCells deps
-  printWithTimeT "got ancestor cells"
-  if (all isJust ancestorCells)
-    then G.setRelations [(loc, deps)]
-    else left $ DBNothingException []) -- one of the ancestors doesn't exist. TODO: return list of missing ancestors.
+  G.setRelations [(loc, deps)])
 
 -- | Return the descendants of a cell, which will always exist but may be locked
 -- TODO: throw exceptions for permissions/locking
@@ -107,27 +103,43 @@ getDescendants conn cells = do
   let locs = map cellLocation cells
   vLocs <- lift $ DB.getVolatileLocs conn -- Accounts for volatile cells being reevaluated each time
   indexes <- G.getDescendants (locs ++ vLocs) 
-  desc <- lift $ DB.getCells indexes
+  let indexes' = minus indexes (map cellLocation cells)
+  desc <- lift $ DB.getCells indexes'
+  -- lift $ printDebug "locs" locs
+  -- lift $ printDebug "cells" cells
+  -- lift $ printDebug "indexes" indexes
+  -- lift $ printDebug "vLocs" vLocs 
   printWithTimeT $ "got descendant cells"
   return $ map fromJust desc
 
--- | Takes ancestors and descendants, create lookup map, and starts eval
-initEval :: Connection -> [ASCell] -> [ASCell] -> EitherTExec [ASCell]
-initEval conn anc desc = do 
-  let valuesMap = M.fromList $ map (\c -> (IndexRef $ cellLocation c, cellValue c)) anc
-  evalChain conn valuesMap desc
+-- temporary, until getDescendants is re-implemented to not include the current cell as a descendant. 
+-- ALSO, this is currently wrong. (if you pass in a list [C1, C2] and C2 is a descendant of C1, 
+-- the list of descendants returned should be all descendnats of C1 sans C1, but not it'll be missing
+-- C2 as well) Will not be an issue when getDescendants is reimplemented. (Alex 10/12)
+minus :: (Eq a) => [a] -> [a] -> [a]
+minus [] xs                      = []
+minus (y:ys) xs | y `notElem` xs = y : (minus ys xs)
+                | otherwise      = minus ys xs
+
+-- | Returns a map that sends locations to the value corresponding to that location in the DB. 
+getValuesMap :: [ASIndex] -> IO RefValMap
+getValuesMap locs = do 
+  maybeCells <- DB.getCells locs
+  return $ M.fromList $ zip (map IndexRef locs) (map (\mc -> case mc of
+    Just c  -> cellValue c
+    Nothing -> NoValue) maybeCells)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Eval helpers
 
--- | Evaluates expression in current cell (first element of 3rd argument). Once that's done, continue doing
--- this down the list of cells. The list of cells is guaranteed to be be topologically sorted -- by the time
--- we reach any cell, all references to any of its ancestors should already have been computed
--- and stored in the second argument. Returns the list of all the cells it's evaluated  
+-- | Evaluates a list of cells, in serial order, updating the reference/value map with each 
+-- cell that's updated. The cells passed in are guaranteed to be topologically sorted, i.e., 
+-- if a cell references an ancestor, that ancestor is guaranteed to already have been 
+-- added in the map. 
 evalChain :: Connection -> RefValMap -> [ASCell] -> EitherTExec [ASCell]
 evalChain _ _ [] = return []
 evalChain conn valuesMap (c@(Cell loc xp _ ts):cs) = do  
-  printWithTimeT "Starting eval chain" -- ++ (show valuesMap)
+  printWithTimeT "Starting eval chain"
   cv <- R.evalCode (locSheetId loc) valuesMap xp
   case cv of 
     ValueL lst -> do

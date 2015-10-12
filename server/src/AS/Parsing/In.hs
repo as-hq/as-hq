@@ -110,12 +110,12 @@ extractValue m
       where
         ValueS typ  = m M.! "objectType"
         ValueS rep  = m M.! "jsonRepresentation"
-    extractError mm = ValueError err typ file (floor pos)
+    extractError mm = ValueError err (read typ) file pos
       where
         ValueS err         = m M.! "error"
-        ValueS typ         = m M.! "err_type"
+        ValueS typ         = m M.! "errType"
         ValueS file        = m M.! "file"
-        ValueD pos         = m M.! "position"
+        ValueI pos         = m M.! "position"
 
 complexValue :: Parser ASValue
 complexValue = extractValue <$> extractMap
@@ -137,7 +137,7 @@ ocamlError = do
   pos   <- manyTill anyChar (try (string ", characters"))
   manyTill anyChar (try (string "Error: "))
   err   <- manyTill anyChar (try eof)
-  return $ ValueError err "StdErr" file ((read pos :: Int) - 4)
+  return $ ValueError err StdErr file ((read pos :: Int) - 4)
 
 asValue :: ASLanguage -> Parser ASValue 
 asValue lang = 

@@ -48,8 +48,10 @@ data ASValue =
   | ValueL [ASValue]
   | ValueImage { imagePath :: String }
   | ValueObject { objectType :: String, jsonRepresentation :: String }
-  | ValueError { errMsg :: String, errType :: String, file :: String, position :: Int } 
+  | ValueError { errMsg :: String, errType :: EvalErrorType, file :: String, position :: Int } 
   deriving (Show, Read, Eq, Generic)
+
+data EvalErrorType = ExcelParse | StdErr | RefError deriving (Show, Read, Eq, Generic)
 
 data ASReplValue = ReplValue {replValue :: ASValue, replLang :: ASLanguage} deriving (Show, Read, Eq, Generic)
 
@@ -267,6 +269,8 @@ openPermissions = Blacklist []
 -- JSON
 instance ToJSON ASReference
 instance FromJSON ASReference
+instance ToJSON EvalErrorType
+instance FromJSON EvalErrorType
 instance ToJSON ASIndex
 instance FromJSON ASIndex
 instance ToJSON ASRange
