@@ -32,21 +32,12 @@ import Control.Monad.Trans.Either
 testEdges :: Int -> [(ASIndex,ASIndex)]
 testEdges n = L.zip (testLocs n) (testLocs n)
 
-testExcel :: String -> IO ()
-testExcel s = do 
-    let col1 = [(IndexRef (Index (T.pack "") (i,j)), ValueI i)| i <- [1..100], j <- [1..100]]
-    let mp = M.fromList col1
-    ex <- runEitherT $ EE.evaluate s (IndexRef (Index (T.pack "") (1,1))) mp 
-    putStrLn $ show ex
-
-
 main :: IO ()
 main = do 
     putStrLn ""
     printWithTime "Running tests..."
     -- conn <- R.connect DU.cInfo
     -- printTimed "hedis database connection: PASSED"
-
     --testSetCells
     --testLocationKey conn
     --testSheetCreation conn
@@ -56,14 +47,7 @@ main = do
     --testIntrospect
     --testExcelExpr
     --testGetCells
-    testExcel "=A1+B2+sum(A1:B2)"
-
-testExcelExpr :: IO ()
-testExcelExpr = do
-    let str = "=f(B2:index(A2:C6,5,2))"
-    let val = parse EC.formula "" str
-    putStrLn $ "parsed xp: " ++ (show val)
-
+    
 testIntrospect :: IO ()
 testIntrospect = do
     putStrLn . show =<< (runEitherT $ introspectCode SQL "select * from A1:B4 where a > 1")

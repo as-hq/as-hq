@@ -1,4 +1,3 @@
-
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE TypeSynonymInstances #-}
@@ -48,13 +47,12 @@ showExcelValue val = case val of
 toExcelList :: [String] -> String
 toExcelList lst  = "[" ++ (intercalate "," lst) ++ "]"
 
-
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Excel core types
 
 data ERef = ERef ASReference deriving (Show, Read, Eq, Ord)
 
-data ENumeric = EValueI Int | EValueD Double deriving (Show,Read,Eq,Ord)
+data ENumeric = EValueI Int | EValueD Double deriving (Show,Read,Eq)
 
 instance Num ENumeric where
   negate (EValueI i) = EValueI (-i)
@@ -78,17 +76,24 @@ instance Fractional ENumeric where
   (/) (EValueI i) (EValueI i') = EValueD $ (fromIntegral i)/(fromIntegral i')
 
 data EValue = 
-  EBlank |
-  EMissing |
+  EBlank | -- value doesn't exist in DB
+  EMissing | -- missing argument
   EValueNum ENumeric |
   EValueB Bool |
   EValueS String |
   EValueE String
   deriving (Show, Read,Eq,Ord)
 
+instance Ord ENumeric where
+  (<=) (EValueI i) (EValueI i') = i <= i'
+  (<=) (EValueI i) (EValueD d) = (fromIntegral i) <= d
+  (<=) (EValueD d) (EValueI i') = d <= (fromIntegral i')
+  (<=) (EValueD d) (EValueD d') = d <= d'
+
+
 type Col = Int
 type Row = Int
-data EMatrix = EMatrix {emRows :: !Int, emCols :: !Int, content :: !(V.Vector EValue)} 
+data EMatrix = EMatrix {emCols :: !Int, emRows :: !Int, content :: !(V.Vector EValue)} 
   deriving (Show, Read,Eq)
 data EEntity = 
   EntityRef ERef | 
@@ -113,7 +118,9 @@ type EFuncResult = (Context -> [EResult] -> EResult)
 type ExtractArg a = (String -> Int -> [EEntity] -> ThrowsError a)
 
 class EType a where
+  -- | Can the entity be cast into type a? Implemented by all instances.
   extractType :: (EEntity -> Maybe a)
+  -- | If the argument exists and is of the right type, return that type. Else return an error. 
   getRequired :: String -> ExtractArg a
   getRequired typeName f i entities
     | length entities < i = Left $ RequiredArgMissing f i
@@ -122,11 +129,16 @@ class EType a where
       Just x  -> Right x
       where
         entity = entities!!(i-1)
+  -- | Same as above, but allow for a default value (optional argument)
   getOptional :: String -> a -> ExtractArg a
   getOptional typeName defaultVal f i entities 
     | length entities < i = Right defaultVal
+    -- | If the value is missing, return default
     -- | Must be the correct type if it exists as an argument
-    | otherwise = getRequired typeName f i entities
+    | otherwise = case (entities!!(i-1)) of
+      (EntityVal EMissing) -> Right defaultVal
+      otherwise -> getRequired typeName f i entities
+  -- | Same as above, but no default value (just return Nothing if the argument doesn't exist)
   getOptionalMaybe :: String -> ExtractArg (Maybe a)
   getOptionalMaybe typeName f i entities 
     | length entities < i = Right Nothing
@@ -168,7 +180,7 @@ instance EType ENumeric where
   extractType (EntityVal (EValueNum n)) = Just n
   extractType _ = Nothing
 
-
+-- | Print the type, useful for error messages
 getType :: EEntity -> String
 getType (EntityRef _) = "ref"
 getType (EntityVal (EValueS _)) = "string"
@@ -183,12 +195,11 @@ getType (EntityVal v) = "value"
 
 -- | The type of formulas.
 data BasicFormula = 
-   Var EValue                      -- ^ Variables
- | Fun String [Formula]            -- ^ Fun
- | Ref ExRef                    -- ^ Reference
+   Var EValue                      -- Variables
+ | Fun String [Formula]            -- Function
+ | Ref ExRef                       -- Reference
  deriving (Show, Read)
 
 data Formula = ArrayConst [[BasicFormula]] | Basic BasicFormula deriving (Show, Read)
-
 type ContextualFormula = (Formula, Bool) -- designates arrayFormula or not
 

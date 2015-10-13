@@ -3,8 +3,6 @@ module AS.Kernels.Excel.Util where
 import AS.Types.Core
 import AS.Types.Excel
 import qualified Data.Text as T
-import AS.Parsing.Out (exRefToASRef)
-
 
 import AS.Kernels.Excel.Compiler
 import Data.Either
@@ -12,28 +10,30 @@ import Data.Maybe
 import Data.List
 import qualified Data.Vector as V
 
+import AS.DB.API
+
+import System.IO.Unsafe
+
 -------------------------------------------------------------------------------------------------------------
 -- | Matrix methods
 
-matrixToLsts :: EMatrix -> [[EValue]]
-matrixToLsts (EMatrix c r v) = (V.toList firstRow):(matrixToLsts (EMatrix c r rest))
-	where 
+-- | Converts a EMatrix to a 2D row major matrix of EValue's
+matrixTo2DList :: EMatrix -> [[EValue]]
+matrixTo2DList (EMatrix c 1 v) = [V.toList v]
+matrixTo2DList (EMatrix c r v) = (V.toList firstRow):otherRows
+	where
 		(firstRow,rest) = V.splitAt c v
+		otherRows = matrixTo2DList (EMatrix c (r-1) rest)
 
+-- | Extracts an element of a matrix
 matrixIndex :: (Int,Int) -> EMatrix -> EValue
 matrixIndex (c,r) (EMatrix numCols numRows v) = (V.!) v (r*numCols+c)
 
--- ignoring ValueL
+-- | Cast ASValue (from RefValMap) to an Excel entity. Ignoring ValueL for now; cannot be in the map.  
 asValueToEntity :: ASValue -> Maybe EEntity
 asValueToEntity v = case (toEValue v) of 
 	Nothing -> Nothing
 	Just v -> Just $  EntityVal v
-
-	{-
-	asValueToEntity v@(ValueL rows)
-	| (allPrimitive rows) = Just $ EntityMatrix $ EMatrix (length rows) 1 (V.fromList $ map (fromJust . toEValue) rows)
-	| (allRowsPrimitive rows) = Just $ EntityMatrix $ EMatrix (valLength (head rows)) (length rows) (V.concat $ map (\row -> V.fromList (map (fromJust . toEValue) (flattenValue row))) rows)
-	| otherwise = Nothing -- Not a 2D array -}
 
 -- | Returns the dimensions of a matrix in col,row format
 matrixDim :: EMatrix -> (Int,Int) 
@@ -46,12 +46,17 @@ to1D (EMatrix c r v)
 	| otherwise = Nothing
 
 -------------------------------------------------------------------------------------------------------------
--- | Conversions
+-- | Conversions to/from EResult
 
+-- | Convert a result to a value. Used when mapping array formulas; eval gives a bunch of results
+-- that need to be casted back to a EMatrix
 resToVal :: EResult -> ThrowsError EValue
 resToVal (Right (EntityVal v)) = Right v
 resToVal (Left e) = Left e
-resToVal other = Left $ Default "slgs"
+resToVal other = Left $ ArrayFormulaUnMappable
+
+valToResult :: EValue -> EResult
+valToResult = Right . EntityVal
 
 stringResult :: String -> EResult
 stringResult = Right . EntityVal . EValueS
@@ -65,7 +70,9 @@ doubleToResult = valToResult . EValueNum . EValueD
 intToResult :: Int ->  EResult
 intToResult = valToResult . EValueNum . EValueI
 
--- add error conversion
+-------------------------------------------------------------------------------------------------------------
+-- | Other conversion functions
+
 toASValue :: EValue -> ASValue 
 toASValue (EValueS s) = ValueS s
 toASValue (EValueNum (EValueD d)) = ValueD d
@@ -73,7 +80,6 @@ toASValue (EValueNum (EValueI i)) = ValueI i
 toASValue (EValueB b) = ValueB b
 toASValue (EBlank)    = NoValue
 
--- | Maps some ASValues to EValue's
 toEValue :: ASValue -> Maybe EValue
 toEValue (ValueS s) = Just $ EValueS s
 toEValue (ValueB b) = Just $ EValueB b
@@ -82,37 +88,17 @@ toEValue (ValueI i) = Just $ EValueNum $ EValueI i
 toEValue (NoValue) = Just EBlank
 toEValue v = Nothing
 
-flattenValue :: ASValue -> [ASValue]
-flattenValue (ValueL l) = l
-flattenValue x = [x]
+dealWithBlank :: Maybe ASCell -> ASValue 
+dealWithBlank (Just c) = cellValue c
+dealWithBlank Nothing = NoValue
 
-toASLoc :: ASSheetId -> ExRef -> ASReference
-toASLoc s e = exRefToASRef s e
+-- | The use of unsafePerformIO is temporary. Eventually a lot of this code may move into IO because of 
+-- things like rand.
+dbLookup :: ASIndex -> ASValue
+dbLookup = dealWithBlank . unsafePerformIO . getCell
 
-valToResult :: EValue -> EResult
-valToResult = Right . EntityVal
--------------------------------------------------------------------------------------------------------------
-
-extractRefs :: [EEntity] -> [ERef]
-extractRefs [] = []
-extractRefs ((EntityRef e):es) = e:(extractRefs es)
-
--------------------------------------------------------------------------------------------------------------
--- | AS Value methods
-
-allPrimitive :: [ASValue] -> Bool
-allPrimitive [] = True
-allPrimitive ((ValueL l):vs) = False
-allPrimitive v = True
-
-allRowsPrimitive :: [ASValue] -> Bool 
-allRowsPrimitive [] = True
-allRowsPrimitive ((ValueL lst):vs) = and [(allPrimitive lst),allRowsPrimitive vs]
-allRowsPrimitive _ = False
-
-valLength :: ASValue -> Int
-valLength (ValueL lst) = length lst
-valLength x = 1
+dbLookupBulk :: [ASIndex] -> [ASValue]
+dbLookupBulk = (map dealWithBlank) . unsafePerformIO . getCells 
 
 -------------------------------------------------------------------------------------------------------------
 -- | AS Reference utility methods
@@ -141,20 +127,44 @@ dimension :: ASReference -> (Int,Int)
 dimension (IndexRef (Index _ _)) = (1,1)
 dimension (RangeRef (Range _ ((a,b),(c,d)))) = (c-a+1,d-b+1)
 
--- | TODO: finish
+-- | Given current reference and another reference, only return the relevant part of the second reference
+-- | Returns Nothing if the second reference is 2D, or if no intersection possible
+-- | Leave ASIndex's alone (nothing to scalarize)
+-- | Ex. ABS(A1:A3) while on B2 -> ABS(A2)
 scalarizeLoc :: ASReference -> ASReference -> Maybe ASReference
-scalarizeLoc cl l = Just l
+scalarizeLoc (IndexRef i) j@(IndexRef _) = Just j
+scalarizeLoc (IndexRef (Index sh1 (e,f))) r@(RangeRef (Range sh2 ((a,b),(c,d)))) 
+	| sh1 /= sh2 = Nothing
+	| h /= 1 && w/= 1 = Nothing
+	| h == 1 = if e>=a && e<=c 
+		then Just $ IndexRef $ Index sh1 (e,b) -- intersect column;  b==d
+		else Nothing
+	| w == 1 = if f>=b && f<=d
+		then Just $ IndexRef $ Index sh1 (a,f) -- intersect row;  a==c
+		else Nothing
+		where
+			h = d-b+1
+			w = c-a+1
 
 -- | TODO: finish
--- | Find the rectangular intersection of two locations
+-- | Find the rectangular intersection of two locations (space operator in Excel)
 locIntersect :: ASReference -> ASReference -> Maybe ASReference
 locIntersect a b = Just b
 
--- | TODO: finish
 -- | If the second loc doesn't have the same dim as the first, fix it
 -- | Used for sumif-type functions to "extend" the second range
 matchDimension :: ERef -> ERef -> ERef
-matchDimension l1 l2 = l2
+matchDimension (ERef r1) (ERef r2) = if (a,b) == (c,d)
+	then ERef $ IndexRef $ Index sh (a,b)
+	else ERef $ RangeRef $ Range sh ((a,b),(c,d))
+	where
+		(a,b) = topLeftLoc r2
+		(c,d) = (a + getWidth r1 -1, b + getHeight r1 -1)
+		sh = shName r2
+
+extractRefs :: [EEntity] -> [ERef]
+extractRefs [] = []
+extractRefs ((EntityRef e):es) = e:(extractRefs es)
 
 -------------------------------------------------------------------------------------------------------------
 -- | General utilities
@@ -172,16 +182,7 @@ topLeftLst b
 	| (length (head b) == 0) = Nothing
 	| otherwise = Just $ (head . head) b
 
-max' :: Ord a => a -> a -> a
-max' j k = if j > k
-    then j
-    else k
-
-min' :: Ord a => a -> a -> a
-min' j k = if j < k
-    then j
-    else k
-
+-- | Check if all elements of a list are the same
 allTheSame :: (Eq a) => [a] -> Bool
 allTheSame xs = and $ map (== head xs) (tail xs)
 
@@ -191,17 +192,10 @@ allTheSameOrOne xs = allTheSame notOnes
 	where
 		(ones,notOnes) = partition (==1) xs
 
+-- | Equivalent to "is not a matrix"
 isBasic :: EEntity -> Bool
 isBasic (EntityMatrix m) = False
 isBasic e = True
-
----------------------------------------------------------------------------------------------------
--- | Parsing utilities
-
--- | TODO: need parsing on string to cast to int, float, etc
-leafEval :: String -> Either EError EEntity
-leafEval s = Right $ EntityVal $ EValueS s
---EValueNum $ EValueI (read s :: Int)
 
 ---------------------------------------------------------------------------------------------------
 -- | Error Handling

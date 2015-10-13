@@ -1,6 +1,6 @@
 module AS.Kernels.Excel.Lib where
 
-import AS.Util (rangeToIndices)
+import AS.Util (rangeToIndicesRowMajor)
 import AS.Types.Core 
 import AS.Types.Excel
 import AS.Kernels.Excel.Util
@@ -29,6 +29,9 @@ import Data.Ord (comparing)
 
 import qualified Data.Map.Lazy as ML
 
+import AS.Parsing.Out (exRefToASRef)
+import Control.Exception.Base hiding (try)
+
 data RefMap = RefMap {refMap :: M.Map ERef EEntity, refDim :: (Col,Row)} deriving (Show,Read)
 type Arg a = (Int,a)
 type Dim = (Col,Row)
@@ -36,11 +39,9 @@ type Offset = (Col,Row)
 
 -- | TODO: might need a wrapper around stuff to get 0.999999 -> 1 for things like correl
 -- | TODO: use Haskell-R for some of the stat funcs?
+-- | TODO: use unboxing if performance is a problem
 
 -- | NOTE: Any reference with an unmappable ASValue -> EValue returns error (we get to define this behavior)
-
--- | TODO: use ASLocation correctly before merging (separate type, sheet name, etc
--- | TODO: unbox vectors if performance matters
 
 --------------------------------------------------------------------------------------------------------------
 -- | Function callbacks and enumeration of type of function
@@ -59,7 +60,11 @@ data FuncDescriptor = FuncDescriptor {
 -- | Map function names to function descriptors
 functions :: M.Map String FuncDescriptor
 functions =  M.fromList $
-   [("+"            	, FuncDescriptor []   [1,2]   	[] 	[1,2]    (Just 2)  (transform eAdd)), 
+   [("+"            	, FuncDescriptor []   [1,2]   	[] 	[1,2]    (Just 2)  (transform eAdd)),
+    ("-"            	, FuncDescriptor []   [1,2]   	[] 	[1,2]    (Just 2)  (transform eMinus)), 
+    ("*"            	, FuncDescriptor []   [1,2]   	[] 	[1,2]    (Just 2)  (transform eMult)), 
+    ("/"            	, FuncDescriptor []   [1,2]   	[] 	[1,2]    (Just 2)  (transform eDivide)), 
+    ("="            	, FuncDescriptor []   [1,2]   	[] 	[1,2]    (Just 2)  (transform eEquals)), 
     ("sum"    	 		, FuncDescriptor []   []      	[] 	[1..]    (Nothing)  (transform eSum)),
 	("if"     			, FuncDescriptor []   [1,2,3] 	[] 	[1,2,3]  (Just 3)  (transform eIf)),
 	("iserror"      	, FuncDescriptor []   [1]     	[] 	[1]      (Just 1)  (eIsError)),
@@ -104,7 +109,7 @@ topLeftForMatrix f (Right (EntityMatrix (EMatrix _ _ v)))
 topLeftForMatrix _ r = r
 
 evalBasicFormula :: Context -> BasicFormula -> EResult
-evalBasicFormula c (Ref exLoc) = locToResult $ toASLoc (shName (curLoc c)) exLoc
+evalBasicFormula c (Ref exLoc) = locToResult $ exRefToASRef (shName (curLoc c)) exLoc
 evalBasicFormula c (Var val)     = valToResult val
 evalBasicFormula c (Fun f fs)  = do 
 	fDes <- getFunc f
@@ -121,7 +126,7 @@ evalFormula c (ArrayConst b) = do
 	fmap EntityMatrix $ arrConstToResult c $ map rights lstChildren
 
 evalArrayFormula :: Context -> Formula -> EResult
-evalArrayFormula c (Basic (Ref exLoc)) = locToResult $ toASLoc (shName (curLoc c)) exLoc
+evalArrayFormula c (Basic (Ref exLoc)) = locToResult $ exRefToASRef (shName (curLoc c)) exLoc
 evalArrayFormula c (Basic (Var val)) = valToResult val
 evalArrayFormula c f@(ArrayConst b) = evalFormula c f
 evalArrayFormula c f@(Basic (Fun name fs)) = do 
@@ -183,19 +188,19 @@ getUnexpectedRefs :: ASSheetId -> Formula -> [ERef]
 getUnexpectedRefs _ (Basic (Var s)) = []
 getUnexpectedRefs _ (Basic (Ref e)) = []
 getUnexpectedRefs s (ArrayConst b) = concat $ map (getUnexpectedRefs s) $ map Basic (concat b)
-getUnexpectedRefs s (Basic (Fun f fs)) = catMaybes $ map (getRangeRef s fDes) enum
+getUnexpectedRefs s (Basic (Fun f fs)) = concat $ map (getRangeRefs s fDes) enum
 	where
 		(Right fDes) = getFunc f
 		enum = zip [1..] fs
 
--- | Helper: Given an argument, return the (possible) underlying range ref
-getRangeRef :: ASSheetId -> FuncDescriptor -> Arg Formula -> Maybe ERef
-getRangeRef s fDes (numArg,(Basic (Ref exLoc)))
-	| (elem numArg (mapArgsIfArrayFormula fDes)) = if (isRange (toASLoc s exLoc))
-		then Just $ ERef (toASLoc s exLoc)
-		else Nothing
-	| otherwise = Nothing
-getRangeRef _ _ _ = Nothing
+-- | Helper: Given an argument, return the (possible) underlying range refs
+getRangeRefs :: ASSheetId -> FuncDescriptor -> Arg Formula -> [ERef]
+getRangeRefs s fDes (numArg,(Basic (Ref exLoc)))
+	| (elem numArg (mapArgsIfArrayFormula fDes)) = if (isRange (exRefToASRef s exLoc))
+		then [ERef (exRefToASRef s exLoc)]
+		else []
+	| otherwise = []
+getRangeRefs s _ (_,f) = getUnexpectedRefs s f
 
 -- | Returns a map of replacements for "unexpected" range references
 -- | All must have same dimension, same width and height (or 1), or same height and width (or 1)
@@ -263,12 +268,6 @@ arrConstToResult c es = do
 --------------------------------------------------------------------------------------------------------------
 -- | Reference lookup/replacement and DB functions
 
--- | TODO: merge with master
-dbLookup :: ASReference -> ASValue
-dbLookup l = ValueS "DBLOOKUP"
-
-dbLookupBulk :: [ASReference] -> [ASValue]
-dbLookupBulk _ = []
 
 -- | Given context, maps a reference to an entity by lookup, then converting ASValue -> EEntity (matrix)
 -- | Assumes that context has ranges -> ValueL and ValueL [] = row, ValueL [[]] = column of rows
@@ -279,20 +278,18 @@ refToEntity c (ERef l@(IndexRef i)) = case (asValueToEntity v) of
 	Just e  -> Right e
 	where
 		v = case (M.lookup l (evalMap c)) of
-			Nothing -> dbLookup l
+			Nothing -> dbLookup i
 			Just v' -> v'
 refToEntity c (ERef (l@(RangeRef r))) = if any isNothing vals
 	then Left $ CannotConvertToExcelValue l 
 	else Right $ EntityMatrix $ EMatrix (getWidth l) (getHeight l) $ V.fromList $ catMaybes vals
 	where
 		mp = evalMap c
-		idxs = map IndexRef $ rangeToIndices r
-		(inMap,needDB) = partition ((flip M.member) mp) idxs
-		mapVals = catMaybes $ map ((flip M.lookup) mp) inMap
+		idxs = rangeToIndicesRowMajor r
+		(inMap,needDB) = partition (((flip M.member) mp).IndexRef) idxs
+		mapVals = catMaybes $ map (((flip M.lookup) mp).IndexRef) inMap
 		dbVals = dbLookupBulk needDB
 		vals = map toEValue $ mapVals ++ dbVals
-
-
 
 replace :: (M.Map ERef EEntity) -> EResult -> EResult
 replace mp r@(Right (EntityRef ref)) = case (M.lookup ref mp) of 
@@ -342,6 +339,10 @@ getOffsetArgs fDes rs offset = map (getEntityElem fDes offset) (zip [1..] rs)
 
 --------------------------------------------------------------------------------------------------------------
 -- | Function evaluation helpers
+
+-- | V.sum starts from 0.0, but we want to keep ints preserved; different version of sum
+sumInt :: V.Vector ENumeric ->  ENumeric
+sumInt = V.foldl' (+) (EValueI 0) 
 
 -- | Make sure that the number of arguments is right
 testNumArgs :: Int -> String -> [a] -> ThrowsError [a]
@@ -422,7 +423,7 @@ zipNumericSum2 zipper name c e = do
 	-- | Throw error if dimensions don't match
 	if ((c1,r1) /= (c2,r2))
 		then Left $ NA $ "Arguments for " ++ name ++ " had different sizes"
-		else valToResult $ EValueNum $ V.sum $ V.zipWith zipFunc (V.map numVal v1) (V.map numVal v2)
+		else valToResult $ EValueNum $ sumInt $ V.zipWith zipFunc (V.map numVal v1) (V.map numVal v2)
 			where
 				-- | If both elements aren't numeric, replace with 0
 				-- | Eg sumxmy2 with string arrays will return 0
@@ -525,7 +526,7 @@ getLambda (EValueS s) v = case (outerComparator s) of
 getLambda v1 v2 = v1 == v2
 
 valParser :: String -> Maybe EValue
-valParser s = Just (EValueS s)
+valParser s = either (\_ -> Nothing) (\(Basic (Var v)) -> Just v) $ parse excelValue "" s
 
 -- | Extracts a possible outer comparator and remaining string ; ">34" -> (>,"34")
 outerComparator :: String -> Maybe ((EValue -> EValue -> Bool),String)
@@ -785,7 +786,7 @@ indexOrSlice m@(EMatrix nCol nRow v) row col
 eTranspose :: EFunc
 eTranspose c e = do 
 	m <- getRequired "matrix" "transpose" 1 e :: ThrowsError EMatrix
-	let lst = matrixToLsts m -- [[EValue]]
+	let lst = matrixTo2DList m -- [[EValue]]
 	let newVec = V.fromList $ concat lst
 	return $ EntityMatrix $ EMatrix (emRows m) (emCols m) newVec
 	
@@ -839,13 +840,13 @@ eSum = collapseNumeric (+)
 eSumIf :: EFunc
 eSumIf c e = do 
 	vec <- ifFunc "sumif" c e
-	valToResult $ EValueNum $ V.sum $ filterNum vec
+	valToResult $ EValueNum $ sumInt $ filterNum vec
 
 -- | Generalization of sumif to multiple ranges for criteria
 eSumIfs :: EFunc
 eSumIfs c e = do 
 	vec <- ifsFunc "sumif" e
-	valToResult $ EValueNum $ V.sum $ filterNum vec
+	valToResult $ EValueNum $ sumInt $ filterNum vec
 
 -- | Sum of squares of elements
 eSumSq :: EFunc
@@ -1328,11 +1329,21 @@ eMult c e = do
 	b <- getRequired "numeric" "*" 2 e :: ThrowsError ENumeric
 	valToResult $ EValueNum $ a * b
 
+-- | TODO: catching errors requires IO monad ...
 eDivide :: EFunc
 eDivide c e = do 
 	a <- getRequired "numeric" "/" 1 e :: ThrowsError ENumeric
 	b <- getRequired "numeric" "/" 2 e :: ThrowsError ENumeric
 	valToResult $ EValueNum $ a / b
+
+replaceRef :: Context -> EEntity -> ThrowsError EEntity
+replaceRef c (EntityRef r) = refToEntity c r
+replaceRef _ e = Right e
+
+eEquals :: EFunc
+eEquals c e = do 
+	testNumArgs 2 "equals" e
+	valToResult $ EValueB $ replaceRef c (e!!0) == replaceRef c (e!!1)
 
 eSpace :: EFunc
 eSpace c e = do  

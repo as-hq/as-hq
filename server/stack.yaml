@@ -106,8 +106,15 @@ extra-deps:
 - parallel-3.2.0.6
 - vector-th-unbox-0.2.1.2
 
-
-
+- hspec-2.2.0
+- QuickCheck-2.5.1
+- hspec-core-2.2.0
+- hspec-discover-2.2.0
+- hspec-expectations-0.7.2
+- ansi-terminal-0.6.2.3
+- quickcheck-io-0.1.2
+- setenv-0.1.1.3
+- tf-random-0.5
 
 
 resolver: ghc-7.8

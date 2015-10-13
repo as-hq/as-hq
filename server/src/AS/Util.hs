@@ -99,6 +99,10 @@ isAllRight results = all id $ map isRight results
 
 deleteSubset :: (Eq a) => [a] -> [a] -> [a]
 deleteSubset subset = filter (\e -> L.notElem e subset)
+
+isNonEmptyCell :: ASCell -> Bool 
+isNonEmptyCell = ((/=) "") . expression . cellExpression
+
 --------------------------------------------------------------------------------------------------------------
 -- Key-value manip functions
 
@@ -137,7 +141,6 @@ generateErrorMessage e = case e of
   (DBNothingException _)      -> "Unable to fetch cells from database."
   ExpressionNotEvaluable      -> "Expression not does not contain evaluable statement."
   ExecError                   -> "Error while evaluating expression."
-  (ExecExcelError s)        -> "Formula syntax error: " ++ show s
   SyntaxError                 -> "Syntax error."
 
 
@@ -253,6 +256,14 @@ refToIndices loc = case loc of
 
 rangeToIndices :: ASRange -> [ASIndex]
 rangeToIndices (Range sheet (ul, lr)) = [Index sheet (x,y) | x <- [startx..endx], y <- [starty..endy] ]
+  where 
+    startx = min (fst ul) (fst lr)
+    endx = max (fst ul) (fst lr)
+    starty = min (snd ul) (snd lr)
+    endy = max (snd ul) (snd lr)
+
+rangeToIndicesRowMajor :: ASRange -> [ASIndex]
+rangeToIndicesRowMajor (Range sheet (ul, lr)) = [Index sheet (x,y) | y <- [starty..endy],x <- [startx..endx] ]
   where 
     startx = min (fst ul) (fst lr)
     endx = max (fst ul) (fst lr)

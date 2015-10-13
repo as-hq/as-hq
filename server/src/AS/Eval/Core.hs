@@ -35,6 +35,17 @@ import Control.Monad.Trans.Either
 -----------------------------------------------------------------------------------------------------------------------
 -- Exposed functions
 
+evalCode :: ASReference -> ASSheetId -> RefValMap -> ASExpression -> EitherTExec ASValue
+evalCode curRef sheetid valuesMap xp@(Expression str lang) = do
+	printWithTimeT "Starting eval code"
+	let maybeError = possiblyShortCircuit sheetid valuesMap xp
+	case maybeError of 
+		Just e -> return e -- short-circuited, return this error
+		Nothing -> case lang of
+			Excel -> KE.evaluate str curRef valuesMap -- Excel needs current location and un-substituted expression
+			otherwise -> execEvalInLang lang xpWithValuesSubstituted -- didn't short-circuit, proceed with eval as usual
+       where xpWithValuesSubstituted = insertValues sheetid valuesMap xp 
+
 evalReplExpression :: ASExpression -> EitherTExec ASValue
 evalReplExpression (Expression str lang) = case lang of
 	Python 	-> KP.evaluateRepl str
@@ -45,13 +56,28 @@ evalReplExpression (Expression str lang) = case lang of
 -----------------------------------------------------------------------------------------------------------------------
 -- Helpers
 
-evalCode :: ASReference -> ASSheetId -> RefValMap -> ASExpression -> EitherTExec ASValue
-evalCode ref sheetid values xp@(Expression str lang) = do
-	printWithTimeT "Starting eval code"
-	let xpWithValuesSubstituted = insertValues sheetid values xp 
-	if lang == Excel
-		then KE.evaluate str ref values
-		else execEvalInLang lang xpWithValuesSubstituted	
+-- | Checks for potentially bad inputs (NoValue or ValueError) among the arguments passed in. If no bad inputs, 
+-- return Nothing. Otherwise, if there are errors that can't be dealt with, return appropriate ASValue error.
+possiblyShortCircuit :: ASSheetId -> RefValMap -> ASExpression -> Maybe ASValue
+possiblyShortCircuit sheetid valuesMap xp = 
+	let depIndices = getDependencies sheetid xp 
+	    refs   = map IndexRef depIndices
+	    lang = language xp
+	    values = map (valuesMap M.!) $ refs in 
+	MB.listToMaybe $ MB.catMaybes $ map (\(r,v) -> case v of 
+		NoValue                 -> handleNoValueInLang lang r
+		ve@(ValueError _ _ _ _) -> handleErrorInLang lang ve 
+		otherwise               -> Nothing) (zip depIndices values)
+
+-- | Nothing if it's OK to pass in NoValue, appropriate ValueError if not.
+handleNoValueInLang :: ASLanguage -> ASIndex -> Maybe ASValue
+handleNoValueInLang Excel _   = Nothing
+handleNoValueInLang _ cellRef = Just $ ValueError ("Reference cell " ++ (show cellRef) ++ " is empty.") RefError "" (-1)
+-- TDODO: replace (show cellRef) with the actual ref (e.g. C3) corresponding to it
+
+handleErrorInLang :: ASLanguage -> ASValue -> Maybe ASValue
+handleErrorInLang Excel _   = Nothing
+handleErrorInLang _ err = Just err
 
 execEvalInLang :: ASLanguage -> String -> EitherTExec ASValue
 execEvalInLang lang = case lang of 
