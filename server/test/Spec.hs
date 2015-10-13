@@ -30,9 +30,9 @@ testEdges n = L.zip (testLocs n) (testLocs n)
 main :: IO ()
 main = do 
     putStrLn ""
-    printTimed "Running tests..."
+    printWithTime "Running tests..."
     conn <- R.connect DU.cInfo
-    printTimed "hedis database connection: PASSED"
+    printWithTime "hedis database connection: PASSED"
 
     --testSetCells
     --testLocationKey conn
@@ -42,7 +42,8 @@ main = do
     --putStrLn $ trimWhitespace Python "  1+1;  \t \n "
     --testIntrospect
     --testExcelExpr
-    testGetCells
+    --testGetCells
+    testCopySanitization
 
 testExcelExpr :: IO ()
 testExcelExpr = do
@@ -58,19 +59,19 @@ testEvaluate :: IO ()
 testEvaluate = do
     result <- runEitherT $ KP.evaluate "a=4;b=5\na+b"
     let testResult = (==) result $ Right (ValueD 9.0)
-    printTimed $ "python evaluate: " ++ (showResult testResult)
+    printWithTime $ "python evaluate: " ++ (showResult testResult)
     (Right (ValueError _ _ _ _)) <- runEitherT $ KP.evaluate "1+a"
-    printTimed $ "python error: PASSED"
+    printWithTime $ "python error: PASSED"
     (Left SyntaxError) <- runEitherT $ KP.evaluate "1+"
-    printTimed $ "python syntax error: PASSED"
+    printWithTime $ "python syntax error: PASSED"
 
 testEvaluateRepl :: IO ()
 testEvaluateRepl = do
     result <- runEitherT $ KP.evaluateRepl "import random"
-    printTimed $ "python repl import: " ++ (showResult $ result == (Right NoValue))
+    printWithTime $ "python repl import: " ++ (showResult $ result == (Right NoValue))
     (Right (ValueD _)) <- runEitherT $ KP.evaluate "random.random()"
     (Right NoValue) <- runEitherT $ KP.evaluateRepl "def myFunc(x):\n\treturn x ** 3"
-    printTimed $ "python repl cell call: PASSED"
+    printWithTime $ "python repl cell call: PASSED"
 
 testLocationKey :: Connection -> IO ()
 testLocationKey conn = do
@@ -78,17 +79,17 @@ testLocationKey conn = do
     let loc = Index "" (1,1)
     let key = DU.getLocationKey loc
     (Right result) <- runRedis conn $ exists key
-    printTimed $ "location key exists: " ++ (showResult result)
+    printWithTime $ "location key exists: " ++ (showResult result)
 
 testSetCells :: IO () 
 testSetCells = do
     let cells = testCells 10
-    --printTimed $ L.concat $ L.map show2 cells
+    --printWithTime $ L.concat $ L.map show2 cells
     DB.setCells cells
     let locs = testLocs 10
     cells' <- DB.getCells locs 
     let result = (==) 10 $ length . filterNothing $ cells'
-    printTimed $ "set 100K cells: " ++ (showResult result)
+    printWithTime $ "set 100K cells: " ++ (showResult result)
 
 showResult :: Bool -> String
 showResult True = "PASSED"
@@ -99,7 +100,7 @@ showResult False = "FAILED"
 --    let cells = testCells 100000
 --    let str = L.intercalate "@" $ (L.map (show2 . cellLocation) cells) ++ (L.map show2 cells)
 --    let msg = BU.unsafePackAddressLen (length str) str
---    --printTimed $ L.concat $ L.map show2 cells
+--    --printWithTime $ L.concat $ L.map show2 cells
 --    _ <- BU.unsafeUseAsCString msg $ \lstr -> do
 --       c_setCells lstr (fromIntegral . L.length $ cells)
 --    return ()
@@ -112,7 +113,7 @@ testGetCells = do
     --DB.setCells cells
     --cells <- DB.getCells locs
     cells <- DB.getCells locs
-    printTimed $ "done"
+    printWithTime $ "done"
 
 testSheetCreation :: Connection -> IO ()
 testSheetCreation conn = do
@@ -121,11 +122,21 @@ testSheetCreation conn = do
     let wbs = WorkbookSheet "workbookname" [sheet]
     DB.createWorkbookSheet conn wbs
     allWbs <- getAllWorkbookSheets conn
-    --printTimed $ "set 1: " ++ (show allWbs) 
+    --printWithTime $ "set 1: " ++ (show allWbs) 
     let sid2 = T.pack "sheetid2"
     let wbs2 = WorkbookSheet "workbookname" [Sheet sid2 "sheetname2" (Blacklist [])]
     DB.createWorkbookSheet conn wbs2
     allWbs' <- getAllWorkbookSheets conn
-    --printTimed $ "set 2: " ++ (show allWbs')
+    --printWithTime $ "set 2: " ++ (show allWbs')
     let result = (length allWbs') > (length allWbs)
-    printTimed $ "new workbooksheet creation: " ++ (showResult result)
+    printWithTime $ "new workbooksheet creation: " ++ (showResult result)
+
+testCopySanitization :: IO ()
+testCopySanitization = do
+    let listCells = testListCells "key" 3
+    let cells = testCells 3
+    printWithTime . show$ partitionByListKeys (cells ++ listCells) ["key"]
+    --printWithTime . show $ map (isMemberOfSpecifiedList "key") listCells 
+
+testListCells :: ListKey -> Int -> [ASCell]
+testListCells key size = map (\i -> Cell (Index "" (1,i)) (Expression "" Python) (ValueI 3) [ListMember key]) [1..size]

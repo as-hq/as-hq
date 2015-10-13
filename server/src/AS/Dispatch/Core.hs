@@ -4,7 +4,7 @@ module AS.Dispatch.Core where
 import AS.Types.Core
 import AS.Types.DB 
 import Prelude 
-import qualified AS.Eval.Core as R (evalCode)
+import qualified AS.Eval.Core as R (evaluateLanguage)
 import qualified Data.Map   as M
 import qualified AS.DB.API  as DB
 import qualified AS.DB.Util as DU
@@ -124,7 +124,7 @@ evalChain :: Connection -> RefValMap -> [ASCell] -> EitherTExec ([ASCell], [ASLi
 evalChain _ _ [] = return ([], [])
 evalChain conn valuesMap (c@(Cell loc xp _ ts):cs) = do  
   printWithTimeT "Starting eval chain"
-  cv <- R.evalCode (locSheetId loc) valuesMap xp
+  cv <- R.evaluateLanguage (locSheetId loc) valuesMap xp
   case cv of 
     ValueL lst -> do
       let cellsList = createListCells conn c lst

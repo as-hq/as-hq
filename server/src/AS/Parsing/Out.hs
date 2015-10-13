@@ -276,11 +276,11 @@ unpackExcelVals v = []
 getShiftedCellWithShiftedDeps :: (Int, Int) -> ASCell -> (ASCell, [ASIndex])
 getShiftedCellWithShiftedDeps offset (Cell loc (Expression str lang) v ts) = (shiftedCell, shiftedDeps)
   where
-    sheetid = locSheetId loc
-    shiftedLoc = shiftInd offset loc
-    (inter,exRefs) = getMatchesWithContext str excelMatch
-    shiftedExRefs = shiftExRefs offset exRefs
-    shiftedDeps = getASIndicesFromExRefs sheetid shiftedExRefs
-    newStr = replaceMatches (inter, shiftedExRefs) showExcelRef str
-    shiftedXp = Expression newStr lang
-    shiftedCell = Cell shiftedLoc shiftedXp v ts
+    sid             = locSheetId loc
+    shiftedLoc      = shiftInd offset loc
+    (inter,exRefs)  = getMatchesWithContext str excelMatch
+    shiftedExRefs   = shiftExRefs offset exRefs
+    shiftedDeps     = getASIndicesFromExRefs sid shiftedExRefs
+    newStr          = replaceMatches (inter, shiftedExRefs) showExcelRef str
+    shiftedXp       = Expression newStr lang
+    shiftedCell     = Cell shiftedLoc shiftedXp v ts

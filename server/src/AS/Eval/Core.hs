@@ -35,8 +35,8 @@ import Control.Monad.Trans.Either
 -----------------------------------------------------------------------------------------------------------------------
 -- Exposed functions
 
-evalReplExpression :: ASExpression -> EitherTExec ASValue
-evalReplExpression (Expression str lang) = case lang of
+evaluateLanguageRepl :: ASExpression -> EitherTExec ASValue
+evaluateLanguageRepl (Expression str lang) = case lang of
 	Python 	-> KP.evaluateRepl str
 	R 		-> KR.evaluateRepl str
 	SQL 	-> KP.evaluateSqlRepl str
@@ -45,8 +45,8 @@ evalReplExpression (Expression str lang) = case lang of
 -----------------------------------------------------------------------------------------------------------------------
 -- Helpers
 
-evalCode :: ASSheetId -> RefValMap -> ASExpression -> EitherTExec ASValue
-evalCode sheetid valuesMap xp@(Expression _ lang) = do
+evaluateLanguage :: ASSheetId -> RefValMap -> ASExpression -> EitherTExec ASValue
+evaluateLanguage sheetid valuesMap xp@(Expression _ lang) = do
 	printWithTimeT "Starting eval code"
 	let maybeError = possiblyShortCircuit sheetid valuesMap xp
 	case maybeError of 

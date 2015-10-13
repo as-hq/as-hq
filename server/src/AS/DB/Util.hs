@@ -4,7 +4,7 @@ import Prelude
 
 import AS.Types.Core
 import AS.Types.DB
-import AS.Util
+import AS.Util as U
 import AS.Parsing.Common (tryParseListNonIso)
 import AS.Parsing.In (integer)
 import AS.Parsing.Out (showValue)
@@ -69,13 +69,6 @@ getListKey idx dims = (show2 idx) ++ (keyPartDelimiter:(show dims)) ++ (keyPartD
 getSheetListsKey :: ASSheetId -> B.ByteString
 getSheetListsKey sid = BC.pack $ (T.unpack sid) ++ (keyPartDelimiter:"ALL_LISTS") 
 
-getRectFromListKey :: ListKey -> ((Int, Int),(Int, Int)) 
-getRectFromListKey key = ((col, row), (col + width, row + height))
-  where 
-    parts                = splitBy keyPartDelimiter key 
-    (Index _ (col, row)) = read2 (head parts) :: ASIndex
-    (height, width)      = read (parts !! 1) :: (Int, Int)
-
 getLocationKey :: ASIndex -> B.ByteString
 getLocationKey = BC.pack . show2
 
@@ -114,20 +107,6 @@ getUniquePrefixedName pref strs = pref ++ (show idx)
     idx     = case idxs of 
       [] -> 1
       _  -> (L.maximum idxs) + 1
-
-decoupleCell :: ASCell -> ASCell
-decoupleCell (Cell l e v ts) = Cell l e' v ts'
-  where
-    lang  = language e
-    e'    = Expression (showValue lang v) lang
-    ts'   = filter (\t -> case t of 
-      ListMember _ -> False
-      _ -> True) ts
-
-isListHead :: ASCell -> Bool
-isListHead cell = case (getListTag cell) of 
-  Nothing -> False
-  (Just (ListMember key)) -> (show2 . cellLocation $ cell) == (head $ splitBy keyPartDelimiter key)
 
 ----------------------------------------------------------------------------------------------------------------------
 -- FFI 
@@ -195,6 +174,15 @@ cToASCell str = do
     "Nothing" -> Nothing
     otherwise -> Just (read2 str' :: ASCell)
 
+----------------------------------------------------------------------------------------------------------------------
+-- Lists
+getRectFromListKey :: ListKey -> ((Int, Int),(Int, Int)) 
+getRectFromListKey key = ((col, row), (col + width - 1, row + height - 1))
+  where 
+    parts                = splitBy keyPartDelimiter key 
+    (Index _ (col, row)) = read2 (head parts) :: ASIndex
+    (height, width)      = read (parts !! 1) :: (Int, Int)
+
 getListKeysInSheet :: Connection -> ASSheetId -> IO [ListKey]
 getListKeysInSheet conn sid = runRedis conn $ do
   Right result <- smembers $ getSheetListsKey sid 
@@ -205,10 +193,30 @@ getListIntersections conn sid locs = do
   listKeys <- getListKeysInSheet conn sid 
   return $ filter (\key -> anyLocsContainedInRect locs (getRectFromListKey key)) listKeys
   where
-    anyLocsContainedInRect :: [ASIndex] -> ((Int, Int),(Int, Int)) -> Bool
     anyLocsContainedInRect lss r = any id $ map (indexInRect r) lss
-    indexInRect :: ((Int, Int),(Int, Int)) -> ASIndex -> Bool
     indexInRect ((a',b'),(a2',b2')) (Index _ (a,b)) = a >= a' && b >= b' &&  a <= a2' && b <= b2'
+
+decoupleCell :: ASCell -> ASCell
+decoupleCell (Cell l e v ts) = Cell l e' v ts'
+  where
+    lang  = language e
+    e'    = Expression (showValue lang v) lang
+    ts'   = filter (\t -> case t of 
+      ListMember _ -> False
+      _ -> True) ts
+
+isListHead :: ASCell -> Bool
+isListHead cell = case (getListTag cell) of 
+  Nothing -> False
+  (Just (ListMember key)) -> (show2 . cellLocation $ cell) == (head $ splitBy keyPartDelimiter key)
+
+sanitizeCopyCells :: [ASCell] -> [ListKey] -> [ASCell]
+sanitizeCopyCells cells keys = nonListCells ++ decoupledCells ++ containedListHeads
+  where
+    (listCells, nonListCells)             = L.partition U.isListMember cells
+    (containedListCells, cutoffListCells) = U.partitionByListKeys listCells keys
+    decoupledCells                        = map decoupleCell cutoffListCells
+    containedListHeads                    = filter isListHead containedListCells
 ----------------------------------------------------------------------------------------------------------------------
 -- | ByteString utils
 

@@ -13,6 +13,7 @@ import qualified Network.WebSockets as WS
 
 import AS.Types.Core
 import AS.DB.API            as DB
+import AS.DB.Util           as DU
 import AS.DB.Graph          as G
 import AS.Util              as U
 import AS.Dispatch.Core     as DP
@@ -255,14 +256,16 @@ handleCopy user state (PayloadCopy from to) = do
   curState <- readMVar state
   let conn = dbConn curState
   maybeCells <- DB.getCells (rangeToIndices from)
-  let fromCells = filterNothing maybeCells                  -- list of cells you're copying from
-      offsets = U.getPasteOffsets from to                   -- how much to shift these cells for copy/copy/paste
-      toCellsAndDeps = concat $ map (\o -> map (O.getShiftedCellWithShiftedDeps o) fromCells) offsets
-      toCells = map fst toCellsAndDeps                      -- [set of cells we'll be landing on]
-      shiftedDeps = map snd toCellsAndDeps                
-      allDeps = concat shiftedDeps                          -- the set of dependencies present among the shifted cells
-      toLocs = map cellLocation toCells                     -- [new set of cell locations]
-  printWithTime $ "Copying cells: "
+  listsInRange <- DB.getListsInRange conn from
+  let fromCells       = filterNothing maybeCells                  -- list of cells you're copying from
+      sanitizedFromCells = DU.sanitizeCopyCells fromCells listsInRange
+      offsets         = U.getPasteOffsets from to                   -- how much to shift these cells for copy/copy/paste
+      toCellsAndDeps  = concat $ map (\o -> map (O.getShiftedCellWithShiftedDeps o) sanitizedFromCells) offsets
+      toCells         = map fst toCellsAndDeps                      -- [set of cells we'll be landing on]
+      shiftedDeps     = map snd toCellsAndDeps                
+      allDeps         = concat shiftedDeps                          -- the set of dependencies present among the shifted cells
+      toLocs          = map cellLocation toCells                     -- [new set of cell locations]
+  printWithTime $ "Copying cells: " ++ (show sanitizedFromCells)
   allExistDB <- DB.locationsExist conn allDeps                   -- check if deps exist in DB. (Bug on Alex's machine 9/30: not working properly here)
   let allNonexistentDB = U.isoFilter not allExistDB allDeps -- the list of dependencies that currently don't refer to anything
       allExist = U.isSubsetOf allNonexistentDB toLocs -- else if the dep was something we copied
@@ -276,7 +279,7 @@ handleCopy user state (PayloadCopy from to) = do
 
 -- same without checking. This might be broken. 
 handleCopyForced :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
-handleCopyForced user state (PayloadLL (from:[to])) = return ()
+handleCopyForced user state (PayloadLL (from:to:[])) = return ()
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Tag handlers

@@ -13,7 +13,7 @@ import qualified Data.Text as T
 import qualified Data.List as L
 import qualified Data.Set as S
 import Control.Applicative hiding ((<|>), many)
-import Data.Maybe (isNothing,catMaybes)
+import Data.Maybe (isNothing,catMaybes,fromJust)
 
 -- EitherT
 import Control.Monad.Trans.Class
@@ -234,7 +234,7 @@ getAllUserWindows :: ServerState -> [(ASUserId, [ASWindow])]
 getAllUserWindows state = map (\u -> (userId u, windows u)) (userClients state)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
--- Locations
+-- Cells
 
 isListMember :: ASCell -> Bool
 isListMember (Cell _ _ _ ts) = any id $ map (\t -> case t of 
@@ -246,6 +246,20 @@ mergeCells c1 c2 = L.unionBy isColocated c1 c2
 
 removeCell :: ASIndex -> [ASCell] -> [ASCell]
 removeCell idx = filter (((/=) idx) . cellLocation)
+
+isMemberOfSpecifiedList :: ListKey -> ASCell -> Bool
+isMemberOfSpecifiedList key cell = case (getListTag cell) of 
+  (Just (ListMember key')) -> key' == key
+  Nothing -> False
+
+-- partitions a set of cells into (cells belonging to one of the specified lists, other cells)
+partitionByListKeys :: [ASCell] -> [ListKey] -> ([ASCell], [ASCell])
+partitionByListKeys cells [] = ([], cells)
+partitionByListKeys cells keys = liftListTuple $ map (partitionByListKey cells) keys
+  where
+    partitionByListKey cs k = L.partition (isMemberOfSpecifiedList k) cs
+----------------------------------------------------------------------------------------------------------------------------------------------
+-- Locations
 
 -- | ASReference is either a cell index, range, or column. When decomposeLocs takes a range, it returns
 -- the list of indices that compose the range. When it takes in an index, it returns a list consisting
