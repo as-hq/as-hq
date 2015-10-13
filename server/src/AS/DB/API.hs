@@ -65,6 +65,9 @@ import Control.Monad.Trans.Either
 -- | Volatile locs
 -- stored as before, as a set with key volatileLocs
 
+clear :: Connection -> IO ()
+clear conn = runRedis conn $ flushall >> return ()
+
 ----------------------------------------------------------------------------------------------------------------------
 -- Cells
 
