@@ -1,15 +1,16 @@
-jest.autoMockOff();
-
 import _ from 'underscore';
 import fs from 'fs';
-import jasminePit from 'jasmine-pit';
+//import jasminePit from 'jasmine-pit';
 
-jasminePit.install(window);
+//jasminePit.install(window);
+
+jasmine.DEFAULT_TIMEOUT_INTERVAL = 10000;
 
 describe('backend', () => {
   const API = require('../src/js/actions/ASApiActionCreators');
   const Converter = require('../src/js/AS/Converter');
   const Util = require('../src/js/AS/Util');
+  const Store = require('../src/js/stores/ASEvaluationStore');
 
   function empty() {
     return new Promise((fulfill, reject) => { fulfill(); });
@@ -26,6 +27,13 @@ describe('backend', () => {
     };
   }
 
+  function exec(fn) {
+    return promise((fulfill, reject) => {
+      fn();
+      fulfill();
+    });
+  }
+
   function apiExec(fn) {
     return promise((fulfill, reject) => {
       API.test(fn, {
@@ -35,15 +43,47 @@ describe('backend', () => {
     });
   }
 
-  function sheet(name) {
-    /*
-    return apiExec(() => {
-
+  function apiSyncExec(fn) {
+    return promise((fulfill, reject) => {
+      API.testSync(fn, {
+        fulfill: fulfill,
+        reject: reject
+      });
     });
-    */
+  }
+
+  function directAPIExec(fn) {
+    return new Promise((fulfill, reject) => {
+      API.test(fn, {
+        fulfill: fulfill,
+        reject: reject
+      });
+    });
+  }
+
+  function sheet() {
+    // TODO
     return () => {
-      return new Promise((fulfill, reject) => {
-        fulfill(); //TODO
+      directAPIExec(() => {
+        API.sendCreateSheetMessage();
+      }).then((response) => {
+        let {
+          payload: {
+            contents: [
+              { // tag: 'WorkbookSheet'
+                wsName: workbookName,
+                wsSheets: [
+                  {
+                    // tag: 'ASSheet'
+                    sheetId
+                    }
+                  ]
+                }
+              ]
+            }
+          } = response;
+
+
       });
     };
   }
@@ -51,8 +91,22 @@ describe('backend', () => {
   // monadic log operation, String -> (() -> Promise ())
   function logP(str) {
     return promise((fulfill, reject) => {
-      console.log(str);
+      console.log((new Date()).getTime(), 'Log inside promise:', str);
       fulfill();
+    });
+  }
+
+  function openSheet() {
+    return apiSyncExec(() => {
+      API.sendDefaultOpenMessage();
+    });
+  }
+
+  function syncWindow() {
+    return apiExec(() => {
+      API.updateViewingWindow({
+        range: { col: 0, row: 0, col2: 100, row2: 100 }
+      });
     });
   }
 
@@ -84,22 +138,51 @@ describe('backend', () => {
   }
 
   function valueD(val) {
-    //TODO
+    return { tag: 'ValueD', contents: val };
+  }
+
+  function valueI(val) {
+    return { tag: 'ValueI', contents: val };
   }
 
   function equalValues(val1, val2) {
-    //TODO
+    return _.isEqual(val1, val2);
   }
 
   // String -> ASValue -> (() -> Promise ())
   function shouldBe(loc, val) {
     return promise((fulfill, reject) => {
+      console.log(`${loc} should be ${JSON.stringify(val)}`);
+
       API.test(() => {
         API.sendGetRequest([ Util.excelToLoc(loc) ]);
       }, {
         fulfill: (result) => {
           let [{ cellValue }] = Converter.clientCellsFromServerMessage(result);
           expect(equalValues(cellValue, val)).toBe(true);
+
+          fulfill();
+        },
+        reject: reject
+      });
+    });
+  }
+
+  // [String] -> [ASValue] -> (() -> Promise ())
+  function shouldBeL(locs, vals) {
+    return promise((fulfill, reject) => {
+      API.test(() => {
+        API.sendGetRequest(locs.map(Util.excelToLoc));
+      }, {
+        fulfill: (result) => {
+          let cellValues = Converter.clientCellsFromServerMessage(result).map((x) => x.cellValue);
+          expect(_.
+            zip(cellValues, vals).
+            map(([x, y]) => equalValues(x, y)).
+            reduce((acc, cur) => {
+              return acc && cur;
+            }, true)
+          ).toBe(true);
 
           fulfill();
         },
@@ -135,16 +218,22 @@ describe('backend', () => {
   // -- MONAD OPERATIONS
 
   // [() -> Promise a] -> Promise ()
-  function _do(promises) {
-    return promises.reduce((acc, cur) => {
-      return acc.then(cur);
-    }, empty());
+  function _do(promiseFunctions, lbl) {
+    let [head, ...tail] = promiseFunctions;
+
+    if (!head) return empty;
+
+    return head().then(_doDefer(tail), (failure) => {
+      console.log('error in monad', lbl, failure);
+    }).catch((error) => {
+      console.log('promise error', error.toString());
+    });
   }
 
   // [() -> Promise a] -> (() -> Promise ())
-  function _doDefer(promises) {
+  function _doDefer(promises, lbl) {
     return () => {
-      return _do(promises);
+      return _do(promises, lbl);
     };
   }
 
@@ -172,45 +261,61 @@ describe('backend', () => {
 
   describe('eval', () => {
     describe('initial eval', () => {
-      beforeEach((done) => {
+      beforeAll((done) => {
         _do([
           logP('Initializing...'),
           init(),
+          logP('Opening sheet...'),
+          openSheet(),
+          logP('Syncing window...'),
+          syncWindow(),
+          logP('Set up environment.'),
+          exec(done)
+        ]);
+      });
+
+      beforeEach((done) => {
+        _do([
           logP('Clearing sheet...'),
-          clear()
-        ]).then(done);
+          //TODO: clear(),
+          logP('Finished preparing.'),
+          exec(done)
+        ]);
       });
 
-      //pit: a jest-compatible promise version of "it()"
-      pit('should evaluate at all', () => {
-        return _do([
+      it('should evaluate at all', (done) => {
+        _do([
           cell('A1', '1 + 1', 'py'),
-          shouldBe('A1', valueD(2))
+          shouldBe('A1', valueI(2)),
+          exec(done)
         ]);
       });
 
-      pit('should evaluate a Python cell', () => {
-        return _do([
+      xit('should evaluate a Python cell', (done) => {
+        _do([
           cellsOf('py1'),
-          shouldBe('A1', valueD(1))
+          shouldBe('A1', valueI(1)),
+          exec(done)
         ]);
       });
 
-      pit('should evaluate two Python cells, dependent', () => {
-        return _do([
+      xit('should evaluate two Python cells, dependent', (done) => {
+        _do([
           cell('A1', '1 + 1', 'py'),
           cell('A2', 'A1 + 1', 'py'),
-          shouldBe('A1', valueD(2)),
-          shouldBe('A2', valueD(3))
+          shouldBe('A1', valueI(2)),
+          shouldBe('A2', valueI(3)),
+          exec(done)
         ]);
       });
 
-      pit('should evaluate a range and expand it', () => {
-        return _do([
+      xit('should evaluate a range and expand it', (done) => {
+        _do([
           cell('A1', 'range(10)', 'py'),
           _forM_(_.range(10), (i) => {
-            return shouldBe(`A${i}`, valueD(i));
-          })
+            return shouldBe(`A${i}`, valueI(i));
+          }),
+          exec(done)
         ]);
       });
     });
