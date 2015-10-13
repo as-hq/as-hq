@@ -4,16 +4,17 @@ import AS.Types.Core
 
 import Prelude
 import Data.Time.Clock
-import Data.Maybe (isNothing)
+import Data.Maybe (isNothing,fromJust)
 import Data.UUID.V4 (nextRandom)
 import Data.Aeson hiding (Success)
 import qualified Network.WebSockets as WS
 import qualified Data.UUID as U (toString)
 import qualified Data.Text as T 
+import qualified Data.Char as C
 import qualified Data.List as L
 import qualified Data.Set as S
 import Control.Applicative hiding ((<|>), many)
-import Data.Maybe (isNothing,catMaybes)
+import Data.Maybe (isNothing,catMaybes,fromJust)
 
 -- EitherT
 import Control.Monad.Trans.Class
@@ -36,7 +37,7 @@ initUserFromMessageAndConn (ClientMessage _ (PayloadInit (ASInitConnection uid))
 sendMessage :: (ToJSON a, Show a) => a -> WS.Connection -> IO ()
 sendMessage msg conn = do 
   WS.sendTextData conn (encode msg)
-  printWithTime $ "Server sent message: " ++ (show msg)
+  printWithTime $ "Server sent message: " -- ++ (show msg)
 
 lastN :: Int -> [a] -> [a]
 lastN n xs = let m = length xs in drop (m-n) xs
@@ -102,6 +103,18 @@ deleteSubset subset = filter (\e -> L.notElem e subset)
 
 isNonEmptyCell :: ASCell -> Bool 
 isNonEmptyCell = ((/=) "") . expression . cellExpression
+
+liftEitherTuple :: Either b (a0, a1) -> (Either b a0, Either b a1)
+liftEitherTuple (Left b) = (Left b, Left b)
+liftEitherTuple (Right (a0, a1)) = (Right a0, Right a1)
+
+liftListTuple :: [([a],[b])] -> ([a], [b])
+liftListTuple t = (concat $ map fst t, concat $ map snd t)
+
+splitBy :: (Eq a) => a -> [a] -> [[a]]
+splitBy delimiter = foldr f [[]] 
+  where f c l@(x:xs) | c == delimiter = []:l
+                     | otherwise = (c:x):xs
 
 --------------------------------------------------------------------------------------------------------------
 -- Key-value manip functions
@@ -221,21 +234,32 @@ getAllUserWindows :: ServerState -> [(ASUserId, [ASWindow])]
 getAllUserWindows state = map (\u -> (userId u, windows u)) (userClients state)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
--- Locations
+-- Cells
 
 isListMember :: ASCell -> Bool
 isListMember (Cell _ _ _ ts) = any id $ map (\t -> case t of 
   (ListMember _) -> True
   _ -> False) ts
 
-getListTag :: ASCell -> Maybe ASCellTag
-getListTag (Cell _ _ _ ts) = getTag foundTags
-  where 
-    foundTags = filter (\t -> case t of 
-      (ListMember _) -> True
-      _ -> False) ts
-    getTag [] = Nothing
-    getTag (t:[]) = Just t
+mergeCells :: [ASCell] -> [ASCell] -> [ASCell]
+mergeCells c1 c2 = L.unionBy isColocated c1 c2
+
+removeCell :: ASIndex -> [ASCell] -> [ASCell]
+removeCell idx = filter (((/=) idx) . cellLocation)
+
+isMemberOfSpecifiedList :: ListKey -> ASCell -> Bool
+isMemberOfSpecifiedList key cell = case (getListTag cell) of 
+  (Just (ListMember key')) -> key' == key
+  Nothing -> False
+
+-- partitions a set of cells into (cells belonging to one of the specified lists, other cells)
+partitionByListKeys :: [ASCell] -> [ListKey] -> ([ASCell], [ASCell])
+partitionByListKeys cells [] = ([], cells)
+partitionByListKeys cells keys = liftListTuple $ map (partitionByListKey cells) keys
+  where
+    partitionByListKey cs k = L.partition (isMemberOfSpecifiedList k) cs
+----------------------------------------------------------------------------------------------------------------------------------------------
+-- Locations
 
 -- | ASReference is either a cell index, range, or column. When decomposeLocs takes a range, it returns
 -- the list of indices that compose the range. When it takes in an index, it returns a list consisting
@@ -253,6 +277,12 @@ refToIndices loc = case loc of
   --     endx = max (fst ul) (fst lr)
   --     starty = min (snd ul) (snd lr)
   --     endy = max (snd ul) (snd lr)
+
+rangeContainsRect :: ASRange -> ((Int, Int), (Int, Int)) -> Bool
+rangeContainsRect (Range _ ((x,y),(x2,y2))) ((x',y'),(x2',y2')) = tl && br
+  where
+    tl = (x' >= x) && (y' >= y)
+    br = (x2' <= x2) && (y2' <= y2)
 
 rangeToIndices :: ASRange -> [ASIndex]
 rangeToIndices (Range sheet (ul, lr)) = [Index sheet (x,y) | x <- [startx..endx], y <- [starty..endy] ]
@@ -324,6 +354,15 @@ hasPermissions uid (Whitelist entities) = any (isInEntity uid) entities
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Tags
 
+getListTag :: ASCell -> Maybe ASCellTag
+getListTag (Cell _ _ _ ts) = getTag foundTags
+  where 
+    foundTags = filter (\t -> case t of 
+      (ListMember _) -> True
+      _ -> False) ts
+    getTag [] = Nothing
+    getTag (t:[]) = Just t
+
 containsTrackingTag :: [ASCellTag] -> Bool
 containsTrackingTag [] = False
 containsTrackingTag ((Tracking):tags) = True
@@ -347,8 +386,31 @@ getStreamTag (tag:tags) = getStreamTag tags
 getStreamTagFromExpression :: ASExpression -> Maybe Stream
 getStreamTagFromExpression xp = Nothing
 
+----------------------------------------------------------------------------------------------------------------------------------------------
+-- Converting between Excel and AlphaSheets formats
+
+-- "AA" -> 27
+colStrToInt :: String -> Int
+colStrToInt "" = 0
+colStrToInt (c:cs) = 26^(length(cs)) * coef + colStrToInt cs
+  where
+    coef = fromJust (L.elemIndex (C.toUpper c) ['A'..'Z']) + 1
+
+-- 27 -> "AA",  218332954 ->"RITESH"
+intToColStr :: Int -> String
+intToColStr x
+  | x <= 26 = [['A'..'Z'] !! (x-1)]
+  | otherwise = intToColStr d ++ [['A'..'Z'] !! m]
+      where
+        m = (x-1) `mod` 26
+        d = (x-1) `div` 26
+
+-- used in DB Ranges
+indexToExcel :: ASIndex -> String
+indexToExcel (Index _ (c,r)) = (intToColStr c) ++ (show r)
+
 ----------------------------------------------------------------------------------------------------------------------
--- | Testing
+-- Testing
 
 testLocs :: Int -> [ASIndex]
 testLocs n = [Index "" (i,1) | i <-[1..n]]

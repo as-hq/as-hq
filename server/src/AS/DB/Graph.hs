@@ -7,6 +7,7 @@ import Data.List.NonEmpty as N (fromList)
 import Control.Monad (forM)
 import Data.List
 import qualified Text.Show.ByteString          as BS
+import qualified Data.ByteString.Char8         as BC
 
 import AS.Types.Core
 import AS.Types.DB
@@ -30,7 +31,7 @@ query q locs =
         elements = (show q):(map show2 locs)
         msg = BS.show $ intercalate msgPartDelimiter elements
     in EitherT $ runZMQ $ do
-        liftIO $ printWithTime $ "graph query:  " ++ (show elements)
+        liftIO $ printWithTime $ "graph query:  " -- ++ (show elements)
         reqSocket <- socket Req
         connect reqSocket S.graphDbHost
         send' reqSocket [] msg   -- using lazy bytestring send function
@@ -66,3 +67,10 @@ setRelations rels =
         return $ case (B.unpack $ last reply) of
             "OK" -> Right ()
             "ERROR" -> Left DBGraphUnreachable
+
+clear :: IO ()
+clear = runZMQ $ do
+    reqSocket <- socket Req
+    connect reqSocket S.graphDbHost
+    send reqSocket [] $ BC.pack "clear"
+    return ()

@@ -117,15 +117,15 @@ extractValue m
         ValueS file        = m M.! "file"
         ValueI pos         = m M.! "position"
 
-complexValue :: Parser ASValue
-complexValue = extractValue <$> extractMap
+jsonValue :: ASLanguage -> Parser ASValue
+jsonValue lang = extractValue <$> extractMap
   where
     braces          = between (char '{') (char '}')
     comma           = char ','
     colon           = char ':'
     dictEntry       = do
       ValueS str  <- valueS <* (colon >> spaces) --valueS Python good enough for json
-      dictValue   <- asValue Python
+      dictValue   <- asValue lang
       return (str, dictValue)
     extractMap      = M.fromList <$> (braces $ sepBy dictEntry (comma >> spaces))
 
@@ -146,7 +146,7 @@ asValue lang =
   <|> try (ValueB <$> bool lang)
   <|> try valueS
   <|> try (valueL lang)
-  <|> try complexValue
+  <|> try (jsonValue lang)
   <|> try ocamlError
   <|> return NoValue
 

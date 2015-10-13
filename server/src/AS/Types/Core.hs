@@ -108,6 +108,9 @@ data ASCell = Cell {cellLocation :: ASIndex,
 					cellValue :: ASValue,
           cellTags :: [ASCellTag]} deriving (Show, Read, Eq, Generic)
 
+type ListKey = String
+type ASList = (ListKey, [ASCell])
+
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Streaming
 
@@ -290,6 +293,8 @@ initialViewingWindow = Window "testSheetId" (0, 0) (100, 100)
 openPermissions :: ASPermissions
 openPermissions = Blacklist []
 
+isColocated :: ASCell -> ASCell -> Bool
+isColocated c1 c2 = (cellLocation c1) == (cellLocation c2)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- JSON

@@ -6,6 +6,7 @@ import qualified Data.List as L
 import qualified Data.Text as T
 import Data.Maybe
 import Control.Concurrent
+import Control.Applicative
 import Control.Monad
 import Control.Monad.IO.Class (liftIO)
 import Data.Aeson hiding (Success)
@@ -13,6 +14,7 @@ import qualified Network.WebSockets as WS
 
 import AS.Types.Core
 import AS.DB.API            as DB
+import AS.DB.Util           as DU
 import AS.DB.Graph          as G
 import AS.Util              as U
 import AS.Dispatch.Core     as DP
@@ -200,12 +202,12 @@ handleGet user state (PayloadList WorkbookSheets) = do
 
 handleDelete :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
 handleDelete user state p@(PayloadWorkbookSheets (wbs:[])) = do
-  conn <- fmap dbConn $ readMVar state
+  conn <- dbConn <$> readMVar state
   DB.deleteWorkbookSheet conn wbs
   broadcast state $ ServerMessage Delete Success p
   return () 
 handleDelete user state p@(PayloadWB workbook) = do
-  conn <- fmap dbConn $ readMVar state
+  conn <- dbConn <$> readMVar state
   DB.deleteWorkbook conn (workbookName workbook) 
   sendBroadcastFiltered user state $ ServerMessage Delete Success p
   return () 
@@ -214,13 +216,17 @@ handleDelete user state payload = do
                PayloadL loc -> [loc] 
                PayloadLL locs' -> locs' 
                PayloadR rng -> rangeToIndices rng
-  conn <- fmap dbConn $ readMVar state
+  conn <- dbConn <$> readMVar state
   let newCells = map (\l -> Cell l (Expression "" Excel) NoValue []) locs
   msg' <- DP.runDispatchCycle state newCells (userId user)
   sendBroadcastFiltered user state msg'
 
 handleClear :: ASUserClient -> MVar ServerState -> IO ()
-handleClear user state = sendBroadcastFiltered user state (failureMessage "")
+handleClear user state = do
+  conn <- dbConn <$> readMVar state
+  DB.clear conn
+  G.clear
+  sendBroadcastFiltered user state (failureMessage "")
 
 handleUndo :: ASUserClient -> MVar ServerState -> IO ()
 handleUndo user state = do 
@@ -255,14 +261,16 @@ handleCopy user state (PayloadCopy from to) = do
   curState <- readMVar state
   let conn = dbConn curState
   maybeCells <- DB.getCells (rangeToIndices from)
-  let fromCells = filterNothing maybeCells                  -- list of cells you're copying from
-      offsets = U.getPasteOffsets from to                   -- how much to shift these cells for copy/copy/paste
-      toCellsAndDeps = concat $ map (\o -> map (O.getShiftedCellWithShiftedDeps o) fromCells) offsets
-      toCells = map fst toCellsAndDeps                      -- [set of cells we'll be landing on]
-      shiftedDeps = map snd toCellsAndDeps                
-      allDeps = concat shiftedDeps                          -- the set of dependencies present among the shifted cells
-      toLocs = map cellLocation toCells                     -- [new set of cell locations]
-  printWithTime $ "Copying cells: "
+  listsInRange <- DB.getListsInRange conn from
+  let fromCells       = filterNothing maybeCells                  -- list of cells you're copying from
+      sanitizedFromCells = DU.sanitizeCopyCells fromCells listsInRange
+      offsets         = U.getPasteOffsets from to                   -- how much to shift these cells for copy/copy/paste
+      toCellsAndDeps  = concat $ map (\o -> map (O.getShiftedCellWithShiftedDeps o) sanitizedFromCells) offsets
+      toCells         = map fst toCellsAndDeps                      -- [set of cells we'll be landing on]
+      shiftedDeps     = map snd toCellsAndDeps                
+      allDeps         = concat shiftedDeps                          -- the set of dependencies present among the shifted cells
+      toLocs          = map cellLocation toCells                     -- [new set of cell locations]
+  printWithTime $ "Copying cells: " -- ++ (show sanitizedFromCells)
   allExistDB <- DB.locationsExist conn allDeps                   -- check if deps exist in DB. (Bug on Alex's machine 9/30: not working properly here)
   let allNonexistentDB = U.isoFilter not allExistDB allDeps -- the list of dependencies that currently don't refer to anything
       allExist = U.isSubsetOf allNonexistentDB toLocs -- else if the dep was something we copied
@@ -276,7 +284,7 @@ handleCopy user state (PayloadCopy from to) = do
 
 -- same without checking. This might be broken. 
 handleCopyForced :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
-handleCopyForced user state (PayloadLL (from:[to])) = return ()
+handleCopyForced user state (PayloadLL (from:to:[])) = return ()
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Tag handlers

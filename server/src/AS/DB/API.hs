@@ -8,6 +8,8 @@ import AS.Types.Core hiding (location,expression,value,min)
 import AS.Types.DB
 import AS.Util as U
 import qualified AS.DB.Util as DU
+import AS.Parsing.Out (getDependencies)
+import AS.DB.Graph as G
 
 import Data.List (zip4,head,partition,nub,intercalate)
 import Data.Maybe (isNothing,fromJust)
@@ -32,7 +34,9 @@ import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy.Char8 as C
 import Data.ByteString.Unsafe as BU
 import Data.List.Split
-
+-- EitherT
+import Control.Monad.Trans.Class
+import Control.Monad.Trans.Either
 ----------------------------------------------------------------------------------------------------------------------
 -- Storage Documentation
 
@@ -60,6 +64,9 @@ import Data.List.Split
 
 -- | Volatile locs
 -- stored as before, as a set with key volatileLocs
+
+clear :: Connection -> IO ()
+clear conn = runRedis conn $ flushall >> return ()
 
 ----------------------------------------------------------------------------------------------------------------------
 -- Cells
@@ -103,30 +110,45 @@ locationsExist conn locs = do
       return $ sequence bools
     return results
 
-setList :: Connection -> [ASIndex] -> IO ()
-setList conn locs = runRedis conn $ do
-  let listKey = B.pack $ DU.getListKey (head locs)
-  let locKeys = map DU.getLocationKey locs
-  sadd listKey locKeys 
-  return ()
+getListsInRange :: Connection -> ASRange -> IO [String]
+getListsInRange conn rng = do 
+  let sid = rangeSheetId rng
+  listKeys <- DU.getListKeysInSheet conn sid
+  let rects = map DU.getRectFromListKey listKeys
+      zipRects = zip listKeys rects
+      zipRectsContained = filter (\(_,rect) -> U.rangeContainsRect rng rect) zipRects
+  return $ map fst zipRectsContained
+
+setListLocations :: Connection -> ListKey -> [ASIndex] -> IO ()
+setListLocations conn listKey locs =
+  let
+    locKeys       = map DU.getLocationKey locs
+    listKey'      = B.pack listKey 
+    sheetListsKey = DU.getSheetListsKey . locSheetId $ head locs
+  in runRedis conn $ do
+    liftIO $ printWithTime $ "setting list locations for key: " ++ listKey
+    sadd listKey' locKeys
+    sadd sheetListsKey [listKey']
+    return ()
 
 -- | Takes in a cell that's tied to a list. Decouples all the cells in that list from that
--- list in the db, and returns the list of decoupled cells. Note: this operation is O(n).
+-- | returns: (uncoupledCells, decoupledCells)
+-- Note: this operation is O(n)
 -- TODO move to C client because it's expensive
-decoupleList :: Connection -> ASCell -> IO [ASCell]
-decoupleList conn cell@(Cell idx _ _ ts) = do
-  let (Just (ListMember listString)) = getListTag cell
+decoupleList :: Connection -> String -> IO ([ASCell], [ASCell])
+decoupleList conn listString = do
   let listKey = B.pack listString
   locs <- runRedis conn $ do
     Right result <- smembers listKey
     del [listKey]
     return result
-  printWithTime $ "got coupled locs: " ++ (show locs) 
-  listCells <- DU.getCellsByKeys locs
-  let newCells = map DU.decoupleCell $ filterNothing listCells 
-  let decoupledCells = filter (((/=) idx) . cellLocation) newCells
-  setCells decoupledCells
-  return decoupledCells
+  printWithTime $ "got coupled locs: " ++ (show locs)
+  case locs of 
+    [] -> return ([],[]) 
+    ls -> do
+      listCells <- U.filterNothing <$> DU.getCellsByKeys ls
+      let decoupledCells = map DU.decoupleCell listCells 
+      return (listCells, decoupledCells)
 
 -- TODO fix
 --getColumnCells :: Connection -> ASIndex -> IO [Maybe ASCell]
@@ -147,24 +169,39 @@ decoupleList conn cell@(Cell idx _ _ ts) = do
 -- TODO: need to deal with large commit sizes and max number of commits
 
 -- | Deal with updating all DB-related things after an eval
-updateAfterEval :: Connection -> ASUserId -> [ASCell] -> [ASCell] -> [ASCell] -> IO ()
-updateAfterEval conn uid origCells desc cells = do 
-  printWithTime "remove empty cells"
-  let (cells', emptyCells) = partition (U.isNonEmptyCell) cells
-  deleteLocs conn (map cellLocation emptyCells)
-  printWithTime "begin set cells"
-  setCells cells'
-  printWithTime "finished set cells"
-  addCommit conn uid desc cells'
-  printWithTime "added commit"
-  -- if (U.containsTrackingTag (cellTags origCells))
-  --   then return () -- TODO: implement some redundancy in DB for tracking
-  --   else return ()
-  return () 
+-- | takes (roots, beforeCells, afterCells)
+-- returns the complete list of cells to be sent to user
+-- (e.g. modifying a list changes the expressions of all the other cells)
+updateAfterEval :: Connection -> ASTransaction -> EitherTExec [ASCell]
+updateAfterEval conn (Transaction uid sid roots beforeCells afterCells lists) = do 
+  setCellsAncestorsInDb conn roots
+  let newListCells            = concat $ map snd lists
+      afterCellsWithLists     = afterCells ++ newListCells
+      afterCellLocs           = map cellLocation afterCellsWithLists
+  listMembersChanged <- liftIO $ DU.getListIntersections conn sid afterCellLocs 
+  decoupleResult     <- lift $ mapM (decoupleList conn) listMembersChanged
+  let (coupledCells, decoupledCells) = U.liftListTuple decoupleResult
+      afterCells'                    = U.mergeCells afterCellsWithLists decoupledCells
+      beforeCells'                   = U.mergeCells beforeCells coupledCells
+  liftIO $ setCells afterCells'
+  liftIO $ mapM_ (\(key, cells) -> setListLocations conn key (map cellLocation cells)) lists
+  liftIO $ addCommit conn uid (beforeCells', afterCells')
+  liftIO $ printWithTime "added commits"
+  right afterCells'
+
+-- | Update the ancestors of a cell, and set the ancestor relationships in the DB. 
+setCellsAncestorsInDb :: Connection -> [ASCell] -> EitherTExec ()
+setCellsAncestorsInDb conn cells = (flip mapM_) cells (\(Cell loc expr _ ts) -> do
+  let deps = getDependencies (locSheetId loc) expr
+  G.setRelations [(loc, deps)])
+
+  --if (U.containsTrackingTag (cellTags origCell))
+  --  then return () -- TODO: implement some redundancy in DB for tracking
+  --  else return ()
 
 -- | Creates and pushes a commit to the DB
-addCommit :: Connection -> ASUserId -> [ASCell] -> [ASCell] -> IO ()
-addCommit conn uid b a = do 
+addCommit :: Connection -> ASUserId -> ([ASCell], [ASCell]) -> IO ()
+addCommit conn uid (b,a) = do 
   time <- getASTime
   let commit = ASCommit uid b a time
   pushCommit conn commit

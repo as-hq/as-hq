@@ -36,8 +36,8 @@ main :: IO ()
 main = do 
     putStrLn ""
     printWithTime "Running tests..."
-    -- conn <- R.connect DU.cInfo
-    -- printTimed "hedis database connection: PASSED"
+    conn <- R.connect DU.cInfo
+    printWithTime "hedis database connection: PASSED"
     --testSetCells
     --testLocationKey conn
     --testSheetCreation conn
@@ -47,7 +47,8 @@ main = do
     --testIntrospect
     --testExcelExpr
     --testGetCells
-    
+    testCopySanitization
+
 testIntrospect :: IO ()
 testIntrospect = do
     putStrLn . show =<< (runEitherT $ introspectCode SQL "select * from A1:B4 where a > 1")
@@ -81,7 +82,7 @@ testLocationKey conn = do
 testSetCells :: IO () 
 testSetCells = do
     let cells = testCells 10
-    --printTimed $ L.concat $ L.map show2 cells
+    --printWithTime $ L.concat $ L.map show2 cells
     DB.setCells cells
     let locs = testLocs 10
     cells' <- DB.getCells locs 
@@ -97,7 +98,7 @@ showResult False = "FAILED"
 --    let cells = testCells 100000
 --    let str = L.intercalate "@" $ (L.map (show2 . cellLocation) cells) ++ (L.map show2 cells)
 --    let msg = BU.unsafePackAddressLen (length str) str
---    --printTimed $ L.concat $ L.map show2 cells
+--    --printWithTime $ L.concat $ L.map show2 cells
 --    _ <- BU.unsafeUseAsCString msg $ \lstr -> do
 --       c_setCells lstr (fromIntegral . L.length $ cells)
 --    return ()
@@ -119,11 +120,21 @@ testSheetCreation conn = do
     let wbs = WorkbookSheet "workbookname" [sheet]
     DB.createWorkbookSheet conn wbs
     allWbs <- getAllWorkbookSheets conn
-    --printTimed $ "set 1: " ++ (show allWbs) 
+    --printWithTime $ "set 1: " ++ (show allWbs) 
     let sid2 = T.pack "sheetid2"
     let wbs2 = WorkbookSheet "workbookname" [Sheet sid2 "sheetname2" (Blacklist [])]
     DB.createWorkbookSheet conn wbs2
     allWbs' <- getAllWorkbookSheets conn
-    --printTimed $ "set 2: " ++ (show allWbs')
+    --printWithTime $ "set 2: " ++ (show allWbs')
     let result = (length allWbs') > (length allWbs)
     printWithTime $ "new workbooksheet creation: " ++ (showResult result)
+
+testCopySanitization :: IO ()
+testCopySanitization = do
+    let listCells = testListCells "key" 3
+    let cells = testCells 3
+    printWithTime . show$ partitionByListKeys (cells ++ listCells) ["key"]
+    --printWithTime . show $ map (isMemberOfSpecifiedList "key") listCells 
+
+testListCells :: ListKey -> Int -> [ASCell]
+testListCells key size = map (\i -> Cell (Index "" (1,i)) (Expression "" Python) (ValueI 3) [ListMember key]) [1..size]

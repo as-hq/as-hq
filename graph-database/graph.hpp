@@ -11,6 +11,7 @@ public:
 	typedef std::unordered_map<std::string,vertexSet> AdjacencyList;
 
 	DAG& updateDAG(const std::vector<std::string> &relation);
+    DAG& clearDAG();
 	void dfsVisit (const std::string& loc, std::unordered_map<std::string,bool>& visited, std::vector<std::string>& order);
 	std::vector<std::string> getDescendants(const std::vector<std::string>& locs);
 	std::vector<std::string> getImmediateAncestors(const std::vector<std::string>& locs);

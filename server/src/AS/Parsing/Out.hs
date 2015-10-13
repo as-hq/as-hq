@@ -187,28 +187,9 @@ sheetRefMatch = do
 
 excelMatch :: Parser ExRef
 excelMatch = (try sheetRefMatch) <|> (try rangeMatch) <|> (try indexMatch)
+
 ------------------------------------------------------------------------------------------------------------------------------------------------
 -- Helper Functions
-
--- "AA" -> 27
-colStrToInt :: String -> Int
-colStrToInt "" = 0
-colStrToInt (c:cs) = 26^(length(cs)) * coef + colStrToInt cs
-  where
-    coef = fromJust ( elemIndex (C.toUpper c) ['A'..'Z'] ) + 1
-
--- 27 -> "AA",  218332954 ->"RITESH"
-intToColStr :: Int -> String
-intToColStr x
-  | x <= 26 = [['A'..'Z'] !! (x-1)]
-  | otherwise = intToColStr d ++ [['A'..'Z'] !! m]
-      where
-        m = (x-1) `mod` 26
-        d = (x-1) `div` 26
-
--- used in DB Ranges
-indexToExcel :: (Int,Int) -> String
-indexToExcel (c,r) = (intToColStr c) ++ (show r)
 
 -- takes an excel location and an offset, and produces the new excel location (using relative range syntax)
 -- ex. ExIndex $A3 (1,1) -> ExIndex $A4
@@ -274,11 +255,11 @@ unpackExcelVals v = []
 getShiftedCellWithShiftedDeps :: (Int, Int) -> ASCell -> (ASCell, [ASIndex])
 getShiftedCellWithShiftedDeps offset (Cell loc (Expression str lang) v ts) = (shiftedCell, shiftedDeps)
   where
-    sheetid = locSheetId loc
-    shiftedLoc = shiftInd offset loc
-    (inter,exRefs) = getMatchesWithContext str excelMatch
-    shiftedExRefs = shiftExRefs offset exRefs
-    shiftedDeps = getASIndicesFromExRefs sheetid shiftedExRefs
-    newStr = replaceMatches (inter, shiftedExRefs) showExcelRef str
-    shiftedXp = Expression newStr lang
-    shiftedCell = Cell shiftedLoc shiftedXp v ts
+    sid             = locSheetId loc
+    shiftedLoc      = shiftInd offset loc
+    (inter,exRefs)  = getMatchesWithContext str excelMatch
+    shiftedExRefs   = shiftExRefs offset exRefs
+    shiftedDeps     = getASIndicesFromExRefs sid shiftedExRefs
+    newStr          = replaceMatches (inter, shiftedExRefs) showExcelRef str
+    shiftedXp       = Expression newStr lang
+    shiftedCell     = Cell shiftedLoc shiftedXp v ts
