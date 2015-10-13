@@ -39,6 +39,32 @@ refSheetId loc = case loc of
   IndexRef i -> locSheetId i 
   RangeRef r -> rangeSheetId r
 
+-- | TODO: create custom show instance that takes REF/NA/VALUE etc into account
+data EError = 
+  ExcelSyntaxError |
+  EmptyMatrix String | 
+  NotFunction String |
+  TooManyArgs String |
+  ArrayConstantDim |
+  CannotIntersectRefs |
+  CannotScalarizeArrConst |
+  EmptyArrayConstant |
+  CannotNormalizeDimensions |
+  ScalarizeIntersectionError ASReference ASReference |
+  CannotConvertToExcelValue ASReference |
+  InvalidArrayConstEntity |
+  ArrayFormulaUnMappable | -- one of the arguments returned a reference or matrix, not a value
+  NumArgs {fNameNA :: String, expectedNumArgs :: Int, actualNumArgs :: Int} |
+  RequiredArgMissing {fNameRAM :: String, argNumRAM :: Int} |
+  ArgType {fNameAT :: String, argNumAT :: Int, expectedType :: String, actualType :: String} |
+  Default String |
+  VAL String |
+  REF String |
+  NA String  |
+  NUM String |
+  DIV0
+  deriving (Show, Read, Eq, Ord, Generic)
+
 data ASValue =
     NoValue
   | ValueS String
@@ -49,6 +75,7 @@ data ASValue =
   | ValueImage { imagePath :: String }
   | ValueObject { objectType :: String, jsonRepresentation :: String }
   | ValueError { errMsg :: String, errType :: EvalErrorType, file :: String, position :: Int } 
+  | ValueExcelError EError
   deriving (Show, Read, Eq, Generic)
 
 data EvalErrorType = ExcelParse | StdErr | RefError deriving (Show, Read, Eq, Generic)
@@ -181,7 +208,6 @@ data ASExecError =
   | ParseError
   | ExpressionNotEvaluable
   | ExecError
-  | ExcelSyntaxError {excelErr :: String}
   | SyntaxError
   deriving (Show, Read, Eq, Generic)
 
@@ -298,6 +324,8 @@ instance ToJSON ASInitConnection
 instance FromJSON ASInitConnection 
 instance ToJSON ASExecError
 instance FromJSON ASExecError
+instance FromJSON EError
+instance ToJSON EError
 instance ToJSON ASWindow
 instance FromJSON ASWindow
 instance ToJSON ASSheet

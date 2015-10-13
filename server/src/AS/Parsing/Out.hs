@@ -1,14 +1,12 @@
 module AS.Parsing.Out where
 
 import Prelude
-import Text.Regex.Posix
 import Data.List (elemIndex)
 import Data.Maybe
 import Data.Char as C
 import qualified Data.Text as T
 import qualified Data.List as L
-import Text.Parsec
-import Text.Parsec.Text
+import Text.ParserCombinators.Parsec
 import Control.Applicative hiding ((<|>), many)
 import qualified Data.Map as M
 import qualified Data.Text.Lazy (replace)
@@ -106,7 +104,7 @@ parseMatchesWithContext a = do
 
 -- | needs better documentation. What are the arguments and what's getting returned? (-Alex, 10/8)
 getMatchesWithContext :: String -> Parser t -> ([String],[t])
-getMatchesWithContext target p = fromRight . (parse (parseMatchesWithContext p) "" ) . T.pack $ target
+getMatchesWithContext target p = fromRight . (parse (parseMatchesWithContext p) "" ) $ target
   where 
     fromRight (Right x) = x 
 

@@ -8,7 +8,8 @@ import AS.Util
 
 import AS.Kernels.Python.Eval as KP
 import AS.Kernels.LanguageUtils
-import AS.Kernels.Excel.Compiler as E
+import AS.Kernels.Excel.Compiler as EC
+import AS.Kernels.Excel.Eval as EE
 
 import qualified Data.ByteString.Char8 as BC
 import qualified Data.ByteString.Unsafe as BU
@@ -19,9 +20,13 @@ import Foreign.C
 
 import qualified Data.Text as T 
 import qualified Data.List as L
+import qualified Data.Map as M
 
 import Database.Redis as R
 import Text.ParserCombinators.Parsec
+
+-- EitherT
+import Control.Monad.Trans.Class
 import Control.Monad.Trans.Either
 
 testEdges :: Int -> [(ASIndex,ASIndex)]
@@ -33,7 +38,6 @@ main = do
     printWithTime "Running tests..."
     conn <- R.connect DU.cInfo
     printWithTime "hedis database connection: PASSED"
-
     --testSetCells
     --testLocationKey conn
     --testSheetCreation conn
@@ -44,12 +48,6 @@ main = do
     --testExcelExpr
     --testGetCells
     testCopySanitization
-
-testExcelExpr :: IO ()
-testExcelExpr = do
-    let str = "=f(B2:index(A2:C6,5,2))"
-    let val = parse E.formula "" str
-    putStrLn $ "parsed xp: " ++ (show val)
 
 testIntrospect :: IO ()
 testIntrospect = do

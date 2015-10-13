@@ -154,7 +154,6 @@ generateErrorMessage e = case e of
   (DBNothingException _)      -> "Unable to fetch cells from database."
   ExpressionNotEvaluable      -> "Expression not does not contain evaluable statement."
   ExecError                   -> "Error while evaluating expression."
-  (ExcelSyntaxError s)        -> "Formula syntax error: " ++ s
   SyntaxError                 -> "Syntax error."
 
 
@@ -287,6 +286,14 @@ rangeContainsRect (Range _ ((x,y),(x2,y2))) ((x',y'),(x2',y2')) = tl && br
 
 rangeToIndices :: ASRange -> [ASIndex]
 rangeToIndices (Range sheet (ul, lr)) = [Index sheet (x,y) | x <- [startx..endx], y <- [starty..endy] ]
+  where 
+    startx = min (fst ul) (fst lr)
+    endx = max (fst ul) (fst lr)
+    starty = min (snd ul) (snd lr)
+    endy = max (snd ul) (snd lr)
+
+rangeToIndicesRowMajor :: ASRange -> [ASIndex]
+rangeToIndicesRowMajor (Range sheet (ul, lr)) = [Index sheet (x,y) | y <- [starty..endy],x <- [startx..endx] ]
   where 
     startx = min (fst ul) (fst lr)
     endx = max (fst ul) (fst lr)

@@ -35,13 +35,15 @@ import Control.Monad.Trans.Either
 -----------------------------------------------------------------------------------------------------------------------
 -- Exposed functions
 
-evaluateLanguage :: ASSheetId -> RefValMap -> ASExpression -> EitherTExec ASValue
-evaluateLanguage sheetid valuesMap xp@(Expression _ lang) = do
+evaluateLanguage :: ASReference -> ASSheetId -> RefValMap -> ASExpression -> EitherTExec ASValue
+evaluateLanguage curRef sheetid valuesMap xp@(Expression str lang) = do
 	printWithTimeT "Starting eval code"
 	let maybeError = possiblyShortCircuit sheetid valuesMap xp
 	case maybeError of 
 		Just e -> return e -- short-circuited, return this error
-		Nothing -> execEvalInLang lang xpWithValuesSubstituted -- didn't short-circuit, proceed with eval as usual
+		Nothing -> case lang of
+			Excel -> KE.evaluate str curRef valuesMap -- Excel needs current location and un-substituted expression
+			otherwise -> execEvalInLang lang xpWithValuesSubstituted -- didn't short-circuit, proceed with eval as usual
        where xpWithValuesSubstituted = insertValues sheetid valuesMap xp 
 
 evaluateLanguageRepl :: ASExpression -> EitherTExec ASValue
@@ -80,18 +82,8 @@ handleErrorInLang _ err = Just err
 execEvalInLang :: ASLanguage -> String -> EitherTExec ASValue
 execEvalInLang lang = case lang of 
 	Python 	-> KP.evaluate
-	Excel 	-> KE.evaluate
 	R 		-> KR.evaluate
 	SQL 	-> KP.evaluateSql
 	OCaml 	-> KO.evaluate
 
--- Deprecated. 
 
---evalRef :: ASIndex -> RefValMap -> ASExpression ->  ASValue
---evalRef loc dict (Reference l (a, b)) = 
---	case (dict M.! l) of
---	  	(ValueL lst) -> case (lst L.!!b) of
---	  		(ValueL row) -> (row L.!! a)
---	  		otherwise -> (lst L.!!b)
---	  	(ValueObject _ _) -> NoValue -- TODO implement direct object field reference
---	  	otherwise -> dict M.! (IndexRef loc) -- current reference

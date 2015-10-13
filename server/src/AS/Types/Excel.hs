@@ -1,12 +1,23 @@
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE FlexibleInstances #-}
+
 module AS.Types.Excel where
 
 import AS.Types.Core
-import Database.Redis (Connection)
-import Data.List 
+import Prelude
+import GHC.Generics
+import Data.List
 
-import Data.Vector as V hiding ((++), map, filter)
+import qualified Data.Vector as V
+import qualified Data.Map.Strict as M
+import Control.Monad.Except
+import qualified Data.Vector as V
+import qualified Data.Vector.Unboxed as VU
+
 ----------------------------------------------------------------------------------------------------------------------------------------------
--- | Excel
+-- | Excel Location Parsing
 
 -- d1 = $ or nothing; $ means absolute column, nothing means relative. ditto for d2 but for rows
 data ExLoc   = ExIndex {d1 :: String, col :: String, d2 :: String, row :: String} deriving (Show, Read, Eq, Ord)
@@ -18,143 +29,6 @@ data ExRef = ExLocOrRangeRef ExLocOrRange | ExSheetLocOrRangeRef String ExLocOrR
 -- seems not very urgent as of now. (10/9) 
 -- 
 -- Also doesn't have any support for columns, workbooks, or 3D reference. (10/9) 
-
-data ExcelAction = 
-  Lookup ExRef |
-  CheckIndirectRef ExRef |
-  LookupSheets () |
-  LookupWorkbooks () |
-  CurrentLocation () 
-  deriving (Show,Read)
-
-data ExcelResult = 
-  ERN () |
-  ERE ExRef |
-  ERB Bool |
-  ERV ASValue |
-  ERS String
-
-type ExcelContext = [(ExcelAction, ExcelResult)]
-
-type BaseContext = (Connection, ASExpression, ASReference)
-
-----------------------------------------------------------------------------------------------------------------------------------------------
--- | Compiler types
-
-data ERef = ERef ASReference deriving (Show, Read)
-
-data ExcelValue = 
- EBlank |
- EMissing |
- EValueI Integer |
- EValueD Double |
- EValueB Bool |
- EValueS String |
- EValueFromAS -- mapped from ASValue but not a valid Excel primitive
- deriving (Show, Read)
-
-type ExcelMatrix = V.Vector (V.Vector ExcelValue)
-
-data ExcelEntity = EntityRef ERef | EntityVal ExcelValue | EntityMatrix ExcelMatrix 
- deriving (Show, Read)
-
- -----------------------------------------------------------------------------
--- * Abstract syntax
-
--- | The type of formulas.
-data BasicFormula = 
-   Var ExcelValue                  -- ^ Variables
- | Fun String [Formula]            -- ^ Fun
- | Ref CellRef                    -- ^ Reference
- deriving (Show, Read)
-
-data Formula = ArrayConst [[BasicFormula]] | Basic BasicFormula deriving (Show, Read)
-
-type ContextualFormula = (Formula, Bool) -- designates arrayFormula or not
-
----- Not supporting 3D ranges or R1C1 notation yet 
---data ExcelLoc = BareLoc ExcelBareLoc | SheetLoc ExcelSheetLoc | WorkbookLoc ExcelWorkbookLoc 
---data ExcelBareLoc = IndexLoc ExcelIndexLoc | RangeLoc ExcelRangeLoc 
---data ExcelIndexLoc = ExIndex {fixedRow :: Bool, fixedCol :: Bool, col :: String, row :: Int} 
---data ExcelRangeLoc = ExRange {topLeftLoc :: ExcelIndexLoc, bottomRightLoc :: ExcelIndexLoc} 
---data ExcelSheetLoc = ExSheet String ExcelBareLoc 
---data ExcelWorkbookLoc = ExWorkbook String ExcelSheetLoc
-
--- | Type of cell references
-data CellRef = CellRef {
-      sheet :: String,     -- ^ Sheet name
-      colNr :: Int,        -- ^ Column index
-      rowNr :: Int         -- ^ Row index
-    } deriving (Eq,Show,Read,Ord)
-
-----------------------------------------------------------------------------------------------------------------------------------------------
--- | Excel context
-
-data Context = Context {curLoc :: ASIndex}
-
-data ExcelError = 
- SyntaxError |
- NotFunction String |
- FunctionNotExpectingArray String ERef |
- InvalidArrayConstEntity |
- NumArgs String Int |
- Default String
- deriving (Show, Read)
-
-----------------------------------------------------------------------------------------------------------------------------------------------
--- | String conversions
-
-instance Show ExcelResult where 
-  show (ERN _) = "Nothing"
-  show (ERE l) = showExcelRef l
-  show (ERB b) = show b
-  show (ERV v) = showExcelValue v
-  show (ERS s) = s
-
-instance Show ExcelContext where
-  show ctx = "{" ++ jsonBody ++ "}"
-    where 
-      jsons = getJsonPairs ctx
-      jsonBody = intercalate "," jsons
-
-getJsonPairs :: ExcelContext -> [String]
-getJsonPairs ctx = jsons
-  where
-    buckets = getBuckets ctx
-    jsons = map bucketToJson buckets
-
-getBuckets  :: ExcelContext -> [[(ExcelAction, ExcelResult)]]
-getBuckets ctx = [lookups, indirects, sheets, workbooks, currentlocation]
-  where
-    lookups = filter (\b -> case b of 
-      ((Lookup _ ),_) -> True
-      _ -> False) ctx
-    indirects = filter (\b -> case b of 
-      ((CheckIndirectRef _ ),_) -> True
-      _ -> False) ctx
-    sheets = filter (\b -> case b of 
-      ((LookupSheets _ ),_) -> True
-      _ -> False) ctx
-    workbooks = filter (\b -> case b of 
-      ((LookupWorkbooks _ ),_) -> True
-      _ -> False) ctx
-    currentlocation = filter (\b -> case b of 
-      ((CurrentLocation _ ),_) -> True
-      _ -> False) ctx
-
-bucketToJson :: [(ExcelAction, ExcelResult)] -> String
-bucketToJson b@((Lookup _,_):_) = intercalate "," jsons
-  where 
-    lookupToJson ((Lookup l), r) = "'" ++ (showExcelRef l) ++ "':" ++ (show r)
-    jsons = map lookupToJson b
-bucketToJson b@((CheckIndirectRef _,_):_) = "IndirectRefs:{" ++ jsonBody ++ "}"
-  where 
-    jsons = map checkToJson b
-    checkToJson ((CheckIndirectRef l),r) = "'" ++ (showExcelRef l) ++ "':" ++ (show r)
-    jsonBody = intercalate "," jsons
-bucketToJson ((LookupSheets _,r):[]) = "Sheets:" ++ (show r)
-bucketToJson ((LookupWorkbooks _,r):[]) = "Workbooks:" ++ (show r) 
-bucketToJson ((CurrentLocation _,r):[]) = "CurrentLocation:" ++ (show r)
 
 showExcelRef :: ExRef -> String
 showExcelRef exRef = case exRef of
@@ -172,3 +46,160 @@ showExcelValue val = case val of
 
 toExcelList :: [String] -> String
 toExcelList lst  = "[" ++ (intercalate "," lst) ++ "]"
+
+----------------------------------------------------------------------------------------------------------------------------------------------
+-- | Excel core types
+
+data ERef = ERef ASReference deriving (Show, Read, Eq, Ord)
+
+data ENumeric = EValueI Int | EValueD Double deriving (Show,Read,Eq)
+
+instance Num ENumeric where
+  negate (EValueI i) = EValueI (-i)
+  negate (EValueD d) = EValueD (-d)
+  abs (EValueD d) = EValueD (abs d)
+  abs (EValueI i) = EValueI (abs i)
+  (+) (EValueD d) (EValueD d') = EValueD (d+d')
+  (+) (EValueI i) (EValueD d) = EValueD ((fromIntegral i)+d)
+  (+) (EValueD d) (EValueI i) = EValueD ((fromIntegral i)+d)
+  (+) (EValueI i) (EValueI i') = EValueI (i+i')
+  (*) (EValueD d) (EValueD d') = EValueD (d*d')
+  (*) (EValueI i) (EValueD d) = EValueD ((fromIntegral i)*d)
+  (*) (EValueD d) (EValueI i) = EValueD ((fromIntegral i)*d)
+  (*) (EValueI i) (EValueI i') = EValueI (i*i')
+  fromInteger a = (EValueD (fromIntegral a))
+
+instance Fractional ENumeric where
+  (/) (EValueD d) (EValueD d') = EValueD $ d/d'
+  (/) (EValueI i) (EValueD d) = EValueD $ (fromIntegral i)/d
+  (/) (EValueD d) (EValueI i) = EValueD $ (fromIntegral i)/d
+  (/) (EValueI i) (EValueI i') = EValueD $ (fromIntegral i)/(fromIntegral i')
+
+data EValue = 
+  EBlank | -- value doesn't exist in DB
+  EMissing | -- missing argument
+  EValueNum ENumeric |
+  EValueB Bool |
+  EValueS String |
+  EValueE String
+  deriving (Show, Read,Eq,Ord)
+
+instance Ord ENumeric where
+  (<=) (EValueI i) (EValueI i') = i <= i'
+  (<=) (EValueI i) (EValueD d) = (fromIntegral i) <= d
+  (<=) (EValueD d) (EValueI i') = d <= (fromIntegral i')
+  (<=) (EValueD d) (EValueD d') = d <= d'
+
+
+type Col = Int
+type Row = Int
+data EMatrix = EMatrix {emCols :: !Int, emRows :: !Int, content :: !(V.Vector EValue)} 
+  deriving (Show, Read,Eq)
+data EEntity = 
+  EntityRef ERef | 
+  EntityVal EValue | 
+  EntityMatrix EMatrix  deriving (Show, Read,Eq)
+
+--------------------------------------------------------------------------------------------------------------------------------------------
+-- | Excel evaluation types
+
+data Context = Context {evalMap :: M.Map ASReference ASValue, curLoc :: ASReference}
+
+type ThrowsError = Either EError
+type EResult = ThrowsError EEntity
+
+type EFunc =  (Context -> [EEntity] -> EResult)
+type EFuncResult = (Context -> [EResult] -> EResult)
+
+--------------------------------------------------------------------------------------------------------------
+-- | Type checking for argument extraction
+
+-- | Function name, argument number, arguments -> possibly return type
+type ExtractArg a = (String -> Int -> [EEntity] -> ThrowsError a)
+
+class EType a where
+  -- | Can the entity be cast into type a? Implemented by all instances.
+  extractType :: (EEntity -> Maybe a)
+  -- | If the argument exists and is of the right type, return that type. Else return an error. 
+  getRequired :: String -> ExtractArg a
+  getRequired typeName f i entities
+    | length entities < i = Left $ RequiredArgMissing f i
+    | otherwise = case (extractType entity) of
+      Nothing -> Left $ ArgType f i typeName (getType entity)
+      Just x  -> Right x
+      where
+        entity = entities!!(i-1)
+  -- | Same as above, but allow for a default value (optional argument)
+  getOptional :: String -> a -> ExtractArg a
+  getOptional typeName defaultVal f i entities 
+    | length entities < i = Right defaultVal
+    -- | If the value is missing, return default
+    -- | Must be the correct type if it exists as an argument
+    | otherwise = case (entities!!(i-1)) of
+      (EntityVal EMissing) -> Right defaultVal
+      otherwise -> getRequired typeName f i entities
+  -- | Same as above, but no default value (just return Nothing if the argument doesn't exist)
+  getOptionalMaybe :: String -> ExtractArg (Maybe a)
+  getOptionalMaybe typeName f i entities 
+    | length entities < i = Right Nothing
+    | otherwise = do 
+        entity <- getRequired typeName f i entities
+        return $ Just entity
+
+instance EType Bool where
+  extractType (EntityVal (EValueB b)) = Just b
+  extractType _ = Nothing 
+
+instance EType EValue where
+  extractType (EntityVal v) = Just v
+  extractType _ = Nothing
+
+instance EType String where
+  extractType (EntityVal (EValueS s)) = Just s
+  extractType _ = Nothing
+
+instance EType ERef where
+  extractType (EntityRef r) = Just r
+  extractType _ = Nothing
+
+instance EType Int where
+  extractType (EntityVal (EValueNum (EValueD d))) = Just $ floor d
+  extractType (EntityVal (EValueNum (EValueI i))) = Just i
+  extractType _ = Nothing
+
+instance EType Double where
+  extractType (EntityVal (EValueNum (EValueD d))) = Just $ d
+  extractType (EntityVal (EValueNum (EValueI i))) = Just $ (fromIntegral i)
+  extractType _ = Nothing
+
+instance EType EMatrix where
+  extractType (EntityMatrix m) = Just m
+  extractType _ = Nothing
+
+instance EType ENumeric where
+  extractType (EntityVal (EValueNum n)) = Just n
+  extractType _ = Nothing
+
+-- | Print the type, useful for error messages
+getType :: EEntity -> String
+getType (EntityRef _) = "ref"
+getType (EntityVal (EValueS _)) = "string"
+getType (EntityVal (EValueNum (EValueI _))) = "int"
+getType (EntityVal (EValueNum _)) = "numeric"
+getType (EntityVal (EValueB _)) = "bool"
+getType (EntityMatrix m) = "matrix"
+getType (EntityVal v) = "value"
+
+ -----------------------------------------------------------------------------
+-- * Abstract syntax
+
+-- | The type of formulas.
+data BasicFormula = 
+   Var EValue                      -- Variables
+ | Fun String [Formula]            -- Function
+ | Ref ExRef                       -- Reference
+ deriving (Show, Read)
+
+data Formula = ArrayConst [[BasicFormula]] | Basic BasicFormula deriving (Show, Read)
+type ContextualFormula = (Formula, Bool) -- designates arrayFormula or not
+

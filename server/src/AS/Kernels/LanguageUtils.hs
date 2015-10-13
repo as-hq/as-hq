@@ -197,6 +197,7 @@ addCompileCmd OCaml cmd = do
     let path = evalPath ++ "ocaml/"
     return $ cmd ++ "; " ++ path ++ "test"
 
+
 -- | Helper function for interpolate. Takes in a RefValMap and a reference and returns
 -- the value as a string. 
 lookupString :: ASLanguage -> RefValMap -> ASReference -> String
@@ -210,6 +211,7 @@ lookupString lang valuesMap loc = case loc of
 
 -- | Replaces all the Excel references in an expression with the valuesMap corresponding to them. 
 -- TODO clean up SQL mess
+
 insertValues :: ASSheetId -> RefValMap -> ASExpression -> String
 insertValues sheetid valuesMap (Expression origString SQL) = contextStmt ++ evalStmt
     where
@@ -220,7 +222,6 @@ insertValues sheetid valuesMap (Expression origString SQL) = contextStmt ++ eval
         newExp = replaceMatches exRefs (\el -> (L.!!) st (MB.fromJust (L.findIndex (el==) (snd exRefs)))) origString
         contextStmt = "setGlobals("++(show context) ++")\n"
         evalStmt = "result = pprintSql(db(\'" ++ newExp ++ "\'))"
-
 insertValues sheetid valuesMap (Expression origString lang) = evalString
     where
         exRefToStringEval = (lookupString lang valuesMap) . (exRefToASRef sheetid) -- ExRef -> String. (Takes in ExRef, returns the ASValue corresponding to it, as a string.)
