@@ -102,5 +102,8 @@ void DAG::showGraph(){
 
 }
 
-
+DAG& DAG::clearDAG() {
+	DAG dag;
+	return dag;
+}
 

@@ -7,6 +7,7 @@ import Data.List.NonEmpty as N (fromList)
 import Control.Monad (forM)
 import Data.List
 import qualified Text.Show.ByteString          as BS
+import qualified Data.ByteString.Char8         as BC
 
 import AS.Types.Core
 import AS.Types.DB
@@ -66,3 +67,10 @@ setRelations rels =
         return $ case (B.unpack $ last reply) of
             "OK" -> Right ()
             "ERROR" -> Left DBGraphUnreachable
+
+clear :: IO ()
+clear = runZMQ $ do
+    reqSocket <- socket Req
+    connect reqSocket S.graphDbHost
+    send reqSocket [] $ BC.pack "clear"
+    return ()
