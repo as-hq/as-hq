@@ -138,9 +138,13 @@ setListLocations conn listKey locs =
 decoupleList :: Connection -> ListKey -> IO ([ASCell], [ASCell])
 decoupleList conn listString = do
   let listKey = B.pack listString
+  let sheetListsKey = DU.getSheetListsKey $ DU.getSheetIdFromListKey listString
   locs <- runRedis conn $ do
-    Right result <- smembers listKey
-    del [listKey]
+    TxSuccess result <- multiExec $ do
+      result <- smembers listKey
+      del [listKey]
+      srem sheetListsKey [listKey]
+      return result
     return result
   printWithTime $ "got coupled locs: " ++ (show locs)
   case locs of 

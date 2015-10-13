@@ -188,6 +188,12 @@ getRectFromListKey :: ListKey -> Rect
 getRectFromListKey key = ((col, row), (col + width - 1, row + height - 1))
   where (Index _ (col, row), (height, width)) = getDimsFromListKey key
 
+getSheetIdFromListKey :: ListKey -> ASSheetId
+getSheetIdFromListKey key = sid
+  where 
+    parts = splitBy keyPartDelimiter key 
+    (Index sid _)   = read2 (head parts) :: ASIndex
+
 getListKeysInSheet :: Connection -> ASSheetId -> IO [ListKey]
 getListKeysInSheet conn sid = runRedis conn $ do
   Right result <- smembers $ getSheetListsKey sid 
