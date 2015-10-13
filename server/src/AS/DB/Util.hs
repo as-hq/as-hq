@@ -176,17 +176,28 @@ cToASCell str = do
 
 ----------------------------------------------------------------------------------------------------------------------
 -- Lists
-getRectFromListKey :: ListKey -> ((Int, Int),(Int, Int)) 
-getRectFromListKey key = ((col, row), (col + width - 1, row + height - 1))
+
+getDimsFromListKey :: ListKey -> (ASIndex, (Int, Int))
+getDimsFromListKey key = (idx, dims)
   where 
-    parts                = splitBy keyPartDelimiter key 
-    (Index _ (col, row)) = read2 (head parts) :: ASIndex
-    (height, width)      = read (parts !! 1) :: (Int, Int)
+    parts = splitBy keyPartDelimiter key 
+    idx   = read2 (head parts) :: ASIndex
+    dims  = read (parts !! 1) :: (Int, Int)
+
+getRectFromListKey :: ListKey -> Rect
+getRectFromListKey key = ((col, row), (col + width - 1, row + height - 1))
+  where (Index _ (col, row), (height, width)) = getDimsFromListKey key
 
 getListKeysInSheet :: Connection -> ASSheetId -> IO [ListKey]
 getListKeysInSheet conn sid = runRedis conn $ do
   Right result <- smembers $ getSheetListsKey sid 
   return $ map BC.unpack result
+
+getLocationsFromListKey :: ListKey -> [ASIndex]
+getLocationsFromListKey key = rangeToIndices range
+  where 
+    (Index sid (col, row), (height, width)) = getDimsFromListKey key
+    range = Range sid ((col, row), (col+width-1, row+height-1))
 
 getListIntersections :: Connection -> ASSheetId -> [ASIndex] -> IO [ListKey]
 getListIntersections conn sid locs = do

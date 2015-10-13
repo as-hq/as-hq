@@ -110,6 +110,7 @@ data ASCell = Cell {cellLocation :: ASIndex,
 
 type ListKey = String
 type ASList = (ListKey, [ASCell])
+type Rect = ((Int, Int),(Int, Int))
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Streaming
@@ -189,7 +190,13 @@ data ASPayload =
 -- Version Control
 
 data ASTime = Time {day :: String, hour :: Int, minute :: Int, sec :: Int} deriving (Show,Read,Eq,Generic)
-data ASCommit = ASCommit {commitUserId :: ASUserId, before :: [ASCell], after :: [ASCell], time :: ASTime} deriving (Show,Read,Eq,Generic)
+
+data ASCommit = ASCommit {commitUserId :: ASUserId, 
+                          before :: [ASCell], 
+                          after :: [ASCell], 
+                          listsChanged :: [ListKey], 
+                          time :: ASTime} 
+                          deriving (Show,Read,Eq,Generic)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Eval Types
