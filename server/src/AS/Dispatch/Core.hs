@@ -87,21 +87,10 @@ getDescendants conn cells = do
   let locs = map cellLocation cells
   vLocs <- lift $ DB.getVolatileLocs conn -- Accounts for volatile cells being reevaluated each time
   indexes <- G.getDescendants (locs ++ vLocs) 
-  let indexes' = minus indexes (map cellLocation cells)
-  desc <- lift $ DB.getCells indexes'
+  desc <- lift $ DB.getCells indexes
   printWithTimeT $ "got descendant cells"
   return $ map fromJust desc -- if you clear the redis DB but don't restart the server, you might run into trouble here
 
--- temporary, until getDescendants is re-implemented to not include the current cell as a descendant. 
--- ALSO, this is currently wrong. (if you pass in a list [C1, C2] and C2 is a descendant of C1, 
--- the list of descendants returned should be all descendnats of C1 sans C1, but not it'll be missing
--- C2 as well) Will not be an issue when getDescendants is reimplemented. (Alex 10/12)
-minus :: (Eq a) => [a] -> [a] -> [a]
-minus [] xs                      = []
-minus (y:ys) xs | y `notElem` xs = y : (minus ys xs)
-                | otherwise      = minus ys xs
-
--- | Returns a map that sends locations to the value corresponding to that location in the DB. 
 getValuesMap :: [ASIndex] -> IO RefValMap
 getValuesMap locs = do 
   maybeCells <- DB.getCells locs

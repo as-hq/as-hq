@@ -1,5 +1,5 @@
 #include "graph.hpp"
-#include <algorithm>    
+#include <algorithm>
 
 /****************************************************************************************************************************************/
 
@@ -20,7 +20,7 @@ DAG& DAG::updateDAG(const std::vector<std::string>& relation){
 		if (this->fromToAdjList[oldFl].empty())
 			this->fromToAdjList.erase(oldFl);
 	}
-	/* Loop over the new fromLocs and add to  the forward adjacency list */
+	/* Loop over the new fromLocs and add to the forward adjacency list */
 	for (int i = 1; i < relation.size(); i++){
 		this->fromToAdjList[relation[i]].insert(toLoc);
 	}
@@ -38,29 +38,32 @@ DAG& DAG::updateDAG(const std::vector<std::string>& relation){
 
 void DAG::dfsVisit (const std::string& loc, std::unordered_map<std::string,bool>& visited, std::vector<std::string>& order){
 	for (const auto& toLoc : this->fromToAdjList[loc]){
-		if (!visited[toLoc]){
+		if (!visited[toLoc]) {
 			DAG::dfsVisit(toLoc,visited,order);
+			order.push_back(toLoc);
 		}
 	}
 	visited[loc] = true; 
-	order.push_back(loc);
 }
 
+// Given a list of cells, return all of their proper descendants in the DAG, sorted topologically. 
+//(X is a proper descendant of Y if there's a path of length >= 1 from X to Y.)
+//(Topological sort == X before Y in list means there's no path from Y to X.)
+//Note: if the graph is A -> B -> C and we pass in [A,B], we should be returning [B,C]
 std::vector<std::string> DAG::getDescendants(const std::vector<std::string>& locs){
-	// std::cout << "In dag descendants" << std::endl; 
 	std::unordered_map<std::string,bool> visited;
 	std::vector<std::string> order; 
 
-	for (const auto& loc: locs){
-        visited[loc] = false;
-    }   
-	for (const auto& loc: locs){
-        if(!visited[loc]){
-            DAG::dfsVisit(loc, visited, order);
-        }
-    }
-    std::reverse(order.begin(),order.end());
-    return order;
+	for (const auto& loc: locs)
+		visited[loc] = false;
+
+	for (const auto& loc: locs) {
+		if (!visited[loc])
+			DAG::dfsVisit(loc, visited, order);
+	}
+
+	std::reverse(order.begin(),order.end());
+	return order;
 }
 
 /****************************************************************************************************************************************/
@@ -101,6 +104,3 @@ void DAG::showGraph(){
 	std::cout << "=================================================================" << std::endl; 
 
 }
-
-
-
