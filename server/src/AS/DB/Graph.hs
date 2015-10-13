@@ -25,6 +25,9 @@ getDescendants = query GetDescendants
 getImmediateAncestors :: [ASIndex] -> EitherTExec [ASIndex]
 getImmediateAncestors = query GetImmediateAncestors
 
+rollbackGraph :: EitherTExec [ASIndex]
+rollbackGraph = query RollbackGraph []
+
 query :: GraphQuery -> [ASIndex] -> EitherTExec [ASIndex]
 query q locs = 
     let
@@ -41,9 +44,11 @@ query q locs =
             "OK" -> do
                 let filtered = map B.unpack $ init reply
                 let result = Right $ map read2 filtered
-                return result
-            "ERROR" -> do
-                liftIO $ printWithTime "Graph DB error"
+                return $ result
+            "CIRC_DEP" -> do
+                let circDepLoc = read2 $ B.unpack $ head reply
+                return $ Left $ CircularDepError circDepLoc
+            _ -> do 
                 return $ Left DBGraphUnreachable
 
 -- | Takes in a list of (cell, [list of ancestors of that cell])'s and sets the ancestor relationship in the DB. 
@@ -64,9 +69,13 @@ setRelations rels =
         liftIO $ printWithTime $ "received message of length: " ++ (show . length $ reply)  
         --liftIO $ printWithTime $ "graph db reply multi: " ++ (show reply)
         --liftIO $ printWithTime $ "query type: " ++ (show q)
-        return $ case (B.unpack $ last reply) of
-            "OK" -> Right ()
-            "ERROR" -> Left DBGraphUnreachable
+        case (B.unpack $ last reply) of
+            "OK" -> return $ Right ()
+            "CIRC_DEP" -> do
+                let circDepLoc = read2 $ B.unpack $ head reply
+                return $ Left $ CircularDepError circDepLoc
+            _ -> do 
+                return $ Left DBGraphUnreachable
 
 clear :: IO ()
 clear = runZMQ $ do

@@ -39,8 +39,17 @@ import Database.Redis (Connection)
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.Either
 
+-- list of temp edges
+-- remove edges method
+-- commit edges
+
+-- check for cycles method
+-- do rollback in error
+
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Regular eval route
+
+-- ::ALEX:: rename graph cache shit
 
 -- assumes all evaled cells are in the same sheet
 runDispatchCycle :: MVar ServerState -> [ASCell] -> ASUserId -> IO ASServerMessage
@@ -50,16 +59,20 @@ runDispatchCycle state cs uid = do
     printWithTimeT $ "STARTING DISPATCH CYCLE WITH CELLS: " ++ (show cs)
     roots          <- lift $ EM.evalMiddleware cs
     conn           <- lift $ fmap dbConn $ readMVar state
-    desc           <- getDescendants conn roots
-    ancLocs        <- getNewAncLocs conn roots desc 
+    setCellsAncestorsInDb conn roots
+    printWithTimeT "Hello"
+    descLocs       <- getDescendants conn roots
+    ancLocs        <- getNewAncLocs conn roots descLocs
+    cellsToEval    <- getCellsToEval conn descLocs roots
     printWithTimeT $ "got ancestor locs: " ++ (show ancLocs)
     initValuesMap  <- lift $ getValuesMap ancLocs
-    (afterCells, cellLists) <- evalChain conn initValuesMap (roots ++ desc) -- start with current cells, then go through descendants
+    (afterCells, cellLists) <- evalChain conn initValuesMap cellsToEval -- start with current cells, then go through descendants
     -- Apply endware
     finalizedCells <- lift $ EE.evalEndware state afterCells uid roots
-    let transaction = Transaction uid sid roots desc finalizedCells cellLists
+    let transaction = Transaction uid sid roots cellsToEval finalizedCells cellLists
     broadcastCells <- DB.updateAfterEval conn transaction -- atomically performs DB ops
     return broadcastCells
+  runEitherT $ rollbackGraphIfError errOrCells
   return $ U.getCellMessage errOrCells
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
@@ -72,24 +85,50 @@ runDispatchCycle state cs uid = do
 --   then lift $ DB.decoupleList conn cell
 --   else return []
 
+
+-- | Update the ancestors of a cell, and set the ancestor relationships in the DB. 
+setCellsAncestorsInDb :: Connection -> [ASCell] -> EitherTExec ()
+setCellsAncestorsInDb conn cells = (flip mapM_) cells (\(Cell loc expr _ ts) -> do
+  let deps = getDependencies (locSheetId loc) expr
+  G.setRelations [(loc, deps)])
+
+  --if (U.containsTrackingTag (cellTags origCell))
+  --  then return () -- TODO: implement some redundancy in DB for tracking
+  --  else return ()
+
+
+
 -- | Given a set of cells and their descendants, return the new set of cell locations they will
 -- depend on for evaluation. 
-getNewAncLocs :: Connection -> [ASCell] -> [ASCell] -> EitherTExec [ASIndex]
-getNewAncLocs conn curCells desc = do 
-  descAncLocs <- G.getImmediateAncestors $ map cellLocation desc
+getNewAncLocs :: Connection -> [ASCell] -> [ASIndex] -> EitherTExec [ASIndex]
+getNewAncLocs conn curCells descLocs = do 
+  descAncLocs <- G.getImmediateAncestors descLocs
   let curCellsDeps = map (\(Cell loc expr _ _) -> getDependencies (locSheetId loc) expr) curCells
   return $ descAncLocs ++ (concat curCellsDeps)
 
 -- | Return the descendants of a cell, which will always exist but may be locked
 -- TODO: throw exceptions for permissions/locking
-getDescendants :: Connection -> [ASCell] -> EitherTExec [ASCell]
+getDescendants :: Connection -> [ASCell] -> EitherTExec [ASIndex]
 getDescendants conn cells = do 
   let locs = map cellLocation cells
   vLocs <- lift $ DB.getVolatileLocs conn -- Accounts for volatile cells being reevaluated each time
-  indexes <- G.getDescendants (locs ++ vLocs) 
-  desc <- lift $ DB.getCells indexes
-  printWithTimeT $ "got descendant cells"
-  return $ map fromJust desc -- if you clear the redis DB but don't restart the server, you might run into trouble here
+  printDebugT "locs" (locs ++ vLocs)
+  indices <- G.getDescendants (locs ++ vLocs)
+  return indices 
+
+-- a -> M a 
+-- mapM : [M a]
+-- need to return M [a]
+-- | ::ALEX:: describe this
+getCellsToEval :: Connection -> [ASIndex] -> [ASCell] -> EitherTExec [ASCell]
+getCellsToEval conn locs origCells = do
+  let locCellMap = M.fromList $ map (\c -> (cellLocation c, c)) origCells
+  lift $ mapM (\loc ->
+    if loc `M.member` locCellMap
+      then return (locCellMap M.! loc)
+      else do 
+        mCell <- DB.getCell loc
+        return $ fromJust mCell) locs
 
 getValuesMap :: [ASIndex] -> IO RefValMap
 getValuesMap locs = do 
@@ -145,3 +184,7 @@ createListCells conn (Cell (Index sheet (a,b)) xp _ ts) values = (listKey, cells
 
     shift (ValueL v) r (a,b)  = [(a+c,b+r) | c<-[0..length(v)-1] ]
     shift other r (a,b)       = [(a,b+r)]
+
+rollbackGraphIfError :: Either ASExecError [ASCell] -> EitherTExec [ASIndex]
+rollbackGraphIfError (Left e) = G.rollbackGraph
+rollbackGraphIfError _ = return []

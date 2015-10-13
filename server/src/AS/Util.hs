@@ -147,10 +147,11 @@ getDBCellMessage mcells = getCellMessage (Right cells)
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Error Handling
 
--- | Not yet implemented
+-- | Not fully implemented yet
 generateErrorMessage :: ASExecError -> String
 generateErrorMessage e = case e of 
   CopyNonexistentDependencies -> "Some dependencies nonexistent in copied cell expressions."
+  CircularDepError circDepLoc -> "Circular dependecy detected in cell " ++ (indexToExcel circDepLoc)
   (DBNothingException _)      -> "Unable to fetch cells from database."
   ExpressionNotEvaluable      -> "Expression not does not contain evaluable statement."
   ExecError                   -> "Error while evaluating expression."
@@ -173,6 +174,9 @@ printWithTimeT = lift . printWithTime
 -- | For debugging purposes
 printDebug :: (Show a) => String -> a -> IO ()
 printDebug name obj = printWithTime ("\n\n" ++ name ++ ": " ++ (show obj))
+
+printDebugT :: (Show a) => String -> a -> EitherTExec ()
+printDebugT name obj = lift (printDebug name obj)
 
 -- | Not yet implemented
 getASTime :: IO ASTime

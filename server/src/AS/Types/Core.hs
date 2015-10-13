@@ -199,12 +199,13 @@ data ASExecError =
   | EvaluationError {evalErrorDesc :: String}
   | DependenciesLocked {lockUserId :: ASUserId} 
   | DBNothingException {badLocs :: [ASIndex]}
-  | DBGraphUnreachable 
+  | DBGraphUnreachable -- failed to connect
+  | CircularDepError {badLoc :: ASIndex} 
   | NetworkDown
   | ResourceLimitReached
   | InsufficientPermissions
   | NonUniqueIdentifier
-  | CopyNonexistentDependencies
+  | CopyNonexistentDependencies -- ::ALEX:: remove
   | ParseError
   | ExpressionNotEvaluable
   | ExecError

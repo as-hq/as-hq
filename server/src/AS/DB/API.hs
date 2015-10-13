@@ -174,7 +174,6 @@ decoupleList conn listString = do
 -- (e.g. modifying a list changes the expressions of all the other cells)
 updateAfterEval :: Connection -> ASTransaction -> EitherTExec [ASCell]
 updateAfterEval conn (Transaction uid sid roots beforeCells afterCells lists) = do 
-  setCellsAncestorsInDb conn roots
   let newListCells            = concat $ map snd lists
       afterCellsWithLists     = afterCells ++ newListCells
       afterCellLocs           = map cellLocation afterCellsWithLists
@@ -188,16 +187,6 @@ updateAfterEval conn (Transaction uid sid roots beforeCells afterCells lists) = 
   liftIO $ addCommit conn uid (beforeCells', afterCells')
   liftIO $ printWithTime "added commits"
   right afterCells'
-
--- | Update the ancestors of a cell, and set the ancestor relationships in the DB. 
-setCellsAncestorsInDb :: Connection -> [ASCell] -> EitherTExec ()
-setCellsAncestorsInDb conn cells = (flip mapM_) cells (\(Cell loc expr _ ts) -> do
-  let deps = getDependencies (locSheetId loc) expr
-  G.setRelations [(loc, deps)])
-
-  --if (U.containsTrackingTag (cellTags origCell))
-  --  then return () -- TODO: implement some redundancy in DB for tracking
-  --  else return ()
 
 -- | Creates and pushes a commit to the DB
 addCommit :: Connection -> ASUserId -> ([ASCell], [ASCell]) -> IO ()

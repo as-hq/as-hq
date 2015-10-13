@@ -217,7 +217,7 @@ handleDelete user state payload = do
                PayloadLL locs' -> locs' 
                PayloadR rng -> rangeToIndices rng
   conn <- dbConn <$> readMVar state
-  let newCells = map (\l -> Cell l (Expression "" Excel) NoValue []) locs
+  let newCells = map (\l -> Cell l (Expression "" Python) NoValue []) locs -- ::ALEX:: darn
   msg' <- DP.runDispatchCycle state newCells (userId user)
   sendBroadcastFiltered user state msg'
 

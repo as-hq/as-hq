@@ -3,41 +3,72 @@
 
 /****************************************************************************************************************************************/
 
-DAG& DAG::updateDAG(const std::vector<std::string>& relation){
-	// std::cout << "In dag update with toloc: " << toLoc << std::endl; 
-	// std::cout << "fromlocs: " << std::endl; 
-	//for (const auto& l : fromLocs)
-		// std::cout << "\t" << l << std::endl; 
+using namespace std; 
+
+void DAG::rollback() {
+	for (const auto& fan : fanCache)
+		updateDAG(fan.first, fan.second, false);
+
+	clearFanCache();
+}
+
+//::ALEX:: rename
+bool DAG::dfsVisit2(const Vertex& loc, unordered_map<Vertex,bool>& visited) { 
+	visited[loc] = true; 
+	for (const auto& toLoc : fromToAdjList[loc]) {
+		if (!visited[toLoc]) {
+			if (DAG::dfsVisit2(toLoc, visited))
+				return true; 
+		} else { 
+			return true; 
+		}
+	}
+	return false; 
+}
+
+bool DAG::containsCycle(const DAG::Vertex& start) { 
+	unordered_map<DAG::Vertex,bool> visited; 
+	return dfsVisit2(start, visited); 
+}
+
+
+
+DAG& DAG::updateDAG(DAG::Vertex toLoc, const DAG::VertexSet& fromLocs, bool addToCache) {
+	// cout << "In dag update with toloc: " << toLoc << endl; 
+	if (addToCache) {
+		if (fanCache.find(toLoc) == fanCache.end())
+			fanCache[toLoc] = toFromAdjList[toLoc];
+	}
+
+	DAG::VertexSet vl = toFromAdjList[toLoc]; //old fromLocs
 	/* Loop over the current fromLocs of toLoc and delete from forward adjacency list */
-
-	std::string toLoc = relation[0];
-
-	DAG::vertexSet vl = this->toFromAdjList[toLoc];
-
 	for (const auto& oldFl : vl){
-		this->fromToAdjList[oldFl].erase(toLoc);
+		fromToAdjList[oldFl].erase(toLoc);
 		/* If a vertex no longer has fromLocs, delete it */
-		if (this->fromToAdjList[oldFl].empty())
-			this->fromToAdjList.erase(oldFl);
+		if (fromToAdjList[oldFl].empty())
+			fromToAdjList.erase(oldFl);
 	}
+
+	toFromAdjList.erase(toLoc); //::ALEX:: ???
+	// cout << "\n\ndeleted toLoc and oldFl's from fromToAdjList\n";
+	// showGraph();
+
 	/* Loop over the new fromLocs and add to the forward adjacency list */
-	for (int i = 1; i < relation.size(); i++){
-		this->fromToAdjList[relation[i]].insert(toLoc);
-	}
+	for (const auto& fl : fromLocs) {
+		fromToAdjList[fl].insert(toLoc);
 	/* Replace toLoc entry in backwards adjacency list */
-	this->toFromAdjList.erase(toLoc);
-	for (int i = 1; i < relation.size(); i++){
-		this->toFromAdjList[toLoc].insert(relation[i]);
+		toFromAdjList[toLoc].insert(fl);
 	}
-	// std::cout << "Updated graph in update dag: " << std::endl;
-	// this->showGraph(); 
+
+	// cout << "Updated graph in update dag: " << endl;
+	// showGraph(); 
 	return *this; 
 }
 
 /****************************************************************************************************************************************/
 
-void DAG::dfsVisit (const std::string& loc, std::unordered_map<std::string,bool>& visited, std::vector<std::string>& order){
-	for (const auto& toLoc : this->fromToAdjList[loc]){
+void DAG::dfsVisit (const DAG::Vertex& loc, unordered_map<DAG::Vertex,bool>& visited, vector<DAG::Vertex>& order){
+	for (const auto& toLoc : fromToAdjList[loc]){
 		if (!visited[toLoc]) {
 			DAG::dfsVisit(toLoc,visited,order);
 		}
@@ -46,11 +77,15 @@ void DAG::dfsVisit (const std::string& loc, std::unordered_map<std::string,bool>
 	visited[loc] = true; 
 }
 
+bool DAG::clearFanCache() {
+	fanCache.clear();
+}
+
 // Given a list of cells, return all of their descendants in the DAG, sorted topologically. 
 //(X is a proper descendant of Y if there's a path of length >= 1 from X to Y.)
-std::vector<std::string> DAG::getDescendants(const std::vector<std::string>& locs){
-	std::unordered_map<std::string,bool> visited;
-	std::vector<std::string> order; 
+vector<DAG::Vertex> DAG::getDescendants(const vector<DAG::Vertex>& locs){
+	unordered_map<DAG::Vertex,bool> visited;
+	vector<DAG::Vertex> order; 
 
 	for (const auto& loc: locs)
 		visited[loc] = false;
@@ -60,44 +95,48 @@ std::vector<std::string> DAG::getDescendants(const std::vector<std::string>& loc
 			DAG::dfsVisit(loc, visited, order);
 	}
 
-	std::reverse(order.begin(),order.end());
+	reverse(order.begin(),order.end());
+	order.push_back("OK");
 	return order;
 }
 
 /****************************************************************************************************************************************/
 
-std::vector<std::string> DAG::getImmediateAncestors(const std::vector<std::string>& locs){
-	// std::cout << "in dag get immediate ancestors " << std::endl; 
-	std::unordered_set<std::string> ancestors;
+vector<DAG::Vertex> DAG::getImmediateAncestors(const vector<DAG::Vertex>& locs){
+	// cout << "in dag get immediate ancestors " << endl; 
+	unordered_set<DAG::Vertex> ancestors;
 	for (const auto& loc : locs){
-		for (const auto& anc: this->toFromAdjList[loc]){
+		for (const auto& anc: toFromAdjList[loc]){
 			ancestors.insert(anc);
 		}
 	}
-	// std::cout << "filled up ancestors" << std::endl; 
-	std::vector<std::string> vAncestors(ancestors.begin(),ancestors.end());
+	// cout << "filled up ancestors" << endl; 
+	vector<DAG::Vertex> vAncestors(ancestors.begin(),ancestors.end());
+	vAncestors.push_back("OK");
 	return vAncestors;
+}
+
+bool DAG::operator==(const DAG& rhs) {
+	return (toFromAdjList == rhs.toFromAdjList) && (fromToAdjList == rhs.fromToAdjList);
 }
 
 /****************************************************************************************************************************************/
 
+void showAdjList(const DAG::AdjacencyList& al, string msg) {
+	cout << "=================================================================" << endl << msg << endl; 
+	for (const auto& toFroms : al){
+		auto toLoc = toFroms.first; 
+		auto fromLocs = toFroms.second;
+
+		cout << toLoc << ": ";
+		for (const auto& fromLoc : fromLocs)
+			cout << fromLoc << "\t";
+		cout << endl; 
+	}
+}
+
 void DAG::showGraph(){
-	std::cout << "=================================================================" << std::endl; 
-	std::cout << "From To Adjacency List" << std::endl; 
-	DAG::AdjacencyList al = this->fromToAdjList;
-	for (DAG::AdjacencyList::iterator it = al.begin(); it != al.end(); ++it){
-		std::cout << it->first << ": ";
-		for (const auto& toLoc : this->fromToAdjList[it->first])
-			std::cout << toLoc << "\t";
-		std::cout << std::endl; 
-	}
-	std::cout << "To From Adjacency List" << std::endl; 
-	al = this->toFromAdjList;
-	for (DAG::AdjacencyList::iterator it = al.begin(); it != al.end(); ++it){
-		std::cout << it->first << ": ";
-		for (const auto& fromLoc : this->toFromAdjList[it->first])
-			std::cout << fromLoc << "\t";
-		std::cout << std::endl; 
-	}
-	std::cout << "=================================================================" << std::endl; 
+	showAdjList(fromToAdjList, "From To Adjacency List");
+	showAdjList(toFromAdjList, "To From Adjacency List");
+	showAdjList(fanCache, "Fan Cache");
 }
