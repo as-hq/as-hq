@@ -44,7 +44,7 @@ std::vector<std::string> processRequest(DAG& dag, std::string& request){
         std::vector<std::string> empty;
         return empty;
     } else if (type == "Clear") {
-        dag.clearDAG();
+        (&dag)->~DAG();
         std::cout << "DAG cleared.";
         std::vector<std::string> empty;
         return empty;

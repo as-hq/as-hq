@@ -101,9 +101,3 @@ void DAG::showGraph(){
 	std::cout << "=================================================================" << std::endl; 
 
 }
-
-DAG& DAG::clearDAG() {
-	DAG dag;
-	return dag;
-}
-
