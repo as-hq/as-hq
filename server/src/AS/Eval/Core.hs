@@ -35,6 +35,15 @@ import Control.Monad.Trans.Either
 -----------------------------------------------------------------------------------------------------------------------
 -- Exposed functions
 
+evaluateLanguage :: ASSheetId -> RefValMap -> ASExpression -> EitherTExec ASValue
+evaluateLanguage sheetid valuesMap xp@(Expression _ lang) = do
+	printWithTimeT "Starting eval code"
+	let maybeError = possiblyShortCircuit sheetid valuesMap xp
+	case maybeError of 
+		Just e -> return e -- short-circuited, return this error
+		Nothing -> execEvalInLang lang xpWithValuesSubstituted -- didn't short-circuit, proceed with eval as usual
+       where xpWithValuesSubstituted = insertValues sheetid valuesMap xp 
+
 evaluateLanguageRepl :: ASExpression -> EitherTExec ASValue
 evaluateLanguageRepl (Expression str lang) = case lang of
 	Python 	-> KP.evaluateRepl str
@@ -44,15 +53,6 @@ evaluateLanguageRepl (Expression str lang) = case lang of
 
 -----------------------------------------------------------------------------------------------------------------------
 -- Helpers
-
-evaluateLanguage :: ASSheetId -> RefValMap -> ASExpression -> EitherTExec ASValue
-evaluateLanguage sheetid valuesMap xp@(Expression _ lang) = do
-	printWithTimeT "Starting eval code"
-	let maybeError = possiblyShortCircuit sheetid valuesMap xp
-	case maybeError of 
-		Just e -> return e -- short-circuited, return this error
-		Nothing -> execEvalInLang lang xpWithValuesSubstituted -- didn't short-circuit, proceed with eval as usual
-       where xpWithValuesSubstituted = insertValues sheetid valuesMap xp 
 
 -- | Checks for potentially bad inputs (NoValue or ValueError) among the arguments passed in. If no bad inputs, 
 -- return Nothing. Otherwise, if there are errors that can't be dealt with, return appropriate ASValue error.
@@ -70,7 +70,7 @@ possiblyShortCircuit sheetid valuesMap xp =
 -- | Nothing if it's OK to pass in NoValue, appropriate ValueError if not.
 handleNoValueInLang :: ASLanguage -> ASIndex -> Maybe ASValue
 handleNoValueInLang Excel _   = Nothing
-handleNoValueInLang _ cellRef = Just $ ValueError ("Reference cell " ++ (show cellRef) ++ " is empty.") RefError "" (-1)
+handleNoValueInLang _ cellRef = Just $ ValueError ("Reference cell " ++ (indexToExcel cellRef) ++ " is empty.") RefError "" (-1)
 -- TDODO: replace (show cellRef) with the actual ref (e.g. C3) corresponding to it
 
 handleErrorInLang :: ASLanguage -> ASValue -> Maybe ASValue

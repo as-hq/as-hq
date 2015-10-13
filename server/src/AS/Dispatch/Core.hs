@@ -89,12 +89,8 @@ getDescendants conn cells = do
   indexes <- G.getDescendants (locs ++ vLocs) 
   let indexes' = minus indexes (map cellLocation cells)
   desc <- lift $ DB.getCells indexes'
-  -- lift $ printDebug "locs" locs
-  -- lift $ printDebug "cells" cells
-  -- lift $ printDebug "indexes" indexes
-  -- lift $ printDebug "vLocs" vLocs 
   printWithTimeT $ "got descendant cells"
-  return $ map fromJust desc
+  return $ map fromJust desc -- if you clear the redis DB but don't restart the server, you might run into trouble here
 
 -- temporary, until getDescendants is re-implemented to not include the current cell as a descendant. 
 -- ALSO, this is currently wrong. (if you pass in a list [C1, C2] and C2 is a descendant of C1, 

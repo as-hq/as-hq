@@ -4,12 +4,13 @@ import AS.Types.Core
 
 import Prelude
 import Data.Time.Clock
-import Data.Maybe (isNothing)
+import Data.Maybe (isNothing,fromJust)
 import Data.UUID.V4 (nextRandom)
 import Data.Aeson hiding (Success)
 import qualified Network.WebSockets as WS
 import qualified Data.UUID as U (toString)
 import qualified Data.Text as T 
+import qualified Data.Char as C
 import qualified Data.List as L
 import qualified Data.Set as S
 import Control.Applicative hiding ((<|>), many)
@@ -378,8 +379,31 @@ getStreamTag (tag:tags) = getStreamTag tags
 getStreamTagFromExpression :: ASExpression -> Maybe Stream
 getStreamTagFromExpression xp = Nothing
 
+----------------------------------------------------------------------------------------------------------------------------------------------
+-- Converting between Excel and AlphaSheets formats
+
+-- "AA" -> 27
+colStrToInt :: String -> Int
+colStrToInt "" = 0
+colStrToInt (c:cs) = 26^(length(cs)) * coef + colStrToInt cs
+  where
+    coef = fromJust (L.elemIndex (C.toUpper c) ['A'..'Z']) + 1
+
+-- 27 -> "AA",  218332954 ->"RITESH"
+intToColStr :: Int -> String
+intToColStr x
+  | x <= 26 = [['A'..'Z'] !! (x-1)]
+  | otherwise = intToColStr d ++ [['A'..'Z'] !! m]
+      where
+        m = (x-1) `mod` 26
+        d = (x-1) `div` 26
+
+-- used in DB Ranges
+indexToExcel :: ASIndex -> String
+indexToExcel (Index _ (c,r)) = (intToColStr c) ++ (show r)
+
 ----------------------------------------------------------------------------------------------------------------------
--- | Testing
+-- Testing
 
 testLocs :: Int -> [ASIndex]
 testLocs n = [Index "" (i,1) | i <-[1..n]]
