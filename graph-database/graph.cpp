@@ -40,16 +40,14 @@ void DAG::dfsVisit (const std::string& loc, std::unordered_map<std::string,bool>
 	for (const auto& toLoc : this->fromToAdjList[loc]){
 		if (!visited[toLoc]) {
 			DAG::dfsVisit(toLoc,visited,order);
-			order.push_back(toLoc);
 		}
 	}
+	order.push_back(loc);
 	visited[loc] = true; 
 }
 
-// Given a list of cells, return all of their proper descendants in the DAG, sorted topologically. 
+// Given a list of cells, return all of their descendants in the DAG, sorted topologically. 
 //(X is a proper descendant of Y if there's a path of length >= 1 from X to Y.)
-//(Topological sort == X before Y in list means there's no path from Y to X.)
-//Note: if the graph is A -> B -> C and we pass in [A,B], we should be returning [B,C]
 std::vector<std::string> DAG::getDescendants(const std::vector<std::string>& locs){
 	std::unordered_map<std::string,bool> visited;
 	std::vector<std::string> order; 
