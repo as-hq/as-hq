@@ -22,10 +22,39 @@ export default React.createClass({
   /***************************************************************************************************************************/
   /* State methods */
 
+  xpChange: {
+    FROM_GRID:0,
+    FROM_EDITOR:1,
+    SEL_CHNG:2,
+    PARTIAL_REF_CHNG:3,
+    FROM_TEXTBOX:4,
+    NONE:5
+  },
+
+  printDetail(type){
+    switch(type){
+      case 0:
+        return "GRID";
+      case 1:
+        return "EDITOR";
+      case 2:
+        return "SEL_CHNG";
+      case 3:
+        return "PARTIAL_REF_CHNG";
+      case 4:
+        return "FROM_TEXTBOX";
+      default:
+        return "NONE";
+    }
+  },
+
   /* React method for getting the initial state */
   getInitialState() {
     return {
       expression: '',
+      userIsTyping:false,
+      xpChangeDetail:this.xpChange.NONE,
+      expressionWithoutLastRef: '',
       language: Constants.Languages.Python,
       varName: '',
       focus: 'grid',
@@ -42,12 +71,61 @@ export default React.createClass({
     this.setState({ language: lang });
   },
 
+  updateTextBox(isTyping){
+    return this.refs.spreadsheet.updateTextBox(this.state.expression,isTyping)
+  },
+
+  /* Editor has been updated, now update state in EvalPane if necessary */
   setExpression(xp) {
-    this.setState({ expression: xp });
+    console.log("New expression of type " + this.printDetail(this.state.xpChangeDetail) + ": " + xp);
+    let detail = this.state.xpChangeDetail;
+    switch(detail){
+      case this.xpChange.FROM_EDITOR:
+        this.setState({expressionWithoutLastRef:xp,expression:xp,userIsTyping:true}, function(){
+          this.updateTextBox(true);
+        });
+        console.log("User is typing");
+        break;
+      case this.xpChange.FROM_GRID:
+        if (!this.state.userIsTyping){
+          this.setState({userIsTyping:true}, function(){
+            this.updateTextBox(true);
+          });
+          console.log("User is now typing!");
+        }
+        else {
+          this.updateTextBox(true);
+        }
+        break;
+      case this.xpChange.SEL_CHNG:
+        console.assert(this.state.userIsTyping===false,"User should not be typing");
+        break;
+      case this.xpChange.PARTIAL_REF_CHNG:
+        console.assert(this.state.userIsTyping===true,"User should be typing");
+        this.updateTextBox(true);
+        break;
+      case this.xpChange.FROM_TEXTBOX:
+        console.assert(this.state.userIsTyping===true,"User should be typing");
+        break;
+      default:
+        break;
+    }
     let deps = Util.parseDependencies(xp);
     Store.setActiveCellDependencies(deps);
     this.refs.spreadsheet.repaint();
   },
+
+  setXpDetailFromEditor(){
+    this.setState({xpChangeDetail:this.xpChange.FROM_EDITOR});
+  },
+
+  onTextBoxChange(xp){
+    this.setState({expression:xp,
+                   expressionWithoutLastRef:xp,
+                   xpChangeDetail:this.xpChange.FROM_TEXTBOX
+                 });
+  },
+
   /* Update the focus between the editor and the grid */
   toggleFocus() {
     // console.log("In toggle focus function");
@@ -139,34 +217,33 @@ export default React.createClass({
   /* Key handling */
 
   _onEditorDeferredKey(e) {
-    // console.log('editor deferred key; trying common shortcut');
-    // console.log(e);
+    console.log("Editor deferred key");
     ShortcutUtils.tryShortcut(e, 'common');
     ShortcutUtils.tryShortcut(e, 'editor');
   },
 
   _onGridDeferredKey(e) {
     if (KeyUtils.producesVisibleChar(e)) {
-      // console.log("key deferred by grid to editor");
-      // console.log(e);
       let editor = this._getRawEditor(),
-          str = KeyUtils.modifyStringForKey(editor.getValue(), e);
-      if (str || str === ""){
-        editor.setValue(str);
-        editor.navigateFileEnd();
-      }
+          str = KeyUtils.modifyStringForKey(editor.getValue(), e),
+          newStr = KeyUtils.getString(e),
+          xpStr = this.state.userIsTyping ? str : newStr;
+      console.log("New grid string: " + xpStr);
+      this.setState({
+            xpChangeDetail:this.xpChange.FROM_GRID,
+            expressionWithoutLastRef:xpStr,
+            expression:xpStr,
+          },function(){editor.navigateFileEnd();}
+      );
     }
     else {
-      // console.log('trying common shortcut');
-      // console.log(e);
+      console.log("Grid key not visible");
       ShortcutUtils.tryShortcut(e, 'common');
       ShortcutUtils.tryShortcut(e, 'grid');
     }
   },
 
   _onReplDeferredKey(e){
-    // console.log('REPL deferred key');
-    // console.log(e);
     ShortcutUtils.tryShortcut(e, 'repl');
   },
 
@@ -182,27 +259,44 @@ export default React.createClass({
   */
   // Note: if the selection is a Reference, we produce a 'pseudo' expression
   // using Converter.clientCellGetExpressionObj
-  _onSelectionChange(rng){
+  _onSelectionChange(area){
     // console.log("Handling selection change: " + JSON.stringify(rng));
+    let rng = area.range;
     let cell = Store.getCellAtLoc(rng.col,rng.row);
-    if (cell && Converter.clientCellGetExpressionObj(cell)) {
+    if (cell && !this.state.userIsTyping && Converter.clientCellGetExpressionObj(cell)) {
+      console.log("Selected old region");
       let {language,expression} = Converter.clientCellGetExpressionObj(cell),
           val = Converter.clientCellGetValueObj(cell);
-      Store.setActiveSelection(rng, expression); // pass in an expression to get parsed dependencies
-      // console.log("current cell: " + JSON.stringify(cell));
-      // console.log("cell expression: " + expression);
+      Store.setActiveSelection(area, expression); // pass in an expression to get parsed dependencies
       // here, language is a client/server agnostic object (see Constants.Languages)
-      this.setState({ expression: expression, language: Util.getAgnosticLanguageFromServer(language) });
+      this.setState({ xpChangeDetail:this.xpChange.SEL_CHNG,
+                    language: Util.getAgnosticLanguageFromServer(language),
+                    expression: expression,
+                    expressionWithoutLastRef:expression
+                    });
       // TODO: set var name as well
-      this._getRawEditor().setValue(expression); // workaround for expression change bug
       this.addError(val);
-    } else {
-      Store.setActiveSelection(rng, "");
-      // console.log("empty cell");
-      this.setState({ expression: ""});
-      this._getRawEditor().setValue("");
+    } 
+    else if (!this.state.userIsTyping) {
+      console.log("Selected new region");
+      Store.setActiveSelection(area, "");
+      this.setState({ xpChangeDetail:this.xpChange.SEL_CHNG,
+                      expression: "",
+                      expressionWithoutLastRef: ""
+                    });
     }
+    else {
+      if (Util.canInsertCellRefInXp(this.state.expressionWithoutLastRef)){
+        console.log("");
+        console.log("PARTIAL");
+        let newXp = this.state.expressionWithoutLastRef  + Util.locToExcel(rng);
+        this.refs.spreadsheet._getHypergrid().repaint();
+        this.setState({xpChangeDetail:this.xpChange.PARTIAL_REF_CHNG,
+                       expression:newXp
+        });
+      }
 
+    }
   },
 
   /*
@@ -212,9 +306,16 @@ export default React.createClass({
     2) Send this and the editor state (expression, language) to the API action creator, which will send it to the backend
   */
   handleEvalRequest(editorState){
-    let selectedRegion = this.refs.spreadsheet.getSelectionArea();
+    /* If user pressed Ctrl Enter, they're not typing out the expression anymore */
+    this.setState({userIsTyping:false});
+    this.updateTextBox(false);
+    this.refs.spreadsheet._getHypergrid().repaint();
+    
+    let selectedRegion = Store.getActiveSelection();
+      //this.refs.spreadsheet.getSelectionArea();
     // console.log("Selected region " + JSON.stringify(selectedRegion));
     console.log("Editor state: " + JSON.stringify(editorState));
+    console.log("Eval req loc: " + JSON.stringify(selectedRegion));
     API.sendEvalRequest(selectedRegion, editorState);
   },
 
@@ -274,12 +375,14 @@ export default React.createClass({
           onReplClick={this._toggleRepl}
           onLanguageChange={this.setLanguage}
           onExpressionChange={this.setExpression}
+          setXpDetailFromEditor={this.setXpDetailFromEditor}
           onSetVarName={this._onSetVarName}
           onDeferredKey={this._onEditorDeferredKey}
           value={expression}
           width="100%" height={this.getEditorHeight()} />
         <ASSpreadsheet
           ref='spreadsheet'
+          textBoxChange={this.props.onTextBoxChange}
           onDeferredKey={this._onGridDeferredKey}
           onSelectionChange={this._onSelectionChange}
           width="100%"

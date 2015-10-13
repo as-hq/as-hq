@@ -17,7 +17,7 @@ export default React.createClass({
     API.sendInitialMessage();
   },
   componentDidMount() {
-
+   
   },
   getInitialState() {
     return {
@@ -43,6 +43,12 @@ export default React.createClass({
   /**************************************************************************************************************************/
   /* Core render method for the whole app */
 
+  /*<ASNavBar
+          onDocumentTabChange={this._onDocumentTabChange}
+          onRibbonTabChange={this._onRibbonTabChange}
+          onAlphaButtonTap={this._onAlphaButtonTap}/>
+  <ASRibbon activeTab={this.state.activeRibbonTab} />*/
+
   render() {
     let leftNavMenuItems = [
       { route: 'all-files', text: 'All files' },
@@ -55,11 +61,8 @@ export default React.createClass({
           ref="leftNav"
           menuItems={leftNavMenuItems}
           docked={false}/>
-        <ASNavBar
-          onDocumentTabChange={this._onDocumentTabChange}
-          onRibbonTabChange={this._onRibbonTabChange}
-          onAlphaButtonTap={this._onAlphaButtonTap}/>
-        <ASRibbon activeTab={this.state.activeRibbonTab} />
+        
+        
         <div style={{width: '100%', height: 'calc(100% - 200px)'}}>
           <div style={{display: 'inline-block', width: '10%', height: '100%', verticalAlign: 'top'}}>
             <ASTreeNav
@@ -75,7 +78,7 @@ export default React.createClass({
 
     );
   },
-
+  
 
 
 /**************************************************************************************************************************/

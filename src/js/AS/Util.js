@@ -159,6 +159,20 @@ export default {
     }
   },
 
+  getTextBox(col,row,xp){
+    let self = this;
+    return {
+      tag: "TextBox",
+      id: self.getUniqueId(),
+      width: Constants.cellWidthPx,
+      height: Constants.cellHeightPx,
+      col: col,
+      row: row,
+      xp:xp
+    };
+      
+  },
+
 /*************************************************************************************************************************/
 // Formatting
 
@@ -319,6 +333,7 @@ export default {
   },
 
   intToExcelCol(i) {
+    i = i -1; 
     var quo = Math.floor((i) / 26);
     var rem = (i) % 26;
     var code = '';
@@ -431,5 +446,15 @@ export default {
 
   getAgnosticLanguageFromServer(lang) {
     return Constants.Languages[lang];
+  },
+
+  canInsertCellRefInXp(xp){
+    let prev = ["+","-","*","/","(",","];
+    if (prev.indexOf(xp.substring(xp.length-1,xp.length))>-1)
+      return true;
+    else if (xp==="=")
+      return true;
+    else
+      return false;
   }
 };

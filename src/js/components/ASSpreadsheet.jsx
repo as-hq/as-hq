@@ -34,7 +34,8 @@ export default React.createClass({
         x:0,
         y:0
       },
-      overlays: []
+      overlays: [],
+      textBox: null
     };
   },
   // produces oriented area -- row < row2 and col < col2 always
@@ -75,7 +76,7 @@ export default React.createClass({
         dR = loc.col2 ? loc.row2 - loc.row : 0;
     hg.select(c, r, dC, dR);
     this.repaint();
-    this.props.onSelectionChange(loc, dC, dR);
+    this.props.onSelectionChange({range:loc, width:dC+1, height:dR+1});
   },
   getViewingWindow() {
     let hg = this._getHypergrid();
@@ -139,6 +140,23 @@ export default React.createClass({
     this.setState({overlays: overlays});
   },
 
+
+  /*************************************************************************************************************************/
+  // Text Box
+
+  updateTextBox(xp,isTyping){
+    console.log("updating text box in spreadsheet");
+    let self = this;
+    let col = Store.getActiveSelection().range.col,
+        row = Store.getActiveSelection().range.row,
+        textBox = Util.getTextBox(col,row,xp);
+    if (isTyping)
+      this.setState({textBox:textBox});
+    else
+      this.setState({textBox:null});
+  },
+  
+
   /*************************************************************************************************************************/
   // Handling events
 
@@ -179,8 +197,8 @@ export default React.createClass({
           Need to also figure out the expression to render in the editor
         */
         'fin-selection-changed': function (event) {
-          let { range, width, height } = self.getSelectionArea();
-          self.props.onSelectionChange(range);
+          //let { range, width, height } = self.getSelectionArea();
+          self.props.onSelectionChange(self.getSelectionArea());
           },
         'fin-scroll-x': function (event) {
           // let {x, y} = self.getScroll();
@@ -204,7 +222,6 @@ export default React.createClass({
 
   render() {
     let {behavior, width, height} = this.props; //should also have onReady
-    // console.log("SPREADSHEET HEIGHT,WIDTH " + height + " " + width);
     let style = {width: width, height: height};
     let behaviorElement;
     let self = this;
@@ -216,7 +233,7 @@ export default React.createClass({
         behaviorElement = <fin-hypergrid-behavior-default />
         break;
     }
-
+   
     return (
       <fin-hypergrid
         style={style}
@@ -228,8 +245,18 @@ export default React.createClass({
                                overlay={overlay}
                                scroll={self.state.scroll}
                                onOverlayClick={self.onOverlayClick}
+                               textBoxChange={this.props.textBoxChange}
                                isVisible={self.isVisible}/>);
           })}
+          { this.state.textBox ?
+            <ASOverlay key={this.state.textBox.id}
+                         overlay={this.state.textBox}
+                         scroll={self.state.scroll}
+                         onOverlayClick={self.onOverlayClick}
+                         textBoxChange={this.props.textBoxChange}
+                         isVisible={self.isVisible}/> : null
+          }
+
       </fin-hypergrid>
     );
   },
@@ -253,7 +280,7 @@ export default React.createClass({
           col = config.x + 1,
           row = config.y + 1,
           cell = Store.getCellAtLoc(col, row),
-          sel = Store.getActiveSelection(),
+          sel = Store.getActiveSelection().range,
           activeCell = Store.getActiveCell(),
           clipboard = Store.getClipboard();
 
@@ -290,8 +317,8 @@ export default React.createClass({
         }
       }
 
-      // range highlighting
-      if (sel && sel.row2) {
+      // Cell/Range highlighting
+      if (sel) {
         if (Util.isContainedInLocs(col, row, sel)) {
           config.paintBorders = Util.getPaintedBorders(col, row, sel);
           config.borderConfig = {lineType: 0, // solid border type
@@ -299,6 +326,8 @@ export default React.createClass({
                                 color: "#4169e1"}; // blue
         }
       }
+
+
 
       // clipboard highlighting
       if (clipboard.range && Util.isContainedInLocs(col, row, clipboard.range)) {

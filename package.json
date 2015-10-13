@@ -58,6 +58,7 @@
     "immutable": "^3.7.3",
     "jasmine-pit": "^2.0.2",
     "jquery": "^2.1.4",
+    "jquery.ns-autogrow": "^1.1.0",
     "keymaster": "~1.6.2",
     "lodash": "^3.9.3",
     "main-bower-files": "^2.9.0",
