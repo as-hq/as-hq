@@ -205,7 +205,6 @@ data ASExecError =
   | ResourceLimitReached
   | InsufficientPermissions
   | NonUniqueIdentifier
-  | CopyNonexistentDependencies -- ::ALEX:: remove
   | ParseError
   | ExpressionNotEvaluable
   | ExecError

@@ -150,7 +150,6 @@ getDBCellMessage mcells = getCellMessage (Right cells)
 -- | Not fully implemented yet
 generateErrorMessage :: ASExecError -> String
 generateErrorMessage e = case e of 
-  CopyNonexistentDependencies -> "Some dependencies nonexistent in copied cell expressions."
   CircularDepError circDepLoc -> "Circular dependecy detected in cell " ++ (indexToExcel circDepLoc)
   (DBNothingException _)      -> "Unable to fetch cells from database."
   ExpressionNotEvaluable      -> "Expression not does not contain evaluable statement."

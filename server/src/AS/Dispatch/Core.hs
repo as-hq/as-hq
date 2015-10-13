@@ -62,8 +62,8 @@ runDispatchCycle state cs uid = do
     setCellsAncestorsInDb conn roots
     printWithTimeT "Hello"
     descLocs       <- getDescendants conn roots
-    ancLocs        <- getNewAncLocs conn roots descLocs
     cellsToEval    <- getCellsToEval conn descLocs roots
+    ancLocs        <- G.getImmediateAncestors descLocs
     printWithTimeT $ "got ancestor locs: " ++ (show ancLocs)
     initValuesMap  <- lift $ getValuesMap ancLocs
     (afterCells, cellLists) <- evalChain conn initValuesMap cellsToEval -- start with current cells, then go through descendants
@@ -96,16 +96,6 @@ setCellsAncestorsInDb conn cells = (flip mapM_) cells (\(Cell loc expr _ ts) -> 
   --  then return () -- TODO: implement some redundancy in DB for tracking
   --  else return ()
 
-
-
--- | Given a set of cells and their descendants, return the new set of cell locations they will
--- depend on for evaluation. 
-getNewAncLocs :: Connection -> [ASCell] -> [ASIndex] -> EitherTExec [ASIndex]
-getNewAncLocs conn curCells descLocs = do 
-  descAncLocs <- G.getImmediateAncestors descLocs
-  let curCellsDeps = map (\(Cell loc expr _ _) -> getDependencies (locSheetId loc) expr) curCells
-  return $ descAncLocs ++ (concat curCellsDeps)
-
 -- | Return the descendants of a cell, which will always exist but may be locked
 -- TODO: throw exceptions for permissions/locking
 getDescendants :: Connection -> [ASCell] -> EitherTExec [ASIndex]
@@ -116,9 +106,6 @@ getDescendants conn cells = do
   indices <- G.getDescendants (locs ++ vLocs)
   return indices 
 
--- a -> M a 
--- mapM : [M a]
--- need to return M [a]
 -- | ::ALEX:: describe this
 getCellsToEval :: Connection -> [ASIndex] -> [ASCell] -> EitherTExec [ASCell]
 getCellsToEval conn locs origCells = do

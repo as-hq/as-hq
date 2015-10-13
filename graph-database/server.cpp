@@ -29,7 +29,7 @@ std::vector<std::string> processRequest(DAG& dag, std::string& request){
     else if (type == "GetImmediateAncestors")
         return dag.getImmediateAncestors(requestParts);
     else if (type == "SetRelations"){
-        dag.clearFanCache(); 
+        dag.clearPrevCache(); 
 
         int i = 0; 
         while (i < requestParts.size()) {

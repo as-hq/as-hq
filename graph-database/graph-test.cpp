@@ -153,7 +153,7 @@ BOOST_AUTO_TEST_CASE(rollbackRevertsDAGUPdate){
 
 	DAG oldDag(d);
 
-	d.clearFanCache();
+	d.clearPrevCache();
 	d.updateDAG("b", {"c"});
 	d.updateDAG("a", {"b", "e", "h"});
 	d.updateDAG("b", {"d"});

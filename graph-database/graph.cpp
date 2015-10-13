@@ -5,19 +5,22 @@
 
 using namespace std; 
 
+/*
+  in 
+*/
 void DAG::rollback() {
-	for (const auto& fan : fanCache)
+	for (const auto& fan : prevCache)
 		updateDAG(fan.first, fan.second, false);
 
-	clearFanCache();
+	clearPrevCache();
 }
 
 //::ALEX:: rename
-bool DAG::dfsVisit2(const Vertex& loc, unordered_map<Vertex,bool>& visited) { 
+bool DAG::cycleCheckDfs(const Vertex& loc, unordered_map<Vertex,bool>& visited) { 
 	visited[loc] = true; 
 	for (const auto& toLoc : fromToAdjList[loc]) {
 		if (!visited[toLoc]) {
-			if (DAG::dfsVisit2(toLoc, visited))
+			if (DAG::cycleCheckDfs(toLoc, visited))
 				return true; 
 		} else { 
 			return true; 
@@ -28,7 +31,7 @@ bool DAG::dfsVisit2(const Vertex& loc, unordered_map<Vertex,bool>& visited) {
 
 bool DAG::containsCycle(const DAG::Vertex& start) { 
 	unordered_map<DAG::Vertex,bool> visited; 
-	return dfsVisit2(start, visited); 
+	return cycleCheckDfs(start, visited); 
 }
 
 
@@ -36,8 +39,8 @@ bool DAG::containsCycle(const DAG::Vertex& start) {
 DAG& DAG::updateDAG(DAG::Vertex toLoc, const DAG::VertexSet& fromLocs, bool addToCache) {
 	// cout << "In dag update with toloc: " << toLoc << endl; 
 	if (addToCache) {
-		if (fanCache.find(toLoc) == fanCache.end())
-			fanCache[toLoc] = toFromAdjList[toLoc];
+		if (prevCache.find(toLoc) == prevCache.end())
+			prevCache[toLoc] = toFromAdjList[toLoc];
 	}
 
 	DAG::VertexSet vl = toFromAdjList[toLoc]; //old fromLocs
@@ -67,18 +70,18 @@ DAG& DAG::updateDAG(DAG::Vertex toLoc, const DAG::VertexSet& fromLocs, bool addT
 
 /****************************************************************************************************************************************/
 
-void DAG::dfsVisit (const DAG::Vertex& loc, unordered_map<DAG::Vertex,bool>& visited, vector<DAG::Vertex>& order){
+void DAG::setRelationsDfs (const DAG::Vertex& loc, unordered_map<DAG::Vertex,bool>& visited, vector<DAG::Vertex>& order){
 	for (const auto& toLoc : fromToAdjList[loc]){
 		if (!visited[toLoc]) {
-			DAG::dfsVisit(toLoc,visited,order);
+			DAG::setRelationsDfs(toLoc,visited,order);
 		}
 	}
 	order.push_back(loc);
 	visited[loc] = true; 
 }
 
-bool DAG::clearFanCache() {
-	fanCache.clear();
+bool DAG::clearPrevCache() {
+	prevCache.clear();
 }
 
 // Given a list of cells, return all of their descendants in the DAG, sorted topologically. 
@@ -92,7 +95,7 @@ vector<DAG::Vertex> DAG::getDescendants(const vector<DAG::Vertex>& locs){
 
 	for (const auto& loc: locs) {
 		if (!visited[loc])
-			DAG::dfsVisit(loc, visited, order);
+			DAG::setRelationsDfs(loc, visited, order);
 	}
 
 	reverse(order.begin(),order.end());
@@ -138,5 +141,5 @@ void showAdjList(const DAG::AdjacencyList& al, string msg) {
 void DAG::showGraph(){
 	showAdjList(fromToAdjList, "From To Adjacency List");
 	showAdjList(toFromAdjList, "To From Adjacency List");
-	showAdjList(fanCache, "Fan Cache");
+	showAdjList(prevCache, "Fan Cache");
 }
