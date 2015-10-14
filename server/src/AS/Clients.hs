@@ -91,9 +91,9 @@ broadcast state message = do
 
 sendBroadcastFiltered :: (Client c) => c -> MVar ServerState -> ASServerMessage -> IO ()
 sendBroadcastFiltered cl state msg@(ServerMessage _ (Failure e) _) = sendToOriginal cl msg     -- send error to original user only
-sendBroadcastFiltered _  state msg@(ServerMessage Delete _ _) = broadcast state msg            -- broadcast all deletes (scrolling only refreshes non-deleted cells)
+sendBroadcastFiltered _  state msg@(ServerMessage _ _ (PayloadCommit _)) = broadcast state msg -- broadcast all undo/redos (scrolling only refreshes non-undone cells)
 sendBroadcastFiltered _  state msg@(ServerMessage Clear _ _) = broadcast state msg             -- broadcast all clears for the same reason
-sendBroadcastFiltered _  state msg@(ServerMessage _ _ (PayloadCommit _)) = broadcast state msg -- broadcast all undo/redos for same reason
+-- sendBroadcastFiltered _  state msg@(ServerMessage Delete _ _) = broadcast state msg         -- no separate broadcast for delete anymore
 sendBroadcastFiltered _  state msg = liftIO $ do
   (State ucs _ _) <- readMVar state
   broadcastFiltered msg ucs
@@ -218,7 +218,7 @@ handleDelete user state payload = do
                PayloadLL locs' -> locs'
                PayloadR rng -> rangeToIndices rng
   conn <- dbConn <$> readMVar state
-  let newCells = map (\l -> Cell l (Expression "" Python) NoValue []) locs -- TODO 
+  let newCells = map (\l -> Cell l (Expression "" Python) NoValue []) locs -- TODO set language appropriately 
   msg <- DP.runDispatchCycle state newCells (userId user)
   sendBroadcastFiltered user state msg
 
@@ -231,7 +231,7 @@ handleClear user state = do
 
 handleUndo :: ASUserClient -> MVar ServerState -> IO ()
 handleUndo user state = do
-  conn <- fmap dbConn $ readMVar state
+  conn <- dbConn <$> readMVar state
   commit <- DB.undo conn
   msg <- case commit of
     Nothing -> return $ failureMessage "Too far back"
@@ -241,8 +241,8 @@ handleUndo user state = do
 
 handleRedo :: ASUserClient -> MVar ServerState -> IO ()
 handleRedo user state = do
-  curState <- readMVar state
-  commit <- DB.redo (dbConn curState)
+  conn <- dbConn <$> readMVar state
+  commit <- DB.redo conn
   msg <- case commit of
     Nothing -> return $ failureMessage "Too far forwards"
     (Just c) -> return $ ServerMessage Redo Success (PayloadCommit c)

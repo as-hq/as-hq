@@ -39,13 +39,6 @@ import Database.Redis (Connection)
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.Either
 
--- list of temp edges
--- remove edges method
--- commit edges
-
--- check for cycles method
--- do rollback in error
-
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Regular eval route
 
@@ -67,7 +60,7 @@ runDispatchCycle state cs uid = do
     (afterCells, cellLists) <- evalChain conn initValuesMap cellsToEval -- start with current cells, then go through descendants
     -- Apply endware
     finalizedCells <- lift $ EE.evalEndware state afterCells uid roots
-    let transaction = Transaction uid sid roots cellsToEval finalizedCells cellLists
+    let transaction = Transaction uid sid roots finalizedCells cellLists
     broadcastCells <- DB.updateAfterEval conn transaction -- atomically performs DB ops
     return broadcastCells
   runEitherT $ rollbackGraphIfError errOrCells

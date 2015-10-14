@@ -37,7 +37,10 @@ initUserFromMessageAndConn (ClientMessage _ (PayloadInit (ASInitConnection uid))
 sendMessage :: (ToJSON a, Show a) => a -> WS.Connection -> IO ()
 sendMessage msg conn = do 
   WS.sendTextData conn (encode msg)
-  printWithTime $ "Server sent message: " -- ++ (show msg)
+  let msgDisp = show msg
+  if (length msgDisp < 500)
+    then printWithTime ("Server sent message: " ++ msgDisp)
+    else printWithTime ("Server sent message (truncated): " ++ (take 500 msgDisp))
 
 lastN :: Int -> [a] -> [a]
 lastN n xs = let m = length xs in drop (m-n) xs
@@ -104,8 +107,8 @@ isAllRight results = all id $ map isRight results
 deleteSubset :: (Eq a) => [a] -> [a] -> [a]
 deleteSubset subset = filter (\e -> L.notElem e subset)
 
-isNonEmptyCell :: ASCell -> Bool 
-isNonEmptyCell = ((/=) "") . expression . cellExpression
+isEmptyCell :: ASCell -> Bool 
+isEmptyCell = ((==) "") . expression . cellExpression
 
 liftEitherTuple :: Either b (a0, a1) -> (Either b a0, Either b a1)
 liftEitherTuple (Left b) = (Left b, Left b)
