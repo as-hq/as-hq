@@ -137,16 +137,20 @@ describe('backend', () => {
     });
   }
 
+  function python(loc, xp) {
+    return cell(loc, xp, 'py');
+  }
+
+  function r(loc, xp) {
+    return cell(loc, xp, 'r');
+  }
+
   function valueD(val) {
     return { tag: 'ValueD', contents: val };
   }
 
   function valueI(val) {
     return { tag: 'ValueI', contents: val };
-  }
-
-  function valueNothing() {
-    //TODO
   }
 
   function equalValues(val1, val2) {
@@ -164,6 +168,24 @@ describe('backend', () => {
         fulfill: (result) => {
           let [{ cellValue }] = Converter.clientCellsFromServerMessage(result);
           expect(equalValues(cellValue, val)).toBe(true);
+
+          fulfill();
+        },
+        reject: reject
+      });
+    });
+  }
+
+  function shouldBeNothing(loc) {
+    return promise((fulfill, reject) => {
+      console.log(`${loc} should be nothing`);
+
+      API.test(() => {
+        API.sendGetRequest([ Util.excelToLoc(loc) ]);
+      }, {
+        fulfill: (result) => {
+          let message = Converter.clientCellsFromServerMessage(result);
+          expect(message.length).toBe(0);
 
           fulfill();
         },
@@ -290,24 +312,16 @@ describe('backend', () => {
 
       it('should evaluate at all', (done) => {
         _do([
-          cell('A1', '1 + 1', 'py'),
+          python('A1', '1 + 1'),
           shouldBe('A1', valueI(2)),
-          exec(done)
-        ]);
-      });
-
-      xit('should evaluate a Python cell', (done) => {
-        _do([
-          cellsOf('py1'),
-          shouldBe('A1', valueI(1)),
           exec(done)
         ]);
       });
 
       it('should evaluate two Python cells, dependent', (done) => {
         _do([
-          cell('A1', '1 + 1', 'py'),
-          cell('A2', 'A1 + 1', 'py'),
+          python('A1', '1 + 1'),
+          python('A2', 'A1 + 1'),
           shouldBe('A1', valueI(2)),
           shouldBe('A2', valueI(3)),
           exec(done)
@@ -316,26 +330,23 @@ describe('backend', () => {
 
       it('should evaluate a range and expand it', (done) => {
         _do([
-          cell('A1', 'range(10)', 'py'),
+          python('A1', 'range(10)'),
           _forM_(_.range(10), (i) => {
-            let j = i + 1;
-            return shouldBe(`A${j}`, valueI(i));
+            return shouldBe(`A${i + 1}`, valueI(i));
           }),
           exec(done)
         ]);
       });
 
-      xit('should shrink a range based on a dependency', (done) => {
-        // TODO: this doesn't work yet because valueNothing doesn't work
+      it('should shrink a range based on a dependency', (done) => {
         _do([
-          cell('A1', '10', 'py'),
-          cell('B1', 'range(A1)', 'py'),
+          python('A1', '10'),
+          python('B1', 'range(A1)'),
           _forM_(_.range(10), (i) => {
-            let j = i + 1;
-            return shouldBe(`B${j}`, valueI(i));
+            return shouldBe(`B${i + 1}`, valueI(i));
           }),
-          cell('A1', '1', 'py'),
-          shouldBe('B2', valueNothing()),
+          python('A1', '1'),
+          shouldBeNothing('B2'),
           exec(done)
         ]);
       });
