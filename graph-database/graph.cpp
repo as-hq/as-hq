@@ -74,8 +74,8 @@ DAG& DAG::updateDAG(DAG::Vertex toLoc, const DAG::VertexSet& fromLocs, bool addT
 		toFromAdjList[toLoc].insert(fl);
 	}
 
-	// cout << "Updated graph in update dag: " << endl;
-	// showGraph(); 
+	cout << "Updated graph in update dag: " << endl;
+	showGraph(); 
 	return *this; 
 }
 

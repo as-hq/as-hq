@@ -177,11 +177,11 @@ recoupleList conn key = do
 -- Commits
 
 -- TODO: need to deal with large commit sizes and max number of commits
+-- TODO: need to delete blank cells from the DB. (Otherwise e.g. if you delete a
+-- a huge range, you're going to have all those cells in the DB doing nothing.)
 
 -- | Deal with updating all DB-related things after an eval
 -- | takes (roots, beforeCells, afterCells)
--- returns the complete list of cells to be sent to user
--- (e.g. modifying a list changes the expressions of all the other cells)
 updateAfterEval :: Connection -> ASTransaction -> EitherTExec [ASCell]
 updateAfterEval conn (Transaction uid sid roots beforeCells afterCells lists) = do 
   let newListCells            = concat $ map snd lists

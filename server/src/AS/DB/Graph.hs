@@ -82,5 +82,5 @@ clear :: IO ()
 clear = runZMQ $ do
     reqSocket <- socket Req
     connect reqSocket S.graphDbHost
-    send reqSocket [] $ BC.pack "clear"
+    send reqSocket [] $ BC.pack "\"clear\""
     return ()

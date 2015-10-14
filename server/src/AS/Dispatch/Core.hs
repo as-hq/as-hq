@@ -138,7 +138,7 @@ evalChain conn valuesMap (c@(Cell loc xp _ ts):cs) = do
       let newValuesMap = M.insert (IndexRef loc) cv valuesMap
       (restCells, restLists) <- evalChain conn newValuesMap cs
       return $ ((Cell loc xp cv ts):restCells, restLists)
--- The Haskell way is probably to write this using foldM somehow, but that's not very urgent. 
+-- TODO: The Haskell way is probably to write this using foldM somehow, but that's not very urgent. 
 
 -- | If a cell C contains a 1D or 2D list, it'll be represented in the grid as a matrix. 
 -- This function takes in the starting cell with the starting expression, and creates the list 
