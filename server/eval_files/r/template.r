@@ -27,10 +27,10 @@ result = tryCatch({
 }, error = function(e) {
     isError <<- TRUE
 	err = paste0("'error': \'Error: ", gsub("'",'"',e$message), "\'")
-	err_type = "'err_type': \'try-error\'"
+	errType = "'errType': \'try-error\'"
 	position = "'position': -1" # TODO figure out line number of stacktrace in r
 	file = paste0("'file': ", "\'", "run.r", "\'") #TODO get blamed file
-	paste0("{", err, ", ", err_type, ", ", position, ", ", file, "}")
+	paste0("{", err, ", ", errType, ", ", position, ", ", file, "}")
 }, finally = function() {
 	# nothing here
 })
