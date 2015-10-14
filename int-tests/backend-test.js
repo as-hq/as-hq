@@ -145,6 +145,10 @@ describe('backend', () => {
     return { tag: 'ValueI', contents: val };
   }
 
+  function valueNothing() {
+    //TODO
+  }
+
   function equalValues(val1, val2) {
     return _.isEqual(val1, val2);
   }
@@ -260,7 +264,7 @@ describe('backend', () => {
   });
 
   describe('eval', () => {
-    describe('initial eval', () => {
+    describe('eval', () => {
       beforeAll((done) => {
         _do([
           logP('Initializing...'),
@@ -279,6 +283,7 @@ describe('backend', () => {
           logP('Clearing sheet...'),
           //TODO: clear(),
           logP('Finished preparing.'),
+          logP('==========================STARTING TEST=========================='),
           exec(done)
         ]);
       });
@@ -299,7 +304,7 @@ describe('backend', () => {
         ]);
       });
 
-      xit('should evaluate two Python cells, dependent', (done) => {
+      it('should evaluate two Python cells, dependent', (done) => {
         _do([
           cell('A1', '1 + 1', 'py'),
           cell('A2', 'A1 + 1', 'py'),
@@ -309,24 +314,34 @@ describe('backend', () => {
         ]);
       });
 
-      xit('should evaluate a range and expand it', (done) => {
+      it('should evaluate a range and expand it', (done) => {
         _do([
           cell('A1', 'range(10)', 'py'),
           _forM_(_.range(10), (i) => {
-            return shouldBe(`A${i}`, valueI(i));
+            let j = i + 1;
+            return shouldBe(`A${j}`, valueI(i));
           }),
+          exec(done)
+        ]);
+      });
+
+      xit('should shrink a range based on a dependency', (done) => {
+        // TODO: this doesn't work yet because valueNothing doesn't work
+        _do([
+          cell('A1', '10', 'py'),
+          cell('B1', 'range(A1)', 'py'),
+          _forM_(_.range(10), (i) => {
+            let j = i + 1;
+            return shouldBe(`B${j}`, valueI(i));
+          }),
+          cell('A1', '1', 'py'),
+          shouldBe('B2', valueNothing()),
           exec(done)
         ]);
       });
     });
 
     describe('repl eval', () => {
-    });
-
-    describe('update propagation', () => {
-    });
-
-    describe('dag updates', () => {
     });
   });
 
