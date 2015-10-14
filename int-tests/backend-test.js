@@ -16,8 +16,12 @@ describe('backend', () => {
     return new Promise((fulfill, reject) => { fulfill(); });
   }
 
-  function cellFile(filename) {
-    //TODO
+  function locFromExcel(exLoc) {
+    return Util.excelToLoc(exLoc);
+  }
+
+  function locToExcel(loc) {
+    return Util.locToExcel(loc);
   }
 
   //(a -> (), a -> ()) -> (() -> Promise a)
@@ -129,7 +133,7 @@ describe('backend', () => {
         'R': 'R'
       };
       let cell = Converter.clientToASCell(
-        { range: Util.excelToLoc(loc) },
+        { range: locFromExcel(loc) },
         { exp: xp, lang: { Server: langMap[lang] } }
       );
       let msg = Converter.createEvalRequestFromASCell(cell);
@@ -142,7 +146,25 @@ describe('backend', () => {
   }
 
   function r(loc, xp) {
-    return cell(loc, xp, 'r');
+    return cell(loc, xp, 'R');
+  }
+
+  function copy(rng1, rng2) {
+    return apiExec(() => {
+      API.sendCopyRequest([rng1, rng2].map(locFromExcel));
+    });
+  }
+
+  function undo() {
+    return apiExec(() => {
+      API.sendUndoRequest();
+    });
+  }
+
+  function redo() {
+    return apiExec(() => {
+      API.sendRedoRequest();
+    });
   }
 
   function valueD(val) {
@@ -217,30 +239,6 @@ describe('backend', () => {
     });
   }
 
-  function cellsOf(testId) {
-    let files = fs.readdirSync('./eval-tests');
-    let acc = [];
-
-    let grp = 0;
-    while (true) {
-      let grpName = `${testId}$${grp}`;
-      let relevantFiles = files.filter((fname) => fname.indexOf(grpName) === 0 );
-
-      if (relevantFiles.length === 0) break;
-
-      relevantFiles.forEach((fname) => {
-        let [__, cellLoc, cellLang] = fname.match(/^[^\$]*\$[^\$]*\$([^\.]*)\.([^\$]*)$/);
-        let cellXp = fs.readFileSync(`./eval-tests/${fname}`, 'utf8');
-
-        acc = acc.concat(cell(cellLoc, cellXp, cellLang));
-      });
-
-      grp++;
-    }
-
-    return _doDefer(acc);
-  }
-
   // -- MONAD OPERATIONS
 
   // [() -> Promise a] -> Promise ()
@@ -272,6 +270,13 @@ describe('backend', () => {
   });
 
   describe('crud', () => {
+    beforeAll((done) => {
+      _do([
+        logP('Initializing...'),
+        exec(done)
+      ]);
+    });
+
     it('clears a sheet', () => {
     });
 
@@ -285,31 +290,31 @@ describe('backend', () => {
     });
   });
 
-  describe('eval', () => {
+  describe('dispatch', () => {
+    beforeAll((done) => {
+      _do([
+        logP('Initializing...'),
+        init(),
+        logP('Opening sheet...'),
+        openSheet(),
+        logP('Syncing window...'),
+        syncWindow(),
+        logP('Set up environment.'),
+        exec(done)
+      ]);
+    });
+
+    beforeEach((done) => {
+      _do([
+        logP('Clearing sheet...'),
+        clear(), // every it() starts with a clear spreadsheet
+        logP('Finished preparing.'),
+        logP('==========================STARTING TEST=========================='),
+        exec(done)
+      ]);
+    });
+
     describe('eval', () => {
-      beforeAll((done) => {
-        _do([
-          logP('Initializing...'),
-          init(),
-          logP('Opening sheet...'),
-          openSheet(),
-          logP('Syncing window...'),
-          syncWindow(),
-          logP('Set up environment.'),
-          exec(done)
-        ]);
-      });
-
-      beforeEach((done) => {
-        _do([
-          logP('Clearing sheet...'),
-          //TODO: clear(),
-          logP('Finished preparing.'),
-          logP('==========================STARTING TEST=========================='),
-          exec(done)
-        ]);
-      });
-
       it('should evaluate at all', (done) => {
         _do([
           python('A1', '1 + 1'),
@@ -354,22 +359,102 @@ describe('backend', () => {
 
     describe('repl eval', () => {
     });
+
+    describe('cell transforms', () => {
+      describe('copy/paste', () => {
+        it('should copy and paste', (done) => {
+          _do([
+            python('A1', '1'),
+            copy('A1', 'A2'),
+            shouldBe('A2', valueI(1)),
+            exec(done)
+          ]);
+        });
+
+        it('should copy and paste a reference', (done) => {
+          _do([
+            python('A1', '1'),
+            python('A2', '2'),
+            python('B1', 'A1'),
+            copy('B1', 'B2'),
+            shouldBe('B2', valueI(2)),
+            exec(done)
+          ]);
+        });
+
+        it('should handle $A1 references', (done) => {
+          _do([
+            python('A1', '1'),
+            python('B1', '$A1'),
+            copy('B1', 'C1'),
+            shouldBe('C1', valueI(1)),
+            exec(done)
+          ]);
+        });
+
+        it('should copy and paste a range reference', (done) => {
+          _do([
+            python('A1', 'range(10)'),
+            python('B1', '[x ** 2 for x in range(10)]'),
+            python('C1', 'A1:A10.sum()'),
+            copy('C1', 'D1'),
+            shouldBe('D1', valueI(285)),
+            exec(done)
+          ]);
+        });
+
+        it('should tessellate a range', (done) => {
+          let cs = {
+            '00': 0,
+            '10': 1,
+            '01': 2,
+            '11': 3
+          };
+
+          _do([
+            python('A1', '[[0,1],[2,3]]'),
+            copy('A1:B2', 'C1:F4'),
+            _forM_(_.range(4), (col) => {
+              return _forM_(_.range(4), (row) => {
+                return shouldBe(
+                  locToExcel({ col: col + 2, row: row + 1 }),
+                  valueI(cs[`${col % 2}${row % 2}`])
+                );
+              });
+            }),
+            exec(done)
+          ]);
+        });
+      });
+    });
+
+    describe('vcs', () => {
+      describe('undo', () => {
+        it('should undo a simple request', (done) => {
+          _do([
+            python('A1', '10'),
+            undo(),
+            shouldBeNothing('A1'), // since cell should be clear
+            exec(done)
+          ]);
+        });
+
+        it('should undo a range request', (done) => {
+          _do([
+            python('A1', 'range(10)'),
+            undo(),
+            _forM_(_.range(10), (i) => {
+              return shouldBeNothing(`A${i + 1}`);
+            }),
+            exec(done)
+          ]);
+        });
+      });
+
+      describe('redo', () => {
+
+      });
+    });
   });
 
-  describe('cell transforms', () => {
-    describe('cut/paste', () => {
-    });
-
-    describe('copy/paste', () => {
-    });
-  });
-
-  describe('vcs', () => {
-    describe('undo', () => {
-    });
-
-    describe('redo', () => {
-
-    });
-  });
 });
