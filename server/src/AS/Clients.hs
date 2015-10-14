@@ -90,10 +90,11 @@ broadcast state message = do
   forM_ ucs $ \(UserClient _ conn _ _) -> U.sendMessage message conn
 
 sendBroadcastFiltered :: (Client c) => c -> MVar ServerState -> ASServerMessage -> IO ()
-sendBroadcastFiltered cl state msg@(ServerMessage _ (Failure e) _) = sendToOriginal cl msg          -- send error to original user only
-sendBroadcastFiltered _ state msg@(ServerMessage Delete Success _) = broadcast state msg            -- broadcast all deletes (scrolling only refreshes non-deleted cells)
-sendBroadcastFiltered _ state msg@(ServerMessage _ Success (PayloadCommit _)) = broadcast state msg -- broadcast all undo/redos for same reason
-sendBroadcastFiltered _ state msg = liftIO $ do
+sendBroadcastFiltered cl state msg@(ServerMessage _ (Failure e) _) = sendToOriginal cl msg     -- send error to original user only
+sendBroadcastFiltered _  state msg@(ServerMessage Delete _ _) = broadcast state msg            -- broadcast all deletes (scrolling only refreshes non-deleted cells)
+sendBroadcastFiltered _  state msg@(ServerMessage Clear _ _) = broadcast state msg             -- broadcast all clears for the same reason
+sendBroadcastFiltered _  state msg@(ServerMessage _ _ (PayloadCommit _)) = broadcast state msg -- broadcast all undo/redos for same reason
+sendBroadcastFiltered _  state msg = liftIO $ do
   (State ucs _ _) <- readMVar state
   broadcastFiltered msg ucs
 
@@ -218,8 +219,8 @@ handleDelete user state payload = do
                PayloadR rng -> rangeToIndices rng
   conn <- dbConn <$> readMVar state
   let newCells = map (\l -> Cell l (Expression "" Python) NoValue []) locs -- TODO 
-  msg' <- DP.runDispatchCycle state newCells (userId user)
-  sendBroadcastFiltered user state msg'
+  msg <- DP.runDispatchCycle state newCells (userId user)
+  sendBroadcastFiltered user state msg
 
 handleClear :: ASUserClient -> MVar ServerState -> IO ()
 handleClear user state = do
