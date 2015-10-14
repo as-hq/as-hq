@@ -12,7 +12,7 @@ public:
 	typedef std::unordered_map<Vertex,VertexSet> AdjacencyList;
 
 	DAG& updateDAG(DAG::Vertex toLoc, const DAG::VertexSet& fromLocs, bool addToCache=true);
-  void clearDAG();
+  DAG& clearDAG();
 
   //TODO: in this implementation, the last entry of the vector does NOT actually
   //represent a vertex; it's either an OK or some error message, indicating the outcome

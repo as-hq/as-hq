@@ -51,7 +51,7 @@ std::vector<std::string> processRequest(DAG& dag, std::string& request){
         }
         return {"OK"};
     } else if (type == "Clear") {
-        dag.clearDAG();
+        (&dag)->~DAG();
         std::cout << "DAG cleared.";
         return {"OK"};
     } else if (type == "RollbackGraph") { 
