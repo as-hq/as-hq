@@ -104,8 +104,8 @@ data ASCellTag =
   deriving (Show, Read, Eq, Generic)
 
 data ASCell = Cell {cellLocation :: ASIndex, 
-					cellExpression :: ASExpression,
-					cellValue :: ASValue,
+          cellExpression :: ASExpression,
+          cellValue :: ASValue,
           cellTags :: [ASCellTag]} deriving (Show, Read, Eq, Generic)
 
 type ListKey = String
@@ -206,12 +206,12 @@ data ASExecError =
   | EvaluationError {evalErrorDesc :: String}
   | DependenciesLocked {lockUserId :: ASUserId} 
   | DBNothingException {badLocs :: [ASIndex]}
-  | DBGraphUnreachable 
+  | DBGraphUnreachable -- failed to connect
+  | CircularDepError {badLoc :: ASIndex} 
   | NetworkDown
   | ResourceLimitReached
   | InsufficientPermissions
   | NonUniqueIdentifier
-  | CopyNonexistentDependencies
   | ParseError
   | ExpressionNotEvaluable
   | ExecError

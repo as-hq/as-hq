@@ -49,9 +49,9 @@ getInlineDelim lang = case lang of
 
 jsonDeserialize :: ASLanguage -> String -> String -> String
 jsonDeserialize lang objType jsonRep = 
-	let 
-		dlm = getBlockDelim lang
-	in case lang of 
+  let 
+    dlm = getBlockDelim lang
+  in case lang of 
     R       -> objType ++ "$(" ++ jsonRep ++ ")" ++ dlm
     Python  -> objType ++ ".deserialize(" ++ jsonRep ++ ")" ++ dlm
     OCaml   -> "Serialization# " ++ objType ++ " " ++ jsonRep ++ dlm
@@ -67,12 +67,12 @@ bool lang str = case lang of
 
 showValue :: ASLanguage -> ASValue -> String
 showValue lang v = case v of
-  ValueS s 			-> show s
+  ValueS s       -> show s
   ValueI i      -> show i
-  ValueD d 			-> show d
+  ValueD d       -> show d
   ValueB b      -> bool lang $ show b
-  ValueL l 			-> toListStr lang $ fmap (showValue lang) l
-  ValueObject o js 	-> jsonDeserialize lang o js
+  ValueL l       -> toListStr lang $ fmap (showValue lang) l
+  ValueObject o js   -> jsonDeserialize lang o js
 
 -------------------------------------------------------------------------------------------------------------------------------------------------
 -- General parsing functions

@@ -22,7 +22,8 @@ data ASTransaction = Transaction {transactionUserId :: ASUserId,
 data GraphQuery = 
   GetDescendants |
   GetImmediateAncestors |
-  SetRelations 
+  SetRelations | 
+  RollbackGraph
   deriving (Show)
 
 

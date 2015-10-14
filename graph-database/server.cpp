@@ -29,26 +29,37 @@ std::vector<std::string> processRequest(DAG& dag, std::string& request){
     else if (type == "GetImmediateAncestors")
         return dag.getImmediateAncestors(requestParts);
     else if (type == "SetRelations"){
-        int i = 0 ; 
+        dag.clearPrevCache(); 
+
+        int i = 0; 
         while (i < requestParts.size()) {
             // std::cout << "processing request part: " << requestParts[i] << std::endl;
             // split the relation
             std::vector<std::string> relation;
             boost::split(relation, requestParts[i], boost::is_any_of("&"));
 
+            DAG::Vertex toLoc = relation[0]; 
+            DAG::VertexSet fromLocs;
+            for (int i = 1; i < relation.size(); ++i)
+                fromLocs.insert(relation[i]);
+
             // set the relation
-            dag.updateDAG(relation);
+            dag.updateDAG(toLoc, fromLocs);
+            if (dag.containsCycle(toLoc))
+                return {toLoc, "CIRC_DEP"};
             i++;
         }
-
-        std::vector<std::string> empty;
-        return empty;
+        return {"OK"};
     } else if (type == "Clear") {
         (&dag)->~DAG();
         std::cout << "DAG cleared.";
-        std::vector<std::string> empty;
-        return empty;
+        return {"OK"};
+    } else if (type == "RollbackGraph") { 
+        dag.rollback(); 
+        return {"OK"};
     }
+
+    return {"UNKNOWN_REQUEST_TYPE"};
 }
 
 
@@ -67,7 +78,6 @@ int main () {
     DAG dag; 
 
     while (true) {
-
         /* Wait for next multi-part message from client */
         zmq::message_t requestMsg;
         clock_t begin = clock(); 
@@ -80,7 +90,6 @@ int main () {
         // std::cout << "Received message: " << request << std::endl;
 
         std::vector<std::string> response = processRequest(dag,request);
-        response.push_back("OK"); //TODO: error handling
 
         clock_t end = clock(); 
         std::cout << "Time taken: " << (double)(end - begin)/CLOCKS_PER_SEC << std::endl; 

@@ -24,5 +24,5 @@ except Exception as e:
 	fname = 'AlphaSheets Python evaluator'
 	err = repr(e).replace("\'","").replace("'",'"')
 	pos = exc_tb.tb_lineno - 20 # subtract template lines
-	errJson = {'err_type': repr(exc_type), 'file': fname, 'position': pos, 'error': err}
+	errJson = {'errType': repr(exc_type), 'file': fname, 'position': pos, 'error': err}
 	result = errJson

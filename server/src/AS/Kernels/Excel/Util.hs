@@ -21,9 +21,9 @@ import System.IO.Unsafe
 matrixTo2DList :: EMatrix -> [[EValue]]
 matrixTo2DList (EMatrix c 1 v) = [V.toList v]
 matrixTo2DList (EMatrix c r v) = (V.toList firstRow):otherRows
-	where
-		(firstRow,rest) = V.splitAt c v
-		otherRows = matrixTo2DList (EMatrix c (r-1) rest)
+  where
+    (firstRow,rest) = V.splitAt c v
+    otherRows = matrixTo2DList (EMatrix c (r-1) rest)
 
 -- | Extracts an element of a matrix
 matrixIndex :: (Int,Int) -> EMatrix -> EValue
@@ -32,8 +32,8 @@ matrixIndex (c,r) (EMatrix numCols numRows v) = (V.!) v (r*numCols+c)
 -- | Cast ASValue (from RefValMap) to an Excel entity. Ignoring ValueL for now; cannot be in the map.  
 asValueToEntity :: ASValue -> Maybe EEntity
 asValueToEntity v = case (toEValue v) of 
-	Nothing -> Nothing
-	Just v -> Just $  EntityVal v
+  Nothing -> Nothing
+  Just v -> Just $  EntityVal v
 
 -- | Returns the dimensions of a matrix in col,row format
 matrixDim :: EMatrix -> (Int,Int) 
@@ -42,8 +42,8 @@ matrixDim (EMatrix c r _) = (c,r)
 -- | If a matrix is a 1xn or nx1, return that vector, otherwise return Nothing
 to1D :: EMatrix -> Maybe (V.Vector EValue)
 to1D (EMatrix c r v) 
-	| or [c==1,r==1] = Just v
-	| otherwise = Nothing
+  | or [c==1,r==1] = Just v
+  | otherwise = Nothing
 
 -------------------------------------------------------------------------------------------------------------
 -- | Conversions to/from EResult
@@ -134,17 +134,17 @@ dimension (RangeRef (Range _ ((a,b),(c,d)))) = (c-a+1,d-b+1)
 scalarizeLoc :: ASReference -> ASReference -> Maybe ASReference
 scalarizeLoc (IndexRef i) j@(IndexRef _) = Just j
 scalarizeLoc (IndexRef (Index sh1 (e,f))) r@(RangeRef (Range sh2 ((a,b),(c,d)))) 
-	| sh1 /= sh2 = Nothing
-	| h /= 1 && w/= 1 = Nothing
-	| h == 1 = if e>=a && e<=c 
-		then Just $ IndexRef $ Index sh1 (e,b) -- intersect column;  b==d
-		else Nothing
-	| w == 1 = if f>=b && f<=d
-		then Just $ IndexRef $ Index sh1 (a,f) -- intersect row;  a==c
-		else Nothing
-		where
-			h = d-b+1
-			w = c-a+1
+  | sh1 /= sh2 = Nothing
+  | h /= 1 && w/= 1 = Nothing
+  | h == 1 = if e>=a && e<=c 
+    then Just $ IndexRef $ Index sh1 (e,b) -- intersect column;  b==d
+    else Nothing
+  | w == 1 = if f>=b && f<=d
+    then Just $ IndexRef $ Index sh1 (a,f) -- intersect row;  a==c
+    else Nothing
+    where
+      h = d-b+1
+      w = c-a+1
 
 -- | TODO: finish
 -- | Find the rectangular intersection of two locations (space operator in Excel)
@@ -155,12 +155,12 @@ locIntersect a b = Just b
 -- | Used for sumif-type functions to "extend" the second range
 matchDimension :: ERef -> ERef -> ERef
 matchDimension (ERef r1) (ERef r2) = if (a,b) == (c,d)
-	then ERef $ IndexRef $ Index sh (a,b)
-	else ERef $ RangeRef $ Range sh ((a,b),(c,d))
-	where
-		(a,b) = topLeftLoc r2
-		(c,d) = (a + getWidth r1 -1, b + getHeight r1 -1)
-		sh = shName r2
+  then ERef $ IndexRef $ Index sh (a,b)
+  else ERef $ RangeRef $ Range sh ((a,b),(c,d))
+  where
+    (a,b) = topLeftLoc r2
+    (c,d) = (a + getWidth r1 -1, b + getHeight r1 -1)
+    sh = shName r2
 
 extractRefs :: [EEntity] -> [ERef]
 extractRefs [] = []
@@ -172,15 +172,15 @@ extractRefs ((EntityRef e):es) = e:(extractRefs es)
 -- | Make sure that the list of lists is rectangular
 aligned :: [[a]] -> Bool
 aligned lst = allTheSame lenRows
-	where 
-		lenRows = map length lst
+  where 
+    lenRows = map length lst
 
 -- | [[1,2],[3,4]] -> 1 if not empty
 topLeftLst :: [[a]] -> Maybe a
 topLeftLst b 
-	| (length b == 0) = Nothing
-	| (length (head b) == 0) = Nothing
-	| otherwise = Just $ (head . head) b
+  | (length b == 0) = Nothing
+  | (length (head b) == 0) = Nothing
+  | otherwise = Just $ (head . head) b
 
 -- | Check if all elements of a list are the same
 allTheSame :: (Eq a) => [a] -> Bool
@@ -189,8 +189,8 @@ allTheSame xs = and $ map (== head xs) (tail xs)
 -- | All the elements in the list are either 1 or equal to some common value [1,3,3,1,1,3]
 allTheSameOrOne :: (Eq a, Num a) => [a] -> Bool
 allTheSameOrOne xs = allTheSame notOnes
-	where
-		(ones,notOnes) = partition (==1) xs
+  where
+    (ones,notOnes) = partition (==1) xs
 
 -- | Equivalent to "is not a matrix"
 isBasic :: EEntity -> Bool
@@ -207,20 +207,20 @@ errorVal _ = False
 -- | If any element of the matrix is an error, return the first such instance; else return the matrix
 matrixError :: EMatrix -> ThrowsError EMatrix
 matrixError m@(EMatrix _ _ v) = do 
-	let errs = V.filter (errorVal) v
-	if (V.null errs)
-		then Right m
-		else do 
-			let (EValueE s) = V.head errs
-			Left $ Default s
+  let errs = V.filter (errorVal) v
+  if (V.null errs)
+    then Right m
+    else do 
+      let (EValueE s) = V.head errs
+      Left $ Default s
 
 getError :: [EError] -> EError
 getError = head
 
 compressErrors :: [ThrowsError a] -> ThrowsError [a]
 compressErrors x 
-	| (any isLeft x) = Left $ getError (lefts x)
-	| otherwise      = Right $ rights x
+  | (any isLeft x) = Left $ getError (lefts x)
+  | otherwise      = Right $ rights x
 
 
 

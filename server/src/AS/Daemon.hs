@@ -41,8 +41,8 @@ getConnByLoc loc state = do
   (State users daemons _) <- readMVar state
   let daemon = L.filter (\(DaemonClient l _ _) -> (l == loc)) daemons
   case daemon of 
-		[] -> return Nothing
-		d -> return $ Just $ daemonConn $  L.head d 
+    [] -> return Nothing
+    d -> return $ Just $ daemonConn $  L.head d 
 
 -- | Creates a streaming daemon for this cell if one of the tags is a streaming tag. 
 possiblyCreateDaemon :: MVar ServerState -> ASUserId -> ASCell -> IO ()
@@ -66,8 +66,8 @@ createDaemon state s loc msg = do -- msg is the message that the daemon will sen
   putStrLn $ "NAME: " ++ (show name)
   running <- isRunning name
   if (running)
-  	then return ()
-  	else do 
+    then return ()
+    else do 
       runDetached (Just name) def $ do 
         let daemonId = T.pack $ getDaemonName loc
         let initMsg = ClientMessage Acknowledge (PayloadDaemonInit (ASInitDaemonConnection daemonId loc))
