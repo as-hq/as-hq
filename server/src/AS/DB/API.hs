@@ -135,12 +135,16 @@ setListLocations conn listKey locs =
 -- | returns: (uncoupledCells, decoupledCells)
 -- Note: this operation is O(n)
 -- TODO move to C client because it's expensive
-decoupleList :: Connection -> String -> IO ([ASCell], [ASCell])
+decoupleList :: Connection -> ListKey -> IO ([ASCell], [ASCell])
 decoupleList conn listString = do
   let listKey = B.pack listString
+  let sheetListsKey = DU.getSheetListsKey $ DU.getSheetIdFromListKey listString
   locs <- runRedis conn $ do
-    Right result <- smembers listKey
-    del [listKey]
+    TxSuccess result <- multiExec $ do
+      result <- smembers listKey
+      del [listKey]
+      srem sheetListsKey [listKey]
+      return result
     return result
   printWithTime $ "got coupled locs: " ++ (show locs)
   case locs of 
@@ -150,6 +154,12 @@ decoupleList conn listString = do
       let decoupledCells = map DU.decoupleCell listCells 
       return (listCells, decoupledCells)
 
+recoupleList :: Connection -> ListKey -> IO ()
+recoupleList conn key = do
+  let locs = DU.getLocationsFromListKey key
+  locsExist <- locationsExist conn locs
+  let locs' = U.zipFilter $ zip locs locsExist 
+  setListLocations conn key locs'
 -- TODO fix
 --getColumnCells :: Connection -> ASIndex -> IO [Maybe ASCell]
 --getColumnCells conn (Column sheetid col) = do
@@ -177,22 +187,22 @@ updateAfterEval conn (Transaction uid sid roots beforeCells afterCells lists) = 
   let newListCells            = concat $ map snd lists
       afterCellsWithLists     = afterCells ++ newListCells
       afterCellLocs           = map cellLocation afterCellsWithLists
-  listMembersChanged <- liftIO $ DU.getListIntersections conn sid afterCellLocs 
-  decoupleResult     <- lift $ mapM (decoupleList conn) listMembersChanged
+  listKeysChanged <- liftIO $ DU.getListIntersections conn sid afterCellLocs 
+  decoupleResult  <- lift $ mapM (decoupleList conn) listKeysChanged
   let (coupledCells, decoupledCells) = U.liftListTuple decoupleResult
       afterCells'                    = U.mergeCells afterCellsWithLists decoupledCells
       beforeCells'                   = U.mergeCells beforeCells coupledCells
   liftIO $ setCells afterCells'
   liftIO $ mapM_ (\(key, cells) -> setListLocations conn key (map cellLocation cells)) lists
-  liftIO $ addCommit conn uid (beforeCells', afterCells')
+  liftIO $ addCommit conn uid (beforeCells', afterCells') listKeysChanged
   liftIO $ printWithTime "added commits"
   right afterCells'
 
 -- | Creates and pushes a commit to the DB
-addCommit :: Connection -> ASUserId -> ([ASCell], [ASCell]) -> IO ()
-addCommit conn uid (b,a) = do 
+addCommit :: Connection -> ASUserId -> ([ASCell], [ASCell]) -> [ListKey] -> IO ()
+addCommit conn uid (b,a) listKeys = do 
   time <- getASTime
-  let commit = ASCommit uid b a time
+  let commit = ASCommit uid b a listKeys time
   pushCommit conn commit
   --putStrLn $ show commit
 
@@ -207,9 +217,10 @@ undo conn = do
     return $ DU.bStrToASCommit justC
   case commit of
     Nothing -> return Nothing
-    Just c@(ASCommit uid b a t) -> do 
+    Just c@(ASCommit uid b a listKeys t) -> do 
       deleteCells conn a 
       setCells b
+      mapM_ (recoupleList conn) listKeys
       return $ Just c
 
 redo :: Connection -> IO (Maybe ASCommit)
@@ -223,9 +234,10 @@ redo conn = do
       _ -> return Nothing
   case commit of
     Nothing -> return Nothing
-    Just c@(ASCommit uid b a t) -> do 
+    Just c@(ASCommit uid b a listKeys t) -> do 
       deleteCells conn b 
       setCells a
+      mapM_ (decoupleList conn) listKeys
       return $ Just c
 
 pushCommit :: Connection -> ASCommit -> IO ()

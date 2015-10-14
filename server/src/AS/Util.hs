@@ -71,6 +71,9 @@ filterNothing l = catMaybes $ filter (not . isNothing) l
 isoFilter :: (a -> Bool) -> [a] -> [b] -> [b]
 isoFilter f pimg img = map snd $ filter (\(a,b) -> f a) $ zip pimg img
 
+zipFilter :: [(a, Bool)] -> [a]
+zipFilter zipped = map fst $ filter (\(_,b) -> b) zipped
+
 isSubsetOf :: Eq a => [a] -> [a] -> Bool
 isSubsetOf [] _ = True
 isSubsetOf f s = all id $ map (\i-> L.elem i s) f

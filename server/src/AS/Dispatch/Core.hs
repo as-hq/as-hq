@@ -92,10 +92,6 @@ setCellsAncestorsInDb conn cells = (flip mapM_) cells (\(Cell loc expr _ ts) -> 
   let deps = getDependencies (locSheetId loc) expr
   G.setRelations [(loc, deps)])
 
-  --if (U.containsTrackingTag (cellTags origCell))
-  --  then return () -- TODO: implement some redundancy in DB for tracking
-  --  else return ()
-
 -- | Return the descendants of a cell, which will always exist but may be locked
 -- TODO: throw exceptions for permissions/locking
 getDescendants :: Connection -> [ASCell] -> EitherTExec [ASIndex]
