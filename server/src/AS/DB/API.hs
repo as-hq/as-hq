@@ -193,6 +193,7 @@ updateAfterEval conn (Transaction uid sid roots beforeCells afterCells lists) = 
       afterCells'                    = U.mergeCells afterCellsWithLists decoupledCells
       beforeCells'                   = U.mergeCells beforeCells coupledCells
   liftIO $ setCells afterCells'
+  liftIO $ deleteCells conn (filter isEmptyCell afterCells')
   liftIO $ mapM_ (\(key, cells) -> setListLocations conn key (map cellLocation cells)) lists
   liftIO $ addCommit conn uid (beforeCells', afterCells') listKeysChanged
   liftIO $ printWithTime "added commits"
