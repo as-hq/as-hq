@@ -12,7 +12,7 @@ import AS.Parsing.Out (getDependencies)
 import AS.DB.Graph as G
 
 import Data.List (zip4,head,partition,nub,intercalate)
-import Data.Maybe (isNothing,fromJust)
+import Data.Maybe (isNothing,fromJust,catMaybes)
 
 import Foreign
 import Foreign.C.Types
@@ -183,11 +183,12 @@ recoupleList conn key = do
 -- | Deal with updating all DB-related things after an eval
 -- | takes (roots, beforeCells, afterCells)
 updateAfterEval :: Connection -> ASTransaction -> EitherTExec [ASCell]
-updateAfterEval conn (Transaction uid sid roots beforeCells afterCells lists) = do 
-  let newListCells            = concat $ map snd lists
-      afterCellsWithLists     = afterCells ++ newListCells
-      afterCellLocs           = map cellLocation afterCellsWithLists
-  listKeysChanged <- liftIO $ DU.getListIntersections conn sid afterCellLocs 
+updateAfterEval conn (Transaction uid sid roots afterCells lists) = do 
+  let newListCells         = concat $ map snd lists
+      afterCellsWithLists  = afterCells ++ newListCells
+      cellLocs             = map cellLocation afterCellsWithLists
+  beforeCells     <- lift $ catMaybes <$> getCells cellLocs
+  listKeysChanged <- liftIO $ DU.getListIntersections conn sid cellLocs 
   decoupleResult  <- lift $ mapM (decoupleList conn) listKeysChanged
   let (coupledCells, decoupledCells) = U.liftListTuple decoupleResult
       afterCells'                    = U.mergeCells afterCellsWithLists decoupledCells

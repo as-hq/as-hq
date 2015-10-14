@@ -12,7 +12,6 @@ import Data.Text hiding (foldr, map)
 data ASTransaction = Transaction {transactionUserId :: ASUserId,
                                   transactionSheetId :: ASSheetId,
                                   roots :: [ASCell], 
-                                  beforeCells :: [ASCell], 
                                   afterCells :: [ASCell],
                                   lists :: [ASList]}
 

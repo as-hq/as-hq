@@ -231,7 +231,7 @@ handleClear user state = do
 
 handleUndo :: ASUserClient -> MVar ServerState -> IO ()
 handleUndo user state = do
-  conn <- fmap dbConn $ readMVar state
+  conn <- dbConn <$> readMVar state
   commit <- DB.undo conn
   msg <- case commit of
     Nothing -> return $ failureMessage "Too far back"
@@ -241,8 +241,8 @@ handleUndo user state = do
 
 handleRedo :: ASUserClient -> MVar ServerState -> IO ()
 handleRedo user state = do
-  curState <- readMVar state
-  commit <- DB.redo (dbConn curState)
+  conn <- dbConn <$> readMVar state
+  commit <- DB.redo conn
   msg <- case commit of
     Nothing -> return $ failureMessage "Too far forwards"
     (Just c) -> return $ ServerMessage Redo Success (PayloadCommit c)

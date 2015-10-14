@@ -40,7 +40,7 @@ sendMessage msg conn = do
   let msgDisp = show msg
   if (length msgDisp < 500)
     then printWithTime ("Server sent message: " ++ msgDisp)
-    else printWithTime ("Server sent message: " ++ (take 500 msgDisp))
+    else printWithTime ("Server sent message (truncated): " ++ (take 500 msgDisp))
 
 lastN :: Int -> [a] -> [a]
 lastN n xs = let m = length xs in drop (m-n) xs
