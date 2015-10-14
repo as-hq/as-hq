@@ -491,6 +491,18 @@ describe('backend', () => {
             exec(done)
           ]);
         });
+
+        it('should trigger eval when a cell is copied into a dependency', (done) => {
+          _do([
+            python('A1', '1'),
+            python('B1', '2'),
+            python('C1', 'B1 + 1'),
+            shouldBe('C1', valueI(3)),
+            copy('A1', 'B1'),
+            shouldBe('C1', valueI(2)),
+            exec(done)
+          ]);
+        });
       });
     });
 
