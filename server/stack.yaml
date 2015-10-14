@@ -8,6 +8,6 @@ extra-deps:
 
 resolver: lts-3.7
 
-# docker:
-#   enable: true
-#   repo: tweag/haskellr:latest
+docker:
+  enable: true
+  repo: alphasheets/backend:latest

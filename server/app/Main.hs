@@ -43,6 +43,7 @@ import Control.Monad.Trans.Either
 main :: IO ()
 main = do
     -- initializations
+    putStrLn "STARTING APP"
     (conn, state) <- initApp
     if isDebug -- set in Settings.hs 
       then initDebug conn >> return ()

@@ -10,11 +10,17 @@ import AS.Parsing.In
 import AS.Config.Settings
 import AS.Util
 
---import qualified Foreign.R as R
---import Foreign.R (SEXP, SEXPTYPE)
---import Language.R.Instance as R
---import Language.R.QQ
+import Foreign.C.String
 
+import qualified Foreign.R as R
+import Foreign.R.Type as R
+import Foreign.R (SEXP, SEXPTYPE)
+import Language.R.Instance as R
+import Language.R as LR
+import Language.R.QQ
+import H.Prelude as H
+
+import Control.Monad.IO.Class
 -- EitherT
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.Either
@@ -25,11 +31,8 @@ import Control.Monad.Trans.Either
 evaluate :: String -> EitherTExec ASValue
 evaluate "" = return NoValue
 evaluate str = do
-    if isDebug 
-        then lift $ writeExecFile R str
-        else return ()
     printWithTimeT "starting R eval"
-    result <- execR str
+    result <- lift $ execR str
     hoistEither $ parseValue R result
 
 evaluateRepl :: String -> EitherTExec ASValue
@@ -39,7 +42,34 @@ evaluateRepl str = left ExecError -- TODO
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Helpers
 
--- TODO merge 
+-- TODO R monad?????! 
+
 execR = return
---execR :: String -> R s String
---execR s = [r| print(s_hs) |]
+--execR :: String -> IO String
+--execR s = do
+--    R.withEmbeddedR R.defaultConfig $ R.runRegion $ do
+--        fmap (H.fromSEXP . R.cast R.SString) [r|
+--library("rjson")
+--library("jpeg")
+--library("party")
+
+--isError = FALSE
+--result = tryCatch({
+--eval(parse(s_hs))
+--}, warning = function(w) {
+--    # nothing here
+--}, error = function(e) {
+--    isError <<- TRUE
+--    err = paste0("'error': \'Error: ", gsub("'",'"',e$message), "\'")
+--    err_type = "'err_type': \'try-error\'"
+--    position = "'position': -1" # TODO figure out line number of stacktrace in r
+--    file = paste0("'file': ", "\'", "run.r", "\'") #TODO get blamed file
+--    paste0("{", err, ", ", err_type, ", ", position, ", ", file, "}")
+--}, finally = function() {
+--    # nothing here
+--})
+
+-- # traceback()
+
+--if (isError) cat(result) else cat(toJSON(result))
+--eval(parse(text=s_hs)) |]

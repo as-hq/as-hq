@@ -73,7 +73,7 @@ printCmd lang str = case (tryParse (replacePrintStmt lang) str) of
     (Left _) -> addPrintCmd lang str
     (Right printed) -> printed 
 
-replacePrintStmt :: ASLanguage -> Parser String -- TODO generalize
+replacePrintStmt :: ASLanguage -> Parser String 
 replacePrintStmt lang = case lang of 
     Python -> do
         spaces >> string "print" >> spaces
@@ -83,6 +83,8 @@ replacePrintStmt lang = case lang of
             else spaces
         arg <- manyTill anyChar (try (closer >> eof))
         return $ "result = " ++ arg
+    R -> manyTill anyChar (try eof) -- TODO
+
 
 splitLastLine :: ASLanguage -> String -> (String, String)
 splitLastLine lang str = case (tryParse (parseLastline lang) (reverse str)) of 
