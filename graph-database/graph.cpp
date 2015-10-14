@@ -23,6 +23,12 @@ bool DAG::clearPrevCache() {
 	prevCache.clear();
 }
 
+void DAG::clearDAG() {
+	toFromAdjList.clear();
+	fromToAdjList.clear();
+	clearPrevCache();
+}
+
 /****************************************************************************************************************************************/
 
 bool DAG::cycleCheckDfs(const Vertex& loc, unordered_map<Vertex,bool>& visited) { 
