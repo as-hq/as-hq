@@ -1,7 +1,6 @@
 import Constants from '../Constants';
 import shortid from 'shortid';
 
-/* This module has general utility functions */
 
 var colors = {"aliceblue":"#f0f8ff","antiquewhite":"#faebd7","aqua":"#00ffff","aquamarine":"#7fffd4","azure":"#f0ffff",
       "beige":"#f5f5dc","bisque":"#ffe4c4","black":"#000000","blanchedalmond":"#ffebcd","blue":"#0000ff","blueviolet":"#8a2be2","brown":"#a52a2a","burlywood":"#deb887",
@@ -431,5 +430,31 @@ export default {
 
   getAgnosticLanguageFromServer(lang) {
     return Constants.Languages[lang];
+  },
+
+  // indexStringToLoc("(a,b)") := {row:a, col:b}
+  indexStringToLoc(indexString) {
+    var ab = indexString.substr(1, indexString.length-2).split(",");
+    return {row : parseInt(ab[0], 10), col: parseInt(ab[1], 10)};
+  },
+
+  /* Gets the top left cell from the listKey. */
+  // listKeyToListHead("I/reafe/(a,b)?(c,d)?LIST") := (a,b)"
+  listKeyToListHead(listKey) {
+    if (listKey.split("?").length < 3 || listKey.split("?")[2] != "LIST") {
+      console.log("There was an error with the format of the listKey. Could not get list head.");
+      return;
+    }
+    return this.indexStringToLoc((listKey.split("?")[0]).split("/")[2]);
+  },
+
+  /* Gets the dimensions of the list from the listKey." */
+  // listKeyToListDimensions("I/reafe/(a,b)?(c,d)?LIST") := (c,d)"
+  listKeyToListDimensions(listKey) {
+    if (listKey.split("?").length < 3 || listKey.split("?")[2] != "LIST") {
+      console.log("There was an error with the format of the listKey. Could not get listDimensions");
+      return;
+    }
+    return this.indexStringToLoc(listKey.split("?")[1]);
   }
 };

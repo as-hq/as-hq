@@ -153,11 +153,47 @@ const ASEvaluationStore = assign({}, BaseStore, {
       contents: []
     }};
   },
-  setActiveSelection(rng, xp) {
+
+  // Requires that a range having row2 implies a range has col2, and vice versa
+  setActiveSelection(rng, xp){
     _data.activeSelection = rng;
     _data.activeCell = this.getCellAtLoc(rng.col, rng.row) || Converter.defaultCell();
-    this.setActiveCellDependencies(Util.parseDependencies(xp));
+    var activeCellDependencies = Util.parseDependencies(xp);
+    if (rng.hasOwnProperty('row2') && rng.hasOwnProperty('col2')) {
+      for (var r = rng.row; r <= rng.row2; ++r){
+        for (var c = rng.col; c <= rng.col2; ++c) {
+          // activeCellDependencies.push(this.getParentList(r, c));
+        }
+      }
+    }
+    this.setActiveCellDependencies(activeCellDependencies);
   },
+
+  getParentList(r,c){
+    if(this.getCellAtLoc(r,c) != null) {
+      var ctags = this.getCellAtLoc.cellTags;
+      for (var i = 0; i < ctags.length; ++i) {
+        if (ctags[i].hasOwnProperty('listKey')){
+          var listHead = Util.listKeyToListHead(ctags[i].listKey);
+          var listDimensions = Util.listKeyToListDimensions(ctags[i].listKey);
+          return {
+            row: listHead.row,
+            col: listHead.col,
+            row2: listHead.row + listDimensions.row - 1,
+            col2: listHead.col + listDimensions.col - 1
+          }
+        }
+      }
+    }
+    return {row: r, column: c}
+  },
+    
+
+//  setActiveSelection(rng, xp) {
+//    _data.activeSelection = rng;
+//    _data.activeCell = this.getCellAtLoc(rng.col, rng.row) || Converter.defaultCell();
+//    this.setActiveCellDependencies(Util.parseDependencies(xp));
+//  },
   getActiveSelection() {
     return _data.activeSelection;
   },
