@@ -6,7 +6,11 @@
 using namespace std; 
 
 /*
-  in 
+  every time updateDAG is called, prevCache is updated with what the original graph
+  contained. If the cache is empty and updateDAG() is called a number of times in a row 
+  and then rollback() is called, all the updateDAG()'s get reverted. clearPrevCache() is 
+  called at the start of each processRequest of type SetRelations, during which updateDAG() 
+  is called numerous times in succession. 
 */
 void DAG::rollback() {
 	for (const auto& fan : prevCache)
@@ -59,17 +63,17 @@ DAG& DAG::updateDAG(DAG::Vertex toLoc, const DAG::VertexSet& fromLocs, bool addT
 		toFromAdjList[toLoc].insert(fl);
 	}
 
-	// cout << "Updated graph in update dag: " << endl;
-	// showGraph(); 
+	cout << "Updated graph in update dag: " << endl;
+	showGraph(); 
 	return *this; 
 }
 
 /****************************************************************************************************************************************/
 
-void DAG::setRelationsDfs (const DAG::Vertex& loc, unordered_map<DAG::Vertex,bool>& visited, vector<DAG::Vertex>& order){
+void DAG::updateDAGDfs (const DAG::Vertex& loc, unordered_map<DAG::Vertex,bool>& visited, vector<DAG::Vertex>& order){
 	for (const auto& toLoc : fromToAdjList[loc]){
 		if (!visited[toLoc]) {
-			DAG::setRelationsDfs(toLoc,visited,order);
+			DAG::updateDAGDfs(toLoc,visited,order);
 		}
 	}
 	order.push_back(loc);
@@ -91,7 +95,7 @@ vector<DAG::Vertex> DAG::getDescendants(const vector<DAG::Vertex>& locs){
 
 	for (const auto& loc: locs) {
 		if (!visited[loc])
-			DAG::setRelationsDfs(loc, visited, order);
+			DAG::updateDAGDfs(loc, visited, order);
 	}
 
 	reverse(order.begin(),order.end());
@@ -137,5 +141,5 @@ void showAdjList(const DAG::AdjacencyList& al, string msg) {
 void DAG::showGraph(){
 	showAdjList(fromToAdjList, "From To Adjacency List");
 	showAdjList(toFromAdjList, "To From Adjacency List");
-	showAdjList(prevCache, "Fan Cache");
+	showAdjList(prevCache, "Previous cahce");
 }

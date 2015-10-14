@@ -93,54 +93,33 @@
 
 /****************************************************************************************************************************************/
 
-// BOOST_AUTO_TEST_SUITE(cycles)
+BOOST_AUTO_TEST_SUITE(cycles)
 
-// BOOST_AUTO_TEST_CASE(testContainsCycleInTriangle){
-// 	DAG d; 
-// 	std::unordered_set<std::string> rels; 
-// 	rels.insert("b");
-// 	d.updateDAG("a", rels);
-// 	rels.clear();
-// 	rels.insert("c");
-// 	d.updateDAG("b", rels);
-// 	rels.clear();
-// 	rels.insert("a");
-// 	d.updateDAG("c", rels);
-// 	BOOST_CHECK(d.containsCycle("a"));
-// }
+BOOST_AUTO_TEST_CASE(testContainsCycleInTriangle){
+	DAG d; 
+	d.updateDAG("a", {"b"});
+	d.updateDAG("b", {"c"});
+	d.updateDAG("c", {"a"});
+	BOOST_CHECK(d.containsCycle("a"));
+}
 
-// BOOST_AUTO_TEST_CASE(testContainsNoCycleInDiamond){
-// 	DAG d; 
-// 	std::vector<std::string> rels; 
-// 	rels.push_back("a");
-// 	rels.push_back("b");
-// 	d.updateDAG(rels);
-// 	rels.clear();
-// 	rels.insert("a");
-// 	rels[1]="c";
-// 	d.updateDAG(rels);
-// 	rels.clear();
-// 	rels.insert("c");
-// 	rels[1]="d";
-// 	d.updateDAG(rels);
-// 	rels.clear();
-// 	rels.insert("d");
-// 	rels[1]="b";
-// 	d.updateDAG(rels);
-// 	BOOST_CHECK(!d.containsCycle("a"));
-// }
+BOOST_AUTO_TEST_CASE(testContainsNoCycleInDiamond){
+	DAG d; 
+	d.updateDAG("a", {"b,c"});
+	d.updateDAG("b", {"d"});
+	d.updateDAG("c", {"d"});
+	BOOST_CHECK(!d.containsCycle("a"));
+}
 
-// BOOST_AUTO_TEST_CASE(testContainsCycleInSelfRef){
-// 	DAG d; 
-// 	std::vector<std::string> rels; 
-// 	rels.push_back("a");
-// 	rels.push_back("a");
-// 	d.updateDAG(rels);
-// 	BOOST_CHECK(d.containsCycle("a"));
-// }
-// 
-// 
-// BOOST_AUTO_TEST_SUITE_END()
+BOOST_AUTO_TEST_CASE(testContainsCycleInSelfRef){
+	DAG d; 
+	std::vector<std::string> rels; 
+	d.updateDAG("a", {"a"});
+	BOOST_CHECK(d.containsCycle("a"));
+}
+
+
+BOOST_AUTO_TEST_SUITE_END()
 
 /****************************************************************************************************************************************/
 
