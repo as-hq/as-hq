@@ -51,7 +51,7 @@ def pprintErr(e):
 	fname = 'AlphaSheets Python evaluator'
 	err = repr(e).replace("\'","").replace("'",'"')
 	pos = exc_tb.tb_lineno - 52 # subtract template lines
-	return {'err_type': repr(exc_type), 'file': fname, 'position': pos, 'error': err}
+	return {'errType': repr(exc_type), 'file': fname, 'position': pos, 'error': err}
 
 def pprintSql(res):
 	if isinstance(res, pd.DataFrame):
