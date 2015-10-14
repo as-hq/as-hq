@@ -10,6 +10,7 @@ import Constants from '../Constants';
 import Render from '../AS/Render';
 
 import ASOverlay from './ASOverlay.jsx';
+import Textbox from './Textbox.jsx'
 
 export default React.createClass({
 
@@ -34,8 +35,7 @@ export default React.createClass({
         x:0,
         y:0
       },
-      overlays: [],
-      textBox: null
+      overlays: []
     };
   },
   // produces oriented area -- row < row2 and col < col2 always
@@ -142,22 +142,6 @@ export default React.createClass({
 
 
   /*************************************************************************************************************************/
-  // Text Box
-
-  updateTextBox(xp,isTyping){
-    console.log("updating text box in spreadsheet");
-    let self = this;
-    let col = Store.getActiveSelection().range.col,
-        row = Store.getActiveSelection().range.row,
-        textBox = Util.getTextBox(col,row,xp);
-    if (isTyping)
-      this.setState({textBox:textBox});
-    else
-      this.setState({textBox:null});
-  },
-  
-
-  /*************************************************************************************************************************/
   // Handling events
 
   handleKeyDown(e) {
@@ -165,8 +149,9 @@ export default React.createClass({
     if (ShortcutUtils.gridShouldDeferKey(e)){ // if anything but nav keys, bubble event to parent
       KeyUtils.killEvent(e);
       this.props.onDeferredKey(e);
-    } else {
-      // console.log("native grid event allowed");
+    } else if (ShortcutUtils.textBoxShouldDeferKey(e)){
+      KeyUtils.killEvent(e);
+      this.props.onTextBoxDeferredKey(e);
     }
   },
 
@@ -221,6 +206,8 @@ export default React.createClass({
   },
 
   render() {
+    if (this.state.textBox)
+      console.log("rendering spreadsheet " + this.state.textBox.xp);
     let {behavior, width, height} = this.props; //should also have onReady
     let style = {width: width, height: height};
     let behaviorElement;
@@ -234,30 +221,32 @@ export default React.createClass({
         break;
     }
    
+    // Put overlays with high z Index outside hypergrid
     return (
-      <fin-hypergrid
-        style={style}
-        ref="hypergrid"
-        onKeyDown={this.handleKeyDown}>
-          {behaviorElement}
-          {this.state.overlays.map(function (overlay) {
-            return (<ASOverlay key={overlay.id}
-                               overlay={overlay}
-                               scroll={self.state.scroll}
-                               onOverlayClick={self.onOverlayClick}
-                               textBoxChange={this.props.textBoxChange}
-                               isVisible={self.isVisible}/>);
-          })}
-          { this.state.textBox ?
-            <ASOverlay key={this.state.textBox.id}
-                         overlay={this.state.textBox}
-                         scroll={self.state.scroll}
-                         onOverlayClick={self.onOverlayClick}
-                         textBoxChange={this.props.textBoxChange}
-                         isVisible={self.isVisible}/> : null
-          }
+      <div style={{width:"100%",height:"100%"}} >
+        <fin-hypergrid
+          style={style}
+          ref="hypergrid"
+          onKeyDown={this.handleKeyDown}>
+            {behaviorElement}
+        </fin-hypergrid>
 
-      </fin-hypergrid>
+        {this.state.overlays.map(function (overlay) {
+          return (<ASOverlay key={overlay.id}
+                             overlay={overlay}
+                             scroll={self.state.scroll}
+                             onOverlayClick={self.onOverlayClick}
+                             textBoxChange={this.props.textBoxChange}
+                             isVisible={self.isVisible}/>);
+        })}
+
+      
+        <Textbox ref="textbox" 
+                 scroll={self.state.scroll}
+                 onKeyDown={this.handleKeyDown}
+                 textBoxChange={this.props.textBoxChange}/> 
+    
+      </div>
     );
   },
 
@@ -323,7 +312,7 @@ export default React.createClass({
           config.paintBorders = Util.getPaintedBorders(col, row, sel);
           config.borderConfig = {lineType: 0, // solid border type
                                 width: 3,
-                                color: "#4169e1"}; // blue
+                                color: "#000000"}; // blue
         }
       }
 

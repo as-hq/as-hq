@@ -72,7 +72,8 @@ export default React.createClass({
   },
 
   updateTextBox(isTyping){
-    return this.refs.spreadsheet.updateTextBox(this.state.expression,isTyping)
+    console.log("Eval pane is updating text box, bitch");
+    return this.refs.spreadsheet.refs.textbox.updateTextBox(this.state.expression,isTyping)
   },
 
   /* Editor has been updated, now update state in EvalPane if necessary */
@@ -98,7 +99,7 @@ export default React.createClass({
         }
         break;
       case this.xpChange.SEL_CHNG:
-        console.assert(this.state.userIsTyping===false,"User should not be typing");
+        console.log("Found selection change!");
         break;
       case this.xpChange.PARTIAL_REF_CHNG:
         console.assert(this.state.userIsTyping===true,"User should be typing");
@@ -106,10 +107,12 @@ export default React.createClass({
         break;
       case this.xpChange.FROM_TEXTBOX:
         console.assert(this.state.userIsTyping===true,"User should be typing");
+        this.updateTextBox(true);
         break;
       default:
         break;
     }
+    console.log("ACTIVE: " + JSON.stringify(Store.getActiveSelection()));
     let deps = Util.parseDependencies(xp);
     Store.setActiveCellDependencies(deps);
     this.refs.spreadsheet.repaint();
@@ -119,7 +122,8 @@ export default React.createClass({
     this.setState({xpChangeDetail:this.xpChange.FROM_EDITOR});
   },
 
-  onTextBoxChange(xp){
+  textBoxChange(xp){
+    console.log("Eval pane got change from text box: "+xp);
     this.setState({expression:xp,
                    expressionWithoutLastRef:xp,
                    xpChangeDetail:this.xpChange.FROM_TEXTBOX
@@ -246,6 +250,9 @@ export default React.createClass({
   _onReplDeferredKey(e){
     ShortcutUtils.tryShortcut(e, 'repl');
   },
+  _onTextBoxDeferredKey(e){
+    ShortcutUtils.tryShortcut(e,"common");
+  },
 
   /**************************************************************************************************************************/
   /* Core functionality methods */
@@ -263,8 +270,11 @@ export default React.createClass({
     // console.log("Handling selection change: " + JSON.stringify(rng));
     let rng = area.range;
     let cell = Store.getCellAtLoc(rng.col,rng.row);
-    if (cell && !this.state.userIsTyping && Converter.clientCellGetExpressionObj(cell)) {
-      console.log("Selected old region");
+    let changeSel = cell && !this.state.userIsTyping && Converter.clientCellGetExpressionObj(cell),
+        shiftSelEmpty  = this.state.userIsTyping && !Util.canInsertCellRefInXp(this.state.expressionWithoutLastRef),
+        shiftSelExists = cell && shiftSelEmpty;
+    if (changeSel || shiftSelExists) {
+      console.log("Selected old region exists");
       let {language,expression} = Converter.clientCellGetExpressionObj(cell),
           val = Converter.clientCellGetValueObj(cell);
       Store.setActiveSelection(area, expression); // pass in an expression to get parsed dependencies
@@ -272,22 +282,29 @@ export default React.createClass({
       this.setState({ xpChangeDetail:this.xpChange.SEL_CHNG,
                     language: Util.getAgnosticLanguageFromServer(language),
                     expression: expression,
-                    expressionWithoutLastRef:expression
+                    expressionWithoutLastRef:expression,
+                    userIsTyping:false
+                    },function(){
+                      if (shiftSelExists) // selected while typing at wrong type; select away
+                        this.updateTextBox(false);
                     });
       // TODO: set var name as well
       this.addError(val);
     } 
-    else if (!this.state.userIsTyping) {
-      console.log("Selected new region");
+    else if (!this.state.userIsTyping || shiftSelEmpty) {
+      console.log("Selected new region empty");
       Store.setActiveSelection(area, "");
       this.setState({ xpChangeDetail:this.xpChange.SEL_CHNG,
                       expression: "",
-                      expressionWithoutLastRef: ""
+                      expressionWithoutLastRef: "",
+                      userIsTyping:false
+                    },function(){
+                      if (shiftSelEmpty) // selected while typing at wrong type; select away
+                        this.updateTextBox(false);
                     });
     }
     else {
       if (Util.canInsertCellRefInXp(this.state.expressionWithoutLastRef)){
-        console.log("");
         console.log("PARTIAL");
         let newXp = this.state.expressionWithoutLastRef  + Util.locToExcel(rng);
         this.refs.spreadsheet._getHypergrid().repaint();
@@ -295,7 +312,6 @@ export default React.createClass({
                        expression:newXp
         });
       }
-
     }
   },
 
@@ -309,11 +325,11 @@ export default React.createClass({
     /* If user pressed Ctrl Enter, they're not typing out the expression anymore */
     this.setState({userIsTyping:false});
     this.updateTextBox(false);
-    this.refs.spreadsheet._getHypergrid().repaint();
+    Store.setActiveCellDependencies([]);
+    this.refs.spreadsheet.repaint();
+    this.refs.spreadsheet._getHypergrid().getSelectionModel().clear();
     
     let selectedRegion = Store.getActiveSelection();
-      //this.refs.spreadsheet.getSelectionArea();
-    // console.log("Selected region " + JSON.stringify(selectedRegion));
     console.log("Editor state: " + JSON.stringify(editorState));
     console.log("Eval req loc: " + JSON.stringify(selectedRegion));
     API.sendEvalRequest(selectedRegion, editorState);
@@ -382,8 +398,9 @@ export default React.createClass({
           width="100%" height={this.getEditorHeight()} />
         <ASSpreadsheet
           ref='spreadsheet'
-          textBoxChange={this.props.onTextBoxChange}
+          textBoxChange={this.textBoxChange}
           onDeferredKey={this._onGridDeferredKey}
+          onTextBoxDeferredKey={this._onTextBoxDeferredKey}
           onSelectionChange={this._onSelectionChange}
           width="100%"
           height={`calc(100% - ${this.getEditorHeight()})`}  />

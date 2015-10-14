@@ -159,18 +159,17 @@ export default {
     }
   },
 
-  getTextBox(col,row,xp){
-    let self = this;
-    return {
-      tag: "TextBox",
-      id: self.getUniqueId(),
-      width: Constants.cellWidthPx,
-      height: Constants.cellHeightPx,
-      col: col,
-      row: row,
-      xp:xp
-    };
-      
+  /* Get the horizontal (left) position of a cell at column col (starting from 1)
+  Used for overlays and textboxes */
+  getX(col,scrollX){
+    return col * Constants.cellWidthPx - scrollX  + Constants.treeViewWidth;
+  },
+
+  /* Get the vertical (top) position of a cell at column col (starting from 1)
+  Used for overlays and textboxes */
+  getY(row,scrollY){
+    let h = Constants.topbarTotalHeight + Constants.codeBarHeight + Constants.editorHeight;
+    return row * Constants.cellHeightPx - scrollY  + h;
   },
 
 /*************************************************************************************************************************/
@@ -448,11 +447,10 @@ export default {
     return Constants.Languages[lang];
   },
 
+  // TODO: make this actually correct?
   canInsertCellRefInXp(xp){
-    let prev = ["+","-","*","/","(",","];
-    if (prev.indexOf(xp.substring(xp.length-1,xp.length))>-1)
-      return true;
-    else if (xp==="=")
+    let infix = ["+","-","*","/","(",",","&","="];
+    if (infix.indexOf(xp.substring(xp.length-1,xp.length))>-1)
       return true;
     else
       return false;

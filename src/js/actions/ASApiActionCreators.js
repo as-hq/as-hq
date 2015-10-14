@@ -234,7 +234,7 @@ export default {
     let msg = Converter.toServerMessageWithPayload(Constants.ServerActions.Copy, {
       tag: "PayloadCopy",
       copyRange: Converter.clientToASRange(locs[0]),
-      copyTo: Converter.clientToASLocation(locs[1])
+      copyTo: Converter.clientToASRange(locs[1])
     });
     this.send(msg);
   },
