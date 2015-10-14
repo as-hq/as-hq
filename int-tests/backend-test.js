@@ -188,7 +188,14 @@ describe('backend', () => {
         API.sendGetRequest([ Util.excelToLoc(loc) ]);
       }, {
         fulfill: (result) => {
-          let [{ cellValue }] = Converter.clientCellsFromServerMessage(result);
+          let message = Converter.clientCellsFromServerMessage(result);
+          expect(message.length).not.toBe(0);
+          if (message.length == 0) {
+            fulfill();
+            return;
+          }
+
+          let [{ cellValue }] = message;
           expect(equalValues(cellValue, val)).toBe(true);
 
           fulfill();
@@ -315,45 +322,80 @@ describe('backend', () => {
     });
 
     describe('eval', () => {
-      it('should evaluate at all', (done) => {
-        _do([
-          python('A1', '1 + 1'),
-          shouldBe('A1', valueI(2)),
-          exec(done)
-        ]);
+      describe('python', () => {
+        it('should evaluate at all', (done) => {
+          _do([
+            python('A1', '1 + 1'),
+            shouldBe('A1', valueI(2)),
+            exec(done)
+          ]);
+        });
+
+        it('should evaluate two cells, dependent', (done) => {
+          _do([
+            python('A1', '1 + 1'),
+            python('A2', 'A1 + 1'),
+            shouldBe('A1', valueI(2)),
+            shouldBe('A2', valueI(3)),
+            exec(done)
+          ]);
+        });
+
+        it('should evaluate a range and expand it', (done) => {
+          _do([
+            python('A1', 'range(10)'),
+            _forM_(_.range(10), (i) => {
+              return shouldBe(`A${i + 1}`, valueI(i));
+            }),
+            exec(done)
+          ]);
+        });
       });
 
-      it('should evaluate two Python cells, dependent', (done) => {
-        _do([
-          python('A1', '1 + 1'),
-          python('A2', 'A1 + 1'),
-          shouldBe('A1', valueI(2)),
-          shouldBe('A2', valueI(3)),
-          exec(done)
-        ]);
+      describe('r', () => {
+        it('should evaluate at all', (done) => {
+          _do([
+            r('A1', '1 + 1'),
+            shouldBe('A1', valueI(2)),
+            exec(done)
+          ]);
+        });
+
+        it('should evaluate a range and expand it', (done) => {
+          _do([
+            r('A1', '1:10'),
+            _forM_(_.range(10), (i) => {
+              return shouldBe(`A${i + 1}`, valueI(i + 1));
+            }),
+            exec(done)
+          ]);
+        });
       });
 
-      it('should evaluate a range and expand it', (done) => {
-        _do([
-          python('A1', 'range(10)'),
-          _forM_(_.range(10), (i) => {
-            return shouldBe(`A${i + 1}`, valueI(i));
-          }),
-          exec(done)
-        ]);
-      });
+      describe('general', () => {
+        it('should do multi language eval', (done) => {
+          _do([
+            python('A1', '10'),
+            r('B1', '1:A1'),
+            _forM_(_.range(10), (i) => {
+              return shouldBe(`B${i + 1}`, valueI(i + 1));
+            }),
+            exec(done)
+          ]);
+        });
 
-      it('should shrink a range based on a dependency', (done) => {
-        _do([
-          python('A1', '10'),
-          python('B1', 'range(A1)'),
-          _forM_(_.range(10), (i) => {
-            return shouldBe(`B${i + 1}`, valueI(i));
-          }),
-          python('A1', '1'),
-          shouldBeNothing('B2'),
-          exec(done)
-        ]);
+        it('should shrink a range based on a dependency', (done) => {
+          _do([
+            python('A1', '10'),
+            python('B1', 'range(A1)'),
+            _forM_(_.range(10), (i) => {
+              return shouldBe(`B${i + 1}`, valueI(i));
+            }),
+            python('A1', '1'),
+            shouldBeNothing('B2'),
+            exec(done)
+          ]);
+        });
       });
     });
 
