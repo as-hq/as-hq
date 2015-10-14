@@ -32,20 +32,22 @@ If you prefer to just build without the live reload and build-on-each-change wat
 $ npm run build
 ```
 
-## TODO:
-1) Fix Bugs
-	a) The number 0 shows up as blank in a cell
-	b) 2nd-last element of lists don't have a corresponding expression in editor. Information wise, this is fine, but might be annoying. 
-	c) Fix get request process to backend. the dealloc method etc aren't right
-		The cache should be large enough that we don't ping backend for a few row scroll. When the scroll position is getting close to the 
-		boundaries, we should automatically send a get request
-	d) Either modify source of notifications (errors) to include a custom remove function (so that msg goes away upon moving to another cell), or find/write a better component
-2) Find/build a better menu bar
-3) Deal with style cells
-4) Hook up tabs. Probably best to get a good tab/sidebar viewing component first. Would a tree view be good? 
-5) User authentication. Right now, upon connection a random username is sent to server, and no authentication. 
-6) More resilient backend coverage of undo/redo for large commits 
 
+## Testing AlphaSheets
+
+AlphaSheets has two testing directories, `unit-tests` and `int-tests`, the latter of which contains the integration tests. You can run the unit tests as follows:
+
+```bash
+$ npm test
+```
+
+and run integration tests as follows:
+
+```bash
+$ karma start
+```
+
+Soon, both test suites will be run using `gulp test`, but run them separately for now.
 
 
 ## Generating Additional Code

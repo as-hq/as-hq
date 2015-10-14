@@ -5,8 +5,10 @@
   "author": "",
   "license": "MIT",
   "devDependencies": {
+    "babel-core": "^5.8.25",
     "babelify": "^6.2.0",
     "browserify": "^10.2.6",
+    "fs": "0.0.2",
     "gulp": "^3.8.7",
     "gulp-babel": "^5.2.1",
     "gulp-bower-src": "^0.1.0",
@@ -16,6 +18,10 @@
     "gulp-uglify": "^1.2.0",
     "gulp-util": "^3.0.6",
     "jest-cli": "^0.5.8",
+    "karma-babel-preprocessor": "^5.2.2",
+    "karma-chrome-launcher": "^0.2.1",
+    "karma-sourcemap-loader": "^0.3.6",
+    "phantomjs": "^1.9.18",
     "react": "^0.13.3",
     "reactify": "^1.1.1",
     "require-dir": "^0.3.0",
@@ -27,9 +33,11 @@
     "dev": "gulp --type dev",
     "start": "gulp",
     "build": "gulp build",
-    "test": "jest --verbose"
+    "test": "jest --verbose",
+    "integration-test": "karma start"
   },
   "jest": {
+    "testDirectoryName": "unit-tests",
     "scriptPreprocessor": "<rootDir>/node_modules/babel-jest",
     "testFileExtensions": [
       "es6",
@@ -41,14 +49,18 @@
       "es6"
     ],
     "unmockedModulePathPatterns": [
-      "/node_modules/"
+      "/node_modules/",
+      "/src/js/actions/"
     ]
   },
   "dependencies": {
+    "babel-core": "^5.8.25",
     "babel-eslint": "^3.1.23",
+    "babel-loader": "^5.3.2",
     "bootstrap": "^3.3.5",
     "brace": "^0.5.1",
     "classnames": "^2.1.2",
+    "detect-node": "^2.0.3",
     "eslint": "^0.24.1",
     "eslint-plugin-react": "^2.7.0",
     "express": "^4.4.5",
@@ -56,9 +68,15 @@
     "gulp-bower-files": "^0.2.7",
     "gulp-develop-server": "^0.4.3",
     "immutable": "^3.7.3",
+    "jasmine": "^2.3.2",
+    "jasmine-core": "^2.3.4",
     "jasmine-pit": "^2.0.2",
+    "jasmine-then": "^0.2.2",
     "jquery": "^2.1.4",
-    "jquery.ns-autogrow": "^1.1.0",
+    "karma": "^0.13.10",
+    "karma-jasmine": "^0.3.6",
+    "karma-phantomjs-launcher": "^0.2.1",
+    "karma-webpack": "^1.7.0",
     "keymaster": "~1.6.2",
     "lodash": "^3.9.3",
     "main-bower-files": "^2.9.0",
@@ -76,6 +94,7 @@
     "react-tap-event-plugin": "^0.1.7",
     "shortid": "^2.2.2",
     "underscore": "^1.7.0",
-    "ws": "0.4.x"
+    "webpack": "^1.12.2",
+    "ws": "^0.4.32"
   }
 }

@@ -1,9 +1,19 @@
 import Dispatcher from '../Dispatcher';
 import Constants from '../Constants';
 import Converter from '../AS/Converter';
+import Store from '../stores/ASEvaluationStore';
+
+import isNode from 'detect-node';
+let [ws] = isNode ?
+  [require('ws')] :
+  [WebSocket];
 
 var ActionTypes = Constants.ActionTypes;
-var wss = new WebSocket(Constants.HOST_WS);
+var wss = new ws(Constants.HOST_WS);
+
+let currentCbs = undefined;
+let isRunningTest = false;
+let isRunningSyncTest = false;
 
 /**************************************************************************************************************************/
 
@@ -22,15 +32,29 @@ var wss = new WebSocket(Constants.HOST_WS);
 
 wss.onmessage = function (event) {
   console.log("Client received data from server: " + JSON.stringify(event.data));
+
+  if (event.data === 'ACK') return;
+
   let msg = JSON.parse(event.data);
   if (msg.result.tag === "Failure") {
     Dispatcher.dispatch({
         type: ActionTypes.GOT_FAILURE,
         errorMsg: msg
       });
+
+    if (isRunningTest) {
+      console.log('Rejecting due to server failure');
+      currentCbs.reject(msg);
+      isRunningTest = false;
+    }
   } else {
+    if (isRunningTest) {
+      currentCbs.fulfill(msg);
+      isRunningTest = false;
+    }
+
     switch (msg.action) {
-      // TODO add cases for new
+      // TODO: add cases for new
       case "New":
         if (msg.payload.tag === "PayloadWorkbookSheets") {
           let workbooks = Converter.clientWorkbooksFromServerMessage(msg);
@@ -114,8 +138,12 @@ wss.onmessage = function (event) {
           response:msg.payload.contents
         });
         break;
-      }
+    }
   }
+};
+
+wss.onopen = (evt) => {
+  console.log('WebSockets open');
 };
 
 export default {
@@ -137,12 +165,23 @@ export default {
   }, // polling socket for readiness: 5 ms
 
   send(msg) {
+    console.log(`Queueing ${msg.action} message`);
     this.waitForSocketConnection(wss, () => {
+      console.log(`Sending ${msg.action} message`);
       wss.send(JSON.stringify(msg));
+
+      /* for testing */
+      if (msg.action === 'Acknowledge' && isRunningTest) {
+        isRunningTest = false;
+        currentCbs.fulfill();
+      } else if (isRunningSyncTest) {
+        isRunningSyncTest = false;
+        currentCbs.fulfill();
+      }
     });
   },
 
-  sendInitialMessage(){
+  sendInitialMessage() {
     let msg = Converter.makeInitMessage();
     console.log("Sending init message: " + JSON.stringify(msg));
     this.send(msg);
@@ -158,6 +197,7 @@ export default {
   },
 
   sendClose() {
+    console.log('Sending close message');
     wss.close();
   },
 
@@ -250,6 +290,10 @@ export default {
     this.send(msg);
   },
 
+  sendDefaultOpenMessage() {
+    this.sendOpenMessage(Store.getCurrentSheet());
+  },
+
   sendCreateSheetMessage() {
     let wbs = Converter.newWorkbookSheet();
     let msg = Converter.toServerMessageFormat(Constants.ServerActions.New,
@@ -273,6 +317,20 @@ export default {
                                               sWindow);
     // console.log("send scroll message: " + JSON.stringify(msg));
     this.send(msg);
-  }
+  },
 
+
+  test(f, cbs) {
+    currentCbs = cbs;
+    isRunningTest = true;
+
+    f();
+  },
+
+  testSync(f, cbs) {
+    currentCbs = cbs;
+    isRunningSyncTest = true;
+
+    f();
+  }
 };

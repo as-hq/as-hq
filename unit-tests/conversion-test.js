@@ -1,4 +1,6 @@
 describe('conversion', () => {
+  const Converter = require('../src/js/AS/Converter.js');
+  
   describe('server -> client', () => {
     it('should convert cells to client', () => {
 
