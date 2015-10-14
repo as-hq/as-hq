@@ -1,5 +1,7 @@
 import KeyUtils from '../AS/KeyUtils';
 import ShortcutUtils from '../AS/ShortcutUtils';
+import Store from '../stores/ASEvaluationStore';
+
 
 var ace = require('brace');
 var React = require('react');
@@ -104,6 +106,7 @@ module.exports = React.createClass({
   },
 
   onChange: function() {
+    console.log("Ace editor On Change");
     let value = this.editor.getValue();
     if (this.props.onChange) {
       this.props.onChange(value);
@@ -115,10 +118,14 @@ module.exports = React.createClass({
   },
 
   handleKeyDown(e) {
-    // console.log("onkeydown editor");
+    console.log("onkeydown editor");
     if (ShortcutUtils.editorShouldDeferKey(e)) {
       KeyUtils.killEvent(e);
       this.props.onDeferredKey(e);
+    }
+    else { //Need to change expression statae in EvalPane
+      if (!this.props.isRepl)
+        this.props.setXpDetailFromEditor();
     }
   },
 

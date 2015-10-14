@@ -31,6 +31,7 @@ let _data = {
     }
   },
   activeSelection: null,
+  partialSelections: [],
   activeCell: null,
   clipboard: {
     range: null,
@@ -155,8 +156,9 @@ const ASEvaluationStore = assign({}, BaseStore, {
   },
 
   // Requires that a range having row2 implies a range has col2, and vice versa
-  setActiveSelection(rng, xp){
-    _data.activeSelection = rng;
+  setActiveSelection(area, xp) {
+    let rng = area.range;
+    _data.activeSelection = area;
     _data.activeCell = this.getCellAtLoc(rng.col, rng.row) || Converter.defaultCell();
     var activeCellDependencies = Util.parseDependencies(xp);
     if (rng.hasOwnProperty('row2') && rng.hasOwnProperty('col2')) {
@@ -197,6 +199,7 @@ const ASEvaluationStore = assign({}, BaseStore, {
   getActiveSelection() {
     return _data.activeSelection;
   },
+
   getActiveCell() {
     return _data.activeCell;
   },
@@ -236,7 +239,7 @@ const ASEvaluationStore = assign({}, BaseStore, {
   getExternalError(){
     return _data.externalError;
   },
-
+  
 
   /**************************************************************************************************************************/
   /*

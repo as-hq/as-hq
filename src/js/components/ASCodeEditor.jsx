@@ -78,6 +78,7 @@ export default React.createClass({
         <AceEditor
           ref="editor"
           onChange={this.props.onExpressionChange}
+          setXpDetailFromEditor={this.props.setXpDetailFromEditor}
           mode={language.Editor}
           language={language}
           theme={theme}

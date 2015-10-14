@@ -10,6 +10,7 @@ import Constants from '../Constants';
 import Render from '../AS/Render';
 
 import ASOverlay from './ASOverlay.jsx';
+import Textbox from './Textbox.jsx'
 
 export default React.createClass({
 
@@ -75,7 +76,7 @@ export default React.createClass({
         dR = loc.col2 ? loc.row2 - loc.row : 0;
     hg.select(c, r, dC, dR);
     this.repaint();
-    this.props.onSelectionChange(loc, dC, dR);
+    this.props.onSelectionChange({range:loc, width:dC+1, height:dR+1});
   },
   getViewingWindow() {
     let hg = this._getHypergrid();
@@ -139,6 +140,7 @@ export default React.createClass({
     this.setState({overlays: overlays});
   },
 
+
   /*************************************************************************************************************************/
   // Handling events
 
@@ -147,8 +149,9 @@ export default React.createClass({
     if (ShortcutUtils.gridShouldDeferKey(e)){ // if anything but nav keys, bubble event to parent
       KeyUtils.killEvent(e);
       this.props.onDeferredKey(e);
-    } else {
-      // console.log("native grid event allowed");
+    } else if (ShortcutUtils.textBoxShouldDeferKey(e)){
+      KeyUtils.killEvent(e);
+      this.props.onTextBoxDeferredKey(e);
     }
   },
 
@@ -179,8 +182,8 @@ export default React.createClass({
           Need to also figure out the expression to render in the editor
         */
         'fin-selection-changed': function (event) {
-          let { range, width, height } = self.getSelectionArea();
-          self.props.onSelectionChange(range);
+          //let { range, width, height } = self.getSelectionArea();
+          self.props.onSelectionChange(self.getSelectionArea());
           },
         'fin-scroll-x': function (event) {
           // let {x, y} = self.getScroll();
@@ -203,8 +206,9 @@ export default React.createClass({
   },
 
   render() {
+    if (this.state.textBox)
+      console.log("rendering spreadsheet " + this.state.textBox.xp);
     let {behavior, width, height} = this.props; //should also have onReady
-    // console.log("SPREADSHEET HEIGHT,WIDTH " + height + " " + width);
     let style = {width: width, height: height};
     let behaviorElement;
     let self = this;
@@ -216,21 +220,33 @@ export default React.createClass({
         behaviorElement = <fin-hypergrid-behavior-default />
         break;
     }
-
+   
+    // Put overlays with high z Index outside hypergrid
     return (
-      <fin-hypergrid
-        style={style}
-        ref="hypergrid"
-        onKeyDown={this.handleKeyDown}>
-          {behaviorElement}
-          {this.state.overlays.map(function (overlay) {
-            return (<ASOverlay key={overlay.id}
-                               overlay={overlay}
-                               scroll={self.state.scroll}
-                               onOverlayClick={self.onOverlayClick}
-                               isVisible={self.isVisible}/>);
-          })}
-      </fin-hypergrid>
+      <div style={{width:"100%",height:"100%"}} >
+        <fin-hypergrid
+          style={style}
+          ref="hypergrid"
+          onKeyDown={this.handleKeyDown}>
+            {behaviorElement}
+        </fin-hypergrid>
+
+        {this.state.overlays.map(function (overlay) {
+          return (<ASOverlay key={overlay.id}
+                             overlay={overlay}
+                             scroll={self.state.scroll}
+                             onOverlayClick={self.onOverlayClick}
+                             textBoxChange={this.props.textBoxChange}
+                             isVisible={self.isVisible}/>);
+        })}
+
+      
+        <Textbox ref="textbox" 
+                 scroll={self.state.scroll}
+                 onKeyDown={this.handleKeyDown}
+                 textBoxChange={this.props.textBoxChange}/> 
+    
+      </div>
     );
   },
 
@@ -253,7 +269,7 @@ export default React.createClass({
           col = config.x + 1,
           row = config.y + 1,
           cell = Store.getCellAtLoc(col, row),
-          sel = Store.getActiveSelection(),
+          sel = Store.getActiveSelection().range,
           activeCell = Store.getActiveCell(),
           clipboard = Store.getClipboard();
 
@@ -290,15 +306,17 @@ export default React.createClass({
         }
       }
 
-      // range highlighting
-      if (sel && sel.row2) {
+      // Cell/Range highlighting
+      if (sel) {
         if (Util.isContainedInLocs(col, row, sel)) {
           config.paintBorders = Util.getPaintedBorders(col, row, sel);
           config.borderConfig = {lineType: 0, // solid border type
                                 width: 3,
-                                color: "#4169e1"}; // blue
+                                color: "#000000"}; // blue
         }
       }
+
+
 
       // clipboard highlighting
       if (clipboard.range && Util.isContainedInLocs(col, row, clipboard.range)) {

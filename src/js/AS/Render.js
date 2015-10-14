@@ -86,6 +86,7 @@ export default {
       }
 
 
+
       //draw text
       var theColor = this.config.isSelected ? this.config.fgSelColor : this.config.fgColor;
       if (gc.fillStyle !== theColor) {
