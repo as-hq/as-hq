@@ -185,8 +185,6 @@ describe('backend', () => {
 
   function messageShouldSatisfy(loc, fn) {
     return promise((fulfill, reject) => {
-      console.log(`${loc} should be nothing`);
-
       API.test(() => {
         API.sendGetRequest([ Util.excelToLoc(loc) ]);
       }, {
@@ -204,6 +202,8 @@ describe('backend', () => {
   // String -> ASValue -> (() -> Promise ())
   function shouldBe(loc, val) {
     return messageShouldSatisfy(loc, (cs) => {
+      console.log(`${loc} should be ${JSON.stringify(val)}`);
+
       expect(cs.length).not.toBe(0);
       if (cs.length == 0) {
         return;
@@ -216,6 +216,7 @@ describe('backend', () => {
 
   function shouldBeNothing(loc) {
     return messageShouldSatisfy(loc, (cs) => {
+      console.log(`${loc} should be nothing`);
       expect(cs.length).toBe(0);
     });
   }
@@ -546,7 +547,7 @@ describe('backend', () => {
             undo(),
             redo(),
             _forM_(_.range(10), (i) => {
-              return shouldBe(`A${i + 1}`, i);
+              return shouldBe(`A${i + 1}`, valueI(i));
             }),
             exec(done)
           ]);
