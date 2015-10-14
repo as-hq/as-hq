@@ -134,7 +134,8 @@ describe('backend', () => {
     return apiExec(() => {
       let langMap = {
         'py': 'Python',
-        'R': 'R'
+        'R': 'R',
+        'ml': 'OCaml'
       };
       let cell = Converter.clientToASCell(
         { range: locFromExcel(loc) },
@@ -151,6 +152,10 @@ describe('backend', () => {
 
   function r(loc, xp) {
     return cell(loc, xp, 'R');
+  }
+
+  function ocaml(loc, xp) {
+    return cell(loc, xp, 'ml');
   }
 
   function copy(rng1, rng2) {
@@ -199,10 +204,9 @@ describe('backend', () => {
     });
   }
 
-  // String -> ASValue -> (() -> Promise ())
-  function shouldBe(loc, val) {
+  function valueShouldSatisfy(loc, fn) {
     return messageShouldSatisfy(loc, (cs) => {
-      console.log(`${loc} should be ${JSON.stringify(val)}`);
+      console.log(`${loc} should satisfy ${fn.toString()}`);
 
       expect(cs.length).not.toBe(0);
       if (cs.length == 0) {
@@ -210,20 +214,23 @@ describe('backend', () => {
       }
 
       let [{ cellValue }] = cs;
-      expect(equalValues(cellValue, val)).toBe(true);
+      expect(fn(cellValue)).toBe(true);
     });
+  }
+
+  // String -> ASValue -> (() -> Promise ())
+  function shouldBe(loc, val) {
+    return valueShouldSatisfy(loc, (cv) => equalValues(cv, val));
+  }
+
+  function shouldBeError(loc) {
+    return valueShouldSatisfy(loc, ({ tag }) => tag === 'ValueError');
   }
 
   function shouldBeNothing(loc) {
     return messageShouldSatisfy(loc, (cs) => {
       console.log(`${loc} should be nothing`);
       expect(cs.length).toBe(0);
-    });
-  }
-
-  function shouldBeAnError(loc) {
-    return messageShouldSatisfy(loc, (cs) => {
-
     });
   }
 
@@ -356,9 +363,10 @@ describe('backend', () => {
         });
 
         xit('should evaluate to an error when there is one', (done) => {
+          // xcxc: test matters but blocks others. Unmark when Asana task for fixing error parsing is finished
           _do([
             python('A1', '1 + "a"'),
-            //TODO
+            shouldBeError('A1'),
             exec(done)
           ]);
         });
@@ -382,6 +390,10 @@ describe('backend', () => {
             exec(done)
           ]);
         });
+      });
+
+      describe('ocaml', () => {
+
       });
 
       describe('general', () => {
