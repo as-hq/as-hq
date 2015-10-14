@@ -24,6 +24,10 @@ describe('backend', () => {
     return Util.locToExcel(loc);
   }
 
+  function fromToInclusive(st, end) {
+    return _.range(end - st).map((i) => i + st);
+  }
+
   //(a -> (), a -> ()) -> (() -> Promise a)
   function promise(fn) {
     return () => {
@@ -179,24 +183,16 @@ describe('backend', () => {
     return _.isEqual(val1, val2);
   }
 
-  // String -> ASValue -> (() -> Promise ())
-  function shouldBe(loc, val) {
+  function messageShouldSatisfy(loc, fn) {
     return promise((fulfill, reject) => {
-      console.log(`${loc} should be ${JSON.stringify(val)}`);
+      console.log(`${loc} should be nothing`);
 
       API.test(() => {
         API.sendGetRequest([ Util.excelToLoc(loc) ]);
       }, {
         fulfill: (result) => {
-          let message = Converter.clientCellsFromServerMessage(result);
-          expect(message.length).not.toBe(0);
-          if (message.length == 0) {
-            fulfill();
-            return;
-          }
-
-          let [{ cellValue }] = message;
-          expect(equalValues(cellValue, val)).toBe(true);
+          let cs = Converter.clientCellsFromServerMessage(result);
+          fn(cs);
 
           fulfill();
         },
@@ -205,21 +201,22 @@ describe('backend', () => {
     });
   }
 
+  // String -> ASValue -> (() -> Promise ())
+  function shouldBe(loc, val) {
+    return messageShouldSatisfy(loc, (cs) => {
+      expect(cs.length).not.toBe(0);
+      if (cs.length == 0) {
+        return;
+      }
+
+      let [{ cellValue }] = cs;
+      expect(equalValues(cellValue, val)).toBe(true);
+    });
+  }
+
   function shouldBeNothing(loc) {
-    return promise((fulfill, reject) => {
-      console.log(`${loc} should be nothing`);
-
-      API.test(() => {
-        API.sendGetRequest([ Util.excelToLoc(loc) ]);
-      }, {
-        fulfill: (result) => {
-          let message = Converter.clientCellsFromServerMessage(result);
-          expect(message.length).toBe(0);
-
-          fulfill();
-        },
-        reject: reject
-      });
+    return messageShouldSatisfy(loc, (cs) => {
+      expect(cs.length).toBe(0);
     });
   }
 
@@ -463,6 +460,18 @@ describe('backend', () => {
                   valueI(cs[`${col % 2}${row % 2}`])
                 );
               });
+            }),
+            exec(done)
+          ]);
+        });
+
+        it('should copy a cell down', (done) => {
+          _do([
+            python('A1', 'range(10)'),
+            python('B1', 'A1*2'),
+            copy('B1', 'B2:B10'),
+            _forM_(fromToInclusive(2, 10), (i) => {
+              return shouldBe(`B${i}`, valueI((i-1) * 2));
             }),
             exec(done)
           ]);
