@@ -20,6 +20,7 @@
     "jest-cli": "^0.5.8",
     "karma-babel-preprocessor": "^5.2.2",
     "karma-chrome-launcher": "^0.2.1",
+    "karma-mocha-reporter": "^1.1.1",
     "karma-sourcemap-loader": "^0.3.6",
     "phantomjs": "^1.9.18",
     "react": "^0.13.3",

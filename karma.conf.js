@@ -2,6 +2,8 @@ module.exports = function (config) {
   config.set({
     browsers: ['Chrome'],
 
+    reporters: ['mocha'],
+
     files: [
       'node_modules/babel-core/browser-polyfill.js',
       { pattern: 'test-context.js', watched: false }
@@ -31,6 +33,10 @@ module.exports = function (config) {
 
     webpackServer: {
       noInfo: true
+    },
+
+    client: {
+      captureConsole: false
     }
   });
 };

@@ -220,6 +220,12 @@ describe('backend', () => {
     });
   }
 
+  function shouldBeAnError(loc) {
+    return messageShouldSatisfy(loc, (cs) => {
+
+    });
+  }
+
   // [String] -> [ASValue] -> (() -> Promise ())
   function shouldBeL(locs, vals) {
     return promise((fulfill, reject) => {
@@ -344,6 +350,14 @@ describe('backend', () => {
             _forM_(_.range(10), (i) => {
               return shouldBe(`A${i + 1}`, valueI(i));
             }),
+            exec(done)
+          ]);
+        });
+
+        xit('should evaluate to an error when there is one', (done) => {
+          _do([
+            python('A1', '1 + "a"'),
+            //TODO
             exec(done)
           ]);
         });
@@ -500,10 +514,61 @@ describe('backend', () => {
             exec(done)
           ]);
         });
+
+        it('should undo a dependency cleanly', (done) => {
+          _do([
+            python('A1', '1+1'),
+            python('B1', 'A1+1'),
+            python('C1', 'B1+1'),
+            undo(),
+            python('B1', '4'),
+            shouldBe('B1', valueI(4)),
+            shouldBeNothing('C1'),
+            exec(done)
+          ]);
+        });
       });
 
       describe('redo', () => {
+        it('should undo and redo a simple request', (done) => {
+          _do([
+            python('A1', '1 + 1'),
+            undo(),
+            redo(),
+            shouldBe('A1', valueI(2)),
+            exec(done)
+          ]);
+        });
 
+        it('should undo and redo a range request', (done) => {
+          _do([
+            python('A1', 'range(10)'),
+            undo(),
+            redo(),
+            _forM_(_.range(10), (i) => {
+              return shouldBe(`A${i + 1}`, i);
+            }),
+            exec(done)
+          ]);
+        });
+
+        it('should undo and redo series of dependencies', (done) => {
+          _do([
+            python('A1', '1 + 1'),
+            python('B1', 'A1 + 1'),
+            python('C1', 'A1 + B1'),
+            undo(),
+            redo(),
+            undo(), undo(),
+            redo(), redo(),
+            undo(), undo(), undo(),
+            redo(), redo(), redo(),
+            shouldBe('A1', valueI(2)),
+            shouldBe('B1', valueI(3)),
+            shouldBe('C1', valueI(5)),
+            exec(done)
+          ]);
+        });
       });
     });
   });
