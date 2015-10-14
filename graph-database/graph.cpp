@@ -19,15 +19,23 @@ void DAG::rollback() {
 	clearPrevCache();
 }
 
+bool DAG::clearPrevCache() {
+	prevCache.clear();
+}
+
+/****************************************************************************************************************************************/
+
 bool DAG::cycleCheckDfs(const Vertex& loc, unordered_map<Vertex,bool>& visited) { 
 	visited[loc] = true; 
-	for (const auto& toLoc : fromToAdjList[loc]) {
-		if (!visited[toLoc]) {
-			if (DAG::cycleCheckDfs(toLoc, visited))
+	if (fromToAdjList.count(loc)) { // so that the fromToAdjList key isn't created if there's nothing there
+		for (const auto& toLoc : fromToAdjList[loc]) {
+			if (!visited[toLoc]) {
+				if (DAG::cycleCheckDfs(toLoc, visited))
+					return true; 
+			}
+			else 
 				return true; 
 		}
-		else 
-			return true; 
 	}
 	return false; 
 }
@@ -38,19 +46,22 @@ bool DAG::containsCycle(const DAG::Vertex& start) {
 }
 
 
+/****************************************************************************************************************************************/
 
+//4,1 --> 3,1
 DAG& DAG::updateDAG(DAG::Vertex toLoc, const DAG::VertexSet& fromLocs, bool addToCache) {
 	DAG::VertexSet vl = toFromAdjList[toLoc]; //old fromLocs
 
 	if (addToCache) {
-		if (prevCache.find(toLoc) == prevCache.end())
+		if (prevCache.count(toLoc) > 0)
 			prevCache[toLoc] = toFromAdjList[toLoc];
 	}
 	
 	/* Loop over the current fromLocs of toLoc and delete from forward adjacency list */
 	for (const auto& oldFl : vl){
 		fromToAdjList[oldFl].erase(toLoc);
-		/* If a vertex no longer has fromLocs, delete it */
+
+		// If a vertex no longer has fromLocs, delete it
 		if (fromToAdjList[oldFl].empty())
 			fromToAdjList.erase(oldFl);
 	}
@@ -63,26 +74,24 @@ DAG& DAG::updateDAG(DAG::Vertex toLoc, const DAG::VertexSet& fromLocs, bool addT
 		toFromAdjList[toLoc].insert(fl);
 	}
 
-	cout << "Updated graph in update dag: " << endl;
-	showGraph(); 
+	// cout << "Updated graph in update dag: " << endl;
+	// showGraph(); 
 	return *this; 
 }
 
-/****************************************************************************************************************************************/
-
 void DAG::updateDAGDfs (const DAG::Vertex& loc, unordered_map<DAG::Vertex,bool>& visited, vector<DAG::Vertex>& order){
-	for (const auto& toLoc : fromToAdjList[loc]){
-		if (!visited[toLoc]) {
-			DAG::updateDAGDfs(toLoc,visited,order);
+	if (fromToAdjList.count(loc)) { // so that the fromToAdjList key isn't created if there's nothing there
+		for (const auto& toLoc : fromToAdjList[loc]){
+			if (!visited[toLoc]) {
+				DAG::updateDAGDfs(toLoc,visited,order);
+			}
 		}
 	}
 	order.push_back(loc);
 	visited[loc] = true; 
 }
 
-bool DAG::clearPrevCache() {
-	prevCache.clear();
-}
+/****************************************************************************************************************************************/
 
 // Given a list of cells, return all of their descendants in the DAG, sorted topologically. 
 //(X is a proper descendant of Y if there's a path of length >= 1 from X to Y.)
@@ -109,8 +118,9 @@ vector<DAG::Vertex> DAG::getImmediateAncestors(const vector<DAG::Vertex>& locs){
 	// cout << "in dag get immediate ancestors " << endl; 
 	unordered_set<DAG::Vertex> ancestors;
 	for (const auto& loc : locs){
-		for (const auto& anc: toFromAdjList[loc]){
-			ancestors.insert(anc);
+		if (toFromAdjList.count(loc)) { // so that the toFromAdjList key isn't created if there's nothing there
+			for (const auto& anc: toFromAdjList[loc])
+				ancestors.insert(anc);
 		}
 	}
 	// cout << "filled up ancestors" << endl; 
@@ -141,5 +151,5 @@ void showAdjList(const DAG::AdjacencyList& al, string msg) {
 void DAG::showGraph(){
 	showAdjList(fromToAdjList, "From To Adjacency List");
 	showAdjList(toFromAdjList, "To From Adjacency List");
-	showAdjList(prevCache, "Previous cahce");
+	showAdjList(prevCache, "Previous cache");
 }
