@@ -417,7 +417,7 @@ describe('backend', () => {
             _forM_(_.range(4), (col) => {
               return _forM_(_.range(4), (row) => {
                 return shouldBe(
-                  locToExcel({ col: col + 2, row: row + 1 }),
+                  locToExcel({ col: col + 3, row: row + 1 }),
                   valueI(cs[`${col % 2}${row % 2}`])
                 );
               });
