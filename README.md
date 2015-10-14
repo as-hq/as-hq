@@ -35,7 +35,7 @@ $ npm run build
 
 ## Testing AlphaSheets
 
-AlphaSheets has two testing directories, `unit-tests` and `spec`, the latter of which contains the integration tests. You can run the unit tests as follows:
+AlphaSheets has two testing directories, `unit-tests` and `int-tests`, the latter of which contains the integration tests. You can run the unit tests as follows:
 
 ```bash
 $ npm test
@@ -44,7 +44,7 @@ $ npm test
 and run integration tests as follows:
 
 ```bash
-$ jasmine
+$ karma start
 ```
 
 Soon, both test suites will be run using `gulp test`, but run them separately for now.

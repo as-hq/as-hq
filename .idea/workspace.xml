@@ -3,6 +3,7 @@
   <component name="ChangeListManager">
     <list default="true" id="a4977ccf-7917-4e97-b3d2-d93ee507eb93" name="Default" comment="">
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/int-tests/backend-test.js" afterPath="$PROJECT_DIR$/int-tests/backend-test.js" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
     </list>
     <ignored path="frontend.iws" />
     <ignored path=".idea/workspace.xml" />
@@ -86,8 +87,8 @@
       <file leaf-file-name="backend-test.js" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/int-tests/backend-test.js">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="-0.47267208">
-              <caret line="148" column="9" selection-start-line="148" selection-start-column="9" selection-end-line="148" selection-end-column="9" />
+            <state vertical-scroll-proportion="0.8937247">
+              <caret line="238" column="17" selection-start-line="238" selection-start-column="17" selection-end-line="238" selection-end-column="17" />
               <folding />
             </state>
           </provider>
@@ -811,8 +812,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/int-tests/backend-test.js">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="-0.47267208">
-          <caret line="148" column="9" selection-start-line="148" selection-start-column="9" selection-end-line="148" selection-end-column="9" />
+        <state vertical-scroll-proportion="0.8937247">
+          <caret line="238" column="17" selection-start-line="238" selection-start-column="17" selection-end-line="238" selection-end-column="17" />
           <folding />
         </state>
       </provider>
