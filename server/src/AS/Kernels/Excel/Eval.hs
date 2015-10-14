@@ -25,29 +25,29 @@ convertEither c (Right entity) = return $ entityToASValue c entity
 -- | NOTE: ASValue's ValueL is column-major
 entityToASValue :: Context -> EEntity -> ASValue 
 entityToASValue c (EntityRef r) = case (L.refToEntity c r) of
-	Left e -> ValueExcelError e
-	Right entity -> entityToASValue c entity
+  Left e -> ValueExcelError e
+  Right entity -> entityToASValue c entity
 entityToASValue _ (EntityVal (EValueNum (EValueD d))) = ValueD d
 entityToASValue _ (EntityVal (EValueNum (EValueI i))) = ValueI i
 entityToASValue _ (EntityVal (EValueB b)) = ValueB b
 entityToASValue _ (EntityVal (EValueS s)) = ValueS s
 entityToASValue _ (EntityMatrix m) = case list2D of
-	[row] -> ValueL row
-	otherwise -> ValueL $ map ValueL list2D
-	where 
-		list2D' = map (map toASValue) (U.matrixTo2DList m)
-		list2D = transpose list2D'
+  [row] -> ValueL row
+  otherwise -> ValueL $ map ValueL list2D
+  where 
+    list2D' = map (map toASValue) (U.matrixTo2DList m)
+    list2D = transpose list2D'
 
 -- | In the Excel Error monad; parse the formula and then evaluate either as an array formula or not
 evalExcel :: String -> Context -> EResult
 evalExcel s context = do 
-	(formula,isArray) <- C.parseFormula s
-	if isArray
-		then L.evalArrayFormula context formula
-		else L.evalFormula context formula
+  (formula,isArray) <- C.parseFormula s
+  if isArray
+    then L.evalArrayFormula context formula
+    else L.evalFormula context formula
 
 -- | Entire Excel eval; parse, evaluate, cast to ASValue
 evaluate :: String -> ASReference -> RefValMap -> EitherTExec ASValue
 evaluate s ref mp = convertEither context $ evalExcel s context
-	where
-		context = Context mp ref
+  where
+    context = Context mp ref

@@ -58,12 +58,12 @@ runDispatchCycle state cs uid = do
     roots          <- lift $ EM.evalMiddleware cs
     conn           <- lift $ fmap dbConn $ readMVar state
     setCellsAncestorsInDb conn roots
-    printWithTimeT "Hello"
-    descLocs       <- getDescendants conn roots
-    cellsToEval    <- getCellsToEval conn descLocs roots
-    ancLocs        <- G.getImmediateAncestors descLocs
+    evalLocs       <- getEvalLocs conn roots
+    cellsToEval    <- getCellsToEval conn evalLocs roots
+    ancLocs        <- G.getImmediateAncestors evalLocs
     printWithTimeT $ "got ancestor locs: " ++ (show ancLocs)
     initValuesMap  <- lift $ getValuesMap ancLocs
+    printWithTimeT "Starting eval chain"
     (afterCells, cellLists) <- evalChain conn initValuesMap cellsToEval -- start with current cells, then go through descendants
     -- Apply endware
     finalizedCells <- lift $ EE.evalEndware state afterCells uid roots
@@ -76,25 +76,20 @@ runDispatchCycle state cs uid = do
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Eval building blocks
 
--- for some very strange reason, it sometimes happens that a cell is tagged as a part of the list in the
--- backend, but the cell that gets passed to us from the frontend doesn't have that. this is why
--- we need to pull oldCell to make this work right now. Otherwise we can just use the below:  
--- decoupleCells conn cell = if (isListMember cell) 
---   then lift $ DB.decoupleList conn cell
---   else return []
-
-
 -- | Update the ancestors of a cell, and set the ancestor relationships in the DB. 
 setCellsAncestorsInDb :: Connection -> [ASCell] -> EitherTExec ()
 setCellsAncestorsInDb conn cells = (flip mapM_) cells (\(Cell loc expr _ ts) -> do
   let deps = getDependencies (locSheetId loc) expr
   G.setRelations [(loc, deps)])
 
--- | Return the descendants of a cell, which will always exist but may be locked
+-- | Return the locations of cells to evaluate. (Just the descendants of all the cells passed in
+-- to the dispatch cycle, plus all the volatile cells -- the ones that always re-evaluate.)
+-- List of locations guaranteed to be topologically sorted by dependency. (So the cells with no
+-- dependencies are evaluated first.)
 -- TODO: throw exceptions for permissions/locking
-getDescendants :: Connection -> [ASCell] -> EitherTExec [ASIndex]
-getDescendants conn cells = do 
-  let locs = map cellLocation cells
+getEvalLocs :: Connection -> [ASCell] -> EitherTExec [ASIndex]
+getEvalLocs conn origCells = do 
+  let locs = map cellLocation origCells
   vLocs <- lift $ DB.getVolatileLocs conn -- Accounts for volatile cells being reevaluated each time
   printDebugT "locs" (locs ++ vLocs)
   indices <- G.getDescendants (locs ++ vLocs)
@@ -132,7 +127,6 @@ getValuesMap locs = do
 evalChain :: Connection -> RefValMap -> [ASCell] -> EitherTExec ([ASCell], [ASList])
 evalChain _ _ [] = return ([], [])
 evalChain conn valuesMap (c@(Cell loc xp _ ts):cs) = do  
-  printWithTimeT "Starting eval chain"
   cv <- EC.evaluateLanguage (IndexRef (cellLocation c)) (locSheetId loc) valuesMap xp
   case cv of 
     ValueL lst -> do

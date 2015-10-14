@@ -104,8 +104,8 @@ data ASCellTag =
   deriving (Show, Read, Eq, Generic)
 
 data ASCell = Cell {cellLocation :: ASIndex, 
-					cellExpression :: ASExpression,
-					cellValue :: ASValue,
+          cellExpression :: ASExpression,
+          cellValue :: ASValue,
           cellTags :: [ASCellTag]} deriving (Show, Read, Eq, Generic)
 
 type ListKey = String

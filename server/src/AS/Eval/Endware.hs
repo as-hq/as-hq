@@ -31,7 +31,7 @@ evalEndware state finalCells uid origCells = do
   let newCells = finalCells
   mapM_ (DM.possiblyCreateDaemon state uid) origCells
   return newCells
-	-- let newCells = (tagStyledCells . (changeExcelExpressions origCell)) finalCells
+  -- let newCells = (tagStyledCells . (changeExcelExpressions origCell)) finalCells
    
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Endwares
