@@ -271,16 +271,8 @@ handleCopy user state (PayloadCopy from to) = do
       allDeps         = concat shiftedDeps                          -- the set of dependencies present among the shifted cells
       toLocs          = map cellLocation toCells                     -- [new set of cell locations]
   printWithTime $ "Copying cells: " -- ++ (show sanitizedFromCells)
-  allExistDB <- DB.locationsExist conn allDeps                   -- check if deps exist in DB. (Bug on Alex's machine 9/30: not working properly here)
-  let allNonexistentDB = U.isoFilter not allExistDB allDeps -- the list of dependencies that currently don't refer to anything
-      allExist = U.isSubsetOf allNonexistentDB toLocs -- else if the dep was something we copied
-  if allExist
-    then do
-      msg' <- DP.runDispatchCycle state toCells (userId user)
-      sendBroadcastFiltered user state msg'
-    else do
-      let msg = ServerMessage Update (Failure $ generateErrorMessage CopyNonexistentDependencies) (PayloadE CopyNonexistentDependencies)
-      sendToOriginal user msg
+  msg' <- DP.runDispatchCycle state toCells (userId user)
+  sendBroadcastFiltered user state msg'
 
 -- same without checking. This might be broken.
 handleCopyForced :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()

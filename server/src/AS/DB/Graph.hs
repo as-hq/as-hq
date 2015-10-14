@@ -25,6 +25,7 @@ getDescendants = query GetDescendants
 getImmediateAncestors :: [ASIndex] -> EitherTExec [ASIndex]
 getImmediateAncestors = query GetImmediateAncestors
 
+-- TODO: should really be returning EitherTExec (), kind of like clear. 
 rollbackGraph :: EitherTExec [ASIndex]
 rollbackGraph = query RollbackGraph []
 

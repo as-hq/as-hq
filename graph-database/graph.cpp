@@ -15,16 +15,15 @@ void DAG::rollback() {
 	clearPrevCache();
 }
 
-//::ALEX:: rename
 bool DAG::cycleCheckDfs(const Vertex& loc, unordered_map<Vertex,bool>& visited) { 
 	visited[loc] = true; 
 	for (const auto& toLoc : fromToAdjList[loc]) {
 		if (!visited[toLoc]) {
 			if (DAG::cycleCheckDfs(toLoc, visited))
 				return true; 
-		} else { 
-			return true; 
 		}
+		else 
+			return true; 
 	}
 	return false; 
 }
@@ -37,13 +36,13 @@ bool DAG::containsCycle(const DAG::Vertex& start) {
 
 
 DAG& DAG::updateDAG(DAG::Vertex toLoc, const DAG::VertexSet& fromLocs, bool addToCache) {
-	// cout << "In dag update with toloc: " << toLoc << endl; 
+	DAG::VertexSet vl = toFromAdjList[toLoc]; //old fromLocs
+
 	if (addToCache) {
 		if (prevCache.find(toLoc) == prevCache.end())
 			prevCache[toLoc] = toFromAdjList[toLoc];
 	}
-
-	DAG::VertexSet vl = toFromAdjList[toLoc]; //old fromLocs
+	
 	/* Loop over the current fromLocs of toLoc and delete from forward adjacency list */
 	for (const auto& oldFl : vl){
 		fromToAdjList[oldFl].erase(toLoc);
@@ -51,10 +50,7 @@ DAG& DAG::updateDAG(DAG::Vertex toLoc, const DAG::VertexSet& fromLocs, bool addT
 		if (fromToAdjList[oldFl].empty())
 			fromToAdjList.erase(oldFl);
 	}
-
-	toFromAdjList.erase(toLoc); //::ALEX:: ???
-	// cout << "\n\ndeleted toLoc and oldFl's from fromToAdjList\n";
-	// showGraph();
+	toFromAdjList.erase(toLoc); 
 
 	/* Loop over the new fromLocs and add to the forward adjacency list */
 	for (const auto& fl : fromLocs) {

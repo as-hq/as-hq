@@ -49,8 +49,6 @@ import Control.Monad.Trans.Either
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Regular eval route
 
--- ::ALEX:: rename graph cache shit
-
 -- assumes all evaled cells are in the same sheet
 runDispatchCycle :: MVar ServerState -> [ASCell] -> ASUserId -> IO ASServerMessage
 runDispatchCycle state cs uid = do
@@ -102,7 +100,11 @@ getDescendants conn cells = do
   indices <- G.getDescendants (locs ++ vLocs)
   return indices 
 
--- | ::ALEX:: describe this
+-- | Given a set of locations to eval, return the corresponding set of cells to perform
+-- the evaluations in (which includes info about tags, language, and expression string). 
+-- Distinguishes between new cells to evaluate (the ones passed into runDispatchCycle) 
+-- and old cells already in the database.  For the new cells, just evaluate them as-is; 
+-- for old cells, pull them from the database. 
 getCellsToEval :: Connection -> [ASIndex] -> [ASCell] -> EitherTExec [ASCell]
 getCellsToEval conn locs origCells = do
   let locCellMap = M.fromList $ map (\c -> (cellLocation c, c)) origCells
