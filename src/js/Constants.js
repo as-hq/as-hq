@@ -18,11 +18,13 @@ export default {
   cellWidthPx: 50,
   cellHeightPx: 20,
 
-  gridXOffset: 25, // margin between left edge of div and cells
-  gridYOffset: 22, // '' top edge ''
+  gridXOffset: 35, // margin between left edge of div and cells
+  gridYOffset: 20, // '' top edge ''
 
   editorHeight: 180,
-  topbarTotalHeight: 226, // height of everything except pane
+  codeBarHeight:60,
+  topbarTotalHeight: 200, // height of everything except pane
+  treeViewWidth: 145,
 
   // Each time you add an action, add it here... They should be past-tense
   ActionTypes: keyMirror({

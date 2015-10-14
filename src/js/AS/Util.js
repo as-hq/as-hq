@@ -159,6 +159,19 @@ export default {
     }
   },
 
+  /* Get the horizontal (left) position of a cell at column col (starting from 1)
+  Used for overlays and textboxes */
+  getX(col,scrollX){
+    return col * Constants.cellWidthPx - scrollX  + Constants.treeViewWidth;
+  },
+
+  /* Get the vertical (top) position of a cell at column col (starting from 1)
+  Used for overlays and textboxes */
+  getY(row,scrollY){
+    let h = Constants.topbarTotalHeight + Constants.codeBarHeight + Constants.editorHeight;
+    return row * Constants.cellHeightPx - scrollY  + h;
+  },
+
 /*************************************************************************************************************************/
 // Formatting
 
@@ -319,6 +332,7 @@ export default {
   },
 
   intToExcelCol(i) {
+    i = i -1; 
     var quo = Math.floor((i) / 26);
     var rem = (i) % 26;
     var code = '';
@@ -431,5 +445,14 @@ export default {
 
   getAgnosticLanguageFromServer(lang) {
     return Constants.Languages[lang];
+  },
+
+  // TODO: make this actually correct?
+  canInsertCellRefInXp(xp){
+    let infix = ["+","-","*","/","(",",","&","="];
+    if (infix.indexOf(xp.substring(xp.length-1,xp.length))>-1)
+      return true;
+    else
+      return false;
   }
 };

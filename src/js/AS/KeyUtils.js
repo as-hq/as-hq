@@ -135,6 +135,11 @@ export default {
       return str + this.keyToString(e);
     }
   },
+  getString(e){
+    if (e.which === 8)
+      return ""
+    else return this.keyToString(e);
+  },
 
   killEvent(e) {
     e.preventDefault();

@@ -31,6 +31,7 @@ let _data = {
     }
   },
   activeSelection: null,
+  partialSelections: [],
   activeCell: null,
   clipboard: {
     range: null,
@@ -153,14 +154,16 @@ const ASEvaluationStore = assign({}, BaseStore, {
       contents: []
     }};
   },
-  setActiveSelection(rng, xp) {
-    _data.activeSelection = rng;
+  setActiveSelection(area, xp) {
+    let rng = area.range;
+    _data.activeSelection = area;
     _data.activeCell = this.getCellAtLoc(rng.col, rng.row) || Converter.defaultCell();
     this.setActiveCellDependencies(Util.parseDependencies(xp));
   },
   getActiveSelection() {
     return _data.activeSelection;
   },
+
   getActiveCell() {
     return _data.activeCell;
   },
@@ -200,7 +203,7 @@ const ASEvaluationStore = assign({}, BaseStore, {
   getExternalError(){
     return _data.externalError;
   },
-
+  
 
   /**************************************************************************************************************************/
   /*

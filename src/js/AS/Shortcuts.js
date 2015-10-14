@@ -12,7 +12,12 @@ export default {
 
     // common shortcuts -------------------------------------------------------------------------------
 
-    ShortcutUtils.addShortcut("common", "toggle_focus", "F2", (wildcard) => {self.toggleFocus()});
+    ShortcutUtils.addShortcut("common", "toggle_focus", "F2", (wildcard) => {
+      console.log("F2 PRESSED " + self.state.userIsTyping);
+      self.setState({userIsTyping:!self.state.userIsTyping},function(){
+        self.updateTextBox(self.state.userIsTyping);
+      });
+    });
     ShortcutUtils.addShortcut("common", "new_sheet", "Shift+F11", (wildcard) => {
       // TODO
     });
@@ -64,10 +69,10 @@ export default {
       self._toggleRepl();
     });
     ShortcutUtils.addShortcut("common", "esc", "Esc", (wildcard) => {
-      let editor = self._getRawEditor();
-      editor.setValue("");
+      console.log("Esc pressed");
+      self.updateTextBox(false);
       Store.setClipboard(null, false);
-      self.setState({focus: "grid"});
+      self.setState({focus: "grid",userIsTyping:false});
       self.refs.spreadsheet.repaint(); // render immediately
     });
 
@@ -102,6 +107,10 @@ export default {
       let replace = Util.toggleReferenceType(editor.getSelectedText());
       sesh.replace(range, replace);
     });
+    ShortcutUtils.addShortcut("editor", "toggle_shit", "F2", (wildcard) => {
+     console.log("EDITOR F2");
+    });
+
 
     // grid shortcuts -------------------------------------------------------------------------------
     ShortcutUtils.addShortcut("grid", "moveto_data_boundary", "Ctrl+Up/Down/Left/Right", (wildcard) => {

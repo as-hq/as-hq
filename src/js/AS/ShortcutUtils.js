@@ -63,6 +63,10 @@ export default {
     return !Util.arrContains(KeyUtils.navKeys, e.which) || e.ctrlKey;
   },
 
+  textBoxShouldDeferKey(e){
+    return !KeyUtils.producesVisibleChar(e);
+  },
+
   editorShouldDeferKey(e) {
     return !KeyUtils.producesVisibleChar(e);
   },
