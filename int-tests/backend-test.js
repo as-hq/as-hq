@@ -420,6 +420,18 @@ describe('backend', () => {
           ]);
         });
 
+        xit('should fail to evaluate a circular dependency arising from a range cell', (done) => {
+          // xcxc: this is blocking on a mass tester task
+          _do([
+            python('A5', '5'),
+            python('C5', 'A5 + 10'),
+            shouldError(
+              python('A1', 'range(C5, C5 + 10)')
+            ),
+            exec(done)
+          ]);
+        });
+
         it('should evaluate to an error when there is one', (done) => {
           _do([
             python('A1', '1 + "a"'),
