@@ -204,6 +204,24 @@ describe('backend', () => {
     });
   }
 
+  function expressionShouldSatisfy(loc, fn) {
+    return messageShouldSatisfy(loc, (cs) => {
+      console.log(`${loc} expression should satisfy ${fn.toString()}`);
+
+      expect(cs.length).not.toBe(0);
+      if (cs.length == 0) {
+        return;
+      }
+
+      let [{ cellExpression }] = cs;
+      expect(fn(cellExpression)).toBe(true);
+    });
+  }
+
+  function expressionShouldBe(loc, xp) {
+    return expressionShouldSatisfy(loc, ({ expression }) => expression === xp);
+  }
+
   function valueShouldSatisfy(loc, fn) {
     return messageShouldSatisfy(loc, (cs) => {
       console.log(`${loc} should satisfy ${fn.toString()}`);
@@ -238,10 +256,11 @@ describe('backend', () => {
   function shouldBeL(locs, vals) {
     return promise((fulfill, reject) => {
       API.test(() => {
-        API.sendGetRequest(locs.map(Util.excelToLoc));
+        API.sendGetRequest(locs.map((loc) => Util.excelToLoc(loc)));
       }, {
         fulfill: (result) => {
           let cellValues = Converter.clientCellsFromServerMessage(result).map((x) => x.cellValue);
+
           expect(_.
             zip(cellValues, vals).
             map(([x, y]) => equalValues(x, y)).
@@ -267,6 +286,8 @@ describe('backend', () => {
 
     return head().then(_doDefer(tail), (failure) => {
       console.log('error in monad', lbl, failure);
+      console.trace();
+      throw new Error(failure);
     }).catch((error) => {
       console.log('promise error', error.toString());
     });
@@ -515,6 +536,51 @@ describe('backend', () => {
             exec(done)
           ]);
         });
+
+        xit('should refuse to copy to create a circular dependency', (done) => {
+          // TODO: should receive error response
+          _do([
+            python('D1', '5'),
+            python('C1', 'D1'),
+            python('B1', 'A1 + 1'),
+            copy('B1', 'D1'), // C1 <-> D1
+            shouldBe('D1', valueI(5)),
+            exec(done)
+          ]);
+        });
+
+        it('should successfully copy and paste cells who depend on each other', (done) => {
+          _do([
+            python('A1', '1'),
+            python('A2', 'A1 + 1'),
+            python('B1', 'A2 + 1'),
+            python('B2', 'A1 + A2 + B1'),
+            copy('A1:B2', 'C1:D2'),
+            shouldBeL(
+              ['C1', 'C2', 'D1', 'D2'],
+              [1, 2, 3, 6].map(valueI)
+            ),
+            exec(done)
+          ]);
+        });
+
+        it('should copy an entire list without decoupling it', (done) => {
+          _do([
+            python('A1', 'range(10)'),
+            copy('A1:A10', 'B1:B10'),
+            expressionShouldBe('B1', 'range(10)'),
+            exec(done)
+          ]);
+        });
+
+        it('should decouple a partial list while copying it', (done) => {
+          _do([
+            python('A1', 'range(10)'),
+            copy('A1:A2', 'B1:B2'),
+            expressionShouldBe('B1', '0'),
+            exec(done)
+          ]);
+        });
       });
     });
 
@@ -551,6 +617,19 @@ describe('backend', () => {
             python('B1', '4'),
             shouldBe('B1', valueI(4)),
             shouldBeNothing('C1'),
+            exec(done)
+          ]);
+        });
+
+        it('should undo a copy', (done) => {
+          _do([
+            python('A1', '1 + 1'),
+            python('B1', 'A1 + 1'),
+            copy('A1:B1', 'C1:D1'),
+            undo(),
+            _forM_(['C1', 'D1'],
+              shouldBeNothing
+            ),
             exec(done)
           ]);
         });
@@ -593,6 +672,21 @@ describe('backend', () => {
             shouldBe('A1', valueI(2)),
             shouldBe('B1', valueI(3)),
             shouldBe('C1', valueI(5)),
+            exec(done)
+          ]);
+        });
+
+        it('should undo and redo copy and paste', (done) => {
+          _do([
+            python('A1', '1 + 1'),
+            python('A2', 'A1 + 1'),
+            copy('A1:A2', 'B1:B2'),
+            undo(),
+            redo(),
+            shouldBeL(
+              ['B1', 'B2'],
+              [2, 3].map(valueI)
+            ),
             exec(done)
           ]);
         });
