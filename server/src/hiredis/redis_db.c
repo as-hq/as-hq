@@ -81,21 +81,6 @@ char** str_split(char* a_str, const char a_delim){
     return result;
 }
 
-char* squeeze(char* str, const char ch) {
-  char *p = str; /* p points to the most current "accepted" char. */
-  while (*str) {
-      /* If we accept a char we store it and we advance p. */
-      if (*str != ch)
-          *p++ = *str;
-
-      /* We always advance s. */
-      str++;
-  }
-  /* We 0-terminate p. */
-  *p = 0;
-  return p;
-}
-
 /*************************************************************************************************************************/
 
 /* Haskell will free the mallocs here */
@@ -104,13 +89,11 @@ char** getCells(char* msg, int length){
   redisReply *reply;
   c = redisConnect((const char*)HOST, PORT);
   clock_t connect = clock(); 
-  // printf("Get cells raw input: %s \n",msg);
 
-  // removes first and last quotes from string (artifact of ByteString show)
+  // removes first and last quotes from string (part of Bytestring's show). See setCells
+  // for more information.  
   char *pmsg = msg; pmsg++; // removes first char '"'
   pmsg[strlen(pmsg) - 1] = 0; // removes last char '"'
-
-  // printf("Get cells input: %s \n",msg);
 
   char** locs = str_split(pmsg, '@');
   char** cells = malloc(length * sizeof(char*));
@@ -169,6 +152,9 @@ char** getCells(char* msg, int length){
   return cells; 
 }
 
+// The format of the message passed in is an escaped string, with its different components
+// delimited by @. Since it's escaped, it'll start and end with " characters, which we 
+// need to remove at the beginning. 
 void setCells(char* msg, int length){
   clock_t begin = clock(); 
   redisContext *c;
@@ -178,13 +164,10 @@ void setCells(char* msg, int length){
     freeRedis(c,reply); 
   }
   clock_t connect = clock(); 
-  // printf("Set cells connecting: %f seconds\n", (double)(connect - begin) / CLOCKS_PER_SEC);
 
-  // printf("Set cells raw message: %s \n",msg);
   // removes first and last quotes from string (artifact of ByteString show)
   char *pmsg = msg; pmsg++; // removes first char '"'
   pmsg[strlen(pmsg) - 1] = 0; // removes last char '"'
-  squeeze(pmsg, '\\'); // remove double-escaped strings
 
   // printf("Set cells input: %s \n",pmsg);
 

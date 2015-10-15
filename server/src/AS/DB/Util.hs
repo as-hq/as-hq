@@ -170,9 +170,10 @@ getSheetLocsRedis sheetid = do
 cToASCell :: CString -> IO (Maybe ASCell)
 cToASCell str = do
   str' <- peekCString str
-  return $ case str' of
+  let str'' = read ('"':str' ++ ['"']) -- Need to unescape the string (what's passed to Redis was escaped by Bytestring.show)
+  return $ case str'' of
     "Nothing" -> Nothing
-    otherwise -> Just (read2 str' :: ASCell)
+    otherwise -> Just (read2 str'' :: ASCell)
 
 ----------------------------------------------------------------------------------------------------------------------
 -- Lists
