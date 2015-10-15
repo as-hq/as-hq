@@ -222,12 +222,12 @@ handleDelete user state payload = do
   msg <- DP.runDispatchCycle state newCells (userId user)
   sendBroadcastFiltered user state msg
 
-handleClear :: ASUserClient -> MVar ServerState -> IO ()
-handleClear user state = do
+handleClear :: (Client c) => c  -> MVar ServerState -> IO ()
+handleClear client state = do
   conn <- dbConn <$> readMVar state
   DB.clear conn
   G.clear
-  sendBroadcastFiltered user state $ ServerMessage Clear Success $ PayloadN ()
+  sendBroadcastFiltered client state $ ServerMessage Clear Success $ PayloadN ()
 
 handleUndo :: ASUserClient -> MVar ServerState -> IO ()
 handleUndo user state = do

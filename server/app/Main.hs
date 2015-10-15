@@ -28,6 +28,7 @@ import AS.Config.Settings as S
 import AS.Util
 import AS.Users
 import AS.DB.API as DB
+import AS.DB.Graph as G
 import AS.DB.Util as DBU
 
 import AS.Kernels.Python.Eval as KP
@@ -81,7 +82,7 @@ handleFirstMessage state conn msg = do
   case (decode msg :: Maybe ASClientMessage) of 
     Just m@(ClientMessage Acknowledge (PayloadInit (ASInitConnection _))) -> do -- first mesage is user init
       user <- initUserFromMessageAndConn m conn
-      initClient user state 
+      catch (initClient user state) (handleRuntimeException user state)
     Just m@(ClientMessage Acknowledge (PayloadDaemonInit (ASInitDaemonConnection _ _))) -> do -- first message is daemon init
       initClient (initDaemonFromMessageAndConn m conn) state
     otherwise -> do -- first message is neither
@@ -101,6 +102,14 @@ talk state client = forever $ do
   case (decode msg :: Maybe ASClientMessage) of 
     Just m  -> printWithTime ("SERVER message received:  " ++ (show msg)) >> processMessage client state m
     Nothing -> printWithTime ("SERVER ERROR: unable to decode message " ++ (show msg)) >> return ()
+
+handleRuntimeException :: ASUserClient -> MVar ServerState -> SomeException -> IO ()
+handleRuntimeException user state e = do
+  putStrLn ("Runtime error caught: " ++ (show e))
+  conn <- dbConn <$> readMVar state
+  DB.clear conn
+  G.clear
+  main
 
 processMessage :: (Client c) => c -> MVar ServerState -> ASClientMessage -> IO ()
 processMessage client state message = do
