@@ -1,5 +1,6 @@
 {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE DataKinds #-}
 
 module AS.Kernels.R where
 
@@ -15,7 +16,7 @@ import AS.Util
 
 import qualified Data.ByteString.Char8 as BC
 
-import Foreign.C.String
+import Foreign.C.String (peekCString)
 import Foreign.Storable (peek)
 import Foreign.Marshal.Array (peekArray)
 
@@ -30,9 +31,11 @@ import Language.R.QQ
 import Language.R.HExp as H
 
 import qualified Data.Vector.SEXP as SV
+import Data.Word (Word8)
 
 import Control.Monad.IO.Class
 import Control.Applicative
+import Control.Exception (catch, SomeException)
 -- EitherT
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.Either
@@ -66,15 +69,18 @@ execOnString str f = do
 
 -- takes (isGlobalExecution, str)
 execR :: Bool -> String -> IO ASValue
-execR isGlobal s = do
-  putStrLn "got here"
-  R.runRegion $ liftIO . castR =<< if isGlobal
-    then [r| eval(parse(text=s_hs)) |]
-    else [r| AS_LOCAL_ENV<-function(){eval(parse(text=s_hs))};AS_LOCAL_ENV() |]
+execR isGlobal s =
+  let whenCaught = (\e -> return $ ValueError (show e) StdErr "" 0) :: (SomeException -> IO ASValue)
+  in do
+    putStrLn "got here"
+    catch (R.runRegion $ castR <$> if isGlobal
+      then [r| eval(parse(text=s_hs)) |]
+      else [r| AS_LOCAL_ENV<-function(){eval(parse(text=s_hs))};AS_LOCAL_ENV() |]) whenCaught
 
--- faster unboxing, but I can't figure out how to restrict x to (IsVector x)
+-- #ANAND faster unboxing, but I can't figure out how to restrict x to (IsVector x)
 --castR :: (IsVector a) => (R.SomeSEXP (R.SEXP (Control.Memory.Region s) a) -> IO ASValue
 --castR (R.SomeSEXP x) =
+  --let offset = R.length x
   --case x of
     --(hexp -> H.Real _)    -> (map ValueD) <$> (peekArray offset =<< R.real x)
     --(hexp -> H.Int _)     -> (map (ValueI . fromIntegral)) <$> (peekArray offset =<< R.integer x)
@@ -82,23 +88,34 @@ execR isGlobal s = do
     --(hexp -> H.Char _)    -> (\s -> [ValueS s]) <$> (peekCString =<< R.char x)
     --(hexp -> H.String _)  -> (map ValueS) <$> (mapM peekCString =<< mapM R.char =<< peekArray offset =<< R.string x)
 
-castR :: R.SomeSEXP a -> IO ASValue
-castR (R.SomeSEXP s) = do
-  --offset <- R.length x
-  let castSEXP x = case x of
-            (hexp -> H.Real v)    -> map ValueD $ SV.toList v
-            (hexp -> H.Int v)     -> map (ValueI . fromIntegral) $ SV.toList v
-            (hexp -> H.Logical v) -> map (ValueB . fromLogical) $ SV.toList v
-            (hexp -> H.Char v)    -> (\s -> [ValueS s]) . bytesToString $ SV.toList v
-            (hexp -> H.String v)  -> map (\s -> case s of
-              (hexp -> H.Char cv) -> ValueS . bytesToString $ SV.toList cv) $ SV.toList v
-            (hexp -> H.List )
-            _ -> [ValueError "Could not cast R value." StdErr "" 0]
+castR :: R.SomeSEXP a -> ASValue
+castR (R.SomeSEXP s) =
   let vec = castSEXP s
-  putStrLn $ "R got value: " ++ (show vec)
-  return $ case (length vec) of
-    1 ->  head vec
+  in case (length vec) of
+    1 -> head vec
     _ -> ValueL vec
+
+-- everything returned is a list, because R.
+castSEXP :: R.SEXP s a -> [ASValue]
+castSEXP x = case x of
+  (hexp -> H.Nil)       -> [ValueNull]
+  (hexp -> H.Real v)    -> map ValueD $ SV.toList v
+  (hexp -> H.Int v)     -> map (ValueI . fromIntegral) $ SV.toList v
+  (hexp -> H.Logical v) -> map (ValueB . fromLogical) $ SV.toList v
+  (hexp -> H.Char v)    -> [castString v]
+  (hexp -> H.String v)  -> map (\(hexp -> H.Char c) -> castString c) $ SV.toList v
+  (hexp -> H.Symbol s _ _)  -> castSEXP s
+  (hexp -> H.List a b c) -> (castSEXP a) ++ (castSEXP b) ++ (castSEXP c)
+  (hexp -> H.Special i) -> [ValueI $ fromIntegral i]
+  (hexp -> H.DotDotDot s) -> castSEXP s
+  (hexp -> H.Vector len v) -> map castR $ SV.toList v
+  (hexp -> H.Builtin i) -> [ValueI $ fromIntegral i]
+  (hexp -> H.Raw v) -> [ValueS . bytesToString $ SV.toList v]
+  (hexp -> H.S4 s) -> castSEXP s
+  _ -> [ValueError "Could not cast R value." StdErr "" 0]
+
+castString :: SV.Vector s 'R.Char Word8 -> ASValue
+castString v = ValueS . bytesToString $ SV.toList v
 
 fromLogical :: R.Logical -> Bool
 fromLogical R.TRUE  = True

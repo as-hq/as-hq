@@ -43,6 +43,7 @@ refSheetId loc = case loc of
   IndexRef i -> locSheetId i
   RangeRef r -> rangeSheetId r
 
+
 -- | TODO: create custom show instance that takes REF/NA/VALUE etc into account
 data EError =
   ExcelSyntaxError |
@@ -71,6 +72,7 @@ data EError =
 
 data ASValue =
     NoValue
+  | ValueNull
   | ValueS String
   | ValueI Int
   | ValueD Double
@@ -80,7 +82,7 @@ data ASValue =
   | ValueObject { objectType :: String, jsonRepresentation :: String }
   | ValueError { errMsg :: String, errType :: EvalErrorType, file :: String, position :: Int }
   | ValueExcelError EError
-  | ValueRList [(RListKey, ASValue)]
+  | RList [(RListKey, ASValue)]
   deriving (Show, Read, Eq, Generic)
 
 type RListKey = String
@@ -370,7 +372,8 @@ instance FromJSON ASTime
 instance ToJSON ASTime
 instance FromJSON ASCommit
 instance ToJSON ASCommit
-
+instance FromJSON RVal
+instance ToJSON RVal
 -- The format Frontend uses for both client->server and server->client is
 -- { messageUserId: blah, action: blah, result: blah, payload: blah }
 instance ToJSON ASClientMessage where
@@ -411,3 +414,4 @@ instance NFData EError        where rnf = genericRnf
 instance NFData ASReference   where rnf = genericRnf
 instance NFData ASRange       where rnf = genericRnf
 instance NFData ASIndex       where rnf = genericRnf
+instance NFData RVal          where rnf = genericRnf
