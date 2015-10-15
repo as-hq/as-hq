@@ -1,7 +1,6 @@
 import Constants from '../Constants';
 import shortid from 'shortid';
 
-/* This module has general utility functions */
 
 var colors = {"aliceblue":"#f0f8ff","antiquewhite":"#faebd7","aqua":"#00ffff","aquamarine":"#7fffd4","azure":"#f0ffff",
       "beige":"#f5f5dc","bisque":"#ffe4c4","black":"#000000","blanchedalmond":"#ffebcd","blue":"#0000ff","blueviolet":"#8a2be2","brown":"#a52a2a","burlywood":"#deb887",
@@ -95,19 +94,28 @@ export default {
     }
   },
 
-  getBorderPatternsForInteriorCell(col, row, rng) {
-    if (col >= rng.col && col <= rng.col2 && row >= rng.row && row <= rng.row2){
-      let borders = [];
-      if (col === rng.col) // left intersection
-        borders.push([[0,0],[0,1]]);
-      if (col === rng.col2) // right intersection
-        borders.push([[1,0],[1,1]]);
-      if (row === rng.row) // top intersection
-        borders.push([[0,0],[1,0]]);
-      if (row === rng.row2) // bottom intersection
-        borders.push([[0,1],[1,1]]);
-      return borders;
-    } else return [];
+  getBorderPatternsForInteriorCell(col, row, locs) {
+    let borders = [];
+    for (var i = 0; i < locs.length; ++i) {
+      let rng = locs[i];
+      if (!locs[i].row2 && (col === locs[i].col && row === locs[i].row)) {
+        return [[[0,0],[1,0]],
+                [[1,0],[1,1]],
+                [[1,1],[0,1]],
+                [[0,1],[0,0]]];
+      }
+      else if (col >= rng.col && col <= rng.col2 && row >= rng.row && row <= rng.row2){
+        if (col === rng.col) // left intersection
+          borders.push([[0,0],[0,1]]);
+        if (col === rng.col2) // right intersection
+          borders.push([[1,0],[1,1]]);
+        if (row === rng.row) // top intersection
+          borders.push([[0,0],[1,0]]);
+        if (row === rng.row2) // bottom intersection
+          borders.push([[0,1],[1,1]]);
+      }
+    }
+    return borders;
   },
 
 // determines borders of a cell to be painted, given that it falls somewhere within a list of locs
@@ -115,30 +123,18 @@ export default {
 // each edge is a 2-length array [start, end]
 // executed by graphicscontext.moveTo(startx, starty) -> graphicscontext.lineTo(endx, endy)
   getPaintedBorders(col, row, locs) {
-    if (locs.constructor === Array) {
-      // first try indices
-      for (var i=0; i<locs.length; i++) {
-        if (!locs[i].row2 && (col === locs[i].col && row === locs[i].row))
-          return [[[0,0],[1,0]],
-                  [[1,0],[1,1]],
-                  [[1,1],[0,1]],
-                  [[0,1],[0,0]]];
-      }
-      // then try interiors of ranges
-      for (var i=0; i<locs.length; i++) {
-        if (locs[i].row2)
-          return this.getBorderPatternsForInteriorCell(col, row, locs[i]);
-      }
-      return [];
-    }
-    else if (locs.row2)
+    if (locs.constructor == Array) {
       return this.getBorderPatternsForInteriorCell(col, row, locs);
-    else if (col === locs.col && row === locs.row)
+    }
+    else if (col === locs.col && row === locs.row) {
       return [[[0,0],[1,0]],
               [[1,0],[1,1]],
               [[1,1],[0,1]],
               [[0,1],[0,0]]];
-    else return [];
+    }
+    else {
+      return [];
+    }
   },
 
   getOverlay(cv, col, row) {
@@ -445,6 +441,33 @@ export default {
 
   getAgnosticLanguageFromServer(lang) {
     return Constants.Languages[lang];
+  },
+
+  // indexStringToPair("(a,b)") := {row:a, col:b}
+  indexStringToPair(indexString) {
+    var ab = indexString.substr(1, indexString.length-2).split(",");
+    return {fst : parseInt(ab[0], 10), snd: parseInt(ab[1], 10)};
+
+  },
+
+  /* Gets the top left cell from the listKey. */
+  // listKeyToListHead("I/reafe/(a,b)?(c,d)?LIST") := (a,b)"
+  listKeyToListHead(listKey) {
+    if (listKey.split("?").length < 3 || listKey.split("?")[2] != "LIST") {
+      console.log("There was an error with the format of the listKey. Could not get list head.");
+      return;
+    }
+    return this.indexStringToPair((listKey.split("?")[0]).split("/")[2]);
+  },
+
+  /* Gets the dimensions of the list from the listKey." */
+  // listKeyToListDimensions("I/reafe/(a,b)?(c,d)?LIST") := (c,d)"
+  listKeyToListDimensions(listKey) {
+    if (listKey.split("?").length < 3 || listKey.split("?")[2] != "LIST") {
+      console.log("There was an error with the format of the listKey. Could not get listDimensions");
+      return;
+    }
+    return this.indexStringToPair(listKey.split("?")[1]);
   },
 
   // TODO: make this actually correct?
