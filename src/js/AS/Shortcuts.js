@@ -28,7 +28,7 @@ export default {
       };
       self.handleEvalRequest(editorState);
     });
-    ShortcutUtils.addShortcut("common", "cell_eval", ["Ctrl+Shift+Enter", "Command+Shift+Enter"], (wildcard) => {
+    ShortcutUtils.addShortcut("common", "cell_eval_arrayformula", ["Ctrl+Shift+Enter", "Command+Shift+Enter"], (wildcard) => {
       var editorValue = self._getRawEditor().getValue();
       console.log(self.state.language);
       if (self.state.language == Constants.Languages.Excel){
