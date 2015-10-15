@@ -459,6 +459,14 @@ describe('backend', () => {
           ]);
         });
 
+        it('should evaluate a literal', (done) => {
+          _do([
+            excel('A1', '1'),
+            shouldBe('A1', valueI(1)),
+            exec(done)
+          ]);
+        });
+
         describe('abs', () => {
           it('should evaluate', (done) => {
             _do([
