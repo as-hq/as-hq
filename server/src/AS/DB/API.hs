@@ -193,10 +193,12 @@ updateAfterEval conn (Transaction uid sid roots afterCells lists) = do
   let (coupledCells, decoupledCells) = U.liftListTuple decoupleResult
       afterCells'                    = U.mergeCells afterCellsWithLists decoupledCells
       beforeCells'                   = U.mergeCells beforeCells coupledCells
+  -- let beforeAncestriesRelations = ancestriesRelations beforeCells' -- should match what was originally in graph before eval
+  -- let afterAncestriesRelations = ancestriesRelations afterCells'   -- should match what is currently in the graph
   liftIO $ setCells afterCells'
   liftIO $ deleteCells conn (filter isEmptyCell afterCells')
   liftIO $ mapM_ (\(key, cells) -> setListLocations conn key (map cellLocation cells)) lists
-  liftIO $ addCommit conn uid (beforeCells', afterCells') listKeysChanged
+  liftIO $ addCommit conn uid (beforeCells', afterCells') (beforeAncestriesRelations, afterAncestriesRelations) listKeysChanged
   liftIO $ printWithTime "added commits"
   right afterCells'
 

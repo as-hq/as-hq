@@ -53,7 +53,8 @@ query q locs =
                 return $ Left DBGraphUnreachable
 
 -- | Takes in a list of (cell, [list of ancestors of that cell])'s and sets the ancestor relationship in the DB. 
-setRelations :: [(ASIndex, [ASIndex])] -> EitherTExec ()
+-- (ASRelations is of type [(ASIndex, [ASIndex])]).
+setRelations :: ASRelations -> EitherTExec ()
 setRelations rels = 
     let
         locSets = map (\(root, deps)-> (root:deps)) rels

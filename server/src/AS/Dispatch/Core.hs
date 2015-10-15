@@ -50,18 +50,17 @@ runDispatchCycle state cs uid = do
     printWithTimeT $ "STARTING DISPATCH CYCLE WITH CELLS: " ++ (show cs)
     roots          <- lift $ EM.evalMiddleware cs
     conn           <- lift $ fmap dbConn $ readMVar state
-    setCellsAncestorsInDb conn roots
+    setCellsAncestorsInDb roots
     evalLocs       <- getEvalLocs conn roots
     cellsToEval    <- getCellsToEval conn evalLocs roots
     ancLocs        <- G.getImmediateAncestors evalLocs
-    printWithTimeT $ "got ancestor locs: " ++ (show ancLocs)
     initValuesMap  <- lift $ getValuesMap ancLocs
     printWithTimeT "Starting eval chain"
     (afterCells, cellLists) <- evalChain conn initValuesMap cellsToEval -- start with current cells, then go through descendants
     -- Apply endware
     finalizedCells <- lift $ EE.evalEndware state afterCells uid roots
     let transaction = Transaction uid sid roots finalizedCells cellLists
-    broadcastCells <- DB.updateAfterEval conn transaction -- atomically performs DB ops
+    broadcastCells <- DB.updateAfterEval conn transaction -- atomically performs DB ops. (Sort of a lie -- writing to server is not atomic.)
     return broadcastCells
   runEitherT $ rollbackGraphIfError errOrCells
   return $ U.getCellMessage errOrCells
@@ -70,10 +69,13 @@ runDispatchCycle state cs uid = do
 -- Eval building blocks
 
 -- | Update the ancestors of a cell, and set the ancestor relationships in the DB. 
-setCellsAncestorsInDb :: Connection -> [ASCell] -> EitherTExec ()
-setCellsAncestorsInDb conn cells = (flip mapM_) cells (\(Cell loc expr _ ts) -> do
-  let deps = getDependencies (locSheetId loc) expr
-  G.setRelations [(loc, deps)])
+setCellsAncestorsInDb :: [ASCell] -> EitherTExec ()
+setCellsAncestorsInDb = G.setRelations . ancestriesRelations 
+
+-- | Given a list of cells, returns a list of pairs (location of cell, [locations of parents of cell]).
+-- This is the format the graph DB understands when updating cells. 
+ancestriesRelations :: [ASCell] -> ASRelations
+ancestriesRelations = map (\(Cell loc expr _ _) -> (loc, (getDependencies (locSheetId loc) expr)))
 
 -- | Return the locations of cells to evaluate. (Just the descendants of all the cells passed in
 -- to the dispatch cycle, plus all the volatile cells -- the ones that always re-evaluate.)
