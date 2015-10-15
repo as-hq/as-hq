@@ -18,7 +18,7 @@ import Foreign.C.Types
 import Foreign.C.String(CString(..))
 import Foreign.C
 
-import qualified Data.Text as T 
+import qualified Data.Text as T
 import qualified Data.List as L
 import qualified Data.Map as M
 
@@ -33,7 +33,7 @@ testEdges :: Int -> [(ASIndex,ASIndex)]
 testEdges n = L.zip (testLocs n) (testLocs n)
 
 main :: IO ()
-main = do 
+main = do
     putStrLn ""
     printWithTime "Running tests..."
     conn <- R.connect DU.cInfo
@@ -45,9 +45,13 @@ main = do
     --testEvaluateRepl
     --putStrLn $ trimWhitespace Python "  1+1;  \t \n "
     --testIntrospect
-    --testExcelExpr
+    testExcelExpr
     --testGetCells
-    testCopySanitization
+    --testCopySanitization
+
+testExcelExpr :: IO ()
+testExcelExpr = do
+  putStrLn $ show $ EC.parseFormula "\"sdfa\""
 
 testIntrospect :: IO ()
 testIntrospect = do
@@ -79,13 +83,13 @@ testLocationKey conn = do
     (Right result) <- runRedis conn $ exists key
     printWithTime $ "location key exists: " ++ (showResult result)
 
-testSetCells :: IO () 
+testSetCells :: IO ()
 testSetCells = do
     let cells = testCells 10
     --printWithTime $ L.concat $ L.map show2 cells
     DB.setCells cells
     let locs = testLocs 10
-    cells' <- DB.getCells locs 
+    cells' <- DB.getCells locs
     let result = (==) 10 $ length . filterNothing $ cells'
     printWithTime $ "set 100K cells: " ++ (showResult result)
 
@@ -93,7 +97,7 @@ showResult :: Bool -> String
 showResult True = "PASSED"
 showResult False = "FAILED"
 
---testSetCellsRaw :: IO () 
+--testSetCellsRaw :: IO ()
 --testSetCellsRaw = do
 --    let cells = testCells 100000
 --    let str = L.intercalate "@" $ (L.map (show2 . cellLocation) cells) ++ (L.map show2 cells)
@@ -116,11 +120,11 @@ testGetCells = do
 testSheetCreation :: Connection -> IO ()
 testSheetCreation conn = do
     let sid = T.pack "sheetid1"
-    let sheet = Sheet sid "sheetname" $ Blacklist [] 
+    let sheet = Sheet sid "sheetname" $ Blacklist []
     let wbs = WorkbookSheet "workbookname" [sheet]
     DB.createWorkbookSheet conn wbs
     allWbs <- getAllWorkbookSheets conn
-    --printWithTime $ "set 1: " ++ (show allWbs) 
+    --printWithTime $ "set 1: " ++ (show allWbs)
     let sid2 = T.pack "sheetid2"
     let wbs2 = WorkbookSheet "workbookname" [Sheet sid2 "sheetname2" (Blacklist [])]
     DB.createWorkbookSheet conn wbs2
@@ -134,7 +138,7 @@ testCopySanitization = do
     let listCells = testListCells "key" 3
     let cells = testCells 3
     printWithTime . show$ partitionByListKeys (cells ++ listCells) ["key"]
-    --printWithTime . show $ map (isMemberOfSpecifiedList "key") listCells 
+    --printWithTime . show $ map (isMemberOfSpecifiedList "key") listCells
 
 testListCells :: ListKey -> Int -> [ASCell]
 testListCells key size = map (\i -> Cell (Index "" (1,i)) (Expression "" Python) (ValueI 3) [ListMember key]) [1..size]

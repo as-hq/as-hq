@@ -16,7 +16,23 @@ import Data.List (elemIndices)
 -- | Top-level parsers.
 
 parseFormula :: String -> ThrowsError ContextualFormula
-parseFormula s = either (\_ -> Left ExcelSyntaxError) return $ parse formula "" s
+parseFormula s = either (\_ -> Left ExcelSyntaxError) return $ parse eitherLiteralFormula "" s
+
+eitherLiteralFormula :: Parser ContextualFormula
+eitherLiteralFormula =
+      (try formula)
+  <|> (SimpleFormula <$> try literal)
+
+literal :: Parser Formula
+literal = do
+  spaces
+  firstChar <- noneOf ['=']
+  restChars <- manyTill anyChar (try eof)
+  let str = firstChar:restChars
+  let val = parse excelValue "" str
+  return $ case val of
+    (Left _) -> Basic . Var $ EValueS str
+    (Right v) -> v
 
 -- | Formulas.
 formula :: Parser ContextualFormula
@@ -25,20 +41,20 @@ formula =  do
   opener <- option ' ' $ try (char '{')
   spaces >> symbol "=" >> spaces
   f <- expr
-  case opener of 
-    '{' -> char '}' >> return (f, True)
-    _ -> return (f, False)
+  case opener of
+    '{' -> char '}' >> (return $ ArrayFormula f)
+    _ -> return $ SimpleFormula f
 
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
--- | Language definition 
+-- | Language definition
 
 -- | Expressions.
 expr :: Parser Formula
 expr    =   buildExpressionParser table leaf
         <?> "expression"
 
--- | Table to build expression grammar.        
+-- | Table to build expression grammar.
 table :: OperatorTable Char () Formula
 table   = [ [binary ":" AssocLeft]
           , [prefixRepeated $ choice [pos, neg]]
@@ -49,21 +65,21 @@ table   = [ [binary ":" AssocLeft]
           , [binary "&" AssocLeft]
           , [binary "=" AssocLeft
               , binary "<>" AssocLeft
-              , binary "<="  AssocLeft 
+              , binary "<="  AssocLeft
               , binary ">=" AssocLeft
               , binary "<" AssocLeft
-              , binary ">" AssocLeft 
+              , binary ">" AssocLeft
             ]
           ]
 
 -- | Helper.
-binary :: String -> Assoc -> Operator Char () Formula        
-binary name assoc 
+binary :: String -> Assoc -> Operator Char () Formula
+binary name assoc
   = Infix (do{ reservedOp name; return $ \x y -> Basic $ Fun name [x,y] }) assoc
 
 -- | Helper.
-prefix :: String -> Operator Char () Formula        
-prefix name       
+prefix :: String -> Operator Char () Formula
+prefix name
   = Prefix (do{ reservedOp name; return $ \x -> Basic $ Fun name [x] })
 
 -- NOTE: this parser will not check if there exists a higher-precedence operator that's a superset
@@ -76,8 +92,8 @@ neg = topLevelPrefixParser "-"
 prefixRepeated p = Prefix . chainl1 p $ return (.)
 
 -- | Helper.
-postfix :: String -> Operator Char () Formula        
-postfix name       
+postfix :: String -> Operator Char () Formula
+postfix name
   = Postfix (do{ reservedOp name; return $ \x -> Basic $ Fun name [x] })
 
 
@@ -87,7 +103,7 @@ postfix name
 lexer :: P.TokenParser ()
 lexer  = P.makeTokenParser excelLang
 
-excelLang = LanguageDef 
+excelLang = LanguageDef
    { commentStart   = ""
    , commentEnd     = ""
    , commentLine    = ""
@@ -122,7 +138,7 @@ stringLiteral = P.stringLiteral lexer
 
 -- | Terms (leafs of expressions).
 leaf' :: Parser Formula
-leaf'    =  parens expr 
+leaf'    =  parens expr
         <|> arrayConst
         <|> try excelValue
         <|> try referenceIntersection
@@ -149,13 +165,13 @@ referenceIntersection :: Parser Formula
 referenceIntersection = do
   c1 <- cellReference
   many1 (char ' ')
-  c2 <- cellReference 
+  c2 <- cellReference
   return . Basic $ Fun " " [c1,c2]
 
 
 cellReference :: Parser Formula
 cellReference = fmap (Basic . Ref) excelMatch
-  
+
 -- | Function application.
 functionApplication :: Parser Formula
 functionApplication = do
@@ -169,7 +185,7 @@ functionApplication = do
 
 -- | Parses full array formula.
 arrayConst :: Parser Formula
-arrayConst = do 
+arrayConst = do
   char '{' >> spaces
   fs <- arrayContents
   spaces >> char '}'
@@ -192,14 +208,14 @@ arrayRow =
   do
     rowOpener <- option ' ' $ try (char '{')
     bfs <- arrayRowContents
-    case rowOpener of 
+    case rowOpener of
       '{' -> char '}'
       _   -> return ' '
     return bfs
 
 -- | Parses row contents by building up row elements (basic formulas).
 arrayRowContents :: Parser [BasicFormula]
-arrayRowContents = 
+arrayRowContents =
   do
     (Basic xp) <- expr
     xps <- option [] $ try (char ',' >> arrayRowContents) -- no need to delimit, 'expr' already checks spaces
@@ -222,7 +238,7 @@ optionMaybe' p
 -- | Parsing values.
 
 readBool :: String -> Bool
-readBool str = case str of 
+readBool str = case str of
   "TRUE"  -> True
   "FALSE" -> False
 
@@ -235,7 +251,7 @@ str = (quoteString <|> apostropheString)
     quoteString      = quotes $ many $ escaped <|> noneOf ['"']
     apostropheString = apostrophes $ many $ escaped <|> noneOf ['\'']
     quotes           = between quote quote
-    quote            = char '"' -- 
+    quote            = char '"' --
     apostrophes      = between apostrophe apostrophe
     apostrophe       = char '\'' -- TODO apostrophes also
     escaped          = char '\\' >> choice (zipWith escapedChar codes replacements)

@@ -11,7 +11,7 @@ import AS.Kernels.Excel.Compiler as EC
 import AS.Kernels.Excel.Eval as EE
 import AS.Kernels.Excel.Lib as EL
 
-import qualified Data.Text as T 
+import qualified Data.Text as T
 import qualified Data.List as L
 import qualified Data.Map as M
 
@@ -25,13 +25,20 @@ import Test.Hspec hiding (context)
 import System.IO.Unsafe
 
 eval :: String -> Either ASExecError ASValue
-eval s = unsafePerformIO $ runEitherT $ EE.evaluate s (IndexRef (Index (T.pack "") (1,1))) mp 
-   
+eval s = unsafePerformIO $ runEitherT $ EE.evaluate s (IndexRef (Index (T.pack "") (1,1))) mp
+
 mp :: RefValMap
 mp = M.fromList $ [(IndexRef (Index (T.pack "") (i,j)), ValueI j)| i <- [1..100], j <- [1..100]]
 
 tests :: [IO ()]
 tests = [testLambda, testAdd,testAbs,testEquals,testIf,testSumIf]
+
+testShitExpression :: IO ()
+testShitExpression = hspec $ do
+  describe "testShitExpression" $ do
+    it "can parse anything without equals" $ do
+      EL.getLambda (EValueS ">=2") (EValueNum (EValueD 5)) `shouldBe` True
+      EL.getLambda (EValueS ">=2") (EValueNum (EValueD 1)) `shouldBe` False
 
 testLambda :: IO ()
 testLambda = hspec $ do
@@ -51,7 +58,7 @@ testAbs = hspec $ do
   describe "testAbs" $ do
     it "can do abs" $ do
       eval "=abs(1)" `shouldBe` (Right $ ValueI 1)
-    it "can scalarize" $ do 
+    it "can scalarize" $ do
       eval "=abs(B1:B5)" `shouldBe` (Right $ ValueI 1)
 
 testEquals :: IO ()
@@ -85,9 +92,9 @@ testSumIf = hspec $ do
       eval "=sumif(G1:I1,1,G1:I1)" `shouldBe` (Right $ ValueI 3)
     it "can do lambdas" $ do
       eval "=sumif(A1:A3,\">1\",B1:B3)" `shouldBe` (Right $ ValueI 5)
-   
+
 main :: IO ()
-main = do 
+main = do
     putStrLn ""
     sequence tests
     putStrLn $ "Tests completed"

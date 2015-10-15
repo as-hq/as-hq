@@ -24,11 +24,11 @@ data ExLoc   = ExIndex {d1 :: String, col :: String, d2 :: String, row :: String
 data ExRange = ExRange {first :: ExLoc, second :: ExLoc} deriving (Show, Read, Eq, Ord)
 data ExLocOrRange = ExLoc1 ExLoc | ExRange1 ExRange deriving (Show, Read, Eq, Ord)
 data ExRef = ExLocOrRangeRef ExLocOrRange | ExSheetLocOrRangeRef String ExLocOrRange deriving (Show, Read, Eq, Ord)
--- I think this is the simplest grammar we can write that actually correctly captures the type we want. 
+-- I think this is the simplest grammar we can write that actually correctly captures the type we want.
 -- It's quite ugly as it is though -- I imagine it can be refactored with lenses / better names, but this
--- seems not very urgent as of now. (10/9) 
--- 
--- Also doesn't have any support for columns, workbooks, or 3D reference. (10/9) 
+-- seems not very urgent as of now. (10/9)
+--
+-- Also doesn't have any support for columns, workbooks, or 3D reference. (10/9)
 
 showExcelRef :: ExRef -> String
 showExcelRef exRef = case exRef of
@@ -41,7 +41,7 @@ showExcelValue val = case val of
   ValueS s      -> show s
   ValueI i      -> show i
   ValueD d      -> show d
-  ValueB b      -> show b 
+  ValueB b      -> show b
   ValueL l      -> toExcelList $ fmap showExcelValue l
 
 toExcelList :: [String] -> String
@@ -75,7 +75,7 @@ instance Fractional ENumeric where
   (/) (EValueD d) (EValueI i) = EValueD $ (fromIntegral i)/d
   (/) (EValueI i) (EValueI i') = EValueD $ (fromIntegral i)/(fromIntegral i')
 
-data EValue = 
+data EValue =
   EBlank | -- value doesn't exist in DB
   EMissing | -- missing argument
   EValueNum ENumeric |
@@ -93,11 +93,11 @@ instance Ord ENumeric where
 
 type Col = Int
 type Row = Int
-data EMatrix = EMatrix {emCols :: !Int, emRows :: !Int, content :: !(V.Vector EValue)} 
+data EMatrix = EMatrix {emCols :: !Int, emRows :: !Int, content :: !(V.Vector EValue)}
   deriving (Show, Read,Eq)
-data EEntity = 
-  EntityRef ERef | 
-  EntityVal EValue | 
+data EEntity =
+  EntityRef ERef |
+  EntityVal EValue |
   EntityMatrix EMatrix  deriving (Show, Read,Eq)
 
 --------------------------------------------------------------------------------------------------------------------------------------------
@@ -120,7 +120,7 @@ type ExtractArg a = (String -> Int -> [EEntity] -> ThrowsError a)
 class EType a where
   -- | Can the entity be cast into type a? Implemented by all instances.
   extractType :: (EEntity -> Maybe a)
-  -- | If the argument exists and is of the right type, return that type. Else return an error. 
+  -- | If the argument exists and is of the right type, return that type. Else return an error.
   getRequired :: String -> ExtractArg a
   getRequired typeName f i entities
     | length entities < i = Left $ RequiredArgMissing f i
@@ -131,7 +131,7 @@ class EType a where
         entity = entities!!(i-1)
   -- | Same as above, but allow for a default value (optional argument)
   getOptional :: String -> a -> ExtractArg a
-  getOptional typeName defaultVal f i entities 
+  getOptional typeName defaultVal f i entities
     | length entities < i = Right defaultVal
     -- | If the value is missing, return default
     -- | Must be the correct type if it exists as an argument
@@ -140,15 +140,15 @@ class EType a where
       otherwise -> getRequired typeName f i entities
   -- | Same as above, but no default value (just return Nothing if the argument doesn't exist)
   getOptionalMaybe :: String -> ExtractArg (Maybe a)
-  getOptionalMaybe typeName f i entities 
+  getOptionalMaybe typeName f i entities
     | length entities < i = Right Nothing
-    | otherwise = do 
+    | otherwise = do
         entity <- getRequired typeName f i entities
         return $ Just entity
 
 instance EType Bool where
   extractType (EntityVal (EValueB b)) = Just b
-  extractType _ = Nothing 
+  extractType _ = Nothing
 
 instance EType EValue where
   extractType (EntityVal v) = Just v
@@ -194,12 +194,13 @@ getType (EntityVal v) = "value"
 -- * Abstract syntax
 
 -- | The type of formulas.
-data BasicFormula = 
+data BasicFormula =
    Var EValue                      -- Variables
  | Fun String [Formula]            -- Function
  | Ref ExRef                       -- Reference
  deriving (Show, Read)
 
 data Formula = ArrayConst [[BasicFormula]] | Basic BasicFormula deriving (Show, Read)
-type ContextualFormula = (Formula, Bool) -- designates arrayFormula or not
+-- designates arrayFormula or not
+data ContextualFormula = ArrayFormula Formula | SimpleFormula Formula deriving (Show, Read)
 
