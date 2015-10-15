@@ -221,12 +221,17 @@ const ASEvaluationStore = assign({}, BaseStore, {
       let row = Converter.clientCellGetRow(c);
       let xp = Converter.clientCellGetExpressionObj(c);
       let val = Converter.clientCellGetValueObj(c);
-      if (!_data.allCells[sheetid])
-        _data.allCells[sheetid] = [];
-      if (!_data.allCells[sheetid][col])
-        _data.allCells[sheetid][col] = [];
-      _data.allCells[sheetid][col][row] = c;
-      _data.lastUpdatedCells.push(c);
+
+      if (xp != "") {
+        if (!_data.allCells[sheetid])
+          _data.allCells[sheetid] = [];
+        if (!_data.allCells[sheetid][col])
+          _data.allCells[sheetid][col] = [];
+        _data.allCells[sheetid][col][row] = c;
+        _data.lastUpdatedCells.push(c);
+      } else {
+        removeData([c]);        
+      }
     }
   },
 
