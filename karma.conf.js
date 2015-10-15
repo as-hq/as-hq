@@ -7,7 +7,7 @@ module.exports = function (config) {
     mochaReporter: {
       colors: {
         success: 'green',
-        info: 'magenta',
+        info: 'yellow',
         warning: 'yellow',
         error: 'red'
       }
