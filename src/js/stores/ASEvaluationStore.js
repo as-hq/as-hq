@@ -103,6 +103,10 @@ dispatcherIndex: Dispatcher.register(function (action) {
             }
           }
         }
+
+        // remove possibly null cells
+        cellsToRemove = cellsToRemove.filter((cell) => !!cell);
+
         ASEvaluationStore.removeData(cellsToRemove);
         _data.allCells = {};
         // console.log("Last updated cells: " + JSON.stringify(_data.lastUpdatedCells));
@@ -239,7 +243,7 @@ const ASEvaluationStore = assign({}, BaseStore, {
   getExternalError(){
     return _data.externalError;
   },
-  
+
 
   /**************************************************************************************************************************/
   /*

@@ -95,14 +95,20 @@ export default {
               index: this.clientToServerLoc(clientLoc)};
   },
   clientToASRange(clientLoc) {
-    if (clientLoc.row2)
+    if (clientLoc.row2) {
       return {tag: "Range",
               rangeSheetId: Store.getCurrentSheet().sheetId,
               range: this.clientToServerLoc(clientLoc)};
-    else
+    }
+    else if (clientLoc.row) {
       return {tag: "Range",
               rangeSheetId: Store.getCurrentSheet().sheetId,
               range:  [this.clientToServerLoc(clientLoc), this.clientToServerLoc(clientLoc)]};
+    } else if (clientLoc.range) { 
+      return this.clientToASRange(clientLoc.range);
+    } else { 
+      throw "clientLoc isn't a range or index";
+    }
   },
   /*
     Returns a location (index or range) if its inside the sheet boundaries; otherwise one of the corners of the sheet boundaries
