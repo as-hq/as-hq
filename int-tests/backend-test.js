@@ -135,6 +135,7 @@ describe('backend', () => {
       let langMap = {
         'py': 'Python',
         'R': 'R',
+        'excel': 'Excel',
         'ml': 'OCaml'
       };
       let cell = Converter.clientToASCell(
@@ -152,6 +153,10 @@ describe('backend', () => {
 
   function r(loc, xp) {
     return cell(loc, xp, 'R');
+  }
+
+  function excel(loc, xp) {
+    return cell(loc, xp, 'excel');
   }
 
   function ocaml(loc, xp) {
@@ -182,6 +187,10 @@ describe('backend', () => {
 
   function valueI(val) {
     return { tag: 'ValueI', contents: val };
+  }
+
+  function valueB(val) {
+    return { tag: 'ValueB', contents: val };
   }
 
   function equalValues(val1, val2) {
@@ -440,6 +449,69 @@ describe('backend', () => {
         });
       });
 
+      describe('excel', () => {
+        it('should evaluate sums', (done) => {
+          _do([
+            python('A1', 'range(10)'),
+            excel('B1', '=A1+A2'),
+            shouldBe('B1', valueI(1)),
+            exec(done)
+          ]);
+        });
+
+        it('should evaluate a literal', (done) => {
+          _do([
+            excel('A1', '1'),
+            shouldBe('A1', valueI(1)),
+            exec(done)
+          ]);
+        });
+
+        describe('abs', () => {
+          it('should evaluate', (done) => {
+            _do([
+              python('A1', 'range(10)'),
+              excel('B1', '=abs(A2)'),
+              shouldBe('B1', valueI(1)),
+              exec(done)
+            ]);
+          });
+
+          it('should scalarize', (done) => {
+            _do([
+              python('A1', 'range(10)'),
+              excel('B1', '=abs(A$1:A$10)'),
+              copy('B1', 'B2:B10'),
+              shouldBeL(
+                _.range(10).map((i) => `B${i + 1}`),
+                _.range(10).map(valueI)
+              ),
+              exec(done)
+            ]);
+          });
+        });
+
+        describe('equals', () => {
+          it('should eval 1=1', (done) => {
+            _do([
+              python('A1', '1'),
+              excel('B1', '=A1=1'),
+              shouldBe('B1', valueB(true)),
+              exec(done)
+            ]);
+          });
+
+          it('should array-ize', (done) => {
+            _do([
+              python('A1', 'range(2)'),
+              excel('B1', '{=A1:A2=1}'),
+              shouldBeL(['B1', 'B2'], [false, true].map(valueB)),
+              exec(done)
+            ]);
+          });
+        });
+      });
+
       describe('ocaml', () => {
 
       });
@@ -456,7 +528,7 @@ describe('backend', () => {
           ]);
         });
 
-        it('should shrink a range based on a dependency', (done) => {
+        xit('should shrink a range based on a dependency', (done) => {
           _do([
             python('A1', '10'),
             python('B1', 'range(A1)'),
