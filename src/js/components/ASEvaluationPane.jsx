@@ -181,7 +181,7 @@ export default React.createClass({
   },
   addError(cv){
     if (cv.tag === "ValueError"){
-      this.setToast(cv.error, "Error");
+      this.setToast(cv.errMsg, "Error");
     }
   },
   setToast(msg, action) {
@@ -290,7 +290,7 @@ export default React.createClass({
                     });
       // TODO: set var name as well
       this.addError(val);
-    } 
+    }
     else if (!this.state.userIsTyping || shiftSelEmpty) {
       console.log("Selected new region empty");
       Store.setActiveSelection(area, "");
@@ -328,7 +328,7 @@ export default React.createClass({
     Store.setActiveCellDependencies([]);
     this.refs.spreadsheet.repaint();
     this.refs.spreadsheet._getHypergrid().getSelectionModel().clear();
-    
+
     let selectedRegion = Store.getActiveSelection();
     console.log("Editor state: " + JSON.stringify(editorState));
     console.log("Eval req loc: " + JSON.stringify(selectedRegion));
