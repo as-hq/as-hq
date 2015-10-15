@@ -28,7 +28,7 @@ export default {
       };
       self.handleEvalRequest(editorState);
     });
-    ShortcutUtils.addShortcut("common", "cell_eval", ["Ctrl+Shift+Enter", "Command+Shift+Enter"], (wildcard) => {
+    ShortcutUtils.addShortcut("common", "cell_eval_arr", ["Ctrl+Shift+Enter", "Command+Shift+Enter"], (wildcard) => {
       var editorValue = self._getRawEditor().getValue();
       console.log(self.state.language);
       if (self.state.language == Constants.Languages.Excel){
@@ -109,6 +109,7 @@ export default {
       // parse exp to get the last thing
       self.handleReplRequest(editorState);
     });
+
 
     // editor shortcuts -------------------------------------------------------------------------------
     ShortcutUtils.addShortcut("editor", "toggle_reference", "F4", (wildcard) => {
@@ -217,6 +218,19 @@ export default {
     });
     ShortcutUtils.addShortcut("grid", "grid_outline_range", "Ctrl+Shift+5", (wildcard) => {
       // TODO
+    });
+
+    ShortcutUtils.addShortcut("grid", "grid_enter", "Enter", (wildcard) => {
+      if (self.state.userIsTyping){
+        let editorState = {
+          exp: self._getRawEditor().getValue(),
+          lang: self.state.language
+        };
+        self.handleEvalRequest(editorState);
+      }
+      else {
+        //TODO: Navigate down
+      }
     });
 
     ShortcutUtils.addShortcut("grid", "copy_expression_above", "Ctrl+Shift+'", (wildcard) => {

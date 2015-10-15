@@ -145,14 +145,13 @@ export default React.createClass({
   // Handling events
 
   handleKeyDown(e) {
+    console.log("\n\n");
+    console.log("HANDLING KEY DOWN");
     e.persist(); // prevent react gc
     if (ShortcutUtils.gridShouldDeferKey(e)){ // if anything but nav keys, bubble event to parent
       KeyUtils.killEvent(e);
       this.props.onDeferredKey(e);
-    } else if (ShortcutUtils.textBoxShouldDeferKey(e)){
-      KeyUtils.killEvent(e);
-      this.props.onTextBoxDeferredKey(e);
-    }
+    } 
   },
 
   onOverlayClick(col, row) {

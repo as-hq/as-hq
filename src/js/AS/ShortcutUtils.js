@@ -63,10 +63,6 @@ export default {
     return !Util.arrContains(KeyUtils.navKeys, e.which) || e.ctrlKey;
   },
 
-  textBoxShouldDeferKey(e){
-    return !KeyUtils.producesVisibleChar(e);
-  },
-
   editorShouldDeferKey(e) {
     return !KeyUtils.producesVisibleChar(e);
   },
@@ -77,11 +73,11 @@ export default {
 
   compareModifiers(s, e) {
     // s is the shortcut
-    let sh = (s.hasOwnProperty('shiftKey') && s.shiftKey == e.shiftKey) || (e.shiftKey === false);
-    let c = (s.hasOwnProperty('ctrlKey') && s.ctrlKey == e.ctrlKey) || (e.ctrlKey === false);
-    let a = (s.hasOwnProperty('altKey') && s.altKey == e.altKey) || (e.altKey === false);
-    let m = (s.hasOwnProperty('metaKey') && s.metaKey == e.metaKey) || (e.metaKey === false);
-    return (sh && c && a && m);
+   let sh = (s.hasOwnProperty('shiftKey') && s.shiftKey == e.shiftKey) || (!s.hasOwnProperty('shiftKey') && (e.shiftKey === false));
+   let c = (s.hasOwnProperty('ctrlKey') && s.ctrlKey == e.ctrlKey) || (!s.hasOwnProperty('ctrlKey') && (e.ctrlKey === false));
+   let a = (s.hasOwnProperty('altKey') && s.altKey == e.altKey) || (!s.hasOwnProperty('altKey') && (e.altKey === false));
+   let m = (s.hasOwnProperty('metaKey') && s.metaKey == e.metaKey) || (!s.hasOwnProperty('metaKey') && (e.metaKey === false));
+   return (sh && c && a && m);
   }
 
 };
