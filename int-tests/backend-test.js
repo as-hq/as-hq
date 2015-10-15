@@ -188,6 +188,22 @@ describe('backend', () => {
     return _.isEqual(val1, val2);
   }
 
+  // (() -> Promise a) -> (a -> Bool) -> (() -> Promise ())
+  function responseShouldSatisfy(prf, fn) {
+    return promise((fulfill, reject) => {
+      prf().then((result) => {
+        expect(fn(result)).toBe(true);
+        fulfill();
+      }).catch((error) => {
+        reject(error);
+      });
+    });
+  }
+
+  function shouldError(prf) {
+    return responseShouldSatisfy(prf, ({ payload: { tag } }) => tag === 'PayloadE');
+  }
+
   function messageShouldSatisfy(loc, fn) {
     return promise((fulfill, reject) => {
       API.test(() => {
@@ -383,6 +399,18 @@ describe('backend', () => {
           ]);
         });
 
+        xit('should fail to evaluate a circular dependency', (done) => {
+          _do([
+            python('A1', '1+1'),
+            python('B1', 'A1+1'),
+            shouldError(
+              python('A1', 'B1')
+            ),
+            shouldBe('A1', valueI(2)),
+            exec(done)
+          ]);
+        });
+
         xit('should evaluate to an error when there is one', (done) => {
           // xcxc: test matters but blocks others. Unmark when Asana task for fixing error parsing is finished
           _do([
@@ -538,12 +566,13 @@ describe('backend', () => {
         });
 
         xit('should refuse to copy to create a circular dependency', (done) => {
-          // TODO: should receive error response
           _do([
             python('D1', '5'),
             python('C1', 'D1'),
             python('B1', 'A1 + 1'),
-            copy('B1', 'D1'), // C1 <-> D1
+            shouldError(
+              copy('B1', 'D1')
+            ),
             shouldBe('D1', valueI(5)),
             exec(done)
           ]);
@@ -606,9 +635,7 @@ describe('backend', () => {
           ]);
         });
 
-        xit('should undo a dependency cleanly', (done) => {
-          // xcxc: test matters but blocks others. solved by finishing the asana task
-          // for undo dealing with graphDB
+        it('should undo a dependency cleanly', (done) => {
           _do([
             python('A1', '1+1'),
             python('B1', 'A1+1'),
