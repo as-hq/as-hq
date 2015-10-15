@@ -80,12 +80,14 @@ export default React.createClass({
   setExpression(xp) {
     console.log("New expression of type " + this.printDetail(this.state.xpChangeDetail) + ": " + xp);
     let detail = this.state.xpChangeDetail;
+    let deps = Util.parseDependencies(xp);
     switch(detail){
       case this.xpChange.FROM_EDITOR:
         this.setState({expressionWithoutLastRef:xp,expression:xp,userIsTyping:true}, function(){
           this.updateTextBox(true);
         });
         console.log("User is typing");
+        Store.setActiveCellDependencies(deps);
         break;
       case this.xpChange.FROM_GRID:
         if (!this.state.userIsTyping){
@@ -97,6 +99,7 @@ export default React.createClass({
         else {
           this.updateTextBox(true);
         }
+        Store.setActiveCellDependencies(deps);
         break;
       case this.xpChange.SEL_CHNG:
         console.log("Found selection change!");
@@ -104,17 +107,19 @@ export default React.createClass({
       case this.xpChange.PARTIAL_REF_CHNG:
         console.assert(this.state.userIsTyping===true,"User should be typing");
         this.updateTextBox(true);
+        Store.setActiveCellDependencies(deps);
         break;
       case this.xpChange.FROM_TEXTBOX:
         console.assert(this.state.userIsTyping===true,"User should be typing");
         this.updateTextBox(true);
+        Store.setActiveCellDependencies(deps);
         break;
       default:
+        Store.setActiveCellDependencies(deps);
         break;
     }
     console.log("ACTIVE: " + JSON.stringify(Store.getActiveSelection()));
-    let deps = Util.parseDependencies(xp);
-    Store.setActiveCellDependencies(deps);
+    console.log("SECOND");
     this.refs.spreadsheet.repaint();
   },
 
@@ -181,7 +186,7 @@ export default React.createClass({
   },
   addError(cv){
     if (cv.tag === "ValueError"){
-      this.setToast(cv.error, "Error");
+      this.setToast(cv.errMsg, "Error");
     }
   },
   setToast(msg, action) {
@@ -275,10 +280,10 @@ export default React.createClass({
         shiftSelEmpty  = this.state.userIsTyping && !Util.canInsertCellRefInXp(this.state.expressionWithoutLastRef),
         shiftSelExists = cell && shiftSelEmpty;
     if (changeSel || shiftSelExists) {
-      console.log("Selected old region exists");
       let {language,expression} = Converter.clientCellGetExpressionObj(cell),
           val = Converter.clientCellGetValueObj(cell);
       Store.setActiveSelection(area, expression); // pass in an expression to get parsed dependencies
+      console.log("FIRST");
       // here, language is a client/server agnostic object (see Constants.Languages)
       this.setState({ xpChangeDetail:this.xpChange.SEL_CHNG,
                     language: Util.getAgnosticLanguageFromServer(language),
@@ -291,7 +296,7 @@ export default React.createClass({
                     });
       // TODO: set var name as well
       this.addError(val);
-    } 
+    }
     else if (!this.state.userIsTyping || shiftSelEmpty) {
       console.log("Selected new region empty");
       Store.setActiveSelection(area, "");
@@ -329,7 +334,7 @@ export default React.createClass({
     Store.setActiveCellDependencies([]);
     this.refs.spreadsheet.repaint();
     this.refs.spreadsheet._getHypergrid().getSelectionModel().clear();
-    
+
     let selectedRegion = Store.getActiveSelection();
     console.log("Editor state: " + JSON.stringify(editorState));
     console.log("Eval req loc: " + JSON.stringify(selectedRegion));

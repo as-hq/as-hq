@@ -312,7 +312,7 @@ export default React.createClass({
           config.paintBorders = Util.getPaintedBorders(col, row, sel);
           config.borderConfig = {lineType: 0, // solid border type
                                 width: 3,
-                                color: "#000000"}; // blue
+                                color: "#000000"}; // black border color
         }
       }
 

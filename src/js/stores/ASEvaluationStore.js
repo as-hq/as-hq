@@ -103,6 +103,10 @@ dispatcherIndex: Dispatcher.register(function (action) {
             }
           }
         }
+
+        // remove possibly null cells
+        cellsToRemove = cellsToRemove.filter((cell) => !!cell);
+
         ASEvaluationStore.removeData(cellsToRemove);
         _data.allCells = {};
         // console.log("Last updated cells: " + JSON.stringify(_data.lastUpdatedCells));
@@ -154,18 +158,76 @@ const ASEvaluationStore = assign({}, BaseStore, {
       contents: []
     }};
   },
+
+  // Requires that a range having row2 implies a range has col2, and vice versa
   setActiveSelection(area, xp) {
     let rng = area.range;
     _data.activeSelection = area;
     _data.activeCell = this.getCellAtLoc(rng.col, rng.row) || Converter.defaultCell();
-    this.setActiveCellDependencies(Util.parseDependencies(xp));
+    var activeCellDependencies = Util.parseDependencies(xp);
+    if (rng.hasOwnProperty('row2') && rng.hasOwnProperty('col2')) {
+      for (var r = rng.row; r <= rng.row2; ++r){
+        for (var c = rng.col; c <= rng.col2; ++c) {
+          activeCellDependencies.push(this.getParentList(c, r));
+        }
+      }
+    }
+    else {
+      c = rng.col;
+      r = rng.row;
+      activeCellDependencies.push(this.getParentList(c, r));
+    }
+    this.setActiveCellDependencies(activeCellDependencies);
   },
+
+  getParentList(c,r){
+    if (this.getCellAtLoc(c, r) == null) {
+      console.log("timchu: There is no cell at location " + r + ", " + c);
+      return {row: r, column: c};
+    }
+    console.log(this.getCellAtLoc(c,r));
+    var ctags = this.getCellAtLoc(c,r).cellTags;
+    if (ctags == undefined) {
+      console.log("timchu: The ctags are undefined at " + r + ", " + c);
+      return {row: r, column: c};
+    }
+    for (var i = 0; i < ctags.length; ++i) {
+      console.log(ctags[i]);
+      console.log(ctags[i].hasOwnProperty('listKey'));
+      if (ctags[i].hasOwnProperty('listKey')){
+        var listHead = Util.listKeyToListHead(ctags[i].listKey);
+        var listDimensions = Util.listKeyToListDimensions(ctags[i].listKey);
+        console.log( {  row: listHead.snd,
+          col: listHead.fst,
+          row2: listHead.snd + listDimensions.fst - 1,
+          col2: listHead.fst + listDimensions.snd - 1 } );
+        return {
+          row: listHead.snd,
+          col: listHead.fst,
+          row2: listHead.snd + listDimensions.fst - 1,
+          col2: listHead.fst + listDimensions.snd - 1
+        }
+      }
+    }
+    console.log("No listkey tags");
+    return {row: r, column: c}
+  },
+    
+
+//  setActiveSelection(rng, xp) {
+//    _data.activeSelection = rng;
+//    _data.activeCell = this.getCellAtLoc(rng.col, rng.row) || Converter.defaultCell();
+//    this.setActiveCellDependencies(Util.parseDependencies(xp));
+//  },
   getActiveSelection() {
     return _data.activeSelection;
   },
 
   getActiveCell() {
     return _data.activeCell;
+  },
+  getActiveCellDependencies() {
+    return(_data.activeCell.cellExpression.dependencies);
   },
   setClipboard(rng, isCut) {
     console.log("setting clipboard: "+ JSON.stringify(rng));
@@ -203,7 +265,7 @@ const ASEvaluationStore = assign({}, BaseStore, {
   getExternalError(){
     return _data.externalError;
   },
-  
+
 
   /**************************************************************************************************************************/
   /*

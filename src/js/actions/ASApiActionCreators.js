@@ -43,8 +43,9 @@ wss.onmessage = function (event) {
       });
 
     if (isRunningTest) {
-      console.log('Rejecting due to server failure');
-      currentCbs.reject(msg);
+      // sometimes we want to test whether it errors, so it fulfills anyways!
+      console.log('Fulfilling due to server failure');
+      currentCbs.fulfill(msg);
       isRunningTest = false;
     }
   } else {
