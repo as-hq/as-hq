@@ -4,8 +4,8 @@ import {Styles} from 'material-ui'
 
 const config = {
   splitBarWidth:"6px",
-  minLeft:30,
-  maxLeft:90,
+  minLeft:45,
+  maxLeft:80,
   defaultLeft:"65%"
 };
 

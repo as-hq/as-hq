@@ -80,6 +80,7 @@ export default {
     else return {row: serverLoc[1], col: serverLoc[0]};
   },
   clientToServerLoc(clientLoc) {
+    console.log("CLIENT LOC: " + JSON.stringify(clientLoc));
     if (clientLoc.row2)
       return [[clientLoc.col, clientLoc.row], [clientLoc.col2, clientLoc.row2]];
     else return [clientLoc.col, clientLoc.row];

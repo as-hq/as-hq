@@ -39,6 +39,7 @@ export default {
   },
 
   shortcutMatches(s, e) {
+    // console.log(e);
     if (this.compareModifiers(s, e)) {
       if (s.optionKeys && Util.arrContains(s.optionKeys, e.which))
         return true;
@@ -63,20 +64,23 @@ export default {
     return !Util.arrContains(KeyUtils.navKeys, e.which) || e.ctrlKey;
   },
 
-  textBoxShouldDeferKey(e){
+  editorShouldDeferKey(e) {
     return !KeyUtils.producesVisibleChar(e);
   },
 
-  editorShouldDeferKey(e) {
+  replShouldDeferKey(e) {
     return !KeyUtils.producesVisibleChar(e);
   },
 
   compareModifiers(s, e) {
     // s is the shortcut
-    let sh = (s.hasOwnProperty('shiftKey') && s.shiftKey == e.shiftKey) || (e.shiftKey === false);
-    let c = (s.hasOwnProperty('ctrlKey') && s.ctrlKey == e.ctrlKey) || (e.ctrlKey === false);
-    let a = (s.hasOwnProperty('altKey') && s.altKey == e.altKey) || (e.altKey === false);
-    let m = (s.hasOwnProperty('metaKey') && s.metaKey == e.metaKey) || (e.metaKey === false);
+    // console.log("matching shortcut!", e.ctrlKey);
+    // console.log(JSON.stringify(s));
+    // console.log(s.hasOwnProperty('ctrlKey'));
+    let sh = (s.hasOwnProperty('shiftKey') && s.shiftKey == e.shiftKey) || (!s.hasOwnProperty('shiftKey') && (e.shiftKey === false));
+    let c = (s.hasOwnProperty('ctrlKey') && s.ctrlKey == e.ctrlKey) || (!s.hasOwnProperty('ctrlKey') && (e.ctrlKey === false));
+    let a = (s.hasOwnProperty('altKey') && s.altKey == e.altKey) || (!s.hasOwnProperty('altKey') && (e.altKey === false));
+    let m = (s.hasOwnProperty('metaKey') && s.metaKey == e.metaKey) || (!s.hasOwnProperty('metaKey') && (e.metaKey === false));
     return (sh && c && a && m);
   }
 

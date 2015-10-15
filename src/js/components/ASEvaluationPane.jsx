@@ -232,8 +232,8 @@ export default React.createClass({
   },
 
   _onGridDeferredKey(e) {
-    if (KeyUtils.producesVisibleChar(e)) {
-      let editor = this._getRawEditor(),
+   if (KeyUtils.producesVisibleChar(e) && e.which!==13 ) {
+        let editor = this._getRawEditor(),
           str = KeyUtils.modifyStringForKey(editor.getValue(), e),
           newStr = KeyUtils.getString(e),
           xpStr = this.state.userIsTyping ? str : newStr;
@@ -252,12 +252,11 @@ export default React.createClass({
     }
   },
 
+  /* Callback from Repl component */
   _onReplDeferredKey(e){
     ShortcutUtils.tryShortcut(e, 'repl');
   },
-  _onTextBoxDeferredKey(e){
-    ShortcutUtils.tryShortcut(e,"common");
-  },
+  
 
   /**************************************************************************************************************************/
   /* Core functionality methods */
@@ -327,6 +326,7 @@ export default React.createClass({
     2) Send this and the editor state (expression, language) to the API action creator, which will send it to the backend
   */
   handleEvalRequest(editorState){
+    console.log("\n\n\n");
     /* If user pressed Ctrl Enter, they're not typing out the expression anymore */
     this.setState({userIsTyping:false});
     this.updateTextBox(false);

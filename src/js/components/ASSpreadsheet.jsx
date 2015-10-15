@@ -145,14 +145,13 @@ export default React.createClass({
   // Handling events
 
   handleKeyDown(e) {
+    console.log("\n\n");
+    console.log("HANDLING KEY DOWN");
     e.persist(); // prevent react gc
     if (ShortcutUtils.gridShouldDeferKey(e)){ // if anything but nav keys, bubble event to parent
       KeyUtils.killEvent(e);
       this.props.onDeferredKey(e);
-    } else if (ShortcutUtils.textBoxShouldDeferKey(e)){
-      KeyUtils.killEvent(e);
-      this.props.onTextBoxDeferredKey(e);
-    }
+    } 
   },
 
   onOverlayClick(col, row) {
@@ -217,13 +216,13 @@ export default React.createClass({
         behaviorElement = <fin-hypergrid-behavior-json />;
         break;
       case 'default':
-        behaviorElement = <fin-hypergrid-behavior-default />
+        behaviorElement = <fin-hypergrid-behavior-default />;
         break;
     }
    
     // Put overlays with high z Index outside hypergrid
     return (
-      <div style={{width:"100%",height:"100%"}} >
+      <div style={{width:"100%",height:"100%",position:'relative'}} >
         <fin-hypergrid
           style={style}
           ref="hypergrid"
