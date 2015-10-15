@@ -41,44 +41,40 @@ void printArray(char** strs) {
   }
 }
 
-char** str_split(char* a_str, const char a_delim){
-    char** result    = 0;
-    size_t count     = 0;
-    char* tmp        = a_str;
-    char* last_comma = a_str;
-    char delim[2];
-    delim[0] = a_delim;
-    delim[1] = 0;
+char **strsplit(const char* str, const char* delim) {
+    // copy the original string so that we don't overwrite parts of it
+    // (don't do this if you don't need to keep the old line,
+    // as this is less efficient)
+    char *s = strdup(str);
 
-    /* Count how many elements will be extracted. */
-    while (*tmp){
-        if (a_delim == *tmp){
-            count++;
-            last_comma = tmp;
+    // these three variables are part of a very common idiom to
+    // implement a dynamically-growing array
+    size_t tokens_alloc = 1;
+    size_t tokens_used = 0;
+    char **tokens = calloc(tokens_alloc, sizeof(char*));
+
+    char *token, *strtok_ctx;
+    for (token = strtok_r(s, delim, &strtok_ctx);
+            token != NULL;
+            token = strtok_r(NULL, delim, &strtok_ctx)) {
+        // check if we need to allocate more space for tokens
+        if (tokens_used == tokens_alloc) {
+            tokens_alloc *= 2;
+            tokens = realloc(tokens, tokens_alloc * sizeof(char*));
         }
-        tmp++;
+        tokens[tokens_used++] = strdup(token);
     }
-    /* Add space for trailing token. */
-    count += last_comma < (a_str + strlen(a_str) - 1);
-    /* Add space for terminating null string so caller
-       knows where the list of returned strings ends. */
-    count++;
 
-    result = malloc(sizeof(char*) * count);
-    if (result){
-        size_t idx  = 0;
-        char* token = strtok(a_str, delim);
-
-        while (token){
-            assert(idx < count);
-            *(result + idx++) = strdup(token);
-            token = strtok(0, delim);
-        }
-        assert(idx == count - 1);
-        *(result + idx) = 0;
+    // cleanup
+    if (tokens_used == 0) {
+        free(tokens);
+        tokens = NULL;
+    } else {
+        tokens = realloc(tokens, tokens_used * sizeof(char*));
     }
-    // printArray(result);
-    return result;
+    free(s);
+
+    return tokens;
 }
 
 /*************************************************************************************************************************/
@@ -95,7 +91,7 @@ char** getCells(char* msg, int length){
   char *pmsg = msg; pmsg++; // removes first char '"'
   pmsg[strlen(pmsg) - 1] = 0; // removes last char '"'
 
-  char** locs = str_split(pmsg, '@');
+  char** locs = strsplit(pmsg, "@");
   char** cells = malloc(length * sizeof(char*));
 
   int i,j,k; 
@@ -171,7 +167,7 @@ void setCells(char* msg, int length){
 
   // printf("Set cells input: %s \n",pmsg);
 
-  char** lstMsg = str_split(pmsg,'@');
+  char** lstMsg = strsplit(pmsg, "@");
 
   int i,j,k; 
   int batch = determineBatchSize(length);
