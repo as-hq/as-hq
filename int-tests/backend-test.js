@@ -201,7 +201,7 @@ describe('backend', () => {
   }
 
   function shouldError(prf) {
-    return responseShouldSatisfy(prf, ({ payload: { tag } }) => tag === 'PayloadE');
+    return responseShouldSatisfy(prf, ({ result: { tag } }) => tag === 'Failure');
   }
 
   function messageShouldSatisfy(loc, fn) {
@@ -399,7 +399,7 @@ describe('backend', () => {
           ]);
         });
 
-        xit('should fail to evaluate a circular dependency', (done) => {
+        it('should fail to evaluate a circular dependency', (done) => {
           _do([
             python('A1', '1+1'),
             python('B1', 'A1+1'),
@@ -411,8 +411,7 @@ describe('backend', () => {
           ]);
         });
 
-        xit('should evaluate to an error when there is one', (done) => {
-          // xcxc: test matters but blocks others. Unmark when Asana task for fixing error parsing is finished
+        it('should evaluate to an error when there is one', (done) => {
           _do([
             python('A1', '1 + "a"'),
             shouldBeError('A1'),
@@ -565,7 +564,7 @@ describe('backend', () => {
           ]);
         });
 
-        xit('should refuse to copy to create a circular dependency', (done) => {
+        it('should refuse to copy to create a circular dependency', (done) => {
           _do([
             python('D1', '5'),
             python('C1', 'D1'),
