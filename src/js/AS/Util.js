@@ -94,19 +94,28 @@ export default {
     }
   },
 
-  getBorderPatternsForInteriorCell(col, row, rng) {
-    if (col >= rng.col && col <= rng.col2 && row >= rng.row && row <= rng.row2){
-      let borders = [];
-      if (col === rng.col) // left intersection
-        borders.push([[0,0],[0,1]]);
-      if (col === rng.col2) // right intersection
-        borders.push([[1,0],[1,1]]);
-      if (row === rng.row) // top intersection
-        borders.push([[0,0],[1,0]]);
-      if (row === rng.row2) // bottom intersection
-        borders.push([[0,1],[1,1]]);
-      return borders;
-    } else return [];
+  getBorderPatternsForInteriorCell(col, row, locs) {
+    let borders = [];
+    for (var i = 0; i < locs.length; ++i) {
+      let rng = locs[i];
+      if (!locs[i].row2 && (col === locs[i].col && row === locs[i].row)) {
+        return [[[0,0],[1,0]],
+                [[1,0],[1,1]],
+                [[1,1],[0,1]],
+                [[0,1],[0,0]]];
+      }
+      else if (col >= rng.col && col <= rng.col2 && row >= rng.row && row <= rng.row2){
+        if (col === rng.col) // left intersection
+          borders.push([[0,0],[0,1]]);
+        if (col === rng.col2) // right intersection
+          borders.push([[1,0],[1,1]]);
+        if (row === rng.row) // top intersection
+          borders.push([[0,0],[1,0]]);
+        if (row === rng.row2) // bottom intersection
+          borders.push([[0,1],[1,1]]);
+      }
+    }
+    return borders;
   },
 
 // determines borders of a cell to be painted, given that it falls somewhere within a list of locs
@@ -114,30 +123,18 @@ export default {
 // each edge is a 2-length array [start, end]
 // executed by graphicscontext.moveTo(startx, starty) -> graphicscontext.lineTo(endx, endy)
   getPaintedBorders(col, row, locs) {
-    if (locs.constructor === Array) {
-      // first try indices
-      for (var i=0; i<locs.length; i++) {
-        if (!locs[i].row2 && (col === locs[i].col && row === locs[i].row))
-          return [[[0,0],[1,0]],
-                  [[1,0],[1,1]],
-                  [[1,1],[0,1]],
-                  [[0,1],[0,0]]];
-      }
-      // then try interiors of ranges
-      for (var i=0; i<locs.length; i++) {
-        if (locs[i].row2)
-          return this.getBorderPatternsForInteriorCell(col, row, locs[i]);
-      }
-      return [];
-    }
-    else if (locs.row2)
+    if (locs.constructor == Array) {
       return this.getBorderPatternsForInteriorCell(col, row, locs);
-    else if (col === locs.col && row === locs.row)
+    }
+    else if (col === locs.col && row === locs.row) {
       return [[[0,0],[1,0]],
               [[1,0],[1,1]],
               [[1,1],[0,1]],
               [[0,1],[0,0]]];
-    else return [];
+    }
+    else {
+      return [];
+    }
   },
 
   getOverlay(cv, col, row) {
@@ -446,10 +443,11 @@ export default {
     return Constants.Languages[lang];
   },
 
-  // indexStringToLoc("(a,b)") := {row:a, col:b}
-  indexStringToLoc(indexString) {
+  // indexStringToPair("(a,b)") := {row:a, col:b}
+  indexStringToPair(indexString) {
     var ab = indexString.substr(1, indexString.length-2).split(",");
-    return {row : parseInt(ab[0], 10), col: parseInt(ab[1], 10)};
+    return {fst : parseInt(ab[0], 10), snd: parseInt(ab[1], 10)};
+
   },
 
   /* Gets the top left cell from the listKey. */
@@ -459,7 +457,7 @@ export default {
       console.log("There was an error with the format of the listKey. Could not get list head.");
       return;
     }
-    return this.indexStringToLoc((listKey.split("?")[0]).split("/")[2]);
+    return this.indexStringToPair((listKey.split("?")[0]).split("/")[2]);
   },
 
   /* Gets the dimensions of the list from the listKey." */
@@ -469,7 +467,7 @@ export default {
       console.log("There was an error with the format of the listKey. Could not get listDimensions");
       return;
     }
-    return this.indexStringToLoc(listKey.split("?")[1]);
+    return this.indexStringToPair(listKey.split("?")[1]);
   },
 
   // TODO: make this actually correct?

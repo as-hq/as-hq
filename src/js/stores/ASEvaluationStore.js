@@ -168,29 +168,48 @@ const ASEvaluationStore = assign({}, BaseStore, {
     if (rng.hasOwnProperty('row2') && rng.hasOwnProperty('col2')) {
       for (var r = rng.row; r <= rng.row2; ++r){
         for (var c = rng.col; c <= rng.col2; ++c) {
-          // activeCellDependencies.push(this.getParentList(r, c));
+          activeCellDependencies.push(this.getParentList(c, r));
         }
       }
+    }
+    else {
+      c = rng.col;
+      r = rng.row;
+      activeCellDependencies.push(this.getParentList(c, r));
     }
     this.setActiveCellDependencies(activeCellDependencies);
   },
 
-  getParentList(r,c){
-    if(this.getCellAtLoc(r,c) != null) {
-      var ctags = this.getCellAtLoc.cellTags;
-      for (var i = 0; i < ctags.length; ++i) {
-        if (ctags[i].hasOwnProperty('listKey')){
-          var listHead = Util.listKeyToListHead(ctags[i].listKey);
-          var listDimensions = Util.listKeyToListDimensions(ctags[i].listKey);
-          return {
-            row: listHead.row,
-            col: listHead.col,
-            row2: listHead.row + listDimensions.row - 1,
-            col2: listHead.col + listDimensions.col - 1
-          }
+  getParentList(c,r){
+    if (this.getCellAtLoc(c, r) == null) {
+      console.log("timchu: There is no cell at location " + r + ", " + c);
+      return {row: r, column: c};
+    }
+    console.log(this.getCellAtLoc(c,r));
+    var ctags = this.getCellAtLoc(c,r).cellTags;
+    if (ctags == undefined) {
+      console.log("timchu: The ctags are undefined at " + r + ", " + c);
+      return {row: r, column: c};
+    }
+    for (var i = 0; i < ctags.length; ++i) {
+      console.log(ctags[i]);
+      console.log(ctags[i].hasOwnProperty('listKey'));
+      if (ctags[i].hasOwnProperty('listKey')){
+        var listHead = Util.listKeyToListHead(ctags[i].listKey);
+        var listDimensions = Util.listKeyToListDimensions(ctags[i].listKey);
+        console.log( {  row: listHead.snd,
+          col: listHead.fst,
+          row2: listHead.snd + listDimensions.fst - 1,
+          col2: listHead.fst + listDimensions.snd - 1 } );
+        return {
+          row: listHead.snd,
+          col: listHead.fst,
+          row2: listHead.snd + listDimensions.fst - 1,
+          col2: listHead.fst + listDimensions.snd - 1
         }
       }
     }
+    console.log("No listkey tags");
     return {row: r, column: c}
   },
     
@@ -206,6 +225,9 @@ const ASEvaluationStore = assign({}, BaseStore, {
 
   getActiveCell() {
     return _data.activeCell;
+  },
+  getActiveCellDependencies() {
+    return(_data.activeCell.cellExpression.dependencies);
   },
   setClipboard(rng, isCut) {
     console.log("setting clipboard: "+ JSON.stringify(rng));

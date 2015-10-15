@@ -271,6 +271,7 @@ export default {
         let cells = [];
         for (var key in msg.payload.contents){
           let clientCell = this.serverToClientCell(msg.payload.contents[key]);
+          console.log("TIMCHU: The client cell is " + msg.payload.contents[key]);
           cells.push(clientCell);
         }
         // console.log("Eval cells JSON: " + JSON.stringify(cells));
