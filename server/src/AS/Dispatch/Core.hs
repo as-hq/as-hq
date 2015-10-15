@@ -84,7 +84,6 @@ getEvalLocs :: Connection -> [ASCell] -> EitherTExec [ASIndex]
 getEvalLocs conn origCells = do 
   let locs = map cellLocation origCells
   vLocs <- lift $ DB.getVolatileLocs conn -- Accounts for volatile cells being reevaluated each time
-  printDebugT "locs" (locs ++ vLocs)
   indices <- G.getDescendants (locs ++ vLocs)
   return indices 
 

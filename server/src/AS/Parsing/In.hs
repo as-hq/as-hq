@@ -110,13 +110,15 @@ extractValue m
       where
         ValueS typ  = m M.! "objectType"
         ValueS rep  = m M.! "jsonRepresentation"
-    extractError mm = ValueError err (read typ) file pos
+    extractError mm = ValueError err typ file pos
       where
         ValueS err         = m M.! "error"
         ValueS typ         = m M.! "errType"
         ValueS file        = m M.! "file"
         ValueI pos         = m M.! "position"
 
+-- TODO this is how Python errors are caught, which is absurd. Need to build special
+-- parser for Python errors, and need to build a parser for errors generally. #needsrefactor
 jsonValue :: ASLanguage -> Parser ASValue
 jsonValue lang = extractValue <$> extractMap
   where
@@ -129,7 +131,7 @@ jsonValue lang = extractValue <$> extractMap
       return (str, dictValue)
     extractMap      = M.fromList <$> (braces $ sepBy dictEntry (comma >> spaces))
 
--- TODO should create general error parser later, which parses ocamlError as a special case. (Alex 10/10)
+-- #needsrefactor should create general error parser later, which parses ocamlError as a special case. (Alex 10/10)
 ocamlError :: Parser ASValue
 ocamlError = do
   string "File "
@@ -137,7 +139,7 @@ ocamlError = do
   pos   <- manyTill anyChar (try (string ", characters"))
   manyTill anyChar (try (string "Error: "))
   err   <- manyTill anyChar (try eof)
-  return $ ValueError err StdErr file ((read pos :: Int) - 4)
+  return $ ValueError err "StdErr" file ((read pos :: Int) - 4)
 
 asValue :: ASLanguage -> Parser ASValue 
 asValue lang = 

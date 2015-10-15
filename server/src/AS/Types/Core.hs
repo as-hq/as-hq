@@ -74,11 +74,12 @@ data ASValue =
   | ValueL [ASValue]
   | ValueImage { imagePath :: String }
   | ValueObject { objectType :: String, jsonRepresentation :: String }
-  | ValueError { errMsg :: String, errType :: EvalErrorType, file :: String, position :: Int } 
+  | ValueError { errMsg :: String, errType :: String, file :: String, position :: Int } 
   | ValueExcelError EError
   deriving (Show, Read, Eq, Generic)
 
-data EvalErrorType = ExcelParse | StdErr | RefError deriving (Show, Read, Eq, Generic)
+-- TODO should 
+-- data EvalErrorType = ExcelParse | StdErr | RefError deriving (Show, Read, Eq, Generic)
 
 data ASReplValue = ReplValue {replValue :: ASValue, replLang :: ASLanguage} deriving (Show, Read, Eq, Generic)
 
@@ -307,8 +308,8 @@ isColocated c1 c2 = (cellLocation c1) == (cellLocation c2)
 -- JSON
 instance ToJSON ASReference
 instance FromJSON ASReference
-instance ToJSON EvalErrorType
-instance FromJSON EvalErrorType
+-- instance ToJSON EvalErrorType
+-- instance FromJSON EvalErrorType
 instance ToJSON ASIndex
 instance FromJSON ASIndex
 instance ToJSON ASRange

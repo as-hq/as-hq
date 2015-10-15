@@ -84,6 +84,7 @@ pyfiString evalStr = EitherT $ catch (fmap Right execString) whenCaught
     where 
         execString = defVV (evalStr ++ pyString) ("Hello" :: String)
         whenCaught = (\e -> return $ Left SyntaxError) :: (SomeException -> IO (Either ASExecError String))
+        -- #incomplete should send back more descriptive error message
 
 pyString :: String
 pyString = [str|
