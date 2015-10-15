@@ -71,6 +71,10 @@ export default {
     return !KeyUtils.producesVisibleChar(e);
   },
 
+  replShouldDeferKey(e) {
+    return !KeyUtils.producesVisibleChar(e);
+  },
+
   compareModifiers(s, e) {
     // s is the shortcut
     let sh = (s.hasOwnProperty('shiftKey') && s.shiftKey == e.shiftKey) || (e.shiftKey === false);

@@ -24,7 +24,6 @@ export default {
   editorHeight: 180,
   codeBarHeight:60,
   topbarTotalHeight: 200, // height of everything except pane
-  treeViewWidth: 145,
 
   // Each time you add an action, add it here... They should be past-tense
   ActionTypes: keyMirror({

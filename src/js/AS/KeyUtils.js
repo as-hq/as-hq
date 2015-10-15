@@ -115,7 +115,6 @@ export default {
 // determines whether editor should defer key in favor of shortcuts
 // NOTE: any Shift+??? shortcuts need to be manually cased here (shifts by default produce a visible character)
   producesVisibleChar(e) {
-    console.log(e);
     return (!(e.ctrlKey || e.altKey || e.metaKey) &&
             !Util.arrContains(modifiers, e.which) &&
             !Util.arrContains(specials, e.which) &&

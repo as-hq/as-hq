@@ -247,6 +247,7 @@ export default React.createClass({
     }
   },
 
+  /* Callback from Repl component */
   _onReplDeferredKey(e){
     ShortcutUtils.tryShortcut(e, 'repl');
   },

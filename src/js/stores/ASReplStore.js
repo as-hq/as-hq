@@ -6,6 +6,14 @@ import API from '../actions/ASApiActionCreators';
 import Converter from '../AS/Converter';
 import Util from '../AS/Util';
 
+/*
+This store has repl interactions with backend 
+For example, it decides whether or not to display the backend response
+Bug: If the REPL sends an "invalid" message to backend (for example, entering abc, no quotes)
+  backend disconnects and nothing happens upon Ctrl Enter
+--  Ritesh 10/12
+*/
+
 
 let replExps = {};
 for (var key in Constants.Languages) {
@@ -59,13 +67,13 @@ const ASReplStore = assign({}, BaseStore, {
     console.log("In repl store, updating response repl data "+ JSON.stringify(resp));
     let lang = resp.replLang,
         val = Util.showValue(resp.replValue, true);
-    _data.replShow = this.shouldShowResponse(val);
+    _data.replShow = this.shouldShowResponse(resp);
     _data.replSubmitLang = lang
     console.log("previous data: " +_data.replExps[lang] );
     if (_data.replShow){
       _data.replExps[lang] += "\n>>> " + val + "\n>>> ";
     }
-    else advanceLine(lang);
+    else this.advanceLine(lang);
   },
 
   advanceLine(lang) {
@@ -79,8 +87,11 @@ const ASReplStore = assign({}, BaseStore, {
     _data.currentLanguage = lang;
   },
 
-  // TODO: implement based on backend
+  // TODO: make fully correct (seems alright for now -- Ritesh 10/12)
   shouldShowResponse(resp){
+    if (resp.replValue.tag=="NoValue"){
+      return false;
+    }
     return true;
   }
 

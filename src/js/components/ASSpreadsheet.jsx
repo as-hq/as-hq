@@ -217,13 +217,13 @@ export default React.createClass({
         behaviorElement = <fin-hypergrid-behavior-json />;
         break;
       case 'default':
-        behaviorElement = <fin-hypergrid-behavior-default />
+        behaviorElement = <fin-hypergrid-behavior-default />;
         break;
     }
    
     // Put overlays with high z Index outside hypergrid
     return (
-      <div style={{width:"100%",height:"100%"}} >
+      <div style={{width:"100%",height:"100%",position:'relative'}} >
         <fin-hypergrid
           style={style}
           ref="hypergrid"
