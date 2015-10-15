@@ -4,6 +4,15 @@ module.exports = function (config) {
 
     reporters: ['mocha'],
 
+    mochaReporter: {
+      colors: {
+        success: 'green',
+        info: 'magenta',
+        warning: 'yellow',
+        error: 'red'
+      }
+    },
+
     files: [
       'node_modules/babel-core/browser-polyfill.js',
       { pattern: 'test-context.js', watched: false }
