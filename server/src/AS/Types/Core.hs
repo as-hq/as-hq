@@ -192,7 +192,7 @@ data ASPayload =
 
 data ASTime = Time {day :: String, hour :: Int, minute :: Int, sec :: Int} deriving (Show,Read,Eq,Generic)
 
-data ASRelations = [(ASIndex, [ASIndex])] -- for representing ancestry relationships
+type ASRelations = [(ASIndex, [ASIndex])] -- for representing ancestry relationships
 
 data ASCommit = ASCommit {commitUserId :: ASUserId, 
                           before :: [ASCell], 

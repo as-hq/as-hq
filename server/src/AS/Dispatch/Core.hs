@@ -50,7 +50,7 @@ runDispatchCycle state cs uid = do
     printWithTimeT $ "STARTING DISPATCH CYCLE WITH CELLS: " ++ (show cs)
     roots          <- lift $ EM.evalMiddleware cs
     conn           <- lift $ fmap dbConn $ readMVar state
-    setCellsAncestorsInDb roots
+    DB.setCellsAncestorsInDb roots
     evalLocs       <- getEvalLocs conn roots
     cellsToEval    <- getCellsToEval conn evalLocs roots
     ancLocs        <- G.getImmediateAncestors evalLocs
@@ -67,15 +67,6 @@ runDispatchCycle state cs uid = do
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Eval building blocks
-
--- | Update the ancestors of a cell, and set the ancestor relationships in the DB. 
-setCellsAncestorsInDb :: [ASCell] -> EitherTExec ()
-setCellsAncestorsInDb = G.setRelations . ancestriesRelations 
-
--- | Given a list of cells, returns a list of pairs (location of cell, [locations of parents of cell]).
--- This is the format the graph DB understands when updating cells. 
-ancestriesRelations :: [ASCell] -> ASRelations
-ancestriesRelations = map (\(Cell loc expr _ _) -> (loc, (getDependencies (locSheetId loc) expr)))
 
 -- | Return the locations of cells to evaluate. (Just the descendants of all the cells passed in
 -- to the dispatch cycle, plus all the volatile cells -- the ones that always re-evaluate.)

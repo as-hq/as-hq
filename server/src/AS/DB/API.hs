@@ -94,7 +94,9 @@ setCells cells = DU.setCellsByMessage msg num
 
 deleteCells :: Connection -> [ASCell] -> IO ()
 deleteCells _ [] = return ()
-deleteCells conn cells = deleteLocs conn $ map cellLocation cells
+deleteCells conn cells = do 
+  setCellsAncestorsInDbForce $ map (\(Cell l _ _ _) -> Cell l (Expression "" Python) NoValue []) cells -- removes all dependencies from the DB
+  deleteLocs conn $ map cellLocation cells
 
 deleteLocs :: Connection -> [ASIndex] -> IO ()
 deleteLocs _ [] = return ()
@@ -193,14 +195,25 @@ updateAfterEval conn (Transaction uid sid roots afterCells lists) = do
   let (coupledCells, decoupledCells) = U.liftListTuple decoupleResult
       afterCells'                    = U.mergeCells afterCellsWithLists decoupledCells
       beforeCells'                   = U.mergeCells beforeCells coupledCells
-  -- let beforeAncestriesRelations = ancestriesRelations beforeCells' -- should match what was originally in graph before eval
-  -- let afterAncestriesRelations = ancestriesRelations afterCells'   -- should match what is currently in the graph
   liftIO $ setCells afterCells'
   liftIO $ deleteCells conn (filter isEmptyCell afterCells')
   liftIO $ mapM_ (\(key, cells) -> setListLocations conn key (map cellLocation cells)) lists
-  liftIO $ addCommit conn uid (beforeCells', afterCells') (beforeAncestriesRelations, afterAncestriesRelations) listKeysChanged
+  liftIO $ addCommit conn uid (beforeCells', afterCells') listKeysChanged
   liftIO $ printWithTime "added commits"
   right afterCells'
+
+-- | Update the ancestor relationships in the DB based on the expressions and locations of the
+-- cells passed in. (E.g. if a cell is passed in at A1 and its expression is "C1 + 1", C1->A1 is
+-- added to the graph.)
+setCellsAncestorsInDb :: [ASCell] -> EitherTExec ()
+setCellsAncestorsInDb = G.setRelations . (map (\(Cell l e _ _) -> (l, (getDependencies (locSheetId l) e))))
+
+-- | Should only be called when undoing or redoing commits, which should be guaranteed to not 
+-- introduce errors. 
+setCellsAncestorsInDbForce :: [ASCell] -> IO ()
+setCellsAncestorsInDbForce cells = do
+  runEitherT (setCellsAncestorsInDb cells)
+  return ()
 
 -- | Creates and pushes a commit to the DB
 addCommit :: Connection -> ASUserId -> ([ASCell], [ASCell]) -> [ListKey] -> IO ()
@@ -222,8 +235,9 @@ undo conn = do
   case commit of
     Nothing -> return Nothing
     Just c@(ASCommit uid b a listKeys t) -> do 
-      deleteCells conn a 
+      deleteCells conn a
       setCells b
+      setCellsAncestorsInDbForce b
       mapM_ (recoupleList conn) listKeys
       return $ Just c
 
@@ -241,6 +255,7 @@ redo conn = do
     Just c@(ASCommit uid b a listKeys t) -> do 
       deleteCells conn b 
       setCells a
+      setCellsAncestorsInDbForce a
       mapM_ (decoupleList conn) listKeys
       return $ Just c
 
