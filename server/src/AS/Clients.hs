@@ -168,9 +168,12 @@ handleImport state msg = return () -- TODO
 -- Eval handler
 
 handleEval :: (Client c) => c -> MVar ServerState -> ASPayload -> IO ()
-handleEval cl state (PayloadC cell)  = do
+handleEval cl state payload  = do
+  let cells = case payload of 
+                PayloadCL cells' -> cells'
+                PayloadC cell -> [cell]
   putStrLn $ "IN EVAL HANDLER"
-  msg' <- DP.runDispatchCycle state [cell] (ownerName cl)
+  msg' <- DP.runDispatchCycle state cells (ownerName cl)
   sendBroadcastFiltered cl state msg'
 
 handleEvalRepl :: (Client c) => c -> MVar ServerState -> ASPayload -> IO ()
