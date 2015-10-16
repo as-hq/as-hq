@@ -106,9 +106,6 @@ talk state client = forever $ do
 handleRuntimeException :: ASUserClient -> MVar ServerState -> SomeException -> IO ()
 handleRuntimeException user state e = do
   putStrLn ("Runtime error caught: " ++ (show e))
-  conn <- dbConn <$> readMVar state
-  DB.clear conn
-  G.clear
   main
 
 processMessage :: (Client c) => c -> MVar ServerState -> ASClientMessage -> IO ()

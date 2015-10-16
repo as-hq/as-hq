@@ -213,6 +213,7 @@ data ASExecError =
   | DBGraphUnreachable -- failed to connect
   | CircularDepError {badLoc :: ASIndex} 
   | NetworkDown
+  | RuntimeEvalException
   | ResourceLimitReached
   | InsufficientPermissions
   | NonUniqueIdentifier
