@@ -31,14 +31,19 @@ mp :: RefValMap
 mp = M.fromList $ [(IndexRef (Index (T.pack "") (i,j)), ValueI j)| i <- [1..100], j <- [1..100]]
 
 tests :: [IO ()]
-tests = [testLambda, testAdd,testAbs,testEquals,testIf,testSumIf]
+tests = [testLiteral, testLambda, testAdd,testAbs,testEquals,testIf,testSumIf]
 
-testShitExpression :: IO ()
-testShitExpression = hspec $ do
-  describe "testShitExpression" $ do
-    it "can parse anything without equals" $ do
-      EL.getLambda (EValueS ">=2") (EValueNum (EValueD 5)) `shouldBe` True
-      EL.getLambda (EValueS ">=2") (EValueNum (EValueD 1)) `shouldBe` False
+testLiteral :: IO ()
+testLiteral = hspec $ do
+  describe "testLiteral" $ do
+    it "can parse integers" $ do
+      eval "123" `shouldBe` (Right $ ValueI 123)
+    it "can parse doubles" $ do
+      eval "1.23" `shouldBe` (Right $ ValueD 1.23)
+    it "can parse strings" $ do
+      eval "\"clifford_the_big_red_penis\"" `shouldBe` (Right $ (ValueS "clifford_the_big_red_penis"))
+    it "can parse integers" $ do
+      eval "\"s+_sdfja39w9df4wfm4=4524t2\"" `shouldBe` (Right $ (ValueS "s+_sdfja39w9df4wfm4=4524t2"))
 
 testLambda :: IO ()
 testLambda = hspec $ do

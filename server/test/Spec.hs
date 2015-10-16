@@ -51,7 +51,7 @@ main = do
 
 testExcelExpr :: IO ()
 testExcelExpr = do
-  putStrLn $ show $ EC.parseFormula "\"sdfa\""
+  putStrLn $ show $ EC.parseFormula "123"
 
 testIntrospect :: IO ()
 testIntrospect = do
