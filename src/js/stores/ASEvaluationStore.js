@@ -268,6 +268,17 @@ const ASEvaluationStore = assign({}, BaseStore, {
 
 
   /**************************************************************************************************************************/
+  /* Copy paste helpers */
+
+  selRegionToValues(selRegion){
+    return [[1,2],[5,6]];
+  },
+
+  makeASCellsFromVals(vals){
+    return []
+  },
+
+  /**************************************************************************************************************************/
   /*
     Update methods to allCells and lastUpdatedCells.
     A cell in this class and stored in _data has the format from CellConverter, returned from eval

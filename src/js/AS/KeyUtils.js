@@ -123,6 +123,10 @@ export default {
            (e.ctrlKey && e.key === "Backspace"); // ctrl + backspace
   },
 
+  isCopyPasteType(e){
+    return e.ctrlKey && (e.which === 67 || e.which === 86 || e.which === 88)
+  },
+
   modifyStringForKey(str, e) {
     if (e.which === 8){ // backspace
       if (e.ctrlKey){
@@ -135,16 +139,18 @@ export default {
     }
   },
   getString(e){
-    if (e.which === 8)
+    if (e.which === 8){
       return ""
+    }
     else return this.keyToString(e);
   },
 
   killEvent(e) {
     e.preventDefault();
     e.stopPropagation();
-    if (e.nativeEvent)
+    if (e.nativeEvent){
       e.nativeEvent.stopImmediatePropagation();
+    }
   },
 
   stringToKey(k) { // TODO test for pathological cases and mac keyboards
