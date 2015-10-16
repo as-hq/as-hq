@@ -168,11 +168,16 @@ export default React.createClass({
   focusGrid() {
     this._getSpreadsheet().focus();
   },
+  isPasteAlphasheets() {
+   
+  }
 
   /**************************************************************************************************************************/
   /* Make sure that the evaluation pane can receive change events from the evaluation store */
 
   componentDidMount() {
+    window.addEventListener('paste', handlePasteEvent);
+    window.addEventListener('copy', handleCopyEvent);
     Store.addChangeListener(this._onChange);
     ReplStore.addChangeListener(this._onReplChange);
     this._notificationSystem = this.refs.notificationSystem;
