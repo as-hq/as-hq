@@ -153,7 +153,7 @@ export default React.createClass({
         KeyUtils.killEvent(e);
       }
       this.props.onDeferredKey(e);
-    } 
+    }
   },
 
   onOverlayClick(col, row) {
@@ -221,7 +221,7 @@ export default React.createClass({
         behaviorElement = <fin-hypergrid-behavior-default />;
         break;
     }
-   
+
     // Put overlays with high z Index outside hypergrid
     return (
       <div style={{width:"100%",height:"100%",position:'relative'}} >
@@ -241,12 +241,12 @@ export default React.createClass({
                              isVisible={self.isVisible}/>);
         })}
 
-      
-        <Textbox ref="textbox" 
+
+        <Textbox ref="textbox"
                  scroll={self.state.scroll}
                  onKeyDown={this.handleKeyDown}
-                 textBoxChange={this.props.textBoxChange}/> 
-    
+                 textBoxChange={this.props.textBoxChange}/>
+
       </div>
     );
   },
@@ -277,6 +277,7 @@ export default React.createClass({
       // initialize custom config attributes for every cell
       // (hypergrid reuses the config object for performance; attributes must be set explicitly null)
       config.paintBorders = [];
+      config.halign = 'left';
 
       // console.log(config.value)
       if (cell && activeCell) {
@@ -284,6 +285,14 @@ export default React.createClass({
       }
       // tag-based cell styling
       if (cell) {
+        // console.log(cell.cellValue);
+        if (cell.cellValue.tag === "ValueI" || cell.cellValue.tag === "ValueD") {
+          config.halign = 'right';
+        } else if (cell.cellValue.tag === "ValueS") {
+          config.halign = 'left';
+        } else {
+          config.halign = 'center';
+        }
         if (cell.cellTags.length > 0){
           for (var i=0; i<cell.cellTags.length; i++)
             config = Util.parseTagIntoRenderConfig(config, cell.cellTags[i]);

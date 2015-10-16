@@ -193,6 +193,10 @@ describe('backend', () => {
     return { tag: 'ValueB', contents: val };
   }
 
+  function valueS(val) {
+    return { tag: 'ValueS', contents: val };
+  }
+
   function equalValues(val1, val2) {
     return _.isEqual(val1, val2);
   }
@@ -420,6 +424,46 @@ describe('backend', () => {
           ]);
         });
 
+        it('should fail to evaluate a circular dependency arising from a range cell', (done) => {
+          _do([
+            python('A5', '5'),
+            python('C5', 'A5 + 10'),
+            shouldError(
+              python('A1', 'range(C5, C5 + 10)')
+            ),
+            exec(done)
+          ]);
+        });
+
+        it('range dependencies get updated', (done) => {
+          _do([
+            python('A1', 'range(2)'),
+            python('B2', 'A2 + 1'),
+            python('A1', 'range(4,6)'),
+            shouldBe('B2', valueI(6)),
+            exec(done)
+          ]);
+        });
+
+        it('sophisticated range dependencies work as expected', (done) => {
+          _do([
+            python('A1', 'range(102,110)'),
+            python('C3', 'range(A3, A3+3)'),
+            python('E3', 'range(A3, A3+4)'),
+            python('A1', 'range(C3,E5)'),
+            shouldBe('A1', valueI(104)),
+            shouldError(
+              python('A1', 'range(C3,E6)')
+            ),
+            python('E3', 'range(A3+C4-104,A3+C3-104+4)'),
+            shouldBe('A1', valueI(104)),
+            shouldError(
+              python('A1', 'range(C3,E6)')
+            ),
+            exec(done)
+          ]);
+        });
+
         it('should evaluate to an error when there is one', (done) => {
           _do([
             python('A1', '1 + "a"'),
@@ -429,7 +473,7 @@ describe('backend', () => {
         });
       });
 
-      describe('r', () => {
+      xdescribe('r', () => {
         it('should evaluate at all', (done) => {
           _do([
             r('A1', '1 + 1'),
@@ -444,6 +488,42 @@ describe('backend', () => {
             _forM_(_.range(10), (i) => {
               return shouldBe(`A${i + 1}`, valueI(i + 1));
             }),
+            exec(done)
+          ]);
+        });
+
+        it('should evaluate a double', (done) => {
+          _do([
+            r('A1', '1.23'),
+            shouldBe('A1', valueD(1.23)),
+            exec(done)
+          ]);
+        });
+
+        it('should evaluate lists correctly', (done) => {
+          _do([
+            r('A1', 'list(a=1,b=2)'),
+            r('B1', 'A1$a'),
+            shouldBe('B1', valueI(1)),
+            exec(done)
+          ]);
+        });
+
+        it('should evaluate a symbol correctly', (done) => {
+          _do([
+            r('A1', 'as.symbol(123)'),
+            shouldBe('A1', valueS('123')),
+            exec(done)
+          ]);
+        });
+
+        it('should evaluate list dependencies', (done) => {
+          _do([
+            r('A1', 'c(1,2,"a",TRUE)'),
+            r('B1', 'typeof(A4)'),
+            shouldBe('B1', valueS('logical')),
+            r('A1', 'c(1,2,3,4)'),
+            shouldBe('B1', valueS('double')),
             exec(done)
           ]);
         });
@@ -517,7 +597,7 @@ describe('backend', () => {
       });
 
       describe('general', () => {
-        it('should do multi language eval', (done) => {
+        xit('should do multi language eval', (done) => {
           _do([
             python('A1', '10'),
             r('B1', '1:A1'),
