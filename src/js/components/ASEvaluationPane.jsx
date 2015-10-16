@@ -168,22 +168,32 @@ export default React.createClass({
   focusGrid() {
     this._getSpreadsheet().focus();
   },
-  isPasteAlphasheets() {
-   
-  }
+  isPasteAlphasheets(text_html) {
+  },
+  handlePasteEvent(e) {
+  },
+  handleCopyEvent(e) {
+    let cell_region = this.refs.spreadsheet.getSelectionArea();
+    e.clipboardData.get
+  },
+  parseTabbedListIntoCells(list) {
+    cellArray = list.split("\n").map(split("\t"));
+  },
 
   /**************************************************************************************************************************/
   /* Make sure that the evaluation pane can receive change events from the evaluation store */
 
   componentDidMount() {
-    window.addEventListener('paste', handlePasteEvent);
-    window.addEventListener('copy', handleCopyEvent);
+    window.addEventListener('paste', this.handlePasteEvent);
+    window.addEventListener('copy', this.handleCopyEvent);
     Store.addChangeListener(this._onChange);
     ReplStore.addChangeListener(this._onReplChange);
     this._notificationSystem = this.refs.notificationSystem;
     Shortcuts.addShortcuts(this);
   },
   componentWillUnmount() {
+    window.removeEventListener('paste', this.handlePasteEvent);
+    window.removeEventListener('copy', this.handleCopyEvent);
     API.sendClose();
     Store.removeChangeListener(this._onChange);
     ReplStore.removeChangeListener(this._onReplChange);

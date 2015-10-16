@@ -162,7 +162,7 @@ const ASEvaluationStore = assign({}, BaseStore, {
   // Requires that a range having row2 implies a range has col2, and vice versa
   setActiveSelection(area, xp) {
     let rng = area.range;
-    _data.activeSelection = area;
+    _data.activeSelection = rng;
     _data.activeCell = this.getCellAtLoc(rng.col, rng.row) || Converter.defaultCell();
     var activeCellDependencies = Util.parseDependencies(xp);
     if (rng.hasOwnProperty('row2') && rng.hasOwnProperty('col2')) {
@@ -358,6 +358,31 @@ const ASEvaluationStore = assign({}, BaseStore, {
     }
   },
 
+  sliceArray (begin, end) {
+    return (
+        function(arr) { return arr.slice(begin, end) } 
+    );
+  },
+
+  getCellsAtLocationRange(rng){
+    let sheetid = _data.currentSheet.sheetId;
+    let col = rng.col, row = rng.row;
+
+    if (this.locationExists(sheetid, col, row)) {
+      if (!rng.hasOwnProperty(row2)) {
+        return getCellAtLoc(col, row);
+      }
+    }
+    if (this.locationExists(sheetid, col, row) && this.locationExists(sheetid, col2, row2)) {
+      let col2 = rng.col2, row = rng.row2;
+      return _data.allCells[sheetid].slice(col, col2+1).map(this.sliceArray(row, row2+1));
+    }
+    return null;
+  },
+
+  cellRegionToValues() {
+    return getCellsAtLocationRange(this.getActiveSelection());
+  },
   /**************************************************************************************************************************/
 
   /*
