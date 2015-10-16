@@ -11,12 +11,23 @@ using namespace std;
   and then rollback() is called, all the updateDAG()'s get reverted. clearPrevCache() is 
   called at the start of each processRequest of type SetRelations, during which updateDAG() 
   is called numerous times in succession. 
+
+  Also, there's actually a way of implementing the rollback entirely in Haskell 
+  that's much cleaner than this, but this is faster (one less communication) and it's already 
+  implemented, so whatever. (To be precise, setCellsAncestorsInDbForce on the new cells with 
+  expressions replaced with "" and setCellsAncestorsInDb with the old cells in the DB.)
 */
 void DAG::rollback() {
+	cout << "Before rollback: " << endl;
+	showGraph();
+
 	for (const auto& fan : prevCache)
 		updateDAG(fan.first, fan.second, false);
 
 	clearPrevCache();
+
+	cout << "After rollback:" << endl; 
+	showGraph(); 
 }
 
 bool DAG::clearPrevCache() {
@@ -54,12 +65,12 @@ bool DAG::containsCycle(const DAG::Vertex& start) {
 
 /****************************************************************************************************************************************/
 
-//4,1 --> 3,1
 DAG& DAG::updateDAG(DAG::Vertex toLoc, const DAG::VertexSet& fromLocs, bool addToCache) {
 	DAG::VertexSet vl = toFromAdjList[toLoc]; //old fromLocs
 
+	// If a vertex gets updated multiple times, only record the first update. 
 	if (addToCache) {
-		if (prevCache.count(toLoc) > 0)
+		if (prevCache.count(toLoc) == 0)
 			prevCache[toLoc] = toFromAdjList[toLoc];
 	}
 	

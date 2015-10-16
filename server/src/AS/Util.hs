@@ -132,6 +132,7 @@ catchEitherT a = do
     (Left e) -> left e
     (Right e) -> right e
     where whenCaught = (\e -> return . Right $ ValueError (show e) "StdErr" "" 0) :: (SomeException -> IO (Either ASExecError ASValue))
+
 --------------------------------------------------------------------------------------------------------------
 -- Key-value manip functions
 

@@ -111,7 +111,13 @@ getValuesMap locs = do
 -- if a cell references an ancestor, that ancestor is guaranteed to already have been 
 -- added in the map. 
 evalChain :: Connection -> RefValMap -> [ASCell] -> EitherTExec ([ASCell], [ASList])
-evalChain conn valuesMap cells = evalChain' conn valuesMap cells [] []
+evalChain conn valuesMap cells = do
+  result <- liftIO $ catch (runEitherT $ evalChain' conn valuesMap cells [] []) (\e -> do
+    printDebug "Runtime exception caught: " (e :: SomeException)
+    return $ Left RuntimeEvalException)
+  case result of 
+    (Left e) -> left e
+    (Right e) -> right e
 
 
 -- | evalChain' works in two parts. First, it goes through the list of cells passed in and
