@@ -38,7 +38,7 @@ import Control.Exception (catch, SomeException)
 -- Exposed functions
 
 evaluateLanguage :: ASReference -> ASSheetId -> RefValMap -> ASExpression -> EitherTExec ASValue
-evaluateLanguage curRef sheetid valuesMap xp@(Expression str lang) = catchEitherT (do
+evaluateLanguage curRef sheetid valuesMap xp@(Expression str lang) = catchEitherT $ do
   printWithTimeT "Starting eval code"
   let maybeError = possiblyShortCircuit sheetid valuesMap xp
   case maybeError of
@@ -46,14 +46,14 @@ evaluateLanguage curRef sheetid valuesMap xp@(Expression str lang) = catchEither
     Nothing -> case lang of
       Excel -> KE.evaluate str curRef valuesMap -- Excel needs current location and un-substituted expression
       otherwise -> execEvalInLang lang xpWithValuesSubstituted -- didn't short-circuit, proceed with eval as usual
-       where xpWithValuesSubstituted = insertValues sheetid valuesMap xp)
+       where xpWithValuesSubstituted = insertValues sheetid valuesMap xp
 
 evaluateLanguageRepl :: ASExpression -> EitherTExec ASValue
-evaluateLanguageRepl (Expression str lang) = catchEitherT (case lang of
+evaluateLanguageRepl (Expression str lang) = catchEitherT $ case lang of
   Python   -> KP.evaluateRepl str
   R        -> KR.evaluateRepl str
   SQL     -> KP.evaluateSqlRepl str
-  OCaml   -> KO.evaluateRepl str)
+  OCaml   -> KO.evaluateRepl str
 
 -----------------------------------------------------------------------------------------------------------------------
 -- Helpers
