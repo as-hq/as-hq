@@ -43,12 +43,12 @@ import Control.Monad.Trans.Either
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Exposed functions
 
-evaluate :: String -> EitherTExec ASValue
+evaluate :: EvalCode -> EitherTExec ASValue
 evaluate "" = return NoValue
 evaluate str = liftIO $ execOnString str (execR False)
 
 
-evaluateRepl :: String -> EitherTExec ASValue
+evaluateRepl :: EvalCode -> EitherTExec ASValue
 evaluateRepl "" = return NoValue
 evaluateRepl str = liftIO $ execOnString str (execR True)
 
@@ -60,7 +60,7 @@ evaluateRepl str = liftIO $ execOnString str (execR True)
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Helpers
 
-execOnString :: String -> (String -> IO ASValue) -> IO ASValue
+execOnString :: EvalCode -> (EvalCode -> IO ASValue) -> IO ASValue
 execOnString str f = do
   printWithTime "starting R eval"
   case (trimWhitespace R str) of
@@ -68,16 +68,16 @@ execOnString str f = do
     trimmed -> f trimmed
 
 -- takes (isGlobalExecution, str)
-execR :: Bool -> String -> IO ASValue
+execR :: Bool -> EvalCode -> IO ASValue
 execR isGlobal s =
   let whenCaught = (\e -> return $ ValueError (show e) StdErr "" 0) :: (SomeException -> IO ASValue)
   in do
     putStrLn "got here"
-    catch (R.runRegion $ castR <$> if isGlobal
+    catch (R.runRegion $ (castR s) <$> if isGlobal
       then [r| eval(parse(text=s_hs)) |]
       else [r| AS_LOCAL_ENV<-function(){eval(parse(text=s_hs))};AS_LOCAL_ENV() |]) whenCaught
 
--- #ANAND faster unboxing, but I can't figure out how to restrict x to (IsVector x)
+-- @anand faster unboxing, but I can't figure out how to restrict x to (IsVector x)
 --castR :: (IsVector a) => (R.SomeSEXP (R.SEXP (Control.Memory.Region s) a) -> IO ASValue
 --castR (R.SomeSEXP x) =
   --let offset = R.length x
@@ -88,27 +88,28 @@ execR isGlobal s =
     --(hexp -> H.Char _)    -> (\s -> [ValueS s]) <$> (peekCString =<< R.char x)
     --(hexp -> H.String _)  -> (map ValueS) <$> (mapM peekCString =<< mapM R.char =<< peekArray offset =<< R.string x)
 
-castR :: R.SomeSEXP a -> ASValue
-castR (R.SomeSEXP s) =
-  let vec = castSEXP s
+-- requires the input eval string, in order to return lists correctly
+castR :: EvalCode -> R.SomeSEXP a -> ASValue
+castR str (R.SomeSEXP s) =
+  let vec = castSEXP str s
   in case (length vec) of
     1 -> head vec
     _ -> ValueL vec
 
 -- everything returned is a list, because R.
-castSEXP :: R.SEXP s a -> [ASValue]
-castSEXP x = case x of
+castSEXP :: EvalCode -> R.SEXP s a -> [ASValue]
+castSEXP str x = case x of
   (hexp -> H.Nil)       -> [ValueNull]
   (hexp -> H.Real v)    -> map ValueD $ SV.toList v
   (hexp -> H.Int v)     -> map (ValueI . fromIntegral) $ SV.toList v
   (hexp -> H.Logical v) -> map (ValueB . fromLogical) $ SV.toList v
   (hexp -> H.Char v)    -> [castString v]
   (hexp -> H.String v)  -> map (\(hexp -> H.Char c) -> castString c) $ SV.toList v
-  (hexp -> H.Symbol s _ _)  -> castSEXP s
-  (hexp -> H.List a b c) -> (castSEXP a) ++ (castSEXP b) ++ (castSEXP c)
+  (hexp -> H.Symbol s s' s'')  -> castSEXP s
+  (hexp -> H.List a b c) -> (castSEXP str a) ++ (castSEXP str b) ++ (castSEXP str c)
   (hexp -> H.Special i) -> [ValueI $ fromIntegral i]
   (hexp -> H.DotDotDot s) -> castSEXP s
-  (hexp -> H.Vector len v) -> map castR $ SV.toList v
+  (hexp -> H.Vector len v) -> castVector str v
   (hexp -> H.Builtin i) -> [ValueI $ fromIntegral i]
   (hexp -> H.Raw v) -> [ValueS . bytesToString $ SV.toList v]
   (hexp -> H.S4 s) -> castSEXP s
@@ -116,6 +117,12 @@ castSEXP x = case x of
 
 castString :: SV.Vector s 'R.Char Word8 -> ASValue
 castString v = ValueS . bytesToString $ SV.toList v
+
+castVector :: EvalCode -> SV.Vector s SV.Vector (R.SomeSEXP s) -> [ASValue]
+castVector v str = values
+  where
+    values = map castR $ SV.toList v
+    (l, ls) = splitLastLine R str
 
 fromLogical :: R.Logical -> Bool
 fromLogical R.TRUE  = True

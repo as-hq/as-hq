@@ -87,6 +87,8 @@ data ASValue =
 
 type RListKey = String
 
+type EvalCode = String
+
 data EvalErrorType = ExcelParse | StdErr | RefError deriving (Show, Read, Eq, Generic)
 
 data ASReplValue = ReplValue {replValue :: ASValue, replLang :: ASLanguage} deriving (Show, Read, Eq, Generic)
@@ -372,8 +374,6 @@ instance FromJSON ASTime
 instance ToJSON ASTime
 instance FromJSON ASCommit
 instance ToJSON ASCommit
-instance FromJSON RVal
-instance ToJSON RVal
 -- The format Frontend uses for both client->server and server->client is
 -- { messageUserId: blah, action: blah, result: blah, payload: blah }
 instance ToJSON ASClientMessage where
@@ -414,4 +414,3 @@ instance NFData EError        where rnf = genericRnf
 instance NFData ASReference   where rnf = genericRnf
 instance NFData ASRange       where rnf = genericRnf
 instance NFData ASIndex       where rnf = genericRnf
-instance NFData RVal          where rnf = genericRnf
