@@ -15,7 +15,6 @@ Currently Ctrl Enter is always needed to submit, but this isn't the case for com
 */
 
 function onPropsSet(editor, props) {
-  console.log("on props set");
   editor.getSession().setMode('ace/mode/'+props.mode);
   editor.setTheme('ace/theme/'+props.theme);
   editor.setFontSize(props.fontSize);
