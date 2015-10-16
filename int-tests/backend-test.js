@@ -451,7 +451,7 @@ describe('backend', () => {
             shouldError(
               python('A1', 'range(C3,E6)')
             ),
-            python('E3', 'range(A3+C4-104,A3+C3-104+4)'), 
+            python('E3', 'range(A3+C4-104,A3+C3-104+4)'),
             shouldBe('A1', valueI(104)),
             shouldError(
               python('A1', 'range(C3,E6)')
@@ -469,7 +469,7 @@ describe('backend', () => {
         });
       });
 
-      describe('r', () => {
+      xdescribe('r', () => {
         it('should evaluate at all', (done) => {
           _do([
             r('A1', '1 + 1'),
@@ -557,7 +557,7 @@ describe('backend', () => {
       });
 
       describe('general', () => {
-        it('should do multi language eval', (done) => {
+        xit('should do multi language eval', (done) => {
           _do([
             python('A1', '10'),
             r('B1', '1:A1'),
