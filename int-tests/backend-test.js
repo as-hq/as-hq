@@ -193,6 +193,10 @@ describe('backend', () => {
     return { tag: 'ValueB', contents: val };
   }
 
+  function valueS(val) {
+    return { tag: 'ValueS', contents: val };
+  }
+
   function equalValues(val1, val2) {
     return _.isEqual(val1, val2);
   }
@@ -484,6 +488,42 @@ describe('backend', () => {
             _forM_(_.range(10), (i) => {
               return shouldBe(`A${i + 1}`, valueI(i + 1));
             }),
+            exec(done)
+          ]);
+        });
+
+        it('should evaluate a double', (done) => {
+          _do([
+            r('A1', '1.23'),
+            shouldBe('A1', valueD(1.23)),
+            exec(done)
+          ]);
+        });
+
+        it('should evaluate lists correctly', (done) => {
+          _do([
+            r('A1', 'list(a=1,b=2)'),
+            r('B1', 'A1$a'),
+            shouldBe('B1', valueI(1)),
+            exec(done)
+          ]);
+        });
+
+        it('should evaluate a symbol correctly', (done) => {
+          _do([
+            r('A1', 'as.symbol(123)'),
+            shouldBe('A1', valueS('123')),
+            exec(done)
+          ]);
+        });
+
+        it('should evaluate list dependencies', (done) => {
+          _do([
+            r('A1', 'c(1,2,"a",TRUE)'),
+            r('B1', 'typeof(A4)'),
+            shouldBe('B1', valueS('logical')),
+            r('A1', 'c(1,2,3,4)'),
+            shouldBe('B1', valueS('double')),
             exec(done)
           ]);
         });
