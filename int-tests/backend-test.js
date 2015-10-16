@@ -420,13 +420,41 @@ describe('backend', () => {
           ]);
         });
 
-        xit('should fail to evaluate a circular dependency arising from a range cell', (done) => {
-          // xcxc: this is blocking on a mass tester task
+        it('should fail to evaluate a circular dependency arising from a range cell', (done) => {
           _do([
             python('A5', '5'),
             python('C5', 'A5 + 10'),
             shouldError(
               python('A1', 'range(C5, C5 + 10)')
+            ),
+            exec(done)
+          ]);
+        });
+
+        it('range dependencies get updated', (done) => {
+          _do([
+            python('A1', 'range(2)'),
+            python('B2', 'A2 + 1'),
+            python('A1', 'range(4,6)'),
+            shouldBe('B2', valueI(6)),
+            exec(done)
+          ]);
+        });
+
+        it('sophisticated range dependencies work as expected', (done) => {
+          _do([
+            python('A1', 'range(102,110)'),
+            python('C3', 'range(A3, A3+3)'),
+            python('E3', 'range(A3, A3+4)'),
+            python('A1', 'range(C3,E5)'),
+            shouldBe('A1', valueI(104)),
+            shouldError(
+              python('A1', 'range(C3,E6)')
+            ),
+            python('E3', 'range(A3+C4-104,A3+C3-104+4)'), 
+            shouldBe('A1', valueI(104)),
+            shouldError(
+              python('A1', 'range(C3,E6)')
             ),
             exec(done)
           ]);
