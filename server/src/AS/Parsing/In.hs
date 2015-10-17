@@ -19,7 +19,7 @@ import qualified Data.Text.Lazy (replace)
 
 import AS.Types.Core
 import AS.Parsing.Common
-import AS.Util
+import AS.Util as U
 
 -- removes the first and last brackets from expression, if they exist
 removeBrackets :: String -> String
@@ -161,15 +161,3 @@ lexer = P.makeTokenParser Lang.haskellDef
 
 integer   = fromInteger <$> P.integer lexer
 float     = P.float lexer
-
-
-isHighDimensional :: Int -> ASValue -> Bool
-isHighDimensional depth (ValueL l) = if (depth + 1 > 2)
-  then True
-  else isHighDimensional (depth + 1) (head l)
-isHighDimensional depth _ = False
-
-sanitizeList :: ASValue -> ASValue
-sanitizeList v = if (isHighDimensional 0 v)
-  then ValueError "Cannot embed lists of dimension > 2." StdErr "" 0
-  else v

@@ -49,7 +49,7 @@ cInfo = ConnInfo
     { connectHost           = "localhost"
     , connectPort           = PortNumber 6379
     , connectAuth           = Nothing
-    , connectDatabase       = 0               
+    , connectDatabase       = 0
     , connectMaxConnections = 100
     , connectMaxIdleTime    = 1000000
     }
@@ -63,17 +63,26 @@ relationDelimiter = "&"
 
 keyPartDelimiter = '?'
 
+-- get a list key with a special suffix denoting list type
+getListKeyWithIdentifier :: ASIndex -> (Int, Int) -> String -> ListKey
+getListKeyWithIdentifier idx dims ident = (show2 idx) ++ (keyPartDelimiter:(show dims)) ++ (keyPartDelimiter:ident)
+
+-- returns the list key for a regular list
 getListKey :: ASIndex -> (Int, Int) -> ListKey
-getListKey idx dims = (show2 idx) ++ (keyPartDelimiter:(show dims)) ++ (keyPartDelimiter:"LIST")
+getListKey idx dims = getListKeyWithIdentifier idx dims "LIST"
+
+-- returns the list key for a dataframe-type list
+getDFListKey :: ASIndex -> (Int, Int) -> ListKey
+getDFListKey idx dims = getListKeyWithIdentifier idx dims "DF"
 
 getSheetListsKey :: ASSheetId -> B.ByteString
-getSheetListsKey sid = BC.pack $ (T.unpack sid) ++ (keyPartDelimiter:"ALL_LISTS") 
+getSheetListsKey sid = BC.pack $ (T.unpack sid) ++ (keyPartDelimiter:"ALL_LISTS")
 
 getLocationKey :: ASIndex -> B.ByteString
 getLocationKey = BC.pack . show2
 
 getSheetKey :: ASSheetId -> B.ByteString -- for storing the actual sheet as key-value
-getSheetKey = BC.pack . T.unpack 
+getSheetKey = BC.pack . T.unpack
 
 getSheetSetKey :: ASSheetId -> B.ByteString -- for storing set of locations in single sheet
 getSheetSetKey sid = BC.pack $! (T.unpack sid) ++ "Locations"
@@ -104,12 +113,12 @@ getUniquePrefixedName pref strs = pref ++ (show idx)
     strs'   = filter (L.isPrefixOf pref) strs
     strs''  = map (drop . length $ pref) strs'
     idxs    = tryParseListNonIso integer strs''
-    idx     = case idxs of 
+    idx     = case idxs of
       [] -> 1
       _  -> (L.maximum idxs) + 1
 
 ----------------------------------------------------------------------------------------------------------------------
--- FFI 
+-- FFI
 
 foreign import ccall unsafe "hiredis/redis_db.c getCells" c_getCells :: CString -> CInt -> IO (Ptr CString)
 foreign import ccall unsafe "hiredis/redis_db.c setCells" c_setCells :: CString -> CInt -> IO ()
@@ -137,22 +146,22 @@ getCellsByKeys :: [B.ByteString] -> IO [Maybe ASCell]
 getCellsByKeys keys = getCellsByMessage msg num
   where
     msg      = B.concat $ [BC.pack "\"", internal, BC.pack "\"\NUL"]
-    internal = B.intercalate (BC.pack "@") keys 
+    internal = B.intercalate (BC.pack "@") keys
     num      = length keys
 
 -- takes a message and number of locations queried
-getCellsByMessage :: B.ByteString -> Int -> IO [Maybe ASCell]   
+getCellsByMessage :: B.ByteString -> Int -> IO [Maybe ASCell]
 getCellsByMessage msg num = do
-  --putStrLn $ "get cells by key with num: " ++ (show num) ++ ", " ++ (show msg) 
+  --putStrLn $ "get cells by key with num: " ++ (show num) ++ ", " ++ (show msg)
   ptrCells <- BU.unsafeUseAsCString msg $ \str -> do
     printWithTime "built message"
     c <- c_getCells str (fromIntegral num)
     printWithTime "got cells"
     return c
   cCells <- peekArray (fromIntegral num) ptrCells
-  res <- mapM cToASCell cCells  
-  free ptrCells 
-  return res 
+  res <- mapM cToASCell cCells
+  free ptrCells
+  return res
 
 setCellsByMessage :: B.ByteString -> Int -> IO ()
 setCellsByMessage msg num = do
@@ -177,10 +186,14 @@ cToASCell str = do
 ----------------------------------------------------------------------------------------------------------------------
 -- Lists
 
+getListType :: ListKey -> String
+getListType key = last parts
+  where parts = splitBy keyPartDelimiter key
+
 getDimsFromListKey :: ListKey -> (ASIndex, (Int, Int))
 getDimsFromListKey key = (idx, dims)
-  where 
-    parts = splitBy keyPartDelimiter key 
+  where
+    parts = splitBy keyPartDelimiter key
     idx   = read2 (head parts) :: ASIndex
     dims  = read (parts !! 1) :: (Int, Int)
 
@@ -190,24 +203,24 @@ getRectFromListKey key = ((col, row), (col + width - 1, row + height - 1))
 
 getSheetIdFromListKey :: ListKey -> ASSheetId
 getSheetIdFromListKey key = sid
-  where 
-    parts = splitBy keyPartDelimiter key 
+  where
+    parts = splitBy keyPartDelimiter key
     (Index sid _)   = read2 (head parts) :: ASIndex
 
 getListKeysInSheet :: Connection -> ASSheetId -> IO [ListKey]
 getListKeysInSheet conn sid = runRedis conn $ do
-  Right result <- smembers $ getSheetListsKey sid 
+  Right result <- smembers $ getSheetListsKey sid
   return $ map BC.unpack result
 
 getLocationsFromListKey :: ListKey -> [ASIndex]
 getLocationsFromListKey key = rangeToIndices range
-  where 
+  where
     (Index sid (col, row), (height, width)) = getDimsFromListKey key
     range = Range sid ((col, row), (col+width-1, row+height-1))
 
 getListIntersections :: Connection -> ASSheetId -> [ASIndex] -> IO [ListKey]
 getListIntersections conn sid locs = do
-  listKeys <- getListKeysInSheet conn sid 
+  listKeys <- getListKeysInSheet conn sid
   return $ filter (\key -> anyLocsContainedInRect locs (getRectFromListKey key)) listKeys
   where
     anyLocsContainedInRect lss r = any id $ map (indexInRect r) lss
@@ -218,12 +231,12 @@ decoupleCell (Cell l e v ts) = Cell l e' v ts'
   where
     lang  = language e
     e'    = Expression (showValue lang v) lang
-    ts'   = filter (\t -> case t of 
+    ts'   = filter (\t -> case t of
       ListMember _ -> False
       _ -> True) ts
 
 isListHead :: ASCell -> Bool
-isListHead cell = case (getListTag cell) of 
+isListHead cell = case (getListTag cell) of
   Nothing -> False
   (Just (ListMember key)) -> (show2 . cellLocation $ cell) == (head $ splitBy keyPartDelimiter key)
 
@@ -261,11 +274,11 @@ bStrToASExpression Nothing = Nothing
 
 bStrToASValue :: Maybe B.ByteString -> Maybe ASValue
 bStrToASValue (Just b) = Just (read2 (BC.unpack b) :: ASValue)
-bStrToASValue Nothing = Nothing     
+bStrToASValue Nothing = Nothing
 
 bStrToTags :: Maybe B.ByteString -> Maybe [ASCellTag]
 bStrToTags (Just b) = Just (read (BC.unpack b) :: [ASCellTag])
-bStrToTags Nothing = Nothing 
+bStrToTags Nothing = Nothing
 
 maybeASCell :: (ASIndex, Maybe ASExpression,Maybe ASValue, Maybe [ASCellTag]) -> Maybe ASCell
 maybeASCell (l, Just e, Just v, Just tags) = Just $ Cell l e v tags
@@ -274,7 +287,7 @@ maybeASCell _ = Nothing
 bStrToASIndex :: B.ByteString -> ASIndex
 bStrToASIndex b = (read2 (BC.unpack b) :: ASIndex)
 
-bStrToASCommit :: Maybe B.ByteString -> Maybe ASCommit 
+bStrToASCommit :: Maybe B.ByteString -> Maybe ASCommit
 bStrToASCommit (Just b) = Just (read (BC.unpack b) :: ASCommit)
 bStrToASCommit Nothing = Nothing
 

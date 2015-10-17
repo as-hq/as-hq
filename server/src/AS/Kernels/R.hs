@@ -9,8 +9,6 @@ import AS.Types.Core
 import AS.Kernels.Common
 import AS.Kernels.LanguageUtils
 
-import AS.Parsing.In (isHighDimensional)
-
 import AS.Config.Settings
 import AS.Util
 
@@ -33,6 +31,7 @@ import Language.R.HExp as H
 import qualified Data.Vector.SEXP as SV
 import Data.Word (Word8)
 
+--import Control.Monad (msum)
 import Control.Monad.IO.Class
 import Control.Applicative
 import Control.Exception (catch, SomeException)
@@ -73,9 +72,11 @@ execR isGlobal s =
   let whenCaught = (\e -> return $ ValueError (show e) StdErr "" 0) :: (SomeException -> IO ASValue)
   in do
     putStrLn "got here"
-    catch (R.runRegion $ (castR s) <$> if isGlobal
+    result <- catch (R.runRegion $ castR =<< if isGlobal
       then [r| eval(parse(text=s_hs)) |]
-      else [r| AS_LOCAL_ENV<-function(){eval(parse(text=s_hs))};AS_LOCAL_ENV() |]) whenCaught
+      else [r| AS_LOCAL_ENV<-function(){eval(parse(text=s_hs))}; AS_LOCAL_EXEC<-AS_LOCAL_ENV(); AS_LOCAL_EXEC |]) whenCaught
+    putStrLn $ "R got result: " ++ (show result)
+    return result
 
 -- @anand faster unboxing, but I can't figure out how to restrict x to (IsVector x)
 --castR :: (IsVector a) => (R.SomeSEXP (R.SEXP (Control.Memory.Region s) a) -> IO ASValue
@@ -88,41 +89,57 @@ execR isGlobal s =
     --(hexp -> H.Char _)    -> (\s -> [ValueS s]) <$> (peekCString =<< R.char x)
     --(hexp -> H.String _)  -> (map ValueS) <$> (mapM peekCString =<< mapM R.char =<< peekArray offset =<< R.string x)
 
--- requires the input eval string, in order to return lists correctly
-castR :: EvalCode -> R.SomeSEXP a -> ASValue
-castR str (R.SomeSEXP s) =
-  let vec = castSEXP str s
-  in case (length vec) of
+castR :: R.SomeSEXP a -> R a ASValue
+castR (R.SomeSEXP s) = do
+  vec <- castSEXP s
+  return $ case (length vec) of
     1 -> head vec
     _ -> ValueL vec
 
 -- everything returned is a list, because R.
-castSEXP :: EvalCode -> R.SEXP s a -> [ASValue]
-castSEXP str x = case x of
-  (hexp -> H.Nil)       -> [ValueNull]
-  (hexp -> H.Real v)    -> map ValueD $ SV.toList v
-  (hexp -> H.Int v)     -> map (ValueI . fromIntegral) $ SV.toList v
-  (hexp -> H.Logical v) -> map (ValueB . fromLogical) $ SV.toList v
-  (hexp -> H.Char v)    -> [castString v]
-  (hexp -> H.String v)  -> map (\(hexp -> H.Char c) -> castString c) $ SV.toList v
+castSEXP :: R.SEXP s a -> R s [ASValue]
+castSEXP x = case x of
+  (hexp -> H.Nil)       -> return [ValueNull]
+  (hexp -> H.Real v)    -> return $ map ValueD $ SV.toList v
+  (hexp -> H.Int v)     -> return $ map (ValueI . fromIntegral) $ SV.toList v
+  (hexp -> H.Logical v) -> return $ map (ValueB . fromLogical) $ SV.toList v
+  (hexp -> H.Char v)    -> return $ [castString v]
+  (hexp -> H.String v)  -> return $ map (\(hexp -> H.Char c) -> castString c) $ SV.toList v
   (hexp -> H.Symbol s s' s'')  -> castSEXP s
-  (hexp -> H.List a b c) -> (castSEXP str a) ++ (castSEXP str b) ++ (castSEXP str c)
-  (hexp -> H.Special i) -> [ValueI $ fromIntegral i]
+  --(hexp -> H.List car cdr tag) -> return . concat =<< mapM castSEXP [car, cdr, tag] -- this case only fires on pairlists, due to HaskellR issue #214
+  (hexp -> H.Special i) -> return $ [ValueI $ fromIntegral i]
   (hexp -> H.DotDotDot s) -> castSEXP s
-  (hexp -> H.Vector len v) -> castVector str v
-  (hexp -> H.Builtin i) -> [ValueI $ fromIntegral i]
-  (hexp -> H.Raw v) -> [ValueS . bytesToString $ SV.toList v]
-  (hexp -> H.S4 s) -> castSEXP s
-  _ -> [ValueError "Could not cast R value." StdErr "" 0]
+  (hexp -> H.Vector len v) -> castVector v
+  (hexp -> H.Builtin i) -> return $ [ValueI $ fromIntegral i]
+  (hexp -> H.Raw v) -> return $ [ValueS . bytesToString $ SV.toList v]
+  (hexp -> H.S4 s) -> return . (\obj -> [obj]) =<< castS4 s
+  _ -> return $ [ValueError "Could not cast R value." StdErr "" 0]
 
 castString :: SV.Vector s 'R.Char Word8 -> ASValue
 castString v = ValueS . bytesToString $ SV.toList v
 
-castVector :: EvalCode -> SV.Vector s SV.Vector (R.SomeSEXP s) -> [ASValue]
-castVector v str = values
-  where
-    values = map castR $ SV.toList v
-    (l, ls) = splitLastLine R str
+castVector :: SV.Vector s 'R.Vector (R.SomeSEXP s) -> R s [ASValue]
+castVector v = do
+  vals <- mapM castR $ SV.toList v
+  (ValueB isList) <- castR =<< [r|is.list(AS_LOCAL_EXEC)|]
+  (ValueB isDf) <- castR =<< [r|is.data.frame(AS_LOCAL_EXEC)|]
+  if isList
+    then if isDf
+      then return [(RDataFrame vals)]
+      else do
+        listNames <- castR =<< [r|names(AS_LOCAL_EXEC)|]
+        return [RList $ zip (castListNames listNames) vals]
+    else return vals
+
+castListNames :: ASValue -> [String]
+castListNames val = case val of
+  (ValueL l) -> map (\(ValueS n)->n) l
+  (ValueS s) -> [s]
+  ValueNull  -> repeat ""
+
+-- TODO figure out S4 casting
+castS4 :: R.SEXP s a -> R s ASValue
+castS4 s = return $ ValueError "S4 objects not currently supported." StdErr "" 0
 
 fromLogical :: R.Logical -> Bool
 fromLogical R.TRUE  = True
@@ -139,3 +156,6 @@ undegenerateList v@(ValueL l) = if (length l == 1)
   then undegenerateList (head l)
   else v
 undegenerateList v = v
+
+--(<.) :: R a -> R ASValue
+--(<.) a = castR =<< a

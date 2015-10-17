@@ -9,16 +9,19 @@ import Data.UUID.V4 (nextRandom)
 import Data.Aeson hiding (Success)
 import qualified Network.WebSockets as WS
 import qualified Data.UUID as U (toString)
-import qualified Data.Text as T 
+import qualified Data.Text as T
 import qualified Data.Char as C
 import qualified Data.List as L
 import qualified Data.Set as S
 import Control.Applicative hiding ((<|>), many)
 import Data.Maybe (isNothing,catMaybes,fromJust)
+import Data.List.Split (chunksOf)
 
 -- EitherT
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.Either
+
+import Data.Ord
 
 -------------------------------------------------------------------------------------------------------------------------
 -- Initializations
@@ -27,15 +30,15 @@ initDaemonFromMessageAndConn :: ASClientMessage -> WS.Connection -> ASDaemonClie
 initDaemonFromMessageAndConn (ClientMessage _ (PayloadDaemonInit (ASInitDaemonConnection uid loc))) c = DaemonClient loc c uid
 
 initUserFromMessageAndConn :: ASClientMessage -> WS.Connection -> IO ASUserClient
-initUserFromMessageAndConn (ClientMessage _ (PayloadInit (ASInitConnection uid))) c = do 
+initUserFromMessageAndConn (ClientMessage _ (PayloadInit (ASInitConnection uid))) c = do
     time <- getTime
     return $ UserClient uid c [initialViewingWindow] $ T.pack ((show uid) ++ (show time))
 
 --------------------------------------------------------------------------------------------------------------
--- Misc 
+-- Misc
 
 sendMessage :: (ToJSON a, Show a) => a -> WS.Connection -> IO ()
-sendMessage msg conn = do 
+sendMessage msg conn = do
   WS.sendTextData conn (encode msg)
   printWithTime $ "Server sent message: " -- ++ (show msg)
 
@@ -99,12 +102,12 @@ isRight (Right _) = True
 isRight _ = False
 
 isAllRight :: [Either a b] -> Bool
-isAllRight results = all id $ map isRight results 
+isAllRight results = all id $ map isRight results
 
 deleteSubset :: (Eq a) => [a] -> [a] -> [a]
 deleteSubset subset = filter (\e -> L.notElem e subset)
 
-isNonEmptyCell :: ASCell -> Bool 
+isNonEmptyCell :: ASCell -> Bool
 isNonEmptyCell = ((/=) "") . expression . cellExpression
 
 liftEitherTuple :: Either b (a0, a1) -> (Either b a0, Either b a1)
@@ -115,9 +118,33 @@ liftListTuple :: [([a],[b])] -> ([a], [b])
 liftListTuple t = (concat $ map fst t, concat $ map snd t)
 
 splitBy :: (Eq a) => a -> [a] -> [[a]]
-splitBy delimiter = foldr f [[]] 
+splitBy delimiter = foldr f [[]]
   where f c l@(x:xs) | c == delimiter = []:l
                      | otherwise = (c:x):xs
+
+--------------------------------------------------------------------------------------------------------------
+-- Lists
+
+-- assumes all rows have same length, and every input ASValue is a row (i.e. column-major)
+-- TODO deal with case of RDataFrame
+transposeList :: [ASValue] -> [ASValue]
+transposeList l = case (head l) of
+  (ValueL _) -> map ValueL $ L.transpose $ map toList l
+  _ -> [ValueL l]
+
+isHighDimensional :: Int -> ASValue -> Bool
+isHighDimensional depth (ValueL l) = if (depth + 1 > 2)
+  then True
+  else isHighDimensional (depth + 1) (head l)
+isHighDimensional depth (RDataFrame l) = if (depth + 1 > 2)
+  then True
+  else isHighDimensional (depth + 1) (head l)
+isHighDimensional depth _ = False
+
+sanitizeList :: ASValue -> ASValue
+sanitizeList v = if (isHighDimensional 0 v)
+  then ValueError "Cannot embed lists of dimension > 2." StdErr "" 0
+  else v
 
 --------------------------------------------------------------------------------------------------------------
 -- Key-value manip functions
@@ -131,10 +158,6 @@ addToAL l key value = (key, value) : delFromAL l key
 --------------------------------------------------------------------------------------------------------------
 -- Conversions and Helpers
 
-isJust :: Maybe ASCell -> Bool
-isJust (Just c) = True
-isJust Nothing = False
-
 getCellMessage :: Either ASExecError [ASCell] -> ASServerMessage
 getCellMessage (Left e) = ServerMessage Update (Failure (generateErrorMessage e)) (PayloadN ())
 getCellMessage (Right cells) = ServerMessage Update Success (PayloadCL cells)
@@ -144,7 +167,7 @@ getCellMessage (Right cells) = ServerMessage Update Success (PayloadCL cells)
 
 getDBCellMessage :: [Maybe ASCell] -> ASServerMessage
 getDBCellMessage mcells = getCellMessage (Right cells)
-  where justCells = filter (not . isNothing) mcells 
+  where justCells = filter (not . isNothing) mcells
         cells = map (\(Just x) -> x) justCells
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
@@ -152,7 +175,7 @@ getDBCellMessage mcells = getCellMessage (Right cells)
 
 -- | Not fully implemented yet
 generateErrorMessage :: ASExecError -> String
-generateErrorMessage e = case e of 
+generateErrorMessage e = case e of
   CircularDepError circDepLoc -> "Circular dependecy detected in cell " ++ (indexToExcel circDepLoc)
   (DBNothingException _)      -> "Unable to fetch cells from database."
   ExpressionNotEvaluable      -> "Expression not does not contain evaluable statement."
@@ -166,9 +189,9 @@ getTime :: IO String
 getTime = fmap (show . utctDayTime) getCurrentTime
 
 printWithTime :: String -> IO ()
-printWithTime str = do 
+printWithTime str = do
   time <- getTime
-  putStrLn $ "[" ++ (show time) ++ "] " ++ str 
+  putStrLn $ "[" ++ (show time) ++ "] " ++ str
 
 printWithTimeT :: String -> EitherTExec ()
 printWithTimeT = lift . printWithTime
@@ -191,10 +214,10 @@ getUniqueId :: IO T.Text
 getUniqueId = return . T.pack . U.toString =<< nextRandom
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
--- viewing windows 
+-- viewing windows
 
 intersectViewingWindows :: [ASCell] -> [ASWindow] -> [ASCell]
-intersectViewingWindows cells vws = concat $ map (intersectViewingWindow cells) vws 
+intersectViewingWindows cells vws = concat $ map (intersectViewingWindow cells) vws
   where
     intersectViewingWindow :: [ASCell] -> ASWindow -> [ASCell]
     intersectViewingWindow cells vw = filter (inViewingWindow vw) cells
@@ -205,12 +228,12 @@ intersectViewingWindows cells vws = concat $ map (intersectViewingWindow cells) 
 
 -- new function, so that we don't have to do the extra filter/lookup by using just one
 intersectViewingWindowsLocs :: [ASIndex] -> [ASWindow] -> [ASIndex]
-intersectViewingWindowsLocs locs vws = concat $ map (intersectViewingWindow locs) vws 
+intersectViewingWindowsLocs locs vws = concat $ map (intersectViewingWindow locs) vws
   where
     intersectViewingWindow :: [ASIndex] -> ASWindow -> [ASIndex]
     intersectViewingWindow locs vw = filter (inViewingWindow vw) locs
     inViewingWindow :: ASWindow -> ASIndex -> Bool
-    inViewingWindow (Window wSheetId (tlc, tlr) (brc, brr)) (Index cSheetId (col,row)) = 
+    inViewingWindow (Window wSheetId (tlc, tlr) (brc, brr)) (Index cSheetId (col,row)) =
       ((wSheetId==cSheetId) && (inRange col tlc (brc-tlc)) && (inRange row tlr (brr-tlr)))
     inRange :: Int -> Int -> Int -> Bool
     inRange elem start len = ((elem >= start) && (elem <= (start + len)))
@@ -223,13 +246,13 @@ getWindow :: ASSheetId -> ASUserClient -> Maybe ASWindow
 getWindow sheetid user = lookupLambda windowSheetId sheetid (windows user)
 
 getScrolledLocs :: ASWindow -> ASWindow -> [ASRange]
-getScrolledLocs (Window _ (-1,-1) (-1,-1)) (Window sheetid tl br) = [(Range sheetid (tl, br))] 
+getScrolledLocs (Window _ (-1,-1) (-1,-1)) (Window sheetid tl br) = [(Range sheetid (tl, br))]
 getScrolledLocs (Window _ (y,x) (y2,x2)) (Window sheetid tl@(y',x') br@(y2',x2')) = getUncoveredLocs sheetid overlapping (tl, br)
     where overlapping = ((max y y', max x x'), (min y2 y2', min x2 x2'))
 
 getUncoveredLocs :: ASSheetId -> ((Int,Int), (Int,Int)) -> ((Int,Int), (Int,Int)) -> [ASRange]
 getUncoveredLocs sheet (tlo, bro) (tlw, brw) = [Range sheet corners | corners <- cs]
-    where 
+    where
       trw = (fst brw, snd tlw)
       blw = (fst tlw, snd brw)
       tro = (fst bro, snd tlo)
@@ -243,7 +266,7 @@ getAllUserWindows state = map (\u -> (userId u, windows u)) (userClients state)
 -- Cells
 
 isListMember :: ASCell -> Bool
-isListMember (Cell _ _ _ ts) = any id $ map (\t -> case t of 
+isListMember (Cell _ _ _ ts) = any id $ map (\t -> case t of
   (ListMember _) -> True
   _ -> False) ts
 
@@ -254,7 +277,7 @@ removeCell :: ASIndex -> [ASCell] -> [ASCell]
 removeCell idx = filter (((/=) idx) . cellLocation)
 
 isMemberOfSpecifiedList :: ListKey -> ASCell -> Bool
-isMemberOfSpecifiedList key cell = case (getListTag cell) of 
+isMemberOfSpecifiedList key cell = case (getListTag cell) of
   (Just (ListMember key')) -> key' == key
   Nothing -> False
 
@@ -264,25 +287,77 @@ partitionByListKeys cells [] = ([], cells)
 partitionByListKeys cells keys = liftListTuple $ map (partitionByListKey cells) keys
   where
     partitionByListKey cs k = L.partition (isMemberOfSpecifiedList k) cs
+
+listKeyOrdering :: ListKey -> ListKey -> Ordering
+listKeyOrdering k1 k2 = if (k1 == k2)
+  then EQ
+  else if (k1 > k2)
+    then GT
+    else LT
+
+----------------------------------------------------------------------------------------------------------------------------------------------
+-- References in maps
+
+shouldGroupRefs :: (ASCell, [ASReference]) -> Bool
+shouldGroupRefs (c, refs) = case (language $ cellExpression c) of
+  R -> containsRange refs
+  _ -> False
+
+groupRef :: ASLanguage -> (ASRange, [ASValue]) -> Maybe (ASReference, ASValue)
+groupRef lang (ref@(Range _ ((c1,r1),(c2,r2))), vals) = case lang of
+  R -> Just (RangeRef ref, RDataFrame vals')
+    where
+      rows = chunksOf (r2-r1+1) vals
+      vals' = map ValueL rows
+  _ -> Nothing
+
+formatValuesForMap :: [(ASIndex, Maybe ASCell)] -> [(ASReference, ASValue)]
+formatValuesForMap pairs = formattedPairs
+  where formattedPairs = map (\(l, c) -> (IndexRef l, getSanitizedCellValue c)) pairs
+
+getSanitizedCellValue :: Maybe ASCell -> ASValue
+getSanitizedCellValue c = case c of
+  Just cell -> cellValue cell
+  Nothing -> NoValue
+
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Locations
 
 -- | ASReference is either a cell index, range, or column. When decomposeLocs takes a range, it returns
 -- the list of indices that compose the range. When it takes in an index, it returns a list consisting
--- of just that index. It cannot take in a column. 
+-- of just that index. It cannot take in a column.
 refToIndices :: ASReference -> [ASIndex]
-refToIndices loc = case loc of 
+refToIndices loc = case loc of
   (IndexRef ind) -> [ind]
   (RangeRef r) -> rangeToIndices r
 -- decomposeLocs :: ASReference -> [ASIndex]
--- decomposeLocs loc = case loc of 
+-- decomposeLocs loc = case loc of
 --   (IndexRef ind) -> [ind]
   -- (RangeRef (Range sheet (ul, lr))) -> [Index sheet (x,y) | x <- [startx..endx], y <- [starty..endy] ]
-  --   where 
+  --   where
   --     startx = min (fst ul) (fst lr)
   --     endx = max (fst ul) (fst lr)
   --     starty = min (snd ul) (snd lr)
   --     endy = max (snd ul) (snd lr)
+
+getHeight :: ASReference -> Int
+getHeight (IndexRef (Index _ _)) = 1
+getHeight (RangeRef (Range _ ((_,b),(_,d)))) = d-b+1
+
+getWidth :: ASReference -> Int
+getWidth (IndexRef (Index _ _)) = 1
+getWidth (RangeRef (Range _ ((a,_),(c,_)))) = c-a+1
+
+isRange :: ASReference -> Bool
+isRange (IndexRef _) = False
+isRange (RangeRef _) = True
+
+-- tail recursive for speed
+containsRange :: [ASReference] -> Bool
+containsRange [] = False
+containsRange (ref:refs) = case ref of
+  (RangeRef _) -> True
+  _ -> containsRange refs
 
 rangeContainsRect :: ASRange -> ((Int, Int), (Int, Int)) -> Bool
 rangeContainsRect (Range _ ((x,y),(x2,y2))) ((x',y'),(x2',y2')) = tl && br
@@ -292,7 +367,7 @@ rangeContainsRect (Range _ ((x,y),(x2,y2))) ((x',y'),(x2',y2')) = tl && br
 
 rangeToIndices :: ASRange -> [ASIndex]
 rangeToIndices (Range sheet (ul, lr)) = [Index sheet (x,y) | x <- [startx..endx], y <- [starty..endy] ]
-  where 
+  where
     startx = min (fst ul) (fst lr)
     endx = max (fst ul) (fst lr)
     starty = min (snd ul) (snd lr)
@@ -300,7 +375,7 @@ rangeToIndices (Range sheet (ul, lr)) = [Index sheet (x,y) | x <- [startx..endx]
 
 rangeToIndicesRowMajor :: ASRange -> [ASIndex]
 rangeToIndicesRowMajor (Range sheet (ul, lr)) = [Index sheet (x,y) | y <- [starty..endy],x <- [startx..endx] ]
-  where 
+  where
     startx = min (fst ul) (fst lr)
     endx = max (fst ul) (fst lr)
     starty = min (snd ul) (snd lr)
@@ -325,10 +400,10 @@ getRangeDims :: ASRange -> (Int, Int)
 getRangeDims (Range _ ((y1, x1), (y2, x2))) = (1 + abs (y2 - y1), 1 + abs (x2 - x1))
 
 getPasteOffsets :: ASRange -> ASRange -> [(Int, Int)]
-getPasteOffsets from to = offsets 
-  where 
-    (fromYDim, fromXDim) = getRangeDims from 
-    (toYDim, toXDim) = getRangeDims to 
+getPasteOffsets from to = offsets
+  where
+    (fromYDim, fromXDim) = getRangeDims from
+    (toYDim, toXDim) = getRangeDims to
     yRep = max 1 (toYDim `div` fromYDim)
     xRep = max 1 (toXDim `div` fromXDim)
     (topYOffset, topXOffset) = getIndicesOffset (getTopLeft from) (getTopLeft to)
@@ -351,7 +426,7 @@ isGroupAdmin uid group = any ((==) uid) (groupAdmins group)
 
 isInEntity :: ASUserId -> ASEntity -> Bool
 isInEntity uid (EntityGroup group) = isGroupMember uid group
-isInEntity uid (EntityUser userid) = uid == userid 
+isInEntity uid (EntityUser userid) = uid == userid
 
 hasPermissions :: ASUserId -> ASPermissions -> Bool
 hasPermissions uid (Blacklist entities) = not $ any (isInEntity uid) entities
@@ -360,14 +435,24 @@ hasPermissions uid (Whitelist entities) = any (isInEntity uid) entities
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Tags
 
+containsDFMember :: [Maybe ASCell] -> Bool
+containsDFMember = any (\c -> case c of
+  Just cell -> isDFMember cell
+  Nothing -> False)
+
+isDFMember :: ASCell -> Bool
+isDFMember (Cell _ _ _ ts) = any (\t -> case t of
+  DFMember -> True
+  _ -> False) ts
+
+getListKeyUnsafe :: ASCell -> ListKey
+getListKeyUnsafe cell = listKey
+  where (Just (ListMember listKey)) = getListTag cell
+
 getListTag :: ASCell -> Maybe ASCellTag
-getListTag (Cell _ _ _ ts) = getTag foundTags
-  where 
-    foundTags = filter (\t -> case t of 
-      (ListMember _) -> True
-      _ -> False) ts
-    getTag [] = Nothing
-    getTag (t:[]) = Just t
+getListTag (Cell _ _ _ ts) = L.find (\t -> case t of
+  (ListMember _) -> True
+  _ -> False) ts
 
 containsTrackingTag :: [ASCellTag] -> Bool
 containsTrackingTag [] = False

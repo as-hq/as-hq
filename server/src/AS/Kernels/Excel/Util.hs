@@ -10,6 +10,8 @@ import Data.Maybe
 import Data.List
 import qualified Data.Vector as V
 
+import AS.Util
+
 import AS.DB.API
 
 import System.IO.Unsafe
@@ -29,19 +31,19 @@ matrixTo2DList (EMatrix c r v) = (V.toList firstRow):otherRows
 matrixIndex :: (Int,Int) -> EMatrix -> EValue
 matrixIndex (c,r) (EMatrix numCols numRows v) = (V.!) v (r*numCols+c)
 
--- | Cast ASValue (from RefValMap) to an Excel entity. Ignoring ValueL for now; cannot be in the map.  
+-- | Cast ASValue (from RefValMap) to an Excel entity. Ignoring ValueL for now; cannot be in the map.
 asValueToEntity :: ASValue -> Maybe EEntity
-asValueToEntity v = case (toEValue v) of 
+asValueToEntity v = case (toEValue v) of
   Nothing -> Nothing
   Just v -> Just $  EntityVal v
 
 -- | Returns the dimensions of a matrix in col,row format
-matrixDim :: EMatrix -> (Int,Int) 
+matrixDim :: EMatrix -> (Int,Int)
 matrixDim (EMatrix c r _) = (c,r)
 
 -- | If a matrix is a 1xn or nx1, return that vector, otherwise return Nothing
 to1D :: EMatrix -> Maybe (V.Vector EValue)
-to1D (EMatrix c r v) 
+to1D (EMatrix c r v)
   | or [c==1,r==1] = Just v
   | otherwise = Nothing
 
@@ -73,7 +75,7 @@ intToResult = valToResult . EValueNum . EValueI
 -------------------------------------------------------------------------------------------------------------
 -- | Other conversion functions
 
-toASValue :: EValue -> ASValue 
+toASValue :: EValue -> ASValue
 toASValue (EValueS s) = ValueS s
 toASValue (EValueNum (EValueD d)) = ValueD d
 toASValue (EValueNum (EValueI i)) = ValueI i
@@ -88,17 +90,17 @@ toEValue (ValueI i) = Just $ EValueNum $ EValueI i
 toEValue (NoValue) = Just EBlank
 toEValue v = Nothing
 
-dealWithBlank :: Maybe ASCell -> ASValue 
+dealWithBlank :: Maybe ASCell -> ASValue
 dealWithBlank (Just c) = cellValue c
 dealWithBlank Nothing = NoValue
 
--- | The use of unsafePerformIO is temporary. Eventually a lot of this code may move into IO because of 
+-- | The use of unsafePerformIO is temporary. Eventually a lot of this code may move into IO because of
 -- things like rand.
 dbLookup :: ASIndex -> ASValue
 dbLookup = dealWithBlank . unsafePerformIO . getCell
 
 dbLookupBulk :: [ASIndex] -> [ASValue]
-dbLookupBulk = (map dealWithBlank) . unsafePerformIO . getCells 
+dbLookupBulk = (map dealWithBlank) . unsafePerformIO . getCells
 
 -------------------------------------------------------------------------------------------------------------
 -- | AS Reference utility methods
@@ -111,18 +113,6 @@ topLeftLoc :: ASReference -> (Int,Int)
 topLeftLoc (IndexRef (Index _ x)) = x
 topLeftLoc (RangeRef (Range _ (a,_))) = a
 
-getHeight :: ASReference -> Int
-getHeight (IndexRef (Index _ _)) = 1
-getHeight (RangeRef (Range _ ((_,b),(_,d)))) = d-b+1
-
-getWidth :: ASReference -> Int
-getWidth (IndexRef (Index _ _)) = 1
-getWidth (RangeRef (Range _ ((a,_),(c,_)))) = c-a+1
-
-isRange :: ASReference -> Bool
-isRange (IndexRef _) = False
-isRange (RangeRef _) = True
-
 dimension :: ASReference -> (Int,Int)
 dimension (IndexRef (Index _ _)) = (1,1)
 dimension (RangeRef (Range _ ((a,b),(c,d)))) = (c-a+1,d-b+1)
@@ -133,10 +123,10 @@ dimension (RangeRef (Range _ ((a,b),(c,d)))) = (c-a+1,d-b+1)
 -- | Ex. ABS(A1:A3) while on B2 -> ABS(A2)
 scalarizeLoc :: ASReference -> ASReference -> Maybe ASReference
 scalarizeLoc (IndexRef i) j@(IndexRef _) = Just j
-scalarizeLoc (IndexRef (Index sh1 (e,f))) r@(RangeRef (Range sh2 ((a,b),(c,d)))) 
+scalarizeLoc (IndexRef (Index sh1 (e,f))) r@(RangeRef (Range sh2 ((a,b),(c,d))))
   | sh1 /= sh2 = Nothing
   | h /= 1 && w/= 1 = Nothing
-  | h == 1 = if e>=a && e<=c 
+  | h == 1 = if e>=a && e<=c
     then Just $ IndexRef $ Index sh1 (e,b) -- intersect column;  b==d
     else Nothing
   | w == 1 = if f>=b && f<=d
@@ -172,12 +162,12 @@ extractRefs ((EntityRef e):es) = e:(extractRefs es)
 -- | Make sure that the list of lists is rectangular
 aligned :: [[a]] -> Bool
 aligned lst = allTheSame lenRows
-  where 
+  where
     lenRows = map length lst
 
 -- | [[1,2],[3,4]] -> 1 if not empty
 topLeftLst :: [[a]] -> Maybe a
-topLeftLst b 
+topLeftLst b
   | (length b == 0) = Nothing
   | (length (head b) == 0) = Nothing
   | otherwise = Just $ (head . head) b
@@ -200,17 +190,17 @@ isBasic e = True
 ---------------------------------------------------------------------------------------------------
 -- | Error Handling
 
-errorVal :: EValue -> Bool 
+errorVal :: EValue -> Bool
 errorVal (EValueE _) = True
 errorVal _ = False
 
 -- | If any element of the matrix is an error, return the first such instance; else return the matrix
 matrixError :: EMatrix -> ThrowsError EMatrix
-matrixError m@(EMatrix _ _ v) = do 
+matrixError m@(EMatrix _ _ v) = do
   let errs = V.filter (errorVal) v
   if (V.null errs)
     then Right m
-    else do 
+    else do
       let (EValueE s) = V.head errs
       Left $ Default s
 
@@ -218,7 +208,7 @@ getError :: [EError] -> EError
 getError = head
 
 compressErrors :: [ThrowsError a] -> ThrowsError [a]
-compressErrors x 
+compressErrors x
   | (any isLeft x) = Left $ getError (lefts x)
   | otherwise      = Right $ rights x
 

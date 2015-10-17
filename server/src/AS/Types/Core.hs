@@ -83,6 +83,7 @@ data ASValue =
   | ValueError { errMsg :: String, errType :: EvalErrorType, file :: String, position :: Int }
   | ValueExcelError EError
   | RList [(RListKey, ASValue)]
+  | RDataFrame [ASValue]
   deriving (Show, Read, Eq, Generic)
 
 type RListKey = String
@@ -112,6 +113,7 @@ data ASCellTag =
   | Volatile
   | ReadOnly [ASUserId]
   | ListMember {listKey :: String}
+  | DFMember
   deriving (Show, Read, Eq, Generic)
 
 data ASCell = Cell {cellLocation :: ASIndex,
@@ -227,6 +229,7 @@ data ASExecError =
   | ExpressionNotEvaluable
   | ExecError
   | SyntaxError
+  | HighDimensionalValue
   deriving (Show, Read, Eq, Generic)
 
 type EitherCells = Either ASExecError [ASCell]
