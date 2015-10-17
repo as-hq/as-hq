@@ -458,8 +458,6 @@ const ASEvaluationStore = assign({}, BaseStore, {
     }
   },
 
-  /**************************************************************************************************************************/
-
   /*
     Sets invisible rows in cache to null to limit memory usage
     TODO overlapping corners not handled... determine better way to dealloc than casework
