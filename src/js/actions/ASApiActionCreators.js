@@ -279,6 +279,13 @@ export default {
     });
     this.send(msg);
   },
+
+  sendSimplePasteRequest(cells){
+    console.log("ABOUT TO SEND CELLS: " + JSON.stringify(cells));
+    let msg = Converter.toServerMessageFormat(Constants.ServerActions.Evaluate, "PayloadCL",cells);
+    this.send(msg);
+  },
+
   sendGetRequest(locs) {
     let msg = Converter.clientLocsToGetMessage(locs);
     // console.log('Sending get message to server: ' + JSON.stringify(msg));

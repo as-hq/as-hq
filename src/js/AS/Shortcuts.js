@@ -158,34 +158,7 @@ export default {
     ShortcutUtils.addShortcut("grid", "move_vwindow_above", "PageDown", (wildcard) => {
       //TODO
     });
-    ShortcutUtils.addShortcut("grid", "copy", "Ctrl+C", (wildcard) => {
-      let rng = Store.getActiveSelection();
-      console.log("COPY RANGE: " + JSON.stringify(rng));
-      Store.setClipboard(rng, false);
-      console.log("copying!");
-      self.refs.spreadsheet.repaint(); // render immediately
-    });
-    ShortcutUtils.addShortcut("grid", "cut", "Ctrl+X", (wildcard) => {
-      let rng = Store.getActiveSelection();
-      Store.setClipboard(rng, true);
-      self.refs.spreadsheet.repaint(); // render immediately
-    });
-    ShortcutUtils.addShortcut("grid", "paste", "Ctrl+V", (wildcard) => {
-      let rng = Store.getActiveSelection();
-      console.log("PASTE RANGE: " + JSON.stringify(rng));
-      let clipboard = Store.getClipboard();
-      console.log("CLIPBOARD: " + JSON.stringify(clipboard.range));
-
-      // window.clipboardData.getData('Text');
-      if (clipboard.range)
-        API.sendCopyRequest([clipboard.range, rng]);
-      else
-        self.setToast("Nothing in clipboard.", "Error");
-      if (clipboard.isCut)
-        API.sendDeleteRequest(clipboard.range);
-      // Store.setClipboard(null, false); // allow multi-copy
-      self.refs.spreadsheet.repaint(); // render immediately
-    });
+  
     ShortcutUtils.addShortcut("grid", "grid_delete", "Del", (wildcard) => {
       let rng = Store.getActiveSelection();
       // console.log("deleting cells in range: " + JSON.stringify(rng));

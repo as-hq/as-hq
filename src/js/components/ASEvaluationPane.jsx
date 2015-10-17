@@ -7,6 +7,7 @@ import API from '../actions/ASApiActionCreators';
 import ReplActionCreator from '../actions/ASReplActionCreators';
 import Shortcuts from '../AS/Shortcuts';
 import ShortcutUtils from '../AS/ShortcutUtils';
+import ClipboardUtils from '../AS/ClipboardUtils';
 import Util from '../AS/Util';
 import Constants from '../Constants';
 import Converter from '../AS/Converter'
@@ -173,12 +174,18 @@ export default React.createClass({
   /* Make sure that the evaluation pane can receive change events from the evaluation store */
 
   componentDidMount() {
+    window.addEventListener('copy',this.handleCopyEvent);
+    window.addEventListener('paste',this.handlePasteEvent);
+    window.addEventListener('cut',this.handleCutEvent);
     Store.addChangeListener(this._onChange);
     ReplStore.addChangeListener(this._onReplChange);
     this._notificationSystem = this.refs.notificationSystem;
     Shortcuts.addShortcuts(this);
   },
   componentWillUnmount() {
+    window.removeEventListener('copy',this.handleCopyEvent);
+    window.removeEventListener('paste',this.handlePasteEvent);
+    window.removeEventListener('cut',this.handleCutEvent);
     API.sendClose();
     Store.removeChangeListener(this._onChange);
     ReplStore.removeChangeListener(this._onReplChange);
@@ -222,6 +229,79 @@ export default React.createClass({
     this.setState({replSubmittedLanguage:ReplStore.getSubmittedLanguage()})
   },
 
+  /**************************************************************************************************************************/
+  /* Copy paste handling */
+
+  handleCopyTypeEventForGrid(e,isCut){
+    KeyUtils.killEvent(e);
+    let selRegion = Store.getActiveSelection(),
+        vals = Store.selRegionToValues(selRegion.range);
+    console.log("VALUES IN COPY: " + JSON.stringify(vals));
+    let html = ClipboardUtils.valsToHtml(vals),
+        plain = ClipboardUtils.valsToPlain(vals);
+    console.log("COPY HTML: " + html);
+    console.log("COPY PLAIN: " + plain);
+    Store.setClipboard(selRegion, isCut);
+    this.refs.spreadsheet.repaint(); // render immediately
+    e.clipboardData.setData("text/html",html);
+    e.clipboardData.setData("text/plain",plain);
+    console.log("SET SYSTEM CLIPBOARD");
+  },
+
+  handlePasteEventForGrid(e){
+    KeyUtils.killEvent(e);
+    let rng = Store.getActiveSelection(),
+        containsHTML = Util.arrContains(e.clipboardData.types,"text/html"),
+        containsPlain = Util.arrContains(e.clipboardData.types,"text/plain"),
+        isAlphaSheets = containsHTML ?
+          ClipboardUtils.htmlStringIsAlphaSheets(e.clipboardData.getData("text/html")) : false;
+    console.log("PASTE TYPES: " + JSON.stringify(e.clipboardData.types));
+    if (isAlphaSheets){ // From AS
+      console.log("PASTE FROM AS");
+      let clipboard = Store.getClipboard();
+      if (clipboard.range){
+        API.sendCopyRequest([clipboard.range, rng]);
+      }
+      else{
+        this.setToast("Nothing in clipboard.", "Error");
+      }
+      if (clipboard.isCut){
+        API.sendDeleteRequest(clipboard.range);
+      }
+      this.refs.spreadsheet.repaint(); // render immediately
+    }
+    else { // Not from AS
+      if (containsPlain){
+        console.log("PASTE FROM EXTERNAL PLAIN");
+        let plain = e.clipboardData.getData("text/plain"),
+            vals = ClipboardUtils.plainStringToVals(plain),
+            cells = Store.makeASCellsFromVals(rng,vals,this.state.language),
+            concatCells = [].concat.apply([], cells);
+        API.sendSimplePasteRequest(concatCells);
+        // The normal eval handling will make the paste show up
+      }
+      else {
+        // TODO: Not handling html conversion for now
+        // Not sure if getData is smart enough to do that for you
+      }
+    }
+  },
+
+  handleCutEvent(e){
+    this.handleCopyTypeEventForGrid(e,true);
+  },
+
+  handleCopyEvent(e){
+    console.log("FOUND COPY EVENT!!! OMG !!");
+    this.handleCopyTypeEventForGrid(e,false);
+  },
+
+  handlePasteEvent(e){
+    console.log("FOUND PASTE EVENT!!! OMG !!");
+    this.handlePasteEventForGrid(e);
+  },
+
+  
   /**************************************************************************************************************************/
   /* Key handling */
 
@@ -326,7 +406,6 @@ export default React.createClass({
     2) Send this and the editor state (expression, language) to the API action creator, which will send it to the backend
   */
   handleEvalRequest(editorState){
-    console.log("\n\n\n");
     /* If user pressed Ctrl Enter, they're not typing out the expression anymore */
     this.setState({userIsTyping:false});
     this.updateTextBox(false);
@@ -405,7 +484,6 @@ export default React.createClass({
           ref='spreadsheet'
           textBoxChange={this.textBoxChange}
           onDeferredKey={this._onGridDeferredKey}
-          onTextBoxDeferredKey={this._onTextBoxDeferredKey}
           onSelectionChange={this._onSelectionChange}
           width="100%"
           height={`calc(100% - ${this.getEditorHeight()})`}  />

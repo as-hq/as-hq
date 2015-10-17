@@ -149,7 +149,9 @@ export default React.createClass({
     console.log("HANDLING KEY DOWN");
     e.persist(); // prevent react gc
     if (ShortcutUtils.gridShouldDeferKey(e)){ // if anything but nav keys, bubble event to parent
-      KeyUtils.killEvent(e);
+      if (!KeyUtils.isCopyPasteType(e)){
+        KeyUtils.killEvent(e);
+      }
       this.props.onDeferredKey(e);
     }
   },

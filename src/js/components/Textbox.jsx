@@ -2,6 +2,7 @@ import React from 'react';
 import Constants from '../Constants';
 import Store from '../stores/ASEvaluationStore';
 import Util from '../AS/Util';
+let TextareaAutosize = require('react-autosize-textarea');
 
 /*
 TODO: REFACTOR
@@ -43,11 +44,6 @@ export default React.createClass({
     return Math.max(50,30+(longestStr.length)*12);
   },
 
-  getHeight(xp){
-    let numCols = xp.split("\n").length;
-    return 1.5*numCols*Constants.cellHeightPx;
-  },
-
   render() {
     let baseStyle = {display:'block',
                      position:'absolute',
@@ -60,14 +56,13 @@ export default React.createClass({
                      };
     let textStyle = {
       width: this.state.textBox ? this.getWidth(this.state.textBox.xp) : 0,
-      height: this.state.textBox ? this.getHeight(this.state.textBox.xp) : 0,
       border: "solid 3px black"
     };
 
     /* TODO: using autofocus has the bug that the cursor is at the beginning of the box
     at the start */
     let overlay = this.state.textBox ? 
-          <input ref="box" type="text" autoFocus onFocus={this.onFocus}
+          <TextareaAutosize ref="box" type="text" autoFocus onFocus={this.onFocus}
                  style={textStyle}
                  onKeyDown={this.props.onKeyDown}
                  value={this.state.textBox.xp} 
@@ -76,6 +71,7 @@ export default React.createClass({
     return (
         <div style={baseStyle} >
           {overlay}
+         
         </div>
     );
   }

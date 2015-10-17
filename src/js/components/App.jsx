@@ -16,9 +16,7 @@ export default React.createClass({
     ThemeManager.setTheme(ThemeManager.types.DARK);
     API.sendInitialMessage();
   },
-  componentDidMount() {
-   
-  },
+
   getInitialState() {
     return {
       activeDocumentTab: 'test',
@@ -44,6 +42,7 @@ export default React.createClass({
   /* Core render method for the whole app */
 
   render() {
+
     let leftNavMenuItems = [
       { route: 'all-files', text: 'All files' },
       { route: 'logout', text: 'Log out' }
@@ -74,7 +73,7 @@ export default React.createClass({
         </div>
       </div>
 
-    );
+    ); 
   },
   
 

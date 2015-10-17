@@ -25,40 +25,43 @@ function onPropsSet(editor, props) {
   editor.setOption('highlightActiveLine', props.highlightActiveLine);
   editor.setShowPrintMargin(props.setShowPrintMargin);
 
-  /* Manually deal with backspace */
-  editor.commands.addCommand({
-    name: 'backspace',
-    bindKey: {win: 'backspace',  mac: 'backspace'},
-    exec: function(editor) {
-      let pos = editor.getCursorPosition(),
-          val = editor.getValue(),
-          line = editor.getSession().getLine(pos.row),
-          lines = editor.getValue().split('\n');
-      console.log("Old backspace value: " + JSON.stringify(lines));
-      if (pos.column < 4){ // In dead-zone
-        return;
-      }
-      if (pos.column == 4 ){ // At border
-          let isAtPrompt = line.substring(0,4) === ">>> ";
-          if (!isAtPrompt) {
-              console.log("Key down position: " + pos.row + " " + pos.column);
-              let column = editor.getSession().getLine(pos.row-1).length;
-              // goToLine starts at 1, but pos starts at 0
-              if (line.trim() === ""){ // line is empty
-                let backspaceValPrompt = val.substring(0,val.length-5);
-                editor.setValue(backspaceValPrompt);
-                editor.clearSelection();
+  if (props.isRepl){ /* Manually deal with backspace */
+    editor.commands.addCommand({
+      name: 'backspace',
+      bindKey: {win: 'backspace',  mac: 'backspace'},
+      exec: function(editor) {
+        let pos = editor.getCursorPosition(),
+            val = editor.getValue(),
+            line = editor.getSession().getLine(pos.row),
+            lines = editor.getValue().split('\n');
+        console.log("Old backspace value: " + JSON.stringify(lines));
+        if (pos.column < 4){ // In dead-zone
+          return;
+        }
+        if (pos.column == 4 ){ // At border
+            let isAtPrompt = line.substring(0,4) === ">>> ";
+            if (!isAtPrompt) {
+                console.log("Key down position: " + pos.row + " " + pos.column);
+                let column = editor.getSession().getLine(pos.row-1).length;
+                // goToLine starts at 1, but pos starts at 0
+                if (line.trim() === ""){ // line is empty
+                  let backspaceValPrompt = val.substring(0,val.length-5);
+                  editor.setValue(backspaceValPrompt);
+                  editor.clearSelection();
+                }
+                else { //line has content to be moved back
+                  lines[pos.row-1]+=lines[pos.row].substring(4);
+                  lines.splice(pos.row,1);
+                  editor.setValue(lines.join('\n'));
+                  editor.clearSelection();
+                  let prevColLength = editor.getSession().getLine(pos.row-1).length;
+                  editor.gotoLine(pos.row,prevColLength);
+                }
+                console.log("New position: " + JSON.stringify(editor.getCursorPosition()));
+                console.log("New backspace value: " + JSON.stringify(editor.getValue().split('\n')));
+                return;
               }
-              else { //line has content to be moved back
-                lines[pos.row-1]+=lines[pos.row].substring(4);
-                lines.splice(pos.row,1);
-                editor.setValue(lines.join('\n'));
-                editor.clearSelection();
-                let prevColLength = editor.getSession().getLine(pos.row-1).length;
-                editor.gotoLine(pos.row,prevColLength);
-              }
-              console.log("New position: " + JSON.stringify(editor.getCursorPosition()));
-              console.log("New backspace value: " + JSON.stringify(editor.getValue().split('\n')));
+            else {
               return;
             }
           else {

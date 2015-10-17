@@ -268,6 +268,106 @@ const ASEvaluationStore = assign({}, BaseStore, {
 
 
   /**************************************************************************************************************************/
+  /* Copy paste helpers */
+
+   //Utils for selRegionToValues
+   sliceArray (begin, end) {
+     return (
+         function(arr) { return arr.slice(begin, end) } 
+     );
+   },
+
+   clientCellToValue(clientCell) {
+     let v = clientCell.cellValue.contents;
+     if (v.constructor === Array){
+       if (v.length !== 0){
+        console.log("Returning value: " +v[0]);
+         return v[0];
+       }
+       return "";
+     }
+    if (clientCell.cellValue.hasOwnProperty("contents")){
+       return clientCell.cellValue.contents;
+    }
+    return ""
+   },
+
+   invertArray(array){
+    return array[0].map(function(col, i) { 
+      return array.map(function(row) { 
+        return row[i] 
+      })
+    });
+   },
+
+   // Converts a range to a row major list of lists, 
+   selRegionToValues(rng){
+     console.log("SEL REGION RNG " + JSON.stringify(rng));
+     let sheetid = _data.currentSheet.sheetId;
+     let col = rng.col, row = rng.row;
+     if (this.locationExists(sheetid, col, row)) {
+       if (!rng.row2) {
+          console.log(this.clientCellToValue(this.getCellAtLoc(col, row)));
+         return [[this.clientCellToValue(this.getCellAtLoc(col, row))]];
+       }
+       else if (this.locationExists(sheetid, rng.col2, rng.row2)) {
+         let col2 = rng.col2, row2 = rng.row2;
+         let colMajorCells = _data.allCells[sheetid].slice(col, col2+1).map(this.sliceArray(row, row2+1));
+         let self = this;
+         let colMajorValues = colMajorCells.map(function(col){
+          return col.map(self.clientCellToValue);
+         });
+         return this.invertArray(colMajorValues);
+       }
+     }
+     return null;
+   },
+
+   // Methods for paste
+   makeServerCell(loc, language, i, j) {
+    let sheet = _data.currentSheet.sheetId;
+     return function(v) {
+       let row = loc.range.row, col = loc.range.col;
+       return  {
+         "cellLocation": {
+          locSheetId: sheet,
+          index: [col + j, row + i]
+        },
+         "cellExpression": {
+           "expression" : v,
+           "language": language.Server
+         },
+         "cellValue":{
+           "tag": "NoValue",
+           "contents": []
+         },
+         "cellTags": []
+       };
+     };
+   },
+
+   arrayToASCells(loc, language) {
+    var self = this;
+     return function(i){
+       return function(v, j) {
+         return self.makeServerCell(loc, language, i, j)(v);
+       };
+     };
+   },
+
+   rowValuesToASCells(loc, language){ 
+    var self = this;
+     return function(values, i){
+       return values.map(self.arrayToASCells(loc, language)(i));
+     };
+   },
+
+   makeASCellsFromVals(loc, vals, language) {
+     return vals.map(this.rowValuesToASCells(loc, language));
+   },
+
+
+  /**************************************************************************************************************************/
   /*
     Update methods to allCells and lastUpdatedCells.
     A cell in this class and stored in _data has the format from CellConverter, returned from eval
@@ -359,7 +459,6 @@ const ASEvaluationStore = assign({}, BaseStore, {
   },
 
   /**************************************************************************************************************************/
-
   /*
     Sets invisible rows in cache to null to limit memory usage
     TODO overlapping corners not handled... determine better way to dealloc than casework
