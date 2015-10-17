@@ -1,13 +1,13 @@
 module AS.Kernels.Excel.Lib where
 
 import AS.Util (rangeToIndicesRowMajor)
-import AS.Types.Core 
+import AS.Types.Core
 import AS.Types.Excel
 import AS.Kernels.Excel.Util
 import AS.Kernels.Excel.Compiler
 import qualified Data.Map.Strict as M
 import Data.Either
-import Data.Maybe 
+import Data.Maybe
 import Control.Monad.Except
 import Data.List
 import qualified Data.Vector as V
@@ -32,6 +32,8 @@ import qualified Data.Map.Lazy as ML
 import AS.Parsing.Out (exRefToASRef)
 import Control.Exception.Base hiding (try)
 
+import AS.Util
+
 data RefMap = RefMap {refMap :: M.Map ERef EEntity, refDim :: (Col,Row)} deriving (Show,Read)
 type Arg a = (Int,a)
 type Dim = (Col,Row)
@@ -46,7 +48,7 @@ type Offset = (Col,Row)
 --------------------------------------------------------------------------------------------------------------
 -- | Function callbacks and enumeration of type of function
 
--- | Description of a function. Argument numbers start at 1. 
+-- | Description of a function. Argument numbers start at 1.
 data FuncDescriptor = FuncDescriptor {
   scalarArgsIfNormal :: [Int],    -- Arguments to scalarize in normal mode
   mapArgsIfArrayFormula :: [Int], -- Arguments to map over in array formula mode ("unexpected arrays")
@@ -54,17 +56,17 @@ data FuncDescriptor = FuncDescriptor {
   replaceRefArgs :: [Int],        -- Before evaluation, replace reference arguments by context/DB
   maxNumArgs :: Maybe Int,    -- Upper bound on number of arguments (Nothing means no bound, like sum)
   callback :: EFuncResult
-} 
+}
 
 -- | TODO: add implemented functions
 -- | Map function names to function descriptors
 functions :: M.Map String FuncDescriptor
 functions =  M.fromList $
    [("+"              , FuncDescriptor []   [1,2]     []   [1,2]    (Just 2)  (transform eAdd)),
-    ("-"              , FuncDescriptor []   [1,2]     []   [1,2]    (Just 2)  (transform eMinus)), 
-    ("*"              , FuncDescriptor []   [1,2]     []   [1,2]    (Just 2)  (transform eMult)), 
-    ("/"              , FuncDescriptor []   [1,2]     []   [1,2]    (Just 2)  (transform eDivide)), 
-    ("="              , FuncDescriptor []   [1,2]     []   [1,2]    (Just 2)  (transform eEquals)), 
+    ("-"              , FuncDescriptor []   [1,2]     []   [1,2]    (Just 2)  (transform eMinus)),
+    ("*"              , FuncDescriptor []   [1,2]     []   [1,2]    (Just 2)  (transform eMult)),
+    ("/"              , FuncDescriptor []   [1,2]     []   [1,2]    (Just 2)  (transform eDivide)),
+    ("="              , FuncDescriptor []   [1,2]     []   [1,2]    (Just 2)  (transform eEquals)),
     ("sum"           , FuncDescriptor []   []        []   [1..]    (Nothing)  (transform eSum)),
   ("if"           , FuncDescriptor []   [1,2,3]   []   [1,2,3]  (Just 3)  (transform eIf)),
   ("iserror"        , FuncDescriptor []   [1]       []   [1]      (Just 1)  (eIsError)),
@@ -76,13 +78,13 @@ functions =  M.fromList $
   ("sumsq"          , FuncDescriptor []   []         []   [1..]    (Nothing)  (transform eSumSq)),
   ("avedev"           , FuncDescriptor []   []         []   [1..]    (Nothing) (transform eAvedev)),
   ("correl"           , FuncDescriptor []   []         []   [1..]    (Just 2)  (transform eCorrel)),
-  ("substitute"       , FuncDescriptor []   []         []   [1..]    (Just 4)  (transform eSubstitute))] 
+  ("substitute"       , FuncDescriptor []   []         []   [1..]    (Just 4)  (transform eSubstitute))]
 
 
 -- | Many functions are simpler to implement as [EEntity] -> EResult
 -- | This function maps those EFuncs to EFuncResults by returning an error if any args were errors
 transform :: EFunc -> EFuncResult
-transform f = \c r -> do 
+transform f = \c r -> do
   args <- compressErrors r
   f c args
 
@@ -111,7 +113,7 @@ topLeftForMatrix _ r = r
 evalBasicFormula :: Context -> BasicFormula -> EResult
 evalBasicFormula c (Ref exLoc) = locToResult $ exRefToASRef (shName (curLoc c)) exLoc
 evalBasicFormula c (Var val)     = valToResult val
-evalBasicFormula c (Fun f fs)  = do 
+evalBasicFormula c (Fun f fs)  = do
   fDes <- getFunc f
   let args = map (getFunctionArg c fDes) (zip [1..] fs)
   let argsRef = substituteRefsInArgs c fDes args
@@ -120,7 +122,7 @@ evalBasicFormula c (Fun f fs)  = do
 
 evalFormula :: Context -> Formula -> EResult
 evalFormula c (Basic b) = evalBasicFormula c b
-evalFormula c (ArrayConst b) = do 
+evalFormula c (ArrayConst b) = do
   let lstChildren = map (map (evalBasicFormula c)) b
   ac <- compressErrors $ concat lstChildren
   fmap EntityMatrix $ arrConstToResult c $ map rights lstChildren
@@ -129,14 +131,14 @@ evalArrayFormula :: Context -> Formula -> EResult
 evalArrayFormula c (Basic (Ref exLoc)) = locToResult $ exRefToASRef (shName (curLoc c)) exLoc
 evalArrayFormula c (Basic (Var val)) = valToResult val
 evalArrayFormula c f@(ArrayConst b) = evalFormula c f
-evalArrayFormula c f@(Basic (Fun name fs)) = do 
+evalArrayFormula c f@(Basic (Fun name fs)) = do
   fDes <- getFunc name
   let s = shName (curLoc c)
-  refMap <- unexpectedRefMap c (getUnexpectedRefs s f) 
+  refMap <- unexpectedRefMap c (getUnexpectedRefs s f)
   checkNumArgs name (maxNumArgs fDes) (length fs)
   case refMap of
     Just mp -> evalArrayFormula' c mp f
-    Nothing -> do 
+    Nothing -> do
       let args = map (evalArrayFormula c) fs
       let argsRef = substituteRefsInArgs c fDes args
       (callback fDes) c argsRef
@@ -144,7 +146,7 @@ evalArrayFormula c f@(Basic (Fun name fs)) = do
 -- | Evaluate a (valid) array formula given a RefMap to replace unexpected array references
 -- | In particular, calling this method means the callback will return a Matrix
 evalArrayFormula' :: Context -> RefMap -> Formula -> EResult
-evalArrayFormula' c mp (Basic (Fun f fs)) = do 
+evalArrayFormula' c mp (Basic (Fun f fs)) = do
   let args = map (evalArrayFormula' c mp) fs
   let replacedArgs = map (replace (refMap mp)) args
   fDes <- getFunc f
@@ -154,7 +156,7 @@ evalArrayFormula' c mp f = evalArrayFormula c f
 --------------------------------------------------------------------------------------------------------------
 -- | AST Normal Evaluation helpers
 
--- | If the argument is an array constant to be scalarized, replace with top left value 
+-- | If the argument is an array constant to be scalarized, replace with top left value
 -- | Depending on arg number, do normal eval or array formula eval
 -- | If the resulting EResult is a reference to be scalarized, compute intersection/throw error
 -- | The callback function itself will throw an error if it has an invalid argument type
@@ -166,15 +168,15 @@ getFunctionArg c fd (argNum,f) = scalarizeRef (curLoc c) fd (argNum,res)
       | otherwise = evalFormula c f
 
 scalarizeArrConst :: Context -> FuncDescriptor -> Int -> [[BasicFormula]] -> EResult
-scalarizeArrConst c fd argNum lst 
-  | (elem argNum (scalarArgsIfNormal fd)) = case (topLeftLst lst) of 
+scalarizeArrConst c fd argNum lst
+  | (elem argNum (scalarArgsIfNormal fd)) = case (topLeftLst lst) of
     Nothing -> throwError $ EmptyArrayConstant
     Just tl -> evalBasicFormula c tl
   | otherwise =  evalFormula c (ArrayConst lst)
 
 scalarizeRef :: ASReference -> FuncDescriptor -> Arg EResult -> EResult
 scalarizeRef curLoc fd (argNum,r@(Right (EntityRef (ERef loc))))
-  |(elem argNum (scalarArgsIfNormal fd)) = case (scalarizeLoc curLoc loc) of 
+  |(elem argNum (scalarArgsIfNormal fd)) = case (scalarizeLoc curLoc loc) of
     Nothing -> throwError $ ScalarizeIntersectionError curLoc loc
     Just newLoc -> locToResult newLoc
   |otherwise = r
@@ -183,7 +185,7 @@ scalarizeRef _ _ x = snd x
 --------------------------------------------------------------------------------------------------------------
 -- | AST Array Formula Evaluation helpers
 
--- | Extract all unexpected range references out of a (valid) formula 
+-- | Extract all unexpected range references out of a (valid) formula
 getUnexpectedRefs :: ASSheetId -> Formula -> [ERef]
 getUnexpectedRefs _ (Basic (Var s)) = []
 getUnexpectedRefs _ (Basic (Ref e)) = []
@@ -210,13 +212,13 @@ unexpectedRefMap c refs = case dim' of
   Just dim -> case (compressErrors entities) of
     Left e -> throwError e
     Right es -> Right $ Just $  RefMap (M.fromList (zip refs es)) dim
-    where 
+    where
       entities = map (modifyRefToEntity c dim) refs
   where
     dim' = getCommonDimension refs
 
 -- | Helper: gets the common dimensionality of the unexpected references
-getCommonDimension :: [ERef] -> Maybe Dim 
+getCommonDimension :: [ERef] -> Maybe Dim
 getCommonDimension [] = Nothing
 getCommonDimension refs = dim
   where
@@ -229,7 +231,7 @@ getCommonDimension refs = dim
 
 -- | Given the correct dimension and a reference, replace it with a matrix of the right dimension, possibly using replication
 modifyRefToEntity :: Context -> Dim -> ERef -> ThrowsError EEntity
-modifyRefToEntity con (c,r) ref@(ERef l) = case (refToEntity con ref) of 
+modifyRefToEntity con (c,r) ref@(ERef l) = case (refToEntity con ref) of
   Left e   -> throwError e
   Right (EntityMatrix (EMatrix dCol dRow vec)) -> Right $ EntityMatrix (EMatrix c r res)
     where
@@ -243,14 +245,14 @@ modifyRefToEntity con (c,r) ref@(ERef l) = case (refToEntity con ref) of
 -- | Converts an entity to a value if it can be an element of an array constant (not range refs, large matrices)
 toValueAC:: Context -> EEntity -> ThrowsError EValue
 -- | Don't accept range references
-toValueAC c (EntityRef r@(ERef l)) 
+toValueAC c (EntityRef r@(ERef l))
   | isRange l = Left  $ ArrayConstantDim
-  | otherwise = do 
+  | otherwise = do
     entity <- refToEntity c r
     toValueAC c entity
 toValueAC _ (EntityVal v) = Right v
 -- | Only accept 1x1 matrices
-toValueAC _ (EntityMatrix (EMatrix c r v)) = case (c,r) of 
+toValueAC _ (EntityMatrix (EMatrix c r v)) = case (c,r) of
   (1,1) -> Right $ V.head v
   otherwise -> Left  $ ArrayConstantDim
 
@@ -258,13 +260,13 @@ toValueAC _ (EntityMatrix (EMatrix c r v)) = case (c,r) of
 -- | Throws error for wrong dimensionality
 arrConstToResult :: Context -> [[EEntity]] -> ThrowsError EMatrix
 arrConstToResult c [[]] = Left $ ArrayConstantDim
-arrConstToResult c es = do 
+arrConstToResult c es = do
   if (aligned es)
-    then do 
+    then do
       vals <- compressErrors $ concat $ map (map (toValueAC c)) es
       return $ EMatrix (length (head es)) (length es) (V.fromList vals)
     else Left $ ArrayConstantDim
-      
+
 --------------------------------------------------------------------------------------------------------------
 -- | Reference lookup/replacement and DB functions
 
@@ -273,15 +275,15 @@ arrConstToResult c es = do
 -- | Assumes that context has ranges -> ValueL and ValueL [] = row, ValueL [[]] = column of rows
 -- | Seems OK to map over this function, since any given formula won't have too many references requiring DB
 refToEntity :: Context -> ERef -> ThrowsError EEntity
-refToEntity c (ERef l@(IndexRef i)) = case (asValueToEntity v) of 
-  Nothing -> Left $ CannotConvertToExcelValue l 
+refToEntity c (ERef l@(IndexRef i)) = case (asValueToEntity v) of
+  Nothing -> Left $ CannotConvertToExcelValue l
   Just e  -> Right e
   where
     v = case (M.lookup l (evalMap c)) of
       Nothing -> dbLookup i
       Just v' -> v'
 refToEntity c (ERef (l@(RangeRef r))) = if any isNothing vals
-  then Left $ CannotConvertToExcelValue l 
+  then Left $ CannotConvertToExcelValue l
   else Right $ EntityMatrix $ EMatrix (getWidth l) (getHeight l) $ V.fromList $ catMaybes vals
   where
     mp = evalMap c
@@ -292,7 +294,7 @@ refToEntity c (ERef (l@(RangeRef r))) = if any isNothing vals
     vals = map toEValue $ mapVals ++ dbVals
 
 replace :: (M.Map ERef EEntity) -> EResult -> EResult
-replace mp r@(Right (EntityRef ref)) = case (M.lookup ref mp) of 
+replace mp r@(Right (EntityRef ref)) = case (M.lookup ref mp) of
   Nothing -> r
   Just e' -> Right e'
 replace mp x = x
@@ -313,7 +315,7 @@ substituteRefsInArgs c fDes es = map (subsRef c fDes) enum
 
 -- | At this point, the unexpected array function arguments are matrices
 -- | This function defines how we map over them
--- | Allows for future different function implementations (MapReduce in Cloud Haskell etc) 
+-- | Allows for future different function implementations (MapReduce in Cloud Haskell etc)
 -- | Since functions have all info they need to eval
 
 -- | The function descriptor contains which arguments to map for an array formula
@@ -342,19 +344,19 @@ getOffsetArgs fDes rs offset = map (getEntityElem fDes offset) (zip [1..] rs)
 
 -- | V.sum starts from 0.0, but we want to keep ints preserved; different version of sum
 sumInt :: V.Vector ENumeric ->  ENumeric
-sumInt = V.foldl' (+) (EValueI 0) 
+sumInt = V.foldl' (+) (EValueI 0)
 
 -- | Make sure that the number of arguments is right
 testNumArgs :: Int -> String -> [a] -> ThrowsError [a]
 testNumArgs n name lst
   | (length lst) == n = Right lst
-  | otherwise = Left $ NumArgs name n (length lst) 
+  | otherwise = Left $ NumArgs name n (length lst)
 
 -- | Make sure that the number of arguments isn't too high
 testNumArgsUpper :: Int -> String -> [a] -> ThrowsError [a]
 testNumArgsUpper n name lst
   | (length lst) <= n = Right lst
-  | otherwise = Left $ NumArgs name n (length lst) 
+  | otherwise = Left $ NumArgs name n (length lst)
 
 -- | Try to cast a value to numeric
 numVal :: EValue -> Maybe ENumeric
@@ -371,7 +373,7 @@ flattenMatrix = V.concat . V.toList
 -- | If any argument is an error (even within a matrix), return an error
 -- | Try to cast strings and booleans if they are arguments (0,1,"4") but ignore them within ranges/matrices
 argsToNumVec :: [EEntity] -> ThrowsError (V.Vector ENumeric)
-argsToNumVec es = do 
+argsToNumVec es = do
   vecs <- compressErrors $ map argToNumVec es
   return $ V.concat vecs
 
@@ -387,7 +389,7 @@ argToNumVec (EntityVal (EValueE e)) = Left $ Default e
 argToNumVec (EntityVal (EValueB True)) = Right $ V.singleton $ EValueI 1
 argToNumVec (EntityVal (EValueB False)) = Right $ V.singleton $ EValueI 0
 -- | Ignore all non-numeric values within a matrix
-argToNumVec (EntityMatrix m) = do 
+argToNumVec (EntityMatrix m) = do
   (EMatrix c r v) <- matrixError m
   Right $ filterNum v
 argToNumVec _  = Left $ VAL $ "Argument is not numeric"
@@ -396,7 +398,7 @@ argToNumVec _  = Left $ VAL $ "Argument is not numeric"
 -- | For functions like sum/product that collapse matrices and loop over all their arguments
 -- | Simply provide an accumulation function and this function does the rest
 collapseNumeric :: (ENumeric -> ENumeric -> ENumeric) -> EFunc
-collapseNumeric f c e = do 
+collapseNumeric f c e = do
   nums <- argsToNumVec e
   if (V.null nums)
     then valToResult $ EValueNum $ EValueI 0 -- return 0 by default if no numeric arguments received
@@ -405,7 +407,7 @@ collapseNumeric f c e = do
 -- | For functions like sumsq that collapse matrices and loop over all their arguments
 -- | (Provide a fold function with init)
 collapseNumeric' :: (ENumeric -> ENumeric -> ENumeric) -> EFunc
-collapseNumeric' f c e = do 
+collapseNumeric' f c e = do
   let init = (EValueI 0)
   let vecFold =  V.foldl' f init
   nums <- argsToNumVec e
@@ -416,7 +418,7 @@ collapseNumeric' f c e = do
 -- | Functions like sumxmy2 have a "zipper" (what to map corresponding elements to) as a main distinguishing element
 -- | Given that function and function name, produce EFunc
 zipNumericSum2 :: (ENumeric -> ENumeric -> ENumeric) -> String -> EFunc
-zipNumericSum2 zipper name c e = do 
+zipNumericSum2 zipper name c e = do
   -- | Make sure that there are two arguments, both matrices
   (EMatrix c1 r1 v1) <- getRequired "matrix" name 1 e :: ThrowsError EMatrix
   (EMatrix c2 r2 v2) <- getRequired "matrix" name 2 e :: ThrowsError EMatrix
@@ -431,9 +433,9 @@ zipNumericSum2 zipper name c e = do
         zipFunc (Just a) (Just b) = zipper a b
         zipFunc _ _ = EValueI 0
 
--- | Template for functions like sumif, countif etc; produces the filtered vector to apply some lambda function to 
+-- | Template for functions like sumif, countif etc; produces the filtered vector to apply some lambda function to
 ifFunc :: String ->  Context -> [EEntity] -> ThrowsError (V.Vector EValue)
-ifFunc f c e = do 
+ifFunc f c e = do
   -- | We want refs because we may need to resize later (Excel sucks)
   critRange <- getRequired "ref" f 1 e :: ThrowsError ERef
   criteria <- getRequired "value" f 2 e :: ThrowsError EValue
@@ -449,13 +451,13 @@ ifFunc f c e = do
     (EntityVal v) -> if (matcher v)
       then Right $ V.singleton v
       else Right $ V.singleton $ EValueNum $ EValueI 0
-    (EntityMatrix (EMatrix nc nr critVec)) -> do 
+    (EntityMatrix (EMatrix nc nr critVec)) -> do
       let (EntityMatrix (EMatrix _ _ valVec)) = valEntity
       Right $ V.ifilter (\i _ -> matcher ((V.!) critVec i)) valVec
 
 -- | Template for functions like sumifs etc
 ifsFunc :: String -> [EEntity] -> ThrowsError (V.Vector EValue)
-ifsFunc f e = do 
+ifsFunc f e = do
   if (length e < 3)
     then Left $ NumArgs f 3 (length e)
     else Right ()
@@ -465,9 +467,9 @@ ifsFunc f e = do
   let matches =  map getLambda criteria -- [EValue -> Bool]
   let dims = map matrixDim criteriaMatrices
   if (allTheSame dims) -- make sure that all ranges have the same dimension
-    then do 
+    then do
       let critVecs = map content criteriaMatrices
-      -- | Should the ith element be included? 
+      -- | Should the ith element be included?
       let include vecs ms i = and $ map (\(f,val) -> f val) $ zip ms $ map (\v -> (V.!) v i) vecs
       -- | Only include values in the value vector where all criteria are met (and function)
       let filteredValVec = V.ifilter (\i _ -> include critVecs matches i) valVec
@@ -476,7 +478,7 @@ ifsFunc f e = do
 
 -- | Cast ENumeric vector to Double vector
 toDouble :: V.Vector ENumeric -> V.Vector Double
-toDouble = V.map f 
+toDouble = V.map f
   where
     f (EValueI i) = fromIntegral i
     f (EValueD d) = d
@@ -493,7 +495,7 @@ toBool :: (V.Vector Bool -> Bool) -> EEntity -> ThrowsError (Maybe Bool)
 toBool _ (EntityVal (EValueB b)) =  Right $ Just b
 toBool _ (EntityVal (EValueNum (EValueI 1))) = Right $ Just True
 toBool _ (EntityVal (EValueNum (EValueI 0))) = Right $ Just False
-toBool f (EntityMatrix m) = do 
+toBool f (EntityMatrix m) = do
   (EMatrix c r v) <- matrixError m
   let filtered = filterBool v
   if (V.null filtered)
@@ -502,7 +504,7 @@ toBool f (EntityMatrix m) = do
 toBool _ _ = Left $ Default "Argument is not boolean"
 
 collapseBool :: (Bool -> Bool -> Bool) -> EFunc
-collapseBool f c e = do 
+collapseBool f c e = do
   let vecFold = V.foldl1' f
   args <- compressErrors $ map (toBool vecFold) e
   let bools = catMaybes args
@@ -516,7 +518,7 @@ collapseBool f c e = do
 -- | Helper; Given a value (eg string like "(*)"), produces a lambda for equality to an EValue
 getLambda :: EValue -> EValue -> Bool
 getLambda (EValueS "") EBlank = True
-getLambda (EValueS s) v = case (outerComparator s) of 
+getLambda (EValueS s) v = case (outerComparator s) of
   Nothing -> case v of
     EValueS s' -> criteria s s'
     otherwise  -> False
@@ -550,7 +552,7 @@ criteria regex match = case (parse (stringMatch regex) "" match) of
 stringMatch :: String -> Parser ()
 stringMatch "" = eof
 stringMatch (c:cs) = case c of
-  '~' -> do 
+  '~' -> do
     let (c':cs') = cs
     char (toLower c')
     stringMatch cs'
@@ -565,7 +567,7 @@ stringMatch (c:cs) = case c of
 -- | Excel information functions
 
 eIsBlank :: EFunc
-eIsBlank c e = do 
+eIsBlank c e = do
   e' <- testNumArgs 1 "isblank" e
   valToResult $ EValueB $ blank (head e')
 
@@ -573,9 +575,9 @@ eIsLogical :: EFunc
 eIsLogical c e = do
   e' <- testNumArgs 1 "islogical" e
   valToResult $ EValueB $ boolEntity $ head e'
-  
+
 eIsNumber :: EFunc
-eIsNumber c e = do 
+eIsNumber c e = do
   e' <- testNumArgs 1 "isnumber" e
   valToResult $ EValueB $ numeric $ head e'
 
@@ -605,7 +607,7 @@ numeric _ = False
 -- | If the first argument is an error (eval or otherwise), return the second
 -- | Eval error will produce a Left, referencing an error cell (eg if A1 is #REF) is a EValueE
 eIfError :: EFuncResult
-eIfError c r = do 
+eIfError c r = do
   r' <- testNumArgs 2 "iferror" r
   let errRes = r!!1
   case (head r') of
@@ -615,7 +617,7 @@ eIfError c r = do
 
 -- | Returns the logical inverse of its only argument
 eNot :: EFunc
-eNot c e = do 
+eNot c e = do
   b <- (getRequired "bool" "not" 1 e)::(ThrowsError Bool)
   valToResult $ EValueB (not b)
 
@@ -623,7 +625,7 @@ eNot c e = do
 -- | Returns a value error if no logical arguments
 eAnd :: EFunc
 eAnd = collapseBool (&&)
-    
+
 -- | See eAnd
 eOr :: EFunc
 eOr = collapseBool (||)
@@ -633,7 +635,7 @@ eOr = collapseBool (||)
 
 -- | Given a column and row (and possibly reference type, abs/relative combination type, and sheet), return string with reference
 eAddress :: EFunc
-eAddress c e = do 
+eAddress c e = do
   let f  = "address"
   row <- getRequired "int" f 1 e :: ThrowsError Int
   col <- getRequired "int" f 2 e :: ThrowsError Int
@@ -641,8 +643,8 @@ eAddress c e = do
   a1Bool <- getOptional "bool" True f 4 e :: ThrowsError Bool
   sheet <- getOptional "string" "" f 5 e :: ThrowsError String
   if a1Bool -- A1 style reference
-    then do 
-      ref <- refToString col row refType 
+    then do
+      ref <- refToString col row refType
       valToResult $ EValueS $ sheet ++ ref
     else do -- R1C1 style reference
       let ref = "R"++(show row)++"C"++(intToCol col)
@@ -656,7 +658,7 @@ refToString col row 3 = Right $ "$" ++ (intToCol col) ++ (show row)
 refToString col row 4 = Right $  (intToCol col)  ++ (show row)
 refToString _ _ _ = Left $ VAL "Third argument of ADDRESS is invalid."
 
--- | TODO: copy from somewhere 
+-- | TODO: copy from somewhere
 -- | Given a column number, produce the column letter (3 -> C)
 intToCol :: Col -> String
 intToCol a = "A"
@@ -665,7 +667,7 @@ intToCol a = "A"
 -- | If not in array formula mode, the eval function will automatically return only the top left
 -- | No argument = column of current selection
 eColumn :: EFunc
-eColumn c e = do 
+eColumn c e = do
   (ERef loc) <- getOptional "ref" (ERef (curLoc c)) "column" 1 e :: ThrowsError ERef
   case loc of
     IndexRef (Index _ (a,b)) -> valToResult $ EValueNum $ EValueI a
@@ -676,11 +678,11 @@ eColumn c e = do
 
 -- | See eColumn
 eRow :: EFunc
-eRow c e = do 
+eRow c e = do
   (ERef loc) <- getOptional "ref" (ERef (curLoc c)) "row" 1 e :: ThrowsError ERef
   case loc of
     IndexRef (Index _ (a,b)) -> valToResult $ EValueNum $ EValueI b
-    RangeRef (Range _((a,b),(c,d))) -> Right $ EntityMatrix $ EMatrix (c-a+1) (d-b+1) (flattenMatrix m) 
+    RangeRef (Range _((a,b),(c,d))) -> Right $ EntityMatrix $ EMatrix (c-a+1) (d-b+1) (flattenMatrix m)
       where
         m = V.map (V.replicate (d-b+1)) colValues
         colValues = V.map (EValueNum . EValueI) $ V.enumFromN a (c-a+1)
@@ -688,7 +690,7 @@ eRow c e = do
 -- | If the argument is a string that parses as a reference, return that reference
 -- | If the reference is fed into another function, that function will replace the reference (via DB/context) if necessary
 eIndirect :: EFunc
-eIndirect c e = do 
+eIndirect c e = do
   refString <- getRequired "string" "indirect" 1 e :: ThrowsError String
   a1Bool <- getOptional "bool" True "indirect" 2 e :: ThrowsError Bool
   case (stringToLoc a1Bool refString) of
@@ -702,7 +704,7 @@ stringToLoc b s  = Just $ IndexRef $ Index (T.pack "") (1,1)
 
 -- | Takes a reference, height/width/col/row parameters, and returns an offsetted reference
 eOffset :: EFunc
-eOffset c e = do 
+eOffset c e = do
   (ERef loc) <- getRequired "ref" "offset" 1 e :: ThrowsError ERef
   rows <- getRequired "int" "offset" 2 e :: ThrowsError Int
   cols <- getRequired "int" "offset" 3 e :: ThrowsError Int
@@ -728,17 +730,17 @@ tupleOK :: (Int,Int) -> Bool
 tupleOK (a,b) = a > 0 && b > 0
 
 
--- | Depending on match type (-1,0,1; 0=equality), return the index (starting at 1) of the matrix 
+-- | Depending on match type (-1,0,1; 0=equality), return the index (starting at 1) of the matrix
 -- | Allowed to use wildcards if val = string and type = 0, doesn't care about upper/lower case for strings,
 -- | Return NA if no match
 eMatch :: EFunc
-eMatch c e = do 
+eMatch c e = do
   lookupVal <- getRequired "value" "match" 1 e :: ThrowsError EValue
   lookupRange <- getRequired "matrix" "match" 2 e :: ThrowsError EMatrix
   vec <- case (to1D lookupRange) of
     Nothing -> Left $ VAL "Lookup range for MATCH cannot be two dimensional"
-    Just v -> if (V.null v) 
-      then Left $ VAL "Lookup range for MATCH cannot be empty" 
+    Just v -> if (V.null v)
+      then Left $ VAL "Lookup range for MATCH cannot be empty"
       else return v
   lookupType <- getOptional "int" 1 "match" 3 e :: ThrowsError Int
   let matcher = getLambda lookupVal :: (EValue -> Bool)
@@ -753,8 +755,8 @@ eMatch c e = do
 
 -- | Has a "reference mode" and a "value mode", currently only doing value mode
 eIndex :: EFunc
-eIndex c e = do 
-  arr <- getRequired "matrix" "index" 1 e :: ThrowsError EMatrix 
+eIndex c e = do
+  arr <- getRequired "matrix" "index" 1 e :: ThrowsError EMatrix
   row <- getOptionalMaybe "int" "index" 2 e :: ThrowsError (Maybe Int)
   col <- getOptionalMaybe "int" "index" 3 e :: ThrowsError (Maybe Int)
   (row',col') <- case (row,col) of
@@ -767,13 +769,13 @@ eIndex c e = do
 
 -- | Row and Col start at 1. Row/col value of 0 = slice
 indexOrSlice :: EMatrix -> Int -> Int -> EResult
-indexOrSlice m@(EMatrix nCol nRow v) row col 
+indexOrSlice m@(EMatrix nCol nRow v) row col
   | row>=nRow || col>=nCol || row<0 || col<0 = err
   | row==0 && col>=1 = Right $ EntityMatrix $ EMatrix 1 nRow vertical
   | row>=1 && col==0 = Right $ EntityMatrix $ EMatrix nCol 1 horizontal
   | row==0 && col==0 = Right $ EntityMatrix m -- whole matrix
   | row>=1 && col>=1 = valToResult $ matrixIndex (col,row) m
-    where 
+    where
       err = Left $ REF $ "Index out of bounds"
       horizontal = V.unsafeSlice ((row-1)*nCol) nCol v
       -- Is an index of v correct for the vertical slice?
@@ -781,22 +783,22 @@ indexOrSlice m@(EMatrix nCol nRow v) row col
       vertM = V.imap (\i a -> if (goodVertical i) then (Just a) else Nothing) v
       vertical = V.fromList $ catMaybes $ V.toList vertM
 
-    
+
 -- | Transpose a matrix
 eTranspose :: EFunc
-eTranspose c e = do 
+eTranspose c e = do
   m <- getRequired "matrix" "transpose" 1 e :: ThrowsError EMatrix
   let lst = matrixTo2DList m -- [[EValue]]
   let newVec = V.fromList $ concat lst
   return $ EntityMatrix $ EMatrix (emRows m) (emCols m) newVec
-  
+
 
 --------------------------------------------------------------------------------------------------------------
 -- | Excel Math and Trig functions
 
 -- | If a function takes in a numeric value and returns a double, this is a convenient wrapper
 oneArgDouble :: (Num a) => String -> (Double -> Double) -> EFunc
-oneArgDouble name f c e = do 
+oneArgDouble name f c e = do
 
   num <- getRequired "numeric" name 1 e :: ThrowsError ENumeric
   let ans = case num of
@@ -806,7 +808,7 @@ oneArgDouble name f c e = do
 
 -- | Absolute value
 eAbs :: EFunc
-eAbs c e = do 
+eAbs c e = do
   num <- getRequired "numeric" "abs" 1 e :: ThrowsError ENumeric
   valToResult $ EValueNum (abs num)
 
@@ -814,12 +816,12 @@ eExp :: EFunc
 eExp = oneArgDouble "exp" exp
 
 ePi :: EFunc
-ePi c e = do 
+ePi c e = do
   e' <- testNumArgs 0 "pi" e
   valToResult $ EValueNum (EValueD pi)
 
 eSqrtPi :: EFunc
-eSqrtPi c e = do 
+eSqrtPi c e = do
   e' <- testNumArgs 0 "pi" e
   valToResult $ EValueNum (EValueD (sqrt pi))
 
@@ -829,37 +831,37 @@ eSqrt = oneArgDouble "sqrt" sqrt
 -- | Finds the product of all of its arguments, decomposing matrices
 -- | Built-in product starts folding with ValueD, so we use foldl1'
 eProduct :: EFunc
-eProduct = collapseNumeric (*) 
+eProduct = collapseNumeric (*)
 
 -- | Finds the product of all of its arguments, decomposing matrices
 -- | Built-in product starts folding with ValueD, so we use foldl1'
 eSum :: EFunc
-eSum = collapseNumeric (+) 
+eSum = collapseNumeric (+)
 
 -- | Sums values in a range that satisfy criteria in another range
 eSumIf :: EFunc
-eSumIf c e = do 
+eSumIf c e = do
   vec <- ifFunc "sumif" c e
   valToResult $ EValueNum $ sumInt $ filterNum vec
 
 -- | Generalization of sumif to multiple ranges for criteria
 eSumIfs :: EFunc
-eSumIfs c e = do 
+eSumIfs c e = do
   vec <- ifsFunc "sumif" e
   valToResult $ EValueNum $ sumInt $ filterNum vec
 
 -- | Sum of squares of elements
 eSumSq :: EFunc
-eSumSq = collapseNumeric' (\accum next -> accum + next * next) 
+eSumSq = collapseNumeric' (\accum next -> accum + next * next)
 
 eSumx2my2 :: EFunc
-eSumx2my2 = zipNumericSum2 (\a b -> a*a-b*b) "sumxmy2" 
+eSumx2my2 = zipNumericSum2 (\a b -> a*a-b*b) "sumxmy2"
 
 eSumx2py2 :: EFunc
-eSumx2py2 = zipNumericSum2 (\a b -> a*a+b*b) "sumxpy2" 
+eSumx2py2 = zipNumericSum2 (\a b -> a*a+b*b) "sumxpy2"
 
 eSumxmy2 :: EFunc
-eSumxmy2 = zipNumericSum2 (\a b -> (a-b)*(a-b)) "sumxmy2" 
+eSumxmy2 = zipNumericSum2 (\a b -> (a-b)*(a-b)) "sumxmy2"
 
 --------------------------------------------------------------------------------------------------------------
 -- | Statistical vector functions
@@ -902,7 +904,7 @@ sumSqDev xs = s
     k s x = s + (x-m)*(x-m)
 
 xyProd :: V.Vector Double -> V.Vector Double -> Double
-xyProd xs ys = s 
+xyProd xs ys = s
   where
     mx = mean xs
     my = mean ys
@@ -915,14 +917,14 @@ xyProd xs ys = s
 
 -- | Compute average deviation of arguments
 eAvedev :: EFunc
-eAvedev c e = do 
-  v <- argsToNumVec e 
+eAvedev c e = do
+  v <- argsToNumVec e
   doubleToResult $ avedev $ toDouble v
-  
+
 
 -- | Compute average of arguments
 eAverage :: EFunc
-eAverage c e = do 
+eAverage c e = do
   v <- argsToNumVec e
   if (V.null v)
     then Left DIV0
@@ -930,32 +932,32 @@ eAverage c e = do
 
 -- | Large(array,k) = kth largest number in array
 eLarge :: EFunc
-eLarge c e = do 
+eLarge c e = do
   (EMatrix c r v) <- getRequired "matrix" "large" 1 e :: ThrowsError EMatrix
   k <- getRequired "int" "large" 2 e :: ThrowsError Int
   let nums = filterNum v
   if (V.null nums)
     then Left $ NA $ "Large received no numeric values in range"
-    else do  
+    else do
       -- | Linear algorithm doesn't seem to exist
       let kLargestNum = (reverse $ sort $ V.toList nums) !!(k-1)
       valToResult $ EValueNum kLargestNum
 
 eAverageIf :: EFunc
-eAverageIf c e =  do 
+eAverageIf c e =  do
   vec <- ifFunc "averageif" c e
   if (V.null vec)
     then Left DIV0
     else doubleToResult $ mean $ toDouble $ filterNum $ vec
 
 eAverageIfs :: EFunc
-eAverageIfs c e =  do 
+eAverageIfs c e =  do
   vec <- ifsFunc "averageif" e
   if (V.null vec)
     then Left DIV0
     else doubleToResult $ mean $ toDouble $ filterNum $ vec
 
--- | Used for count-type functions that don't care about numeric values, and include errors 
+-- | Used for count-type functions that don't care about numeric values, and include errors
 argsToVec :: [EEntity] -> V.Vector EValue
 argsToVec es = V.concat vecs
   where
@@ -969,17 +971,17 @@ eCount ::  EFunc
 eCount c e = intToResult $ V.length $ filterNum $ argsToVec e
 
 eCountIf :: EFunc
-eCountIf c e =  do 
+eCountIf c e =  do
   vec <- ifFunc "countif" c e
   intToResult $ V.length vec
 
 eCountIfs :: EFunc
-eCountIfs c e =  do 
+eCountIfs c e =  do
   vec <- ifsFunc "averageif" e
   intToResult $ V.length vec
 
 eBinomDist ::  EFunc
-eBinomDist c e = do 
+eBinomDist c e = do
   succ' <- getRequired "int" "binom.dist" 1 e  :: ThrowsError Int
   trials <- getRequired "int" "binom.dist" 2 e  :: ThrowsError Int
   p' <- getRequired "double" "binom.dist" 3 e :: ThrowsError Double
@@ -992,33 +994,33 @@ eBinomDist c e = do
     else doubleToResult $ SD.probability dist succ
 
 eNormDist :: EFunc
-eNormDist c e = do 
+eNormDist c e = do
   x <- getRequired "double" "normdist" 1 e :: ThrowsError Double
   mu <- getRequired "double" "normdist" 2 e :: ThrowsError Double
   stdev <- getRequired "double" "normdist" 3 e :: ThrowsError Double
   cum <- getRequired "bool" "normdist" 4 e :: ThrowsError Bool
   if stdev < 0
     then Left $ NUM "Standard deviation for NORMDIST is less than zero"
-    else do 
+    else do
       let dist = SDN.normalDistr mu stdev
       if cum
         then doubleToResult $ SD.cumulative dist x
         else doubleToResult $ SD.density dist x
 
 eNormInv :: EFunc
-eNormInv c e = do 
+eNormInv c e = do
   p' <- getRequired "double" "norminv" 1 e :: ThrowsError Double
   mu <- getRequired "double" "norminv" 2 e :: ThrowsError Double
   stdev <- getRequired "double" "norminv" 3 e :: ThrowsError Double
   if stdev < 0
     then Left $ NUM "Standard deviation for NORMINV is less than zero"
-    else do 
+    else do
       p <- checkProb p'
       let dist = SDN.normalDistr mu stdev
       doubleToResult $ SD.quantile dist p
 
 checkProb :: Double -> ThrowsError Double
-checkProb d 
+checkProb d
   | d < 0 = Left $ NUM "Probability less than 0"
   | d > 1 = Left $ NUM "Probability greater than 1"
   | otherwise = Right d
@@ -1032,7 +1034,7 @@ checkNumberBinom num trials
 
 -- | Find the minimum, 0 as default
 eMin :: EFunc
-eMin c e = do 
+eMin c e = do
   v <- argsToNumVec e
   if (V.null v)
     then valToResult $ EValueNum $ EValueI 0
@@ -1040,29 +1042,29 @@ eMin c e = do
 
 -- | Find the maximum, 0 as default
 eMax :: EFunc
-eMax c e = do 
+eMax c e = do
   v <- argsToNumVec e
   if (V.null v)
     then valToResult $ EValueNum $ EValueI 0
     else valToResult $ EValueNum $ V.minimum v
 
 eMedian :: EFunc
-eMedian c e = do 
+eMedian c e = do
   v <- argsToNumVec e
   valToResult $ EValueNum $ median $ V.toList v
 
 eModeMult :: EFunc
-eModeMult c e = do 
+eModeMult c e = do
   v <- argsToNumVec e
   let lst = V.toList v
   case (mode lst) of
     Nothing -> Left $ NA $ "All values are distinct for MODE.MULT"
-    Just _ -> do 
+    Just _ -> do
       let ms = map snd $ modes lst
       Right $ EntityMatrix $ EMatrix 1 (length ms) (V.map EValueNum (V.fromList ms))
 
 eModeSngl :: EFunc
-eModeSngl c e = do 
+eModeSngl c e = do
   v <- argsToNumVec e
   let m = mode $ V.toList v
   case m of
@@ -1091,17 +1093,17 @@ mode xs = case m of
 
 -- | Using GSL library with storable, might be overkill
 eCorrel :: EFunc
-eCorrel c e = do 
+eCorrel c e = do
   (EMatrix _ _ arr1) <- getRequired "matrix" "correl" 1 e  :: ThrowsError EMatrix
   (EMatrix _ _ arr2) <- getRequired "matrix" "correl" 2 e  :: ThrowsError EMatrix
   if (V.length arr1 /= V.length arr2)
     then Left $ NA $ "Arguments for CORREL had different lengths"
-    else do 
+    else do
       let v1 = toDouble $ filterNum arr1
       let v2 = toDouble $ filterNum arr2
       if (V.length v1 /= V.length v2)
-        then Left $ DIV0 -- Excel does this 
-        else do 
+        then Left $ DIV0 -- Excel does this
+        else do
           let cov = xyProd v1 v2
           let sx = sumSqDev v1
           let sy = sumSqDev v2
@@ -1110,10 +1112,10 @@ eCorrel c e = do
             else doubleToResult $ cov / (sqrt (sx * sy))
 
 ePearson :: EFunc
-ePearson = eCorrel 
+ePearson = eCorrel
 
 genericRank ::  String -> ([(ENumeric,Int)] -> [(ENumeric,EValue)]) -> EFunc
-genericRank f rankGroup c e = do 
+genericRank f rankGroup c e = do
   x <- getRequired "numeric" f 1 e :: ThrowsError ENumeric
   (EMatrix _ _ v) <- getRequired "matrix" f 2 e :: ThrowsError EMatrix
   order <- getOptional "int" 0 f 3 e :: ThrowsError Int
@@ -1121,9 +1123,9 @@ genericRank f rankGroup c e = do
   let sorted = if (order == 0)
                  then sort lst
                  else reverse $ sort lst
-  -- | Enumerate ranks, then group by equal ranks, then determine the common rank of each group, and concatenate 
+  -- | Enumerate ranks, then group by equal ranks, then determine the common rank of each group, and concatenate
   let ranks = concat $ map rankGroup $ groupBy (\x y -> (fst x == fst y)) $ zip sorted [1..]
-  case (lookup x ranks) of 
+  case (lookup x ranks) of
     Nothing -> Left $ VAL $ "Couldn't find given element for " ++ f
     Just r -> valToResult r
 
@@ -1151,32 +1153,32 @@ groupAvg group = zip (map fst group) (repeat commonRank)
 
 -- | Slope of the regression line
 eSlope :: EFunc
-eSlope c e = do 
+eSlope c e = do
   let f = "slope"
   (EMatrix _ _ v1) <- getRequired "matrix" f 1 e :: ThrowsError EMatrix
   (EMatrix _ _ v2) <- getRequired "matrix" f 2 e :: ThrowsError EMatrix
   if (V.length v1 /= V.length v2) || V.length v1 == 0 || V.length v2 == 0
     then Left $ NA "Invalid dimensions for SLOPE arguments"
-    else do 
+    else do
       let y = toDouble $ filterNum v1
       let denom = sumSqDev y
       let x = toDouble $ filterNum v2
       if V.length x /= V.length y || denom == 0
         then Left $ DIV0
-        else do  
+        else do
           let numerator = xyProd x y
           doubleToResult $ numerator/denom
 
 eVarP :: EFunc
-eVarP c e = do 
+eVarP c e = do
   v <- argsToNumVec e
   let nums = toDouble v
-  if (V.null nums) 
+  if (V.null nums)
     then Left $ DIV0
     else doubleToResult $ variance nums
 
 eVarS :: EFunc
-eVarS c e = do 
+eVarS c e = do
   v <- argsToNumVec e
   let nums = toDouble v
   if (V.length nums <=1)
@@ -1185,15 +1187,15 @@ eVarS c e = do
 
 
 eStdP :: EFunc
-eStdP c e = do 
+eStdP c e = do
   v <- argsToNumVec e
   let nums = toDouble v
-  if (V.null nums) 
+  if (V.null nums)
     then Left $ DIV0
     else doubleToResult $ sqrt $ variance nums
 
 eStdS :: EFunc
-eStdS c e = do 
+eStdS c e = do
   v <- argsToNumVec e
   let nums = toDouble v
   if (V.length nums <=1)
@@ -1205,7 +1207,7 @@ eStdS c e = do
 
 -- | Find position of one string within another; casing on case-sensitivity
 textFind :: Bool -> EFunc
-textFind caseSensitive c e = do 
+textFind caseSensitive c e = do
   let f = "find"
   findText' <- getRequired "string" f 1 e :: ThrowsError String
   withinText' <- getRequired "string" f 2 e :: ThrowsError String
@@ -1215,7 +1217,7 @@ textFind caseSensitive c e = do
   startNum <- getOptional "int" 1 f 3 e :: ThrowsError Int
   if startNum <=0 || startNum >= (length withinText)
     then Left $ VAL "Starting position out of bounds for FIND"
-    else do 
+    else do
       if findText == ""
         then intToResult 1
         else do
@@ -1227,7 +1229,7 @@ textFind caseSensitive c e = do
 
 -- | Helper for above
 normString :: Bool -> String -> String
-normString caseSensitive s 
+normString caseSensitive s
   | caseSensitive = s
   | otherwise = map toLower s
 
@@ -1239,26 +1241,26 @@ eSearch = textFind False
 
 -- | Find the length of a string
 eLen :: EFunc
-eLen c e = do 
+eLen c e = do
   str <- getRequired "string" "len" 1 e :: ThrowsError String
   intToResult $ length str
 
 
 -- |  Convert text to lowercase
 eLower ::  EFunc
-eLower c e = do 
+eLower c e = do
   str <- getRequired "string" "len" 1 e :: ThrowsError String
   stringResult $ map toLower str
 
 -- |  Convert text to uppercase
 eUpper ::  EFunc
-eUpper c e = do 
+eUpper c e = do
   str <- getRequired "string" "len" 1 e :: ThrowsError String
   stringResult $ map toUpper str
 
 -- | Repeat a string n times
 eRept ::  EFunc
-eRept c e = do 
+eRept c e = do
   let f = "rept"
   str <- getRequired "string" f 1 e :: ThrowsError String
   n <- getRequired "int" f 2 e :: ThrowsError Int
@@ -1266,33 +1268,33 @@ eRept c e = do
 
 -- | Rightmost characters of a string
 eRight :: EFunc
-eRight c e = do 
+eRight c e = do
   let f =  "right"
   str <- getRequired "string" f 1 e :: ThrowsError String
   n <- getOptional "int" 1 f 2 e :: ThrowsError Int
-  if n < 0 
+  if n < 0
     then Left $ VAL "Number of right characters cannot be negative for RIGHT"
-    else do 
+    else do
       let n' = min (length str) n -- Return whole string if n is large
       stringResult $ drop ((length str)-n') str
 
 -- | Trim whitespace from a string
 eTrim :: EFunc
-eTrim c e = do 
+eTrim c e = do
   str <- getRequired "string" "trim" 1 e :: ThrowsError String
   stringResult $ T.unpack $ T.strip $ T.pack str
 
 -- | Substitute new string for old string in larger string
 eSubstitute :: EFunc
-eSubstitute c e = do 
+eSubstitute c e = do
   let f = "substitute"
   str <- getRequired "string" f 1 e :: ThrowsError String
   old <- getRequired "string" f 2 e :: ThrowsError String
   new <- getRequired "string" f 3 e :: ThrowsError String
   n <- getOptional "int" 0 f 4 e :: ThrowsError Int -- which occurrence of old to replace (default = all)
-  if n == 0 
+  if n == 0
     then stringResult $ SU.replace old new str
-    else do  
+    else do
       let parts = SU.split old str
       let (before,after) = splitAt n parts
       stringResult $ (concat before) ++ new ++ (concat after)
@@ -1302,7 +1304,7 @@ eSubstitute c e = do
 -- | Excel simple functions and infix functions
 
 eIf :: EFunc
-eIf c e = do 
+eIf c e = do
   let f = "if"
   b <- getRequired "bool" f 1 e :: ThrowsError Bool
   v1 <- getRequired "value" f 2 e :: ThrowsError EValue
@@ -1312,26 +1314,26 @@ eIf c e = do
     else valToResult v2
 
 eAdd :: EFunc
-eAdd c e = do 
+eAdd c e = do
   a <- getRequired "numeric" "+" 1 e :: ThrowsError ENumeric
   b <- getRequired "numeric" "+" 2 e :: ThrowsError ENumeric
   valToResult $ EValueNum $ a + b
 
 eMinus :: EFunc
-eMinus c e = do 
+eMinus c e = do
   a <- getRequired "numeric" "-" 1 e :: ThrowsError ENumeric
   b <- getRequired "numeric" "-" 2 e :: ThrowsError ENumeric
   valToResult $ EValueNum $ a - b
 
 eMult :: EFunc
-eMult c e = do 
+eMult c e = do
   a <- getRequired "numeric" "*" 1 e :: ThrowsError ENumeric
   b <- getRequired "numeric" "*" 2 e :: ThrowsError ENumeric
   valToResult $ EValueNum $ a * b
 
 -- | TODO: catching errors requires IO monad ...
 eDivide :: EFunc
-eDivide c e = do 
+eDivide c e = do
   a <- getRequired "numeric" "/" 1 e :: ThrowsError ENumeric
   b <- getRequired "numeric" "/" 2 e :: ThrowsError ENumeric
   valToResult $ EValueNum $ a / b
@@ -1341,12 +1343,12 @@ replaceRef c (EntityRef r) = refToEntity c r
 replaceRef _ e = Right e
 
 eEquals :: EFunc
-eEquals c e = do 
+eEquals c e = do
   testNumArgs 2 "equals" e
   valToResult $ EValueB $ replaceRef c (e!!0) == replaceRef c (e!!1)
 
 eSpace :: EFunc
-eSpace c e = do  
+eSpace c e = do
   let f = "intersect(space)"
   (ERef l1) <- getRequired "ref" f 1 e :: ThrowsError ERef
   (ERef l2) <- getRequired "ref" f 2 e :: ThrowsError ERef
@@ -1355,7 +1357,7 @@ eSpace c e = do
     Just l -> locToResult l
 
 eAmpersand :: EFunc
-eAmpersand c e = do  
+eAmpersand c e = do
   let f = "&"
   str1 <- getRequired "string" f 1 e :: ThrowsError String
   str2 <- getRequired "string" f 2 e :: ThrowsError String
@@ -1364,24 +1366,24 @@ eAmpersand c e = do
 --------------------------------------------------------------------------------------------------------------
 -- | Function implementations
 
-{- 
-  isblank, iserror, islogical,isnumber, iferror, 
-  not,  and, or , 
-  address, column, row, indirect, offset, 
-index, 
-  match, transpose, product, 
+{-
+  isblank, iserror, islogical,isnumber, iferror,
+  not,  and, or ,
+  address, column, row, indirect, offset,
+index,
+  match, transpose, product,
 rand,
-  abs, exp,   pi, sqrt, sqrtpi, 
-  sum, sumif(s), sumsq, sumx2my2, sumx2py2, sumxmy2, 
-  avedev, average, averageif(s), 
-  binom.dist, 
-  correl, 
-  count, countif(s), 
-  large,  min/max, median, mode.mult, mode.sngl,  
+  abs, exp,   pi, sqrt, sqrtpi,
+  sum, sumif(s), sumsq, sumx2my2, sumx2py2, sumxmy2,
+  avedev, average, averageif(s),
+  binom.dist,
+  correl,
+  count, countif(s),
+  large,  min/max, median, mode.mult, mode.sngl,
   norm dist/inv,  pearson
-  rank,  slope, stdev (s,p), var (s,p), 
-  find, len, rept, right, search, 
-  substitute, trim, upper, 
+  rank,  slope, stdev (s,p), var (s,p),
+  find, len, rept, right, search,
+  substitute, trim, upper,
 linest (WTF EXCEL)
 -}
 

@@ -19,11 +19,11 @@ import qualified Data.Text.Lazy (replace)
 
 import AS.Types.Core
 import AS.Parsing.Common
-import AS.Util
+import AS.Util as U
 
 -- removes the first and last brackets from expression, if they exist
 removeBrackets :: String -> String
-removeBrackets str 
+removeBrackets str
   | length(str)<2 = str --deal with nonsense empty string
   | (L.head str == '{') && (L.last str =='}') = L.init $ L.tail str
   | otherwise = str
@@ -31,7 +31,7 @@ removeBrackets str
 --Parsing values ---
 
 readBool :: String -> Bool
-readBool str = case (head str) of 
+readBool str = case (head str) of
   't' -> True
   'T' -> True
   'f' -> False
@@ -40,16 +40,16 @@ readBool str = case (head str) of
 bool :: ASLanguage -> Parser Bool
 bool lang = fmap readBool $ true <|> false
   where
-    true = case lang of 
+    true = case lang of
       R     -> string "true"
       Python-> string "True"
       OCaml -> string "true"
       SQL   -> string "True"
       Excel -> string "True"
-    false = case lang of 
+    false = case lang of
       R     -> string "false"
       Python-> string "False"
-      OCaml -> string "false" 
+      OCaml -> string "false"
       SQL   -> string "False"
       Excel -> string "False"
 
@@ -59,7 +59,7 @@ valueS = ValueS <$> (quoteString <|> apostropheString)
     quoteString        = quotes $ many $ escaped <|> noneOf ['"']
     apostropheString    = apostrophes $ many $ escaped <|> noneOf ['\'']
     quotes             = between quote quote
-    quote              = char '"' -- 
+    quote              = char '"' --
     apostrophes        = between apostrophe apostrophe
     apostrophe         = char '\'' -- TODO apostrophes also
     escaped            = char '\\' >> choice (zipWith escapedChar codes replacements)
@@ -74,11 +74,11 @@ valueS = ValueS <$> (quoteString <|> apostropheString)
 -- valueSFailsafe = ValueS <$> (many $ noneOf "'\"")
 
 valueL :: ASLanguage -> Parser ASValue
-valueL lang = ValueL <$> (brackets $ sepBy (asValue lang) (delim >> spaces))
+valueL lang = sanitizeList . ValueL <$> (brackets $ sepBy (asValue lang) (delim >> spaces))
   where
     brackets  = between (string start) (string end)
       where
-        (start, end) = case lang of 
+        (start, end) = case lang of
           R     -> ("[", "]")   -- TODO R array parsing
           Python-> ("[", "]")
           OCaml -> ("[" , "]")
@@ -87,7 +87,7 @@ valueL lang = ValueL <$> (brackets $ sepBy (asValue lang) (delim >> spaces))
           Java  -> ("[", "]")
           Excel -> ("[", "]")
 
-    delim     = case lang of 
+    delim     = case lang of
       R     -> char ','
       Python-> char ','
       OCaml -> char ';'
@@ -141,8 +141,8 @@ ocamlError = do
   err   <- manyTill anyChar (try eof)
   return $ ValueError err "StdErr" file ((read pos :: Int) - 4)
 
-asValue :: ASLanguage -> Parser ASValue 
-asValue lang = 
+asValue :: ASLanguage -> Parser ASValue
+asValue lang =
       try (ValueD <$> float)
   <|> try (ValueI <$> integer)
   <|> try (ValueB <$> bool lang)

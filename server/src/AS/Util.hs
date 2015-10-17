@@ -15,14 +15,17 @@ import qualified Data.List as L
 import qualified Data.Set as S
 import Control.Applicative hiding ((<|>), many)
 import Data.Maybe (isNothing,catMaybes,fromJust)
+import Data.List.Split (chunksOf)
 
 -- EitherT
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.Either
 
 import Control.Exception (catch, SomeException)
-
 import Control.Monad.IO.Class(liftIO)
+
+import Data.Ord
+
 -------------------------------------------------------------------------------------------------------------------------
 -- Initializations
 
@@ -133,6 +136,35 @@ catchEitherT a = do
     (Right e) -> right e
     where whenCaught = (\e -> return . Right $ ValueError (show e) "StdErr" "" 0) :: (SomeException -> IO (Either ASExecError ASValue))
 
+fromDouble :: Double -> Either Double Int
+fromDouble x = if (x == xInt)
+  then Right $ fromInteger (round x)
+  else Left x
+  where xInt = fromInteger (round x)
+--------------------------------------------------------------------------------------------------------------
+-- Lists
+
+-- assumes all rows have same length, and every input ASValue is a row (i.e. column-major)
+-- TODO deal with case of RDataFrame
+transposeList :: [ASValue] -> [ASValue]
+transposeList l = case (head l) of
+  (ValueL _) -> map ValueL $ L.transpose $ map toList l
+  _ -> [ValueL l]
+
+isHighDimensional :: Int -> ASValue -> Bool
+isHighDimensional depth (ValueL l) = if (depth + 1 > 2)
+  then True
+  else isHighDimensional (depth + 1) (head l)
+isHighDimensional depth (RDataFrame l) = if (depth + 1 > 2)
+  then True
+  else isHighDimensional (depth + 1) (head l)
+isHighDimensional depth _ = False
+
+sanitizeList :: ASValue -> ASValue
+sanitizeList v = if (isHighDimensional 0 v)
+  then ValueError "Cannot embed lists of dimension > 2." "StdErr" "" 0
+  else v
+
 --------------------------------------------------------------------------------------------------------------
 -- Key-value manip functions
 
@@ -144,10 +176,6 @@ addToAL l key value = (key, value) : delFromAL l key
 
 --------------------------------------------------------------------------------------------------------------
 -- Conversions and Helpers
-
-isJust :: Maybe ASCell -> Bool
-isJust (Just c) = True
-isJust Nothing = False
 
 getCellMessage :: Either ASExecError [ASCell] -> ASServerMessage
 getCellMessage (Left e) = ServerMessage Update (Failure (generateErrorMessage e)) (PayloadN ())
@@ -172,6 +200,7 @@ generateErrorMessage e = case e of
   ExpressionNotEvaluable      -> "Expression not does not contain evaluable statement."
   ExecError                   -> "Error while evaluating expression."
   SyntaxError                 -> "Syntax error."
+  _                           -> show e
 
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
@@ -278,6 +307,43 @@ partitionByListKeys cells [] = ([], cells)
 partitionByListKeys cells keys = liftListTuple $ map (partitionByListKey cells) keys
   where
     partitionByListKey cs k = L.partition (isMemberOfSpecifiedList k) cs
+
+listKeyOrdering :: ListKey -> ListKey -> Ordering
+listKeyOrdering k1 k2 = if (k1 == k2)
+  then EQ
+  else if (k1 > k2)
+    then GT
+    else LT
+
+isString :: ASValue -> Bool
+isString (ValueS _) = True
+isString _ = False
+
+----------------------------------------------------------------------------------------------------------------------------------------------
+-- References in maps
+
+shouldGroupRefs :: (ASCell, [ASReference]) -> Bool
+shouldGroupRefs (c, refs) = case (language $ cellExpression c) of
+  R -> containsRange refs
+  _ -> False
+
+groupRef :: ASLanguage -> (ASRange, [ASValue]) -> Maybe (ASReference, ASValue)
+groupRef lang (ref@(Range _ ((c1,r1),(c2,r2))), vals) = case lang of
+  R -> Just (RangeRef ref, RDataFrame vals')
+    where
+      rows = chunksOf (r2-r1+1) vals
+      vals' = map ValueL rows
+  _ -> Nothing
+
+formatValuesForMap :: [(ASIndex, Maybe ASCell)] -> [(ASReference, ASValue)]
+formatValuesForMap pairs = formattedPairs
+  where formattedPairs = map (\(l, c) -> (IndexRef l, getSanitizedCellValue c)) pairs
+
+getSanitizedCellValue :: Maybe ASCell -> ASValue
+getSanitizedCellValue c = case c of
+  Just cell -> cellValue cell
+  Nothing -> NoValue
+
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Locations
 
@@ -297,6 +363,25 @@ refToIndices loc = case loc of
   --     endx = max (fst ul) (fst lr)
   --     starty = min (snd ul) (snd lr)
   --     endy = max (snd ul) (snd lr)
+
+getHeight :: ASReference -> Int
+getHeight (IndexRef (Index _ _)) = 1
+getHeight (RangeRef (Range _ ((_,b),(_,d)))) = d-b+1
+
+getWidth :: ASReference -> Int
+getWidth (IndexRef (Index _ _)) = 1
+getWidth (RangeRef (Range _ ((a,_),(c,_)))) = c-a+1
+
+isRange :: ASReference -> Bool
+isRange (IndexRef _) = False
+isRange (RangeRef _) = True
+
+-- tail recursive for speed
+containsRange :: [ASReference] -> Bool
+containsRange [] = False
+containsRange (ref:refs) = case ref of
+  (RangeRef _) -> True
+  _ -> containsRange refs
 
 rangeContainsRect :: ASRange -> ((Int, Int), (Int, Int)) -> Bool
 rangeContainsRect (Range _ ((x,y),(x2,y2))) ((x',y'),(x2',y2')) = tl && br
@@ -374,14 +459,24 @@ hasPermissions uid (Whitelist entities) = any (isInEntity uid) entities
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Tags
 
+containsDFMember :: [Maybe ASCell] -> Bool
+containsDFMember = any (\c -> case c of
+  Just cell -> isDFMember cell
+  Nothing -> False)
+
+isDFMember :: ASCell -> Bool
+isDFMember (Cell _ _ _ ts) = any (\t -> case t of
+  DFMember -> True
+  _ -> False) ts
+
+getListKeyUnsafe :: ASCell -> ListKey
+getListKeyUnsafe cell = listKey
+  where (Just (ListMember listKey)) = getListTag cell
+
 getListTag :: ASCell -> Maybe ASCellTag
-getListTag (Cell _ _ _ ts) = getTag foundTags
-  where
-    foundTags = filter (\t -> case t of
-      (ListMember _) -> True
-      _ -> False) ts
-    getTag [] = Nothing
-    getTag (t:[]) = Just t
+getListTag (Cell _ _ _ ts) = L.find (\t -> case t of
+  (ListMember _) -> True
+  _ -> False) ts
 
 containsTrackingTag :: [ASCellTag] -> Bool
 containsTrackingTag [] = False

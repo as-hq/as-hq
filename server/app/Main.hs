@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE QuasiQuotes #-}
 
 module Main where
 
@@ -38,12 +39,17 @@ import AS.Kernels.LanguageUtils as KL
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.Either
 
+import qualified Foreign.R as R
+import Language.R.Instance as R
+import Language.R.QQ
+
 -------------------------------------------------------------------------------------------------------------------------
 -- Main
 
 main :: IO ()
-main = do
+main = R.withEmbeddedR R.defaultConfig $ do
     -- initializations
+    putStrLn "STARTING APP"
     (conn, state) <- initApp
     if isDebug -- set in Settings.hs
       then initDebug conn >> return ()
@@ -57,6 +63,13 @@ initApp = do
   -- init eval
   mapM_ KL.clearReplRecord [Python] -- clear/write repl record files
   runEitherT $ KP.evaluate "\'test!\'" -- force load C python sources so that first eval isn't slow
+  -- init R
+  R.runRegion $ do
+    -- the app needs sudo to install packages.
+    --[r|install.packages("rjson", repos='http://cran.us.r-project.org')|]
+    [r|library("rjson")|]
+    [r|library("ggplot2")|]
+    return ()
   -- init workbooks-- init DB and state
   conn <- R.connect DBU.cInfo
   state <- newMVar $ State [] [] conn
@@ -119,5 +132,4 @@ processMessage client state message = do
 onDisconnect :: (Client c) => c -> MVar ServerState -> IO ()
 onDisconnect user state = do
   printWithTime "Client disconnected"
-
   liftIO $ modifyMVar_ state (\s -> return $ removeClient user s) -- remove client from server

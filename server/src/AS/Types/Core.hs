@@ -15,6 +15,10 @@ import qualified Data.Map as M
 import Control.Concurrent (MVar)
 import Control.Applicative
 
+-- memory
+import Control.DeepSeq
+import Control.DeepSeq.Generics (genericRnf)
+
 -- EitherT
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.Either
@@ -35,14 +39,15 @@ data ASRange = Range {rangeSheetId :: ASSheetId, range :: ((Int, Int), (Int, Int
 data ASReference = IndexRef ASIndex | RangeRef ASRange deriving (Show, Read, Eq, Generic, Ord)
 
 refSheetId :: ASReference -> ASSheetId
-refSheetId loc = case loc of 
-  IndexRef i -> locSheetId i 
+refSheetId loc = case loc of
+  IndexRef i -> locSheetId i
   RangeRef r -> rangeSheetId r
 
+
 -- | TODO: create custom show instance that takes REF/NA/VALUE etc into account
-data EError = 
+data EError =
   ExcelSyntaxError |
-  EmptyMatrix String | 
+  EmptyMatrix String |
   NotFunction String |
   TooManyArgs String |
   ArrayConstantDim |
@@ -67,19 +72,23 @@ data EError =
 
 data ASValue =
     NoValue
+  | ValueNull
   | ValueS String
   | ValueI Int
-  | ValueD Double 
+  | ValueD Double
   | ValueB Bool
   | ValueL [ASValue]
   | ValueImage { imagePath :: String }
   | ValueObject { objectType :: String, jsonRepresentation :: String }
-  | ValueError { errMsg :: String, errType :: String, file :: String, position :: Int } 
+  | ValueError { errMsg :: String, errType :: String, file :: String, position :: Int }
   | ValueExcelError EError
+  | RList [(RListKey, ASValue)]
+  | RDataFrame [ASValue]
   deriving (Show, Read, Eq, Generic)
 
--- TODO should 
--- data EvalErrorType = ExcelParse | StdErr | RefError deriving (Show, Read, Eq, Generic)
+type RListKey = String
+
+type EvalCode = String
 
 data ASReplValue = ReplValue {replValue :: ASValue, replLang :: ASLanguage} deriving (Show, Read, Eq, Generic)
 
@@ -87,12 +96,12 @@ data ASLanguage = R | Python | OCaml | CPP | Java | SQL | Excel deriving (Show, 
 
 -- TODO consider migration to exLocs record
 data ASExpression =
-  Expression { expression :: String, language :: ASLanguage } 
+  Expression { expression :: String, language :: ASLanguage }
   deriving (Show, Read, Eq, Generic)
 
 emptyExpression = ""
 
-data ASCellTag = 
+data ASCellTag =
     Color String
   | Size Int
   | Money
@@ -102,9 +111,10 @@ data ASCellTag =
   | Volatile
   | ReadOnly [ASUserId]
   | ListMember {listKey :: String}
+  | DFMember
   deriving (Show, Read, Eq, Generic)
 
-data ASCell = Cell {cellLocation :: ASIndex, 
+data ASCell = Cell {cellLocation :: ASIndex,
           cellExpression :: ASExpression,
           cellValue :: ASValue,
           cellTags :: [ASCellTag]} deriving (Show, Read, Eq, Generic)
@@ -131,17 +141,17 @@ data ASClientMessage = ClientMessage {
   clientPayload :: ASPayload
 } deriving (Show, Read, Eq, Generic)
 
-data ASServerMessage = ServerMessage { 
+data ASServerMessage = ServerMessage {
   serverAction :: ASAction,
   serverResult :: ASResult,
   serverPayload :: ASPayload
 } deriving (Show, Read, Eq, Generic)
 
-data ASAction = 
+data ASAction =
     NoAction
   | Acknowledge
   | SetInitialSheet
-  | New | Import 
+  | New | Import
   | Open | Close
   | Evaluate | EvaluateRepl
   | Update
@@ -156,13 +166,13 @@ data ASAction =
 data ASResult = Success | Failure {failDesc :: String} | NoResult deriving (Show, Read, Eq, Generic)
 
 -- for open, close dialogs
-data QueryList = 
+data QueryList =
   Sheets |
   Workbooks |
   WorkbookSheets
   deriving (Show, Read, Eq, Generic)
 
-data ASPayload = 
+data ASPayload =
     PayloadN ()
   | PayloadInit ASInitConnection
   | PayloadDaemonInit ASInitDaemonConnection
@@ -184,7 +194,7 @@ data ASPayload =
   | PayloadTags {tags :: [ASCellTag], tagsLoc :: ASIndex}
   | PayloadXp ASExpression
   | PayloadReplValue ASReplValue
-  | PayloadList QueryList 
+  | PayloadList QueryList
   deriving (Show, Read, Eq, Generic)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
@@ -192,26 +202,26 @@ data ASPayload =
 
 data ASTime = Time {day :: String, hour :: Int, minute :: Int, sec :: Int} deriving (Show,Read,Eq,Generic)
 
-type ASRelations = [(ASIndex, [ASIndex])] -- for representing ancestry relationships
+type ASRelation = (ASIndex, [ASIndex]) -- for representing ancestry relationships
 
-data ASCommit = ASCommit {commitUserId :: ASUserId, 
-                          before :: [ASCell], 
-                          after :: [ASCell], 
-                          listsChanged :: [ListKey], 
-                          time :: ASTime} 
+data ASCommit = ASCommit {commitUserId :: ASUserId,
+                          before :: [ASCell],
+                          after :: [ASCell],
+                          listsChanged :: [ListKey],
+                          time :: ASTime}
                           deriving (Show,Read,Eq,Generic)
 
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Eval Types
 
-data ASExecError = 
+data ASExecError =
     Timeout
   | EvaluationError {evalErrorDesc :: String}
-  | DependenciesLocked {lockUserId :: ASUserId} 
+  | DependenciesLocked {lockUserId :: ASUserId}
   | DBNothingException {badLocs :: [ASIndex]}
   | DBGraphUnreachable -- failed to connect
-  | CircularDepError {badLoc :: ASIndex} 
+  | CircularDepError {badLoc :: ASIndex}
   | NetworkDown
   | RuntimeEvalException
   | ResourceLimitReached
@@ -221,9 +231,10 @@ data ASExecError =
   | ExpressionNotEvaluable
   | ExecError
   | SyntaxError
+  | HighDimensionalValue
   deriving (Show, Read, Eq, Generic)
 
-type EitherCells = Either ASExecError [ASCell] 
+type EitherCells = Either ASExecError [ASCell]
 type EitherTExec = EitherT ASExecError IO
 
 type RefValMap = M.Map ASReference ASValue
@@ -237,7 +248,7 @@ data ASInitDaemonConnection = ASInitDaemonConnection {parentUserId :: ASUserId, 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- State
 
-data ServerState = State {userClients :: [ASUserClient], daemonClients :: [ASDaemonClient], dbConn :: R.Connection} 
+data ServerState = State {userClients :: [ASUserClient], daemonClients :: [ASDaemonClient], dbConn :: R.Connection}
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Clients
@@ -258,10 +269,10 @@ data ASRecipients = Original | All | Custom [ASUserClient]
 -- Users
 
 data ASWindow = Window {windowSheetId :: ASSheetId, topLeft :: (Int, Int), bottomRight :: (Int, Int)} deriving (Show,Read,Eq,Generic)
-type ASUserId = Text 
-data ASUserClient = UserClient {userId :: ASUserId, userConn :: WS.Connection, windows :: [ASWindow], sessionId :: ClientId} 
+type ASUserId = Text
+data ASUserClient = UserClient {userId :: ASUserId, userConn :: WS.Connection, windows :: [ASWindow], sessionId :: ClientId}
 
-instance Eq ASUserClient where 
+instance Eq ASUserClient where
   c1 == c2 = (sessionId c1) == (sessionId c2)
 
 data ASUserGroup = Group {groupMembers :: [ASUserId], groupAdmins :: [ASUserId], groupName :: Text} deriving (Show, Read, Eq, Generic)
@@ -278,7 +289,7 @@ data ASPermissions = Blacklist [ASEntity] |
 
 data ASDaemonClient = DaemonClient {daemonLoc :: ASIndex, daemonConn :: WS.Connection, daemonOwner :: ASUserId}
 
-instance Eq ASDaemonClient where 
+instance Eq ASDaemonClient where
   c1 == c2 = (daemonLoc c1) == (daemonLoc c2)
 
 
@@ -333,7 +344,7 @@ instance FromJSON ASResult
 instance ToJSON ASPayload
 instance FromJSON ASPayload
 instance ToJSON ASInitConnection
-instance FromJSON ASInitConnection 
+instance FromJSON ASInitConnection
 instance ToJSON ASExecError
 instance FromJSON ASExecError
 instance FromJSON EError
@@ -368,19 +379,20 @@ instance FromJSON ASTime
 instance ToJSON ASTime
 instance FromJSON ASCommit
 instance ToJSON ASCommit
-
--- The format Frontend uses for both client->server and server->client is 
+-- The format Frontend uses for both client->server and server->client is
 -- { messageUserId: blah, action: blah, result: blah, payload: blah }
-instance ToJSON ASClientMessage where 
+instance ToJSON ASClientMessage where
   toJSON (ClientMessage action payload) = object ["action" .= action, "payload" .= payload]
-instance FromJSON ASClientMessage where 
+instance FromJSON ASClientMessage where
   parseJSON (Object v) = ClientMessage <$>
                            v .: "action" <*>
                            v .: "payload"
   parseJSON _          = fail "client message JSON attributes missing"
-instance ToJSON ASServerMessage where 
-  toJSON (ServerMessage action result payload) = object ["action" .= action, "result" .= result, "payload" .= payload]
-instance FromJSON ASServerMessage where 
+instance ToJSON ASServerMessage where
+  toJSON (ServerMessage action result payload) = object ["action" .= action,
+                                                        "result" .= result,
+                                                        "payload" .= payload]
+instance FromJSON ASServerMessage where
   parseJSON (Object v) = ServerMessage <$>
                            v .: "action" <*>
                            v .: "result" <*>
@@ -395,6 +407,14 @@ instance ToJSON ASCellTag
 --instance FromJSON ASCellTag where
 --  parseJSON obj@(Object v) = do
 --    listField <- v .:? "listKey"
---    case listField of 
+--    case listField of
 --      Nothing -> genericParseJSON defaultOptions obj
 --      (Just k) -> return . ListMember $ BC.pack k
+
+
+-- memory region exposure instances for R value unboxing
+instance NFData ASValue       where rnf = genericRnf
+instance NFData EError        where rnf = genericRnf
+instance NFData ASReference   where rnf = genericRnf
+instance NFData ASRange       where rnf = genericRnf
+instance NFData ASIndex       where rnf = genericRnf

@@ -62,7 +62,7 @@ evaluateLanguageRepl (Expression str lang) = catchEitherT $ case lang of
 -- return Nothing. Otherwise, if there are errors that can't be dealt with, return appropriate ASValue error.
 possiblyShortCircuit :: ASSheetId -> RefValMap -> ASExpression -> Maybe ASValue
 possiblyShortCircuit sheetid valuesMap xp =
-  let depIndices = getDependencies sheetid xp
+  let depIndices = concat $ map refToIndices $ getDependencies sheetid xp
       refs   = map IndexRef depIndices
       lang = language xp
       values = map (valuesMap M.!) $ refs in

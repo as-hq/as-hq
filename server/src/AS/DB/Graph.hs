@@ -12,7 +12,7 @@ import qualified Data.ByteString.Char8         as BC
 import AS.Types.Core
 import AS.Types.DB
 import AS.Config.Settings as S
-import AS.DB.Util 
+import AS.DB.Util
 import AS.Util
 
 -- EitherT
@@ -25,12 +25,12 @@ getDescendants = query GetDescendants
 getImmediateAncestors :: [ASIndex] -> EitherTExec [ASIndex]
 getImmediateAncestors = query GetImmediateAncestors
 
--- TODO: should really be returning EitherTExec (), kind of like clear. 
+-- TODO: should really be returning EitherTExec (), kind of like clear.
 rollbackGraph :: EitherTExec [ASIndex]
 rollbackGraph = query RollbackGraph []
 
 query :: GraphQuery -> [ASIndex] -> EitherTExec [ASIndex]
-query q locs = 
+query q locs =
     let
         elements = (show q):(map show2 locs)
         msg = BS.show $ intercalate msgPartDelimiter elements
@@ -39,7 +39,7 @@ query q locs =
         reqSocket <- socket Req
         connect reqSocket S.graphDbHost
         send' reqSocket [] msg   -- using lazy bytestring send function
-        liftIO $ printWithTime "sent message to graph db"  
+        liftIO $ printWithTime "sent message to graph db"
         reply <- receiveMulti reqSocket
         case (B.unpack $ last reply) of
             "OK" -> do
@@ -49,26 +49,26 @@ query q locs =
             "CIRC_DEP" -> do
                 let circDepLoc = read2 $ B.unpack $ head reply
                 return $ Left $ CircularDepError circDepLoc
-            _ -> do 
+            _ -> do
                 return $ Left DBGraphUnreachable
 
--- | Takes in a list of (cell, [list of ancestors of that cell])'s and sets the ancestor relationship in the DB. 
--- (ASRelations is of type [(ASIndex, [ASIndex])]).
-setRelations :: ASRelations -> EitherTExec ()
-setRelations rels = 
+-- | Takes in a list of (cell, [list of ancestors of that cell])'s and sets the ancestor relationship in the DB.
+-- Note: ASRelation is of type (ASIndex, [ASIndex])
+setRelations :: [ASRelation] -> EitherTExec ()
+setRelations rels =
     let
         locSets = map (\(root, deps)-> (root:deps)) rels
         relations = map (\lset -> intercalate relationDelimiter $ map show2 lset) locSets
         elements = (show SetRelations):relations
         msg = BS.show $ intercalate msgPartDelimiter elements
     in EitherT $ runZMQ $ do
-        liftIO $ printWithTime "Connecting to graph database for multi query."  
+        liftIO $ printWithTime "Connecting to graph database for multi query."
         reqSocket <- socket Req
         connect reqSocket S.graphDbHost
         send' reqSocket [] msg
-        liftIO $ printWithTime "sent message"  
+        liftIO $ printWithTime "sent message"
         reply <- receiveMulti reqSocket
-        liftIO $ printWithTime $ "received message of length: " ++ (show . length $ reply)  
+        liftIO $ printWithTime $ "received message of length: " ++ (show . length $ reply)
         --liftIO $ printWithTime $ "graph db reply multi: " ++ (show reply)
         --liftIO $ printWithTime $ "query type: " ++ (show q)
         case (B.unpack $ last reply) of
@@ -76,7 +76,7 @@ setRelations rels =
             "CIRC_DEP" -> do
                 let circDepLoc = read2 $ B.unpack $ head reply
                 return $ Left $ CircularDepError circDepLoc
-            _ -> do 
+            _ -> do
                 return $ Left DBGraphUnreachable
 
 clear :: IO ()

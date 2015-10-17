@@ -33,7 +33,7 @@ evaluate :: String -> EitherTExec ASValue
 evaluate "" = return NoValue
 evaluate str = do
     validCode <- introspectCode Python str
-    if isDebug 
+    if isDebug
         then lift $ writeExecFile Python validCode
         else return ()
     execWrappedCode validCode
@@ -61,7 +61,7 @@ evaluateSql :: String -> EitherTExec ASValue
 evaluateSql "" = return NoValue
 evaluateSql str = do
     validCode <- introspectCode SQL str
-    if isDebug 
+    if isDebug
         then lift $ writeExecFile SQL validCode
         else return ()
     execWrappedCode validCode
@@ -81,7 +81,7 @@ execWrappedCode evalCode = do
 
 pyfiString :: String -> EitherTExec String
 pyfiString evalStr = EitherT $ catch (fmap Right execString) whenCaught
-    where 
+    where
         execString = defVV (evalStr ++ pyString) ("Hello" :: String)
         whenCaught = (\e -> return $ Left SyntaxError) :: (SomeException -> IO (Either ASExecError String))
         -- #incomplete should send back more descriptive error message
