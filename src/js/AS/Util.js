@@ -94,26 +94,31 @@ export default {
     }
   },
 
-  getBorderPatternsForInteriorCell(col, row, locs) {
+  getBorderForInteriorCell(col, row, rng) {
+    let borders = []
+    if (!rng.row2 && (col === rng.col && row === rng.row)) {
+      return [[[0,0],[1,0]],
+              [[1,0],[1,1]],
+              [[1,1],[0,1]],
+              [[0,1],[0,0]]];
+    }
+    else if (col >= rng.col && col <= rng.col2 && row >= rng.row && row <= rng.row2){
+      if (col === rng.col) // left intersection
+        borders.push([[0,0],[0,1]]);
+      if (col === rng.col2) // right intersection
+        borders.push([[1,0],[1,1]]);
+      if (row === rng.row) // top intersection
+        borders.push([[0,0],[1,0]]);
+      if (row === rng.row2) // bottom intersection
+        borders.push([[0,1],[1,1]]);
+    }
+    return borders;
+  },
+
+  getBorderPatternsForInteriorCell(col, row, rngs) {
     let borders = [];
-    for (var i = 0; i < locs.length; ++i) {
-      let rng = locs[i];
-      if (!locs[i].row2 && (col === locs[i].col && row === locs[i].row)) {
-        return [[[0,0],[1,0]],
-                [[1,0],[1,1]],
-                [[1,1],[0,1]],
-                [[0,1],[0,0]]];
-      }
-      else if (col >= rng.col && col <= rng.col2 && row >= rng.row && row <= rng.row2){
-        if (col === rng.col) // left intersection
-          borders.push([[0,0],[0,1]]);
-        if (col === rng.col2) // right intersection
-          borders.push([[1,0],[1,1]]);
-        if (row === rng.row) // top intersection
-          borders.push([[0,0],[1,0]]);
-        if (row === rng.row2) // bottom intersection
-          borders.push([[0,1],[1,1]]);
-      }
+    for (var i = 0; i < rngs.length; ++i) {
+      borders = borders.concat(this.getBorderForInteriorCell(col, row, rngs[i]));
     }
     return borders;
   },
@@ -122,18 +127,12 @@ export default {
 // returns a list of edges that can be painted in any order
 // each edge is a 2-length array [start, end]
 // executed by graphicscontext.moveTo(startx, starty) -> graphicscontext.lineTo(endx, endy)
-  getPaintedBorders(col, row, locs) {
-    if (locs.constructor == Array) {
-      return this.getBorderPatternsForInteriorCell(col, row, locs);
-    }
-    else if (col === locs.col && row === locs.row) {
-      return [[[0,0],[1,0]],
-              [[1,0],[1,1]],
-              [[1,1],[0,1]],
-              [[0,1],[0,0]]];
+  getPaintedBorders(col, row, rngs) {
+    if (rngs.constructor == Array) {
+      return this.getBorderPatternsForInteriorCell(col, row, rngs);
     }
     else {
-      return [];
+      return this.getBorderForInteriorCell(col, row, rngs);
     }
   },
 
