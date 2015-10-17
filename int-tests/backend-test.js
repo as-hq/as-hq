@@ -597,7 +597,7 @@ describe('backend', () => {
       });
 
       describe('general', () => {
-        xit('should do multi language eval', (done) => {
+        it('should do multi language eval', (done) => {
           _do([
             python('A1', '10'),
             r('B1', '1:A1'),

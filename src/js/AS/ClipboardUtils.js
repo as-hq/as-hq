@@ -1,5 +1,4 @@
 import Store from '../stores/ASEvaluationStore';
-let Papa = require('papaparse');
 
 
 export default {
@@ -21,7 +20,7 @@ export default {
 		table.appendChild(tableBody);
 		return table.outerHTML;
 	},
-		  
+
 	/* Takes a list of list of values (row-major) and returns a plain string
 	Ex. [[3,4]] -> "3\t4" */
 	valsToPlain(vals){
@@ -38,7 +37,7 @@ export default {
 		// Simplest solution without creating the DOM element and checking for the tag
 	},
 
-	/* Takes a text/plain string like "3\t4" and returns a list of list of values (row-major) 
+	/* Takes a text/plain string like "3\t4" and returns a list of list of values (row-major)
 	TODO: make correct in all cases (maybe looking at text/html is better)
 	Right now, if a row has a tab, separate by tab; else do comma. This works for sheets,Libre,gfin.
 	-- Ritesh 10/16 */
@@ -57,7 +56,7 @@ export default {
 				}
 			}
 		});
-		
+
 		console.log("VALS: " + JSON.stringify(vals));
 		return vals;
 	},

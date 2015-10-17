@@ -64,24 +64,22 @@ function onPropsSet(editor, props) {
             else {
               return;
             }
-          else {
-            return;
-          }
+        }
+        lines[pos.row] = lines[pos.row].slice(0,pos.column-1) + lines[pos.row].slice(pos.column);
+        let backspaceVal = lines.join('\n');
+        editor.setValue(backspaceVal);
+        editor.clearSelection();
+        editor.gotoLine(pos.row+1,pos.column-1);
+        console.log("New backspace value: " + JSON.stringify(editor.getValue().split('\n')));
       }
-      lines[pos.row] = lines[pos.row].slice(0,pos.column-1) + lines[pos.row].slice(pos.column);
-      let backspaceVal = lines.join('\n');
-      editor.setValue(backspaceVal);
-      editor.clearSelection();
-      editor.gotoLine(pos.row+1,pos.column-1);
-      console.log("New backspace value: " + JSON.stringify(editor.getValue().split('\n')));
-    }
-  });
+    });
 
-  if (props.onLoad) {
-    props.onLoad(editor);
-  }
-  if (props.isRepl){
-    editor.getSession().setUseSoftTabs(false);
+    if (props.onLoad) {
+      props.onLoad(editor);
+    }
+    if (props.isRepl){
+      editor.getSession().setUseSoftTabs(false);
+    }
   }
 }
 
