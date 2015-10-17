@@ -235,8 +235,9 @@ export default React.createClass({
   handleCopyTypeEventForGrid(e,isCut){
     KeyUtils.killEvent(e);
     let selRegion = Store.getActiveSelection(),
-        vals = Store.selRegionToValues(selRegion),
-        html = ClipboardUtils.valsToHtml(vals),
+        vals = Store.selRegionToValues(selRegion.range);
+    console.log("VALUES IN COPY: " + JSON.stringify(vals));
+    let html = ClipboardUtils.valsToHtml(vals),
         plain = ClipboardUtils.valsToPlain(vals);
     console.log("COPY HTML: " + html);
     console.log("COPY PLAIN: " + plain);
@@ -254,6 +255,7 @@ export default React.createClass({
         containsPlain = Util.arrContains(e.clipboardData.types,"text/plain"),
         isAlphaSheets = containsHTML ?
           ClipboardUtils.htmlStringIsAlphaSheets(e.clipboardData.getData("text/html")) : false;
+    console.log("PASTE TYPES: " + JSON.stringify(e.clipboardData.types));
     if (isAlphaSheets){ // From AS
       console.log("PASTE FROM AS");
       let clipboard = Store.getClipboard();
@@ -273,8 +275,9 @@ export default React.createClass({
         console.log("PASTE FROM EXTERNAL PLAIN");
         let plain = e.clipboardData.getData("text/plain"),
             vals = ClipboardUtils.plainStringToVals(plain),
-            cells = Store.makeASCellsFromVals(rng,vals,this.state.language);
-        API.sendSimplePasteRequest(cells);
+            cells = Store.makeASCellsFromVals(rng,vals,this.state.language),
+            concatCells = [].concat.apply([], cells);
+        API.sendSimplePasteRequest(concatCells);
         // The normal eval handling will make the paste show up
       }
       else {

@@ -281,6 +281,7 @@ export default {
   },
 
   sendSimplePasteRequest(cells){
+    console.log("ABOUT TO SEND CELLS: " + JSON.stringify(cells));
     let msg = Converter.toServerMessageFormat(Constants.ServerActions.Evaluate, "PayloadCL",cells);
     this.send(msg);
   },

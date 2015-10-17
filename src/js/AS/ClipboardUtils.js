@@ -1,4 +1,6 @@
 import Store from '../stores/ASEvaluationStore';
+let Papa = require('papaparse');
+
 
 export default {
 
@@ -36,15 +38,42 @@ export default {
 		// Simplest solution without creating the DOM element and checking for the tag
 	},
 
-	/* Takes a text/plain string like "3\t4" and returns a list of list of values (row-major) */
+	/* Takes a text/plain string like "3\t4" and returns a list of list of values (row-major) 
+	TODO: make correct in all cases (maybe looking at text/html is better)
+	Right now, if a row has a tab, separate by tab; else do comma. This works for sheets,Libre,gfin.
+	-- Ritesh 10/16 */
 	plainStringToVals(s){
-		console.log("CONVERTING PLAIN STRING TO VALS");
-		let rows = s.split('\n');
-		let vals = [];
+		console.log("CONVERTING PLAIN STRING TO VALS: " + s);
+		let rows = s.split('\n'),
+			vals = [],
+			self = this;
 		rows.forEach(function(row){
-			vals.push(row.split('\t'));
+			if (row.trim()!==""){ // only include non-empty rows
+				if (row.indexOf('\t')>=0){
+					vals.push(row.split('\t'));
+				}
+				else {
+					vals.push(row.split(','));
+				}
+			}
 		});
+		
 		console.log("VALS: " + JSON.stringify(vals));
 		return vals;
+	},
+
+	/* Takes an array of strings and replaces all possible entries with numbers */
+	formatRow(arr){
+		let newArr = [];
+		arr.forEach(function(elem){
+			let f = parseFloat(elem);
+			if (isNaN(f)){
+				newArr.push(elem);
+			}
+			else {
+				newArr.push(f);
+			}
+		});
+		return newArr;
 	}
 }
