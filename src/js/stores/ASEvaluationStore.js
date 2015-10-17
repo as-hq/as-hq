@@ -164,7 +164,6 @@ const ASEvaluationStore = assign({}, BaseStore, {
     let rng = area.range;
     _data.activeSelection = rng;
     _data.activeCell = this.getCellAtLoc(rng.col, rng.row) || Converter.defaultCell();
-    console.log(JSON.stringify(_data.activeCell) + " is the active cell");
     var activeCellDependencies = Util.parseDependencies(xp);
     if (rng.hasOwnProperty('row2') && rng.hasOwnProperty('col2')) {
       for (var r = rng.row; r <= rng.row2; ++r){
@@ -214,6 +213,12 @@ const ASEvaluationStore = assign({}, BaseStore, {
     return {row: r, column: c}
   },
     
+
+//  setActiveSelection(rng, xp) {
+//    _data.activeSelection = rng;
+//    _data.activeCell = this.getCellAtLoc(rng.col, rng.row) || Converter.defaultCell();
+//    this.setActiveCellDependencies(Util.parseDependencies(xp));
+//  },
   getActiveSelection() {
     return _data.activeSelection;
   },
@@ -353,93 +358,31 @@ const ASEvaluationStore = assign({}, BaseStore, {
     }
   },
 
-  //Utils for selRegionToValues
   sliceArray (begin, end) {
     return (
         function(arr) { return arr.slice(begin, end) } 
     );
   },
 
-  clientCellToValue(clientCell) {
-    v = clientCell.cellValue.contents;
-    if (v.length != 0){
-      return clientCell.cellValue.contents;
-    }
-    return "";
-  },
-
-  invertArray(array){
-    var newArray = [];
-    for (let i = 0; i < array.length; ++i){
-      newArray.push([]);
-    };
-    for (let i = 0; i < array.length; ++i){
-      for(var j = 0; j < array[i].length; j++){
-        newArray[j].push(array[i][j]);
-      };
-    };
-    return(newArray);
-  },
-
-  // Converts a range to a row major list of lists, 
-  selRegionToValues(rng){
+  getCellsAtLocationRange(rng){
     let sheetid = _data.currentSheet.sheetId;
     let col = rng.col, row = rng.row;
+
     if (this.locationExists(sheetid, col, row)) {
-      if (!rng.hasOwnProperty(rng.row2)) {
-        return this.getCellAtLoc(col, row);
+      if (!rng.hasOwnProperty(row2)) {
+        return getCellAtLoc(col, row);
       }
-      else if (this.locationExists(sheetid, rng.col2, rng.row2)) {
-        let col2 = rng.col2, row = rng.row2;
-        var column_major_values = _data.allCells[sheetid].slice(col, col2+1).map(this.sliceArray(row, row2+1)).map(this.clientCellToValue);
-        var row_major_values = invertArray(column_major_values);
-        return row_major_values;
-      }
+    }
+    if (this.locationExists(sheetid, col, row) && this.locationExists(sheetid, col2, row2)) {
+      let col2 = rng.col2, row = rng.row2;
+      return _data.allCells[sheetid].slice(col, col2+1).map(this.sliceArray(row, row2+1));
     }
     return null;
   },
 
-  // Methods for paste
-  makeServerCell(loc, language, i, j) {
-    return function(v) {
-      var row = loc.row, col = loc.col;
-      return  {
-        "cellLocation": [col + j, row + i],
-        "cellExpression": {
-          "tag": "Expression",
-          "expression" : v,
-          "language": language
-        },
-        "cellValue":{
-          "tag": "NoValue",
-          "contents": []
-        },
-        "cellTags": []
-      };
-    };
-  },
-
-  arrayToASCells(loc, language) {
-    return function(i){
-      return function(v, j) {
-        return makeServerCell(loc, language, i, j)(v);
-      };
-    };
-  },
-  rowValuesToASCells(loc, language){ 
-    return function(values, i){
-      return values.map(arrayToASCells(loc, language)(i));
-    };
-  },
-
-  makeASCellsFromVals(loc, vals, language) {
-    return vals.map(rowValuesToASCells(loc, language));
-  },
-
   cellRegionToValues() {
-    return Util.getCellsAtLocationRange(this.getActiveSelection());
+    return getCellsAtLocationRange(this.getActiveSelection());
   },
-
   /**************************************************************************************************************************/
 
   /*
