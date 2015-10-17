@@ -295,6 +295,10 @@ listKeyOrdering k1 k2 = if (k1 == k2)
     then GT
     else LT
 
+isString :: ASValue -> Bool
+isString (ValueS _) = True
+isString _ = False
+
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- References in maps
 

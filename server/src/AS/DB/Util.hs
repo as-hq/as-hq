@@ -233,6 +233,7 @@ decoupleCell (Cell l e v ts) = Cell l e' v ts'
     e'    = Expression (showValue lang v) lang
     ts'   = filter (\t -> case t of
       ListMember _ -> False
+      DFMember -> False
       _ -> True) ts
 
 isListHead :: ASCell -> Bool

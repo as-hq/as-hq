@@ -80,14 +80,24 @@ showRList :: ASLanguage -> [(RListKey, ASValue)] -> String
 showRList lang l = case lang of
   R -> "list(" ++ (concat $ L.intersperse "," $ map showRPair l) ++ ")"
 
-showRPair :: (RListKey, ASValue) -> String
+showRPair :: (String, ASValue) -> String
 showRPair (key, val) = case key of
   "" -> showValue R val
   _ -> key ++ "=" ++ (showValue R val)
 
 showRDataFrame :: ASLanguage -> [ASValue] -> String
 showRDataFrame lang vals = case lang of
-  R -> "data.frame(" ++ (concat $ L.intersperse "," $ map (showValue R) vals) ++ ")"
+  R -> "data.frame(" ++ (concat $ L.intersperse "," fields) ++ ")"
+    where fields = map showRPair $ splitNamesFromDataFrameValues vals
+
+splitNamesFromDataFrameValues :: [ASValue] -> [(String, ASValue)]
+splitNamesFromDataFrameValues vals = pairs
+  where
+    pairs = if (all isString names)
+      then zip (map str names) (map (\(ValueL l) -> ValueL $ tail l) vals)
+      else zip (repeat ("" :: String)) vals
+    names = map (\(ValueL l) -> head l) vals
+
 
 -------------------------------------------------------------------------------------------------------------------------------------------------
 -- General parsing functions

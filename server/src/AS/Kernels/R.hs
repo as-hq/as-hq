@@ -125,17 +125,29 @@ castVector v = do
   (ValueB isDf) <- castR =<< [r|is.data.frame(AS_LOCAL_EXEC)|]
   if isList
     then if isDf
-      then return [(RDataFrame vals)]
+      then do
+        listNames <- castR =<< [r|names(AS_LOCAL_EXEC)|]
+        let listNames' = map ValueS $ castListNames listNames
+            firstRow = take (length vals) listNames'
+            vals' = prependRowToColumnMajorList firstRow vals
+        return [RDataFrame vals']
       else do
         listNames <- castR =<< [r|names(AS_LOCAL_EXEC)|]
         return [RList $ zip (castListNames listNames) vals]
     else return vals
 
+prependRowToColumnMajorList :: [ASValue] -> [ASValue] -> [ASValue]
+prependRowToColumnMajorList row cols = cols'
+  where
+    cols' = map (\(rowElem,col) -> case col of
+      (ValueL l) -> ValueL $ rowElem:l
+      _ -> ValueL $ rowElem:col:[]) $ zip row cols
+
 castListNames :: ASValue -> [String]
 castListNames val = case val of
   (ValueL l) -> map (\(ValueS n)->n) l
   (ValueS s) -> [s]
-  ValueNull  -> repeat ""
+  ValueNull  -> repeat "NULL"
 
 -- TODO figure out S4 casting
 castS4 :: R.SEXP s a -> R s ASValue
