@@ -89,8 +89,8 @@ transform f = \c r -> do
   f c args
 
 getFunc :: String -> ThrowsError FuncDescriptor
-getFunc f = case (M.lookup f functions) of
-  Nothing -> throwError $ NotFunction f
+getFunc f = case (M.lookup (map toLower f) functions) of
+  Nothing -> throwError $ NotFunction $ map toUpper f
   Just fd -> Right fd
 
 --------------------------------------------------------------------------------------------------------------

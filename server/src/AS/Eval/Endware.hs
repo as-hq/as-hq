@@ -3,8 +3,9 @@ module AS.Eval.Endware where
 import Prelude
 import AS.Types.Core
 import AS.Util as U
+import qualified Data.List as L
 
-import Data.Char (isPunctuation, isSpace)
+import Data.Char (isPunctuation, isSpace, toUpper)
 import Data.Monoid (mappend)
 import Data.Text (Text)
 import Control.Exception 
@@ -28,7 +29,7 @@ import AS.Daemon as DM
 
 evalEndware :: MVar ServerState -> [ASCell] -> ASUserId -> [ASCell] -> IO [ASCell]
 evalEndware state finalCells uid origCells = do 
-  let newCells = finalCells
+  let newCells = changeExcelExpressions finalCells
   mapM_ (DM.possiblyCreateDaemon state uid) origCells
   return newCells
   -- let newCells = (tagStyledCells . (changeExcelExpressions origCell)) finalCells
@@ -39,8 +40,14 @@ evalEndware state finalCells uid origCells = do
 tagStyledCells :: [ASCell] -> [ASCell]
 tagStyledCells = id
 
-changeExcelExpressions :: ASCell -> [ASCell] -> [ASCell]
-changeExcelExpressions cell = id -- TODO: implement
+changeExcelExpressions :: [ASCell] -> [ASCell]
+changeExcelExpressions = L.map upperCase
+	where
+		upperCase :: ASCell -> ASCell
+		upperCase (Cell l (Expression e Excel) v t) = Cell l (Expression e' Excel) v t 
+			where 
+				e' = L.map toUpper e
+		upperCase c = c
 
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
