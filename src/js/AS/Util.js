@@ -48,6 +48,10 @@ export default {
         if (isRepl)
           return self.showFullValueList(cv);
         else return self.showValue(cv.contents[0]);
+      case "RList":
+        if (isRepl)
+          return JSON.stringify(cv.contents);
+        else return "R_LIST";
       case "ValueError":
         if (isRepl)
           return cv.error;
@@ -88,6 +92,9 @@ export default {
         return config;
       case "ListMember":
         // TODO change config to identify visually as list member
+        return config;
+      case "DFMember":
+        config.bgColor = colors["lavender"];
         return config;
       default:
         return config;
@@ -155,7 +162,7 @@ export default {
     }
   },
 
-  
+
   getX(col,scrollX){
     return col * Constants.cellWidthPx - scrollX  + Constants.treeViewWidth + "px";
   },
@@ -325,7 +332,7 @@ export default {
   },
 
   intToExcelCol(i) {
-    i = i -1; 
+    i = i -1;
     var quo = Math.floor((i) / 26);
     var rem = (i) % 26;
     var code = '';

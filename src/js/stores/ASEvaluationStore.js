@@ -182,7 +182,7 @@ const ASEvaluationStore = assign({}, BaseStore, {
 
   getParentList(c,r){
     if (this.getCellAtLoc(c, r) == null) {
-      console.log("timchu: There is no cell at location " + r + ", " + c);
+      // console.log("timchu: There is no cell at location " + r + ", " + c);
       return {row: r, column: c};
     }
     console.log(this.getCellAtLoc(c,r));
@@ -212,7 +212,7 @@ const ASEvaluationStore = assign({}, BaseStore, {
     console.log("No listkey tags");
     return {row: r, column: c}
   },
-    
+
 
 //  setActiveSelection(rng, xp) {
 //    _data.activeSelection = rng;

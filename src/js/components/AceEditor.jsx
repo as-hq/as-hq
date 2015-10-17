@@ -15,7 +15,7 @@ Currently Ctrl Enter is always needed to submit, but this isn't the case for com
 */
 
 function onPropsSet(editor, props) {
-  console.log("on props set");
+  // console.log("on props set");
   editor.getSession().setMode('ace/mode/'+props.mode);
   editor.setTheme('ace/theme/'+props.theme);
   editor.setFontSize(props.fontSize);
@@ -64,7 +64,7 @@ function onPropsSet(editor, props) {
           else {
             return;
           }
-      } 
+      }
       lines[pos.row] = lines[pos.row].slice(0,pos.column-1) + lines[pos.row].slice(pos.column);
       let backspaceVal = lines.join('\n');
       editor.setValue(backspaceVal);
@@ -135,7 +135,7 @@ module.exports = React.createClass({
 
   handleKeyDown(e) {
     /* If the repl should do something (Ctrl Enter), do so
-    else don't do anything if col < 4. There's also a backspace command triggered on key down. 
+    else don't do anything if col < 4. There's also a backspace command triggered on key down.
     Otherwise, act as usual */
     console.log("KEYDOWN: " + e.which);
     if (this.props.isRepl){
@@ -144,7 +144,7 @@ module.exports = React.createClass({
         this.props.onDeferredKey(e);
       }
       let pos = this.editor.getCursorPosition();
-      // If your column position on key down is less than 4 (behind >>> ), do nothing 
+      // If your column position on key down is less than 4 (behind >>> ), do nothing
       if (pos.column < 4 ){
         console.log("WTF BITCH");
         e.preventDefault();

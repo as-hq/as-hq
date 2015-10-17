@@ -473,7 +473,7 @@ describe('backend', () => {
         });
       });
 
-      xdescribe('r', () => {
+      describe('r', () => {
         it('should evaluate at all', (done) => {
           _do([
             r('A1', '1 + 1'),
@@ -519,11 +519,11 @@ describe('backend', () => {
 
         it('should evaluate list dependencies', (done) => {
           _do([
-            r('A1', 'c(1,2,"a",TRUE)'),
-            r('B1', 'typeof(A4)'),
-            shouldBe('B1', valueS('logical')),
             r('A1', 'c(1,2,3,4)'),
+            r('B1', 'typeof(A4)'),
             shouldBe('B1', valueS('double')),
+            r('A1', 'c("a","b","c","d")'),
+            shouldBe('B1', valueS('character')),
             exec(done)
           ]);
         });

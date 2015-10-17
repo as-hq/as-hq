@@ -105,9 +105,9 @@ export default {
       return {tag: "Range",
               rangeSheetId: Store.getCurrentSheet().sheetId,
               range:  [this.clientToServerLoc(clientLoc), this.clientToServerLoc(clientLoc)]};
-    } else if (clientLoc.range) { 
+    } else if (clientLoc.range) {
       return this.clientToASRange(clientLoc.range);
-    } else { 
+    } else {
       throw "clientLoc isn't a range or index";
     }
   },
@@ -272,7 +272,7 @@ export default {
         let cells = [];
         for (var key in msg.payload.contents){
           let clientCell = this.serverToClientCell(msg.payload.contents[key]);
-          console.log("TIMCHU: The client cell is " + msg.payload.contents[key]);
+          // console.log("TIMCHU: The client cell is " + msg.payload.contents[key]);
           cells.push(clientCell);
         }
         // console.log("Eval cells JSON: " + JSON.stringify(cells));

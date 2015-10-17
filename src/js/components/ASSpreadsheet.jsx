@@ -288,12 +288,15 @@ export default React.createClass({
           config.halign = 'right';
         } else if (cell.cellValue.tag === "ValueS") {
           config.halign = 'left';
+        } else if (cell.cellValue.tag === "RList") {
+          config.bgColor = Util.colorNameToHex("lightcyan");
         } else {
           config.halign = 'center';
         }
         if (cell.cellTags.length > 0){
-          for (var i=0; i<cell.cellTags.length; i++)
+          for (var i=0; i<cell.cellTags.length; i++){
             config = Util.parseTagIntoRenderConfig(config, cell.cellTags[i]);
+          }
         }
       } else {
         // default renderer
