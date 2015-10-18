@@ -76,15 +76,16 @@ evaluateSqlRepl str = evaluateSql str
 
 execWrappedCode :: String -> EitherTExec ASValue
 execWrappedCode evalCode = do
-    result <- pyfiString evalCode
-    hoistEither $ parseValue Python result
+    result <- lift $ pyfiString evalCode
+    case result of 
+      Right result' -> hoistEither $ parseValue Python result'
+      Left e -> return e
 
-pyfiString :: String -> EitherTExec String
-pyfiString evalStr = EitherT $ catch (fmap Right execString) whenCaught
+pyfiString :: String -> IO (Either ASValue String)
+pyfiString evalStr = catch (fmap Right execString) whenCaught
     where
         execString = defVV (evalStr ++ pyString) ("Hello" :: String)
-        whenCaught = (\e -> return $ Left SyntaxError) :: (SomeException -> IO (Either ASExecError String))
-        -- #incomplete should send back more descriptive error message
+        whenCaught = (\e -> return . Left $ ValueError (show e) "SyntaxError" "" 0) :: (SomeException -> IO (Either ASValue String))
 
 pyString :: String
 pyString = [str|
