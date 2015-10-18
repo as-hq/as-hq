@@ -608,6 +608,16 @@ describe('backend', () => {
           ]);
         });
 
+        // works on backend but crashes the test
+        xit('should not re-eval a non-head list cell with its expression unchanged', (done) => {
+          _do([
+            python('A1', 'range(10)'),
+            python('A2', 'range(10)'),
+            shouldBe('A2', valueI(1)),
+            exec(done)
+          ]);
+        });
+
         xit('should shrink a range based on a dependency', (done) => {
           _do([
             python('A1', '10'),
