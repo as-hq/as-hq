@@ -54,20 +54,23 @@ export default React.createClass({
           ref="leftNav"
           menuItems={leftNavMenuItems}
           docked={false}/>
-        <ASNavBar
-          onDocumentTabChange={this._onDocumentTabChange}
-          onRibbonTabChange={this._onRibbonTabChange}
-          onAlphaButtonTap={this._onAlphaButtonTap}/>
-        <ASRibbon activeTab={this.state.activeRibbonTab} />
-        
-        <div style={{width: '100%', height: 'calc(100% - 200px)'}}>
-          <div style={{display: 'inline-block', width: '10%', height: '100%', verticalAlign: 'top'}}>
-            <ASTreeNav
-              onDocumentOpen={this._onDocumentOpen}
-              onSheetCreate={this._onSheetCreate}
-              onWorkbookCreate={this._onWorkbookCreate}/>
-          </div>
-          <div style={{display: 'inline-block', width:'90%', height:'100%',verticalAlign:'top'}}>
+        {null
+        //   <ASNavBar
+        //   onDocumentTabChange={this._onDocumentTabChange}
+        //   onRibbonTabChange={this._onRibbonTabChange}
+        //   onAlphaButtonTap={this._onAlphaButtonTap}/>
+        // <ASRibbon activeTab={this.state.activeRibbonTab} />
+        }
+        <div style={{width: '100%', height: '100%'}}>
+        {null
+          // <div style={{display: 'inline-block', width: '10%', height: '100%', verticalAlign: 'top'}}>
+          //   <ASTreeNav
+          //     onDocumentOpen={this._onDocumentOpen}
+          //     onSheetCreate={this._onSheetCreate}
+          //     onWorkbookCreate={this._onWorkbookCreate}/>
+          // </div>
+        }
+          <div style={{display: 'inline-block', width:'100%', height:'100%',verticalAlign:'top'}}>
             <ASEvaluationPane behavior="default" ref="evalPane" initInfo={this.state.initEvalInfo} height='100%'/>
           </div>
         </div>

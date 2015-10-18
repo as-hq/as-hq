@@ -15,13 +15,13 @@ export default {
   numVisibleCols: 38,
   numVisibleRows: 31,
 
-  cellWidthPx: 50,
+  cellWidthPx: 100, // ignored; actually set in Render.js with this.config.minWidth = 100;
   cellHeightPx: 20,
 
   gridXOffset: 35, // margin between left edge of div and cells
   gridYOffset: 20, // '' top edge ''
 
-  editorHeight: 180,
+  editorHeight: 60,
   codeBarHeight:60,
   topbarTotalHeight: 200, // height of everything except pane
 
