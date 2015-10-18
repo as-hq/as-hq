@@ -92,6 +92,7 @@ export default {
         return config;
       case "ListMember":
         // TODO change config to identify visually as list member
+        config.bgColor = colors["cornsilk"];
         return config;
       case "DFMember":
         config.bgColor = colors["lavender"];
