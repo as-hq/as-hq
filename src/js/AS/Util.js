@@ -481,5 +481,13 @@ export default {
       return true;
     else
       return false;
+  },
+
+  getSafeRow(r) {
+    return Math.min(Math.max(r, 1), Constants.numRows);
+  },
+
+  getSafeCol(c){
+    return Math.min(Math.max(c, 1), Constants.numCols);
   }
 };

@@ -21,14 +21,14 @@ export default {
     ShortcutUtils.addShortcut("common", "new_sheet", "Shift+F11", (wildcard) => {
       // TODO
     });
-    ShortcutUtils.addShortcut("common", "cell_eval", ["Ctrl+Enter", "Command+Enter", "Ctrl+D", "Ctrl+R"], (wildcard) => {
+    ShortcutUtils.addShortcut("common", "cell_eval", ["Ctrl+Enter", "Ctrl+D", "Ctrl+R"], (wildcard) => {
       let editorState = {
         exp: self._getRawEditor().getValue(),
         lang: self.state.language
       };
       self.handleEvalRequest(editorState);
     });
-    ShortcutUtils.addShortcut("common", "cell_eval_arrayformula", ["Ctrl+Shift+Enter", "Command+Shift+Enter"], (wildcard) => {
+    ShortcutUtils.addShortcut("common", "cell_eval_arrayformula", "Ctrl+Shift+Enter", (wildcard) => {
       var editorValue = self._getRawEditor().getValue();
       console.log(self.state.language);
       if (self.state.language == Constants.Languages.Excel){
@@ -42,7 +42,7 @@ export default {
       self.handleEvalRequest(editorState);
     });
 
-    ShortcutUtils.addShortcut("common", "set_language", ["Ctrl+1/2/3/4/5/6/7/8/9", "Command+1/2/3/4/5/6/7/8/9"], (wildcard) => {
+    ShortcutUtils.addShortcut("common", "set_language", "Ctrl+1/2/3/4/5/6/7/8/9", (wildcard) => {
       // TODO propagate dropdown
       switch(wildcard) {
           case "1":
@@ -91,7 +91,7 @@ export default {
     });
 
     // repl shortcuts -------------------------------------------------------------------------------
-    ShortcutUtils.addShortcut("repl", "repl_submit", ["Ctrl+Enter", "Command+Enter"], (wildcard) => {
+    ShortcutUtils.addShortcut("repl", "repl_submit", "Ctrl+Enter", (wildcard) => {
       /* Preprocessing of repl value to get the "last" part to send to server */
       let strs = self._replValue().split(">>>").slice(-1)[0].substring(1);
       let lines = strs.split("\n");
@@ -122,29 +122,15 @@ export default {
       let replace = Util.toggleReferenceType(editor.getSelectedText());
       sesh.replace(range, replace);
     });
-    ShortcutUtils.addShortcut("editor", "toggle_shit", "F2", (wildcard) => {
-     console.log("EDITOR F2");
-    });
 
 
     // grid shortcuts -------------------------------------------------------------------------------
     ShortcutUtils.addShortcut("grid", "moveto_data_boundary", "Ctrl+Up/Down/Left/Right", (wildcard) => {
-      switch(wildcard) {
-        case "Up":
-          break; // TODO
-        case "Down":
-          break; // TODO
-        case "Left":
-          break; // TODO
-        case "Right":
-          break; // TODO
-      }
+      let newLoc = Store.getDataBoundary(wildcard);
+      self.refs.spreadsheet.makeSelection(newLoc);
     });
     ShortcutUtils.addShortcut("grid", "grid_home", "Home", (wildcard) => {
-      //TODO
-    });
-    ShortcutUtils.addShortcut("grid", "grid_moveto_start_row", "Home", (wildcard) => {
-      //TODO
+      self.refs.spreadsheet.makeSelection({row: 1, col: 1});
     });
     ShortcutUtils.addShortcut("grid", "grid_moveto_start_sheet", "Ctrl+Home", (wildcard) => {
       //TODO
@@ -153,12 +139,14 @@ export default {
       //TODO
     });
     ShortcutUtils.addShortcut("grid", "move_vwindow_above", "PageUp", (wildcard) => {
-      //TODO
+      let dY = self.refs.spreadsheet.getVisibleRows();
+      self.refs.spreadsheet.shiftSelectionArea(-dY, 0);
     });
     ShortcutUtils.addShortcut("grid", "move_vwindow_above", "PageDown", (wildcard) => {
-      //TODO
+      let dY = self.refs.spreadsheet.getVisibleRows();
+      self.refs.spreadsheet.shiftSelectionArea(dY, 0);
     });
-  
+
     ShortcutUtils.addShortcut("grid", "grid_delete", "Del", (wildcard) => {
       let rng = Store.getActiveSelection();
       // console.log("deleting cells in range: " + JSON.stringify(rng));

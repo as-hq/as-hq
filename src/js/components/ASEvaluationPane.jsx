@@ -63,8 +63,8 @@ export default React.createClass({
       toastAction: '',
       replOpen: false,
       replLanguage: Constants.Languages.Python,
-      replSubmittedLanguage: null, 
-      focusDx: null, 
+      replSubmittedLanguage: null,
+      focusDx: null,
       focusDy: null
     };
   },
@@ -154,6 +154,7 @@ export default React.createClass({
     }
   },
 
+
   /***************************************************************************************************************************/
   /* Getter methods for child components of the eval pane */
 
@@ -170,8 +171,9 @@ export default React.createClass({
     return this.refs.repl.refs.editor.getRawEditor();
   },
   focusGrid() {
-    this._getSpreadsheet().focus();
+    this.refs.spreadsheet.setFocus();
   },
+
 
   /**************************************************************************************************************************/
   /* Make sure that the evaluation pane can receive change events from the evaluation store */
@@ -197,7 +199,7 @@ export default React.createClass({
   showAnyErrors(cv){
     if (cv.tag === "ValueError"){
       this.setToast(cv.errMsg, "Error");
-    } else { 
+    } else {
       this.hideToast();
     }
   },
@@ -222,7 +224,7 @@ export default React.createClass({
     console.log("Eval pane detected event change from store");
     let updatedCells = Store.getLastUpdatedCells();
     // console.log("Updated cells: " + JSON.stringify(updatedCells));
-    
+
     this.refs.spreadsheet.updateCellValues(updatedCells);
     if (this.state.activeDr != null && this.state.activeDc != null) {
       this.refs.spreadsheet.shiftSelectionArea(this.state.activeDr, this.state.activeDc);
@@ -230,9 +232,9 @@ export default React.createClass({
     }
 
     //toast the error of at least one value in the cell
-    let i = 0; 
+    let i = 0;
     for (i = 0; i < updatedCells.length; ++i) {
-      let cell = updatedCells[i]; 
+      let cell = updatedCells[i];
       let val = Converter.clientCellGetValueObj(cell);
       if (val.tag == "ValueError") {
         this.showAnyErrors(val);
@@ -251,6 +253,7 @@ export default React.createClass({
     // console.log("Eval pane detected event change from repl store");
     this.setState({replSubmittedLanguage:ReplStore.getSubmittedLanguage()})
   },
+
 
   /**************************************************************************************************************************/
   /* Copy paste handling */
@@ -315,7 +318,7 @@ export default React.createClass({
   },
 
   handleCopyEvent(e){
-    console.log("FOUND COPY EVENT!!! OMG !!");
+    console.log("FOUND COPY EVENT!!! OMG !!"); // wtf
     this.handleCopyTypeEventForGrid(e,false);
   },
 
@@ -324,7 +327,7 @@ export default React.createClass({
     this.handlePasteEventForGrid(e);
   },
 
-  
+
   /**************************************************************************************************************************/
   /* Key handling */
 
@@ -359,7 +362,7 @@ export default React.createClass({
   _onReplDeferredKey(e){
     ShortcutUtils.tryShortcut(e, 'repl');
   },
-  
+
 
   /**************************************************************************************************************************/
   /* Core functionality methods */
@@ -431,8 +434,8 @@ export default React.createClass({
   */
   handleEvalRequest(editorState, activeDr, activeDc) {
     // By default, shift row down by 1 after eval
-    if (typeof(activeDr) == 'undefined') activeDr = 1; 
-    if (typeof(activeDc) == 'undefined') activeDc = 0;  
+    if (typeof(activeDr) == 'undefined') activeDr = 1;
+    if (typeof(activeDc) == 'undefined') activeDc = 0;
 
     //Which directions to shift your focus after eval
     this.setState({activeDr: activeDr, activeDc: activeDc});
@@ -441,7 +444,7 @@ export default React.createClass({
     this.setState({userIsTyping:false});
     this.updateTextBox(false);
     Store.setActiveCellDependencies([]);
-    this.refs.spreadsheet.repaint(); 
+    this.refs.spreadsheet.repaint();
 
     let selectedRegion = Store.getActiveSelection();
     console.log("Editor state: " + JSON.stringify(editorState));
@@ -462,6 +465,7 @@ export default React.createClass({
     console.log("repl exps: " + JSON.stringify(ReplStore.getExps()));
     API.sendReplRequest(editorState);
   },
+
 
   /**************************************************************************************************************************/
   /* REPL handling methods */
@@ -488,6 +492,7 @@ export default React.createClass({
     // console.log("REPL lang changed from " + this.state.replLanguage.Display + " to " + newLang.Display + ", new value: "+ newValue);
     this.setState({replLanguage:newLang});
   },
+
 
   /**************************************************************************************************************************/
   /* The eval pane is the code editor plus the spreadsheet */
