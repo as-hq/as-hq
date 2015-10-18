@@ -63,13 +63,16 @@ export default React.createClass({
       toastAction: '',
       replOpen: false,
       replLanguage: Constants.Languages.Python,
-      replSubmittedLanguage: null
+      replSubmittedLanguage: null, 
+      focusDx: null, 
+      focusDy: null
     };
   },
   setLanguage(lang) {
     // TODO change dropdown when triggered programmatically
     // console.log("setting language: "+JSON.stringify(lang));
     this.setState({ language: lang });
+    this.refs.spreadsheet.setFocus();
   },
 
   updateTextBox(isTyping){
@@ -120,7 +123,6 @@ export default React.createClass({
         break;
     }
     console.log("ACTIVE: " + JSON.stringify(Store.getActiveSelection()));
-    console.log("SECOND");
     this.refs.spreadsheet.repaint();
   },
 
@@ -128,6 +130,7 @@ export default React.createClass({
     this.setState({xpChangeDetail:this.xpChange.FROM_EDITOR});
   },
 
+  //#needsrefactor
   textBoxChange(xp){
     console.log("Eval pane got change from text box: "+xp);
     this.setState({expression:xp,
@@ -191,7 +194,7 @@ export default React.createClass({
     ReplStore.removeChangeListener(this._onReplChange);
 
   },
-  addError(cv){
+  showAnyErrors(cv){
     if (cv.tag === "ValueError"){
       this.setToast(cv.errMsg, "Error");
     }
@@ -213,9 +216,15 @@ export default React.createClass({
     console.log("Eval pane detected event change from store");
     let updatedCells = Store.getLastUpdatedCells();
     // console.log("Updated cells: " + JSON.stringify(updatedCells));
+    
     this.refs.spreadsheet.updateCellValues(updatedCells);
+    if (this.state.activeDr != null && this.state.activeDc != null) {
+      this.refs.spreadsheet.shiftSelectionArea(this.state.activeDr, this.state.activeDc);
+      this.setState({activeDr: null, activeDc: null});
+    }
+
     updatedCells.forEach((cell) => {
-      this.addError(Converter.clientCellGetValueObj(cell));
+      this.showAnyErrors(Converter.clientCellGetValueObj(cell));
     });
     let extError = Store.getExternalError();
     if (extError) {
@@ -373,7 +382,7 @@ export default React.createClass({
                         this.updateTextBox(false);
                     });
       // TODO: set var name as well
-      this.addError(val);
+      this.showAnyErrors(val);
     }
     else if (!this.state.userIsTyping || shiftSelEmpty) {
       console.log("Selected new region empty");
@@ -405,13 +414,19 @@ export default React.createClass({
     1) Get the selected region from the ASSpreadsheet component
     2) Send this and the editor state (expression, language) to the API action creator, which will send it to the backend
   */
-  handleEvalRequest(editorState){
+  handleEvalRequest(editorState, activeDr, activeDc) {
+    // By default, shift row down by 1 after eval
+    if (typeof(activeDr) == 'undefined') activeDr = 1; 
+    if (typeof(activeDc) == 'undefined') activeDc = 0;  
+
+    //Which directions to shift your focus after eval
+    this.setState({activeDr: activeDr, activeDc: activeDc});
+
     /* If user pressed Ctrl Enter, they're not typing out the expression anymore */
     this.setState({userIsTyping:false});
     this.updateTextBox(false);
     Store.setActiveCellDependencies([]);
-    this.refs.spreadsheet.repaint();
-    this.refs.spreadsheet._getHypergrid().getSelectionModel().clear();
+    this.refs.spreadsheet.repaint(); 
 
     let selectedRegion = Store.getActiveSelection();
     console.log("Editor state: " + JSON.stringify(editorState));

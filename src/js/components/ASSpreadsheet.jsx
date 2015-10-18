@@ -58,6 +58,7 @@ export default React.createClass({
       area.range = {row: range.row, col: range.col};
     else
       area.range = range;
+
     return area;
   },
   /* Returns the position of scroll */
@@ -66,15 +67,30 @@ export default React.createClass({
     return {x: hg.hScrollValue, y: hg.vScrollValue};
   },
 
+  setFocus() { 
+    this._getHypergrid().takeFocus();
+  },
   // do not call before polymer is ready.
   makeSelection(loc) {
     console.log("making selection!");
+    
+    this.setFocus();
+    
     let hg = this._getHypergrid();
     let c = loc.col - 1,
         r = loc.row - 1,
         dC = loc.row2 ? loc.col2 - loc.col : 0,
         dR = loc.col2 ? loc.row2 - loc.row : 0;
+    hg.clearSelections();   
     hg.select(c, r, dC, dR);
+
+    // hypergrid sucks -- doesn't set the mouse focus automatically
+    // with select, so we have to do it ourselves. 
+    let global = document.createElement('fin-rectangle'),
+        myDown = global.point.create(c,r),
+        myExtent = global.point.create(dC, dR);
+    hg.setMouseDown(myDown);
+    hg.setDragExtent(myExtent);
     this.repaint();
     this.props.onSelectionChange({range:loc, width:dC+1, height:dR+1});
   },
@@ -132,6 +148,15 @@ export default React.createClass({
     Store.resetLastUpdatedCells();
   },
 
+  shiftSelectionArea(dr, dc){
+    let sel = Store.getActiveSelection();
+    if (!sel.range.row2) {
+      sel.range.row += dr; 
+      sel.range.col += dc;
+    }
+    this.makeSelection(sel.range);
+  },
+
   // update grid overlays (images, charts, etc)
   addOverlay(overlay) {
     console.log("added overlay!");
@@ -145,7 +170,6 @@ export default React.createClass({
   // Handling events
 
   handleKeyDown(e) {
-    console.log("\n\n");
     console.log("HANDLING KEY DOWN");
     e.persist(); // prevent react gc
     if (ShortcutUtils.gridShouldDeferKey(e)){ // if anything but nav keys, bubble event to parent
@@ -153,12 +177,7 @@ export default React.createClass({
         KeyUtils.killEvent(e);
       }
       this.props.onDeferredKey(e);
-    }
-  },
-
-  onOverlayClick(col, row) {
-    // console.log("overlay clicked!");
-    // this.makeSelection({col: col, row: row});
+    } 
   },
 
   /*************************************************************************************************************************/

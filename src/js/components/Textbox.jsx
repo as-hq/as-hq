@@ -34,6 +34,7 @@ export default React.createClass({
     }
   },
 
+  // #needsrefactor -- currently doesn't get called. (handleKeyDown in ASEvaluationPane overrides it?)
   textBoxChange(e){
     this.props.textBoxChange(e.target.value);
   },
