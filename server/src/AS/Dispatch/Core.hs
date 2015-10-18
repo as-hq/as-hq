@@ -157,28 +157,41 @@ evalChain' conn valuesMap [] lists pastListHeads = do
   -- on the head. So we go through the descendants of the current list cells (sans the previous
   -- list heads), so if those contain any of the previous list heads we know there's a cycle.
   mapM_ (\d -> if (d `elem` pastListHeads) then (left $ CircularDepError d) else (return ())) descs
-  -- DON'T re-eval anything in the current set of list cells
+  -- DON'T need to re-eval anything in the current set of list cells
   let descs' = filter (\d -> not $ d `elem` listCellLocs) descs
   cells' <- getCellsToEval conn descs' [] -- the origCells are the list cells, which got filtered out of descs'
   evalChain' conn valuesMap cells' [] pastListHeads
 
 evalChain' conn valuesMap (c@(Cell loc xp _ ts):cs) next listHeads = do
-  cv <- EC.evaluateLanguage (IndexRef (cellLocation c)) (locSheetId loc) valuesMap xp
-  let listResult = createListCells c cv
-      newMp     = case listResult of
-        Nothing          -> M.insert (IndexRef loc) cv valuesMap
-        (Just cellsList) -> foldr (\(Cell l _ v _) mp -> M.insert (IndexRef l) v mp) valuesMap (snd cellsList)
-      -- ^ adds all the cells in cellsList
-      next' = case listResult of
-        Nothing        -> next
-        Just cellsList -> cellsList:next
-      listHeads' = case listResult of
-        Nothing -> listHeads
-        Just _  -> loc:listHeads
-  (restCells, restLists) <- evalChain' conn newMp cs next' listHeads'
-  return $ case listResult of
-    Nothing          -> ((Cell loc xp cv ts):restCells, restLists)
-    (Just cellsList) -> (restCells, cellsList:restLists)
+  reEval <- lift $ shouldReEval c
+  case reEval of 
+    False -> evalChain' conn valuesMap cs next listHeads
+    True -> do 
+      cv <- EC.evaluateLanguage (IndexRef (cellLocation c)) (locSheetId loc) valuesMap xp
+      let listResult = createListCells c cv
+          newValuesMap = case listResult of
+            Nothing          -> M.insert (IndexRef loc) cv valuesMap
+            (Just cellsList) -> foldr (\(Cell l _ v _) mp -> M.insert (IndexRef l) v mp) valuesMap (snd cellsList)
+          -- ^ adds all the cells in cellsList to the reference map
+          next' = case listResult of
+            Nothing        -> next
+            Just cellsList -> cellsList:next
+          listHeads' = case listResult of
+            Nothing -> listHeads
+            Just _  -> loc:listHeads
+      (restCells, restLists) <- evalChain' conn newValuesMap cs next' listHeads'
+      return $ case listResult of
+        Nothing          -> ((Cell loc xp cv ts):restCells, restLists)
+        (Just cellsList) -> (restCells, cellsList:restLists)
+
+-- | You should always re-eval a cell, UNLESS you're a part of a list, your expression was 
+-- the same as last time's, and you're not the head of the list. 
+shouldReEval :: ASCell -> IO Bool
+shouldReEval c@(Cell loc xp _ ts) = do 
+  maybeOldCell <- DB.getCell loc
+  case maybeOldCell of 
+    Nothing -> return True
+    Just oldCell -> return $ (not $ isListMember oldCell) || (xp /= (cellExpression oldCell)) || (DU.isListHead oldCell)
 
 -- | If a cell C contains a 1D or 2D list, it'll be represented in the grid as a matrix.
 -- This function takes in the starting cell with the starting expression, and creates the list
