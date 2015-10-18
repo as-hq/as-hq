@@ -14,6 +14,7 @@ import Textbox from './Textbox.jsx'
 
 export default React.createClass({
 
+
   /*************************************************************************************************************************/
   /* Default getter methods */
 
@@ -67,33 +68,6 @@ export default React.createClass({
     return {x: hg.hScrollValue, y: hg.vScrollValue};
   },
 
-  setFocus() { 
-    this._getHypergrid().takeFocus();
-  },
-  // do not call before polymer is ready.
-  makeSelection(loc) {
-    console.log("making selection!");
-    
-    this.setFocus();
-    
-    let hg = this._getHypergrid();
-    let c = loc.col - 1,
-        r = loc.row - 1,
-        dC = loc.row2 ? loc.col2 - loc.col : 0,
-        dR = loc.col2 ? loc.row2 - loc.row : 0;
-    hg.clearSelections();   
-    hg.select(c, r, dC, dR);
-
-    // hypergrid sucks -- doesn't set the mouse focus automatically
-    // with select, so we have to do it ourselves. 
-    let global = document.createElement('fin-rectangle'),
-        myDown = global.point.create(c,r),
-        myExtent = global.point.create(dC, dR);
-    hg.setMouseDown(myDown);
-    hg.setDragExtent(myExtent);
-    this.repaint();
-    this.props.onSelectionChange({range:loc, width:dC+1, height:dR+1});
-  },
   getViewingWindow() {
     let hg = this._getHypergrid();
     let [vs, hs] = [hg.vScrollValue, hg.hScrollValue];
@@ -110,6 +84,12 @@ export default React.createClass({
     return (this.state.scroll.x <= col && col <= this.state.scroll.x+Constants.numVisibleCols) &&
            (this.state.scroll.y <= row && row <= this.state.scroll.y+Constants.numVisibleRows);
   },
+
+  getVisibleRows() {
+    return this._getHypergrid().getVisibleRows().length;
+  },
+
+
   /*************************************************************************************************************************/
   // Display values in spreadsheet
 
@@ -148,15 +128,6 @@ export default React.createClass({
     Store.resetLastUpdatedCells();
   },
 
-  shiftSelectionArea(dr, dc){
-    let sel = Store.getActiveSelection();
-    if (!sel.range.row2) {
-      sel.range.row += dr; 
-      sel.range.col += dc;
-    }
-    this.makeSelection(sel.range);
-  },
-
   // update grid overlays (images, charts, etc)
   addOverlay(overlay) {
     console.log("added overlay!");
@@ -176,7 +147,7 @@ export default React.createClass({
         KeyUtils.killEvent(e);
       }
       this.props.onDeferredKey(e);
-    } 
+    }
   },
 
   handleTextBoxKeyDown(e) {
@@ -188,6 +159,7 @@ export default React.createClass({
       this.props.onTextBoxDeferredKey(e);
     } 
   },
+
 
   /*************************************************************************************************************************/
   // React methods & grid initialization
@@ -279,12 +251,69 @@ export default React.createClass({
     );
   },
 
+
   /*************************************************************************************************************************/
   // Hypergrid methods
 
   repaint() {
     this._getHypergrid().repaint();
   },
+
+  setFocus() {
+    this._getHypergrid().takeFocus();
+  },
+  // do not call before polymer is ready.
+  makeSelection(loc) {
+    console.log("making selection!", loc);
+
+    this.setFocus();
+
+    // make selection
+    let hg = this._getHypergrid(),
+        c = loc.col - 1,
+        r = loc.row - 1,
+        dC = loc.row2 ? loc.col2 - loc.col : 0,
+        dR = loc.col2 ? loc.row2 - loc.row : 0;
+    hg.clearSelections();
+    hg.select(c, r, dC, dR);
+
+    // set mousedown
+    // hypergrid sucks -- doesn't set the mouse focus automatically
+    // with select, so we have to do it ourselves.
+    let global = document.createElement('fin-rectangle'),
+        myDown = global.point.create(c,r),
+        myExtent = global.point.create(dC, dR);
+    hg.setMouseDown(myDown);
+    hg.setDragExtent(myExtent);
+
+    // set scroll
+    let range = this.getViewingWindow().range,
+        shouldScrollH = loc.col < range.col || loc.col > range.col2,
+        shouldScrollV = loc.row < range.row || loc.row > range.row2,
+        scrollH = shouldScrollH ? c : hg.getHScrollValue(),
+        scrollV = shouldScrollV ? r : hg.getVScrollValue();
+    this.scrollTo(scrollH, scrollV);
+
+    this.repaint();
+    this.props.onSelectionChange({range:loc, width:dC+1, height:dR+1});
+  },
+
+  shiftSelectionArea(dr, dc){
+    let range = Store.getActiveSelection().range;
+    if (!range.row2) {
+      range.row = Util.getSafeRow(range.row + dr);
+      range.col = Util.getSafeCol(range.col + dc);
+    }
+    this.makeSelection(range);
+  },
+
+  scrollTo(x, y){
+    let hg = this._getHypergrid();
+    hg.setVScrollValue(y),
+    hg.setHScrollValue(x);
+    ActionCreator.scroll(this.getViewingWindowWithCache());
+  },
+
 
   /*************************************************************************************************************************/
   // Rendering
