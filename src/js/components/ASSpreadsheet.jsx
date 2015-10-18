@@ -170,13 +170,22 @@ export default React.createClass({
   // Handling events
 
   handleKeyDown(e) {
-    console.log("HANDLING KEY DOWN");
     e.persist(); // prevent react gc
     if (ShortcutUtils.gridShouldDeferKey(e)){ // if anything but nav keys, bubble event to parent
       if (!KeyUtils.isCopyPasteType(e)){
         KeyUtils.killEvent(e);
       }
       this.props.onDeferredKey(e);
+    } 
+  },
+
+  handleTextBoxKeyDown(e) {
+    e.persist(); // prevent react gc
+    if (ShortcutUtils.gridShouldDeferKey(e)){ // if anything but nav keys, bubble event to parent
+      if (!KeyUtils.isCopyPasteType(e)){
+        KeyUtils.killEvent(e);
+      }
+      this.props.onTextBoxDeferredKey(e);
     } 
   },
 
@@ -263,7 +272,7 @@ export default React.createClass({
 
         <Textbox ref="textbox"
                  scroll={self.state.scroll}
-                 onKeyDown={this.handleKeyDown}
+                 onKeyDown={this.handleTextBoxKeyDown}
                  textBoxChange={this.props.textBoxChange}/>
 
       </div>

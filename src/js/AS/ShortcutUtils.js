@@ -19,7 +19,8 @@ let _S = {
   'editor': [],
   'common': [],
   'toplevel': [],
-  'repl':[]
+  'repl':[],
+  'textbox':[]
 };
 
 export default {

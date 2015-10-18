@@ -130,14 +130,6 @@ export default React.createClass({
     this.setState({xpChangeDetail:this.xpChange.FROM_EDITOR});
   },
 
-  //#needsrefactor
-  textBoxChange(xp){
-    console.log("Eval pane got change from text box: "+xp);
-    this.setState({expression:xp,
-                   expressionWithoutLastRef:xp,
-                   xpChangeDetail:this.xpChange.FROM_TEXTBOX
-                 });
-  },
 
   /* Update the focus between the editor and the grid */
   toggleFocus() {
@@ -259,16 +251,14 @@ export default React.createClass({
     KeyUtils.killEvent(e);
     let selRegion = Store.getActiveSelection(),
         vals = Store.selRegionToValues(selRegion.range);
-    console.log("VALUES IN COPY: " + JSON.stringify(vals));
-    let html = ClipboardUtils.valsToHtml(vals),
-        plain = ClipboardUtils.valsToPlain(vals);
-    console.log("COPY HTML: " + html);
-    console.log("COPY PLAIN: " + plain);
-    Store.setClipboard(selRegion, isCut);
-    this.refs.spreadsheet.repaint(); // render immediately
-    e.clipboardData.setData("text/html",html);
-    e.clipboardData.setData("text/plain",plain);
-    console.log("SET SYSTEM CLIPBOARD");
+    if (vals){
+      let html = ClipboardUtils.valsToHtml(vals),
+          plain = ClipboardUtils.valsToPlain(vals);
+      Store.setClipboard(selRegion, isCut);
+      this.refs.spreadsheet.repaint(); // render immediately
+      e.clipboardData.setData("text/html",html);
+      e.clipboardData.setData("text/plain",plain);
+    }
   },
 
   handlePasteEventForGrid(e){
@@ -278,9 +268,7 @@ export default React.createClass({
         containsPlain = Util.arrContains(e.clipboardData.types,"text/plain"),
         isAlphaSheets = containsHTML ?
           ClipboardUtils.htmlStringIsAlphaSheets(e.clipboardData.getData("text/html")) : false;
-    console.log("PASTE TYPES: " + JSON.stringify(e.clipboardData.types));
     if (isAlphaSheets){ // From AS
-      console.log("PASTE FROM AS");
       let clipboard = Store.getClipboard();
       if (clipboard.range){
         API.sendCopyRequest([clipboard.range, rng]);
@@ -295,7 +283,6 @@ export default React.createClass({
     }
     else { // Not from AS
       if (containsPlain){
-        console.log("PASTE FROM EXTERNAL PLAIN");
         let plain = e.clipboardData.getData("text/plain"),
             vals = ClipboardUtils.plainStringToVals(plain),
             cells = Store.makeASCellsFromVals(rng,vals,this.state.language),
@@ -310,17 +297,17 @@ export default React.createClass({
     }
   },
 
+  /* TODO: handle other copy/paste events; from editor and textbox */
+
   handleCutEvent(e){
     this.handleCopyTypeEventForGrid(e,true);
   },
 
   handleCopyEvent(e){
-    console.log("FOUND COPY EVENT!!! OMG !!");
     this.handleCopyTypeEventForGrid(e,false);
   },
 
   handlePasteEvent(e){
-    console.log("FOUND PASTE EVENT!!! OMG !!");
     this.handlePasteEventForGrid(e);
   },
 
@@ -335,7 +322,7 @@ export default React.createClass({
   },
 
   _onGridDeferredKey(e) {
-   if (KeyUtils.producesVisibleChar(e) && e.which!==13 ) {
+   if (KeyUtils.producesVisibleChar(e)) {
         let editor = this._getRawEditor(),
           str = KeyUtils.modifyStringForKey(editor.getValue(), e),
           newStr = KeyUtils.getString(e),
@@ -352,6 +339,22 @@ export default React.createClass({
       console.log("Grid key not visible");
       ShortcutUtils.tryShortcut(e, 'common');
       ShortcutUtils.tryShortcut(e, 'grid');
+    }
+  },
+
+  _onTextBoxDeferredKey(e){
+    if (KeyUtils.producesVisibleChar(e) && e.which !== 13){
+      let xp = KeyUtils.modifyStringForKey(e.target.value,e);
+      console.log("Eval pane textbox key " + xp);
+      this.setState({expression:xp,
+                   expressionWithoutLastRef:xp,
+                   xpChangeDetail:this.xpChange.FROM_TEXTBOX
+                 });
+    }
+    else {
+      console.log("Textbox key not visible");
+      ShortcutUtils.tryShortcut(e, 'common');
+      ShortcutUtils.tryShortcut(e, 'textbox');
     }
   },
 
@@ -514,6 +517,7 @@ export default React.createClass({
           ref='spreadsheet'
           textBoxChange={this.textBoxChange}
           onDeferredKey={this._onGridDeferredKey}
+          onTextBoxDeferredKey={this._onTextBoxDeferredKey}
           onSelectionChange={this._onSelectionChange}
           width="100%"
           height={`calc(100% - ${this.getEditorHeight()})`}  />

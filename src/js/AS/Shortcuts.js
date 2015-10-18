@@ -193,18 +193,6 @@ export default {
       // TODO
     });
 
-    ShortcutUtils.addShortcut("grid", "grid_enter", "Enter", (wildcard) => {
-      if (self.state.userIsTyping){
-        let editorState = {
-          exp: self._getRawEditor().getValue(),
-          lang: self.state.language
-        };
-        self.handleEvalRequest(editorState);
-      }
-      else {
-        //TODO: Navigate down
-      }
-    });
 
     ShortcutUtils.addShortcut("grid", "copy_expression_above", "Ctrl+Shift+'", (wildcard) => {
       // TODO test
@@ -223,6 +211,20 @@ export default {
         let xp = Util.showValue(Converter.clientCellGetValueObj(cell)) || "";
         self.setExpression(xp);
       } else self.setToast("No cell above.", "Error");
+    });
+
+    // textbox shortcuts -------------------------------------------------------------------------------
+    ShortcutUtils.addShortcut("textbox", "textbox_enter", "Enter", (wildcard) => {
+      if (self.state.userIsTyping){
+        let editorState = {
+          exp: self._getRawEditor().getValue(),
+          lang: self.state.language
+        };
+        self.handleEvalRequest(editorState);
+      }
+      else {
+        //TODO: Navigate down
+      }
     });
 
     // top level shortcuts -------------------------------------------------------------------------------
