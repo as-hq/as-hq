@@ -64,12 +64,12 @@ initApp = do
   mapM_ KL.clearReplRecord [Python] -- clear/write repl record files
   runEitherT $ KP.evaluate "\'test!\'" -- force load C python sources so that first eval isn't slow
   -- init R
-  catch (R.runRegion $ do
+  R.runRegion $ do
     -- the app needs sudo to install packages.
     --[r|install.packages("rjson", repos='http://cran.us.r-project.org')|]
     [r|library("rjson")|]
     [r|library("ggplot2")|]
-    return ()) ((\e -> putStrLn "Already initialized R. ") :: (SomeException -> IO ())) -- #needsrefactor should prob not use SomeException?
+    return ()
   -- init workbooks-- init DB and state
   conn <- R.connect DBU.cInfo
   state <- newMVar $ State [] [] conn
@@ -91,7 +91,7 @@ application state pending = do
   handleFirstMessage state conn msg
 
 handleFirstMessage ::  MVar ServerState -> WS.Connection -> B.ByteString -> IO ()
-handleFirstMessage state conn msg = do
+handleFirstMessage state conn msg = 
   case (decode msg :: Maybe ASClientMessage) of
     Just m@(ClientMessage Acknowledge (PayloadInit (ASInitConnection _))) -> do -- first mesage is user init
       user <- initUserFromMessageAndConn m conn
@@ -105,11 +105,11 @@ handleFirstMessage state conn msg = do
 initClient :: (Client c) => c -> MVar ServerState -> IO ()
 initClient client state = do
   liftIO $ modifyMVar_ state (\s -> return $ addClient client s) -- add client to state
-  finally (talk state client) (onDisconnect client state)
+  finally (talk client state) (onDisconnect client state)
 
 -- | Maintains connection until user disconnects
-talk :: (Client c) => MVar ServerState -> c -> IO ()
-talk state client = forever $ do
+talk :: (Client c) => c -> MVar ServerState -> IO ()
+talk client state = forever $ do
   msg <- WS.receiveData (conn client)
   putStrLn "=========================================================="
   case (decode msg :: Maybe ASClientMessage) of
@@ -119,7 +119,7 @@ talk state client = forever $ do
 handleRuntimeException :: ASUserClient -> MVar ServerState -> SomeException -> IO ()
 handleRuntimeException user state e = do
   putStrLn ("Runtime error caught: " ++ (show e))
-  main
+  WS.runServer S.wsAddress S.wsPort $ application state
 
 processMessage :: (Client c) => c -> MVar ServerState -> ASClientMessage -> IO ()
 processMessage client state message = do
