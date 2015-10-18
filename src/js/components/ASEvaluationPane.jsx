@@ -197,11 +197,17 @@ export default React.createClass({
   showAnyErrors(cv){
     if (cv.tag === "ValueError"){
       this.setToast(cv.errMsg, "Error");
+    } else { 
+      this.hideToast();
     }
   },
   setToast(msg, action) {
     this.setState({toastMessage: msg, toastAction: action});
     this.refs.snackbarError.show();
+  },
+  hideToast() {
+    this.setState({toastMessage: "", toastAction: "hide"});
+    this.refs.snackbarError.dismiss();
   },
   _handleToastTap(e) {
     // TODO
@@ -223,9 +229,17 @@ export default React.createClass({
       this.setState({activeDr: null, activeDc: null});
     }
 
-    updatedCells.forEach((cell) => {
-      this.showAnyErrors(Converter.clientCellGetValueObj(cell));
-    });
+    //toast the error of at least one value in the cell
+    let i = 0; 
+    for (i = 0; i < updatedCells.length; ++i) {
+      let cell = updatedCells[i]; 
+      let val = Converter.clientCellGetValueObj(cell);
+      if (val.tag == "ValueError") {
+        this.showAnyErrors(val);
+        break;
+      }
+    }
+
     let extError = Store.getExternalError();
     if (extError) {
       this.setToast(extError, "ERROR");
@@ -395,6 +409,7 @@ export default React.createClass({
                       if (shiftSelEmpty) // selected while typing at wrong type; select away
                         this.updateTextBox(false);
                     });
+      this.hideToast();
     }
     else {
       if (Util.canInsertCellRefInXp(this.state.expressionWithoutLastRef)){
