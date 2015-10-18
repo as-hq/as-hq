@@ -156,7 +156,7 @@ data ASAction =
   | Evaluate | EvaluateRepl
   | Update
   | Get | Delete
-  | Copy | CopyForced
+  | Copy | Cut | CopyForced
   | Undo | Redo
   | Clear
   | UpdateWindow

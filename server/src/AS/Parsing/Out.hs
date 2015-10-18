@@ -274,17 +274,14 @@ unpackExcelVals v = []
 ----------------------------------------------------------------------------------------------------------------------------------
 -- Copy/paste
 
--- | Takes in an offset and a cell. Returns (shifted cell, new dependencies). Helper for copy/paste.
--- If A1 is a dep in the cell, and it's shifted by (2,2), the new dep is C3. If A$1 is a dep
--- then the shift by (2,2) goes to C$1.
-getShiftedCellWithShiftedDeps :: (Int, Int) -> ASCell -> (ASCell, [ASIndex])
-getShiftedCellWithShiftedDeps offset (Cell loc (Expression str lang) v ts) = (shiftedCell, shiftedDeps)
+-- | Takes in an offset and a cell, and returns the cell you get when you shift the cell by
+-- the offset. (The location changes, and the non-absolute references in the expression changes.)
+shiftCell :: (Int, Int) -> ASCell -> ASCell
+shiftCell offset (Cell loc (Expression str lang) v ts) = shiftedCell
   where
-    sid             = locSheetId loc
-    shiftedLoc      = shiftInd offset loc
-    (inter,exRefs)  = getMatchesWithContext str excelMatch
-    shiftedExRefs   = shiftExRefs offset exRefs
-    shiftedDeps     = getASIndicesFromExRefs sid shiftedExRefs
-    newStr          = replaceMatches (inter, shiftedExRefs) showExcelRef str
-    shiftedXp       = Expression newStr lang
-    shiftedCell     = Cell shiftedLoc shiftedXp v ts
+    shiftedLoc     = shiftInd offset loc
+    (inter,exRefs) = getMatchesWithContext str excelMatch
+    shiftedExRefs  = shiftExRefs offset exRefs
+    newStr         = replaceMatches (inter, shiftedExRefs) showExcelRef str
+    shiftedXp      = Expression newStr lang
+    shiftedCell    = Cell shiftedLoc shiftedXp v ts

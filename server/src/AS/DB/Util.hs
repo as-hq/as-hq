@@ -249,6 +249,7 @@ sanitizeCopyCells cells keys = nonListCells ++ decoupledCells ++ containedListHe
     (containedListCells, cutoffListCells) = U.partitionByListKeys listCells keys
     decoupledCells                        = map decoupleCell cutoffListCells
     containedListHeads                    = filter isListHead containedListCells
+
 ----------------------------------------------------------------------------------------------------------------------
 -- | ByteString utils
 

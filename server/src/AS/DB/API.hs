@@ -98,7 +98,7 @@ setCells cells = DU.setCellsByMessage msg num
 deleteCells :: Connection -> [ASCell] -> IO ()
 deleteCells _ [] = return ()
 deleteCells conn cells = do
-  setCellsAncestorsForce $ map (\(Cell l _ _ _) -> Cell l (Expression "" Python) NoValue []) cells -- removes all dependencies from the DB
+  setCellsAncestorsForce $ U.blankCellsAt Excel (map cellLocation cells)
   deleteLocs conn $ map cellLocation cells
 
 deleteLocs :: Connection -> [ASIndex] -> IO ()

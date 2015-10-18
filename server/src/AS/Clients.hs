@@ -11,6 +11,7 @@ import Control.Monad
 import Control.Monad.IO.Class (liftIO)
 import Data.Aeson hiding (Success)
 import qualified Network.WebSockets as WS
+import qualified Database.Redis as R
 
 import AS.Types.Core
 import AS.DB.API            as DB
@@ -55,6 +56,7 @@ instance Client ASUserClient where
     Undo         -> handleUndo user state
     Redo         -> handleRedo user state
     Copy         -> handleCopy user state payload
+    Cut          -> handleCut user state payload
     CopyForced   -> handleCopyForced user state payload
     AddTags      -> handleAddTags user state payload
     RemoveTags   -> handleRemoveTags user state payload
@@ -130,11 +132,11 @@ handleAcknowledge user = WS.sendTextData (userConn user) ("ACK" :: T.Text)
 
 handleNew :: MVar ServerState -> ASPayload -> IO ()
 handleNew state (PayloadWorkbookSheets (wbs:[])) = do
-  conn <- fmap dbConn $ readMVar state
+  conn <- dbConn <$> readMVar state
   wbs' <- DB.createWorkbookSheet conn wbs
   broadcast state $ ServerMessage New Success (PayloadWorkbookSheets [wbs'])
 handleNew state (PayloadWB wb) = do
-  conn <- fmap dbConn $ readMVar state
+  conn <- dbConn <$> readMVar state
   wb' <- DB.createWorkbook conn (workbookSheets wb)
   broadcast state $ ServerMessage New Success (PayloadWB wb')
   return () -- TODO determine whether users should be notified
@@ -221,8 +223,8 @@ handleDelete user state payload = do
                PayloadLL locs' -> locs'
                PayloadR rng -> rangeToIndices rng
   conn <- dbConn <$> readMVar state
-  let newCells = map (\l -> Cell l (Expression "" Python) NoValue []) locs -- TODO set language appropriately 
-  msg <- DP.runDispatchCycle state newCells (userId user)
+  let blankedCells = U.blankCellsAt Python locs -- TODO set language appropriately 
+  msg <- DP.runDispatchCycle state blankedCells (userId user)
   sendBroadcastFiltered user state msg
 
 handleClear :: (Client c) => c  -> MVar ServerState -> IO ()
@@ -252,35 +254,40 @@ handleRedo user state = do
   sendBroadcastFiltered user state msg
   printWithTime "Server processed redo"
 
--- parse deps
--- check that all locations exist, else throw error
--- shift deps
--- show deps into exlocs
--- update expression
--- update dag
--- insert new cells into db
--- TODO: doesn't cause re-eval
 handleCopy :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
 handleCopy user state (PayloadCopy from to) = do
-  curState <- readMVar state
-  let conn = dbConn curState
-  maybeCells <- DB.getCells (rangeToIndices from)
-  listsInRange <- DB.getListsInRange conn from
-  let fromCells       = filterNothing maybeCells        -- list of cells you're copying from
-      sanitizedFromCells = DU.sanitizeCopyCells fromCells listsInRange
-      offsets         = U.getPasteOffsets from to       -- how much to shift these cells for copy/copy/paste
-      toCellsAndDeps  = concat $ map (\o -> map (O.getShiftedCellWithShiftedDeps o) sanitizedFromCells) offsets
-      toCells         = map fst toCellsAndDeps                      -- [set of cells we'll be landing on]
-      shiftedDeps     = map snd toCellsAndDeps
-      allDeps         = concat shiftedDeps                          -- the set of dependencies present among the shifted cells
-      toLocs          = map cellLocation toCells                     -- [new set of cell locations]
-  printWithTime $ "Copying cells: " -- ++ (show sanitizedFromCells)
+  conn <- dbConn <$> readMVar state
+  toCells <- getPasteCells conn from to
   msg' <- DP.runDispatchCycle state toCells (userId user)
+  sendBroadcastFiltered user state msg'
+
+-- #needsrefactor PayloadCopy needs to be renamed and may need to take in a list of ranges instead
+handleCut :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
+handleCut user state (PayloadCopy from to) = do
+  conn <- dbConn <$> readMVar state
+  toCells <- getPasteCells conn from to
+  let blankedCells = U.blankCellsAt Python (rangeToIndices from) -- TODO set actual language
+      newCells = U.mergeCells toCells blankedCells -- content in pasted cells take precedence over deleted cells
+  msg' <- DP.runDispatchCycle state newCells (userId user)
   sendBroadcastFiltered user state msg'
 
 -- same without checking. This might be broken.
 handleCopyForced :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
 handleCopyForced user state (PayloadLL (from:to:[])) = return ()
+
+----------------------------------------------------------------------------------------------------------------------------------------------
+-- Copy/paste helpers
+
+-- | If you're copy/pasting
+getPasteCells :: R.Connection -> ASRange -> ASRange -> IO [ASCell]
+getPasteCells conn from to = do 
+  maybeCells <- DB.getCells (rangeToIndices from)
+  listsInRange <- DB.getListsInRange conn from
+  let fromCells          = filterNothing maybeCells   -- list of cells you're copying from
+      sanitizedFromCells = sanitizeCopyCells fromCells listsInRange
+      offsets            = U.getPasteOffsets from to  -- how much to shift these cells for copy/copy/paste
+      toCells  = concat $ map (\o -> map (O.shiftCell o) sanitizedFromCells) offsets
+  return toCells
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Tag handlers
