@@ -64,12 +64,12 @@ initApp = do
   mapM_ KL.clearReplRecord [Python] -- clear/write repl record files
   runEitherT $ KP.evaluate "\'test!\'" -- force load C python sources so that first eval isn't slow
   -- init R
-  R.runRegion $ do
+  catch (R.runRegion $ do
     -- the app needs sudo to install packages.
     --[r|install.packages("rjson", repos='http://cran.us.r-project.org')|]
     [r|library("rjson")|]
     [r|library("ggplot2")|]
-    return ()
+    return ()) ((\e -> putStrLn "Already initialized R. ") :: (SomeException -> IO ())) -- #needsrefactor should prob not use SomeException?
   -- init workbooks-- init DB and state
   conn <- R.connect DBU.cInfo
   state <- newMVar $ State [] [] conn
