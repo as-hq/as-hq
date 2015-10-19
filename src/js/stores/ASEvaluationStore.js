@@ -478,28 +478,28 @@ const ASEvaluationStore = assign({}, BaseStore, {
       case "Right":
         for (var col = sel.col; col < sel.col + Constants.LARGE_SEARCH_BOUND; col++){
           if (Util.xor(selExists, this.locationExists(sheetId, col, sel.row))) {
-            return {col: col-1, row: sel.row};
+            return (col==sel.col+1) ? {col: col, row: sel.row} : {col: col-1, row: sel.row};
           }
         }
         return {row: sel.row, col: sel.col};
       case "Down":
         for (var row = sel.row; row < sel.row + Constants.LARGE_SEARCH_BOUND; row++){
           if (Util.xor(selExists, this.locationExists(sheetId, sel.col, row))) {
-            return {col: sel.col, row: row-1};
+            return (row==sel.row+1) ? {col: sel.col, row: row} : {col: sel.col, row: row-1};
           }
         }
         return {row: sel.row, col: sel.col};
       case "Left":
         for (var col = sel.col; col > 1; col--) {
           if (Util.xor(selExists, this.locationExists(sheetId, col, sel.row))) {
-            return {col: col+1, row: sel.row};
+            return (col==sel.col-1) ? {col: col, row: sel.row} : {col: col+1, row: sel.row};
           }
         }
         return {row: sel.row, col: 1};
       case "Up":
         for (var row = sel.row; row > 1; row--) {
           if (Util.xor(selExists, this.locationExists(sheetId, sel.col, row))) {
-            return {col: sel.col, row: row+1};
+            return (row==sel.row-1) ? {col: sel.col, row: row} : {col: sel.col, row: row+1};
           }
         }
         return {row: 1, col: sel.col};

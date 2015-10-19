@@ -263,10 +263,9 @@ export default React.createClass({
     this._getHypergrid().takeFocus();
   },
   // do not call before polymer is ready.
-  makeSelection(loc) {
+  makeSelection(unsafeLoc) {
+    let loc = Util.getSafeLoc(unsafeLoc);
     console.log("making selection!", loc);
-
-    this.setFocus();
 
     // make selection
     let hg = this._getHypergrid(),
@@ -274,6 +273,7 @@ export default React.createClass({
         r = loc.row - 1,
         dC = loc.row2 ? loc.col2 - loc.col : 0,
         dR = loc.col2 ? loc.row2 - loc.row : 0;
+    hg.takeFocus();
     hg.clearSelections();
     hg.select(c, r, dC, dR);
 

@@ -491,6 +491,13 @@ export default {
     return Math.min(Math.max(c, 1), Constants.numCols);
   },
 
+  getSafeLoc(loc) {
+    return {col: this.getSafeCol(loc.col),
+            row: this.getSafeRow(loc.row),
+            col2: loc.col2 ? this.getSafeCol(loc.col2) : null,
+            row2: loc.row2 ? this.getSafeRow(loc.row2) : null};
+  },
+
   xor(foo, bar) {
     return foo ? !bar : bar;
   }
