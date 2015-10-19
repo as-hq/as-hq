@@ -45,7 +45,7 @@ module.exports = function (config) {
     },
 
     client: {
-      captureConsole: true
+      captureConsole: false
     }
   });
 };
