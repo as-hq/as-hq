@@ -55,7 +55,9 @@ export default {
       case "ValueError":
         if (isRepl)
           return cv.error;
-        else return "ERROR";
+        else return "ERROR"; // TODO: show more descriptive errors. (#REF? #NAME?)
+      case "ValueExcelError": 
+        return "ERROR"; 
       case "ValueImage":
         return "IMAGE";
       case "DisplayValue":
