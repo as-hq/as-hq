@@ -472,34 +472,47 @@ const ASEvaluationStore = assign({}, BaseStore, {
   getDataBoundary(direction) {
     let sel = _data.activeSelection.range,
         sheetId = _data.currentSheet.sheetId,
-        selExists = this.locationExists(sheetId, sel.col, sel.row);
+        selExists,
+        startRow, startCol;
     console.log("in data bundary func", sel);
     switch(direction) {
       case "Right":
-        for (var col = sel.col; col < sel.col + Constants.LARGE_SEARCH_BOUND; col++){
-          if (Util.xor(selExists, this.locationExists(sheetId, col, sel.row))) {
-            return (col==sel.col+1) ? {col: col, row: sel.row} : {col: col-1, row: sel.row};
+        startCol = this.locationExists(sheetId, sel.col+1, sel.row) ? sel.col : sel.col+1;
+        selExists = this.locationExists(sheetId, startCol, sel.row);
+        for (var col = startCol; col < sel.col + Constants.LARGE_SEARCH_BOUND; col++){
+          let thisExists = this.locationExists(sheetId, col, sel.row);
+          if (Util.xor(selExists, thisExists)) {
+            return thisExists ? {col: col, row: sel.row} : {col: col-1, row: sel.row};
           }
         }
         return {row: sel.row, col: sel.col};
       case "Down":
-        for (var row = sel.row; row < sel.row + Constants.LARGE_SEARCH_BOUND; row++){
-          if (Util.xor(selExists, this.locationExists(sheetId, sel.col, row))) {
-            return (row==sel.row+1) ? {col: sel.col, row: row} : {col: sel.col, row: row-1};
+        startRow = this.locationExists(sheetId, sel.col, sel.row+1) ? sel.row : sel.row+1;
+        selExists = this.locationExists(sheetId, sel.col, startRow);
+        for (var row = startRow; row < sel.row + Constants.LARGE_SEARCH_BOUND; row++){
+          let thisExists = this.locationExists(sheetId, sel.col, row);
+          if (Util.xor(selExists, thisExists)) {
+            return thisExists ? {col: sel.col, row: row} : {col: sel.col, row: row-1};
           }
         }
         return {row: sel.row, col: sel.col};
       case "Left":
-        for (var col = sel.col; col > 1; col--) {
-          if (Util.xor(selExists, this.locationExists(sheetId, col, sel.row))) {
-            return (col==sel.col-1) ? {col: col, row: sel.row} : {col: col+1, row: sel.row};
+        startCol = this.locationExists(sheetId, sel.col-1, sel.row) ? sel.col : sel.col-1;
+        selExists = this.locationExists(sheetId, startCol, sel.row);
+        for (var col = startCol; col > 1; col--) {
+          let thisExists = this.locationExists(sheetId, col, sel.row);
+          if (Util.xor(selExists, thisExists)) {
+            return thisExists ? {col: col, row: sel.row} : {col: col+1, row: sel.row};
           }
         }
         return {row: sel.row, col: 1};
       case "Up":
-        for (var row = sel.row; row > 1; row--) {
-          if (Util.xor(selExists, this.locationExists(sheetId, sel.col, row))) {
-            return (row==sel.row-1) ? {col: sel.col, row: row} : {col: sel.col, row: row+1};
+        startRow = this.locationExists(sheetId, sel.col, sel.row-1) ? sel.row : sel.row-1;
+        selExists = this.locationExists(sheetId, sel.col, startRow);
+        for (var row = startRow; row > 1; row--) {
+          let thisExists = this.locationExists(sheetId, sel.col, row);
+          if (Util.xor(selExists, thisExists)) {
+            return thisExists ? {col: sel.col, row: row} : {col: sel.col, row: row+1};
           }
         }
         return {row: 1, col: sel.col};
