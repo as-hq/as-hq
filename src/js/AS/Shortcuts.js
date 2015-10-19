@@ -130,6 +130,22 @@ export default {
       console.log("moving to: ", newLoc);
       self.refs.spreadsheet.makeSelection(newLoc);
     });
+    ShortcutUtils.addShortcut("grid", "grid_fill_down", "Ctrl+D", (wildcard) => {
+      let sel = Store.getActiveSelection().range;
+      if (sel.row2){
+        let copyFrom = {row: sel.row, col: sel.col, row2: sel.row, col2: sel.col},
+            copyTo = {row: sel.row+1, col: sel.col, row2: sel.row2, col2: sel.col};
+        API.sendCopyRequest([copyFrom, copyTo]);
+      }
+    });
+    ShortcutUtils.addShortcut("grid", "grid_fill_right", "Ctrl+R", (wildcard) => {
+      let sel = Store.getActiveSelection().range;
+      if (sel.col2){
+        let copyFrom = {row: sel.row, col: sel.col, row2: sel.row, col2: sel.col},
+            copyTo = {row: sel.row, col: sel.col+1, row2: sel.row, col2: sel.col2};
+        API.sendCopyRequest([copyFrom, copyTo]);
+      }
+    });
     ShortcutUtils.addShortcut("grid", "grid_home", "Home", (wildcard) => {
       self.refs.spreadsheet.makeSelection({row: 1, col: 1});
     });
