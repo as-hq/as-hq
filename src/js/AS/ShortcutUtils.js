@@ -62,7 +62,9 @@ export default {
   },
 
   gridShouldDeferKey(e){
-    return !Util.arrContains(KeyUtils.navKeys, e.which) || e.ctrlKey;
+    if (e.ctrlKey)
+      return true;
+    else return !Util.arrContains(KeyUtils.navKeys, e.which);
   },
 
   editorShouldDeferKey(e) {

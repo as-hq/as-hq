@@ -127,6 +127,7 @@ export default {
     // grid shortcuts -------------------------------------------------------------------------------
     ShortcutUtils.addShortcut("grid", "moveto_data_boundary", "Ctrl+Up/Down/Left/Right", (wildcard) => {
       let newLoc = Store.getDataBoundary(wildcard);
+      console.log("moving to: ", newLoc);
       self.refs.spreadsheet.makeSelection(newLoc);
     });
     ShortcutUtils.addShortcut("grid", "grid_home", "Home", (wildcard) => {

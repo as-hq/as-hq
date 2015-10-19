@@ -6,6 +6,8 @@ export default {
   // event name triggered from store, listened to by views
   CHANGE_EVENT: 'change',
 
+  LARGE_SEARCH_BOUND: 1000, // for searching for data boundaries, etc.
+
   scrollCacheX: 50,
   scrollCacheY: 50,
 

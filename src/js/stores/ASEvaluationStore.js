@@ -273,7 +273,7 @@ const ASEvaluationStore = assign({}, BaseStore, {
    //Utils for selRegionToValues
    sliceArray (begin, end) {
      return (
-         function(arr) { return arr.slice(begin, end) } 
+         function(arr) { return arr.slice(begin, end) }
      );
    },
 
@@ -290,21 +290,21 @@ const ASEvaluationStore = assign({}, BaseStore, {
       if (clientCell.cellValue.hasOwnProperty("contents")){
          return clientCell.cellValue.contents;
       }
-    } else if (clientCell.cellValue.errMsg) { 
+    } else if (clientCell.cellValue.errMsg) {
       return "ERROR"; // TODO: display different types of errors depending on the type
     }
-    return ""; 
+    return "";
    },
 
    invertArray(array){
-    return array[0].map(function(col, i) { 
-      return array.map(function(row) { 
-        return row[i] 
+    return array[0].map(function(col, i) {
+      return array.map(function(row) {
+        return row[i]
       })
     });
    },
 
-   // Converts a range to a row major list of lists, 
+   // Converts a range to a row major list of lists,
    selRegionToValues(rng){
      console.log("SEL REGION RNG " + JSON.stringify(rng));
      let sheetid = _data.currentSheet.sheetId;
@@ -359,7 +359,7 @@ const ASEvaluationStore = assign({}, BaseStore, {
      };
    },
 
-   rowValuesToASCells(loc, language){ 
+   rowValuesToASCells(loc, language){
     var self = this;
      return function(values, i){
        return values.map(self.arrayToASCells(loc, language)(i));
@@ -468,6 +468,44 @@ const ASEvaluationStore = assign({}, BaseStore, {
       return null;
     }
   },
+
+  getDataBoundary(direction) {
+    let sel = _data.activeSelection.range,
+        sheetId = _data.currentSheet.sheetId,
+        selExists = this.locationExists(sheetId, sel.col, sel.row);
+    console.log("in data bundary func", sel);
+    switch(direction) {
+      case "Right":
+        for (var col = sel.col; col < sel.col + Constants.LARGE_SEARCH_BOUND; col++){
+          if (Util.xor(selExists, this.locationExists(sheetId, col, sel.row))) {
+            return {col: col, row: sel.row};
+          }
+        }
+        return {row: sel.row, col: sel.col};
+      case "Down":
+        for (var row = sel.row; row < sel.row + Constants.LARGE_SEARCH_BOUND; row++){
+          if (Util.xor(selExists, this.locationExists(sheetId, sel.col, row))) {
+            return {col: sel.col, row: row};
+          }
+        }
+        return {row: sel.row, col: sel.col};
+      case "Left":
+        for (var col = sel.col; col > 1; col--) {
+          if (Util.xor(selExists, this.locationExists(sheetId, col, sel.row))) {
+            return {col: col, row: sel.row};
+          }
+        }
+        return {row: sel.row, col: 1};
+      case "Up":
+        for (var row = sel.row; row > 1; row--) {
+          if (Util.xor(selExists, this.locationExists(sheetId, sel.col, row))) {
+            return {col: sel.col, row: row};
+          }
+        }
+        return {row: 1, col: sel.col};
+    }
+  },
+
 
   /**************************************************************************************************************************/
   /*

@@ -489,5 +489,9 @@ export default {
 
   getSafeCol(c){
     return Math.min(Math.max(c, 1), Constants.numCols);
+  },
+
+  xor(foo, bar) {
+    return foo ? !bar : bar;
   }
 };
