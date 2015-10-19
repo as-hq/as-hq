@@ -157,7 +157,7 @@ export default React.createClass({
         KeyUtils.killEvent(e);
       }
       this.props.onTextBoxDeferredKey(e);
-    } 
+    }
   },
 
 
@@ -292,7 +292,9 @@ export default React.createClass({
         shouldScrollV = loc.row < range.row || loc.row > range.row2,
         scrollH = shouldScrollH ? c : hg.getHScrollValue(),
         scrollV = shouldScrollV ? r : hg.getVScrollValue();
-    this.scrollTo(scrollH, scrollV);
+    if (shouldScrollV || shouldScrollH){
+      this.scrollTo(scrollH, scrollV);
+    }
 
     this.repaint();
     this.props.onSelectionChange({range:loc, width:dC+1, height:dR+1});
