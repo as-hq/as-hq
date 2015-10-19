@@ -330,7 +330,7 @@ const ASEvaluationStore = assign({}, BaseStore, {
      return function(v) {
        let row = loc.range.row, col = loc.range.col;
        var value;
-       if (parseFloat(v)) {
+       if (typeof(v) === "number") {
          value = v;
        }
        else {
@@ -371,7 +371,6 @@ const ASEvaluationStore = assign({}, BaseStore, {
    },
 
    makeASCellsFromVals(loc, vals, language) {
-     console.log("PasteHelper Test for blank cells: " + JSON.stringify(vals));
      return vals.map(this.rowValuesToASCells(loc, language));
    },
 
