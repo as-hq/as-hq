@@ -41,13 +41,15 @@ tagStyledCells :: [ASCell] -> [ASCell]
 tagStyledCells = id
 
 changeExcelExpressions :: [ASCell] -> [ASCell]
-changeExcelExpressions = L.map upperCase
-	where
-		upperCase :: ASCell -> ASCell
-		upperCase (Cell l (Expression e Excel) v t) = Cell l (Expression e' Excel) v t 
-			where 
-				e' = L.map toUpper e
-		upperCase c = c
+changeExcelExpressions = id
+-- L.map upperCase
+-- 	where
+-- 		upperCase :: ASCell -> ASCell
+-- 		upperCase (Cell l (Expression e Excel) v t) = Cell l (Expression e' Excel) v t 
+-- 			where 
+-- 				e' = L.map toUpper e
+-- 		upperCase c = c
+-- #incomplete should change all function names to upper-cased forms
 
 
 ----------------------------------------------------------------------------------------------------------------------------------------------

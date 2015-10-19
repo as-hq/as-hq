@@ -81,7 +81,7 @@ data ASValue =
   | ValueImage { imagePath :: String }
   | ValueObject { objectType :: String, jsonRepresentation :: String }
   | ValueError { errMsg :: String, errType :: String, file :: String, position :: Int }
-  | ValueExcelError EError
+  | ValueExcelError EError -- #needsrefactor: should be a part of ValueError
   | RList [(RListKey, ASValue)]
   | RDataFrame [ASValue]
   deriving (Show, Read, Eq, Generic)
@@ -190,7 +190,7 @@ data ASPayload =
   | PayloadU ASUserId
   | PayloadE ASExecError
   | PayloadCommit ASCommit
-  | PayloadCopy {copyRange :: ASRange, copyTo :: ASRange}
+  | PayloadPaste {copyRange :: ASRange, copyTo :: ASRange}
   | PayloadTags {tags :: [ASCellTag], tagsLoc :: ASIndex}
   | PayloadXp ASExpression
   | PayloadReplValue ASReplValue

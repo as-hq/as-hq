@@ -255,15 +255,14 @@ handleRedo user state = do
   printWithTime "Server processed redo"
 
 handleCopy :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
-handleCopy user state (PayloadCopy from to) = do
+handleCopy user state (PayloadPaste from to) = do
   conn <- dbConn <$> readMVar state
   toCells <- getPasteCells conn from to
   msg' <- DP.runDispatchCycle state toCells (userId user)
   sendBroadcastFiltered user state msg'
 
--- #needsrefactor PayloadCopy needs to be renamed and may need to take in a list of ranges instead
 handleCut :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
-handleCut user state (PayloadCopy from to) = do
+handleCut user state (PayloadPaste from to) = do
   conn <- dbConn <$> readMVar state
   toCells <- getPasteCells conn from to
   let blankedCells = U.blankCellsAt Python (rangeToIndices from) -- TODO set actual language
