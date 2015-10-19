@@ -397,7 +397,7 @@ const ASEvaluationStore = assign({}, BaseStore, {
         _data.allCells[sheetid][col][row] = c;
         _data.lastUpdatedCells.push(c);
       } else {
-        removeCells.push(c); 
+        removeCells.push(c); // filter out all the blank cells passed back from the store
       }
     }
     this.removeData(removeCells);

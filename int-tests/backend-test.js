@@ -283,6 +283,7 @@ describe('backend', () => {
   function shouldBeNothing(loc) {
     return messageShouldSatisfy(loc, (cs) => {
       console.log(`${loc} should be nothing`);
+      //server should return either nothing at the location or a blank cell
       let isEmpty = (cs.length == 0) || (cs[0].cellExpression.expression == "");
       expect(isEmpty).toBe(true);
     });
