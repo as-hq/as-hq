@@ -554,6 +554,16 @@ describe('backend', () => {
           ]);
         });
 
+        it('should recognize functions no matter how they are capitalized', (done) => {
+          _do([
+            excel('A1', '1'),
+            excel('A2', '2'),
+            excel('A3', '=sUm(A1,A2)'),
+            shouldBe('A3', valueI(3)),
+            exec(done)
+          ]);
+        });
+
         describe('abs', () => {
           it('should evaluate', (done) => {
             _do([
@@ -615,6 +625,7 @@ describe('backend', () => {
           ]);
         });
 
+
         it('should cut properly', (done) => {
           _do([
             python('A1', '1 + 1'),
@@ -628,6 +639,21 @@ describe('backend', () => {
             shouldBe('C1', valueI(3)),
             shouldBe('B2', valueI(3)),
             shouldBe('C2', valueI(4)),
+            exec(done)
+          ]);
+        });
+
+        it('should cut properly with blank cells', (done) => {
+          _do([
+            python('A1', '1 + 1'),
+            python('B1', 'A1 + 1'),
+            python('A2', '3'),
+            cut('A1:B2', 'B1:C2'),
+            shouldBeNothing('A1'), 
+            shouldBeNothing('A2'), 
+            shouldBe('B1', valueI(2)),
+            shouldBe('C1', valueI(3)),
+            shouldBe('B2', valueI(3)),
             exec(done)
           ]);
         });

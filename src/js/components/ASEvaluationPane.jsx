@@ -257,6 +257,7 @@ export default React.createClass({
     if (vals){
       let html = ClipboardUtils.valsToHtml(vals),
           plain = ClipboardUtils.valsToPlain(vals);
+
       Store.setClipboard(selRegion, isCut);
       this.refs.spreadsheet.repaint(); // render immediately
       e.clipboardData.setData("text/html",html);
@@ -271,7 +272,7 @@ export default React.createClass({
         containsPlain = Util.arrContains(e.clipboardData.types,"text/plain"),
         isAlphaSheets = containsHTML ?
           ClipboardUtils.htmlStringIsAlphaSheets(e.clipboardData.getData("text/html")) : false;
-    if (isAlphaSheets){ // From AS
+    if (isAlphaSheets) { // From AS
       let clipboard = Store.getClipboard();
       if (clipboard.range){
         if (clipboard.isCut){

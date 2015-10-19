@@ -279,17 +279,21 @@ const ASEvaluationStore = assign({}, BaseStore, {
 
    clientCellToValue(clientCell) {
      let v = clientCell.cellValue.contents;
-     if (v.constructor === Array){
-       if (v.length !== 0){
-        console.log("Returning value: " +v[0]);
-         return v[0];
+     if (v) { // non ValueError value
+       if (v.constructor === Array) {
+         if (v.length !== 0){
+          console.log("Returning value: " +v[0]);
+           return v[0];
+         }
+         return "";
        }
-       return "";
-     }
-    if (clientCell.cellValue.hasOwnProperty("contents")){
-       return clientCell.cellValue.contents;
+      if (clientCell.cellValue.hasOwnProperty("contents")){
+         return clientCell.cellValue.contents;
+      }
+    } else if (clientCell.cellValue.errMsg) { 
+      return "ERROR"; // TODO: display different types of errors depending on the type
     }
-    return ""
+    return ""; 
    },
 
    invertArray(array){
@@ -307,9 +311,9 @@ const ASEvaluationStore = assign({}, BaseStore, {
      let col = rng.col, row = rng.row;
      if (this.locationExists(sheetid, col, row)) {
        if (!rng.row2) {
-          console.log(this.clientCellToValue(this.getCellAtLoc(col, row)));
-         return [[this.clientCellToValue(this.getCellAtLoc(col, row))]];
-       }
+        console.log(this.clientCellToValue(this.getCellAtLoc(col, row)));
+        return [[this.clientCellToValue(this.getCellAtLoc(col, row))]];
+      }
        else if (this.locationExists(sheetid, rng.col2, rng.row2)) {
          let col2 = rng.col2, row2 = rng.row2;
          let colMajorCells = _data.allCells[sheetid].slice(col, col2+1).map(this.sliceArray(row, row2+1));
