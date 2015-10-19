@@ -169,6 +169,12 @@ describe('backend', () => {
     });
   }
 
+  function cut(rng1, rng2) {
+    return apiExec(() => {
+      API.sendCutRequest([rng1, rng2].map(locFromExcel));
+    });
+  }
+
   function undo() {
     return apiExec(() => {
       API.sendUndoRequest();
@@ -277,6 +283,9 @@ describe('backend', () => {
   function shouldBeNothing(loc) {
     return messageShouldSatisfy(loc, (cs) => {
       console.log(`${loc} should be nothing`);
+      if (cs.length != 0) { 
+        console.log(cs);
+      }
       expect(cs.length).toBe(0);
     });
   }
@@ -821,6 +830,35 @@ describe('backend', () => {
             exec(done)
           ]);
         });
+
+        it('should undo a cut', (done) => {
+          _do([
+            python('A1', '1 + 1'),
+            python('B1', 'A1 + 1'),
+            cut('A1:B1', 'C1:D1'),
+            undo(),
+            _forM_(['C1', 'D1'],
+              shouldBeNothing
+            ),
+            shouldBe('A1', valueI(2)),
+            shouldBe('B1', valueI(3)),
+            exec(done)
+          ]);
+        });
+
+        xit('should undo a cut 2', (done) => {
+          _do([
+            python('A1', '1 + 1'),
+            python('B1', 'A1 + 1'),
+            python('A2', '3'),
+            cut('A1:B2', 'B1:C2'),
+            undo(),
+            _forM_(['C1', 'D1'],
+              shouldBeNothing
+            ),
+            exec(done)
+          ]);
+        });
       });
 
       describe('redo', () => {
@@ -875,6 +913,23 @@ describe('backend', () => {
               ['B1', 'B2'],
               [2, 3].map(valueI)
             ),
+            exec(done)
+          ]);
+        });
+
+        it('should undo and redo cut and paste', (done) => {
+          _do([
+            python('A1', '1 + 1'),
+            python('A2', 'A1 + 1'),
+            cut('A1:A2', 'B1:B2'),
+            undo(),
+            redo(),
+            shouldBeL(
+              ['B1', 'B2'],
+              [2, 3].map(valueI)
+            ),
+            shouldBeNothing('A1'), 
+            // shouldBeNothing('A2'),
             exec(done)
           ]);
         });

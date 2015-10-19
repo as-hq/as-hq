@@ -273,13 +273,20 @@ export default {
   },
   sendCopyRequest(locs) {
     let msg = Converter.toServerMessageWithPayload(Constants.ServerActions.Copy, {
-      tag: "PayloadCopy",
+      tag: "PayloadPaste",
       copyRange: Converter.clientToASRange(locs[0]),
       copyTo: Converter.clientToASRange(locs[1])
     });
     this.send(msg);
   },
-
+  sendCutRequest(locs) {
+    let msg = Converter.toServerMessageWithPayload(Constants.ServerActions.Cut, {
+      tag: "PayloadPaste",
+      copyRange: Converter.clientToASRange(locs[0]),
+      copyTo: Converter.clientToASRange(locs[1])
+    });
+    this.send(msg);
+  },
   sendSimplePasteRequest(cells){
     console.log("ABOUT TO SEND CELLS: " + JSON.stringify(cells));
     let msg = Converter.toServerMessageFormat(Constants.ServerActions.Evaluate, "PayloadCL",cells);

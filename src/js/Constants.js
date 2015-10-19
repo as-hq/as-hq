@@ -100,6 +100,7 @@ export default {
     Redo: "Redo",
     Clear: "Clear",
     Copy: "Copy",
+    Cut: "Cut",
     UpdateWindow: "UpdateWindow",
     Open: "Open",
     Close: "Close",
