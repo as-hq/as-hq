@@ -380,6 +380,7 @@ const ASEvaluationStore = assign({}, BaseStore, {
   /* Function to update cell related objects in store. Caller's responsibility to clear lastUpdatedCells if necessary */
   updateData(cells) {
     console.log("About to update data in store: " + JSON.stringify(cells));
+    let removeCells = [];
     for (var key in cells){
       let c = cells[key];
       let sheetid = Converter.clientCellGetSheetId(c);
@@ -387,13 +388,19 @@ const ASEvaluationStore = assign({}, BaseStore, {
       let row = Converter.clientCellGetRow(c);
       let xp = Converter.clientCellGetExpressionObj(c);
       let val = Converter.clientCellGetValueObj(c);
-      if (!_data.allCells[sheetid])
-        _data.allCells[sheetid] = [];
-      if (!_data.allCells[sheetid][col])
-        _data.allCells[sheetid][col] = [];
-      _data.allCells[sheetid][col][row] = c;
-      _data.lastUpdatedCells.push(c);
+
+      if (xp.expression != "") {
+        if (!_data.allCells[sheetid])
+          _data.allCells[sheetid] = [];
+        if (!_data.allCells[sheetid][col])
+          _data.allCells[sheetid][col] = [];
+        _data.allCells[sheetid][col][row] = c;
+        _data.lastUpdatedCells.push(c);
+      } else {
+        removeCells.push(c); 
+      }
     }
+    this.removeData(removeCells);
   },
 
   /* Replace cells with empty ones. Caller's responsibility to clear lastUpdatedCells if necessary */
