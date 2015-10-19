@@ -270,7 +270,7 @@ const ASEvaluationStore = assign({}, BaseStore, {
   /**************************************************************************************************************************/
   /* Copy paste helpers */
 
-   //Utils for selRegionToValues
+   //Utils for selRegionToValues, which is used in copying.
    sliceArray (begin, end) {
      return (
          function(arr) { return arr.slice(begin, end) } 
@@ -323,18 +323,26 @@ const ASEvaluationStore = assign({}, BaseStore, {
      return null;
    },
 
-   // Methods for paste
+   // Paste Helpers.
+   // The relevant method is makeASCellsFromVals, which turns a list of lists of values into a list of lists of alphasheets cells.
    makeServerCell(loc, language, i, j) {
     let sheet = _data.currentSheet.sheetId;
      return function(v) {
        let row = loc.range.row, col = loc.range.col;
+       var value;
+       if (typeof(v) === "number") {
+         value = v;
+       }
+       else {
+         value = "\"" + v + "\"";
+       }
        return  {
          "cellLocation": {
           locSheetId: sheet,
           index: [col + j, row + i]
         },
          "cellExpression": {
-           "expression" : v,
+           "expression" : value,
            "language": language.Server
          },
          "cellValue":{
