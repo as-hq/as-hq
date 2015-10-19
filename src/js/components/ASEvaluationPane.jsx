@@ -274,13 +274,14 @@ export default React.createClass({
     if (isAlphaSheets){ // From AS
       let clipboard = Store.getClipboard();
       if (clipboard.range){
-        API.sendCopyRequest([clipboard.range, rng]);
+        if (clipboard.isCut){
+          API.sendCutRequest([clipboard.range, rng]);
+        } else { 
+          API.sendCopyRequest([clipboard.range, rng]);
+        }
       }
       else{
         this.setToast("Nothing in clipboard.", "Error");
-      }
-      if (clipboard.isCut){
-        API.sendDeleteRequest(clipboard.range);
       }
       this.refs.spreadsheet.repaint(); // render immediately
     }
