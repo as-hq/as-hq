@@ -280,12 +280,11 @@ handleCopyForced user state (PayloadLL (from:to:[])) = return ()
 -- | If you're copy/pasting
 getPasteCells :: R.Connection -> ASRange -> ASRange -> IO [ASCell]
 getPasteCells conn from to = do 
-  maybeCells <- DB.getCells (rangeToIndices from)
+  fromCells    <- DB.getPossiblyBlankCells (rangeToIndices from)
   listsInRange <- DB.getListsInRange conn from
-  let fromCells          = filterNothing maybeCells   -- list of cells you're copying from
-      sanitizedFromCells = sanitizeCopyCells fromCells listsInRange
+  let sanitizedFromCells = sanitizeCopyCells fromCells listsInRange
       offsets            = U.getPasteOffsets from to  -- how much to shift these cells for copy/copy/paste
-      toCells  = concat $ map (\o -> map (O.shiftCell o) sanitizedFromCells) offsets
+      toCells            = concat $ map (\o -> map (O.shiftCell o) sanitizedFromCells) offsets
   return toCells
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
