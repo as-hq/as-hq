@@ -300,7 +300,7 @@ export default {
   },
 
   getOrientedArea(rng) {
-    return {
+    return !rng.row2 ? rng : {
       row: Math.min(rng.row, rng.row2), col: Math.min(rng.col, rng.col2),
       row2: Math.max(rng.row, rng.row2), col2: Math.max(rng.col, rng.col2)
     };
