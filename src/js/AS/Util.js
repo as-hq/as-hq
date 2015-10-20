@@ -37,7 +37,7 @@ export default {
       case "ValueNaN":
         return "NaN";
       case "ValueB":
-        return cv.contents;
+        return cv.contents.toString().toUpperCase();
       case "ValueD":
         return cv.contents;
       case "ValueI":
