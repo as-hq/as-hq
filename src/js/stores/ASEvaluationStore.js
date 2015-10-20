@@ -324,7 +324,6 @@ const ASEvaluationStore = assign({}, BaseStore, {
      let height = row2 - row + 1,
          length = col2 - col + 1;
      var rowMajorValues = this.make2DArrayOf("", height, length);
-     console.log("ROW MAJOR VALUE: " + rowMajorValues);
      for (let i = 0; i < height; ++i) {
        let currentRow = row + i;
        var self = this;
@@ -341,7 +340,6 @@ const ASEvaluationStore = assign({}, BaseStore, {
            }
        });
      }
-     console.log("row major values: " + JSON.stringify(rowMajorValues));
      return rowMajorValues;
    },
 

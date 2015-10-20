@@ -254,8 +254,8 @@ export default React.createClass({
     KeyUtils.killEvent(e);
     let selRegion = Store.getActiveSelection(),
         vals = Store.selRegionToValues(selRegion.range);
-    console.log("THE VALS ARE " + JSON.stringify(vals));
     if (vals) {
+      console.log("VALS ARE ACTUALLY CALLED!!!!");
       let html = ClipboardUtils.valsToHtml(vals),
           plain = ClipboardUtils.valsToPlain(vals);
       this.refs.spreadsheet.repaint(); // render immediately
