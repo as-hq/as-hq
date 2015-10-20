@@ -279,52 +279,70 @@ const ASEvaluationStore = assign({}, BaseStore, {
 
    clientCellToValue(clientCell) {
      let v = clientCell.cellValue.contents;
-     if (v) { // non ValueError value
-       if (v.constructor === Array) {
-         if (v.length !== 0){
-          console.log("Returning value: " +v[0]);
-           return v[0];
-         }
-         return "";
+     if (v.constructor === Array){
+       if (v.length !== 0){
+        console.log("Returning value: " +v[0]);
+         return v[0];
        }
-      if (clientCell.cellValue.hasOwnProperty("contents")){
-         return clientCell.cellValue.contents;
-      }
-    } else if (clientCell.cellValue.errMsg) {
-      return "ERROR"; // TODO: display different types of errors depending on the type
-    }
-    return "";
+       return "";
+     }
+     if (clientCell.cellValue.hasOwnProperty("contents")){
+       console.log("Contents are : " + clientCell.cellValue.contents);
+       return clientCell.cellValue.contents;
+     }
+     return "";
    },
 
-   invertArray(array){
-    return array[0].map(function(col, i) {
-      return array.map(function(row) {
-        return row[i]
-      })
-    });
+   makeArrayOf(value, length) {
+     var arr = [], i = length;
+     while (i--) {
+       arr[i] = value;
+     }
+     return arr;
    },
 
-   // Converts a range to a row major list of lists,
+   make2DArrayOf(value, height, length) {
+     var arr = [[]], i = height;
+     while (i --) {
+       arr[i] = this.makeArrayOf(value, length);
+     }
+     return arr;
+   },
+
+   // Converts a range to a row major list of lists of values, 
    selRegionToValues(rng){
+     console.log("Change registered");
      console.log("SEL REGION RNG " + JSON.stringify(rng));
      let sheetid = _data.currentSheet.sheetId;
      let col = rng.col, row = rng.row;
-     if (this.locationExists(sheetid, col, row)) {
-       if (!rng.row2) {
-        console.log(this.clientCellToValue(this.getCellAtLoc(col, row)));
-        return [[this.clientCellToValue(this.getCellAtLoc(col, row))]];
-      }
-       else if (this.locationExists(sheetid, rng.col2, rng.row2)) {
-         let col2 = rng.col2, row2 = rng.row2;
-         let colMajorCells = _data.allCells[sheetid].slice(col, col2+1).map(this.sliceArray(row, row2+1));
-         let self = this;
-         let colMajorValues = colMajorCells.map(function(col){
-          return col.map(self.clientCellToValue);
-         });
-         return this.invertArray(colMajorValues);
-       }
+     if (!rng.row2) {
+       console.log(this.clientCellToValue(this.getCellAtLoc(col, row)));
+       return [[this.clientCellToValue(this.getCellAtLoc(col, row))]];
      }
-     return null;
+     let col2 = rng.col2,
+         row2 = rng.row2;
+     let height = row2 - row + 1,
+         length = col2 - col + 1;
+     var rowMajorValues = this.make2DArrayOf("", height, length);
+     console.log("ROW MAJOR VALUE: " + rowMajorValues);
+     for (let i = 0; i < height; ++i) {
+       let currentRow = row + i;
+       var self = this;
+       rowMajorValues[i] = rowMajorValues[i].map(function(value, index) {
+           let currentColumn = col + index;
+           console.log(currentColumn  + " " + currentRow + " " + "IS CURRENT ROW COLUMN");
+           console.log(sheetid);
+           console.log("Hooha");
+           if (self.locationExists(sheetid, currentColumn, currentRow)) {
+             return self.clientCellToValue(_data.allCells[sheetid][currentColumn][currentRow]);
+           }
+           else {
+             return "";
+           }
+       });
+     }
+     console.log("row major values: " + JSON.stringify(rowMajorValues));
+     return rowMajorValues;
    },
 
    // TODO: move somewhere else maybe, in some global util method? 

@@ -254,12 +254,12 @@ export default React.createClass({
     KeyUtils.killEvent(e);
     let selRegion = Store.getActiveSelection(),
         vals = Store.selRegionToValues(selRegion.range);
+    console.log("THE VALS ARE " + JSON.stringify(vals));
     if (vals) {
       let html = ClipboardUtils.valsToHtml(vals),
           plain = ClipboardUtils.valsToPlain(vals);
-
-      Store.setClipboard(selRegion, isCut);
       this.refs.spreadsheet.repaint(); // render immediately
+      Store.setClipboard(selRegion, isCut);
       e.clipboardData.setData("text/html",html);
       e.clipboardData.setData("text/plain",plain);
     }
