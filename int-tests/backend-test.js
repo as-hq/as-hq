@@ -563,6 +563,14 @@ describe('backend', () => {
           ]);
         });
 
+        it('should include quotes in string literal with quotes', (done) => {
+          _do([
+            excel('A1', '"hello"'),
+            shouldBe('A1', valueS("\"hello\"")),
+            exec(done)
+          ]);
+        });
+
         it('should evaluate entire expression', (done) => {
           _do([
             excel('A1', '=SUM(1,2)ASDF"sadf'), //and not just match =SUM(1,2) and equal 3
