@@ -30,7 +30,7 @@ literal = do
   firstChar <- noneOf ['=']
   restChars <- manyTill anyChar (try eof)
   let str = firstChar:restChars
-  let val = parse excelValue "" str
+  let val = parse justExcelValue "" str
   return $ case val of
     (Left _) -> Basic . Var $ EValueS str
     (Right v) -> v
@@ -43,12 +43,11 @@ formula =  do
   spaces >> symbol "=" >> spaces
   f <- expr
   case opener of
-    '{' -> char '}' >> (return $ ArrayFormula f)
-    _ -> return $ SimpleFormula f
-
+    '{' -> char '}' >> eof >> (return $ ArrayFormula f)
+    _ -> eof >> (return $ SimpleFormula f)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
--- | Language definition
+-- Language definition
 
 -- | Expressions.
 expr :: Parser Formula
@@ -276,6 +275,11 @@ excelValue = fmap (Basic . Var) $
   <|> try (EValueB <$> bool)
   <|> try (EValueS <$> str)
 
+justExcelValue :: Parser Formula
+justExcelValue = do 
+  v <- excelValue
+  eof
+  return v
+
 blankValue :: Parser Formula
 blankValue = spaces >> (return . Basic $ Var EMissing)
-
