@@ -68,7 +68,7 @@ export default {
   },
 
   editorShouldDeferKey(e) {
-    return !KeyUtils.producesVisibleChar(e);
+    return !KeyUtils.producesVisibleChar(e) && !KeyUtils.isCopyPasteType(e);
   },
 
   replShouldDeferKey(e) {

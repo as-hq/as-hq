@@ -251,7 +251,7 @@ export default React.createClass({
   /* Copy paste handling */
 
   handleCopyTypeEventForGrid(e,isCut) {
-    KeyUtils.killEvent(e);
+    KeyUtils.killEvent(e); 
     let selRegion = Store.getActiveSelection(),
         vals = Store.selRegionToValues(selRegion.range);
     if (vals) {
@@ -266,7 +266,7 @@ export default React.createClass({
   },
 
   handlePasteEventForGrid(e) {
-    KeyUtils.killEvent(e);
+    KeyUtils.killEvent(e); 
     let rng = Store.getActiveSelection(),
         containsHTML = Util.arrContains(e.clipboardData.types,"text/html"),
         containsPlain = Util.arrContains(e.clipboardData.types,"text/plain"),
@@ -305,15 +305,25 @@ export default React.createClass({
   /* TODO: handle other copy/paste events; from editor and textbox */
 
   handleCutEvent(e) {
-    this.handleCopyTypeEventForGrid(e,true);
+    if (this._isEventFromGrid(e)) { 
+      this.handleCopyTypeEventForGrid(e,true);
+    }
   },
 
   handleCopyEvent(e) {
-    this.handleCopyTypeEventForGrid(e,false);
+    if (this._isEventFromGrid(e)) { 
+      this.handleCopyTypeEventForGrid(e,false);
+    }
   },
 
   handlePasteEvent(e) {
-    this.handlePasteEventForGrid(e);
+    if (this._isEventFromGrid(e)) { 
+      this.handlePasteEventForGrid(e);
+    }
+  },
+
+  _isEventFromGrid(e) { 
+    return (document.activeElement.tagName == "FIN-HYPERGRID"); 
   },
 
 

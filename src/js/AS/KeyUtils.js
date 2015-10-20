@@ -123,6 +123,7 @@ export default {
            (e.ctrlKey && e.key === "Backspace"); // ctrl + backspace
   },
 
+  //is it a copy event or a paste event or a cut event?
   isCopyPasteType(e){
     return e.ctrlKey && (e.which === 67 || e.which === 86 || e.which === 88)
   },
