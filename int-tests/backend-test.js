@@ -660,39 +660,6 @@ describe('backend', () => {
           ]);
         });
 
-
-        it('should cut properly', (done) => {
-          _do([
-            python('A1', '1 + 1'),
-            python('B1', 'A1 + 1'),
-            python('A2', '3'),
-            python('B2', '4'),
-            cut('A1:B2', 'B1:C2'),
-            shouldBeNothing('A1'), 
-            shouldBeNothing('A2'), 
-            shouldBe('B1', valueI(2)),
-            shouldBe('C1', valueI(3)),
-            shouldBe('B2', valueI(3)),
-            shouldBe('C2', valueI(4)),
-            exec(done)
-          ]);
-        });
-
-        it('should cut properly with blank cells', (done) => {
-          _do([
-            python('A1', '1 + 1'),
-            python('B1', 'A1 + 1'),
-            python('A2', '3'),
-            cut('A1:B2', 'B1:C2'),
-            shouldBeNothing('A1'), 
-            shouldBeNothing('A2'), 
-            shouldBe('B1', valueI(2)),
-            shouldBe('C1', valueI(3)),
-            shouldBe('B2', valueI(3)),
-            exec(done)
-          ]);
-        });
-
         // works on backend but crashes the test
         xit('should not re-eval a non-head list cell with its expression unchanged', (done) => {
           _do([
@@ -722,7 +689,7 @@ describe('backend', () => {
     });
 
     describe('cell transforms', () => {
-      describe('copy/paste', () => {
+      describe('copy/cut/paste', () => {
         it('should copy and paste', (done) => {
           _do([
             python('A1', '1'),
@@ -824,7 +791,7 @@ describe('backend', () => {
           ]);
         });
 
-        it('should successfully copy and paste cells who depend on each other', (done) => {
+        it('should successfully copy and paste cells that depend on each other', (done) => {
           _do([
             python('A1', '1'),
             python('A2', 'A1 + 1'),
@@ -853,6 +820,50 @@ describe('backend', () => {
             python('A1', 'range(10)'),
             copy('A1:A2', 'B1:B2'),
             expressionShouldBe('B1', '0'),
+            exec(done)
+          ]);
+        });
+
+        it('should copy blank cells', (done) => {
+          _do([
+            python('A1', '1'),
+            python('B2', '2'),
+            copy('A1:A2', 'B1:B2'),
+            shouldBeNothing('B2'),
+            exec(done)
+          ]);
+        });
+
+        it('should cut properly', (done) => {
+          _do([
+            python('A1', '1 + 1'),
+            python('B1', 'A1 + 1'),
+            python('A2', '3'),
+            python('B2', '4'),
+            cut('A1:B2', 'B1:C2'),
+            shouldBeNothing('A1'), 
+            shouldBeNothing('A2'), 
+            shouldBe('B1', valueI(2)),
+            shouldBe('C1', valueI(3)),
+            shouldBe('B2', valueI(3)),
+            shouldBe('C2', valueI(4)),
+            exec(done)
+          ]);
+        });
+
+        it('should cut properly with blank cells', (done) => {
+          _do([
+            python('A1', '1 + 1'),
+            python('B1', 'A1 + 1'),
+            python('A2', '3'),
+            python('C2', '5'),
+            cut('A1:B2', 'B1:C2'),
+            shouldBeNothing('A1'), 
+            shouldBeNothing('A2'), 
+            shouldBe('B1', valueI(2)),
+            shouldBe('C1', valueI(3)),
+            shouldBe('B2', valueI(3)),
+            shouldBeNothing('C2'),
             exec(done)
           ]);
         });
