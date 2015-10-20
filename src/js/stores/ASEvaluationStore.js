@@ -262,21 +262,26 @@ const ASEvaluationStore = assign({}, BaseStore, {
      );
    },
 
-   clientCellToValue(clientCell) {
-     let v = clientCell.cellValue.contents;
-     if (v.constructor === Array){
-       if (v.length !== 0){
-        console.log("Returning value: " +v[0]);
-         return v[0];
+  clientCellToValue(clientCell) {
+    let v = clientCell.cellValue.contents;
+
+    if (v) { // non ValueError value
+      if (v.constructor === Array){ // #needsrefactor (probably elsewhere in code): why are we treating x and [x] as the same? 
+        if (v.length !== 0){
+          console.log("Returning value: " +v[0]);
+          return v[0];
+        }
+        return "";
        }
-       return "";
-     }
-     if (clientCell.cellValue.hasOwnProperty("contents")){
-       console.log("Contents are : " + clientCell.cellValue.contents);
-       return clientCell.cellValue.contents;
-     }
-     return "";
-   },
+      if (clientCell.cellValue.hasOwnProperty("contents")){
+        console.log("Contents are : " + clientCell.cellValue.contents);
+        return clientCell.cellValue.contents;
+      }
+      return "";
+    } else if (clientCell.cellValue.errMsg) {
+      return "ERROR"; // TODO: display different types of errors depending on the type
+    }
+  },
 
    makeArrayOf(value, length) {
      var arr = [], i = length;
