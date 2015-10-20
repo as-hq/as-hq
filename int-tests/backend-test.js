@@ -277,7 +277,7 @@ describe('backend', () => {
   }
 
   function shouldBeError(loc) {
-    return valueShouldSatisfy(loc, ({ tag }) => tag === 'ValueError');
+    return valueShouldSatisfy(loc, ({ tag }) => (tag === 'ValueError' || tag == 'ValueExcelError'));
   }
 
   function shouldBeNothing(loc) {
@@ -555,12 +555,46 @@ describe('backend', () => {
           ]);
         });
 
+        it('should evaluate a string literal verbatim', (done) => {
+          _do([
+            excel('A1', '"hello"hello"hello"'),
+            shouldBe('A1', valueS("\"hello\"hello\"hello\"")),
+            exec(done)
+          ]);
+        });
+
+        it('should evaluate entire expression', (done) => {
+          _do([
+            excel('A1', '=SUM(1,2)ASDF"sadf'), //and not just match =SUM(1,2) and equal 3
+            shouldBeError('A1'),
+            exec(done)
+          ]);
+        });
+
+        it('should evaluate nested formulas', (done) => {
+          _do([
+            excel('A1', '=SUM(1,SUM(2,3))'),
+            shouldBe('A1', valueI(6)),
+            exec(done)
+          ]);
+        });
+
         it('should recognize functions no matter how they are capitalized', (done) => {
           _do([
             excel('A1', '1'),
             excel('A2', '2'),
             excel('A3', '=sUm(A1,A2)'),
             shouldBe('A3', valueI(3)),
+            exec(done)
+          ]);
+        });
+
+        it('should recognize true and false no matter how they are capitalized', (done) => {
+          _do([
+            excel('A1', 'TrUe'),
+            excel('A2', 'false'),
+            shouldBe('A1', valueB(true)),
+            shouldBe('A2', valueB(false)),
             exec(done)
           ]);
         });

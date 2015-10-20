@@ -55,11 +55,10 @@ export default React.createClass({
         height: range.row2 - range.row + 1,
       };
 
-    if (range.row === range.row2 && range.col === range.col2)
+    if (range.row === range.row2 && range.col === range.col2){
       area.range = {row: range.row, col: range.col};
-    else
-      area.range = range;
-
+    } else{ area.range = range; }
+    area.origin = {row: ul.y + 1, col: ul.x + 1};
     return area;
   },
   /* Returns the position of scroll */
@@ -263,7 +262,7 @@ export default React.createClass({
     this._getHypergrid().takeFocus();
   },
   // do not call before polymer is ready.
-  makeSelection(unsafeLoc) {
+  makeSelection(unsafeLoc, origin) {
     let loc = Util.getSafeLoc(unsafeLoc);
     console.log("making selection!", loc);
 
@@ -297,7 +296,7 @@ export default React.createClass({
     }
 
     this.repaint();
-    this.props.onSelectionChange({range:loc, width:dC+1, height:dR+1});
+    this.props.onSelectionChange({range:loc, width:dC+1, height:dR+1, origin: origin ? origin : null});
   },
 
   shiftSelectionArea(dr, dc){

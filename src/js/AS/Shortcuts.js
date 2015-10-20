@@ -26,7 +26,7 @@ export default {
         exp: self._getRawEditor().getValue(),
         lang: self.state.language
       };
-      self.handleEvalRequest(editorState);
+      self.handleEvalRequest(editorState, 1, 0);
     });
     ShortcutUtils.addShortcut("common", "cell_eval_arrayformula", "Ctrl+Shift+Enter", (wildcard) => {
       var editorValue = self._getRawEditor().getValue();
@@ -39,7 +39,7 @@ export default {
         exp: editorValue,
         lang: self.state.language
       };
-      self.handleEvalRequest(editorState);
+      self.handleEvalRequest(editorState, 1, 0);
     });
 
     ShortcutUtils.addShortcut("common", "set_language", "Ctrl+1/2/3/4/5/6/7/8/9", (wildcard) => {
@@ -126,9 +126,16 @@ export default {
 
     // grid shortcuts -------------------------------------------------------------------------------
     ShortcutUtils.addShortcut("grid", "moveto_data_boundary", "Ctrl+Up/Down/Left/Right", (wildcard) => {
-      let newLoc = Store.getDataBoundary(wildcard);
+      let newLoc = Store.getExtendedRange(wildcard, false);
       console.log("moving to: ", newLoc);
-      self.refs.spreadsheet.makeSelection(newLoc);
+      self.refs.spreadsheet.makeSelection(newLoc, newLoc);
+    });
+    ShortcutUtils.addShortcut("grid", "moveto_data_boundary_selected", "Ctrl+Shift+Up/Down/Left/Right", (wildcard) => {
+      let oldOrigin = Store.getActiveSelection().origin;
+      let newLoc = Store.getExtendedRange(wildcard, true);
+      console.log("\n\nMOVING TO\n\n: ", newLoc);
+      console.log("\n\ORIGIN\n\n: ", oldOrigin);
+      self.refs.spreadsheet.makeSelection(newLoc, oldOrigin);
     });
     ShortcutUtils.addShortcut("grid", "grid_fill_down", "Ctrl+D", (wildcard) => {
       let sel = Store.getActiveSelection().range;
@@ -146,11 +153,11 @@ export default {
         API.sendCopyRequest([copyFrom, copyTo]);
       }
     });
-    ShortcutUtils.addShortcut("grid", "grid_home", "Home", (wildcard) => {
-      self.refs.spreadsheet.makeSelection({row: 1, col: 1});
+    ShortcutUtils.addShortcut("grid", "grid_select_all", "Ctrl+A", (wildcard) => {
+      self.refs.spreadsheet.makeSelection(self.refs.spreadsheet.getViewingWindowWithCache().range);
     });
-    ShortcutUtils.addShortcut("grid", "grid_moveto_start_sheet", "Ctrl+Home", (wildcard) => {
-      //TODO
+    ShortcutUtils.addShortcut("grid", "grid_home", ["Home", "Ctrl+Home"], (wildcard) => {
+      self.refs.spreadsheet.makeSelection({row: 1, col: 1});
     });
     ShortcutUtils.addShortcut("grid", "grid_moveto_end_sheet", "Ctrl+End", (wildcard) => {
       //TODO
@@ -225,7 +232,7 @@ export default {
           exp: self._getRawEditor().getValue(),
           lang: self.state.language
         };
-        self.handleEvalRequest(editorState);
+        self.handleEvalRequest(editorState, 1, 0);
       }
       else {
         //TODO: Navigate down

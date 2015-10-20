@@ -182,25 +182,16 @@ const ASEvaluationStore = assign({}, BaseStore, {
 
   getParentList(c,r){
     if (this.getCellAtLoc(c, r) == null) {
-      // console.log("timchu: There is no cell at location " + r + ", " + c);
       return {row: r, column: c};
     }
-    console.log(this.getCellAtLoc(c,r));
     var ctags = this.getCellAtLoc(c,r).cellTags;
     if (ctags == undefined) {
-      console.log("timchu: The ctags are undefined at " + r + ", " + c);
       return {row: r, column: c};
     }
     for (var i = 0; i < ctags.length; ++i) {
-      console.log(ctags[i]);
-      console.log(ctags[i].hasOwnProperty('listKey'));
       if (ctags[i].hasOwnProperty('listKey')){
         var listHead = Util.listKeyToListHead(ctags[i].listKey);
         var listDimensions = Util.listKeyToListDimensions(ctags[i].listKey);
-        console.log( {  row: listHead.snd,
-          col: listHead.fst,
-          row2: listHead.snd + listDimensions.fst - 1,
-          col2: listHead.fst + listDimensions.snd - 1 } );
         return {
           row: listHead.snd,
           col: listHead.fst,
@@ -209,16 +200,10 @@ const ASEvaluationStore = assign({}, BaseStore, {
         }
       }
     }
-    console.log("No listkey tags");
     return {row: r, column: c}
   },
 
 
-//  setActiveSelection(rng, xp) {
-//    _data.activeSelection = rng;
-//    _data.activeCell = this.getCellAtLoc(rng.col, rng.row) || Converter.defaultCell();
-//    this.setActiveCellDependencies(Util.parseDependencies(xp));
-//  },
   getActiveSelection() {
     return _data.activeSelection;
   },
@@ -279,95 +264,149 @@ const ASEvaluationStore = assign({}, BaseStore, {
 
    clientCellToValue(clientCell) {
      let v = clientCell.cellValue.contents;
-     if (v) { // non ValueError value
-       if (v.constructor === Array) {
-         if (v.length !== 0){
-          console.log("Returning value: " +v[0]);
-           return v[0];
-         }
-         return "";
+     if (v.constructor === Array){
+       if (v.length !== 0){
+        console.log("Returning value: " +v[0]);
+         return v[0];
        }
-      if (clientCell.cellValue.hasOwnProperty("contents")){
-         return clientCell.cellValue.contents;
-      }
-    } else if (clientCell.cellValue.errMsg) {
-      return "ERROR"; // TODO: display different types of errors depending on the type
-    }
-    return "";
+       return "";
+     }
+     if (clientCell.cellValue.hasOwnProperty("contents")){
+       console.log("Contents are : " + clientCell.cellValue.contents);
+       return clientCell.cellValue.contents;
+     }
+     return "";
    },
 
-   invertArray(array){
-    return array[0].map(function(col, i) {
-      return array.map(function(row) {
-        return row[i]
-      })
-    });
+   makeArrayOf(value, length) {
+     var arr = [], i = length;
+     while (i--) {
+       arr[i] = value;
+     }
+     return arr;
    },
 
-   // Converts a range to a row major list of lists,
+   make2DArrayOf(value, height, length) {
+     var arr = [[]], i = height;
+     while (i --) {
+       arr[i] = this.makeArrayOf(value, length);
+     }
+     return arr;
+   },
+
+   // Converts a range to a row major list of lists of values, 
    selRegionToValues(rng){
+     console.log("Change registered");
      console.log("SEL REGION RNG " + JSON.stringify(rng));
      let sheetid = _data.currentSheet.sheetId;
      let col = rng.col, row = rng.row;
-     if (this.locationExists(sheetid, col, row)) {
-       if (!rng.row2) {
-        console.log(this.clientCellToValue(this.getCellAtLoc(col, row)));
-        return [[this.clientCellToValue(this.getCellAtLoc(col, row))]];
-      }
-       else if (this.locationExists(sheetid, rng.col2, rng.row2)) {
-         let col2 = rng.col2, row2 = rng.row2;
-         let colMajorCells = _data.allCells[sheetid].slice(col, col2+1).map(this.sliceArray(row, row2+1));
-         let self = this;
-         let colMajorValues = colMajorCells.map(function(col){
-          return col.map(self.clientCellToValue);
-         });
-         return this.invertArray(colMajorValues);
-       }
+     if (!rng.row2) {
+       console.log(this.clientCellToValue(this.getCellAtLoc(col, row)));
+       return [[this.clientCellToValue(this.getCellAtLoc(col, row))]];
      }
-     return null;
+     let col2 = rng.col2,
+         row2 = rng.row2;
+     let height = row2 - row + 1,
+         length = col2 - col + 1;
+     var rowMajorValues = this.make2DArrayOf("", height, length);
+     for (let i = 0; i < height; ++i) {
+       let currentRow = row + i;
+       var self = this;
+       rowMajorValues[i] = rowMajorValues[i].map(function(value, index) {
+           let currentColumn = col + index;
+           console.log(currentColumn  + " " + currentRow + " " + "IS CURRENT ROW COLUMN");
+           console.log(sheetid);
+           console.log("Hooha");
+           if (self.locationExists(sheetid, currentColumn, currentRow)) {
+             return self.clientCellToValue(_data.allCells[sheetid][currentColumn][currentRow]);
+           }
+           else {
+             return "";
+           }
+       });
+     }
+     return rowMajorValues;
    },
 
+   // TODO: move somewhere else maybe, in some global util method? 
+  _dispBoolInLang(b, lang) { 
+    if (b) { 
+      if (["R", "OCaml"].indexOf(lang) != -1) { 
+        return "true"; 
+      } else { 
+        return "True";
+      }
+    } else { 
+      if (["R", "OCaml"].indexOf(lang) != -1) { 
+        return "false"; 
+      } else { 
+        return "False"; 
+      }
+    }
+    throw "Should never make it to the end of _dispBoolInLang";
+   },
+
+  _expressionFromValue(v, lang) {
+    if (lang.Server == "Excel") { // is language.Editor the correct thing?
+      return v; 
+    } else if (v != null && typeof(v) != "undefined") {
+      if (!isNaN(Number(v))) { 
+        return v; 
+      } else if (v.toUpperCase() == "TRUE") { 
+        return this._dispBoolInLang(true, lang.Server); 
+      } else if (v.toUpperCase() == "FALSE") { 
+        return this._dispBoolInLang(false, lang.Server);
+      } else {
+        return JSON.stringify(v);
+      }
+    } else { 
+      return ""; // unclear if we ever get here -- Alex 10/19
+    }
+  },
+
    // Methods for paste
-   makeServerCell(loc, language, i, j) {
+  _makeServerCell(loc, language, i, j) {
     let sheet = _data.currentSheet.sheetId;
+    let self = this; 
      return function(v) {
-       let row = loc.range.row, col = loc.range.col;
-       return  {
-         "cellLocation": {
-          locSheetId: sheet,
-          index: [col + j, row + i]
-        },
-         "cellExpression": {
-           "expression" : v,
-           "language": language.Server
-         },
-         "cellValue":{
-           "tag": "NoValue",
-           "contents": []
-         },
-         "cellTags": []
+        let row = loc.range.row, col = loc.range.col;
+        return {
+          "cellLocation": {
+            locSheetId: sheet,
+            index: [col + j, row + i]
+          },
+          "cellExpression": {
+            "expression" : self._expressionFromValue(v, language),
+            "language": language.Server
+          },
+          "cellValue":{
+            "tag": "NoValue",
+            "contents": []
+          },
+          "cellTags": []
        };
      };
    },
 
-   arrayToASCells(loc, language) {
+   _arrayToASCells(loc, language) {
     var self = this;
      return function(i){
        return function(v, j) {
-         return self.makeServerCell(loc, language, i, j)(v);
+         return self._makeServerCell(loc, language, i, j)(v);
        };
      };
    },
 
-   rowValuesToASCells(loc, language){
+   _rowValuesToASCells(loc, language){
     var self = this;
      return function(values, i){
-       return values.map(self.arrayToASCells(loc, language)(i));
+       return values.map(self._arrayToASCells(loc, language)(i));
      };
    },
 
-   makeASCellsFromVals(loc, vals, language) {
-     return vals.map(this.rowValuesToASCells(loc, language));
+   // takes in a set of locations and the values at those locations,
+   makeASCellsFromPlainVals(loc, vals, language) {
+     return vals.map(this._rowValuesToASCells(loc, language));
    },
 
 
@@ -469,54 +508,100 @@ const ASEvaluationStore = assign({}, BaseStore, {
     }
   },
 
-  getDataBoundary(direction) {
+  getExtendedRange(direction, isShifted) {
     let sel = _data.activeSelection.range,
+        origin = _data.activeSelection.origin,
         sheetId = _data.currentSheet.sheetId,
         selExists,
-        startRow, startCol;
-    console.log("in data bundary func", sel);
+        startRow, startCol,
+        hExtremum = origin.col > sel.col ? sel.col : (sel.col2 ? sel.col2 : sel.col),
+        vExtremum = origin.row > sel.row ? sel.row : (sel.row2 ? sel.row2 : sel.row),
+        result;
+    // debugger;
+    // console.log("\n\nin data bundary func\n\n", sel);
+    console.log("\n\nhextremum\n\n", hExtremum);
     switch(direction) {
       case "Right":
-        startCol = this.locationExists(sheetId, sel.col+1, sel.row) ? sel.col : sel.col+1;
+        startCol = this.locationExists(sheetId, hExtremum+1, sel.row) ? hExtremum : hExtremum+1;
         selExists = this.locationExists(sheetId, startCol, sel.row);
-        for (var col = startCol; col < sel.col + Constants.LARGE_SEARCH_BOUND; col++){
-          let thisExists = this.locationExists(sheetId, col, sel.row);
+        for (var col = startCol; col < startCol + Constants.LARGE_SEARCH_BOUND; col++){
+          let thisExists = this.locationExists(sheetId, col, origin.row);
           if (Util.xor(selExists, thisExists)) {
-            return thisExists ? {col: col, row: sel.row} : {col: col-1, row: sel.row};
+            result = thisExists ? {col: col, row: sel.row} : {col: col-1, row: sel.row};
+            let resultCol = origin.col > sel.col ? result.col : sel.col;
+            let resultCol2 = origin.col > sel.col ? sel.col2 : result.col;
+            result = !isShifted ? result : {row: sel.row,
+                                            col: resultCol,
+                                            row2: sel.row2 ? sel.row2 : sel.row,
+                                            col2: resultCol2};
+            break;
           }
         }
-        return {row: sel.row, col: sel.col};
+        result = result ? result : sel;
+        break;
       case "Down":
-        startRow = this.locationExists(sheetId, sel.col, sel.row+1) ? sel.row : sel.row+1;
+        startRow = this.locationExists(sheetId, sel.col, vExtremum+1) ? vExtremum : vExtremum+1;
         selExists = this.locationExists(sheetId, sel.col, startRow);
-        for (var row = startRow; row < sel.row + Constants.LARGE_SEARCH_BOUND; row++){
-          let thisExists = this.locationExists(sheetId, sel.col, row);
+        for (var row = startRow; row < startRow + Constants.LARGE_SEARCH_BOUND; row++){
+          let thisExists = this.locationExists(sheetId, origin.col, row);
           if (Util.xor(selExists, thisExists)) {
-            return thisExists ? {col: sel.col, row: row} : {col: sel.col, row: row-1};
+            result = thisExists ? {col: sel.col, row: row} : {col: sel.col, row: row-1};
+            let resultRow = origin.row > sel.row ? result.row : sel.row;
+            let resultRow2 = origin.row > sel.row ? sel.row2 : result.row;
+            result = !isShifted ? result : {row: resultRow,
+                                            col: sel.col,
+                                            row2: resultRow2,
+                                            col2: sel.col2 ? sel.col2 : sel.col};
+            break;
           }
         }
-        return {row: sel.row, col: sel.col};
+        result = result ? result : sel;
+        break;
       case "Left":
-        startCol = this.locationExists(sheetId, sel.col-1, sel.row) ? sel.col : sel.col-1;
+        startCol = this.locationExists(sheetId, hExtremum-1, sel.row) ? hExtremum : hExtremum-1;
         selExists = this.locationExists(sheetId, startCol, sel.row);
         for (var col = startCol; col > 1; col--) {
-          let thisExists = this.locationExists(sheetId, col, sel.row);
+          let thisExists = this.locationExists(sheetId, col, origin.row);
           if (Util.xor(selExists, thisExists)) {
-            return thisExists ? {col: col, row: sel.row} : {col: col+1, row: sel.row};
+            result = thisExists ? {col: col, row: sel.row} : {col: col+1, row: sel.row};
+            let resultCol = origin.col > sel.col ? result.col : sel.col;
+            let resultCol2 = origin.col > sel.col ? sel.col2 : result.col;
+            result = !isShifted ? result : {row: sel.row, col: resultCol, row2: sel.row2 ? sel.row2 : sel.row, col2: resultCol2};
+            break;
           }
         }
-        return {row: sel.row, col: 1};
+        result = result ? result : {row: sel.row,
+                                    col: 1,
+                                    row2: isShifted ? (sel.row2 ? sel.row2 : sel.row) : null,
+                                    col2: isShifted ? sel.col : null};
+        break;
       case "Up":
-        startRow = this.locationExists(sheetId, sel.col, sel.row-1) ? sel.row : sel.row-1;
+        startRow = this.locationExists(sheetId, sel.col, vExtremum-1) ? vExtremum : vExtremum-1;
         selExists = this.locationExists(sheetId, sel.col, startRow);
         for (var row = startRow; row > 1; row--) {
-          let thisExists = this.locationExists(sheetId, sel.col, row);
+          let thisExists = this.locationExists(sheetId, origin.col, row);
           if (Util.xor(selExists, thisExists)) {
-            return thisExists ? {col: sel.col, row: row} : {col: sel.col, row: row+1};
+            result = thisExists ? {col: sel.col, row: row} : {col: sel.col, row: row+1};
+            let resultRow = origin.row > sel.row ? result.row : sel.row;
+            let resultRow2 = origin.row > sel.row ? sel.row2 : result.row;
+            result = !isShifted ? result : {row: resultRow, col: sel.col, row2: resultRow2, col2: sel.col2 ? sel.col2 : sel.col};
+            break;
           }
         }
-        return {row: 1, col: sel.col};
+        result = result ? result : {row: 1,
+                                    col: sel.col,
+                                    row2: isShifted ? sel.row : null,
+                                    col2: isShifted ? (sel.col2 ? sel.col2 : sel.col) : null};
+        break;
     }
+    console.log("\n\nRESULT\n\n", result);
+    return Util.getOrientedArea(result);
+  },
+
+  // TODO actually get the data boundaries by iterating, or something
+  // (but as long as we're using LARGE_SEARCH_BOUND, this area is an upper bound)
+  getDataBounds() {
+    return {col: 1, row: 1, col2: Constants.LARGE_SEARCH_BOUND, row2: Constants.LARGE_SEARCH_BOUND};
   },
 
 
