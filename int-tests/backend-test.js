@@ -277,7 +277,7 @@ describe('backend', () => {
   }
 
   function shouldBeError(loc) {
-    return valueShouldSatisfy(loc, ({ tag }) => tag === 'ValueError');
+    return valueShouldSatisfy(loc, ({ tag }) => (tag === 'ValueError' || tag == 'ValueExcelError'));
   }
 
   function shouldBeNothing(loc) {
@@ -559,6 +559,22 @@ describe('backend', () => {
           _do([
             excel('A1', '"hello"hello"hello"'),
             shouldBe('A1', valueS("\"hello\"hello\"hello\"")),
+            exec(done)
+          ]);
+        });
+
+        it('should evaluate entire expression', (done) => {
+          _do([
+            excel('A1', '=SUM(1,2)ASDF"sadf'), //and not just match =SUM(1,2) and equal 3
+            shouldBeError('A1'),
+            exec(done)
+          ]);
+        });
+
+        it('should evaluate nested formulas', (done) => {
+          _do([
+            excel('A1', '=SUM(1,SUM(2,3))'),
+            shouldBe('A1', valueI(6)),
             exec(done)
           ]);
         });
