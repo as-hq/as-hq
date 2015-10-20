@@ -32,8 +32,8 @@ export default React.createClass({
     NONE:5
   },
 
-  printDetail(type){
-    switch(type){
+  printDetail(type) {
+    switch(type) {
       case 0:
         return "GRID";
       case 1:
@@ -75,7 +75,7 @@ export default React.createClass({
     this.refs.spreadsheet.setFocus();
   },
 
-  updateTextBox(isTyping){
+  updateTextBox(isTyping) {
     console.log("Eval pane is updating text box, bitch");
     return this.refs.spreadsheet.refs.textbox.updateTextBox(this.state.expression,isTyping)
   },
@@ -85,17 +85,17 @@ export default React.createClass({
     console.log("New expression of type " + this.printDetail(this.state.xpChangeDetail) + ": " + xp);
     let detail = this.state.xpChangeDetail;
     let deps = Util.parseDependencies(xp);
-    switch(detail){
+    switch(detail) {
       case this.xpChange.FROM_EDITOR:
-        this.setState({expressionWithoutLastRef:xp,expression:xp,userIsTyping:true}, function(){
+        this.setState({expressionWithoutLastRef:xp,expression:xp,userIsTyping:true}, function() {
           this.updateTextBox(true);
         });
         console.log("User is typing");
         Store.setActiveCellDependencies(deps);
         break;
       case this.xpChange.FROM_GRID:
-        if (!this.state.userIsTyping){
-          this.setState({userIsTyping:true}, function(){
+        if (!this.state.userIsTyping) {
+          this.setState({userIsTyping:true}, function() {
             this.updateTextBox(true);
           });
           console.log("User is now typing!");
@@ -126,7 +126,7 @@ export default React.createClass({
     this.refs.spreadsheet.repaint();
   },
 
-  setXpDetailFromEditor(){
+  setXpDetailFromEditor() {
     this.setState({xpChangeDetail:this.xpChange.FROM_EDITOR});
   },
 
@@ -159,7 +159,7 @@ export default React.createClass({
   _getDomEditor() {
     return React.findDOMNode(this.refs.editorPane.refs.editor);
   },
-  _getReplEditor(){
+  _getReplEditor() {
     return this.refs.repl.refs.editor.getRawEditor();
   },
   focusGrid() {
@@ -188,8 +188,8 @@ export default React.createClass({
     ReplStore.removeChangeListener(this._onReplChange);
 
   },
-  showAnyErrors(cv){
-    if (cv.tag === "ValueError"){
+  showAnyErrors(cv) {
+    if (cv.tag === "ValueError") {
       this.setToast(cv.errMsg, "Error");
     } else {
       this.hideToast();
@@ -250,11 +250,11 @@ export default React.createClass({
   /**************************************************************************************************************************/
   /* Copy paste handling */
 
-  handleCopyTypeEventForGrid(e,isCut){
+  handleCopyTypeEventForGrid(e,isCut) {
     KeyUtils.killEvent(e);
     let selRegion = Store.getActiveSelection(),
         vals = Store.selRegionToValues(selRegion.range);
-    if (vals){
+    if (vals) {
       let html = ClipboardUtils.valsToHtml(vals),
           plain = ClipboardUtils.valsToPlain(vals);
 
@@ -265,7 +265,7 @@ export default React.createClass({
     }
   },
 
-  handlePasteEventForGrid(e){
+  handlePasteEventForGrid(e) {
     KeyUtils.killEvent(e);
     let rng = Store.getActiveSelection(),
         containsHTML = Util.arrContains(e.clipboardData.types,"text/html"),
@@ -274,8 +274,8 @@ export default React.createClass({
           ClipboardUtils.htmlStringIsAlphaSheets(e.clipboardData.getData("text/html")) : false;
     if (isAlphaSheets) { // From AS
       let clipboard = Store.getClipboard();
-      if (clipboard.range){
-        if (clipboard.isCut){
+      if (clipboard.range) {
+        if (clipboard.isCut) {
           API.sendCutRequest([clipboard.range, rng]);
         } else { 
           API.sendCopyRequest([clipboard.range, rng]);
@@ -287,10 +287,10 @@ export default React.createClass({
       this.refs.spreadsheet.repaint(); // render immediately
     }
     else { // Not from AS
-      if (containsPlain){
+      if (containsPlain) {
         let plain = e.clipboardData.getData("text/plain"),
             vals = ClipboardUtils.plainStringToVals(plain),
-            cells = Store.makeASCellsFromVals(rng,vals,this.state.language),
+            cells = Store.makeASCellsFromPlainVals(rng,vals,this.state.language),
             concatCells = [].concat.apply([], cells);
         API.sendSimplePasteRequest(concatCells);
         // The normal eval handling will make the paste show up
@@ -304,15 +304,15 @@ export default React.createClass({
 
   /* TODO: handle other copy/paste events; from editor and textbox */
 
-  handleCutEvent(e){
+  handleCutEvent(e) {
     this.handleCopyTypeEventForGrid(e,true);
   },
 
-  handleCopyEvent(e){
+  handleCopyEvent(e) {
     this.handleCopyTypeEventForGrid(e,false);
   },
 
-  handlePasteEvent(e){
+  handlePasteEvent(e) {
     this.handlePasteEventForGrid(e);
   },
 
@@ -337,7 +337,7 @@ export default React.createClass({
             xpChangeDetail:this.xpChange.FROM_GRID,
             expressionWithoutLastRef:xpStr,
             expression:xpStr,
-          },function(){editor.navigateFileEnd();}
+          },function() {editor.navigateFileEnd();}
       );
     }
     else {
@@ -347,8 +347,8 @@ export default React.createClass({
     }
   },
 
-  _onTextBoxDeferredKey(e){
-    if (KeyUtils.producesVisibleChar(e) && e.which !== 13){
+  _onTextBoxDeferredKey(e) {
+    if (KeyUtils.producesVisibleChar(e) && e.which !== 13) {
       let xp = KeyUtils.modifyStringForKey(e.target.value,e);
       console.log("Eval pane textbox key " + xp);
       this.setState({expression:xp,
@@ -364,7 +364,7 @@ export default React.createClass({
   },
 
   /* Callback from Repl component */
-  _onReplDeferredKey(e){
+  _onReplDeferredKey(e) {
     ShortcutUtils.tryShortcut(e, 'repl');
   },
 
@@ -381,7 +381,7 @@ export default React.createClass({
   */
   // Note: if the selection is a Reference, we produce a 'pseudo' expression
   // using Converter.clientCellGetExpressionObj
-  _onSelectionChange(area){
+  _onSelectionChange(area) {
     // console.log("Handling selection change: " + JSON.stringify(rng));
     let rng = area.range;
     let cell = Store.getCellAtLoc(rng.col,rng.row);
@@ -399,7 +399,7 @@ export default React.createClass({
                     expression: expression,
                     expressionWithoutLastRef:expression,
                     userIsTyping:false
-                    },function(){
+                    },function() {
                       if (shiftSelExists) // selected while typing at wrong type; select away
                         this.updateTextBox(false);
                     });
@@ -413,14 +413,14 @@ export default React.createClass({
                       expression: "",
                       expressionWithoutLastRef: "",
                       userIsTyping:false
-                    },function(){
+                    },function() {
                       if (shiftSelEmpty) // selected while typing at wrong type; select away
                         this.updateTextBox(false);
                     });
       this.hideToast();
     }
     else {
-      if (Util.canInsertCellRefInXp(this.state.expressionWithoutLastRef)){
+      if (Util.canInsertCellRefInXp(this.state.expressionWithoutLastRef)) {
         console.log("PARTIAL");
         let newXp = this.state.expressionWithoutLastRef  + Util.locToExcel(rng);
         this.refs.spreadsheet._getHypergrid().repaint();
@@ -439,7 +439,7 @@ export default React.createClass({
   */
   handleEvalRequest(editorState, activeDr, activeDc) {
     // By default, shift row down by 1 after eval
-    if (typeof(activeDr) == 'undefined') activeDr = 1;
+    if (typeof(activeDr) == 'undefined') activeDr = 0;
     if (typeof(activeDc) == 'undefined') activeDc = 0;
 
     //Which directions to shift your focus after eval
@@ -464,7 +464,7 @@ export default React.createClass({
   },
 
   /* When a REPl request is made, first update the store and then send the request to the backend */
-  handleReplRequest(editorState){
+  handleReplRequest(editorState) {
     ReplActionCreator.replLeft(this.state.replLanguage.Display,this._replValue());
     // console.log('handling repl request ' +  JSON.stringify(editorState));
     console.log("repl exps: " + JSON.stringify(ReplStore.getExps()));
@@ -475,21 +475,21 @@ export default React.createClass({
   /**************************************************************************************************************************/
   /* REPL handling methods */
 
-  _replValue(){
+  _replValue() {
     return this._getReplEditor().getValue();
   },
 
   /* Method for tucking in/out the REPL. */
-  _toggleRepl(){
+  _toggleRepl() {
     /* Save expression in store if repl is about to close */
-    if (this.state.replOpen){
+    if (this.state.replOpen) {
       ReplActionCreator.replLeft(this.state.replLanguage.Display,this._replValue());
     }
     this.setState({replOpen: !this.state.replOpen});
   },
 
   /*  When the REPL language changes, set state, save current text value, and set the next text value of the REPL editor */
-  _onReplLanguageChange(e,index,menuItem){
+  _onReplLanguageChange(e,index,menuItem) {
     ReplActionCreator.replLeft(this.state.replLanguage.Display,this._replValue());
     let newLang = menuItem.payload;
     let newValue = ReplStore.getReplExp(newLang.Display);

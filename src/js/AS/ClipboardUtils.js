@@ -41,7 +41,7 @@ export default {
 	TODO: make correct in all cases (maybe looking at text/html is better)
 	Right now, if a row has a tab, separate by tab; else do comma. This works for sheets,Libre,gfin.
 	-- Ritesh 10/16 */
-	plainStringToVals(s){
+	plainStringToVals(s) {
 		console.log("CONVERTING PLAIN STRING TO VALS: " + s);
 		let rows = s.split('\n'),
 			vals = [],

@@ -26,7 +26,7 @@ export default {
         exp: self._getRawEditor().getValue(),
         lang: self.state.language
       };
-      self.handleEvalRequest(editorState);
+      self.handleEvalRequest(editorState, 1, 0);
     });
     ShortcutUtils.addShortcut("common", "cell_eval_arrayformula", "Ctrl+Shift+Enter", (wildcard) => {
       var editorValue = self._getRawEditor().getValue();
@@ -39,7 +39,7 @@ export default {
         exp: editorValue,
         lang: self.state.language
       };
-      self.handleEvalRequest(editorState);
+      self.handleEvalRequest(editorState, 1, 0);
     });
 
     ShortcutUtils.addShortcut("common", "set_language", "Ctrl+1/2/3/4/5/6/7/8/9", (wildcard) => {
@@ -232,7 +232,7 @@ export default {
           exp: self._getRawEditor().getValue(),
           lang: self.state.language
         };
-        self.handleEvalRequest(editorState);
+        self.handleEvalRequest(editorState, 1, 0);
       }
       else {
         //TODO: Navigate down

@@ -37,7 +37,7 @@ export default {
       case "ValueNaN":
         return "NaN";
       case "ValueB":
-        return cv.contents;
+        return cv.contents.toString().toUpperCase();
       case "ValueD":
         return cv.contents;
       case "ValueI":
@@ -55,7 +55,9 @@ export default {
       case "ValueError":
         if (isRepl)
           return cv.error;
-        else return "ERROR";
+        else return "ERROR"; // TODO: show more descriptive errors. (#REF? #NAME?)
+      case "ValueExcelError": 
+        return "ERROR"; 
       case "ValueImage":
         return "IMAGE";
       case "DisplayValue":

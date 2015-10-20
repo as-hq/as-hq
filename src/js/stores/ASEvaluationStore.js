@@ -312,47 +312,85 @@ const ASEvaluationStore = assign({}, BaseStore, {
      return null;
    },
 
+   // TODO: move somewhere else maybe, in some global util method? 
+  _dispBoolInLang(b, lang) { 
+    if (b) { 
+      if (["R", "OCaml"].indexOf(lang) != -1) { 
+        return "true"; 
+      } else { 
+        return "True";
+      }
+    } else { 
+      if (["R", "OCaml"].indexOf(lang) != -1) { 
+        return "false"; 
+      } else { 
+        return "False"; 
+      }
+    }
+    throw "Should never make it to the end of _dispBoolInLang";
+   },
+
+  _expressionFromValue(v, lang) {
+    if (lang.Server == "Excel") { // is language.Editor the correct thing?
+      return v; 
+    } else if (v != null && typeof(v) != "undefined") {
+      if (!isNaN(Number(v))) { 
+        return v; 
+      } else if (v.toUpperCase() == "TRUE") { 
+        return this._dispBoolInLang(true, lang.Server); 
+      } else if (v.toUpperCase() == "FALSE") { 
+        return this._dispBoolInLang(false, lang.Server);
+      } else {
+        return JSON.stringify(v);
+      }
+    } else { 
+      return ""; // unclear if we ever get here -- Alex 10/19
+    }
+  },
+
    // Methods for paste
-   makeServerCell(loc, language, i, j) {
+  _makeServerCell(loc, language, i, j) {
     let sheet = _data.currentSheet.sheetId;
+    let self = this; 
      return function(v) {
-       let row = loc.range.row, col = loc.range.col;
-       return  {
-         "cellLocation": {
-          locSheetId: sheet,
-          index: [col + j, row + i]
-        },
-         "cellExpression": {
-           "expression" : v,
-           "language": language.Server
-         },
-         "cellValue":{
-           "tag": "NoValue",
-           "contents": []
-         },
-         "cellTags": []
+        let row = loc.range.row, col = loc.range.col;
+        return {
+          "cellLocation": {
+            locSheetId: sheet,
+            index: [col + j, row + i]
+          },
+          "cellExpression": {
+            "expression" : self._expressionFromValue(v, language),
+            "language": language.Server
+          },
+          "cellValue":{
+            "tag": "NoValue",
+            "contents": []
+          },
+          "cellTags": []
        };
      };
    },
 
-   arrayToASCells(loc, language) {
+   _arrayToASCells(loc, language) {
     var self = this;
      return function(i){
        return function(v, j) {
-         return self.makeServerCell(loc, language, i, j)(v);
+         return self._makeServerCell(loc, language, i, j)(v);
        };
      };
    },
 
-   rowValuesToASCells(loc, language){
+   _rowValuesToASCells(loc, language){
     var self = this;
      return function(values, i){
-       return values.map(self.arrayToASCells(loc, language)(i));
+       return values.map(self._arrayToASCells(loc, language)(i));
      };
    },
 
-   makeASCellsFromVals(loc, vals, language) {
-     return vals.map(this.rowValuesToASCells(loc, language));
+   // takes in a set of locations and the values at those locations,
+   makeASCellsFromPlainVals(loc, vals, language) {
+     return vals.map(this._rowValuesToASCells(loc, language));
    },
 
 
