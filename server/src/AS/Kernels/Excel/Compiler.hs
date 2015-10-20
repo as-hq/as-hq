@@ -11,6 +11,7 @@ import Text.ParserCombinators.Parsec.Expr
 import Control.Applicative hiding ((<|>), many)
 
 import Data.List (elemIndices)
+import Data.Char (toUpper,toLower)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Top-level parsers.
@@ -237,13 +238,22 @@ optionMaybe' p
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Parsing values.
 
+-- | "tRuE" and "true" and "TRUE" all parse to true in Excel.
 readBool :: String -> Bool
-readBool str = case str of
+readBool str = case (map toUpper str) of
   "TRUE"  -> True
   "FALSE" -> False
 
+-- | Match the lowercase or uppercase form of 'c'
+caseInsensitiveChar :: Char -> Parser Char
+caseInsensitiveChar c = char (toLower c) <|> char (toUpper c)
+
+-- | Match the string 's', accepting either lowercase or uppercase form of each character 
+caseInsensitiveString :: String -> Parser String
+caseInsensitiveString s = try (mapM caseInsensitiveChar s) <?> "\"" ++ s ++ "\""
+
 bool :: Parser Bool
-bool = fmap readBool $ string "TRUE" <|> string "FALSE"
+bool = fmap readBool $ caseInsensitiveString "TRUE" <|> caseInsensitiveString "FALSE"
 
 str :: Parser String
 str = (quoteString <|> apostropheString)
