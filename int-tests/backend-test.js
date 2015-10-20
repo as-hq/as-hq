@@ -555,12 +555,30 @@ describe('backend', () => {
           ]);
         });
 
+        it('should evaluate a string literal verbatim', (done) => {
+          _do([
+            excel('A1', '"hello"hello"hello"'),
+            shouldBe('A1', valueS("\"hello\"hello\"hello\"")),
+            exec(done)
+          ]);
+        });
+
         it('should recognize functions no matter how they are capitalized', (done) => {
           _do([
             excel('A1', '1'),
             excel('A2', '2'),
             excel('A3', '=sUm(A1,A2)'),
             shouldBe('A3', valueI(3)),
+            exec(done)
+          ]);
+        });
+
+        it('should recognize true and false no matter how they are capitalized', (done) => {
+          _do([
+            excel('A1', 'TrUe'),
+            excel('A2', 'false'),
+            shouldBe('A1', valueB(true)),
+            shouldBe('A2', valueB(false)),
             exec(done)
           ]);
         });
