@@ -439,7 +439,7 @@ export default React.createClass({
   */
   handleEvalRequest(editorState, activeDr, activeDc) {
     // By default, shift row down by 1 after eval
-    if (typeof(activeDr) == 'undefined') activeDr = 1;
+    if (typeof(activeDr) == 'undefined') activeDr = 0;
     if (typeof(activeDc) == 'undefined') activeDc = 0;
 
     //Which directions to shift your focus after eval
