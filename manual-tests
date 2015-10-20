@@ -1,0 +1,34 @@
+Manual frontend tests
+  general behavior
+    upon open, can start typing
+    cell editor aligned correctly with cell
+    python-generated chart scrolls correctly with grid
+    selecting a range is not too slow
+  eval
+    range(10000) is not too slow
+    python 1+1
+    python range(10)
+    python -> sql on [‘a’,1,2,3] [‘b’,1,2,3]
+    python chart generation
+    r dataframe is appropriately colored
+    switch to cell of another language, language changes in top bar
+  repl
+    can’t backspace repl
+    can reference functions in cells
+    can switch language of repl
+  hypergrid
+    click on cell, dependencies show
+    click on cell, list shows
+  copy and paste
+    copying and pasting works
+    copy and paste multiple times
+    copying and pasting blank cells works, and overwrites
+    copying and pasting errors works
+    cutting works
+    cutting and undo works
+  other keyboard things
+    pressing left/right in a cell should go left/right if not focused on code editor
+    pressing enter should
+    eval the cell
+    go down a cell if not focused on code editor
+    pressing enter in code editor should create a new line in the code editor
