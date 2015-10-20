@@ -1,7 +1,7 @@
 import keyMirror from 'react/lib/keyMirror';
 
 export default {
-  HOST_WS: 'ws://18.102.225.27:5000',
+  HOST_WS: 'ws://localhost:5000',
 
   // event name triggered from store, listened to by views
   CHANGE_EVENT: 'change',
