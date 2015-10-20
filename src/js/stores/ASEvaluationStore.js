@@ -182,25 +182,16 @@ const ASEvaluationStore = assign({}, BaseStore, {
 
   getParentList(c,r){
     if (this.getCellAtLoc(c, r) == null) {
-      // console.log("timchu: There is no cell at location " + r + ", " + c);
       return {row: r, column: c};
     }
-    console.log(this.getCellAtLoc(c,r));
     var ctags = this.getCellAtLoc(c,r).cellTags;
     if (ctags == undefined) {
-      console.log("timchu: The ctags are undefined at " + r + ", " + c);
       return {row: r, column: c};
     }
     for (var i = 0; i < ctags.length; ++i) {
-      console.log(ctags[i]);
-      console.log(ctags[i].hasOwnProperty('listKey'));
       if (ctags[i].hasOwnProperty('listKey')){
         var listHead = Util.listKeyToListHead(ctags[i].listKey);
         var listDimensions = Util.listKeyToListDimensions(ctags[i].listKey);
-        console.log( {  row: listHead.snd,
-          col: listHead.fst,
-          row2: listHead.snd + listDimensions.fst - 1,
-          col2: listHead.fst + listDimensions.snd - 1 } );
         return {
           row: listHead.snd,
           col: listHead.fst,
@@ -209,16 +200,10 @@ const ASEvaluationStore = assign({}, BaseStore, {
         }
       }
     }
-    console.log("No listkey tags");
     return {row: r, column: c}
   },
 
 
-//  setActiveSelection(rng, xp) {
-//    _data.activeSelection = rng;
-//    _data.activeCell = this.getCellAtLoc(rng.col, rng.row) || Converter.defaultCell();
-//    this.setActiveCellDependencies(Util.parseDependencies(xp));
-//  },
   getActiveSelection() {
     return _data.activeSelection;
   },
@@ -523,54 +508,100 @@ const ASEvaluationStore = assign({}, BaseStore, {
     }
   },
 
-  getDataBoundary(direction) {
+  getExtendedRange(direction, isShifted) {
     let sel = _data.activeSelection.range,
+        origin = _data.activeSelection.origin,
         sheetId = _data.currentSheet.sheetId,
         selExists,
-        startRow, startCol;
-    console.log("in data bundary func", sel);
+        startRow, startCol,
+        hExtremum = origin.col > sel.col ? sel.col : (sel.col2 ? sel.col2 : sel.col),
+        vExtremum = origin.row > sel.row ? sel.row : (sel.row2 ? sel.row2 : sel.row),
+        result;
+    // debugger;
+    // console.log("\n\nin data bundary func\n\n", sel);
+    console.log("\n\nhextremum\n\n", hExtremum);
     switch(direction) {
       case "Right":
-        startCol = this.locationExists(sheetId, sel.col+1, sel.row) ? sel.col : sel.col+1;
+        startCol = this.locationExists(sheetId, hExtremum+1, sel.row) ? hExtremum : hExtremum+1;
         selExists = this.locationExists(sheetId, startCol, sel.row);
-        for (var col = startCol; col < sel.col + Constants.LARGE_SEARCH_BOUND; col++){
-          let thisExists = this.locationExists(sheetId, col, sel.row);
+        for (var col = startCol; col < startCol + Constants.LARGE_SEARCH_BOUND; col++){
+          let thisExists = this.locationExists(sheetId, col, origin.row);
           if (Util.xor(selExists, thisExists)) {
-            return thisExists ? {col: col, row: sel.row} : {col: col-1, row: sel.row};
+            result = thisExists ? {col: col, row: sel.row} : {col: col-1, row: sel.row};
+            let resultCol = origin.col > sel.col ? result.col : sel.col;
+            let resultCol2 = origin.col > sel.col ? sel.col2 : result.col;
+            result = !isShifted ? result : {row: sel.row,
+                                            col: resultCol,
+                                            row2: sel.row2 ? sel.row2 : sel.row,
+                                            col2: resultCol2};
+            break;
           }
         }
-        return {row: sel.row, col: sel.col};
+        result = result ? result : sel;
+        break;
       case "Down":
-        startRow = this.locationExists(sheetId, sel.col, sel.row+1) ? sel.row : sel.row+1;
+        startRow = this.locationExists(sheetId, sel.col, vExtremum+1) ? vExtremum : vExtremum+1;
         selExists = this.locationExists(sheetId, sel.col, startRow);
-        for (var row = startRow; row < sel.row + Constants.LARGE_SEARCH_BOUND; row++){
-          let thisExists = this.locationExists(sheetId, sel.col, row);
+        for (var row = startRow; row < startRow + Constants.LARGE_SEARCH_BOUND; row++){
+          let thisExists = this.locationExists(sheetId, origin.col, row);
           if (Util.xor(selExists, thisExists)) {
-            return thisExists ? {col: sel.col, row: row} : {col: sel.col, row: row-1};
+            result = thisExists ? {col: sel.col, row: row} : {col: sel.col, row: row-1};
+            let resultRow = origin.row > sel.row ? result.row : sel.row;
+            let resultRow2 = origin.row > sel.row ? sel.row2 : result.row;
+            result = !isShifted ? result : {row: resultRow,
+                                            col: sel.col,
+                                            row2: resultRow2,
+                                            col2: sel.col2 ? sel.col2 : sel.col};
+            break;
           }
         }
-        return {row: sel.row, col: sel.col};
+        result = result ? result : sel;
+        break;
       case "Left":
-        startCol = this.locationExists(sheetId, sel.col-1, sel.row) ? sel.col : sel.col-1;
+        startCol = this.locationExists(sheetId, hExtremum-1, sel.row) ? hExtremum : hExtremum-1;
         selExists = this.locationExists(sheetId, startCol, sel.row);
         for (var col = startCol; col > 1; col--) {
-          let thisExists = this.locationExists(sheetId, col, sel.row);
+          let thisExists = this.locationExists(sheetId, col, origin.row);
           if (Util.xor(selExists, thisExists)) {
-            return thisExists ? {col: col, row: sel.row} : {col: col+1, row: sel.row};
+            result = thisExists ? {col: col, row: sel.row} : {col: col+1, row: sel.row};
+            let resultCol = origin.col > sel.col ? result.col : sel.col;
+            let resultCol2 = origin.col > sel.col ? sel.col2 : result.col;
+            result = !isShifted ? result : {row: sel.row, col: resultCol, row2: sel.row2 ? sel.row2 : sel.row, col2: resultCol2};
+            break;
           }
         }
-        return {row: sel.row, col: 1};
+        result = result ? result : {row: sel.row,
+                                    col: 1,
+                                    row2: isShifted ? (sel.row2 ? sel.row2 : sel.row) : null,
+                                    col2: isShifted ? sel.col : null};
+        break;
       case "Up":
-        startRow = this.locationExists(sheetId, sel.col, sel.row-1) ? sel.row : sel.row-1;
+        startRow = this.locationExists(sheetId, sel.col, vExtremum-1) ? vExtremum : vExtremum-1;
         selExists = this.locationExists(sheetId, sel.col, startRow);
         for (var row = startRow; row > 1; row--) {
-          let thisExists = this.locationExists(sheetId, sel.col, row);
+          let thisExists = this.locationExists(sheetId, origin.col, row);
           if (Util.xor(selExists, thisExists)) {
-            return thisExists ? {col: sel.col, row: row} : {col: sel.col, row: row+1};
+            result = thisExists ? {col: sel.col, row: row} : {col: sel.col, row: row+1};
+            let resultRow = origin.row > sel.row ? result.row : sel.row;
+            let resultRow2 = origin.row > sel.row ? sel.row2 : result.row;
+            result = !isShifted ? result : {row: resultRow, col: sel.col, row2: resultRow2, col2: sel.col2 ? sel.col2 : sel.col};
+            break;
           }
         }
-        return {row: 1, col: sel.col};
+        result = result ? result : {row: 1,
+                                    col: sel.col,
+                                    row2: isShifted ? sel.row : null,
+                                    col2: isShifted ? (sel.col2 ? sel.col2 : sel.col) : null};
+        break;
     }
+    console.log("\n\nRESULT\n\n", result);
+    return Util.getOrientedArea(result);
+  },
+
+  // TODO actually get the data boundaries by iterating, or something
+  // (but as long as we're using LARGE_SEARCH_BOUND, this area is an upper bound)
+  getDataBounds() {
+    return {col: 1, row: 1, col2: Constants.LARGE_SEARCH_BOUND, row2: Constants.LARGE_SEARCH_BOUND};
   },
 
 
