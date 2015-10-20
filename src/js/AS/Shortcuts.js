@@ -175,6 +175,9 @@ export default {
     ShortcutUtils.addShortcut("grid", "grid_redo", "Ctrl+Shift+Z", (wildcard) => {
       API.sendRedoRequest();
     });
+    ShortcutUtils.addShortcut("grid", "grid_redo", "Ctrl+Y", (wildcard) => {
+      API.sendRedoRequest();
+    });
     ShortcutUtils.addShortcut("grid", "chart", "F11", (wildcard) => {
       // TODO
     });
