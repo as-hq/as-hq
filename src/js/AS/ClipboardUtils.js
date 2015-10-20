@@ -6,7 +6,7 @@ export default {
 	/* Generates AS-based html from a list of list of values */
 	valsToHtml(vals){
 		let table = document.createElement('table');
-		table.setAttribute("id","alphasheets");
+		table.setAttribute("id","alphasheets"); // how we indicate the copy originated from within alphasheets
 		let tableBody = document.createElement('tbody');
 		vals.forEach(function(rowVals){
 			let row = document.createElement('tr');

@@ -263,6 +263,10 @@ const ASEvaluationStore = assign({}, BaseStore, {
    },
 
   clientCellToValue(clientCell) {
+    if (!clientCell) { 
+      return ""; 
+    }
+    
     let v = clientCell.cellValue.contents;
 
     if (v) { // non ValueError value
@@ -278,7 +282,7 @@ const ASEvaluationStore = assign({}, BaseStore, {
         return clientCell.cellValue.contents;
       }
       return "";
-    } else if (clientCell.cellValue.errMsg) {
+    } else if (clientCell.cellValue.errMsg) { // must be errror
       return "ERROR"; // TODO: display different types of errors depending on the type
     }
   },
