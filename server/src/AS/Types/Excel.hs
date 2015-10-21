@@ -20,10 +20,10 @@ import qualified Data.Vector.Unboxed as VU
 -- | Excel Location Parsing
 
 -- d1 = $ or nothing; $ means absolute column, nothing means relative. ditto for d2 but for rows
-data ExLoc   = ExIndex {d1 :: String, col :: String, d2 :: String, row :: String} deriving (Show, Read, Eq, Ord)
+data ExLoc   = ExIndex {d1 :: String, col :: String, d2 :: String, row :: String} | ExOutOfBounds deriving (Show, Read, Eq, Ord)
 data ExRange = ExRange {first :: ExLoc, second :: ExLoc} deriving (Show, Read, Eq, Ord)
 data ExLocOrRange = ExLoc1 ExLoc | ExRange1 ExRange deriving (Show, Read, Eq, Ord)
-data ExRef = ExLocOrRangeRef ExLocOrRange | ExSheetLocOrRangeRef String ExLocOrRange deriving (Show, Read, Eq, Ord)
+data ExRef = ExLocOrRangeRef ExLocOrRange | ExSheetLocOrRangeRef String ExLocOrRange  deriving (Show, Read, Eq, Ord)
 -- I think this is the simplest grammar we can write that actually correctly captures the type we want.
 -- It's quite ugly as it is though -- I imagine it can be refactored with lenses / better names, but this
 -- seems not very urgent as of now. (10/9)
@@ -35,6 +35,8 @@ showExcelRef exRef = case exRef of
   ExSheetLocOrRangeRef sheet rest -> sheet ++ "!" ++ (showExcelRef (ExLocOrRangeRef rest))
   ExLocOrRangeRef (ExRange1 (ExRange first second)) -> (showExcelRef $ ExLocOrRangeRef $ ExLoc1 $ first) ++ ":" ++ (showExcelRef $ ExLocOrRangeRef $ ExLoc1 second)
   ExLocOrRangeRef (ExLoc1 (ExIndex dol1 c dol2 r)) -> dol1 ++ c ++ dol2 ++ r
+  ExLocOrRangeRef (ExLoc1 ExOutOfBounds) -> "#REF!"
+
 
 showExcelValue :: ASValue -> String
 showExcelValue val = case val of
