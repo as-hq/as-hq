@@ -405,7 +405,7 @@ getAllSheets conn = do
 -- creates a sheet with unique id
 createSheet :: Connection -> ASSheet -> IO ASSheet
 createSheet conn (Sheet sid _ sperms) = do
-    sid' <- U.getUniqueId
+    sid' <- T.pack <$> U.getUniqueId
     sname <- getUniqueSheetName conn
     let newSheet = Sheet sid' sname sperms
     setSheet conn newSheet

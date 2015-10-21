@@ -10,7 +10,10 @@ import AS.Kernels.Common
 import AS.Kernels.LanguageUtils
 
 import AS.Config.Settings
+import AS.Config.Paths (getImagesPath)
 import AS.Util
+
+import Data.List (elem)
 
 import qualified Data.ByteString.Char8 as BC
 
@@ -132,8 +135,16 @@ castVector v = do
             vals' = prependRowToColumnMajorList firstRow vals
         return [RDataFrame vals']
       else do
-        listNames <- castR =<< [r|names(AS_LOCAL_EXEC)|]
-        return [RList $ zip (castListNames listNames) vals]
+        listNames <- castListNames <$> (castR =<< [r|names(AS_LOCAL_EXEC)|])
+        if (isRPlot listNames)
+          then do
+            uid <- liftIO getUniqueId
+            path <- liftIO $ getImagesPath
+            let imageUid = uid ++ ".png"
+                imagePath = path ++ imageUid
+            [r|ggsave(filename=imagePath_hs, plot=AS_LOCAL_EXEC)|]
+            return [ValueImage imageUid]
+          else return [RList $ zip listNames vals]
     else return vals
 
 prependRowToColumnMajorList :: [ASValue] -> [ASValue] -> [ASValue]
@@ -176,3 +187,6 @@ undegenerateList v = v
 
 --(<.) :: R a -> R ASValue
 --(<.) a = castR =<< a
+
+isRPlot :: [RListKey] -> Bool
+isRPlot = elem "plot_env"

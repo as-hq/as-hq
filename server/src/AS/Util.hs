@@ -230,8 +230,8 @@ getASTime = return $ Time "hi" 1 2 3
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Id management
 
-getUniqueId :: IO T.Text
-getUniqueId = return . T.pack . U.toString =<< nextRandom
+getUniqueId :: IO String
+getUniqueId = return . U.toString =<< nextRandom
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- viewing windows

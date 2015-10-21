@@ -66,7 +66,6 @@ initApp = do
   -- init R
   R.runRegion $ do
     -- the app needs sudo to install packages.
-    --[r|install.packages("rjson", repos='http://cran.us.r-project.org')|]
     [r|library("rjson")|]
     [r|library("ggplot2")|]
     return ()
@@ -91,7 +90,7 @@ application state pending = do
   handleFirstMessage state conn msg
 
 handleFirstMessage ::  MVar ServerState -> WS.Connection -> B.ByteString -> IO ()
-handleFirstMessage state conn msg = 
+handleFirstMessage state conn msg =
   case (decode msg :: Maybe ASClientMessage) of
     Just m@(ClientMessage Acknowledge (PayloadInit (ASInitConnection _))) -> do -- first mesage is user init
       user <- initUserFromMessageAndConn m conn
