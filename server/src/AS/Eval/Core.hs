@@ -50,8 +50,8 @@ evaluateLanguage curRef sheetid valuesMap xp@(Expression str lang) = catchEither
 
 evaluateLanguageRepl :: ASExpression -> EitherTExec ASValue
 evaluateLanguageRepl (Expression str lang) = catchEitherT $ case lang of
-  Python   -> KP.evaluateRepl str
-  R        -> KR.evaluateRepl str
+  Python  -> KP.evaluateRepl str
+  R       -> KR.evaluateRepl str
   SQL     -> KP.evaluateSqlRepl str
   OCaml   -> KO.evaluateRepl str
 
@@ -85,9 +85,9 @@ handleErrorInLang _ err = Just err
 
 execEvalInLang :: ASLanguage -> String -> EitherTExec ASValue
 execEvalInLang lang = case lang of
-  Python   -> KP.evaluate
-  R     -> KR.evaluate
-  SQL   -> KP.evaluateSql
+  Python  -> KP.evaluate
+  R       -> KR.evaluate
+  SQL     -> KP.evaluateSql
   OCaml   -> KO.evaluate
 
 
