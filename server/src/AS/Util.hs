@@ -6,6 +6,8 @@ import Prelude
 import Data.Time.Clock
 import Data.Maybe (isNothing,fromJust)
 import Data.UUID.V4 (nextRandom)
+import Text.ParserCombinators.Parsec
+
 import Data.Aeson hiding (Success)
 import qualified Network.WebSockets as WS
 import qualified Data.UUID as U (toString)
@@ -13,6 +15,7 @@ import qualified Data.Text as T
 import qualified Data.Char as C
 import qualified Data.List as L
 import qualified Data.Set as S
+
 import Control.Applicative hiding ((<|>), many)
 import Data.Maybe (isNothing,catMaybes,fromJust)
 import Data.List.Split (chunksOf)
@@ -535,3 +538,24 @@ testLocs n = [Index "" (i,1) | i <-[1..n]]
 
 testCells :: Int -> [ASCell]
 testCells n =  L.map (\l -> Cell (Index "" (l,1)) (Expression "hi" Python) (ValueS "Str") []) [1..n]
+
+----------------------------------------------------------------------------------------------------------------------
+-- Parsing
+
+-- | Matches an escaped string and returns the unescaped version. E.g. if the input is: 
+-- "\"hello"
+-- quotedString would match this and return this output: 
+-- "hello
+quotedString :: Parser String
+quotedString = (quoteString <|> apostropheString)
+  where
+    quoteString      = quotes $ many $ escaped <|> noneOf ['"']
+    apostropheString = apostrophes $ many $ escaped <|> noneOf ['\'']
+    quotes           = between quote quote
+    quote            = char '"' --
+    apostrophes      = between apostrophe apostrophe
+    apostrophe       = char '\'' -- TODO apostrophes also
+    escaped          = char '\\' >> choice (zipWith escapedChar codes replacements)
+    escapedChar code replacement = char code >> return replacement
+    codes            = ['b',  'n',  'f',  'r',  't',  '\\', '\"', '/']
+    replacements     = ['\b', '\n', '\f', '\r', '\t', '\\', '\"', '/']

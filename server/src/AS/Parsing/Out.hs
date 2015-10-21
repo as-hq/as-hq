@@ -13,6 +13,7 @@ import qualified Data.Text.Lazy (replace)
 
 import AS.Types.Core
 import AS.Types.Excel
+import AS.Kernels.Excel.Compiler
 import AS.Parsing.Common
 import AS.Util
 
@@ -102,36 +103,67 @@ splitNamesFromDataFrameValues vals = pairs
 -------------------------------------------------------------------------------------------------------------------------------------------------
 -- General parsing functions
 
--- P.parse (parseNext P.digit) "" "abc123" == Right ("abc",'1')
-parseNext :: Parser t -> Parser (String, t)
-parseNext a = do
-  r1 <- manyTill anyChar (lookAhead $ try a) -- need the try, otherwise it won't work
+-- assumes you're not starting in the middle of a quote
+
+-- "a1"+A1
+-- 2*A1
+-- 2*"A1"
+parseNextUnquoted :: Parser t -> Parser (String, t)
+parseNextUnquoted a = do
+  r1 <- manyTill (quotedStringEscaped <|> anyCharAsString) (lookAhead $ try a) -- need the try, otherwise it won't work
   r2 <- a -- result of parser a
-  return (r1,r2)
+  return (concat r1, r2)
 
--- P.parse (parseMatches (P.string "12")) "" "1212ab12"
--- Right ["12","12","12"]
-parseMatches :: Parser t -> Parser [t]
-parseMatches a = many $ do
-  (inter, next) <- try $ parseNext a --consumes input if it succeeds
-  return next
+anyCharAsString :: Parser String
+anyCharAsString = do 
+  c <- anyChar 
+  return [c]
 
--- P.parse (parseMatchesWithContext (P.string "12")) "" "1212ab12"
--- Right (["","","ab",""],["12","12","12"]) (alternating gives back str)
--- | needs better documentation. What are the arguments and what's getting returned? (-Alex, 10/8)
-parseMatchesWithContext :: Parser t -> Parser ([String],[t])
-parseMatchesWithContext a = do
-  matchesWithContext <- many $ try $ parseNext a
+-- | Like quotedString in Util.hs. Matches a quoted string, and returns it exactly. 
+-- #needsrefactor this can almost definitely be implemented more cleanly. If you see this
+-- and figure out how, please change this and post to #codefeedback. 
+quotedStringEscaped :: Parser String
+quotedStringEscaped = (quoteString <|> apostropheString)
+  where
+    quoteString = do 
+      char '"'
+      body <- many $ escaped <|> (fmap (\c -> [c]) (noneOf ['"']))
+      char '"'
+      return ("\"" ++ (concat body) ++ "\"")
+    apostropheString = do 
+      char '\''
+      body <- many $ escaped <|> (fmap (\c -> [c]) (noneOf ['\'']))
+      char '\''
+      return ("'" ++ (concat body) ++ "'")
+    escaped = do 
+      char '\\' 
+      escChar <- choice (zipWith escapedChar codes replacements)
+      return ['\\', escChar]
+    escapedChar code replacement = char code >> return replacement
+    codes            = ['b',  'n',  'f',  'r',  't',  '\\', '\"', '/']
+    replacements     = ['\b', '\n', '\f', '\r', '\t', '\\', '\"', '/']
+
+-- | Alternatingly gives back matches in string and the surrounding parts of the matches. 
+-- e.g., parse (parseMatchesWithContext (P.string "12")) "" "1212ab12" gives
+-- Right (["","","ab",""],["12","12","12"]) (alternatingly gives back str)
+parseUnquotedMatchesWithContext :: Parser t -> Parser ([String],[t])
+parseUnquotedMatchesWithContext a = do
+  matchesWithContext <- many $ try $ parseNextUnquoted a
   rest <- many anyChar
   let inter = (map fst matchesWithContext) ++ [rest]
       matches = (map snd matchesWithContext)
   return (inter,matches)
 
--- | needs better documentation. What are the arguments and what's getting returned? (-Alex, 10/8)
-getMatchesWithContext :: String -> Parser t -> ([String],[t])
-getMatchesWithContext target p = fromRight . (parse (parseMatchesWithContext p) "" ) $ target
+getUnquotedMatchesWithContext :: ASExpression -> Parser t -> ([String],[t])
+getUnquotedMatchesWithContext (Expression target lang) p = 
+  if (isExcelLiteral)
+    then ([target], [])
+    else (fromRight . (parse (parseUnquotedMatchesWithContext p) "") $ target)
   where
     fromRight (Right x) = x
+    isExcelLiteral = (lang == Excel) && (case (parse formula "" target) of 
+      Right _ -> False 
+      Left  _ -> True)
 
 -- does no work with Parsec/actual parsing
 replaceMatches :: ([String],[t]) -> (t -> String) -> String -> String
@@ -255,8 +287,7 @@ shiftExRefs offset exRefs = map (shiftExRef offset) exRefs
 getDependencies :: ASSheetId -> ASExpression -> [ASReference]
 getDependencies sheetid xp = deps
   where
-    origString = expression xp
-    (_, exRefs) = getMatchesWithContext origString excelMatch -- the only place that Parsec is used
+    (_, exRefs) = getUnquotedMatchesWithContext xp excelMatch -- the only place that Parsec is used
     deps = map (exRefToASRef sheetid) exRefs
 
 ---- | Takes in a list of ExRef's and converts them to a list of ASIndex's.
@@ -285,10 +316,10 @@ unpackExcelVals v = []
 -- | Takes in an offset and a cell, and returns the cell you get when you shift the cell by
 -- the offset. (The location changes, and the non-absolute references in the expression changes.)
 shiftCell :: (Int, Int) -> ASCell -> ASCell
-shiftCell offset (Cell loc (Expression str lang) v ts) = shiftedCell
+shiftCell offset (Cell loc xp@(Expression str lang) v ts) = shiftedCell
   where
     shiftedLoc     = shiftInd offset loc
-    (inter,exRefs) = getMatchesWithContext str excelMatch
+    (inter,exRefs) = getUnquotedMatchesWithContext xp excelMatch
     shiftedExRefs  = shiftExRefs offset exRefs
     newStr         = replaceMatches (inter, shiftedExRefs) showExcelRef str
     shiftedXp      = Expression newStr lang

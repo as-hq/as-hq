@@ -217,10 +217,10 @@ lookupString lang valuesMap loc = case loc of
 -- TODO clean up SQL mess
 
 insertValues :: ASSheetId -> RefValMap -> ASExpression -> String
-insertValues sheetid valuesMap (Expression origString lang) = case lang of
+insertValues sheetid valuesMap xp@(Expression origString lang) = case lang of
   SQL -> contextStmt ++ evalStmt
     where
-        exRefs = getMatchesWithContext origString excelMatch
+        exRefs = getUnquotedMatchesWithContext xp excelMatch
         matchLocs = map (exRefToASRef sheetid) (snd exRefs)
         context = map (lookupString SQL valuesMap) matchLocs
         st = ["dataset"++(show i) | i<-[0..((L.length matchLocs)-1)]]
@@ -230,7 +230,7 @@ insertValues sheetid valuesMap (Expression origString lang) = case lang of
   otherLang -> evalString
     where
         exRefToStringEval = (lookupString lang valuesMap) . (exRefToASRef sheetid) -- ExRef -> String. (Takes in ExRef, returns the ASValue corresponding to it, as a string.)
-        evalString = replaceMatches (getMatchesWithContext origString excelMatch) exRefToStringEval origString
+        evalString = replaceMatches (getUnquotedMatchesWithContext xp excelMatch) exRefToStringEval origString
 
 -----------------------------------------------------------------------------------------------------------------------
 -- | File management

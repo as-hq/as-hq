@@ -3,6 +3,7 @@ module AS.Kernels.Excel.Compiler where
 import AS.Types.Core hiding (str,error,SyntaxError)
 import AS.Types.Excel
 import AS.Parsing.Out (excelMatch)
+import AS.Util (quotedString)
 
 import Text.ParserCombinators.Parsec
 import qualified Text.ParserCombinators.Parsec.Token as P
@@ -255,18 +256,7 @@ bool :: Parser Bool
 bool = fmap readBool $ caseInsensitiveString "TRUE" <|> caseInsensitiveString "FALSE"
 
 str :: Parser String
-str = (quoteString <|> apostropheString)
-  where
-    quoteString      = quotes $ many $ escaped <|> noneOf ['"']
-    apostropheString = apostrophes $ many $ escaped <|> noneOf ['\'']
-    quotes           = between quote quote
-    quote            = char '"' --
-    apostrophes      = between apostrophe apostrophe
-    apostrophe       = char '\'' -- TODO apostrophes also
-    escaped          = char '\\' >> choice (zipWith escapedChar codes replacements)
-    escapedChar code replacement = char code >> return replacement
-    codes            = ['b',  'n',  'f',  'r',  't',  '\\', '\"', '/']
-    replacements     = ['\b', '\n', '\f', '\r', '\t', '\\', '\"', '/']
+str = quotedString
 
 excelValue :: Parser Formula
 excelValue = fmap (Basic . Var) $

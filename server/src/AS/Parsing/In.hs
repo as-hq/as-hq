@@ -54,18 +54,7 @@ bool lang = fmap readBool $ true <|> false
       Excel -> string "False"
 
 valueS :: Parser ASValue
-valueS = ValueS <$> (quoteString <|> apostropheString)
-  where
-    quoteString        = quotes $ many $ escaped <|> noneOf ['"']
-    apostropheString    = apostrophes $ many $ escaped <|> noneOf ['\'']
-    quotes             = between quote quote
-    quote              = char '"' --
-    apostrophes        = between apostrophe apostrophe
-    apostrophe         = char '\'' -- TODO apostrophes also
-    escaped            = char '\\' >> choice (zipWith escapedChar codes replacements)
-    escapedChar code replacement = char code >> return replacement
-    codes              = ['b',  'n',  'f',  'r',  't',  '\\', '\"', '/']
-    replacements       = ['\b', '\n', '\f', '\r', '\t', '\\', '\"', '/']
+valueS = ValueS <$> U.quotedString
 
 -- valueS :: Parser ASValue
 -- valueS = ValueS <$> (O.stringLiteral $ O.makeTokenParser Lang.haskellDef)
