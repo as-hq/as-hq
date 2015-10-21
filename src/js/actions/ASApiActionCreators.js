@@ -14,6 +14,7 @@ var wss = new ws(Constants.HOST_WS);
 let currentCbs = undefined;
 let isRunningTest = false;
 let isRunningSyncTest = false;
+let refreshDialogShown = false; 
 
 /**************************************************************************************************************************/
 
@@ -152,7 +153,17 @@ export default {
   /**************************************************************************************************************************/
   /* Sending acknowledge message to server */
 
-  waitForSocketConnection(socket, callback) {
+  waitForSocketConnection(socket, callback, waitTime) {
+    if (typeof(waitTime) == "undefined") { 
+      waitTime = 0; 
+    }
+
+    if (waitTime >= 5000 && !refreshDialogShown) { 
+      alert("The connection with the server appears to have been lost. Please refresh the page.");
+      refreshDialogShown = true; 
+      waitTime = 0; 
+    }
+
     setTimeout(() => {
       if (socket.readyState === 1) {
         if(callback != null){
@@ -160,7 +171,7 @@ export default {
         }
         return;
       } else {
-        this.waitForSocketConnection(socket, callback);
+        this.waitForSocketConnection(socket, callback, waitTime + 5);
       }
     }, 5);
   }, // polling socket for readiness: 5 ms
