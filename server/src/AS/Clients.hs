@@ -41,26 +41,30 @@ instance Client ASUserClient where
   removeClient uc s@(State ucs dcs dbc)
     | uc `elem` ucs = State (L.delete uc ucs) dcs dbc
     | otherwise = s
-  handleClientMessage user state message = printWithTime ("\n\nMessage: " ++ (show $ message)) >> case (clientAction message) of
-    Acknowledge  -> handleAcknowledge user
-    New          -> handleNew state payload
-    Open         -> handleOpen user state payload
-    Close        -> handleClose user state payload
-    UpdateWindow -> handleUpdateWindow (sessionId user) state payload
-    Import       -> handleImport state payload
-    Evaluate     -> handleEval user state payload
-    EvaluateRepl -> handleEvalRepl user state payload
-    Get          -> handleGet user state payload
-    Delete       -> handleDelete user state payload
-    Clear        -> handleClear user state
-    Undo         -> handleUndo user state
-    Redo         -> handleRedo user state
-    Copy         -> handleCopy user state payload
-    Cut          -> handleCut user state payload
-    CopyForced   -> handleCopyForced user state payload
-    AddTags      -> handleAddTags user state payload
-    RemoveTags   -> handleRemoveTags user state payload
-    where payload = clientPayload message
+  handleClientMessage user state message = do 
+    printWithTime ("\n\nMessage: " ++ (show $ message))
+    recordAction message
+    case (clientAction message) of
+      Acknowledge  -> handleAcknowledge user
+      New          -> handleNew state payload
+      Open         -> handleOpen user state payload
+      Close        -> handleClose user state payload
+      UpdateWindow -> handleUpdateWindow (sessionId user) state payload
+      Import       -> handleImport state payload
+      Evaluate     -> handleEval user state payload
+      EvaluateRepl -> handleEvalRepl user state payload
+      Get          -> handleGet user state payload
+      Delete       -> handleDelete user state payload
+      Clear        -> handleClear user state
+      Undo         -> handleUndo user state
+      Redo         -> handleRedo user state
+      Copy         -> handleCopy user state payload
+      Cut          -> handleCut user state payload
+      CopyForced   -> handleCopyForced user state payload
+      AddTags      -> handleAddTags user state payload
+      RemoveTags   -> handleRemoveTags user state payload
+      Repeat       -> handleRepeat user state payload
+      where payload = clientPayload message
     -- Undo         -> handleAddTags user state (PayloadTags [StreamTag (Stream NoSource 1000)] (Index (T.pack "TEST_SHEET_ID2") (1,1)))
     -- ^^ above is to test streaming when frontend hasn't been implemented yet
 
@@ -334,12 +338,26 @@ handleRemoveTags user state (PayloadTags ts loc) = do
   mapM_ (processRemoveTag loc state) ts
   sendToOriginal user $ ServerMessage RemoveTags Success (PayloadN ())
 
--- Debugging
---getScrollCells :: Connection -> ASSheetId -> [ASIndex] -> IO [Maybe ASCell]
---getScrollCells conn sid locs = if ((sid == (T.pack "SHEET_ID")) && S.isDebug)
---  then do
---    let dlocs = locs
---    return $ map (\l -> Just $ Cell l (Expression "scrolled" Python) (ValueS (show . index $ l)) []) dlocs
--- --  else DB.getCells conn locs
--- getScrollCells :: ASSheetId -> [ASIndex] -> IO [Maybe ASCell]
--- getScrollCells sid locs = DB.getCells locs
+handleRepeat :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
+handleRepeat user state payload = do
+  let locs = case payload of
+               PayloadL loc -> [loc]
+               PayloadLL locs' -> locs'
+               PayloadR rng -> rangeToIndices rng
+               _ -> []
+  ClientMessage lastAction lastPayload <- getLastAction
+  case lastAction of 
+    Evaluate -> case lastPayload of 
+      PayloadC (Cell l e v ts) -> do 
+        let cells' = map (\loc -> Cell loc e v ts) locs
+        handleEval user state (PayloadCL cells')
+    otherwise -> sendToOriginal user $ ServerMessage Repeat (Failure "Repeat not supported for this action") (PayloadN ())
+
+----------------------------------------------------------------------------------------------------------------------------------------------
+-- Repeat handlers
+-- ::ALEX:: rename these
+recordAction :: ASClientMessage -> IO () 
+recordAction (ClientMessage action payload) = return ()
+
+getLastAction :: IO ASClientMessage
+getLastAction = return $ ClientMessage Evaluate (PayloadC $ Cell (Index "" (1,1)) (Expression "123" Python) NoValue [])

@@ -161,6 +161,7 @@ data ASAction =
   | Clear
   | UpdateWindow
   | AddTags | RemoveTags
+  | Repeat
   deriving (Show, Read, Eq, Generic)
 
 data ASResult = Success | Failure {failDesc :: String} | NoResult deriving (Show, Read, Eq, Generic)
