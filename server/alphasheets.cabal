@@ -15,37 +15,38 @@ cabal-version:       >=1.10
 
 library
   hs-source-dirs:      src
-  exposed-modules:     AS.DB.Util
+  exposed-modules:     AS.Daemon
                        AS.DB.API
+                       AS.DB.Util
                        AS.DB.Graph
                        AS.Dispatch.Core
                        AS.Dispatch.Repl
-                       AS.Util
                        AS.Clients
                        AS.Config.Paths
                        AS.Config.Settings
                        AS.Eval.Core
-                       AS.Eval.Middleware
                        AS.Eval.Endware
+                       AS.Eval.Middleware
                        AS.Kernels.Python.Eval
                        AS.Kernels.Python.Pyfi
                        AS.Kernels.Python.Str
-                       AS.Kernels.Excel.Compiler
                        AS.Kernels.Excel.Eval
+                       AS.Kernels.Excel.Compiler
                        AS.Kernels.Excel.Lib
                        AS.Kernels.Excel.Util
-                       AS.Kernels.R
+                       AS.Kernels.LanguageUtils
                        AS.Kernels.OCaml
                        AS.Kernels.Common
-                       AS.Kernels.LanguageUtils
+                       AS.Kernels.R
                        AS.Parsing.Common
-                       AS.Parsing.Out
                        AS.Parsing.In
+                       AS.Parsing.Out
+                       AS.Parsing.Substitutions
                        AS.Types.Core
                        AS.Types.DB
                        AS.Types.Excel
                        AS.Users
-                       AS.Daemon
+                       AS.Util
   build-depends:       base >= 4.7 && < 5
                      , text >= 0.11 && < 2.0
                      , filepath

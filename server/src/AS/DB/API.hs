@@ -8,7 +8,7 @@ import AS.Types.Core hiding (location,expression,value,min)
 import AS.Types.DB
 import AS.Util as U
 import qualified AS.DB.Util as DU
-import AS.Parsing.Out (getDependencies)
+import AS.Parsing.Substitutions (getDependencies)
 import AS.DB.Graph as G
 
 import Data.List (zip4,head,partition,nub,intercalate)

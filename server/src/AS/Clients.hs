@@ -14,15 +14,15 @@ import qualified Network.WebSockets as WS
 import qualified Database.Redis as R
 
 import AS.Types.Core
-import AS.DB.API            as DB
-import AS.DB.Util           as DU
-import AS.DB.Graph          as G
-import AS.Util              as U
-import AS.Dispatch.Core     as DP
-import AS.Dispatch.Repl     as DR
-import AS.Users             as US
-import AS.Parsing.Out       as O
-import AS.Daemon            as DM
+import AS.DB.API                as DB
+import AS.DB.Util               as DU
+import AS.DB.Graph              as G
+import AS.Util                  as U
+import AS.Dispatch.Core         as DP
+import AS.Dispatch.Repl         as DR
+import AS.Users                 as US
+import AS.Parsing.Substitutions as S
+import AS.Daemon                as DM
 
 -- EitherT
 import Control.Monad.Trans.Class
@@ -284,7 +284,7 @@ getPasteCells conn from to = do
   listsInRange <- DB.getListsInRange conn from
   let sanitizedFromCells = sanitizeCopyCells fromCells listsInRange
       offsets            = U.getPasteOffsets from to  -- how much to shift these cells for copy/copy/paste
-      toCells            = concat $ map (\o -> map (O.shiftCell o) sanitizedFromCells) offsets
+      toCells            = concat $ map (\o -> map (S.shiftCell o) sanitizedFromCells) offsets
   return toCells
 
 ----------------------------------------------------------------------------------------------------------------------------------------------

@@ -2,7 +2,6 @@ module AS.Kernels.LanguageUtils where
 
 import AS.Types.Core
 
-
 import Prelude
 import Text.Parsec
 import Text.Parsec.Text
@@ -11,6 +10,7 @@ import qualified Data.List as L
 
 import AS.Config.Paths
 import AS.Parsing.Out
+import AS.Parsing.Substitutions
 import AS.Parsing.Common
 
 import Control.Applicative hiding ((<|>))

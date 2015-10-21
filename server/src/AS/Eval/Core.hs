@@ -24,6 +24,7 @@ import AS.Kernels.OCaml as KO
 import AS.Parsing.In
 import AS.Parsing.Out
 import AS.Parsing.Common
+import AS.Parsing.Substitutions
 
 import AS.Util
 import AS.Config.Settings
