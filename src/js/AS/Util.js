@@ -104,13 +104,17 @@ export default {
     }
   },
 
+  getPaintedBordersForSingleCell() {
+    return [[[0,0],[1,0]],
+            [[1,0],[1,1]],
+            [[1,1],[0,1]],
+            [[0,1],[0,0]]];
+  },
+
   getBorderForInteriorCell(col, row, rng) {
     let borders = []
     if (!rng.row2 && (col === rng.col && row === rng.row)) {
-      return [[[0,0],[1,0]],
-              [[1,0],[1,1]],
-              [[1,1],[0,1]],
-              [[0,1],[0,0]]];
+      return this.getPaintedBordersForSingleCell();
     }
     else if (col >= rng.col && col <= rng.col2 && row >= rng.row && row <= rng.row2){
       if (col === rng.col) // left intersection
