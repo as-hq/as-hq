@@ -30,7 +30,7 @@ literal = do
   firstChar <- noneOf ['=']
   restChars <- manyTill anyChar (try eof)
   let str = firstChar:restChars
-  let val = parse justExcelValue "" str
+  let val = parse justNumOrBool "" str
   return $ case val of
     (Left _) -> Basic . Var $ EValueS str
     (Right v) -> v
@@ -275,9 +275,15 @@ excelValue = fmap (Basic . Var) $
   <|> try (EValueB <$> bool)
   <|> try (EValueS <$> str)
 
-justExcelValue :: Parser Formula
-justExcelValue = do 
-  v <- excelValue
+numOrBool :: Parser Formula
+numOrBool = fmap (Basic . Var) $
+      try ((EValueNum . EValueD) <$> float)
+  <|> try ((EValueNum . EValueI . fromInteger) <$> integer)
+  <|> try (EValueB <$> bool)
+
+justNumOrBool :: Parser Formula
+justNumOrBool = do 
+  v <- numOrBool
   eof
   return v
 

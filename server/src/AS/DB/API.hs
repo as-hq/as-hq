@@ -81,6 +81,13 @@ getCells locs = DU.getCellsByMessage msg num
     msg = DU.showB $ intercalate "@" $ map show2 locs
     num = length locs
 
+getPossiblyBlankCells :: [ASIndex] -> IO [ASCell]
+getPossiblyBlankCells locs = do 
+  cells <- getCells locs
+  return $ map (\(l,c) -> case c of 
+    Just c' -> c'
+    Nothing -> Cell l (Expression "" Excel) NoValue []) (zip locs cells)
+
 getCellsByRange :: ASRange -> IO [Maybe ASCell]
 getCellsByRange rng = getCells (refToIndices $ RangeRef rng)
 
