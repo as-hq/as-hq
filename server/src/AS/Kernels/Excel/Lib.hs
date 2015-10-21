@@ -40,8 +40,14 @@ type Dim = (Col,Row)
 type Offset = (Col,Row)
 
 -- | TODO: might need a wrapper around stuff to get 0.999999 -> 1 for things like correl
--- | TODO: use Haskell-R for some of the stat funcs?
 -- | TODO: use unboxing if performance is a problem
+-- | TODO: implement indirect helper
+-- | TODO: implement rand without IO creep
+-- | TODO: test missing arguments; f(a1,a2,,a3) and refactor; EMissing isn't really an EValue
+-- | TODO: test hypothesis that scalarizing a ref is actually row col int based always
+
+-- | TODO: index is only array-mode at this point (tuples needed for ref mode)
+-- | TODO: apparently index(A1:B2,{1;2},{1,2}) works WTF
 
 -- | NOTE: Any reference with an unmappable ASValue -> EValue returns error (we get to define this behavior)
 
@@ -54,32 +60,145 @@ data FuncDescriptor = FuncDescriptor {
   mapArgsIfArrayFormula :: [Int], -- Arguments to map over in array formula mode ("unexpected arrays")
   arrFormEvalArgs :: [Int],       -- Evaluate these arguments as AF in normal mode (and in AF mode as well)
   replaceRefArgs :: [Int],        -- Before evaluation, replace reference arguments by context/DB
-  maxNumArgs :: Maybe Int,    -- Upper bound on number of arguments (Nothing means no bound, like sum)
+  maxNumArgs :: Maybe Int,        -- Upper bound on number of arguments (Nothing means no bound, like sum)
   callback :: EFuncResult
 }
 
--- | TODO: add implemented functions
+-- | Scalarize in normal mode, map over all arguments for array formula, replace all refs
+normalD :: Int -> EFunc -> FuncDescriptor
+normalD n f = FuncDescriptor [1..] [1..] [] [1..] (Just n) (transform f)
+
+-- | Similar to above, but only map/scalarize over some arguments
+normalD' :: Int -> [Int] -> EFunc -> FuncDescriptor
+normalD' n nonRanges f = FuncDescriptor nonRanges nonRanges [] [1..] (Just n) (transform f)
+
+-- | Vector functions like sum; don't scalarize or map (args can be ranges!), replace all refs, no arg limit
+vectorD :: EFunc -> FuncDescriptor
+vectorD f = FuncDescriptor [] [] [] [1..] Nothing (transform f)
+
+-- | Same as above, but eval some args as AF's
+vectorAFD :: [Int] -> EFunc -> FuncDescriptor
+vectorAFD lst f = FuncDescriptor [] [] lst [1..] Nothing (transform f)
+
+-- | Functions like sumproduct, correl
+vector2 :: EFunc -> FuncDescriptor
+vector2 f = FuncDescriptor [] [] [1,2] [1..] (Just 2) (transform f)
+
+infixD :: EFunc -> FuncDescriptor
+infixD = normalD 2 
+
+-- | Things like sumif; args 1 and 3 are ranges (no scalarizing or mapping) and replace all refs
+ifD :: EFunc -> FuncDescriptor
+ifD = normalD' 3 [2] 
+
+-- | Similar to above; args 3,5,7... are ranges
+ifsD :: EFunc -> FuncDescriptor
+ifsD f = FuncDescriptor [3,5..] [3,5..] [] [1..] Nothing (transform f)
+
 -- | Map function names to function descriptors
 functions :: M.Map String FuncDescriptor
 functions =  M.fromList $
-   [("+"              , FuncDescriptor []   [1,2]     []   [1,2]    (Just 2)  (transform eAdd)),
-    ("-"              , FuncDescriptor []   [1,2]     []   [1,2]    (Just 2)  (transform eMinus)),
-    ("*"              , FuncDescriptor []   [1,2]     []   [1,2]    (Just 2)  (transform eMult)),
-    ("/"              , FuncDescriptor []   [1,2]     []   [1,2]    (Just 2)  (transform eDivide)),
-    ("="              , FuncDescriptor []   [1,2]     []   [1,2]    (Just 2)  (transform eEquals)),
-    ("sum"           , FuncDescriptor []   []        []   [1..]    (Nothing)  (transform eSum)),
-  ("if"           , FuncDescriptor []   [1,2,3]   []   [1,2,3]  (Just 3)  (transform eIf)),
-  ("iserror"        , FuncDescriptor []   [1]       []   [1]      (Just 1)  (eIsError)),
-  ("address"        , FuncDescriptor []   [1..]     []   [1..]    (Just 5)  (transform eAddress)),
-  ("abs"            , FuncDescriptor [1]  [1..]     []   [1..]    (Just 1)  (transform eAbs)),
-  ("product"        , FuncDescriptor []   []         []   [1..]    (Nothing)  (transform eProduct)),
-  ("sumif"          , FuncDescriptor []   []         []   []       (Nothing)  (transform eSumIf)),
-  ("sumifs"           , FuncDescriptor []   []         []   [1..]    (Nothing)  (transform eSumIfs)),
-  ("sumsq"          , FuncDescriptor []   []         []   [1..]    (Nothing)  (transform eSumSq)),
-  ("avedev"           , FuncDescriptor []   []         []   [1..]    (Nothing) (transform eAvedev)),
-  ("correl"           , FuncDescriptor []   []         []   [1..]    (Just 2)  (transform eCorrel)),
-  ("substitute"       , FuncDescriptor []   []         []   [1..]    (Just 4)  (transform eSubstitute))]
+    -- | Excel infix functions
+   [("+"              , infixD eAdd),
+    ("-"              , infixD eMinus),
+    ("*"              , infixD eMult),
+    ("/"              , infixD eDivide),
+    ("="              , infixD eEquals),
+    ("<>"             , infixD eNotEquals),
+    (">="             , infixD eGreaterE),
+    ("<="             , infixD eLessE),
+    (">"              , infixD eGreater),
+    ("<"              , infixD eLess),
+    ("&"              , infixD eAmpersand),
+    (" "              , FuncDescriptor [1,2] [1,2] [] [] (Just 2) (transform eSpace)), -- don't replace refs
 
+    -- | Excel information functions
+    ("isblank"        , normalD 1 eIsBlank),
+    ("iserror"        , FuncDescriptor [1] [1] [] [1] (Just 1) eIsError), -- efuncresult
+    ("islogical"      , normalD 1 eIsLogical),
+    ("isnumber"       , normalD 1 eIsNumber),
+
+    -- | Excel logical functions
+    ("iferror"        , FuncDescriptor [1,2] [1,2] [] [1,2] (Just 2) eIfError), -- efuncresult
+    ("if"             , normalD 3 eIf),
+    ("and"            , vectorD eAnd),
+    ("or"             , vectorD eOr),
+    ("not"            , normalD 1 eNot),
+
+    -- | Excel lookup and reference functions
+      -- | Address(A1:A2,B1:B2) is an Excel valerror in normal mode, but ArrForm works mapping over all args
+    ("address"        , FuncDescriptor [] [1..] [] [1..] (Just 5) (transform eAddress)),
+      -- | Column(A1:A2) returns topleft, don't scalarize (func will return matrix, top level takes top left)
+      -- the function will handle ranges (don't map over AF), don't replace refs obv
+    ("column"         , FuncDescriptor [] [] [] [] (Just 1) (transform eColumn)),
+    ("row"            , FuncDescriptor [] [] [] [] (Just 1) (transform eRow)),
+      -- | Indirect(array) = error; don't scalarize, replace refs because arg1 = string, arg2 = bool
+    ("indirect"       , FuncDescriptor [] [1..] [] [1..] (Just 2) (transform eIndirect)),
+      -- | First arg = ref, no array formula (returns reference)
+    ("offset"         , FuncDescriptor [2..] [] [] [2..] (Just 5) (transform eOffset)),
+      -- | Array mode is normal in 2nd, 3rd args, replace all args
+    ("index"          , normalD' 3 [2,3] eIndex),
+      -- | Normal in first and third, second is a matrix
+    ("match"          , normalD' 3 [1,3] eMatch),
+      -- | Don't scalarize; tranpose(arr) is error in normal mode
+    ("transpose"      , FuncDescriptor [] [] [] [1] (Just 1) (transform eTranspose)),
+
+    -- | Excel math and trig functions
+    ("product"        , vectorD eProduct),
+    ("abs"            , normalD 1 eAbs),
+    ("exp"            , normalD 1 eExp),
+    ("pi"             , normalD 0 ePi),
+    ("sqrt"           , normalD 1 eSqrt),
+    ("sqrtpi"         , normalD 0 eSqrtPi),
+    ("sum"            , vectorD eSum),
+    ("sumif"          , ifD eSumIf),
+    ("sumifs"         , ifsD eSumIfs),
+    ("sumsq"          , vectorD eSumSq),
+    ("sumx2my2"       , vector2 eSumx2my2),
+    ("sumx2py2"       , vector2 eSumx2py2),
+    ("sumxmy2"        , vector2 eSumxmy2),
+    ("sumproduct"     , vector2 eSumProduct),
+
+    -- | Excel statistical functions
+    ("avedev"         , vectorD eAvedev),
+    ("average"        , vectorD eAverage),
+    ("averageif"      , ifD eAverageIf),
+    ("averageifs"     , ifsD eAverageIfs),
+    ("binom.dist"     , normalD 4 eBinomDist),
+    ("correl"         , vector2 eCorrel),
+    ("count"          , vectorD eCount),
+    ("countif"        , ifD eCountIf),
+    ("countifs"       , ifsD eCountIfs),
+      -- | 2nd argument is a range; only map and scalarize over the first
+    ("large"          , normalD' 2 [1] eLarge),
+    ("min"            , vectorD eMin),
+    ("max"            , vectorD eMax),
+    ("median"         , vectorD eMedian),
+    ("mode.mult"      , vectorAFD [1] eModeMult),
+    ("mode.sngl"      , vectorAFD [1] eModeSngl),
+    ("norm.dist"      , normalD 4 eNormDist),
+    ("norm.inv"       , normalD 4 eNormInv),
+    ("pearson"        , vector2 ePearson),
+      -- | 2nd argument is a range, only map and scalarize over the first (for rank)
+    ("rank.eq"        , normalD' 3 [1,3] eRankEq),
+    ("rank.avg"       , normalD' 3 [1,3] eRankAvg),
+    ("slope"          , vector2 eSlope),
+    ("stdev.s"        , vectorD eStdS),
+    ("stdev.p"        , vectorD eStdP),
+    ("var.s"          , vectorD eVarS),
+    ("var.p"          , vectorD eVarP),
+    ("covar"          , vector2 eCoVar),
+
+    -- | Excel text functions
+    ("find"           , normalD 3 eFind),
+    ("len"            , normalD 1 eLen),
+    ("rept"           , normalD 2 eRept),
+      -- | Right function has a "number of bytes" optional 3rd argument that I'm ignoring bc wtf
+    ("right"          , normalD 2 eRight),
+    ("search"         , normalD 3 eSearch),   
+    ("substitute"     , normalD 4 eSubstitute),
+    ("trim"           , normalD 1 eTrim),
+    ("upper"          , normalD 1 eUpper)]
 
 -- | Many functions are simpler to implement as [EEntity] -> EResult
 -- | This function maps those EFuncs to EFuncResults by returning an error if any args were errors
@@ -118,7 +237,7 @@ evalBasicFormula c (Fun f fs)  = do
   let args = map (getFunctionArg c fDes) (zip [1..] fs)
   let argsRef = substituteRefsInArgs c fDes args
   checkNumArgs f (maxNumArgs fDes) (length argsRef)
-  topLeftForMatrix f$ (callback fDes) c argsRef
+  topLeftForMatrix f $ (callback fDes) c argsRef
 
 evalFormula :: Context -> Formula -> EResult
 evalFormula c (Basic b) = evalBasicFormula c b
@@ -615,6 +734,16 @@ eIfError c r = do
     Right (EntityVal (EValueE _)) -> errRes
     otherwise -> head r'
 
+eIf :: EFunc
+eIf c e = do
+  let f = "if"
+  b <- getRequired "bool" f 1 e :: ThrowsError Bool
+  v1 <- getRequired "value" f 2 e :: ThrowsError EValue
+  v2 <- getRequired "value" f 3 e :: ThrowsError EValue
+  if b
+    then valToResult v1
+    else valToResult v2
+
 -- | Returns the logical inverse of its only argument
 eNot :: EFunc
 eNot c e = do
@@ -863,6 +992,9 @@ eSumx2py2 = zipNumericSum2 (\a b -> a*a+b*b) "sumxpy2"
 eSumxmy2 :: EFunc
 eSumxmy2 = zipNumericSum2 (\a b -> (a-b)*(a-b)) "sumxmy2"
 
+eSumProduct :: EFunc
+eSumProduct = zipNumericSum2 (\a b -> a*b) "sumproduct"
+
 --------------------------------------------------------------------------------------------------------------
 -- | Statistical vector functions
 
@@ -911,6 +1043,15 @@ xyProd xs ys = s
     zipped = V.zipWith (\a b -> (a,b)) xs ys
     s = V.foldl' k 0 zipped
     k s (x,y) = s+(x-mx)*(y-my)
+
+covar :: V.Vector Double -> V.Vector Double -> Double
+covar xs ys = s / fromIntegral n
+  where
+    mx = mean xs
+    my = mean ys
+    zipped = V.zipWith (\a b -> (a,b)) xs ys
+    Pair n s = V.foldl' k (Pair 0 0) zipped
+    k (Pair n s) (x,y) = Pair (n+1) (s+(x-mx)*(y-my))
 
 --------------------------------------------------------------------------------------------------------------
 -- | Excel statistical functions
@@ -1091,7 +1232,6 @@ mode xs = case m of
             otherwise -> Just . snd $ head m
     where m = filter (\(a,b) -> a > 1) (modes xs)
 
--- | Using GSL library with storable, might be overkill
 eCorrel :: EFunc
 eCorrel c e = do
   (EMatrix _ _ arr1) <- getRequired "matrix" "correl" 1 e  :: ThrowsError EMatrix
@@ -1113,6 +1253,19 @@ eCorrel c e = do
 
 ePearson :: EFunc
 ePearson = eCorrel
+
+eCoVar :: EFunc
+eCoVar c e = do 
+  (EMatrix _ _ arr1) <- getRequired "matrix" "covar" 1 e  :: ThrowsError EMatrix
+  (EMatrix _ _ arr2) <- getRequired "matrix" "covar" 2 e  :: ThrowsError EMatrix
+  if (V.length arr1 /= V.length arr2)
+    then Left $ NA $ "Arguments for COVAR had different lengths"
+    else do
+      let v1 = toDouble $ filterNum arr1
+      let v2 = toDouble $ filterNum arr2
+      if ((V.length v1 /= V.length v2 ) || (V.length v1 == 0))
+        then Left $ DIV0 -- Excel does this
+        else doubleToResult $ covar v1 v2
 
 genericRank ::  String -> ([(ENumeric,Int)] -> [(ENumeric,EValue)]) -> EFunc
 genericRank f rankGroup c e = do
@@ -1301,51 +1454,54 @@ eSubstitute c e = do
 
 
 --------------------------------------------------------------------------------------------------------------
--- | Excel simple functions and infix functions
+-- | Excel infix functions
 
-eIf :: EFunc
-eIf c e = do
-  let f = "if"
-  b <- getRequired "bool" f 1 e :: ThrowsError Bool
-  v1 <- getRequired "value" f 2 e :: ThrowsError EValue
-  v2 <- getRequired "value" f 3 e :: ThrowsError EValue
-  if b
-    then valToResult v1
-    else valToResult v2
+numInfix :: String -> (ENumeric -> ENumeric -> ENumeric) -> EFunc
+numInfix name f c e = do 
+  a <- getRequired "numeric" name 1 e :: ThrowsError ENumeric
+  b <- getRequired "numeric" name 2 e :: ThrowsError ENumeric
+  valToResult $ EValueNum $ f a b
 
 eAdd :: EFunc
-eAdd c e = do
-  a <- getRequired "numeric" "+" 1 e :: ThrowsError ENumeric
-  b <- getRequired "numeric" "+" 2 e :: ThrowsError ENumeric
-  valToResult $ EValueNum $ a + b
+eAdd = numInfix "+" (+)
 
 eMinus :: EFunc
-eMinus c e = do
-  a <- getRequired "numeric" "-" 1 e :: ThrowsError ENumeric
-  b <- getRequired "numeric" "-" 2 e :: ThrowsError ENumeric
-  valToResult $ EValueNum $ a - b
+eMinus = numInfix "-" (-)
 
 eMult :: EFunc
-eMult c e = do
-  a <- getRequired "numeric" "*" 1 e :: ThrowsError ENumeric
-  b <- getRequired "numeric" "*" 2 e :: ThrowsError ENumeric
-  valToResult $ EValueNum $ a * b
+eMult = numInfix "*" (*)
 
--- | TODO: catching errors requires IO monad ...
 eDivide :: EFunc
 eDivide c e = do
   a <- getRequired "numeric" "/" 1 e :: ThrowsError ENumeric
   b <- getRequired "numeric" "/" 2 e :: ThrowsError ENumeric
-  valToResult $ EValueNum $ a / b
+  if ((b == EValueD 0) || (b == EValueI 0))
+    then Left DIV0
+    else valToResult $ EValueNum $ a / b
 
-replaceRef :: Context -> EEntity -> ThrowsError EEntity
-replaceRef c (EntityRef r) = refToEntity c r
-replaceRef _ e = Right e
+boolInfix :: String -> (EValue -> EValue -> Bool) -> EFunc
+boolInfix name f c e = do 
+  a <- getRequired "value" name 1 e :: ThrowsError EValue
+  b <- getRequired "value" name 2 e :: ThrowsError EValue
+  valToResult $ EValueB $ f a b
 
 eEquals :: EFunc
-eEquals c e = do
-  testNumArgs 2 "equals" e
-  valToResult $ EValueB $ replaceRef c (e!!0) == replaceRef c (e!!1)
+eEquals = boolInfix "=" (==)
+
+eNotEquals :: EFunc
+eNotEquals = boolInfix "<>" (/=)
+
+eGreater :: EFunc
+eGreater = boolInfix ">" (>)
+
+eLess :: EFunc
+eLess = boolInfix "<" (<)
+
+eGreaterE :: EFunc
+eGreaterE = boolInfix ">=" (>=)
+
+eLessE :: EFunc
+eLessE = boolInfix "<=" (<=)
 
 eSpace :: EFunc
 eSpace c e = do
@@ -1362,30 +1518,6 @@ eAmpersand c e = do
   str1 <- getRequired "string" f 1 e :: ThrowsError String
   str2 <- getRequired "string" f 2 e :: ThrowsError String
   stringResult $ str1 ++ str2
-
---------------------------------------------------------------------------------------------------------------
--- | Function implementations
-
-{-
-  isblank, iserror, islogical,isnumber, iferror,
-  not,  and, or ,
-  address, column, row, indirect, offset,
-index,
-  match, transpose, product,
-rand,
-  abs, exp,   pi, sqrt, sqrtpi,
-  sum, sumif(s), sumsq, sumx2my2, sumx2py2, sumxmy2,
-  avedev, average, averageif(s),
-  binom.dist,
-  correl,
-  count, countif(s),
-  large,  min/max, median, mode.mult, mode.sngl,
-  norm dist/inv,  pearson
-  rank,  slope, stdev (s,p), var (s,p),
-  find, len, rept, right, search,
-  substitute, trim, upper,
-linest (WTF EXCEL)
--}
 
 --------------------------------------------------------------------------------------------------------------
 
