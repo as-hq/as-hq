@@ -236,7 +236,6 @@ export default React.createClass({
                              overlay={overlay}
                              scroll={self.state.scroll}
                              onOverlayClick={self.onOverlayClick}
-                             textBoxChange={this.props.textBoxChange}
                              isVisible={self.isVisible}/>);
         })}
 
@@ -296,7 +295,8 @@ export default React.createClass({
     }
 
     this.repaint();
-    this.props.onSelectionChange({range:loc, width:dC+1, height:dR+1, origin: origin ? origin : null});
+    let selOrigin = origin ? origin : (loc.row2 ? null : {row: loc.row, col: loc.col});
+    this.props.onSelectionChange({range:loc, width:dC+1, height:dR+1, origin: selOrigin});
   },
 
   shiftSelectionArea(dr, dc){
@@ -314,7 +314,7 @@ export default React.createClass({
     hg.setHScrollValue(x);
     ActionCreator.scroll(this.getViewingWindowWithCache());
   },
-
+//
 
   /*************************************************************************************************************************/
   // Rendering
@@ -328,9 +328,12 @@ export default React.createClass({
           col = config.x + 1,
           row = config.y + 1,
           cell = Store.getCellAtLoc(col, row),
-          sel = Store.getActiveSelection().range,
+          sel = Store.getActiveSelection(),
+          rng = sel.range,
           activeCell = Store.getActiveCell(),
           clipboard = Store.getClipboard();
+
+      // debugger;
 
       // initialize custom config attributes for every cell
       // (hypergrid reuses the config object for performance; attributes must be set explicitly null)
@@ -364,9 +367,10 @@ export default React.createClass({
       }
 
       // selection dependency highlighting
-      if (sel && activeCell && activeCell.cellExpression.dependencies) {
+      if (rng && activeCell && activeCell.cellExpression.dependencies) {
+        // console.log(activeCell.cellExpression.dependencies);
         let locs = activeCell.cellExpression.dependencies;
-        // console.log("highlighting dependency: "+JSON.stringify(activeCell));
+        // console.log("highlighting dependency: ", locs);
         if (Util.isContainedInLocs(col, row, locs)){
           config.paintBorders = Util.getPaintedBorders(col, row, locs);
           // console.log("drawing borders: " + JSON.stringify(config.paintBorders));
@@ -378,23 +382,31 @@ export default React.createClass({
       }
 
       // Cell/Range highlighting
-      if (sel) {
-        if (Util.isContainedInLocs(col, row, sel)) {
-          config.paintBorders = Util.getPaintedBorders(col, row, sel);
+      if (rng) {
+        if (Util.isContainedInLocs(col, row, rng)) {
+          config.paintBorders = Util.getPaintedBorders(col, row, rng);
           config.borderConfig = {lineType: 0, // solid border type
-                                width: 3,
-                                color: "#000000"}; // black border color
+                                width: 2,
+                                color: "#003EFF"}; // blue border color
         }
       }
 
 
 
       // clipboard highlighting
-      if (clipboard.range && Util.isContainedInLocs(col, row, clipboard.range)) {
-        config.paintBorders = Util.getPaintedBorders(col, row, clipboard.range);
+      if (clipboard.area && Util.isContainedInLoc(col, row, clipboard.area.range)) {
+        config.paintBorders = Util.getPaintedBorders(col, row, clipboard.area.range);
         config.borderConfig = {lineType: 1, // dashed border type
                                  width: 3,
                                  color: clipboard.isCut ? "#ff0000" : "#4169e1"}; // red cut, blue copy
+      }
+
+      // origin border
+      if (sel.origin.col === col && sel.origin.row === row) {
+        config.paintBorders = Util.getPaintedBordersForSingleCell();
+        config.borderConfig = {lineType: 0, // solid border type
+                                 width: 3,
+                                 color: "#003EFF"}; // black border color
       }
 
       renderer.config = config;

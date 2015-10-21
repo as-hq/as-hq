@@ -161,46 +161,39 @@ const ASEvaluationStore = assign({}, BaseStore, {
 
   // Requires that a range having row2 implies a range has col2, and vice versa
   setActiveSelection(area, xp) {
-    let rng = area.range;
+    let origin = area.origin;
     _data.activeSelection = area;
-    _data.activeCell = this.getCellAtLoc(rng.col, rng.row) || Converter.defaultCell();
+    console.log("\n\norigin cell\n", this.getCellAtLoc(origin.col, origin.row));
+    _data.activeCell = this.getCellAtLoc(origin.col, origin.row) || Converter.defaultCell();
     var activeCellDependencies = Util.parseDependencies(xp);
-    if (rng.hasOwnProperty('row2') && rng.hasOwnProperty('col2')) {
-      for (var r = rng.row; r <= rng.row2; ++r){
-        for (var c = rng.col; c <= rng.col2; ++c) {
-          activeCellDependencies.push(this.getParentList(c, r));
-        }
-      }
-    }
-    else {
-      c = rng.col;
-      r = rng.row;
-      activeCellDependencies.push(this.getParentList(c, r));
+    let c = area.origin.col,
+        r = area.origin.row,
+        dep = this.getParentList(c, r);
+    if (dep) {
+      activeCellDependencies.push(dep);
     }
     this.setActiveCellDependencies(activeCellDependencies);
+    console.log("\nDEPS\n", activeCellDependencies);
   },
 
   getParentList(c,r){
-    if (this.getCellAtLoc(c, r) == null) {
-      return {row: r, column: c};
-    }
-    var ctags = this.getCellAtLoc(c,r).cellTags;
-    if (ctags == undefined) {
-      return {row: r, column: c};
-    }
-    for (var i = 0; i < ctags.length; ++i) {
-      if (ctags[i].hasOwnProperty('listKey')){
-        var listHead = Util.listKeyToListHead(ctags[i].listKey);
-        var listDimensions = Util.listKeyToListDimensions(ctags[i].listKey);
-        return {
-          row: listHead.snd,
-          col: listHead.fst,
-          row2: listHead.snd + listDimensions.fst - 1,
-          col2: listHead.fst + listDimensions.snd - 1
+    let sheetid = _data.currentSheet.sheetId,
+        thisExists = this.locationExists(sheetid, c, r),
+        ctags = thisExists ? this.getCellAtLoc(c,r).cellTags : null;
+    if (thisExists && ctags) {
+      for (var i = 0; i < ctags.length; ++i) {
+        if (ctags[i].hasOwnProperty('listKey')){
+          let listHead = Util.listKeyToListHead(ctags[i].listKey),
+              listDimensions = Util.listKeyToListDimensions(ctags[i].listKey);
+          return {
+            row: listHead.snd,
+            col: listHead.fst,
+            row2: listHead.snd + listDimensions.fst - 1,
+            col2: listHead.fst + listDimensions.snd - 1
+          }
         }
       }
-    }
-    return {row: r, column: c}
+    } else return null;
   },
 
 
@@ -216,7 +209,7 @@ const ASEvaluationStore = assign({}, BaseStore, {
   },
   setClipboard(rng, isCut) {
     console.log("setting clipboard: "+ JSON.stringify(rng));
-    _data.clipboard.range = rng;
+    _data.clipboard.area = rng;
     _data.clipboard.isCut = isCut;
   },
   getClipboard() {
@@ -263,14 +256,14 @@ const ASEvaluationStore = assign({}, BaseStore, {
    },
 
   clientCellToValue(clientCell) {
-    if (!clientCell) { 
-      return ""; 
+    if (!clientCell) {
+      return "";
     }
-    
+
     let v = clientCell.cellValue.contents;
 
     if (v) { // non ValueError value
-      if (v.constructor === Array){ // #needsrefactor (probably elsewhere in code): why are we treating x and [x] as the same? 
+      if (v.constructor === Array){ // #needsrefactor (probably elsewhere in code): why are we treating x and [x] as the same?
         if (v.length !== 0){
           console.log("Returning value: " +v[0]);
           return v[0];
@@ -303,7 +296,7 @@ const ASEvaluationStore = assign({}, BaseStore, {
      return arr;
    },
 
-   // Converts a range to a row major list of lists of values, 
+   // Converts a range to a row major list of lists of values,
    selRegionToValues(rng){
      console.log("Change registered");
      console.log("SEL REGION RNG " + JSON.stringify(rng));
@@ -337,19 +330,19 @@ const ASEvaluationStore = assign({}, BaseStore, {
      return rowMajorValues;
    },
 
-   // TODO: move somewhere else maybe, in some global util method? 
-  _dispBoolInLang(b, lang) { 
-    if (b) { 
-      if (["R", "OCaml"].indexOf(lang) != -1) { 
-        return "true"; 
-      } else { 
+   // TODO: move somewhere else maybe, in some global util method?
+  _dispBoolInLang(b, lang) {
+    if (b) {
+      if (["R", "OCaml"].indexOf(lang) != -1) {
+        return "true";
+      } else {
         return "True";
       }
-    } else { 
-      if (["R", "OCaml"].indexOf(lang) != -1) { 
-        return "false"; 
-      } else { 
-        return "False"; 
+    } else {
+      if (["R", "OCaml"].indexOf(lang) != -1) {
+        return "false";
+      } else {
+        return "False";
       }
     }
     throw "Should never make it to the end of _dispBoolInLang";
@@ -357,18 +350,18 @@ const ASEvaluationStore = assign({}, BaseStore, {
 
   _expressionFromValue(v, lang) {
     if (lang.Server == "Excel") { // is language.Editor the correct thing?
-      return v; 
+      return v;
     } else if (v != null && typeof(v) != "undefined") {
-      if (!isNaN(Number(v))) { 
-        return v; 
-      } else if (v.toUpperCase() == "TRUE") { 
-        return this._dispBoolInLang(true, lang.Server); 
-      } else if (v.toUpperCase() == "FALSE") { 
+      if (!isNaN(Number(v))) {
+        return v;
+      } else if (v.toUpperCase() == "TRUE") {
+        return this._dispBoolInLang(true, lang.Server);
+      } else if (v.toUpperCase() == "FALSE") {
         return this._dispBoolInLang(false, lang.Server);
       } else {
         return JSON.stringify(v);
       }
-    } else { 
+    } else {
       return ""; // unclear if we ever get here -- Alex 10/19
     }
   },
@@ -376,7 +369,7 @@ const ASEvaluationStore = assign({}, BaseStore, {
    // Methods for paste
   _makeServerCell(loc, language, i, j) {
     let sheet = _data.currentSheet.sheetId;
-    let self = this; 
+    let self = this;
      return function(v) {
         let row = loc.range.row, col = loc.range.col;
         return {
