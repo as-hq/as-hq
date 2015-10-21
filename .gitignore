@@ -16,4 +16,6 @@ server/eval_files/**/*
 !server/eval_files/**/template.*
 !server/eval_files/**/Template.*
 
+server/static/images/*
+
 graph_database/server
