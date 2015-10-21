@@ -799,6 +799,15 @@ describe('backend', () => {
           ]);
         });
 
+        it('should refuse to copy out of bounds', (done) => {
+          _do([
+            python('A2', 'A1+1'),
+            copy('A2', 'A1'),
+            shouldBeError('A1'),
+            exec(done)
+          ]);
+        });
+
         it('should successfully copy and paste cells that depend on each other', (done) => {
           _do([
             python('A1', '1'),
