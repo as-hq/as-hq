@@ -103,6 +103,7 @@ export default {
     Clear: "Clear",
     Copy: "Copy",
     Cut: "Cut",
+    Repeat: "Repeat",
     UpdateWindow: "UpdateWindow",
     Open: "Open",
     Close: "Close",

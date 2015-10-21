@@ -310,6 +310,12 @@ export default {
     this.send(msg);
   },
 
+  sendRepeatRequest(loc) {
+    let msg = Converter.clientLocsToRepeatMessage(loc);
+    // console.log('Sending get message to server: ' + JSON.stringify(msg));
+    this.send(msg);
+  },
+
   sendOpenMessage(sheet) {
     let msg = Converter.toServerMessageFormat(Constants.ServerActions.Open, "PayloadS", sheet);
     // console.log("send open message: " + JSON.stringify(msg));
