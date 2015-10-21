@@ -37,6 +37,7 @@ instance Show2 ASCell where
 
 instance (Show2 ASIndex) where 
   show2 (Index sid a) = "I/" ++ (unpack sid) ++ ('/':(show a))
+  show2 (OutOfBounds) = "I//OUTOFBOUNDS"
 
 instance (Show2 ASRange) where 
   show2 (Range sid a) = "R/" ++ (unpack sid) ++ ('/':(show a))
@@ -69,7 +70,9 @@ instance (Read2 ASReference) where
     where
       [tag, sid, locstr] = splitBy '/' str
       loc = case tag of 
-        "I" -> IndexRef $ Index (pack sid) (read locstr :: (Int, Int))
+        "I" -> case locstr of 
+          "OUTOFBOUNDS" -> IndexRef OutOfBounds
+          _ -> IndexRef $ Index (pack sid) (read locstr :: (Int, Int))
         "R" -> RangeRef $ Range (pack sid) (read locstr :: ((Int, Int), (Int, Int)))
 
 instance (Read2 ASIndex) where 

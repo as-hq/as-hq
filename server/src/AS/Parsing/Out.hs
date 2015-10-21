@@ -154,6 +154,7 @@ asRefToAsIndex loc = case loc of
 exRefToASRef :: ASSheetId -> ExRef -> ASReference
 exRefToASRef sheetid exRef = case exRef of
   ExLocOrRangeRef (ExLoc1 (ExIndex dol1 c dol2 r)) -> IndexRef $ Index sheetid (colStrToInt c, read r :: Int)
+  ExLocOrRangeRef (ExLoc1 ExOutOfBounds) -> IndexRef OutOfBounds
   ExLocOrRangeRef (ExRange1 (ExRange f s)) -> RangeRef $ Range sheetid ((index . asRefToAsIndex) (exRefToASRef sheetid $ ExLocOrRangeRef $ ExLoc1 $ f), (index . asRefToAsIndex) (exRefToASRef sheetid $ ExLocOrRangeRef $ ExLoc1 $ s))
   ExSheetLocOrRangeRef sh rest -> case (exRefToASRef sheetid (ExLocOrRangeRef rest)) of
     IndexRef (Index _ a) -> IndexRef $ Index (T.pack sh) a
@@ -161,6 +162,7 @@ exRefToASRef sheetid exRef = case exRef of
 
 -- does not consider sheetid
 asRefToExRef :: ASReference -> ExRef
+asRefToExRef (IndexRef OutOfBounds) = ExLocOrRangeRef $ ExLoc1 ExOutOfBounds
 asRefToExRef (IndexRef (Index _ (a,b))) = ExLocOrRangeRef $ ExLoc1 $ ExIndex "" (intToColStr a) "" (intToColStr b)
 asRefToExRef (RangeRef (Range s (i1, i2))) = ExLocOrRangeRef $ ExRange1 $ ExRange i1' i2'
   where
@@ -194,6 +196,11 @@ indexMatch = do
   row <- many1 digit
   return $ ExLocOrRangeRef $ ExLoc1 $ ExIndex a col b row
 
+outOfBoundsMatch :: Parser ExRef
+outOfBoundsMatch = do 
+  string "#REF!"
+  return $ ExLocOrRangeRef $ ExLoc1 $ ExOutOfBounds
+
 -- | matches index:index
 rangeMatch :: Parser ExRef
 rangeMatch = do
@@ -211,7 +218,7 @@ sheetRefMatch = do
   return $ ExSheetLocOrRangeRef name lor
 
 excelMatch :: Parser ExRef
-excelMatch = (try sheetRefMatch) <|> (try rangeMatch) <|> (try indexMatch)
+excelMatch = (try sheetRefMatch) <|> (try rangeMatch) <|> (try indexMatch) <|> (try outOfBoundsMatch)
 
 ------------------------------------------------------------------------------------------------------------------------------------------------
 -- Helper Functions
@@ -221,14 +228,15 @@ excelMatch = (try sheetRefMatch) <|> (try rangeMatch) <|> (try indexMatch)
 -- doesn't do any work with Parsec/actual parsing
 shiftExRef :: (Int,Int) -> ExRef -> ExRef
 shiftExRef offset exRef = case exRef of
-  ExLocOrRangeRef (ExLoc1 (ExIndex dol1 c dol2 r)) -> ExLocOrRangeRef $ ExLoc1 $ ExIndex dol1 newCol dol2 newRow
+  ExLocOrRangeRef (ExLoc1 (ExIndex dol1 c dol2 r)) -> ExLocOrRangeRef $ ExLoc1 $ ind
     where
-      newCol = case dol1 of
-        "$" -> c --fixed
-        ""  -> intToColStr $ (colStrToInt c) + (fst offset) --relative
-      newRow = case dol2 of
-        "$" -> r --fixed
-        ""  -> show $ (read r :: Int) + (snd offset) --relative
+      cVal = colStrToInt c
+      rVal = (read r :: Int)
+      newColVal = cVal + (if (dol1 == "$") then 0 else (fst offset))
+      newRowVal = rVal + (if (dol2 == "$") then 0 else (snd offset))
+      ind = if (newColVal >= 1 && newRowVal >= 1) 
+        then (ExIndex dol1 (intToColStr newColVal) dol2 (show newRowVal)) 
+        else (ExOutOfBounds)
   ExLocOrRangeRef (ExRange1 (ExRange a b)) -> ExLocOrRangeRef $ ExRange1 $ ExRange a' b'
       where
         ExLocOrRangeRef (ExLoc1 a') = shiftExRef offset (ExLocOrRangeRef $ ExLoc1 $ a)

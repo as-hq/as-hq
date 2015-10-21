@@ -66,10 +66,12 @@ possiblyShortCircuit sheetid valuesMap xp =
       refs   = map IndexRef depIndices
       lang = language xp
       values = map (valuesMap M.!) $ refs in
-  MB.listToMaybe $ MB.catMaybes $ map (\(r,v) -> case v of
-    NoValue                 -> handleNoValueInLang lang r
-    ve@(ValueError _ _ _ _) -> handleErrorInLang lang ve
-    otherwise               -> Nothing) (zip depIndices values)
+  MB.listToMaybe $ MB.catMaybes $ map (\(r,v) -> case r of
+    OutOfBounds -> Just $ ValueError ("Referencing cell out of bounds.") "RefError" "" (-1)
+    _ -> case v of 
+      NoValue                 -> handleNoValueInLang lang r
+      ve@(ValueError _ _ _ _) -> handleErrorInLang lang ve
+      otherwise               -> Nothing) (zip depIndices values)
 
 -- | Nothing if it's OK to pass in NoValue, appropriate ValueError if not.
 handleNoValueInLang :: ASLanguage -> ASIndex -> Maybe ASValue
