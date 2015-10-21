@@ -20,8 +20,8 @@ export default {
   cellWidthPx: 100, // ignored; actually set in Render.js with this.config.minWidth = 100;
   cellHeightPx: 20,
 
-  gridXOffset: 35, // margin between left edge of div and cells
-  gridYOffset: 20, // '' top edge ''
+  gridXOffset: 25, // margin between left edge of div and cells
+  gridYOffset: 22, // '' top edge ''
 
   editorHeight: 60,
   codeBarHeight:60,

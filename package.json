@@ -69,6 +69,7 @@
     "flux": "^2.0.3",
     "gulp-bower-files": "^0.2.7",
     "gulp-develop-server": "^0.4.3",
+    "gulp-eslint": "^1.0.0",
     "immutable": "^3.7.3",
     "jasmine": "^2.3.2",
     "jasmine-core": "^2.3.4",

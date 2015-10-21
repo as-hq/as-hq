@@ -4,14 +4,13 @@ import Util from '../AS/Util';
 
 
 export default React.createClass({
-  
+
   isVisible() {
     return this.props.isVisible(this.props.overlay.col, this.props.overlay.row);
   },
 
 
   render() {
-    console.log("RENDERING OVERLAY");
     let baseStyle = {display:'block',
                      position:'absolute',
                      width: this.props.overlay.width,
@@ -26,6 +25,7 @@ export default React.createClass({
     switch(this.props.overlay.tag) {
       case "ValueImage":
         overlay = (<image src={this.props.overlay.src} width="100%" height="100%" alt="Error rendering image." />);
+        // console.log("\n\n\n IMAGE " + baseStyle.top + " " + baseStyle.left);
         break;
     }
     return (

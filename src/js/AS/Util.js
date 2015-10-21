@@ -56,8 +56,8 @@ export default {
         if (isRepl)
           return cv.error;
         else return "ERROR"; // TODO: show more descriptive errors. (#REF? #NAME?)
-      case "ValueExcelError": 
-        return "ERROR"; 
+      case "ValueExcelError":
+        return "ERROR";
       case "ValueImage":
         return "IMAGE";
       case "DisplayValue":
@@ -148,12 +148,13 @@ export default {
 
   getOverlay(cv, col, row) {
     let self = this;
+    console.log("\n\nGOT IMAGE\n\n", "http://localhost:8000/images/" + cv.imagePath);
     switch(cv.tag) {
       case "ValueImage":
         return {
           tag: cv.tag,
           id: self.getUniqueId(),
-          src: "http://localhost:8000/" + cv.imagePath,
+          src: "http://localhost:8000/images/" + cv.imagePath,
           width: "300",
           height: "300",
           col: col,
@@ -166,12 +167,11 @@ export default {
 
 
   getX(col,scrollX){
-    return col * Constants.cellWidthPx - scrollX  + Constants.treeViewWidth + "px";
+    return (col-scrollX) * Constants.cellWidthPx + Constants.gridXOffset + "px";
   },
 
   getY(row,scrollY){
-    let h = Constants.topbarTotalHeight + Constants.codeBarHeight + Constants.editorHeight;
-    return row * Constants.cellHeightPx - scrollY  + h + "px";
+    return (row-scrollY)* Constants.cellHeightPx + Constants.gridYOffset + "px";
   },
 
 /*************************************************************************************************************************/

@@ -280,6 +280,10 @@ describe('backend', () => {
     return valueShouldSatisfy(loc, ({ tag }) => (tag === 'ValueError' || tag == 'ValueExcelError'));
   }
 
+  function shouldBeImage(loc) {
+    return valueShouldSatisfy(loc, ({ tag }) => (tag === 'ValueImage'));
+  }
+
   function shouldBeNothing(loc) {
     return messageShouldSatisfy(loc, (cs) => {
       console.log(`${loc} should be nothing`);
@@ -479,6 +483,16 @@ describe('backend', () => {
             exec(done)
           ]);
         });
+
+        it('plots shit', (done) => {
+          _do([
+            python('A1', 'import matplotlib.pyplot as plt; plt.plot([1,2,3])'),
+            shouldBeImage('A1'),
+            python('A1', 'import matplotlib.pyplot as plt; plt.plot([1,2,3]); plt.show()'),
+            shouldBeImage('A1'),
+            exec(done)
+          ]);
+        });
       });
 
       describe('r', () => {
@@ -532,6 +546,14 @@ describe('backend', () => {
             shouldBe('B1', valueS('double')),
             r('A1', 'c("a","b","c","d")'),
             shouldBe('B1', valueS('character')),
+            exec(done)
+          ]);
+        });
+
+        it('plots shit', (done) => {
+          _do([
+            r('A1','qplot(x=\'x\',y=\'y\',data=data.frame(c(1,2)))'),
+            shouldBeImage('A1'),
             exec(done)
           ]);
         });
@@ -668,8 +690,8 @@ describe('backend', () => {
             python('A2', '3'),
             python('B2', '4'),
             cut('A1:B2', 'B1:C2'),
-            shouldBeNothing('A1'), 
-            shouldBeNothing('A2'), 
+            shouldBeNothing('A1'),
+            shouldBeNothing('A2'),
             shouldBe('B1', valueI(2)),
             shouldBe('C1', valueI(3)),
             shouldBe('B2', valueI(3)),
@@ -684,8 +706,8 @@ describe('backend', () => {
             python('B1', 'A1 + 1'),
             python('A2', '3'),
             cut('A1:B2', 'B1:C2'),
-            shouldBeNothing('A1'), 
-            shouldBeNothing('A2'), 
+            shouldBeNothing('A1'),
+            shouldBeNothing('A2'),
             shouldBe('B1', valueI(2)),
             shouldBe('C1', valueI(3)),
             shouldBe('B2', valueI(3)),
@@ -990,7 +1012,7 @@ describe('backend', () => {
               ['B1', 'B2'],
               [2, 3].map(valueI)
             ),
-            shouldBeNothing('A1'), 
+            shouldBeNothing('A1'),
             shouldBeNothing('A2'),
             exec(done)
           ]);

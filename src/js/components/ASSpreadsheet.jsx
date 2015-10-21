@@ -236,7 +236,6 @@ export default React.createClass({
                              overlay={overlay}
                              scroll={self.state.scroll}
                              onOverlayClick={self.onOverlayClick}
-                             textBoxChange={this.props.textBoxChange}
                              isVisible={self.isVisible}/>);
         })}
 
