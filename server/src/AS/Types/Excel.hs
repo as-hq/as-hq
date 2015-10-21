@@ -54,7 +54,19 @@ toExcelList lst  = "[" ++ (intercalate "," lst) ++ "]"
 
 data ERef = ERef ASReference deriving (Show, Read, Eq, Ord)
 
-data ENumeric = EValueI Int | EValueD Double deriving (Show,Read,Eq)
+data ENumeric = EValueI Int | EValueD Double deriving (Show,Read)
+
+instance Eq ENumeric where
+  (==) (EValueD d) (EValueD d') = d==d'
+  (==) (EValueI i) (EValueD d)  = (fromIntegral i)==d
+  (==) (EValueD d) (EValueI i)  = (fromIntegral i)==d
+  (==) (EValueI i) (EValueI i') = i==i'
+
+instance Ord ENumeric where
+  (<=) (EValueI i) (EValueI i') = i <= i'
+  (<=) (EValueI i) (EValueD d) = (fromIntegral i) <= d
+  (<=) (EValueD d) (EValueI i') = d <= (fromIntegral i')
+  (<=) (EValueD d) (EValueD d') = d <= d'
 
 instance Num ENumeric where
   negate (EValueI i) = EValueI (-i)
@@ -84,14 +96,19 @@ data EValue =
   EValueB Bool |
   EValueS String |
   EValueE String
-  deriving (Show, Read,Eq,Ord)
+  deriving (Show, Read,Eq)
 
-instance Ord ENumeric where
-  (<=) (EValueI i) (EValueI i') = i <= i'
-  (<=) (EValueI i) (EValueD d) = (fromIntegral i) <= d
-  (<=) (EValueD d) (EValueI i') = d <= (fromIntegral i')
-  (<=) (EValueD d) (EValueD d') = d <= d'
-
+instance Ord EValue where
+  -- TODO: is this right?
+  (<=) (EBlank) v = (<=) (EValueNum (EValueI 0)) v
+  (<=) v (EBlank) = (<=) v (EValueNum (EValueI 0))
+  (<=) (EValueB True) v = (<=) (EValueNum (EValueI 1)) v
+  (<=) (EValueB False) v = (<=) (EValueNum (EValueI 0)) v
+  (<=) v (EValueB True) = (<=) v (EValueNum (EValueI 1))
+  (<=) v (EValueB False) = (<=) v (EValueNum (EValueI 0))
+  (<=) (EValueNum n1) (EValueNum n2) = (<=) n1 n2
+  (<=) (EValueS s1) (EValueS s2) = (<=) s1 s2
+  -- don't care about cross-comparisons right now
 
 type Col = Int
 type Row = Int
