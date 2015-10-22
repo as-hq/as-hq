@@ -183,6 +183,7 @@ data ASPayload =
   | PayloadLL [ASIndex]
   | PayloadR ASRange
   | PayloadS ASSheet
+  | PayloadSelection {selectionRange :: ASRange, selectionOrigin :: ASIndex}
   | PayloadSS [ASSheet]
   | PayloadWB ASWorkbook
   | PayloadWBS [ASWorkbook]

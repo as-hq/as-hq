@@ -5,6 +5,7 @@ import Prelude
 import qualified Data.List as L
 import qualified Data.Text as T
 import Data.Maybe
+import qualified Data.ByteString.Char8 as B
 import Control.Concurrent
 import Control.Applicative
 import Control.Monad
@@ -43,7 +44,8 @@ instance Client ASUserClient where
     | otherwise = s
   handleClientMessage user state message = do 
     printWithTime ("\n\nMessage: " ++ (show $ message))
-    recordAction message
+    redisConn <- dbConn <$> readMVar state
+    recordMessage redisConn message
     case (clientAction message) of
       Acknowledge  -> handleAcknowledge user
       New          -> handleNew state payload
@@ -339,25 +341,32 @@ handleRemoveTags user state (PayloadTags ts loc) = do
   sendToOriginal user $ ServerMessage RemoveTags Success (PayloadN ())
 
 handleRepeat :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
-handleRepeat user state payload = do
-  let locs = case payload of
-               PayloadL loc -> [loc]
-               PayloadLL locs' -> locs'
-               PayloadR rng -> rangeToIndices rng
-               _ -> []
-  ClientMessage lastAction lastPayload <- getLastAction
+handleRepeat user state (PayloadSelection range origin) = do
+  conn <- dbConn <$> readMVar state
+  ClientMessage lastAction lastPayload <- getLastMessage conn
   case lastAction of 
-    Evaluate -> case lastPayload of 
-      PayloadC (Cell l e v ts) -> do 
-        let cells' = map (\loc -> Cell loc e v ts) locs
-        handleEval user state (PayloadCL cells')
+    Evaluate -> do 
+      let PayloadC (Cell l e v ts) = lastPayload
+          cells = map (\l' -> Cell l' e v ts) (rangeToIndices range)
+      handleEval user state (PayloadCL cells)
+    Copy -> do 
+      let PayloadPaste from to = lastPayload
+      handleCopy user state (PayloadPaste from range)
+    Delete -> handleDelete user state (PayloadR range)
+    Undo -> handleRedo user state
     otherwise -> sendToOriginal user $ ServerMessage Repeat (Failure "Repeat not supported for this action") (PayloadN ())
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Repeat handlers
--- ::ALEX:: rename these
-recordAction :: ASClientMessage -> IO () 
-recordAction (ClientMessage action payload) = return ()
 
-getLastAction :: IO ASClientMessage
-getLastAction = return $ ClientMessage Evaluate (PayloadC $ Cell (Index "" (1,1)) (Expression "123" Python) NoValue [])
+recordMessage :: R.Connection -> ASClientMessage -> IO () 
+recordMessage conn msg = case (clientAction msg) of 
+  Repeat -> return ()
+  _ -> R.runRedis conn (R.set (B.pack "LASTMESSAGE") (B.pack $ show msg)) >> return ()
+
+getLastMessage :: R.Connection -> IO ASClientMessage
+getLastMessage conn = R.runRedis conn $ do 
+  msg <- R.get (B.pack ("LASTMESSAGE"))
+  return $ case msg of 
+    Right (Just msg') -> read (B.unpack msg')
+    _ -> ClientMessage NoAction (PayloadN ())
