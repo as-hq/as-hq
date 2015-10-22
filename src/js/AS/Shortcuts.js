@@ -164,8 +164,8 @@ export default {
     });
     ShortcutUtils.addShortcut("grid", "grid_repeat_last_action", "Ctrl+Y", (wildcard) => {
       // ::ALEX:: todo 
-      let loc = Store.getActiveSelection().origin;
-      API.sendRepeatRequest(loc);
+      let sel = Store.getActiveSelection();
+      API.sendRepeatRequest(sel);
     });
     ShortcutUtils.addShortcut("grid", "move_vwindow_above", "PageUp", (wildcard) => {
       let dY = self.refs.spreadsheet.getVisibleRows();

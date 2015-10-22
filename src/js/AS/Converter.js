@@ -321,10 +321,6 @@ export default {
     return this.toServerMessageFormat(Constants.ServerActions.Get, tag, sLocs);
   },
 
-  clientLocsToRepeatMessage(loc) {
-    return this.toServerMessageFormat(Constants.ServerActions.Repeat, "PayloadL", this.clientToASLocation(loc));
-  },
-
 /**************************************************************************************************************************/
   /* Workbooks and sheets */
   newWorkbookSheet() {

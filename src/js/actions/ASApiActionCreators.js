@@ -310,9 +310,12 @@ export default {
     this.send(msg);
   },
 
-  sendRepeatRequest(loc) {
-    let msg = Converter.clientLocsToRepeatMessage(loc);
-    // console.log('Sending get message to server: ' + JSON.stringify(msg));
+  sendRepeatRequest(sel) {
+    let msg = Converter.toServerMessageWithPayload(Constants.ServerActions.Repeat, {
+      tag: "PayloadSelection",
+      selectionRange: Converter.clientToASRange(sel.range),
+      selectionOrigin: Converter.clientToASLocation(sel.origin)
+    });
     this.send(msg);
   },
 
