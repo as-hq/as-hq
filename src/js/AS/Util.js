@@ -152,13 +152,13 @@ export default {
 
   getOverlay(cv, col, row) {
     let self = this;
-    console.log("\n\nGOT IMAGE\n\n", "http://localhost:8000/images/" + cv.imagePath);
+    console.log("\n\nGOT IMAGE\n\n", "http://18.102.225.27:8000/images/" + cv.imagePath);
     switch(cv.tag) {
       case "ValueImage":
         return {
           tag: cv.tag,
           id: self.getUniqueId(),
-          src: "http://localhost:8000/images/" + cv.imagePath,
+          src: "http://18.102.225.27:8000/images/" + cv.imagePath,
           width: "300",
           height: "300",
           col: col,

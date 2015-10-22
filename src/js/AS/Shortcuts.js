@@ -90,6 +90,13 @@ export default {
       self.setState({focus: "grid",userIsTyping:false});
       self.refs.spreadsheet.repaint(); // render immediately
     });
+    ShortcutUtils.addShortcut("common", "grid_tab", "Tab", (wildcard) => {
+      let editorState = {
+        exp: self._getRawEditor().getValue(),
+        lang: self.state.language
+      };
+      self.handleEvalRequest(editorState, 0, 1);
+    });
 
     // repl shortcuts -------------------------------------------------------------------------------
     ShortcutUtils.addShortcut("repl", "repl_submit", "Ctrl+Enter", (wildcard) => {

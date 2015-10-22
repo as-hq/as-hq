@@ -47,7 +47,7 @@ var shiftUps = {
 
 var modifiers = [16, 17, 18, 19];
 
-var specials = [27, 46, 36, 35, 33, 34]; //esc, delete, home, end, pgup, pgdown
+var specials = [27, 46, 36, 35, 33, 34, 9]; //esc, delete, home, end, pgup, pgdown, tab
 
 var keyMap = {
   "Enter": 13,
@@ -61,6 +61,7 @@ var keyMap = {
   "PageDown": 34,
   "Del": 46,
   "Space": 32,
+  "Tab": 9,
   "[": 219,
   "]": 221,
   "'": 222,
