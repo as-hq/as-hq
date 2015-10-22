@@ -169,6 +169,13 @@ describe('backend', () => {
     });
   }
 
+  function repeat(rng, origin) {
+    return apiExec(() => {
+      let sel = {origin: locFromExcel(origin), range: locFromExcel(rng)}
+      API.sendRepeatRequest(sel); 
+    });
+  }
+
   function cut(rng1, rng2) {
     return apiExec(() => {
       API.sendCutRequest([rng1, rng2].map(locFromExcel));
@@ -184,6 +191,12 @@ describe('backend', () => {
   function redo() {
     return apiExec(() => {
       API.sendRedoRequest();
+    });
+  }
+
+  function delete_(rng) {
+    return apiExec(() => {
+      API.sendRepeatRequest(locFromExcel(rng)); 
     });
   }
 
@@ -981,6 +994,49 @@ describe('backend', () => {
             shouldBe('C1', valueI(3)),
             shouldBe('B2', valueI(3)),
             shouldBeNothing('C2'),
+            exec(done)
+          ]);
+        });
+      });
+
+      describe('repeat', () => {
+        it('should repeat eval on Ctrl+Y', (done) => {
+          _do([
+            python('A1', '1'),
+            repeat('A2:A10', 'A2'),
+            shouldBe('A5', valueI(1)),
+            exec(done)
+          ]);
+        });
+
+        it('should repeat copy on Ctrl+Y', (done) => {
+          _do([
+            python('A2', 'A1+1'),
+            python('B1', '1'),
+            copy('A2', 'B2'),
+            repeat('B3:B10', 'B3'),
+            shouldBe('B5', valueI(5)),
+            exec(done)
+          ]);
+        });
+
+        it('should repeat delete on Ctrl+Y', (done) => {
+          _do([
+            python('A1', 'range(10)'),
+            python('B1', '1'),
+            delete_('B1'), 
+            repeat('A1:B10', 'B1'),
+            shouldBeNothing('A1'), 
+            exec(done)
+          ]);
+        });
+
+        it('should redo on Ctrl+Y after undo', (done) => {
+          _do([
+            python('A1', 'range(10)'),
+            undo(), 
+            repeat('A69:A69', 'A69'),
+            shouldBe('A5', valueI(4)), 
             exec(done)
           ]);
         });
