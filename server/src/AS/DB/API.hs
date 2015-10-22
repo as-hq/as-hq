@@ -74,6 +74,9 @@ clear conn = runRedis conn $ flushall >> return ()
 getCell :: ASIndex -> IO (Maybe ASCell)
 getCell loc = return . head =<< getCells [loc]
 
+getPossiblyBlankCell :: ASIndex -> IO (Maybe ASCell)
+getPossiblyBlankCell loc = return . head =<< getPossiblyBlankCells [loc]
+
 getCells :: [ASIndex] -> IO [Maybe ASCell]
 getCells [] = return []
 getCells locs = DU.getCellsByMessage msg num

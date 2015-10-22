@@ -160,7 +160,7 @@ data ASAction =
   | Undo | Redo
   | Clear
   | UpdateWindow
-  | AddTags | RemoveTags
+  | SetTags | ToggleTags
   | Repeat
   deriving (Show, Read, Eq, Generic)
 

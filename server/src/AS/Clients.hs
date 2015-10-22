@@ -330,6 +330,24 @@ processRemoveTag loc state t = do
     StreamTag s -> DM.removeDaemon loc state
     otherwise -> return () -- TODO: implement the rest
 
+processToggleTag:: ASIndex -> MVar ServerState -> ASCellTag -> IO ()
+processRemoveTag loc state t = do
+  curState <- readMVar state
+  cell <- DB.getCell loc
+  case cell of
+    Nothing -> return ()
+    Just c@(Cell l e v ts) -> do
+      let c' = Cell l e v (L.delete t ts)
+      DB.setCell c'
+  case t of
+    StreamTag s -> DM.removeDaemon loc state
+    otherwise -> return () -- TODO: implement the rest
+
+handleToggleTags :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
+handleToggleTags user state (PayloadTags ts loc) = do
+  mapM_ (processToggleTag user state loc) ts
+  sendToOriginal user $ ServerMessage ToggleTags Success (PayloadN ())
+
 handleAddTags :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
 handleAddTags user state (PayloadTags ts loc) = do
   mapM_ (processAddTag user state loc) ts
