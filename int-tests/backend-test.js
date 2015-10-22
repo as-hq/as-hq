@@ -484,7 +484,7 @@ describe('backend', () => {
           ]);
         });
 
-        it('plots shit', (done) => {
+        xit('plots shit', (done) => {
           _do([
             python('A1', 'import matplotlib.pyplot as plt; plt.plot([1,2,3])'),
             shouldBeImage('A1'),
@@ -550,7 +550,7 @@ describe('backend', () => {
           ]);
         });
 
-        it('plots shit', (done) => {
+        xit('plots shit', (done) => {
           _do([
             r('A1','qplot(x=\'x\',y=\'y\',data=data.frame(c(1,2)))'),
             shouldBeImage('A1'),

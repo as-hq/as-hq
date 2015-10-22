@@ -132,15 +132,15 @@ export default React.createClass({
 
 
   /* Update the focus between the editor and the grid */
-  toggleFocus() {
+  toggleFocus() { //currently not used anywhere
     // console.log("In toggle focus function");
     switch(this.state.focus) {
       case 'grid':
-        this._getRawEditor().focus();
+        this._getRawEditor().focus(); 
         this.setState({focus: 'editor'});
         break;
       default:
-        this._getSpreadsheet().focus();
+        this._getSpreadsheet().focus(); // ALEX I think you need takeFocus() ?? 
         this.setState({focus: 'grid'});
         break;
     }

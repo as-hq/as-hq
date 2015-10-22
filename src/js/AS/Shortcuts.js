@@ -84,6 +84,7 @@ export default {
     });
     ShortcutUtils.addShortcut("common", "esc", "Esc", (wildcard) => {
       console.log("Esc pressed");
+      self.refs.spreadsheet.shiftSelectionArea(0,0); // refocus at current cell
       self.updateTextBox(false);
       Store.setClipboard(null, false);
       self.setState({focus: "grid",userIsTyping:false});
@@ -163,7 +164,6 @@ export default {
       //TODO
     });
     ShortcutUtils.addShortcut("grid", "grid_repeat_last_action", "Ctrl+Y", (wildcard) => {
-      // ::ALEX:: todo 
       let sel = Store.getActiveSelection();
       API.sendRepeatRequest(sel);
     });
