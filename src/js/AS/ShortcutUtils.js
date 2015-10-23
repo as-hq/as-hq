@@ -25,7 +25,7 @@ let _S = {
 
 export default {
 
-  addShortcut(set, name, keyStr, callback) {
+  add(set, name, keyStr, callback) {
     var self = this;
     if (keyStr.constructor === Array)
       keyStr.map((k) => {self.addShortcut(set, name, k, callback)});
@@ -33,14 +33,11 @@ export default {
       let s = {name: name};
       s = KeyUtils.parseIntoShortcut(s, keyStr);
       s.callback = callback;
-      // console.log("add shortcut: " + name);
-      // console.log(s);
       _S[set].push(s);
     }
   },
 
   shortcutMatches(s, e) {
-    // console.log(e);
     if (this.compareModifiers(s, e)) {
       if (s.optionKeys && Util.arrContains(s.optionKeys, e.which))
         return true;
@@ -52,8 +49,7 @@ export default {
     let ss = _S[set]; // shortcut set to try
     for (var key in ss) {
       if (this.shortcutMatches(ss[key], e)){
-        console.log("shortcut matched!");
-        console.log(JSON.stringify(ss[key]));
+        console.log("shortcut matched!", JSON.stringify(ss[key]));
         ss[key].callback(KeyUtils.getWildcard(e, ss[key]));
         return true;
       }
@@ -76,10 +72,6 @@ export default {
   },
 
   compareModifiers(s, e) {
-    // s is the shortcut
-    // console.log("matching shortcut!", e.ctrlKey);
-    // console.log(JSON.stringify(s));
-    // console.log(s.hasOwnProperty('ctrlKey'));
     let sh = (s.hasOwnProperty('shiftKey') && s.shiftKey == e.shiftKey) || (!s.hasOwnProperty('shiftKey') && (e.shiftKey === false));
     let c = (s.hasOwnProperty('ctrlKey') && s.ctrlKey == e.ctrlKey) || (!s.hasOwnProperty('ctrlKey') && (e.ctrlKey === false));
     let a = (s.hasOwnProperty('altKey') && s.altKey == e.altKey) || (!s.hasOwnProperty('altKey') && (e.altKey === false));

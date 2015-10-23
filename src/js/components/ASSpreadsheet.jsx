@@ -343,17 +343,11 @@ export default React.createClass({
           activeCell = Store.getActiveCell(),
           clipboard = Store.getClipboard();
 
-      // debugger;
-
       // initialize custom config attributes for every cell
       // (hypergrid reuses the config object for performance; attributes must be set explicitly null)
       config.paintBorders = [];
       config.halign = 'left';
 
-      // console.log(config.value)
-      if (cell && activeCell) {
-        // console.log("rendering non null cells");
-      }
       // tag-based cell styling
       if (cell) {
         config = Util.valueToRenderConfig(config, cell.cellValue);
@@ -361,18 +355,14 @@ export default React.createClass({
           config = Util.tagsToRenderConfig(config, cell.cellTags);
         }
       } else {
-        // default renderer
         config.halign = 'center';
       }
 
       // selection dependency highlighting
       if (rng && activeCell && activeCell.cellExpression.dependencies) {
-        // console.log(activeCell.cellExpression.dependencies);
         let locs = activeCell.cellExpression.dependencies;
-        // console.log("highlighting dependency: ", locs);
         if (Util.isContainedInLocs(col, row, locs)){
           config.paintBorders = Util.getPaintedBorders(col, row, locs);
-          // console.log("drawing borders: " + JSON.stringify(config.paintBorders));
           config.bgColor = "#d3d3d3"; // light grey fill
           config.borderConfig = {lineType: 0, // solid border type
                                  width: 2,
