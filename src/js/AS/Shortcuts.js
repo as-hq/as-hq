@@ -23,8 +23,8 @@ export default {
     });
     ShortcutUtils.addShortcut("common", "cell_eval", ["Ctrl+Enter", "Ctrl+D", "Ctrl+R"], (wildcard) => {
       let editorState = {
-        exp: self._getRawEditor().getValue(),
-        lang: self.state.language
+        expression: self._getRawEditor().getValue(),
+        language: self.state.language
       };
       self.handleEvalRequest(editorState, 1, 0);
     });
@@ -75,8 +75,8 @@ export default {
         tag = {tag: "Money", contents: []};
       else if (wildcard === '5')
         tag = {tag: "Percentage", contents: []};
-      let rng = Store.getActiveSelection();
-      Store.addTag(tag, rng.col, rng.row);
+      let {col, row} = Store.getActiveSelection().range.tl;
+      Store.addTag(tag, col, row);
       self.refs.spreadsheet.repaint();
     });
     ShortcutUtils.addShortcut("common", "toggle_repl", "Alt+F11", (wildcard) => {
@@ -138,49 +138,47 @@ export default {
       self.refs.spreadsheet.makeSelection(newLoc, oldOrigin);
     });
     ShortcutUtils.addShortcut("grid", "grid_fill_down", "Ctrl+D", (wildcard) => {
-      let sel = Store.getActiveSelection().range;
-      if (sel.row2){
-        let copyFrom = {row: sel.row, col: sel.col, row2: sel.row, col2: sel.col},
-            copyTo = {row: sel.row+1, col: sel.col, row2: sel.row2, col2: sel.col};
-        API.sendCopyRequest([copyFrom, copyTo]);
-      }
+      let {tl, br} = Store.getActiveSelection().range;
+      let copyFrom = Converter.simpleToASRange({ tl: tl, br: tl }),
+          copyTo = Converter.simpleToASRange({ tl: {row: tl.row+1, col: tl.col},
+                                               br: {row: br.row, col: tl.col} });
+      API.copy(copyFrom, copyTo);
     });
     ShortcutUtils.addShortcut("grid", "grid_fill_right", "Ctrl+R", (wildcard) => {
-      let sel = Store.getActiveSelection().range;
-      if (sel.col2){
-        let copyFrom = {row: sel.row, col: sel.col, row2: sel.row, col2: sel.col},
-            copyTo = {row: sel.row, col: sel.col+1, row2: sel.row, col2: sel.col2};
-        API.sendCopyRequest([copyFrom, copyTo]);
-      }
+      let {tl, br} = Store.getActiveSelection().range;
+      let copyFrom = Converter.simpleToASRange({ tl: tl, br: tl }),
+          copyTo = Converter.simpleToASRange({ tl: {row: tl.row, col: tl.col+1},
+                                               br: {row: tl.row, col: br.col} });
+      API.copy(copyFrom, copyTo);
     });
     ShortcutUtils.addShortcut("grid", "grid_select_all", "Ctrl+A", (wildcard) => {
       self.refs.spreadsheet.makeSelection(self.refs.spreadsheet.getViewingWindowWithCache().range);
     });
     ShortcutUtils.addShortcut("grid", "grid_home", ["Home", "Ctrl+Home"], (wildcard) => {
-      self.refs.spreadsheet.makeSelection({row: 1, col: 1});
+      let idx = {row: 1, col: 1};
+      self.refs.spreadsheet.makeSelection({ tl: idx, br: idx });
     });
     ShortcutUtils.addShortcut("grid", "grid_moveto_end_sheet", "Ctrl+End", (wildcard) => {
       //TODO
     });
     ShortcutUtils.addShortcut("grid", "move_vwindow_above", "PageUp", (wildcard) => {
       let dY = self.refs.spreadsheet.getVisibleRows();
-      self.refs.spreadsheet.shiftSelectionArea(-dY, 0);
+      self.refs.spreadsheet.shiftSelectionArea(0, -dY);
     });
     ShortcutUtils.addShortcut("grid", "move_vwindow_above", "PageDown", (wildcard) => {
       let dY = self.refs.spreadsheet.getVisibleRows();
-      self.refs.spreadsheet.shiftSelectionArea(dY, 0);
+      self.refs.spreadsheet.shiftSelectionArea(0, dY);
     });
 
     ShortcutUtils.addShortcut("grid", "grid_delete", "Del", (wildcard) => {
-      let rng = Store.getActiveSelection();
-      // console.log("deleting cells in range: " + JSON.stringify(rng));
-      API.sendDeleteRequest(rng);
+      let rng = Store.getActiveSelection().range;
+      API.deleteRange(Converter.simpleToASRange(rng));
     });
     ShortcutUtils.addShortcut("grid", "grid_undo", "Ctrl+Z", (wildcard) => {
-      API.sendUndoRequest();
+      API.undo();
     });
     ShortcutUtils.addShortcut("grid", "grid_redo", "Ctrl+Shift+Z", (wildcard) => {
-      API.sendRedoRequest();
+      API.redo();
     });
     ShortcutUtils.addShortcut("grid", "chart", "F11", (wildcard) => {
       // TODO
@@ -208,19 +206,19 @@ export default {
 
     ShortcutUtils.addShortcut("grid", "copy_expression_above", "Ctrl+Shift+'", (wildcard) => {
       // TODO test
-      let sel = Store.getActiveSelection(),
-          cell = Store.getCellAtLoc(sel.col, sel.row-1);
+      let tl = Store.getActiveSelection().range.tl,
+          cell = Store.getCell(tl.col, tl.row-1);
       if (cell) {
-        let xp = Converter.clientCellGetExpressionObj(cell).expression || "";
+        let xp = cell.cellExpression.expression || "";
         self.setExpression(xp);
       } else self.setToast("No cell above.", "Error");
     });
     ShortcutUtils.addShortcut("grid", "copy_value_above", "Ctrl+'", (wildcard) => {
       // TODO test
-      let sel = Store.getActiveSelection(),
-          cell = Store.getCellAtLoc(sel.col, sel.row-1);
+      let tl = Store.getActiveSelection().range.tl,
+          cell = Store.getCell(tl.col, tl.row-1);
       if (cell) {
-        let xp = Util.showValue(Converter.clientCellGetValueObj(cell)) || "";
+        let xp = Util.showValue(cell.cellValue) || "";
         self.setExpression(xp);
       } else self.setToast("No cell above.", "Error");
     });
@@ -228,14 +226,16 @@ export default {
     // textbox shortcuts -------------------------------------------------------------------------------
     ShortcutUtils.addShortcut("textbox", "textbox_enter", "Enter", (wildcard) => {
       if (self.state.userIsTyping){
-        let editorState = {
-          exp: self._getRawEditor().getValue(),
-          lang: self.state.language
+        console.log("FUCK");
+        let xpObj = {
+          expression: self._getRawEditor().getValue(),
+          language: self.state.language
         };
-        self.handleEvalRequest(editorState, 1, 0);
+        self.handleEvalRequest(xpObj, {moveRow: 1, moveCol: 0});
       }
       else {
-        //TODO: Navigate down
+        // self.killTextbox();
+        // self.refs.spreadsheet.shiftSelectionArea(0,1);
       }
     });
 

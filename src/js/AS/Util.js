@@ -1,6 +1,6 @@
 import Constants from '../Constants';
 import shortid from 'shortid';
-
+import T from './Types';
 
 var colors = {"aliceblue":"#f0f8ff","antiquewhite":"#faebd7","aqua":"#00ffff","aquamarine":"#7fffd4","azure":"#f0ffff",
       "beige":"#f5f5dc","bisque":"#ffe4c4","black":"#000000","blanchedalmond":"#ffebcd","blue":"#0000ff","blueviolet":"#8a2be2","brown":"#a52a2a","burlywood":"#deb887",
@@ -71,8 +71,10 @@ export default {
     return JSON.stringify(cv.contents.map(this.showValue));
   },
 
-  parseTagIntoRenderConfig(config, tag) {
+  tagsToRenderConfig(config, tags) {
+    // TODO tags
     let self = this;
+    tags.for
     switch(tag.tag) {
       case "TextColor":
         config.fgColor = self.colorToHtml(tag.contents);
@@ -104,6 +106,24 @@ export default {
     }
   },
 
+  valueToRenderConfig(config, val) {
+    switch(val.tag) {
+      case "ValueI":
+      case "ValueD":
+        config.halign = 'right';
+        return config;
+      case "ValueS":
+        config.halign = 'left';
+        return config;
+      case "RList":
+        config.bgColor = colors['lightcyan'];
+        return config;
+      default:
+        config.halign = 'center';
+        return config;
+    }
+  },
+
   getPaintedBordersForSingleCell() {
     return [[[0,0],[1,0]],
             [[1,0],[1,1]],
@@ -112,27 +132,20 @@ export default {
   },
 
   getBorderForInteriorCell(col, row, rng) {
-    let borders = []
-    if (!rng.row2 && (col === rng.col && row === rng.row)) {
+    let borders = [],
+        {tl, br} = rng;
+    if (!T.isIndex(rng) && (col === tl.col && row === tl.row)) {
       return this.getPaintedBordersForSingleCell();
     }
-    else if (col >= rng.col && col <= rng.col2 && row >= rng.row && row <= rng.row2){
-      if (col === rng.col) // left intersection
+    else if (col >= tl.col && col <= br.col && row >= tl.row && row <= br.row){
+      if (col === tl.col) // left intersection
         borders.push([[0,0],[0,1]]);
-      if (col === rng.col2) // right intersection
+      if (col === br.col) // right intersection
         borders.push([[1,0],[1,1]]);
-      if (row === rng.row) // top intersection
+      if (row === tl.row) // top intersection
         borders.push([[0,0],[1,0]]);
-      if (row === rng.row2) // bottom intersection
+      if (row === br.row) // bottom intersection
         borders.push([[0,1],[1,1]]);
-    }
-    return borders;
-  },
-
-  getBorderPatternsForInteriorCell(col, row, rngs) {
-    let borders = [];
-    for (var i = 0; i < rngs.length; ++i) {
-      borders = borders.concat(this.getBorderForInteriorCell(col, row, rngs[i]));
     }
     return borders;
   },
@@ -143,22 +156,21 @@ export default {
 // executed by graphicscontext.moveTo(startx, starty) -> graphicscontext.lineTo(endx, endy)
   getPaintedBorders(col, row, rngs) {
     if (rngs.constructor == Array) {
-      return this.getBorderPatternsForInteriorCell(col, row, rngs);
-    }
-    else {
+      return rngs.map((rng) => {this.getBorderForInteriorCell(col, row, rng)}, this);
+    } else {
       return this.getBorderForInteriorCell(col, row, rngs);
     }
   },
 
   getOverlay(cv, col, row) {
     let self = this;
-    console.log("\n\nGOT IMAGE\n\n", "http://localhost:8000/images/" + cv.imagePath);
+    // console.log("\n\nGOT IMAGE\n\n", "http://localhost:8000/images/" + cv.imagePath);
     switch(cv.tag) {
       case "ValueImage":
         return {
           tag: cv.tag,
           id: self.getUniqueId(),
-          src: "http://localhost:8000/images/" + cv.imagePath,
+          src: Constants.HOST_STATIC_URL + "/images/" + cv.imagePath,
           width: "300",
           height: "300",
           col: col,
@@ -299,17 +311,10 @@ export default {
     return c.charCodeAt(0) - 64;
   },
 
-  getOrientedCorners(rng) {
-    var tl = {row: Math.min(rng.row,rng.row2), col: Math.min(rng.col,rng.col2)},
-        br = {row: Math.max(rng.row,rng.row2), col: Math.max(rng.col,rng.col2)};
+  orientRange(rng) {
+    var tl = {row: Math.min(rng.tl.row, rng.br.row), col: Math.min(rng.tl.col, rng.br.col)},
+        br = {row: Math.max(rng.tl.row, rng.br.row), col: Math.max(rng.tl.col, rng.br.col)};
     return {tl: tl, br: br};
-  },
-
-  getOrientedArea(rng) {
-    return !rng.row2 ? rng : {
-      row: Math.min(rng.row, rng.row2), col: Math.min(rng.col, rng.col2),
-      row2: Math.max(rng.row, rng.row2), col2: Math.max(rng.col, rng.col2)
-    };
   },
 
   excelToIdx(xp) {
@@ -333,7 +338,7 @@ export default {
     else {
       let start = this.excelToIdx(endpoints[0]),
           end = this.excelToIdx(endpoints[1]);
-      return {row: start.row, col: start.col, row2: end.row, col2: end.col};
+      return { tl: start, br: end };
     }
   },
 
@@ -349,26 +354,26 @@ export default {
     return code;
   },
 
-  locToExcel(loc) {
-    if (loc.row2){
-      let {tl, br} = this.getOrientedCorners(loc);
+  locToExcel(rng) {
+    if (T.isIndex(rng)){
+      let {tl, br} = this.orientRange(rng);
       return this.intToExcelCol(tl.col) + tl.row
         + ":"
         + this.intToExcelCol(br.col) + br.row;
     } else {
-      return this.intToExcelCol(loc.col) + loc.row;
+      return this.intToExcelCol(rng.tl.col) + rng.tl.row;
     }
   },
 
-  decomposeLocs(loc) {
+  decomposeASLocation(loc) {
     if (loc.index)
       return [loc];
     else {
       let dlocs = [];
-      for (var r = loc.range.row; r < loc.range.row2 + 1; r++){
-        for (var c = loc.range.col; c < loc.range.col2 + 1; c++) {
+      for (var r = loc.range.tl.row; r < loc.range.br.row + 1; r++){
+        for (var c = loc.range.tl.col; c < loc.range.br.col + 1; c++) {
           dlocs.push({
-            locSheetId: loc.locSheetId,
+            locSheetId: loc.sheetId,
             index: {row: r, col: c}
           });
         }
@@ -377,14 +382,14 @@ export default {
     }
   },
 
-  getDegenerateLocs(locs) {
-    if (locs.length){
-      let dlocs = locs.map((l) => {return this.getDegenerateLocs(l)});
+  decomposeASLocations(locs) {
+    if (locs.constructor == Array){
+      let dlocs = locs.map((l) => {return this.decomposeASLocation(l)}, this);
       console.log("degenerate locs: " + JSON.stringify(dlocs));
       let merged = [];
       return merged.concat.apply(merged, dlocs);
     }
-    else return this.decomposeLocs(locs);
+    else return this.decomposeASLocation(locs);
   },
 
   removeLastWord(str){
@@ -414,28 +419,15 @@ export default {
         matches = [];
       // console.log("parsed deps: "+JSON.stringify(matches));
       // return matches.map(this.excelToLoc);
-      let parsed = [];
-      for (var i=0; i<matches.length; i++)
-        parsed.push(this.excelToLoc(matches[i]));
-      // console.log(JSON.stringify(parsed));
+      let parsed = matches.map((m) => {this.excelToLoc(m)}, this);
       return parsed;
     }
   },
 
-  // TODO handle sideways lists?
-  getListDependency(headLocation, height, width) {
-    return [{
-      row: headLocation.row,
-      col: headLocation.col,
-      row2: headLocation.row + height - 1,
-      col2: headLocation.col + width - 1
-    }];
-  },
-
   isContainedInLoc(col, row, loc) {
-    if (loc.row2)
-      return (col >= loc.col && col <= loc.col2 && row >= loc.row && row <= loc.row2);
-    else return (col === loc.col && row === loc.row);
+    let {tl, br} = loc;
+    return (col >= tl.col && col <= br.col &&
+            row >= tl.row && row <= br.row);
   },
 
   isContainedInLocs(col, row, locs) {
@@ -497,11 +489,15 @@ export default {
     return Math.min(Math.max(c, 1), Constants.numCols);
   },
 
-  getSafeLoc(loc) {
-    return {col: this.getSafeCol(loc.col),
-            row: this.getSafeRow(loc.row),
-            col2: loc.col2 ? this.getSafeCol(loc.col2) : null,
-            row2: loc.row2 ? this.getSafeRow(loc.row2) : null};
+  getSafeRange(rng) {
+    return {tl: {col: this.getSafeCol(rng.tl.col),
+                 row: this.getSafeRow(rng.tl.row)},
+            br: {col: this.getSafeCol(rng.br.col),
+                 row: this.getSafeRow(rng.br.row)} };
+  },
+
+  getSafeIndex(idx) {
+    return {col: this.getSafeCol(idx.col), row: this.getSafeRow(idx.row)};
   },
 
   xor(foo, bar) {

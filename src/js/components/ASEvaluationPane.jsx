@@ -146,6 +146,11 @@ export default React.createClass({
     }
   },
 
+  killTextbox() {
+    this.setState({userIsTyping:false});
+    this.updateTextBox(false);
+  },
+
 
   /***************************************************************************************************************************/
   /* Getter methods for child components of the eval pane */
@@ -176,24 +181,19 @@ export default React.createClass({
     window.addEventListener('cut',this.handleCutEvent);
     Store.addChangeListener(this._onChange);
     ReplStore.addChangeListener(this._onReplChange);
-    this._notificationSystem = this.refs.notificationSystem;
     Shortcuts.addShortcuts(this);
   },
   componentWillUnmount() {
     window.removeEventListener('copy',this.handleCopyEvent);
     window.removeEventListener('paste',this.handlePasteEvent);
     window.removeEventListener('cut',this.handleCutEvent);
-    API.sendClose();
+    API.close();
     Store.removeChangeListener(this._onChange);
     ReplStore.removeChangeListener(this._onReplChange);
 
   },
   showAnyErrors(cv) {
-    if (cv.tag === "ValueError") {
-      this.setToast(cv.errMsg, "Error");
-    } else {
-      this.hideToast();
-    }
+    this.setToast(cv.errMsg, "Error");
   },
   setToast(msg, action) {
     this.setState({toastMessage: msg, toastAction: action});
@@ -218,16 +218,12 @@ export default React.createClass({
     // console.log("Updated cells: " + JSON.stringify(updatedCells));
 
     this.refs.spreadsheet.updateCellValues(updatedCells);
-    if (this.state.activeDr != null && this.state.activeDc != null) {
-      this.refs.spreadsheet.shiftSelectionArea(this.state.activeDr, this.state.activeDc);
-      this.setState({activeDr: null, activeDc: null});
-    }
 
     //toast the error of at least one value in the cell
     let i = 0;
     for (i = 0; i < updatedCells.length; ++i) {
-      let cell = updatedCells[i];
-      let val = Converter.clientCellGetValueObj(cell);
+      let cell = updatedCells[i],
+          val = cell.cellValue;
       if (val.tag == "ValueError") {
         this.showAnyErrors(val);
         break;
@@ -258,10 +254,10 @@ export default React.createClass({
     // the table saved to the clipboard (from "let html = ...") doesn't have
     // id=alphasheets set, which is how we know we the clipboard content is
     // from AlphaSheets originally.
-    let selRegion = Store.getActiveSelection(),
-        vals = Store.selRegionToValues(selRegion.range);
+    let sel = Store.getActiveSelection(),
+        vals = Store.selRegionToValues(sel.range);
     if (vals) {
-      Store.setClipboard(selRegion, isCut);
+      Store.setClipboard(sel, isCut);
       let html = ClipboardUtils.valsToHtml(vals),
           plain = ClipboardUtils.valsToPlain(vals);
       this.refs.spreadsheet.repaint(); // render immediately
@@ -283,9 +279,9 @@ export default React.createClass({
       let clipboard = Store.getClipboard();
       if (clipboard.area) {
         if (clipboard.isCut) {
-          API.sendCutRequest([clipboard.area, sel]);
+          API.cut(clipboard.area.range, sel.range);
         } else {
-          API.sendCopyRequest([clipboard.area, sel]);
+          API.cut(clipboard.area.range, sel.range);
         }
       }
       else{
@@ -299,7 +295,7 @@ export default React.createClass({
             vals = ClipboardUtils.plainStringToVals(plain),
             cells = Store.makeASCellsFromPlainVals(sel,vals,this.state.language),
             concatCells = [].concat.apply([], cells);
-        API.sendSimplePasteRequest(concatCells);
+        API.pasteSimple(concatCells);
         // The normal eval handling will make the paste show up
       }
       else {
@@ -401,14 +397,15 @@ export default React.createClass({
   _onSelectionChange(area) {
     // console.log("Handling selection change: " + JSON.stringify(rng));
     let rng = area.range,
-        origin = area.origin;
-    let cell = Store.getCellAtLoc(origin.col,origin.row);
-    let changeSel = cell && !this.state.userIsTyping && Converter.clientCellGetExpressionObj(cell),
-        shiftSelEmpty  = this.state.userIsTyping && !Util.canInsertCellRefInXp(this.state.expressionWithoutLastRef),
+        origin = area.origin,
+        cell = Store.getCell(origin.col,origin.row),
+        changeSel = cell && !this.state.userIsTyping && cell.cellExpression,
+        shiftSelEmpty  = this.state.userIsTyping &&
+                         !Util.canInsertCellRefInXp(this.state.expressionWithoutLastRef),
         shiftSelExists = cell && shiftSelEmpty;
     if (changeSel || shiftSelExists) {
-      let {language,expression} = Converter.clientCellGetExpressionObj(cell),
-          val = Converter.clientCellGetValueObj(cell);
+      let {language,expression} = cell.cellExpression,
+          val = cell.cellValue;
       Store.setActiveSelection(area, expression); // pass in an expression to get parsed dependencies
       console.log("FIRST");
       // here, language is a client/server agnostic object (see Constants.Languages)
@@ -455,24 +452,16 @@ export default React.createClass({
     1) Get the selected region from the ASSpreadsheet component
     2) Send this and the editor state (expression, language) to the API action creator, which will send it to the backend
   */
-  handleEvalRequest(editorState, activeDr, activeDc) {
-    // By default, shift row down by 1 after eval
-    if (typeof(activeDr) == 'undefined') activeDr = 0;
-    if (typeof(activeDc) == 'undefined') activeDc = 0;
-
-    //Which directions to shift your focus after eval
-    this.setState({activeDr: activeDr, activeDc: activeDc});
+  handleEvalRequest(asExpression, moveCol, moveRow) {
+    this.refs.spreadsheet.shiftSelectionArea(moveCol, moveRow);
 
     /* If user pressed Ctrl Enter, they're not typing out the expression anymore */
-    this.setState({userIsTyping:false});
-    this.updateTextBox(false);
+    this.killTextbox();
     Store.setActiveCellDependencies([]);
     this.refs.spreadsheet.repaint();
 
-    let selectedRegion = Store.getActiveSelection();
-    console.log("Editor state: " + JSON.stringify(editorState));
-    console.log("Eval req loc: " + JSON.stringify(selectedRegion));
-    API.sendEvalRequest(selectedRegion, editorState);
+    let asRange = Converter.simpleToASLocation(Store.getActiveSelection().range);
+    API.evaluate(asRange, asExpression);
   },
 
   openSheet(sheet) {
@@ -482,11 +471,9 @@ export default React.createClass({
   },
 
   /* When a REPl request is made, first update the store and then send the request to the backend */
-  handleReplRequest(editorState) {
-    ReplActionCreator.replLeft(this.state.replLanguage.Display,this._replValue());
-    // console.log('handling repl request ' +  JSON.stringify(editorState));
-    console.log("repl exps: " + JSON.stringify(ReplStore.getExps()));
-    API.sendReplRequest(editorState);
+  handleReplRequest(asExpression) {
+    ReplActionCreator.storeReplExpression(this.state.replLanguage.Display,this._replValue());
+    API.evaluateRepl(asExpression);
   },
 
 
@@ -501,14 +488,14 @@ export default React.createClass({
   _toggleRepl() {
     /* Save expression in store if repl is about to close */
     if (this.state.replOpen) {
-      ReplActionCreator.replLeft(this.state.replLanguage.Display,this._replValue());
+      ReplActionCreator.storeReplExpression(this.state.replLanguage.Display,this._replValue());
     }
     this.setState({replOpen: !this.state.replOpen});
   },
 
   /*  When the REPL language changes, set state, save current text value, and set the next text value of the REPL editor */
   _onReplLanguageChange(e,index,menuItem) {
-    ReplActionCreator.replLeft(this.state.replLanguage.Display,this._replValue());
+    ReplActionCreator.storeReplExpression(this.state.replLanguage.Display,this._replValue());
     let newLang = menuItem.payload;
     let newValue = ReplStore.getReplExp(newLang.Display);
     ReplStore.setLanguage(newLang);

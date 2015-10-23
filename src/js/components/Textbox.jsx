@@ -6,7 +6,7 @@ let TextareaAutosize = require('react-autosize-textarea');
 
 /*
 TODO: REFACTOR
-This component uses pixels to calculate the positioning from the top left of spreadsheet. 
+This component uses pixels to calculate the positioning from the top left of spreadsheet.
 I don't see a way with percents right now
 Can't find a good expanding component that works
 I don't think these are too pressing right now
@@ -24,8 +24,8 @@ export default React.createClass({
 
   /* Update the textbox from the eval pane */
   updateTextBox(xp,isTyping){
-    let col = Store.getActiveSelection().range.col,
-        row = Store.getActiveSelection().range.row,
+    let col = Store.getActiveSelection().origin.col,
+        row = Store.getActiveSelection().origin.row,
         textBox = {col: col, row: row, xp:xp};
     if (isTyping){
       this.setState({textBox:textBox});
@@ -40,7 +40,7 @@ export default React.createClass({
       return (this.state.textBox.row-1-this.props.scroll.y)* Constants.cellHeightPx + Constants.gridYOffset;
     }
     else {
-      return 0; 
+      return 0;
     }
   },
 
@@ -49,7 +49,7 @@ export default React.createClass({
       return (this.state.textBox.col-1-this.props.scroll.x)* Constants.cellWidthPx + Constants.gridXOffset;
     }
     else {
-      return 0; 
+      return 0;
     }
   },
 
@@ -75,12 +75,12 @@ export default React.createClass({
 
     /* TODO: using autofocus has the bug that the cursor is at the beginning of the box
     at the start */
-    let overlay = this.state.textBox ? 
+    let overlay = this.state.textBox ?
           <TextareaAutosize ref="box" type="text" autoFocus onFocus={this.onFocus}
                  style={textStyle}
                  onKeyDown={this.props.onKeyDown}
                  value={this.state.textBox.xp} /> : null ;
-    
+
     return (
         <div style={baseStyle} >
           {overlay}

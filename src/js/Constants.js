@@ -1,7 +1,9 @@
 import keyMirror from 'react/lib/keyMirror';
 
 export default {
-  HOST_WS: 'ws://localhost:5000',
+  HOST_BASE_URL: 'localhost',
+  HOST_WS: 'ws://' + 'localhost' + ':5000',
+  HOST_STATIC_URL: 'http://' + 'localhost' + ':8000',
 
   // event name triggered from store, listened to by views
   CHANGE_EVENT: 'change',
@@ -108,6 +110,7 @@ export default {
     Close: "Close",
     Import: "Import",
     Repl: "EvaluateRepl",
-    New: "New"
+    New: "New",
+    AddTags: "AddTags", RemoveTags: "RemoveTags"
   }
 };

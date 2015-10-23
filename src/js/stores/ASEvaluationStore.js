@@ -6,6 +6,7 @@ import assign from 'object-assign';
 import API from '../actions/ASApiActionCreators';
 import Converter from '../AS/Converter';
 import Util from '../AS/Util';
+import T from '../AS/Types';
 
 /*
 Private variable keeping track of a viewing window (cached) of cells. Stores:
@@ -54,19 +55,19 @@ dispatcherIndex: Dispatcher.register(function (action) {
       case Constants.ActionTypes.GOT_UNDO:
         console.log("action undo");
         _data.lastUpdatedCells = [];
-        ASEvaluationStore.removeData(action.commit.after);
-        ASEvaluationStore.updateData(action.commit.before);
+        ASEvaluationStore.removeCells(action.commit.after);
+        ASEvaluationStore.updateCells(action.commit.before);
         ASEvaluationStore.emitChange();
         break;
       case Constants.ActionTypes.GOT_REDO:
         _data.lastUpdatedCells = [];
-        ASEvaluationStore.removeData(action.commit.before);
-        ASEvaluationStore.updateData(action.commit.after);
+        ASEvaluationStore.removeCells(action.commit.before);
+        ASEvaluationStore.updateCells(action.commit.after);
         ASEvaluationStore.emitChange();
         break;
       case Constants.ActionTypes.GOT_UPDATED_CELLS:
         _data.lastUpdatedCells = [];
-        ASEvaluationStore.updateData(action.updatedCells);
+        ASEvaluationStore.updateCells(action.updatedCells);
         // console.log("Last updated cells: " + JSON.stringify(_data.lastUpdatedCells));
         ASEvaluationStore.emitChange();
         break;
@@ -84,7 +85,7 @@ dispatcherIndex: Dispatcher.register(function (action) {
       */
       case Constants.ActionTypes.FETCHED_CELLS:
         _data.lastUpdatedCells = [];
-        ASEvaluationStore.updateData(action.newCells);
+        ASEvaluationStore.updateCells(action.newCells);
         // console.log("Last updated cells: " + JSON.stringify(_data.lastUpdatedCells));
         ASEvaluationStore.emitChange();
         break;
@@ -107,7 +108,7 @@ dispatcherIndex: Dispatcher.register(function (action) {
         // remove possibly null cells
         cellsToRemove = cellsToRemove.filter((cell) => !!cell);
 
-        ASEvaluationStore.removeData(cellsToRemove);
+        ASEvaluationStore.removeCells(cellsToRemove);
         _data.allCells = {};
         // console.log("Last updated cells: " + JSON.stringify(_data.lastUpdatedCells));
         ASEvaluationStore.emitChange();
@@ -152,8 +153,8 @@ const ASEvaluationStore = assign({}, BaseStore, {
   setCurrentSheet(sht) {
     _data.currentSheet = sht;
   },
-  setCurrentSheetById(sheetid) {
-    _data.currentSheet = {sheetId: sheetid, sheetName: "", sheetPermissions: {
+  setCurrentSheetById(sheetId) {
+    _data.currentSheet = {sheetId: sheetId, sheetName: "", sheetPermissions: {
       tag: 'Blacklist',
       contents: []
     }};
@@ -163,33 +164,31 @@ const ASEvaluationStore = assign({}, BaseStore, {
   setActiveSelection(area, xp) {
     let origin = area.origin;
     _data.activeSelection = area;
-    console.log("\n\norigin cell\n", this.getCellAtLoc(origin.col, origin.row));
-    _data.activeCell = this.getCellAtLoc(origin.col, origin.row) || Converter.defaultCell();
+    console.log("\n\norigin cell\n", this.getCell(origin.col, origin.row));
+    _data.activeCell = this.getCell(origin.col, origin.row) || Converter.makeEmptyCell();
     var activeCellDependencies = Util.parseDependencies(xp);
     let c = area.origin.col,
         r = area.origin.row,
-        dep = this.getParentList(c, r);
-    if (dep) {
-      activeCellDependencies.push(dep);
+        listDep = this.getParentList(c, r);
+    if (listDep) {
+      activeCellDependencies.push(listDep);
     }
     this.setActiveCellDependencies(activeCellDependencies);
-    console.log("\nDEPS\n", activeCellDependencies);
   },
 
   getParentList(c,r){
-    let sheetid = _data.currentSheet.sheetId,
-        thisExists = this.locationExists(sheetid, c, r),
-        ctags = thisExists ? this.getCellAtLoc(c,r).cellTags : null;
+    let thisExists = this.locationExists(c, r),
+        ctags = thisExists ? this.getCell(c,r).cellTags : null;
     if (thisExists && ctags) {
       for (var i = 0; i < ctags.length; ++i) {
         if (ctags[i].hasOwnProperty('listKey')){
           let listHead = Util.listKeyToListHead(ctags[i].listKey),
               listDimensions = Util.listKeyToListDimensions(ctags[i].listKey);
           return {
-            row: listHead.snd,
-            col: listHead.fst,
-            row2: listHead.snd + listDimensions.fst - 1,
-            col2: listHead.fst + listDimensions.snd - 1
+            tl: {row: listHead.snd,
+                 col: listHead.fst} ,
+            br: {row: listHead.snd + listDimensions.fst - 1,
+                 col: listHead.fst + listDimensions.snd - 1}
           }
         }
       }
@@ -208,7 +207,7 @@ const ASEvaluationStore = assign({}, BaseStore, {
     return(_data.activeCell.cellExpression.dependencies);
   },
   setClipboard(rng, isCut) {
-    console.log("setting clipboard: "+ JSON.stringify(rng));
+    // console.log("setting clipboard: "+ JSON.stringify(rng));
     _data.clipboard.area = rng;
     _data.clipboard.isCut = isCut;
   },
@@ -231,10 +230,10 @@ const ASEvaluationStore = assign({}, BaseStore, {
     _data.lastUpdatedCells = [];
   },
   addTag(tag, col, row) {
-    let sheetid = _data.currentSheet.sheetId;
-    if (_data.allCells[sheetid] && _data.allCells[sheetid][col] && _data.allCells[sheetid][col][row]){
-      _data.allCells[sheetid][col][row].cellTags.push(tag);
-      API.sendTagsMessage("AddTags", [tag], col, row);
+    let sheetId = _data.currentSheet.sheetId;
+    if (this.locationExists(col, row, sheetId)){
+      _data.allCells[sheetId][col][row].cellTags.push(tag);
+      API.addTags([tag], Converter.makeIndex(sheetId, col, row));
     }
   },
   setExternalError(err) {
@@ -249,36 +248,11 @@ const ASEvaluationStore = assign({}, BaseStore, {
   /* Copy paste helpers */
 
    //Utils for selRegionToValues
-   sliceArray (begin, end) {
+   sliceArray(begin, end) {
      return (
          function(arr) { return arr.slice(begin, end) }
      );
    },
-
-  clientCellToValue(clientCell) {
-    if (!clientCell) {
-      return "";
-    }
-
-    let v = clientCell.cellValue.contents;
-
-    if (v) { // non ValueError value
-      if (v.constructor === Array){ // #needsrefactor (probably elsewhere in code): why are we treating x and [x] as the same?
-        if (v.length !== 0){
-          console.log("Returning value: " +v[0]);
-          return v[0];
-        }
-        return "";
-       }
-      if (clientCell.cellValue.hasOwnProperty("contents")){
-        console.log("Contents are : " + clientCell.cellValue.contents);
-        return clientCell.cellValue.contents;
-      }
-      return "";
-    } else if (clientCell.cellValue.errMsg) { // must be errror
-      return "ERROR"; // TODO: display different types of errors depending on the type
-    }
-  },
 
    makeArrayOf(value, length) {
      var arr = [], i = length;
@@ -298,103 +272,37 @@ const ASEvaluationStore = assign({}, BaseStore, {
 
    // Converts a range to a row major list of lists of values,
    selRegionToValues(rng){
-     console.log("Change registered");
-     console.log("SEL REGION RNG " + JSON.stringify(rng));
-     let sheetid = _data.currentSheet.sheetId;
-     let col = rng.col, row = rng.row;
-     if (!rng.row2) {
-       console.log(this.clientCellToValue(this.getCellAtLoc(col, row)));
-       return [[this.clientCellToValue(this.getCellAtLoc(col, row))]];
+     if (T.isIndex(rng)) {
+       return [[this.clientCellToValue(this.getCell(rng.tl.col, rng.tl.row))]];
+     } else {
+      let {tl, br} = rng,
+          height = br.row - tl.row + 1,
+          length = br.col - tl.col + 1,
+          self = this,
+          rowMajorValues = this.make2DArrayOf("", height, length);
+      for (let i = 0; i < height; ++i) {
+        let currentRow = tl.row + i;
+        rowMajorValues[i] = rowMajorValues[i].map(function(value, index) {
+            let currentColumn = tl.col + index,
+                cell = self.getCell(currentColumn, currentRow);
+            return Util.showValue(cell.cellValue);
+        });
+      }
+      return rowMajorValues;
      }
-     let col2 = rng.col2,
-         row2 = rng.row2;
-     let height = row2 - row + 1,
-         length = col2 - col + 1;
-     var rowMajorValues = this.make2DArrayOf("", height, length);
-     for (let i = 0; i < height; ++i) {
-       let currentRow = row + i;
-       var self = this;
-       rowMajorValues[i] = rowMajorValues[i].map(function(value, index) {
-           let currentColumn = col + index;
-           console.log(currentColumn  + " " + currentRow + " " + "IS CURRENT ROW COLUMN");
-           console.log(sheetid);
-           console.log("Hooha");
-           if (self.locationExists(sheetid, currentColumn, currentRow)) {
-             return self.clientCellToValue(_data.allCells[sheetid][currentColumn][currentRow]);
-           }
-           else {
-             return "";
-           }
-       });
-     }
-     return rowMajorValues;
    },
 
-   // TODO: move somewhere else maybe, in some global util method?
-  _dispBoolInLang(b, lang) {
-    if (b) {
-      if (["R", "OCaml"].indexOf(lang) != -1) {
-        return "true";
-      } else {
-        return "True";
-      }
-    } else {
-      if (["R", "OCaml"].indexOf(lang) != -1) {
-        return "false";
-      } else {
-        return "False";
-      }
-    }
-    throw "Should never make it to the end of _dispBoolInLang";
-   },
-
-  _expressionFromValue(v, lang) {
-    if (lang.Server == "Excel") { // is language.Editor the correct thing?
-      return v;
-    } else if (v != null && typeof(v) != "undefined") {
-      if (!isNaN(Number(v))) {
-        return v;
-      } else if (v.toUpperCase() == "TRUE") {
-        return this._dispBoolInLang(true, lang.Server);
-      } else if (v.toUpperCase() == "FALSE") {
-        return this._dispBoolInLang(false, lang.Server);
-      } else {
-        return JSON.stringify(v);
-      }
-    } else {
-      return ""; // unclear if we ever get here -- Alex 10/19
-    }
-  },
-
-   // Methods for paste
-  _makeServerCell(loc, language, i, j) {
-    let sheet = _data.currentSheet.sheetId;
-    let self = this;
-     return function(v) {
-        let row = loc.range.row, col = loc.range.col;
-        return {
-          "cellLocation": {
-            locSheetId: sheet,
-            index: [col + j, row + i]
-          },
-          "cellExpression": {
-            "expression" : self._expressionFromValue(v, language),
-            "language": language.Server
-          },
-          "cellValue":{
-            "tag": "NoValue",
-            "contents": []
-          },
-          "cellTags": []
-       };
-     };
-   },
 
    _arrayToASCells(loc, language) {
     var self = this;
      return function(i){
        return function(v, j) {
-         return self._makeServerCell(loc, language, i, j)(v);
+        let l = Converter.makeIndex(_data.currentSheet.sheetId,
+                                    loc.col + j,
+                                    loc.row + i),
+            xpStr = Converter.externalStringToExpression(v, language);
+
+         return Converter.makeEvalCell(l, xpStr, language);
        };
      };
    },
@@ -407,8 +315,8 @@ const ASEvaluationStore = assign({}, BaseStore, {
    },
 
    // takes in a set of locations and the values at those locations,
-   makeASCellsFromPlainVals(loc, vals, language) {
-     return vals.map(this._rowValuesToASCells(loc, language));
+   externalStringsToASCells(loc, strs, language) {
+     return strs.map(this._rowValuesToASCells(loc, language));
    },
 
 
@@ -419,181 +327,166 @@ const ASEvaluationStore = assign({}, BaseStore, {
   */
 
   /* Function to update cell related objects in store. Caller's responsibility to clear lastUpdatedCells if necessary */
-  updateData(cells) {
+  updateCells(cells) {
     console.log("About to update data in store: " + JSON.stringify(cells));
-    let removeCells = [];
+    let removedCells = [];
     for (var key in cells){
-      let c = cells[key];
-      let sheetid = Converter.clientCellGetSheetId(c);
-      let col = Converter.clientCellGetCol(c);
-      let row = Converter.clientCellGetRow(c);
-      let xp = Converter.clientCellGetExpressionObj(c);
-      let val = Converter.clientCellGetValueObj(c);
+      let c = cells[key],
+          xpString = c.cellExpression.expression;
 
-      if (xp.expression != "") {
-        if (!_data.allCells[sheetid])
-          _data.allCells[sheetid] = [];
-        if (!_data.allCells[sheetid][col])
-          _data.allCells[sheetid][col] = [];
-        _data.allCells[sheetid][col][row] = c;
+      if (xpString != "") {
+        this.setCell(c);
         _data.lastUpdatedCells.push(c);
       } else {
-        removeCells.push(c); // filter out all the blank cells passed back from the store
+        removedCells.push(c); // filter out all the blank cells passed back from the store
       }
     }
-    this.removeData(removeCells);
+    this.removeCells(removedCells);
+  },
+
+  setCell(c) {
+    let {col, row} = c.cellLocation.index,
+        sheetId = c.cellLocation.sheetId;
+    if (!_data.allCells[sheetId]){
+      _data.allCells[sheetId] = [];
+    } else if (!_data.allCells[sheetId][col]) {
+      _data.allCells[sheetId][col] = [];
+    }
+    _data.allCells[sheetId][col][row] = c;
   },
 
   /* Replace cells with empty ones. Caller's responsibility to clear lastUpdatedCells if necessary */
-  removeData(cells) {
+  removeCells(cells) {
     console.log("About to remove data in store: " + JSON.stringify(cells));
     for (var key in cells){
-      let c = cells[key];
-      console.log("deleting cell: " + JSON.stringify(c));
-      let sheetid = Converter.clientCellGetSheetId(c);
-      let col = Converter.clientCellGetCol(c);
-      let row = Converter.clientCellGetRow(c);
-      if (!_data.allCells[sheetid])
-        continue;
-      if (!_data.allCells[sheetid][col])
-        continue;
-      _data.allCells[sheetid][col][row] = null;
-      let emptyCell = Converter.clientCellEmpty(c.cellLocation);
+      let c = cells[key],
+          emptyCell = Converter.makeEmptyCell(c.cellLocation);
+      this.removeIndex(c.cellLocation);
       _data.lastUpdatedCells.push(emptyCell);
+    }
+  },
+
+  removeIndex(loc) {
+    if (this.locationExists(loc.index.col, loc.index.row, loc.sheetId)) {
+      _data.allCells[loc.sheetId][l.index.col][l.index.row] = null;
     }
   },
 
   removeLocs(locs) {
-    let dlocs = Util.getDegenerateLocs(locs);
+    let dlocs = Util.decomposeASLocations(locs);
     console.log("removing locs: " + JSON.stringify(dlocs));
     for (var key in dlocs){
-      let l = dlocs[key];
-      if (!_data.allCells[l.locSheetId])
-        continue;
-      if (!_data.allCells[l.locSheetId][l.index.col])
-        continue;
-      _data.allCells[l.locSheetId][l.index.col][l.index.row] = null;
-      let emptyCell = Converter.clientCellEmpty(l);
-      _data.lastUpdatedCells.push(emptyCell);
+      let l = dlocs[key],
+          emptyCell = Converter.clientCellEmpty(l);
+      this.removeIndex(l);
     }
   },
 
-  clearSheetCacheById(sheetid) {
-    _data.allCells[sheetid] = null;
+  clearSheetCacheById(sheetId) {
+    _data.allCells[sheetId] = null;
   },
 
   setActiveCellDependencies(deps) {
     _data.activeCell.cellExpression.dependencies = deps;
   },
 
-  locationExists(sheetid, col, row) {
-    return (_data.allCells[sheetid] && _data.allCells[sheetid][col] && _data.allCells[sheetid][col][row]);
+  locationExists(col, row, mySheetId) {
+    let sheetId = mySheetId || _data.currentSheet.sheetId;
+    return (_data.allCells[sheetId] && _data.allCells[sheetId][col] && _data.allCells[sheetId][col][row]);
   },
 
   /**************************************************************************************************************************/
   /* Updating expression when user clicks on a cell */
 
-  getCellAtLoc(col,row){
-    let sheetid = _data.currentSheet.sheetId;
-    if (this.locationExists(sheetid, col, row))
-      return _data.allCells[sheetid][col][row];
+  getCell(col,row,mySheetId){
+    let sheetId = mySheetId || _data.currentSheet.sheetId;
+    if (this.locationExists(col, row, sheetId))
+      return _data.allCells[sheetId][col][row];
     else {
       return null;
     }
   },
 
-  getCellAtLocSheet(sheetid, col,row){
-    if (this.locationExists(sheetid, col, row))
-      return _data.allCells[sheetid][col][row];
-    else {
-      return null;
-    }
-  },
-
-  getExtendedRange(direction, isShifted) {
+  moveToDataBoundary(direction, isShifted) {
     let sel = _data.activeSelection.range,
+        {tl, br} = sel,
         origin = _data.activeSelection.origin,
-        sheetId = _data.currentSheet.sheetId,
         selExists,
         startRow, startCol,
-        hExtremum = origin.col > sel.col ? sel.col : (sel.col2 ? sel.col2 : sel.col),
-        vExtremum = origin.row > sel.row ? sel.row : (sel.row2 ? sel.row2 : sel.row),
+        hExtremum = origin.col > tl.col ? tl.col : br.col,
+        vExtremum = origin.row > tl.row ? tl.row : br.row,
         result;
     // debugger;
     // console.log("\n\nin data bundary func\n\n", sel);
     console.log("\n\nhextremum\n\n", hExtremum);
     switch(direction) {
       case "Right":
-        startCol = this.locationExists(sheetId, hExtremum+1, sel.row) ? hExtremum : hExtremum+1;
-        selExists = this.locationExists(sheetId, startCol, sel.row);
+        startCol = this.locationExists(hExtremum+1, tl.row) ? hExtremum : hExtremum+1;
+        selExists = this.locationExists(startCol, tl.row);
         for (var col = startCol; col < startCol + Constants.LARGE_SEARCH_BOUND; col++){
-          let thisExists = this.locationExists(sheetId, col, origin.row);
+          let thisExists = this.locationExists(col, origin.row);
           if (Util.xor(selExists, thisExists)) {
-            result = thisExists ? {col: col, row: sel.row} : {col: col-1, row: sel.row};
-            let resultCol = origin.col > sel.col ? result.col : sel.col;
-            let resultCol2 = origin.col > sel.col ? sel.col2 : result.col;
-            result = !isShifted ? result : {row: sel.row,
-                                            col: resultCol,
-                                            row2: sel.row2 ? sel.row2 : sel.row,
-                                            col2: resultCol2};
+            result = thisExists ? {col: col, row: tl.row} : {col: col-1, row: tl.row};
+            let resultCol = origin.col > tl.col ? result.col : tl.col;
+            let resultCol2 = origin.col > tl.col ? br.col : result.col;
+            result = !isShifted ? result : { tl: {row: tl.row, col: resultCol},
+                                             br: {row: br.row, col: resultCol2} };
             break;
           }
         }
         result = result ? result : sel;
         break;
       case "Down":
-        startRow = this.locationExists(sheetId, sel.col, vExtremum+1) ? vExtremum : vExtremum+1;
-        selExists = this.locationExists(sheetId, sel.col, startRow);
+        startRow = this.locationExists(tl.col, vExtremum+1) ? vExtremum : vExtremum+1;
+        selExists = this.locationExists(tl.col, startRow);
         for (var row = startRow; row < startRow + Constants.LARGE_SEARCH_BOUND; row++){
-          let thisExists = this.locationExists(sheetId, origin.col, row);
+          let thisExists = this.locationExists(origin.col, row);
           if (Util.xor(selExists, thisExists)) {
-            result = thisExists ? {col: sel.col, row: row} : {col: sel.col, row: row-1};
-            let resultRow = origin.row > sel.row ? result.row : sel.row;
-            let resultRow2 = origin.row > sel.row ? sel.row2 : result.row;
-            result = !isShifted ? result : {row: resultRow,
-                                            col: sel.col,
-                                            row2: resultRow2,
-                                            col2: sel.col2 ? sel.col2 : sel.col};
+            result = thisExists ? {col: tl.col, row: row} : {col: tl.col, row: row-1};
+            let resultRow = origin.row > tl.row ? result.row : tl.row;
+            let resultRow2 = origin.row > tl.row ? br.row : result.row;
+            result = !isShifted ? result : { tl: {row: resultRow, col: tl.col},
+                                             br: {row: resultRow2, col: br.col} };
             break;
           }
         }
         result = result ? result : sel;
         break;
       case "Left":
-        startCol = this.locationExists(sheetId, hExtremum-1, sel.row) ? hExtremum : hExtremum-1;
-        selExists = this.locationExists(sheetId, startCol, sel.row);
+        startCol = this.locationExists(hExtremum-1, tl.row) ? hExtremum : hExtremum-1;
+        selExists = this.locationExists(startCol, tl.row);
         for (var col = startCol; col > 1; col--) {
-          let thisExists = this.locationExists(sheetId, col, origin.row);
+          let thisExists = this.locationExists(col, origin.row);
           if (Util.xor(selExists, thisExists)) {
-            result = thisExists ? {col: col, row: sel.row} : {col: col+1, row: sel.row};
-            let resultCol = origin.col > sel.col ? result.col : sel.col;
-            let resultCol2 = origin.col > sel.col ? sel.col2 : result.col;
-            result = !isShifted ? result : {row: sel.row, col: resultCol, row2: sel.row2 ? sel.row2 : sel.row, col2: resultCol2};
+            result = thisExists ? {col: col, row: tl.row} : {col: col+1, row: tl.row};
+            let resultCol = origin.col > tl.col ? result.col : tl.col;
+            let resultCol2 = origin.col > tl.col ? br.col : result.col;
+            result = !isShifted ? result : { tl: {row: tl.row, col: resultCol},
+                                             br: {row: br.row, col: resultCol2} };
             break;
           }
         }
-        result = result ? result : {row: sel.row,
-                                    col: 1,
-                                    row2: isShifted ? (sel.row2 ? sel.row2 : sel.row) : null,
-                                    col2: isShifted ? sel.col : null};
+        result = result ? result : { tl: {row: tl.row, col: 1},
+                                     br: {row: isShifted ? br.row : null,
+                                          col: isShifted ? tl.col : null} };
         break;
       case "Up":
-        startRow = this.locationExists(sheetId, sel.col, vExtremum-1) ? vExtremum : vExtremum-1;
-        selExists = this.locationExists(sheetId, sel.col, startRow);
+        startRow = this.locationExists(tl.col, vExtremum-1) ? vExtremum : vExtremum-1;
+        selExists = this.locationExists(tl.col, startRow);
         for (var row = startRow; row > 1; row--) {
-          let thisExists = this.locationExists(sheetId, origin.col, row);
+          let thisExists = this.locationExists(origin.col, row);
           if (Util.xor(selExists, thisExists)) {
-            result = thisExists ? {col: sel.col, row: row} : {col: sel.col, row: row+1};
-            let resultRow = origin.row > sel.row ? result.row : sel.row;
-            let resultRow2 = origin.row > sel.row ? sel.row2 : result.row;
-            result = !isShifted ? result : {row: resultRow, col: sel.col, row2: resultRow2, col2: sel.col2 ? sel.col2 : sel.col};
+            result = thisExists ? {col: tl.col, row: row} : {col: tl.col, row: row+1};
+            let resultRow = origin.row > tl.row ? result.row : tl.row;
+            let resultRow2 = origin.row > tl.row ? br.row : result.row;
+            result = !isShifted ? result : { tl: {row: resultRow, col: tl.col},
+                                             br: {row: resultRow2, col: br.col} };
             break;
           }
         }
-        result = result ? result : {row: 1,
-                                    col: sel.col,
-                                    row2: isShifted ? sel.row : null,
-                                    col2: isShifted ? (sel.col2 ? sel.col2 : sel.col) : null};
+        result = result ? result : { tl: {row: 1, col: tl.col},
+                                     br: {row: isShifted ? tl.row : null,
+                                          col: isShifted ? br.col : null} };
         break;
     }
     console.log("\n\nRESULT\n\n", result);
@@ -603,45 +496,11 @@ const ASEvaluationStore = assign({}, BaseStore, {
   // TODO actually get the data boundaries by iterating, or something
   // (but as long as we're using LARGE_SEARCH_BOUND, this area is an upper bound)
   getDataBounds() {
-    return {col: 1, row: 1, col2: Constants.LARGE_SEARCH_BOUND, row2: Constants.LARGE_SEARCH_BOUND};
-  },
-
-
-  /**************************************************************************************************************************/
-  /*
-    Sets invisible rows in cache to null to limit memory usage
-    TODO overlapping corners not handled... determine better way to dealloc than casework
-  */
-  // NOT RIGHT
-  deallocAfterScroll(newX, newY, oldX, oldY, vWindow) {
-    let eX = Constants.scrollCacheX,
-        eY = Constnts.scrollCacheY;
-        sheet = _data.currentSheet;
-    /* scroll right */
-    if (oldX < newX) {
-      for (var c = oldX - eX; c < newX - eX; c ++)
-        _data.allCells[sheet][c] = null;
-        /*if (_data.allCells[sheet][c])
-          for (var r = oldY - eY; i < oldY + vWindow.height + eX; r++)
-            _data.allCells[sheet][c][r] = null; */
-    }
-    /* scroll left */
-    else if (oldX > newX) {
-      for (var c = newX + eX; x < oldX + eX; c++)
-        _data.allCells[sheet][c] = null;
-        /* if (_data.allCells[sheet][c])
-          for (var r = oldY - eY; i < oldY + vWindow.height + eX; r++)
-            _data.allCells[sheet][c][r] = null; */
-    }
-    /* scroll down */
-    if (newY > oldY) { // scroll down
-      for (var r = oldY - eY; r < newY - eY; r++)
-        _data.allCells[r] = null;
-    } else if (newY < oldY) { // up
-      for (var r = newY - eY; r < oldY - eY; r++)
-        _data.allCells[r] = null;
-    }
+    return { tl: {col: 1, row: 1},
+             br: {col: Constants.LARGE_SEARCH_BOUND,
+                  row: Constants.LARGE_SEARCH_BOUND} };
   }
+
 
 });
 

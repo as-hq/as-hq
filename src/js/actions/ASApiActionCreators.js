@@ -14,7 +14,7 @@ var wss = new ws(Constants.HOST_WS);
 let currentCbs = undefined;
 let isRunningTest = false;
 let isRunningSyncTest = false;
-let refreshDialogShown = false; 
+let refreshDialogShown = false;
 
 /**************************************************************************************************************************/
 
@@ -59,10 +59,9 @@ wss.onmessage = function (event) {
       // TODO: add cases for new
       case "New":
         if (msg.payload.tag === "PayloadWorkbookSheets") {
-          let workbooks = Converter.clientWorkbooksFromServerMessage(msg);
           Dispatcher.dispatch({
             type: ActionTypes.GOT_NEW_WORKBOOKS,
-            workbooks: workbooks
+            workbooks: msg.payload.contents
           });
         }
         break;
@@ -73,64 +72,55 @@ wss.onmessage = function (event) {
       case "Undo":
         Dispatcher.dispatch({
           type: ActionTypes.GOT_UNDO,
-          commit: Converter.serverToClientCommit(msg.payload.contents)
+          commit: msg.payload.contents
         });
         break;
       case "Redo":
         Dispatcher.dispatch({
           type: ActionTypes.GOT_REDO,
-          commit: Converter.serverToClientCommit(msg.payload.contents)
+          commit: msg.payload.contents
         });
        break;
       case "Evaluate":
-        let cells = Converter.clientCellsFromServerMessage(msg);
         Dispatcher.dispatch({
           type: ActionTypes.GOT_UPDATED_CELLS,
-          updatedCells: cells
+          updatedCells: msg.payload.contents
         });
         break;
       case "Update":
-        if (msg.payload.tag === "PayloadC" ||
-            msg.payload.tag === "PayloadCL"){
-          let cells = Converter.clientCellsFromServerMessage(msg);
+        if (msg.payload.tag === "PayloadCL"){
           Dispatcher.dispatch({
             type: ActionTypes.GOT_UPDATED_CELLS,
-            updatedCells: cells
+            updatedCells: msg.payload.contents
           });
         } else if (msg.payload.tag === "PayloadWorkbookSheets") {
-          let workbooks = Converter.clientWorkbooksFromServerMessage(msg);
           Dispatcher.dispatch({
             type: ActionTypes.GOT_UPDATED_WORKBOOKS,
-            workbooks: workbooks
+            workbooks: msg.payload.contents
           });
         }
-        // TODO cases for sheets and workbooks
         break;
       case "Get":
-        let newCells = Converter.clientCellsFromServerMessage(msg); // MAY NEED TO REPLACE
         Dispatcher.dispatch({
           type: ActionTypes.FETCHED_CELLS,
-          newCells: newCells
+          newCells: msg.payload.contents
         });
         break;
-      //xcxc
       case "Clear":
         Dispatcher.dispatch({
           type: ActionTypes.CLEARED,
         });
         break;
       case "Delete":
-        // console.log("got delete");
         if (msg.payload.tag === "PayloadR"){
           Dispatcher.dispatch({
             type: ActionTypes.DELETED_LOCS,
-            locs: Converter.clientLocsFromServerMessage(msg)
+            locs: msg.payload.contents
           });
         } else if (msg.payload.tag === "PayloadWorkbookSheets") {
-          let workbooks = Converter.clientWorkbooksFromServerMessage(msg);
           Dispatcher.dispatch({
             type: ActionTypes.DELETED_WORKBOOKS,
-            workbooks: workbooks
+            workbooks: msg.payload.contents
           });
         }
         break;
@@ -154,14 +144,14 @@ export default {
   /* Sending acknowledge message to server */
 
   waitForSocketConnection(socket, callback, waitTime) {
-    if (typeof(waitTime) == "undefined") { 
-      waitTime = 0; 
+    if (typeof(waitTime) == "undefined") {
+      waitTime = 0;
     }
 
-    if (waitTime >= 5000 && !refreshDialogShown) { 
+    if (waitTime >= 5000 && !refreshDialogShown) {
       alert("The connection with the server appears to have been lost. Please refresh the page.");
-      refreshDialogShown = true; 
-      waitTime = 0; 
+      refreshDialogShown = true;
+      waitTime = 0;
     }
 
     setTimeout(() => {
@@ -193,8 +183,10 @@ export default {
     });
   },
 
-  sendInitialMessage() {
-    let msg = Converter.makeInitMessage();
+  initialize() {
+    let msg = Converter.makeClientMessage(Constants.ServerActions.Acknowledge,
+                                          "PayloadInit",
+                                          {"connUserId": Store.getUserId()});
     console.log("Sending init message: " + JSON.stringify(msg));
     this.send(msg);
   },
@@ -202,13 +194,15 @@ export default {
   /**************************************************************************************************************************/
   /* Sending admin-related requests to the server */
 
-  sendGetWorkbooks() {
+  getWorkbooks() {
     // console.log("Getting workbooks");
-    let msg = Converter.toServerMessageFormat('Get', 'PayloadList', 'WorkbookSheets');
+    let msg = Converter.makeClientMessage('Get',
+                                              'PayloadList',
+                                              'WorkbookSheets');
     this.send(msg);
   },
 
-  sendClose() {
+  close() {
     console.log('Sending close message');
     wss.close();
   },
@@ -217,131 +211,123 @@ export default {
   /* Sending an eval request to the server */
 
   /* This function is called by handleEvalRequest in the eval pane */
-  sendEvalRequest(selRegion,editorState){
+  evaluate(idx,xpObj){
     // console.log("In eval action creator");
-    let cell = Converter.clientToASCell(selRegion,editorState);
-    let msg = Converter.createEvalRequestFromASCell(cell);
+    let asCell = Converter.makeEvalCell(idx, xpObj.expression, xpObj.language);
+    let msg = Converter.makeClientMessage(Constants.ServerActions.Evaluate,
+                                          "PayloadCL", [asCell]);
     // console.log('Sending msg to server: ' + JSON.stringify(msg));
     this.send(msg);
   },
 
+  evaluateRepl(xpObj){
+    let msg = Converter.makeClientMessage(Constants.ServerActions.Repl, "PayloadXp", {
+      tag: "Expression",
+      expression: xpObj.exp,
+      language: xpObj.lang
+    });
+    this.send(msg);
+  },
   /**************************************************************************************************************************/
   /* Sending undo/redo/clear messages to the server */
 
-  sendUndoRequest(){
-    let msg = Converter.createUndoRequestForServer();
+  undo(){
+    let msg = Converter.makeClientMessage(Constants.ServerActions.Undo, "PayloadN", []);;
     this.send(msg);
   },
-  sendRedoRequest(){
-    let msg = Converter.createRedoRequestForServer();
+  redo(){
+    let msg = Converter.makeClientMessage(Constants.ServerActions.Redo, "PayloadN", []);
     this.send(msg);
   },
-  sendClearRequest(){
-    let msg = Converter.createClearRequestForServer();
+  clear(){
+    let msg = Converter.makeClientMessage(Constants.ServerActions.Clear, "PayloadN", []);
     this.send(msg);
   },
-  sendDeleteRequest(locs){
-    let msg = null;
-    if (locs.constructor === Array){
-      for (var i in locs)
-        locs[i] = Converter.clientToASLocation(locs[i]);
-      msg = Converter.toServerMessageFormat(Constants.ServerActions.Delete, "PayloadLL", locs);
-    }
-    else {
-      locs = Converter.clientToASRange(locs);
-      msg = Converter.toServerMessageFormat(Constants.ServerActions.Delete, "PayloadR", locs);
-    }
+  deleteIndices(locs) {
+    let msg = Converter.makeClientMessage(Constants.ServerActions.Delete, "PayloadLL", locs);
     this.send(msg);
   },
-
-  /**************************************************************************************************************************/
-  /* Sending REPL messages to the server */
-
-  // TODO: correctly implement
-  sendReplRequest(editorState){
-    let msg = Converter.toServerMessageFormat(Constants.ServerActions.Repl, "PayloadXp", {
-      tag: "Expression",
-      expression: editorState.exp,
-      language: editorState.lang
-    });
+  deleteRange(rng) {
+    let msg = Converter.makeClientMessage(Constants.ServerActions.Delete, "PayloadR", rng);
     this.send(msg);
-    // Dispatcher.dispatch({
-    //   type: ActionTypes.GOT_REPL_RESP,
-    //   response:{lang:"Python",value:"44"}
-    // });
   },
 
 
   /**************************************************************************************************************************/
   /* Sending get messages to the server */
-  sendTagsMessage(action, tags, col, row) {
-    let msg = Converter.toServerMessageWithPayload(action, {
+  addTags(tags, loc) {
+    let msg = Converter.makeClientMessageRaw(Constants.ServerActions.AddTags, {
       "tag": "PayloadTags",
       "tags": tags,
-      "tagsLoc": Converter.clientToASLocation({col: col, row: row})
+      "tagsLoc": loc
     });
     this.send(msg);
   },
-  sendCopyRequest(locs) {
-    let msg = Converter.toServerMessageWithPayload(Constants.ServerActions.Copy, {
+  removeTags(tags, loc) {
+    let msg = Converter.makeClientMessageRaw(Constants.ServerActions.RemoveTags, {
+      "tag": "PayloadTags",
+      "tags": tags,
+      "tagsLoc": loc
+    });
+    this.send(msg);
+  },
+  copy(fromRng, toRng) {
+    let msg = Converter.makeClientMessageRaw(Constants.ServerActions.Copy, {
       tag: "PayloadPaste",
-      copyRange: Converter.clientToASRange(locs[0]),
-      copyTo: Converter.clientToASRange(locs[1])
+      copyRange: fromRng,
+      copyTo: toRng
     });
     this.send(msg);
   },
-  sendCutRequest(locs) {
-    let msg = Converter.toServerMessageWithPayload(Constants.ServerActions.Cut, {
+  cut(fromRng, toRng) {
+    let msg = Converter.makeClientMessageRaw(Constants.ServerActions.Cut, {
       tag: "PayloadPaste",
-      copyRange: Converter.clientToASRange(locs[0]),
-      copyTo: Converter.clientToASRange(locs[1])
+      copyRange: fromRng,
+      copyTo: toRng
     });
     this.send(msg);
   },
-  sendSimplePasteRequest(cells){
-    console.log("ABOUT TO SEND CELLS: " + JSON.stringify(cells));
-    let msg = Converter.toServerMessageFormat(Constants.ServerActions.Evaluate, "PayloadCL",cells);
+  simplePaste(cells){
+    let msg = Converter.makeClientMessage(Constants.ServerActions.Evaluate, "PayloadCL",cells);
     this.send(msg);
   },
 
-  sendGetRequest(locs) {
-    let msg = Converter.clientLocsToGetMessage(locs);
-    // console.log('Sending get message to server: ' + JSON.stringify(msg));
+  getIndices(locs) {
+    let msg = Converter.makeClientMessage(Constants.ServerActions.Get, "PayloadLL", locs);
     this.send(msg);
   },
 
-  sendOpenMessage(sheet) {
-    let msg = Converter.toServerMessageFormat(Constants.ServerActions.Open, "PayloadS", sheet);
-    // console.log("send open message: " + JSON.stringify(msg));
+  getRange(rng) {
+    let msg = Converter.makeClientMessage(Constants.ServerActions.Get, "PayloadR", rng);
     this.send(msg);
   },
 
-  sendDefaultOpenMessage() {
-    this.sendOpenMessage(Store.getCurrentSheet());
+  openSheet(sheet) {
+    let msg = Converter.makeClientMessage(Constants.ServerActions.Open, "PayloadS", sheet);
+    this.send(msg);
   },
 
-  sendCreateSheetMessage() {
-    let wbs = Converter.newWorkbookSheet();
-    let msg = Converter.toServerMessageFormat(Constants.ServerActions.New,
+  createSheet() {
+    let wbs = Converter.makeWorkbookSheet();
+    let msg = Converter.makeClientMessage(Constants.ServerActions.New,
       "PayloadWorkbookSheets",
       [wbs]);
     this.send(msg);
   },
 
-  sendCreateWorkbookMessage() {
-    let wb = Converter.newWorkbook();
-    let msg = Converter.toServerMessageFormat(Constants.ServerActions.New,
+  createWorkbook() {
+    let wb = Converter.makeWorkbook();
+    let msg = Converter.makeClientMessage(Constants.ServerActions.New,
       "PayloadWB",
       wb);
     this.send(msg);
   },
 
   updateViewingWindow(vWindow) {
-    let sWindow = Converter.clientWindowToServer(vWindow),
-        msg = Converter.toServerMessageFormat(Constants.ServerActions.UpdateWindow,
+    let sWindow = Converter.addCurrentSheetIdToObj(vWindow),
+        msg = Converter.makeClientMessage(Constants.ServerActions.UpdateWindow,
                                               "PayloadW",
                                               sWindow);
-    // console.log("send scroll message: " + JSON.stringify(msg));
     this.send(msg);
   },
 

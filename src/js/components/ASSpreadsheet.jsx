@@ -1,7 +1,6 @@
 import React from 'react';
 import ActionCreator from '../actions/ASSpreadsheetActionCreators';
 import ShortcutUtils from '../AS/ShortcutUtils';
-import Converter from '../AS/Converter';
 import API from '../actions/ASApiActionCreators';
 import KeyUtils from '../AS/KeyUtils';
 import Store from '../stores/ASEvaluationStore';
@@ -41,24 +40,21 @@ export default React.createClass({
   },
   // produces oriented area -- row < row2 and col < col2 always
   getSelectionArea() {
-    let hg = this._getHypergrid();
-    let selection = hg.getSelectionModel().selections[0];
-    let ul = selection.origin;
-    let range = Util.getOrientedArea({
-                  row:  ul.y + 1,
-                  col:  ul.x + 1,
-                  row2: ul.y + selection.height() + 1,
-                  col2: ul.x + selection.width() + 1
-                });
-    let area = {
-        width:  range.col2 - range.col + 1,
-        height: range.row2 - range.row + 1,
+    let hg = this._getHypergrid(),
+        selection = hg.getSelectionModel().selections[0],
+        ul = selection.origin,
+        range = Util.orientRange({
+                  tl: {row:  ul.y + 1,
+                       col:  ul.x + 1},
+                  br: {row: ul.y + selection.height() + 1,
+                       col: ul.x + selection.width() + 1}
+                }),
+        area = {
+          range: range,
+          width:  range.br.col - range.tl.col + 1,
+          height: range.br.row - range.tl.row + 1,
+          origin: {row: ul.y + 1, col: ul.x + 1}
       };
-
-    if (range.row === range.row2 && range.col === range.col2){
-      area.range = {row: range.row, col: range.col};
-    } else{ area.range = range; }
-    area.origin = {row: ul.y + 1, col: ul.x + 1};
     return area;
   },
   /* Returns the position of scroll */
@@ -71,13 +67,20 @@ export default React.createClass({
     let hg = this._getHypergrid();
     let [vs, hs] = [hg.vScrollValue, hg.hScrollValue];
     let [cols, rows] = [hg.getVisibleColumns(), hg.getVisibleRows()];
-    return { range: {row: vs+1, col: hs+1, row2: vs + rows.length, col2: hs + cols.length}, width: cols.length, height: rows.length };
+    return { range: {tl: {row: vs+1, col: hs+1},
+                     br: {row: vs + rows.length, col: hs + cols.length}},
+             width: cols.length,
+             height: rows.length };
   },
   getViewingWindowWithCache() {
-    let vwindow = this.getViewingWindow(), rng = vwindow.range;
-    rng = {row: rng.row - Constants.scrollCacheY, col: rng.col - Constants.scrollCacheY,
-            row2: rng.row2 + Constants.scrollCacheY, col2: rng.col2 + Constants.scrollCacheX};
-    return {range: Converter.getSafeLoc(rng)};
+    let vWindow = this.getViewingWindow(),
+        {tl, br} = vWindow.range,
+        rng = { tl: {row: tl.row - Constants.scrollCacheY,
+                     col: tl.col - Constants.scrollCacheY},
+                br: {row: br.row + Constants.scrollCacheY,
+                     col: br.col + Constants.scrollCacheX} };
+    vWindow.range = rng;
+    return vWindow;
   },
   isVisible(col, row){ // faster than accessing hypergrid properties
     return (this.state.scroll.x <= col && col <= this.state.scroll.x+Constants.numVisibleCols) &&
@@ -98,15 +101,15 @@ export default React.createClass({
     model.getValue = function(x, y) {
       return '';
     };
-    this.makeSelection({row: 1, col: 1});
+    this.makeSelection({tl: {row: 1, col: 1}, br: {row: 1, col: 1}});
   },
   getInitialData(){
     // expects that the current sheet has already been set
     // e,g, by open/new dialog
-    API.sendOpenMessage(Store.getCurrentSheet());
-    API.updateViewingWindow({range: {row: 1, col: 1,
-        row2: Constants.numVisibleRows + Constants.scrollCacheY,
-        col2: Constants.numVisibleCols + Constants.scrollCacheX}});
+    API.openSheet(Store.getCurrentSheet());
+    API.updateViewingWindow({tl: {row: 1, col: 1},
+                             br: {row: Constants.numVisibleRows + Constants.scrollCacheY,
+                                  col: Constants.numVisibleCols + Constants.scrollCacheX} });
   },
   /* Called by eval pane's onChange method, when eval pane receives a change event from the store */
   updateCellValues(clientCells){
@@ -114,9 +117,9 @@ export default React.createClass({
     let model = this._getBehavior();
     for (var key in clientCells){ // update the hypergrid values
       let c = clientCells[key];
-      let gridCol = Converter.clientCellGetCol(c)-1; // hypergrid starts indexing at 0
-      let gridRow = Converter.clientCellGetRow(c)-1; // hypergrid starts indexing at 0
-      let display = Converter.clientCellGetDisplay(c);
+          gridCol = c.cellLocation.index.col-1, // hypergrid starts indexing at 0
+          gridRow = c.cellLocation.index.row-1, // hypergrid starts indexing at 0
+          display = Util.showValue(c.cellValue);
       // console.log("Updating display value: " + gridCol + " " + gridRow + " " + display);
       model.setValue(gridCol,gridRow,display.toString());
       let overlay = Util.getOverlay(c.cellValue, gridCol, gridRow);
@@ -262,15 +265,16 @@ export default React.createClass({
   },
   // do not call before polymer is ready.
   makeSelection(unsafeLoc, origin) {
-    let loc = Util.getSafeLoc(unsafeLoc);
+    let loc = Util.getSafeRange(unsafeLoc),
+        {tl, br} = loc;
     console.log("making selection!", loc);
 
     // make selection
     let hg = this._getHypergrid(),
-        c = loc.col - 1,
-        r = loc.row - 1,
-        dC = loc.row2 ? loc.col2 - loc.col : 0,
-        dR = loc.col2 ? loc.row2 - loc.row : 0;
+        c = tl.col - 1,
+        r = tl.row - 1,
+        dC = br.col - tl.col,
+        dR = br.row - tl.row;
     hg.takeFocus();
     hg.clearSelections();
     hg.select(c, r, dC, dR);
@@ -278,16 +282,16 @@ export default React.createClass({
     // set mousedown
     // hypergrid sucks -- doesn't set the mouse focus automatically
     // with select, so we have to do it ourselves.
-    let global = document.createElement('fin-rectangle'),
-        myDown = global.point.create(c,r),
-        myExtent = global.point.create(dC, dR);
+    let finRect = document.createElement('fin-rectangle'),
+        myDown = finRect.point.create(c,r),
+        myExtent = finRect.point.create(dC, dR);
     hg.setMouseDown(myDown);
     hg.setDragExtent(myExtent);
 
     // set scroll
     let range = this.getViewingWindow().range,
-        shouldScrollH = loc.col < range.col || loc.col > range.col2,
-        shouldScrollV = loc.row < range.row || loc.row > range.row2,
+        shouldScrollH = tl.col < range.tl.col || tl.col > range.br.col,
+        shouldScrollV = tl.row < range.tl.row || tl.row > range.br.row,
         scrollH = shouldScrollH ? c : hg.getHScrollValue(),
         scrollV = shouldScrollV ? r : hg.getVScrollValue();
     if (shouldScrollV || shouldScrollH){
@@ -295,17 +299,20 @@ export default React.createClass({
     }
 
     this.repaint();
-    let selOrigin = origin ? origin : (loc.row2 ? null : {row: loc.row, col: loc.col});
-    this.props.onSelectionChange({range:loc, width:dC+1, height:dR+1, origin: selOrigin});
+    let selOrigin = origin ? origin : {row: tl.row, col: tl.col};
+    this.props.onSelectionChange({range:loc,
+                                  width:dC+1,
+                                  height:dR+1,
+                                  origin: selOrigin});
   },
 
-  shiftSelectionArea(dr, dc){
-    let range = Store.getActiveSelection().range;
-    if (!range.row2) {
-      range.row = Util.getSafeRow(range.row + dr);
-      range.col = Util.getSafeCol(range.col + dc);
-    }
-    this.makeSelection(range);
+  shiftSelectionArea(dc, dr){
+    let sel = Store.getActiveSelection(),
+        {tl, br} = sel.range,
+        range = {tl: {row: tl.row + dr, col: tl.col + dc},
+                 br: {row: br.row + dr, col: br.col + dc} },
+        origin = {row: sel.origin.row + dr, col: sel.origin.col + dc};
+    this.makeSelection(Util.getSafeRange(range), Util.getSafeIndex(origin));
   },
 
   scrollTo(x, y){
@@ -327,7 +334,7 @@ export default React.createClass({
       let renderer = Render.defaultCellRenderer,
           col = config.x + 1,
           row = config.y + 1,
-          cell = Store.getCellAtLoc(col, row),
+          cell = Store.getCell(col, row),
           sel = Store.getActiveSelection(),
           rng = sel.range,
           activeCell = Store.getActiveCell(),
@@ -346,20 +353,9 @@ export default React.createClass({
       }
       // tag-based cell styling
       if (cell) {
-        // console.log(cell.cellValue);
-        if (cell.cellValue.tag === "ValueI" || cell.cellValue.tag === "ValueD") {
-          config.halign = 'right';
-        } else if (cell.cellValue.tag === "ValueS") {
-          config.halign = 'left';
-        } else if (cell.cellValue.tag === "RList") {
-          config.bgColor = Util.colorNameToHex("lightcyan");
-        } else {
-          config.halign = 'center';
-        }
+        config = Util.valueToRenderConfig(config, cell.cellValue);
         if (cell.cellTags.length > 0){
-          for (var i=0; i<cell.cellTags.length; i++){
-            config = Util.parseTagIntoRenderConfig(config, cell.cellTags[i]);
-          }
+          config = Util.tagsToRenderConfig(config, cell.cellTags);
         }
       } else {
         // default renderer

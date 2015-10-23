@@ -2,7 +2,6 @@ import Dispatcher from '../Dispatcher';
 import Constants from '../Constants';
 import BaseStore from './BaseStore';
 import assign from 'object-assign';
-import API from '../actions/ASApiActionCreators';
 import Converter from '../AS/Converter';
 import Util from '../AS/Util';
 

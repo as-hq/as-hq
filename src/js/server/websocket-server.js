@@ -154,7 +154,7 @@ wss.on("connection", function(ws) {
         if (result.length)
           msg = toServerMessageFormat("NoAction", "PayloadCL", result);
         else
-          msg = toServerMessageFormat("NoAction", "PayloadC", result);
+          msg = toServerMessageFormat("NoAction", "PayloadCL", [result]);
       } else if (parsed.payload.tag === 'PayloadList') {
         var msg = toServerMessageFormat('Update', 'PayloadWorkbookSheets', fakeWorkbookSheets());
       }
