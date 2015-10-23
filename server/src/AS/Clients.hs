@@ -64,6 +64,7 @@ instance Client ASUserClient where
       Cut          -> handleCut user state payload
       CopyForced   -> handleCopyForced user state payload
       ToggleTags   -> handleToggleTags user state payload
+      SetTags      -> handleSetTags user state payload
       Repeat       -> handleRepeat user state payload
       where payload = clientPayload message
     -- Undo         -> handleToggleTags user state (PayloadTags [StreamTag (Stream NoSource 1000)] (Index (T.pack "TEST_SHEET_ID2") (1,1)))
@@ -319,6 +320,36 @@ handleToggleTags :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
 handleToggleTags user state (PayloadTags ts loc) = do
   mapM_ (processToggleTag loc state) ts
   sendToOriginal user $ ServerMessage ToggleTags Success (PayloadN ())
+
+processSetTag :: ASIndex -> MVar ServerState -> ASCellTag -> IO ()
+processSetTag loc state t = do
+  curState <- readMVar state
+  (Cell l e v ts) <- DB.getPossiblyBlankCell loc
+  let ts' = filter (differentTagType t) ts
+  let c' = Cell l e v (t:ts')
+  DB.setCell c'
+  if (ts' /= ts) -- if you ended up removing an old version of the tag
+    then (removeTagEndware t c' state)
+    else (addTagEndware t c' state)
+
+handleSetTags :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
+handleSetTags user state (PayloadTags ts loc) = do
+  mapM_ (processSetTag loc state) ts
+  sendToOriginal user $ ServerMessage SetTags Success (PayloadN ())
+
+-- Alex 10/22: seems kind of ugly. 
+differentTagType :: ASCellTag -> ASCellTag -> Bool
+differentTagType (Color _) (Color _) = False
+differentTagType (Size _) (Size _) = False
+differentTagType Money Money = False
+differentTagType Percentage Percentage = False
+differentTagType (StreamTag _) (StreamTag _) = False
+differentTagType Tracking Tracking = False
+differentTagType Volatile Volatile = False
+differentTagType (ReadOnly _) (ReadOnly _) = False
+differentTagType (ListMember _) (ListMember _) = False
+differentTagType DFMember DFMember = False
+differentTagType _ _ = True
 
 handleRepeat :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
 handleRepeat user state (PayloadSelection range origin) = do

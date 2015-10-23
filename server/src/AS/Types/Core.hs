@@ -193,7 +193,7 @@ data ASPayload =
   | PayloadE ASExecError
   | PayloadCommit ASCommit
   | PayloadPaste {copyRange :: ASRange, copyTo :: ASRange}
-  | PayloadTags {tags :: [ASCellTag], tagsLoc :: ASIndex}
+  | PayloadTags {tags :: [ASCellTag], tagsRange :: ASRange}
   | PayloadXp ASExpression
   | PayloadReplValue ASReplValue
   | PayloadList QueryList
