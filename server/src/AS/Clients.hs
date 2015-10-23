@@ -162,12 +162,22 @@ handleUpdateWindow sid state (PayloadW window) = do
   let maybeWindow = U.getWindow (windowSheetId window) user'
   case maybeWindow of
     Nothing -> putStrLn "ERROR: could not update nothing window" >> return ()
-    (Just oldWindow) -> do
+    (Just oldWindow) -> (flip catch) (badCellsHandler $ dbConn curState) (do
       let locs = U.getScrolledLocs oldWindow window
       printWithTime $ "Sending locs: " ++ (show locs)
       mcells <- DB.getCells $ concat $ map rangeToIndices locs
       sendToOriginal user' $ U.getDBCellMessage mcells
-      US.modifyUser (U.updateWindow window) user' state
+      US.modifyUser (U.updateWindow window) user' state)
+
+-- | If a message is failing to parse from the server, undo the last commit (the one that added
+-- the message to the server.) I doubt this fix is completely foolproof, but it keeps data
+-- from getting lost and doesn't require us to manually reset the server. 
+badCellsHandler :: R.Connection -> SomeException -> IO ()
+badCellsHandler conn e = do 
+  printWithTime ("Error while fetching cells: " ++ (show e))
+  printWithTime "Undoing last commit"
+  DB.undo conn
+  return ()
 
 handleImport :: MVar ServerState -> ASPayload -> IO ()
 handleImport state msg = return () -- TODO

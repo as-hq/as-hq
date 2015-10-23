@@ -3,6 +3,8 @@ module AS.Util where
 import AS.Types.Core
 
 import Prelude
+import System.Directory
+import System.FilePath.Posix
 import Data.Time.Clock
 import Data.Maybe (isNothing,fromJust)
 import Data.UUID.V4 (nextRandom)
@@ -211,10 +213,18 @@ generateErrorMessage e = case e of
 getTime :: IO String
 getTime = fmap (show . utctDayTime) getCurrentTime
 
+serverLogPath :: IO String
+serverLogPath = do
+  mainDir <- getCurrentDirectory
+  return $ mainDir </> "server_log"
+
 printWithTime :: String -> IO ()
 printWithTime str = do
   time <- getTime
-  putStrLn $ "[" ++ (show time) ++ "] " ++ str
+  let disp = "[" ++ (show time) ++ "] " ++ str
+  putStrLn disp
+  serverLog <- serverLogPath
+  appendFile serverLog disp
 
 printWithTimeT :: String -> EitherTExec ()
 printWithTimeT = lift . printWithTime

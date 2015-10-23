@@ -12,9 +12,11 @@ dump.rdb
 server/Index*
 server/*.pid
 
-#server/eval_files/**/*
-#!server/eval_files/**/template.*
-#!server/eval_files/**/Template.*
+server_log
+
+server/eval_files/**/*
+!server/eval_files/**/template.*
+!server/eval_files/**/Template.*
 
 server/static/images/*
 
