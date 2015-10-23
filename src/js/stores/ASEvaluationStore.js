@@ -230,11 +230,13 @@ const ASEvaluationStore = assign({}, BaseStore, {
   resetLastUpdatedCells() {
     _data.lastUpdatedCells = [];
   },
-  addTag(tag, col, row) {
+  toggleTag(tag, rng) {
     let sheetid = _data.currentSheet.sheetId;
+    API.sendTagsMessage("ToggleTags", [tag], rng); 
+
+
     if (_data.allCells[sheetid] && _data.allCells[sheetid][col] && _data.allCells[sheetid][col][row]){
       _data.allCells[sheetid][col][row].cellTags.push(tag);
-      API.sendTagsMessage("AddTags", [tag], col, row);
     }
   },
   setExternalError(err) {
@@ -290,7 +292,7 @@ const ASEvaluationStore = assign({}, BaseStore, {
 
    make2DArrayOf(value, height, length) {
      var arr = [[]], i = height;
-     while (i --) {
+     while (i--) {
        arr[i] = this.makeArrayOf(value, length);
      }
      return arr;
@@ -358,7 +360,9 @@ const ASEvaluationStore = assign({}, BaseStore, {
         return this._dispBoolInLang(true, lang.Server);
       } else if (v.toUpperCase() == "FALSE") {
         return this._dispBoolInLang(false, lang.Server);
-      } else {
+      } else if (v == "#REF!") {
+        return v; 
+      } else { 
         return JSON.stringify(v);
       }
     } else {
@@ -374,10 +378,12 @@ const ASEvaluationStore = assign({}, BaseStore, {
         let row = loc.range.row, col = loc.range.col;
         return {
           "cellLocation": {
+            "tag": "Index",
             locSheetId: sheet,
             index: [col + j, row + i]
           },
           "cellExpression": {
+            "tag": "Expression",
             "expression" : self._expressionFromValue(v, language),
             "language": language.Server
           },
@@ -418,6 +424,14 @@ const ASEvaluationStore = assign({}, BaseStore, {
     A cell in this class and stored in _data has the format from CellConverter, returned from eval
   */
 
+  addCell(cell, sheetid, col, row) { 
+    if (!_data.allCells[sheetid])
+      _data.allCells[sheetid] = [];
+    if (!_data.allCells[sheetid][col])
+      _data.allCells[sheetid][col] = [];
+    _data.allCells[sheetid][col][row] = cell;
+  },
+
   /* Function to update cell related objects in store. Caller's responsibility to clear lastUpdatedCells if necessary */
   updateData(cells) {
     console.log("About to update data in store: " + JSON.stringify(cells));
@@ -431,11 +445,7 @@ const ASEvaluationStore = assign({}, BaseStore, {
       let val = Converter.clientCellGetValueObj(c);
 
       if (xp.expression != "") {
-        if (!_data.allCells[sheetid])
-          _data.allCells[sheetid] = [];
-        if (!_data.allCells[sheetid][col])
-          _data.allCells[sheetid][col] = [];
-        _data.allCells[sheetid][col][row] = c;
+        this.addCell(c, sheetid, col, row);
         _data.lastUpdatedCells.push(c);
       } else {
         removeCells.push(c); // filter out all the blank cells passed back from the store
