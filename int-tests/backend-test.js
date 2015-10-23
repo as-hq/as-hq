@@ -196,7 +196,7 @@ describe('backend', () => {
 
   function delete_(rng) {
     return apiExec(() => {
-      API.sendRepeatRequest(locFromExcel(rng)); 
+      API.sendDeleteRequest(locFromExcel(rng)); 
     });
   }
 
@@ -638,6 +638,14 @@ describe('backend', () => {
             excel('A2', 'false'),
             shouldBe('A1', valueB(true)),
             shouldBe('A2', valueB(false)),
+            exec(done)
+          ]);
+        });
+
+        it('should recognize emptry strings', (done) => {
+          _do([
+            excel('A1', '   '),
+            shouldBe('A1', valueS('   ')),
             exec(done)
           ]);
         });

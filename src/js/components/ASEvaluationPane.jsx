@@ -502,6 +502,8 @@ export default React.createClass({
     /* Save expression in store if repl is about to close */
     if (this.state.replOpen) {
       ReplActionCreator.replLeft(this.state.replLanguage.Display,this._replValue());
+    } else {
+      this._getReplEditor().focus();
     }
     this.setState({replOpen: !this.state.replOpen});
   },
