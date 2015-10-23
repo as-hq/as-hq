@@ -139,7 +139,7 @@ castVector v = do
         if (isRPlot listNames)
           then do
             uid <- liftIO getUniqueId
-            path <- liftIO $ getImagesPath
+            path <- liftIO getImagesPath
             let imageUid = uid ++ ".png"
                 imagePath = path ++ imageUid
             [r|ggsave(filename=imagePath_hs, plot=AS_LOCAL_EXEC)|]

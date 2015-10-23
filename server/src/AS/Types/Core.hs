@@ -8,10 +8,11 @@ import Data.Aeson hiding (Success)
 import Data.Aeson.Types (defaultOptions)
 import Data.Text hiding (foldr, map)
 import Data.ByteString (ByteString)
-import Data.ByteString.Char8 as BC
+import qualified Data.ByteString.Char8 as BC
 import qualified Network.WebSockets as WS
 import qualified Database.Redis as R
 import qualified Data.Map as M
+import qualified Data.Text as T
 import Control.Concurrent (MVar)
 import Control.Applicative
 
@@ -176,9 +177,7 @@ data ASPayload =
     PayloadN ()
   | PayloadInit ASInitConnection
   | PayloadDaemonInit ASInitDaemonConnection
-  | PayloadC ASCell
   | PayloadCL [ASCell]
-  | PayloadL ASIndex
   | PayloadLL [ASIndex]
   | PayloadR ASRange
   | PayloadS ASSheet
@@ -321,14 +320,9 @@ isColocated c1 c2 = (cellLocation c1) == (cellLocation c2)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- JSON
-instance ToJSON ASReference
 instance FromJSON ASReference
 -- instance ToJSON EvalErrorType
 -- instance FromJSON EvalErrorType
-instance ToJSON ASIndex
-instance FromJSON ASIndex
-instance ToJSON ASRange
-instance FromJSON ASRange
 instance ToJSON ASValue
 instance FromJSON ASValue
 instance ToJSON ASLanguage
@@ -341,7 +335,7 @@ instance ToJSON ASAction
 instance FromJSON ASAction
 instance ToJSON ASResult
 instance FromJSON ASResult
-instance ToJSON ASPayload
+--instance ToJSON ASPayload
 instance FromJSON ASPayload
 instance ToJSON ASInitConnection
 instance FromJSON ASInitConnection
@@ -349,8 +343,6 @@ instance ToJSON ASExecError
 instance FromJSON ASExecError
 instance FromJSON EError
 instance ToJSON EError
-instance ToJSON ASWindow
-instance FromJSON ASWindow
 instance ToJSON ASSheet
 instance FromJSON ASSheet
 instance ToJSON StreamSource
@@ -383,21 +375,30 @@ instance ToJSON ASCommit
 -- { messageUserId: blah, action: blah, result: blah, payload: blah }
 instance ToJSON ASClientMessage where
   toJSON (ClientMessage action payload) = object ["action" .= action, "payload" .= payload]
+
 instance FromJSON ASClientMessage where
   parseJSON (Object v) = ClientMessage <$>
                            v .: "action" <*>
                            v .: "payload"
   parseJSON _          = fail "client message JSON attributes missing"
+
 instance ToJSON ASServerMessage where
   toJSON (ServerMessage action result payload) = object ["action" .= action,
                                                         "result" .= result,
                                                         "payload" .= payload]
+
 instance FromJSON ASServerMessage where
   parseJSON (Object v) = ServerMessage <$>
                            v .: "action" <*>
                            v .: "result" <*>
                            v .: "payload"
   parseJSON _          = fail "server message JSON attributes missing"
+
+instance ToJSON ASPayload where
+  toJSON (PayloadWorkbookSheets wbs) = object ["tag" .= ("PayloadWorkbookSheets" :: String),
+                                               "contents" .= fields]
+    where fields = object $ map (\wb -> (T.pack $ wsName wb) .= wb) wbs
+  toJSON a = genericToJSON defaultOptions a
 
 instance FromJSON ASCellTag
 instance ToJSON ASCellTag
@@ -410,6 +411,59 @@ instance ToJSON ASCellTag
 --    case listField of
 --      Nothing -> genericParseJSON defaultOptions obj
 --      (Just k) -> return . ListMember $ BC.pack k
+
+instance ToJSON ASIndex where
+  toJSON (Index sid (c,r)) = object ["tag"     .= ("index" :: String),
+                                     "sheetId" .= sid,
+                                     "index"   .= object ["row" .= r, 
+                                                          "col" .= c]]
+
+instance FromJSON ASIndex where
+  parseJSON (Object v) = do
+    loc <- v .: "index"
+    sid <- v .: "sheetId"
+    idx <- (,) <$> loc .: "col" <*> loc .: "row"
+    return $ Index sid idx
+
+instance ToJSON ASRange where
+  toJSON (Range sid ((c,r),(c2,r2))) = object ["tag" .= ("range" :: String),
+                                               "sheetId" .= sid,
+                                               "range" .= object [ 
+                                                  "tl" .= object [ "row"  .= r, 
+                                                                   "col"  .= c],
+                                                  "br" .= object [ "row"  .= r2, 
+                                                                   "col"  .= c2]]]
+instance FromJSON ASRange where
+  parseJSON (Object v) = do
+    rng <- v .: "range" 
+    (tl, br) <- (,) <$> rng .: "tl" <*> rng .: "br"
+    tl' <- (,) <$> tl .: "col" <*> tl .: "row"
+    br' <- (,) <$> br .: "col" <*> br .: "row"
+    sid <- v .: "sheetId"
+    return $ Range sid (tl', br')
+
+instance ToJSON ASReference where
+  toJSON (IndexRef idx) = toJSON idx
+  toJSON (RangeRef rng) = toJSON rng
+
+instance ToJSON ASWindow where
+  toJSON (Window sid (c,r) (c2, r2)) = object ["tag" .= ("window" :: String),
+                                               "sheetId" .= sid,
+                                               "range" .= object [ 
+                                                  "tl" .= object [ "row"  .= r, 
+                                                                   "col"  .= c],
+                                                  "br" .= object [ "row"  .= r2, 
+                                                                   "col"  .= c2]]]
+                                               
+
+instance FromJSON ASWindow where
+  parseJSON (Object v) = do
+    rng <- v .: "window" 
+    (tl, br) <- (,) <$> rng .: "tl" <*> rng .: "br"
+    tl' <- (,) <$> tl .: "col" <*> tl .: "row"
+    br' <- (,) <$> br .: "col" <*> br .: "row"
+    sid <- v .: "sheetId"
+    return $ Window sid tl' br'
 
 
 -- memory region exposure instances for R value unboxing
