@@ -72,38 +72,39 @@ export default {
   },
 
   tagsToRenderConfig(config, tags) {
-    // TODO tags
     let self = this;
-    tags.for
-    switch(tag.tag) {
-      case "TextColor":
-        config.fgColor = self.colorToHtml(tag.contents);
-        return config;
-      case "BgColor":
-        config.bgColor = self.colorToHtml(tag.contents);
-        return config;
-      case "Align":
-        config.halign = tag.contents.toLowerCase();
-        return config;
-      case "Money":
-        config.value = self.formatMoney(config.value, tag.contents, 2);
-        return config;
-      case "Percentage":
-        config.value = self.formatPercentage(config.value);
-        return config;
-      case "Streaming":
-        config.isStreaming = true;
-        return config;
-      case "ListMember":
-        // TODO change config to identify visually as list member
-        config.bgColor = colors["cornsilk"];
-        return config;
-      case "DFMember":
-        config.bgColor = colors["lavender"];
-        return config;
-      default:
-        return config;
+    for (var i=0; i<tags.length; i++) {
+      let tag = tags[i];
+      switch(tag.tag) {
+        case "TextColor":
+          config.fgColor = self.colorToHtml(tag.contents);
+          break;
+        case "BgColor":
+          config.bgColor = self.colorToHtml(tag.contents);
+          break;
+        case "Align":
+          config.halign = tag.contents.toLowerCase();
+          break;
+        case "Money":
+          config.value = self.formatMoney(config.value, tag.contents, 2);
+          break;
+        case "Percentage":
+          config.value = self.formatPercentage(config.value);
+          break;
+        case "Streaming":
+          config.isStreaming = true;
+          break;
+        case "ListMember":
+          config.bgColor = colors["cornsilk"];
+          break;
+        case "DFMember":
+          config.bgColor = colors["lavender"];
+          break;
+        default:
+          break;
+      }
     }
+    return config;
   },
 
   valueToRenderConfig(config, val) {

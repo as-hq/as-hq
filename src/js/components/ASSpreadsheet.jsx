@@ -7,6 +7,7 @@ import Store from '../stores/ASEvaluationStore';
 import Util from '../AS/Util';
 import Constants from '../Constants';
 import Render from '../AS/Render';
+import Converter from '../AS/Converter';
 
 import ASOverlay from './ASOverlay.jsx';
 import Textbox from './Textbox.jsx'
@@ -49,13 +50,13 @@ export default React.createClass({
                   br: {row: ul.y + selection.height() + 1,
                        col: ul.x + selection.width() + 1}
                 }),
-        area = {
+        sel = {
           range: range,
           width:  range.br.col - range.tl.col + 1,
           height: range.br.row - range.tl.row + 1,
           origin: {row: ul.y + 1, col: ul.x + 1}
       };
-    return area;
+    return sel;
   },
   /* Returns the position of scroll */
   getScroll() {
@@ -64,23 +65,23 @@ export default React.createClass({
   },
 
   getViewingWindow() {
-    let hg = this._getHypergrid();
-    let [vs, hs] = [hg.vScrollValue, hg.hScrollValue];
-    let [cols, rows] = [hg.getVisibleColumns(), hg.getVisibleRows()];
+    let hg = this._getHypergrid(),
+        [vs, hs] = [hg.vScrollValue, hg.hScrollValue],
+        [cols, rows] = [hg.getVisibleColumns(), hg.getVisibleRows()];
     return { range: {tl: {row: vs+1, col: hs+1},
                      br: {row: vs + rows.length, col: hs + cols.length}},
              width: cols.length,
              height: rows.length };
   },
   getViewingWindowWithCache() {
-    let vWindow = this.getViewingWindow(),
-        {tl, br} = vWindow.range,
-        rng = { tl: {row: tl.row - Constants.scrollCacheY,
-                     col: tl.col - Constants.scrollCacheY},
-                br: {row: br.row + Constants.scrollCacheY,
-                     col: br.col + Constants.scrollCacheX} };
-    vWindow.range = rng;
-    return vWindow;
+    let hg = this._getHypergrid(),
+        [vs, hs] = [hg.vScrollValue, hg.hScrollValue],
+        [cols, rows] = [hg.getVisibleColumns(), hg.getVisibleRows()],
+        tl = Util.getSafeIndex({row: vs+Constants.scrollCacheY, col: hs+Constants.scrollCacheX}),
+        br = Util.getSafeIndex({row: vs+rows.length+Constants.scrollCacheY, col: hs+cols.length+Constants.scrollCacheX});
+    return { range: {tl: tl, br: br},
+             width: br.col - tl.col,
+             height: br.row - tl.row };
   },
   isVisible(col, row){ // faster than accessing hypergrid properties
     return (this.state.scroll.x <= col && col <= this.state.scroll.x+Constants.numVisibleCols) &&
@@ -107,16 +108,17 @@ export default React.createClass({
     // expects that the current sheet has already been set
     // e,g, by open/new dialog
     API.openSheet(Store.getCurrentSheet());
-    API.updateViewingWindow({tl: {row: 1, col: 1},
-                             br: {row: Constants.numVisibleRows + Constants.scrollCacheY,
-                                  col: Constants.numVisibleCols + Constants.scrollCacheX} });
+    let viewingRange = {tl: {row: 1, col: 1},
+                        br: {row: Constants.numVisibleRows + Constants.scrollCacheY,
+                             col: Constants.numVisibleCols + Constants.scrollCacheX} },
+        viewingWindow = Converter.rangeToASWindow(viewingRange);
+    API.updateViewingWindow(viewingWindow);
   },
   /* Called by eval pane's onChange method, when eval pane receives a change event from the store */
   updateCellValues(clientCells){
-    // console.log("About to display cells in sheet: " + JSON.stringify(clientCells));
     let model = this._getBehavior();
     for (var key in clientCells){ // update the hypergrid values
-      let c = clientCells[key];
+      let c = clientCells[key],
           gridCol = c.cellLocation.index.col-1, // hypergrid starts indexing at 0
           gridRow = c.cellLocation.index.row-1, // hypergrid starts indexing at 0
           display = Util.showValue(c.cellValue);
@@ -307,6 +309,7 @@ export default React.createClass({
   },
 
   shiftSelectionArea(dc, dr){
+    console.log(dc, dr);
     let sel = Store.getActiveSelection(),
         {tl, br} = sel.range,
         range = {tl: {row: tl.row + dr, col: tl.col + dc},

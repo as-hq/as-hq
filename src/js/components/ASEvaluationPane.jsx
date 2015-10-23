@@ -122,7 +122,6 @@ export default React.createClass({
         Store.setActiveCellDependencies(deps);
         break;
     }
-    console.log("ACTIVE: " + JSON.stringify(Store.getActiveSelection()));
     this.refs.spreadsheet.repaint();
   },
 
@@ -394,11 +393,9 @@ export default React.createClass({
   */
   // Note: if the selection is a Reference, we produce a 'pseudo' expression
   // using Converter.clientCellGetExpressionObj
-  _onSelectionChange(area) {
-    // console.log("Handling selection change: " + JSON.stringify(rng));
-    let rng = area.range,
-        origin = area.origin,
-        cell = Store.getCell(origin.col,origin.row),
+  _onSelectionChange(sel) {
+    let rng = sel.range,
+        cell = Store.getCell(sel.origin.col, sel.origin.row),
         changeSel = cell && !this.state.userIsTyping && cell.cellExpression,
         shiftSelEmpty  = this.state.userIsTyping &&
                          !Util.canInsertCellRefInXp(this.state.expressionWithoutLastRef),
@@ -406,7 +403,7 @@ export default React.createClass({
     if (changeSel || shiftSelExists) {
       let {language,expression} = cell.cellExpression,
           val = cell.cellValue;
-      Store.setActiveSelection(area, expression); // pass in an expression to get parsed dependencies
+      Store.setActiveSelection(sel, expression); // pass in an expression to get parsed dependencies
       console.log("FIRST");
       // here, language is a client/server agnostic object (see Constants.Languages)
       this.setState({ xpChangeDetail:this.xpChange.SEL_CHNG,
@@ -423,7 +420,7 @@ export default React.createClass({
     }
     else if (!this.state.userIsTyping || shiftSelEmpty) {
       console.log("Selected new region empty");
-      Store.setActiveSelection(area, "");
+      Store.setActiveSelection(sel, "");
       this.setState({ xpChangeDetail:this.xpChange.SEL_CHNG,
                       expression: "",
                       expressionWithoutLastRef: "",
@@ -452,16 +449,16 @@ export default React.createClass({
     1) Get the selected region from the ASSpreadsheet component
     2) Send this and the editor state (expression, language) to the API action creator, which will send it to the backend
   */
-  handleEvalRequest(asExpression, moveCol, moveRow) {
-    this.refs.spreadsheet.shiftSelectionArea(moveCol, moveRow);
+  handleEvalRequest(xpObj, moveCol, moveRow) {
 
     /* If user pressed Ctrl Enter, they're not typing out the expression anymore */
     this.killTextbox();
     Store.setActiveCellDependencies([]);
     this.refs.spreadsheet.repaint();
-
-    let asRange = Converter.simpleToASLocation(Store.getActiveSelection().range);
-    API.evaluate(asRange, asExpression);
+    console.log("\n\nDF\n\n", Store.getActiveSelection());
+    let asIndex = Converter.simpleToASIndex(Store.getActiveSelection().origin);
+    this.refs.spreadsheet.shiftSelectionArea(moveCol, moveRow);
+    API.evaluate(asIndex, xpObj);
   },
 
   openSheet(sheet) {
@@ -471,9 +468,9 @@ export default React.createClass({
   },
 
   /* When a REPl request is made, first update the store and then send the request to the backend */
-  handleReplRequest(asExpression) {
+  handleReplRequest(xpObj) {
     ReplActionCreator.storeReplExpression(this.state.replLanguage.Display,this._replValue());
-    API.evaluateRepl(asExpression);
+    API.evaluateRepl(xpObj);
   },
 
 

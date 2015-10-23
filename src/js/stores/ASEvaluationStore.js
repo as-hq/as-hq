@@ -76,7 +76,8 @@ dispatcherIndex: Dispatcher.register(function (action) {
         It gets previous scroll state from the store and then uses the API to send a "get cells" message to server
       */
       case Constants.ActionTypes.SCROLLED:
-        API.updateViewingWindow(action.vWindow);
+        let viewingWindow = Converter.rangeToASWindow(action.vWindow.range);
+        API.updateViewingWindow(viewingWindow);
         break;
       /*
         The cells have been fetched from the server for a get request (for example, when scrolling)
@@ -161,14 +162,14 @@ const ASEvaluationStore = assign({}, BaseStore, {
   },
 
   // Requires that a range having row2 implies a range has col2, and vice versa
-  setActiveSelection(area, xp) {
-    let origin = area.origin;
-    _data.activeSelection = area;
-    console.log("\n\norigin cell\n", this.getCell(origin.col, origin.row));
+  setActiveSelection(sel, xp) {
+    let origin = sel.origin;
+    _data.activeSelection = sel;
+    console.log("\n\nsetting active sel\n\n", sel);
     _data.activeCell = this.getCell(origin.col, origin.row) || Converter.makeEmptyCell();
     var activeCellDependencies = Util.parseDependencies(xp);
-    let c = area.origin.col,
-        r = area.origin.row,
+    let c = sel.origin.col,
+        r = sel.origin.row,
         listDep = this.getParentList(c, r);
     if (listDep) {
       activeCellDependencies.push(listDep);
@@ -297,12 +298,9 @@ const ASEvaluationStore = assign({}, BaseStore, {
     var self = this;
      return function(i){
        return function(v, j) {
-        let l = Converter.makeIndex(_data.currentSheet.sheetId,
-                                    loc.col + j,
-                                    loc.row + i),
+        let asIndex = Converter.simpleToASIndex({col: loc.col + j, row: loc.row + i}),
             xpStr = Converter.externalStringToExpression(v, language);
-
-         return Converter.makeEvalCell(l, xpStr, language);
+         return Converter.makeEvalCell(asIndex, xpStr, language);
        };
      };
    },
@@ -347,11 +345,8 @@ const ASEvaluationStore = assign({}, BaseStore, {
   setCell(c) {
     let {col, row} = c.cellLocation.index,
         sheetId = c.cellLocation.sheetId;
-    if (!_data.allCells[sheetId]){
-      _data.allCells[sheetId] = [];
-    } else if (!_data.allCells[sheetId][col]) {
-      _data.allCells[sheetId][col] = [];
-    }
+    if (!_data.allCells[sheetId]) _data.allCells[sheetId] = [];
+    if (!_data.allCells[sheetId][col]) _data.allCells[sheetId][col] = [];
     _data.allCells[sheetId][col][row] = c;
   },
 

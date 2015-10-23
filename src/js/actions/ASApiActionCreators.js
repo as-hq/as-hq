@@ -195,10 +195,7 @@ export default {
   /* Sending admin-related requests to the server */
 
   getWorkbooks() {
-    // console.log("Getting workbooks");
-    let msg = Converter.makeClientMessage('Get',
-                                              'PayloadList',
-                                              'WorkbookSheets');
+    let msg = Converter.makeClientMessage('Get', 'PayloadList', 'WorkbookSheets');
     this.send(msg);
   },
 
@@ -211,12 +208,11 @@ export default {
   /* Sending an eval request to the server */
 
   /* This function is called by handleEvalRequest in the eval pane */
-  evaluate(idx,xpObj){
-    // console.log("In eval action creator");
-    let asCell = Converter.makeEvalCell(idx, xpObj.expression, xpObj.language);
-    let msg = Converter.makeClientMessage(Constants.ServerActions.Evaluate,
-                                          "PayloadCL", [asCell]);
-    // console.log('Sending msg to server: ' + JSON.stringify(msg));
+  evaluate(asIndex,xpObj){
+    let asCell = Converter.makeEvalCell(asIndex, xpObj),
+        msg = Converter.makeClientMessage(Constants.ServerActions.Evaluate,
+                                          "PayloadCL",
+                                          [asCell]);
     this.send(msg);
   },
 
@@ -324,10 +320,9 @@ export default {
   },
 
   updateViewingWindow(vWindow) {
-    let sWindow = Converter.addCurrentSheetIdToObj(vWindow),
-        msg = Converter.makeClientMessage(Constants.ServerActions.UpdateWindow,
+    let msg = Converter.makeClientMessage(Constants.ServerActions.UpdateWindow,
                                               "PayloadW",
-                                              sWindow);
+                                              vWindow);
     this.send(msg);
   },
 

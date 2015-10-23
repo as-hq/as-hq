@@ -18,26 +18,21 @@ export default {
   /* Convenience methods for object creation */
 
   makeClientMessage(action, payloadTag, payloadContents) {
-    return {
-      "action": action,
-      "payload": {
-        "tag": payloadTag,
-        "contents": payloadContents
-      }
-    };
+    return this.makeClientMessageRaw(action, { "tag": payloadTag,
+                                               "contents": payloadContents });
   },
 
   makeClientMessageRaw(action, payload) {
     return { "action": action, "payload": payload };
   },
 
-  makeEvalCell(loc, xpString, lang) {
+  makeEvalCell(asIndex, xpObj) {
     return  {
-      "cellLocation": loc,
+      "cellLocation": asIndex,
       "cellExpression": {
         "tag": "Expression",
-        "expression": xpString,
-        "language": lang.Server
+        "expression": xpObj.expression,
+        "language": xpObj.language.Server
       },
       "cellValue":{
         "tag": "NoValue",
@@ -102,13 +97,21 @@ export default {
 
   simpleToASRange(rng) {
     let asRange = {tag: 'range', range: rng};
-    return this.addCurrentSheetIdToObj(rng);
+    return this.addCurrentSheetIdToObj(asRange);
+  },
+
+  simpleToASIndex(idx) {
+    let asIndex = {tag: 'index', index: idx};
+    return this.addCurrentSheetIdToObj(asIndex);
   },
 
   ASLocationToSimple(loc) {
     return (loc.tag === 'index') ? {tl: loc.index, br: loc.index} : loc.range;
   },
 
+  rangeToASWindow(rng) {
+    return this.addCurrentSheetIdToObj({ window: rng });
+  },
 
   /**************************************************************************************************************************/
   /* Message creation */
