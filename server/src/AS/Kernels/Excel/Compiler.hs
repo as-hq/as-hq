@@ -28,7 +28,7 @@ eitherLiteralFormula =
 literal :: Parser Formula
 literal = do
   spaces
-  firstChar <- noneOf ['=']
+  firstChar <- (try $ noneOf ['=']) <|> return ' '
   restChars <- manyTill anyChar (try eof)
   let str = firstChar:restChars
   let val = parse justNumOrBool "" str

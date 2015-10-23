@@ -3,6 +3,8 @@ replFile =  os.getcwd() + "/eval_files/py/repl_record.py"
 imagesPath = os.getcwd() + "/static/images/"
 imagePrefix = "pythonImage"
 
+from matplotlib import use
+use('WxAgg')
 
 from AS.stdlib import *
 from AS.ui.styling import *
