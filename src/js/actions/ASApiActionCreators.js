@@ -169,7 +169,7 @@ export default {
       waitTime = 0; 
     }
 
-    if (waitTime >= 5000 && !refreshDialogShown) { 
+    if (waitTime >= 2000 && !refreshDialogShown) { 
       alert("The connection with the server appears to have been lost. Please refresh the page.");
       refreshDialogShown = true; 
       waitTime = 0; 
@@ -326,6 +326,15 @@ export default {
   sendGetRequest(locs) {
     let msg = Converter.clientLocsToGetMessage(locs);
     // console.log('Sending get message to server: ' + JSON.stringify(msg));
+    this.send(msg);
+  },
+
+  sendRepeatRequest(sel) {
+    let msg = Converter.toServerMessageWithPayload(Constants.ServerActions.Repeat, {
+      tag: "PayloadSelection",
+      selectionRange: Converter.clientToASRange(sel.range),
+      selectionOrigin: Converter.clientToASLocation(sel.origin)
+    });
     this.send(msg);
   },
 

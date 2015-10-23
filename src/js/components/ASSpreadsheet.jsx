@@ -376,12 +376,14 @@ export default React.createClass({
         let locs = activeCell.cellExpression.dependencies;
         // console.log("highlighting dependency: ", locs);
         if (Util.isContainedInLocs(col, row, locs)){
-          config.paintBorders = Util.getPaintedBorders(col, row, locs);
+          // config.paintBorders = Util.getPaintedBorders(col, row, locs);
           // console.log("drawing borders: " + JSON.stringify(config.paintBorders));
-          config.bgColor = "#d3d3d3"; // light grey fill
-          config.borderConfig = {lineType: 0, // solid border type
-                                 width: 2,
-                                 color: "#000000"}; // black border color
+          config.bgColor = "#ffd27f"; // light grey fill
+          // config.borderConfig = {lineType: 0, // solid border type
+          //                        width: 2,
+          //                        color: "#000000"}; // black border color
+          // Commented out by Alex 10/21 -- I think this looks prettier. (esp if e.g.
+          // A1 is referencing A2 and you straight from A1 to A2.)
         }
       }
 
@@ -394,8 +396,6 @@ export default React.createClass({
                                 color: "#003EFF"}; // blue border color
         }
       }
-
-
 
       // clipboard highlighting
       if (clipboard.area && Util.isContainedInLoc(col, row, clipboard.area.range)) {
@@ -425,7 +425,7 @@ export default React.createClass({
         config.paintBorders = Util.getPaintedBordersForSingleCell();
         config.borderConfig = {lineType: 0, // solid border type
                                  width: 3,
-                                 color: "#003EFF"}; // black border color
+                                 color: "#003EFF"}; // blue border color
       }
 
       renderer.config = config;

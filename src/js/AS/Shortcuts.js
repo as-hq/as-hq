@@ -85,6 +85,7 @@ export default {
     });
     ShortcutUtils.addShortcut("common", "esc", "Esc", (wildcard) => {
       console.log("Esc pressed");
+      self.refs.spreadsheet.shiftSelectionArea(0,0); // refocus at current cell
       self.updateTextBox(false);
       Store.setClipboard(null, false);
       self.setState({focus: "grid",userIsTyping:false});
@@ -95,6 +96,13 @@ export default {
     ShortcutUtils.addShortcut("common", "find", "Ctrl+F", (wildcard) => {
       console.log("Find pressed");
       self.setState({showFindBar:true,userIsTyping:false});
+    });
+    ShortcutUtils.addShortcut("common", "grid_tab", "Tab", (wildcard) => {
+      let editorState = {
+        exp: self._getRawEditor().getValue(),
+        lang: self.state.language
+      };
+      self.handleEvalRequest(editorState, 0, 1);
     });
 
     // repl shortcuts -------------------------------------------------------------------------------
@@ -168,6 +176,10 @@ export default {
     });
     ShortcutUtils.addShortcut("grid", "grid_moveto_end_sheet", "Ctrl+End", (wildcard) => {
       //TODO
+    });
+    ShortcutUtils.addShortcut("grid", "grid_repeat_last_action", "Ctrl+Y", (wildcard) => {
+      let sel = Store.getActiveSelection();
+      API.sendRepeatRequest(sel);
     });
     ShortcutUtils.addShortcut("grid", "move_vwindow_above", "PageUp", (wildcard) => {
       let dY = self.refs.spreadsheet.getVisibleRows();
