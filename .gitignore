@@ -12,7 +12,7 @@ dump.rdb
 server/Index*
 server/*.pid
 
-debug_log
+server/server_log
 
 server/eval_files/**/*
 server/eval_files/py/run.py

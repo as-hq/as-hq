@@ -27,8 +27,7 @@ eitherLiteralFormula =
 
 literal :: Parser Formula
 literal = do
-  spaces
-  firstChar <- (try $ noneOf ['=']) <|> return ' '
+  firstChar <- noneOf ['='] -- if the first char is =, it's a formula. 
   restChars <- manyTill anyChar (try eof)
   let str = firstChar:restChars
   let val = parse justNumOrBool "" str
@@ -39,9 +38,8 @@ literal = do
 -- | Formulas.
 formula :: Parser ContextualFormula
 formula =  do
-  spaces
   opener <- option ' ' $ try (char '{')
-  spaces >> symbol "=" >> spaces
+  symbol "="
   f <- expr
   case opener of
     '{' -> char '}' >> eof >> (return $ ArrayFormula f)
