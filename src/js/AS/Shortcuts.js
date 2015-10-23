@@ -28,6 +28,13 @@ export default {
       };
       self.handleEvalRequest(editorState, 1, 0);
     });
+    ShortcutUtils.addShortcut("common", "cell_eval_right", "Tab", (wildcard) => {
+      let editorState = {
+        exp: self._getRawEditor().getValue(),
+        lang: self.state.language
+      };
+      self.handleEvalRequest(editorState, 0, 1);
+    });
     ShortcutUtils.addShortcut("common", "cell_eval_arrayformula", "Ctrl+Shift+Enter", (wildcard) => {
       var editorValue = self._getRawEditor().getValue();
       console.log(self.state.language);
