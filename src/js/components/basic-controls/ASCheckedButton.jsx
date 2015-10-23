@@ -50,7 +50,7 @@ export default React.createClass({
     let labelElementStyle = {
       position: 'relative',
       opacity: 1,
-      fontSize: '10px',
+      fontSize: '18px',
       letterSpacing: 0,
       textTransform: 'uppercase',
       fontWeight: Typography.fontWeightMedium,
@@ -69,9 +69,9 @@ export default React.createClass({
       <div style={{ display: 'inline' }}>
         <FontIcon
           style={{
-            float: 'left',
-            fontSize: '18px',
-            lineHeight: '24px'
+            width:"90%",
+            height:"90%",
+            verticalAlign:"middle"
           }}
           className="material-icons"
           color={Colors.grey50}
@@ -97,9 +97,6 @@ export default React.createClass({
       <ASButton
         ref="button"
         labelElement={labelElement}
-        labelStyle={{
-          padding: '0px 7px'
-        }}
         style={{
           width: width,
           minWidth: width,

@@ -1,7 +1,7 @@
 import keyMirror from 'react/lib/keyMirror';
 
 export default {
-  HOST_WS: 'ws://localhost:5000',
+  HOST_WS: 'ws://18.102.225.27:5000',
 
   // event name triggered from store, listened to by views
   CHANGE_EVENT: 'change',
@@ -45,7 +45,9 @@ export default {
     REPL_LEFT:null,
     GOT_REPL_RESP:null,
     GOT_NEW_WORKBOOKS: null,
-    DELETED_WORKBOOKS: null
+    DELETED_WORKBOOKS: null,
+    FIND_INCREMENTED:null,
+    FIND_DECREMENTED:null
   }),
 
   ActionSources: keyMirror({
@@ -108,6 +110,7 @@ export default {
     Close: "Close",
     Import: "Import",
     Repl: "EvaluateRepl",
-    New: "New"
+    New: "New",
+    Find:"Find"
   }
 };

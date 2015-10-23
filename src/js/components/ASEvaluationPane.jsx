@@ -2,7 +2,8 @@ import React from 'react';
 import ASCodeEditor from './ASCodeEditor.jsx';
 import ASSpreadsheet from './ASSpreadsheet.jsx';
 import Store from '../stores/ASEvaluationStore';
-import ReplStore from '../stores/ASReplStore'
+import ReplStore from '../stores/ASReplStore';
+import FindStore from '../stores/ASFindStore';
 import API from '../actions/ASApiActionCreators';
 import ReplActionCreator from '../actions/ASReplActionCreators';
 import Shortcuts from '../AS/Shortcuts';
@@ -16,6 +17,10 @@ import {Snackbar} from 'material-ui';
 
 import Repl from './repl/Repl.jsx'
 import ResizableRightPanel from './repl/ResizableRightPanel.jsx'
+import ASFindBar from './ASFindBar.jsx'
+import ASFindModal from './ASFindModal.jsx'
+import FindAction from '../actions/ASFindActionCreators';
+
 
 export default React.createClass({
 
@@ -65,7 +70,9 @@ export default React.createClass({
       replLanguage: Constants.Languages.Python,
       replSubmittedLanguage: null,
       focusDx: null,
-      focusDy: null
+      focusDy: null,
+      showFindBar:false,
+      showFindModal:false
     };
   },
   setLanguage(lang) {
@@ -175,6 +182,7 @@ export default React.createClass({
     window.addEventListener('paste',this.handlePasteEvent);
     window.addEventListener('cut',this.handleCutEvent);
     Store.addChangeListener(this._onChange);
+    FindStore.addChangeListener(this._onFindChange);
     ReplStore.addChangeListener(this._onReplChange);
     this._notificationSystem = this.refs.notificationSystem;
     Shortcuts.addShortcuts(this);
@@ -185,6 +193,7 @@ export default React.createClass({
     window.removeEventListener('cut',this.handleCutEvent);
     API.sendClose();
     Store.removeChangeListener(this._onChange);
+    FindStore.removeChangeListener(this._onFindChange);
     ReplStore.removeChangeListener(this._onReplChange);
 
   },
@@ -518,15 +527,51 @@ export default React.createClass({
 
 
   /**************************************************************************************************************************/
+  /* Find bar and modal */
+
+  closeFindBar(){
+    this.setState({showFindBar:false});
+  },
+  closeFindModal(){
+    this.setState({showFindModal:false});
+  },
+  onFindBarEnter(){
+      API.sendFindRequest(FindStore.getFindText());
+  },
+  openFindModal(){
+    this.setState({showFindBar:false, showFindModal: true});
+  },
+  onFindBarNext(){
+    FindAction.incrementSelection();
+  },
+  onFindBarPrev(){
+    FindAction.decrementSelection();
+  },
+  _onFindChange(){
+    this.refs.spreadsheet.repaint();
+  },
+
+
+  /**************************************************************************************************************************/
   /* The eval pane is the code editor plus the spreadsheet */
   getEditorHeight() { // for future use in resize events
     return Constants.editorHeight + "px";
   },
 
   render() {
-    let {expression, language} = this.state;
+    let {expression, language} = this.state,
+        highlightFind = this.state.showFindBar || this.state.showFindModal;
+    // highlightFind is for the spreadsheet to know when to highlight found locs
+    // display the find bar or modal based on state
     let leftEvalPane =
       <div style={{height: '100%'}}>
+        {this.state.showFindBar ? <ASFindBar onEnter={this.onFindBarEnter} 
+                                             onNext={this.onFindBarNext}
+                                             onPrev={this.onFindBarPrev}
+                                             onClose={this.closeFindBar} 
+                                             onModal={this.openFindModal}/> : null}
+        {this.state.showFindModal ? <ASFindModal initialSelection={0} 
+                                                 onClose={this.closeFindModal} /> : null}
         <ASCodeEditor
           ref='editorPane'
           language={language}
@@ -540,6 +585,7 @@ export default React.createClass({
           width="100%" height={this.getEditorHeight()} />
         <ASSpreadsheet
           ref='spreadsheet'
+          highlightFind={highlightFind}
           textBoxChange={this.textBoxChange}
           onDeferredKey={this._onGridDeferredKey}
           onTextBoxDeferredKey={this._onTextBoxDeferredKey}

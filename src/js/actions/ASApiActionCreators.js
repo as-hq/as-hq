@@ -140,6 +140,17 @@ wss.onmessage = function (event) {
           response:msg.payload.contents
         });
         break;
+      case "Find":
+        let toClientLoc = function(x){
+          return {row:x.index[1],col:x.index[0]};
+        };
+        let clientLocs = msg.payload.contents.map(toClientLoc);
+        console.log("GOT BACK FIND RESPONSE: " + JSON.stringify(clientLocs));
+        Dispatcher.dispatch({
+          type: ActionTypes.GOT_FIND,
+          findLocs:clientLocs
+        });
+        break;
     }
   }
 };
@@ -253,6 +264,18 @@ export default {
     }
     this.send(msg);
   },
+  sendFindRequest(findText){
+    let msg = Converter.toServerMessageWithPayload(Constants.ServerActions.Find, {
+      tag: "PayloadFind",
+      findText: findText,
+      matchWithCase:false,
+      matchType:0,
+      currentSheet: "INIT_SHEET_ID",
+      matchFullContents:false
+    });
+    this.send(msg);
+    console.log("SENT FIND MSG");
+  },
 
   /**************************************************************************************************************************/
   /* Sending REPL messages to the server */
@@ -265,10 +288,6 @@ export default {
       language: editorState.lang
     });
     this.send(msg);
-    // Dispatcher.dispatch({
-    //   type: ActionTypes.GOT_REPL_RESP,
-    //   response:{lang:"Python",value:"44"}
-    // });
   },
 
 

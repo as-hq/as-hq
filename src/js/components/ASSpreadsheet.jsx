@@ -5,12 +5,14 @@ import Converter from '../AS/Converter';
 import API from '../actions/ASApiActionCreators';
 import KeyUtils from '../AS/KeyUtils';
 import Store from '../stores/ASEvaluationStore';
+import FindStore from '../stores/ASFindStore';
 import Util from '../AS/Util';
 import Constants from '../Constants';
 import Render from '../AS/Render';
 
 import ASOverlay from './ASOverlay.jsx';
 import Textbox from './Textbox.jsx'
+
 
 export default React.createClass({
 
@@ -245,6 +247,8 @@ export default React.createClass({
                  onKeyDown={this.handleTextBoxKeyDown}
                  textBoxChange={this.props.textBoxChange}/>
 
+        
+
       </div>
     );
   },
@@ -400,6 +404,21 @@ export default React.createClass({
                                  width: 3,
                                  color: clipboard.isCut ? "#ff0000" : "#4169e1"}; // red cut, blue copy
       }
+
+      // find highlighting
+      if (self.props.highlightFind){ // render iff eval pane's bar or modal is active
+        for (var key in FindStore.getFindLocs()){
+          let loc = FindStore.getFindLocs()[key];
+          if (Util.isContainedInLoc(col,row,loc)){
+            config.bgColor = "yellow"; 
+            if (FindStore.getFindPos()==key){ // the currently selected match has a border
+              config.paintBorders = Util.getPaintedBorders(col, row, loc);
+              config.borderConfig = {lineType: 0, width: 3, color:'green'};
+            }
+          }
+        }
+      }
+     
 
       // origin border
       if (sel.origin.col === col && sel.origin.row === row) {
