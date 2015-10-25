@@ -67,7 +67,9 @@ data EError =
   REF String |
   NA String  |
   NUM String |
-  DIV0
+  DIV0 | 
+  NegExpBaseWithFloatingExp | 
+  ZeroToTheZero
   deriving (Show, Read, Eq, Ord, Generic)
 
 data ASValue =

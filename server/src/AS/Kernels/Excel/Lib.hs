@@ -103,6 +103,7 @@ functions =  M.fromList $
     ("-"              , infixD eMinus),
     ("*"              , infixD eMult),
     ("/"              , infixD eDivide),
+    ("^"              , infixD ePower),
     ("="              , infixD eEquals),
     ("<>"             , infixD eNotEquals),
     (">="             , infixD eGreaterE),
@@ -231,7 +232,7 @@ topLeftForMatrix _ r = r
 
 evalBasicFormula :: Context -> BasicFormula -> EResult
 evalBasicFormula c (Ref exLoc) = locToResult $ exRefToASRef (shName (curLoc c)) exLoc
-evalBasicFormula c (Var val)     = valToResult val
+evalBasicFormula c (Var val)   = valToResult val
 evalBasicFormula c (Fun f fs)  = do
   fDes <- getFunc f
   let args = map (getFunctionArg c fDes) (zip [1..] fs)
@@ -962,8 +963,8 @@ eSqrt = oneArgDouble "sqrt" sqrt
 eProduct :: EFunc
 eProduct = collapseNumeric (*)
 
--- | Finds the product of all of its arguments, decomposing matrices
--- | Built-in product starts folding with ValueD, so we use foldl1'
+-- | Finds the sum of all of its arguments, decomposing matrices
+-- | Built-in sum starts folding with ValueD, so we use foldl1'
 eSum :: EFunc
 eSum = collapseNumeric (+)
 
@@ -1462,6 +1463,15 @@ numInfix name f c e = do
   b <- getRequired "numeric" name 2 e :: ThrowsError ENumeric
   valToResult $ EValueNum $ f a b
 
+isZero :: ENumeric -> Bool 
+isZero (EValueD 0) = True
+isZero (EValueI 0) = True
+isZero _ = False
+
+isNonnegative :: ENumeric -> Bool
+isNonnegative (EValueD a) = (a >= 0)
+isNonnegative (EValueI a) = (a >= 0)
+
 eAdd :: EFunc
 eAdd = numInfix "+" (+)
 
@@ -1475,9 +1485,21 @@ eDivide :: EFunc
 eDivide c e = do
   a <- getRequired "numeric" "/" 1 e :: ThrowsError ENumeric
   b <- getRequired "numeric" "/" 2 e :: ThrowsError ENumeric
-  if ((b == EValueD 0) || (b == EValueI 0))
+  if (isZero b)
     then Left DIV0
     else valToResult $ EValueNum $ a / b
+
+ePower :: EFunc
+ePower c e = do
+  a <- getRequired "numeric" "^" 1 e :: ThrowsError ENumeric
+  b <- getRequired "numeric" "^" 2 e :: ThrowsError ENumeric
+  if (isZero a && isZero b) 
+    then Left ZeroToTheZero
+    else case b of 
+      EValueI _ -> valToResult $ EValueNum $ intExp a b
+      EValueD _ -> if isNonnegative a 
+        then valToResult $ EValueNum $ floatExp a b
+        else Left NegExpBaseWithFloatingExp
 
 boolInfix :: String -> (EValue -> EValue -> Bool) -> EFunc
 boolInfix name f c e = do 

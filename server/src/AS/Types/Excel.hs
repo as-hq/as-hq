@@ -71,6 +71,8 @@ instance Ord ENumeric where
 instance Num ENumeric where
   negate (EValueI i) = EValueI (-i)
   negate (EValueD d) = EValueD (-d)
+  signum (EValueI i) = EValueI $ signum i
+  signum (EValueD d) = EValueD $ signum d
   abs (EValueD d) = EValueD (abs d)
   abs (EValueI i) = EValueI (abs i)
   (+) (EValueD d) (EValueD d') = EValueD (d+d')
@@ -83,11 +85,22 @@ instance Num ENumeric where
   (*) (EValueI i) (EValueI i') = EValueI (i*i')
   fromInteger a = (EValueD (fromIntegral a))
 
+intExp :: ENumeric -> ENumeric -> ENumeric
+intExp (EValueI b) (EValueI e)
+  | e >= 0    = EValueI $ b ^ e
+  | otherwise = EValueD $ (fromIntegral b) ^^ e
+intExp (EValueD b) (EValueI e) = EValueD $ b ^^ e
+
+floatExp :: ENumeric -> ENumeric -> ENumeric
+floatExp (EValueI b) (EValueD e) = EValueD $ (fromIntegral b) ** e
+floatExp (EValueD b) (EValueD e) = EValueD $ b ** e
+
 instance Fractional ENumeric where
   (/) (EValueD d) (EValueD d') = EValueD $ d/d'
   (/) (EValueI i) (EValueD d) = EValueD $ (fromIntegral i)/d
   (/) (EValueD d) (EValueI i) = EValueD $ (fromIntegral i)/d
   (/) (EValueI i) (EValueI i') = EValueD $ (fromIntegral i)/(fromIntegral i')
+  fromRational r = EValueD $ fromRational r
 
 data EValue =
   EBlank | -- value doesn't exist in DB
@@ -144,10 +157,10 @@ class EType a where
   getRequired typeName f i entities
     | length entities < i = Left $ RequiredArgMissing f i
     | otherwise = case (extractType entity) of
-      Nothing -> Left $ ArgType f i typeName (getType entity)
-      Just x  -> Right x
-      where
-        entity = entities!!(i-1)
+        Nothing -> Left $ ArgType f i typeName (getType entity)
+        Just x  -> Right x
+        where
+          entity = entities!!(i-1)
   -- | Same as above, but allow for a default value (optional argument)
   getOptional :: String -> a -> ExtractArg a
   getOptional typeName defaultVal f i entities
