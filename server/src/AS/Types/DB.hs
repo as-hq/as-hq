@@ -16,7 +16,7 @@ data ASTransaction = Transaction {transactionUserId :: ASUserId,
                                   lists :: [ASList]}
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
--- | Queries
+-- Queries
 
 data GraphQuery = 
   GetDescendants |
@@ -27,27 +27,37 @@ data GraphQuery =
 
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
--- | compressed read/show 
+-- Delimiters
+
+-- TODO: should require real parsing instead of never-used unicode chars at some point
+cellDelimiter = '©'
+exprDelimiter = '®'
+refDelimiter = '/'
+
+
+----------------------------------------------------------------------------------------------------------------------------------------------
+-- Compressed read/show 
 
 class Show2 a where
   show2 :: a -> String
 
 instance Show2 ASCell where
-  show2 (Cell l e v ts) = (show2 l) ++ ('|':(show2 e)) ++ ('|':(show2 v)) ++ ('|':(show ts))
+  show2 (Cell l e v ts) = (show2 l) ++ (cellDelimiter:(show2 e)) 
+                          ++ (cellDelimiter:(show2 v)) ++ (cellDelimiter:(show ts))
 
 instance (Show2 ASIndex) where 
-  show2 (Index sid a) = "I/" ++ (unpack sid) ++ ('/':(show a))
-  show2 (OutOfBounds) = "I//OUTOFBOUNDS"
+  show2 (Index sid a) = 'I':refDelimiter:(unpack sid) ++ (refDelimiter:(show a))
+  show2 (OutOfBounds) = 'I':refDelimiter:refDelimiter:"OUTOFBOUNDS"
 
 instance (Show2 ASRange) where 
-  show2 (Range sid a) = "R/" ++ (unpack sid) ++ ('/':(show a))
+  show2 (Range sid a) = 'R':refDelimiter:(unpack sid) ++ (refDelimiter:(show a))
 
 instance (Show2 ASReference) where
   show2 (IndexRef il) = show2 il 
   show2 (RangeRef rl) = show2 rl
 
 instance (Show2 ASExpression) where
-  show2 (Expression xp lang) = "E?" ++ xp ++ ('?':(show lang))
+  show2 (Expression xp lang) = 'E':exprDelimiter:xp ++ (exprDelimiter:(show lang))
 
 instance (Show2 ASValue) where
   show2 = show -- TODO optimize
@@ -59,16 +69,17 @@ class Read2 a where
 instance (Read2 ASCell) where
   read2 str = Cell l xp v ts
     where
-      [locstr, xpstr, valstr, tagstr] = splitBy '|' str
-      l = read2 locstr :: ASIndex
-      xp = read2 xpstr :: ASExpression
-      v = read2 valstr :: ASValue
-      ts = read tagstr :: [ASCellTag]
+      (l, xp, v, ts) = case splitBy cellDelimiter str of 
+        [locstr, xpstr, valstr, tagstr] -> (read2 locstr :: ASIndex, read2 xpstr :: ASExpression, 
+                                            read2 valstr :: ASValue, read tagstr :: [ASCellTag])
+        _ -> error ("read2 :: ASCell failed on string " ++ str)
 
 instance (Read2 ASReference) where
   read2 str = loc
     where
-      [tag, sid, locstr] = splitBy '/' str
+      (tag, sid, locstr) = case splitBy refDelimiter str of 
+        [tag', sid', locstr'] -> (tag', sid', locstr')
+        _ -> error ("read2 :: ASReference failed on string " ++ str)
       loc = case tag of 
         "I" -> case locstr of 
           "OUTOFBOUNDS" -> IndexRef OutOfBounds
@@ -87,7 +98,7 @@ instance (Read2 ASExpression)
   where
     read2 str = xp
       where
-        [tag, midstr, laststr] = splitBy '?' str
+        [tag, midstr, laststr] = splitBy exprDelimiter str
         xp = case tag of 
           "E" -> Expression midstr (read laststr :: ASLanguage)
 

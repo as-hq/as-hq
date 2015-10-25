@@ -20,6 +20,8 @@
 /*************************************************************************************************************************/
 // Helper functions
 
+const char* msgPartDelimiter = "@";
+
 void freeRedis(redisContext *c, redisReply *r){
   freeReplyObject(r);
   redisFree(c);
@@ -91,7 +93,7 @@ char** getCells(char* msg, int length){
   char *pmsg = msg; pmsg++; // removes first char '"'
   pmsg[strlen(pmsg) - 1] = 0; // removes last char '"'
 
-  char** locs = strsplit(pmsg, "@");
+  char** locs = strsplit(pmsg, msgPartDelimiter);
   char** cells = malloc(length * sizeof(char*));
 
   int i,j,k; 
@@ -149,7 +151,7 @@ char** getCells(char* msg, int length){
 }
 
 // The format of the message passed in is an escaped string, with its different components
-// delimited by @. Since it's escaped, it'll start and end with " characters, which we 
+// delimited by msgPartDelimiter. Since it's escaped, it'll start and end with " characters, which we 
 // need to remove at the beginning. 
 void setCells(char* msg, int length){
   clock_t begin = clock(); 
@@ -167,7 +169,7 @@ void setCells(char* msg, int length){
 
   // printf("Set cells input: %s \n",pmsg);
 
-  char** lstMsg = strsplit(pmsg, "@");
+  char** lstMsg = strsplit(pmsg, msgPartDelimiter);
 
   int i,j,k; 
   int batch = determineBatchSize(length);
@@ -301,35 +303,9 @@ char* redo(){
 
 /*************************************************************************************************************************/
 
-/*int main(){
-  int N = 1000000; 
-  C_ASCell* cells = malloc(N * sizeof(C_ASCell)); 
-  char ** locs = malloc(N * sizeof(char*)); 
-  
-  int i;  
-  for (i = 0 ; i < N; ++i){
-    char temp[LOCATION_LEN];  
-    cells[i].cLocation = malloc(LOCATION_LEN * sizeof(char));
-    sprintf(temp,"Location %d",i);
-    strcpy(cells[i].cLocation,temp);
-    cells[i].cExpression = "Expression";
-    cells[i].cValue = "Value";
-    cells[i].cTags = "Tags";
-    locs[i] = malloc(LOCATION_LEN * sizeof(char));
-    sprintf(locs[i],"Location %d", i);
-  }
-
-
-  clock_t begin = clock(); 
-  setCells(cells,N);
-  //C_ASCells* recv = getCells(locs,N);
-  clock_t end = clock(); 
-  printf("Elapsed: %f seconds\n", (double)(end - begin) / CLOCKS_PER_SEC);
-
-
-  free(cells);
-  //free(recv->cells);
-  //free(recv); 
-
-} */
-
+/*
+int main(){
+  char** foo = strsplit("HEllo@Hello@Hello@@@World","@@@");
+  printf("%s", foo[0]);
+}
+*/

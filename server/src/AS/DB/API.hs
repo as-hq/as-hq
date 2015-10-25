@@ -78,7 +78,7 @@ getCells :: [ASIndex] -> IO [Maybe ASCell]
 getCells [] = return []
 getCells locs = DU.getCellsByMessage msg num
   where
-    msg = DU.showB $ intercalate "@" $ map show2 locs
+    msg = DU.showB $ intercalate DU.msgPartDelimiter $ map show2 locs
     num = length locs
 
 getPossiblyBlankCells :: [ASIndex] -> IO [ASCell]
@@ -98,7 +98,7 @@ setCells :: [ASCell] -> IO ()
 setCells [] = return ()
 setCells cells = DU.setCellsByMessage msg num
   where
-    str = intercalate "@" $ (map (show2 . cellLocation) cells) ++ (map show2 cells)
+    str = intercalate DU.msgPartDelimiter $ (map (show2 . cellLocation) cells) ++ (map show2 cells)
     msg = DU.showB str
     num = length cells
 

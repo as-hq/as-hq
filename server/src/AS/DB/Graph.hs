@@ -39,7 +39,7 @@ query q locs =
         reqSocket <- socket Req
         connect reqSocket S.graphDbHost
         send' reqSocket [] msg   -- using lazy bytestring send function
-        liftIO $ printWithTime "sent message to graph db"
+        liftIO $ printWithTime ("sent message to graph db: " ++ (show msg))
         reply <- receiveMulti reqSocket
         case (B.unpack $ last reply) of
             "OK" -> do
@@ -66,7 +66,7 @@ setRelations rels =
         reqSocket <- socket Req
         connect reqSocket S.graphDbHost
         send' reqSocket [] msg
-        liftIO $ printWithTime "sent message"
+        liftIO $ printWithTime ("sent message: " ++ (show msg))
         reply <- receiveMulti reqSocket
         liftIO $ printWithTime $ "received message of length: " ++ (show . length $ reply)
         --liftIO $ printWithTime $ "graph db reply multi: " ++ (show reply)

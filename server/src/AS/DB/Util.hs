@@ -57,10 +57,8 @@ cInfo = ConnInfo
 ----------------------------------------------------------------------------------------------------------------------
 -- Redis key utilities
 
-msgPartDelimiter = "@"
-
+msgPartDelimiter = "@" -- TODO: should require real parsing instead of weird char strings
 relationDelimiter = "&"
-
 keyPartDelimiter = '?'
 
 -- get a list key with a special suffix denoting list type
@@ -146,7 +144,7 @@ getCellsByKeys :: [B.ByteString] -> IO [Maybe ASCell]
 getCellsByKeys keys = getCellsByMessage msg num
   where
     msg      = B.concat $ [BC.pack "\"", internal, BC.pack "\"\NUL"]
-    internal = B.intercalate (BC.pack "@") keys
+    internal = B.intercalate (BC.pack msgPartDelimiter) keys
     num      = length keys
 
 -- takes a message and number of locations queried

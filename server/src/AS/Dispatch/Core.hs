@@ -52,8 +52,11 @@ runDispatchCycle state cs uid = do
     roots          <- lift $ EM.evalMiddleware cs
     conn           <- lift $ fmap dbConn $ readMVar state
     rootsDepSets   <- DB.setCellsAncestors roots
+    printWithTimeT $ "Set cell ancestors: " ++ (show rootsDepSets)
     evalLocs       <- getEvalLocs conn roots
+    printWithTimeT $ "Got eval locations: " ++ (show evalLocs)
     cellsToEval    <- getCellsToEval conn evalLocs roots
+    printWithTimeT $ "Got cells to evaluate: " ++ (show cellsToEval)
     ancLocs        <- G.getImmediateAncestors evalLocs
     printWithTimeT $ "got ancestor locs: " ++ (show ancLocs)
     initValuesMap  <- lift $ getValuesMap (zip roots rootsDepSets) ancLocs

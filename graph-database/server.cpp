@@ -7,22 +7,31 @@
 #include <vector>
 #include <time.h>       
 #include <boost/algorithm/string.hpp>
+#include <boost/algorithm/string/regex.hpp>
+#include <boost/regex.hpp>
 
 /* 
     Cases on type of request and calls the correct handler 
     Always returns a list of strings, the first of which is success/fail
 */
-std::vector<std::string> processRequest(DAG& dag, std::string& request){
+
+using namespace boost; 
+using namespace std; 
+
+const char* msgPartDelimiter = "@";
+const char* relationDelimiter = "&";
+
+vector<string> processRequest(DAG& dag, string& request){
 
     // split the message 
-    std::vector<std::string> requestParts;
-    boost::split(requestParts, request, boost::is_any_of("@"));
+    vector<string> requestParts; 
+    boost::algorithm::split_regex(requestParts, request, regex(msgPartDelimiter));
 
     // handle different request types
-    std::string type = requestParts[0];
+    string type = requestParts[0];
     requestParts.erase(requestParts.begin());
 
-    std::cout << "Processing action: " << type << std::endl;
+    cout << "Processing action: " << type << endl;
 
     if (type == "GetDescendants")
         return dag.getDescendants(requestParts);
@@ -33,10 +42,10 @@ std::vector<std::string> processRequest(DAG& dag, std::string& request){
 
         int i = 0; 
         while (i < requestParts.size()) {
-            // std::cout << "processing request part: " << requestParts[i] << std::endl;
+            // cout << "processing request part: " << requestParts[i] << endl;
             // split the relation
-            std::vector<std::string> relation;
-            boost::split(relation, requestParts[i], boost::is_any_of("&"));
+            vector<string> relation;
+            boost::split(relation, requestParts[i], boost::is_any_of(relationDelimiter));
 
             DAG::Vertex toLoc = relation[0]; 
             DAG::VertexSet fromLocs;
@@ -52,7 +61,7 @@ std::vector<std::string> processRequest(DAG& dag, std::string& request){
         return {"OK"};
     } else if (type == "Clear") {
         dag.clearDAG();
-        std::cout << "DAG cleared.";
+        cout << "DAG cleared.";
         return {"OK"};
     } else if (type == "RollbackGraph") { 
         dag.rollback(); 
@@ -83,16 +92,16 @@ int main () {
         clock_t begin = clock(); 
         socket.recv(&requestMsg, rcvMore); // blocks until receives a message
 
-        std::string request = std::string(static_cast<char*>(requestMsg.data()), requestMsg.size());
+        string request = string(static_cast<char*>(requestMsg.data()), requestMsg.size());
         // removes first and last quotes from string (artifact of ByteString show)
         request = request.substr(1, request.size() - 2); 
 
-        // std::cout << "Received message: " << request << std::endl;
+        // cout << "Received message: " << request << endl;
 
-        std::vector<std::string> response = processRequest(dag,request);
+        vector<string> response = processRequest(dag,request);
 
         clock_t end = clock(); 
-        std::cout << "Time taken: " << (double)(end - begin)/CLOCKS_PER_SEC << std::endl; 
+        cout << "Time taken: " << (double)(end - begin)/CLOCKS_PER_SEC << endl; 
 
         /* Send response back to client */
         for (int i = 0 ; i < response.size()-1; ++i){
@@ -104,7 +113,7 @@ int main () {
         memcpy ((void *) res.data (), response.back().c_str(), response.back().length());
         socket.send (res); 
 
-        // std::cout << "Sent response" << std::endl;
+        // cout << "Sent response" << endl;
         // dag.showGraph();
 
 
