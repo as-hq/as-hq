@@ -43,6 +43,13 @@ let _data = {
 /* This function describes the actions of the ASEvaluationStore upon recieving a message from Dispatcher */
 dispatcherIndex: Dispatcher.register(function (action) {
     switch (action.type) {
+      case Constants.ActionTypes.FIND_INCREMENTED:
+        break;
+      case Constants.ActionTypes.FIND_DECREMENTED:
+        break;
+      case Constants.ActionTypes.GOT_FIND:
+        // do nothing here on find; that's in the find store
+        break;
       case Constants.ActionTypes.CELL_CHANGED:
         break;
       case Constants.ActionTypes.RANGE_CHANGED:

@@ -1,0 +1,84 @@
+import Dispatcher from '../Dispatcher';
+import Constants from '../Constants';
+import BaseStore from './BaseStore';
+import assign from 'object-assign';
+import API from '../actions/ASApiActionCreators';
+import Converter from '../AS/Converter';
+import Util from '../AS/Util';
+
+let _data = {
+  findText:'',
+  findPos:0,
+  findTotal:0,
+  findLocs:[]
+};
+
+dispatcherIndex: Dispatcher.register(function (action) {
+  switch (action.type) {
+    case Constants.ActionTypes.GOT_FIND:
+      ASFindStore.setFindLocs(action.findLocs);
+      ASFindStore.setFindPos(0);
+      ASFindStore.setFindTotal(action.findLocs.length);
+      ASFindStore.emitChange();
+      console.log("Updated find store");
+      break;
+    case Constants.ActionTypes.FIND_INCREMENTED: //down or enter
+      ASFindStore.increment();
+      ASFindStore.emitChange();
+      break;
+    case Constants.ActionTypes.FIND_DECREMENTED: //up
+      ASFindStore.decrement();
+      ASFindStore.emitChange();
+      break;
+  }
+});
+
+const ASFindStore = assign({}, BaseStore, {
+
+  /**************************************************************************************************************************/
+  // store modification methods
+  
+  getFindText(){
+    return _data.findText;
+  },
+  setFindText(v){
+    _data.findText=v;
+  },
+  getFindPos(){
+    return _data.findPos;
+  },
+  setFindPos(pos){
+    _data.findPos=pos;
+  },
+  getFindTotal(){
+    return _data.findTotal;
+  },
+  setFindTotal(t){
+    _data.findTotal=t;
+  },
+  setFindLocs(locs){
+    _data.findLocs = locs;
+  },
+  getFindLocs(){
+    return _data.findLocs;
+  },
+  increment(){
+    if (this.getFindTotal() !== 0){
+      let n = this.getFindTotal(),
+          p = this.getFindPos()+1;
+      this.setFindPos(((p % n) + n) % n); // fucking js
+    }
+  },
+  decrement(){
+    if (this.getFindTotal() !== 0){
+      let n = this.getFindTotal(),
+          p = this.getFindPos()-1;
+      this.setFindPos(((p % n) + n) % n);
+    }
+  }
+
+  
+});
+
+
+export default ASFindStore;

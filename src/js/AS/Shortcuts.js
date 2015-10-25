@@ -1,5 +1,6 @@
 import Constants from '../Constants';
 import Store from '../stores/ASEvaluationStore';
+import FindStore from '../stores/ASFindStore';
 import ShortcutUtils from './ShortcutUtils';
 import API from '../actions/ASApiActionCreators';
 import Util from '../AS/Util';
@@ -96,6 +97,12 @@ export default {
       Store.setClipboard(null, false);
       self.setState({focus: "grid",userIsTyping:false});
       self.refs.spreadsheet.repaint(); // render immediately
+
+    });
+
+    ShortcutUtils.addShortcut("common", "find", "Ctrl+F", (wildcard) => {
+      console.log("Find pressed");
+      self.setState({showFindBar:true,userIsTyping:false});
     });
     ShortcutUtils.addShortcut("common", "grid_tab", "Tab", (wildcard) => {
       let editorState = {
