@@ -45,12 +45,6 @@ var fakeCell = function(contents) {
   };
 };
 
-var getOrientedCorners = function(rng) {
-  var tl = [Math.min(rng[0][0],rng[1][0]), Math.min(rng[0][1],rng[1][1])],
-      br = [Math.max(rng[0][0],rng[1][0]), Math.max(rng[0][1],rng[1][1])];
-  return [tl, br];
-};
-
 var interpolateLocations = function(rng) {
   if (rng[0].length) {
     var corners = getOrientedCorners(rng),
@@ -149,12 +143,6 @@ wss.on("connection", function(ws) {
       if (parsed.payload.tag === "PayloadLL"){
         var cells = parsed.payload.contents.map(fakeCellFromASLoc);
         msg = toServerMessageFormat("NoAction", "PayloadCL", cells);
-      } else if (parsed.payload.tag === "PayloadL"){
-        var result = fakeCellFromASLoc(parsed.payload.contents);
-        if (result.length)
-          msg = toServerMessageFormat("NoAction", "PayloadCL", result);
-        else
-          msg = toServerMessageFormat("NoAction", "PayloadC", result);
       } else if (parsed.payload.tag === 'PayloadList') {
         var msg = toServerMessageFormat('Update', 'PayloadWorkbookSheets', fakeWorkbookSheets());
       }

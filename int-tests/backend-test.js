@@ -8,20 +8,28 @@ jasmine.DEFAULT_TIMEOUT_INTERVAL = 10000;
 
 describe('backend', () => {
   const API = require('../src/js/actions/ASApiActionCreators');
-  const Converter = require('../src/js/AS/Converter');
   const Util = require('../src/js/AS/Util');
   const Store = require('../src/js/stores/ASEvaluationStore');
+  const TC = require('../src/js/AS/TypeConversions');
 
   function empty() {
     return new Promise((fulfill, reject) => { fulfill(); });
   }
 
   function locFromExcel(exLoc) {
-    return Util.excelToLoc(exLoc);
+    return Util.excelToRange(exLoc);
   }
 
   function locToExcel(loc) {
-    return Util.locToExcel(loc);
+    return Util.rangeToExcel(loc);
+  }
+
+  function asIndex(loc) {
+    return TC.simpleToASIndex(Util.excelToRange(loc));
+  }
+
+  function asRange(loc) {
+    return TC.simpleToASRange(Util.excelToRange(loc));
   }
 
   function fromToInclusive(st, end) {
@@ -70,14 +78,11 @@ describe('backend', () => {
   }
 
   function sheet() {
-    // TODO
     return () => {
       directAPIExec(() => {
-        API.sendCreateSheetMessage();
+        API.createSheet();
       }).then((response) => {
-        let {
-          payload: {
-            contents: [
+        let  [
               { // tag: 'WorkbookSheet'
                 wsName: workbookName,
                 wsSheets: [
@@ -87,11 +92,7 @@ describe('backend', () => {
                     }
                   ]
                 }
-              ]
-            }
-          } = response;
-
-
+              ] = response.payload.contents;
       });
     };
   }
@@ -106,27 +107,27 @@ describe('backend', () => {
 
   function openSheet() {
     return apiSyncExec(() => {
-      API.sendDefaultOpenMessage();
+      API.openSheet();
     });
   }
 
   function syncWindow() {
     return apiExec(() => {
-      API.updateViewingWindow({
-        range: { col: 0, row: 0, col2: 100, row2: 100 }
-      });
+      let range = { tl: {col: 0, row: 0}, br: {col: 100, row: 100 }},
+          vWindow = TC.rangeToASWindow(range);
+      API.updateViewingWindow(vWindow);
     });
   }
 
   function clear() {
     return apiExec(() => {
-      API.sendClearRequest();
+      API.clear();
     });
   }
 
   function init() {
     return apiExec(() => {
-      API.sendInitialMessage();
+      API.initialize();
     });
   }
 
@@ -138,12 +139,10 @@ describe('backend', () => {
         'excel': 'Excel',
         'ml': 'OCaml'
       };
-      let cell = Converter.clientToASCell(
-        { range: locFromExcel(loc) },
-        { exp: xp, lang: { Server: langMap[lang] } }
-      );
-      let msg = Converter.createEvalRequestFromASCell(cell);
-      API.send(msg);
+      let idx = asIndex(loc);
+      console.log("\n\nFUCk\n", idx);
+      let xpObj = { expression: xp, language: { Server: langMap[lang] } };
+      API.evaluate(idx, xpObj);
     });
   }
 
@@ -165,38 +164,40 @@ describe('backend', () => {
 
   function copy(rng1, rng2) {
     return apiExec(() => {
-      API.sendCopyRequest([rng1, rng2].map(locFromExcel));
+      let [asRng1, asRng2] = [rng1, rng2].map(asRange);
+      API.copy(asRng1, asRng2);
     });
   }
 
   function repeat(rng, origin) {
     return apiExec(() => {
       let sel = {origin: locFromExcel(origin), range: locFromExcel(rng)}
-      API.sendRepeatRequest(sel); 
+      API.repeat(sel);
     });
   }
 
   function cut(rng1, rng2) {
     return apiExec(() => {
-      API.sendCutRequest([rng1, rng2].map(locFromExcel));
+      let [asRng1, asRng2] = [rng1, rng2].map(asRange);
+      API.cut(asRng1, asRng2);
     });
   }
 
   function undo() {
     return apiExec(() => {
-      API.sendUndoRequest();
+      API.undo();
     });
   }
 
   function redo() {
     return apiExec(() => {
-      API.sendRedoRequest();
+      API.redo();
     });
   }
 
   function delete_(rng) {
     return apiExec(() => {
-      API.sendDeleteRequest(locFromExcel(rng)); 
+      API.deleteRange(TC.simpleToASRange(locFromExcel(rng)));
     });
   }
 
@@ -239,10 +240,10 @@ describe('backend', () => {
   function messageShouldSatisfy(loc, fn) {
     return promise((fulfill, reject) => {
       API.test(() => {
-        API.sendGetRequest([ Util.excelToLoc(loc) ]);
+        API.getIndices([ asIndex(loc) ]);
       }, {
         fulfill: (result) => {
-          let cs = Converter.clientCellsFromServerMessage(result);
+          let cs = result.payload.contents;
           fn(cs);
 
           fulfill();
@@ -310,10 +311,10 @@ describe('backend', () => {
   function shouldBeL(locs, vals) {
     return promise((fulfill, reject) => {
       API.test(() => {
-        API.sendGetRequest(locs.map((loc) => Util.excelToLoc(loc)));
+        API.getIndices(locs.map(asIndex));
       }, {
         fulfill: (result) => {
-          let cellValues = Converter.clientCellsFromServerMessage(result).map((x) => x.cellValue);
+          let cellValues = result.payload.contents.map((x) => x.cellValue);
 
           expect(_.
             zip(cellValues, vals).
@@ -716,7 +717,7 @@ describe('backend', () => {
             _do([
               python('A1', '0'),
               excel('B1', '=A1^0'),
-              shouldBeError('B1'), 
+              shouldBeError('B1'),
               exec(done)
             ]);
           });
@@ -872,7 +873,8 @@ describe('backend', () => {
             _forM_(_.range(4), (col) => {
               return _forM_(_.range(4), (row) => {
                 return shouldBe(
-                  locToExcel({ col: col + 3, row: row + 1 }),
+                  locToExcel({ tl: {col: col + 3, row: row + 1},
+                               br: {col: col + 3, row: row + 1}}),
                   valueI(cs[`${col % 2}${row % 2}`])
                 );
               });
@@ -1076,9 +1078,9 @@ describe('backend', () => {
           _do([
             python('A1', 'range(10)'),
             python('B1', '1'),
-            delete_('B1'), 
+            delete_('B1'),
             repeat('A1:B10', 'B1'),
-            shouldBeNothing('A1'), 
+            shouldBeNothing('A1'),
             exec(done)
           ]);
         });
@@ -1086,9 +1088,9 @@ describe('backend', () => {
         it('should redo on Ctrl+Y after undo', (done) => {
           _do([
             python('A1', 'range(10)'),
-            undo(), 
+            undo(),
             repeat('A69:A69', 'A69'),
-            shouldBe('A5', valueI(4)), 
+            shouldBe('A5', valueI(4)),
             exec(done)
           ]);
         });

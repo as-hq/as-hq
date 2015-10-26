@@ -2,12 +2,10 @@ import Dispatcher from '../Dispatcher';
 import Constants from '../Constants';
 import BaseStore from './BaseStore';
 import assign from 'object-assign';
-import API from '../actions/ASApiActionCreators';
-import Converter from '../AS/Converter';
 import Util from '../AS/Util';
 
 /*
-This store has repl interactions with backend 
+This store has repl interactions with backend
 For example, it decides whether or not to display the backend response
 Bug: If the REPL sends an "invalid" message to backend (for example, entering abc, no quotes)
   backend disconnects and nothing happens upon Ctrl Enter
@@ -76,6 +74,7 @@ const ASReplStore = assign({}, BaseStore, {
     else this.advanceLine(lang);
   },
 
+// @optional lang
   advanceLine(lang) {
     if (lang)
       _data.replExps[lang] += "\n>>> ";

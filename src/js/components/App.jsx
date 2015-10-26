@@ -14,7 +14,7 @@ export default React.createClass({
   /* When mounting, send a message to the backend to signify a connection */
   componentWillMount() {
     ThemeManager.setTheme(ThemeManager.types.DARK);
-    API.sendInitialMessage();
+    API.initialize();
   },
 
   getInitialState() {
@@ -76,9 +76,9 @@ export default React.createClass({
         </div>
       </div>
 
-    ); 
+    );
   },
-  
+
 
 
 /**************************************************************************************************************************/
@@ -113,12 +113,12 @@ export default React.createClass({
   _onSheetCreate() {
     //TODO
     console.log('Created sheet');
-    API.sendCreateSheetMessage();
+    API.createSheet();
   },
 
   _onWorkbookCreate() {
     //TODO
     console.log('Created workbook');
-    API.sendCreateWorkbookMessage();
+    API.createWorkbook();
   }
 });

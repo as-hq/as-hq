@@ -1,6 +1,7 @@
 import Dispatcher from '../Dispatcher';
 import Constants from '../Constants';
-import Converter from '../AS/Converter';
+import T from '../AS/Types';
+import TC from '../AS/TypeConversions';
 import Store from '../stores/ASEvaluationStore';
 
 import isNode from 'detect-node';
@@ -14,7 +15,7 @@ var wss = new ws(Constants.HOST_WS);
 let currentCbs = undefined;
 let isRunningTest = false;
 let isRunningSyncTest = false;
-let refreshDialogShown = false; 
+let refreshDialogShown = false;
 
 /**************************************************************************************************************************/
 
@@ -56,13 +57,11 @@ wss.onmessage = function (event) {
     }
 
     switch (msg.action) {
-      // TODO: add cases for new
       case "New":
         if (msg.payload.tag === "PayloadWorkbookSheets") {
-          let workbooks = Converter.clientWorkbooksFromServerMessage(msg);
           Dispatcher.dispatch({
             type: ActionTypes.GOT_NEW_WORKBOOKS,
-            workbooks: workbooks
+            workbooks: msg.payload.contents
           });
         }
         break;
@@ -73,64 +72,55 @@ wss.onmessage = function (event) {
       case "Undo":
         Dispatcher.dispatch({
           type: ActionTypes.GOT_UNDO,
-          commit: Converter.serverToClientCommit(msg.payload.contents)
+          commit: msg.payload.contents
         });
         break;
       case "Redo":
         Dispatcher.dispatch({
           type: ActionTypes.GOT_REDO,
-          commit: Converter.serverToClientCommit(msg.payload.contents)
+          commit: msg.payload.contents
         });
        break;
       case "Evaluate":
-        let cells = Converter.clientCellsFromServerMessage(msg);
         Dispatcher.dispatch({
           type: ActionTypes.GOT_UPDATED_CELLS,
-          updatedCells: cells
+          updatedCells: msg.payload.contents
         });
         break;
       case "Update":
-        if (msg.payload.tag === "PayloadC" ||
-            msg.payload.tag === "PayloadCL"){
-          let cells = Converter.clientCellsFromServerMessage(msg);
+        if (msg.payload.tag === "PayloadCL"){
           Dispatcher.dispatch({
             type: ActionTypes.GOT_UPDATED_CELLS,
-            updatedCells: cells
+            updatedCells: msg.payload.contents
           });
         } else if (msg.payload.tag === "PayloadWorkbookSheets") {
-          let workbooks = Converter.clientWorkbooksFromServerMessage(msg);
           Dispatcher.dispatch({
             type: ActionTypes.GOT_UPDATED_WORKBOOKS,
-            workbooks: workbooks
+            workbooks: msg.payload.contents
           });
         }
-        // TODO cases for sheets and workbooks
         break;
       case "Get":
-        let newCells = Converter.clientCellsFromServerMessage(msg); // MAY NEED TO REPLACE
         Dispatcher.dispatch({
           type: ActionTypes.FETCHED_CELLS,
-          newCells: newCells
+          newCells: msg.payload.contents
         });
         break;
-      //xcxc
       case "Clear":
         Dispatcher.dispatch({
           type: ActionTypes.CLEARED,
         });
         break;
       case "Delete":
-        // console.log("got delete");
         if (msg.payload.tag === "PayloadR"){
           Dispatcher.dispatch({
             type: ActionTypes.DELETED_LOCS,
-            locs: Converter.clientLocsFromServerMessage(msg)
+            locs: msg.payload.contents
           });
         } else if (msg.payload.tag === "PayloadWorkbookSheets") {
-          let workbooks = Converter.clientWorkbooksFromServerMessage(msg);
           Dispatcher.dispatch({
             type: ActionTypes.DELETED_WORKBOOKS,
-            workbooks: workbooks
+            workbooks: msg.payload.contents
           });
         }
         break;
@@ -165,14 +155,14 @@ export default {
   /* Sending acknowledge message to server */
 
   waitForSocketConnection(socket, callback, waitTime) {
-    if (typeof(waitTime) == "undefined") { 
-      waitTime = 0; 
+    if (typeof(waitTime) == "undefined") {
+      waitTime = 0;
     }
 
-    if (waitTime >= 2000 && !refreshDialogShown) { 
+    if (waitTime >= 2000 && !refreshDialogShown) {
       alert("The connection with the server appears to have been lost. Please refresh the page.");
-      refreshDialogShown = true; 
-      waitTime = 0; 
+      refreshDialogShown = true;
+      waitTime = 0;
     }
 
     setTimeout(() => {
@@ -204,8 +194,10 @@ export default {
     });
   },
 
-  sendInitialMessage() {
-    let msg = Converter.makeInitMessage();
+  initialize() {
+    let msg = TC.makeClientMessage(Constants.ServerActions.Acknowledge,
+                                          "PayloadInit",
+                                          {"connUserId": Store.getUserId()});
     console.log("Sending init message: " + JSON.stringify(msg));
     this.send(msg);
   },
@@ -213,13 +205,12 @@ export default {
   /**************************************************************************************************************************/
   /* Sending admin-related requests to the server */
 
-  sendGetWorkbooks() {
-    // console.log("Getting workbooks");
-    let msg = Converter.toServerMessageFormat('Get', 'PayloadList', 'WorkbookSheets');
+  getWorkbooks() {
+    let msg = TC.makeClientMessage('Get', 'PayloadList', 'WorkbookSheets');
     this.send(msg);
   },
 
-  sendClose() {
+  close() {
     console.log('Sending close message');
     wss.close();
   },
@@ -228,44 +219,39 @@ export default {
   /* Sending an eval request to the server */
 
   /* This function is called by handleEvalRequest in the eval pane */
-  sendEvalRequest(selRegion,editorState){
-    // console.log("In eval action creator");
-    let cell = Converter.clientToASCell(selRegion,editorState);
-    let msg = Converter.createEvalRequestFromASCell(cell);
-    // console.log('Sending msg to server: ' + JSON.stringify(msg));
+  evaluate(asIndex,xpObj){
+    let asCell = TC.makeEvalCell(asIndex, xpObj),
+        msg = TC.makeClientMessage(Constants.ServerActions.Evaluate,
+                                          "PayloadCL",
+                                          [asCell]);
     this.send(msg);
   },
 
+  evaluateRepl(xpObj){
+    let msg = TC.makeClientMessage(Constants.ServerActions.Repl, "PayloadXp", {
+      tag: "Expression",
+      expression: xpObj.exp,
+      language: xpObj.lang
+    });
+    this.send(msg);
+  },
   /**************************************************************************************************************************/
   /* Sending undo/redo/clear messages to the server */
 
-  sendUndoRequest(){
-    let msg = Converter.createUndoRequestForServer();
+  undo(){
+    let msg = TC.makeClientMessage(Constants.ServerActions.Undo, "PayloadN", []);;
     this.send(msg);
   },
-  sendRedoRequest(){
-    let msg = Converter.createRedoRequestForServer();
+  redo(){
+    let msg = TC.makeClientMessage(Constants.ServerActions.Redo, "PayloadN", []);
     this.send(msg);
   },
-  sendClearRequest(){
-    let msg = Converter.createClearRequestForServer();
+  clear(){
+    let msg = TC.makeClientMessage(Constants.ServerActions.Clear, "PayloadN", []);
     this.send(msg);
   },
-  sendDeleteRequest(locs){
-    let msg = null;
-    if (locs.constructor === Array){
-      for (var i in locs)
-        locs[i] = Converter.clientToASLocation(locs[i]);
-      msg = Converter.toServerMessageFormat(Constants.ServerActions.Delete, "PayloadLL", locs);
-    }
-    else {
-      locs = Converter.clientToASRange(locs);
-      msg = Converter.toServerMessageFormat(Constants.ServerActions.Delete, "PayloadR", locs);
-    }
-    this.send(msg);
-  },
-  sendFindRequest(findText){
-    let msg = Converter.toServerMessageWithPayload(Constants.ServerActions.Find, {
+  find(findText){
+    let msg = TC.makeClientMessageRaw(Constants.ServerActions.Find, {
       tag: "PayloadFind",
       findText: findText,
       matchWithCase:false,
@@ -276,103 +262,107 @@ export default {
     this.send(msg);
     console.log("SENT FIND MSG");
   },
-
-  /**************************************************************************************************************************/
-  /* Sending REPL messages to the server */
-
-  // TODO: correctly implement
-  sendReplRequest(editorState){
-    let msg = Converter.toServerMessageFormat(Constants.ServerActions.Repl, "PayloadXp", {
-      tag: "Expression",
-      expression: editorState.exp,
-      language: editorState.lang
-    });
+  deleteIndices(locs) {
+    let msg = TC.makeClientMessage(Constants.ServerActions.Delete, "PayloadLL", locs);
+    this.send(msg);
+  },
+  deleteRange(rng) {
+    let msg = TC.makeClientMessage(Constants.ServerActions.Delete, "PayloadR", rng);
     this.send(msg);
   },
 
 
   /**************************************************************************************************************************/
   /* Sending get messages to the server */
-  sendTagsMessage(action, tags, col, row) {
-    let msg = Converter.toServerMessageWithPayload(action, {
+  addTags(tags, loc) {
+    let msg = TC.makeClientMessageRaw(Constants.ServerActions.AddTags, {
       "tag": "PayloadTags",
       "tags": tags,
-      "tagsLoc": Converter.clientToASLocation({col: col, row: row})
+      "tagsLoc": loc
     });
     this.send(msg);
   },
-  sendCopyRequest(locs) {
-    let msg = Converter.toServerMessageWithPayload(Constants.ServerActions.Copy, {
+  removeTags(tags, loc) {
+    let msg = TC.makeClientMessageRaw(Constants.ServerActions.RemoveTags, {
+      "tag": "PayloadTags",
+      "tags": tags,
+      "tagsLoc": loc
+    });
+    this.send(msg);
+  },
+  copy(fromRng, toRng) {
+    let msg = TC.makeClientMessageRaw(Constants.ServerActions.Copy, {
       tag: "PayloadPaste",
-      copyRange: Converter.clientToASRange(locs[0]),
-      copyTo: Converter.clientToASRange(locs[1])
+      copyRange: fromRng,
+      copyTo: toRng
     });
     this.send(msg);
   },
-  sendCutRequest(locs) {
-    let msg = Converter.toServerMessageWithPayload(Constants.ServerActions.Cut, {
+  cut(fromRng, toRng) {
+    let msg = TC.makeClientMessageRaw(Constants.ServerActions.Cut, {
       tag: "PayloadPaste",
-      copyRange: Converter.clientToASRange(locs[0]),
-      copyTo: Converter.clientToASRange(locs[1])
+      copyRange: fromRng,
+      copyTo: toRng
     });
     this.send(msg);
   },
-  sendSimplePasteRequest(cells){
-    console.log("ABOUT TO SEND CELLS: " + JSON.stringify(cells));
-    let msg = Converter.toServerMessageFormat(Constants.ServerActions.Evaluate, "PayloadCL",cells);
+  simplePaste(cells){
+    let msg = TC.makeClientMessage(Constants.ServerActions.Evaluate, "PayloadCL",cells);
     this.send(msg);
   },
 
-  sendGetRequest(locs) {
-    let msg = Converter.clientLocsToGetMessage(locs);
-    // console.log('Sending get message to server: ' + JSON.stringify(msg));
+  getIndices(locs) {
+    let msg = TC.makeClientMessage(Constants.ServerActions.Get, "PayloadLL", locs);
     this.send(msg);
   },
 
-  sendRepeatRequest(sel) {
-    let msg = Converter.toServerMessageWithPayload(Constants.ServerActions.Repeat, {
+  getRange(rng) {
+    let msg = TC.makeClientMessage(Constants.ServerActions.Get, "PayloadR", rng);
+    this.send(msg);
+  },
+
+  repeat(sel) {
+    let msg = TC.makeClientMessageRaw(Constants.ServerActions.Repeat, {
       tag: "PayloadSelection",
-      selectionRange: Converter.clientToASRange(sel.range),
-      selectionOrigin: Converter.clientToASLocation(sel.origin)
+      selectionRange: TC.simpleToASRange(sel.range),
+      selectionOrigin: TC.simpleToASLocation(sel.origin)
     });
     this.send(msg);
   },
 
-  sendOpenMessage(sheet) {
-    let msg = Converter.toServerMessageFormat(Constants.ServerActions.Open, "PayloadS", sheet);
-    // console.log("send open message: " + JSON.stringify(msg));
+// @optional mySheet
+  openSheet(mySheet) {
+    let sheet = mySheet || Store.getCurrentSheet(),
+        msg = TC.makeClientMessage(Constants.ServerActions.Open, "PayloadS", sheet);
     this.send(msg);
   },
 
-  sendDefaultOpenMessage() {
-    this.sendOpenMessage(Store.getCurrentSheet());
-  },
-
-  sendCreateSheetMessage() {
-    let wbs = Converter.newWorkbookSheet();
-    let msg = Converter.toServerMessageFormat(Constants.ServerActions.New,
+  createSheet() {
+    let wbs = TC.makeWorkbookSheet();
+    let msg = TC.makeClientMessage(Constants.ServerActions.New,
       "PayloadWorkbookSheets",
       [wbs]);
     this.send(msg);
   },
 
-  sendCreateWorkbookMessage() {
-    let wb = Converter.newWorkbook();
-    let msg = Converter.toServerMessageFormat(Constants.ServerActions.New,
+  createWorkbook() {
+    let wb = TC.makeWorkbook();
+    let msg = TC.makeClientMessage(Constants.ServerActions.New,
       "PayloadWB",
       wb);
     this.send(msg);
   },
 
   updateViewingWindow(vWindow) {
-    let sWindow = Converter.clientWindowToServer(vWindow),
-        msg = Converter.toServerMessageFormat(Constants.ServerActions.UpdateWindow,
+    let msg = TC.makeClientMessage(Constants.ServerActions.UpdateWindow,
                                               "PayloadW",
-                                              sWindow);
-    // console.log("send scroll message: " + JSON.stringify(msg));
+                                              vWindow);
     this.send(msg);
   },
 
+
+  /**************************************************************************************************************************/
+  /* Testing */
 
   test(f, cbs) {
     currentCbs = cbs;

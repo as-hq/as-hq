@@ -3,7 +3,6 @@ import Constants from '../Constants';
 import BaseStore from './BaseStore';
 import assign from 'object-assign';
 import API from '../actions/ASApiActionCreators';
-import Converter from '../AS/Converter';
 import Util from '../AS/Util';
 
 let _data = {
@@ -37,7 +36,7 @@ const ASFindStore = assign({}, BaseStore, {
 
   /**************************************************************************************************************************/
   // store modification methods
-  
+
   getFindText(){
     return _data.findText;
   },
@@ -77,7 +76,7 @@ const ASFindStore = assign({}, BaseStore, {
     }
   }
 
-  
+
 });
 
 
