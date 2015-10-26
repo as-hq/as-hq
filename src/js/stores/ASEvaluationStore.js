@@ -238,7 +238,7 @@ const ASEvaluationStore = assign({}, BaseStore, {
     let sheetId = _data.currentSheet.sheetId;
     if (this.locationExists(col, row, sheetId)){
       _data.allCells[sheetId][col][row].cellTags.push(tag);
-      API.addTags([tag], Converter.makeIndex(sheetId, col, row));
+      API.addTags([tag], Converter.makeASIndex(sheetId, col, row));
     }
   },
   setExternalError(err) {
@@ -299,6 +299,7 @@ const ASEvaluationStore = assign({}, BaseStore, {
     this.removeCells(removedCells);
   },
 
+  /* Set an ASCell */
   setCell(c) {
     let {col, row} = c.cellLocation.index,
         sheetId = c.cellLocation.sheetId;
@@ -318,20 +319,18 @@ const ASEvaluationStore = assign({}, BaseStore, {
     }
   },
 
+  /* Remove a cell at an ASIndex */
   removeIndex(loc) {
     if (this.locationExists(loc.index.col, loc.index.row, loc.sheetId)) {
       _data.allCells[loc.sheetId][loc.index.col][loc.index.row] = null;
     }
   },
 
+  /* Remove cells at ASRanges or ASIndices */
   removeLocs(locs) {
     let dlocs = Util.decomposeASLocations(locs);
     console.log("removing locs: " + JSON.stringify(dlocs));
-    for (var key in dlocs){
-      let l = dlocs[key],
-          emptyCell = Converter.clientCellEmpty(l);
-      this.removeIndex(l);
-    }
+    dlocs.forEach((l) => this.removeIndex(l), this);
   },
 
   clearSheetCacheById(sheetId) {

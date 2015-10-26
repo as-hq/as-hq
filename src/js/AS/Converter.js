@@ -42,8 +42,8 @@ export default {
     };
   },
 
-  makeEmptyCell(loc){
-    let cl = loc || {tag:"index",
+  makeEmptyCell(asIndex){
+    let cl = asIndex || {tag:"index",
               sheetId: "TEST_SHEET_ID",
               index:{row: -1, col:-1}},
         ce = {tag:"Expression",expression:"",language:null},
@@ -52,7 +52,7 @@ export default {
     return {cellLocation:cl,cellExpression:ce,cellValue:cv,cellTags:ct};
   },
 
-  makeIndex(sheetId, col, row) {
+  makeASIndex(sheetId, col, row) {
     return {
       sheetId: sheetId,
       tag: 'index',

@@ -75,6 +75,7 @@ const ASReplStore = assign({}, BaseStore, {
     else this.advanceLine(lang);
   },
 
+// @optional lang
   advanceLine(lang) {
     if (lang)
       _data.replExps[lang] += "\n>>> ";

@@ -275,12 +275,14 @@ export default React.createClass({
         isAlphaSheets = containsHTML ?
           ClipboardUtils.htmlStringIsAlphaSheets(e.clipboardData.getData("text/html")) : false;
     if (isAlphaSheets) { // From AS
-      let clipboard = Store.getClipboard();
+      let clipboard = Store.getClipboard(),
+          fromASRange = Converter.simpleToASRange(clipboard.area.range),
+          toASRange = Converter.simpleToASRange(sel.range);
       if (clipboard.area) {
         if (clipboard.isCut) {
-          API.cut(clipboard.area.range, sel.range);
+          API.cut(fromASRange, toASRange);
         } else {
-          API.cut(clipboard.area.range, sel.range);
+          API.copy(fromASRange, toASRange);
         }
       }
       else{
@@ -293,7 +295,7 @@ export default React.createClass({
         let plain = e.clipboardData.getData("text/plain"),
             vals = ClipboardUtils.plainStringToVals(plain),
             cells = Store.makeASCellsFromPlainVals(sel,vals,this.state.language),
-            concatCells = [].concat.apply([], cells);
+            concatCells = Util.concatAll(cells);
         API.pasteSimple(concatCells);
         // The normal eval handling will make the paste show up
       }
