@@ -82,7 +82,9 @@ prefix name
   = Prefix (do{ reservedOp name; return $ \x -> Basic $ Fun name [x] })
 
 -- NOTE: this parser will not check if there exists a higher-precedence operator that's a superset
-topLevelPrefixParser op = string op >> return (\x -> Basic $ Fun op [x])
+-- the purpose of the ++ "p" is to distinguish infix and prefix operators with the same name, 
+-- eg (-). See functions :: M.Map String FuncDescriptor in Lib.hs for where this is used. 
+topLevelPrefixParser op = string op >> return (\x -> Basic $ Fun (op ++ "p") [x])
 
 pos = topLevelPrefixParser "+"
 
