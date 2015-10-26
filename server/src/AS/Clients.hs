@@ -296,9 +296,11 @@ getPasteCells :: R.Connection -> ASRange -> ASRange -> IO [ASCell]
 getPasteCells conn from to = do 
   fromCells    <- DB.getPossiblyBlankCells (rangeToIndices from)
   listsInRange <- DB.getListsInRange conn from
+  printDebug "listsInRange" listsInRange
   let sanitizedFromCells = sanitizeCopyCells fromCells listsInRange
       offsets            = U.getPasteOffsets from to  -- how much to shift these cells for copy/copy/paste
       toCells            = concat $ map (\o -> map (S.shiftCell o) sanitizedFromCells) offsets
+  printDebug "sanitizedFromCells" sanitizedFromCells
   return toCells
 
 ----------------------------------------------------------------------------------------------------------------------------------------------

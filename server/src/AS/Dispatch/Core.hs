@@ -88,8 +88,8 @@ getEvalLocs conn origCells = do
 -- | Given a set of locations to eval, return the corresponding set of cells to perform
 -- the evaluations in (which includes info about tags, language, and expression string).
 -- Distinguishes between new cells to evaluate (the ones passed into runDispatchCycle)
--- and old cells already in the database.  For the new cells, just evaluate them as-is;
--- for old cells, pull them from the database.
+-- and old cells already in the database, which all reference the new cells. For the new 
+-- cells, just evaluate them as-is; for old cells, pull them from the database.
 getCellsToEval :: Connection -> [ASIndex] -> [ASCell] -> EitherTExec [ASCell]
 getCellsToEval conn locs origCells = do
   let locCellMap = M.fromList $ map (\c -> (cellLocation c, c)) origCells
@@ -154,15 +154,15 @@ evalChain' conn valuesMap [] lists pastListHeads = do
   let cells         = concat $ map snd lists
       listCellLocs  = map cellLocation cells
       listCellLocs' = filter (\d -> not $ d `elem` pastListHeads) listCellLocs
-  descs <- G.getDescendants listCellLocs'
+  descLocs <- G.getDescendants listCellLocs'
   -- check for circular dependencies. IF a circular dependency exists, it necessarily has to
   -- involve one of the list heads, since the cells created as part of a list depend only
   -- on the head. So we go through the descendants of the current list cells (sans the previous
   -- list heads), so if those contain any of the previous list heads we know there's a cycle.
-  mapM_ (\d -> if (d `elem` pastListHeads) then (left $ CircularDepError d) else (return ())) descs
-  -- DON'T need to re-eval anything in the current set of list cells
-  let descs' = filter (\d -> not $ d `elem` listCellLocs) descs
-  cells' <- getCellsToEval conn descs' [] -- the origCells are the list cells, which got filtered out of descs'
+  mapM_ (\d -> if (d `elem` pastListHeads) then (left $ CircularDepError d) else (return ())) descLocs
+  -- DON'T need to re-eval anything that's already been evaluated
+  let descLocs' = filter (\d -> (IndexRef d) `M.notMember` valuesMap) descLocs
+  cells' <- getCellsToEval conn descLocs' [] -- the origCells are the list cells, which got filtered out of descLocs
   evalChain' conn valuesMap cells' [] pastListHeads
 
 evalChain' conn valuesMap (c@(Cell loc xp _ ts):cs) next listHeads = do

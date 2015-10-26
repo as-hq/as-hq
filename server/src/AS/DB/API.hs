@@ -122,7 +122,8 @@ locationsExist conn locs = do
       return $ sequence bools
     return results
 
-getListsInRange :: Connection -> ASRange -> IO [String]
+-- | Returns the listkeys of all the lists that contain an element within the range. 
+getListsInRange :: Connection -> ASRange -> IO [ListKey]
 getListsInRange conn rng = do
   let sid = rangeSheetId rng
   listKeys <- DU.getListKeysInSheet conn sid
