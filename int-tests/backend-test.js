@@ -650,6 +650,14 @@ describe('backend', () => {
           ]);
         });
 
+        it('recognizes - and + prefix operators', (done) => { 
+          _do([
+            excel('A1', '=++--+-2'), 
+            shouldBe('A1', valueI(-2)),
+            exec(done)
+          ]);
+        });
+
         describe('abs', () => {
           it('should evaluate', (done) => {
             _do([
@@ -715,7 +723,7 @@ describe('backend', () => {
 
           it('should allow negative numbers to be exponentiated with integers', (done) => {
             _do([
-              excel('A1', '=(0-2)^(0-2)'),
+              excel('A1', '=(-2)^(-2)'),
               shouldBe('A1', valueD(0.25)), 
               exec(done)
             ]);
