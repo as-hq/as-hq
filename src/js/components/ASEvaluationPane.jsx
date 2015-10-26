@@ -201,7 +201,11 @@ export default React.createClass({
 
   },
   showAnyErrors(cv) {
-    this.setToast(cv.errMsg, "Error");
+    if (cv.tag === "ValueError") {
+      this.setToast(cv.errMsg, "Error");
+    } else if (cv.tag === "ValueExcelError") { 
+      this.setToast(cv.contents.tag, "Error"); // ValueExcelError should become a part of ValueError eventually 
+    }
   },
   setToast(msg, action) {
     this.setState({toastMessage: msg, toastAction: action});
