@@ -240,14 +240,6 @@ isListHead cell = case (getListTag cell) of
   Nothing -> False
   (Just (ListMember key)) -> (show2 . cellLocation $ cell) == (head $ splitBy keyPartDelimiter key)
 
-sanitizeCopyCells :: [ASCell] -> [ListKey] -> [ASCell]
-sanitizeCopyCells cells keys = nonListCells ++ decoupledCells ++ containedListHeads
-  where
-    (listCells, nonListCells)             = L.partition U.isListMember cells
-    (containedListCells, cutoffListCells) = U.partitionByListKeys listCells keys
-    decoupledCells                        = map decoupleCell cutoffListCells
-    containedListHeads                    = filter isListHead containedListCells
-
 ----------------------------------------------------------------------------------------------------------------------
 -- | ByteString utils
 

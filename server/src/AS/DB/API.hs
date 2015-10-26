@@ -122,7 +122,7 @@ locationsExist conn locs = do
       return $ sequence bools
     return results
 
--- | Returns the listkeys of all the lists that contain an element within the range. 
+-- | Returns the listkeys of all the lists that are entirely contained in the range.  
 getListsInRange :: Connection -> ASRange -> IO [ListKey]
 getListsInRange conn rng = do
   let sid = rangeSheetId rng

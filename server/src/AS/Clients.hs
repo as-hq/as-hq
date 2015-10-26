@@ -291,17 +291,32 @@ handleCopyForced user state (PayloadLL (from:to:[])) = return ()
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Copy/paste helpers
 
--- | If you're copy/pasting
+-- | Gets you the new cells to eval after shifting from a copy/paste or cut/paste. 
 getPasteCells :: R.Connection -> ASRange -> ASRange -> IO [ASCell]
 getPasteCells conn from to = do 
   fromCells    <- DB.getPossiblyBlankCells (rangeToIndices from)
-  listsInRange <- DB.getListsInRange conn from
-  printDebug "listsInRange" listsInRange
-  let sanitizedFromCells = sanitizeCopyCells fromCells listsInRange
-      offsets            = U.getPasteOffsets from to  -- how much to shift these cells for copy/copy/paste
+  sanitizedFromCells <- sanitizeCopyCells conn fromCells from
+  let offsets            = U.getPasteOffsets from to  -- how much to shift these cells for copy/copy/paste
       toCells            = concat $ map (\o -> map (S.shiftCell o) sanitizedFromCells) offsets
   printDebug "sanitizedFromCells" sanitizedFromCells
   return toCells
+
+-- | Decouples cells appropriately for re-eval on copy/paste or cut/paste, as follows:
+--   * if everything is a list head, leave it as is. 
+--   * if a cell is not a part of a list, leave it as is. 
+--   * if an entire list is contained in the range, keep just the head of the list. (So on eval
+--     the entire list is re-evaluated)
+--   * if a cell is part of a list that is not contained entirely in the selection, decouple it. 
+sanitizeCopyCells :: R.Connection -> [ASCell] -> ASRange -> IO [ASCell]
+sanitizeCopyCells conn cells from
+  | all isListHead cells = return cells 
+  | otherwise            = do 
+      listsInRange <- getListsInRange conn from
+      let (listCells, nonListCells)             = L.partition U.isListMember cells
+          (containedListCells, cutoffListCells) = U.partitionByListKeys listCells listsInRange
+          decoupledCells                        = map decoupleCell cutoffListCells
+          containedListHeads                    = filter isListHead containedListCells
+      return $ nonListCells ++ decoupledCells ++ containedListHeads
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Tag handlers
