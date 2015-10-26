@@ -859,6 +859,19 @@ describe('backend', () => {
           ]);
         });
 
+        it('should re-evaluate copy/paste selections composed of only list heads', (done) => {
+          _do([
+            python('A1', '"John Smith"'),
+            python('A2', '"Alex Zhu"'),
+            python('A3', '"Bob Ghandi"'),
+            python('B1', '[A1.split()]'),
+            copy('B1', 'B2:B3'),
+            shouldBe('C2', valueS("Zhu")),
+            shouldBe('C3', valueS("Ghandi")),
+            exec(done)
+          ]);
+        });
+
         it('should tessellate a range', (done) => {
           let cs = {
             '00': 0,
