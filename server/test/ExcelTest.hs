@@ -28,10 +28,10 @@ eval :: String -> Either ASExecError ASValue
 eval s = unsafePerformIO $ runEitherT $ EE.evaluate s (IndexRef (Index (T.pack "") (1,1))) mp
 
 mp :: RefValMap
-mp = M.fromList $ [(IndexRef (Index (T.pack "") (i,j)), ValueI j)| i <- [1..100], j <- [1..100]]
+mp = M.fromList $ [(IndexRef (Index (T.pack "") (i,j)), ValueI j)| i <- [1..10], j <- [1..10]]
 
 tests :: [IO ()]
-tests = [testLiteral, testLambda, testAdd,testAbs,testEquals,testIf,testSumIf]
+tests = [testLiteral, testLambda, testAdd, testAbs, testEquals, testIf, testSumIf, testCountIf]
 
 testLiteral :: IO ()
 testLiteral = hspec $ do
@@ -40,10 +40,10 @@ testLiteral = hspec $ do
       eval "123" `shouldBe` (Right $ ValueI 123)
     it "can parse doubles" $ do
       eval "1.23" `shouldBe` (Right $ ValueD 1.23)
-    it "can parse strings" $ do
+    {-it "can parse strings" $ do
       eval "\"clifford_the_big_red_penis\"" `shouldBe` (Right $ (ValueS "clifford_the_big_red_penis"))
     it "can parse integers" $ do
-      eval "\"s+_sdfja39w9df4wfm4=4524t2\"" `shouldBe` (Right $ (ValueS "s+_sdfja39w9df4wfm4=4524t2"))
+      eval "\"s+_sdfja39w9df4wfm4=4524t2\"" `shouldBe` (Right $ (ValueS "s+_sdfja39w9df4wfm4=4524t2")) -}
 
 testLambda :: IO ()
 testLambda = hspec $ do
@@ -97,6 +97,24 @@ testSumIf = hspec $ do
       eval "=sumif(G1:I1,1,G1:I1)" `shouldBe` (Right $ ValueI 3)
     it "can do lambdas" $ do
       eval "=sumif(A1:A3,\">1\",B1:B3)" `shouldBe` (Right $ ValueI 5)
+    it "can resize" $ do
+      eval "=sumif(A1:A4,\">=1\",B1:B3)" `shouldBe` (Right $ ValueI 10)
+      eval "=sumif(A1:A2,\">=1\",B1:B3)" `shouldBe` (Right $ ValueI 3)
+
+testCountIf :: IO ()
+testCountIf = hspec $ do
+  describe "testCountIf" $ do
+    it "can do basic filtering" $ do
+      eval "=countif(G1:I1,1)" `shouldBe` (Right $ ValueI 3)
+    it "can do lambdas" $ do
+      eval "=countif(A1:A3,\">1\")" `shouldBe` (Right $ ValueI 2)
+
+testCountIfs :: IO ()
+testCountIfs = hspec $ do
+  describe "testCountIfs" $ do
+    it "can do basic filtering" $ do
+      eval "=countifs(G1:I1,1,G1:I1,0)" `shouldBe` (Right $ ValueI 0)
+      eval "=countifs(G1:G3,2,H1:H3,2)" `shouldBe` (Right $ ValueI 1)
 
 main :: IO ()
 main = do
