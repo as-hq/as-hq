@@ -693,6 +693,42 @@ describe('backend', () => {
             ]);
           });
         });
+
+        describe('exponentiation', () => {
+          it('should evaluate integer exponentiation', (done) => {
+            _do([
+              python('A1', '10'),
+              excel('B1', '=A1^2'),
+              shouldBe('B1', valueI(100)),
+              exec(done)
+            ]);
+          });
+
+          it('should not raise 0 to the 0', (done) => {
+            _do([
+              python('A1', '0'),
+              excel('B1', '=A1^0'),
+              shouldBeError('B1'), 
+              exec(done)
+            ]);
+          });
+
+          it('should allow negative numbers to be exponentiated with integers', (done) => {
+            _do([
+              excel('A1', '=(0-2)^(0-2)'),
+              shouldBe('A1', valueD(0.25)), 
+              exec(done)
+            ]);
+          });
+
+          it('should not allow negative numbers to be exponentiated with floats', (done) => {
+            _do([
+              excel('A1', '=(-2)^(-2.0)'),
+              shouldBeError('A1'),
+              exec(done)
+            ]);
+          });
+        });
       });
 
       describe('ocaml', () => {
