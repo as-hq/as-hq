@@ -929,6 +929,16 @@ describe('backend', () => {
           ]);
         });
 
+        it('should copy expressions with both a list and a dependency to the list', (done) => {
+          _do([
+            python('A1', 'range(10)'),
+            python('B1', 'sum(A1:A10)'),
+            copy('A1:B10', 'C1:D10'),
+            shouldBe('D1', valueI(45)),
+            exec(done)
+          ]);
+        });
+
         it('should successfully copy out of bounds expressions', (done) => {
           _do([
             python('A2', 'A1+1'),
