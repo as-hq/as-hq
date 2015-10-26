@@ -79,8 +79,10 @@ export default {
         if (borderConfig.lineType === 1)
           gc.setLineDash([5,5]); // 5px dash, 5px space
         for (var i=0; i<paintBorders.length; i++){
-          gc.moveTo(x + paintBorders[i][0][0] * width, y + paintBorders[i][0][1] * height);
-          gc.lineTo(x + paintBorders[i][1][0] * width, y + paintBorders[i][1][1] * height);
+          if (paintBorders[i] !== null) {
+            gc.moveTo(x + paintBorders[i][0][0] * width, y + paintBorders[i][0][1] * height);
+            gc.lineTo(x + paintBorders[i][1][0] * width, y + paintBorders[i][1][1] * height);
+          }
         }
         gc.stroke();
       }

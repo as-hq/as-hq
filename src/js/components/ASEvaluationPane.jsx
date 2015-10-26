@@ -254,7 +254,7 @@ export default React.createClass({
     // id=alphasheets set, which is how we know we the clipboard content is
     // from AlphaSheets originally.
     let sel = Store.getActiveSelection(),
-        vals = Store.selRegionToValues(sel.range);
+        vals = Store.getRowMajorCellValues(sel.range);
     if (vals) {
       Store.setClipboard(sel, isCut);
       let html = ClipboardUtils.valsToHtml(vals),

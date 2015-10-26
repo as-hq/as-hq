@@ -56,7 +56,6 @@ wss.onmessage = function (event) {
     }
 
     switch (msg.action) {
-      // TODO: add cases for new
       case "New":
         if (msg.payload.tag === "PayloadWorkbookSheets") {
           Dispatcher.dispatch({
@@ -298,8 +297,10 @@ export default {
     this.send(msg);
   },
 
-  openSheet(sheet) {
-    let msg = Converter.makeClientMessage(Constants.ServerActions.Open, "PayloadS", sheet);
+// @optional mySheet
+  openSheet(mySheet) {
+    let sheet = mySheet || Store.getCurrentSheet(),
+        msg = Converter.makeClientMessage(Constants.ServerActions.Open, "PayloadS", sheet);
     this.send(msg);
   },
 
@@ -326,6 +327,9 @@ export default {
     this.send(msg);
   },
 
+
+  /**************************************************************************************************************************/
+  /* Testing */
 
   test(f, cbs) {
     currentCbs = cbs;

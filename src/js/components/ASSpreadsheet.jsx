@@ -32,14 +32,11 @@ export default React.createClass({
   },
   getInitialState() {
     return {
-      scroll: { // keep scroll values in state so overlays autoscroll with grid
-        x:0,
-        y:0
-      },
+      // keep scroll values in state so overlays autoscroll with grid
+      scroll: { x:0, y:0 },
       overlays: []
     };
   },
-  // produces oriented area -- row < row2 and col < col2 always
   getSelectionArea() {
     let hg = this._getHypergrid(),
         selection = hg.getSelectionModel().selections[0],
@@ -58,12 +55,10 @@ export default React.createClass({
       };
     return sel;
   },
-  /* Returns the position of scroll */
   getScroll() {
     let hg = this._getHypergrid();
     return {x: hg.hScrollValue, y: hg.vScrollValue};
   },
-
   getViewingWindow() {
     let hg = this._getHypergrid(),
         [vs, hs] = [hg.vScrollValue, hg.hScrollValue],
@@ -72,16 +67,6 @@ export default React.createClass({
                      br: {row: vs + rows.length, col: hs + cols.length}},
              width: cols.length,
              height: rows.length };
-  },
-  getViewingWindowWithCache() {
-    let hg = this._getHypergrid(),
-        [vs, hs] = [hg.vScrollValue, hg.hScrollValue],
-        [cols, rows] = [hg.getVisibleColumns(), hg.getVisibleRows()],
-        tl = Util.getSafeIndex({row: vs+Constants.scrollCacheY, col: hs+Constants.scrollCacheX}),
-        br = Util.getSafeIndex({row: vs+rows.length+Constants.scrollCacheY, col: hs+cols.length+Constants.scrollCacheX});
-    return { range: {tl: tl, br: br},
-             width: br.col - tl.col,
-             height: br.row - tl.row };
   },
   isVisible(col, row){ // faster than accessing hypergrid properties
     return (this.state.scroll.x <= col && col <= this.state.scroll.x+Constants.numVisibleCols) &&
@@ -102,17 +87,12 @@ export default React.createClass({
     model.getValue = function(x, y) {
       return '';
     };
-    this.makeSelection({tl: {row: 1, col: 1}, br: {row: 1, col: 1}});
+    this.select({tl: {row: 1, col: 1}, br: {row: 1, col: 1}});
   },
+  // expects that the current sheet has already been set
   getInitialData(){
-    // expects that the current sheet has already been set
-    // e,g, by open/new dialog
     API.openSheet(Store.getCurrentSheet());
-    let viewingRange = {tl: {row: 1, col: 1},
-                        br: {row: Constants.numVisibleRows + Constants.scrollCacheY,
-                             col: Constants.numVisibleCols + Constants.scrollCacheX} },
-        viewingWindow = Converter.rangeToASWindow(viewingRange);
-    API.updateViewingWindow(viewingWindow);
+    ActionCreator.scroll(this.getViewingWindow());
   },
   /* Called by eval pane's onChange method, when eval pane receives a change event from the store */
   updateCellValues(clientCells){
@@ -194,13 +174,13 @@ export default React.createClass({
           // let {x, y} = self.getScroll();
           self.setState({scroll: self.getScroll()});
           if ((self.getScroll()).x % 20 === 0)
-            ActionCreator.scroll(self.getViewingWindowWithCache());
+            ActionCreator.scroll(self.getViewingWindow());
           },
         'fin-scroll-y': function (event) {
           // let {x, y} = self.getScroll();
           self.setState({scroll: self.getScroll()});
           if ((self.getScroll()).y % 20 === 0)
-            ActionCreator.scroll(self.getViewingWindowWithCache());
+            ActionCreator.scroll(self.getViewingWindow());
           }
       });
       for (var key in callbacks) {
@@ -266,7 +246,7 @@ export default React.createClass({
     this._getHypergrid().takeFocus();
   },
   // do not call before polymer is ready.
-  makeSelection(unsafeLoc, origin) {
+  select(unsafeLoc, origin) {
     let loc = Util.getSafeRange(unsafeLoc),
         {tl, br} = loc;
     console.log("making selection!", loc);
@@ -315,14 +295,14 @@ export default React.createClass({
         range = {tl: {row: tl.row + dr, col: tl.col + dc},
                  br: {row: br.row + dr, col: br.col + dc} },
         origin = {row: sel.origin.row + dr, col: sel.origin.col + dc};
-    this.makeSelection(Util.getSafeRange(range), Util.getSafeIndex(origin));
+    this.select(Util.getSafeRange(range), Util.getSafeIndex(origin));
   },
 
   scrollTo(x, y){
     let hg = this._getHypergrid();
     hg.setVScrollValue(y),
     hg.setHScrollValue(x);
-    ActionCreator.scroll(this.getViewingWindowWithCache());
+    ActionCreator.scroll(this.getViewingWindow());
   },
 //
 
@@ -343,6 +323,7 @@ export default React.createClass({
           activeCell = Store.getActiveCell(),
           clipboard = Store.getClipboard();
 
+      // console.log("\n\nSEL\n\n", sel);
       // initialize custom config attributes for every cell
       // (hypergrid reuses the config object for performance; attributes must be set explicitly null)
       config.paintBorders = [];
@@ -361,6 +342,7 @@ export default React.createClass({
       // selection dependency highlighting
       if (rng && activeCell && activeCell.cellExpression.dependencies) {
         let locs = activeCell.cellExpression.dependencies;
+          // console.log("\n\nDEPS\n\n", locs);
         if (Util.isContainedInLocs(col, row, locs)){
           config.paintBorders = Util.getPaintedBorders(col, row, locs);
           config.bgColor = "#d3d3d3"; // light grey fill
@@ -372,8 +354,8 @@ export default React.createClass({
 
       // Cell/Range highlighting
       if (rng) {
-        if (Util.isContainedInLocs(col, row, rng)) {
-          config.paintBorders = Util.getPaintedBorders(col, row, rng);
+        if (Util.isContainedInLocs(col, row, [rng])) {
+          config.paintBorders = Util.getPaintedBorders(col, row, [rng]);
           config.borderConfig = {lineType: 0, // solid border type
                                 width: 2,
                                 color: "#003EFF"}; // blue border color
@@ -383,8 +365,8 @@ export default React.createClass({
 
 
       // clipboard highlighting
-      if (clipboard.area && Util.isContainedInLoc(col, row, clipboard.area.range)) {
-        config.paintBorders = Util.getPaintedBorders(col, row, clipboard.area.range);
+      if (clipboard.area && Util.isContainedInLocs(col, row, [clipboard.area.range])) {
+        config.paintBorders = Util.getPaintedBorders(col, row, [clipboard.area.range]);
         config.borderConfig = {lineType: 1, // dashed border type
                                  width: 3,
                                  color: clipboard.isCut ? "#ff0000" : "#4169e1"}; // red cut, blue copy

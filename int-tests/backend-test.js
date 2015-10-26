@@ -17,11 +17,19 @@ describe('backend', () => {
   }
 
   function locFromExcel(exLoc) {
-    return Util.excelToLoc(exLoc);
+    return Util.excelToRange(exLoc);
   }
 
   function locToExcel(loc) {
-    return Util.locToExcel(loc);
+    return Util.rangeToExcel(loc);
+  }
+
+  function asIndex(loc) {
+    return Converter.simpleToASIndex(Util.excelToRange(loc).tl);
+  }
+
+  function asRange(loc) {
+    return Converter.simpleToASRange(Util.excelToRange(loc));
   }
 
   function fromToInclusive(st, end) {
@@ -70,14 +78,11 @@ describe('backend', () => {
   }
 
   function sheet() {
-    // TODO
     return () => {
       directAPIExec(() => {
-        API.sendCreateSheetMessage();
+        API.createSheet();
       }).then((response) => {
-        let {
-          payload: {
-            contents: [
+        let  [
               { // tag: 'WorkbookSheet'
                 wsName: workbookName,
                 wsSheets: [
@@ -87,11 +92,7 @@ describe('backend', () => {
                     }
                   ]
                 }
-              ]
-            }
-          } = response;
-
-
+              ] = response.payload.contents;
       });
     };
   }
@@ -106,27 +107,27 @@ describe('backend', () => {
 
   function openSheet() {
     return apiSyncExec(() => {
-      API.sendDefaultOpenMessage();
+      API.openSheet();
     });
   }
 
   function syncWindow() {
     return apiExec(() => {
-      API.updateViewingWindow({
-        range: { col: 0, row: 0, col2: 100, row2: 100 }
-      });
+      let range = { tl: {col: 0, row: 0}, br: {col: 100, row: 100 }},
+          vWindow = Converter.rangeToASWindow(range);
+      API.updateViewingWindow(vWindow);
     });
   }
 
   function clear() {
     return apiExec(() => {
-      API.sendClearRequest();
+      API.clear();
     });
   }
 
   function init() {
     return apiExec(() => {
-      API.sendInitialMessage();
+      API.initialize();
     });
   }
 
@@ -138,12 +139,10 @@ describe('backend', () => {
         'excel': 'Excel',
         'ml': 'OCaml'
       };
-      let cell = Converter.clientToASCell(
-        { range: locFromExcel(loc) },
-        { exp: xp, lang: { Server: langMap[lang] } }
-      );
-      let msg = Converter.createEvalRequestFromASCell(cell);
-      API.send(msg);
+      let idx = asIndex(loc);
+      console.log("\n\nFUCk\n", idx);
+      let xpObj = { expression: xp, language: { Server: langMap[lang] } };
+      API.evaluate(idx, xpObj);
     });
   }
 
@@ -165,25 +164,27 @@ describe('backend', () => {
 
   function copy(rng1, rng2) {
     return apiExec(() => {
-      API.sendCopyRequest([rng1, rng2].map(locFromExcel));
+      let [asRng1, asRng2] = [rng1, rng2].map(asRange);
+      API.copy(asRng1, asRng2);
     });
   }
 
   function cut(rng1, rng2) {
     return apiExec(() => {
-      API.sendCutRequest([rng1, rng2].map(locFromExcel));
+      let [asRng1, asRng2] = [rng1, rng2].map(asRange);
+      API.cut(asRng1, asRng2);
     });
   }
 
   function undo() {
     return apiExec(() => {
-      API.sendUndoRequest();
+      API.undo();
     });
   }
 
   function redo() {
     return apiExec(() => {
-      API.sendRedoRequest();
+      API.redo();
     });
   }
 
@@ -226,10 +227,10 @@ describe('backend', () => {
   function messageShouldSatisfy(loc, fn) {
     return promise((fulfill, reject) => {
       API.test(() => {
-        API.sendGetRequest([ Util.excelToLoc(loc) ]);
+        API.getIndices([ asIndex(loc) ]);
       }, {
         fulfill: (result) => {
-          let cs = Converter.clientCellsFromServerMessage(result);
+          let cs = result.payload.contents;
           fn(cs);
 
           fulfill();
@@ -297,10 +298,10 @@ describe('backend', () => {
   function shouldBeL(locs, vals) {
     return promise((fulfill, reject) => {
       API.test(() => {
-        API.sendGetRequest(locs.map((loc) => Util.excelToLoc(loc)));
+        API.getIndices(locs.map(asIndex));
       }, {
         fulfill: (result) => {
-          let cellValues = Converter.clientCellsFromServerMessage(result).map((x) => x.cellValue);
+          let cellValues = result.payload.contents.map((x) => x.cellValue);
 
           expect(_.
             zip(cellValues, vals).
@@ -807,7 +808,8 @@ describe('backend', () => {
             _forM_(_.range(4), (col) => {
               return _forM_(_.range(4), (row) => {
                 return shouldBe(
-                  locToExcel({ col: col + 3, row: row + 1 }),
+                  locToExcel({ tl: {col: col + 3, row: row + 1},
+                               br: {col: col + 3, row: row + 1}}),
                   valueI(cs[`${col % 2}${row % 2}`])
                 );
               });

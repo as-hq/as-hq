@@ -28,7 +28,7 @@ export default {
   add(set, name, keyStr, callback) {
     var self = this;
     if (keyStr.constructor === Array)
-      keyStr.map((k) => {self.addShortcut(set, name, k, callback)});
+      keyStr.map((k) => self.add(set, name, k, callback));
     else {
       let s = {name: name};
       s = KeyUtils.parseIntoShortcut(s, keyStr);

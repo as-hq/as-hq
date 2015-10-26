@@ -38,7 +38,8 @@ let _data = {
     range: null,
     isCut: false
   },
-  externalError: null
+  externalError: null,
+  viewingWindow: null
 };
 
 /* This function describes the actions of the ASEvaluationStore upon recieving a message from Dispatcher */
@@ -76,7 +77,9 @@ dispatcherIndex: Dispatcher.register(function (action) {
         It gets previous scroll state from the store and then uses the API to send a "get cells" message to server
       */
       case Constants.ActionTypes.SCROLLED:
-        let viewingWindow = Converter.rangeToASWindow(action.vWindow.range);
+        let extendedRange = Converter.extendRangeByCache(action.vWindow.range),
+            viewingWindow = Converter.rangeToASWindow(extendedRange);
+        _data.viewingWindow = action.vWindow;
         API.updateViewingWindow(viewingWindow);
         break;
       /*
@@ -171,7 +174,7 @@ const ASEvaluationStore = assign({}, BaseStore, {
     let c = sel.origin.col,
         r = sel.origin.row,
         listDep = this.getParentList(c, r);
-    if (listDep) {
+    if (listDep !== null) {
       activeCellDependencies.push(listDep);
     }
     this.setActiveCellDependencies(activeCellDependencies);
@@ -193,6 +196,7 @@ const ASEvaluationStore = assign({}, BaseStore, {
           }
         }
       }
+      return null;
     } else return null;
   },
 
@@ -248,73 +252,26 @@ const ASEvaluationStore = assign({}, BaseStore, {
   /**************************************************************************************************************************/
   /* Copy paste helpers */
 
-   //Utils for selRegionToValues
-   sliceArray(begin, end) {
-     return (
-         function(arr) { return arr.slice(begin, end) }
-     );
-   },
-
-   makeArrayOf(value, length) {
-     var arr = [], i = length;
-     while (i--) {
-       arr[i] = value;
-     }
-     return arr;
-   },
-
-   make2DArrayOf(value, height, length) {
-     var arr = [[]], i = height;
-     while (i --) {
-       arr[i] = this.makeArrayOf(value, length);
-     }
-     return arr;
-   },
-
    // Converts a range to a row major list of lists of values,
-   selRegionToValues(rng){
+   getRowMajorCellValues(rng){
      if (T.isIndex(rng)) {
-       return [[this.clientCellToValue(this.getCell(rng.tl.col, rng.tl.row))]];
+       return [[this.getCell(rng.tl.col, rng.tl.row).cellValue.contents]];
      } else {
       let {tl, br} = rng,
           height = br.row - tl.row + 1,
           length = br.col - tl.col + 1,
           self = this,
-          rowMajorValues = this.make2DArrayOf("", height, length);
+          rowMajorValues = Util.make2DArrayOf("", height, length);
       for (let i = 0; i < height; ++i) {
         let currentRow = tl.row + i;
         rowMajorValues[i] = rowMajorValues[i].map(function(value, index) {
             let currentColumn = tl.col + index,
                 cell = self.getCell(currentColumn, currentRow);
-            return Util.showValue(cell.cellValue);
+            return cell ? cell.cellValue.contents : "";
         });
       }
       return rowMajorValues;
      }
-   },
-
-
-   _arrayToASCells(loc, language) {
-    var self = this;
-     return function(i){
-       return function(v, j) {
-        let asIndex = Converter.simpleToASIndex({col: loc.col + j, row: loc.row + i}),
-            xpStr = Converter.externalStringToExpression(v, language);
-         return Converter.makeEvalCell(asIndex, xpStr, language);
-       };
-     };
-   },
-
-   _rowValuesToASCells(loc, language){
-    var self = this;
-     return function(values, i){
-       return values.map(self._arrayToASCells(loc, language)(i));
-     };
-   },
-
-   // takes in a set of locations and the values at those locations,
-   externalStringsToASCells(loc, strs, language) {
-     return strs.map(this._rowValuesToASCells(loc, language));
    },
 
 
@@ -363,7 +320,7 @@ const ASEvaluationStore = assign({}, BaseStore, {
 
   removeIndex(loc) {
     if (this.locationExists(loc.index.col, loc.index.row, loc.sheetId)) {
-      _data.allCells[loc.sheetId][l.index.col][l.index.row] = null;
+      _data.allCells[loc.sheetId][loc.index.col][loc.index.row] = null;
     }
   },
 
@@ -385,6 +342,7 @@ const ASEvaluationStore = assign({}, BaseStore, {
     _data.activeCell.cellExpression.dependencies = deps;
   },
 
+// @optional mySheetId
   locationExists(col, row, mySheetId) {
     let sheetId = mySheetId || _data.currentSheet.sheetId;
     return (_data.allCells[sheetId] && _data.allCells[sheetId][col] && _data.allCells[sheetId][col][row]);
@@ -393,6 +351,7 @@ const ASEvaluationStore = assign({}, BaseStore, {
   /**************************************************************************************************************************/
   /* Updating expression when user clicks on a cell */
 
+// @optional mySheetId
   getCell(col,row,mySheetId){
     let sheetId = mySheetId || _data.currentSheet.sheetId;
     if (this.locationExists(col, row, sheetId))
@@ -406,86 +365,107 @@ const ASEvaluationStore = assign({}, BaseStore, {
     let sel = _data.activeSelection.range,
         {tl, br} = sel,
         origin = _data.activeSelection.origin,
-        selExists,
+        startExists,
         startRow, startCol,
-        hExtremum = origin.col > tl.col ? tl.col : br.col,
-        vExtremum = origin.row > tl.row ? tl.row : br.row,
+        isOrientedH = origin.col === tl.col,
+        isOrientedV = origin.row === tl.row,
+        hExtremum = isOrientedH ? br.col : tl.col,
+        vExtremum = isOrientedV ? br.row : tl.row,
+        win = _data.viewingWindow.range,
         result;
     // debugger;
     // console.log("\n\nin data bundary func\n\n", sel);
-    console.log("\n\nhextremum\n\n", hExtremum);
+    // console.log("\n\nhextremum\n\n", hExtremum);
     switch(direction) {
       case "Right":
         startCol = this.locationExists(hExtremum+1, tl.row) ? hExtremum : hExtremum+1;
-        selExists = this.locationExists(startCol, tl.row);
+        startExists = this.locationExists(startCol, tl.row);
         for (var col = startCol; col < startCol + Constants.LARGE_SEARCH_BOUND; col++){
           let thisExists = this.locationExists(col, origin.row);
-          if (Util.xor(selExists, thisExists)) {
-            result = thisExists ? {col: col, row: tl.row} : {col: col-1, row: tl.row};
-            let resultCol = origin.col > tl.col ? result.col : tl.col;
-            let resultCol2 = origin.col > tl.col ? br.col : result.col;
-            result = !isShifted ? result : { tl: {row: tl.row, col: resultCol},
-                                             br: {row: br.row, col: resultCol2} };
+          if (Util.xor(startExists, thisExists)) {
+            let idx = thisExists ? {col: col, row: tl.row} : {col: col-1, row: tl.row};
+            if (isShifted) {
+              let resultCol = isOrientedH ? tl.col : idx.col;
+              let resultCol2 = isOrientedH ? idx.col : br.col;
+              result = { tl: {row: tl.row, col: resultCol},
+                         br: {row: br.row, col: resultCol2} };
+            } else {
+              result = {tl: idx, br: idx};
+            }
             break;
           }
         }
-        result = result ? result : sel;
+        result = result || { tl: {row: tl.row, col: isShifted ? origin.col : win.br.col},
+                             br: {row: isShifted ? br.row : tl.row,
+                                  col: win.br.col} };
         break;
       case "Down":
         startRow = this.locationExists(tl.col, vExtremum+1) ? vExtremum : vExtremum+1;
-        selExists = this.locationExists(tl.col, startRow);
+        startExists = this.locationExists(tl.col, startRow);
         for (var row = startRow; row < startRow + Constants.LARGE_SEARCH_BOUND; row++){
           let thisExists = this.locationExists(origin.col, row);
-          if (Util.xor(selExists, thisExists)) {
-            result = thisExists ? {col: tl.col, row: row} : {col: tl.col, row: row-1};
-            let resultRow = origin.row > tl.row ? result.row : tl.row;
-            let resultRow2 = origin.row > tl.row ? br.row : result.row;
-            result = !isShifted ? result : { tl: {row: resultRow, col: tl.col},
-                                             br: {row: resultRow2, col: br.col} };
+          if (Util.xor(startExists, thisExists)) {
+            let idx = thisExists ? {col: tl.col, row: row} : {col: tl.col, row: row-1};
+            if (isShifted) {
+              let resultRow = isOrientedV ? tl.row : idx.row;
+              let resultRow2 = isOrientedV ? idx.row : br.row;
+              result = { tl: {row: resultRow, col: tl.col}, br: {row: resultRow2, col: br.col} };
+            } else {
+              result = {tl: idx, br: idx};
+            }
             break;
           }
         }
-        result = result ? result : sel;
+        result = result || { tl: {row: isShifted ? origin.row : win.br.row, col: tl.col},
+                             br: {row: isShifted ? br.row : tl.row,
+                                  col: win.br.col} };
         break;
       case "Left":
         startCol = this.locationExists(hExtremum-1, tl.row) ? hExtremum : hExtremum-1;
-        selExists = this.locationExists(startCol, tl.row);
+        startExists = this.locationExists(startCol, tl.row);
         for (var col = startCol; col > 1; col--) {
           let thisExists = this.locationExists(col, origin.row);
-          if (Util.xor(selExists, thisExists)) {
-            result = thisExists ? {col: col, row: tl.row} : {col: col+1, row: tl.row};
-            let resultCol = origin.col > tl.col ? result.col : tl.col;
-            let resultCol2 = origin.col > tl.col ? br.col : result.col;
-            result = !isShifted ? result : { tl: {row: tl.row, col: resultCol},
-                                             br: {row: br.row, col: resultCol2} };
+          if (Util.xor(startExists, thisExists)) {
+            let idx = thisExists ? {col: col, row: tl.row} : {col: col+1, row: tl.row};
+            if (isShifted) {
+              let resultCol = isOrientedH ? tl.col : idx.col;
+              let resultCol2 = isOrientedH ? idx.col : br.col;
+              result = { tl: {row: tl.row, col: resultCol}, br: {row: br.row, col: resultCol2} };
+            } else {
+              result = {tl: idx, br: idx};
+            }
             break;
           }
         }
-        result = result ? result : { tl: {row: tl.row, col: 1},
-                                     br: {row: isShifted ? br.row : null,
-                                          col: isShifted ? tl.col : null} };
+        result = result || { tl: {row: tl.row, col: 1},
+                             br: {row: isShifted ? br.row : tl.row,
+                                  col: isShifted ? (isOrientedH ? tl.col : br.col) : 1} };
         break;
       case "Up":
         startRow = this.locationExists(tl.col, vExtremum-1) ? vExtremum : vExtremum-1;
-        selExists = this.locationExists(tl.col, startRow);
+        startExists = this.locationExists(tl.col, startRow);
         for (var row = startRow; row > 1; row--) {
           let thisExists = this.locationExists(origin.col, row);
-          if (Util.xor(selExists, thisExists)) {
-            result = thisExists ? {col: tl.col, row: row} : {col: tl.col, row: row+1};
-            let resultRow = origin.row > tl.row ? result.row : tl.row;
-            let resultRow2 = origin.row > tl.row ? br.row : result.row;
-            result = !isShifted ? result : { tl: {row: resultRow, col: tl.col},
-                                             br: {row: resultRow2, col: br.col} };
+          if (Util.xor(startExists, thisExists)) {
+            let idx = thisExists ? {col: tl.col, row: row} : {col: tl.col, row: row+1};
+            if (isShifted) {
+              let resultRow = isOrientedV ? tl.row : idx.row;
+              let resultRow2 = isOrientedV ? idx.row : br.row;
+              result = { tl: {row: resultRow, col: tl.col}, br: {row: resultRow2, col: br.col} };
+            } else {
+              result = {tl: idx, br: idx};
+            }
             break;
           }
         }
-        result = result ? result : { tl: {row: 1, col: tl.col},
-                                     br: {row: isShifted ? tl.row : null,
-                                          col: isShifted ? br.col : null} };
+        result = result || { tl: {row: 1, col: tl.col},
+                             br: {row: isShifted ? (isOrientedV ? tl.row : br.row) : 1,
+                                  col: isShifted ? br.col : tl.col} };
         break;
     }
+    result = result || sel;
     console.log("\n\nRESULT\n\n", result);
-    return Util.getOrientedArea(result);
+    return Util.orientRange(result);
   },
 
   // TODO actually get the data boundaries by iterating, or something

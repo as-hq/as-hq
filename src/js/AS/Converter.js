@@ -163,6 +163,35 @@ export default {
       }
     }
     throw "Should never make it to the end of _dispBoolInLang";
-  }
+  },
 
+  _arrayToASCells(loc, language) {
+    var self = this;
+     return function(i){
+       return function(v, j) {
+        let asIndex = self.simpleToASIndex({col: loc.col + j, row: loc.row + i}),
+            xpObj = { expression: self.externalStringToExpression(v, language),
+                      language: language} ;
+         return self.makeEvalCell(asIndex, xpObj);
+       };
+     };
+   },
+
+  _rowValuesToASCells(loc, language){
+    var self = this;
+    return function(values, i){
+      return values.map(self._arrayToASCells(loc, language)(i));
+    };
+  },
+
+ // takes in a set of locations and the values at those locations,
+  externalStringsToASCells(loc, strs, language) {
+    return strs.map(this._rowValuesToASCells(loc, language));
+  },
+
+  extendRangeByCache(rng) {
+    let tl = Util.getSafeIndex({row: rng.tl.row-Constants.scrollCacheY, col: rng.tl.col-Constants.scrollCacheX}),
+        br = Util.getSafeIndex({row: rng.br.row+Constants.scrollCacheY, col: rng.br.col+Constants.scrollCacheX});
+    return { tl: tl, br: br };
+  }
 }

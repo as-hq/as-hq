@@ -132,23 +132,22 @@ export default {
             [[0,1],[0,0]]];
   },
 
-  getBorderForInteriorCell(col, row, rng) {
-    let borders = [],
-        {tl, br} = rng;
-    if (!T.isIndex(rng) && (col === tl.col && row === tl.row)) {
+  getBordersForInteriorCell(col, row, rng) {
+    let {tl, br} = rng;
+    if (T.isIndex(rng) && (col === tl.col && row === tl.row)) {
       return this.getPaintedBordersForSingleCell();
-    }
-    else if (col >= tl.col && col <= br.col && row >= tl.row && row <= br.row){
+    } else {
+      let borders = [null,null,null,null];
       if (col === tl.col) // left intersection
-        borders.push([[0,0],[0,1]]);
+        borders[0] = [[0,0],[0,1]];
       if (col === br.col) // right intersection
-        borders.push([[1,0],[1,1]]);
+        borders[1] = [[1,0],[1,1]];
       if (row === tl.row) // top intersection
-        borders.push([[0,0],[1,0]]);
+        borders[2] = [[0,0],[1,0]];
       if (row === br.row) // bottom intersection
-        borders.push([[0,1],[1,1]]);
+        borders[3] = [[0,1],[1,1]];
+      return borders;
     }
-    return borders;
   },
 
 // determines borders of a cell to be painted, given that it falls somewhere within a list of locs
@@ -156,16 +155,12 @@ export default {
 // each edge is a 2-length array [start, end]
 // executed by graphicscontext.moveTo(startx, starty) -> graphicscontext.lineTo(endx, endy)
   getPaintedBorders(col, row, rngs) {
-    if (rngs.constructor == Array) {
-      return rngs.map((rng) => {this.getBorderForInteriorCell(col, row, rng)}, this);
-    } else {
-      return this.getBorderForInteriorCell(col, row, rngs);
-    }
+    let result = rngs.map((rng) => this.getBordersForInteriorCell(col, row, rng), this);
+    return this.concatAll(result);
   },
 
   getOverlay(cv, col, row) {
     let self = this;
-    // console.log("\n\nGOT IMAGE\n\n", "http://localhost:8000/images/" + cv.imagePath);
     switch(cv.tag) {
       case "ValueImage":
         return {
@@ -332,10 +327,12 @@ export default {
     return {col: col, row: parseInt(rawRow)};
   },
 
-  excelToLoc(xp) {
+  excelToRange(xp) {
     let endpoints = xp.split(":");
-    if (endpoints.length === 1)
-      return this.excelToIdx(endpoints[0]);
+    if (endpoints.length === 1){
+      let idx = this.excelToIdx(endpoints[0]);
+      return {tl: idx, br: idx};
+    }
     else {
       let start = this.excelToIdx(endpoints[0]),
           end = this.excelToIdx(endpoints[1]);
@@ -355,14 +352,14 @@ export default {
     return code;
   },
 
-  locToExcel(rng) {
+  rangeToExcel(rng) {
     if (T.isIndex(rng)){
+      return this.intToExcelCol(rng.tl.col) + rng.tl.row;
+    } else {
       let {tl, br} = this.orientRange(rng);
       return this.intToExcelCol(tl.col) + tl.row
         + ":"
         + this.intToExcelCol(br.col) + br.row;
-    } else {
-      return this.intToExcelCol(rng.tl.col) + rng.tl.row;
     }
   },
 
@@ -385,7 +382,7 @@ export default {
 
   decomposeASLocations(locs) {
     if (locs.constructor == Array){
-      let dlocs = locs.map((l) => {return this.decomposeASLocation(l)}, this);
+      let dlocs = locs.map((l) => this.decomposeASLocation(l), this);
       console.log("degenerate locs: " + JSON.stringify(dlocs));
       let merged = [];
       return merged.concat.apply(merged, dlocs);
@@ -418,28 +415,25 @@ export default {
         matches = idxs;
       else
         matches = [];
-      // console.log("parsed deps: "+JSON.stringify(matches));
       // return matches.map(this.excelToLoc);
-      let parsed = matches.map((m) => {this.excelToLoc(m)}, this);
+      let parsed = matches.map((m) => this.excelToRange(m), this);
+      console.log("parsed deps: "+JSON.stringify(matches));
       return parsed;
     }
   },
 
-  isContainedInLoc(col, row, loc) {
+  _isContainedInLoc(col, row, loc) {
     let {tl, br} = loc;
     return (col >= tl.col && col <= br.col &&
             row >= tl.row && row <= br.row);
   },
 
   isContainedInLocs(col, row, locs) {
-    if (locs.constructor === Array) {
-      for (var i=0; i<locs.length; i++) {
-        if (this.isContainedInLoc(col, row, locs[i]))
-          return true;
-      }
-      return false;
+    for (var i=0; i<locs.length; i++) {
+      if (this._isContainedInLoc(col, row, locs[i]))
+        return true;
     }
-    else return this.isContainedInLoc(col, row, locs);
+    return false;
   },
 
   getAgnosticLanguageFromServer(lang) {
@@ -503,5 +497,33 @@ export default {
 
   xor(foo, bar) {
     return foo ? !bar : bar;
-  }
+  },
+
+//Utils for getRowMajorCellValues
+
+ sliceArray(begin, end) {
+   return (
+       function(arr) { return arr.slice(begin, end) }
+   );
+ },
+
+ makeArrayOf(value, length) {
+   var arr = [], i = length;
+   while (i--) {
+     arr[i] = value;
+   }
+   return arr;
+ },
+
+ make2DArrayOf(value, height, length) {
+   var arr = [[]], i = height;
+   while (i --) {
+     arr[i] = this.makeArrayOf(value, length);
+   }
+   return arr;
+ },
+
+ concatAll(arrs) {
+  return [].concat.apply([], arrs);
+ }
 };

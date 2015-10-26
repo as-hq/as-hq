@@ -69,10 +69,8 @@ export default {
     SU.add("common", "format_value", "Ctrl+Shift+2/3/4/5/6", (wildcard) => {
       let tag;
       // TODO other wildcards
-      if (wildcard === '4')
-        tag = {tag: "Money", contents: []};
-      else if (wildcard === '5')
-        tag = {tag: "Percentage", contents: []};
+      if (wildcard === '4') tag = {tag: "Money", contents: []};
+      else if (wildcard === '5') tag = {tag: "Percentage", contents: []};
       let {col, row} = Store.getActiveSelection().range.tl;
       Store.addTag(tag, col, row);
       self.refs.spreadsheet.repaint();
@@ -124,14 +122,14 @@ export default {
 
     // grid shortcuts -------------------------------------------------------------------------------
     SU.add("grid", "moveto_data_boundary", "Ctrl+Up/Down/Left/Right", (wildcard) => {
-      let newLoc = Store.getExtendedRange(wildcard, false);
+      let newLoc = Store.moveToDataBoundary(wildcard, false);
       console.log("moving to: ", newLoc);
-      self.refs.spreadsheet.makeSelection(newLoc, newLoc);
+      self.refs.spreadsheet.select(newLoc, newLoc.tl);
     });
     SU.add("grid", "moveto_data_boundary_selected", "Ctrl+Shift+Up/Down/Left/Right", (wildcard) => {
       let oldOrigin = Store.getActiveSelection().origin;
-      let newLoc = Store.getExtendedRange(wildcard, true);
-      self.refs.spreadsheet.makeSelection(newLoc, oldOrigin);
+      let newLoc = Store.moveToDataBoundary(wildcard, true);
+      self.refs.spreadsheet.select(newLoc, oldOrigin);
     });
     SU.add("grid", "grid_fill_down", "Ctrl+D", (wildcard) => {
       let {tl, br} = Store.getActiveSelection().range;
@@ -148,11 +146,11 @@ export default {
       API.copy(copyFrom, copyTo);
     });
     SU.add("grid", "grid_select_all", "Ctrl+A", (wildcard) => {
-      self.refs.spreadsheet.makeSelection(self.refs.spreadsheet.getViewingWindowWithCache().range);
+      self.refs.spreadsheet.select(self.refs.spreadsheet.getViewingWindow().range);
     });
     SU.add("grid", "grid_home", ["Home", "Ctrl+Home"], (wildcard) => {
       let idx = {row: 1, col: 1};
-      self.refs.spreadsheet.makeSelection({ tl: idx, br: idx });
+      self.refs.spreadsheet.select({ tl: idx, br: idx });
     });
     SU.add("grid", "grid_moveto_end_sheet", "Ctrl+End", (wildcard) => {
       //TODO
@@ -183,11 +181,11 @@ export default {
 
     // SU.add("grid", "select_row", "Shift+Space", (wildcard) => {
     //   let sel = Store.getActiveSelection();
-    //   self.refs.spreadsheet.makeSelection({row: sel.row, col: 1, row2: sel.row, col2: Infinity});
+    //   self.refs.spreadsheet.select({row: sel.row, col: 1, row2: sel.row, col2: Infinity});
     // });
     // SU.add("grid", "select_col", "Ctrl+Space", (wildcard) => {
     //   let sel = Store.getActiveSelection();
-    //   self.refs.spreadsheet.makeSelection({row: 1, col: sel.col, row2: Infinity, col2: sel.col});
+    //   self.refs.spreadsheet.select({row: 1, col: sel.col, row2: Infinity, col2: sel.col});
     // });
     SU.add("grid", "insert_row", "Ctrl+Shift+[", (wildcard) => {
       // TODO
