@@ -72,6 +72,9 @@ normalD n f = FuncDescriptor [1..] [1..] [] [1..] (Just n) (transform f)
 normalD' :: Int -> [Int] -> EFunc -> FuncDescriptor
 normalD' n nonRanges f = FuncDescriptor nonRanges nonRanges [] [1..] (Just n) (transform f)
 
+prefixD :: EFunc -> FuncDescriptor
+prefixD = normalD 1
+
 -- | Vector functions like sum; don't scalarize or map (args can be ranges!), replace all refs, no arg limit
 vectorD :: EFunc -> FuncDescriptor
 vectorD f = FuncDescriptor [] [] [] [1..] Nothing (transform f)
@@ -98,8 +101,12 @@ ifsD f = FuncDescriptor [3,5..] [3,5..] [] [1..] Nothing (transform f)
 -- | Map function names to function descriptors
 functions :: M.Map String FuncDescriptor
 functions =  M.fromList $
-    -- | Excel infix functions
-   [("+"              , infixD eAdd),
+    -- Excel prefix functions
+    [("+p"              , prefixD ePositive),
+     ("-p"              , prefixD eNegate),
+   
+    -- Excel infix functions
+    ("+"              , infixD eAdd),
     ("-"              , infixD eMinus),
     ("*"              , infixD eMult),
     ("/"              , infixD eDivide),
@@ -929,7 +936,6 @@ eTranspose c e = do
 -- | If a function takes in a numeric value and returns a double, this is a convenient wrapper
 oneArgDouble :: (Num a) => String -> (Double -> Double) -> EFunc
 oneArgDouble name f c e = do
-
   num <- getRequired "numeric" name 1 e :: ThrowsError ENumeric
   let ans = case num of
                 EValueI i -> f (fromIntegral i)
@@ -1455,13 +1461,33 @@ eSubstitute c e = do
 
 
 --------------------------------------------------------------------------------------------------------------
--- | Excel infix functions
+-- Excel prefix/infix functions
+
+numPrefix :: String -> (ENumeric -> ENumeric) -> EFunc
+numPrefix name f c e = do 
+  a <- getRequired "numeric" name 1 e :: ThrowsError ENumeric
+  valToResult $ EValueNum $ f a
 
 numInfix :: String -> (ENumeric -> ENumeric -> ENumeric) -> EFunc
 numInfix name f c e = do 
   a <- getRequired "numeric" name 1 e :: ThrowsError ENumeric
   b <- getRequired "numeric" name 2 e :: ThrowsError ENumeric
   valToResult $ EValueNum $ f a b
+
+eAdd :: EFunc
+eAdd = numInfix "+" (+)
+
+ePositive :: EFunc
+ePositive = numPrefix "+" id 
+
+eNegate :: EFunc
+eNegate = numPrefix "-" negate
+
+eMinus :: EFunc
+eMinus = numInfix "-" (-)
+
+eMult :: EFunc
+eMult = numInfix "*" (*)
 
 isZero :: ENumeric -> Bool 
 isZero (EValueD 0) = True
@@ -1471,15 +1497,6 @@ isZero _ = False
 isNonnegative :: ENumeric -> Bool
 isNonnegative (EValueD a) = (a >= 0)
 isNonnegative (EValueI a) = (a >= 0)
-
-eAdd :: EFunc
-eAdd = numInfix "+" (+)
-
-eMinus :: EFunc
-eMinus = numInfix "-" (-)
-
-eMult :: EFunc
-eMult = numInfix "*" (*)
 
 eDivide :: EFunc
 eDivide c e = do
