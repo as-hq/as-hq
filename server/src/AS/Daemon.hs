@@ -47,7 +47,7 @@ getConnByLoc loc state = do
 -- | Creates a streaming daemon for this cell if one of the tags is a streaming tag. 
 possiblyCreateDaemon :: MVar ServerState -> ASUserId -> ASCell -> IO ()
 possiblyCreateDaemon state owner cell@(Cell loc xp val ts) = do 
-  let msg = ClientMessage Evaluate (PayloadC cell)
+  let msg = ClientMessage Evaluate (PayloadCL [cell])
   case (U.getStreamTag ts) of 
     Nothing -> do 
       let maybeTag = U.getStreamTagFromExpression xp 

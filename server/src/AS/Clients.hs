@@ -189,7 +189,6 @@ handleEval :: (Client c) => c -> MVar ServerState -> ASPayload -> IO ()
 handleEval cl state payload  = do
   let cells = case payload of 
                 PayloadCL cells' -> cells'
-                PayloadC cell -> [cell]
   putStrLn $ "IN EVAL HANDLER"
   msg' <- DP.runDispatchCycle state cells (ownerName cl)
   sendBroadcastFiltered cl state msg'
@@ -235,7 +234,6 @@ handleDelete user state p@(PayloadWB workbook) = do
   return ()
 handleDelete user state payload = do
   let locs = case payload of
-               PayloadL loc -> [loc]
                PayloadLL locs' -> locs'
                PayloadR rng -> rangeToIndices rng
   conn <- dbConn <$> readMVar state
@@ -323,7 +321,7 @@ processAddTag user state loc t = do
       case (L.head mCells) of
         Nothing -> return ()
         Just cell -> do
-          let evalMsg = ClientMessage Evaluate (PayloadC cell)
+          let evalMsg = ClientMessage Evaluate (PayloadCL [cell])
           DM.modifyDaemon state s loc evalMsg -- put the daemon with loc and evalMsg on that cell -- overwrite if already exists, create if not
     otherwise -> return () -- TODO: implement the rest
 
