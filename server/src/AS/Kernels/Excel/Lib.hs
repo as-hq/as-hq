@@ -45,6 +45,7 @@ type Offset = (Col,Row)
 -- | TODO: implement rand without IO creep
 -- | TODO: test missing arguments; f(a1,a2,,a3) and refactor; EMissing isn't really an EValue
 -- | TODO: test hypothesis that scalarizing a ref is actually row col int based always
+-- | TODO: make sure that ifFunc's can deal with array constants as arguments if acceptable
 
 -- | TODO: index is only array-mode at this point (tuples needed for ref mode)
 -- | TODO: apparently index(A1:B2,{1;2},{1,2}) works WTF
@@ -86,14 +87,6 @@ vector2 f = FuncDescriptor [] [] [1,2] [1..] (Just 2) (transform f)
 
 infixD :: EFunc -> FuncDescriptor
 infixD = normalD 2 
-
--- | Things like sumif; args 1 and 3 are ranges (no scalarizing or mapping) and replace all refs
-ifD :: EFunc -> FuncDescriptor
-ifD = normalD' 3 [2] 
-
--- | Similar to above; args 3,5,7... are ranges
-ifsD :: EFunc -> FuncDescriptor
-ifsD f = FuncDescriptor [3,5..] [3,5..] [] [1..] Nothing (transform f)
 
 -- | Map function names to function descriptors
 functions :: M.Map String FuncDescriptor
@@ -152,8 +145,9 @@ functions =  M.fromList $
     ("sqrt"           , normalD 1 eSqrt),
     ("sqrtpi"         , normalD 0 eSqrtPi),
     ("sum"            , vectorD eSum),
-    ("sumif"          , ifD eSumIf),
-    ("sumifs"         , ifsD eSumIfs),
+    -- | Don't replace refs for ranges (resizing)
+    ("sumif"          , FuncDescriptor [2] [2] [] [2] (Just 3) (transform eSumIf)),
+    ("sumifs"         , FuncDescriptor [3,5..] [3,5..] [] [1..] Nothing (transform eSumIfs)),
     ("sumsq"          , vectorD eSumSq),
     ("sumx2my2"       , vector2 eSumx2my2),
     ("sumx2py2"       , vector2 eSumx2py2),
@@ -163,13 +157,16 @@ functions =  M.fromList $
     -- | Excel statistical functions
     ("avedev"         , vectorD eAvedev),
     ("average"        , vectorD eAverage),
-    ("averageif"      , ifD eAverageIf),
-    ("averageifs"     , ifsD eAverageIfs),
+    -- | Don't replace refs (resizing)
+    ("averageif"      , FuncDescriptor [2] [2] [] [2] (Just 3) (transform eAverageIf)),
+    ("averageifs"     , FuncDescriptor [3,5..] [3,5..] [] [1..] Nothing (transform eAverageIfs)),
     ("binom.dist"     , normalD 4 eBinomDist),
     ("correl"         , vector2 eCorrel),
     ("count"          , vectorD eCount),
-    ("countif"        , ifD eCountIf),
-    ("countifs"       , ifsD eCountIfs),
+    -- | Similar to averageif, but only two args
+    ("countif"        , FuncDescriptor [2] [2] [] [2] (Just 2) (transform eCountIf)),
+    -- | Similar to averageifs but no "sum range" argument shifts the criteria arguments
+    ("countifs"       , FuncDescriptor [2,4..] [2,4..] [] [1..] Nothing (transform eCountIfs)),
       -- | 2nd argument is a range; only map and scalarize over the first
     ("large"          , normalD' 2 [1] eLarge),
     ("min"            , vectorD eMin),
@@ -553,7 +550,7 @@ zipNumericSum2 zipper name c e = do
         zipFunc (Just a) (Just b) = zipper a b
         zipFunc _ _ = EValueI 0
 
--- | Template for functions like sumif, countif etc; produces the filtered vector to apply some lambda function to
+-- | Template for functions like sumif etc; produces the filtered vector to apply some lambda function to
 ifFunc :: String ->  Context -> [EEntity] -> ThrowsError (V.Vector EValue)
 ifFunc f c e = do
   -- | We want refs because we may need to resize later (Excel sucks)
@@ -575,7 +572,7 @@ ifFunc f c e = do
       let (EntityMatrix (EMatrix _ _ valVec)) = valEntity
       Right $ V.ifilter (\i _ -> matcher ((V.!) critVec i)) valVec
 
--- | Template for functions like sumifs etc
+-- | Template for functions like sumifs 
 ifsFunc :: String -> [EEntity] -> ThrowsError (V.Vector EValue)
 ifsFunc f e = do
   if (length e < 3)
@@ -594,7 +591,7 @@ ifsFunc f e = do
       -- | Only include values in the value vector where all criteria are met (and function)
       let filteredValVec = V.ifilter (\i _ -> include critVecs matches i) valVec
       Right $ filteredValVec
-    else Left $ VAL "Not all ranges in SUMIFS had the same size"
+    else Left $ VAL "Not all ranges in had the same size"
 
 -- | Cast ENumeric vector to Double vector
 toDouble :: V.Vector ENumeric -> V.Vector Double
@@ -1119,12 +1116,16 @@ eCountIf c e =  do
 
 eCountIfs :: EFunc
 eCountIfs c e =  do
-  vec <- ifsFunc "averageif" e
-  intToResult $ V.length vec
+  -- let the "sum range" argument be a duplicate of the first argument
+  if (length e <= 0)
+    then Left $ RequiredArgMissing "countif" 1 
+    else do 
+      vec <- ifsFunc "countifs" $ (head e):e
+      intToResult $ V.length vec
 
 eBinomDist ::  EFunc
 eBinomDist c e = do
-  succ' <- getRequired "int" "binom.dist" 1 e  :: ThrowsError Int
+  succ'  <- getRequired "int" "binom.dist" 1 e   :: ThrowsError Int
   trials <- getRequired "int" "binom.dist" 2 e  :: ThrowsError Int
   p' <- getRequired "double" "binom.dist" 3 e :: ThrowsError Double
   cum <- getRequired "bool" "binom.dist" 4 e :: ThrowsError Bool
