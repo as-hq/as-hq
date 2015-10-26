@@ -230,8 +230,8 @@ export default {
   evaluateRepl(xpObj){
     let msg = TC.makeClientMessage(Constants.ServerActions.Repl, "PayloadXp", {
       tag: "Expression",
-      expression: xpObj.exp,
-      language: xpObj.lang
+      expression: xpObj.expression,
+      language: xpObj.language
     });
     this.send(msg);
   },
