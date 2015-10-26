@@ -5,7 +5,7 @@ import Constants from '../Constants';
 
 export default {
 
-  replLeft(lang,value) {
+  storeReplExpression(lang,value) {
     Dispatcher.dispatch({
       type: Constants.ActionTypes.REPL_LEFT,
       lang: lang,
