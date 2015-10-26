@@ -100,7 +100,6 @@ data ASExpression =
   Expression { expression :: String, language :: ASLanguage }
   deriving (Show, Read, Eq, Generic)
 
-emptyExpression = ""
 
 data ASCellTag =
     Color String
@@ -295,6 +294,8 @@ instance Eq ASDaemonClient where
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Convenience methods
 
+emptyExpression = ""
+
 toList :: ASValue -> [ASValue]
 toList (ValueL l) = l
 toList other = [other]
@@ -402,15 +403,6 @@ instance ToJSON ASPayload where
 
 instance FromJSON ASCellTag
 instance ToJSON ASCellTag
---instance ToJSON ASCellTag where
---  toJSON (ListMember k) = object ["listKey" .= (BC.unpack k)]
---  toJSON a = genericToJSON defaultOptions a
---instance FromJSON ASCellTag where
---  parseJSON obj@(Object v) = do
---    listField <- v .:? "listKey"
---    case listField of
---      Nothing -> genericParseJSON defaultOptions obj
---      (Just k) -> return . ListMember $ BC.pack k
 
 instance ToJSON ASIndex where
   toJSON (Index sid (c,r)) = object ["tag"     .= ("index" :: String),
@@ -424,6 +416,7 @@ instance FromJSON ASIndex where
     sid <- v .: "sheetId"
     idx <- (,) <$> loc .: "col" <*> loc .: "row"
     return $ Index sid idx
+  parseJSON _          = fail "client message JSON attributes missing"
 
 instance ToJSON ASRange where
   toJSON (Range sid ((c,r),(c2,r2))) = object ["tag" .= ("range" :: String),
@@ -441,6 +434,7 @@ instance FromJSON ASRange where
     br' <- (,) <$> br .: "col" <*> br .: "row"
     sid <- v .: "sheetId"
     return $ Range sid (tl', br')
+  parseJSON _          = fail "client message JSON attributes missing"
 
 instance ToJSON ASReference where
   toJSON (IndexRef idx) = toJSON idx
@@ -464,6 +458,7 @@ instance FromJSON ASWindow where
     br' <- (,) <$> br .: "col" <*> br .: "row"
     sid <- v .: "sheetId"
     return $ Window sid tl' br'
+  parseJSON _          = fail "client message JSON attributes missing"
 
 
 -- memory region exposure instances for R value unboxing
