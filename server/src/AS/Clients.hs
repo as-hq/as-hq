@@ -354,7 +354,7 @@ handleRepeat user state (PayloadSelection range origin) = do
   ClientMessage lastAction lastPayload <- getLastMessage conn
   case lastAction of 
     Evaluate -> do 
-      let PayloadC (Cell l e v ts) = lastPayload
+      let PayloadCL ((Cell l e v ts):[]) = lastPayload
           cells = map (\l' -> Cell l' e v ts) (rangeToIndices range)
       handleEval user state (PayloadCL cells)
     Copy -> do 
