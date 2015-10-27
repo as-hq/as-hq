@@ -177,10 +177,6 @@ export default {
     SU.add("grid", "grid_moveto_end_sheet", "Ctrl+End", (wildcard) => {
       //TODO
     });
-    SU.add("grid", "grid_repeat_last_action", "Ctrl+Y", (wildcard) => {
-      let sel = Store.getActiveSelection();
-      API.repeat(sel);
-    });
     SU.add("grid", "move_vwindow_above", "PageUp", (wildcard) => {
       let dY = self.refs.spreadsheet.getVisibleRows();
       self.refs.spreadsheet.shiftSelectionArea(0, -dY);
@@ -195,9 +191,15 @@ export default {
     });
     SU.add("grid", "grid_undo", "Ctrl+Z", (wildcard) => {
       API.undo();
+      self.refs.spreadsheet.repaint();
     });
     SU.add("grid", "grid_redo", "Ctrl+Shift+Z", (wildcard) => {
       API.redo();
+     self.refs.spreadsheet.repaint();
+    });
+    SU.add("grid", "grid_repeat_last_action", "Ctrl+Y", (wildcard) => {
+      let sel = Store.getActiveSelection();
+      API.repeat(sel);
     });
     SU.add("grid", "chart", "F11", (wildcard) => {
       // TODO
