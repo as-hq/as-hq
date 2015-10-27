@@ -1,7 +1,7 @@
 import keyMirror from 'react/lib/keyMirror';
 
 export const HOST_BASE_URL = 'localhost';
-export const HOST_WS_PORT = 5010;
+export const HOST_WS_PORT = 5000;
 
 export default {
   HOST_WS_URL: 'ws://' + HOST_BASE_URL + ':' + HOST_WS_PORT,
