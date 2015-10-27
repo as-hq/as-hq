@@ -224,7 +224,7 @@ printWithTime str = do
   let disp = "[" ++ (show time) ++ "] " ++ str
   putStrLn disp
   serverLog <- serverLogPath
-  appendFile serverLog disp
+  appendFile serverLog ('\n':disp)
 
 printWithTimeT :: String -> EitherTExec ()
 printWithTimeT = lift . printWithTime

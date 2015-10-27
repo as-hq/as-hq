@@ -209,7 +209,6 @@ type ASRelation = (ASIndex, [ASIndex]) -- for representing ancestry relationship
 data ASCommit = ASCommit {commitUserId :: ASUserId,
                           before :: [ASCell],
                           after :: [ASCell],
-                          listsChanged :: [ListKey],
                           time :: ASTime}
                           deriving (Show,Read,Eq,Generic)
 

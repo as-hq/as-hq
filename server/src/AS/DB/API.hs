@@ -96,17 +96,33 @@ setCell c = setCells [c]
 
 setCells :: [ASCell] -> IO ()
 setCells [] = return ()
-setCells cells = DU.setCellsByMessage msg num
-  where
-    str = intercalate DU.msgPartDelimiter $ (map (show2 . cellLocation) cells) ++ (map show2 cells)
-    msg = DU.showB str
-    num = length cells
+setCells cells = do 
+  let str = intercalate DU.msgPartDelimiter $ (map (show2 . cellLocation) cells) ++ (map show2 cells)
+      msg = DU.showB str
+      num = length cells
+  DU.setCellsByMessage msg num
+
+-- | Makes sure everything is synced -- the listKeys and ancestors in graph db should reflect 
+-- the cell changes that happen as a result of setting the cells. 
+setCellsPropagated :: Connection -> [ASCell] -> IO ()
+setCellsPropagated conn cells = do 
+  setCells cells
+  setCellsAncestorsForce cells
+  let listKeys = nub $ catMaybes $ map DU.getCellListKey cells
+  mapM_ (recoupleList conn) listKeys
 
 deleteCells :: Connection -> [ASCell] -> IO ()
 deleteCells _ [] = return ()
-deleteCells conn cells = do
+deleteCells conn cells = deleteLocs conn $ map cellLocation cells
+
+-- | Makes sure everything is synced -- the listKeys and ancestors in graph db should reflect 
+-- the cell changes that happen as a result of deleting the cells. 
+deleteCellsPropagated :: Connection -> [ASCell] -> IO ()
+deleteCellsPropagated conn cells = do 
+  deleteCells conn cells
   setCellsAncestorsForce $ U.blankCellsAt Excel (map cellLocation cells)
-  deleteLocs conn $ map cellLocation cells
+  let listKeys = nub $ catMaybes $ map DU.getCellListKey cells
+  mapM_ (decoupleList conn) listKeys
 
 deleteLocs :: Connection -> [ASIndex] -> IO ()
 deleteLocs _ [] = return ()
@@ -145,7 +161,7 @@ setListLocations conn listKey locs =
     return ()
 
 -- | Takes in a cell that's tied to a list. Decouples all the cells in that list from that
--- | returns: (uncoupledCells, decoupledCells)
+-- | returns: (cells before decoupling, cells after decoupling)
 -- Note: this operation is O(n)
 -- TODO move to C client because it's expensive
 decoupleList :: Connection -> ListKey -> IO ([ASCell], [ASCell])
@@ -173,18 +189,6 @@ recoupleList conn key = do
   locsExist <- locationsExist conn locs
   let locs' = U.zipFilter $ zip locs locsExist
   setListLocations conn key locs'
--- TODO fix
---getColumnCells :: Connection -> ASIndex -> IO [Maybe ASCell]
---getColumnCells conn (Column sheetid col) = do
---  runRedis conn $ do
---    locKeys <- DU.getSheetLocsRedis sheetid
---    liftIO $ printWithTime "redis got column"
---    let rows = map DU.keyToRow locKeys
---    let firstRowKey = minBy keyToRow locKeys
---    let locKeys = map (\i -> DU.incrementLocKey (1,i) firstRowKey) [(minimum rows)..(maximum rows)]
---    cells <- mapM DU.getCellByKeyRedis locKeys
---    liftIO $ printWithTime "redis got cells"
---    return cells
 
 ----------------------------------------------------------------------------------------------------------------------
 -- Commits
@@ -193,8 +197,7 @@ recoupleList conn key = do
 -- TODO: need to delete blank cells from the DB. (Otherwise e.g. if you delete a
 -- a huge range, you're going to have all those cells in the DB doing nothing.)
 
--- | Deal with updating all DB-related things after an eval
--- | takes (roots, beforeCells, afterCells)
+-- | Deal with updating all DB-related things after an eval. 
 updateAfterEval :: Connection -> ASTransaction -> EitherTExec [ASCell]
 updateAfterEval conn (Transaction uid sid roots afterCells lists) = do
   let newListCells         = concat $ map snd lists
@@ -209,7 +212,7 @@ updateAfterEval conn (Transaction uid sid roots afterCells lists) = do
   liftIO $ setCells afterCells'
   liftIO $ deleteCells conn (filter isEmptyCell afterCells')
   liftIO $ mapM_ (\(key, cells) -> setListLocations conn key (map cellLocation cells)) lists
-  liftIO $ addCommit conn uid (beforeCells', afterCells') listKeysChanged
+  liftIO $ addCommit conn uid (beforeCells', afterCells')
   liftIO $ printWithTime "added commits"
   right afterCells'
 
@@ -231,10 +234,10 @@ setCellsAncestorsForce cells = do
   return ()
 
 -- | Creates and pushes a commit to the DB
-addCommit :: Connection -> ASUserId -> ([ASCell], [ASCell]) -> [ListKey] -> IO ()
-addCommit conn uid (b,a) listKeys = do
+addCommit :: Connection -> ASUserId -> ([ASCell], [ASCell]) -> IO ()
+addCommit conn uid (b,a) = do
   time <- getASTime
-  let commit = ASCommit uid b a listKeys time
+  let commit = ASCommit uid b a time
   pushCommit conn commit
   --putStrLn $ show commit
 
@@ -249,11 +252,10 @@ undo conn = do
     return $ DU.bStrToASCommit justC
   case commit of
     Nothing -> return Nothing
-    Just c@(ASCommit uid b a listKeys t) -> do
-      deleteCells conn a
-      setCells b
-      setCellsAncestorsForce b
-      mapM_ (recoupleList conn) listKeys
+    Just c@(ASCommit uid b a t) -> do
+      deleteCellsPropagated conn a
+      setCellsPropagated conn b
+      -- mapM_ (recoupleList conn) listKeys
       return $ Just c
 
 redo :: Connection -> IO (Maybe ASCommit)
@@ -267,11 +269,10 @@ redo conn = do
       _ -> return Nothing
   case commit of
     Nothing -> return Nothing
-    Just c@(ASCommit uid b a listKeys t) -> do
-      deleteCells conn b
-      setCells a
-      setCellsAncestorsForce a
-      mapM_ (decoupleList conn) listKeys
+    Just c@(ASCommit uid b a t) -> do
+      deleteCellsPropagated conn b
+      setCellsPropagated conn a
+      -- mapM_ (decoupleList conn) listKeys
       return $ Just c
 
 pushCommit :: Connection -> ASCommit -> IO ()

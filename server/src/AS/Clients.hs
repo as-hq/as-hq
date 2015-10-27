@@ -298,7 +298,6 @@ getPasteCells conn from to = do
   sanitizedFromCells <- sanitizeCopyCells conn fromCells from
   let offsets            = U.getPasteOffsets from to  -- how much to shift these cells for copy/copy/paste
       toCells            = concat $ map (\o -> map (S.shiftCell o) sanitizedFromCells) offsets
-  printDebug "sanitizedFromCells" sanitizedFromCells
   return toCells
 
 -- | Decouples cells appropriately for re-eval on copy/paste or cut/paste, as follows:

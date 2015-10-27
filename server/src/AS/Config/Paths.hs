@@ -22,3 +22,8 @@ getEvalPath :: IO String
 getEvalPath = do
   mainDir <- getCurrentDirectory
   return $ mainDir </> "eval_files/"
+
+getClientMessagesPath :: IO String
+getClientMessagesPath = do
+  mainDir <- getCurrentDirectory
+  return $ mainDir </> "client_messages"

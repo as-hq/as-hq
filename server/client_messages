@@ -1,0 +1,9 @@
+ClientMessage {clientAction = Clear, clientPayload = PayloadN ()}
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (8,6)}, cellExpression = Expression {expression = "import random; [random.random() for _ in range(10)]", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+ClientMessage {clientAction = Undo, clientPayload = PayloadN ()}
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (8,6)}, cellExpression = Expression {expression = "import random; [random.random() for _ in range(10)]", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+ClientMessage {clientAction = Undo, clientPayload = PayloadN ()}

@@ -240,6 +240,11 @@ isListHead cell = case (getListTag cell) of
   Nothing -> False
   (Just (ListMember key)) -> (show2 . cellLocation $ cell) == (head $ splitBy keyPartDelimiter key)
 
+getCellListKey :: ASCell -> Maybe ListKey
+getCellListKey cell = case (getListTag cell) of
+  (Just (ListMember key)) -> Just key
+  Nothing -> Nothing
+
 ----------------------------------------------------------------------------------------------------------------------
 -- | ByteString utils
 
