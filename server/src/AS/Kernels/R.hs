@@ -180,9 +180,7 @@ sanitizeList v = if (isHighDimensional 0 v)
   else undegenerateList v
 
 undegenerateList :: ASValue -> ASValue
-undegenerateList v@(ValueL l) = if (length l == 1)
-  then undegenerateList (head l)
-  else v
+undegenerateList (ValueL [l]) = l 
 undegenerateList v = v
 
 --(<.) :: R a -> R ASValue
