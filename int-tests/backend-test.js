@@ -1257,6 +1257,22 @@ describe('backend', () => {
           ]);
         });
       });
+
+      describe('list cell behavior on copy/paste', () => {
+        it('undoing should delete list key and not cause crashes', (done) => {
+          // based off a crash that actually happened
+          _do([
+            python('A1', 'range(10)'),
+            undo(),
+            python('A1', 'range(10)'),
+            undo(),
+            redo(), 
+            copy('A1:A10', 'B1:B10'),
+            expressionShouldBe('B1', "range(10)"),
+            exec(done)
+          ]);
+        });
+      });
     });
   });
 
