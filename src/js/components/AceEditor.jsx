@@ -1,5 +1,8 @@
 import KeyUtils from '../AS/KeyUtils';
 import ShortcutUtils from '../AS/ShortcutUtils';
+
+import Constants from '../Constants';
+
 import Store from '../stores/ASEvaluationStore';
 import ExpStore from '../stores/ASExpStore';
 import ExpActionCreator from '../actions/ASExpActionCreators.js';
@@ -67,6 +70,7 @@ module.exports = React.createClass({
     ExpStore.addChangeListener(this._onExpressionChange);
     this.editor = ace.edit(this.props.name);
     this.editor.$blockScrolling = Infinity;
+    this.editor.getSession().on('change', this._onChange);
     //this.editor.setValue('', 1);
     onPropsSet(this.editor, this.props);
   },
@@ -83,7 +87,7 @@ module.exports = React.createClass({
   /*************************************************************************************************************************/
   // Helpers
 
-   getRawEditor() {
+  getRawEditor() {
     return this.editor;
   },
 
@@ -91,37 +95,52 @@ module.exports = React.createClass({
   // Handle events originating from ace editor
 
   _onKeyDown(e) {
-    console.log("ACE KEYDOWN: " + e.which);
+    console.log("\n\nACE KEYDOWN");
     if (ShortcutUtils.editorShouldDeferKey(e)) {
+      // Try shortcut in eval pane
       KeyUtils.killEvent(e);
       this.props.onDeferredKey(e);
     }
+    ExpStore.setDoAceCallback(true);
   },
 
-  _onKeyUp(e){
-    console.log("ACE KEYUP " + e.target.value);
-    ExpActionCreator.handleEditorChange(e.target.value);
+  /* One of the reasons we want onChange and not keyUp is so that pressing
+  backspace for a long time in the editor actually makes the textbox update real-time (multiple onChanges fired, only one keyUp fired)
+  This methods fires on Ace's onChange; for example after editor.setValue. 
+  This is different from the outer div's onChange (which doesn't have a callback)
+  If you don't want the callback (action creator) to fire, need to set doAceCallback in ExpStore to false
+  */
+  _onChange(e){
+    if (ExpStore.getDoAceCallback()){
+      let xpStr = this.editor.getValue();
+      console.log("ACE KEYCHANGE: " + xpStr);
+      ExpActionCreator.handleEditorChange(xpStr);
+    }
   },
 
   /*************************************************************************************************************************/
   // Respond to change events from ExpStore
 
-   _onExpressionChange(){
+  _onExpressionChange(){
     let xpOrigin = ExpStore.getXpOrigin();
     switch(xpOrigin){
       case Constants.xpChange.FROM_GRID:
+        console.log("Ace editor caught GRID type update");
         this.updateValue();
         break;
-      case Contants.xpChange.FROM_TEXTBOX:
+      case Constants.xpChange.FROM_TEXTBOX:
+        console.log("Ace editor caught TEXTBOX type update");
         this.updateValue();
         break;
-      default:
+      default: // don't need to do anything on EDITOR_CHANGED
         break;
     }
   },
 
   updateValue(){
+    ExpStore.setDoAceCallback(false);
     this.editor.setValue(ExpStore.getExpression());
+    this.editor.clearSelection(); // otherwise ace highlights whole xp
   },
 
   /*************************************************************************************************************************/
@@ -137,8 +156,8 @@ module.exports = React.createClass({
     return (<div
         id={this.props.name}
         style={divStyle}
-        onKeyDown={this._onKeyDown}
-        onKeyUp={this._onKeyUp}>
+        onKeyDown={this._onKeyDown}>
       </div>);
   }
+
 });

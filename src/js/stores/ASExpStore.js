@@ -2,6 +2,7 @@ import Dispatcher from '../Dispatcher';
 import Constants from '../Constants';
 import BaseStore from './BaseStore';
 import assign from 'object-assign';
+
 import API from '../actions/ASApiActionCreators';
 import Util from '../AS/Util';
 
@@ -14,22 +15,21 @@ let _data = {
   deps: [],
   expression: '',
   expressionWithoutLastRef: '',
-  userIsTyping:false
+  userIsTyping:false,
+  doAceCallback: false
 };
 
 dispatcherIndex: Dispatcher.register(function (action) {
+  console.log("Exp Store detected dispatcher payload");
   switch (action.type) {
     case Constants.ActionTypes.GRID_KEY_PRESSED:
+      ASExpStore.updateStore(Constants.xpChange.FROM_GRID, action.xpStr);
       break;
     case Constants.ActionTypes.EDITOR_CHANGED:
-      ASExpStore.setXpOrigin(Constants.xpChange.FROM_EDITOR);
-      ASExpStore.setExpression(action.xpStr);
-      ASExpStore.setExpressionWithoutLastRef(action.xpStr);
+      ASExpStore.updateStore(Constants.xpChange.FROM_EDITOR, action.xpStr);
       break;
     case Constants.ActionTypes.TEXTBOX_CHANGED:
-      ASExpStore.setXpOrigin(Constants.xpChange.FROM_TEXTBOX);
-      ASExpStore.setExpression(action.xpStr);
-      ASExpStore.setExpressionWithoutLastRef(action.xpStr);
+      ASExpStore.updateStore(Constants.xpChange.FROM_TEXTBOX, action.xpStr);
       break;
     case Constants.ActionTypes.NORMAL_SEL_CHANGED:
       break;
@@ -64,8 +64,26 @@ const ASExpStore = assign({}, BaseStore, {
 
   setExpressionWithoutLastRef(xpStr){
     _data.expressionWithoutLastRef = xpStr;
-  }
+  },
 
+  getDoAceCallback(){
+    return _data.doAceCallback;
+  },
+
+  setDoAceCallback(bool){
+    _data.doAceCallback = bool; 
+  },
+
+
+  /**************************************************************************************************************************/
+  // Update helpers
+
+  updateStore(type,xpStr){
+    this.setXpOrigin(type);
+    this.setExpression(xpStr);
+    this.setExpressionWithoutLastRef(xpStr);
+    this.emitChange();
+  }
 
 });
 

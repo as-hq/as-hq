@@ -1,11 +1,16 @@
 import React from 'react';
+
 import ActionCreator from '../actions/ASSpreadsheetActionCreators';
+import ExpActionCreator from '../actions/ASExpActionCreators';
+
 import ShortcutUtils from '../AS/ShortcutUtils';
 import API from '../actions/ASApiActionCreators';
 import KeyUtils from '../AS/KeyUtils';
+
 import Store from '../stores/ASEvaluationStore';
 import FindStore from '../stores/ASFindStore';
 import ExpStore from '../stores/ASExpStore';
+
 import Util from '../AS/Util';
 import Constants from '../Constants';
 import Render from '../AS/Render';
@@ -20,9 +25,9 @@ export default React.createClass({
   // React methods
 
   propTypes: {
-    onTextBoxKeyDown: React.PropTypes.func.isRequired,
-    onTextBoxKeyUp: React.PropTypes.func.isRequired,
-    onSelectionChange:React.PropTypes.func.isRequired
+    onSelectionChange: React.PropTypes.func.isRequired,
+    onDeferredKey: React.PropTypes.func.isRequired,
+    onTextBoxDeferredKey: React.PropTypes.func.isRequired
   },
 
   // TODO: do we actually need behavior??
@@ -271,22 +276,25 @@ export default React.createClass({
   // Handling key events
 
   handleKeyDown(e) {
+    console.log("\n\nGRID KEYDOWN");
     e.persist(); // prevent react gc
     if (ShortcutUtils.gridShouldDeferKey(e)){ // if anything but nav keys, bubble event to parent
       if (!KeyUtils.isCopyPasteType(e)){
+        console.log("Grid key down was copy paste type");
         KeyUtils.killEvent(e);
       }
-      this.props.onDeferredKey(e);
-    }
-  },
-
-  handleTextBoxKeyDown(e) {
-    e.persist(); // prevent react gc
-    if (ShortcutUtils.gridShouldDeferKey(e)){ // if anything but nav keys, bubble event to parent
-      if (!KeyUtils.isCopyPasteType(e)){
-        KeyUtils.killEvent(e);
+      if (KeyUtils.producesVisibleChar(e)) {
+        // Need to update the editor and textbox now via action creators
+        console.log("Grid key down going to AC"); 
+        let curStr = ExpStore.getExpression(),
+            newStr = KeyUtils.modifyStringForKey(curStr, e);
+        ExpActionCreator.handleGridChange(newStr);
       }
-      this.props.onTextBoxDeferredKey(e);
+      else {
+        // Try shortcuts
+        console.log("Grid key down, trying shortcut");
+        this.props.onDeferredKey(e);
+      }
     }
   },
 
@@ -297,11 +305,14 @@ export default React.createClass({
     let xpOrigin = ExpStore.getXpOrigin();
     switch(xpOrigin){
       case Constants.xpChange.FROM_EDITOR:
+        console.log("Grid caught exp update of EDITOR type");
         this.refs.textbox.updateTextBox(ExpStore.getExpression());
-      case Constants.xpChange.FROM_GRID:
-        this.refs.textbox.updateTextBoxInit(ExpStore.getExpression());
         break;
-      default:
+      case Constants.xpChange.FROM_GRID:
+        console.log("Grid caught exp update of GRID type");
+        this.refs.textbox.updateTextBox(ExpStore.getExpression());
+        break;
+      default: // don't need to do anything on TEXTBOX_CHANGED
         break;
     }
   },
@@ -379,10 +390,11 @@ export default React.createClass({
       renderer.config = config;
       return renderer;
     }
-  }
+  },
 
   /*************************************************************************************************************************/
   // Render
+
   render() {
     console.log("rendering spreadsheet");
     let {behavior, width, height} = this.props; //should also have onReady
@@ -398,7 +410,6 @@ export default React.createClass({
         break;
     }
 
-    // Put overlays with high z Index outside hypergrid
     return (
       <div style={{width:"100%",height:"100%",position:'relative'}} >
         <fin-hypergrid
@@ -419,17 +430,11 @@ export default React.createClass({
 
         <Textbox ref="textbox"
                  scroll={self.state.scroll}
-                 onKeyDown={this.handleTextBoxKeyDown}
-                 onChange={this.props.onTextBoxChange}
+                 onDeferredKey={this.props.onTextBoxDeferredKey}
                  position={this.getTextboxPosition(self.state.scroll)}/>
 
       </div>
     );
-  },
-
-
-
-//
-
+  }
 
 });

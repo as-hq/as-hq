@@ -1,9 +1,11 @@
 import React from 'react';
 import ASCodeEditor from './ASCodeEditor.jsx';
 import ASSpreadsheet from './ASSpreadsheet.jsx';
+
 import Store from '../stores/ASEvaluationStore';
 import ReplStore from '../stores/ASReplStore';
 import FindStore from '../stores/ASFindStore';
+
 import API from '../actions/ASApiActionCreators';
 import ReplActionCreator from '../actions/ASReplActionCreators';
 import Shortcuts from '../AS/Shortcuts';
@@ -26,32 +28,11 @@ export default React.createClass({
 
 
   /***************************************************************************************************************************/
-  /* State methods */
-
-  printDetail(type) {
-    switch(type) {
-      case 0:
-        return "GRID";
-      case 1:
-        return "EDITOR";
-      case 2:
-        return "SEL_CHNG";
-      case 3:
-        return "PARTIAL_REF_CHNG";
-      case 4:
-        return "FROM_TEXTBOX";
-      default:
-        return "NONE";
-    }
-  },
+  // React methods
 
   /* React method for getting the initial state */
   getInitialState() {
     return {
-      expression: '',
-      userIsTyping:false,
-      xpChangeOrigin:Constants.xpChange.NONE,
-      expressionWithoutLastRef: '',
       language: Constants.Languages.Excel,
       varName: '',
       focus: 'grid',
@@ -66,6 +47,54 @@ export default React.createClass({
       showFindModal:false
     };
   },
+
+  /* Make sure that the evaluation pane can receive change events from the evaluation store */
+  componentDidMount() {
+    window.addEventListener('copy',this.handleCopyEvent);
+    window.addEventListener('paste',this.handlePasteEvent);
+    window.addEventListener('cut',this.handleCutEvent);
+    Store.addChangeListener(this._onChange);
+    FindStore.addChangeListener(this._onFindChange);
+    ReplStore.addChangeListener(this._onReplChange);
+    Shortcuts.addShortcuts(this);
+  },
+
+  componentWillUnmount() {
+    window.removeEventListener('copy',this.handleCopyEvent);
+    window.removeEventListener('paste',this.handlePasteEvent);
+    window.removeEventListener('cut',this.handleCutEvent);
+    API.close();
+    Store.removeChangeListener(this._onChange);
+    FindStore.removeChangeListener(this._onFindChange);
+    ReplStore.removeChangeListener(this._onReplChange);
+  },
+
+
+  /***************************************************************************************************************************/
+  // Component getter methods
+
+  _getSpreadsheet() {
+    return React.findDOMNode(this.refs.spreadsheet.refs.hypergrid);
+  },
+
+  _getRawEditor() {
+    return this.refs.editorPane.refs.editor.getRawEditor();
+  },
+
+  _getDomEditor() {
+    return React.findDOMNode(this.refs.editorPane.refs.editor);
+  },
+
+  _getReplEditor() {
+    return this.refs.repl.refs.editor.getRawEditor();
+  },
+
+  focusGrid() {
+    this.refs.spreadsheet.setFocus();
+  },
+
+  /***************************************************************************************************************************/
+  // Some basic on change handlers
 
   setLanguage(lang) {
     // TODO change dropdown when triggered programmatically
@@ -90,59 +119,47 @@ export default React.createClass({
     }
   },
 
-  /***************************************************************************************************************************/
-  /* Getter methods for child components of the eval pane */
-
-  _getSpreadsheet() {
-    return React.findDOMNode(this.refs.spreadsheet.refs.hypergrid);
-  },
-  _getRawEditor() {
-    return this.refs.editorPane.refs.editor.getRawEditor();
-  },
-  _getDomEditor() {
-    return React.findDOMNode(this.refs.editorPane.refs.editor);
-  },
-  _getReplEditor() {
-    return this.refs.repl.refs.editor.getRawEditor();
-  },
-  focusGrid() {
-    this.refs.spreadsheet.setFocus();
+   _onSetVarName(name) {
+    console.log('var name set to', name);
+    this.setState({ varName: name });
+    //TODO: set var name on backend
   },
 
-
-  /**************************************************************************************************************************/
-
-  /* Make sure that the evaluation pane can receive change events from the evaluation store */
-  componentDidMount() {
-    window.addEventListener('copy',this.handleCopyEvent);
-    window.addEventListener('paste',this.handlePasteEvent);
-    window.addEventListener('cut',this.handleCutEvent);
-    Store.addChangeListener(this._onChange);
-    FindStore.addChangeListener(this._onFindChange);
-    ReplStore.addChangeListener(this._onReplChange);
-    Shortcuts.addShortcuts(this);
-  },
-  componentWillUnmount() {
-    window.removeEventListener('copy',this.handleCopyEvent);
-    window.removeEventListener('paste',this.handlePasteEvent);
-    window.removeEventListener('cut',this.handleCutEvent);
-    API.close();
-    Store.removeChangeListener(this._onChange);
-    FindStore.removeChangeListener(this._onFindChange);
-    ReplStore.removeChangeListener(this._onReplChange);
-
-  },
-
-  shouldComponentUpdate(nextProps, nextState) {
-    // Simply changing typing from false to true (upon the first grid key) shouldn't rerender
-    // the whole eval pane
-    if (this.state.xpChangeOrigin === Constants.xpChange.FROM_GRID){
-      return false;
+  /*
+  Upon a change event from the eval store (for example, eval has already happened)
+    1) Get the last updated cells
+    2) Call a ASSpreadsheet component method that forces an update of values
+    3) Treat the special case of errors/other styles
+  */
+  _onChange() {
+    console.log("Eval pane detected event change from store");
+    let updatedCells = Store.getLastUpdatedCells();
+    this.refs.spreadsheet.updateCellValues(updatedCells);
+    //toast the error of at least one value in the cell
+    let i = 0;
+    for (i = 0; i < updatedCells.length; ++i) {
+      let cell = updatedCells[i],
+          val = cell.cellValue;
+      if (val.tag == "ValueError") {
+        this.showAnyErrors(val);
+        break;
+      }
     }
-    return true;
+    let extError = Store.getExternalError();
+    if (extError) {
+      this.setToast(extError, "ERROR");
+      Store.setExternalError(null);
+    }
   },
 
+  _onReplChange() {
+    console.log("Eval pane detected event change from repl store");
+    this.setState({replSubmittedLanguage:ReplStore.getSubmittedLanguage()})
+  },
+
+
   /**************************************************************************************************************************/
+  // Error handling 
 
   showAnyErrors(cv) {
     this.setToast(cv.errMsg, "Error");
@@ -163,43 +180,6 @@ export default React.createClass({
   _handleToastTap(e) {
     // TODO
   },
-
-  /*
-  Upon a change event from the eval store (for example, eval has already happened)
-    1) Get the last updated cells
-    2) Call a ASSpreadsheet component method that forces an update of values
-    3) Treat the special case of errors/other styles
-  */
-  _onChange() {
-    console.log("Eval pane detected event change from store");
-    let updatedCells = Store.getLastUpdatedCells();
-    // console.log("Updated cells: " + JSON.stringify(updatedCells));
-
-    this.refs.spreadsheet.updateCellValues(updatedCells);
-
-    //toast the error of at least one value in the cell
-    let i = 0;
-    for (i = 0; i < updatedCells.length; ++i) {
-      let cell = updatedCells[i],
-          val = cell.cellValue;
-      if (val.tag == "ValueError") {
-        this.showAnyErrors(val);
-        break;
-      }
-    }
-
-    let extError = Store.getExternalError();
-    if (extError) {
-      this.setToast(extError, "ERROR");
-      Store.setExternalError(null);
-    }
-  },
-
-  _onReplChange() {
-    console.log("Eval pane detected event change from repl store");
-    this.setState({replSubmittedLanguage:ReplStore.getSubmittedLanguage()})
-  },
-
 
   /**************************************************************************************************************************/
   /* Copy paste handling */
@@ -299,35 +279,17 @@ export default React.createClass({
     ShortcutUtils.tryShortcut(e, 'editor');
   },
 
+  // Called when focus on grid and key down fired that results in possible shortcut
   _onGridDeferredKey(e) {
-   if (KeyUtils.producesVisibleChar(e)) {
-        let editor = this._getRawEditor(),
-          str = KeyUtils.modifyStringForKey(editor.getValue(), e),
-          newStr = KeyUtils.getString(e),
-          xpStr = this.state.userIsTyping ? str : newStr;
-      console.log("\n\nNew grid string: " + xpStr);
-      this.setState({
-            xpChangeOrigin:Constants.xpChange.FROM_GRID,
-            expressionWithoutLastRef:xpStr,
-            expression:xpStr,
-          },function() {editor.navigateFileEnd();}
-      );
-    }
-    else {
-      console.log("Grid key not visible");
-      ShortcutUtils.tryShortcut(e, 'common');
-      ShortcutUtils.tryShortcut(e, 'grid');
-    }
+    console.log("Grid key not visible");
+    ShortcutUtils.tryShortcut(e, 'common');
+    ShortcutUtils.tryShortcut(e, 'grid');
   },
 
   _onTextBoxDeferredKey(e) {
-    if (KeyUtils.producesVisibleChar(e) && e.which !== 13) {
-      // nothing
-    } else {
-      console.log("Textbox key not visible");
-      ShortcutUtils.tryShortcut(e, 'common');
-      ShortcutUtils.tryShortcut(e, 'textbox');
-    }
+    console.log("Textbox key not visible");
+    ShortcutUtils.tryShortcut(e, 'common');
+    ShortcutUtils.tryShortcut(e, 'textbox');
   },
 
   _onTextBoxChange(e) {
@@ -350,7 +312,7 @@ export default React.createClass({
 
 
   /**************************************************************************************************************************/
-  /* Core functionality methods */
+  // Deal with selection change from grid
 
   /*
   This function is called by ASSpreadsheet on a selection change
@@ -410,6 +372,9 @@ export default React.createClass({
       }
     }
   },
+
+  /**************************************************************************************************************************/
+  // Handle an eval request
 
   /*
   The editor state (langage and expression) gets here via props from the ace editor component
@@ -500,7 +465,8 @@ export default React.createClass({
 
 
   /**************************************************************************************************************************/
-  /* The eval pane is the code editor plus the spreadsheet */
+  // Render
+
   getEditorHeight() { // for future use in resize events
     return Constants.editorHeight + "px";
   },
@@ -534,7 +500,6 @@ export default React.createClass({
         <ASSpreadsheet
           ref='spreadsheet'
           highlightFind={highlightFind}
-          onTextBoxChange={this._onTextBoxChange}
           onDeferredKey={this._onGridDeferredKey}
           onTextBoxDeferredKey={this._onTextBoxDeferredKey}
           onSelectionChange={this._onSelectionChange}
@@ -557,13 +522,6 @@ export default React.createClass({
     return (
       <ResizableRightPanel leftComp={leftEvalPane} sidebar={sidebarContent} docked={this.state.replOpen} />
     );
-  },
-
-
-
-  _onSetVarName(name) {
-    console.log('var name set to', name);
-    this.setState({ varName: name });
-    //TODO: set var name on backend
   }
+
 });
