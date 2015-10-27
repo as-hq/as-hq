@@ -16,157 +16,249 @@ class ASIterator:
         except IndexError:
             raise StopIteration
 
-# Purpose of this class is to be able to chain operations nicely
+# All AlphaSheets ranges have this type. This is a wrapper around numpy arrays that acts like a 
+# 1D list if it is just a single row or a single column. Also provides extra methods that allow
+# you to add, sum, and multiply ranges, and chain operations together. 
 class ASIterable(object):
-    def __init__(self, lst):
+    def __init__(self, arr):
+        dim = len(np.array(arr).shape)
+        if (dim == 0): # if literal. TODO: do we actually want to support this, or throw an error?
+            arr = [[arr]]
+        elif (dim == 1): # if plain list
+            arr = [[x] for x in arr]
+
         self.name = None
-        try:
-            _ = (e for e in lst) # check if iterable
-            self.lst = np.array(lst)
-        except TypeError:
-            self.lst = np.array([lst])
-        self.repr = repr(self.lst.tolist())
+        self.arr = np.array(arr)
+    
+    ###########################################################################
+    ### List typecasting
 
-    def head(self):
-        return self.lst[0]
-    def tail(self):
-        return ASIterable(self.lst[1:])
-    def init(self):
-        return ASIterable(self.lst[:-1])
-    def last(self):
-        return self.lst[-1]
-    def push(self, elem):
-        temp = self.lst.tolist()
-        temp.insert(0,elem)
-        self.lst = np.array(temp)
-        return self
+    def _isRow(self): 
+        return len(self.arr) == 1
+
+    def _isColumn(self): 
+        return all(len(l) == 1 for l in self.arr)
+
+    def _is1D(self): 
+        return self._isRow() or self._isColumn()
+
+    # Get the underlying list if it's a row or column matrix
+    def _getList(self): 
+        if self._isColumn():
+            return [l[0] for l in self.arr]
+        if self._isRow():
+            return self.arr[0].tolist()
+        raise # ::ALEX::
+
+    def _setList(self, lst): 
+        if self._isColumn():
+            self.arr = np.array([[x] for x in lst])
+            return
+        if self._isRow():
+            self.arr = np.array([lst])
+            return
+        raise # ::ALEX::
+
+    def _flattenedArrIfCol(self):
+        if self._isColumn():
+            return np.array([l[0] for l in self.arr])
+        else:
+            return self.arr
+
+    ###########################################################################
+    ### List overloading 
+
+    # #needsrefactor: so much repetetion of code here. Could definitely be better. 
     def append(self, elem):
-        temp = self.lst.tolist()
-        temp.append(elem)
-        self.lst = np.array(temp)
-        return self
-    def insert(self, elem, idx):
-        temp = self.lst.tolist()
+        self.insert(len(self), elem)
+
+    def extend(self, L):
+        temp = self._getList()
+        temp.extend(L)
+        self._setList(temp)
+
+    def insert(self, idx, elem):
+        temp = self._getList()
         temp.insert(idx, elem)
-        self.lst = np.array(temp)
-        return self
-    def take(self,n):
-        return ASIterable(self.lst[:n])
-    def arr(self):
-        return self.lst
-    def load(self):
-        return self.lst.tolist()
+        self._setList(temp)
 
-    # list funcs
-    def len(self):
-        return len(self.lst)
-    def sumWay(self, axis):
-        return ASIterable(np.sum(self.lst, axis))
-    def sum(self):
-        return ASIterable(np.sum(self.lst))
-    def reshape(self,axis1,axis2):
-        return ASIterable(self.lst.reshape((axis1, axis2)))
-    def flatten(self):
-        return ASIterable([item for sublist in l for item in self.lst])
-    def transpose(self):
-        # turn column to row vector
-        if len(self.lst.shape) == 1: 
-            return ASIterable([self.load()])
-        else: return ASIterable(self.lst.transpose())
-    def t(self):
-        return self.transpose()
-    def dot(self, other):
-        if isinstance(other, ASIterable):
-            return ASIterable(np.dot(self.lst, other.lst))
+    def pop(self, i):
+        temp = self._getList()
+        item = temp.pop(i)
+        self._setList(temp)
+        return item
+
+    def remove(self, x):
+        temp = self._getList()
+        item = temp.remove(x)
+        self._setList(temp)
+        return item 
+
+    def reverse(self):
+        temp = self._getList()
+        temp.reverse()
+        self._setList(temp)
+
+    def sort(self, comp=None, key=None, reverse=False):
+        temp = self._getList()
+        temp.sort(comp, key, reverse)
+        self._setList(temp)
+
+    def count(self, x):
+        temp = self._getList()
+        c = temp.count(x)
+        return c
+
+    def index(self, x):
+        temp = self._getList()
+        ind = temp.index(x)
+        return ind
+
+    ###########################################################################
+    ### iteration
+
+    def __getitem__(self, idx):
+        if self._is1D():
+            return self._getList()[idx]
         else: 
-            return ASIterable(np.dot(self.lst, np.array(other)))
-
-    # operator funcs
-    def __add__(self, other):
-        if isinstance(other, ASIterable):
-            try:
-                return ASIterable(self.lst + other.lst)
-            except: return "undefined"
-        elif isinstance(other, list):
-            try:
-                return ASIterable(self.lst + np.array(other))
-            except: return "undefined"
-        else: return "undefined"
-
-    def __div__(self, k):
-        if isinstance(k, (int, long, float, complex)) and k != 0:
-            return ASIterable(self.lst / k)
-        elif isinstance(k, ASIterable) and not np.any(k.lst==0):
-            return ASIterable(np.divide(self.lst, k.lst))
-        elif isinstance(k, list) and not 0 in k:
-            return ASIterable(np.divide(self.lst, np.array(k)))
-        else: return "undefined"
-
-    def __sub__(self, other):
-        if isinstance(other, ASIterable):
-            return ASIterable(np.subtract(self.lst,other.lst))
-        else:
-            try:
-                return ASIterable(np.subtract(self.lst, other))
-            except: return "undefined"
-
-    def __neg__(self):
-        return ASIterable(-self.lst)
-
-    def __pos__(self):
-        return self;
-
-    def __abs__(self):
-        return ASIterable(np.abs(self.lst))
-
-    def __mul__(self, other):
-        if isinstance(other, ASIterable):
-            try:
-                return ASIterable(np.multiply(self.lst, other.lst))
-            except: return "undefined"
-        else: 
-            try:
-                return ASIterable(np.multiply(self.lst, np.array(other)))
-            except: return "undefined"
-
-    def __pow__(self, other):
-        if isinstance(other, ASIterable):
-            try:
-                return ASIterable(np.power(self.lst,other.lst))
-            except: return "undefined"
-        else:
-            try:
-                return ASIterable(np.power(self.lst,other))
-            except: return "undefined"
-
-    def __rmul__(self, other):
-        return self.__mul__(other)
-
-    # iteration
-    def __getitem__(self,idx):
-        return ASIterable(self.lst[idx])
+            return self.arr[idx]
 
     def get(self, idx):
-        return self.lst[idx]
+        return self[idx]
 
     def __iter__(self):
         return ASIterator(self)
 
-    def __eq__(self, elem):
-        dim = len(np.array(self.lst.tolist()).shape)
-        if dim==1:
-            return [elem==x for x in self.lst]
+    def __len__(self):
+        if self._is1D():
+            return len(self._getList())
         else:
-            return [[elem==x for x in xlist] for xlist in self.lst]
+            return len(self.arr)
+
+    def __eq__(self, elem):
+        dim = len(np.array(self.arr.tolist()).shape)
+        if dim==1:
+            return [elem==x for x in self.arr]
+        else:
+            return [[elem==x for x in xlist] for xlist in self.arr]
+
+    ###########################################################################
+    ### Custom functions
+
+    def arr(self):
+        return self.arr
+    
+    def load(self):
+        return self.arr.tolist()
+
+    def len(self):
+        return len(self)
+
+    def sumWay(self, axis):
+        return np.sum(self.arr, axis)
+
+    def sum(self):
+        return np.sum(self.arr)
+
+    def reshape(self,axis1,axis2):
+        return ASIterable(self.arr.reshape((axis1, axis2)))
+
+    def transpose(self):
+        return ASIterable(self.arr.transpose())
+
+    def reversed(self):
+        temp = ASIterable(self)
+        temp.reverse()
+        return temp
+
+    def sorted(self, comp=None, key=None, reverse=False):
+        temp = ASIterable(self)
+        temp.sort(comp, key, reverse)
+        return temp
+
+    def t(self):
+        return self.transpose()
+    
+    def dot(self, other):
+        if isinstance(other, ASIterable):
+            return ASIterable(np.dot(self.arr, other.arr))
+        else: 
+            return ASIterable(np.dot(self.arr, np.array(other)))
 
     def map(self, func):
         return ASIterable([func(x) for x in self])
 
     # pandas
     def toDataframe(self):
-        return listToDataframe(self.lst)
+        return listToDataframe(self.arr)
 
-    # reps and conversions
+    ###########################################################################
+    ### custom operator functions
+
+    def __add__(self, other):
+        if isinstance(other, ASIterable):
+            try:
+                return ASIterable(self.arr + other.arr)
+            except: return "undefined"
+        elif isinstance(other, list):
+            try:
+                return ASIterable(self.arr + np.array(other))
+            except: return "undefined"
+        else: return "undefined"
+
+    def __div__(self, k):
+        if isinstance(k, (int, long, float, complex)) and k != 0:
+            return ASIterable(self.arr / k)
+        elif isinstance(k, ASIterable) and not np.any(k.arr==0):
+            return ASIterable(np.divide(self.arr, k.arr))
+        elif isinstance(k, list) and not 0 in k:
+            return ASIterable(np.divide(self.arr, np.array(k)))
+        else: return "undefined"
+
+    def __sub__(self, other):
+        if isinstance(other, ASIterable):
+            return ASIterable(np.subtract(self.arr,other.arr))
+        else:
+            try:
+                return ASIterable(np.subtract(self.arr, other))
+            except: return "undefined"
+
+    def __neg__(self):
+        return ASIterable(-self.arr)
+
+    def __pos__(self):
+        return self;
+
+    def __abs__(self):
+        return ASIterable(np.abs(self.arr))
+
+    def __mul__(self, other):
+        if isinstance(other, ASIterable):
+            try:
+                return ASIterable(np.multiply(self.arr, other.arr))
+            except: return "undefined"
+        else: 
+            try:
+                return ASIterable(np.multiply(self.arr, np.array(other)))
+            except: return "undefined"
+
+    def __pow__(self, other):
+        if isinstance(other, ASIterable):
+            try:
+                return ASIterable(np.power(self.arr,other.arr))
+            except: return "undefined"
+        else:
+            try:
+                return ASIterable(np.power(self.arr,other))
+            except: return "undefined"
+
+    def __rmul__(self, other):
+        return self.__mul__(other)
+
+
+    ###########################################################################
+    ### representations and conversions
+
     @classmethod
     def deserialize(cls, js):
         e = cls(js["lst"])
@@ -190,7 +282,7 @@ class ASIterable(object):
         return self
 
     def __repr__(self):
-        return self.repr
+        return repr(self._flattenedArrIfCol().tolist())
 
     def __str__(self):
         return self.__repr__()

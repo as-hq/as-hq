@@ -120,6 +120,7 @@ groupRefs relation@(cell, refs) = if (shouldGroupRefs relation)
         groupedRefs = map (groupRef . language . cellExpression $ cell) $ zip rngs rngValSets'
     return $ filterNothing groupedRefs
   else return []
+
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Eval helpers
 
