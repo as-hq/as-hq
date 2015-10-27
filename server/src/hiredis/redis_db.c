@@ -20,7 +20,7 @@
 /*************************************************************************************************************************/
 // Helper functions
 
-const char* msgPartDelimiter = "@";
+const char* msgPartDelimiter = "`";
 
 void freeRedis(redisContext *c, redisReply *r){
   freeReplyObject(r);

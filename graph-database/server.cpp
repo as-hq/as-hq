@@ -18,7 +18,7 @@
 using namespace boost; 
 using namespace std; 
 
-const char* msgPartDelimiter = "@";
+const char* msgPartDelimiter = "`";
 const char* relationDelimiter = "&";
 
 vector<string> processRequest(DAG& dag, string& request){

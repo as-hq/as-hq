@@ -57,7 +57,7 @@ cInfo = ConnInfo
 ----------------------------------------------------------------------------------------------------------------------
 -- Redis key utilities
 
-msgPartDelimiter = "@" -- TODO: should require real parsing instead of weird char strings
+msgPartDelimiter = "`" -- TODO: should require real parsing instead of weird char strings
 relationDelimiter = "&"
 keyPartDelimiter = '?'
 
