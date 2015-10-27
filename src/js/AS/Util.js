@@ -287,14 +287,18 @@ export default {
     // TODO generalize to arbitrary range lengths
     let dollarPresence = this.getIndicesOf("$", xp, true);
     let len = dollarPresence.length;
-    if (len == 0)
-      return "$" + xp;
-    else if (len == 1) {
+    if (len == 0){
+      return "$" + xp.substring(0,1) + "$" + xp.substring(1);
+    }
+    else if (len == 1){
       if (dollarPresence[0] == 0){
-        return xp.substring(1,2) + "$" + xp.substring(2);
-      } else return "$" + xp;
-    } else {
-      return xp.replace(/\$/g, "");
+        return xp.replace(/\$/g, "");
+      } else{
+        return "$" + xp.replace(/\$/g,"");
+      }
+    }
+    else {
+      return xp.substring(1,2) + "$" + xp.replace(/\$/g, "").substring(1);
     }
     return "ERROR";
   },
