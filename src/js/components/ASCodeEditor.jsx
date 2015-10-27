@@ -27,6 +27,13 @@ function languageIndex(lang) {
 
 export default React.createClass({
 
+  /*************************************************************************************************************************/
+  // React methods
+
+  propTypes: {
+    onDeferredKey: React.PropTypes.func.isRequired
+  },
+
   getDefaultProps() {
     return {
       language: Constants.Languages.Python,
@@ -34,9 +41,25 @@ export default React.createClass({
     };
   },
 
+  /*************************************************************************************************************************/
+  // Change handlers
+
+  _onLanguageChange(e, selectedIndex, menuItem) {
+    //notify editor to change
+    console.log("language changed in ascodeeditor: " + JSON.stringify(menuItem.payload));
+    this.props.onLanguageChange(menuItem.payload);
+  },
+
+  _onBlurVarName() {
+    let varName = this.refs.varNameField.getValue();
+    this.props.onSetVarName(varName);
+  },
+
+  /*************************************************************************************************************************/
+  // Render
+
   render() {
     let {language, theme, value, width, height} = this.props;
-    // console.log("CODE EDITOR HEIGHT, WIDTH: " + height +  " " + width);
 
     return (
       <div>
@@ -77,27 +100,13 @@ export default React.createClass({
             </Toolbar>
         <AceEditor
           ref="editor"
-          onChange={this.props.onExpressionChange}
-          setXpDetailFromEditor={this.props.setXpDetailFromEditor}
           mode={language.Editor}
           language={language}
           theme={theme}
-          value={value}
           width={width} height={height}
           onDeferredKey={this.props.onDeferredKey} />
       </div>
     );
-  },
-
-
-  _onLanguageChange(e, selectedIndex, menuItem) {
-    //notify editor to change
-    console.log("language changed in ascodeeditor: " + JSON.stringify(menuItem.payload));
-    this.props.onLanguageChange(menuItem.payload);
-  },
-
-  _onBlurVarName() {
-    let varName = this.refs.varNameField.getValue();
-    this.props.onSetVarName(varName);
   }
+
 });

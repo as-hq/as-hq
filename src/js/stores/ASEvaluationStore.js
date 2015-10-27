@@ -85,7 +85,7 @@ dispatcherIndex: Dispatcher.register(function (action) {
         It gets previous scroll state from the store and then uses the API to send a "get cells" message to server
       */
       case Constants.ActionTypes.SCROLLED:
-        let extendedRange = Converter.extendRangeByCache(action.vWindow.range),
+        let extendedRange = Util.extendRangeByCache(action.vWindow.range),
             viewingWindow = TC.rangeToASWindow(extendedRange);
         _data.viewingWindow = action.vWindow;
         API.updateViewingWindow(viewingWindow);
@@ -176,7 +176,7 @@ const ASEvaluationStore = assign({}, BaseStore, {
   setActiveSelection(sel, xp) {
     let origin = sel.origin;
     _data.activeSelection = sel;
-    console.log("\n\nsetting active sel\n\n", sel);
+    console.log("setting active sel", sel);
     _data.activeCell = this.getCell(origin.col, origin.row) || TC.makeEmptyCell();
     var activeCellDependencies = Util.parseDependencies(xp);
     let c = sel.origin.col,

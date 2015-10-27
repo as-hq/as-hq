@@ -28,15 +28,6 @@ export default React.createClass({
   /***************************************************************************************************************************/
   /* State methods */
 
-  xpChange: {
-    FROM_GRID:0,
-    FROM_EDITOR:1,
-    SEL_CHNG:2,
-    PARTIAL_REF_CHNG:3,
-    FROM_TEXTBOX:4,
-    NONE:5
-  },
-
   printDetail(type) {
     switch(type) {
       case 0:
@@ -59,7 +50,7 @@ export default React.createClass({
     return {
       expression: '',
       userIsTyping:false,
-      xpChangeDetail:this.xpChange.NONE,
+      xpChangeOrigin:Constants.xpChange.NONE,
       expressionWithoutLastRef: '',
       language: Constants.Languages.Excel,
       varName: '',
@@ -75,71 +66,18 @@ export default React.createClass({
       showFindModal:false
     };
   },
+
   setLanguage(lang) {
     // TODO change dropdown when triggered programmatically
-    // console.log("setting language: "+JSON.stringify(lang));
+    console.log("setting language: "+JSON.stringify(lang));
     this.setState({ language: lang });
     this.refs.spreadsheet.setFocus();
-  },
-
-  updateTextBox(isTyping) {
-    console.log("Eval pane is updating text box, bitch");
-    return this.refs.spreadsheet.refs.textbox.updateTextBox(this.state.expression,isTyping)
-  },
-
-  /* Editor has been updated, now update state in EvalPane if necessary */
-  setExpression(xp) {
-    console.log("New expression of type " + this.printDetail(this.state.xpChangeDetail) + ": " + xp);
-    let detail = this.state.xpChangeDetail;
-    let deps = Util.parseDependencies(xp);
-    switch(detail) {
-      case this.xpChange.FROM_EDITOR:
-        this.setState({expressionWithoutLastRef:xp,expression:xp,userIsTyping:true}, function() {
-          this.updateTextBox(true);
-        });
-        console.log("User is typing");
-        Store.setActiveCellDependencies(deps);
-        break;
-      case this.xpChange.FROM_GRID:
-        if (!this.state.userIsTyping) {
-          this.setState({userIsTyping:true}, function() {
-            this.updateTextBox(true);
-          });
-          console.log("User is now typing!");
-        }
-        else {
-          this.updateTextBox(true);
-        }
-        Store.setActiveCellDependencies(deps);
-        break;
-      case this.xpChange.SEL_CHNG:
-        console.log("Found selection change!");
-        break;
-      case this.xpChange.PARTIAL_REF_CHNG:
-        console.assert(this.state.userIsTyping===true,"User should be typing");
-        this.updateTextBox(true);
-        Store.setActiveCellDependencies(deps);
-        break;
-      case this.xpChange.FROM_TEXTBOX:
-        console.assert(this.state.userIsTyping===true,"User should be typing");
-        this.updateTextBox(true);
-        Store.setActiveCellDependencies(deps);
-        break;
-      default:
-        Store.setActiveCellDependencies(deps);
-        break;
-    }
-    this.refs.spreadsheet.repaint();
-  },
-
-  setXpDetailFromEditor() {
-    this.setState({xpChangeDetail:this.xpChange.FROM_EDITOR});
   },
 
 
   /* Update the focus between the editor and the grid */
   toggleFocus() { //currently not used anywhere
-    // console.log("In toggle focus function");
+    console.log("In toggle focus function");
     switch(this.state.focus) {
       case 'grid':
         this._getRawEditor().focus();
@@ -151,12 +89,6 @@ export default React.createClass({
         break;
     }
   },
-
-  killTextbox() {
-    this.setState({userIsTyping:false});
-    this.updateTextBox(false);
-  },
-
 
   /***************************************************************************************************************************/
   /* Getter methods for child components of the eval pane */
@@ -179,8 +111,8 @@ export default React.createClass({
 
 
   /**************************************************************************************************************************/
-  /* Make sure that the evaluation pane can receive change events from the evaluation store */
 
+  /* Make sure that the evaluation pane can receive change events from the evaluation store */
   componentDidMount() {
     window.addEventListener('copy',this.handleCopyEvent);
     window.addEventListener('paste',this.handlePasteEvent);
@@ -200,20 +132,38 @@ export default React.createClass({
     ReplStore.removeChangeListener(this._onReplChange);
 
   },
+
+  shouldComponentUpdate(nextProps, nextState) {
+    // Simply changing typing from false to true (upon the first grid key) shouldn't rerender
+    // the whole eval pane
+    if (this.state.xpChangeOrigin === Constants.xpChange.FROM_GRID){
+      return false;
+    }
+    return true;
+  },
+
+  /**************************************************************************************************************************/
+
   showAnyErrors(cv) {
     this.setToast(cv.errMsg, "Error");
   },
+
   setToast(msg, action) {
+    console.log("set toast");
     this.setState({toastMessage: msg, toastAction: action});
     this.refs.snackbarError.show();
   },
+
   hideToast() {
+    console.log("hide toast");
     this.setState({toastMessage: "", toastAction: "hide"});
     this.refs.snackbarError.dismiss();
   },
+
   _handleToastTap(e) {
     // TODO
   },
+
   /*
   Upon a change event from the eval store (for example, eval has already happened)
     1) Get the last updated cells
@@ -246,7 +196,7 @@ export default React.createClass({
   },
 
   _onReplChange() {
-    // console.log("Eval pane detected event change from repl store");
+    console.log("Eval pane detected event change from repl store");
     this.setState({replSubmittedLanguage:ReplStore.getSubmittedLanguage()})
   },
 
@@ -355,9 +305,9 @@ export default React.createClass({
           str = KeyUtils.modifyStringForKey(editor.getValue(), e),
           newStr = KeyUtils.getString(e),
           xpStr = this.state.userIsTyping ? str : newStr;
-      console.log("New grid string: " + xpStr);
+      console.log("\n\nNew grid string: " + xpStr);
       this.setState({
-            xpChangeDetail:this.xpChange.FROM_GRID,
+            xpChangeOrigin:Constants.xpChange.FROM_GRID,
             expressionWithoutLastRef:xpStr,
             expression:xpStr,
           },function() {editor.navigateFileEnd();}
@@ -372,17 +322,24 @@ export default React.createClass({
 
   _onTextBoxDeferredKey(e) {
     if (KeyUtils.producesVisibleChar(e) && e.which !== 13) {
-      let xp = KeyUtils.modifyStringForKey(e.target.value,e);
-      console.log("Eval pane textbox key " + xp);
-      this.setState({expression:xp,
-                   expressionWithoutLastRef:xp,
-                   xpChangeDetail:this.xpChange.FROM_TEXTBOX
-                 });
-    }
-    else {
+      // nothing
+    } else {
       console.log("Textbox key not visible");
       ShortcutUtils.tryShortcut(e, 'common');
       ShortcutUtils.tryShortcut(e, 'textbox');
+    }
+  },
+
+  _onTextBoxChange(e) {
+    console.log("eval pane detected text box change");
+    if (KeyUtils.producesVisibleChar(e) && e.which !== 13) {
+      // nothing
+    } else {
+      this.setState({
+        xpChangeOrigin: Constants.xpChange.FROM_TEXTBOX,
+        expressionWithoutLastRef: e.target.value,
+        expression: e.target.value
+      });
     }
   },
 
@@ -414,39 +371,40 @@ export default React.createClass({
       let {language,expression} = cell.cellExpression,
           val = cell.cellValue;
       Store.setActiveSelection(sel, expression); // pass in an expression to get parsed dependencies
-      console.log("FIRST");
       // here, language is a client/server agnostic object (see Constants.Languages)
-      this.setState({ xpChangeDetail:this.xpChange.SEL_CHNG,
+      this.setState({ xpChangeOrigin:Constants.xpChange.SEL_CHNG,
                     language: Util.getAgnosticLanguageFromServer(language),
                     expression: expression,
                     expressionWithoutLastRef:expression,
                     userIsTyping:false
                     },function() {
                       if (shiftSelExists) // selected while typing at wrong type; select away
-                        this.updateTextBox(false);
+                        this.setTextBoxVisibility(false);
                     });
       // TODO: set var name as well
       this.showAnyErrors(val);
     }
     else if (!this.state.userIsTyping || shiftSelEmpty) {
-      console.log("Selected new region empty");
+      console.log("\n\nSelected new region empty");
       Store.setActiveSelection(sel, "");
-      this.setState({ xpChangeDetail:this.xpChange.SEL_CHNG,
+      console.log("about to set state");
+      this.setState({ xpChangeOrigin:Constants.xpChange.SEL_CHNG,
                       expression: "",
                       expressionWithoutLastRef: "",
                       userIsTyping:false
                     },function() {
                       if (shiftSelEmpty) // selected while typing at wrong type; select away
-                        this.updateTextBox(false);
+                        this.setTextBoxVisibility(false);
                     });
       this.hideToast();
+      console.log("after setstate call");
     }
     else {
       if (Util.canInsertCellRefInXp(this.state.expressionWithoutLastRef)) {
         console.log("PARTIAL");
         let newXp = this.state.expressionWithoutLastRef  + Util.locToExcel(rng);
         this.refs.spreadsheet._getHypergrid().repaint();
-        this.setState({xpChangeDetail:this.xpChange.PARTIAL_REF_CHNG,
+        this.setState({xpChangeOrigin:Constants.xpChange.PARTIAL_REF_CHNG,
                        expression:newXp
         });
       }
@@ -550,6 +508,7 @@ export default React.createClass({
   render() {
     let {expression, language} = this.state,
         highlightFind = this.state.showFindBar || this.state.showFindModal;
+
     // highlightFind is for the spreadsheet to know when to highlight found locs
     // display the find bar or modal based on state
     let leftEvalPane =
@@ -575,7 +534,7 @@ export default React.createClass({
         <ASSpreadsheet
           ref='spreadsheet'
           highlightFind={highlightFind}
-          textBoxChange={this.textBoxChange}
+          onTextBoxChange={this._onTextBoxChange}
           onDeferredKey={this._onGridDeferredKey}
           onTextBoxDeferredKey={this._onTextBoxDeferredKey}
           onSelectionChange={this._onSelectionChange}

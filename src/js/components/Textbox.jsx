@@ -1,85 +1,82 @@
 import React from 'react';
 import Constants from '../Constants';
-import Store from '../stores/ASEvaluationStore';
 import Util from '../AS/Util';
 let TextareaAutosize = require('react-autosize-textarea');
-
-/*
-TODO: REFACTOR
-This component uses pixels to calculate the positioning from the top left of spreadsheet.
-I don't see a way with percents right now
-Can't find a good expanding component that works
-I don't think these are too pressing right now
-Fixed black hole doom by accounting for scrolling
---Ritesh 10/12 */
 
 
 export default React.createClass({
 
+  /**************************************************************************************************************************/
+  // React  methods
+
+  propTypes: {
+    onKeyDown: React.PropTypes.func.isRequired,
+    onKeyUp: React.PropTypes.func.isRequired,
+    position: React.PropTypes.object.isRequired
+  },
+
   getInitialState(){
     return {
-      textBox:null
+      expression: "",
+      isVisible: false
     };
   },
 
-  /* Update the textbox from the eval pane */
-  updateTextBox(xp,isTyping){
-    let col = Store.getActiveSelection().origin.col,
-        row = Store.getActiveSelection().origin.row,
-        textBox = {col: col, row: row, xp:xp};
-    if (isTyping){
-      this.setState({textBox:textBox});
-    }
-    else{
-      this.setState({textBox:null});
-    }
+  /**************************************************************************************************************************/
+  // Text box focus and update methods
+
+  /* Hack to get the cursor at the end upon focus */
+  onFocus(){
+    let curXp = this.state.expression,
+        newXp = '';
+    this.setState({expression:newXp},function(){
+      this.setState({expression:curXp});
+    })
   },
 
-  getTop(){
-    if (this.state.textBox){
-      return (this.state.textBox.row-1-this.props.scroll.y)* Constants.cellHeightPx + Constants.gridYOffset;
-    }
-    else {
-      return 0;
-    }
+  updateTextBox(xpStr){
+    this.setState({expression:xpStr});
   },
 
-  getLeft(){
-    if (this.state.textBox){
-      return (this.state.textBox.col-1-this.props.scroll.x)* Constants.cellWidthPx + Constants.gridXOffset;
-    }
-    else {
-      return 0;
-    }
+  updateTextBoxInit(xpStr) {
+    this.setState({expression: xpStr, isVisible: vis});
+  },
+
+  hideTextBox(){
+    this.setState({isVisible:false});
   },
 
   getWidth(xp){
     let rows = xp.split("\n"),
-        longestStr = rows.reduce(function (a, b) { return a.length > b.length ? a : b; });
-    return Math.max(50,30+(longestStr.length)*12);
+        longestStr = rows.reduce(function (a, b) { return a.length > b.length ? a : b; }),
+        extentX = this.props.position ? this.props.position.extent.x : 0;
+    return Math.max(extentX, (longestStr.length)*12);
   },
 
+
+  /**************************************************************************************************************************/
+  // Render
+
   render() {
-    console.log(JSON.stringify(this.props.scroll));
+    console.log("rendering textbox");
     let baseStyle = {display:'block',
                      position:'absolute',
                      width:"100%",
-                     top: this.getTop(),
-                     left: this.getLeft(),
+                     top: this.props.position ? this.props.position.origin.y : null,
+                     left: this.props.position ? this.props.position.origin.x : null,
                      zIndex:5
                      };
     let textStyle = {
-      width: this.state.textBox ? this.getWidth(this.state.textBox.xp) : 0,
+      width: this.getWidth(this.state.expression),
       border: "solid 2px black"
     };
 
-    /* TODO: using autofocus has the bug that the cursor is at the beginning of the box
-    at the start */
-    let overlay = this.state.textBox ?
+    let overlay = this.state.isVisible ?
           <TextareaAutosize ref="box" type="text" autoFocus onFocus={this.onFocus}
                  style={textStyle}
                  onKeyDown={this.props.onKeyDown}
-                 value={this.state.textBox.xp} /> : null ;
+                 onKeyUp={this.props.onKeyUp}
+                 value={this.state.expression} /> : null ;
 
     return (
         <div style={baseStyle} >

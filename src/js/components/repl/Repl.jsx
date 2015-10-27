@@ -1,6 +1,6 @@
 import React from 'react';
 const update = React.addons.update;
-import AceEditor from '../AceEditor.jsx';
+import ReplEditor from '../ReplEditor.jsx';
 import Constants from '../../Constants.js';
 
 import {AppBar, Toolbar, DropDownMenu, Styles, FlatButton} from 'material-ui';
@@ -42,8 +42,8 @@ export default React.createClass({
             onChange={this.props.onReplLanguageChange}
             underlineStyle={{ display: 'none' }} />
         </Toolbar>
-        <AceEditor
-          ref="editor" name="repl" isRepl={true}
+        <ReplEditor
+          ref="editor" name="repl"
           onChange={function(){}}
           mode={this.props.replLanguage.Editor}
           language={this.props.replLanguage}

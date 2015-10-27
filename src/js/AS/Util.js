@@ -525,5 +525,14 @@ export default {
 
  concatAll(arrs) {
   return [].concat.apply([], arrs);
- }
+ },
+
+ /*************************************************************************************************************************/
+  // Cache extension to viewing window
+
+  extendRangeByCache(rng) {
+    let {tl, br} = rng;
+    return {tl: {col: tl.col + Constants.scrollCacheX, row: tl.row + Constants.scrollCacheY},
+            br: {col: br.col + Constants.scrollCacheX, row: br.row + Constants.scrollCacheY}};
+  }
 };

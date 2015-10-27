@@ -49,7 +49,14 @@ export default {
     GOT_NEW_WORKBOOKS: null,
     DELETED_WORKBOOKS: null,
     FIND_INCREMENTED:null,
-    FIND_DECREMENTED:null
+    FIND_DECREMENTED:null,
+
+    // Three-way data integration actions
+    GRID_KEY_PRESSED: null,
+    EDITOR_CHANGED:null,
+    TEXTBOX_CHANGED:null,
+    NORMAL_SEL_CHANGED:null,
+    PARTIAL_REF_FOUND:null
   }),
 
   ActionSources: keyMirror({
@@ -116,5 +123,14 @@ export default {
     New: "New",
     Find:"Find",
     AddTags: "AddTags", RemoveTags: "RemoveTags"
+  },
+
+  xpChange: {
+    FROM_GRID:0,
+    FROM_EDITOR:1,
+    SEL_CHNG:2,
+    PARTIAL_REF_CHNG:3,
+    FROM_TEXTBOX:4,
+    NONE:5
   }
 };
