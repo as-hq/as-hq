@@ -67,7 +67,7 @@ export default React.createClass({
       toastMessage: '',
       toastAction: '',
       replOpen: false,
-      replLanguage: Constants.Languages.Excel,
+      replLanguage: Constants.Languages.Python,
       replSubmittedLanguage: null,
       focusDx: null,
       focusDy: null,
