@@ -109,7 +109,7 @@ export default {
     });
 
     // repl shortcuts -------------------------------------------------------------------------------
-    SU.add("repl", "repl_submit", "Ctrl+Enter", (wildcard) => {
+    SU.add("repl", "repl_submit", ["Enter", "Ctrl+Enter"], (wildcard) => {
       /* Preprocessing of repl value to get the "last" part to send to server */
       let strs = self._replValue().split(">>>").slice(-1)[0].substring(1);
       let lines = strs.split("\n");

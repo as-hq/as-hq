@@ -169,7 +169,8 @@ module.exports = React.createClass({
       let val = this.editor.getValue(),
           cursor = this.editor.getCursorPosition(),
           lastChar = val.substring(val.length-1);
-      if (e.which === 13) { // pressed enter
+      if (e.which === 13 && e.shiftKey === true) { // pressed enter
+        console.log("SUCCESS");
         if (lastChar === "\t") {
           if (cursor.column === 4){ // automatic tab
             this.editor.getSession().indentRow(cursor.row, cursor.row, "    ");
