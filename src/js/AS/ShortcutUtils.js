@@ -58,9 +58,12 @@ export default {
   },
 
   gridShouldDeferKey(e){
-    if (e.ctrlKey)
+    if (e.ctrlKey) {
       return true;
-    else return !Util.arrContains(KeyUtils.navKeys, e.which);
+    }
+    else {
+      return !Util.arrContains(KeyUtils.navKeys, e.which);
+    }
   },
 
   editorShouldDeferKey(e) {
@@ -68,6 +71,9 @@ export default {
   },
 
   replShouldDeferKey(e) {
+    if (e.which === 13 && e.shiftKey === false) {
+      return true;
+    }
     return !KeyUtils.producesVisibleChar(e);
   },
 
