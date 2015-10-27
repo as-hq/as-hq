@@ -9,8 +9,8 @@ let [ws] = isNode ?
   [require('ws')] :
   [WebSocket];
 
-var ActionTypes = Constants.ActionTypes;
-var wss = new ws(Constants.HOST_WS);
+let ActionTypes = Constants.ActionTypes;
+let wss = new ws(Constants.HOST_WS_URL);
 
 let currentCbs = undefined;
 let isRunningTest = false;
