@@ -413,6 +413,12 @@ rangeToIndices (Range sheet (ul, lr)) = [Index sheet (x,y) | x <- [startx..endx]
     starty = min (snd ul) (snd lr)
     endy = max (snd ul) (snd lr)
 
+orientRange :: ASRange -> ASRange
+orientRange (Range sid (tl, br)) = Range sid (tl',br')
+  where
+    tl' = (min (col tl) (col br), min (row tl) (row br))
+    br' = (max (col tl) (col br), max (row tl) (row br))
+
 rangeToIndicesRowMajor :: ASRange -> [ASIndex]
 rangeToIndicesRowMajor (Range sheet (ul, lr)) = [Index sheet (x,y) | y <- [starty..endy],x <- [startx..endx] ]
   where

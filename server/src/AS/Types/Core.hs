@@ -35,8 +35,10 @@ data WorkbookSheet = WorkbookSheet {wsName :: String, wsSheets :: [ASSheet]} der
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Core cell types
 
-data ASIndex = Index {locSheetId :: ASSheetId, index :: (Int, Int)} | OutOfBounds deriving (Show, Read, Eq, Generic, Ord)
-data ASRange = Range {rangeSheetId :: ASSheetId, range :: ((Int, Int), (Int, Int))} deriving (Show, Read, Eq, Generic, Ord)
+type Coord = (Int, Int)
+
+data ASIndex = Index {locSheetId :: ASSheetId, index :: Coord} | OutOfBounds deriving (Show, Read, Eq, Generic, Ord)
+data ASRange = Range {rangeSheetId :: ASSheetId, range :: (Coord, Coord)} deriving (Show, Read, Eq, Generic, Ord)
 data ASReference = IndexRef ASIndex | RangeRef ASRange deriving (Show, Read, Eq, Generic, Ord)
 
 refSheetId :: ASReference -> ASSheetId
@@ -163,7 +165,8 @@ data ASAction =
   | Clear
   | UpdateWindow
   | AddTags | RemoveTags
-  | Repeat
+  | Repeat 
+  | JumpSelect
   deriving (Show, Read, Eq, Generic)
 
 data ASResult = Success | Failure {failDesc :: String} | NoResult deriving (Show, Read, Eq, Generic)
@@ -184,6 +187,7 @@ data ASPayload =
   | PayloadR ASRange
   | PayloadS ASSheet
   | PayloadSelection {selectionRange :: ASRange, selectionOrigin :: ASIndex}
+  | PayloadJump {jumpRange :: ASRange, jumpOrigin :: ASIndex, isShifted :: Bool, jumpDirection :: Direction}
   | PayloadSS [ASSheet]
   | PayloadWB ASWorkbook
   | PayloadWBS [ASWorkbook]
@@ -198,6 +202,8 @@ data ASPayload =
   | PayloadReplValue ASReplValue
   | PayloadList QueryList
   deriving (Show, Read, Eq, Generic)
+
+data Direction = DUp | DDown | DLeft | DRight deriving (Show, Read, Eq, Generic)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Version Control
@@ -234,6 +240,7 @@ data ASExecError =
   | ExecError
   | SyntaxError
   | HighDimensionalValue
+  | APIError
   deriving (Show, Read, Eq, Generic)
 
 type EitherCells = Either ASExecError [ASCell]
@@ -297,6 +304,12 @@ instance Eq ASDaemonClient where
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Convenience methods
+
+row :: Coord -> Int
+row = snd
+
+col :: Coord -> Int
+col = snd
 
 emptyExpression = ""
 
@@ -464,6 +477,21 @@ instance FromJSON ASWindow where
     return $ Window sid tl' br'
   parseJSON _          = fail "client message JSON attributes missing"
 
+instance ToJSON Direction where
+  toJSON dir = Data.Aeson.String $ case dir of 
+    DUp     -> "Up" 
+    DDown   -> "Down"
+    DLeft   -> "Left"
+    DRight  -> "Right"
+
+instance FromJSON Direction where
+  parseJSON (Data.Aeson.String v) = return $ getDir . T.unpack $ v
+    where 
+      getDir s = case s of 
+        "Up"    -> DUp
+        "Down"  -> DDown
+        "Left"  -> DLeft
+        "Right" -> DRight
 
 -- memory region exposure instances for R value unboxing
 instance NFData ASValue       where rnf = genericRnf
