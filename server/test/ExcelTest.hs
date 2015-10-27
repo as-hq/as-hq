@@ -31,7 +31,7 @@ mp :: RefValMap
 mp = M.fromList $ [(IndexRef (Index (T.pack "") (i,j)), ValueI j)| i <- [1..10], j <- [1..10]]
 
 tests :: [IO ()]
-tests = [testLiteral, testLambda, testAdd, testAbs, testEquals, testIf, testSumIf, testCountIf]
+tests = [testLiteral, testLambda, testAdd, testAbs, testEquals, testIf, testSumIf, testCountIf, testCountIfs]
 
 testLiteral :: IO ()
 testLiteral = hspec $ do

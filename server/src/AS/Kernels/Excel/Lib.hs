@@ -53,7 +53,13 @@ type Offset = (Col,Row)
 -- | NOTE: Any reference with an unmappable ASValue -> EValue returns error (we get to define this behavior)
 
 --------------------------------------------------------------------------------------------------------------
--- | Function callbacks and enumeration of type of function
+-- Function callbacks and enumeration of type of function
+
+-- | Excel functions can take in at most 255 arguments. (If we don't put a hard cap like this, 
+-- we will run into infinite loops in e.g. scalarizeArrConst, which checks if some argument position
+-- is in some list of allowed argument positions.)
+argNumLimit :: Int
+argNumLimit = 255
 
 -- | Description of a function. Argument numbers start at 1.
 data FuncDescriptor = FuncDescriptor {
@@ -67,26 +73,26 @@ data FuncDescriptor = FuncDescriptor {
 
 -- | Scalarize in normal mode, map over all arguments for array formula, replace all refs
 normalD :: Int -> EFunc -> FuncDescriptor
-normalD n f = FuncDescriptor [1..] [1..] [] [1..] (Just n) (transform f)
+normalD n f = FuncDescriptor [1..argNumLimit] [1..argNumLimit] [] [1..argNumLimit] (Just n) (transform f)
 
 -- | Similar to above, but only map/scalarize over some arguments
 normalD' :: Int -> [Int] -> EFunc -> FuncDescriptor
-normalD' n nonRanges f = FuncDescriptor nonRanges nonRanges [] [1..] (Just n) (transform f)
+normalD' n nonRanges f = FuncDescriptor nonRanges nonRanges [] [1..argNumLimit] (Just n) (transform f)
 
 prefixD :: EFunc -> FuncDescriptor
 prefixD = normalD 1
 
 -- | Vector functions like sum; don't scalarize or map (args can be ranges!), replace all refs, no arg limit
 vectorD :: EFunc -> FuncDescriptor
-vectorD f = FuncDescriptor [] [] [] [1..] Nothing (transform f)
+vectorD f = FuncDescriptor [] [] [] [1..argNumLimit] Nothing (transform f)
 
 -- | Same as above, but eval some args as AF's
 vectorAFD :: [Int] -> EFunc -> FuncDescriptor
-vectorAFD lst f = FuncDescriptor [] [] lst [1..] Nothing (transform f)
+vectorAFD lst f = FuncDescriptor [] [] lst [1..argNumLimit] Nothing (transform f)
 
 -- | Functions like sumproduct, correl
 vector2 :: EFunc -> FuncDescriptor
-vector2 f = FuncDescriptor [] [] [1,2] [1..] (Just 2) (transform f)
+vector2 f = FuncDescriptor [] [] [1,2] [1..argNumLimit] (Just 2) (transform f)
 
 infixD :: EFunc -> FuncDescriptor
 infixD = normalD 2 
@@ -128,15 +134,15 @@ functions =  M.fromList $
 
     -- | Excel lookup and reference functions
       -- | Address(A1:A2,B1:B2) is an Excel valerror in normal mode, but ArrForm works mapping over all args
-    ("address"        , FuncDescriptor [] [1..] [] [1..] (Just 5) (transform eAddress)),
+    ("address"        , FuncDescriptor [] [1..argNumLimit] [] [1..argNumLimit] (Just 5) (transform eAddress)),
       -- | Column(A1:A2) returns topleft, don't scalarize (func will return matrix, top level takes top left)
       -- the function will handle ranges (don't map over AF), don't replace refs obv
     ("column"         , FuncDescriptor [] [] [] [] (Just 1) (transform eColumn)),
     ("row"            , FuncDescriptor [] [] [] [] (Just 1) (transform eRow)),
       -- | Indirect(array) = error; don't scalarize, replace refs because arg1 = string, arg2 = bool
-    ("indirect"       , FuncDescriptor [] [1..] [] [1..] (Just 2) (transform eIndirect)),
+    ("indirect"       , FuncDescriptor [] [1..argNumLimit] [] [1..argNumLimit] (Just 2) (transform eIndirect)),
       -- | First arg = ref, no array formula (returns reference)
-    ("offset"         , FuncDescriptor [2..] [] [] [2..] (Just 5) (transform eOffset)),
+    ("offset"         , FuncDescriptor [2..argNumLimit] [] [] [2..argNumLimit] (Just 5) (transform eOffset)),
       -- | Array mode is normal in 2nd, 3rd args, replace all args
     ("index"          , normalD' 3 [2,3] eIndex),
       -- | Normal in first and third, second is a matrix
@@ -154,7 +160,7 @@ functions =  M.fromList $
     ("sum"            , vectorD eSum),
     -- | Don't replace refs for ranges (resizing)
     ("sumif"          , FuncDescriptor [2] [2] [] [2] (Just 3) (transform eSumIf)),
-    ("sumifs"         , FuncDescriptor [3,5..] [3,5..] [] [1..] Nothing (transform eSumIfs)),
+    ("sumifs"         , FuncDescriptor [3,5..argNumLimit] [3,5..argNumLimit] [] [1..argNumLimit] Nothing (transform eSumIfs)),
     ("sumsq"          , vectorD eSumSq),
     ("sumx2my2"       , vector2 eSumx2my2),
     ("sumx2py2"       , vector2 eSumx2py2),
@@ -166,14 +172,14 @@ functions =  M.fromList $
     ("average"        , vectorD eAverage),
     -- | Don't replace refs (resizing)
     ("averageif"      , FuncDescriptor [2] [2] [] [2] (Just 3) (transform eAverageIf)),
-    ("averageifs"     , FuncDescriptor [3,5..] [3,5..] [] [1..] Nothing (transform eAverageIfs)),
+    ("averageifs"     , FuncDescriptor [3,5..argNumLimit] [3,5..argNumLimit] [] [1..argNumLimit] Nothing (transform eAverageIfs)),
     ("binom.dist"     , normalD 4 eBinomDist),
     ("correl"         , vector2 eCorrel),
     ("count"          , vectorD eCount),
     -- | Similar to averageif, but only two args
     ("countif"        , FuncDescriptor [2] [2] [] [2] (Just 2) (transform eCountIf)),
     -- | Similar to averageifs but no "sum range" argument shifts the criteria arguments
-    ("countifs"       , FuncDescriptor [2,4..] [2,4..] [] [1..] Nothing (transform eCountIfs)),
+    ("countifs"       , FuncDescriptor [2,4..argNumLimit] [2,4..argNumLimit] [] [1..argNumLimit] Nothing (transform eCountIfs)),
       -- | 2nd argument is a range; only map and scalarize over the first
     ("large"          , normalD' 2 [1] eLarge),
     ("min"            , vectorD eMin),
@@ -239,7 +245,7 @@ evalBasicFormula c (Ref exLoc) = locToResult $ exRefToASRef (shName (curLoc c)) 
 evalBasicFormula c (Var val)   = valToResult val
 evalBasicFormula c (Fun f fs)  = do
   fDes <- getFunc f
-  let args = map (getFunctionArg c fDes) (zip [1..] fs)
+  let args = map (getFunctionArg c fDes) (zip [1..argNumLimit] fs)
   let argsRef = substituteRefsInArgs c fDes args
   checkNumArgs f (maxNumArgs fDes) (length argsRef)
   topLeftForMatrix f $ (callback fDes) c argsRef
@@ -317,7 +323,7 @@ getUnexpectedRefs s (ArrayConst b) = concat $ map (getUnexpectedRefs s) $ map Ba
 getUnexpectedRefs s (Basic (Fun f fs)) = concat $ map (getRangeRefs s fDes) enum
   where
     (Right fDes) = getFunc f
-    enum = zip [1..] fs
+    enum = zip [1..argNumLimit] fs
 
 -- | Helper: Given an argument, return the (possible) underlying range refs
 getRangeRefs :: ASSheetId -> FuncDescriptor -> Arg Formula -> [ERef]
@@ -427,7 +433,7 @@ replace mp x = x
 substituteRefsInArgs :: Context -> FuncDescriptor -> [EResult] -> [EResult]
 substituteRefsInArgs c fDes es = map (subsRef c fDes) enum
   where
-    enum = zip [1..] es
+    enum = zip [1..argNumLimit] es
     subsRef :: Context -> FuncDescriptor -> Arg EResult -> EResult
     subsRef c fDes (argNum,a@(Right (EntityRef r)))
       | elem argNum (replaceRefArgs fDes)= refToEntity c r
@@ -455,7 +461,7 @@ mapArgs (c,r) fDes con e = do
 -- | Given a function descriptor, a list of arguments (results) and an offset
 -- | Replace each argument with the offsetted value if fDes says to
 getOffsetArgs :: FuncDescriptor -> [EResult] -> Offset -> [EResult]
-getOffsetArgs fDes rs offset = map (getEntityElem fDes offset) (zip [1..] rs)
+getOffsetArgs fDes rs offset = map (getEntityElem fDes offset) (zip [1..argNumLimit] rs)
   where
     getEntityElem :: FuncDescriptor -> Offset -> Arg EResult -> EResult
     getEntityElem fDes offset (argNum,r@(Right (EntityMatrix m)))
@@ -1285,7 +1291,7 @@ genericRank f rankGroup c e = do
                  then sort lst
                  else reverse $ sort lst
   -- | Enumerate ranks, then group by equal ranks, then determine the common rank of each group, and concatenate
-  let ranks = concat $ map rankGroup $ groupBy (\x y -> (fst x == fst y)) $ zip sorted [1..]
+  let ranks = concat $ map rankGroup $ groupBy (\x y -> (fst x == fst y)) $ zip sorted [1..argNumLimit]
   case (lookup x ranks) of
     Nothing -> Left $ VAL $ "Couldn't find given element for " ++ f
     Just r -> valToResult r
