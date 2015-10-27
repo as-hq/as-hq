@@ -45,7 +45,7 @@ result = "error"
 try:
 	print replFile
 	execfile(replFile)
-	result = 'test!'
+	result = arr([arr([5,6]),arr([6,3])]).dot(arr([arr([2,2]),arr([3,2])]))
 	figures=[manager.canvas.figure for manager in matplotlib._pylab_helpers.Gcf.get_all_fig_managers()]
 	print figures
 	if len(figures) > 0:
