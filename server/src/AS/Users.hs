@@ -14,20 +14,20 @@ import AS.Types.Core
 
 -- | Get current list of user clients from the server
 getUsers :: ServerState -> [ASUserClient]
-getUsers (State us _ _) = us
+getUsers (State us _ _ _) = us
 
 -- | Checks 
 userIdExists :: ASUserId -> ServerState -> Bool
 userIdExists uid state = L.elem uid (L.map userId (getUsers state))
 
 getUserByClientId :: ClientId -> ServerState -> Maybe ASUserClient
-getUserByClientId sid (State allUsers _ _) = case (filter (\c -> (sessionId c == sid)) (allUsers)) of
+getUserByClientId sid (State allUsers _ _ _) = case (filter (\c -> (sessionId c == sid)) (allUsers)) of
   [] -> Nothing
   l -> Just $ L.head l
 
 -- | Applies a (user -> user) function to a user in the server state
 modifyUser :: (ASUserClient -> ASUserClient) -> ASUserClient -> MVar ServerState -> IO ()
-modifyUser func user state = modifyMVar_ state $ \(State users daemons conn) ->
+modifyUser func user state = modifyMVar_ state $ \(State users daemons conn port) ->
   do 
     let users' = flip map users (\u -> if (u == user) then (func u) else u)
-    return $ State users' daemons conn 
+    return $ State users' daemons conn port

@@ -36,11 +36,11 @@ instance Client ASUserClient where
   conn = userConn
   clientId = sessionId
   ownerName = userId
-  addClient uc s@(State ucs dcs dbc)
+  addClient uc s@(State ucs dcs dbc port)
     | uc `elem` ucs = s
-    | otherwise = State (uc:ucs) dcs dbc
-  removeClient uc s@(State ucs dcs dbc)
-    | uc `elem` ucs = State (L.delete uc ucs) dcs dbc
+    | otherwise = State (uc:ucs) dcs dbc port
+  removeClient uc s@(State ucs dcs dbc port)
+    | uc `elem` ucs = State (L.delete uc ucs) dcs dbc port
     | otherwise = s
   handleClientMessage user state message = do 
     printWithTime ("\n\nMessage: " ++ (show $ message))
@@ -77,11 +77,11 @@ instance Client ASDaemonClient where
   conn = daemonConn
   clientId = T.pack . DM.getDaemonName . daemonLoc
   ownerName = daemonOwner
-  addClient dc s@(State ucs dcs dbc)
+  addClient dc s@(State ucs dcs dbc port)
     | dc `elem` dcs = s
-    | otherwise = State ucs (dc:dcs) dbc
-  removeClient dc s@(State ucs dcs dbc)
-    | dc `elem` dcs = State ucs (L.delete dc dcs) dbc
+    | otherwise = State ucs (dc:dcs) dbc port
+  removeClient dc s@(State ucs dcs dbc port)
+    | dc `elem` dcs = State ucs (L.delete dc dcs) dbc port
     | otherwise = s
   handleClientMessage daemon state message = case (clientAction message) of
     Evaluate -> handleEval daemon state (clientPayload message)
@@ -94,7 +94,7 @@ instance Client ASDaemonClient where
 
 broadcast :: MVar ServerState -> ASServerMessage -> IO ()
 broadcast state message = do
-  (State ucs _ _) <- readMVar state
+  (State ucs _ _ _) <- readMVar state
   forM_ ucs $ \(UserClient _ conn _ _) -> U.sendMessage message conn
 
 sendBroadcastFiltered :: (Client c) => c -> MVar ServerState -> ASServerMessage -> IO ()
@@ -103,7 +103,7 @@ sendBroadcastFiltered _  state msg@(ServerMessage _ _ (PayloadCommit _)) = broad
 sendBroadcastFiltered _  state msg@(ServerMessage Clear _ _) = broadcast state msg             -- broadcast all clears for the same reason
 -- sendBroadcastFiltered _  state msg@(ServerMessage Delete _ _) = broadcast state msg         -- no separate broadcast for delete anymore
 sendBroadcastFiltered _  state msg = liftIO $ do
-  (State ucs _ _) <- readMVar state
+  (State ucs _ _ _) <- readMVar state
   broadcastFiltered msg ucs
 
 -- | Given a message (commit, cells, etc), only send (to each user) the cells in their viewing window

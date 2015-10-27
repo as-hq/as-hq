@@ -3,6 +3,8 @@
 
 module Main where
 
+import System.Environment (getArgs)
+
 import Prelude
 import Data.Char (isPunctuation, isSpace)
 import Data.Monoid (mappend)
@@ -14,12 +16,13 @@ import Control.Monad.IO.Class (liftIO)
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
 import Data.Aeson hiding (Success)
-import Data.ByteString.Char8 hiding (putStrLn,filter,any,length)
-import Data.ByteString.Lazy.Char8 as B hiding (putStrLn,filter,any,length)
+import qualified Data.ByteString.Char8 as BC 
+import qualified Data.ByteString.Lazy.Char8 as B
 import qualified Data.List as L
 import qualified Network.WebSockets as WS
 
 import Data.Maybe (fromJust)
+import Text.Read (readMaybe)
 
 import qualified Database.Redis as R
 
@@ -52,15 +55,15 @@ main :: IO ()
 main = R.withEmbeddedR R.defaultConfig $ do
     -- initializations
     putStrLn "STARTING APP"
-    (conn, state) <- initApp
+    (conn, ports, states) <- initApp
     if isDebug -- set in Settings.hs
-      then initDebug conn >> return ()
+      then initDebug conn
       else return ()
-    putStrLn $ "server started on port " ++ (show S.wsPort)
-    WS.runServer S.wsAddress S.wsPort $ application state
+    putStrLn $ "server started on ports " ++ (show ports)
+    mapM_ (\(port, state) -> WS.runServer S.wsAddress port $ application state) (zip ports states)
     putStrLn $ "DONE WITH MAIN"
 
-initApp :: IO (R.Connection, MVar ServerState)
+initApp :: IO (R.Connection, [Port], [MVar ServerState])
 initApp = do
   -- init eval
   mapM_ KL.clearReplRecord [Python] -- clear/write repl record files
@@ -71,15 +74,20 @@ initApp = do
     [r|library("rjson")|]
     [r|library("ggplot2")|]
     return ()
-  -- init workbooks-- init DB and state
+  -- init state
   conn <- R.connect DBU.cInfo
-  state <- newMVar $ State [] [] conn
-  -- server state
+  args <- getArgs
+  let intArgs = map (\a -> read a :: Int) args
+  let ports = case intArgs of 
+        [] -> [S.wsDefaultPort]
+        _ -> intArgs
+  states <- mapM (\p -> newMVar $ State [] [] conn p) ports
+  -- init data
   let sheet = Sheet "INIT_SHEET_ID" "Sheet1" (Blacklist [])
   DB.setSheet conn sheet
   DB.setWorkbook conn $ Workbook "Workbook1" ["INIT_SHEET_ID"]
 
-  return (conn, state)
+  return (conn, ports, states)
 
 -- | Initializes database with sheets, etc. for debugging mode. Only called if isDebug is true.
 initDebug :: R.Connection -> IO ()
@@ -132,7 +140,8 @@ talk client state = forever $ do
 handleRuntimeException :: ASUserClient -> MVar ServerState -> SomeException -> IO ()
 handleRuntimeException user state e = do
   putStrLn ("Runtime error caught: " ++ (show e))
-  WS.runServer S.wsAddress S.wsPort $ application state
+  port <- appPort <$> readMVar state
+  WS.runServer S.wsAddress port $ application state
 
 processMessage :: (Client c) => c -> MVar ServerState -> ASClientMessage -> IO ()
 processMessage client state message = do

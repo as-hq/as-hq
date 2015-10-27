@@ -38,7 +38,7 @@ getDaemonName loc = (show loc) ++ "daemon"
 
 getConnByLoc :: ASIndex -> MVar ServerState -> IO (Maybe WS.Connection)
 getConnByLoc loc state = do 
-  (State users daemons _) <- readMVar state
+  (State users daemons _ _) <- readMVar state
   let daemon = L.filter (\(DaemonClient l _ _) -> (l == loc)) daemons
   case daemon of 
     [] -> return Nothing
@@ -71,7 +71,8 @@ createDaemon state s loc msg = do -- msg is the message that the daemon will sen
       runDetached (Just name) def $ do 
         let daemonId = T.pack $ getDaemonName loc
         let initMsg = ClientMessage Acknowledge (PayloadDaemonInit (ASInitDaemonConnection daemonId loc))
-        WS.runClient S.wsAddress S.wsPort "/" $ \conn -> do 
+        port <- appPort <$> readMVar state
+        WS.runClient S.wsAddress port "/" $ \conn -> do 
           U.sendMessage initMsg conn
           regularlyReEval s loc msg conn -- is an eval message on the cell
       putStrLn $ "DONE WITH createDaemon"
