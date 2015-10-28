@@ -14,7 +14,7 @@ Message: ClientMessage {clientAction = UpdateWindow, clientPayload = PayloadW (W
 
 
 5. Ctrl H: 
-Message: ClientMessage \{clientAction = (UpdateWindow|Open|Get)(.*)
+Message: ClientMessage \{clientAction = (UpdateWindow|Get)(.*)
 (replace with blanks)
 
 6. Ctrl H: 
@@ -23,7 +23,7 @@ Message: ClientMessage \{clientAction = (UpdateWindow|Open|Get)(.*)
 
 7. Ctrl H:
 Message: ((.*?)\n)
-$1
+$1\n
 
 8. 
 Message: 

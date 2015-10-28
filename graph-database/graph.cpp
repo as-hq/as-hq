@@ -67,7 +67,7 @@ DAG& DAG::updateDAG(DAG::Vertex toLoc, const DAG::VertexSet& fromLocs, bool addT
 
 	// If a vertex gets updated multiple times, only record the first update. 
 	if (addToCache) {
-		if (prevCache.count(toLoc) == 0 && toFromAdjList.count(toLoc) > 0 && toFromAdjList[toLoc].size() > 0)
+		if (prevCache.count(toLoc) == 0)
 			prevCache[toLoc] = toFromAdjList[toLoc];
 	}
 	

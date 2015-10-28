@@ -1,14 +1,12 @@
 ClientMessage {clientAction = Clear, clientPayload = PayloadN ()}
 
-ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (13,1)}, cellExpression = Expression {expression = "mtcars", language = R}, cellValue = NoValue, cellTags = []}]}
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}, cellExpression = Expression {expression = "range(2)", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+ClientMessage {clientAction = Copy, clientPayload = PayloadPaste {copyRange = Range {rangeSheetId = "INIT_SHEET_ID", range = ((1,1),(1,2))}, copyTo = Range {rangeSheetId = "INIT_SHEET_ID", range = ((2,1),(2,1))}}}
 
 
-ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (13,35)}, cellExpression = Expression {expression = "sql query", language = Excel}, cellValue = NoValue, cellTags = []}]}
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (3,3)}, cellExpression = Expression {expression = "=A1", language = Python}, cellValue = NoValue, cellTags = []}]}
 
 
-ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (13,36)}, cellExpression = Expression {expression = "select * from M1:W33 where mpg > 15", language = SQL}, cellValue = NoValue, cellTags = []}]}
-
-
-ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (13,5)}, cellExpression = Expression {expression = "10000", language = R}, cellValue = NoValue, cellTags = []}]}
-
-
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}, cellExpression = Expression {expression = "10", language = Excel}, cellValue = NoValue, cellTags = []}]}

@@ -122,10 +122,12 @@ preprocess :: ASUserClient -> MVar ServerState -> IO ()
 preprocess user state = do
   cmp <- getClientMessagesPath
   fileContents <- Prelude.readFile cmp
-  let fileLines = filter (/= "") (L.lines fileContents)
-  return ()
-  -- let fileLines = L.take 10 $ filter (/= "") (L.lines fileContents)
-  mapM_ (\l -> putStrLn ("PROCESSING LINE: " ++ l) >> processMessage user state (read l) >> putStrLn "\n\n\n\nFINISHED PREVIOUS MESSAGE\n\n\n\n") fileLines
+  let fileLinesWithNumbers = zip (L.lines fileContents) [1..]
+  let nonemptyNumberedFileLines =  filter (\(l, i) -> (l /= "") && (head l) /= '#') fileLinesWithNumbers
+  mapM_ (\(l,i) -> do 
+    putStrLn ("PROCESSING LINE " ++ (show i) ++ ": " ++ l)
+    processMessage user state (read l)
+    putStrLn "\n\n\n\nFINISHED PREVIOUS MESSAGE\n\n\n\n") nonemptyNumberedFileLines
 
 
 initClient :: (Client c) => c -> MVar ServerState -> IO ()
