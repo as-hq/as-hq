@@ -175,7 +175,7 @@ decoupleList conn listString = do
       srem sheetListsKey [listKey]
       return result
     return result
-  printWithTime $ "got coupled locs: " ++ (show locs)
+  printWithTime $ "got coupled locs: " ++ (U.truncated $ show locs)
   case locs of
     [] -> return ([],[])
     ls -> do

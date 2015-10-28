@@ -1,15 +1,14 @@
 1. Take a server log. 
 2. Paste it into "/alpha-sheets/server/client_messages"
-3. In Sublime, press Ctrl+H, enter the following line: 
+3. In Sublime, press Ctrl+F, enter the following line (in regex mode):
+
 (\nMessage: (ClientMessage \{clientAction = (.+?)\})\n)
 then press alt + Enter
-4. Copy it, clear client_messages, and paste it. Your file should now look something like: 
 
+4. Copy it, clear client_messages, and paste it. Your file should now look something like: 
 Message: ClientMessage {clientAction = UpdateWindow, clientPayload = PayloadW (Window {windowSheetId = "INIT_SHEET_ID", topLeft = (1,1), bottomRight = (50,50)})}
 
-
 Message: ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
-
 
 Message: ClientMessage {clientAction = UpdateWindow, clientPayload = PayloadW (Window {windowSheetId = "INIT_SHEET_ID", topLeft = (1,1), bottomRight = (50,50)})}
 
@@ -29,3 +28,7 @@ $1
 8. 
 Message: 
 \n\n
+
+9. 
+\}Client
+\}Client\n\n

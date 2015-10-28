@@ -45,13 +45,15 @@ initUserFromMessageAndConn (ClientMessage _ (PayloadInit (ASInitConnection uid))
 --------------------------------------------------------------------------------------------------------------
 -- Misc
 
+truncated :: String -> String
+truncated str
+  | length str < 500 = str 
+  | otherwise = (take 500 str) ++ ("... [Truncated]")
+
 sendMessage :: (ToJSON a, Show a) => a -> WS.Connection -> IO ()
 sendMessage msg conn = do
   WS.sendTextData conn (encode msg)
-  let msgDisp = show msg
-  if (length msgDisp < 500)
-    then printWithTime ("Server sent message: " ++ msgDisp)
-    else printWithTime ("Server sent message (truncated): " ++ (take 500 msgDisp))
+  printWithTime ("Server sent message: " ++ (truncated $ show msg))
 
 lastN :: Int -> [a] -> [a]
 lastN n xs = let m = length xs in drop (m-n) xs

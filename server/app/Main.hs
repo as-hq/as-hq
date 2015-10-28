@@ -105,7 +105,7 @@ handleFirstMessage state conn msg =
   case (decode msg :: Maybe ASClientMessage) of
     Just m@(ClientMessage Acknowledge (PayloadInit (ASInitConnection _))) -> do -- first mesage is user init
       user <- initUserFromMessageAndConn m conn
-      -- if isDebug then (preprocess user state) else (return ())
+      if (isDebug && shouldPreprocess) then (preprocess user state) else (return ())
       catch (initClient user state) (handleRuntimeException user state)
     Just m@(ClientMessage Acknowledge (PayloadDaemonInit (ASInitDaemonConnection _ _))) -> do -- first message is daemon init
       initClient (initDaemonFromMessageAndConn m conn) state
@@ -113,15 +113,19 @@ handleFirstMessage state conn msg =
       putStrLn "First message not an initialization message"
       sendMessage (failureMessage "Cannot connect") conn
 
--- preprocess :: ASUserClient -> MVar ServerState -> IO () 
--- preprocess user state = do
---   cmp <- getClientMessagesPath
---   fileContents <- Prelude.readFile cmp
---   let fileLines = filter (/= "") (L.lines fileContents)
---   return ()
---   -- let fileLines = L.take 10 $ filter (/= "") (L.lines fileContents)
---   mapM_ (\l -> processMessage user state (read l) >> putStrLn "\n\n\n\nFINISHED LAST MESSAGE\n\n\n\n") fileLines
---   mapM_ (\l -> putStrLn l) fileLines
+shouldPreprocess :: Bool
+shouldPreprocess = True
+
+-- | For debugging purposes. Reads in a list of ClientMessages from a file and processes them, as though
+-- sent from a frontend. 
+preprocess :: ASUserClient -> MVar ServerState -> IO () 
+preprocess user state = do
+  cmp <- getClientMessagesPath
+  fileContents <- Prelude.readFile cmp
+  let fileLines = filter (/= "") (L.lines fileContents)
+  return ()
+  -- let fileLines = L.take 10 $ filter (/= "") (L.lines fileContents)
+  mapM_ (\l -> putStrLn ("PROCESSING LINE: " ++ l) >> processMessage user state (read l) >> putStrLn "\n\n\n\nFINISHED PREVIOUS MESSAGE\n\n\n\n") fileLines
 
 
 initClient :: (Client c) => c -> MVar ServerState -> IO ()
