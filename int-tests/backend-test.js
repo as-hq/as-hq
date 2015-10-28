@@ -16,7 +16,11 @@ describe('backend', () => {
     return new Promise((fulfill, reject) => { fulfill(); });
   }
 
-  function locFromExcel(exLoc) {
+  function indFromExcel(exLoc) {
+    return Util.excelToIndex(exLoc);
+  }
+
+  function rangeFromExcel(exLoc) {
     return Util.excelToRange(exLoc);
   }
 
@@ -171,7 +175,7 @@ describe('backend', () => {
 
   function repeat(rng, origin) {
     return apiExec(() => {
-      let sel = {origin: locFromExcel(origin), range: locFromExcel(rng)}
+      let sel = {origin: indFromExcel(origin), range: rangeFromExcel(rng)}
       API.repeat(sel);
     });
   }
@@ -197,7 +201,7 @@ describe('backend', () => {
 
   function delete_(rng) {
     return apiExec(() => {
-      API.deleteRange(TC.simpleToASRange(locFromExcel(rng)));
+      API.deleteRange(TC.simpleToASRange(rangeFromExcel(rng)));
     });
   }
 
@@ -446,6 +450,18 @@ describe('backend', () => {
               python('A1', 'B1')
             ),
             shouldBe('A1', valueI(2)),
+            exec(done)
+          ]);
+        });
+
+        it('should successfully update diamond dependencies', (done) => {
+          _do([
+            python('A1', '1'),
+            python('A2', 'A1'),
+            python('A3', 'A1'),
+            python('A4', 'A2+A3'),
+            python('A1', '10'),
+            shouldBe('A4', valueI(20)),
             exec(done)
           ]);
         });
