@@ -31,15 +31,17 @@ export function logP(str) {
 }
 
 
-export function blockUntil(fn, _interval, _timeout=5000) {
+export function blockUntil(fn, _interval=100, _timeout=5000) {
   return promise((fulfill, reject) => {
     let t = _timeout;
     var tmr = setInterval(() => {
+      console.log('checking interval');
       if (fn()) {
         clearInterval(tmr);
         fulfill();
-      } else if (t < 0) {
+      } else if (t === _timeout % _interval) {
         clearInterval(tmr);
+        reject('Timed out of blockUntil');
       }
       t -= _interval;
     }, _interval);
@@ -56,17 +58,13 @@ export function blockUntilReady(fn) {
 // -- MONAD OPERATIONS
 
 // [() -> Promise a] -> Promise ()
-export function _do(promiseFunctions, lbl) {
-  let [head, ...tail] = promiseFunctions;
-
+export function _do([head, ...tail], lbl) {
   if (!head) return empty();
 
-  return head().then(_doDefer(tail), (failure) => {
-    console.log('error in monad', lbl, failure);
-    throw new Error(failure);
+  return head().then(_doDefer(tail, lbl), (failure) => {
+    throw new Error('Monadic error: ' + failure);
   }).catch((error) => {
-    console.log('promise error', error.toString());
-    console.trace();
+    throw error; // propagate up to top level
   });
 }
 

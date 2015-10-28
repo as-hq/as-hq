@@ -118,7 +118,7 @@ export default {
     Repl: "EvaluateRepl",
     New: "New",
     Find: "Find",
-    BugReport: "BugReport", 
+    BugReport: "BugReport",
     AddTags: "AddTags", RemoveTags: "RemoveTags"
   }
 };

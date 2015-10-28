@@ -29,14 +29,18 @@ function tabs() {
   return _.range(depth).map(() => '__').join('');
 }
 
+function logTabs(message) {
+  console.log(`${tabs()}${message}`);
+}
+
 function logSuccess(message) {
-  console.log(`${tabs()}PASS: ${message}`);
+  logTabs(`PASS: ${message}`);
 }
 
 function logFailure(message, errors) {
-  console.log(`${tabs()}FAIL: ${message}`);
+  logTabs(`FAIL: ${message}`);
   errors.forEach((err) => {
-    console.log(`${tabs()}__ERROR: ${err.toString()}`);
+    logTabs(`__ERROR: ${err.toString()}`);
   });
 }
 
@@ -61,7 +65,7 @@ function _liftT(prf, message='', logs=false) {
       })
       .catch((error) => {
         if (logs) {
-          logFailure(message, error);
+          logFailure(message, [error]);
         }
 
         fulfill();
@@ -73,22 +77,24 @@ function getSuccessCount() { return successCount; }
 
 function getTestCount() { return testCount; }
 
-function testInterpolate(tests, cbs) {
+function runTestsWithCallbacks(tests, cbs) {
   let {
     beforeAll = empty,
     beforeEach = empty,
     afterAll = empty,
     afterEach = empty } =
-    _.mapValues(cbs, _doDefer);
+    _.mapValues(cbs, (cb) => _doDefer(cb));
 
-  return [
+  return _doDefer([
     beforeAll,
     tabbed(tests.map((test) =>
-      _doDefer([beforeEach, test, afterEach])
+      _doDefer([
+        beforeEach, test, afterEach,
+        exec(() => { logTabs(`${getSuccessCount()} tests passed of ${getTestCount()}`); })
+      ])
     )),
-    afterAll,
-    exec(() => { console.log(`${getSuccessCount()} tests passed of ${getTestCount()}`); })
-  ];
+    afterAll
+  ]);
 }
 
 
@@ -141,5 +147,8 @@ export function _it(message, prfs) {
 }
 
 export function _describe(name, {tests, ...cbs}) { // tests are either more describes or its
-  return _liftT(_doDefer(testInterpolate(tests, cbs)), name);
+  return _liftT(_doDefer([
+    exec(() => { logTabs(name) }),
+    runTestsWithCallbacks(tests, cbs, name)
+  ]));
 }
