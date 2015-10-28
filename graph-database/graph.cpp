@@ -18,16 +18,13 @@ using namespace std;
   expressions replaced with "" and setCellsAncestorsInDb with the old cells in the DB.)
 */
 void DAG::rollback() {
+	cout << "\n\n==================================================================================================================================\nPROCESSING ROLLBACK\n\n";
 	cout << "Before rollback: " << endl;
 	showGraph();
 
+	cout << "After rollback:" << endl; 
 	for (const auto& fan : prevCache)
 		updateDAG(fan.first, fan.second, false);
-
-	clearPrevCache();
-
-	cout << "After rollback:" << endl; 
-	showGraph(); 
 }
 
 bool DAG::clearPrevCache() {
@@ -42,24 +39,30 @@ void DAG::clearDAG() {
 
 /****************************************************************************************************************************************/
 
-bool DAG::cycleCheckDfs(const Vertex& loc, unordered_map<Vertex,bool>& visited) { 
-	visited[loc] = true; 
-	if (fromToAdjList.count(loc)) { // so that the fromToAdjList key isn't created if there's nothing there
-		for (const auto& toLoc : fromToAdjList[loc]) {
-			if (!visited[toLoc]) {
-				if (DAG::cycleCheckDfs(toLoc, visited))
+bool DAG::cycleCheckDfs(const Vertex& loc, unordered_map<Vertex,bool>& visited, unordered_map<Vertex,bool>& rec_stack) { 
+	if (!visited[loc]) {
+		visited[loc] = true; 
+		rec_stack[loc] = true; 
+
+		if (fromToAdjList.count(loc)) { // so that the fromToAdjList key isn't created if there's nothing there
+			for (const auto& toLoc : fromToAdjList[loc]) {
+				cout << "before checking if toLoc " << toLoc << " has been visited" << endl;
+				if (!visited[toLoc] && DAG::cycleCheckDfs(toLoc, visited, rec_stack)) {
 					return true; 
+				}
+				else if (rec_stack[toLoc]) {
+					return true; 
+				}
 			}
-			else 
-				return true; 
 		}
 	}
+	rec_stack[loc] = false; 
 	return false; 
 }
 
 bool DAG::containsCycle(const DAG::Vertex& start) { 
-	unordered_map<DAG::Vertex,bool> visited; 
-	return cycleCheckDfs(start, visited); 
+	unordered_map<DAG::Vertex,bool> visited, rec_stack; 
+	return cycleCheckDfs(start, visited, rec_stack); 
 }
 
 
@@ -91,7 +94,7 @@ DAG& DAG::updateDAG(DAG::Vertex toLoc, const DAG::VertexSet& fromLocs, bool addT
 		toFromAdjList[toLoc].insert(fl);
 	}
 
-	cout << "Updated graph in update dag: " << endl;
+cout << "\n\n==================================================================================================================================\nFINISHED UPDATE\n\n";
 	showGraph(); 
 	return *this; 
 }

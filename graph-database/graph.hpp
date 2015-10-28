@@ -33,5 +33,5 @@ private:
 	AdjacencyList prevCache;
 
 	void updateDAGDfs(const Vertex& loc, std::unordered_map<Vertex,bool>& visited, std::vector<Vertex>& order);
-	bool cycleCheckDfs(const Vertex& loc, std::unordered_map<Vertex,bool>& visited);
+	bool cycleCheckDfs(const Vertex& loc, std::unordered_map<Vertex,bool>& visited, std::unordered_map<Vertex,bool>& rec_stack);
 };

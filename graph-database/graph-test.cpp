@@ -105,10 +105,14 @@ BOOST_AUTO_TEST_CASE(testContainsCycleInTriangle){
 
 BOOST_AUTO_TEST_CASE(testContainsNoCycleInDiamond){
 	DAG d; 
-	d.updateDAG("a", {"b,c"});
-	d.updateDAG("b", {"d"});
-	d.updateDAG("c", {"d"});
+	d.updateDAG("d", {"b"});
+	d.updateDAG("d", {"c"});
+	d.updateDAG("b", {"a"});
+	d.updateDAG("c", {"a"});
 	BOOST_CHECK(!d.containsCycle("a"));
+	BOOST_CHECK(!d.containsCycle("b"));
+	BOOST_CHECK(!d.containsCycle("c"));
+	BOOST_CHECK(!d.containsCycle("d"));
 }
 
 BOOST_AUTO_TEST_CASE(testContainsCycleInSelfRef){
