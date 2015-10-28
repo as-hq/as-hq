@@ -15,6 +15,8 @@ import TC from '../AS/TypeConversions';
 import KeyUtils from '../AS/KeyUtils';
 import {Snackbar} from 'material-ui';
 
+import * as BrowserTests from '../browser-test/index';
+
 import Repl from './repl/Repl.jsx'
 import ResizableRightPanel from './repl/ResizableRightPanel.jsx'
 import ASFindBar from './ASFindBar.jsx'
@@ -189,6 +191,8 @@ export default React.createClass({
     FindStore.addChangeListener(this._onFindChange);
     ReplStore.addChangeListener(this._onReplChange);
     Shortcuts.addShortcuts(this);
+
+    BrowserTests.install(window, this);
   },
   componentWillUnmount() {
     window.removeEventListener('copy',this.handleCopyEvent);
