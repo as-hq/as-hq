@@ -25,7 +25,7 @@ describe('backend', () => {
   }
 
   function asIndex(loc) {
-    return TC.simpleToASIndex(Util.excelToRange(loc));
+    return TC.simpleToASIndex(Util.excelToIndex(loc));
   }
 
   function asRange(loc) {

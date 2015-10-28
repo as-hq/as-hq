@@ -4,7 +4,6 @@ import BaseStore from './BaseStore';
 import ReplStore from  './ASReplStore';
 import assign from 'object-assign';
 import API from '../actions/ASApiActionCreators';
-import Converter from '../AS/Converter';
 import Util from '../AS/Util';
 import T from '../AS/Types';
 import TC from '../AS/TypeConversions';
@@ -85,7 +84,7 @@ dispatcherIndex: Dispatcher.register(function (action) {
         It gets previous scroll state from the store and then uses the API to send a "get cells" message to server
       */
       case Constants.ActionTypes.SCROLLED:
-        let extendedRange = Converter.extendRangeByCache(action.vWindow.range),
+        let extendedRange = Util.extendRangeByCache(action.vWindow.range),
             viewingWindow = TC.rangeToASWindow(extendedRange);
         _data.viewingWindow = action.vWindow;
         API.updateViewingWindow(viewingWindow);
