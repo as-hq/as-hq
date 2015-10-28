@@ -18,11 +18,6 @@ using namespace std;
   expressions replaced with "" and setCellsAncestorsInDb with the old cells in the DB.)
 */
 void DAG::rollback() {
-	cout << "\n\n==================================================================================================================================\nPROCESSING ROLLBACK\n\n";
-	cout << "Before rollback: " << endl;
-	showGraph();
-
-	cout << "After rollback:" << endl; 
 	for (const auto& fan : prevCache)
 		updateDAG(fan.first, fan.second, false);
 }
@@ -46,7 +41,6 @@ bool DAG::cycleCheckDfs(const Vertex& loc, unordered_map<Vertex,bool>& visited, 
 
 		if (fromToAdjList.count(loc)) { // so that the fromToAdjList key isn't created if there's nothing there
 			for (const auto& toLoc : fromToAdjList[loc]) {
-				cout << "before checking if toLoc " << toLoc << " has been visited" << endl;
 				if (!visited[toLoc] && DAG::cycleCheckDfs(toLoc, visited, rec_stack)) {
 					return true; 
 				}
@@ -73,7 +67,7 @@ DAG& DAG::updateDAG(DAG::Vertex toLoc, const DAG::VertexSet& fromLocs, bool addT
 
 	// If a vertex gets updated multiple times, only record the first update. 
 	if (addToCache) {
-		if (prevCache.count(toLoc) == 0)
+		if (prevCache.count(toLoc) == 0 && toFromAdjList.count(toLoc) > 0 && toFromAdjList[toLoc].size() > 0)
 			prevCache[toLoc] = toFromAdjList[toLoc];
 	}
 	
@@ -94,8 +88,6 @@ DAG& DAG::updateDAG(DAG::Vertex toLoc, const DAG::VertexSet& fromLocs, bool addT
 		toFromAdjList[toLoc].insert(fl);
 	}
 
-cout << "\n\n==================================================================================================================================\nFINISHED UPDATE\n\n";
-	showGraph(); 
 	return *this; 
 }
 
@@ -168,8 +160,10 @@ void showAdjList(const DAG::AdjacencyList& al, string msg) {
 	}
 }
 
-void DAG::showGraph(){
-	showAdjList(fromToAdjList, "From To Adjacency List");
-	showAdjList(toFromAdjList, "To From Adjacency List");
-	showAdjList(prevCache, "Previous cache");
+void DAG::showGraph(string msg) {
+	// cout << "==================================================================================================================================";
+	// cout << "\n" << msg << "\n\n";
+	// showAdjList(fromToAdjList, "From To Adjacency List");
+	// showAdjList(toFromAdjList, "To From Adjacency List");
+	// showAdjList(prevCache, "Previous cache");
 }

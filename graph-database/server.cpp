@@ -40,6 +40,7 @@ vector<string> processRequest(DAG& dag, string& request){
     else if (type == "SetRelations"){
         dag.clearPrevCache(); 
 
+        dag.showGraph("BEFORE SETRELATIONS"); 
         int i = 0; 
         while (i < requestParts.size()) {
             // cout << "processing request part: " << requestParts[i] << endl;
@@ -58,6 +59,8 @@ vector<string> processRequest(DAG& dag, string& request){
                 return {toLoc, "CIRC_DEP"};
             i++;
         }
+
+        dag.showGraph("AFTER SETRELATIONS"); 
         return {"OK"};
     } else if (type == "Clear") {
         dag.clearDAG();
@@ -65,6 +68,7 @@ vector<string> processRequest(DAG& dag, string& request){
         return {"OK"};
     } else if (type == "RollbackGraph") { 
         dag.rollback(); 
+        dag.showGraph("AFTER ROLLBACKGRAPH"); 
         return {"OK"};
     }
 
@@ -115,9 +119,6 @@ int main () {
 
         // cout << "Sent response" << endl;
         // dag.showGraph();
-
-
-
     }
 }
 

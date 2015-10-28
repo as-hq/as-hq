@@ -20,7 +20,7 @@ public:
   //thing is allowed. 
 	std::vector<Vertex> getDescendants(const std::vector<Vertex>& locs);
 	std::vector<Vertex> getImmediateAncestors(const std::vector<Vertex>& locs);
-	void showGraph();
+	void showGraph(std::string msg);
 	void rollback(); //can only roll back one "commit"; prevCache stores the previous values
 	bool containsCycle(const DAG::Vertex&);
 	bool clearPrevCache();
