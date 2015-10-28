@@ -191,11 +191,9 @@ export default {
     });
     SU.add("grid", "grid_undo", "Ctrl+Z", (wildcard) => {
       API.undo();
-      self.refs.spreadsheet.repaint();
     });
     SU.add("grid", "grid_redo", "Ctrl+Shift+Z", (wildcard) => {
       API.redo();
-     self.refs.spreadsheet.repaint();
     });
     SU.add("grid", "grid_repeat_last_action", "Ctrl+Y", (wildcard) => {
       let sel = Store.getActiveSelection();

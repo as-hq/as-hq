@@ -247,6 +247,8 @@ export default React.createClass({
       this.setToast(extError, "ERROR");
       Store.setExternalError(null);
     }
+    let {range, origin} = Store.getActiveSelection();
+    this.refs.spreadsheet.select(range, origin);
   },
 
   _onReplChange() {
