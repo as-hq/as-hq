@@ -13,6 +13,7 @@ server/Index*
 server/*.pid
 
 server/server_log
+server/client_messages
 
 server/eval_files/**/*
 server/eval_files/py/run.py

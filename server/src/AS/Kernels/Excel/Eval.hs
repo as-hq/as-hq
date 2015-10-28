@@ -27,10 +27,13 @@ entityToASValue :: Context -> EEntity -> ASValue
 entityToASValue c (EntityRef r) = case (L.refToEntity c r) of
   Left e -> ValueExcelError e
   Right entity -> entityToASValue c entity
+entityToASValue _ (EntityVal EBlank) = NoValue
+entityToASValue _ (EntityVal EMissing) = NoValue
 entityToASValue _ (EntityVal (EValueNum (EValueD d))) = ValueD d
 entityToASValue _ (EntityVal (EValueNum (EValueI i))) = ValueI i
 entityToASValue _ (EntityVal (EValueB b)) = ValueB b
 entityToASValue _ (EntityVal (EValueS s)) = ValueS s
+entityToASValue _ (EntityVal (EValueE s)) = ValueError s "" "" (-1)
 entityToASValue _ (EntityMatrix m) = case list2D of
   [row] -> ValueL row
   otherwise -> ValueL $ map ValueL list2D

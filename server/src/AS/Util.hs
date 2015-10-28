@@ -26,7 +26,7 @@ import Data.List.Split (chunksOf)
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.Either
 
-import Control.Exception (catch, SomeException)
+import Control.Exception (catch, finally, SomeException)
 import Control.Monad.IO.Class(liftIO)
 
 import Data.Ord
@@ -224,7 +224,7 @@ printWithTime str = do
   let disp = "[" ++ (show time) ++ "] " ++ str
   putStrLn disp
   serverLog <- serverLogPath
-  appendFile serverLog ('\n':disp)
+  finally (appendFile serverLog ('\n':disp)) (return ())
 
 printWithTimeT :: String -> EitherTExec ()
 printWithTimeT = lift . printWithTime

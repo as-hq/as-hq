@@ -241,5 +241,5 @@ createListCells (Cell (Index sheet (a,b)) xp _ ts) cv = if (shouldCreateListCell
 
 
 rollbackGraphIfError :: Either ASExecError [ASCell] -> EitherTExec [ASIndex]
-rollbackGraphIfError (Left e) = G.rollbackGraph
+rollbackGraphIfError (Left e) = G.rollbackGraph >> printWithTimeT ("Error in eval chain: " ++ (show e)) >> return []
 rollbackGraphIfError _ = return []
