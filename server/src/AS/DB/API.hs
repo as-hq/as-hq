@@ -107,7 +107,7 @@ setCells cells = do
 setCellsPropagated :: Connection -> [ASCell] -> IO ()
 setCellsPropagated conn cells = do 
   setCells cells
-  setCellsAncestorsForce cells
+  setCellsAncestorsForce $ filter (\c -> (not $ U.isListMember c) || DU.isListHead c) cells
   let listKeys = nub $ catMaybes $ map DU.getCellListKey cells
   mapM_ (recoupleList conn) listKeys
 

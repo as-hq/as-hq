@@ -161,9 +161,9 @@ void showAdjList(const DAG::AdjacencyList& al, string msg) {
 }
 
 void DAG::showGraph(string msg) {
-	// cout << "==================================================================================================================================";
-	// cout << "\n" << msg << "\n\n";
-	// showAdjList(fromToAdjList, "From To Adjacency List");
-	// showAdjList(toFromAdjList, "To From Adjacency List");
-	// showAdjList(prevCache, "Previous cache");
+	cout << "==================================================================================================================================";
+	cout << "\n" << msg << "\n\n";
+	showAdjList(fromToAdjList, "From To Adjacency List");
+	showAdjList(toFromAdjList, "To From Adjacency List");
+	showAdjList(prevCache, "Previous cache");
 }
