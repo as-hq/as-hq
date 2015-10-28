@@ -309,7 +309,7 @@ export default React.createClass({
       if (containsPlain) {
         let plain = e.clipboardData.getData("text/plain"),
             vals = ClipboardUtils.plainStringToVals(plain),
-            cells = Store.makeASCellsFromPlainVals(sel,vals,this.state.language),
+            cells = ClipboardUtils.externalStringsToASCells(sel.origin, vals, this.state.language),
             concatCells = Util.concatAll(cells);
         API.pasteSimple(concatCells);
         // The normal eval handling will make the paste show up
@@ -473,8 +473,7 @@ export default React.createClass({
     this.refs.spreadsheet.repaint();
     console.log("\n\nDF\n\n", Store.getActiveSelection());
     let origin = Store.getActiveSelection().origin,
-        rng = {tl: origin, br: origin},
-        asIndex = TC.simpleToASIndex(rng);
+        asIndex = TC.simpleToASIndex(origin);
     this.refs.spreadsheet.shiftSelectionArea(moveCol, moveRow);
     API.evaluate(asIndex, xpObj);
   },

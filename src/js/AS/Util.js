@@ -67,8 +67,19 @@ export default {
     }
   },
 
+  // not actually correct #needsrefactor. (But correct enough for Javascript for now.)
+  shiftIndex(ind, dr, dc) { 
+    return {row: ind.row + dr, col: ind.col + dc};
+  },
+
   showFullValueList(cv) {
     return JSON.stringify(cv.contents.map(this.showValue));
+  },
+
+  extendRangeByCache(rng) {
+    let tl = this.getSafeIndex({row: rng.tl.row-Constants.scrollCacheY, col: rng.tl.col-Constants.scrollCacheX}),
+        br = this.getSafeIndex({row: rng.br.row+Constants.scrollCacheY, col: rng.br.col+Constants.scrollCacheX});
+    return { tl: tl, br: br };
   },
 
   tagsToRenderConfig(config, tags) {
@@ -317,7 +328,7 @@ export default {
     return {tl: tl, br: br};
   },
 
-  excelToIdx(xp) {
+  excelToIndex(xp) {
     var row=0, col=0, i=0, charIdx = 0;
     while(i < xp.length && isNaN(xp.charAt(i))){
       charIdx = i+1;
@@ -334,12 +345,12 @@ export default {
   excelToRange(xp) {
     let endpoints = xp.split(":");
     if (endpoints.length === 1){
-      let idx = this.excelToIdx(endpoints[0]);
+      let idx = this.excelToIndex(endpoints[0]);
       return {tl: idx, br: idx};
     }
     else {
-      let start = this.excelToIdx(endpoints[0]),
-          end = this.excelToIdx(endpoints[1]);
+      let start = this.excelToIndex(endpoints[0]),
+          end = this.excelToIndex(endpoints[1]);
       return { tl: start, br: end };
     }
   },

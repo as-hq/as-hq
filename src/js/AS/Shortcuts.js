@@ -155,14 +155,15 @@ export default {
     });
     SU.add("grid", "grid_fill_down", "Ctrl+D", (wildcard) => {
       let {tl, br} = Store.getActiveSelection().range;
-      let copyFrom = TC.simpleToASRange({ tl: tl, br: tl }),
+      let copyFrom = TC.simpleToASRange({ tl: tl, br: {row: tl.row, col: br.col} }),
           copyTo = TC.simpleToASRange({ tl: {row: tl.row+1, col: tl.col},
                                                br: {row: br.row, col: tl.col} });
       API.copy(copyFrom, copyTo);
     });
     SU.add("grid", "grid_fill_right", "Ctrl+R", (wildcard) => {
       let {tl, br} = Store.getActiveSelection().range;
-      let copyFrom = TC.simpleToASRange({ tl: tl, br: tl }),
+      debugger;
+      let copyFrom = TC.simpleToASRange({ tl: tl, br: {row: br.row, col: tl.col} }),
           copyTo = TC.simpleToASRange({ tl: {row: tl.row, col: tl.col+1},
                                                br: {row: tl.row, col: br.col} });
       API.copy(copyFrom, copyTo);

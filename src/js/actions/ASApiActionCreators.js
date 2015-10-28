@@ -9,8 +9,8 @@ let [ws] = isNode ?
   [require('ws')] :
   [WebSocket];
 
-var ActionTypes = Constants.ActionTypes;
-var wss = new ws(Constants.HOST_WS);
+let ActionTypes = Constants.ActionTypes;
+let wss = new ws(Constants.HOST_WS_URL);
 
 let currentCbs = undefined;
 let isRunningTest = false;
@@ -306,8 +306,9 @@ export default {
     });
     this.send(msg);
   },
-  simplePaste(cells){
-    let msg = TC.makeClientMessage(Constants.ServerActions.Evaluate, "PayloadCL",cells);
+
+  pasteSimple(cells){
+    let msg = TC.makeClientMessage(Constants.ServerActions.Evaluate, "PayloadCL", cells);
     this.send(msg);
   },
 
@@ -325,7 +326,7 @@ export default {
     let msg = TC.makeClientMessageRaw(Constants.ServerActions.Repeat, {
       tag: "PayloadSelection",
       selectionRange: TC.simpleToASRange(sel.range),
-      selectionOrigin: TC.simpleToASLocation(sel.origin)
+      selectionOrigin: TC.simpleToASIndex(sel.origin)
     });
     this.send(msg);
   },

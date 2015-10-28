@@ -84,21 +84,16 @@ export default {
     };
   },
 
-
   /**************************************************************************************************************************/
   /* Type conversions */
-
-  simpleToASLocation(loc) {
-    return T.isIndex(loc) ? this.simpleToASIndex(loc) : this.simpleToASRange(loc);
-  },
 
   simpleToASRange(rng) {
     let asRange = {tag: 'range', range: rng};
     return this.addCurrentSheetIdToObj(asRange);
   },
 
-  simpleToASIndex(rng) {
-    let asIndex = {tag: 'index', index: rng.tl};
+  simpleToASIndex(ind) {
+    let asIndex = {tag: 'index', index: ind};
     return this.addCurrentSheetIdToObj(asIndex);
   },
 
@@ -109,7 +104,6 @@ export default {
   ASLocationToSimple(loc) {
     return (loc.tag === 'index') ? {tl: loc.index, br: loc.index} : loc.range;
   },
-
 
   /**************************************************************************************************************************/
   /* Type conversion utils */

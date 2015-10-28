@@ -16,7 +16,11 @@ describe('backend', () => {
     return new Promise((fulfill, reject) => { fulfill(); });
   }
 
-  function locFromExcel(exLoc) {
+  function indFromExcel(exLoc) {
+    return Util.excelToIndex(exLoc);
+  }
+
+  function rangeFromExcel(exLoc) {
     return Util.excelToRange(exLoc);
   }
 
@@ -25,7 +29,7 @@ describe('backend', () => {
   }
 
   function asIndex(loc) {
-    return TC.simpleToASIndex(Util.excelToRange(loc));
+    return TC.simpleToASIndex(Util.excelToIndex(loc));
   }
 
   function asRange(loc) {
@@ -171,7 +175,7 @@ describe('backend', () => {
 
   function repeat(rng, origin) {
     return apiExec(() => {
-      let sel = {origin: locFromExcel(origin), range: locFromExcel(rng)}
+      let sel = {origin: indFromExcel(origin), range: rangeFromExcel(rng)}
       API.repeat(sel);
     });
   }
@@ -197,7 +201,7 @@ describe('backend', () => {
 
   function delete_(rng) {
     return apiExec(() => {
-      API.deleteRange(TC.simpleToASRange(locFromExcel(rng)));
+      API.deleteRange(TC.simpleToASRange(rangeFromExcel(rng)));
     });
   }
 
@@ -450,6 +454,18 @@ describe('backend', () => {
           ]);
         });
 
+        it('should successfully update diamond dependencies', (done) => {
+          _do([
+            python('A1', '1'),
+            python('A2', 'A1'),
+            python('A3', 'A1'),
+            python('A4', 'A2+A3'),
+            python('A1', '10'),
+            shouldBe('A4', valueI(20)),
+            exec(done)
+          ]);
+        });
+
         it('should fail to evaluate a circular dependency arising from a range cell', (done) => {
           _do([
             python('A5', '5'),
@@ -494,6 +510,16 @@ describe('backend', () => {
           _do([
             python('A1', '1 + "a"'),
             shouldBeError('A1'),
+            exec(done)
+          ]);
+        });
+
+        it('should reference ancestors of dependencies introduced by list cells in round 2 evals', (done) => {
+          _do([
+            python('B3', '5'),
+            python('C3', 'sum(A3:B3)'),
+            python('A1', 'range(3)'),
+            shouldBe('C3', valueI(7)),
             exec(done)
           ]);
         });
@@ -1253,6 +1279,22 @@ describe('backend', () => {
             ),
             shouldBeNothing('A1'),
             shouldBeNothing('A2'),
+            exec(done)
+          ]);
+        });
+      });
+
+      describe('list cell behavior on copy/paste', () => {
+        it('undoing should delete list key and not cause crashes', (done) => {
+          // based off a crash that actually happened
+          _do([
+            python('A1', 'range(10)'),
+            undo(),
+            python('A1', 'range(10)'),
+            undo(),
+            redo(), 
+            copy('A1:A10', 'B1:B10'),
+            expressionShouldBe('B1', "range(10)"),
             exec(done)
           ]);
         });
