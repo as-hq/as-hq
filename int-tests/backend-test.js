@@ -466,6 +466,17 @@ describe('backend', () => {
           ]);
         });
 
+        it('should rollback ancestors set in failed evals', (done) => {
+          _do([
+            python('A1', '1'), 
+            python('A2', '=A1'), // should fail and NOT save anything to graph db
+            excel('A3','=SUM(A2:A2)+1'), // should be 1
+            python('A1', 'A3+2'), // if something got saved to graph db, there should be a circular dep error
+            shouldBe('A1', valueI(3)), 
+            exec(done)
+          ]);
+        });
+
         it('should fail to evaluate a circular dependency arising from a range cell', (done) => {
           _do([
             python('A5', '5'),

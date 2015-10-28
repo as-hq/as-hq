@@ -162,7 +162,6 @@ export default {
     });
     SU.add("grid", "grid_fill_right", "Ctrl+R", (wildcard) => {
       let {tl, br} = Store.getActiveSelection().range;
-      debugger;
       let copyFrom = TC.simpleToASRange({ tl: tl, br: {row: br.row, col: tl.col} }),
           copyTo = TC.simpleToASRange({ tl: {row: tl.row, col: tl.col+1},
                                                br: {row: tl.row, col: br.col} });
