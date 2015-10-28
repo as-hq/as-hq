@@ -163,8 +163,11 @@ evalChain' conn valuesMap [] lists pastListHeads = do
   mapM_ (\d -> if (d `elem` pastListHeads) then (left $ CircularDepError d) else (return ())) descLocs
   -- DON'T need to re-eval anything that's already been evaluated
   let descLocs' = filter (\d -> (IndexRef d) `M.notMember` valuesMap) descLocs
+  -- #needsrefactor it seems like a large chunk of code here mirrors that in evalChain... should probably DRY
+  ancLocs <- G.getImmediateAncestors descLocs'
+  newKnownValues <- lift $ getValuesMap [] ancLocs
   cells' <- getCellsToEval conn descLocs' [] -- the origCells are the list cells, which got filtered out of descLocs
-  evalChain' conn valuesMap cells' [] pastListHeads
+  evalChain' conn (M.union valuesMap newKnownValues) cells' [] pastListHeads
 
 evalChain' conn valuesMap (c@(Cell loc xp _ ts):cs) next listHeads = do
   reEval <- lift $ shouldReEval c
