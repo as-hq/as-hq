@@ -519,6 +519,11 @@ export default React.createClass({
     this.setState({replOpen: !this.state.replOpen});
   },
 
+  _submitDebug() {
+    let bugReport = window.prompt("Please describe the bug you encountered.","");
+    API.bugReport(bugReport);
+  },
+
   /*  When the REPL language changes, set state, save current text value, and set the next text value of the REPL editor */
   _onReplLanguageChange(e,index,menuItem) {
     ReplActionCreator.storeReplExpression(this.state.replLanguage.Display,this._replValue());
@@ -580,6 +585,7 @@ export default React.createClass({
           ref='editorPane'
           language={language}
           onReplClick={this._toggleRepl}
+          onSubmitDebug={this._submitDebug}
           onLanguageChange={this.setLanguage}
           onExpressionChange={this.setExpression}
           setXpDetailFromEditor={this.setXpDetailFromEditor}

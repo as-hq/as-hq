@@ -260,7 +260,13 @@ export default {
       matchFullContents:false
     });
     this.send(msg);
-    console.log("SENT FIND MSG");
+  },
+  bugReport(report) {
+    let msg = TC.makeClientMessageRaw(Constants.ServerActions.BugReport, {
+      tag: "PayloadText",
+      text: report,
+    });
+    this.send(msg);
   },
   deleteIndices(locs) {
     let msg = TC.makeClientMessage(Constants.ServerActions.Delete, "PayloadLL", locs);

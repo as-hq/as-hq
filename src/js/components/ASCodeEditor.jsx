@@ -34,6 +34,10 @@ export default React.createClass({
     };
   },
 
+
+  // RE: the "SUBMIT BUG REPORT" button. It's temporary. It does not actually belong in 
+  // ASCodeEdtior (AT ALL!) but this is the simplest place to stick it for now. Also, 
+  // why the hell do things screw up if I leave my comments in the actual code? <__< (Alex 10/28)
   render() {
     let {language, theme, value, width, height} = this.props;
     // console.log("CODE EDITOR HEIGHT, WIDTH: " + height +  " " + width);
@@ -72,6 +76,14 @@ export default React.createClass({
                   style={{
                     position: 'relative',
                     left: '40px',
+                    top: '-13px'
+                  }} /> 
+                <FlatButton
+                  label="SUBMIT BUG REPORT"
+                  onClick={this.props.onSubmitDebug}
+                  style={{
+                    position: 'relative',
+                    left: '60px',
                     top: '-13px'
                   }} />
             </Toolbar>
