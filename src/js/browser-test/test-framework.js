@@ -33,19 +33,28 @@ function logSuccess(message) {
   console.log(`${tabs()}PASS: ${message}`);
 }
 
-function logFailure(message, error) {
+function logFailure(message, errors) {
   console.log(`${tabs()}FAIL: ${message}`);
-  console.log(`${tabs()}__ERROR: ${error.toString()}`);
+  errors.forEach((err) => {
+    console.log(`${tabs()}__ERROR: ${err.toString()}`);
+  });
 }
 
 // (() -> Promise a) -> Test a
 function _liftT(prf, message='', logs=false) {
   return promise((fulfill, reject) => {
+    if (logs) { testCount++; }
+
     prf()
       .then(() => {
         if (logs) {
-          logSuccess(message);
-          successCount++;
+          if (assertionFails.length > 0) {
+            logFailure(message, assertionFails);
+            assertionFails = [];
+          } else {
+            logSuccess(message);
+            successCount++;
+          }
         }
 
         fulfill();
@@ -55,15 +64,14 @@ function _liftT(prf, message='', logs=false) {
           logFailure(message, error);
         }
 
-        reject(error);
-      })
-      .finally(() => {
-        if (logs) {
-          testCount++;
-        }
+        fulfill();
       });
   });
 }
+
+function getSuccessCount() { return successCount; }
+
+function getTestCount() { return testCount; }
 
 function testInterpolate(tests, cbs) {
   let {
@@ -79,7 +87,7 @@ function testInterpolate(tests, cbs) {
       _doDefer([beforeEach, test, afterEach])
     )),
     afterAll,
-    logP(`${successCount} tests passed of ${testCount}`)
+    exec(() => { console.log(`${getSuccessCount()} tests passed of ${getTestCount()}`); })
   ];
 }
 
@@ -97,6 +105,9 @@ let hooks = {
   }
 };
 
+let assertionFails = [
+];
+
 class Expect {
   constructor(val, not=false) {
     let self = this;
@@ -110,7 +121,7 @@ class Expect {
       self[k] = (other) => {
         let {message, compare} = v(self.value);
         if (compare(other) != (! this.isNot)) {
-          throw new AssertionError(message(other));
+          assertionFails.push(message(other));
         }
       }
     });

@@ -62,15 +62,11 @@ export function _do(promiseFunctions, lbl) {
   if (!head) return empty();
 
   return head().then(_doDefer(tail), (failure) => {
-      console.log('error in monad', lbl, failure);
-      throw new Error(failure);
+    console.log('error in monad', lbl, failure);
+    throw new Error(failure);
   }).catch((error) => {
     console.log('promise error', error.toString());
     console.trace();
-
-    if (error.toString().indexOf('AssertionError') != -1) {
-      throw error;
-    }
   });
 }
 

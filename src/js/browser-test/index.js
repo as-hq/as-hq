@@ -31,6 +31,13 @@ let tests = _describe('test', {
 export function install(w, ep) {
   evalPane = ep;
   w.test = tests;
+
+  Promise.prototype.finally = function (callback) {
+    return this.then(
+        value => this.constructor.resolve(callback()).then(() => value),
+        reason => this.constructor.resolve(callback()).then(() => { throw reason; })
+    );
+  };
 }
 
 
