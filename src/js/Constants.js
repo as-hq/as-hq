@@ -48,6 +48,7 @@ export default {
     DELETED_LOCS: null,
     REPL_LEFT:null,
     GOT_REPL_RESP:null,
+    GOT_FIND:null,
     GOT_NEW_WORKBOOKS: null,
     DELETED_WORKBOOKS: null,
     FIND_INCREMENTED:null,
