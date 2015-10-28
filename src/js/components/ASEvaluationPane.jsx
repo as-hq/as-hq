@@ -233,22 +233,32 @@ export default React.createClass({
 
     //toast the error of at least one value in the cell
     let i = 0;
+    let anyErrors = false; 
     for (i = 0; i < updatedCells.length; ++i) {
       let cell = updatedCells[i],
           val = cell.cellValue;
       if (val.tag == "ValueError") {
         this.showAnyErrors(val);
+        anyErrors = true; 
         break;
       }
     }
 
     let extError = Store.getExternalError();
+
     if (extError) {
       this.setToast(extError, "ERROR");
+      anyErrors = true; 
       Store.setExternalError(null);
+    } 
+
+    if (!anyErrors) {
+      // If there are no errors, simulate a click in the active selection to get the ACE editor
+      // to update. (Note: might have other unintended side effects.) Would probably be better to get
+      // the ACE editor to upate directly but this is probably fine for now. (Alex 10/28)
+      let {range, origin} = Store.getActiveSelection();
+      this.refs.spreadsheet.select(range, origin);
     }
-    let {range, origin} = Store.getActiveSelection();
-    this.refs.spreadsheet.select(range, origin);
   },
 
   _onReplChange() {
