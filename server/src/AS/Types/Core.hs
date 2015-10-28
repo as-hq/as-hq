@@ -164,6 +164,7 @@ data ASAction =
   | UpdateWindow
   | AddTags | RemoveTags
   | Repeat
+  | BugReport
   deriving (Show, Read, Eq, Generic)
 
 data ASResult = Success | Failure {failDesc :: String} | NoResult deriving (Show, Read, Eq, Generic)
@@ -197,6 +198,7 @@ data ASPayload =
   | PayloadXp ASExpression
   | PayloadReplValue ASReplValue
   | PayloadList QueryList
+  | PayloadText {text :: String}
   deriving (Show, Read, Eq, Generic)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------

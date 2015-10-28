@@ -1,0 +1,3675 @@
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}, cellExpression = Expression {expression = "1", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,2)}, cellExpression = Expression {expression = "2", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,3)}, cellExpression = Expression {expression = "3", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,4)}, cellExpression = Expression {expression = "4", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,4)}, cellExpression = Expression {expression = "12312321321321", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Undo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,2)}, cellExpression = Expression {expression = "1", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,2)}, cellExpression = Expression {expression = "1321231231232112", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Undo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (3,2)}, cellExpression = Expression {expression = "1", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (3,3)}, cellExpression = Expression {expression = "2", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (3,4)}, cellExpression = Expression {expression = "3", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Undo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (3,2)}, cellExpression = Expression {expression = "24221124214212121", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Undo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (3,2)}, cellExpression = Expression {expression = "312312321321", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Undo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (3,2)}, cellExpression = Expression {expression = "1321312321312", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (3,2)}, cellExpression = Expression {expression = "1", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (3,1)}, cellExpression = Expression {expression = "21321321321", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (4,1)}, cellExpression = Expression {expression = "21312321", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (4,1)}, cellExpression = Expression {expression = "2", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Copy, clientPayload = PayloadPaste {copyRange = Range {rangeSheetId = "INIT_SHEET_ID", range = ((1,1),(1,1))}, copyTo = Range {rangeSheetId = "INIT_SHEET_ID", range = ((2,1),(1,1))}}}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,10)}, cellExpression = Expression {expression = "1", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,6)}, cellExpression = Expression {expression = "range(10)", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((1,11),(2,14))})}
+
+
+
+ClientMessage {clientAction = Copy, clientPayload = PayloadPaste {copyRange = Range {rangeSheetId = "INIT_SHEET_ID", range = ((1,6),(1,8))}, copyTo = Range {rangeSheetId = "INIT_SHEET_ID", range = ((2,5),(2,5))}}}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((1,4),(3,18))})}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}, cellExpression = Expression {expression = "5/1/2012", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,2)}, cellExpression = Expression {expression = "5/1/2012", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((1,1),(2,3))})}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}, cellExpression = Expression {expression = "range(10)", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}, cellExpression = Expression {expression = "Day", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}, cellExpression = Expression {expression = "Day", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,2)}, cellExpression = Expression {expression = "range(20)", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,3)}, cellExpression = Expression {expression = "range(30)", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,2)}, cellExpression = Expression {expression = "range(30).reverse()", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,2)}, cellExpression = Expression {expression = "range(30).reverse()", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,2)}, cellExpression = Expression {expression = "[x for x in range(10)]", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,2)}, cellExpression = Expression {expression = "[100-x for x in range(31)]", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,1)}, cellExpression = Expression {expression = "Prices", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,1)}, cellExpression = Expression {expression = "Prices", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (3,2)}, cellExpression = Expression {expression = "1", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((3,2),(3,2))})}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (5,4)}, cellExpression = Expression {expression = "=1", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (4,5)}, cellExpression = Expression {expression = "1", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (5,4)}, cellExpression = Expression {expression = "1", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (5,5)}, cellExpression = Expression {expression = "1", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (4,4)}, cellExpression = Expression {expression = "1", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((4,4),(5,5))})}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (5,6)}, cellExpression = Expression {expression = "1", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (6,7)}, cellExpression = Expression {expression = "123", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (6,8)}, cellExpression = Expression {expression = "1233", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((5,6),(6,8))})}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (5,6)}, cellExpression = Expression {expression = "=1", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (5,6)}, cellExpression = Expression {expression = "1", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (5,7)}, cellExpression = Expression {expression = "=1", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (5,7)}, cellExpression = Expression {expression = "=1", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (6,6)}, cellExpression = Expression {expression = "=E6", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (6,6)}, cellExpression = Expression {expression = "=E6", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (6,6)}, cellExpression = Expression {expression = "=E6+1", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,2)}, cellExpression = Expression {expression = "0", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Copy, clientPayload = PayloadPaste {copyRange = Range {rangeSheetId = "INIT_SHEET_ID", range = ((6,6),(6,6))}, copyTo = Range {rangeSheetId = "INIT_SHEET_ID", range = ((7,6),(9,6))}}}
+
+
+
+ClientMessage {clientAction = Copy, clientPayload = PayloadPaste {copyRange = Range {rangeSheetId = "INIT_SHEET_ID", range = ((6,6),(6,6))}, copyTo = Range {rangeSheetId = "INIT_SHEET_ID", range = ((7,6),(14,6))}}}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,3)}, cellExpression = Expression {expression = "=A1+1", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,3)}, cellExpression = Expression {expression = "=A1+1\n", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,3)}, cellExpression = Expression {expression = "=A1+1", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((5,7),(5,7))})}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (4,7)}, cellExpression = Expression {expression = "1", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,3)}, cellExpression = Expression {expression = "=A1+1", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (4,8)}, cellExpression = Expression {expression = "=D7+1", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Copy, clientPayload = PayloadPaste {copyRange = Range {rangeSheetId = "INIT_SHEET_ID", range = ((4,8),(4,8))}, copyTo = Range {rangeSheetId = "INIT_SHEET_ID", range = ((4,9),(4,27))}}}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,3)}, cellExpression = Expression {expression = "=A2+1", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (6,10)}, cellExpression = Expression {expression = "=E10", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (5,10)}, cellExpression = Expression {expression = "1", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (6,10)}, cellExpression = Expression {expression = "=E10", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((5,10),(5,10))})}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((5,10),(5,10))})}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((5,10),(5,10))})}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((5,10),(5,10))})}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((5,10),(5,10))})}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((5,10),(5,10))})}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((5,10),(5,10))})}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((5,10),(5,10))})}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((5,10),(5,10))})}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((6,10),(6,10))})}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((5,10),(5,10))})}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (6,10)}, cellExpression = Expression {expression = "1", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((6,10),(6,10))})}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (6,10)}, cellExpression = Expression {expression = "1", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (5,10)}, cellExpression = Expression {expression = "1", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((5,10),(5,10))})}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((6,10),(6,10))})}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (6,10)}, cellExpression = Expression {expression = "\n1", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (7,10)}, cellExpression = Expression {expression = "=$F$10", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Copy, clientPayload = PayloadPaste {copyRange = Range {rangeSheetId = "INIT_SHEET_ID", range = ((7,10),(7,10))}, copyTo = Range {rangeSheetId = "INIT_SHEET_ID", range = ((8,10),(11,10))}}}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((7,10),(7,10))})}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((8,10),(8,10))})}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((9,10),(9,10))})}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((10,10),(10,10))})}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((11,10),(11,10))})}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (6,11)}, cellExpression = Expression {expression = "2", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (7,11)}, cellExpression = Expression {expression = "3", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (8,11)}, cellExpression = Expression {expression = "=F11*G11", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (7,11)}, cellExpression = Expression {expression = "5", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (6,11)}, cellExpression = Expression {expression = "3", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (6,11)}, cellExpression = Expression {expression = "15", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((6,10),(8,11))})}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (5,7)}, cellExpression = Expression {expression = "=D7*E6", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (5,7)}, cellExpression = Expression {expression = "=$D7*E$6", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Copy, clientPayload = PayloadPaste {copyRange = Range {rangeSheetId = "INIT_SHEET_ID", range = ((5,7),(5,7))}, copyTo = Range {rangeSheetId = "INIT_SHEET_ID", range = ((6,7),(14,7))}}}
+
+
+
+ClientMessage {clientAction = Copy, clientPayload = PayloadPaste {copyRange = Range {rangeSheetId = "INIT_SHEET_ID", range = ((5,7),(5,7))}, copyTo = Range {rangeSheetId = "INIT_SHEET_ID", range = ((5,8),(5,27))}}}
+
+
+
+ClientMessage {clientAction = Copy, clientPayload = PayloadPaste {copyRange = Range {rangeSheetId = "INIT_SHEET_ID", range = ((5,7),(5,7))}, copyTo = Range {rangeSheetId = "INIT_SHEET_ID", range = ((5,8),(5,27))}}}
+
+
+
+ClientMessage {clientAction = Copy, clientPayload = PayloadPaste {copyRange = Range {rangeSheetId = "INIT_SHEET_ID", range = ((6,7),(6,7))}, copyTo = Range {rangeSheetId = "INIT_SHEET_ID", range = ((6,8),(6,27))}}}
+
+
+
+ClientMessage {clientAction = Copy, clientPayload = PayloadPaste {copyRange = Range {rangeSheetId = "INIT_SHEET_ID", range = ((6,7),(6,7))}, copyTo = Range {rangeSheetId = "INIT_SHEET_ID", range = ((6,8),(6,27))}}}
+
+
+
+ClientMessage {clientAction = Copy, clientPayload = PayloadPaste {copyRange = Range {rangeSheetId = "INIT_SHEET_ID", range = ((5,7),(5,7))}, copyTo = Range {rangeSheetId = "INIT_SHEET_ID", range = ((6,7),(14,7))}}}
+
+
+
+ClientMessage {clientAction = Copy, clientPayload = PayloadPaste {copyRange = Range {rangeSheetId = "INIT_SHEET_ID", range = ((5,7),(5,7))}, copyTo = Range {rangeSheetId = "INIT_SHEET_ID", range = ((5,8),(5,27))}}}
+
+
+
+ClientMessage {clientAction = Copy, clientPayload = PayloadPaste {copyRange = Range {rangeSheetId = "INIT_SHEET_ID", range = ((5,7),(5,7))}, copyTo = Range {rangeSheetId = "INIT_SHEET_ID", range = ((5,8),(5,27))}}}
+
+
+
+ClientMessage {clientAction = Copy, clientPayload = PayloadPaste {copyRange = Range {rangeSheetId = "INIT_SHEET_ID", range = ((6,7),(6,7))}, copyTo = Range {rangeSheetId = "INIT_SHEET_ID", range = ((6,8),(6,27))}}}
+
+
+
+ClientMessage {clientAction = Copy, clientPayload = PayloadPaste {copyRange = Range {rangeSheetId = "INIT_SHEET_ID", range = ((7,7),(7,7))}, copyTo = Range {rangeSheetId = "INIT_SHEET_ID", range = ((7,8),(7,27))}}}
+
+
+
+ClientMessage {clientAction = Undo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (5,30)}, cellExpression = Expression {expression = "=SUM(E7:E25)", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (5,30)}, cellExpression = Expression {expression = "=SUM(E7:E27)", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Copy, clientPayload = PayloadPaste {copyRange = Range {rangeSheetId = "INIT_SHEET_ID", range = ((5,30),(5,30))}, copyTo = Range {rangeSheetId = "INIT_SHEET_ID", range = ((6,30),(8,30))}}}
+
+
+
+ClientMessage {clientAction = Copy, clientPayload = PayloadPaste {copyRange = Range {rangeSheetId = "INIT_SHEET_ID", range = ((5,30),(5,30))}, copyTo = Range {rangeSheetId = "INIT_SHEET_ID", range = ((6,30),(14,30))}}}
+
+
+
+ClientMessage {clientAction = Copy, clientPayload = PayloadPaste {copyRange = Range {rangeSheetId = "INIT_SHEET_ID", range = ((6,8),(6,8))}, copyTo = Range {rangeSheetId = "INIT_SHEET_ID", range = ((7,8),(14,8))}}}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (5,30)}, cellExpression = Expression {expression = "=AVERAGE(E7:E27)", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Copy, clientPayload = PayloadPaste {copyRange = Range {rangeSheetId = "INIT_SHEET_ID", range = ((5,30),(5,30))}, copyTo = Range {rangeSheetId = "INIT_SHEET_ID", range = ((6,30),(14,30))}}}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (14,9)}, cellExpression = Expression {expression = "0", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((14,9),(14,9))})}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (14,10)}, cellExpression = Expression {expression = "0", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (14,11)}, cellExpression = Expression {expression = "0", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((14,10),(14,11))})}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((5,30),(14,30))})}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (5,30)}, cellExpression = Expression {expression = "=COUNT(E7:E27)", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Copy, clientPayload = PayloadPaste {copyRange = Range {rangeSheetId = "INIT_SHEET_ID", range = ((5,30),(5,30))}, copyTo = Range {rangeSheetId = "INIT_SHEET_ID", range = ((6,30),(14,30))}}}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((5,30),(14,30))})}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (6,30)}, cellExpression = Expression {expression = "=SUMPRODUCT(E7:E27,F7:F27)", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (6,30)}, cellExpression = Expression {expression = "=SUMPRODUCT(E7:E27,F7:F27)", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (6,29)}, cellExpression = Expression {expression = "", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (6,30)}, cellExpression = Expression {expression = "=SUMPRODUCT(E7:E27,F7:F27)", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Copy, clientPayload = PayloadPaste {copyRange = Range {rangeSheetId = "INIT_SHEET_ID", range = ((6,30),(6,30))}, copyTo = Range {rangeSheetId = "INIT_SHEET_ID", range = ((7,30),(7,30))}}}
+
+
+
+ClientMessage {clientAction = Copy, clientPayload = PayloadPaste {copyRange = Range {rangeSheetId = "INIT_SHEET_ID", range = ((7,30),(7,30))}, copyTo = Range {rangeSheetId = "INIT_SHEET_ID", range = ((8,30),(10,30))}}}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((6,29),(10,30))})}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (6,30)}, cellExpression = Expression {expression = "=LINEST(E7:E27,F7:F27)", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (7,30)}, cellExpression = Expression {expression = "=F30+1", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((7,30),(7,30))})}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (8,29)}, cellExpression = Expression {expression = "=RAND()", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (8,30)}, cellExpression = Expression {expression = "=RANDOM()", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((8,29),(8,30))})}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((1,2),(2,32))})}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (5,29)}, cellExpression = Expression {expression = "{=SUM(E7:E27/F7:F27)}", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Copy, clientPayload = PayloadPaste {copyRange = Range {rangeSheetId = "INIT_SHEET_ID", range = ((4,8),(5,27))}, copyTo = Range {rangeSheetId = "INIT_SHEET_ID", range = ((1,2),(1,2))}}}
+
+
+
+ClientMessage {clientAction = Copy, clientPayload = PayloadPaste {copyRange = Range {rangeSheetId = "INIT_SHEET_ID", range = ((4,8),(5,26))}, copyTo = Range {rangeSheetId = "INIT_SHEET_ID", range = ((1,2),(1,2))}}}
+
+
+
+ClientMessage {clientAction = Copy, clientPayload = PayloadPaste {copyRange = Range {rangeSheetId = "INIT_SHEET_ID", range = ((4,8),(5,27))}, copyTo = Range {rangeSheetId = "INIT_SHEET_ID", range = ((1,2),(1,2))}}}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,2)}, cellExpression = Expression {expression = "1", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,3)}, cellExpression = Expression {expression = "=A2+1", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Copy, clientPayload = PayloadPaste {copyRange = Range {rangeSheetId = "INIT_SHEET_ID", range = ((1,3),(1,3))}, copyTo = Range {rangeSheetId = "INIT_SHEET_ID", range = ((1,4),(1,27))}}}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (9,11)}, cellExpression = Expression {expression = "=SUM(I6:I8/J6:J8)", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,2)}, cellExpression = Expression {expression = "=100", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,3)}, cellExpression = Expression {expression = "=B2*A3-200", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Copy, clientPayload = PayloadPaste {copyRange = Range {rangeSheetId = "INIT_SHEET_ID", range = ((2,3),(2,3))}, copyTo = Range {rangeSheetId = "INIT_SHEET_ID", range = ((2,4),(2,27))}}}
+
+
+
+ClientMessage {clientAction = Undo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,3)}, cellExpression = Expression {expression = "B2-3", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,3)}, cellExpression = Expression {expression = "=B2-3", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Copy, clientPayload = PayloadPaste {copyRange = Range {rangeSheetId = "INIT_SHEET_ID", range = ((2,3),(2,3))}, copyTo = Range {rangeSheetId = "INIT_SHEET_ID", range = ((2,4),(2,27))}}}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((9,11),(9,11))})}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (8,11)}, cellExpression = Expression {expression = "=COUNTIF(E7:E27,\">0\")", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (8,11)}, cellExpression = Expression {expression = "=COUNTIF(E7:E27,\">10\")", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Copy, clientPayload = PayloadPaste {copyRange = Range {rangeSheetId = "INIT_SHEET_ID", range = ((8,11),(8,11))}, copyTo = Range {rangeSheetId = "INIT_SHEET_ID", range = ((9,11),(9,11))}}}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (8,13)}, cellExpression = Expression {expression = "=INDIRECT(\"A1\")", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (8,13)}, cellExpression = Expression {expression = "5", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((8,13),(8,13))})}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((8,14),(8,14))})}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (8,13)}, cellExpression = Expression {expression = "=INDIRECT(\"A2\")", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (3,3)}, cellExpression = Expression {expression = "=B3-B2", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Copy, clientPayload = PayloadPaste {copyRange = Range {rangeSheetId = "INIT_SHEET_ID", range = ((3,3),(3,3))}, copyTo = Range {rangeSheetId = "INIT_SHEET_ID", range = ((3,4),(3,27))}}}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((4,6),(14,30))})}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((4,6),(14,30))})}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((4,6),(14,30))})}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((4,6),(14,30))})}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((4,6),(14,30))})}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((4,6),(14,30))})}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((4,6),(14,30))})}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((4,6),(14,30))})}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((4,6),(14,30))})}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((4,6),(14,30))})}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((4,6),(14,30))})}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((4,6),(14,30))})}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((4,6),(6,15))})}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((4,6),(14,27))})}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((4,6),(14,27))})}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((4,6),(14,27))})}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((4,6),(14,27))})}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((4,6),(14,27))})}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((4,6),(14,27))})}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((4,6),(14,27))})}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((4,6),(14,27))})}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((4,6),(14,27))})}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((4,6),(14,27))})}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((4,6),(4,27))})}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((4,6),(4,27))})}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((4,6),(14,27))})}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((4,6),(14,27))})}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((4,6),(4,27))})}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((4,6),(14,27))})}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((4,6),(14,27))})}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((4,6),(14,27))})}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((4,6),(14,27))})}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((4,6),(4,27))})}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((5,6),(5,23))})}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((6,5),(9,20))})}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((7,8),(7,8))})}
+
+
+
+ClientMessage {clientAction = Undo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((7,7),(8,9))})}
+
+
+
+ClientMessage {clientAction = Undo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((5,5),(5,23))})}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((7,7),(8,8))})}
+
+
+
+ClientMessage {clientAction = Undo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((7,5),(7,13))})}
+
+
+
+ClientMessage {clientAction = Undo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((6,5),(6,21))})}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((6,7),(6,20))})}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((6,9),(6,15))})}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((6,5),(6,18))})}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((7,4),(8,12))})}
+
+
+
+ClientMessage {clientAction = Undo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((4,5),(4,28))})}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((4,7),(4,8))})}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((4,7),(4,7))})}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((4,7),(4,7))})}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((4,7),(4,7))})}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((4,7),(4,7))})}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((4,7),(4,7))})}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((4,7),(4,7))})}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((4,7),(4,7))})}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((4,7),(4,7))})}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((5,7),(5,7))})}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((8,7),(8,9))})}
+
+
+
+ClientMessage {clientAction = Undo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((4,7),(4,7))})}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((7,7),(8,9))})}
+
+
+
+ClientMessage {clientAction = Undo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,32)}, cellExpression = Expression {expression = "=C32+1", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((1,3),(1,3))})}
+
+
+
+ClientMessage {clientAction = Undo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((1,2),(1,2))})}
+
+
+
+ClientMessage {clientAction = Undo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((2,32),(2,32))})}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,33)}, cellExpression = Expression {expression = "=C33", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,33)}, cellExpression = Expression {expression = "=C33", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,32)}, cellExpression = Expression {expression = "=C32", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,32)}, cellExpression = Expression {expression = "=C32", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (3,32)}, cellExpression = Expression {expression = "=C32", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (3,32)}, cellExpression = Expression {expression = "=C32", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,32)}, cellExpression = Expression {expression = "=C32", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (9,19)}, cellExpression = Expression {expression = "321312", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (9,20)}, cellExpression = Expression {expression = "321321313", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((9,19),(9,20))})}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (4,34)}, cellExpression = Expression {expression = "1", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (3,34)}, cellExpression = Expression {expression = "=D34", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (4,34)}, cellExpression = Expression {expression = "=C34", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (4,34)}, cellExpression = Expression {expression = "=C34", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (4,34)}, cellExpression = Expression {expression = "1y878", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Undo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (4,34)}, cellExpression = Expression {expression = "=E34", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (4,34)}, cellExpression = Expression {expression = "2", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (3,29)}, cellExpression = Expression {expression = "=CORREL(B3:B27,C3:C27)", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Copy, clientPayload = PayloadPaste {copyRange = Range {rangeSheetId = "INIT_SHEET_ID", range = ((5,6),(5,6))}, copyTo = Range {rangeSheetId = "INIT_SHEET_ID", range = ((3,3),(3,3))}}}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (3,4)}, cellExpression = Expression {expression = "=B3+B4", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Copy, clientPayload = PayloadPaste {copyRange = Range {rangeSheetId = "INIT_SHEET_ID", range = ((3,4),(3,4))}, copyTo = Range {rangeSheetId = "INIT_SHEET_ID", range = ((3,5),(3,5))}}}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Copy, clientPayload = PayloadPaste {copyRange = Range {rangeSheetId = "INIT_SHEET_ID", range = ((3,5),(3,5))}, copyTo = Range {rangeSheetId = "INIT_SHEET_ID", range = ((4,5),(4,5))}}}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (3,4)}, cellExpression = Expression {expression = "=B4+B3", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (3,4)}, cellExpression = Expression {expression = "=-1", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (3,3)}, cellExpression = Expression {expression = "=-7", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (3,3)}, cellExpression = Expression {expression = "-7", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (3,29)}, cellExpression = Expression {expression = "=CORREL(B3:B27,C3:C27)", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (8,15)}, cellExpression = Expression {expression = "=10/01/2012", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}, cellExpression = Expression {expression = "1", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}, cellExpression = Expression {expression = "1", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,2)}, cellExpression = Expression {expression = "=A1", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}, cellExpression = Expression {expression = "1", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,2)}, cellExpression = Expression {expression = "=A1", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,3)}, cellExpression = Expression {expression = "=A1", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,4)}, cellExpression = Expression {expression = "=A2+A3", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}, cellExpression = Expression {expression = "69", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (4,15)}, cellExpression = Expression {expression = "1", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}, cellExpression = Expression {expression = "69", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Clear, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Clear, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}, cellExpression = Expression {expression = "1", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Clear, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}, cellExpression = Expression {expression = "1", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Clear, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}, cellExpression = Expression {expression = "1", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Clear, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}, cellExpression = Expression {expression = "1", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Clear, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}, cellExpression = Expression {expression = "1", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Clear, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}, cellExpression = Expression {expression = "1", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Clear, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}, cellExpression = Expression {expression = "1", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Clear, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}, cellExpression = Expression {expression = "1", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Clear, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}, cellExpression = Expression {expression = "1", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Clear, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}, cellExpression = Expression {expression = "1", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Clear, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}, cellExpression = Expression {expression = "1", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Clear, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}, cellExpression = Expression {expression = "1", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Clear, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}, cellExpression = Expression {expression = "1", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Clear, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}, cellExpression = Expression {expression = "1", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Clear, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}, cellExpression = Expression {expression = "1", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Clear, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}, cellExpression = Expression {expression = "1", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Clear, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}, cellExpression = Expression {expression = "1", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Clear, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}, cellExpression = Expression {expression = "1", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Clear, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}, cellExpression = Expression {expression = "1", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Clear, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}, cellExpression = Expression {expression = "1", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Clear, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}, cellExpression = Expression {expression = "1", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Clear, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}, cellExpression = Expression {expression = "1", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Clear, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}, cellExpression = Expression {expression = "1", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Clear, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}, cellExpression = Expression {expression = "1", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Clear, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}, cellExpression = Expression {expression = "1", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Clear, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}, cellExpression = Expression {expression = "1", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Clear, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}, cellExpression = Expression {expression = "1", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,1)}, cellExpression = Expression {expression = "1", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((2,1),(2,1))})}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,1)}, cellExpression = Expression {expression = "e", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,1)}, cellExpression = Expression {expression = "Monday", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,1)}, cellExpression = Expression {expression = "e\n", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (3,1)}, cellExpression = Expression {expression = "range(10)", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (3,1)}, cellExpression = Expression {expression = "range(10)", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Undo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Undo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,1)}, cellExpression = Expression {expression = "Subsystems", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (3,1)}, cellExpression = Expression {expression = "", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,2)}, cellExpression = Expression {expression = "ADCS", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,3)}, cellExpression = Expression {expression = "Communications", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,4)}, cellExpression = Expression {expression = "Payload", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,5)}, cellExpression = Expression {expression = "Avionics SW", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,6)}, cellExpression = Expression {expression = "Avionics HW", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,7)}, cellExpression = Expression {expression = "Thermal", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,8)}, cellExpression = Expression {expression = "Structures", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (3,1)}, cellExpression = Expression {expression = "Duration of Operartion", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (4,1)}, cellExpression = Expression {expression = "Voltage", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (6,1)}, cellExpression = Expression {expression = "Current", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((6,1),(6,1))})}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (5,1)}, cellExpression = Expression {expression = "Current", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}, cellExpression = Expression {expression = "1", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,2)}, cellExpression = Expression {expression = "2", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,3)}, cellExpression = Expression {expression = "3", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Copy, clientPayload = PayloadPaste {copyRange = Range {rangeSheetId = "INIT_SHEET_ID", range = ((1,2),(1,2))}, copyTo = Range {rangeSheetId = "INIT_SHEET_ID", range = ((3,6),(3,6))}}}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,10)}, cellExpression = Expression {expression = "1", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,11)}, cellExpression = Expression {expression = "2", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (4,9)}, cellExpression = Expression {expression = "http://18.102.225.27:8080/", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (5,16)}, cellExpression = Expression {expression = "99", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}, cellExpression = Expression {expression = "1", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,2)}, cellExpression = Expression {expression = "2", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,1)}, cellExpression = Expression {expression = "3", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,2)}, cellExpression = Expression {expression = "4", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,3)}, cellExpression = Expression {expression = "1", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,4)}, cellExpression = Expression {expression = "2", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,5)}, cellExpression = Expression {expression = "3", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,6)}, cellExpression = Expression {expression = "\n5", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (4,17)}, cellExpression = Expression {expression = "1", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (4,18)}, cellExpression = Expression {expression = "2", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (4,19)}, cellExpression = Expression {expression = "3", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (4,20)}, cellExpression = Expression {expression = "4", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (4,21)}, cellExpression = Expression {expression = "5", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (4,22)}, cellExpression = Expression {expression = "6", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (4,23)}, cellExpression = Expression {expression = "7", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (6,10)}, cellExpression = Expression {expression = "1", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (6,11)}, cellExpression = Expression {expression = "2", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (6,12)}, cellExpression = Expression {expression = "3", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((1,1),(7,24))})}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}, cellExpression = Expression {expression = "ADCS/Aero", language = Excel}, cellValue = NoValue, cellTags = []},Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,1)}, cellExpression = Expression {expression = "until penetration (order of seconds)", language = Excel}, cellValue = NoValue, cellTags = []},Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (3,1)}, cellExpression = Expression {expression = "2.4V - 3.6V", language = Excel}, cellValue = NoValue, cellTags = []},Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (4,1)}, cellExpression = Expression {expression = "12.3 mA\r", language = Excel}, cellValue = NoValue, cellTags = []},Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,2)}, cellExpression = Expression {expression = "", language = Excel}, cellValue = NoValue, cellTags = []},Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,2)}, cellExpression = Expression {expression = "", language = Excel}, cellValue = NoValue, cellTags = []},Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (3,2)}, cellExpression = Expression {expression = "", language = Excel}, cellValue = NoValue, cellTags = []},Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (4,2)}, cellExpression = Expression {expression = "\r", language = Excel}, cellValue = NoValue, cellTags = []},Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,3)}, cellExpression = Expression {expression = "Communications", language = Excel}, cellValue = NoValue, cellTags = []},Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,3)}, cellExpression = Expression {expression = "", language = Excel}, cellValue = NoValue, cellTags = []},Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (3,3)}, cellExpression = Expression {expression = "", language = Excel}, cellValue = NoValue, cellTags = []},Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (4,3)}, cellExpression = Expression {expression = "\r", language = Excel}, cellValue = NoValue, cellTags = []},Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,4)}, cellExpression = Expression {expression = "", language = Excel}, cellValue = NoValue, cellTags = []},Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,4)}, cellExpression = Expression {expression = "", language = Excel}, cellValue = NoValue, cellTags = []},Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (3,4)}, cellExpression = Expression {expression = "", language = Excel}, cellValue = NoValue, cellTags = []},Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (4,4)}, cellExpression = Expression {expression = "\r", language = Excel}, cellValue = NoValue, cellTags = []},Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,5)}, cellExpression = Expression {expression = "Payload", language = Excel}, cellValue = NoValue, cellTags = []},Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,5)}, cellExpression = Expression {expression = "", language = Excel}, cellValue = NoValue, cellTags = []},Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (3,5)}, cellExpression = Expression {expression = "", language = Excel}, cellValue = NoValue, cellTags = []},Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (4,5)}, cellExpression = Expression {expression = "\r", language = Excel}, cellValue = NoValue, cellTags = []},Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,6)}, cellExpression = Expression {expression = "", language = Excel}, cellValue = NoValue, cellTags = []},Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,6)}, cellExpression = Expression {expression = "", language = Excel}, cellValue = NoValue, cellTags = []},Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (3,6)}, cellExpression = Expression {expression = "", language = Excel}, cellValue = NoValue, cellTags = []},Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (4,6)}, cellExpression = Expression {expression = "\r", language = Excel}, cellValue = NoValue, cellTags = []},Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,7)}, cellExpression = Expression {expression = "Avionics SW", language = Excel}, cellValue = NoValue, cellTags = []},Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,7)}, cellExpression = Expression {expression = "", language = Excel}, cellValue = NoValue, cellTags = []},Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (3,7)}, cellExpression = Expression {expression = "", language = Excel}, cellValue = NoValue, cellTags = []},Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (4,7)}, cellExpression = Expression {expression = "\r", language = Excel}, cellValue = NoValue, cellTags = []},Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,8)}, cellExpression = Expression {expression = "", language = Excel}, cellValue = NoValue, cellTags = []},Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,8)}, cellExpression = Expression {expression = "", language = Excel}, cellValue = NoValue, cellTags = []},Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (3,8)}, cellExpression = Expression {expression = "", language = Excel}, cellValue = NoValue, cellTags = []},Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (4,8)}, cellExpression = Expression {expression = "\r", language = Excel}, cellValue = NoValue, cellTags = []},Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,9)}, cellExpression = Expression {expression = "Avionics HW", language = Excel}, cellValue = NoValue, cellTags = []},Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,9)}, cellExpression = Expression {expression = "", language = Excel}, cellValue = NoValue, cellTags = []},Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (3,9)}, cellExpression = Expression {expression = "", language = Excel}, cellValue = NoValue, cellTags = []},Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (4,9)}, cellExpression = Expression {expression = "\r", language = Excel}, cellValue = NoValue, cellTags = []},Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,10)}, cellExpression = Expression {expression = "", language = Excel}, cellValue = NoValue, cellTags = []},Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,10)}, cellExpression = Expression {expression = "", language = Excel}, cellValue = NoValue, cellTags = []},Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (3,10)}, cellExpression = Expression {expression = "", language = Excel}, cellValue = NoValue, cellTags = []},Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (4,10)}, cellExpression = Expression {expression = "\r", language = Excel}, cellValue = NoValue, cellTags = []},Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,11)}, cellExpression = Expression {expression = "Thermal", language = Excel}, cellValue = NoValue, cellTags = []},Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,11)}, cellExpression = Expression {expression = "", language = Excel}, cellValue = NoValue, cellTags = []},Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (3,11)}, cellExpression = Expression {expression = "", language = Excel}, cellValue = NoValue, cellTags = []},Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (4,11)}, cellExpression = Expression {expression = "\r", language = Excel}, cellValue = NoValue, cellTags = []},Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,12)}, cellExpression = Expression {expression = "", language = Excel}, cellValue = NoValue, cellTags = []},Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,12)}, cellExpression = Expression {expression = "", language = Excel}, cellValue = NoValue, cellTags = []},Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (3,12)}, cellExpression = Expression {expression = "", language = Excel}, cellValue = NoValue, cellTags = []},Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (4,12)}, cellExpression = Expression {expression = "\r", language = Excel}, cellValue = NoValue, cellTags = []},Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,13)}, cellExpression = Expression {expression = "Structures", language = Excel}, cellValue = NoValue, cellTags = []},Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,13)}, cellExpression = Expression {expression = "", language = Excel}, cellValue = NoValue, cellTags = []},Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (3,13)}, cellExpression = Expression {expression = "", language = Excel}, cellValue = NoValue, cellTags = []},Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (4,13)}, cellExpression = Expression {expression = "\r", language = Excel}, cellValue = NoValue, cellTags = []},Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,14)}, cellExpression = Expression {expression = "", language = Excel}, cellValue = NoValue, cellTags = []},Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,14)}, cellExpression = Expression {expression = "", language = Excel}, cellValue = NoValue, cellTags = []},Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (3,14)}, cellExpression = Expression {expression = "", language = Excel}, cellValue = NoValue, cellTags = []},Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (4,14)}, cellExpression = Expression {expression = "", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,15)}, cellExpression = Expression {expression = "Subsystem", language = Excel}, cellValue = NoValue, cellTags = []},Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,15)}, cellExpression = Expression {expression = "Duration of Operation (Out of 1 year)", language = Excel}, cellValue = NoValue, cellTags = []},Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (3,15)}, cellExpression = Expression {expression = "Operating Voltage(s)", language = Excel}, cellValue = NoValue, cellTags = []},Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (4,15)}, cellExpression = Expression {expression = "Operating Current(s)", language = Excel}, cellValue = NoValue, cellTags = []},Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (5,15)}, cellExpression = Expression {expression = "Max Rating", language = Excel}, cellValue = NoValue, cellTags = []},Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (6,15)}, cellExpression = Expression {expression = "Nominal Rating", language = Excel}, cellValue = NoValue, cellTags = []},Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (7,15)}, cellExpression = Expression {expression = "Expected Power Draw", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((1,15),(7,15))})}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,15)}, cellExpression = Expression {expression = "Voltage", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((1,15),(1,15))})}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,16)}, cellExpression = Expression {expression = "Voltage", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((1,16),(1,16))})}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,16)}, cellExpression = Expression {expression = "Voltage", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((1,16),(1,16))})}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,16)}, cellExpression = Expression {expression = "Voltage", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,16)}, cellExpression = Expression {expression = "Capacity", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,17)}, cellExpression = Expression {expression = "12", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,17)}, cellExpression = Expression {expression = "24", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,18)}, cellExpression = Expression {expression = "30", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,18)}, cellExpression = Expression {expression = "7", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,19)}, cellExpression = Expression {expression = "45", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,19)}, cellExpression = Expression {expression = "37]", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((2,19),(2,19))})}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,19)}, cellExpression = Expression {expression = "37", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (3,17)}, cellExpression = Expression {expression = "B17", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (3,18)}, cellExpression = Expression {expression = "B17", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((3,18),(3,18))})}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((3,17),(3,17))})}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (3,18)}, cellExpression = Expression {expression = "B17:B18", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((3,18),(3,18))})}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((3,19),(3,19))})}
+
+
+
+ClientMessage {clientAction = EvaluateRepl, clientPayload = PayloadXp (Expression {expression = "x = B17", language = Python})}
+
+
+
+ClientMessage {clientAction = EvaluateRepl, clientPayload = PayloadXp (Expression {expression = "y = C18", language = Python})}
+
+
+
+ClientMessage {clientAction = EvaluateRepl, clientPayload = PayloadXp (Expression {expression = "x", language = Python})}
+
+
+
+ClientMessage {clientAction = EvaluateRepl, clientPayload = PayloadXp (Expression {expression = "y", language = Python})}
+
+
+
+ClientMessage {clientAction = EvaluateRepl, clientPayload = PayloadXp (Expression {expression = "A1", language = Python})}
+
+
+
+ClientMessage {clientAction = EvaluateRepl, clientPayload = PayloadXp (Expression {expression = "x = [2, 3, 4, 5]", language = Python})}
+
+
+
+ClientMessage {clientAction = EvaluateRepl, clientPayload = PayloadXp (Expression {expression = "y = [3 ,4 7, 8]", language = Python})}
+
+
+
+ClientMessage {clientAction = EvaluateRepl, clientPayload = PayloadXp (Expression {expression = "for (v, c) in x, y:", language = Python})}
+
+
+
+ClientMessage {clientAction = EvaluateRepl, clientPayload = PayloadXp (Expression {expression = "for v,c in x,y:\n\tprint(v*c)", language = Python})}
+
+
+
+ClientMessage {clientAction = EvaluateRepl, clientPayload = PayloadXp (Expression {expression = "for v in x:\n\tprint(v)", language = Python})}
+
+
+
+ClientMessage {clientAction = EvaluateRepl, clientPayload = PayloadXp (Expression {expression = "", language = Python})}
+
+
+
+ClientMessage {clientAction = EvaluateRepl, clientPayload = PayloadXp (Expression {expression = "", language = Python})}
+
+
+
+ClientMessage {clientAction = EvaluateRepl, clientPayload = PayloadXp (Expression {expression = "", language = Python})}
+
+
+
+ClientMessage {clientAction = EvaluateRepl, clientPayload = PayloadXp (Expression {expression = "", language = Python})}
+
+
+
+ClientMessage {clientAction = EvaluateRepl, clientPayload = PayloadXp (Expression {expression = "print('hi')", language = Python})}
+
+
+
+ClientMessage {clientAction = EvaluateRepl, clientPayload = PayloadXp (Expression {expression = "print \"HI\"", language = Python})}
+
+
+
+ClientMessage {clientAction = EvaluateRepl, clientPayload = PayloadXp (Expression {expression = "print \"HI\"", language = Python})}
+
+
+
+ClientMessage {clientAction = EvaluateRepl, clientPayload = PayloadXp (Expression {expression = "print(\"hi\")", language = Python})}
+
+
+
+ClientMessage {clientAction = EvaluateRepl, clientPayload = PayloadXp (Expression {expression = "4+4", language = Python})}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,22)}, cellExpression = Expression {expression = "1", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,22)}, cellExpression = Expression {expression = "x=2", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = EvaluateRepl, clientPayload = PayloadXp (Expression {expression = "4+4", language = Python})}
+
+
+
+ClientMessage {clientAction = EvaluateRepl, clientPayload = PayloadXp (Expression {expression = "4+4", language = Python})}
+
+
+
+ClientMessage {clientAction = EvaluateRepl, clientPayload = PayloadXp (Expression {expression = "0", language = Python})}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((1,22),(1,22))})}
+
+
+
+ClientMessage {clientAction = EvaluateRepl, clientPayload = PayloadXp (Expression {expression = "8", language = Python})}
+
+
+
+ClientMessage {clientAction = EvaluateRepl, clientPayload = PayloadXp (Expression {expression = "x = 5", language = Python})}
+
+
+
+ClientMessage {clientAction = EvaluateRepl, clientPayload = PayloadXp (Expression {expression = "x", language = Python})}
+
+
+
+ClientMessage {clientAction = EvaluateRepl, clientPayload = PayloadXp (Expression {expression = "x=5", language = Python})}
+
+
+
+ClientMessage {clientAction = EvaluateRepl, clientPayload = PayloadXp (Expression {expression = "x", language = Python})}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,22)}, cellExpression = Expression {expression = "12", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = EvaluateRepl, clientPayload = PayloadXp (Expression {expression = "1+1", language = Python})}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,22)}, cellExpression = Expression {expression = "32", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,23)}, cellExpression = Expression {expression = "42", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,23)}, cellExpression = Expression {expression = "1", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((2,23),(2,23))})}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,23)}, cellExpression = Expression {expression = "1", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (3,23)}, cellExpression = Expression {expression = "1", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((2,23),(2,23))})}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,23)}, cellExpression = Expression {expression = "1", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,24)}, cellExpression = Expression {expression = "1", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,25)}, cellExpression = Expression {expression = "1", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,26)}, cellExpression = Expression {expression = "1", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,27)}, cellExpression = Expression {expression = "1", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,28)}, cellExpression = Expression {expression = "1", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,29)}, cellExpression = Expression {expression = "1", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,25)}, cellExpression = Expression {expression = "2", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,26)}, cellExpression = Expression {expression = "0", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,27)}, cellExpression = Expression {expression = "1.1", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,28)}, cellExpression = Expression {expression = "1", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,29)}, cellExpression = Expression {expression = "1", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,30)}, cellExpression = Expression {expression = "1", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,31)}, cellExpression = Expression {expression = "1", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (5,19)}, cellExpression = Expression {expression = "x = 3", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (5,20)}, cellExpression = Expression {expression = "5", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (5,14)}, cellExpression = Expression {expression = "1", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (5,21)}, cellExpression = Expression {expression = "01", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (5,22)}, cellExpression = Expression {expression = "12", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (5,23)}, cellExpression = Expression {expression = "13", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (3,18)}, cellExpression = Expression {expression = "898989", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (5,4)}, cellExpression = Expression {expression = "90000000", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (5,5)}, cellExpression = Expression {expression = "9000000", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Undo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Undo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (5,24)}, cellExpression = Expression {expression = "32", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (5,25)}, cellExpression = Expression {expression = "", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (5,26)}, cellExpression = Expression {expression = "", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (5,27)}, cellExpression = Expression {expression = "", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (5,28)}, cellExpression = Expression {expression = "", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (5,29)}, cellExpression = Expression {expression = "", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (5,30)}, cellExpression = Expression {expression = "", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (5,31)}, cellExpression = Expression {expression = "", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (5,32)}, cellExpression = Expression {expression = "", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = EvaluateRepl, clientPayload = PayloadXp (Expression {expression = "x = C6", language = Python})}
+
+
+
+ClientMessage {clientAction = EvaluateRepl, clientPayload = PayloadXp (Expression {expression = "x", language = Python})}
+
+
+
+ClientMessage {clientAction = EvaluateRepl, clientPayload = PayloadXp (Expression {expression = "1", language = Python})}
+
+
+
+ClientMessage {clientAction = EvaluateRepl, clientPayload = PayloadXp (Expression {expression = "2", language = Python})}
+
+
+
+ClientMessage {clientAction = EvaluateRepl, clientPayload = PayloadXp (Expression {expression = "3", language = Python})}
+
+
+
+ClientMessage {clientAction = EvaluateRepl, clientPayload = PayloadXp (Expression {expression = "4", language = Python})}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = EvaluateRepl, clientPayload = PayloadXp (Expression {expression = "6+7", language = Python})}
+
+
+
+ClientMessage {clientAction = EvaluateRepl, clientPayload = PayloadXp (Expression {expression = "9", language = Python})}
+
+
+
+ClientMessage {clientAction = EvaluateRepl, clientPayload = PayloadXp (Expression {expression = "999", language = Python})}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (7,13)}, cellExpression = Expression {expression = "12", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (7,14)}, cellExpression = Expression {expression = "32", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (8,9)}, cellExpression = Expression {expression = "12", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (8,10)}, cellExpression = Expression {expression = "32", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (5,17)}, cellExpression = Expression {expression = "1", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (6,19)}, cellExpression = Expression {expression = "print \"hi\"", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = EvaluateRepl, clientPayload = PayloadXp (Expression {expression = "print \"hi\"", language = Python})}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (6,26)}, cellExpression = Expression {expression = "print(\"hi\")", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((3,18),(3,18))})}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (3,17)}, cellExpression = Expression {expression = "sum(B17\DC4\DC4:B19)", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (3,17)}, cellExpression = Expression {expression = "sum(B17:B19)\n", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,37)}, cellExpression = Expression {expression = "range(10)", language = Excel}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,37)}, cellExpression = Expression {expression = "range(10)", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = EvaluateRepl, clientPayload = PayloadXp (Expression {expression = "1+1", language = Python})}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (3,17)}, cellExpression = Expression {expression = "sum(B17:B19)", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (3,17)}, cellExpression = Expression {expression = "sum(B17:B19)", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (5,4)}, cellExpression = Expression {expression = "1", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Copy, clientPayload = PayloadPaste {copyRange = Range {rangeSheetId = "INIT_SHEET_ID", range = ((1,1),(1,1))}, copyTo = Range {rangeSheetId = "INIT_SHEET_ID", range = ((2,1),(1,1))}}}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (6,6)}, cellExpression = Expression {expression = "1", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (3,17)}, cellExpression = Expression {expression = "\r", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((3,17),(3,17))})}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (3,17)}, cellExpression = Expression {expression = "sum(B17:B19)", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (4,17)}, cellExpression = Expression {expression = "[2*x for x in A17:B19]", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (3,18)}, cellExpression = Expression {expression = "max(B17:B19)", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((1,20),(7,40))})}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (5,29)}, cellExpression = Expression {expression = "1", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((4,4),(9,14))})}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((5,29),(5,29))})}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((6,16),(6,29))})}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (3,19)}, cellExpression = Expression {expression = "min(A17:A18)", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (6,17)}, cellExpression = Expression {expression = "return 10", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (6,17)}, cellExpression = Expression {expression = "return", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (6,17)}, cellExpression = Expression {expression = "re", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((6,17),(6,17))})}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (6,17)}, cellExpression = Expression {expression = "for x in (A17:A19):", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (6,17)}, cellExpression = Expression {expression = "for x in (A17:A19):\n    y = x + 100", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (6,17)}, cellExpression = Expression {expression = "for x in (A17:A19):\n    y = x + 100", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (5,2)}, cellExpression = Expression {expression = "range(10)", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (6,17)}, cellExpression = Expression {expression = "for x in (A17:A19):\n    y = x + 100", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (6,2)}, cellExpression = Expression {expression = "[x + 100 for x in E2:E11]", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (7,2)}, cellExpression = Expression {expression = "range(20)", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Undo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((6,17),(6,17))})}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,21)}, cellExpression = Expression {expression = "if A17 == 12:", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,22)}, cellExpression = Expression {expression = "if A17 == 12:", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (7,2)}, cellExpression = Expression {expression = "x = E2:E11\ny = []\nfor e in x:\n    y.append(e + 100)\ny", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,21)}, cellExpression = Expression {expression = "if A17 == 12:", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,21)}, cellExpression = Expression {expression = "jhgjhg", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((2,21),(2,21))})}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (3,28)}, cellExpression = Expression {expression = "rewarea", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (3,28)}, cellExpression = Expression {expression = "", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (5,15)}, cellExpression = Expression {expression = "", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,21)}, cellExpression = Expression {expression = "[x = 5 for x in (A17:A19) if x%2 == 0]", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,22)}, cellExpression = Expression {expression = "[x = 5 for x in A17:A19 if x % 2 == 0 else 7]", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (8,2)}, cellExpression = Expression {expression = "x = A17:A19", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (8,2)}, cellExpression = Expression {expression = "x = A17:A19", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (8,2)}, cellExpression = Expression {expression = "x = A17:A19\ny = B17:B19\nz = []\nfor num in x:\n    if x == 30:\n        z.append(x+y[0])\nz", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Undo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (8,2)}, cellExpression = Expression {expression = "x = A17:A19\r\ny = B17:B19\r\nz = []\r\nfor num in x:\r\n    if x == 30:\r\n        z.append(x+y[0])\r\nz", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Delete, clientPayload = PayloadR (Range {rangeSheetId = "INIT_SHEET_ID", range = ((8,2),(8,2))})}
+
+
+
+ClientMessage {clientAction = Undo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Undo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,28)}, cellExpression = Expression {expression = "x = A17:A19\r\ny = B17:B19\r\nz = []\r\nfor num in x:\r\n    if x == 30:\r\n        z.append(x+y[0])\r\nz", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (5,21)}, cellExpression = Expression {expression = "[range(10)]", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (6,2)}, cellExpression = Expression {expression = "[[x + 100 for x in E2:E11]]", language = Python}, cellValue = NoValue, cellTags = []}]}
+
+
+
+ClientMessage {clientAction = Undo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Undo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Undo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Undo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Undo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Undo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Undo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Undo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Undo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Undo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Undo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Undo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Undo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Undo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Undo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Undo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Undo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Undo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Undo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Undo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Undo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Undo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Undo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Undo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Undo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Undo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Undo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Undo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Undo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Undo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Undo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Undo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Undo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Undo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Undo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Undo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Undo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Undo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Undo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Undo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Undo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Undo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Undo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Undo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Undo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Undo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+
+
+
+ClientMessage {clientAction = Redo, clientPayload = PayloadN ()}
+

@@ -114,7 +114,7 @@ handleFirstMessage state conn msg =
       sendMessage (failureMessage "Cannot connect") conn
 
 shouldPreprocess :: Bool
-shouldPreprocess = False
+shouldPreprocess = True
 
 -- | For debugging purposes. Reads in a list of ClientMessages from a file and processes them, as though
 -- sent from a frontend. 

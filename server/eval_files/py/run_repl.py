@@ -18,7 +18,7 @@ def arr(lst):
 	return ASIterable(lst)
 result = ""
 try:
-	result = def isEmpty(myList):
+	result = 1010
 except Exception as e: 
 	exc_type, exc_obj, exc_tb = exc_info()
 	fname = 'AlphaSheets Python evaluator'

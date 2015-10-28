@@ -66,6 +66,7 @@ instance Client ASUserClient where
       AddTags      -> handleAddTags user state payload
       RemoveTags   -> handleRemoveTags user state payload
       Repeat       -> handleRepeat user state payload
+      BugReport    -> handleBugReport user
       where payload = clientPayload message
     -- Undo         -> handleAddTags user state (PayloadTags [StreamTag (Stream NoSource 1000)] (Index (T.pack "TEST_SHEET_ID2") (1,1)))
     -- ^^ above is to test streaming when frontend hasn't been implemented yet
@@ -394,3 +395,9 @@ getLastMessage conn = R.runRedis conn $ do
   return $ case msg of 
     Right (Just msg') -> read (B.unpack msg')
     _ -> ClientMessage NoAction (PayloadN ())
+
+-- | For now, all this does is acknowledge that a bug report got sent. The actual contents
+-- of the bug report (part of the payload) are output to the server log in handleClientMessage, 
+-- which is where we want it end up anyway, for now. (Alex 10/28/15)
+handleBugReport :: ASUserClient -> IO ()
+handleBugReport user = WS.sendTextData (userConn user) ("ACK" :: T.Text)
