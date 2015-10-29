@@ -1,8 +1,4 @@
 import _ from 'underscore';
-import fs from 'fs';
-//import jasminePit from 'jasmine-pit';
-
-//jasminePit.install(window);
 
 jasmine.DEFAULT_TIMEOUT_INTERVAL = 10000;
 
