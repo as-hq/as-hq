@@ -123,8 +123,6 @@ instance Ord EValue where
   (<=) (EValueS s1) (EValueS s2) = (<=) s1 s2
   -- don't care about cross-comparisons right now
 
-type Col = Int
-type Row = Int
 data EMatrix = EMatrix {emCols :: !Int, emRows :: !Int, content :: !(V.Vector EValue)}
   deriving (Show, Read,Eq)
 data EEntity =

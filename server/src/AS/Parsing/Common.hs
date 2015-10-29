@@ -49,10 +49,10 @@ sortStrList (a1, b1) (a2, b2)
   | (show $ dropWhile isUpper a1) > (show $ dropWhile isUpper a2) = LT
   | otherwise = EQ
 
-rangeDiff :: ((Int, Int), (Int, Int)) -> (Int, Int)
-rangeDiff (a,b) = (fst b - fst a + 1, snd b - snd a + 1)
+rangeDiff :: (Coord, Coord) -> Dimensions
+rangeDiff (a,b) = (col b - col a + 1, row b - row a + 1)
 
-reshapeColArr :: [a] -> (Int, Int) -> [[a]]
+reshapeColArr :: [a] -> Dimensions -> [[a]]
 reshapeColArr lst@(x:xs) (m,n) = 
   if (length lst) /= (m*n-m)
     then (every m lst):(reshapeColArr xs (m,n))

@@ -62,15 +62,15 @@ relationDelimiter = "&"
 keyPartDelimiter = '?'
 
 -- get a list key with a special suffix denoting list type
-getListKeyWithIdentifier :: ASIndex -> (Int, Int) -> String -> ListKey
+getListKeyWithIdentifier :: ASIndex -> Dimensions -> String -> ListKey
 getListKeyWithIdentifier idx dims ident = (show2 idx) ++ (keyPartDelimiter:(show dims)) ++ (keyPartDelimiter:ident)
 
 -- returns the list key for a regular list
-getListKey :: ASIndex -> (Int, Int) -> ListKey
+getListKey :: ASIndex -> Dimensions -> ListKey
 getListKey idx dims = getListKeyWithIdentifier idx dims "LIST"
 
 -- returns the list key for a dataframe-type list
-getDFListKey :: ASIndex -> (Int, Int) -> ListKey
+getDFListKey :: ASIndex -> Dimensions -> ListKey
 getDFListKey idx dims = getListKeyWithIdentifier idx dims "DF"
 
 getSheetListsKey :: ASSheetId -> B.ByteString
@@ -91,18 +91,18 @@ getWorkbookKey = BC.pack
 keyToRow :: B.ByteString -> Int
 keyToRow str = row
   where
-    (col, row) = read idxStr :: (Int, Int)
+    (col, row) = read idxStr :: Coord
     idxStr     = BC.unpack $ last $ BC.split '|' str
 
 getLastRowKey :: [B.ByteString] -> B.ByteString
 getLastRowKey keys = maxBy keyToRow keys
 
-incrementLocKey :: (Int, Int) -> B.ByteString -> B.ByteString
+incrementLocKey :: Offset -> B.ByteString -> B.ByteString
 incrementLocKey (dx, dy) key = BC.pack $ ks ++ '|':kidx
   where
     (sh:idxStr:[]) = BC.split '|' key
     ks             = BC.unpack sh
-    (col, row)     = read (BC.unpack idxStr) :: (Int, Int)
+    (col, row)     = read (BC.unpack idxStr) :: Coord
     kidx           = show (col + dx, row + dy)
 
 getUniquePrefixedName :: String -> [String] -> String
@@ -189,12 +189,12 @@ getListType :: ListKey -> String
 getListType key = last parts
   where parts = splitBy keyPartDelimiter key
 
-getDimsFromListKey :: ListKey -> (ASIndex, (Int, Int))
+getDimsFromListKey :: ListKey -> (ASIndex, Dimensions)
 getDimsFromListKey key = (idx, dims)
   where
     parts = splitBy keyPartDelimiter key
     idx   = read2 (head parts) :: ASIndex
-    dims  = read (parts !! 1) :: (Int, Int)
+    dims  = read (parts !! 1) :: Dimensions
 
 getRectFromListKey :: ListKey -> Rect
 getRectFromListKey key = ((col, row), (col + width - 1, row + height - 1))

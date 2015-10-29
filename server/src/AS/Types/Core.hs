@@ -35,7 +35,11 @@ data WorkbookSheet = WorkbookSheet {wsName :: String, wsSheets :: [ASSheet]} der
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Core cell types
 
-type Coord = (Int, Int)
+type Col = Int
+type Row = Int
+type Coord = (Col, Row)
+type Dimensions = (Int, Int)
+type Offset = (Int, Int)
 
 data ASIndex = Index {locSheetId :: ASSheetId, index :: Coord} | OutOfBounds deriving (Show, Read, Eq, Generic, Ord)
 data ASRange = Range {rangeSheetId :: ASSheetId, range :: (Coord, Coord)} deriving (Show, Read, Eq, Generic, Ord)
@@ -125,7 +129,7 @@ data ASCell = Cell {cellLocation :: ASIndex,
 
 type ListKey = String
 type ASList = (ListKey, [ASCell])
-type Rect = ((Int, Int),(Int, Int))
+type Rect = (Coord, Coord)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Streaming
@@ -277,7 +281,7 @@ data ASRecipients = Original | All | Custom [ASUserClient]
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Users
 
-data ASWindow = Window {windowSheetId :: ASSheetId, topLeft :: (Int, Int), bottomRight :: (Int, Int)} deriving (Show,Read,Eq,Generic)
+data ASWindow = Window {windowSheetId :: ASSheetId, topLeft :: Coord, bottomRight :: Coord} deriving (Show,Read,Eq,Generic)
 type ASUserId = Text
 data ASUserClient = UserClient {userId :: ASUserId, userConn :: WS.Connection, windows :: [ASWindow], sessionId :: ClientId}
 
@@ -477,21 +481,8 @@ instance FromJSON ASWindow where
     return $ Window sid tl' br'
   parseJSON _          = fail "client message JSON attributes missing"
 
-instance ToJSON Direction where
-  toJSON dir = Data.Aeson.String $ case dir of 
-    DUp     -> "Up" 
-    DDown   -> "Down"
-    DLeft   -> "Left"
-    DRight  -> "Right"
-
-instance FromJSON Direction where
-  parseJSON (Data.Aeson.String v) = return $ getDir . T.unpack $ v
-    where 
-      getDir s = case s of 
-        "Up"    -> DUp
-        "Down"  -> DDown
-        "Left"  -> DLeft
-        "Right" -> DRight
+instance ToJSON Direction 
+instance FromJSON Direction
 
 -- memory region exposure instances for R value unboxing
 instance NFData ASValue       where rnf = genericRnf

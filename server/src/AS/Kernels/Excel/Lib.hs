@@ -37,7 +37,6 @@ import AS.Util
 data RefMap = RefMap {refMap :: M.Map ERef EEntity, refDim :: (Col,Row)} deriving (Show,Read)
 type Arg a = (Int,a)
 type Dim = (Col,Row)
-type Offset = (Col,Row)
 
 -- | TODO: might need a wrapper around stuff to get 0.999999 -> 1 for things like correl
 -- | TODO: use unboxing if performance is a problem
@@ -853,15 +852,15 @@ eOffset c e = do
 
 -- | Makes sure that an ASLocation doesn't have negative coordinates etc.
 verifyInBounds :: ASReference -> EResult
-verifyInBounds l@(IndexRef (Index _ a)) = if tupleOK a
+verifyInBounds l@(IndexRef (Index _ a)) = if coordIsSafe a
   then locToResult l
   else Left $ Default "Location index out of bounds"
-verifyInBounds l@(RangeRef (Range _ (a,b))) = if tupleOK a && tupleOK b
+verifyInBounds l@(RangeRef (Range _ (a,b))) = if coordIsSafe a && coordIsSafe b
   then locToResult l
   else Left $ Default "Location index out of bounds"
 
-tupleOK :: (Int,Int) -> Bool
-tupleOK (a,b) = a > 0 && b > 0
+coordIsSafe :: Coord -> Bool
+coordIsSafe (a,b) = a > 0 && b > 0
 
 
 -- | Depending on match type (-1,0,1; 0=equality), return the index (starting at 1) of the matrix
