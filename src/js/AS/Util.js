@@ -54,7 +54,7 @@ export default {
         else return "R_LIST";
       case "ValueError":
         if (isRepl)
-          return cv.error;
+          return cv.errMsg;
         else return "ERROR"; // TODO: show more descriptive errors. (#REF? #NAME?)
       case "ValueExcelError":
         return "ERROR";
@@ -63,6 +63,7 @@ export default {
       case "DisplayValue":
         return cv.displayValue;
       default:
+        console.log("CELL CONTENTS SHOW VALUE: ", cv.contents);
         return JSON.stringify(cv.contents);
     }
   },
