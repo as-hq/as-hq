@@ -1,7 +1,6 @@
 import _ from 'lodash';
 
 import API from '../actions/ASApiActionCreators';
-import Converter from '../AS/Converter';
 import Util from '../AS/Util';
 import TC from '../AS/TypeConversions';
 import Store from '../stores/ASEvaluationStore';
