@@ -5,13 +5,18 @@ import ASSpreadsheet from './ASSpreadsheet.jsx';
 import Store from '../stores/ASEvaluationStore';
 import ReplStore from '../stores/ASReplStore';
 import FindStore from '../stores/ASFindStore';
+import ExpStore from '../stores/ASExpStore';
 
 import API from '../actions/ASApiActionCreators';
 import ReplActionCreator from '../actions/ASReplActionCreators';
+import ExpActionCreator from '../actions/ASExpActionCreators';
+
 import Shortcuts from '../AS/Shortcuts';
 import ShortcutUtils from '../AS/ShortcutUtils';
 import ClipboardUtils from '../AS/ClipboardUtils';
 import Util from '../AS/Util';
+import ParseUtils from '../AS/ParsingUtils';
+
 import Constants from '../Constants';
 import TC from '../AS/TypeConversions';
 import KeyUtils from '../AS/KeyUtils';
@@ -35,7 +40,7 @@ export default React.createClass({
     return {
       language: Constants.Languages.Excel,
       varName: '',
-      focus: 'grid',
+      focus: null,
       toastMessage: '',
       toastAction: '',
       replOpen: false,
@@ -81,12 +86,24 @@ export default React.createClass({
     return this.refs.editorPane.refs.editor.getRawEditor();
   },
 
+  _getEditorComponent(){
+    return this.refs.editorPane.refs.editor;
+  },
+
   _getDomEditor() {
     return React.findDOMNode(this.refs.editorPane.refs.editor);
   },
 
   _getReplEditor() {
     return this.refs.repl.refs.editor.getRawEditor();
+  },
+
+  _getTextbox(){
+    return this.refs.spreadsheet.refs.textbox;
+  },
+
+  _getRawTextbox() {
+    return this.refs.spreadsheet.refs.textbox.getRawEditor();
   },
 
   focusGrid() {
@@ -101,22 +118,6 @@ export default React.createClass({
     console.log("setting language: "+JSON.stringify(lang));
     this.setState({ language: lang });
     this.refs.spreadsheet.setFocus();
-  },
-
-
-  /* Update the focus between the editor and the grid */
-  toggleFocus() { //currently not used anywhere
-    console.log("In toggle focus function");
-    switch(this.state.focus) {
-      case 'grid':
-        this._getRawEditor().focus();
-        this.setState({focus: 'editor'});
-        break;
-      default:
-        this._getSpreadsheet().focus(); // ALEX I think you need takeFocus() ??
-        this.setState({focus: 'grid'});
-        break;
-    }
   },
 
    _onSetVarName(name) {
@@ -279,30 +280,25 @@ export default React.createClass({
     ShortcutUtils.tryShortcut(e, 'editor');
   },
 
-  // Called when focus on grid and key down fired that results in possible shortcut
-  _onGridDeferredKey(e) {
-    console.log("Grid key not visible");
-    ShortcutUtils.tryShortcut(e, 'common');
-    ShortcutUtils.tryShortcut(e, 'grid');
+  _onGridNavKeyDown(e) {
+    console.log("Eval pane has grid's nav key");
+    let insert = ExpStore.gridCanInsertRef();
+    if (insert){
+      // do nothing; onSelectionChange will fire
+    } else {
+      console.log("Will change selection and eval cell.");
+      let xpObj = {
+            expression: ExpStore.getExpression(),
+            language: this.state.language
+          };
+      this.handleEvalRequest(xpObj, null, null);
+    }
   },
 
   _onTextBoxDeferredKey(e) {
     console.log("Textbox key not visible");
     ShortcutUtils.tryShortcut(e, 'common');
     ShortcutUtils.tryShortcut(e, 'textbox');
-  },
-
-  _onTextBoxChange(e) {
-    console.log("eval pane detected text box change");
-    if (KeyUtils.producesVisibleChar(e) && e.which !== 13) {
-      // nothing
-    } else {
-      this.setState({
-        xpChangeOrigin: Constants.xpChange.FROM_TEXTBOX,
-        expressionWithoutLastRef: e.target.value,
-        expression: e.target.value
-      });
-    }
   },
 
   /* Callback from Repl component */
@@ -314,62 +310,72 @@ export default React.createClass({
   /**************************************************************************************************************************/
   // Deal with selection change from grid
 
-  /*
-  This function is called by ASSpreadsheet on a selection change
-  Deal with changing the expression in the editor when the selection in the sheet changes
-    1) Get the expression at the current location clicked from the evaluation store
-    2) Update the state of the evaluation pane, which forces React to rerender (and the editor to rerender)
-    3) Treat the special case when the expression is an error/other styles
-  */
-  // Note: if the selection is a Reference, we produce a 'pseudo' expression
   _onSelectionChange(sel) {
+    console.log("\nEVAL PANE ON SEL CHANGE");
+    console.log(this._getTextbox().editor.getCursorPosition());
+
     let rng = sel.range,
-        cell = Store.getCell(sel.origin.col, sel.origin.row),
-        changeSel = cell && !this.state.userIsTyping && cell.cellExpression,
-        shiftSelEmpty  = this.state.userIsTyping &&
-                         !Util.canInsertCellRefInXp(this.state.expressionWithoutLastRef),
-        shiftSelExists = cell && shiftSelEmpty;
-    if (changeSel || shiftSelExists) {
+        userIsTyping = ExpStore.getUserIsTyping(),
+        cell = Store.getCell(sel.origin.col, sel.origin.row);
+
+    let editorCanInsertRef = ExpStore.editorCanInsertRef(this._getRawEditor()), 
+        gridCanInsertRef = ExpStore.gridCanInsertRef(), 
+        textBoxCanInsertRef = ExpStore.textBoxCanInsertRef(this._getTextbox().editor);
+
+    console.log("editorCanInsertRef",editorCanInsertRef);
+    console.log("gridCanInsertRef",gridCanInsertRef);
+    console.log("textBoxCanInsertRef",textBoxCanInsertRef);
+
+    let canInsertRef = editorCanInsertRef || gridCanInsertRef || textBoxCanInsertRef; 
+    // Enumerate changes in selection that don't result in insertion
+    let changeSelToExistingCell = cell && !userIsTyping && cell.cellExpression,
+        changeSelToNewCell = !cell && !userIsTyping,
+        changeSelWhileTypingNoInsert = userIsTyping && !canInsertRef;
+
+    if (changeSelToExistingCell) {
+      console.log("\n\nSelected non-empty cell to move to");
       let {language,expression} = cell.cellExpression,
           val = cell.cellValue;
-      Store.setActiveSelection(sel, expression); // pass in an expression to get parsed dependencies
-      // here, language is a client/server agnostic object (see Constants.Languages)
-      this.setState({ xpChangeOrigin:Constants.xpChange.SEL_CHNG,
-                    language: Util.getAgnosticLanguageFromServer(language),
-                    expression: expression,
-                    expressionWithoutLastRef:expression,
-                    userIsTyping:false
-                    },function() {
-                      if (shiftSelExists) // selected while typing at wrong type; select away
-                        this.setTextBoxVisibility(false);
-                    });
-      // TODO: set var name as well
+      Store.setActiveSelection(sel, expression); 
+      ExpActionCreator.handleSelChange(expression);
       this.showAnyErrors(val);
-    }
-    else if (!this.state.userIsTyping || shiftSelEmpty) {
-      console.log("\n\nSelected new region empty");
+    } else if (changeSelToNewCell) {
+      console.log("\n\nSelected empty cell to move to");
       Store.setActiveSelection(sel, "");
-      console.log("about to set state");
-      this.setState({ xpChangeOrigin:Constants.xpChange.SEL_CHNG,
-                      expression: "",
-                      expressionWithoutLastRef: "",
-                      userIsTyping:false
-                    },function() {
-                      if (shiftSelEmpty) // selected while typing at wrong type; select away
-                        this.setTextBoxVisibility(false);
-                    });
+      this.refs.spreadsheet.repaint();
+      ExpActionCreator.handleSelChange('');
       this.hideToast();
-      console.log("after setstate call");
-    }
-    else {
-      if (Util.canInsertCellRefInXp(this.state.expressionWithoutLastRef)) {
-        console.log("PARTIAL");
-        let newXp = this.state.expressionWithoutLastRef  + Util.locToExcel(rng);
-        this.refs.spreadsheet._getHypergrid().repaint();
-        this.setState({xpChangeOrigin:Constants.xpChange.PARTIAL_REF_CHNG,
-                       expression:newXp
-        });
+    } else if (changeSelWhileTypingNoInsert){
+      console.log("Change sel while typing no insert");
+      let xpObj = {
+          expression: ExpStore.getExpression(),
+          language: this.state.language
+      };
+      Store.setActiveSelection(sel, "");
+      this.handleEvalRequest(xpObj, null, null);
+    } else if (userIsTyping) {
+      if (editorCanInsertRef){ // insert cell ref in editor
+        console.log("Eval pane inserting cell ref in editor");
+        let excelStr = Util.rangeToExcel(rng);
+        this._getEditorComponent().insertRef(excelStr);
+        let newStr = this._getRawEditor().getValue(); // new value
+        ExpActionCreator.handlePartialRefEditor(newStr,excelStr);
       }
+      else if (textBoxCanInsertRef){ // insert cell ref in textbox
+        console.log("Eval pane inserting cell ref in textbox");
+        console.log("Current value: " + this._getTextbox().editor.getValue());
+        let excelStr = Util.rangeToExcel(rng);
+        this._getTextbox().insertRef(excelStr);
+        let newStr = this._getTextbox().editor.getValue();
+        ExpActionCreator.handlePartialRefTextBox(newStr,excelStr);
+      }
+      else if (gridCanInsertRef){ // insert cell ref in textbox
+        console.log("Eval pane inserting cell ref originating from grid");
+        let excelStr = Util.rangeToExcel(rng);
+        ExpActionCreator.handlePartialRefGrid(excelStr);
+      }
+    } else {
+      console.log("\n\nUNHANDLED CASE IN ONSELECTIONCHANGE -- FIX NOW\n\n");
     }
   },
 
@@ -383,16 +389,21 @@ export default React.createClass({
     2) Send this and the editor state (expression, language) to the API action creator, which will send it to the backend
   */
   handleEvalRequest(xpObj, moveCol, moveRow) {
+    console.log("Handling EVAL request");
 
-    /* If user pressed Ctrl Enter, they're not typing out the expression anymore */
-    this.killTextbox();
+    this.refs.spreadsheet.refs.textbox.hideTextBox();
+    ExpStore.setLastCursorPosition(Constants.CursorPosition.GRID);
+    ExpStore.setUserIsTyping(false);
+
     Store.setActiveCellDependencies([]);
     this.refs.spreadsheet.repaint();
-    console.log("\n\nDF\n\n", Store.getActiveSelection());
+
     let origin = Store.getActiveSelection().origin,
         rng = {tl: origin, br: origin},
         asIndex = TC.simpleToASIndex(rng);
-    this.refs.spreadsheet.shiftSelectionArea(moveCol, moveRow);
+    if (moveCol !== null && moveRow !== null){
+      this.refs.spreadsheet.shiftSelectionArea(moveCol, moveRow);
+    }
     API.evaluate(asIndex, xpObj);
   },
 
@@ -408,6 +419,17 @@ export default React.createClass({
     API.evaluateRepl(xpObj);
   },
 
+  /**************************************************************************************************************************/
+  /* Focus */
+
+  setFocus(elem) {
+    if (elem === 'editor')
+      this._getRawEditor().focus();
+    else if (elem === 'grid')
+      this.refs.spreadsheet.setFocus();
+    else if (elem === 'textbox')
+      this._getRawTextbox().focus();
+  },
 
   /**************************************************************************************************************************/
   /* REPL handling methods */
@@ -472,7 +494,7 @@ export default React.createClass({
   },
 
   render() {
-    let {expression, language} = this.state,
+    let {expression, language, focus} = this.state,
         highlightFind = this.state.showFindBar || this.state.showFindModal;
 
     // highlightFind is for the spreadsheet to know when to highlight found locs
@@ -488,6 +510,7 @@ export default React.createClass({
                                                  onClose={this.closeFindModal} /> : null}
         <ASCodeEditor
           ref='editorPane'
+          focusGrid={this.focusGrid}
           language={language}
           onReplClick={this._toggleRepl}
           onLanguageChange={this.setLanguage}
@@ -500,7 +523,7 @@ export default React.createClass({
         <ASSpreadsheet
           ref='spreadsheet'
           highlightFind={highlightFind}
-          onDeferredKey={this._onGridDeferredKey}
+          onNavKeyDown={this._onGridNavKeyDown}
           onTextBoxDeferredKey={this._onTextBoxDeferredKey}
           onSelectionChange={this._onSelectionChange}
           width="100%"

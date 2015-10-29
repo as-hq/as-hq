@@ -535,4 +535,5 @@ export default {
     return {tl: {col: tl.col + Constants.scrollCacheX, row: tl.row + Constants.scrollCacheY},
             br: {col: br.col + Constants.scrollCacheX, row: br.row + Constants.scrollCacheY}};
   }
+
 };

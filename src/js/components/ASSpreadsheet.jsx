@@ -26,8 +26,8 @@ export default React.createClass({
 
   propTypes: {
     onSelectionChange: React.PropTypes.func.isRequired,
-    onDeferredKey: React.PropTypes.func.isRequired,
-    onTextBoxDeferredKey: React.PropTypes.func.isRequired
+    onTextBoxDeferredKey: React.PropTypes.func.isRequired,
+    onNavKeyDown: React.PropTypes.func.isRequired
   },
 
   // TODO: do we actually need behavior??
@@ -64,6 +64,7 @@ export default React.createClass({
           Need to also figure out the expression to render in the editor
         */
         'fin-selection-changed': function (event) {
+          console.log("SELECTION CHANGE");
           self.props.onSelectionChange(self.getSelectionArea());
           },
         'fin-scroll-x': function (event) {
@@ -75,6 +76,10 @@ export default React.createClass({
           self.setState({scroll: self.getScroll()});
           if ((self.getScroll()).y % 20 === 0)
             ActionCreator.scroll(self.getViewingWindow());
+          },
+        'fin-double-click': function (event) {
+          console.log("DOUBLE ClICK");
+          self.refs.textbox.updateTextBox(ExpStore.getExpression());
           }
       });
       for (var key in callbacks) {
@@ -142,13 +147,17 @@ export default React.createClass({
     return this._getHypergrid().getVisibleRows().length;
   },
 
-  getTextboxPosition(scroll) {
-    if (this.isMounted()) {
+  getTextboxPosition() {
+    let scroll = this.state.scroll;
+    if (Store.getActiveSelection()){
       let {col, row} = Store.getActiveSelection().origin,
           rect = document.createElement('fin-rectangle'),
           point = rect.point.create(col - scroll.x, row - scroll.y);
       return this._getHypergrid().getBoundsOfCell(point);
-    } else return null;
+    }
+    else {
+      return null;
+    }
   },
 
 
@@ -158,9 +167,8 @@ export default React.createClass({
   /* Initial a sheet with blank entries */
   initialize(){
     let model = this._getBehavior();
-    model.getValue = function(x, y) {
-      return '';
-    };
+    model.getValue = function(x, y) { return ''; };
+    model.getCellEditorAt = function(x, y) { return null; }
     this.select({tl: {row: 1, col: 1}, br: {row: 1, col: 1}});
   },
   // expects that the current sheet has already been set
@@ -265,6 +273,11 @@ export default React.createClass({
     this.select(Util.getSafeRange(range), Util.getSafeIndex(origin));
   },
 
+  navByKey(e) {
+    // TODO
+    console.log("navbykey called");
+  },
+
   scrollTo(x, y){
     let hg = this._getHypergrid();
     hg.setVScrollValue(y),
@@ -273,50 +286,93 @@ export default React.createClass({
   },
 
   /*************************************************************************************************************************/
-  // Handling key events
+  // Handling events
 
-  handleKeyDown(e) {
+  _onKeyDown(e){
     console.log("\n\nGRID KEYDOWN");
     e.persist(); // prevent react gc
-    if (ShortcutUtils.gridShouldDeferKey(e)){ // if anything but nav keys, bubble event to parent
-      if (!KeyUtils.isCopyPasteType(e)){
-        console.log("Grid key down was copy paste type");
-        KeyUtils.killEvent(e);
-      }
-      if (KeyUtils.producesVisibleChar(e)) {
+    if (ShortcutUtils.gridShouldDeferKey(e)){ // not a nav key
+      KeyUtils.killEvent(e);
+      // TODO copy/paste not implemented.
+      // if (!KeyUtils.isCopyPasteType(e)){
+        // console.log("Grid key down was not copy paste type");
+      // }  
+      if (KeyUtils.producesVisibleChar(e) && e.which !== 13) {
         // Need to update the editor and textbox now via action creators
         console.log("Grid key down going to AC"); 
         let curStr = ExpStore.getExpression(),
             newStr = KeyUtils.modifyStringForKey(curStr, e);
+        // ^ modify string for key deals with ctrl+backspace too
+        // if visible key and there was a last cell ref, move the selection back to the origin
+        if (ExpStore.getLastRef() !== null) {
+          let {range, origin} = Store.getActiveSelection();
+          this.select(range, origin);
+        }
         ExpActionCreator.handleGridChange(newStr);
-      }
-      else {
+      } else {
         // Try shortcuts
         console.log("Grid key down, trying shortcut");
-        this.props.onDeferredKey(e);
+        ShortcutUtils.tryShortcut(e, 'common');
+        ShortcutUtils.tryShortcut(e, 'grid');
       }
+    } else { // nav key from grid
+      this.props.onNavKeyDown(e);
     }
+  },
+
+  onTextBoxDeferredKey(e){
+    if (e.ctrlKey) { // only for ctrl+arrowkeys
+      ShortcutUtils.tryShortcut('grid');
+    }
+    else {
+      this.navByKey(e); // all others handled by grid
+    }
+  },
+
+  _onFocus(e) {
+    Store.setFocus('grid');
   },
 
   /*************************************************************************************************************************/
   // Respond to change event from ExpStore
 
   _onExpressionChange(){
-    let xpOrigin = ExpStore.getXpOrigin();
-    switch(xpOrigin){
-      case Constants.xpChange.FROM_EDITOR:
+    let xpChangeOrigin = ExpStore.getXpChangeOrigin(),
+        xpStr = ExpStore.getExpression();
+    switch(xpChangeOrigin){
+      case Constants.ActionTypes.EDITOR_CHANGED:
         console.log("Grid caught exp update of EDITOR type");
-        this.refs.textbox.updateTextBox(ExpStore.getExpression());
+        this.refs.textbox.updateTextBox(xpStr);
         break;
-      case Constants.xpChange.FROM_GRID:
+      case Constants.ActionTypes.GRID_KEY_PRESSED:
         console.log("Grid caught exp update of GRID type");
-        this.refs.textbox.updateTextBox(ExpStore.getExpression());
+        this.refs.textbox.updateTextBox(xpStr);
         break;
-      default: // don't need to do anything on TEXTBOX_CHANGED
+      case Constants.ActionTypes.NORMAL_SEL_CHANGED:
+        console.log("Grid caught exp update of SEL_CHNG type");
+        this.refs.textbox.hideTextBox(xpStr);
+        break;
+      case Constants.ActionTypes.PARTIAL_REF_CHANGE_WITH_GRID:
+        console.log("Grid caught PARTIAL GRID");
+        this.refs.textbox.updateTextBox(xpStr);
+        break;
+      case Constants.ActionTypes.PARTIAL_REF_CHANGE_WITH_EDITOR:
+        console.log("Grid caught PARTIAL EDITOR");
+        this.refs.textbox.updateTextBox(xpStr);
+        break;
+      case Constants.ActionTypes.ESC_PRESSED:
+        console.log("Grid caught ESC");
+        this.refs.textbox.updateTextBox(xpStr);
+        this.refs.textbox.hideTextBox();
+        break;
+      default: 
+        // don't need to do anything on TEXTBOX_CHANGED
+        // or PARTIAL_REF_CHANGE_WITH_TEXTBOX
         break;
     }
   },
 
+  
   /*************************************************************************************************************************/
   // Cell renderer
 
@@ -396,7 +452,6 @@ export default React.createClass({
   // Render
 
   render() {
-    console.log("rendering spreadsheet");
     let {behavior, width, height} = this.props; //should also have onReady
     let style = {width: width, height: height};
     let behaviorElement;
@@ -415,8 +470,9 @@ export default React.createClass({
         <fin-hypergrid
           style={style}
           ref="hypergrid"
-          onKeyDown={this.handleKeyDown}>
+          onKeyDown={this._onKeyDown}>
             {behaviorElement}
+          onFocus={this._onFocus}
         </fin-hypergrid>
 
         {this.state.overlays.map(function (overlay) {
@@ -429,9 +485,10 @@ export default React.createClass({
 
 
         <Textbox ref="textbox"
+                 focusGrid={this.setFocus}
                  scroll={self.state.scroll}
                  onDeferredKey={this.props.onTextBoxDeferredKey}
-                 position={this.getTextboxPosition(self.state.scroll)}/>
+                 position={this.getTextboxPosition}/>
 
       </div>
     );

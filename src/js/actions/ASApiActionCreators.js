@@ -159,7 +159,7 @@ export default {
       waitTime = 0;
     }
 
-    if (waitTime >= 2000 && !refreshDialogShown) {
+    if (waitTime >= 2000 && !refreshDialogShown && !Constants.isDebug) {
       alert("The connection with the server appears to have been lost. Please refresh the page.");
       refreshDialogShown = true;
       waitTime = 0;

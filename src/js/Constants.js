@@ -1,9 +1,11 @@
 import keyMirror from 'react/lib/keyMirror';
 
 export default {
-  HOST_BASE_URL: 'localhost',
-  HOST_WS: 'ws://' + 'localhost' + ':5000',
+  HOST_BASE_URL: '18.102.225.27',
+  HOST_WS: 'ws://' + '18.102.225.27' + ':5000',
   HOST_STATIC_URL: 'http://' + 'localhost' + ':8000',
+
+  isDebug: false,
 
   // event name triggered from store, listened to by views
   CHANGE_EVENT: 'change',
@@ -56,7 +58,10 @@ export default {
     EDITOR_CHANGED:null,
     TEXTBOX_CHANGED:null,
     NORMAL_SEL_CHANGED:null,
-    PARTIAL_REF_FOUND:null
+    PARTIAL_REF_CHANGE_WITH_EDITOR:null,
+    PARTIAL_REF_CHANGE_WITH_GRID:null,
+    PARTIAL_REF_CHANGE_WITH_TEXTBOX:null,
+    ESC_PRESSED:null
   }),
 
   ActionSources: keyMirror({
@@ -125,12 +130,10 @@ export default {
     AddTags: "AddTags", RemoveTags: "RemoveTags"
   },
 
-  xpChange: {
-    FROM_GRID:0,
-    FROM_EDITOR:1,
-    SEL_CHNG:2,
-    PARTIAL_REF_CHNG:3,
-    FROM_TEXTBOX:4,
-    NONE:5
+  CursorPosition:{
+    GRID: "GRID",
+    TEXTBOX: "TEXTBOX",
+    EDITOR: "EDITOR"
   }
+
 };

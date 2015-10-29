@@ -4,11 +4,15 @@ import Constants from '../Constants';
 import Util from '../AS/Util';
 import KeyUtils from '../AS/KeyUtils';
 import ShortcutUtils from '../AS/ShortcutUtils';
+import ParseUtils from '../AS/ParsingUtils';
 
+import Store from '../stores/ASEvaluationStore';
 import ExpStore from '../stores/ASExpStore';
 import ExpActionCreator from '../actions/ASExpActionCreators.js';
 
 let TextareaAutosize = require('react-autosize-textarea');
+
+var ace = require('brace');
 
 export default React.createClass({
 
@@ -17,98 +21,133 @@ export default React.createClass({
 
   propTypes: {
     onDeferredKey: React.PropTypes.func.isRequired,
-    position: React.PropTypes.object.isRequired
+    focusGrid: React.PropTypes.func.isRequired,
+    position: React.PropTypes.func.isRequired
   },
 
   getInitialState(){
     return {
-      expression: "",
-      isVisible: false
+      isVisible: false,
+      renderTrigger: false // WTF we have to do this I feel so dirty
     };
+  },
+
+  componentDidMount(){
+    this.editor = ace.edit('textbox');
+    this.editor.$blockScrolling = Infinity;
+    this.editor.on('focus', this._onFocus);
+    this.editor.getSession().on('change', this._onChange);
+    this.editor.container.addEventListener('keydown',this._onKeyDown,true);
+    // TODO: add a lang prop or something
+    this.editor.getSession().setMode('ace/mode/python');
+    this.editor.setFontSize(10);
+    this.editor.setOption('maxLines', Infinity);
+    this.editor.renderer.setShowGutter(false); // no line numbers
+    this.editor.getSession().setUseWrapMode(true); // no word wrap
   },
 
   /**************************************************************************************************************************/
   // Text box focus and update methods
 
-  /* Hack to get the cursor at the end upon focus */
-  onFocus(){
-    let curXp = this.state.expression,
-        newXp = '';
-    this.setState({expression:newXp},function(){
-      this.setState({expression:curXp});
-    })
-  },
-
   updateTextBox(xpStr){
     console.log("Updating textbox: " + xpStr);
-    this.setState({expression:xpStr, isVisible: true});
+    ExpStore.setDoTextBoxCallback(false);
+    this.setState({isVisible: true});
+    this.editor.setValue(xpStr);
+    this.editor.clearSelection(); // otherwise ace highlights whole xp
+    if (ExpStore.textBoxCanInsertRef(this.editor)){ // parsable position
+      console.log("TEXTBOX FOCUSING GRID");
+      this.props.focusGrid();
+    }
   },
 
   hideTextBox(){
     this.setState({isVisible:false});
   },
 
-  getWidth(xp){
-    let rows = xp.split("\n"),
-        longestStr = rows.reduce(function (a, b) { return a.length > b.length ? a : b; }),
-        extentX = this.props.position ? this.props.position.extent.x : 0;
-    return Math.max(extentX, (longestStr.length)*12);
-  },
-
-  /**************************************************************************************************************************/
-  // Respond to key events
-
-  _onKeyDown(e){
-    console.log("\n\nTEXTBOX KEYDOWN");
-    e.persist(); // prevent react gc
-    if (ShortcutUtils.gridShouldDeferKey(e)){ // if anything but nav keys, bubble event to parent
-      if (KeyUtils.producesVisibleChar(e) && e.which !== 13) {
-        console.log("Textbox keydown needs action creator");
-      } 
-      else { // try shortcut
-        console.log("TEXTBOX DEFERRED KEY");
-        this.props.onDeferredKey(e);
-      }
+  getWidth(){
+    if (Store.getActiveSelection()){
+      let xp = this.editor.getValue(),
+          rows = xp.split("\n"),
+          longestStr = rows.reduce(function (a, b) { return a.length > b.length ? a : b; }),
+          extentX = this.props.position() ? this.props.position().extent.x : 0;
+      return Math.max(extentX, 30+(longestStr.length)*12);
+    } else {
+      return 0;
     }
   },
 
-  /* This will not be called upon a setState in updateTextBox because (?)
-  React only fires it internally upon a user-interaction
-  As a result, we don't need an extra bool in the ExpStore as with the Ace Editor
-  */
+  getRawEditor() {
+    return this.editor;
+  },
+
+  /**************************************************************************************************************************/
+  // Helpers
+
+  insertRef(newRef){
+    let lastRef = ExpStore.getLastRef();
+    console.log("Inserting ref in textbox " + newRef);
+    console.log("Expression before insertion: " + this.editor.getValue());
+    ExpStore.setDoTextBoxCallback(false);
+    if (lastRef !== null){
+      ParseUtils.deleteLastRef(this.editor,lastRef);
+    }
+    this.editor.getSession().insert(this.editor.getCursorPosition(),newRef);
+    console.log("New textbox xp: " + this.editor.getValue());
+  },
+
+  /**************************************************************************************************************************/
+  // Respond to events from ace
+
+  _onKeyDown(e){
+    console.log("\n\nTEXTBOX KEYDOWN");
+    if (ShortcutUtils.textboxShouldDeferKey(e)) {
+      KeyUtils.killEvent(e);
+      this.props.onDeferredKey(e);
+    } else {
+        // onChange will call an action creator
+        // you want an onchange to fire here
+      ExpStore.setDoTextBoxCallback(true);
+      console.log("textbox will fire action creator", e);
+    }
+  },
+
   _onChange(e){
-    let xpStr = e.target.value;
-    console.log("TEXTBOX CHANGE: " + xpStr);
-    ExpActionCreator.handleTextBoxChange(xpStr);
-    this.setState({expression:xpStr});
+    let xpStr = this.editor.getValue();
+    if (ExpStore.getDoTextBoxCallback()){
+      console.log("Textbox change new string: " + xpStr);
+      ExpActionCreator.handleTextBoxChange(xpStr);
+    } 
+    this.setState({renderTrigger: !this.state.renderTrigger});
+  },
+
+  _onFocus(e) {
+    console.log("FOCUS ON TEXTBOX");
+    console.assert(ExpStore.getUserIsTyping());
+    Store.setFocus('textbox');
+    ExpStore.setLastCursorPosition(Constants.CursorPosition.TEXTBOX);
+    ExpStore.setLastRef(null); 
+    this.editor.resize();
   },
 
   /**************************************************************************************************************************/
   // Render
 
   render() {
-    console.log("Textbox rendering");
-    let baseStyle = {display:'block',
+    let baseStyle = {
+                     display:'block',
                      position:'absolute',
-                     width:"100%",
-                     top: this.props.position ? this.props.position.origin.y : null,
-                     left: this.props.position ? this.props.position.origin.x : null,
-                     zIndex:5
+                     top: this.props.position() ? this.props.position().origin.y : null,
+                     left: this.props.position()? this.props.position().origin.x : null,
+                     zIndex:5,
+                     width: this.getWidth(),
+                     border: "solid 2px black",
+                     visibility: this.state.isVisible ? 'visible' : 'hidden'
                      };
-    let textStyle = {
-      width: this.getWidth(this.state.expression),
-      border: "solid 2px black"
-    };
-    let overlay = this.state.isVisible ?
-          <TextareaAutosize ref="box" type="text" autoFocus onFocus={this.onFocus}
-                 style={textStyle}
-                 onKeyDown={this._onKeyDown}
-                 onChange={this._onChange}
-                 value={this.state.expression} /> : null ;
+
     return (
-        <div style={baseStyle} >
-          {overlay}
-        </div>
+      <div id={'textbox'} 
+           style={baseStyle} />
     );
   }
 

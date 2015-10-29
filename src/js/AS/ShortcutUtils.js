@@ -58,13 +58,26 @@ export default {
   },
 
   gridShouldDeferKey(e){
-    if (e.ctrlKey)
+    if (e.ctrlKey || e.which === 13){
       return true;
-    else return !Util.arrContains(KeyUtils.navKeys, e.which);
+    } else {
+      return !KeyUtils.isNavKey(e);
+    }
   },
 
   editorShouldDeferKey(e) {
-    return !KeyUtils.producesVisibleChar(e) && !KeyUtils.isCopyPasteType(e);
+    return !KeyUtils.producesVisibleChar(e) && 
+           !KeyUtils.isNavKey(e) && 
+           !KeyUtils.isCopyPasteType(e) && 
+           !(e.ctrlKey && e.which === 65) && // ctrl+A
+           !(e.which === 9) // Tab; 
+  },
+
+  textboxShouldDeferKey(e) {
+    return (e.which === 13) || 
+           (!KeyUtils.producesVisibleChar(e) && 
+            !KeyUtils.isNavKey(e) &&
+            !(e.ctrlKey && e.which === 65));
   },
 
   replShouldDeferKey(e) {
