@@ -611,7 +611,7 @@ describe('backend', () => {
       });
 
       describe('excelfunctions', () => {
-        // This test doesn't work until double equality is fixed. 
+        // This test won't work until double equality is fixed. 
         xit ('CORREL', (done) => {
             _do([
                 excel('A1', 'Data1'),
@@ -637,6 +637,7 @@ describe('backend', () => {
                 exec(done)
             ]);
         });
+        // This test will fail until blank cells  = 0.
         xit ('SUM', (done) => {
           _do([
             excel('A1', '-5'),
