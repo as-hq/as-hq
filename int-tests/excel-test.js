@@ -6129,33 +6129,6 @@ describe('excel', () => {
       exec(done)
     ]);
   });
-  it('HYPERLINK', (done) => {
-    _do([
-      excel('A1', 'Example'),
-      excel('A10', '=HYPERLINK($Z$1)'),
-      excel('A2', '=HYPERLINK("http://example.microsoft.com/report/budget report.xlsx", "Click for report")'),
-      excel('A3', '=HYPERLINK("[http://example.microsoft.com/report/budget report.xlsx]Annual!F10", D1)'),
-      excel('A4', '=HYPERLINK("[http://example.microsoft.com/report/budget report.xlsx]\'First Quarter\'!DeptTotal", "Click to see First Quarter Department Total")'),
-      excel('A5', '=HYPERLINK("http://example.microsoft.com/Annual Report.docx]QrtlyProfits", "Quarterly Profit Report")'),
-      excel('A6', '=HYPERLINK("\\FINANCE\Statements\1stqtr.xlsx", D5)'),
-      excel('A7', '=HYPERLINK("D:\FINANCE\1stqtr.xlsx", H10)'),
-      excel('A8', '=HYPERLINK("[C:\My Documents\Mybook.xlsx]Totals")'),
-      excel('A9', '=HYPERLINK("[Budget.xlsx]E56", E56)'),
-      excel('B1', 'Result'),
-
-      shouldBe('A10', valueS('To quickly update all formulas in a worksheet that use a HYPERLINK function with the same arguments, you can place the link target in another cell on the same or another worksheet, and then use an absolute reference to that cell as the link_location in the HYPERLINK formulas. Changes that you make to the link target are immediately reflected in the HYPERLINK formulas.')),
-      shouldBe('A2', valueS('Opens a workbook saved at http://example.microsoft.com/report. The cell displays "Click for report" as its jump text.')),
-      shouldBe('A3', valueS('Creates a hyperlink to cell F10 on the Annual worksheet in the workbook saved at http://example.microsoft.com/report. The cell on the worksheet that contains the hyperlink displays the contents of cell D1 as its jump text.')),
-      shouldBe('A4', valueS('Creates a hyperlink to the range named DeptTotal on the First Quarter worksheet in the workbook saved at http://example.microsoft.com/report. The cell on the worksheet that contains the hyperlink displays "Click to see First Quarter Department Total" as its jump text.')),
-      shouldBe('A5', valueS('To create a hyperlink to a specific location in a Word file, you use a bookmark to define the location you want to jump to in the file. This example creates a hyperlink to the bookmark QrtlyProfits in the file Annual Report.doc saved at http://example.microsoft.com.')),
-      shouldBe('A6', valueS('Displays the contents of cell D5 as the jump text in the cell and opens the workbook saved on the FINANCE server in the Statements share. This example uses a UNC path.')),
-      shouldBe('A7', valueS('Opens the workbook 1stqtr.xlsx that is stored in the Finance directory on drive D, and displays the numeric value that is stored in cell H10.')),
-      shouldBe('A8', valueS('Creates a hyperlink to the Totals area in another (external) workbook, Mybook.xlsx.')),
-      shouldBe('A9', valueS('To jump to a different sheet in the same workbook, include the name of the sheet, followed by an exclamation point (!), in the link. In the previous example, to create a link to cell E56 on the September sheet, include September! in the link.')),
-
-      exec(done)
-    ]);
-  });
   it('INDEX', (done) => {
     _do([
       excel('A1', 'Data'),
