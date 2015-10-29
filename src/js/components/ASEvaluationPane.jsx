@@ -271,13 +271,18 @@ export default React.createClass({
   /* Copy paste handling */
 
   handleCopyTypeEventForGrid(e,isCut) {
-    // KeyUtils.killEvent(e);
+    KeyUtils.killEvent(e);
     // For now, the killEvent doesn't kill fin-hypergrid's default copy handler, since
     // fin's hypergrid component is a child of ASEvaluationPane. If all this code
     // gets commented out, copy actually works mostly as expected, EXCEPT that
     // the table saved to the clipboard (from "let html = ...") doesn't have
     // id=alphasheets set, which is how we know we the clipboard content is
     // from AlphaSheets originally.
+    // 
+    // Alex 10/29 -- nope, killEvent actually does something, and I don't understand what. 
+    // I DO know that if you leave it out, cut doesn't save anything to the clipboard 
+    // if there's already external data on the clipboard, but copy DOES work, and I don't
+    // understand why. 
     let sel = Store.getActiveSelection(),
         vals = Store.getRowMajorCellValues(sel.range);
     if (vals) {
