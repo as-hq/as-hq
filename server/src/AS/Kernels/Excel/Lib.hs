@@ -29,7 +29,7 @@ import Data.Ord (comparing)
 
 import qualified Data.Map.Lazy as ML
 
-import AS.Parsing.Out (exRefToASRef)
+import AS.Parsing.Out (exRefToASRef, excelMatch)
 import Control.Exception.Base hiding (try)
 
 import AS.Util
@@ -43,10 +43,10 @@ type Offset = (Col,Row)
 -- | TODO: use unboxing if performance is a problem
 -- | TODO: implement indirect helper
 -- | TODO: implement rand without IO creep
+-- | TODO: AND and OR seem to not deal with blank cells properly. 
 -- | TODO: test missing arguments; f(a1,a2,,a3) and refactor; EMissing isn't really an EValue
 -- | TODO: test hypothesis that scalarizing a ref is actually row col int based always
 -- | TODO: make sure that ifFunc's can deal with array constants as arguments if acceptable
-
 -- | TODO: index is only array-mode at this point (tuples needed for ref mode)
 -- | TODO: apparently index(A1:B2,{1;2},{1,2}) works WTF
 
@@ -833,14 +833,35 @@ eIndirect :: EFunc
 eIndirect c e = do
   refString <- getRequired "string" "indirect" 1 e :: ThrowsError String
   a1Bool <- getOptional "bool" True "indirect" 2 e :: ThrowsError Bool
-  case (stringToLoc a1Bool refString) of
+  case (stringToLoc a1Bool (refSheetId $ curLoc c) refString) of
     Nothing -> Left $ REF "Indirect did not refer to valid reference as first argument"
     Just loc -> return $ EntityRef (ERef loc)
 
 -- | TODO: finish
 -- | Given boolean (True = A1, False = R1C1) and string, cast into ASLocation if possible (eg "A$1" -> Index (1,1))
-stringToLoc :: Bool -> String -> Maybe ASReference
-stringToLoc b s  = Just $ IndexRef $ Index (T.pack "") (1,1)
+
+justExcelMatch :: Parser ExRef
+justExcelMatch = do 
+  m <- excelMatch
+  eof
+  return m
+
+r1c1 :: ASSheetId -> Parser ASReference
+r1c1 sid = do 
+  char 'R' <|> char 'r'
+  row <- many1 digit
+  char 'C' <|> char 'c'
+  col <- many1 digit
+  return $ IndexRef $ Index sid (read col :: Int, read row :: Int)
+
+stringToLoc :: Bool -> ASSheetId -> String -> Maybe ASReference
+stringToLoc True sid str = case parse justExcelMatch "" str of 
+  Right exRef -> Just $ exRefToASRef sid exRef
+  Left _ -> Nothing 
+
+stringToLoc False sid str = case parse (r1c1 sid) "" str of 
+  Right asRef -> Just asRef
+  Left _ -> Nothing
 
 -- | Takes a reference, height/width/col/row parameters, and returns an offsetted reference
 eOffset :: EFunc
