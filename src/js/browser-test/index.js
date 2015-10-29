@@ -12,6 +12,8 @@ import {
   blockUntilReady
 } from './exec-monad';
 import {
+  __injectExpect,
+
   locFromExcel,
 
   python,
@@ -174,6 +176,7 @@ let tests = _describe('keyboard tests', {
 export function install(w, ep) {
   evalPane = ep;
   w.test = tests;
+  __injectExpect(expect);
 
   /* needed for test success count */
   Promise.prototype.finally = function (callback) {

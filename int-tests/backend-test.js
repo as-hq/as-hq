@@ -9,6 +9,8 @@ jasmine.DEFAULT_TIMEOUT_INTERVAL = 10000;
 describe('backend', () => {
   const Util = require('../src/js/AS/Util');
   const {
+    __injectExpect,
+
     locToExcel,
     locFromExcel,
 
@@ -51,6 +53,10 @@ describe('backend', () => {
     _forM_,
     exec
   } = require('../src/js/browser-test/exec-monad');
+
+  beforeAll(() => {
+    __injectExpect(expect);
+  });
 
   describe('login', () => {
   });

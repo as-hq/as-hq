@@ -7,7 +7,11 @@ import TC from '../AS/TypeConversions';
 import Store from '../stores/ASEvaluationStore';
 
 import {promise, exec, fromToInclusive, _do, _doDefer} from './exec-monad';
-import {expect} from './test-framework';
+
+let expect;
+export function __injectExpect(exp) {
+  expect = exp;
+}
 
 export function locFromExcel(exLoc) {
   return Util.excelToRange(exLoc);
