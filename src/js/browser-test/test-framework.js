@@ -83,7 +83,7 @@ function runTestsWithCallbacks(tests, cbs) {
     beforeEach = empty,
     afterAll = empty,
     afterEach = empty } =
-    _.mapValues(cbs, (cb) => _doDefer(cb));
+    _.mapValues(cbs, _doDefer);
 
   return _doDefer([
     beforeAll,
@@ -108,6 +108,19 @@ let hooks = {
         return selfValue === otherVal;
       }
     };
+  },
+
+  toBeSupersetOf(selfValue) {
+    return {
+      message(otherVal) {
+        return `Expected ${JSON.stringify(selfValue)} to be superset of ${JSON.stringify(otherVal)}`;
+      },
+      compare(otherVal) {
+        return Object.keys(otherVal)
+          .map((k) => _.isEqual(otherVal[k], selfValue[k]))
+          .reduce((acc, cur) => acc && cur, true);
+      }
+    }
   }
 };
 

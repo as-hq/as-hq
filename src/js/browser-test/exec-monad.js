@@ -34,8 +34,9 @@ export function logP(str) {
 export function blockUntil(fn, _interval=100, _timeout=5000) {
   return promise((fulfill, reject) => {
     let t = _timeout;
+
+    /* following must be var, because it is self-referential and scoping will kill it */
     var tmr = setInterval(() => {
-      console.log('checking interval');
       if (fn()) {
         clearInterval(tmr);
         fulfill();

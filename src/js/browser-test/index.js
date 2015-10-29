@@ -2,6 +2,7 @@ import _ from 'lodash';
 
 import {expect, registerExpectation, _describe, _it} from './test-framework';
 import {
+  promise,
   exec,
   logP,
   _do,
@@ -18,53 +19,84 @@ import {
   ocaml,
   excel,
 
+  valueI,
+
   clear,
   cut,
   copy,
   undo,
-  redo
+  redo,
+
+  shouldBe,
+
+  actionAPIResponse
 } from './exec-api';
 
 import ASEvaluationStore from '../stores/ASEvaluationStore';
 import Util from '../AS/Util';
+import KeyUtils from '../AS/KeyUtils';
 
 let evalPane;
 
-function hypergrid() {
-  return evalPane.refs.spreadsheet._getHypergrid();
+function spreadsheet() {
+  return evalPane.refs.spreadsheet;
 }
 
-function generateKeyEventDetail(key) {
-  // TODO
+function hypergrid() {
+  return spreadsheet()._getHypergrid();
+}
 
+function generateKeyEvent(key) {
+  let {keyCode, ...keyEvent} = KeyUtils.parseIntoShortcut({}, key);
   return {
-    which: undefined,
-    shiftKey: undefined
+    persist() {},
+    which: keyCode,
+    ...keyEvent
   };
 }
 
 function keyPress(key) {
-  hypergrid().fireSyntheticKeydownEvent({
-    detail: generateKeyEventDetail(key)
-  });
+  let evt = generateKeyEvent(key);
+  spreadsheet().handleKeyDown(evt);
 }
 
 function mKeyPress(key) {
   return () => exec(() => { keyPress(key); });
 }
 
-let [ pressLeft, pressRight, pressCopy, pressPaste ] =
-  [ 'Left', 'Right', 'Ctrl+C', 'Ctrl+V' ].map(mKeyPress);
+let [ ] =
+  [ ].map(mKeyPress); /* future key shortcuts go here, for example Ctrl+Z */
+
+function pressCopy() {
+  return exec(() => {
+    evalPane.handleCopyTypeEventForGrid({
+      clipboardData: {
+        setData() { }
+      }
+    }, false);
+  });
+}
+
+function pressPaste() {
+  return exec(() => {
+    evalPane.handlePasteEventForGrid({
+      clipboardData: {
+        getData(x) { return ''; },
+        types: []
+      }
+    });
+  });
+}
 
 function selectRange(excelRng) {
   return exec(() => {
+    let hgRange = Util.excelToRange(excelRng);
+    spreadsheet().select(hgRange);
   });
-
-  // THIS IS THE WRONG WAY TO SELECT RANGE, THIS SETS THE CLIPBOARD
 }
 
 function clipboardRange() {
-  return ASEvaluationStore.getClipboard().area;
+  return ASEvaluationStore.getClipboard().area.range;
 }
 
 function formatTestCellToStore() {
@@ -73,9 +105,10 @@ function formatTestCellToStore() {
 
 /* block until the range registers the new selection */
 function blockUntilCopy(rng) {
-  return blockUntil(() =>
-      _.isEqual(clipboardRange(), locFromExcel(rng))
-  );
+  return blockUntil(() => {
+    console.log(clipboardRange(), locFromExcel(rng));
+    return _.isEqual(clipboardRange(), locFromExcel(rng));
+  });
 }
 
 function blockOnGetCells(cs) {
@@ -87,16 +120,26 @@ function blockOnGetCells(cs) {
   );
 }
 
-function shouldReceiveResponse(resp) {
-  return (result) => (
-    _.isEqual(resp, result)
-  );
+function waitForResponse(act) {
+  return promise((fulfill, reject) => {
+    actionAPIResponse(act, fulfill)();
+  });
 }
+
+let hooks = {
+
+};
 
 
 let tests = _describe('keyboard tests', {
   beforeAll: [ // prfs
-    logP('Initializing tests...') // no actual need to init
+    logP('Initializing tests...'),
+    exec(() => { evalPane.enableTestMode(); })
+  ],
+
+  afterAll: [
+    logP('Winding down...'),
+    exec(() => { evalPane.disableTestMode(); })
   ],
 
   beforeEach: [
@@ -111,6 +154,18 @@ let tests = _describe('keyboard tests', {
         selectRange('A1'),
         pressCopy(),
         blockUntilCopy('A1') /* don't finish the test until it actually stores in clipboard */
+      ]),
+
+      _it('should copy and paste a cell', [
+        python('A1', '1'),
+        selectRange('A1'),
+        pressCopy(),
+        blockUntilCopy('A1'),
+        selectRange('B1'),
+        waitForResponse(
+          pressPaste()
+        ),
+        shouldBe('B1', valueI(1))
       ])
     ]})
   ]
@@ -127,6 +182,10 @@ export function install(w, ep) {
         reason => this.constructor.resolve(callback()).then(() => { throw reason; })
     );
   };
+
+  _.forEach(hooks, (v, k) => {
+    registerExpectation(k, v);
+  });
 }
 
 

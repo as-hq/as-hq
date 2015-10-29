@@ -53,11 +53,10 @@ export function directAPIExec(fn) {
 }
 
 export function actionAPIResponse(actionPrmFn, responseFn) {
-  return () => {
-    return apiExec(actionPrmFn)().then((result) => {
-      responseFn(result);
-    });
-  };
+  return _doDefer([
+    apiExec(actionPrmFn),
+    exec(responseFn)
+  ]);
 }
 
 export function openSheet() {
