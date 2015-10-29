@@ -1470,16 +1470,27 @@ eSubstitute c e = do
 --------------------------------------------------------------------------------------------------------------
 -- Excel prefix/infix functions
 
-numPrefix :: String -> (ENumeric -> ENumeric) -> EFunc
-numPrefix name f c e = do 
+replaceBlanksWithZeroes :: [EEntity] -> [EEntity]
+replaceBlanksWithZeroes = map blankToZero
+  where blankToZero (EntityVal EBlank) = EntityVal $ EValueNum $ EValueI 0
+        blankToZero x = x
+
+numPrefix' :: String -> (ENumeric -> ENumeric) -> EFunc
+numPrefix' name f c e = do 
   a <- getRequired "numeric" name 1 e :: ThrowsError ENumeric
   valToResult $ EValueNum $ f a
 
-numInfix :: String -> (ENumeric -> ENumeric -> ENumeric) -> EFunc
-numInfix name f c e = do 
+numPrefix :: String -> (ENumeric -> ENumeric) -> EFunc
+numPrefix name f c e = numPrefix' name f c (replaceBlanksWithZeroes e)
+
+numInfix' :: String -> (ENumeric -> ENumeric -> ENumeric) -> EFunc
+numInfix' name f c e = do 
   a <- getRequired "numeric" name 1 e :: ThrowsError ENumeric
   b <- getRequired "numeric" name 2 e :: ThrowsError ENumeric
   valToResult $ EValueNum $ f a b
+
+numInfix :: String -> (ENumeric -> ENumeric -> ENumeric) -> EFunc
+numInfix name f c e = numInfix' name f c (replaceBlanksWithZeroes e)
 
 eAdd :: EFunc
 eAdd = numInfix "+" (+)
@@ -1505,16 +1516,19 @@ isNonnegative :: ENumeric -> Bool
 isNonnegative (EValueD a) = (a >= 0)
 isNonnegative (EValueI a) = (a >= 0)
 
-eDivide :: EFunc
-eDivide c e = do
+eDivide' :: EFunc
+eDivide' c e = do
   a <- getRequired "numeric" "/" 1 e :: ThrowsError ENumeric
   b <- getRequired "numeric" "/" 2 e :: ThrowsError ENumeric
   if (isZero b)
     then Left DIV0
     else valToResult $ EValueNum $ a / b
 
-ePower :: EFunc
-ePower c e = do
+eDivide :: EFunc
+eDivide c e = eDivide' c (replaceBlanksWithZeroes e)
+
+ePower' :: EFunc
+ePower' c e = do
   a <- getRequired "numeric" "^" 1 e :: ThrowsError ENumeric
   b <- getRequired "numeric" "^" 2 e :: ThrowsError ENumeric
   if (isZero a && isZero b) 
@@ -1524,6 +1538,9 @@ ePower c e = do
       EValueD _ -> if isNonnegative a 
         then valToResult $ EValueNum $ floatExp a b
         else Left NegExpBaseWithFloatingExp
+
+ePower :: EFunc
+ePower c e = ePower' c (replaceBlanksWithZeroes e)
 
 boolInfix :: String -> (EValue -> EValue -> Bool) -> EFunc
 boolInfix name f c e = do 
