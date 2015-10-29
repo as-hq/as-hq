@@ -40,10 +40,12 @@ AlphaSheets has three testing directories, `unit-tests` (inactive), `int-tests` 
 You can run API integration tests as follows:
 
 ```bash
-$ karma start
+$ gulp test-all
 ```
 
-and you can run UI integration tests by opening Chrome, opening the console, and typing `test()`.
+If you only want to run excel or eval tests, replace `test-all` with `test-excel` or `test-eval`, respectively.
+
+You can run UI integration tests by opening Chrome, opening the console, and typing `test()`.
 
 
 ## Generating Additional Code

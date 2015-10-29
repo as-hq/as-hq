@@ -13,16 +13,7 @@ module.exports = function (config) {
       }
     },
 
-    files: [
-      'node_modules/babel-core/browser-polyfill.js',
-      { pattern: 'test-context.js', watched: false }
-    ],
-
     frameworks: ['jasmine'],
-
-    preprocessors: {
-      'test-context.js': ['webpack', 'sourcemap']
-    },
 
     singleRun: true,
 
@@ -45,7 +36,7 @@ module.exports = function (config) {
     },
 
     client: {
-      captureConsole: true
+      captureConsole: false
     }
   });
 };
