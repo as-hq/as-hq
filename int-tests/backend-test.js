@@ -610,6 +610,105 @@ describe('backend', () => {
         });
       });
 
+      describe('excelfunctions', () => {
+        // This test doesn't work until double equality is fixed. 
+        xit ('CORREL', (done) => {
+            _do([
+                excel('A1', 'Data1'),
+                excel('A2', '3'),
+                excel('A3', '2'),
+                excel('A4', '4'),
+                excel('A5', '5'),
+                excel('A6', '6'),
+                excel('A7', 'Formula'),
+                excel('B1', 'Data2'),
+                excel('B2', '9'),
+                excel('B3', '7'),
+                excel('B4', '12'),
+                excel('B5', '15'),
+                excel('B6', '17'),
+                excel('B7', 'Description'),
+                excel('B8', 'Correlation coefficient of the two data sets in columns A and B.'),
+                excel('C7', 'Result'),
+                excel('A8', '=CORREL(A2:A6,B2:B6)'),
+
+                shouldBe('A8', valueD(0.997054486)),
+
+                exec(done)
+            ]);
+        });
+        xit ('SUM', (done) => {
+          _do([
+            excel('A1', '-5'),
+            excel('A2', '15'),
+            excel('A3', '20'),
+            excel('A4', '5'),
+            excel('A5', 'TRUE'),
+            excel('B1', '=SUM(A1,A2)'),
+            excel('B2', '=SUM(A2:A4,15)'),
+            excel('B3', '=SUM("5", 15, TRUE)'),
+            excel('B4', '=SUM(A5,A6, 2)'), 
+            shouldBe('B1', valueI(10)),
+            shouldBe('B2', valueI(55)),
+            shouldbe('B3', valueI(21)),
+            shouldbe('B4', valueI(2)),
+            exec(done)
+          ]);
+        });
+        it ('COVAR', (done) => {
+          _do([
+              excel('A1', 'Data1'),
+              excel('A2', '3'),
+              excel('A3', '2'),
+              excel('A4', '4'),
+              excel('A5', '5'),
+              excel('A6', '6'),
+              excel('A7', 'Formula'),
+              excel('A8', '=COVAR(A2:A6, B2:B6)'),
+              excel('B1', 'Data2'),
+              excel('B2', '9'),
+              excel('B3', '7'),
+              excel('B4', '12'),
+              excel('B5', '15'),
+              excel('B6', '17'),
+              excel('B7', 'Description'),
+              excel('B8', 'Covariance, the average of the products of deviations for each data point pair above.'),
+              excel('C7', 'Result'),
+              shouldBe('A8', valueD(5.2)),
+              exec(done)
+          ]);
+        });
+        xit ('MATCH', (done) => {
+            _do([
+                excel('A1', 'Product'),
+                excel('A2', 'Bananas'),
+                excel('A3', 'Oranges'),
+                excel('A4', 'Apples'),
+                excel('A5', 'Pears'),
+                excel('A6', 'Formula'),
+                excel('A7', '=MATCH(39,B2:B5,1)'),
+                excel('A8', '=MATCH(41,B2:B5,0)'),
+                excel('A9', '=MATCH(40,B2:B5,-1)'),
+                excel('B1', 'Count'),
+                excel('B2', '25'),
+                excel('B3', '38'),
+                excel('B4', '40'),
+                excel('B5', '41'),
+                excel('B6', 'Description'),
+                excel('B7', 'Because there is not an exact match, the position of the next lowest value (38) in the range B2:B5 is returned.'),
+                excel('B8', 'The position of the value 41 in the range B2:B5.'),
+                excel('B9', 'Returns an error because the values in the range B2:B5 are not in descending order.'),
+                excel('C6', 'Result'),
+
+                shouldBe('A7', valueI(2)),
+                shouldBe('A8', valueI(4)),
+                shouldBe('A9', valueS('#N/A')),
+
+                exec(done)
+            ]);
+        });
+      });
+
       describe('excel', () => {
         it('should evaluate sums', (done) => {
           _do([
