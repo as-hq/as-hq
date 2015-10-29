@@ -63,7 +63,7 @@ export default {
 
   handleEscape(){
     Dispatcher.dispatch({
-      type: Constants.ActionTypes.ESC_PRESSED,
+      type: Constants.ActionTypes.ESC_PRESSED
     });
   }
 

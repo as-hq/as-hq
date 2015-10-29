@@ -106,10 +106,6 @@ export default React.createClass({
     return this.refs.spreadsheet.refs.textbox.getRawEditor();
   },
 
-  focusGrid() {
-    this.refs.spreadsheet.setFocus();
-  },
-
   /***************************************************************************************************************************/
   // Some basic on change handlers
 
@@ -312,7 +308,6 @@ export default React.createClass({
 
   _onSelectionChange(sel) {
     console.log("\nEVAL PANE ON SEL CHANGE");
-    console.log(this._getTextbox().editor.getCursorPosition());
 
     let rng = sel.range,
         userIsTyping = ExpStore.getUserIsTyping(),
@@ -345,13 +340,18 @@ export default React.createClass({
       this.refs.spreadsheet.repaint();
       ExpActionCreator.handleSelChange('');
       this.hideToast();
-    } else if (changeSelWhileTypingNoInsert){
+    } else if (changeSelWhileTypingNoInsert){ //click away while not parsable
       console.log("Change sel while typing no insert");
       let xpObj = {
           expression: ExpStore.getExpression(),
           language: this.state.language
       };
-      Store.setActiveSelection(sel, "");
+      if (cell && cell.cellExpression){
+        Store.setActiveSelection(sel, cell.cellExpression.expression);
+      }
+      else {
+         Store.setActiveSelection(sel,"");
+      }
       this.handleEvalRequest(xpObj, null, null);
     } else if (userIsTyping) {
       if (editorCanInsertRef){ // insert cell ref in editor
@@ -429,6 +429,10 @@ export default React.createClass({
       this.refs.spreadsheet.setFocus();
     else if (elem === 'textbox')
       this._getRawTextbox().focus();
+  },
+
+  _handleEditorFocus(){ // need to remove blinking cursor from textbox
+    this.refs.spreadsheet.refs.textbox.editor.renderer.$cursorLayer.hideCursor();
   },
 
   /**************************************************************************************************************************/
@@ -510,7 +514,7 @@ export default React.createClass({
                                                  onClose={this.closeFindModal} /> : null}
         <ASCodeEditor
           ref='editorPane'
-          focusGrid={this.focusGrid}
+          handleEditorFocus={this._handleEditorFocus}
           language={language}
           onReplClick={this._toggleRepl}
           onLanguageChange={this.setLanguage}

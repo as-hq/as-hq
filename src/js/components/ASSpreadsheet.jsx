@@ -485,7 +485,6 @@ export default React.createClass({
 
 
         <Textbox ref="textbox"
-                 focusGrid={this.setFocus}
                  scroll={self.state.scroll}
                  onDeferredKey={this.props.onTextBoxDeferredKey}
                  position={this.getTextboxPosition}/>

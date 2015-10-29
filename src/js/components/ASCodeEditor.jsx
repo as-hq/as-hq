@@ -31,8 +31,7 @@ export default React.createClass({
   // React methods
 
   propTypes: {
-    onDeferredKey: React.PropTypes.func.isRequired,
-    focusGrid: React.PropTypes.func.isRequired
+    onDeferredKey: React.PropTypes.func.isRequired
   },
 
   getDefaultProps() {
@@ -101,7 +100,7 @@ export default React.createClass({
             </Toolbar>
         <AceEditor
           ref="editor"
-          focusGrid={this.props.focusGrid}
+          handleEditorFocus={this.props.handleEditorFocus}
           mode={language.Editor}
           language={language}
           theme={theme}

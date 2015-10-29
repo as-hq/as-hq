@@ -32,8 +32,8 @@ module.exports = React.createClass({
   // React methods
 
   propTypes: {
+    handleEditorFocus: React.PropTypes.func.isRequired,
     onDeferredKey: React.PropTypes.func.isRequired,
-    focusGrid: React.PropTypes.func.isRequired,
     mode  : React.PropTypes.string,
     theme : React.PropTypes.string,
     name : React.PropTypes.string,
@@ -75,6 +75,9 @@ module.exports = React.createClass({
     this.editor.on('focus', this._onFocus);
     this.editor.getSession().on('change', this._onChange);
     this.editor.container.addEventListener('keydown',this._onKeyDown,true);
+    this.editor.setOptions({
+     enableBasicAutocompletion: true
+    });
     onPropsSet(this.editor, this.props);
   },
 
@@ -149,6 +152,7 @@ module.exports = React.createClass({
     Store.setFocus('editor');
     ExpStore.setLastCursorPosition(Constants.CursorPosition.EDITOR);
     ExpStore.setLastRef(null); 
+    this.props.handleEditorFocus();
   },
 
   /*************************************************************************************************************************/

@@ -21,7 +21,6 @@ export default React.createClass({
 
   propTypes: {
     onDeferredKey: React.PropTypes.func.isRequired,
-    focusGrid: React.PropTypes.func.isRequired,
     position: React.PropTypes.func.isRequired
   },
 
@@ -38,6 +37,7 @@ export default React.createClass({
     this.editor.on('focus', this._onFocus);
     this.editor.getSession().on('change', this._onChange);
     this.editor.container.addEventListener('keydown',this._onKeyDown,true);
+    this.showCursor();
     // TODO: add a lang prop or something
     this.editor.getSession().setMode('ace/mode/python');
     this.editor.setFontSize(10);
@@ -52,17 +52,20 @@ export default React.createClass({
   updateTextBox(xpStr){
     console.log("Updating textbox: " + xpStr);
     ExpStore.setDoTextBoxCallback(false);
+    if (!this.state.isVisible){ //will be visible after update, put cursor in textbox
+      this.showCursor();
+    }
     this.setState({isVisible: true});
     this.editor.setValue(xpStr);
     this.editor.clearSelection(); // otherwise ace highlights whole xp
-    if (ExpStore.textBoxCanInsertRef(this.editor)){ // parsable position
-      console.log("TEXTBOX FOCUSING GRID");
-      this.props.focusGrid();
-    }
   },
 
   hideTextBox(){
     this.setState({isVisible:false});
+  },
+
+  showCursor(){
+    this.editor.renderer.$cursorLayer.showCursor(); // blinking cursor on textbox
   },
 
   getWidth(){
@@ -127,6 +130,7 @@ export default React.createClass({
     Store.setFocus('textbox');
     ExpStore.setLastCursorPosition(Constants.CursorPosition.TEXTBOX);
     ExpStore.setLastRef(null); 
+    this.showCursor();
     this.editor.resize();
   },
 
