@@ -50,9 +50,8 @@ evaluateRepl str = do
     replRecord <- lift $ getReplRecord Python
     lift $ writeReplRecord Python (replRecord ++ "\n" ++ recordCode)
     -- perform eval
-    let parsed = if (evalCode == emptyExpression)
-        then return NoValue
-        else execWrappedCode evalCode
+    let parsed = execWrappedCode evalCode
+    -- rollback to previous repl state if eval failed
     lift $ eitherT (onParseFailure replRecord) (onParseSuccess replRecord) parsed
     parsed
 

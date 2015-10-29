@@ -24,7 +24,6 @@ import Data.List.Split as SP
 import qualified Data.Map as M
 import qualified Prelude as P
 
-
 import AS.Parsing.Common as C
 
 -- EitherT
@@ -49,7 +48,8 @@ introspectCode lang str = do
 introspectCodeRepl :: ASLanguage -> String -> IO (String, String)
 introspectCodeRepl lang str = do
     let trimmed = trimWhitespace lang str
-    case (tryPrintingLast lang trimmed) of
+        (startLines, endLine) = splitLastLine lang str
+    case (tryPrintingLastRepl lang trimmed) of
         (Left _) -> return $ (trimmed, emptyExpression) -- nothing to print, so nothing to evaluate
         (Right (recordXp, printedLine)) -> do
             evalXp <- wrapCode lang True $ recombineLines (recordXp, printedLine)
@@ -62,11 +62,22 @@ tryPrintingLast :: ASLanguage -> String -> Either () (String, String)
 tryPrintingLast lang str =
     let (startLines, endLine) = splitLastLine lang str
     in if (isPrintable lang endLine)
-        then (Left ())
-        else Right (startLines, printCmd lang endLine)
+        then Right (startLines, printCmd lang endLine)
+        else (Left ())
 
+tryPrintingLastRepl :: ASLanguage -> String -> Either () (String, String)
+tryPrintingLastRepl lang str =
+    let (startLines, endLine) = splitLastLine lang str
+    in if (isPrintable lang endLine)
+        then case startLines of 
+                    "" -> Right (str, printCmd lang endLine)
+                    otherwise -> Right (startLines, printCmd lang endLine)
+        else (Left ())
+
+-- | WRONG! Not sure what this is supposed to mean... at any rate I'm convinced the logic here
+-- is extremely wrong and incomplete right now. 10/29. 
 isPrintable :: ASLanguage -> String -> Bool
-isPrintable lang = containsAny [assignOp lang, returnOp lang, importOp lang]
+isPrintable lang _ = True --containsAny [assignOp lang, returnOp lang, importOp lang]
 
 printCmd :: ASLanguage -> String -> String
 printCmd lang str = case (tryParse (replacePrintStmt lang) str) of
@@ -86,16 +97,19 @@ replacePrintStmt lang = case lang of
     R -> manyTill anyChar (try eof) -- TODO
 
 
+-- | Takes in a string and returns (remaining lines, last line). Works by reversing the string, 
+-- getting its first line, and reversing the results. 
 splitLastLine :: ASLanguage -> String -> (String, String)
-splitLastLine lang str = case (tryParse (parseLastline lang) (reverse str)) of
-    (Right result)  -> result
+splitLastLine lang str = case (tryParse (firstLineAndRest lang) (reverse str)) of
+    (Right (reversedLastLine, reversedRest))  -> (reverse reversedRest, reverse reversedLastLine)
     (Left _)        -> (emptyExpression, str) -- only one line, which becomes the 'last' line
 
-parseLastline :: ASLanguage -> Parser (String, String)
-parseLastline lang = do
-    endLine <- manyTill anyChar $ string "\n" <|> string (lineDelim lang)
-    startLines <- manyTill anyChar (try eof)
-    return (reverse startLines, reverse endLine)
+-- | Parser that splits multiline string into (firstLine, remaining lines)
+firstLineAndRest :: ASLanguage -> Parser (String, String)
+firstLineAndRest lang = do
+    firstLine <- manyTill anyChar $ string "\n" <|> string (lineDelim lang)
+    remainingLines <- manyTill anyChar (try eof)
+    return (firstLine, remainingLines)
 
 lastLine :: ASLanguage ->  Parser String
 lastLine lang = do
