@@ -92,8 +92,8 @@ export default {
     return this.addCurrentSheetIdToObj(asRange);
   },
 
-  simpleToASIndex(ind) {
-    let asIndex = {tag: 'index', index: ind};
+  simpleToASIndex(idx) {
+    let asIndex = {tag: 'index', index: idx};
     return this.addCurrentSheetIdToObj(asIndex);
   },
 

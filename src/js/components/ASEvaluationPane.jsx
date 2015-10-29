@@ -1,15 +1,22 @@
 import React from 'react';
 import ASCodeEditor from './ASCodeEditor.jsx';
 import ASSpreadsheet from './ASSpreadsheet.jsx';
+
 import Store from '../stores/ASEvaluationStore';
 import ReplStore from '../stores/ASReplStore';
 import FindStore from '../stores/ASFindStore';
+import ExpStore from '../stores/ASExpStore';
+
 import API from '../actions/ASApiActionCreators';
 import ReplActionCreator from '../actions/ASReplActionCreators';
+import ExpActionCreator from '../actions/ASExpActionCreators';
+
 import Shortcuts from '../AS/Shortcuts';
 import ShortcutUtils from '../AS/ShortcutUtils';
 import ClipboardUtils from '../AS/ClipboardUtils';
 import Util from '../AS/Util';
+import ParseUtils from '../AS/ParsingUtils';
+
 import Constants from '../Constants';
 import TC from '../AS/TypeConversions';
 import KeyUtils from '../AS/KeyUtils';
@@ -26,44 +33,14 @@ export default React.createClass({
 
 
   /***************************************************************************************************************************/
-  /* State methods */
-
-  xpChange: {
-    FROM_GRID:0,
-    FROM_EDITOR:1,
-    SEL_CHNG:2,
-    PARTIAL_REF_CHNG:3,
-    FROM_TEXTBOX:4,
-    NONE:5
-  },
-
-  printDetail(type) {
-    switch(type) {
-      case 0:
-        return "GRID";
-      case 1:
-        return "EDITOR";
-      case 2:
-        return "SEL_CHNG";
-      case 3:
-        return "PARTIAL_REF_CHNG";
-      case 4:
-        return "FROM_TEXTBOX";
-      default:
-        return "NONE";
-    }
-  },
+  // React methods
 
   /* React method for getting the initial state */
   getInitialState() {
     return {
-      expression: '',
-      userIsTyping:false,
-      xpChangeDetail:this.xpChange.NONE,
-      expressionWithoutLastRef: '',
       language: Constants.Languages.Excel,
       varName: '',
-      focus: 'grid',
+      focus: null,
       toastMessage: '',
       toastAction: '',
       replOpen: false,
@@ -75,112 +52,8 @@ export default React.createClass({
       showFindModal:false
     };
   },
-  setLanguage(lang) {
-    // TODO change dropdown when triggered programmatically
-    // console.log("setting language: "+JSON.stringify(lang));
-    this.setState({ language: lang });
-    this.refs.spreadsheet.setFocus();
-  },
 
-  updateTextBox(isTyping) {
-    console.log("Eval pane is updating text box, bitch");
-    return this.refs.spreadsheet.refs.textbox.updateTextBox(this.state.expression,isTyping)
-  },
-
-  /* Editor has been updated, now update state in EvalPane if necessary */
-  setExpression(xp) {
-    console.log("New expression of type " + this.printDetail(this.state.xpChangeDetail) + ": " + xp);
-    let detail = this.state.xpChangeDetail;
-    let deps = Util.parseDependencies(xp);
-    switch(detail) {
-      case this.xpChange.FROM_EDITOR:
-        this.setState({expressionWithoutLastRef:xp,expression:xp,userIsTyping:true}, function() {
-          this.updateTextBox(true);
-        });
-        console.log("User is typing");
-        Store.setActiveCellDependencies(deps);
-        break;
-      case this.xpChange.FROM_GRID:
-        if (!this.state.userIsTyping) {
-          this.setState({userIsTyping:true}, function() {
-            this.updateTextBox(true);
-          });
-          console.log("User is now typing!");
-        }
-        else {
-          this.updateTextBox(true);
-        }
-        Store.setActiveCellDependencies(deps);
-        break;
-      case this.xpChange.SEL_CHNG:
-        console.log("Found selection change!");
-        break;
-      case this.xpChange.PARTIAL_REF_CHNG:
-        console.assert(this.state.userIsTyping===true,"User should be typing");
-        this.updateTextBox(true);
-        Store.setActiveCellDependencies(deps);
-        break;
-      case this.xpChange.FROM_TEXTBOX:
-        console.assert(this.state.userIsTyping===true,"User should be typing");
-        this.updateTextBox(true);
-        Store.setActiveCellDependencies(deps);
-        break;
-      default:
-        Store.setActiveCellDependencies(deps);
-        break;
-    }
-    this.refs.spreadsheet.repaint();
-  },
-
-  setXpDetailFromEditor() {
-    this.setState({xpChangeDetail:this.xpChange.FROM_EDITOR});
-  },
-
-
-  /* Update the focus between the editor and the grid */
-  toggleFocus() { //currently not used anywhere
-    // console.log("In toggle focus function");
-    switch(this.state.focus) {
-      case 'grid':
-        this._getRawEditor().focus();
-        this.setState({focus: 'editor'});
-        break;
-      default:
-        this._getSpreadsheet().focus(); // ALEX I think you need takeFocus() ??
-        this.setState({focus: 'grid'});
-        break;
-    }
-  },
-
-  killTextbox() {
-    this.setState({userIsTyping:false});
-    this.updateTextBox(false);
-  },
-
-
-  /***************************************************************************************************************************/
-  /* Getter methods for child components of the eval pane */
-
-  _getSpreadsheet() {
-    return React.findDOMNode(this.refs.spreadsheet.refs.hypergrid);
-  },
-  _getRawEditor() {
-    return this.refs.editorPane.refs.editor.getRawEditor();
-  },
-  _getDomEditor() {
-    return React.findDOMNode(this.refs.editorPane.refs.editor);
-  },
-  _getReplEditor() {
-    return this.refs.repl.refs.editor.getRawEditor();
-  },
-  focusGrid() {
-    this.refs.spreadsheet.setFocus();
-  },
-
-
-  /**************************************************************************************************************************/
   /* Make sure that the evaluation pane can receive change events from the evaluation store */
-
   componentDidMount() {
     window.addEventListener('copy',this.handleCopyEvent);
     window.addEventListener('paste',this.handlePasteEvent);
@@ -190,6 +63,7 @@ export default React.createClass({
     ReplStore.addChangeListener(this._onReplChange);
     Shortcuts.addShortcuts(this);
   },
+
   componentWillUnmount() {
     window.removeEventListener('copy',this.handleCopyEvent);
     window.removeEventListener('paste',this.handlePasteEvent);
@@ -198,26 +72,57 @@ export default React.createClass({
     Store.removeChangeListener(this._onChange);
     FindStore.removeChangeListener(this._onFindChange);
     ReplStore.removeChangeListener(this._onReplChange);
+  },
 
+
+  /***************************************************************************************************************************/
+  // Component getter methods
+
+  _getSpreadsheet() {
+    return React.findDOMNode(this.refs.spreadsheet.refs.hypergrid);
   },
-  showAnyErrors(cv) {
-    if (cv.tag === "ValueError") {
-      this.setToast(cv.errMsg, "Error");
-    } else if (cv.tag === "ValueExcelError") { 
-      this.setToast(cv.contents.tag, "Error"); // ValueExcelError should become a part of ValueError eventually 
-    }
+
+  _getRawEditor() {
+    return this.refs.editorPane.refs.editor.getRawEditor();
   },
-  setToast(msg, action) {
-    this.setState({toastMessage: msg, toastAction: action});
-    this.refs.snackbarError.show();
+
+  _getEditorComponent(){
+    return this.refs.editorPane.refs.editor;
   },
-  hideToast() {
-    this.setState({toastMessage: "", toastAction: "hide"});
-    this.refs.snackbarError.dismiss();
+
+  _getDomEditor() {
+    return React.findDOMNode(this.refs.editorPane.refs.editor);
   },
-  _handleToastTap(e) {
-    // TODO
+
+  _getReplEditor() {
+    return this.refs.repl.refs.editor.getRawEditor();
   },
+
+  _getTextbox(){
+    return this.refs.spreadsheet.refs.textbox;
+  },
+
+  _getRawTextbox() {
+    return this.refs.spreadsheet.refs.textbox.getRawEditor();
+  },
+
+  /***************************************************************************************************************************/
+  // Some basic on change handlers
+
+  setLanguage(lang) {
+    // TODO change dropdown when triggered programmatically
+    console.log("setting language: "+JSON.stringify(lang));
+    this.setState({ language: lang });
+    this.refs.spreadsheet.setFocus();
+  },
+
+   _onSetVarName(name) {
+    console.log('var name set to', name);
+    this.setState({ varName: name });
+    //TODO: set var name on backend
+  },
+
+
   /*
   Upon a change event from the eval store (for example, eval has already happened)
     1) Get the last updated cells
@@ -227,30 +132,26 @@ export default React.createClass({
   _onChange() {
     console.log("Eval pane detected event change from store");
     let updatedCells = Store.getLastUpdatedCells();
-    // console.log("Updated cells: " + JSON.stringify(updatedCells));
-
     this.refs.spreadsheet.updateCellValues(updatedCells);
-
     //toast the error of at least one value in the cell
     let i = 0;
-    let anyErrors = false; 
+    let anyErrors = false;
     for (i = 0; i < updatedCells.length; ++i) {
       let cell = updatedCells[i],
           val = cell.cellValue;
       if (val.tag == "ValueError") {
         this.showAnyErrors(val);
-        anyErrors = true; 
+        anyErrors = true;
         break;
       }
     }
-
     let extError = Store.getExternalError();
 
     if (extError) {
       this.setToast(extError, "ERROR");
-      anyErrors = true; 
+      anyErrors = true;
       Store.setExternalError(null);
-    } 
+    }
 
     if (!anyErrors) {
       // If there are no errors, simulate a click in the active selection to get the ACE editor
@@ -262,10 +163,33 @@ export default React.createClass({
   },
 
   _onReplChange() {
-    // console.log("Eval pane detected event change from repl store");
+    console.log("Eval pane detected event change from repl store");
     this.setState({replSubmittedLanguage:ReplStore.getSubmittedLanguage()})
   },
 
+
+  /**************************************************************************************************************************/
+  // Error handling
+
+  showAnyErrors(cv) {
+    this.setToast(cv.errMsg, "Error");
+  },
+
+  setToast(msg, action) {
+    console.log("set toast");
+    this.setState({toastMessage: msg, toastAction: action});
+    this.refs.snackbarError.show();
+  },
+
+  hideToast() {
+    console.log("hide toast");
+    this.setState({toastMessage: "", toastAction: "hide"});
+    this.refs.snackbarError.dismiss();
+  },
+
+  _handleToastTap(e) {
+    // TODO
+  },
 
   /**************************************************************************************************************************/
   /* Copy paste handling */
@@ -365,41 +289,25 @@ export default React.createClass({
     ShortcutUtils.tryShortcut(e, 'editor');
   },
 
-  _onGridDeferredKey(e) {
-   if (KeyUtils.producesVisibleChar(e)) {
-        let editor = this._getRawEditor(),
-          str = KeyUtils.modifyStringForKey(editor.getValue(), e),
-          newStr = KeyUtils.getString(e),
-          xpStr = this.state.userIsTyping ? str : newStr;
-      console.log("New grid string: " + xpStr);
-      this.setState({
-            xpChangeDetail:this.xpChange.FROM_GRID,
-            expressionWithoutLastRef:xpStr,
-            expression:xpStr,
-          },function() {editor.navigateFileEnd();}
-      );
-    }
-    else {
-      console.log("Grid key not visible");
-      ShortcutUtils.tryShortcut(e, 'common');
-      ShortcutUtils.tryShortcut(e, 'grid');
+  _onGridNavKeyDown(e) {
+    console.log("Eval pane has grid's nav key");
+    let insert = ExpStore.gridCanInsertRef();
+    if (insert){
+      // do nothing; onSelectionChange will fire
+    } else {
+      console.log("Will change selection and eval cell.");
+      let xpObj = {
+            expression: ExpStore.getExpression(),
+            language: this.state.language
+          };
+      this.handleEvalRequest(xpObj, null, null);
     }
   },
 
   _onTextBoxDeferredKey(e) {
-    if (KeyUtils.producesVisibleChar(e) && e.which !== 13) {
-      let xp = KeyUtils.modifyStringForKey(e.target.value,e);
-      console.log("Eval pane textbox key " + xp);
-      this.setState({expression:xp,
-                   expressionWithoutLastRef:xp,
-                   xpChangeDetail:this.xpChange.FROM_TEXTBOX
-                 });
-    }
-    else {
-      console.log("Textbox key not visible");
-      ShortcutUtils.tryShortcut(e, 'common');
-      ShortcutUtils.tryShortcut(e, 'textbox');
-    }
+    console.log("Textbox key not visible");
+    ShortcutUtils.tryShortcut(e, 'common');
+    ShortcutUtils.tryShortcut(e, 'textbox');
   },
 
   /* Callback from Repl component */
@@ -409,65 +317,83 @@ export default React.createClass({
 
 
   /**************************************************************************************************************************/
-  /* Core functionality methods */
+  // Deal with selection change from grid
 
-  /*
-  This function is called by ASSpreadsheet on a selection change
-  Deal with changing the expression in the editor when the selection in the sheet changes
-    1) Get the expression at the current location clicked from the evaluation store
-    2) Update the state of the evaluation pane, which forces React to rerender (and the editor to rerender)
-    3) Treat the special case when the expression is an error/other styles
-  */
-  // Note: if the selection is a Reference, we produce a 'pseudo' expression
   _onSelectionChange(sel) {
+    console.log("\nEVAL PANE ON SEL CHANGE");
+
     let rng = sel.range,
-        cell = Store.getCell(sel.origin.col, sel.origin.row),
-        changeSel = cell && !this.state.userIsTyping && cell.cellExpression,
-        shiftSelEmpty  = this.state.userIsTyping &&
-                         !Util.canInsertCellRefInXp(this.state.expressionWithoutLastRef),
-        shiftSelExists = cell && shiftSelEmpty;
-    if (changeSel || shiftSelExists) {
+        userIsTyping = ExpStore.getUserIsTyping(),
+        cell = Store.getCell(sel.origin.col, sel.origin.row);
+
+    let editorCanInsertRef = ExpStore.editorCanInsertRef(this._getRawEditor()),
+        gridCanInsertRef = ExpStore.gridCanInsertRef(),
+        textBoxCanInsertRef = ExpStore.textBoxCanInsertRef(this._getTextbox().editor);
+
+    console.log("editorCanInsertRef",editorCanInsertRef);
+    console.log("gridCanInsertRef",gridCanInsertRef);
+    console.log("textBoxCanInsertRef",textBoxCanInsertRef);
+
+    let canInsertRef = editorCanInsertRef || gridCanInsertRef || textBoxCanInsertRef;
+    // Enumerate changes in selection that don't result in insertion
+    let changeSelToExistingCell = cell && !userIsTyping && cell.cellExpression,
+        changeSelToNewCell = !cell && !userIsTyping,
+        changeSelWhileTypingNoInsert = userIsTyping && !canInsertRef;
+
+    if (changeSelToExistingCell) {
+      console.log("\n\nSelected non-empty cell to move to");
       let {language,expression} = cell.cellExpression,
           val = cell.cellValue;
-      Store.setActiveSelection(sel, expression); // pass in an expression to get parsed dependencies
-      console.log("FIRST");
-      // here, language is a client/server agnostic object (see Constants.Languages)
-      this.setState({ xpChangeDetail:this.xpChange.SEL_CHNG,
-                    language: Util.getAgnosticLanguageFromServer(language),
-                    expression: expression,
-                    expressionWithoutLastRef:expression,
-                    userIsTyping:false
-                    },function() {
-                      if (shiftSelExists) // selected while typing at wrong type; select away
-                        this.updateTextBox(false);
-                    });
-      // TODO: set var name as well
+      Store.setActiveSelection(sel, expression);
+      ExpActionCreator.handleSelChange(expression);
       this.showAnyErrors(val);
-    }
-    else if (!this.state.userIsTyping || shiftSelEmpty) {
-      console.log("Selected new region empty");
+    } else if (changeSelToNewCell) {
+      console.log("\n\nSelected empty cell to move to");
       Store.setActiveSelection(sel, "");
-      this.setState({ xpChangeDetail:this.xpChange.SEL_CHNG,
-                      expression: "",
-                      expressionWithoutLastRef: "",
-                      userIsTyping:false
-                    },function() {
-                      if (shiftSelEmpty) // selected while typing at wrong type; select away
-                        this.updateTextBox(false);
-                    });
+      this.refs.spreadsheet.repaint();
+      ExpActionCreator.handleSelChange('');
       this.hideToast();
-    }
-    else {
-      if (Util.canInsertCellRefInXp(this.state.expressionWithoutLastRef)) {
-        console.log("PARTIAL");
-        let newXp = this.state.expressionWithoutLastRef  + Util.locToExcel(rng);
-        this.refs.spreadsheet._getHypergrid().repaint();
-        this.setState({xpChangeDetail:this.xpChange.PARTIAL_REF_CHNG,
-                       expression:newXp
-        });
+    } else if (changeSelWhileTypingNoInsert){ //click away while not parsable
+      console.log("Change sel while typing no insert");
+      let xpObj = {
+          expression: ExpStore.getExpression(),
+          language: this.state.language
+      };
+      if (cell && cell.cellExpression){
+        Store.setActiveSelection(sel, cell.cellExpression.expression);
       }
+      else {
+         Store.setActiveSelection(sel,"");
+      }
+      this.handleEvalRequest(xpObj, null, null);
+    } else if (userIsTyping) {
+      if (editorCanInsertRef){ // insert cell ref in editor
+        console.log("Eval pane inserting cell ref in editor");
+        let excelStr = Util.rangeToExcel(rng);
+        this._getEditorComponent().insertRef(excelStr);
+        let newStr = this._getRawEditor().getValue(); // new value
+        ExpActionCreator.handlePartialRefEditor(newStr,excelStr);
+      }
+      else if (textBoxCanInsertRef){ // insert cell ref in textbox
+        console.log("Eval pane inserting cell ref in textbox");
+        console.log("Current value: " + this._getTextbox().editor.getValue());
+        let excelStr = Util.rangeToExcel(rng);
+        this._getTextbox().insertRef(excelStr);
+        let newStr = this._getTextbox().editor.getValue();
+        ExpActionCreator.handlePartialRefTextBox(newStr,excelStr);
+      }
+      else if (gridCanInsertRef){ // insert cell ref in textbox
+        console.log("Eval pane inserting cell ref originating from grid");
+        let excelStr = Util.rangeToExcel(rng);
+        ExpActionCreator.handlePartialRefGrid(excelStr);
+      }
+    } else {
+      console.log("\n\nUNHANDLED CASE IN ONSELECTIONCHANGE -- FIX NOW\n\n");
     }
   },
+
+  /**************************************************************************************************************************/
+  // Handle an eval request
 
   /*
   The editor state (langage and expression) gets here via props from the ace editor component
@@ -476,15 +402,20 @@ export default React.createClass({
     2) Send this and the editor state (expression, language) to the API action creator, which will send it to the backend
   */
   handleEvalRequest(xpObj, moveCol, moveRow) {
+    console.log("Handling EVAL request");
 
-    /* If user pressed Ctrl Enter, they're not typing out the expression anymore */
-    this.killTextbox();
+    this.refs.spreadsheet.refs.textbox.hideTextBox();
+    ExpStore.setLastCursorPosition(Constants.CursorPosition.GRID);
+    ExpStore.setUserIsTyping(false);
+
     Store.setActiveCellDependencies([]);
     this.refs.spreadsheet.repaint();
-    console.log("\n\nDF\n\n", Store.getActiveSelection());
+
     let origin = Store.getActiveSelection().origin,
         asIndex = TC.simpleToASIndex(origin);
-    this.refs.spreadsheet.shiftSelectionArea(moveCol, moveRow);
+    if (moveCol !== null && moveRow !== null){
+      this.refs.spreadsheet.shiftSelectionArea(moveCol, moveRow);
+    }
     API.evaluate(asIndex, xpObj);
   },
 
@@ -500,6 +431,21 @@ export default React.createClass({
     API.evaluateRepl(xpObj);
   },
 
+  /**************************************************************************************************************************/
+  /* Focus */
+
+  setFocus(elem) {
+    if (elem === 'editor')
+      this._getRawEditor().focus();
+    else if (elem === 'grid')
+      this.refs.spreadsheet.setFocus();
+    else if (elem === 'textbox')
+      this._getRawTextbox().focus();
+  },
+
+  _handleEditorFocus(){ // need to remove blinking cursor from textbox
+    this.refs.spreadsheet.refs.textbox.editor.renderer.$cursorLayer.hideCursor();
+  },
 
   /**************************************************************************************************************************/
   /* REPL handling methods */
@@ -562,14 +508,16 @@ export default React.createClass({
 
 
   /**************************************************************************************************************************/
-  /* The eval pane is the code editor plus the spreadsheet */
+  // Render
+
   getEditorHeight() { // for future use in resize events
     return Constants.editorHeight + "px";
   },
 
   render() {
-    let {expression, language} = this.state,
+    let {expression, language, focus} = this.state,
         highlightFind = this.state.showFindBar || this.state.showFindModal;
+
     // highlightFind is for the spreadsheet to know when to highlight found locs
     // display the find bar or modal based on state
     let leftEvalPane =
@@ -583,6 +531,7 @@ export default React.createClass({
                                                  onClose={this.closeFindModal} /> : null}
         <ASCodeEditor
           ref='editorPane'
+          handleEditorFocus={this._handleEditorFocus}
           language={language}
           onReplClick={this._toggleRepl}
           onSubmitDebug={this._submitDebug}
@@ -596,8 +545,7 @@ export default React.createClass({
         <ASSpreadsheet
           ref='spreadsheet'
           highlightFind={highlightFind}
-          textBoxChange={this.textBoxChange}
-          onDeferredKey={this._onGridDeferredKey}
+          onNavKeyDown={this._onGridNavKeyDown}
           onTextBoxDeferredKey={this._onTextBoxDeferredKey}
           onSelectionChange={this._onSelectionChange}
           width="100%"
@@ -619,13 +567,6 @@ export default React.createClass({
     return (
       <ResizableRightPanel leftComp={leftEvalPane} sidebar={sidebarContent} docked={this.state.replOpen} />
     );
-  },
-
-
-
-  _onSetVarName(name) {
-    console.log('var name set to', name);
-    this.setState({ varName: name });
-    //TODO: set var name on backend
   }
+
 });

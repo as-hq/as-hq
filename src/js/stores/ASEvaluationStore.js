@@ -32,6 +32,8 @@ let _data = {
     }
   },
   activeSelection: null,
+  activeFocus: 'grid',
+  lastActiveFocus: 'textbox',
   partialSelections: [],
   activeCell: null,
   clipboard: {
@@ -175,7 +177,7 @@ const ASEvaluationStore = assign({}, BaseStore, {
   setActiveSelection(sel, xp) {
     let origin = sel.origin;
     _data.activeSelection = sel;
-    console.log("\n\nsetting active sel\n\n", sel);
+    console.log("setting active sel", sel);
     _data.activeCell = this.getCell(origin.col, origin.row) || TC.makeEmptyCell();
     var activeCellDependencies = Util.parseDependencies(xp);
     let c = sel.origin.col,
@@ -359,6 +361,29 @@ const ASEvaluationStore = assign({}, BaseStore, {
   locationExists(col, row, mySheetId) {
     let sheetId = mySheetId || _data.currentSheet.sheetId;
     return (_data.allCells[sheetId] && _data.allCells[sheetId][col] && _data.allCells[sheetId][col][row]);
+  },
+
+  /**************************************************************************************************************************/
+  /* Focus */
+
+  setFocus(elem) { 
+    _data.lastActiveFocus = _data.activeFocus;
+    _data.activeFocus = elem; 
+  },
+
+  getFocus() { return _data.activeFocus; },
+
+  toggleFocusF2() {
+    let temp = _data.activeFocus;
+    if (_data.activeFocus === 'grid' && _data.lastActiveFocus === 'textbox')
+      _data.activeFocus = 'textbox';
+    else if (_data.activeFocus === 'grid' && _data.lastActiveFocus === 'editor')
+      _data.activeFocus = 'editor';
+    else if (_data.activeFocus === 'textbox')
+      _data.activeFocus = 'grid';
+    else if (_data.activeFocus === 'editor')
+      _data.activeFocus = 'grid';
+    _data.lastActiveFocus = temp;
   },
 
   /**************************************************************************************************************************/

@@ -6,6 +6,9 @@ import API from '../actions/ASApiActionCreators';
 import Util from '../AS/Util';
 import TC from '../AS/TypeConversions';
 
+import ExpStore from '../stores/ASExpStore';
+import ExpActionCreator from '../actions/ASExpActionCreators';
+
 export default {
   addShortcuts(evalPane) {
     let self = evalPane;
@@ -13,10 +16,10 @@ export default {
     // common shortcuts -------------------------------------------------------------------------------
 
     SU.add("common", "toggle_focus", "F2", (wildcard) => {
-      console.log("F2 PRESSED " + self.state.userIsTyping);
-      self.setState({userIsTyping:!self.state.userIsTyping},function(){
-        self.updateTextBox(self.state.userIsTyping);
-      });
+      console.log("F2 PRESSED ");
+      console.log("In toggle focus function");
+      Store.toggleFocusF2();
+      self.setFocus(Store.getFocus());
     });
     SU.add("common", "new_sheet", "Shift+F11", (wildcard) => {
       // TODO
@@ -27,13 +30,6 @@ export default {
         language: self.state.language
       };
       self.handleEvalRequest(xpObj, 0, 1);
-    });
-    SU.add("common", "cell_eval_right", "Tab", (wildcard) => {
-      let xpObj = {
-        expression: self._getRawEditor().getValue(),
-        language: self.state.language
-      };
-      self.handleEvalRequest(xpObj, 1, 0);
     });
     SU.add("common", "cell_eval_arrayformula", "Ctrl+Shift+Enter", (wildcard) => {
       var editorValue = self._getRawEditor().getValue();
@@ -88,24 +84,17 @@ export default {
     });
     SU.add("common", "esc", "Esc", (wildcard) => {
       console.log("Esc pressed");
-      self.refs.spreadsheet.shiftSelectionArea(0,0); // refocus at current cell
-      self.updateTextBox(false);
+      let {range, origin} = Store.getActiveSelection();
+      ExpActionCreator.handleEscape();
+      self.refs.spreadsheet.select(range, origin);
       Store.setClipboard(null, false);
-      self.setState({focus: "grid",userIsTyping:false});
+      self.setState({focus: "grid"});
       self.refs.spreadsheet.repaint(); // render immediately
-
     });
 
     SU.add("common", "find", "Ctrl+F", (wildcard) => {
       console.log("Find pressed");
       self.setState({showFindBar:true,userIsTyping:false});
-    });
-    SU.add("common", "grid_tab", "Tab", (wildcard) => {
-      let xpObj = {
-        exp: self._getRawEditor().getValue(),
-        lang: self.state.language
-      };
-      self.handleEvalRequest(xpObj, 0, 1);
     });
 
     // repl shortcuts -------------------------------------------------------------------------------
@@ -168,7 +157,11 @@ export default {
       API.copy(copyFrom, copyTo);
     });
     SU.add("grid", "grid_select_all", "Ctrl+A", (wildcard) => {
-      self.refs.spreadsheet.select(self.refs.spreadsheet.getViewingWindow().range);
+      if (ExpStore.getUserIsTyping()) {
+        self._getRawTextbox().selectAll();
+      } else {
+        self.refs.spreadsheet.select(self.refs.spreadsheet.getViewingWindow().range);
+      }
     });
     SU.add("grid", "grid_home", ["Home", "Ctrl+Home"], (wildcard) => {
       let idx = {row: 1, col: 1};
@@ -242,19 +235,37 @@ export default {
       } else self.setToast("No cell above.", "Error");
     });
 
+    SU.add("grid", "grid_enter", "Enter", (wildcard) => {
+      let xpObj = {
+        expression: self._getRawEditor().getValue(),
+        language: self.state.language
+      };
+      self.handleEvalRequest(xpObj, 0, 1);
+    });
+
+    SU.add("grid", "grid_eval_right", "Tab", (wildcard) => {
+      let xpObj = {
+        expression: self._getRawEditor().getValue(),
+        language: self.state.language
+      };
+      self.handleEvalRequest(xpObj, 1, 0);
+    });
+
     // textbox shortcuts -------------------------------------------------------------------------------
     SU.add("textbox", "textbox_enter", "Enter", (wildcard) => {
-      if (self.state.userIsTyping){
-        let xpObj = {
-          expression: self._getRawEditor().getValue(),
-          language: self.state.language
-        };
-        self.handleEvalRequest(xpObj, 0, 1);
-      }
-      else {
-        // self.killTextbox();
-        // self.refs.spreadsheet.shiftSelectionArea(0,1);
-      }
+      let xpObj = {
+        expression: self._getRawEditor().getValue(),
+        language: self.state.language
+      };
+      self.handleEvalRequest(xpObj, 0, 1);
+    });
+
+    SU.add("textbox", "textbox_eval_right", "Tab", (wildcard) => {
+      let xpObj = {
+        expression: self._getRawEditor().getValue(),
+        language: self.state.language
+      };
+      self.handleEvalRequest(xpObj, 1, 0);
     });
 
     // top level shortcuts -------------------------------------------------------------------------------

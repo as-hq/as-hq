@@ -85,6 +85,10 @@ export default {
   // Key conversions and utils
   navKeys: [37, 38, 39, 40],
 
+  isNavKey(e) {
+    return Util.arrContains(this.navKeys, e.which);
+  },
+
   getKey(e) {
     // TODO
     return e.key;
@@ -121,7 +125,7 @@ export default {
             !Util.arrContains(specials, e.which) &&
             !this.isFunctionKey(e) &&
             !(e.shiftKey && e.which === 32)) || // shift+space shortcut
-           (e.ctrlKey && e.key === "Backspace"); // ctrl + backspace
+           (e.ctrlKey && e.which === 8); // ctrl + backspace
   },
 
   //is it a copy event or a paste event or a cut event?

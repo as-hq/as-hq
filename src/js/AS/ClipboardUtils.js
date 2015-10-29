@@ -78,6 +78,9 @@ export default {
 		return newArr;
 	},
 
+  /**************************************************************************************************************************/
+  /* External conversions */
+
   externalStringToExpression(str, lang) {
     if (lang.Server == "Excel") { // is language.Editor the correct thing?
       return str;

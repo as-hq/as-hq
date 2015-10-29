@@ -7,6 +7,8 @@ export default {
   HOST_WS_URL: 'ws://' + HOST_BASE_URL + ':' + HOST_WS_PORT,
   HOST_STATIC_URL: 'http://' + HOST_BASE_URL + ':8000',
 
+  isDebug: false,
+
   // event name triggered from store, listened to by views
   CHANGE_EVENT: 'change',
 
@@ -52,7 +54,17 @@ export default {
     GOT_NEW_WORKBOOKS: null,
     DELETED_WORKBOOKS: null,
     FIND_INCREMENTED:null,
-    FIND_DECREMENTED:null
+    FIND_DECREMENTED:null,
+
+    // Three-way data integration actions
+    GRID_KEY_PRESSED: null,
+    EDITOR_CHANGED:null,
+    TEXTBOX_CHANGED:null,
+    NORMAL_SEL_CHANGED:null,
+    PARTIAL_REF_CHANGE_WITH_EDITOR:null,
+    PARTIAL_REF_CHANGE_WITH_GRID:null,
+    PARTIAL_REF_CHANGE_WITH_TEXTBOX:null,
+    ESC_PRESSED:null
   }),
 
   ActionSources: keyMirror({
@@ -118,7 +130,14 @@ export default {
     Repl: "EvaluateRepl",
     New: "New",
     Find: "Find",
-    BugReport: "BugReport", 
+    BugReport: "BugReport",
     AddTags: "AddTags", RemoveTags: "RemoveTags"
+  },
+
+  CursorPosition:{
+    GRID: "GRID",
+    TEXTBOX: "TEXTBOX",
+    EDITOR: "EDITOR"
   }
+
 };

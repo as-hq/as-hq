@@ -1,18 +1,16 @@
 import KeyUtils from '../AS/KeyUtils';
 import ShortcutUtils from '../AS/ShortcutUtils';
+import Util from '../AS/Util';
+import ParseUtils from '../AS/ParsingUtils';
+
+import Constants from '../Constants';
+
 import Store from '../stores/ASEvaluationStore';
+import ExpStore from '../stores/ASExpStore';
+import ExpActionCreator from '../actions/ASExpActionCreators.js';
+
 var ace = require('brace');
 var React = require('react');
-
-/* TODO: REFACTOR
-Repl seems to work with enter and backspace, but I'm sure there are some edge-case bugs
-Will eventually need a better way than casing on enter and backspace
-Currently Ctrl Enter is always needed to submit, but this isn't the case for command line
-  might be bad UX
-  also our way of doing things is different from command line in general
-    command line doesn't allow backspacing for example, probably parsing dynamically
--- Ritesh 10/13
-*/
 
 function onPropsSet(editor, props) {
   editor.getSession().setMode('ace/mode/'+props.mode);
@@ -23,67 +21,19 @@ function onPropsSet(editor, props) {
   editor.setOption('readOnly', props.readOnly);
   editor.setOption('highlightActiveLine', props.highlightActiveLine);
   editor.setShowPrintMargin(props.setShowPrintMargin);
-
-  if (props.isRepl){ /* Manually deal with backspace */
-    editor.commands.addCommand({
-      name: 'backspace',
-      bindKey: {win: 'backspace',  mac: 'backspace'},
-      exec: function(editor) {
-        let pos = editor.getCursorPosition(),
-            val = editor.getValue(),
-            line = editor.getSession().getLine(pos.row),
-            lines = editor.getValue().split('\n');
-        console.log("Old backspace value: " + JSON.stringify(lines));
-        if (pos.column < 4){ // In dead-zone
-          return;
-        }
-        if (pos.column == 4 ){ // At border
-            let isAtPrompt = line.substring(0,4) === ">>> ";
-            if (!isAtPrompt) {
-                console.log("Key down position: " + pos.row + " " + pos.column);
-                let column = editor.getSession().getLine(pos.row-1).length;
-                // goToLine starts at 1, but pos starts at 0
-                if (line.trim() === ""){ // line is empty
-                  let backspaceValPrompt = val.substring(0,val.length-5);
-                  editor.setValue(backspaceValPrompt);
-                  editor.clearSelection();
-                }
-                else { //line has content to be moved back
-                  lines[pos.row-1]+=lines[pos.row].substring(4);
-                  lines.splice(pos.row,1);
-                  editor.setValue(lines.join('\n'));
-                  editor.clearSelection();
-                  let prevColLength = editor.getSession().getLine(pos.row-1).length;
-                  editor.gotoLine(pos.row,prevColLength);
-                }
-                console.log("New position: " + JSON.stringify(editor.getCursorPosition()));
-                console.log("New backspace value: " + JSON.stringify(editor.getValue().split('\n')));
-                return;
-              }
-            else {
-              return;
-            }
-        }
-        lines[pos.row] = lines[pos.row].slice(0,pos.column-1) + lines[pos.row].slice(pos.column);
-        let backspaceVal = lines.join('\n');
-        editor.setValue(backspaceVal);
-        editor.clearSelection();
-        editor.gotoLine(pos.row+1,pos.column-1);
-        console.log("New backspace value: " + JSON.stringify(editor.getValue().split('\n')));
-      }
-    });
-
-    if (props.onLoad) {
-      props.onLoad(editor);
-    }
-    if (props.isRepl){
-      editor.getSession().setUseSoftTabs(false);
-    }
+  if (props.onLoad) {
+    props.onLoad(editor);
   }
 }
 
 module.exports = React.createClass({
+
+  /*************************************************************************************************************************/
+  // React methods
+
   propTypes: {
+    handleEditorFocus: React.PropTypes.func.isRequired,
+    onDeferredKey: React.PropTypes.func.isRequired,
     mode  : React.PropTypes.string,
     theme : React.PropTypes.string,
     name : React.PropTypes.string,
@@ -91,150 +41,183 @@ module.exports = React.createClass({
     width : React.PropTypes.string,
     fontSize : React.PropTypes.number,
     showGutter : React.PropTypes.bool,
-    onChange: React.PropTypes.func,
-    value: React.PropTypes.string,
     onLoad: React.PropTypes.func,
     maxLines : React.PropTypes.number,
     readOnly : React.PropTypes.bool,
     highlightActiveLine : React.PropTypes.bool,
     showPrintMargin : React.PropTypes.bool,
-    sendBackExpression : React.PropTypes.func,
-    isRepl: React.PropTypes.bool
+    sendBackExpression : React.PropTypes.func
   },
-  getDefaultProps: function() {
+
+  getDefaultProps() {
     return {
       name   : 'brace-editor',
       mode   : 'python',
       theme  : 'monokai',
       height : '100px',
       width  : '100%',
-      value  : '',
       fontSize   : 12,
       showGutter : true,
-      onChange   : null,
       onLoad     : null,
       maxLines   : null,
       readOnly   : false,
       highlightActiveLine : true,
       showPrintMargin     : true,
-      sendBackExpression : null,
-      isRepl: false
+      sendBackExpression : null
     };
   },
 
-  onChange: function() {
-    let value = this.editor.getValue();
-    if (this.props.onChange) {
-      this.props.onChange(value);
-    }
+  componentDidMount() {
+    // Respond to changes from ExpStore, focus, changes, and keydowns
+    ExpStore.addChangeListener(this._onExpressionChange);
+    this.editor = ace.edit(this.props.name);
+    this.editor.$blockScrolling = Infinity;
+    this.editor.on('focus', this._onFocus);
+    this.editor.getSession().on('change', this._onChange);
+    this.editor.container.addEventListener('keydown',this._onKeyDown,true);
+    this.editor.setOptions({
+     enableBasicAutocompletion: true
+    });
+    onPropsSet(this.editor, this.props);
   },
+
+  componentWillUnmount(){
+    ExpStore.removeChangeListener(this._onExpressionChange);
+  },
+
+  /*************************************************************************************************************************/
+  // Helpers
 
   getRawEditor() {
     return this.editor;
   },
 
-  handleKeyDown(e) {
-    /* If the repl should do something (Ctrl Enter), do so
-    else don't do anything if col < 4. There's also a backspace command triggered on key down.
-    Otherwise, act as usual */
-    console.log("KEYDOWN: " + e.which);
-    if (this.props.isRepl){
-      if (ShortcutUtils.replShouldDeferKey(e)){
-        KeyUtils.killEvent(e);
-        this.props.onDeferredKey(e);
-      }
-      let pos = this.editor.getCursorPosition();
-      // If your column position on key down is less than 4 (behind >>> ), do nothing
-      if (pos.column < 4 ){
-        console.log("WTF BITCH");
-        e.preventDefault();
-        e.stopPropagation();
-        let pos = this.editor.getCursorPosition();
-        this.editor.gotoLine(pos.row+1,4);
-        return;
-      }
-     }
-    else if (ShortcutUtils.editorShouldDeferKey(e)) {
+  insertRef(newRef){
+    let lastRef = ExpStore.getLastRef();
+    console.log("Inserting ref in editor " + newRef);
+    ExpStore.setDoEditorCallback(false);
+    if (lastRef){
+      ParseUtils.deleteLastRef(this.editor,lastRef)
+    }
+    this.editor.getSession().insert(this.editor.getCursorPosition(),newRef);
+    console.log("New editor xp: " + this.editor.getValue());
+  },
+
+  /*************************************************************************************************************************/
+  // Handle events originating from ace editor
+
+  /*
+  In the ace editor, all nav keys are internal (don't do selection in grid, ever)
+    In  particular, Nav keys aren't deferred
+  Only defer things like Ctrl Enter
+  If we haven't deferred, then the editor should go to the callback (Action Creator)
+  when onChange fires (right after this)
+  */
+  _onKeyDown(e) {
+    console.log("\n\nACE KEYDOWN");
+    if (ShortcutUtils.editorShouldDeferKey(e)) {
+      // Try shortcut in eval pane
+      console.log("Deferring editor key down");
       KeyUtils.killEvent(e);
       this.props.onDeferredKey(e);
     }
-    else { //Need to change expression statae in EvalPane
-      this.props.setXpDetailFromEditor();
+    else {
+      ExpStore.setDoEditorCallback(true);
     }
   },
 
-  handleKeyUp(e) {
-    /* Handle enter pressing in the repl */
-    if (this.props.isRepl){
-      let val = this.editor.getValue(),
-          cursor = this.editor.getCursorPosition(),
-          lastChar = val.substring(val.length-1);
-      if (e.which === 13 && e.shiftKey === true) { // pressed enter
-        console.log("SUCCESS");
-        if (lastChar === "\t") {
-          if (cursor.column === 4){ // automatic tab
-            this.editor.getSession().indentRow(cursor.row, cursor.row, "    ");
-          }
-          else if (cursor.column === 1){
-            val = val.substring(0,val.length-1) + "    \t";
-            this.editor.setValue(val);
-          }
-        }
-        else if (cursor.column < 4){ // add four spaces to the new line
-          console.log("Enter with current val: " + JSON.stringify(this.editor.getValue().split('\n')));
-          let lines = this.editor.getValue().split('\n');
-          lines[cursor.row]="    "+lines[cursor.row];
-          this.editor.setValue(lines.join('\n'));
-          this.editor.clearSelection();
-          console.log("Enter with after val: " + JSON.stringify(this.editor.getValue().split('\n')));
-        }
-        this.editor.selection.clearSelection();
-      }
-      else if (lastChar === "\n"){
-        this.editor.setValue(val + "    ");
-        this.editor.selection.clearSelection();
-      }
+  /*
+  Note: One of the reasons we want onChange and not keyUp is so that pressing
+  backspace for a long time in the editor actually makes the textbox update real-time (multiple onChanges fired, only one keyUp fired)
+
+  This methods fires on Ace's onChange; for example after editor.setValue.
+  This is different from the outer div's onChange (which doesn't have a callback)
+  If you don't want the callback (action creator) to fire, need to set doAceCallback in ExpStore to false
+  Since keydown sets this to true, events originating within ace will be sent to the callback (action creator)
+  */
+  _onChange(e){
+    let xpStr = this.editor.getValue();
+    if (ExpStore.getDoEditorCallback()){
+      console.log("Ace editor detected keychange with callback: " + xpStr);
+      ExpActionCreator.handleEditorChange(xpStr);
     }
   },
 
-  handleClick(e) {
-    // console.log("clicked repl!");
-    let cursor = this.editor.selection.getCursor();
-    if (cursor.column <= 4){
-      this.editor.selection.moveCursorToPosition({row: cursor.row, column: 4});
-      this.editor.selection.clearSelection();
+  /*
+  When the editor receives focus, notify the stores
+  */
+  _onFocus(e){
+    console.log("The editor now has focus");
+    console.assert(ExpStore.getUserIsTyping());
+    Store.setFocus('editor');
+    ExpStore.setLastCursorPosition(Constants.CursorPosition.EDITOR);
+    ExpStore.setLastRef(null);
+    this.props.handleEditorFocus();
+  },
+
+  /*************************************************************************************************************************/
+  // Respond to change events from ExpStore
+
+  /*
+  Case on the origin in the ExpStore, which is the reason for this expression update
+  Most of the cases just call updateValue
+  */
+  _onExpressionChange(){
+    let xpChangeOrigin = ExpStore.getXpChangeOrigin();
+    switch(xpChangeOrigin){
+      case Constants.ActionTypes.GRID_KEY_PRESSED:
+        console.log("Ace editor caught GRID type update");
+        this.updateValue();
+        break;
+      case Constants.ActionTypes.TEXTBOX_CHANGED:
+        console.log("Ace editor caught TEXTBOX type update");
+        this.updateValue();
+        break;
+      case Constants.ActionTypes.NORMAL_SEL_CHANGED:
+        console.log("Ace editor caught SEL_CHNG type update");
+        this.updateValue();
+        break;
+      case Constants.ActionTypes.PARTIAL_REF_CHANGE_WITH_GRID:
+        console.log("Ace editor caught PARTIAL GRID");
+        this.updateValue();
+        break;
+      case Constants.ActionTypes.PARTIAL_REF_CHANGE_WITH_TEXTBOX:
+        console.log("Ace editor caught PARTIAL TEXTBOX");
+        this.updateValue();
+        break;
+      case Constants.ActionTypes.ESC_PRESSED:
+        console.log("Ace editor caught ESC");
+        this.updateValue();
+        break;
+      default:
+        // don't need to do anything on EDITOR_CHANGED
+        // or PARTIAL_REF_CHANGE_WITH_EDITOR
+        break;
     }
   },
 
-  componentDidMount: function() {
-    this.editor = ace.edit(this.props.name);
-    this.editor.$blockScrolling = Infinity;
-    this.editor.on('change', this.onChange);
-    this.editor.setValue(this.props.value, 1);
-
-    onPropsSet(this.editor, this.props);
+  /*
+  Used by the action creator callbacks to update the editor
+  Don't do a onChange callback; as this request is external (due to Action Creator), not from the editor itself
+  Just set value and unselect
+  */
+  updateValue(){
+    ExpStore.setDoEditorCallback(false);
+    this.editor.setValue(ExpStore.getExpression());
+    this.editor.clearSelection(); // otherwise ace highlights whole xp
   },
 
-  componentWillReceiveProps: function(nextProps) {
-    if (this.editor.getValue() !== nextProps.value) {
-      this.editor.setValue(nextProps.value, 1);
-    }
-    onPropsSet(this.editor, nextProps);
-  },
+  /*************************************************************************************************************************/
+  // Render
 
   render: function() {
     let divStyle = {
       width: this.props.width,
       height: this.props.height,
-      zIndex: 0
+      zIndex: 0,
+      resize: 'both'
     };
-    return (<div
-        id={this.props.name}
-        onChange={this.onChange}
-        style={divStyle}
-        onKeyDown={this.handleKeyDown}
-        onKeyUp={this.handleKeyUp}
-        onClick={this.handleClick}>
-      </div>);
+    return (<div id={this.props.name} style={divStyle} />);
   }
+
 });

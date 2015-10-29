@@ -1,10 +1,16 @@
 import React from 'react';
+
 import ActionCreator from '../actions/ASSpreadsheetActionCreators';
+import ExpActionCreator from '../actions/ASExpActionCreators';
+
 import ShortcutUtils from '../AS/ShortcutUtils';
 import API from '../actions/ASApiActionCreators';
 import KeyUtils from '../AS/KeyUtils';
+
 import Store from '../stores/ASEvaluationStore';
 import FindStore from '../stores/ASFindStore';
+import ExpStore from '../stores/ASExpStore';
+
 import Util from '../AS/Util';
 import Constants from '../Constants';
 import Render from '../AS/Render';
@@ -15,22 +21,23 @@ import Textbox from './Textbox.jsx'
 
 export default React.createClass({
 
-
   /*************************************************************************************************************************/
-  /* Default getter methods */
+  // React methods
 
-  _getHypergrid() {
-    return React.findDOMNode(this.refs.hypergrid);
+  propTypes: {
+    onSelectionChange: React.PropTypes.func.isRequired,
+    onTextBoxDeferredKey: React.PropTypes.func.isRequired,
+    onNavKeyDown: React.PropTypes.func.isRequired
   },
-  _getBehavior(){
-    return this._getHypergrid().getBehavior();
-  },
+
+  // TODO: do we actually need behavior??
   getDefaultProps() {
     return {
       behavior: 'default',
       onReady() { }
     };
   },
+
   getInitialState() {
     return {
       // keep scroll values in state so overlays autoscroll with grid
@@ -38,6 +45,65 @@ export default React.createClass({
       overlays: []
     };
   },
+
+  componentDidMount() {
+    // Be able to respond to events from ExpStore
+    ExpStore.addChangeListener(this._onExpressionChange);
+    // Hypergrid initialization
+    document.addEventListener('polymer-ready', () => {
+      this.props.onReady();
+      this.initialize();
+      this.setCellRenderer();
+      let self = this;
+      let hg = this._getHypergrid();
+      hg.addGlobalProperties(this.gridProperties);
+      this.getInitialData();
+      let callbacks = ({
+        /*
+          Call onSelectionChange method in eval pane to deal with selection change
+          Need to also figure out the expression to render in the editor
+        */
+        'fin-selection-changed': function (event) {
+          console.log("SELECTION CHANGE");
+          self.props.onSelectionChange(self.getSelectionArea());
+          },
+        'fin-scroll-x': function (event) {
+          self.setState({scroll: self.getScroll()});
+          if ((self.getScroll()).x % 20 === 0)
+            ActionCreator.scroll(self.getViewingWindow());
+          },
+        'fin-scroll-y': function (event) {
+          self.setState({scroll: self.getScroll()});
+          if ((self.getScroll()).y % 20 === 0)
+            ActionCreator.scroll(self.getViewingWindow());
+          },
+        'fin-double-click': function (event) {
+          console.log("DOUBLE ClICK");
+          self.refs.textbox.updateTextBox(ExpStore.getExpression());
+          }
+      });
+      for (var key in callbacks) {
+        var value = callbacks[key];
+        hg.addFinEventListener(key, value);
+      }
+    });
+  },
+
+  componentWillUnmount(){
+    ExpStore.removeChangeListener(this._onExpressionChange);
+  },
+
+  /*************************************************************************************************************************/
+  // Default getter methods, relating to location/scrolling/selection
+
+  _getHypergrid() {
+    return React.findDOMNode(this.refs.hypergrid);
+  },
+
+  _getBehavior(){
+    return this._getHypergrid().getBehavior();
+  },
+
   getSelectionArea() {
     let hg = this._getHypergrid(),
         selection = hg.getSelectionModel().selections[0],
@@ -56,10 +122,12 @@ export default React.createClass({
       };
     return sel;
   },
+
   getScroll() {
     let hg = this._getHypergrid();
     return {x: hg.hScrollValue, y: hg.vScrollValue};
   },
+
   getViewingWindow() {
     let hg = this._getHypergrid(),
         [vs, hs] = [hg.vScrollValue, hg.hScrollValue],
@@ -69,6 +137,7 @@ export default React.createClass({
              width: cols.length,
              height: rows.length };
   },
+
   isVisible(col, row){ // faster than accessing hypergrid properties
     return (this.state.scroll.x <= col && col <= this.state.scroll.x+Constants.numVisibleCols) &&
            (this.state.scroll.y <= row && row <= this.state.scroll.y+Constants.numVisibleRows);
@@ -78,16 +147,28 @@ export default React.createClass({
     return this._getHypergrid().getVisibleRows().length;
   },
 
+  getTextboxPosition() {
+    let scroll = this.state.scroll;
+    if (Store.getActiveSelection()){
+      let {col, row} = Store.getActiveSelection().origin,
+          rect = document.createElement('fin-rectangle'),
+          point = rect.point.create(col - scroll.x, row - scroll.y);
+      return this._getHypergrid().getBoundsOfCell(point);
+    }
+    else {
+      return null;
+    }
+  },
+
 
   /*************************************************************************************************************************/
-  // Display values in spreadsheet
+  // Hypergrid initialization
 
   /* Initial a sheet with blank entries */
   initialize(){
     let model = this._getBehavior();
-    model.getValue = function(x, y) {
-      return '';
-    };
+    model.getValue = function(x, y) { return ''; };
+    model.getCellEditorAt = function(x, y) { return null; }
     this.select({tl: {row: 1, col: 1}, br: {row: 1, col: 1}});
   },
   // expects that the current sheet has already been set
@@ -95,6 +176,14 @@ export default React.createClass({
     API.openSheet(Store.getCurrentSheet());
     ActionCreator.scroll(this.getViewingWindow());
   },
+
+  gridProperties: {
+    editorActivationKeys: [] // disable column picker
+  },
+
+  /*************************************************************************************************************************/
+  // Hypergrid update display
+
   /* Called by eval pane's onChange method, when eval pane receives a change event from the store */
   updateCellValues(clientCells){
     let model = this._getBehavior();
@@ -121,122 +210,8 @@ export default React.createClass({
     this.setState({overlays: overlays});
   },
 
-
   /*************************************************************************************************************************/
-  // Handling events
-
-  handleKeyDown(e) {
-    e.persist(); // prevent react gc
-    if (ShortcutUtils.gridShouldDeferKey(e)){ // if anything but nav keys, bubble event to parent
-      if (!KeyUtils.isCopyPasteType(e)){
-        KeyUtils.killEvent(e);
-      }
-      this.props.onDeferredKey(e);
-    }
-  },
-
-  handleTextBoxKeyDown(e) {
-    e.persist(); // prevent react gc
-    if (ShortcutUtils.gridShouldDeferKey(e)){ // if anything but nav keys, bubble event to parent
-      if (!KeyUtils.isCopyPasteType(e)){
-        KeyUtils.killEvent(e);
-      }
-      this.props.onTextBoxDeferredKey(e);
-    }
-  },
-
-
-  /*************************************************************************************************************************/
-  // React methods & grid initialization
-
-  gridProperties: {
-    editorActivationKeys: [] // disable column picker
-  },
-
-  componentDidMount() {
-    document.addEventListener('polymer-ready', () => {
-      this.props.onReady();
-      this.initialize();
-      this.setCellRenderer();
-      let self = this;
-      let hg = this._getHypergrid();
-      hg.addGlobalProperties(this.gridProperties);
-      this.getInitialData();
-      let callbacks = ({
-        /*
-          Call onSelectionChange method in eval pane to deal with selection change
-          Need to also figure out the expression to render in the editor
-        */
-        'fin-selection-changed': function (event) {
-          self.props.onSelectionChange(self.getSelectionArea());
-          },
-        'fin-scroll-x': function (event) {
-          self.setState({scroll: self.getScroll()});
-          if ((self.getScroll()).x % 20 === 0)
-            ActionCreator.scroll(self.getViewingWindow());
-          },
-        'fin-scroll-y': function (event) {
-          self.setState({scroll: self.getScroll()});
-          if ((self.getScroll()).y % 20 === 0)
-            ActionCreator.scroll(self.getViewingWindow());
-          }
-      });
-      for (var key in callbacks) {
-        var value = callbacks[key];
-        hg.addFinEventListener(key, value);
-      }
-    });
-  },
-
-  render() {
-    if (this.state.textBox)
-      console.log("rendering spreadsheet " + this.state.textBox.xp);
-    let {behavior, width, height} = this.props; //should also have onReady
-    let style = {width: width, height: height};
-    let behaviorElement;
-    let self = this;
-    switch (behavior) {
-      case 'json':
-        behaviorElement = <fin-hypergrid-behavior-json />;
-        break;
-      case 'default':
-        behaviorElement = <fin-hypergrid-behavior-default />;
-        break;
-    }
-
-    // Put overlays with high z Index outside hypergrid
-    return (
-      <div style={{width:"100%",height:"100%",position:'relative'}} >
-        <fin-hypergrid
-          style={style}
-          ref="hypergrid"
-          onKeyDown={this.handleKeyDown}>
-            {behaviorElement}
-        </fin-hypergrid>
-
-        {this.state.overlays.map(function (overlay) {
-          return (<ASOverlay key={overlay.id}
-                             overlay={overlay}
-                             scroll={self.state.scroll}
-                             onOverlayClick={self.onOverlayClick}
-                             isVisible={self.isVisible}/>);
-        })}
-
-
-        <Textbox ref="textbox"
-                 scroll={self.state.scroll}
-                 onKeyDown={this.handleTextBoxKeyDown}
-                 textBoxChange={this.props.textBoxChange}/>
-
-
-
-      </div>
-    );
-  },
-
-
-  /*************************************************************************************************************************/
-  // Hypergrid methods
+  // Hypergrid methods for updating selection, focus, scrolling
 
   repaint() {
     this._getHypergrid().repaint();
@@ -298,16 +273,108 @@ export default React.createClass({
     this.select(Util.getSafeRange(range), Util.getSafeIndex(origin));
   },
 
+  navByKey(e) {
+    // TODO
+    console.log("navbykey called");
+  },
+
   scrollTo(x, y){
     let hg = this._getHypergrid();
     hg.setVScrollValue(y),
     hg.setHScrollValue(x);
     ActionCreator.scroll(this.getViewingWindow());
   },
-//
 
   /*************************************************************************************************************************/
-  // Rendering
+  // Handling events
+
+  _onKeyDown(e){
+    console.log("\n\nGRID KEYDOWN");
+    e.persist(); // prevent react gc
+    if (ShortcutUtils.gridShouldDeferKey(e)){ // not a nav key
+      KeyUtils.killEvent(e);
+      // TODO copy/paste not implemented.
+      // if (!KeyUtils.isCopyPasteType(e)){
+        // console.log("Grid key down was not copy paste type");
+      // }
+      if (KeyUtils.producesVisibleChar(e) && e.which !== 13) {
+        // Need to update the editor and textbox now via action creators
+        console.log("Grid key down going to AC");
+        let curStr = ExpStore.getExpression(),
+            newStr = KeyUtils.modifyStringForKey(curStr, e);
+        // ^ modify string for key deals with ctrl+backspace too
+        // if visible key and there was a last cell ref, move the selection back to the origin
+        if (ExpStore.getLastRef() !== null) {
+          let {range, origin} = Store.getActiveSelection();
+          this.select(range, origin);
+        }
+        ExpActionCreator.handleGridChange(newStr);
+      } else {
+        // Try shortcuts
+        console.log("Grid key down, trying shortcut");
+        ShortcutUtils.tryShortcut(e, 'common');
+        ShortcutUtils.tryShortcut(e, 'grid');
+      }
+    } else { // nav key from grid
+      this.props.onNavKeyDown(e);
+    }
+  },
+
+  onTextBoxDeferredKey(e){
+    if (e.ctrlKey) { // only for ctrl+arrowkeys
+      ShortcutUtils.tryShortcut('grid');
+    }
+    else {
+      this.navByKey(e); // all others handled by grid
+    }
+  },
+
+  _onFocus(e) {
+    Store.setFocus('grid');
+  },
+
+  /*************************************************************************************************************************/
+  // Respond to change event from ExpStore
+
+  _onExpressionChange(){
+    let xpChangeOrigin = ExpStore.getXpChangeOrigin(),
+        xpStr = ExpStore.getExpression();
+    switch(xpChangeOrigin){
+      case Constants.ActionTypes.EDITOR_CHANGED:
+        console.log("Grid caught exp update of EDITOR type");
+        this.refs.textbox.updateTextBox(xpStr);
+        break;
+      case Constants.ActionTypes.GRID_KEY_PRESSED:
+        console.log("Grid caught exp update of GRID type");
+        this.refs.textbox.updateTextBox(xpStr);
+        break;
+      case Constants.ActionTypes.NORMAL_SEL_CHANGED:
+        console.log("Grid caught exp update of SEL_CHNG type");
+        this.refs.textbox.hideTextBox(xpStr);
+        break;
+      case Constants.ActionTypes.PARTIAL_REF_CHANGE_WITH_GRID:
+        console.log("Grid caught PARTIAL GRID");
+        this.refs.textbox.updateTextBox(xpStr);
+        break;
+      case Constants.ActionTypes.PARTIAL_REF_CHANGE_WITH_EDITOR:
+        console.log("Grid caught PARTIAL EDITOR");
+        this.refs.textbox.updateTextBox(xpStr);
+        break;
+      case Constants.ActionTypes.ESC_PRESSED:
+        console.log("Grid caught ESC");
+        this.refs.textbox.updateTextBox(xpStr);
+        this.refs.textbox.hideTextBox();
+        break;
+      default:
+        // don't need to do anything on TEXTBOX_CHANGED
+        // or PARTIAL_REF_CHANGE_WITH_TEXTBOX
+        break;
+    }
+  },
+
+
+  /*************************************************************************************************************************/
+  // Cell renderer
 
   setCellRenderer() {
     let model = this._getBehavior(),
@@ -379,5 +446,52 @@ export default React.createClass({
       renderer.config = config;
       return renderer;
     }
+  },
+
+  /*************************************************************************************************************************/
+  // Render
+
+  render() {
+    let {behavior, width, height} = this.props; //should also have onReady
+    let style = {width: width, height: height};
+    let behaviorElement;
+    let self = this;
+    switch (behavior) {
+      case 'json':
+        behaviorElement = <fin-hypergrid-behavior-json />;
+        break;
+      case 'default':
+        behaviorElement = <fin-hypergrid-behavior-default />;
+        break;
+    }
+
+    return (
+      <div style={{width:"100%",height:"100%",position:'relative'}} >
+        <fin-hypergrid
+          style={style}
+          ref="hypergrid"
+          onKeyDown={this._onKeyDown}>
+            {behaviorElement}
+          onFocus={this._onFocus}
+        </fin-hypergrid>
+
+        {this.state.overlays.map(function (overlay) {
+          return (<ASOverlay key={overlay.id}
+                             overlay={overlay}
+                             scroll={self.state.scroll}
+                             onOverlayClick={self.onOverlayClick}
+                             isVisible={self.isVisible}/>);
+        })}
+
+
+        <Textbox
+                 ref="textbox"
+                 scroll={self.state.scroll}
+                 onDeferredKey={this.props.onTextBoxDeferredKey}
+                 position={this.getTextboxPosition}/>
+
+      </div>
+    );
   }
+
 });

@@ -1,90 +1,159 @@
 import React from 'react';
 import Constants from '../Constants';
-import Store from '../stores/ASEvaluationStore';
+
 import Util from '../AS/Util';
+import KeyUtils from '../AS/KeyUtils';
+import ShortcutUtils from '../AS/ShortcutUtils';
+import ParseUtils from '../AS/ParsingUtils';
+
+import Store from '../stores/ASEvaluationStore';
+import ExpStore from '../stores/ASExpStore';
+import ExpActionCreator from '../actions/ASExpActionCreators.js';
+
 let TextareaAutosize = require('react-autosize-textarea');
 
-/*
-TODO: REFACTOR
-This component uses pixels to calculate the positioning from the top left of spreadsheet.
-I don't see a way with percents right now
-Can't find a good expanding component that works
-I don't think these are too pressing right now
-Fixed black hole doom by accounting for scrolling
---Ritesh 10/12 */
-
+var ace = require('brace');
 
 export default React.createClass({
 
+  /**************************************************************************************************************************/
+  // React  methods
+
+  propTypes: {
+    onDeferredKey: React.PropTypes.func.isRequired,
+    position: React.PropTypes.func.isRequired
+  },
+
   getInitialState(){
     return {
-      textBox:null
+      isVisible: false,
+      renderTrigger: false // WTF we have to do this I feel so dirty
     };
   },
 
-  /* Update the textbox from the eval pane */
-  updateTextBox(xp,isTyping){
-    let col = Store.getActiveSelection().origin.col,
-        row = Store.getActiveSelection().origin.row,
-        textBox = {col: col, row: row, xp:xp};
-    if (isTyping){
-      this.setState({textBox:textBox});
-    }
-    else{
-      this.setState({textBox:null});
-    }
+  componentDidMount(){
+    this.editor = ace.edit('textbox');
+    this.editor.$blockScrolling = Infinity;
+    this.editor.on('focus', this._onFocus);
+    this.editor.getSession().on('change', this._onChange);
+    this.editor.container.addEventListener('keydown',this._onKeyDown,true);
+    this.showCursor();
+    // TODO: add a lang prop or something
+    this.editor.getSession().setMode('ace/mode/python');
+    this.editor.setFontSize(12);
+    this.editor.setOption('maxLines', Infinity);
+    this.editor.renderer.setShowGutter(false); // no line numbers
+    this.editor.getSession().setUseWrapMode(true); // no word wrap
   },
 
-  getTop(){
-    if (this.state.textBox){
-      return (this.state.textBox.row-1-this.props.scroll.y)* Constants.cellHeightPx + Constants.gridYOffset;
+  /**************************************************************************************************************************/
+  // Text box focus and update methods
+
+  updateTextBox(xpStr){
+    console.log("Updating textbox: " + xpStr);
+    ExpStore.setDoTextBoxCallback(false);
+    if (!this.state.isVisible){ //will be visible after update, put cursor in textbox
+      this.showCursor();
     }
-    else {
+    this.setState({isVisible: true});
+    this.editor.setValue(xpStr);
+    this.editor.clearSelection(); // otherwise ace highlights whole xp
+  },
+
+  hideTextBox(){
+    this.setState({isVisible:false});
+  },
+
+  showCursor(){
+    this.editor.renderer.$cursorLayer.showCursor(); // blinking cursor on textbox
+  },
+
+  getWidth(){
+    if (Store.getActiveSelection()){
+      let xp = this.editor.getValue(),
+          rows = xp.split("\n"),
+          longestStr = rows.reduce(function (a, b) { return a.length > b.length ? a : b; }),
+          extentX = this.props.position() ? this.props.position().extent.x : 0;
+      return Math.max(extentX, (longestStr.length)*7);
+    } else {
       return 0;
     }
   },
 
-  getLeft(){
-    if (this.state.textBox){
-      return (this.state.textBox.col-1-this.props.scroll.x)* Constants.cellWidthPx + Constants.gridXOffset;
+  getRawEditor() {
+    return this.editor;
+  },
+
+  /**************************************************************************************************************************/
+  // Helpers
+
+  insertRef(newRef){
+    let lastRef = ExpStore.getLastRef();
+    console.log("Inserting ref in textbox " + newRef);
+    console.log("Expression before insertion: " + this.editor.getValue());
+    ExpStore.setDoTextBoxCallback(false);
+    if (lastRef !== null){
+      ParseUtils.deleteLastRef(this.editor,lastRef);
     }
-    else {
-      return 0;
+    this.editor.getSession().insert(this.editor.getCursorPosition(),newRef);
+    console.log("New textbox xp: " + this.editor.getValue());
+  },
+
+  /**************************************************************************************************************************/
+  // Respond to events from ace
+
+  _onKeyDown(e){
+    console.log("\n\nTEXTBOX KEYDOWN");
+    if (ShortcutUtils.textboxShouldDeferKey(e)) {
+      KeyUtils.killEvent(e);
+      this.props.onDeferredKey(e);
+    } else {
+        // onChange will call an action creator
+        // you want an onchange to fire here
+      ExpStore.setDoTextBoxCallback(true);
+      console.log("textbox will fire action creator", e);
     }
   },
 
-  getWidth(xp){
-    let rows = xp.split("\n"),
-        longestStr = rows.reduce(function (a, b) { return a.length > b.length ? a : b; });
-    return Math.max(50,30+(longestStr.length)*12);
+  _onChange(e){
+    let xpStr = this.editor.getValue();
+    if (ExpStore.getDoTextBoxCallback()){
+      console.log("Textbox change new string: " + xpStr);
+      ExpActionCreator.handleTextBoxChange(xpStr);
+    }
+    this.setState({renderTrigger: !this.state.renderTrigger});
   },
+
+  _onFocus(e) {
+    console.log("FOCUS ON TEXTBOX");
+    console.assert(ExpStore.getUserIsTyping());
+    Store.setFocus('textbox');
+    ExpStore.setLastCursorPosition(Constants.CursorPosition.TEXTBOX);
+    ExpStore.setLastRef(null);
+    this.showCursor();
+    this.editor.resize();
+  },
+
+  /**************************************************************************************************************************/
+  // Render
 
   render() {
-    console.log(JSON.stringify(this.props.scroll));
-    let baseStyle = {display:'block',
+    console.log("\n\nTEXTBOX DIMS\n\n", this.props.position());
+    let baseStyle = {
+                     display:'block',
                      position:'absolute',
-                     width:"100%",
-                     top: this.getTop(),
-                     left: this.getLeft(),
-                     zIndex:5
+                     top: this.props.position() ? this.props.position().origin.y : null,
+                     left: this.props.position() ? this.props.position().origin.x : null,
+                     zIndex: 5,
+                     width: this.getWidth(),
+                     height: 60, //this.props.position() ? this.props.position().extent.y : null,
+                     border: "solid 2px black",
+                     visibility: this.state.isVisible ? 'visible' : 'hidden'
                      };
-    let textStyle = {
-      width: this.state.textBox ? this.getWidth(this.state.textBox.xp) : 0,
-      border: "solid 2px black"
-    };
-
-    /* TODO: using autofocus has the bug that the cursor is at the beginning of the box
-    at the start */
-    let overlay = this.state.textBox ?
-          <TextareaAutosize ref="box" type="text" autoFocus onFocus={this.onFocus}
-                 style={textStyle}
-                 onKeyDown={this.props.onKeyDown}
-                 value={this.state.textBox.xp} /> : null ;
 
     return (
-        <div style={baseStyle} >
-          {overlay}
-        </div>
+      <div id={'textbox'}
+           style={baseStyle} />
     );
   }
 

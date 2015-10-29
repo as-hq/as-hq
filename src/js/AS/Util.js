@@ -69,18 +69,12 @@ export default {
   },
 
   // not actually correct #needsrefactor. (But correct enough for Javascript for now.)
-  shiftIndex(ind, dr, dc) { 
+  shiftIndex(ind, dr, dc) {
     return {row: ind.row + dr, col: ind.col + dc};
   },
 
   showFullValueList(cv) {
     return JSON.stringify(cv.contents.map(this.showValue));
-  },
-
-  extendRangeByCache(rng) {
-    let tl = this.getSafeIndex({row: rng.tl.row-Constants.scrollCacheY, col: rng.tl.col-Constants.scrollCacheX}),
-        br = this.getSafeIndex({row: rng.br.row+Constants.scrollCacheY, col: rng.br.col+Constants.scrollCacheX});
-    return { tl: tl, br: br };
   },
 
   tagsToRenderConfig(config, tags) {
@@ -541,5 +535,15 @@ export default {
 
  concatAll(arrs) {
   return [].concat.apply([], arrs);
- }
+ },
+
+ /*************************************************************************************************************************/
+  // Cache extension to viewing window
+
+  extendRangeByCache(rng) {
+    let tl = this.getSafeIndex({row: rng.tl.row-Constants.scrollCacheY, col: rng.tl.col-Constants.scrollCacheX}),
+        br = this.getSafeIndex({row: rng.br.row+Constants.scrollCacheY, col: rng.br.col+Constants.scrollCacheX});
+    return { tl: tl, br: br };
+  }
+
 };
