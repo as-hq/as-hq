@@ -10,6 +10,8 @@ import Prelude
 import GHC.Generics
 import Data.List
 
+import Text.Read
+
 import qualified Data.Vector as V
 import qualified Data.Map.Strict as M
 import Control.Monad.Except
@@ -111,6 +113,8 @@ data EValue =
   EValueE String
   deriving (Show, Read,Eq)
 
+-- #needsrefactor really shouldn't make this an instance of Ord, since we should really allow
+-- more graceful error handling. 
 instance Ord EValue where
   -- TODO: is this right?
   (<=) (EBlank) v = (<=) (EValueNum (EValueI 0)) v
@@ -121,7 +125,14 @@ instance Ord EValue where
   (<=) v (EValueB False) = (<=) v (EValueNum (EValueI 0))
   (<=) (EValueNum n1) (EValueNum n2) = (<=) n1 n2
   (<=) (EValueS s1) (EValueS s2) = (<=) s1 s2
-  -- don't care about cross-comparisons right now
+  (<=) (EValueS s) (EValueNum n) = (<=) (strToEValueNum s) (EValueNum n)
+  (<=) (EValueNum n) (EValueS s) = (<=) (EValueNum n) (strToEValueNum s)
+  (<=) _ _ = error "Invalid comparison"
+
+strToEValueNum :: String -> EValue
+strToEValueNum str = case (readMaybe str :: Maybe Double) of 
+  Just d -> EValueNum $ EValueD d
+  Nothing -> error "Failed to convert string to number"
 
 type Col = Int
 type Row = Int

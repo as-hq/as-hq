@@ -226,7 +226,7 @@ printWithTime str = do
   let disp = "[" ++ (show time) ++ "] " ++ str
   putStrLn disp
   serverLog <- serverLogPath
-  finally (appendFile serverLog ('\n':disp)) (return ())
+  catch (appendFile serverLog ('\n':disp)) (\e -> putStrLn $ ("Error writing to log: " ++ show (e :: SomeException)))
 
 printWithTimeT :: String -> EitherTExec ()
 printWithTimeT = lift . printWithTime
