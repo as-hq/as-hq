@@ -98,7 +98,7 @@ function pressPaste() {
 function selectRange(excelRng) {
   return exec(() => {
     let hgRange = Util.excelToRange(excelRng);
-    spreadsheet().select(hgRange);
+    spreadsheet().select({range: hgRange});
   });
 }
 

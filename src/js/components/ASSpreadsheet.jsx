@@ -50,8 +50,6 @@ export default React.createClass({
                 }),
         sel = {
           range: range,
-          width:  range.br.col - range.tl.col + 1,
-          height: range.br.row - range.tl.row + 1,
           origin: {row: ul.y + 1, col: ul.x + 1}
       };
     return sel;
@@ -64,10 +62,13 @@ export default React.createClass({
     let hg = this._getHypergrid(),
         [vs, hs] = [hg.vScrollValue, hg.hScrollValue],
         [cols, rows] = [hg.getVisibleColumns(), hg.getVisibleRows()];
+        // This might fail on the initial load, since getVisibleColumns() and 
+        //getVisibleRows() might return nothing, ergo the below hack. 
+        let colLength = cols.length, rowLength = rows.length;  
+        if (colLength == 0) colLength = 20; 
+        if (rowLength == 0) rowLength = 30; 
     return { range: {tl: {row: vs+1, col: hs+1},
-                     br: {row: vs + rows.length, col: hs + cols.length}},
-             width: cols.length,
-             height: rows.length };
+                     br: {row: vs + rowLength, col: hs + colLength}} };
   },
   isVisible(col, row){ // faster than accessing hypergrid properties
     return (this.state.scroll.x <= col && col <= this.state.scroll.x+Constants.numVisibleCols) &&
@@ -88,7 +89,8 @@ export default React.createClass({
     model.getValue = function(x, y) {
       return '';
     };
-    this.select({tl: {row: 1, col: 1}, br: {row: 1, col: 1}});
+    let ind = {row: 1, col: 1}; 
+    this.select({origin: ind, range: {tl: ind, br: ind}}); 
   },
   // expects that the current sheet has already been set
   getInitialData(){
@@ -246,10 +248,10 @@ export default React.createClass({
     this._getHypergrid().takeFocus();
   },
   // do not call before polymer is ready.
-  select(unsafeLoc, origin) {
-    let loc = Util.getSafeRange(unsafeLoc),
-        {tl, br} = loc;
-    console.log("making selection!", loc);
+  select(unsafeSelection) {
+    // unsafe if it references values <= 0.
+    let safeSelection = Util.getSafeSelection(unsafeSelection); 
+    let {tl, br} = safeSelection.range;
 
     // make selection
     let hg = this._getHypergrid(),
@@ -276,26 +278,21 @@ export default React.createClass({
         shouldScrollV = tl.row < range.tl.row || tl.row > range.br.row,
         scrollH = shouldScrollH ? c : hg.getHScrollValue(),
         scrollV = shouldScrollV ? r : hg.getVScrollValue();
-    if (shouldScrollV || shouldScrollH){
+
+    if (shouldScrollV || shouldScrollH) {
       this.scrollTo(scrollH, scrollV);
     }
 
     this.repaint();
-    let selOrigin = origin ? origin : {row: tl.row, col: tl.col};
-    this.props.onSelectionChange({range:loc,
-                                  width:dC+1,
-                                  height:dR+1,
-                                  origin: selOrigin});
+    this.props.onSelectionChange({range: safeSelection.range,
+                                  origin: safeSelection.origin});
   },
 
   shiftSelectionArea(dc, dr){
     console.log(dc, dr);
     let sel = Store.getActiveSelection(),
-        {tl, br} = sel.range,
-        range = {tl: {row: tl.row + dr, col: tl.col + dc},
-                 br: {row: br.row + dr, col: br.col + dc} },
         origin = {row: sel.origin.row + dr, col: sel.origin.col + dc};
-    this.select(Util.getSafeRange(range), Util.getSafeIndex(origin));
+    this.select({range: sel.range, origin: origin}); 
   },
 
   scrollTo(x, y){

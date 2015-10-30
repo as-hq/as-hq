@@ -97,12 +97,24 @@ export default {
     return this.addCurrentSheetIdToObj(asIndex);
   },
 
+  indexToRange(ind) { 
+    return { tl: ind, br: ind };
+  },
+
+  indexToSelection(ind) { 
+    return { origin: ind, range: { tl: ind, br: ind } };
+  },
+
   rangeToASWindow(rng) {
     return this.addCurrentSheetIdToObj({ window: rng });
   },
 
-  ASLocationToSimple(loc) {
+  asLocationToSimple(loc) {
     return (loc.tag === 'index') ? {tl: loc.index, br: loc.index} : loc.range;
+  },
+
+  asSelectionToSimple(sel) { 
+    return {range: sel.selectionRange.range, origin: sel.selectionOrigin.index};
   },
 
   /**************************************************************************************************************************/

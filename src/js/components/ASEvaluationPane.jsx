@@ -261,8 +261,7 @@ export default React.createClass({
       // If there are no errors, simulate a click in the active selection to get the ACE editor
       // to update. (Note: might have other unintended side effects.) Would probably be better to get
       // the ACE editor to upate directly but this is probably fine for now. (Alex 10/28)
-      let {range, origin} = Store.getActiveSelection();
-      this.refs.spreadsheet.select(range, origin);
+      this.refs.spreadsheet.select(Store.getActiveSelection());
     }
   },
 

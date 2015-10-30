@@ -503,10 +503,12 @@ export default {
   },
 
   getSafeRange(rng) {
-    return {tl: {col: this.getSafeCol(rng.tl.col),
-                 row: this.getSafeRow(rng.tl.row)},
-            br: {col: this.getSafeCol(rng.br.col),
-                 row: this.getSafeRow(rng.br.row)} };
+    return {tl: this.getSafeIndex(rng.tl), 
+            br: this.getSafeIndex(rng.br)}; 
+  },
+
+  getSafeSelection(sel) { 
+    return { origin: this.getSafeIndex(sel.origin), range: this.getSafeRange(sel.range) };
   },
 
   getSafeIndex(idx) {
