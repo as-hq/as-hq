@@ -60,6 +60,8 @@ export default {
         return "ERROR";
       case "ValueImage":
         return "IMAGE";
+      case "ValueObject": 
+        return cv.displayValue; 
       case "DisplayValue":
         return cv.displayValue;
       default:
