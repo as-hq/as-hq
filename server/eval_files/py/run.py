@@ -45,7 +45,11 @@ result = "error"
 try:
 	print replFile
 	execfile(replFile)
+<<<<<<< HEAD
 	result = arr([2014,2011,2015,2013,2010,2014,2010,2012,2011]).sorted().reversed().reversed().reversed().transpose().reversed().transpose()
+=======
+	result = 'test!'
+>>>>>>> origin/WIP-anand
 	figures=[manager.canvas.figure for manager in matplotlib._pylab_helpers.Gcf.get_all_fig_managers()]
 	print figures
 	if len(figures) > 0:

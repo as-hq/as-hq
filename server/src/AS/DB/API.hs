@@ -138,6 +138,11 @@ locationsExist conn locs = do
       return $ sequence bools
     return results
 
+locationExists :: Connection -> ASIndex -> IO Bool
+locationExists conn loc = runRedis conn $ do
+  Right result <- exists $ DU.getLocationKey loc
+  return result
+
 -- | Returns the listkeys of all the lists that are entirely contained in the range.  
 getListsInRange :: Connection -> ASRange -> IO [ListKey]
 getListsInRange conn rng = do

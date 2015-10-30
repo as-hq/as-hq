@@ -83,8 +83,8 @@ instance (Read2 ASReference) where
       loc = case tag of 
         "I" -> case locstr of 
           "OUTOFBOUNDS" -> IndexRef OutOfBounds
-          _ -> IndexRef $ Index (pack sid) (read locstr :: (Int, Int))
-        "R" -> RangeRef $ Range (pack sid) (read locstr :: ((Int, Int), (Int, Int)))
+          _ -> IndexRef $ Index (pack sid) (read locstr :: Coord)
+        "R" -> RangeRef $ Range (pack sid) (read locstr :: (Coord, Coord))
 
 instance (Read2 ASIndex) where 
   read2 str = case ((read2 :: String -> ASReference) str) of 

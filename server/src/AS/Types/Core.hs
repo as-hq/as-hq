@@ -35,8 +35,14 @@ data WorkbookSheet = WorkbookSheet {wsName :: String, wsSheets :: [ASSheet]} der
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Core cell types
 
-data ASIndex = Index {locSheetId :: ASSheetId, index :: (Int, Int)} | OutOfBounds deriving (Show, Read, Eq, Generic, Ord)
-data ASRange = Range {rangeSheetId :: ASSheetId, range :: ((Int, Int), (Int, Int))} deriving (Show, Read, Eq, Generic, Ord)
+type Col = Int
+type Row = Int
+type Coord = (Col, Row)
+type Dimensions = (Int, Int)
+type Offset = (Int, Int)
+
+data ASIndex = Index {locSheetId :: ASSheetId, index :: Coord} | OutOfBounds deriving (Show, Read, Eq, Generic, Ord)
+data ASRange = Range {rangeSheetId :: ASSheetId, range :: (Coord, Coord)} deriving (Show, Read, Eq, Generic, Ord)
 data ASReference = IndexRef ASIndex | RangeRef ASRange deriving (Show, Read, Eq, Generic, Ord)
 
 refSheetId :: ASReference -> ASSheetId
@@ -123,7 +129,7 @@ data ASCell = Cell {cellLocation :: ASIndex,
 
 type ListKey = String
 type ASList = (ListKey, [ASCell])
-type Rect = ((Int, Int),(Int, Int))
+type Rect = (Coord, Coord)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Streaming
@@ -163,8 +169,13 @@ data ASAction =
   | Clear
   | UpdateWindow
   | AddTags | RemoveTags
+<<<<<<< HEAD
   | Repeat
   | BugReport
+=======
+  | Repeat 
+  | JumpSelect
+>>>>>>> origin/WIP-anand
   deriving (Show, Read, Eq, Generic)
 
 data ASResult = Success | Failure {failDesc :: String} | NoResult deriving (Show, Read, Eq, Generic)
@@ -185,6 +196,7 @@ data ASPayload =
   | PayloadR ASRange
   | PayloadS ASSheet
   | PayloadSelection {selectionRange :: ASRange, selectionOrigin :: ASIndex}
+  | PayloadJump {jumpRange :: ASRange, jumpOrigin :: ASIndex, isShifted :: Bool, jumpDirection :: Direction}
   | PayloadSS [ASSheet]
   | PayloadWB ASWorkbook
   | PayloadWBS [ASWorkbook]
@@ -200,6 +212,8 @@ data ASPayload =
   | PayloadList QueryList
   | PayloadText {text :: String}
   deriving (Show, Read, Eq, Generic)
+
+data Direction = DUp | DDown | DLeft | DRight deriving (Show, Read, Eq, Generic)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Version Control
@@ -235,6 +249,7 @@ data ASExecError =
   | ExecError
   | SyntaxError
   | HighDimensionalValue
+  | APIError
   deriving (Show, Read, Eq, Generic)
 
 type EitherCells = Either ASExecError [ASCell]
@@ -272,7 +287,7 @@ data ASRecipients = Original | All | Custom [ASUserClient]
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Users
 
-data ASWindow = Window {windowSheetId :: ASSheetId, topLeft :: (Int, Int), bottomRight :: (Int, Int)} deriving (Show,Read,Eq,Generic)
+data ASWindow = Window {windowSheetId :: ASSheetId, topLeft :: Coord, bottomRight :: Coord} deriving (Show,Read,Eq,Generic)
 type ASUserId = Text
 data ASUserClient = UserClient {userId :: ASUserId, userConn :: WS.Connection, windows :: [ASWindow], sessionId :: ClientId}
 
@@ -299,6 +314,12 @@ instance Eq ASDaemonClient where
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Convenience methods
+
+row :: Coord -> Int
+row = snd
+
+col :: Coord -> Int
+col = snd
 
 emptyExpression = ""
 
@@ -466,6 +487,8 @@ instance FromJSON ASWindow where
     return $ Window sid tl' br'
   parseJSON _          = fail "client message JSON attributes missing"
 
+instance ToJSON Direction 
+instance FromJSON Direction
 
 -- memory region exposure instances for R value unboxing
 instance NFData ASValue       where rnf = genericRnf

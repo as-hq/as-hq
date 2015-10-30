@@ -134,8 +134,6 @@ strToEValueNum str = case (readMaybe str :: Maybe Double) of
   Just d -> EValueNum $ EValueD d
   Nothing -> error "Failed to convert string to number"
 
-type Col = Int
-type Row = Int
 data EMatrix = EMatrix {emCols :: !Int, emRows :: !Int, content :: !(V.Vector EValue)}
   deriving (Show, Read,Eq)
 data EEntity =

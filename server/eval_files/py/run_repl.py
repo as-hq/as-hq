@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import os
 filename = os.getcwd() + "/eval_files/py/repl_record.py"
 execfile(filename)
@@ -27,3 +28,5 @@ except Exception as e:
 	pos = exc_tb.tb_lineno - 20 # subtract template lines
 	errJson = {'errType': repr(exc_type), 'file': fname, 'position': pos, 'error': err}
 	result = errJson
+=======
+>>>>>>> origin/WIP-anand

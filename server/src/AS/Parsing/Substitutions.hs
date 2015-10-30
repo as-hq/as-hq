@@ -100,7 +100,7 @@ getASIndicesFromExRefs sheetid matches = concat $ map refToIndices $ map (exRefT
 
 -- | Takes in an offset and a cell, and returns the cell you get when you shift the cell by
 -- the offset. (The location changes, and the non-absolute references in the expression changes.)
-shiftCell :: (Int, Int) -> ASCell -> ASCell
+shiftCell :: Offset -> ASCell -> ASCell
 shiftCell offset (Cell loc xp@(Expression str lang) v ts) = shiftedCell
   where
     shiftedLoc     = shiftInd offset loc

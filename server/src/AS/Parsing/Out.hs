@@ -211,15 +211,17 @@ shiftExRefs offset exRefs = map (shiftExRef offset) exRefs
 ----------------------------------------------------------------------------------------------------------------------------------
 -- Functions for excel sheet loading
 
-unpackExcelLocs :: ASValue -> [(Int,Int)]
-unpackExcelLocs (ValueL locs) = map (tup . format . toList) locs -- d=[ValueD a, ValueD b]
-    where format = map (floor.dbl) -- format :: [ASValue] -> [Int]
-          tup = \ints -> (ints!!0, ints!!1) -- tup :: [Int]-> (Int,Int)
+-- DEPRECATED
 
-unpackExcelExprs :: ASValue -> [String]
-unpackExcelExprs (ValueL l) = map str l
-unpackExcelExprs v = []
+--unpackExcelLocs :: ASValue -> [(Int,Int)]
+--unpackExcelLocs (ValueL locs) = map (tup . format . toList) locs -- d=[ValueD a, ValueD b]
+--    where format = map (floor.dbl) -- format :: [ASValue] -> [Int]
+--          tup = \ints -> (ints!!0, ints!!1) -- tup :: [Int]-> (Int,Int)
 
-unpackExcelVals :: ASValue -> [ASValue]
-unpackExcelVals (ValueL l) = l
-unpackExcelVals v = []
+--unpackExcelExprs :: ASValue -> [String]
+--unpackExcelExprs (ValueL l) = map str l
+--unpackExcelExprs v = []
+
+--unpackExcelVals :: ASValue -> [ASValue]
+--unpackExcelVals (ValueL l) = l
+--unpackExcelVals v = []

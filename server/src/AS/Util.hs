@@ -285,13 +285,13 @@ getScrolledLocs (Window _ (-1,-1) (-1,-1)) (Window sheetid tl br) = [(Range shee
 getScrolledLocs (Window _ (y,x) (y2,x2)) (Window sheetid tl@(y',x') br@(y2',x2')) = getUncoveredLocs sheetid overlapping (tl, br)
     where overlapping = ((max y y', max x x'), (min y2 y2', min x2 x2'))
 
-getUncoveredLocs :: ASSheetId -> ((Int,Int), (Int,Int)) -> ((Int,Int), (Int,Int)) -> [ASRange]
+getUncoveredLocs :: ASSheetId -> (Coord, Coord) -> (Coord, Coord) -> [ASRange]
 getUncoveredLocs sheet (tlo, bro) (tlw, brw) = [Range sheet corners | corners <- cs]
     where
-      trw = (fst brw, snd tlw)
-      blw = (fst tlw, snd brw)
-      tro = (fst bro, snd tlo)
-      blo = (fst tlo, snd bro)
+      trw = (col brw, row tlw)
+      blw = (col tlw, row brw)
+      tro = (col bro, row tlo)
+      blo = (col tlo, row bro)
       cs = [(tlw, tro), (trw, bro), (brw, blo), (blw, tlo)]
 
 getAllUserWindows :: ServerState -> [(ASUserId, [ASWindow])]
@@ -401,7 +401,7 @@ containsRange (ref:refs) = case ref of
   (RangeRef _) -> True
   _ -> containsRange refs
 
-rangeContainsRect :: ASRange -> ((Int, Int), (Int, Int)) -> Bool
+rangeContainsRect :: ASRange -> Rect -> Bool
 rangeContainsRect (Range _ ((x,y),(x2,y2))) ((x',y'),(x2',y2')) = tl && br
   where
     tl = (x' >= x) && (y' >= y)
@@ -414,6 +414,12 @@ rangeToIndices (Range sheet (ul, lr)) = [Index sheet (x,y) | x <- [startx..endx]
     endx = max (fst ul) (fst lr)
     starty = min (snd ul) (snd lr)
     endy = max (snd ul) (snd lr)
+
+orientRange :: ASRange -> ASRange
+orientRange (Range sid (tl, br)) = Range sid (tl',br')
+  where
+    tl' = (min (col tl) (col br), min (row tl) (row br))
+    br' = (max (col tl) (col br), max (row tl) (row br))
 
 rangeToIndicesRowMajor :: ASRange -> [ASIndex]
 rangeToIndicesRowMajor (Range sheet (ul, lr)) = [Index sheet (x,y) | y <- [starty..endy],x <- [startx..endx] ]
@@ -428,20 +434,20 @@ matchSheets ws ss = [WorkbookSheet (workbookName w) (catMaybes $ lookupSheets w 
   where lookupSheets workbook sheets = map (\sid -> lookupLambda sheetId sid sheets) (workbookSheets workbook)
 
 
-shiftLoc :: (Int, Int) -> ASReference -> ASReference
+shiftLoc :: Offset -> ASReference -> ASReference
 shiftLoc (dy, dx) (IndexRef (Index sh (y,x))) = IndexRef $ Index sh (y+dy, x+dx)
 shiftLoc (dy, dx) (RangeRef (Range sh ((y,x),(y2,x2)))) = RangeRef $ Range sh ((y+dy, x+dx), (y2+dy, x2+dx))
 
-shiftInd :: (Int, Int) -> ASIndex -> ASIndex
+shiftInd :: Offset -> ASIndex -> ASIndex
 shiftInd (dy, dx) (Index sh (y,x)) = Index sh (y+dy, x+dx)
 
 getTopLeft :: ASRange -> ASIndex
 getTopLeft (Range sh (tl,_)) = Index sh tl
 
-getRangeDims :: ASRange -> (Int, Int)
+getRangeDims :: ASRange -> Dimensions
 getRangeDims (Range _ ((y1, x1), (y2, x2))) = (1 + abs (y2 - y1), 1 + abs (x2 - x1))
 
-getPasteOffsets :: ASRange -> ASRange -> [(Int, Int)]
+getPasteOffsets :: ASRange -> ASRange -> [Offset]
 getPasteOffsets from to = offsets
   where
     (fromYDim, fromXDim) = getRangeDims from
@@ -454,7 +460,7 @@ getPasteOffsets from to = offsets
     offsets = [(topYOffset + y, topXOffset + x) | y <- yRepOffsets, x <- xRepOffsets]
 
 
-getIndicesOffset :: ASIndex -> ASIndex -> (Int, Int)
+getIndicesOffset :: ASIndex -> ASIndex -> Offset
 getIndicesOffset (Index _ (y, x)) (Index _ (y', x')) = (y'-y, x'-x)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------

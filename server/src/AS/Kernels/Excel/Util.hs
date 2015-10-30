@@ -109,7 +109,7 @@ shName ::  ASReference ->  ASSheetId
 shName (IndexRef (Index s _)) = s
 shName (RangeRef (Range s _)) = s
 
-topLeftLoc :: ASReference -> (Int,Int)
+topLeftLoc :: ASReference -> Coord
 topLeftLoc (IndexRef (Index _ x)) = x
 topLeftLoc (RangeRef (Range _ (a,_))) = a
 
