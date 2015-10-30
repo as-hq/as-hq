@@ -15,6 +15,8 @@ import TC from '../AS/TypeConversions';
 import KeyUtils from '../AS/KeyUtils';
 import {Snackbar} from 'material-ui';
 
+import * as BrowserTests from '../browser-test/index';
+
 import Repl from './repl/Repl.jsx'
 import ResizableRightPanel from './repl/ResizableRightPanel.jsx'
 import ASFindBar from './ASFindBar.jsx'
@@ -72,7 +74,8 @@ export default React.createClass({
       focusDx: null,
       focusDy: null,
       showFindBar:false,
-      showFindModal:false
+      showFindModal:false,
+      testMode: false
     };
   },
   setLanguage(lang) {
@@ -189,6 +192,8 @@ export default React.createClass({
     FindStore.addChangeListener(this._onFindChange);
     ReplStore.addChangeListener(this._onReplChange);
     Shortcuts.addShortcuts(this);
+
+    BrowserTests.install(window, this);
   },
   componentWillUnmount() {
     window.removeEventListener('copy',this.handleCopyEvent);
@@ -266,6 +271,14 @@ export default React.createClass({
     this.setState({replSubmittedLanguage:ReplStore.getSubmittedLanguage()})
   },
 
+  enableTestMode() {
+    this.setState({ testMode: true });
+  },
+
+  disableTestMode() {
+    this.setState({ testMode: false });
+  },
+
 
   /**************************************************************************************************************************/
   /* Copy paste handling */
@@ -285,6 +298,9 @@ export default React.createClass({
     // understand why. 
     let sel = Store.getActiveSelection(),
         vals = Store.getRowMajorCellValues(sel.range);
+
+    console.log('Handling copy event');
+
     if (vals) {
       Store.setClipboard(sel, isCut);
       let html = ClipboardUtils.valsToHtml(vals),
@@ -299,11 +315,17 @@ export default React.createClass({
     // KeyUtils.killEvent(e);
     // THIS killEvent doesn't do anything either, and that's because fin-hypergrid doesn't
     // even seem to have paste implemented by default...?
+    console.log('Handling paste event');
+
     let sel = Store.getActiveSelection(),
         containsHTML = Util.arrContains(e.clipboardData.types,"text/html"),
         containsPlain = Util.arrContains(e.clipboardData.types,"text/plain"),
-        isAlphaSheets = containsHTML ?
-          ClipboardUtils.htmlStringIsAlphaSheets(e.clipboardData.getData("text/html")) : false;
+        isAlphaSheets = this.state.testMode ||
+          (
+            containsHTML
+              ? ClipboardUtils.htmlStringIsAlphaSheets(e.clipboardData.getData("text/html"))
+              : false
+          );
     if (isAlphaSheets) { // From AS
       let clipboard = Store.getClipboard(),
           fromASRange = TC.simpleToASRange(clipboard.area.range),
@@ -371,6 +393,7 @@ export default React.createClass({
   },
 
   _onGridDeferredKey(e) {
+    console.log('Grid deferred key', e);
    if (KeyUtils.producesVisibleChar(e)) {
         let editor = this._getRawEditor(),
           str = KeyUtils.modifyStringForKey(editor.getValue(), e),
