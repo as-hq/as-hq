@@ -73,8 +73,10 @@ let [ ] =
 function pressCopy() {
   return exec(() => {
     evalPane.handleCopyTypeEventForGrid({
+      preventDefault() { },
+      stopPropagation() { },
       clipboardData: {
-        setData() { }
+        setData() { },
       }
     }, false);
   });
@@ -83,6 +85,8 @@ function pressCopy() {
 function pressPaste() {
   return exec(() => {
     evalPane.handlePasteEventForGrid({
+      preventDefault() { },
+      stopPropagation() { },
       clipboardData: {
         getData(x) { return ''; },
         types: []
