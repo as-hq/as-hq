@@ -82,7 +82,7 @@ data ASValue =
   | ValueB Bool
   | ValueL [ASValue]
   | ValueImage { imagePath :: String }
-  | ValueObject { objectType :: String, jsonRepresentation :: String }
+  | ValueObject { displayValue :: String, objectType :: String, jsonRepresentation :: String }
   | ValueError { errMsg :: String, errType :: String, file :: String, position :: Int }
   | ValueExcelError EError -- #needsrefactor: should be a part of ValueError
   | RList [(RListKey, ASValue)]

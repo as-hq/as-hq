@@ -67,14 +67,14 @@ bool lang b = case lang of
 
 showValue :: ASLanguage -> ASValue -> String
 showValue lang v = case v of
-  ValueS s        -> show s
-  ValueI i        -> show i
-  ValueD d        -> show d
-  ValueB b        -> bool lang b
-  ValueL l        -> toListStr lang $ fmap (showValue lang) l
-  ValueObject o js-> jsonDeserialize lang o js
-  RList vals      -> showRList lang vals
-  RDataFrame vals -> showRDataFrame lang vals
+  ValueS s           -> show s
+  ValueI i           -> show i
+  ValueD d           -> show d
+  ValueB b           -> bool lang b
+  ValueL l           -> toListStr lang $ fmap (showValue lang) l
+  ValueObject _ o js -> jsonDeserialize lang o js
+  RList vals         -> showRList lang vals
+  RDataFrame vals    -> showRDataFrame lang vals
 
 showRList :: ASLanguage -> [(RListKey, ASValue)] -> String
 showRList lang l = case lang of

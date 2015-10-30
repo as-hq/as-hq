@@ -45,7 +45,7 @@ result = "error"
 try:
 	print replFile
 	execfile(replFile)
-	result = 'test!'
+	result = ASIterable.deserialize({'lst': [[1], [2], [3]], 'name': '[HIDDEN LIST]'}).unhide()
 	figures=[manager.canvas.figure for manager in matplotlib._pylab_helpers.Gcf.get_all_fig_managers()]
 	print figures
 	if len(figures) > 0:

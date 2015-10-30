@@ -40,6 +40,7 @@ class ASIterable(object):
             arr = [[x] for x in arr]
 
         self.name = None
+        self.hidden = False
         self.arr = np.array(arr)
     
     ###########################################################################
@@ -135,7 +136,7 @@ class ASIterable(object):
             return self.load()[idx]
 
     def get(self, idx):
-        return self.load()[idx]
+        return self.__getitem__(idx)
 
     def __iter__(self):
         return ASIterator(self)
@@ -282,18 +283,21 @@ class ASIterable(object):
             return str({ "name": self.name, "lst": self.load()})
         else: return str({"lst": self.load()})
 
-    def hide(self, name="HIDE"):
+    def hide(self, name="[HIDDEN LIST]"):
         self.name = name
-        self.repr = str({ "displayValue": self.name, "actualValue": { "objectType": "ASIterable", "jsonRepresentation": self.serialize() } })
+        self.hidden = True
         return self
 
     def unhide(self):
         self.name = None
-        self.repr = repr(self.load())
+        self.hidden = False
         return self
 
     def __repr__(self):
-        return repr(self._flattenedArrIfCol().tolist())
+        if not self.hidden:
+            return repr(self._flattenedArrIfCol().tolist())
+        else:
+            return str({ "displayValue": self.name, "objectType": "ASIterable", "jsonRepresentation": self.serialize() })
 
     def __str__(self):
         return self.__repr__()

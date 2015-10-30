@@ -95,8 +95,9 @@ extractValue m
     extractImageValue mm = ValueImage p
       where
         ValueS p    = m M.! "imagePath"
-    extractObjectValue mm = ValueObject typ rep
+    extractObjectValue mm = ValueObject disp typ rep
       where
+        ValueS disp = m M.! "displayValue"
         ValueS typ  = m M.! "objectType"
         ValueS rep  = m M.! "jsonRepresentation"
     extractError mm = ValueError err typ file pos
