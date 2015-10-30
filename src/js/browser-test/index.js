@@ -14,7 +14,7 @@ import {
 import {
   __injectExpect,
 
-  locFromExcel,
+  rangeFromExcel,
 
   python,
   r,
@@ -108,8 +108,7 @@ function formatTestCellToStore() {
 /* block until the range registers the new selection */
 function blockUntilCopy(rng) {
   return blockUntil(() => {
-    console.log(clipboardRange(), locFromExcel(rng));
-    return _.isEqual(clipboardRange(), locFromExcel(rng));
+    return _.isEqual(clipboardRange(), rangeFromExcel(rng));
   });
 }
 
@@ -153,17 +152,17 @@ let tests = _describe('keyboard tests', {
     _describe('copy and paste', { tests: [
       _it('should copy a cell', [
         python('A1', '1'),
-        selectRange('A1'),
+        selectRange('A1:A1'),
         pressCopy(),
-        blockUntilCopy('A1') /* don't finish the test until it actually stores in clipboard */
+        blockUntilCopy('A1:A1') /* don't finish the test until it actually stores in clipboard */
       ]),
 
       _it('should copy and paste a cell', [
         python('A1', '1'),
-        selectRange('A1'),
+        selectRange('A1:A1'),
         pressCopy(),
-        blockUntilCopy('A1'),
-        selectRange('B1'),
+        blockUntilCopy('A1:A1'),
+        selectRange('B1:B1'),
         waitForResponse(
           pressPaste()
         ),

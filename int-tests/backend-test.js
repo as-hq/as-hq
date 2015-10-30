@@ -8,7 +8,6 @@ describe('backend', () => {
     __injectExpect,
 
     locToExcel,
-    locFromExcel,
 
     openSheet,
     syncWindow,

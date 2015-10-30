@@ -12,7 +12,18 @@ export function __injectExpect(exp) {
   expect = exp;
 }
 
-export function locFromExcel(exLoc) {
+export function actionAPIResponse(actionPrmFn, responseFn) {
+  return _doDefer([
+    apiExec(actionPrmFn),
+    exec(responseFn)
+  ]);
+}
+
+export function indFromExcel(exLoc) {
+  return Util.excelToIndex(exLoc);
+}
+
+export function rangeFromExcel(exLoc) {
   return Util.excelToRange(exLoc);
 }
 
@@ -21,7 +32,7 @@ export function locToExcel(loc) {
 }
 
 export function asIndex(loc) {
-  return TC.simpleToASIndex(Util.excelToRange(loc));
+  return TC.simpleToASIndex(Util.excelToIndex(loc));
 }
 
 export function asRange(loc) {
@@ -53,13 +64,6 @@ export function directAPIExec(fn) {
       reject: reject
     });
   });
-}
-
-export function actionAPIResponse(actionPrmFn, responseFn) {
-  return _doDefer([
-    apiExec(actionPrmFn),
-    exec(responseFn)
-  ]);
 }
 
 export function openSheet() {
@@ -128,7 +132,7 @@ export function copy(rng1, rng2) {
 
 export function repeat(rng, origin) {
   return apiExec(() => {
-    let sel = {origin: locFromExcel(origin), range: locFromExcel(rng)};
+    let sel = {origin: indFromExcel(origin), range: rangeFromExcel(rng)}
     API.repeat(sel);
   });
 }
@@ -154,7 +158,7 @@ export function redo() {
 
 export function delete_(rng) {
   return apiExec(() => {
-    API.deleteRange(TC.simpleToASRange(locFromExcel(rng)));
+    API.deleteRange(TC.simpleToASRange(rangeFromExcel(rng)));
   });
 }
 
@@ -287,3 +291,4 @@ export function shouldBeL(locs, vals) {
     });
   });
 }
+
