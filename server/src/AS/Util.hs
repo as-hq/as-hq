@@ -224,7 +224,7 @@ printWithTime :: String -> IO ()
 printWithTime str = do
   time <- getTime
   let disp = "[" ++ (show time) ++ "] " ++ str
-  putStrLn disp
+  putStrLn (truncated disp)
   serverLog <- serverLogPath
   catch (appendFile serverLog ('\n':disp)) (\e -> putStrLn $ ("Error writing to log: " ++ show (e :: SomeException)))
 

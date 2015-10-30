@@ -75,6 +75,7 @@ showValue lang v = case v of
   ValueObject _ o js -> jsonDeserialize lang o js
   RList vals         -> showRList lang vals
   RDataFrame vals    -> showRDataFrame lang vals
+  _ -> error ("In showValue, failed to pattern match: " ++ (show v))
 
 showRList :: ASLanguage -> [(RListKey, ASValue)] -> String
 showRList lang l = case lang of

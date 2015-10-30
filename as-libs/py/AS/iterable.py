@@ -24,9 +24,11 @@ class ASIterable(object):
     def _unwrap(cls, arr):
         # True if an ASIterable was passed in
         if type(arr).__name__ == "ASIterable":
-            arr = arr.arr()
+            arr = arr.toArray()
+        if type(arr).__name__ == 'str':
+            return arr
         try: 
-            # Unwrap all levels deeper too
+            # Unwrap all levels deeper too if you're not a string
             return [cls._unwrap(x) for x in arr]
         except TypeError:
             return arr 
@@ -133,7 +135,7 @@ class ASIterable(object):
         if self._is1D():
             return self._getList()[idx]
         else: 
-            return self.load()[idx]
+            return self.toList()[idx]
 
     def get(self, idx):
         return self.__getitem__(idx)
@@ -157,10 +159,10 @@ class ASIterable(object):
     ###########################################################################
     ### Custom functions
 
-    def arr(self):
+    def toArray(self):
         return self.arr
     
-    def load(self):
+    def toList(self):
         return self.arr.tolist()
 
     def len(self):
@@ -280,8 +282,8 @@ class ASIterable(object):
 
     def serialize(self):
         if self.name is not None:
-            return str({ "name": self.name, "lst": self.load()})
-        else: return str({"lst": self.load()})
+            return str({ "name": self.name, "lst": self.toList()})
+        else: return str({"lst": self.toList()})
 
     def hide(self, name="[HIDDEN LIST]"):
         self.name = name

@@ -45,7 +45,7 @@ result = "error"
 try:
 	print replFile
 	execfile(replFile)
-	result = ASIterable.deserialize({'lst': [[1], [2], [3]], 'name': '[HIDDEN LIST]'}).unhide()
+	result = arr([2014,2011,2015,2013,2010,2014,2010,2012,2011]).sorted().reversed().reversed().reversed().transpose().reversed().transpose()
 	figures=[manager.canvas.figure for manager in matplotlib._pylab_helpers.Gcf.get_all_fig_managers()]
 	print figures
 	if len(figures) > 0:
