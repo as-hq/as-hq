@@ -20,7 +20,19 @@ class ASIterator:
 # 1D list if it is just a single row or a single column. Also provides extra methods that allow
 # you to add, sum, and multiply ranges, and chain operations together. 
 class ASIterable(object):
+    @classmethod
+    def _unwrap(cls, arr):
+        # True if an ASIterable was passed in
+        if type(arr).__name__ == "ASIterable":
+            arr = arr.arr()
+        try: 
+            # Unwrap all levels deeper too
+            return [cls._unwrap(x) for x in arr]
+        except TypeError:
+            return arr 
+
     def __init__(self, arr):
+        arr = ASIterable._unwrap(arr)
         dim = len(np.array(arr).shape)
         if (dim == 0): # if literal. TODO: do we actually want to support this, or throw an error?
             arr = [[arr]]
@@ -32,7 +44,6 @@ class ASIterable(object):
     
     ###########################################################################
     ### List typecasting
-
     def _isRow(self): 
         return len(self.arr) == 1
 
@@ -121,10 +132,10 @@ class ASIterable(object):
         if self._is1D():
             return self._getList()[idx]
         else: 
-            return self.arr[idx]
+            return self.load()[idx]
 
     def get(self, idx):
-        return self[idx]
+        return self.load()[idx]
 
     def __iter__(self):
         return ASIterator(self)
