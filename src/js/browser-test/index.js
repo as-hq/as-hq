@@ -52,6 +52,7 @@ function generateKeyEvent(key) {
   let {keyCode, ...keyEvent} = KeyUtils.parseIntoShortcut({}, key);
   return {
     persist() {},
+    preventDefault() {},
     which: keyCode,
     ...keyEvent
   };
