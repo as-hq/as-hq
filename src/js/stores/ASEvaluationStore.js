@@ -87,9 +87,9 @@ dispatcherIndex: Dispatcher.register(function (action) {
       */
       case Constants.ActionTypes.SCROLLED:
         let extendedRange = Util.extendRangeByCache(action.vWindow.range),
-            viewingWindow = TC.rangeToASWindow(extendedRange);
+            extendedWindow = TC.rangeToASWindow(extendedRange);
         _data.viewingWindow = action.vWindow;
-        API.updateViewingWindow(viewingWindow);
+        API.updateViewingWindow(extendedWindow);
         break;
       /*
         The cells have been fetched from the server for a get request (for example, when scrolling)
@@ -127,15 +127,12 @@ dispatcherIndex: Dispatcher.register(function (action) {
         ASEvaluationStore.emitChange();
         break;
       case Constants.ActionTypes.DELETED_LOCS:
-        console.log("deleting locs from store: " + JSON.stringify(action.locs));
         ASEvaluationStore.removeLocs(action.locs);
         ASEvaluationStore.emitChange();
         break;
       case Constants.ActionTypes.GOT_FAILURE:
-        console.log("setting external error");
         ASEvaluationStore.setExternalError(action.errorMsg.result.failDesc);
         if (action.errorMsg.action === "EvaluateRepl"){
-          console.log("repl error!");
           ReplStore.advanceLine();
         }
         ASEvaluationStore.emitChange();
@@ -177,7 +174,6 @@ const ASEvaluationStore = assign({}, BaseStore, {
   setActiveSelection(sel, xp) {
     let origin = sel.origin;
     _data.activeSelection = sel;
-    console.log("setting active sel", sel);
     _data.activeCell = this.getCell(origin.col, origin.row) || TC.makeEmptyCell();
     var activeCellDependencies = Util.parseDependencies(xp);
     let c = sel.origin.col,
@@ -221,7 +217,6 @@ const ASEvaluationStore = assign({}, BaseStore, {
     return(_data.activeCell.cellExpression.dependencies);
   },
   setClipboard(rng, isCut) {
-    // console.log("setting clipboard: "+ JSON.stringify(rng));
     _data.clipboard.area = rng;
     _data.clipboard.isCut = isCut;
   },
@@ -237,7 +232,6 @@ const ASEvaluationStore = assign({}, BaseStore, {
   },
   /* Usually called by AS components so that they can get the updated values of the store */
   getLastUpdatedCells(){
-    // console.log("Getting last updated cells: " + JSON.stringify(_data.lastUpdatedCells));
     return _data.lastUpdatedCells;
   },
   resetLastUpdatedCells() {
@@ -301,7 +295,6 @@ const ASEvaluationStore = assign({}, BaseStore, {
 
   /* Function to update cell related objects in store. Caller's responsibility to clear lastUpdatedCells if necessary */
   updateCells(cells) {
-    console.log("About to update data in store: " + JSON.stringify(cells));
     let removedCells = [];
     for (var key in cells){
       let c = cells[key],
@@ -327,7 +320,6 @@ const ASEvaluationStore = assign({}, BaseStore, {
 
   /* Replace cells with empty ones. Caller's responsibility to clear lastUpdatedCells if necessary */
   removeCells(cells) {
-    console.log("About to remove data in store: " + JSON.stringify(cells));
     for (var key in cells){
       let c = cells[key],
           emptyCell = TC.makeEmptyCell(c.cellLocation);
@@ -346,7 +338,6 @@ const ASEvaluationStore = assign({}, BaseStore, {
   /* Remove cells at ASRanges or ASIndices */
   removeLocs(locs) {
     let dlocs = Util.decomposeASLocations(locs);
-    console.log("removing locs: " + JSON.stringify(dlocs));
     dlocs.forEach((l) => this.removeIndex(l), this);
   },
 
@@ -414,7 +405,6 @@ const ASEvaluationStore = assign({}, BaseStore, {
         vExtremum = isOrientedV ? br.row : tl.row,
         win = _data.viewingWindow.range,
         result;
-    // debugger;
     // console.log("\n\nin data bundary func\n\n", sel);
     // console.log("\n\nhextremum\n\n", hExtremum);
     switch(direction) {
@@ -436,8 +426,9 @@ const ASEvaluationStore = assign({}, BaseStore, {
             break;
           }
         }
-        result = result || { tl: {row: tl.row, col: isShifted ? origin.col : win.br.col},
-                             br: {row: isShifted ? br.row : tl.row,
+        result = result || { tl: {row: isShifted ? tl.row : origin.row,
+                                  col: isShifted ? origin.col : win.br.col},
+                             br: {row: isShifted ? br.row : origin.row,
                                   col: win.br.col} };
         break;
       case "Down":
@@ -457,9 +448,10 @@ const ASEvaluationStore = assign({}, BaseStore, {
             break;
           }
         }
-        result = result || { tl: {row: isShifted ? origin.row : win.br.row, col: tl.col},
-                             br: {row: isShifted ? br.row : tl.row,
-                                  col: win.br.col} };
+        result = result || { tl: {row: isShifted ? origin.row : win.br.row,
+                                  col: isShifted ? tl.col : origin.col},
+                             br: {row: isShifted ? br.row : win.br.row,
+                                  col: isShifted ? br.col : origin.col} };
         break;
       case "Left":
         startCol = this.locationExists(hExtremum-1, tl.row) ? hExtremum : hExtremum-1;
@@ -504,8 +496,6 @@ const ASEvaluationStore = assign({}, BaseStore, {
                                   col: isShifted ? br.col : tl.col} };
         break;
     }
-    result = result || sel;
-    console.log("\n\nRESULT\n\n", result);
     return Util.orientRange(result);
   },
 

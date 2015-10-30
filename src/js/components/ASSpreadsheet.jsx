@@ -134,10 +134,10 @@ export default React.createClass({
     let hg = this._getHypergrid(),
         [vs, hs] = [hg.vScrollValue, hg.hScrollValue],
         [cols, rows] = [hg.getVisibleColumns(), hg.getVisibleRows()];
-    return { range: {tl: {row: vs+1, col: hs+1},
-                     br: {row: vs + rows.length, col: hs + cols.length}},
-             width: cols.length,
-             height: rows.length };
+      return { range: {tl: {row: vs+1, col: hs+1},
+                       br: {row: vs + rows.length, col: hs + cols.length}},
+               width: cols.length,
+               height: rows.length };
   },
 
   isVisible(col, row){ // faster than accessing hypergrid properties
@@ -206,7 +206,6 @@ export default React.createClass({
 
   // update grid overlays (images, charts, etc)
   addOverlay(overlay) {
-    console.log("added overlay!");
     let overlays = this.state.overlays;
     overlays.push(overlay);
     this.setState({overlays: overlays});
@@ -226,7 +225,6 @@ export default React.createClass({
   select(unsafeLoc, origin, shouldScroll) {
     let loc = Util.getSafeRange(unsafeLoc),
         {tl, br} = loc;
-    console.log("making selection!", loc);
 
     // make selection
     let hg = this._getHypergrid(),
@@ -265,18 +263,12 @@ export default React.createClass({
   },
 
   shiftSelectionArea(dc, dr){
-    console.log(dc, dr);
     let sel = Store.getActiveSelection(),
         {tl, br} = sel.range,
         range = {tl: {row: tl.row + dr, col: tl.col + dc},
                  br: {row: br.row + dr, col: br.col + dc} },
         origin = {row: sel.origin.row + dr, col: sel.origin.col + dc};
     this.select(Util.getSafeRange(range), Util.getSafeIndex(origin), true);
-  },
-
-  navByKey(e) {
-    // TODO
-    console.log("navbykey called");
   },
 
   scrollTo(x, y){
