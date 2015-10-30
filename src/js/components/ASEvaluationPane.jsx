@@ -158,7 +158,7 @@ export default React.createClass({
       // to update. (Note: might have other unintended side effects.) Would probably be better to get
       // the ACE editor to upate directly but this is probably fine for now. (Alex 10/28)
       let {range, origin} = Store.getActiveSelection();
-      this.refs.spreadsheet.select(range, origin);
+      this.refs.spreadsheet.select(range, origin, false);
     }
   },
 
@@ -264,6 +264,7 @@ export default React.createClass({
   },
 
   handleCopyEvent(e) {
+    console.log("FUCKING COPY");
     if (this._isEventFromGrid(e)) {
       this.handleCopyTypeEventForGrid(e,false);
     }
@@ -435,12 +436,14 @@ export default React.createClass({
   /* Focus */
 
   setFocus(elem) {
-    if (elem === 'editor')
+    if (elem === 'editor'){
       this._getRawEditor().focus();
-    else if (elem === 'grid')
+    } else if (elem === 'grid') {
       this.refs.spreadsheet.setFocus();
-    else if (elem === 'textbox')
+    } else if (elem === 'textbox') {
       this._getRawTextbox().focus();
+      this.refs.spreadsheet.refs.textbox.updateTextBox(ExpStore.getExpression());
+    }
   },
 
   _handleEditorFocus(){ // need to remove blinking cursor from textbox

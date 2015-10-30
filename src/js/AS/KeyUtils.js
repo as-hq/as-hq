@@ -89,6 +89,10 @@ export default {
     return Util.arrContains(this.navKeys, e.which);
   },
 
+  isPureArrowKey(e) {
+    return this.isNavKey(e) && !this.containsModifiers(e);
+  },
+
   getKey(e) {
     // TODO
     return e.key;
@@ -96,6 +100,10 @@ export default {
 
   isFunctionKey(e) {
     return e.which >= 112 && e.which <= 123;
+  },
+
+  containsModifiers(e) {
+    return e.ctrlKey || e.shiftKey || e.altKey || e.metaKey;
   },
 
   keyToString(e) {
@@ -176,6 +184,13 @@ export default {
     if (k[e.which])
       return k[e.which]
     else return this.keyToString(e);
+  },
+
+  shiftIndexByKey(e, idx) {
+    if (e.which === 37) return {row: idx.row, col: idx.col - 1};
+    else if (e.which === 38) return {row: idx.row - 1, col: idx.col};
+    else if (e.which === 39) return {row: idx.row, col: idx.col + 1};
+    else if (e.which === 40) return {row: idx.row + 1, col: idx.col};
   },
 
 // -----------------------------------------------------------------------------------------------------

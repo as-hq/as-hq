@@ -150,5 +150,98 @@ export default {
       // draw image
       gc.drawImage(img, x, y);
     }
+  },
+
+  selectionRenderer: function(gc) {
+    var grid = this.getGrid();
+    var selections = grid.getSelectionModel().getSelections();
+    if (!selections || selections.length === 0) {
+        return;
+    }
+    var selection = selections[selections.length - 1];
+    var mouseDown = selection.origin;
+    if (mouseDown.x === -1) {
+        //no selected area, lets exit
+        return;
+    }
+
+    var visibleColumns = this.getVisibleColumns();
+    var visibleRows = this.getVisibleRows();
+    var fixedColCount = grid.getFixedColumnCount();
+    var fixedRowCount = grid.getFixedRowCount();
+    var lastVisibleColumn = visibleColumns[visibleColumns.length - 1];
+    var lastVisibleRow = visibleRows[visibleRows.length - 1];
+    var scrollX = grid.getHScrollValue();
+    var scrollY = grid.getVScrollValue();
+
+    var extent = selection.extent;
+
+    var dpOX = Math.min(mouseDown.x, mouseDown.x + extent.x) + fixedColCount;
+    var dpOY = Math.min(mouseDown.y, mouseDown.y + extent.y) + fixedRowCount;
+
+    var originX = mouseDown.x + fixedColCount - scrollX;
+    var originY = mouseDown.y + fixedRowCount - scrollY;
+    var originCellBounds = this._getBoundsOfCell(originX, originY);
+
+    //lets check if our selection rectangle is scrolled outside of the visible area
+    if (dpOX > lastVisibleColumn) {
+        return; //the top of our rectangle is below visible
+    }
+    if (dpOY > lastVisibleRow) {
+        return; //the left of our rectangle is to the right of being visible
+    }
+
+    var dpEX = Math.max(mouseDown.x, mouseDown.x + extent.x);
+    dpEX = Math.min(dpEX, 1 + lastVisibleColumn) + 2;
+
+    var dpEY = Math.max(mouseDown.y, mouseDown.y + extent.y);
+    dpEY = Math.min(dpEY, 1 + lastVisibleRow) + 2;
+
+    var o = this._getBoundsOfCell(dpOX - scrollX, dpOY - scrollY).origin;
+    var ox = Math.round((o.x === undefined) ? grid.getFixedColumnsWidth() : o.x);
+    var oy = Math.round((o.y === undefined) ? grid.getFixedRowsHeight() : o.y);
+    // var ow = o.width;
+    // var oh = o.height;
+    var e = this._getBoundsOfCell(dpEX - scrollX, dpEY - scrollY).origin;
+    var ex = Math.round((e.x === undefined) ? grid.getFixedColumnsWidth() : e.x);
+    var ey = Math.round((e.y === undefined) ? grid.getFixedRowsHeight() : e.y);
+    // var ew = e.width;
+    // var eh = e.height;
+    var x = Math.min(ox, ex);
+    var y = Math.min(oy, ey);
+    var width = 1 + ex - ox;
+    var height = 1 + ey - oy;
+    if (x === ex) {
+        width = ox - ex;
+    }
+    if (y === ey) {
+        height = oy - ey;
+    }
+    if (width * height < 1) {
+        //if we are only a skinny line, don't render anything
+        return;
+    }
+
+    gc.rect(x, y, width, height);
+    // gc.fillStyle = 'rgba(0, 0, 0, 0.2)';
+    // gc.fill();
+    gc.lineWidth = 1;
+    gc.strokeStyle = 'blue';
+
+    gc.rect(originCellBounds.origin.x, originCellBounds.origin.y,
+            originCellBounds.origin.x + originCellBounds.extent.x,
+            originCellBounds.origin.y + originCellBounds.extent.y);
+    // animate the dashed line a bit here for fun
+
+    // gc.stroke();
+
+    // gc.rect(x, y, width, height);
+
+    // gc.strokeStyle = 'white';
+
+    // // animate the dashed line a bit here for fun
+    // gc.setLineDash(this.focusLineStep[Math.floor(10 * (Date.now() / 300 % 1)) % this.focusLineStep.length]);
+
+    gc.stroke();
   }
 }

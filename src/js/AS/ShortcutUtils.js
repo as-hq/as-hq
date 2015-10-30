@@ -58,11 +58,8 @@ export default {
   },
 
   gridShouldDeferKey(e){
-    if (e.ctrlKey || e.which === 13){
-      return true;
-    } else {
-      return !KeyUtils.isNavKey(e);
-    }
+    return ((e.ctrlKey || e.which === 13) || !KeyUtils.isNavKey(e)) &&
+            !KeyUtils.isCopyPasteType(e);
   },
 
   editorShouldDeferKey(e) {

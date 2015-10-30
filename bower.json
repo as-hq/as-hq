@@ -3,13 +3,15 @@
   "version": "0.1.0",
   "dependencies": {
     "webcomponentsjs": "0.7.6",
-    "fin-hypergrid": "openfin/fin-hypergrid#9f31303b1a6c8752c14915ecec9b636bc9d9654a",
+    "fin-hypergrid": "openfin/fin-hypergrid#99d5bcb04d590f97cbe384603289ff1fbe4ef41c",
     "core-elements": "Polymer/core-elements#~0.5.6",
     "paper-elements": "Polymer/paper-elements#~0.5.6",
     "bootstrap": "~3.3.5",
     "jquery": "~2.1.4"
   },
   "resolutions": {
-    "webcomponentsjs": "0.7.6"
+    "webcomponentsjs": "0.7.6",
+    "core-component-page": "^0.5",
+    "polymer": "^0.5.0"
   }
 }

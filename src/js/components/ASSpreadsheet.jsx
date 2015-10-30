@@ -11,6 +11,7 @@ import Store from '../stores/ASEvaluationStore';
 import FindStore from '../stores/ASFindStore';
 import ExpStore from '../stores/ASExpStore';
 
+import T from '../AS/Types';
 import Util from '../AS/Util';
 import Constants from '../Constants';
 import Render from '../AS/Render';
@@ -54,6 +55,7 @@ export default React.createClass({
       this.props.onReady();
       this.initialize();
       this.setCellRenderer();
+      // this.setSelectionRenderer();
       let self = this;
       let hg = this._getHypergrid();
       hg.addGlobalProperties(this.gridProperties);
@@ -169,7 +171,7 @@ export default React.createClass({
     let model = this._getBehavior();
     model.getValue = function(x, y) { return ''; };
     model.getCellEditorAt = function(x, y) { return null; }
-    this.select({tl: {row: 1, col: 1}, br: {row: 1, col: 1}});
+    this.select({tl: {row: 1, col: 1}, br: {row: 1, col: 1}}, {row: 1, col: 1}, false);
   },
   // expects that the current sheet has already been set
   getInitialData(){
@@ -221,7 +223,7 @@ export default React.createClass({
     this._getHypergrid().takeFocus();
   },
   // do not call before polymer is ready.
-  select(unsafeLoc, origin) {
+  select(unsafeLoc, origin, shouldScroll) {
     let loc = Util.getSafeRange(unsafeLoc),
         {tl, br} = loc;
     console.log("making selection!", loc);
@@ -251,16 +253,15 @@ export default React.createClass({
         shouldScrollV = tl.row < range.tl.row || tl.row > range.br.row,
         scrollH = shouldScrollH ? c : hg.getHScrollValue(),
         scrollV = shouldScrollV ? r : hg.getVScrollValue();
-    if (shouldScrollV || shouldScrollH){
+    if ((shouldScrollV || shouldScrollH) && shouldScroll) {
       this.scrollTo(scrollH, scrollV);
     }
 
     this.repaint();
-    let selOrigin = origin ? origin : {row: tl.row, col: tl.col};
     this.props.onSelectionChange({range:loc,
                                   width:dC+1,
                                   height:dR+1,
-                                  origin: selOrigin});
+                                  origin: origin});
   },
 
   shiftSelectionArea(dc, dr){
@@ -270,7 +271,7 @@ export default React.createClass({
         range = {tl: {row: tl.row + dr, col: tl.col + dc},
                  br: {row: br.row + dr, col: br.col + dc} },
         origin = {row: sel.origin.row + dr, col: sel.origin.col + dc};
-    this.select(Util.getSafeRange(range), Util.getSafeIndex(origin));
+    this.select(Util.getSafeRange(range), Util.getSafeIndex(origin), true);
   },
 
   navByKey(e) {
@@ -293,10 +294,6 @@ export default React.createClass({
     e.persist(); // prevent react gc
     if (ShortcutUtils.gridShouldDeferKey(e)){ // not a nav key
       KeyUtils.killEvent(e);
-      // TODO copy/paste not implemented.
-      // if (!KeyUtils.isCopyPasteType(e)){
-        // console.log("Grid key down was not copy paste type");
-      // }
       if (KeyUtils.producesVisibleChar(e) && e.which !== 13) {
         // Need to update the editor and textbox now via action creators
         console.log("Grid key down going to AC");
@@ -316,6 +313,12 @@ export default React.createClass({
         ShortcutUtils.tryShortcut(e, 'grid');
       }
     } else { // nav key from grid
+      let {range, origin} = Store.getActiveSelection();
+      if (KeyUtils.isPureArrowKey(e) && !T.isIndex(range)) {
+        KeyUtils.killEvent(e);
+        let newOrigin = KeyUtils.shiftIndexByKey(e, origin);
+        this.select({tl: newOrigin, br: newOrigin}, newOrigin, true);
+      }
       this.props.onNavKeyDown(e);
     }
   },
@@ -374,7 +377,7 @@ export default React.createClass({
 
 
   /*************************************************************************************************************************/
-  // Cell renderer
+  // Renderers
 
   setCellRenderer() {
     let model = this._getBehavior(),
@@ -447,6 +450,17 @@ export default React.createClass({
       return renderer;
     }
   },
+
+  // setSelectionRenderer() {
+  //   let hg = this._getHypergrid(),
+  //       renderer = hg.getRenderer();
+  //   var img =  new Image;
+  //   var imageX = 3;
+  //   var imageY = 45;
+  //   img.src = 'http://img3.wikia.nocookie.net/__cb20130601171117/degrassi/images/5/5c/Wanted-bunny-rabbit_50154511.jpg';
+  //   renderer.addExtraRenderer(Render.selectionRenderer);
+  //   renderer.startAnimator();
+  // },
 
   /*************************************************************************************************************************/
   // Render

@@ -264,7 +264,8 @@ const ASEvaluationStore = assign({}, BaseStore, {
    // Converts a range to a row major list of lists of values,
    getRowMajorCellValues(rng){
      if (T.isIndex(rng)) {
-       return [[this.getCell(rng.tl.col, rng.tl.row).cellValue.contents]];
+      let cell = this.getCell(rng.tl.col, rng.tl.row);
+      return [[cell ? cell.cellValue.contents : null]];
      } else {
       let {tl, br} = rng,
           height = br.row - tl.row + 1,
@@ -366,14 +367,15 @@ const ASEvaluationStore = assign({}, BaseStore, {
   /**************************************************************************************************************************/
   /* Focus */
 
-  setFocus(elem) { 
+  setFocus(elem) {
     _data.lastActiveFocus = _data.activeFocus;
-    _data.activeFocus = elem; 
+    _data.activeFocus = elem;
   },
 
   getFocus() { return _data.activeFocus; },
 
   toggleFocusF2() {
+    console.log("last focus: ", _data.activeFocus);
     let temp = _data.activeFocus;
     if (_data.activeFocus === 'grid' && _data.lastActiveFocus === 'textbox')
       _data.activeFocus = 'textbox';
@@ -384,6 +386,7 @@ const ASEvaluationStore = assign({}, BaseStore, {
     else if (_data.activeFocus === 'editor')
       _data.activeFocus = 'grid';
     _data.lastActiveFocus = temp;
+    console.log("new focus: ", _data.activeFocus);
   },
 
   /**************************************************************************************************************************/

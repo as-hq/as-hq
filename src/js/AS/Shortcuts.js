@@ -86,7 +86,7 @@ export default {
       console.log("Esc pressed");
       let {range, origin} = Store.getActiveSelection();
       ExpActionCreator.handleEscape();
-      self.refs.spreadsheet.select(range, origin);
+      self.refs.spreadsheet.select(range, origin, false);
       Store.setClipboard(null, false);
       self.setState({focus: "grid"});
       self.refs.spreadsheet.repaint(); // render immediately
@@ -135,12 +135,12 @@ export default {
     SU.add("grid", "moveto_data_boundary", "Ctrl+Up/Down/Left/Right", (wildcard) => {
       let newLoc = Store.moveToDataBoundary(wildcard, false);
       console.log("moving to: ", newLoc);
-      self.refs.spreadsheet.select(newLoc, newLoc.tl);
+      self.refs.spreadsheet.select(newLoc, newLoc.tl, true);
     });
     SU.add("grid", "moveto_data_boundary_selected", "Ctrl+Shift+Up/Down/Left/Right", (wildcard) => {
       let oldOrigin = Store.getActiveSelection().origin;
       let newLoc = Store.moveToDataBoundary(wildcard, true);
-      self.refs.spreadsheet.select(newLoc, oldOrigin);
+      self.refs.spreadsheet.select(newLoc, oldOrigin, true);
     });
     SU.add("grid", "grid_fill_down", "Ctrl+D", (wildcard) => {
       let {tl, br} = Store.getActiveSelection().range;
@@ -160,12 +160,12 @@ export default {
       if (ExpStore.getUserIsTyping()) {
         self._getRawTextbox().selectAll();
       } else {
-        self.refs.spreadsheet.select(self.refs.spreadsheet.getViewingWindow().range);
+        self.refs.spreadsheet.select(self.refs.spreadsheet.getViewingWindow().range, Store.getActiveSelection().origin, false);
       }
     });
     SU.add("grid", "grid_home", ["Home", "Ctrl+Home"], (wildcard) => {
       let idx = {row: 1, col: 1};
-      self.refs.spreadsheet.select({ tl: idx, br: idx });
+      self.refs.spreadsheet.select({ tl: idx, br: idx }, idx, true);
     });
     SU.add("grid", "grid_moveto_end_sheet", "Ctrl+End", (wildcard) => {
       //TODO
@@ -195,16 +195,16 @@ export default {
     SU.add("grid", "chart", "F11", (wildcard) => {
       // TODO
     });
-    // These shortcuts are annoying as fuck. TODO ask if they're necessary.
-
-    // SU.add("grid", "select_row", "Shift+Space", (wildcard) => {
-    //   let sel = Store.getActiveSelection();
-    //   self.refs.spreadsheet.select({row: sel.row, col: 1, row2: sel.row, col2: Infinity});
-    // });
-    // SU.add("grid", "select_col", "Ctrl+Space", (wildcard) => {
-    //   let sel = Store.getActiveSelection();
-    //   self.refs.spreadsheet.select({row: 1, col: sel.col, row2: Infinity, col2: sel.col});
-    // });
+    SU.add("grid", "select_row", "Shift+Space", (wildcard) => {
+      let {origin} = Store.getActiveSelection();
+      self.refs.spreadsheet.select({tl: {row: origin.row, col: 1}, br: {row: origin.row, col: Infinity}},
+                                    origin, false);
+    });
+    SU.add("grid", "select_col", "Ctrl+Space", (wildcard) => {
+      let {origin} = Store.getActiveSelection();
+      self.refs.spreadsheet.select({tl: {row: 1, col: origin.col}, br: {row: Infinity, col: origin.col}},
+                                    origin, false);
+    });
     SU.add("grid", "insert_row", "Ctrl+Shift+[", (wildcard) => {
       // TODO
     });
@@ -214,11 +214,9 @@ export default {
     SU.add("grid", "grid_outline_range", "Ctrl+Shift+5", (wildcard) => {
       // TODO
     });
-
-
     SU.add("grid", "copy_expression_above", "Ctrl+Shift+'", (wildcard) => {
       // TODO test
-      let tl = Store.getActiveSelection().range.tl,
+      let {tl} = Store.getActiveSelection().range,
           cell = Store.getCell(tl.col, tl.row-1);
       if (cell) {
         let xp = cell.cellExpression.expression || "";
