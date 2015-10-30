@@ -39,6 +39,7 @@ export default {
     GOT_UPDATED_CELLS: null,
     GOT_UNDO:null,
     GOT_REDO:null,
+    GOT_SELECTION:null,
     FETCHED_CELLS:null,
     CLEARED: null,
     GOT_UPDATED_WORKBOOKS: null,
@@ -119,6 +120,7 @@ export default {
     New: "New",
     Find: "Find",
     BugReport: "BugReport",
-    AddTags: "AddTags", RemoveTags: "RemoveTags"
+    AddTags: "AddTags", RemoveTags: "RemoveTags",
+    JumpSelect: "JumpSelect"
   }
 };

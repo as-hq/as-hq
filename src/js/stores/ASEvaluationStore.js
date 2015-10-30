@@ -124,6 +124,10 @@ dispatcherIndex: Dispatcher.register(function (action) {
         // console.log("Last updated cells: " + JSON.stringify(_data.lastUpdatedCells));
         ASEvaluationStore.emitChange();
         break;
+
+      case Constants.ActionTypes.GOT_SELECTION: 
+        ASEvaluationStore.setActiveSelection(action.newSelection, "");
+        break; 
       case Constants.ActionTypes.DELETED_LOCS:
         console.log("deleting locs from store: " + JSON.stringify(action.locs));
         ASEvaluationStore.removeLocs(action.locs);
@@ -171,7 +175,6 @@ const ASEvaluationStore = assign({}, BaseStore, {
     }};
   },
 
-  // Requires that a range having row2 implies a range has col2, and vice versa
   setActiveSelection(sel, xp) {
     let origin = sel.origin;
     _data.activeSelection = sel;

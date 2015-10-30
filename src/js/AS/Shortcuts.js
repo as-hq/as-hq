@@ -144,6 +144,23 @@ export default {
 
     // grid shortcuts -------------------------------------------------------------------------------
     SU.add("grid", "moveto_data_boundary", "Ctrl+Up/Down/Left/Right", (wildcard) => {
+       // -- For when backend-based jump is completed
+       let {range, origin} = Store.getActiveSelection();
+       API.jumpSelect(range, origin, false, wildcard);
+       // let newLoc = Store.moveToDataBoundary(wildcard, false);
+       // console.log("moving to: ", newLoc);
+       // self.refs.spreadsheet.select(newLoc, newLoc.tl);
+     });
+     SU.add("grid", "moveto_data_boundary_extended", "Ctrl+Shift+Up/Down/Left/Right", (wildcard) => {
+       // -- For when backend-based jump is completed
+       let {range, origin} = Store.getActiveSelection();
+       API.jumpSelect(range, origin, true, wildcard);
+       // let oldOrigin = Store.getActiveSelection().origin;
+       // let newLoc = Store.moveToDataBoundary(wildcard, true);
+       // self.refs.spreadsheet.select(newLoc, oldOrigin);
+     });
+
+    SU.add("grid", "moveto_data_boundary", "Ctrl+Up/Down/Left/Right", (wildcard) => {
       let newLoc = Store.moveToDataBoundary(wildcard, false);
       console.log("moving to: ", newLoc);
       self.refs.spreadsheet.select(newLoc, newLoc.tl);
