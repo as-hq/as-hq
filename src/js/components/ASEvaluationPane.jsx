@@ -401,6 +401,9 @@ export default React.createClass({
           expression: ExpStore.getExpression(),
           language: this.state.language
       };
+      // Eval needs to be called with the current activeSel; 
+      // Otherwise the eval result shows up in the new sel 
+      this.handleEvalRequest(xpObj, null, null);
       if (cell && cell.cellExpression){
         Store.setActiveSelection(sel, cell.cellExpression.expression);
         this.showAnyErrors(cell.cellValue);
@@ -409,7 +412,6 @@ export default React.createClass({
          Store.setActiveSelection(sel,"");
          this.hideToast();
       }
-      this.handleEvalRequest(xpObj, null, null);
     } else if (userIsTyping) {
       if (editorCanInsertRef){ // insert cell ref in editor
         console.log("Eval pane inserting cell ref in editor");

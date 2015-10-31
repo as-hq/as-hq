@@ -176,6 +176,7 @@ const ASEvaluationStore = assign({}, BaseStore, {
   },
 
   setActiveSelection(sel, xp) {
+    console.log(sel);
     let origin = sel.origin;
     _data.activeSelection = sel;
     _data.activeCell = this.getCell(origin.col, origin.row) || TC.makeEmptyCell();
