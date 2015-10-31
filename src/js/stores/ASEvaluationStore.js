@@ -379,10 +379,12 @@ const ASEvaluationStore = assign({}, BaseStore, {
 
   getFocus() { return _data.activeFocus; },
 
-  toggleFocusF2() {
+  toggleFocusF2(textboxIsVisible) {
     console.log("last focus: ", _data.activeFocus);
     let temp = _data.activeFocus;
-    if (_data.activeFocus === 'grid' && _data.lastActiveFocus === 'textbox')
+    if (_data.activeFocus === 'grid' && _data.lastActiveFocus === 'grid' && textboxIsVisible)
+      _data.activeFocus = 'textbox';
+    else if (_data.activeFocus === 'grid' && _data.lastActiveFocus === 'textbox')
       _data.activeFocus = 'textbox';
     else if (_data.activeFocus === 'grid' && _data.lastActiveFocus === 'editor')
       _data.activeFocus = 'editor';

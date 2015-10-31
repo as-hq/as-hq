@@ -79,6 +79,7 @@ export default React.createClass({
         'fin-double-click': function (event) {
           console.log("DOUBLE ClICK");
           self.refs.textbox.updateTextBox(ExpStore.getExpression());
+          self.refs.textbox.editor.focus(); // set focus in textbox
           }
       });
       for (var key in callbacks) {

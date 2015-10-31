@@ -84,6 +84,10 @@ export default React.createClass({
     return this.editor;
   },
 
+  isVisible() {
+    return this.state.isVisible;
+  },
+
   /**************************************************************************************************************************/
   // Helpers
 
@@ -126,7 +130,6 @@ export default React.createClass({
 
   _onFocus(e) {
     console.log("FOCUS ON TEXTBOX");
-    console.assert(ExpStore.getUserIsTyping());
     Store.setFocus('textbox');
     ExpStore.setLastCursorPosition(Constants.CursorPosition.TEXTBOX);
     ExpStore.setLastRef(null);
