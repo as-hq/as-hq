@@ -368,7 +368,7 @@ export default React.createClass({
   // Deal with selection change from grid
 
   _onSelectionChange(sel) {
-    console.log("\nEVAL PANE ON SEL CHANGE");
+    console.log("\nEVAL PANE ON SEL CHANGE", sel.origin);
 
     let rng = sel.range,
         userIsTyping = ExpStore.getUserIsTyping(),

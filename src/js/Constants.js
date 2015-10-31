@@ -17,8 +17,8 @@ export default {
   scrollCacheX: 50,
   scrollCacheY: 50,
 
-  numCols: 100000,
-  numRows: 100000,
+  numCols: 26,
+  numRows: 1000,
 
   numVisibleCols: 38,
   numVisibleRows: 31,

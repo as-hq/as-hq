@@ -79,7 +79,8 @@ export default React.createClass({
         'fin-double-click': function (event) {
           console.log("DOUBLE ClICK");
           self.refs.textbox.updateTextBox(ExpStore.getExpression());
-          self.refs.textbox.editor.focus(); // set focus in textbox
+          Store.setFocus('textbox');
+          self.setFocus('textbox');
           }
       });
       for (var key in callbacks) {
@@ -170,6 +171,8 @@ export default React.createClass({
     let hg = this._getHypergrid(),
         model = hg.getBehavior()
     hg.addGlobalProperties(this.gridProperties);
+    model.getColumnCount = () => { return Constants.numCols; };
+    model.getRowCount = () => { return Constants.numRows; };
     model.getValue = function(x, y) { return ''; };
     model.getCellEditorAt = function(x, y) { return null; }
     this.setCellRenderer();
@@ -184,7 +187,9 @@ export default React.createClass({
   },
 
   gridProperties: {
-    editorActivationKeys: [] // disable column picker
+    editorActivationKeys: [], // disable column picker
+    scrollbarHoverOff: 'visible',
+    columnAutosizing: true
   },
 
   /*************************************************************************************************************************/
@@ -310,7 +315,9 @@ export default React.createClass({
       }
     } else { // nav key from grid
       let {range, origin} = Store.getActiveSelection();
+      console.log("ACTIVE SEL AFTER NAV KEY", origin);
       if (KeyUtils.isPureArrowKey(e) && !T.isIndex(range)) {
+        console.log("MANUALLY HANDLING NAV KEY");
         KeyUtils.killEvent(e);
         let newOrigin = KeyUtils.shiftIndexByKey(e, origin);
         this.select({range: {tl: newOrigin, br: newOrigin}, origin: newOrigin});
