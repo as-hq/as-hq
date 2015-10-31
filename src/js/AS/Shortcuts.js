@@ -167,7 +167,9 @@ export default {
       if (ExpStore.getUserIsTyping()) {
         self._getRawTextbox().selectAll();
       } else {
-        self.refs.spreadsheet.select(self.refs.spreadsheet.getViewingWindow(), false);
+        let {origin} = Store.getActiveSelection();
+        let range = self.refs.spreadsheet.getViewingWindow().range; 
+        self.refs.spreadsheet.select({origin: origin, range: range}, false);
       }
     });
     SU.add("grid", "grid_home", ["Home", "Ctrl+Home"], (wildcard) => {
