@@ -21,6 +21,7 @@ let _data = {
   userId: "TEST_USER_ID",
   allCells: {},
   lastUpdatedCells: [],
+  suppressErrors: false, 
   xscroll: 0,
   yscroll: 0,
   openSheets: [],
@@ -101,7 +102,7 @@ const ASEvaluationStore = assign({}, BaseStore, {
         */
         case Constants.ActionTypes.FETCHED_CELLS:
           _data.lastUpdatedCells = [];
-          ASEvaluationStore.updateCells(action.newCells);
+          ASEvaluationStore.updateCells(action.newCells, true);
           // console.log("Last updated cells: " + JSON.stringify(_data.lastUpdatedCells));
           ASEvaluationStore.emitChange();
           break;
@@ -300,7 +301,11 @@ const ASEvaluationStore = assign({}, BaseStore, {
   },
 
   /* Function to update cell related objects in store. Caller's responsibility to clear lastUpdatedCells if necessary */
-  updateCells(cells) {
+  updateCells(cells, suppressErrors) {
+    if (typeof(suppressErrors) == "undefined") suppressErrors = false; 
+
+    _data.suppressErrors = suppressErrors; 
+
     let removedCells = [];
     for (var key in cells){
       let c = cells[key],
@@ -308,6 +313,7 @@ const ASEvaluationStore = assign({}, BaseStore, {
       if (xpString != "") {
         this.setCell(c);
         _data.lastUpdatedCells.push(c);
+
       } else {
         removedCells.push(c); // filter out all the blank cells passed back from the store
       }
@@ -373,10 +379,12 @@ const ASEvaluationStore = assign({}, BaseStore, {
 
   getFocus() { return _data.activeFocus; },
 
-  toggleFocusF2() {
+  toggleFocusF2(textboxIsVisible) {
     console.log("last focus: ", _data.activeFocus);
     let temp = _data.activeFocus;
-    if (_data.activeFocus === 'grid' && _data.lastActiveFocus === 'textbox')
+    if (_data.activeFocus === 'grid' && _data.lastActiveFocus === 'grid' && textboxIsVisible)
+      _data.activeFocus = 'textbox';
+    else if (_data.activeFocus === 'grid' && _data.lastActiveFocus === 'textbox')
       _data.activeFocus = 'textbox';
     else if (_data.activeFocus === 'grid' && _data.lastActiveFocus === 'editor')
       _data.activeFocus = 'editor';
@@ -481,6 +489,10 @@ const ASEvaluationStore = assign({}, BaseStore, {
     return { tl: {col: 1, row: 1},
              br: {col: Constants.LARGE_SEARCH_BOUND,
                   row: Constants.LARGE_SEARCH_BOUND} };
+  },
+
+  shouldSuppressErrors() {
+    return _data.suppressErrors; 
   }
 
 

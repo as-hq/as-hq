@@ -84,6 +84,10 @@ export default React.createClass({
     return this.editor;
   },
 
+  isVisible() {
+    return this.state.isVisible;
+  },
+
   /**************************************************************************************************************************/
   // Helpers
 
