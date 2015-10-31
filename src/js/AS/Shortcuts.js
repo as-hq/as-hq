@@ -241,6 +241,7 @@ export default {
     });
 
     SU.add("grid", "grid_enter", "Enter", (wildcard) => {
+      console.log("MATCHED GRID  ENTER");
       let xpObj = {
         expression: self._getRawEditor().getValue(),
         language: self.state.language

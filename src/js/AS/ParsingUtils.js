@@ -5,16 +5,39 @@ import KeyUtils from './KeyUtils';
 // Excel parsing
 
 export default {
+  infixOp: ['-','+','==','/','*','&','^',','],
+  prefixOp: ['(', '='],
+  postfixOp: [')'],
 
   // NOTE: do not modify editor
   canInsertCellRef(editor,lastRef){
     let lines = this.getLinesWithoutLastRef(editor,lastRef),
-        pos = this.getCursorPosAfterDeletingLastRef(editor,lastRef);
-    if (pos.column === 0){
+        pos = this.getCursorPosAfterDeletingLastRef(editor,lastRef),
+        currentLine = lines[pos.row];
+    if (pos.column === 0 || currentLine.length === 0){
       return false;
     } else {
-      let lastChar = lines[pos.row][pos.column-1];
-      return lastChar === "+";
+      var lookbackOk = false, lookforwardOk = false;
+      for (var c = pos.col - 1; c > -1; c--) {
+        let curChar = currentLine[c];
+        if (curChar === ' ') continue;
+        else if (Util.arrContains(this.prefixOp, curChar) ||
+                 Util.arrContains(this.infixOp, curChar)) {
+          lookbackOk = true;
+          break;
+        }
+      }
+      if (lookbackOk && currentLine.length === 1) return true;
+      for (var c = pos.col + 1; c < currentLine.length; c++) {
+        let curChar = currentLine[c];
+        if (curChar === ' ') continue;
+        else if (Util.arrContains(this.postfixOp, curChar) ||
+                 Util.arrContains(this.infixOp, curChar)) {
+          lookforwardOk = true;
+          break;
+        }
+      }
+      return lookbackOk && lookforwardOk;
     }
   },
 
@@ -42,7 +65,7 @@ export default {
   },
 
   // Given current editor and a string (not null) that's the last ref (ex A4)
-  // Delete that from the cursor position 
+  // Delete that from the cursor position
   // Actually modifies editor
   deleteLastRef(editor,lastRef){
     let lines = this.getLinesWithoutLastRef(editor,lastRef);
@@ -55,14 +78,21 @@ export default {
   },
 
   // Can a reference be inserted after this prefix
-  // For example, after '=sum(', a ref can  be inserted 
+  // For example, after '=sum(', a ref can  be inserted
   // Used to see if grid can insert a ref at the end of xp
-  canInsertCellRefAfterPrefix(prefix){
-    // simple parser
-    if (prefix.substring(prefix.length-1) === "+"){
-      return true;
+  canInsertCellRefAfterPrefix(prefix) {
+    if (prefix.length === 0) return false;
+    else {
+      for (let c = prefix.length - 1; c > -1; c--) {
+        let curChar = prefix[c];
+        if (curChar === ' ') continue;
+        else if (Util.arrContains(this.prefixOp, curChar) ||
+                 Util.arrContains(this.infixOp, curChar)) {
+          return true;
+        }
+      }
+      return false;
     }
-    return false;
   }
 
 }

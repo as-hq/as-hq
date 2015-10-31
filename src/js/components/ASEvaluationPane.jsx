@@ -1,6 +1,7 @@
 import React from 'react';
 import ASCodeEditor from './ASCodeEditor.jsx';
 import ASSpreadsheet from './ASSpreadsheet.jsx';
+import Render from '../AS/Render';
 
 import Store from '../stores/ASEvaluationStore';
 import ReplStore from '../stores/ASReplStore';
@@ -67,7 +68,7 @@ export default React.createClass({
 
     BrowserTests.install(window, this);
   },
-  
+
   /* Make sure that the evaluation pane can receive change events from the evaluation store */
   componentWillUnmount() {
     window.removeEventListener('copy',this.handleCopyEvent);
@@ -157,13 +158,6 @@ export default React.createClass({
       anyErrors = true;
       Store.setExternalError(null);
     }
-
-    if (!anyErrors) {
-      // If there are no errors, simulate a click in the active selection to get the ACE editor
-      // to update. (Note: might have other unintended side effects.) Would probably be better to get
-      // the ACE editor to upate directly but this is probably fine for now. (Alex 10/28)
-      this.refs.spreadsheet.select(Store.getActiveSelection(), false);
-    }
   },
 
   _onReplChange() {
@@ -186,8 +180,8 @@ export default React.createClass({
   showAnyErrors(cv) {
     if (cv.tag === "ValueError") {
       this.setToast(cv.errMsg, "Error");
-    } else if (cv.tag === "ValueExcelError") { 
-      this.setToast(cv.contents.tag, "Error"); // ValueExcelError should become a part of ValueError eventually 
+    } else if (cv.tag === "ValueExcelError") {
+      this.setToast(cv.contents.tag, "Error"); // ValueExcelError should become a part of ValueError eventually
     }
   },
 
@@ -217,11 +211,11 @@ export default React.createClass({
     // the table saved to the clipboard (from "let html = ...") doesn't have
     // id=alphasheets set, which is how we know we the clipboard content is
     // from AlphaSheets originally.
-    // 
-    // Alex 10/29 -- nope, killEvent actually does something, and I don't understand what. 
-    // I DO know that if you leave it out, cut doesn't save anything to the clipboard 
+    //
+    // Alex 10/29 -- nope, killEvent actually does something, and I don't understand what.
+    // I DO know that if you leave it out, cut doesn't save anything to the clipboard
     // if there's already external data on the clipboard, but copy DOES work, and I don't
-    // understand why. 
+    // understand why.
     let sel = Store.getActiveSelection(),
         vals = Store.getRowMajorCellValues(sel.range);
 
@@ -242,6 +236,7 @@ export default React.createClass({
     // THIS killEvent doesn't do anything either, and that's because fin-hypergrid doesn't
     // even seem to have paste implemented by default...?
     console.log('Handling paste event');
+    Render.setMode(null);
 
     let sel = Store.getActiveSelection(),
         containsHTML = Util.arrContains(e.clipboardData.types,"text/html"),
@@ -333,7 +328,7 @@ export default React.createClass({
           };
       this.handleEvalRequest(xpObj, null, null);
     }
-  }, 
+  },
 
   _onGridDeferredKey(e) {
     console.log('Grid deferred key', e);
@@ -383,10 +378,6 @@ export default React.createClass({
         gridCanInsertRef = ExpStore.gridCanInsertRef(),
         textBoxCanInsertRef = ExpStore.textBoxCanInsertRef(this._getTextbox().editor);
 
-    console.log("editorCanInsertRef",editorCanInsertRef);
-    console.log("gridCanInsertRef",gridCanInsertRef);
-    console.log("textBoxCanInsertRef",textBoxCanInsertRef);
-
     let canInsertRef = editorCanInsertRef || gridCanInsertRef || textBoxCanInsertRef;
     // Enumerate changes in selection that don't result in insertion
     let changeSelToExistingCell = cell && !userIsTyping && cell.cellExpression,
@@ -394,14 +385,14 @@ export default React.createClass({
         changeSelWhileTypingNoInsert = userIsTyping && !canInsertRef;
 
     if (changeSelToExistingCell) {
-      console.log("\n\nSelected non-empty cell to move to");
+      console.log("Selected non-empty cell to move to");
       let {language,expression} = cell.cellExpression,
           val = cell.cellValue;
       Store.setActiveSelection(sel, expression);
       ExpActionCreator.handleSelChange(expression);
       this.showAnyErrors(val);
     } else if (changeSelToNewCell) {
-      console.log("\n\nSelected empty cell to move to");
+      console.log("Selected empty cell to move to");
       Store.setActiveSelection(sel, "");
       this.refs.spreadsheet.repaint();
       ExpActionCreator.handleSelChange('');
@@ -412,6 +403,9 @@ export default React.createClass({
           expression: ExpStore.getExpression(),
           language: this.state.language
       };
+      // Eval needs to be called with the current activeSel; 
+      // Otherwise the eval result shows up in the new sel 
+      this.handleEvalRequest(xpObj, null, null);
       if (cell && cell.cellExpression){
         Store.setActiveSelection(sel, cell.cellExpression.expression);
         this.showAnyErrors(cell.cellValue);
@@ -420,7 +414,6 @@ export default React.createClass({
          Store.setActiveSelection(sel,"");
          this.hideToast();
       }
-      this.handleEvalRequest(xpObj, null, null);
     } else if (userIsTyping) {
       if (editorCanInsertRef){ // insert cell ref in editor
         console.log("Eval pane inserting cell ref in editor");
@@ -469,6 +462,7 @@ export default React.createClass({
     let origin = Store.getActiveSelection().origin,
         asIndex = TC.simpleToASIndex(origin);
     if (moveCol !== null && moveRow !== null){
+      console.log("Shifting selection area");
       this.refs.spreadsheet.shiftSelectionArea(moveCol, moveRow);
     }
     API.evaluate(asIndex, xpObj);
