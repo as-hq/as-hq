@@ -332,7 +332,7 @@ export default React.createClass({
 
   _onGridDeferredKey(e) {
     console.log('Grid deferred key', e);
-   if (KeyUtils.producesVisibleChar(e)) {
+   if (KeyUtils.producesTextChange(e)) {
         let editor = this._getRawEditor(),
           str = KeyUtils.modifyStringForKey(editor.getValue(), e),
           newStr = KeyUtils.getString(e),

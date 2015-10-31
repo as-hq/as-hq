@@ -63,24 +63,25 @@ export default {
   },
 
   editorShouldDeferKey(e) {
-    return !KeyUtils.producesVisibleChar(e) &&
+    return !KeyUtils.producesTextChange(e) &&
            !KeyUtils.isNavKey(e) &&
            !KeyUtils.isCopyPasteType(e) &&
+<<<<<<< HEAD
+           !(e.ctrlKey && e.which === 65);  // ctrl + A
+=======
            !(e.ctrlKey && e.which === 65); // ctrl+A
+>>>>>>> 2caaff162fc26e0a5ac29a6dc5f8a01d5d116e29
   },
 
   textboxShouldDeferKey(e) {
-    return (e.which === 13) ||
-           (!KeyUtils.producesVisibleChar(e) &&
-            !KeyUtils.isNavKey(e) &&
-            !(e.ctrlKey && e.which === 65));
+    return (e.which === 13) || this.editorShouldDeferKey(e); 
   },
 
   replShouldDeferKey(e) {
     if (e.which === 13 && e.shiftKey === false) {
       return true;
     }
-    return !KeyUtils.producesVisibleChar(e);
+    return !KeyUtils.producesTextChange(e);
   },
 
   compareModifiers(s, e) {

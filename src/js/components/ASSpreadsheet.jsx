@@ -294,7 +294,7 @@ export default React.createClass({
     e.persist(); // prevent react gc
     if (ShortcutUtils.gridShouldDeferKey(e)){ // not a nav key
       KeyUtils.killEvent(e);
-      if (KeyUtils.producesVisibleChar(e) && e.which !== 13) {
+      if (KeyUtils.producesTextChange(e) && e.which !== 13) {
         // Need to update the editor and textbox now via action creators
         console.log("Grid key down going to AC");
         let curStr = ExpStore.getExpression(),
