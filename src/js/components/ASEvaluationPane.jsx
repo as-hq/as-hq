@@ -119,7 +119,7 @@ export default React.createClass({
     // TODO change dropdown when triggered programmatically
     console.log("setting language: "+JSON.stringify(lang));
     this.setState({ language: lang });
-    this.refs.spreadsheet.setFocus();
+    this.setFocus(Store.getFocus());
   },
 
    _onSetVarName(name) {
@@ -403,8 +403,8 @@ export default React.createClass({
           expression: ExpStore.getExpression(),
           language: this.state.language
       };
-      // Eval needs to be called with the current activeSel; 
-      // Otherwise the eval result shows up in the new sel 
+      // Eval needs to be called with the current activeSel;
+      // Otherwise the eval result shows up in the new sel
       this.handleEvalRequest(xpObj, null, null);
       if (cell && cell.cellExpression){
         Store.setActiveSelection(sel, cell.cellExpression.expression);

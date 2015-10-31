@@ -130,10 +130,10 @@ const ASEvaluationStore = assign({}, BaseStore, {
           ASEvaluationStore.emitChange();
           break;
 
-        case Constants.ActionTypes.GOT_SELECTION: 
+        case Constants.ActionTypes.GOT_SELECTION:
           ASEvaluationStore.setActiveSelection(TC.asSelectionToSimple(action.newSelection), "");
           ASEvaluationStore.emitChange();
-          break; 
+          break;
         case Constants.ActionTypes.DELETED_LOCS:
           ASEvaluationStore.removeLocs(action.locs);
           ASEvaluationStore.emitChange();
@@ -366,6 +366,7 @@ const ASEvaluationStore = assign({}, BaseStore, {
   /* Focus */
 
   setFocus(elem) {
+    console.log("\n\nFOCUS\n\n", elem);
     _data.lastActiveFocus = _data.activeFocus;
     _data.activeFocus = elem;
   },
@@ -401,77 +402,77 @@ const ASEvaluationStore = assign({}, BaseStore, {
   },
 
   getDataBoundary(start, direction) {
-    let startC = start.col, startR = start.row; 
-    let dr = 0, dc = 0; 
+    let startC = start.col, startR = start.row;
+    let dr = 0, dc = 0;
 
-    switch (direction) { 
-      case "Right": dc = 1; break; 
+    switch (direction) {
+      case "Right": dc = 1; break;
       case "Left": dc = -1; break;
-      case "Down": dr = 1; break;  
-      case "Up": dr = -1; break; 
-      default: throw "Invalid direction passed in"; break; 
+      case "Down": dr = 1; break;
+      case "Up": dr = -1; break;
+      default: throw "Invalid direction passed in"; break;
     }
 
-    let c = startC, r = startR; 
+    let c = startC, r = startR;
     if (this.locationExists(c, r)) {
-      c += dc; 
-      r += dr; 
+      c += dc;
+      r += dr;
     }
-    // TODO: replace with actual spreadsheet size limits when those are implemented. 
+    // TODO: replace with actual spreadsheet size limits when those are implemented.
     while (c > 0 && r > 0
         && c < startC + Constants.LARGE_SEARCH_BOUND
         && r < startR + Constants.LARGE_SEARCH_BOUND) {
-      if (this.locationExists(c, r) 
+      if (this.locationExists(c, r)
        && !(this.locationExists(c + dc, r + dr) && this.locationExists(c - dc, r - dr))) {
-        break; 
+        break;
       }
-      c += dc; 
-      r += dr; 
+      c += dc;
+      r += dr;
     }
 
     return {col: c, row: r};
   },
 
-  //This function returns what the new selection would be if you pressed ctrl+shift+right/up/left/down. 
-  //If shift is not held down, 
+  //This function returns what the new selection would be if you pressed ctrl+shift+right/up/left/down.
+  //If shift is not held down,
   getDataBoundSelection(direction) {
     let rng = _data.activeSelection.range,
         {tl, br} = rng,
         origin = _data.activeSelection.origin;
 
-    let startLoc = { row: origin.row, col: origin.col }; 
+    let startLoc = { row: origin.row, col: origin.col };
     if (direction == "Up" || direction == "Down") {
-      if (origin.row > tl.row) 
-        startLoc.row = tl.row; 
-      else 
-        startLoc.row = br.row; 
-    } else if (direction == "Right" || direction == "Left") { 
-      if (origin.col < tl.col) 
-        startLoc.col = tl.col; 
-      else 
+      if (origin.row > tl.row)
+        startLoc.row = tl.row;
+      else
+        startLoc.row = br.row;
+    } else if (direction == "Right" || direction == "Left") {
+      if (origin.col < tl.col)
+        startLoc.col = tl.col;
+      else
         startLoc.col = br.col;
     } else {
-      throw "Invalid direction passed in"; 
+      throw "Invalid direction passed in";
     }
 
     let bound = this.getDataBoundary(startLoc, direction);
 
-    let newTl = tl; 
-    let newBr = br; 
+    let newTl = tl;
+    let newBr = br;
 
     if (direction == "Up" || direction == "Down") {
-      if (origin.row > tl.row) 
-        newTl.row = bound.row; 
-      else 
-        newBr.row = bound.row; 
-    } else if (direction == "Right" || direction == "Left") { 
-      if (origin.col < tl.col) 
-        newTl.col = bound.col; 
-      else 
+      if (origin.row > tl.row)
+        newTl.row = bound.row;
+      else
+        newBr.row = bound.row;
+    } else if (direction == "Right" || direction == "Left") {
+      if (origin.col < tl.col)
+        newTl.col = bound.col;
+      else
         newBr.col = bound.col;
-    }     
+    }
 
-    return { range: {tl: newTl, br: newBr}, origin: origin }; 
+    return { range: {tl: newTl, br: newBr}, origin: origin };
   },
 
   // TODO actually get the data boundaries by iterating, or something
