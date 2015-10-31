@@ -378,6 +378,14 @@ export default React.createClass({
         gridCanInsertRef = ExpStore.gridCanInsertRef(),
         textBoxCanInsertRef = ExpStore.textBoxCanInsertRef(this._getTextbox().editor);
 
+    console.log("Current expression: " + ExpStore.getExpression());
+    console.log("Cursor position: " + ExpStore.getLastCursorPosition());
+
+    console.log("Editor insert: " + editorCanInsertRef);
+    console.log("Grid insert: " + gridCanInsertRef);
+    console.log("Textbox insert: " + textBoxCanInsertRef);
+
+
     let canInsertRef = editorCanInsertRef || gridCanInsertRef || textBoxCanInsertRef;
     // Enumerate changes in selection that don't result in insertion
     let changeSelToExistingCell = cell && !userIsTyping && cell.cellExpression,
