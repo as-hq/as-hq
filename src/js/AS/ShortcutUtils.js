@@ -70,7 +70,7 @@ export default {
   },
 
   textboxShouldDeferKey(e) {
-    return (e.which === 13) || this.editorShouldDeferKey(e); 
+    return (e.which === 13) || this.editorShouldDeferKey(e);
   },
 
   replShouldDeferKey(e) {

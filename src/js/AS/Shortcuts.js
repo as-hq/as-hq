@@ -17,8 +17,8 @@ export default {
 
     SU.add("common", "toggle_focus", "F2", (wildcard) => {
       console.log("F2 PRESSED ");
-      console.log("In toggle focus function");
       Store.toggleFocusF2();
+      self.refs.spreadsheet.refs.textbox.updateTextBox(ExpStore.getExpression());
       self.setFocus(Store.getFocus());
     });
     SU.add("common", "new_sheet", "Shift+F11", (wildcard) => {
@@ -85,7 +85,7 @@ export default {
     SU.add("common", "esc", "Esc", (wildcard) => {
       console.log("Esc pressed");
       ExpActionCreator.handleEscape();
-      self.refs.spreadsheet.select(Store.getActiveSelection()); 
+      self.refs.spreadsheet.select(Store.getActiveSelection());
       Store.setClipboard(null, false);
       self.setState({focus: "grid"});
       self.refs.spreadsheet.repaint(); // render immediately
@@ -174,7 +174,7 @@ export default {
     });
     SU.add("grid", "grid_home", ["Home", "Ctrl+Home"], (wildcard) => {
       let idx = {row: 1, col: 1};
-      self.refs.spreadsheet.select(TC.indexToSelection(idx)); 
+      self.refs.spreadsheet.select(TC.indexToSelection(idx));
     });
     SU.add("grid", "grid_moveto_end_sheet", "Ctrl+End", (wildcard) => {
       //TODO
