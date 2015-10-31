@@ -192,9 +192,10 @@ getCellMessage (Right cells) = ServerMessage Update Success (PayloadCL cells)
 -- getBadLocs locs mcells = map fst $ filter (\(l,c)->isNothing c) (zip locs mcells)
 
 getDBCellMessage :: [Maybe ASCell] -> ASServerMessage
-getDBCellMessage mcells = getCellMessage (Right cells)
+getDBCellMessage mcells = changeActionToGet $ getCellMessage (Right cells)
   where justCells = filter (not . isNothing) mcells
         cells = map (\(Just x) -> x) justCells
+        changeActionToGet (ServerMessage _ r p) = ServerMessage Get r p
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Error Handling
