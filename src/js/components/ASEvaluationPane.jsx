@@ -1,6 +1,7 @@
 import React from 'react';
 import ASCodeEditor from './ASCodeEditor.jsx';
 import ASSpreadsheet from './ASSpreadsheet.jsx';
+import Render from '../AS/Render';
 
 import Store from '../stores/ASEvaluationStore';
 import ReplStore from '../stores/ASReplStore';
@@ -235,6 +236,7 @@ export default React.createClass({
     // THIS killEvent doesn't do anything either, and that's because fin-hypergrid doesn't
     // even seem to have paste implemented by default...?
     console.log('Handling paste event');
+    Render.setMode(null);
 
     let sel = Store.getActiveSelection(),
         containsHTML = Util.arrContains(e.clipboardData.types,"text/html"),
