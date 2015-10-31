@@ -50,9 +50,9 @@ dispatcherIndex: Dispatcher.register(function (action) {
     case Constants.ActionTypes.PARTIAL_REF_CHANGE_WITH_GRID:
       let curXpStr = ASExpStore.getExpression(),
           lastRef = ASExpStore.getLastRef(),
-          newXpStr = lastRef ? 
-            curXpStr.substring(0,curXpStr.length-lastRef.length) + action.excelStr: 
-            curXpStr.substring(0,curXpStr.length) + action.excelStr;
+          newXpStr = (lastRef !== null) ?
+            curXpStr.substring(0,curXpStr.length-lastRef.length) + action.excelStr:
+            curXpStr + action.excelStr;
       ASExpStore.updatePartialRef(action.type,newXpStr,action.excelStr);
       break;
     case Constants.ActionTypes.PARTIAL_REF_CHANGE_WITH_EDITOR:
@@ -100,7 +100,7 @@ const ASExpStore = assign({}, BaseStore, {
   },
 
   setDoEditorCallback(bool){
-    _data.doEditorCallback = bool; 
+    _data.doEditorCallback = bool;
   },
 
   getDoTextBoxCallback(){
@@ -108,7 +108,7 @@ const ASExpStore = assign({}, BaseStore, {
   },
 
   setDoTextBoxCallback(bool){
-    _data.doTextBoxCallback = bool; 
+    _data.doTextBoxCallback = bool;
   },
 
   getUserIsTyping(){
@@ -116,7 +116,7 @@ const ASExpStore = assign({}, BaseStore, {
   },
 
   setUserIsTyping(bool){
-    _data.userIsTyping = bool; 
+    _data.userIsTyping = bool;
   },
 
   getLastCursorPosition(){
@@ -154,18 +154,19 @@ const ASExpStore = assign({}, BaseStore, {
     if (this.getLastCursorPosition() === Constants.CursorPosition.GRID){
       let xp = this.getExpression(),
           lRef = this.getLastRef();
-      gridCanInsertRef = lRef ?  
-        ParseUtils.canInsertCellRefAfterPrefix(xp.substring(0,xp.length-lRef.length)):
+      console.log("\n\nGRID CAN INSERT\n\n", xp);
+      gridCanInsertRef = lRef ?
+        ParseUtils.canInsertCellRefAfterPrefix(xp.substring(0,xp.length-lRef.length)) :
         ParseUtils.canInsertCellRefAfterPrefix(xp);
     }
     return gridCanInsertRef;
   },
-  
+
 
   /**************************************************************************************************************************/
   // Update helpers
 
-  updateStoreNormalTyping(type,xpStr){    
+  updateStoreNormalTyping(type,xpStr){
     this.setUserIsTyping(true);
     this.setXpChangeOrigin(type);
     this.setExpression(xpStr);

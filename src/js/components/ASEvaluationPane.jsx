@@ -67,7 +67,7 @@ export default React.createClass({
 
     BrowserTests.install(window, this);
   },
-  
+
   /* Make sure that the evaluation pane can receive change events from the evaluation store */
   componentWillUnmount() {
     window.removeEventListener('copy',this.handleCopyEvent);
@@ -186,8 +186,8 @@ export default React.createClass({
   showAnyErrors(cv) {
     if (cv.tag === "ValueError") {
       this.setToast(cv.errMsg, "Error");
-    } else if (cv.tag === "ValueExcelError") { 
-      this.setToast(cv.contents.tag, "Error"); // ValueExcelError should become a part of ValueError eventually 
+    } else if (cv.tag === "ValueExcelError") {
+      this.setToast(cv.contents.tag, "Error"); // ValueExcelError should become a part of ValueError eventually
     }
   },
 
@@ -217,11 +217,11 @@ export default React.createClass({
     // the table saved to the clipboard (from "let html = ...") doesn't have
     // id=alphasheets set, which is how we know we the clipboard content is
     // from AlphaSheets originally.
-    // 
-    // Alex 10/29 -- nope, killEvent actually does something, and I don't understand what. 
-    // I DO know that if you leave it out, cut doesn't save anything to the clipboard 
+    //
+    // Alex 10/29 -- nope, killEvent actually does something, and I don't understand what.
+    // I DO know that if you leave it out, cut doesn't save anything to the clipboard
     // if there's already external data on the clipboard, but copy DOES work, and I don't
-    // understand why. 
+    // understand why.
     let sel = Store.getActiveSelection(),
         vals = Store.getRowMajorCellValues(sel.range);
 
@@ -333,7 +333,7 @@ export default React.createClass({
           };
       this.handleEvalRequest(xpObj, null, null);
     }
-  }, 
+  },
 
   _onGridDeferredKey(e) {
     console.log('Grid deferred key', e);

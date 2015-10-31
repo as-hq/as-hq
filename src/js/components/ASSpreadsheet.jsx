@@ -268,10 +268,10 @@ export default React.createClass({
   },
 
   shiftSelectionArea(dc, dr) {
-    let sel = Store.getActiveSelection(); 
+    let sel = Store.getActiveSelection();
     let origin = {row: sel.origin.row + dr, col: sel.origin.col + dc};
     let range = {tl: origin, br: origin};
-    this.select({range: range, origin: origin}); 
+    this.select({range: range, origin: origin});
   },
 
   scrollTo(x, y){
@@ -297,8 +297,7 @@ export default React.createClass({
         // ^ modify string for key deals with ctrl+backspace too
         // if visible key and there was a last cell ref, move the selection back to the origin
         if (ExpStore.getLastRef() !== null) {
-          let {range, origin} = Store.getActiveSelection();
-          this.select(range, origin);
+          this.select(Store.getActiveSelection());
         }
         ExpActionCreator.handleGridChange(newStr);
       } else {
