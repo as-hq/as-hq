@@ -105,32 +105,32 @@ lexer :: P.TokenParser ()
 lexer  = P.makeTokenParser excelLang
 
 excelLang = LanguageDef
-   { commentStart   = ""
-   , commentEnd     = ""
-   , commentLine    = ""
-   , nestedComments = True
-   , identStart     = letter <|> char '_' <|> char '#'
-   , identLetter    = alphaNum <|> oneOf "_':!"
-   , opStart        = opLetter emptyDef
-   , opLetter       = oneOf ":!#$%&*+./<=>?@\\^|-~"
-   , reservedOpNames= []
-   , reservedNames  = []
-   , caseSensitive  = True
+   { commentStart    = ""
+   , commentEnd      = ""
+   , commentLine     = ""
+   , nestedComments  = True
+   , identStart      = letter <|> oneOf "_#" 
+   , identLetter     = alphaNum <|> oneOf "_':!."
+   , opStart         = opLetter emptyDef
+   , opLetter        = oneOf ":!#$%&*+./<=>?@\\^|-~"
+   , reservedOpNames = []
+   , reservedNames   = []
+   , caseSensitive   = True
    }
 
-whiteSpace= P.whiteSpace lexer
-lexeme    = P.lexeme lexer
-symbol    = P.symbol lexer
-natural   = P.natural lexer
-integer   = P.integer lexer
-float     = P.float lexer
-parens    = P.parens lexer
-semi      = P.semi lexer
-semiSep   = P.semiSep lexer
-commaSep  = P.commaSep lexer
-identifier= P.identifier lexer
-reserved  = P.reserved lexer
-reservedOp= P.reservedOp lexer
+whiteSpace    = P.whiteSpace lexer
+lexeme        = P.lexeme lexer
+symbol        = P.symbol lexer
+natural       = P.natural lexer
+integer       = P.integer lexer
+float         = P.float lexer
+parens        = P.parens lexer
+semi          = P.semi lexer
+semiSep       = P.semiSep lexer
+commaSep      = P.commaSep lexer
+identifier    = P.identifier lexer
+reserved      = P.reserved lexer
+reservedOp    = P.reservedOp lexer
 stringLiteral = P.stringLiteral lexer
 
 
