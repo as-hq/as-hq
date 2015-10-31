@@ -21,10 +21,15 @@ class ASIterator:
 # you to add, sum, and multiply ranges, and chain operations together. 
 class ASIterable(object):
     @classmethod
+    # an array might have an ASIterable constructor around it, or its elements might be
+    # lists of ASIterable's. _unwrap basically converts such a thing into a vanilla list
     def _unwrap(cls, arr):
-        # True if an ASIterable was passed in
+        # True if an ASIterable was passed in. 
         if type(arr).__name__ == "ASIterable":
-            arr = arr.toArray()
+            if arr._is1D():
+                arr = arr._getList()
+            else: 
+                arr = arr.toList()
         if type(arr).__name__ == 'str':
             return arr
         try: 

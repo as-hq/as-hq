@@ -169,13 +169,9 @@ data ASAction =
   | Clear
   | UpdateWindow
   | AddTags | RemoveTags
-<<<<<<< HEAD
   | Repeat
   | BugReport
-=======
-  | Repeat 
   | JumpSelect
->>>>>>> origin/WIP-anand
   deriving (Show, Read, Eq, Generic)
 
 data ASResult = Success | Failure {failDesc :: String} | NoResult deriving (Show, Read, Eq, Generic)

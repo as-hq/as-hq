@@ -92,12 +92,7 @@ initApp = do
 
 -- | Initializes database with sheets, etc. for debugging mode. Only called if isDebug is true.
 initDebug :: R.Connection -> IO ()
-initDebug conn = do
-  let p = encode Timeout
-  let p' = decode p :: Maybe ASExecError
-  putStrLn $ "GOT P: " ++ (show p)
-  putStrLn $ "GOT P: " ++ (show p')
-  return ()
+initDebug conn = return ()
 
 application :: MVar ServerState -> WS.ServerApp
 application state pending = do

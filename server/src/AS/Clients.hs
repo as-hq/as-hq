@@ -132,7 +132,7 @@ broadcastFiltered msg@(ServerMessage a r (PayloadLL locs)) users = mapM_ (sendLo
         _ -> U.sendMessage (ServerMessage a r (PayloadLL locs')) (userConn user)
 
 sendToOriginal :: (Client c) => c -> ASServerMessage -> IO ()
-sendToOriginal cl msg = WS.sendTextData (conn cl) (encode msg)
+sendToOriginal cl msg = U.sendMessage msg (conn cl)
 
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
@@ -400,13 +400,12 @@ getLastMessage conn = R.runRedis conn $ do
     Right (Just msg') -> read (B.unpack msg')
     _ -> ClientMessage NoAction (PayloadN ())
 
-<<<<<<< HEAD
 -- | For now, all this does is acknowledge that a bug report got sent. The actual contents
 -- of the bug report (part of the payload) are output to the server log in handleClientMessage, 
 -- which is where we want it end up anyway, for now. (Alex 10/28/15)
 handleBugReport :: ASUserClient -> IO ()
 handleBugReport user = WS.sendTextData (userConn user) ("ACK" :: T.Text)
-=======
+
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- JumpSelect handlers
 
@@ -520,5 +519,4 @@ handleJumpSelect user state p@(PayloadJump sel origin shifted dir) =
     let (newSel', newOrigin) = case newSel of 
                               RangeRef r@(Range _ _) -> (r, origin)
                               IndexRef i@(Index _ ind) -> (Range sid (ind,ind), i)
-    sendToOriginal user $ ServerMessage Update Success (PayloadSelection newSel' newOrigin)
->>>>>>> origin/WIP-anand
+    sendToOriginal user $ ServerMessage JumpSelect Success (PayloadSelection newSel' newOrigin)
