@@ -54,11 +54,8 @@ export default React.createClass({
     document.addEventListener('polymer-ready', () => {
       this.props.onReady();
       this.initialize();
-      this.setCellRenderer();
-      // this.setSelectionRenderer();
       let self = this;
       let hg = this._getHypergrid();
-      hg.addGlobalProperties(this.gridProperties);
       this.getInitialData();
       let callbacks = ({
         /*
@@ -168,9 +165,13 @@ export default React.createClass({
 
   /* Initial a sheet with blank entries */
   initialize(){
-    let model = this._getBehavior();
+    let hg = this._getHypergrid(),
+        model = hg.getBehavior()
+    hg.addGlobalProperties(this.gridProperties);
     model.getValue = function(x, y) { return ''; };
     model.getCellEditorAt = function(x, y) { return null; }
+    this.setCellRenderer();
+    this.setSelectionRenderers();
     this.select({tl: {row: 1, col: 1}, br: {row: 1, col: 1}}, {row: 1, col: 1}, false);
   },
   // expects that the current sheet has already been set
@@ -379,16 +380,7 @@ export default React.createClass({
       let renderer = Render.defaultCellRenderer,
           col = config.x + 1,
           row = config.y + 1,
-          cell = Store.getCell(col, row),
-          sel = Store.getActiveSelection(),
-          rng = sel.range,
-          activeCell = Store.getActiveCell(),
-          clipboard = Store.getClipboard();
-
-      // initialize custom config attributes for every cell
-      // (hypergrid reuses the config object for performance; attributes must be set explicitly null)
-      config.paintBorders = [];
-      config.halign = 'left';
+          cell = Store.getCell(col, row);
 
       // tag-based cell styling
       if (cell) {
@@ -400,59 +392,17 @@ export default React.createClass({
         config.halign = 'center';
       }
 
-      // selection dependency highlighting
-      if (rng && activeCell && activeCell.cellExpression.dependencies) {
-        let locs = activeCell.cellExpression.dependencies;
-        if (Util.isContainedInLocs(col, row, locs)){
-          config.paintBorders = Util.getPaintedBorders(col, row, locs);
-          config.bgColor = "#d3d3d3"; // light grey fill
-          config.borderConfig = {lineType: 0, // solid border type
-                                 width: 2,
-                                 color: "#000000"}; // black border color
-        }
-      }
-
-      // Cell/Range highlighting
-      if (rng) {
-        if (Util.isContainedInLocs(col, row, [rng])) {
-          config.paintBorders = Util.getPaintedBorders(col, row, [rng]);
-          config.borderConfig = {lineType: 0, // solid border type
-                                width: 2,
-                                color: "#003EFF"}; // blue border color
-        }
-      }
-
-      // origin border
-      if (sel.origin.col === col && sel.origin.row === row) {
-        config.paintBorders = Util.getPaintedBordersForSingleCell();
-        config.borderConfig = {lineType: 0, // solid border type
-                                 width: 3,
-                                 color: "#003EFF"}; // blue border color
-      }
-
-      // clipboard highlighting
-      if (clipboard.area && Util.isContainedInLocs(col, row, [clipboard.area.range])) {
-        config.paintBorders = Util.getPaintedBorders(col, row, [clipboard.area.range]);
-        config.borderConfig = {lineType: 1, // dashed border type
-                                 width: 3,
-                                 color: clipboard.isCut ? "#ff0000" : "#4169e1"}; // red cut, blue copy
-      }
-
       renderer.config = config;
       return renderer;
     }
   },
 
-  // setSelectionRenderer() {
-  //   let hg = this._getHypergrid(),
-  //       renderer = hg.getRenderer();
-  //   var img =  new Image;
-  //   var imageX = 3;
-  //   var imageY = 45;
-  //   img.src = 'http://img3.wikia.nocookie.net/__cb20130601171117/degrassi/images/5/5c/Wanted-bunny-rabbit_50154511.jpg';
-  //   renderer.addExtraRenderer(Render.selectionRenderer);
-  //   renderer.startAnimator();
-  // },
+  setSelectionRenderers() {
+    let renderer = this._getHypergrid().getRenderer();
+    renderer.addExtraRenderer(Render.selectionRenderer);
+    renderer.addExtraRenderer(Render.dependencyRenderer);
+    renderer.startAnimator();
+  },
 
   /*************************************************************************************************************************/
   // Render
