@@ -54,11 +54,8 @@ export default React.createClass({
     document.addEventListener('polymer-ready', () => {
       this.props.onReady();
       this.initialize();
-      this.setCellRenderer();
-      // this.setSelectionRenderer();
       let self = this;
       let hg = this._getHypergrid();
-      hg.addGlobalProperties(this.gridProperties);
       this.getInitialData();
       let callbacks = ({
         /*
@@ -132,11 +129,11 @@ export default React.createClass({
     let hg = this._getHypergrid(),
         [vs, hs] = [hg.vScrollValue, hg.hScrollValue],
         [cols, rows] = [hg.getVisibleColumns(), hg.getVisibleRows()];
-        // This might fail on the initial load, since getVisibleColumns() and 
-        //getVisibleRows() might return nothing, ergo the below hack. 
-        let colLength = cols.length, rowLength = rows.length;  
-        if (colLength == 0) colLength = 20; 
-        if (rowLength == 0) rowLength = 30; 
+        // This might fail on the initial load, since getVisibleColumns() and
+        //getVisibleRows() might return nothing, ergo the below hack.
+        let colLength = cols.length, rowLength = rows.length;
+        if (colLength == 0) colLength = 20;
+        if (rowLength == 0) rowLength = 30;
     return { range: {tl: {row: vs+1, col: hs+1},
                      br: {row: vs + rowLength, col: hs + colLength}} };
   },
@@ -168,12 +165,16 @@ export default React.createClass({
   // Hypergrid initialization
 
   /* Initial a sheet with blank entries */
-  initialize(){
-    let model = this._getBehavior();
+  initialize() {
+    let hg = this._getHypergrid(),
+        model = hg.getBehavior()
+    hg.addGlobalProperties(this.gridProperties);
     model.getValue = function(x, y) { return ''; };
     model.getCellEditorAt = function(x, y) { return null; }
-    let ind = {row: 1, col: 1}; 
-    this.select({origin: ind, range: {tl: ind, br: ind}}); 
+    this.setCellRenderer();
+    this.setSelectionRenderers();
+    let ind = {row: 1, col: 1};
+    this.select({origin: ind, range: {tl: ind, br: ind}}, false);
   },
   // expects that the current sheet has already been set
   getInitialData(){
@@ -227,10 +228,10 @@ export default React.createClass({
   select(unsafeSelection, shouldScroll) {
     console.log("Spreadsheet select start");
     if (typeof(shouldScroll) == "undefined") {
-      shouldScroll = true; 
+      shouldScroll = true;
     }
     // unsafe if it references values <= 0.
-    let safeSelection = Util.getSafeSelection(unsafeSelection); 
+    let safeSelection = Util.getSafeSelection(unsafeSelection);
     let {tl, br} = safeSelection.range;
 
     // make selection
@@ -271,10 +272,11 @@ export default React.createClass({
                                   origin: safeSelection.origin});
   },
 
-  shiftSelectionArea(dc, dr){
-    let sel = Store.getActiveSelection(),
-        origin = {row: sel.origin.row + dr, col: sel.origin.col + dc};
-    this.select({range: sel.range, origin: origin}); 
+  shiftSelectionArea(dc, dr) {
+    let sel = Store.getActiveSelection(); 
+    let origin = {row: sel.origin.row + dr, col: sel.origin.col + dc};
+    let range = {tl: origin, br: origin};
+    this.select({range: range, origin: origin}); 
   },
 
   scrollTo(x, y){
@@ -300,8 +302,7 @@ export default React.createClass({
         // ^ modify string for key deals with ctrl+backspace too
         // if visible key and there was a last cell ref, move the selection back to the origin
         if (ExpStore.getLastRef() !== null) {
-          let {range, origin} = Store.getActiveSelection();
-          this.select(range, origin);
+          this.select(Store.getActiveSelection());
         }
         ExpActionCreator.handleGridChange(newStr);
       } else {
@@ -315,7 +316,7 @@ export default React.createClass({
       if (KeyUtils.isPureArrowKey(e) && !T.isIndex(range)) {
         KeyUtils.killEvent(e);
         let newOrigin = KeyUtils.shiftIndexByKey(e, origin);
-        this.select({tl: newOrigin, br: newOrigin}, newOrigin, true);
+        this.select({range: {tl: newOrigin, br: newOrigin}, origin: newOrigin});
       }
       this.props.onNavKeyDown(e);
     }
@@ -378,16 +379,7 @@ export default React.createClass({
       let renderer = Render.defaultCellRenderer,
           col = config.x + 1,
           row = config.y + 1,
-          cell = Store.getCell(col, row),
-          sel = Store.getActiveSelection(),
-          rng = sel.range,
-          activeCell = Store.getActiveCell(),
-          clipboard = Store.getClipboard();
-
-      // initialize custom config attributes for every cell
-      // (hypergrid reuses the config object for performance; attributes must be set explicitly null)
-      config.paintBorders = [];
-      config.halign = 'left';
+          cell = Store.getCell(col, row);
 
       // tag-based cell styling
       if (cell) {
@@ -399,59 +391,17 @@ export default React.createClass({
         config.halign = 'center';
       }
 
-      // selection dependency highlighting
-      if (rng && activeCell && activeCell.cellExpression.dependencies) {
-        let locs = activeCell.cellExpression.dependencies;
-        if (Util.isContainedInLocs(col, row, locs)){
-          config.paintBorders = Util.getPaintedBorders(col, row, locs);
-          config.bgColor = "#d3d3d3"; // light grey fill
-          config.borderConfig = {lineType: 0, // solid border type
-                                 width: 2,
-                                 color: "#000000"}; // black border color
-        }
-      }
-
-      // Cell/Range highlighting
-      if (rng) {
-        if (Util.isContainedInLocs(col, row, [rng])) {
-          config.paintBorders = Util.getPaintedBorders(col, row, [rng]);
-          config.borderConfig = {lineType: 0, // solid border type
-                                width: 2,
-                                color: "#003EFF"}; // blue border color
-        }
-      }
-
-      // origin border
-      if (sel.origin.col === col && sel.origin.row === row) {
-        config.paintBorders = Util.getPaintedBordersForSingleCell();
-        config.borderConfig = {lineType: 0, // solid border type
-                                 width: 3,
-                                 color: "#003EFF"}; // blue border color
-      }
-
-      // clipboard highlighting
-      if (clipboard.area && Util.isContainedInLocs(col, row, [clipboard.area.range])) {
-        config.paintBorders = Util.getPaintedBorders(col, row, [clipboard.area.range]);
-        config.borderConfig = {lineType: 1, // dashed border type
-                                 width: 3,
-                                 color: clipboard.isCut ? "#ff0000" : "#4169e1"}; // red cut, blue copy
-      }
-
       renderer.config = config;
       return renderer;
     }
   },
 
-  // setSelectionRenderer() {
-  //   let hg = this._getHypergrid(),
-  //       renderer = hg.getRenderer();
-  //   var img =  new Image;
-  //   var imageX = 3;
-  //   var imageY = 45;
-  //   img.src = 'http://img3.wikia.nocookie.net/__cb20130601171117/degrassi/images/5/5c/Wanted-bunny-rabbit_50154511.jpg';
-  //   renderer.addExtraRenderer(Render.selectionRenderer);
-  //   renderer.startAnimator();
-  // },
+  setSelectionRenderers() {
+    let renderer = this._getHypergrid().getRenderer();
+    renderer.addExtraRenderer(Render.selectionRenderer);
+    renderer.addExtraRenderer(Render.dependencyRenderer);
+    renderer.startAnimator();
+  },
 
   /*************************************************************************************************************************/
   // Render

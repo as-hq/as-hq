@@ -7,6 +7,7 @@ import API from '../actions/ASApiActionCreators';
 import Util from '../AS/Util';
 import T from '../AS/Types';
 import TC from '../AS/TypeConversions';
+import Render from '../AS/Render';
 
 /*
 Private variable keeping track of a viewing window (cached) of cells. Stores:
@@ -222,6 +223,7 @@ const ASEvaluationStore = assign({}, BaseStore, {
   setClipboard(rng, isCut) {
     _data.clipboard.area = rng;
     _data.clipboard.isCut = isCut;
+    Render.setMode(rng === null ? null : (isCut ? 'cut' : 'copy'));
   },
   getClipboard() {
     return _data.clipboard;
@@ -350,6 +352,7 @@ const ASEvaluationStore = assign({}, BaseStore, {
 
   setActiveCellDependencies(deps) {
     _data.activeCell.cellExpression.dependencies = deps;
+    Render.setDependencies(deps);
   },
 
 // @optional mySheetId

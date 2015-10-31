@@ -1,3 +1,9 @@
+let _renderParams = {
+  mode: null, // null mode indicates normal behavior; any other string indicates otherwise
+  deps: [],
+  cellWidth: 100
+};
+
 export default {
   defaultCellRenderer: {
     paint: function(gc, x, y, width, height, isLink) {
@@ -8,9 +14,7 @@ export default {
           halign = this.config.halign,
           isColumnHovered = this.config.isColumnHovered,
           isRowHovered = this.config.isRowHovered,
-          val = this.config.value,
-          paintBorders = this.config.paintBorders,
-          borderConfig = this.config.borderConfig;
+          val = this.config.value;
 
       var leftIcon, rightIcon, centerIcon, ixoffset, iyoffset;
 
@@ -50,7 +54,7 @@ export default {
       //we must set this in order to compute the minimum width
       //for column autosizing purposes
       // this.config.minWidth = textWidth + (2 * colHEdgeOffset);
-      this.config.minWidth = 100;
+      this.config.minWidth = _renderParams.cellWidth;
 
       if (halign === 'right') {
           //textWidth = this.config.getTextWidth(gc, this.config.value);
@@ -71,24 +75,6 @@ export default {
           gc.fillRect(x, y, width, height);
       }
 
-      // draw borders
-      if (paintBorders.length > 0) {
-        gc.beginPath();
-        gc.lineWidth = borderConfig.width;
-        gc.strokeStyle = borderConfig.color;
-        if (borderConfig.lineType === 1)
-          gc.setLineDash([5,5]); // 5px dash, 5px space
-        for (var i=0; i<paintBorders.length; i++){
-          if (paintBorders[i] !== null) {
-            gc.moveTo(x + paintBorders[i][0][0] * width, y + paintBorders[i][0][1] * height);
-            gc.lineTo(x + paintBorders[i][1][0] * width, y + paintBorders[i][1][1] * height);
-          }
-        }
-        gc.stroke();
-      }
-
-
-
       //draw text
       var theColor = this.config.isSelected ? this.config.fgSelColor : this.config.fgColor;
       if (gc.fillStyle !== theColor) {
@@ -98,10 +84,7 @@ export default {
       if (val !== null) {
           gc.fillText(val, x + halignOffset, y + valignOffset);
       }
-      // streaming cell
-      if (this.config.isStreaming) {
-        gc.fillText("S", x + halignOffset, y + valignOffset);
-      }
+
       if (isColumnHovered && isRowHovered) {
           gc.beginPath();
           if (isLink) {
@@ -135,21 +118,8 @@ export default {
     }
   },
 
-  imageCellRenderer: {
-    paint: function(gc, x, y, width, height, isLink) {
-      isLink = isLink || false;
-      var colHEdgeOffset = this.config.properties.cellPadding,
-          val = this.config.value,
-          img = this.config.ASImage;
-
-      //we must set this in order to compute the minimum width
-      //for column autosizing purposes
-      var textWidth = this.config.getTextWidth(gc, val);
-      this.config.minWidth = textWidth + (2 * colHEdgeOffset);
-
-      // draw image
-      gc.drawImage(img, x, y);
-    }
+  setMode(mode) {
+    _renderParams.mode = mode;
   },
 
   selectionRenderer: function(gc) {
@@ -164,7 +134,6 @@ export default {
         //no selected area, lets exit
         return;
     }
-
     var visibleColumns = this.getVisibleColumns();
     var visibleRows = this.getVisibleRows();
     var fixedColCount = grid.getFixedColumnCount();
@@ -223,25 +192,47 @@ export default {
     }
 
     gc.rect(x, y, width, height);
+    gc.lineWidth = 1;
     // gc.fillStyle = 'rgba(0, 0, 0, 0.2)';
     // gc.fill();
-    gc.lineWidth = 1;
-    gc.strokeStyle = 'blue';
-
-    gc.rect(originCellBounds.origin.x, originCellBounds.origin.y,
-            originCellBounds.origin.x + originCellBounds.extent.x,
-            originCellBounds.origin.y + originCellBounds.extent.y);
-    // animate the dashed line a bit here for fun
-
-    // gc.stroke();
-
-    // gc.rect(x, y, width, height);
-
-    // gc.strokeStyle = 'white';
-
-    // // animate the dashed line a bit here for fun
-    // gc.setLineDash(this.focusLineStep[Math.floor(10 * (Date.now() / 300 % 1)) % this.focusLineStep.length]);
-
+    if (_renderParams.mode === null) {
+      gc.strokeStyle = 'blue';
+    } else if (_renderParams.mode === 'cut' || _renderParams.mode === 'copy') {
+      gc.strokeStyle = _renderParams.mode === 'cut' ? 'red' : 'blue';
+      gc.stroke();
+      gc.rect(x, y, width, height);
+      gc.strokeStyle = 'white';
+      gc.setLineDash(this.focusLineStep[Math.floor(10 * (Date.now() / 300 % 1)) % this.focusLineStep.length]);
+    }
     gc.stroke();
+    gc.closePath();
+    gc.beginPath();
+    gc.rect(originCellBounds.origin.x, originCellBounds.origin.y,
+            originCellBounds.extent.x+1,
+            originCellBounds.extent.y+1);
+    gc.strokeStyle = 'blue';
+    gc.lineWidth = 1;
+    gc.stroke();
+  },
+
+  setDependencies(deps) {
+    _renderParams.deps = deps;
+  },
+
+  dependencyRenderer: function(gc) {
+    _renderParams.deps.forEach((dep) => {
+      let tl = this._getBoundsOfCell(dep.tl.col, dep.tl.row),
+          br = this._getBoundsOfCell(dep.br.col, dep.br.row),
+          oX = tl.origin.x,
+          oY = tl.origin.y,
+          eX = (br.origin.x - oX) + br.extent.x,
+          eY = (br.origin.y - oY) + br.extent.y;
+
+      gc.beginPath();
+      gc.rect(oX, oY, eX, eY);
+      gc.lineWidth = 1;
+      gc.strokeStyle = 'orange';
+      gc.stroke();
+    }, this);
   }
 }

@@ -185,13 +185,11 @@ export default React.createClass({
   },
 
   setToast(msg, action) {
-    console.log("set toast");
     this.setState({toastMessage: msg, toastAction: action});
     this.refs.snackbarError.show();
   },
 
   hideToast() {
-    console.log("hide toast");
     this.setState({toastMessage: "", toastAction: "hide"});
     this.refs.snackbarError.dismiss();
   },
@@ -315,11 +313,12 @@ export default React.createClass({
   },
 
   _onGridNavKeyDown(e) {
+    // should only get called if left, right, down, or up was pressed
     console.log("Eval pane has grid's nav key");
     let insert = ExpStore.gridCanInsertRef();
-    if (insert){
+    if (insert) {
       // do nothing; onSelectionChange will fire
-    } else {
+    } else if (ExpStore.getUserIsTyping()) {
       console.log("Will change selection and eval cell.");
       let xpObj = {
             expression: ExpStore.getExpression(),
@@ -404,9 +403,11 @@ export default React.createClass({
       };
       if (cell && cell.cellExpression){
         Store.setActiveSelection(sel, cell.cellExpression.expression);
+        this.showAnyErrors(cell.cellValue);
       }
       else {
          Store.setActiveSelection(sel,"");
+         this.hideToast();
       }
       this.handleEvalRequest(xpObj, null, null);
     } else if (userIsTyping) {
@@ -431,7 +432,7 @@ export default React.createClass({
         ExpActionCreator.handlePartialRefGrid(excelStr);
       }
     } else {
-      console.log("\n\nUNHANDLED CASE IN ONSELECTIONCHANGE -- FIX NOW\n\n");
+      console.assert(false);
     }
   },
 
