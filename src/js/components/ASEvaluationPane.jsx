@@ -141,21 +141,18 @@ export default React.createClass({
     this.refs.spreadsheet.updateCellValues(updatedCells);
     //toast the error of at least one value in the cell
     let i = 0;
-    let anyErrors = false;
     for (i = 0; i < updatedCells.length; ++i) {
       let cell = updatedCells[i],
           val = cell.cellValue;
-      if (val.tag == "ValueError") {
+      if ((val.tag == "ValueError" || val.tag == "ValueExcelError") && !Store.shouldSuppressErrors()) {
         this.showAnyErrors(val);
-        anyErrors = true;
         break;
       }
     }
     let extError = Store.getExternalError();
 
-    if (extError) {
+    if (extError && !Store.shouldSuppressErrors()) {
       this.setToast(extError, "ERROR");
-      anyErrors = true;
       Store.setExternalError(null);
     }
   },
@@ -406,7 +403,7 @@ export default React.createClass({
       // Eval needs to be called with the current activeSel;
       // Otherwise the eval result shows up in the new sel
       this.handleEvalRequest(xpObj, null, null);
-      if (cell && cell.cellExpression){
+      if (cell && cell.cellExpression) {
         Store.setActiveSelection(sel, cell.cellExpression.expression);
         this.showAnyErrors(cell.cellValue);
       }
