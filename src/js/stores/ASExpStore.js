@@ -170,7 +170,9 @@ const ASExpStore = assign({}, BaseStore, {
     this.setXpChangeOrigin(type);
     this.setExpression(xpStr);
     this.setLastRef(null); // no longer have a "last ref"
-    Store.setActiveCellDependencies(Util.parseDependencies(xpStr));
+    let deps = Util.parseDependencies(xpStr);
+    console.log("DEPS: " + JSON.stringify(deps));
+    Store.setActiveCellDependencies(deps);
     this.emitChange();
   },
 
