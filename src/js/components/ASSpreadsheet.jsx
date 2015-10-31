@@ -165,7 +165,7 @@ export default React.createClass({
   // Hypergrid initialization
 
   /* Initial a sheet with blank entries */
-  initialize(){
+  initialize() {
     let hg = this._getHypergrid(),
         model = hg.getBehavior()
     hg.addGlobalProperties(this.gridProperties);
@@ -297,8 +297,7 @@ export default React.createClass({
         // ^ modify string for key deals with ctrl+backspace too
         // if visible key and there was a last cell ref, move the selection back to the origin
         if (ExpStore.getLastRef() !== null) {
-          let {range, origin} = Store.getActiveSelection();
-          this.select(range, origin);
+          this.select(Store.getActiveSelection());
         }
         ExpActionCreator.handleGridChange(newStr);
       } else {
@@ -312,7 +311,7 @@ export default React.createClass({
       if (KeyUtils.isPureArrowKey(e) && !T.isIndex(range)) {
         KeyUtils.killEvent(e);
         let newOrigin = KeyUtils.shiftIndexByKey(e, origin);
-        this.select({tl: newOrigin, br: newOrigin}, newOrigin, true);
+        this.select({range: {tl: newOrigin, br: newOrigin}, origin: newOrigin});
       }
       this.props.onNavKeyDown(e);
     }
