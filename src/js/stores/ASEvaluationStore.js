@@ -126,6 +126,11 @@ dispatcherIndex: Dispatcher.register(function (action) {
         // console.log("Last updated cells: " + JSON.stringify(_data.lastUpdatedCells));
         ASEvaluationStore.emitChange();
         break;
+
+      case Constants.ActionTypes.GOT_SELECTION: 
+        ASEvaluationStore.setActiveSelection(TC.asSelectionToSimple(action.newSelection), "");
+        ASEvaluationStore.emitChange();
+        break; 
       case Constants.ActionTypes.DELETED_LOCS:
         ASEvaluationStore.removeLocs(action.locs);
         ASEvaluationStore.emitChange();
@@ -170,7 +175,6 @@ const ASEvaluationStore = assign({}, BaseStore, {
     }};
   },
 
-  // Requires that a range having row2 implies a range has col2, and vice versa
   setActiveSelection(sel, xp) {
     let origin = sel.origin;
     _data.activeSelection = sel;
@@ -393,110 +397,78 @@ const ASEvaluationStore = assign({}, BaseStore, {
     }
   },
 
-  moveToDataBoundary(direction, isShifted) {
-    let sel = _data.activeSelection.range,
-        {tl, br} = sel,
-        origin = _data.activeSelection.origin,
-        startExists,
-        startRow, startCol,
-        isOrientedH = origin.col === tl.col,
-        isOrientedV = origin.row === tl.row,
-        hExtremum = isOrientedH ? br.col : tl.col,
-        vExtremum = isOrientedV ? br.row : tl.row,
-        win = _data.viewingWindow.range,
-        result;
-    // console.log("\n\nin data bundary func\n\n", sel);
-    // console.log("\n\nhextremum\n\n", hExtremum);
-    switch(direction) {
-      case "Right":
-        startCol = this.locationExists(hExtremum+1, tl.row) ? hExtremum : hExtremum+1;
-        startExists = this.locationExists(startCol, tl.row);
-        for (var col = startCol; col < startCol + Constants.LARGE_SEARCH_BOUND; col++){
-          let thisExists = this.locationExists(col, origin.row);
-          if (Util.xor(startExists, thisExists)) {
-            let idx = thisExists ? {col: col, row: tl.row} : {col: col-1, row: tl.row};
-            if (isShifted) {
-              let resultCol = isOrientedH ? tl.col : idx.col;
-              let resultCol2 = isOrientedH ? idx.col : br.col;
-              result = { tl: {row: tl.row, col: resultCol},
-                         br: {row: br.row, col: resultCol2} };
-            } else {
-              result = {tl: idx, br: idx};
-            }
-            break;
-          }
-        }
-        result = result || { tl: {row: isShifted ? tl.row : origin.row,
-                                  col: isShifted ? origin.col : win.br.col},
-                             br: {row: isShifted ? br.row : origin.row,
-                                  col: win.br.col} };
-        break;
-      case "Down":
-        startRow = this.locationExists(tl.col, vExtremum+1) ? vExtremum : vExtremum+1;
-        startExists = this.locationExists(tl.col, startRow);
-        for (var row = startRow; row < startRow + Constants.LARGE_SEARCH_BOUND; row++){
-          let thisExists = this.locationExists(origin.col, row);
-          if (Util.xor(startExists, thisExists)) {
-            let idx = thisExists ? {col: tl.col, row: row} : {col: tl.col, row: row-1};
-            if (isShifted) {
-              let resultRow = isOrientedV ? tl.row : idx.row;
-              let resultRow2 = isOrientedV ? idx.row : br.row;
-              result = { tl: {row: resultRow, col: tl.col}, br: {row: resultRow2, col: br.col} };
-            } else {
-              result = {tl: idx, br: idx};
-            }
-            break;
-          }
-        }
-        result = result || { tl: {row: isShifted ? origin.row : win.br.row,
-                                  col: isShifted ? tl.col : origin.col},
-                             br: {row: isShifted ? br.row : win.br.row,
-                                  col: isShifted ? br.col : origin.col} };
-        break;
-      case "Left":
-        startCol = this.locationExists(hExtremum-1, tl.row) ? hExtremum : hExtremum-1;
-        startExists = this.locationExists(startCol, tl.row);
-        for (var col = startCol; col > 1; col--) {
-          let thisExists = this.locationExists(col, origin.row);
-          if (Util.xor(startExists, thisExists)) {
-            let idx = thisExists ? {col: col, row: tl.row} : {col: col+1, row: tl.row};
-            if (isShifted) {
-              let resultCol = isOrientedH ? tl.col : idx.col;
-              let resultCol2 = isOrientedH ? idx.col : br.col;
-              result = { tl: {row: tl.row, col: resultCol}, br: {row: br.row, col: resultCol2} };
-            } else {
-              result = {tl: idx, br: idx};
-            }
-            break;
-          }
-        }
-        result = result || { tl: {row: tl.row, col: 1},
-                             br: {row: isShifted ? br.row : tl.row,
-                                  col: isShifted ? (isOrientedH ? tl.col : br.col) : 1} };
-        break;
-      case "Up":
-        startRow = this.locationExists(tl.col, vExtremum-1) ? vExtremum : vExtremum-1;
-        startExists = this.locationExists(tl.col, startRow);
-        for (var row = startRow; row > 1; row--) {
-          let thisExists = this.locationExists(origin.col, row);
-          if (Util.xor(startExists, thisExists)) {
-            let idx = thisExists ? {col: tl.col, row: row} : {col: tl.col, row: row+1};
-            if (isShifted) {
-              let resultRow = isOrientedV ? tl.row : idx.row;
-              let resultRow2 = isOrientedV ? idx.row : br.row;
-              result = { tl: {row: resultRow, col: tl.col}, br: {row: resultRow2, col: br.col} };
-            } else {
-              result = {tl: idx, br: idx};
-            }
-            break;
-          }
-        }
-        result = result || { tl: {row: 1, col: tl.col},
-                             br: {row: isShifted ? (isOrientedV ? tl.row : br.row) : 1,
-                                  col: isShifted ? br.col : tl.col} };
-        break;
+  getDataBoundary(start, direction) {
+    let startC = start.col, startR = start.row; 
+    let dr = 0, dc = 0; 
+
+    switch (direction) { 
+      case "Right": dc = 1; break; 
+      case "Left": dc = -1; break;
+      case "Down": dr = 1; break;  
+      case "Up": dr = -1; break; 
+      default: throw "Invalid direction passed in"; break; 
     }
-    return Util.orientRange(result);
+
+    let c = startC, r = startR; 
+    if (this.locationExists(c, r)) {
+      c += dc; 
+      r += dr; 
+    }
+    // TODO: replace with actual spreadsheet size limits when those are implemented. 
+    while (c > 0 && r > 0
+        && c < startC + Constants.LARGE_SEARCH_BOUND
+        && r < startR + Constants.LARGE_SEARCH_BOUND) {
+      if (this.locationExists(c, r) 
+       && !(this.locationExists(c + dc, r + dr) && this.locationExists(c - dc, r - dr))) {
+        break; 
+      }
+      c += dc; 
+      r += dr; 
+    }
+
+    return {col: c, row: r};
+  },
+
+  //This function returns what the new selection would be if you pressed ctrl+shift+right/up/left/down. 
+  //If shift is not held down, 
+  getDataBoundSelection(direction) {
+    let rng = _data.activeSelection.range,
+        {tl, br} = rng,
+        origin = _data.activeSelection.origin;
+
+    let startLoc = { row: origin.row, col: origin.col }; 
+    if (direction == "Up" || direction == "Down") {
+      if (origin.row > tl.row) 
+        startLoc.row = tl.row; 
+      else 
+        startLoc.row = br.row; 
+    } else if (direction == "Right" || direction == "Left") { 
+      if (origin.col < tl.col) 
+        startLoc.col = tl.col; 
+      else 
+        startLoc.col = br.col;
+    } else {
+      throw "Invalid direction passed in"; 
+    }
+
+    let bound = this.getDataBoundary(startLoc, direction);
+
+    let newTl = tl; 
+    let newBr = br; 
+
+    if (direction == "Up" || direction == "Down") {
+      if (origin.row > tl.row) 
+        newTl.row = bound.row; 
+      else 
+        newBr.row = bound.row; 
+    } else if (direction == "Right" || direction == "Left") { 
+      if (origin.col < tl.col) 
+        newTl.col = bound.col; 
+      else 
+        newBr.col = bound.col;
+    }     
+
+    return { range: {tl: newTl, br: newBr}, origin: origin }; 
   },
 
   // TODO actually get the data boundaries by iterating, or something

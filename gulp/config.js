@@ -39,5 +39,26 @@ module.exports = {
     tasks: ['build']
   },
   mockback: {
+  },
+  test: {
+    karmaConfig: 'karma.conf.js',
+    getConfig: function (fname) {
+      var ret = {
+        files:
+          [].concat(
+            [ 'node_modules/babel-core/browser-polyfill.js' ],
+            [{
+              pattern: fname,
+              watched: false
+            }]),
+        preprocessors: {}
+      };
+      ret.preprocessors[fname] = ['webpack', 'sourcemap'];
+
+      return ret;
+    },
+    evalFile: 'test-context-eval.js',
+    excelFile: 'test-context-excel.js',
+    allFile: 'test-context-all.js'
   }
 };

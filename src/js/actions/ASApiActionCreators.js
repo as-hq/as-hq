@@ -111,6 +111,12 @@ wss.onmessage = function (event) {
           type: ActionTypes.CLEARED,
         });
         break;
+      case "JumpSelect":
+        Dispatcher.dispatch({
+          type: ActionTypes.GOT_SELECTION,
+          newSelection: msg.payload
+        });
+        break;
       case "Delete":
         if (msg.payload.tag === "PayloadR"){
           Dispatcher.dispatch({
@@ -258,6 +264,16 @@ export default {
       matchType:0,
       currentSheet: "INIT_SHEET_ID",
       matchFullContents:false
+    });
+    this.send(msg);
+  },
+  jumpSelect(range, origin, isShifted, direction) { 
+    let msg = TC.makeClientMessageRaw(Constants.ServerActions.JumpSelect, {
+      tag: "PayloadJump",
+      isShifted: isShifted,
+      jumpRange: TC.simpleToASRange(range),
+      jumpOrigin: TC.simpleToASIndex(origin),
+      jumpDirection: "D" + direction
     });
     this.send(msg);
   },

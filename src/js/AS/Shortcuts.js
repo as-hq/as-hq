@@ -132,18 +132,26 @@ export default {
 
 
     // grid shortcuts -------------------------------------------------------------------------------
-    SU.add("grid", "moveto_data_boundary", "Ctrl+Up/Down/Left/Right", (wildcard) => {
-      let newLoc = Store.moveToDataBoundary(wildcard, false);
-      console.log("moving to: ", newLoc);
-      self.refs.spreadsheet.select(newLoc, newLoc.tl, true);
+    // SU.add("grid", "moveto_data_boundary", "Ctrl+Up/Down/Left/Right", (wildcard) => {
+    //    // -- For when backend-based jump is completed
+    //    // ::ALEX:: leave more comments
+    //    let {range, origin} = Store.getActiveSelection();
+    //    API.jumpSelect(range, origin, false, wildcard);
+    //  });
+    //  SU.add("grid", "moveto_data_boundary_extended", "Ctrl+Shift+Up/Down/Left/Right", (wildcard) => {
+    //    // -- For when backend-based jump is completed
+    //    let {range, origin} = Store.getActiveSelection();
+    //    API.jumpSelect(range, origin, true, wildcard);
+    //  });
+    SU.add("grid", "moveto_data_boundary", "Ctrl+Up/Down/Left/Right", (dir) => {
+      let newInd = Store.getDataBoundary(Store.getActiveSelection().origin, dir);
+      self.refs.spreadsheet.select(TC.indexToSelection(newInd));
     });
-    SU.add("grid", "moveto_data_boundary_selected", "Ctrl+Shift+Up/Down/Left/Right", (wildcard) => {
-      let oldOrigin = Store.getActiveSelection().origin;
-      let newLoc = Store.moveToDataBoundary(wildcard, true);
-      self.refs.spreadsheet.select(newLoc, oldOrigin, true);
+    SU.add("grid", "moveto_data_boundary_selected", "Ctrl+Shift+Up/Down/Left/Right", (dir) => {
+      let newSelection = Store.getDataBoundSelection(dir);
+      self.refs.spreadsheet.select(newSelection);
     });
     SU.add("grid", "grid_fill_down", "Ctrl+D", (wildcard) => {
-      let {tl, br} = Store.getActiveSelection().range;
       let copyFrom = TC.simpleToASRange({ tl: tl, br: {row: tl.row, col: br.col} }),
           copyTo = TC.simpleToASRange({ tl: {row: tl.row+1, col: tl.col},
                                                br: {row: br.row, col: tl.col} });
@@ -160,12 +168,12 @@ export default {
       if (ExpStore.getUserIsTyping()) {
         self._getRawTextbox().selectAll();
       } else {
-        self.refs.spreadsheet.select(self.refs.spreadsheet.getViewingWindow().range, Store.getActiveSelection().origin, false);
+        self.refs.spreadsheet.select(self.refs.spreadsheet.getViewingWindow(), false);
       }
     });
     SU.add("grid", "grid_home", ["Home", "Ctrl+Home"], (wildcard) => {
       let idx = {row: 1, col: 1};
-      self.refs.spreadsheet.select({ tl: idx, br: idx }, idx, true);
+      self.refs.spreadsheet.select(TC.indexToSelection(idx)); 
     });
     SU.add("grid", "grid_moveto_end_sheet", "Ctrl+End", (wildcard) => {
       //TODO

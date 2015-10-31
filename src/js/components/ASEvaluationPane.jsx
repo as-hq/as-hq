@@ -22,6 +22,8 @@ import TC from '../AS/TypeConversions';
 import KeyUtils from '../AS/KeyUtils';
 import {Snackbar} from 'material-ui';
 
+import * as BrowserTests from '../browser-test/index';
+
 import Repl from './repl/Repl.jsx'
 import ResizableRightPanel from './repl/ResizableRightPanel.jsx'
 import ASFindBar from './ASFindBar.jsx'
@@ -49,11 +51,11 @@ export default React.createClass({
       focusDx: null,
       focusDy: null,
       showFindBar:false,
-      showFindModal:false
+      showFindModal:false,
+      testMode: false
     };
   },
 
-  /* Make sure that the evaluation pane can receive change events from the evaluation store */
   componentDidMount() {
     window.addEventListener('copy',this.handleCopyEvent);
     window.addEventListener('paste',this.handlePasteEvent);
@@ -62,8 +64,11 @@ export default React.createClass({
     FindStore.addChangeListener(this._onFindChange);
     ReplStore.addChangeListener(this._onReplChange);
     Shortcuts.addShortcuts(this);
-  },
 
+    BrowserTests.install(window, this);
+  },
+  
+  /* Make sure that the evaluation pane can receive change events from the evaluation store */
   componentWillUnmount() {
     window.removeEventListener('copy',this.handleCopyEvent);
     window.removeEventListener('paste',this.handlePasteEvent);
@@ -157,8 +162,7 @@ export default React.createClass({
       // If there are no errors, simulate a click in the active selection to get the ACE editor
       // to update. (Note: might have other unintended side effects.) Would probably be better to get
       // the ACE editor to upate directly but this is probably fine for now. (Alex 10/28)
-      let {range, origin} = Store.getActiveSelection();
-      this.refs.spreadsheet.select(range, origin, false);
+      this.refs.spreadsheet.select(Store.getActiveSelection(), false);
     }
   },
 
@@ -167,12 +171,24 @@ export default React.createClass({
     this.setState({replSubmittedLanguage:ReplStore.getSubmittedLanguage()})
   },
 
+  enableTestMode() {
+    this.setState({ testMode: true });
+  },
+
+  disableTestMode() {
+    this.setState({ testMode: false });
+  },
+
 
   /**************************************************************************************************************************/
   // Error handling
 
   showAnyErrors(cv) {
-    this.setToast(cv.errMsg, "Error");
+    if (cv.tag === "ValueError") {
+      this.setToast(cv.errMsg, "Error");
+    } else if (cv.tag === "ValueExcelError") { 
+      this.setToast(cv.contents.tag, "Error"); // ValueExcelError should become a part of ValueError eventually 
+    }
   },
 
   setToast(msg, action) {
@@ -189,21 +205,30 @@ export default React.createClass({
 
   _handleToastTap(e) {
     // TODO
+    return;
   },
 
   /**************************************************************************************************************************/
   /* Copy paste handling */
 
   handleCopyTypeEventForGrid(e,isCut) {
-    // KeyUtils.killEvent(e);
+    KeyUtils.killEvent(e);
     // For now, the killEvent doesn't kill fin-hypergrid's default copy handler, since
     // fin's hypergrid component is a child of ASEvaluationPane. If all this code
     // gets commented out, copy actually works mostly as expected, EXCEPT that
     // the table saved to the clipboard (from "let html = ...") doesn't have
     // id=alphasheets set, which is how we know we the clipboard content is
     // from AlphaSheets originally.
+    // 
+    // Alex 10/29 -- nope, killEvent actually does something, and I don't understand what. 
+    // I DO know that if you leave it out, cut doesn't save anything to the clipboard 
+    // if there's already external data on the clipboard, but copy DOES work, and I don't
+    // understand why. 
     let sel = Store.getActiveSelection(),
         vals = Store.getRowMajorCellValues(sel.range);
+
+    console.log('Handling copy event');
+
     if (vals) {
       Store.setClipboard(sel, isCut);
       let html = ClipboardUtils.valsToHtml(vals),
@@ -218,11 +243,17 @@ export default React.createClass({
     // KeyUtils.killEvent(e);
     // THIS killEvent doesn't do anything either, and that's because fin-hypergrid doesn't
     // even seem to have paste implemented by default...?
+    console.log('Handling paste event');
+
     let sel = Store.getActiveSelection(),
         containsHTML = Util.arrContains(e.clipboardData.types,"text/html"),
         containsPlain = Util.arrContains(e.clipboardData.types,"text/plain"),
-        isAlphaSheets = containsHTML ?
-          ClipboardUtils.htmlStringIsAlphaSheets(e.clipboardData.getData("text/html")) : false;
+        isAlphaSheets = this.state.testMode ||
+          (
+            containsHTML
+              ? ClipboardUtils.htmlStringIsAlphaSheets(e.clipboardData.getData("text/html"))
+              : false
+          );
     if (isAlphaSheets) { // From AS
       let clipboard = Store.getClipboard(),
           fromASRange = TC.simpleToASRange(clipboard.area.range),
@@ -302,6 +333,28 @@ export default React.createClass({
             language: this.state.language
           };
       this.handleEvalRequest(xpObj, null, null);
+    }
+  }, 
+
+  _onGridDeferredKey(e) {
+    console.log('Grid deferred key', e);
+   if (KeyUtils.producesVisibleChar(e)) {
+        let editor = this._getRawEditor(),
+          str = KeyUtils.modifyStringForKey(editor.getValue(), e),
+          newStr = KeyUtils.getString(e),
+          xpStr = this.state.userIsTyping ? str : newStr;
+      console.log("New grid string: " + xpStr);
+      this.setState({
+            xpChangeDetail:this.xpChange.FROM_GRID,
+            expressionWithoutLastRef:xpStr,
+            expression:xpStr,
+          },function() {editor.navigateFileEnd();}
+      );
+    }
+    else {
+      console.log("Grid key not visible");
+      ShortcutUtils.tryShortcut(e, 'common');
+      ShortcutUtils.tryShortcut(e, 'grid');
     }
   },
 

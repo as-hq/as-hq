@@ -1,368 +1,57 @@
 import _ from 'underscore';
-import fs from 'fs';
-//import jasminePit from 'jasmine-pit';
-
-//jasminePit.install(window);
 
 jasmine.DEFAULT_TIMEOUT_INTERVAL = 10000;
 
 describe('backend', () => {
-  const API = require('../src/js/actions/ASApiActionCreators');
   const Util = require('../src/js/AS/Util');
-  const Store = require('../src/js/stores/ASEvaluationStore');
-  const TC = require('../src/js/AS/TypeConversions');
+  const {
+    __injectExpect,
 
-  function empty() {
-    return new Promise((fulfill, reject) => { fulfill(); });
-  }
+    locToExcel,
 
-  function indFromExcel(exLoc) {
-    return Util.excelToIndex(exLoc);
-  }
+    openSheet,
+    syncWindow,
+    init,
+    clear,
 
-  function rangeFromExcel(exLoc) {
-    return Util.excelToRange(exLoc);
-  }
+    repeat,
+    copy,
+    paste,
+    cut,
+    undo,
+    redo,
+    delete_,
 
-  function locToExcel(loc) {
-    return Util.rangeToExcel(loc);
-  }
+    python,
+    r,
+    ocaml,
+    excel,
 
-  function asIndex(loc) {
-    return TC.simpleToASIndex(Util.excelToIndex(loc));
-  }
+    valueD,
+    valueI,
+    valueS,
+    valueB,
 
-  function asRange(loc) {
-    return TC.simpleToASRange(Util.excelToRange(loc));
-  }
+    shouldError,
+    shouldBe,
+    shouldBeL,
+    shouldBeError,
+    shouldBeNothing,
+    shouldBeImage,
+    expressionShouldBe
+  } = require('../src/js/browser-test/exec-api');
+  const {
+    fromToInclusive,
+    logP,
+    _do,
+    _doDefer,
+    _forM_,
+    exec
+  } = require('../src/js/browser-test/exec-monad');
 
-  function fromToInclusive(st, end) {
-    return _.range(end - st).map((i) => i + st);
-  }
-
-  //(a -> (), a -> ()) -> (() -> Promise a)
-  function promise(fn) {
-    return () => {
-      return new Promise(fn);
-    };
-  }
-
-  function exec(fn) {
-    return promise((fulfill, reject) => {
-      fn();
-      fulfill();
-    });
-  }
-
-  function apiExec(fn) {
-    return promise((fulfill, reject) => {
-      API.test(fn, {
-        fulfill: fulfill,
-        reject: reject
-      });
-    });
-  }
-
-  function apiSyncExec(fn) {
-    return promise((fulfill, reject) => {
-      API.testSync(fn, {
-        fulfill: fulfill,
-        reject: reject
-      });
-    });
-  }
-
-  function directAPIExec(fn) {
-    return new Promise((fulfill, reject) => {
-      API.test(fn, {
-        fulfill: fulfill,
-        reject: reject
-      });
-    });
-  }
-
-  function sheet() {
-    return () => {
-      directAPIExec(() => {
-        API.createSheet();
-      }).then((response) => {
-        let  [
-              { // tag: 'WorkbookSheet'
-                wsName: workbookName,
-                wsSheets: [
-                  {
-                    // tag: 'ASSheet'
-                    sheetId
-                    }
-                  ]
-                }
-              ] = response.payload.contents;
-      });
-    };
-  }
-
-  // monadic log operation, String -> (() -> Promise ())
-  function logP(str) {
-    return promise((fulfill, reject) => {
-      console.log((new Date()).getTime(), 'Log inside promise:', str);
-      fulfill();
-    });
-  }
-
-  function openSheet() {
-    return apiSyncExec(() => {
-      API.openSheet();
-    });
-  }
-
-  function syncWindow() {
-    return apiExec(() => {
-      let range = { tl: {col: 0, row: 0}, br: {col: 100, row: 100 }},
-          vWindow = TC.rangeToASWindow(range);
-      API.updateViewingWindow(vWindow);
-    });
-  }
-
-  function clear() {
-    return apiExec(() => {
-      API.clear();
-    });
-  }
-
-  function init() {
-    return apiExec(() => {
-      API.initialize();
-    });
-  }
-
-  function cell(loc, xp, lang) {
-    return apiExec(() => {
-      let langMap = {
-        'py': 'Python',
-        'R': 'R',
-        'excel': 'Excel',
-        'ml': 'OCaml'
-      };
-      let idx = asIndex(loc);
-      console.log("\n\nFUCk\n", idx);
-      let xpObj = { expression: xp, language: { Server: langMap[lang] } };
-      API.evaluate(idx, xpObj);
-    });
-  }
-
-  function python(loc, xp) {
-    return cell(loc, xp, 'py');
-  }
-
-  function r(loc, xp) {
-    return cell(loc, xp, 'R');
-  }
-
-  function excel(loc, xp) {
-    return cell(loc, xp, 'excel');
-  }
-
-  function ocaml(loc, xp) {
-    return cell(loc, xp, 'ml');
-  }
-
-  function copy(rng1, rng2) {
-    return apiExec(() => {
-      let [asRng1, asRng2] = [rng1, rng2].map(asRange);
-      API.copy(asRng1, asRng2);
-    });
-  }
-
-  function repeat(rng, origin) {
-    return apiExec(() => {
-      let sel = {origin: indFromExcel(origin), range: rangeFromExcel(rng)}
-      API.repeat(sel);
-    });
-  }
-
-  function cut(rng1, rng2) {
-    return apiExec(() => {
-      let [asRng1, asRng2] = [rng1, rng2].map(asRange);
-      API.cut(asRng1, asRng2);
-    });
-  }
-
-  function undo() {
-    return apiExec(() => {
-      API.undo();
-    });
-  }
-
-  function redo() {
-    return apiExec(() => {
-      API.redo();
-    });
-  }
-
-  function delete_(rng) {
-    return apiExec(() => {
-      API.deleteRange(TC.simpleToASRange(rangeFromExcel(rng)));
-    });
-  }
-
-  function valueD(val) {
-    return { tag: 'ValueD', contents: val };
-  }
-
-  function valueI(val) {
-    return { tag: 'ValueI', contents: val };
-  }
-
-  function valueB(val) {
-    return { tag: 'ValueB', contents: val };
-  }
-
-  function valueS(val) {
-    return { tag: 'ValueS', contents: val };
-  }
-
-  function equalValues(val1, val2) {
-    return _.isEqual(val1, val2);
-  }
-
-  // (() -> Promise a) -> (a -> Bool) -> (() -> Promise ())
-  function responseShouldSatisfy(prf, fn) {
-    return promise((fulfill, reject) => {
-      prf().then((result) => {
-        expect(fn(result)).toBe(true);
-        fulfill();
-      }).catch((error) => {
-        reject(error);
-      });
-    });
-  }
-
-  function shouldError(prf) {
-    return responseShouldSatisfy(prf, ({ result: { tag } }) => tag === 'Failure');
-  }
-
-  function messageShouldSatisfy(loc, fn) {
-    return promise((fulfill, reject) => {
-      API.test(() => {
-        API.getIndices([ asIndex(loc) ]);
-      }, {
-        fulfill: (result) => {
-          let cs = result.payload.contents;
-          fn(cs);
-
-          fulfill();
-        },
-        reject: reject
-      });
-    });
-  }
-
-  function expressionShouldSatisfy(loc, fn) {
-    return messageShouldSatisfy(loc, (cs) => {
-      console.log(`${loc} expression should satisfy ${fn.toString()}`);
-
-      expect(cs.length).not.toBe(0);
-      if (cs.length == 0) {
-        return;
-      }
-
-      let [{ cellExpression }] = cs;
-      expect(fn(cellExpression)).toBe(true);
-    });
-  }
-
-  function expressionShouldBe(loc, xp) {
-    return expressionShouldSatisfy(loc, ({ expression }) => expression === xp);
-  }
-
-  function valueShouldSatisfy(loc, fn) {
-    return messageShouldSatisfy(loc, (cs) => {
-      console.log(`${loc} should satisfy ${fn.toString()}`);
-
-      expect(cs.length).not.toBe(0);
-      if (cs.length == 0) {
-        return;
-      }
-
-      let [{ cellValue }] = cs;
-      expect(fn(cellValue)).toBe(true);
-    });
-  }
-
-  // String -> ASValue -> (() -> Promise ())
-  function shouldBe(loc, val) {
-    return valueShouldSatisfy(loc, (cv) => equalValues(cv, val));
-  }
-
-  function shouldBeError(loc) {
-    return valueShouldSatisfy(loc, ({ tag }) => (tag === 'ValueError' || tag == 'ValueExcelError'));
-  }
-
-  function shouldBeImage(loc) {
-    return valueShouldSatisfy(loc, ({ tag }) => (tag === 'ValueImage'));
-  }
-
-  function shouldBeNothing(loc) {
-    return messageShouldSatisfy(loc, (cs) => {
-      console.log(`${loc} should be nothing`);
-      //server should return either nothing at the location or a blank cell
-      let isEmpty = (cs.length == 0) || (cs[0].cellExpression.expression == "");
-      expect(isEmpty).toBe(true);
-    });
-  }
-
-  // [String] -> [ASValue] -> (() -> Promise ())
-  function shouldBeL(locs, vals) {
-    return promise((fulfill, reject) => {
-      API.test(() => {
-        API.getIndices(locs.map(asIndex));
-      }, {
-        fulfill: (result) => {
-          let cellValues = result.payload.contents.map((x) => x.cellValue);
-
-          expect(_.
-            zip(cellValues, vals).
-            map(([x, y]) => equalValues(x, y)).
-            reduce((acc, cur) => {
-              return acc && cur;
-            }, true)
-          ).toBe(true);
-
-          fulfill();
-        },
-        reject: reject
-      });
-    });
-  }
-
-  // -- MONAD OPERATIONS
-
-  // [() -> Promise a] -> Promise ()
-  function _do(promiseFunctions, lbl) {
-    let [head, ...tail] = promiseFunctions;
-
-    if (!head) return empty;
-
-    return head().then(_doDefer(tail), (failure) => {
-      console.log('error in monad', lbl, failure);
-      console.trace();
-      throw new Error(failure);
-    }).catch((error) => {
-      console.log('promise error', error.toString());
-    });
-  }
-
-  // [() -> Promise a] -> (() -> Promise ())
-  function _doDefer(promises, lbl) {
-    return () => {
-      return _do(promises, lbl);
-    };
-  }
-
-  // [a] -> (a -> (() -> Promise b)) -> (() -> Promise ())
-  function _forM_(arr, pfn) {
-    return _doDefer(arr.map(pfn));
-  }
+  beforeAll(() => {
+    __injectExpect(expect);
+  });
 
   describe('login', () => {
   });
@@ -469,7 +158,7 @@ describe('backend', () => {
         it('should rollback ancestors set in failed evals', (done) => {
           _do([
             python('A1', '1'), 
-            python('A2', '=A1'), // should fail and NOT save anything to graph db
+            python('A2', '=A1+A2'), // should fail and NOT save anything to graph db. (Until we make circular deps not failed evals in which case this must change again)
             excel('A3','=SUM(A2:A2)+1'), // should be 1
             python('A1', 'A3+2'), // if something got saved to graph db, there should be a circular dep error
             shouldBe('A1', valueI(3)), 
@@ -528,7 +217,7 @@ describe('backend', () => {
         it('should reference ancestors of dependencies introduced by list cells in round 2 evals', (done) => {
           _do([
             python('B3', '5'),
-            python('C3', 'sum(A3:B3)'),
+            python('C3', 'A3:B3.sum()'),
             python('A1', 'range(3)'),
             shouldBe('C3', valueI(7)),
             exec(done)
@@ -1082,7 +771,7 @@ describe('backend', () => {
         it('should copy expressions with both a list and a dependency to the list', (done) => {
           _do([
             python('A1', 'range(10)'),
-            python('B1', 'sum(A1:A10)'),
+            python('B1', 'A1:A10.sum()'),
             copy('A1:B10', 'C1:D10'),
             shouldBe('D1', valueI(45)),
             exec(done)
