@@ -65,7 +65,8 @@ export default {
     PARTIAL_REF_CHANGE_WITH_EDITOR:null,
     PARTIAL_REF_CHANGE_WITH_GRID:null,
     PARTIAL_REF_CHANGE_WITH_TEXTBOX:null,
-    ESC_PRESSED:null
+    ESC_PRESSED:null,
+    BACKEND_UPDATED_AND_CELLS_CHANGED: null
   }),
 
   ActionSources: keyMirror({

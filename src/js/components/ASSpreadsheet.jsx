@@ -165,7 +165,7 @@ export default React.createClass({
   // Hypergrid initialization
 
   /* Initial a sheet with blank entries */
-  initialize(){
+  initialize() {
     let hg = this._getHypergrid(),
         model = hg.getBehavior()
     hg.addGlobalProperties(this.gridProperties);
@@ -226,6 +226,7 @@ export default React.createClass({
   },
   // do not call before polymer is ready.
   select(unsafeSelection, shouldScroll) {
+    console.log("Spreadsheet select start");
     if (typeof(shouldScroll) == "undefined") {
       shouldScroll = true;
     }
@@ -240,8 +241,11 @@ export default React.createClass({
         dC = br.col - tl.col,
         dR = br.row - tl.row;
     hg.takeFocus();
+    console.log("took focus");
     hg.clearSelections();
+    console.log("cleared selections");
     hg.select(c, r, dC, dR);
+    console.log("Called hg.select");
 
     // set mousedown
     // hypergrid sucks -- doesn't set the mouse focus automatically
@@ -263,6 +267,7 @@ export default React.createClass({
     }
 
     this.repaint();
+    console.log("About to call on sel change bc select called");
     this.props.onSelectionChange({range: safeSelection.range,
                                   origin: safeSelection.origin});
   },
@@ -311,7 +316,7 @@ export default React.createClass({
       if (KeyUtils.isPureArrowKey(e) && !T.isIndex(range)) {
         KeyUtils.killEvent(e);
         let newOrigin = KeyUtils.shiftIndexByKey(e, origin);
-        this.select({tl: newOrigin, br: newOrigin}, newOrigin, true);
+        this.select({range: {tl: newOrigin, br: newOrigin}, origin: newOrigin});
       }
       this.props.onNavKeyDown(e);
     }
@@ -336,21 +341,20 @@ export default React.createClass({
   _onExpressionChange(){
     let xpChangeOrigin = ExpStore.getXpChangeOrigin(),
         xpStr = ExpStore.getExpression();
-    console.log("Grid caught Exp update of type: " + xpChangeOrigin);
+    console.log("Grid caught exp update of type: " +  xpChangeOrigin);
     switch(xpChangeOrigin){
       case Constants.ActionTypes.EDITOR_CHANGED:
       case Constants.ActionTypes.GRID_KEY_PRESSED:
-        // Repaint to show dependencies in the xp so far
         this.repaint();
         this.refs.textbox.updateTextBox(xpStr);
         break;
       case Constants.ActionTypes.NORMAL_SEL_CHANGED:
-        this.repaint();
+      case Constants.ActionTypes.BACKEND_UPDATED_AND_CELLS_CHANGED:
         this.refs.textbox.hideTextBox(xpStr);
         break;
       case Constants.ActionTypes.PARTIAL_REF_CHANGE_WITH_GRID:
       case Constants.ActionTypes.PARTIAL_REF_CHANGE_WITH_EDITOR:
-      case Constants.ActionTypes.PARTIAL_REF_CHANGE_WITH_EDITOR:
+      case Constants.ActionTypes.PARTIAL_REF_CHANGE_WITH_TEXTBOX:
         this.refs.textbox.updateTextBox(xpStr);
         break;
       case Constants.ActionTypes.ESC_PRESSED:
@@ -359,7 +363,6 @@ export default React.createClass({
         break;
       default:
         // don't need to do anything on TEXTBOX_CHANGED
-        // or PARTIAL_REF_CHANGE_WITH_TEXTBOX
         break;
     }
   },

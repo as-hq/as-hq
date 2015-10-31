@@ -84,9 +84,8 @@ export default {
     });
     SU.add("common", "esc", "Esc", (wildcard) => {
       console.log("Esc pressed");
-      let {range, origin} = Store.getActiveSelection();
       ExpActionCreator.handleEscape();
-      self.refs.spreadsheet.select(range, origin, false);
+      self.refs.spreadsheet.select(Store.getActiveSelection()); 
       Store.setClipboard(null, false);
       self.setState({focus: "grid"});
       self.refs.spreadsheet.repaint(); // render immediately
@@ -205,13 +204,13 @@ export default {
     });
     SU.add("grid", "select_row", "Shift+Space", (wildcard) => {
       let {origin} = Store.getActiveSelection();
-      self.refs.spreadsheet.select({tl: {row: origin.row, col: 1}, br: {row: origin.row, col: Infinity}},
-                                    origin, false);
+      self.refs.spreadsheet.select({range: {tl: {row: origin.row, col: 1}, br: {row: origin.row, col: Infinity}},
+                                    origin: origin}, false);
     });
     SU.add("grid", "select_col", "Ctrl+Space", (wildcard) => {
       let {origin} = Store.getActiveSelection();
-      self.refs.spreadsheet.select({tl: {row: 1, col: origin.col}, br: {row: Infinity, col: origin.col}},
-                                    origin, false);
+      self.refs.spreadsheet.select({range: {tl: {row: 1, col: origin.col}, br: {row: Infinity, col: origin.col}},
+                                    origin: origin}, false);
     });
     SU.add("grid", "insert_row", "Ctrl+Shift+[", (wildcard) => {
       // TODO
@@ -242,6 +241,7 @@ export default {
     });
 
     SU.add("grid", "grid_enter", "Enter", (wildcard) => {
+      console.log("MATCHED GRID  ENTER");
       let xpObj = {
         expression: self._getRawEditor().getValue(),
         language: self.state.language

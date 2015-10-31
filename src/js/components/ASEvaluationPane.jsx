@@ -157,13 +157,6 @@ export default React.createClass({
       anyErrors = true;
       Store.setExternalError(null);
     }
-
-    if (!anyErrors) {
-      // If there are no errors, simulate a click in the active selection to get the ACE editor
-      // to update. (Note: might have other unintended side effects.) Would probably be better to get
-      // the ACE editor to upate directly but this is probably fine for now. (Alex 10/28)
-      this.refs.spreadsheet.select(Store.getActiveSelection(), false);
-    }
   },
 
   _onReplChange() {
@@ -383,10 +376,6 @@ export default React.createClass({
         gridCanInsertRef = ExpStore.gridCanInsertRef(),
         textBoxCanInsertRef = ExpStore.textBoxCanInsertRef(this._getTextbox().editor);
 
-    console.log("editorCanInsertRef",editorCanInsertRef);
-    console.log("gridCanInsertRef",gridCanInsertRef);
-    console.log("textBoxCanInsertRef",textBoxCanInsertRef);
-
     let canInsertRef = editorCanInsertRef || gridCanInsertRef || textBoxCanInsertRef;
     // Enumerate changes in selection that don't result in insertion
     let changeSelToExistingCell = cell && !userIsTyping && cell.cellExpression,
@@ -394,14 +383,14 @@ export default React.createClass({
         changeSelWhileTypingNoInsert = userIsTyping && !canInsertRef;
 
     if (changeSelToExistingCell) {
-      console.log("\n\nSelected non-empty cell to move to");
+      console.log("Selected non-empty cell to move to");
       let {language,expression} = cell.cellExpression,
           val = cell.cellValue;
       Store.setActiveSelection(sel, expression);
       ExpActionCreator.handleSelChange(expression);
       this.showAnyErrors(val);
     } else if (changeSelToNewCell) {
-      console.log("\n\nSelected empty cell to move to");
+      console.log("Selected empty cell to move to");
       Store.setActiveSelection(sel, "");
       this.refs.spreadsheet.repaint();
       ExpActionCreator.handleSelChange('');
@@ -469,6 +458,7 @@ export default React.createClass({
     let origin = Store.getActiveSelection().origin,
         asIndex = TC.simpleToASIndex(origin);
     if (moveCol !== null && moveRow !== null){
+      console.log("Shifting selection area");
       this.refs.spreadsheet.shiftSelectionArea(moveCol, moveRow);
     }
     API.evaluate(asIndex, xpObj);

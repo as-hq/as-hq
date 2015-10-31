@@ -18,7 +18,7 @@ export default {
       return false;
     } else {
       var lookbackOk = false, lookforwardOk = false;
-      for (var c = pos.col - 1; c > 0; c--) {
+      for (var c = pos.col - 1; c > -1; c--) {
         let curChar = currentLine[c];
         if (curChar === ' ') continue;
         else if (Util.arrContains(this.prefixOp, curChar) ||
@@ -81,10 +81,9 @@ export default {
   // For example, after '=sum(', a ref can  be inserted
   // Used to see if grid can insert a ref at the end of xp
   canInsertCellRefAfterPrefix(prefix) {
-    // simple parser
     if (prefix.length === 0) return false;
     else {
-      for (let c = prefix.length - 1; c > 0; c--) {
+      for (let c = prefix.length - 1; c > -1; c--) {
         let curChar = prefix[c];
         if (curChar === ' ') continue;
         else if (Util.arrContains(this.prefixOp, curChar) ||

@@ -45,115 +45,114 @@ let _data = {
   viewingWindow: null
 };
 
-/* This function describes the actions of the ASEvaluationStore upon recieving a message from Dispatcher */
-dispatcherIndex: Dispatcher.register(function (action) {
-    switch (action.type) {
-      case Constants.ActionTypes.FIND_INCREMENTED:
-        break;
-      case Constants.ActionTypes.FIND_DECREMENTED:
-        break;
-      case Constants.ActionTypes.GOT_FIND:
-        // do nothing here on find; that's in the find store
-        break;
-      case Constants.ActionTypes.CELL_CHANGED:
-        break;
-      case Constants.ActionTypes.RANGE_CHANGED:
-        break;
-      /*
-        On an UNDO/REDO/UPDATE_CELLS, update the viewing window in the store based on the commit and
-        send a change event to spreadsheet, which will rerender
-      */
-      case Constants.ActionTypes.GOT_UNDO:
-        console.log("action undo");
-        _data.lastUpdatedCells = [];
-        ASEvaluationStore.removeCells(action.commit.after);
-        ASEvaluationStore.updateCells(action.commit.before);
-        ASEvaluationStore.emitChange();
-        break;
-      case Constants.ActionTypes.GOT_REDO:
-        _data.lastUpdatedCells = [];
-        ASEvaluationStore.removeCells(action.commit.before);
-        ASEvaluationStore.updateCells(action.commit.after);
-        ASEvaluationStore.emitChange();
-        break;
-      case Constants.ActionTypes.GOT_UPDATED_CELLS:
-        _data.lastUpdatedCells = [];
-        ASEvaluationStore.updateCells(action.updatedCells);
-        // console.log("Last updated cells: " + JSON.stringify(_data.lastUpdatedCells));
-        ASEvaluationStore.emitChange();
-        break;
-      /*
-        This action is sent to Dispatcher by the ASSpreadsheet action creator on a scroll event
-        It gets previous scroll state from the store and then uses the API to send a "get cells" message to server
-      */
-      case Constants.ActionTypes.SCROLLED:
-        let extendedRange = Util.extendRangeByCache(action.vWindow.range),
-            extendedWindow = TC.rangeToASWindow(extendedRange);
-        _data.viewingWindow = action.vWindow;
-        API.updateViewingWindow(extendedWindow);
-        break;
-      /*
-        The cells have been fetched from the server for a get request (for example, when scrolling)
-        We now need to update the store based on these new values
-        Called from Dispatcher, fired by API response from server
-      */
-      case Constants.ActionTypes.FETCHED_CELLS:
-        _data.lastUpdatedCells = [];
-        ASEvaluationStore.updateCells(action.newCells);
-        // console.log("Last updated cells: " + JSON.stringify(_data.lastUpdatedCells));
-        ASEvaluationStore.emitChange();
-        break;
-      /*
-        The server has cleared everything from the DB
-        Need to delete the store
-        Called from Dispatcher, fired by API response from server
-      */
-      case Constants.ActionTypes.CLEARED:
-        _data.lastUpdatedCells = [];
-        let cellsToRemove = [];
-        for (var s in _data.allCells){
-          for (var c in _data.allCells[s]){
-            for (var r in _data.allCells[s][c]){
-              cellsToRemove.push(_data.allCells[s][c][r]);
+const ASEvaluationStore = assign({}, BaseStore, {
+
+  /* This function describes the actions of the ASEvaluationStore upon recieving a message from Dispatcher */
+  dispatcherIndex: Dispatcher.register(function (action) {
+      switch (action.type) {
+        case Constants.ActionTypes.FIND_INCREMENTED:
+          break;
+        case Constants.ActionTypes.FIND_DECREMENTED:
+          break;
+        case Constants.ActionTypes.GOT_FIND:
+          // do nothing here on find; that's in the find store
+          break;
+        case Constants.ActionTypes.CELL_CHANGED:
+          break;
+        case Constants.ActionTypes.RANGE_CHANGED:
+          break;
+        /*
+          On an UNDO/REDO/UPDATE_CELLS, update the viewing window in the store based on the commit and
+          send a change event to spreadsheet, which will rerender
+        */
+        case Constants.ActionTypes.GOT_UNDO:
+          console.log("action undo");
+          _data.lastUpdatedCells = [];
+          ASEvaluationStore.removeCells(action.commit.after);
+          ASEvaluationStore.updateCells(action.commit.before);
+          ASEvaluationStore.emitChange();
+          break;
+        case Constants.ActionTypes.GOT_REDO:
+          _data.lastUpdatedCells = [];
+          ASEvaluationStore.removeCells(action.commit.before);
+          ASEvaluationStore.updateCells(action.commit.after);
+          ASEvaluationStore.emitChange();
+          break;
+        case Constants.ActionTypes.GOT_UPDATED_CELLS:
+          _data.lastUpdatedCells = [];
+          ASEvaluationStore.updateCells(action.updatedCells);
+          // console.log("Last updated cells: " + JSON.stringify(_data.lastUpdatedCells));
+          ASEvaluationStore.emitChange();
+          break;
+        /*
+          This action is sent to Dispatcher by the ASSpreadsheet action creator on a scroll event
+          It gets previous scroll state from the store and then uses the API to send a "get cells" message to server
+        */
+        case Constants.ActionTypes.SCROLLED:
+          let extendedRange = Util.extendRangeByCache(action.vWindow.range),
+              extendedWindow = TC.rangeToASWindow(extendedRange);
+          _data.viewingWindow = action.vWindow;
+          API.updateViewingWindow(extendedWindow);
+          break;
+        /*
+          The cells have been fetched from the server for a get request (for example, when scrolling)
+          We now need to update the store based on these new values
+          Called from Dispatcher, fired by API response from server
+        */
+        case Constants.ActionTypes.FETCHED_CELLS:
+          _data.lastUpdatedCells = [];
+          ASEvaluationStore.updateCells(action.newCells);
+          // console.log("Last updated cells: " + JSON.stringify(_data.lastUpdatedCells));
+          ASEvaluationStore.emitChange();
+          break;
+        /*
+          The server has cleared everything from the DB
+          Need to delete the store
+          Called from Dispatcher, fired by API response from server
+        */
+        case Constants.ActionTypes.CLEARED:
+          _data.lastUpdatedCells = [];
+          let cellsToRemove = [];
+          for (var s in _data.allCells){
+            for (var c in _data.allCells[s]){
+              for (var r in _data.allCells[s][c]){
+                cellsToRemove.push(_data.allCells[s][c][r]);
+              }
             }
           }
+
+          // remove possibly null cells
+          cellsToRemove = cellsToRemove.filter((cell) => !!cell);
+
+          ASEvaluationStore.removeCells(cellsToRemove);
+          _data.allCells = {};
+          // console.log("Last updated cells: " + JSON.stringify(_data.lastUpdatedCells));
+          ASEvaluationStore.emitChange();
+          break;
+
+        case Constants.ActionTypes.GOT_SELECTION: 
+          ASEvaluationStore.setActiveSelection(TC.asSelectionToSimple(action.newSelection), "");
+          ASEvaluationStore.emitChange();
+          break; 
+        case Constants.ActionTypes.DELETED_LOCS:
+          ASEvaluationStore.removeLocs(action.locs);
+          ASEvaluationStore.emitChange();
+          break;
+        case Constants.ActionTypes.GOT_FAILURE:
+          ASEvaluationStore.setExternalError(action.errorMsg.result.failDesc);
+          if (action.errorMsg.action === "EvaluateRepl"){
+            ReplStore.advanceLine();
+          }
+          ASEvaluationStore.emitChange();
+          break;
+        case Constants.ActionTypes.RECEIEVED_SHEET:
+          // TODO
+          break;
+        case Constants.ActionTypes.RECEIVED_WORKBOOK:
+          // TODO
+          break;
         }
-
-        // remove possibly null cells
-        cellsToRemove = cellsToRemove.filter((cell) => !!cell);
-
-        ASEvaluationStore.removeCells(cellsToRemove);
-        _data.allCells = {};
-        // console.log("Last updated cells: " + JSON.stringify(_data.lastUpdatedCells));
-        ASEvaluationStore.emitChange();
-        break;
-
-      case Constants.ActionTypes.GOT_SELECTION: 
-        ASEvaluationStore.setActiveSelection(TC.asSelectionToSimple(action.newSelection), "");
-        ASEvaluationStore.emitChange();
-        break; 
-      case Constants.ActionTypes.DELETED_LOCS:
-        ASEvaluationStore.removeLocs(action.locs);
-        ASEvaluationStore.emitChange();
-        break;
-      case Constants.ActionTypes.GOT_FAILURE:
-        ASEvaluationStore.setExternalError(action.errorMsg.result.failDesc);
-        if (action.errorMsg.action === "EvaluateRepl"){
-          ReplStore.advanceLine();
-        }
-        ASEvaluationStore.emitChange();
-        break;
-      case Constants.ActionTypes.RECEIEVED_SHEET:
-        // TODO
-        break;
-      case Constants.ActionTypes.RECEIVED_WORKBOOK:
-        // TODO
-        break;
-      }
-  })
-
-
-const ASEvaluationStore = assign({}, BaseStore, {
+    }),
 
   /**************************************************************************************************************************/
   /* getter and setter methods */
