@@ -148,7 +148,6 @@ module.exports = React.createClass({
   */
   _onFocus(e){
     console.log("The editor now has focus");
-    console.assert(ExpStore.getUserIsTyping());
     Store.setFocus('editor');
     ExpStore.setLastCursorPosition(Constants.CursorPosition.EDITOR);
     ExpStore.setLastRef(null);

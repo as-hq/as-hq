@@ -335,29 +335,24 @@ export default React.createClass({
   _onExpressionChange(){
     let xpChangeOrigin = ExpStore.getXpChangeOrigin(),
         xpStr = ExpStore.getExpression();
+    console.log("Grid caught Exp update of type: " + xpChangeOrigin);
     switch(xpChangeOrigin){
       case Constants.ActionTypes.EDITOR_CHANGED:
-        console.log("Grid caught exp update of EDITOR type");
-        this.refs.textbox.updateTextBox(xpStr);
-        break;
       case Constants.ActionTypes.GRID_KEY_PRESSED:
-        console.log("Grid caught exp update of GRID type");
+        // Repaint to show dependencies in the xp so far
+        this.repaint();
         this.refs.textbox.updateTextBox(xpStr);
         break;
       case Constants.ActionTypes.NORMAL_SEL_CHANGED:
-        console.log("Grid caught exp update of SEL_CHNG type");
+        this.repaint();
         this.refs.textbox.hideTextBox(xpStr);
         break;
       case Constants.ActionTypes.PARTIAL_REF_CHANGE_WITH_GRID:
-        console.log("Grid caught PARTIAL GRID");
-        this.refs.textbox.updateTextBox(xpStr);
-        break;
       case Constants.ActionTypes.PARTIAL_REF_CHANGE_WITH_EDITOR:
-        console.log("Grid caught PARTIAL EDITOR");
+      case Constants.ActionTypes.PARTIAL_REF_CHANGE_WITH_EDITOR:
         this.refs.textbox.updateTextBox(xpStr);
         break;
       case Constants.ActionTypes.ESC_PRESSED:
-        console.log("Grid caught ESC");
         this.refs.textbox.updateTextBox(xpStr);
         this.refs.textbox.hideTextBox();
         break;
@@ -477,9 +472,9 @@ export default React.createClass({
         <fin-hypergrid
           style={style}
           ref="hypergrid"
-          onKeyDown={this._onKeyDown}>
+          onKeyDown={this._onKeyDown}
+          onFocus={this._onFocus}>
             {behaviorElement}
-          onFocus={this._onFocus}
         </fin-hypergrid>
 
         {this.state.overlays.map(function (overlay) {
