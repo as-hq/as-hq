@@ -32,48 +32,54 @@ let _data = {
 
 };
 
-dispatcherIndex: Dispatcher.register(function (action) {
-  console.log("Exp Store detected dispatcher payload");
-  switch (action.type) {
-    case Constants.ActionTypes.GRID_KEY_PRESSED:
-      ASExpStore.updateStoreNormalTyping(action.type, action.xpStr);
-      break;
-    case Constants.ActionTypes.EDITOR_CHANGED:
-      ASExpStore.updateStoreNormalTyping(action.type, action.xpStr);
-      break;
-    case Constants.ActionTypes.TEXTBOX_CHANGED:
-      ASExpStore.updateStoreNormalTyping(action.type, action.xpStr);
-      break;
-    case Constants.ActionTypes.NORMAL_SEL_CHANGED:
-      ASExpStore.updateStoreSelChange(action.xpStr);
-      break;
-    case Constants.ActionTypes.PARTIAL_REF_CHANGE_WITH_GRID:
-      let curXpStr = ASExpStore.getExpression(),
-          lastRef = ASExpStore.getLastRef(),
-          newXpStr = lastRef ? 
-            curXpStr.substring(0,curXpStr.length-lastRef.length) + action.excelStr: 
-            curXpStr.substring(0,curXpStr.length) + action.excelStr;
-      ASExpStore.updatePartialRef(action.type,newXpStr,action.excelStr);
-      break;
-    case Constants.ActionTypes.PARTIAL_REF_CHANGE_WITH_EDITOR:
-      ASExpStore.updatePartialRef(action.type,action.xpStr,action.excelStr);
-      break;
-    case Constants.ActionTypes.PARTIAL_REF_CHANGE_WITH_TEXTBOX:
-      ASExpStore.updatePartialRef(action.type,action.xpStr,action.excelStr);
-      break;
-    case Constants.ActionTypes.ESC_PRESSED:
-      console.log("Exp store found ESC");
-      ASExpStore.setExpression("");
-      ASExpStore.setUserIsTyping(false);
-      ASExpStore.setXpChangeOrigin(action.type);
-      ASExpStore.emitChange();
-      break;
-    default:
-      break;
-  }
-});
 
 const ASExpStore = assign({}, BaseStore, {
+
+  dispatcherIndex: Dispatcher.register(function (action) {
+    console.log("Exp Store detected dispatcher payload");
+    switch (action.type) {
+      case Constants.ActionTypes.GRID_KEY_PRESSED:
+      case Constants.ActionTypes.EDITOR_CHANGED:
+      case Constants.ActionTypes.TEXTBOX_CHANGED:
+        ASExpStore.updateStoreNormalTyping(action.type, action.xpStr);
+        break;
+      case Constants.ActionTypes.NORMAL_SEL_CHANGED:
+        ASExpStore.updateStoreSelChange(action.xpStr);
+        break;
+      case Constants.ActionTypes.PARTIAL_REF_CHANGE_WITH_GRID:
+        let curXpStr = ASExpStore.getExpression(),
+            lastRef = ASExpStore.getLastRef(),
+            newXpStr = lastRef ? 
+              curXpStr.substring(0,curXpStr.length-lastRef.length) + action.excelStr: 
+              curXpStr.substring(0,curXpStr.length) + action.excelStr;
+        ASExpStore.updatePartialRef(action.type,newXpStr,action.excelStr);
+        break;
+      case Constants.ActionTypes.PARTIAL_REF_CHANGE_WITH_EDITOR:
+      case Constants.ActionTypes.PARTIAL_REF_CHANGE_WITH_TEXTBOX:
+        ASExpStore.updatePartialRef(action.type,action.xpStr,action.excelStr);
+        break;
+      case Constants.ActionTypes.ESC_PRESSED:
+        console.log("Exp store found ESC");
+        ASExpStore.setExpression("");
+        ASExpStore.setUserIsTyping(false);
+        ASExpStore.setXpChangeOrigin(action.type);
+        ASExpStore.emitChange();
+        break;
+
+      // Also need to update after some "Eval"-type events
+      case Constants.ActionTypes.GOT_UNDO:
+      case Constants.ActionTypes.GOT_REDO:
+      case Constants.ActionTypes.GOT_UPDATED_CELLS:
+        Dispatcher.waitFor([Store.dispatcherIndex]);
+        let sel = Store.getActiveSelection(),
+            cell = Store.getCell(sel.origin.col, sel.origin.row);
+        ASExpStore.updateOnBackendChange(cell);
+        break;
+
+      default:
+        break;
+    }
+  }),
 
   /**************************************************************************************************************************/
   // store getter and setter methods
@@ -187,6 +193,19 @@ const ASExpStore = assign({}, BaseStore, {
     this.setLastRef(excelStr);
     this.setExpression(xpStr);
     Store.setActiveCellDependencies(Util.parseDependencies(xpStr));
+    this.emitChange();
+  },
+
+  updateOnBackendChange(cell){
+    if (cell !== null){
+      this.setExpression(cell.cellExpression.expression);
+    }
+    else {
+      this.setExpression('');
+    }
+    this.setUserIsTyping(false);
+    this.setXpChangeOrigin(Constants.ActionTypes.BACKEND_UPDATED_AND_CELLS_CHANGED);
+    this.setLastRef(null);
     this.emitChange();
   }
 
