@@ -63,24 +63,21 @@ export default {
   },
 
   editorShouldDeferKey(e) {
-    return !KeyUtils.producesVisibleChar(e) &&
+    return !KeyUtils.producesTextChange(e) &&
            !KeyUtils.isNavKey(e) &&
            !KeyUtils.isCopyPasteType(e) &&
-           !(e.ctrlKey && e.which === 65); // ctrl+A
+           !(e.ctrlKey && e.which === 65);  // ctrl + A
   },
 
   textboxShouldDeferKey(e) {
-    return (e.which === 13) ||
-           (!KeyUtils.producesVisibleChar(e) &&
-            !KeyUtils.isNavKey(e) &&
-            !(e.ctrlKey && e.which === 65));
+    return (e.which === 13) || this.editorShouldDeferKey(e); 
   },
 
   replShouldDeferKey(e) {
     if (e.which === 13 && e.shiftKey === false) {
       return true;
     }
-    return !KeyUtils.producesVisibleChar(e);
+    return !KeyUtils.producesTextChange(e);
   },
 
   compareModifiers(s, e) {
