@@ -320,11 +320,12 @@ export default React.createClass({
   },
 
   _onGridNavKeyDown(e) {
+    // should only get called if left, right, down, or up was pressed
     console.log("Eval pane has grid's nav key");
     let insert = ExpStore.gridCanInsertRef();
-    if (insert){
+    if (insert) {
       // do nothing; onSelectionChange will fire
-    } else {
+    } else if (ExpStore.getUserIsTyping()) {
       console.log("Will change selection and eval cell.");
       let xpObj = {
             expression: ExpStore.getExpression(),

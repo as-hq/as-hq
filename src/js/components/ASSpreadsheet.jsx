@@ -267,10 +267,11 @@ export default React.createClass({
                                   origin: safeSelection.origin});
   },
 
-  shiftSelectionArea(dc, dr){
-    let sel = Store.getActiveSelection(),
-        origin = {row: sel.origin.row + dr, col: sel.origin.col + dc};
-    this.select({range: sel.range, origin: origin});
+  shiftSelectionArea(dc, dr) {
+    let sel = Store.getActiveSelection(); 
+    let origin = {row: sel.origin.row + dr, col: sel.origin.col + dc};
+    let range = {tl: origin, br: origin};
+    this.select({range: range, origin: origin}); 
   },
 
   scrollTo(x, y){
