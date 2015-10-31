@@ -127,7 +127,14 @@ export default {
       sel.setRange(range);
       let replace = Util.toggleReferenceType(editor.getSelectedText());
       sesh.replace(range, replace);
+      // Also update the textbox
+      let textbox = self._getRawTextbox(),
+          textboxPos = textbox.getCursorPosition();
+      textbox.setValue(editor.getValue());
+      ExpStore.setExpression(editor.getValue()); // not using an action creator right now, seems like overkill
+      textbox.clearSelection(); // cursor in TB will now be at the end, but seems OK for now
     });
+
 
 
     // grid shortcuts -------------------------------------------------------------------------------
