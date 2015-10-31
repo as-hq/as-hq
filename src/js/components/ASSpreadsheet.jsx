@@ -79,6 +79,7 @@ export default React.createClass({
         'fin-double-click': function (event) {
           console.log("DOUBLE ClICK");
           self.refs.textbox.updateTextBox(ExpStore.getExpression());
+          self.refs.textbox.editor.focus(); // set focus in textbox
           }
       });
       for (var key in callbacks) {
@@ -241,11 +242,8 @@ export default React.createClass({
         dC = br.col - tl.col,
         dR = br.row - tl.row;
     hg.takeFocus();
-    console.log("took focus");
     hg.clearSelections();
-    console.log("cleared selections");
     hg.select(c, r, dC, dR);
-    console.log("Called hg.select");
 
     // set mousedown
     // hypergrid sucks -- doesn't set the mouse focus automatically
@@ -267,7 +265,6 @@ export default React.createClass({
     }
 
     this.repaint();
-    console.log("About to call on sel change bc select called");
     this.props.onSelectionChange({range: safeSelection.range,
                                   origin: safeSelection.origin});
   },
