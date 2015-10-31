@@ -17,7 +17,6 @@ export default {
 
     SU.add("common", "toggle_focus", "F2", (wildcard) => {
       console.log("F2 PRESSED ");
-      console.log("In toggle focus function");
       Store.toggleFocusF2();
       self.refs.spreadsheet.refs.textbox.updateTextBox(ExpStore.getExpression());
       self.setFocus(Store.getFocus());

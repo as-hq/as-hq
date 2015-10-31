@@ -14,7 +14,7 @@ export default {
     let lines = this.getLinesWithoutLastRef(editor,lastRef),
         pos = this.getCursorPosAfterDeletingLastRef(editor,lastRef),
         currentLine = lines[pos.row];
-    if (pos.column === 0 || currentLine.length === 0){
+    if (pos.column === 0 || currentLine.length === 0 || lines[0][0] !== '='){
       return false;
     } else {
       var lookbackOk = false, lookforwardOk = false;
@@ -81,7 +81,7 @@ export default {
   // For example, after '=sum(', a ref can  be inserted
   // Used to see if grid can insert a ref at the end of xp
   canInsertCellRefAfterPrefix(prefix) {
-    if (prefix.length === 0) return false;
+    if (prefix.length === 0 || prefix[0] !== '=') return false;
     else {
       for (let c = prefix.length - 1; c > -1; c--) {
         let curChar = prefix[c];
