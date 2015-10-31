@@ -213,7 +213,9 @@ generateErrorMessage e = case e of
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Time
 getTime :: IO String
-getTime = fmap (show . utctDayTime) getCurrentTime
+getTime = do 
+  t <- getCurrentTime
+  return $ take 23 $ show t
 
 serverLogPath :: IO String
 serverLogPath = do
@@ -223,7 +225,7 @@ serverLogPath = do
 printWithTime :: String -> IO ()
 printWithTime str = do
   time <- getTime
-  let disp = "[" ++ (show time) ++ "] " ++ str
+  let disp = "[" ++ time ++ "] " ++ str
   putStrLn (truncated disp)
   serverLog <- serverLogPath
   catch (appendFile serverLog ('\n':disp)) (\e -> putStrLn $ ("Error writing to log: " ++ show (e :: SomeException)))
