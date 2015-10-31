@@ -138,7 +138,6 @@ export default React.createClass({
   // Render
 
   render() {
-    console.log("\n\nTEXTBOX DIMS\n\n", this.props.position());
     let baseStyle = {
                      display:'block',
                      position:'absolute',
