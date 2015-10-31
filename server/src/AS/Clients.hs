@@ -409,7 +409,7 @@ handleBugReport user = WS.sendTextData (userConn user) ("ACK" :: T.Text)
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- JumpSelect handlers
 
--- TODO
+-- #incomplete the logic here is actually wrong. Also isn't hooked up to anything on frontend yet. 
 handleJumpSelect :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
 handleJumpSelect user state p@(PayloadJump sel origin shifted dir) = 
   let 
