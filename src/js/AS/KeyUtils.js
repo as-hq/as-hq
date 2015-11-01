@@ -98,6 +98,8 @@ export default {
     return e.key;
   },
 
+ 
+
   isFunctionKey(e) {
     return e.which >= 112 && e.which <= 123;
   },

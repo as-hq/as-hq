@@ -372,8 +372,7 @@ const ASEvaluationStore = assign({}, BaseStore, {
   /* Focus */
 
   setFocus(elem) {
-    console.log("\n\nFOCUS\n\n", elem);
-    console.log("\nACTIVE SEL AFTER FOCUS\n", _data.activeSelection.origin);
+    console.log("FOCUS", elem);
     _data.lastActiveFocus = _data.activeFocus;
     _data.activeFocus = elem;
   },

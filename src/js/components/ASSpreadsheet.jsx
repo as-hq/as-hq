@@ -28,7 +28,8 @@ export default React.createClass({
   propTypes: {
     onSelectionChange: React.PropTypes.func.isRequired,
     onTextBoxDeferredKey: React.PropTypes.func.isRequired,
-    onNavKeyDown: React.PropTypes.func.isRequired
+    onNavKeyDown: React.PropTypes.func.isRequired,
+    setFocus: React.PropTypes.func.isRequired
   },
 
   // TODO: do we actually need behavior??
@@ -80,7 +81,7 @@ export default React.createClass({
           console.log("DOUBLE ClICK");
           self.refs.textbox.updateTextBox(ExpStore.getExpression());
           Store.setFocus('textbox');
-          self.setFocus('textbox');
+          self.props.setFocus('textbox');
           }
       });
       for (var key in callbacks) {
@@ -301,6 +302,14 @@ export default React.createClass({
         console.log("Grid key down going to AC");
         let curStr = ExpStore.getExpression(),
             newStr = KeyUtils.modifyStringForKey(curStr, e);
+
+        // KeyUtils backspace only takes away a character, doesn't account for editor selection
+        if (e.which === 8) { //backspace type 
+          let textbox = this.refs.textbox.editor;
+          textbox.commands.exec('backspace',textbox);
+          newStr = textbox.getValue();
+        }
+
         // ^ modify string for key deals with ctrl+backspace too
         // if visible key and there was a last cell ref, move the selection back to the origin
         if (ExpStore.getLastRef() !== null) {
@@ -336,6 +345,7 @@ export default React.createClass({
   },
 
   _onFocus(e) {
+    console.log("Grid on focus");
     Store.setFocus('grid');
   },
 

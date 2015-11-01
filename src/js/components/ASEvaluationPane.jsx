@@ -495,7 +495,7 @@ export default React.createClass({
       this.refs.spreadsheet.setFocus();
     } else if (elem === 'textbox') {
       this._getRawTextbox().focus();
-      this.refs.spreadsheet.refs.textbox.updateTextBox(ExpStore.getExpression());
+      //this.refs.spreadsheet.refs.textbox.updateTextBox(ExpStore.getExpression());
     }
   },
 
@@ -600,6 +600,7 @@ export default React.createClass({
           width="100%" height={this.getEditorHeight()} />
         <ASSpreadsheet
           ref='spreadsheet'
+          setFocus={this.setFocus}
           highlightFind={highlightFind}
           onNavKeyDown={this._onGridNavKeyDown}
           onTextBoxDeferredKey={this._onTextBoxDeferredKey}
