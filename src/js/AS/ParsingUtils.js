@@ -14,12 +14,14 @@ export default {
     let lines = this.getLinesWithoutLastRef(editor,lastRef),
         pos = this.getCursorPosAfterDeletingLastRef(editor,lastRef),
         currentLine = lines[pos.row];
+    console.log("PARSING CELL REF: ", currentLine, pos);
     if (pos.column === 0 || currentLine.length === 0 || lines[0][0] !== '='){
       return false;
     } else {
       var lookbackOk = false, lookforwardOk = false;
-      for (var c = pos.col - 1; c > -1; c--) {
+      for (var c = pos.column - 1; c > -1; c--) {
         let curChar = currentLine[c];
+        console.log("CUR CHAR:", curChar)
         if (curChar === ' ') continue;
         else if (Util.arrContains(this.prefixOp, curChar) ||
                  Util.arrContains(this.infixOp, curChar)) {
@@ -27,8 +29,9 @@ export default {
           break;
         }
       }
-      if (lookbackOk && currentLine.length === 1) return true;
-      for (var c = pos.col + 1; c < currentLine.length; c++) {
+      console.log("LOOBKACKOK: ", lookbackOk);
+      if (lookbackOk && (pos.column === currentLine.length)) return true;
+      for (var c = pos.column; c < currentLine.length; c++) {
         let curChar = currentLine[c];
         if (curChar === ' ') continue;
         else if (Util.arrContains(this.postfixOp, curChar) ||
