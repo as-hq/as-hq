@@ -41,7 +41,8 @@ export default React.createClass({
   /* React method for getting the initial state */
   getInitialState() {
     return {
-      language: Constants.Languages.Excel,
+      defaultLanguage: Constants.Languages.Excel, // the language displayed on a blank cell
+      currentLanguage: Constants.Languages.Excel, // the language currently displayed
       varName: '',
       focus: null,
       toastMessage: '',
@@ -115,10 +116,8 @@ export default React.createClass({
   /***************************************************************************************************************************/
   // Some basic on change handlers
 
-  setLanguage(lang) {
-    // TODO change dropdown when triggered programmatically
-    console.log("setting language: "+JSON.stringify(lang));
-    this.setState({ language: lang });
+  selectLanguage(lang) { 
+    this.setState({ defaultLanguage: lang, currentLanguage: lang });
     this.setFocus(Store.getFocus());
   },
 
@@ -254,22 +253,19 @@ export default React.createClass({
         } else {
           API.copy(fromASRange, toASRange);
         }
-      }
-      else{
+      } else {
         this.setToast("Nothing in clipboard.", "Error");
       }
       this.refs.spreadsheet.repaint(); // render immediately
-    }
-    else { // Not from AS
+    } else { // Not from AS
       if (containsPlain) {
         let plain = e.clipboardData.getData("text/plain"),
             vals = ClipboardUtils.plainStringToVals(plain),
-            cells = ClipboardUtils.externalStringsToASCells(sel.origin, vals, this.state.language),
+            cells = ClipboardUtils.externalStringsToASCells(sel.origin, vals, this.state.currentLanguage),
             concatCells = Util.concatAll(cells);
         API.pasteSimple(concatCells);
         // The normal eval handling will make the paste show up
-      }
-      else {
+      } else {
         // TODO: Not handling html conversion for now
         // Not sure if getData is smart enough to do that for you
       }
@@ -321,9 +317,11 @@ export default React.createClass({
       console.log("Will change selection and eval cell.");
       let xpObj = {
             expression: ExpStore.getExpression(),
-            language: this.state.language
+            language: this.state.currentLanguage
           };
-      this.handleEvalRequest(xpObj, null, null);
+      // Hypergrid automatically changes the selection when you arrive here through
+      // left, right, down, or up. 
+      this.handleEvalRequest(xpObj, 0, 0);
     }
   },
 
@@ -341,8 +339,7 @@ export default React.createClass({
             expression:xpStr,
           },function() {editor.navigateFileEnd();}
       );
-    }
-    else {
+    } else {
       console.log("Grid key not visible");
       ShortcutUtils.tryShortcut(e, 'common');
       ShortcutUtils.tryShortcut(e, 'grid');
@@ -365,8 +362,6 @@ export default React.createClass({
   // Deal with selection change from grid
 
   _onSelectionChange(sel) {
-    console.log("\nEVAL PANE ON SEL CHANGE", sel.origin);
-
     let rng = sel.range,
         userIsTyping = ExpStore.getUserIsTyping(),
         cell = Store.getCell(sel.origin.col, sel.origin.row);
@@ -391,22 +386,24 @@ export default React.createClass({
 
     if (changeSelToExistingCell) {
       console.log("Selected non-empty cell to move to");
-      let {language,expression} = cell.cellExpression,
+      let {language, expression} = cell.cellExpression,
           val = cell.cellValue;
       Store.setActiveSelection(sel, expression);
       ExpActionCreator.handleSelChange(expression);
       this.showAnyErrors(val);
+      this.setState({currentLanguage: Constants.Languages[language]}); 
     } else if (changeSelToNewCell) {
       console.log("Selected empty cell to move to");
       Store.setActiveSelection(sel, "");
       this.refs.spreadsheet.repaint();
       ExpActionCreator.handleSelChange('');
+      this.setState({currentLanguage: this.state.defaultLanguage});
       this.hideToast();
     } else if (changeSelWhileTypingNoInsert){ //click away while not parsable
       console.log("Change sel while typing no insert");
       let xpObj = {
           expression: ExpStore.getExpression(),
-          language: this.state.language
+          language: this.state.currentLanguage
       };
       // Eval needs to be called with the current activeSel;
       // Otherwise the eval result shows up in the new sel
@@ -414,9 +411,8 @@ export default React.createClass({
       if (cell && cell.cellExpression) {
         Store.setActiveSelection(sel, cell.cellExpression.expression);
         this.showAnyErrors(cell.cellValue);
-      }
-      else {
-         Store.setActiveSelection(sel,"");
+      } else {
+         Store.setActiveSelection(sel, "");
          this.hideToast();
       }
     } else if (userIsTyping) {
@@ -471,6 +467,7 @@ export default React.createClass({
       this.refs.spreadsheet.shiftSelectionArea(moveCol, moveRow);
     }
     API.evaluate(asIndex, xpObj);
+    this.setState({defaultLanguage: xpObj.language});
   },
 
   openSheet(sheet) {
@@ -571,7 +568,7 @@ export default React.createClass({
   },
 
   render() {
-    let {expression, language, focus} = this.state,
+    let {expression, currentLanguage, focus} = this.state,
         highlightFind = this.state.showFindBar || this.state.showFindModal;
 
     // highlightFind is for the spreadsheet to know when to highlight found locs
@@ -588,15 +585,16 @@ export default React.createClass({
         <ASCodeEditor
           ref='editorPane'
           handleEditorFocus={this._handleEditorFocus}
-          language={language}
+          language={currentLanguage}
           onReplClick={this._toggleRepl}
           onSubmitDebug={this._submitDebug}
-          onLanguageChange={this.setLanguage}
+          onSelectLanguage={this.selectLanguage}
           onExpressionChange={this.setExpression}
           setXpDetailFromEditor={this.setXpDetailFromEditor}
           onSetVarName={this._onSetVarName}
           onDeferredKey={this._onEditorDeferredKey}
           value={expression}
+          hideToast={this.hideToast}
           width="100%" height={this.getEditorHeight()} />
         <ASSpreadsheet
           ref='spreadsheet'
@@ -604,6 +602,7 @@ export default React.createClass({
           onNavKeyDown={this._onGridNavKeyDown}
           onTextBoxDeferredKey={this._onTextBoxDeferredKey}
           onSelectionChange={this._onSelectionChange}
+          hideToast={this.hideToast}
           width="100%"
           height={`calc(100% - ${this.getEditorHeight()})`}  />
         <Snackbar ref="snackbarError"

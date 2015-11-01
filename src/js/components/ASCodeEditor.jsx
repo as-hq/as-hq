@@ -47,10 +47,9 @@ export default React.createClass({
   /*************************************************************************************************************************/
   // Change handlers
 
-  _onLanguageChange(e, selectedIndex, menuItem) {
+  _onSelectLanguage(e, selectedIndex, menuItem) {
     //notify editor to change
-    console.log("language changed in ascodeeditor: " + JSON.stringify(menuItem.payload));
-    this.props.onLanguageChange(menuItem.payload);
+    this.props.onSelectLanguage(menuItem.payload);
   },
 
   _onBlurVarName() {
@@ -85,7 +84,7 @@ export default React.createClass({
                 <DropDownMenu
                   selectedIndex={languageIndex(language)}
                   menuItems={languages}
-                  onChange={this._onLanguageChange}
+                  onChange={this._onSelectLanguage}
                   underlineStyle={{ display: 'none' }}
                   style={{
                     position: 'relative',
@@ -114,6 +113,7 @@ export default React.createClass({
           handleEditorFocus={this.props.handleEditorFocus}
           mode={language.Editor}
           language={language}
+          hideToast={this.props.hideToast}
           theme={theme}
           width={width} height={height}
           onDeferredKey={this.props.onDeferredKey} />
