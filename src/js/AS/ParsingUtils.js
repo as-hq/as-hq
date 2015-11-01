@@ -21,11 +21,13 @@ export default {
       var lookbackOk = false, lookforwardOk = false;
       for (var c = pos.column - 1; c > -1; c--) {
         let curChar = currentLine[c];
-        console.log("CUR CHAR:", curChar)
         if (curChar === ' ') continue;
         else if (Util.arrContains(this.prefixOp, curChar) ||
                  Util.arrContains(this.infixOp, curChar)) {
           lookbackOk = true;
+          break;
+        } else {
+          lookbackOk = false;
           break;
         }
       }
@@ -37,6 +39,9 @@ export default {
         else if (Util.arrContains(this.postfixOp, curChar) ||
                  Util.arrContains(this.infixOp, curChar)) {
           lookforwardOk = true;
+          break;
+        } else {
+          lookforwardOk = false;
           break;
         }
       }
@@ -76,8 +81,6 @@ export default {
     editor.setValue(lines.join('\n')); // or '' ???
     editor.moveCursorToPosition(newPos);
     editor.clearSelection();
-    console.log("Just deleted last ref, new expression: " + editor.getValue());
-    console.log("Just deleted last ref; cur pos: " + JSON.stringify(editor.getCursorPosition()));
   },
 
   // Can a reference be inserted after this prefix
@@ -92,9 +95,8 @@ export default {
         else if (Util.arrContains(this.prefixOp, curChar) ||
                  Util.arrContains(this.infixOp, curChar)) {
           return true;
-        }
+        } else return false;
       }
-      return false;
     }
   }
 

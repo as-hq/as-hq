@@ -96,11 +96,8 @@ module.exports = React.createClass({
     let lastRef = ExpStore.getLastRef();
     console.log("Inserting ref in editor " + newRef);
     ExpStore.setDoEditorCallback(false);
-    if (lastRef){
-      ParseUtils.deleteLastRef(this.editor,lastRef)
-    }
-    this.editor.getSession().insert(this.editor.getCursorPosition(),newRef);
-    console.log("New editor xp: " + this.editor.getValue());
+    if (lastRef) ParseUtils.deleteLastRef(this.editor,lastRef)
+    this.editor.insert(newRef);
   },
 
   /*************************************************************************************************************************/
@@ -170,7 +167,6 @@ module.exports = React.createClass({
       case Constants.ActionTypes.NORMAL_SEL_CHANGED:
       case Constants.ActionTypes.PARTIAL_REF_CHANGE_WITH_GRID:
       case Constants.ActionTypes.PARTIAL_REF_CHANGE_WITH_TEXTBOX:
-      case Constants.ActionTypes.PARTIAL_REF_CHANGE_WITH_EDITOR:
       case Constants.ActionTypes.ESC_PRESSED:
       case Constants.ActionTypes.BACKEND_UPDATED_AND_CELLS_CHANGED:
         this.updateValue();

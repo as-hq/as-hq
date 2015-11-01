@@ -358,7 +358,6 @@ export default React.createClass({
         break;
       case Constants.ActionTypes.PARTIAL_REF_CHANGE_WITH_GRID:
       case Constants.ActionTypes.PARTIAL_REF_CHANGE_WITH_EDITOR:
-      case Constants.ActionTypes.PARTIAL_REF_CHANGE_WITH_TEXTBOX:
         this.refs.textbox.updateTextBox(xpStr);
         break;
       case Constants.ActionTypes.ESC_PRESSED:
