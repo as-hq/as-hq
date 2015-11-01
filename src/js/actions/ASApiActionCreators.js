@@ -3,6 +3,7 @@ import Constants from '../Constants';
 import T from '../AS/Types';
 import TC from '../AS/TypeConversions';
 import Store from '../stores/ASEvaluationStore';
+import Util from '../AS/Util';
 
 import isNode from 'detect-node';
 let [ws] = isNode ?
@@ -10,7 +11,7 @@ let [ws] = isNode ?
   [WebSocket];
 
 let ActionTypes = Constants.ActionTypes;
-let wss = new ws(Constants.HOST_WS_URL);
+let wss = new ws(Util.getHostUrl());
 
 let currentCbs = undefined;
 let isRunningTest = false;

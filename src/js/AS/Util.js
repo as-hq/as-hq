@@ -1,6 +1,8 @@
 import Constants from '../Constants';
+import {HOST_IP, HOST_WS_PORT} from '../Constants';
 import shortid from 'shortid';
 import T from './Types';
+
 
 var colors = {"aliceblue":"#f0f8ff","antiquewhite":"#faebd7","aqua":"#00ffff","aquamarine":"#7fffd4","azure":"#f0ffff",
       "beige":"#f5f5dc","bisque":"#ffe4c4","black":"#000000","blanchedalmond":"#ffebcd","blue":"#0000ff","blueviolet":"#8a2be2","brown":"#a52a2a","burlywood":"#deb887",
@@ -23,6 +25,12 @@ var colors = {"aliceblue":"#f0f8ff","antiquewhite":"#faebd7","aqua":"#00ffff","a
       "violet":"#ee82ee","wheat":"#f5deb3","white":"#ffffff","whitesmoke":"#f5f5f5","yellow":"#ffff00","yellowgreen":"#9acd32"};
 
 export default {
+
+  getHostUrl() {
+    let baseUrl = process.env.NODE_ENV ? HOST_IP : 'localhost';
+    console.log("GOT ENV ARG: ", process.env.NODE_ENV);
+    return 'ws://' + baseUrl + ':' + HOST_WS_PORT;
+  },
 
 /*************************************************************************************************************************/
 // Cell rendering
