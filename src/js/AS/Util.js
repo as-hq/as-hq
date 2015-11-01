@@ -27,9 +27,10 @@ var colors = {"aliceblue":"#f0f8ff","antiquewhite":"#faebd7","aqua":"#00ffff","a
 export default {
 
   getHostUrl() {
-    let baseUrl = process.env.NODE_ENV ? HOST_IP : 'localhost';
-    console.log("GOT ENV ARG: ", process.env.NODE_ENV);
-    return 'ws://' + baseUrl + ':' + HOST_WS_PORT;
+    // let baseUrl = process.env.NODE_ENV ? HOST_IP : 'localhost';
+    // console.log("GOT ENV ARG: ", process.env.NODE_ENV);
+    // return 'ws://' + baseUrl + ':' + HOST_WS_PORT;
+    return Constants.isTesting ? ('ws://' + HOST_IP + ':' + HOST_WS_PORT) : Constants.HOST_WS_URL;
   },
 
 /*************************************************************************************************************************/
@@ -68,8 +69,8 @@ export default {
         return "ERROR";
       case "ValueImage":
         return "IMAGE";
-      case "ValueObject": 
-        return cv.displayValue; 
+      case "ValueObject":
+        return cv.displayValue;
       case "DisplayValue":
         return cv.displayValue;
       default:
@@ -505,11 +506,11 @@ export default {
   },
 
   getSafeRange(rng) {
-    return {tl: this.getSafeIndex(rng.tl), 
-            br: this.getSafeIndex(rng.br)}; 
+    return {tl: this.getSafeIndex(rng.tl),
+            br: this.getSafeIndex(rng.br)};
   },
 
-  getSafeSelection(sel) { 
+  getSafeSelection(sel) {
     return { origin: this.getSafeIndex(sel.origin), range: this.getSafeRange(sel.range) };
   },
 
