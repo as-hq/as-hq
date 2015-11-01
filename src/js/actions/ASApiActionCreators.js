@@ -34,7 +34,7 @@ let refreshDialogShown = false;
 */
 
 wss.onmessage = function (event) {
-  console.log("Client received data from server: " + JSON.stringify(event.data));
+  console.log("Client received data from server: "); // + JSON.stringify(event.data));
 
   if (event.data === 'ACK') return;
 
@@ -268,7 +268,7 @@ export default {
     });
     this.send(msg);
   },
-  jumpSelect(range, origin, isShifted, direction) { 
+  jumpSelect(range, origin, isShifted, direction) {
     let msg = TC.makeClientMessageRaw(Constants.ServerActions.JumpSelect, {
       tag: "PayloadJump",
       isShifted: isShifted,
