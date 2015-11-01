@@ -220,9 +220,15 @@ export default {
   },
 
   dependencyRenderer: function(gc) {
+    let grid = this.getGrid(),
+        fixedColCount = grid.getFixedColumnCount(),
+        fixedRowCount = grid.getFixedRowCount(),
+        scrollX = grid.getHScrollValue(),
+        scrollY = grid.getVScrollValue();
+
     _renderParams.deps.forEach((dep) => {
-      let tl = this._getBoundsOfCell(dep.tl.col, dep.tl.row),
-          br = this._getBoundsOfCell(dep.br.col, dep.br.row),
+      let tl = this._getBoundsOfCell(dep.tl.col + fixedColCount - scrollX - 1, dep.tl.row + fixedRowCount - scrollY - 1),
+          br = this._getBoundsOfCell(dep.br.col + fixedColCount - scrollX - 1, dep.br.row + fixedRowCount - scrollY - 1),
           oX = tl.origin.x,
           oY = tl.origin.y,
           eX = (br.origin.x - oX) + br.extent.x,
