@@ -411,7 +411,6 @@ const ASEvaluationStore = assign({}, BaseStore, {
   },
 
   getDataBoundary(start, direction) {
-    let startC = start.col, startR = start.row;
     let dr = 0, dc = 0;
 
     switch (direction) {
@@ -419,25 +418,23 @@ const ASEvaluationStore = assign({}, BaseStore, {
       case "Left": dc = -1; break;
       case "Down": dr = 1; break;
       case "Up": dr = -1; break;
-      default: throw "Invalid direction passed in"; break;
+      default: throw "Invalid direction passed in tp getDataBoundary()"; break;
     }
 
-    let c = startC, r = startR;
-    if (this.locationExists(c, r)) {
+    let c = start.col, r = start.row;
+    while (c >= 1 && r >= 1 && c <= Constants.numCols && r <= Constants.numRows) {
       c += dc;
       r += dr;
-    }
-    // TODO: replace with actual spreadsheet size limits when those are implemented.
-    while (c > 0 && r > 0
-        && c < startC + Constants.LARGE_SEARCH_BOUND
-        && r < startR + Constants.LARGE_SEARCH_BOUND) {
       if (this.locationExists(c, r)
        && !(this.locationExists(c + dc, r + dr) && this.locationExists(c - dc, r - dr))) {
         break;
       }
-      c += dc;
-      r += dr;
     }
+
+    if (c < 1) c = 1; 
+    if (r < 1) r = 1; 
+    if (c > Constants.numCols) c = Constants.numCols; 
+    if (r > Constants.numRows) r = Constants.numRows; 
 
     return {col: c, row: r};
   },
