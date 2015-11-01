@@ -169,9 +169,9 @@ handleUpdateWindow sid state (PayloadW window) = do
     Nothing -> putStrLn "ERROR: could not update nothing window" >> return ()
     (Just oldWindow) -> (flip catch) (badCellsHandler $ dbConn curState) (do
       let locs = U.getScrolledLocs oldWindow window
-      printWithTime $ "Sending locs: " ++ (show locs)
+      printObj "Sending locs" locs
       mcells <- DB.getCells $ concat $ map rangeToIndices locs
-      sendToOriginal user' $ U.getDBCellMessage mcells
+      sendToOriginal user' $ U.makeGetMessage (catMaybes mcells)
       US.modifyUser (U.updateWindow window) user' state)
 
 -- | If a message is failing to parse from the server, undo the last commit (the one that added
@@ -211,7 +211,7 @@ handleGet :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
 handleGet user state (PayloadLL locs) = do
   curState <- readMVar state
   mcells <- DB.getCells locs
-  sendToOriginal user (U.getDBCellMessage mcells)
+  sendToOriginal user (U.makeGetMessage $ catMaybes mcells)
 handleGet user state (PayloadList Sheets) = do
   curState <- readMVar state
   ss <- DB.getAllSheets (dbConn curState)

@@ -48,17 +48,17 @@ runDispatchCycle :: MVar ServerState -> [ASCell] -> ASUserId -> IO ASServerMessa
 runDispatchCycle state cs uid = do
   let sid = locSheetId . cellLocation $ head cs
   errOrCells <- runEitherT $ do
-    printWithTimeT $ "STARTING DISPATCH CYCLE WITH CELLS: " ++ (show cs)
+    printObjT "STARTING DISPATCH CYCLE WITH CELLS: " cs
     roots          <- lift $ EM.evalMiddleware cs
     conn           <- lift $ fmap dbConn $ readMVar state
     rootsDepSets   <- DB.setCellsAncestors roots
-    printWithTimeT $ "Set cell ancestors: " ++ (U.truncated $ show rootsDepSets)
+    printObjT "Set cell ancestors: " rootsDepSets
     evalLocs       <- getEvalLocs conn roots
-    printWithTimeT $ "Got eval locations: " ++ (U.truncated $ show evalLocs)
+    printObjT "Got eval locations: " evalLocs
     cellsToEval    <- getCellsToEval conn evalLocs roots
-    printWithTimeT $ "Got cells to evaluate: " ++ (U.truncated $ show cellsToEval)
+    printObjT "Got cells to evaluate: " cellsToEval
     ancLocs        <- G.getImmediateAncestors evalLocs
-    printWithTimeT $ "got ancestor locs: " ++ (U.truncated $ show ancLocs)
+    printObjT "Got ancestor locs" ancLocs
     initValuesMap  <- lift $ getValuesMap (zip roots rootsDepSets) ancLocs
     printWithTimeT "Starting eval chain"
     (afterCells, cellLists) <- evalChain conn initValuesMap cellsToEval -- start with current cells, then go through descendants
@@ -68,7 +68,7 @@ runDispatchCycle state cs uid = do
     broadcastCells <- DB.updateAfterEval conn transaction -- atomically performs DB ops. (Sort of a lie -- writing to server is not atomic.)
     return broadcastCells
   runEitherT $ rollbackGraphIfError errOrCells
-  return $ U.getCellMessage errOrCells
+  return $ U.makeUpdateMessage errOrCells
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Eval building blocks

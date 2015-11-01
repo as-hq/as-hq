@@ -154,10 +154,10 @@ getCellsByMessage msg num = do
   ptrCells <- BU.unsafeUseAsCString msg $ \str -> do
     printWithTime "built message"
     c <- c_getCells str (fromIntegral num)
-    printWithTime "got cells"
     return c
   cCells <- peekArray (fromIntegral num) ptrCells
   res <- mapM cToASCell cCells
+  printObj "got cells" res
   free ptrCells
   return res
 

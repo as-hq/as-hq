@@ -11,6 +11,7 @@ import Data.UUID.V4 (nextRandom)
 import Text.ParserCombinators.Parsec
 
 import Data.Aeson hiding (Success)
+import Control.DeepSeq
 import qualified Network.WebSockets as WS
 import qualified Data.UUID as U (toString)
 import qualified Data.Text as T
@@ -53,7 +54,7 @@ truncated str
 sendMessage :: (ToJSON a, Show a) => a -> WS.Connection -> IO ()
 sendMessage msg conn = do
   WS.sendTextData conn (encode msg)
-  printWithTime ("Server sent message: " ++ (truncated $ show msg))
+  printObj "Server sent message" msg
 
 lastN :: Int -> [a] -> [a]
 lastN n xs = let m = length xs in drop (m-n) xs
@@ -184,18 +185,20 @@ addToAL l key value = (key, value) : delFromAL l key
 --------------------------------------------------------------------------------------------------------------
 -- Conversions and Helpers
 
-getCellMessage :: Either ASExecError [ASCell] -> ASServerMessage
-getCellMessage (Left e) = ServerMessage Update (Failure (generateErrorMessage e)) (PayloadN ())
-getCellMessage (Right cells) = ServerMessage Update Success (PayloadCL cells)
+-- | When you have a list of cells from an eval request, this function constructs
+-- the message to send back. 
+makeUpdateMessage :: Either ASExecError [ASCell] -> ASServerMessage
+makeUpdateMessage (Left e) = ServerMessage Update (Failure (generateErrorMessage e)) (PayloadN ())
+makeUpdateMessage (Right cells) = ServerMessage Update Success (PayloadCL cells)
 
 -- getBadLocs :: [ASReference] -> [Maybe ASCell] -> [ASReference]
 -- getBadLocs locs mcells = map fst $ filter (\(l,c)->isNothing c) (zip locs mcells)
 
-getDBCellMessage :: [Maybe ASCell] -> ASServerMessage
-getDBCellMessage mcells = changeActionToGet $ getCellMessage (Right cells)
-  where justCells = filter (not . isNothing) mcells
-        cells = map (\(Just x) -> x) justCells
-        changeActionToGet (ServerMessage _ r p) = ServerMessage Get r p
+-- | Poorly named. When you have a list of cells from a get request, this function constructs
+-- the message to send back. 
+makeGetMessage :: [ASCell] -> ASServerMessage
+makeGetMessage cells = changeActionToGet $ makeUpdateMessage (Right cells)
+  where changeActionToGet (ServerMessage _ r p) = ServerMessage Get r p        
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Error Handling
@@ -234,9 +237,16 @@ printWithTime str = do
 printWithTimeT :: String -> EitherTExec ()
 printWithTimeT = lift . printWithTime
 
+printObj :: (Show a) => String -> a -> IO ()
+printObj disp obj = printWithTime (disp ++ ": " ++ (show $ seq () obj))
+-- the seq is necessary so that the object gets evaluated before the time does in printWithTime. 
+
+printObjT :: (Show a) => String -> a -> EitherTExec () 
+printObjT disp obj = lift (printObj disp obj)
+
 -- | For debugging purposes
 printDebug :: (Show a) => String -> a -> IO ()
-printDebug name obj = printWithTime ("\n\n" ++ name ++ ": " ++ (show obj))
+printDebug name obj = putStrLn ("\n\n" ++ name ++ ": " ++ (show $ seq () obj) ++ "\n\n")
 
 printDebugT :: (Show a) => String -> a -> EitherTExec ()
 printDebugT name obj = lift (printDebug name obj)
@@ -283,10 +293,19 @@ updateWindow window (UserClient uid conn windows sid) = UserClient uid conn wind
 getWindow :: ASSheetId -> ASUserClient -> Maybe ASWindow
 getWindow sheetid user = lookupLambda windowSheetId sheetid (windows user)
 
+-- | Computes set difference of window 2 minus window 1. Represented as a union of ASRange's. 
 getScrolledLocs :: ASWindow -> ASWindow -> [ASRange]
 getScrolledLocs (Window _ (-1,-1) (-1,-1)) (Window sheetid tl br) = [(Range sheetid (tl, br))]
-getScrolledLocs (Window _ (y,x) (y2,x2)) (Window sheetid tl@(y',x') br@(y2',x2')) = getUncoveredLocs sheetid overlapping (tl, br)
+getScrolledLocs w1@(Window _ (y,x) (y2,x2)) w2@(Window sheetid tl@(y',x') br@(y2',x2'))
+  | windowsIntersect w1 w2 = getUncoveredLocs sheetid overlapping (tl, br)
+  | otherwise = [(Range sheetid (tl, br))]
     where overlapping = ((max y y', max x x'), (min y2 y2', min x2 x2'))
+          windowsIntersect (Window _ (y,x) (y2,x2)) (Window sheetid (y',x') (y2',x2'))
+            | y2 > y' = False 
+            | y < y2' = False
+            | x2 < x' = False 
+            | x > x2' = False
+            | otherwise = True 
 
 getUncoveredLocs :: ASSheetId -> (Coord, Coord) -> (Coord, Coord) -> [ASRange]
 getUncoveredLocs sheet (tlo, bro) (tlw, brw) = [Range sheet corners | corners <- cs]
