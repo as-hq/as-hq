@@ -253,13 +253,11 @@ export default React.createClass({
         } else {
           API.copy(fromASRange, toASRange);
         }
-      }
-      else{
+      } else {
         this.setToast("Nothing in clipboard.", "Error");
       }
       this.refs.spreadsheet.repaint(); // render immediately
-    }
-    else { // Not from AS
+    } else { // Not from AS
       if (containsPlain) {
         let plain = e.clipboardData.getData("text/plain"),
             vals = ClipboardUtils.plainStringToVals(plain),
@@ -267,8 +265,7 @@ export default React.createClass({
             concatCells = Util.concatAll(cells);
         API.pasteSimple(concatCells);
         // The normal eval handling will make the paste show up
-      }
-      else {
+      } else {
         // TODO: Not handling html conversion for now
         // Not sure if getData is smart enough to do that for you
       }
@@ -342,8 +339,7 @@ export default React.createClass({
             expression:xpStr,
           },function() {editor.navigateFileEnd();}
       );
-    }
-    else {
+    } else {
       console.log("Grid key not visible");
       ShortcutUtils.tryShortcut(e, 'common');
       ShortcutUtils.tryShortcut(e, 'grid');
@@ -366,8 +362,6 @@ export default React.createClass({
   // Deal with selection change from grid
 
   _onSelectionChange(sel) {
-    console.log("\nEVAL PANE ON SEL CHANGE", sel.origin);
-
     let rng = sel.range,
         userIsTyping = ExpStore.getUserIsTyping(),
         cell = Store.getCell(sel.origin.col, sel.origin.row);
@@ -417,9 +411,8 @@ export default React.createClass({
       if (cell && cell.cellExpression) {
         Store.setActiveSelection(sel, cell.cellExpression.expression);
         this.showAnyErrors(cell.cellValue);
-      }
-      else {
-         Store.setActiveSelection(sel,"");
+      } else {
+         Store.setActiveSelection(sel, "");
          this.hideToast();
       }
     } else if (userIsTyping) {
@@ -601,6 +594,7 @@ export default React.createClass({
           onSetVarName={this._onSetVarName}
           onDeferredKey={this._onEditorDeferredKey}
           value={expression}
+          hideToast={this.hideToast}
           width="100%" height={this.getEditorHeight()} />
         <ASSpreadsheet
           ref='spreadsheet'
@@ -608,6 +602,7 @@ export default React.createClass({
           onNavKeyDown={this._onGridNavKeyDown}
           onTextBoxDeferredKey={this._onTextBoxDeferredKey}
           onSelectionChange={this._onSelectionChange}
+          hideToast={this.hideToast}
           width="100%"
           height={`calc(100% - ${this.getEditorHeight()})`}  />
         <Snackbar ref="snackbarError"

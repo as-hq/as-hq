@@ -292,7 +292,7 @@ export default React.createClass({
   // Handling events
 
   _onKeyDown(e){
-    console.log("\n\nGRID KEYDOWN");
+    // console.log("\n\nGRID KEYDOWN");
     e.persist(); // prevent react gc
     if (ShortcutUtils.gridShouldDeferKey(e)){ // not a nav key
       KeyUtils.killEvent(e);
@@ -306,6 +306,7 @@ export default React.createClass({
         if (ExpStore.getLastRef() !== null) {
           this.select(Store.getActiveSelection());
         }
+        this.props.hideToast();
         ExpActionCreator.handleGridChange(newStr);
       } else {
         // Try shortcuts
@@ -447,6 +448,7 @@ export default React.createClass({
                  ref="textbox"
                  scroll={self.state.scroll}
                  onDeferredKey={this.props.onTextBoxDeferredKey}
+                 hideToast={this.props.hideToast}
                  position={this.getTextboxPosition}/>
 
       </div>

@@ -113,6 +113,7 @@ export default React.createClass({
           handleEditorFocus={this.props.handleEditorFocus}
           mode={language.Editor}
           language={language}
+          hideToast={this.props.hideToast}
           theme={theme}
           width={width} height={height}
           onDeferredKey={this.props.onDeferredKey} />

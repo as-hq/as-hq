@@ -55,9 +55,11 @@ export default React.createClass({
     if (!this.state.isVisible){ //will be visible after update, put cursor in textbox
       this.showCursor();
     }
+    
     this.setState({isVisible: true});
     this.editor.setValue(xpStr);
     this.editor.clearSelection(); // otherwise ace highlights whole xp
+    this.props.hideToast();
   },
 
   hideTextBox(){
