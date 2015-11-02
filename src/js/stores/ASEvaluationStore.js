@@ -462,8 +462,9 @@ const ASEvaluationStore = assign({}, BaseStore, {
 
     let bound = this.getDataBoundary(startLoc, direction);
 
-    let newTl = tl;
-    let newBr = br;
+    // more like "newCorners", since the newTl and newBr might get out of order
+    let newTl = {row: tl.row, col: tl.col};
+    let newBr = {row: br.row, col: br.col};
 
     if (direction == "Up" || direction == "Down") {
       if (origin.row > tl.row)
@@ -477,7 +478,7 @@ const ASEvaluationStore = assign({}, BaseStore, {
         newBr.col = bound.col;
     }
 
-    return { range: {tl: newTl, br: newBr}, origin: origin };
+    return { range: Util.orientRange({tl: newTl, br: newBr}), origin: origin };
   },
 
   // TODO actually get the data boundaries by iterating, or something
