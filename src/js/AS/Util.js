@@ -334,15 +334,16 @@ export default {
     return {tl: tl, br: br};
   },
 
-  excelToIndex(xp) {
+  excelToIndex(dollarRef) {
+    let ref = dollarRef.replace(/\$/g, '').toUpperCase();
     var row=0, col=0, i=0, charIdx = 0;
-    while(i < xp.length && isNaN(xp.charAt(i))){
+    while(i < ref.length && isNaN(ref.charAt(i))){
       charIdx = i+1;
       i++;
     }
-    var rawCol = xp.substring(0, charIdx), rawRow = xp.substring(charIdx);
+    var rawCol = ref.substring(0, charIdx), rawRow = ref.substring(charIdx);
     for (var c=0; c<charIdx; c++) {
-      col = col + this.charToInt(xp.charAt(c)) * Math.pow(26, charIdx - c-1);
+      col = col + this.charToInt(ref.charAt(c)) * Math.pow(26, charIdx - c-1);
     }
 
     return {col: col, row: parseInt(rawRow)};
@@ -423,7 +424,7 @@ export default {
     if (str === "")
       return [];
     else{
-      let regIdx = /[A-Z]+[0-9]+/g, regRng = /[A-Z]+[0-9]+:[A-Z]+[0-9]+/g;
+      let regIdx = /\$?[A-Za-z]+\$?[0-9]+/g, regRng = /\$?[A-Za-z]+\$?[0-9]+:\$?[A-Za-z]+\$?[0-9]+/g;
       let rngs = str.match(regRng);
       let idxStr = str.replace(regRng, "");
       let idxs = idxStr.match(regIdx);
