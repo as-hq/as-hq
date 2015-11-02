@@ -354,8 +354,9 @@ export default React.createClass({
         this.refs.textbox.updateTextBox(xpStr);
         break;
       case Constants.ActionTypes.NORMAL_SEL_CHANGED:
-      case Constants.ActionTypes.BACKEND_UPDATED_AND_CELLS_CHANGED:
         this.refs.textbox.hideTextBox(xpStr);
+        break;
+      case Constants.ActionTypes.BACKEND_UPDATED_AND_CELLS_CHANGED:
         break;
       case Constants.ActionTypes.PARTIAL_REF_CHANGE_WITH_GRID:
       case Constants.ActionTypes.PARTIAL_REF_CHANGE_WITH_EDITOR:
