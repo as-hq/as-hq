@@ -59,7 +59,6 @@ export default React.createClass({
     this.setState({isVisible: true});
     this.editor.setValue(xpStr);
     this.editor.clearSelection(); // otherwise ace highlights whole xp
-    this.props.hideToast();
   },
 
   hideTextBox(){
@@ -131,6 +130,7 @@ export default React.createClass({
   },
 
   _onFocus(e) {
+    this.props.hideToast();
     console.log("FOCUS ON TEXTBOX");
     Store.setFocus('textbox');
     ExpStore.setLastCursorPosition(Constants.CursorPosition.TEXTBOX);
