@@ -103,7 +103,7 @@ export default {
       ExpActionCreator.handleEscape();
       self.refs.spreadsheet.select(Store.getActiveSelection());
       Store.setClipboard(null, false);
-      self.setState({focus: "grid"});
+      self.setState({focus: "grid", showFindBar: false, userIsTyping: false});
       self.refs.spreadsheet.repaint(); // render immediately
     });
 
@@ -173,6 +173,7 @@ export default {
       self.refs.spreadsheet.select(newSelection);
     });
     SU.add("grid", "grid_fill_down", "Ctrl+D", (wildcard) => {
+      let {tl, br} = Store.getActiveSelection().range;
       let copyFrom = TC.simpleToASRange({ tl: tl, br: {row: tl.row, col: br.col} }),
           copyTo = TC.simpleToASRange({ tl: {row: tl.row+1, col: tl.col},
                                                br: {row: br.row, col: tl.col} });
