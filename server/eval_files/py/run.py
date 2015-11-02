@@ -45,7 +45,7 @@ result = "error"
 try:
 	print replFile
 	execfile(replFile)
-	result = 15151515115
+	result = arr([arr(["\"hi\"","you are"]),arr(["\"pardner\"","fine"])])
 	figures=[manager.canvas.figure for manager in matplotlib._pylab_helpers.Gcf.get_all_fig_managers()]
 	print figures
 	if len(figures) > 0:

@@ -30,7 +30,7 @@ class ASIterable(object):
                 arr = arr._getList()
             else: 
                 arr = arr.toList()
-        if type(arr).__name__ == 'str':
+        if type(arr).__name__ == 'str' or type(arr).__name__ == 'string_':
             return arr
         try: 
             # Unwrap all levels deeper too if you're not a string
