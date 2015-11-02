@@ -143,14 +143,16 @@ export default React.createClass({
   // Render
 
   render() {
-    let baseStyle = {
+      let baseStyle = {
                      display:'block',
                      position:'absolute',
+                     // height of each line in the editor, add 5 to give some leeway at top and bottom
+                     lineHeight: this.props.position() ? this.props.position().extent.y + 5 + "px" : "20px",
                      top: this.props.position() ? this.props.position().origin.y : null,
                      left: this.props.position() ? this.props.position().origin.x : null,
                      zIndex: 5,
                      width: this.getWidth(),
-                     height: 60, //this.props.position() ? this.props.position().extent.y : null,
+                     // height is a function of lineHeight and maxLines, see ace virtual renderer
                      border: "solid 2px black",
                      visibility: this.state.isVisible ? 'visible' : 'hidden'
                      };

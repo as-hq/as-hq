@@ -102,6 +102,8 @@ export default {
     return e.which === 13 || e.which === 9; // tab or enter
   },
 
+ 
+
   isFunctionKey(e) {
     return e.which >= 112 && e.which <= 123;
   },
