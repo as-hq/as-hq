@@ -417,7 +417,7 @@ const ASEvaluationStore = assign({}, BaseStore, {
       case "Left": dc = -1; break;
       case "Down": dr = 1; break;
       case "Up": dr = -1; break;
-      default: throw "Invalid direction passed in tp getDataBoundary()"; break;
+      default: throw "Invalid direction passed in to getDataBoundary()"; break;
     }
 
     let c = start.col, r = start.row;
@@ -440,10 +440,10 @@ const ASEvaluationStore = assign({}, BaseStore, {
 
   //This function returns what the new selection would be if you pressed ctrl+shift+right/up/left/down.
   //If shift is not held down,
-  getDataBoundSelection(direction) {
-    let rng = _data.activeSelection.range,
+  getDataBoundSelection(selection, direction) {
+    let rng = selection.range,
         {tl, br} = rng,
-        origin = _data.activeSelection.origin;
+        origin = selection.origin;
 
     let startLoc = { row: origin.row, col: origin.col };
     if (direction == "Up" || direction == "Down") {

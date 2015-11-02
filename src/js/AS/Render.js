@@ -227,8 +227,12 @@ export default {
         scrollY = grid.getVScrollValue();
 
     _renderParams.deps.forEach((dep) => {
-      let tl = this._getBoundsOfCell(dep.tl.col + fixedColCount - scrollX - 1, dep.tl.row + fixedRowCount - scrollY - 1),
-          br = this._getBoundsOfCell(dep.br.col + fixedColCount - scrollX - 1, dep.br.row + fixedRowCount - scrollY - 1),
+      let tlX = dep.tl.col + fixedColCount - 1,
+          tlY = dep.tl.row + fixedRowCount - 1,
+          brX = dep.br.col + fixedColCount - 1,
+          brY = dep.br.row + fixedRowCount - 1,
+          tl = this._getBoundsOfCell(tlX - scrollX, tlY - scrollY),
+          br = this._getBoundsOfCell(brX - scrollX, brY - scrollY),
           oX = tl.origin.x,
           oY = tl.origin.y,
           eX = (br.origin.x - oX) + br.extent.x,
