@@ -492,7 +492,6 @@ export default React.createClass({
       this.refs.spreadsheet.setFocus();
     } else if (elem === 'textbox') {
       this._getRawTextbox().focus();
-      //this.refs.spreadsheet.refs.textbox.updateTextBox(ExpStore.getExpression());
     }
   },
 
