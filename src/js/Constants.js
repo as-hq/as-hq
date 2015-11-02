@@ -10,7 +10,7 @@ export default {
 
   isDebug: false,
 
-  isTesting: true,
+  isTesting: false,
 
   // event name triggered from store, listened to by views
   CHANGE_EVENT: 'change',

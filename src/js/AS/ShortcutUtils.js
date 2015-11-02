@@ -58,8 +58,10 @@ export default {
   },
 
   gridShouldDeferKey(e){
-    return ((e.ctrlKey || e.which === 13) || !KeyUtils.isNavKey(e)) &&
-            !KeyUtils.isCopyPasteType(e);
+    return (e.ctrlKey ||
+            KeyUtils.isEvalKey(e) || // tab
+            !KeyUtils.isNavKey(e)) &&
+           !KeyUtils.isCopyPasteType(e);
   },
 
   editorShouldDeferKey(e) {
@@ -70,7 +72,8 @@ export default {
   },
 
   textboxShouldDeferKey(e) {
-    return (e.which === 13) || this.editorShouldDeferKey(e);
+    return KeyUtils.isEvalKey(e) ||
+           this.editorShouldDeferKey(e);
   },
 
   replShouldDeferKey(e) {

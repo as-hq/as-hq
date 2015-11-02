@@ -12,7 +12,7 @@ import ExpActionCreator from '../actions/ASExpActionCreators';
 export default {
   addShortcuts(evalPane) {
     // Should really technically be a part of ASEvaluationPane.jsx. Separated for convenience
-    // though, hence self = evalPane. 
+    // though, hence self = evalPane.
     let self = evalPane;
 
     // common shortcuts -------------------------------------------------------------------------------
@@ -31,7 +31,21 @@ export default {
         expression: self._getRawEditor().getValue(),
         language: self.state.currentLanguage
       };
-      self.handleEvalRequest(xpObj, 0, 1);
+      self.handleEvalRequest(xpObj, null, null);
+    });
+    SU.add("common", "cell_eval_up", "Shift+Enter", (wildcard) => {
+      let xpObj = {
+        expression: self._getRawEditor().getValue(),
+        language: self.state.currentLanguage
+      };
+      self.handleEvalRequest(xpObj, 0, -1);
+    });
+    SU.add("common", "cell_eval_left", "Shift+Tab", (wildcard) => {
+      let xpObj = {
+        expression: self._getRawEditor().getValue(),
+        language: self.state.currentLanguage
+      };
+      self.handleEvalRequest(xpObj, -1, 0);
     });
     SU.add("common", "cell_eval_arrayformula", "Ctrl+Shift+Enter", (wildcard) => {
       var editorValue = self._getRawEditor().getValue();
@@ -50,7 +64,7 @@ export default {
     SU.add("common", "set_language", "Ctrl+1/2/3/4/5/6/7/8/9", (wildcard) => {
       switch(wildcard) {
           case "1":
-            self.selectLanguage(Constants.Languages.Excel); 
+            self.selectLanguage(Constants.Languages.Excel);
             break;
           case "2":
             self.selectLanguage(Constants.Languages.Python);
@@ -177,7 +191,7 @@ export default {
         self._getRawTextbox().selectAll();
       } else {
         let {origin} = Store.getActiveSelection();
-        let range = self.refs.spreadsheet.getViewingWindow().range; 
+        let range = self.refs.spreadsheet.getViewingWindow().range;
         self.refs.spreadsheet.select({origin: origin, range: range}, false);
       }
     });

@@ -116,7 +116,7 @@ export default React.createClass({
   /***************************************************************************************************************************/
   // Some basic on change handlers
 
-  selectLanguage(lang) { 
+  selectLanguage(lang) {
     this.setState({ defaultLanguage: lang, currentLanguage: lang });
     this.setFocus(Store.getFocus());
   },
@@ -320,15 +320,15 @@ export default React.createClass({
             language: this.state.currentLanguage
           };
       // Hypergrid automatically changes the selection when you arrive here through
-      // left, right, down, or up. 
+      // left, right, down, or up.
       this.handleEvalRequest(xpObj, 0, 0);
     }
   },
 
   _onGridDeferredKey(e) {
-    console.log('Grid deferred key', e);
-   if (KeyUtils.producesTextChange(e)) {
-        let editor = this._getRawEditor(),
+    console.log('\n\n\nGRID DEFERRED KEY\n\n\n', e);
+    if (KeyUtils.producesTextChange(e)) {
+      let editor = this._getRawEditor(),
           str = KeyUtils.modifyStringForKey(editor.getValue(), e),
           newStr = KeyUtils.getString(e),
           xpStr = this.state.userIsTyping ? str : newStr;
@@ -391,7 +391,7 @@ export default React.createClass({
       Store.setActiveSelection(sel, expression);
       ExpActionCreator.handleSelChange(expression);
       this.showAnyErrors(val);
-      this.setState({currentLanguage: Constants.Languages[language]}); 
+      this.setState({currentLanguage: Constants.Languages[language]});
     } else if (changeSelToNewCell) {
       console.log("Selected empty cell to move to");
       Store.setActiveSelection(sel, "");
