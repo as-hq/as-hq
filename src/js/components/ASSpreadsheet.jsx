@@ -240,13 +240,17 @@ export default React.createClass({
     // unsafe if it references values <= 0.
     let safeSelection = Util.getSafeSelection(unsafeSelection);
     let {tl, br} = safeSelection.range;
+    let {col, row} = safeSelection.origin; 
 
-    // make selection
+  // make selection
     let hg = this._getHypergrid(),
-        c = tl.col - 1,
-        r = tl.row - 1,
-        dC = br.col - tl.col,
-        dR = br.row - tl.row;
+        c = col - 1,
+        r = row - 1,
+        flipC = (col == br.col) ? -1 : 1, 
+        flipR = (row == br.row) ? -1 : 1, 
+        dC = (br.col - tl.col) * flipC,
+        dR = (br.row - tl.row) * flipR;
+
     hg.takeFocus();
     hg.clearSelections();
     hg.select(c, r, dC, dR);
