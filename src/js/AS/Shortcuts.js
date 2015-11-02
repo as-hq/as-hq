@@ -138,21 +138,48 @@ export default {
 
 
     // editor shortcuts -------------------------------------------------------------------------------
-    SU.add("editor", "toggle_reference", "F4", (wildcard) => {
-      let editor = self._getRawEditor(),
-          sesh = editor.getSession(),
-          cursor = editor.getCursorPosition(),
-          range = sesh.getWordRange(cursor.row, cursor.column),
-          sel = editor.selection;
-      sel.setRange(range);
-      let replace = Util.toggleReferenceType(editor.getSelectedText());
-      sesh.replace(range, replace);
-      // Also update the textbox
-      let textbox = self._getRawTextbox(),
-          textboxPos = textbox.getCursorPosition();
-      textbox.setValue(editor.getValue());
-      ExpStore.setExpression(editor.getValue()); // not using an action creator right now, seems like overkill
-      textbox.clearSelection(); // cursor in TB will now be at the end, but seems OK for now
+    SU.add("common", "toggle_reference", "F3", (wildcard) => {
+      let focus = Store.getFocus(),
+          xp = ExpStore.getExpression();
+
+      if (focus === 'grid') {
+        let editor = self._getRawEditor(),
+            sesh = editor.getSession(),
+            cursor = editor.getCursorPosition(),
+            range = sesh.getWordRange(cursor.row, cursor.column),
+            sel = editor.selection;
+        sel.setRange(range);
+        let oldRef = editor.getSelectedText(),
+            newRef = Util.toggleReferenceType(oldRef);
+        if (newRef !== null) {
+          let newXp = xp.substring(0, xp.length - oldRef.length) + newRef;
+          ExpActionCreator.handleGridChange(newXp);
+        }
+      } else if (focus === 'editor') {
+        let editor = self._getRawEditor(),
+            sesh = editor.getSession(),
+            cursor = editor.getCursorPosition(),
+            range = sesh.getWordRange(cursor.row, cursor.column),
+            sel = editor.selection;
+        sel.setRange(range);
+        let newRef = Util.toggleReferenceType(editor.getSelectedText());
+        if (newRef !== null) {
+          sesh.replace(range, newRef);
+          ExpActionCreator.handleEditorChange(editor.getValue());
+        }
+      } else if (focus === 'textbox') {
+        let editor = self._getRawTextbox(),
+            sesh = editor.getSession(),
+            cursor = editor.getCursorPosition(),
+            range = sesh.getWordRange(cursor.row, cursor.column),
+            sel = editor.selection;
+        sel.setRange(range);
+        let newRef = Util.toggleReferenceType(editor.getSelectedText());
+        if (newRef !== null) {
+          sesh.replace(range, newRef);
+          ExpActionCreator.handleTextBoxChange(editor.getValue());
+        }
+      }
     });
 
 

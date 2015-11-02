@@ -302,22 +302,29 @@ export default {
 
   toggleReferenceType(xp) {
     // TODO generalize to arbitrary range lengths
-    let dollarPresence = this.getIndicesOf("$", xp, true);
-    let len = dollarPresence.length;
-    if (len == 0){
-      return "$" + xp.substring(0,1) + "$" + xp.substring(1);
-    }
-    else if (len == 1){
-      if (dollarPresence[0] == 0){
-        return xp.replace(/\$/g, "");
-      } else{
-        return "$" + xp.replace(/\$/g,"");
-      }
-    }
-    else {
-      return xp.substring(1,2) + "$" + xp.replace(/\$/g, "").substring(1);
-    }
-    return "ERROR";
+    let deps = this.parseRefs(xp);
+    if (deps.length === 0)
+      return null
+    else if (deps.length === 1)
+      return this.toggleReferenceIndex(deps[0]);
+    else throw "Single word contains multiple references.";
+  },
+
+  toggleReferenceIndex(ref) {
+    let dollarIndices = this.getIndicesOf('$', ref),
+        cleanRef = ref.replace(/\$/g, ''),
+        row = cleanRef.split(/[A-Za-z]+/).pop(),
+        col = cleanRef.substring(0, cleanRef.length - row.length);
+    if (dollarIndices.length === 0) {
+      return '$' + col + '$' + row;
+    } else if (dollarIndices.length === 1 ) {
+      if (dollarIndices[0] === 0)
+        return col + row;
+      else
+        return '$' + col + row;
+    } else if (dollarIndices.length === 2) {
+      return col + '$' + row;
+    } else return null;
   },
 
   intToChar(i){
@@ -419,8 +426,7 @@ export default {
     else return "";
   },
 
-  parseDependencies(str) {
-    // console.log("parsing dependencies of: " + str);
+  parseRefs(str) {
     if (str === "")
       return [];
     else{
@@ -437,11 +443,16 @@ export default {
         matches = idxs;
       else
         matches = [];
-      // return matches.map(this.excelToLoc);
-      let parsed = matches.map((m) => this.excelToRange(m), this);
-      console.log("parsed deps: "+JSON.stringify(matches));
-      return parsed;
+      return matches;
     }
+  },
+
+  parseDependencies(str) {
+    // console.log("parsing dependencies of: " + str);
+    let matches = this.parseRefs(str),
+        parsed = matches.map((m) => this.excelToRange(m), this);
+    console.log("parsed deps: "+JSON.stringify(matches));
+    return parsed;
   },
 
   _isContainedInLoc(col, row, loc) {
