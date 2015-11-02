@@ -78,14 +78,14 @@ export default {
   }),
 
   Languages: {
-    Python: {
-      Display: 'Python',
-      Server: 'Python',
-      Editor: 'python'
-    },
     Excel: {
       Display: 'Excel',
       Server: 'Excel',
+      Editor: 'python'
+    },
+    Python: {
+      Display: 'Python',
+      Server: 'Python',
       Editor: 'python'
     },
     R: {
