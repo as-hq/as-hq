@@ -34,12 +34,11 @@ entityToASValue _ (EntityVal (EValueNum (EValueI i))) = ValueI i
 entityToASValue _ (EntityVal (EValueB b)) = ValueB b
 entityToASValue _ (EntityVal (EValueS s)) = ValueS s
 entityToASValue _ (EntityVal (EValueE s)) = ValueError s "" "" (-1)
-entityToASValue _ (EntityMatrix m) = case list2D of
-  [row] -> ValueL row
+entityToASValue _ (EntityMatrix m) = case (transpose list2D) of
+  [transposedCol] -> ValueL transposedCol -- matches in this case iff original list2D is a vertical list
   otherwise -> ValueL $ map ValueL list2D
   where
-    list2D' = map (map toASValue) (U.matrixTo2DList m)
-    list2D = transpose list2D'
+    list2D = map (map toASValue) (U.matrixTo2DList m)
 
 -- | In the Excel Error monad; parse the formula and then evaluate either as an array formula or not
 evalExcel :: String -> Context -> EResult
