@@ -303,9 +303,15 @@ export default React.createClass({
         let curStr = ExpStore.getExpression(),
             newStr = KeyUtils.modifyStringForKey(curStr, e);
 
+        // If user isn't typing yet, the new string should be replaced
+        if (!ExpStore.getUserIsTyping()){
+          newStr = KeyUtils.keyToString(e);
+        }
+
         // KeyUtils backspace only takes away a character, doesn't account for editor selection
-        if (e.which === 8) { //backspace type 
+        if (e.which === 8 && ExpStore.getUserIsTyping()) { //backspace type 
           let textbox = this.refs.textbox.editor;
+          console.log("Current tb value: " + textbox.getValue());
           textbox.commands.exec('backspace',textbox);
           newStr = textbox.getValue();
         }
