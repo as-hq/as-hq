@@ -49,6 +49,11 @@ var modifiers = [16, 17, 18, 19]; //shift, ctrl, alt, pause, break
 
 var specials = [27, 46, 36, 35, 33, 34, 9, 20]; //esc, delete, home, end, pgup, pgdown, tab, capslock
 
+var miscKeys = [8, 9, 13, 32, //backspace, tab, enter, space
+                106, 107, 109, 110, 111, //add, subtract, decimal point, divide,
+                186, 187, 188, 189, 190, 191, 192, //misc punctuation
+                219, 220, 221, 222]; // moar punctuation
+
 var keyMap = {
   "Enter": 13,
   "Down": 40,
@@ -93,9 +98,8 @@ export default {
     return this.isNavKey(e) && !this.containsModifiers(e);
   },
 
-  getKey(e) {
-    // TODO
-    return e.key;
+  isEvalKey(e) {
+    return e.which === 13 || e.which === 9; // tab or enter
   },
 
   isFunctionKey(e) {
@@ -128,26 +132,23 @@ export default {
   // determines whether editor should defer key in favor of shortcuts
   // NOTE: any Shift+??? shortcuts need to be manually cased here (shifts by default produce a visible character)
   producesTextChange(e) {
-    // If you're holding down ctrl, alt, or a meta key, you're not going to be producing visible text. 
+    // If you're holding down ctrl, alt, or a meta key, you're not going to be producing visible text.
     let noModifications = !(e.ctrlKey || e.altKey || e.metaKey);
 
     // If anything in autoFail is true, fail. If anything in autoSucceed is true, succeed. autoSucceed
-    // takes precedence. 
+    // takes precedence.
     let notShiftSpace   = !(e.shiftKey && e.which === 32); // shift+space doesn't produce text
     let isCtrlBackspace = (e.ctrlKey && e.which == 8); // ctrl + backspace
 
-    // based off http://www.cambiaresearch.com/articles/15/javascript-char-codes-key-codes and 
+    // based off http://www.cambiaresearch.com/articles/15/javascript-char-codes-key-codes and
     // https://css-tricks.com/snippets/javascript/javascript-keycodes/
     let isAlphaNum    = (e.which >= 48 && e.which <= 90);
-    let isMiscVisible = Util.arrContains([8, 9, 13, 32, //backspace, tab, enter, space
-                                          106, 107, 109, 110, 111, //add, subtract, decimal point, divide,
-                                          186, 187, 188, 189, 190, 191, 192, //misc punctuation
-                                          219, 220, 221, 222], e.which);     //more misc punctuation
+    let isMiscVisible = Util.arrContains(miscKeys, e.which);     //more misc punctuation
 
 
-    return (noModifications && 
-            notShiftSpace && 
-            (isAlphaNum || isMiscVisible)) || isCtrlBackspace; 
+    return (noModifications &&
+            notShiftSpace &&
+            (isAlphaNum || isMiscVisible)) || isCtrlBackspace;
   },
 
   //is it a copy event or a paste event or a cut event?
