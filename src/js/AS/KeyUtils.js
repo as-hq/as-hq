@@ -6,8 +6,23 @@ import _ from 'underscore';
 // Key constants
 
 var _to_ascii = {
+    //numpad stuff 
+    '96': '48', //0
+    '97': '49', 
+    '98': '50', 
+    '99': '51', 
+    '100': '52', 
+    '101': '53', 
+    '102': '54', 
+    '103': '55', 
+    '104': '56', 
+    '105': '57', //9
+    '106': '42', //*
+    '107': '43', //+
+    '109': '45', //-
+    '110': '46', //.
+    '111': '47', // /
     '188': '44',
-    '109': '45',
     '190': '46',
     '191': '47',
     '192': '96',
@@ -49,7 +64,9 @@ var modifiers = [16, 17, 18, 19]; //shift, ctrl, alt, pause, break
 
 var specials = [27, 46, 36, 35, 33, 34, 9, 20]; //esc, delete, home, end, pgup, pgdown, tab, capslock
 
+// based on https://css-tricks.com/snippets/javascript/javascript-keycodes/
 var miscKeys = [8, 9, 13, 32, //backspace, tab, enter, space
+                96, 97, 98, 99, 100, 101, 102, 103, 104, 105, //numpad
                 106, 107, 109, 110, 111, //add, subtract, decimal point, divide,
                 186, 187, 188, 189, 190, 191, 192, //misc punctuation
                 219, 220, 221, 222]; // moar punctuation
@@ -147,7 +164,6 @@ export default {
     let isAlphaNum    = (e.which >= 48 && e.which <= 90);
     let isMiscVisible = Util.arrContains(miscKeys, e.which);     //more misc punctuation
 
-
     return (noModifications &&
             notShiftSpace &&
             (isAlphaNum || isMiscVisible)) || isCtrlBackspace;
@@ -159,8 +175,8 @@ export default {
   },
 
   modifyStringForKey(str, e) {
-    if (e.which === 8){ // backspace
-      if (e.ctrlKey){
+    if (e.which === 8) { // backspace
+      if (e.ctrlKey) {
         let edited = Util.removeLastWord(str);
         return edited;
       }

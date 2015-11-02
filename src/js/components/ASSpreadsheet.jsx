@@ -302,7 +302,6 @@ export default React.createClass({
         console.log("Grid key down going to AC");
         let curStr = ExpStore.getExpression(),
             newStr = KeyUtils.modifyStringForKey(curStr, e);
-
         // If user isn't typing yet, the new string should be replaced
         if (!ExpStore.getUserIsTyping()){
           newStr = KeyUtils.keyToString(e);
