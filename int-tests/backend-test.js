@@ -574,6 +574,16 @@ describe('backend', () => {
             ]);
           });
         });
+
+        it('should parse dollars adjacent to operators correctly', (done) => {
+          _do([
+            excel('A1', '2'),
+            excel('A2', '1'),
+            excel('A3', '=A1+$A$2'),
+            shouldBe('A3', valueI(3)),
+            exec(done)
+          ]);
+        });
       });
 
       describe('ocaml', () => {
