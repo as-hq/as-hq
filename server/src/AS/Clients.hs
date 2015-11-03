@@ -46,7 +46,10 @@ instance Client ASUserClient where
     | uc `elem` ucs = State (L.delete uc ucs) dcs dbc port
     | otherwise = s
   handleClientMessage user state message = do 
-    printWithTime ("\n\nMessage: " ++ (show $ message))
+    printWithTime ("\n\nMessage: " ++ (show message))
+    -- second arg is supposed to be sheet id; temporary hack is to always set userId = sheetId
+    -- on frontend. 
+    writeToLog (show message) (userId user)
     redisConn <- dbConn <$> readMVar state
     recordMessage redisConn message
     case (clientAction message) of

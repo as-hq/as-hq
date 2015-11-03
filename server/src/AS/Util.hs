@@ -224,15 +224,27 @@ getTime = do
 serverLogPath :: IO String
 serverLogPath = do
   mainDir <- getCurrentDirectory
-  return $ mainDir </> "server_log"
+  return $ mainDir </> "logs/server_log"
 
 printWithTime :: String -> IO ()
 printWithTime str = do
   time <- getTime
   let disp = "[" ++ time ++ "] " ++ str
   putStrLn (truncated disp)
+
+appendFile' :: String -> String -> IO ()
+appendFile' fname msg = catch (appendFile fname msg) (\e -> putStrLn $ ("Error writing to log: " ++ show (e :: SomeException)))  
+
+writeToLog :: String -> ASSheetId -> IO ()
+writeToLog str sid = do 
+  -- first, write to master to log
+  let sid' = T.unpack sid
+      loggedStr = '\n':str ++ "\n# " ++ sid'
   serverLog <- serverLogPath
-  catch (appendFile serverLog ('\n':disp)) (\e -> putStrLn $ ("Error writing to log: " ++ show (e :: SomeException)))
+  appendFile' serverLog loggedStr
+  -- then write to individual log for the client
+  let serverLog' = serverLog ++ sid'
+  appendFile' serverLog' ('\n':str)
 
 printWithTimeT :: String -> EitherTExec ()
 printWithTimeT = lift . printWithTime
