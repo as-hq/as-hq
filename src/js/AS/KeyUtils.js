@@ -84,6 +84,7 @@ var keyMap = {
   "Del": 46,
   "Space": 32,
   "Tab": 9,
+  "Backspace": 8,
   "[": 219,
   "]": 221,
   "'": 222,
