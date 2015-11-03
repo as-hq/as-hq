@@ -109,6 +109,7 @@ executable alphasheets-exe
                      , data-default
                      , either
                      , inline-r
+                     , parsec
   PkgConfig-Depends:   python
   extra-libraries:     hiredis
   extra-lib-dirs:     /usr/local/lib

@@ -112,7 +112,7 @@ excelLang = LanguageDef
    , identStart      = letter <|> oneOf "_#" 
    , identLetter     = alphaNum <|> oneOf "_':!."
    , opStart         = opLetter emptyDef
-   , opLetter        = oneOf ":!#$%&*+./<=>?@\\^|-~"
+   , opLetter        = oneOf ":!#%&*+./<=>?@\\^|-~"
    , reservedOpNames = []
    , reservedNames   = []
    , caseSensitive   = True
@@ -139,12 +139,12 @@ stringLiteral = P.stringLiteral lexer
 
 -- | Terms (leafs of expressions).
 leaf' :: Parser Formula
-leaf'    =  parens expr
-        <|> arrayConst
+leaf'    =  try (parens expr)
+        <|> try arrayConst
         <|> try excelValue
         <|> try referenceIntersection
         <|> try cellReference
-        <|> functionApplication
+        <|> try functionApplication
         <|> blankValue
         <?> "simple expression"
 

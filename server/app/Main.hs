@@ -38,6 +38,8 @@ import AS.DB.Util as DBU
 
 import AS.Kernels.Python.Eval as KP
 import AS.Kernels.LanguageUtils as KL
+import AS.Kernels.Excel.Compiler as KE
+import Text.ParserCombinators.Parsec (parse)
 
 -- EitherT
 import Control.Monad.Trans.Class
@@ -93,9 +95,6 @@ initApp = do
 -- | Initializes database with sheets, etc. for debugging mode. Only called if isDebug is true.
 initDebug :: R.Connection -> IO ()
 initDebug conn = do
-  result <-  (runEitherT $ KP.evaluate "[1, 2 , None]")
-  putStrLn $ show result
-  putStrLn "\n\n\n\nFUCKUFKC"
   return ()
 
 application :: MVar ServerState -> WS.ServerApp
