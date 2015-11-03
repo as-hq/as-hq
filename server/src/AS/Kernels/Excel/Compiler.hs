@@ -261,8 +261,9 @@ str = quotedString
 float' :: Parser Double
 float' = float <|> (spaces >> char '.' >> integerToDecimal <$> integer)
 
+-- dirty, dirty hack to turn integer "123" into float "0.123"
 integerToDecimal :: Integer -> Double
-integerToDecimal i = 0.1 * (fromInteger i)
+integerToDecimal i = read ("0." ++ (show i)) :: Double
 
 excelValue :: Parser Formula
 excelValue = fmap (Basic . Var) $
