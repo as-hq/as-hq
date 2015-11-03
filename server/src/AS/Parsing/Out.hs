@@ -67,6 +67,7 @@ bool lang b = case lang of
 
 showValue :: ASLanguage -> ASValue -> String
 showValue lang v = case v of
+  NoValue            -> showNull lang
   ValueS s           -> show s
   ValueI i           -> show i
   ValueD d           -> show d
@@ -77,11 +78,17 @@ showValue lang v = case v of
   RDataFrame vals    -> showRDataFrame lang vals
   _ -> error ("In showValue, failed to pattern match: " ++ (show v))
 
+showNull :: ASLanguage -> String
+showNull lang = case lang of 
+  Python -> "None"
+  SQL -> "None"
+  R -> "NULL"
+
 showRList :: ASLanguage -> [(RListKey, ASValue)] -> String
 showRList lang l = case lang of
   R -> "list(" ++ (concat $ L.intersperse "," $ map showRPair l) ++ ")"
 
-showRPair :: (String, ASValue) -> String
+showRPair :: (RListKey, ASValue) -> String
 showRPair (key, val) = case key of
   "" -> showValue R val
   _ -> key ++ "=" ++ (showValue R val)

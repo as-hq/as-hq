@@ -92,7 +92,11 @@ initApp = do
 
 -- | Initializes database with sheets, etc. for debugging mode. Only called if isDebug is true.
 initDebug :: R.Connection -> IO ()
-initDebug conn = return ()
+initDebug conn = do
+  result <-  (runEitherT $ KP.evaluate "[1, 2 , None]")
+  putStrLn $ show result
+  putStrLn "\n\n\n\nFUCKUFKC"
+  return ()
 
 application :: MVar ServerState -> WS.ServerApp
 application state pending = do

@@ -77,6 +77,8 @@ possiblyShortCircuit sheetid valuesMap xp =
 -- | Nothing if it's OK to pass in NoValue, appropriate ValueError if not.
 handleNoValueInLang :: ASLanguage -> ASIndex -> Maybe ASValue
 handleNoValueInLang Excel _   = Nothing
+handleNoValueInLang Python _  = Nothing
+handleNoValueInLang R _       = Nothing
 handleNoValueInLang _ cellRef = Just $ ValueError ("Reference cell " ++ (indexToExcel cellRef) ++ " is empty.") "RefError" "" (-1)
 -- TDODO: replace (show cellRef) with the actual ref (e.g. C3) corresponding to it
 
