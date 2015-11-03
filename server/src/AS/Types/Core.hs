@@ -29,9 +29,14 @@ import Control.Monad.Trans.Either
 
 type ASSheetId = Text
 data ASSheet = Sheet {sheetId :: ASSheetId, sheetName :: String, sheetPermissions :: ASPermissions} deriving (Show, Read, Eq, Generic)
+
+-- should probably be a list of ASSheet's rather than ASSheetId's. 
 data ASWorkbook = Workbook {workbookName :: String, workbookSheets :: [ASSheetId]} deriving (Show, Read, Eq, Generic)
 
+-- this type needs to be refactored away. It's used in a frontend API in basically exactly the
+-- same way that ASWorkbook is supposed to be used. (Alex 11/3) 
 data WorkbookSheet = WorkbookSheet {wsName :: String, wsSheets :: [ASSheet]} deriving (Show, Read, Eq, Generic)
+
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Core cell types
 
@@ -224,6 +229,7 @@ data ASCommit = ASCommit {commitUserId :: ASUserId,
                           time :: ASTime}
                           deriving (Show,Read,Eq,Generic)
 
+type CommitSource = (ASSheetId, ASUserId)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Eval Types
@@ -285,7 +291,7 @@ data ASRecipients = Original | All | Custom [ASUserClient]
 
 data ASWindow = Window {windowSheetId :: ASSheetId, topLeft :: Coord, bottomRight :: Coord} deriving (Show,Read,Eq,Generic)
 type ASUserId = Text
-data ASUserClient = UserClient {userId :: ASUserId, userConn :: WS.Connection, windows :: [ASWindow], sessionId :: ClientId}
+data ASUserClient = UserClient {userId :: ASUserId, userConn :: WS.Connection, userWindow :: ASWindow, sessionId :: ClientId}
 
 instance Eq ASUserClient where
   c1 == c2 = (sessionId c1) == (sessionId c2)

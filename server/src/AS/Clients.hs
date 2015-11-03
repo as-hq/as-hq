@@ -120,7 +120,7 @@ broadcastFiltered msg@(ServerMessage a r (PayloadCL cells)) users = mapM_ (sendC
   where
     sendCells :: [ASCell] -> ASUserClient -> IO ()
     sendCells cells user = do
-      let cells' = intersectViewingWindows cells (windows user)
+      let cells' = intersectViewingWindow cells (userWindow user)
       case cells' of
         [] -> return ()
         _ -> U.sendMessage (ServerMessage a r (PayloadCL cells')) (userConn user)
@@ -129,7 +129,7 @@ broadcastFiltered msg@(ServerMessage a r (PayloadLL locs)) users = mapM_ (sendLo
   where
     sendLocs :: [ASIndex] -> ASUserClient -> IO ()
     sendLocs locs user = do
-      let locs' = intersectViewingWindowsLocs locs (windows user)
+      let locs' = intersectViewingWindowLocs locs (userWindow user)
       case locs' of
         [] -> return ()
         _ -> U.sendMessage (ServerMessage a r (PayloadLL locs')) (userConn user)
@@ -157,25 +157,25 @@ handleNew state (PayloadWB wb) = do
 
 handleOpen :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
 handleOpen user state (PayloadS (Sheet sheetid _ _)) = US.modifyUser makeNewWindow user state
-  where makeNewWindow (UserClient uid conn windows sid) = UserClient uid conn ((Window sheetid (-1,-1) (-1,-1)):windows) sid
+  where makeNewWindow (UserClient uid conn window sid) = UserClient uid conn (Window sheetid (-1,-1) (-1,-1)) sid
 
-handleClose :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
-handleClose user state (PayloadS (Sheet sheetid _ _)) = US.modifyUser closeWindow user state
-  where closeWindow (UserClient uid conn windows sid) = UserClient uid conn (filter (((/=) sheetid) . windowSheetId) windows) sid
+-- Had relevance back when UserClients could have multiple windows, which never made sense anyway. 
+-- (Alex 11/3)
+-- handleClose :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
+-- handleClose user state (PayloadS (Sheet sheetid _ _)) = US.modifyUser closeWindow user state
+--   where closeWindow (UserClient uid conn window sid) = UserClient uid conn (filter (((/=) sheetid) . windowSheetId) windows) sid
 
 handleUpdateWindow :: ClientId -> MVar ServerState -> ASPayload -> IO ()
-handleUpdateWindow sid state (PayloadW window) = do
+handleUpdateWindow sid state (PayloadW w) = do
   curState <- readMVar state
   let (Just user') = US.getUserByClientId sid curState -- user' is to get latest user on server; if this fails then somehow your connection isn't stored in the state
-  let maybeWindow = U.getWindow (windowSheetId window) user'
-  case maybeWindow of
-    Nothing -> putStrLn "ERROR: could not update nothing window" >> return ()
-    (Just oldWindow) -> (flip catch) (badCellsHandler $ dbConn curState) (do
-      let locs = U.getScrolledLocs oldWindow window
-      printObj "Sending locs" locs
-      mcells <- DB.getCells $ concat $ map rangeToIndices locs
-      sendToOriginal user' $ U.makeGetMessage (catMaybes mcells)
-      US.modifyUser (U.updateWindow window) user' state)
+  let oldWindow = userWindow user'
+  (flip catch) (badCellsHandler $ dbConn curState) (do
+    let newLocs = U.getScrolledLocs oldWindow w
+    printObj "Sending newLocs" newLocs
+    mcells <- DB.getCells $ concat $ map rangeToIndices newLocs
+    sendToOriginal user' $ U.makeGetMessage (catMaybes mcells)
+    US.modifyUser (U.updateWindow w) user' state)
 
 -- | If a message is failing to parse from the server, undo the last commit (the one that added
 -- the message to the server.) I doubt this fix is completely foolproof, but it keeps data
