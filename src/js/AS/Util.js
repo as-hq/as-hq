@@ -450,7 +450,7 @@ export default {
   parseDependencies(str) {
     // console.log("parsing dependencies of: " + str);
     let matches = this.parseRefs(str),
-        parsed = matches.map((m) => this.excelToRange(m), this);
+        parsed = matches.map((m) => this.orientRange(this.excelToRange(m)), this);
     console.log("parsed deps: "+JSON.stringify(matches));
     return parsed;
   },
