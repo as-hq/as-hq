@@ -329,7 +329,7 @@ export default React.createClass({
     console.log('\n\n\nGRID DEFERRED KEY\n\n\n', e);
     if (KeyUtils.producesTextChange(e)) {
       let editor = this._getRawEditor(),
-          str = KeyUtils.modifyStringForKey(editor.getValue(), e),
+          str = KeyUtils.appendStringByKey(editor.getValue(), e),
           newStr = KeyUtils.keyToString(e),
           xpStr = this.state.userIsTyping ? str : newStr;
       console.log("New grid string: " + xpStr);
