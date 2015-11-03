@@ -178,6 +178,10 @@ export function valueS(val) {
   return { tag: 'ValueS', contents: val };
 }
 
+export function noValue() {
+  return {tag: 'NoValue', contents: []};
+}
+
 export function equalValues(val1, val2) {
   return _.isEqual(val1, val2);
 }

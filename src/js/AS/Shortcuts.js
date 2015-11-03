@@ -138,21 +138,48 @@ export default {
 
 
     // editor shortcuts -------------------------------------------------------------------------------
-    SU.add("editor", "toggle_reference", "F4", (wildcard) => {
-      let editor = self._getRawEditor(),
-          sesh = editor.getSession(),
-          cursor = editor.getCursorPosition(),
-          range = sesh.getWordRange(cursor.row, cursor.column),
-          sel = editor.selection;
-      sel.setRange(range);
-      let replace = Util.toggleReferenceType(editor.getSelectedText());
-      sesh.replace(range, replace);
-      // Also update the textbox
-      let textbox = self._getRawTextbox(),
-          textboxPos = textbox.getCursorPosition();
-      textbox.setValue(editor.getValue());
-      ExpStore.setExpression(editor.getValue()); // not using an action creator right now, seems like overkill
-      textbox.clearSelection(); // cursor in TB will now be at the end, but seems OK for now
+    SU.add("common", "toggle_reference", "F4", (wildcard) => {
+      let focus = Store.getFocus(),
+          xp = ExpStore.getExpression();
+
+      if (focus === 'grid') {
+        let editor = self._getRawEditor(),
+            sesh = editor.getSession(),
+            cursor = editor.getCursorPosition(),
+            range = sesh.getWordRange(cursor.row, cursor.column),
+            sel = editor.selection;
+        sel.setRange(range);
+        let oldRef = editor.getSelectedText(),
+            newRef = Util.toggleReferenceType(oldRef);
+        if (newRef !== null) {
+          let newXp = xp.substring(0, xp.length - oldRef.length) + newRef;
+          ExpActionCreator.handleGridChange(newXp);
+        }
+      } else if (focus === 'editor') {
+        let editor = self._getRawEditor(),
+            sesh = editor.getSession(),
+            cursor = editor.getCursorPosition(),
+            range = sesh.getWordRange(cursor.row, cursor.column),
+            sel = editor.selection;
+        sel.setRange(range);
+        let newRef = Util.toggleReferenceType(editor.getSelectedText());
+        if (newRef !== null) {
+          sesh.replace(range, newRef);
+          ExpActionCreator.handleEditorChange(editor.getValue());
+        }
+      } else if (focus === 'textbox') {
+        let editor = self._getRawTextbox(),
+            sesh = editor.getSession(),
+            cursor = editor.getCursorPosition(),
+            range = sesh.getWordRange(cursor.row, cursor.column),
+            sel = editor.selection;
+        sel.setRange(range);
+        let newRef = Util.toggleReferenceType(editor.getSelectedText());
+        if (newRef !== null) {
+          sesh.replace(range, newRef);
+          ExpActionCreator.handleTextBoxChange(editor.getValue());
+        }
+      }
     });
 
 
@@ -169,17 +196,17 @@ export default {
     //    API.jumpSelect(range, origin, true, wildcard);
     //  });
     SU.add("grid", "moveto_data_boundary", "Ctrl+Up/Down/Left/Right", (dir) => {
-      // let oldInd = Store.getActiveSelection().origin;
       // Needs to work even when you're selecting references while typing in the textbox
       // grid, which is why we're getting the spreadsheet's selection rather than the store's.
       // Might not be robust.
+      // let oldInd = Store.getActiveSelection().origin;
       let oldInd = self.refs.spreadsheet.getSelectionArea().origin;
       let newInd = Store.getDataBoundary(oldInd, dir);
       self.refs.spreadsheet.select(TC.indexToSelection(newInd));
     });
     SU.add("grid", "moveto_data_boundary_selected", "Ctrl+Shift+Up/Down/Left/Right", (dir) => {
-      // let oldSelection = Store.getActiveSelection();
       // same comment as in moveto_data_boundary applies.
+      // let oldSelection = Store.getActiveSelection();
       let oldSelection = self.refs.spreadsheet.getSelectionArea();
       let newSelection = Store.getDataBoundSelection(oldSelection, dir);
       self.refs.spreadsheet.select(newSelection);
@@ -222,7 +249,7 @@ export default {
       let dY = self.refs.spreadsheet.getVisibleRows();
       self.refs.spreadsheet.shiftSelectionArea(0, dY);
     });
-    SU.add("grid", "grid_delete", "Del", (wildcard) => {
+    SU.add("grid", "grid_delete", "Del/Backspace", (wildcard) => {
       let rng = Store.getActiveSelection().range;
       API.deleteRange(TC.simpleToASRange(rng));
     });

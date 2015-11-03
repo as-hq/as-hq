@@ -339,8 +339,8 @@ export default React.createClass({
     console.log('\n\n\nGRID DEFERRED KEY\n\n\n', e);
     if (KeyUtils.producesTextChange(e)) {
       let editor = this._getRawEditor(),
-          str = KeyUtils.modifyStringForKey(editor.getValue(), e),
-          newStr = KeyUtils.getString(e),
+          str = KeyUtils.appendStringByKey(editor.getValue(), e),
+          newStr = KeyUtils.keyToString(e),
           xpStr = this.state.userIsTyping ? str : newStr;
       console.log("New grid string: " + xpStr);
       this.setState({
@@ -403,6 +403,7 @@ export default React.createClass({
           val = cell.cellValue;
       Store.setActiveSelection(sel, expression);
       ExpActionCreator.handleSelChange(expression);
+      this.hideToast();
       this.showAnyErrors(val);
       this.setState({currentLanguage: Constants.Languages[language]});
     } else if (changeSelToNewCell) {

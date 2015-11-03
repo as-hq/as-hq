@@ -6,8 +6,23 @@ import _ from 'underscore';
 // Key constants
 
 var _to_ascii = {
+    //numpad stuff
+    '96': '48', //0
+    '97': '49',
+    '98': '50',
+    '99': '51',
+    '100': '52',
+    '101': '53',
+    '102': '54',
+    '103': '55',
+    '104': '56',
+    '105': '57', //9
+    '106': '42', //*
+    '107': '43', //+
+    '109': '45', //-
+    '110': '46', //.
+    '111': '47', // /
     '188': '44',
-    '109': '45',
     '190': '46',
     '191': '47',
     '192': '96',
@@ -49,7 +64,9 @@ var modifiers = [16, 17, 18, 19]; //shift, ctrl, alt, pause, break
 
 var specials = [27, 46, 36, 35, 33, 34, 9, 20]; //esc, delete, home, end, pgup, pgdown, tab, capslock
 
+// based on https://css-tricks.com/snippets/javascript/javascript-keycodes/
 var miscKeys = [8, 9, 13, 32, //backspace, tab, enter, space
+                96, 97, 98, 99, 100, 101, 102, 103, 104, 105, //numpad
                 106, 107, 109, 110, 111, //add, subtract, decimal point, divide,
                 186, 187, 188, 189, 190, 191, 192, //misc punctuation
                 219, 220, 221, 222]; // moar punctuation
@@ -67,6 +84,7 @@ var keyMap = {
   "Del": 46,
   "Space": 32,
   "Tab": 9,
+  "Backspace": 8,
   "[": 219,
   "]": 221,
   "'": 222,
@@ -102,8 +120,6 @@ export default {
     return e.which === 13 || e.which === 9; // tab or enter
   },
 
- 
-
   isFunctionKey(e) {
     return e.which >= 112 && e.which <= 123;
   },
@@ -112,23 +128,32 @@ export default {
     return e.ctrlKey || e.shiftKey || e.altKey || e.metaKey;
   },
 
+  isDestructiveKey(e) {
+    return e.which === 8 || e.which === 46; // backspace or delete
+  },
+
   keyToString(e) {
     let c = e.which;
-    // console.log("key has code: " + c);
-    //normalize keyCode
-    if (_to_ascii.hasOwnProperty(c)) {
-        c = _to_ascii[c];
-    }
 
-    if (!e.shiftKey && (c >= 65 && c <= 90)) {
-        c = String.fromCharCode(c + 32);
-    } else if (e.shiftKey && shiftUps.hasOwnProperty(c)) {
-        //get shifted keyCode value
-        c = shiftUps[c];
+    if (this.isDestructiveKey(e) || Util.arrContains(specials, c)){
+      return "";
     } else {
-        c = String.fromCharCode(c);
+      // console.log("key has code: " + c);
+      //normalize keyCode
+      if (_to_ascii.hasOwnProperty(c)) {
+          c = _to_ascii[c];
+      }
+
+      if (!e.shiftKey && (c >= 65 && c <= 90)) {
+          c = String.fromCharCode(c + 32);
+      } else if (e.shiftKey && shiftUps.hasOwnProperty(c)) {
+          //get shifted keyCode value
+          c = shiftUps[c];
+      } else {
+          c = String.fromCharCode(c);
+      }
+      return c;
     }
-    return c;
   },
 
   // determines whether editor should defer key in favor of shortcuts
@@ -140,17 +165,16 @@ export default {
     // If anything in autoFail is true, fail. If anything in autoSucceed is true, succeed. autoSucceed
     // takes precedence.
     let notShiftSpace   = !(e.shiftKey && e.which === 32); // shift+space doesn't produce text
-    let isCtrlBackspace = (e.ctrlKey && e.which == 8); // ctrl + backspace
+    let isDestructive   = this.isDestructiveKey(e);
 
     // based off http://www.cambiaresearch.com/articles/15/javascript-char-codes-key-codes and
     // https://css-tricks.com/snippets/javascript/javascript-keycodes/
     let isAlphaNum    = (e.which >= 48 && e.which <= 90);
     let isMiscVisible = Util.arrContains(miscKeys, e.which);     //more misc punctuation
 
-
     return (noModifications &&
             notShiftSpace &&
-            (isAlphaNum || isMiscVisible)) || isCtrlBackspace;
+            (isAlphaNum || isMiscVisible)) || isDestructive;
   },
 
   //is it a copy event or a paste event or a cut event?
@@ -158,22 +182,35 @@ export default {
     return e.ctrlKey && (e.which === 67 || e.which === 86 || e.which === 88)
   },
 
-  modifyStringForKey(str, e) {
-    if (e.which === 8){ // backspace
-      if (e.ctrlKey){
-        let edited = Util.removeLastWord(str);
-        return edited;
-      }
-      else return str.substring(0, str.length-1);
+  appendStringByKey(str, e) {
+    if (this.isDestructiveKey(e)) {
+      if (e.which === 8) { // backspace
+        if (e.ctrlKey) {
+          let edited = Util.removeLastWord(str);
+          return edited;
+        } else {
+          return str.substring(0, str.length-1);
+        }
+      } else return str;
     } else {
       return str + this.keyToString(e);
     }
   },
-  getString(e){
-    if (e.which === 8){
-      return ""
-    }
-    else return this.keyToString(e);
+
+  modifyTextboxForKey(e, userIsTyping, oldXp, editor) {
+    if (userIsTyping) {
+      // first check if editor has a thing selected
+      if (!editor.getSelection().$isEmpty) {
+        // as of 11/2, only way to select xp from grid is with Ctrl+A
+        // so if selection exists, the whole expression must be selected
+        // so we destroy the current xp and replace it.
+        if (this.isDestructiveKey(e)) return "";
+        else return this.keyToString(e);
+
+      } else {
+        return this.appendStringByKey(oldXp, e);
+      }
+    } else return this.keyToString(e);
   },
 
   killEvent(e) {

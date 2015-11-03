@@ -31,6 +31,7 @@ describe('backend', () => {
     valueI,
     valueS,
     valueB,
+    noValue,
 
     shouldError,
     shouldBe,
@@ -157,11 +158,11 @@ describe('backend', () => {
 
         it('should rollback ancestors set in failed evals', (done) => {
           _do([
-            python('A1', '1'), 
+            python('A1', '1'),
             python('A2', '=A1+A2'), // should fail and NOT save anything to graph db. (Until we make circular deps not failed evals in which case this must change again)
             excel('A3','=SUM(A2:A2)+1'), // should be 1
             python('A1', 'A3+2'), // if something got saved to graph db, there should be a circular dep error
-            shouldBe('A1', valueI(3)), 
+            shouldBe('A1', valueI(3)),
             exec(done)
           ]);
         });
@@ -220,6 +221,15 @@ describe('backend', () => {
             python('C3', 'A3:B3.sum()'),
             python('A1', 'range(3)'),
             shouldBe('C3', valueI(7)),
+            exec(done)
+          ]);
+        });
+
+        it ('should evaluate None correctly', (done) => {
+          _do([
+            python('A1', '[1,2,3,None]'),
+            python('B1', 'A1:A4.reversed()'),
+            shouldBe('B1', noValue()),
             exec(done)
           ]);
         });
@@ -300,7 +310,7 @@ describe('backend', () => {
       });
 
       describe('excelfunctions', () => {
-        // This test won't work until double equality is fixed. 
+        // This test won't work until double equality is fixed.
         xit ('CORREL', (done) => {
             _do([
                 excel('A1', 'Data1'),
@@ -337,7 +347,7 @@ describe('backend', () => {
             excel('B1', '=SUM(A1,A2)'),
             excel('B2', '=SUM(A2:A4,15)'),
             excel('B3', '=SUM("5", 15, TRUE)'),
-            excel('B4', '=SUM(A5,A6, 2)'), 
+            excel('B4', '=SUM(A5,A6, 2)'),
             shouldBe('B1', valueI(10)),
             shouldBe('B2', valueI(55)),
             shouldbe('B3', valueI(21)),
@@ -477,9 +487,9 @@ describe('backend', () => {
           ]);
         });
 
-        it('recognizes - and + prefix operators', (done) => { 
+        it('recognizes - and + prefix operators', (done) => {
           _do([
-            excel('A1', '=++--+-2'), 
+            excel('A1', '=++--+-2'),
             shouldBe('A1', valueI(-2)),
             exec(done)
           ]);
@@ -551,7 +561,7 @@ describe('backend', () => {
           it('should allow negative numbers to be exponentiated with integers', (done) => {
             _do([
               excel('A1', '=(-2)^(-2)'),
-              shouldBe('A1', valueD(0.25)), 
+              shouldBe('A1', valueD(0.25)),
               exec(done)
             ]);
           });
@@ -563,6 +573,16 @@ describe('backend', () => {
               exec(done)
             ]);
           });
+        });
+
+        it('should parse dollars adjacent to operators correctly', (done) => {
+          _do([
+            excel('A1', '2'),
+            excel('A2', '1'),
+            excel('A3', '=A1+$A$2'),
+            shouldBe('A3', valueI(3)),
+            exec(done)
+          ]);
         });
       });
 
@@ -1092,7 +1112,7 @@ describe('backend', () => {
             undo(),
             python('A1', 'range(10)'),
             undo(),
-            redo(), 
+            redo(),
             copy('A1:A10', 'B1:B10'),
             expressionShouldBe('B1', "range(10)"),
             exec(done)

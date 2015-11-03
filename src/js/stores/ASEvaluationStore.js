@@ -177,7 +177,6 @@ const ASEvaluationStore = assign({}, BaseStore, {
   },
 
   setActiveSelection(sel, xp) {
-    console.log(sel);
     let origin = sel.origin;
     _data.activeSelection = sel;
     _data.activeCell = this.getCell(origin.col, origin.row) || TC.makeEmptyCell();
@@ -446,38 +445,33 @@ const ASEvaluationStore = assign({}, BaseStore, {
         origin = selection.origin;
 
     let startLoc = { row: origin.row, col: origin.col };
-    if (direction == "Up" || direction == "Down") {
-      if (origin.row > tl.row)
-        startLoc.row = tl.row;
-      else
-        startLoc.row = br.row;
-    } else if (direction == "Right" || direction == "Left") {
-      if (origin.col < tl.col)
-        startLoc.col = tl.col;
-      else
-        startLoc.col = br.col;
-    } else {
-      throw "Invalid direction passed in";
+    switch (direction) { 
+      case "Right": startLoc.col = (origin.col == tl.col) ? br.col : tl.col; break; 
+      case "Left": startLoc.col = (origin.col == br.col) ? tl.col : br.col; break; 
+      case "Up": startLoc.row = (origin.row == br.row) ? tl.row : br.row; break; 
+      case "Down": startLoc.row = (origin.row == tl.row) ? br.row : tl.row; break; 
+      default: throw "Invalid direction passed in";
     }
 
     let bound = this.getDataBoundary(startLoc, direction);
 
-    let newTl = tl;
-    let newBr = br;
-
+    // slight misnomers; these are the corners, but not necessarily top left or bottom right
+    let newTl = {row: tl.row, col: tl.col};
+    let newBr = {row: br.row, col: br.col};
     if (direction == "Up" || direction == "Down") {
       if (origin.row > tl.row)
         newTl.row = bound.row;
       else
         newBr.row = bound.row;
-    } else if (direction == "Right" || direction == "Left") {
-      if (origin.col < tl.col)
-        newTl.col = bound.col;
-      else
+    } else if (direction == "Left" || direction == "Right") { 
+      if (origin.col > tl.col) 
+        newTl.col = bound.col; 
+      else 
         newBr.col = bound.col;
     }
+    // I haven't actually figured out why the above code works, it seems like it sort of just does. 
 
-    return { range: {tl: newTl, br: newBr}, origin: origin };
+    return { range: Util.orientRange({tl: newTl, br: newBr}), origin: origin };
   },
 
   // TODO actually get the data boundaries by iterating, or something

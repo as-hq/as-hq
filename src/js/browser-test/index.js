@@ -95,10 +95,11 @@ function pressPaste() {
   });
 }
 
-function selectRange(excelRng) {
+function selectRange(excelRng, excelOrigin) {
   return exec(() => {
-    let hgRange = Util.excelToRange(excelRng);
-    spreadsheet().select({range: hgRange});
+    let hgRange = Util.excelToRange(excelRng),
+        hgOrigin = Util.excelToRange(excelOrigin);
+    spreadsheet().select({range: hgRange, origin: hgOrigin.tl});
   });
 }
 
@@ -157,17 +158,17 @@ let tests = _describe('keyboard tests', {
     _describe('copy and paste', { tests: [
       _it('should copy a cell', [
         python('A1', '1'),
-        selectRange('A1:A1'),
+        selectRange('A1:A1', 'A1'),
         pressCopy(),
         blockUntilCopy('A1:A1') /* don't finish the test until it actually stores in clipboard */
       ]),
 
       _it('should copy and paste a cell', [
         python('A1', '1'),
-        selectRange('A1:A1'),
+        selectRange('A1:A1', 'A1'),
         pressCopy(),
         blockUntilCopy('A1:A1'),
-        selectRange('B1:B1'),
+        selectRange('B1:B1', 'B1'),
         waitForResponse(
           pressPaste()
         ),

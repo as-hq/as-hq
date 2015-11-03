@@ -237,16 +237,27 @@ export default React.createClass({
     if (typeof(shouldScroll) == "undefined") {
       shouldScroll = true;
     }
+
     // unsafe if it references values <= 0.
     let safeSelection = Util.getSafeSelection(unsafeSelection);
     let {tl, br} = safeSelection.range;
+    let {col, row} = safeSelection.origin;
 
-    // make selection
+    let oldSel = Store.getActiveSelection(), oldRange, oldTl, oldBr;
+    if (oldSel) {
+        oldRange = oldSel.range;
+        oldTl = oldRange.tl;
+        oldBr = oldRange.br;
+    }
+  // make selection
     let hg = this._getHypergrid(),
-        c = tl.col - 1,
-        r = tl.row - 1,
-        dC = br.col - tl.col,
-        dR = br.row - tl.row;
+        c = col - 1,
+        r = row - 1,
+        flipC = (col == br.col) ? -1 : 1,
+        flipR = (row == br.row) ? -1 : 1,
+        dC = (br.col - tl.col) * flipC,
+        dR = (br.row - tl.row) * flipR;
+
     hg.takeFocus();
     hg.clearSelections();
     hg.select(c, r, dC, dR);
@@ -260,19 +271,39 @@ export default React.createClass({
     hg.setMouseDown(myDown);
     hg.setDragExtent(myExtent);
 
+
     // set scroll
-    let range = this.getViewingWindow().range,
-        shouldScrollH = tl.col < range.tl.col || tl.col > range.br.col,
-        shouldScrollV = tl.row < range.tl.row || tl.row > range.br.row,
-        scrollH = shouldScrollH ? c : hg.getHScrollValue(),
-        scrollV = shouldScrollV ? r : hg.getVScrollValue();
-    if ((shouldScrollV || shouldScrollH) && shouldScroll) {
+    if (shouldScroll) {
+      let win = this.getViewingWindow().range;
+      let scrollH, scrollV;
+
+      if (win.tl.row <= oldTl.row && oldTl.row <= win.br.row
+          && (tl.row < win.tl.row || tl.row > win.br.row)) {
+        // if the top left was in range before, and now isn't, scroll so that top left is at top now.
+        scrollV = tl.row - 1;
+      } else if (win.tl.row <= oldBr.row && oldBr.row <= win.br.row
+                 && (br.row < win.tl.row || br.row > win.br.row)) {
+        // ditto for bottom right
+        scrollV = hg.getVScrollValue() + br.row - win.br.row + 4;
+      } else {
+        scrollV = hg.getVScrollValue();
+      }
+
+      if (win.tl.col <= oldTl.col && oldTl.col <= win.br.col
+          && (tl.col < win.tl.col || tl.col > win.br.col)) {
+        scrollH = tl.col - 1;
+      } else if (win.tl.col <= oldBr.col && oldBr.col <= win.br.col
+                 && (br.col < win.tl.col || br.col > win.br.col)) {
+        scrollH = hg.getHScrollValue() + br.col - win.br.col;
+      } else {
+        scrollH = hg.getHScrollValue();
+      }
+
       this.scrollTo(scrollH, scrollV);
     }
 
     this.repaint();
-    this.props.onSelectionChange({range: safeSelection.range,
-                                  origin: safeSelection.origin});
+    this.props.onSelectionChange(safeSelection);
   },
 
   shiftSelectionArea(dc, dr) {
@@ -297,26 +328,16 @@ export default React.createClass({
     e.persist(); // prevent react gc
     if (ShortcutUtils.gridShouldDeferKey(e)){ // not a nav key
       KeyUtils.killEvent(e);
-      if (KeyUtils.producesTextChange(e) && !KeyUtils.isEvalKey(e)) {
+      let userIsTyping = ExpStore.getUserIsTyping();
+      if ((KeyUtils.producesTextChange(e) && !KeyUtils.isEvalKey(e) && !KeyUtils.isDestructiveKey(e)) ||
+          (KeyUtils.isDestructiveKey(e) && userIsTyping)) {
         // Need to update the editor and textbox now via action creators
         console.log("Grid key down going to AC");
-        let curStr = ExpStore.getExpression(),
-            newStr = KeyUtils.modifyStringForKey(curStr, e);
+        let newStr = KeyUtils.modifyTextboxForKey(e,
+                                                  userIsTyping,
+                                                  ExpStore.getExpression(),
+                                                  this.refs.textbox.editor);
 
-        // If user isn't typing yet, the new string should be replaced
-        if (!ExpStore.getUserIsTyping()){
-          newStr = KeyUtils.keyToString(e);
-        }
-
-        // KeyUtils backspace only takes away a character, doesn't account for editor selection
-        if (e.which === 8 && ExpStore.getUserIsTyping()) { //backspace type 
-          let textbox = this.refs.textbox.editor;
-          console.log("Current tb value: " + textbox.getValue());
-          textbox.commands.exec('backspace',textbox);
-          newStr = textbox.getValue();
-        }
-
-        // ^ modify string for key deals with ctrl+backspace too
         // if visible key and there was a last cell ref, move the selection back to the origin
         if (ExpStore.getLastRef() !== null) {
           this.select(Store.getActiveSelection());
