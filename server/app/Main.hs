@@ -149,7 +149,9 @@ talk client state = forever $ do
 
 handleRuntimeException :: ASUserClient -> MVar ServerState -> SomeException -> IO ()
 handleRuntimeException user state e = do
-  putStrLn ("Runtime error caught: " ++ (show e))
+  let logMsg = "Runtime error caught: " ++ (show e)
+  putStrLn logMsg
+  writeToLog ("#ERROR: " ++ logMsg) (userId user)
   port <- appPort <$> readMVar state
   WS.runServer S.wsAddress port $ application state
 
