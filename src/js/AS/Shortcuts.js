@@ -138,7 +138,7 @@ export default {
 
 
     // editor shortcuts -------------------------------------------------------------------------------
-    SU.add("common", "toggle_reference", "F3", (wildcard) => {
+    SU.add("common", "toggle_reference", "F4", (wildcard) => {
       let focus = Store.getFocus(),
           xp = ExpStore.getExpression();
 
