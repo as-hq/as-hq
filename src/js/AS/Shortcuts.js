@@ -169,17 +169,17 @@ export default {
     //    API.jumpSelect(range, origin, true, wildcard);
     //  });
     SU.add("grid", "moveto_data_boundary", "Ctrl+Up/Down/Left/Right", (dir) => {
-      // let oldInd = Store.getActiveSelection().origin;
       // Needs to work even when you're selecting references while typing in the textbox
       // grid, which is why we're getting the spreadsheet's selection rather than the store's.
       // Might not be robust.
+      // let oldInd = Store.getActiveSelection().origin;
       let oldInd = self.refs.spreadsheet.getSelectionArea().origin;
       let newInd = Store.getDataBoundary(oldInd, dir);
       self.refs.spreadsheet.select(TC.indexToSelection(newInd));
     });
     SU.add("grid", "moveto_data_boundary_selected", "Ctrl+Shift+Up/Down/Left/Right", (dir) => {
-      // let oldSelection = Store.getActiveSelection();
       // same comment as in moveto_data_boundary applies.
+      // let oldSelection = Store.getActiveSelection();
       let oldSelection = self.refs.spreadsheet.getSelectionArea();
       let newSelection = Store.getDataBoundSelection(oldSelection, dir);
       self.refs.spreadsheet.select(newSelection);

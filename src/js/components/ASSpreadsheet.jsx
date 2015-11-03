@@ -275,8 +275,7 @@ export default React.createClass({
     }
 
     this.repaint();
-    this.props.onSelectionChange({range: safeSelection.range,
-                                  origin: safeSelection.origin});
+    this.props.onSelectionChange(safeSelection);
   },
 
   shiftSelectionArea(dc, dr) {

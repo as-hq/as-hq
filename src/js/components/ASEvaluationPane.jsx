@@ -390,6 +390,7 @@ export default React.createClass({
           val = cell.cellValue;
       Store.setActiveSelection(sel, expression);
       ExpActionCreator.handleSelChange(expression);
+      this.hideToast();
       this.showAnyErrors(val);
       this.setState({currentLanguage: Constants.Languages[language]});
     } else if (changeSelToNewCell) {
