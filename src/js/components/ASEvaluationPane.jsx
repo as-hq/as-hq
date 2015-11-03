@@ -465,7 +465,7 @@ export default React.createClass({
     2) Send this and the editor state (expression, language) to the API action creator, which will send it to the backend
   */
   handleEvalRequest(xpObj, moveCol, moveRow) {
-    console.log("Handling EVAL request");
+    console.log("Handling EVAL request " + ExpStore.getExpression());
 
     this.refs.spreadsheet.refs.textbox.hideTextBox();
     ExpStore.setLastCursorPosition(Constants.CursorPosition.GRID);
