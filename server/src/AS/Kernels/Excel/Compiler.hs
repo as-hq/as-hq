@@ -258,16 +258,22 @@ bool = fmap readBool $ caseInsensitiveString "TRUE" <|> caseInsensitiveString "F
 str :: Parser String
 str = quotedString
 
+float' :: Parser Double
+float' = float <|> (spaces >> char '.' >> integerToDecimal <$> integer)
+
+integerToDecimal :: Integer -> Double
+integerToDecimal i = 0.1 * (fromInteger i)
+
 excelValue :: Parser Formula
 excelValue = fmap (Basic . Var) $
-      try ((EValueNum . EValueD) <$> float)
+      try ((EValueNum . EValueD) <$> float')
   <|> try ((EValueNum . EValueI . fromInteger) <$> integer)
   <|> try (EValueB <$> bool)
   <|> try (EValueS <$> str)
 
 numOrBool :: Parser Formula
 numOrBool = fmap (Basic . Var) $
-      try ((EValueNum . EValueD) <$> float)
+      try ((EValueNum . EValueD) <$> float')
   <|> try ((EValueNum . EValueI . fromInteger) <$> integer)
   <|> try (EValueB <$> bool)
 
