@@ -6,16 +6,16 @@ import _ from 'underscore';
 // Key constants
 
 var _to_ascii = {
-    //numpad stuff 
+    //numpad stuff
     '96': '48', //0
-    '97': '49', 
-    '98': '50', 
-    '99': '51', 
-    '100': '52', 
-    '101': '53', 
-    '102': '54', 
-    '103': '55', 
-    '104': '56', 
+    '97': '49',
+    '98': '50',
+    '99': '51',
+    '100': '52',
+    '101': '53',
+    '102': '54',
+    '103': '55',
+    '104': '56',
     '105': '57', //9
     '106': '42', //*
     '107': '43', //+
@@ -119,8 +119,6 @@ export default {
     return e.which === 13 || e.which === 9; // tab or enter
   },
 
- 
-
   isFunctionKey(e) {
     return e.which >= 112 && e.which <= 123;
   },
@@ -129,8 +127,16 @@ export default {
     return e.ctrlKey || e.shiftKey || e.altKey || e.metaKey;
   },
 
+  isDestructiveKey(e) {
+    return e.which === 8 || e.which === 46; // backspace or delete
+  },
+
   keyToString(e) {
     let c = e.which;
+
+    if (this.isDestructiveKey(e)){
+      return "";
+    }
     // console.log("key has code: " + c);
     //normalize keyCode
     if (_to_ascii.hasOwnProperty(c)) {
@@ -176,6 +182,7 @@ export default {
 
   modifyStringForKey(str, e) {
     if (e.which === 8) { // backspace
+      console.log("\nMODIFY STRING GOT BACKSPACE\n");
       if (e.ctrlKey) {
         let edited = Util.removeLastWord(str);
         return edited;
