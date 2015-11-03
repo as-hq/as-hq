@@ -237,11 +237,18 @@ export default React.createClass({
     if (typeof(shouldScroll) == "undefined") {
       shouldScroll = true;
     }
+
     // unsafe if it references values <= 0.
     let safeSelection = Util.getSafeSelection(unsafeSelection);
     let {tl, br} = safeSelection.range;
     let {col, row} = safeSelection.origin;
 
+    let oldSel = Store.getActiveSelection(), oldRange, oldTl, oldBr; 
+    if (oldSel) { 
+        oldRange = oldSel.range;
+        oldTl = oldRange.tl;
+        oldBr = oldRange.br; 
+    }
   // make selection
     let hg = this._getHypergrid(),
         c = col - 1,
@@ -264,13 +271,34 @@ export default React.createClass({
     hg.setMouseDown(myDown);
     hg.setDragExtent(myExtent);
 
+
     // set scroll
-    let range = this.getViewingWindow().range,
-        shouldScrollH = tl.col < range.tl.col || tl.col > range.br.col,
-        shouldScrollV = tl.row < range.tl.row || tl.row > range.br.row,
-        scrollH = shouldScrollH ? c : hg.getHScrollValue(),
-        scrollV = shouldScrollV ? r : hg.getVScrollValue();
-    if ((shouldScrollV || shouldScrollH) && shouldScroll) {
+    if (shouldScroll) {
+      let win = this.getViewingWindow().range; 
+      let scrollH, scrollV; 
+
+      if (win.tl.row <= oldTl.row && oldTl.row <= win.br.row
+          && (tl.row < win.tl.row || tl.row > win.br.row)) { 
+        // if the top left was in range before, and now isn't, scroll so that top left is at top now. 
+        scrollV = tl.row - 1;
+      } else if (win.tl.row <= oldBr.row && oldBr.row <= win.br.row 
+                 && (br.row < win.tl.row || br.row > win.br.row)) { 
+        // ditto for bottom right
+        scrollV = hg.getVScrollValue() + br.row - win.br.row + 4; 
+      } else { 
+        scrollV = hg.getVScrollValue(); 
+      }
+      
+      if (win.tl.col <= oldTl.col && oldTl.col <= win.br.col
+          && (tl.col < win.tl.col || tl.col > win.br.col)) { 
+        scrollH = tl.col - 1;
+      } else if (win.tl.col <= oldBr.col && oldBr.col <= win.br.col 
+                 && (br.col < win.tl.col || br.col > win.br.col)) { 
+        scrollH = hg.getHScrollValue() + br.col - win.br.col; 
+      } else { 
+        scrollH = hg.getHScrollValue(); 
+      }
+
       this.scrollTo(scrollH, scrollV);
     }
 
