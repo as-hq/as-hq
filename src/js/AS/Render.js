@@ -1,7 +1,8 @@
 let _renderParams = {
   mode: null, // null mode indicates normal behavior; any other string indicates otherwise
   deps: [],
-  cellWidth: 100
+  cellWidth: 100,
+  selection: null
 };
 
 export default {
@@ -122,18 +123,19 @@ export default {
     _renderParams.mode = mode;
   },
 
+  setSelection(sel) {
+    _renderParams.selection = sel;
+  },
+
   selectionRenderer: function(gc) {
     var grid = this.getGrid();
-    var selections = grid.getSelectionModel().getSelections();
-    if (!selections || selections.length === 0) {
-        return;
-    }
-    var selection = selections[selections.length - 1];
+    if (_renderParams.selection === null) return;
+
+    var {origin, range} = _renderParams.selection;
+    var selection = {origin: {x: range.tl.col - 1, y: range.tl.row - 1},
+                 extent: {x: range.br.col - range.tl.col, y: range.br.row - range.tl.row }};
     var mouseDown = selection.origin;
-    if (mouseDown.x === -1) {
-        //no selected area, lets exit
-        return;
-    }
+
     var visibleColumns = this.getVisibleColumns();
     var visibleRows = this.getVisibleRows();
     var fixedColCount = grid.getFixedColumnCount();
@@ -148,8 +150,8 @@ export default {
     var dpOX = Math.min(mouseDown.x, mouseDown.x + extent.x) + fixedColCount;
     var dpOY = Math.min(mouseDown.y, mouseDown.y + extent.y) + fixedRowCount;
 
-    var originX = mouseDown.x + fixedColCount - scrollX;
-    var originY = mouseDown.y + fixedRowCount - scrollY;
+    var originX = origin.col + fixedColCount - scrollX - 1;
+    var originY = origin.row + fixedRowCount - scrollY - 1;
     var originCellBounds = this._getBoundsOfCell(originX, originY);
 
     //lets check if our selection rectangle is scrolled outside of the visible area

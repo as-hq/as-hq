@@ -251,12 +251,22 @@ export default React.createClass({
     }
   // make selection
     let hg = this._getHypergrid(),
-        c = col - 1,
-        r = row - 1,
-        flipC = (col == br.col) ? -1 : 1,
-        flipR = (row == br.row) ? -1 : 1,
-        dC = (br.col - tl.col) * flipC,
-        dR = (br.row - tl.row) * flipR;
+        originIsCorner = Util.originIsCornerOfSelection(safeSelection),
+        c, r, dC, dR;
+
+    if (originIsCorner) {
+      let flipC = (col == br.col) ? -1 : 1,
+          flipR = (row == br.row) ? -1 : 1;
+      c = col - 1;
+      r = row - 1;
+      dC = (br.col - tl.col) * flipC;
+      dR = (br.row - tl.row) * flipR;
+    } else {
+      c = tl.col - 1;
+      r = tl.row - 1;
+      dC = br.col - tl.col;
+      dR = br.row - tl.row;
+    }
 
     hg.takeFocus();
     hg.clearSelections();

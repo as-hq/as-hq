@@ -312,9 +312,8 @@ export default React.createClass({
     console.log("Eval pane has grid's nav key");
     let insert = ExpStore.gridCanInsertRef();
     if (insert) {
-      console.log("Can insert a reference");
       // do nothing; onSelectionChange will fire
-    } else {
+    } else if (ExpStore.getUserIsTyping()) {
       console.log("Will change selection and eval cell.");
       let xpObj = {
             expression: ExpStore.getExpression(),
@@ -324,15 +323,6 @@ export default React.createClass({
       // left, right, down, or up.
       this.handleEvalRequest(xpObj, 0, 0);
     }
-    /* 
-    Note: before, the above case was "else if userIsTyping..."
-    double clicking then pressing left arrow key was getting to the non-existant "else"
-    hypergrid's selection model had no selections at that point
-    it seems to then default a left arrow key to A1
-    The current workaround is to just call handleEvalRequest, which will move the selection correctly
-    (Note: the double click shouldn't even get here bc focus should be in textbox)
-    -- Ritesh 11/2
-    */
   },
 
   _onGridDeferredKey(e) {
@@ -375,9 +365,6 @@ export default React.createClass({
     let rng = sel.range,
         userIsTyping = ExpStore.getUserIsTyping(),
         cell = Store.getCell(sel.origin.col, sel.origin.row);
-
-    console.log("RNG: " + JSON.stringify(rng));
-    console.log(this.refs.spreadsheet._getHypergrid().getSelectionModel().selections);
 
     let editorCanInsertRef = ExpStore.editorCanInsertRef(this._getRawEditor()),
         gridCanInsertRef = ExpStore.gridCanInsertRef(),

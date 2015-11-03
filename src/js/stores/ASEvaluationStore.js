@@ -177,6 +177,7 @@ const ASEvaluationStore = assign({}, BaseStore, {
   },
 
   setActiveSelection(sel, xp) {
+    Render.setSelection(sel);
     let origin = sel.origin;
     _data.activeSelection = sel;
     _data.activeCell = this.getCell(origin.col, origin.row) || TC.makeEmptyCell();
@@ -445,11 +446,11 @@ const ASEvaluationStore = assign({}, BaseStore, {
         origin = selection.origin;
 
     let startLoc = { row: origin.row, col: origin.col };
-    switch (direction) { 
-      case "Right": startLoc.col = (origin.col == tl.col) ? br.col : tl.col; break; 
-      case "Left": startLoc.col = (origin.col == br.col) ? tl.col : br.col; break; 
-      case "Up": startLoc.row = (origin.row == br.row) ? tl.row : br.row; break; 
-      case "Down": startLoc.row = (origin.row == tl.row) ? br.row : tl.row; break; 
+    switch (direction) {
+      case "Right": startLoc.col = (origin.col == tl.col) ? br.col : tl.col; break;
+      case "Left": startLoc.col = (origin.col == br.col) ? tl.col : br.col; break;
+      case "Up": startLoc.row = (origin.row == br.row) ? tl.row : br.row; break;
+      case "Down": startLoc.row = (origin.row == tl.row) ? br.row : tl.row; break;
       default: throw "Invalid direction passed in";
     }
 
@@ -463,13 +464,13 @@ const ASEvaluationStore = assign({}, BaseStore, {
         newTl.row = bound.row;
       else
         newBr.row = bound.row;
-    } else if (direction == "Left" || direction == "Right") { 
-      if (origin.col > tl.col) 
-        newTl.col = bound.col; 
-      else 
+    } else if (direction == "Left" || direction == "Right") {
+      if (origin.col > tl.col)
+        newTl.col = bound.col;
+      else
         newBr.col = bound.col;
     }
-    // I haven't actually figured out why the above code works, it seems like it sort of just does. 
+    // I haven't actually figured out why the above code works, it seems like it sort of just does.
 
     return { range: Util.orientRange({tl: newTl, br: newBr}), origin: origin };
   },
