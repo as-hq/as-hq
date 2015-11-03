@@ -95,6 +95,8 @@ data ASValue =
   | RDataFrame [ASValue]
   deriving (Show, Read, Eq, Generic)
 
+type Percent = Double
+
 type RListKey = String
 
 type EvalCode = String
