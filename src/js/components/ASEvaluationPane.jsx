@@ -330,7 +330,7 @@ export default React.createClass({
     if (KeyUtils.producesTextChange(e)) {
       let editor = this._getRawEditor(),
           str = KeyUtils.modifyStringForKey(editor.getValue(), e),
-          newStr = KeyUtils.getString(e),
+          newStr = KeyUtils.keyToString(e),
           xpStr = this.state.userIsTyping ? str : newStr;
       console.log("New grid string: " + xpStr);
       this.setState({

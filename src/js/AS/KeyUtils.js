@@ -134,24 +134,25 @@ export default {
   keyToString(e) {
     let c = e.which;
 
-    if (this.isDestructiveKey(e)){
+    if (this.isDestructiveKey(e) || Util.arrContains(specials, c)){
       return "";
-    }
-    // console.log("key has code: " + c);
-    //normalize keyCode
-    if (_to_ascii.hasOwnProperty(c)) {
-        c = _to_ascii[c];
-    }
-
-    if (!e.shiftKey && (c >= 65 && c <= 90)) {
-        c = String.fromCharCode(c + 32);
-    } else if (e.shiftKey && shiftUps.hasOwnProperty(c)) {
-        //get shifted keyCode value
-        c = shiftUps[c];
     } else {
-        c = String.fromCharCode(c);
+      // console.log("key has code: " + c);
+      //normalize keyCode
+      if (_to_ascii.hasOwnProperty(c)) {
+          c = _to_ascii[c];
+      }
+
+      if (!e.shiftKey && (c >= 65 && c <= 90)) {
+          c = String.fromCharCode(c + 32);
+      } else if (e.shiftKey && shiftUps.hasOwnProperty(c)) {
+          //get shifted keyCode value
+          c = shiftUps[c];
+      } else {
+          c = String.fromCharCode(c);
+      }
+      return c;
     }
-    return c;
   },
 
   // determines whether editor should defer key in favor of shortcuts
@@ -163,7 +164,7 @@ export default {
     // If anything in autoFail is true, fail. If anything in autoSucceed is true, succeed. autoSucceed
     // takes precedence.
     let notShiftSpace   = !(e.shiftKey && e.which === 32); // shift+space doesn't produce text
-    let isCtrlBackspace = (e.ctrlKey && e.which == 8); // ctrl + backspace
+    let isDestructive   = this.isDestructiveKey(e);
 
     // based off http://www.cambiaresearch.com/articles/15/javascript-char-codes-key-codes and
     // https://css-tricks.com/snippets/javascript/javascript-keycodes/
@@ -172,7 +173,7 @@ export default {
 
     return (noModifications &&
             notShiftSpace &&
-            (isAlphaNum || isMiscVisible)) || isCtrlBackspace;
+            (isAlphaNum || isMiscVisible)) || isDestructive;
   },
 
   //is it a copy event or a paste event or a cut event?
@@ -181,22 +182,34 @@ export default {
   },
 
   modifyStringForKey(str, e) {
-    if (e.which === 8) { // backspace
-      console.log("\nMODIFY STRING GOT BACKSPACE\n");
-      if (e.ctrlKey) {
-        let edited = Util.removeLastWord(str);
-        return edited;
-      }
-      else return str.substring(0, str.length-1);
+    if (this.isDestructiveKey(e)) {
+      if (e.which === 8) { // backspace
+        if (e.ctrlKey) {
+          let edited = Util.removeLastWord(str);
+          return edited;
+        } else {
+          return str.substring(0, str.length-1);
+        }
+      } else return str;
     } else {
       return str + this.keyToString(e);
     }
   },
-  getString(e){
-    if (e.which === 8){
-      return ""
-    }
-    else return this.keyToString(e);
+
+  modifyTextboxForKey(e, userIsTyping, oldXp, editor) {
+    if (userIsTyping) {
+      // first check if editor has a thing selected
+      if (!editor.getSelection().$isEmpty) {
+        // as of 11/2, only way to select xp from grid is with Ctrl+A
+        // so if selection exists, the whole expression must be selected
+        // so we destroy the current xp and replace it.
+        if (this.isDestructiveKey(e)) return "";
+        else return this.keyToString(e);
+
+      } else {
+        return this.modifyStringForKey(oldXp, e);
+      }
+    } else return this.keyToString(e);
   },
 
   killEvent(e) {

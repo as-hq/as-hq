@@ -240,14 +240,14 @@ export default React.createClass({
     // unsafe if it references values <= 0.
     let safeSelection = Util.getSafeSelection(unsafeSelection);
     let {tl, br} = safeSelection.range;
-    let {col, row} = safeSelection.origin; 
+    let {col, row} = safeSelection.origin;
 
   // make selection
     let hg = this._getHypergrid(),
         c = col - 1,
         r = row - 1,
-        flipC = (col == br.col) ? -1 : 1, 
-        flipR = (row == br.row) ? -1 : 1, 
+        flipC = (col == br.col) ? -1 : 1,
+        flipR = (row == br.row) ? -1 : 1,
         dC = (br.col - tl.col) * flipC,
         dR = (br.row - tl.row) * flipR;
 
@@ -303,22 +303,11 @@ export default React.createClass({
       if (KeyUtils.producesTextChange(e) && !KeyUtils.isEvalKey(e)) {
         // Need to update the editor and textbox now via action creators
         console.log("Grid key down going to AC");
-        let curStr = ExpStore.getExpression(),
-            newStr = KeyUtils.modifyStringForKey(curStr, e);
-        // If user isn't typing yet, the new string should be replaced
-        if (!ExpStore.getUserIsTyping()){
-          newStr = KeyUtils.keyToString(e);
-        }
+        let newStr = KeyUtils.modifyTextboxForKey(e,
+                                                  ExpStore.getUserIsTyping(),
+                                                  ExpStore.getExpression(),
+                                                  this.refs.textbox.editor);
 
-        // KeyUtils backspace only takes away a character, doesn't account for editor selection
-        if (e.which === 8 && ExpStore.getUserIsTyping()) { //backspace type 
-          let textbox = this.refs.textbox.editor;
-          console.log("Current tb value: " + textbox.getValue());
-          textbox.commands.exec('backspace',textbox);
-          newStr = textbox.getValue();
-        }
-
-        // ^ modify string for key deals with ctrl+backspace too
         // if visible key and there was a last cell ref, move the selection back to the origin
         if (ExpStore.getLastRef() !== null) {
           this.select(Store.getActiveSelection());
