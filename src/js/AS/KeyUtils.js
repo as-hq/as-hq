@@ -84,6 +84,7 @@ var keyMap = {
   "Del": 46,
   "Space": 32,
   "Tab": 9,
+  "Backspace": 8,
   "[": 219,
   "]": 221,
   "'": 222,
@@ -181,7 +182,7 @@ export default {
     return e.ctrlKey && (e.which === 67 || e.which === 86 || e.which === 88)
   },
 
-  modifyStringForKey(str, e) {
+  appendStringByKey(str, e) {
     if (this.isDestructiveKey(e)) {
       if (e.which === 8) { // backspace
         if (e.ctrlKey) {
@@ -207,7 +208,7 @@ export default {
         else return this.keyToString(e);
 
       } else {
-        return this.modifyStringForKey(oldXp, e);
+        return this.appendStringByKey(oldXp, e);
       }
     } else return this.keyToString(e);
   },

@@ -249,7 +249,7 @@ export default {
       let dY = self.refs.spreadsheet.getVisibleRows();
       self.refs.spreadsheet.shiftSelectionArea(0, dY);
     });
-    SU.add("grid", "grid_delete", "Del", (wildcard) => {
+    SU.add("grid", "grid_delete", "Del/Backspace", (wildcard) => {
       let rng = Store.getActiveSelection().range;
       API.deleteRange(TC.simpleToASRange(rng));
     });
