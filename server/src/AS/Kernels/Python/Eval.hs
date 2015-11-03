@@ -22,11 +22,11 @@ import Control.Monad.Trans.Either
 
 -- | Helper for evaluateRepl
 onParseSuccess :: String -> ASValue -> IO ()
-onParseSuccess replRecord (ValueError _ _ _ _) = writeReplRecord Python replRecord
-onParseSuccess _ _ = return ()
+onParseSuccess replRecord v@(ValueError _ _ _ _) = writeReplRecord Python replRecord
+onParseSuccess _ v = return ()
 
 onParseFailure :: String -> ASExecError -> IO ()
-onParseFailure replRecord _ = writeReplRecord Python replRecord
+onParseFailure replRecord x = writeReplRecord Python replRecord
 
 -- | python
 evaluate :: String -> EitherTExec ASValue
@@ -49,11 +49,14 @@ evaluateRepl str = do
     -- write record
     replRecord <- lift $ getReplRecord Python
     lift $ writeReplRecord Python (replRecord ++ "\n" ++ recordCode)
-    -- perform eval
-    let parsed = execWrappedCode evalCode
-    -- rollback to previous repl state if eval failed
-    lift $ eitherT (onParseFailure replRecord) (onParseSuccess replRecord) parsed
-    parsed
+    -- perform eval, if there's something we actually need to return
+    if (evalCode /= "")
+        then do 
+            let parsed = execWrappedCode evalCode
+            -- rollback to previous repl state if eval failed
+            lift $ eitherT (onParseFailure replRecord) (onParseSuccess replRecord) parsed
+            parsed
+        else return NoValue
 
 -- | SQL
 evaluateSql :: String -> EitherTExec ASValue
