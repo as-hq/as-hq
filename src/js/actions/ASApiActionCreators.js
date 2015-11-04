@@ -14,6 +14,7 @@ let ActionTypes = Constants.ActionTypes;
 let wss = new ws(Util.getHostUrl());
 
 let currentCbs = undefined;
+let uiTestMode = false;
 let isRunningTest = false;
 let isRunningSyncTest = false;
 let refreshDialogShown = false;
@@ -34,7 +35,7 @@ let refreshDialogShown = false;
 */
 
 wss.onmessage = function (event) {
-  console.log("Client received data from server: "); // + JSON.stringify(event.data));
+  console.log("Client received data from server: ", JSON.stringify(event.data));
 
   if (event.data === 'ACK') return;
 
@@ -204,7 +205,7 @@ export default {
   initialize() {
     let msg = TC.makeClientMessage(Constants.ServerActions.Acknowledge,
                                           "PayloadInit",
-                                          {"connUserId": Store.getUserId(), 
+                                          {"connUserId": Store.getUserId(),
                                            "connSheetId": Store.getCurrentSheet().sheetId});
     console.log("Sending init message: " + JSON.stringify(msg));
     this.send(msg);
@@ -401,5 +402,13 @@ export default {
     isRunningSyncTest = true;
 
     f();
+  },
+
+  setUITestMode() {
+    uiTestMode = true;
+  },
+
+  unsetUITestMode() {
+    uiTestMode = false;
   }
 };

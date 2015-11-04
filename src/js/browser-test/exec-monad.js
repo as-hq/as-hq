@@ -1,5 +1,5 @@
 import _ from 'lodash';
-import Promise from 'bluebird';
+// import Promise from 'bluebird';
 
 export function empty() {
   return new Promise((fulfill, reject) => { fulfill(); });
@@ -65,8 +65,6 @@ export function _do([head, ...tail], lbl) {
 
   return head().then(_doDefer(tail, lbl), (failure) => {
     throw new Error('Monadic error: ' + failure);
-  }).catch((error) => {
-    throw error; // propagate up to top level
   });
 }
 

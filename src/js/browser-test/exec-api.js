@@ -296,3 +296,10 @@ export function shouldBeL(locs, vals) {
   });
 }
 
+export function setUITestMode() {
+  API.setUITestMode();
+}
+
+export function unsetUITestMode() {
+  API.unsetUITestMode();
+}

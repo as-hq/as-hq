@@ -334,7 +334,7 @@ export default React.createClass({
   // Handling events
 
   _onKeyDown(e){
-    // console.log("\n\nGRID KEYDOWN");
+    console.log("GRID KEYDOWN", e);
     e.persist(); // prevent react gc
     if (ShortcutUtils.gridShouldDeferKey(e)){ // not a nav key
       KeyUtils.killEvent(e);
