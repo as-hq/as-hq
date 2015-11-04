@@ -32,6 +32,14 @@ import Control.Monad.IO.Class(liftIO)
 
 import Data.Ord
 
+import Debug.Trace 
+
+-------------------------------------------------------------------------------------------------------------------------
+-- For debugging purposes only 
+
+trace' :: (Show a) => String -> a -> a
+trace' s x = trace (s ++ (show x)) x
+
 -------------------------------------------------------------------------------------------------------------------------
 -- Initializations
 

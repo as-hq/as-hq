@@ -143,8 +143,8 @@ leaf'    =  try (parens expr)
         <|> try arrayConst
         <|> try excelValue
         <|> try referenceIntersection
-        <|> try cellReference
         <|> try functionApplication
+        <|> try cellReference
         <|> blankValue
         <?> "simple expression"
 

@@ -652,12 +652,14 @@ getLambda (EValueS s) v = case (outerComparator s) of
     EValueS s' -> criteria s s'
     otherwise  -> False
   Just (f,cs) -> case (valParser cs) of
-    Nothing -> False -- couldn't parse matcher
-    Just v' -> f v v'
+    EValueS regex -> case v of 
+      EValueS s' -> criteria regex s'
+      otherwise  -> False
+    otherwise -> f v otherwise
 getLambda v1 v2 = v1 == v2
 
-valParser :: String -> Maybe EValue
-valParser s = either (\_ -> Nothing) (\(Basic (Var v)) -> Just v) $ parse excelValue "" s
+valParser :: String -> EValue
+valParser s = either (\_ -> EValueS s) (\(Basic (Var v)) -> v) $ parse excelValue "" s
 
 -- | Extracts a possible outer comparator and remaining string ; ">34" -> (>,"34")
 outerComparator :: String -> Maybe ((EValue -> EValue -> Bool),String)
@@ -784,10 +786,23 @@ eAddress c e = do
   if a1Bool -- A1 style reference
     then do
       ref <- refToString col row refType
-      valToResult $ EValueS $ sheet ++ ref
+      valToResult $ EValueS $ (getSheetPrefix sheet) ++ ref
     else do -- R1C1 style reference
-      let ref = "R"++(show row)++"C"++(intToCol col)
-      valToResult $ EValueS $ sheet ++ ref
+      ref <- refToStringRC col row refType
+        -- "R"++(show row)++"C"++(show col)
+      valToResult $ EValueS $ (getSheetPrefix sheet) ++ ref
+
+getSheetPrefix :: String -> String
+getSheetPrefix "" = ""
+getSheetPrefix s = s ++ "!"
+
+-- | Helper for address; produces $A$1 style string from col num, row num, and relative/absolute type
+refToStringRC :: Col -> Row -> Int -> ThrowsError String
+refToStringRC col row 1 = Right $ "R" ++ (show row) ++ "C" ++ (show col)
+refToStringRC col row 2 = Right $ "R" ++ (show row) ++ "C[" ++ (show col) ++ "]"
+refToStringRC col row 3 = Right $ "R[" ++ (show row) ++ "]C" ++ (show col)
+refToStringRC col row 4 = Right $ "R[" ++ (show row) ++ "]C[" ++ (show col) ++ "]"
+refToStringRC _ _ _ = Left $ VAL "Third argument of ADDRESS is invalid."
 
 -- | Helper for address; produces $A$1 style string from col num, row num, and relative/absolute type
 refToString :: Col -> Row -> Int -> ThrowsError String
@@ -797,10 +812,9 @@ refToString col row 3 = Right $ "$" ++ (intToCol col) ++ (show row)
 refToString col row 4 = Right $  (intToCol col)  ++ (show row)
 refToString _ _ _ = Left $ VAL "Third argument of ADDRESS is invalid."
 
--- | TODO: copy from somewhere
 -- | Given a column number, produce the column letter (3 -> C)
 intToCol :: Col -> String
-intToCol a = "A"
+intToCol = intToColStr -- from AS.Util
 
 -- | Returns the column of a reference; returns a matrix if the input is a range reference
 -- | If not in array formula mode, the eval function will automatically return only the top left
@@ -905,11 +919,21 @@ eMatch c e = do
   let matcher = getLambda lookupVal :: (EValue -> Bool)
   case lookupType of
     -- | Type 0 enables regex
-    0 -> case (V.findIndex matcher vec) of
+    0 -> case (V.findIndex matcher (trace' "match vector " vec)) of
       Nothing -> Left $ NA "No match found"
-      Just i -> valToResult $ EValueNum $ EValueI i
-    1 -> valToResult $ EValueNum $ EValueI $ V.maxIndex $ V.filter (<=lookupVal) vec
-    -1 -> valToResult $ EValueNum $ EValueI $ V.minIndex $ V.filter (>=lookupVal) vec
+      Just i -> valToResult $ EValueNum $ EValueI (i+1)
+    1 -> do 
+      let indices = (V.filter (<=lookupVal) (trace' "match vector " vec)) 
+      let desiredValue = V.maximum indices
+      if (V.null (trace' "indices 1 " indices))
+        then Left $ NA "No match found"
+        else valToResult $ EValueNum $ EValueI $ (fromJust (V.findIndex (==desiredValue) vec)) + 1
+    -1 -> do 
+      let indices = (V.filter (>=lookupVal) (trace' "match vector " vec)) 
+      let desiredValue = V.minimum indices
+      if (V.null (trace' "indices -1 " indices))
+        then Left $ NA "No match found"
+        else valToResult $ EValueNum $ EValueI $ (fromJust (V.findIndex (==desiredValue) vec)) + 1
     otherwise -> Left $ VAL $ "Last argument for MATCH must be -1,0, or 1 (default)"
 
 -- | Has a "reference mode" and a "value mode", currently only doing value mode
@@ -1220,7 +1244,7 @@ eMax c e = do
   v <- argsToNumVec e
   if (V.null v)
     then valToResult $ EValueNum $ EValueI 0
-    else valToResult $ EValueNum $ V.minimum v
+    else valToResult $ EValueNum $ V.maximum v
 
 eMedian :: EFunc
 eMedian c e = do
@@ -1300,13 +1324,15 @@ eCoVar c e = do
         then Left $ DIV0 -- Excel does this
         else doubleToResult $ covar v1 v2
 
+-- | Generic function for ranking. Second argument takes a "rank group" [(element,naive rank)] and returns [(element, actual rank)]
 genericRank ::  String -> ([(ENumeric,Int)] -> [(ENumeric,EValue)]) -> EFunc
 genericRank f rankGroup c e = do
   x <- getRequired "numeric" f 1 e :: ThrowsError ENumeric
   (EMatrix _ _ v) <- getRequired "matrix" f 2 e :: ThrowsError EMatrix
   order <- getOptional "int" 0 f 3 e :: ThrowsError Int
   let lst = V.toList $ filterNum v
-  let sorted = if (order == 0)
+  -- | In Excel, default is high to low
+  let sorted = if (order /= 0)
                  then sort lst
                  else reverse $ sort lst
   -- | Enumerate ranks, then group by equal ranks, then determine the common rank of each group, and concatenate
