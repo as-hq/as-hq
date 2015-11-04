@@ -154,6 +154,8 @@ export default React.createClass({
       this.setToast(extError, "ERROR");
       Store.setExternalError(null);
     }
+
+    Store.stopSuppressingErrors();
   },
 
   _onReplChange() {
