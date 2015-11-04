@@ -243,13 +243,8 @@ export default React.createClass({
     let {tl, br} = safeSelection.range;
     let {col, row} = safeSelection.origin;
 
-    let oldSel = Store.getActiveSelection(), oldRange, oldTl, oldBr;
-    if (oldSel) {
-        oldRange = oldSel.range;
-        oldTl = oldRange.tl;
-        oldBr = oldRange.br;
-    }
-  // make selection
+    let oldSel = Store.getActiveSelection();
+    // make selection
     let hg = this._getHypergrid(),
         originIsCorner = Util.originIsCornerOfSelection(safeSelection),
         c, r, dC, dR;
@@ -262,6 +257,8 @@ export default React.createClass({
       dC = (br.col - tl.col) * flipC;
       dR = (br.row - tl.row) * flipR;
     } else {
+      // sort of a hack. This will incorrectly change the location of the origin. 
+      // known source of bugs. E.g., ctrl+space on C3 and Ctrl+Up will take you to A1, not C1. (Alex 11/4)
       c = tl.col - 1;
       r = tl.row - 1;
       dC = br.col - tl.col;
@@ -284,9 +281,33 @@ export default React.createClass({
 
     // set scroll
     if (shouldScroll) {
-      let win = this.getViewingWindow().range;
-      let scrollH, scrollV;
+      let scroll = this._getNewScroll(oldSel, safeSelection); 
+      this.scrollTo(scroll.scrollH, scroll.scrollV);
+    }
 
+    this.repaint();
+    this.props.onSelectionChange(safeSelection);
+  },
+
+  _getNewScroll(oldSel, newSel) { 
+    let hg = this._getHypergrid(); 
+    let {tl, br} = newSel.range;
+    let {col, row} = newSel.origin;
+
+    let oldOrigin, oldRange, oldTl, oldBr;
+    if (oldSel) {
+        oldOrigin = oldSel.origin; 
+        oldRange = oldSel.range;
+        oldTl = oldRange.tl;
+        oldBr = oldRange.br;
+    }
+
+    let win = this.getViewingWindow().range;
+    let scrollH = hg.getHScrollValue(), scrollV = hg.getVScrollValue();
+
+    // I think this code is a little hacky; I haven't thought this through deeply to ensure that
+    // it works in all cases. It does work for ctrl shift arrows and ctrl arrows though. (Alex 11/3/15)
+    if (oldOrigin && oldOrigin.col == col && oldOrigin.row == row) {
       if (win.tl.row <= oldTl.row && oldTl.row <= win.br.row
           && (tl.row < win.tl.row || tl.row > win.br.row)) {
         // if the top left was in range before, and now isn't, scroll so that top left is at top now.
@@ -294,9 +315,7 @@ export default React.createClass({
       } else if (win.tl.row <= oldBr.row && oldBr.row <= win.br.row
                  && (br.row < win.tl.row || br.row > win.br.row)) {
         // ditto for bottom right
-        scrollV = hg.getVScrollValue() + br.row - win.br.row + 4;
-      } else {
-        scrollV = hg.getVScrollValue();
+        scrollV = hg.getVScrollValue() + br.row - win.br.row + 2; // for some reason it works better with the + 2
       }
 
       if (win.tl.col <= oldTl.col && oldTl.col <= win.br.col
@@ -305,15 +324,22 @@ export default React.createClass({
       } else if (win.tl.col <= oldBr.col && oldBr.col <= win.br.col
                  && (br.col < win.tl.col || br.col > win.br.col)) {
         scrollH = hg.getHScrollValue() + br.col - win.br.col;
-      } else {
-        scrollH = hg.getHScrollValue();
       }
+    } else if (oldOrigin) {
+      if (col < win.tl.col) { 
+        scrollH = col - 1; 
+      } else if (col > win.br.col) { 
+        scrollH = hg.getHScrollValue() + col - win.br.col; 
+      } 
 
-      this.scrollTo(scrollH, scrollV);
+      if (row < win.tl.row) { 
+        scrollV = row - 1; 
+      } else if (row > win.br.row) { 
+        scrollV = hg.getVScrollValue() + row - win.br.row  + 2; 
+      }
     }
 
-    this.repaint();
-    this.props.onSelectionChange(safeSelection);
+    return {scrollH: scrollH, scrollV: scrollV}; 
   },
 
   shiftSelectionArea(dc, dr) {

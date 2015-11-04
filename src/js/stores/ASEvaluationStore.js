@@ -102,7 +102,8 @@ const ASEvaluationStore = assign({}, BaseStore, {
         */
         case Constants.ActionTypes.FETCHED_CELLS:
           _data.lastUpdatedCells = [];
-          ASEvaluationStore.updateCells(action.newCells, true);
+          _data.shouldSuppressErrors = true; // don't show errors when fetching cells. will get set to false at end of emitChange()
+          ASEvaluationStore.updateCells(action.newCells);
           // console.log("Last updated cells: " + JSON.stringify(_data.lastUpdatedCells));
           ASEvaluationStore.emitChange();
           break;
@@ -301,11 +302,7 @@ const ASEvaluationStore = assign({}, BaseStore, {
   },
 
   /* Function to update cell related objects in store. Caller's responsibility to clear lastUpdatedCells if necessary */
-  updateCells(cells, suppressErrors) {
-    if (typeof(suppressErrors) == "undefined") suppressErrors = false;
-
-    _data.suppressErrors = suppressErrors;
-
+  updateCells(cells) {
     let removedCells = [];
     for (var key in cells){
       let c = cells[key],
@@ -485,9 +482,11 @@ const ASEvaluationStore = assign({}, BaseStore, {
 
   shouldSuppressErrors() {
     return _data.suppressErrors;
+  },
+
+  stopSuppressingErrors() {
+    _data.suppressErrors = false;
   }
-
-
 });
 
 

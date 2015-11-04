@@ -528,8 +528,8 @@ export default {
 
   originIsCornerOfSelection(sel) {
     let {origin, range: {tl, br}} = sel;
-    return (origin.row === tl.row && origin.col === tl.col) ||
-           (origin.row === br.row && origin.col === br.col);
+    return (origin.row === tl.row || origin.row == br.row) &&
+           (origin.col == tl.col || origin.col == br.col);
   },
 
   getSafeIndex(idx) {

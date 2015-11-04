@@ -198,8 +198,7 @@ export default {
     SU.add("grid", "moveto_data_boundary", "Ctrl+Up/Down/Left/Right", (dir) => {
       // Needs to work even when you're selecting references while typing in the textbox
       // grid, which is why we're getting the spreadsheet's selection rather than the store's.
-      // Might not be robust.
-      // let oldInd = Store.getActiveSelection().origin;
+      // Might not be robust. (Alex 11/4)
       let oldInd = self.refs.spreadsheet.getSelectionArea().origin;
       let newInd = Store.getDataBoundary(oldInd, dir);
       self.refs.spreadsheet.select(TC.indexToSelection(newInd));

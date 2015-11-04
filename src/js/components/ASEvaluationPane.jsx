@@ -154,6 +154,8 @@ export default React.createClass({
       this.setToast(extError, "ERROR");
       Store.setExternalError(null);
     }
+
+    Store.stopSuppressingErrors();
   },
 
   _onReplChange() {
@@ -463,11 +465,24 @@ export default React.createClass({
 
     let origin = Store.getActiveSelection().origin,
         asIndex = TC.simpleToASIndex(origin);
+
     if (moveCol !== null && moveRow !== null){
       console.log("Shifting selection area");
       this.refs.spreadsheet.shiftSelectionArea(moveCol, moveRow);
     }
-    API.evaluate(asIndex, xpObj);
+
+    // Only re-eval if the cell actually changed from before. 
+    let curCell = Store.getCell(origin.col, origin.row); 
+    if (!curCell) { 
+      if (xpObj.expression != "") {
+       API.evaluate(asIndex, xpObj);
+      }
+    } else {
+      let {expression, language} = curCell.cellExpression; 
+      if (expression != xpObj.expression || language != xpObj.language.Server) {
+        API.evaluate(asIndex, xpObj);
+      }
+    }
     this.setState({defaultLanguage: xpObj.language});
   },
 
