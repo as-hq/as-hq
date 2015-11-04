@@ -584,6 +584,14 @@ describe('backend', () => {
             exec(done)
           ]);
         });
+
+        it('should parse floating points correctly', (done) => {
+          _do([
+            excel('A1', '.25'),
+            shouldBe('A1', valueD(0.25)),
+            exec(done)
+          ]);
+        })
       });
 
       describe('ocaml', () => {

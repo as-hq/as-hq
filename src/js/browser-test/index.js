@@ -38,6 +38,8 @@ import ASEvaluationStore from '../stores/ASEvaluationStore';
 import Util from '../AS/Util';
 import KeyUtils from '../AS/KeyUtils';
 
+import Promise from 'bluebird';
+
 let evalPane;
 
 function spreadsheet() {
@@ -53,6 +55,7 @@ function generateKeyEvent(key) {
   return {
     persist() {},
     preventDefault() {},
+    stopPropagation() {},
     which: keyCode,
     ...keyEvent
   };
@@ -60,7 +63,7 @@ function generateKeyEvent(key) {
 
 function keyPress(key) {
   let evt = generateKeyEvent(key);
-  spreadsheet().handleKeyDown(evt);
+  spreadsheet()._onKeyDown(evt);
 }
 
 function mKeyPress(key) {
@@ -174,6 +177,10 @@ let tests = _describe('keyboard tests', {
         ),
         shouldBe('B1', valueI(1))
       ])
+    ]}),
+
+    _describe('undo and redo', { tests: [
+
     ]})
   ]
 });
@@ -182,6 +189,8 @@ export function install(w, ep) {
   evalPane = ep;
   w.test = tests;
   __injectExpect(expect);
+
+  Promise.config({ longStackTraces: true, warnings: true });
 
   /* needed for test success count */
   Promise.prototype.finally = function (callback) {

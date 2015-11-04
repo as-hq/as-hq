@@ -198,16 +198,19 @@ const ASExpStore = assign({}, BaseStore, {
   },
 
   updateOnBackendChange(cell){
-    if (cell !== null){
-      this.setExpression(cell.cellExpression.expression);
+    // Only do these changes if the user isn't typing (has evalled)
+    // Needed bc eval broadcasts to all users, but we don't want to do these things (like changing the expression) for all users
+    if (!this.getUserIsTyping()) {
+      if (cell !== null){
+        this.setExpression(cell.cellExpression.expression);
+      } else {
+        this.setExpression('');
+      }
+      this.setUserIsTyping(false);
+      this.setXpChangeOrigin(Constants.ActionTypes.BACKEND_UPDATED_AND_CELLS_CHANGED);
+      this.setLastRef(null);
+      this.emitChange();
     }
-    else {
-      this.setExpression('');
-    }
-    this.setUserIsTyping(false);
-    this.setXpChangeOrigin(Constants.ActionTypes.BACKEND_UPDATED_AND_CELLS_CHANGED);
-    this.setLastRef(null);
-    this.emitChange();
   }
 
 });
