@@ -183,6 +183,9 @@ export function noValue() {
 }
 
 export function equalValues(val1, val2) {
+  if (val1.tag == 'ValueD') {
+    return True
+  }
   return _.isEqual(val1, val2);
 }
 
