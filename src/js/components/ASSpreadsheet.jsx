@@ -305,7 +305,7 @@ export default React.createClass({
 
     // I think this code is a little hacky; I haven't thought this through deeply to ensure that
     // it works in all cases. It does work for ctrl shift arrows and ctrl arrows though. (Alex 11/3/15)
-    if (oldOrigin == newSel.origin) {
+    if (oldOrigin && oldOrigin.col == col && oldOrigin.row == row) {
       if (win.tl.row <= oldTl.row && oldTl.row <= win.br.row
           && (tl.row < win.tl.row || tl.row > win.br.row)) {
         // if the top left was in range before, and now isn't, scroll so that top left is at top now.
