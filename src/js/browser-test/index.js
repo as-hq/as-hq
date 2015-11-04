@@ -216,9 +216,7 @@ let tests = _describe('keyboard tests', {
 
     _describe('undo and redo', { tests: [
       _it('undoes a simple eval', [
-        logP('before python'),
         python('A1', '1'),
-        logP('after python'),
         waitForResponse(
           keyPress('Ctrl+Z')
         ),
