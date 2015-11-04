@@ -333,8 +333,10 @@ isListMember (Cell _ _ _ ts) = any id $ map (\t -> case t of
 mergeCells :: [ASCell] -> [ASCell] -> [ASCell]
 mergeCells c1 c2 = L.unionBy isColocated c1 c2
 
-blankCellsAt :: ASLanguage -> [ASIndex] -> [ASCell]
-blankCellsAt lang = map (\l -> Cell l (Expression "" lang) NoValue [])
+-- | Returns a list of blank cells at the given locations. For now, the language doesn't matter, 
+-- because blank cells sent to the frontend don't get their languages saved. 
+blankCellsAt :: [ASIndex] -> [ASCell]
+blankCellsAt = map (\l -> Cell l (Expression "" Excel) NoValue [])
 
 removeCell :: ASIndex -> [ASCell] -> [ASCell]
 removeCell idx = filter (((/=) idx) . cellLocation)

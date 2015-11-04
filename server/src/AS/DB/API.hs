@@ -120,7 +120,7 @@ deleteCells conn cells = deleteLocs conn $ map cellLocation cells
 deleteCellsPropagated :: Connection -> [ASCell] -> IO ()
 deleteCellsPropagated conn cells = do 
   deleteCells conn cells
-  setCellsAncestorsForce $ U.blankCellsAt Excel (map cellLocation cells)
+  setCellsAncestorsForce $ U.blankCellsAt (map cellLocation cells)
   let listKeys = nub $ catMaybes $ map DU.getCellListKey cells
   mapM_ (decoupleList conn) listKeys
 
