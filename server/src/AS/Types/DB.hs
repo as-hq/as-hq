@@ -9,8 +9,7 @@ import Data.Aeson hiding (Success)
 import Data.Text hiding (foldr, map)
 
 
-data ASTransaction = Transaction {transactionUserId :: ASUserId,
-                                  transactionSheetId :: ASSheetId,
+data ASTransaction = Transaction {transactionCommitSource :: CommitSource,
                                   roots :: [ASCell], 
                                   afterCells :: [ASCell],
                                   lists :: [ASList]}
