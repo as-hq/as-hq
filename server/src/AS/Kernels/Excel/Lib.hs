@@ -836,8 +836,6 @@ eIndirect c e = do
     Nothing -> Left $ REF "Indirect did not refer to valid reference as first argument"
     Just loc -> return $ EntityRef (ERef loc)
 
--- | TODO: finish
--- | Given boolean (True = A1, False = R1C1) and string, cast into ASLocation if possible (eg "A$1" -> Index (1,1))
 
 justExcelMatch :: Parser ExRef
 justExcelMatch = do 
@@ -853,6 +851,7 @@ r1c1 sid = do
   col <- many1 digit
   return $ IndexRef $ Index sid (read col :: Int, read row :: Int)
 
+-- | Given boolean (True = A1, False = R1C1) and string, cast into ASLocation if possible (eg "A$1" -> Index (1,1))
 stringToLoc :: Bool -> ASSheetId -> String -> Maybe ASReference
 stringToLoc True sid str = case parse justExcelMatch "" str of 
   Right exRef -> Just $ exRefToASRef sid exRef

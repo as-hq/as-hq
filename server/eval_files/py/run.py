@@ -22,17 +22,12 @@ def arr(lst):
 	return ASIterable(lst)
 
 def uniqueId():
-	print imagesPath
 	lstFiles = os.listdir(imagesPath)
-	print lstFiles
 	pythonImageFiles = filter(lambda s: s.startswith(imagePrefix),lstFiles)
-	print pythonImageFiles
 	pythonNumbers = map(lambda s: int(s[len(imagePrefix):-4]),pythonImageFiles)
-	print pythonNumbers
 	newNumber = 1
 	if len(pythonNumbers) > 0:
 		newNumber = max(pythonNumbers) + 1
-	print newNumber
 	return imagePrefix + str(newNumber) + ".png"
 
 result = "error"
@@ -43,22 +38,15 @@ result = "error"
 # if there exist any plots in the current environment.
 # a workaround would be to check the type of result before setting it to ValueImage.
 try:
-	print replFile
 	execfile(replFile)
-	result = 'test!'
+	result = 0
 	figures=[manager.canvas.figure for manager in matplotlib._pylab_helpers.Gcf.get_all_fig_managers()]
-	print figures
 	if len(figures) > 0:
 		uid = uniqueId()
-		print uid
 		filePath = imagesPath+uid
-		print filePath
 		figures[-1].savefig(filePath)
-		print "saved"
 		matplotlib._pylab_helpers.Gcf.destroy_all()
-		print "finish line"
 		result = {"imagePath":uid}
-	print result
 except Exception as e:
 	exc_type, exc_obj, exc_tb = exc_info()
 	fname = 'AlphaSheets Python evaluator'

@@ -205,18 +205,23 @@ recoupleList conn key = do
 -- | Deal with updating all DB-related things after an eval. 
 updateAfterEval :: Connection -> ASTransaction -> EitherTExec [ASCell]
 updateAfterEval conn (Transaction uid sid roots afterCells lists) = do
+  liftIO $ printWithTime "starting update after eval"
   let newListCells         = concat $ map snd lists
       afterCellsWithLists  = afterCells ++ newListCells
       cellLocs             = map cellLocation afterCellsWithLists
   beforeCells     <- lift $ catMaybes <$> getCells cellLocs
   listKeysChanged <- liftIO $ DU.getListIntersections conn sid cellLocs
+  liftIO $ printWithTime "got list key changes"
   decoupleResult  <- lift $ mapM (decoupleList conn) listKeysChanged
   let (coupledCells, decoupledCells) = U.liftListTuple decoupleResult
       afterCells'                    = U.mergeCells afterCellsWithLists decoupledCells
       beforeCells'                   = U.mergeCells beforeCells coupledCells
   liftIO $ setCells afterCells'
+  liftIO $ printWithTime "set cells"
   liftIO $ deleteCells conn (filter isEmptyCell afterCells')
+  liftIO $ printWithTime "delete cells"
   liftIO $ mapM_ (\(key, cells) -> setListLocations conn key (map cellLocation cells)) lists
+  liftIO $ printWithTime "set list locations"
   liftIO $ addCommit conn uid (beforeCells', afterCells')
   liftIO $ printWithTime "added commits"
   right afterCells'
