@@ -2,7 +2,7 @@ import {setTestMode, unsetTestMode} from '../AS/Logger';
 
 import _ from 'lodash';
 
-import {expect, registerExpectation, _describe, _it} from './test-framework';
+import {expect, registerExpectation, _describe, __describe, _it} from './test-framework';
 import {
   promise,
   exec,
@@ -56,6 +56,14 @@ function spreadsheet() {
 
 function hypergrid() {
   return spreadsheet()._getHypergrid();
+}
+
+function activeSelection() {
+  return ASEvaluationStore.getActiveSelection();
+}
+
+function activeRange() {
+  return activeSelection().range;
 }
 
 function generateKeyEvent(key) {
@@ -165,6 +173,13 @@ function blockOnGetCells(cs) {
   );
 }
 
+function shouldBeSelected(rng) {
+  return exec(() => {
+    rng = strictRange(rng);
+    expect(activeRange()).toBeSupersetOf(rangeFromExcel(rng));
+  });
+}
+
 function waitForResponse(act) {
   return promise((fulfill, reject) => {
     actionAPIResponse(act, fulfill)();
@@ -176,7 +191,7 @@ let hooks = {
 };
 
 
-let tests = _describe('keyboard tests', {
+let tests = __describe('keyboard tests', {
   beforeAll: [ // prfs
     exec(() => {
       evalPane.enableTestMode();
@@ -186,7 +201,6 @@ let tests = _describe('keyboard tests', {
   ],
 
   afterAll: [
-    logP('Winding down...'),
     exec(() => {
       evalPane.disableTestMode();
       unsetUITestMode();
@@ -232,7 +246,12 @@ let tests = _describe('keyboard tests', {
 
     _describe('selection shortcuts', { tests: [
       _describe('selecting cells with ctrl arrow', { tests: [
-
+        _it('selects down', [
+          python('A1', 'range(10)'),
+          selectRange('A1'),
+          keyPress('Ctrl+Shift+Down'),
+          shouldBeSelected('A1:A10')
+        ])
       ]})
     ]}),
 

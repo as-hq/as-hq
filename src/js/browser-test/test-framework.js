@@ -91,10 +91,7 @@ function runTestsWithCallbacks(tests, cbs) {
     beforeAll,
     tabbed(tests.map((test) =>
       _doDefer([
-        beforeEach, test, afterEach,
-        exec(() => {
-          logInfo(tabify(`${getSuccessCount()} tests passed of ${getTestCount()}`));
-        })
+        beforeEach, test, afterEach
       ])
     )),
     afterAll
@@ -167,5 +164,15 @@ export function _describe(name, {tests, ...cbs}) { // tests are either more desc
   return _liftT(_doDefer([
     exec(() => { logInfo(tabify(name)) }),
     runTestsWithCallbacks(tests, cbs, name)
+  ]));
+}
+
+export function __describe(name, {tests, ...cbs}) {
+  return _liftT(_doDefer([
+    exec(() => { logInfo(tabify(name)) }),
+    runTestsWithCallbacks(tests, cbs, name),
+    exec(() => {
+      logInfo(tabify(`${getSuccessCount()} tests passed of ${getTestCount()}`));
+    })
   ]));
 }

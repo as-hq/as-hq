@@ -382,10 +382,15 @@ export default {
   },
 
   updateViewingWindow(vWindow) {
-    let msg = TC.makeClientMessage(Constants.ServerActions.UpdateWindow,
-                                              "PayloadW",
-                                              vWindow);
-    this.send(msg);
+    if (!uiTestMode) {
+      // we cannot support viewing windows in UI test mode
+      // because they interfere with message synchronicity
+
+      let msg = TC.makeClientMessage(Constants.ServerActions.UpdateWindow,
+        "PayloadW",
+        vWindow);
+      this.send(msg);
+    }
   },
 
 
