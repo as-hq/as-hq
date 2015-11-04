@@ -12,6 +12,7 @@ dump.rdb
 server/Index*
 server/*.pid
 
+server/logs/*
 server/server_log
 server/client_messages
 

@@ -112,7 +112,7 @@ excelLang = LanguageDef
    , identStart      = letter <|> oneOf "_#" 
    , identLetter     = alphaNum <|> oneOf "_':!."
    , opStart         = opLetter emptyDef
-   , opLetter        = oneOf ":!#$%&*+./<=>?@\\^|-~"
+   , opLetter        = oneOf ":!#%&*+./<=>?@\\^|-~"
    , reservedOpNames = []
    , reservedNames   = []
    , caseSensitive   = True
@@ -139,12 +139,12 @@ stringLiteral = P.stringLiteral lexer
 
 -- | Terms (leafs of expressions).
 leaf' :: Parser Formula
-leaf'    =  parens expr
-        <|> arrayConst
+leaf'    =  try (parens expr)
+        <|> try arrayConst
         <|> try excelValue
         <|> try referenceIntersection
         <|> try cellReference
-        <|> functionApplication
+        <|> try functionApplication
         <|> blankValue
         <?> "simple expression"
 
@@ -258,16 +258,45 @@ bool = fmap readBool $ caseInsensitiveString "TRUE" <|> caseInsensitiveString "F
 str :: Parser String
 str = quotedString
 
+floatOrInteger :: Parser Double
+floatOrInteger = (try float') <|> (fromInteger <$> integer)
+
+float' :: Parser Double
+float' = 
+      (try float) 
+  <|> (try $ do {i <- integer; char '.'; return (fromInteger i)} )
+  <|> (try $ spaces >> char '.' >> integerToDecimal <$> integer)
+
+formattedFloat :: Parser Double
+formattedFloat = (try money) <|> (try percentage) <|> (try float')
+
+money :: Parser Double
+money = spaces >> char '$' >> floatOrInteger
+
+percentage :: Parser Double
+percentage = do
+  spaces
+  p <- floatOrInteger
+  char '%' >> spaces
+  return $ percentToDecimal p
+
+-- dirty, dirty hack to turn integer "123" into float "0.123"
+integerToDecimal :: Integer -> Double
+integerToDecimal i = read ("0." ++ (show i)) :: Double
+
+percentToDecimal :: Percent -> Double
+percentToDecimal p = p / 100
+
 excelValue :: Parser Formula
 excelValue = fmap (Basic . Var) $
-      try ((EValueNum . EValueD) <$> float)
+      try ((EValueNum . EValueD) <$> formattedFloat)
   <|> try ((EValueNum . EValueI . fromInteger) <$> integer)
   <|> try (EValueB <$> bool)
   <|> try (EValueS <$> str)
 
 numOrBool :: Parser Formula
 numOrBool = fmap (Basic . Var) $
-      try ((EValueNum . EValueD) <$> float)
+      try ((EValueNum . EValueD) <$> formattedFloat)
   <|> try ((EValueNum . EValueI . fromInteger) <$> integer)
   <|> try (EValueB <$> bool)
 

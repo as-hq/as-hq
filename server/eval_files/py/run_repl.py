@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import os
 filename = os.getcwd() + "/eval_files/py/repl_record.py"
 execfile(filename)
@@ -19,8 +18,8 @@ def arr(lst):
 	return ASIterable(lst)
 result = ""
 try:
-	penis=penis+penis
-	result = penis=penis+penis
+	bafoo(15)
+	result = bafoo(15)
 except Exception as e: 
 	exc_type, exc_obj, exc_tb = exc_info()
 	fname = 'AlphaSheets Python evaluator'
@@ -28,5 +27,3 @@ except Exception as e:
 	pos = exc_tb.tb_lineno - 20 # subtract template lines
 	errJson = {'errType': repr(exc_type), 'file': fname, 'position': pos, 'error': err}
 	result = errJson
-=======
->>>>>>> origin/WIP-anand

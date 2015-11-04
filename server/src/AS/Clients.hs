@@ -39,19 +39,24 @@ instance Client ASUserClient where
   conn = userConn
   clientId = sessionId
   ownerName = userId
+  clientSheetId (UserClient _ _ (Window sid _ _) _) = sid
   addClient uc s@(State ucs dcs dbc port)
     | uc `elem` ucs = s
     | otherwise = State (uc:ucs) dcs dbc port
   removeClient uc s@(State ucs dcs dbc port)
     | uc `elem` ucs = State (L.delete uc ucs) dcs dbc port
     | otherwise = s
+  clientCommitSource (UserClient uid _ (Window sid _ _) _) = (sid, uid)
   handleClientMessage user state message = do 
-    printWithTime ("\n\nMessage: " ++ (show $ message))
+    printWithTime ("\n\nMessage: " ++ (show message))
+    -- second arg is supposed to be sheet id; temporary hack is to always set userId = sheetId
+    -- on frontend. 
+    writeToLog (show message) (clientCommitSource user)
     redisConn <- dbConn <$> readMVar state
     recordMessage redisConn message
     case (clientAction message) of
       Acknowledge  -> handleAcknowledge user
-      New          -> handleNew state payload
+      New          -> handleNew user state payload
       Open         -> handleOpen user state payload
       Close        -> handleClose user state payload
       UpdateWindow -> handleUpdateWindow (sessionId user) state payload
@@ -82,12 +87,14 @@ instance Client ASDaemonClient where
   conn = daemonConn
   clientId = T.pack . DM.getDaemonName . daemonLoc
   ownerName = daemonOwner
+  clientSheetId (DaemonClient (Index sid _ ) _ _) = sid
   addClient dc s@(State ucs dcs dbc port)
     | dc `elem` dcs = s
     | otherwise = State ucs (dc:dcs) dbc port
   removeClient dc s@(State ucs dcs dbc port)
     | dc `elem` dcs = State ucs (L.delete dc dcs) dbc port
     | otherwise = s
+  clientCommitSource (DaemonClient (Index sid _ ) _ uid) = (sid, uid)
   handleClientMessage daemon state message = case (clientAction message) of
     Evaluate -> handleEval daemon state (clientPayload message)
 
@@ -97,16 +104,17 @@ instance Client ASDaemonClient where
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Sending message to user client(s)
 
-broadcast :: MVar ServerState -> ASServerMessage -> IO ()
-broadcast state message = do
+broadcast :: ASSheetId -> MVar ServerState -> ASServerMessage -> IO ()
+broadcast sid state message = do
   (State ucs _ _ _) <- readMVar state
-  forM_ ucs $ \(UserClient _ conn _ _) -> U.sendMessage message conn
+  let ucsOnSheet = filter (\uc -> clientSheetId uc == sid) ucs
+  forM_ ucsOnSheet $ \(UserClient _ conn _ _) -> U.sendMessage message conn
 
 sendBroadcastFiltered :: (Client c) => c -> MVar ServerState -> ASServerMessage -> IO ()
-sendBroadcastFiltered cl state msg@(ServerMessage _ (Failure e) _) = sendToOriginal cl msg     -- send error to original user only
-sendBroadcastFiltered _  state msg@(ServerMessage _ _ (PayloadCommit _)) = broadcast state msg -- broadcast all undo/redos (scrolling only refreshes non-undone cells)
-sendBroadcastFiltered _  state msg@(ServerMessage Clear _ _) = broadcast state msg             -- broadcast all clears for the same reason
--- sendBroadcastFiltered _  state msg@(ServerMessage Delete _ _) = broadcast state msg         -- no separate broadcast for delete anymore
+sendBroadcastFiltered cl state msg@(ServerMessage _ (Failure e) _) = sendToOriginal cl msg                        -- send error to original user only
+sendBroadcastFiltered cl state msg@(ServerMessage _ _ (PayloadCommit _)) = broadcast (clientSheetId cl) state msg -- broadcast all undo/redos (scrolling only refreshes non-undone cells)
+sendBroadcastFiltered cl state msg@(ServerMessage Clear _ _) = broadcast (clientSheetId cl) state msg             -- broadcast all clears for the same reason
+-- sendBroadcastFiltered _  state msg@(ServerMessage Delete _ _) = broadcast state msg                            -- no separate broadcast for delete anymore
 sendBroadcastFiltered _  state msg = liftIO $ do
   (State ucs _ _ _) <- readMVar state
   broadcastFiltered msg ucs
@@ -117,7 +125,7 @@ broadcastFiltered msg@(ServerMessage a r (PayloadCL cells)) users = mapM_ (sendC
   where
     sendCells :: [ASCell] -> ASUserClient -> IO ()
     sendCells cells user = do
-      let cells' = intersectViewingWindows cells (windows user)
+      let cells' = intersectViewingWindow cells (userWindow user)
       case cells' of
         [] -> return ()
         _ -> U.sendMessage (ServerMessage a r (PayloadCL cells')) (userConn user)
@@ -126,7 +134,7 @@ broadcastFiltered msg@(ServerMessage a r (PayloadLL locs)) users = mapM_ (sendLo
   where
     sendLocs :: [ASIndex] -> ASUserClient -> IO ()
     sendLocs locs user = do
-      let locs' = intersectViewingWindowsLocs locs (windows user)
+      let locs' = intersectViewingWindowLocs locs (userWindow user)
       case locs' of
         [] -> return ()
         _ -> U.sendMessage (ServerMessage a r (PayloadLL locs')) (userConn user)
@@ -141,47 +149,49 @@ sendToOriginal cl msg = U.sendMessage msg (conn cl)
 handleAcknowledge :: ASUserClient -> IO ()
 handleAcknowledge user = WS.sendTextData (userConn user) ("ACK" :: T.Text)
 
-handleNew :: MVar ServerState -> ASPayload -> IO ()
-handleNew state (PayloadWorkbookSheets (wbs:[])) = do
+handleNew :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
+handleNew user state (PayloadWorkbookSheets (wbs:[])) = do
   conn <- dbConn <$> readMVar state
   wbs' <- DB.createWorkbookSheet conn wbs
-  broadcast state $ ServerMessage New Success (PayloadWorkbookSheets [wbs'])
-handleNew state (PayloadWB wb) = do
+  broadcast (clientSheetId user) state $ ServerMessage New Success (PayloadWorkbookSheets [wbs'])
+handleNew user state (PayloadWB wb) = do
   conn <- dbConn <$> readMVar state
   wb' <- DB.createWorkbook conn (workbookSheets wb)
-  broadcast state $ ServerMessage New Success (PayloadWB wb')
+  broadcast (clientSheetId user) state $ ServerMessage New Success (PayloadWB wb')
   return () -- TODO determine whether users should be notified
 
 handleOpen :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
 handleOpen user state (PayloadS (Sheet sheetid _ _)) = US.modifyUser makeNewWindow user state
-  where makeNewWindow (UserClient uid conn windows sid) = UserClient uid conn ((Window sheetid (-1,-1) (-1,-1)):windows) sid
+  where makeNewWindow (UserClient uid conn _ sid) = UserClient uid conn startWindow sid
+        startWindow = Window sheetid (-1,-1) (-1,-1)
 
+-- Had relevance back when UserClients could have multiple windows, which never made sense anyway. 
+-- (Alex 11/3)
 handleClose :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
-handleClose user state (PayloadS (Sheet sheetid _ _)) = US.modifyUser closeWindow user state
-  where closeWindow (UserClient uid conn windows sid) = UserClient uid conn (filter (((/=) sheetid) . windowSheetId) windows) sid
+handleClose _ _ _ = return ()
+-- handleClose user state (PayloadS (Sheet sheetid _ _)) = US.modifyUser closeWindow user state
+--   where closeWindow (UserClient uid conn window sid) = UserClient uid conn (filter (((/=) sheetid) . windowSheetId) windows) sid
 
 handleUpdateWindow :: ClientId -> MVar ServerState -> ASPayload -> IO ()
-handleUpdateWindow sid state (PayloadW window) = do
+handleUpdateWindow sid state (PayloadW w) = do
   curState <- readMVar state
   let (Just user') = US.getUserByClientId sid curState -- user' is to get latest user on server; if this fails then somehow your connection isn't stored in the state
-  let maybeWindow = U.getWindow (windowSheetId window) user'
-  case maybeWindow of
-    Nothing -> putStrLn "ERROR: could not update nothing window" >> return ()
-    (Just oldWindow) -> (flip catch) (badCellsHandler $ dbConn curState) (do
-      let locs = U.getScrolledLocs oldWindow window
-      printObj "Sending locs" locs
-      mcells <- DB.getCells $ concat $ map rangeToIndices locs
-      sendToOriginal user' $ U.makeGetMessage (catMaybes mcells)
-      US.modifyUser (U.updateWindow window) user' state)
+  let oldWindow = userWindow user'
+  (flip catch) (badCellsHandler (dbConn curState) user') (do
+    let newLocs = U.getScrolledLocs oldWindow w
+    printObj "Sending newLocs" newLocs
+    mcells <- DB.getCells $ concat $ map rangeToIndices newLocs
+    sendToOriginal user' $ U.makeGetMessage (catMaybes mcells)
+    US.modifyUser (U.updateWindow w) user' state)
 
 -- | If a message is failing to parse from the server, undo the last commit (the one that added
 -- the message to the server.) I doubt this fix is completely foolproof, but it keeps data
 -- from getting lost and doesn't require us to manually reset the server. 
-badCellsHandler :: R.Connection -> SomeException -> IO ()
-badCellsHandler conn e = do 
+badCellsHandler :: R.Connection -> ASUserClient -> SomeException -> IO ()
+badCellsHandler conn user e = do 
   printWithTime ("Error while fetching cells: " ++ (show e))
   printWithTime "Undoing last commit"
-  DB.undo conn
+  DB.undo conn (clientCommitSource user)
   return ()
 
 handleImport :: MVar ServerState -> ASPayload -> IO ()
@@ -195,7 +205,7 @@ handleEval cl state payload  = do
   let cells = case payload of 
                 PayloadCL cells' -> cells'
   putStrLn $ "IN EVAL HANDLER"
-  msg' <- DP.runDispatchCycle state cells (ownerName cl)
+  msg' <- DP.runDispatchCycle state cells (clientCommitSource cl)
   sendBroadcastFiltered cl state msg'
 
 handleEvalRepl :: (Client c) => c -> MVar ServerState -> ASPayload -> IO ()
@@ -230,7 +240,7 @@ handleDelete :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
 handleDelete user state p@(PayloadWorkbookSheets (wbs:[])) = do
   conn <- dbConn <$> readMVar state
   DB.deleteWorkbookSheet conn wbs
-  broadcast state $ ServerMessage Delete Success p
+  broadcast (clientSheetId user) state $ ServerMessage Delete Success p
   return ()
 handleDelete user state p@(PayloadWB workbook) = do
   conn <- dbConn <$> readMVar state
@@ -243,7 +253,7 @@ handleDelete user state payload = do
                PayloadR rng -> rangeToIndices rng
   conn <- dbConn <$> readMVar state
   let blankedCells = U.blankCellsAt Python locs -- TODO set language appropriately 
-  msg <- DP.runDispatchCycle state blankedCells (userId user)
+  msg <- DP.runDispatchCycle state blankedCells (clientCommitSource user)
   sendBroadcastFiltered user state msg
 
 handleClear :: (Client c) => c  -> MVar ServerState -> IO ()
@@ -256,7 +266,7 @@ handleClear client state = do
 handleUndo :: ASUserClient -> MVar ServerState -> IO ()
 handleUndo user state = do
   conn <- dbConn <$> readMVar state
-  commit <- DB.undo conn
+  commit <- DB.undo conn (clientCommitSource user)
   msg <- case commit of
     Nothing -> return $ failureMessage "Too far back"
     (Just c) -> return $ ServerMessage Undo Success (PayloadCommit c)
@@ -266,7 +276,7 @@ handleUndo user state = do
 handleRedo :: ASUserClient -> MVar ServerState -> IO ()
 handleRedo user state = do
   conn <- dbConn <$> readMVar state
-  commit <- DB.redo conn
+  commit <- DB.redo conn (clientCommitSource user)
   msg <- case commit of
     Nothing -> return $ failureMessage "Too far forwards"
     (Just c) -> return $ ServerMessage Redo Success (PayloadCommit c)
@@ -277,7 +287,7 @@ handleCopy :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
 handleCopy user state (PayloadPaste from to) = do
   conn <- dbConn <$> readMVar state
   toCells <- getPasteCells conn from to
-  msg' <- DP.runDispatchCycle state toCells (userId user)
+  msg' <- DP.runDispatchCycle state toCells (clientCommitSource user)
   sendBroadcastFiltered user state msg'
 
 handleCut :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
@@ -286,7 +296,7 @@ handleCut user state (PayloadPaste from to) = do
   toCells <- getPasteCells conn from to
   let blankedCells = U.blankCellsAt Python (rangeToIndices from) -- TODO set actual language
       newCells = U.mergeCells toCells blankedCells -- content in pasted cells take precedence over deleted cells
-  msg' <- DP.runDispatchCycle state newCells (userId user)
+  msg' <- DP.runDispatchCycle state newCells (clientCommitSource user)
   sendBroadcastFiltered user state msg'
 
 -- same without checking. This might be broken.

@@ -38,6 +38,8 @@ import AS.DB.Util as DBU
 
 import AS.Kernels.Python.Eval as KP
 import AS.Kernels.LanguageUtils as KL
+import AS.Kernels.Excel.Compiler as KE
+import Text.ParserCombinators.Parsec (parse)
 
 -- EitherT
 import Control.Monad.Trans.Class
@@ -92,7 +94,8 @@ initApp = do
 
 -- | Initializes database with sheets, etc. for debugging mode. Only called if isDebug is true.
 initDebug :: R.Connection -> IO ()
-initDebug conn = return ()
+initDebug conn = do
+  return ()
 
 application :: MVar ServerState -> WS.ServerApp
 application state pending = do
@@ -103,7 +106,7 @@ application state pending = do
 handleFirstMessage ::  MVar ServerState -> WS.Connection -> B.ByteString -> IO ()
 handleFirstMessage state conn msg =
   case (decode msg :: Maybe ASClientMessage) of
-    Just m@(ClientMessage Acknowledge (PayloadInit (ASInitConnection _))) -> do -- first mesage is user init
+    Just m@(ClientMessage Acknowledge (PayloadInit (ASInitConnection _ _))) -> do -- first mesage is user init
       user <- initUserFromMessageAndConn m conn
       if (isDebug && shouldPreprocess) then (preprocess user state) else (return ())
       catch (initClient user state) (handleRuntimeException user state)
@@ -146,7 +149,9 @@ talk client state = forever $ do
 
 handleRuntimeException :: ASUserClient -> MVar ServerState -> SomeException -> IO ()
 handleRuntimeException user state e = do
-  putStrLn ("Runtime error caught: " ++ (show e))
+  let logMsg = "Runtime error caught: " ++ (show e)
+  putStrLn logMsg
+  writeToLog ("#ERROR: " ++ logMsg) (clientCommitSource user)
   port <- appPort <$> readMVar state
   WS.runServer S.wsAddress port $ application state
 

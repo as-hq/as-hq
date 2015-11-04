@@ -29,9 +29,14 @@ import Control.Monad.Trans.Either
 
 type ASSheetId = Text
 data ASSheet = Sheet {sheetId :: ASSheetId, sheetName :: String, sheetPermissions :: ASPermissions} deriving (Show, Read, Eq, Generic)
+
+-- should probably be a list of ASSheet's rather than ASSheetId's. 
 data ASWorkbook = Workbook {workbookName :: String, workbookSheets :: [ASSheetId]} deriving (Show, Read, Eq, Generic)
 
+-- this type needs to be refactored away. It's used in a frontend API in basically exactly the
+-- same way that ASWorkbook is supposed to be used. (Alex 11/3) 
 data WorkbookSheet = WorkbookSheet {wsName :: String, wsSheets :: [ASSheet]} deriving (Show, Read, Eq, Generic)
+
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Core cell types
 
@@ -94,6 +99,8 @@ data ASValue =
   | RList [(RListKey, ASValue)]
   | RDataFrame [ASValue]
   deriving (Show, Read, Eq, Generic)
+
+type Percent = Double
 
 type RListKey = String
 
@@ -218,12 +225,12 @@ data ASTime = Time {day :: String, hour :: Int, minute :: Int, sec :: Int} deriv
 
 type ASRelation = (ASIndex, [ASIndex]) -- for representing ancestry relationships
 
-data ASCommit = ASCommit {commitUserId :: ASUserId,
-                          before :: [ASCell],
+data ASCommit = ASCommit {before :: [ASCell],
                           after :: [ASCell],
                           time :: ASTime}
                           deriving (Show,Read,Eq,Generic)
 
+type CommitSource = (ASSheetId, ASUserId)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Eval Types
@@ -256,7 +263,7 @@ type RefValMap = M.Map ASReference ASValue
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Websocket types
 
-data ASInitConnection = ASInitConnection {connUserId :: ASUserId} deriving (Show,Read,Eq,Generic)
+data ASInitConnection = ASInitConnection {connUserId :: ASUserId, connSheetId :: ASSheetId} deriving (Show,Read,Eq,Generic)
 data ASInitDaemonConnection = ASInitDaemonConnection {parentUserId :: ASUserId, initDaemonLoc :: ASIndex} deriving (Show,Read,Eq,Generic)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
@@ -273,9 +280,11 @@ type ClientId = Text
 class Client c where
   conn :: c -> WS.Connection
   clientId :: c -> ClientId
+  clientSheetId :: c -> ASSheetId
   ownerName :: c -> ASUserId
   addClient :: c -> ServerState -> ServerState
   removeClient :: c -> ServerState -> ServerState
+  clientCommitSource :: c -> CommitSource
   handleClientMessage :: c -> MVar ServerState -> ASClientMessage -> IO ()
 
 data ASRecipients = Original | All | Custom [ASUserClient]
@@ -285,7 +294,7 @@ data ASRecipients = Original | All | Custom [ASUserClient]
 
 data ASWindow = Window {windowSheetId :: ASSheetId, topLeft :: Coord, bottomRight :: Coord} deriving (Show,Read,Eq,Generic)
 type ASUserId = Text
-data ASUserClient = UserClient {userId :: ASUserId, userConn :: WS.Connection, windows :: [ASWindow], sessionId :: ClientId}
+data ASUserClient = UserClient {userId :: ASUserId, userConn :: WS.Connection, userWindow :: ASWindow, sessionId :: ClientId}
 
 instance Eq ASUserClient where
   c1 == c2 = (sessionId c1) == (sessionId c2)
@@ -331,10 +340,6 @@ dbl (ValueD d) = d
 
 failureMessage :: String -> ASServerMessage
 failureMessage s = ServerMessage NoAction (Failure s) (PayloadN ())
-
-initialViewingWindow :: ASWindow
-initialViewingWindow = Window "testSheetId" (0, 0) (100, 100)
--- TODO generate Unique sheet id
 
 openPermissions :: ASPermissions
 openPermissions = Blacklist []

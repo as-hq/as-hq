@@ -204,25 +204,20 @@ recoupleList conn key = do
 
 -- | Deal with updating all DB-related things after an eval. 
 updateAfterEval :: Connection -> ASTransaction -> EitherTExec [ASCell]
-updateAfterEval conn (Transaction uid sid roots afterCells lists) = do
-  liftIO $ printWithTime "starting update after eval"
+updateAfterEval conn (Transaction src@(sid, _) roots afterCells lists) = do
   let newListCells         = concat $ map snd lists
       afterCellsWithLists  = afterCells ++ newListCells
       cellLocs             = map cellLocation afterCellsWithLists
   beforeCells     <- lift $ catMaybes <$> getCells cellLocs
   listKeysChanged <- liftIO $ DU.getListIntersections conn sid cellLocs
-  liftIO $ printWithTime "got list key changes"
   decoupleResult  <- lift $ mapM (decoupleList conn) listKeysChanged
   let (coupledCells, decoupledCells) = U.liftListTuple decoupleResult
       afterCells'                    = U.mergeCells afterCellsWithLists decoupledCells
       beforeCells'                   = U.mergeCells beforeCells coupledCells
   liftIO $ setCells afterCells'
-  liftIO $ printWithTime "set cells"
   liftIO $ deleteCells conn (filter isEmptyCell afterCells')
-  liftIO $ printWithTime "delete cells"
   liftIO $ mapM_ (\(key, cells) -> setListLocations conn key (map cellLocation cells)) lists
-  liftIO $ printWithTime "set list locations"
-  liftIO $ addCommit conn uid (beforeCells', afterCells')
+  liftIO $ addCommit conn (beforeCells', afterCells') src
   liftIO $ printWithTime "added commits"
   right afterCells'
 
@@ -244,55 +239,62 @@ setCellsAncestorsForce cells = do
   return ()
 
 -- | Creates and pushes a commit to the DB
-addCommit :: Connection -> ASUserId -> ([ASCell], [ASCell]) -> IO ()
-addCommit conn uid (b,a) = do
+addCommit :: Connection -> ([ASCell], [ASCell]) -> CommitSource -> IO ()
+addCommit conn (b,a) src = do
   time <- getASTime
-  let commit = ASCommit uid b a time
-  pushCommit conn commit
+  let commit = ASCommit b a time
+  pushCommit conn commit src
   --putStrLn $ show commit
+
+-- Slightly 
+pushKey :: CommitSource -> BS.ByteString
+pushKey (sid, uid) = B.pack $ (T.unpack sid) ++ '|':(T.unpack uid) ++ "pushed"
+
+popKey :: CommitSource -> BS.ByteString
+popKey (sid, uid)  = B.pack $ (T.unpack sid) ++ '|':(T.unpack uid) ++ "popped"
 
 -- | Return a commit if possible (not possible if you undo past the beginning of time, etc)
 -- | Update the DB so that there's always a source of truth (ie we will initEval undo to all relevant users)
-undo :: Connection -> IO (Maybe ASCommit)
-undo conn = do
+undo :: Connection -> CommitSource -> IO (Maybe ASCommit)
+undo conn src = do
   commit <- runRedis conn $ do
     TxSuccess justC <- multiExec $ do
-      commit <- rpoplpush "pushed" "popped"
+      commit <- rpoplpush (pushKey src) (popKey src)
       return commit
     return $ DU.bStrToASCommit justC
   case commit of
     Nothing -> return Nothing
-    Just c@(ASCommit uid b a t) -> do
+    Just c@(ASCommit b a t) -> do
       deleteCellsPropagated conn a
       setCellsPropagated conn b
       -- mapM_ (recoupleList conn) listKeys
       return $ Just c
 
-redo :: Connection -> IO (Maybe ASCommit)
-redo conn = do
+redo :: Connection -> CommitSource -> IO (Maybe ASCommit)
+redo conn src = do
   commit <- runRedis conn $ do
-    Right result <- lpop "popped"
+    Right result <- lpop (popKey src)
     case result of
       (Just commit) -> do
-        rpush "pushed" [commit]
+        rpush (pushKey src) [commit]
         return $ DU.bStrToASCommit (Just commit)
       _ -> return Nothing
   case commit of
     Nothing -> return Nothing
-    Just c@(ASCommit uid b a t) -> do
+    Just c@(ASCommit b a t) -> do
       deleteCellsPropagated conn b
       setCellsPropagated conn a
       -- mapM_ (decoupleList conn) listKeys
       return $ Just c
 
-pushCommit :: Connection -> ASCommit -> IO ()
-pushCommit conn c = do
+pushCommit :: Connection -> ASCommit -> CommitSource -> IO ()
+pushCommit conn c src = do
   let commit = (B.pack . show) c
   runRedis conn $ do
     TxSuccess _ <- multiExec $ do
-      rpush "pushed" [commit]
+      rpush (pushKey src) [commit]
       incrbyfloat "numCommits" 1
-      del ["popped"]
+      del [popKey src]
     return ()
 
 ----------------------------------------------------------------------------------------------------------------------

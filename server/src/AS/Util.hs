@@ -39,9 +39,9 @@ initDaemonFromMessageAndConn :: ASClientMessage -> WS.Connection -> ASDaemonClie
 initDaemonFromMessageAndConn (ClientMessage _ (PayloadDaemonInit (ASInitDaemonConnection uid loc))) c = DaemonClient loc c uid
 
 initUserFromMessageAndConn :: ASClientMessage -> WS.Connection -> IO ASUserClient
-initUserFromMessageAndConn (ClientMessage _ (PayloadInit (ASInitConnection uid))) c = do
+initUserFromMessageAndConn (ClientMessage _ (PayloadInit (ASInitConnection uid sid))) c = do
     time <- getTime
-    return $ UserClient uid c [initialViewingWindow] $ T.pack ((show uid) ++ (show time))
+    return $ UserClient uid c (Window sid (-1,-1) (-1,-1)) $ T.pack ((show uid) ++ (show time))
 
 --------------------------------------------------------------------------------------------------------------
 -- Misc
@@ -216,6 +216,7 @@ generateErrorMessage e = case e of
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Time
+
 getTime :: IO String
 getTime = do 
   t <- getCurrentTime
@@ -224,15 +225,28 @@ getTime = do
 serverLogPath :: IO String
 serverLogPath = do
   mainDir <- getCurrentDirectory
-  return $ mainDir </> "server_log"
+  return $ mainDir </> "logs/server_log"
 
 printWithTime :: String -> IO ()
 printWithTime str = do
   time <- getTime
   let disp = "[" ++ time ++ "] " ++ str
   putStrLn (truncated disp)
+
+appendFile' :: String -> String -> IO ()
+appendFile' fname msg = catch (appendFile fname msg) (\e -> putStrLn $ ("Error writing to log: " ++ show (e :: SomeException)))  
+
+writeToLog :: String -> CommitSource -> IO ()
+writeToLog str (sid, uid) = do 
+  -- first, write to master to log
+  let sid' = T.unpack sid
+      uid' = T.unpack uid
+      loggedStr = '\n':str ++ "\n# SHEET_ID: " ++ sid' ++ "\n# USER_ID: " ++ uid'
   serverLog <- serverLogPath
-  catch (appendFile serverLog ('\n':disp)) (\e -> putStrLn $ ("Error writing to log: " ++ show (e :: SomeException)))
+  appendFile' serverLog loggedStr
+  -- then write to individual log for the sheet
+  let serverLog' = serverLog ++ sid'
+  appendFile' serverLog' ('\n':str)
 
 printWithTimeT :: String -> EitherTExec ()
 printWithTimeT = lift . printWithTime
@@ -264,22 +278,18 @@ getUniqueId = return . U.toString =<< nextRandom
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- viewing windows
 
-intersectViewingWindows :: [ASCell] -> [ASWindow] -> [ASCell]
-intersectViewingWindows cells vws = concat $ map (intersectViewingWindow cells) vws
+intersectViewingWindow :: [ASCell] -> ASWindow -> [ASCell]
+intersectViewingWindow cells vw = filter (inViewingWindow vw) cells
   where
-    intersectViewingWindow :: [ASCell] -> ASWindow -> [ASCell]
-    intersectViewingWindow cells vw = filter (inViewingWindow vw) cells
     inViewingWindow :: ASWindow -> ASCell -> Bool
     inViewingWindow (Window wSheetId (tlc, tlr) (brc, brr)) (Cell (Index cSheetId (col,row)) _ _ _) = ((wSheetId==cSheetId) && (inRange col tlc (brc-tlc)) && (inRange row tlr (brr-tlr)))
     inRange :: Int -> Int -> Int -> Bool
     inRange elem start len = ((elem >= start) && (elem <= (start + len)))
 
 -- new function, so that we don't have to do the extra filter/lookup by using just one
-intersectViewingWindowsLocs :: [ASIndex] -> [ASWindow] -> [ASIndex]
-intersectViewingWindowsLocs locs vws = concat $ map (intersectViewingWindow locs) vws
+intersectViewingWindowLocs :: [ASIndex] -> ASWindow -> [ASIndex]
+intersectViewingWindowLocs locs vw = filter (inViewingWindow vw) locs
   where
-    intersectViewingWindow :: [ASIndex] -> ASWindow -> [ASIndex]
-    intersectViewingWindow locs vw = filter (inViewingWindow vw) locs
     inViewingWindow :: ASWindow -> ASIndex -> Bool
     inViewingWindow (Window wSheetId (tlc, tlr) (brc, brr)) (Index cSheetId (col,row)) =
       ((wSheetId==cSheetId) && (inRange col tlc (brc-tlc)) && (inRange row tlr (brr-tlr)))
@@ -287,11 +297,7 @@ intersectViewingWindowsLocs locs vws = concat $ map (intersectViewingWindow locs
     inRange elem start len = ((elem >= start) && (elem <= (start + len)))
 
 updateWindow :: ASWindow -> ASUserClient -> ASUserClient
-updateWindow window (UserClient uid conn windows sid) = UserClient uid conn windows' sid
-    where windows' = flip map windows (\w -> if (windowSheetId w) == (windowSheetId window) then window else w)
-
-getWindow :: ASSheetId -> ASUserClient -> Maybe ASWindow
-getWindow sheetid user = lookupLambda windowSheetId sheetid (windows user)
+updateWindow w (UserClient uid conn _ sid) = UserClient uid conn w sid
 
 -- | Computes set difference of window 2 minus window 1. Represented as a union of ASRange's. 
 getScrolledLocs :: ASWindow -> ASWindow -> [ASRange]
@@ -300,7 +306,7 @@ getScrolledLocs w1@(Window _ (y,x) (y2,x2)) w2@(Window sheetid tl@(y',x') br@(y2
   | windowsIntersect w1 w2 = getUncoveredLocs sheetid overlapping (tl, br)
   | otherwise = [(Range sheetid (tl, br))]
     where overlapping = ((max y y', max x x'), (min y2 y2', min x2 x2'))
-          windowsIntersect (Window _ (y,x) (y2,x2)) (Window sheetid (y',x') (y2',x2'))
+          windowsIntersect (Window _ (y,x) (y2,x2)) (Window _ (y',x') (y2',x2'))
             | y2 > y' = False 
             | y < y2' = False
             | x2 < x' = False 
@@ -315,9 +321,6 @@ getUncoveredLocs sheet (tlo, bro) (tlw, brw) = [Range sheet corners | corners <-
       tro = (col bro, row tlo)
       blo = (col tlo, row bro)
       cs = [(tlw, tro), (trw, bro), (brw, blo), (blw, tlo)]
-
-getAllUserWindows :: ServerState -> [(ASUserId, [ASWindow])]
-getAllUserWindows state = map (\u -> (userId u, windows u)) (userClients state)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Cells
