@@ -1,10 +1,13 @@
+import {setTestMode, unsetTestMode} from '../AS/Logger';
+
 import _ from 'lodash';
 
-import {expect, registerExpectation, _describe, _it} from './test-framework';
+import {expect, registerExpectation, _describe, __describe, _it} from './test-framework';
 import {
   promise,
   exec,
   logP,
+  fromToInclusive,
   _do,
   _doDefer,
   _forM_,
@@ -30,15 +33,20 @@ import {
   redo,
 
   shouldBe,
+  shouldBeNothing,
+  shouldBeL,
 
-  actionAPIResponse
+  actionAPIResponse,
+
+  setUITestMode,
+  unsetUITestMode
 } from './exec-api';
 
 import ASEvaluationStore from '../stores/ASEvaluationStore';
 import Util from '../AS/Util';
 import KeyUtils from '../AS/KeyUtils';
 
-import Promise from 'bluebird';
+// import Promise from 'bluebird';
 
 let evalPane;
 
@@ -50,28 +58,48 @@ function hypergrid() {
   return spreadsheet()._getHypergrid();
 }
 
+function activeSelection() {
+  return ASEvaluationStore.getActiveSelection();
+}
+
+function activeRange() {
+  return activeSelection().range;
+}
+
 function generateKeyEvent(key) {
   let {keyCode, ...keyEvent} = KeyUtils.parseIntoShortcut({}, key);
+  let patchedKeyEvent = {
+    ctrlKey: false,
+    shiftKey: false,
+    altKey: false,
+    metaKey: false,
+    ...keyEvent
+  };
+
   return {
     persist() {},
     preventDefault() {},
     stopPropagation() {},
     which: keyCode,
-    ...keyEvent
+    ...patchedKeyEvent
   };
 }
 
 function keyPress(key) {
   let evt = generateKeyEvent(key);
-  spreadsheet()._onKeyDown(evt);
+  return exec(() => { spreadsheet()._onKeyDown(evt) });
 }
 
 function mKeyPress(key) {
-  return () => exec(() => { keyPress(key); });
+  return () => keyPress(key);
 }
 
-let [ ] =
-  [ ].map(mKeyPress); /* future key shortcuts go here, for example Ctrl+Z */
+function keyPresses(str) {
+  return _forM_(str.split(''), keyPress);
+}
+
+let [ pressUndo ] =
+  [ 'Ctrl+Z' ].map(mKeyPress); /* future key shortcuts go here, for example Ctrl+Z */
 
 function pressCopy() {
   return exec(() => {
@@ -98,11 +126,25 @@ function pressPaste() {
   });
 }
 
-function selectRange(excelRng, excelOrigin) {
+function strictRange(excelRng) {
+  return excelRng.includes(':') ? excelRng : `${excelRng}:${excelRng}`;
+}
+
+function selectRange(excelRng, excelOrigin='') {
+  excelRng = strictRange(excelRng);
+  if (excelOrigin === '') {
+    [excelOrigin] = excelRng.split(':');
+  }
+
   return exec(() => {
     let hgRange = Util.excelToRange(excelRng),
         hgOrigin = Util.excelToRange(excelOrigin);
-    spreadsheet().select({range: hgRange, origin: hgOrigin.tl});
+
+    // shouldn't scroll, so second parameter is false
+    // this is to prevent updateViewingWindow from interfering with callbacks
+    // and WS responses desyncing from actions
+
+    spreadsheet().select({range: hgRange, origin: hgOrigin.tl}, false);
   });
 }
 
@@ -116,6 +158,7 @@ function formatTestCellToStore() {
 
 /* block until the range registers the new selection */
 function blockUntilCopy(rng) {
+  rng = strictRange(rng);
   return blockUntil(() => {
     return _.isEqual(clipboardRange(), rangeFromExcel(rng));
   });
@@ -130,6 +173,13 @@ function blockOnGetCells(cs) {
   );
 }
 
+function shouldBeSelected(rng) {
+  return exec(() => {
+    rng = strictRange(rng);
+    expect(activeRange()).toBeSupersetOf(rangeFromExcel(rng));
+  });
+}
+
 function waitForResponse(act) {
   return promise((fulfill, reject) => {
     actionAPIResponse(act, fulfill)();
@@ -141,19 +191,24 @@ let hooks = {
 };
 
 
-let tests = _describe('keyboard tests', {
+let tests = __describe('keyboard tests', {
   beforeAll: [ // prfs
-    logP('Initializing tests...'),
-    exec(() => { evalPane.enableTestMode(); })
+    exec(() => {
+      evalPane.enableTestMode();
+      setUITestMode();
+      setTestMode();
+    })
   ],
 
   afterAll: [
-    logP('Winding down...'),
-    exec(() => { evalPane.disableTestMode(); })
+    exec(() => {
+      evalPane.disableTestMode();
+      unsetUITestMode();
+      unsetTestMode();
+    })
   ],
 
   beforeEach: [
-    logP('Clearing sheet...'),
     clear()
   ],
 
@@ -161,17 +216,17 @@ let tests = _describe('keyboard tests', {
     _describe('copy and paste', { tests: [
       _it('should copy a cell', [
         python('A1', '1'),
-        selectRange('A1:A1', 'A1'),
+        selectRange('A1'),
         pressCopy(),
-        blockUntilCopy('A1:A1') /* don't finish the test until it actually stores in clipboard */
+        blockUntilCopy('A1')
       ]),
 
       _it('should copy and paste a cell', [
         python('A1', '1'),
-        selectRange('A1:A1', 'A1'),
+        selectRange('A1'),
         pressCopy(),
-        blockUntilCopy('A1:A1'),
-        selectRange('B1:B1', 'B1'),
+        blockUntilCopy('A1'),
+        selectRange('B1'),
         waitForResponse(
           pressPaste()
         ),
@@ -180,7 +235,39 @@ let tests = _describe('keyboard tests', {
     ]}),
 
     _describe('undo and redo', { tests: [
+      _it('undoes a simple eval', [
+        python('A1', '1'),
+        waitForResponse(
+          keyPress('Ctrl+Z')
+        ),
+        shouldBeNothing('B1')
+      ])
+    ]}),
 
+    _describe('selection shortcuts', { tests: [
+      _describe('selecting cells with ctrl arrow', { tests: [
+        _it('selects down', [
+          python('A1', 'range(10)'),
+          selectRange('A1'),
+          keyPress('Ctrl+Shift+Down'),
+          shouldBeSelected('A1:A10')
+        ])
+      ]})
+    ]}),
+
+    _describe('replication shortcuts', { tests: [
+      _it('duplicating cells with ctrl d', [
+        python('A1', 'range(5)'),
+        python('B1', 'A1 + 1'),
+        selectRange('B1:B5'),
+        waitForResponse(
+          keyPress('Ctrl+D')
+        ),
+        shouldBeL(
+          fromToInclusive(1, 5).map((i) => `B${i}`),
+          fromToInclusive(1, 5).map(valueI)
+        )
+      ])
     ]})
   ]
 });
@@ -190,7 +277,8 @@ export function install(w, ep) {
   w.test = tests;
   __injectExpect(expect);
 
-  Promise.config({ longStackTraces: true, warnings: true });
+  /* only do this with bluebird */
+  // Promise.config({ longStackTraces: true, warnings: true });
 
   /* needed for test success count */
   Promise.prototype.finally = function (callback) {

@@ -1,3 +1,5 @@
+import {logDebug} from '../AS/Logger';
+
 import Dispatcher from '../Dispatcher';
 import Constants from '../Constants';
 import BaseStore from './BaseStore';
@@ -35,7 +37,7 @@ let _data = {
 const ASExpStore = assign({}, BaseStore, {
 
   dispatcherIndex: Dispatcher.register(function (action) {
-    console.log("Exp Store detected dispatcher payload");
+    logDebug("Exp Store detected dispatcher payload");
     switch (action.type) {
       case Constants.ActionTypes.GRID_KEY_PRESSED:
       case Constants.ActionTypes.EDITOR_CHANGED:
@@ -58,7 +60,7 @@ const ASExpStore = assign({}, BaseStore, {
         ASExpStore.updatePartialRef(action.type,action.xpStr,action.excelStr);
         break;
       case Constants.ActionTypes.ESC_PRESSED:
-        console.log("Exp store found ESC");
+        logDebug("Exp store found ESC");
         ASExpStore.setExpression("");
         ASExpStore.setUserIsTyping(false);
         ASExpStore.setXpChangeOrigin(action.type);
@@ -176,7 +178,7 @@ const ASExpStore = assign({}, BaseStore, {
     this.setExpression(xpStr);
     this.setLastRef(null); // no longer have a "last ref"
     let deps = Util.parseDependencies(xpStr);
-    console.log("DEPS: " + JSON.stringify(deps));
+    logDebug("DEPS: " + JSON.stringify(deps));
     Store.setActiveCellDependencies(deps);
     this.emitChange();
   },

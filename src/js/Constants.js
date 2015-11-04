@@ -1,4 +1,4 @@
-import keyMirror from 'react/lib/keyMirror';
+import keyMirror from 'keymirror';
 
 export const HOST_BASE_URL = 'localhost';
 export const HOST_WS_PORT = 5000;
@@ -10,7 +10,7 @@ export default {
 
   isDebug: false,
 
-  isTesting: false,
+  isTesting: true,
 
   // event name triggered from store, listened to by views
   CHANGE_EVENT: 'change',

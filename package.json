@@ -84,6 +84,7 @@
     "karma-phantomjs-launcher": "^0.2.1",
     "karma-webpack": "^1.7.0",
     "keymaster": "~1.6.2",
+    "keymirror": "^0.1.1",
     "lodash": "^3.9.3",
     "main-bower-files": "^2.9.0",
     "material-ui": "^0.10.1",

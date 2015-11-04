@@ -1,3 +1,5 @@
+import {logDebug} from './Logger';
+
 import Util from './Util';
 import Constants from '../Constants';
 import KeyUtils from './KeyUtils';
@@ -14,7 +16,7 @@ export default {
     let lines = this.getLinesWithoutLastRef(editor,lastRef),
         pos = this.getCursorPosAfterDeletingLastRef(editor,lastRef),
         currentLine = lines[pos.row];
-    console.log("PARSING CELL REF: ", currentLine, pos);
+    logDebug("PARSING CELL REF: ", currentLine, pos);
     if (pos.column === 0 || currentLine.length === 0 || lines[0][0] !== '='){
       return false;
     } else {
@@ -31,7 +33,7 @@ export default {
           break;
         }
       }
-      console.log("LOOBKACKOK: ", lookbackOk);
+      logDebug("LOOBKACKOK: " + lookbackOk);
       if (lookbackOk && (pos.column === currentLine.length)) return true;
       for (var c = pos.column; c < currentLine.length; c++) {
         let curChar = currentLine[c];

@@ -1,3 +1,5 @@
+import {logDebug} from '../AS/Logger';
+
 import React from 'react';
 import ASCodeEditor from './ASCodeEditor.jsx';
 import ASSpreadsheet from './ASSpreadsheet.jsx';
@@ -122,7 +124,7 @@ export default React.createClass({
   },
 
    _onSetVarName(name) {
-    console.log('var name set to', name);
+    logDebug('var name set to', name);
     this.setState({ varName: name });
     //TODO: set var name on backend
   },
@@ -135,7 +137,7 @@ export default React.createClass({
     3) Treat the special case of errors/other styles
   */
   _onChange() {
-    console.log("Eval pane detected event change from store");
+    logDebug("Eval pane detected event change from store");
     let updatedCells = Store.getLastUpdatedCells();
     this.refs.spreadsheet.updateCellValues(updatedCells);
     //toast the error of at least one value in the cell
@@ -154,10 +156,12 @@ export default React.createClass({
       this.setToast(extError, "ERROR");
       Store.setExternalError(null);
     }
+
+    Store.stopSuppressingErrors();
   },
 
   _onReplChange() {
-    console.log("Eval pane detected event change from repl store");
+    logDebug("Eval pane detected event change from repl store");
     this.setState({replSubmittedLanguage:ReplStore.getSubmittedLanguage()})
   },
 
@@ -215,7 +219,7 @@ export default React.createClass({
     let sel = Store.getActiveSelection(),
         vals = Store.getRowMajorCellValues(sel.range);
 
-    console.log('Handling copy event');
+    logDebug('Handling copy event');
 
     if (vals) {
       Store.setClipboard(sel, isCut);
@@ -231,7 +235,7 @@ export default React.createClass({
     // KeyUtils.killEvent(e);
     // THIS killEvent doesn't do anything either, and that's because fin-hypergrid doesn't
     // even seem to have paste implemented by default...?
-    console.log('Handling paste event');
+    logDebug('Handling paste event');
     Render.setMode(null);
 
     let sel = Store.getActiveSelection(),
@@ -281,7 +285,7 @@ export default React.createClass({
   },
 
   handleCopyEvent(e) {
-    console.log("FUCKING COPY");
+    logDebug("FUCKING COPY");
     if (this._isEventFromGrid(e)) {
       this.handleCopyTypeEventForGrid(e,false);
     }
@@ -302,19 +306,19 @@ export default React.createClass({
   /* Key handling */
 
   _onEditorDeferredKey(e) {
-    console.log("Editor deferred key");
+    logDebug("Editor deferred key");
     ShortcutUtils.tryShortcut(e, 'common');
     ShortcutUtils.tryShortcut(e, 'editor');
   },
 
   _onGridNavKeyDown(e) {
     // should only get called if left, right, down, or up was pressed
-    console.log("Eval pane has grid's nav key");
+    logDebug("Eval pane has grid's nav key");
     let insert = ExpStore.gridCanInsertRef();
     if (insert) {
       // do nothing; onSelectionChange will fire
     } else if (ExpStore.getUserIsTyping()) {
-      console.log("Will change selection and eval cell.");
+      logDebug("Will change selection and eval cell.");
       let xpObj = {
             expression: ExpStore.getExpression(),
             language: this.state.currentLanguage
@@ -326,13 +330,13 @@ export default React.createClass({
   },
 
   _onGridDeferredKey(e) {
-    console.log('\n\n\nGRID DEFERRED KEY\n\n\n', e);
+    logDebug('\n\n\nGRID DEFERRED KEY\n\n\n', e);
     if (KeyUtils.producesTextChange(e)) {
       let editor = this._getRawEditor(),
           str = KeyUtils.appendStringByKey(editor.getValue(), e),
           newStr = KeyUtils.keyToString(e),
           xpStr = this.state.userIsTyping ? str : newStr;
-      console.log("New grid string: " + xpStr);
+      logDebug("New grid string: " + xpStr);
       this.setState({
             xpChangeDetail:this.xpChange.FROM_GRID,
             expressionWithoutLastRef:xpStr,
@@ -340,14 +344,14 @@ export default React.createClass({
           },function() {editor.navigateFileEnd();}
       );
     } else {
-      console.log("Grid key not visible");
+      logDebug("Grid key not visible");
       ShortcutUtils.tryShortcut(e, 'common');
       ShortcutUtils.tryShortcut(e, 'grid');
     }
   },
 
   _onTextBoxDeferredKey(e) {
-    console.log("Textbox key not visible");
+    logDebug("Textbox key not visible");
     ShortcutUtils.tryShortcut(e, 'common');
     ShortcutUtils.tryShortcut(e, 'textbox');
   },
@@ -370,12 +374,12 @@ export default React.createClass({
         gridCanInsertRef = ExpStore.gridCanInsertRef(),
         textBoxCanInsertRef = ExpStore.textBoxCanInsertRef(this._getTextbox().editor);
 
-    console.log("Current expression: " + ExpStore.getExpression());
-    console.log("Cursor position: " + ExpStore.getLastCursorPosition());
+    logDebug("Current expression: " + ExpStore.getExpression());
+    logDebug("Cursor position: " + ExpStore.getLastCursorPosition());
 
-    console.log("Editor insert: " + editorCanInsertRef);
-    console.log("Grid insert: " + gridCanInsertRef);
-    console.log("Textbox insert: " + textBoxCanInsertRef);
+    logDebug("Editor insert: " + editorCanInsertRef);
+    logDebug("Grid insert: " + gridCanInsertRef);
+    logDebug("Textbox insert: " + textBoxCanInsertRef);
 
 
     let canInsertRef = editorCanInsertRef || gridCanInsertRef || textBoxCanInsertRef;
@@ -385,7 +389,7 @@ export default React.createClass({
         changeSelWhileTypingNoInsert = userIsTyping && !canInsertRef;
 
     if (changeSelToExistingCell) {
-      console.log("Selected non-empty cell to move to");
+      logDebug("Selected non-empty cell to move to");
       let {language, expression} = cell.cellExpression,
           val = cell.cellValue;
       Store.setActiveSelection(sel, expression);
@@ -394,14 +398,14 @@ export default React.createClass({
       this.showAnyErrors(val);
       this.setState({currentLanguage: Constants.Languages[language]});
     } else if (changeSelToNewCell) {
-      console.log("Selected empty cell to move to");
+      logDebug("Selected empty cell to move to");
       Store.setActiveSelection(sel, "");
       this.refs.spreadsheet.repaint();
       ExpActionCreator.handleSelChange('');
       this.setState({currentLanguage: this.state.defaultLanguage});
       this.hideToast();
     } else if (changeSelWhileTypingNoInsert){ //click away while not parsable
-      console.log("Change sel while typing no insert");
+      logDebug("Change sel while typing no insert");
       let xpObj = {
           expression: ExpStore.getExpression(),
           language: this.state.currentLanguage
@@ -418,22 +422,22 @@ export default React.createClass({
       }
     } else if (userIsTyping) {
       if (editorCanInsertRef){ // insert cell ref in editor
-        console.log("Eval pane inserting cell ref in editor");
+        logDebug("Eval pane inserting cell ref in editor");
         let excelStr = Util.rangeToExcel(rng);
         this._getEditorComponent().insertRef(excelStr);
         let newStr = this._getRawEditor().getValue(); // new value
         ExpActionCreator.handlePartialRefEditor(newStr,excelStr);
       }
       else if (textBoxCanInsertRef){ // insert cell ref in textbox
-        console.log("Eval pane inserting cell ref in textbox");
-        console.log("Current value: " + this._getTextbox().editor.getValue());
+        logDebug("Eval pane inserting cell ref in textbox");
+        logDebug("Current value: " + this._getTextbox().editor.getValue());
         let excelStr = Util.rangeToExcel(rng);
         this._getTextbox().insertRef(excelStr);
         let newStr = this._getTextbox().editor.getValue();
         ExpActionCreator.handlePartialRefTextBox(newStr,excelStr);
       }
       else if (gridCanInsertRef){ // insert cell ref in textbox
-        console.log("Eval pane inserting cell ref originating from grid");
+        logDebug("Eval pane inserting cell ref originating from grid");
         let excelStr = Util.rangeToExcel(rng);
         ExpActionCreator.handlePartialRefGrid(excelStr);
       }
@@ -452,7 +456,7 @@ export default React.createClass({
     2) Send this and the editor state (expression, language) to the API action creator, which will send it to the backend
   */
   handleEvalRequest(xpObj, moveCol, moveRow) {
-    console.log("Handling EVAL request " + ExpStore.getExpression());
+    logDebug("Handling EVAL request " + ExpStore.getExpression());
 
     this.refs.spreadsheet.refs.textbox.hideTextBox();
     ExpStore.setLastCursorPosition(Constants.CursorPosition.GRID);
@@ -463,11 +467,24 @@ export default React.createClass({
 
     let origin = Store.getActiveSelection().origin,
         asIndex = TC.simpleToASIndex(origin);
+
     if (moveCol !== null && moveRow !== null){
-      console.log("Shifting selection area");
+      logDebug("Shifting selection area");
       this.refs.spreadsheet.shiftSelectionArea(moveCol, moveRow);
     }
-    API.evaluate(asIndex, xpObj);
+
+    // Only re-eval if the cell actually changed from before.
+    let curCell = Store.getCell(origin.col, origin.row);
+    if (!curCell) {
+      if (xpObj.expression != "") {
+       API.evaluate(asIndex, xpObj);
+      }
+    } else {
+      let {expression, language} = curCell.cellExpression;
+      if (expression != xpObj.expression || language != xpObj.language.Server) {
+        API.evaluate(asIndex, xpObj);
+      }
+    }
     this.setState({defaultLanguage: xpObj.language});
   },
 
@@ -529,7 +546,7 @@ export default React.createClass({
     let newLang = menuItem.payload;
     let newValue = ReplStore.getReplExp(newLang.Display);
     ReplStore.setLanguage(newLang);
-    // console.log("REPL lang changed from " + this.state.replLanguage.Display + " to " + newLang.Display + ", new value: "+ newValue);
+    // logDebug("REPL lang changed from " + this.state.replLanguage.Display + " to " + newLang.Display + ", new value: "+ newValue);
     this.setState({replLanguage:newLang});
   },
 

@@ -1,3 +1,5 @@
+import {logDebug} from '../AS/Logger';
+
 import React from 'react';
 import Constants from '../Constants';
 
@@ -50,12 +52,12 @@ export default React.createClass({
   // Text box focus and update methods
 
   updateTextBox(xpStr){
-    console.log("Updating textbox: " + xpStr);
+    logDebug("Updating textbox: " + xpStr);
     ExpStore.setDoTextBoxCallback(false);
     if (!this.state.isVisible){ //will be visible after update, put cursor in textbox
       this.showCursor();
     }
-    
+
     this.setState({isVisible: true});
     this.editor.setValue(xpStr);
     this.editor.clearSelection(); // otherwise ace highlights whole xp
@@ -94,21 +96,21 @@ export default React.createClass({
 
   insertRef(newRef){
     let lastRef = ExpStore.getLastRef();
-    console.log("Inserting ref in textbox " + newRef);
-    console.log("Expression before insertion: " + this.editor.getValue());
+    logDebug("Inserting ref in textbox " + newRef);
+    logDebug("Expression before insertion: " + this.editor.getValue());
     ExpStore.setDoTextBoxCallback(false);
     if (lastRef !== null){
       ParseUtils.deleteLastRef(this.editor,lastRef);
     }
     this.editor.getSession().insert(this.editor.getCursorPosition(),newRef);
-    console.log("New textbox xp: " + this.editor.getValue());
+    logDebug("New textbox xp: " + this.editor.getValue());
   },
 
   /**************************************************************************************************************************/
   // Respond to events from ace
 
   _onKeyDown(e){
-    console.log("\n\nTEXTBOX KEYDOWN");
+    logDebug("\n\nTEXTBOX KEYDOWN");
     if (ShortcutUtils.textboxShouldDeferKey(e)) {
       KeyUtils.killEvent(e);
       this.props.onDeferredKey(e);
@@ -116,14 +118,14 @@ export default React.createClass({
         // onChange will call an action creator
         // you want an onchange to fire here
       ExpStore.setDoTextBoxCallback(true);
-      console.log("textbox will fire action creator", e);
+      logDebug("textbox will fire action creator", e);
     }
   },
 
   _onChange(e){
     let xpStr = this.editor.getValue();
     if (ExpStore.getDoTextBoxCallback()){
-      console.log("Textbox change new string: " + xpStr);
+      logDebug("Textbox change new string: " + xpStr);
       ExpActionCreator.handleTextBoxChange(xpStr);
     }
     this.setState({renderTrigger: !this.state.renderTrigger});
@@ -131,7 +133,7 @@ export default React.createClass({
 
   _onFocus(e) {
     this.props.hideToast();
-    console.log("FOCUS ON TEXTBOX");
+    logDebug("FOCUS ON TEXTBOX");
     Store.setFocus('textbox');
     ExpStore.setLastCursorPosition(Constants.CursorPosition.TEXTBOX);
     ExpStore.setLastRef(null);

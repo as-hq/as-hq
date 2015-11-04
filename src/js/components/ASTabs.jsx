@@ -1,3 +1,5 @@
+import {logDebug} from '../AS/Logger';
+
 import React from 'react';
 import Tab from './tab-components/Tab.js'
 import Tabs from './tab-components/Tabs.js'
@@ -18,17 +20,17 @@ export default React.createClass({
   },
 
   handleTabSelect(e, key, currentTabs) {
-      console.log('handleTabSelect key:', key);
+      logDebug('handleTabSelect key:', key);
       this.setState({selectedTab: key, tabs: currentTabs});
   },
 
   handleTabClose(e, key, currentTabs) {
-      console.log('tabClosed key:', key);
+      logDebug('tabClosed key:', key);
       this.setState({tabs: currentTabs});
   },
 
   handleTabPositionChange(e, key, currentTabs) {
-      console.log('tabPositionChanged key:', key);
+      logDebug('tabPositionChanged key:', key);
       this.setState({tabs: currentTabs});
   },
 

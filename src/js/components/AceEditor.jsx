@@ -1,3 +1,5 @@
+import {logDebug} from '../AS/Logger';
+
 import KeyUtils from '../AS/KeyUtils';
 import ShortcutUtils from '../AS/ShortcutUtils';
 import Util from '../AS/Util';
@@ -94,7 +96,7 @@ module.exports = React.createClass({
 
   insertRef(newRef){
     let lastRef = ExpStore.getLastRef();
-    console.log("Inserting ref in editor " + newRef);
+    logDebug("Inserting ref in editor " + newRef);
     ExpStore.setDoEditorCallback(false);
     if (lastRef) ParseUtils.deleteLastRef(this.editor,lastRef)
     this.editor.insert(newRef);
@@ -111,10 +113,10 @@ module.exports = React.createClass({
   when onChange fires (right after this)
   */
   _onKeyDown(e) {
-    console.log("\n\nACE KEYDOWN");
+    logDebug("\n\nACE KEYDOWN");
     if (ShortcutUtils.editorShouldDeferKey(e)) {
       // Try shortcut in eval pane
-      console.log("Deferring editor key down");
+      logDebug("Deferring editor key down");
       KeyUtils.killEvent(e);
       this.props.onDeferredKey(e);
     }
@@ -135,7 +137,7 @@ module.exports = React.createClass({
   _onChange(e){
     let xpStr = this.editor.getValue();
     if (ExpStore.getDoEditorCallback()){
-      console.log("Ace editor detected keychange with callback: " + xpStr);
+      logDebug("Ace editor detected keychange with callback: " + xpStr);
       ExpActionCreator.handleEditorChange(xpStr);
     }
   },
@@ -144,7 +146,7 @@ module.exports = React.createClass({
   When the editor receives focus, notify the stores
   */
   _onFocus(e){
-    console.log("The editor now has focus");
+    logDebug("The editor now has focus");
     Store.setFocus('editor');
     this.props.hideToast();
     ExpStore.setLastCursorPosition(Constants.CursorPosition.EDITOR);
@@ -161,7 +163,7 @@ module.exports = React.createClass({
   */
   _onExpressionChange(){
     let xpChangeOrigin = ExpStore.getXpChangeOrigin();
-    console.log("Editor caught exp update of type: " +  xpChangeOrigin);
+    logDebug("Editor caught exp update of type: " +  xpChangeOrigin);
     switch(xpChangeOrigin){
       case Constants.ActionTypes.GRID_KEY_PRESSED:
       case Constants.ActionTypes.TEXTBOX_CHANGED:
@@ -184,7 +186,7 @@ module.exports = React.createClass({
   Just set value and unselect
   */
   updateValue(){
-    console.log("Expression: " + ExpStore.getExpression());
+    logDebug("Expression: " + ExpStore.getExpression());
     ExpStore.setDoEditorCallback(false);
     this.editor.setValue(ExpStore.getExpression());
     this.editor.clearSelection(); // otherwise ace highlights whole xp
