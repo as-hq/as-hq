@@ -204,7 +204,8 @@ export default {
   initialize() {
     let msg = TC.makeClientMessage(Constants.ServerActions.Acknowledge,
                                           "PayloadInit",
-                                          {"connUserId": Store.getUserId()});
+                                          {"connUserId": Store.getUserId(), 
+                                           "connSheetId": Store.getCurrentSheet().sheetId});
     console.log("Sending init message: " + JSON.stringify(msg));
     this.send(msg);
   },
