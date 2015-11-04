@@ -140,11 +140,11 @@ stringLiteral = P.stringLiteral lexer
 -- | Terms (leafs of expressions).
 leaf' :: Parser Formula
 leaf'    =  try (parens expr)
+        <|> try functionApplication
         <|> try arrayConst
         <|> try excelValue
         <|> try referenceIntersection
         <|> try cellReference
-        <|> try functionApplication
         <|> blankValue
         <?> "simple expression"
 
