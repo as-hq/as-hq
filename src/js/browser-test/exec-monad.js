@@ -1,5 +1,7 @@
+import {logInfo} from '../AS/Logger';
+
 import _ from 'lodash';
-import Promise from 'bluebird';
+// import Promise from 'bluebird';
 
 export function empty() {
   return new Promise((fulfill, reject) => { fulfill(); });
@@ -26,7 +28,7 @@ export function exec(fn) {
 // monadic log operation, String -> (() -> Promise ())
 export function logP(str) {
   return promise((fulfill, reject) => {
-    console.log((new Date()).getTime(), 'Log inside promise:', str);
+    logInfo((new Date()).getTime().toString() + ' Log inside promise: ' + str);
     fulfill();
   });
 }
@@ -65,8 +67,6 @@ export function _do([head, ...tail], lbl) {
 
   return head().then(_doDefer(tail, lbl), (failure) => {
     throw new Error('Monadic error: ' + failure);
-  }).catch((error) => {
-    throw error; // propagate up to top level
   });
 }
 

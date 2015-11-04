@@ -1,3 +1,5 @@
+import {logDebug} from './Logger';
+
 import Constants from '../Constants';
 import Store from '../stores/ASEvaluationStore';
 import FindStore from '../stores/ASFindStore';
@@ -18,7 +20,7 @@ export default {
     // common shortcuts -------------------------------------------------------------------------------
 
     SU.add("common", "toggle_focus", "F2", (wildcard) => {
-      console.log("F2 PRESSED ");
+      logDebug("F2 PRESSED ");
       Store.toggleFocusF2();
       self.refs.spreadsheet.refs.textbox.updateTextBox(ExpStore.getExpression());
       self.setFocus(Store.getFocus());
@@ -52,7 +54,7 @@ export default {
     });
     SU.add("common", "cell_eval_arrayformula", "Ctrl+Shift+Enter", (wildcard) => {
       var editorValue = self._getRawEditor().getValue();
-      console.log(self.state.currentLanguage);
+      logDebug(self.state.currentLanguage);
       if (self.state.currentLanguage == Constants.Languages.Excel){
         editorValue = "{" + self._getRawEditor().getValue() + "}";
         self._getRawEditor().setValue(editorValue);
@@ -103,7 +105,7 @@ export default {
       self._toggleRepl();
     });
     SU.add("common", "esc", "Esc", (wildcard) => {
-      console.log("Esc pressed");
+      logDebug("Esc pressed");
       ExpActionCreator.handleEscape();
       self.refs.spreadsheet.select(Store.getActiveSelection());
       Store.setClipboard(null, false);
@@ -112,7 +114,7 @@ export default {
     });
 
     SU.add("common", "find", "Ctrl+F", (wildcard) => {
-      console.log("Find pressed");
+      logDebug("Find pressed");
       self.setState({showFindBar:true,userIsTyping:false});
     });
 
@@ -127,7 +129,7 @@ export default {
         else return l;
       }).join("\n");
 
-      console.log("SEND REPL: " + JSON.stringify(send));
+      logDebug("SEND REPL: " + JSON.stringify(send));
       let xpObj = {
         expression: send,
         language: self.state.replLanguage.Server
@@ -198,8 +200,7 @@ export default {
     SU.add("grid", "moveto_data_boundary", "Ctrl+Up/Down/Left/Right", (dir) => {
       // Needs to work even when you're selecting references while typing in the textbox
       // grid, which is why we're getting the spreadsheet's selection rather than the store's.
-      // Might not be robust.
-      // let oldInd = Store.getActiveSelection().origin;
+      // Might not be robust. (Alex 11/4)
       let oldInd = self.refs.spreadsheet.getSelectionArea().origin;
       let newInd = Store.getDataBoundary(oldInd, dir);
       self.refs.spreadsheet.select(TC.indexToSelection(newInd));
@@ -305,7 +306,7 @@ export default {
     });
 
     SU.add("grid", "grid_enter", "Enter", (wildcard) => {
-      console.log("MATCHED GRID  ENTER");
+      logDebug("MATCHED GRID  ENTER");
       let xpObj = {
         expression: self._getRawEditor().getValue(),
         language: self.state.currentLanguage

@@ -1,3 +1,5 @@
+import {logDebug} from './Logger';
+
 import Util from './Util';
 import Constants from '../Constants';
 import KeyUtils from './KeyUtils';
@@ -9,7 +11,7 @@ import KeyUtils from './KeyUtils';
 //   key: "F2",
 //   keyCode: 113,
 //   callback: function(e, parent) {
-//     console.log("focus toggled");
+//     logDebug("focus toggled");
 //     parent.toggleFocus();
 //   }
 // },
@@ -49,7 +51,7 @@ export default {
     let ss = _S[set]; // shortcut set to try
     for (var key in ss) {
       if (this.shortcutMatches(ss[key], e)){
-        console.log("shortcut matched!", JSON.stringify(ss[key]));
+        logDebug("shortcut matched!", JSON.stringify(ss[key]));
         ss[key].callback(KeyUtils.getWildcard(e, ss[key]));
         return true;
       }
