@@ -257,6 +257,8 @@ export default React.createClass({
       dC = (br.col - tl.col) * flipC;
       dR = (br.row - tl.row) * flipR;
     } else {
+      // sort of a hack. This will incorrectly change the location of the origin. 
+      // known source of bugs. E.g., ctrl+space on C3 and Ctrl+Up will take you to A1, not C1. (Alex 11/4)
       c = tl.col - 1;
       r = tl.row - 1;
       dC = br.col - tl.col;
