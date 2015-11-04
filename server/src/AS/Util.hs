@@ -235,6 +235,11 @@ serverLogPath = do
   mainDir <- getCurrentDirectory
   return $ mainDir </> "logs/server_log"
 
+serverLogDir :: IO String
+serverLogDir = do
+  mainDir <- getCurrentDirectory
+  return $ mainDir </> "logs/"
+
 printWithTime :: String -> IO ()
 printWithTime str = do
   time <- getTime
@@ -242,7 +247,10 @@ printWithTime str = do
   putStrLn (truncated disp)
 
 appendFile' :: String -> String -> IO ()
-appendFile' fname msg = catch (appendFile fname msg) (\e -> putStrLn $ ("Error writing to log: " ++ show (e :: SomeException)))  
+appendFile' fname msg = catch (do 
+  logDir <- serverLogDir
+  createDirectoryIfMissing True logDir
+  appendFile fname msg) (\e -> putStrLn $ ("Error writing to log: " ++ show (e :: SomeException)))  
 
 writeToLog :: String -> CommitSource -> IO ()
 writeToLog str (sid, uid) = do 
@@ -341,8 +349,10 @@ isListMember (Cell _ _ _ ts) = any id $ map (\t -> case t of
 mergeCells :: [ASCell] -> [ASCell] -> [ASCell]
 mergeCells c1 c2 = L.unionBy isColocated c1 c2
 
-blankCellsAt :: ASLanguage -> [ASIndex] -> [ASCell]
-blankCellsAt lang = map (\l -> Cell l (Expression "" lang) NoValue [])
+-- | Returns a list of blank cells at the given locations. For now, the language doesn't matter, 
+-- because blank cells sent to the frontend don't get their languages saved. 
+blankCellsAt :: [ASIndex] -> [ASCell]
+blankCellsAt = map (\l -> Cell l (Expression "" Excel) NoValue [])
 
 removeCell :: ASIndex -> [ASCell] -> [ASCell]
 removeCell idx = filter (((/=) idx) . cellLocation)

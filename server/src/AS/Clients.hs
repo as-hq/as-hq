@@ -252,7 +252,7 @@ handleDelete user state payload = do
                PayloadLL locs' -> locs'
                PayloadR rng -> rangeToIndices rng
   conn <- dbConn <$> readMVar state
-  let blankedCells = U.blankCellsAt Python locs -- TODO set language appropriately 
+  let blankedCells = U.blankCellsAt locs
   msg <- DP.runDispatchCycle state blankedCells (clientCommitSource user)
   sendBroadcastFiltered user state msg
 
@@ -294,7 +294,7 @@ handleCut :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
 handleCut user state (PayloadPaste from to) = do
   conn <- dbConn <$> readMVar state
   toCells <- getPasteCells conn from to
-  let blankedCells = U.blankCellsAt Python (rangeToIndices from) -- TODO set actual language
+  let blankedCells = U.blankCellsAt (rangeToIndices from)
       newCells = U.mergeCells toCells blankedCells -- content in pasted cells take precedence over deleted cells
   msg' <- DP.runDispatchCycle state newCells (clientCommitSource user)
   sendBroadcastFiltered user state msg'
