@@ -44,8 +44,8 @@ import Control.Monad.Trans.Either
 -- Regular eval route
 
 -- assumes all evaled cells are in the same sheet
-runDispatchCycle :: MVar ServerState -> [ASCell] -> ASUserId -> IO ASServerMessage
-runDispatchCycle state cs uid = do
+runDispatchCycle :: MVar ServerState -> [ASCell] -> CommitSource -> IO ASServerMessage
+runDispatchCycle state cs src = do
   let sid = locSheetId . cellLocation $ head cs
   errOrCells <- runEitherT $ do
     printObjT "STARTING DISPATCH CYCLE WITH CELLS: " cs
@@ -63,8 +63,8 @@ runDispatchCycle state cs uid = do
     printWithTimeT "Starting eval chain"
     (afterCells, cellLists) <- evalChain conn initValuesMap cellsToEval -- start with current cells, then go through descendants
     -- Apply endware
-    finalizedCells <- lift $ EE.evalEndware state afterCells uid roots
-    let transaction = Transaction uid sid roots finalizedCells cellLists
+    finalizedCells <- lift $ EE.evalEndware state afterCells src roots
+    let transaction = Transaction src roots finalizedCells cellLists
     broadcastCells <- DB.updateAfterEval conn transaction -- atomically performs DB ops. (Sort of a lie -- writing to server is not atomic.)
     return broadcastCells
   runEitherT $ rollbackGraphIfError errOrCells
@@ -131,7 +131,7 @@ groupRefs relation@(cell, refs) = if (shouldGroupRefs relation)
 evalChain :: Connection -> RefValMap -> [ASCell] -> EitherTExec ([ASCell], [ASList])
 evalChain conn valuesMap cells = do
   result <- liftIO $ catch (runEitherT $ evalChain' conn valuesMap cells [] []) (\e -> do
-    printDebug "Runtime exception caught: " (e :: SomeException)
+    printObj "Runtime exception caught" (e :: SomeException)
     return $ Left RuntimeEvalException)
   case result of
     (Left e) -> left e

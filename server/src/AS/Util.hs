@@ -39,9 +39,9 @@ initDaemonFromMessageAndConn :: ASClientMessage -> WS.Connection -> ASDaemonClie
 initDaemonFromMessageAndConn (ClientMessage _ (PayloadDaemonInit (ASInitDaemonConnection uid loc))) c = DaemonClient loc c uid
 
 initUserFromMessageAndConn :: ASClientMessage -> WS.Connection -> IO ASUserClient
-initUserFromMessageAndConn (ClientMessage _ (PayloadInit (ASInitConnection uid))) c = do
+initUserFromMessageAndConn (ClientMessage _ (PayloadInit (ASInitConnection uid sid))) c = do
     time <- getTime
-    return $ UserClient uid c initialViewingWindow $ T.pack ((show uid) ++ (show time))
+    return $ UserClient uid c (Window sid (-1,-1) (-1,-1)) $ T.pack ((show uid) ++ (show time))
 
 --------------------------------------------------------------------------------------------------------------
 -- Misc
@@ -216,6 +216,7 @@ generateErrorMessage e = case e of
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Time
+
 getTime :: IO String
 getTime = do 
   t <- getCurrentTime
@@ -235,14 +236,15 @@ printWithTime str = do
 appendFile' :: String -> String -> IO ()
 appendFile' fname msg = catch (appendFile fname msg) (\e -> putStrLn $ ("Error writing to log: " ++ show (e :: SomeException)))  
 
-writeToLog :: String -> ASSheetId -> IO ()
-writeToLog str sid = do 
+writeToLog :: String -> CommitSource -> IO ()
+writeToLog str (sid, uid) = do 
   -- first, write to master to log
   let sid' = T.unpack sid
-      loggedStr = '\n':str ++ "\n# " ++ sid'
+      uid' = T.unpack uid
+      loggedStr = '\n':str ++ "\n# SHEET_ID: " ++ sid' ++ "\n# USER_ID: " ++ uid'
   serverLog <- serverLogPath
   appendFile' serverLog loggedStr
-  -- then write to individual log for the client
+  -- then write to individual log for the sheet
   let serverLog' = serverLog ++ sid'
   appendFile' serverLog' ('\n':str)
 
