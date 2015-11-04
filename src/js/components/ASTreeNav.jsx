@@ -1,3 +1,5 @@
+import {logDebug} from '../AS/Logger';
+
 import React, {PropTypes} from 'react';
 import {ASHorizontalDropdownButton} from './basic-controls/index.jsx';
 import {FontIcon, Paper, Styles} from 'material-ui';
@@ -87,7 +89,7 @@ export default React.createClass({
 
   render() {
     let {workbooks, open} = this.state;
-    console.log(workbooks);
+    logDebug(workbooks);
     let dropdownArrowClass = (id) => open[id] ? "keyboard_arrow_down" : 'keyboard_arrow_right';
 
     return (
@@ -220,7 +222,7 @@ export default React.createClass({
   },
 
   _onClickNew(itemTitle) {
-    console.log(itemTitle);
+    logDebug(itemTitle);
     if (itemTitle === 'Sheet') {
       this.props.onSheetCreate();
     } else if (itemTitle === 'Workbook') {

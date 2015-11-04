@@ -1,3 +1,5 @@
+import {logDebug} from '../AS/Logger';
+
 import Dispatcher from '../Dispatcher';
 import Constants from '../Constants';
 import BaseStore from './BaseStore';
@@ -44,9 +46,9 @@ dispatcherIndex: Dispatcher.register(function (action) {
 const ASReplStore = assign({}, BaseStore, {
 
   updateReplExp(lang,value){
-    console.log("In repl store, updating repl data "+ lang + " " + value);
+    logDebug("In repl store, updating repl data "+ lang + " " + value);
     _data.replExps[lang] = value;
-    console.log(JSON.stringify(_data.replExps));
+    logDebug(JSON.stringify(_data.replExps));
   },
 
   getReplExp(lang){
@@ -62,12 +64,12 @@ const ASReplStore = assign({}, BaseStore, {
   },
 
   updateUponResponse(resp){
-    console.log("In repl store, updating response repl data "+ JSON.stringify(resp));
+    logDebug("In repl store, updating response repl data "+ JSON.stringify(resp));
     let lang = resp.replLang,
         val = Util.showValue(resp.replValue, true);
     _data.replShow = this.shouldShowResponse(resp);
     _data.replSubmitLang = lang
-    console.log("previous data: " +_data.replExps[lang] );
+    logDebug("previous data: " +_data.replExps[lang] );
     if (_data.replShow){
       _data.replExps[lang] += "\n>>> " + val + "\n>>> ";
     }

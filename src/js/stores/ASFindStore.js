@@ -1,3 +1,5 @@
+import {logDebug} from '../AS/Logger';
+
 import Dispatcher from '../Dispatcher';
 import Constants from '../Constants';
 import BaseStore from './BaseStore';
@@ -19,7 +21,7 @@ dispatcherIndex: Dispatcher.register(function (action) {
       ASFindStore.setFindPos(0);
       ASFindStore.setFindTotal(action.findLocs.length);
       ASFindStore.emitChange();
-      console.log("Updated find store");
+      logDebug("Updated find store");
       break;
     case Constants.ActionTypes.FIND_INCREMENTED: //down or enter
       ASFindStore.increment();

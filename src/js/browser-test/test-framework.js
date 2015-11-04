@@ -1,3 +1,5 @@
+import {logInfo, logGreen, logRed} from '../AS/Logger';
+
 import _ from 'lodash';
 
 import AssertionError from './assertion-error';
@@ -29,18 +31,18 @@ function tabs() {
   return _.range(depth).map(() => '__').join('');
 }
 
-function logTabs(message) {
-  console.log(`${tabs()}${message}`);
+function tabify(message) {
+  return `${tabs()}${message}`;
 }
 
 function logSuccess(message) {
-  logTabs(`PASS: ${message}`);
+  logGreen(tabify(`PASS: ${message}`));
 }
 
 function logFailure(message, errors) {
-  logTabs(`FAIL: ${message}`);
+  logRed(tabify(`FAIL: ${message}`));
   errors.forEach((err) => {
-    logTabs(`__ERROR: ${err.toString()}`);
+    logRed(tabify(`__ERROR: ${err.toString()}`));
   });
 }
 
@@ -90,7 +92,9 @@ function runTestsWithCallbacks(tests, cbs) {
     tabbed(tests.map((test) =>
       _doDefer([
         beforeEach, test, afterEach,
-        exec(() => { logTabs(`${getSuccessCount()} tests passed of ${getTestCount()}`); })
+        exec(() => {
+          logInfo(tabify(`${getSuccessCount()} tests passed of ${getTestCount()}`));
+        })
       ])
     )),
     afterAll
@@ -161,7 +165,7 @@ export function _it(message, prfs) {
 
 export function _describe(name, {tests, ...cbs}) { // tests are either more describes or its
   return _liftT(_doDefer([
-    exec(() => { logTabs(name) }),
+    exec(() => { logInfo(tabify(name)) }),
     runTestsWithCallbacks(tests, cbs, name)
   ]));
 }

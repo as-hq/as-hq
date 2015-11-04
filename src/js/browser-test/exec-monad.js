@@ -1,3 +1,5 @@
+import {logInfo} from '../AS/Logger';
+
 import _ from 'lodash';
 // import Promise from 'bluebird';
 
@@ -26,7 +28,7 @@ export function exec(fn) {
 // monadic log operation, String -> (() -> Promise ())
 export function logP(str) {
   return promise((fulfill, reject) => {
-    console.log((new Date()).getTime(), 'Log inside promise:', str);
+    logInfo((new Date()).getTime().toString() + ' Log inside promise: ' + str);
     fulfill();
   });
 }

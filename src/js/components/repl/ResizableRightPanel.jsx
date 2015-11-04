@@ -1,3 +1,5 @@
+import {logDebug} from '../../AS/Logger';
+
 import React from 'react/addons';
 const update = React.addons.update;
 import {Styles} from 'material-ui'
@@ -76,7 +78,7 @@ export default React.createClass({
     }
     /* When sidebar about to be visible (left width is full), change left width */
     if (!this.props.docked && this.state.leftWidth === "100%"){
-      console.log("received props");
+      logDebug("received props");
       this.setState({
         leftWidth:this.state.lastLeftWidth
       });
@@ -106,7 +108,7 @@ export default React.createClass({
     let x = (e.pageX - $(React.findDOMNode(this.refs.leftComp)).offset().left)/parentWidth*100;
     if (x > config.minLeft && x < config.maxLeft)
       this.setState({leftWidth:(x+"%")});
-    console.log("new x " + x);
+    logDebug("new x " + x);
     e.stopPropagation();
     e.preventDefault();
   },

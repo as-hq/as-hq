@@ -1,3 +1,5 @@
+import {logDebug} from '../AS/Logger';
+
 import React from 'react';
 import Constants from '../Constants';
 let Draggable = require('react-draggable');
@@ -8,13 +10,13 @@ let MenuDivider = require('material-ui/lib/menus/menu-divider');
 
 import ASHorizontalDropdownButton from './basic-controls/ASHorizontalDropdownButton.jsx';
 
-/* NOTES: 
-using react-draggable around this is buggy; it jumps around while dragging and text selection drags as well 
+/* NOTES:
+using react-draggable around this is buggy; it jumps around while dragging and text selection drags as well
 The point of this modal is to provide more options for find and replace (not yet implemented)
   case
   sheet
   full contents (the PayloadFind on backend covers these cases, and so does Excel)
-replacing will be done on frontend and and eval request sent to backend after sending a find to backend 
+replacing will be done on frontend and and eval request sent to backend after sending a find to backend
 */
 
 export default React.createClass({
@@ -24,12 +26,12 @@ export default React.createClass({
   	onClose: React.PropTypes.func.isRequired
   },
   click(a){
-  	console.log("CLICK " + a );
+  	logDebug("CLICK " + a );
   },
   _onClose(){
   	this.props.onClose();
   },
-  render(){  
+  render(){
   	let button = <IconButton >
   			<FontIcon className="muidocs-icon-custom-sort"/>
 		</IconButton>;
@@ -63,15 +65,15 @@ export default React.createClass({
         						{"keyboard_arrow_up"}
         					</FontIcon>
         	        	</FlatButton>
-        	        	
+
         		  	</div>;
 
     return (
 
         <div style={{position:'absolute',zIndex:10,left:600,top:200}} >
-        
+
             <Paper zDepth={5} style={{width:500,height:500,borderStyle:'solid 2px'}}>
-            	<AppBar style={{width:"100%",height:"10px",backgroundColor:Styles.Colors.amber900}} 
+            	<AppBar style={{width:"100%",height:"10px",backgroundColor:Styles.Colors.amber900}}
             	  title="Find and Replace (TODO)"
             	  showMenuIconButton={false}
             	  iconElementRight={<FlatButton onClick={this._onClose} >
@@ -79,22 +81,22 @@ export default React.createClass({
             			{"close"}
             		</FontIcon>
                   </FlatButton>} />
-              <Tabs initialSelectedIndex={this.props.initialSelection} 
+              <Tabs initialSelectedIndex={this.props.initialSelection}
               style={{backgroundColor:Styles.Colors.grey900, width:"100%",height:"100%"}}>
                 <Tab label="Find" >
-                	<TextField style={textStyle} 
+                	<TextField style={textStyle}
                 			   defaultValue=""
                 			   floatingLabelText="Find Text"
                 			   underlineStyle={{borderColor: Styles.Colors.amber900}}/>
                 	{findButtons}
                 </Tab>
                 <Tab label="Replace" >
-                	<TextField style={textStyle} 
+                	<TextField style={textStyle}
                 			   defaultValue=""
                 			   floatingLabelText="Find Text"
                 			   underlineStyle={{borderColor: Styles.Colors.amber900}}/>
 
-                	<TextField style={textStyle} 
+                	<TextField style={textStyle}
                 			   defaultValue=""
                 			   floatingLabelText="Replace Text"
                 			   underlineStyle={{borderColor: Styles.Colors.amber900}}/>
@@ -110,7 +112,7 @@ export default React.createClass({
 });
 
 /*
-<TextField style={textStyle} 
+<TextField style={textStyle}
               				   defaultValue=""
               				   floatingLabelText="Find Text"
               				   underlineStyle={{borderColor: Styles.Colors.amber900}}/>
@@ -124,8 +126,8 @@ export default React.createClass({
 
 
 	              	<div style={textStyle}>
-	              		<input style={{width:"15px",height:"15px"}} type="checkbox" />	
-	              		 <TextField style={textStyle} 
+	              		<input style={{width:"15px",height:"15px"}} type="checkbox" />
+	              		 <TextField style={textStyle}
            				   defaultValue="Match with case"
            				   disabled={true}
            				   underlineDisabledStyle={{borderColor: Styles.Colors.amber900, borderStyle:'solid 1px'}}/>

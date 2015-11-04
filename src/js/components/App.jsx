@@ -1,3 +1,5 @@
+import {logDebug} from '../AS/Logger';
+
 import React, {PropTypes} from 'react';
 import ASTreeNav from './ASTreeNav.jsx';
 import ASEvaluationPane from './ASEvaluationPane.jsx';
@@ -18,7 +20,7 @@ export default React.createClass({
     let sheetId, userId;
 
     sheetId = window.prompt("Enter the name of your sheet. Your data on this sheet will persist -- you can access it again by entering the same sheet name on this prompt when you reload AlphaSheets. \n\nNOTE: Anyone can access your sheet by typing in its name.","SHEET_NAME");
-    userId = sheetId; 
+    userId = sheetId;
 
     Store.setCurrentSheetById(sheetId);
     Store.setUserId(userId);
@@ -115,18 +117,18 @@ export default React.createClass({
   _onDocumentOpen(sheet) {
     //TODO add sheet name to tabs
     this.refs.evalPane.openSheet(sheet);
-    // console.log('App on document open', sheet.sheetId);
+    // logDebug('App on document open', sheet.sheetId);
   },
 
   _onSheetCreate() {
     //TODO
-    console.log('Created sheet');
+    logDebug('Created sheet');
     API.createSheet();
   },
 
   _onWorkbookCreate() {
     //TODO
-    console.log('Created workbook');
+    logDebug('Created workbook');
     API.createWorkbook();
   }
 });

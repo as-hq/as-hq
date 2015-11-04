@@ -1,3 +1,5 @@
+import {setTestMode, unsetTestMode} from '../AS/Logger';
+
 import _ from 'lodash';
 
 import {expect, registerExpectation, _describe, _it} from './test-framework';
@@ -82,6 +84,10 @@ function keyPress(key) {
 
 function mKeyPress(key) {
   return () => keyPress(key);
+}
+
+function keyPresses(str) {
+  return _forM_(str.split(''), keyPress);
 }
 
 let [ pressUndo ] =
@@ -172,10 +178,10 @@ let hooks = {
 
 let tests = _describe('keyboard tests', {
   beforeAll: [ // prfs
-    logP('Initializing tests...'),
     exec(() => {
       evalPane.enableTestMode();
       setUITestMode();
+      setTestMode();
     })
   ],
 
@@ -184,11 +190,11 @@ let tests = _describe('keyboard tests', {
     exec(() => {
       evalPane.disableTestMode();
       unsetUITestMode();
+      unsetTestMode();
     })
   ],
 
   beforeEach: [
-    logP('Clearing sheet...'),
     clear()
   ],
 

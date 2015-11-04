@@ -1,3 +1,5 @@
+import {logDebug} from '../AS/Logger';
+
 import Dispatcher from '../Dispatcher';
 import Constants from '../Constants';
 import T from '../AS/Types';
@@ -35,7 +37,7 @@ let refreshDialogShown = false;
 */
 
 wss.onmessage = function (event) {
-  console.log("Client received data from server: ", JSON.stringify(event.data));
+  logDebug("Client received data from server: " + JSON.stringify(event.data));
 
   if (event.data === 'ACK') return;
 
@@ -48,7 +50,7 @@ wss.onmessage = function (event) {
 
     if (isRunningTest) {
       // sometimes we want to test whether it errors, so it fulfills anyways!
-      console.log('Fulfilling due to server failure');
+      logDebug('Fulfilling due to server failure');
       currentCbs.fulfill(msg);
       isRunningTest = false;
     }
@@ -143,7 +145,7 @@ wss.onmessage = function (event) {
           return {row:x.index[1],col:x.index[0]};
         };
         let clientLocs = msg.payload.contents.map(toClientLoc);
-        console.log("GOT BACK FIND RESPONSE: " + JSON.stringify(clientLocs));
+        logDebug("GOT BACK FIND RESPONSE: " + JSON.stringify(clientLocs));
         Dispatcher.dispatch({
           type: ActionTypes.GOT_FIND,
           findLocs:clientLocs
@@ -154,7 +156,7 @@ wss.onmessage = function (event) {
 };
 
 wss.onopen = (evt) => {
-  console.log('WebSockets open');
+  logDebug('WebSockets open');
 };
 
 export default {
@@ -186,9 +188,9 @@ export default {
   }, // polling socket for readiness: 5 ms
 
   send(msg) {
-    console.log(`Queueing ${msg.action} message`);
+    logDebug(`Queueing ${msg.action} message`);
     this.waitForSocketConnection(wss, () => {
-      console.log(`Sending ${msg.action} message`);
+      logDebug(`Sending ${msg.action} message`);
       wss.send(JSON.stringify(msg));
 
       /* for testing */
@@ -207,7 +209,7 @@ export default {
                                           "PayloadInit",
                                           {"connUserId": Store.getUserId(),
                                            "connSheetId": Store.getCurrentSheet().sheetId});
-    console.log("Sending init message: " + JSON.stringify(msg));
+    logDebug("Sending init message: " + JSON.stringify(msg));
     this.send(msg);
   },
 
@@ -220,7 +222,7 @@ export default {
   },
 
   close() {
-    console.log('Sending close message');
+    logDebug('Sending close message');
     wss.close();
   },
 

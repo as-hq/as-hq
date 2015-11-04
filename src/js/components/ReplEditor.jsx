@@ -1,3 +1,5 @@
+import {logDebug} from '../AS/Logger';
+
 import KeyUtils from '../AS/KeyUtils';
 import ShortcutUtils from '../AS/ShortcutUtils';
 import Store from '../stores/ASEvaluationStore';
@@ -32,14 +34,14 @@ function onPropsSet(editor, props) {
           val = editor.getValue(),
           line = editor.getSession().getLine(pos.row),
           lines = editor.getValue().split('\n');
-      console.log("Old backspace value: " + JSON.stringify(lines));
+      logDebug("Old backspace value: " + JSON.stringify(lines));
       if (pos.column < 4){ // In dead-zone
         return;
       }
       if (pos.column == 4 ){ // At border
           let isAtPrompt = line.substring(0,4) === ">>> ";
           if (!isAtPrompt) {
-              console.log("Key down position: " + pos.row + " " + pos.column);
+              logDebug("Key down position: " + pos.row + " " + pos.column);
               let column = editor.getSession().getLine(pos.row-1).length;
               // goToLine starts at 1, but pos starts at 0
               if (line.trim() === ""){ // line is empty
@@ -55,8 +57,8 @@ function onPropsSet(editor, props) {
                 let prevColLength = editor.getSession().getLine(pos.row-1).length;
                 editor.gotoLine(pos.row,prevColLength);
               }
-              console.log("New position: " + JSON.stringify(editor.getCursorPosition()));
-              console.log("New backspace value: " + JSON.stringify(editor.getValue().split('\n')));
+              logDebug("New position: " + JSON.stringify(editor.getCursorPosition()));
+              logDebug("New backspace value: " + JSON.stringify(editor.getValue().split('\n')));
               return;
             }
           else {
@@ -68,7 +70,7 @@ function onPropsSet(editor, props) {
       editor.setValue(backspaceVal);
       editor.clearSelection();
       editor.gotoLine(pos.row+1,pos.column-1);
-      console.log("New backspace value: " + JSON.stringify(editor.getValue().split('\n')));
+      logDebug("New backspace value: " + JSON.stringify(editor.getValue().split('\n')));
     }
   });
 
@@ -131,7 +133,7 @@ module.exports = React.createClass({
     /* If the repl should do something (Ctrl Enter), do so
     else don't do anything if col < 4. There's also a backspace command triggered on key down.
     Otherwise, act as usual */
-    console.log("REPL KEYDOWN: " + e.which);
+    logDebug("REPL KEYDOWN: " + e.which);
     if (ShortcutUtils.replShouldDeferKey(e)){
       KeyUtils.killEvent(e);
       this.props.onDeferredKey(e);
@@ -139,7 +141,7 @@ module.exports = React.createClass({
     let pos = this.editor.getCursorPosition();
     // If your column position on key down is less than 4 (behind >>> ), do nothing
     if (pos.column < 4 ){
-      console.log("WTF BITCH");
+      logDebug("WTF BITCH");
       e.preventDefault();
       e.stopPropagation();
       let pos = this.editor.getCursorPosition();
@@ -164,12 +166,12 @@ module.exports = React.createClass({
         }
       }
       else if (cursor.column < 4){ // add four spaces to the new line
-        console.log("Enter with current val: " + JSON.stringify(this.editor.getValue().split('\n')));
+        logDebug("Enter with current val: " + JSON.stringify(this.editor.getValue().split('\n')));
         let lines = this.editor.getValue().split('\n');
         lines[cursor.row]="    "+lines[cursor.row];
         this.editor.setValue(lines.join('\n'));
         this.editor.clearSelection();
-        console.log("Enter with after val: " + JSON.stringify(this.editor.getValue().split('\n')));
+        logDebug("Enter with after val: " + JSON.stringify(this.editor.getValue().split('\n')));
       }
       this.editor.selection.clearSelection();
     } // end of enter casing

@@ -1,3 +1,5 @@
+import {logDebug} from './Logger';
+
 import Store from '../stores/ASEvaluationStore';
 import TC from './TypeConversions';
 import Util from './Util';
@@ -44,7 +46,7 @@ export default {
   Else, push the row as a single value. This TODO: MAY OR MAY NOT work for sheets,Libre,gfin.
 	-- Ritesh 10/16 -- Updated by Timchu 10/19*/
 	plainStringToVals(s) {
-		console.log("CONVERTING PLAIN STRING TO VALS: " + s);
+		logDebug("CONVERTING PLAIN STRING TO VALS: " + s);
 		let rows = s.split('\n'),
 			vals = [],
 			self = this;
@@ -59,7 +61,7 @@ export default {
         vals.push([row]);
       }
 		});
-		console.log("VALS: " + JSON.stringify(vals));
+		logDebug("VALS: " + JSON.stringify(vals));
 		return vals;
 	},
 

@@ -1,3 +1,5 @@
+import {logDebug} from '../AS/Logger';
+
 import Dispatcher from '../Dispatcher';
 import Constants from '../Constants';
 import BaseStore from './BaseStore';
@@ -67,7 +69,7 @@ const ASEvaluationStore = assign({}, BaseStore, {
           send a change event to spreadsheet, which will rerender
         */
         case Constants.ActionTypes.GOT_UNDO:
-          console.log("action undo");
+          logDebug("action undo");
           _data.lastUpdatedCells = [];
           ASEvaluationStore.removeCells(action.commit.after);
           ASEvaluationStore.updateCells(action.commit.before);
@@ -82,7 +84,7 @@ const ASEvaluationStore = assign({}, BaseStore, {
         case Constants.ActionTypes.GOT_UPDATED_CELLS:
           _data.lastUpdatedCells = [];
           ASEvaluationStore.updateCells(action.updatedCells);
-          // console.log("Last updated cells: " + JSON.stringify(_data.lastUpdatedCells));
+          // logDebug("Last updated cells: " + JSON.stringify(_data.lastUpdatedCells));
           ASEvaluationStore.emitChange();
           break;
         /*
@@ -104,7 +106,7 @@ const ASEvaluationStore = assign({}, BaseStore, {
           _data.lastUpdatedCells = [];
           _data.shouldSuppressErrors = true; // don't show errors when fetching cells. will get set to false at end of emitChange()
           ASEvaluationStore.updateCells(action.newCells);
-          // console.log("Last updated cells: " + JSON.stringify(_data.lastUpdatedCells));
+          // logDebug("Last updated cells: " + JSON.stringify(_data.lastUpdatedCells));
           ASEvaluationStore.emitChange();
           break;
         /*
@@ -128,7 +130,7 @@ const ASEvaluationStore = assign({}, BaseStore, {
 
           ASEvaluationStore.removeCells(cellsToRemove);
           _data.allCells = {};
-          // console.log("Last updated cells: " + JSON.stringify(_data.lastUpdatedCells));
+          // logDebug("Last updated cells: " + JSON.stringify(_data.lastUpdatedCells));
           ASEvaluationStore.emitChange();
           break;
 
@@ -369,7 +371,7 @@ const ASEvaluationStore = assign({}, BaseStore, {
   /* Focus */
 
   setFocus(elem) {
-    console.log("FOCUS", elem);
+    logDebug("FOCUS", elem);
     _data.lastActiveFocus = _data.activeFocus;
     _data.activeFocus = elem;
   },
@@ -377,7 +379,7 @@ const ASEvaluationStore = assign({}, BaseStore, {
   getFocus() { return _data.activeFocus; },
 
   toggleFocusF2() {
-    console.log("last focus: ", _data.activeFocus);
+    logDebug("last focus: ", _data.activeFocus);
     let temp = _data.activeFocus;
     if (_data.activeFocus === 'grid' && _data.lastActiveFocus === 'grid')
       _data.activeFocus = 'textbox';
@@ -390,7 +392,7 @@ const ASEvaluationStore = assign({}, BaseStore, {
     else if (_data.activeFocus === 'editor')
       _data.activeFocus = 'grid';
     _data.lastActiveFocus = temp;
-    console.log("new focus: ", _data.activeFocus);
+    logDebug("new focus: ", _data.activeFocus);
   },
 
   /**************************************************************************************************************************/
