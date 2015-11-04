@@ -227,6 +227,11 @@ serverLogPath = do
   mainDir <- getCurrentDirectory
   return $ mainDir </> "logs/server_log"
 
+serverLogDir :: IO String
+serverLogDir = do
+  mainDir <- getCurrentDirectory
+  return $ mainDir </> "logs/"
+
 printWithTime :: String -> IO ()
 printWithTime str = do
   time <- getTime
@@ -234,7 +239,10 @@ printWithTime str = do
   putStrLn (truncated disp)
 
 appendFile' :: String -> String -> IO ()
-appendFile' fname msg = catch (appendFile fname msg) (\e -> putStrLn $ ("Error writing to log: " ++ show (e :: SomeException)))  
+appendFile' fname msg = catch (do 
+  logDir <- serverLogDir
+  createDirectoryIfMissing True logDir
+  appendFile fname msg) (\e -> putStrLn $ ("Error writing to log: " ++ show (e :: SomeException)))  
 
 writeToLog :: String -> CommitSource -> IO ()
 writeToLog str (sid, uid) = do 

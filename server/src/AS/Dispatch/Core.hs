@@ -240,6 +240,7 @@ createListCells (Cell (Index sheet (a,b)) xp _ ts) cv = if (shouldCreateListCell
     shouldCreateListCells _ = False
 
 
+-- type signature is sort of janky
 rollbackGraphIfError :: Either ASExecError [ASCell] -> EitherTExec [ASIndex]
-rollbackGraphIfError (Left e) = G.rollbackGraph >> printWithTimeT ("Error in eval chain: " ++ (show e)) >> return []
+rollbackGraphIfError (Left e) = G.rollbackGraph
 rollbackGraphIfError _ = return []
