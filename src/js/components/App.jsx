@@ -17,14 +17,9 @@ export default React.createClass({
     ThemeManager.setTheme(ThemeManager.types.DARK);
     let sheetId, userId;
 
-    if (Constants.isTesting) { 
-      sheetId = window.prompt("Enter the name of your sheet. Your data on this sheet will persist -- you can access it again by entering the same sheet name on this prompt when you reload AlphaSheets. \n\nNOTE: Anyone can access your sheet by typing in its name.","SHEET_NAME");
-      userId = sheetId; 
-      // temporary hack to identify users and sheet id's together on backend. 
-    } else {
-      sheetId = "INIT_SHEET_ID"; 
-      userId = "TEST_USER_ID";
-    }
+    sheetId = window.prompt("Enter the name of your sheet. Your data on this sheet will persist -- you can access it again by entering the same sheet name on this prompt when you reload AlphaSheets. \n\nNOTE: Anyone can access your sheet by typing in its name.","SHEET_NAME");
+    userId = sheetId; 
+
     Store.setCurrentSheetById(sheetId);
     Store.setUserId(userId);
     API.initialize();
