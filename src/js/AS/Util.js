@@ -526,6 +526,12 @@ export default {
     return { origin: this.getSafeIndex(sel.origin), range: this.getSafeRange(sel.range) };
   },
 
+  originIsCornerOfSelection(sel) {
+    let {origin, range: {tl, br}} = sel;
+    return (origin.row === tl.row && origin.col === tl.col) ||
+           (origin.row === br.row && origin.col === br.col);
+  },
+
   getSafeIndex(idx) {
     return {col: this.getSafeCol(idx.col), row: this.getSafeRow(idx.row)};
   },
