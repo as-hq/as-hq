@@ -41,6 +41,9 @@ asValueToEntity v = case (toEValue v) of
 matrixDim :: EMatrix -> (Int,Int)
 matrixDim (EMatrix c r _) = (c,r)
 
+matrixTranspose :: EMatrix -> EMatrix
+matrixTranspose m@(EMatrix c r v) = EMatrix c r $ V.fromList $ concat $ transpose $ matrixTo2DList m
+
 -- | If a matrix is a 1xn or nx1, return that vector, otherwise return Nothing
 to1D :: EMatrix -> Maybe (V.Vector EValue)
 to1D (EMatrix c r v)

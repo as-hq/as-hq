@@ -11,6 +11,8 @@ import Data.Maybe
 import Control.Monad.Except
 import Data.List
 import qualified Data.Vector as V
+import qualified Data.Vector.Generic as VG
+import qualified Data.Vector.Unboxed as VU
 
 import Text.Read as TR
 import Data.Char (toLower,toUpper)
@@ -34,13 +36,14 @@ import Control.Exception.Base hiding (try)
 
 import AS.Util
 
+import qualified Statistics.Matrix as SM
+
 data RefMap = RefMap {refMap :: M.Map ERef EEntity, refDim :: (Col,Row)} deriving (Show,Read)
 type Arg a = (Int,a)
 type Dim = (Col,Row)
 
 -- | TODO: might need a wrapper around stuff to get 0.999999 -> 1 for things like correl
 -- | TODO: use unboxing if performance is a problem
--- | TODO: implement indirect helper
 -- | TODO: implement rand without IO creep
 -- | TODO: AND and OR seem to not deal with blank cells properly. 
 -- | TODO: test missing arguments; f(a1,a2,,a3) and refactor; EMissing isn't really an EValue
@@ -155,7 +158,7 @@ functions =  M.fromList $
     ("exp"            , normalD 1 eExp),
     ("pi"             , normalD 0 ePi),
     ("sqrt"           , normalD 1 eSqrt),
-    ("sqrtpi"         , normalD 0 eSqrtPi),
+    ("sqrtpi"         , normalD 1 eSqrtPi),
     ("sum"            , vectorD eSum),
     -- | Don't replace refs for ranges (resizing)
     ("sumif"          , FuncDescriptor [2] [2] [] [2] (Just 3) (transform eSumIf)),
@@ -403,10 +406,12 @@ arrConstToResult c es = do
 -- | Given context, maps a reference to an entity by lookup, then converting ASValue -> EEntity (matrix)
 -- | Assumes that context has ranges -> ValueL and ValueL [] = row, ValueL [[]] = column of rows
 -- | Seems OK to map over this function, since any given formula won't have too many references requiring DB
+
+-- NOTE: treating index refs as 1x1 matrices for functions like sum that need to know that a value came from a reference
 refToEntity :: Context -> ERef -> ThrowsError EEntity
 refToEntity c (ERef l@(IndexRef i)) = case (asValueToEntity v) of
   Nothing -> Left $ CannotConvertToExcelValue l
-  Just e  -> Right e
+  Just (EntityVal val) -> Right $ EntityMatrix $ EMatrix 1 1 (V.singleton val)
   where
     v = case (M.lookup l (evalMap c)) of
       Nothing -> dbLookup i
@@ -506,6 +511,7 @@ argsToNumVec es = do
   vecs <- compressErrors $ map argToNumVec es
   return $ V.concat vecs
 
+-- TODO: the string parser needs to work for strings "'5","\"5\"" etc
 -- | Helper for above; Takes an entity and returns a numeric vector (often, a singleton)
 argToNumVec :: EEntity -> ThrowsError (V.Vector ENumeric)
 argToNumVec (EntityVal (EValueNum n)) = Right $ V.singleton n
@@ -971,9 +977,8 @@ indexOrSlice m@(EMatrix nCol nRow v) row col
 eTranspose :: EFunc
 eTranspose c e = do
   m <- getRequired "matrix" "transpose" 1 e :: ThrowsError EMatrix
-  let lst = matrixTo2DList m -- [[EValue]]
-  let newVec = V.fromList $ concat lst
-  return $ EntityMatrix $ EMatrix (emRows m) (emCols m) newVec
+  let mT = matrixTranspose m
+  return $ EntityMatrix $ EMatrix (emRows m) (emCols m) (trace' "tranposed vec " (content mT))
 
 
 --------------------------------------------------------------------------------------------------------------
@@ -1004,8 +1009,8 @@ ePi c e = do
 
 eSqrtPi :: EFunc
 eSqrtPi c e = do
-  e' <- testNumArgs 0 "pi" e
-  valToResult $ EValueNum (EValueD (sqrt pi))
+  num <- getRequired "numeric" "abs" 1 e :: ThrowsError ENumeric
+  eSqrt c [EntityVal $ EValueNum $ num * (EValueD pi)]
 
 eSqrt :: EFunc
 eSqrt = oneArgDouble "sqrt" sqrt
@@ -1084,12 +1089,12 @@ variance_s xs = s / fromIntegral (n-1)
 sumSqDev :: V.Vector Double -> Double
 sumSqDev xs = s
   where
-    m = mean xs
+    m = trace' "mean " $ mean xs
     s = V.foldl' k 0 xs
     k s x = s + (x-m)*(x-m)
 
-xyProd :: V.Vector Double -> V.Vector Double -> Double
-xyProd xs ys = s
+xyMinusMeanProd :: V.Vector Double -> V.Vector Double -> Double
+xyMinusMeanProd xs ys = s
   where
     mx = mean xs
     my = mean ys
@@ -1301,7 +1306,7 @@ eCorrel c e = do
       if (V.length v1 /= V.length v2)
         then Left $ DIV0 -- Excel does this
         else do
-          let cov = xyProd v1 v2
+          let cov = xyMinusMeanProd v1 v2
           let sx = sumSqDev v1
           let sy = sumSqDev v2
           if sx == 0 || sy == 0
@@ -1372,13 +1377,13 @@ eSlope c e = do
   if (V.length v1 /= V.length v2) || V.length v1 == 0 || V.length v2 == 0
     then Left $ NA "Invalid dimensions for SLOPE arguments"
     else do
-      let y = toDouble $ filterNum v1
-      let denom = sumSqDev y
-      let x = toDouble $ filterNum v2
+      let y = trace' "y " $ toDouble $ filterNum v1
+      let x = trace' "x " $ toDouble $ filterNum v2
+      let denom = trace' "denom " $ sumSqDev x
       if V.length x /= V.length y || denom == 0
         then Left $ DIV0
         else do
-          let numerator = xyProd x y
+          let numerator = trace' "numerator " $ xyMinusMeanProd x y
           doubleToResult $ numerator/denom
 
 eVarP :: EFunc
@@ -1413,6 +1418,7 @@ eStdS c e = do
   if (V.length nums <=1)
     then Left $ DIV0
     else doubleToResult $ sqrt $ variance_s nums
+
 
 --------------------------------------------------------------------------------------------------------------
 -- | Excel text functions
@@ -1509,7 +1515,7 @@ eSubstitute c e = do
     else do
       let parts = SU.split old str
       let (before,after) = splitAt n parts
-      stringResult $ (concat before) ++ new ++ (concat after)
+      stringResult $ (SU.join old before) ++ new ++ (SU.join old after)
 
 
 --------------------------------------------------------------------------------------------------------------
