@@ -110,12 +110,14 @@ broadcast sid state message = do
   let ucsOnSheet = filter (\uc -> clientSheetId uc == sid) ucs
   forM_ ucsOnSheet $ \(UserClient _ conn _ _) -> U.sendMessage message conn
 
-sendBroadcastFiltered :: (Client c) => c -> MVar ServerState -> ASServerMessage -> IO ()
-sendBroadcastFiltered cl state msg@(ServerMessage _ (Failure e) _) = sendToOriginal cl msg                        -- send error to original user only
-sendBroadcastFiltered cl state msg@(ServerMessage _ _ (PayloadCommit _)) = broadcast (clientSheetId cl) state msg -- broadcast all undo/redos (scrolling only refreshes non-undone cells)
-sendBroadcastFiltered cl state msg@(ServerMessage Clear _ _) = broadcast (clientSheetId cl) state msg             -- broadcast all clears for the same reason
-sendBroadcastFiltered cl state msg@(ServerMessage Delete _ _) = broadcast (clientSheetId cl) state msg
-sendBroadcastFiltered _  state msg = liftIO $ do
+-- | Figures out whom to send the message back to, based on the payload, and broadcasts the message
+-- to all the relevant recipients. 
+reply :: (Client c) => c -> MVar ServerState -> ASServerMessage -> IO ()
+reply cl state msg@(ServerMessage _ (Failure e) _) = sendToOriginal cl msg                        -- send error to original user only
+reply cl state msg@(ServerMessage _ _ (PayloadCommit _)) = broadcast (clientSheetId cl) state msg -- broadcast all undo/redos (scrolling only refreshes non-undone cells)
+reply cl state msg@(ServerMessage Clear _ _) = broadcast (clientSheetId cl) state msg             -- broadcast all clears for the same reason
+reply cl state msg@(ServerMessage Delete _ _) = broadcast (clientSheetId cl) state msg
+reply _  state msg = liftIO $ do
   (State ucs _ _ _) <- readMVar state
   broadcastFiltered msg ucs
 
@@ -206,7 +208,7 @@ handleEval cl state payload  = do
                 PayloadCL cells' -> cells'
   putStrLn $ "IN EVAL HANDLER"
   msg' <- DP.runDispatchCycle state cells (clientCommitSource cl)
-  sendBroadcastFiltered cl state msg'
+  reply cl state msg'
 
 handleEvalRepl :: (Client c) => c -> MVar ServerState -> ASPayload -> IO ()
 handleEvalRepl cl state (PayloadXp xp) = do
@@ -245,7 +247,7 @@ handleDelete user state p@(PayloadWorkbookSheets (wbs:[])) = do
 handleDelete user state p@(PayloadWB workbook) = do
   conn <- dbConn <$> readMVar state
   DB.deleteWorkbook conn (workbookName workbook)
-  sendBroadcastFiltered user state $ ServerMessage Delete Success p
+  reply user state $ ServerMessage Delete Success p
   return ()
 handleDelete user state payload = do
   let locs = case payload of
@@ -254,14 +256,14 @@ handleDelete user state payload = do
   conn <- dbConn <$> readMVar state
   let blankedCells = U.blankCellsAt locs
   msg <- DP.runDispatchCycle state blankedCells (clientCommitSource user)
-  sendBroadcastFiltered user state $ ServerMessage Delete Success payload
+  reply user state $ ServerMessage Delete Success payload
 
 handleClear :: (Client c) => c  -> MVar ServerState -> IO ()
 handleClear client state = do
   conn <- dbConn <$> readMVar state
   DB.clear conn
   G.clear
-  sendBroadcastFiltered client state $ ServerMessage Clear Success $ PayloadN ()
+  reply client state $ ServerMessage Clear Success $ PayloadN ()
 
 handleUndo :: ASUserClient -> MVar ServerState -> IO ()
 handleUndo user state = do
@@ -270,7 +272,7 @@ handleUndo user state = do
   msg <- case commit of
     Nothing -> return $ failureMessage "Too far back"
     (Just c) -> return $ ServerMessage Undo Success (PayloadCommit c)
-  sendBroadcastFiltered user state msg
+  reply user state msg
   printWithTime "Server processed undo"
 
 handleRedo :: ASUserClient -> MVar ServerState -> IO ()
@@ -280,7 +282,7 @@ handleRedo user state = do
   msg <- case commit of
     Nothing -> return $ failureMessage "Too far forwards"
     (Just c) -> return $ ServerMessage Redo Success (PayloadCommit c)
-  sendBroadcastFiltered user state msg
+  reply user state msg
   printWithTime "Server processed redo"
 
 handleCopy :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
@@ -288,7 +290,7 @@ handleCopy user state (PayloadPaste from to) = do
   conn <- dbConn <$> readMVar state
   toCells <- getPasteCells conn from to
   msg' <- DP.runDispatchCycle state toCells (clientCommitSource user)
-  sendBroadcastFiltered user state msg'
+  reply user state msg'
 
 handleCut :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
 handleCut user state (PayloadPaste from to) = do
@@ -297,7 +299,7 @@ handleCut user state (PayloadPaste from to) = do
   let blankedCells = U.blankCellsAt (rangeToIndices from)
       newCells = U.mergeCells toCells blankedCells -- content in pasted cells take precedence over deleted cells
   msg' <- DP.runDispatchCycle state newCells (clientCommitSource user)
-  sendBroadcastFiltered user state msg'
+  reply user state msg'
 
 -- same without checking. This might be broken.
 handleCopyForced :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()

@@ -106,7 +106,6 @@ handleFirstMessage state conn msg =
   case (decode msg :: Maybe ASClientMessage) of
     Just m@(ClientMessage Acknowledge (PayloadInit (ASInitConnection _ _))) -> do -- first mesage is user init
       user <- initUserFromMessageAndConn m conn
-      if (isDebug && shouldPreprocess) then (preprocess user state) else (return ())
       catch (initClient user state) (handleRuntimeException user state)
     Just m@(ClientMessage Acknowledge (PayloadDaemonInit (ASInitDaemonConnection _ _))) -> do -- first message is daemon init
       initClient (initDaemonFromMessageAndConn m conn) state
@@ -119,21 +118,22 @@ shouldPreprocess = False
 
 -- | For debugging purposes. Reads in a list of ClientMessages from a file and processes them, as though
 -- sent from a frontend. 
-preprocess :: ASUserClient -> MVar ServerState -> IO () 
-preprocess user state = do
-  cmp <- getClientMessagesPath
-  fileContents <- Prelude.readFile cmp
+preprocess :: (Client c) => c -> MVar ServerState -> IO () 
+preprocess cl state = do
+  logDir <- getServerLogDir
+  fileContents <- Prelude.readFile (logDir ++ "client_messages")
   let fileLinesWithNumbers = zip (L.lines fileContents) [1..]
   let nonemptyNumberedFileLines =  filter (\(l, i) -> (l /= "") && (head l) /= '#') fileLinesWithNumbers
   mapM_ (\(l,i) -> do 
     putStrLn ("PROCESSING LINE " ++ (show i) ++ ": " ++ l)
-    processMessage user state (read l)
+    processMessage cl state (read l)
     putStrLn "\n\n\n\nFINISHED PREVIOUS MESSAGE\n\n\n\n") nonemptyNumberedFileLines
 
 
 initClient :: (Client c) => c -> MVar ServerState -> IO ()
 initClient client state = do
   liftIO $ modifyMVar_ state (\s -> return $ addClient client s) -- add client to state
+  if (isDebug && shouldPreprocess) then (preprocess client state) else (return ())
   finally (talk client state) (onDisconnect client state)
 
 -- | Maintains connection until user disconnects

@@ -3,8 +3,7 @@ module AS.Util where
 import AS.Types.Core
 
 import Prelude
-import System.Directory
-import System.FilePath.Posix
+import AS.Config.Paths
 import Data.Time.Clock
 import Data.Maybe (isNothing,fromJust)
 import Data.UUID.V4 (nextRandom)
@@ -231,18 +230,12 @@ getTime = do
   t <- getCurrentTime
   return $ take 23 $ show t
 
-serverLogDir :: IO String
-serverLogDir = do
-  mainDir <- getCurrentDirectory
-  return $ mainDir </> "logs/"
-
 printWithTime :: String -> IO ()
 printWithTime str = do
   time <- getTime
   let disp = "[" ++ time ++ "] " ++ str
   putStrLn (truncated disp)
-  logDir <- serverLogDir
-  createDirectoryIfMissing True logDir
+  logDir <- getServerLogDir
   appendFile' (logDir ++ "console_log") ('\n':disp)
 
 appendFile' :: String -> String -> IO ()
@@ -251,12 +244,11 @@ appendFile' fname msg = catch (appendFile fname msg) (\e -> putStrLn $ ("Error w
 writeToLog :: String -> CommitSource -> IO ()
 writeToLog str (sid, uid) = do 
   -- first, write to master to log
-  logDir <- serverLogDir
+  logDir <- getServerLogDir
   let sid' = T.unpack sid
       uid' = T.unpack uid
       loggedStr = '\n':str ++ "\n# SHEET_ID: " ++ sid' ++ "\n# USER_ID: " ++ uid'
       logPath = logDir ++ "server_log"
-  createDirectoryIfMissing True logDir
   appendFile' logPath loggedStr
   -- then write to individual log for the sheet
   let logPath' = logPath ++ sid'
@@ -265,13 +257,12 @@ writeToLog str (sid, uid) = do
 -- can probably refactor with writeToLog to reduce code duplication
 logBugReport :: String -> CommitSource -> IO ()
 logBugReport str (sid, uid) = do 
-  logDir <- serverLogDir
+  logDir <- getServerLogDir
   time <- getTime
   let sid' = T.unpack sid
       uid' = T.unpack uid
       loggedStr = '\n':str ++ "\n# SHEET_ID: " ++ sid' ++ "\n# USER_ID: " ++ uid' ++ "\n# TIME: " ++ time
       bugLogPath = logDir ++ "bug_reports"
-  createDirectoryIfMissing True logDir
   appendFile' bugLogPath loggedStr
 
 writeErrToLog :: String -> CommitSource -> IO ()

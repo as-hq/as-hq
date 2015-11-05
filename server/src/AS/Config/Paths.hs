@@ -4,8 +4,6 @@ import Prelude
 import System.Directory
 import System.FilePath.Posix
 
-import AS.Util
-
 py_eval_path = "server/as-py-eval/"
 py_libs_path = "asl/as-libs/py/"
 py_template_file = "template.py"
@@ -23,7 +21,9 @@ getEvalPath = do
   mainDir <- getCurrentDirectory
   return $ mainDir </> "eval_files/"
 
-getClientMessagesPath :: IO String
-getClientMessagesPath = do
+getServerLogDir :: IO String
+getServerLogDir = do
   mainDir <- getCurrentDirectory
-  return $ mainDir </> "client_messages"
+  let logDir = mainDir </> "logs/"
+  createDirectoryIfMissing True logDir
+  return logDir
