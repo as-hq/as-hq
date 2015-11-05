@@ -263,6 +263,7 @@ export default React.createClass({
       if (clipboard.area) {
         if (clipboard.isCut) {
           API.cut(fromASRange, toASRange);
+          Store.setClipboard(null, false);
         } else {
           API.copy(fromASRange, toASRange);
         }
