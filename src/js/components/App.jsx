@@ -19,8 +19,13 @@ export default React.createClass({
     ThemeManager.setTheme(ThemeManager.types.DARK);
     let sheetId, userId;
 
-    sheetId = window.prompt("Enter the name of your sheet. Your data on this sheet will persist -- you can access it again by entering the same sheet name on this prompt when you reload AlphaSheets. \n\nNOTE: Anyone can access your sheet by typing in its name.","SHEET_NAME");
-    userId = window.prompt("Enter your username.","USER_ID");
+    if (Constants.isTesting) {
+      sheetId = window.prompt("Enter the name of your sheet. Your data on this sheet will persist -- you can access it again by entering the same sheet name on this prompt when you reload AlphaSheets. \n\nNOTE: Anyone can access your sheet by typing in its name.","SHEET_NAME");
+      userId = window.prompt("Enter your username.","USER_ID");
+    } else { 
+      sheetId = "SHEET_NAME"; 
+      userId = "USER_ID"; 
+    }
 
     Store.setCurrentSheetById(sheetId);
     Store.setUserId(userId);
