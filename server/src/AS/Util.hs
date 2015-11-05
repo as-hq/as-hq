@@ -241,6 +241,9 @@ printWithTime str = do
   time <- getTime
   let disp = "[" ++ time ++ "] " ++ str
   putStrLn (truncated disp)
+  logDir <- serverLogDir
+  createDirectoryIfMissing True logDir
+  appendFile' (logDir ++ "console_log") ('\n':disp)
 
 appendFile' :: String -> String -> IO ()
 appendFile' fname msg = catch (appendFile fname msg) (\e -> putStrLn $ ("Error writing to log: " ++ show (e :: SomeException)))
