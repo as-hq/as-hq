@@ -26,7 +26,7 @@ class ASIterable(object):
     def _unwrap(cls, arr):
         # True if an ASIterable was passed in. 
         if type(arr).__name__ == "ASIterable":
-            if arr._is1D():
+            if arr._isColumn():
                 arr = arr._getList()
             else: 
                 arr = arr.toList()
