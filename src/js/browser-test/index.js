@@ -76,6 +76,10 @@ function activeRange() {
   return activeSelection().range;
 }
 
+function viewingWindow() {
+  return spreadsheet().getViewingWindow().range;
+}
+
 function generateKeyEvent(key) {
   let {keyCode, ...keyEvent} = KeyUtils.parseIntoShortcut({}, key);
   let patchedKeyEvent = {
@@ -215,6 +219,18 @@ function shouldHaveFocus(comp) {
   });
 }
 
+function viewingWindowShouldSatisfy(fn) {
+  return exec(() => {
+    expect(viewingWindow()).toSatisfy(fn);
+  });
+}
+
+function viewingWindowShouldBeAtRow(num) {
+  return viewingWindowShouldSatisfy(({br: {row: bottomRow}}) => {
+    return (bottomRow - 5 <= num) && (bottomRow + 5 >= num);
+  });
+}
+
 function waitForResponse(act) {
   return promise((fulfill, reject) => {
     actionAPIResponse(act, fulfill)();
@@ -336,37 +352,57 @@ let tests = __describe('keyboard tests', {
       ]}),
 
       _describe('selecting cells with ctrl arrow', { tests: [
-        _it('selects down', [
-          python('A1', 'range(10)'),
-          selectRange('A1'),
-          keyPress('Ctrl+Shift+Down'),
-          shouldBeSelected('A1:A10')
-        ]),
+        _describe('basic functionality', { tests: [
+          _it('selects down', [
+            python('A1', 'range(10)'),
+            selectRange('A1'),
+            keyPress('Ctrl+Shift+Down'),
+            shouldBeSelected('A1:A10')
+          ]),
 
-        _it('selects up', [
-          python('A1', 'range(10)'),
-          selectRange('A5'),
-          keyPress('Ctrl+Shift+Up'),
-          shouldBeSelected('A1:A5')
-        ]),
+          _it('selects up', [
+            python('A1', 'range(10)'),
+            selectRange('A5'),
+            keyPress('Ctrl+Shift+Up'),
+            shouldBeSelected('A1:A5')
+          ]),
 
-        _it('selects right', [
-          _forM_(fromToInclusive(1, 5),
-            (i) => python(`${numToAlpha(i - 1)}1`, `${i}`)
-          ),
-          selectRange('A1'),
-          keyPress('Ctrl+Shift+Right'),
-          shouldBeSelected('A1:E1')
-        ]),
+          _it('selects right', [
+            _forM_(fromToInclusive(1, 5),
+              (i) => python(`${numToAlpha(i - 1)}1`, `${i}`)
+            ),
+            selectRange('A1'),
+            keyPress('Ctrl+Shift+Right'),
+            shouldBeSelected('A1:E1')
+          ]),
 
-        _it('selects left', [
-          _forM_(fromToInclusive(1, 5),
-            (i) => python(`${numToAlpha(i - 1)}1`, `${i}`)
-          ),
-          selectRange('C1'),
-          keyPress('Ctrl+Shift+Left'),
-          shouldBeSelected('A1:C1')
-        ])
+          _it('selects left', [
+            _forM_(fromToInclusive(1, 5),
+              (i) => python(`${numToAlpha(i - 1)}1`, `${i}`)
+            ),
+            selectRange('C1'),
+            keyPress('Ctrl+Shift+Left'),
+            shouldBeSelected('A1:C1')
+          ])
+        ]}),
+
+        _xdescribe('screen should follow ctrl arrow', { tests: [
+          _it('selects down', [
+            python('A1', 'range(60)'),
+            selectRange('A1'),
+            keyPress('Ctrl+Shift+Down'),
+            shouldBeSelected('A1:A60'),
+            viewingWindowShouldBeAtRow(60)
+          ]),
+
+          _it('selects down a long range', [
+            python('A1', 'range(100)'),
+            selectRange('A1'),
+            keyPress('Ctrl+Shift+Down'),
+            shouldBeSelected('A1:A100'),
+            viewingWindowShouldBeAtRow(100)
+          ])
+        ]})
       ]})
     ]}),
 

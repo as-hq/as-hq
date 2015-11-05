@@ -144,6 +144,11 @@ export default {
     GRID: "GRID",
     TEXTBOX: "TEXTBOX",
     EDITOR: "EDITOR"
+  },
+
+  ClickType:{
+    DOUBLE_CLICK: "DOUBLE_CLICK",
+    CLICK: "CLICK"
   }
 
 };

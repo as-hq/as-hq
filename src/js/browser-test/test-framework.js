@@ -174,6 +174,18 @@ let hooks = {
           .reduce((acc, cur) => acc && cur, true);
       }
     }
+  },
+
+  toSatisfy(selfValue, msg) {
+    return {
+      message(otherFn) {
+        if (msg != undefined) return msg;
+        return `Expected ${JSON.stringify(selfValue)} to satisfy ${otherFn.toString()}`;
+      },
+      compare(otherFn) {
+        return otherFn(selfValue);
+      }
+    }
   }
 };
 

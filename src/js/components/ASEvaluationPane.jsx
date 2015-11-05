@@ -336,7 +336,14 @@ export default React.createClass({
       // Hypergrid automatically changes the selection when you arrive here through
       // left, right, down, or up.
       this.handleEvalRequest(xpObj, 0, 0);
+    } else {
+      // NOTE: the "Jump to A1" bug happens if the code gets here
+      // Hypothesis: hypergrid's selections are empty, and a nav key defaults to A1
+      // This used to happen when double click put focus on grid (it seems that double click = no selections for hypergrid)
+      // and then you press a nav key
+      // Shouldn't happen anymore -- RITESH
     }
+
   },
 
   _onGridDeferredKey(e) {
@@ -632,7 +639,7 @@ export default React.createClass({
           onSelectionChange={this._onSelectionChange}
           hideToast={this.hideToast}
           width="100%"
-          height={`calc(100% - ${this.getEditorHeight()})`}  />
+          height={`calc(90% - ${this.getEditorHeight()})`}  />
         <Snackbar ref="snackbarError"
                   message={this.state.toastMessage}
                   action={this.state.toastAction}

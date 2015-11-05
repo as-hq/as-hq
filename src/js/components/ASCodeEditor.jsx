@@ -123,7 +123,6 @@ export default React.createClass({
           language={language}
           hideToast={this.props.hideToast}
           theme={theme}
-          maxLines={10}
           width={width} height={height}
           onDeferredKey={this.props.onDeferredKey} />
       </div>
