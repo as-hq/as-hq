@@ -66,55 +66,55 @@ export default React.createClass({
     return (
       <div>
       <Toolbar
-              style={{backgroundColor: Styles.Colors.grey700, height:'60px'}}
-              showMenuIconButton={false} >
-                <TextField
-                  ref="varNameField"
-                  hintText="varName"
-                  style={{
-                    position: 'relative',
-                    left: '-5px',
-                    top: '-15px',
-                    fontFamily: '"Lucida Console", Monaco, monospace'
-                  }}
-                  floatingLabelStyle={{
-                    fontFamily: 'Roboto, sans-serif'
-                  }}
-                  onBlur={this._onBlurVarName} />
-                <DropDownMenu
-                  selectedIndex={languageIndex(language)}
-                  menuItems={languages}
-                  onChange={this._onSelectLanguage}
-                  underlineStyle={{ display: 'none' }}
-                  style={{
-                    position: 'relative',
-                    left: '40px',
-                    top: '0px'
-                  }}/>
-                <FlatButton
-                  label="REPL"
-                  onClick={this.props.onReplClick}
-                  style={{
-                    position: 'relative',
-                    left: '40px',
-                    top: '-13px'
-                  }} />
-                <FlatButton
-                  label="SUBMIT BUG REPORT"
-                  onClick={this.props.onSubmitDebug}
-                  style={{
-                    position: 'relative',
-                    left: '60px',
-                    top: '-13px'
-                  }} />
-                <FlatButton
-                  label="TEST ALPHASHEETS"
-                  onClick={this._onTest}
-                  style={{
-                    position: 'relative',
-                    left: '150px',
-                    top: '-13px'
-                  }} />
+          style={{backgroundColor: Styles.Colors.grey700, height:'60px'}}
+          showMenuIconButton={false} >
+            <TextField
+              ref="varNameField"
+              hintText="varName"
+              style={{
+                position: 'relative',
+                left: '-5px',
+                top: '-15px',
+                fontFamily: '"Lucida Console", Monaco, monospace'
+              }}
+              floatingLabelStyle={{
+                fontFamily: 'Roboto, sans-serif'
+              }}
+              onBlur={this._onBlurVarName} />
+            <DropDownMenu
+              selectedIndex={languageIndex(language)}
+              menuItems={languages}
+              onChange={this._onSelectLanguage}
+              underlineStyle={{ display: 'none' }}
+              style={{
+                position: 'relative',
+                left: '40px',
+                top: '0px'
+              }}/>
+            <FlatButton
+              label="REPL"
+              onClick={this.props.onReplClick}
+              style={{
+                position: 'relative',
+                left: '40px',
+                top: '-13px'
+              }} />
+            <FlatButton
+              label="SUBMIT BUG REPORT"
+              onClick={this.props.onSubmitDebug}
+              style={{
+                position: 'relative',
+                left: '60px',
+                top: '-13px'
+              }} />
+            <FlatButton
+              label="TEST ALPHASHEETS"
+              onClick={this._onTest}
+              style={{
+                position: 'relative',
+                left: '150px',
+                top: '-13px'
+              }} />
             </Toolbar>
         <AceEditor
           ref="editor"
@@ -123,6 +123,7 @@ export default React.createClass({
           language={language}
           hideToast={this.props.hideToast}
           theme={theme}
+          maxLines={10}
           width={width} height={height}
           onDeferredKey={this.props.onDeferredKey} />
       </div>
