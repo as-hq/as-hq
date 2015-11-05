@@ -280,9 +280,11 @@ export default React.createClass({
     hg.setMouseDown(myDown);
     hg.setDragExtent(myExtent);
 
-
+    let win = this.getViewingWindow().range,
+        needsToScroll = !Util.isContainedInLocs(col, row, [win]);
     // set scroll
-    if (shouldScroll) {
+    if (shouldScroll && needsToScroll) {
+      console.log('\n\n\nSHOULD SCROLL FIRED\n\n\n');
       let scroll = this._getNewScroll(oldSel, safeSelection);
       this.scrollTo(scroll.scrollH, scroll.scrollV);
     }
