@@ -2,7 +2,7 @@ import {setTestMode, unsetTestMode} from '../AS/Logger';
 
 import _ from 'lodash';
 
-import {expect, registerExpectation, _describe, __describe, _it} from './test-framework';
+import {addError, expect, registerExpectation, _describe, __describe, _it} from './test-framework';
 import {
   promise,
   exec,
@@ -202,7 +202,7 @@ function shouldBeSelected(rng) {
 function shouldHaveFocus(comp) {
   return exec(() => {
     let domNode = comp.getDOMNode();
-    expect(domNode.hasFocus()).toBe(true);
+    expect(domNode.hasFocus()).toBe(true, 'Expected component to have focus');
   });
 }
 
@@ -252,11 +252,11 @@ let tests = __describe('keyboard tests', {
 
       _it('should eval on tab', [
         selectRange('A1'),
-        keyPresses('123'),
+        keyPresses('1234'),
         waitForResponse(
           keyPress('Tab')
         ),
-        shouldBe('A1', valueI(123)),
+        shouldBe('A1', valueI(1234)),
         shouldBeSelected('B1')
       ])
     ]}),
@@ -282,21 +282,6 @@ let tests = __describe('keyboard tests', {
       ]),
 
       _describe('regressions', { tests: [
-        _it('should paste twice after cut', [
-          python('A1', '1'),
-          selectRange('A1'),
-          pressCut(),
-          keyPress('Down'),
-          waitForResponse(
-            pressPaste()
-          ),
-          shouldBe('A2', valueI(1)),
-          keyPress('Down'),
-          waitForResponse(
-            pressPaste()
-          ),
-          shouldBe('A3', valueI(1))
-        ])
       ]})
     ]}),
 
@@ -358,7 +343,7 @@ let tests = __describe('keyboard tests', {
 
         _it('selects right', [
           _forM_(fromToInclusive(1, 5),
-            (i) => python(`${numToAlpha(i)}1`, `${i}`)
+            (i) => python(`${numToAlpha(i - 1)}1`, `${i}`)
           ),
           selectRange('A1'),
           keyPress('Ctrl+Shift+Right'),
@@ -367,7 +352,7 @@ let tests = __describe('keyboard tests', {
 
         _it('selects left', [
           _forM_(fromToInclusive(1, 5),
-            (i) => python(`${numToAlpha(i)}1`, `${i}`)
+            (i) => python(`${numToAlpha(i - 1)}1`, `${i}`)
           ),
           selectRange('C1'),
           keyPress('Ctrl+Shift+Left'),
@@ -392,15 +377,15 @@ let tests = __describe('keyboard tests', {
 
       _it('duplicates cells with ctrl r', [
         _forM_(fromToInclusive(1, 5),
-          (i) => python(`${numToAlpha(i)}1`, `${i}`)
+          (i) => python(`${numToAlpha(i - 1)}1`, `${i}`)
         ),
         python('A2', 'A1 + 1'),
-        selectRange('A2'),
+        selectRange('A2:E2'),
         waitForResponse(
           keyPress('Ctrl+R')
         ),
         shouldBeL(
-          fromToInclusive(1, 5).map((i) => `${numToAlpha(i)}2`),
+          fromToInclusive(1, 5).map((i) => `${numToAlpha(i - 1)}2`),
           fromToInclusive(2, 6).map(valueI)
         )
       ])
@@ -411,6 +396,10 @@ let tests = __describe('keyboard tests', {
 export function install(w, ep) {
   evalPane = ep;
   w.test = tests;
+  w.onerror = (msg, url, lineNumber) => {
+    addError(msg);
+    return true;
+  };
   __injectExpect(expect);
 
   /* only do this with bluebird */

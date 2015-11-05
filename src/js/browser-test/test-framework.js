@@ -15,6 +15,8 @@ import {
 
 let successCount = 0, testCount = 0;
 let depth = 0;
+let beforeStack = [];
+let afterStack = [];
 
 function tabbed(prfs) {
   return _doDefer([
@@ -79,6 +81,35 @@ function getSuccessCount() { return successCount; }
 
 function getTestCount() { return testCount; }
 
+function wrapEach(prf, beforeEach, afterEach) {
+  return _doDefer([
+    exec(() => {
+      beforeStack.push(beforeEach);
+      afterStack.push(afterEach);
+    }),
+    prf,
+    exec(() => {
+      beforeStack.pop();
+      afterStack.pop();
+    })
+  ])
+}
+
+function _doStack(srf) {
+  return () => {
+    let stack = srf();
+    return _do(_.flatten(stack));
+  };
+}
+
+function _doDeferWithWrap(action) {
+  return _doDefer([
+    _doStack(() => { return beforeStack; }),
+    action,
+    _doStack(() => { return afterStack; })
+  ]);
+}
+
 function runTestsWithCallbacks(tests, cbs) {
   let {
     beforeAll = empty,
@@ -89,20 +120,19 @@ function runTestsWithCallbacks(tests, cbs) {
 
   return _doDefer([
     beforeAll,
-    tabbed(tests.map((test) =>
-      _doDefer([
-        beforeEach, test, afterEach
-      ])
-    )),
+    _doDeferWithWrap(
+      wrapEach(tabbed(tests), beforeEach, afterEach)
+    ),
     afterAll
   ]);
 }
 
 
 let hooks = {
-  toBe(selfValue) {
+  toBe(selfValue, msg) {
     return {
       message(otherVal) {
+        if (msg != undefined) return msg;
         return `Expected ${JSON.stringify(selfValue)} to be ${JSON.stringify(otherVal)}`;
       },
       compare(otherVal) {
@@ -111,9 +141,10 @@ let hooks = {
     };
   },
 
-  toBeSupersetOf(selfValue) {
+  toBeSupersetOf(selfValue, msg) {
     return {
       message(otherVal) {
+        if (msg != undefined) return msg;
         return `Expected ${JSON.stringify(selfValue)} to be superset of ${JSON.stringify(otherVal)}`;
       },
       compare(otherVal) {
@@ -141,11 +172,19 @@ class Expect {
       self[k] = (other) => {
         let {message, compare} = v(self.value);
         if (compare(other) != (! this.isNot)) {
-          assertionFails.push(message(other));
+          if (this.isNot) {
+            assertionFails.push(`NOT: ${message(other)}`);
+          } else {
+            assertionFails.push(message(other));
+          }
         }
       }
     });
   }
+}
+
+export function addError(msg) {
+  assertionFails.push(msg);
 }
 
 export function expect(val) {
@@ -157,7 +196,11 @@ export function registerExpectation(name, ofs) {
 }
 
 export function _it(message, prfs) {
-  return _liftT(_doDefer(prfs), message, true);
+  return _liftT(
+    _doDeferWithWrap(
+      _doDefer(prfs)
+    ),
+    message, true);
 }
 
 export function _describe(name, {tests, ...cbs}) { // tests are either more describes or its
