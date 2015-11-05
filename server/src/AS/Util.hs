@@ -205,8 +205,13 @@ makeUpdateMessage (Right cells) = ServerMessage Update Success (PayloadCL cells)
 -- | Poorly named. When you have a list of cells from a get request, this function constructs
 -- the message to send back. 
 makeGetMessage :: [ASCell] -> ASServerMessage
-makeGetMessage cells = changeActionToGet $ makeUpdateMessage (Right cells)
-  where changeActionToGet (ServerMessage _ r p) = ServerMessage Get r p        
+makeGetMessage cells = changeMessageAction Get $ makeUpdateMessage (Right cells)
+
+makeUpdateWindowMessage :: [ASCell] -> ASServerMessage
+makeUpdateWindowMessage cells = changeMessageAction UpdateWindow $ makeUpdateMessage (Right cells)
+
+changeMessageAction :: ASAction -> ASServerMessage -> ASServerMessage
+changeMessageAction a (ServerMessage _ r p) = ServerMessage a r p
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Error Handling

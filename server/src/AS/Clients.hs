@@ -183,7 +183,7 @@ handleUpdateWindow sid state (PayloadW w) = do
     let newLocs = U.getScrolledLocs oldWindow w
     printObj "Sending newLocs" newLocs
     mcells <- DB.getCells $ concat $ map rangeToIndices newLocs
-    sendToOriginal user' $ U.makeGetMessage (catMaybes mcells)
+    sendToOriginal user' $ U.makeUpdateWindowMessage (catMaybes mcells)
     US.modifyUser (U.updateWindow w) user' state)
 
 -- | If a message is failing to parse from the server, undo the last commit (the one that added
