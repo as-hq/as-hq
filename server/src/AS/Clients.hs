@@ -114,7 +114,7 @@ sendBroadcastFiltered :: (Client c) => c -> MVar ServerState -> ASServerMessage 
 sendBroadcastFiltered cl state msg@(ServerMessage _ (Failure e) _) = sendToOriginal cl msg                        -- send error to original user only
 sendBroadcastFiltered cl state msg@(ServerMessage _ _ (PayloadCommit _)) = broadcast (clientSheetId cl) state msg -- broadcast all undo/redos (scrolling only refreshes non-undone cells)
 sendBroadcastFiltered cl state msg@(ServerMessage Clear _ _) = broadcast (clientSheetId cl) state msg             -- broadcast all clears for the same reason
--- sendBroadcastFiltered _  state msg@(ServerMessage Delete _ _) = broadcast state msg                            -- no separate broadcast for delete anymore
+sendBroadcastFiltered cl state msg@(ServerMessage Delete _ _) = broadcast (clientSheetId cl) state msg
 sendBroadcastFiltered _  state msg = liftIO $ do
   (State ucs _ _ _) <- readMVar state
   broadcastFiltered msg ucs
@@ -254,7 +254,7 @@ handleDelete user state payload = do
   conn <- dbConn <$> readMVar state
   let blankedCells = U.blankCellsAt locs
   msg <- DP.runDispatchCycle state blankedCells (clientCommitSource user)
-  sendBroadcastFiltered user state msg
+  sendBroadcastFiltered user state $ ServerMessage Delete Success payload
 
 handleClear :: (Client c) => c  -> MVar ServerState -> IO ()
 handleClear client state = do
