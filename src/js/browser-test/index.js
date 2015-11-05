@@ -2,7 +2,16 @@ import {setTestMode, unsetTestMode} from '../AS/Logger';
 
 import _ from 'lodash';
 
-import {addError, expect, registerExpectation, _describe, __describe, _it} from './test-framework';
+import {
+  addError,
+  expect,
+  registerExpectation,
+  _describe,
+  __describe,
+  _it,
+  _xdescribe,
+  _xit
+} from './test-framework';
 import {
   promise,
   exec,
@@ -309,7 +318,7 @@ let tests = __describe('keyboard tests', {
     ]}),
 
     _describe('selection shortcuts', { tests: [
-      _describe('selecting cells with ctrl a', { tests: [
+      _xdescribe('selecting cells with ctrl a', { tests: [
         _it('selects a simple table', [
           python('A1', 'range(10)'),
           selectRange('A1'),
@@ -395,7 +404,7 @@ let tests = __describe('keyboard tests', {
 
 export function install(w, ep) {
   evalPane = ep;
-  w.test = tests;
+  w.test = () => { tests(); };
   w.onerror = (msg, url, lineNumber) => {
     addError(msg);
     return true;
