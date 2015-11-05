@@ -511,15 +511,23 @@ argsToNumVec es = do
   vecs <- compressErrors $ map argToNumVec es
   return $ V.concat vecs
 
--- TODO: the string parser needs to work for strings "'5","\"5\"" etc
+-- TODO: this func removes all quote/apostrophes from string. Make sure that Excel does this too. 
+extractString :: String -> String
+extractString = stripChars "'\""
+  where
+    stripChars :: String -> String -> String
+    stripChars = filter . flip notElem
+
 -- | Helper for above; Takes an entity and returns a numeric vector (often, a singleton)
 argToNumVec :: EEntity -> ThrowsError (V.Vector ENumeric)
 argToNumVec (EntityVal (EValueNum n)) = Right $ V.singleton n
-argToNumVec (EntityVal (EValueS s))   = case ((TR.readMaybe s)::Maybe Int) of
-  Nothing -> case ((TR.readMaybe s)::Maybe Double) of
-    Nothing -> Left $ VAL $ "Argument is not numeric"
-    Just d  -> Right $ V.singleton $ EValueD d
-  Just i -> Right $ V.singleton $ EValueI i
+argToNumVec (EntityVal (EValueS s))  = do  -- attempt to cast to numeric
+  let str = extractString s
+  case ((TR.readMaybe (trace' "parsed str " str))::Maybe Int) of
+    Nothing -> case ((TR.readMaybe str)::Maybe Double) of
+      Nothing -> Left $ VAL $ "Argument is not numeric"
+      Just d  -> Right $ V.singleton $ EValueD d
+    Just i -> Right $ V.singleton $ EValueI i
 argToNumVec (EntityVal (EValueE e)) = Left $ Default e
 argToNumVec (EntityVal (EValueB True)) = Right $ V.singleton $ EValueI 1
 argToNumVec (EntityVal (EValueB False)) = Right $ V.singleton $ EValueI 0
