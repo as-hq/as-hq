@@ -85,12 +85,6 @@ wss.onmessage = function (event) {
           commit: msg.payload.contents
         });
        break;
-      case "Evaluate":
-        Dispatcher.dispatch({
-          type: ActionTypes.GOT_UPDATED_CELLS,
-          updatedCells: msg.payload.contents
-        });
-        break;
       case "Update":
         if (msg.payload.tag === "PayloadCL"){
           Dispatcher.dispatch({
@@ -122,7 +116,7 @@ wss.onmessage = function (event) {
         });
         break;
       case "Delete":
-        if (msg.payload.tag === "PayloadR"){
+        if (msg.payload.tag === "PayloadLL" || msg.payload.tag === "PayloadR") {
           Dispatcher.dispatch({
             type: ActionTypes.DELETED_LOCS,
             locs: msg.payload.contents

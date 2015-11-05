@@ -109,6 +109,16 @@ export default {
     return this.addCurrentSheetIdToObj({ window: rng });
   },
 
+  rangeToIndices(rng) {
+    let inds = [];
+    for (var r = rng.tl.row; r <= rng.br.row; r++){
+      for (var c = rng.tl.col; c <= rng.br.col; c++) {
+        inds.push({row: r, col: c});
+      }
+    }
+    return inds;
+  },
+
   asLocationToSimple(loc) {
     return (loc.tag === 'index') ? {tl: loc.index, br: loc.index} : loc.range;
   },

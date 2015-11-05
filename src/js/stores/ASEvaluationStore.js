@@ -139,7 +139,14 @@ const ASEvaluationStore = assign({}, BaseStore, {
           ASEvaluationStore.emitChange();
           break;
         case Constants.ActionTypes.DELETED_LOCS:
-          ASEvaluationStore.removeLocs(action.locs);
+          let locs, 
+              sheetId = action.locs.sheetId; 
+          switch (action.locs.tag) { 
+            case "range": locs = TC.rangeToIndices(action.locs.range); break; 
+            // should be a case for list of locs too but I forget the tag for that. (Alex 11/4)
+            default: throw "Non-range passed in to delete"; 
+          }
+          ASEvaluationStore.removeIndices(locs, sheetId);
           ASEvaluationStore.emitChange();
           break;
         case Constants.ActionTypes.GOT_FAILURE:
@@ -340,16 +347,20 @@ const ASEvaluationStore = assign({}, BaseStore, {
   },
 
   /* Remove a cell at an ASIndex */
-  removeIndex(loc) {
-    if (this.locationExists(loc.index.col, loc.index.row, loc.sheetId)) {
-      _data.allCells[loc.sheetId][loc.index.col][loc.index.row] = null;
+  removeIndex(loc, sheetId) {
+    if (typeof(sheetId) == "undefined") sheetId = _data.currentSheet.sheetId; 
+    let emptyCell = TC.makeEmptyCell(TC.makeASIndex(sheetId, loc.col, loc.row)); 
+    if (this.locationExists(loc.col, loc.row, sheetId)) {
+      _data.allCells[sheetId][loc.col][loc.row] = null;
     }
+
+    _data.lastUpdatedCells.push(emptyCell);
   },
 
-  /* Remove cells at ASRanges or ASIndices */
-  removeLocs(locs) {
-    let dlocs = Util.decomposeASLocations(locs);
-    dlocs.forEach((l) => this.removeIndex(l), this);
+  // Remove cells at ASRanges or ASIndices. 
+  removeIndices(locs, sheetId) {
+    if (typeof(sheetId) == "undefined") sheetId = _data.currentSheet.sheetId; 
+    locs.forEach((l) => this.removeIndex(l, sheetId), this);
   },
 
   clearSheetCacheById(sheetId) {

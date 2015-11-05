@@ -394,33 +394,6 @@ export default {
     }
   },
 
-  decomposeASLocation(loc) {
-    if (loc.index)
-      return [loc];
-    else {
-      let dlocs = [];
-      for (var r = loc.range.tl.row; r < loc.range.br.row + 1; r++){
-        for (var c = loc.range.tl.col; c < loc.range.br.col + 1; c++) {
-          dlocs.push({
-            locSheetId: loc.sheetId,
-            index: {row: r, col: c}
-          });
-        }
-      }
-      return dlocs;
-    }
-  },
-
-  decomposeASLocations(locs) {
-    if (locs.constructor == Array){
-      let dlocs = locs.map((l) => this.decomposeASLocation(l), this);
-      logDebug("degenerate locs: " + JSON.stringify(dlocs));
-      let merged = [];
-      return merged.concat.apply(merged, dlocs);
-    }
-    else return this.decomposeASLocation(locs);
-  },
-
   removeLastWord(str){
     let lastIndex = str.lastIndexOf(" ");
     if (lastIndex > 0)
