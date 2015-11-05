@@ -9,6 +9,7 @@ import Data.Time.Clock
 import Data.Maybe (isNothing,fromJust)
 import Data.UUID.V4 (nextRandom)
 import Text.ParserCombinators.Parsec
+import qualified Text.ParserCombinators.Parsec.Token as P
 
 import Data.Aeson hiding (Success)
 import Control.DeepSeq
@@ -629,3 +630,10 @@ quotedString = (quoteString <|> apostropheString)
     escapedChar code replacement = char code >> return replacement
     codes            = ['b',  'n',  'f',  'r',  't',  '\\', '\"', '/']
     replacements     = ['\b', '\n', '\f', '\r', '\t', '\\', '\"', '/']
+
+-- | Because Haskell's float lexer doesn't parse negative floats out of the box. <__<
+float' :: P.TokenParser () -> Parser Double
+float' lexer = do 
+  maybeMinus <- option ' ' $ try (char '-') 
+  f <- P.float lexer
+  if (maybeMinus == ' ') then (return f) else (return (-f))
