@@ -1,3 +1,7 @@
+import {
+  logDebug
+} from '../AS/Logger';
+
 import _ from 'lodash';
 
 import API from '../actions/ASApiActionCreators';
@@ -101,7 +105,6 @@ export function cell(loc, xp, lang) {
       'ml': 'OCaml'
     };
     let idx = asIndex(loc);
-    console.log("\n\nFUCk\n", idx);
     let xpObj = { expression: xp, language: { Server: langMap[lang] } };
     API.evaluate(idx, xpObj);
   });
@@ -220,7 +223,7 @@ export function messageShouldSatisfy(loc, fn) {
 
 export function expressionShouldSatisfy(loc, fn) {
   return messageShouldSatisfy(loc, (cs) => {
-    console.log(`${loc} expression should satisfy ${fn.toString()}`);
+    logDebug(`${loc} expression should satisfy ${fn.toString()}`);
 
     expect(cs.length).not.toBe(0);
     if (cs.length == 0) {
@@ -238,7 +241,7 @@ export function expressionShouldBe(loc, xp) {
 
 export function valueShouldSatisfy(loc, fn) {
   return messageShouldSatisfy(loc, (cs) => {
-    console.log(`${loc} should satisfy ${fn.toString()}`);
+    logDebug(`${loc} should satisfy ${fn.toString()}`);
 
     expect(cs.length).not.toBe(0);
     if (cs.length == 0) {
@@ -265,7 +268,7 @@ export function shouldBeImage(loc) {
 
 export function shouldBeNothing(loc) {
   return messageShouldSatisfy(loc, (cs) => {
-    console.log(`${loc} should be nothing`);
+    logDebug(`${loc} should be nothing`);
     //server should return either nothing at the location or a blank cell
     let isEmpty = (cs.length == 0) || (cs[0].cellExpression.expression == "");
     expect(isEmpty).toBe(true);
@@ -296,3 +299,10 @@ export function shouldBeL(locs, vals) {
   });
 }
 
+export function setUITestMode() {
+  API.setUITestMode();
+}
+
+export function unsetUITestMode() {
+  API.unsetUITestMode();
+}

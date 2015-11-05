@@ -1,3 +1,5 @@
+import {logDebug} from '../AS/Logger';
+
 import React from 'react';
 
 import ActionCreator from '../actions/ASSpreadsheetActionCreators';
@@ -64,7 +66,7 @@ export default React.createClass({
           Need to also figure out the expression to render in the editor
         */
         'fin-selection-changed': function (event) {
-          console.log("SELECTION CHANGE");
+          logDebug("SELECTION CHANGE");
           self.props.onSelectionChange(self.getSelectionArea());
           },
         'fin-scroll-x': function (event) {
@@ -78,7 +80,7 @@ export default React.createClass({
             ActionCreator.scroll(self.getViewingWindow());
           },
         'fin-double-click': function (event) {
-          console.log("DOUBLE ClICK");
+          logDebug("DOUBLE ClICK");
           self.refs.textbox.updateTextBox(ExpStore.getExpression());
           Store.setFocus('textbox');
           self.props.setFocus('textbox');
@@ -233,7 +235,7 @@ export default React.createClass({
   },
   // do not call before polymer is ready.
   select(unsafeSelection, shouldScroll) {
-    console.log("Spreadsheet select start");
+    logDebug("Spreadsheet select start");
     if (typeof(shouldScroll) == "undefined") {
       shouldScroll = true;
     }
@@ -257,7 +259,7 @@ export default React.createClass({
       dC = (br.col - tl.col) * flipC;
       dR = (br.row - tl.row) * flipR;
     } else {
-      // sort of a hack. This will incorrectly change the location of the origin. 
+      // sort of a hack. This will incorrectly change the location of the origin.
       // known source of bugs. E.g., ctrl+space on C3 and Ctrl+Up will take you to A1, not C1. (Alex 11/4)
       c = tl.col - 1;
       r = tl.row - 1;
@@ -281,7 +283,7 @@ export default React.createClass({
 
     // set scroll
     if (shouldScroll) {
-      let scroll = this._getNewScroll(oldSel, safeSelection); 
+      let scroll = this._getNewScroll(oldSel, safeSelection);
       this.scrollTo(scroll.scrollH, scroll.scrollV);
     }
 
@@ -289,14 +291,14 @@ export default React.createClass({
     this.props.onSelectionChange(safeSelection);
   },
 
-  _getNewScroll(oldSel, newSel) { 
-    let hg = this._getHypergrid(); 
+  _getNewScroll(oldSel, newSel) {
+    let hg = this._getHypergrid();
     let {tl, br} = newSel.range;
     let {col, row} = newSel.origin;
 
     let oldOrigin, oldRange, oldTl, oldBr;
     if (oldSel) {
-        oldOrigin = oldSel.origin; 
+        oldOrigin = oldSel.origin;
         oldRange = oldSel.range;
         oldTl = oldRange.tl;
         oldBr = oldRange.br;
@@ -326,20 +328,20 @@ export default React.createClass({
         scrollH = hg.getHScrollValue() + br.col - win.br.col;
       }
     } else if (oldOrigin) {
-      if (col < win.tl.col) { 
-        scrollH = col - 1; 
-      } else if (col > win.br.col) { 
-        scrollH = hg.getHScrollValue() + col - win.br.col; 
-      } 
+      if (col < win.tl.col) {
+        scrollH = col - 1;
+      } else if (col > win.br.col) {
+        scrollH = hg.getHScrollValue() + col - win.br.col;
+      }
 
-      if (row < win.tl.row) { 
-        scrollV = row - 1; 
-      } else if (row > win.br.row) { 
-        scrollV = hg.getVScrollValue() + row - win.br.row  + 2; 
+      if (row < win.tl.row) {
+        scrollV = row - 1;
+      } else if (row > win.br.row) {
+        scrollV = hg.getVScrollValue() + row - win.br.row  + 2;
       }
     }
 
-    return {scrollH: scrollH, scrollV: scrollV}; 
+    return {scrollH: scrollH, scrollV: scrollV};
   },
 
   shiftSelectionArea(dc, dr) {
@@ -360,7 +362,7 @@ export default React.createClass({
   // Handling events
 
   _onKeyDown(e){
-    // console.log("\n\nGRID KEYDOWN");
+    logDebug("GRID KEYDOWN", e);
     e.persist(); // prevent react gc
     if (ShortcutUtils.gridShouldDeferKey(e)){ // not a nav key
       KeyUtils.killEvent(e);
@@ -368,7 +370,7 @@ export default React.createClass({
       if ((KeyUtils.producesTextChange(e) && !KeyUtils.isEvalKey(e) && !KeyUtils.isDestructiveKey(e)) ||
           (KeyUtils.isDestructiveKey(e) && userIsTyping)) {
         // Need to update the editor and textbox now via action creators
-        console.log("Grid key down going to AC");
+        logDebug("Grid key down going to AC");
         let newStr = KeyUtils.modifyTextboxForKey(e,
                                                   userIsTyping,
                                                   ExpStore.getExpression(),
@@ -382,15 +384,15 @@ export default React.createClass({
         ExpActionCreator.handleGridChange(newStr);
       } else {
         // Try shortcuts
-        console.log("Grid key down, trying shortcut");
+        logDebug("Grid key down, trying shortcut");
         ShortcutUtils.tryShortcut(e, 'common');
         ShortcutUtils.tryShortcut(e, 'grid');
       }
     } else { // nav key from grid
       let {range, origin} = Store.getActiveSelection();
-      console.log("ACTIVE SEL AFTER NAV KEY", origin);
+      logDebug("ACTIVE SEL AFTER NAV KEY", origin);
       if (KeyUtils.isPureArrowKey(e) && !T.isIndex(range)) {
-        console.log("MANUALLY HANDLING NAV KEY");
+        logDebug("MANUALLY HANDLING NAV KEY");
         KeyUtils.killEvent(e);
         let newOrigin = KeyUtils.shiftIndexByKey(e, origin);
         this.select({range: {tl: newOrigin, br: newOrigin}, origin: newOrigin});
@@ -409,7 +411,7 @@ export default React.createClass({
   },
 
   _onFocus(e) {
-    console.log("Grid on focus");
+    logDebug("Grid on focus");
     Store.setFocus('grid');
   },
 
@@ -419,7 +421,7 @@ export default React.createClass({
   _onExpressionChange(){
     let xpChangeOrigin = ExpStore.getXpChangeOrigin(),
         xpStr = ExpStore.getExpression();
-    console.log("Grid caught exp update of type: " +  xpChangeOrigin);
+    logDebug("Grid caught exp update of type: " +  xpChangeOrigin);
     switch(xpChangeOrigin){
       case Constants.ActionTypes.EDITOR_CHANGED:
       case Constants.ActionTypes.GRID_KEY_PRESSED:

@@ -1,3 +1,5 @@
+import {logDebug} from './Logger';
+
 import Constants from '../Constants';
 import {HOST_IP, HOST_WS_PORT} from '../Constants';
 import shortid from 'shortid';
@@ -28,7 +30,7 @@ export default {
 
   getHostUrl() {
     // let baseUrl = process.env.NODE_ENV ? HOST_IP : 'localhost';
-    // console.log("GOT ENV ARG: ", process.env.NODE_ENV);
+    // logDebug("GOT ENV ARG: ", process.env.NODE_ENV);
     // return 'ws://' + baseUrl + ':' + HOST_WS_PORT;
     return Constants.isTesting ? ('ws://' + HOST_IP + ':' + HOST_WS_PORT) : Constants.HOST_WS_URL;
   },
@@ -38,7 +40,7 @@ export default {
 
   /* Used to know what to display on the sheet */
   showValue(cv, isRepl) {
-    // console.log("In show value: " + JSON.stringify(cv));
+    // logDebug("In show value: " + JSON.stringify(cv));
     let self = this;
     switch (cv.tag) {
       case "NoValue":
@@ -74,7 +76,7 @@ export default {
       case "DisplayValue":
         return cv.displayValue;
       default:
-        console.log("CELL CONTENTS SHOW VALUE: ", cv.contents);
+        logDebug("CELL CONTENTS SHOW VALUE: ", cv.contents);
         return JSON.stringify(cv.contents);
     }
   },
@@ -412,7 +414,7 @@ export default {
   decomposeASLocations(locs) {
     if (locs.constructor == Array){
       let dlocs = locs.map((l) => this.decomposeASLocation(l), this);
-      console.log("degenerate locs: " + JSON.stringify(dlocs));
+      logDebug("degenerate locs: " + JSON.stringify(dlocs));
       let merged = [];
       return merged.concat.apply(merged, dlocs);
     }
@@ -448,10 +450,10 @@ export default {
   },
 
   parseDependencies(str) {
-    // console.log("parsing dependencies of: " + str);
+    // logDebug("parsing dependencies of: " + str);
     let matches = this.parseRefs(str),
         parsed = matches.map((m) => this.orientRange(this.excelToRange(m)), this);
-    console.log("parsed deps: "+JSON.stringify(matches));
+    logDebug("parsed deps: "+JSON.stringify(matches));
     return parsed;
   },
 
@@ -484,7 +486,7 @@ export default {
   // listKeyToListHead("I/reafe/(a,b)?(c,d)?LIST") := (a,b)"
   listKeyToListHead(listKey) {
     if (listKey.split("?").length < 3 || listKey.split("?")[2] != "LIST") {
-      console.log("There was an error with the format of the listKey. Could not get list head.");
+      logDebug("There was an error with the format of the listKey. Could not get list head.");
       return;
     }
     return this.indexStringToPair((listKey.split("?")[0]).split("/")[2]);
@@ -494,7 +496,7 @@ export default {
   // listKeyToListDimensions("I/reafe/(a,b)?(c,d)?LIST") := (c,d)"
   listKeyToListDimensions(listKey) {
     if (listKey.split("?").length < 3 || listKey.split("?")[2] != "LIST") {
-      console.log("There was an error with the format of the listKey. Could not get listDimensions");
+      logDebug("There was an error with the format of the listKey. Could not get listDimensions");
       return;
     }
     return this.indexStringToPair(listKey.split("?")[1]);

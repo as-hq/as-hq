@@ -1,3 +1,5 @@
+import {logDebug} from '../AS/Logger';
+
 import React, {PropTypes} from 'react';
 import ASTreeNav from './ASTreeNav.jsx';
 import ASEvaluationPane from './ASEvaluationPane.jsx';
@@ -115,18 +117,18 @@ export default React.createClass({
   _onDocumentOpen(sheet) {
     //TODO add sheet name to tabs
     this.refs.evalPane.openSheet(sheet);
-    // console.log('App on document open', sheet.sheetId);
+    // logDebug('App on document open', sheet.sheetId);
   },
 
   _onSheetCreate() {
     //TODO
-    console.log('Created sheet');
+    logDebug('Created sheet');
     API.createSheet();
   },
 
   _onWorkbookCreate() {
     //TODO
-    console.log('Created workbook');
+    logDebug('Created workbook');
     API.createWorkbook();
   }
 });
