@@ -104,6 +104,13 @@ wss.onmessage = function (event) {
           newCells: msg.payload.contents
         });
         break;
+      //Functionally equivalent to "Get", but useful to be able to distinguish for tests
+      case "UpdateWindow": 
+        Dispatcher.dispatch({
+          type: ActionTypes.FETCHED_CELLS,
+          newCells: msg.payload.contents
+        });
+        break;
       case "Clear":
         Dispatcher.dispatch({
           type: ActionTypes.CLEARED,
