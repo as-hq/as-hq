@@ -271,7 +271,7 @@ formattedFloat :: Parser Double
 formattedFloat = (try money) <|> (try percentage) <|> (try float')
 
 money :: Parser Double
-money = spaces >> char '$' >> floatOrInteger
+money = spaces >> char '$' >> spaces >> floatOrInteger
 
 percentage :: Parser Double
 percentage = do

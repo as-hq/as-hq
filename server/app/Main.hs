@@ -93,6 +93,7 @@ initApp = do
 -- | Initializes database with sheets, etc. for debugging mode. Only called if isDebug is true.
 initDebug :: R.Connection -> IO ()
 initDebug conn = do
+  putStrLn $ show $ parse KE.formattedFloat "" "$ 123.45"
   return ()
 
 application :: MVar ServerState -> WS.ServerApp
