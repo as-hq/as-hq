@@ -141,22 +141,24 @@ export default React.createClass({
     let updatedCells = Store.getLastUpdatedCells();
     this.refs.spreadsheet.updateCellValues(updatedCells);
     //toast the error of at least one value in the cell
-    let i = 0;
+    let i = 0, err;
     for (i = 0; i < updatedCells.length; ++i) {
       let cell = updatedCells[i],
           val = cell.cellValue;
-      if ((val.tag == "ValueError" || val.tag == "ValueExcelError") && !Store.shouldSuppressErrors()) {
-        this.showAnyErrors(val);
+      if (val.tag == "ValueError" || val.tag == "ValueExcelError") {
+        err = this.getErrorMessage(val);
         break;
       }
     }
-    let extError = Store.getExternalError();
+    
+    err = err || Store.getExternalError();
 
-    if (extError && !Store.shouldSuppressErrors()) {
-      this.setToast(extError, "ERROR");
-      Store.setExternalError(null);
+    if (err && !Store.shouldSuppressErrors()) {
+      debugger;
+      this.setToast(err, "Error");
     }
 
+    Store.setExternalError(null);
     Store.stopSuppressingErrors();
   },
 
@@ -177,11 +179,19 @@ export default React.createClass({
   /**************************************************************************************************************************/
   // Error handling
 
-  showAnyErrors(cv) {
+  getErrorMessage(cv) { 
     if (cv.tag === "ValueError") {
-      this.setToast(cv.errMsg, "Error");
+      return cv.errMsg; 
     } else if (cv.tag === "ValueExcelError") {
-      this.setToast(cv.contents.tag, "Error"); // ValueExcelError should become a part of ValueError eventually
+      return cv.contents.tag; // ValueExcelError should become a part of ValueError eventually
+    }
+    return null; 
+  },
+
+  showAnyErrors(cv) {
+    let err = this.getErrorMessage(cv); 
+    if (err) { 
+      this.setToast(err, "Error");
     }
   },
 

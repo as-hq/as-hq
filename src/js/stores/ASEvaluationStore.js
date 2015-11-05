@@ -104,7 +104,7 @@ const ASEvaluationStore = assign({}, BaseStore, {
         */
         case Constants.ActionTypes.FETCHED_CELLS:
           _data.lastUpdatedCells = [];
-          _data.shouldSuppressErrors = true; // don't show errors when fetching cells. will get set to false at end of emitChange()
+          _data.suppressErrors = true; // don't show errors when fetching cells. will get set to false at end of emitChange()
           ASEvaluationStore.updateCells(action.newCells);
           // logDebug("Last updated cells: " + JSON.stringify(_data.lastUpdatedCells));
           ASEvaluationStore.emitChange();
