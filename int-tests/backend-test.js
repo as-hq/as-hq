@@ -215,6 +215,15 @@ describe('backend', () => {
           ]);
         });
 
+        it('should evaluate negative floats', (done) => {
+          _do([
+            python('A1', '-1.5'),
+            python('A2', 'A1+3'),
+            shouldBe('A2', valueD(1.5)),
+            exec(done)
+          ]);
+        });
+
         it('should reference ancestors of dependencies introduced by list cells in round 2 evals', (done) => {
           _do([
             python('B3', '5'),
