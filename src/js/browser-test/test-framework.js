@@ -1,4 +1,4 @@
-import {logInfo, logGreen, logRed} from '../AS/Logger';
+import {logWarn, logInfo, logGreen, logRed} from '../AS/Logger';
 
 import _ from 'lodash';
 
@@ -13,10 +13,11 @@ import {
 } from './exec-monad';
 
 
-let successCount = 0, testCount = 0;
+let successCount = 0, skipCount = 0, testCount = 0;
 let depth = 0;
 let beforeStack = [];
 let afterStack = [];
+let skipTests = 0;
 
 function tabbed(prfs) {
   return _doDefer([
@@ -37,6 +38,10 @@ function tabify(message) {
   return `${tabs()}${message}`;
 }
 
+function logSkip(message) {
+  logWarn(tabify(`SKIP: ${message}`));
+}
+
 function logSuccess(message) {
   logGreen(tabify(`PASS: ${message}`));
 }
@@ -53,31 +58,39 @@ function _liftT(prf, message='', logs=false) {
   return promise((fulfill, reject) => {
     if (logs) { testCount++; }
 
-    prf()
-      .then(() => {
-        if (logs) {
-          if (assertionFails.length > 0) {
-            logFailure(message, assertionFails);
-            assertionFails = [];
-          } else {
-            logSuccess(message);
-            successCount++;
+    if ((skipTests > 0) && logs) {
+      logSkip(message);
+      skipCount++;
+      fulfill();
+    } else {
+      prf()
+        .then(() => {
+          if (logs) {
+            if (assertionFails.length > 0) {
+              logFailure(message, assertionFails);
+              assertionFails = [];
+            } else {
+              logSuccess(message);
+              successCount++;
+            }
           }
-        }
 
-        fulfill();
-      })
-      .catch((error) => {
-        if (logs) {
-          logFailure(message, [error]);
-        }
+          fulfill();
+        })
+        .catch((error) => {
+          if (logs) {
+            logFailure(message, [error]);
+          }
 
-        fulfill();
-      });
+          fulfill();
+        });
+    }
   });
 }
 
 function getSuccessCount() { return successCount; }
+
+function getSkipCount() { return skipCount; }
 
 function getTestCount() { return testCount; }
 
@@ -100,6 +113,14 @@ function _doStack(srf) {
     let stack = srf();
     return _do(_.flatten(stack));
   };
+}
+
+function _doDeferWithSkip(action) {
+  return _doDefer([
+    exec(() => { skipTests++; }),
+    action,
+    exec(() => { skipTests--; })
+  ]);
 }
 
 function _doDeferWithWrap(action) {
@@ -203,6 +224,10 @@ export function _it(message, prfs) {
     message, true);
 }
 
+export function _xit(message, prfs) {
+  return _doDeferWithSkip(_it(message, prfs));
+}
+
 export function _describe(name, {tests, ...cbs}) { // tests are either more describes or its
   return _liftT(_doDefer([
     exec(() => { logInfo(tabify(name)) }),
@@ -210,12 +235,19 @@ export function _describe(name, {tests, ...cbs}) { // tests are either more desc
   ]));
 }
 
-export function __describe(name, {tests, ...cbs}) {
-  return _liftT(_doDefer([
-    exec(() => { logInfo(tabify(name)) }),
-    runTestsWithCallbacks(tests, cbs, name),
+export function _xdescribe(name, args) {
+  return _doDeferWithSkip(_describe(name, args));
+}
+
+export function __describe(name, args) {
+  return _doDefer([
+    logP('====================================BEGINNING TESTS===================================='),
+    _describe(name, args),
     exec(() => {
-      logInfo(tabify(`${getSuccessCount()} tests passed of ${getTestCount()}`));
+      logGreen(tabify(`${getSuccessCount()} tests passed`));
+      logWarn(tabify(`${getSkipCount()} tests skipped`));
+      logRed(tabify(`${getTestCount() - getSkipCount() - getSuccessCount()} tests failed`));
+      logInfo(tabify(`${getTestCount()} tests total`));
     })
-  ]));
+  ]);
 }
