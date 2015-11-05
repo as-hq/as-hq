@@ -230,11 +230,6 @@ getTime = do
   t <- getCurrentTime
   return $ take 23 $ show t
 
-serverLogPath :: IO String
-serverLogPath = do
-  mainDir <- getCurrentDirectory
-  return $ mainDir </> "logs/server_log"
-
 serverLogDir :: IO String
 serverLogDir = do
   mainDir <- getCurrentDirectory
@@ -247,22 +242,36 @@ printWithTime str = do
   putStrLn (truncated disp)
 
 appendFile' :: String -> String -> IO ()
-appendFile' fname msg = catch (do 
-  logDir <- serverLogDir
-  createDirectoryIfMissing True logDir
-  appendFile fname msg) (\e -> putStrLn $ ("Error writing to log: " ++ show (e :: SomeException)))  
+appendFile' fname msg = catch (appendFile fname msg) (\e -> putStrLn $ ("Error writing to log: " ++ show (e :: SomeException)))
 
 writeToLog :: String -> CommitSource -> IO ()
 writeToLog str (sid, uid) = do 
   -- first, write to master to log
+  logDir <- serverLogDir
   let sid' = T.unpack sid
       uid' = T.unpack uid
       loggedStr = '\n':str ++ "\n# SHEET_ID: " ++ sid' ++ "\n# USER_ID: " ++ uid'
-  serverLog <- serverLogPath
-  appendFile' serverLog loggedStr
+      logPath = logDir ++ "server_log"
+  createDirectoryIfMissing True logDir
+  appendFile' logPath loggedStr
   -- then write to individual log for the sheet
-  let serverLog' = serverLog ++ sid'
-  appendFile' serverLog' ('\n':str)
+  let logPath' = logPath ++ sid'
+  appendFile' logPath' ('\n':str)
+
+-- can probably refactor with writeToLog to reduce code duplication
+logBugReport :: String -> CommitSource -> IO ()
+logBugReport str (sid, uid) = do 
+  logDir <- serverLogDir
+  time <- getTime
+  let sid' = T.unpack sid
+      uid' = T.unpack uid
+      loggedStr = '\n':str ++ "\n# SHEET_ID: " ++ sid' ++ "\n# USER_ID: " ++ uid' ++ "\n# TIME: " ++ time
+      bugLogPath = logDir ++ "bug_reports"
+  createDirectoryIfMissing True logDir
+  appendFile' bugLogPath loggedStr
+
+writeErrToLog :: String -> CommitSource -> IO ()
+writeErrToLog str src = writeToLog ("# ERROR: " ++ str) src
 
 printWithTimeT :: String -> EitherTExec ()
 printWithTimeT = lift . printWithTime
