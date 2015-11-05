@@ -187,15 +187,21 @@ class EType a where
         entity <- getRequired typeName f i entities
         return $ Just entity
 
+-- NOTE: treating index refs as 1x1 matrices if they're replaced, but some functions still want numerics, for example, not 1x1 matrices
+  -- The first line of most functions below addresses this
+  
 instance EType Bool where
+  extractType (EntityMatrix (EMatrix 1 1 v)) = extractType $ EntityVal $ V.head v
   extractType (EntityVal (EValueB b)) = Just b
   extractType _ = Nothing
 
 instance EType EValue where
+  extractType (EntityMatrix (EMatrix 1 1 v)) = extractType $ EntityVal $ V.head v
   extractType (EntityVal v) = Just v
   extractType _ = Nothing
 
 instance EType String where
+  extractType (EntityMatrix (EMatrix 1 1 v)) = extractType $ EntityVal $ V.head v
   extractType (EntityVal (EValueS s)) = Just s
   extractType _ = Nothing
 
@@ -204,11 +210,13 @@ instance EType ERef where
   extractType _ = Nothing
 
 instance EType Int where
+  extractType (EntityMatrix (EMatrix 1 1 v)) = extractType $ EntityVal $ V.head v
   extractType (EntityVal (EValueNum (EValueD d))) = Just $ floor d
   extractType (EntityVal (EValueNum (EValueI i))) = Just i
   extractType _ = Nothing
 
 instance EType Double where
+  extractType (EntityMatrix (EMatrix 1 1 v)) = extractType $ EntityVal $ V.head v
   extractType (EntityVal (EValueNum (EValueD d))) = Just $ d
   extractType (EntityVal (EValueNum (EValueI i))) = Just $ (fromIntegral i)
   extractType _ = Nothing
@@ -218,6 +226,7 @@ instance EType EMatrix where
   extractType _ = Nothing
 
 instance EType ENumeric where
+  extractType (EntityMatrix (EMatrix 1 1 v)) = extractType $ EntityVal $ V.head v
   extractType (EntityVal (EValueNum n)) = Just n
   extractType _ = Nothing
 
