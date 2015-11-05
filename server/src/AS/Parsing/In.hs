@@ -161,4 +161,4 @@ lexer :: P.TokenParser ()
 lexer = P.makeTokenParser Lang.haskellDef
 
 integer   = fromInteger <$> P.integer lexer
-float     = P.float lexer
+float = U.float' lexer

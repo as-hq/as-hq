@@ -74,7 +74,7 @@ instance Client ASUserClient where
       AddTags      -> handleAddTags user state payload
       RemoveTags   -> handleRemoveTags user state payload
       Repeat       -> handleRepeat user state payload
-      BugReport    -> handleBugReport user
+      BugReport    -> handleBugReport user payload
       JumpSelect   -> handleJumpSelect user state payload
       where payload = clientPayload message
     -- Undo         -> handleAddTags user state (PayloadTags [StreamTag (Stream NoSource 1000)] (Index (T.pack "TEST_SHEET_ID2") (1,1)))
@@ -189,7 +189,7 @@ handleUpdateWindow sid state (PayloadW w) = do
 -- from getting lost and doesn't require us to manually reset the server. 
 badCellsHandler :: R.Connection -> ASUserClient -> SomeException -> IO ()
 badCellsHandler conn user e = do 
-  printWithTime ("Error while fetching cells: " ++ (show e))
+  U.writeErrToLog ("Error while fetching cells: " ++ (show e)) (clientCommitSource user)
   printWithTime "Undoing last commit"
   DB.undo conn (clientCommitSource user)
   return ()
@@ -413,8 +413,10 @@ getLastMessage conn = R.runRedis conn $ do
 -- | For now, all this does is acknowledge that a bug report got sent. The actual contents
 -- of the bug report (part of the payload) are output to the server log in handleClientMessage, 
 -- which is where we want it end up anyway, for now. (Alex 10/28/15)
-handleBugReport :: ASUserClient -> IO ()
-handleBugReport user = WS.sendTextData (userConn user) ("ACK" :: T.Text)
+handleBugReport :: ASUserClient -> ASPayload -> IO ()
+handleBugReport user (PayloadText report) = do 
+  U.logBugReport report (clientCommitSource user)
+  WS.sendTextData (userConn user) ("ACK" :: T.Text)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- JumpSelect handlers

@@ -49,8 +49,6 @@ import qualified Foreign.R as R
 import Language.R.Instance as R
 import Language.R.QQ
 
-import AS.Parsing.Out
-
 -------------------------------------------------------------------------------------------------------------------------
 -- Main
 
@@ -151,7 +149,7 @@ handleRuntimeException :: ASUserClient -> MVar ServerState -> SomeException -> I
 handleRuntimeException user state e = do
   let logMsg = "Runtime error caught: " ++ (show e)
   putStrLn logMsg
-  writeToLog ("#ERROR: " ++ logMsg) (clientCommitSource user)
+  writeErrToLog logMsg (clientCommitSource user)
   port <- appPort <$> readMVar state
   WS.runServer S.wsAddress port $ application state
 
