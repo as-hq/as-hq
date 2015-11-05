@@ -61,7 +61,7 @@ runDispatchCycle state cs src = do
     printObjT "Got ancestor locs" ancLocs
     initValuesMap  <- lift $ getValuesMap (zip roots rootsDepSets) ancLocs
     printWithTimeT "Starting eval chain"
-    (afterCells, cellLists) <- evalChain conn initValuesMap cellsToEval -- start with current cells, then go through descendants
+    (afterCells, cellLists) <- evalChain conn initValuesMap cellsToEval src -- start with current cells, then go through descendants
     -- Apply endware
     finalizedCells <- lift $ EE.evalEndware state afterCells src roots
     let transaction = Transaction src roots finalizedCells cellLists
@@ -128,10 +128,11 @@ groupRefs relation@(cell, refs) = if (shouldGroupRefs relation)
 -- cell that's updated. The cells passed in are guaranteed to be topologically sorted, i.e.,
 -- if a cell references an ancestor, that ancestor is guaranteed to already have been
 -- added in the map.
-evalChain :: Connection -> RefValMap -> [ASCell] -> EitherTExec ([ASCell], [ASList])
-evalChain conn valuesMap cells = do
+evalChain :: Connection -> RefValMap -> [ASCell] -> CommitSource -> EitherTExec ([ASCell], [ASList])
+evalChain conn valuesMap cells src = do
   result <- liftIO $ catch (runEitherT $ evalChain' conn valuesMap cells [] []) (\e -> do
     printObj "Runtime exception caught" (e :: SomeException)
+    U.writeErrToLog ("Runtime exception caught" ++ (show e)) src
     return $ Left RuntimeEvalException)
   case result of
     (Left e) -> left e

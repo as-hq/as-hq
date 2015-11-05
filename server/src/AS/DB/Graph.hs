@@ -35,11 +35,11 @@ query q locs =
         elements = (show q):(map show2 locs)
         msg = BS.show $ intercalate msgPartDelimiter elements
     in EitherT $ runZMQ $ do
-        liftIO $ printWithTime $ "graph query:  " ++ (truncated $ show elements)
+        liftIO $ printObj "graph query" elements
         reqSocket <- socket Req
         connect reqSocket S.graphDbHost
         send' reqSocket [] msg   -- using lazy bytestring send function
-        liftIO $ printWithTime ("sent message to graph db: " ++ (truncated $ show msg))
+        liftIO $ printObj "sent message to graph db" msg
         reply <- receiveMulti reqSocket
         case (B.unpack $ last reply) of
             "OK" -> do
@@ -66,9 +66,9 @@ setRelations rels =
         reqSocket <- socket Req
         connect reqSocket S.graphDbHost
         send' reqSocket [] msg
-        liftIO $ printWithTime ("sent message: " ++ (truncated $ show msg))
+        liftIO $ printObj "Sent message" msg
         reply <- receiveMulti reqSocket
-        liftIO $ printWithTime $ "received reply: " ++ (truncated $ show reply)
+        liftIO $ printObj "Received reply" reply
         case (B.unpack $ last reply) of
             "OK" -> return $ Right ()
             "CIRC_DEP" -> do
