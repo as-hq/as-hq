@@ -30,7 +30,9 @@ let _data = {
   userIsTyping:false,
 
   doEditorCallback: true,
-  doTextBoxCallback: true
+  doTextBoxCallback: true,
+
+  clickType: null
 
 };
 
@@ -141,6 +143,14 @@ const ASExpStore = assign({}, BaseStore, {
 
   setLastRef(excel){
     _data.lastRef=excel;
+  },
+
+  getClickType(){
+    return _data.clickType;
+  },
+
+  setClickType(t){
+    _data.clickType = t;
   },
 
   /**************************************************************************************************************************/
