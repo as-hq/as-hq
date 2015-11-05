@@ -41,25 +41,18 @@ export default {
 	},
 
 	/* Takes a text/plain string like "3\t4" and returns a list of list of values (row-major)
-	TODO: make correct in all cases (maybe looking at text/html is better)
-	Right now, if a row has a tab, separate by tab; else if the row has a comma, separate by comma.
-  Else, push the row as a single value. This TODO: MAY OR MAY NOT work for sheets,Libre,gfin.
-	-- Ritesh 10/16 -- Updated by Timchu 10/19*/
+	TODO: make correct in all cases (need to look at text/html for that)
+	Right now, if a row has a tab, separate by tab. Else, push the row as a single value.
+  Works for Sheets, MAY OR MAY NOT work for sheets,Libre,gfin.
+	-- Ritesh 10/16 
+  -- Updated to not include commas, Alex 11/5*/
 	plainStringToVals(s) {
 		logDebug("CONVERTING PLAIN STRING TO VALS: " + s);
 		let rows = s.split('\n'),
 			vals = [],
 			self = this;
 		rows.forEach(function(row){
-      if (row.indexOf('\t')>=0){
-        vals.push(row.split('\t'));
-      }
-      else if (row.indexOf(',') >= 0) {
-        vals.push(row.split(','));
-      }
-      else {
-        vals.push([row]);
-      }
+      vals.push(row.split('\t')); 
 		});
 		logDebug("VALS: " + JSON.stringify(vals));
 		return vals;
