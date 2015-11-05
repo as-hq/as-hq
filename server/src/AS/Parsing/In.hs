@@ -161,4 +161,10 @@ lexer :: P.TokenParser ()
 lexer = P.makeTokenParser Lang.haskellDef
 
 integer   = fromInteger <$> P.integer lexer
-float     = P.float lexer
+
+-- | Because Haskell's float lexer doesn't parse negative floats out of the box. <__< 
+float :: Parser Double
+float = do 
+  maybeMinus <- option ' ' $ try (char '-') 
+  f <- P.float lexer
+  if (maybeMinus == ' ') then (return f) else (return (-f))

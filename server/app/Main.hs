@@ -49,8 +49,6 @@ import qualified Foreign.R as R
 import Language.R.Instance as R
 import Language.R.QQ
 
-import AS.Parsing.Out
-
 -------------------------------------------------------------------------------------------------------------------------
 -- Main
 
