@@ -280,10 +280,9 @@ export default React.createClass({
     hg.setMouseDown(myDown);
     hg.setDragExtent(myExtent);
 
-    let win = this.getViewingWindow().range,
-        needsToScroll = !Util.isContainedInLocs(col, row, [win]);
+    let win = this.getViewingWindow().range;
     // set scroll
-    if (shouldScroll && needsToScroll) {
+    if (shouldScroll) {
       console.log('\n\n\nSHOULD SCROLL FIRED\n\n\n');
       let scroll = this._getNewScroll(oldSel, safeSelection);
       this.scrollTo(scroll.scrollH, scroll.scrollV);
@@ -355,9 +354,11 @@ export default React.createClass({
 
   scrollTo(x, y){
     let hg = this._getHypergrid();
-    hg.setVScrollValue(y),
-    hg.setHScrollValue(x);
-    ActionCreator.scroll(this.getViewingWindow());
+    if (hg.getHScrollValue() != x || hg.getVScrollValue() != y) {
+      hg.setVScrollValue(y),
+      hg.setHScrollValue(x);
+      ActionCreator.scroll(this.getViewingWindow());
+    }
   },
 
   /*************************************************************************************************************************/
