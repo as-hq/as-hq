@@ -112,6 +112,7 @@ export default React.createClass({
   _onKeyDown(e){
     logDebug("\n\nTEXTBOX KEYDOWN");
     if (ShortcutUtils.textboxShouldDeferKey(e)) {
+      // console.log("TEXTBOX DEFERRING KEY");
       KeyUtils.killEvent(e);
       this.props.onDeferredKey(e);
     } else {

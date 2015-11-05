@@ -67,15 +67,16 @@ export default {
   },
 
   editorShouldDeferKey(e) {
-    return !KeyUtils.producesTextChange(e) &&
-           !KeyUtils.isNavKey(e) &&
-           !KeyUtils.isCopyPasteType(e) &&
-           !(e.ctrlKey && e.which === 65);  // ctrl + A
+    return (!KeyUtils.producesTextChange(e) &&
+            !KeyUtils.isNavKey(e) &&
+            !KeyUtils.isCopyPasteType(e) &&
+            !(e.ctrlKey && e.which === 65)) && // Ctrl+A
+           !KeyUtils.isTextAreaNavKey(e);    // don't defer if editor should use the key
   },
 
   textboxShouldDeferKey(e) {
-    return KeyUtils.isEvalKey(e) ||
-           this.editorShouldDeferKey(e);
+    return KeyUtils.isEvalKey(e) ||          // defer on eval
+          this.editorShouldDeferKey(e);  // defer when editor defers
   },
 
   replShouldDeferKey(e) {
