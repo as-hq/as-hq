@@ -39,11 +39,7 @@ result = "error"
 # a workaround would be to check the type of result before setting it to ValueImage.
 try:
 	execfile(replFile)
-<<<<<<< HEAD
-	result = range(10)
-=======
 	result = 'test!'
->>>>>>> 43fd89800b32c77ed86aed26185d5504d1bbdb2b
 	figures=[manager.canvas.figure for manager in matplotlib._pylab_helpers.Gcf.get_all_fig_managers()]
 	if len(figures) > 0:
 		uid = uniqueId()

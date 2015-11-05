@@ -53,7 +53,7 @@ instance Client ASUserClient where
     -- on frontend. 
     writeToLog (show message) (clientCommitSource user)
     redisConn <- dbConn <$> readMVar state
-    recordMessage redisConn message
+    recordMessage redisConn message (clientCommitSource user)
     case (clientAction message) of
       Acknowledge  -> handleAcknowledge user
       New          -> handleNew user state payload
@@ -384,7 +384,7 @@ handleRemoveTags user state (PayloadTags ts loc) = do
 handleRepeat :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
 handleRepeat user state (PayloadSelection range origin) = do
   conn <- dbConn <$> readMVar state
-  ClientMessage lastAction lastPayload <- getLastMessage conn
+  ClientMessage lastAction lastPayload <- getLastMessage conn (clientCommitSource user)
   case lastAction of 
     Evaluate -> do 
       let PayloadCL ((Cell l e v ts):[]) = lastPayload
@@ -400,14 +400,14 @@ handleRepeat user state (PayloadSelection range origin) = do
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Repeat handlers
 
-recordMessage :: R.Connection -> ASClientMessage -> IO () 
-recordMessage conn msg = case (clientAction msg) of 
+recordMessage :: R.Connection -> ASClientMessage -> CommitSource -> IO () 
+recordMessage conn msg src = case (clientAction msg) of 
   Repeat -> return ()
-  _ -> R.runRedis conn (R.set (B.pack "LASTMESSAGE") (B.pack $ show msg)) >> return ()
+  _ -> R.runRedis conn (R.set (B.pack ("LASTMESSAGE" ++ show src)) (B.pack $ show msg)) >> return ()
 
-getLastMessage :: R.Connection -> IO ASClientMessage
-getLastMessage conn = R.runRedis conn $ do 
-  msg <- R.get (B.pack ("LASTMESSAGE"))
+getLastMessage :: R.Connection -> CommitSource -> IO ASClientMessage
+getLastMessage conn src = R.runRedis conn $ do 
+  msg <- R.get (B.pack ("LASTMESSAGE" ++ show src))
   return $ case msg of 
     Right (Just msg') -> read (B.unpack msg')
     _ -> ClientMessage NoAction (PayloadN ())
