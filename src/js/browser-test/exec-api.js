@@ -194,6 +194,7 @@ function isNumeric(n) {
 }
 
 export function equalValues(val1, val2) {
+  logDebug(`${JSON.stringify(val1)} should be equal to ${JSON.stringify(val2)}`);
   if (val1.tag == 'ValueD') {
     // eps = 10^-3
     var eps = 0.001;
@@ -266,6 +267,7 @@ export function valueShouldSatisfy(loc, fn) {
     }
 
     let [{ cellValue }] = cs;
+    logDebug(`Cell value: ${JSON.stringify(cellValue)}`);
     expect(fn(cellValue)).toBe(true);
   });
 }

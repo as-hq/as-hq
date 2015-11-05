@@ -185,6 +185,7 @@ export default {
     logDebug(`Queueing ${msg.action} message`);
     this.waitForSocketConnection(wss, () => {
       logDebug(`Sending ${msg.action} message`);
+      logDebug(JSON.stringify(msg));
       wss.send(JSON.stringify(msg));
 
       /* for testing */

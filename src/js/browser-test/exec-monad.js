@@ -8,7 +8,7 @@ export function empty() {
 }
 
 export function fromToInclusive(st, end) {
-  return _.range(end - st).map((i) => i + st);
+  return _.range(end - st + 1).map((i) => i + st);
 }
 
 //(a -> (), a -> ()) -> (() -> Promise a)
@@ -67,6 +67,8 @@ export function _do([head, ...tail], lbl) {
 
   return head().then(_doDefer(tail, lbl), (failure) => {
     throw new Error('Monadic error: ' + failure);
+  }).catch((error) => {
+    throw new Error(error);
   });
 }
 
