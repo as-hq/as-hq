@@ -189,7 +189,20 @@ export function noValue() {
   return {tag: 'NoValue', contents: []};
 }
 
+function isNumeric(n) {
+  return !isNaN(parseFloat(n)) && isFinite(n);
+}
+
 export function equalValues(val1, val2) {
+  if (val1.tag == 'ValueD') {
+    // eps = 10^-3
+    var eps = 0.001;
+    if (isNumeric(val1.contents) && isNumeric(val2.contents)) {
+      return (val1.contents < val2.contents + eps
+          && val2.contents - eps <  val1.contents);
+    }
+    return false;
+  }
   return _.isEqual(val1, val2);
 }
 
