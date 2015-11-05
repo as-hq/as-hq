@@ -25,15 +25,17 @@ class ASIterable(object):
     # lists of ASIterable's. _unwrap basically converts such a thing into a vanilla list
     def _unwrap(cls, arr):
         # True if an ASIterable was passed in. 
-        if type(arr).__name__ == "ASIterable":
+        if issubclass(type(arr), ASIterable): 
             if arr._isColumn():
                 arr = arr._getList()
             else: 
                 arr = arr.toList()
-        if type(arr).__name__ == 'str' or type(arr).__name__ == 'string_':
+        if issubclass(type(arr), str):
             return arr
         try: 
             # Unwrap all levels deeper too if you're not a string
+            # Might still not be robust, if doing [x for x in arr] doesn't get you something
+            # roughly equivalent to the original array (like it does for lists or arrays).
             return [cls._unwrap(x) for x in arr]
         except TypeError:
             return arr 
