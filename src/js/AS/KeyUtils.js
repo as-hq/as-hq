@@ -132,6 +132,10 @@ export default {
     return e.which === 8 || e.which === 46; // backspace or delete
   },
 
+  isTextAreaNavKey(e) {
+    return e.which === 36 || e.which === 35; // home, end
+  },
+
   keyToString(e) {
     let c = e.which;
 
