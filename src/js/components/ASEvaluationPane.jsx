@@ -639,7 +639,7 @@ export default React.createClass({
           onSelectionChange={this._onSelectionChange}
           hideToast={this.hideToast}
           width="100%"
-          height={`calc(100% - ${this.getEditorHeight()})`}  />
+          height={`calc(90% - ${this.getEditorHeight()})`}  />
         <Snackbar ref="snackbarError"
                   message={this.state.toastMessage}
                   action={this.state.toastAction}
