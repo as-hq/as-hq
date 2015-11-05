@@ -20,6 +20,7 @@ function onPropsSet(editor, props) {
   editor.setFontSize(props.fontSize);
   editor.renderer.setShowGutter(props.showGutter);
   editor.setOption('maxLines', props.maxLines);
+  editor.setOption('minLines', props.minLines);
   editor.setOption('readOnly', props.readOnly);
   editor.setOption('highlightActiveLine', props.highlightActiveLine);
   editor.setShowPrintMargin(props.setShowPrintMargin);
@@ -44,6 +45,7 @@ module.exports = React.createClass({
     fontSize : React.PropTypes.number,
     showGutter : React.PropTypes.bool,
     onLoad: React.PropTypes.func,
+    minLines : React.PropTypes.number,
     maxLines : React.PropTypes.number,
     readOnly : React.PropTypes.bool,
     highlightActiveLine : React.PropTypes.bool,
@@ -61,7 +63,10 @@ module.exports = React.createClass({
       fontSize   : 12,
       showGutter : true,
       onLoad     : null,
-      maxLines   : null,
+      // These props say that the editor starts at minLines lines
+      // and grow until maxLines, at which point it starts scrolling
+      maxLines   : 10,
+      minLines   : 3,
       readOnly   : false,
       highlightActiveLine : true,
       showPrintMargin     : true,
@@ -200,7 +205,8 @@ module.exports = React.createClass({
       width: this.props.width,
       height: this.props.height,
       zIndex: 0,
-      resize: 'both'
+      resize: 'both',
+      overflow:'auto'
     };
     return (<div id={this.props.name} style={divStyle} />);
   }
