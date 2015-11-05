@@ -252,6 +252,244 @@ describe('backend', () => {
             exec(done)
           ]);
         });
+
+        describe('ASIterable', () => {
+          describe('1D ranges', () => {
+            it('should act like lists when vertical', (done) => {
+              _do([
+                python('A1', 'range(10)'),
+                python('B1', 'A1:A10[2]'),
+                shouldBe('B1', valueI(2)),
+
+                exec(done)
+              ]);
+            });
+
+            it('should act like lists when horizontal', (done) => {
+              _do([
+                python('A1', '[range(10)]'),
+                python('A5', 'A1:D1[2]'),
+                shouldBe('A5', valueI(2)),
+
+                exec(done)
+              ]);
+            });
+
+            it('can be summed', (done) => {
+              _do([
+                python('A1', '[range(10)]'),
+                python('A2', 'sum(A1:J1)'),
+                shouldBe('A2', valueI(45)),
+
+                exec(done)
+              ]);
+            });
+
+            it('can be iterated over like a 1D list', (done) => {
+              _do([
+                python('A1', '[range(10)]'),
+                python('A2', '[x ** 2 for x in B1:D1]'), // expands to vertical list
+                shouldBe('A3', valueI(4)),
+                exec(done)
+              ]);
+            });
+
+            it('initialized to strings works', (done) => {
+              _do([
+                python('A1', '"Hey"'),
+                python('A2', '"There"'),
+                python('C1', '[len(x) for x in A1:A2]'),
+                shouldBe('C2', valueI(5)),
+                exec(done)
+              ]);
+            });
+          });
+
+          describe('2D ranges', () => {
+            it('can be accesed like 2D lists', (done) => {
+              _do([
+                python('B2', '5'),
+                python('A1', 'B1:D4[1][0]'),
+                shouldBe('A1', valueI(5)),
+                exec(done)
+              ]);
+            });
+
+            it('can be iterated over like 2D lists', (done) => {
+              _do([
+                python('A1', '5'),
+                python('A2', '6'),
+                python('B1', '7'),
+                python('B2', '8'),
+                python('C1', '[[x ** 2 for x in y] for y in A1:B2]'),
+                shouldBe('D2', valueI(64)),
+                exec(done)
+              ]);
+            });
+
+            it('cannot be summed over with sum', (done) => {
+              _do([
+                python('A1', '5'),
+                python('A2', '6'),
+                python('B1', '7'),
+                python('B2', '8'),
+                python('C1', 'sum(A1:B2)'), 
+                shouldBeError('C1'), 
+                exec(done)
+              ]);
+            });
+
+            it('initialized to strings work', (done) => {
+              _do([
+                python('A1', '"Hey"'),
+                python('A2', '"There"'),
+                python('B1', '"Pretty"'),
+                python('B2', '"Boy"'),
+                python('C1', '[len(x[1]) for x in A1:B2]'),
+                shouldBe('C2', valueI(3)),
+                exec(done)
+              ]);
+            });            
+          });
+
+          describe('ASIterables initialization', () => {
+            it('works over 1D lists', (done) => {
+              _do([
+                python('A1', 'arr([1, 2, 3])'), 
+                python('A2', 'A1:A3[1]'),
+                shouldBe('A2', valueI(2)),
+                exec(done)
+              ]);
+            });
+
+            it('works over 1D lists of strings', (done) => {
+              _do([
+                python('A1', 'arr(["howdy", "there", "pardner"])'),
+                python('A2', 'A1:A3[1]'),
+                shouldBe('A2', valueS("there")),
+                exec(done)
+              ]);
+            });
+
+            it('works over 2D lists', (done) => {
+              _do([
+                python('A1', 'arr([[1, 2], [3]])'), 
+                python('A2', 'A1:A3[1]'),
+                shouldBe('A2', valueI(3)),
+                exec(done)
+              ]);
+            });
+
+            it('works over 1D lists of strings', (done) => {
+              _do([
+                python('A1', 'arr(["howdy", "there", "pardner"])'),
+                python('B1', 'A1:A3[1]'),
+                shouldBe('B1', valueS("there")),
+                exec(done)
+              ]);
+            });
+
+            it('works over 2D lists of strings', (done) => {
+              _do([
+                python('A1', 'arr([["howdy", "there", "pardner"], ["how", "are", "you?"]])'),
+                python('D1', 'A1:B2[1][0]'),
+                shouldBe('D1', valueS("how")),
+                exec(done)
+              ]);
+            });
+
+            it('works over numpy arrays', (done) => {
+              _do([
+                python('A1', 'import numpy as np;\narr(np.array([[1,2],[3,4]]))'),
+                python('C1', 'A1:B2[1][0]'),
+                shouldBe('C1', valueI(3)),
+                exec(done)
+              ]);
+            });
+
+            it('works over ASIterables', (done) => {
+              _do([
+                python('A1', 'arr([arr([1,2]),[3,4]])'),
+                python('C1', 'A1:B2[1][0]'),
+                shouldBe('C1', valueI(3)),
+                exec(done)
+              ]);
+            });
+
+            it('fails over a 3D list', (done) => {
+              _do([
+                python('A1', 'arr([[[1]]]])'),
+                shouldBeError('A1'),
+                exec(done)
+              ]);
+            });
+          });
+
+          describe('Misc perks', () => {
+            it('can be transposed', (done) => {
+              _do([
+                python('A1', '5'), python('A2', '6'), python('B1', '7'), python('B2', '8'),
+                python('C1', 'A1:B2.transpose()'),
+                shouldBe('D1', valueI(6)),
+                exec(done)
+              ]);
+            });
+
+            it('can be summed', (done) => {
+              _do([
+                python('A1', '5'), python('A2', '6'), python('B1', '7'), python('B2', '8'),
+                python('C1', 'A1:B2.sum()'),
+                shouldBe('C1', valueI(26)),
+                exec(done)
+              ]);
+            });
+
+            it('can be sorted', (done) => {
+              _do([
+                python('A1', '7'), python('A2', '5'), python('A3', '6'), 
+                python('C1', 'A1:A3.sorted()'),
+                shouldBe('C2', valueI(6)),
+                exec(done)
+              ]);
+            });
+
+            it('can be sorted if horizontal', (done) => {
+              _do([
+                python('A1', '7'), python('B1', '5'), python('C1', '6'), 
+                python('A2', 'A1:C1.sorted()'),
+                shouldBe('B2', valueI(6)),
+                exec(done)
+              ]);
+            });
+
+            it('can be reversed', (done) => {
+              _do([
+                python('A1', '7'), python('A2', '5'), python('A3', '6'), 
+                python('C1', 'A1:A3.reversed()'),
+                shouldBe('C3', valueI(7)),
+                exec(done)
+              ]);
+            });
+
+            it('can be reversed if horizontal', (done) => {
+              _do([
+                python('A1', '7'), python('B1', '5'), python('C1', '6'), 
+                python('A2', 'A1:C1.reversed()'),
+                shouldBe('C2', valueI(7)),
+                exec(done)
+              ]);
+            });
+
+            it('can be sorted and reversed and transposed in succession', (done) => {
+              _do([
+                python('A1', '7'), python('B1', '5'), python('C1', '6'), 
+                python('A2', 'A1:C1.sorted().reversed().transpose()'),
+                shouldBe('A4', valueI(5)),
+                exec(done)
+              ]);
+            });
+          });
+        });
       });
 
       describe('r', () => {

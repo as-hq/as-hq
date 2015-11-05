@@ -154,7 +154,6 @@ export default React.createClass({
     err = err || Store.getExternalError();
 
     if (err && !Store.shouldSuppressErrors()) {
-      debugger;
       this.setToast(err, "Error");
     }
 
