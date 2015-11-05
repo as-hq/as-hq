@@ -35,6 +35,10 @@ export function locToExcel(loc) {
   return Util.rangeToExcel(loc);
 }
 
+export function numToAlpha(num) {
+  return String.fromCharCode(num + 'A'.charCodeAt(0));
+}
+
 export function asIndex(loc) {
   return TC.simpleToASIndex(Util.excelToIndex(loc));
 }

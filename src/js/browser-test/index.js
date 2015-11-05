@@ -18,6 +18,7 @@ import {
   __injectExpect,
 
   rangeFromExcel,
+  numToAlpha,
 
   python,
   r,
@@ -113,6 +114,18 @@ function pressCopy() {
   });
 }
 
+function pressCut() {
+  return exec(() => {
+    evalPane.handleCopyTypeEventForGrid({
+      preventDefault() { },
+      stopPropagation() { },
+      clipboardData: {
+        setData() { },
+      }
+    }, true);
+  });
+}
+
 function pressPaste() {
   return exec(() => {
     evalPane.handlePasteEventForGrid({
@@ -148,6 +161,12 @@ function selectRange(excelRng, excelOrigin='') {
   });
 }
 
+function focusOnComponent(comp) {
+  return exec(() => {
+    comp.getDOMNode().focus();
+  });
+}
+
 function clipboardRange() {
   return ASEvaluationStore.getClipboard().area.range;
 }
@@ -177,6 +196,13 @@ function shouldBeSelected(rng) {
   return exec(() => {
     rng = strictRange(rng);
     expect(activeRange()).toBeSupersetOf(rangeFromExcel(rng));
+  });
+}
+
+function shouldHaveFocus(comp) {
+  return exec(() => {
+    let domNode = comp.getDOMNode();
+    expect(domNode.hasFocus()).toBe(true);
   });
 }
 
@@ -213,6 +239,28 @@ let tests = __describe('keyboard tests', {
   ],
 
   tests: [
+    _describe('eval', { tests: [
+      _it('should eval on enter', [
+        selectRange('A1'),
+        keyPresses('123'),
+        waitForResponse(
+          keyPress('Enter')
+        ),
+        shouldBe('A1', valueI(123)),
+        shouldBeSelected('A2')
+      ]),
+
+      _it('should eval on tab', [
+        selectRange('A1'),
+        keyPresses('123'),
+        waitForResponse(
+          keyPress('Tab')
+        ),
+        shouldBe('A1', valueI(123)),
+        shouldBeSelected('B1')
+      ])
+    ]}),
+
     _describe('copy and paste', { tests: [
       _it('should copy a cell', [
         python('A1', '1'),
@@ -231,7 +279,25 @@ let tests = __describe('keyboard tests', {
           pressPaste()
         ),
         shouldBe('B1', valueI(1))
-      ])
+      ]),
+
+      _describe('regressions', { tests: [
+        _it('should paste twice after cut', [
+          python('A1', '1'),
+          selectRange('A1'),
+          pressCut(),
+          keyPress('Down'),
+          waitForResponse(
+            pressPaste()
+          ),
+          shouldBe('A2', valueI(1)),
+          keyPress('Down'),
+          waitForResponse(
+            pressPaste()
+          ),
+          shouldBe('A3', valueI(1))
+        ])
+      ]})
     ]}),
 
     _describe('undo and redo', { tests: [
@@ -244,19 +310,74 @@ let tests = __describe('keyboard tests', {
       ])
     ]}),
 
+    _describe('deletion', { tests: [
+      _it('deletes a range', [
+        python('A1', 'range(10)'),
+        selectRange('A1:A10'),
+        waitForResponse(
+          keyPress('Backspace')
+        ),
+        _forM_(fromToInclusive(1, 10),
+          (i) => shouldBeNothing(`A${i}`)
+        )
+      ])
+    ]}),
+
     _describe('selection shortcuts', { tests: [
+      _describe('selecting cells with ctrl a', { tests: [
+        _it('selects a simple table', [
+          python('A1', 'range(10)'),
+          selectRange('A1'),
+          keyPress('Ctrl+A'),
+          shouldBeSelected('A1:A10')
+        ]),
+
+        _it('selects a table with a part that sticks out', [
+          python('A1', 'range(10)'),
+          python('B1', '1'),
+          selectRange('A1'),
+          keyPress('Ctrl+A'),
+          shouldBeSelected('A1:B10')
+        ])
+      ]}),
+
       _describe('selecting cells with ctrl arrow', { tests: [
         _it('selects down', [
           python('A1', 'range(10)'),
           selectRange('A1'),
           keyPress('Ctrl+Shift+Down'),
           shouldBeSelected('A1:A10')
+        ]),
+
+        _it('selects up', [
+          python('A1', 'range(10)'),
+          selectRange('A5'),
+          keyPress('Ctrl+Shift+Up'),
+          shouldBeSelected('A1:A5')
+        ]),
+
+        _it('selects right', [
+          _forM_(fromToInclusive(1, 5),
+            (i) => python(`${numToAlpha(i)}1`, `${i}`)
+          ),
+          selectRange('A1'),
+          keyPress('Ctrl+Shift+Right'),
+          shouldBeSelected('A1:E1')
+        ]),
+
+        _it('selects left', [
+          _forM_(fromToInclusive(1, 5),
+            (i) => python(`${numToAlpha(i)}1`, `${i}`)
+          ),
+          selectRange('C1'),
+          keyPress('Ctrl+Shift+Left'),
+          shouldBeSelected('A1:C1')
         ])
       ]})
     ]}),
 
     _describe('replication shortcuts', { tests: [
-      _it('duplicating cells with ctrl d', [
+      _it('duplicates cells with ctrl d', [
         python('A1', 'range(5)'),
         python('B1', 'A1 + 1'),
         selectRange('B1:B5'),
@@ -266,6 +387,21 @@ let tests = __describe('keyboard tests', {
         shouldBeL(
           fromToInclusive(1, 5).map((i) => `B${i}`),
           fromToInclusive(1, 5).map(valueI)
+        )
+      ]),
+
+      _it('duplicates cells with ctrl r', [
+        _forM_(fromToInclusive(1, 5),
+          (i) => python(`${numToAlpha(i)}1`, `${i}`)
+        ),
+        python('A2', 'A1 + 1'),
+        selectRange('A2'),
+        waitForResponse(
+          keyPress('Ctrl+R')
+        ),
+        shouldBeL(
+          fromToInclusive(1, 5).map((i) => `${numToAlpha(i)}2`),
+          fromToInclusive(2, 6).map(valueI)
         )
       ])
     ]})

@@ -107,6 +107,14 @@ export default React.createClass({
                     left: '60px',
                     top: '-13px'
                   }} />
+                <FlatButton
+                  label="TEST ALPHASHEETS"
+                  onClick={this._onTest}
+                  style={{
+                    position: 'relative',
+                    left: '150px',
+                    top: '-13px'
+                  }} />
             </Toolbar>
         <AceEditor
           ref="editor"
@@ -119,6 +127,9 @@ export default React.createClass({
           onDeferredKey={this.props.onDeferredKey} />
       </div>
     );
-  }
+  },
 
+  _onTest() {
+    window.test();
+  }
 });
