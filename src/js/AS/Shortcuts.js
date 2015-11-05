@@ -53,18 +53,20 @@ export default {
       self.handleEvalRequest(xpObj, -1, 0);
     });
     SU.add("common", "cell_eval_arrayformula", "Ctrl+Shift+Enter", (wildcard) => {
-      var editorValue = self._getRawEditor().getValue();
-      logDebug(self.state.currentLanguage);
+      // Always eval and stay put, but only sometimes add brackets
+      let editorValue = self._getRawEditor().getValue();
       if (self.state.currentLanguage == Constants.Languages.Excel){
-        editorValue = "{" + self._getRawEditor().getValue() + "}";
-        self._getRawEditor().setValue(editorValue);
+        if (editorValue[0]==="=") {
+          editorValue = "{" + editorValue + "}";
+          self._getRawEditor().setValue(editorValue);
+        }
       }
       let xpObj = {
         expression: editorValue,
         language: self.state.currentLanguage
       };
       self.setFocus('grid');
-      self.handleEvalRequest(xpObj, 0, 1);
+      self.handleEvalRequest(xpObj, 0, 0);
     });
 
     SU.add("common", "set_language", "Ctrl+1/2/3/4/5/6/7/8/9", (wildcard) => {
