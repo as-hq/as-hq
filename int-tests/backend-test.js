@@ -425,6 +425,29 @@ describe('backend', () => {
             });
           });
 
+          describe('Hiding and unhiding', () => {
+            it('can be hidden and unhidden', (done) => {
+              _do([
+                python('A1', '5'), python('A2', '6'), python('A3', '7'), 
+                python('B1', 'A1:A3.hide()'),
+                shouldBeNothing('B2'),
+                python('C1', 'B1.unhide()'),
+                shouldBe('C2', valueI(6)),
+                exec(done)
+              ]);
+            });
+
+            it('can be hidden and operated on while hidden', (done) => {
+              _do([
+                python('A1', '5'), python('A2', '6'), python('A3', '7'), 
+                python('B1', 'A1:A3.hide()'),
+                python('C1', 'B1.reversed()'),
+                shouldBe('C1', valueI(7)),
+                exec(done)
+              ]);
+            });
+          });
+
           describe('Misc perks', () => {
             it('can be transposed', (done) => {
               _do([
