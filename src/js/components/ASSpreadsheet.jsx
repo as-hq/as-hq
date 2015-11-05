@@ -67,6 +67,7 @@ export default React.createClass({
         */
         'fin-selection-changed': function (event) {
           logDebug("SELECTION CHANGE");
+          ExpStore.setClickType(Constants.ClickType.CLICK);
           self.props.onSelectionChange(self.getSelectionArea());
           },
         'fin-scroll-x': function (event) {
@@ -81,6 +82,7 @@ export default React.createClass({
           },
         'fin-double-click': function (event) {
           logDebug("DOUBLE ClICK");
+          ExpStore.setClickType(Constants.ClickType.DOUBLE_CLICK);
           self.refs.textbox.updateTextBox(ExpStore.getExpression());
           Store.setFocus('textbox');
           self.props.setFocus('textbox');
@@ -280,10 +282,9 @@ export default React.createClass({
     hg.setMouseDown(myDown);
     hg.setDragExtent(myExtent);
 
-    let win = this.getViewingWindow().range,
-        needsToScroll = !Util.isContainedInLocs(col, row, [win]);
+    let win = this.getViewingWindow().range;
     // set scroll
-    if (shouldScroll && needsToScroll) {
+    if (shouldScroll) {
       console.log('\n\n\nSHOULD SCROLL FIRED\n\n\n');
       let scroll = this._getNewScroll(oldSel, safeSelection);
       this.scrollTo(scroll.scrollH, scroll.scrollV);
@@ -355,9 +356,11 @@ export default React.createClass({
 
   scrollTo(x, y){
     let hg = this._getHypergrid();
-    hg.setVScrollValue(y),
-    hg.setHScrollValue(x);
-    ActionCreator.scroll(this.getViewingWindow());
+    if (hg.getHScrollValue() != x || hg.getVScrollValue() != y) {
+      hg.setVScrollValue(y),
+      hg.setHScrollValue(x);
+      ActionCreator.scroll(this.getViewingWindow());
+    }
   },
 
   /*************************************************************************************************************************/
@@ -368,13 +371,16 @@ export default React.createClass({
     e.persist(); // prevent react gc
     if (ShortcutUtils.gridShouldDeferKey(e)){ // not a nav key
       KeyUtils.killEvent(e);
-      let userIsTyping = ExpStore.getUserIsTyping();
+      let userIsTyping = ExpStore.getUserIsTyping(),
+          clickType    = ExpStore.getClickType();
+      logDebug("CLICK TYPE " + clickType);
       if ((KeyUtils.producesTextChange(e) && !KeyUtils.isEvalKey(e) && !KeyUtils.isDestructiveKey(e)) ||
           (KeyUtils.isDestructiveKey(e) && userIsTyping)) {
         // Need to update the editor and textbox now via action creators
         logDebug("Grid key down going to AC");
         let newStr = KeyUtils.modifyTextboxForKey(e,
                                                   userIsTyping,
+                                                  clickType,
                                                   ExpStore.getExpression(),
                                                   this.refs.textbox.editor);
 
@@ -413,8 +419,19 @@ export default React.createClass({
   },
 
   _onFocus(e) {
+    /* 
+    Only sometimes, for reasons I don't fully understand
+    (might have something to do with position props) updateTextBox causes onFocus to fire in grid
+    If this happens, manually put the focus back in the textbox
+    -- RITESH
+    */
     logDebug("Grid on focus");
-    Store.setFocus('grid');
+    if (ExpStore.getClickType() === Constants.ClickType.DOUBLE_CLICK){
+      Store.setFocus('textbox');
+      this.props.setFocus('textbox');
+    } else {
+      Store.setFocus('grid');
+    }
   },
 
   /*************************************************************************************************************************/

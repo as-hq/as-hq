@@ -201,8 +201,9 @@ export default {
     }
   },
 
-  modifyTextboxForKey(e, userIsTyping, oldXp, editor) {
-    if (userIsTyping) {
+  modifyTextboxForKey(e, userIsTyping, clickType, oldXp, editor) {
+    // Append to string if double click, replace if single click
+    if (userIsTyping || clickType === Constants.ClickType.DOUBLE_CLICK) {
       // first check if editor has a thing selected
       if (!editor.getSelection().$isEmpty) {
         // as of 11/2, only way to select xp from grid is with Ctrl+A
