@@ -93,12 +93,11 @@ getEvalLocs conn origCells = do
 getCellsToEval :: Connection -> [ASIndex] -> [ASCell] -> EitherTExec [ASCell]
 getCellsToEval conn locs origCells = do
   let locCellMap = M.fromList $ map (\c -> (cellLocation c, c)) origCells
-  lift $ mapM (\loc ->
-    if loc `M.member` locCellMap
-      then return (locCellMap M.! loc)
-      else do
-        mCell <- DB.getCell loc
-        return $ fromJust mCell) locs
+  mCells <- lift $ DB.getCells locs
+  lift $ mapM (\(loc, mCell) -> if loc `M.member` locCellMap
+      then return $ locCellMap M.! loc
+      else return $ fromJust mCell) (zip locs mCells) 
+  -- if the mCell is Nothing and loc is not a part of the locCellMap, then something messed up. 
 
 -- pass in the root deps in addition to the complete set of ancestors,
 -- because retaining ASRange in the root dep set makes checking for
@@ -171,35 +170,36 @@ evalChain' conn valuesMap [] lists pastListHeads = do
   evalChain' conn (M.union valuesMap newKnownValues) cells' [] pastListHeads
 
 evalChain' conn valuesMap (c@(Cell loc xp _ ts):cs) next listHeads = do
-  reEval <- lift $ shouldReEval c
-  case reEval of 
-    False -> evalChain' conn valuesMap cs next listHeads
-    True -> do 
-      cv <- EC.evaluateLanguage (IndexRef (cellLocation c)) (locSheetId loc) valuesMap xp
-      let listResult = createListCells c cv
-          newValuesMap = case listResult of
-            Nothing          -> M.insert (IndexRef loc) cv valuesMap
-            (Just cellsList) -> foldr (\(Cell l _ v _) mp -> M.insert (IndexRef l) v mp) valuesMap (snd cellsList)
-          -- ^ adds all the cells in cellsList to the reference map
-          next' = case listResult of
-            Nothing        -> next
-            Just cellsList -> cellsList:next
-          listHeads' = case listResult of
-            Nothing -> listHeads
-            Just _  -> loc:listHeads
-      (restCells, restLists) <- evalChain' conn newValuesMap cs next' listHeads'
-      return $ case listResult of
-        Nothing          -> ((Cell loc xp cv ts):restCells, restLists)
-        (Just cellsList) -> (restCells, cellsList:restLists)
+  cv <- EC.evaluateLanguage (IndexRef (cellLocation c)) (locSheetId loc) valuesMap xp
+  let listResult = createListCells c cv
+      newValuesMap = case listResult of
+        Nothing          -> M.insert (IndexRef loc) cv valuesMap
+        (Just cellsList) -> foldr (\(Cell l _ v _) mp -> M.insert (IndexRef l) v mp) valuesMap (snd cellsList)
+      -- ^ adds all the cells in cellsList to the reference map
+      next' = case listResult of
+        Nothing        -> next
+        Just cellsList -> cellsList:next
+      listHeads' = case listResult of
+        Nothing -> listHeads
+        Just _  -> loc:listHeads
+  (restCells, restLists) <- evalChain' conn newValuesMap cs next' listHeads'
+  return $ case listResult of
+    Nothing          -> ((Cell loc xp cv ts):restCells, restLists)
+    (Just cellsList) -> (restCells, cellsList:restLists)
 
--- | You should always re-eval a cell, UNLESS you're a part of a list, your expression was 
--- the same as last time's, and you're not the head of the list. 
-shouldReEval :: ASCell -> IO Bool
-shouldReEval c@(Cell loc xp _ ts) = do 
-  maybeOldCell <- DB.getCell loc
-  case maybeOldCell of 
-    Nothing -> return True
-    Just oldCell -> return $ (not $ isListMember oldCell) || (xp /= (cellExpression oldCell)) || (DU.isListHead oldCell)
+-- Removed for now for a number of reasons: 
+-- 1) confusing UX
+-- 2) frontend sorta handles the thing we want to avoid by not sending eval messages if the expression 
+-- was the same. 
+-- 3) slows things down nontrivially. 
+-- -- | You should always re-eval a cell, UNLESS you're a part of a list, your expression was 
+-- -- the same as last time's, and you're not the head of the list. 
+-- shouldReEval :: ASCell -> IO Bool
+-- shouldReEval c@(Cell loc xp _ ts) = do 
+--   maybeOldCell <- DB.getCell loc
+--   case maybeOldCell of 
+--     Nothing -> return True
+--     Just oldCell -> return $ (not $ isListMember oldCell) || (xp /= (cellExpression oldCell)) || (DU.isListHead oldCell)
 
 -- | If a cell C contains a 1D or 2D list, it'll be represented in the grid as a matrix.
 -- This function takes in the starting cell with the starting expression, and creates the list
