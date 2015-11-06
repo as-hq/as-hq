@@ -53,6 +53,7 @@ import {
 } from './exec-api';
 
 import ASEvaluationStore from '../stores/ASEvaluationStore';
+import ASExpStore from '../stores/ASExpStore';
 import Util from '../AS/Util';
 import KeyUtils from '../AS/KeyUtils';
 
@@ -68,6 +69,10 @@ function hypergrid() {
   return spreadsheet()._getHypergrid();
 }
 
+function textbox() {
+  return $($('div#textbox.ace_editor.ace-tm>textarea')[0]);
+}
+
 function activeSelection() {
   return ASEvaluationStore.getActiveSelection();
 }
@@ -80,7 +85,40 @@ function viewingWindow() {
   return spreadsheet().getViewingWindow().range;
 }
 
-function generateKeyEvent(key) {
+function currentExpression() {
+  return ASExpStore.getExpression();
+}
+
+function fireKeyEventAtHypergrid(event) {
+  hypergrid().fireSyntheticKeydownEvent(event);
+  hypergrid().delegateKeyDown(event);
+}
+
+function getDetailOf(keyCode, shiftKey) {
+  let details = {
+    37: 'LEFT',
+    38: 'UP',
+    39: 'RIGHT',
+    40: 'DOWN'
+  };
+  let detail = details[keyCode];
+
+  if (!detail) return '';
+
+  return `${detail}${shiftKey ? 'SHIFT' : ''}`;
+}
+
+function generateSyntheticBaseEvent() {
+  let eventObj =
+    document.createEventObject ? document.createEventObject : document.createEvent('Events');
+  if (eventObj.initEvent) {
+    eventObj.initEvent('keydown', true, true);
+  }
+
+  return eventObj;
+}
+
+function generateSyntheticKeyEvent(key) {
   let {keyCode, ...keyEvent} = KeyUtils.parseIntoShortcut({}, key);
   let patchedKeyEvent = {
     ctrlKey: false,
@@ -90,18 +128,25 @@ function generateKeyEvent(key) {
     ...keyEvent
   };
 
-  return {
+  let eventObj = generateSyntheticBaseEvent();
+  Object.assign(eventObj, {
     persist() {},
-    preventDefault() {},
-    stopPropagation() {},
+    detail: {
+      char: getDetailOf(keyCode, patchedKeyEvent.shiftKey)
+    },
     which: keyCode,
     ...patchedKeyEvent
-  };
+  });
+
+  return eventObj;
 }
 
 function keyPress(key) {
-  let evt = generateKeyEvent(key);
-  return exec(() => { spreadsheet()._onKeyDown(evt) });
+  return exec(() => {
+    let ev = generateSyntheticKeyEvent(key);
+    fireKeyEventAtHypergrid(ev);
+    spreadsheet()._onKeyDown(ev);
+  });
 }
 
 function mKeyPress(key) {
@@ -121,7 +166,7 @@ function pressCopy() {
       preventDefault() { },
       stopPropagation() { },
       clipboardData: {
-        setData() { },
+        setData() { }
       }
     }, false);
   });
@@ -133,7 +178,7 @@ function pressCut() {
       preventDefault() { },
       stopPropagation() { },
       clipboardData: {
-        setData() { },
+        setData() { }
       }
     }, true);
   });
@@ -152,6 +197,12 @@ function pressPaste() {
   });
 }
 
+function doubleClick() {
+  return exec(() => {
+    hypergrid().canvas.dispatchEvent(new CustomEvent('fin-double-click', { detail: {} }));
+  });
+}
+
 function strictRange(excelRng) {
   return excelRng.includes(':') ? excelRng : `${excelRng}:${excelRng}`;
 }
@@ -166,11 +217,7 @@ function selectRange(excelRng, excelOrigin='') {
     let hgRange = Util.excelToRange(excelRng),
         hgOrigin = Util.excelToRange(excelOrigin);
 
-    // shouldn't scroll, so second parameter is false
-    // this is to prevent updateViewingWindow from interfering with callbacks
-    // and WS responses desyncing from actions
-
-    spreadsheet().select({range: hgRange, origin: hgOrigin.tl}, false);
+    spreadsheet().select({range: hgRange, origin: hgOrigin.tl});
   });
 }
 
@@ -212,10 +259,16 @@ function shouldBeSelected(rng) {
   });
 }
 
-function shouldHaveFocus(comp) {
+function shouldHaveFocus(compFn) {
   return exec(() => {
-    let domNode = comp.getDOMNode();
-    expect(domNode.hasFocus()).toBe(true, 'Expected component to have focus');
+    let domNode = compFn();
+    expect(domNode.is(':focus')).toBe(true, 'Expected component to have focus');
+  });
+}
+
+function currentExpressionShouldBe(xp) {
+  return exec(() => {
+    expect(currentExpression()).toBe(xp);
   });
 }
 
@@ -246,7 +299,6 @@ let tests = __describe('keyboard tests', {
   beforeAll: [ // prfs
     exec(() => {
       evalPane.enableTestMode();
-      setUITestMode();
       setTestMode();
     })
   ],
@@ -254,7 +306,6 @@ let tests = __describe('keyboard tests', {
   afterAll: [
     exec(() => {
       evalPane.disableTestMode();
-      unsetUITestMode();
       unsetTestMode();
     })
   ],
@@ -283,6 +334,111 @@ let tests = __describe('keyboard tests', {
         ),
         shouldBe('A1', valueI(1234)),
         shouldBeSelected('B1')
+      ])
+    ]}),
+
+    _describe('textbox', { tests: [
+      _describe('eval on arrows', { tests: [
+        _it('evals on down', [
+          selectRange('A1'),
+          keyPresses('123'),
+          waitForResponse(
+            keyPress('Down')
+          ),
+          shouldBe('A1', valueI(123))
+        ])
+      ]}),
+
+      _describe('cell ref click/keyboard injection', { tests: [
+        _it('injects cell ref from selection change', [
+          _it('injects from arbitrary selection', [
+            selectRange('A1'),
+            keyPresses('=123'),
+            keyPress('Shift+='),
+            selectRange('B1'),
+            currentExpressionShouldBe('=123+B1'),
+            waitForResponse(
+              keyPress('Enter')
+            )
+          ])
+        ]),
+
+        _describe('injects cell ref from pressing keyboard buttons', { tests: [
+          _it('injects from down', [
+            selectRange('A1'),
+            keyPresses('=123'),
+            keyPress('Shift+='), // plus
+            keyPress('Down'),
+            currentExpressionShouldBe('=123+A2'),
+            waitForResponse(
+              keyPress('Enter')
+            )
+          ]),
+
+          _it('injects from up', [
+            selectRange('A2'),
+            keyPresses('=123'),
+            keyPress('Shift+='), // plus
+            keyPress('Up'),
+            currentExpressionShouldBe('=123+A1'),
+            waitForResponse(
+              keyPress('Enter')
+            )
+          ]),
+
+          _it('injects from left', [
+            selectRange('B1'),
+            keyPresses('=123'),
+            keyPress('Shift+='), // plus
+            keyPress('Left'),
+            currentExpressionShouldBe('=123+A1'),
+            waitForResponse(
+              keyPress('Enter')
+            )
+          ]),
+
+          _it('injects from right', [
+            selectRange('A1'),
+            keyPresses('=123'),
+            keyPress('Shift+='), // plus
+            keyPress('Right'),
+            currentExpressionShouldBe('=123+B1'),
+            waitForResponse(
+              keyPress('Enter')
+            )
+          ])
+        ]})
+      ]}),
+
+      _describe('f2 moves focus', { tests: [
+        _it('moves focus from the spreadsheet to the textbox', [
+
+        ]),
+
+        _it('moves focus from the textbox back to the spreadsheet', [
+
+        ]),
+
+        _it('moves focus from the code editor to the textbox', [
+
+        ])
+      ]}),
+
+      _it('should overwrite in the textbox upon ctrl-A', [
+        selectRange('A1'),
+        keyPresses('123'),
+        keyPress('Ctrl+A'),
+        keyPress('1'),
+        currentExpressionShouldBe('1'),
+        waitForResponse(
+          keyPress('Enter') // this is to be in pristine state for next test
+        )
+      ]),
+
+      _it('focuses on textbox on double click', [
+        selectRange('A1'),
+        doubleClick(),
+        shouldHaveFocus(textbox)
       ])
     ]}),
 

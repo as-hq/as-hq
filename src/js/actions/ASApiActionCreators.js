@@ -55,7 +55,7 @@ wss.onmessage = function (event) {
       isRunningTest = false;
     }
   } else {
-    if (isRunningTest) {
+    if (isRunningTest && msg.action != 'UpdateWindow') {
       currentCbs.fulfill(msg);
       isRunningTest = false;
     }
@@ -105,7 +105,7 @@ wss.onmessage = function (event) {
         });
         break;
       //Functionally equivalent to "Get", but useful to be able to distinguish for tests
-      case "UpdateWindow": 
+      case "UpdateWindow":
         Dispatcher.dispatch({
           type: ActionTypes.FETCHED_CELLS,
           newCells: msg.payload.contents
@@ -384,15 +384,10 @@ export default {
   },
 
   updateViewingWindow(vWindow) {
-    if (!uiTestMode) {
-      // we cannot support viewing windows in UI test mode
-      // because they interfere with message synchronicity
-
-      let msg = TC.makeClientMessage(Constants.ServerActions.UpdateWindow,
-        "PayloadW",
-        vWindow);
-      this.send(msg);
-    }
+    let msg = TC.makeClientMessage(Constants.ServerActions.UpdateWindow,
+      "PayloadW",
+      vWindow);
+    this.send(msg);
   },
 
 
