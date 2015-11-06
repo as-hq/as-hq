@@ -446,6 +446,9 @@ setSheet conn sheet = do
             sadd "sheetKeys" [sheetKey]  -- add the sheet key to the set of all sheets
         return ()
 
+clearSheet :: ASSheetId -> IO ()
+clearSheet = DU.deleteLocsInSheet
+
 -- deletes the sheet only, does not remove from any containing workbooks
 deleteSheetUnsafe :: Connection -> ASSheetId -> IO ()
 deleteSheetUnsafe conn sid = do

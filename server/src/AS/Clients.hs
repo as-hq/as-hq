@@ -65,7 +65,7 @@ instance Client ASUserClient where
       EvaluateRepl -> handleEvalRepl user state payload
       Get          -> handleGet user state payload
       Delete       -> handleDelete user state payload
-      Clear        -> handleClear user state
+      Clear        -> handleClear user state payload
       Undo         -> handleUndo user state
       Redo         -> handleRedo user state
       Copy         -> handleCopy user state payload
@@ -77,7 +77,6 @@ instance Client ASUserClient where
       BugReport    -> handleBugReport user payload
       JumpSelect   -> handleJumpSelect user state payload
       where payload = clientPayload message
-    -- Undo         -> handleAddTags user state (PayloadTags [StreamTag (Stream NoSource 1000)] (Index (T.pack "TEST_SHEET_ID2") (1,1)))
     -- ^^ above is to test streaming when frontend hasn't been implemented yet
 
 -------------------------------------------------------------------------------------------------------------------------
@@ -258,12 +257,14 @@ handleDelete user state payload = do
   msg <- DP.runDispatchCycle state blankedCells (clientCommitSource user)
   reply user state $ ServerMessage Delete Success payload
 
-handleClear :: (Client c) => c  -> MVar ServerState -> IO ()
-handleClear client state = do
-  conn <- dbConn <$> readMVar state
-  DB.clear conn
-  G.clear
-  reply client state $ ServerMessage Clear Success $ PayloadN ()
+handleClear :: (Client c) => c  -> MVar ServerState -> ASPayload -> IO ()
+handleClear client state payload = case payload of 
+  (PayloadN ()) -> do
+    conn <- dbConn <$> readMVar state
+    DB.clear conn
+    G.clear
+    reply client state $ ServerMessage Clear Success $ PayloadN ()
+  (PayloadS (Sheet sid _ _)) -> DB.clearSheet sid >> (reply client state $ ServerMessage Clear Success payload)
 
 handleUndo :: ASUserClient -> MVar ServerState -> IO ()
 handleUndo user state = do
