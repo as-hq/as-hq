@@ -1,3 +1,4 @@
+
 import keyMirror from 'keymirror';
 
 export const HOST_BASE_URL = 'localhost';
@@ -10,7 +11,7 @@ export default {
 
   isDebug: false,
 
-  isTesting: false,
+  isTesting: true,
 
   promptUser: false, 
 
