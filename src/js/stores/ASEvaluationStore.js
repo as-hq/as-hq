@@ -142,11 +142,11 @@ const ASEvaluationStore = assign({}, BaseStore, {
           let locs, 
               sheetId = action.locs.sheetId; 
           switch (action.locs.tag) { 
-            case "range": locs = TC.rangeToIndices(action.locs.range); break; 
+            case "range": locs = TC.rangeToASIndices(action.locs.range); break; 
             // should be a case for list of locs too but I forget the tag for that. (Alex 11/4)
             default: throw "Non-range passed in to delete"; 
           }
-          ASEvaluationStore.removeIndices(locs, sheetId);
+          ASEvaluationStore.removeIndices(locs); 
           ASEvaluationStore.emitChange();
           break;
         case Constants.ActionTypes.GOT_FAILURE:
@@ -336,31 +336,27 @@ const ASEvaluationStore = assign({}, BaseStore, {
     _data.allCells[sheetId][col][row] = c;
   },
 
-  /* Replace cells with empty ones. Caller's responsibility to clear lastUpdatedCells if necessary */
+  // Replace cells with empty ones
   removeCells(cells) {
-    for (var key in cells){
-      let c = cells[key],
-          emptyCell = TC.makeEmptyCell(c.cellLocation);
-      this.removeIndex(c.cellLocation);
-      _data.lastUpdatedCells.push(emptyCell);
+    for (var key in cells) {
+      this.removeIndex(cells[key].cellLocation);
     }
   },
 
-  /* Remove a cell at an ASIndex */
-  removeIndex(loc, sheetId) {
-    if (typeof(sheetId) == "undefined") sheetId = _data.currentSheet.sheetId; 
-    let emptyCell = TC.makeEmptyCell(TC.makeASIndex(sheetId, loc.col, loc.row)); 
-    if (this.locationExists(loc.col, loc.row, sheetId)) {
-      _data.allCells[sheetId][loc.col][loc.row] = null;
+  // Remove a cell at an ASIndex
+  removeIndex(loc) {
+    let sheetId = loc.sheetId, 
+        emptyCell = TC.makeEmptyCell(loc); 
+    if (this.locationExists(loc.index.col, loc.index.row, sheetId)) {
+      _data.allCells[sheetId][loc.index.col][loc.index.row] = null;
     }
 
     _data.lastUpdatedCells.push(emptyCell);
   },
 
-  // Remove cells at ASRanges or ASIndices. 
-  removeIndices(locs, sheetId) {
-    if (typeof(sheetId) == "undefined") sheetId = _data.currentSheet.sheetId; 
-    locs.forEach((l) => this.removeIndex(l, sheetId), this);
+  // Remove cells at a list of ASIndices. 
+  removeIndices(locs) {
+    locs.forEach((l) => this.removeIndex(l), this);
   },
 
   clearSheetCacheById(sheetId) {

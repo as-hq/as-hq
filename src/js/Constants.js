@@ -10,7 +10,7 @@ export default {
 
   isDebug: false,
 
-  isTesting: true,
+  isTesting: false,
 
   promptUser: false, 
 
