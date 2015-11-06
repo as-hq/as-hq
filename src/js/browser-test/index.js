@@ -513,7 +513,18 @@ let tests = __describe('keyboard tests', {
         _forM_(fromToInclusive(1, 10),
           (i) => shouldBeNothing(`A${i}`)
         )
-      ])
+      ]),
+
+      _describe('regressions', { tests: [
+        _it('undoes range(10) cleanly', [
+          python('A1', 'range(10)'),
+          waitForResponse(
+            keyPress('Ctrl+Z')
+          ),
+          selectRange('A5'),
+          currentExpressionShouldBe('')
+        ])
+      ]})
     ]}),
 
     _describe('selection shortcuts', { tests: [
