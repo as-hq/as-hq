@@ -150,7 +150,7 @@ export default React.createClass({
         break;
       }
     }
-    
+
     err = err || Store.getExternalError();
 
     if (err && !Store.shouldSuppressErrors()) {
@@ -178,18 +178,18 @@ export default React.createClass({
   /**************************************************************************************************************************/
   // Error handling
 
-  getErrorMessage(cv) { 
+  getErrorMessage(cv) {
     if (cv.tag === "ValueError") {
-      return cv.errMsg; 
+      return cv.errMsg;
     } else if (cv.tag === "ValueExcelError") {
       return cv.contents.tag; // ValueExcelError should become a part of ValueError eventually
     }
-    return null; 
+    return null;
   },
 
   showAnyErrors(cv) {
-    let err = this.getErrorMessage(cv); 
-    if (err) { 
+    let err = this.getErrorMessage(cv);
+    if (err) {
       this.setToast(err, "Error");
     }
   },
@@ -639,7 +639,7 @@ export default React.createClass({
           onSelectionChange={this._onSelectionChange}
           hideToast={this.hideToast}
           width="100%"
-          height={`calc(90% - ${this.getEditorHeight()})`}  />
+          height={`calc(100% - ${this.getEditorHeight()})`}  />
         <Snackbar ref="snackbarError"
                   message={this.state.toastMessage}
                   action={this.state.toastAction}
