@@ -688,7 +688,7 @@ outerComparator _ = Nothing
 
 -- | Given an Excel regex and a test input string, see if they match
 criteria :: String -> String -> Bool
-criteria regex match = case (parse (stringMatch regex) "" match) of
+criteria regex match = case (parse (stringMatch regex) "" (map toLower match)) of
   Left _ -> False
   Right _ -> True
 
