@@ -261,14 +261,14 @@ export function valueShouldSatisfy(loc, fn) {
   return messageShouldSatisfy(loc, (cs) => {
     logDebug(`${loc} should satisfy ${fn.toString()}`);
 
-    expect(cs.length).not.toBe(0);
+    expect(cs.length).not.toBe(0, 'which was the length of the cell value message');
     if (cs.length == 0) {
       return;
     }
 
     let [{ cellValue }] = cs;
     logDebug(`Cell value: ${JSON.stringify(cellValue)}`);
-    expect(fn(cellValue)).toBe(true);
+    expect(fn(cellValue)).toBe(true, `to satisfy ${fn.toString()} with ${cellValue}`);
   });
 }
 

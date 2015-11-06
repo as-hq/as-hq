@@ -56,6 +56,7 @@ import ASEvaluationStore from '../stores/ASEvaluationStore';
 import ASExpStore from '../stores/ASExpStore';
 import Util from '../AS/Util';
 import KeyUtils from '../AS/KeyUtils';
+import ShortcutUtils from '../AS/ShortcutUtils';
 
 // import Promise from 'bluebird';
 
@@ -71,6 +72,10 @@ function hypergrid() {
 
 function textbox() {
   return $($('div#textbox.ace_editor.ace-tm>textarea')[0]);
+}
+
+function textboxHasFocus() {
+  return textbox().is(':focus');
 }
 
 function activeSelection() {
@@ -144,6 +149,9 @@ function generateSyntheticKeyEvent(key) {
 function keyPress(key) {
   return exec(() => {
     let ev = generateSyntheticKeyEvent(key);
+    if (textboxHasFocus()) {
+
+    }
     fireKeyEventAtHypergrid(ev);
     spreadsheet()._onKeyDown(ev);
   });
@@ -259,10 +267,21 @@ function shouldBeSelected(rng) {
   });
 }
 
-function shouldHaveFocus(compFn) {
+function textboxShouldHaveFocus() {
   return exec(() => {
-    let domNode = compFn();
-    expect(domNode.is(':focus')).toBe(true, 'Expected component to have focus');
+    expect(textboxHasFocus()).toBe(true, 'Expected textbox to have focus');
+  });
+}
+
+function textboxShouldNotHaveFocus() {
+  return exec(() => {
+    expect(textboxHasFocus()).toBe(false, 'Expected textbox to not have focus');
+  });
+}
+
+function spreadsheetShouldHaveFocus() {
+  return exec(() => {
+    expect(spreadsheet().hasFocus()).toBe(true, 'Expected spreadsheet to have focus');
   });
 }
 
@@ -412,15 +431,23 @@ let tests = __describe('keyboard tests', {
 
       _describe('f2 moves focus', { tests: [
         _it('moves focus from the spreadsheet to the textbox', [
-
+          selectRange('A1'),
+          keyPresses('=1'),
+          waitForResponse(
+            keyPress('Enter')
+          ),
+          shouldBe('A1', valueI(1)),
+          selectRange('A1'),
+          keyPress('F2'),
+          textboxShouldHaveFocus()
         ]),
 
         _it('moves focus from the textbox back to the spreadsheet', [
-
-        ]),
-
-        _it('moves focus from the code editor to the textbox', [
-
+          selectRange('A1'),
+          keyPress('F2'),
+          keyPress('F2'),
+          keyPress('Down'),
+          shouldBeSelected('A2')
         ])
       ]}),
 
@@ -438,7 +465,7 @@ let tests = __describe('keyboard tests', {
       _it('focuses on textbox on double click', [
         selectRange('A1'),
         doubleClick(),
-        shouldHaveFocus(textbox)
+        textboxShouldHaveFocus()
       ])
     ]}),
 
@@ -602,6 +629,10 @@ export function install(w, ep) {
     return true;
   };
   __injectExpect(expect);
+
+  w.$as = {};
+  w.$as.ShortcutUtils = ShortcutUtils;
+  w.$as.KeyUtils = KeyUtils;
 
   /* only do this with bluebird */
   // Promise.config({ longStackTraces: true, warnings: true });
