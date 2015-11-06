@@ -13,6 +13,7 @@ import AS.Parsing.Out
 import AS.Parsing.Substitutions
 import AS.Parsing.Common
 
+import Control.Exception (SomeException, catch)
 import Control.Applicative hiding ((<|>))
 import System.IO.Strict as S
 import System.IO
@@ -253,8 +254,10 @@ insertValues sheetid valuesMap xp@(Expression origString lang) = case lang of
 -- | File management
 
 writeExecFile :: ASLanguage -> String -> IO ()
-writeExecFile lang contents = getRunFile lang >>= \f -> writeFile (f :: System.IO.FilePath) contents
+writeExecFile lang contents = catch (getRunFile lang >>= \f -> writeFile (f :: System.IO.FilePath) contents)
+                                    (\e -> putStrLn ("Error opening exec file: " ++ (show (e :: SomeException))))
 
+-- no catch statements here because we're basically giving up on the Repl for now (11/6 Alex)
 writeReplFile :: ASLanguage -> String -> IO ()
 writeReplFile lang contents = getRunReplFile lang >>= \f -> writeFile (f :: System.IO.FilePath) contents
 
