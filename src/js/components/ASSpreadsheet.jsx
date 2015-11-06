@@ -285,7 +285,6 @@ export default React.createClass({
     let win = this.getViewingWindow().range;
     // set scroll
     if (shouldScroll) {
-      console.log('\n\n\nSHOULD SCROLL FIRED\n\n\n');
       let scroll = this._getNewScroll(oldSel, safeSelection);
       this.scrollTo(scroll.scrollH, scroll.scrollV);
     }
@@ -419,7 +418,7 @@ export default React.createClass({
   },
 
   _onFocus(e) {
-    /* 
+    /*
     Only sometimes, for reasons I don't fully understand
     (might have something to do with position props) updateTextBox causes onFocus to fire in grid
     If this happens, manually put the focus back in the textbox
