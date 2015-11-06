@@ -151,8 +151,28 @@ handleRuntimeException user state e = do
   let logMsg = "Runtime error caught: " ++ (show e)
   putStrLn logMsg
   writeErrToLog logMsg (clientCommitSource user)
-  port <- appPort <$> readMVar state
+  port <- appPort     <$> readMVar state
+  purgeZombies state
   WS.runServer S.wsAddress port $ application state
+
+-- | Sometimes, onDisconnect gets interrupted. (Not sure exactly what.) At any rate, 
+-- when this happens, a client that's disconnected is still stored in the state. 
+-- This function makes sure they get removed from the state. Unsure if this is actually
+-- a robust solution. 
+purgeZombies :: MVar ServerState -> IO ()
+purgeZombies state = do 
+  ucs <- userClients <$> readMVar state
+  (flip mapM_) ucs (\uc -> catch (WS.sendTextData (userConn uc) ("ACK" :: T.Text)) 
+                                 (onDisconnect' uc state))
+
+-- There's gotta be a cleaner way to do this... but for some reason even typecasting 
+-- (\e -> onDisconnect uc state) :: (SomeException -> IO()) didn't work...
+onDisconnect' :: (Client c) => c -> MVar ServerState -> SomeException -> IO ()
+onDisconnect' user state _ = do 
+  onDisconnect user state
+  logDir <- getServerLogDir
+  printWithTime "ZOMBIE KILLED!! [mgao machine gun sounds]\n"
+  appendFile' (logDir ++ "zombies") "ZOMBIE KILLED!! [mgao machine gun sounds]\n"
 
 processMessage :: (Client c) => c -> MVar ServerState -> ASClientMessage -> IO ()
 processMessage client state message = do
