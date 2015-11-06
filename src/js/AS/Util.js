@@ -1,6 +1,7 @@
 import {logDebug} from './Logger';
 
 import Constants from '../Constants';
+import Environment from '../Environment';
 import {HOST_IP, HOST_WS_PORT} from '../Constants';
 import shortid from 'shortid';
 import T from './Types';
@@ -32,7 +33,7 @@ export default {
     // let baseUrl = process.env.NODE_ENV ? HOST_IP : 'localhost';
     // logDebug("GOT ENV ARG: ", process.env.NODE_ENV);
     // return 'ws://' + baseUrl + ':' + HOST_WS_PORT;
-    return Constants.isTesting ? ('ws://' + HOST_IP + ':' + HOST_WS_PORT) : Constants.HOST_WS_URL;
+    return Environment.isTesting ? ('ws://' + HOST_IP + ':' + HOST_WS_PORT) : Constants.HOST_WS_URL;
   },
 
 /*************************************************************************************************************************/
