@@ -12,6 +12,8 @@ export default {
 
   isTesting: true,
 
+  promptUser: false, 
+
   // event name triggered from store, listened to by views
   CHANGE_EVENT: 'change',
 
