@@ -112,9 +112,16 @@ wss.onmessage = function (event) {
         });
         break;
       case "Clear":
-        Dispatcher.dispatch({
-          type: ActionTypes.CLEARED,
-        });
+        if (msg.payload.tag === "PayloadS") {
+          Dispatcher.dispatch({
+            type: ActionTypes.CLEARED_SHEET,
+            sheetId: msg.payload.sheetId
+          });
+        } else {
+          Dispatcher.dispatch({
+            type: ActionTypes.CLEARED
+          });
+        }
         break;
       case "JumpSelect":
         Dispatcher.dispatch({
