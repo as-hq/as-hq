@@ -260,8 +260,8 @@ export default {
       case "Ctrl":
         s.ctrlKey = true;
         return s;
-      case "Command":
-        s.ctrlKey = true;
+      case "Cmd":
+        s.metaKey = true;
         return s;
       case "Shift":
         s.shiftKey = true;

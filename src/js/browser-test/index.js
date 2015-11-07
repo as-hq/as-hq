@@ -676,6 +676,53 @@ let tests = () => {
             fromToInclusive(2, 6).map(valueI)
           )
         ])
+      ]}),
+
+      _describe('mac compatibility', { tests: [
+        _it('does most shortcuts with cmd instead of ctrl', [
+          python('A1', 'range(5)'),
+          python('B1', 'A1 + 1'),
+          selectRange('B1:B5'),
+          waitForResponse(
+            keyPress('Cmd+D')
+          ),
+          shouldBeL(
+            fromToInclusive(1, 5).map((i) => `B${i}`),
+            fromToInclusive(1, 5).map(valueI)
+          )
+        ]),
+
+        _xit('copy', [
+          python('A1', '1'),
+          selectRange('A1'),
+          keyPress('Cmd+C'),
+          blockUntilCopy('A1')
+        ]),
+
+        _xit('copy/paste', [
+          python('A1', '1'),
+          selectRange('A1'),
+          keyPress('Cmd+C'),
+          blockUntilCopy('A1'),
+          selectRange('B1'),
+          waitForResponse(
+            keyPress('Cmd+V')
+          ),
+          _expect('B1')._toBe(valueI(1))
+        ]),
+
+        _xit('cut/paste', [
+          python('A1', '1'),
+          selectRange('A1'),
+          keyPress('Cmd+X'),
+          blockUntilCopy('A1'),
+          selectRange('B1'),
+          waitForResponse(
+            keyPress('Cmd+V')
+          ),
+          _expect('A1')._toBeNothing(),
+          _expect('B1')._toBe(valueI(1))
+        ])
       ]})
     ]
   });

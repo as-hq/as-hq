@@ -87,11 +87,13 @@ export default {
   },
 
   compareModifiers(s, e) {
-    let sh = (s.hasOwnProperty('shiftKey') && s.shiftKey == e.shiftKey) || (!s.hasOwnProperty('shiftKey') && (e.shiftKey === false));
-    let c = (s.hasOwnProperty('ctrlKey') && s.ctrlKey == e.ctrlKey) || (!s.hasOwnProperty('ctrlKey') && (e.ctrlKey === false));
-    let a = (s.hasOwnProperty('altKey') && s.altKey == e.altKey) || (!s.hasOwnProperty('altKey') && (e.altKey === false));
-    let m = (s.hasOwnProperty('metaKey') && s.metaKey == e.metaKey) || (!s.hasOwnProperty('metaKey') && (e.metaKey === false));
-    return (sh && c && a && m);
+    let propertyMatches =
+      (name) => (!!s[name]) === (!!e[name]);
+    return ['shiftKey', 'altKey'].every(propertyMatches)
+      && (
+        ['ctrlKey', 'metaKey'].every(propertyMatches)
+        || (s.ctrlKey && !s.metaKey && e.metaKey && !e.ctrlKey)
+      );
   }
 
 };
