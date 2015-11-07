@@ -348,14 +348,14 @@ const ASEvaluationStore = assign({}, BaseStore, {
   /* Function to update cell related objects in store. Caller's responsibility to clear lastUpdatedCells if necessary */
   updateCells(cells) {
     let removedCells = [];
-    for (var key in cells){
-      if (Util.isEmptyCell(c)) {
+    cells.forEach((c) => {
+      if (!Util.isEmptyCell(c)) {
         this.setCell(c);
         _data.lastUpdatedCells.push(c);
       } else {
         removedCells.push(c); // filter out all the blank cells passed back from the store
       }
-    }
+    }, this);
     this.removeCells(removedCells);
   },
 

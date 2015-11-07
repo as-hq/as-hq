@@ -273,8 +273,8 @@ export default {
     return {row: ind.row + dr, col: ind.col + dc};
   },
 
-  isEmptyCell(c) { 
-    return (c.cellExpression.expression == "") && (c.cellTags.length == 0);
+  isEmptyCell(c) {
+    return !c || ((c.cellExpression.expression == "") && (c.cellTags.length == 0));
   },
 
   removeEmptyLines(str){

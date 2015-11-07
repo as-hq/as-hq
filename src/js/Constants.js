@@ -136,7 +136,7 @@ export default {
     New: "New",
     Find: "Find",
     BugReport: "BugReport",
-    ToggleTags: "ToggleTags",
+    ToggleTag: "ToggleTag",
     JumpSelect: "JumpSelect"
   },
 

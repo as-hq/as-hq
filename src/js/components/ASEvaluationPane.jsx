@@ -493,7 +493,7 @@ export default React.createClass({
     // Only re-eval if the cell actually changed from before.
     let curCell = Store.getCell(origin.col, origin.row);
     if (!curCell) {
-      if (!Util.isEmptyCell(curCell)) {
+      if (xpObj.expression != "") {
         API.evaluate(asIndex, xpObj);
       }
     } else {
