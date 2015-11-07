@@ -162,6 +162,18 @@ let hooks = {
     };
   },
 
+  toCurrentlyBe(selfValue, msg) {
+    return {
+      message(otherVal) {
+        if (msg != undefined) return msg;
+        return `Expected ${selfValue()} to be ${otherVal}`;
+      },
+      compare(otherVal) {
+        return selfValue() === otherVal;
+      }
+    }
+  },
+
   toBeSupersetOf(selfValue, msg) {
     return {
       message(otherVal) {
@@ -184,6 +196,18 @@ let hooks = {
       },
       compare(otherFn) {
         return otherFn(selfValue);
+      }
+    }
+  },
+
+  toCurrentlySatisfy(selfValue, msg) {
+    return {
+      message(otherFn) {
+        if (msg != undefined) return msg;
+        return `Expected ${JSON.stringify(selfValue())} to satisfy ${otherFn.toString()}`;
+      },
+      compare(otherFn) {
+        return otherFn(selfValue());
       }
     }
   }
@@ -216,12 +240,41 @@ class Expect {
   }
 }
 
+class PromiseExpect {
+  constructor(val, not=false) {
+    let self = this;
+    this.value = val;
+    this.isNot = not;
+
+    if (!not)
+      this.not = new PromiseExpect(val, true);
+
+    _.forEach(hooks, (v, k) => {
+      self[k] =
+        (other) => v().isPromise ? v(val).compare(other) :
+          (
+            this.isNot
+              ? exec(() => { expect(val).not[k](other); })
+              : exec(() => { expect(val)[k](other); })
+          );
+    });
+  }
+}
+
+export function getHooks() {
+  return hooks;
+}
+
 export function addError(msg) {
   assertionFails.push(msg);
 }
 
 export function expect(val) {
   return new Expect(val);
+}
+
+export function _expect(val) {
+  return new PromiseExpect(val);
 }
 
 export function registerExpectation(name, ofs) {
