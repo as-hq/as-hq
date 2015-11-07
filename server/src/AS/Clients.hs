@@ -113,10 +113,10 @@ broadcast sid state message = do
 -- | Figures out whom to send the message back to, based on the payload, and broadcasts the message
 -- to all the relevant recipients. 
 reply :: (Client c) => c -> MVar ServerState -> ASServerMessage -> IO ()
-reply cl state msg@(ServerMessage _ (Failure e) _) = sendToOriginal cl msg                        -- send error to original user only
-reply cl state msg@(ServerMessage _ _ (PayloadCommit _)) = broadcast (clientSheetId cl) state msg -- broadcast all undo/redos (scrolling only refreshes non-undone cells)
-reply cl state msg@(ServerMessage Clear _ _) = broadcast (clientSheetId cl) state msg             -- broadcast all clears for the same reason
-reply cl state msg@(ServerMessage Delete _ _) = broadcast (clientSheetId cl) state msg
+reply cl state msg@(ServerMessage _ (Failure e) _) = sendToOriginal cl msg
+reply cl state msg@(ServerMessage _ _ (PayloadCommit _)) = broadcast (clientSheetId cl) state msg 
+reply cl state msg@(ServerMessage Clear _ _) = broadcast (clientSheetId cl) state msg 
+reply cl state msg@(ServerMessage Delete _ _) = broadcast (clientSheetId cl) state msg  -- don't filter broadcast, since scrolling only updates non-blank cells. (See comment in handleUpdateWindow)
 reply _  state msg = liftIO $ do
   (State ucs _ _ _) <- readMVar state
   broadcastFiltered msg ucs
@@ -174,6 +174,10 @@ handleClose _ _ _ = return ()
 -- handleClose user state (PayloadS (Sheet sheetid _ _)) = US.modifyUser closeWindow user state
 --   where closeWindow (UserClient uid conn window sid) = UserClient uid conn (filter (((/=) sheetid) . windowSheetId) windows) sid
 
+-- NOTE: doesn't send back blank cells. This means that if, e.g., there are cells that got blanked
+-- in the database, those blank cells will not get passed to the user (and those cells don't get
+-- deleted on frontend), meaning we have to ensure that deleted cells are manually wiped from the 
+-- frontend store the moment they get deleted. 
 handleUpdateWindow :: ClientId -> MVar ServerState -> ASPayload -> IO ()
 handleUpdateWindow sid state (PayloadW w) = do
   curState <- readMVar state
@@ -249,14 +253,12 @@ handleDelete user state p@(PayloadWB workbook) = do
   DB.deleteWorkbook conn (workbookName workbook)
   reply user state $ ServerMessage Delete Success p
   return ()
-handleDelete user state payload = do
-  let locs = case payload of
-               PayloadLL locs' -> locs'
-               PayloadR rng -> rangeToIndices rng
+handleDelete user state (PayloadR rng) = do
+  let locs = rangeToIndices rng
   conn <- dbConn <$> readMVar state
   let blankedCells = U.blankCellsAt locs
-  msg <- DP.runDispatchCycle state blankedCells (clientCommitSource user)
-  reply user state $ ServerMessage Delete Success payload
+  updateMsg <- DP.runDispatchCycle state blankedCells (clientCommitSource user)
+  reply user state $ U.makeDeleteMessage rng updateMsg
 
 handleClear :: (Client c) => c  -> MVar ServerState -> IO ()
 handleClear client state = do

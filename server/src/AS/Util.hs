@@ -210,6 +210,13 @@ makeGetMessage cells = changeMessageAction Get $ makeUpdateMessage (Right cells)
 makeUpdateWindowMessage :: [ASCell] -> ASServerMessage
 makeUpdateWindowMessage cells = changeMessageAction UpdateWindow $ makeUpdateMessage (Right cells)
 
+-- | Makes a delete message from an Update message and a list of locs to delete
+makeDeleteMessage :: ASRange -> ASServerMessage -> ASServerMessage
+makeDeleteMessage _ s@(ServerMessage _ (Failure _) _) = s
+makeDeleteMessage deleteLocs s@(ServerMessage _ _ (PayloadCL cells)) = ServerMessage Delete Success payload
+  where nonEmptyCells = filter (\c -> (expression . cellExpression) c /= "") cells
+        payload = PayloadDelete deleteLocs nonEmptyCells
+
 changeMessageAction :: ASAction -> ASServerMessage -> ASServerMessage
 changeMessageAction a (ServerMessage _ r p) = ServerMessage a r p
 

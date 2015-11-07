@@ -208,6 +208,7 @@ data ASPayload =
   | PayloadU ASUserId
   | PayloadE ASExecError
   | PayloadCommit ASCommit
+  | PayloadDelete ASRange [ASCell]
   | PayloadPaste {copyRange :: ASRange, copyTo :: ASRange}
   | PayloadTags {tags :: [ASCellTag], tagsLoc :: ASIndex}
   | PayloadXp ASExpression

@@ -172,7 +172,6 @@ onDisconnect' user state _ = do
   onDisconnect user state
   logDir <- getServerLogDir
   printWithTime "ZOMBIE KILLED!! [mgao machine gun sounds]\n"
-  appendFile' (logDir ++ "zombies") "ZOMBIE KILLED!! [mgao machine gun sounds]\n"
 
 processMessage :: (Client c) => c -> MVar ServerState -> ASClientMessage -> IO ()
 processMessage client state message = do
