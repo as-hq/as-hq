@@ -21,7 +21,9 @@ data GraphQuery =
   GetDescendants |
   GetImmediateAncestors |
   SetRelations | 
-  RollbackGraph
+  RollbackGraph |
+  Recompute |
+  Clear
   deriving (Show)
 
 

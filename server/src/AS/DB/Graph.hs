@@ -77,9 +77,9 @@ setRelations rels =
             _ -> do
                 return $ Left DBGraphUnreachable
 
-clear :: IO ()
-clear = runZMQ $ do
+exec_ :: GraphQuery -> IO ()
+exec_ q = runZMQ $ do 
     reqSocket <- socket Req
     connect reqSocket S.graphDbHost
-    send reqSocket [] $ BC.pack "\"Clear\""
+    send reqSocket [] $ BC.pack (show $ show q) -- graph db requires quotes around message
     return ()

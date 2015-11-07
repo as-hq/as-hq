@@ -4,7 +4,7 @@
 #include <time.h>
 #include <unistd.h>
 #include <assert.h>
-#include "hiredis.h"
+#include <hiredis/hiredis.h>
 #include <math.h>
 
 #define LOCATION_LEN 256
@@ -13,6 +13,7 @@
 #define PORT 6379
 #define MAX_COMMITS 40
 #define MAX_COMMIT_LEN 10000
+#define SCAN_BOUND 100000
 
 /*************************************************************************************************************************/
 // c <-> Haskell type system 
@@ -80,6 +81,29 @@ char **strsplit(const char* str, const char* delim) {
 }
 
 /*************************************************************************************************************************/
+
+void clearSheet(char* sheetId) {
+  redisContext *c;
+  redisReply *reply;
+  c = redisConnect((const char*)HOST, PORT);
+
+  printf("GOT SHEETID FOR CLEAR: %s", sheetId);
+  reply = (redisReply *)redisCommand(c, "scan 0 match I/%s/* count %i", sheetId, (int)SCAN_BOUND);
+  int i;
+
+  if (reply->type == REDIS_REPLY_ARRAY && reply->element[1]->type == REDIS_REPLY_ARRAY) {
+    for (i = 0; i < reply->element[1]->elements; i++) {
+      if (reply->element[1]->element[i]->type == REDIS_REPLY_STRING) {
+        char* key = reply->element[1]->element[i]->str;
+        redisCommand(c, "del %s", key);
+      }
+    }
+    freeReplyObject(reply);
+  } else {
+    printf("Error: received Redis reply of type other than array\n\n");
+    freeReplyObject(reply);
+  }
+}
 
 /* Haskell will free the mallocs here */
 char** getCells(char* msg, int length){

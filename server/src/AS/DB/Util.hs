@@ -120,6 +120,7 @@ getUniquePrefixedName pref strs = pref ++ (show idx)
 
 foreign import ccall unsafe "hiredis/redis_db.c getCells" c_getCells :: CString -> CInt -> IO (Ptr CString)
 foreign import ccall unsafe "hiredis/redis_db.c setCells" c_setCells :: CString -> CInt -> IO ()
+foreign import ccall unsafe "hiredis/redis_db.c clearSheet" c_clearSheet :: CString -> IO ()
 
 
 ----------------------------------------------------------------------------------------------------------------------
@@ -173,6 +174,9 @@ getSheetLocsRedis :: ASSheetId -> Redis [B.ByteString]
 getSheetLocsRedis sheetid = do
   Right keys <- smembers $ getSheetSetKey sheetid
   return keys
+
+deleteLocsInSheet :: ASSheetId -> IO ()
+deleteLocsInSheet sid = withCString (T.unpack sid) c_clearSheet
 
 cToASCell :: CString -> IO (Maybe ASCell)
 cToASCell str = do

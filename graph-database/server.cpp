@@ -70,6 +70,14 @@ vector<string> processRequest(DAG& dag, string& request){
         dag.rollback(); 
         dag.showGraph("AFTER ROLLBACKGRAPH"); 
         return {"OK"};
+    } else if (type == "Recompute") {
+        dag.clearDAG();
+        int computeResult = dag.recomputeDAG();
+        cout << "DAG recomputed.";
+        if (computeResult == 0)
+            return {"OK"};
+        else 
+            return {"ERROR"};
     }
 
     return {"UNKNOWN_REQUEST_TYPE"};
@@ -87,8 +95,14 @@ int main () {
     int rcvMore = 0;
     size_t sizeInt = sizeof(int);
 
+    cout << "\nServer started\n";
     /* DAG to be stored in memory */
     DAG dag; 
+    int computeResult = dag.recomputeDAG();
+    if (computeResult != 0) {
+        cout << "Graph DB recomputation failure. Exiting..." << endl << endl;
+        return -1;
+    }
 
     while (true) {
         /* Wait for next multi-part message from client */
