@@ -136,17 +136,17 @@ const ASEvaluationStore = assign({}, BaseStore, {
 
         case Constants.ActionTypes.CLEARED_SHEET:
           _data.lastUpdatedCells = [];
-          let cellsToRemove = [];
+          let cr = [];
           for (var c in _data.allCells[action.sheetId]){
             for (var r in _data.allCells[action.sheetId][c]){
-              cellsToRemove.push(_data.allCells[action.sheetId][c][r]);
+              cr.push(_data.allCells[action.sheetId][c][r]);
             }
           }
 
           // remove possibly null cells
-          cellsToRemove = cellsToRemove.filter((cell) => !!cell);
+          cr = cr.filter((cell) => !!cell);
 
-          ASEvaluationStore.removeCells(cellsToRemove);
+          ASEvaluationStore.removeCells(cr);
           _data.allCells[action.sheetId] = {};
           // logDebug("Last updated cells: " + JSON.stringify(_data.lastUpdatedCells));
           ASEvaluationStore.emitChange();

@@ -44,6 +44,8 @@ import {
   undo,
   redo,
 
+  shouldBe,
+  shouldBeNothing,
   shouldBeL,
 
   actionAPIResponse,
