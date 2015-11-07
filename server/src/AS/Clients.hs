@@ -16,6 +16,7 @@ import qualified Network.WebSockets as WS
 import qualified Database.Redis as R
 
 import AS.Types.Core
+import qualified AS.Types.DB as TD
 import AS.DB.API                as DB
 import AS.DB.Util               as DU
 import AS.DB.Graph              as G
@@ -66,7 +67,8 @@ instance Client ASUserClient where
       Get          -> handleGet user state payload
       Delete       -> handleDelete user state payload
       Clear        -> handleClear user state payload
-      Undo         -> handleUndo user state
+      Undo         -> handleClear user state (PayloadS (Sheet "SHEET_NAME" "SDf" (Blacklist [])))
+      --Undo         -> handleUndo user state
       Redo         -> handleRedo user state
       Copy         -> handleCopy user state payload
       Cut          -> handleCut user state payload
@@ -262,9 +264,12 @@ handleClear client state payload = case payload of
   (PayloadN ()) -> do
     conn <- dbConn <$> readMVar state
     DB.clear conn
-    G.clear
+    G.exec_ TD.Clear
     reply client state $ ServerMessage Clear Success $ PayloadN ()
-  (PayloadS (Sheet sid _ _)) -> DB.clearSheet sid >> (reply client state $ ServerMessage Clear Success payload)
+  (PayloadS (Sheet sid _ _)) -> do
+    DB.clearSheet sid 
+    G.exec_ TD.Recompute
+    reply client state $ ServerMessage Clear Success payload
 
 handleUndo :: ASUserClient -> MVar ServerState -> IO ()
 handleUndo user state = do
