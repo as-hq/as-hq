@@ -692,14 +692,14 @@ let tests = () => {
           )
         ]),
 
-        _xit('copy', [
+        _it('copy', [
           python('A1', '1'),
           selectRange('A1'),
           keyPress('Cmd+C'),
           blockUntilCopy('A1')
         ]),
 
-        _xit('copy/paste', [
+        _it('copy/paste', [
           python('A1', '1'),
           selectRange('A1'),
           keyPress('Cmd+C'),
@@ -711,7 +711,7 @@ let tests = () => {
           _expect('B1')._toBe(valueI(1))
         ]),
 
-        _xit('cut/paste', [
+        _it('cut/paste', [
           python('A1', '1'),
           selectRange('A1'),
           keyPress('Cmd+X'),

@@ -334,15 +334,34 @@ export default {
     });
 
     SU.add('grid', 'grid_mac_cut', 'Cmd+X', () => {
-      //TODO
+      evalPane.handleCopyTypeEventForGrid({
+        preventDefault() { },
+        stopPropagation() { },
+        clipboardData: {
+          setData() { }
+        }
+      }, true);
     });
 
     SU.add('grid', 'grid_mac_copy', 'Cmd+C', () => {
-      //TODO
+      evalPane.handleCopyTypeEventForGrid({
+        preventDefault() { },
+        stopPropagation() { },
+        clipboardData: {
+          setData() { }
+        }
+      }, false);
     });
 
     SU.add('grid', 'grid_mac_paste', 'Cmd+V', () => {
-      //TODO
+      evalPane.handlePasteEventForGrid({
+        preventDefault() { },
+        stopPropagation() { },
+        clipboardData: {
+          getData(x) { return 'alphasheets'; },
+          types: ['text/html']
+        }
+      });
     });
 
     // textbox shortcuts -------------------------------------------------------------------------------
