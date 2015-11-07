@@ -67,8 +67,7 @@ instance Client ASUserClient where
       Get          -> handleGet user state payload
       Delete       -> handleDelete user state payload
       Clear        -> handleClear user state payload
-      Undo         -> handleClear user state (PayloadS (Sheet "SHEET_NAME" "SDf" (Blacklist [])))
-      --Undo         -> handleUndo user state
+      Undo         -> handleUndo user state
       Redo         -> handleRedo user state
       Copy         -> handleCopy user state payload
       Cut          -> handleCut user state payload
@@ -79,6 +78,7 @@ instance Client ASUserClient where
       BugReport    -> handleBugReport user payload
       JumpSelect   -> handleJumpSelect user state payload
       where payload = clientPayload message
+      --Undo         -> handleClear user state (PayloadS (Sheet "SHEET_NAME" "SDf" (Blacklist [])))
     -- ^^ above is to test streaming when frontend hasn't been implemented yet
 
 -------------------------------------------------------------------------------------------------------------------------
