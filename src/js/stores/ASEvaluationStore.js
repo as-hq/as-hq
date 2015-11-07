@@ -134,19 +134,34 @@ const ASEvaluationStore = assign({}, BaseStore, {
           ASEvaluationStore.emitChange();
           break;
 
+        case Constants.ActionTypes.CLEARED_SHEET:
+          _data.lastUpdatedCells = [];
+          let cr = [];
+          for (var c in _data.allCells[action.sheetId]){
+            for (var r in _data.allCells[action.sheetId][c]){
+              cr.push(_data.allCells[action.sheetId][c][r]);
+            }
+          }
+
+          // remove possibly null cells
+          cr = cr.filter((cell) => !!cell);
+
+          ASEvaluationStore.removeCells(cr);
+          _data.allCells[action.sheetId] = {};
+          // logDebug("Last updated cells: " + JSON.stringify(_data.lastUpdatedCells));
+          ASEvaluationStore.emitChange();
+          break;
+
         case Constants.ActionTypes.GOT_SELECTION:
           ASEvaluationStore.setActiveSelection(TC.asSelectionToSimple(action.newSelection), "");
           ASEvaluationStore.emitChange();
           break;
         case Constants.ActionTypes.DELETED_LOCS:
-          let locs, 
-              sheetId = action.locs.sheetId; 
-          switch (action.locs.tag) { 
-            case "range": locs = TC.rangeToASIndices(action.locs.range); break; 
-            // should be a case for list of locs too but I forget the tag for that. (Alex 11/4)
-            default: throw "Non-range passed in to delete"; 
-          }
-          ASEvaluationStore.removeIndices(locs); 
+          let sheetId = action.deletedRange.sheetId, 
+              locs = TC.rangeToASIndices(action.deletedRange.range);
+
+          ASEvaluationStore.removeIndices(locs);
+          ASEvaluationStore.updateCells(action.updatedCells); 
           ASEvaluationStore.emitChange();
           break;
         case Constants.ActionTypes.GOT_FAILURE:
@@ -345,8 +360,8 @@ const ASEvaluationStore = assign({}, BaseStore, {
 
   // Remove a cell at an ASIndex
   removeIndex(loc) {
-    let sheetId = loc.sheetId, 
-        emptyCell = TC.makeEmptyCell(loc); 
+    let sheetId = loc.sheetId,
+        emptyCell = TC.makeEmptyCell(loc);
     if (this.locationExists(loc.index.col, loc.index.row, sheetId)) {
       _data.allCells[sheetId][loc.index.col][loc.index.row] = null;
     }
@@ -354,7 +369,7 @@ const ASEvaluationStore = assign({}, BaseStore, {
     _data.lastUpdatedCells.push(emptyCell);
   },
 
-  // Remove cells at a list of ASIndices. 
+  // Remove cells at a list of ASIndices.
   removeIndices(locs) {
     locs.forEach((l) => this.removeIndex(l), this);
   },

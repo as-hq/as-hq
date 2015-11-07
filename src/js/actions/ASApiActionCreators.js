@@ -112,9 +112,16 @@ wss.onmessage = function (event) {
         });
         break;
       case "Clear":
-        Dispatcher.dispatch({
-          type: ActionTypes.CLEARED,
-        });
+        if (msg.payload.tag === "PayloadS") {
+          Dispatcher.dispatch({
+            type: ActionTypes.CLEARED_SHEET,
+            sheetId: msg.payload.sheetId
+          });
+        } else {
+          Dispatcher.dispatch({
+            type: ActionTypes.CLEARED
+          });
+        }
         break;
       case "JumpSelect":
         Dispatcher.dispatch({
@@ -123,17 +130,18 @@ wss.onmessage = function (event) {
         });
         break;
       case "Delete":
-        if (msg.payload.tag === "PayloadLL" || msg.payload.tag === "PayloadR") {
+        if (msg.payload.tag === "PayloadDelete") {
           Dispatcher.dispatch({
             type: ActionTypes.DELETED_LOCS,
-            locs: msg.payload.contents
+            deletedRange: msg.payload.contents[0], 
+            updatedCells: msg.payload.contents[1]
           });
         } else if (msg.payload.tag === "PayloadWorkbookSheets") {
           Dispatcher.dispatch({
             type: ActionTypes.DELETED_WORKBOOKS,
             workbooks: msg.payload.contents
           });
-        }
+        } // no case for PayloadWB ?? 
         break;
       case "EvaluateRepl":
         Dispatcher.dispatch({
@@ -261,6 +269,12 @@ export default {
   },
   clear(){
     let msg = TC.makeClientMessage(Constants.ServerActions.Clear, "PayloadN", []);
+    this.send(msg);
+  },
+  clearSheet() {
+    let msg = TC.makeClientMessage(Constants.ServerActions.Clear,
+                                   "PayloadS",
+                                   Store.getCurrentSheet());
     this.send(msg);
   },
   find(findText){
