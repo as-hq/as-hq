@@ -74,6 +74,9 @@ clear conn = runRedis conn $ flushall >> return ()
 getCell :: ASIndex -> IO (Maybe ASCell)
 getCell loc = return . head =<< getCells [loc]
 
+getPossiblyBlankCell :: ASIndex -> IO ASCell
+getPossiblyBlankCell loc = return . head =<< getPossiblyBlankCells [loc]
+
 getCells :: [ASIndex] -> IO [Maybe ASCell]
 getCells [] = return []
 getCells locs = DU.getCellsByMessage msg num
@@ -514,7 +517,7 @@ isPermissibleMessage uid conn (ClientMessage _ (PayloadCL cells))    = canAccess
 isPermissibleMessage uid conn (ClientMessage _ (PayloadLL locs))     = canAccessAll conn uid locs
 isPermissibleMessage uid conn (ClientMessage _ (PayloadS sheet))     = canAccessSheet conn uid (sheetId sheet)
 isPermissibleMessage uid conn (ClientMessage _ (PayloadW window))    = canAccessSheet conn uid (windowSheetId window)
-isPermissibleMessage uid conn (ClientMessage _ (PayloadTags _ loc))  = canAccess conn uid loc
+isPermissibleMessage uid conn (ClientMessage _ (PayloadTags _ rng))  = canAccessAll conn uid (rangeToIndices rng)
 isPermissibleMessage _ _ _ = return True
 
 

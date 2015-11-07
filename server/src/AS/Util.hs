@@ -130,7 +130,7 @@ deleteSubset :: (Eq a) => [a] -> [a] -> [a]
 deleteSubset subset = filter (\e -> L.notElem e subset)
 
 isEmptyCell :: ASCell -> Bool
-isEmptyCell = ((==) "") . expression . cellExpression
+isEmptyCell c = (null $ cellTags c) && (null $ expression $ cellExpression c)
 
 liftEitherTuple :: Either b (a0, a1) -> (Either b a0, Either b a1)
 liftEitherTuple (Left b) = (Left b, Left b)

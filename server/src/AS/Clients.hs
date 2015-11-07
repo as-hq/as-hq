@@ -72,14 +72,14 @@ instance Client ASUserClient where
       Copy         -> handleCopy user state payload
       Cut          -> handleCut user state payload
       CopyForced   -> handleCopyForced user state payload
-      AddTags      -> handleAddTags user state payload
-      RemoveTags   -> handleRemoveTags user state payload
+      ToggleTags   -> handleToggleTags user state payload
+      SetTags      -> handleSetTags user state payload
       Repeat       -> handleRepeat user state payload
       BugReport    -> handleBugReport user payload
       JumpSelect   -> handleJumpSelect user state payload
       where payload = clientPayload message
-      --Undo         -> handleClear user state (PayloadS (Sheet "SHEET_NAME" "SDf" (Blacklist [])))
-    -- ^^ above is to test streaming when frontend hasn't been implemented yet
+      -- Undo         -> handleToggleTags user state (PayloadTags [StreamTag (Stream NoSource 1000)] (Index (T.pack "TEST_SHEET_ID2") (1,1)))
+      -- ^^ above is to test streaming when frontend hasn't been implemented yet
 
 -------------------------------------------------------------------------------------------------------------------------
 -- ASDaemonClient is a client
@@ -345,49 +345,62 @@ sanitizeCopyCells conn cells from
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Tag handlers
 
-processAddTag :: ASUserClient -> MVar ServerState -> ASIndex -> ASCellTag -> IO ()
-processAddTag user state loc t = do
-  cell <- DB.getCell loc
-  case cell of
-    Nothing -> return ()
-    Just c@(Cell l e v ts) -> do
-      case (elem t ts) of
-        True -> return ()
-        False -> do
-          let c' = Cell l e v (t:ts)
-          DB.setCell c'
-  case t of
-    StreamTag s -> do -- create daemon that sends an eval message
-      mCells <- DB.getCells [loc]
-      case (L.head mCells) of
-        Nothing -> return ()
-        Just cell -> do
-          let evalMsg = ClientMessage Evaluate (PayloadCL [cell])
-          DM.modifyDaemon state s loc evalMsg -- put the daemon with loc and evalMsg on that cell -- overwrite if already exists, create if not
-    otherwise -> return () -- TODO: implement the rest
-
-processRemoveTag :: ASIndex -> MVar ServerState -> ASCellTag -> IO ()
-processRemoveTag loc state t = do
+processToggleTag :: ASIndex -> MVar ServerState -> ASCellTag -> IO ()
+processToggleTag loc state t = do
   curState <- readMVar state
-  cell <- DB.getCell loc
-  case cell of
-    Nothing -> return ()
-    Just c@(Cell l e v ts) -> do
-      let c' = Cell l e v (L.delete t ts)
-      DB.setCell c'
-  case t of
-    StreamTag s -> DM.removeDaemon loc state
-    otherwise -> return () -- TODO: implement the rest
+  (Cell l e v ts) <- DB.getPossiblyBlankCell loc
+  let ts' = if (t `elem` ts) then (L.delete t ts) else (t:ts)
+  let c' = Cell l e v ts'
+  DB.setCell c'
+  if (t `elem` ts) 
+    then (removeTagEndware t c' state)
+    else (addTagEndware t c' state)
 
-handleAddTags :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
-handleAddTags user state (PayloadTags ts loc) = do
-  mapM_ (processAddTag user state loc) ts
-  sendToOriginal user $ ServerMessage AddTags Success (PayloadN ())
+addTagEndware :: ASCellTag -> ASCell -> MVar ServerState -> IO ()
+addTagEndware (StreamTag s) c state = DM.modifyDaemon state s (cellLocation c) evalMsg
+  where evalMsg = ClientMessage Evaluate (PayloadCL [c])
+addTagEndware _ _ _ = return ()
 
-handleRemoveTags :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
-handleRemoveTags user state (PayloadTags ts loc) = do
-  mapM_ (processRemoveTag loc state) ts
-  sendToOriginal user $ ServerMessage RemoveTags Success (PayloadN ())
+removeTagEndware :: ASCellTag -> ASCell -> MVar ServerState -> IO ()
+removeTagEndware (StreamTag s) c state = DM.removeDaemon (cellLocation c) state
+removeTagEndware _ _ _ = return ()
+
+handleToggleTags :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
+handleToggleTags user state (PayloadTags ts rng) = do
+  let locs = rangeToIndices rng
+  mapM_ (\loc -> mapM_ (processToggleTag loc state) ts) locs
+  sendToOriginal user $ ServerMessage ToggleTags Success (PayloadN ())
+
+processSetTag :: ASIndex -> MVar ServerState -> ASCellTag -> IO ()
+processSetTag loc state t = do
+  curState <- readMVar state
+  (Cell l e v ts) <- DB.getPossiblyBlankCell loc
+  let ts' = filter (differentTagType t) ts
+  let c' = Cell l e v (t:ts')
+  DB.setCell c'
+  if (ts' /= ts) -- if you ended up removing an old version of the tag
+    then (removeTagEndware t c' state)
+    else (addTagEndware t c' state)
+
+handleSetTags :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
+handleSetTags user state (PayloadTags ts rng) = do
+  let locs = rangeToIndices rng
+  mapM_ (\loc -> mapM_ (processSetTag loc state) ts) locs
+  sendToOriginal user $ ServerMessage SetTags Success (PayloadN ())
+
+-- Alex 10/22: seems kind of ugly. 
+differentTagType :: ASCellTag -> ASCellTag -> Bool
+differentTagType (Color _) (Color _) = False
+differentTagType (Size _) (Size _) = False
+differentTagType Money Money = False
+differentTagType Percentage Percentage = False
+differentTagType (StreamTag _) (StreamTag _) = False
+differentTagType Tracking Tracking = False
+differentTagType Volatile Volatile = False
+differentTagType (ReadOnly _) (ReadOnly _) = False
+differentTagType (ListMember _) (ListMember _) = False
+differentTagType DFMember DFMember = False
+differentTagType _ _ = True
 
 handleRepeat :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
 handleRepeat user state (PayloadSelection range origin) = do

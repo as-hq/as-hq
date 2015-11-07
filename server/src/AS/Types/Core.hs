@@ -120,6 +120,7 @@ data ASCellTag =
     Color String
   | Size Int
   | Money
+  | Bold | Italic | Underline
   | Percentage
   | StreamTag Stream
   | Tracking
@@ -175,7 +176,7 @@ data ASAction =
   | Undo | Redo
   | Clear
   | UpdateWindow
-  | AddTags | RemoveTags
+  | SetTags | ToggleTags
   | Repeat
   | BugReport
   | JumpSelect
@@ -210,7 +211,7 @@ data ASPayload =
   | PayloadCommit ASCommit
   | PayloadDelete ASRange [ASCell]
   | PayloadPaste {copyRange :: ASRange, copyTo :: ASRange}
-  | PayloadTags {tags :: [ASCellTag], tagsLoc :: ASIndex}
+  | PayloadTags {tags :: [ASCellTag], tagsRange :: ASRange}
   | PayloadXp ASExpression
   | PayloadReplValue ASReplValue
   | PayloadList QueryList
