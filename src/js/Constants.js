@@ -46,6 +46,7 @@ export default {
     GOT_SELECTION:null,
     FETCHED_CELLS:null,
     CLEARED: null,
+    CLEARED_SHEET: null,
     GOT_UPDATED_WORKBOOKS: null,
     RECEIVED_ERROR: null,
     RECEIVED_SHEET: null,
