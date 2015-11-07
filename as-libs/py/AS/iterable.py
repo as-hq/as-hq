@@ -256,11 +256,11 @@ class ASIterable(object):
     def __mul__(self, other):
         if isinstance(other, ASIterable):
             try:
-                return ASIterable(np.multiply(self.arr, other.arr))
+                return ASIterable(np.dot(self.arr, other.arr))
             except: return "undefined"
         else: 
             try:
-                return ASIterable(np.multiply(self.arr, np.array(other)))
+                return ASIterable(np.dot(self.arr, np.array(other)))
             except: return "undefined"
 
     def __pow__(self, other):
