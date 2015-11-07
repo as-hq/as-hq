@@ -88,14 +88,12 @@ export default {
 
   compareModifiers(s, e) {
     let propertyMatches =
-      (name) => {
-        if (name != 'ctrlKey') {
-          return (!!s[name]) === (!!e[name]);
-        } else {
-          return (!!s.ctrlKey) === (!!(e.ctrlKey || e.metaKey));
-        }
-      };
-    return ['shiftKey', 'ctrlKey', 'altKey'].every(propertyMatches);
+      (name) => (!!s[name]) === (!!e[name]);
+    return ['shiftKey', 'altKey'].every(propertyMatches)
+      && (
+        ['ctrlKey', 'metaKey'].every(propertyMatches)
+        || (s.ctrlKey && !s.metaKey && e.metaKey && !e.ctrlKey)
+      );
   }
 
 };
