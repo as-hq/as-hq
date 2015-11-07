@@ -99,6 +99,12 @@ export default {
         case "TextColor":
           config.fgColor = self.colorToHtml(tag.contents);
           break;
+        case "Bold":
+          config.font = "bold " + config.font; 
+          break;
+        case "Italic":
+          config.font = "italic " + config.font; 
+          break;
         case "BgColor":
           config.bgColor = self.colorToHtml(tag.contents);
           break;
@@ -106,7 +112,7 @@ export default {
           config.halign = tag.contents.toLowerCase();
           break;
         case "Money":
-          config.value = self.formatMoney(config.value, tag.contents, 2);
+          config.value = self.formatMoney("$", config.value, 2);
           break;
         case "Percentage":
           config.value = self.formatPercentage(config.value);
@@ -209,6 +215,7 @@ export default {
 /*************************************************************************************************************************/
 // Formatting
 
+  // This function is just wrong. 
   formatMoney(currency, contents, dec) {
     let delim = null,
         sign = null,

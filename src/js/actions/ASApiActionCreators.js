@@ -317,20 +317,13 @@ export default {
 
   /**************************************************************************************************************************/
   /* Sending get messages to the server */
-  addTags(tags, loc) {
-    let msg = TC.makeClientMessageRaw(Constants.ServerActions.AddTags, {
+  toggleTags(tags, rng) {
+    let msg = TC.makeClientMessageRaw(Constants.ServerActions.ToggleTags, {
       "tag": "PayloadTags",
       "tags": tags,
-      "tagsLoc": loc
+      "tagsRange": TC.simpleToASRange(rng)
     });
-    this.send(msg);
-  },
-  removeTags(tags, loc) {
-    let msg = TC.makeClientMessageRaw(Constants.ServerActions.RemoveTags, {
-      "tag": "PayloadTags",
-      "tags": tags,
-      "tagsLoc": loc
-    });
+    tags.forEach((t) => Store.toggleTag(t, rng), this); 
     this.send(msg);
   },
   copy(fromRng, toRng) {

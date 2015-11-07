@@ -269,13 +269,32 @@ const ASEvaluationStore = assign({}, BaseStore, {
   resetLastUpdatedCells() {
     _data.lastUpdatedCells = [];
   },
-  addTag(tag, col, row) {
+  // Currently an inconsistency between backend and frontend, where frontend only lets you 
+  // toggle one tag at once programmatically, whereas backend takes in a list of tags, and for now
+  // is only getting passed tag lists of size 1. (Alex 11/7)
+  toggleTag(tag, rng) {
+    let inds = TC.rangeToIndices(rng);
+    inds.forEach((i) => this.toggleTagAtLoc(tag, i), this);
+  },
+
+  toggleTagAtLoc(tag, loc) { 
+    let {col, row} = loc; 
     let sheetId = _data.currentSheet.sheetId;
-    if (this.locationExists(col, row, sheetId)){
-      _data.allCells[sheetId][col][row].cellTags.push(tag);
-      API.addTags([tag], TC.makeASIndex(sheetId, col, row));
+    if (this.locationExists(col, row, sheetId)) {
+      let ct = _data.allCells[sheetId][col][row].cellTags; 
+      let ind = -1; 
+
+      for (let i = 0; i < ct.length; i++) { 
+        if (ct[i].tag == tag.tag) {
+          ind = i; 
+        }
+      }
+
+      // if not included, add it; if included, remove it
+      (ind == -1) ? (ct.push(tag)) : (ct.splice(ind, 1)); 
     }
   },
+
   setExternalError(err) {
     _data.externalError = err;
   },
@@ -386,7 +405,7 @@ const ASEvaluationStore = assign({}, BaseStore, {
 // @optional mySheetId
   locationExists(col, row, mySheetId) {
     let sheetId = mySheetId || _data.currentSheet.sheetId;
-    return (_data.allCells[sheetId] && _data.allCells[sheetId][col] && _data.allCells[sheetId][col][row]);
+    return !!(_data.allCells[sheetId] && _data.allCells[sheetId][col] && _data.allCells[sheetId][col][row]);
   },
 
   /**************************************************************************************************************************/
