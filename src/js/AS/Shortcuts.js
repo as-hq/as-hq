@@ -97,10 +97,19 @@ export default {
     SU.add("common", "format_value", "Ctrl+Shift+2/3/4/5/6", (wildcard) => {
       let tag;
       // TODO other wildcards
-      if (wildcard === '4') tag = {tag: "Money", contents: []};
-      else if (wildcard === '5') tag = {tag: "Percentage", contents: []};
-      let {col, row} = Store.getActiveSelection().range.tl;
-      Store.addTag(tag, col, row);
+      if (wildcard === '$') tag = {tag: "Money", contents: []};
+      else if (wildcard === '%') tag = {tag: "Percentage", contents: []};
+      API.toggleTags([tag], Store.getActiveSelection().range); 
+      self.refs.spreadsheet.repaint();
+    });
+    SU.add("common", "bold", "Ctrl+B", (wildcard) => {
+      let tag = {tag: "Bold", contents: []};
+      API.toggleTags([tag], Store.getActiveSelection().range); 
+      self.refs.spreadsheet.repaint();
+    });
+    SU.add("common", "italic", "Ctrl+I", (wildcard) => {
+      let tag = {tag: "Italic", contents: []};
+      API.toggleTags([tag], Store.getActiveSelection().range); 
       self.refs.spreadsheet.repaint();
     });
     SU.add("common", "toggle_repl", "Alt+F11", (wildcard) => {
