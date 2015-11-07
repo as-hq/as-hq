@@ -263,6 +263,12 @@ export default {
     let msg = TC.makeClientMessage(Constants.ServerActions.Clear, "PayloadN", []);
     this.send(msg);
   },
+  clearSheet() {
+    let msg = TC.makeClientMessage(Constants.ServerActions.Clear,
+                                   "PayloadS",
+                                   Store.getCurrentSheet());
+    this.send(msg);
+  },
   find(findText){
     let msg = TC.makeClientMessageRaw(Constants.ServerActions.Find, {
       tag: "PayloadFind",
