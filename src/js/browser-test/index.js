@@ -62,7 +62,7 @@ import ShortcutUtils from '../AS/ShortcutUtils';
 
 // import Promise from 'bluebird';
 
-let evalPane;
+let evalPane, window_;
 
 function spreadsheet() {
   return evalPane.refs.spreadsheet;
@@ -337,21 +337,34 @@ let hooks = {
   }
 };
 
+function enableTestContext() {
+  evalPane.enableTestMode();
+  setTestMode();
+  setUITestMode();
+  window_.onerror = (msg, url, lineNumber) => {
+    addError(msg);
+    return true;
+  };
+}
+
+function disableTestContext() {
+  evalPane.disableTestMode();
+  unsetTestMode();
+  unsetUITestMode();
+  window_.onerror = (msg) => {
+    return false;
+  };
+}
+
 /* wrapping tests in a closure was necessary for _expect to add dynamic hooks */
 let tests = () => {
   return __describe('keyboard tests', {
     beforeAll: [ // prfs
-      exec(() => {
-        evalPane.enableTestMode();
-        setTestMode();
-      })
+      exec(enableTestContext)
     ],
 
     afterAll: [
-      exec(() => {
-        evalPane.disableTestMode();
-        unsetTestMode();
-      })
+      exec(disableTestContext)
     ],
 
     beforeEach: [
@@ -669,12 +682,8 @@ let tests = () => {
 };
 
 export function install(w, ep) {
-  evalPane = ep;
+  [evalPane, window_] = [ep, w];
   w.test = () => { tests()(); };
-  w.onerror = (msg, url, lineNumber) => {
-    addError(msg);
-    return true;
-  };
   __injectExpect(expect);
 
   w.$as = {};
