@@ -277,23 +277,24 @@ const ASEvaluationStore = assign({}, BaseStore, {
     inds.forEach((i) => this.toggleTagAtLoc(tag, i), this);
   },
 
-  toggleTagAtLoc(tag, loc) { 
-    let {col, row} = loc; 
-    let sheetId = _data.currentSheet.sheetId;
-    if (this.locationExists(col, row, sheetId)) {
-      let ct = _data.allCells[sheetId][col][row].cellTags; 
-      let ind = -1; 
+  // now handled entirely by backend
+  // toggleTagAtLoc(tag, loc) { 
+  //   let {col, row} = loc; 
+  //   let sheetId = _data.currentSheet.sheetId;
+  //   if (this.locationExists(col, row, sheetId)) {
+  //     let ct = _data.allCells[sheetId][col][row].cellTags; 
+  //     let ind = -1; 
 
-      for (let i = 0; i < ct.length; i++) { 
-        if (ct[i].tag == tag.tag) {
-          ind = i; 
-        }
-      }
+  //     for (let i = 0; i < ct.length; i++) { 
+  //       if (ct[i].tag == tag.tag) {
+  //         ind = i; 
+  //       }
+  //     }
 
-      // if not included, add it; if included, remove it
-      (ind == -1) ? (ct.push(tag)) : (ct.splice(ind, 1)); 
-    }
-  },
+  //     // if not included, add it; if included, remove it
+  //     (ind == -1) ? (ct.push(tag)) : (ct.splice(ind, 1)); 
+  //   }
+  // },
 
   setExternalError(err) {
     _data.externalError = err;
@@ -347,17 +348,14 @@ const ASEvaluationStore = assign({}, BaseStore, {
   /* Function to update cell related objects in store. Caller's responsibility to clear lastUpdatedCells if necessary */
   updateCells(cells) {
     let removedCells = [];
-    for (var key in cells){
-      let c = cells[key],
-          xpString = c.cellExpression.expression;
-      if (xpString != "") {
+    cells.forEach((c) => {
+      if (!Util.isEmptyCell(c)) {
         this.setCell(c);
         _data.lastUpdatedCells.push(c);
-
       } else {
         removedCells.push(c); // filter out all the blank cells passed back from the store
       }
-    }
+    }, this);
     this.removeCells(removedCells);
   },
 

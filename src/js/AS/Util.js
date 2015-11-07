@@ -82,11 +82,6 @@ export default {
     }
   },
 
-  // not actually correct #needsrefactor. (But correct enough for Javascript for now.)
-  shiftIndex(ind, dr, dc) {
-    return {row: ind.row + dr, col: ind.col + dc};
-  },
-
   showFullValueList(cv) {
     return JSON.stringify(cv.contents.map(this.showValue));
   },
@@ -272,6 +267,14 @@ export default {
 
   isEmptyString(str) {
     return /\S/.test(str);
+  },
+
+  shiftIndex(ind, dr, dc) {
+    return {row: ind.row + dr, col: ind.col + dc};
+  },
+
+  isEmptyCell(c) {
+    return !c || ((c.cellExpression.expression == "") && (c.cellTags.length == 0));
   },
 
   removeEmptyLines(str){

@@ -317,15 +317,16 @@ export default {
 
   /**************************************************************************************************************************/
   /* Sending get messages to the server */
-  toggleTags(tags, rng) {
-    let msg = TC.makeClientMessageRaw(Constants.ServerActions.ToggleTags, {
-      "tag": "PayloadTags",
-      "tags": tags,
-      "tagsRange": TC.simpleToASRange(rng)
+  toggleTag(tag, rng) {
+    let msg = TC.makeClientMessageRaw(Constants.ServerActions.ToggleTag, {
+      "tag": "PayloadTag",
+      "cellTag": tag,
+      "tagRange": TC.simpleToASRange(rng)
     });
-    tags.forEach((t) => Store.toggleTag(t, rng), this); 
+    // Store.toggleTag(tag, rng);
     this.send(msg);
   },
+
   copy(fromRng, toRng) {
     let msg = TC.makeClientMessageRaw(Constants.ServerActions.Copy, {
       tag: "PayloadPaste",
@@ -367,7 +368,7 @@ export default {
     this.send(msg);
   },
 
-// @optional mySheet
+  // @optional mySheet
   openSheet(mySheet) {
     let sheet = mySheet || Store.getCurrentSheet(),
         msg = TC.makeClientMessage(Constants.ServerActions.Open, "PayloadS", sheet);

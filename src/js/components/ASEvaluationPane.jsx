@@ -494,7 +494,7 @@ export default React.createClass({
     let curCell = Store.getCell(origin.col, origin.row);
     if (!curCell) {
       if (xpObj.expression != "") {
-       API.evaluate(asIndex, xpObj);
+        API.evaluate(asIndex, xpObj);
       }
     } else {
       let {expression, language} = curCell.cellExpression;
