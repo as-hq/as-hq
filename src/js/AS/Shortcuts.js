@@ -99,17 +99,17 @@ export default {
       // TODO other wildcards
       if (wildcard === '$') tag = {tag: "Money", contents: []};
       else if (wildcard === '%') tag = {tag: "Percentage", contents: []};
-      API.toggleTags([tag], Store.getActiveSelection().range); 
+      API.toggleTag(tag, Store.getActiveSelection().range); 
       self.refs.spreadsheet.repaint();
     });
     SU.add("common", "bold", "Ctrl+B", (wildcard) => {
       let tag = {tag: "Bold", contents: []};
-      API.toggleTags([tag], Store.getActiveSelection().range); 
+      API.toggleTag(tag, Store.getActiveSelection().range); 
       self.refs.spreadsheet.repaint();
     });
     SU.add("common", "italic", "Ctrl+I", (wildcard) => {
       let tag = {tag: "Italic", contents: []};
-      API.toggleTags([tag], Store.getActiveSelection().range); 
+      API.toggleTag(tag, Store.getActiveSelection().range); 
       self.refs.spreadsheet.repaint();
     });
     SU.add("common", "toggle_repl", "Alt+F11", (wildcard) => {
