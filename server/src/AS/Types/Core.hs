@@ -176,7 +176,7 @@ data ASAction =
   | Undo | Redo
   | Clear
   | UpdateWindow
-  | SetTags | ToggleTags
+  | SetTag | ToggleTag
   | Repeat
   | BugReport
   | JumpSelect
@@ -211,7 +211,7 @@ data ASPayload =
   | PayloadCommit ASCommit
   | PayloadDelete ASRange [ASCell]
   | PayloadPaste {copyRange :: ASRange, copyTo :: ASRange}
-  | PayloadTags {tags :: [ASCellTag], tagsRange :: ASRange}
+  | PayloadTag {cellTag :: ASCellTag, tagRange :: ASRange}
   | PayloadXp ASExpression
   | PayloadReplValue ASReplValue
   | PayloadList QueryList

@@ -72,13 +72,13 @@ instance Client ASUserClient where
       Copy         -> handleCopy user state payload
       Cut          -> handleCut user state payload
       CopyForced   -> handleCopyForced user state payload
-      ToggleTags   -> handleToggleTags user state payload
-      SetTags      -> handleSetTags user state payload
+      ToggleTag    -> handleToggleTag user state payload
+      SetTag       -> handleSetTag user state payload
       Repeat       -> handleRepeat user state payload
       BugReport    -> handleBugReport user payload
       JumpSelect   -> handleJumpSelect user state payload
       where payload = clientPayload message
-      -- Undo         -> handleToggleTags user state (PayloadTags [StreamTag (Stream NoSource 1000)] (Index (T.pack "TEST_SHEET_ID2") (1,1)))
+      -- Undo         -> handleToggleTag user state (PayloadTags [StreamTag (Stream NoSource 1000)] (Index (T.pack "TEST_SHEET_ID2") (1,1)))
       -- ^^ above is to test streaming when frontend hasn't been implemented yet
 
 -------------------------------------------------------------------------------------------------------------------------
@@ -344,49 +344,55 @@ sanitizeCopyCells conn cells from
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Tag handlers
+handleToggleTag :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
+handleToggleTag user state (PayloadTag t rng) = do
+  let locs = rangeToIndices rng
+  cells <- DB.getPossiblyBlankCells locs
+  let (cellsWithTag, cellsWithoutTag) = L.partition (\c -> t `elem` cellTags c) cells
+  -- if there's a single tag present in the range, remove this tag from all the cells; 
+  -- otherwise set the tag in all the cells. 
+  if (null cellsWithoutTag)
+    then do 
+      let cells' = map (\(Cell l e v ts) -> Cell l e v (L.delete t ts)) cellsWithTag
+          (emptyCells, nonEmptyCells) = L.partition U.isEmptyCell cells'
+      DB.setCells nonEmptyCells
+      conn <- dbConn <$> readMVar state
+      DB.deleteCells conn emptyCells
+      mapM_ (removeTagEndware state t) nonEmptyCells
+      reply user state $ ServerMessage Update Success (PayloadCL cells')
+    else do
+      let cells' = map (\(Cell l e v ts) -> Cell l e v (t:ts)) cellsWithoutTag
+      DB.setCells cells'
+      mapM_ (addTagEndware state t) cells'
+      reply user state $ ServerMessage Update Success (PayloadCL cells')
+    -- don't HAVE to send back the entire cells, but that's an optimization for a later time. 
+    -- Said toad. (Alex 11/7)
 
-processToggleTag :: ASIndex -> MVar ServerState -> ASCellTag -> IO ()
-processToggleTag loc state t = do
-  curState <- readMVar state
-  (Cell l e v ts) <- DB.getPossiblyBlankCell loc
-  let ts' = if (t `elem` ts) then (L.delete t ts) else (t:ts)
-  let c' = Cell l e v ts'
-  DB.setCell c'
-  if (t `elem` ts) 
-    then (removeTagEndware t c' state)
-    else (addTagEndware t c' state)
-
-addTagEndware :: ASCellTag -> ASCell -> MVar ServerState -> IO ()
-addTagEndware (StreamTag s) c state = DM.modifyDaemon state s (cellLocation c) evalMsg
+addTagEndware :: MVar ServerState -> ASCellTag -> ASCell -> IO ()
+addTagEndware state (StreamTag s) c = DM.modifyDaemon state s (cellLocation c) evalMsg
   where evalMsg = ClientMessage Evaluate (PayloadCL [c])
 addTagEndware _ _ _ = return ()
 
-removeTagEndware :: ASCellTag -> ASCell -> MVar ServerState -> IO ()
-removeTagEndware (StreamTag s) c state = DM.removeDaemon (cellLocation c) state
+removeTagEndware :: MVar ServerState -> ASCellTag -> ASCell -> IO ()
+removeTagEndware state (StreamTag s) c = DM.removeDaemon (cellLocation c) state
 removeTagEndware _ _ _ = return ()
 
-handleToggleTags :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
-handleToggleTags user state (PayloadTags ts rng) = do
-  let locs = rangeToIndices rng
-  mapM_ (\loc -> mapM_ (processToggleTag loc state) ts) locs
-  sendToOriginal user $ ServerMessage ToggleTags Success (PayloadN ())
-
-processSetTag :: ASIndex -> MVar ServerState -> ASCellTag -> IO ()
-processSetTag loc state t = do
+processSetTag :: MVar ServerState -> ASCellTag -> ASIndex ->  IO ()
+processSetTag state t loc = do
   curState <- readMVar state
   (Cell l e v ts) <- DB.getPossiblyBlankCell loc
   let ts' = filter (differentTagType t) ts
   let c' = Cell l e v (t:ts')
   DB.setCell c'
   if (ts' /= ts) -- if you ended up removing an old version of the tag
-    then (removeTagEndware t c' state)
-    else (addTagEndware t c' state)
+    then (removeTagEndware state t c')
+    else (addTagEndware state t c')
 
-handleSetTags :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
-handleSetTags user state (PayloadTags ts rng) = do
+handleSetTag :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
+handleSetTag user state (PayloadTag tag rng) = do
   let locs = rangeToIndices rng
-  mapM_ (\loc -> mapM_ (processSetTag loc state) ts) locs
-  sendToOriginal user $ ServerMessage SetTags Success (PayloadN ())
+  mapM_ (processSetTag state tag) locs
+  sendToOriginal user $ ServerMessage SetTag Success (PayloadN ())
 
 -- Alex 10/22: seems kind of ugly. 
 differentTagType :: ASCellTag -> ASCellTag -> Bool

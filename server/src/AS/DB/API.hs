@@ -513,11 +513,11 @@ canAccessAll :: Connection -> ASUserId -> [ASIndex] -> IO Bool
 canAccessAll conn uid locs = return . all id =<< mapM (canAccess conn uid) locs
 
 isPermissibleMessage :: ASUserId -> Connection -> ASClientMessage -> IO Bool
-isPermissibleMessage uid conn (ClientMessage _ (PayloadCL cells))    = canAccessAll conn uid (map cellLocation cells)
-isPermissibleMessage uid conn (ClientMessage _ (PayloadLL locs))     = canAccessAll conn uid locs
-isPermissibleMessage uid conn (ClientMessage _ (PayloadS sheet))     = canAccessSheet conn uid (sheetId sheet)
-isPermissibleMessage uid conn (ClientMessage _ (PayloadW window))    = canAccessSheet conn uid (windowSheetId window)
-isPermissibleMessage uid conn (ClientMessage _ (PayloadTags _ rng))  = canAccessAll conn uid (rangeToIndices rng)
+isPermissibleMessage uid conn (ClientMessage _ (PayloadCL cells))  = canAccessAll conn uid (map cellLocation cells)
+isPermissibleMessage uid conn (ClientMessage _ (PayloadLL locs))   = canAccessAll conn uid locs
+isPermissibleMessage uid conn (ClientMessage _ (PayloadS sheet))   = canAccessSheet conn uid (sheetId sheet)
+isPermissibleMessage uid conn (ClientMessage _ (PayloadW window))  = canAccessSheet conn uid (windowSheetId window)
+isPermissibleMessage uid conn (ClientMessage _ (PayloadTag _ rng)) = canAccessAll conn uid (rangeToIndices rng)
 isPermissibleMessage _ _ _ = return True
 
 
