@@ -55,7 +55,7 @@ wss.onmessage = function (event) {
       isRunningTest = false;
     }
   } else {
-    if (isRunningTest && msg.action != 'UpdateWindow') {
+    if (isRunningTest && (!uiTestMode || msg.action != 'UpdateWindow')) {
       currentCbs.fulfill(msg);
       isRunningTest = false;
     }
@@ -133,7 +133,7 @@ wss.onmessage = function (event) {
         if (msg.payload.tag === "PayloadDelete") {
           Dispatcher.dispatch({
             type: ActionTypes.DELETED_LOCS,
-            deletedRange: msg.payload.contents[0], 
+            deletedRange: msg.payload.contents[0],
             updatedCells: msg.payload.contents[1]
           });
         } else if (msg.payload.tag === "PayloadWorkbookSheets") {
@@ -141,7 +141,7 @@ wss.onmessage = function (event) {
             type: ActionTypes.DELETED_WORKBOOKS,
             workbooks: msg.payload.contents
           });
-        } // no case for PayloadWB ?? 
+        } // no case for PayloadWB ??
         break;
       case "EvaluateRepl":
         Dispatcher.dispatch({
