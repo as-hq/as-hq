@@ -4,7 +4,9 @@ import _ from 'lodash';
 
 import {
   addError,
+  getHooks,
   expect,
+  _expect,
   registerExpectation,
   _describe,
   __describe,
@@ -42,8 +44,6 @@ import {
   undo,
   redo,
 
-  shouldBe,
-  shouldBeNothing,
   shouldBeL,
 
   actionAPIResponse,
@@ -94,7 +94,7 @@ function viewingWindow() {
   return spreadsheet().getViewingWindow().range;
 }
 
-function currentExpression() {
+function expression() {
   return ASExpStore.getExpression();
 }
 
@@ -179,8 +179,8 @@ function keyPresses(str) {
   return _forM_(str.split(''), keyPress);
 }
 
-let [ pressUndo ] =
-  [ 'Ctrl+Z' ].map(mKeyPress); /* future key shortcuts go here, for example Ctrl+Z */
+let [ pressUndo, up, down, left, right, enter, tab, plus, backspace ] =
+  [ 'Ctrl+Z', 'Up', 'Down', 'Left', 'Right', 'Enter', 'Tab', 'Shift+=', 'Backspace' ].map(mKeyPress); /* future key shortcuts go here, for example Ctrl+Z */
 
 function pressCopy() {
   return exec(() => {
@@ -274,59 +274,10 @@ function blockOnGetCells(cs) {
   );
 }
 
-function shouldBeSelected(rng) {
-  return exec(() => {
-    rng = strictRange(rng);
-    expect(activeRange()).toBeSupersetOf(rangeFromExcel(rng));
-  });
-}
-
-function textboxShouldHaveFocus() {
-  return exec(() => {
-    expect(textboxHasFocus()).toBe(true, 'Expected textbox to have focus');
-  });
-}
-
-function textboxShouldNotHaveFocus() {
-  return exec(() => {
-    expect(textboxHasFocus()).toBe(false, 'Expected textbox to not have focus');
-  });
-}
-
-function spreadsheetShouldHaveFocus() {
-  return exec(() => {
-    expect(spreadsheet().hasFocus()).toBe(true, 'Expected spreadsheet to have focus');
-  });
-}
-
-function currentExpressionShouldBe(xp) {
-  return exec(() => {
-    expect(currentExpression()).toBe(xp);
-  });
-}
-
-function viewingWindowShouldSatisfy(fn) {
-  return exec(() => {
-    expect(viewingWindow()).toSatisfy(fn);
-  });
-}
-
-function viewingWindowShouldBeAtRow(num) {
-  return viewingWindowShouldSatisfy(({br: {row: bottomRow}}) => {
+function atRow(num) {
+  return ({br: {row: bottomRow}}) => {
     return (bottomRow - 5 <= num) && (bottomRow + 5 >= num);
-  });
-}
-
-function cellConfigShouldSatisfy(excelCell, fn) {
-  return exec(() => {
-    expect(cellConfig(excelCell).toSatisfy(fn));
-  });
-}
-
-function cellShouldBeUncolored(excelCell) {
-  return cellConfigShouldSatisfy(excelCell,
-    ({bgColor}) => bgColor === undefined
-  );
+  }
 }
 
 function waitForResponse(act) {
@@ -336,341 +287,388 @@ function waitForResponse(act) {
 }
 
 let hooks = {
+  toBeSelected(rng) { // here, expect(rng).toBeSelected() is correct notation
+    return {
+      message() { return `Expected ${rng} to be selected.`; },
+      compare() {
+        return getHooks().toBeSupersetOf(activeRange()).compare(rangeFromExcel(rng));
+      }
+    }
+  },
 
+  toHaveFocus(elementFn) {
+    return {
+      message() { return `Expected ${elementFn()} to have focus.`; },
+      compare() {
+        let element = elementFn();
+        if (element.hasFocus) return element.hasFocus();
+        else return element.is(':focus');
+      }
+    }
+  },
+
+  toBeColored(cell) {
+    return {
+      message() { return `Expected ${cell} to be colored.`; },
+      compare() {
+        return (({bgColor}) => bgColor != undefined)(cellConfig(cell));
+      }
+    }
+  },
+
+  _toBe(cell) {
+    return {
+      isPromise: true,
+      compare(value) {
+        return shouldBe(cell, value);
+      }
+    }
+  },
+
+  _toBeNothing(cell) {
+    return {
+      isPromise: true,
+      compare() {
+        return shouldBeNothing(cell);
+      }
+    }
+  }
 };
 
+/* wrapping tests in a closure was necessary for _expect to add dynamic hooks */
+let tests = () => {
+  return __describe('keyboard tests', {
+    beforeAll: [ // prfs
+      exec(() => {
+        evalPane.enableTestMode();
+        setTestMode();
+      })
+    ],
 
-let tests = __describe('keyboard tests', {
-  beforeAll: [ // prfs
-    exec(() => {
-      evalPane.enableTestMode();
-      setTestMode();
-    })
-  ],
+    afterAll: [
+      exec(() => {
+        evalPane.disableTestMode();
+        unsetTestMode();
+      })
+    ],
 
-  afterAll: [
-    exec(() => {
-      evalPane.disableTestMode();
-      unsetTestMode();
-    })
-  ],
+    beforeEach: [
+      clear()
+    ],
 
-  beforeEach: [
-    clear()
-  ],
-
-  tests: [
-    _describe('eval', { tests: [
-      _it('should eval on enter', [
-        selectRange('A1'),
-        keyPresses('123'),
-        waitForResponse(
-          keyPress('Enter')
-        ),
-        shouldBe('A1', valueI(123)),
-        shouldBeSelected('A2')
-      ]),
-
-      _it('should eval on tab', [
-        selectRange('A1'),
-        keyPresses('1234'),
-        waitForResponse(
-          keyPress('Tab')
-        ),
-        shouldBe('A1', valueI(1234)),
-        shouldBeSelected('B1')
-      ])
-    ]}),
-
-    _describe('textbox', { tests: [
-      _describe('eval on arrows', { tests: [
-        _it('evals on down', [
+    tests: [
+      _describe('eval', { tests: [
+        _it('should eval on enter', [
           selectRange('A1'),
           keyPresses('123'),
           waitForResponse(
-            keyPress('Down')
+            enter()
           ),
-          shouldBe('A1', valueI(123))
-        ])
-      ]}),
-
-      _describe('cell ref click/keyboard injection', { tests: [
-        _it('injects cell ref from selection change', [
-          _it('injects from arbitrary selection', [
-            selectRange('A1'),
-            keyPresses('=123'),
-            keyPress('Shift+='),
-            selectRange('B1'),
-            currentExpressionShouldBe('=123+B1'),
-            waitForResponse(
-              keyPress('Enter')
-            )
-          ])
+          _expect('A1')._toBe(valueI(123)),
+          _expect('A2').toBeSelected()
         ]),
 
-        _describe('injects cell ref from pressing keyboard buttons', { tests: [
-          _it('injects from down', [
-            selectRange('A1'),
-            keyPresses('=123'),
-            keyPress('Shift+='), // plus
-            keyPress('Down'),
-            currentExpressionShouldBe('=123+A2'),
-            waitForResponse(
-              keyPress('Enter')
-            )
-          ]),
-
-          _it('injects from up', [
-            selectRange('A2'),
-            keyPresses('=123'),
-            keyPress('Shift+='), // plus
-            keyPress('Up'),
-            currentExpressionShouldBe('=123+A1'),
-            waitForResponse(
-              keyPress('Enter')
-            )
-          ]),
-
-          _it('injects from left', [
-            selectRange('B1'),
-            keyPresses('=123'),
-            keyPress('Shift+='), // plus
-            keyPress('Left'),
-            currentExpressionShouldBe('=123+A1'),
-            waitForResponse(
-              keyPress('Enter')
-            )
-          ]),
-
-          _it('injects from right', [
-            selectRange('A1'),
-            keyPresses('=123'),
-            keyPress('Shift+='), // plus
-            keyPress('Right'),
-            currentExpressionShouldBe('=123+B1'),
-            waitForResponse(
-              keyPress('Enter')
-            )
-          ])
-        ]})
-      ]}),
-
-      _describe('f2 moves focus', { tests: [
-        _it('moves focus from the spreadsheet to the textbox', [
+        _it('should eval on tab', [
           selectRange('A1'),
-          keyPresses('=1'),
+          keyPresses('1234'),
           waitForResponse(
-            keyPress('Enter')
+            tab()
           ),
-          shouldBe('A1', valueI(1)),
-          selectRange('A1'),
-          keyPress('F2'),
-          textboxShouldHaveFocus()
-        ]),
-
-        _it('moves focus from the textbox back to the spreadsheet', [
-          selectRange('A1'),
-          keyPress('F2'),
-          keyPress('F2'),
-          keyPress('Down'),
-          shouldBeSelected('A2')
+          _expect('A1')._toBe(valueI(1234)),
+          _expect('B1').toBeSelected()
         ])
       ]}),
 
-      _it('should overwrite in the textbox upon ctrl-A', [
-        selectRange('A1'),
-        keyPresses('123'),
-        keyPress('Ctrl+A'),
-        keyPress('1'),
-        currentExpressionShouldBe('1'),
-        waitForResponse(
-          keyPress('Enter') // this is to be in pristine state for next test
-        )
-      ]),
-
-      _it('focuses on textbox on double click', [
-        selectRange('A1'),
-        doubleClick(),
-        textboxShouldHaveFocus()
-      ])
-    ]}),
-
-    _describe('copy and paste', { tests: [
-      _it('should copy a cell', [
-        python('A1', '1'),
-        selectRange('A1'),
-        pressCopy(),
-        blockUntilCopy('A1')
-      ]),
-
-      _it('should copy and paste a cell', [
-        python('A1', '1'),
-        selectRange('A1'),
-        pressCopy(),
-        blockUntilCopy('A1'),
-        selectRange('B1'),
-        waitForResponse(
-          pressPaste()
-        ),
-        shouldBe('B1', valueI(1))
-      ]),
-
-      _describe('regressions', { tests: [
-      ]})
-    ]}),
-
-    _describe('undo and redo', { tests: [
-      _it('undoes a simple eval', [
-        python('A1', '1'),
-        waitForResponse(
-          keyPress('Ctrl+Z')
-        ),
-        shouldBeNothing('B1')
-      ])
-    ]}),
-
-    _describe('deletion', { tests: [
-      _it('deletes a range', [
-        python('A1', 'range(10)'),
-        selectRange('A1:A10'),
-        waitForResponse(
-          keyPress('Backspace')
-        ),
-        _forM_(fromToInclusive(1, 10),
-          (i) => shouldBeNothing(`A${i}`)
-        )
-      ]),
-
-      _describe('regressions', { tests: [
-        _describe('undoes range(10)', { tests: [
-          _it('deletes the expression', [
-            python('A1', 'range(10)'),
-            waitForResponse(
-              keyPress('Ctrl+Z')
-            ),
-            selectRange('A5'),
-            currentExpressionShouldBe('')
-          ]),
-
-          _it('deletes the list cell from the renderer', { tests: [
-            python('A1', 'range(10)'),
-            waitForResponse(
-              keyPress('Ctrl+Z')
-            ),
-            cellShouldBeUncolored('A5')
-          ]})
-        ]})
-      ]})
-    ]}),
-
-    _describe('selection shortcuts', { tests: [
-      _xdescribe('selecting cells with ctrl a', { tests: [
-        _it('selects a simple table', [
-          python('A1', 'range(10)'),
-          selectRange('A1'),
-          keyPress('Ctrl+A'),
-          shouldBeSelected('A1:A10')
-        ]),
-
-        _it('selects a table with a part that sticks out', [
-          python('A1', 'range(10)'),
-          python('B1', '1'),
-          selectRange('A1'),
-          keyPress('Ctrl+A'),
-          shouldBeSelected('A1:B10')
-        ])
-      ]}),
-
-      _describe('selecting cells with ctrl arrow', { tests: [
-        _describe('basic functionality', { tests: [
-          _it('selects down', [
-            python('A1', 'range(10)'),
+      _describe('textbox', { tests: [
+        _describe('eval on arrows', { tests: [
+          _it('evals on down', [
             selectRange('A1'),
-            keyPress('Ctrl+Shift+Down'),
-            shouldBeSelected('A1:A10')
-          ]),
-
-          _it('selects up', [
-            python('A1', 'range(10)'),
-            selectRange('A5'),
-            keyPress('Ctrl+Shift+Up'),
-            shouldBeSelected('A1:A5')
-          ]),
-
-          _it('selects right', [
-            _forM_(fromToInclusive(1, 5),
-              (i) => python(`${numToAlpha(i - 1)}1`, `${i}`)
+            keyPresses('123'),
+            waitForResponse(
+              down()
             ),
-            selectRange('A1'),
-            keyPress('Ctrl+Shift+Right'),
-            shouldBeSelected('A1:E1')
-          ]),
-
-          _it('selects left', [
-            _forM_(fromToInclusive(1, 5),
-              (i) => python(`${numToAlpha(i - 1)}1`, `${i}`)
-            ),
-            selectRange('C1'),
-            keyPress('Ctrl+Shift+Left'),
-            shouldBeSelected('A1:C1')
+            _expect('A1')._toBe(valueI(123))
           ])
         ]}),
 
-        _xdescribe('screen should follow ctrl arrow', { tests: [
-          _it('selects down', [
-            python('A1', 'range(60)'),
-            selectRange('A1'),
-            keyPress('Ctrl+Shift+Down'),
-            shouldBeSelected('A1:A60'),
-            viewingWindowShouldBeAtRow(60)
+        _describe('cell ref click/keyboard injection', { tests: [
+          _it('injects cell ref from selection change', [
+            _it('injects from arbitrary selection', [
+              selectRange('A1'),
+              keyPresses('=123'),
+              plus(),
+              selectRange('B1'),
+              _expect(expression).toCurrentlyBe('=123+B1'),
+              waitForResponse(
+                enter()
+              )
+            ])
           ]),
 
-          _it('selects down a long range', [
-            python('A1', 'range(100)'),
+          _describe('injects cell ref from pressing keyboard buttons', { tests: [
+            _it('injects from down', [
+              selectRange('A1'),
+              keyPresses('=123'),
+              plus(),
+              down(),
+              _expect(expression).toCurrentlyBe('=123+A2'),
+              waitForResponse(
+                enter()
+              )
+            ]),
+
+            _it('injects from up', [
+              selectRange('A2'),
+              keyPresses('=123'),
+              plus(),
+              up(),
+              _expect(expression).toCurrentlyBe('=123+A1'),
+              waitForResponse(
+                enter()
+              )
+            ]),
+
+            _it('injects from left', [
+              selectRange('B1'),
+              keyPresses('=123'),
+              plus(),
+              left(),
+              _expect(expression).toCurrentlyBe('=123+A1'),
+              waitForResponse(
+                enter()
+              )
+            ]),
+
+            _it('injects from right', [
+              selectRange('A1'),
+              keyPresses('=123'),
+              plus(),
+              right(),
+              _expect(expression).toCurrentlyBe('=123+B1'),
+              waitForResponse(
+                enter()
+              )
+            ])
+          ]})
+        ]}),
+
+        _describe('f2 moves focus', { tests: [
+          _it('moves focus from the spreadsheet to the textbox', [
             selectRange('A1'),
-            keyPress('Ctrl+Shift+Down'),
-            shouldBeSelected('A1:A100'),
-            viewingWindowShouldBeAtRow(100)
+            keyPresses('=1'),
+            waitForResponse(
+              enter()
+            ),
+            _expect('A1')._toBe(valueI(1)),
+            selectRange('A1'),
+            keyPress('F2'),
+            _expect(textbox).toHaveFocus()
+          ]),
+
+          _it('moves focus from the textbox back to the spreadsheet', [
+            selectRange('A1'),
+            keyPress('F2'),
+            keyPress('F2'),
+            down(),
+            _expect('A2').toBeSelected()
           ])
+        ]}),
+
+        _it('should overwrite in the textbox upon ctrl-A', [
+          selectRange('A1'),
+          keyPresses('123'),
+          keyPress('Ctrl+A'),
+          keyPress('1'),
+          _expect(expression).toCurrentlyBe('1'),
+          waitForResponse(
+            enter() //pristine state for next test
+          )
+        ]),
+
+        _it('focuses on textbox on double click', [
+          selectRange('A1'),
+          doubleClick(),
+          _expect(textbox).toHaveFocus()
+        ])
+      ]}),
+
+      _describe('copy and paste', { tests: [
+        _it('should copy a cell', [
+          python('A1', '1'),
+          selectRange('A1'),
+          pressCopy(),
+          blockUntilCopy('A1')
+        ]),
+
+        _it('should copy and paste a cell', [
+          python('A1', '1'),
+          selectRange('A1'),
+          pressCopy(),
+          blockUntilCopy('A1'),
+          selectRange('B1'),
+          waitForResponse(
+            pressPaste()
+          ),
+          _expect('B1')._toBe(valueI(1))
+        ]),
+
+        _describe('regressions', { tests: [
         ]})
+      ]}),
+
+      _describe('undo and redo', { tests: [
+        _it('undoes a simple eval', [
+          python('A1', '1'),
+          waitForResponse(
+            pressUndo()
+          ),
+          _expect('B1')._toBeNothing()
+        ])
+      ]}),
+
+      _describe('deletion', { tests: [
+        _it('deletes a range', [
+          python('A1', 'range(10)'),
+          selectRange('A1:A10'),
+          waitForResponse(
+            backspace()
+          ),
+          _forM_(fromToInclusive(1, 10),
+            (i) => _expect(`A${i}`)._toBeNothing()
+          )
+        ]),
+
+        _describe('regressions', { tests: [
+          _describe('undoes range(10)', { tests: [
+            _it('deletes the expression', [
+              python('A1', 'range(10)'),
+              waitForResponse(
+                pressUndo()
+              ),
+              selectRange('A5'),
+              _expect(expression).toCurrentlyBe('')
+            ]),
+
+            _it('deletes the list cell from the renderer', { tests: [
+              python('A1', 'range(10)'),
+              waitForResponse(
+                pressUndo()
+              ),
+              _expect('A5').not.toBeColored()
+            ]})
+          ]})
+        ]})
+      ]}),
+
+      _describe('selection shortcuts', { tests: [
+        _xdescribe('selecting cells with ctrl a', { tests: [
+          _it('selects a simple table', [
+            python('A1', 'range(10)'),
+            selectRange('A1'),
+            keyPress('Ctrl+A'),
+            _expect('A1:A10').toBeSelected()
+          ]),
+
+          _it('selects a table with a part that sticks out', [
+            python('A1', 'range(10)'),
+            python('B1', '1'),
+            selectRange('A1'),
+            keyPress('Ctrl+A'),
+            _expect('A1:B10').toBeSelected()
+          ])
+        ]}),
+
+        _describe('selecting cells with ctrl arrow', { tests: [
+          _describe('basic functionality', { tests: [
+            _it('selects down', [
+              python('A1', 'range(10)'),
+              selectRange('A1'),
+              keyPress('Ctrl+Shift+Down'),
+              _expect('A1:A10').toBeSelected()
+            ]),
+
+            _it('selects up', [
+              python('A1', 'range(10)'),
+              selectRange('A5'),
+              keyPress('Ctrl+Shift+Up'),
+              _expect('A1:A5').toBeSelected()
+            ]),
+
+            _it('selects right', [
+              _forM_(fromToInclusive(1, 5),
+                (i) => python(`${numToAlpha(i - 1)}1`, `${i}`)
+              ),
+              selectRange('A1'),
+              keyPress('Ctrl+Shift+Right'),
+              _expect('A1:E1').toBeSelected()
+            ]),
+
+            _it('selects left', [
+              _forM_(fromToInclusive(1, 5),
+                (i) => python(`${numToAlpha(i - 1)}1`, `${i}`)
+              ),
+              selectRange('C1'),
+              keyPress('Ctrl+Shift+Left'),
+              _expect('A1:C1').toBeSelected()
+            ])
+          ]}),
+
+          _xdescribe('screen should follow ctrl arrow', { tests: [
+            _it('selects down', [
+              python('A1', 'range(60)'),
+              selectRange('A1'),
+              keyPress('Ctrl+Shift+Down'),
+              _expect('A1:A60').toBeSelected(),
+              _expect(viewingWindow).toCurrentlySatisfy(atRow(60))
+            ]),
+
+            _it('selects down a long range', [
+              python('A1', 'range(100)'),
+              selectRange('A1'),
+              keyPress('Ctrl+Shift+Down'),
+              _expect('A1:A100').toBeSelected(),
+              _expect(viewingWindow).toCurrentlySatisfy(atRow(100))
+            ])
+          ]})
+        ]})
+      ]}),
+
+      _describe('replication shortcuts', { tests: [
+        _it('duplicates cells with ctrl d', [
+          python('A1', 'range(5)'),
+          python('B1', 'A1 + 1'),
+          selectRange('B1:B5'),
+          waitForResponse(
+            keyPress('Ctrl+D')
+          ),
+          shouldBeL(
+            fromToInclusive(1, 5).map((i) => `B${i}`),
+            fromToInclusive(1, 5).map(valueI)
+          )
+        ]),
+
+        _it('duplicates cells with ctrl r', [
+          _forM_(fromToInclusive(1, 5),
+            (i) => python(`${numToAlpha(i - 1)}1`, `${i}`)
+          ),
+          python('A2', 'A1 + 1'),
+          selectRange('A2:E2'),
+          waitForResponse(
+            keyPress('Ctrl+R')
+          ),
+          shouldBeL(
+            fromToInclusive(1, 5).map((i) => `${numToAlpha(i - 1)}2`),
+            fromToInclusive(2, 6).map(valueI)
+          )
+        ])
       ]})
-    ]}),
-
-    _describe('replication shortcuts', { tests: [
-      _it('duplicates cells with ctrl d', [
-        python('A1', 'range(5)'),
-        python('B1', 'A1 + 1'),
-        selectRange('B1:B5'),
-        waitForResponse(
-          keyPress('Ctrl+D')
-        ),
-        shouldBeL(
-          fromToInclusive(1, 5).map((i) => `B${i}`),
-          fromToInclusive(1, 5).map(valueI)
-        )
-      ]),
-
-      _it('duplicates cells with ctrl r', [
-        _forM_(fromToInclusive(1, 5),
-          (i) => python(`${numToAlpha(i - 1)}1`, `${i}`)
-        ),
-        python('A2', 'A1 + 1'),
-        selectRange('A2:E2'),
-        waitForResponse(
-          keyPress('Ctrl+R')
-        ),
-        shouldBeL(
-          fromToInclusive(1, 5).map((i) => `${numToAlpha(i - 1)}2`),
-          fromToInclusive(2, 6).map(valueI)
-        )
-      ])
-    ]})
-  ]
-});
+    ]
+  });
+};
 
 export function install(w, ep) {
   evalPane = ep;
-  w.test = () => { tests(); };
+  w.test = () => { tests()(); };
   w.onerror = (msg, url, lineNumber) => {
     addError(msg);
     return true;
