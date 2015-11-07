@@ -70,6 +70,10 @@ function hypergrid() {
   return spreadsheet()._getHypergrid();
 }
 
+function cellProvider() {
+  return spreadsheet()._getBehavior().getCellProvider();
+}
+
 function textbox() {
   return $($('div#textbox.ace_editor.ace-tm>textarea')[0]);
 }
@@ -92,6 +96,16 @@ function viewingWindow() {
 
 function currentExpression() {
   return ASExpStore.getExpression();
+}
+
+function cellConfig(excelCell) {
+  let {col, row} = Util.excelToIndex(excelCell);
+  let [x, y] = [col - 1, row - 1];
+  let config = { x: x, y: y };
+  let provider = cellProvider();
+  let {config: modifiedConfig} = provider.getCell(config);
+
+  return modifiedConfig;
 }
 
 function fireKeyEventAtHypergrid(event) {
@@ -301,6 +315,18 @@ function viewingWindowShouldBeAtRow(num) {
   return viewingWindowShouldSatisfy(({br: {row: bottomRow}}) => {
     return (bottomRow - 5 <= num) && (bottomRow + 5 >= num);
   });
+}
+
+function cellConfigShouldSatisfy(excelCell, fn) {
+  return exec(() => {
+    expect(cellConfig(excelCell).toSatisfy(fn));
+  });
+}
+
+function cellShouldBeUncolored(excelCell) {
+  return cellConfigShouldSatisfy(excelCell,
+    ({bgColor}) => bgColor === undefined
+  );
 }
 
 function waitForResponse(act) {
@@ -516,14 +542,24 @@ let tests = __describe('keyboard tests', {
       ]),
 
       _describe('regressions', { tests: [
-        _it('undoes range(10) cleanly', [
-          python('A1', 'range(10)'),
-          waitForResponse(
-            keyPress('Ctrl+Z')
-          ),
-          selectRange('A5'),
-          currentExpressionShouldBe('')
-        ])
+        _describe('undoes range(10)', { tests: [
+          _it('deletes the expression', [
+            python('A1', 'range(10)'),
+            waitForResponse(
+              keyPress('Ctrl+Z')
+            ),
+            selectRange('A5'),
+            currentExpressionShouldBe('')
+          ]),
+
+          _it('deletes the list cell from the renderer', { tests: [
+            python('A1', 'range(10)'),
+            waitForResponse(
+              keyPress('Ctrl+Z')
+            ),
+            cellShouldBeUncolored('A5')
+          ]})
+        ]})
       ]})
     ]}),
 
