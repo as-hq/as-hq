@@ -21,6 +21,9 @@ import matplotlib._pylab_helpers
 def arr(lst):
 	return ASIterable(lst)
 
+def hide(lst): 
+	return ASIterable(lst).hide()
+
 def uniqueId():
 	lstFiles = os.listdir(imagesPath)
 	pythonImageFiles = filter(lambda s: s.startswith(imagePrefix),lstFiles)
