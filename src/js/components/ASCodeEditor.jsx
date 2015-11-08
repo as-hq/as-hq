@@ -2,9 +2,9 @@ import React from 'react';
 import AceEditor from './AceEditor.jsx';
 import ActionCreator from '../actions/ASCodeEditorActionCreators';
 import Constants from '../Constants';
-import Environment from '../Environment';
 
 import {AppBar, Toolbar, ToolbarGroup, FlatButton, TextField, DropDownMenu, Styles} from 'material-ui';
+import FileInput from './FileInput.jsx';
 
 require('brace/mode/python');
 require('brace/mode/r');
@@ -63,6 +63,15 @@ export default React.createClass({
 
   render() {
     let {language, theme, value, width, height} = this.props;
+    // TODO: make this CSS better/put the import in the right place; this is just a skeleton
+    let fileInputStyle = {
+          position:'relative',
+          left:'1200px',
+          top:'-55px',
+          width:'120px',
+          height:'35px'
+        };
+
 
     return (
       <div>
@@ -108,7 +117,7 @@ export default React.createClass({
                 left: '60px',
                 top: '-13px'
               }} />
-            {Environment.isProduction ? null : <FlatButton
+            {Constants.isProduction ? null : <FlatButton
               label="TEST ALPHASHEETS"
               onClick={this._onTest}
               style={{
@@ -116,6 +125,7 @@ export default React.createClass({
                 left: '150px',
                 top: '-13px'
               }} />}
+            <FileInput style={fileInputStyle} />
             </Toolbar>
         <AceEditor
           ref="editor"
