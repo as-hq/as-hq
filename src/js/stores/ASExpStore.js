@@ -72,6 +72,7 @@ const ASExpStore = assign({}, BaseStore, {
       // Also need to update after some "Eval"-type events
       case Constants.ActionTypes.GOT_UNDO:
       case Constants.ActionTypes.GOT_REDO:
+      case Constants.ActionTypes.DELETED_LOCS:
       case Constants.ActionTypes.GOT_UPDATED_CELLS:
         Dispatcher.waitFor([Store.dispatcherIndex]);
         let sel = Store.getActiveSelection(),

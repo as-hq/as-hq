@@ -19,7 +19,7 @@ export default React.createClass({
     ThemeManager.setTheme(ThemeManager.types.DARK);
     let sheetId, userId;
 
-    if (Environment.isTesting || Environment.promptUser) {
+    if (Environment.isProduction || Environment.promptUser) {
       sheetId = window.prompt("Enter the name of your sheet. Your data on this sheet will persist -- you can access it again by entering the same sheet name on this prompt when you reload AlphaSheets. \n\nNOTE: Anyone can access your sheet by typing in its name.", "INIT_SHEET_ID");
       userId = window.prompt("Enter your username.","TEST_USER_ID");
     } else { 
