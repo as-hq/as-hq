@@ -81,7 +81,7 @@ export default {
     Excel: {
       Display: 'Excel',
       Server: 'Excel',
-      Editor: 'python'
+      Editor: ''
     },
     Python: {
       Display: 'Python',
