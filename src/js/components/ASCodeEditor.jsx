@@ -5,6 +5,7 @@ import Constants from '../Constants';
 import Environment from '../Environment';
 
 import {AppBar, Toolbar, ToolbarGroup, FlatButton, TextField, DropDownMenu, Styles} from 'material-ui';
+import FileInput from './FileInput.jsx';
 
 require('brace/mode/python');
 require('brace/mode/r');
@@ -63,6 +64,14 @@ export default React.createClass({
 
   render() {
     let {language, theme, value, width, height} = this.props;
+    let fileInputStyle = {
+          position:'relative',
+          left:'1200px',
+          top:'-55px',
+          width:'120px',
+          height:'35px'
+        };
+
 
     return (
       <div>
@@ -116,6 +125,7 @@ export default React.createClass({
                 left: '150px',
                 top: '-13px'
               }} />}
+            <FileInput style={fileInputStyle} />
             </Toolbar>
         <AceEditor
           ref="editor"
