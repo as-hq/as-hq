@@ -634,8 +634,8 @@ quotedString = (quoteString <|> apostropheString)
     apostrophe       = char '\'' -- TODO apostrophes also
     escaped          = char '\\' >> choice (zipWith escapedChar codes replacements)
     escapedChar code replacement = char code >> return replacement
-    codes            = ['b',  'n',  'f',  'r',  't',  '\\', '\"', '/']
-    replacements     = ['\b', '\n', '\f', '\r', '\t', '\\', '\"', '/']
+    codes            = ['b',  'n',  'f',  'r',  't',  '\\', '\'', '\"', '/']
+    replacements     = ['\b', '\n', '\f', '\r', '\t', '\\', '\'', '\"', '/']
 
 -- | Because Haskell's float lexer doesn't parse negative floats out of the box. <__<
 float' :: P.TokenParser () -> Parser Double
