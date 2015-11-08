@@ -70,13 +70,14 @@ execOnString str f = do
     trimmed -> f trimmed
 
 -- takes (isGlobalExecution, str)
+-- change wd and then change back so that things like read.table will read from the static folder
 execR :: Bool -> EvalCode -> IO ASValue
 execR isGlobal s =
   let whenCaught = (\e -> return $ ValueError (show e) "R_EXEC_ERROR" "" 0) :: (SomeException -> IO ASValue)
   in do
     result <- catch (R.runRegion $ castR =<< if isGlobal
       then [r| eval(parse(text=s_hs)) |]
-      else [r| AS_LOCAL_ENV<-function(){eval(parse(text=s_hs))}; AS_LOCAL_EXEC<-AS_LOCAL_ENV(); AS_LOCAL_EXEC |]) whenCaught
+      else [r| AS_LOCAL_ENV<-function(){setwd(paste(getwd(),"/static",sep="")); result = eval(parse(text=s_hs)); setwd("../"); result}; AS_LOCAL_EXEC<-AS_LOCAL_ENV(); AS_LOCAL_EXEC |]) whenCaught
     return result
 
 -- @anand faster unboxing, but I can't figure out how to restrict x to (IsVector x)

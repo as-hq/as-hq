@@ -1,4 +1,5 @@
 import os
+curWd = os.getcwd()
 replFile =  os.getcwd() + "/eval_files/py/repl_record.py"
 imagesPath = os.getcwd() + "/static/images/"
 imagePrefix = "pythonImage"
@@ -39,7 +40,9 @@ result = "error"
 # a workaround would be to check the type of result before setting it to ValueImage.
 try:
 	execfile(replFile)
-	result = 4
+	os.chdir(os.getcwd()+"/static")
+	result = 1
+	os.chdir('..')
 	figures=[manager.canvas.figure for manager in matplotlib._pylab_helpers.Gcf.get_all_fig_managers()]
 	if len(figures) > 0:
 		uid = uniqueId()
@@ -48,6 +51,7 @@ try:
 		matplotlib._pylab_helpers.Gcf.destroy_all()
 		result = {"imagePath":uid}
 except Exception as e:
+	os.chdir(curWd)
 	exc_type, exc_obj, exc_tb = exc_info()
 	fname = 'AlphaSheets Python evaluator'
 	err = repr(e).replace("\'","").replace("'",'"')
