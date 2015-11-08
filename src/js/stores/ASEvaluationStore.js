@@ -52,6 +52,8 @@ const ASEvaluationStore = assign({}, BaseStore, {
 
   /* This function describes the actions of the ASEvaluationStore upon recieving a message from Dispatcher */
   dispatcherIndex: Dispatcher.register(function (action) {
+    logDebug('Store received action', action);
+
       switch (action.type) {
         case Constants.ActionTypes.FIND_INCREMENTED:
           break;
@@ -157,11 +159,11 @@ const ASEvaluationStore = assign({}, BaseStore, {
           ASEvaluationStore.emitChange();
           break;
         case Constants.ActionTypes.DELETED_LOCS:
-          let sheetId = action.deletedRange.sheetId, 
+          let sheetId = action.deletedRange.sheetId,
               locs = TC.rangeToASIndices(action.deletedRange.range);
 
           ASEvaluationStore.removeIndices(locs);
-          ASEvaluationStore.updateCells(action.updatedCells); 
+          ASEvaluationStore.updateCells(action.updatedCells);
           ASEvaluationStore.emitChange();
           break;
         case Constants.ActionTypes.GOT_FAILURE:
@@ -269,7 +271,7 @@ const ASEvaluationStore = assign({}, BaseStore, {
   resetLastUpdatedCells() {
     _data.lastUpdatedCells = [];
   },
-  // Currently an inconsistency between backend and frontend, where frontend only lets you 
+  // Currently an inconsistency between backend and frontend, where frontend only lets you
   // toggle one tag at once programmatically, whereas backend takes in a list of tags, and for now
   // is only getting passed tag lists of size 1. (Alex 11/7)
   toggleTag(tag, rng) {
@@ -278,21 +280,21 @@ const ASEvaluationStore = assign({}, BaseStore, {
   },
 
   // now handled entirely by backend
-  // toggleTagAtLoc(tag, loc) { 
-  //   let {col, row} = loc; 
+  // toggleTagAtLoc(tag, loc) {
+  //   let {col, row} = loc;
   //   let sheetId = _data.currentSheet.sheetId;
   //   if (this.locationExists(col, row, sheetId)) {
-  //     let ct = _data.allCells[sheetId][col][row].cellTags; 
-  //     let ind = -1; 
+  //     let ct = _data.allCells[sheetId][col][row].cellTags;
+  //     let ind = -1;
 
-  //     for (let i = 0; i < ct.length; i++) { 
+  //     for (let i = 0; i < ct.length; i++) {
   //       if (ct[i].tag == tag.tag) {
-  //         ind = i; 
+  //         ind = i;
   //       }
   //     }
 
   //     // if not included, add it; if included, remove it
-  //     (ind == -1) ? (ct.push(tag)) : (ct.splice(ind, 1)); 
+  //     (ind == -1) ? (ct.push(tag)) : (ct.splice(ind, 1));
   //   }
   // },
 

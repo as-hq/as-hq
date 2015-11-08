@@ -115,7 +115,7 @@ wss.onmessage = function (event) {
         if (msg.payload.tag === "PayloadS") {
           Dispatcher.dispatch({
             type: ActionTypes.CLEARED_SHEET,
-            sheetId: msg.payload.sheetId
+            sheetId: msg.payload.contents.sheetId
           });
         } else {
           Dispatcher.dispatch({

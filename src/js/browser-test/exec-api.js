@@ -90,7 +90,7 @@ export function syncWindow() {
 
 export function clear() {
   return apiExec(() => {
-    API.clear();
+    API.clearSheet();
   });
 }
 
