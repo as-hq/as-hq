@@ -92,6 +92,10 @@ module.exports = React.createClass({
     ExpStore.removeChangeListener(this._onExpressionChange);
   },
 
+  componentWillReceiveProps(nextProps) {
+    onPropsSet(this.editor, nextProps);
+  },
+
   /*************************************************************************************************************************/
   // Helpers
 
