@@ -23,9 +23,11 @@ convertEither c (Right entity) = return $ entityToASValue c entity
 
 -- | After successful Excel eval returning an entity, convert to ASValue
 -- | NOTE: ASValue's ValueL is column-major
+-- Excel index refs are treated as 1x1 matrices, but don't treat them as lists below
 entityToASValue :: Context -> EEntity -> ASValue
 entityToASValue c (EntityRef r) = case (L.refToEntity c r) of
   Left e -> ValueExcelError e
+  Right (EntityMatrix (EMatrix 1 1 v)) -> entityToASValue c $ EntityVal $ V.head v
   Right entity -> entityToASValue c entity
 entityToASValue _ (EntityVal EBlank) = NoValue
 entityToASValue _ (EntityVal EMissing) = NoValue

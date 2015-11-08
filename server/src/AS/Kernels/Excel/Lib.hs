@@ -189,8 +189,11 @@ functions =  M.fromList $
     ("median"         , vectorD eMedian),
     ("mode.mult"      , vectorAFD [1] eModeMult),
     ("mode.sngl"      , vectorAFD [1] eModeSngl),
+    --  Excel has multiple versions of functions for compatibility
     ("norm.dist"      , normalD 4 eNormDist),
+    ("normdist"      , normalD 4 eNormDist),
     ("norm.inv"       , normalD 4 eNormInv),
+    ("norminv"       , normalD 4 eNormInv),
     ("pearson"        , vector2 ePearson),
       -- | 2nd argument is a range, only map and scalarize over the first (for rank)
     ("rank.eq"        , normalD' 3 [1,3] eRankEq),
