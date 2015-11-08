@@ -275,10 +275,9 @@ export default {
     }
   },
 
-  parseIntoShortcut(s, str) {
-    // NOTE
-    // assumes fornat: modifier + modifer + .. + key/key/key/key..
-    let tokens = str.split("+"),
+  // assumes fornat: modifier + modifer + .. + key/key/key/key..
+  parseKeysIntoShortcut(s, keyStr) {
+    let tokens = keyStr.split("+"),
         options = tokens[tokens.length-1].split("/");
     if (options.length == 1)
       s.keyCode = this.stringToKey(options[0]);
@@ -294,5 +293,13 @@ export default {
     if (s.optionKeys){
       return this.keyToWildcard(e);
     } else return null;
+  },
+
+  // assumes spec format: set,option,option,...
+  parseShortcutConfig(configStr) {
+    let tokens = configStr.split(","),
+        shortcut = {set: tokens[0], config: {}};
+    for (let i=1; i<tokens.length; i++) { shortcut.config[tokens[i]] = true; }
+    return shortcut;
   }
 };

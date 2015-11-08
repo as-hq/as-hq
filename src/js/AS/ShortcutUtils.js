@@ -3,6 +3,7 @@ import {logDebug} from './Logger';
 import Util from './Util';
 import Constants from '../Constants';
 import KeyUtils from './KeyUtils';
+import ExpStore from '../stores/ASExpStore';
 
 // example raw shortcut
 
@@ -25,17 +26,23 @@ let _S = {
   'textbox':[]
 };
 
+// are all functions so that checks can be lazy evaluated
+let contextChecks = {
+  'notTyping': () => { return !ExpStore.getUserIsTyping(); }
+};
+
 export default {
 
-  add(set, name, keyStr, callback) {
+  add(config, name, keyStr, callback) {
     var self = this;
     if (keyStr.constructor === Array)
-      keyStr.map((k) => self.add(set, name, k, callback));
+      keyStr.map((k) => self.add(config, name, k, callback));
     else {
-      let s = {name: name};
-      s = KeyUtils.parseIntoShortcut(s, keyStr);
+      let s = KeyUtils.parseShortcutConfig(config);
+      s = KeyUtils.parseKeysIntoShortcut(s, keyStr);
+      s.name = name;
       s.callback = callback;
-      _S[set].push(s);
+      _S[s.set].push(s);
     }
   },
 
@@ -47,12 +54,28 @@ export default {
     } else return false;
   },
 
+  // check that we can execute the shortcut in the current context
+  checkContext(s) {
+    let checksMatch = true;
+    Object.getOwnPropertyNames(contextChecks).forEach((check) => {
+      if (s.config && s.config.hasOwnProperty(check)) {
+        if (contextChecks[check]()) { return; }
+        else { checksMatch = false; return; }
+      } else return;
+    });
+    return checksMatch;
+  },
+
   tryShortcut(e, set) {
     let ss = _S[set]; // shortcut set to try
     for (var key in ss) {
       if (this.shortcutMatches(ss[key], e)){
-        logDebug("shortcut matched!", JSON.stringify(ss[key]));
-        ss[key].callback(KeyUtils.getWildcard(e, ss[key]));
+        if (this.checkContext(ss[key])) {
+          logDebug("shortcut matched and will be exec: ", JSON.stringify(ss[key]));
+          ss[key].callback(KeyUtils.getWildcard(e, ss[key]));
+        } else {
+          logDebug("shortcut matched but context prevented exec: ", JSON.stringify(ss[key]));
+        }
         return true;
       }
     }

@@ -140,7 +140,7 @@ function generateSyntheticBaseEvent() {
 }
 
 function generateSyntheticKeyEvent(key) {
-  let {keyCode, ...keyEvent} = KeyUtils.parseIntoShortcut({}, key);
+  let {keyCode, ...keyEvent} = KeyUtils.parseKeysIntoShortcut({}, key);
   let patchedKeyEvent = {
     ctrlKey: false,
     shiftKey: false,

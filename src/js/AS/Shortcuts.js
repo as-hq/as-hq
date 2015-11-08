@@ -99,17 +99,17 @@ export default {
       // TODO other wildcards
       if (wildcard === '$') tag = {tag: "Money", contents: []};
       else if (wildcard === '%') tag = {tag: "Percentage", contents: []};
-      API.toggleTag(tag, Store.getActiveSelection().range); 
+      API.toggleTag(tag, Store.getActiveSelection().range);
       self.refs.spreadsheet.repaint();
     });
     SU.add("common", "bold", "Ctrl+B", (wildcard) => {
       let tag = {tag: "Bold", contents: []};
-      API.toggleTag(tag, Store.getActiveSelection().range); 
+      API.toggleTag(tag, Store.getActiveSelection().range);
       self.refs.spreadsheet.repaint();
     });
     SU.add("common", "italic", "Ctrl+I", (wildcard) => {
       let tag = {tag: "Italic", contents: []};
-      API.toggleTag(tag, Store.getActiveSelection().range); 
+      API.toggleTag(tag, Store.getActiveSelection().range);
       self.refs.spreadsheet.repaint();
     });
     SU.add('common', 'toggle_repl', 'Alt+F11', (wildcard) => {
@@ -278,12 +278,12 @@ export default {
     SU.add('grid', 'chart', 'F11', (wildcard) => {
       // TODO
     });
-    SU.add('grid', 'select_row', 'Shift+Space', (wildcard) => {
+    SU.add('grid,notTyping', 'select_row', 'Shift+Space', (wildcard) => {
       let {origin} = Store.getActiveSelection();
       self.refs.spreadsheet.select({range: {tl: {row: origin.row, col: 1}, br: {row: origin.row, col: Infinity}},
                                     origin: origin}, false);
     });
-    SU.add('grid', 'select_col', 'Ctrl+Space', (wildcard) => {
+    SU.add('grid,notTyping', 'select_col', 'Ctrl+Space', (wildcard) => {
       let {origin} = Store.getActiveSelection();
       self.refs.spreadsheet.select({range: {tl: {row: 1, col: origin.col}, br: {row: Infinity, col: origin.col}},
                                     origin: origin}, false);
@@ -317,7 +317,6 @@ export default {
     });
 
     SU.add('grid', 'grid_enter', 'Enter', (wildcard) => {
-      logDebug('MATCHED GRID  ENTER');
       let xpObj = {
         expression: self._getRawEditor().getValue(),
         language: self.state.currentLanguage
