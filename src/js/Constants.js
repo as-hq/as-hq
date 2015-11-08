@@ -1,15 +1,21 @@
 
 import keyMirror from 'keymirror';
+import Environment from './Environment';
 
 export const HOST_BASE_URL = 'localhost';
 export const HOST_WS_PORT = 5000;
 export const HOST_IP = '18.102.225.27';
 
-export default {
+export default Object.assign({
   HOST_WS_URL: 'ws://' + HOST_BASE_URL + ':' + HOST_WS_PORT,
   HOST_STATIC_URL: 'http://' + HOST_BASE_URL + ':8000',
 
   isDebug: false,
+
+  // server config parameters
+  isProduction: true,
+  isRemote: true,
+  promptUser: false,
 
   // event name triggered from store, listened to by views
   CHANGE_EVENT: 'change',
@@ -151,4 +157,4 @@ export default {
     CLICK: "CLICK"
   }
 
-};
+}, Environment);
