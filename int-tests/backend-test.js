@@ -418,7 +418,7 @@ describe('backend', () => {
 
             it('fails over a 3D list', (done) => {
               _do([
-                python('A1', 'arr([[[1]]]])'),
+                python('A1', 'arr([[[[1]]]])'),
                 shouldBeError('A1'),
                 exec(done)
               ]);
@@ -606,8 +606,7 @@ describe('backend', () => {
                 exec(done)
             ]);
         });
-        // This test will fail until blank cells  = 0.
-        xit ('SUM', (done) => {
+        it ('SUM', (done) => {
           _do([
             excel('A1', '-5'),
             excel('A2', '15'),
@@ -616,12 +615,13 @@ describe('backend', () => {
             excel('A5', 'TRUE'),
             excel('B1', '=SUM(A1,A2)'),
             excel('B2', '=SUM(A2:A4,15)'),
+            excel('B2', '=SUM(A2:A5,15)'),
             excel('B3', '=SUM("5", 15, TRUE)'),
             excel('B4', '=SUM(A5,A6, 2)'),
             shouldBe('B1', valueI(10)),
             shouldBe('B2', valueI(55)),
-            shouldbe('B3', valueI(21)),
-            shouldbe('B4', valueI(2)),
+            shouldBe('B3', valueI(21)),
+            shouldBe('B4', valueI(2)),
             exec(done)
           ]);
         });
@@ -685,6 +685,21 @@ describe('backend', () => {
             python('A1', 'range(10)'),
             excel('B1', '=A1+A2'),
             shouldBe('B1', valueI(1)),
+            exec(done)
+          ]);
+        });
+
+        it ('should treat blanks as zeroes for arithmetic operations', (done) => {
+          _do([
+            python('A1', '5'),
+            excel('B1', '=A2+A3'),
+            shouldBe('B1', valueI(0)),
+
+            excel('B2', '=A1+A3'),
+            shouldBe('B2', valueI(5)), 
+
+            excel('B3', '=A1*A2'), 
+            shouldBe('B3', valueI(0)),
             exec(done)
           ]);
         });
@@ -861,7 +876,7 @@ describe('backend', () => {
             shouldBe('A1', valueD(0.25)),
             exec(done)
           ]);
-        })
+        });
       });
 
       describe('ocaml', () => {
