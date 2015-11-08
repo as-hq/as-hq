@@ -1,4 +1,4 @@
 export default {
-  isTesting: true, 
-  promptUser: true
+ isTesting: false,
+ promptUser: false, 
 };

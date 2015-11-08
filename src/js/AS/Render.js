@@ -226,13 +226,15 @@ export default {
         fixedColCount = grid.getFixedColumnCount(),
         fixedRowCount = grid.getFixedRowCount(),
         scrollX = grid.getHScrollValue(),
-        scrollY = grid.getVScrollValue();
+        scrollY = grid.getVScrollValue(),
+        lastVisibleColumn = this.getVisibleColumns().slice(-1)[0],
+        lastVisibleRow = this.getVisibleRows().slice(-1)[0];
 
     _renderParams.deps.forEach((dep) => {
-      let tlX = dep.tl.col + fixedColCount - 1,
-          tlY = dep.tl.row + fixedRowCount - 1,
-          brX = dep.br.col + fixedColCount - 1,
-          brY = dep.br.row + fixedRowCount - 1,
+      let tlX = dep.tl.col - 1 + fixedColCount,
+          tlY = dep.tl.row - 1 + fixedRowCount,
+          brX = Math.min(dep.br.col - 1, lastVisibleColumn) + fixedColCount,
+          brY = Math.min(dep.br.row - 1, lastVisibleRow) + fixedRowCount,
           tl = this._getBoundsOfCell(tlX - scrollX, tlY - scrollY),
           br = this._getBoundsOfCell(brX - scrollX, brY - scrollY),
           oX = tl.origin.x,
