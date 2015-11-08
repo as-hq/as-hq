@@ -63,6 +63,7 @@ export default React.createClass({
 
   render() {
     let {language, theme, value, width, height} = this.props;
+    // TODO: make this CSS better/put the import in the right place; this is just a skeleton
     let fileInputStyle = {
           position:'relative',
           left:'1200px',

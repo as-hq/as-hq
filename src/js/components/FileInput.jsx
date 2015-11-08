@@ -1,5 +1,7 @@
 import React from 'react';
 import Constants from '../Constants';
+import {HOST_IP, HOST_BASE_URL} from '../Constants';
+
 import Store from '../stores/ASFindStore';
 let Dropzone = require('react-dropzone');
 import {FlatButton,Styles} from 'material-ui';
@@ -12,10 +14,18 @@ export default React.createClass({
   	style: React.PropTypes.object.isRequired
   },
 
+  getStaticUrl(){
+    if (Constants.isRemote){
+      return 'http://' + HOST_IP + ':9000';
+    } else {
+      return 'http://' + HOST_BASE_URL + ':9000';
+    }
+  },
+
   _onDrop(files){
     console.log('Received files: ', files);
     let req = request
-      .post(Constants.HOST_STATIC_URL_FOR_FILES);
+      .post(this.getStaticUrl());
     files.forEach((file) => {
       req.attach(file.name, file);
     });

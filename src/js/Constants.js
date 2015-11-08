@@ -9,8 +9,6 @@ export const HOST_IP = '18.102.225.27';
 export default Object.assign({
   HOST_WS_URL: 'ws://' + HOST_BASE_URL + ':' + HOST_WS_PORT,
   HOST_STATIC_URL: 'http://' + HOST_BASE_URL + ':8000',
-  
-  HOST_STATIC_URL_FOR_FILES: 'http://' + HOST_BASE_URL + ':9000',
  
   isDebug: false,
 
