@@ -55,7 +55,8 @@ export default {
       //we must set this in order to compute the minimum width
       //for column autosizing purposes
       // this.config.minWidth = textWidth + (2 * colHEdgeOffset);
-      this.config.minWidth = _renderParams.cellWidth;
+      this.config.minWidth = 0;
+      // TODO: this.config.minWidth = _renderParams.cellWidth;
 
       if (halign === 'right') {
           //textWidth = this.config.getTextWidth(gc, this.config.value);

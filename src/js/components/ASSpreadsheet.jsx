@@ -92,6 +92,12 @@ export default React.createClass({
         var value = callbacks[key];
         hg.addFinEventListener(key, value);
       }
+
+      hg.addGlobalProperties({
+        defaultFixedColumnWidth: 35,
+        defaultColumnWidth: 100,
+        columnAutosizing: false
+      });
     });
   },
 
