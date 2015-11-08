@@ -2,7 +2,6 @@ import React from 'react';
 import AceEditor from './AceEditor.jsx';
 import ActionCreator from '../actions/ASCodeEditorActionCreators';
 import Constants from '../Constants';
-import Environment from '../Environment';
 
 import {AppBar, Toolbar, ToolbarGroup, FlatButton, TextField, DropDownMenu, Styles} from 'material-ui';
 
@@ -108,7 +107,7 @@ export default React.createClass({
                 left: '60px',
                 top: '-13px'
               }} />
-            {Environment.isProduction ? null : <FlatButton
+            {Constants.isProduction ? null : <FlatButton
               label="TEST ALPHASHEETS"
               onClick={this._onTest}
               style={{
