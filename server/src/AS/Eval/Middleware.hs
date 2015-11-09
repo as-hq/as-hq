@@ -7,6 +7,7 @@ import Database.Redis (Connection)
 import AS.Types.Core
 import AS.Eval.Core as R
 import AS.Util as U
+import AS.DB.API as DB
 
 {-
     Middlewares take a message (cells, etc) pushed to server, and process them before handing them off (to eval, etc)
@@ -14,8 +15,16 @@ import AS.Util as U
 -}
 
 -- | This is middleware for evaluation; we take a cell recieved with the "Evaluate" action tag and preprocess it
+-- Add tags 
 evalMiddleware :: [ASCell] -> IO [ASCell]
-evalMiddleware = return
+evalMiddleware = addBackTags
+
+addBackTags :: [ASCell] -> IO [ASCell]
+addBackTags cells = do 
+  mOldCells <- DB.getCells (map cellLocation cells)
+  return $ (flip map) (zip cells mOldCells) $ \(c, mc) -> case mc of 
+    Nothing -> c
+    Just c' -> c { cellTags = (cellTags c) `union` (cellTags c') }
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Middlewares
