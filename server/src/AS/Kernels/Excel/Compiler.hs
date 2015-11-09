@@ -24,6 +24,12 @@ eitherLiteralFormula :: Parser ContextualFormula
 eitherLiteralFormula =
       (try formula)
   <|> (SimpleFormula <$> try literal)
+  <|> (SimpleFormula <$> emptyExpr)
+
+emptyExpr :: Parser Formula
+emptyExpr = do 
+  eof
+  return $ Basic . Var $ EBlank 
 
 literal :: Parser Formula
 literal = do
