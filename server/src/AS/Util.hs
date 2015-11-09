@@ -214,8 +214,10 @@ makeUpdateWindowMessage cells = changeMessageAction UpdateWindow $ makeUpdateMes
 makeDeleteMessage :: ASRange -> ASServerMessage -> ASServerMessage
 makeDeleteMessage _ s@(ServerMessage _ (Failure _) _) = s
 makeDeleteMessage deleteLocs s@(ServerMessage _ _ (PayloadCL cells)) = ServerMessage Delete Success payload
-  where nonEmptyCells = filter (not . isEmptyCell) cells
-        payload = PayloadDelete deleteLocs nonEmptyCells
+  where locsCells = zip (map cellLocation cells) cells
+        cells'    = map snd $ filter (\(l, _) -> not $ rangeContainsIndex deleteLocs l) locsCells
+        payload   = PayloadDelete deleteLocs cells'
+        -- remove the sels from the update that we know are blank from the deleted locs
 
 changeMessageAction :: ASAction -> ASServerMessage -> ASServerMessage
 changeMessageAction a (ServerMessage _ r p) = ServerMessage a r p
@@ -473,6 +475,9 @@ rangeToIndices (Range sheet (ul, lr)) = [Index sheet (x,y) | x <- [startx..endx]
     endx = max (fst ul) (fst lr)
     starty = min (snd ul) (snd lr)
     endy = max (snd ul) (snd lr)
+
+rangeContainsIndex :: ASRange -> ASIndex -> Bool
+rangeContainsIndex (Range sid1 ((x1,y1),(x2,y2))) (Index sid2 (x,y)) = and [ sid1 == sid2, x >= x1, x <= x2, y >= y1, y <= y2 ]
 
 orientRange :: ASRange -> ASRange
 orientRange (Range sid (tl, br)) = Range sid (tl',br')

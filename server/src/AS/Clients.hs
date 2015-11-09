@@ -105,19 +105,27 @@ instance Client ASDaemonClient where
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Sending message to user client(s)
 
-broadcast :: ASSheetId -> MVar ServerState -> ASServerMessage -> IO ()
-broadcast sid state message = do
+broadcast :: MVar ServerState -> ASServerMessage -> IO ()
+broadcast state message = do
   (State ucs _ _ _) <- readMVar state
-  let ucsOnSheet = filter (\uc -> clientSheetId uc == sid) ucs
-  forM_ ucsOnSheet $ \(UserClient _ conn _ _) -> U.sendMessage message conn
+  let ucsSheetIds = zip ucs (map clientSheetId ucs)
+      affectedUsers = map fst $ filter (\(_, sid) ->  sid `elem` sheetsInPayload (serverPayload message)) ucsSheetIds
+  forM_ affectedUsers $ \(UserClient _ conn _ _) -> U.sendMessage message conn
+
+-- | Returns all the sheets referenced in a payload. Currently no support for PayloadWorkbookSheets
+-- and PayloadWB, because those payloads suck. 
+sheetsInPayload :: ASPayload -> [ASSheetId]
+sheetsInPayload (PayloadDelete rng cells) = (rangeSheetId rng):(map (locSheetId . cellLocation) cells)
+sheetsInPayload (PayloadS (Sheet sid _ _)) = [sid]
+sheetsInPayload (PayloadCommit (ASCommit bf af _)) = (map (locSheetId . cellLocation) bf) ++ (map (locSheetId . cellLocation) af)
 
 -- | Figures out whom to send the message back to, based on the payload, and broadcasts the message
 -- to all the relevant recipients. 
 reply :: (Client c) => c -> MVar ServerState -> ASServerMessage -> IO ()
 reply cl state msg@(ServerMessage _ (Failure e) _) = sendToOriginal cl msg
-reply cl state msg@(ServerMessage _ _ (PayloadCommit _)) = broadcast (clientSheetId cl) state msg 
-reply cl state msg@(ServerMessage Clear _ _) = broadcast (clientSheetId cl) state msg 
-reply cl state msg@(ServerMessage Delete _ _) = broadcast (clientSheetId cl) state msg  -- don't filter broadcast, since scrolling only updates non-blank cells. (See comment in handleUpdateWindow)
+reply _ state msg@(ServerMessage _ _ (PayloadCommit _)) = broadcast state msg 
+reply _ state msg@(ServerMessage Clear _ _) = broadcast state msg 
+reply _ state msg@(ServerMessage Delete _ _) = broadcast state msg  -- don't filter broadcast, since scrolling only updates non-blank cells. (See comment in handleUpdateWindow)
 reply _  state msg = liftIO $ do
   (State ucs _ _ _) <- readMVar state
   broadcastFiltered msg ucs
@@ -156,11 +164,11 @@ handleNew :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
 handleNew user state (PayloadWorkbookSheets (wbs:[])) = do
   conn <- dbConn <$> readMVar state
   wbs' <- DB.createWorkbookSheet conn wbs
-  broadcast (clientSheetId user) state $ ServerMessage New Success (PayloadWorkbookSheets [wbs'])
+  reply user state $ ServerMessage New Success (PayloadWorkbookSheets [wbs'])
 handleNew user state (PayloadWB wb) = do
   conn <- dbConn <$> readMVar state
   wb' <- DB.createWorkbook conn (workbookSheets wb)
-  broadcast (clientSheetId user) state $ ServerMessage New Success (PayloadWB wb')
+  reply user state $ ServerMessage New Success (PayloadWB wb')
   return () -- TODO determine whether users should be notified
 
 handleOpen :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
@@ -247,7 +255,7 @@ handleDelete :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
 handleDelete user state p@(PayloadWorkbookSheets (wbs:[])) = do
   conn <- dbConn <$> readMVar state
   DB.deleteWorkbookSheet conn wbs
-  broadcast (clientSheetId user) state $ ServerMessage Delete Success p
+  reply user state $ ServerMessage Delete Success p
   return ()
 handleDelete user state p@(PayloadWB workbook) = do
   conn <- dbConn <$> readMVar state
