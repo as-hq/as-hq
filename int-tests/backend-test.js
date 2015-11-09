@@ -265,34 +265,25 @@ describe('backend', () => {
               ]);
             });
 
-            it('should act like lists when horizontal', (done) => {
-              _do([
-                python('A1', '[range(10)]'),
-                python('A5', 'A1:D1[2]'),
-                shouldBe('A5', valueI(2)),
+            // No longer supported. (Alex 11/9)
+            // it('should act like lists when horizontal', (done) => {
+            //   _do([
+            //     python('A1', '[range(10)]'),
+            //     python('A5', 'A1:D1[2]'),
+            //     shouldBe('A5', valueI(2)),
 
-                exec(done)
-              ]);
-            });
+            //     exec(done)
+            //   ]);
+            // });
 
-            it('can be summed', (done) => {
-              _do([
-                python('A1', '[range(10)]'),
-                python('A2', 'sum(A1:J1)'),
-                shouldBe('A2', valueI(45)),
-
-                exec(done)
-              ]);
-            });
-
-            it('can be iterated over like a 1D list', (done) => {
-              _do([
-                python('A1', '[range(10)]'),
-                python('A2', '[x ** 2 for x in B1:D1]'), // expands to vertical list
-                shouldBe('A3', valueI(4)),
-                exec(done)
-              ]);
-            });
+            // it('can be iterated over like a 1D list', (done) => {
+            //   _do([
+            //     python('A1', '[range(10)]'),
+            //     python('A2', '[x ** 2 for x in B1:D1]'), // expands to vertical list
+            //     shouldBe('A3', valueI(4)),
+            //     exec(done)
+            //   ]);
+            // });
 
             it('initialized to strings works', (done) => {
               _do([
@@ -437,12 +428,21 @@ describe('backend', () => {
               ]);
             });
 
-            it('can be hidden and operated on while hidden', (done) => {
+            it('can be operated on while hidden', (done) => {
               _do([
                 python('A1', '5'), python('A2', '6'), python('A3', '7'), 
                 python('B1', 'A1:A3.hide()'),
                 python('C1', 'B1.reversed()'),
                 shouldBe('C1', valueI(7)),
+                exec(done)
+              ]);
+            });
+
+            it('preserves dimensions upon hiding and unhiding', (done) => {
+              _do([
+                python('A1', 'hide([[1,2]])'), 
+                python('A3', 'A1.unhide()'),
+                shouldBe('B3', valueI(2)),
                 exec(done)
               ]);
             });
@@ -476,15 +476,6 @@ describe('backend', () => {
               ]);
             });
 
-            it('can be sorted if horizontal', (done) => {
-              _do([
-                python('A1', '7'), python('B1', '5'), python('C1', '6'), 
-                python('A2', 'A1:C1.sorted()'),
-                shouldBe('B2', valueI(6)),
-                exec(done)
-              ]);
-            });
-
             it('can be reversed', (done) => {
               _do([
                 python('A1', '7'), python('A2', '5'), python('A3', '6'), 
@@ -503,20 +494,11 @@ describe('backend', () => {
               ]);
             });
 
-            it('can be reversed if horizontal', (done) => {
-              _do([
-                python('A1', '7'), python('B1', '5'), python('C1', '6'), 
-                python('A2', 'A1:C1.reversed()'),
-                shouldBe('C2', valueI(7)),
-                exec(done)
-              ]);
-            });
-
             it('can be sorted and reversed and transposed in succession', (done) => {
               _do([
-                python('A1', '7'), python('B1', '5'), python('C1', '6'), 
-                python('A2', 'A1:C1.sorted().reversed().transpose()'),
-                shouldBe('A4', valueI(5)),
+                python('A1', '7'), python('A2', '5'), python('A3', '6'), 
+                python('B1', 'A1:A3.sorted().reversed().transpose()'),
+                shouldBe('D1', valueI(5)),
                 exec(done)
               ]);
             });
