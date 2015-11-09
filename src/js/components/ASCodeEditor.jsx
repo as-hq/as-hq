@@ -62,6 +62,7 @@ export default React.createClass({
 
   render() {
     let {language, theme, value, width, height} = this.props;
+    let editor = language.Editor;
 
     return (
       <div>
@@ -119,7 +120,7 @@ export default React.createClass({
         <AceEditor
           ref="editor"
           handleEditorFocus={this.props.handleEditorFocus}
-          mode={language.Editor}
+          mode={editor}
           language={language}
           hideToast={this.props.hideToast}
           theme={theme}
