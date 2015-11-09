@@ -151,6 +151,7 @@ functions =  M.fromList $
     ("match"          , normalD' 3 [1,3] eMatch),
       -- | Don't scalarize; tranpose(arr) is error in normal mode
     ("transpose"      , FuncDescriptor [] [] [] [1] (Just 1) (transform eTranspose)),
+    ("vlookup"        , FuncDescriptor [1,3,4] [1,3,4] [] [1..argNumLimit] (Just 4) (transform eVlookup)),
 
     -- | Excel math and trig functions
     ("product"        , vectorD eProduct),
@@ -867,7 +868,6 @@ eIndirect c e = do
     Nothing -> Left $ REF "Indirect did not refer to valid reference as first argument"
     Just loc -> return $ EntityRef (ERef loc)
 
-
 justExcelMatch :: Parser ExRef
 justExcelMatch = do 
   m <- excelMatch
@@ -918,7 +918,6 @@ verifyInBounds l@(RangeRef (Range _ (a,b))) = if coordIsSafe a && coordIsSafe b
 
 coordIsSafe :: Coord -> Bool
 coordIsSafe (a,b) = a > 0 && b > 0
-
 
 -- | Depending on match type (-1,0,1; 0=equality), return the index (starting at 1) of the matrix
 -- | Allowed to use wildcards if val = string and type = 0, doesn't care about upper/lower case for strings,
@@ -983,13 +982,48 @@ indexOrSlice m@(EMatrix nCol nRow v) row col
       vertM = V.imap (\i a -> if (goodVertical i) then (Just a) else Nothing) v
       vertical = V.fromList $ catMaybes $ V.toList vertM
 
-
 -- | Transpose a matrix
 eTranspose :: EFunc
 eTranspose c e = do
   m <- getRequired "matrix" "transpose" 1 e :: ThrowsError EMatrix
   let mT = matrixTranspose m
   return $ EntityMatrix $ EMatrix (emRows m) (emCols m) (trace' "tranposed vec " (content mT))
+
+eVlookup :: EFunc
+eVlookup c e = do 
+  let f = "vlookup"
+  lookupVal <- getRequired "value" f 1 e :: ThrowsError EValue
+  m <- getRequired "matrix" f 2 e :: ThrowsError EMatrix
+  colNum <- getRequired "int" f 3 e :: ThrowsError Int
+  approx <- getOptional "bool" True f 4 e :: ThrowsError Bool
+  let lstCols = transpose $ matrixTo2DList m 
+  let len = length lstCols
+  if len < 1
+    then Left $ VAL "Matrix for VLOOKUP is too small"
+    else Right ()
+  if approx
+    then do 
+      -- Excel isn't very clear about this, I'm implementing it as the largest elem less than lookupVal
+      let sortedFirstCol = sort $ head lstCols
+      let i = findIndex (\elem -> elem >= lookupVal) sortedFirstCol -- first index >= lookupVal
+      case i of
+        Nothing -> Left $ NA $ "Cannot find lookup value for VLOOKUP"
+        Just 1  -> Left $ NA $ "Cannot find lookup value for VLOOKUP"
+        Just ind -> getElemFromCol m colNum (ind-1)
+    else do 
+      -- accept wildcards for an exact match
+      let mIndex = findIndex (getLambda lookupVal) (head lstCols)
+      case mIndex of
+        Nothing -> Left $ NA $ "Cannot find lookup value for VLOOKUP"
+        Just i  -> getElemFromCol m colNum i
+
+-- Vlookup helper; given a matrix, the column number (starting from 1), and index in that column (start from 0)
+-- return that element, or throw an error if out of bounds
+getElemFromCol :: EMatrix -> Int -> Int -> EResult
+getElemFromCol m@(EMatrix c _ _) colNum i
+  | c < colNum || colNum < 1 = Left $ REF "Requested column number for VLOOKUP is out of bounds"
+  | otherwise = valToResult $ matrixIndex (colNum-1,i) m
+    
 
 
 --------------------------------------------------------------------------------------------------------------
@@ -1535,6 +1569,8 @@ eSubstitute c e = do
 replaceBlanksWithZeroes :: [EEntity] -> [EEntity]
 replaceBlanksWithZeroes = map blankToZero
   where blankToZero (EntityVal EBlank) = EntityVal $ EValueNum $ EValueI 0
+        -- Without next line, A1 won't be changed to 0 if it's blank (it's treated as a 1x1 matrix)
+        blankToZero (EntityMatrix (EMatrix 1 1 v)) = blankToZero $ EntityVal $ V.head v
         blankToZero x = x
 
 numPrefix' :: String -> (ENumeric -> ENumeric) -> EFunc
