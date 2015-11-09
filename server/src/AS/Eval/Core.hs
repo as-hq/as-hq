@@ -93,5 +93,3 @@ execEvalInLang lang = case lang of
   R       -> KR.evaluate
   SQL     -> KP.evaluateSql
   OCaml   -> KO.evaluate
-
-

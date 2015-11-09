@@ -214,7 +214,7 @@ makeUpdateWindowMessage cells = changeMessageAction UpdateWindow $ makeUpdateMes
 makeDeleteMessage :: ASRange -> ASServerMessage -> ASServerMessage
 makeDeleteMessage _ s@(ServerMessage _ (Failure _) _) = s
 makeDeleteMessage deleteLocs s@(ServerMessage _ _ (PayloadCL cells)) = ServerMessage Delete Success payload
-  where nonEmptyCells = filter (\c -> (expression . cellExpression) c /= "") cells
+  where nonEmptyCells = filter (not . isEmptyCell) cells
         payload = PayloadDelete deleteLocs nonEmptyCells
 
 changeMessageAction :: ASAction -> ASServerMessage -> ASServerMessage

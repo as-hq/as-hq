@@ -52,14 +52,15 @@ runDispatchCycle state cs src = do
     roots          <- lift $ EM.evalMiddleware cs
     conn           <- lift $ fmap dbConn $ readMVar state
     rootsDepSets   <- DB.setCellsAncestors roots
-    printObjT "Set cell ancestors: " rootsDepSets
+    printObjT "Set cell ancestors" rootsDepSets
     evalLocs       <- getEvalLocs conn roots
-    printObjT "Got eval locations: " evalLocs
+    printObjT "Got eval locations" evalLocs
     cellsToEval    <- getCellsToEval conn evalLocs roots
-    printObjT "Got cells to evaluate: " cellsToEval
+    printObjT "Got cells to evaluate" cellsToEval
     ancLocs        <- G.getImmediateAncestors evalLocs
     printObjT "Got ancestor locs" ancLocs
     initValuesMap  <- lift $ getValuesMap (zip roots rootsDepSets) ancLocs
+    printObjT "Created initial values map" initValuesMap
     printWithTimeT "Starting eval chain"
     (afterCells, cellLists) <- evalChain conn initValuesMap cellsToEval src -- start with current cells, then go through descendants
     -- Apply endware

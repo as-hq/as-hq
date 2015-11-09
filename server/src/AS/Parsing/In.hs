@@ -122,12 +122,12 @@ jsonValue lang = extractValue <$> extractMap
       return (str, dictValue)
     extractMap      = M.fromList <$> (braces $ sepBy dictEntry (comma >> spaces))
 
+-- | 
 nullValue :: ASLanguage -> Parser ASValue
-nullValue lang = string nullStr >> return NoValue
-  where 
-    nullStr = case lang of 
-      Python -> "None"
-      R -> "NULL"
+nullValue lang = case lang of 
+  Python -> string "None" >> return NoValue
+  R      -> string "NULL" >> return NoValue
+  _      -> fail "No nullValue in this language"
 
 -- #needsrefactor should create general error parser later, which parses ocamlError as a special case. (Alex 10/10)
 ocamlError :: Parser ASValue
@@ -147,8 +147,8 @@ asValue lang =
   <|> try valueS
   <|> try (valueL lang)
   <|> try (jsonValue lang)
-  <|> try (nullValue lang)
   <|> try ocamlError
+  <|> try (nullValue lang)
   <|> return NoValue
 
 parseValue :: ASLanguage -> String -> Either ASExecError ASValue --needs to change to reflect ValueImage
