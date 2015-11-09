@@ -28,6 +28,8 @@ class ASIterable(object):
         if issubclass(type(arr), ASIterable): 
             if arr._isColumn():
                 arr = arr._getList()
+            elif arr._isRow():
+                arr = [arr._getList()]
             else: 
                 arr = arr.toList()
         if issubclass(type(arr), str):
@@ -69,7 +71,7 @@ class ASIterable(object):
             return [l[0] for l in self.arr]
         if self._isRow():
             return self.arr[0].tolist()
-        raise # ::ALEX::
+        raise "Tried to call _getList() when not 1D"
 
     def _setList(self, lst): 
         if self._isColumn():
@@ -78,7 +80,7 @@ class ASIterable(object):
         if self._isRow():
             self.arr = np.array([lst])
             return
-        raise # ::ALEX::
+        self.arr = np.array(lst)
 
     def _flattenedArrIfCol(self):
         if self._isColumn():
@@ -94,44 +96,44 @@ class ASIterable(object):
         self.insert(len(self), elem)
 
     def extend(self, L):
-        temp = self._getList()
+        temp = self.toList()
         temp.extend(L)
         self._setList(temp)
 
     def insert(self, idx, elem):
-        temp = self._getList()
+        temp = self.toList()
         temp.insert(idx, elem)
         self._setList(temp)
 
     def pop(self, i):
-        temp = self._getList()
+        temp = self.toList()
         item = temp.pop(i)
         self._setList(temp)
         return item
 
     def remove(self, x):
-        temp = self._getList()
+        temp = self.toList()
         item = temp.remove(x)
         self._setList(temp)
         return item 
 
     def reverse(self):
-        temp = self._getList()
+        temp = self.toList()
         temp.reverse()
         self._setList(temp)
 
     def sort(self, comp=None, key=None, reverse=False):
-        temp = self._getList()
+        temp = self.toList()
         temp.sort(comp, key, reverse)
         self._setList(temp)
 
     def count(self, x):
-        temp = self._getList()
+        temp = self.toList()
         c = temp.count(x)
         return c
 
     def index(self, x):
-        temp = self._getList()
+        temp = self.toList()
         ind = temp.index(x)
         return ind
 
@@ -139,10 +141,7 @@ class ASIterable(object):
     ### iteration
 
     def __getitem__(self, idx):
-        if self._is1D():
-            return self._getList()[idx]
-        else: 
-            return self.toList()[idx]
+        return self.toList()[idx]
 
     def get(self, idx):
         return self.__getitem__(idx)
@@ -170,7 +169,10 @@ class ASIterable(object):
         return self.arr
     
     def toList(self):
-        return self.arr.tolist()
+        if self._is1D():
+            return self._getList()
+        else: 
+            return self.arr.tolist()
 
     def len(self):
         return len(self)
