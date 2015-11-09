@@ -207,19 +207,21 @@ export default React.createClass({
   // Hypergrid update display
 
   /* Called by eval pane's onChange method, when eval pane receives a change event from the store */
-  updateCellValues(clientCells){
+  updateCellValues(clientCells) {
     let model = this._getBehavior();
-    for (var key in clientCells){ // update the hypergrid values
-      let c = clientCells[key],
+    // update the hypergrid values
+    clientCells.forEach((c) => {
+      let cellSheetId = c.cellLocation.sheetId,
           gridCol = c.cellLocation.index.col-1, // hypergrid starts indexing at 0
           gridRow = c.cellLocation.index.row-1, // hypergrid starts indexing at 0
           display = Util.showValue(c.cellValue);
 
-      model.setValue(gridCol,gridRow,display.toString());
+      model.setValue(gridCol, gridRow, display.toString());
       let overlay = Util.getOverlay(c.cellValue, gridCol, gridRow);
       if (overlay)
         this.addOverlay(overlay);
-    }
+    });
+
     model.changed(); // causes hypergrid to show updated values
     Store.resetLastUpdatedCells();
   },

@@ -138,12 +138,14 @@ export default React.createClass({
   */
   _onChange() {
     logDebug("Eval pane detected event change from store");
-    let updatedCells = Store.getLastUpdatedCells();
-    this.refs.spreadsheet.updateCellValues(updatedCells);
+    let updatedCellsOnSheet = Store.getLastUpdatedCells().filter((cell) => {
+      return cell.cellLocation.sheetId == Store.getCurrentSheet().sheetId;
+    });
+    this.refs.spreadsheet.updateCellValues(updatedCellsOnSheet);
     //toast the error of at least one value in the cell
-    let i = 0, err;
-    for (i = 0; i < updatedCells.length; ++i) {
-      let cell = updatedCells[i],
+    let err;
+    for (let i = 0; i < updatedCellsOnSheet.length; ++i) {
+      let cell = updatedCellsOnSheet[i],
           val = cell.cellValue;
       if (val.tag == "ValueError" || val.tag == "ValueExcelError") {
         err = this.getErrorMessage(val);
