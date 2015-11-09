@@ -265,34 +265,25 @@ describe('backend', () => {
               ]);
             });
 
-            it('should act like lists when horizontal', (done) => {
-              _do([
-                python('A1', '[range(10)]'),
-                python('A5', 'A1:D1[2]'),
-                shouldBe('A5', valueI(2)),
+            // No longer supported. (Alex 11/9)
+            // it('should act like lists when horizontal', (done) => {
+            //   _do([
+            //     python('A1', '[range(10)]'),
+            //     python('A5', 'A1:D1[2]'),
+            //     shouldBe('A5', valueI(2)),
 
-                exec(done)
-              ]);
-            });
+            //     exec(done)
+            //   ]);
+            // });
 
-            it('can be summed', (done) => {
-              _do([
-                python('A1', '[range(10)]'),
-                python('A2', 'sum(A1:J1)'),
-                shouldBe('A2', valueI(45)),
-
-                exec(done)
-              ]);
-            });
-
-            it('can be iterated over like a 1D list', (done) => {
-              _do([
-                python('A1', '[range(10)]'),
-                python('A2', '[x ** 2 for x in B1:D1]'), // expands to vertical list
-                shouldBe('A3', valueI(4)),
-                exec(done)
-              ]);
-            });
+            // it('can be iterated over like a 1D list', (done) => {
+            //   _do([
+            //     python('A1', '[range(10)]'),
+            //     python('A2', '[x ** 2 for x in B1:D1]'), // expands to vertical list
+            //     shouldBe('A3', valueI(4)),
+            //     exec(done)
+            //   ]);
+            // });
 
             it('initialized to strings works', (done) => {
               _do([
@@ -339,7 +330,7 @@ describe('backend', () => {
               ]);
             });
 
-            it('initialized to strings work', (done) => {
+            it('can be initialized to strings', (done) => {
               _do([
                 python('A1', '"Hey"'),
                 python('A2', '"There"'),
@@ -349,7 +340,7 @@ describe('backend', () => {
                 shouldBe('C2', valueI(3)),
                 exec(done)
               ]);
-            });            
+            });
           });
 
           describe('ASIterables initialization', () => {
@@ -418,7 +409,7 @@ describe('backend', () => {
 
             it('fails over a 3D list', (done) => {
               _do([
-                python('A1', 'arr([[[1]]]])'),
+                python('A1', 'arr([[[[1]]]])'),
                 shouldBeError('A1'),
                 exec(done)
               ]);
@@ -437,12 +428,21 @@ describe('backend', () => {
               ]);
             });
 
-            it('can be hidden and operated on while hidden', (done) => {
+            it('can be operated on while hidden', (done) => {
               _do([
                 python('A1', '5'), python('A2', '6'), python('A3', '7'), 
                 python('B1', 'A1:A3.hide()'),
                 python('C1', 'B1.reversed()'),
                 shouldBe('C1', valueI(7)),
+                exec(done)
+              ]);
+            });
+
+            it('preserves dimensions upon hiding and unhiding', (done) => {
+              _do([
+                python('A1', 'hide([[1,2]])'), 
+                python('A3', 'A1.unhide()'),
+                shouldBe('B3', valueI(2)),
                 exec(done)
               ]);
             });
@@ -476,15 +476,6 @@ describe('backend', () => {
               ]);
             });
 
-            it('can be sorted if horizontal', (done) => {
-              _do([
-                python('A1', '7'), python('B1', '5'), python('C1', '6'), 
-                python('A2', 'A1:C1.sorted()'),
-                shouldBe('B2', valueI(6)),
-                exec(done)
-              ]);
-            });
-
             it('can be reversed', (done) => {
               _do([
                 python('A1', '7'), python('A2', '5'), python('A3', '6'), 
@@ -494,20 +485,20 @@ describe('backend', () => {
               ]);
             });
 
-            it('can be reversed if horizontal', (done) => {
+            it('can be appended as a 2D list', (done) => {
               _do([
-                python('A1', '7'), python('B1', '5'), python('C1', '6'), 
-                python('A2', 'A1:C1.reversed()'),
-                shouldBe('C2', valueI(7)),
+                python('A1', '[[1,2],[3,4]]'), 
+                python('A3', 'l = A1:B2\nl.append([5,6])\nl'),
+                shouldBe('B5', valueI(6)),
                 exec(done)
               ]);
             });
 
             it('can be sorted and reversed and transposed in succession', (done) => {
               _do([
-                python('A1', '7'), python('B1', '5'), python('C1', '6'), 
-                python('A2', 'A1:C1.sorted().reversed().transpose()'),
-                shouldBe('A4', valueI(5)),
+                python('A1', '7'), python('A2', '5'), python('A3', '6'), 
+                python('B1', 'A1:A3.sorted().reversed().transpose()'),
+                shouldBe('D1', valueI(5)),
                 exec(done)
               ]);
             });
@@ -606,8 +597,7 @@ describe('backend', () => {
                 exec(done)
             ]);
         });
-        // This test will fail until blank cells  = 0.
-        xit ('SUM', (done) => {
+        it ('SUM', (done) => {
           _do([
             excel('A1', '-5'),
             excel('A2', '15'),
@@ -616,12 +606,13 @@ describe('backend', () => {
             excel('A5', 'TRUE'),
             excel('B1', '=SUM(A1,A2)'),
             excel('B2', '=SUM(A2:A4,15)'),
+            excel('B2', '=SUM(A2:A5,15)'),
             excel('B3', '=SUM("5", 15, TRUE)'),
             excel('B4', '=SUM(A5,A6, 2)'),
             shouldBe('B1', valueI(10)),
             shouldBe('B2', valueI(55)),
-            shouldbe('B3', valueI(21)),
-            shouldbe('B4', valueI(2)),
+            shouldBe('B3', valueI(21)),
+            shouldBe('B4', valueI(2)),
             exec(done)
           ]);
         });
@@ -685,6 +676,21 @@ describe('backend', () => {
             python('A1', 'range(10)'),
             excel('B1', '=A1+A2'),
             shouldBe('B1', valueI(1)),
+            exec(done)
+          ]);
+        });
+
+        it ('should treat blanks as zeroes for arithmetic operations', (done) => {
+          _do([
+            python('A1', '5'),
+            excel('B1', '=A2+A3'),
+            shouldBe('B1', valueI(0)),
+
+            excel('B2', '=A1+A3'),
+            shouldBe('B2', valueI(5)), 
+
+            excel('B3', '=A1*A2'), 
+            shouldBe('B3', valueI(0)),
             exec(done)
           ]);
         });
@@ -861,7 +867,7 @@ describe('backend', () => {
             shouldBe('A1', valueD(0.25)),
             exec(done)
           ]);
-        })
+        });
       });
 
       describe('ocaml', () => {

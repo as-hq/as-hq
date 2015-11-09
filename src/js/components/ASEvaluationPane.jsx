@@ -256,6 +256,9 @@ export default React.createClass({
               ? ClipboardUtils.htmlStringIsAlphaSheets(e.clipboardData.getData("text/html"))
               : false
           );
+
+    // #incomplete should either be checking if you're from the same sheet, OR support 
+    // copy/pasting across sheets. 
     if (isAlphaSheets) { // From AS
       let clipboard = Store.getClipboard(),
           fromASRange = TC.simpleToASRange(clipboard.area.range),
