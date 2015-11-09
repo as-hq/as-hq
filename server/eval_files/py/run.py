@@ -44,7 +44,7 @@ result = "error"
 try:
 	execfile(replFile)
 	os.chdir(os.getcwd()+"/static")
-	result = range(10)
+	result = ASIterable.deserialize({'lst': [['hypergrid rendering bug', None, 'Anand', 'MVP', None], ["R unions for dataframes don't work", None, 'Anand', 'MVP', None], ['arbitrary objects in cells [critch 7]', None, 'Anand', 'MVP', None], ['vectors/dataframe disambiguation in R', None, 'Anand', 'MVP', None], ['ctrl+space and shift+space should not work in grid typing', None, 'Anand', 'MVP', None], ['"mode" for selecting cell entries while typing in non-excel', None, 'Anand', 'MVP', None], [None, None, None, None, None], [None, None, None, None, None], [None, None, None, None, None], [None, None, None, None, None], [None, None, None, None, None], [None, None, None, None, None], [None, None, None, None, None], [None, None, None, None, None], [None, None, None, None, None], [None, None, None, None, None], [None, None, None, None, None], [None, None, None, None, None], [None, None, None, None, None], [None, None, None, None, None], [None, None, None, None, None], [None, None, None, None, None], [None, None, None, None, None], [None, None, None, None, None], [None, None, None, None, None], [None, None, None, None, None], [None, None, None, None, None], [None, None, None, None, None], [None, None, None, None, None], [None, None, None, None, None]], 'name': '[HIDDEN LIST]'}).unhide()
 	os.chdir('..')
 	figures=[manager.canvas.figure for manager in matplotlib._pylab_helpers.Gcf.get_all_fig_managers()]
 	if len(figures) > 0:

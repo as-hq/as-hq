@@ -26,12 +26,7 @@ class ASIterable(object):
     def _unwrap(cls, arr):
         # True if an ASIterable was passed in. 
         if issubclass(type(arr), ASIterable): 
-            if arr._isColumn():
-                arr = arr._getList()
-            elif arr._isRow():
-                arr = [arr._getList()]
-            else: 
-                arr = arr.toList()
+            arr = arr.toList()
         if issubclass(type(arr), str):
             return arr
         try: 
@@ -49,6 +44,8 @@ class ASIterable(object):
             arr = [[arr]]
         elif (dim == 1): # if plain list
             arr = [[x] for x in arr]
+        elif (dim > 3):
+            raise "Cannot embed lists of dimension > 2"
 
         self.name = None
         self.hidden = False
@@ -56,37 +53,29 @@ class ASIterable(object):
     
     ###########################################################################
     ### List typecasting
-    def _isRow(self): 
-        return len(self.arr) == 1
-
     def _isColumn(self): 
         return all(len(l) == 1 for l in self.arr)
 
-    def _is1D(self): 
-        return self._isRow() or self._isColumn()
-
-    # Get the underlying list if it's a row or column matrix
-    def _getList(self): 
+    # Get the underlying list if it's a column matrix
+    def toList(self):
         if self._isColumn():
             return [l[0] for l in self.arr]
-        if self._isRow():
-            return self.arr[0].tolist()
-        raise "Tried to call _getList() when not 1D"
+        else: 
+            return self.arr.tolist()
 
     def _setList(self, lst): 
         if self._isColumn():
             self.arr = np.array([[x] for x in lst])
             return
-        if self._isRow():
-            self.arr = np.array([lst])
-            return
         self.arr = np.array(lst)
 
-    def _flattenedArrIfCol(self):
-        if self._isColumn():
-            return np.array([l[0] for l in self.arr])
-        else:
-            return self.arr
+    # If you're vertical, present yourself as a 1D list. Otherwise present yourself
+    # as a 2D list. 
+    # def _to1dListIf1d(self):
+    #     if self._is1D():
+    #         return self._getList()
+    #     else:
+    #         return self.arr.tolist()
 
     ###########################################################################
     ### List overloading 
@@ -140,6 +129,9 @@ class ASIterable(object):
     ###########################################################################
     ### iteration
 
+    # Does NOT iterate through the elements of a horizontal list; only iterates
+    # through the list itself. 
+
     def __getitem__(self, idx):
         return self.toList()[idx]
 
@@ -150,10 +142,7 @@ class ASIterable(object):
         return ASIterator(self)
 
     def __len__(self):
-        if self._is1D():
-            return len(self._getList())
-        else:
-            return len(self.arr)
+        return len(self.toList())
 
     def __eq__(self, elem):
         dim = len(np.array(self.arr.tolist()).shape)
@@ -167,12 +156,6 @@ class ASIterable(object):
 
     def toArray(self):
         return self.arr
-    
-    def toList(self):
-        if self._is1D():
-            return self._getList()
-        else: 
-            return self.arr.tolist()
 
     def len(self):
         return len(self)
@@ -306,7 +289,7 @@ class ASIterable(object):
 
     def __repr__(self):
         if not self.hidden:
-            return repr(self._flattenedArrIfCol().tolist())
+            return repr(self.toList())
         else:
             return str({ "displayValue": self.name, "objectType": "ASIterable", "jsonRepresentation": self.serialize() })
 
