@@ -339,7 +339,7 @@ describe('backend', () => {
               ]);
             });
 
-            it('initialized to strings work', (done) => {
+            it('can be initialized to strings', (done) => {
               _do([
                 python('A1', '"Hey"'),
                 python('A2', '"There"'),
@@ -349,7 +349,7 @@ describe('backend', () => {
                 shouldBe('C2', valueI(3)),
                 exec(done)
               ]);
-            });            
+            });
           });
 
           describe('ASIterables initialization', () => {
@@ -490,6 +490,15 @@ describe('backend', () => {
                 python('A1', '7'), python('A2', '5'), python('A3', '6'), 
                 python('C1', 'A1:A3.reversed()'),
                 shouldBe('C3', valueI(7)),
+                exec(done)
+              ]);
+            });
+
+            it('can be appended as a 2D list', (done) => {
+              _do([
+                python('A1', '[[1,2],[3,4]]'), 
+                python('A3', 'l = A1:B2\nl.append([5,6])\nl'),
+                shouldBe('B5', valueI(6)),
                 exec(done)
               ]);
             });
