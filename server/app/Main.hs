@@ -43,6 +43,8 @@ import AS.Kernels.Excel.Compiler as KE
 import Text.ParserCombinators.Parsec (parse)
 import AS.Parsing.Out (refMatch, sheetWorkbookMatch)
 import AS.Types.Excel
+import AS.Parsing.Out (exRefToASRef, asRefToExRef, refMatch)
+
 
 -- EitherT
 import Control.Monad.Trans.Class

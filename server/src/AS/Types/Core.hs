@@ -226,7 +226,7 @@ data ASPayload =
 data Direction = DUp | DDown | DLeft | DRight deriving (Show, Read, Eq, Generic)
 data MutateType = InsertCol {insertColNum :: Int} | InsertRow { insertRowNum :: Int } |
                   DeleteCol { deleteColNum :: Int } | DeleteRow { deleteRowNum :: Int } |
-                  SwapCols { swapColNum1 :: Int, swapColNum2 :: Int } | SwapRows { swapRowNum1 :: Int, swapRowNum2 :: Int }
+                  DragCol { oldColNum :: Int, newColNum :: Int } | DragRow { oldRowNum :: Int, newRowNum :: Int } 
                   deriving (Show, Read, Eq, Generic)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------

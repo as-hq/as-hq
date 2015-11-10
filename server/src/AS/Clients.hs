@@ -581,12 +581,13 @@ handleMutateSheet user state (PayloadMutate mutateType) = do
       oldCellsNewCells = zip allCells newCells
       oldCellsNewCells' = filter (\(c, c') -> (isNothing c') || (c /= fromJust c')) oldCellsNewCells
       -- ^ get rid of cells that haven't changed.
-      oldCellsUpdate = map fst oldCellsNewCells
-      newCellsUpdate = catMaybes $ map snd oldCellsNewCells
-      updatedCells   = U.mergeCells newCellsUpdate oldCellsUpdate
-  deleteCellsPropagated conn oldCellsUpdate
-  setCellsPropagated conn newCellsUpdate 
-  reply user state $ ServerMessage Update Success (PayloadCL updatedCells)
+      oldCells' = map fst oldCellsNewCells
+      blankedCells = U.blankCellsAt (map cellLocation oldCells')
+      newCells' = catMaybes $ map snd oldCellsNewCells
+      updatedCells   = U.mergeCells newCells' blankedCells -- eval blanks at the old cell locations, re-eval at new locs
+  updateMsg <- DP.runDispatchCycle state updatedCells (clientCommitSource user)
+  reply user state updateMsg
+
 
 cellLocMap :: MutateType -> (ASIndex -> Maybe ASIndex)
 cellLocMap (InsertCol c') (Index sid (c, r)) = Just $ Index sid (if c >= c' then c+1 else c, r)
@@ -599,14 +600,20 @@ cellLocMap (DeleteRow r') i@(Index sid (c, r))
   | r == r'  = Nothing
   | r > r'   = Just $ Index sid (c, r-1)
   | r < r'   = Just i
-cellLocMap (SwapCols c1 c2) i@(Index sid (c, r))
-  | c == c1   = Just $ Index sid (c2, r)
-  | c == c2   = Just $ Index sid (c1, r)
-  | otherwise = Just i
-cellLocMap (SwapRows r1 r2) i@(Index sid (c, r))
-  | r == r1   = Just $ Index sid (c, r2)
-  | r == r2   = Just $ Index sid (c, r1)
-  | otherwise = Just i
+cellLocMap (DragCol oldC newC) i@(Index sid (c, r))
+  | c < oldC     = Just i
+  | c > newC     = Just i
+  | c == oldC    = Just $ Index sid (newC, r) 
+  | oldC < newC  = Just $ Index sid (c-1, r) -- here on we assume c is strictly between oldC and newC
+  | oldC > newC  = Just $ Index sid (c+1, r)
+  -- case oldC == newC can't happen because oldC < c < newC since third pattern-match
+cellLocMap (DragRow oldR newR) i@(Index sid (c, r))
+  | r < oldR     = Just i
+  | r > newR     = Just i
+  | r == oldR    = Just $ Index sid (c, newR)
+  | oldR < newR  = Just $ Index sid (c, r-1) -- here on we assume c is strictly between oldR and newR
+  | oldR > newR  = Just $ Index sid (c, r+1)
+  -- case oldR == newR can't happen because oldR < r < newR since third pattern-match
 cellLocMap _ OutOfBounds = Just OutOfBounds
 
 refMap :: MutateType -> (ExRef -> ExRef)
@@ -618,7 +625,9 @@ refMap mt er@(ExLocRef (ExIndex rt _ _) ls lw) = er'
       Nothing -> OutOfBounds
       Just ind -> ind
     ExLocRef ei _ _ = asRefToExRef $ IndexRef newRefLoc
-    ei' = ei { refType = rt }
+    ei' = case newRefLoc of
+            OutOfBounds -> ei -- ugly. OutOfBounds shouldn't be a type of ExLocRef 
+            _           -> ei { refType = rt }
     er' = ExLocRef ei' ls lw
 refMap mt er@(ExRangeRef (ExRange f s) rs rw) = ExRangeRef (ExRange f' s') rs rw
   where 

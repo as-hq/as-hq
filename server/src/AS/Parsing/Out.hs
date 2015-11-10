@@ -128,7 +128,7 @@ exRefToASRef sid exRef = case exRef of
 asRefToExRef :: ASReference -> ExRef
 asRefToExRef (IndexRef OutOfBounds) = ExLocRef ExOutOfBounds Nothing Nothing
 asRefToExRef (IndexRef (Index _ (a,b))) = ExLocRef idx Nothing Nothing
-  where idx = ExIndex REL_REL (intToColStr a) (intToColStr b)
+  where idx = ExIndex REL_REL (intToColStr a) (show b)
 asRefToExRef (RangeRef (Range s (i1, i2))) = ExRangeRef rng Nothing Nothing
   where
     ExLocRef i1' _ _ = asRefToExRef $ IndexRef $ Index s i1
