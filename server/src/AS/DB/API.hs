@@ -84,6 +84,9 @@ getCells locs = DU.getCellsByMessage msg num
     msg = DU.showB $ intercalate DU.msgPartDelimiter $ map show2 locs
     num = length locs
 
+getCellsInSheet :: ASSheetId -> IO [ASCell]
+getCellsInSheet sid = return []
+
 getPossiblyBlankCells :: [ASIndex] -> IO [ASCell]
 getPossiblyBlankCells locs = do 
   cells <- getCells locs

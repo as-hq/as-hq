@@ -16,6 +16,7 @@ import qualified Network.WebSockets as WS
 import qualified Database.Redis as R
 
 import AS.Types.Core
+import AS.Types.Excel hiding (row, col)
 import qualified AS.Types.DB as TD
 import AS.DB.API                as DB
 import AS.DB.Util               as DU
@@ -26,6 +27,7 @@ import AS.Dispatch.Repl         as DR
 import AS.Users                 as US
 import AS.Parsing.Substitutions as S
 import AS.Daemon                as DM
+import AS.Parsing.Out (exRefToASRef, asRefToAsIndex, asRefToExRef, excelMatch)
 
 import AS.Config.Settings as  CS
 
@@ -77,6 +79,7 @@ instance Client ASUserClient where
       Repeat       -> handleRepeat user state payload
       BugReport    -> handleBugReport user payload
       JumpSelect   -> handleJumpSelect user state payload
+      MutateSheet  -> handleMutateSheet user state payload
       where payload = clientPayload message
       -- Undo         -> handleToggleTag user state (PayloadTags [StreamTag (Stream NoSource 1000)] (Index (T.pack "TEST_SHEET_ID2") (1,1)))
       -- ^^ above is to test streaming when frontend hasn't been implemented yet
@@ -569,3 +572,57 @@ handleJumpSelect user state p@(PayloadJump sel origin shifted dir) =
                               RangeRef r@(Range _ _) -> (r, origin)
                               IndexRef i@(Index _ ind) -> (Range sid (ind,ind), i)
     sendToOriginal user $ ServerMessage JumpSelect Success (PayloadSelection newSel' newOrigin)
+
+handleMutateSheet :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
+handleMutateSheet user state (PayloadMutate mutateType) = do 
+  allCells <- DB.getCellsInSheet (clientSheetId user)
+  conn <- dbConn <$> readMVar state
+  let newCells = map (cellMap mutateType) allCells
+      oldCellsNewCells = zip allCells newCells
+      oldCellsNewCells' = filter (\(c, c') -> (isNothing c') || (c /= fromJust c')) oldCellsNewCells
+      -- ^ get rid of cells that haven't changed. 
+  deleteCellsPropagated conn $ map fst oldCellsNewCells
+  setCellsPropagated conn $ catMaybes $ map snd oldCellsNewCells
+
+cellLocMap :: MutateType -> (ASIndex -> Maybe ASIndex)
+cellLocMap (InsertCol c') (Index sid (r, c)) = Just $ Index sid (r, if c >= c' then c+1 else c)
+cellLocMap (InsertRow r') (Index sid (r, c)) = Just $ Index sid (r, if r >= r' then r+1 else r)
+cellLocMap (DeleteCol c') i@(Index sid (r, c))
+  | c == c'  = Nothing
+  | c > c'   = Just $ Index sid (r-1, c)
+  | c < c'   = Just i
+cellLocMap (DeleteRow r') i@(Index sid (r, c))
+  | r == r'  = Nothing
+  | r > r'   = Just $ Index sid (r-1, c)
+  | r < r'   = Just i
+cellLocMap (SwapCols c1 c2) i@(Index sid (r, c))
+  | c == c1   = Just $ Index sid (r, c2)
+  | c == c2   = Just $ Index sid (r, c1)
+  | otherwise = Just i
+cellLocMap (SwapRows r1 r2) i@(Index sid (r, c))
+  | r == r1   = Just $ Index sid (r2, c)
+  | r == r2   = Just $ Index sid (r1, c)
+  | otherwise = Just i
+cellLocMap _ OutOfBounds = Just OutOfBounds
+
+refMap :: MutateType -> (ExRef -> ExRef)
+refMap mt er@(ExLocOrRangeRef (ExLoc1 _)) = er'
+  where 
+    dummyAsInd = asRefToAsIndex $ exRefToASRef (T.pack "") er
+    newRefLoc = case (cellLocMap mt dummyAsInd) of 
+      Nothing -> OutOfBounds
+      Just ind -> ind
+    er' = asRefToExRef $ IndexRef newRefLoc
+
+expressionMap :: MutateType -> (ASExpression -> ASExpression)
+expressionMap mt xp@(Expression str lang) = xp'
+  where
+    (inter, exRefs)  = S.getUnquotedMatchesWithContext xp excelMatch
+    exRefs' = map (refMap mt) exRefs
+    str' = S.replaceMatches (inter, exRefs') showExcelRef str
+    xp' = Expression str' lang
+
+cellMap :: MutateType -> (ASCell -> Maybe ASCell)
+cellMap mt (Cell loc xp v ts) = case ((cellLocMap mt) loc) of 
+  Nothing -> Nothing 
+  Just loc' -> Just $ Cell loc' ((expressionMap mt) xp) v ts

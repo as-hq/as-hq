@@ -183,6 +183,7 @@ data ASAction =
   | Repeat
   | BugReport
   | JumpSelect
+  | MutateSheet
   deriving (Show, Read, Eq, Generic)
 
 data ASResult = Success | Failure {failDesc :: String} | NoResult deriving (Show, Read, Eq, Generic)
@@ -219,9 +220,14 @@ data ASPayload =
   | PayloadReplValue ASReplValue
   | PayloadList QueryList
   | PayloadText {text :: String}
+  | PayloadMutate MutateType
   deriving (Show, Read, Eq, Generic)
 
 data Direction = DUp | DDown | DLeft | DRight deriving (Show, Read, Eq, Generic)
+data MutateType = InsertCol {insertColNum :: Int} | InsertRow { insertRowNum :: Int } |
+                  DeleteCol { deleteColNum :: Int } | DeleteRow { deleteRowNum :: Int } |
+                  SwapCols { swapColNum1 :: Int, swapColNum2 :: Int } | SwapRows { swapRowNum1 :: Int, swapRowNum2 :: Int }
+                  deriving (Show, Read, Eq, Generic)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Version Control
@@ -495,6 +501,9 @@ instance FromJSON ASWindow where
 
 instance ToJSON Direction 
 instance FromJSON Direction
+
+instance ToJSON MutateType
+instance FromJSON MutateType
 
 -- memory region exposure instances for R value unboxing
 instance NFData ASValue       where rnf = genericRnf

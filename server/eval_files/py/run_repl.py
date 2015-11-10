@@ -18,12 +18,8 @@ def arr(lst):
 	return ASIterable(lst)
 result = ""
 try:
-<<<<<<< HEAD
-	bafoo(15)
-	result = bafoo(15)
-=======
-	result = a
->>>>>>> tags
+	sorted([3,2,4])
+	result = sorted([3,2,4])
 except Exception as e: 
 	exc_type, exc_obj, exc_tb = exc_info()
 	fname = 'AlphaSheets Python evaluator'
