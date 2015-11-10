@@ -237,12 +237,17 @@ export default {
         self.refs.spreadsheet.select({origin: origin, range: range}, false);
       }
     });
-    SU.add('grid', 'grid_home', ['Home', 'Ctrl+Home'], (wildcard) => {
+    SU.add('grid,isTyping', 'grid_home_typing', ['Home', 'Ctrl+Home'], (wildcard) => {
+      self.setFocus('textbox');
+      self._getRawTextbox().navigateFileStart();
+    });
+    SU.add('grid,notTyping', 'grid_home', ['Home', 'Ctrl+Home'], (wildcard) => {
       let idx = {row: 1, col: 1};
       self.refs.spreadsheet.select(TC.indexToSelection(idx));
     });
-    SU.add('grid', 'grid_moveto_end_sheet', 'Ctrl+End', (wildcard) => {
-      //TODO
+    SU.add('grid,isTyping', 'grid_end_typing', 'End', (wildcard) => {
+      self.setFocus('textbox');
+      self._getRawTextbox().navigateFileEnd();
     });
     SU.add('grid', 'move_vwindow_above', 'PageUp', (wildcard) => {
       let dY = self.refs.spreadsheet.getVisibleRows();
