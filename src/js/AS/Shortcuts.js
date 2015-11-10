@@ -7,6 +7,7 @@ import SU from './ShortcutUtils';
 import API from '../actions/ASApiActionCreators';
 import Util from '../AS/Util';
 import TC from '../AS/TypeConversions';
+import KeyUtils from '../AS/KeyUtils';
 
 import ExpStore from '../stores/ASExpStore';
 import ExpActionCreator from '../actions/ASExpActionCreators';
@@ -274,10 +275,16 @@ export default {
     SU.add('grid', 'chart', 'F11', (wildcard) => {
       // TODO
     });
-    SU.add('grid,notTyping', 'select_row', 'Shift+Space', (wildcard) => {
-      let {origin} = Store.getActiveSelection();
-      self.refs.spreadsheet.select({range: {tl: {row: origin.row, col: 1}, br: {row: origin.row, col: Infinity}},
-                                    origin: origin}, false);
+    SU.add('grid', 'select_row', 'Shift+Space', (wildcard) => {
+      if (ExpStore.getUserIsTyping()) {
+        logDebug("Grid key down going to AC");
+        let newStr = ExpStore.getExpression() + ' ';
+        ExpActionCreator.handleGridChange(newStr);
+      } else {
+        let {origin} = Store.getActiveSelection();
+        self.refs.spreadsheet.select({range: {tl: {row: origin.row, col: 1}, br: {row: origin.row, col: Infinity}},
+                                     origin: origin}, false);
+      }
     });
     SU.add('grid,notTyping', 'select_col', 'Ctrl+Space', (wildcard) => {
       let {origin} = Store.getActiveSelection();
