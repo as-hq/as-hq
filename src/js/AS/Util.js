@@ -241,9 +241,7 @@ export default {
   },
 
   formatPercentage(contents) {
-    if (contents >= 0 && contents <= 100) {
-      return contents + "%";
-    } // TODO raise error otherwise
+    return contents*100 + "%"; 
   },
 
 /*************************************************************************************************************************/
