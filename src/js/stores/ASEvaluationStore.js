@@ -159,9 +159,8 @@ const ASEvaluationStore = assign({}, BaseStore, {
           ASEvaluationStore.emitChange();
           break;
         case Constants.ActionTypes.DELETED_LOCS:
-          let sheetId = action.deletedRange.sheetId,
-              locs = TC.rangeToASIndices(action.deletedRange.range);
-
+          _data.lastUpdatedCells = []; 
+          let locs = TC.rangeToASIndices(action.deletedRange.range);
           ASEvaluationStore.removeIndices(locs);
           ASEvaluationStore.updateCells(action.updatedCells);
           ASEvaluationStore.emitChange();

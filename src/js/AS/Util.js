@@ -209,13 +209,16 @@ export default {
 /*************************************************************************************************************************/
 // Formatting
 
-  // This function is just wrong.
   formatMoney(currency, contents, dec) {
+    if (isNaN(contents)) {
+      return contents; 
+    }
+
     let delim = null,
         sign = null,
         val = contents.toString();
     switch(currency) {
-      case "USD":
+      case "$":
         delim = ".";
         sign = "$";
         break;
@@ -230,7 +233,11 @@ export default {
         sign = "";
         break;
     }
-    return currency + val.substring(0,2) + delim + val.substring(2,2+dec);
+    let formatted = parseFloat(Math.round(contents * 100) / 100).toFixed(2), 
+        decimalInd = formatted.length - 3; 
+    formatted[decimalInd] = delim; 
+
+    return sign + formatted;
   },
 
   formatPercentage(contents) {

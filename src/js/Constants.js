@@ -99,28 +99,12 @@ export default Object.assign({
       Server: 'R',
       Editor: 'r'
     },
-    OCaml: {
-      Display: 'OCaml',
-      Server: 'OCaml',
-      Editor: 'ocaml'
-    },
     SQL: {
       Display: 'SQL',
       Server: 'SQL',
       Editor: 'mysql'
-    },
-    Java: {
-      Display: 'Java',
-      Server: 'Java',
-      Editor: 'java'
-    },
-    CPP: {
-      Display: 'C++',
-      Server: 'CPP',
-      Editor: 'c_cpp'
     }
   },
-
 
   ServerActions: {
     NoAction: "NoAction",

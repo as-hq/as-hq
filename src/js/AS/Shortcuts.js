@@ -81,16 +81,7 @@ export default {
             self.selectLanguage(Constants.Languages.R);
             break;
           case '4':
-            self.selectLanguage(Constants.Languages.OCaml);
-            break;
-          case '5':
             self.selectLanguage(Constants.Languages.SQL);
-            break;
-          case '6':
-            self.selectLanguage(Constants.Languages.Java);
-            break;
-          case '7':
-            self.selectLanguage(Constants.Languages.CPP);
             break;
         }
     });
