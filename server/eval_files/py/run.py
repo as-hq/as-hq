@@ -44,7 +44,10 @@ result = "error"
 try:
 	execfile(replFile)
 	os.chdir(os.getcwd()+"/static")
+<<<<<<< HEAD
 	result = 'test!'
+=======
+>>>>>>> 6728cc3597cadd6afe90620f8702254ef2db608f
 	os.chdir('..')
 	figures=[manager.canvas.figure for manager in matplotlib._pylab_helpers.Gcf.get_all_fig_managers()]
 	if len(figures) > 0:

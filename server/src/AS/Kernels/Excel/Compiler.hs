@@ -2,7 +2,7 @@ module AS.Kernels.Excel.Compiler where
 
 import AS.Types.Core hiding (str,error,SyntaxError)
 import AS.Types.Excel
-import AS.Parsing.Out (excelMatch)
+import AS.Parsing.Out (refMatch)
 import qualified AS.Util as U
 
 import Text.ParserCombinators.Parsec
@@ -177,7 +177,7 @@ referenceIntersection = do
 
 
 cellReference :: Parser Formula
-cellReference = fmap (Basic . Ref) excelMatch
+cellReference = fmap (Basic . Ref) refMatch
 
 -- | Function application.
 functionApplication :: Parser Formula
