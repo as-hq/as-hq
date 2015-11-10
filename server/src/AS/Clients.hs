@@ -27,7 +27,7 @@ import AS.Dispatch.Repl         as DR
 import AS.Users                 as US
 import AS.Parsing.Substitutions as S
 import AS.Daemon                as DM
-import AS.Parsing.Out (exRefToASRef, asRefToAsIndex, asRefToExRef, excelMatch)
+import AS.Parsing.Out (exRefToASRef, asRefToExRef, refMatch)
 
 import AS.Config.Settings as  CS
 
@@ -580,9 +580,15 @@ handleMutateSheet user state (PayloadMutate mutateType) = do
   let newCells = map (cellMap mutateType) allCells
       oldCellsNewCells = zip allCells newCells
       oldCellsNewCells' = filter (\(c, c') -> (isNothing c') || (c /= fromJust c')) oldCellsNewCells
-      -- ^ get rid of cells that haven't changed. 
-  deleteCellsPropagated conn $ map fst oldCellsNewCells
-  setCellsPropagated conn $ catMaybes $ map snd oldCellsNewCells
+      -- ^ get rid of cells that haven't changed.
+      oldCellsUpdate = map fst oldCellsNewCells
+      newCellsUpdate = catMaybes $ map snd oldCellsNewCells
+      updatedCells   = U.mergeCells newCellsUpdate oldCellsUpdate
+  deleteCellsPropagated conn oldCellsUpdate
+  setCellsPropagated conn newCellsUpdate 
+  reply user state $ ServerMessage Update Success (PayloadCL updatedCells)
+
+  
 
 cellLocMap :: MutateType -> (ASIndex -> Maybe ASIndex)
 cellLocMap (InsertCol c') (Index sid (r, c)) = Just $ Index sid (r, if c >= c' then c+1 else c)
@@ -606,20 +612,30 @@ cellLocMap (SwapRows r1 r2) i@(Index sid (r, c))
 cellLocMap _ OutOfBounds = Just OutOfBounds
 
 refMap :: MutateType -> (ExRef -> ExRef)
-refMap mt er@(ExLocOrRangeRef (ExLoc1 _)) = er'
+refMap mt er@(ExLocRef ExOutOfBounds _ _) = er
+refMap mt er@(ExLocRef (ExIndex rt _ _) ls lw) = er'
   where 
-    dummyAsInd = asRefToAsIndex $ exRefToASRef (T.pack "") er
-    newRefLoc = case (cellLocMap mt dummyAsInd) of 
+    IndexRef ind = exRefToASRef (T.pack "") er
+    newRefLoc = case (cellLocMap mt ind) of 
       Nothing -> OutOfBounds
       Just ind -> ind
-    er' = asRefToExRef $ IndexRef newRefLoc
+    ExLocRef ei _ _ = asRefToExRef $ IndexRef newRefLoc
+    ei' = ei { refType = rt }
+    er' = ExLocRef ei' ls lw
+refMap mt er@(ExRangeRef (ExRange f s) rs rw) = ExRangeRef (ExRange f' s') rs rw
+  where 
+    ExLocRef f' _ _ = refMap mt (ExLocRef f' rs rw)
+    ExLocRef s' _ _ = refMap mt (ExLocRef s' rs rw)
+refMap mt er@(ExPointerRef el ps pw) = ExPointerRef el' ps pw
+  where 
+    ExLocRef el' _ _ = refMap mt (ExLocRef el ps pw)
 
 expressionMap :: MutateType -> (ASExpression -> ASExpression)
 expressionMap mt xp@(Expression str lang) = xp'
   where
-    (inter, exRefs)  = S.getUnquotedMatchesWithContext xp excelMatch
+    (inter, exRefs)  = S.getUnquotedMatchesWithContext xp refMatch
     exRefs' = map (refMap mt) exRefs
-    str' = S.replaceMatches (inter, exRefs') showExcelRef str
+    str' = S.replaceMatches (inter, exRefs') show str
     xp' = Expression str' lang
 
 cellMap :: MutateType -> (ASCell -> Maybe ASCell)
