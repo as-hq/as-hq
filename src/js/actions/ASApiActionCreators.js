@@ -371,13 +371,57 @@ export default {
 
   insertCol(c) { 
     let mutateType = { 
-      tag: "MutateType", 
-      contents: { 
-        tag: "InsertCol", 
-        insertColNum: c
-      }
+      tag: "InsertCol", 
+      insertColNum: c
     }; 
-    let msg = TC.makeClientMessageRaw(Constants.ServerActions.MutateSheet, "PayloadMutate", mutateType);
+    let msg = TC.makeClientMessage(Constants.ServerActions.MutateSheet, "PayloadMutate", mutateType);
+    this.send(msg);
+  }, 
+
+  insertRow(r) { 
+    let mutateType = { 
+      tag: "InsertRow", 
+      insertRowNum: r
+    }; 
+    let msg = TC.makeClientMessage(Constants.ServerActions.MutateSheet, "PayloadMutate", mutateType);
+    this.send(msg);
+  }, 
+
+  deleteCol(c) { 
+    let mutateType = { 
+      tag: "DeleteCol", 
+      deleteColNum: c
+    }; 
+    let msg = TC.makeClientMessage(Constants.ServerActions.MutateSheet, "PayloadMutate", mutateType);
+    this.send(msg);
+  }, 
+
+  deleteRow(r) { 
+    let mutateType = { 
+      tag: "DeleteRow", 
+      deleteRowNum: r
+    }; 
+    let msg = TC.makeClientMessage(Constants.ServerActions.MutateSheet, "PayloadMutate", mutateType);
+    this.send(msg);
+  }, 
+
+  dragCol(c1, c2) { 
+    let mutateType = { 
+      tag: "DragCol", 
+      oldColNum: c1, 
+      newColNum: c2
+    }; 
+    let msg = TC.makeClientMessage(Constants.ServerActions.MutateSheet, "PayloadMutate", mutateType);
+    this.send(msg);
+  }, 
+
+  dragRow(r1, r2) { 
+    let mutateType = { 
+      tag: "DragRow", 
+      oldRowNum: r1, 
+      newRowNum: r2
+    }; 
+    let msg = TC.makeClientMessage(Constants.ServerActions.MutateSheet, "PayloadMutate", mutateType);
     this.send(msg);
   }, 
 

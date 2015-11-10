@@ -150,6 +150,36 @@ export function insertCol(c) {
   });
 }
 
+export function insertRow(r) {
+  return apiExec(() => {
+    API.insertRow(r);
+  });
+}
+
+export function deleteCol(c) {
+  return apiExec(() => {
+    API.deleteCol(c);
+  });
+}
+
+export function deleteRow(r) {
+  return apiExec(() => {
+    API.deleteRow(r);
+  });
+}
+
+export function dragCol(c1, c2) {
+  return apiExec(() => {
+    API.dragCol(c1, c2);
+  });
+}
+
+export function dragRow(r1, r2) {
+  return apiExec(() => {
+    API.dragRow(r1, r2);
+  });
+}
+
 export function cut(rng1, rng2) {
   return apiExec(() => {
     let [asRng1, asRng2] = [rng1, rng2].map(asRange);

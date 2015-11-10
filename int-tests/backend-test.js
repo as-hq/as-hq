@@ -17,6 +17,11 @@ describe('backend', () => {
     repeat,
 
     insertCol,
+    insertRow,
+    deleteCol, 
+    deleteRow,
+    dragCol, 
+    dragRow,
 
     copy,
     paste,
@@ -878,11 +883,11 @@ describe('backend', () => {
       });
 
       describe('row/col insertion, deletion, and swapping', () => {
-        describe('column insertion', () => {
+        describe('row insertion', () => {
           it('should move cells to correct locations', (done) => {
             _do([
               python('A1', '10'), python('A2', '11'), python('A3', '12'),
-              insertCol(2), 
+              insertRow(2), 
               shouldBe('A1', valueI(10)),
               shouldBeNothing('A2'), 
               shouldBe('A3', valueI(11)), 
@@ -890,8 +895,198 @@ describe('backend', () => {
               exec(done)
             ]);
           });
+
+          it('should shift references appropriately', (done) => {
+            _do([
+              python('A1', '10'), python('A2', 'A1+1'), python('A3', 'A2+1'), python('A4', 'A3+1'),
+              insertRow(2), 
+              shouldBe('A3', valueI(11)), 
+              shouldBe('A4', valueI(12)), 
+              shouldBe('A5', valueI(13)), 
+              exec(done)
+            ]);
+          });
+
+          it('should shift range references appropriately', (done) => {
+            _do([
+              python('A1', '[range(10)]'),
+              excel('A2', '=SUM(A1:J1)'), 
+              insertRow(1), 
+              shouldBe('A3', valueI(45)), 
+              exec(done)
+            ]);
+          });
         });
-      });      
+
+        describe('row deletion', () => {
+          it('should move cells to correct locations', (done) => {
+            _do([
+              python('A1', '10'), python('A2', '11'), python('A3', '12'),
+              deleteRow(2), 
+              shouldBe('A1', valueI(10)),
+              shouldBe('A2', valueI(12)), 
+              exec(done)
+            ]);
+          });
+
+          it('should shift references appropriately', (done) => {
+            _do([
+              python('A1', '10'), python('A2', 'A1+1'), python('A3', 'A2+1'), python('A4', 'A3+1'),
+              deleteRow(2), 
+              shouldBeError('A2'), // this used to be A3, which had A2+1 in it. 
+              python('A2', 'A1+5'),
+              shouldBe('A3', valueI(16)), 
+              exec(done)
+            ]);
+          });
+
+          it('should shift range references appropriately', (done) => {
+            _do([
+              python('A2', '[range(10)]'),
+              excel('A3', '=SUM(A2:J2)'), 
+              deleteRow(1), 
+              shouldBe('A2', valueI(45)), 
+              exec(done)
+            ]);
+          });
+        });
+
+        describe('row drag', () => {
+          it('should move cells to correct locations', (done) => {
+            _do([
+              python('A1', '10'), python('A2', '11'), python('A3', '12'),
+              dragRow(1,3), 
+              shouldBe('A1', valueI(11)),
+              shouldBe('A2', valueI(12)), 
+              shouldBe('A3', valueI(10)), 
+              exec(done)
+            ]);
+          });
+
+          it('should shift references appropriately', (done) => {
+            _do([
+              python('A1', '10'), python('A2', 'A1+2'), python('A3', 'A2+3'), python('A4', 'A3+4'),
+              dragRow(2,4), //1,2,3,4 --> 1,3,4,2 
+              shouldBe('A2', valueI(15)), 
+              shouldBe('A3', valueI(19)), 
+              shouldBe('A4', valueI(12)), 
+              exec(done)
+            ]);
+          });
+
+          it('should shift range references appropriately', (done) => {
+            _do([
+              python('A1', '0'), python('A2', '1'), python('B1', '3'), python('B2', '4'),
+              excel('A5', '=SUM(A1:B2)'), 
+              dragRow(2,3),
+              shouldBe('A5', valueI(8)), 
+              exec(done)
+            ]);
+          });
+        });
+
+        describe('column insertion', () => {
+          it('should move cells to correct locations', (done) => {
+            _do([
+              python('A1', '10'), python('B1', '11'), python('C1', '12'),
+              insertCol(2), 
+              shouldBe('A1', valueI(10)),
+              shouldBeNothing('B1'), 
+              shouldBe('C1', valueI(11)), 
+              shouldBe('D1', valueI(12)), 
+              exec(done)
+            ]);
+          });
+
+          it('should shift references appropriately', (done) => {
+            _do([
+              python('A1', '10'), python('B1', 'A1+1'), python('C1', 'B1+1'), python('D1', 'C1+1'),
+              insertCol(2), 
+              shouldBe('C1', valueI(11)), 
+              shouldBe('D1', valueI(12)), 
+              shouldBe('E1', valueI(13)), 
+              exec(done)
+            ]);
+          });
+
+          it('should shift range references appropriately', (done) => {
+            _do([
+              python('A1', 'range(10)'),
+              excel('B1', '=SUM(A1:A10)'), 
+              insertCol(1), 
+              shouldBe('C1', valueI(45)), 
+              exec(done)
+            ]);
+          });
+        });
+
+        describe('column deletion', () => {
+          it('should move cells to correct locations', (done) => {
+            _do([
+              python('A1', '10'), python('B1', '11'), python('C1', '12'),
+              deleteCol(2), 
+              shouldBe('A1', valueI(10)),
+              shouldBe('B1', valueI(12)), 
+              exec(done)
+            ]);
+          });
+
+          it('should shift references appropriately', (done) => {
+            _do([
+              python('A1', '10'), python('B1', 'A1+1'), python('C1', 'B1+1'), python('D1', 'C1+1'),
+              deleteCol(2), 
+              shouldBeError('B1'), // this used to be A3, which had A2+1 in it. 
+              python('B1', 'A1+5'),
+              shouldBe('C1', valueI(16)), 
+              exec(done)
+            ]);
+          });
+
+          it('should shift range references appropriately', (done) => {
+            _do([
+              python('B1', 'range(10)'),
+              excel('C1', '=SUM(B1:B10)'), 
+              deleteCol(1), 
+              shouldBe('B1', valueI(45)), 
+              exec(done)
+            ]);
+          });
+        });
+
+        describe('Column drag', () => {
+          it('should move cells to correct locations', (done) => {
+            _do([
+              python('A1', '10'), python('B1', '11'), python('C1', '12'),
+              dragCol(1,3), 
+              shouldBe('A1', valueI(11)),
+              shouldBe('B1', valueI(12)), 
+              shouldBe('C1', valueI(10)), 
+              exec(done)
+            ]);
+          });
+
+          it('should shift references appropriately', (done) => {
+            _do([
+              python('A1', '10'), python('B1', 'A1+2'), python('C1', 'B1+3'), python('D1', 'C1+4'),
+              dragCol(2,4), //1,2,3,4 --> 1,3,4,2 
+              shouldBe('B1', valueI(15)), 
+              shouldBe('C1', valueI(19)), 
+              shouldBe('D1', valueI(12)), 
+              exec(done)
+            ]);
+          });
+
+          it('should shift range references appropriately', (done) => {
+            _do([
+              python('A1', '0'), python('A2', '1'), python('B1', '3'), python('B2', '4'),
+              excel('E1', '=SUM(A1:B2)'), 
+              dragCol(2,3),
+              shouldBe('E1', valueI(8)), 
+              exec(done)
+            ]);
+          });
+        });
+      });
 
       describe('general', () => {
         it('should do multi language eval', (done) => {
