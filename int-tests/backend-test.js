@@ -15,6 +15,9 @@ describe('backend', () => {
     clear,
 
     repeat,
+
+    insertCol,
+
     copy,
     paste,
     cut,
@@ -873,6 +876,22 @@ describe('backend', () => {
       describe('ocaml', () => {
 
       });
+
+      describe('row/col insertion, deletion, and swapping', () => {
+        describe('column insertion', () => {
+          it('should move cells to correct locations', (done) => {
+            _do([
+              python('A1', '10'), python('A2', '11'), python('A3', '12'),
+              insertCol(2), 
+              shouldBe('A1', valueI(10)),
+              shouldBeNothing('A2'), 
+              shouldBe('A3', valueI(11)), 
+              shouldBe('A4', valueI(12)), 
+              exec(done)
+            ]);
+          });
+        });
+      });      
 
       describe('general', () => {
         it('should do multi language eval', (done) => {

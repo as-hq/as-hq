@@ -128,7 +128,8 @@ export default Object.assign({
     Find: "Find",
     BugReport: "BugReport",
     ToggleTag: "ToggleTag",
-    JumpSelect: "JumpSelect"
+    JumpSelect: "JumpSelect",
+    MutateSheet: "MutateSheet"
   },
 
   CursorPosition:{

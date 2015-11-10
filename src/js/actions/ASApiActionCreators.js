@@ -335,6 +335,7 @@ export default {
     });
     this.send(msg);
   },
+
   cut(fromRng, toRng) {
     let msg = TC.makeClientMessageRaw(Constants.ServerActions.Cut, {
       tag: "PayloadPaste",
@@ -367,6 +368,18 @@ export default {
     });
     this.send(msg);
   },
+
+  insertCol(c) { 
+    let mutateType = { 
+      tag: "MutateType", 
+      contents: { 
+        tag: "InsertCol", 
+        insertColNum: c
+      }
+    }; 
+    let msg = TC.makeClientMessageRaw(Constants.ServerActions.MutateSheet, "PayloadMutate", mutateType);
+    this.send(msg);
+  }, 
 
   // @optional mySheet
   openSheet(mySheet) {

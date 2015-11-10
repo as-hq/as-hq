@@ -144,6 +144,12 @@ export function repeat(rng, origin) {
   });
 }
 
+export function insertCol(c) {
+  return apiExec(() => {
+    API.insertCol(c);
+  });
+}
+
 export function cut(rng1, rng2) {
   return apiExec(() => {
     let [asRng1, asRng2] = [rng1, rng2].map(asRange);
