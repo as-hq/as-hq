@@ -637,6 +637,7 @@ export default React.createClass({
           width="100%" height={this.getEditorHeight()} />
         <ASSpreadsheet
           ref='spreadsheet'
+          language={currentLanguage}
           setFocus={this.setFocus}
           highlightFind={highlightFind}
           onNavKeyDown={this._onGridNavKeyDown}

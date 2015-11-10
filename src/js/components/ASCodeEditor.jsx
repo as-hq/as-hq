@@ -63,6 +63,7 @@ export default React.createClass({
 
   render() {
     let {language, theme, value, width, height} = this.props;
+    let editor = language.Editor;
     // TODO: make this CSS better/put the import in the right place; this is just a skeleton
     let fileInputStyle = {
           position:'relative',
@@ -130,7 +131,7 @@ export default React.createClass({
         <AceEditor
           ref="editor"
           handleEditorFocus={this.props.handleEditorFocus}
-          mode={language.Editor}
+          mode={editor}
           language={language}
           hideToast={this.props.hideToast}
           theme={theme}

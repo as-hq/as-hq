@@ -38,6 +38,7 @@ export default React.createClass({
   getDefaultProps() {
     return {
       behavior: 'default',
+      language: Constants.Languages.Excel,
       onReady() { }
     };
   },
@@ -513,7 +514,7 @@ export default React.createClass({
   // Render
 
   render() {
-    let {behavior, width, height} = this.props; //should also have onReady
+    let {behavior, width, height, language} = this.props; //should also have onReady
     let style = {width: width, height: height};
     let behaviorElement;
     let self = this;
@@ -547,6 +548,7 @@ export default React.createClass({
 
         <Textbox
                  ref="textbox"
+                 language={language.Editor}
                  scroll={self.state.scroll}
                  onDeferredKey={this.props.onTextBoxDeferredKey}
                  hideToast={this.props.hideToast}
