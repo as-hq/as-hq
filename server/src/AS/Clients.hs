@@ -589,23 +589,23 @@ handleMutateSheet user state (PayloadMutate mutateType) = do
   reply user state $ ServerMessage Update Success (PayloadCL updatedCells)
 
 cellLocMap :: MutateType -> (ASIndex -> Maybe ASIndex)
-cellLocMap (InsertCol c') (Index sid (r, c)) = Just $ Index sid (r, if c >= c' then c+1 else c)
-cellLocMap (InsertRow r') (Index sid (r, c)) = Just $ Index sid (r, if r >= r' then r+1 else r)
-cellLocMap (DeleteCol c') i@(Index sid (r, c))
+cellLocMap (InsertCol c') (Index sid (c, r)) = Just $ Index sid (if c >= c' then c+1 else c, r)
+cellLocMap (InsertRow r') (Index sid (c, r)) = Just $ Index sid (c, if r >= r' then r+1 else r)
+cellLocMap (DeleteCol c') i@(Index sid (c, r))
   | c == c'  = Nothing
-  | c > c'   = Just $ Index sid (r-1, c)
+  | c > c'   = Just $ Index sid (c-1, r)
   | c < c'   = Just i
-cellLocMap (DeleteRow r') i@(Index sid (r, c))
+cellLocMap (DeleteRow r') i@(Index sid (c, r))
   | r == r'  = Nothing
-  | r > r'   = Just $ Index sid (r-1, c)
+  | r > r'   = Just $ Index sid (c, r-1)
   | r < r'   = Just i
-cellLocMap (SwapCols c1 c2) i@(Index sid (r, c))
-  | c == c1   = Just $ Index sid (r, c2)
-  | c == c2   = Just $ Index sid (r, c1)
+cellLocMap (SwapCols c1 c2) i@(Index sid (c, r))
+  | c == c1   = Just $ Index sid (c2, r)
+  | c == c2   = Just $ Index sid (c1, r)
   | otherwise = Just i
-cellLocMap (SwapRows r1 r2) i@(Index sid (r, c))
-  | r == r1   = Just $ Index sid (r2, c)
-  | r == r2   = Just $ Index sid (r1, c)
+cellLocMap (SwapRows r1 r2) i@(Index sid (c, r))
+  | r == r1   = Just $ Index sid (c, r2)
+  | r == r2   = Just $ Index sid (c, r1)
   | otherwise = Just i
 cellLocMap _ OutOfBounds = Just OutOfBounds
 
@@ -622,8 +622,8 @@ refMap mt er@(ExLocRef (ExIndex rt _ _) ls lw) = er'
     er' = ExLocRef ei' ls lw
 refMap mt er@(ExRangeRef (ExRange f s) rs rw) = ExRangeRef (ExRange f' s') rs rw
   where 
-    ExLocRef f' _ _ = refMap mt (ExLocRef f' rs rw)
-    ExLocRef s' _ _ = refMap mt (ExLocRef s' rs rw)
+    ExLocRef f' _ _ = refMap mt (ExLocRef f rs rw)
+    ExLocRef s' _ _ = refMap mt (ExLocRef s rs rw)
 refMap mt er@(ExPointerRef el ps pw) = ExPointerRef el' ps pw
   where 
     ExLocRef el' _ _ = refMap mt (ExLocRef el ps pw)

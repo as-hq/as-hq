@@ -44,7 +44,7 @@ result = "error"
 try:
 	execfile(replFile)
 	os.chdir(os.getcwd()+"/static")
-	result = 12
+	result = arr([arr([5,7]),arr([6,8])]).transpose()
 	os.chdir('..')
 	figures=[manager.canvas.figure for manager in matplotlib._pylab_helpers.Gcf.get_all_fig_managers()]
 	if len(figures) > 0:

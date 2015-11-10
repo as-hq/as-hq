@@ -163,16 +163,17 @@ getListsInRange conn rng = do
   return $ map fst zipRectsContained
 
 setListLocations :: Connection -> ListKey -> [ASIndex] -> IO ()
-setListLocations conn listKey locs =
-  let
-    locKeys       = map DU.getLocationKey locs
-    listKey'      = B.pack listKey
-    sheetListsKey = DU.getSheetListsKey . locSheetId $ head locs
-  in runRedis conn $ do
-    liftIO $ printWithTime $ "setting list locations for key: " ++ listKey
-    sadd listKey' locKeys
-    sadd sheetListsKey [listKey']
-    return ()
+setListLocations conn listKey locs
+  | null locs = return ()
+  | otherwise = do 
+    let locKeys       = map DU.getLocationKey locs
+        listKey'      = B.pack listKey
+        sheetListsKey = DU.getSheetListsKey . locSheetId $ head locs
+    runRedis conn $ do
+      liftIO $ printWithTime $ "setting list locations for key: " ++ listKey
+      sadd listKey' locKeys
+      sadd sheetListsKey [listKey']
+      return ()
 
 -- | Takes in a cell that's tied to a list. Decouples all the cells in that list from that
 -- | returns: (cells before decoupling, cells after decoupling)
