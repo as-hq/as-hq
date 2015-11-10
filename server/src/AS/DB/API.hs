@@ -84,8 +84,11 @@ getCells locs = DU.getCellsByMessage msg num
     msg = DU.showB $ intercalate DU.msgPartDelimiter $ map show2 locs
     num = length locs
 
+-- #incomplete LOL
 getCellsInSheet :: ASSheetId -> IO [ASCell]
-getCellsInSheet sid = return []
+getCellsInSheet sid = do 
+  cells <- getCellsByRange (Range sid ((1,1), (100,100)))
+  return $ catMaybes cells
 
 getPossiblyBlankCells :: [ASIndex] -> IO [ASCell]
 getPossiblyBlankCells locs = do 

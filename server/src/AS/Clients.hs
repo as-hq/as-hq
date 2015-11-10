@@ -588,8 +588,6 @@ handleMutateSheet user state (PayloadMutate mutateType) = do
   setCellsPropagated conn newCellsUpdate 
   reply user state $ ServerMessage Update Success (PayloadCL updatedCells)
 
-  
-
 cellLocMap :: MutateType -> (ASIndex -> Maybe ASIndex)
 cellLocMap (InsertCol c') (Index sid (r, c)) = Just $ Index sid (r, if c >= c' then c+1 else c)
 cellLocMap (InsertRow r') (Index sid (r, c)) = Just $ Index sid (r, if r >= r' then r+1 else r)
