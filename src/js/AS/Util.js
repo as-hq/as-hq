@@ -210,7 +210,7 @@ export default {
 // Formatting
 
   formatMoney(currency, contents, dec) {
-    if (isNaN(contents)) {
+    if (!contents || isNaN(contents) || contents == "") {
       return contents; 
     }
 
@@ -241,6 +241,9 @@ export default {
   },
 
   formatPercentage(contents) {
+    if (!contents || isNaN(contents) || contents == "") {
+      return contents; 
+    }
     return contents*100 + "%"; 
   },
 
