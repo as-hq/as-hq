@@ -115,25 +115,36 @@ splitNamesFromDataFrameValues vals = pairs
 -- ref, unless it's a part of the ExRef)
 exRefToASRef :: ASSheetId -> ExRef -> ASReference
 exRefToASRef sid exRef = case exRef of
-  ExLocRef (ExIndex _ c r) _ _ -> IndexRef $ Index sid (colStrToInt c, read r :: Int)
+  ExLocRef (ExIndex _ c r) sn wn -> IndexRef $ Index sid' (colStrToInt c, read r :: Int)
+    where sid' = maybe sid id (getSheetIdFromSheetNameAndWorkbookName sn wn)
   ExLocRef ExOutOfBounds _ _ -> IndexRef OutOfBounds
-  ExRangeRef (ExRange f s) _ _ -> RangeRef $ Range sid (tl, br)
+  ExRangeRef (ExRange f s) sn wn -> RangeRef $ Range sid' (tl, br)
     where
-      IndexRef (Index _ tl) = exRefToASRef sid $ ExLocRef f Nothing Nothing
-      IndexRef (Index _ br) = exRefToASRef sid $ ExLocRef s Nothing Nothing
+      sid' = maybe sid id (getSheetIdFromSheetNameAndWorkbookName sn wn)
+      IndexRef (Index _ tl) = exRefToASRef sid' $ ExLocRef f sn Nothing
+      IndexRef (Index _ br) = exRefToASRef sid' $ ExLocRef s sn Nothing
 
--- does not consider sheetid TODO 
--- #anand we actually need to convert asrefs to proper exRefs
--- i.e. this function will need to do a DB lookup with the sheetId to get the sheetName
 asRefToExRef :: ASReference -> ExRef
 asRefToExRef (IndexRef OutOfBounds) = ExLocRef ExOutOfBounds Nothing Nothing
-asRefToExRef (IndexRef (Index _ (a,b))) = ExLocRef idx Nothing Nothing
+asRefToExRef (IndexRef (Index sid (a,b))) = ExLocRef idx sname Nothing
   where idx = ExIndex REL_REL (intToColStr a) (show b)
+        sname = getSheetNameFromSheetId sid
 asRefToExRef (RangeRef (Range s (i1, i2))) = ExRangeRef rng Nothing Nothing
   where
     ExLocRef i1' _ _ = asRefToExRef $ IndexRef $ Index s i1
     ExLocRef i2' _ _ = asRefToExRef $ IndexRef $ Index s i2
     rng = ExRange i1' i2'
+
+-- #incomplete we should actually be looking in the db. For now, with the current UX of
+-- equating sheet names and sheet id's with the dialog box, 
+getSheetNameFromSheetId :: ASSheetId -> Maybe SheetName
+getSheetNameFromSheetId = Just . T.unpack
+
+-- #incomplete lol. just returns sheet name from sheet id for now. 
+getSheetIdFromSheetNameAndWorkbookName :: Maybe SheetName -> Maybe WorkbookName -> Maybe ASSheetId
+getSheetIdFromSheetNameAndWorkbookName (Just sn) _ = Just $ T.pack sn
+getSheetIdFromSheetNameAndWorkbookName _ _ = Nothing
+
 -------------------------------------------------------------------------------------------------------------------------------------------------
 -- Parsers to match special excel characters
 
