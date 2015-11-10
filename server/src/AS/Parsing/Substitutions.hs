@@ -87,7 +87,7 @@ replaceMatches (inter,matches) f target = blend inter matchReplacings
 getDependencies :: ASSheetId -> ASExpression -> [ASReference]
 getDependencies sheetid xp = deps
   where
-    (_, exRefs) = getUnquotedMatchesWithContext xp excelMatch -- the only place that Parsec is used
+    (_, exRefs) = getUnquotedMatchesWithContext xp refMatch -- the only place that Parsec is used
     deps = map (exRefToASRef sheetid) exRefs
 
 -- | Takes in a list of ExRef's and converts them to a list of ASIndex's.
@@ -104,8 +104,8 @@ shiftCell :: Offset -> ASCell -> ASCell
 shiftCell offset (Cell loc xp@(Expression str lang) v ts) = shiftedCell
   where
     shiftedLoc     = shiftInd offset loc
-    (inter,exRefs) = getUnquotedMatchesWithContext xp excelMatch
+    (inter,exRefs) = getUnquotedMatchesWithContext xp refMatch
     shiftedExRefs  = shiftExRefs offset exRefs
-    newStr         = replaceMatches (inter, shiftedExRefs) showExcelRef str
+    newStr         = replaceMatches (inter, shiftedExRefs) show str
     shiftedXp      = Expression newStr lang
     shiftedCell    = Cell shiftedLoc shiftedXp v ts

@@ -21,24 +21,61 @@ import qualified Data.Vector.Unboxed as VU
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Excel Location Parsing
 
--- d1 = $ or nothing; $ means absolute column, nothing means relative. ditto for d2 but for rows
-data ExLoc   = ExIndex {d1 :: String, col :: String, d2 :: String, row :: String} | ExOutOfBounds deriving (Show, Read, Eq, Ord)
-data ExRange = ExRange {first :: ExLoc, second :: ExLoc} deriving (Show, Read, Eq, Ord)
-data ExLocOrRange = ExLoc1 ExLoc | ExRange1 ExRange deriving (Show, Read, Eq, Ord)
-data ExRef = ExLocOrRangeRef ExLocOrRange | ExSheetLocOrRangeRef String ExLocOrRange  deriving (Show, Read, Eq, Ord)
--- I think this is the simplest grammar we can write that actually correctly captures the type we want.
--- It's quite ugly as it is though -- I imagine it can be refactored with lenses / better names, but this
--- seems not very urgent as of now. (10/9)
---
--- Also doesn't have any support for columns, workbooks, or 3D reference. (10/9)
+-- reference locking
+data RefType = ABS_ABS | ABS_REL | REL_ABS | REL_REL deriving (Eq)
 
-showExcelRef :: ExRef -> String
-showExcelRef exRef = case exRef of
-  ExSheetLocOrRangeRef sheet rest -> sheet ++ "!" ++ (showExcelRef (ExLocOrRangeRef rest))
-  ExLocOrRangeRef (ExRange1 (ExRange first second)) -> (showExcelRef $ ExLocOrRangeRef $ ExLoc1 $ first) ++ ":" ++ (showExcelRef $ ExLocOrRangeRef $ ExLoc1 second)
-  ExLocOrRangeRef (ExLoc1 (ExIndex dol1 c dol2 r)) -> dol1 ++ c ++ dol2 ++ r
-  ExLocOrRangeRef (ExLoc1 ExOutOfBounds) -> "#REF!"
+data ExLoc   = 
+    ExIndex {refType :: RefType, col :: String, row :: String} 
+  | ExOutOfBounds 
+  deriving (Eq)
+data ExRange = ExRange {first :: ExLoc, second :: ExLoc} deriving (Eq)
+data ExRef   = 
+    ExLocRef {exLoc :: ExLoc, locSheet :: Maybe SheetName, locWorkbook :: Maybe WorkbookName}
+  | ExRangeRef {exRange :: ExRange, rangeSheet :: Maybe SheetName, rangeWorkbook :: Maybe WorkbookName}
+  | ExPointerRef {pointerLoc :: ExLoc, pointerSheet :: Maybe SheetName, pointerWorkbook :: Maybe WorkbookName}
+  deriving (Eq)
 
+-- convenience class so all refs can use "sheetRef" etc.
+class Ref a where
+  sheetRef :: a -> Maybe String
+  workbookRef :: a -> Maybe String
+
+instance Ref ExRef where
+  sheetRef a = case a of 
+    (ExLocRef _ _ _) -> locSheet a
+    (ExRangeRef _ _ _) -> rangeSheet a
+    (ExPointerRef _ _ _) -> pointerSheet a
+  workbookRef a = case a of 
+    (ExLocRef _ _ _) -> locWorkbook a
+    (ExRangeRef _ _ _) -> rangeWorkbook a
+    (ExPointerRef _ _ _) -> pointerWorkbook a
+
+instance Show ExRef where
+  show a = 
+    let prefix = showRefQualifier (workbookRef a) (sheetRef a)
+    in case a of 
+      (ExLocRef l _ _)              -> prefix ++ (show l)
+      (ExRangeRef (ExRange f s) _ _)-> prefix ++ (show f) ++ ":" ++ (show s)
+      (ExPointerRef l _ _)          -> prefix ++ (show l)
+
+instance Show ExLoc where
+  show ExOutOfBounds = "#REF!"
+  show (ExIndex rType c r) = d1 ++ c ++ d2 ++ r
+    where 
+      (d1, d2) = case rType of 
+        ABS_ABS -> ("$","$")
+        ABS_REL -> ("$","")
+        REL_ABS -> ("","$")
+        REL_REL -> ("","")
+
+showRefQualifier :: Maybe WorkbookName -> Maybe SheetName -> String
+showRefQualifier wb sh = case wb of 
+  Just wb' -> case sh of 
+    Just sh' -> wb' ++ "!" ++ sh' ++ "!"
+    Nothing  -> ""
+  Nothing  -> case sh of 
+    Just sh' -> sh' ++ "!"
+    Nothing  -> ""
 
 showExcelValue :: ASValue -> String
 showExcelValue val = case val of
@@ -248,9 +285,9 @@ data BasicFormula =
    Var EValue                      -- Variables
  | Fun String [Formula]            -- Function
  | Ref ExRef                       -- Reference
- deriving (Show, Read)
+ deriving (Show)
 
-data Formula = ArrayConst [[BasicFormula]] | Basic BasicFormula deriving (Show, Read)
+data Formula = ArrayConst [[BasicFormula]] | Basic BasicFormula deriving (Show)
 -- designates arrayFormula or not
-data ContextualFormula = ArrayFormula Formula | SimpleFormula Formula deriving (Show, Read)
+data ContextualFormula = ArrayFormula Formula | SimpleFormula Formula deriving (Show)
 

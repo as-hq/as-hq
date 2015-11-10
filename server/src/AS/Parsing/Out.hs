@@ -111,80 +111,115 @@ splitNamesFromDataFrameValues vals = pairs
 -- Type for parsing Excel Locations
              -- d1,d2 = "" or "$"
 
-asRefToAsIndex :: ASReference -> ASIndex
-asRefToAsIndex loc = case loc of
-  IndexRef i -> i
-
 -- | Turns an Excel reference to an AlphaSheets reference. (first arg is the sheet of the
 -- ref, unless it's a part of the ExRef)
 exRefToASRef :: ASSheetId -> ExRef -> ASReference
-exRefToASRef sheetid exRef = case exRef of
-  ExLocOrRangeRef (ExLoc1 (ExIndex dol1 c dol2 r)) -> IndexRef $ Index sheetid (colStrToInt c, read r :: Int)
-  ExLocOrRangeRef (ExLoc1 ExOutOfBounds) -> IndexRef OutOfBounds
-  ExLocOrRangeRef (ExRange1 (ExRange f s)) -> RangeRef $ Range sheetid ((index . asRefToAsIndex) (exRefToASRef sheetid $ ExLocOrRangeRef $ ExLoc1 $ f), (index . asRefToAsIndex) (exRefToASRef sheetid $ ExLocOrRangeRef $ ExLoc1 $ s))
-  ExSheetLocOrRangeRef sh rest -> case (exRefToASRef sheetid (ExLocOrRangeRef rest)) of
-    IndexRef (Index _ a) -> IndexRef $ Index (T.pack sh) a
-    RangeRef (Range _ a) -> RangeRef $ Range (T.pack sh) a
+exRefToASRef sid exRef = case exRef of
+  ExLocRef (ExIndex _ c r) _ _ -> IndexRef $ Index sid (colStrToInt c, read r :: Int)
+  ExLocRef ExOutOfBounds _ _ -> IndexRef OutOfBounds
+  ExRangeRef (ExRange f s) _ _ -> RangeRef $ Range sid (tl, br)
+    where
+      IndexRef (Index _ tl) = exRefToASRef sid $ ExLocRef f Nothing Nothing
+      IndexRef (Index _ br) = exRefToASRef sid $ ExLocRef s Nothing Nothing
 
--- does not consider sheetid
+-- does not consider sheetid TODO 
+-- #anand we actually need to convert asrefs to proper exRefs
+-- i.e. this function will need to do a DB lookup with the sheetId to get the sheetName
 asRefToExRef :: ASReference -> ExRef
-asRefToExRef (IndexRef OutOfBounds) = ExLocOrRangeRef $ ExLoc1 ExOutOfBounds
-asRefToExRef (IndexRef (Index _ (a,b))) = ExLocOrRangeRef $ ExLoc1 $ ExIndex "" (intToColStr a) "" (intToColStr b)
-asRefToExRef (RangeRef (Range s (i1, i2))) = ExLocOrRangeRef $ ExRange1 $ ExRange i1' i2'
+asRefToExRef (IndexRef OutOfBounds) = ExLocRef ExOutOfBounds Nothing Nothing
+asRefToExRef (IndexRef (Index _ (a,b))) = ExLocRef idx Nothing Nothing
+  where idx = ExIndex REL_REL (intToColStr a) (intToColStr b)
+asRefToExRef (RangeRef (Range s (i1, i2))) = ExRangeRef rng Nothing Nothing
   where
-    ExLocOrRangeRef (ExLoc1 i1') = asRefToExRef $ IndexRef $ Index s i1
-    ExLocOrRangeRef (ExLoc1 i2') = asRefToExRef $ IndexRef $ Index s i2
+    ExLocRef i1' _ _ = asRefToExRef $ IndexRef $ Index s i1
+    ExLocRef i2' _ _ = asRefToExRef $ IndexRef $ Index s i2
+    rng = ExRange i1' i2'
 -------------------------------------------------------------------------------------------------------------------------------------------------
 -- Parsers to match special excel characters
 
-dollar :: Parser String
-dollar = string "$" <|> string "" -- returns $ or ""; $ is not required for index
+readRefType :: Maybe Char -> Maybe Char -> RefType 
+readRefType d1 d2 = case d1 of
+  Nothing -> case d2 of 
+    Nothing -> REL_REL
+    Just _ -> REL_ABS
+  Just _ -> case d2 of 
+    Nothing -> ABS_REL
+    Just _ -> ABS_ABS
 
-colon :: Parser String
-colon = string ":" -- this character is necessary for range
+dollar :: Parser Char
+dollar = char  '$' -- returns $ or ""; $ is not required for index
 
-exc :: Parser String
-exc = string "!" -- required for sheet access
+colon :: Parser Char
+colon = char ':' -- this character is necessary for range
+
+exc :: Parser Char
+exc = char '!' -- required for sheet access
+
+pointer :: Parser Char
+pointer = char  '@'
 
 -------------------------------------------------------------------------------------------------------------------------------------------------
 -- Parsers to match excel locations in strings
 
 -- matches a valid sheet name
-sheetMatch :: Parser String
-sheetMatch = many1 $ letter <|> digit <|> char '-' <|> char '_' <|> space
+nameMatch :: Parser (Maybe String)
+nameMatch = (many $ noneOf ['!','$','@',':',' ']) >>= (\q -> exc >> return (rdName q))
+  where 
+    rdName "" = Nothing
+    rdName s = Just s
+
+sheetWorkbookMatch :: Parser (Maybe SheetName, Maybe WorkbookName)
+sheetWorkbookMatch = do
+  q1 <- option Nothing $ try nameMatch
+  case q1 of 
+    Nothing -> return (Nothing, Nothing)
+    Just _ -> do
+      q2 <- option Nothing $ try nameMatch
+      return $ case q2 of 
+        Nothing -> (q1, Nothing) -- sheet, nothing
+        Just _ -> (q2, q1)       -- sheet is inner-most parsed (it's q2), so return the reverse order
 
 -- | matches $AB15 type things
-indexMatch :: Parser ExRef
+indexMatch :: Parser ExLoc
 indexMatch = do
-  a <- dollar
+  a <- optionMaybe dollar
   col <- many1 letter
-  b <- dollar
+  b <- optionMaybe dollar
   row <- many1 digit
-  return $ ExLocOrRangeRef $ ExLoc1 $ ExIndex a col b row
+  return $ ExIndex (readRefType a b) col row
 
-outOfBoundsMatch :: Parser ExRef
-outOfBoundsMatch = do 
-  string "#REF!"
-  return $ ExLocOrRangeRef $ ExLoc1 $ ExOutOfBounds
+outOfBoundsMatch :: Parser ExLoc
+outOfBoundsMatch = string "#REF!" >> return ExOutOfBounds
 
 -- | matches index:index
-rangeMatch :: Parser ExRef
+rangeMatch :: Parser ExRange
 rangeMatch = do
-  ExLocOrRangeRef (ExLoc1 topLeft) <- indexMatch
+  tl <- indexMatch
   colon
-  ExLocOrRangeRef (ExLoc1 bottomRight) <- indexMatch
-  return $ ExLocOrRangeRef $ ExRange1 $ ExRange topLeft bottomRight
+  br <- indexMatch
+  return $ ExRange tl br
 
--- | matches sheet reference, e.g., Sheet1!$A$11
-sheetRefMatch :: Parser ExRef
-sheetRefMatch = do
-  name <- sheetMatch
-  exc
-  ExLocOrRangeRef lor <- (try rangeMatch) <|> indexMatch -- order matters
-  return $ ExSheetLocOrRangeRef name lor
+refMatch :: Parser ExRef
+refMatch = do
+  (sh, wb) <- option (Nothing, Nothing) $ try sheetWorkbookMatch
+  point <- optionMaybe $ try pointer
+  rng <- optionMaybe $ try rangeMatch 
+  idx <- optionMaybe $ try indexMatch
+  ofb <- optionMaybe $ try outOfBoundsMatch
+  case point of 
+    Just _ -> case idx of 
+      Just idx' -> return $ ExPointerRef idx' sh wb
+      Nothing -> case ofb of 
+        Just ofb' -> return $ ExLocRef ofb' sh wb
+        Nothing -> fail "expected index reference when using pointer syntax"
+    Nothing -> case rng of 
+      Just rng' -> return $ ExRangeRef rng' sh wb
+      Nothing -> case idx of 
+        Just idx' -> return $ ExLocRef idx' sh wb
+        Nothing -> case ofb of  
+          Just ofb' -> return $ ExLocRef ofb' sh wb
+          Nothing -> fail "expected valid excel A1:B4 style reference"
 
-excelMatch :: Parser ExRef
-excelMatch = (try sheetRefMatch) <|> (try rangeMatch) <|> (try indexMatch) <|> (try outOfBoundsMatch)
 
 ------------------------------------------------------------------------------------------------------------------------------------------------
 -- Helper Functions
@@ -192,29 +227,45 @@ excelMatch = (try sheetRefMatch) <|> (try rangeMatch) <|> (try indexMatch) <|> (
 -- takes an excel location and an offset, and produces the new excel location (using relative range syntax)
 -- ex. ExIndex $A3 (1,1) -> ExIndex $A4
 -- doesn't do any work with Parsec/actual parsing
-shiftExRef :: (Int,Int) -> ExRef -> ExRef
-shiftExRef offset exRef = case exRef of
-  ExLocOrRangeRef (ExLoc1 ExOutOfBounds) -> ExLocOrRangeRef (ExLoc1 ExOutOfBounds)
-  ExLocOrRangeRef (ExLoc1 (ExIndex dol1 c dol2 r)) -> ExLocOrRangeRef $ ExLoc1 $ ind
+shiftExRef :: Offset -> ExRef -> ExRef
+shiftExRef (dC, dR) exRef = case exRef of
+  ExLocRef ExOutOfBounds _ _ -> exRef
+  ExLocRef (ExIndex dType c r) _ _ -> exRef { exLoc = idx }
     where
-      cVal = colStrToInt c
-      rVal = (read r :: Int)
-      newColVal = cVal + (if (dol1 == "$") then 0 else (fst offset))
-      newRowVal = rVal + (if (dol2 == "$") then 0 else (snd offset))
-      ind = if (newColVal >= 1 && newRowVal >= 1) 
-        then (ExIndex dol1 (intToColStr newColVal) dol2 (show newRowVal)) 
-        else (ExOutOfBounds)
-  ExLocOrRangeRef (ExRange1 (ExRange a b)) -> ExLocOrRangeRef $ ExRange1 $ ExRange a' b'
+      newColVal = shiftCol dC dType c
+      newRowVal = shiftRow dR dType r
+      idx = if (newColVal >= 1 && newRowVal >= 1) 
+        then ExIndex dType (intToColStr newColVal) (show newRowVal) 
+        else ExOutOfBounds
+  ExRangeRef (ExRange f s) sh wb -> exRef { exRange = ExRange f' s' }
       where
-        ExLocOrRangeRef (ExLoc1 a') = shiftExRef offset (ExLocOrRangeRef $ ExLoc1 $ a)
-        ExLocOrRangeRef (ExLoc1 b') = shiftExRef offset (ExLocOrRangeRef $ ExLoc1 $ b)
-  ExSheetLocOrRangeRef sh rest -> ExSheetLocOrRangeRef sh rest'
-      where
-        ExLocOrRangeRef rest' = shiftExRef offset (ExLocOrRangeRef rest)
+        ExLocRef f' _ _ = shiftExRef (dC, dR) (ExLocRef f sh wb)
+        ExLocRef s' _ _ = shiftExRef (dC, dR) (ExLocRef s sh wb)
+  ExPointerRef l sh wb -> exRef { pointerLoc = l' }
+      where ExLocRef l' _ _ = shiftExRef (dC, dR) (ExLocRef l sh wb)
 
-shiftExRefs :: (Int,Int) -> [ExRef] -> [ExRef]
+shiftExRefs :: Offset -> [ExRef] -> [ExRef]
 shiftExRefs offset exRefs = map (shiftExRef offset) exRefs
 
+shiftCol :: Int -> RefType -> String -> Int
+shiftCol dC rType c = newCVal
+  where
+    cVal = colStrToInt c
+    newCVal = cVal + (case rType of
+      ABS_ABS -> 0
+      ABS_REL -> 0
+      REL_ABS -> dC
+      REL_REL -> dC )
+
+shiftRow :: Int -> RefType -> String -> Int
+shiftRow dR rType r = newRVal 
+  where
+    rVal = (read r :: Int)
+    newRVal = rVal + (case rType of 
+      ABS_ABS -> 0
+      ABS_REL -> dR
+      REL_ABS -> 0
+      REL_REL -> dR )
 ----------------------------------------------------------------------------------------------------------------------------------
 -- Functions for excel sheet loading
 

@@ -31,7 +31,7 @@ import Data.Ord (comparing)
 
 import qualified Data.Map.Lazy as ML
 
-import AS.Parsing.Out (exRefToASRef, excelMatch)
+import AS.Parsing.Out (exRefToASRef, refMatch)
 import Control.Exception.Base hiding (try)
 
 import AS.Util
@@ -870,7 +870,7 @@ eIndirect c e = do
 
 justExcelMatch :: Parser ExRef
 justExcelMatch = do 
-  m <- excelMatch
+  m <- refMatch
   eof
   return m
 
