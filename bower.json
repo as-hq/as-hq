@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "dependencies": {
     "webcomponentsjs": "0.7.6",
-    "fin-hypergrid": "openfin/fin-hypergrid#99d5bcb04d590f97cbe384603289ff1fbe4ef41c",
+    "fin-hypergrid": "openfin/fin-hypergrid#001663cc7e7db63d82bcc5003ebb156542f5860f",
     "core-elements": "Polymer/core-elements#~0.5.6",
     "paper-elements": "Polymer/paper-elements#~0.5.6",
     "bootstrap": "~3.3.5",
