@@ -259,8 +259,8 @@ export default React.createClass({
               : false
           );
 
-    // #incomplete should either be checking if you're from the same sheet, OR support 
-    // copy/pasting across sheets. 
+    // #incomplete should either be checking if you're from the same sheet, OR support
+    // copy/pasting across sheets.
     if (isAlphaSheets) { // From AS
       let clipboard = Store.getClipboard(),
           fromASRange = TC.simpleToASRange(clipboard.area.range),
@@ -388,9 +388,9 @@ export default React.createClass({
   // Deal with selection change from grid
 
   _onSelectionChange(sel) {
-    let rng = sel.range,
+    let {range, origin} = sel,
         userIsTyping = ExpStore.getUserIsTyping(),
-        cell = Store.getCell(sel.origin.col, sel.origin.row);
+        cell = Store.getCell(origin.col, origin.row);
 
     let editorCanInsertRef = ExpStore.editorCanInsertRef(this._getRawEditor()),
         gridCanInsertRef = ExpStore.gridCanInsertRef(),
@@ -445,7 +445,7 @@ export default React.createClass({
     } else if (userIsTyping) {
       if (editorCanInsertRef){ // insert cell ref in editor
         logDebug("Eval pane inserting cell ref in editor");
-        let excelStr = Util.rangeToExcel(rng);
+        let excelStr = Util.rangeToExcel(range);
         this._getEditorComponent().insertRef(excelStr);
         let newStr = this._getRawEditor().getValue(); // new value
         ExpActionCreator.handlePartialRefEditor(newStr,excelStr);
@@ -453,14 +453,14 @@ export default React.createClass({
       else if (textBoxCanInsertRef){ // insert cell ref in textbox
         logDebug("Eval pane inserting cell ref in textbox");
         logDebug("Current value: " + this._getTextbox().editor.getValue());
-        let excelStr = Util.rangeToExcel(rng);
+        let excelStr = Util.rangeToExcel(range);
         this._getTextbox().insertRef(excelStr);
         let newStr = this._getTextbox().editor.getValue();
         ExpActionCreator.handlePartialRefTextBox(newStr,excelStr);
       }
       else if (gridCanInsertRef){ // insert cell ref in textbox
         logDebug("Eval pane inserting cell ref originating from grid");
-        let excelStr = Util.rangeToExcel(rng);
+        let excelStr = Util.rangeToExcel(range);
         ExpActionCreator.handlePartialRefGrid(excelStr);
       }
     } else {

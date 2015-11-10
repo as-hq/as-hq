@@ -38,6 +38,7 @@ let _data = {
   activeSelection: null,
   activeFocus: 'grid',
   lastActiveFocus: 'textbox',
+  gridShifted: false, // for shift+click tracking
   partialSelections: [],
   activeCell: null,
   clipboard: {
@@ -159,7 +160,7 @@ const ASEvaluationStore = assign({}, BaseStore, {
           ASEvaluationStore.emitChange();
           break;
         case Constants.ActionTypes.DELETED_LOCS:
-          _data.lastUpdatedCells = []; 
+          _data.lastUpdatedCells = [];
           let locs = TC.rangeToASIndices(action.deletedRange.range);
           ASEvaluationStore.removeIndices(locs);
           ASEvaluationStore.updateCells(action.updatedCells);
@@ -434,6 +435,12 @@ const ASEvaluationStore = assign({}, BaseStore, {
     _data.lastActiveFocus = temp;
     logDebug("new focus: ", _data.activeFocus);
   },
+
+  /**************************************************************************************************************************/
+  /* Selection state */
+
+  setGridShifted(val) { _data.gridShifted = val; },
+  getGridShifted() { return _data.gridShifted; },
 
   /**************************************************************************************************************************/
   /* Updating expression when user clicks on a cell */

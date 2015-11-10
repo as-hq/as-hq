@@ -70,24 +70,24 @@ export default React.createClass({
           logDebug("SELECTION CHANGE");
           ExpStore.setClickType(Constants.ClickType.CLICK);
           self.props.onSelectionChange(self.getSelectionArea());
-          },
+        },
         'fin-scroll-x': function (event) {
           self.setState({scroll: self.getScroll()});
           if ((self.getScroll()).x % 20 === 0)
             ActionCreator.scroll(self.getViewingWindow());
-          },
+        },
         'fin-scroll-y': function (event) {
           self.setState({scroll: self.getScroll()});
           if ((self.getScroll()).y % 20 === 0)
             ActionCreator.scroll(self.getViewingWindow());
-          },
+        },
         'fin-double-click': function (event) {
           logDebug("DOUBLE ClICK");
           ExpStore.setClickType(Constants.ClickType.DOUBLE_CLICK);
           self.refs.textbox.updateTextBox(ExpStore.getExpression());
           Store.setFocus('textbox');
           self.props.setFocus('textbox');
-          }
+        }
       });
       for (var key in callbacks) {
         var value = callbacks[key];
@@ -181,12 +181,24 @@ export default React.createClass({
   /* Initial a sheet with blank entries */
   initialize() {
     let hg = this._getHypergrid(),
-        model = hg.getBehavior()
+        model = hg.getBehavior(),
+        self = this;
     hg.addGlobalProperties(this.gridProperties);
     model.getColumnCount = () => { return Constants.numCols; };
     model.getRowCount = () => { return Constants.numRows; };
-    model.getValue = function(x, y) { return ''; };
-    model.getCellEditorAt = function(x, y) { return null; }
+    model.getValue = (x, y) => { return ''; };
+    model.getCellEditorAt = (x, y) => { return null; };
+    model.handleMouseDown = (grid, evt) => {
+      if (Store.getGridShifted()) {
+        let {origin} = this.getSelectionArea(),
+            newBr = {col: evt.gridCell.x, row: evt.gridCell.y},
+            newSel = {origin: origin, range: Util.orientRange({tl: origin, br: newBr})};
+        this.select(newSel, false);
+      } else if (model.featureChain) {
+        model.featureChain.handleMouseDown(grid, evt);
+        model.setCursor(grid);
+      }
+    };
     this.setCellRenderer();
     this.setSelectionRenderers();
     let ind = {row: 1, col: 1};
@@ -398,6 +410,8 @@ export default React.createClass({
         }
         this.props.hideToast();
         ExpActionCreator.handleGridChange(newStr);
+      } else if (KeyUtils.isPureShiftKey(e)) { // shift+click tracking
+        Store.setGridShifted(true);
       } else {
         // Try shortcuts
         logDebug("Grid key down, trying shortcut");
@@ -415,6 +429,12 @@ export default React.createClass({
       }
       this.props.onNavKeyDown(e);
     }
+  },
+
+  _onKeyUp(e) {
+    logDebug("GRID KEYUP", e);
+    e.persist();
+    if (KeyUtils.isPureShiftKey(e)) Store.setGridShifted(false);
   },
 
   onTextBoxDeferredKey(e){
@@ -533,6 +553,7 @@ export default React.createClass({
           style={style}
           ref="hypergrid"
           onKeyDown={this._onKeyDown}
+          onKeyUp={this._onKeyUp}
           onFocus={this._onFocus}>
             {behaviorElement}
         </fin-hypergrid>
