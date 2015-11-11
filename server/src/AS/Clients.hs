@@ -390,29 +390,27 @@ removeTagEndware :: MVar ServerState -> ASCellTag -> ASCell -> IO ()
 removeTagEndware state (StreamTag s) c = DM.removeDaemon (cellLocation c) state
 removeTagEndware _ _ _ = return ()
 
-processSetTag :: MVar ServerState -> ASCellTag -> ASIndex ->  IO ()
-processSetTag state t loc = do
-  curState <- readMVar state
-  (Cell l e v ts) <- DB.getPossiblyBlankCell loc
-  let ts' = filter (differentTagType t) ts
-  let c' = Cell l e v (t:ts')
-  DB.setCell c'
-  if (ts' /= ts) -- if you ended up removing an old version of the tag
-    then (removeTagEndware state t c')
-    else (addTagEndware state t c')
-
+-- Should refactor to props instead of tags for non-Bools. (Alex 11/11)
 handleSetTag :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
 handleSetTag user state (PayloadTag tag rng) = do
+  curState <- readMVar state
   let locs = rangeToIndices rng
-  mapM_ (processSetTag state tag) locs
-  sendToOriginal user $ ServerMessage SetTag Success (PayloadN ())
+  cells <- DB.getPossiblyBlankCells locs
+  cells' <- (flip mapM cells) $ \(Cell l e v ts) -> do 
+        let ts' = filter (differentTagType tag) ts
+            c'  = Cell l e v (tag:ts')
+        if (ts' /= ts) -- if you ended up removing an old version of the tag
+          then (removeTagEndware state tag c')
+          else (addTagEndware state tag c')
+        return c'
+  DB.setCells cells'
+  reply user state $ ServerMessage Update Success (PayloadCL cells')
 
 -- Alex 10/22: seems kind of ugly. 
 differentTagType :: ASCellTag -> ASCellTag -> Bool
 differentTagType (Color _) (Color _) = False
 differentTagType (Size _) (Size _) = False
-differentTagType Money Money = False
-differentTagType Percentage Percentage = False
+differentTagType (Disp _) (Disp _) = False
 differentTagType (StreamTag _) (StreamTag _) = False
 differentTagType Tracking Tracking = False
 differentTagType Volatile Volatile = False
