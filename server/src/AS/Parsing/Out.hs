@@ -115,9 +115,9 @@ splitNamesFromDataFrameValues vals = pairs
 -- ref, unless it's a part of the ExRef)
 exRefToASRef :: ASSheetId -> ExRef -> ASReference
 exRefToASRef sid exRef = case exRef of
+  ExOutOfBounds -> OutOfBounds
   ExLocRef (ExIndex _ c r) sn wn -> IndexRef $ Index sid' (colStrToInt c, read r :: Int)
     where sid' = maybe sid id (getSheetIdFromSheetNameAndWorkbookName sn wn)
-  ExLocRef ExOutOfBounds _ _ -> IndexRef OutOfBounds
   ExRangeRef (ExRange f s) sn wn -> RangeRef $ Range sid' (tl, br)
     where
       sid' = maybe sid id (getSheetIdFromSheetNameAndWorkbookName sn wn)
@@ -125,7 +125,7 @@ exRefToASRef sid exRef = case exRef of
       IndexRef (Index _ br) = exRefToASRef sid' $ ExLocRef s sn Nothing
 
 asRefToExRef :: ASReference -> ExRef
-asRefToExRef (IndexRef OutOfBounds) = ExLocRef ExOutOfBounds Nothing Nothing
+asRefToExRef OutOfBounds = ExOutOfBounds
 asRefToExRef (IndexRef (Index sid (a,b))) = ExLocRef idx sname Nothing
   where idx = ExIndex REL_REL (intToColStr a) (show b)
         sname = getSheetNameFromSheetId sid
@@ -199,7 +199,7 @@ indexMatch = do
   row <- many1 digit
   return $ ExIndex (readRefType a b) col row
 
-outOfBoundsMatch :: Parser ExLoc
+outOfBoundsMatch :: Parser ExRef
 outOfBoundsMatch = string "#REF!" >> return ExOutOfBounds
 
 -- | matches index:index
@@ -221,14 +221,14 @@ refMatch = do
     Just _ -> case idx of 
       Just idx' -> return $ ExPointerRef idx' sh wb
       Nothing -> case ofb of 
-        Just ofb' -> return $ ExLocRef ofb' sh wb
+        Just ofb' -> return ExOutOfBounds
         Nothing -> fail "expected index reference when using pointer syntax"
     Nothing -> case rng of 
       Just rng' -> return $ ExRangeRef rng' sh wb
       Nothing -> case idx of 
         Just idx' -> return $ ExLocRef idx' sh wb
         Nothing -> case ofb of  
-          Just ofb' -> return $ ExLocRef ofb' sh wb
+          Just ofb' -> return ExOutOfBounds
           Nothing -> fail "expected valid excel A1:B4 style reference"
 
 
@@ -240,18 +240,21 @@ refMatch = do
 -- doesn't do any work with Parsec/actual parsing
 shiftExRef :: Offset -> ExRef -> ExRef
 shiftExRef (dC, dR) exRef = case exRef of
-  ExLocRef ExOutOfBounds _ _ -> exRef
-  ExLocRef (ExIndex dType c r) _ _ -> exRef { exLoc = idx }
+  ExOutOfBounds -> exRef
+  ExLocRef (ExIndex dType c r) _ _ -> exRef' 
     where
       newColVal = shiftCol dC dType c
       newRowVal = shiftRow dR dType r
       idx = if (newColVal >= 1 && newRowVal >= 1) 
-        then ExIndex dType (intToColStr newColVal) (show newRowVal) 
-        else ExOutOfBounds
-  ExRangeRef (ExRange f s) sh wb -> exRef { exRange = ExRange f' s' }
+        then Just $ ExIndex dType (intToColStr newColVal) (show newRowVal) 
+        else Nothing
+      exRef' = maybe ExOutOfBounds (\i -> exRef { exLoc = i }) idx
+  ExRangeRef (ExRange f s) sh wb -> exRef' 
       where
-        ExLocRef f' _ _ = shiftExRef (dC, dR) (ExLocRef f sh wb)
-        ExLocRef s' _ _ = shiftExRef (dC, dR) (ExLocRef s sh wb)
+        shiftedInds = (shiftExRef (dC, dR) (ExLocRef f sh wb), shiftExRef (dC, dR) (ExLocRef s sh wb))
+        exRef' = case shiftedInds of 
+          (ExLocRef f' _ _, ExLocRef s' _ _) -> exRef { exRange = ExRange f' s' }
+          _ -> ExOutOfBounds
   ExPointerRef l sh wb -> exRef { pointerLoc = l' }
       where ExLocRef l' _ _ = shiftExRef (dC, dR) (ExLocRef l sh wb)
 

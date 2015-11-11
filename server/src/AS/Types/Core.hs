@@ -49,9 +49,9 @@ type Coord = (Col, Row)
 type Dimensions = (Int, Int)
 type Offset = (Int, Int)
 
-data ASIndex = Index {locSheetId :: ASSheetId, index :: Coord} | OutOfBounds deriving (Show, Read, Eq, Generic, Ord)
+data ASIndex = Index {locSheetId :: ASSheetId, index :: Coord} deriving (Show, Read, Eq, Generic, Ord)
 data ASRange = Range {rangeSheetId :: ASSheetId, range :: (Coord, Coord)} deriving (Show, Read, Eq, Generic, Ord)
-data ASReference = IndexRef ASIndex | RangeRef ASRange deriving (Show, Read, Eq, Generic, Ord)
+data ASReference = IndexRef ASIndex | RangeRef ASRange | OutOfBounds deriving (Show, Read, Eq, Generic, Ord)
 
 refSheetId :: ASReference -> ASSheetId
 refSheetId loc = case loc of

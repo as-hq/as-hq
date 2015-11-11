@@ -24,15 +24,14 @@ import qualified Data.Vector.Unboxed as VU
 -- reference locking
 data RefType = ABS_ABS | ABS_REL | REL_ABS | REL_REL deriving (Eq)
 
-data ExLoc   = 
-    ExIndex {refType :: RefType, col :: String, row :: String} 
-  | ExOutOfBounds 
+data ExLoc   = ExIndex {refType :: RefType, col :: String, row :: String} 
   deriving (Eq)
 data ExRange = ExRange {first :: ExLoc, second :: ExLoc} deriving (Eq)
 data ExRef   = 
     ExLocRef {exLoc :: ExLoc, locSheet :: Maybe SheetName, locWorkbook :: Maybe WorkbookName}
   | ExRangeRef {exRange :: ExRange, rangeSheet :: Maybe SheetName, rangeWorkbook :: Maybe WorkbookName}
   | ExPointerRef {pointerLoc :: ExLoc, pointerSheet :: Maybe SheetName, pointerWorkbook :: Maybe WorkbookName}
+  | ExOutOfBounds 
   deriving (Eq)
 
 -- convenience class so all refs can use "sheetRef" etc.
@@ -45,21 +44,23 @@ instance Ref ExRef where
     (ExLocRef _ _ _) -> locSheet a
     (ExRangeRef _ _ _) -> rangeSheet a
     (ExPointerRef _ _ _) -> pointerSheet a
+    ExOutOfBounds -> Nothing
   workbookRef a = case a of 
     (ExLocRef _ _ _) -> locWorkbook a
     (ExRangeRef _ _ _) -> rangeWorkbook a
     (ExPointerRef _ _ _) -> pointerWorkbook a
+    ExOutOfBounds -> Nothing
 
 instance Show ExRef where
   show a = 
     let prefix = showRefQualifier (workbookRef a) (sheetRef a)
     in case a of 
+      ExOutOfBounds                 -> "#REF!"
       (ExLocRef l _ _)              -> prefix ++ (show l)
       (ExRangeRef (ExRange f s) _ _)-> prefix ++ (show f) ++ ":" ++ (show s)
       (ExPointerRef l _ _)          -> prefix ++ (show l)
 
 instance Show ExLoc where
-  show ExOutOfBounds = "#REF!"
   show (ExIndex rType c r) = d1 ++ c ++ d2 ++ r
     where 
       (d1, d2) = case rType of 
