@@ -581,7 +581,8 @@ export default React.createClass({
     }
 
     return (
-      <div style={{width:"100%",height:"100%",position:'relative'}} >
+      // NOTE: the 50px is for the scrollbar to show up.
+      <div style={{width:"100%",height:"calc(100% - 50px)",position:'relative'}} >
         <fin-hypergrid
           style={style}
           ref="hypergrid"
