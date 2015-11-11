@@ -9,7 +9,7 @@ import qualified Data.Text as T
 import qualified Data.List as L
 
 import AS.Config.Paths
-import AS.Parsing.Out
+import AS.Parsing.Show
 import AS.Parsing.Substitutions
 import AS.Parsing.Common
 

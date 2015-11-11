@@ -622,31 +622,3 @@ testLocs n = [Index "" (i,1) | i <-[1..n]]
 
 testCells :: Int -> [ASCell]
 testCells n =  L.map (\l -> Cell (Index "" (l,1)) (Expression "hi" Python) (ValueS "Str") []) [1..n]
-
-----------------------------------------------------------------------------------------------------------------------
--- Parsing
-
--- | Matches an escaped string and returns the unescaped version. E.g. if the input is: 
--- "\"hello"
--- quotedString would match this and return this output: 
--- "hello
-quotedString :: Parser String
-quotedString = (quoteString <|> apostropheString)
-  where
-    quoteString      = quotes $ many $ escaped <|> noneOf ['"']
-    apostropheString = apostrophes $ many $ escaped <|> noneOf ['\'']
-    quotes           = between quote quote
-    quote            = char '"' --
-    apostrophes      = between apostrophe apostrophe
-    apostrophe       = char '\'' -- TODO apostrophes also
-    escaped          = char '\\' >> choice (zipWith escapedChar codes replacements)
-    escapedChar code replacement = char code >> return replacement
-    codes            = ['b',  'n',  'f',  'r',  't',  '\\', '\'', '\"', '/']
-    replacements     = ['\b', '\n', '\f', '\r', '\t', '\\', '\'', '\"', '/']
-
--- | Because Haskell's float lexer doesn't parse negative floats out of the box. <__<
-float' :: P.TokenParser () -> Parser Double
-float' lexer = do 
-  maybeMinus <- option ' ' $ try (char '-') 
-  f <- P.float lexer
-  if (maybeMinus == ' ') then (return f) else (return (-f))

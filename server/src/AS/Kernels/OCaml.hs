@@ -5,7 +5,7 @@ import AS.Types.Core
 import AS.Kernels.Common
 import AS.Kernels.LanguageUtils
 
-import AS.Parsing.In
+import AS.Parsing.Read
 
 import AS.Config.Settings
 import AS.Util

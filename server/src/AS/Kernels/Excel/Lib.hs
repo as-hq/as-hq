@@ -31,7 +31,7 @@ import Data.Ord (comparing)
 
 import qualified Data.Map.Lazy as ML
 
-import AS.Parsing.Out (exRefToASRef, refMatch)
+import AS.Parsing.Excel (exRefToASRef, refMatch)
 import Control.Exception.Base hiding (try)
 
 import AS.Util

@@ -39,8 +39,9 @@ library
                        AS.Kernels.Common
                        AS.Kernels.R
                        AS.Parsing.Common
-                       AS.Parsing.In
-                       AS.Parsing.Out
+                       AS.Parsing.Show
+                       AS.Parsing.Read
+                       AS.Parsing.Excel
                        AS.Parsing.Substitutions
                        AS.Types.Core
                        AS.Types.DB

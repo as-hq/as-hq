@@ -27,7 +27,7 @@ import AS.Dispatch.Repl         as DR
 import AS.Users                 as US
 import AS.Parsing.Substitutions as S
 import AS.Daemon                as DM
-import AS.Parsing.Out (exRefToASRef, asRefToExRef, refMatch)
+import AS.Parsing.Excel (exRefToASRef, asRefToExRef, refMatch)
 
 import AS.Config.Settings as  CS
 

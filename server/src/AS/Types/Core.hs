@@ -4,7 +4,8 @@ module AS.Types.Core where
 
 import Prelude
 import GHC.Generics
-import Data.Aeson hiding (Success)
+import Data.Aeson hiding (Success, Object)
+import qualified Data.Aeson as DA
 import Data.Aeson.Types (defaultOptions)
 import Data.Text hiding (foldr, map)
 import Data.ByteString (ByteString)
@@ -32,22 +33,26 @@ type SheetName = String
 type ASSheetId = Text
 
 data ASSheet = Sheet {sheetId :: ASSheetId, sheetName :: SheetName, sheetPermissions :: ASPermissions} deriving (Show, Read, Eq, Generic)
-
 -- should probably be a list of ASSheet's rather than ASSheetId's. 
 data ASWorkbook = Workbook {workbookName :: WorkbookName, workbookSheets :: [ASSheetId]} deriving (Show, Read, Eq, Generic)
-
 -- this type needs to be refactored away. It's used in a frontend API in basically exactly the
 -- same way that ASWorkbook is supposed to be used. (Alex 11/3) 
 data WorkbookSheet = WorkbookSheet {wsName :: WorkbookName, wsSheets :: [ASSheet]} deriving (Show, Read, Eq, Generic)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
--- Core cell types
+-- Metrics
 
 type Col = Int
 type Row = Int
 type Coord = (Col, Row)
 type Dimensions = (Int, Int)
 type Offset = (Int, Int)
+type Rect = (Coord, Coord)
+type Percent = Double
+data Direction = DUp | DDown | DLeft | DRight deriving (Show, Read, Eq, Generic)
+
+----------------------------------------------------------------------------------------------------------------------------------------------
+-- Locations
 
 data ASIndex = Index {locSheetId :: ASSheetId, index :: Coord} deriving (Show, Read, Eq, Generic, Ord)
 data ASRange = Range {rangeSheetId :: ASSheetId, range :: (Coord, Coord)} deriving (Show, Read, Eq, Generic, Ord)
@@ -58,6 +63,62 @@ refSheetId loc = case loc of
   IndexRef i -> locSheetId i
   RangeRef r -> rangeSheetId r
 
+----------------------------------------------------------------------------------------------------------------------------------------------
+-- Expressions
+
+data ASLanguage = R | Python | OCaml | CPP | Java | SQL | Excel deriving (Show, Read, Eq, Generic)
+type EvalCode = String
+-- TODO consider migration to exLocs record
+data ASExpression =
+  Expression { expression :: String, language :: ASLanguage }
+  deriving (Show, Read, Eq, Generic)
+
+----------------------------------------------------------------------------------------------------------------------------------------------
+-- Values
+
+data ASValue =
+    NoValue
+  | ValueS String
+  | ValueI Int
+  | ValueD Double
+  | ValueB Bool
+  | ValueL {listVals :: [ASValue], listName :: String} -- for hidden lists only
+  | ValueImage { imagePath :: String }
+  | ValueObject { objectType :: ObjectType, objectName :: String, attrs :: JSON }
+  | ValueError { errMsg :: String, errType :: String }
+  | ValueExcelError EError -- #needsrefactor: should be a part of ValueError
+  deriving (Show, Read, Eq, Generic)
+
+type RListKey = String
+data ASReplValue = ReplValue {replValue :: ASValue, replLang :: ASLanguage} deriving (Show, Read, Eq, Generic)
+type RefValMap = M.Map ASReference ASValue
+
+data ComplexType = List | Object | Image | Error deriving (Show, Read)
+
+-- an ephemeral types produced by eval 
+-- that will expand in createListCells
+type Array = [ASValue]
+type Matrix = [Array]
+data Collection = A Array | M Matrix
+
+data ObjectType = RList | RDataFrame | NPArray | NPMatrix | PDataFrame | PSeries
+data ExpandingValue = 
+    VList Collection
+  | VRList [(RListKey, Array)]
+  | VRDataFrame {dfNames :: Array, dfValues :: Collection}
+  | VNPArray Collection
+  | VNPMatrix Matrix
+  | VPDataFrame {dfLabels :: [String], dfData :: Collection}
+  | VPSeries Array
+
+data CompositeValue = Expanding ExpandingValue | CellValue ASValue
+
+data RangeDescriptor = 
+    ListDescripter {listKey :: ListKey}
+  | ObjectDescriptor {objListKey :: ListKey, objType :: ObjectType, objAttrs :: JSON}
+
+----------------------------------------------------------------------------------------------------------------------------------------------
+-- Errors
 
 -- | TODO: create custom show instance that takes REF/NA/VALUE etc into account
 data EError =
@@ -87,37 +148,31 @@ data EError =
   ZeroToTheZero
   deriving (Show, Read, Eq, Ord, Generic)
 
-data ASValue =
-    NoValue
-  | ValueNull
-  | ValueS String
-  | ValueI Int
-  | ValueD Double
-  | ValueB Bool
-  | ValueL [ASValue]
-  | ValueImage { imagePath :: String }
-  | ValueObject { displayValue :: String, objectType :: String, jsonRepresentation :: String }
-  | ValueError { errMsg :: String, errType :: String, file :: String, position :: Int }
-  | ValueExcelError EError -- #needsrefactor: should be a part of ValueError
-  | RList [(RListKey, ASValue)]
-  | RDataFrame [ASValue]
+data ASExecError =
+    Timeout
+  | EvaluationError {evalErrorDesc :: String}
+  | DependenciesLocked {lockUserId :: ASUserId}
+  | DBNothingException {badLocs :: [ASIndex]}
+  | DBGraphUnreachable -- failed to connect
+  | CircularDepError {badLoc :: ASIndex}
+  | NetworkDown
+  | RuntimeEvalException
+  | ResourceLimitReached
+  | InsufficientPermissions
+  | NonUniqueIdentifier
+  | ParseError
+  | ExpressionNotEvaluable
+  | ExecError
+  | SyntaxError
+  | HighDimensionalValue
+  | APIError
   deriving (Show, Read, Eq, Generic)
 
-type Percent = Double
+type EitherCells = Either ASExecError [ASCell]
+type EitherTExec = EitherT ASExecError IO
 
-type RListKey = String
-
-type EvalCode = String
-
-data ASReplValue = ReplValue {replValue :: ASValue, replLang :: ASLanguage} deriving (Show, Read, Eq, Generic)
-
-data ASLanguage = R | Python | OCaml | CPP | Java | SQL | Excel deriving (Show, Read, Eq, Generic)
-
--- TODO consider migration to exLocs record
-data ASExpression =
-  Expression { expression :: String, language :: ASLanguage }
-  deriving (Show, Read, Eq, Generic)
-
+----------------------------------------------------------------------------------------------------------------------------------------------
+-- Cells
 
 data ASCellTag =
     Color String
@@ -129,8 +184,6 @@ data ASCellTag =
   | Tracking
   | Volatile
   | ReadOnly [ASUserId]
-  | ListMember {listKey :: String}
-  | DFMember
   deriving (Show, Read, Eq, Generic)
 
 data ASCell = Cell {cellLocation :: ASIndex,
@@ -140,7 +193,6 @@ data ASCell = Cell {cellLocation :: ASIndex,
 
 type ListKey = String
 type ASList = (ListKey, [ASCell])
-type Rect = (Coord, Coord)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Streaming
@@ -148,7 +200,6 @@ type Rect = (Coord, Coord)
 -- Stream sources
 data Bloomberg = Bloomberg {url :: String, key :: String} deriving (Show, Read, Eq, Generic)
 data StreamSource = StreamB Bloomberg | NoSource deriving (Show, Read, Eq, Generic)
-
 -- A stream just needs a source and a frequency
 data Stream = Stream {streamSource :: StreamSource, streamFreq :: Int} deriving (Show, Read, Eq, Generic)
 
@@ -223,7 +274,6 @@ data ASPayload =
   | PayloadMutate MutateType
   deriving (Show, Read, Eq, Generic)
 
-data Direction = DUp | DDown | DLeft | DRight deriving (Show, Read, Eq, Generic)
 data MutateType = InsertCol {insertColNum :: Int} | InsertRow { insertRowNum :: Int } |
                   DeleteCol { deleteColNum :: Int } | DeleteRow { deleteRowNum :: Int } |
                   DragCol { oldColNum :: Int, newColNum :: Int } | DragRow { oldRowNum :: Int, newRowNum :: Int } 
@@ -244,34 +294,6 @@ data ASCommit = ASCommit {before :: [ASCell],
 type CommitSource = (ASSheetId, ASUserId)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
--- Eval Types
-
-data ASExecError =
-    Timeout
-  | EvaluationError {evalErrorDesc :: String}
-  | DependenciesLocked {lockUserId :: ASUserId}
-  | DBNothingException {badLocs :: [ASIndex]}
-  | DBGraphUnreachable -- failed to connect
-  | CircularDepError {badLoc :: ASIndex}
-  | NetworkDown
-  | RuntimeEvalException
-  | ResourceLimitReached
-  | InsufficientPermissions
-  | NonUniqueIdentifier
-  | ParseError
-  | ExpressionNotEvaluable
-  | ExecError
-  | SyntaxError
-  | HighDimensionalValue
-  | APIError
-  deriving (Show, Read, Eq, Generic)
-
-type EitherCells = Either ASExecError [ASCell]
-type EitherTExec = EitherT ASExecError IO
-
-type RefValMap = M.Map ASReference ASValue
-
-----------------------------------------------------------------------------------------------------------------------------------------------
 -- Websocket types
 
 data ASInitConnection = ASInitConnection {connUserId :: ASUserId, connSheetId :: ASSheetId} deriving (Show,Read,Eq,Generic)
@@ -281,7 +303,6 @@ data ASInitDaemonConnection = ASInitDaemonConnection {parentUserId :: ASUserId, 
 -- State
 
 data ServerState = State {userClients :: [ASUserClient], daemonClients :: [ASDaemonClient], dbConn :: R.Connection, appPort :: Port}
-
 type Port = Int
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Clients
@@ -329,6 +350,12 @@ instance Eq ASDaemonClient where
 
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
+-- Parsing
+
+data JSON = JSON (M.Map JSONKey JSONField) deriving (Show, Read, Eq, Generic)
+type JSONKey = String 
+data JSONField = JSONField JSON | JSONValue ASValue deriving (Show, Read, Eq, Generic)
+----------------------------------------------------------------------------------------------------------------------------------------------
 -- Convenience methods
 
 row :: Coord -> Int
@@ -365,6 +392,8 @@ instance FromJSON ASReference
 -- instance FromJSON EvalErrorType
 instance ToJSON ASValue
 instance FromJSON ASValue
+instance ToJSON ObjectType
+instance FromJSON ObjectType
 instance ToJSON ASLanguage
 instance FromJSON ASLanguage
 instance ToJSON ASExpression
@@ -411,13 +440,17 @@ instance FromJSON ASTime
 instance ToJSON ASTime
 instance FromJSON ASCommit
 instance ToJSON ASCommit
+instance FromJSON JSON
+instance ToJSON JSON
+instance FromJSON JSONField
+instance ToJSON JSONField
 -- The format Frontend uses for both client->server and server->client is
 -- { messageUserId: blah, action: blah, result: blah, payload: blah }
 instance ToJSON ASClientMessage where
   toJSON (ClientMessage action payload) = object ["action" .= action, "payload" .= payload]
 
 instance FromJSON ASClientMessage where
-  parseJSON (Object v) = ClientMessage <$>
+  parseJSON (DA.Object v) = ClientMessage <$>
                            v .: "action" <*>
                            v .: "payload"
   parseJSON _          = fail "client message JSON attributes missing"
@@ -428,7 +461,7 @@ instance ToJSON ASServerMessage where
                                                         "payload" .= payload]
 
 instance FromJSON ASServerMessage where
-  parseJSON (Object v) = ServerMessage <$>
+  parseJSON (DA.Object v) = ServerMessage <$>
                            v .: "action" <*>
                            v .: "result" <*>
                            v .: "payload"
@@ -450,7 +483,7 @@ instance ToJSON ASIndex where
                                                           "col" .= c]]
 
 instance FromJSON ASIndex where
-  parseJSON (Object v) = do
+  parseJSON (DA.Object v) = do
     loc <- v .: "index"
     sid <- v .: "sheetId"
     idx <- (,) <$> loc .: "col" <*> loc .: "row"
@@ -466,7 +499,7 @@ instance ToJSON ASRange where
                                                   "br" .= object [ "row"  .= r2, 
                                                                    "col"  .= c2]]]
 instance FromJSON ASRange where
-  parseJSON (Object v) = do
+  parseJSON (DA.Object v) = do
     rng <- v .: "range" 
     (tl, br) <- (,) <$> rng .: "tl" <*> rng .: "br"
     tl' <- (,) <$> tl .: "col" <*> tl .: "row"
@@ -490,7 +523,7 @@ instance ToJSON ASWindow where
                                                
 
 instance FromJSON ASWindow where
-  parseJSON (Object v) = do
+  parseJSON (DA.Object v) = do
     rng <- v .: "window" 
     (tl, br) <- (,) <$> rng .: "tl" <*> rng .: "br"
     tl' <- (,) <$> tl .: "col" <*> tl .: "row"
@@ -507,6 +540,9 @@ instance FromJSON MutateType
 
 -- memory region exposure instances for R value unboxing
 instance NFData ASValue       where rnf = genericRnf
+instance NFData JSON          where rnf = genericRnf
+instance NFData JSONField     where rnf = genericRnf
+instance NFData ObjectType    where rnf = genericRnf
 instance NFData EError        where rnf = genericRnf
 instance NFData ASReference   where rnf = genericRnf
 instance NFData ASRange       where rnf = genericRnf

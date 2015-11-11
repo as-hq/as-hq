@@ -6,8 +6,8 @@ import AS.Types.Core
 import AS.Types.DB
 import AS.Util as U
 import AS.Parsing.Common (tryParseListNonIso)
-import AS.Parsing.In (integer)
-import AS.Parsing.Out (showValue)
+import AS.Parsing.Read (integer)
+import AS.Parsing.Show (showValue)
 
 import qualified Data.List                     as L
 import qualified Data.Text                     as T

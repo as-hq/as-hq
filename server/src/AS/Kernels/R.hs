@@ -101,7 +101,7 @@ castR (R.SomeSEXP s) = do
 -- everything returned is a list, because R.
 castSEXP :: R.SEXP s a -> R s [ASValue]
 castSEXP x = case x of
-  (hexp -> H.Nil)       -> return [ValueNull]
+  (hexp -> H.Nil)       -> return [NoValue]
   (hexp -> H.Real v)    -> return $ map fromReal $ SV.toList v
   (hexp -> H.Int v)     -> return $ map (ValueI . fromIntegral) $ SV.toList v
   (hexp -> H.Logical v) -> return $ map (ValueB . fromLogical) $ SV.toList v
@@ -157,7 +157,7 @@ castListNames :: ASValue -> [String]
 castListNames val = case val of
   (ValueL l) -> map (\(ValueS n)->n) l
   (ValueS s) -> [s]
-  ValueNull  -> repeat "NULL"
+  NoValue  -> repeat "NULL"
 
 -- TODO figure out S4 casting
 castS4 :: R.SEXP s a -> R s ASValue

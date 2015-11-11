@@ -4,7 +4,7 @@ import Prelude
 
 import Text.ParserCombinators.Parsec
 import Control.Applicative hiding ((<|>), many)
-import AS.Parsing.Out
+import AS.Parsing.Excel
 import AS.Types.Excel
 import AS.Kernels.Excel.Compiler (formula)
 import AS.Types.Core

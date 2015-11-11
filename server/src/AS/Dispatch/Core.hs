@@ -11,8 +11,8 @@ import qualified AS.DB.API  as DB
 import qualified AS.DB.Util as DU
 import qualified Data.List  as L
 import AS.Parsing.Common
-import AS.Parsing.Out hiding (first)
-import AS.Parsing.In
+import AS.Parsing.Show hiding (first)
+import AS.Parsing.Read
 import Data.Maybe (fromJust, isNothing,catMaybes)
 import Text.ParserCombinators.Parsec
 import Control.Applicative
