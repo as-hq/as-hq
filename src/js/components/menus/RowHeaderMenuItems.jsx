@@ -6,10 +6,18 @@ import API from '../../actions/ASApiActionCreators';
 
 export default (row) => [
   {
-    primaryText: 'Insert row',
+    primaryText: 'Insert row above',
     onclick() {
       logDebug('Insert row', row);
       API.insertRow(row);
+    }
+  },
+
+  {
+    primaryText: 'Insert row below',
+    onclick() {
+      logDebug('Insert row', row + 1);
+      API.insertRow(row + 1);
     }
   },
 

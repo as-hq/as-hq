@@ -6,10 +6,18 @@ import API from '../../actions/ASApiActionCreators';
 
 export default (col) => [
   {
-    primaryText: 'Insert column',
+    primaryText: 'Insert column to left',
     onclick() {
       logDebug('Insert column', col);
       API.insertCol(col);
+    }
+  },
+
+  {
+    primaryText: 'Insert column to right',
+    onclick() {
+      logDebug('Insert column', col + 1);
+      API.insertCol(col + 1);
     }
   },
 
