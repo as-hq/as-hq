@@ -24,11 +24,12 @@ describe('backend', () => {
     dragRow,
 
     copy,
-    paste,
     cut,
     undo,
     redo,
     delete_,
+
+    toggleTag,
 
     python,
     r,
@@ -47,7 +48,9 @@ describe('backend', () => {
     shouldBeError,
     shouldBeNothing,
     shouldBeImage,
-    expressionShouldBe
+    expressionShouldBe,
+    shouldHaveTag, 
+    shouldNotHaveTag
   } = require('../src/js/browser-test/exec-api');
   const {
     fromToInclusive,
@@ -1466,6 +1469,56 @@ describe('backend', () => {
         });
       });
     });
+
+    describe('tags', () => {
+      describe('bolding', () => {
+        it('should bold blocks of cells at once', (done) => {
+          _do([
+            python('A1', '1'),
+            python('A2', '2'),
+            toggleTag('A1:A2', 'Bold'),
+            shouldHaveTag('A1', 'Bold'), 
+            shouldHaveTag('A2', 'Bold'), 
+            exec(done)
+          ]);
+        });
+
+        it('should make all cells in range bold if at least one is not', (done) => {
+          _do([
+            python('A1', '1'),
+            python('A2', '2'),
+            toggleTag('A1', 'Bold'),
+            toggleTag('A1:A2', 'Bold'),
+            shouldHaveTag('A1', 'Bold'), 
+            shouldHaveTag('A2', 'Bold'), 
+            exec(done)
+          ]);
+        });
+
+        it('should unbold all cells in range if all are bold', (done) => {
+          _do([
+            python('A1', '1'),
+            python('A2', '2'),
+            toggleTag('A1', 'Bold'),
+            toggleTag('A1:A2', 'Bold'),
+            toggleTag('A1:A2', 'Bold'),
+            shouldNotHaveTag('A1', 'Bold'), 
+            shouldNotHaveTag('A2', 'Bold'), 
+            exec(done)
+          ]);
+        });
+
+        it('should bold blank cells', (done) => {
+          _do([
+            toggleTag('A1', 'Bold'),
+            python('A1', '1'),
+            shouldHaveTag('A1', 'Bold'), 
+            exec(done)
+          ]);
+        });
+      });
+    });
+
 
     describe('vcs', () => {
       describe('undo', () => {
