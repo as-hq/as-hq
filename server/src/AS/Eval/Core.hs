@@ -67,8 +67,8 @@ possiblyShortCircuit :: ASSheetId -> RefValMap -> ASExpression -> Maybe ASValue
 possiblyShortCircuit sheetid valuesMap xp =
   let depRefs  = getDependencies sheetid xp -- :: [ASReference]
       depInds  = map refToIndices depRefs   -- :: [Maybe [ASIndex]]
-      depInds' = concat $ map (maybe [Nothing] (map Just)) depInds -- [ Maybe ASIndex ]
-      refs   = map (maybe OutOfBounds IndexRef) depInds'
+      depInds' = concat $ map (maybe [Nothing] (map Just)) depInds -- :: [ Maybe ASIndex ]
+      refs   = map (maybe OutOfBounds IndexRef) depInds' -- :: [ASReference]
       lang = language xp
       values = map (valuesMap M.!) $ refs in
   MB.listToMaybe $ MB.catMaybes $ map (\(r,v) -> case r of
@@ -77,7 +77,7 @@ possiblyShortCircuit sheetid valuesMap xp =
       NoValue                  -> handleNoValueInLang lang i
       ve@(ValueError _ _ _ _)  -> handleErrorInLang lang ve
       vee@(ValueExcelError _)  -> handleErrorInLang lang vee
-      otherwise                -> Nothing) (zip depIndices values)
+      otherwise                -> Nothing) (zip refs values)
 
 -- | Nothing if it's OK to pass in NoValue, appropriate ValueError if not.
 handleNoValueInLang :: ASLanguage -> ASIndex -> Maybe ASValue

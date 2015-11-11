@@ -616,12 +616,12 @@ cellLocMap (DragRow oldR newR) i@(Index sid (c, r))
   -- case oldR == newR can't happen because oldR < r < newR since third pattern-match
 
 refMap :: MutateType -> (ExRef -> ExRef)
-refMap mt er@(ExLocRef ExOutOfBounds _ _) = er
+refMap mt ExOutOfBounds = ExOutOfBounds
 refMap mt er@(ExLocRef (ExIndex rt _ _) ls lw) = er'
   where -- feels kinda ugly... 
     IndexRef ind = exRefToASRef (T.pack "") er
     er' = case (cellLocMap mt ind) of 
-      Nothing -> OutOfBounds
+      Nothing -> ExOutOfBounds
       Just newRefLoc -> ExLocRef ei' ls lw
         where
           ExLocRef ei _ _ = asRefToExRef $ IndexRef newRefLoc
