@@ -276,15 +276,12 @@ const ASEvaluationStore = assign({}, BaseStore, {
   resetLastUpdatedCells() {
     _data.lastUpdatedCells = [];
   },
-  // Currently an inconsistency between backend and frontend, where frontend only lets you
-  // toggle one tag at once programmatically, whereas backend takes in a list of tags, and for now
-  // is only getting passed tag lists of size 1. (Alex 11/7)
-  toggleTag(tag, rng) {
-    let inds = TC.rangeToIndices(rng);
-    inds.forEach((i) => this.toggleTagAtLoc(tag, i), this);
-  },
 
   // now handled entirely by backend
+  // toggleTag(tag, rng) {
+  //   let inds = TC.rangeToIndices(rng);
+  //   inds.forEach((i) => this.toggleTagAtLoc(tag, i), this);
+  // },
   // toggleTagAtLoc(tag, loc) {
   //   let {col, row} = loc;
   //   let sheetId = _data.currentSheet.sheetId;

@@ -128,6 +128,7 @@ export default Object.assign({
     Find: "Find",
     BugReport: "BugReport",
     ToggleTag: "ToggleTag",
+    SetTag: "SetTag",
     JumpSelect: "JumpSelect",
     MutateSheet: "MutateSheet"
   },

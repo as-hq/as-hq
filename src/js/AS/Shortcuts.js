@@ -87,11 +87,11 @@ export default {
         }
     });
     SU.add('common', 'format_value', 'Ctrl+Shift+2/3/4/5/6', (wildcard) => {
-      let tag;
+      let dispType;
       // TODO other wildcards
-      if (wildcard === '$') tag = "Money"; 
-      else if (wildcard === '%') tag = "Percentage"; 
-      API.toggleTag(tag, Store.getActiveSelection().range);
+      if (wildcard === '$') dispType = "Money"; 
+      else if (wildcard === '%') dispType = "Percentage"; 
+      API.setTag("Disp", dispType, Store.getActiveSelection().range);
       self.refs.spreadsheet.repaint();
     });
     SU.add("common", "bold", "Ctrl+B", (wildcard) => {

@@ -30,6 +30,7 @@ describe('backend', () => {
     delete_,
 
     toggleTag,
+    setTag,
 
     python,
     r,
@@ -1513,6 +1514,28 @@ describe('backend', () => {
             toggleTag('A1', 'Bold'),
             python('A1', '1'),
             shouldHaveTag('A1', 'Bold'), 
+            exec(done)
+          ]);
+        });
+      });
+
+      describe('formatting', () => {
+        it('should format blocks of cells at once', (done) => {
+          _do([
+            python('A1', '1'),
+            python('A2', '2'),
+            setTag('A1:A2', 'Disp', 'Money'),
+            shouldHaveTag('A1', 'Disp'), 
+            shouldHaveTag('A2', 'Disp'), 
+            exec(done)
+          ]);
+        });
+
+        it('should format blank cells', (done) => {
+          _do([
+            setTag('A1', 'Disp', 'Money'),
+            python('A1', '1'),
+            shouldHaveTag('A1', 'Disp'), 
             exec(done)
           ]);
         });

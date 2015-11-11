@@ -312,13 +312,19 @@ export default {
     this.send(msg);
   },
 
-
-  /**************************************************************************************************************************/
-  /* Sending get messages to the server */
   toggleTag(tag, rng) {
     let msg = TC.makeClientMessageRaw(Constants.ServerActions.ToggleTag, {
       "tag": "PayloadTag",
       "cellTag": {tag: tag, contents: []},
+      "tagRange": TC.simpleToASRange(rng)
+    });
+    this.send(msg);
+  },
+
+  setTag(tag, val, rng) {
+    let msg = TC.makeClientMessageRaw(Constants.ServerActions.SetTag, {
+      "tag": "PayloadTag",
+      "cellTag": {tag: tag, contents: val},
       "tagRange": TC.simpleToASRange(rng)
     });
     this.send(msg);

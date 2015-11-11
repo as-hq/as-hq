@@ -105,11 +105,15 @@ export default {
         case "Align":
           config.halign = tag.contents.toLowerCase();
           break;
-        case "Money":
-          config.value = self.formatMoney("$", config.value, 2);
-          break;
-        case "Percentage":
-          config.value = self.formatPercentage(config.value);
+        case "Disp":
+          switch (tag.contents) { 
+            case "Money": 
+              config.value = self.formatMoney("$", config.value, 2);
+              break; 
+            case "Percentage":
+              config.value = self.formatPercentage(config.value);
+              break;
+          }
           break;
         case "Streaming":
           config.isStreaming = true;

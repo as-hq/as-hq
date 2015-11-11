@@ -211,6 +211,12 @@ export function toggleTag(rng, tag) {
   });
 }
 
+export function setTag(rng, tag, val) {
+  return apiExec(() => {
+    API.setTag(tag, val, rangeFromExcel(rng));
+  });
+}
+
 export function valueD(val) {
   return { tag: 'ValueD', contents: val };
 }
