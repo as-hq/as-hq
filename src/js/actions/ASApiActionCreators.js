@@ -40,9 +40,9 @@ let refreshDialogShown = false;
 */
 
 wss.onmessage = (event) => {
-  logDebug("Client received data from server: " + JSON.stringify(event.data));
-
   if (event.data === 'ACK') return;
+
+  logDebug("Client received data from server: " + JSON.stringify(event.data));
 
   let msg = JSON.parse(event.data);
   if (msg.result.tag === "Failure") {
@@ -202,7 +202,7 @@ export default {
   ackMessage(innerClient) {
     let msg = TC.makeClientMessage(Constants.ServerActions.Acknowledge,
       'PayloadN', []);
-    logDebug('Sending ACK from API action creators');
+    //logDebug('Sending ACK from API action creators');
     innerClient.send(JSON.stringify(msg));
   },
 
