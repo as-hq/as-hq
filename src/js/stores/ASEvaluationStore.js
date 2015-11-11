@@ -47,8 +47,10 @@ let _data = {
   },
   externalError: null,
   viewingWindow: {
-    tl: { col: 0, row: 0},
-    br: { col: 100, row: 100}
+    range: {
+      tl: { col: 0, row: 0},
+      br: { col: 100, row: 100}
+    }
   }
 };
 

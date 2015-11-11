@@ -203,7 +203,7 @@ export default {
     let msg = TC.makeClientMessage(Constants.ServerActions.Acknowledge,
       'PayloadN', []);
     logDebug('Sending ACK from API action creators');
-    innerClient.send(msg);
+    innerClient.send(JSON.stringify(msg));
   },
 
   reinitialize() {

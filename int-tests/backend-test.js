@@ -1622,7 +1622,7 @@ describe('backend', () => {
       });
     });
 
-    describe('websockets reliability', () => {
+    fdescribe('websockets reliability', () => {
       it('restores connections after failure', (done) => {
         _do([
           exec(() => {

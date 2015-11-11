@@ -35,7 +35,6 @@ class PersistentWebSocket {
 
   set onmessage(fn) {
     this._client.onmessage = (evt) => {
-      logDebug('RECEIVED MESSAGE', evt);
       this._dcCount = 0;
       fn(evt);
     };
@@ -55,10 +54,7 @@ class PersistentWebSocket {
 
   _checkDC() {
     this._dcCount++;
-    logDebug('DC COUNT NOW', this._dcCount);
-
     if ((this._dcCount % SEND_ACK_FREQ === 0) && this._client.readyState === 1) {
-      logDebug('SENDING ACK');
       this._sendAck(this._client);
     }
 
@@ -67,7 +63,6 @@ class PersistentWebSocket {
         this._client.close();
       }
 
-      logDebug('assigning old onmessage');
       let {onmessage, onopen} = this._client;
 
       this._beforereconnect();
