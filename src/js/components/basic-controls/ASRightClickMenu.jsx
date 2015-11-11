@@ -77,7 +77,9 @@ export default React.createClass({
       menu: {
         zIndex: 100,
         top: -12,
-        left: -12
+        left: -12,
+        fontFamily: 'Roboto, sans-serif',
+        fontSize: '14px'
       }
     };
 
@@ -87,6 +89,11 @@ export default React.createClass({
     let menuChildren =
       menuItems.map(({primaryText, onclick}) =>
           <MenuItem
+            style={{
+              fontFamily: 'Roboto, sans-serif',
+              fontSize: '14px',
+              lineHeight: '28px'
+            }}
             primaryText={primaryText}
             onTouchTap={onclick}
             />
