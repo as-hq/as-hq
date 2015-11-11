@@ -320,10 +320,9 @@ export default {
   toggleTag(tag, rng) {
     let msg = TC.makeClientMessageRaw(Constants.ServerActions.ToggleTag, {
       "tag": "PayloadTag",
-      "cellTag": tag,
+      "cellTag": {tag: tag, contents: []},
       "tagRange": TC.simpleToASRange(rng)
     });
-    // Store.toggleTag(tag, rng);
     this.send(msg);
   },
 
