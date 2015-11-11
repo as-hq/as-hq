@@ -143,10 +143,9 @@ initClient client state = do
 talk :: (Client c) => c -> MVar ServerState -> IO ()
 talk client state = forever $ do
   msg <- WS.receiveData (conn client)
-  putStrLn "=========================================================="
   case (decode msg :: Maybe ASClientMessage) of
-    Just m  -> printWithTime ("SERVER message received:  " ++ (show msg)) >> processMessage client state m
-    Nothing -> printWithTime ("SERVER ERROR: unable to decode message " ++ (show msg)) >> return ()
+    Just m  -> processMessage client state m
+    Nothing -> printWithTime ("SERVER ERROR: unable to decode message " ++ (show msg))
 
 handleRuntimeException :: ASUserClient -> MVar ServerState -> SomeException -> IO ()
 handleRuntimeException user state e = do

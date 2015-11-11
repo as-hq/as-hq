@@ -51,10 +51,12 @@ instance Client ASUserClient where
     | otherwise = s
   clientCommitSource (UserClient uid _ (Window sid _ _) _) = (sid, uid)
   handleClientMessage user state message = do 
-    printWithTime ("\n\nMessage: " ++ (show message))
     -- second arg is supposed to be sheet id; temporary hack is to always set userId = sheetId
     -- on frontend. 
-    writeToLog (show message) (clientCommitSource user)
+    unless (clientAction message == Acknowledge) $ do 
+      writeToLog (show message) (clientCommitSource user)
+      putStrLn "=========================================================="
+      printObj "Message" (show message)
     redisConn <- dbConn <$> readMVar state
     recordMessage redisConn message (clientCommitSource user)
     case (clientAction message) of
