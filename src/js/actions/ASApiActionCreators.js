@@ -210,7 +210,7 @@ export default {
     this.initMessage();
     this.openSheet();
     this.updateViewingWindow(
-      TC.rangeToASWindow(Store.getViewingWindow())
+      TC.rangeToASWindow(Store.getViewingWindow().range)
     );
   },
 

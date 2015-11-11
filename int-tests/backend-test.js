@@ -1622,7 +1622,15 @@ describe('backend', () => {
       });
     });
 
-    fdescribe('websockets reliability', () => {
+    describe('websockets reliability', () => {
+      beforeAll(() => {
+        API.setUITestMode();
+      });
+
+      afterAll(() => {
+        API.unsetUITestMode();
+      });
+
       it('restores connections after failure', (done) => {
         _do([
           exec(() => {
