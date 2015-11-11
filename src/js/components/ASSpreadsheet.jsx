@@ -1,5 +1,7 @@
 import {logDebug} from '../AS/Logger';
 
+import _ from 'lodash';
+
 import React from 'react';
 
 import ActionCreator from '../actions/ASSpreadsheetActionCreators';
@@ -18,9 +20,12 @@ import Util from '../AS/Util';
 import Constants from '../Constants';
 import Render from '../AS/Render';
 
+import ASRightClickMenu from './basic-controls/ASRightClickMenu.jsx';
 import ASOverlay from './ASOverlay.jsx';
 import Textbox from './Textbox.jsx'
 
+import rowHeaderMenuItems from './menus/RowHeaderMenuItems.jsx';
+import columnHeaderMenuItems from './menus/ColumnHeaderMenuItems.jsx';
 
 export default React.createClass({
 
@@ -61,6 +66,7 @@ export default React.createClass({
       let self = this;
       let hg = this._getHypergrid();
       this.getInitialData();
+
       let callbacks = ({
         /*
           Call onSelectionChange method in eval pane to deal with selection change
@@ -89,10 +95,37 @@ export default React.createClass({
           self.props.setFocus('textbox');
         }
       });
-      for (var key in callbacks) {
-        var value = callbacks[key];
-        hg.addFinEventListener(key, value);
-      }
+
+      let externalCallbacks = {
+        mouseup: ({which, x, y, offsetX, offsetY}) => {
+          /* x, y: against the page, for rendering the dropdown */
+          /* offsetX, offsetY: against hypergrid, for finding coordinates */
+
+          if (which === 3) { // right click
+            let {gridCell: {x: col, y: row}} =
+              hg.renderer.getGridCellFromMousePoint({
+                x: offsetX,
+                y: offsetY
+              });
+
+            if (col != 0 || row != 0) { // right click on a row header
+              this.refs.rightClickMenu.openAt(x, y,
+                (col != 0)
+                  ? columnHeaderMenuItems(col)
+                  : rowHeaderMenuItems(row)
+              );
+            }
+          }
+        }
+      };
+
+      _.forEach(callbacks, (v, k) => {
+        hg.addFinEventListener(k, v);
+      });
+
+      _.forEach(externalCallbacks, (v, k) => {
+        hg.addEventListener(k, v);
+      });
 
       hg.addGlobalProperties({
         defaultFixedColumnWidth: 35,
@@ -566,6 +599,7 @@ export default React.createClass({
                              isVisible={self.isVisible}/>);
         })}
 
+        <ASRightClickMenu ref="rightClickMenu" />
 
         <Textbox
                  ref="textbox"
