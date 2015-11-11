@@ -55,8 +55,11 @@ describe('backend', () => {
     _do,
     _doDefer,
     _forM_,
-    exec
+    exec,
+    blockUntil
   } = require('../src/js/browser-test/exec-monad');
+
+  const API = require('../src/js/actions/ASApiActionCreators');
 
   beforeAll(() => {
     __injectExpect(expect);
@@ -332,8 +335,8 @@ describe('backend', () => {
                 python('A2', '6'),
                 python('B1', '7'),
                 python('B2', '8'),
-                python('C1', 'sum(A1:B2)'), 
-                shouldBeError('C1'), 
+                python('C1', 'sum(A1:B2)'),
+                shouldBeError('C1'),
                 exec(done)
               ]);
             });
@@ -354,7 +357,7 @@ describe('backend', () => {
           describe('ASIterables initialization', () => {
             it('works over 1D lists', (done) => {
               _do([
-                python('A1', 'arr([1, 2, 3])'), 
+                python('A1', 'arr([1, 2, 3])'),
                 python('A2', 'A1:A3[1]'),
                 shouldBe('A2', valueI(2)),
                 exec(done)
@@ -372,7 +375,7 @@ describe('backend', () => {
 
             it('works over 2D lists', (done) => {
               _do([
-                python('A1', 'arr([[1, 2], [3]])'), 
+                python('A1', 'arr([[1, 2], [3]])'),
                 python('A2', 'A1:A3[1]'),
                 shouldBe('A2', valueI(3)),
                 exec(done)
@@ -427,7 +430,7 @@ describe('backend', () => {
           describe('Hiding and unhiding', () => {
             it('can be hidden and unhidden', (done) => {
               _do([
-                python('A1', '5'), python('A2', '6'), python('A3', '7'), 
+                python('A1', '5'), python('A2', '6'), python('A3', '7'),
                 python('B1', 'A1:A3.hide()'),
                 shouldBeNothing('B2'),
                 python('C1', 'B1.unhide()'),
@@ -438,7 +441,7 @@ describe('backend', () => {
 
             it('can be operated on while hidden', (done) => {
               _do([
-                python('A1', '5'), python('A2', '6'), python('A3', '7'), 
+                python('A1', '5'), python('A2', '6'), python('A3', '7'),
                 python('B1', 'A1:A3.hide()'),
                 python('C1', 'B1.reversed()'),
                 shouldBe('C1', valueI(7)),
@@ -448,7 +451,7 @@ describe('backend', () => {
 
             it('preserves dimensions upon hiding and unhiding', (done) => {
               _do([
-                python('A1', 'hide([[1,2]])'), 
+                python('A1', 'hide([[1,2]])'),
                 python('A3', 'A1.unhide()'),
                 shouldBe('B3', valueI(2)),
                 exec(done)
@@ -477,7 +480,7 @@ describe('backend', () => {
 
             it('can be sorted', (done) => {
               _do([
-                python('A1', '7'), python('A2', '5'), python('A3', '6'), 
+                python('A1', '7'), python('A2', '5'), python('A3', '6'),
                 python('C1', 'A1:A3.sorted()'),
                 shouldBe('C2', valueI(6)),
                 exec(done)
@@ -486,7 +489,7 @@ describe('backend', () => {
 
             it('can be reversed', (done) => {
               _do([
-                python('A1', '7'), python('A2', '5'), python('A3', '6'), 
+                python('A1', '7'), python('A2', '5'), python('A3', '6'),
                 python('C1', 'A1:A3.reversed()'),
                 shouldBe('C3', valueI(7)),
                 exec(done)
@@ -495,7 +498,7 @@ describe('backend', () => {
 
             it('can be appended as a 2D list', (done) => {
               _do([
-                python('A1', '[[1,2],[3,4]]'), 
+                python('A1', '[[1,2],[3,4]]'),
                 python('A3', 'l = A1:B2\nl.append([5,6])\nl'),
                 shouldBe('B5', valueI(6)),
                 exec(done)
@@ -504,7 +507,7 @@ describe('backend', () => {
 
             it('can be sorted and reversed and transposed in succession', (done) => {
               _do([
-                python('A1', '7'), python('A2', '5'), python('A3', '6'), 
+                python('A1', '7'), python('A2', '5'), python('A3', '6'),
                 python('B1', 'A1:A3.sorted().reversed().transpose()'),
                 shouldBe('D1', valueI(5)),
                 exec(done)
@@ -695,9 +698,9 @@ describe('backend', () => {
             shouldBe('B1', valueI(0)),
 
             excel('B2', '=A1+A3'),
-            shouldBe('B2', valueI(5)), 
+            shouldBe('B2', valueI(5)),
 
-            excel('B3', '=A1*A2'), 
+            excel('B3', '=A1*A2'),
             shouldBe('B3', valueI(0)),
             exec(done)
           ]);
@@ -1616,6 +1619,28 @@ describe('backend', () => {
             exec(done)
           ]);
         });
+      });
+    });
+
+    describe('websockets reliability', () => {
+      it('restores connections after failure', (done) => {
+        _do([
+          exec(() => {
+            API.withWS((pws) => {
+              pws._withNakedWS((ws) => {
+                ws.close();
+              })
+            });
+          }),
+          blockUntil(() => {
+            return API.withWS((pws) => {
+              return pws.readyState() === 1;
+            });
+          }),
+          python('A1', '1'),
+          shouldBe('A1', valueI(1)),
+          exec(done)
+        ]);
       });
     });
   });

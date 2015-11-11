@@ -6,11 +6,14 @@ import T from '../AS/Types';
 import TC from '../AS/TypeConversions';
 import Store from '../stores/ASEvaluationStore';
 import Util from '../AS/Util';
+import ws from '../AS/PersistentWebSocket';
 
+/*
 import isNode from 'detect-node';
 let [ws] = isNode ?
   [require('ws')] :
   [WebSocket];
+  */
 
 let ActionTypes = Constants.ActionTypes;
 let wss = new ws(Util.getHostUrl());
@@ -36,7 +39,7 @@ let refreshDialogShown = false;
   Converts server to client types before going further
 */
 
-wss.onmessage = function (event) {
+wss.onmessage = (event) => {
   logDebug("Client received data from server: " + JSON.stringify(event.data));
 
   if (event.data === 'ACK') return;
@@ -169,39 +172,12 @@ wss.onopen = (evt) => {
 };
 
 export default {
-
-  /**************************************************************************************************************************/
-  /* Sending acknowledge message to server */
-
-  waitForSocketConnection(socket, callback, waitTime) {
-    if (typeof(waitTime) == "undefined") {
-      waitTime = 0;
-    }
-
-    if (waitTime >= 2000 && !refreshDialogShown && Constants.showConnectionLost) {
-      alert("The connection with the server appears to have been lost. Please refresh the page.");
-      refreshDialogShown = true;
-      waitTime = 0;
-    }
-
-    setTimeout(() => {
-      if (socket.readyState === 1) {
-        if(callback != null){
-          callback();
-        }
-        return;
-      } else {
-        this.waitForSocketConnection(socket, callback, waitTime + 5);
-      }
-    }, 5);
-  }, // polling socket for readiness: 5 ms
-
   send(msg) {
     logDebug(`Queueing ${msg.action} message`);
-    this.waitForSocketConnection(wss, () => {
+    wss.waitForConnection((innerClient) => {
       logDebug(`Sending ${msg.action} message`);
       logDebug(JSON.stringify(msg));
-      wss.send(JSON.stringify(msg));
+      innerClient.send(JSON.stringify(msg));
 
       /* for testing */
       if (msg.action === 'Acknowledge' && isRunningTest) {
@@ -214,13 +190,35 @@ export default {
     });
   },
 
-  initialize() {
+  initMessage() {
     let msg = TC.makeClientMessage(Constants.ServerActions.Acknowledge,
-                                          "PayloadInit",
-                                          {"connUserId": Store.getUserId(),
-                                           "connSheetId": Store.getCurrentSheet().sheetId});
+      "PayloadInit",
+      {"connUserId": Store.getUserId(),
+        "connSheetId": Store.getCurrentSheet().sheetId});
     logDebug("Sending init message: " + JSON.stringify(msg));
     this.send(msg);
+  },
+
+  ackMessage(innerClient) {
+    let msg = TC.makeClientMessage(Constants.ServerActions.Acknowledge,
+      'PayloadN', []);
+    logDebug('Sending ACK from API action creators');
+    innerClient.send(msg);
+  },
+
+  reinitialize() {
+    this.initMessage();
+    this.openSheet();
+    this.updateViewingWindow(
+      TC.rangeToASWindow(Store.getViewingWindow())
+    );
+  },
+
+  initialize() {
+    wss.sendAck = this.ackMessage;
+    wss.beforereconnect = () => { this.reinitialize(); };
+
+    this.initMessage();
   },
 
   /**************************************************************************************************************************/
@@ -369,61 +367,61 @@ export default {
     this.send(msg);
   },
 
-  insertCol(c) { 
-    let mutateType = { 
-      tag: "InsertCol", 
+  insertCol(c) {
+    let mutateType = {
+      tag: "InsertCol",
       insertColNum: c
-    }; 
+    };
     let msg = TC.makeClientMessage(Constants.ServerActions.MutateSheet, "PayloadMutate", mutateType);
     this.send(msg);
-  }, 
+  },
 
-  insertRow(r) { 
-    let mutateType = { 
-      tag: "InsertRow", 
+  insertRow(r) {
+    let mutateType = {
+      tag: "InsertRow",
       insertRowNum: r
-    }; 
+    };
     let msg = TC.makeClientMessage(Constants.ServerActions.MutateSheet, "PayloadMutate", mutateType);
     this.send(msg);
-  }, 
+  },
 
-  deleteCol(c) { 
-    let mutateType = { 
-      tag: "DeleteCol", 
+  deleteCol(c) {
+    let mutateType = {
+      tag: "DeleteCol",
       deleteColNum: c
-    }; 
+    };
     let msg = TC.makeClientMessage(Constants.ServerActions.MutateSheet, "PayloadMutate", mutateType);
     this.send(msg);
-  }, 
+  },
 
-  deleteRow(r) { 
-    let mutateType = { 
-      tag: "DeleteRow", 
+  deleteRow(r) {
+    let mutateType = {
+      tag: "DeleteRow",
       deleteRowNum: r
-    }; 
+    };
     let msg = TC.makeClientMessage(Constants.ServerActions.MutateSheet, "PayloadMutate", mutateType);
     this.send(msg);
-  }, 
+  },
 
-  dragCol(c1, c2) { 
-    let mutateType = { 
-      tag: "DragCol", 
-      oldColNum: c1, 
+  dragCol(c1, c2) {
+    let mutateType = {
+      tag: "DragCol",
+      oldColNum: c1,
       newColNum: c2
-    }; 
+    };
     let msg = TC.makeClientMessage(Constants.ServerActions.MutateSheet, "PayloadMutate", mutateType);
     this.send(msg);
-  }, 
+  },
 
-  dragRow(r1, r2) { 
-    let mutateType = { 
-      tag: "DragRow", 
-      oldRowNum: r1, 
+  dragRow(r1, r2) {
+    let mutateType = {
+      tag: "DragRow",
+      oldRowNum: r1,
       newRowNum: r2
-    }; 
+    };
     let msg = TC.makeClientMessage(Constants.ServerActions.MutateSheet, "PayloadMutate", mutateType);
     this.send(msg);
-  }, 
+  },
 
   // @optional mySheet
   openSheet(mySheet) {
@@ -458,6 +456,10 @@ export default {
 
   /**************************************************************************************************************************/
   /* Testing */
+
+  withWS(fn) {
+    return fn(wss);
+  },
 
   test(f, cbs) {
     currentCbs = cbs;

@@ -46,7 +46,10 @@ let _data = {
     isCut: false
   },
   externalError: null,
-  viewingWindow: null
+  viewingWindow: {
+    tl: { col: 0, row: 0},
+    br: { col: 100, row: 100}
+  }
 };
 
 const ASEvaluationStore = assign({}, BaseStore, {
@@ -527,6 +530,10 @@ const ASEvaluationStore = assign({}, BaseStore, {
     return { tl: {col: 1, row: 1},
              br: {col: Constants.LARGE_SEARCH_BOUND,
                   row: Constants.LARGE_SEARCH_BOUND} };
+  },
+
+  getViewingWindow() {
+    return _data.viewingWindow;
   },
 
   shouldSuppressErrors() {
