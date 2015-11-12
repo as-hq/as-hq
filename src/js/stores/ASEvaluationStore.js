@@ -38,6 +38,7 @@ let _data = {
   activeSelection: null,
   activeFocus: 'grid',
   lastActiveFocus: 'textbox',
+  gridShifted: false, // for shift+click tracking
   partialSelections: [],
   activeCell: null,
   clipboard: {
@@ -45,7 +46,12 @@ let _data = {
     isCut: false
   },
   externalError: null,
-  viewingWindow: null
+  viewingWindow: {
+    range: {
+      tl: { col: 0, row: 0},
+      br: { col: 100, row: 100}
+    }
+  }
 };
 
 const ASEvaluationStore = assign({}, BaseStore, {
@@ -159,9 +165,8 @@ const ASEvaluationStore = assign({}, BaseStore, {
           ASEvaluationStore.emitChange();
           break;
         case Constants.ActionTypes.DELETED_LOCS:
-          let sheetId = action.deletedRange.sheetId,
-              locs = TC.rangeToASIndices(action.deletedRange.range);
-
+          _data.lastUpdatedCells = [];
+          let locs = TC.rangeToASIndices(action.deletedRange.range);
           ASEvaluationStore.removeIndices(locs);
           ASEvaluationStore.updateCells(action.updatedCells);
           ASEvaluationStore.emitChange();
@@ -271,15 +276,12 @@ const ASEvaluationStore = assign({}, BaseStore, {
   resetLastUpdatedCells() {
     _data.lastUpdatedCells = [];
   },
-  // Currently an inconsistency between backend and frontend, where frontend only lets you
-  // toggle one tag at once programmatically, whereas backend takes in a list of tags, and for now
-  // is only getting passed tag lists of size 1. (Alex 11/7)
-  toggleTag(tag, rng) {
-    let inds = TC.rangeToIndices(rng);
-    inds.forEach((i) => this.toggleTagAtLoc(tag, i), this);
-  },
 
   // now handled entirely by backend
+  // toggleTag(tag, rng) {
+  //   let inds = TC.rangeToIndices(rng);
+  //   inds.forEach((i) => this.toggleTagAtLoc(tag, i), this);
+  // },
   // toggleTagAtLoc(tag, loc) {
   //   let {col, row} = loc;
   //   let sheetId = _data.currentSheet.sheetId;
@@ -437,6 +439,12 @@ const ASEvaluationStore = assign({}, BaseStore, {
   },
 
   /**************************************************************************************************************************/
+  /* Selection state */
+
+  setGridShifted(val) { _data.gridShifted = val; },
+  getGridShifted() { return _data.gridShifted; },
+
+  /**************************************************************************************************************************/
   /* Updating expression when user clicks on a cell */
 
 // @optional mySheetId
@@ -521,6 +529,10 @@ const ASEvaluationStore = assign({}, BaseStore, {
     return { tl: {col: 1, row: 1},
              br: {col: Constants.LARGE_SEARCH_BOUND,
                   row: Constants.LARGE_SEARCH_BOUND} };
+  },
+
+  getViewingWindow() {
+    return _data.viewingWindow;
   },
 
   shouldSuppressErrors() {

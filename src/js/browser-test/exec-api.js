@@ -130,17 +130,53 @@ export function ocaml(loc, xp) {
   return cell(loc, xp, 'ml');
 }
 
-export function copy(rng1, rng2) {
-  return apiExec(() => {
-    let [asRng1, asRng2] = [rng1, rng2].map(asRange);
-    API.copy(asRng1, asRng2);
-  });
-}
-
 export function repeat(rng, origin) {
   return apiExec(() => {
     let sel = {origin: indFromExcel(origin), range: rangeFromExcel(rng)}
     API.repeat(sel);
+  });
+}
+
+export function insertCol(c) {
+  return apiExec(() => {
+    API.insertCol(c);
+  });
+}
+
+export function insertRow(r) {
+  return apiExec(() => {
+    API.insertRow(r);
+  });
+}
+
+export function deleteCol(c) {
+  return apiExec(() => {
+    API.deleteCol(c);
+  });
+}
+
+export function deleteRow(r) {
+  return apiExec(() => {
+    API.deleteRow(r);
+  });
+}
+
+export function dragCol(c1, c2) {
+  return apiExec(() => {
+    API.dragCol(c1, c2);
+  });
+}
+
+export function dragRow(r1, r2) {
+  return apiExec(() => {
+    API.dragRow(r1, r2);
+  });
+}
+
+export function copy(rng1, rng2) {
+  return apiExec(() => {
+    let [asRng1, asRng2] = [rng1, rng2].map(asRange);
+    API.copy(asRng1, asRng2);
   });
 }
 
@@ -166,6 +202,18 @@ export function redo() {
 export function delete_(rng) {
   return apiExec(() => {
     API.deleteRange(TC.simpleToASRange(rangeFromExcel(rng)));
+  });
+}
+
+export function toggleTag(rng, tag) {
+  return apiExec(() => {
+    API.toggleTag(tag, rangeFromExcel(rng));
+  });
+}
+
+export function setTag(rng, tag, val) {
+  return apiExec(() => {
+    API.setTag(tag, val, rangeFromExcel(rng));
   });
 }
 
@@ -255,6 +303,34 @@ export function expressionShouldSatisfy(loc, fn) {
 
 export function expressionShouldBe(loc, xp) {
   return expressionShouldSatisfy(loc, ({ expression }) => expression === xp);
+}
+
+export function shouldHaveTag(loc, tag) {
+  return messageShouldSatisfy(loc, (cs) => {
+    logDebug(`${loc} cell should have tag ${tag}`);
+
+    expect(cs.length).not.toBe(0);
+    if (cs.length == 0) {
+      return;
+    }
+
+    let [{ cellTags }] = cs;
+    expect(cellTags.map((c) => c.tag).indexOf(tag)).not.toBe(-1, "meaning the tag wasn't found");
+  });
+}
+
+export function shouldNotHaveTag(loc, tag) {
+  return messageShouldSatisfy(loc, (cs) => {
+    logDebug(`${loc} cell should have tag ${tag}`);
+
+    expect(cs.length).not.toBe(0);
+    if (cs.length == 0) {
+      return;
+    }
+
+    let [{ cellTags }] = cs;
+    expect(cellTags.map((c) => c.tag).indexOf(tag)).toBe(-1, "meaning the tag wasn't found");
+  });
 }
 
 export function valueShouldSatisfy(loc, fn) {

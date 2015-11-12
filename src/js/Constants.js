@@ -9,13 +9,14 @@ export const HOST_IP = '18.102.225.27';
 export default Object.assign({
   HOST_WS_URL: 'ws://' + HOST_BASE_URL + ':' + HOST_WS_PORT,
   HOST_STATIC_URL: 'http://' + HOST_BASE_URL + ':8000',
- 
+
   isDebug: false,
 
   // server config parameters
   isProduction: true,
   isRemote: true,
   promptUser: false,
+  showConnectionLost: true,
 
   // event name triggered from store, listened to by views
   CHANGE_EVENT: 'change',
@@ -99,28 +100,12 @@ export default Object.assign({
       Server: 'R',
       Editor: 'r'
     },
-    OCaml: {
-      Display: 'OCaml',
-      Server: 'OCaml',
-      Editor: 'ocaml'
-    },
     SQL: {
       Display: 'SQL',
       Server: 'SQL',
       Editor: 'mysql'
-    },
-    Java: {
-      Display: 'Java',
-      Server: 'Java',
-      Editor: 'java'
-    },
-    CPP: {
-      Display: 'C++',
-      Server: 'CPP',
-      Editor: 'c_cpp'
     }
   },
-
 
   ServerActions: {
     NoAction: "NoAction",
@@ -143,7 +128,9 @@ export default Object.assign({
     Find: "Find",
     BugReport: "BugReport",
     ToggleTag: "ToggleTag",
+    SetTag: "SetTag",
     JumpSelect: "JumpSelect",
+    MutateSheet: "MutateSheet",
     Drag: "Drag"
   },
 

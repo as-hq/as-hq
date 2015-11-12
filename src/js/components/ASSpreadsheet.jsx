@@ -1,5 +1,7 @@
 import {logDebug} from '../AS/Logger';
 
+import _ from 'lodash';
+
 import React from 'react';
 
 import ActionCreator from '../actions/ASSpreadsheetActionCreators';
@@ -18,9 +20,12 @@ import Util from '../AS/Util';
 import Constants from '../Constants';
 import Render from '../AS/Render';
 
+import ASRightClickMenu from './basic-controls/ASRightClickMenu.jsx';
 import ASOverlay from './ASOverlay.jsx';
 import Textbox from './Textbox.jsx'
 
+import rowHeaderMenuItems from './menus/RowHeaderMenuItems.jsx';
+import columnHeaderMenuItems from './menus/ColumnHeaderMenuItems.jsx';
 
 export default React.createClass({
 
@@ -38,6 +43,7 @@ export default React.createClass({
   getDefaultProps() {
     return {
       behavior: 'default',
+      language: Constants.Languages.Excel,
       onReady() { }
     };
   },
@@ -62,7 +68,6 @@ export default React.createClass({
           hg = this._getHypergrid(),
           model = hg.getBehavior();
       this.getInitialData();
-
       this.changeMouseDown(model);
       this.changeMouseDrag(model);
       this.changeMouseMove(model);
@@ -95,10 +100,37 @@ export default React.createClass({
           self.props.setFocus('textbox');
         }
       });
-      for (var key in callbacks) {
-        var value = callbacks[key];
-        hg.addFinEventListener(key, value);
-      }
+
+      let externalCallbacks = {
+        mouseup: ({which, x, y, offsetX, offsetY}) => {
+          /* x, y: against the page, for rendering the dropdown */
+          /* offsetX, offsetY: against hypergrid, for finding coordinates */
+
+          if (which === 3) { // right click
+            let {gridCell: {x: col, y: row}} =
+              hg.renderer.getGridCellFromMousePoint({
+                x: offsetX,
+                y: offsetY
+              });
+
+            if (col != 0 || row != 0) { // right click on a row header
+              this.refs.rightClickMenu.openAt(x, y,
+                (col != 0)
+                  ? columnHeaderMenuItems(col)
+                  : rowHeaderMenuItems(row)
+              );
+            }
+          }
+        }
+      };
+
+      _.forEach(callbacks, (v, k) => {
+        hg.addFinEventListener(k, v);
+      });
+
+      _.forEach(externalCallbacks, (v, k) => {
+        hg.addEventListener(k, v);
+      });
 
       hg.addGlobalProperties({
         defaultFixedColumnWidth: 35,
@@ -314,12 +346,24 @@ export default React.createClass({
   /* Initial a sheet with blank entries */
   initialize() {
     let hg = this._getHypergrid(),
-        model = hg.getBehavior()
+        model = hg.getBehavior(),
+        self = this;
     hg.addGlobalProperties(this.gridProperties);
     model.getColumnCount = () => { return Constants.numCols; };
     model.getRowCount = () => { return Constants.numRows; };
-    model.getValue = function(x, y) { return ''; };
-    model.getCellEditorAt = function(x, y) { return null; }
+    model.getValue = (x, y) => { return ''; };
+    model.getCellEditorAt = (x, y) => { return null; };
+    model.handleMouseDown = (grid, evt) => {
+      if (Store.getGridShifted()) {
+        let {origin} = this.getSelectionArea(),
+            newBr = {col: evt.gridCell.x, row: evt.gridCell.y},
+            newSel = {origin: origin, range: Util.orientRange({tl: origin, br: newBr})};
+        this.select(newSel, false);
+      } else if (model.featureChain) {
+        model.featureChain.handleMouseDown(grid, evt);
+        model.setCursor(grid);
+      }
+    };
     this.setCellRenderer();
     this.setSelectionRenderers();
     let ind = {row: 1, col: 1};
@@ -344,19 +388,21 @@ export default React.createClass({
   // Hypergrid update display
 
   /* Called by eval pane's onChange method, when eval pane receives a change event from the store */
-  updateCellValues(clientCells){
+  updateCellValues(clientCells) {
     let model = this._getBehavior();
-    for (var key in clientCells){ // update the hypergrid values
-      let c = clientCells[key],
+    // update the hypergrid values
+    clientCells.forEach((c) => {
+      let cellSheetId = c.cellLocation.sheetId,
           gridCol = c.cellLocation.index.col-1, // hypergrid starts indexing at 0
           gridRow = c.cellLocation.index.row-1, // hypergrid starts indexing at 0
           display = Util.showValue(c.cellValue);
 
-      model.setValue(gridCol,gridRow,display.toString());
+      model.setValue(gridCol, gridRow, display.toString());
       let overlay = Util.getOverlay(c.cellValue, gridCol, gridRow);
       if (overlay)
         this.addOverlay(overlay);
-    }
+    });
+
     model.changed(); // causes hypergrid to show updated values
     Store.resetLastUpdatedCells();
   },
@@ -531,6 +577,8 @@ export default React.createClass({
         }
         this.props.hideToast();
         ExpActionCreator.handleGridChange(newStr);
+      } else if (KeyUtils.isPureShiftKey(e)) { // shift+click tracking
+        Store.setGridShifted(true);
       } else {
         // Try shortcuts
         logDebug("Grid key down, trying shortcut");
@@ -548,6 +596,12 @@ export default React.createClass({
       }
       this.props.onNavKeyDown(e);
     }
+  },
+
+  _onKeyUp(e) {
+    logDebug("GRID KEYUP", e);
+    e.persist();
+    if (KeyUtils.isPureShiftKey(e)) Store.setGridShifted(false);
   },
 
   onTextBoxDeferredKey(e){
@@ -666,11 +720,13 @@ export default React.createClass({
     }
 
     return (
-      <div style={{width:"100%",height:"100%",position:'relative'}} >
+      // NOTE: the 50px is for the scrollbar to show up.
+      <div style={{width:"100%",height:"calc(100% - 50px)",position:'relative'}} >
         <fin-hypergrid
           style={style}
           ref="hypergrid"
           onKeyDown={this._onKeyDown}
+          onKeyUp={this._onKeyUp}
           onFocus={this._onFocus}>
             {behaviorElement}
         </fin-hypergrid>
@@ -683,9 +739,11 @@ export default React.createClass({
                              isVisible={self.isVisible}/>);
         })}
 
+        <ASRightClickMenu ref="rightClickMenu" />
 
         <Textbox
                  ref="textbox"
+                 language={language.Editor}
                  scroll={self.state.scroll}
                  onDeferredKey={this.props.onTextBoxDeferredKey}
                  hideToast={this.props.hideToast}

@@ -67,6 +67,7 @@ export default React.createClass({
     Store.addChangeListener(this._onChange);
     FindStore.addChangeListener(this._onFindChange);
     ReplStore.addChangeListener(this._onReplChange);
+    ExpStore.addChangeListener(this._onExpChange);
     Shortcuts.addShortcuts(this);
 
     BrowserTests.install(window, this);
@@ -81,6 +82,7 @@ export default React.createClass({
     Store.removeChangeListener(this._onChange);
     FindStore.removeChangeListener(this._onFindChange);
     ReplStore.removeChangeListener(this._onReplChange);
+    ExpStore.removeChangeListener(this._onExpChange);
   },
 
 
@@ -138,12 +140,14 @@ export default React.createClass({
   */
   _onChange() {
     logDebug("Eval pane detected event change from store");
-    let updatedCells = Store.getLastUpdatedCells();
-    this.refs.spreadsheet.updateCellValues(updatedCells);
+    let updatedCellsOnSheet = Store.getLastUpdatedCells().filter((cell) => {
+      return cell.cellLocation.sheetId == Store.getCurrentSheet().sheetId;
+    });
+    this.refs.spreadsheet.updateCellValues(updatedCellsOnSheet);
     //toast the error of at least one value in the cell
-    let i = 0, err;
-    for (i = 0; i < updatedCells.length; ++i) {
-      let cell = updatedCells[i],
+    let err;
+    for (let i = 0; i < updatedCellsOnSheet.length; ++i) {
+      let cell = updatedCellsOnSheet[i],
           val = cell.cellValue;
       if (val.tag == "ValueError" || val.tag == "ValueExcelError") {
         err = this.getErrorMessage(val);
@@ -164,6 +168,12 @@ export default React.createClass({
   _onReplChange() {
     logDebug("Eval pane detected event change from repl store");
     this.setState({replSubmittedLanguage:ReplStore.getSubmittedLanguage()})
+  },
+
+  _onExpChange() {
+    if (ExpStore.getLastRef() === null) {
+      ExpStore.disableRefInsertionBypass();
+    }
   },
 
   enableTestMode() {
@@ -256,6 +266,9 @@ export default React.createClass({
               ? ClipboardUtils.htmlStringIsAlphaSheets(e.clipboardData.getData("text/html"))
               : false
           );
+
+    // #incomplete should either be checking if you're from the same sheet, OR support
+    // copy/pasting across sheets.
     if (isAlphaSheets) { // From AS
       let clipboard = Store.getClipboard(),
           fromASRange = TC.simpleToASRange(clipboard.area.range),
@@ -383,9 +396,9 @@ export default React.createClass({
   // Deal with selection change from grid
 
   _onSelectionChange(sel) {
-    let rng = sel.range,
+    let {range, origin} = sel,
         userIsTyping = ExpStore.getUserIsTyping(),
-        cell = Store.getCell(sel.origin.col, sel.origin.row);
+        cell = Store.getCell(origin.col, origin.row);
 
     let editorCanInsertRef = ExpStore.editorCanInsertRef(this._getRawEditor()),
         gridCanInsertRef = ExpStore.gridCanInsertRef(),
@@ -440,7 +453,7 @@ export default React.createClass({
     } else if (userIsTyping) {
       if (editorCanInsertRef){ // insert cell ref in editor
         logDebug("Eval pane inserting cell ref in editor");
-        let excelStr = Util.rangeToExcel(rng);
+        let excelStr = Util.rangeToExcel(range);
         this._getEditorComponent().insertRef(excelStr);
         let newStr = this._getRawEditor().getValue(); // new value
         ExpActionCreator.handlePartialRefEditor(newStr,excelStr);
@@ -448,14 +461,14 @@ export default React.createClass({
       else if (textBoxCanInsertRef){ // insert cell ref in textbox
         logDebug("Eval pane inserting cell ref in textbox");
         logDebug("Current value: " + this._getTextbox().editor.getValue());
-        let excelStr = Util.rangeToExcel(rng);
+        let excelStr = Util.rangeToExcel(range);
         this._getTextbox().insertRef(excelStr);
         let newStr = this._getTextbox().editor.getValue();
         ExpActionCreator.handlePartialRefTextBox(newStr,excelStr);
       }
       else if (gridCanInsertRef){ // insert cell ref in textbox
         logDebug("Eval pane inserting cell ref originating from grid");
-        let excelStr = Util.rangeToExcel(rng);
+        let excelStr = Util.rangeToExcel(range);
         ExpActionCreator.handlePartialRefGrid(excelStr);
       }
     } else {
@@ -632,6 +645,7 @@ export default React.createClass({
           width="100%" height={this.getEditorHeight()} />
         <ASSpreadsheet
           ref='spreadsheet'
+          language={currentLanguage}
           setFocus={this.setFocus}
           highlightFind={highlightFind}
           onNavKeyDown={this._onGridNavKeyDown}

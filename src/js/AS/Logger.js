@@ -15,6 +15,9 @@ function colorize(str) {
 export function logDebug() {
   if (logLevel <= 0) {
     Function.prototype.apply.apply(console.log, [console, arguments]);
+    if (typeof(_LTracker) != "undefined") {
+      _LTracker.push(arguments);
+    }
   }
 }
 

@@ -15,12 +15,22 @@ describe('backend', () => {
     clear,
 
     repeat,
+
+    insertCol,
+    insertRow,
+    deleteCol, 
+    deleteRow,
+    dragCol, 
+    dragRow,
+
     copy,
-    paste,
     cut,
     undo,
     redo,
     delete_,
+
+    toggleTag,
+    setTag,
 
     python,
     r,
@@ -39,7 +49,9 @@ describe('backend', () => {
     shouldBeError,
     shouldBeNothing,
     shouldBeImage,
-    expressionShouldBe
+    expressionShouldBe,
+    shouldHaveTag, 
+    shouldNotHaveTag
   } = require('../src/js/browser-test/exec-api');
   const {
     fromToInclusive,
@@ -47,8 +59,11 @@ describe('backend', () => {
     _do,
     _doDefer,
     _forM_,
-    exec
+    exec,
+    blockUntil
   } = require('../src/js/browser-test/exec-monad');
+
+  const API = require('../src/js/actions/ASApiActionCreators');
 
   beforeAll(() => {
     __injectExpect(expect);
@@ -265,34 +280,25 @@ describe('backend', () => {
               ]);
             });
 
-            it('should act like lists when horizontal', (done) => {
-              _do([
-                python('A1', '[range(10)]'),
-                python('A5', 'A1:D1[2]'),
-                shouldBe('A5', valueI(2)),
+            // No longer supported. (Alex 11/9)
+            // it('should act like lists when horizontal', (done) => {
+            //   _do([
+            //     python('A1', '[range(10)]'),
+            //     python('A5', 'A1:D1[2]'),
+            //     shouldBe('A5', valueI(2)),
 
-                exec(done)
-              ]);
-            });
+            //     exec(done)
+            //   ]);
+            // });
 
-            it('can be summed', (done) => {
-              _do([
-                python('A1', '[range(10)]'),
-                python('A2', 'sum(A1:J1)'),
-                shouldBe('A2', valueI(45)),
-
-                exec(done)
-              ]);
-            });
-
-            it('can be iterated over like a 1D list', (done) => {
-              _do([
-                python('A1', '[range(10)]'),
-                python('A2', '[x ** 2 for x in B1:D1]'), // expands to vertical list
-                shouldBe('A3', valueI(4)),
-                exec(done)
-              ]);
-            });
+            // it('can be iterated over like a 1D list', (done) => {
+            //   _do([
+            //     python('A1', '[range(10)]'),
+            //     python('A2', '[x ** 2 for x in B1:D1]'), // expands to vertical list
+            //     shouldBe('A3', valueI(4)),
+            //     exec(done)
+            //   ]);
+            // });
 
             it('initialized to strings works', (done) => {
               _do([
@@ -333,13 +339,13 @@ describe('backend', () => {
                 python('A2', '6'),
                 python('B1', '7'),
                 python('B2', '8'),
-                python('C1', 'sum(A1:B2)'), 
-                shouldBeError('C1'), 
+                python('C1', 'sum(A1:B2)'),
+                shouldBeError('C1'),
                 exec(done)
               ]);
             });
 
-            it('initialized to strings work', (done) => {
+            it('can be initialized to strings', (done) => {
               _do([
                 python('A1', '"Hey"'),
                 python('A2', '"There"'),
@@ -349,13 +355,13 @@ describe('backend', () => {
                 shouldBe('C2', valueI(3)),
                 exec(done)
               ]);
-            });            
+            });
           });
 
           describe('ASIterables initialization', () => {
             it('works over 1D lists', (done) => {
               _do([
-                python('A1', 'arr([1, 2, 3])'), 
+                python('A1', 'arr([1, 2, 3])'),
                 python('A2', 'A1:A3[1]'),
                 shouldBe('A2', valueI(2)),
                 exec(done)
@@ -373,7 +379,7 @@ describe('backend', () => {
 
             it('works over 2D lists', (done) => {
               _do([
-                python('A1', 'arr([[1, 2], [3]])'), 
+                python('A1', 'arr([[1, 2], [3]])'),
                 python('A2', 'A1:A3[1]'),
                 shouldBe('A2', valueI(3)),
                 exec(done)
@@ -418,7 +424,7 @@ describe('backend', () => {
 
             it('fails over a 3D list', (done) => {
               _do([
-                python('A1', 'arr([[[1]]]])'),
+                python('A1', 'arr([[[[1]]]])'),
                 shouldBeError('A1'),
                 exec(done)
               ]);
@@ -428,7 +434,7 @@ describe('backend', () => {
           describe('Hiding and unhiding', () => {
             it('can be hidden and unhidden', (done) => {
               _do([
-                python('A1', '5'), python('A2', '6'), python('A3', '7'), 
+                python('A1', '5'), python('A2', '6'), python('A3', '7'),
                 python('B1', 'A1:A3.hide()'),
                 shouldBeNothing('B2'),
                 python('C1', 'B1.unhide()'),
@@ -437,12 +443,21 @@ describe('backend', () => {
               ]);
             });
 
-            it('can be hidden and operated on while hidden', (done) => {
+            it('can be operated on while hidden', (done) => {
               _do([
-                python('A1', '5'), python('A2', '6'), python('A3', '7'), 
+                python('A1', '5'), python('A2', '6'), python('A3', '7'),
                 python('B1', 'A1:A3.hide()'),
                 python('C1', 'B1.reversed()'),
                 shouldBe('C1', valueI(7)),
+                exec(done)
+              ]);
+            });
+
+            it('preserves dimensions upon hiding and unhiding', (done) => {
+              _do([
+                python('A1', 'hide([[1,2]])'),
+                python('A3', 'A1.unhide()'),
+                shouldBe('B3', valueI(2)),
                 exec(done)
               ]);
             });
@@ -469,45 +484,36 @@ describe('backend', () => {
 
             it('can be sorted', (done) => {
               _do([
-                python('A1', '7'), python('A2', '5'), python('A3', '6'), 
+                python('A1', '7'), python('A2', '5'), python('A3', '6'),
                 python('C1', 'A1:A3.sorted()'),
                 shouldBe('C2', valueI(6)),
                 exec(done)
               ]);
             });
 
-            it('can be sorted if horizontal', (done) => {
-              _do([
-                python('A1', '7'), python('B1', '5'), python('C1', '6'), 
-                python('A2', 'A1:C1.sorted()'),
-                shouldBe('B2', valueI(6)),
-                exec(done)
-              ]);
-            });
-
             it('can be reversed', (done) => {
               _do([
-                python('A1', '7'), python('A2', '5'), python('A3', '6'), 
+                python('A1', '7'), python('A2', '5'), python('A3', '6'),
                 python('C1', 'A1:A3.reversed()'),
                 shouldBe('C3', valueI(7)),
                 exec(done)
               ]);
             });
 
-            it('can be reversed if horizontal', (done) => {
+            it('can be appended as a 2D list', (done) => {
               _do([
-                python('A1', '7'), python('B1', '5'), python('C1', '6'), 
-                python('A2', 'A1:C1.reversed()'),
-                shouldBe('C2', valueI(7)),
+                python('A1', '[[1,2],[3,4]]'),
+                python('A3', 'l = A1:B2\nl.append([5,6])\nl'),
+                shouldBe('B5', valueI(6)),
                 exec(done)
               ]);
             });
 
             it('can be sorted and reversed and transposed in succession', (done) => {
               _do([
-                python('A1', '7'), python('B1', '5'), python('C1', '6'), 
-                python('A2', 'A1:C1.sorted().reversed().transpose()'),
-                shouldBe('A4', valueI(5)),
+                python('A1', '7'), python('A2', '5'), python('A3', '6'),
+                python('B1', 'A1:A3.sorted().reversed().transpose()'),
+                shouldBe('D1', valueI(5)),
                 exec(done)
               ]);
             });
@@ -606,8 +612,7 @@ describe('backend', () => {
                 exec(done)
             ]);
         });
-        // This test will fail until blank cells  = 0.
-        xit ('SUM', (done) => {
+        it ('SUM', (done) => {
           _do([
             excel('A1', '-5'),
             excel('A2', '15'),
@@ -616,12 +621,13 @@ describe('backend', () => {
             excel('A5', 'TRUE'),
             excel('B1', '=SUM(A1,A2)'),
             excel('B2', '=SUM(A2:A4,15)'),
+            excel('B2', '=SUM(A2:A5,15)'),
             excel('B3', '=SUM("5", 15, TRUE)'),
             excel('B4', '=SUM(A5,A6, 2)'),
             shouldBe('B1', valueI(10)),
             shouldBe('B2', valueI(55)),
-            shouldbe('B3', valueI(21)),
-            shouldbe('B4', valueI(2)),
+            shouldBe('B3', valueI(21)),
+            shouldBe('B4', valueI(2)),
             exec(done)
           ]);
         });
@@ -685,6 +691,21 @@ describe('backend', () => {
             python('A1', 'range(10)'),
             excel('B1', '=A1+A2'),
             shouldBe('B1', valueI(1)),
+            exec(done)
+          ]);
+        });
+
+        it ('should treat blanks as zeroes for arithmetic operations', (done) => {
+          _do([
+            python('A1', '5'),
+            excel('B1', '=A2+A3'),
+            shouldBe('B1', valueI(0)),
+
+            excel('B2', '=A1+A3'),
+            shouldBe('B2', valueI(5)),
+
+            excel('B3', '=A1*A2'),
+            shouldBe('B3', valueI(0)),
             exec(done)
           ]);
         });
@@ -861,11 +882,217 @@ describe('backend', () => {
             shouldBe('A1', valueD(0.25)),
             exec(done)
           ]);
-        })
+        });
       });
 
       describe('ocaml', () => {
 
+      });
+
+      describe('row/col insertion, deletion, and swapping', () => {
+        describe('row insertion', () => {
+          it('should move cells to correct locations', (done) => {
+            _do([
+              python('A1', '10'), python('A2', '11'), python('A3', '12'),
+              insertRow(2), 
+              shouldBe('A1', valueI(10)),
+              shouldBeNothing('A2'), 
+              shouldBe('A3', valueI(11)), 
+              shouldBe('A4', valueI(12)), 
+              exec(done)
+            ]);
+          });
+
+          it('should shift references appropriately', (done) => {
+            _do([
+              python('A1', '10'), python('A2', 'A1+1'), python('A3', 'A2+1'), python('A4', 'A3+1'),
+              insertRow(2), 
+              shouldBe('A3', valueI(11)), 
+              shouldBe('A4', valueI(12)), 
+              shouldBe('A5', valueI(13)), 
+              exec(done)
+            ]);
+          });
+
+          it('should shift range references appropriately', (done) => {
+            _do([
+              python('A1', '[range(10)]'),
+              excel('A2', '=SUM(A1:J1)'), 
+              insertRow(1), 
+              shouldBe('A3', valueI(45)), 
+              exec(done)
+            ]);
+          });
+        });
+
+        describe('row deletion', () => {
+          it('should move cells to correct locations', (done) => {
+            _do([
+              python('A1', '10'), python('A2', '11'), python('A3', '12'),
+              deleteRow(2), 
+              shouldBe('A1', valueI(10)),
+              shouldBe('A2', valueI(12)), 
+              exec(done)
+            ]);
+          });
+
+          it('should shift references appropriately', (done) => {
+            _do([
+              python('A1', '10'), python('A2', 'A1+1'), python('A3', 'A2+1'), python('A4', 'A3+1'),
+              deleteRow(2), 
+              shouldBeError('A2'), // this used to be A3, which had A2+1 in it. 
+              python('A2', 'A1+5'),
+              shouldBe('A3', valueI(16)), 
+              exec(done)
+            ]);
+          });
+
+          it('should shift range references appropriately', (done) => {
+            _do([
+              python('A2', '[range(10)]'),
+              excel('A3', '=SUM(A2:J2)'), 
+              deleteRow(1), 
+              shouldBe('A2', valueI(45)), 
+              exec(done)
+            ]);
+          });
+        });
+
+        describe('row drag', () => {
+          it('should move cells to correct locations', (done) => {
+            _do([
+              python('A1', '10'), python('A2', '11'), python('A3', '12'),
+              dragRow(1,3), 
+              shouldBe('A1', valueI(11)),
+              shouldBe('A2', valueI(12)), 
+              shouldBe('A3', valueI(10)), 
+              exec(done)
+            ]);
+          });
+
+          it('should shift references appropriately', (done) => {
+            _do([
+              python('A1', '10'), python('A2', 'A1+2'), python('A3', 'A2+3'), python('A4', 'A3+4'),
+              dragRow(2,4), //1,2,3,4 --> 1,3,4,2 
+              shouldBe('A2', valueI(15)), 
+              shouldBe('A3', valueI(19)), 
+              shouldBe('A4', valueI(12)), 
+              exec(done)
+            ]);
+          });
+
+          it('should shift range references appropriately', (done) => {
+            _do([
+              python('A1', '0'), python('A2', '1'), python('B1', '3'), python('B2', '4'),
+              excel('A5', '=SUM(A1:B2)'), 
+              dragRow(2,3),
+              shouldBe('A5', valueI(8)), 
+              exec(done)
+            ]);
+          });
+        });
+
+        describe('column insertion', () => {
+          it('should move cells to correct locations', (done) => {
+            _do([
+              python('A1', '10'), python('B1', '11'), python('C1', '12'),
+              insertCol(2), 
+              shouldBe('A1', valueI(10)),
+              shouldBeNothing('B1'), 
+              shouldBe('C1', valueI(11)), 
+              shouldBe('D1', valueI(12)), 
+              exec(done)
+            ]);
+          });
+
+          it('should shift references appropriately', (done) => {
+            _do([
+              python('A1', '10'), python('B1', 'A1+1'), python('C1', 'B1+1'), python('D1', 'C1+1'),
+              insertCol(2), 
+              shouldBe('C1', valueI(11)), 
+              shouldBe('D1', valueI(12)), 
+              shouldBe('E1', valueI(13)), 
+              exec(done)
+            ]);
+          });
+
+          it('should shift range references appropriately', (done) => {
+            _do([
+              python('A1', 'range(10)'),
+              excel('B1', '=SUM(A1:A10)'), 
+              insertCol(1), 
+              shouldBe('C1', valueI(45)), 
+              exec(done)
+            ]);
+          });
+        });
+
+        describe('column deletion', () => {
+          it('should move cells to correct locations', (done) => {
+            _do([
+              python('A1', '10'), python('B1', '11'), python('C1', '12'),
+              deleteCol(2), 
+              shouldBe('A1', valueI(10)),
+              shouldBe('B1', valueI(12)), 
+              exec(done)
+            ]);
+          });
+
+          it('should shift references appropriately', (done) => {
+            _do([
+              python('A1', '10'), python('B1', 'A1+1'), python('C1', 'B1+1'), python('D1', 'C1+1'),
+              deleteCol(2), 
+              shouldBeError('B1'), // this used to be A3, which had A2+1 in it. 
+              python('B1', 'A1+5'),
+              shouldBe('C1', valueI(16)), 
+              exec(done)
+            ]);
+          });
+
+          it('should shift range references appropriately', (done) => {
+            _do([
+              python('B1', 'range(10)'),
+              excel('C1', '=SUM(B1:B10)'), 
+              deleteCol(1), 
+              shouldBe('B1', valueI(45)), 
+              exec(done)
+            ]);
+          });
+        });
+
+        describe('Column drag', () => {
+          it('should move cells to correct locations', (done) => {
+            _do([
+              python('A1', '10'), python('B1', '11'), python('C1', '12'),
+              dragCol(1,3), 
+              shouldBe('A1', valueI(11)),
+              shouldBe('B1', valueI(12)), 
+              shouldBe('C1', valueI(10)), 
+              exec(done)
+            ]);
+          });
+
+          it('should shift references appropriately', (done) => {
+            _do([
+              python('A1', '10'), python('B1', 'A1+2'), python('C1', 'B1+3'), python('D1', 'C1+4'),
+              dragCol(2,4), //1,2,3,4 --> 1,3,4,2 
+              shouldBe('B1', valueI(15)), 
+              shouldBe('C1', valueI(19)), 
+              shouldBe('D1', valueI(12)), 
+              exec(done)
+            ]);
+          });
+
+          it('should shift range references appropriately', (done) => {
+            _do([
+              python('A1', '0'), python('A2', '1'), python('B1', '3'), python('B2', '4'),
+              excel('E1', '=SUM(A1:B2)'), 
+              dragCol(2,3),
+              shouldBe('E1', valueI(8)), 
+              exec(done)
+            ]);
+          });
+        });
       });
 
       describe('general', () => {
@@ -1244,6 +1471,78 @@ describe('backend', () => {
       });
     });
 
+    describe('tags', () => {
+      describe('bolding', () => {
+        it('should bold blocks of cells at once', (done) => {
+          _do([
+            python('A1', '1'),
+            python('A2', '2'),
+            toggleTag('A1:A2', 'Bold'),
+            shouldHaveTag('A1', 'Bold'), 
+            shouldHaveTag('A2', 'Bold'), 
+            exec(done)
+          ]);
+        });
+
+        it('should make all cells in range bold if at least one is not', (done) => {
+          _do([
+            python('A1', '1'),
+            python('A2', '2'),
+            toggleTag('A1', 'Bold'),
+            toggleTag('A1:A2', 'Bold'),
+            shouldHaveTag('A1', 'Bold'), 
+            shouldHaveTag('A2', 'Bold'), 
+            exec(done)
+          ]);
+        });
+
+        it('should unbold all cells in range if all are bold', (done) => {
+          _do([
+            python('A1', '1'),
+            python('A2', '2'),
+            toggleTag('A1', 'Bold'),
+            toggleTag('A1:A2', 'Bold'),
+            toggleTag('A1:A2', 'Bold'),
+            shouldNotHaveTag('A1', 'Bold'), 
+            shouldNotHaveTag('A2', 'Bold'), 
+            exec(done)
+          ]);
+        });
+
+        it('should bold blank cells', (done) => {
+          _do([
+            toggleTag('A1', 'Bold'),
+            python('A1', '1'),
+            shouldHaveTag('A1', 'Bold'), 
+            exec(done)
+          ]);
+        });
+      });
+
+      describe('formatting', () => {
+        it('should format blocks of cells at once', (done) => {
+          _do([
+            python('A1', '1'),
+            python('A2', '2'),
+            setTag('A1:A2', 'Disp', 'Money'),
+            shouldHaveTag('A1', 'Disp'), 
+            shouldHaveTag('A2', 'Disp'), 
+            exec(done)
+          ]);
+        });
+
+        it('should format blank cells', (done) => {
+          _do([
+            setTag('A1', 'Disp', 'Money'),
+            python('A1', '1'),
+            shouldHaveTag('A1', 'Disp'), 
+            exec(done)
+          ]);
+        });
+      });
+    });
+
+
     describe('vcs', () => {
       describe('undo', () => {
         it('should undo a simple request', (done) => {
@@ -1396,6 +1695,36 @@ describe('backend', () => {
             exec(done)
           ]);
         });
+      });
+    });
+
+    describe('websockets reliability', () => {
+      beforeAll(() => {
+        API.setUITestMode();
+      });
+
+      afterAll(() => {
+        API.unsetUITestMode();
+      });
+
+      it('restores connections after failure', (done) => {
+        _do([
+          exec(() => {
+            API.withWS((pws) => {
+              pws._withNakedWS((ws) => {
+                ws.close();
+              })
+            });
+          }),
+          blockUntil(() => {
+            return API.withWS((pws) => {
+              return pws.readyState() === 1;
+            });
+          }),
+          python('A1', '1'),
+          shouldBe('A1', valueI(1)),
+          exec(done)
+        ]);
       });
     });
   });

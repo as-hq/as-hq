@@ -7,6 +7,7 @@ import SU from './ShortcutUtils';
 import API from '../actions/ASApiActionCreators';
 import Util from '../AS/Util';
 import TC from '../AS/TypeConversions';
+import KeyUtils from '../AS/KeyUtils';
 
 import ExpStore from '../stores/ASExpStore';
 import ExpActionCreator from '../actions/ASExpActionCreators';
@@ -81,35 +82,24 @@ export default {
             self.selectLanguage(Constants.Languages.R);
             break;
           case '4':
-            self.selectLanguage(Constants.Languages.OCaml);
-            break;
-          case '5':
             self.selectLanguage(Constants.Languages.SQL);
-            break;
-          case '6':
-            self.selectLanguage(Constants.Languages.Java);
-            break;
-          case '7':
-            self.selectLanguage(Constants.Languages.CPP);
             break;
         }
     });
     SU.add('common', 'format_value', 'Ctrl+Shift+2/3/4/5/6', (wildcard) => {
-      let tag;
+      let dispType;
       // TODO other wildcards
-      if (wildcard === '$') tag = {tag: "Money", contents: []};
-      else if (wildcard === '%') tag = {tag: "Percentage", contents: []};
-      API.toggleTag(tag, Store.getActiveSelection().range);
+      if (wildcard === '$') dispType = "Money";
+      else if (wildcard === '%') dispType = "Percentage";
+      API.setTag("Disp", dispType, Store.getActiveSelection().range);
       self.refs.spreadsheet.repaint();
     });
     SU.add("common", "bold", "Ctrl+B", (wildcard) => {
-      let tag = {tag: "Bold", contents: []};
-      API.toggleTag(tag, Store.getActiveSelection().range);
+      API.toggleTag("Bold", Store.getActiveSelection().range);
       self.refs.spreadsheet.repaint();
     });
     SU.add("common", "italic", "Ctrl+I", (wildcard) => {
-      let tag = {tag: "Italic", contents: []};
-      API.toggleTag(tag, Store.getActiveSelection().range);
+      API.toggleTag("Italic", Store.getActiveSelection().range);
       self.refs.spreadsheet.repaint();
     });
     SU.add('common', 'toggle_repl', 'Alt+F11', (wildcard) => {
@@ -127,6 +117,13 @@ export default {
     SU.add('common', 'find', 'Ctrl+F', (wildcard) => {
       logDebug('Find pressed');
       self.setState({showFindBar:true,userIsTyping:false});
+    });
+
+    SU.add('common', 'insert_ref', 'Ctrl+J', () => {
+      // Ctrl+J is a currently unassigned shortcut in Mac/Windows Excels
+      // This lets users insert refs in Python
+      logDebug('Inserting a ref');
+      ExpStore.enableRefInsertionBypass();
     });
 
     // repl shortcuts -------------------------------------------------------------------------------
@@ -246,12 +243,17 @@ export default {
         self.refs.spreadsheet.select({origin: origin, range: range}, false);
       }
     });
-    SU.add('grid', 'grid_home', ['Home', 'Ctrl+Home'], (wildcard) => {
+    SU.add('grid,isTyping', 'grid_home_typing', ['Home', 'Ctrl+Home'], (wildcard) => {
+      self.setFocus('textbox');
+      self._getRawTextbox().navigateFileStart();
+    });
+    SU.add('grid,notTyping', 'grid_home', ['Home', 'Ctrl+Home'], (wildcard) => {
       let idx = {row: 1, col: 1};
       self.refs.spreadsheet.select(TC.indexToSelection(idx));
     });
-    SU.add('grid', 'grid_moveto_end_sheet', 'Ctrl+End', (wildcard) => {
-      //TODO
+    SU.add('grid,isTyping', 'grid_end_typing', 'End', (wildcard) => {
+      self.setFocus('textbox');
+      self._getRawTextbox().navigateFileEnd();
     });
     SU.add('grid', 'move_vwindow_above', 'PageUp', (wildcard) => {
       let dY = self.refs.spreadsheet.getVisibleRows();
@@ -278,10 +280,16 @@ export default {
     SU.add('grid', 'chart', 'F11', (wildcard) => {
       // TODO
     });
-    SU.add('grid,notTyping', 'select_row', 'Shift+Space', (wildcard) => {
-      let {origin} = Store.getActiveSelection();
-      self.refs.spreadsheet.select({range: {tl: {row: origin.row, col: 1}, br: {row: origin.row, col: Infinity}},
-                                    origin: origin}, false);
+    SU.add('grid', 'select_row', 'Shift+Space', (wildcard) => {
+      if (ExpStore.getUserIsTyping()) {
+        logDebug("Grid key down going to AC");
+        let newStr = ExpStore.getExpression() + ' ';
+        ExpActionCreator.handleGridChange(newStr);
+      } else {
+        let {origin} = Store.getActiveSelection();
+        self.refs.spreadsheet.select({range: {tl: {row: origin.row, col: 1}, br: {row: origin.row, col: Infinity}},
+                                     origin: origin}, false);
+      }
     });
     SU.add('grid,notTyping', 'select_col', 'Ctrl+Space', (wildcard) => {
       let {origin} = Store.getActiveSelection();

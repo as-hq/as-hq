@@ -6,11 +6,14 @@ import T from '../AS/Types';
 import TC from '../AS/TypeConversions';
 import Store from '../stores/ASEvaluationStore';
 import Util from '../AS/Util';
+import ws from '../AS/PersistentWebSocket';
 
+/*
 import isNode from 'detect-node';
 let [ws] = isNode ?
   [require('ws')] :
   [WebSocket];
+  */
 
 let ActionTypes = Constants.ActionTypes;
 let wss = new ws(Util.getHostUrl());
@@ -36,10 +39,10 @@ let refreshDialogShown = false;
   Converts server to client types before going further
 */
 
-wss.onmessage = function (event) {
-  logDebug("Client received data from server: " + JSON.stringify(event.data));
-
+wss.onmessage = (event) => {
   if (event.data === 'ACK') return;
+
+  logDebug("Client received data from server: " + JSON.stringify(event.data));
 
   let msg = JSON.parse(event.data);
   if (msg.result.tag === "Failure") {
@@ -169,39 +172,12 @@ wss.onopen = (evt) => {
 };
 
 export default {
-
-  /**************************************************************************************************************************/
-  /* Sending acknowledge message to server */
-
-  waitForSocketConnection(socket, callback, waitTime) {
-    if (typeof(waitTime) == "undefined") {
-      waitTime = 0;
-    }
-
-    if (waitTime >= 2000 && !refreshDialogShown && !Constants.isDebug) {
-      alert("The connection with the server appears to have been lost. Please refresh the page.");
-      refreshDialogShown = true;
-      waitTime = 0;
-    }
-
-    setTimeout(() => {
-      if (socket.readyState === 1) {
-        if(callback != null){
-          callback();
-        }
-        return;
-      } else {
-        this.waitForSocketConnection(socket, callback, waitTime + 5);
-      }
-    }, 5);
-  }, // polling socket for readiness: 5 ms
-
   send(msg) {
     logDebug(`Queueing ${msg.action} message`);
-    this.waitForSocketConnection(wss, () => {
+    wss.waitForConnection((innerClient) => {
       logDebug(`Sending ${msg.action} message`);
       logDebug(JSON.stringify(msg));
-      wss.send(JSON.stringify(msg));
+      innerClient.send(JSON.stringify(msg));
 
       /* for testing */
       if (msg.action === 'Acknowledge' && isRunningTest) {
@@ -214,13 +190,35 @@ export default {
     });
   },
 
-  initialize() {
+  initMessage() {
     let msg = TC.makeClientMessage(Constants.ServerActions.Acknowledge,
-                                          "PayloadInit",
-                                          {"connUserId": Store.getUserId(),
-                                           "connSheetId": Store.getCurrentSheet().sheetId});
+      "PayloadInit",
+      {"connUserId": Store.getUserId(),
+        "connSheetId": Store.getCurrentSheet().sheetId});
     logDebug("Sending init message: " + JSON.stringify(msg));
     this.send(msg);
+  },
+
+  ackMessage(innerClient) {
+    let msg = TC.makeClientMessage(Constants.ServerActions.Acknowledge,
+      'PayloadN', []);
+    //logDebug('Sending ACK from API action creators');
+    innerClient.send(JSON.stringify(msg));
+  },
+
+  reinitialize() {
+    this.initMessage();
+    this.openSheet();
+    this.updateViewingWindow(
+      TC.rangeToASWindow(Store.getViewingWindow().range)
+    );
+  },
+
+  initialize() {
+    wss.sendAck = this.ackMessage;
+    wss.beforereconnect = () => { this.reinitialize(); };
+
+    this.initMessage();
   },
 
   /**************************************************************************************************************************/
@@ -314,16 +312,21 @@ export default {
     this.send(msg);
   },
 
-
-  /**************************************************************************************************************************/
-  /* Sending get messages to the server */
   toggleTag(tag, rng) {
     let msg = TC.makeClientMessageRaw(Constants.ServerActions.ToggleTag, {
       "tag": "PayloadTag",
-      "cellTag": tag,
+      "cellTag": {tag: tag, contents: []},
       "tagRange": TC.simpleToASRange(rng)
     });
-    // Store.toggleTag(tag, rng);
+    this.send(msg);
+  },
+
+  setTag(tag, val, rng) {
+    let msg = TC.makeClientMessageRaw(Constants.ServerActions.SetTag, {
+      "tag": "PayloadTag",
+      "cellTag": {tag: tag, contents: val},
+      "tagRange": TC.simpleToASRange(rng)
+    });
     this.send(msg);
   },
 
@@ -344,6 +347,7 @@ export default {
     });
     this.send(msg);
   },
+
   cut(fromRng, toRng) {
     let msg = TC.makeClientMessageRaw(Constants.ServerActions.Cut, {
       tag: "PayloadPaste",
@@ -374,6 +378,62 @@ export default {
       selectionRange: TC.simpleToASRange(sel.range),
       selectionOrigin: TC.simpleToASIndex(sel.origin)
     });
+    this.send(msg);
+  },
+
+  insertCol(c) {
+    let mutateType = {
+      tag: "InsertCol",
+      insertColNum: c
+    };
+    let msg = TC.makeClientMessage(Constants.ServerActions.MutateSheet, "PayloadMutate", mutateType);
+    this.send(msg);
+  },
+
+  insertRow(r) {
+    let mutateType = {
+      tag: "InsertRow",
+      insertRowNum: r
+    };
+    let msg = TC.makeClientMessage(Constants.ServerActions.MutateSheet, "PayloadMutate", mutateType);
+    this.send(msg);
+  },
+
+  deleteCol(c) {
+    let mutateType = {
+      tag: "DeleteCol",
+      deleteColNum: c
+    };
+    let msg = TC.makeClientMessage(Constants.ServerActions.MutateSheet, "PayloadMutate", mutateType);
+    this.send(msg);
+  },
+
+  deleteRow(r) {
+    let mutateType = {
+      tag: "DeleteRow",
+      deleteRowNum: r
+    };
+    let msg = TC.makeClientMessage(Constants.ServerActions.MutateSheet, "PayloadMutate", mutateType);
+    this.send(msg);
+  },
+
+  dragCol(c1, c2) {
+    let mutateType = {
+      tag: "DragCol",
+      oldColNum: c1,
+      newColNum: c2
+    };
+    let msg = TC.makeClientMessage(Constants.ServerActions.MutateSheet, "PayloadMutate", mutateType);
+    this.send(msg);
+  },
+
+  dragRow(r1, r2) {
+    let mutateType = {
+      tag: "DragRow",
+      oldRowNum: r1,
+      newRowNum: r2
+    };
+    let msg = TC.makeClientMessage(Constants.ServerActions.MutateSheet, "PayloadMutate", mutateType);
     this.send(msg);
   },
 
@@ -410,6 +470,10 @@ export default {
 
   /**************************************************************************************************************************/
   /* Testing */
+
+  withWS(fn) {
+    return fn(wss);
+  },
 
   test(f, cbs) {
     currentCbs = cbs;

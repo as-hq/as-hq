@@ -28,7 +28,8 @@ let _S = {
 
 // are all functions so that checks can be lazy evaluated
 let contextChecks = {
-  'notTyping': () => { return !ExpStore.getUserIsTyping(); }
+  'notTyping': () => { return !ExpStore.getUserIsTyping(); },
+  'isTyping': () => { return ExpStore.getUserIsTyping(); }
 };
 
 export default {
@@ -75,6 +76,7 @@ export default {
           ss[key].callback(KeyUtils.getWildcard(e, ss[key]));
         } else {
           logDebug("shortcut matched but context prevented exec: ", JSON.stringify(ss[key]));
+          continue;
         }
         return true;
       }
