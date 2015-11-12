@@ -165,8 +165,8 @@ export default React.createClass({
 
   drawDraggedSelection(dragOrigin, selRange, targetX, targetY) {
     let dX = targetX - dragOrigin.col,
-        dY = targetY - dragOrigin.row,
-        range = Util.offsetRange(selRange, dY, dX);
+        dY = targetY - dragOrigin.row;
+    let range = Util.offsetRange(selRange, dY, dX);
     Render.setDragRect(range);
   },
 
@@ -181,35 +181,35 @@ export default React.createClass({
   // Semi-recursive function via timeouts -- this is how hypergrid does it
   // Need to scroll even if no mouse event, but you're at the edge of the grid
   scrollWithDraggables(grid) {
-    if (!this.mouseDownInBox) {
-        return;
+    if (this.mouseDownInBox || this.dragSelectionOrigin !== null) {
+      console.log("DEALING WITH SCROLLING");
+      let {x,y} = this.mousePosition,
+          b = grid.getDataBounds(),
+          numFixedColumns = grid.getFixedColumnCount(),
+          numFixedRows = grid.getFixedRowCount(),
+          dragEndInFixedAreaX = x < numFixedColumns,
+          dragEndInFixedAreaY = y < numFixedRows;
+      let xOffset = 0,
+          yOffset = 0;
+      if (x > b.origin.x + b.extent.x) {
+        xOffset = 1;
+      } else if (x < b.origin.x){
+        xOffset = -1;
+      }
+      if (y > b.origin.y + b.extent.y) {
+        yOffset = 1;
+      } else if (y < b.origin.y){
+        yOffset = -1;
+      }
+      let dragCellOffsetX = dragEndInFixedAreaX ? 0 : xOffset,
+          dragCellOffsetY = dragEndInFixedAreaY ? 0 : yOffset;
+      if (xOffset !== 0 || yOffset !== 0){
+        grid.scrollBy(xOffset, yOffset);
+        grid.repaint();
+      }
+      // The below number affects scrolling rate, not sure what it should be
+      setTimeout(this.scrollWithDraggables.bind(this, grid), 800);
     }
-    let {x,y} = this.mousePosition,
-        b = grid.getDataBounds(),
-        numFixedColumns = grid.getFixedColumnCount(),
-        numFixedRows = grid.getFixedRowCount(),
-        dragEndInFixedAreaX = x < numFixedColumns,
-        dragEndInFixedAreaY = y < numFixedRows;
-    let xOffset = 0,
-        yOffset = 0;
-    if (x > b.origin.x + b.extent.x) {
-      xOffset = 1;
-    } else if (x < b.origin.x){
-      xOffset = -1;
-    }
-    if (y > b.origin.y + b.extent.y) {
-      yOffset = 1;
-    } else if (y < b.origin.y){
-      yOffset = -1;
-    }
-    let dragCellOffsetX = dragEndInFixedAreaX ? 0 : xOffset,
-        dragCellOffsetY = dragEndInFixedAreaY ? 0 : yOffset;
-    if (xOffset !== 0 || yOffset !== 0){
-      grid.scrollBy(xOffset, yOffset);
-      grid.repaint();
-    }
-    // The below number affects scrolling rate, not sure what it should be
-    setTimeout(this.scrollWithDraggables.bind(this, grid), 800);
   },
 
   /*************************************************************************************************************************/
@@ -336,13 +336,16 @@ export default React.createClass({
         let {x, y} = this.getCoordsFromMouseEvent(grid, evt);
         let {range} = this.getSelectionArea();
         this.drawDraggedSelection(this.dragSelectionOrigin, range, evt.gridCell.x, evt.gridCell.y);
+        this.mousePosition = {x:evt.primitiveEvent.detail.mouse.x,
+                              y:evt.primitiveEvent.detail.mouse.y};
+        this.scrollWithDraggables(grid);
+        this.repaint();
       } else if (this.mouseDownInBox && !evt.primitiveEvent.detail.isRightClick) {
         // box dragging
         let {x,y} = evt.gridCell; // accounts for scrolling
         Render.setDragCorner({dragX:x,dragY:y});
-        let mouseX = evt.primitiveEvent.detail.mouse.x,
-            mouseY = evt.primitiveEvent.detail.mouse.y;
-        this.mousePosition = {x:mouseX,y:mouseY};
+        this.mousePosition = {x:evt.primitiveEvent.detail.mouse.x,
+                              y:evt.primitiveEvent.detail.mouse.y};
         this.scrollWithDraggables(grid);
         this.repaint(); // show dotted lines
       } else if (model.featureChain) {
