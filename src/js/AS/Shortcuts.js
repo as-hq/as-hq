@@ -89,9 +89,9 @@ export default {
     SU.add('common', 'format_value', 'Ctrl+Shift+2/3/4/5/6', (wildcard) => {
       let dispType;
       // TODO other wildcards
-      if (wildcard === '$') dispType = "Money"; 
-      else if (wildcard === '%') dispType = "Percentage"; 
-      API.setTag("Format", dispType, Store.getActiveSelection().range);
+      if (wildcard === '$') dispType = "Money";
+      else if (wildcard === '%') dispType = "Percentage";
+      API.setTag("Disp", dispType, Store.getActiveSelection().range);
       self.refs.spreadsheet.repaint();
     });
     SU.add("common", "bold", "Ctrl+B", (wildcard) => {
@@ -117,6 +117,13 @@ export default {
     SU.add('common', 'find', 'Ctrl+F', (wildcard) => {
       logDebug('Find pressed');
       self.setState({showFindBar:true,userIsTyping:false});
+    });
+
+    SU.add('common', 'insert_ref', 'Ctrl+J', () => {
+      // Ctrl+J is a currently unassigned shortcut in Mac/Windows Excels
+      // This lets users insert refs in Python
+      logDebug('Inserting a ref');
+      ExpStore.enableRefInsertionBypass();
     });
 
     // repl shortcuts -------------------------------------------------------------------------------

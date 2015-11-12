@@ -105,11 +105,17 @@ export default {
         case "Align":
           config.halign = tag.contents.toLowerCase();
           break;
+<<<<<<< HEAD
         case "Format":
           switch (tag.contents) { 
             case "Money": 
+=======
+        case "Disp":
+          switch (tag.contents) {
+            case "Money":
+>>>>>>> 7e8e4d13148c357622fa1af37c21cb26084776cf
               config.value = self.formatMoney("$", config.value, 2);
-              break; 
+              break;
             case "Percentage":
               config.value = self.formatPercentage(config.value);
               break;
@@ -221,8 +227,13 @@ export default {
   },
 
   formatMoney(currency, contents, dec) {
+<<<<<<< HEAD
     if (!this.isFormattable(contents)) {
       return contents; 
+=======
+    if (!contents || isNaN(contents) || contents == "") {
+      return contents;
+>>>>>>> 7e8e4d13148c357622fa1af37c21cb26084776cf
     }
 
     let delim = null,
@@ -244,18 +255,23 @@ export default {
         sign = "";
         break;
     }
-    let formatted = parseFloat(Math.round(contents * 100) / 100).toFixed(2), 
-        decimalInd = formatted.length - 3; 
-    formatted[decimalInd] = delim; 
+    let formatted = parseFloat(Math.round(contents * 100) / 100).toFixed(2),
+        decimalInd = formatted.length - 3;
+    formatted[decimalInd] = delim;
 
     return sign + formatted;
   },
 
   formatPercentage(contents) {
+<<<<<<< HEAD
     if (!this.isFormattable(contents)) {
       return contents; 
+=======
+    if (!contents || isNaN(contents) || contents == "") {
+      return contents;
+>>>>>>> 7e8e4d13148c357622fa1af37c21cb26084776cf
     }
-    return contents*100 + "%"; 
+    return contents*100 + "%";
   },
 
   formatDate(contents) {
@@ -471,20 +487,6 @@ export default {
     return parsed;
   },
 
-  _isContainedInLoc(col, row, loc) {
-    let {tl, br} = loc;
-    return (col >= tl.col && col <= br.col &&
-            row >= tl.row && row <= br.row);
-  },
-
-  isContainedInLocs(col, row, locs) {
-    for (var i=0; i<locs.length; i++) {
-      if (this._isContainedInLoc(col, row, locs[i]))
-        return true;
-    }
-    return false;
-  },
-
   getAgnosticLanguageFromServer(lang) {
     return Constants.Languages[lang];
   },
@@ -525,33 +527,6 @@ export default {
       return false;
   },
 
-  getSafeRow(r) {
-    return Math.min(Math.max(r, 1), Constants.numRows);
-  },
-
-  getSafeCol(c){
-    return Math.min(Math.max(c, 1), Constants.numCols);
-  },
-
-  getSafeRange(rng) {
-    return {tl: this.getSafeIndex(rng.tl),
-            br: this.getSafeIndex(rng.br)};
-  },
-
-  getSafeSelection(sel) {
-    return { origin: this.getSafeIndex(sel.origin), range: this.getSafeRange(sel.range) };
-  },
-
-  originIsCornerOfSelection(sel) {
-    let {origin, range: {tl, br}} = sel;
-    return (origin.row === tl.row || origin.row == br.row) &&
-           (origin.col == tl.col || origin.col == br.col);
-  },
-
-  getSafeIndex(idx) {
-    return {col: this.getSafeCol(idx.col), row: this.getSafeRow(idx.row)};
-  },
-
   xor(foo, bar) {
     return foo ? !bar : bar;
   },
@@ -585,12 +560,68 @@ export default {
  },
 
  /*************************************************************************************************************************/
-  // Cache extension to viewing window
+  // Locations
+
+  getSafeRow(r) {
+    return Math.min(Math.max(r, 1), Constants.numRows);
+  },
+
+  getSafeCol(c){
+    return Math.min(Math.max(c, 1), Constants.numCols);
+  },
+
+  getSafeRange(rng) {
+    return {tl: this.getSafeIndex(rng.tl),
+            br: this.getSafeIndex(rng.br)};
+  },
+
+  _isContainedInLoc(col, row, loc) {
+    let {tl, br} = loc;
+    return (col >= tl.col && col <= br.col &&
+            row >= tl.row && row <= br.row);
+  },
+
+  isContainedInLocs(col, row, locs) {
+    for (var i=0; i<locs.length; i++) {
+      if (this._isContainedInLoc(col, row, locs[i]))
+        return true;
+    }
+    return false;
+  },
+
+  getSafeSelection(sel) {
+    return { origin: this.getSafeIndex(sel.origin), range: this.getSafeRange(sel.range) };
+  },
+
+  originIsCornerOfSelection(sel) {
+    let {origin, range: {tl, br}} = sel;
+    return (origin.row === tl.row || origin.row == br.row) &&
+           (origin.col == tl.col || origin.col == br.col);
+  },
+
+  getSafeIndex(idx) {
+    return {col: this.getSafeCol(idx.col), row: this.getSafeRow(idx.row)};
+  },
 
   extendRangeByCache(rng) {
     let tl = this.getSafeIndex({row: rng.tl.row-Constants.scrollCacheY, col: rng.tl.col-Constants.scrollCacheX}),
         br = this.getSafeIndex({row: rng.br.row+Constants.scrollCacheY, col: rng.br.col+Constants.scrollCacheX});
     return { tl: tl, br: br };
+  },
+
+  offsetRange(rng, dY, dX) {
+    let {tl, br} = rng;
+    return {tl: {col: tl.col + dX, row: tl.row + dY},
+            br: {col: br.col + dX, row: br.row + dY}};
+  },
+
+    // Check if the mouse location is in the square box for draggging
+  mouseLocIsContainedInBox(mouseLocX,mouseLocY,topLeftBoxObj,boxWidth){
+    let xInBounds = mouseLocX >= topLeftBoxObj.x &&
+                    mouseLocX <= topLeftBoxObj.x + boxWidth,
+        yInBounds = mouseLocY >= topLeftBoxObj.y &&
+                    mouseLocY <= topLeftBoxObj.y + boxWidth;
+    return xInBounds && yInBounds;
   }
 
 };

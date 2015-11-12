@@ -195,7 +195,7 @@ export default {
       "PayloadInit",
       {"connUserId": Store.getUserId(),
         "connSheetId": Store.getCurrentSheet().sheetId});
-    logDebug("Sending init message: " + JSON.stringify(msg));
+    // logDebug("Sending init message: " + JSON.stringify(msg));
     this.send(msg);
   },
 
@@ -326,6 +326,15 @@ export default {
       "tag": "PayloadTag",
       "cellTag": {tag: tag, contents: val},
       "tagRange": TC.simpleToASRange(rng)
+    });
+    this.send(msg);
+  },
+
+  drag(activeRng,dragRng){
+    let msg = TC.makeClientMessageRaw(Constants.ServerActions.Drag, {
+      tag: "PayloadDrag",
+      initialRange: TC.simpleToASRange(activeRng),
+      dragRange: TC.simpleToASRange(dragRng)
     });
     this.send(msg);
   },

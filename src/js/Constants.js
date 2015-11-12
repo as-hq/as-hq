@@ -130,7 +130,8 @@ export default Object.assign({
     ToggleTag: "ToggleTag",
     SetTag: "SetTag",
     JumpSelect: "JumpSelect",
-    MutateSheet: "MutateSheet"
+    MutateSheet: "MutateSheet",
+    Drag: "Drag"
   },
 
   CursorPosition:{
