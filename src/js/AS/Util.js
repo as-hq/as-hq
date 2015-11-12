@@ -113,6 +113,9 @@ export default {
             case "Percentage":
               config.value = self.formatPercentage(config.value);
               break;
+            case "Date":
+              config.value = self.formatDate(config.value);
+              break; 
           }
           break;
         case "Streaming":
@@ -213,8 +216,12 @@ export default {
 /*************************************************************************************************************************/
 // Formatting
 
+  isFormattable(contents) { 
+    return contents && !isNaN(contents) && contents != ""; 
+  },
+
   formatMoney(currency, contents, dec) {
-    if (!contents || isNaN(contents) || contents == "") {
+    if (!this.isFormattable(contents)) {
       return contents; 
     }
 
@@ -245,10 +252,22 @@ export default {
   },
 
   formatPercentage(contents) {
-    if (!contents || isNaN(contents) || contents == "") {
+    if (!this.isFormattable(contents)) {
       return contents; 
     }
     return contents*100 + "%"; 
+  },
+
+  formatDate(contents) {
+    if (!this.isFormattable(contents)) {
+      return contents; 
+    }
+
+    let diff = 25566, // number of days between 1/1/1900 (Excel's date base) and 1/1/1970 (Javascript's date base)
+        millisecondsElapsed = (contents - diff)*24*60*60*1000, 
+        d = new Date(millisecondsElapsed); 
+
+    return String(Number(d.getMonth()) + 1) + "/" + d.getDate() + "/" + d.getYear(); 
   },
 
 /*************************************************************************************************************************/
