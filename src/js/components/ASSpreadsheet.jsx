@@ -208,7 +208,7 @@ export default React.createClass({
         grid.repaint();
       }
       // The below number affects scrolling rate, not sure what it should be
-      setTimeout(this.scrollWithDraggables.bind(this, grid), 800);
+      setTimeout(this.scrollWithDraggables.bind(this, grid), 5000);
     }
   },
 
