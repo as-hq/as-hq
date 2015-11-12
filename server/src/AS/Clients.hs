@@ -317,9 +317,7 @@ handleCopy user state (PayloadPaste from to) = do
 handleCut :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
 handleCut user state (PayloadPaste from to) = do
   conn <- dbConn <$> readMVar state
-  toCells <- getCutCells conn from to
-  let blankedCells = U.blankCellsAt (rangeToIndices from)
-      newCells = U.mergeCells toCells blankedCells -- content in pasted cells take precedence over deleted cells
+  newCells <- getCutCells conn from to
   msg' <- DP.runDispatchCycle state newCells (clientCommitSource user)
   reply user state msg'
 
@@ -342,7 +340,7 @@ handleDrag user state (PayloadDrag selRng dragRng) = do
 
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
--- Copy/paste helpers
+-- Copy/cut/paste helpers
 
 -- | Gets you the new cells to eval after shifting from a copy/paste. 
 getCopyCells :: R.Connection -> ASRange -> ASRange -> IO [ASCell]
@@ -353,16 +351,31 @@ getCopyCells conn from to = do
       toCells            = concat $ map (\o -> map (S.shiftCell o) sanitizedFromCells) offsets
   return toCells
 
--- | Gets you the new cells to eval after shifting from a cut/paste. 
 getCutCells :: R.Connection -> ASRange -> ASRange -> IO [ASCell]
 getCutCells conn from to = do 
+  let offset       = U.getRangeOffset from to
+  let blankedCells = U.blankCellsAt (rangeToIndices from)
+  toCells      <- getCutToCells conn from offset
+  newDescCells <- getCutNewDescCells from offset
+  -- precedence: toCells > updated descendant cells > blank cells
+  return $ U.mergeCells toCells (U.mergeCells newDescCells blankedCells)
+
+-- | Gets you the cells that need to change after a copy/paste. 
+getCutToCells :: R.Connection -> ASRange -> Offset -> IO [ASCell]
+getCutToCells conn from offset = do 
   fromCells          <- DB.getPossiblyBlankCells (rangeToIndices from)
   sanitizedFromCells <- sanitizeCopyCells conn fromCells from
-  let fromSid     = rangeSheetId from
-      offset      = U.getRangeOffset from to
-      shouldShift = (U.rangeContainsRef from) . (exRefToASRef fromSid)
-      toCells     = map (S.shiftCellPartial offset shouldShift) fromCells
-  return toCells
+  let shiftLoc    = shiftInd offset
+      changeExpr  = S.shiftExpressionForCut from offset
+  return $ map ((replaceCellLocs shiftLoc) . (replaceCellExpressions changeExpr)) sanitizedFromCells
+
+getCutNewDescCells :: ASRange -> Offset -> IO [ASCell]
+getCutNewDescCells from offset = do 
+  immDescLocs <- getImmediateDescendantsForced (rangeToIndices from)
+  let immDescLocs' = filter (not . (rangeContainsIndex from)) immDescLocs
+      changeExpr   = S.shiftExpressionForCut from offset
+  descs <- catMaybes <$> DB.getCells immDescLocs'
+  return $ map (replaceCellExpressions changeExpr) descs
 
 -- | Decouples cells appropriately for re-eval on copy/paste or cut/paste, as follows:
 --   * if everything is a list head, leave it as is. 

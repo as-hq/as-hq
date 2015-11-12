@@ -18,7 +18,7 @@ data ASTransaction = Transaction {transactionCommitSource :: CommitSource,
 -- Queries
 
 data GraphQuery = 
-  GetDescendants |
+  GetDescendants | GetImmediateDescendants | 
   GetImmediateAncestors |
   SetRelations | 
   RollbackGraph |

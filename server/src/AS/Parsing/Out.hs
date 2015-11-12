@@ -242,7 +242,7 @@ refMatch = do
 -- doesn't do any work with Parsec/actual parsing
 shiftExRef :: Offset -> ExRef -> ExRef
 shiftExRef (dC, dR) exRef = case exRef of
-  ExOutOfBounds -> exRef
+  ExOutOfBounds -> ExOutOfBounds
   ExLocRef (ExIndex dType c r) _ _ -> exRef' 
     where
       newColVal = shiftCol dC dType c
@@ -259,6 +259,27 @@ shiftExRef (dC, dR) exRef = case exRef of
           _ -> ExOutOfBounds
   ExPointerRef l sh wb -> exRef { pointerLoc = l' }
       where ExLocRef l' _ _ = shiftExRef (dC, dR) (ExLocRef l sh wb)
+
+-- shifts absolute references too
+shiftExRefForced :: Offset -> ExRef -> ExRef
+shiftExRefForced (dC, dR) exRef = case exRef of
+  ExOutOfBounds -> ExOutOfBounds
+  ExLocRef (ExIndex dType c r) _ _ -> exRef' 
+    where
+      newColVal = shiftCol dC REL_REL c
+      newRowVal = shiftRow dR REL_REL r
+      idx = if (newColVal >= 1 && newRowVal >= 1) 
+        then Just $ ExIndex dType (intToColStr newColVal) (show newRowVal) 
+        else Nothing
+      exRef' = maybe ExOutOfBounds (\i -> exRef { exLoc = i }) idx
+  ExRangeRef (ExRange f s) sh wb -> exRef' 
+      where
+        shiftedInds = (shiftExRefForced (dC, dR) (ExLocRef f sh wb), shiftExRefForced (dC, dR) (ExLocRef s sh wb))
+        exRef' = case shiftedInds of 
+          (ExLocRef f' _ _, ExLocRef s' _ _) -> exRef { exRange = ExRange f' s' }
+          _ -> ExOutOfBounds
+  ExPointerRef l sh wb -> exRef { pointerLoc = l' }
+      where ExLocRef l' _ _ = shiftExRefForced (dC, dR) (ExLocRef l sh wb)
 
 shiftCol :: Int -> RefType -> String -> Int
 shiftCol dC rType c = newCVal
@@ -279,6 +300,7 @@ shiftRow dR rType r = newRVal
       ABS_REL -> dR
       REL_ABS -> 0
       REL_REL -> dR )
+
 ----------------------------------------------------------------------------------------------------------------------------------
 -- Functions for excel sheet loading
 

@@ -111,11 +111,17 @@ shiftCell offset (Cell loc xp v ts) = cell'
     xp'   = replaceRefs (show . (shiftExRef offset)) xp
     cell' = Cell loc' xp' v ts
 
+shiftExpressionForCut :: ASRange -> Offset -> ASExpression -> ASExpression
+shiftExpressionForCut from offset xp = xp' 
+  where 
+    fromSid     = rangeSheetId from
+    shouldShift = (rangeContainsRef from) . (exRefToASRef fromSid)
+    shiftFunc   = \ref -> if (shouldShift ref) then (shiftExRefForced offset ref) else ref
+    xp'         = replaceRefs (show . shiftFunc) xp
+
 -- | Shift the cell's location, and shift all references satisfying the condition passed in. 
-shiftCellPartial :: Offset -> (ExRef -> Bool) -> ASCell -> ASCell
-shiftCellPartial offset cond (Cell loc xp v ts) = cell'
-  where
-    loc'  = shiftInd offset loc
-    shift' = \ref -> if (cond ref) then (shiftExRef offset ref) else ref
-    xp'   = replaceRefs (show . shift') xp
-    cell' = Cell loc' xp' v ts
+replaceCellLocs :: (ASIndex -> ASIndex) -> ASCell -> ASCell
+replaceCellLocs f c = c { cellLocation = f $ cellLocation c }
+
+replaceCellExpressions :: (ASExpression -> ASExpression) -> ASCell -> ASCell
+replaceCellExpressions f c = c { cellExpression = f $ cellExpression c }
