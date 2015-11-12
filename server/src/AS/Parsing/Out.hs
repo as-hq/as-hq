@@ -68,7 +68,9 @@ bool lang b = case lang of
 showValue :: ASLanguage -> ASValue -> String
 showValue lang v = case v of
   NoValue            -> showNull lang
-  ValueS s           -> show s
+  ValueS s           -> case lang of
+    Excel -> init $ tail $ show s -- don't include quotes
+    otherwise -> show s
   ValueI i           -> show i
   ValueD d           -> show d
   ValueB b           -> bool lang b

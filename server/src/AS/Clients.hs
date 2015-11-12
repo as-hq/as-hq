@@ -334,7 +334,7 @@ handleCopyForced user state (PayloadLL (from:to:[])) = return ()
 handleDrag :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
 handleDrag user state (PayloadDrag selRng dragRng) = do 
   conn <- dbConn <$> readMVar state
-  nCells <- IU.getNumberedCells selRng dragRng
+  nCells <- IU.getCellsRect selRng dragRng
   let newCells = (IU.getMappedFormulaCells selRng dragRng nCells) ++ (IU.getMappedPatternGroups selRng dragRng nCells)
   msg' <- DP.runDispatchCycle state newCells (clientCommitSource user)
   reply user state msg'

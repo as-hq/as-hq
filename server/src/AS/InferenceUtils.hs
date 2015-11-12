@@ -5,106 +5,133 @@ import AS.Parsing.Out (showValue)
 import AS.Parsing.In (parseValue)
 import qualified Data.List as L
 import Data.Maybe
+import Data.Char
 import AS.Types.Core
+import AS.Types.Excel
 import AS.DB.API                as DB
 import AS.Parsing.Substitutions as S
 import AS.Util
+import AS.Kernels.Excel.Compiler hiding (pos)
+import AS.Kernels.Excel.Util
 
+import Text.ParserCombinators.Parsec
+import qualified Text.ParserCombinators.Parsec.Token as P
+import Text.ParserCombinators.Parsec.Language
+import Text.ParserCombinators.Parsec.Expr
 
-type Position = (Int,Int)
-type NumberedCell = (Position,ASCell)
-type PatternGroup = [NumberedCell]
-type Pattern = ([NumberedCell],(Int -> ASValue))
+type Position = (Col,Row)
+type PatternGroup = [ASCell]
+type Pattern = ([ASCell],(Int -> ASValue))
 
+pos :: ASCell -> Position
+pos = index . cellLocation
+
+------------------------------------------------------------------------------------------------------------------
 -- Deal with offsets and positions
 
-getAbsoluteDragPositions :: ASRange -> ASRange -> Position -> [Offset]
+-- Given the sel and drag ranges, and the current position, return all the corresponding positions in the drag rng 
+-- Ex selRng A1:A3 and drag range A1:A6, pos (1,2) -> absolute positions (1,2) and (1,5)
+getAbsoluteDragPositions :: ASRange -> ASRange -> Position -> [Position]
 getAbsoluteDragPositions (Range _ ((a,b),(c,d))) (Range _ ((a',b'),(c',d'))) (x,y) 
   | (a==a') && (b==b') && (d==d') = takeWhile (\(i,_) -> i<=c') $ zip [x,x+(c-a+1)..] (repeat y)
   | (c==c') && (d==d') && (b==b') = takeWhile (\(i,_) -> i>=a') $ zip [x,x-(c-a+1)..] (repeat y)
   | (a==a') && (b==b') && (c==c') = takeWhile (\(_,j) -> j<=d') $ zip (repeat x) [y,y+(d-b+1)..]
-  | (c==c') && (d==d') && (a==a') = takeWhile (\(_,j) -> j>=b') $ zip (repeat x) [y,y-(d-b+1)..]
+  | otherwise = takeWhile (\(_,j) -> j>=b') $ zip (repeat x) [y,y-(d-b+1)..]
 
+-- Same as above, but only return the offsets and not the absolute positions
 getDragOffsets :: ASRange -> ASRange -> Position -> [Offset]
 getDragOffsets r1 r2 (x,y) = map (\(a,b) -> (a-x,b-y)) $ getAbsoluteDragPositions r1 r2 (x,y)
 
-dragRightOrDown :: ASRange -> ASRange -> Bool
-dragRightOrDown (Range _ ((a,b),(c,d))) (Range _ ((a',b'),(c',d'))) 
-  | (a==a') && (b==b') && (d==d') = True
-  | (c==c') && (d==d') && (b==b') = False
-  | (a==a') && (b==b') && (c==c') = True
-  | (c==c') && (d==d') && (a==a') = False
-
-isHorizontal :: ASRange -> ASRange -> Bool
-isHorizontal (Range _ ((a,b),(c,d))) (Range _ ((a',b'),(c',d'))) 
-  | (a==a') && (b==b') && (d==d') = True
-  | (c==c') && (d==d') && (b==b') = True
-  | (a==a') && (b==b') && (c==c') = False
-  | (c==c') && (d==d') && (a==a') = False
-
-getNumberedCells :: ASRange -> ASRange -> IO [[NumberedCell]]
-getNumberedCells r1@(Range _ ((a,b),(c,d))) r2
-  | (isHorizontal r1 r2) = do 
-    cells <-  DB.getCells $ rangeToIndicesRowMajor r1
-    putStrLn $ "db cells 1 " ++ show cells
-    let rectCells = formatRect (c-a+1) cells 
-    let positions = formatRect (c-a+1) [(x,y)| y<-[b..d], x<-[a..c]]
-    let nCells = map (\(l1,l2) -> zip l1 l2) $ zip positions rectCells
-    return $ filterMaybeNumCells nCells
-  | otherwise = do 
-    cells <- DB.getCells $ rangeToIndices r1
-    putStrLn $ "db cells 2 " ++ show cells
-    let rectCells = formatRect (d-b+1) cells
-    putStrLn $ "rect cells " ++ show rectCells
-    let positions = formatRect (d-b+1) [(x,y)| x<-[a..c], y<-[b..d]]
-    putStrLn $ "positions " ++ show positions
-    let nCells = map (\(l1,l2) -> zip l1 l2) $ zip positions rectCells
-    putStrLn $ "n cells maybe " ++ show nCells
-    return $ filterMaybeNumCells nCells
+-- Given the sel range and drag range, return the cells in the sel range by DB lookup
+-- If the selection was horizontal, row-major, else column major
+-- Directionality matters; if drag left, each row is from right to left
+-- Inference ignores empty cells, so they can safely be filtered out here
+getCellsRect :: ASRange -> ASRange -> IO [[ASCell]]
+getCellsRect r1@(Range _ ((a,b),(c,d))) r2@(Range _ ((a',b'),(c',d'))) =  fmap filterMaybeNumCells rectCells
+  where
+    rectCells 
+      | (a==a') && (b==b') && (d==d') = do 
+        cells <- DB.getCells $ rangeToIndicesRowMajor r1
+        return $ formatRect (c-a+1) cells 
+      | (c==c') && (d==d') && (b==b') = do 
+        cells <- DB.getCells $ rangeToIndicesRowMajor r1
+        return $ map reverse $ formatRect (c-a+1) cells
+      | (a==a') && (b==b') && (c==c') = do 
+        cells <- DB.getCells $ rangeToIndices r1
+        return $ formatRect (d-b+1) cells
+      | otherwise = do 
+        cells <- DB.getCells $ rangeToIndices r1
+        return $ map reverse $ formatRect (d-b+1) cells
 
 formatRect :: Int -> [a] -> [[a]]
 formatRect i [] = []
 formatRect i lst = [take i lst] ++ (formatRect i (drop i lst))
 
-filterMaybeNumCells :: [[(Position,Maybe ASCell)]] -> [[NumberedCell]]
-filterMaybeNumCells mCells = map (map (\(p,Just c) -> (p,c))) cells
+filterMaybeNumCells :: [[Maybe ASCell]] -> [[ASCell]]
+filterMaybeNumCells mCells = map (map (\(Just c) -> c)) cells
   where
-    cells = map (filter (\(p,c) -> isJust c)) mCells
+    cells = map (filter isJust) mCells
 
+------------------------------------------------------------------------------------------------------------------
 -- Deal with formula cells
 
-isFormulaCell :: NumberedCell -> Bool
-isFormulaCell (pos,cell) = parsedVal /= (Right (cellValue cell))
+-- Inference deals with formula and literal cells differently. Formula cells are mapped just like copy. 
+-- A cell is a formula cell if its expression and value aren't the same
+-- Excel isn't included in parseValue like the rest, so it has to be separately cased on
+isFormulaCell :: ASCell -> Bool
+isFormulaCell cell = not valExpEqual
   where
     lang = language $ cellExpression cell
     xp = expression $ cellExpression cell
-    parsedVal = parseValue lang xp
+    valExpEqual = case lang of
+      Excel -> case maybeVal of
+        Nothing  -> False
+        Just val -> (trace' "VAL " val) == (trace' "CELL VALUE " (cellValue cell))
+        where
+          formula = trace' "FORMULA " $ parse literal "" xp
+          excelToASValue (Right (Basic (Var eValue))) = Just $ toASValue eValue
+          excelToASValue _ = Nothing
+          maybeVal = excelToASValue formula
+      otherwise -> (parseValue lang xp) == (Right (cellValue cell))
 
-extractFormulaCells :: [[NumberedCell]] -> [NumberedCell]
+-- Given the 2D list of cells in the sel range, extract all formula cells
+extractFormulaCells :: [[ASCell]] -> [ASCell]
 extractFormulaCells cells = concat $ map (filter isFormulaCell) cells
 
-getMappedFormulaCells :: ASRange -> ASRange -> [[NumberedCell]] -> [ASCell]
+-- Given the sel range, drag range, and 2D list of sel range cells, return all cells corresponding to formula cells
+-- (for each formula cell, do a copy-like operation to fill the drag range)
+getMappedFormulaCells :: ASRange -> ASRange -> [[ASCell]] -> [ASCell]
 getMappedFormulaCells r1 r2 cells = concat $ map translateCell formulaCells
   where
-    formulaCells = trace' "FORMULA CELLS "  $ extractFormulaCells cells
-    translateCell (pos,fc) = map (\offset -> S.shiftCell offset fc) $ (trace' "OFFSETS " (getDragOffsets r1 r2 pos))
+    formulaCells = extractFormulaCells cells
+    translateCell c = map (\offset -> S.shiftCell offset c) $ (getDragOffsets r1 r2 (pos c))
 
+------------------------------------------------------------------------------------------------------------------
 -- Deal with patterns
 
-extractPatternGroups :: [[NumberedCell]] -> [PatternGroup]
+-- A pattern group is a region of cells between adjacent formula cells
+-- it may have many actual patterns within it
+-- For example, 1,2,a,3,4 has three actual patterns (1,2) (a) (3,4)
+
+-- By splitting between formula cells, extract all pattern groups
+extractPatternGroups :: [[ASCell]] -> [PatternGroup]
 extractPatternGroups cells = concat $ map (LS.splitWhen isFormulaCell) cells
 
-getMappedPatternGroups :: ASRange -> ASRange -> [[NumberedCell]] -> [ASCell]
+getMappedPatternGroups :: ASRange -> ASRange -> [[ASCell]] -> [ASCell]
 getMappedPatternGroups r1 r2 cells = concat $ map (translatePatternGroupCells r1 r2) patternGroups
   where
     patternGroups = trace' "PATTERN GROUPS " $ extractPatternGroups cells
 
+-- Given the sel and drag ranges, and the pattern group, return all the new cells it creates
 translatePatternGroupCells :: ASRange -> ASRange -> PatternGroup -> [ASCell]
 translatePatternGroupCells r1 r2 pg = cells
   where
     patterns = decomposePatternGroup pg
     cells = concat $ map (translatePatternCells r1 r2) patterns
 
+-- Decompose a pattern group into patterns
+-- A pattern has a bunch of cells, and a function from term number -> ASValue
+-- Find the largest prefix that matches a pattern, and then recurse
 decomposePatternGroup :: PatternGroup -> [Pattern]
 decomposePatternGroup [] = []
 decomposePatternGroup pg = patterns
@@ -122,59 +149,55 @@ decomposePatternGroup pg = patterns
           largestStartPattern = fromJust $ getPattern $ fst ps
           restOfPatternGroup = drop (snd ps) pg
 
+-- Get the cells corresponding to a pattern using position offsets (expression = value)
 translatePatternCells :: ASRange -> ASRange -> Pattern -> [ASCell]
 translatePatternCells r1 r2 pattern = concat $ map translatePatternCell indexCells
   where
     len = length (fst pattern)
     indexCells = zip (fst pattern) [0..(len-1)]
-    translatePatternCell ((pos,cell),ind) = newCells
+    translatePatternCell (cell,ind) = newCells
       where
-        newPositions = getAbsoluteDragPositions r1 r2 pos
+        newPositions = getAbsoluteDragPositions r1 r2 (pos cell)
         num = length newPositions
-        seriesIndices = if (dragRightOrDown r1 r2)
-          then [ind,(ind+len)..(ind+(num-1)*len)]
-          else [ind,(ind-len)..(ind-(num-1)*len)]
+        seriesIndices = [ind,(ind+len)..(ind+(num-1)*len)]
         lang = language $ cellExpression cell
         newVals = map (snd pattern) seriesIndices
         newLocs = map (Index (rangeSheetId r1)) newPositions
         newExpressions = map (\v -> Expression (showValue lang v) lang) newVals
         newCells = map (\(l,e,v) -> Cell l e v (cellTags cell)) $ zip3 newLocs newExpressions (trace' "NEW VALS " newVals)
 
--- deal with pattern matching
+------------------------------------------------------------------------------------------------------------------
+-- deal with the actual pattern matching (quite literally)
+-- TODO: currently incomplete, need to get all of Excel eventually
 
-type PatternMatcher = [NumberedCell] -> Maybe Pattern
+type PatternMatcher = [ASCell] -> Maybe Pattern
 
 isInt :: ASValue -> Maybe Int
 isInt (ValueI i) = Just i
 isInt _ = Nothing
 
-getPattern :: [NumberedCell] -> Maybe Pattern
+-- Iterate through all pattern matchers in order and return the first one that matches the list of cells
+getPattern :: [ASCell] -> Maybe Pattern
 getPattern c = if noMatch
   then Nothing
   else Just (head patterns)
   where
     maybePatterns = map (\f -> f c) patternMatchers
-    patterns = catMaybes maybePatterns
+    patterns = catMaybes maybePatterns  
     noMatch = (length patterns == 0)
 
+-- List of pattern matchers
 patternMatchers :: [PatternMatcher]
-patternMatchers = [arithSeries,trivialMatcher,emptyMatcher]
+patternMatchers = [sequenceMatcher,arithMatcher,trivialMatcher]
 
 trivialMatcher :: PatternMatcher
-trivialMatcher [c] = Just $ ([c],\n -> cellValue (snd c))
+trivialMatcher [c] = Just $ ([c],\n -> cellValue c)
 trivialMatcher _ = Nothing
 
-
-emptyMatcher :: PatternMatcher
-emptyMatcher _ = Nothing
-
-getValsFromNumCells :: [NumberedCell] -> [ASValue]
-getValsFromNumCells c = map cellValue $ map snd c
-
-arithSeries :: PatternMatcher
-arithSeries cells = result 
+arithMatcher :: PatternMatcher
+arithMatcher cells = result 
   where
-    vals = getValsFromNumCells cells
+    vals = map cellValue cells
     ints = map isInt vals
     result = if (any isNothing ints)
       then Nothing
@@ -190,3 +213,40 @@ isArithmSeq [] = False
 isArithmSeq [x] = False
 isArithmSeq [x,y] = True
 isArithmSeq (x:y:z:xs) = (x - y) == (y - z) && isArithmSeq (y:z:xs)
+
+lowercase :: ASValue -> ASValue
+lowercase (ValueS s) = (ValueS (map toLower s))
+lowercase v = v
+
+-- sequences of strings
+-- not matching arithmetic subsequences yet (mon,wed,...)
+
+sequenceMatcher :: PatternMatcher
+sequenceMatcher [] = Nothing -- don't match an empty pattern as a subsequence
+sequenceMatcher cells = result
+  where
+    vals' = map cellValue cells
+    vals = map lowercase vals' -- match lowercase
+    seqMatches = filter (\seq -> L.isInfixOf vals seq) sequences -- match infix (consecutive subsequence)
+    result = if (length seqMatches == 0)
+      then Nothing
+      else Just (cells,valFunc)
+        where
+          seq = head seqMatches
+          startIndex = fromJust $ L.findIndex ((==) (head vals)) seq
+          valFunc = \i -> seq !! ((startIndex+i) `mod` (length seq))
+
+sequences :: [[ASValue]]
+sequences = months ++ days
+
+months :: [[ASValue]]
+months = [v1,v2]
+  where
+    v1 = map ValueS ["jan","feb","mar","apr","may","jun","jul","aug","sept","oct","nov","dec"]
+    v2 = map ValueS ["january","february","march","april","may","june","july","august","september","october","november","december"]
+
+days :: [[ASValue]]
+days = [v1,v2]
+  where
+    v1 = map ValueS ["mon","tue","wed","thu","fri","sat","sun"]
+    v2 = map ValueS ["monday","tuesday","wednesday","thursday","friday","saturday","sunday"]
