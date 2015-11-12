@@ -105,15 +105,9 @@ export default {
         case "Align":
           config.halign = tag.contents.toLowerCase();
           break;
-<<<<<<< HEAD
         case "Format":
-          switch (tag.contents) { 
-            case "Money": 
-=======
-        case "Disp":
           switch (tag.contents) {
             case "Money":
->>>>>>> 7e8e4d13148c357622fa1af37c21cb26084776cf
               config.value = self.formatMoney("$", config.value, 2);
               break;
             case "Percentage":
@@ -227,13 +221,8 @@ export default {
   },
 
   formatMoney(currency, contents, dec) {
-<<<<<<< HEAD
     if (!this.isFormattable(contents)) {
       return contents; 
-=======
-    if (!contents || isNaN(contents) || contents == "") {
-      return contents;
->>>>>>> 7e8e4d13148c357622fa1af37c21cb26084776cf
     }
 
     let delim = null,
@@ -263,13 +252,8 @@ export default {
   },
 
   formatPercentage(contents) {
-<<<<<<< HEAD
     if (!this.isFormattable(contents)) {
       return contents; 
-=======
-    if (!contents || isNaN(contents) || contents == "") {
-      return contents;
->>>>>>> 7e8e4d13148c357622fa1af37c21cb26084776cf
     }
     return contents*100 + "%";
   },
@@ -283,7 +267,7 @@ export default {
         millisecondsElapsed = (contents - diff)*24*60*60*1000, 
         d = new Date(millisecondsElapsed); 
 
-    return String(Number(d.getMonth()) + 1) + "/" + d.getDate() + "/" + d.getYear(); 
+    return String(Number(d.getMonth()) + 1) + "/" + d.getDate() + "/" + d.getFullYear(); 
   },
 
 /*************************************************************************************************************************/
