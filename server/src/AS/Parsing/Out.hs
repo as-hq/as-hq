@@ -260,9 +260,6 @@ shiftExRef (dC, dR) exRef = case exRef of
   ExPointerRef l sh wb -> exRef { pointerLoc = l' }
       where ExLocRef l' _ _ = shiftExRef (dC, dR) (ExLocRef l sh wb)
 
-shiftExRefs :: Offset -> [ExRef] -> [ExRef]
-shiftExRefs offset exRefs = map (shiftExRef offset) exRefs
-
 shiftCol :: Int -> RefType -> String -> Int
 shiftCol dC rType c = newCVal
   where

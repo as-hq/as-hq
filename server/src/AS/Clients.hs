@@ -76,7 +76,6 @@ instance Client ASUserClient where
       Redo         -> handleRedo user state
       Copy         -> handleCopy user state payload
       Cut          -> handleCut user state payload
-      CopyForced   -> handleCopyForced user state payload
       ToggleTag    -> handleToggleTag user state payload
       SetTag       -> handleSetTag user state payload
       Repeat       -> handleRepeat user state payload
@@ -324,9 +323,11 @@ handleCut user state (PayloadPaste from to) = do
   msg' <- DP.runDispatchCycle state newCells (clientCommitSource user)
   reply user state msg'
 
--- same without checking. This might be broken.
-handleCopyForced :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
-handleCopyForced user state (PayloadLL (from:to:[])) = return ()
+-- 
+-- 1. need to update references in descendants (cells that reference your cut/paste cells)
+-- 2. need to NOT shift references to cells outside of cut/paste range
+-- 3. don't tessellate
+-- 
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Drag/autofill
@@ -637,12 +638,7 @@ refMap mt er@(ExPointerRef el ps pw) = ExPointerRef el' ps pw
     ExLocRef el' _ _ = refMap mt (ExLocRef el ps pw)
 
 expressionMap :: MutateType -> (ASExpression -> ASExpression)
-expressionMap mt xp@(Expression str lang) = xp'
-  where
-    (inter, exRefs)  = S.getUnquotedMatchesWithContext xp refMatch
-    exRefs' = map (refMap mt) exRefs
-    str' = S.replaceMatches (inter, exRefs') show str
-    xp' = Expression str' lang
+expressionMap mt = S.replaceRefs (show . (refMap mt))
 
 cellMap :: MutateType -> (ASCell -> Maybe ASCell)
 cellMap mt (Cell loc xp v ts) = case ((cellLocMap mt) loc) of 

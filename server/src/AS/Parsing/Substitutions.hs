@@ -50,7 +50,7 @@ quotedStringEscaped = (quoteString <|> apostropheString)
 
 -- | Alternatingly gives back matches in string and the surrounding parts of the matches. 
 -- e.g., parse (parseMatchesWithContext (P.string "12")) "" "1212ab12" gives
--- Right (["","","ab",""],["12","12","12"]) (alternatingly gives back str)
+-- Right (["","","ab",""],["12","12","12"])
 parseUnquotedMatchesWithContext :: Parser t -> Parser ([String],[t])
 parseUnquotedMatchesWithContext a = do
   matchesWithContext <- many $ try $ parseNextUnquoted a
@@ -70,15 +70,19 @@ getUnquotedMatchesWithContext (Expression target lang) p =
       Right _ -> False 
       Left  _ -> True)
 
+-- | Reconstructs a string from context (see description in parseUnquotedMatchesWithContext)
+blend :: ([String], [String]) -> String
+blend ([], []) = ""
+blend (x, []) = concat x
+blend ([], y) = concat y
+blend ((x:xs), (y:ys)) = x ++ y ++ (blend (xs,ys))
 
--- does no work with Parsec/actual parsing
-replaceMatches :: ([String],[t]) -> (t -> String) -> String -> String
-replaceMatches (inter,matches) f target = blend inter matchReplacings
-  where
-    blend [x] _ = x
-    blend (x:xs) (y:ys) = x ++  y ++ blend xs ys
-    matchReplacings = map f matches
-
+replaceRefs :: (ExRef -> String) -> ASExpression -> ASExpression
+replaceRefs f xp = xp { expression = expression' }
+  where 
+    (inter, exRefs) = getUnquotedMatchesWithContext xp refMatch
+    exRefs'         = map f exRefs 
+    expression'     = blend (inter, exRefs')
 
 -------------------------------------------------------------------------------------------------------------------------------------------------
 -- Helpers
@@ -96,16 +100,13 @@ getASRefsFromExRefs sheetid matches = map (exRefToASRef sheetid) matches
 
 
 ----------------------------------------------------------------------------------------------------------------------------------
--- Copy/paste
+-- Copy/paste and Cut/paste
 
 -- | Takes in an offset and a cell, and returns the cell you get when you shift the cell by
 -- the offset. (The location changes, and the non-absolute references in the expression changes.)
 shiftCell :: Offset -> ASCell -> ASCell
-shiftCell offset (Cell loc xp@(Expression str lang) v ts) = shiftedCell
+shiftCell offset (Cell loc xp v ts) = cell'
   where
-    shiftedLoc     = shiftInd offset loc
-    (inter,exRefs) = getUnquotedMatchesWithContext xp refMatch
-    shiftedExRefs  = shiftExRefs offset exRefs
-    newStr         = replaceMatches (inter, shiftedExRefs) show str
-    shiftedXp      = Expression newStr lang
-    shiftedCell    = Cell shiftedLoc shiftedXp v ts
+    loc'  = shiftInd offset loc
+    xp'   = replaceRefs (show . (shiftExRef offset)) xp
+    cell' = Cell loc' xp' v ts

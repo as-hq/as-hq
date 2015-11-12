@@ -229,23 +229,21 @@ lookUpRef lang valuesMap ref = case ref of
 
 -- | Replaces all the Excel references in an expression with the valuesMap corresponding to them.
 -- TODO clean up SQL mess
-
 insertValues :: ASSheetId -> IndValMap -> ASExpression -> String
-insertValues sheetid valuesMap xp@(Expression origString lang) = case lang of
+insertValues sheetid valuesMap xp@(Expression _ lang) = case lang of
   SQL -> contextStmt ++ evalStmt
     where
         exRefs = getUnquotedMatchesWithContext xp refMatch
         matchRefs = map (exRefToASRef sheetid) (snd exRefs)
         context = map (lookUpRef SQL valuesMap) matchRefs
         st = ["dataset"++(show i) | i<-[0..((L.length matchRefs)-1)]]
-        newExp = replaceMatches exRefs (\el -> (L.!!) st (MB.fromJust (L.findIndex (el==) (snd exRefs)))) origString
+        newExp = expression $ replaceRefs (\el -> (L.!!) st (MB.fromJust (L.findIndex (el==) (snd exRefs)))) xp
         contextStmt = "setGlobals("++(show context) ++")\n"
         evalStmt = "result = pprintSql(db(\'" ++ newExp ++ "\'))"
-  otherLang -> evalString
+  _ -> evalString
     where
-        exRefs = getUnquotedMatchesWithContext xp refMatch
         exRefToStringEval = (lookUpRef lang valuesMap) . (exRefToASRef sheetid) -- ExRef -> String. (Takes in ExRef, returns the ASValue corresponding to it, as a string.)
-        evalString = replaceMatches exRefs exRefToStringEval origString
+        evalString = expression $ replaceRefs exRefToStringEval xp
 
 -----------------------------------------------------------------------------------------------------------------------
 -- | File management
