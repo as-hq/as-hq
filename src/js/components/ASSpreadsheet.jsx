@@ -301,12 +301,12 @@ export default React.createClass({
         this.select(newSel, false);
       } else {
         let {x, y} = this.getCoordsFromMouseEvent(grid, evt);
-        if (Render.isOnSelectionEdge(x, y)) {
-          // dragging selections
-          this.dragSelectionOrigin = {col: evt.gridCell.x, row: evt.gridCell.y};
-        } else if (this.insideBox(evt) && !evt.primitiveEvent.detail.isRightClick) {
+        if (this.insideBox(evt) && !evt.primitiveEvent.detail.isRightClick) {
           // dragging blue box
           this.mouseDownInBox = true;
+        } else if (Render.isOnSelectionEdge(x, y)) {
+          // dragging selections
+          this.dragSelectionOrigin = {col: evt.gridCell.x, row: evt.gridCell.y};
         } else if (model.featureChain) {
           model.featureChain.handleMouseDown(grid, evt);
           model.setCursor(grid);
@@ -316,11 +316,11 @@ export default React.createClass({
 
     model.onMouseMove = (grid, evt) => {
       let {x, y} = this.getCoordsFromMouseEvent(grid, evt);
-      if (Render.isOnSelectionEdge(x, y)) {
-        this.setState({cursorStyle: 'move'});
-      } else if (this.insideBox(evt)) {
+      if (this.insideBox(evt)) {
         this.setState({cursorStyle:'crosshair'});
-      } else { // do hypergrid's default (hover)
+      } else if (Render.isOnSelectionEdge(x, y)) {
+        this.setState({cursorStyle: 'move'});
+      } else {
         self.setState({cursorStyle:'auto'});
         if (model.featureChain) {
           model.featureChain.handleMouseMove(grid, evt);

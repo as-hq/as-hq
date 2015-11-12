@@ -293,7 +293,7 @@ export default {
   dependencyRenderer: function(gc) {
     _renderParams.deps.forEach((dep) => {
       gc.beginPath();
-      drawRect(dep, this, gc);
+      RenderUtils.drawRect(dep, this, gc);
       gc.lineWidth = 1;
       gc.strokeStyle = 'orange';
       gc.stroke();
@@ -304,11 +304,13 @@ export default {
     if (_renderParams.dragRect !== null) {
       console.log("DRAWING DRAG:", JSON.stringify(_renderParams.dragRect));
       gc.beginPath();
-      drawRect(_renderParams.dragRect, this, gc);
+      RenderUtils.drawRect(_renderParams.dragRect, this, gc);
       gc.lineWidth = 1;
       gc.strokeStyle = 'blue';
       gc.setLineDash([5,5]);
       gc.stroke();
+    }
+  },
 
   cornerBoxRenderer: function(gc) {
     if (!_renderParams.shouldRenderSquareBox){
@@ -361,7 +363,7 @@ export default {
           if (dragY >= brY-scrollY){
             dottedTlY = br.origin.y + br.extent.y;
             height =  drag.origin.y + drag.extent.y - dottedTlY;
-            drawDottedVertical(gc,dottedTlX,dottedTlY,width,height);
+            RenderUtils.drawDottedVertical(gc,dottedTlX,dottedTlY,width,height);
             dottedRange = {
               tl: {col:tlX,row:tlY},
               br: {col:brX,row:dragY+scrollY}
@@ -369,7 +371,7 @@ export default {
           } else if (dragY <= tlY-scrollY) {
             dottedTlY = tl.origin.y;
             height = drag.origin.y - dottedTlY;
-            drawDottedVertical(gc,dottedTlX,dottedTlY,width,height);
+            RenderUtils.drawDottedVertical(gc,dottedTlX,dottedTlY,width,height);
             dottedRange = {
               tl: {col:tlX,row:dragY+scrollY},
               br: {col:brX,row:brY}
@@ -381,7 +383,7 @@ export default {
           if (dragX >= brX-scrollX){
             dottedTlX = br.origin.x + br.extent.x;
             width = drag.origin.x + drag.extent.x - dottedTlX;
-            drawDottedHorizontal(gc,dottedTlX,dottedTlY,width,height);
+            RenderUtils.drawDottedHorizontal(gc,dottedTlX,dottedTlY,width,height);
             dottedRange = {
               tl: {col:tlX,row:tlY},
               br: {col:dragX+scrollX,row:brY}
@@ -389,7 +391,7 @@ export default {
           } else if (dragX <= tlX-scrollX){
             dottedTlX = tl.origin.x;
             width = drag.origin.x - dottedTlX;
-            drawDottedHorizontal(gc,dottedTlX,dottedTlY,width,height);
+            RenderUtils.drawDottedHorizontal(gc,dottedTlX,dottedTlY,width,height);
             dottedRange  = {
               tl: {col:dragX+scrollX,row:tlY},
               br: {col:brX,row:brY}
