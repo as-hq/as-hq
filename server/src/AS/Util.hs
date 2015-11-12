@@ -496,7 +496,19 @@ rangeToIndices (Range sheet (ul, lr)) = [Index sheet (x,y) | x <- [startx..endx]
     endy = max (snd ul) (snd lr)
 
 rangeContainsIndex :: ASRange -> ASIndex -> Bool
-rangeContainsIndex (Range sid1 ((x1,y1),(x2,y2))) (Index sid2 (x,y)) = and [ sid1 == sid2, x >= x1, x <= x2, y >= y1, y <= y2 ]
+rangeContainsIndex (Range sid1 ((x1,y1),(x2,y2))) (Index sid2 (x,y)) = and [ 
+  sid1 == sid2, x >= x1, x <= x2, y >= y1, y <= y2 ]
+
+rangeContainsRange :: ASRange -> ASRange -> Bool
+rangeContainsRange (Range sid1 ((x1, y1), (x2, y2))) (Range sid2 ((x1', y1'), (x2', y2'))) = and [ 
+  sid1 == sid2, x1 <= x1', x2 >= x2', y1 <= y1', y2 >= y2']
+
+-- Probably needs case for columns
+rangeContainsRef :: ASRange -> ASReference -> Bool
+rangeContainsRef r ref = case ref of 
+  IndexRef i  -> rangeContainsIndex r i
+  RangeRef r' -> rangeContainsRange r r'
+  OutOfBounds -> False 
 
 orientRange :: ASRange -> ASRange
 orientRange (Range sid (tl, br)) = Range sid (tl',br')
@@ -530,14 +542,19 @@ getTopLeft (Range sh (tl,_)) = Index sh tl
 getRangeDims :: ASRange -> Dimensions
 getRangeDims (Range _ ((y1, x1), (y2, x2))) = (1 + abs (y2 - y1), 1 + abs (x2 - x1))
 
-getPasteOffsets :: ASRange -> ASRange -> [Offset]
-getPasteOffsets from to = offsets
+-- | The offset needed to translate the top left corner of the first range to get the 
+-- top left corner of the second. 
+getRangeOffset :: ASRange -> ASRange -> Offset
+getRangeOffset r1 r2 = getIndicesOffset (getTopLeft r1) (getTopLeft r2)
+
+getCopyOffSets :: ASRange -> ASRange -> [Offset]
+getCopyOffSets from to = offsets
   where
     (fromYDim, fromXDim) = getRangeDims from
     (toYDim, toXDim) = getRangeDims to
     yRep = max 1 (toYDim `div` fromYDim)
     xRep = max 1 (toXDim `div` fromXDim)
-    (topYOffset, topXOffset) = getIndicesOffset (getTopLeft from) (getTopLeft to)
+    (topYOffset, topXOffset) = getRangeOffset from to
     yRepOffsets = take yRep [0,fromYDim..]
     xRepOffsets = take xRep [0,fromXDim..]
     offsets = [(topYOffset + y, topXOffset + x) | y <- yRepOffsets, x <- xRepOffsets]
