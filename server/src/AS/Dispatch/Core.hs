@@ -44,6 +44,8 @@ import Control.Monad.Trans.Either
 -- Regular eval route
 
 -- assumes all evaled cells are in the same sheet
+-- the only information we're really passed in from the cells is the locations and the expressions of
+-- the cells getting evaluated. We pull the rest from the DB. 
 runDispatchCycle :: MVar ServerState -> [ASCell] -> CommitSource -> IO ASServerMessage
 runDispatchCycle state cs src = do
   let sid = locSheetId . cellLocation $ head cs
@@ -166,8 +168,9 @@ evalChain' conn valuesMap [] lists pastListHeads = do
   evalChain' conn (M.union valuesMap newKnownValues) cells' [] pastListHeads
 
 evalChain' conn valuesMap (c@(Cell loc xp _ ts):cs) next listHeads = do
-  cv <- EC.evaluateLanguage (IndexRef (cellLocation c)) (locSheetId loc) valuesMap xp
-  let listResult = createListCells c cv
+  (Formatted cv f) <- EC.evaluateLanguage (IndexRef (cellLocation c)) (locSheetId loc) valuesMap xp
+  let c' = formatCell f (Cell loc xp cv ts)
+      listResult = createListCells c' cv
       newValuesMap = case listResult of
         Nothing          -> M.insert loc cv valuesMap
         (Just cellsList) -> foldr (\(Cell l _ v _) mp -> M.insert l v mp) valuesMap (snd cellsList)
@@ -180,8 +183,18 @@ evalChain' conn valuesMap (c@(Cell loc xp _ ts):cs) next listHeads = do
         Just _  -> loc:listHeads
   (restCells, restLists) <- evalChain' conn newValuesMap cs next' listHeads'
   return $ case listResult of
-    Nothing          -> ((Cell loc xp cv ts):restCells, restLists)
+    Nothing          -> (c':restCells, restLists)
     (Just cellsList) -> (restCells, cellsList:restLists)
+
+formatCell :: Maybe FormatType -> ASCell -> ASCell
+formatCell Nothing c = c
+formatCell (Just f) c = c' 
+  where 
+    ts  = cellTags c
+    ts' = filter (U.differentTagType (Format f)) ts -- the cell without that tag
+    c' = case f of 
+      NoFormat -> c { cellTags = ts' }
+      _        -> c { cellTags = (Format f):ts' }
 
 -- Removed for now for a number of reasons: 
 -- 1) confusing UX
@@ -221,7 +234,7 @@ createListCells (Cell (Index sheet (a,b)) xp _ ts) cv = if (shouldCreateListCell
     width     = maximum $ map length rows
     listKey   = DU.getListKey origLoc (height, width)
     tags      = getExtraTagsFromCV cv
-    cells     = map (\(loc, val) -> Cell loc xp val ((ListMember listKey):tags)) $ zip locs (concat rows)
+    cells     = map (\(loc, val) -> Cell loc xp val ((ListMember listKey):tags ++ ts)) $ zip locs (concat rows)
 
     getValuesFromCV (ValueL l)        = l
     getValuesFromCV (RDataFrame rows) = U.transposeList rows

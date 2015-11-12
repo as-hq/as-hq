@@ -15,6 +15,7 @@ import qualified Data.Map as M
 import qualified Data.Text as T
 import Control.Concurrent (MVar)
 import Control.Applicative
+import Control.Monad (liftM, ap)
 
 -- memory
 import Control.DeepSeq
@@ -140,7 +141,27 @@ data ASCell = Cell {cellLocation :: ASIndex,
 type ListKey = String
 type ASList = (ListKey, [ASCell])
 type Rect = (Coord, Coord)
-data FormatType = Money | Percentage | Date deriving (Show, Read, Eq, Generic)
+
+
+
+data FormatType = NoFormat | Money | Percentage | Date deriving (Show, Read, Eq, Generic)
+data Formatted a = Formatted { val :: a, style :: Maybe FormatType }
+
+instance Functor Formatted where
+  fmap = liftM
+
+instance Applicative Formatted where
+  pure  = return
+  (<*>) = ap
+
+-- Always retain the style of the first argument, unless there was none
+instance Monad Formatted where 
+  return x                   = Formatted x Nothing
+  Formatted x Nothing >>= f  = f x
+  Formatted x y >>= f        = (f x) { style = y }
+
+instance (Eq a) => Eq (Formatted a) where 
+  (==) (Formatted x _) (Formatted y _)  = x==y
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Streaming

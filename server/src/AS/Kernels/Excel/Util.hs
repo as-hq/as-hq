@@ -32,7 +32,7 @@ matrixIndex :: (Int,Int) -> EMatrix -> EValue
 matrixIndex (c,r) (EMatrix numCols numRows v) = (V.!) v (r*numCols+c)
 
 -- | Cast ASValue (from IndValMap) to an Excel entity. Ignoring ValueL for now; cannot be in the map.
-asValueToEntity :: ASValue -> Maybe EEntity
+asValueToEntity :: Formatted ASValue -> Maybe EEntity
 asValueToEntity v = case (toEValue v) of
   Nothing -> Nothing
   Just v -> Just $  EntityVal v
@@ -78,20 +78,21 @@ intToResult = valToResult . EValueNum . return . EValueI
 -------------------------------------------------------------------------------------------------------------
 -- | Other conversion functions
 
--- ::ALEX:: might want to return tags here too
-toASValue :: EValue -> Formatted ASValue
-toASValue (EValueS s) = return $ ValueS s
-toASValue (EValueNum (Formatted (EValueD d) f)) = Formatted (ValueD d) f
-toASValue (EValueNum (Formatted (EValueI i) f)) = Formatted (ValueI i) f
-toASValue (EValueB b) = return $ ValueB b
-toASValue (EBlank)    = return NoValue
+eValToASValue :: EValue -> Formatted ASValue
+eValToASValue (EValueS s) = return $ ValueS s
+eValToASValue (EValueNum (Formatted (EValueD d) f)) = Formatted (ValueD d) f
+eValToASValue (EValueNum (Formatted (EValueI i) f)) = Formatted (ValueI i) f
+eValToASValue (EValueB b) = return $ ValueB b
+eValToASValue (EBlank)    = return NoValue
+eValToASValue (EMissing)  = return NoValue
+eValToASValue (EValueE s) = return $ ValueError s "" "" (-1)
 
-toEValue :: ASValue -> Maybe EValue
-toEValue (ValueS s) = Just $ EValueS s
-toEValue (ValueB b) = Just $ EValueB b
-toEValue (ValueD d) = Just $ EValueNum $ return $ EValueD d
-toEValue (ValueI i) = Just $ EValueNum $ return $ EValueI i
-toEValue (NoValue) = Just EBlank
+toEValue :: Formatted ASValue -> Maybe EValue
+toEValue (Formatted (ValueS s) _) = Just $ EValueS s
+toEValue (Formatted (ValueB b) _) = Just $ EValueB b
+toEValue (Formatted (ValueD d) f) = Just $ EValueNum $ Formatted (EValueD d) f
+toEValue (Formatted (ValueI i) f) = Just $ EValueNum $ Formatted (EValueI i) f
+toEValue (Formatted (NoValue)  _) = Just EBlank
 toEValue v = Nothing
 
 dealWithBlank :: Maybe ASCell -> ASValue

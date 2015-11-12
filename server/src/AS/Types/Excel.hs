@@ -15,7 +15,6 @@ import Text.Read
 import qualified Data.Vector as V
 import qualified Data.Map.Strict as M
 import Control.Monad.Except
-import Control.Applicative
 import Control.Monad (liftM, ap)
 import qualified Data.Vector as V
 import qualified Data.Vector.Unboxed as VU
@@ -98,8 +97,6 @@ data ERef = ERef ASReference deriving (Show, Read, Eq, Ord)
 
 data ENumeric = EValueI Int | EValueD Double deriving (Show)
 
-data Formatted a = Formatted { val :: a, style :: Maybe FormatType }
-
 
 instance Eq ENumeric where
   (==) (EValueD d) (EValueD d') = d==d'
@@ -147,25 +144,6 @@ instance Fractional ENumeric where
   (/) (EValueI i) (EValueI i') = EValueD $ (fromIntegral i)/(fromIntegral i')
   fromRational r = EValueD $ fromRational r
 
-
-
-
-instance Functor Formatted where
-  fmap = liftM
-instance Applicative Formatted where
-  pure  = return
-  (<*>) = ap
-instance Monad Formatted where 
-  return x                   = Formatted x Nothing
-  Formatted x Nothing >>= f  = f x
-  Formatted x y >>= f        = (f x) { style = y }
-
-removeFormat :: Formatted a -> Formatted a 
-removeFormat (Formatted val _) = Formatted val Nothing
-
-instance (Eq a) => Eq (Formatted a) where 
-  (==) (Formatted x _) (Formatted y _)  = x==y
-
 type EFormattedNumeric = Formatted ENumeric
 
 instance Ord EFormattedNumeric where
@@ -176,21 +154,17 @@ instance (Show a) => Show (Formatted a) where
 
 instance Num EFormattedNumeric where
   negate = liftM negate
-  signum = liftM signum 
+  signum (Formatted f _) = Formatted (signum f) $ Just NoFormat
   abs = liftM abs
   (+) = liftM2 (+)
-  (*) (Formatted x (Just Percentage)) (Formatted y f) = Formatted (x*y) f
-  (*) (Formatted x f) (Formatted y (Just Percentage)) = Formatted (x*y) f
+  (*) (Formatted x (Just Percentage)) (Formatted y f) = Formatted x*y f
+  (*) (Formatted x f) (Formatted y (Just Percentage)) = Formatted x*y f
   (*) x y = liftM2 (*) x y
   fromInteger = return . fromInteger
 
 instance Fractional EFormattedNumeric where
   (/) = liftM2 (/)
   fromRational = return . fromRational
-
-
-
-
 
 data EValue =
   EBlank | -- value doesn't exist in DB

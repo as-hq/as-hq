@@ -59,6 +59,19 @@ truncated str
   | length str < 500 = str 
   | otherwise = (take 500 str) ++ ("... [Truncated]")
 
+-- Alex 10/22: seems kind of ugly. 
+differentTagType :: ASCellTag -> ASCellTag -> Bool
+differentTagType (Color _) (Color _) = False
+differentTagType (Size _) (Size _) = False
+differentTagType (Format _) (Format _) = False
+differentTagType (StreamTag _) (StreamTag _) = False
+differentTagType Tracking Tracking = False
+differentTagType Volatile Volatile = False
+differentTagType (ReadOnly _) (ReadOnly _) = False
+differentTagType (ListMember _) (ListMember _) = False
+differentTagType DFMember DFMember = False
+differentTagType _ _ = True
+
 sendMessage :: (ToJSON a, Show a) => a -> WS.Connection -> IO ()
 sendMessage msg conn = do
   WS.sendTextData conn (encode msg)
@@ -144,13 +157,13 @@ splitBy delimiter = foldr f [[]]
   where f c l@(x:xs) | c == delimiter = []:l
                      | otherwise = (c:x):xs
 
-catchEitherT :: EitherTExec ASValue -> EitherTExec ASValue
+catchEitherT :: EitherTExec (Formatted ASValue) -> EitherTExec (Formatted ASValue)
 catchEitherT a = do
   result <- liftIO $ catch (runEitherT a) whenCaught
   case result of
     (Left e) -> left e
     (Right e) -> right e
-    where whenCaught = (\e -> return . Right $ ValueError (show e) "StdErr" "" 0) :: (SomeException -> IO (Either ASExecError ASValue))
+    where whenCaught = (\e -> return . Right $ return $ ValueError (show e) "StdErr" "" 0) :: (SomeException -> IO (Either ASExecError (Formatted ASValue)))
 
 fromDouble :: Double -> Either Double Int
 fromDouble x = if (x == xInt)

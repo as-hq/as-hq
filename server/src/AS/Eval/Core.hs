@@ -38,19 +38,20 @@ import Control.Exception (catch, SomeException)
 -----------------------------------------------------------------------------------------------------------------------
 -- Exposed functions
 
-evaluateLanguage :: ASReference -> ASSheetId -> IndValMap -> ASExpression -> EitherTExec ASValue
+evaluateLanguage :: ASReference -> ASSheetId -> IndValMap -> ASExpression -> EitherTExec (Formatted ASValue)
 evaluateLanguage curRef sheetid valuesMap xp@(Expression str lang) = catchEitherT $ do
   printWithTimeT "Starting eval code"
   let maybeError = possiblyShortCircuit sheetid valuesMap xp
   case maybeError of
-    Just e -> return e -- short-circuited, return this error
+    Just e -> return $ return e -- short-circuited, return this error
     Nothing -> case lang of
       Excel -> KE.evaluate str curRef valuesMap -- Excel needs current location and un-substituted expression
-      otherwise -> execEvalInLang lang xpWithValuesSubstituted -- didn't short-circuit, proceed with eval as usual
+      otherwise -> return <$> execEvalInLang lang xpWithValuesSubstituted -- didn't short-circuit, proceed with eval as usual
        where xpWithValuesSubstituted = insertValues sheetid valuesMap xp
 
+-- no catchEitherT here for now, but that's because we're obsolescing Repl for now
 evaluateLanguageRepl :: ASExpression -> EitherTExec ASValue
-evaluateLanguageRepl (Expression str lang) = catchEitherT $ case lang of
+evaluateLanguageRepl (Expression str lang) = case lang of
   Python  -> KP.evaluateRepl str
   R       -> KR.evaluateRepl str
   SQL     -> KP.evaluateSqlRepl str
