@@ -30,6 +30,7 @@ import AS.Daemon                as DM
 import AS.Parsing.Out (exRefToASRef, asRefToExRef, refMatch)
 
 import AS.Config.Settings as  CS
+import qualified AS.InferenceUtils as IU
 
 -- EitherT
 import Control.Monad.Trans.Class
@@ -80,6 +81,7 @@ instance Client ASUserClient where
       BugReport    -> handleBugReport user payload
       JumpSelect   -> handleJumpSelect user state payload
       MutateSheet  -> handleMutateSheet user state payload
+      Drag         -> handleDrag user state payload
       where payload = clientPayload message
       -- Undo         -> handleToggleTag user state (PayloadTags [StreamTag (Stream NoSource 1000)] (Index (T.pack "TEST_SHEET_ID2") (1,1)))
       -- ^^ above is to test streaming when frontend hasn't been implemented yet
@@ -323,6 +325,18 @@ handleCut user state (PayloadPaste from to) = do
 -- same without checking. This might be broken.
 handleCopyForced :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
 handleCopyForced user state (PayloadLL (from:to:[])) = return ()
+
+----------------------------------------------------------------------------------------------------------------------------------------------
+-- Drag/autofill
+
+handleDrag :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
+handleDrag user state (PayloadDrag selRng dragRng) = do 
+  conn <- dbConn <$> readMVar state
+  nCells <- IU.getNumberedCells selRng dragRng
+  let newCells = (IU.getMappedFormulaCells selRng dragRng nCells) ++ (IU.getMappedPatternGroups selRng dragRng nCells)
+  msg' <- DP.runDispatchCycle state newCells (clientCommitSource user)
+  reply user state msg'
+
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Copy/paste helpers
