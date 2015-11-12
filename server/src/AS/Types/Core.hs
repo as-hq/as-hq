@@ -205,6 +205,7 @@ data ASAction =
   | BugReport
   | JumpSelect
   | MutateSheet
+  | Drag
   deriving (Show, Read, Eq, Generic)
 
 data ASResult = Success | Failure {failDesc :: String} | NoResult deriving (Show, Read, Eq, Generic)
@@ -242,6 +243,7 @@ data ASPayload =
   | PayloadList QueryList
   | PayloadText {text :: String}
   | PayloadMutate MutateType
+  | PayloadDrag {initialRange :: ASRange, dragRange :: ASRange}
   deriving (Show, Read, Eq, Generic)
 
 data Direction = DUp | DDown | DLeft | DRight deriving (Show, Read, Eq, Generic)

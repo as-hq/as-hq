@@ -47,6 +47,7 @@ library
                        AS.Types.Excel
                        AS.Users
                        AS.Util
+                       AS.InferenceUtils
   build-depends:       base >= 4.7 && < 5
                      , text >= 0.11 && < 2.0
                      , filepath
