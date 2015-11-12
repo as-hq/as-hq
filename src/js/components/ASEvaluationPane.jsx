@@ -638,8 +638,8 @@ export default React.createClass({
           onTextBoxDeferredKey={this._onTextBoxDeferredKey}
           onSelectionChange={this._onSelectionChange}
           hideToast={this.hideToast}
-          width="100%"
-          height={`calc(100% - ${this.getEditorHeight()})`}  />
+          width="90%"
+          height={`calc(90% - ${this.getEditorHeight()})`}  />
         <Snackbar ref="snackbarError"
                   message={this.state.toastMessage}
                   action={this.state.toastAction}

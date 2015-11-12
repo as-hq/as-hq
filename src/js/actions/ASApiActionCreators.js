@@ -327,6 +327,15 @@ export default {
     this.send(msg);
   },
 
+  drag(activeRng,dragRng){
+    let msg = TC.makeClientMessageRaw(Constants.ServerActions.Drag, {
+      tag: "PayloadDrag",
+      initialRange: TC.simpleToASRange(activeRng),
+      dragRange: TC.simpleToASRange(dragRng)
+    });
+    this.send(msg);
+  },
+
   copy(fromRng, toRng) {
     let msg = TC.makeClientMessageRaw(Constants.ServerActions.Copy, {
       tag: "PayloadPaste",

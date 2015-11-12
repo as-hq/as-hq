@@ -10,6 +10,7 @@ import Store from './ASEvaluationStore';
 import API from '../actions/ASApiActionCreators';
 import Util from '../AS/Util';
 import ParseUtils from '../AS/ParsingUtils';
+import Render from '../AS/Render';
 
 
 /*
@@ -152,6 +153,7 @@ const ASExpStore = assign({}, BaseStore, {
 
   setClickType(t){
     _data.clickType = t;
+    Render.setShouldRenderSquareBox((t === Constants.ClickType.CLICK));
   },
 
   /**************************************************************************************************************************/

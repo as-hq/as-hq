@@ -454,6 +454,15 @@ export default {
     return false;
   },
 
+  // Check if the mouse location is in the square box for draggging
+  mouseLocIsContainedInBox(mouseLocX,mouseLocY,topLeftBoxObj,boxWidth){
+    let xInBounds = mouseLocX >= topLeftBoxObj.x &&
+                    mouseLocX <= topLeftBoxObj.x + boxWidth,
+        yInBounds = mouseLocY >= topLeftBoxObj.y &&
+                    mouseLocY <= topLeftBoxObj.y + boxWidth;
+    return xInBounds && yInBounds;
+  },
+
   getAgnosticLanguageFromServer(lang) {
     return Constants.Languages[lang];
   },
