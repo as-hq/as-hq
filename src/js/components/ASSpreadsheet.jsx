@@ -706,7 +706,7 @@ export default React.createClass({
   // Render
 
   render() {
-    let {behavior, width, height} = this.props; //should also have onReady
+    let {behavior, width, height, language} = this.props; //should also have onReady
     let style = {width: width, height: height,cursor:this.state.cursorStyle};
     let behaviorElement;
     let self = this;
