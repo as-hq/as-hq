@@ -98,7 +98,7 @@ getPossiblyBlankCells locs = do
     Nothing -> Cell l (Expression "" Excel) NoValue []) (zip locs cells)
 
 getCellsByRange :: ASRange -> IO [Maybe ASCell]
-getCellsByRange rng = getCells (refToIndices $ RangeRef rng)
+getCellsByRange rng = getCells (fromJust $ refToIndices $ RangeRef rng)
 
 setCell :: ASCell -> IO ()
 setCell c = setCells [c]
@@ -239,7 +239,7 @@ setCellsAncestors cells = G.setRelations relations >> return depSets
   where
     depSets = map (\(Cell l e _ _) -> getDependencies (locSheetId l) e) cells
     zipSets = zip cells depSets
-    relations = map (\((Cell l _ _ _), depSet) -> (l, concat $ map refToIndices depSet)) zipSets
+    relations = map (\((Cell l _ _ _), depSet) -> (l, concat $ catMaybes $ map refToIndices depSet)) zipSets
 
 -- | Should only be called when undoing or redoing commits, which should be guaranteed to not
 -- introduce errors.

@@ -52,10 +52,12 @@ instance Client ASUserClient where
     | otherwise = s
   clientCommitSource (UserClient uid _ (Window sid _ _) _) = (sid, uid)
   handleClientMessage user state message = do 
-    printWithTime ("\n\nMessage: " ++ (show message))
     -- second arg is supposed to be sheet id; temporary hack is to always set userId = sheetId
     -- on frontend. 
-    writeToLog (show message) (clientCommitSource user)
+    unless (clientAction message == Acknowledge) $ do 
+      writeToLog (show message) (clientCommitSource user)
+      putStrLn "=========================================================="
+      printObj "Message" (show message)
     redisConn <- dbConn <$> readMVar state
     recordMessage redisConn message (clientCommitSource user)
     case (clientAction message) of
@@ -402,29 +404,27 @@ removeTagEndware :: MVar ServerState -> ASCellTag -> ASCell -> IO ()
 removeTagEndware state (StreamTag s) c = DM.removeDaemon (cellLocation c) state
 removeTagEndware _ _ _ = return ()
 
-processSetTag :: MVar ServerState -> ASCellTag -> ASIndex ->  IO ()
-processSetTag state t loc = do
-  curState <- readMVar state
-  (Cell l e v ts) <- DB.getPossiblyBlankCell loc
-  let ts' = filter (differentTagType t) ts
-  let c' = Cell l e v (t:ts')
-  DB.setCell c'
-  if (ts' /= ts) -- if you ended up removing an old version of the tag
-    then (removeTagEndware state t c')
-    else (addTagEndware state t c')
-
+-- Should refactor to props instead of tags for non-Bools. (Alex 11/11)
 handleSetTag :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
 handleSetTag user state (PayloadTag tag rng) = do
+  curState <- readMVar state
   let locs = rangeToIndices rng
-  mapM_ (processSetTag state tag) locs
-  sendToOriginal user $ ServerMessage SetTag Success (PayloadN ())
+  cells <- DB.getPossiblyBlankCells locs
+  cells' <- (flip mapM cells) $ \(Cell l e v ts) -> do 
+        let ts' = filter (differentTagType tag) ts
+            c'  = Cell l e v (tag:ts')
+        if (ts' /= ts) -- if you ended up removing an old version of the tag
+          then (removeTagEndware state tag c')
+          else (addTagEndware state tag c')
+        return c'
+  DB.setCells cells'
+  reply user state $ ServerMessage Update Success (PayloadCL cells')
 
 -- Alex 10/22: seems kind of ugly. 
 differentTagType :: ASCellTag -> ASCellTag -> Bool
 differentTagType (Color _) (Color _) = False
 differentTagType (Size _) (Size _) = False
-differentTagType Money Money = False
-differentTagType Percentage Percentage = False
+differentTagType (Disp _) (Disp _) = False
 differentTagType (StreamTag _) (StreamTag _) = False
 differentTagType Tracking Tracking = False
 differentTagType Volatile Volatile = False
@@ -628,21 +628,19 @@ cellLocMap (DragRow oldR newR) i@(Index sid (c, r))
   | oldR < newR  = Just $ Index sid (c, r-1) -- here on we assume c is strictly between oldR and newR
   | oldR > newR  = Just $ Index sid (c, r+1)
   -- case oldR == newR can't happen because oldR < r < newR since third pattern-match
-cellLocMap _ OutOfBounds = Just OutOfBounds
 
 refMap :: MutateType -> (ExRef -> ExRef)
-refMap mt er@(ExLocRef ExOutOfBounds _ _) = er
+refMap mt ExOutOfBounds = ExOutOfBounds
 refMap mt er@(ExLocRef (ExIndex rt _ _) ls lw) = er'
-  where 
+  where -- feels kinda ugly... 
     IndexRef ind = exRefToASRef (T.pack "") er
-    newRefLoc = case (cellLocMap mt ind) of 
-      Nothing -> OutOfBounds
-      Just ind -> ind
-    ExLocRef ei _ _ = asRefToExRef $ IndexRef newRefLoc
-    ei' = case newRefLoc of
-            OutOfBounds -> ei -- ugly. OutOfBounds shouldn't be a type of ExLocRef 
-            _           -> ei { refType = rt }
-    er' = ExLocRef ei' ls lw
+    er' = case (cellLocMap mt ind) of 
+      Nothing -> ExOutOfBounds
+      Just newRefLoc -> ExLocRef ei' ls lw
+        where
+          ExLocRef ei _ _ = asRefToExRef $ IndexRef newRefLoc
+          ei' = ei { refType = rt }
+
 refMap mt er@(ExRangeRef (ExRange f s) rs rw) = ExRangeRef (ExRange f' s') rs rw
   where 
     ExLocRef f' _ _ = refMap mt (ExLocRef f rs rw)

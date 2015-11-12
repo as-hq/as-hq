@@ -59,21 +59,25 @@ evaluateLanguageRepl (Expression str lang) = catchEitherT $ case lang of
 -----------------------------------------------------------------------------------------------------------------------
 -- Helpers
 
+-- [Maybe [ASIndex]] --> [[ Maybe ASIndex ]]
+
 -- | Checks for potentially bad inputs (NoValue or ValueError) among the arguments passed in. If no bad inputs,
 -- return Nothing. Otherwise, if there are errors that can't be dealt with, return appropriate ASValue error.
 possiblyShortCircuit :: ASSheetId -> RefValMap -> ASExpression -> Maybe ASValue
 possiblyShortCircuit sheetid valuesMap xp =
-  let depIndices = concat $ map refToIndices $ getDependencies sheetid xp
-      refs   = map IndexRef depIndices
+  let depRefs  = getDependencies sheetid xp -- :: [ASReference]
+      depInds  = map refToIndices depRefs   -- :: [Maybe [ASIndex]]
+      depInds' = concat $ map (maybe [Nothing] (map Just)) depInds -- :: [ Maybe ASIndex ]
+      refs   = map (maybe OutOfBounds IndexRef) depInds' -- :: [ASReference]
       lang = language xp
       values = map (valuesMap M.!) $ refs in
   MB.listToMaybe $ MB.catMaybes $ map (\(r,v) -> case r of
     OutOfBounds -> Just $ ValueError ("Referencing cell out of bounds.") "RefError" "" (-1)
-    _ -> case v of 
-      NoValue                  -> handleNoValueInLang lang r
+    IndexRef i -> case v of 
+      NoValue                  -> handleNoValueInLang lang i
       ve@(ValueError _ _ _ _)  -> handleErrorInLang lang ve
       vee@(ValueExcelError _)  -> handleErrorInLang lang vee
-      otherwise                -> Nothing) (zip depIndices values)
+      otherwise                -> Nothing) (zip refs values)
 
 -- | Nothing if it's OK to pass in NoValue, appropriate ValueError if not.
 handleNoValueInLang :: ASLanguage -> ASIndex -> Maybe ASValue

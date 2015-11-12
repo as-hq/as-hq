@@ -91,8 +91,8 @@ getDependencies sheetid xp = deps
     deps = map (exRefToASRef sheetid) exRefs
 
 -- | Takes in a list of ExRef's and converts them to a list of ASIndex's.
-getASIndicesFromExRefs :: ASSheetId -> [ExRef] -> [ASIndex]
-getASIndicesFromExRefs sheetid matches = concat $ map refToIndices $ map (exRefToASRef sheetid) matches
+getASRefsFromExRefs :: ASSheetId -> [ExRef] -> [ASReference]
+getASRefsFromExRefs sheetid matches = map (exRefToASRef sheetid) matches
 
 
 ----------------------------------------------------------------------------------------------------------------------------------

@@ -48,7 +48,6 @@ instance Show2 ASCell where
 
 instance (Show2 ASIndex) where 
   show2 (Index sid a) = 'I':refDelimiter:(unpack sid) ++ (refDelimiter:(show a))
-  show2 (OutOfBounds) = 'I':refDelimiter:refDelimiter:"OUTOFBOUNDS"
 
 instance (Show2 ASRange) where 
   show2 (Range sid a) = 'R':refDelimiter:(unpack sid) ++ (refDelimiter:(show a))
@@ -56,6 +55,8 @@ instance (Show2 ASRange) where
 instance (Show2 ASReference) where
   show2 (IndexRef il) = show2 il 
   show2 (RangeRef rl) = show2 rl
+  show2 (OutOfBounds) = "OUTOFBOUNDS"
+
 
 instance (Show2 ASExpression) where
   show2 (Expression xp lang) = 'E':exprDelimiter:xp ++ (exprDelimiter:(show lang))
@@ -78,14 +79,16 @@ instance (Read2 ASCell) where
 instance (Read2 ASReference) where
   read2 str = loc
     where
-      (tag, sid, locstr) = case splitBy refDelimiter str of 
-        [tag', sid', locstr'] -> (tag', sid', locstr')
-        _ -> error ("read2 :: ASReference failed on string " ++ str)
-      loc = case tag of 
-        "I" -> case locstr of 
-          "OUTOFBOUNDS" -> IndexRef OutOfBounds
-          _ -> IndexRef $ Index (pack sid) (read locstr :: Coord)
-        "R" -> RangeRef $ Range (pack sid) (read locstr :: (Coord, Coord))
+      loc = case str of 
+        "OUTOFBOUNDS" -> OutOfBounds
+        _ -> loc' 
+          where 
+            (tag, sid, locstr) = case splitBy refDelimiter str of 
+              [tag', sid', locstr'] -> (tag', sid', locstr')
+              _ -> error ("read2 :: ASReference failed to split string " ++ str)
+            loc' = case tag of 
+              "I" -> IndexRef $ Index (pack sid) (read locstr :: Coord)
+              "R" -> RangeRef $ Range (pack sid) (read locstr :: (Coord, Coord))
 
 instance (Read2 ASIndex) where 
   read2 str = case ((read2 :: String -> ASReference) str) of 
