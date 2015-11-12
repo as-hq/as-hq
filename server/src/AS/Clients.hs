@@ -411,7 +411,7 @@ handleSetTag user state (PayloadTag tag rng) = do
   let locs = rangeToIndices rng
   cells <- DB.getPossiblyBlankCells locs
   cells' <- (flip mapM cells) $ \(Cell l e v ts) -> do 
-        let ts' = filter (differentTagType tag) ts
+        let ts' = filter (U.differentTagType tag) ts
             c'  = Cell l e v (tag:ts')
         if (ts' /= ts) -- if you ended up removing an old version of the tag
           then (removeTagEndware state tag c')
@@ -419,19 +419,6 @@ handleSetTag user state (PayloadTag tag rng) = do
         return c'
   DB.setCells cells'
   reply user state $ ServerMessage Update Success (PayloadCL cells')
-
--- Alex 10/22: seems kind of ugly. 
-differentTagType :: ASCellTag -> ASCellTag -> Bool
-differentTagType (Color _) (Color _) = False
-differentTagType (Size _) (Size _) = False
-differentTagType (Disp _) (Disp _) = False
-differentTagType (StreamTag _) (StreamTag _) = False
-differentTagType Tracking Tracking = False
-differentTagType Volatile Volatile = False
-differentTagType (ReadOnly _) (ReadOnly _) = False
-differentTagType (ListMember _) (ListMember _) = False
-differentTagType DFMember DFMember = False
-differentTagType _ _ = True
 
 handleRepeat :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
 handleRepeat user state (PayloadSelection range origin) = do

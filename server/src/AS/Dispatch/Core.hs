@@ -44,6 +44,8 @@ import Control.Monad.Trans.Either
 -- Regular eval route
 
 -- assumes all evaled cells are in the same sheet
+-- the only information we're really passed in from the cells is the locations and the expressions of
+-- the cells getting evaluated. We pull the rest from the DB. 
 runDispatchCycle :: MVar ServerState -> [ASCell] -> CommitSource -> IO ASServerMessage
 runDispatchCycle state cs src = do
   let sid = locSheetId . cellLocation $ head cs
@@ -59,7 +61,7 @@ runDispatchCycle state cs src = do
     printObjT "Got cells to evaluate" cellsToEval
     ancLocs        <- G.getImmediateAncestors evalLocs
     printObjT "Got ancestor locs" ancLocs
-    initValuesMap  <- lift $ getValuesMap (zip roots rootsDepSets) ancLocs
+    initValuesMap  <- lift $ getValuesMap ancLocs
     printObjT "Created initial values map" initValuesMap
     printWithTimeT "Starting eval chain"
     (afterCells, cellLists) <- evalChain conn initValuesMap cellsToEval src -- start with current cells, then go through descendants
@@ -100,26 +102,11 @@ getCellsToEval conn locs origCells = do
       else return $ fromJust mCell) (zip locs mCells) 
   -- if the mCell is Nothing and loc is not a part of the locCellMap, then something messed up. 
 
--- pass in the root deps in addition to the complete set of ancestors,
--- because retaining ASRange in the root dep set makes checking for
--- dataframes O(# lists) instead of O(n)
--- rootDeps is a subset of locs and we set both, but no need to remove duplicates from the map.
-getValuesMap :: [(ASCell, [ASReference])] -> [ASIndex] -> IO RefValMap
-getValuesMap rootRelations locs = do
-  maybeCells <- DB.getCells locs
-  let simpleFormatted = formatValuesForMap $ zip locs maybeCells
-  groupedRefs <- concat <$> mapM groupRefs rootRelations
-  return $ M.fromList $ groupedRefs ++ simpleFormatted
-
-groupRefs :: (ASCell, [ASReference]) -> IO [(ASReference, ASValue)]
-groupRefs relation@(cell, refs) = if (shouldGroupRefs relation)
-  then do
-    let rngs = map (\(RangeRef rng) -> rng) $ filter isRange refs
-    rngValSets <- mapM DB.getCellsByRange rngs
-    let rngValSets' = map (\rs -> map getSanitizedCellValue rs) rngValSets
-        groupedRefs = map (groupRef . language . cellExpression $ cell) $ zip rngs rngValSets'
-    return $ filterNothing groupedRefs
-  else return []
+getValuesMap :: [ASIndex] -> IO IndValMap
+getValuesMap locs = do
+  cells <- DB.getPossiblyBlankCells locs
+  let vals = map cellValue cells
+  return $ M.fromList $ zip locs vals
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Eval helpers
@@ -128,7 +115,7 @@ groupRefs relation@(cell, refs) = if (shouldGroupRefs relation)
 -- cell that's updated. The cells passed in are guaranteed to be topologically sorted, i.e.,
 -- if a cell references an ancestor, that ancestor is guaranteed to already have been
 -- added in the map.
-evalChain :: Connection -> RefValMap -> [ASCell] -> CommitSource -> EitherTExec ([ASCell], [ASList])
+evalChain :: Connection -> IndValMap -> [ASCell] -> CommitSource -> EitherTExec ([ASCell], [ASList])
 evalChain conn valuesMap cells src = do
   result <- liftIO $ catch (runEitherT $ evalChain' conn valuesMap cells [] []) (\e -> do
     printObj "Runtime exception caught" (e :: SomeException)
@@ -137,7 +124,6 @@ evalChain conn valuesMap cells src = do
   case result of
     (Left e) -> left e
     (Right e) -> right e
-
 
 -- | evalChain' works in two parts. First, it goes through the list of cells passed in and
 -- evaluates them. Along the way, new list cells (created as part of a list) are created
@@ -149,7 +135,7 @@ evalChain conn valuesMap cells src = do
 -- because we don't need to re-evaluate the individual cells in the list, ONLY their descendants.
 -- We also need to check for circular dependencies, which is why the pastListHeads are passed in.
 -- #needsrefactor there's probably a more Haskell way of doing this with a state monad or something.
-evalChain' :: Connection -> RefValMap -> [ASCell] -> [ASList] -> [ASIndex] -> EitherTExec ([ASCell], [ASList])
+evalChain' :: Connection -> IndValMap -> [ASCell] -> [ASList] -> [ASIndex] -> EitherTExec ([ASCell], [ASList])
 evalChain' _ _ [] [] _ = return ([], [])
 evalChain' conn valuesMap [] lists pastListHeads = do
   -- get cells from lists
@@ -163,19 +149,20 @@ evalChain' conn valuesMap [] lists pastListHeads = do
   -- list heads), so if those contain any of the previous list heads we know there's a cycle.
   mapM_ (\d -> if (d `elem` pastListHeads) then (left $ CircularDepError d) else (return ())) descLocs
   -- DON'T need to re-eval anything that's already been evaluated
-  let descLocs' = filter (\d -> (IndexRef d) `M.notMember` valuesMap) descLocs
+  let descLocs' = filter (\d -> d `M.notMember` valuesMap) descLocs
   -- #needsrefactor it seems like a large chunk of code here mirrors that in evalChain... should probably DRY
   ancLocs <- G.getImmediateAncestors descLocs'
-  newKnownValues <- lift $ getValuesMap [] ancLocs
+  newKnownValues <- lift $ getValuesMap ancLocs
   cells' <- getCellsToEval conn descLocs' [] -- the origCells are the list cells, which got filtered out of descLocs
   evalChain' conn (M.union valuesMap newKnownValues) cells' [] pastListHeads
 
 evalChain' conn valuesMap (c@(Cell loc xp _ ts):cs) next listHeads = do
-  cv <- EC.evaluateLanguage (IndexRef (cellLocation c)) (locSheetId loc) valuesMap xp
-  let listResult = createListCells c cv
+  (Formatted cv f) <- EC.evaluateLanguage (IndexRef (cellLocation c)) (locSheetId loc) valuesMap xp
+  let c' = formatCell f (Cell loc xp cv ts)
+      listResult = createListCells c' cv
       newValuesMap = case listResult of
-        Nothing          -> M.insert (IndexRef loc) cv valuesMap
-        (Just cellsList) -> foldr (\(Cell l _ v _) mp -> M.insert (IndexRef l) v mp) valuesMap (snd cellsList)
+        Nothing          -> M.insert loc cv valuesMap
+        (Just cellsList) -> foldr (\(Cell l _ v _) mp -> M.insert l v mp) valuesMap (snd cellsList)
       -- ^ adds all the cells in cellsList to the reference map
       next' = case listResult of
         Nothing        -> next
@@ -185,8 +172,18 @@ evalChain' conn valuesMap (c@(Cell loc xp _ ts):cs) next listHeads = do
         Just _  -> loc:listHeads
   (restCells, restLists) <- evalChain' conn newValuesMap cs next' listHeads'
   return $ case listResult of
-    Nothing          -> ((Cell loc xp cv ts):restCells, restLists)
+    Nothing          -> (c':restCells, restLists)
     (Just cellsList) -> (restCells, cellsList:restLists)
+
+formatCell :: Maybe FormatType -> ASCell -> ASCell
+formatCell Nothing c = c
+formatCell (Just f) c = c' 
+  where 
+    ts  = cellTags c
+    ts' = filter (U.differentTagType (Format f)) ts -- the cell without that tag
+    c' = case f of 
+      NoFormat -> c { cellTags = ts' }
+      _        -> c { cellTags = (Format f):ts' }
 
 -- Removed for now for a number of reasons: 
 -- 1) confusing UX
@@ -226,7 +223,7 @@ createListCells (Cell (Index sheet (a,b)) xp _ ts) cv = if (shouldCreateListCell
     width     = maximum $ map length rows
     listKey   = DU.getListKey origLoc (height, width)
     tags      = getExtraTagsFromCV cv
-    cells     = map (\(loc, val) -> Cell loc xp val ((ListMember listKey):tags)) $ zip locs (concat rows)
+    cells     = map (\(loc, val) -> Cell loc xp val ((ListMember listKey):tags ++ ts)) $ zip locs (concat rows)
 
     getValuesFromCV (ValueL l)        = l
     getValuesFromCV (RDataFrame rows) = U.transposeList rows

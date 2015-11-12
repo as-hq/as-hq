@@ -59,6 +59,27 @@ truncated str
   | length str < 500 = str 
   | otherwise = (take 500 str) ++ ("... [Truncated]")
 
+-- Alex 10/22: seems kind of ugly. 
+differentTagType :: ASCellTag -> ASCellTag -> Bool
+differentTagType (Color _) (Color _) = False
+differentTagType (Size _) (Size _) = False
+differentTagType (Format _) (Format _) = False
+differentTagType (StreamTag _) (StreamTag _) = False
+differentTagType Tracking Tracking = False
+differentTagType Volatile Volatile = False
+differentTagType (ReadOnly _) (ReadOnly _) = False
+differentTagType (ListMember _) (ListMember _) = False
+differentTagType DFMember DFMember = False
+differentTagType _ _ = True
+
+getCellFormatType :: ASCell -> Maybe FormatType
+getCellFormatType cell = ft
+  where
+    ts = cellTags cell
+    ft = case L.find (\t -> not $ differentTagType (Format NoFormat) t) ts of
+      Nothing -> Nothing
+      Just (Format ft') -> Just ft'
+
 sendMessage :: (ToJSON a, Show a) => a -> WS.Connection -> IO ()
 sendMessage msg conn = do
   WS.sendTextData conn (encode msg)
@@ -144,13 +165,13 @@ splitBy delimiter = foldr f [[]]
   where f c l@(x:xs) | c == delimiter = []:l
                      | otherwise = (c:x):xs
 
-catchEitherT :: EitherTExec ASValue -> EitherTExec ASValue
+catchEitherT :: EitherTExec (Formatted ASValue) -> EitherTExec (Formatted ASValue)
 catchEitherT a = do
   result <- liftIO $ catch (runEitherT a) whenCaught
   case result of
     (Left e) -> left e
     (Right e) -> right e
-    where whenCaught = (\e -> return . Right $ ValueError (show e) "StdErr" "" 0) :: (SomeException -> IO (Either ASExecError ASValue))
+    where whenCaught = (\e -> return . Right $ return $ ValueError (show e) "StdErr" "" 0) :: (SomeException -> IO (Either ASExecError (Formatted ASValue)))
 
 fromDouble :: Double -> Either Double Int
 fromDouble x = if (x == xInt)
@@ -367,10 +388,13 @@ isListMember (Cell _ _ _ ts) = any id $ map (\t -> case t of
 mergeCells :: [ASCell] -> [ASCell] -> [ASCell]
 mergeCells c1 c2 = L.unionBy isColocated c1 c2
 
--- | Returns a list of blank cells at the given locations. For now, the language doesn't matter, 
+-- | Returns a blank cell at the given location. For now, the language doesn't matter, 
 -- because blank cells sent to the frontend don't get their languages saved. 
+blankCellAt :: ASIndex -> ASCell
+blankCellAt l = Cell l (Expression "" Excel) NoValue []
+
 blankCellsAt :: [ASIndex] -> [ASCell]
-blankCellsAt = map (\l -> Cell l (Expression "" Excel) NoValue [])
+blankCellsAt = map blankCellAt
 
 removeCell :: ASIndex -> [ASCell] -> [ASCell]
 removeCell idx = filter (((/=) idx) . cellLocation)
@@ -414,10 +438,6 @@ groupRef lang (ref@(Range _ ((c1,r1),(c2,r2))), vals) = case lang of
       vals' = map ValueL rows
   _ -> Nothing
 
-formatValuesForMap :: [(ASIndex, Maybe ASCell)] -> [(ASReference, ASValue)]
-formatValuesForMap pairs = formattedPairs
-  where formattedPairs = map (\(l, c) -> (IndexRef l, getSanitizedCellValue c)) pairs
-
 getSanitizedCellValue :: Maybe ASCell -> ASValue
 getSanitizedCellValue c = case c of
   Just cell -> cellValue cell
@@ -426,9 +446,6 @@ getSanitizedCellValue c = case c of
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Locations
 
--- | ASReference is either a cell index, range, or column. When decomposeLocs takes a range, it returns
--- the list of indices that compose the range. When it takes in an index, it returns a list consisting
--- of just that index. It cannot take in a column.
 refToIndices :: ASReference -> Maybe [ASIndex]
 refToIndices loc = case loc of
   (IndexRef ind) -> Just [ind]

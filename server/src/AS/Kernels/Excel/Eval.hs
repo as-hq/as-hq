@@ -15,32 +15,27 @@ import qualified Data.Vector as V
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.Either
 
--- | Convert Either EError EEntity ->  Either ASExecError ASValue; lift from Excel to AS
+-- | Convert Either EError EEntity ->  Formatted ASValue; lift from Excel to AS
 -- | In the case of an error, return a ValueExcelError
-convertEither :: Context -> EResult -> EitherTExec ASValue
-convertEither _ (Left e) = return $ ValueExcelError e
-convertEither c (Right entity) = return $ entityToASValue c entity
+convertEither :: Context -> EResult -> Formatted ASValue
+convertEither _ (Left e)       = return $ ValueExcelError e
+convertEither c (Right entity) = entityToASValue c entity
 
 -- | After successful Excel eval returning an entity, convert to ASValue
 -- | NOTE: ASValue's ValueL is column-major
 -- Excel index refs are treated as 1x1 matrices, but don't treat them as lists below
-entityToASValue :: Context -> EEntity -> ASValue
+entityToASValue :: Context -> EEntity -> Formatted ASValue
+entityToASValue c (EntityVal v) = eValToASValue v
 entityToASValue c (EntityRef r) = case (L.refToEntity c r) of
-  Left e -> ValueExcelError e
+  Left e -> return $ ValueExcelError e
   Right (EntityMatrix (EMatrix 1 1 v)) -> entityToASValue c $ EntityVal $ V.head v
   Right entity -> entityToASValue c entity
-entityToASValue _ (EntityVal EBlank) = NoValue
-entityToASValue _ (EntityVal EMissing) = NoValue
-entityToASValue _ (EntityVal (EValueNum (EValueD d))) = ValueD d
-entityToASValue _ (EntityVal (EValueNum (EValueI i))) = ValueI i
-entityToASValue _ (EntityVal (EValueB b)) = ValueB b
-entityToASValue _ (EntityVal (EValueS s)) = ValueS s
-entityToASValue _ (EntityVal (EValueE s)) = ValueError s "" "" (-1)
-entityToASValue _ (EntityMatrix m) = case (transpose list2D) of
-  [transposedCol] -> ValueL transposedCol -- matches in this case iff original list2D is a vertical list
-  otherwise -> ValueL $ map ValueL list2D
+entityToASValue _ (EntityMatrix m) = case (transpose list2D) of 
+  [transposedCol] -> return $ ValueL transposedCol -- matches in this case iff original list2D is a vertical list
+  otherwise -> return $ ValueL $ map ValueL list2D
   where
-    list2D = map (map toASValue) (U.matrixTo2DList m)
+    list2D = map (map $ val . eValToASValue) (U.matrixTo2DList m)
+-- throws away formatting in this case... awaiting your refactor, Anand. (Alex 11/11)
 
 -- | In the Excel Error monad; parse the formula and then evaluate either as an array formula or not
 evalExcel :: String -> Context -> EResult
@@ -51,7 +46,7 @@ evalExcel s context = do
     (SimpleFormula formula) -> L.evalFormula context formula
 
 -- | Entire Excel eval; parse, evaluate, cast to ASValue
-evaluate :: String -> ASReference -> RefValMap -> EitherTExec ASValue
-evaluate s ref mp = convertEither context $ evalExcel s context
+evaluate :: String -> ASReference -> FormattedIndValMap -> EitherTExec (Formatted ASValue)
+evaluate s ref mp = right $ convertEither context $ evalExcel s context
   where
     context = Context mp ref
