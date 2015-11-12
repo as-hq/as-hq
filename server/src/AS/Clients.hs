@@ -360,7 +360,7 @@ getCutCells conn from to = do
   -- precedence: toCells > updated descendant cells > blank cells
   return $ U.mergeCells toCells (U.mergeCells newDescCells blankedCells)
 
--- | Gets you the cells that need to change after a copy/paste. 
+-- | Constructs the cells at the locations you'll be pasting to
 getCutToCells :: R.Connection -> ASRange -> Offset -> IO [ASCell]
 getCutToCells conn from offset = do 
   fromCells          <- DB.getPossiblyBlankCells (rangeToIndices from)
@@ -369,6 +369,7 @@ getCutToCells conn from offset = do
       changeExpr  = S.shiftExpressionForCut from offset
   return $ map ((replaceCellLocs shiftLoc) . (replaceCellExpressions changeExpr)) sanitizedFromCells
 
+-- | Returns the cells that reference the cut cells with their expressions updated. 
 getCutNewDescCells :: ASRange -> Offset -> IO [ASCell]
 getCutNewDescCells from offset = do 
   immDescLocs <- getImmediateDescendantsForced (rangeToIndices from)
