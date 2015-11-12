@@ -13,6 +13,7 @@ import Control.Applicative hiding ((<|>), many)
 
 import Data.List (elemIndices)
 import Data.Char (toUpper,toLower)
+import Data.Time.Calendar
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Top-level parsers.
@@ -272,6 +273,16 @@ integerToDecimal i = read ("0." ++ (show i)) :: Double
 percentToDecimal :: Percent -> Double
 percentToDecimal p = p / 100
 
+dateToDecimal :: Integer -> Integer -> Integer -> Double
+dateToDecimal month day year = fromInteger dateDouble
+  where 
+    year' | year < 30                = 2000 + year
+          | 30 <= year && year < 100 = 1900 + year
+          | otherwise = year
+    d    = fromGregorian (fromInteger year') (fromInteger month) (fromInteger day)
+    base = fromGregorian 1900 1 1
+    dateDouble = diffDays d base
+
 float' :: Parser Double
 float' = 
       (try float)
@@ -294,8 +305,19 @@ percentage = do
   char '%' >> spaces
   return $ Formatted (percentToDecimal p) $ Just Percentage
 
+date :: Parser (Formatted Double)
+date = do 
+  month <- natural
+  char '/'
+  day <- natural
+  char '/'
+  year <- natural
+  if (month > 12 || day > 31)
+    then fail "Invalid date"
+    else return $ Formatted (dateToDecimal month day year) $ Just Date
+
 formattedFloat :: Parser (Formatted Double)
-formattedFloat = (try money) <|> (try percentage) <|> (try $ return <$> float')
+formattedFloat = (try money) <|> (try percentage) <|> (try date) <|> (try $ return <$> float')
 
 formattedFloatToEValue :: Formatted Double -> EValue
 formattedFloatToEValue (Formatted d f) = EValueNum $ Formatted (EValueD d) f
