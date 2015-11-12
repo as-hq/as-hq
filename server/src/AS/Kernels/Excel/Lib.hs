@@ -801,11 +801,11 @@ eAddress c e = do
   refType <- getOptional "int" 1 f 3 e :: ThrowsError Int
   a1Bool <- getOptional "bool" True f 4 e :: ThrowsError Bool
   sheet <- getOptional "string" "" f 5 e :: ThrowsError String
-  if a1Bool -- A1 style reference
+  if a1Bool -- A1 format reference
     then do
       ref <- refToString col row refType
       valToResult $ EValueS $ (getSheetPrefix sheet) ++ ref
-    else do -- R1C1 style reference
+    else do -- R1C1 format reference
       ref <- refToStringRC col row refType
         -- "R"++(show row)++"C"++(show col)
       valToResult $ EValueS $ (getSheetPrefix sheet) ++ ref
@@ -814,7 +814,7 @@ getSheetPrefix :: String -> String
 getSheetPrefix "" = ""
 getSheetPrefix s = s ++ "!"
 
--- | Helper for address; produces $A$1 style string from col num, row num, and relative/absolute type
+-- | Helper for address; produces $A$1 format string from col num, row num, and relative/absolute type
 refToStringRC :: Col -> Row -> Int -> ThrowsError String
 refToStringRC col row 1 = Right $ "R" ++ (show row) ++ "C" ++ (show col)
 refToStringRC col row 2 = Right $ "R" ++ (show row) ++ "C[" ++ (show col) ++ "]"
@@ -822,7 +822,7 @@ refToStringRC col row 3 = Right $ "R[" ++ (show row) ++ "]C" ++ (show col)
 refToStringRC col row 4 = Right $ "R[" ++ (show row) ++ "]C[" ++ (show col) ++ "]"
 refToStringRC _ _ _ = Left $ VAL "Third argument of ADDRESS is invalid."
 
--- | Helper for address; produces $A$1 style string from col num, row num, and relative/absolute type
+-- | Helper for address; produces $A$1 format string from col num, row num, and relative/absolute type
 refToString :: Col -> Row -> Int -> ThrowsError String
 refToString col row 1 = Right $ "$" ++ (intToCol col) ++ "$" ++ (show row)
 refToString col row 2 = Right $ (intToCol col) ++ "$" ++ (show row)
@@ -1033,7 +1033,7 @@ getElemFromCol m@(EMatrix c _ _) colNum i
 oneArgDouble :: (Num a) => String -> (Double -> Double) -> EFunc
 oneArgDouble name f c e = do
   num <- getRequired "numeric" name 1 e :: ThrowsError EFormattedNumeric
-  let ans = case val num of
+  let ans = case orig num of
                 EValueI i -> f (fromIntegral i)
                 EValueD d -> f d
   valToResult $ EValueNum $ return $ EValueD ans
@@ -1631,7 +1631,7 @@ ePower' c e = do
   b <- getRequired "numeric" "^" 2 e :: ThrowsError EFormattedNumeric
   if (isZero a && isZero b) 
     then Left ZeroToTheZero
-    else case val b of 
+    else case orig b of 
       EValueI _ -> valToResult $ EValueNum $ (liftM2 intExp) a b
       EValueD _ -> if isNonnegative a 
         then valToResult $ EValueNum $ (liftM2 floatExp) a b

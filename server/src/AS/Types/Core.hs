@@ -145,7 +145,7 @@ type Rect = (Coord, Coord)
 
 
 data FormatType = NoFormat | Money | Percentage | Date deriving (Show, Read, Eq, Generic)
-data Formatted a = Formatted { val :: a, style :: Maybe FormatType }
+data Formatted a = Formatted { orig :: a, format :: Maybe FormatType }
 
 instance Functor Formatted where
   fmap = liftM
@@ -154,11 +154,11 @@ instance Applicative Formatted where
   pure  = return
   (<*>) = ap
 
--- Always retain the style of the first argument, unless there was none
+-- Always retain the format of the first argument, unless there was none
 instance Monad Formatted where 
   return x                   = Formatted x Nothing
   Formatted x Nothing >>= f  = f x
-  Formatted x y >>= f        = (f x) { style = y }
+  Formatted x y >>= f        = (f x) { format = y }
 
 instance (Eq a) => Eq (Formatted a) where 
   (==) (Formatted x _) (Formatted y _)  = x==y

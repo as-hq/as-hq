@@ -86,10 +86,10 @@ isFormulaCell cell = not valExpEqual
     valExpEqual = case lang of
       Excel -> case maybeVal of
         Nothing  -> False
-        Just val -> (trace' "VAL " val) == (trace' "CELL VALUE " (cellValue cell))
+        Just val -> orig val == cellValue cell
         where
-          formula = trace' "FORMULA " $ parse literal "" xp
-          excelToASValue (Right (Basic (Var eValue))) = Just $ toASValue eValue
+          formula = parse literal "" xp
+          excelToASValue (Right (Basic (Var eValue))) = Just $ eValToASValue eValue
           excelToASValue _ = Nothing
           maybeVal = excelToASValue formula
       otherwise -> (parseValue lang xp) == (Right (cellValue cell))

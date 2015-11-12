@@ -34,7 +34,7 @@ entityToASValue _ (EntityMatrix m) = case (transpose list2D) of
   [transposedCol] -> return $ ValueL transposedCol -- matches in this case iff original list2D is a vertical list
   otherwise -> return $ ValueL $ map ValueL list2D
   where
-    list2D = map (map $ val . eValToASValue) (U.matrixTo2DList m)
+    list2D = map (map $ orig . eValToASValue) (U.matrixTo2DList m)
 -- throws away formatting in this case... awaiting your refactor, Anand. (Alex 11/11)
 
 -- | In the Excel Error monad; parse the formula and then evaluate either as an array formula or not

@@ -231,7 +231,7 @@ refMatch = do
         Just idx' -> return $ ExLocRef idx' sh wb
         Nothing -> case ofb of  
           Just ofb' -> return ExOutOfBounds
-          Nothing -> fail "expected valid excel A1:B4 style reference"
+          Nothing -> fail "expected valid excel A1:B4 format reference"
 
 
 ------------------------------------------------------------------------------------------------------------------------------------------------
