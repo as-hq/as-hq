@@ -21,6 +21,7 @@ convertEither :: Context -> EResult -> EitherTExec ASValue
 convertEither _ (Left e) = return $ ValueExcelError e
 convertEither c (Right entity) = return $ entityToASValue c entity
 
+-- ::ALEX:: store additional data here
 -- | After successful Excel eval returning an entity, convert to ASValue
 -- | NOTE: ASValue's ValueL is column-major
 -- Excel index refs are treated as 1x1 matrices, but don't treat them as lists below
@@ -31,8 +32,8 @@ entityToASValue c (EntityRef r) = case (L.refToEntity c r) of
   Right entity -> entityToASValue c entity
 entityToASValue _ (EntityVal EBlank) = NoValue
 entityToASValue _ (EntityVal EMissing) = NoValue
-entityToASValue _ (EntityVal (EValueNum (EValueD d))) = ValueD d
-entityToASValue _ (EntityVal (EValueNum (EValueI i))) = ValueI i
+entityToASValue _ (EntityVal (EValueNum (Formatted (EValueD d) f))) = ValueD d
+entityToASValue _ (EntityVal (EValueNum (Formatted (EValueI i) f))) = ValueI i
 entityToASValue _ (EntityVal (EValueB b)) = ValueB b
 entityToASValue _ (EntityVal (EValueS s)) = ValueS s
 entityToASValue _ (EntityVal (EValueE s)) = ValueError s "" "" (-1)

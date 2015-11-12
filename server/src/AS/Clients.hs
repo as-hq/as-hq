@@ -410,7 +410,7 @@ handleSetTag user state (PayloadTag tag rng) = do
 differentTagType :: ASCellTag -> ASCellTag -> Bool
 differentTagType (Color _) (Color _) = False
 differentTagType (Size _) (Size _) = False
-differentTagType (Disp _) (Disp _) = False
+differentTagType (Format _) (Format _) = False
 differentTagType (StreamTag _) (StreamTag _) = False
 differentTagType Tracking Tracking = False
 differentTagType Volatile Volatile = False

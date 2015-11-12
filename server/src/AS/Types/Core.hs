@@ -128,7 +128,7 @@ data ASCellTag =
   | Volatile
   | ReadOnly [ASUserId]
   | ListMember {listKey :: String}
-  | Disp DispType
+  | Format FormatType
   | DFMember
   deriving (Show, Read, Eq, Generic)
 
@@ -140,7 +140,7 @@ data ASCell = Cell {cellLocation :: ASIndex,
 type ListKey = String
 type ASList = (ListKey, [ASCell])
 type Rect = (Coord, Coord)
-data DispType = Money | Percentage | Date deriving (Show, Read, Eq, Generic)
+data FormatType = Money | Percentage | Date deriving (Show, Read, Eq, Generic)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Streaming
@@ -505,8 +505,8 @@ instance FromJSON Direction
 instance ToJSON MutateType
 instance FromJSON MutateType
 
-instance ToJSON DispType
-instance FromJSON DispType
+instance ToJSON FormatType
+instance FromJSON FormatType
 
 -- memory region exposure instances for R value unboxing
 instance NFData ASValue       where rnf = genericRnf

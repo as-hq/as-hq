@@ -295,15 +295,15 @@ percentToDecimal p = p / 100
 
 excelValue :: Parser Formula
 excelValue = fmap (Basic . Var) $
-      try ((EValueNum . EValueD) <$> formattedFloat)
-  <|> try ((EValueNum . EValueI . fromInteger) <$> integer)
+      try ((EValueNum . return . EValueD) <$> formattedFloat)
+  <|> try ((EValueNum . return . EValueI . fromInteger) <$> integer)
   <|> try (EValueB <$> bool)
   <|> try (EValueS <$> str)
 
 numOrBool :: Parser Formula
 numOrBool = fmap (Basic . Var) $
-      try ((EValueNum . EValueD) <$> formattedFloat)
-  <|> try ((EValueNum . EValueI . fromInteger) <$> integer)
+      try ((EValueNum . return . EValueD) <$> formattedFloat)
+  <|> try ((EValueNum . return . EValueI . fromInteger) <$> integer)
   <|> try (EValueB <$> bool)
 
 justNumOrBool :: Parser Formula

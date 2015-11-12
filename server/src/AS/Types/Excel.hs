@@ -15,6 +15,8 @@ import Text.Read
 import qualified Data.Vector as V
 import qualified Data.Map.Strict as M
 import Control.Monad.Except
+import Control.Applicative
+import Control.Monad (liftM, ap)
 import qualified Data.Vector as V
 import qualified Data.Vector.Unboxed as VU
 
@@ -94,7 +96,10 @@ toExcelList lst  = "[" ++ (intercalate "," lst) ++ "]"
 
 data ERef = ERef ASReference deriving (Show, Read, Eq, Ord)
 
-data ENumeric = EValueI Int | EValueD Double deriving (Show,Read)
+data ENumeric = EValueI Int | EValueD Double deriving (Show)
+
+data Formatted a = Formatted { val :: a, style :: Maybe FormatType }
+
 
 instance Eq ENumeric where
   (==) (EValueD d) (EValueD d') = d==d'
@@ -142,42 +147,85 @@ instance Fractional ENumeric where
   (/) (EValueI i) (EValueI i') = EValueD $ (fromIntegral i)/(fromIntegral i')
   fromRational r = EValueD $ fromRational r
 
+
+
+
+instance Functor Formatted where
+  fmap = liftM
+instance Applicative Formatted where
+  pure  = return
+  (<*>) = ap
+instance Monad Formatted where 
+  return x                   = Formatted x Nothing
+  Formatted x Nothing >>= f  = f x
+  Formatted x y >>= f        = (f x) { style = y }
+
+removeFormat :: Formatted a -> Formatted a 
+removeFormat (Formatted val _) = Formatted val Nothing
+
+instance (Eq a) => Eq (Formatted a) where 
+  (==) (Formatted x _) (Formatted y _)  = x==y
+
+type EFormattedNumeric = Formatted ENumeric
+
+instance Ord EFormattedNumeric where
+  (<=) (Formatted x _) (Formatted y _) = x <= y
+
+instance (Show a) => Show (Formatted a) where 
+  show (Formatted x _) = show x
+
+instance Num EFormattedNumeric where
+  negate = liftM negate
+  signum = liftM signum 
+  abs = liftM abs
+  (+) = liftM2 (+)
+  (*) = liftM2 (*)
+  fromInteger = return . fromInteger
+
+instance Fractional EFormattedNumeric where
+  (/) = liftM2 (/)
+  fromRational = return . fromRational
+
+
+
+
+
 data EValue =
   EBlank | -- value doesn't exist in DB
   EMissing | -- missing argument
-  EValueNum ENumeric |
+  EValueNum EFormattedNumeric |
   EValueB Bool |
   EValueS String |
   EValueE String
-  deriving (Show, Read,Eq)
+  deriving (Show, Eq)
 
 -- #needsrefactor really shouldn't make this an instance of Ord, since we should really allow
 -- more graceful error handling. 
 instance Ord EValue where
   -- TODO: is this right?
-  (<=) (EBlank) v = (<=) (EValueNum (EValueI 0)) v
-  (<=) v (EBlank) = (<=) v (EValueNum (EValueI 0))
-  (<=) (EValueB True) v = (<=) (EValueNum (EValueI 1)) v
-  (<=) (EValueB False) v = (<=) (EValueNum (EValueI 0)) v
-  (<=) v (EValueB True) = (<=) v (EValueNum (EValueI 1))
-  (<=) v (EValueB False) = (<=) v (EValueNum (EValueI 0))
-  (<=) (EValueNum n1) (EValueNum n2) = (<=) n1 n2
+  (<=) (EBlank) v = (<=) (EValueNum $ return (EValueI 0)) v
+  (<=) v (EBlank) = (<=) v (EValueNum $ return (EValueI 0))
+  (<=) (EValueB True) v = (<=) (EValueNum $ return (EValueI 1)) v
+  (<=) (EValueB False) v = (<=) (EValueNum $ return (EValueI 0)) v
+  (<=) v (EValueB True) = (<=) v (EValueNum $ return (EValueI 1))
+  (<=) v (EValueB False) = (<=) v (EValueNum $ return (EValueI 0))
+  (<=) (EValueNum (Formatted n1 _)) (EValueNum (Formatted n2 _)) = (<=) n1 n2
   (<=) (EValueS s1) (EValueS s2) = (<=) s1 s2
   (<=) (EValueS s) (EValueNum n) = (<=) (strToEValueNum s) (EValueNum n)
   (<=) (EValueNum n) (EValueS s) = (<=) (EValueNum n) (strToEValueNum s)
-  (<=) _ _ = error "Invalid comparison"
+  (<=) _ _ = error "Invalid comparison" 
 
 strToEValueNum :: String -> EValue
 strToEValueNum str = case (readMaybe str :: Maybe Double) of 
-  Just d -> EValueNum $ EValueD d
+  Just d -> EValueNum $ return $ EValueD d
   Nothing -> error "Failed to convert string to number"
 
 data EMatrix = EMatrix {emCols :: !Int, emRows :: !Int, content :: !(V.Vector EValue)}
-  deriving (Show, Read,Eq)
+  deriving (Show, Eq)
 data EEntity =
   EntityRef ERef |
   EntityVal EValue |
-  EntityMatrix EMatrix  deriving (Show, Read,Eq)
+  EntityMatrix EMatrix  deriving (Show, Eq)
 
 --------------------------------------------------------------------------------------------------------------------------------------------
 -- | Excel evaluation types
@@ -249,21 +297,22 @@ instance EType ERef where
 
 instance EType Int where
   extractType (EntityMatrix (EMatrix 1 1 v)) = extractType $ EntityVal $ V.head v
-  extractType (EntityVal (EValueNum (EValueD d))) = Just $ floor d
-  extractType (EntityVal (EValueNum (EValueI i))) = Just i
+  extractType (EntityVal (EValueNum (Formatted (EValueD d) _))) = Just $ floor d
+  extractType (EntityVal (EValueNum (Formatted (EValueI i) _))) = Just i
   extractType _ = Nothing
 
 instance EType Double where
   extractType (EntityMatrix (EMatrix 1 1 v)) = extractType $ EntityVal $ V.head v
-  extractType (EntityVal (EValueNum (EValueD d))) = Just $ d
-  extractType (EntityVal (EValueNum (EValueI i))) = Just $ (fromIntegral i)
+  extractType (EntityVal (EValueNum (Formatted (EValueD d) _))) = Just d
+  extractType (EntityVal (EValueNum (Formatted (EValueI i) _))) = Just $ fromIntegral i
   extractType _ = Nothing
 
 instance EType EMatrix where
   extractType (EntityMatrix m) = Just m
   extractType _ = Nothing
 
-instance EType ENumeric where
+
+instance EType EFormattedNumeric where
   extractType (EntityMatrix (EMatrix 1 1 v)) = extractType $ EntityVal $ V.head v
   extractType (EntityVal (EValueNum n)) = Just n
   extractType _ = Nothing
@@ -272,7 +321,7 @@ instance EType ENumeric where
 getType :: EEntity -> String
 getType (EntityRef _) = "ref"
 getType (EntityVal (EValueS _)) = "string"
-getType (EntityVal (EValueNum (EValueI _))) = "int"
+getType (EntityVal (EValueNum (Formatted (EValueI _) _))) = "int"
 getType (EntityVal (EValueNum _)) = "numeric"
 getType (EntityVal (EValueB _)) = "bool"
 getType (EntityMatrix m) = "matrix"

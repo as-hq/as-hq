@@ -38,7 +38,7 @@ import AS.Util
 
 import qualified Statistics.Matrix as SM
 
-data RefMap = RefMap {refMap :: M.Map ERef EEntity, refDim :: (Col,Row)} deriving (Show,Read)
+data RefMap = RefMap {refMap :: M.Map ERef EEntity, refDim :: (Col,Row)} deriving (Show)
 type Arg a = (Int,a)
 type Dim = (Col,Row)
 
@@ -478,11 +478,11 @@ getOffsetArgs fDes rs offset = map (getEntityElem fDes offset) (zip [1..argNumLi
     getEntityElem _ _ x = snd x
 
 --------------------------------------------------------------------------------------------------------------
--- | Function evaluation helpers
+-- Function evaluation helpers
 
 -- | V.sum starts from 0.0, but we want to keep ints preserved; different version of sum
-sumInt :: V.Vector ENumeric ->  ENumeric
-sumInt = V.foldl' (+) (EValueI 0)
+sumInt :: V.Vector EFormattedNumeric ->  EFormattedNumeric
+sumInt = V.foldl' (+) (return $ EValueI 0)
 
 -- | Make sure that the number of arguments is right
 testNumArgs :: Int -> String -> [a] -> ThrowsError [a]
@@ -497,12 +497,12 @@ testNumArgsUpper n name lst
   | otherwise = Left $ NumArgs name n (length lst)
 
 -- | Try to cast a value to numeric
-numVal :: EValue -> Maybe ENumeric
+numVal :: EValue -> Maybe EFormattedNumeric
 numVal (EValueNum n) = Just n
 numVal _ = Nothing
 
-filterNum :: V.Vector EValue -> V.Vector ENumeric
-filterNum v = V.map (\(EValueNum n) -> n) $ V.filter (isJust . numVal) v
+filterNum :: V.Vector EValue -> V.Vector EFormattedNumeric
+filterNum v = V.map (fromJust . numVal) $ V.filter (isJust . numVal) v
 
 flattenMatrix :: V.Vector (V.Vector a) -> V.Vector a
 flattenMatrix = V.concat . V.toList
@@ -510,7 +510,7 @@ flattenMatrix = V.concat . V.toList
 -- | Useful for functions like average; takes input and converts it (possibly) to a numeric vector
 -- | If any argument is an error (even within a matrix), return an error
 -- | Try to cast strings and booleans if they are arguments (0,1,"4") but ignore them within ranges/matrices
-argsToNumVec :: [EEntity] -> ThrowsError (V.Vector ENumeric)
+argsToNumVec :: [EEntity] -> ThrowsError (V.Vector EFormattedNumeric)
 argsToNumVec es = do
   vecs <- compressErrors $ map argToNumVec es
   return $ V.concat vecs
@@ -522,19 +522,19 @@ extractString = stripChars "'\""
     stripChars :: String -> String -> String
     stripChars = filter . flip notElem
 
--- | Helper for above; Takes an entity and returns a numeric vector (often, a singleton)
-argToNumVec :: EEntity -> ThrowsError (V.Vector ENumeric)
-argToNumVec (EntityVal (EValueNum n)) = Right $ V.singleton n
+-- | Helper for argsToNumVec; Takes an entity and returns a numeric vector (often, a singleton)
+argToNumVec :: EEntity -> ThrowsError (V.Vector EFormattedNumeric)
+argToNumVec (EntityVal (EValueNum n )) = Right $ V.singleton n
 argToNumVec (EntityVal (EValueS s))  = do  -- attempt to cast to numeric
   let str = extractString s
   case ((TR.readMaybe (trace' "parsed str " str))::Maybe Int) of
     Nothing -> case ((TR.readMaybe str)::Maybe Double) of
       Nothing -> Left $ VAL $ "Argument is not numeric"
-      Just d  -> Right $ V.singleton $ EValueD d
-    Just i -> Right $ V.singleton $ EValueI i
+      Just d  -> Right $ V.singleton $ return $ EValueD d
+    Just i -> Right $ V.singleton $ return $ EValueI i
 argToNumVec (EntityVal (EValueE e)) = Left $ Default e
-argToNumVec (EntityVal (EValueB True)) = Right $ V.singleton $ EValueI 1
-argToNumVec (EntityVal (EValueB False)) = Right $ V.singleton $ EValueI 0
+argToNumVec (EntityVal (EValueB True)) = Right $ V.singleton $ return $ EValueI 1
+argToNumVec (EntityVal (EValueB False)) = Right $ V.singleton $ return $ EValueI 0
 -- | Ignore all non-numeric values within a matrix
 argToNumVec (EntityMatrix m) = do
   (EMatrix c r v) <- matrixError m
@@ -544,27 +544,27 @@ argToNumVec _  = Left $ VAL $ "Argument is not numeric"
 
 -- | For functions like sum/product that collapse matrices and loop over all their arguments
 -- | Simply provide an accumulation function and this function does the rest
-collapseNumeric :: (ENumeric -> ENumeric -> ENumeric) -> EFunc
+collapseNumeric :: (EFormattedNumeric -> EFormattedNumeric -> EFormattedNumeric) -> EFunc
 collapseNumeric f c e = do
   nums <- argsToNumVec e
   if (V.null nums)
-    then valToResult $ EValueNum $ EValueI 0 -- return 0 by default if no numeric arguments received
+    then valToResult $ EValueNum . return $ EValueI 0 -- return 0 by default if no numeric arguments received
     else valToResult $ EValueNum $ V.foldl1' f nums
 
 -- | For functions like sumsq that collapse matrices and loop over all their arguments
 -- | (Provide a fold function with init)
-collapseNumeric' :: (ENumeric -> ENumeric -> ENumeric) -> EFunc
+collapseNumeric' :: (EFormattedNumeric -> EFormattedNumeric -> EFormattedNumeric) -> EFunc
 collapseNumeric' f c e = do
-  let init = (EValueI 0)
+  let init = return $ EValueI 0
   let vecFold =  V.foldl' f init
   nums <- argsToNumVec e
   if (V.null nums)
-    then valToResult $ EValueNum $  EValueI 0 -- return 0 by default if no numeric arguments received
+    then valToResult $ EValueNum $ return $ EValueI 0 -- return 0 by default if no numeric arguments received
     else valToResult $ EValueNum $ V.foldl' f init nums
 
 -- | Functions like sumxmy2 have a "zipper" (what to map corresponding elements to) as a main distinguishing element
 -- | Given that function and function name, produce EFunc
-zipNumericSum2 :: (ENumeric -> ENumeric -> ENumeric) -> String -> EFunc
+zipNumericSum2 :: (EFormattedNumeric -> EFormattedNumeric -> EFormattedNumeric) -> String -> EFunc
 zipNumericSum2 zipper name c e = do
   -- | Make sure that there are two arguments, both matrices
   (EMatrix c1 r1 v1) <- getRequired "matrix" name 1 e :: ThrowsError EMatrix
@@ -576,9 +576,9 @@ zipNumericSum2 zipper name c e = do
       where
         -- | If both elements aren't numeric, replace with 0
         -- | Eg sumxmy2 with string arrays will return 0
-        zipFunc :: Maybe ENumeric -> Maybe ENumeric -> ENumeric
+        zipFunc :: Maybe EFormattedNumeric -> Maybe EFormattedNumeric -> EFormattedNumeric
         zipFunc (Just a) (Just b) = zipper a b
-        zipFunc _ _ = EValueI 0
+        zipFunc _ _ = return $ EValueI 0
 
 -- | Template for functions like sumif etc; produces the filtered vector to apply some lambda function to
 ifFunc :: String ->  Context -> [EEntity] -> ThrowsError (V.Vector EValue)
@@ -597,7 +597,7 @@ ifFunc f c e = do
     -- | Excel *IF functions work with non-range references; return 0 as default if no match
     (EntityVal v) -> if (matcher v)
       then Right $ V.singleton v
-      else Right $ V.singleton $ EValueNum $ EValueI 0
+      else Right $ V.singleton $ EValueNum $ return $ EValueI 0
     (EntityMatrix (EMatrix nc nr critVec)) -> do
       let (EntityMatrix (EMatrix _ _ valVec)) = valEntity
       Right $ V.ifilter (\i _ -> matcher ((V.!) critVec i)) valVec
@@ -623,12 +623,12 @@ ifsFunc f e = do
       Right $ filteredValVec
     else Left $ VAL "Not all ranges in had the same size"
 
--- | Cast ENumeric vector to Double vector
-toDouble :: V.Vector ENumeric -> V.Vector Double
+-- | Cast EFormattedNumeric vector to Double vector
+toDouble :: V.Vector EFormattedNumeric -> V.Vector Double
 toDouble = V.map f
   where
-    f (EValueI i) = fromIntegral i
-    f (EValueD d) = d
+    f (Formatted (EValueI i) _) = fromIntegral i
+    f (Formatted (EValueD d) _) = d
 
 filterBool :: V.Vector EValue -> V.Vector Bool
 filterBool v = V.map (\(EValueB b) -> b) $ V.filter (isJust . boolVal) v
@@ -640,8 +640,8 @@ filterBool v = V.map (\(EValueB b) -> b) $ V.filter (isJust . boolVal) v
 -- | Helper; converts an entity to a boolean if possible (uses the function to fold over matrix)
 toBool :: (V.Vector Bool -> Bool) -> EEntity -> ThrowsError (Maybe Bool)
 toBool _ (EntityVal (EValueB b)) =  Right $ Just b
-toBool _ (EntityVal (EValueNum (EValueI 1))) = Right $ Just True
-toBool _ (EntityVal (EValueNum (EValueI 0))) = Right $ Just False
+toBool _ (EntityVal (EValueNum (Formatted (EValueI 1) _))) = Right $ Just True
+toBool _ (EntityVal (EValueNum (Formatted (EValueI 0) _))) = Right $ Just False
 toBool f (EntityMatrix m) = do
   (EMatrix c r v) <- matrixError m
   let filtered = filterBool v
@@ -835,28 +835,28 @@ intToCol :: Col -> String
 intToCol = intToColStr -- from AS.Util
 
 -- | Returns the column of a reference; returns a matrix if the input is a range reference
--- | If not in array formula mode, the eval function will automatically return only the top left
--- | No argument = column of current selection
+-- If not in array formula mode, the eval function will automatically return only the top left
+-- No argument = column of current selection
 eColumn :: EFunc
 eColumn c e = do
   (ERef loc) <- getOptional "ref" (ERef (curLoc c)) "column" 1 e :: ThrowsError ERef
   case loc of
-    IndexRef (Index _ (a,b)) -> valToResult $ EValueNum $ EValueI a
+    IndexRef (Index _ (a,b)) -> valToResult $ EValueNum $ return $ EValueI a
     RangeRef (Range _ ((a,b),(c,d))) -> Right $ EntityMatrix $ EMatrix (c-a+1) (d-b+1) (flattenMatrix m)
       where
         m = V.replicate (d-b+1) firstRow
-        firstRow = V.map (EValueNum . EValueI) $ V.enumFromN a (c-a+1)
+        firstRow = V.map (EValueNum . return . EValueI) $ V.enumFromN a (c-a+1)
 
 -- | See eColumn
 eRow :: EFunc
 eRow c e = do
   (ERef loc) <- getOptional "ref" (ERef (curLoc c)) "row" 1 e :: ThrowsError ERef
   case loc of
-    IndexRef (Index _ (a,b)) -> valToResult $ EValueNum $ EValueI b
+    IndexRef (Index _ (a,b)) -> valToResult $ EValueNum $ return $ EValueI b
     RangeRef (Range _((a,b),(c,d))) -> Right $ EntityMatrix $ EMatrix (c-a+1) (d-b+1) (flattenMatrix m)
       where
         m = V.map (V.replicate (d-b+1)) colValues
-        colValues = V.map (EValueNum . EValueI) $ V.enumFromN a (c-a+1)
+        colValues = V.map (EValueNum . return . EValueI) $ V.enumFromN a (c-a+1)
 
 -- | If the argument is a string that parses as a reference, return that reference
 -- | If the reference is fed into another function, that function will replace the reference (via DB/context) if necessary
@@ -937,19 +937,19 @@ eMatch c e = do
     -- | Type 0 enables regex
     0 -> case (V.findIndex matcher (trace' "match vector " vec)) of
       Nothing -> Left $ NA "No match found"
-      Just i -> valToResult $ EValueNum $ EValueI (i+1)
+      Just i -> valToResult $ EValueNum $ return $ EValueI (i+1)
     1 -> do 
       let indices = (V.filter (<=lookupVal) (trace' "match vector " vec)) 
       let desiredValue = V.maximum indices
       if (V.null (trace' "indices 1 " indices))
         then Left $ NA "No match found"
-        else valToResult $ EValueNum $ EValueI $ (fromJust (V.findIndex (==desiredValue) vec)) + 1
+        else valToResult $ EValueNum $ return $ EValueI $ (fromJust (V.findIndex (==desiredValue) vec)) + 1
     -1 -> do 
       let indices = (V.filter (>=lookupVal) (trace' "match vector " vec)) 
       let desiredValue = V.minimum indices
       if (V.null (trace' "indices -1 " indices))
         then Left $ NA "No match found"
-        else valToResult $ EValueNum $ EValueI $ (fromJust (V.findIndex (==desiredValue) vec)) + 1
+        else valToResult $ EValueNum $ return $ EValueI $ (fromJust (V.findIndex (==desiredValue) vec)) + 1
     otherwise -> Left $ VAL $ "Last argument for MATCH must be -1,0, or 1 (default)"
 
 -- | Has a "reference mode" and a "value mode", currently only doing value mode
@@ -1032,16 +1032,16 @@ getElemFromCol m@(EMatrix c _ _) colNum i
 -- | If a function takes in a numeric value and returns a double, this is a convenient wrapper
 oneArgDouble :: (Num a) => String -> (Double -> Double) -> EFunc
 oneArgDouble name f c e = do
-  num <- getRequired "numeric" name 1 e :: ThrowsError ENumeric
-  let ans = case num of
+  num <- getRequired "numeric" name 1 e :: ThrowsError EFormattedNumeric
+  let ans = case val num of
                 EValueI i -> f (fromIntegral i)
                 EValueD d -> f d
-  valToResult $ EValueNum (EValueD ans)
+  valToResult $ EValueNum $ return $ EValueD ans
 
 -- | Absolute value
 eAbs :: EFunc
 eAbs c e = do
-  num <- getRequired "numeric" "abs" 1 e :: ThrowsError ENumeric
+  num <- getRequired "numeric" "abs" 1 e :: ThrowsError EFormattedNumeric
   valToResult $ EValueNum (abs num)
 
 eExp :: EFunc
@@ -1050,12 +1050,12 @@ eExp = oneArgDouble "exp" exp
 ePi :: EFunc
 ePi c e = do
   e' <- testNumArgs 0 "pi" e
-  valToResult $ EValueNum (EValueD pi)
+  valToResult $ EValueNum (return $ EValueD pi)
 
 eSqrtPi :: EFunc
 eSqrtPi c e = do
-  num <- getRequired "numeric" "abs" 1 e :: ThrowsError ENumeric
-  eSqrt c [EntityVal $ EValueNum $ num * (EValueD pi)]
+  num <- getRequired "numeric" "abs" 1 e :: ThrowsError EFormattedNumeric
+  eSqrt c [EntityVal $ EValueNum $ num * (return $ EValueD pi)]
 
 eSqrt :: EFunc
 eSqrt = oneArgDouble "sqrt" sqrt
@@ -1285,7 +1285,7 @@ eMin :: EFunc
 eMin c e = do
   v <- argsToNumVec e
   if (V.null v)
-    then valToResult $ EValueNum $ EValueI 0
+    then valToResult $ EValueNum $ return $ EValueI 0
     else valToResult $ EValueNum $ V.minimum v
 
 -- | Find the maximum, 0 as default
@@ -1293,7 +1293,7 @@ eMax :: EFunc
 eMax c e = do
   v <- argsToNumVec e
   if (V.null v)
-    then valToResult $ EValueNum $ EValueI 0
+    then valToResult $ EValueNum $ return $ EValueI 0
     else valToResult $ EValueNum $ V.maximum v
 
 eMedian :: EFunc
@@ -1319,14 +1319,14 @@ eModeSngl c e = do
     Nothing -> Left $ NA $ "All values are distinct for MODE.SNGL"
     Just mode' -> valToResult $ EValueNum mode'
 
--- |Median
-median :: [ENumeric] -> ENumeric
+-- | Median
+median :: [EFormattedNumeric] -> EFormattedNumeric
 median x | odd n  = head  $ drop (n `div` 2) x'
          | even n = avg $ take 2 $ drop i x'
                   where i = (length x' `div` 2) - 1
                         x' = sort x
                         n  = length x
-                        avg (p:[q]) = (p+q)*(EValueD 0.5)
+                        avg (p:[q]) = (p+q)*(return $ EValueD 0.5)
 
 -- |Modes returns a sorted list of modes in descending order
 modes :: (Ord a) => [a] -> [(Int, a)]
@@ -1375,9 +1375,9 @@ eCoVar c e = do
         else doubleToResult $ covar v1 v2
 
 -- | Generic function for ranking. Second argument takes a "rank group" [(element,naive rank)] and returns [(element, actual rank)]
-genericRank ::  String -> ([(ENumeric,Int)] -> [(ENumeric,EValue)]) -> EFunc
+genericRank ::  String -> ([(EFormattedNumeric,Int)] -> [(EFormattedNumeric,EValue)]) -> EFunc
 genericRank f rankGroup c e = do
-  x <- getRequired "numeric" f 1 e :: ThrowsError ENumeric
+  x <- getRequired "numeric" f 1 e :: ThrowsError EFormattedNumeric
   (EMatrix _ _ v) <- getRequired "matrix" f 2 e :: ThrowsError EMatrix
   order <- getOptional "int" 0 f 3 e :: ThrowsError Int
   let lst = V.toList $ filterNum v
@@ -1400,18 +1400,18 @@ eRankAvg :: EFunc
 eRankAvg = genericRank "rankavg" groupAvg
 
 -- | Helper for rankeq
-groupEq :: [(ENumeric,Int)] -> [(ENumeric,EValue)]
+groupEq :: [(EFormattedNumeric, Int)] -> [(EFormattedNumeric, EValue)]
 groupEq group = zip (map fst group) (repeat commonRank)
   where
     ranks =  map snd group
-    commonRank = EValueNum $ EValueI $ minimum ranks
+    commonRank = EValueNum $ return $ EValueI $ minimum ranks
 
 -- | Helper for rankavg
-groupAvg :: [(ENumeric,Int)] -> [(ENumeric,EValue)]
+groupAvg :: [(EFormattedNumeric,Int)] -> [(EFormattedNumeric,EValue)]
 groupAvg group = zip (map fst group) (repeat commonRank)
   where
     ranks =  map snd group
-    commonRank = EValueNum $ EValueD $ (fromIntegral (sum ranks))/(fromIntegral (length ranks))
+    commonRank = EValueNum $ return $ EValueD $ (fromIntegral (sum ranks))/(fromIntegral (length ranks))
 
 -- | Slope of the regression line
 eSlope :: EFunc
@@ -1568,26 +1568,26 @@ eSubstitute c e = do
 
 replaceBlanksWithZeroes :: [EEntity] -> [EEntity]
 replaceBlanksWithZeroes = map blankToZero
-  where blankToZero (EntityVal EBlank) = EntityVal $ EValueNum $ EValueI 0
+  where blankToZero (EntityVal EBlank) = EntityVal $ EValueNum $ return $ EValueI 0
         -- Without next line, A1 won't be changed to 0 if it's blank (it's treated as a 1x1 matrix)
         blankToZero (EntityMatrix (EMatrix 1 1 v)) = blankToZero $ EntityVal $ V.head v
         blankToZero x = x
 
-numPrefix' :: String -> (ENumeric -> ENumeric) -> EFunc
+numPrefix' :: String -> (EFormattedNumeric -> EFormattedNumeric) -> EFunc
 numPrefix' name f c e = do 
-  a <- getRequired "numeric" name 1 e :: ThrowsError ENumeric
+  a <- getRequired "numeric" name 1 e :: ThrowsError EFormattedNumeric
   valToResult $ EValueNum $ f a
 
-numPrefix :: String -> (ENumeric -> ENumeric) -> EFunc
+numPrefix :: String -> (EFormattedNumeric -> EFormattedNumeric) -> EFunc
 numPrefix name f c e = numPrefix' name f c (replaceBlanksWithZeroes e)
 
-numInfix' :: String -> (ENumeric -> ENumeric -> ENumeric) -> EFunc
+numInfix' :: String -> (EFormattedNumeric -> EFormattedNumeric -> EFormattedNumeric) -> EFunc
 numInfix' name f c e = do 
-  a <- getRequired "numeric" name 1 e :: ThrowsError ENumeric
-  b <- getRequired "numeric" name 2 e :: ThrowsError ENumeric
+  a <- getRequired "numeric" name 1 e :: ThrowsError EFormattedNumeric
+  b <- getRequired "numeric" name 2 e :: ThrowsError EFormattedNumeric
   valToResult $ EValueNum $ f a b
 
-numInfix :: String -> (ENumeric -> ENumeric -> ENumeric) -> EFunc
+numInfix :: String -> (EFormattedNumeric -> EFormattedNumeric -> EFormattedNumeric) -> EFunc
 numInfix name f c e = numInfix' name f c (replaceBlanksWithZeroes e)
 
 eAdd :: EFunc
@@ -1605,19 +1605,19 @@ eMinus = numInfix "-" (-)
 eMult :: EFunc
 eMult = numInfix "*" (*)
 
-isZero :: ENumeric -> Bool 
-isZero (EValueD 0) = True
-isZero (EValueI 0) = True
+isZero :: EFormattedNumeric -> Bool 
+isZero (Formatted (EValueD 0) _) = True
+isZero (Formatted (EValueI 0) _) = True
 isZero _ = False
 
-isNonnegative :: ENumeric -> Bool
-isNonnegative (EValueD a) = (a >= 0)
-isNonnegative (EValueI a) = (a >= 0)
+isNonnegative :: EFormattedNumeric -> Bool
+isNonnegative (Formatted (EValueD a) _) = (a >= 0)
+isNonnegative (Formatted (EValueI a) _) = (a >= 0)
 
 eDivide' :: EFunc
 eDivide' c e = do
-  a <- getRequired "numeric" "/" 1 e :: ThrowsError ENumeric
-  b <- getRequired "numeric" "/" 2 e :: ThrowsError ENumeric
+  a <- getRequired "numeric" "/" 1 e :: ThrowsError EFormattedNumeric
+  b <- getRequired "numeric" "/" 2 e :: ThrowsError EFormattedNumeric
   if (isZero b)
     then Left DIV0
     else valToResult $ EValueNum $ a / b
@@ -1627,14 +1627,14 @@ eDivide c e = eDivide' c (replaceBlanksWithZeroes e)
 
 ePower' :: EFunc
 ePower' c e = do
-  a <- getRequired "numeric" "^" 1 e :: ThrowsError ENumeric
-  b <- getRequired "numeric" "^" 2 e :: ThrowsError ENumeric
+  a <- getRequired "numeric" "^" 1 e :: ThrowsError EFormattedNumeric
+  b <- getRequired "numeric" "^" 2 e :: ThrowsError EFormattedNumeric
   if (isZero a && isZero b) 
     then Left ZeroToTheZero
-    else case b of 
-      EValueI _ -> valToResult $ EValueNum $ intExp a b
+    else case val b of 
+      EValueI _ -> valToResult $ EValueNum $ (liftM2 intExp) a b
       EValueD _ -> if isNonnegative a 
-        then valToResult $ EValueNum $ floatExp a b
+        then valToResult $ EValueNum $ (liftM2 floatExp) a b
         else Left NegExpBaseWithFloatingExp
 
 ePower :: EFunc

@@ -70,26 +70,27 @@ locToResult :: ASReference -> EResult
 locToResult = Right . EntityRef . ERef
 
 doubleToResult :: Double -> EResult
-doubleToResult = valToResult . EValueNum . EValueD
+doubleToResult = valToResult . EValueNum . return . EValueD
 
 intToResult :: Int ->  EResult
-intToResult = valToResult . EValueNum . EValueI
+intToResult = valToResult . EValueNum . return . EValueI
 
 -------------------------------------------------------------------------------------------------------------
 -- | Other conversion functions
 
-toASValue :: EValue -> ASValue
+-- ::ALEX:: might want to return tags here too
+toASValue :: EValue -> Formatted ASValue
 toASValue (EValueS s) = ValueS s
-toASValue (EValueNum (EValueD d)) = ValueD d
-toASValue (EValueNum (EValueI i)) = ValueI i
+toASValue (EValueNum (Formatted (EValueD d) f)) = Formatted (ValueD d) f
+toASValue (EValueNum (Formatted (EValueI i) f)) = Formatted (ValueI i) f
 toASValue (EValueB b) = ValueB b
 toASValue (EBlank)    = NoValue
 
 toEValue :: ASValue -> Maybe EValue
 toEValue (ValueS s) = Just $ EValueS s
 toEValue (ValueB b) = Just $ EValueB b
-toEValue (ValueD d) = Just $ EValueNum $ EValueD d
-toEValue (ValueI i) = Just $ EValueNum $ EValueI i
+toEValue (ValueD d) = Just $ EValueNum $ return $ EValueD d
+toEValue (ValueI i) = Just $ EValueNum $ return $ EValueI i
 toEValue (NoValue) = Just EBlank
 toEValue v = Nothing
 
