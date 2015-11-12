@@ -81,7 +81,7 @@ class PersistentWebSocket {
         ele(this._client);
       }
     } else if (this._client.readyState > 1) {
-      logDebug('TIMING OUT DUE TO CLOSED WS');
+      // logDebug('TIMING OUT DUE TO CLOSED WS');
       this._dcCount = TIMEOUT;
     }
   }

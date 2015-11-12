@@ -16,6 +16,7 @@ import FindStore from '../stores/ASFindStore';
 import ExpStore from '../stores/ASExpStore';
 
 import T from '../AS/Types';
+import TC from '../AS/TypeConversions';
 import Util from '../AS/Util';
 import Constants from '../Constants';
 import Render from '../AS/Render';
@@ -26,6 +27,12 @@ import Textbox from './Textbox.jsx'
 
 import rowHeaderMenuItems from './menus/RowHeaderMenuItems.jsx';
 import columnHeaderMenuItems from './menus/ColumnHeaderMenuItems.jsx';
+
+let finRect = document.createElement('fin-rectangle');
+
+let _vars = {
+  dragSelectionOrigin: null
+};
 
 export default React.createClass({
 
@@ -52,7 +59,9 @@ export default React.createClass({
     return {
       // keep scroll values in state so overlays autoscroll with grid
       scroll: { x:0, y:0 },
-      overlays: []
+      overlays: [],
+      cursor: 'auto',
+      selectionDraggable: false
     };
   },
 
@@ -198,8 +207,7 @@ export default React.createClass({
     let scroll = this.state.scroll;
     if (Store.getActiveSelection()){
       let {col, row} = Store.getActiveSelection().origin,
-          rect = document.createElement('fin-rectangle'),
-          point = rect.point.create(col - scroll.x, row - scroll.y);
+          point = finRect.point.create(col - scroll.x, row - scroll.y);
       return this._getHypergrid().getBoundsOfCell(point);
     }
     else {
@@ -222,20 +230,79 @@ export default React.createClass({
     model.getValue = (x, y) => { return ''; };
     model.getCellEditorAt = (x, y) => { return null; };
     model.handleMouseDown = (grid, evt) => {
-      if (Store.getGridShifted()) {
+      if (Store.getGridShifted()) { // shift+click
         let {origin} = this.getSelectionArea(),
             newBr = {col: evt.gridCell.x, row: evt.gridCell.y},
             newSel = {origin: origin, range: Util.orientRange({tl: origin, br: newBr})};
         this.select(newSel, false);
+      } else {
+        let {x, y} = this.getCoordsFromMouseEvent(grid, evt);
+        if (Render.isOnSelectionEdge(x, y)) {
+          _vars.dragSelectionOrigin = {col: evt.gridCell.x, row: evt.gridCell.y};
+        } else if (model.featureChain) {
+          model.featureChain.handleMouseDown(grid, evt);
+          model.setCursor(grid);
+        }
+      }
+    };
+    model.onMouseMove = (grid, evt) => {
+      let {x, y} = this.getCoordsFromMouseEvent(grid, evt);
+      if (Render.isOnSelectionEdge(x, y)) {
+        this.setState({cursor: 'move'});
+      } else if (_vars.dragSelectionOrigin == null) {
+        this.setState({cursor: 'auto'});
+      }
+      if (model.featureChain) {
+        model.featureChain.handleMouseMove(grid, evt);
+        model.setCursor(grid);
+      }
+    };
+    model.onMouseDrag = (grid, evt) => {
+      if (_vars.dragSelectionOrigin !== null) {
+        console.log("\n\n\nSELECTION DRAG!!\n\n\n", evt);
+        let {x, y} = this.getCoordsFromMouseEvent(grid, evt);
+        let {range} = this.getSelectionArea();
+        this.drawDraggedSelection(_vars.dragSelectionOrigin, range, evt.gridCell.x, evt.gridCell.y);
       } else if (model.featureChain) {
-        model.featureChain.handleMouseDown(grid, evt);
+        model.featureChain.handleMouseDrag(grid, evt);
+        model.setCursor(grid);
+      }
+    };
+    model.onMouseUp = (grid, evt) => {
+      if (_vars.dragSelectionOrigin !== null) {
+        let {x, y} = this.getCoordsFromMouseEvent(grid, evt);
+        let sel = this.getSelectionArea();
+        let newSelRange = Render.getDragRect(),
+            fromRange = TC.simpleToASRange(sel.range),
+            toRange = TC.simpleToASRange(newSelRange),
+            newSel = {range: newSelRange, origin: newSelRange.tl};
+        this.select(newSel, false);
+        Render.setDragRect(null);
+        _vars.dragSelectionOrigin = null;
+        API.cut(fromRange, toRange);
+      } else if (model.featureChain) {
+        model.featureChain.handleMouseUp(grid, evt);
         model.setCursor(grid);
       }
     };
     this.setCellRenderer();
-    this.setSelectionRenderers();
+    this.setRenderers();
     let ind = {row: 1, col: 1};
     this.select({origin: ind, range: {tl: ind, br: ind}}, false);
+  },
+  getCoordsFromMouseEvent(grid, evt) {
+    let {x, y} = evt.mousePoint,
+        point = finRect.point.create(evt.gridCell.x, evt.gridCell.y),
+        {origin} = grid.getBoundsOfCell(point),
+        pX = origin.x + x,
+        pY = origin.y + y;
+    return {x: pX, y: pY};
+  },
+  drawDraggedSelection(dragOrigin, selRange, targetX, targetY) {
+    let dX = targetX - dragOrigin.col,
+        dY = targetY - dragOrigin.row,
+        range = Util.offsetRange(selRange, dY, dX);
+    Render.setDragRect(range);
   },
   // expects that the current sheet has already been set
   getInitialData(){
@@ -330,8 +397,7 @@ export default React.createClass({
     // set mousedown
     // hypergrid sucks -- doesn't set the mouse focus automatically
     // with select, so we have to do it ourselves.
-    let finRect = document.createElement('fin-rectangle'),
-        myDown = finRect.point.create(c,r),
+    let myDown = finRect.point.create(c,r),
         myExtent = finRect.point.create(dC, dR);
     hg.setMouseDown(myDown);
     hg.setDragExtent(myExtent);
@@ -465,9 +531,11 @@ export default React.createClass({
   },
 
   _onKeyUp(e) {
-    logDebug("GRID KEYUP", e);
     e.persist();
-    if (KeyUtils.isPureShiftKey(e)) Store.setGridShifted(false);
+    if (KeyUtils.isPureShiftKey(e)) {
+      Store.setGridShifted(false);
+      logDebug("\n\nGRID SHIFT KEYUP\n\n", e);
+    }
   },
 
   onTextBoxDeferredKey(e){
@@ -556,10 +624,11 @@ export default React.createClass({
     }
   },
 
-  setSelectionRenderers() {
+  setRenderers() {
     let renderer = this._getHypergrid().getRenderer();
     renderer.addExtraRenderer(Render.selectionRenderer);
     renderer.addExtraRenderer(Render.dependencyRenderer);
+    renderer.addExtraRenderer(Render.draggingRenderer);
     renderer.startAnimator();
   },
 
@@ -581,7 +650,10 @@ export default React.createClass({
     }
 
     return (
-      <div style={{width:"100%",height:"100%",position:'relative'}} >
+      <div style={{width:"100%",
+                   height:"100%",
+                   position:'relative',
+                   cursor: this.state.cursor}} >
         <fin-hypergrid
           style={style}
           ref="hypergrid"

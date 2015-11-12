@@ -2,8 +2,34 @@ let _renderParams = {
   mode: null, // null mode indicates normal behavior; any other string indicates otherwise
   deps: [],
   cellWidth: 100,
-  selection: null
+  selection: null,
+  selectionRect: null,
+  mouseoverError: 5,
+  dragRect: null
 };
+
+var drawRect = (rng, renderer, gc) => {
+  let grid = renderer.getGrid(),
+      fixedColCount = grid.getFixedColumnCount(),
+      fixedRowCount = grid.getFixedRowCount(),
+      scrollX = grid.getHScrollValue(),
+      scrollY = grid.getVScrollValue(),
+      lastVisibleColumn = renderer.getVisibleColumns().slice(-1)[0],
+      lastVisibleRow = renderer.getVisibleRows().slice(-1)[0];
+
+  let tlX = rng.tl.col - 1 + fixedColCount,
+      tlY = rng.tl.row - 1 + fixedRowCount,
+      brX = Math.min(rng.br.col - 1, lastVisibleColumn) + fixedColCount,
+      brY = Math.min(rng.br.row - 1, lastVisibleRow) + fixedRowCount,
+      tl = renderer._getBoundsOfCell(tlX - scrollX, tlY - scrollY),
+      br = renderer._getBoundsOfCell(brX - scrollX, brY - scrollY),
+      oX = tl.origin.x,
+      oY = tl.origin.y,
+      eX = (br.origin.x - oX) + br.extent.x,
+      eY = (br.origin.y - oY) + br.extent.y;
+
+  gc.rect(oX, oY, eX, eY);
+}
 
 export default {
   defaultCellRenderer: {
@@ -194,6 +220,7 @@ export default {
         return;
     }
 
+    _renderParams.selectionRect = {x: x, y: y, width: width, height: height};
     gc.rect(x, y, width, height);
     gc.lineWidth = 1;
     // gc.fillStyle = 'rgba(0, 0, 0, 0.2)';
@@ -218,36 +245,50 @@ export default {
     gc.stroke();
   },
 
+  withinSegment(p, endpoint, length) {
+    return (endpoint - _renderParams.mouseoverError <= p) &&
+           (endpoint + length + _renderParams.mouseoverError >= p);
+  },
+
+  // given mouse coordinates,
+  // returns the edge ("top"/"left"/etc) hovered over by these
+  isOnSelectionEdge(pX, pY) {
+    // console.log("selection bounds: ", _renderParams.selectionRect);
+    // console.log("given coords: ", pX, pY);
+    let {x, y, width, height} = _renderParams.selectionRect;
+    return (this.withinSegment(pX, x, width) && (this.withinSegment(pY, y, 0) ||
+                                                 this.withinSegment(pY, y+height, 0)))
+        || (this.withinSegment(pY, y, width) && (this.withinSegment(pX, x, 0) ||
+                                                 this.withinSegment(pX, x+width, 0)));
+  },
+
   setDependencies(deps) {
     _renderParams.deps = deps;
   },
 
   dependencyRenderer: function(gc) {
-    let grid = this.getGrid(),
-        fixedColCount = grid.getFixedColumnCount(),
-        fixedRowCount = grid.getFixedRowCount(),
-        scrollX = grid.getHScrollValue(),
-        scrollY = grid.getVScrollValue(),
-        lastVisibleColumn = this.getVisibleColumns().slice(-1)[0],
-        lastVisibleRow = this.getVisibleRows().slice(-1)[0];
-
     _renderParams.deps.forEach((dep) => {
-      let tlX = dep.tl.col - 1 + fixedColCount,
-          tlY = dep.tl.row - 1 + fixedRowCount,
-          brX = Math.min(dep.br.col - 1, lastVisibleColumn) + fixedColCount,
-          brY = Math.min(dep.br.row - 1, lastVisibleRow) + fixedRowCount,
-          tl = this._getBoundsOfCell(tlX - scrollX, tlY - scrollY),
-          br = this._getBoundsOfCell(brX - scrollX, brY - scrollY),
-          oX = tl.origin.x,
-          oY = tl.origin.y,
-          eX = (br.origin.x - oX) + br.extent.x,
-          eY = (br.origin.y - oY) + br.extent.y;
-
       gc.beginPath();
-      gc.rect(oX, oY, eX, eY);
+      drawRect(dep, this, gc);
       gc.lineWidth = 1;
       gc.strokeStyle = 'orange';
       gc.stroke();
     }, this);
+  },
+
+  setDragRect(rng) { _renderParams.dragRect = rng; },
+
+  getDragRect() { return _renderParams.dragRect; },
+
+  draggingRenderer: function(gc) {
+    if (_renderParams.dragRect !== null) {
+      console.log("DRAWING DRAG:", JSON.stringify(_renderParams.dragRect));
+      gc.beginPath();
+      drawRect(_renderParams.dragRect, this, gc);
+      gc.lineWidth = 1;
+      gc.strokeStyle = 'blue';
+      gc.setLineDash([5,5]);
+      gc.stroke();
+    }
   }
 }

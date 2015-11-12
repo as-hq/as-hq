@@ -195,7 +195,7 @@ export default {
       "PayloadInit",
       {"connUserId": Store.getUserId(),
         "connSheetId": Store.getCurrentSheet().sheetId});
-    logDebug("Sending init message: " + JSON.stringify(msg));
+    // logDebug("Sending init message: " + JSON.stringify(msg));
     this.send(msg);
   },
 
