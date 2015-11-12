@@ -30,11 +30,14 @@ import columnHeaderMenuItems from './menus/ColumnHeaderMenuItems.jsx';
 
 let finRect = document.createElement('fin-rectangle');
 
-let _vars = {
-  dragSelectionOrigin: null
-};
-
 export default React.createClass({
+
+  /*************************************************************************************************************************/
+  // Non-rendering state
+
+  mousePosition: null,
+  mouseDownInBox: false,
+  dragSelectionOrigin: null,
 
   /*************************************************************************************************************************/
   // React methods
@@ -60,7 +63,7 @@ export default React.createClass({
       // keep scroll values in state so overlays autoscroll with grid
       scroll: { x:0, y:0 },
       overlays: [],
-      cursor: 'auto',
+      cursorStyle: 'auto',
       selectionDraggable: false
     };
   },
@@ -72,8 +75,9 @@ export default React.createClass({
     document.addEventListener('polymer-ready', () => {
       this.props.onReady();
       this.initialize();
-      let self = this;
-      let hg = this._getHypergrid();
+      let self = this,
+          hg = this._getHypergrid(),
+          model = hg.getBehavior();
       this.getInitialData();
 
       let callbacks = ({
@@ -82,7 +86,6 @@ export default React.createClass({
           Need to also figure out the expression to render in the editor
         */
         'fin-selection-changed': function (event) {
-          logDebug("SELECTION CHANGE");
           ExpStore.setClickType(Constants.ClickType.CLICK);
           self.props.onSelectionChange(self.getSelectionArea());
         },
@@ -97,7 +100,7 @@ export default React.createClass({
             ActionCreator.scroll(self.getViewingWindow());
         },
         'fin-double-click': function (event) {
-          logDebug("DOUBLE ClICK");
+          // TODO: double clicking inside blue box has diff behavior
           ExpStore.setClickType(Constants.ClickType.DOUBLE_CLICK);
           self.refs.textbox.updateTextBox(ExpStore.getExpression());
           Store.setFocus('textbox');
@@ -146,6 +149,67 @@ export default React.createClass({
 
   componentWillUnmount(){
     ExpStore.removeChangeListener(this._onExpressionChange);
+  },
+
+  /*************************************************************************************************************************/
+  // Handle mouse events by overriding hypergrid default
+
+  getCoordsFromMouseEvent(grid, evt) {
+    let {x, y} = evt.mousePoint,
+        point = finRect.point.create(evt.gridCell.x, evt.gridCell.y),
+        {origin} = grid.getBoundsOfCell(point),
+        pX = origin.x + x,
+        pY = origin.y + y;
+    return {x: pX, y: pY};
+  },
+
+  drawDraggedSelection(dragOrigin, selRange, targetX, targetY) {
+    let dX = targetX - dragOrigin.col,
+        dY = targetY - dragOrigin.row,
+        range = Util.offsetRange(selRange, dY, dX);
+    Render.setDragRect(range);
+  },
+
+  // Is the mouse location inside a blue box
+  insideBox(event){
+   let {x,y} = event.primitiveEvent.detail.mouse,
+       topLeftBox = Render.getTopLeftBox(),
+       boxWidth   = Render.getBoxWidth();
+    return Util.mouseLocIsContainedInBox(x,y,topLeftBox,boxWidth);
+  },
+
+  // Semi-recursive function via timeouts -- this is how hypergrid does it
+  // Need to scroll even if no mouse event, but you're at the edge of the grid
+  scrollWithDraggables(grid) {
+    if (!this.mouseDownInBox) {
+        return;
+    }
+    let {x,y} = this.mousePosition,
+        b = grid.getDataBounds(),
+        numFixedColumns = grid.getFixedColumnCount(),
+        numFixedRows = grid.getFixedRowCount(),
+        dragEndInFixedAreaX = x < numFixedColumns,
+        dragEndInFixedAreaY = y < numFixedRows;
+    let xOffset = 0,
+        yOffset = 0;
+    if (x > b.origin.x + b.extent.x) {
+      xOffset = 1;
+    } else if (x < b.origin.x){
+      xOffset = -1;
+    }
+    if (y > b.origin.y + b.extent.y) {
+      yOffset = 1;
+    } else if (y < b.origin.y){
+      yOffset = -1;
+    }
+    let dragCellOffsetX = dragEndInFixedAreaX ? 0 : xOffset,
+        dragCellOffsetY = dragEndInFixedAreaY ? 0 : yOffset;
+    if (xOffset !== 0 || yOffset !== 0){
+      grid.scrollBy(xOffset, yOffset);
+      grid.repaint();
+    }
+    // The below number affects scrolling rate, not sure what it should be
+    setTimeout(this.scrollWithDraggables.bind(this, grid), 800);
   },
 
   /*************************************************************************************************************************/
@@ -238,38 +302,58 @@ export default React.createClass({
       } else {
         let {x, y} = this.getCoordsFromMouseEvent(grid, evt);
         if (Render.isOnSelectionEdge(x, y)) {
-          _vars.dragSelectionOrigin = {col: evt.gridCell.x, row: evt.gridCell.y};
+          // dragging selections
+          this.dragSelectionOrigin = {col: evt.gridCell.x, row: evt.gridCell.y};
+        } else if (this.insideBox(evt) && !evt.primitiveEvent.detail.isRightClick) {
+          // dragging blue box
+          this.mouseDownInBox = true;
         } else if (model.featureChain) {
           model.featureChain.handleMouseDown(grid, evt);
           model.setCursor(grid);
         }
       }
     };
+
     model.onMouseMove = (grid, evt) => {
       let {x, y} = this.getCoordsFromMouseEvent(grid, evt);
       if (Render.isOnSelectionEdge(x, y)) {
-        this.setState({cursor: 'move'});
-      } else if (_vars.dragSelectionOrigin == null) {
-        this.setState({cursor: 'auto'});
-      }
-      if (model.featureChain) {
-        model.featureChain.handleMouseMove(grid, evt);
-        model.setCursor(grid);
+        this.setState({cursorStyle: 'move'});
+      } else if (this.insideBox(evt)) {
+        this.setState({cursorStyle:'crosshair'});
+      } else { // do hypergrid's default (hover)
+        self.setState({cursorStyle:'auto'});
+        if (model.featureChain) {
+          model.featureChain.handleMouseMove(grid, evt);
+          model.setCursor(grid);
+        }
       }
     };
+
     model.onMouseDrag = (grid, evt) => {
-      if (_vars.dragSelectionOrigin !== null) {
+      if (this.dragSelectionOrigin !== null) {
+        // range dragging
         console.log("\n\n\nSELECTION DRAG!!\n\n\n", evt);
         let {x, y} = this.getCoordsFromMouseEvent(grid, evt);
         let {range} = this.getSelectionArea();
-        this.drawDraggedSelection(_vars.dragSelectionOrigin, range, evt.gridCell.x, evt.gridCell.y);
+        this.drawDraggedSelection(this.dragSelectionOrigin, range, evt.gridCell.x, evt.gridCell.y);
+      } else if (this.mouseDownInBox && !evt.primitiveEvent.detail.isRightClick) {
+        // box dragging
+        let {x,y} = evt.gridCell; // accounts for scrolling
+        Render.setDragCorner({dragX:x,dragY:y});
+        let mouseX = evt.primitiveEvent.detail.mouse.x,
+            mouseY = evt.primitiveEvent.detail.mouse.y;
+        this.mousePosition = {x:mouseX,y:mouseY};
+        this.scrollWithDraggables(grid);
+        this.repaint(); // show dotted lines
       } else if (model.featureChain) {
+        // do default
         model.featureChain.handleMouseDrag(grid, evt);
         model.setCursor(grid);
       }
     };
+
     model.onMouseUp = (grid, evt) => {
-      if (_vars.dragSelectionOrigin !== null) {
+      if (this.dragSelectionOrigin !== null) {
         let {x, y} = this.getCoordsFromMouseEvent(grid, evt);
         let sel = this.getSelectionArea();
         let newSelRange = Render.getDragRect(),
@@ -278,32 +362,32 @@ export default React.createClass({
             newSel = {range: newSelRange, origin: newSelRange.tl};
         this.select(newSel, false);
         Render.setDragRect(null);
-        _vars.dragSelectionOrigin = null;
+        this.dragSelectionOrigin = null;
         API.cut(fromRange, toRange);
+      } else if (Render.getDragCorner() !== null) {
+        let dottedSel = Render.getDottedSelection();
+        // Do nothing if the mouseup isn't in the right column or row
+        if (dottedSel.range !== null){
+          API.drag(Store.getActiveSelection().range,dottedSel.range);
+          self.select(dottedSel,true);
+        }
       } else if (model.featureChain) {
         model.featureChain.handleMouseUp(grid, evt);
         model.setCursor(grid);
       }
+      Render.setDragCorner(null);
+      self.mouseDownInBox = false;
     };
+
     this.setCellRenderer();
     this.setRenderers();
     let ind = {row: 1, col: 1};
+    // This will make the first selection have properties of a click
+    // Namely, the blue box will show up
+    ExpStore.setClickType(Constants.ClickType.CLICK);
     this.select({origin: ind, range: {tl: ind, br: ind}}, false);
   },
-  getCoordsFromMouseEvent(grid, evt) {
-    let {x, y} = evt.mousePoint,
-        point = finRect.point.create(evt.gridCell.x, evt.gridCell.y),
-        {origin} = grid.getBoundsOfCell(point),
-        pX = origin.x + x,
-        pY = origin.y + y;
-    return {x: pX, y: pY};
-  },
-  drawDraggedSelection(dragOrigin, selRange, targetX, targetY) {
-    let dX = targetX - dragOrigin.col,
-        dY = targetY - dragOrigin.row,
-        range = Util.offsetRange(selRange, dY, dX);
-    Render.setDragRect(range);
-  },
+
   // expects that the current sheet has already been set
   getInitialData(){
     API.openSheet(Store.getCurrentSheet());
@@ -408,7 +492,6 @@ export default React.createClass({
       let scroll = this._getNewScroll(oldSel, safeSelection);
       this.scrollTo(scroll.scrollH, scroll.scrollV);
     }
-
     this.repaint();
     this.props.onSelectionChange(safeSelection);
   },
@@ -571,8 +654,13 @@ export default React.createClass({
         xpStr = ExpStore.getExpression();
     logDebug("Grid caught exp update of type: " +  xpChangeOrigin);
     switch(xpChangeOrigin){
+      case Constants.ActionTypes.TEXTBOX_CHANGED:
+        Render.setShouldRenderSquareBox(false);
+        // no square box while typing
+        break;
       case Constants.ActionTypes.EDITOR_CHANGED:
       case Constants.ActionTypes.GRID_KEY_PRESSED:
+        Render.setShouldRenderSquareBox(false);
         this.repaint();
         this.refs.textbox.updateTextBox(xpStr);
         break;
@@ -590,7 +678,6 @@ export default React.createClass({
         this.refs.textbox.hideTextBox();
         break;
       default:
-        // don't need to do anything on TEXTBOX_CHANGED
         break;
     }
   },
@@ -629,6 +716,7 @@ export default React.createClass({
     renderer.addExtraRenderer(Render.selectionRenderer);
     renderer.addExtraRenderer(Render.dependencyRenderer);
     renderer.addExtraRenderer(Render.draggingRenderer);
+    renderer.addExtraRenderer(Render.cornerBoxRenderer);
     renderer.startAnimator();
   },
 
@@ -637,7 +725,7 @@ export default React.createClass({
 
   render() {
     let {behavior, width, height, language} = this.props; //should also have onReady
-    let style = {width: width, height: height};
+    let style = {width: width, height: height,cursor:this.state.cursorStyle};
     let behaviorElement;
     let self = this;
     switch (behavior) {
@@ -650,10 +738,11 @@ export default React.createClass({
     }
 
     return (
+      // NOTE: the 50px is for the scrollbar to show up.
       <div style={{width:"100%",
-                   height:"100%",
+                   height:"calc(100% - 50px)",
                    position:'relative',
-                   cursor: this.state.cursor}} >
+                   cursor: this.state.cursorStyle}} >
         <fin-hypergrid
           style={style}
           ref="hypergrid"

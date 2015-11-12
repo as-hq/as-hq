@@ -1,3 +1,5 @@
+import RenderUtils from './RenderUtils';
+
 let _renderParams = {
   mode: null, // null mode indicates normal behavior; any other string indicates otherwise
   deps: [],
@@ -5,33 +7,84 @@ let _renderParams = {
   selection: null,
   selectionRect: null,
   mouseoverError: 5,
-  dragRect: null
+  dragRect: null,
+  shouldRenderSquareBox: true,
+  boxWidth:6,
+  topLeftBox:null, // {x,y} for the location of the top left corner of blue box, in pixels
+  dragCorner: null, // {x,y} coordinate of corner of blue box dragging (not in pixels, in cells),
+  draggedBoxSelection: null
 };
 
-var drawRect = (rng, renderer, gc) => {
-  let grid = renderer.getGrid(),
-      fixedColCount = grid.getFixedColumnCount(),
-      fixedRowCount = grid.getFixedRowCount(),
-      scrollX = grid.getHScrollValue(),
-      scrollY = grid.getVScrollValue(),
-      lastVisibleColumn = renderer.getVisibleColumns().slice(-1)[0],
-      lastVisibleRow = renderer.getVisibleRows().slice(-1)[0];
-
-  let tlX = rng.tl.col - 1 + fixedColCount,
-      tlY = rng.tl.row - 1 + fixedRowCount,
-      brX = Math.min(rng.br.col - 1, lastVisibleColumn) + fixedColCount,
-      brY = Math.min(rng.br.row - 1, lastVisibleRow) + fixedRowCount,
-      tl = renderer._getBoundsOfCell(tlX - scrollX, tlY - scrollY),
-      br = renderer._getBoundsOfCell(brX - scrollX, brY - scrollY),
-      oX = tl.origin.x,
-      oY = tl.origin.y,
-      eX = (br.origin.x - oX) + br.extent.x,
-      eY = (br.origin.y - oY) + br.extent.y;
-
-  gc.rect(oX, oY, eX, eY);
-}
-
 export default {
+
+  /*************************************************************************************************************************/
+  // Getter and setters for blue box
+
+  getTopLeftBox(){
+    return _renderParams.topLeftBox;
+  },
+
+  getBoxWidth(){
+    return _renderParams.boxWidth;
+  },
+
+  setShouldRenderSquareBox(b){
+    _renderParams.shouldRenderSquareBox = b;
+  },
+
+  setDragCorner(locObj){
+    _renderParams.dragCorner = locObj;
+  },
+
+  getDragCorner(){
+    return _renderParams.dragCorner;
+  },
+
+  getDottedSelection(){
+    return _renderParams.draggedBoxSelection;
+  },
+
+
+  /*************************************************************************************************************************/
+  // Other getters and setters
+
+  setMode(mode) {
+    _renderParams.mode = mode;
+  },
+
+  setSelection(sel) {
+    _renderParams.selection = sel;
+  },
+
+  setDependencies(deps) {
+    _renderParams.deps = deps;
+  },
+
+  setDragRect(rng) { _renderParams.dragRect = rng; },
+
+  getDragRect() { return _renderParams.dragRect; },
+
+  /*************************************************************************************************************************/
+  // Misc utils
+
+  withinSegment(p, endpoint, length) {
+    return (endpoint - _renderParams.mouseoverError <= p) &&
+           (endpoint + length + _renderParams.mouseoverError >= p);
+  },
+
+  // given mouse coordinates,
+  // returns the edge ("top"/"left"/etc) hovered over by these
+  isOnSelectionEdge(pX, pY) {
+    let {x, y, width, height} = _renderParams.selectionRect;
+    return (this.withinSegment(pX, x, width) && (this.withinSegment(pY, y, 0) ||
+                                                 this.withinSegment(pY, y+height, 0)))
+        || (this.withinSegment(pY, y, width) && (this.withinSegment(pX, x, 0) ||
+                                                 this.withinSegment(pX, x+width, 0)));
+  },
+
+  /*************************************************************************************************************************/
+  // Renderers
+
   defaultCellRenderer: {
     paint: function(gc, x, y, width, height, isLink) {
       isLink = isLink || false;
@@ -146,14 +199,6 @@ export default {
     }
   },
 
-  setMode(mode) {
-    _renderParams.mode = mode;
-  },
-
-  setSelection(sel) {
-    _renderParams.selection = sel;
-  },
-
   selectionRenderer: function(gc) {
     var grid = this.getGrid();
     if (_renderParams.selection === null) return;
@@ -245,27 +290,6 @@ export default {
     gc.stroke();
   },
 
-  withinSegment(p, endpoint, length) {
-    return (endpoint - _renderParams.mouseoverError <= p) &&
-           (endpoint + length + _renderParams.mouseoverError >= p);
-  },
-
-  // given mouse coordinates,
-  // returns the edge ("top"/"left"/etc) hovered over by these
-  isOnSelectionEdge(pX, pY) {
-    // console.log("selection bounds: ", _renderParams.selectionRect);
-    // console.log("given coords: ", pX, pY);
-    let {x, y, width, height} = _renderParams.selectionRect;
-    return (this.withinSegment(pX, x, width) && (this.withinSegment(pY, y, 0) ||
-                                                 this.withinSegment(pY, y+height, 0)))
-        || (this.withinSegment(pY, y, width) && (this.withinSegment(pX, x, 0) ||
-                                                 this.withinSegment(pX, x+width, 0)));
-  },
-
-  setDependencies(deps) {
-    _renderParams.deps = deps;
-  },
-
   dependencyRenderer: function(gc) {
     _renderParams.deps.forEach((dep) => {
       gc.beginPath();
@@ -276,10 +300,6 @@ export default {
     }, this);
   },
 
-  setDragRect(rng) { _renderParams.dragRect = rng; },
-
-  getDragRect() { return _renderParams.dragRect; },
-
   draggingRenderer: function(gc) {
     if (_renderParams.dragRect !== null) {
       console.log("DRAWING DRAG:", JSON.stringify(_renderParams.dragRect));
@@ -289,6 +309,102 @@ export default {
       gc.strokeStyle = 'blue';
       gc.setLineDash([5,5]);
       gc.stroke();
+
+  cornerBoxRenderer: function(gc) {
+    if (!_renderParams.shouldRenderSquareBox){
+      return; // no box should show on double click
+    } else {
+      let grid = this.getGrid(),
+          fixedColCount = grid.getFixedColumnCount(),
+          fixedRowCount = grid.getFixedRowCount(),
+          scrollX = grid.getHScrollValue(),
+          scrollY = grid.getVScrollValue(),
+          lastVisibleColumn = this.getVisibleColumns().slice(-1)[0],
+          lastVisibleRow = this.getVisibleRows().slice(-1)[0];
+
+      let {origin,range} = _renderParams.selection,
+          tlX = Math.min(range.tl.col - 1, lastVisibleColumn) + fixedColCount,
+          tlY = Math.min(range.tl.row - 1, lastVisibleRow) + fixedRowCount,
+          brX = Math.min(range.br.col - 1, lastVisibleColumn) + fixedColCount,
+          brY = Math.min(range.br.row - 1, lastVisibleRow) + fixedRowCount,
+          tl = this._getBoundsOfCell(tlX-scrollX, tlY-scrollY),
+          br = this._getBoundsOfCell(brX-scrollX, brY-scrollY),
+          centerPointOfBox = {
+            x:br.origin.x + br.extent.x,
+            y:br.origin.y + br.extent.y
+          },
+          boxShouldBeVisible = range.br.col -1 < lastVisibleColumn && range.br.row -1 < lastVisibleRow;
+
+      let boxWidth =_renderParams.boxWidth,
+          topLeftBoxX = centerPointOfBox.x-boxWidth/2.0,
+          topLeftBoxY = centerPointOfBox.y-boxWidth/2.0;
+
+      // Update the render params for reading on mouse events
+      // To easily check if the mouse is "in" the box
+      _renderParams.topLeftBox = {
+        x:topLeftBoxX,
+        y:topLeftBoxY
+      };
+
+      // We also have a dotted rectangle, depending on horizontal/vertical position
+      // There's a blue filled rectangle and a green dotted rectangle (which overlap, but seems OK)
+      if (_renderParams.dragCorner !== null){
+        let {dragX,dragY} = _renderParams.dragCorner,
+            // drag accounts for scrolling already
+            drag = this._getBoundsOfCell(dragX, dragY),
+            xInBounds = dragX >= tlX-scrollX && dragX <= brX-scrollX,
+            yInBounds = dragY >= tlY-scrollY && dragY <= brY-scrollY,
+            width = null, height = null, dottedTlY = null, dottedTlX = null, dottedRange = null;
+        if (xInBounds){ // draw vertical dotted line
+          width = br.origin.x + br.extent.x - tl.origin.x;
+          dottedTlX = tl.origin.x;
+          if (dragY >= brY-scrollY){
+            dottedTlY = br.origin.y + br.extent.y;
+            height =  drag.origin.y + drag.extent.y - dottedTlY;
+            drawDottedVertical(gc,dottedTlX,dottedTlY,width,height);
+            dottedRange = {
+              tl: {col:tlX,row:tlY},
+              br: {col:brX,row:dragY+scrollY}
+            };
+          } else if (dragY <= tlY-scrollY) {
+            dottedTlY = tl.origin.y;
+            height = drag.origin.y - dottedTlY;
+            drawDottedVertical(gc,dottedTlX,dottedTlY,width,height);
+            dottedRange = {
+              tl: {col:tlX,row:dragY+scrollY},
+              br: {col:brX,row:brY}
+            };
+          }
+        } else if (yInBounds) { // draw horizontal dotted line
+          dottedTlY = tl.origin.y,
+          height = br.origin.y + br.extent.y - tl.origin.y;
+          if (dragX >= brX-scrollX){
+            dottedTlX = br.origin.x + br.extent.x;
+            width = drag.origin.x + drag.extent.x - dottedTlX;
+            drawDottedHorizontal(gc,dottedTlX,dottedTlY,width,height);
+            dottedRange = {
+              tl: {col:tlX,row:tlY},
+              br: {col:dragX+scrollX,row:brY}
+            };
+          } else if (dragX <= tlX-scrollX){
+            dottedTlX = tl.origin.x;
+            width = drag.origin.x - dottedTlX;
+            drawDottedHorizontal(gc,dottedTlX,dottedTlY,width,height);
+            dottedRange  = {
+              tl: {col:dragX+scrollX,row:tlY},
+              br: {col:brX,row:brY}
+            };
+          }
+        }
+        _renderParams.draggedBoxSelection = {origin:origin,range:dottedRange};
+      }
+      if (boxShouldBeVisible){
+        gc.beginPath();
+        gc.rect(topLeftBoxX,topLeftBoxY,boxWidth,boxWidth);
+        gc.fillStyle = '#0066ff';
+        gc.fill();
+      }
     }
   }
+
 }
