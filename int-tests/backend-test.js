@@ -1107,62 +1107,6 @@ describe('backend', () => {
           ]);
         });
 
-        it('should cut properly', (done) => {
-          _do([
-            python('A1', '1 + 1'),
-            python('B1', 'A1 + 1'),
-            python('A2', '3'),
-            python('B2', '4'),
-            cut('A1:B2', 'B1:C2'),
-            shouldBeNothing('A1'),
-            shouldBeNothing('A2'),
-            shouldBe('B1', valueI(2)),
-            shouldBe('C1', valueI(3)),
-            shouldBe('B2', valueI(3)),
-            shouldBe('C2', valueI(4)),
-            exec(done)
-          ]);
-        });
-
-        it('should cut properly with blank cells', (done) => {
-          _do([
-            python('A1', '1 + 1'),
-            python('B1', 'A1 + 1'),
-            python('A2', '3'),
-            cut('A1:B2', 'B1:C2'),
-            shouldBeNothing('A1'),
-            shouldBeNothing('A2'),
-            shouldBe('B1', valueI(2)),
-            shouldBe('C1', valueI(3)),
-            shouldBe('B2', valueI(3)),
-            exec(done)
-          ]);
-        });
-
-        it('should only shift dependencies in the cut region', (done) => {
-          _do([
-            python('E1', '10'),
-            python('A1', '1 + E1'),
-            python('B1', 'A1 + 1'),
-            python('A2', 'B1+1'),
-            cut('A1:B2', 'B1:C2'),
-            expressionShouldBe('B1', '1 + E1'),
-            exec(done)
-          ]);
-        });
-
-        it('should only shift dependencies entirely contained in the cut region for ranges', (done) => {
-          _do([
-            python('A1', '10'), python('A2', '11'), python('A3', '12'), 
-            python('A4', 'sum(A1:A3)'), 
-            python('A5', 'sum(A3:A4)'),
-            cut('A3:A5', 'B3:B5'), 
-            expressionShouldBe('B4', 'sum(A1:A3)'),
-            expressionShouldBe('B5', 'sum(B3:B4)'),
-            exec(done)
-          ]);
-        });
-
         xit('should shrink a range based on a dependency', (done) => {
           _do([
             python('A1', '10'),
@@ -1182,7 +1126,7 @@ describe('backend', () => {
     });
 
     describe('cell transforms', () => {
-      describe('copy/cut/paste', () => {
+      describe('copy/paste', () => {
         it('should copy and paste', (done) => {
           _do([
             python('A1', '1'),
@@ -1405,7 +1349,9 @@ describe('backend', () => {
             exec(done)
           ]);
         });
+      });
 
+      describe('cut/paste', () => {
         it('should cut properly', (done) => {
           _do([
             python('A1', '1 + 1'),
@@ -1436,6 +1382,67 @@ describe('backend', () => {
             shouldBe('C1', valueI(3)),
             shouldBe('B2', valueI(3)),
             shouldBeNothing('C2'),
+            exec(done)
+          ]);
+        });
+
+        it('should only shift dependencies in the cut region', (done) => {
+          _do([
+            python('E1', '10'),
+            python('A1', '1 + E1'),
+            python('B1', 'A1 + 1'),
+            python('A2', 'B1+1'),
+            cut('A1:B2', 'B1:C2'),
+            expressionShouldBe('B1', '1 + E1'),
+            exec(done)
+          ]);
+        });
+
+        it('should only shift dependencies entirely contained in the cut region for ranges', (done) => {
+          _do([
+            python('A1', '10'), python('A2', '11'), python('A3', '12'), 
+            python('A4', 'sum(A1:A3)'), 
+            python('A5', 'sum(A3:A4)'),
+            cut('A3:A5', 'B3:B5'), 
+            expressionShouldBe('B4', 'sum(A1:A3)'),
+            expressionShouldBe('B5', 'sum(B3:B4)'),
+            exec(done)
+          ]);
+        });
+
+        it('should shift absolute index references within the cut region', (done) => {
+          _do([
+            python('A1', '10'), python('A2', '$A$1+5'), 
+            cut('A1:A2', 'B1:B2'), 
+            expressionShouldBe('B2', '$B$1+5'),
+            exec(done)
+          ]);
+        });
+
+        it('should shift absolute range references within the cut region', (done) => {
+          _do([
+            python('A1', '10'), python('A2', '11'), python('A3', '12'), 
+            python('A4', 'sum($A$1:$A$3)'), 
+            cut('A1:A4', 'B1:B4'), 
+            expressionShouldBe('B4', 'sum($B$1:$B$3)'),
+            exec(done)
+          ]);
+        });
+
+        it('should shift index references in descendant cells', (done) => {
+          _do([
+            python('A1', '10'), python('A2', '11'), python('A3', '$A$1'), 
+            cut('A1:A2', 'B1:B2'), 
+            expressionShouldBe('A3', '$B$1'),
+            exec(done)
+          ]);
+        });
+
+        it('should only shift references in range of cut', (done) => {
+          _do([
+            python('A1', '10'), python('A2', '11'), python('A4', 'sum($A$2:A3)'), 
+            cut('A1:A2', 'B1:B2'), 
+            expressionShouldBe('A4', 'sum($A$2:A3)'),
             exec(done)
           ]);
         });
