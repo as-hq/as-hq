@@ -110,3 +110,12 @@ shiftCell offset (Cell loc xp v ts) = cell'
     loc'  = shiftInd offset loc
     xp'   = replaceRefs (show . (shiftExRef offset)) xp
     cell' = Cell loc' xp' v ts
+
+-- | Shift the cell's location, and shift all references satisfying the condition passed in. 
+shiftCellPartial :: Offset -> (ExRef -> Bool) -> ASCell -> ASCell
+shiftCellPartial offset cond (Cell loc xp v ts) = cell'
+  where
+    loc'  = shiftInd offset loc
+    shift' = \ref -> if (cond ref) then (shiftExRef offset ref) else ref
+    xp'   = replaceRefs (show . shift') xp
+    cell' = Cell loc' xp' v ts

@@ -310,14 +310,14 @@ handleRedo user state = do
 handleCopy :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
 handleCopy user state (PayloadPaste from to) = do
   conn <- dbConn <$> readMVar state
-  toCells <- getPasteCells conn from to
+  toCells <- getCopyCells conn from to
   msg' <- DP.runDispatchCycle state toCells (clientCommitSource user)
   reply user state msg'
 
 handleCut :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
 handleCut user state (PayloadPaste from to) = do
   conn <- dbConn <$> readMVar state
-  toCells <- getPasteCells conn from to
+  toCells <- getCutCells conn from to
   let blankedCells = U.blankCellsAt (rangeToIndices from)
       newCells = U.mergeCells toCells blankedCells -- content in pasted cells take precedence over deleted cells
   msg' <- DP.runDispatchCycle state newCells (clientCommitSource user)
@@ -344,13 +344,24 @@ handleDrag user state (PayloadDrag selRng dragRng) = do
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Copy/paste helpers
 
--- | Gets you the new cells to eval after shifting from a copy/paste or cut/paste. 
-getPasteCells :: R.Connection -> ASRange -> ASRange -> IO [ASCell]
-getPasteCells conn from to = do 
-  fromCells    <- DB.getPossiblyBlankCells (rangeToIndices from)
+-- | Gets you the new cells to eval after shifting from a copy/paste. 
+getCopyCells :: R.Connection -> ASRange -> ASRange -> IO [ASCell]
+getCopyCells conn from to = do 
+  fromCells          <- DB.getPossiblyBlankCells (rangeToIndices from)
   sanitizedFromCells <- sanitizeCopyCells conn fromCells from
-  let offsets            = U.getPasteOffsets from to  -- how much to shift these cells for copy/copy/paste
+  let offsets            = U.getCopyOffSets from to  -- how much to shift these cells for copy/copy/paste
       toCells            = concat $ map (\o -> map (S.shiftCell o) sanitizedFromCells) offsets
+  return toCells
+
+-- | Gets you the new cells to eval after shifting from a cut/paste. 
+getCutCells :: R.Connection -> ASRange -> ASRange -> IO [ASCell]
+getCutCells conn from to = do 
+  fromCells          <- DB.getPossiblyBlankCells (rangeToIndices from)
+  sanitizedFromCells <- sanitizeCopyCells conn fromCells from
+  let fromSid     = rangeSheetId from
+      offset      = U.getRangeOffset from to
+      shouldShift = (U.rangeContainsRef from) . (exRefToASRef fromSid)
+      toCells     = map (S.shiftCellPartial offset shouldShift) fromCells
   return toCells
 
 -- | Decouples cells appropriately for re-eval on copy/paste or cut/paste, as follows:
