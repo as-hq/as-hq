@@ -1524,18 +1524,18 @@ describe('backend', () => {
           _do([
             python('A1', '1'),
             python('A2', '2'),
-            setTag('A1:A2', 'Disp', 'Money'),
-            shouldHaveTag('A1', 'Disp'), 
-            shouldHaveTag('A2', 'Disp'), 
+            setTag('A1:A2', 'Format', 'Money'),
+            shouldHaveTag('A1', 'Format'), 
+            shouldHaveTag('A2', 'Format'), 
             exec(done)
           ]);
         });
 
         it('should format blank cells', (done) => {
           _do([
-            setTag('A1', 'Disp', 'Money'),
+            setTag('A1', 'Format', 'Money'),
             python('A1', '1'),
-            shouldHaveTag('A1', 'Disp'), 
+            shouldHaveTag('A1', 'Format'), 
             exec(done)
           ]);
         });

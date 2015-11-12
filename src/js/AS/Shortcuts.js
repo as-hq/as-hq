@@ -91,7 +91,7 @@ export default {
       // TODO other wildcards
       if (wildcard === '$') dispType = "Money"; 
       else if (wildcard === '%') dispType = "Percentage"; 
-      API.setTag("Disp", dispType, Store.getActiveSelection().range);
+      API.setTag("Format", dispType, Store.getActiveSelection().range);
       self.refs.spreadsheet.repaint();
     });
     SU.add("common", "bold", "Ctrl+B", (wildcard) => {
