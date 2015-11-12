@@ -95,7 +95,7 @@ getPossiblyBlankCells locs = do
   cells <- getCells locs
   return $ map (\(l,c) -> case c of 
     Just c' -> c'
-    Nothing -> Cell l (Expression "" Excel) NoValue []) (zip locs cells)
+    Nothing -> blankCellAt l) (zip locs cells)
 
 getCellsByRange :: ASRange -> IO [Maybe ASCell]
 getCellsByRange rng = getCells $ rangeToIndices rng

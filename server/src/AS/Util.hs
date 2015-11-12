@@ -388,10 +388,13 @@ isListMember (Cell _ _ _ ts) = any id $ map (\t -> case t of
 mergeCells :: [ASCell] -> [ASCell] -> [ASCell]
 mergeCells c1 c2 = L.unionBy isColocated c1 c2
 
--- | Returns a list of blank cells at the given locations. For now, the language doesn't matter, 
+-- | Returns a blank cell at the given location. For now, the language doesn't matter, 
 -- because blank cells sent to the frontend don't get their languages saved. 
+blankCellAt :: ASIndex -> ASCell
+blankCellAt l = Cell l (Expression "" Excel) NoValue []
+
 blankCellsAt :: [ASIndex] -> [ASCell]
-blankCellsAt = map (\l -> Cell l (Expression "" Excel) NoValue [])
+blankCellsAt = map blankCellAt
 
 removeCell :: ASIndex -> [ASCell] -> [ASCell]
 removeCell idx = filter (((/=) idx) . cellLocation)
@@ -434,10 +437,6 @@ groupRef lang (ref@(Range _ ((c1,r1),(c2,r2))), vals) = case lang of
       rows = chunksOf (r2-r1+1) vals
       vals' = map ValueL rows
   _ -> Nothing
-
-formatValuesForMap :: [(ASIndex, Maybe ASCell)] -> [(ASIndex, ASValue)]
-formatValuesForMap pairs = formattedPairs
-  where formattedPairs = map (\(l, c) -> (l, getSanitizedCellValue c)) pairs
 
 getSanitizedCellValue :: Maybe ASCell -> ASValue
 getSanitizedCellValue c = case c of

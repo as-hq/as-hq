@@ -108,16 +108,6 @@ getValuesMap locs = do
   let vals = map cellValue cells
   return $ M.fromList $ zip locs vals
 
-groupRefs :: (ASCell, [ASReference]) -> IO [(ASReference, ASValue)]
-groupRefs relation@(cell, refs) = if (shouldGroupRefs relation)
-  then do
-    let rngs = map (\(RangeRef rng) -> rng) $ filter isRange refs
-    rngValSets <- mapM DB.getCellsByRange rngs
-    let rngValSets' = map (\rs -> map getSanitizedCellValue rs) rngValSets
-        groupedRefs = map (groupRef . language . cellExpression $ cell) $ zip rngs rngValSets'
-    return $ filterNothing groupedRefs
-  else return []
-
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Eval helpers
 
@@ -134,7 +124,6 @@ evalChain conn valuesMap cells src = do
   case result of
     (Left e) -> left e
     (Right e) -> right e
-
 
 -- | evalChain' works in two parts. First, it goes through the list of cells passed in and
 -- evaluates them. Along the way, new list cells (created as part of a list) are created
