@@ -1139,12 +1139,26 @@ describe('backend', () => {
           ]);
         });
 
-        // works on backend but crashes the test
-        xit('should not re-eval a non-head list cell with its expression unchanged', (done) => {
+        it('should only shift dependencies in the cut region', (done) => {
           _do([
-            python('A1', 'range(10)'),
-            python('A2', 'range(10)'),
-            shouldBe('A2', valueI(1)),
+            python('E1', '10'),
+            python('A1', '1 + E1'),
+            python('B1', 'A1 + 1'),
+            python('A2', 'B1+1'),
+            cut('A1:B2', 'B1:C2'),
+            expressionShouldBe('B1', '1 + E1'),
+            exec(done)
+          ]);
+        });
+
+        it('should only shift dependencies entirely contained in the cut region for ranges', (done) => {
+          _do([
+            python('A1', '10'), python('A2', '11'), python('A3', '12'), 
+            python('A4', 'sum(A1:A3)'), 
+            python('A5', 'sum(A3:A4)'),
+            cut('A3:A5', 'B3:B5'), 
+            expressionShouldBe('B4', 'sum(A1:A3)'),
+            expressionShouldBe('B5', 'sum(B3:B4)'),
             exec(done)
           ]);
         });
