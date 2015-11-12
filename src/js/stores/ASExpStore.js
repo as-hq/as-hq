@@ -26,6 +26,7 @@ let _data = {
   expression: '',
   //scellRefChanging: '',
   lastRef: null,
+  refInsertionBypass: false,
 
   userIsTyping:false,
 
@@ -154,17 +155,28 @@ const ASExpStore = assign({}, BaseStore, {
     _data.clickType = t;
   },
 
+  enableRefInsertionBypass() {
+    logDebug('Enabling bypass');
+    _data.refInsertionBypass = true;
+  },
+
+  disableRefInsertionBypass() {
+    logDebug('Disabling bypass');
+    console.trace();
+    _data.refInsertionBypass = false;
+  },
+
   /**************************************************************************************************************************/
   // Inserting ref helpers
 
   editorCanInsertRef(editor){
     return this.getLastCursorPosition() === Constants.CursorPosition.EDITOR ?
-      ParseUtils.canInsertCellRef(editor,this.getLastRef()) : false;
+      _data.refInsertionBypass || ParseUtils.canInsertCellRef(editor,this.getLastRef()) : false;
   },
 
   textBoxCanInsertRef(editor){
     return this.getLastCursorPosition() === Constants.CursorPosition.TEXTBOX ?
-      ParseUtils.canInsertCellRef(editor,this.getLastRef()) : false;
+      _data.refInsertionBypass || ParseUtils.canInsertCellRef(editor,this.getLastRef()) : false;
   },
 
   gridCanInsertRef(){
@@ -176,7 +188,7 @@ const ASExpStore = assign({}, BaseStore, {
         ParseUtils.canInsertCellRefAfterPrefix(xp.substring(0,xp.length-lRef.length)) :
         ParseUtils.canInsertCellRefAfterPrefix(xp);
     }
-    return gridCanInsertRef;
+    return _data.refInsertionBypass || gridCanInsertRef;
   },
 
 

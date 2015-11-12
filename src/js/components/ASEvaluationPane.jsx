@@ -67,6 +67,7 @@ export default React.createClass({
     Store.addChangeListener(this._onChange);
     FindStore.addChangeListener(this._onFindChange);
     ReplStore.addChangeListener(this._onReplChange);
+    ExpStore.addChangeListener(this._onExpChange);
     Shortcuts.addShortcuts(this);
 
     BrowserTests.install(window, this);
@@ -81,6 +82,7 @@ export default React.createClass({
     Store.removeChangeListener(this._onChange);
     FindStore.removeChangeListener(this._onFindChange);
     ReplStore.removeChangeListener(this._onReplChange);
+    ExpStore.removeChangeListener(this._onExpChange);
   },
 
 
@@ -166,6 +168,12 @@ export default React.createClass({
   _onReplChange() {
     logDebug("Eval pane detected event change from repl store");
     this.setState({replSubmittedLanguage:ReplStore.getSubmittedLanguage()})
+  },
+
+  _onExpChange() {
+    if (ExpStore.getLastRef() === null) {
+      ExpStore.disableRefInsertionBypass();
+    }
   },
 
   enableTestMode() {
