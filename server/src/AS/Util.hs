@@ -414,9 +414,9 @@ groupRef lang (ref@(Range _ ((c1,r1),(c2,r2))), vals) = case lang of
       vals' = map ValueL rows
   _ -> Nothing
 
-formatValuesForMap :: [(ASIndex, Maybe ASCell)] -> [(ASReference, ASValue)]
+formatValuesForMap :: [(ASIndex, Maybe ASCell)] -> [(ASIndex, ASValue)]
 formatValuesForMap pairs = formattedPairs
-  where formattedPairs = map (\(l, c) -> (IndexRef l, getSanitizedCellValue c)) pairs
+  where formattedPairs = map (\(l, c) -> (l, getSanitizedCellValue c)) pairs
 
 getSanitizedCellValue :: Maybe ASCell -> ASValue
 getSanitizedCellValue c = case c of
@@ -426,9 +426,6 @@ getSanitizedCellValue c = case c of
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Locations
 
--- | ASReference is either a cell index, range, or column. When decomposeLocs takes a range, it returns
--- the list of indices that compose the range. When it takes in an index, it returns a list consisting
--- of just that index. It cannot take in a column.
 refToIndices :: ASReference -> Maybe [ASIndex]
 refToIndices loc = case loc of
   (IndexRef ind) -> Just [ind]

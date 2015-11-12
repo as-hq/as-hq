@@ -269,7 +269,7 @@ data ASExecError =
 type EitherCells = Either ASExecError [ASCell]
 type EitherTExec = EitherT ASExecError IO
 
-type RefValMap = M.Map ASReference ASValue
+type IndValMap = M.Map ASIndex ASValue
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Websocket types

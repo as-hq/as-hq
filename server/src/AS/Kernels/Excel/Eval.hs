@@ -41,7 +41,7 @@ entityToASValue _ (EntityMatrix m) = case (transpose list2D) of
   [transposedCol] -> ValueL transposedCol -- matches in this case iff original list2D is a vertical list
   otherwise -> ValueL $ map ValueL list2D
   where
-    list2D = map (map toASValue) (U.matrixTo2DList m)
+    list2D = map (map $ val . toASValue) (U.matrixTo2DList m)
 
 -- | In the Excel Error monad; parse the formula and then evaluate either as an array formula or not
 evalExcel :: String -> Context -> EResult
@@ -52,7 +52,7 @@ evalExcel s context = do
     (SimpleFormula formula) -> L.evalFormula context formula
 
 -- | Entire Excel eval; parse, evaluate, cast to ASValue
-evaluate :: String -> ASReference -> RefValMap -> EitherTExec ASValue
+evaluate :: String -> ASReference -> IndValMap -> EitherTExec ASValue
 evaluate s ref mp = convertEither context $ evalExcel s context
   where
     context = Context mp ref

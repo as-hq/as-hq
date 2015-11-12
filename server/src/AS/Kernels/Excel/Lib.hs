@@ -417,8 +417,8 @@ refToEntity c (ERef l@(IndexRef i)) = case (asValueToEntity v) of
   Nothing -> Left $ CannotConvertToExcelValue l
   Just (EntityVal val) -> Right $ EntityMatrix $ EMatrix 1 1 (V.singleton val)
   where
-    v = case (M.lookup l (evalMap c)) of
-      Nothing -> dbLookup i
+    v = case (M.lookup i (evalMap c)) of
+      Nothing -> dbLookup i -- needed for e.g. =INDIRECT() 
       Just v' -> v'
 refToEntity c (ERef (l@(RangeRef r))) = if any isNothing vals
   then Left $ CannotConvertToExcelValue l
@@ -426,8 +426,8 @@ refToEntity c (ERef (l@(RangeRef r))) = if any isNothing vals
   where
     mp = evalMap c
     idxs = rangeToIndicesRowMajor r
-    (inMap,needDB) = partition (((flip M.member) mp).IndexRef) idxs
-    mapVals = catMaybes $ map (((flip M.lookup) mp).IndexRef) inMap
+    (inMap,needDB) = partition ((flip M.member) mp) idxs
+    mapVals = catMaybes $ map ((flip M.lookup) mp) inMap
     dbVals = dbLookupBulk needDB
     vals = map toEValue $ mapVals ++ dbVals
 

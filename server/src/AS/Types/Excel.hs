@@ -179,7 +179,9 @@ instance Num EFormattedNumeric where
   signum = liftM signum 
   abs = liftM abs
   (+) = liftM2 (+)
-  (*) = liftM2 (*)
+  (*) (Formatted x (Just Percentage)) (Formatted y f) = Formatted (x*y) f
+  (*) (Formatted x f) (Formatted y (Just Percentage)) = Formatted (x*y) f
+  (*) x y = liftM2 (*) x y
   fromInteger = return . fromInteger
 
 instance Fractional EFormattedNumeric where
@@ -230,7 +232,7 @@ data EEntity =
 --------------------------------------------------------------------------------------------------------------------------------------------
 -- | Excel evaluation types
 
-data Context = Context {evalMap :: M.Map ASReference ASValue, curLoc :: ASReference}
+data Context = Context {evalMap :: IndValMap, curLoc :: ASReference}
 
 type ThrowsError = Either EError
 type EResult = ThrowsError EEntity

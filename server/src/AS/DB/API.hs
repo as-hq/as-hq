@@ -98,7 +98,7 @@ getPossiblyBlankCells locs = do
     Nothing -> Cell l (Expression "" Excel) NoValue []) (zip locs cells)
 
 getCellsByRange :: ASRange -> IO [Maybe ASCell]
-getCellsByRange rng = getCells (fromJust $ refToIndices $ RangeRef rng)
+getCellsByRange rng = getCells $ rangeToIndices rng
 
 setCell :: ASCell -> IO ()
 setCell c = setCells [c]
