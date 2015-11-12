@@ -95,17 +95,20 @@ toEValue (Formatted (ValueI i) f) = Just $ EValueNum $ Formatted (EValueI i) f
 toEValue (Formatted (NoValue)  _) = Just EBlank
 toEValue v = Nothing
 
-dealWithBlank :: Maybe ASCell -> ASValue
-dealWithBlank (Just c) = cellValue c
-dealWithBlank Nothing = NoValue
+cellToFormattedVal :: Maybe ASCell -> Formatted ASValue
+cellToFormattedVal (Just c) = Formatted cv ft 
+  where 
+    cv = cellValue c
+    ft = getCellFormatType c
+cellToFormattedVal Nothing = return NoValue
 
 -- | The use of unsafePerformIO is temporary. Eventually a lot of this code may move into IO because of
 -- things like rand.
-dbLookup :: ASIndex -> ASValue
-dbLookup = dealWithBlank . unsafePerformIO . getCell
+dbLookup :: ASIndex -> Formatted ASValue
+dbLookup = cellToFormattedVal . unsafePerformIO . getCell
 
-dbLookupBulk :: [ASIndex] -> [ASValue]
-dbLookupBulk = (map dealWithBlank) . unsafePerformIO . getCells
+dbLookupBulk :: [ASIndex] -> [Formatted ASValue]
+dbLookupBulk = (map cellToFormattedVal) . unsafePerformIO . getCells
 
 -------------------------------------------------------------------------------------------------------------
 -- | AS Reference utility methods

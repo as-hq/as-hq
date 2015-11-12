@@ -72,6 +72,14 @@ differentTagType (ListMember _) (ListMember _) = False
 differentTagType DFMember DFMember = False
 differentTagType _ _ = True
 
+getCellFormatType :: ASCell -> Maybe FormatType
+getCellFormatType cell = ft
+  where
+    ts = cellTags cell
+    ft = case L.find (\t -> not $ differentTagType (Format NoFormat) t) ts of
+      Nothing -> Nothing
+      Just (Format ft') -> Just ft'
+
 sendMessage :: (ToJSON a, Show a) => a -> WS.Connection -> IO ()
 sendMessage msg conn = do
   WS.sendTextData conn (encode msg)

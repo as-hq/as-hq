@@ -26,6 +26,8 @@ import AS.Parsing.Out
 import AS.Parsing.Common
 import AS.Parsing.Substitutions
 
+import AS.DB.API as DB
+
 import AS.Util
 import AS.Config.Settings
 
@@ -45,9 +47,23 @@ evaluateLanguage curRef sheetid valuesMap xp@(Expression str lang) = catchEither
   case maybeError of
     Just e -> return $ return e -- short-circuited, return this error
     Nothing -> case lang of
-      Excel -> KE.evaluate str curRef valuesMap -- Excel needs current location and un-substituted expression
+      Excel -> do 
+        formattedValuesMap <- lift $ formatValsMap valuesMap
+        KE.evaluate str curRef formattedValuesMap
+        -- Excel needs current location and un-substituted expression, and needs the formatted values for
+        -- loading the initial entities
       otherwise -> return <$> execEvalInLang lang xpWithValuesSubstituted -- didn't short-circuit, proceed with eval as usual
        where xpWithValuesSubstituted = insertValues sheetid valuesMap xp
+
+formatValsMap :: IndValMap -> IO FormattedIndValMap
+formatValsMap mp = do
+  let mp' = M.toList mp  
+      locs = map fst mp'
+      vals = map snd mp' 
+  cells <- DB.getPossiblyBlankCells locs 
+  let formats = map getCellFormatType cells
+      vals' = map (\(v, ft) -> Formatted v ft) (zip vals formats)
+  return $ M.fromList $ zip locs vals'
 
 -- no catchEitherT here for now, but that's because we're obsolescing Repl for now
 evaluateLanguageRepl :: ASExpression -> EitherTExec ASValue

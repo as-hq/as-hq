@@ -157,8 +157,8 @@ instance Num EFormattedNumeric where
   signum (Formatted f _) = Formatted (signum f) $ Just NoFormat
   abs = liftM abs
   (+) = liftM2 (+)
-  (*) (Formatted x (Just Percentage)) (Formatted y f) = Formatted x*y f
-  (*) (Formatted x f) (Formatted y (Just Percentage)) = Formatted x*y f
+  (*) (Formatted x (Just Percentage)) (Formatted y f) = Formatted (x*y) f
+  (*) (Formatted x f) (Formatted y (Just Percentage)) = Formatted (x*y) f
   (*) x y = liftM2 (*) x y
   fromInteger = return . fromInteger
 
@@ -206,7 +206,7 @@ data EEntity =
 --------------------------------------------------------------------------------------------------------------------------------------------
 -- | Excel evaluation types
 
-data Context = Context {evalMap :: IndValMap, curLoc :: ASReference}
+data Context = Context {evalMap :: FormattedIndValMap, curLoc :: ASReference}
 
 type ThrowsError = Either EError
 type EResult = ThrowsError EEntity

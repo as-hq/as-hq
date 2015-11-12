@@ -291,6 +291,7 @@ type EitherCells = Either ASExecError [ASCell]
 type EitherTExec = EitherT ASExecError IO
 
 type IndValMap = M.Map ASIndex ASValue
+type FormattedIndValMap = M.Map ASIndex (Formatted ASValue)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Websocket types

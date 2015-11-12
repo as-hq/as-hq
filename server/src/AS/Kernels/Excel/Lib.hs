@@ -426,7 +426,7 @@ refToEntity c (ERef (l@(RangeRef r))) = if any isNothing vals
   where
     mp = evalMap c
     idxs = rangeToIndicesRowMajor r
-    (inMap,needDB) = partition ((flip M.member) mp) idxs
+    (inMap, needDB) = partition ((flip M.member) mp) idxs
     mapVals = catMaybes $ map ((flip M.lookup) mp) inMap
     dbVals = dbLookupBulk needDB
     vals = map toEValue $ mapVals ++ dbVals
