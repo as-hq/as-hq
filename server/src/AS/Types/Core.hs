@@ -4,7 +4,7 @@ module AS.Types.Core where
 
 import Prelude
 import GHC.Generics
-import Data.Aeson hiding (Success, Object)
+import Data.Aeson hiding (Success, Object, Array)
 import qualified Data.Aeson as DA
 import Data.Aeson.Types (defaultOptions)
 import Data.Text hiding (foldr, map)
@@ -68,7 +68,7 @@ refSheetId loc = case loc of
 
 data ASLanguage = R | Python | OCaml | CPP | Java | SQL | Excel deriving (Show, Read, Eq, Generic)
 type EvalCode = String
--- TODO consider migration to exLocs record
+
 data ASExpression =
   Expression { expression :: String, language :: ASLanguage }
   deriving (Show, Read, Eq, Generic)
@@ -92,13 +92,13 @@ data ASReplValue = ReplValue {replValue :: ASValue, replLang :: ASLanguage} deri
 type RefValMap = M.Map ASReference ASValue
 
 data ComplexType = List | Object | Image | Error deriving (Show, Read)
-data ObjectType = RList | RDataFrame | NPArray | NPMatrix | PDataFrame | PSeries
+data ObjectType = RList | RDataFrame | NPArray | NPMatrix | PDataFrame | PSeries deriving (Show, Read, Eq, Generic)
 
 -- ephemeral types produced by eval 
 -- that will expand in createListCells
 type Array = [ASValue]
-type Matrix = [Array]
-data Collection = A Array | M Matrix
+type Matrix = [Array] 
+data Collection = A Array | M Matrix deriving (Show, Read, Eq, Generic)
 
 data ExpandingValue = 
     VList Collection
@@ -112,9 +112,11 @@ data ExpandingValue =
 data CompositeValue = Expanding ExpandingValue | CellValue ASValue
 
 data RangeDescriptor = 
-    ListDescriptor {listKey :: ListKey}
+    ListDescriptor { listKey :: ListKey}
   | ObjectDescriptor {objListKey :: ListKey, objType :: ObjectType, objAttrs :: JSON}
 
+type ListKey = String
+data FatCell = FatCell [ASCell] RangeDescriptor
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Parsing
 
@@ -123,7 +125,7 @@ data RangeDescriptor =
 data JSON = JSON (M.Map JSONKey JSONField) deriving (Show, Read, Eq, Generic)
 type JSONKey = String 
 data JSONField = JSONTree JSON | JSONLeaf JSONValue deriving (Show, Read, Eq, Generic)
-data JSONValue = ListValue Collection | PrimitiveValue ASValue
+data JSONValue = ListValue Collection | PrimitiveValue ASValue deriving (Show, Read, Eq, Generic)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Errors
@@ -185,22 +187,19 @@ type EitherTExec = EitherT ASExecError IO
 data ASCellTag =
     Color String
   | Size Int
-  | Money
   | Bold | Italic | Underline
-  | Percentage
   | StreamTag Stream
   | Tracking
   | Volatile
   | ReadOnly [ASUserId]
+  | ListMember ListKey
+  | DFMember
   deriving (Show, Read, Eq, Generic)
 
 data ASCell = Cell {cellLocation :: ASIndex,
           cellExpression :: ASExpression,
           cellValue :: ASValue,
           cellTags :: [ASCellTag]} deriving (Show, Read, Eq, Generic)
-
-type ListKey = String
-type ASList = (ListKey, [ASCell])
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Streaming
@@ -367,10 +366,6 @@ col = snd
 
 emptyExpression = ""
 
-toList :: ASValue -> [ASValue]
-toList (ValueL l) = l
-toList other = [other]
-
 str :: ASValue -> String
 str (ValueS s) = s
 
@@ -445,6 +440,10 @@ instance FromJSON JSON
 instance ToJSON JSON
 instance FromJSON JSONField
 instance ToJSON JSONField
+instance FromJSON JSONValue
+instance ToJSON JSONValue
+instance FromJSON Collection
+instance ToJSON Collection
 -- The format Frontend uses for both client->server and server->client is
 -- { messageUserId: blah, action: blah, result: blah, payload: blah }
 instance ToJSON ASClientMessage where
@@ -541,8 +540,10 @@ instance FromJSON MutateType
 
 -- memory region exposure instances for R value unboxing
 instance NFData ASValue       where rnf = genericRnf
+instance NFData Collection    where rnf = genericRnf
 instance NFData JSON          where rnf = genericRnf
 instance NFData JSONField     where rnf = genericRnf
+instance NFData JSONValue     where rnf = genericRnf
 instance NFData ObjectType    where rnf = genericRnf
 instance NFData EError        where rnf = genericRnf
 instance NFData ASReference   where rnf = genericRnf

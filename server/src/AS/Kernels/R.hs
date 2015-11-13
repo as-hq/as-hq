@@ -146,6 +146,14 @@ castVector v = do
             in return . Expanding $ VRList (zip listNames listVals)
     else return . Expanding $ VList vals
 
+rdVectorVals :: [CompositeValue] -> Collection
+rdVectorVals vals = M $ map mkArray vals 
+  where
+    mkArray val = case val of 
+      (Expanding (VList (A arr))) -> arr
+      (CellValue v) -> [v]
+      _ -> error "cannot cast multi-dimensional vector"
+
 --let firstRow = take (length vals) listNames'
 --            vals' = prependRowToColumnMajorList firstRow vals
 

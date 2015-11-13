@@ -145,7 +145,7 @@ extractObject js = case (M.lookup js "objectType") of
         where 
           rdSeries coll = case coll of 
             (A series) -> series
-            _ -> fail "expected pandas series to be one-dimensional" 
+            _ -> error "expected pandas series to be one-dimensional" 
   _ -> Nothing
 
 extractError :: JSON -> Maybe ASValue
