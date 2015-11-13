@@ -40,10 +40,10 @@ import Control.Exception (catch, SomeException)
 -----------------------------------------------------------------------------------------------------------------------
 -- Exposed functions
 
-evaluateLanguage :: ASReference -> ASSheetId -> IndValMap -> ASExpression -> EitherTExec (Formatted ASValue)
-evaluateLanguage curRef sheetid valuesMap xp@(Expression str lang) = catchEitherT $ do
+evaluateLanguage :: ASSheetId -> ASReference -> IndValMap -> ASExpression -> EitherTExec (Formatted ASValue)
+evaluateLanguage sid curRef valuesMap xp@(Expression str lang) = catchEitherT $ do
   printWithTimeT "Starting eval code"
-  let maybeError = possiblyShortCircuit sheetid valuesMap xp
+  let maybeError = possiblyShortCircuit sid valuesMap xp
   case maybeError of
     Just e -> return $ return e -- short-circuited, return this error
     Nothing -> case lang of
@@ -52,8 +52,8 @@ evaluateLanguage curRef sheetid valuesMap xp@(Expression str lang) = catchEither
         KE.evaluate str curRef formattedValuesMap
         -- Excel needs current location and un-substituted expression, and needs the formatted values for
         -- loading the initial entities
-      otherwise -> return <$> execEvalInLang lang xpWithValuesSubstituted -- didn't short-circuit, proceed with eval as usual
-       where xpWithValuesSubstituted = insertValues sheetid valuesMap xp
+      otherwise -> return <$> execEvalInLang sid lang xpWithValuesSubstituted -- didn't short-circuit, proceed with eval as usual
+       where xpWithValuesSubstituted = insertValues sid valuesMap xp
 
 formatValsMap :: IndValMap -> IO FormattedIndValMap
 formatValsMap mp = do
@@ -66,17 +66,17 @@ formatValsMap mp = do
   return $ M.fromList $ zip locs vals'
 
 -- no catchEitherT here for now, but that's because we're obsolescing Repl for now
-evaluateLanguageRepl :: ASExpression -> EitherTExec ASValue
-evaluateLanguageRepl (Expression str lang) = case lang of
-  Python  -> KP.evaluateRepl str
-  R       -> KR.evaluateRepl str
-  SQL     -> KP.evaluateSqlRepl str
-  OCaml   -> KO.evaluateRepl str
+evaluateLanguageRepl :: ASSheetId -> ASExpression -> EitherTExec ASValue
+evaluateLanguageRepl sid (Expression str lang) = case lang of
+  Python  -> KP.evaluateRepl sid str
+  R       -> KR.evaluateRepl sid str
+  SQL     -> KP.evaluateSqlRepl sid str
+  OCaml   -> KO.evaluateRepl sid str
 
--- need stuff for R
-evaluateHeader :: ASExpression -> EitherTExec ASValue
-evaluateHeader (Expression str lang) = case lang of 
-  Python -> KP.evaluateHeader str
+-- #incomplete needs stuff for R (Alex 11/13)
+evaluateHeader :: ASSheetId -> ASExpression -> EitherTExec ASValue
+evaluateHeader sid (Expression str lang) = case lang of 
+  Python -> KP.evaluateHeader sid str
 
 -----------------------------------------------------------------------------------------------------------------------
 -- Helpers
@@ -117,9 +117,9 @@ handleErrorInLang :: ASLanguage -> ASValue -> Maybe ASValue
 handleErrorInLang Excel _   = Nothing
 handleErrorInLang _ err = Just err
 
-execEvalInLang :: ASLanguage -> String -> EitherTExec ASValue
-execEvalInLang lang = case lang of
-  Python  -> KP.evaluate
-  R       -> KR.evaluate
-  SQL     -> KP.evaluateSql
-  OCaml   -> KO.evaluate
+execEvalInLang :: ASSheetId -> ASLanguage -> String -> EitherTExec ASValue
+execEvalInLang sid lang = case lang of
+  Python  -> KP.evaluate sid 
+  R       -> KR.evaluate sid 
+  SQL     -> KP.evaluateSql sid 
+  OCaml   -> KO.evaluate sid

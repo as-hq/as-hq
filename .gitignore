@@ -18,8 +18,7 @@ server/client_messages
 
 server/eval_files/py/run.py
 !server/eval_files/**/template.*
-!server/eval_files/**/header.*
-!server/eval_files/**/Template.*
+!server/eval_files/**/headers/*
 
 server/static/images/*
 

@@ -45,14 +45,14 @@ import Control.Monad.Trans.Either
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Exposed functions
 
-evaluate :: EvalCode -> EitherTExec ASValue
-evaluate "" = return NoValue
-evaluate str = liftIO $ execOnString str (execR False)
+evaluate :: ASSheetId -> EvalCode -> EitherTExec ASValue
+evaluate _ "" = return NoValue
+evaluate _ str = liftIO $ execOnString str (execR False)
 
 
-evaluateRepl :: EvalCode -> EitherTExec ASValue
-evaluateRepl "" = return NoValue
-evaluateRepl str = liftIO $ execOnString str (execR True)
+evaluateRepl :: ASSheetId -> EvalCode -> EitherTExec ASValue
+evaluateRepl _ "" = return NoValue
+evaluateRepl _ str = liftIO $ execOnString str (execR True)
 
 --clearRepl :: IO ()
 --clearRepl = do

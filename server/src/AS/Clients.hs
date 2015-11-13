@@ -22,6 +22,7 @@ import AS.DB.API                as DB
 import AS.DB.Util               as DU
 import AS.DB.Graph              as G
 import AS.Util                  as U
+import AS.Kernels.LanguageUtils as LU
 import AS.Dispatch.Core         as DP
 import AS.Dispatch.Repl         as DR
 import AS.Dispatch.EvalHeader   as DEH
@@ -69,8 +70,8 @@ instance Client ASUserClient where
       UpdateWindow   -> handleUpdateWindow (sessionId user) state payload
       Import         -> handleImport state payload
       Evaluate       -> handleEval user state payload
-      EvaluateRepl   -> handleEvalRepl user state payload
-      EvaluateHeader -> handleEvalHeader user state payload
+      EvaluateRepl   -> handleEvalRepl user payload
+      EvaluateHeader -> handleEvalHeader user payload
       Get            -> handleGet user state payload
       Delete         -> handleDelete user state payload
       Clear          -> handleClear user state payload
@@ -129,6 +130,7 @@ sheetsInPayload (PayloadCommit (ASCommit bf af _)) = (map (locSheetId . cellLoca
 
 -- | Figures out whom to send the message back to, based on the payload, and broadcasts the message
 -- to all the relevant recipients. 
+-- Shouldn't this logic be dealt with by the individual handlers? (Alex 11/13)
 reply :: (Client c) => c -> MVar ServerState -> ASServerMessage -> IO ()
 reply cl state msg@(ServerMessage _ (Failure e) _) = sendToOriginal cl msg
 reply _ state msg@(ServerMessage _ _ (PayloadCommit _)) = broadcast state msg 
@@ -180,9 +182,17 @@ handleNew user state (PayloadWB wb) = do
   return () -- TODO determine whether users should be notified
 
 handleOpen :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
-handleOpen user state (PayloadS (Sheet sheetid _ _)) = US.modifyUser makeNewWindow user state
-  where makeNewWindow (UserClient uid conn _ sid) = UserClient uid conn startWindow sid
-        startWindow = Window sheetid (-1,-1) (-1,-1)
+handleOpen user state (PayloadS (Sheet sheetid _ _)) = do 
+  -- update state
+  let makeNewWindow (UserClient uid conn _ sid) = UserClient uid conn startWindow sid
+      startWindow = Window sheetid (-1,-1) (-1,-1)
+  US.modifyUser makeNewWindow user state
+  -- send back header files data to user
+  let langs = [Python, R] -- should probably make list of langs a const somewhere...
+      sid = clientSheetId user
+  headers <- mapM (LU.getLanguageHeader sid) langs
+  let xps = map (\(str, lang) -> Expression str lang) (zip headers langs)
+  sendToOriginal user $ ServerMessage Open Success (PayloadXpL xps)
 
 -- Had relevance back when UserClients could have multiple windows, which never made sense anyway. 
 -- (Alex 11/3)
@@ -236,16 +246,16 @@ handleEval cl state payload  = do
   msg' <- DP.runDispatchCycle state cells' (clientCommitSource cl)
   reply cl state msg'
 
-handleEvalRepl :: (Client c) => c -> MVar ServerState -> ASPayload -> IO ()
-handleEvalRepl cl state (PayloadXp xp) = do
-  putStrLn $ "IN EVAL HANDLER"
-  msg' <- DR.runReplDispatch state xp
+handleEvalRepl :: (Client c) => c -> ASPayload -> IO ()
+handleEvalRepl cl (PayloadXp xp) = do
+  let sid = clientSheetId cl
+  msg' <- DR.runReplDispatch sid xp
   sendToOriginal cl msg'
 
-handleEvalHeader :: (Client c) => c -> MVar ServerState -> ASPayload -> IO ()
-handleEvalHeader cl state (PayloadXp xp) = do
-  printObj "xp" xp
-  msg' <- DEH.runEvalHeader state xp
+handleEvalHeader :: (Client c) => c -> ASPayload -> IO ()
+handleEvalHeader cl (PayloadXp xp) = do
+  let sid = clientSheetId cl
+  msg' <- DEH.runEvalHeader sid xp
   sendToOriginal cl msg'
 
 ----------------------------------------------------------------------------------------------------------------------------------------------

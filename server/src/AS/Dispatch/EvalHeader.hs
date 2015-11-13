@@ -14,10 +14,10 @@ import Control.Monad.Trans.Either
 
 -- this file is for future kernel-based repl methods
 
-runEvalHeader :: MVar ServerState -> ASExpression -> IO ASServerMessage
-runEvalHeader state xp = do
+runEvalHeader :: ASSheetId -> ASExpression -> IO ASServerMessage
+runEvalHeader sid xp = do
     let lang = language xp
-    val <- runEitherT $ R.evaluateHeader xp 
+    val <- runEitherT $ R.evaluateHeader sid xp
     return $ case val of 
         (Left e) -> ServerMessage EvaluateHeader (Failure $ generateErrorMessage e) (PayloadE e)
         (Right v) -> ServerMessage EvaluateHeader Success (PayloadValue v)

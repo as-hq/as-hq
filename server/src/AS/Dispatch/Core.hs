@@ -157,7 +157,7 @@ evalChain' conn valuesMap [] lists pastListHeads = do
   evalChain' conn (M.union valuesMap newKnownValues) cells' [] pastListHeads
 
 evalChain' conn valuesMap (c@(Cell loc xp _ ts):cs) next listHeads = do
-  (Formatted cv f) <- EC.evaluateLanguage (IndexRef (cellLocation c)) (locSheetId loc) valuesMap xp
+  (Formatted cv f) <- EC.evaluateLanguage (locSheetId loc) (IndexRef (cellLocation c)) valuesMap xp
   let c' = formatCell f (Cell loc xp cv ts)
       listResult = createListCells c' cv
       newValuesMap = case listResult of

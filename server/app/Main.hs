@@ -72,7 +72,7 @@ initApp :: IO (R.Connection, [Port], [MVar ServerState])
 initApp = do
   -- init eval
   mapM_ KL.clearReplRecord [Python] -- clear/write repl record files
-  runEitherT $ KP.evaluate "\'test!\'" -- force load C python sources so that first eval isn't slow
+  runEitherT $ KP.evaluate (T.pack "") "\'test!\'" -- force load C python sources so that first eval isn't slow
   -- init R
   R.runRegion $ do
     -- the app needs sudo to install packages.

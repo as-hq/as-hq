@@ -29,20 +29,20 @@ onParseFailure :: String -> ASExecError -> IO ()
 onParseFailure replRecord x = writeReplRecord Python replRecord
 
 -- | python
-evaluate :: String -> EitherTExec ASValue
-evaluate "" = return NoValue
-evaluate str = do
-    validCode <- introspectCode Python str
+evaluate :: ASSheetId -> String -> EitherTExec ASValue
+evaluate sid "" = return NoValue
+evaluate sid str = do
+    validCode <- formatCode sid Python str
     if isDebug
         then lift $ writeExecFile Python validCode
         else return ()
     execWrappedCode validCode
 
-evaluateRepl :: String -> EitherTExec ASValue
-evaluateRepl "" = return  NoValue
-evaluateRepl str = do
+evaluateRepl :: ASSheetId -> String -> EitherTExec ASValue
+evaluateRepl sid "" = return NoValue
+evaluateRepl sid str = do
     -- preprocess expression
-    (recordCode, evalCode) <- lift $ introspectCodeRepl Python str
+    (recordCode, evalCode) <- lift $ formatCodeRepl sid Python str
     if isDebug
         then lift $ writeReplFile Python evalCode
         else return ()
@@ -58,11 +58,11 @@ evaluateRepl str = do
             parsed
         else return NoValue
 
-evaluateHeader :: String -> EitherTExec ASValue
-evaluateHeader str = do
+evaluateHeader :: ASSheetId -> String -> EitherTExec ASValue
+evaluateHeader sid str = do
     -- preprocess expression
-    lift $ writeHeaderFile Python str -- appropriating the repl record for 
-    (_, evalCode) <- lift $ introspectCodeRepl Python str
+    lift $ writeHeaderFile sid Python str -- appropriating the repl record for 
+    (_, evalCode) <- lift $ formatCodeRepl sid Python str -- appropriating repl code for this
     -- perform eval, if there's something we actually need to return
     if (evalCode /= "" && str /= "")
         then execWrappedCode evalCode
@@ -70,19 +70,18 @@ evaluateHeader str = do
 
 
 -- | SQL
-evaluateSql :: String -> EitherTExec ASValue
-evaluateSql "" = return NoValue
-evaluateSql str = do
-    validCode <- introspectCode SQL str
+evaluateSql :: ASSheetId -> String -> EitherTExec ASValue
+evaluateSql _ "" = return NoValue
+evaluateSql sid str = do
+    validCode <- formatCode sid SQL str
     if isDebug
         then lift $ writeExecFile SQL validCode
         else return ()
     execWrappedCode validCode
 
-evaluateSqlRepl :: String -> EitherTExec ASValue
-evaluateSqlRepl "" = return NoValue
-evaluateSqlRepl str = evaluateSql str
-
+evaluateSqlRepl :: ASSheetId -> String -> EitherTExec ASValue
+evaluateSqlRepl _ "" = return NoValue
+evaluateSqlRepl sid str = evaluateSql sid str
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | helpers

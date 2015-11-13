@@ -14,10 +14,10 @@ import Control.Monad.Trans.Either
 
 -- this file is for future kernel-based repl methods
 
-runReplDispatch :: MVar ServerState -> ASExpression -> IO ASServerMessage
-runReplDispatch state xp = do
+runReplDispatch :: ASSheetId -> ASExpression -> IO ASServerMessage
+runReplDispatch sid xp = do
     let lang = language xp
-    val <- runEitherT $ R.evaluateLanguageRepl xp 
+    val <- runEitherT $ R.evaluateLanguageRepl sid xp 
     return $ case val of 
         (Left e) -> ServerMessage EvaluateRepl (Failure $ generateErrorMessage e) (PayloadE e)
         (Right v) -> ServerMessage EvaluateRepl Success (PayloadReplValue $ ReplValue v lang)

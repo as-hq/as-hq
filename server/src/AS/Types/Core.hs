@@ -239,6 +239,7 @@ data ASPayload =
   | PayloadPaste {copyRange :: ASRange, copyTo :: ASRange}
   | PayloadTag {cellTag :: ASCellTag, tagRange :: ASRange}
   | PayloadXp ASExpression
+  | PayloadXpL [ASExpression]
   | PayloadReplValue ASReplValue
   | PayloadValue ASValue
   | PayloadList QueryList
