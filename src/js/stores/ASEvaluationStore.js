@@ -67,10 +67,6 @@ const ASEvaluationStore = assign({}, BaseStore, {
         case Constants.ActionTypes.GOT_FIND:
           // do nothing here on find; that's in the find store
           break;
-        case Constants.ActionTypes.CELL_CHANGED:
-          break;
-        case Constants.ActionTypes.RANGE_CHANGED:
-          break;
         /*
           On an UNDO/REDO/UPDATE_CELLS, update the viewing window in the store based on the commit and
           send a change event to spreadsheet, which will rerender

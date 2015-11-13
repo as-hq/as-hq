@@ -1,39 +1,74 @@
+/* @flow */
+
+import type {
+  ASAction,
+  WorkbookAction
+} from '../types/Actions';
+
+import type {
+  ASBackendSheet,
+  ASBackendWorkbookSheet
+} from '../types/Backend';
+
+import type {
+  Dict
+} from '../types/Base';
+
 import Dispatcher from '../Dispatcher';
 import Constants from '../Constants';
 import BaseStore from './BaseStore';
-import assign from 'object-assign';
 import Util from '../AS/Util';
 
-let _data = {
-  workbooks: []
+let _data: {
+  workbooks: Dict<ASBackendWorkbookSheet>
+} = {
+  workbooks: {}
 };
 
-const ASWorkbookStore = assign({}, BaseStore, {
+function isNotWorkbookAction(action: ASAction): boolean {
+  return !Util.arrContains(
+    ['GOT_UPDATED_WORKBOOKS', 'GOT_NEW_WORKBOOKS', 'DELETED_WORKBOOKS'],
+    action._type
+  );
+}
+
+const ASWorkbookStore = Object.assign({}, BaseStore, {
   /* This function describes the actions of the ASWorkbookStore upon recieving a message from Dispatcher */
   dispatcherIndex:
-    Dispatcher.register(function (action) {
-      switch (action.type) {
-        case Constants.ActionTypes.GOT_UPDATED_WORKBOOKS:
-          ASWorkbookStore.updateData(action.workbooks);
+    Dispatcher.register((action: ASAction) => {
+      if (isNotWorkbookAction(action)) {
+        return;
+      }
+
+      let _action = ((action: any): WorkbookAction);
+
+      let workbookDict: Dict<ASBackendWorkbookSheet> = {};
+      _action.workbooks.forEach((wb: ASBackendWorkbookSheet) => {
+        workbookDict[wb.wsName] = wb;
+      });
+
+      switch (_action._type) {
+        case 'GOT_UPDATED_WORKBOOKS':
+          ASWorkbookStore.updateData(workbookDict);
           ASWorkbookStore.emitChange();
           break;
-        case Constants.ActionTypes.GOT_NEW_WORKBOOKS:
-          ASWorkbookStore.mergeWorkbooks(action.workbooks);
+        case 'GOT_NEW_WORKBOOKS':
+          ASWorkbookStore.mergeWorkbooks(workbookDict);
           ASWorkbookStore.emitChange();
           break;
-        case Constants.ActionTypes.DELETED_WORKBOOKS:
-          ASWorkbookStore.deleteWorkbooks(action.workbooks);
+        case 'DELETED_WORKBOOKS':
+          ASWorkbookStore.deleteWorkbooks(workbookDict);
       }
     }),
 
 /**************************************************************************************************************************/
 // store modification methods
 
-  updateData(wbs) {
+  updateData(wbs: Dict<ASBackendWorkbookSheet>) {
     _data.workbooks = wbs;
   },
 
-  mergeWorkbooks(wbs) {
+  mergeWorkbooks(wbs: Dict<ASBackendWorkbookSheet>) {
     for (var key in wbs) {
       let wb = wbs[key];
       if (_data.workbooks[key]){
@@ -57,12 +92,12 @@ const ASWorkbookStore = assign({}, BaseStore, {
     }
   },
 
-  getWorkbooks() {
+  getWorkbooks(): Dict<ASBackendWorkbookSheet> {
     return _data.workbooks;
   },
 
-  getSheets(workbookId) {
-    return _data.workbooks[workbookId].sheets;
+  getSheets(workbookName: string): Array<ASBackendSheet> {
+    return _data.workbooks[workbookName].wsSheets;
   }
 });
 

@@ -1,14 +1,17 @@
-import assign from 'object-assign';
+/* @flow */
+
+import type {Callback} from '../types/Base';
+
 import Constants from '../Constants';
 import {EventEmitter} from 'events';
 
-export default assign({}, EventEmitter.prototype, {
+export default Object.assign({}, EventEmitter.prototype, {
   // Allow Controller-View to register itself with store
-  addChangeListener(callback) {
+  addChangeListener(callback: Callback) {
     this.on(Constants.CHANGE_EVENT, callback);
   },
 
-  removeChangeListener(callback) {
+  removeChangeListener(callback: Callback) {
     this.removeListener(Constants.CHANGE_EVENT, callback);
   },
 

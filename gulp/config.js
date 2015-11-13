@@ -40,6 +40,10 @@ module.exports = {
   },
   mockback: {
   },
+  flow: {
+    src: src,
+    dest: './flow-src'
+  },
   test: {
     karmaConfig: 'karma.conf.js',
     getConfig: function (fname) {
