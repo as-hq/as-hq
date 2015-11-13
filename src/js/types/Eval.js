@@ -208,7 +208,7 @@ export type ASLanguage =
   | CPPLang
   | JavaLang
   | SQLLang
-  | ExcelLang
+  | ExcelLang;
 
 export type ASExpression = {
   expression: string;
@@ -225,7 +225,7 @@ export type ASCellTag =
   | ReadOnlyTag
   | ListMemberTag
   | FormatTag
-  | DFMemberTag
+  | DFMemberTag;
 
 export type ASValue =
   NoValue
