@@ -63,6 +63,7 @@ export default Object.assign({
     GOT_REPL_RESP:null,
     GOT_EVAL_HEADER_RESP:null,
     GOT_FIND:null,
+    GOT_OPEN:null,
     GOT_NEW_WORKBOOKS: null,
     DELETED_WORKBOOKS: null,
     FIND_INCREMENTED:null,

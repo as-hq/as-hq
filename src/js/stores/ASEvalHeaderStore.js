@@ -38,6 +38,17 @@ dispatcherIndex: Dispatcher.register(function (action) {
         _data.evalHeaderDispMessage = ASEvalHeaderStore.makeDispMessage(action.response);
         ASEvalHeaderStore.emitChange();
         break;
+      case Constants.ActionTypes.GOT_OPEN:
+        let xpObjs = action.expressions;
+        xpObjs.forEach((xpObj) => { 
+          let lang = xpObj.language,
+              expr = xpObj.expression,  
+              uppercasedLang = lang.charAt(0).toUpperCase() + lang.slice(1);
+          evalHeaderExps[uppercasedLang] = expr; 
+        });
+        _data.evalHeaderDispMessage = ""; // don't display any message right now
+        ASEvalHeaderStore.emitChange();
+        break;
       }
   })
 

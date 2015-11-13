@@ -189,7 +189,10 @@ export default React.createClass({
   },
 
   _onEvalHeaderUpdate() {
-    this.setToast(EvalHeaderStore.getDispMessage());
+    let msg = EvalHeaderStore.getDispMessage();
+    if (msg != "") { 
+      this.setToast(msg);
+    }
     this._getEvalHeaderEditor().focus();
   },
 
