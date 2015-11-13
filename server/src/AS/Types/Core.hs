@@ -1,4 +1,6 @@
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE FlexibleInstances #-}
 
 module AS.Types.Core where
 
@@ -97,7 +99,7 @@ data ASValue =
   deriving (Show, Read, Eq, Generic)
 
 type RListKey = String
-data ASReplValue = ReplValue {replValue :: CompositeValue, replLang :: ASLanguage} deriving (Show, Read, Eq, Generic)
+data ASReplValue = ReplValue {replValue :: ASValue, replLang :: ASLanguage} deriving (Show, Read, Eq, Generic)
 type RefValMap = M.Map ASReference ASValue
 
 data ComplexType = List | Object | Image | Error deriving (Show, Read, Eq, Generic)
@@ -119,7 +121,7 @@ data ExpandingValue =
   | VPSeries Array
   deriving (Show, Read, Eq, Generic)
 
-data CompositeValue = Expanding ExpandingValue | CellValue ASValue deriving (Show, Read, Eq, Generic)
+data CompositeValue = Expanding ExpandingValue | CellValue ASValue deriving (Show, Read)
 
 data RangeDescriptor = 
     ListDescriptor { listKey :: RangeKey}
@@ -134,10 +136,10 @@ data FatCell = FatCell [ASCell] RangeDescriptor
 
 -- this type is used in parsing. the flow for parsing a "complex" type is
 -- String -> JSON -> CompositeValue -> [ASValue] 
-data JSON = JSON (M.Map JSONKey JSONField) deriving (Show, Read, Eq, Generic)
+type JSON = M.Map JSONKey JSONField 
 type JSONKey = String 
-data JSONField = JSONTree JSON | JSONLeaf JSONValue deriving (Show, Read, Eq, Generic)
-data JSONValue = ListValue Collection | PrimitiveValue ASValue deriving (Show, Read, Eq, Generic)
+data JSONField = JSONTree JSON | JSONLeaf JSONValue
+data JSONValue = ListValue Collection | PrimitiveValue ASValue
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Errors
@@ -446,20 +448,8 @@ instance FromJSON ASTime
 instance ToJSON ASTime
 instance FromJSON ASCommit
 instance ToJSON ASCommit
-instance FromJSON JSON
-instance ToJSON JSON
-instance FromJSON JSONField
-instance ToJSON JSONField
-instance FromJSON JSONValue
-instance ToJSON JSONValue
-instance FromJSON Collection
-instance ToJSON Collection
-instance FromJSON CompositeValue
-instance ToJSON CompositeValue
 instance FromJSON ComplexType
 instance ToJSON ComplexType
-instance FromJSON ExpandingValue
-instance ToJSON ExpandingValue
 -- The format Frontend uses for both client->server and server->client is
 -- { messageUserId: blah, action: blah, result: blah, payload: blah }
 instance ToJSON ASClientMessage where
@@ -556,11 +546,6 @@ instance FromJSON MutateType
 
 -- memory region exposure instances for R value unboxing
 instance NFData ASValue       where rnf = genericRnf
-instance NFData Collection    where rnf = genericRnf
-instance NFData JSON          where rnf = genericRnf
-instance NFData JSONField     where rnf = genericRnf
-instance NFData JSONValue     where rnf = genericRnf
-instance NFData ObjectType    where rnf = genericRnf
 instance NFData EError        where rnf = genericRnf
 instance NFData ASReference   where rnf = genericRnf
 instance NFData ASRange       where rnf = genericRnf

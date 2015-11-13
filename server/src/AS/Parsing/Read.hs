@@ -91,7 +91,7 @@ extractComplexValue tag js = case (read tag :: Maybe ComplexType) of
 
 extractCollection :: JSON -> JSONKey -> Maybe Collection
 extractCollection js key = case (M.lookup js key) of 
-  Just (JSONLeaf (ListValue collection)) -> collection
+  Just (JSONLeaf (ListValue collection)) -> Just collection
   _ -> Nothing 
 
 extractImage :: JSON -> Maybe ASValue
@@ -103,16 +103,16 @@ extractObject :: JSON -> Maybe ExpandingValue
 extractObject js = case (M.lookup js "objectType") of 
   Just (JSONLeaf (PrimitiveValue (ValueS o))) -> case (read o :: Maybe ObjectType) of 
     (Just otype) -> case otype of 
-      NPArray -> VNPArray <$> extractCollection "arrayVals" js 
-      NPMatrix -> VNPMatrix <$> extractCollection "matrixVals" js
+      NPArray -> VNPArray <$> extractCollection js "arrayVals"
+      NPMatrix -> (\(M mat) -> VNPMatrix mat) <$> extractCollection js "matrixVals"
       PDataFrame -> VPDataFrame <$> dflabels <*> dfdata
         where
-          dflabels = rdLabels <$> extractCollection "dfLabels" js
-          dfdata = extractCollection "dfData" js
+          dflabels = rdLabels <$> extractCollection js "dfLabels"
+          dfdata = extractCollection js "dfData"
           rdLabels coll = case coll of 
             (A labels) -> map (\(ValueS s) -> s) labels
             _ -> error "expected dataframe labels to be list of strings"
-      PSeries -> VPSeries . rdSeries <$> extractCollection "seriesVals"
+      PSeries -> VPSeries . rdSeries <$> extractCollection js "seriesVals"
         where 
           rdSeries coll = case coll of 
             (A series) -> series
@@ -122,17 +122,17 @@ extractObject js = case (M.lookup js "objectType") of
 extractError :: JSON -> Maybe ASValue
 extractError js = case (M.lookup js "errorMsg") of 
   Just (PrimitiveValue (ValueS emsg)) -> case (M.lookup js "errorType") of
-    Just (PrimitiveValue (ValueS etype)) -> ValueError emsg etype
+    Just (PrimitiveValue (ValueS etype)) -> Just $ ValueError emsg etype
     _ -> Nothing
   _ -> Nothing
 
 json :: ASLanguage -> Parser JSON
-json lang = JSON <$> extractMap
+json lang = extractMap
   where
     braces      = between (char '{') (char '}')
-    leaf        = JSONLeaf <$> (try jsonValue lang)
-    tree        = JSONTree <$> (try json lang)
-    delimiter   = spaces >> O.comma >> spaces
+    leaf        = JSONLeaf <$> (try $ jsonValue lang)
+    tree        = JSONTree <$> (try $ json lang)
+    delimiter   = spaces >> (char ',') >> spaces
     pair        = do
       key  <- quotedString
       spaces >> char ':' >> spaces
@@ -140,7 +140,7 @@ json lang = JSON <$> extractMap
       return (key, field)
     extractMap      = M.fromList <$> (braces $ sepBy pair delimiter)
 
-jsonValue :: Parser JSONValue
+jsonValue :: ASLanguage -> Parser JSONValue
 jsonValue lang = 
       ListValue <$> list lang
   <|> PrimitiveValue <$> asValue lang
@@ -153,7 +153,7 @@ list lang =
   where
     (start, end) = LD.listStops lang
     brackets     = between (string start) (string end)
-    delimiter    = spaces >> (LD.listDelimiter lang) >> spaces
+    delimiter    = spaces >> (char $ LD.listDelimiter lang) >> spaces
     array p      = brackets $ sepBy p delimiter
 
  --DEPRECATED
