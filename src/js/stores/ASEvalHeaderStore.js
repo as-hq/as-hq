@@ -23,6 +23,7 @@ let _data = {
   evalHeaderExps: evalHeaderExps,
   evalHeaderShow: null,
   evalHeaderSubmitLang: null,
+  evalHeaderDispMessage: null,
   currentLanguage: Constants.Languages.Python
 };
 
@@ -33,6 +34,12 @@ dispatcherIndex: Dispatcher.register(function (action) {
       case Constants.ActionTypes.REPL_LEFT:
         ASEvalHeaderStore.updateEvalHeaderExp(action.lang, action.value);
         break;
+      case Constants.ActionTypes.GOT_EVAL_HEADER_RESP:
+        // The header file is getting evaluated as though it were submitted through the Repl, for 
+        // convenience. Hence the .replValue.
+        _data.evalHeaderDispMessage = ASEvalHeaderStore.makeDispMessage(action.response.replValue);
+        ASEvalHeaderStore.emitChange();
+        break;
       }
   })
 
@@ -42,6 +49,25 @@ const ASEvalHeaderStore = assign({}, BaseStore, {
     logDebug("In evalHeader store, updating evalHeader data " + lang + " " + value);
     _data.evalHeaderExps[lang] = value;
     logDebug(JSON.stringify(_data.evalHeaderExps));
+  },
+
+  makeDispMessage(val) { 
+    let message = "Header saved! ";
+    switch (val.tag) { 
+      case "ValueError": 
+        message += "(Error in header code: " + val.errMsg + ")";
+        break;
+      case "NoValue":
+        break; 
+      default: 
+        message += "(Header code evaluated to " + val.contents + ")";
+        break;
+    }
+    return message; 
+  },
+
+  getDispMessage(val) { 
+    return _data.evalHeaderDispMessage; 
   },
 
   getEvalHeaderExp(lang) {

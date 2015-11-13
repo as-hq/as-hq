@@ -74,6 +74,7 @@ export default React.createClass({
     Store.addChangeListener(this._onChange);
     FindStore.addChangeListener(this._onFindChange);
     // ReplStore.addChangeListener(this._onReplChange);
+    EvalHeaderStore.addChangeListener(this._onEvalHeaderUpdate); //misnomer; not really a change
     ExpStore.addChangeListener(this._onExpChange);
     Shortcuts.addShortcuts(this);
 
@@ -185,6 +186,10 @@ export default React.createClass({
     if (ExpStore.getLastRef() === null) {
       ExpStore.disableRefInsertionBypass();
     }
+  },
+
+  _onEvalHeaderUpdate() {
+    this.setToast(EvalHeaderStore.getDispMessage());
   },
 
   enableTestMode() {
@@ -615,6 +620,13 @@ export default React.createClass({
     this.setState({evalHeaderLanguage: newLang});
   },
 
+  _onSubmitEvalHeader() { 
+    let lang       = this.state.evalHeaderLanguage.Display, 
+        expression = this._evalHeaderValue(); 
+
+    API.evaluateHeader(expression, lang);
+  },
+
   /**************************************************************************************************************************/
   /* Find bar and modal */
 
@@ -707,7 +719,8 @@ export default React.createClass({
       ref="evalHeader"
       evalHeaderLanguage={this.state.evalHeaderLanguage}
       evalHeaderValue={EvalHeaderStore.getEvalHeaderExp(this.state.evalHeaderLanguage.Display)}
-      onEvalHeaderLanguageChange={this._onEvalHeaderLanguageChange} />;
+      onEvalHeaderLanguageChange={this._onEvalHeaderLanguageChange}
+      onSubmitEvalHeader={this._onSubmitEvalHeader} />;
 
     return (
       <ResizableRightPanel leftComp={leftEvalPane} sidebar={sidebarContent} docked={this.state.evalHeaderOpen} />

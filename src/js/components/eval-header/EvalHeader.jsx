@@ -42,6 +42,14 @@ export default React.createClass({
             selectedIndex={languageInd}
             underlineStyle={{ display: 'none' }} />
         </Toolbar>
+        <FlatButton
+              label="Save"
+              onClick={this.props.onSubmitEvalHeader}
+              style={{
+                position: 'relative',
+                left: '300px',
+                top: '-45px'
+        }} />
         <EvalHeaderEditor
           ref="editor" name="evalHeader"
           mode={this.props.evalHeaderLanguage.Editor}

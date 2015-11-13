@@ -152,6 +152,12 @@ wss.onmessage = (event) => {
           response:msg.payload.contents
         });
         break;
+      case "EvaluateHeader":
+        Dispatcher.dispatch({
+          type: ActionTypes.GOT_EVAL_HEADER_RESP,
+          response:msg.payload.contents
+        });
+        break;
       case "Find":
         let toClientLoc = function(x){
           return {row:x.index[1],col:x.index[0]};
@@ -244,6 +250,15 @@ export default {
         msg = TC.makeClientMessage(Constants.ServerActions.Evaluate,
                                           "PayloadCL",
                                           [asCell]);
+    this.send(msg);
+  },
+
+  evaluateHeader(expression, language) {
+    let msg = TC.makeClientMessage(Constants.ServerActions.EvalHeader, "PayloadXp", {
+      tag: "Expression",
+      expression: expression,
+      language: language
+    });
     this.send(msg);
   },
 
