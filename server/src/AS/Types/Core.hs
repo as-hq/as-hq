@@ -82,10 +82,8 @@ data ASValue =
   | ValueI Int
   | ValueD Double
   | ValueB Bool
-  | ValueL {listVals :: [ASValue], listName :: String} -- for hidden lists only
   | ValueImage { imagePath :: String }
-  | ValueObject { objectType :: ObjectType, objectName :: String, attrs :: JSON }
-  | ValueError { errMsg :: String, errType :: String }
+  | ValueError { errorMsg :: String, errorType :: String }
   | ValueExcelError EError -- #needsrefactor: should be a part of ValueError
   deriving (Show, Read, Eq, Generic)
 
@@ -94,18 +92,18 @@ data ASReplValue = ReplValue {replValue :: ASValue, replLang :: ASLanguage} deri
 type RefValMap = M.Map ASReference ASValue
 
 data ComplexType = List | Object | Image | Error deriving (Show, Read)
+data ObjectType = RList | RDataFrame | NPArray | NPMatrix | PDataFrame | PSeries
 
--- an ephemeral types produced by eval 
+-- ephemeral types produced by eval 
 -- that will expand in createListCells
 type Array = [ASValue]
 type Matrix = [Array]
 data Collection = A Array | M Matrix
 
-data ObjectType = RList | RDataFrame | NPArray | NPMatrix | PDataFrame | PSeries
 data ExpandingValue = 
     VList Collection
   | VRList [(RListKey, Array)]
-  | VRDataFrame {dfNames :: Array, dfValues :: Collection}
+  | VRDataFrame {dfNames :: [String], dfValues :: Collection}
   | VNPArray Collection
   | VNPMatrix Matrix
   | VPDataFrame {dfLabels :: [String], dfData :: Collection}
@@ -114,8 +112,18 @@ data ExpandingValue =
 data CompositeValue = Expanding ExpandingValue | CellValue ASValue
 
 data RangeDescriptor = 
-    ListDescripter {listKey :: ListKey}
+    ListDescriptor {listKey :: ListKey}
   | ObjectDescriptor {objListKey :: ListKey, objType :: ObjectType, objAttrs :: JSON}
+
+----------------------------------------------------------------------------------------------------------------------------------------------
+-- Parsing
+
+-- this type is used in parsing. the flow for parsing a "complex" type is
+-- String -> JSON -> CompositeValue -> [ASValue] 
+data JSON = JSON (M.Map JSONKey JSONField) deriving (Show, Read, Eq, Generic)
+type JSONKey = String 
+data JSONField = JSONTree JSON | JSONLeaf JSONValue deriving (Show, Read, Eq, Generic)
+data JSONValue = ListValue Collection | PrimitiveValue ASValue
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Errors
@@ -348,13 +356,6 @@ data ASDaemonClient = DaemonClient {daemonLoc :: ASIndex, daemonConn :: WS.Conne
 instance Eq ASDaemonClient where
   c1 == c2 = (daemonLoc c1) == (daemonLoc c2)
 
-
-----------------------------------------------------------------------------------------------------------------------------------------------
--- Parsing
-
-data JSON = JSON (M.Map JSONKey JSONField) deriving (Show, Read, Eq, Generic)
-type JSONKey = String 
-data JSONField = JSONField JSON | JSONValue ASValue deriving (Show, Read, Eq, Generic)
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Convenience methods
 

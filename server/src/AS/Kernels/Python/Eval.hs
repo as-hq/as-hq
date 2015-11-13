@@ -29,8 +29,8 @@ onParseFailure :: String -> ASExecError -> IO ()
 onParseFailure replRecord x = writeReplRecord Python replRecord
 
 -- | python
-evaluate :: String -> EitherTExec ASValue
-evaluate "" = return NoValue
+evaluate :: String -> EitherTExec CompositeValue
+evaluate "" = return $ CellValue NoValue
 evaluate str = do
     validCode <- introspectCode Python str
     if isDebug
@@ -38,8 +38,8 @@ evaluate str = do
         else return ()
     execWrappedCode validCode
 
-evaluateRepl :: String -> EitherTExec ASValue
-evaluateRepl "" = return  NoValue
+evaluateRepl :: String -> EitherTExec CompositeValue
+evaluateRepl "" = return $ CellValue NoValue
 evaluateRepl str = do
     -- preprocess expression
     (recordCode, evalCode) <- lift $ introspectCodeRepl Python str
@@ -56,11 +56,11 @@ evaluateRepl str = do
             -- rollback to previous repl state if eval failed
             lift $ eitherT (onParseFailure replRecord) (onParseSuccess replRecord) parsed
             parsed
-        else return NoValue
+        else return (CellValue NoValue)
 
 -- | SQL
-evaluateSql :: String -> EitherTExec ASValue
-evaluateSql "" = return NoValue
+evaluateSql :: String -> EitherTExec CompositeValue
+evaluateSql "" = return $ CellValue NoValue
 evaluateSql str = do
     validCode <- introspectCode SQL str
     if isDebug
@@ -68,15 +68,15 @@ evaluateSql str = do
         else return ()
     execWrappedCode validCode
 
-evaluateSqlRepl :: String -> EitherTExec ASValue
-evaluateSqlRepl "" = return NoValue
+evaluateSqlRepl :: String -> EitherTExec CompositeValue
+evaluateSqlRepl "" = return $ CellValue NoValue
 evaluateSqlRepl str = evaluateSql str
 
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | helpers
 
-execWrappedCode :: String -> EitherTExec ASValue
+execWrappedCode :: String -> EitherTExec CompositeValue
 execWrappedCode evalCode = do
     result <- lift $ pyfiString evalCode
     case result of 
@@ -84,7 +84,7 @@ execWrappedCode evalCode = do
       Left e -> return e
 
 pyfiString :: String -> IO (Either ASValue String)
-pyfiString evalStr = catch (fmap Right execString) whenCaught
+pyfiString evalStr = catch (Right <$> execString) whenCaught
     where
         execString = defVV (evalStr ++ pyString) ("Hello" :: String)
         whenCaught = (\e -> return . Left $ ValueError (show e) "SyntaxError" "" 0) :: (SomeException -> IO (Either ASValue String))

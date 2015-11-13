@@ -62,18 +62,18 @@ evaluateRepl str = liftIO $ execOnString str (execR True)
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Helpers
 
-execOnString :: EvalCode -> (EvalCode -> IO ASValue) -> IO ASValue
+execOnString :: EvalCode -> (EvalCode -> IO CompositeValue) -> IO CompositeValue
 execOnString str f = do
   printWithTime "starting R eval"
   case (trimWhitespace R str) of
-    "" -> return NoValue
+    "" -> return $ CellValue NoValue
     trimmed -> f trimmed
 
 -- takes (isGlobalExecution, str)
 -- change wd and then change back so that things like read.table will read from the static folder
-execR :: Bool -> EvalCode -> IO ASValue
+execR :: Bool -> EvalCode -> IO CompositeValue
 execR isGlobal s =
-  let whenCaught = (\e -> return $ ValueError (show e) "R_EXEC_ERROR" "" 0) :: (SomeException -> IO ASValue)
+  let whenCaught = (\e -> return . CellValue $ ValueError (show e) "R_EXEC_ERROR" "" 0) :: (SomeException -> IO CompositeValue)
   in do
     result <- catch (R.runRegion $ castR =<< if isGlobal
       then [r| eval(parse(text=s_hs)) |]
@@ -91,48 +91,46 @@ execR isGlobal s =
     --(hexp -> H.Char _)    -> (\s -> [ValueS s]) <$> (peekCString =<< R.char x)
     --(hexp -> H.String _)  -> (map ValueS) <$> (mapM peekCString =<< mapM R.char =<< peekArray offset =<< R.string x)
 
-castR :: R.SomeSEXP a -> R a ASValue
-castR (R.SomeSEXP s) = do
-  vec <- castSEXP s
-  return $ case (length vec) of
-    1 -> head vec
-    _ -> ValueL vec
+castR :: R.SomeSEXP a -> R a CompositeValue
+castR (R.SomeSEXP s) = castSEXP s
 
 -- everything returned is a list, because R.
-castSEXP :: R.SEXP s a -> R s [ASValue]
+castSEXP :: R.SEXP s a -> R s CompositeValue
 castSEXP x = case x of
-  (hexp -> H.Nil)       -> return [NoValue]
-  (hexp -> H.Real v)    -> return $ map fromReal $ SV.toList v
-  (hexp -> H.Int v)     -> return $ map (ValueI . fromIntegral) $ SV.toList v
-  (hexp -> H.Logical v) -> return $ map (ValueB . fromLogical) $ SV.toList v
-  (hexp -> H.Char v)    -> return $ [castString v]
-  (hexp -> H.String v)  -> return $ map (\(hexp -> H.Char c) -> castString c) $ SV.toList v
+  (hexp -> H.Nil)       -> return $ CellValue NoValue
+  (hexp -> H.Real v)    -> return . rdVector $ map fromReal $ SV.toList v
+  (hexp -> H.Int v)     -> return . rdVector $ map (ValueI . fromIntegral) $ SV.toList v
+  (hexp -> H.Logical v) -> return . rdVector $ map (ValueB . fromLogical) $ SV.toList v
+  (hexp -> H.Char v)    -> return $ CellValue (castString v)
+  (hexp -> H.String v)  -> return . rdVector $ map (\(hexp -> H.Char c) -> castString c) $ SV.toList v
   (hexp -> H.Symbol s s' s'')  -> castSEXP s
   --(hexp -> H.List car cdr tag) -> return . concat =<< mapM castSEXP [car, cdr, tag] -- this case only fires on pairlists, due to HaskellR issue #214
-  (hexp -> H.Special i) -> return $ [ValueI $ fromIntegral i]
+  (hexp -> H.Special i) -> return $ CellValue (ValueI $ fromIntegral i)
   (hexp -> H.DotDotDot s) -> castSEXP s
   (hexp -> H.Vector len v) -> castVector v
-  (hexp -> H.Builtin i) -> return $ [ValueI $ fromIntegral i]
-  (hexp -> H.Raw v) -> return $ [ValueS . bytesToString $ SV.toList v]
-  (hexp -> H.S4 s) -> return . (\obj -> [obj]) =<< castS4 s
-  _ -> return $ [ValueError "Could not cast R value." "R_Error" "" 0]
+  (hexp -> H.Builtin i) -> return $ CellValue (ValueI $ fromIntegral i)
+  (hexp -> H.Raw v) -> return $ CellValue (ValueS . bytesToString $ SV.toList v)
+  (hexp -> H.S4 s) -> CellValue <$> castS4 s
+  _ -> return $ CellValue $ ValueError "Could not cast R value." "R_Error" "" 0
+
+rdVector :: [ASValue] -> CompositeValue
+rdVector vals
+  | length vals == 1 = CellValue (head vals) 
+  | otherwise = Expanding . VList . A $ vals
 
 castString :: SV.Vector s 'R.Char Word8 -> ASValue
 castString v = ValueS . bytesToString $ SV.toList v
 
-castVector :: SV.Vector s 'R.Vector (R.SomeSEXP s) -> R s [ASValue]
+castVector :: SV.Vector s 'R.Vector (R.SomeSEXP s) -> R s CompositeValue
 castVector v = do
-  vals <- mapM castR $ SV.toList v
-  (ValueB isList) <- castR =<< [r|is.list(AS_LOCAL_EXEC)|]
-  (ValueB isDf) <- castR =<< [r|is.data.frame(AS_LOCAL_EXEC)|]
+  vals <- rdVectorVals <$> mapM castR $ SV.toList v
+  (CellValue (ValueB isList)) <- castR =<< [r|is.list(AS_LOCAL_EXEC)|]
+  (CellValue (ValueB isDf)) <- castR =<< [r|is.data.frame(AS_LOCAL_EXEC)|]
   if isList
     then if isDf
       then do
-        listNames <- castR =<< [r|names(AS_LOCAL_EXEC)|]
-        let listNames' = map ValueS $ castListNames listNames
-            firstRow = take (length vals) listNames'
-            vals' = prependRowToColumnMajorList firstRow vals
-        return [RDataFrame vals']
+        listNames <- castListNames <$> castR =<< [r|names(AS_LOCAL_EXEC)|]
+        return . Expanding $ VRDataFrame listNames vals
       else do
         listNames <- castListNames <$> (castR =<< [r|names(AS_LOCAL_EXEC)|])
         if (isRPlot listNames)
@@ -142,22 +140,27 @@ castVector v = do
             let imageUid = uid ++ ".png"
                 imagePath = path ++ imageUid
             [r|ggsave(filename=imagePath_hs, plot=AS_LOCAL_EXEC)|]
-            return [ValueImage imageUid]
-          else return [RList $ zip listNames vals]
-    else return vals
+            return . CellValue $ ValueImage imageUid
+          else 
+            let (A listVals) = vals
+            in return . Expanding $ VRList (zip listNames listVals)
+    else return . Expanding $ VList vals
 
-prependRowToColumnMajorList :: [ASValue] -> [ASValue] -> [ASValue]
-prependRowToColumnMajorList row cols = cols'
-  where
-    cols' = map (\(rowElem,col) -> case col of
-      (ValueL l) -> ValueL $ rowElem:l
-      _ -> ValueL $ rowElem:col:[]) $ zip row cols
+--let firstRow = take (length vals) listNames'
+--            vals' = prependRowToColumnMajorList firstRow vals
 
-castListNames :: ASValue -> [String]
+--prependRowToColumnMajorList :: [ASValue] -> [ASValue] -> [ASValue]
+--prependRowToColumnMajorList row cols = cols'
+--  where
+--    cols' = map (\(rowElem,col) -> case col of
+--      (ValueL l) -> ValueL $ rowElem:l
+--      _ -> ValueL $ rowElem:col:[]) $ zip row cols
+
+castListNames :: CompositeValue -> [String]
 castListNames val = case val of
-  (ValueL l) -> map (\(ValueS n)->n) l
-  (ValueS s) -> [s]
-  NoValue  -> repeat "NULL"
+  (Expanding (Vlist (A names))) -> map (\(ValueS s)->s) names
+  (CellValue (ValueS s)) -> [s]
+  (CellValue NoValue)  -> ["NULL"]
 
 -- TODO figure out S4 casting
 castS4 :: R.SEXP s a -> R s ASValue
@@ -173,14 +176,14 @@ fromReal d = case (fromDouble d) of
   Left dDouble -> ValueD dDouble
   Right dInt -> ValueI dInt
 
-sanitizeList :: ASValue -> ASValue
-sanitizeList v = if (isHighDimensional 0 v)
-  then ValueError "Cannot embed lists of dimension > 2." "R_Error" "" 0
-  else undegenerateList v
+--sanitizeList :: ASValue -> ASValue
+--sanitizeList v = if (isHighDimensional 0 v)
+--  then ValueError "Cannot embed lists of dimension > 2." "R_Error" "" 0
+--  else undegenerateList v
 
-undegenerateList :: ASValue -> ASValue
-undegenerateList (ValueL [l]) = l 
-undegenerateList v = v
+--undegenerateList :: ASValue -> ASValue
+--undegenerateList (ValueL [l]) = l 
+--undegenerateList v = v
 
 --(<.) :: R a -> R ASValue
 --(<.) a = castR =<< a

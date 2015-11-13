@@ -30,14 +30,14 @@ parseValue lang = readOutput . (parse (value lang) "")
 
 value :: ASLanguage -> Parser CompositeValue
 value lang = 
-      CellValue <$> (try $ asValue lang)
-  <|> unpackExpanding <$> (try $ possiblyExpanding lang)
+      unpackExpanding <$> (try $ possiblyExpanding lang)
+  <|> CellValue <$> (try $ asValue lang)
   where 
     unpackExpanding (Right val) = CellValue val
     unpackExpanding (Left val) = Expanding val
 
 possiblyExpanding :: ASLanguage -> Parser Either ExpandingValue ASValue
-possiblyExpanding lang = try (extractComplex lang)
+possiblyExpanding = extractComplex
 
 asValue :: ASLanguage -> Parser ASValue
 asValue lang =
@@ -86,13 +86,6 @@ quotedString = (quoteString <|> apostropheString)
     codes            = ['b',  'n',  'f',  'r',  't',  '\\', '\'', '\"', '/']
     replacements     = ['\b', '\n', '\f', '\r', '\t', '\\', '\'', '\"', '/']
 
-list :: ASLanguage -> Parser ASValue
-list lang = sanitizeList . ValueL <$> (brackets $ sepBy (asValue lang) (delim >> spaces))
-  where
-    brackets     = between (string start) (string end)
-    (start, end) = LD.listStops lang
-    delim        = LD.listDelimiter lang
-
 nullValue :: ASLanguage -> Parser ASValue
 nullValue lang = case lang of 
   Python -> string (LD.null Python) >> return NoValue
@@ -106,61 +99,91 @@ lexer = P.makeTokenParser Lang.haskellDef
 
 complain = fail "could not parse complex/object/json value"
 
-extractComplex :: ASLanguage -> Parser ASValue
+extractComplex :: ASLanguage -> Parser CompositeValue
 extractComplex lang = 
-      f =<< (try $ jsonValue lang) 
+      f =<< (try $ json lang) 
   <|> complain
   where f js = case (M.lookup js "tag") of 
-    Nothing -> complainField "tag"
-    Just tag -> case (extractValue tag js) of 
-      Nothing -> complain
+    Just tag -> case (extractComplexValue tag js) of 
       Just val -> return val
+      Nothing -> complain
+    Nothing -> complainField "tag"
 
-extractValue :: String -> JSON -> Maybe ASValue
-extractValue tag js = case (read tag :: Maybe ComplexType) of 
+extractComplexValue :: JSONKey -> JSON -> Maybe CompositeValue
+extractComplexValue tag js = case (read tag :: Maybe ComplexType) of 
   Nothing -> Nothing
   Just tag' -> case tag' of 
-    List -> extractList js
-    Object -> extractObject js
-    Image -> extractImage js
-    Error -> extractError js
+    List -> Expanding . VList <$> extractCollection "listVals" js
+    Object -> Expanding <$> extractObject js
+    Image -> CellValue <$> extractImage js
+    Error -> CellValue <$> extractError js
 
-extractList :: JSON -> Maybe ASValue
+extractCollection :: JSON -> JSONKey -> Maybe Collection
+extractCollection js key = case (M.lookup js key) of 
+  Just (JSONLeaf (ListValue collection)) -> collection
+  _ -> Nothing 
 
-extractImage :: JSON -> ASValue
+extractImage :: JSON -> Maybe ASValue
 extractImage js = case (M.lookup js "imagePath") of 
-  Nothing -> Nothing
-  Just path -> Just $ ValueImage path
+  Just (JSONLeaf (PrimitiveValue (ValueS path))) -> Just $ ValueImage path
+  _ -> Nothing
 
-extractObject :: JSON -> ASValue
+extractObject :: JSON -> Maybe ExpandingValue
 extractObject js = case (M.lookup js "objectType") of 
-  Nothing -> Nothing
-  Just (JSONValue (ValueS otype)) -> case (M.lookup js "listRep") of
-    Nothing -> complainField "listRep"
-    Just (JSONValue (ValueL olist)) -> case (M.lookup js "attrs") of
-    Nothing -> complainField "attrs"
-    Just (JSONField oattrs) -> ValueObject otype olist oattrs
+  Just (JSONLeaf (PrimitiveValue (ValueS o))) -> case (read o :: Maybe ObjectType) of 
+    (Just otype) -> case otype of 
+      NPArray -> VNPArray <$> extractCollection "arrayVals" js 
+      NPMatrix -> VNPMatrix <$> extractCollection "matrixVals" js
+      PDataFrame -> VPDataFrame <$> dflabels <*> dfdata
+        where
+          dflabels = rdLabels <$> extractCollection "dfLabels" js
+          dfdata = extractCollection "dfData" js
+          rdLabels coll = case coll of 
+            (A labels) -> map (\(ValueS s) -> s) labels
+            _ -> error "expected dataframe labels to be list of strings"
+      PSeries -> VPSeries . rdSeries <$> extractCollection "seriesVals"
+        where 
+          rdSeries coll = case coll of 
+            (A series) -> series
+            _ -> fail "expected pandas series to be one-dimensional" 
+  _ -> Nothing
 
-extractError :: JSON -> ASValue
-extractError js = case (M.lookup js "errMsg") of 
-  Nothing -> complainField "errMsg"
-  Just (JSONValue (ValueS emsg)) -> case (M.lookup js "errType") of
-    Nothing -> complainField "errType"
+extractError :: JSON -> Maybe ASValue
+extractError js = case (M.lookup js "errorMsg") of 
+  Nothing -> complainField "errorMsg"
+  Just (JSONValue (ValueS emsg)) -> case (M.lookup js "errorType") of
+    Nothing -> complainField "errorType"
     Just (JSONValue (ValueS etype)) -> ValueError emsg etype
 
-jsonValue :: ASLanguage -> Parser JSON
-jsonValue lang = JSON <$> extractMap
+json :: ASLanguage -> Parser JSON
+json lang = JSON <$> extractMap
   where
     braces      = between (char '{') (char '}')
-    primitive'  = JSONValue <$> (try primitive lang)
-    json'       = JSONField <$> (try jsonValue lang)
+    leaf        = JSONLeaf <$> (try jsonValue lang)
+    tree        = JSONTree <$> (try json lang)
     delimiter   = spaces >> comma >> spaces
     pair        = do
       key  <- quotedString
       spaces >> char ':' >> spaces
-      field <- primitive' <|> json'
+      field <- tree <|> leaf
       return (key, field)
     extractMap      = M.fromList <$> (braces $ sepBy pair delimiter)
+
+jsonValue :: Parser JSONValue
+jsonValue lang = 
+      ListValue <$> list lang
+  <|> PrimitiveValue <$> asValue lang
+
+-- this parser will only allow 1 and 2D lists
+list :: ASLanguage -> Parser Collection
+list lang = 
+      A <$> array (asValue lang)
+  <|> M <$> array (array $ asValue lang)
+  where
+    (start, end) = LD.listStops lang
+    brackets     = between (string start) (string end)
+    delimiter    = spaces >> (LD.listDelimiter lang) >> spaces
+    array p      = brackets $ sepBy p delimiter
 
  --DEPRECATED
  -- #needsrefactor should create general error parser later, which parses ocamlError as a special case. (Alex 10/10)
