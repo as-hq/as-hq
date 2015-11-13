@@ -1,8 +1,6 @@
-// Temporarily getting phased out in favor of an Eval Header file. (Alex 11/12)
-
 import React from 'react';
 const update = React.addons.update;
-import ReplEditor from '../ReplEditor.jsx';
+import EvalHeaderEditor from '../EvalHeaderEditor.jsx';
 import Constants from '../../Constants.js';
 
 import {AppBar, Toolbar, DropDownMenu, Styles, FlatButton} from 'material-ui';
@@ -14,7 +12,6 @@ require('brace/mode/r');
 require('brace/mode/ocaml');
 require('brace/theme/monokai');
 
-/* TODO: We may not support all languages in the REPL */
 let languages = [];
 for (var key in Constants.Languages) {
   languages.push({
@@ -27,13 +24,12 @@ export default React.createClass({
 
   getDefaultProps() {
     return {
-      replLanguage: Constants.Languages.Python,
+      evalHeaderLanguage: Constants.Languages.Python,
       theme: 'monokai'
     };
   },
 
   render() {
-
     return (
       <div style={{width:"100%",height:"100%",marginLeft:"6px"}} >
         <Toolbar
@@ -41,27 +37,18 @@ export default React.createClass({
           showMenuIconButton={false} >
           <DropDownMenu
             menuItems={languages}
-            onChange={this.props.onReplLanguageChange}
+            onChange={this.props.onEvalHeaderLanguageChange}
             underlineStyle={{ display: 'none' }} />
         </Toolbar>
-        <ReplEditor
-          ref="editor" name="repl"
-          onChange={function(){}}
-          mode={this.props.replLanguage.Editor}
-          language={this.props.replLanguage}
-          theme="monokai"
-          value={this.props.replValue}
+        <EvalHeaderEditor
+          ref="editor" name="evalHeader"
+          mode={this.props.evalHeaderLanguage.Editor}
+          language={this.props.evalHeaderLanguage}
+          value={this.props.evalHeaderValue}
           height="100%"
-          onDeferredKey={this.props.onDeferredKey} />
-
+          />
       </div>
     );
   }
 
 });
-
-
-
-
-
-
