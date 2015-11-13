@@ -62,16 +62,16 @@ relationDelimiter = "&"
 keyPartDelimiter = '?'
 
 -- get a list key with a special suffix denoting list type
-getListKeyWithIdentifier :: ASIndex -> Dimensions -> String -> ListKey
-getListKeyWithIdentifier idx dims ident = (show2 idx) ++ (keyPartDelimiter:(show dims)) ++ (keyPartDelimiter:ident)
+getRangeKeyWithIdentifier :: ASIndex -> Dimensions -> String -> RangeKey
+getRangeKeyWithIdentifier idx dims ident = (show2 idx) ++ (keyPartDelimiter:(show dims)) ++ (keyPartDelimiter:ident)
 
 -- returns the list key for a regular list
-getListKey :: ASIndex -> Dimensions -> ListKey
-getListKey idx dims = getListKeyWithIdentifier idx dims "LIST"
+getRangeKey :: ASIndex -> Dimensions -> RangeKey
+getRangeKey idx dims = getRangeKeyWithIdentifier idx dims "LIST"
 
--- returns the list key for a dataframe-type list
-getDFListKey :: ASIndex -> Dimensions -> ListKey
-getDFListKey idx dims = getListKeyWithIdentifier idx dims "DF"
+---- returns the list key for a dataframe-type list
+--getDFListKey :: ASIndex -> Dimensions -> ListKey
+--getDFListKey idx dims = getListKeyWithIdentifier idx dims "DF"
 
 getSheetListsKey :: ASSheetId -> B.ByteString
 getSheetListsKey sid = BC.pack $ (T.unpack sid) ++ (keyPartDelimiter:"ALL_LISTS")
@@ -189,65 +189,65 @@ cToASCell str = do
 ----------------------------------------------------------------------------------------------------------------------
 -- Lists
 
-getListType :: ListKey -> String
-getListType key = last parts
-  where parts = splitBy keyPartDelimiter key
+--getListType :: ListKey -> String
+--getListType key = last parts
+--  where parts = splitBy keyPartDelimiter key
 
-getDimsFromListKey :: ListKey -> (ASIndex, Dimensions)
-getDimsFromListKey key = (idx, dims)
-  where
-    parts = splitBy keyPartDelimiter key
-    idx   = read2 (head parts) :: ASIndex
-    dims  = read (parts !! 1) :: Dimensions
+--getDimsFromListKey :: ListKey -> (ASIndex, Dimensions)
+--getDimsFromListKey key = (idx, dims)
+--  where
+--    parts = splitBy keyPartDelimiter key
+--    idx   = read2 (head parts) :: ASIndex
+--    dims  = read (parts !! 1) :: Dimensions
 
-getRectFromListKey :: ListKey -> Rect
-getRectFromListKey key = ((col, row), (col + width - 1, row + height - 1))
-  where (Index _ (col, row), (height, width)) = getDimsFromListKey key
+--getRectFromListKey :: ListKey -> Rect
+--getRectFromListKey key = ((col, row), (col + width - 1, row + height - 1))
+--  where (Index _ (col, row), (height, width)) = getDimsFromListKey key
 
-getSheetIdFromListKey :: ListKey -> ASSheetId
-getSheetIdFromListKey key = sid
-  where
-    parts = splitBy keyPartDelimiter key
-    (Index sid _)   = read2 (head parts) :: ASIndex
+--getSheetIdFromListKey :: ListKey -> ASSheetId
+--getSheetIdFromListKey key = sid
+--  where
+--    parts = splitBy keyPartDelimiter key
+--    (Index sid _)   = read2 (head parts) :: ASIndex
 
-getListKeysInSheet :: Connection -> ASSheetId -> IO [ListKey]
-getListKeysInSheet conn sid = runRedis conn $ do
-  Right result <- smembers $ getSheetListsKey sid
-  return $ map BC.unpack result
+--getListKeysInSheet :: Connection -> ASSheetId -> IO [ListKey]
+--getListKeysInSheet conn sid = runRedis conn $ do
+--  Right result <- smembers $ getSheetListsKey sid
+--  return $ map BC.unpack result
 
-getLocationsFromListKey :: ListKey -> [ASIndex]
-getLocationsFromListKey key = rangeToIndices range
-  where
-    (Index sid (col, row), (height, width)) = getDimsFromListKey key
-    range = Range sid ((col, row), (col+width-1, row+height-1))
+--getLocationsFromListKey :: ListKey -> [ASIndex]
+--getLocationsFromListKey key = rangeToIndices range
+--  where
+--    (Index sid (col, row), (height, width)) = getDimsFromListKey key
+--    range = Range sid ((col, row), (col+width-1, row+height-1))
 
-getListIntersections :: Connection -> ASSheetId -> [ASIndex] -> IO [ListKey]
-getListIntersections conn sid locs = do
-  listKeys <- getListKeysInSheet conn sid
-  return $ filter (\key -> anyLocsContainedInRect locs (getRectFromListKey key)) listKeys
-  where
-    anyLocsContainedInRect lss r = any id $ map (indexInRect r) lss
-    indexInRect ((a',b'),(a2',b2')) (Index _ (a,b)) = a >= a' && b >= b' &&  a <= a2' && b <= b2'
+--getListIntersections :: Connection -> ASSheetId -> [ASIndex] -> IO [ListKey]
+--getListIntersections conn sid locs = do
+--  listKeys <- getListKeysInSheet conn sid
+--  return $ filter (\key -> anyLocsContainedInRect locs (getRectFromListKey key)) listKeys
+--  where
+--    anyLocsContainedInRect lss r = any id $ map (indexInRect r) lss
+--    indexInRect ((a',b'),(a2',b2')) (Index _ (a,b)) = a >= a' && b >= b' &&  a <= a2' && b <= b2'
 
-decoupleCell :: ASCell -> ASCell
-decoupleCell (Cell l e v ts) = Cell l e' v ts'
-  where
-    lang  = language e
-    e'    = Expression (showValue lang v) lang
-    ts'   = filter (\t -> case t of
-      ListMember _ -> False
-      DFMember -> False
-      _ -> True) ts
+--decoupleCell :: ASCell -> ASCell
+--decoupleCell (Cell l e v ts) = Cell l e' v ts'
+--  where
+--    lang  = language e
+--    e'    = Expression (showValue lang v) lang
+--    ts'   = filter (\t -> case t of
+--      ListMember _ -> False
+--      DFMember -> False
+--      _ -> True) ts
 
-isListHead :: ASCell -> Bool
-isListHead cell = case (getListTag cell) of
-  Nothing -> False
-  (Just (ListMember key)) -> (show2 . cellLocation $ cell) == (head $ splitBy keyPartDelimiter key)
+--isListHead :: ASCell -> Bool
+--isListHead cell = case (getListTag cell) of
+--  Nothing -> False
+--  (Just (ListMember key)) -> (show2 . cellLocation $ cell) == (head $ splitBy keyPartDelimiter key)
 
-getCellListKey :: ASCell -> Maybe ListKey
-getCellListKey cell = case (getListTag cell) of
-  (Just (ListMember key)) -> Just key
-  Nothing -> Nothing
+--getCellListKey :: ASCell -> Maybe ListKey
+--getCellListKey cell = case (getListTag cell) of
+--  (Just (ListMember key)) -> Just key
+--  Nothing -> Nothing
 
 ----------------------------------------------------------------------------------------------------------------------
 -- | ByteString utils

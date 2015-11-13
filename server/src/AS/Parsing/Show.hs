@@ -21,25 +21,45 @@ import qualified AS.LanguageDefs as LD
 -- exposed
 
 showValue :: ASLanguage -> CompositeValue -> String
-showValue lang v = case v of
+showValue lang v = case v of 
+  CellValue v' -> showPrimitive lang v'
+  Expanding v' -> showExpanding lang v'
+
+showPrimitive :: ASLanguage -> ASValue -> String
+showPrimitive lang v = case v of
   NoValue            -> LD.null lang
   ValueS s           -> show s
   ValueI i           -> show i
   ValueD d           -> show d
-  ValueB b           -> bool lang b
-  _ -> error ("In showValue, failed to pattern match: " ++ (show v))
+  ValueB b           -> LD.bool lang b
+  _ -> error ("In showPrimitive, failed to pattern match: " ++ (show v))
+
+showExpanding :: ASLanguage -> ExpandingValue -> String
+
+showExpanding lang (VList coll) = case coll of 
+  A arr -> list lang $ map (showPrimitive lang) arr
+  M mat -> list lang $ map ((showExpanding lang) . VList . A) mat
+
+showExpanding R (VRList pairs) = "list(" ++ (concat $ L.intersperse "," $ map showRPair pairs) ++ ")"
+  where 
+    showRPair (key, arr) = (prefix key) ++ (showExpanding R $ VList . A $ arr)
+    prefix key = case key of
+      "" -> ""
+      _ -> key ++ "="
+
+--showExpanding R (VRDataFrame )
 
 -----------------------------------------------------------------------------------------------------------------------
 -- helpers
 
---list :: ASLanguage -> [String] -> String
---list lang xs = wrapL ++ start ++ (L.intercalate dlm lst) ++ end ++ wrapR
---  where
---    (start, end) = listStops lang
---    dlm = listDelimeter lang 
---    (wrapL, wrapR) = case lang of 
---      Python -> ("arr(", ")")
---      _ -> ("", "") 
+list :: ASLanguage -> [String] -> String
+list lang xs = wrapL ++ start ++ (L.intercalate dlm xs) ++ end ++ wrapR
+  where
+    (start, end)   = LD.listStops lang
+    dlm            = (LD.listDelimiter lang):[] 
+    (wrapL, wrapR) = case lang of 
+      Python -> ("arr(", ")")
+      _ -> ("", "") 
 
 --object :: ASLanguage -> ASValue -> String
 --object lang (ValueObject otype olist oattrs) =
@@ -49,24 +69,6 @@ showValue lang v = case v of
 --  in foldr (++) $ case lang of
 --    Python  -> ["deserialize(", (show otype), ",", olist, (show oattrs), ")", dlm]
 --    _ -> error "cannot deserialize object in languages other than python"
-
-bool :: ASLanguage -> Bool -> String
-bool lang b = case lang of
-  Python-> show b
-  R     -> map C.toUpper $ show b
-  OCaml -> (\str -> (C.toLower (head str)):(tail str)) $ show b
-  SQL   -> show b
-  Excel -> show b
-
-
---showRList :: ASLanguage -> [(RListKey, ASValue)] -> String
---showRList lang l = case lang of
---  R -> "list(" ++ (concat $ L.intersperse "," $ map showRPair l) ++ ")"
-
---showRPair :: (RListKey, ASValue) -> String
---showRPair (key, val) = case key of
---  "" -> showValue R val
---  _ -> key ++ "=" ++ (showValue R val)
 
 --showRDataFrame :: ASLanguage -> [ASValue] -> String
 --showRDataFrame lang vals = case lang of
