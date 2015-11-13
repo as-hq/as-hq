@@ -1060,7 +1060,7 @@ describe('backend', () => {
           });
         });
 
-        describe('Column drag', () => {
+        describe('column drag', () => {
           it('should move cells to correct locations', (done) => {
             _do([
               python('A1', '10'), python('B1', '11'), python('C1', '12'),
@@ -1535,6 +1535,26 @@ describe('backend', () => {
             toggleTag('A1', 'Bold'),
             python('A1', '1'),
             shouldHaveTag('A1', 'Bold'), 
+            exec(done)
+          ]);
+        });
+
+        it('should stay bold after a delete', (done) => {
+          _do([
+            python('A1', '1'),
+            toggleTag('A1', 'Bold'),
+            delete_('A1'),
+            shouldHaveTag('A1', 'Bold'), 
+            exec(done)
+          ]);
+        });
+
+        it('should not stay bold after a cut', (done) => {
+          _do([
+            python('A1', '1'),
+            toggleTag('A1', 'Bold'),
+            cut('A1', 'B1'),
+            shouldNotHaveTag('A1', 'Bold'), 
             exec(done)
           ]);
         });

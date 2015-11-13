@@ -238,15 +238,16 @@ export default {
   /* Sending an eval request to the server */
 
   /* This function is called by handleEvalRequest in the eval pane */
-  evaluate(asIndex,xpObj){
-    let asCell = TC.makeEvalCell(asIndex, xpObj),
+  evaluate(origin, xpObj) {
+    let asIndex = TC.simpleToASIndex(origin),
+        asCell = TC.makeEvalCell(asIndex, xpObj),
         msg = TC.makeClientMessage(Constants.ServerActions.Evaluate,
                                           "PayloadCL",
                                           [asCell]);
     this.send(msg);
   },
 
-  evaluateRepl(xpObj){
+  evaluateRepl(xpObj) {
     let msg = TC.makeClientMessage(Constants.ServerActions.Repl, "PayloadXp", {
       tag: "Expression",
       expression: xpObj.expression,

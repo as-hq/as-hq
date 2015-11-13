@@ -108,8 +108,8 @@ export function cell(loc, xp, lang) {
       'excel': 'Excel',
       'ml': 'OCaml'
     };
-    let idx = asIndex(loc);
-    let xpObj = { expression: xp, language: { Server: langMap[lang] } };
+    let idx   = Util.excelToIndex(loc),
+        xpObj = { expression: xp, language: { Server: langMap[lang] } };
     API.evaluate(idx, xpObj);
   });
 }
@@ -323,8 +323,8 @@ export function shouldNotHaveTag(loc, tag) {
   return messageShouldSatisfy(loc, (cs) => {
     logDebug(`${loc} cell should have tag ${tag}`);
 
-    expect(cs.length).not.toBe(0);
     if (cs.length == 0) {
+      expect(true).toBe(true);
       return;
     }
 

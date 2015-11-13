@@ -495,8 +495,7 @@ export default React.createClass({
     Store.setActiveCellDependencies([]);
     this.refs.spreadsheet.repaint();
 
-    let origin = Store.getActiveSelection().origin,
-        asIndex = TC.simpleToASIndex(origin);
+    let origin = Store.getActiveSelection().origin;
 
     if (moveCol !== null && moveRow !== null){
       logDebug("Shifting selection area");
@@ -507,12 +506,12 @@ export default React.createClass({
     let curCell = Store.getCell(origin.col, origin.row);
     if (!curCell) {
       if (xpObj.expression != "") {
-        API.evaluate(asIndex, xpObj);
+        API.evaluate(origin, xpObj);
       }
     } else {
       let {expression, language} = curCell.cellExpression;
       if (expression != xpObj.expression || language != xpObj.language.Server) {
-        API.evaluate(asIndex, xpObj);
+        API.evaluate(origin, xpObj);
       }
     }
     this.setState({defaultLanguage: xpObj.language});
