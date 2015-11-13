@@ -1,3 +1,4 @@
+
 import {logDebug} from '../AS/Logger';
 
 import Dispatcher from '../Dispatcher';
@@ -76,6 +77,12 @@ wss.onmessage = (event) => {
         break;
       case "Acknowledge":
         break;
+      case "Open":
+        Dispatcher.dispatch({
+          type: ActionTypes.GOT_OPEN,
+          expressions: msg.payload.contents
+        });
+        break;
       case "Undo":
         Dispatcher.dispatch({
           type: ActionTypes.GOT_UNDO,
@@ -149,7 +156,13 @@ wss.onmessage = (event) => {
       case "EvaluateRepl":
         Dispatcher.dispatch({
           type: ActionTypes.GOT_REPL_RESP,
-          response:msg.payload.contents
+          response: msg.payload.contents
+        });
+        break;
+      case "EvaluateHeader":
+        Dispatcher.dispatch({
+          type: ActionTypes.GOT_EVAL_HEADER_RESP,
+          response: msg.payload.contents
         });
         break;
       case "Find":
@@ -160,7 +173,7 @@ wss.onmessage = (event) => {
         logDebug("GOT BACK FIND RESPONSE: " + JSON.stringify(clientLocs));
         Dispatcher.dispatch({
           type: ActionTypes.GOT_FIND,
-          findLocs:clientLocs
+          findLocs: clientLocs
         });
         break;
     }
@@ -244,6 +257,15 @@ export default {
         msg = TC.makeClientMessage(Constants.ServerActions.Evaluate,
                                           "PayloadCL",
                                           [asCell]);
+    this.send(msg);
+  },
+
+  evaluateHeader(expression, language) {
+    let msg = TC.makeClientMessage(Constants.ServerActions.EvalHeader, "PayloadXp", {
+      tag: "Expression",
+      expression: expression,
+      language: language
+    });
     this.send(msg);
   },
 

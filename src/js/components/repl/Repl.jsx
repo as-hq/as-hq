@@ -1,3 +1,5 @@
+// Temporarily getting phased out in favor of an Eval Header file. (Alex 11/12)
+
 import React from 'react';
 const update = React.addons.update;
 import ReplEditor from '../ReplEditor.jsx';

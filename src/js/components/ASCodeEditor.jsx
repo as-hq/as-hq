@@ -103,8 +103,8 @@ export default React.createClass({
                 top: '0px'
               }}/>
             <FlatButton
-              label="REPL"
-              onClick={this.props.onReplClick}
+              label="HEADER"
+              onClick={this.props.onEvalHeaderClick}
               style={{
                 position: 'relative',
                 left: '40px',

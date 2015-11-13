@@ -6,12 +6,14 @@ import ASSpreadsheet from './ASSpreadsheet.jsx';
 import Render from '../AS/Render';
 
 import Store from '../stores/ASEvaluationStore';
-import ReplStore from '../stores/ASReplStore';
+// import ReplStore from '../stores/ASReplStore';
+import EvalHeaderStore from '../stores/ASEvalHeaderStore';
 import FindStore from '../stores/ASFindStore';
 import ExpStore from '../stores/ASExpStore';
 
 import API from '../actions/ASApiActionCreators';
-import ReplActionCreator from '../actions/ASReplActionCreators';
+// import ReplActionCreator from '../actions/ASReplActionCreators';
+import EvalHeaderActionCreator from '../actions/ASEvalHeaderActionCreators';
 import ExpActionCreator from '../actions/ASExpActionCreators';
 
 import Shortcuts from '../AS/Shortcuts';
@@ -27,12 +29,15 @@ import {Snackbar} from 'material-ui';
 
 import * as BrowserTests from '../browser-test/index';
 
-import Repl from './repl/Repl.jsx'
+// import Repl from './repl/Repl.jsx'
+import EvalHeader from './eval-header/EvalHeader.jsx'
 import ResizableRightPanel from './repl/ResizableRightPanel.jsx'
 import ASFindBar from './ASFindBar.jsx'
 import ASFindModal from './ASFindModal.jsx'
 import FindAction from '../actions/ASFindActionCreators';
 
+
+// REPL stuff is getting temporarily phased out in favor of an Eval Header file. (Alex 11/12)
 
 export default React.createClass({
 
@@ -49,9 +54,11 @@ export default React.createClass({
       focus: null,
       toastMessage: '',
       toastAction: '',
-      replOpen: false,
-      replLanguage: Constants.Languages.Python,
-      replSubmittedLanguage: null,
+      // replOpen: false,
+      // replLanguage: Constants.Languages.Python,
+      // replSubmittedLanguage: null,
+      evalHeaderOpen: false, 
+      evalHeaderLanguage: Constants.Languages.Python,
       focusDx: null,
       focusDy: null,
       showFindBar:false,
@@ -66,7 +73,8 @@ export default React.createClass({
     window.addEventListener('cut',this.handleCutEvent);
     Store.addChangeListener(this._onChange);
     FindStore.addChangeListener(this._onFindChange);
-    ReplStore.addChangeListener(this._onReplChange);
+    // ReplStore.addChangeListener(this._onReplChange);
+    EvalHeaderStore.addChangeListener(this._onEvalHeaderUpdate); //misnomer; not really a change
     ExpStore.addChangeListener(this._onExpChange);
     Shortcuts.addShortcuts(this);
 
@@ -81,7 +89,7 @@ export default React.createClass({
     API.close();
     Store.removeChangeListener(this._onChange);
     FindStore.removeChangeListener(this._onFindChange);
-    ReplStore.removeChangeListener(this._onReplChange);
+    // ReplStore.removeChangeListener(this._onReplChange);
     ExpStore.removeChangeListener(this._onExpChange);
   },
 
@@ -105,8 +113,12 @@ export default React.createClass({
     return React.findDOMNode(this.refs.editorPane.refs.editor);
   },
 
-  _getReplEditor() {
-    return this.refs.repl.refs.editor.getRawEditor();
+  // _getReplEditor() {
+  //   return this.refs.repl.refs.editor.getRawEditor();
+  // },
+
+  _getEvalHeaderEditor() { 
+    return this.refs.evalHeader.refs.editor.getRawEditor();
   },
 
   _getTextbox(){
@@ -165,15 +177,23 @@ export default React.createClass({
     Store.stopSuppressingErrors();
   },
 
-  _onReplChange() {
-    logDebug("Eval pane detected event change from repl store");
-    this.setState({replSubmittedLanguage:ReplStore.getSubmittedLanguage()})
-  },
+  // _onReplChange() {
+  //   logDebug("Eval pane detected event change from repl store");
+  //   this.setState({replSubmittedLanguage:ReplStore.getSubmittedLanguage()})
+  // },
 
   _onExpChange() {
     if (ExpStore.getLastRef() === null) {
       ExpStore.disableRefInsertionBypass();
     }
+  },
+
+  _onEvalHeaderUpdate() {
+    let msg = EvalHeaderStore.getDispMessage();
+    if (msg != "") { 
+      this.setToast(msg);
+    }
+    this._getEvalHeaderEditor().focus();
   },
 
   enableTestMode() {
@@ -386,10 +406,10 @@ export default React.createClass({
     ShortcutUtils.tryShortcut(e, 'textbox');
   },
 
-  /* Callback from Repl component */
-  _onReplDeferredKey(e) {
-    ShortcutUtils.tryShortcut(e, 'repl');
-  },
+  // /* Callback from Repl component */
+  // _onReplDeferredKey(e) {
+  //   ShortcutUtils.tryShortcut(e, 'repl');
+  // },
 
 
   /**************************************************************************************************************************/
@@ -523,11 +543,11 @@ export default React.createClass({
     this.refs.spreadsheet.getInitialData();
   },
 
-  /* When a REPl request is made, first update the store and then send the request to the backend */
-  handleReplRequest(xpObj) {
-    ReplActionCreator.storeReplExpression(this.state.replLanguage.Display,this._replValue());
-    API.evaluateRepl(xpObj);
-  },
+  // /* When a REPl request is made, first update the store and then send the request to the backend */
+  // handleReplRequest(xpObj) {
+  //   ReplActionCreator.storeReplExpression(this.state.replLanguage.Display,this._replValue());
+  //   API.evaluateRepl(xpObj);
+  // },
 
   /**************************************************************************************************************************/
   /* Focus */
@@ -549,19 +569,35 @@ export default React.createClass({
   /**************************************************************************************************************************/
   /* REPL handling methods */
 
-  _replValue() {
-    return this._getReplEditor().getValue();
+  // _replValue() {
+  //   return this._getReplEditor().getValue();
+  // },
+
+  _evalHeaderValue() { 
+    return this._getEvalHeaderEditor().getValue();
   },
 
-  /* Method for tucking in/out the REPL. */
-  _toggleRepl() {
+  // /* Method for tucking in/out the REPL. */
+  // _toggleRepl() {
+  //   /* Save expression in store if repl is about to close */
+  //   if (this.state.replOpen) {
+  //     ReplActionCreator.storeReplExpression(this.state.replLanguage.Display,this._replValue());
+  //   } else {
+  //     this._getReplEditor().focus();
+  //   }
+  //   this.setState({replOpen: !this.state.replOpen});
+  // },
+
+  // ::ALEX:: 
+  _toggleEvalHeader() {
     /* Save expression in store if repl is about to close */
-    if (this.state.replOpen) {
-      ReplActionCreator.storeReplExpression(this.state.replLanguage.Display,this._replValue());
+    if (this.state.evalHeaderOpen) {
+      EvalHeaderActionCreator.storeEvalHeaderExpression(this.state.evalHeaderLanguage.Display,
+                                                        this._evalHeaderValue());
     } else {
-      this._getReplEditor().focus();
+      this._getEvalHeaderEditor().focus();
     }
-    this.setState({replOpen: !this.state.replOpen});
+    this.setState({evalHeaderOpen: !this.state.evalHeaderOpen});
   },
 
   _submitDebug() {
@@ -569,16 +605,32 @@ export default React.createClass({
     API.bugReport(bugReport);
   },
 
-  /*  When the REPL language changes, set state, save current text value, and set the next text value of the REPL editor */
-  _onReplLanguageChange(e,index,menuItem) {
-    ReplActionCreator.storeReplExpression(this.state.replLanguage.Display,this._replValue());
+  // /*  When the REPL language changes, set state, save current text value, and set the next text value of the REPL editor */
+  // _onReplLanguageChange(e,index,menuItem) {
+  //   ReplActionCreator.storeReplExpression(this.state.replLanguage.Display,this._replValue());
+  //   let newLang = menuItem.payload;
+  //   let newValue = ReplStore.getReplExp(newLang.Display);
+  //   ReplStore.setLanguage(newLang);
+  //   // logDebug("REPL lang changed from " + this.state.replLanguage.Display + " to " + newLang.Display + ", new value: "+ newValue);
+  //   this.setState({replLanguage:newLang});
+  // },
+
+  _onEvalHeaderLanguageChange(e, index, menuItem) {
+    EvalHeaderActionCreator.storeEvalHeaderExpression(this.state.evalHeaderLanguage.Display, 
+                                                      this._evalHeaderValue());
     let newLang = menuItem.payload;
-    let newValue = ReplStore.getReplExp(newLang.Display);
-    ReplStore.setLanguage(newLang);
-    // logDebug("REPL lang changed from " + this.state.replLanguage.Display + " to " + newLang.Display + ", new value: "+ newValue);
-    this.setState({replLanguage:newLang});
+    let newValue = EvalHeaderStore.getEvalHeaderExp(newLang.Display);
+    EvalHeaderStore.setLanguage(newLang);
+    this.setState({evalHeaderLanguage: newLang});
   },
 
+  _onSubmitEvalHeader() { 
+    let lang       = this.state.evalHeaderLanguage.Display, 
+        expression = this._evalHeaderValue(); 
+
+    EvalHeaderActionCreator.storeEvalHeaderExpression(lang, expression); 
+    API.evaluateHeader(expression, lang);
+  },
 
   /**************************************************************************************************************************/
   /* Find bar and modal */
@@ -633,6 +685,7 @@ export default React.createClass({
           handleEditorFocus={this._handleEditorFocus}
           language={currentLanguage}
           onReplClick={this._toggleRepl}
+          onEvalHeaderClick={this._toggleEvalHeader}
           onSubmitDebug={this._submitDebug}
           onSelectLanguage={this.selectLanguage}
           onExpressionChange={this.setExpression}
@@ -659,16 +712,23 @@ export default React.createClass({
                   onActionTouchTap={this._handleToastTap} />
       </div>;
 
-    let sidebarContent = <Repl
-      ref="repl"
-      replLanguage={this.state.replLanguage}
-      onDeferredKey={this._onReplDeferredKey}
-      onClick={this._toggleRepl}
-      replValue={ReplStore.getReplExp(this.state.replLanguage.Display)}
-      onReplLanguageChange={this._onReplLanguageChange} />;
+    // let sidebarContent = <Repl
+    //   ref="repl"
+    //   replLanguage={this.state.replLanguage}
+    //   onDeferredKey={this._onReplDeferredKey}
+    //   onClick={this._toggleRepl}
+    //   replValue={ReplStore.getReplExp(this.state.replLanguage.Display)}
+    //   onReplLanguageChange={this._onReplLanguageChange} />;
+
+    let sidebarContent = <EvalHeader
+      ref="evalHeader"
+      evalHeaderLanguage={this.state.evalHeaderLanguage}
+      evalHeaderValue={EvalHeaderStore.getEvalHeaderExp(this.state.evalHeaderLanguage.Display)}
+      onEvalHeaderLanguageChange={this._onEvalHeaderLanguageChange}
+      onSubmitEvalHeader={this._onSubmitEvalHeader} />;
 
     return (
-      <ResizableRightPanel leftComp={leftEvalPane} sidebar={sidebarContent} docked={this.state.replOpen} />
+      <ResizableRightPanel leftComp={leftEvalPane} sidebar={sidebarContent} docked={this.state.evalHeaderOpen} />
     );
   }
 
