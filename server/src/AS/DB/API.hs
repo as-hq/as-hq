@@ -84,10 +84,16 @@ getCells locs = DU.getCellsByMessage msg num
     msg = DU.showB $ intercalate DU.msgPartDelimiter $ map show2 locs
     num = length locs
 
+-- Gets the cells at the locations with expressions and values removed, but tags intact. 
+getBlankedCellsAt :: [ASIndex] -> IO [ASCell]
+getBlankedCellsAt locs = do 
+  cells <- getPossiblyBlankCells locs
+  return $ map (\(Cell l (Expression e lang) v ts) -> Cell l (Expression "" lang) NoValue ts) cells
+
 -- #incomplete LOL
 getCellsInSheet :: ASSheetId -> IO [ASCell]
 getCellsInSheet sid = do 
-  cells <- getCellsByRange (Range sid ((1,1), (100,100)))
+  cells <- (getCells . rangeToIndices) (Range sid ((1,1), (100,100)))
   return $ catMaybes cells
 
 getPossiblyBlankCells :: [ASIndex] -> IO [ASCell]
@@ -97,8 +103,10 @@ getPossiblyBlankCells locs = do
     Just c' -> c'
     Nothing -> blankCellAt l) (zip locs cells)
 
-getCellsByRange :: ASRange -> IO [Maybe ASCell]
-getCellsByRange rng = getCells $ rangeToIndices rng
+getTagsAt :: [ASIndex] -> IO [[ASCellTag]]
+getTagsAt locs = do 
+  cells <- getPossiblyBlankCells locs
+  return $ map cellTags cells
 
 setCell :: ASCell -> IO ()
 setCell c = setCells [c]

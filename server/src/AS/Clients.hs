@@ -225,8 +225,13 @@ handleEval :: (Client c) => c -> MVar ServerState -> ASPayload -> IO ()
 handleEval cl state payload  = do
   let cells = case payload of 
                 PayloadCL cells' -> cells'
-  putStrLn $ "IN EVAL HANDLER"
-  msg' <- DP.runDispatchCycle state cells (clientCommitSource cl)
+  -- The PayloadCL is sort of a misnomer; it's only really being used as a wrapper around the
+  -- expression to evaluate and the location of evaluation. In particular, the value passed in the cells
+  -- are irrelevant, and there are no tags passed in, so we have to get the tags from the database
+  -- manually. 
+  oldTags <- DB.getTagsAt (map cellLocation cells)
+  let cells' = map (\(c, ts) -> c { cellTags = ts }) (zip cells oldTags)
+  msg' <- DP.runDispatchCycle state cells' (clientCommitSource cl)
   reply cl state msg'
 
 handleEvalRepl :: (Client c) => c -> MVar ServerState -> ASPayload -> IO ()
@@ -271,7 +276,7 @@ handleDelete user state p@(PayloadWB workbook) = do
 handleDelete user state (PayloadR rng) = do
   let locs = rangeToIndices rng
   conn <- dbConn <$> readMVar state
-  let blankedCells = U.blankCellsAt locs
+  blankedCells <- DB.getBlankedCellsAt locs
   updateMsg <- DP.runDispatchCycle state blankedCells (clientCommitSource user)
   reply user state $ U.makeDeleteMessage rng updateMsg
 
@@ -353,10 +358,10 @@ getCopyCells conn from to = do
 
 getCutCells :: R.Connection -> ASRange -> ASRange -> IO [ASCell]
 getCutCells conn from to = do 
-  let offset       = U.getRangeOffset from to
-  let blankedCells = U.blankCellsAt (rangeToIndices from)
+  let offset = U.getRangeOffset from to
   toCells      <- getCutToCells conn from offset
   newDescCells <- getCutNewDescCells from offset
+  let blankedCells = U.blankCellsAt (rangeToIndices from) -- want to forget about tags
   -- precedence: toCells > updated descendant cells > blank cells
   return $ U.mergeCells toCells (U.mergeCells newDescCells blankedCells)
 

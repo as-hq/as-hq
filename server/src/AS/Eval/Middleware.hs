@@ -17,22 +17,22 @@ import AS.DB.API as DB
 -- | This is middleware for evaluation; we take a cell recieved with the "Evaluate" action tag and preprocess it
 -- Add tags 
 evalMiddleware :: [ASCell] -> IO [ASCell]
-evalMiddleware = addBackTags
+evalMiddleware = return
 
-addBackTags :: [ASCell] -> IO [ASCell]
-addBackTags cells = do 
-  mOldCells <- DB.getCells (map cellLocation cells)
-  return $ (flip map) (zip cells mOldCells) $ \(c, mc) -> case mc of 
-    Nothing -> c
-    Just c' -> c { cellTags = (cellTags c) `union` filteredOldTags }
-      where filteredOldTags = filter (not . isListTag) (cellTags c')
+-- addBackTags :: [ASCell] -> IO [ASCell]
+-- addBackTags cells = do 
+--   mOldCells <- DB.getCells (map cellLocation cells)
+--   return $ (flip map) (zip cells mOldCells) $ \(c, mc) -> case mc of 
+--     Nothing -> c
+--     Just c' -> c { cellTags = (cellTags c) `union` filteredOldTags }
+--       where filteredOldTags = filter (not . isListTag) (cellTags c')
 
--- This would be much better to implement if we didn't store this as a tag...
--- #needsrefactor (Alex 11/11)
-isListTag :: ASCellTag -> Bool
-isListTag (ListMember _) = True
-isListTag DFMember = True
-isListTag _ = False
+-- -- This would be much better to implement if we didn't store this as a tag...
+-- -- #needsrefactor (Alex 11/11)
+-- isListTag :: ASCellTag -> Bool
+-- isListTag (ListMember _) = True
+-- isListTag DFMember = True
+-- isListTag _ = False
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Middlewares

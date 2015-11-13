@@ -71,18 +71,18 @@ getUnquotedMatchesWithContext (Expression target lang) p =
       Left  _ -> True)
 
 -- | Reconstructs a string from context (see description in parseUnquotedMatchesWithContext)
-blend :: ([String], [String]) -> String
-blend ([], []) = ""
-blend (x, []) = concat x
-blend ([], y) = concat y
-blend ((x:xs), (y:ys)) = x ++ y ++ (blend (xs,ys))
+blend :: [String] -> [String] -> String
+blend [] [] = ""
+blend x [] = concat x
+blend [] y = concat y
+blend (x:xs) (y:ys) = x ++ y ++ (blend xs ys)
 
 replaceRefs :: (ExRef -> String) -> ASExpression -> ASExpression
 replaceRefs f xp = xp { expression = expression' }
   where 
     (inter, exRefs) = getUnquotedMatchesWithContext xp refMatch
     exRefs'         = map f exRefs 
-    expression'     = blend (inter, exRefs')
+    expression'     = blend inter exRefs'
 
 -------------------------------------------------------------------------------------------------------------------------------------------------
 -- Helpers
@@ -111,6 +111,8 @@ shiftCell offset (Cell loc xp v ts) = cell'
     xp'   = replaceRefs (show . (shiftExRef offset)) xp
     cell' = Cell loc' xp' v ts
 
+-- | Offsets all the references in an expression that are contained in the cut range (passed in as 
+-- the argument "from"). 
 shiftExpressionForCut :: ASRange -> Offset -> ASExpression -> ASExpression
 shiftExpressionForCut from offset xp = xp' 
   where 
