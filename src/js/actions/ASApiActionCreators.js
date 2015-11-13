@@ -59,7 +59,7 @@ wss.onmessage = (event) => {
       isRunningTest = false;
     }
   } else {
-    if (isRunningTest && (!uiTestMode || msg.action != 'UpdateWindow')) {
+    if (isRunningTest && (msg.action != 'Open') && (!uiTestMode || msg.action != 'UpdateWindow')) {
       currentCbs.fulfill(msg);
       isRunningTest = false;
     }
