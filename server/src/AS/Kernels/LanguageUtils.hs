@@ -161,10 +161,11 @@ wrapCode lang isRepl str =
             SQL -> replaceSubstrings str [("\n", "\n\t")]
             otherwise -> str
     in do
+        header <- getLanguageHeader lang
         template <- if isRepl
             then getTemplateRepl lang
             else getTemplate lang
-        return $ replaceSubstrings template [("#CODE#", insertedCode)]
+        return $ replaceSubstrings template [("#CODE#", insertedCode), ("#HEADER#", header)]
 
 -----------------------------------------------------------------------------------------------------------------------
 -- | Language-specific string modifiers
@@ -259,6 +260,12 @@ writeReplFile lang contents = getRunReplFile lang >>= \f -> writeFile (f :: Syst
 writeReplRecord :: ASLanguage -> String -> IO ()
 writeReplRecord lang contents = getReplRecordFile lang >>= \f -> writeFile (f :: System.IO.FilePath) contents
 
+writeHeaderFile :: ASLanguage -> String -> IO ()
+writeHeaderFile lang contents = getHeaderFile lang >>= \f -> writeFile (f :: System.IO.FilePath) contents
+
+getLanguageHeader :: ASLanguage -> IO String
+getLanguageHeader lang = getHeaderFile lang >>= \f -> P.readFile f
+
 clearReplRecord :: ASLanguage -> IO ()
 clearReplRecord lang = getReplRecordFile lang >>= \f -> writeFile (f :: System.IO.FilePath)  ""
 
@@ -322,3 +329,11 @@ getReplRecordFile lang = do
     where
         file = case lang of
             Python  -> "py/repl_record.py"
+
+getHeaderFile :: ASLanguage -> IO String
+getHeaderFile lang = do
+    path <- getEvalPath
+    return $ path ++ file
+    where
+        file = case lang of
+            Python  -> "py/header.py"

@@ -24,6 +24,7 @@ import AS.DB.Graph              as G
 import AS.Util                  as U
 import AS.Dispatch.Core         as DP
 import AS.Dispatch.Repl         as DR
+import AS.Dispatch.EvalHeader   as DEH
 import AS.Users                 as US
 import AS.Parsing.Substitutions as S
 import AS.Daemon                as DM
@@ -61,28 +62,29 @@ instance Client ASUserClient where
     redisConn <- dbConn <$> readMVar state
     recordMessage redisConn message (clientCommitSource user)
     case (clientAction message) of
-      Acknowledge  -> handleAcknowledge user
-      New          -> handleNew user state payload
-      Open         -> handleOpen user state payload
-      Close        -> handleClose user state payload
-      UpdateWindow -> handleUpdateWindow (sessionId user) state payload
-      Import       -> handleImport state payload
-      Evaluate     -> handleEval user state payload
-      EvaluateRepl -> handleEvalRepl user state payload
-      Get          -> handleGet user state payload
-      Delete       -> handleDelete user state payload
-      Clear        -> handleClear user state payload
-      Undo         -> handleUndo user state
-      Redo         -> handleRedo user state
-      Copy         -> handleCopy user state payload
-      Cut          -> handleCut user state payload
-      ToggleTag    -> handleToggleTag user state payload
-      SetTag       -> handleSetTag user state payload
-      Repeat       -> handleRepeat user state payload
-      BugReport    -> handleBugReport user payload
-      JumpSelect   -> handleJumpSelect user state payload
-      MutateSheet  -> handleMutateSheet user state payload
-      Drag         -> handleDrag user state payload
+      Acknowledge    -> handleAcknowledge user
+      New            -> handleNew user state payload
+      Open           -> handleOpen user state payload
+      Close          -> handleClose user state payload
+      UpdateWindow   -> handleUpdateWindow (sessionId user) state payload
+      Import         -> handleImport state payload
+      Evaluate       -> handleEval user state payload
+      EvaluateRepl   -> handleEvalRepl user state payload
+      EvaluateHeader -> handleEvalHeader user state payload
+      Get            -> handleGet user state payload
+      Delete         -> handleDelete user state payload
+      Clear          -> handleClear user state payload
+      Undo           -> handleUndo user state
+      Redo           -> handleRedo user state
+      Copy           -> handleCopy user state payload
+      Cut            -> handleCut user state payload
+      ToggleTag      -> handleToggleTag user state payload
+      SetTag         -> handleSetTag user state payload
+      Repeat         -> handleRepeat user state payload
+      BugReport      -> handleBugReport user payload
+      JumpSelect     -> handleJumpSelect user state payload
+      MutateSheet    -> handleMutateSheet user state payload
+      Drag           -> handleDrag user state payload
       where payload = clientPayload message
       -- Undo         -> handleToggleTag user state (PayloadTags [StreamTag (Stream NoSource 1000)] (Index (T.pack "TEST_SHEET_ID2") (1,1)))
       -- ^^ above is to test streaming when frontend hasn't been implemented yet
@@ -238,6 +240,12 @@ handleEvalRepl :: (Client c) => c -> MVar ServerState -> ASPayload -> IO ()
 handleEvalRepl cl state (PayloadXp xp) = do
   putStrLn $ "IN EVAL HANDLER"
   msg' <- DR.runReplDispatch state xp
+  sendToOriginal cl msg'
+
+handleEvalHeader :: (Client c) => c -> MVar ServerState -> ASPayload -> IO ()
+handleEvalHeader cl state (PayloadXp xp) = do
+  printObj "xp" xp
+  msg' <- DEH.runEvalHeader state xp
   sendToOriginal cl msg'
 
 ----------------------------------------------------------------------------------------------------------------------------------------------

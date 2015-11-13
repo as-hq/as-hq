@@ -58,6 +58,17 @@ evaluateRepl str = do
             parsed
         else return NoValue
 
+evaluateHeader :: String -> EitherTExec ASValue
+evaluateHeader str = do
+    -- preprocess expression
+    lift $ writeHeaderFile Python str -- appropriating the repl record for 
+    (_, evalCode) <- lift $ introspectCodeRepl Python str
+    -- perform eval, if there's something we actually need to return
+    if (evalCode /= "" && str /= "")
+        then execWrappedCode evalCode
+        else return NoValue
+
+
 -- | SQL
 evaluateSql :: String -> EitherTExec ASValue
 evaluateSql "" = return NoValue

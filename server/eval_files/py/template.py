@@ -1,6 +1,7 @@
 import os
 curWd = os.getcwd()
 replFile =  os.getcwd() + "/eval_files/py/repl_record.py"
+headerFile =  os.getcwd() + "/eval_files/py/header.py"
 imagesPath = os.getcwd() + "/static/images/"
 imagePrefix = "pythonImage"
 
@@ -45,8 +46,10 @@ result = "error"
 # if there exist any plots in the current environment.
 # a workaround would be to check the type of result before setting it to ValueImage.
 try:
-	execfile(replFile)
+	# execfile(replFile)
+	execfile(headerFile)
 	os.chdir(os.getcwd()+"/static")
+	#HEADER#
 	#CODE#
 	os.chdir('..')
 	print result

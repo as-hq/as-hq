@@ -73,6 +73,11 @@ evaluateLanguageRepl (Expression str lang) = case lang of
   SQL     -> KP.evaluateSqlRepl str
   OCaml   -> KO.evaluateRepl str
 
+-- need stuff for R
+evaluateHeader :: ASExpression -> EitherTExec ASValue
+evaluateHeader (Expression str lang) = case lang of 
+  Python -> KP.evaluateHeader str
+
 -----------------------------------------------------------------------------------------------------------------------
 -- Helpers
 

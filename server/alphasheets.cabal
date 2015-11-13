@@ -20,6 +20,7 @@ library
                        AS.DB.Util
                        AS.DB.Graph
                        AS.Dispatch.Core
+                       AS.Dispatch.EvalHeader
                        AS.Dispatch.Repl
                        AS.Clients
                        AS.Config.Paths

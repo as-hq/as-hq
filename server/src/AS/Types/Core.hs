@@ -193,7 +193,7 @@ data ASAction =
   | SetInitialSheet
   | New | Import
   | Open | Close
-  | Evaluate | EvaluateRepl
+  | Evaluate | EvaluateRepl | EvaluateHeader
   | Update
   | Get | Delete
   | Copy | Cut | CopyForced
@@ -240,6 +240,7 @@ data ASPayload =
   | PayloadTag {cellTag :: ASCellTag, tagRange :: ASRange}
   | PayloadXp ASExpression
   | PayloadReplValue ASReplValue
+  | PayloadValue ASValue
   | PayloadList QueryList
   | PayloadText {text :: String}
   | PayloadMutate MutateType
