@@ -70,6 +70,7 @@ differentTagType Volatile Volatile = False
 differentTagType (ReadOnly _) (ReadOnly _) = False
 differentTagType (ListMember _) (ListMember _) = False
 differentTagType DFMember DFMember = False
+differentTagType (ImageData _ _ _ _) (ImageData _ _ _ _) = False
 differentTagType _ _ = True
 
 getCellFormatType :: ASCell -> Maybe FormatType

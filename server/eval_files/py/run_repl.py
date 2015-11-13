@@ -18,10 +18,15 @@ def arr(lst):
 	return ASIterable(lst)
 result = ""
 try:
+<<<<<<< HEAD
 	def foobar(x):
 		x**2
 	
 	result = a = foobar(15)
+=======
+	sorted([3,2,4])
+	result = sorted([3,2,4])
+>>>>>>> 63d929ce103d0b98781c3510423d650178336828
 except Exception as e: 
 	exc_type, exc_obj, exc_tb = exc_info()
 	fname = 'AlphaSheets Python evaluator'

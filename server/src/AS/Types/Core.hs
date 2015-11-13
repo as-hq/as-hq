@@ -131,6 +131,7 @@ data ASCellTag =
   | ListMember {listKey :: String}
   | Format FormatType
   | DFMember
+  | ImageData {imageWidth :: Int, imageHeight :: Int, imageOffsetX :: Int, imageOffsetY :: Int}
   deriving (Show, Read, Eq, Generic)
 
 data ASCell = Cell {cellLocation :: ASIndex,
