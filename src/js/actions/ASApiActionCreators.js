@@ -330,6 +330,22 @@ export default {
     this.send(msg);
   },
 
+  // Image tags actually have data, so the message is a bit different
+  setImageTag(val,rng){
+    let msg = TC.makeClientMessageRaw(Constants.ServerActions.SetTag, {
+      "tag": "PayloadTag",
+      "cellTag": {
+        tag: "ImageData", 
+        imageHeight: val.imageHeight,
+        imageWidth: val.imageWidth,
+        imageOffsetX: val.imageOffsetX,
+        imageOffsetY: val.imageOffsetY
+      },
+      "tagRange": TC.simpleToASRange(rng)
+    });
+    this.send(msg);
+  },
+
   drag(activeRng,dragRng){
     let msg = TC.makeClientMessageRaw(Constants.ServerActions.Drag, {
       tag: "PayloadDrag",

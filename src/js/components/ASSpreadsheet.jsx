@@ -417,20 +417,33 @@ export default React.createClass({
           display = Util.showValue(c.cellValue);
 
       model.setValue(gridCol, gridRow, display.toString());
-      let overlay = Util.getOverlay(c.cellValue, gridCol, gridRow);
-      if (overlay)
-        this.addOverlay(overlay);
+      let newOverlays = this.updateOverlays(c);
+      if (c.cellValue.tag === "ValueImage"){
+        let scroll = this.state.scroll,
+            point = finRect.point.create(gridCol + 1 - scroll.x, gridRow + 1 - scroll.y),
+            {x,y} = this._getHypergrid().getBoundsOfCell(point).origin;
+        let overlay = Util.getImageOverlay(c,x,y);
+        console.log("OVERLAY",overlay);
+        newOverlays.push(overlay);
+        this.setState({overlays:newOverlays});
+      }
     });
 
     model.changed(); // causes hypergrid to show updated values
     Store.resetLastUpdatedCells();
   },
 
-  // update grid overlays (images, charts, etc)
-  addOverlay(overlay) {
-    let overlays = this.state.overlays;
-    overlays.push(overlay);
-    this.setState({overlays: overlays});
+  // Given a cell, delete any overlay at that location
+  // If the expression updated at that location, there's no longer an overlay there
+  updateOverlays(c){
+    let overlays = this.state.overlays,
+        locs = overlays.map((o)=>o.loc);
+    for (var i = 0 ; i < locs.length; i++){
+      if (Util.locEquals(locs[i], c.cellLocation)){
+        overlays.splice(i,1);
+      }
+    }
+    return overlays;
   },
 
   /*************************************************************************************************************************/
@@ -759,7 +772,6 @@ export default React.createClass({
           return (<ASOverlay key={overlay.id}
                              overlay={overlay}
                              scroll={self.state.scroll}
-                             onOverlayClick={self.onOverlayClick}
                              isVisible={self.isVisible}/>);
         })}
 

@@ -101,6 +101,7 @@
     "react-dropzone": "^3.0.0",
     "react-hotkeys": "^0.4.0",
     "react-menu-bar": "~2.0.4",
+    "react-resizable": "^0.4.3",
     "react-style": "^0.5.5",
     "react-tap-event-plugin": "^0.1.7",
     "shortid": "^2.2.2",

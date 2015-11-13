@@ -186,31 +186,40 @@ export default {
     return this.concatAll(result);
   },
 
-  getOverlay(cv, col, row) {
-    let self = this;
-    switch(cv.tag) {
-      case "ValueImage":
-        return {
-          tag: cv.tag,
-          id: self.getUniqueId(),
-          src: Constants.HOST_STATIC_URL + "/images/" + cv.imagePath,
-          width: "300",
-          height: "300",
-          col: col,
-          row: row
-        };
-      default:
-        return null;
+  getImageOverlay(c,originX,originY) {
+    let self = this,
+        ct = c.cellTags,
+        imageWidth = 300,
+        imageHeight =  300,
+        imageOffsetX = 0,
+        imageOffsetY = 0;
+    for (var i = 0 ; i < ct.length; i++){
+      if (ct[i].tag==="ImageData"){
+        imageOffsetX = ct[i].imageOffsetX;
+        imageOffsetY = ct[i].imageOffsetY;
+        imageWidth = ct[i].imageWidth;
+        imageHeight = ct[i].imageHeight;
+      }
     }
+    return {
+      id: self.getUniqueId(),
+      src: Constants.HOST_STATIC_URL + "/images/" + c.cellValue.imagePath,
+      width: imageWidth,
+      height: imageHeight,
+      offsetX: imageOffsetX,
+      offsetY: imageOffsetY,
+      left: originX,
+      top: originY,
+      loc: c.cellLocation
+    };
   },
 
-
-  getX(col,scrollX){
-    return (col-scrollX) * Constants.cellWidthPx + Constants.gridXOffset + "px";
-  },
-
-  getY(row,scrollY){
-    return (row-scrollY)* Constants.cellHeightPx + Constants.gridYOffset + "px";
+  locEquals(c1,c2){
+    let tagE = c1.tag === c2.tag,
+        colE = c1.index.col === c2.index.col,
+        rowE = c1.index.row === c2.index.row,
+        sheetE = c1.sheetId === c2.sheetId
+    return tagE && colE && rowE && sheetE;
   },
 
 /*************************************************************************************************************************/
