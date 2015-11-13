@@ -1,3 +1,38 @@
+/* @flow */
+
+import type {
+  ASAction,
+  GotFailureAction
+} from '../types/Actions';
+
+import type {
+  Callback
+} from '../types/Base';
+
+import type {
+  NakedRange,
+  NakedIndex,
+  ASIndex,
+  ASRange,
+  ASExpression,
+  ASSheet,
+  ASCellTag,
+  ASCell
+} from '../types/Eval';
+
+import type {
+  Direction,
+  ASBackendResult,
+  ASBackendPayload,
+  ASServerMessage,
+  ASClientMessage,
+  ASAPICallbackPair
+} from '../types/Messages';
+
+import type {
+  ASSelection,
+  ASViewingWindow
+} from '../types/State';
 
 import {logDebug} from '../AS/Logger';
 
@@ -9,21 +44,14 @@ import Store from '../stores/ASEvaluationStore';
 import Util from '../AS/Util';
 import ws from '../AS/PersistentWebSocket';
 
-/*
-import isNode from 'detect-node';
-let [ws] = isNode ?
-  [require('ws')] :
-  [WebSocket];
-  */
-
 let ActionTypes = Constants.ActionTypes;
-let wss = new ws(Util.getHostUrl());
+let wss: ws = new ws(Util.getHostUrl());
 
-let currentCbs = undefined;
-let uiTestMode = false;
-let isRunningTest = false;
-let isRunningSyncTest = false;
-let refreshDialogShown = false;
+let currentCbs: ?ASAPICallbackPair = undefined;
+let uiTestMode: boolean = false;
+let isRunningTest: boolean = false;
+let isRunningSyncTest: boolean = false;
+let refreshDialogShown: boolean = false;
 
 /**************************************************************************************************************************/
 
@@ -40,26 +68,26 @@ let refreshDialogShown = false;
   Converts server to client types before going further
 */
 
-wss.onmessage = (event) => {
+wss.onmessage = (event: MessageEvent) => {
   if (event.data === 'ACK') return;
 
   logDebug("Client received data from server: " + JSON.stringify(event.data));
 
-  let msg = JSON.parse(event.data);
+  let msg: ASServerMessage = JSON.parse(event.data);
   if (msg.result.tag === "Failure") {
     Dispatcher.dispatch({
-        type: ActionTypes.GOT_FAILURE,
-        errorMsg: msg
-      });
+      _type: 'GOT_FAILURE',
+      errorMsg: msg
+    });
 
-    if (isRunningTest) {
+    if (isRunningTest && currentCbs) {
       // sometimes we want to test whether it errors, so it fulfills anyways!
       logDebug('Fulfilling due to server failure');
       currentCbs.fulfill(msg);
       isRunningTest = false;
     }
   } else {
-    if (isRunningTest && (msg.action != 'Open') && (!uiTestMode || msg.action != 'UpdateWindow')) {
+    if (isRunningTest && (!uiTestMode || msg.action != 'UpdateWindow') && currentCbs) {
       currentCbs.fulfill(msg);
       isRunningTest = false;
     }
@@ -68,7 +96,7 @@ wss.onmessage = (event) => {
       case "New":
         if (msg.payload.tag === "PayloadWorkbookSheets") {
           Dispatcher.dispatch({
-            type: ActionTypes.GOT_NEW_WORKBOOKS,
+            _type: 'GOT_NEW_WORKBOOKS',
             workbooks: msg.payload.contents
           });
         }
@@ -85,96 +113,98 @@ wss.onmessage = (event) => {
         break;
       case "Undo":
         Dispatcher.dispatch({
-          type: ActionTypes.GOT_UNDO,
+          _type: 'GOT_UNDO',
           commit: msg.payload.contents
         });
         break;
       case "Redo":
         Dispatcher.dispatch({
-          type: ActionTypes.GOT_REDO,
+          _type: 'GOT_REDO',
           commit: msg.payload.contents
         });
        break;
       case "Update":
         if (msg.payload.tag === "PayloadCL"){
           Dispatcher.dispatch({
-            type: ActionTypes.GOT_UPDATED_CELLS,
+            _type: 'GOT_UPDATED_CELLS',
             updatedCells: msg.payload.contents
           });
         } else if (msg.payload.tag === "PayloadWorkbookSheets") {
           Dispatcher.dispatch({
-            type: ActionTypes.GOT_UPDATED_WORKBOOKS,
+            _type: 'GOT_UPDATED_WORKBOOKS',
             workbooks: msg.payload.contents
           });
         }
         break;
       case "Get":
         Dispatcher.dispatch({
-          type: ActionTypes.FETCHED_CELLS,
+          _type: 'FETCHED_CELLS',
           newCells: msg.payload.contents
         });
         break;
       //Functionally equivalent to "Get", but useful to be able to distinguish for tests
       case "UpdateWindow":
         Dispatcher.dispatch({
-          type: ActionTypes.FETCHED_CELLS,
+          _type: 'FETCHED_CELLS',
           newCells: msg.payload.contents
         });
         break;
       case "Clear":
         if (msg.payload.tag === "PayloadS") {
           Dispatcher.dispatch({
-            type: ActionTypes.CLEARED_SHEET,
+            _type: 'CLEARED_SHEET',
             sheetId: msg.payload.contents.sheetId
           });
         } else {
           Dispatcher.dispatch({
-            type: ActionTypes.CLEARED
+            _type: 'CLEARED'
           });
         }
         break;
       case "JumpSelect":
         Dispatcher.dispatch({
-          type: ActionTypes.GOT_SELECTION,
+          _type: 'GOT_SELECTION',
           newSelection: msg.payload
         });
         break;
       case "Delete":
         if (msg.payload.tag === "PayloadDelete") {
           Dispatcher.dispatch({
-            type: ActionTypes.DELETED_LOCS,
+            _type: 'DELETED_LOCS',
             deletedRange: msg.payload.contents[0],
             updatedCells: msg.payload.contents[1]
           });
         } else if (msg.payload.tag === "PayloadWorkbookSheets") {
           Dispatcher.dispatch({
-            type: ActionTypes.DELETED_WORKBOOKS,
+            _type: 'DELETED_WORKBOOKS',
             workbooks: msg.payload.contents
           });
         } // no case for PayloadWB ??
         break;
       case "EvaluateRepl":
         Dispatcher.dispatch({
-          type: ActionTypes.GOT_REPL_RESP,
+          _type: 'GOT_REPL_RESPONSE',
           response: msg.payload.contents
         });
         break;
       case "EvaluateHeader":
         Dispatcher.dispatch({
-          type: ActionTypes.GOT_EVAL_HEADER_RESP,
+          _type: 'GOT_EVAL_HEADER_RESP',
           response: msg.payload.contents
         });
         break;
       case "Find":
+        // TODO
+      /*
         let toClientLoc = function(x){
           return {row:x.index[1],col:x.index[0]};
         };
         let clientLocs = msg.payload.contents.map(toClientLoc);
         logDebug("GOT BACK FIND RESPONSE: " + JSON.stringify(clientLocs));
         Dispatcher.dispatch({
-          type: ActionTypes.GOT_FIND,
-          findLocs: clientLocs
-        });
+          _type: 'GOT_FIND',
+          findLocs:clientLocs
+        }); */
         break;
     }
   }
@@ -185,18 +215,18 @@ wss.onopen = (evt) => {
 };
 
 export default {
-  send(msg) {
+  send(msg: ASClientMessage) {
     logDebug(`Queueing ${msg.action} message`);
-    wss.waitForConnection((innerClient) => {
+    wss.waitForConnection((innerClient: WebSocket) => {
       logDebug(`Sending ${msg.action} message`);
       logDebug(JSON.stringify(msg));
       innerClient.send(JSON.stringify(msg));
 
       /* for testing */
-      if (msg.action === 'Acknowledge' && isRunningTest) {
+      if (msg.action === 'Acknowledge' && isRunningTest && currentCbs) {
         isRunningTest = false;
         currentCbs.fulfill();
-      } else if (isRunningSyncTest) {
+      } else if (isRunningSyncTest && currentCbs) {
         isRunningSyncTest = false;
         currentCbs.fulfill();
       }
@@ -204,7 +234,7 @@ export default {
   },
 
   initMessage() {
-    let msg = TC.makeClientMessage(Constants.ServerActions.Acknowledge,
+    let msg: ASClientMessage = TC.makeClientMessage(Constants.ServerActions.Acknowledge,
       "PayloadInit",
       {"connUserId": Store.getUserId(),
         "connSheetId": Store.getCurrentSheet().sheetId});
@@ -212,8 +242,8 @@ export default {
     this.send(msg);
   },
 
-  ackMessage(innerClient) {
-    let msg = TC.makeClientMessage(Constants.ServerActions.Acknowledge,
+  ackMessage(innerClient: WebSocket) {
+    let msg: ASClientMessage = TC.makeClientMessage(Constants.ServerActions.Acknowledge,
       'PayloadN', []);
     //logDebug('Sending ACK from API action creators');
     innerClient.send(JSON.stringify(msg));
@@ -251,7 +281,7 @@ export default {
   /* Sending an eval request to the server */
 
   /* This function is called by handleEvalRequest in the eval pane */
-  evaluate(origin, xpObj) {
+  evaluate(origin: NakedIndex, xpObj: ASExpression) {
     let asIndex = TC.simpleToASIndex(origin),
         asCell = TC.makeEvalCell(asIndex, xpObj),
         msg = TC.makeClientMessage(Constants.ServerActions.Evaluate,
@@ -260,7 +290,7 @@ export default {
     this.send(msg);
   },
 
-  evaluateHeader(expression, language) {
+  evaluateHeader(expression: string, language: ASLanguage) {
     let msg = TC.makeClientMessage(Constants.ServerActions.EvalHeader, "PayloadXp", {
       tag: "Expression",
       expression: expression,
@@ -269,7 +299,7 @@ export default {
     this.send(msg);
   },
 
-  evaluateRepl(xpObj) {
+  evaluateRepl(xpObj: ASExpression) {
     let msg = TC.makeClientMessage(Constants.ServerActions.Repl, "PayloadXp", {
       tag: "Expression",
       expression: xpObj.expression,
@@ -298,7 +328,7 @@ export default {
                                    Store.getCurrentSheet());
     this.send(msg);
   },
-  find(findText){
+  find(findText: string) {
     let msg = TC.makeClientMessageRaw(Constants.ServerActions.Find, {
       tag: "PayloadFind",
       findText: findText,
@@ -309,7 +339,12 @@ export default {
     });
     this.send(msg);
   },
-  jumpSelect(range, origin, isShifted, direction) {
+  jumpSelect(
+    range: NakedRange,
+    origin: NakedIndex,
+    isShifted: boolean,
+    direction: Direction
+  ) {
     let msg = TC.makeClientMessageRaw(Constants.ServerActions.JumpSelect, {
       tag: "PayloadJump",
       isShifted: isShifted,
@@ -319,23 +354,23 @@ export default {
     });
     this.send(msg);
   },
-  bugReport(report) {
+  bugReport(report: string) {
     let msg = TC.makeClientMessageRaw(Constants.ServerActions.BugReport, {
       tag: "PayloadText",
       text: report,
     });
     this.send(msg);
   },
-  deleteIndices(locs) {
+  deleteIndices(locs: Array<ASIndex>) {
     let msg = TC.makeClientMessage(Constants.ServerActions.Delete, "PayloadLL", locs);
     this.send(msg);
   },
-  deleteRange(rng) {
+  deleteRange(rng: ASRange) {
     let msg = TC.makeClientMessage(Constants.ServerActions.Delete, "PayloadR", rng);
     this.send(msg);
   },
 
-  toggleTag(tag, rng) {
+  toggleTag(tag: ASCellTag, rng: NakedRange) {
     let msg = TC.makeClientMessageRaw(Constants.ServerActions.ToggleTag, {
       "tag": "PayloadTag",
       "cellTag": {tag: tag, contents: []},
@@ -344,7 +379,7 @@ export default {
     this.send(msg);
   },
 
-  setTag(tag, val, rng) {
+  setTag(tag: ASCellTag, val: any, rng: NakedRange) {
     let msg = TC.makeClientMessageRaw(Constants.ServerActions.SetTag, {
       "tag": "PayloadTag",
       "cellTag": {tag: tag, contents: val},
@@ -358,7 +393,7 @@ export default {
     let msg = TC.makeClientMessageRaw(Constants.ServerActions.SetTag, {
       "tag": "PayloadTag",
       "cellTag": {
-        tag: "ImageData", 
+        tag: "ImageData",
         imageHeight: val.imageHeight,
         imageWidth: val.imageWidth,
         imageOffsetX: val.imageOffsetX,
@@ -369,7 +404,7 @@ export default {
     this.send(msg);
   },
 
-  drag(activeRng,dragRng){
+  drag(activeRng: NakedRange, dragRng: NakedRange){
     let msg = TC.makeClientMessageRaw(Constants.ServerActions.Drag, {
       tag: "PayloadDrag",
       initialRange: TC.simpleToASRange(activeRng),
@@ -378,7 +413,7 @@ export default {
     this.send(msg);
   },
 
-  copy(fromRng, toRng) {
+  copy(fromRng: ASRange, toRng: ASRange) {
     let msg = TC.makeClientMessageRaw(Constants.ServerActions.Copy, {
       tag: "PayloadPaste",
       copyRange: fromRng,
@@ -387,7 +422,7 @@ export default {
     this.send(msg);
   },
 
-  cut(fromRng, toRng) {
+  cut(fromRng: ASRange, toRng: ASRange) {
     let msg = TC.makeClientMessageRaw(Constants.ServerActions.Cut, {
       tag: "PayloadPaste",
       copyRange: fromRng,
@@ -396,22 +431,22 @@ export default {
     this.send(msg);
   },
 
-  pasteSimple(cells){
+  pasteSimple(cells: Array<ASCell>) {
     let msg = TC.makeClientMessage(Constants.ServerActions.Evaluate, "PayloadCL", cells);
     this.send(msg);
   },
 
-  getIndices(locs) {
+  getIndices(locs: Array<ASIndex>) {
     let msg = TC.makeClientMessage(Constants.ServerActions.Get, "PayloadLL", locs);
     this.send(msg);
   },
 
-  getRange(rng) {
+  getRange(rng: ASRange) {
     let msg = TC.makeClientMessage(Constants.ServerActions.Get, "PayloadR", rng);
     this.send(msg);
   },
 
-  repeat(sel) {
+  repeat(sel: ASSelection) {
     let msg = TC.makeClientMessageRaw(Constants.ServerActions.Repeat, {
       tag: "PayloadSelection",
       selectionRange: TC.simpleToASRange(sel.range),
@@ -420,7 +455,7 @@ export default {
     this.send(msg);
   },
 
-  insertCol(c) {
+  insertCol(c: number) {
     let mutateType = {
       tag: "InsertCol",
       insertColNum: c
@@ -429,7 +464,7 @@ export default {
     this.send(msg);
   },
 
-  insertRow(r) {
+  insertRow(r: number) {
     let mutateType = {
       tag: "InsertRow",
       insertRowNum: r
@@ -438,7 +473,7 @@ export default {
     this.send(msg);
   },
 
-  deleteCol(c) {
+  deleteCol(c: number) {
     let mutateType = {
       tag: "DeleteCol",
       deleteColNum: c
@@ -447,7 +482,7 @@ export default {
     this.send(msg);
   },
 
-  deleteRow(r) {
+  deleteRow(r: number) {
     let mutateType = {
       tag: "DeleteRow",
       deleteRowNum: r
@@ -456,7 +491,7 @@ export default {
     this.send(msg);
   },
 
-  dragCol(c1, c2) {
+  dragCol(c1: number, c2: number) {
     let mutateType = {
       tag: "DragCol",
       oldColNum: c1,
@@ -466,7 +501,7 @@ export default {
     this.send(msg);
   },
 
-  dragRow(r1, r2) {
+  dragRow(r1: number, r2: number) {
     let mutateType = {
       tag: "DragRow",
       oldRowNum: r1,
@@ -477,7 +512,7 @@ export default {
   },
 
   // @optional mySheet
-  openSheet(mySheet) {
+  openSheet(mySheet: ASSheet) {
     let sheet = mySheet || Store.getCurrentSheet(),
         msg = TC.makeClientMessage(Constants.ServerActions.Open, "PayloadS", sheet);
     this.send(msg);
@@ -499,7 +534,7 @@ export default {
     this.send(msg);
   },
 
-  updateViewingWindow(vWindow) {
+  updateViewingWindow(vWindow: ASViewingWindow) {
     let msg = TC.makeClientMessage(Constants.ServerActions.UpdateWindow,
       "PayloadW",
       vWindow);
@@ -510,18 +545,18 @@ export default {
   /**************************************************************************************************************************/
   /* Testing */
 
-  withWS(fn) {
+  withWS<A>(fn: (pws: ws) => A): A {
     return fn(wss);
   },
 
-  test(f, cbs) {
+  test(f: Callback, cbs: ASAPICallbackPair) {
     currentCbs = cbs;
     isRunningTest = true;
 
     f();
   },
 
-  testSync(f, cbs) {
+  testSync(f: Callback, cbs: ASAPICallbackPair) {
     currentCbs = cbs;
     isRunningSyncTest = true;
 

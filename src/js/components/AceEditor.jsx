@@ -172,7 +172,7 @@ module.exports = React.createClass({
   */
   _onExpressionChange(){
     let xpChangeOrigin = ExpStore.getXpChangeOrigin();
-    logDebug("Editor caught exp update of type: " +  xpChangeOrigin);
+    logDebug("Editor caught exp update of_type: " +  xpChangeOrigin);
     switch(xpChangeOrigin){
       case Constants.ActionTypes.GRID_KEY_PRESSED:
       case Constants.ActionTypes.TEXTBOX_CHANGED:

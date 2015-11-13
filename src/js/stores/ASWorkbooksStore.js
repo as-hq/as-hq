@@ -6,9 +6,12 @@ import type {
 } from '../types/Actions';
 
 import type {
-  ASBackendSheet,
+  ASSheet
+} from '../types/Eval';
+
+import type {
   ASBackendWorkbookSheet
-} from '../types/Backend';
+} from '../types/Messages';
 
 import type {
   Dict
@@ -96,7 +99,7 @@ const ASWorkbookStore = Object.assign({}, BaseStore, {
     return _data.workbooks;
   },
 
-  getSheets(workbookName: string): Array<ASBackendSheet> {
+  getSheets(workbookName: string): Array<ASSheet> {
     return _data.workbooks[workbookName].wsSheets;
   }
 });

@@ -59,7 +59,7 @@ const ASEvaluationStore = assign({}, BaseStore, {
   dispatcherIndex: Dispatcher.register(function (action) {
     logDebug('Store received action', action);
 
-      switch (action.type) {
+      switch (action._type) {
         case Constants.ActionTypes.FIND_INCREMENTED:
           break;
         case Constants.ActionTypes.FIND_DECREMENTED:

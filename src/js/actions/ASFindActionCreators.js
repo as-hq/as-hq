@@ -7,12 +7,12 @@ export default {
 
   incrementSelection() {
     Dispatcher.dispatch({
-      type: Constants.ActionTypes.FIND_INCREMENTED,
+     _type: Constants.ActionTypes.FIND_INCREMENTED,
     });
   },
   decrementSelection(locs) {
     Dispatcher.dispatch({
-      type: Constants.ActionTypes.FIND_DECREMENTED,
+     _type: Constants.ActionTypes.FIND_DECREMENTED,
     });
   }
 };

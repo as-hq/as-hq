@@ -662,7 +662,7 @@ export default React.createClass({
   _onExpressionChange(){
     let xpChangeOrigin = ExpStore.getXpChangeOrigin(),
         xpStr = ExpStore.getExpression();
-    logDebug("Grid caught exp update of type: " +  xpChangeOrigin);
+    logDebug("Grid caught exp update of_type: " +  xpChangeOrigin);
     switch(xpChangeOrigin){
       case Constants.ActionTypes.TEXTBOX_CHANGED:
         Render.setShouldRenderSquareBox(false);

@@ -5,22 +5,10 @@ import Constants from '../Constants';
 
 export default {
 
-  selectCell(loc) {
-    Dispatcher.dispatch({
-      type: Constants.ActionTypes.CELL_CHANGED,
-      loc: loc
-    });
-  },
-  selectRange(locs) {
-    Dispatcher.dispatch({
-      type: Constants.ActionTypes.RANGE_CHANGED,
-      locs: locs
-    });
-  },
   /* Dispatches a scroll event. Called from fin-hypergrid event listener in ASSpreadsheet */
   scroll(vWindow) {
     Dispatcher.dispatch({
-      type: Constants.ActionTypes.SCROLLED,
+     _type: Constants.ActionTypes.SCROLLED,
       vWindow: vWindow
     });
   }

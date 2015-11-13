@@ -42,11 +42,11 @@ const ASExpStore = assign({}, BaseStore, {
 
   dispatcherIndex: Dispatcher.register(function (action) {
     logDebug("Exp Store detected dispatcher payload");
-    switch (action.type) {
+    switch (action._type) {
       case Constants.ActionTypes.GRID_KEY_PRESSED:
       case Constants.ActionTypes.EDITOR_CHANGED:
       case Constants.ActionTypes.TEXTBOX_CHANGED:
-        ASExpStore.updateStoreNormalTyping(action.type, action.xpStr);
+        ASExpStore.updateStoreNormalTyping(action._type, action.xpStr);
         break;
       case Constants.ActionTypes.NORMAL_SEL_CHANGED:
         ASExpStore.updateStoreSelChange(action.xpStr);
@@ -57,17 +57,17 @@ const ASExpStore = assign({}, BaseStore, {
             newXpStr = lastRef ?
               curXpStr.substring(0,curXpStr.length-lastRef.length) + action.excelStr:
               curXpStr + action.excelStr;
-        ASExpStore.updatePartialRef(action.type,newXpStr,action.excelStr);
+        ASExpStore.updatePartialRef(action._type,newXpStr,action.excelStr);
         break;
       case Constants.ActionTypes.PARTIAL_REF_CHANGE_WITH_EDITOR:
       case Constants.ActionTypes.PARTIAL_REF_CHANGE_WITH_TEXTBOX:
-        ASExpStore.updatePartialRef(action.type,action.xpStr,action.excelStr);
+        ASExpStore.updatePartialRef(action._type,action.xpStr,action.excelStr);
         break;
       case Constants.ActionTypes.ESC_PRESSED:
         logDebug("Exp store found ESC");
         ASExpStore.setExpression("");
         ASExpStore.setUserIsTyping(false);
-        ASExpStore.setXpChangeOrigin(action.type);
+        ASExpStore.setXpChangeOrigin(action._type);
         ASExpStore.emitChange();
         break;
 

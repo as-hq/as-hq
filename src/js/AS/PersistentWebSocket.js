@@ -1,10 +1,16 @@
+/* @flow */
+
+import type {
+  Callback,
+  IntervalId
+} from '../types/Base';
+
 // Behavior:
 // - sends messages every 100ms
 // - queues messages if readyState is 0
 // - if the connection has spent too long at readyState 0, attempt to reconnect
 
-import isNode from 'detect-node';
-let ws = isNode ? require('ws') : WebSocket;
+let ws = WebSocket;
 
 import {logDebug} from './Logger';
 
@@ -13,7 +19,16 @@ const INTERVAL = 50; // number of ms in an interval
 const SEND_ACK_FREQ = 20;
 
 class PersistentWebSocket {
-  constructor(url) {
+  _url: string;
+  _callbackQueue: Array<Callback<WebSocket>>;
+  _client: WebSocket;
+  _dcCount: number;
+  _onreconnect: () => void;
+  _beforereconnect: () => void;
+  _sendAck: Callback<WebSocket>;
+  _messagePump: IntervalId;
+
+  constructor(url: string) {
     this._url = url;
     this._callbackQueue = [];
     this._client = new ws(url);
@@ -33,22 +48,22 @@ class PersistentWebSocket {
     w.PersistentWebSocket = PersistentWebSocket;
   }
 
-  set onmessage(fn) {
+  set onmessage(fn: Callback<MessageEvent>) {
     this._client.onmessage = (evt) => {
       this._dcCount = 0;
       fn(evt);
     };
   }
 
-  set onopen(fn) {
+  set onopen(fn: Callback<Event>) {
     this._client.onopen = fn;
   }
 
-  set beforereconnect(fn) {
+  set beforereconnect(fn: Callback) {
     this._beforereconnect = fn;
   }
 
-  set sendAck(fn) {
+  set sendAck(fn: Callback<WebSocket>) {
     this._sendAck = fn;
   }
 
@@ -86,19 +101,19 @@ class PersistentWebSocket {
     }
   }
 
-  _withNakedWS(fn) { // FOR TESTING PURPOSES
+  _withNakedWS(fn: Callback<WebSocket>) { // FOR TESTING PURPOSES
     fn(this._client);
   }
 
-  readyState() {
+  readyState(): number {
     return this._client.readyState;
   }
 
-  waitForConnection(cb) {
+  waitForConnection(cb: Callback<WebSocket>) {
     this._callbackQueue.push(cb);
   }
 
-  send(msg) {
+  send(msg: string) {
     let self = this;
     this.waitForConnection(() => {
       self._client.send(msg);

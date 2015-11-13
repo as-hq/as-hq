@@ -15,8 +15,14 @@ import type {
 import type {
   ASBackendCommit,
   PayloadSelection,
-  ASBackendWorkbookSheet
-} from './Backend';
+  ASBackendWorkbookSheet,
+  ASServerMessage
+} from './Messages';
+
+export type GotFailureAction = {
+  _type: 'GOT_FAILURE';
+  errorMsg: ASServerMessage;
+};
 
 export type ScrolledAction = {
   _type: 'SCROLLED';
@@ -153,7 +159,8 @@ export type WorkbookAction =
   | DeletedWorkbooksAction;
 
 export type ASAction =
-  GotUpdatedWorkbooksAction
+  GotFailureAction
+  | GotUpdatedWorkbooksAction
   | GotNewWorkbooksAction
   | DeletedWorkbooksAction
   | ScrolledAction

@@ -44,6 +44,7 @@ export default Object.assign({
 
   // Each time you add an action, add it here... They should be past-tense
   ActionTypes: keyMirror({
+    GOT_FAILURE: null,
     CELL_CHANGED: null,
     RANGE_CHANGED: null,
     SCROLLED: null,

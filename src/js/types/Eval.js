@@ -247,24 +247,33 @@ export type ASReplValue = {
   replLang: ASLanguage;
 };
 
-export type NakedLocation = {
+export type NakedIndex = {
   row: number;
   col: number;
+};
+
+export type NakedRange = {
+  tl: NakedIndex;
+  br: NakedIndex;
 };
 
 export type ASIndex = {
   tag: 'index';
   sheetId: string;
-  index: NakedLocation;
+  index: NakedIndex;
 };
 
 export type ASRange = {
   tag: 'range';
   sheetId: string;
-  range: {
-    tl: NakedLocation;
-    br: NakedLocation;
-  };
+  range: NakedRange;
+};
+
+export type ASSheet = {
+  tag: 'Sheet';
+  sheetId: string;
+  sheetName: string;
+  sheetPermissions: ASPermissions;
 };
 
 export type ASCell = {

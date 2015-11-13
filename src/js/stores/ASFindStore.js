@@ -15,7 +15,7 @@ let _data = {
 };
 
 dispatcherIndex: Dispatcher.register(function (action) {
-  switch (action.type) {
+  switch (action._type) {
     case Constants.ActionTypes.GOT_FIND:
       ASFindStore.setFindLocs(action.findLocs);
       ASFindStore.setFindPos(0);

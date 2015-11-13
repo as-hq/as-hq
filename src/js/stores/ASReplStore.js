@@ -30,7 +30,7 @@ let _data = {
 
 /* This function describes the actions of the ASReplStore upon recieving a message from Dispatcher */
 dispatcherIndex: Dispatcher.register(function (action) {
-    switch (action.type) {
+    switch (action._type) {
       /* Called by Eval Pane upon leaving/changing a REPL (simply sets the expression in store) */
       case Constants.ActionTypes.REPL_LEFT:
         ASReplStore.updateReplExp(action.lang, action.value);

@@ -7,7 +7,7 @@ export default {
 
   storeReplExpression(lang,value) {
     Dispatcher.dispatch({
-      type: Constants.ActionTypes.REPL_LEFT,
+     _type: Constants.ActionTypes.REPL_LEFT,
       lang: lang,
       value: value
     });
