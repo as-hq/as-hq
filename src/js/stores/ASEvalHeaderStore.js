@@ -14,7 +14,6 @@ Bug: If the REPL sends an "invalid" message to backend (for example, entering ab
 --  Ritesh 10/12
 */
 
-
 let evalHeaderExps = {};
 for (var key in Constants.Languages) {
   evalHeaderExps[key] = "";
@@ -39,21 +38,21 @@ dispatcherIndex: Dispatcher.register(function (action) {
 
 const ASEvalHeaderStore = assign({}, BaseStore, {
 
-  updateEvalHeaderExp(lang,value){
-    logDebug("In evalHeader store, updating evalHeader data "+ lang + " " + value);
+  updateEvalHeaderExp(lang,value) {
+    logDebug("In evalHeader store, updating evalHeader data " + lang + " " + value);
     _data.evalHeaderExps[lang] = value;
     logDebug(JSON.stringify(_data.evalHeaderExps));
   },
 
-  getEvalHeaderExp(lang){
+  getEvalHeaderExp(lang) {
     return _data.evalHeaderExps[lang];
   },
 
-  getExps(){
+  getExps() {
     return _data.evalHeaderExps;
   },
 
-  getSubmittedLanguage(){
+  getSubmittedLanguage() {
     return _data.evalHeaderSubmitLang;
   },
 
