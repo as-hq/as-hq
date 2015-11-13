@@ -9,6 +9,7 @@ import qualified Data.Text as T
 import qualified Data.List as L
 import qualified Data.Either as E
 import Text.ParserCombinators.Parsec
+import qualified Text.ParserCombinators.Parsec.Token as P
 import Control.Applicative hiding ((<|>), many)
 import qualified Data.Map as M
 import qualified Data.Text.Lazy as LA
@@ -87,3 +88,28 @@ tryParse p s = parse p "" (T.pack s)
 
 containsAny :: [String] -> String -> Bool
 containsAny lst s = any (flip L.isInfixOf s) lst
+
+-- | Because Haskell's float lexer doesn't parse negative floats out of the box. <__<
+float' :: P.TokenParser () -> Parser Double
+float' lexer = do 
+  maybeMinus <- optionMaybe $ try (char '-') 
+  f <- P.float lexer
+  case maybeMinus of 
+    Nothing -> return f 
+    _ -> return (-f)
+
+-- | Matches an escaped string and returns the unescaped version. E.g. 
+-- "\"hello" -> "hello
+quotedString :: Parser String
+quotedString = (quoteString <|> apostropheString)
+  where
+    quoteString      = quotes $ many $ escaped <|> noneOf ['"']
+    apostropheString = apostrophes $ many $ escaped <|> noneOf ['\'']
+    quotes           = between quote quote
+    quote            = char '"' --
+    apostrophes      = between apostrophe apostrophe
+    apostrophe       = char '\'' -- TODO apostrophes also
+    escaped          = char '\\' >> choice (zipWith escapedChar codes replacements)
+    escapedChar code replacement = char code >> return replacement
+    codes            = ['b',  'n',  'f',  'r',  't',  '\\', '\'', '\"', '/']
+    replacements     = ['\b', '\n', '\f', '\r', '\t', '\\', '\'', '\"', '/']

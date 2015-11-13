@@ -336,10 +336,10 @@ getUncoveredLocs sheet (tlo, bro) (tlw, brw) = [Range sheet corners | corners <-
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Cells
 
-isListMember :: ASCell -> Bool
-isListMember (Cell _ _ _ ts) = any id $ map (\t -> case t of
-  (ListMember _) -> True
-  _ -> False) ts
+--isListMember :: ASCell -> Bool
+--isListMember (Cell _ _ _ ts) = any id $ map (\t -> case t of
+--  (ListMember _) -> True
+--  _ -> False) ts
 
 mergeCells :: [ASCell] -> [ASCell] -> [ASCell]
 mergeCells c1 c2 = L.unionBy isColocated c1 c2
@@ -352,24 +352,24 @@ blankCellsAt = map (\l -> Cell l (Expression "" Excel) NoValue [])
 removeCell :: ASIndex -> [ASCell] -> [ASCell]
 removeCell idx = filter (((/=) idx) . cellLocation)
 
-isMemberOfSpecifiedList :: ListKey -> ASCell -> Bool
-isMemberOfSpecifiedList key cell = case (getListTag cell) of
-  (Just (ListMember key')) -> key' == key
-  Nothing -> False
+--isMemberOfSpecifiedList :: ListKey -> ASCell -> Bool
+--isMemberOfSpecifiedList key cell = case (getListTag cell) of
+--  (Just (ListMember key')) -> key' == key
+--  Nothing -> False
 
--- partitions a set of cells into (cells belonging to one of the specified lists, other cells)
-partitionByListKeys :: [ASCell] -> [ListKey] -> ([ASCell], [ASCell])
-partitionByListKeys cells [] = ([], cells)
-partitionByListKeys cells keys = liftListTuple $ map (partitionByListKey cells) keys
-  where
-    partitionByListKey cs k = L.partition (isMemberOfSpecifiedList k) cs
+---- partitions a set of cells into (cells belonging to one of the specified lists, other cells)
+--partitionByListKeys :: [ASCell] -> [ListKey] -> ([ASCell], [ASCell])
+--partitionByListKeys cells [] = ([], cells)
+--partitionByListKeys cells keys = liftListTuple $ map (partitionByListKey cells) keys
+--  where
+--    partitionByListKey cs k = L.partition (isMemberOfSpecifiedList k) cs
 
-listKeyOrdering :: ListKey -> ListKey -> Ordering
-listKeyOrdering k1 k2 = if (k1 == k2)
-  then EQ
-  else if (k1 > k2)
-    then GT
-    else LT
+--listKeyOrdering :: ListKey -> ListKey -> Ordering
+--listKeyOrdering k1 k2 = if (k1 == k2)
+--  then EQ
+--  else if (k1 > k2)
+--    then GT
+--    else LT
 
 isString :: ASValue -> Bool
 isString (ValueS _) = True
@@ -501,25 +501,6 @@ hasPermissions uid (Whitelist entities) = any (isInEntity uid) entities
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Tags
-
-containsDFMember :: [Maybe ASCell] -> Bool
-containsDFMember = any (\c -> case c of
-  Just cell -> isDFMember cell
-  Nothing -> False)
-
-isDFMember :: ASCell -> Bool
-isDFMember (Cell _ _ _ ts) = any (\t -> case t of
-  DFMember -> True
-  _ -> False) ts
-
-getListKeyUnsafe :: ASCell -> ListKey
-getListKeyUnsafe cell = listKey
-  where (Just (ListMember listKey)) = getListTag cell
-
-getListTag :: ASCell -> Maybe ASCellTag
-getListTag (Cell _ _ _ ts) = L.find (\t -> case t of
-  (ListMember _) -> True
-  _ -> False) ts
 
 containsTrackingTag :: [ASCellTag] -> Bool
 containsTrackingTag [] = False

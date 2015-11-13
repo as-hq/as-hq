@@ -3,7 +3,7 @@ module AS.Kernels.Excel.Compiler where
 import AS.Types.Core hiding (str,error,SyntaxError)
 import AS.Types.Excel
 import AS.Parsing.Excel (refMatch)
-import qualified AS.Util as U
+import qualified AS.Parsing.Common as C
 
 import Text.ParserCombinators.Parsec
 import qualified Text.ParserCombinators.Parsec.Token as P
@@ -129,7 +129,7 @@ lexeme        = P.lexeme lexer
 symbol        = P.symbol lexer
 natural       = P.natural lexer
 integer       = P.integer lexer
-float         = U.float' lexer
+float         = C.float' lexer
 parens        = P.parens lexer
 semi          = P.semi lexer
 semiSep       = P.semiSep lexer
@@ -262,7 +262,7 @@ bool :: Parser Bool
 bool = fmap readBool $ caseInsensitiveString "TRUE" <|> caseInsensitiveString "FALSE"
 
 str :: Parser String
-str = U.quotedString
+str = C.quotedString
 
 floatOrInteger :: Parser Double
 floatOrInteger = (try float') <|> (fromInteger <$> integer)

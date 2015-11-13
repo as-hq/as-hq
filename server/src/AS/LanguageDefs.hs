@@ -49,7 +49,7 @@ bool lang val = case val of
     SQL   -> "False"
     Excel -> "False"
 
-blockDelimter :: ASLanguage -> String
+blockDelimiter :: ASLanguage -> String
 blockDelimiter lang = case lang of
   OCaml -> ";;"
   _ -> ""

@@ -71,16 +71,16 @@ type EvalCode = String
 
 data ASExpression =
     Expression { expression :: String, language :: ASLanguage }
-  | Coupled { cExpression :: String, cLanguage :: ASLanguage, cType :: ComplexType, cListKey :: RangeKey }
+  | Coupled { cExpression :: String, cLanguage :: ASLanguage, cType :: ComplexType, cRangeKey :: RangeKey }
   deriving (Show, Read, Eq, Generic)
 
 xpString :: ASExpression -> String
 xpString (Expression xp _) = xp
-xpString (Coupled xp _ _) = xp
+xpString (Coupled xp _ _ _) = xp
 
 xpLanguage :: ASExpression -> ASLanguage
 xpLanguage (Expression _ lang) = lang
-xpLanguage (Coupled _ lang _) = lang
+xpLanguage (Coupled _ lang _ _) = lang
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Values
@@ -123,7 +123,7 @@ data CompositeValue = Expanding ExpandingValue | CellValue ASValue deriving (Sho
 
 data RangeDescriptor = 
     ListDescriptor { listKey :: RangeKey}
-  | ObjectDescriptor {objListKey :: RangeKey, objType :: ObjectType, objAttrs :: JSON}
+  | ObjectDescriptor {objKey :: RangeKey, objType :: ObjectType, objAttrs :: JSON}
 
 -- range keys are used to access range descriptors, which relay metadata about a range of cells
 -- e.g. for embedded lists and objects

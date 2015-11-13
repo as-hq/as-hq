@@ -17,7 +17,7 @@ import Control.Applicative hiding ((<|>), many)
 
 import AS.Types.Core
 import AS.Parsing.Common
-import AS.LanguageDefs as LD
+import qualified AS.LanguageDefs as LD
 
 -----------------------------------------------------------------------------------------------------------------------
 -- top-level parsers
@@ -30,14 +30,8 @@ parseValue lang = readOutput . (parse (value lang) "")
 
 value :: ASLanguage -> Parser CompositeValue
 value lang = 
-      unpackExpanding <$> (try $ possiblyExpanding lang)
+      (try $ extractComplex lang)
   <|> CellValue <$> (try $ asValue lang)
-  where 
-    unpackExpanding (Right val) = CellValue val
-    unpackExpanding (Left val) = Expanding val
-
-possiblyExpanding :: ASLanguage -> Parser Either ExpandingValue ASValue
-possiblyExpanding = extractComplex
 
 asValue :: ASLanguage -> Parser ASValue
 asValue lang =
@@ -57,34 +51,11 @@ integer = fromInteger <$> P.integer lexer
 float :: Parser Double
 float = float' lexer
 
--- | Because Haskell's float lexer doesn't parse negative floats out of the box. <__<
-float' :: P.TokenParser () -> Parser Double
-float' lexer = do 
-  maybeMinus <- option ' ' $ try (char '-') 
-  f <- P.float lexer
-  if (maybeMinus == ' ') then (return f) else (return (-f))
-
 bool :: ASLanguage -> Parser Bool
 bool lang = LD.readBool <$> (true <|> false)
   where
     true = string (LD.bool lang True)
     false = string (LD.bool lang False) 
-
--- | Matches an escaped string and returns the unescaped version. E.g. 
--- "\"hello" -> "hello
-quotedString :: Parser String
-quotedString = (quoteString <|> apostropheString)
-  where
-    quoteString      = quotes $ many $ escaped <|> noneOf ['"']
-    apostropheString = apostrophes $ many $ escaped <|> noneOf ['\'']
-    quotes           = between quote quote
-    quote            = char '"' --
-    apostrophes      = between apostrophe apostrophe
-    apostrophe       = char '\'' -- TODO apostrophes also
-    escaped          = char '\\' >> choice (zipWith escapedChar codes replacements)
-    escapedChar code replacement = char code >> return replacement
-    codes            = ['b',  'n',  'f',  'r',  't',  '\\', '\'', '\"', '/']
-    replacements     = ['\b', '\n', '\f', '\r', '\t', '\\', '\'', '\"', '/']
 
 nullValue :: ASLanguage -> Parser ASValue
 nullValue lang = case lang of 
@@ -104,10 +75,10 @@ extractComplex lang =
       f =<< (try $ json lang) 
   <|> complain
   where f js = case (M.lookup js "tag") of 
-    Just tag -> case (extractComplexValue tag js) of 
-      Just val -> return val
-      Nothing -> complain
-    Nothing -> complainField "tag"
+            Just tag -> case (extractComplexValue tag js) of 
+              Just val -> return val
+              Nothing -> complain
+            Nothing -> fail "expecting field \"tag\" in complex value"
 
 extractComplexValue :: JSONKey -> JSON -> Maybe CompositeValue
 extractComplexValue tag js = case (read tag :: Maybe ComplexType) of 
@@ -150,10 +121,10 @@ extractObject js = case (M.lookup js "objectType") of
 
 extractError :: JSON -> Maybe ASValue
 extractError js = case (M.lookup js "errorMsg") of 
-  Nothing -> complainField "errorMsg"
-  Just (JSONValue (ValueS emsg)) -> case (M.lookup js "errorType") of
-    Nothing -> complainField "errorType"
-    Just (JSONValue (ValueS etype)) -> ValueError emsg etype
+  Just (PrimitiveValue (ValueS emsg)) -> case (M.lookup js "errorType") of
+    Just (PrimitiveValue (ValueS etype)) -> ValueError emsg etype
+    _ -> Nothing
+  _ -> Nothing
 
 json :: ASLanguage -> Parser JSON
 json lang = JSON <$> extractMap
@@ -161,7 +132,7 @@ json lang = JSON <$> extractMap
     braces      = between (char '{') (char '}')
     leaf        = JSONLeaf <$> (try jsonValue lang)
     tree        = JSONTree <$> (try json lang)
-    delimiter   = spaces >> comma >> spaces
+    delimiter   = spaces >> O.comma >> spaces
     pair        = do
       key  <- quotedString
       spaces >> char ':' >> spaces

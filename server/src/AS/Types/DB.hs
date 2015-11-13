@@ -12,7 +12,7 @@ import Data.Text hiding (foldr, map)
 data ASTransaction = Transaction {transactionCommitSource :: CommitSource,
                                   roots :: [ASCell], 
                                   afterCells :: [ASCell],
-                                  lists :: [ASList]}
+                                  fatCells :: [FatCell]}
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Queries

@@ -13,6 +13,7 @@ import qualified Data.Text.Lazy (replace)
 
 import AS.Types.Core
 import AS.Types.Excel
+import AS.Util
 
 -------------------------------------------------------------------------------------------------------------------------------------------------
 -- Type for parsing Excel Locations
