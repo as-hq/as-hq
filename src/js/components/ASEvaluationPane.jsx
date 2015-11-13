@@ -190,6 +190,7 @@ export default React.createClass({
 
   _onEvalHeaderUpdate() {
     this.setToast(EvalHeaderStore.getDispMessage());
+    this._getEvalHeaderEditor().focus();
   },
 
   enableTestMode() {
@@ -624,6 +625,7 @@ export default React.createClass({
     let lang       = this.state.evalHeaderLanguage.Display, 
         expression = this._evalHeaderValue(); 
 
+    EvalHeaderActionCreator.storeEvalHeaderExpression(lang, expression); 
     API.evaluateHeader(expression, lang);
   },
 

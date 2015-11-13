@@ -35,9 +35,7 @@ dispatcherIndex: Dispatcher.register(function (action) {
         ASEvalHeaderStore.updateEvalHeaderExp(action.lang, action.value);
         break;
       case Constants.ActionTypes.GOT_EVAL_HEADER_RESP:
-        // The header file is getting evaluated as though it were submitted through the Repl, for 
-        // convenience. Hence the .replValue.
-        _data.evalHeaderDispMessage = ASEvalHeaderStore.makeDispMessage(action.response.replValue);
+        _data.evalHeaderDispMessage = ASEvalHeaderStore.makeDispMessage(action.response);
         ASEvalHeaderStore.emitChange();
         break;
       }

@@ -103,7 +103,7 @@ export default React.createClass({
                 top: '0px'
               }}/>
             <FlatButton
-              label="EVAL HEADER"
+              label="HEADER"
               onClick={this.props.onEvalHeaderClick}
               style={{
                 position: 'relative',

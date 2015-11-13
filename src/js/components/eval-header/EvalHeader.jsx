@@ -32,7 +32,7 @@ export default React.createClass({
   render() {
     let languageInd = languages.map((l) => l.text).indexOf(this.props.evalHeaderLanguage.Display);
     return (
-      <div style={{width:"100%",height:"100%",marginLeft:"6px"}} >
+      <div style={{width:"100%",height:"100%",marginLeft:"6px"}}>
         <Toolbar
           style={{backgroundColor:Styles.Colors.grey900}}
           showMenuIconButton={false}>
@@ -41,15 +41,16 @@ export default React.createClass({
             onChange={this.props.onEvalHeaderLanguageChange}
             selectedIndex={languageInd}
             underlineStyle={{ display: 'none' }} />
-        </Toolbar>
-        <FlatButton
-              label="Save"
-              onClick={this.props.onSubmitEvalHeader}
-              style={{
+          <FlatButton 
+            label="Save"
+            style={{
                 position: 'relative',
-                left: '300px',
-                top: '-45px'
-        }} />
+                left: '55px',
+                top: '-10px',
+                fontFamily: '"Lucida Console", Monaco, monospace'
+            }}
+            onClick={this.props.onSubmitEvalHeader} />
+        </Toolbar>
         <EvalHeaderEditor
           ref="editor" name="evalHeader"
           mode={this.props.evalHeaderLanguage.Editor}
