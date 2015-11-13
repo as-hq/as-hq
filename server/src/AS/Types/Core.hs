@@ -135,7 +135,7 @@ data FatCell = FatCell [ASCell] RangeDescriptor
 -- Parsing
 
 -- this type is used in parsing. the flow for parsing a "complex" type is
--- String -> JSON -> CompositeValue -> [ASValue] 
+-- String -> JSON -> CompositeValue -> FatCell -> [ASValue]
 type JSON = M.Map JSONKey JSONField 
 type JSONKey = String 
 data JSONField = JSONTree JSON | JSONLeaf JSONValue

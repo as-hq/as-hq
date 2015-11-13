@@ -15,7 +15,7 @@ import AS.Types.Core
 import AS.Types.Excel
 import AS.Parsing.Common
 import AS.Util
-import AS.LanguageDefs as LD
+import qualified AS.LanguageDefs as LD
 
 -----------------------------------------------------------------------------------------------------------------------
 -- exposed

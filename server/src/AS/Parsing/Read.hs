@@ -52,21 +52,24 @@ float :: Parser Double
 float = float' lexer
 
 bool :: ASLanguage -> Parser Bool
-bool lang = LD.readBool <$> (true <|> false)
+bool lang = true <|> false
   where
-    true = string (LD.bool lang True)
-    false = string (LD.bool lang False) 
+    true = string (LD.bool lang True) >> return True
+    false = string (LD.bool lang False) >> return False
 
 nullValue :: ASLanguage -> Parser ASValue
 nullValue lang = case lang of 
   Python -> string (LD.null Python) >> return NoValue
   R      -> string (LD.null R) >> return NoValue
-  _      -> fail $ "No nullValue in " (show lang)
+  _      -> fail $ "No nullValue in " ++ (show lang)
 
 lexer = P.makeTokenParser Lang.haskellDef
 
 -----------------------------------------------------------------------------------------------------------------------
 -- complex parsers
+
+(.>) :: JSON -> JSONKey -> Maybe JSONField
+(.>) = flip M.lookup
 
 complain = fail "could not parse complex/object/json value"
 
@@ -74,8 +77,8 @@ extractComplex :: ASLanguage -> Parser CompositeValue
 extractComplex lang = 
       f =<< (try $ json lang) 
   <|> complain
-  where f js = case (M.lookup js "tag") of 
-            Just tag -> case (extractComplexValue tag js) of 
+  where f js = case (js .> "tag") of 
+            Just (JSONLeaf (PrimitiveValue (ValueS tag))) -> case (extractComplexValue tag js) of 
               Just val -> return val
               Nothing -> complain
             Nothing -> fail "expecting field \"tag\" in complex value"
@@ -84,23 +87,23 @@ extractComplexValue :: JSONKey -> JSON -> Maybe CompositeValue
 extractComplexValue tag js = case (read tag :: Maybe ComplexType) of 
   Nothing -> Nothing
   Just tag' -> case tag' of 
-    List -> Expanding . VList <$> extractCollection "listVals" js
+    List -> Expanding . VList <$> extractCollection js "listVals"
     Object -> Expanding <$> extractObject js
     Image -> CellValue <$> extractImage js
     Error -> CellValue <$> extractError js
 
 extractCollection :: JSON -> JSONKey -> Maybe Collection
-extractCollection js key = case (M.lookup js key) of 
+extractCollection js key = case (js .> key) of 
   Just (JSONLeaf (ListValue collection)) -> Just collection
   _ -> Nothing 
 
 extractImage :: JSON -> Maybe ASValue
-extractImage js = case (M.lookup js "imagePath") of 
+extractImage js = case (js .> "imagePath") of 
   Just (JSONLeaf (PrimitiveValue (ValueS path))) -> Just $ ValueImage path
   _ -> Nothing
 
 extractObject :: JSON -> Maybe ExpandingValue
-extractObject js = case (M.lookup js "objectType") of 
+extractObject js = case (js .> "objectType") of 
   Just (JSONLeaf (PrimitiveValue (ValueS o))) -> case (read o :: Maybe ObjectType) of 
     (Just otype) -> case otype of 
       NPArray -> VNPArray <$> extractCollection js "arrayVals"
@@ -120,9 +123,9 @@ extractObject js = case (M.lookup js "objectType") of
   _ -> Nothing
 
 extractError :: JSON -> Maybe ASValue
-extractError js = case (M.lookup js "errorMsg") of 
-  Just (PrimitiveValue (ValueS emsg)) -> case (M.lookup js "errorType") of
-    Just (PrimitiveValue (ValueS etype)) -> Just $ ValueError emsg etype
+extractError js = case (js .> "errorMsg") of 
+  Just (JSONLeaf (PrimitiveValue (ValueS emsg))) -> case (js .> "errorType") of
+    Just (JSONLeaf (PrimitiveValue (ValueS etype))) -> Just $ ValueError emsg etype
     _ -> Nothing
   _ -> Nothing
 
