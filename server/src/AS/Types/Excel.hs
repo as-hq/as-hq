@@ -84,7 +84,6 @@ showExcelValue val = case val of
   ValueI i      -> show i
   ValueD d      -> show d
   ValueB b      -> show b
-  ValueL l      -> toExcelList $ fmap showExcelValue l
 
 toExcelList :: [String] -> String
 toExcelList lst  = "[" ++ (intercalate "," lst) ++ "]"

@@ -70,8 +70,17 @@ data ASLanguage = R | Python | OCaml | CPP | Java | SQL | Excel deriving (Show, 
 type EvalCode = String
 
 data ASExpression =
-  Expression { expression :: String, language :: ASLanguage }
+    Expression { expression :: String, language :: ASLanguage }
+  | Coupled { cExpression :: String, cLanguage :: ASLanguage, cType :: ComplexType, cListKey :: RangeKey }
   deriving (Show, Read, Eq, Generic)
+
+xpString :: ASExpression -> String
+xpString (Expression xp _) = xp
+xpString (Coupled xp _ _) = xp
+
+xpLanguage :: ASExpression -> ASLanguage
+xpLanguage (Expression _ lang) = lang
+xpLanguage (Coupled _ lang _) = lang
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Values
@@ -88,10 +97,10 @@ data ASValue =
   deriving (Show, Read, Eq, Generic)
 
 type RListKey = String
-data ASReplValue = ReplValue {replValue :: ASValue, replLang :: ASLanguage} deriving (Show, Read, Eq, Generic)
+data ASReplValue = ReplValue {replValue :: CompositeValue, replLang :: ASLanguage} deriving (Show, Read, Eq, Generic)
 type RefValMap = M.Map ASReference ASValue
 
-data ComplexType = List | Object | Image | Error deriving (Show, Read)
+data ComplexType = List | Object | Image | Error deriving (Show, Read, Eq, Generic)
 data ObjectType = RList | RDataFrame | NPArray | NPMatrix | PDataFrame | PSeries deriving (Show, Read, Eq, Generic)
 
 -- ephemeral types produced by eval 
@@ -108,14 +117,17 @@ data ExpandingValue =
   | VNPMatrix Matrix
   | VPDataFrame {dfLabels :: [String], dfData :: Collection}
   | VPSeries Array
+  deriving (Show, Read, Eq, Generic)
 
-data CompositeValue = Expanding ExpandingValue | CellValue ASValue
+data CompositeValue = Expanding ExpandingValue | CellValue ASValue deriving (Show, Read, Eq, Generic)
 
 data RangeDescriptor = 
-    ListDescriptor { listKey :: ListKey}
-  | ObjectDescriptor {objListKey :: ListKey, objType :: ObjectType, objAttrs :: JSON}
+    ListDescriptor { listKey :: RangeKey}
+  | ObjectDescriptor {objListKey :: RangeKey, objType :: ObjectType, objAttrs :: JSON}
 
-type ListKey = String
+-- range keys are used to access range descriptors, which relay metadata about a range of cells
+-- e.g. for embedded lists and objects
+type RangeKey = String
 data FatCell = FatCell [ASCell] RangeDescriptor
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Parsing
@@ -192,8 +204,6 @@ data ASCellTag =
   | Tracking
   | Volatile
   | ReadOnly [ASUserId]
-  | ListMember ListKey
-  | DFMember
   deriving (Show, Read, Eq, Generic)
 
 data ASCell = Cell {cellLocation :: ASIndex,
@@ -444,6 +454,12 @@ instance FromJSON JSONValue
 instance ToJSON JSONValue
 instance FromJSON Collection
 instance ToJSON Collection
+instance FromJSON CompositeValue
+instance ToJSON CompositeValue
+instance FromJSON ComplexType
+instance ToJSON ComplexType
+instance FromJSON ExpandingValue
+instance ToJSON ExpandingValue
 -- The format Frontend uses for both client->server and server->client is
 -- { messageUserId: blah, action: blah, result: blah, payload: blah }
 instance ToJSON ASClientMessage where

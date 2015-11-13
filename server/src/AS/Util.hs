@@ -150,36 +150,13 @@ catchEitherT a = do
   case result of
     (Left e) -> left e
     (Right e) -> right e
-    where whenCaught = (\e -> return . Right $ ValueError (show e) "StdErr" "" 0) :: (SomeException -> IO (Either ASExecError ASValue))
+    where whenCaught = (\e -> return . Right $ ValueError (show e) "StdErr") :: (SomeException -> IO (Either ASExecError ASValue))
 
 fromDouble :: Double -> Either Double Int
 fromDouble x = if (x == xInt)
   then Right $ fromInteger (round x)
   else Left x
   where xInt = fromInteger (round x)
---------------------------------------------------------------------------------------------------------------
--- Lists
-
--- assumes all rows have same length, and every input ASValue is a row (i.e. column-major)
--- TODO deal with case of RDataFrame
-transposeList :: [ASValue] -> [ASValue]
-transposeList l = case (head l) of
-  (ValueL _) -> map ValueL $ L.transpose $ map toList l
-  _ -> [ValueL l]
-
-isHighDimensional :: Int -> ASValue -> Bool
-isHighDimensional depth (ValueL l) = if (depth + 1 > 2)
-  then True
-  else isHighDimensional (depth + 1) (head l)
-isHighDimensional depth (RDataFrame l) = if (depth + 1 > 2)
-  then True
-  else isHighDimensional (depth + 1) (head l)
-isHighDimensional depth _ = False
-
-sanitizeList :: ASValue -> ASValue
-sanitizeList v = if (isHighDimensional 0 v)
-  then ValueError "Cannot embed lists of dimension > 2." "StdErr" "" 0
-  else v
 
 --------------------------------------------------------------------------------------------------------------
 -- Key-value manip functions
@@ -398,30 +375,6 @@ isString :: ASValue -> Bool
 isString (ValueS _) = True
 isString _ = False
 
-----------------------------------------------------------------------------------------------------------------------------------------------
--- References in maps
-
-shouldGroupRefs :: (ASCell, [ASReference]) -> Bool
-shouldGroupRefs (c, refs) = case (language $ cellExpression c) of
-  R -> containsRange refs
-  _ -> False
-
-groupRef :: ASLanguage -> (ASRange, [ASValue]) -> Maybe (ASReference, ASValue)
-groupRef lang (ref@(Range _ ((c1,r1),(c2,r2))), vals) = case lang of
-  R -> Just (RangeRef ref, RDataFrame vals')
-    where
-      rows = chunksOf (r2-r1+1) vals
-      vals' = map ValueL rows
-  _ -> Nothing
-
-formatValuesForMap :: [(ASIndex, Maybe ASCell)] -> [(ASReference, ASValue)]
-formatValuesForMap pairs = formattedPairs
-  where formattedPairs = map (\(l, c) -> (IndexRef l, getSanitizedCellValue c)) pairs
-
-getSanitizedCellValue :: Maybe ASCell -> ASValue
-getSanitizedCellValue c = case c of
-  Just cell -> cellValue cell
-  Nothing -> NoValue
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Locations
