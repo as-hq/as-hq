@@ -4,6 +4,8 @@ import type {
   ASIndex,
   ASRange,
   ASCell,
+  ASExpression,
+  ASValue,
   ASLanguage,
   ASReplValue
 } from './Eval';
@@ -16,12 +18,14 @@ import type {
   ASBackendCommit,
   PayloadSelection,
   ASBackendWorkbookSheet,
+  ASMessageAction,
   ASServerMessage
 } from './Messages';
 
 export type GotFailureAction = {
   _type: 'GOT_FAILURE';
-  errorMsg: ASServerMessage;
+  action: ASMessageAction;
+  errorMsg: string;
 };
 
 export type ScrolledAction = {
@@ -32,6 +36,11 @@ export type ScrolledAction = {
 export type GotUpdatedCellsAction = {
   _type: 'GOT_UPDATED_CELLS';
   updatedCells: Array<ASCell>;
+};
+
+export type GotOpenAction = {
+  _type: 'GOT_OPEN';
+  expressions: Array<ASExpression>;
 };
 
 export type GotUndoAction = {
@@ -83,6 +92,11 @@ export type ReplLeftAction = {
 export type GotReplResponseAction = {
   _type: 'GOT_REPL_RESPONSE';
   response: ASReplValue;
+};
+
+export type GotEvalHeaderResponseAction = {
+  _type: 'GOT_EVAL_HEADER_RESPONSE';
+  response: ASValue;
 };
 
 export type GotFindAction = {
@@ -165,6 +179,7 @@ export type ASAction =
   | DeletedWorkbooksAction
   | ScrolledAction
   | GotUpdatedCellsAction
+  | GotOpenAction
   | GotUndoAction
   | GotRedoAction
   | GotSelectionAction
@@ -174,6 +189,7 @@ export type ASAction =
   | DeletedLocsAction
   | ReplLeftAction
   | GotReplResponseAction
+  | GotEvalHeaderResponseAction
   | GotFindAction
   | FindIncrementedAction
   | FindDecrementedAction

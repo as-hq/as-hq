@@ -167,8 +167,8 @@ const ASEvaluationStore = assign({}, BaseStore, {
           ASEvaluationStore.emitChange();
           break;
         case Constants.ActionTypes.GOT_FAILURE:
-          ASEvaluationStore.setExternalError(action.errorMsg.result.failDesc);
-          if (action.errorMsg.action === "EvaluateRepl"){
+          ASEvaluationStore.setExternalError(action.errorMsg);
+          if (action.action === "EvaluateRepl"){
             ReplStore.advanceLine();
           }
           ASEvaluationStore.emitChange();

@@ -14,7 +14,9 @@ import type {
   NakedIndex,
   ASIndex,
   ASRange,
+  ASLanguage,
   ASExpression,
+  ASValue,
   ASSheet,
   ASCellTag,
   ASCell
@@ -22,6 +24,14 @@ import type {
 
 import type {
   Direction,
+  OpenResponse,
+  UndoResponse, // TODO: when 582 is fixed, eliminate this and sum type
+  RedoResponse,
+  GetResponse,
+  UpdateWindowResponse,
+  JumpSelectResponse,
+  EvaluateReplResponse,
+  EvaluateHeaderResponse,
   ASBackendResult,
   ASBackendPayload,
   ASServerMessage,
@@ -31,7 +41,9 @@ import type {
 
 import type {
   ASSelection,
-  ASViewingWindow
+  ASViewingWindow,
+  ASClientExpression,
+  ASClientLanguage
 } from '../types/State';
 
 import {logDebug} from '../AS/Logger';
@@ -77,7 +89,8 @@ wss.onmessage = (event: MessageEvent) => {
   if (msg.result.tag === "Failure") {
     Dispatcher.dispatch({
       _type: 'GOT_FAILURE',
-      errorMsg: msg
+      action: msg.action,
+      errorMsg: msg.result.failDesc
     });
 
     if (isRunningTest && currentCbs) {
@@ -107,20 +120,20 @@ wss.onmessage = (event: MessageEvent) => {
         break;
       case "Open":
         Dispatcher.dispatch({
-          type: ActionTypes.GOT_OPEN,
-          expressions: msg.payload.contents
+          _type: 'GOT_OPEN',
+          expressions: ((msg: any): OpenResponse).payload.contents
         });
         break;
       case "Undo":
         Dispatcher.dispatch({
           _type: 'GOT_UNDO',
-          commit: msg.payload.contents
+          commit: ((msg: any): UndoResponse).payload.contents
         });
         break;
       case "Redo":
         Dispatcher.dispatch({
           _type: 'GOT_REDO',
-          commit: msg.payload.contents
+          commit: ((msg: any): RedoResponse).payload.contents
         });
        break;
       case "Update":
@@ -139,14 +152,14 @@ wss.onmessage = (event: MessageEvent) => {
       case "Get":
         Dispatcher.dispatch({
           _type: 'FETCHED_CELLS',
-          newCells: msg.payload.contents
+          newCells: ((msg: any): GetResponse).payload.contents
         });
         break;
       //Functionally equivalent to "Get", but useful to be able to distinguish for tests
       case "UpdateWindow":
         Dispatcher.dispatch({
           _type: 'FETCHED_CELLS',
-          newCells: msg.payload.contents
+          newCells: ((msg: any): UpdateWindowResponse).payload.contents
         });
         break;
       case "Clear":
@@ -164,7 +177,7 @@ wss.onmessage = (event: MessageEvent) => {
       case "JumpSelect":
         Dispatcher.dispatch({
           _type: 'GOT_SELECTION',
-          newSelection: msg.payload
+          newSelection: ((msg: any): JumpSelectResponse).payload
         });
         break;
       case "Delete":
@@ -184,13 +197,13 @@ wss.onmessage = (event: MessageEvent) => {
       case "EvaluateRepl":
         Dispatcher.dispatch({
           _type: 'GOT_REPL_RESPONSE',
-          response: msg.payload.contents
+          response: ((msg: any): EvaluateReplResponse).payload.contents
         });
         break;
       case "EvaluateHeader":
         Dispatcher.dispatch({
-          _type: 'GOT_EVAL_HEADER_RESP',
-          response: msg.payload.contents
+          _type: 'GOT_EVAL_HEADER_RESPONSE',
+          response: ((((msg: any): EvaluateHeaderResponse).payload.contents: any): ASValue)
         });
         break;
       case "Find":
@@ -281,7 +294,7 @@ export default {
   /* Sending an eval request to the server */
 
   /* This function is called by handleEvalRequest in the eval pane */
-  evaluate(origin: NakedIndex, xpObj: ASExpression) {
+  evaluate(origin: NakedIndex, xpObj: ASClientExpression) {
     let asIndex = TC.simpleToASIndex(origin),
         asCell = TC.makeEvalCell(asIndex, xpObj),
         msg = TC.makeClientMessage(Constants.ServerActions.Evaluate,
@@ -389,7 +402,12 @@ export default {
   },
 
   // Image tags actually have data, so the message is a bit different
-  setImageTag(val,rng){
+  setImageTag(val: {
+    imageWidth: number;
+    imageHeight: number;
+    imageOffsetX: number;
+    imageOffsetY: number;
+  }, rng: NakedRange){
     let msg = TC.makeClientMessageRaw(Constants.ServerActions.SetTag, {
       "tag": "PayloadTag",
       "cellTag": {

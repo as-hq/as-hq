@@ -1,22 +1,234 @@
 /* @flow */
 
 import type {
+  ASExecError,
+  ASExcelExecError
+} from './Errors';
+
+import type {
+  NakedRange,
   ASRange,
   ASIndex,
   ASSheet,
+  ASValue,
+  ASExpression,
+  ASReplValue,
+  ASWorkbook,
+  ASCellTag,
   ASCell
 } from './Eval';
+
+import type {
+  ASViewingWindow
+} from './State';
+
+import type {
+  ASUserId
+} from './User';
+
+export type Direction = 'Down' | 'Up' | 'Left' | 'Right';
+
+export type ASBackendDirection = 'DDown' | 'DUp' | 'DLeft' | 'DRight';
+
+export type ASBackendTime = {
+  tag: 'Time';
+  day: string;
+  hour: number;
+  minute: number;
+  sec: number;
+};
+
+export type QueryList = 'Sheets' | 'Workbooks' | 'WorkbookSheets';
+
+export type InsertCol = {
+  insertColNum: number;
+};
+
+export type InsertRow = {
+  insertRowNum: number;
+};
+
+export type DeleteCol = {
+  deleteColNum: number;
+};
+
+export type DeleteRow = {
+  deleteRowNum: number;
+};
+
+export type DragCol = {
+  oldColNum: number;
+  newColNum: number;
+};
+
+export type DragRow = {
+  oldRowNum: number;
+  newRowNum: number;
+};
+
+export type MutateType =
+  InsertCol
+  | InsertRow
+  | DeleteCol
+  | DeleteRow
+  | DragCol
+  | DragRow;
+
+export type ASInitConnection = {
+  tag: 'ASInitConnection';
+  connUserId: ASUserId;
+  connSheetId: string;
+};
+
+export type PayloadN = {
+  tag: 'PayloadN';
+};
+
+export type PayloadCL = {
+  tag: 'PayloadCL';
+  contents: Array<ASCell>;
+};
+
+export type PayloadLL = {
+  tag: 'PayloadLL';
+  contents: Array<ASIndex>;
+};
+
+export type PayloadSS = {
+  tag: 'PayloadSS';
+  contents: Array<ASSheet>;
+};
+
+export type PayloadWBS = {
+  tag: 'PayloadWBS';
+  contents: Array<ASWorkbook>;
+};
+
+export type PayloadWorkbookSheets = {
+  tag: 'PayloadWorkbookSheets';
+  contents: Array<ASBackendWorkbookSheet>;
+};
 
 export type PayloadSelection = {
   tag: 'PayloadSelection';
   selectionRange: ASRange;
-  selectionIndex: ASIndex;
+  selectionOrigin: ASIndex;
+};
+
+export type PayloadJump = {
+  tag: 'PayloadJump';
+  jumpRange: ASRange;
+  jumpOrigin: ASIndex;
+  isShifted: boolean;
+  jumpDirection: ASBackendDirection;
+};
+
+export type PayloadPaste = {
+  tag: 'PayloadPaste';
+  copyRange: ASRange;
+  copyTo: ASRange;
+};
+
+export type PayloadTag = {
+  tag: 'PayloadTag';
+  cellTag: ASCellTag;
+  tagRange: ASRange;
+};
+
+export type PayloadText = {
+  tag: 'PayloadText';
+  text: String;
+};
+
+export type PayloadDrag = {
+  tag: 'PayloadDrag';
+  initialRange: ASRange;
+  dragRange: ASRange;
+};
+
+export type PayloadInit = {
+  tag: 'PayloadInit';
+  contents: ASInitConnection;
+};
+
+export type PayloadR = {
+  tag: 'PayloadR';
+  contents: ASRange;
+};
+
+export type PayloadS = {
+  tag: 'PayloadS';
+  contents: ASSheet;
+};
+
+export type PayloadWB = {
+  tag: 'PayloadWB';
+  contents: ASWorkbook;
+};
+
+export type PayloadW = {
+  tag: 'PayloadW';
+  contents: ASViewingWindow;
+};
+
+export type PayloadU = {
+  tag: 'PayloadU';
+  contents: ASUserId;
+};
+
+export type PayloadE = {
+  tag: 'PayloadE';
+  contents: ASExecError;
+};
+
+export type PayloadCommit = {
+  tag: 'PayloadCommit';
+  contents: ASBackendCommit;
+};
+
+export type PayloadDelete = {
+  tag: 'PayloadDelete';
+  contents: [ASRange, Array<ASCell>];
+};
+
+export type PayloadXp = {
+  tag: 'PayloadXp';
+  contents: ASExpression;
+};
+
+export type PayloadXpL = {
+  tag: 'PayloadXpL';
+  contents: Array<ASExpression>;
+};
+
+export type PayloadReplValue = {
+  tag: 'PayloadReplValue';
+  contents: ASReplValue;
+};
+
+export type PayloadList = {
+  tag: 'PayloadList';
+  contents: QueryList;
+};
+
+export type PayloadMutate = {
+  tag: 'PayloadMutate';
+  contents: MutateType;
+};
+
+export type PayloadFind = {
+  tag: 'PayloadFind';
+  contents: Array<ASIndex>;
+};
+
+export type PayloadValue = {
+  tag: 'PayloadValue';
+  contents: ASValue;
 };
 
 export type ASBackendPayload =
   PayloadN
   | PayloadInit
-  | PayloadDaemonInit
   | PayloadCL
   | PayloadLL
   | PayloadR
@@ -35,11 +247,13 @@ export type ASBackendPayload =
   | PayloadPaste
   | PayloadTag
   | PayloadXp
+  | PayloadXpL
   | PayloadReplValue
   | PayloadList
   | PayloadText
   | PayloadMutate
   | PayloadDrag
+  | PayloadFind;
 
 export type ASBackendCommit = {
   tag: 'ASCommit';
@@ -69,41 +283,143 @@ export type NoResult = {
 
 export type ASBackendResult = Success | Failure | NoResult;
 
-export type NoAction = {
-  action: 'NoAction';
-};
-
 export type ASMessageAction =
-  NoAction
-  | Acknowledge
-  | SetInitialSheet
-  | New | Import
-  | Open | Close
-  | Evaluate | EvaluateRepl
-  | Update
-  | Get | Delete
-  | Copy | Cut | CopyForced
-  | Undo | Redo
-  | Clear
-  | UpdateWindow
-  | SetTag | ToggleTag
-  | Repeat
-  | BugReport
-  | JumpSelect
-  | MutateSheet
-  | Drag;
+  'NoAction'
+  | 'Acknowledge'
+  | 'SetInitialSheet'
+  | 'Find'
+  | 'New' | 'Import'
+  | 'Open' | 'Close'
+  | 'Evaluate' | 'EvaluateRepl' | 'EvaluateHeader'
+  | 'Update'
+  | 'Get' | 'Delete'
+  | 'Copy' | 'Cut' | 'CopyForced'
+  | 'Undo' | 'Redo'
+  | 'Clear'
+  | 'UpdateWindow'
+  | 'SetTag' | 'ToggleTag'
+  | 'Repeat'
+  | 'BugReport'
+  | 'JumpSelect'
+  | 'MutateSheet'
+  | 'Drag';
 
-export type ASMessagePayload = {
-  payload: ASBackendPayload;
+export type NoActionResponse = {
+  action: 'NoAction';
+  payload: PayloadN;
+  result: ASBackendResult; // it only ever gets this with a failure.
 };
 
-export type ASMessageResult = {
+export type NewResponse = {
+  action: 'New';
+  payload: PayloadWorkbookSheets | PayloadWB;
   result: ASBackendResult;
 };
 
-export type ASServerMessage = ASMessageAction & ASMessagePayload & ASMessageResult;
+export type OpenResponse = {
+  action: 'Open';
+  payload: PayloadXpL;
+  result: ASBackendResult;
+};
 
-export type ASClientMessage = ASMessageAction & ASMessagePayload;
+export type UndoResponse = {
+  action: 'Undo';
+  payload: PayloadCommit;
+  result: ASBackendResult;
+};
+
+export type RedoResponse = {
+  action: 'Redo';
+  payload: PayloadCommit;
+  result: ASBackendResult;
+};
+
+export type UpdateResponse = {
+  action: 'Update';
+  payload: PayloadN | PayloadCL | PayloadSS | PayloadWBS | PayloadWorkbookSheets;
+  result: ASBackendResult;
+};
+
+export type GetResponse = {
+  action: 'Get';
+  payload: PayloadCL;
+  result: ASBackendResult;
+};
+
+export type UpdateWindowResponse = {
+  action: 'UpdateWindow';
+  payload: PayloadCL;
+  result: ASBackendResult;
+};
+
+export type ClearResponse = {
+  action: 'Clear';
+  payload: PayloadS | PayloadN;
+  result: ASBackendResult;
+};
+
+export type JumpSelectResponse = {
+  action: 'JumpSelect';
+  payload: PayloadSelection;
+  result: ASBackendResult;
+};
+
+export type DeleteResponse = {
+  action: 'Delete';
+  payload: PayloadDelete | PayloadWorkbookSheets;
+  result: ASBackendResult;
+};
+
+export type EvaluateReplResponse = {
+  action: 'EvaluateRepl';
+  payload: PayloadReplValue;
+  result: ASBackendResult;
+};
+
+export type EvaluateHeaderResponse = {
+  action: 'EvaluateHeader';
+  payload: PayloadValue;
+};
+
+export type FindResponse = {
+  action: 'Find';
+  payload: PayloadFind;
+  result: ASBackendResult;
+};
+
+/*
+TODO: activate this definition when we have proper union types in flow. (#582)
+
+export type ASServerMessage =
+  NoActionResponse
+  | NewResponse
+  | UndoResponse
+  | RedoResponse
+  | UpdateResponse
+  | GetResponse
+  | UpdateWindowResponse
+  | ClearResponse
+  | JumpSelectResponse
+  | DeleteResponse
+  | EvaluateReplResponse
+  | FindResponse;
+*/
+
+export type ASClientWindow = {
+  window: NakedRange;
+  sheetId: string;
+};
+
+export type ASClientMessage = {
+  action: ASMessageAction;
+  payload: ASBackendPayload;
+};
+
+export type ASServerMessage = {
+  action: ASMessageAction;
+  payload: ASBackendPayload;
+  result: ASBackendResult;
+};
 
 export type ASAPICallbackPair = {
   fulfill: (msg: ?ASServerMessage) => void;

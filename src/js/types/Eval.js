@@ -1,7 +1,12 @@
 /* @flow */
 
 import type {
+  ASExcelExecError
+} from './Errors';
+
+import type {
   ASUserId
+  //ASPermissions
 } from './User';
 
 export type NoValue = {
@@ -59,7 +64,7 @@ export type ValueError = {
 
 export type ValueExcelError = {
   tag: 'ValueExcelError';
-  // TODO
+  contents: ASExcelExecError;
 };
 
 export type RListKey = string;
@@ -173,46 +178,19 @@ export type DFMemberTag = {
   tag: 'DFMember';
 };
 
-export type RLang = {
-  tag: 'R';
+export type ImageDataTag = {
+  tag: 'ImageData';
+  imageWidth: number;
+  imageHeight: number;
+  imageOffsetX: number;
+  imageOffsetY: number;
 };
 
-export type PythonLang = {
-  tag: 'Python';
-};
-
-export type OCamlLang = {
-  tag: 'OCaml';
-};
-
-export type CPPLang = {
-  tag: 'CPP';
-};
-
-export type JavaLang = {
-  tag: 'Java';
-};
-
-export type SQLLang = {
-  tag: 'SQL';
-};
-
-export type ExcelLang = {
-  tag: 'Excel';
-};
-
-export type ASLanguage =
-  RLang
-  | PythonLang
-  | OCamlLang
-  | CPPLang
-  | JavaLang
-  | SQLLang
-  | ExcelLang;
+export type ASLanguage = string;
 
 export type ASExpression = {
   expression: string;
-  language: ASLanguage;
+  language: ?ASLanguage;
 };
 
 export type ASCellTag =
@@ -225,7 +203,8 @@ export type ASCellTag =
   | ReadOnlyTag
   | ListMemberTag
   | FormatTag
-  | DFMemberTag;
+  | DFMemberTag
+  | ImageDataTag;
 
 export type ASValue =
   NoValue
@@ -269,11 +248,18 @@ export type ASRange = {
   range: NakedRange;
 };
 
+export type ASLocation = ASIndex | ASRange;
+
 export type ASSheet = {
   tag: 'Sheet';
   sheetId: string;
   sheetName: string;
-  sheetPermissions: ASPermissions;
+};
+
+export type ASWorkbook = {
+  tag: 'Workbook';
+  workbookName: string;
+  workbookSheets: Array<string>;
 };
 
 export type ASCell = {
