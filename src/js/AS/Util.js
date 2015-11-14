@@ -1,3 +1,37 @@
+/* @flow */
+
+import type {
+  PairObject
+} from '../types/Base';
+
+import type {
+  NakedIndex,
+  NakedRange,
+  ASIndex,
+  ValueL,
+  ValueError,
+  ASValue,
+  ASLanguage,
+  ASSheet,
+  ASCellTag,
+  ASCell
+} from '../types/Eval';
+
+import type {
+  ASCurrency
+} from '../types/Format';
+
+import type {
+  CellBorder,
+  RendererConfig,
+  ASOverlaySpec
+} from '../types/Hypergrid';
+
+import type {
+  ASClientLanguage,
+  ASSelection
+} from '../types/State';
+
 import {logDebug} from './Logger';
 
 import Constants from '../Constants';
@@ -28,7 +62,7 @@ var colors = {"aliceblue":"#f0f8ff","antiquewhite":"#faebd7","aqua":"#00ffff","a
 
 export default {
 
-  getHostUrl() {
+  getHostUrl(): string {
     // let baseUrl = process.env.NODE_ENV ? HOST_IP : 'localhost';
     // logDebug("GOT ENV ARG: ", process.env.NODE_ENV);
     // return 'ws://' + baseUrl + ':' + HOST_WS_PORT;
@@ -39,11 +73,13 @@ export default {
 // Cell rendering
 
   /* Used to know what to display on the sheet */
-  showValue(cv, isRepl) {
+  showValue(cv: ASValue, isRepl: boolean): (string|number) {
     // logDebug("In show value: " + JSON.stringify(cv));
     let self = this;
     switch (cv.tag) {
       case "NoValue":
+        return "";
+      case "ValueNull":
         return "";
       case "ValueNaN":
         return "NaN";
@@ -65,7 +101,7 @@ export default {
         else return "R_LIST";
       case "ValueError":
         if (isRepl)
-          return cv.errMsg;
+          return ((cv: any): ValueError).errMsg;
         else return "ERROR"; // TODO: show more descriptive errors. (#REF? #NAME?)
       case "ValueExcelError":
         return "ERROR";
@@ -81,11 +117,11 @@ export default {
     }
   },
 
-  showFullValueList(cv) {
+  showFullValueList(cv: ValueL): string {
     return JSON.stringify(cv.contents.map(this.showValue));
   },
 
-  tagsToRenderConfig(config, tags) {
+  tagsToRenderConfig(config: RendererConfig, tags: Array<ASCellTag>): RendererConfig {
     let self = this;
     for (var i=0; i<tags.length; i++) {
       let tag = tags[i];
@@ -134,7 +170,7 @@ export default {
     return config;
   },
 
-  valueToRenderConfig(config, val) {
+  valueToRenderConfig(config: RendererConfig, val: ASValue): RendererConfig {
     switch(val.tag) {
       case "ValueI":
       case "ValueD":
@@ -152,19 +188,19 @@ export default {
     }
   },
 
-  getPaintedBordersForSingleCell() {
+  getPaintedBordersForSingleCell(): CellBorder {
     return [[[0,0],[1,0]],
             [[1,0],[1,1]],
             [[1,1],[0,1]],
             [[0,1],[0,0]]];
   },
 
-  getBordersForInteriorCell(col, row, rng) {
+  getBordersForInteriorCell(col: number, row: number, rng: NakedRange): CellBorder {
     let {tl, br} = rng;
     if (T.isIndex(rng) && (col === tl.col && row === tl.row)) {
       return this.getPaintedBordersForSingleCell();
     } else {
-      let borders = [null,null,null,null];
+      let borders: CellBorder = [null,null,null,null];
       if (col === tl.col) // left intersection
         borders[0] = [[0,0],[0,1]];
       if (col === br.col) // right intersection
@@ -181,40 +217,45 @@ export default {
 // returns a list of edges that can be painted in any order
 // each edge is a 2-length array [start, end]
 // executed by graphicscontext.moveTo(startx, starty) -> graphicscontext.lineTo(endx, endy)
-  getPaintedBorders(col, row, rngs) {
+  getPaintedBorders(col: number, row: number, rngs: Array<NakedRange>): Array<CellBorder> {
     let result = rngs.map((rng) => this.getBordersForInteriorCell(col, row, rng), this);
     return this.concatAll(result);
   },
 
-  getImageOverlay(c,originX,originY) {
-    let self = this,
-        ct = c.cellTags,
-        imageWidth = 300,
-        imageHeight =  300,
-        imageOffsetX = 0,
-        imageOffsetY = 0;
-    for (var i = 0 ; i < ct.length; i++){
-      if (ct[i].tag==="ImageData"){
-        imageOffsetX = ct[i].imageOffsetX;
-        imageOffsetY = ct[i].imageOffsetY;
-        imageWidth = ct[i].imageWidth;
-        imageHeight = ct[i].imageHeight;
+  getImageOverlay(c: ASCell, originX: number, originY: number): ?ASOverlaySpec {
+    let {cellValue: cv} = c;
+    if (cv.tag === 'ValueImage') {
+      let self = this,
+          ct = c.cellTags,
+          imageWidth = 300,
+          imageHeight =  300,
+          imageOffsetX = 0,
+          imageOffsetY = 0;
+      for (var i = 0 ; i < ct.length; i++){
+        if (ct[i].tag==="ImageData"){
+          imageOffsetX = ct[i].imageOffsetX;
+          imageOffsetY = ct[i].imageOffsetY;
+          imageWidth = ct[i].imageWidth;
+          imageHeight = ct[i].imageHeight;
+        }
       }
+      return {
+        id: self.getUniqueId(),
+        src: Constants.HOST_STATIC_URL + "/images/" + cv.imagePath,
+        width: imageWidth,
+        height: imageHeight,
+        offsetX: imageOffsetX,
+        offsetY: imageOffsetY,
+        left: originX,
+        top: originY,
+        loc: c.cellLocation
+      };
     }
-    return {
-      id: self.getUniqueId(),
-      src: Constants.HOST_STATIC_URL + "/images/" + c.cellValue.imagePath,
-      width: imageWidth,
-      height: imageHeight,
-      offsetX: imageOffsetX,
-      offsetY: imageOffsetY,
-      left: originX,
-      top: originY,
-      loc: c.cellLocation
-    };
+
+    return null;
   },
 
-  locEquals(c1,c2){
+  locEquals(c1: ASIndex, c2: ASIndex): boolean {
     let tagE = c1.tag === c2.tag,
         colE = c1.index.col === c2.index.col,
         rowE = c1.index.row === c2.index.row,
@@ -222,20 +263,28 @@ export default {
     return tagE && colE && rowE && sheetE;
   },
 
+  getX(col: number, scrollX: number): string {
+    return (col-scrollX) * Constants.cellWidthPx + Constants.gridXOffset + "px";
+  },
+
+  getY(row: number, scrollY: number): string {
+    return (row-scrollY)* Constants.cellHeightPx + Constants.gridYOffset + "px";
+  },
+
 /*************************************************************************************************************************/
 // Formatting
 
-  isFormattable(contents) {
-    return contents && !isNaN(contents) && contents != "";
+  isFormattable(contents: string): boolean {
+    return (!!contents) && !isNaN(contents) && contents != "";
   },
 
-  formatMoney(currency, contents, dec) {
+  formatMoney(currency: ASCurrency, contents: number): (?(string|number)) {
     if (!this.isFormattable(contents)) {
       return contents;
     }
 
-    let delim = null,
-        sign = null,
+    let delim: string = '',
+        sign: string = '',
         val = contents.toString();
     switch(currency) {
       case "$":
@@ -248,24 +297,20 @@ export default {
       case "EUR":
         delim = ",";
         sign = "€";
-      default:
-        delim = "";
-        sign = "";
-        break;
     }
-    let formatted = parseFloat(Math.round(contents * 100) / 100).toFixed(2),
+    let formatted = (Math.round(contents * 100) / 100).toFixed(2),
         len = formatted.length;
     return sign + formatted.substring(0,len-3) + delim + formatted.substring(len-2);
   },
 
-  formatPercentage(contents) {
+  formatPercentage(contents: number): (?(number|string)) {
     if (!this.isFormattable(contents)) {
       return contents;
     }
     return contents*100 + "%";
   },
 
-  formatDate(contents) {
+  formatDate(contents: number): (?(number|string)) {
     if (!this.isFormattable(contents)) {
       return contents;
     }
@@ -281,7 +326,7 @@ export default {
 // Misc
 
   // merge arrays of sheet objects
-  mergeSheets(arr1, arr2) {
+  mergeSheets(arr1: Array<ASSheet>, arr2: Array<ASSheet>): Array<ASSheet> {
     for (var i=0; i<arr1.length; i++) {
       for (var j=0; i<arr2.length; j++) {
         if (arr1[i].sheetId === arr2[j].sheetId)
@@ -293,34 +338,36 @@ export default {
   },
 
   // deletes elements from
-  removeSheets(delFrom, del) {
+  removeSheets(delFrom: Array<ASSheet>, del: Array<ASSheet>): Array<ASSheet> {
     for (var i=0; i<delFrom.length; i++) {
       for (var j=0; j<del.length; j++) {
         if (delFrom[i].sheetId === del[i].sheetId)
           delete delFrom[i];
       }
     }
+
+    return delFrom;
   },
 
-  isEmptyString(str) {
+  isEmptyString(str: string): boolean {
     return /\S/.test(str);
   },
 
-  shiftIndex(ind, dr, dc) {
+  shiftIndex(ind: NakedIndex, dr: number, dc: number): NakedIndex {
     return {row: ind.row + dr, col: ind.col + dc};
   },
 
-  isEmptyCell(c) {
+  isEmptyCell(c: ASCell): boolean {
     return !c || ((c.cellExpression.expression == "") && (c.cellTags.length == 0));
   },
 
-  removeEmptyLines(str){
+  removeEmptyLines(str: string): string {
     var lines = str.split("\n");
     var filtered = lines.filter(this.isEmptyString);
     return filtered.join("\n");
   },
 
-  getIndicesOf(searchStr, str) {
+  getIndicesOf(searchStr: string, str: string): Array<number> {
     var startIndex = 0, searchStrLen = searchStr.length;
     var index, indices = [];
     while ((index = str.indexOf(searchStr, startIndex)) > -1) {
@@ -334,23 +381,23 @@ export default {
     return shortid.generate();
   },
 
-  colorToHtml(str) {
+  colorToHtml(str: string): string {
     if (str.charAt(0) === "#" || str.substring(0,2) === "rgb") // if color already correct format
       return str;
     else return this.colorNameToHex(str);
   },
 
-  colorNameToHex(color) {
+  colorNameToHex(color: string): ?string {
     if (typeof colors[color.toLowerCase()] != 'undefined')
         return colors[color.toLowerCase()];
-    return false;
+    return undefined;
   },
 
-  arrContains(arr, elem) {
+  arrContains<T>(arr: Array<T>, elem: T): boolean {
     return arr.indexOf(elem) > -1;
   },
 
-  toggleReferenceType(xp) {
+  toggleReferenceType(xp: string): ?string {
     // TODO generalize to arbitrary range lengths
     let deps = this.parseRefs(xp);
     if (deps.length === 0)
@@ -360,7 +407,7 @@ export default {
     else throw "Single word contains multiple references.";
   },
 
-  toggleReferenceIndex(ref) {
+  toggleReferenceIndex(ref: string): ?string {
     let dollarIndices = this.getIndicesOf('$', ref),
         cleanRef = ref.replace(/\$/g, ''),
         row = cleanRef.split(/[A-Za-z]+/).pop(),
@@ -377,21 +424,21 @@ export default {
     } else return null;
   },
 
-  intToChar(i){
+  intToChar(i: number): string {
     return 'ABCDEFGHIJKLMNOPQRSTUVXYZ'.charAt(i);
   },
 
-  charToInt(c) {
+  charToInt(c: string): number {
     return c.charCodeAt(0) - 64;
   },
 
-  orientRange(rng) {
+  orientRange(rng: NakedRange): NakedRange {
     var tl = {row: Math.min(rng.tl.row, rng.br.row), col: Math.min(rng.tl.col, rng.br.col)},
         br = {row: Math.max(rng.tl.row, rng.br.row), col: Math.max(rng.tl.col, rng.br.col)};
     return {tl: tl, br: br};
   },
 
-  excelToIndex(dollarRef) {
+  excelToIndex(dollarRef: string): NakedIndex {
     let ref = dollarRef.replace(/\$/g, '').toUpperCase();
     var row=0, col=0, i=0, charIdx = 0;
     while(i < ref.length && isNaN(ref.charAt(i))){
@@ -406,7 +453,7 @@ export default {
     return {col: col, row: parseInt(rawRow)};
   },
 
-  excelToRange(xp) {
+  excelToRange(xp: string): NakedRange {
     let endpoints = xp.split(":");
     if (endpoints.length === 1){
       let idx = this.excelToIndex(endpoints[0]);
@@ -419,7 +466,7 @@ export default {
     }
   },
 
-  intToExcelCol(i) {
+  intToExcelCol(i: number): string {
     i = i -1;
     var quo = Math.floor((i) / 26);
     var rem = (i) % 26;
@@ -431,7 +478,7 @@ export default {
     return code;
   },
 
-  rangeToExcel(rng) {
+  rangeToExcel(rng: NakedRange): string {
     if (T.isIndex(rng)){
       return this.intToExcelCol(rng.tl.col) + rng.tl.row;
     } else {
@@ -442,14 +489,14 @@ export default {
     }
   },
 
-  removeLastWord(str){
+  removeLastWord(str: string): string {
     let lastIndex = str.lastIndexOf(" ");
     if (lastIndex > 0)
       return str.substring(0, lastIndex);
     else return "";
   },
 
-  parseRefs(str) {
+  parseRefs(str: string): Array<string> {
     if (str === "")
       return [];
     else{
@@ -470,7 +517,7 @@ export default {
     }
   },
 
-  parseDependencies(str) {
+  parseDependencies(str: string): Array<NakedRange> {
     // logDebug("parsing dependencies of: " + str);
     let matches = this.parseRefs(str),
         parsed = matches.map((m) => this.orientRange(this.excelToRange(m)), this);
@@ -478,39 +525,36 @@ export default {
     return parsed;
   },
 
-  getAgnosticLanguageFromServer(lang) {
+  getAgnosticLanguageFromServer(lang: ASLanguage): ASClientLanguage {
     return Constants.Languages[lang];
   },
 
   // indexStringToPair("(a,b)") := {row:a, col:b}
-  indexStringToPair(indexString) {
+  indexStringToPair(indexString: string): PairObject<number> {
     var ab = indexString.substr(1, indexString.length-2).split(",");
     return {fst : parseInt(ab[0], 10), snd: parseInt(ab[1], 10)};
-
   },
 
   /* Gets the top left cell from the listKey. */
   // listKeyToListHead("I/reafe/(a,b)?(c,d)?LIST") := (a,b)"
-  listKeyToListHead(listKey) {
+  listKeyToListHead(listKey: string): (PairObject<number>) {
     if (listKey.split("?").length < 3 || listKey.split("?")[2] != "LIST") {
-      logDebug("There was an error with the format of the listKey. Could not get list head.");
-      return;
+      throw new Error('There was an error with the format of listkey, no list head.');
     }
     return this.indexStringToPair((listKey.split("?")[0]).split("/")[2]);
   },
 
   /* Gets the dimensions of the list from the listKey." */
   // listKeyToListDimensions("I/reafe/(a,b)?(c,d)?LIST") := (c,d)"
-  listKeyToListDimensions(listKey) {
+  listKeyToListDimensions(listKey: string): (PairObject<number>) {
     if (listKey.split("?").length < 3 || listKey.split("?")[2] != "LIST") {
-      logDebug("There was an error with the format of the listKey. Could not get listDimensions");
-      return;
+      throw new Error('There was an error with the format of listkey, no dimensions.');
     }
     return this.indexStringToPair(listKey.split("?")[1]);
   },
 
   // TODO: make this actually correct?
-  canInsertCellRefInXp(xp){
+  canInsertCellRefInXp(xp: string): boolean {
     let infix = ["+","-","*","/","(",",","&","="];
     if (infix.indexOf(xp.substring(xp.length-1,xp.length))>-1)
       return true;
@@ -518,19 +562,19 @@ export default {
       return false;
   },
 
-  xor(foo, bar) {
+  xor(foo: boolean, bar: boolean): boolean {
     return foo ? !bar : bar;
   },
 
 //Utils for getRowMajorCellValues
 
- sliceArray(begin, end) {
+ sliceArray<T>(begin: number, end: number): ((arr: Array<T>) => Array<T>) {
    return (
        function(arr) { return arr.slice(begin, end) }
    );
  },
 
- makeArrayOf(value, length) {
+ makeArrayOf<T>(value: T, length: number): Array<T> {
    var arr = [], i = length;
    while (i--) {
      arr[i] = value;
@@ -538,7 +582,7 @@ export default {
    return arr;
  },
 
- make2DArrayOf(value, height, length) {
+ make2DArrayOf<T>(value: T, height: number, length: number): Array<Array<T>> {
    var arr = [[]], i = height;
    while (i --) {
      arr[i] = this.makeArrayOf(value, length);
@@ -546,68 +590,69 @@ export default {
    return arr;
  },
 
- concatAll(arrs) {
+ concatAll<T>(arrs: Array<Array<T>>): Array<T> {
   return [].concat.apply([], arrs);
  },
 
  /*************************************************************************************************************************/
   // Locations
 
-  getSafeRow(r) {
+  getSafeRow(r: number): number {
     return Math.min(Math.max(r, 1), Constants.numRows);
   },
 
-  getSafeCol(c){
+  getSafeCol(c: number): number {
     return Math.min(Math.max(c, 1), Constants.numCols);
   },
 
-  getSafeRange(rng) {
+  getSafeRange(rng: NakedRange): NakedRange {
     return {tl: this.getSafeIndex(rng.tl),
             br: this.getSafeIndex(rng.br)};
   },
 
-  _isContainedInLoc(col, row, loc) {
+  _isContainedInLoc(col: number, row: number, loc: NakedRange): boolean {
     let {tl, br} = loc;
     return (col >= tl.col && col <= br.col &&
             row >= tl.row && row <= br.row);
   },
 
-  isContainedInLocs(col, row, locs) {
-    for (var i=0; i<locs.length; i++) {
-      if (this._isContainedInLoc(col, row, locs[i]))
-        return true;
-    }
-    return false;
+  isContainedInLocs(col: number, row: number, locs: Array<NakedRange>): boolean {
+    return locs.some((loc) => this._isContainedInLoc(col, row, loc));
   },
 
-  getSafeSelection(sel) {
+  getSafeSelection(sel: ASSelection): ASSelection {
     return { origin: this.getSafeIndex(sel.origin), range: this.getSafeRange(sel.range) };
   },
 
-  originIsCornerOfSelection(sel) {
+  originIsCornerOfSelection(sel: ASSelection): boolean {
     let {origin, range: {tl, br}} = sel;
     return (origin.row === tl.row || origin.row == br.row) &&
            (origin.col == tl.col || origin.col == br.col);
   },
 
-  getSafeIndex(idx) {
+  getSafeIndex(idx: NakedIndex): NakedIndex {
     return {col: this.getSafeCol(idx.col), row: this.getSafeRow(idx.row)};
   },
 
-  extendRangeByCache(rng) {
+  extendRangeByCache(rng: NakedRange): NakedRange {
     let tl = this.getSafeIndex({row: rng.tl.row-Constants.scrollCacheY, col: rng.tl.col-Constants.scrollCacheX}),
         br = this.getSafeIndex({row: rng.br.row+Constants.scrollCacheY, col: rng.br.col+Constants.scrollCacheX});
     return { tl: tl, br: br };
   },
 
-  offsetRange(rng, dY, dX) {
+  offsetRange(rng: NakedRange, dY: number, dX: number): NakedRange {
     let {tl, br} = rng;
     return {tl: {col: tl.col + dX, row: tl.row + dY},
             br: {col: br.col + dX, row: br.row + dY}};
   },
 
     // Check if the mouse location is in the square box for draggging
-  mouseLocIsContainedInBox(mouseLocX,mouseLocY,topLeftBoxObj,boxWidth){
+  mouseLocIsContainedInBox(
+    mouseLocX: number,
+    mouseLocY: number,
+    topLeftBoxObj: { x: number, y: number },
+    boxWidth: number
+  ): boolean {
     let xInBounds = mouseLocX >= topLeftBoxObj.x &&
                     mouseLocX <= topLeftBoxObj.x + boxWidth,
         yInBounds = mouseLocY >= topLeftBoxObj.y &&

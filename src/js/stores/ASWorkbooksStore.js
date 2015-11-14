@@ -88,7 +88,7 @@ const ASWorkbookStore = Object.assign({}, BaseStore, {
     // TODO
     for (var key in wbs) {
       if (_data.workbooks[key]){
-        _data.workbooks[key] =
+        _data.workbooks[key].wsSheets =
             Util.removeSheets(_data.workbooks[key].wsSheets,
               wbs[key].wsSheets);
       }

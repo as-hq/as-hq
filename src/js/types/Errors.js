@@ -1,6 +1,7 @@
 /* @flow */
 
 export type ASExecError = {
+  errMsg: string;
 // TODO
 };
 

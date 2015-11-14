@@ -5,7 +5,6 @@ var argv = require('yargs').argv;
 
 gulp.task('server', function() {
 	process.env.NODE_ENV = argv.production ? 'production' : 'development';
-	console.log("GOT ARG: ", argv.production);
 	var ports;
 	if (argv.ports) {
 		if (typeof argv.ports === 'number') ports = [JSON.stringify(argv.ports)];

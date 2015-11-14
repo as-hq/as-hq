@@ -186,7 +186,7 @@ export type ImageDataTag = {
   imageOffsetY: number;
 };
 
-export type ASLanguage = string;
+export type ASLanguage = 'Python' | 'R' | 'SQL' | 'Excel';
 
 export type ASExpression = {
   expression: string;
