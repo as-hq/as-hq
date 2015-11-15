@@ -7,9 +7,11 @@ import Util from './Util';
 export default {
 
 	/* Generates AS-based html from a list of list of values */
-	valsToHtml(vals){
+	valsToHtml(vals, rng){
 		let table = document.createElement('table');
 		table.setAttribute("id","alphasheets"); // how we indicate the copy originated from within alphasheets
+    table.setAttribute("data-sheet-id", Store.getCurrentSheet().sheetId); 
+    table.setAttribute("data-from-range", JSON.stringify(rng)); 
 		let tableBody = document.createElement('tbody');
 		vals.forEach(function(rowVals){
 			let row = document.createElement('tr');
@@ -39,6 +41,16 @@ export default {
 		return s.indexOf("alphasheets") >= 0;
 		// Simplest solution without creating the DOM element and checking for the tag
 	},
+
+  getAttrsFromHtmlString(s) {
+    s += "</meta>"; // works in Chrome, which puts a single unclosed <meta> tag at the beginning of the paste string.
+    let parser = new DOMParser(), 
+        doc = parser.parseFromString(s, "text/xml"),
+        table = doc.firstChild.firstChild,
+        fromSheetId = table.getAttribute('data-sheet-id'),
+        fromRange = JSON.parse(table.getAttribute('data-from-range'));
+    return {fromSheetId: fromSheetId, fromRange: fromRange};
+  },
 
 	/* Takes a text/plain string like "3\t4" and returns a list of list of values (row-major)
 	TODO: make correct in all cases (need to look at text/html for that)

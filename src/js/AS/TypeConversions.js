@@ -87,14 +87,14 @@ export default {
   /**************************************************************************************************************************/
   /* Type conversions */
 
-  simpleToASRange(rng) {
-    let asRange = {tag: 'range', range: rng};
-    return this.addCurrentSheetIdToObj(asRange);
+  simpleToASRange(rng, sheetId) {
+    if (typeof(sheetId) == "undefined") sheetId = Store.getCurrentSheet().sheetId;
+    return {tag: 'range', range: rng, sheetId: sheetId};
   },
 
-  simpleToASIndex(idx) {
-    let asIndex = {tag: 'index', index: idx};
-    return this.addCurrentSheetIdToObj(asIndex);
+  simpleToASIndex(idx, sheetId) {
+    if (typeof(sheetId) == "undefined") sheetId = Store.getCurrentSheet().sheetId;
+    return {tag: 'index', index: idx, sheetId: sheetId};
   },
 
   indexToRange(ind) { 
@@ -106,7 +106,8 @@ export default {
   },
 
   rangeToASWindow(rng) {
-    return this.addCurrentSheetIdToObj({ window: rng });
+    let sheetId = Store.getCurrentSheet().sheetId;
+    return { window: rng, sheetId: sheetId };
   },
 
   rangeToASIndices(rng) {
@@ -136,13 +137,5 @@ export default {
   asSelectionToSimple(sel) { 
     return {range: sel.selectionRange.range, origin: sel.selectionOrigin.index};
   },
-
-  /**************************************************************************************************************************/
-  /* Type conversion utils */
-
-  addCurrentSheetIdToObj(obj) {
-    obj.sheetId = Store.getCurrentSheet().sheetId;
-    return obj;
-  }
 
 }

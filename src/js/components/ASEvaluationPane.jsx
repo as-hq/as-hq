@@ -262,7 +262,7 @@ export default React.createClass({
 
     if (vals) {
       Store.setClipboard(sel, isCut);
-      let html = ClipboardUtils.valsToHtml(vals),
+      let html = ClipboardUtils.valsToHtml(vals, sel.range),
           plain = ClipboardUtils.valsToPlain(vals);
       this.refs.spreadsheet.repaint(); // render immediately
       e.clipboardData.setData("text/html",html);
@@ -291,10 +291,18 @@ export default React.createClass({
     // copy/pasting across sheets.
     if (isAlphaSheets) { // From AS
       let clipboard = Store.getClipboard(),
-          fromASRange = TC.simpleToASRange(clipboard.area.range),
+          sheetId = Store.getCurrentSheet().sheetId,
+          {fromSheetId, fromRange} = ClipboardUtils.getAttrsFromHtmlString(e.clipboardData.getData("text/html")),
           toASRange = TC.simpleToASRange(sel.range);
-      if (clipboard.area) {
-        if (clipboard.isCut) {
+
+      // These lines are in principle redundant, but since browser clipboards aren't easily mocked, 
+      // fromRange and fromSheetId are null in frontend tests. (Alex 11/15)
+      fromRange   = fromRange   || clipboard.area.range;
+      fromSheetId = fromSheetId || Store.getCurrentSheet().sheetId; 
+
+      let fromASRange = TC.simpleToASRange(fromRange, fromSheetId);
+      if (fromRange) {
+        if (clipboard.isCut && sheetId == fromSheetId) { // only give cut behavior within sheets
           API.cut(fromASRange, toASRange);
           Store.setClipboard(null, false);
         } else {

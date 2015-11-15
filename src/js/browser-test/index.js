@@ -62,7 +62,7 @@ import ShortcutUtils from '../AS/ShortcutUtils';
 
 // import Promise from 'bluebird';
 
-let evalPane, window_;
+let evalPane, window_, clipboard = {}; 
 
 function spreadsheet() {
   return evalPane.refs.spreadsheet;
@@ -190,7 +190,9 @@ function pressCopy() {
       preventDefault() { },
       stopPropagation() { },
       clipboardData: {
-        setData() { }
+        setData(textType, val) { 
+          clipboard[textType] = "<meta>" + val; // for chrome
+        }
       }
     }, false);
   });
@@ -202,7 +204,9 @@ function pressCut() {
       preventDefault() { },
       stopPropagation() { },
       clipboardData: {
-        setData() { }
+        setData(textType, val) { 
+          clipboard[textType] = val; 
+        }
       }
     }, true);
   });
@@ -214,7 +218,7 @@ function pressPaste() {
       preventDefault() { },
       stopPropagation() { },
       clipboardData: {
-        getData(x) { return ''; },
+        getData(textType) { return clipboard[textType]; },
         types: []
       }
     });
@@ -692,14 +696,14 @@ let tests = () => {
           )
         ]),
 
-        _it('copy', [
+        _it('mac copy', [
           python('A1', '1'),
           selectRange('A1'),
           keyPress('Cmd+C'),
           blockUntilCopy('A1')
         ]),
 
-        _it('copy/paste', [
+        _it('mac copy/paste', [
           python('A1', '1'),
           selectRange('A1'),
           keyPress('Cmd+C'),
@@ -711,7 +715,7 @@ let tests = () => {
           _expect('B1')._toBe(valueI(1))
         ]),
 
-        _it('cut/paste', [
+        _it('mac cut/paste', [
           python('A1', '1'),
           selectRange('A1'),
           keyPress('Cmd+X'),
