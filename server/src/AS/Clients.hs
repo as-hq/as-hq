@@ -370,9 +370,11 @@ getCopyCells :: R.Connection -> ASRange -> ASRange -> IO [ASCell]
 getCopyCells conn from to = do 
   fromCells          <- DB.getPossiblyBlankCells (rangeToIndices from)
   sanitizedFromCells <- sanitizeCopyCells conn fromCells from
-  let offsets            = U.getCopyOffSets from to  -- how much to shift these cells for copy/copy/paste
-      toCells            = concat $ map (\o -> map (S.shiftCell o) sanitizedFromCells) offsets
-  return toCells
+  let offsets       = U.getCopyOffSets from to  -- how much to shift these cells for copy/copy/paste
+      toCells       = concat $ map (\o -> map (S.shiftCell o) sanitizedFromCells) offsets
+      updateSheetId = \l -> l { locSheetId = rangeSheetId to }
+      toCells'      = map (replaceCellLocs updateSheetId) toCells
+  return toCells'
 
 getCutCells :: R.Connection -> ASRange -> ASRange -> IO [ASCell]
 getCutCells conn from to = do 

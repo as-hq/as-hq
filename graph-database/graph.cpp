@@ -130,14 +130,14 @@ int DAG::recomputeDAG () {
 	if (c->err) {
     	cerr << "Connection error: " << c->errstr << endl;
     	return -1;
-  	}
+	}
 
-  	string redisCmd = "scan 0 match I/* count " + to_string(SCAN_BOUND);
-  	reply = (redisReply *)redisCommand(c, redisCmd.c_str());
+	string redisCmd = "scan 0 match I/* count " + to_string(SCAN_BOUND);
+	reply = (redisReply *)redisCommand(c, redisCmd.c_str());
 
-  	int numReplies=0; 
+	int numReplies=0; 
 
-  	if (reply->type == REDIS_REPLY_ARRAY && reply->element[1]->type == REDIS_REPLY_ARRAY) {
+	if (reply->type == REDIS_REPLY_ARRAY && reply->element[1]->type == REDIS_REPLY_ARRAY) {
 
 		for (int i = 0; i < reply->element[1]->elements; i++) {
 			if (reply->element[1]->element[i]->type == REDIS_REPLY_STRING) {
@@ -147,11 +147,13 @@ int DAG::recomputeDAG () {
 				redisAppendCommand(c, redisGetCmd.c_str());
 			}
 		}
-    	freeReplyObject(reply);
+
+  	freeReplyObject(reply);
 
 		for (int i=0; i<numReplies; i++) {
 			redisGetReply(c, (void **)&reply);
 			if (reply->type == REDIS_REPLY_STRING) {
+				cout << reply->str;
 				DAG::Vertex toNode = getIndexFromCell(reply->str);
 				DAG::VertexSet fromNodes = parseDependencies(reply->str, toNode);
 				updateDAG(toNode, fromNodes, false); // no caching on reconstruction
@@ -160,11 +162,11 @@ int DAG::recomputeDAG () {
 		}
 		cout << "Done.\n" << endl;
 		return 0;
-    } else {
-    	cout << "Error: received Redis reply of type other than array\n" << endl;
-    	freeReplyObject(reply);
-      	return -1;
-    }
+  } else {
+  	cout << "Error: received Redis reply of type other than array\n" << endl;
+  	freeReplyObject(reply);
+    	return -1;
+  }
 }
 
 /****************************************************************************************************************************************/

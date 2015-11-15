@@ -190,6 +190,8 @@ trivialMatcher :: PatternMatcher
 trivialMatcher [c] = Just $ ([c],\n -> cellValue c)
 trivialMatcher _ = Nothing
 
+-- Solely for convenience in using the arithmetic operations in arithMatcher. If we end up 
+-- needing something like this elsewhere too I'll consider moving it to Types.Core.
 instance Num ASValue where
   negate (ValueI i) = ValueI (-i)
   negate (ValueD d) = ValueD (-d)
