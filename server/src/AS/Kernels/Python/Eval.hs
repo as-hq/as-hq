@@ -62,7 +62,12 @@ evaluateHeader :: ASSheetId -> String -> EitherTExec ASValue
 evaluateHeader sid str = do
     -- preprocess expression
     lift $ writeHeaderFile sid Python str -- appropriating the repl record for 
-    (_, evalCode) <- lift $ formatCodeRepl sid Python str -- appropriating repl code for this
+    -- appropriating repl code for this. technically more correct to leave this blank, 
+    -- since isPrintable from th REPL code is a screwed up function, but it works well enough
+    -- for now when we don't have a better way to give the user the direct output of the header
+    -- eval. 
+    (_, evalCode) <- lift $ formatCodeRepl sid Python str
+    printDebugT "evalCode" evalCode
     -- perform eval, if there's something we actually need to return
     if (evalCode /= "" && str /= "")
         then execWrappedCode evalCode

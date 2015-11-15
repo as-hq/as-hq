@@ -52,7 +52,6 @@ formatCodeRepl :: ASSheetId -> ASLanguage -> String -> IO (String, String)
 formatCodeRepl sid lang str = do
   let trimmed = trimWhitespace lang str
       (startLines, endLine) = splitLastLine lang str
-      foo = tryPrintingLastRepl lang trimmed
   case (tryPrintingLastRepl lang trimmed) of
     (Left _) -> return $ (trimmed, emptyExpression) -- nothing to print, so nothing to evaluate
     (Right (recordXp, printedLine)) -> do
@@ -81,7 +80,7 @@ tryPrintingLastRepl lang str =
 -- | WRONG! Not sure what this is supposed to mean... at any rate I'm convinced the logic here
 -- is extremely wrong and incomplete right now. (Alex 10/29) 
 isPrintable :: ASLanguage -> String -> Bool
-isPrintable lang s = not (containsAny ["\t"] s) -- assignOp lang, returnOp lang, importOp lang]
+isPrintable lang s = not (containsAny ["\t", "import"] s) -- assignOp lang, returnOp lang, importOp lang]
 
 printCmd :: ASLanguage -> String -> String
 printCmd lang str = case (tryParse (replacePrintStmt lang) str) of

@@ -1,0 +1,53 @@
+
+[2015-11-15 20:42:15.273] got cells: [Just (Cell {cellLocation = Index {locSheetId = "alex", index = (13,3)}, cellExpression = Expression {expression = "l = tasks!A2:D100\nl", language = Python}, cellValue = NoValue, cellTags = [ListMember {listKey = "I/alex/(10,1)?(99,4)?LIST"},ListMember {listKey = "I/alex/(10,1)?(99,4)?LIST"}]})]
+[2015-11-15 20:42:15.286] STARTING DISPATCH CYCLE WITH CELLS: : [Cell {cellLocation = Index {locSheetId = "alex", index = (13,3)}, cellExpression = Expression {expression = "", language = Python}, cellValue = NoValue, cellTags = [ListMember {listKey = "I/alex/(10,1)?(99,4)?LIST"},ListMember {listKey = "I/alex/(10,1)?(99,4)?LIST"}]}]
+[2015-11-15 20:42:15.286] Connecting to graph database for multi query.
+[2015-11-15 20:42:15.287] Sent message: "\"SetRelations`I/alex/(13,3)\""
+[2015-11-15 20:42:15.287] Received reply: ["OK"]
+[2015-11-15 20:42:15.287] Set cell ancestors: [[]]
+[2015-11-15 20:42:15.288] graph query: ["GetDescendants","I/alex/(13,3)"]
+[2015-11-15 20:42:15.288] sent message to graph db: "\"GetDescendants`I/alex/(13,3)\""
+[2015-11-15 20:42:15.288] Got eval locations: [Index {locSheetId = "alex", index = (13,3)}]
+[2015-11-15 20:42:15.289] built message
+[2015-11-15 20:42:15.289] got cells: [Just (Cell {cellLocation = Index {locSheetId = "alex", index = (13,3)}, cellExpression = Expression {expression = "l = tasks!A2:D100\nl", language = Python}, cellValue = NoValue, cellTags = [ListMember {listKey = "I/alex/(10,1)?(99,4)?LIST"},ListMember {listKey = "I/alex/(10,1)?(99,4)?LIST"}]})]
+[2015-11-15 20:42:15.338] Got cells to evaluate: [Cell {cellLocation = Index {locSheetId = "alex", index = (13,3)}, cellExpression = Expression {expression = "", language = Python}, cellValue = NoValue, cellTags = [ListMember {listKey = "I/alex/(10,1)?(99,4)?LIST"},ListMember {listKey = "I/alex/(10,1)?(99,4)?LIST"}]}]
+[2015-11-15 20:42:15.338] graph query: ["GetImmediateAncestors","I/alex/(13,3)"]
+[2015-11-15 20:42:15.338] sent message to graph db: "\"GetImmediateAncestors`I/alex/(13,3)\""
+[2015-11-15 20:42:15.339] Got ancestor locs: []
+[2015-11-15 20:42:15.339] Created initial values map: fromList []
+[2015-11-15 20:42:15.360] Starting eval chain
+[2015-11-15 20:42:15.361] Starting eval code
+[2015-11-15 20:42:15.361] built message
+[2015-11-15 20:42:15.361] got cells: [Just (Cell {cellLocation = Index {locSheetId = "alex", index = (13,3)}, cellExpression = Expression {expression = "l = tasks!A2:D100\nl", language = Python}, cellValue = NoValue, cellTags = [ListMember {listKey = "I/alex/(10,1)?(99,4)?LIST"},ListMember {listKey = "I/alex/(10,1)?(99,4)?LIST"}]})]
+[2015-11-15 20:42:15.363] added commits
+[2015-11-15 20:42:15.363] Server sent message: ServerMessage {serverAction = Delete, serverResult = Success, serverPayload = PayloadDelete (Range {rangeSheetId = "alex", range = ((13,3),(13,3))}) []}
+[2015-11-15 20:42:15.363] Server sent message: ServerMessage {serverAction = Delete, serverResult = Success, serverPayload = PayloadDelete (Range {rangeSheetId = "alex", range = ((13,3),(13,3))}) []}
+[2015-11-15 20:42:15.398] Message: "ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = \"alex\", index = (1,1)}, cellExpression = Expression {expression = \"Task\", language = Python}, cellValue = NoValue, cellTags = []}]}"
+[2015-11-15 20:42:15.398] built message
+[2015-11-15 20:42:15.399] got cells: [Just (Cell {cellLocation = Index {locSheetId = "alex", index = (1,1)}, cellExpression = Expression {expression = "Task", language = Excel}, cellValue = ValueS "Task", cellTags = []})]
+[2015-11-15 20:42:15.435] STARTING DISPATCH CYCLE WITH CELLS: : [Cell {cellLocation = Index {locSheetId = "alex", index = (1,1)}, cellExpression = Expression {expression = "Task", language = Python}, cellValue = NoValue, cellTags = []}]
+[2015-11-15 20:42:15.435] Connecting to graph database for multi query.
+[2015-11-15 20:42:15.435] Sent message: "\"SetRelations`I/alex/(1,1)\""
+[2015-11-15 20:42:15.454] Received reply: ["OK"]
+[2015-11-15 20:42:15.455] Set cell ancestors: [[]]
+[2015-11-15 20:42:15.455] graph query: ["GetDescendants","I/alex/(1,1)"]
+[2015-11-15 20:42:15.455] sent message to graph db: "\"GetDescendants`I/alex/(1,1)\""
+[2015-11-15 20:42:15.456] Got eval locations: [Index {locSheetId = "alex", index = (1,1)}]
+[2015-11-15 20:42:15.456] built message
+[2015-11-15 20:42:15.456] got cells: [Just (Cell {cellLocation = Index {locSheetId = "alex", index = (1,1)}, cellExpression = Expression {expression = "Task", language = Excel}, cellValue = ValueS "Task", cellTags = []})]
+[2015-11-15 20:42:15.457] Got cells to evaluate: [Cell {cellLocation = Index {locSheetId = "alex", index = (1,1)}, cellExpression = Expression {expression = "Task", language = Python}, cellValue = NoValue, cellTags = []}]
+[2015-11-15 20:42:15.457] graph query: ["GetImmediateAncestors","I/alex/(1,1)"]
+[2015-11-15 20:42:15.457] sent message to graph db: "\"GetImmediateAncestors`I/alex/(1,1)\""
+[2015-11-15 20:42:15.458] Got ancestor locs: []
+[2015-11-15 20:42:15.458] Created initial values map: fromList []
+[2015-11-15 20:42:15.458] Starting eval chain
+[2015-11-15 20:42:15.458] Starting eval code
+[2015-11-15 20:42:15.458] built message
+[2015-11-15 20:42:15.459] got cells: [Just (Cell {cellLocation = Index {locSheetId = "alex", index = (1,1)}, cellExpression = Expression {expression = "Task", language = Excel}, cellValue = ValueS "Task", cellTags = []})]
+[2015-11-15 20:42:15.460] added commits
+[2015-11-15 20:42:15.464] Message: "ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = \"alex\", index = (2,1)}, cellExpression = Expression {expression = \"Description\", language = Python}, cellValue = NoValue, cellTags = []}]}"
+[2015-11-15 20:42:15.464] built message
+[2015-11-15 20:42:15.474] got cells: [Just (Cell {cellLocation = Index {locSheetId = "alex", index = (2,1)}, cellExpression = Expression {expression = "Description", language = Excel}, cellValue = ValueS "Description", cellTags = []})]
+[2015-11-15 20:42:15.474] STARTING DISPATCH CYCLE WITH CELLS: : [Cell {cellLocation = Index {locSheetId = "alex", index = (2,1)}, cellExpression = Expression {expression = "Description", language = Python}, cellValue = NoValue, cellTags = []}]
+[2015-11-15 20:42:15.474] Connecting to graph database for multi query.
+[2015-11-15 20:42:15.475] Sent message: "\"SetRelations`I/alex/(2,1)\""

@@ -344,12 +344,6 @@ handleCut user state (PayloadPaste from to) = do
   msg' <- DP.runDispatchCycle state newCells (clientCommitSource user)
   reply user state msg'
 
--- 
--- 1. need to update references in descendants (cells that reference your cut/paste cells)
--- 2. need to NOT shift references to cells outside of cut/paste range
--- 3. don't tessellate
--- 
-
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Drag/autofill
 

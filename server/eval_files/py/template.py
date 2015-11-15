@@ -47,9 +47,9 @@ result = "error"
 # a workaround would be to check the type of result before setting it to ValueImage.
 try:
 	# execfile(replFile)
-	execfile(headerFile)
+	# execfile(headerFile)
 	os.chdir(os.getcwd()+"/static")
-	#HEADER#
+	#HdEADER#
 	#CODE#
 	os.chdir('..')
 	print result
