@@ -38,6 +38,11 @@ export type SQLClientLang = {
   Editor: 'mysql';
 };
 
+export type ASClientWindow = {
+  window: NakedRange;
+  sheetId: string;
+};
+
 export type ASClientLanguage =
   PythonClientLang
   | RClientLang

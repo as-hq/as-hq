@@ -42,6 +42,7 @@ import type {
 import type {
   ASSelection,
   ASViewingWindow,
+  ASClientWindow,
   ASClientExpression,
   ASClientLanguage
 } from '../types/State';
@@ -552,7 +553,7 @@ export default {
     this.send(msg);
   },
 
-  updateViewingWindow(vWindow: ASViewingWindow) {
+  updateViewingWindow(vWindow: ASClientWindow) {
     let msg = TC.makeClientMessage(Constants.ServerActions.UpdateWindow,
       "PayloadW",
       vWindow);
