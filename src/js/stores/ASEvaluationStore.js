@@ -38,7 +38,6 @@ let _data = {
   activeSelection: null,
   activeFocus: 'grid',
   lastActiveFocus: 'textbox',
-  gridShifted: false, // for shift+click tracking
   partialSelections: [],
   activeCell: null,
   clipboard: {
@@ -437,12 +436,6 @@ const ASEvaluationStore = assign({}, BaseStore, {
     _data.lastActiveFocus = temp;
     logDebug("new focus: ", _data.activeFocus);
   },
-
-  /**************************************************************************************************************************/
-  /* Selection state */
-
-  setGridShifted(val) { _data.gridShifted = val; },
-  getGridShifted() { return _data.gridShifted; },
 
   /**************************************************************************************************************************/
   /* Updating expression when user clicks on a cell */

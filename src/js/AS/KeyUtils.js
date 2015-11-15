@@ -116,10 +116,6 @@ export default {
     return this.isNavKey(e) && !this.containsModifiers(e);
   },
 
-  isPureShiftKey(e) {
-    return e.key === "Shift"; // may not work on non-chrome browsers
-  },
-
   isEvalKey(e) {
     return e.which === 13 || e.which === 9; // tab or enter
   },

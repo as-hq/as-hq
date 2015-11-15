@@ -294,7 +294,7 @@ export default React.createClass({
     model.getValue = (x, y) => { return ''; };
     model.getCellEditorAt = (x, y) => { return null; };
     model.handleMouseDown = (grid, evt) => {
-      if (Store.getGridShifted()) { // shift+click
+      if (evt.primitiveEvent.detail.primitiveEvent.shiftKey) { // shift+click
         let {origin} = this.getSelectionArea(),
             newBr = {col: evt.gridCell.x, row: evt.gridCell.y},
             newSel = {origin: origin, range: Util.orientRange({tl: origin, br: newBr})};
@@ -608,8 +608,6 @@ export default React.createClass({
         }
         this.props.hideToast();
         ExpActionCreator.handleGridChange(newStr);
-      } else if (KeyUtils.isPureShiftKey(e)) { // shift+click tracking
-        Store.setGridShifted(true);
       } else {
         // Try shortcuts
         logDebug("Grid key down, trying shortcut");
@@ -631,10 +629,6 @@ export default React.createClass({
 
   _onKeyUp(e) {
     e.persist();
-    if (KeyUtils.isPureShiftKey(e)) {
-      Store.setGridShifted(false);
-      logDebug("\n\nGRID SHIFT KEYUP\n\n", e);
-    }
   },
 
   onTextBoxDeferredKey(e){
