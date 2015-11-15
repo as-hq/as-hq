@@ -164,7 +164,6 @@ const ASExpStore = assign({}, BaseStore, {
 
   disableRefInsertionBypass() {
     logDebug('Disabling bypass');
-    console.trace();
     _data.refInsertionBypass = false;
   },
 
