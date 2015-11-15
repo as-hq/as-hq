@@ -636,7 +636,7 @@ export default React.createClass({
     let lang       = this.state.evalHeaderLanguage.Display, 
         expression = this._evalHeaderValue(); 
 
-    EvalHeaderActionCreator.storeEvalHeaderExpression(lang, expression); 
+    EvalHeaderStore.updateEvalHeaderExp(lang, expression); 
     API.evaluateHeader(expression, lang);
   },
 
