@@ -96,6 +96,7 @@
     "react-addons-transition-group": "^0.14.2",
     "react-autosize-textarea": "^0.2.5",
     "react-clickaway": "0.0.2",
+    "react-dom": "^0.14.2",
     "react-draggable": "^0.8.5",
     "react-draggable-tab": "~0.3.0",
     "react-dropzone": "^3.0.0",
