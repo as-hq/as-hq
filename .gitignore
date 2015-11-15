@@ -8,3 +8,4 @@ npm-debug.*
 /src/js/Environment.js
 /flow-src/
 !/flow-src/declarations
+/flow/
