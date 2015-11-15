@@ -1,14 +1,19 @@
 module AS.Dispatch.Expanding where
 
+import Prelude
+
+import AS.Types.Core
+import AS.DB.Util as DU
+
 decomposeCompositeValue :: ASCell -> CompositeValue -> Maybe FatCell
 decomposeCompositeValue _ (CellValue _) = Nothing
 
-decomposeCompositeValue c@(Cell idx _ _ _) (Expanding (VList coll)) = Just $ FatCell cells desc
+decomposeCompositeValue c@(Cell idx _ _ _) (Expanding (VList coll)) = Just $ FatCell cells idx desc
   where
     dims      = getDimensions coll
-    cells     = decomposeCells List c coll
-    listkey   = DU.getListKey idx dims
-    desc      = ListDescriptor listKey
+    rangeKey  = DU.getRangeKey idx dims
+    cells     = decomposeCells List rangeKey c coll
+    desc      = ListDescriptor rangeKey
 
 --decomposeCompositeValue c@(Cell idx _ _ _) (Expanding (VRList pairs)) = Just $ FatCell cells desc
 --  where
@@ -21,9 +26,9 @@ decomposeCompositeValue c@(Cell idx _ _ _) (Expanding (VList coll)) = Just $ Fat
 --decomposeCompositeValue c@(Cell idx _ _ _) (Expanding (VRDataFrame names values)) = Just $ FatCell cells desc
 --  where
 
-decomposeCells :: ComplexType -> ASCell -> Collection -> [ASCell]
-decomposeCells cType (Cell (Index sheet (c,r)) (Expression str lang) _ ts) coll = 
-  let xp' = Coupled str lang cType 
+decomposeCells :: ComplexType -> RangeKey -> ASCell -> Collection -> [ASCell]
+decomposeCells cType rangeKey (Cell (Index sheet (c,r)) (Expression str lang) _ ts) coll = 
+  let xp' = Coupled str lang cType rangeKey 
   in case coll of 
     A arr -> unpack $ zip [r..] arr
         where unpack = map (\(r', val) -> Cell (Index sheet (c,r')) xp' val ts)
@@ -89,10 +94,6 @@ getDimensions coll = case coll of
 --formatValuesForMap pairs = formattedPairs
 --  where formattedPairs = map (\(l, c) -> (IndexRef l, getSanitizedCellValue c)) pairs
 
---getSanitizedCellValue :: Maybe ASCell -> ASValue
---getSanitizedCellValue c = case c of
---  Just cell -> cellValue cell
---  Nothing -> NoValue
 
 --------------------------------------------------------------------------------------------------------------
 -- Lists

@@ -125,7 +125,7 @@ data CompositeValue = Expanding ExpandingValue | CellValue ASValue deriving (Sho
 
 data RangeDescriptor = 
     ListDescriptor { listKey :: RangeKey}
-  | ObjectDescriptor {objKey :: RangeKey, objType :: ObjectType, objAttrs :: JSON}
+  | ObjectDescriptor { objKey :: RangeKey, objType :: ObjectType, objAttrs :: JSON }
 
 -- range keys are used to access range descriptors, which relay metadata about a range of cells
 -- e.g. for embedded lists and objects

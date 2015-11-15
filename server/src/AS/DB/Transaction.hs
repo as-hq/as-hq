@@ -1,43 +1,84 @@
-module AS.DB.Transactions where
+module AS.DB.Transaction where
 
 import AS.Types.Core
 import AS.Types.DB
 import AS.DB.API as DB
 import AS.DB.Util as DU
+import AS.Util as U
+
+import Database.Redis
+import qualified Data.Text as T
+import qualified Data.ByteString.Char8 as B
+import Data.List (nub)
+import Data.Maybe (catMaybes)
 
 ----------------------------------------------------------------------------------------------------------------------
 -- top-level functions
 
 -- | Deal with updating all DB-related things after an eval. 
-updateAfterEval :: Connection -> ASTransaction -> EitherTExec [ASCell]
-updateAfterEval conn (Transaction src@(sid, _) roots afterCells fatCells) = do
-  let newListCells         = concat $ map snd lists
-      afterCellsWithLists  = afterCells ++ newListCells
-      cellLocs             = map cellLocation afterCellsWithLists
-  beforeCells     <- lift $ catMaybes <$> getCells cellLocs
-  listKeysChanged <- liftIO $ DU.getListIntersections conn sid cellLocs
-  decoupleResult  <- lift $ mapM (decoupleList conn) listKeysChanged
-  let (coupledCells, decoupledCells) = U.liftListTuple decoupleResult
-      afterCells'                    = U.mergeCells afterCellsWithLists decoupledCells
-      beforeCells'                   = U.mergeCells beforeCells coupledCells
-  liftIO $ setCells afterCells'
-  liftIO $ deleteCells conn (filter isEmptyCell afterCells')
-  liftIO $ mapM_ (\(key, cells) -> setListLocations conn key (map cellLocation cells)) lists
-  liftIO $ addCommit conn (beforeCells', afterCells') src
-  liftIO $ printWithTime "added commits"
-  right afterCells'
+writeTransaction :: Connection -> ASTransaction -> EitherTExec [ASCell]
+writeTransaction conn (Transaction src@(sid, _) roots afterCells fatCells) = 
+  let expandedCells   = concat $ map (\(FatCell cs _ _) -> cs) fatCells
+      locs            = map cellLocation afterCells
+      afterCells'     = afterCells ++ expandedCells
+      locs'           = map cellLocation afterCells'
+      rangeKeys       = map (\(FatCell _ _ desc) -> getRangeKey desc) fatCells
+  in do
+    beforeCells <- lift $ catMaybes <$> DB.getCells locs'
+    -- determine all fatcell intersections produced by eval
+    rangeKeysChangedByCells <- liftIO $ DU.getFatCellIntersections conn sid (Left locs)
+    rangeKeysChangedByFatCells <- liftIO $ DU.getFatCellIntersections conn sid (Right rangeKeys)
+    let rangeKeysChanged = rangeKeysChangedByCells ++ rangeKeysChangedByFatCells
+    -- decouple the intersected fat cells
+    coupledCells <- lift $ concat <$> (mapM (decouple conn) rangeKeysChanged)
+    let decoupledCells  = map DU.decoupleCell coupledCells
+        afterCells''    = U.mergeCells afterCells' decoupledCells
+        beforeCells'    = U.mergeCells beforeCells coupledCells
+    -- set the database
+    liftIO $ setCells $ filter (not . isEmptyCell) afterCells''
+    liftIO $ mapM_ (\(FatCell _ desc) -> couple conn) fatCells
+    liftIO $ addCommit conn (beforeCells', afterCells') src
+    liftIO $ printWithTime "added commits"
+    right afterCells'
 
 ----------------------------------------------------------------------------------------------------------------------
 -- helpers
 
-couple :: Connection -> FatCell -> IO ()
+couple :: Connection -> RangeDescriptor -> IO ()
 couple conn desc = 
+  let rangeKey       = DU.getRangeKey desc 
+      rangeKey'      = B.pack rangeKey
+      sheetRangesKey = DU.getSheetRangesKey $ DU.rangeKeyToSheetId rangeKey
+      rangeValue     = B.pack $ show desc
+  in runRedis conn $ do
+      liftIO $ printWithTime $ "setting list locations for key: " ++ listKey
+      set rangeKey' rangeValue
+      sadd sheetRangesKey [rangeKey']
+      return ()
 
+-- | Takes in a cell that's tied to a list. Decouples all the cells in that list from that
+-- | returns: cells before decoupling
+-- Note: this operation is O(n)
+-- TODO move to C client because it's expensive
 decouple :: Connection -> RangeKey -> IO [ASCell]
 decouple conn key = 
+  let rangeKey = B.pack key
+      sheetRangesKey = DU.getSheetRangesKey $ DU.rangeKeyToSheetId key
+  in do
+    locKeys <- runRedis conn $ do
+      TxSuccess result <- multiExec $ do
+        result <- smembers listKey
+        del [rangeKey]
+        srem sheetRangesKey [rangeKey]
+        return result
+      return result
+    printWithTime $ "got coupled locs: " ++ (U.truncated $ show locKeys)
+    case locKeys of
+      [] -> return []
+      ls -> U.filterNothing <$> DU.getCellsByKeys ls
 
-getFatCellsInRange :: Connection -> ASRange -> IO [RangeKey]
-getFatCellsInRange conn rng = 
+--getFatCellsInRange :: Connection -> ASRange -> IO [RangeKey]
+--getFatCellsInRange conn rng = 
 
 
 ----------------------------------------------------------------------------------------------------------------------
@@ -53,41 +94,6 @@ getListsInRange conn rng = do
       zipRectsContained = filter (\(_,rect) -> U.rangeContainsRect rng rect) zipRects
   return $ map fst zipRectsContained
 
-setListLocations :: Connection -> ListKey -> [ASIndex] -> IO ()
-setListLocations conn listKey locs
-  | null locs = return ()
-  | otherwise = do 
-    let locKeys       = map DU.getLocationKey locs
-        listKey'      = B.pack listKey
-        sheetListsKey = DU.getSheetListsKey . locSheetId $ head locs
-    runRedis conn $ do
-      liftIO $ printWithTime $ "setting list locations for key: " ++ listKey
-      sadd listKey' locKeys
-      sadd sheetListsKey [listKey']
-      return ()
-
--- | Takes in a cell that's tied to a list. Decouples all the cells in that list from that
--- | returns: (cells before decoupling, cells after decoupling)
--- Note: this operation is O(n)
--- TODO move to C client because it's expensive
-decoupleList :: Connection -> ListKey -> IO ([ASCell], [ASCell])
-decoupleList conn listString = do
-  let listKey = B.pack listString
-  let sheetListsKey = DU.getSheetListsKey $ DU.getSheetIdFromListKey listString
-  locs <- runRedis conn $ do
-    TxSuccess result <- multiExec $ do
-      result <- smembers listKey
-      del [listKey]
-      srem sheetListsKey [listKey]
-      return result
-    return result
-  printWithTime $ "got coupled locs: " ++ (U.truncated $ show locs)
-  case locs of
-    [] -> return ([],[])
-    ls -> do
-      listCells <- U.filterNothing <$> DU.getCellsByKeys ls
-      let decoupledCells = map DU.decoupleCell listCells
-      return (listCells, decoupledCells)
 
 recoupleList :: Connection -> ListKey -> IO ()
 recoupleList conn key = do
@@ -129,10 +135,10 @@ addCommit conn (b,a) src = do
   pushCommit conn commit src
   --putStrLn $ show commit
 
-pushKey :: CommitSource -> BS.ByteString
+pushKey :: CommitSource -> B.ByteString
 pushKey (sid, uid) = B.pack $ (T.unpack sid) ++ '|':(T.unpack uid) ++ "pushed"
 
-popKey :: CommitSource -> BS.ByteString
+popKey :: CommitSource -> B.ByteString
 popKey (sid, uid)  = B.pack $ (T.unpack sid) ++ '|':(T.unpack uid) ++ "popped"
 
 -- | Return a commit if possible (not possible if you undo past the beginning of time, etc)

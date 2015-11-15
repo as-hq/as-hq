@@ -61,50 +61,32 @@ msgPartDelimiter = "`" -- TODO: should require real parsing instead of weird cha
 relationDelimiter = "&"
 keyPartDelimiter = '?'
 
--- get a list key with a special suffix denoting list type
-getRangeKeyWithIdentifier :: ASIndex -> Dimensions -> String -> RangeKey
-getRangeKeyWithIdentifier idx dims ident = (show2 idx) ++ (keyPartDelimiter:(show dims)) ++ (keyPartDelimiter:ident)
-
--- returns the list key for a regular list
+-- key for fat cells
 getRangeKey :: ASIndex -> Dimensions -> RangeKey
-getRangeKey idx dims = getRangeKeyWithIdentifier idx dims "LIST"
+getRangeKey idx dims = (show2 idx) ++ (keyPartDelimiter:(show dims))
 
----- returns the list key for a dataframe-type list
---getDFListKey :: ASIndex -> Dimensions -> ListKey
---getDFListKey idx dims = getListKeyWithIdentifier idx dims "DF"
+-- key for set of all fat cells in a sheet
+getSheetRangesKey :: ASSheetId -> B.ByteString
+getSheetRangesKey sid = BC.pack $ (T.unpack sid) ++ (keyPartDelimiter:"ALL_RANGES")
 
-getSheetListsKey :: ASSheetId -> B.ByteString
-getSheetListsKey sid = BC.pack $ (T.unpack sid) ++ (keyPartDelimiter:"ALL_LISTS")
-
+-- key for locations
 getLocationKey :: ASIndex -> B.ByteString
 getLocationKey = BC.pack . show2
 
+-- key for sheet
 getSheetKey :: ASSheetId -> B.ByteString -- for storing the actual sheet as key-value
 getSheetKey = BC.pack . T.unpack
 
-getSheetSetKey :: ASSheetId -> B.ByteString -- for storing set of locations in single sheet
+-- key for all location keys in a sheet
+getSheetSetKey :: ASSheetId -> B.ByteString
 getSheetSetKey sid = BC.pack $! (T.unpack sid) ++ "Locations"
 
+-- key for workbook
 getWorkbookKey :: String -> B.ByteString
 getWorkbookKey = BC.pack
 
-keyToRow :: B.ByteString -> Int
-keyToRow str = row
-  where
-    (col, row) = read idxStr :: Coord
-    idxStr     = BC.unpack $ last $ BC.split '|' str
-
-getLastRowKey :: [B.ByteString] -> B.ByteString
-getLastRowKey keys = maxBy keyToRow keys
-
-incrementLocKey :: Offset -> B.ByteString -> B.ByteString
-incrementLocKey (dx, dy) key = BC.pack $ ks ++ '|':kidx
-  where
-    (sh:idxStr:[]) = BC.split '|' key
-    ks             = BC.unpack sh
-    (col, row)     = read (BC.unpack idxStr) :: Coord
-    kidx           = show (col + dx, row + dy)
-
+-- given "Untitled" and ["Untitled1", "Untitled2"], produces "Untitled3"
+-- only works on integer suffixes
 getUniquePrefixedName :: String -> [String] -> String
 getUniquePrefixedName pref strs = pref ++ (show idx)
   where
@@ -125,21 +107,6 @@ foreign import ccall unsafe "hiredis/redis_db.c clearSheet" c_clearSheet :: CStr
 
 ----------------------------------------------------------------------------------------------------------------------
 -- Private DB functions
-
---getCellByKeyRedis :: B.ByteString -> Redis (Maybe ASCell)
---getCellByKeyRedis key = do
---    Right str <- get key
---    return $ bStrToASCell str
-
---setCellRedis :: ASCell -> Redis ()
---setCellRedis cell = do
---    let loc = cellLocation cell
---        key = getLocationKey loc
---        cellstr = showB . show2 $ cell
---    set key cellstr
---    let setKey = getSheetSetKey (locSheetId loc)
---    sadd setKey [key] -- add the location key to the set of locs in a sheet (for sheet deletion etc)
---    return ()
 
 getCellsByKeys :: [B.ByteString] -> IO [Maybe ASCell]
 getCellsByKeys keys = getCellsByMessage msg num
@@ -187,58 +154,64 @@ cToASCell str = do
     otherwise -> Just (read2 str'' :: ASCell)
 
 ----------------------------------------------------------------------------------------------------------------------
--- Lists
+-- Fat cells
 
 --getListType :: ListKey -> String
 --getListType key = last parts
 --  where parts = splitBy keyPartDelimiter key
 
---getDimsFromListKey :: ListKey -> (ASIndex, Dimensions)
---getDimsFromListKey key = (idx, dims)
---  where
---    parts = splitBy keyPartDelimiter key
---    idx   = read2 (head parts) :: ASIndex
---    dims  = read (parts !! 1) :: Dimensions
-
---getRectFromListKey :: ListKey -> Rect
---getRectFromListKey key = ((col, row), (col + width - 1, row + height - 1))
---  where (Index _ (col, row), (height, width)) = getDimsFromListKey key
-
---getSheetIdFromListKey :: ListKey -> ASSheetId
---getSheetIdFromListKey key = sid
---  where
---    parts = splitBy keyPartDelimiter key
---    (Index sid _)   = read2 (head parts) :: ASIndex
-
---getListKeysInSheet :: Connection -> ASSheetId -> IO [ListKey]
---getListKeysInSheet conn sid = runRedis conn $ do
---  Right result <- smembers $ getSheetListsKey sid
---  return $ map BC.unpack result
-
 --getLocationsFromListKey :: ListKey -> [ASIndex]
 --getLocationsFromListKey key = rangeToIndices range
 --  where
---    (Index sid (col, row), (height, width)) = getDimsFromListKey key
+--    (Index sid (col, row), (height, width)) = rangeKeyToDimensions key
 --    range = Range sid ((col, row), (col+width-1, row+height-1))
 
---getListIntersections :: Connection -> ASSheetId -> [ASIndex] -> IO [ListKey]
---getListIntersections conn sid locs = do
---  listKeys <- getListKeysInSheet conn sid
---  return $ filter (\key -> anyLocsContainedInRect locs (getRectFromListKey key)) listKeys
---  where
---    anyLocsContainedInRect lss r = any id $ map (indexInRect r) lss
---    indexInRect ((a',b'),(a2',b2')) (Index _ (a,b)) = a >= a' && b >= b' &&  a <= a2' && b <= b2'
+getFatCellIntersections :: Connection -> ASSheetId -> Either [ASIndex] [RangeKey] -> IO [RangeKey]
+getFatCellIntersections conn sid (Left locs) = do
+  rangeKeys <- getRangeKeysInSheet conn sid
+  return $ filter keyIntersects rangeKeys
+  where
+    keyIntersects k             = anyLocsContainedInRect locs (rangeKeyToRect k)
+    anyLocsContainedInRect ls r = any id $ map (indexInRect r) ls
+    indexInRect ((a',b'),(a2',b2')) (Index _ (a,b)) = a >= a' && b >= b' &&  a <= a2' && b <= b2'
 
---decoupleCell :: ASCell -> ASCell
---decoupleCell (Cell l e v ts) = Cell l e' v ts'
---  where
---    lang  = language e
---    e'    = Expression (showValue lang v) lang
---    ts'   = filter (\t -> case t of
---      ListMember _ -> False
---      DFMember -> False
---      _ -> True) ts
+getFatCellIntersections conn sid (Right key) = do
+  rangeKeys <- getRangeKeysInSheet conn sid
+  return $ isoFilter keyIntersects rangeRects rangeKeys
+    where
+      keyIntersects = rectsIntersect (rangeKeyToRect key)
+      rangeRects    = map rangeKeyToRect rangeKeys
 
+rangeKeyToRect :: RangeKey -> Rect
+rangeKeyToRect key = ((col, row), (col + width - 1, row + height - 1))
+  where (Index _ (col, row), (height, width)) = rangeKeyToDimensions key
+
+rangeKeyToDimensions :: RangeKey -> (ASIndex, Dimensions)
+rangeKeyToDimensions key = (idx, dims)
+  where
+    parts = splitBy keyPartDelimiter key
+    idx   = read2 (head parts) :: ASIndex
+    dims  = read (parts !! 1) :: Dimensions
+
+getRangeKeysInSheet :: Connection -> ASSheetId -> IO [RangeKey]
+getRangeKeysInSheet conn sid = runRedis conn $ do
+  Right result <- smembers $ getSheetRangesKey sid
+  return $ map BC.unpack result
+
+rangeKeyToSheetId :: ListKey -> ASSheetId
+rangeKeyToSheetId key = sid
+  where
+    parts = splitBy keyPartDelimiter key
+    (Index sid _)   = read2 (head parts) :: ASIndex
+
+decoupleCell :: ASCell -> ASCell
+decoupleCell (Cell l (Coupled _ lang _ _) v ts) = Cell l e' v ts
+  where e' = Expression (showValue lang v) lang
+
+getRangeKey :: RangeDescriptor -> RangeKey
+getRangeKey desc = case desc of 
+  ListDescriptor key -> key
+  ObjectDescriptor key _ _ -> key
 --isListHead :: ASCell -> Bool
 --isListHead cell = case (getListTag cell) of
 --  Nothing -> False

@@ -1,30 +1,32 @@
 module AS.Dispatch.Core where
 
 -- AlphaSheets and base
-import AS.Types.Core
-import AS.Types.DB
 import Prelude
-import qualified AS.Eval.Core as EC (evaluateLanguage)
 import qualified Data.Map   as M
 import qualified Data.Set   as S
-import qualified AS.DB.API  as DB
-import qualified AS.DB.Util as DU
 import qualified Data.List  as L
-import AS.Parsing.Common
-import AS.Parsing.Show hiding (first)
-import AS.Parsing.Read
 import Data.Maybe (fromJust, isNothing,catMaybes)
 import Text.ParserCombinators.Parsec
 import Control.Applicative
 import Data.Time.Clock
 import Data.Text as T (unpack,pack)
-import AS.Util as U
-import AS.Eval.Middleware as EM
-import AS.Eval.Endware as EE
-import qualified AS.DB.Graph as G
 import Control.Exception.Base
 
--- Websockets
+import AS.Types.Core
+import AS.Types.DB
+import AS.Dispatch.Expanding        as DE
+import qualified AS.Eval.Core       as EC (evaluateLanguage)
+import qualified AS.DB.API          as DB
+import qualified AS.DB.Transaction  as DT
+import qualified AS.DB.Util         as DU
+import AS.Util                      as U
+import AS.Eval.Middleware           as EM
+import AS.Eval.Endware              as EE
+import qualified AS.DB.Graph        as G
+import AS.Parsing.Common
+import AS.Parsing.Show hiding (first)
+import AS.Parsing.Read
+
 import Control.Monad
 import Control.Concurrent
 import Control.Monad.IO.Class (liftIO)
@@ -66,7 +68,7 @@ runDispatchCycle state cs src = do
     -- Apply endware
     finalizedCells <- lift $ EE.evalEndware state afterCells src roots
     let transaction = Transaction src roots finalizedCells cellLists
-    broadcastCells <- DB.updateAfterEval conn transaction -- atomically performs DB ops. (Sort of a lie -- writing to server is not atomic.)
+    broadcastCells <- DT.writeTransaction conn transaction -- atomically performs DB ops. (Sort of a lie -- writing to server is not atomic.)
     return broadcastCells
   runEitherT $ rollbackGraphIfError errOrCells
   return $ U.makeUpdateMessage errOrCells
@@ -121,6 +123,10 @@ groupRefs relation@(cell, refs) = if (shouldGroupRefs relation)
     return $ filterNothing groupedRefs
   else return []
 
+getSanitizedCellValue :: Maybe ASCell -> ASValue
+getSanitizedCellValue c = case c of
+  Just cell -> cellValue cell
+  Nothing -> NoValue
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Eval helpers
 
@@ -128,7 +134,7 @@ groupRefs relation@(cell, refs) = if (shouldGroupRefs relation)
 -- cell that's updated. The cells passed in are guaranteed to be topologically sorted, i.e.,
 -- if a cell references an ancestor, that ancestor is guaranteed to already have been
 -- added in the map.
-evalChain :: Connection -> RefValMap -> [ASCell] -> CommitSource -> EitherTExec ([ASCell], [ASList])
+evalChain :: Connection -> RefValMap -> [ASCell] -> CommitSource -> EitherTExec ([ASCell], [FatCell])
 evalChain conn valuesMap cells src = do
   result <- liftIO $ catch (runEitherT $ evalChain' conn valuesMap cells [] []) (\e -> do
     printObj "Runtime exception caught" (e :: SomeException)
@@ -157,7 +163,7 @@ evalChain' conn valuesMap [] fatCells =
       (cells, fatCellHeads)           = U.liftListTuple $ map unwrap fatCells
       isFatCellHead loc               = loc `elem` fatCellHeads
       locs                            = filter (not . isFatCellHead) $ map cellLocation cells
-      checkCircular loc               = if (isFatCellHead loc) then (left $ CircularDepError d) else (return ())
+      checkCircular loc               = if (isFatCellHead loc) then (left $ CircularDepError loc) else (return ())
       isInMap idx                     = (IndexRef idx) `M.notMember` valuesMap
   in do
     descLocs <- filter isInMap <$> G.getDescendants locs
@@ -173,21 +179,21 @@ evalChain' conn valuesMap [] fatCells =
     cells' <- getCellsToEval conn descLocs [] -- the origCells are the list cells, which got filtered out of descLocs
     evalChain' conn (M.union valuesMap newKnownValues) cells' [] fatCellHeads
 
-  evalChain' conn valuesMap (c@(Cell loc xp _ ts):cs) fatCells = do
-    cv <- EC.evaluateLanguage (IndexRef (cellLocation c)) (locSheetId loc) valuesMap xp
-    let maybeFatCell              = DE.decomposeCompositeValue c cv
-        addCell (Cell l _ v _) mp = M.insert (IndexRef l) v mp)
-        newValuesMap              = case maybeFatCell of
-          Nothing                          -> M.insert (IndexRef loc) cv valuesMap
-          Just (FatCell expandedCells _ _) -> foldr addCell valuesMap expandedCells
-        -- ^ adds all the cells in cellsList to the reference map
-        fatCells' = case maybeFatCell of
-          Nothing -> fatCells
-          Just f  -> f:fatCells
-    (restCells, restFatCells) <- evalChain' conn newValuesMap cs fatCells'
-    return $ case maybeFatCell of
-      Nothing          -> ((Cell loc xp cv ts):restCells, restFatCells)
-      (Just fatCell) -> (restCells, fatCell:restFatCells)
+evalChain' conn valuesMap (c@(Cell loc xp _ ts):cs) fatCells = do
+  cv <- EC.evaluateLanguage (IndexRef (cellLocation c)) (locSheetId loc) valuesMap xp
+  let maybeFatCell              = DE.decomposeCompositeValue c cv
+      addCell (Cell l _ v _) mp = M.insert (IndexRef l) v mp
+      newValuesMap              = case maybeFatCell of
+              Nothing                          -> M.insert (IndexRef loc) cv valuesMap
+              Just (FatCell expandedCells _ _) -> foldr addCell valuesMap expandedCells
+      -- ^ adds all the cells in cellsList to the reference map
+      fatCells' = case maybeFatCell of
+                Nothing -> fatCells
+                Just f  -> f:fatCells
+  (restCells, restFatCells) <- evalChain' conn newValuesMap cs fatCells'
+  return $ case maybeFatCell of
+    Nothing          -> ((Cell loc xp cv ts):restCells, restFatCells)
+    (Just fatCell) -> (restCells, fatCell:restFatCells)
 
 -- Removed for now for a number of reasons: 
 -- 1) confusing UX

@@ -319,13 +319,8 @@ getScrolledLocs w1@(Window _ (y,x) (y2,x2)) w2@(Window sheetid tl@(y',x') br@(y2
   | windowsIntersect w1 w2 = getUncoveredLocs sheetid overlapping (tl, br)
   | otherwise = [(Range sheetid (tl, br))]
     where overlapping = ((max y y', max x x'), (min y2 y2', min x2 x2'))
-          windowsIntersect (Window _ (y,x) (y2,x2)) (Window _ (y',x') (y2',x2'))
-            | y2 > y' = False 
-            | y < y2' = False
-            | x2 < x' = False 
-            | x > x2' = False
-            | otherwise = True 
-
+          windowsIntersect (Window _ w1 (Window _ w2) = rectsIntersect w1 w2
+            
 getUncoveredLocs :: ASSheetId -> (Coord, Coord) -> (Coord, Coord) -> [ASRange]
 getUncoveredLocs sheet (tlo, bro) (tlw, brw) = [Range sheet corners | corners <- cs]
     where
@@ -334,6 +329,17 @@ getUncoveredLocs sheet (tlo, bro) (tlw, brw) = [Range sheet corners | corners <-
       tro = (col bro, row tlo)
       blo = (col tlo, row bro)
       cs = [(tlw, tro), (trw, bro), (brw, blo), (blw, tlo)]
+
+----------------------------------------------------------------------------------------------------------------------------------------------
+-- metrics
+rectsIntersect :: Rect -> Rect -> Bool
+rectsIntersect ((y,x),(y2,x2)) ((y',x'),(y2',x2'))
+  | y2 > y' = False 
+  | y < y2' = False
+  | x2 < x' = False 
+  | x > x2' = False
+  | otherwise = True 
+
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Cells

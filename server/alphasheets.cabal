@@ -17,6 +17,7 @@ library
   hs-source-dirs:      src
   exposed-modules:     AS.Daemon
                        AS.DB.API
+                       AS.DB.Transaction
                        AS.DB.Util
                        AS.DB.Graph
                        AS.Dispatch.Core

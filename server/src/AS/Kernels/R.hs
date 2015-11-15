@@ -95,7 +95,6 @@ execR isGlobal s =
 castR :: R.SomeSEXP a -> R a CompositeValue
 castR (R.SomeSEXP s) = castSEXP s
 
--- everything returned is a list, because R.
 castSEXP :: R.SEXP s a -> R s CompositeValue
 castSEXP x = case x of
   (hexp -> H.Nil)       -> return $ CellValue NoValue
@@ -148,7 +147,7 @@ castVector v = do
     else return . Expanding $ VList vals
 
 rdVectorVals :: [CompositeValue] -> Collection
-rdVectorVals vals = M $ map mkArray vals 
+rdVectorVals = M . (map mkArray)
   where
     mkArray val = case val of 
       (Expanding (VList (A arr))) -> arr
