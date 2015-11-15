@@ -1,9 +1,14 @@
+/* @flow */
+
+import type {
+  ASClientLanguage
+} from '../types/State';
+
 import {logDebug} from '../AS/Logger';
 
 import Dispatcher from '../Dispatcher';
 import Constants from '../Constants';
 import BaseStore from './BaseStore';
-import assign from 'object-assign';
 import Util from '../AS/Util';
 
 /*
@@ -19,9 +24,13 @@ for (var key in Constants.Languages) {
   evalHeaderExps[key] = "";
 }
 
-let _data = {
+let _data: {
+  evalHeaderExps: {[key: string]: string};
+  evalHeaderSubmitLang: ?ASClientLanguage;
+  evalHeaderDispMessage: ?string;
+  currentLanguage: ASClientLanguage;
+} = {
   evalHeaderExps: evalHeaderExps,
-  evalHeaderShow: null,
   evalHeaderSubmitLang: null,
   evalHeaderDispMessage: null,
   currentLanguage: Constants.Languages.Python
@@ -29,22 +38,25 @@ let _data = {
 
 /* This function describes the actions of the ASEvalHeaderStore upon recieving a message from Dispatcher */
 dispatcherIndex: Dispatcher.register(function (action) {
-    switch (action.type) {
+    switch (action._type) {
       /* Called by Eval Pane upon leaving/changing a REPL (simply sets the expression in store) */
-      case Constants.ActionTypes.REPL_LEFT:
+      case 'REPL_LEFT':
         ASEvalHeaderStore.updateEvalHeaderExp(action.lang, action.value);
         break;
-      case Constants.ActionTypes.GOT_EVAL_HEADER_RESP:
+      case 'GOT_EVAL_HEADER_RESPONSE':
         _data.evalHeaderDispMessage = ASEvalHeaderStore.makeDispMessage(action.response);
         ASEvalHeaderStore.emitChange();
         break;
-      case Constants.ActionTypes.GOT_OPEN:
+      case 'GOT_OPEN':
         let xpObjs = action.expressions;
-        xpObjs.forEach((xpObj) => { 
+        xpObjs.forEach((xpObj) => {
+          if (xpObj.language === undefined || xpObj.language === null) {
+            throw new Error('Language undefined for expression');
+          }
           let lang = xpObj.language,
-              expr = xpObj.expression,  
+              expr = xpObj.expression,
               uppercasedLang = lang.charAt(0).toUpperCase() + lang.slice(1);
-          evalHeaderExps[uppercasedLang] = expr; 
+          evalHeaderExps[uppercasedLang] = expr;
         });
         _data.evalHeaderDispMessage = ""; // don't display any message right now
         ASEvalHeaderStore.emitChange();
@@ -52,7 +64,7 @@ dispatcherIndex: Dispatcher.register(function (action) {
       }
   })
 
-const ASEvalHeaderStore = assign({}, BaseStore, {
+const ASEvalHeaderStore = Object.assign({}, BaseStore, {
 
   updateEvalHeaderExp(lang,value) {
     logDebug("In evalHeader store, updating evalHeader data " + lang + " " + value);
@@ -60,23 +72,23 @@ const ASEvalHeaderStore = assign({}, BaseStore, {
     logDebug(JSON.stringify(_data.evalHeaderExps));
   },
 
-  makeDispMessage(val) { 
+  makeDispMessage(val) {
     let message = "Header saved! ";
-    switch (val.tag) { 
-      case "ValueError": 
+    switch (val.tag) {
+      case "ValueError":
         message += "(Error in header code: " + val.errMsg + ")";
         break;
       case "NoValue":
-        break; 
-      default: 
-        message += "(Header code evaluated to " + val.contents + ")";
+        break;
+      default:
+        message += "(Header code evaluated to " + JSON.stringify(((val: any): { contents: any }).contents) + ")";
         break;
     }
-    return message; 
+    return message;
   },
 
-  getDispMessage(val) { 
-    return _data.evalHeaderDispMessage; 
+  getDispMessage(val) {
+    return _data.evalHeaderDispMessage;
   },
 
   getEvalHeaderExp(lang) {

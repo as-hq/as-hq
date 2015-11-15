@@ -75,7 +75,7 @@ export function directAPIExec(fn) {
 }
 
 export function openSheet() {
-  return apiSyncExec(() => {
+  return apiExec(() => {
     API.openSheet();
   });
 }
