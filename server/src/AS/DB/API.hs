@@ -59,9 +59,6 @@ import Control.Monad.Trans.Either
 -- | Workbooks
 -- stored identically to Sheets
 
--- | Commits
--- stored as before, as a list of commits
-
 -- | Volatile locs
 -- stored as before, as a set with key volatileLocs
 
@@ -111,33 +108,14 @@ setCells cells = do
       num = length cells
   DU.setCellsByMessage msg num
 
--- | Makes sure everything is synced -- the listKeys and ancestors in graph db should reflect 
--- the cell changes that happen as a result of setting the cells. 
-setCellsPropagated :: Connection -> [ASCell] -> IO ()
-setCellsPropagated conn cells = do 
-  setCells cells
-  setCellsAncestorsForce $ filter (\c -> (not $ U.isListMember c) || DU.isListHead c) cells
-  let listKeys = nub $ catMaybes $ map DU.getCellListKey cells
-  mapM_ (recoupleList conn) listKeys
 
 deleteCells :: Connection -> [ASCell] -> IO ()
 deleteCells _ [] = return ()
 deleteCells conn cells = deleteLocs conn $ map cellLocation cells
 
--- | Makes sure everything is synced -- the listKeys and ancestors in graph db should reflect 
--- the cell changes that happen as a result of deleting the cells. 
-deleteCellsPropagated :: Connection -> [ASCell] -> IO ()
-deleteCellsPropagated conn cells = do 
-  deleteCells conn cells
-  setCellsAncestorsForce $ U.blankCellsAt (map cellLocation cells)
-  let listKeys = nub $ catMaybes $ map DU.getCellListKey cells
-  mapM_ (decoupleList conn) listKeys
-
 deleteLocs :: Connection -> [ASIndex] -> IO ()
 deleteLocs _ [] = return ()
-deleteLocs conn locs = runRedis conn $ do
-  _ <- mapM_ DU.deleteLocRedis locs
-  return ()
+deleteLocs conn locs = runRedis conn $ mapM_ DU.deleteLocRedis locs
 
 locationsExist :: Connection -> [ASIndex] -> IO [Bool]
 locationsExist conn locs = do
@@ -151,72 +129,6 @@ locationExists :: Connection -> ASIndex -> IO Bool
 locationExists conn loc = runRedis conn $ do
   Right result <- exists $ DU.getLocationKey loc
   return result
-
-----------------------------------------------------------------------------------------------------------------------
--- Commits
-
--- TODO: need to deal with large commit sizes and max number of commits
--- TODO: need to delete blank cells from the DB. (Otherwise e.g. if you delete a
--- a huge range, you're going to have all those cells in the DB doing nothing.)
-
--- | Creates and pushes a commit to the DB
-addCommit :: Connection -> ([ASCell], [ASCell]) -> CommitSource -> IO ()
-addCommit conn (b,a) src = do
-  time <- getASTime
-  let commit = ASCommit b a time
-  pushCommit conn commit src
-  --putStrLn $ show commit
-
--- Slightly 
-pushKey :: CommitSource -> BS.ByteString
-pushKey (sid, uid) = B.pack $ (T.unpack sid) ++ '|':(T.unpack uid) ++ "pushed"
-
-popKey :: CommitSource -> BS.ByteString
-popKey (sid, uid)  = B.pack $ (T.unpack sid) ++ '|':(T.unpack uid) ++ "popped"
-
--- | Return a commit if possible (not possible if you undo past the beginning of time, etc)
--- | Update the DB so that there's always a source of truth (ie we will initEval undo to all relevant users)
-undo :: Connection -> CommitSource -> IO (Maybe ASCommit)
-undo conn src = do
-  commit <- runRedis conn $ do
-    TxSuccess justC <- multiExec $ do
-      commit <- rpoplpush (pushKey src) (popKey src)
-      return commit
-    return $ DU.bStrToASCommit justC
-  case commit of
-    Nothing -> return Nothing
-    Just c@(ASCommit b a t) -> do
-      deleteCellsPropagated conn a
-      setCellsPropagated conn b
-      -- mapM_ (recoupleList conn) listKeys
-      return $ Just c
-
-redo :: Connection -> CommitSource -> IO (Maybe ASCommit)
-redo conn src = do
-  commit <- runRedis conn $ do
-    Right result <- lpop (popKey src)
-    case result of
-      (Just commit) -> do
-        rpush (pushKey src) [commit]
-        return $ DU.bStrToASCommit (Just commit)
-      _ -> return Nothing
-  case commit of
-    Nothing -> return Nothing
-    Just c@(ASCommit b a t) -> do
-      deleteCellsPropagated conn b
-      setCellsPropagated conn a
-      -- mapM_ (decoupleList conn) listKeys
-      return $ Just c
-
-pushCommit :: Connection -> ASCommit -> CommitSource -> IO ()
-pushCommit conn c src = do
-  let commit = (B.pack . show) c
-  runRedis conn $ do
-    TxSuccess _ <- multiExec $ do
-      rpush (pushKey src) [commit]
-      incrbyfloat "numCommits" 1
-      del [popKey src]
-    return ()
 
 ----------------------------------------------------------------------------------------------------------------------
 -- WorkbookSheets (for frontend API)
@@ -431,13 +343,11 @@ canAccessAll :: Connection -> ASUserId -> [ASIndex] -> IO Bool
 canAccessAll conn uid locs = return . all id =<< mapM (canAccess conn uid) locs
 
 isPermissibleMessage :: ASUserId -> Connection -> ASClientMessage -> IO Bool
-isPermissibleMessage uid conn (ClientMessage _ (PayloadCL cells))  = canAccessAll conn uid (map cellLocation cells)
-isPermissibleMessage uid conn (ClientMessage _ (PayloadLL locs))   = canAccessAll conn uid locs
-isPermissibleMessage uid conn (ClientMessage _ (PayloadS sheet))   = canAccessSheet conn uid (sheetId sheet)
-isPermissibleMessage uid conn (ClientMessage _ (PayloadW window))  = canAccessSheet conn uid (windowSheetId window)
-isPermissibleMessage uid conn (ClientMessage _ (PayloadTag _ rng)) = canAccessAll conn uid (rangeToIndices rng)
-isPermissibleMessage _ _ _ = return True
-
-
-----------------------------------------------------------------------------------------------------------------------
--- Users and Permissons TODO
+isPermissibleMessage uid conn (ClientMessage _ payload) = case payload of 
+  PayloadCL cells -> canAccessAll conn uid (map cellLocation cells)
+  PayloadLL locs -> canAccessAll conn uid locs
+  PayloadS sheet -> canAccessSheet conn uid (sheetId sheet)
+  PayloadW window -> canAccessSheet conn uid (windowSheetId window)
+  PayloadTag _ rng -> canAccessAll conn uid (rangeToIndices rng)
+  _ -> return True
+isPermissibleMessage uid conn _ = return True

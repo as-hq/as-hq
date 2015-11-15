@@ -121,7 +121,7 @@ data ExpandingValue =
   | VPSeries Array
   deriving (Show, Read, Eq, Generic)
 
-data CompositeValue = Expanding ExpandingValue | CellValue ASValue deriving (Show, Read)
+data CompositeValue = Expanding ExpandingValue | CellValue ASValue deriving (Show, Read, Generic)
 
 data RangeDescriptor = 
     ListDescriptor { listKey :: RangeKey}
@@ -130,7 +130,7 @@ data RangeDescriptor =
 -- range keys are used to access range descriptors, which relay metadata about a range of cells
 -- e.g. for embedded lists and objects
 type RangeKey = String
-data FatCell = FatCell [ASCell] RangeDescriptor
+data FatCell = FatCell { expandedCells :: [ASCell], headIndex :: ASIndex, descriptor :: RangeDescriptor }
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Parsing
 
@@ -545,8 +545,11 @@ instance ToJSON MutateType
 instance FromJSON MutateType
 
 -- memory region exposure instances for R value unboxing
-instance NFData ASValue       where rnf = genericRnf
-instance NFData EError        where rnf = genericRnf
-instance NFData ASReference   where rnf = genericRnf
-instance NFData ASRange       where rnf = genericRnf
-instance NFData ASIndex       where rnf = genericRnf
+instance NFData CompositeValue      where rnf = genericRnf
+instance NFData ExpandingValue      where rnf = genericRnf
+instance NFData Collection          where rnf = genericRnf
+instance NFData ASValue             where rnf = genericRnf
+instance NFData EError              where rnf = genericRnf
+instance NFData ASReference         where rnf = genericRnf
+instance NFData ASRange             where rnf = genericRnf
+instance NFData ASIndex             where rnf = genericRnf

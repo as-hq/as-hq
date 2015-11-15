@@ -19,5 +19,6 @@ runReplDispatch state xp = do
     let lang = language xp
     val <- runEitherT $ R.evaluateLanguageRepl xp 
     return $ case val of 
+        (Right (CellValue v)) -> ServerMessage EvaluateRepl Success (PayloadReplValue $ ReplValue v lang)
         (Left e) -> ServerMessage EvaluateRepl (Failure $ generateErrorMessage e) (PayloadE e)
-        (Right v) -> ServerMessage EvaluateRepl Success (PayloadReplValue $ ReplValue v lang)
+        _ ->  ServerMessage EvaluateRepl (Failure "Could not return composite value in REPL.") (PayloadE APIError)

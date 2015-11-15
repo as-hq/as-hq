@@ -149,44 +149,45 @@ evalChain conn valuesMap cells src = do
 -- because we don't need to re-evaluate the individual cells in the list, ONLY their descendants.
 -- We also need to check for circular dependencies, which is why the pastListHeads are passed in.
 -- #needsrefactor there's probably a more Haskell way of doing this with a state monad or something.
-evalChain' :: Connection -> RefValMap -> [ASCell] -> [ASList] -> [ASIndex] -> EitherTExec ([ASCell], [ASList])
+evalChain' :: Connection -> RefValMap -> [ASCell] -> [FatCell] -> EitherTExec ([ASCell], [FatCell])
 evalChain' _ _ [] [] _ = return ([], [])
-evalChain' conn valuesMap [] lists pastListHeads = do
-  -- get cells from lists
-  let cells         = concat $ map snd lists
-      listCellLocs  = map cellLocation cells
-      listCellLocs' = filter (\d -> not $ d `elem` pastListHeads) listCellLocs
-  descLocs <- G.getDescendants listCellLocs'
-  -- check for circular dependencies. IF a circular dependency exists, it necessarily has to
-  -- involve one of the list heads, since the cells created as part of a list depend only
-  -- on the head. So we go through the descendants of the current list cells (sans the previous
-  -- list heads), so if those contain any of the previous list heads we know there's a cycle.
-  mapM_ (\d -> if (d `elem` pastListHeads) then (left $ CircularDepError d) else (return ())) descLocs
-  -- DON'T need to re-eval anything that's already been evaluated
-  let descLocs' = filter (\d -> (IndexRef d) `M.notMember` valuesMap) descLocs
-  -- #needsrefactor it seems like a large chunk of code here mirrors that in evalChain... should probably DRY
-  ancLocs <- G.getImmediateAncestors descLocs'
-  newKnownValues <- lift $ getValuesMap [] ancLocs
-  cells' <- getCellsToEval conn descLocs' [] -- the origCells are the list cells, which got filtered out of descLocs
-  evalChain' conn (M.union valuesMap newKnownValues) cells' [] pastListHeads
+evalChain' conn valuesMap [] fatCells = 
+  -- get expanded cells from fat cells
+  let unwrap (FatCell fcells fhead _) = (fcells, [fhead])
+      (cells, fatCellHeads)           = U.liftListTuple $ map unwrap fatCells
+      isFatCellHead loc               = loc `elem` fatCellHeads
+      locs                            = filter (not . isFatCellHead) $ map cellLocation cells
+      checkCircular loc               = if (isFatCellHead loc) then (left $ CircularDepError d) else (return ())
+      isInMap idx                     = (IndexRef idx) `M.notMember` valuesMap
+  in do
+    descLocs <- filter isInMap <$> G.getDescendants locs
+    -- check for circular dependencies. IF a circular dependency exists, it necessarily has to
+    -- involve one of the list heads, since the cells created as part of a list depend only
+    -- on the head. So we go through the descendants of the current list cells (sans the previous
+    -- list heads), so if those contain any of the previous list heads we know there's a cycle.
+    mapM_ checkCircular descLocs
+    -- DON'T need to re-eval anything that's already been evaluated
+    -- #needsrefactor it seems like a large chunk of code here mirrors that in evalChain... should probably DRY
+    ancLocs <- G.getImmediateAncestors descLocs
+    newKnownValues <- lift $ getValuesMap [] ancLocs
+    cells' <- getCellsToEval conn descLocs [] -- the origCells are the list cells, which got filtered out of descLocs
+    evalChain' conn (M.union valuesMap newKnownValues) cells' [] fatCellHeads
 
-evalChain' conn valuesMap (c@(Cell loc xp _ ts):cs) next listHeads = do
-  cv <- EC.evaluateLanguage (IndexRef (cellLocation c)) (locSheetId loc) valuesMap xp
-  let listResult = createListCells c cv
-      newValuesMap = case listResult of
-        Nothing          -> M.insert (IndexRef loc) cv valuesMap
-        (Just cellsList) -> foldr (\(Cell l _ v _) mp -> M.insert (IndexRef l) v mp) valuesMap (snd cellsList)
-      -- ^ adds all the cells in cellsList to the reference map
-      next' = case listResult of
-        Nothing        -> next
-        Just cellsList -> cellsList:next
-      listHeads' = case listResult of
-        Nothing -> listHeads
-        Just _  -> loc:listHeads
-  (restCells, restLists) <- evalChain' conn newValuesMap cs next' listHeads'
-  return $ case listResult of
-    Nothing          -> ((Cell loc xp cv ts):restCells, restLists)
-    (Just cellsList) -> (restCells, cellsList:restLists)
+  evalChain' conn valuesMap (c@(Cell loc xp _ ts):cs) fatCells = do
+    cv <- EC.evaluateLanguage (IndexRef (cellLocation c)) (locSheetId loc) valuesMap xp
+    let maybeFatCell              = DE.decomposeCompositeValue c cv
+        addCell (Cell l _ v _) mp = M.insert (IndexRef l) v mp)
+        newValuesMap              = case maybeFatCell of
+          Nothing                          -> M.insert (IndexRef loc) cv valuesMap
+          Just (FatCell expandedCells _ _) -> foldr addCell valuesMap expandedCells
+        -- ^ adds all the cells in cellsList to the reference map
+        fatCells' = case maybeFatCell of
+          Nothing -> fatCells
+          Just f  -> f:fatCells
+    (restCells, restFatCells) <- evalChain' conn newValuesMap cs fatCells'
+    return $ case maybeFatCell of
+      Nothing          -> ((Cell loc xp cv ts):restCells, restFatCells)
+      (Just fatCell) -> (restCells, fatCell:restFatCells)
 
 -- Removed for now for a number of reasons: 
 -- 1) confusing UX

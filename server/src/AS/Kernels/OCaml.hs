@@ -17,8 +17,8 @@ import Control.Monad.Trans.Either
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Exposed functions
 
-evaluate :: String -> EitherTExec ASValue
-evaluate "" = return NoValue
+evaluate :: String -> EitherTExec CompositeValue
+evaluate "" = return $ CellValue NoValue
 evaluate str = do
     if isDebug 
         then lift $ writeExecFile OCaml str
@@ -27,8 +27,8 @@ evaluate str = do
     result <- lift $ execOcaml
     hoistEither $ parseValue OCaml result
 
-evaluateRepl :: String -> EitherTExec ASValue
-evaluateRepl "" = return NoValue
+evaluateRepl :: String -> EitherTExec CompositeValue
+evaluateRepl "" = return $ CellValue NoValue
 evaluateRepl str = left ExecError -- TODO
 
 ----------------------------------------------------------------------------------------------------------------------------------------------

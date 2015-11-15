@@ -21,12 +21,12 @@ import Control.Monad.Trans.Either
 -- | Exposed functions
 
 -- | Helper for evaluateRepl
-onParseSuccess :: String -> ASValue -> IO ()
-onParseSuccess replRecord v@(ValueError _ _ _ _) = writeReplRecord Python replRecord
+onParseSuccess :: String -> CompositeValue -> IO ()
+onParseSuccess previousRecord (CellValue (ValueError _ _)) = writeReplRecord Python previousRecord
 onParseSuccess _ v = return ()
 
 onParseFailure :: String -> ASExecError -> IO ()
-onParseFailure replRecord x = writeReplRecord Python replRecord
+onParseFailure previousRecord x = writeReplRecord Python previousRecord
 
 -- | python
 evaluate :: String -> EitherTExec CompositeValue
@@ -83,11 +83,12 @@ execWrappedCode evalCode = do
       Right result' -> hoistEither $ parseValue Python result'
       Left e -> return e
 
-pyfiString :: String -> IO (Either ASValue String)
+pyfiString :: String -> IO (Either CompositeValue String)
 pyfiString evalStr = catch (Right <$> execString) whenCaught
     where
         execString = defVV (evalStr ++ pyString) ("Hello" :: String)
-        whenCaught = (\e -> return . Left $ ValueError (show e) "SyntaxError" "" 0) :: (SomeException -> IO (Either ASValue String))
+        whenCaught :: SomeException -> IO (Either CompositeValue String)
+        whenCaught e = return . Left . CellValue $ ValueError (show e) "Syntax error."
 
 pyString :: String
 pyString = [str|

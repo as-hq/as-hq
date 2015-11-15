@@ -30,6 +30,19 @@ updateAfterEval conn (Transaction src@(sid, _) roots afterCells fatCells) = do
 ----------------------------------------------------------------------------------------------------------------------
 -- helpers
 
+couple :: Connection -> FatCell -> IO ()
+couple conn desc = 
+
+decouple :: Connection -> RangeKey -> IO [ASCell]
+decouple conn key = 
+
+getFatCellsInRange :: Connection -> ASRange -> IO [RangeKey]
+getFatCellsInRange conn rng = 
+
+
+----------------------------------------------------------------------------------------------------------------------
+-- helpers
+
 -- | Returns the listkeys of all the lists that are entirely contained in the range.  
 getListsInRange :: Connection -> ASRange -> IO [ListKey]
 getListsInRange conn rng = do
@@ -82,3 +95,86 @@ recoupleList conn key = do
   locsExist <- locationsExist conn locs
   let locs' = U.zipFilter $ zip locs locsExist
   setListLocations conn key locs'
+
+  -- | Makes sure everything is synced -- the listKeys and ancestors in graph db should reflect 
+-- the cell changes that happen as a result of setting the cells. 
+setCellsPropagated :: Connection -> [ASCell] -> IO ()
+setCellsPropagated conn cells = do 
+  setCells cells
+  setCellsAncestorsForce $ filter (\c -> (not $ U.isListMember c) || DU.isListHead c) cells
+  let listKeys = nub $ catMaybes $ map DU.getCellListKey cells
+  mapM_ (recoupleList conn) listKeys
+
+-- | Makes sure everything is synced -- the listKeys and ancestors in graph db should reflect 
+-- the cell changes that happen as a result of deleting the cells. 
+deleteCellsPropagated :: Connection -> [ASCell] -> IO ()
+deleteCellsPropagated conn cells = do 
+  deleteCells conn cells
+  setCellsAncestorsForce $ U.blankCellsAt (map cellLocation cells)
+  let listKeys = nub $ catMaybes $ map DU.getCellListKey cells
+  mapM_ (decoupleList conn) listKeys
+
+----------------------------------------------------------------------------------------------------------------------
+-- Commits
+
+-- TODO: need to deal with large commit sizes and max number of commits
+-- TODO: need to delete blank cells from the DB. (Otherwise e.g. if you delete a
+-- a huge range, you're going to have all those cells in the DB doing nothing.)
+
+-- | Creates and pushes a commit to the DB
+addCommit :: Connection -> ([ASCell], [ASCell]) -> CommitSource -> IO ()
+addCommit conn (b,a) src = do
+  time <- getASTime
+  let commit = ASCommit b a time
+  pushCommit conn commit src
+  --putStrLn $ show commit
+
+pushKey :: CommitSource -> BS.ByteString
+pushKey (sid, uid) = B.pack $ (T.unpack sid) ++ '|':(T.unpack uid) ++ "pushed"
+
+popKey :: CommitSource -> BS.ByteString
+popKey (sid, uid)  = B.pack $ (T.unpack sid) ++ '|':(T.unpack uid) ++ "popped"
+
+-- | Return a commit if possible (not possible if you undo past the beginning of time, etc)
+-- | Update the DB so that there's always a source of truth (ie we will initEval undo to all relevant users)
+undo :: Connection -> CommitSource -> IO (Maybe ASCommit)
+undo conn src = do
+  commit <- runRedis conn $ do
+    TxSuccess justC <- multiExec $ do
+      commit <- rpoplpush (pushKey src) (popKey src)
+      return commit
+    return $ DU.bStrToASCommit justC
+  case commit of
+    Nothing -> return Nothing
+    Just c@(ASCommit b a t) -> do
+      deleteCellsPropagated conn a
+      setCellsPropagated conn b
+      -- mapM_ (recoupleList conn) listKeys
+      return $ Just c
+
+redo :: Connection -> CommitSource -> IO (Maybe ASCommit)
+redo conn src = do
+  commit <- runRedis conn $ do
+    Right result <- lpop (popKey src)
+    case result of
+      (Just commit) -> do
+        rpush (pushKey src) [commit]
+        return $ DU.bStrToASCommit (Just commit)
+      _ -> return Nothing
+  case commit of
+    Nothing -> return Nothing
+    Just c@(ASCommit b a t) -> do
+      deleteCellsPropagated conn b
+      setCellsPropagated conn a
+      -- mapM_ (decoupleList conn) listKeys
+      return $ Just c
+
+pushCommit :: Connection -> ASCommit -> CommitSource -> IO ()
+pushCommit conn c src = do
+  let commit = (B.pack . show) c
+  runRedis conn $ do
+    TxSuccess _ <- multiExec $ do
+      rpush (pushKey src) [commit]
+      incrbyfloat "numCommits" 1
+      del [popKey src]
+    return ()

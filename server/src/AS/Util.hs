@@ -144,13 +144,15 @@ splitBy delimiter = foldr f [[]]
   where f c l@(x:xs) | c == delimiter = []:l
                      | otherwise = (c:x):xs
 
-catchEitherT :: EitherTExec ASValue -> EitherTExec ASValue
+catchEitherT :: EitherTExec CompositeValue -> EitherTExec CompositeValue
 catchEitherT a = do
   result <- liftIO $ catch (runEitherT a) whenCaught
   case result of
     (Left e) -> left e
     (Right e) -> right e
-    where whenCaught = (\e -> return . Right $ ValueError (show e) "StdErr") :: (SomeException -> IO (Either ASExecError ASValue))
+    where 
+      whenCaught :: SomeException -> IO (Either ASExecError CompositeValue)
+      whenCaught e = return . Right . CellValue $ ValueError (show e) "StdErr" 
 
 fromDouble :: Double -> Either Double Int
 fromDouble x = if (x == xInt)

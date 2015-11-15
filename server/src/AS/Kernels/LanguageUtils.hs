@@ -12,6 +12,7 @@ import AS.Config.Paths
 import AS.Parsing.Show
 import AS.Parsing.Substitutions
 import AS.Parsing.Common
+import AS.Parsing.Excel
 
 import Control.Exception (SomeException, catch)
 import Control.Applicative hiding ((<|>))
@@ -222,29 +223,28 @@ addCompileCmd OCaml cmd = do
 -- the value as a string.
 lookupString :: ASLanguage -> RefValMap -> ASReference -> String
 lookupString lang valuesMap loc = case loc of
-    IndexRef (Index sh (a,b)) -> showValue lang $ valuesMap M.! loc
+    IndexRef (Index sh (a,b)) -> showPrimitive lang $ valuesMap M.! loc
     RangeRef (Range sh ((a,b),(c,d))) ->
       if (M.member loc valuesMap)
-        then showValue lang $ valuesMap M.! loc
+        then showPrimitive lang $ valuesMap M.! loc
         else if (c==a)
-            then modifiedLists lang (toListStr lang [ ((showValue lang) (valuesMap M.! (IndexRef $ Index sh (a,row)))) | row<-[b..d]])
-            else modifiedLists lang (toListStr lang [modifiedLists lang (toListStr lang ([(showValue lang) (valuesMap M.! (IndexRef $ Index sh (col,row)))| col <-[a..c]]))| row<-[b..d]])
+            then list lang [ ((showPrimitive lang) (valuesMap M.! (IndexRef $ Index sh (a,row)))) | row<-[b..d]]
+            else list lang [ list lang ([(showPrimitive lang) (valuesMap M.! (IndexRef $ Index sh (col,row)))| col <-[a..c]]) | row<-[b..d]]
 
 
 -- | Replaces all the Excel references in an expression with the valuesMap corresponding to them.
 -- TODO clean up SQL mess
-
 insertValues :: ASSheetId -> RefValMap -> ASExpression -> String
 insertValues sheetid valuesMap xp@(Expression origString lang) = case lang of
   SQL -> contextStmt ++ evalStmt
     where
-        exRefs = getUnquotedMatchesWithContext xp refMatch
-        matchLocs = map (exRefToASRef sheetid) (snd exRefs)
-        context = map (lookupString SQL valuesMap) matchLocs
-        st = ["dataset"++(show i) | i<-[0..((L.length matchLocs)-1)]]
-        newExp = replaceMatches exRefs (\el -> (L.!!) st (MB.fromJust (L.findIndex (el==) (snd exRefs)))) origString
+        exRefs      = getUnquotedMatchesWithContext xp refMatch
+        matchLocs   = map (exRefToASRef sheetid) (snd exRefs)
+        context     = map (lookupString SQL valuesMap) matchLocs
+        st          = ["dataset"++(show i) | i<-[0..((L.length matchLocs)-1)]]
+        newExp      = replaceMatches exRefs (\el -> (L.!!) st (MB.fromJust (L.findIndex (el==) (snd exRefs)))) origString
         contextStmt = "setGlobals("++(show context) ++")\n"
-        evalStmt = "result = pprintSql(db(\'" ++ newExp ++ "\'))"
+        evalStmt    = "result = pprintSql(db(\'" ++ newExp ++ "\'))"
   otherLang -> evalString
     where
         exRefToStringEval = (lookupString lang valuesMap) . (exRefToASRef sheetid) -- ExRef -> String. (Takes in ExRef, returns the ASValue corresponding to it, as a string.)

@@ -45,13 +45,13 @@ import Control.Monad.Trans.Either
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Exposed functions
 
-evaluate :: EvalCode -> EitherTExec ASValue
-evaluate "" = return NoValue
+evaluate :: EvalCode -> EitherTExec CompositeValue
+evaluate "" = return $ CellValue NoValue
 evaluate str = liftIO $ execOnString str (execR False)
 
 
-evaluateRepl :: EvalCode -> EitherTExec ASValue
-evaluateRepl "" = return NoValue
+evaluateRepl :: EvalCode -> EitherTExec CompositeValue
+evaluateRepl "" = return $ CellValue NoValue
 evaluateRepl str = liftIO $ execOnString str (execR True)
 
 --clearRepl :: IO ()
@@ -73,7 +73,8 @@ execOnString str f = do
 -- change wd and then change back so that things like read.table will read from the static folder
 execR :: Bool -> EvalCode -> IO CompositeValue
 execR isGlobal s =
-  let whenCaught = (\e -> return . CellValue $ ValueError (show e) "R_EXEC_ERROR" "" 0) :: (SomeException -> IO CompositeValue)
+  let whenCaught :: SomeException -> IO CompositeValue
+      whenCaught e = return . CellValue $ ValueError (show e) "R_EXEC_ERROR" 
   in do
     result <- catch (R.runRegion $ castR =<< if isGlobal
       then [r| eval(parse(text=s_hs)) |]
@@ -111,7 +112,7 @@ castSEXP x = case x of
   (hexp -> H.Builtin i) -> return $ CellValue (ValueI $ fromIntegral i)
   (hexp -> H.Raw v) -> return $ CellValue (ValueS . bytesToString $ SV.toList v)
   (hexp -> H.S4 s) -> CellValue <$> castS4 s
-  _ -> return $ CellValue $ ValueError "Could not cast R value." "R_Error" "" 0
+  _ -> return . CellValue $ ValueError "Could not cast R value." "R Error"
 
 rdVector :: [ASValue] -> CompositeValue
 rdVector vals
@@ -123,13 +124,13 @@ castString v = ValueS . bytesToString $ SV.toList v
 
 castVector :: SV.Vector s 'R.Vector (R.SomeSEXP s) -> R s CompositeValue
 castVector v = do
-  vals <- rdVectorVals <$> mapM castR $ SV.toList v
+  vals <- rdVectorVals <$> (mapM castR $ SV.toList v)
   (CellValue (ValueB isList)) <- castR =<< [r|is.list(AS_LOCAL_EXEC)|]
   (CellValue (ValueB isDf)) <- castR =<< [r|is.data.frame(AS_LOCAL_EXEC)|]
   if isList
     then if isDf
       then do
-        listNames <- castListNames <$> castR =<< [r|names(AS_LOCAL_EXEC)|]
+        listNames <- castListNames <$> (castR =<< [r|names(AS_LOCAL_EXEC)|])
         return . Expanding $ VRDataFrame listNames vals
       else do
         listNames <- castListNames <$> (castR =<< [r|names(AS_LOCAL_EXEC)|])
@@ -142,8 +143,8 @@ castVector v = do
             [r|ggsave(filename=imagePath_hs, plot=AS_LOCAL_EXEC)|]
             return . CellValue $ ValueImage imageUid
           else 
-            let (A listVals) = vals
-            in return . Expanding $ VRList (zip listNames listVals)
+            let (M listRows) = vals
+            in return . Expanding $ VRList (zip listNames listRows)
     else return . Expanding $ VList vals
 
 rdVectorVals :: [CompositeValue] -> Collection
@@ -166,13 +167,14 @@ rdVectorVals vals = M $ map mkArray vals
 
 castListNames :: CompositeValue -> [String]
 castListNames val = case val of
-  (Expanding (Vlist (A names))) -> map (\(ValueS s)->s) names
+  (Expanding (VList (A names))) -> map (\(ValueS s)->s) names
   (CellValue (ValueS s)) -> [s]
   (CellValue NoValue)  -> ["NULL"]
+  _ -> error $ "could not cast dataframe list names from composite value " ++ (show val)
 
 -- TODO figure out S4 casting
 castS4 :: R.SEXP s a -> R s ASValue
-castS4 s = return $ ValueError "S4 objects not currently supported." "R_Error" "" 0
+castS4 s = return $ ValueError "S4 objects not currently supported." "R Error"
 
 fromLogical :: R.Logical -> Bool
 fromLogical R.TRUE  = True
