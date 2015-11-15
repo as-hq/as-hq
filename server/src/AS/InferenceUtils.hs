@@ -164,17 +164,13 @@ translatePatternCells r1 r2 pattern = concat $ map translatePatternCell indexCel
         newVals = map (snd pattern) seriesIndices
         newLocs = map (Index (rangeSheetId r1)) newPositions
         newExpressions = map (\v -> Expression (showValue lang v) lang) newVals
-        newCells = map (\(l,e,v) -> Cell l e v (cellTags cell)) $ zip3 newLocs newExpressions (trace' "NEW VALS " newVals)
+        newCells = map (\(l,e,v) -> Cell l e v (cellTags cell)) $ zip3 newLocs newExpressions newVals
 
 ------------------------------------------------------------------------------------------------------------------
 -- deal with the actual pattern matching (quite literally)
 -- TODO: currently incomplete, need to get all of Excel eventually
 
 type PatternMatcher = [ASCell] -> Maybe Pattern
-
-isInt :: ASValue -> Maybe Int
-isInt (ValueI i) = Just i
-isInt _ = Nothing
 
 -- Iterate through all pattern matchers in order and return the first one that matches the list of cells
 getPattern :: [ASCell] -> Maybe Pattern
@@ -194,25 +190,47 @@ trivialMatcher :: PatternMatcher
 trivialMatcher [c] = Just $ ([c],\n -> cellValue c)
 trivialMatcher _ = Nothing
 
+instance Num ASValue where
+  negate (ValueI i) = ValueI (-i)
+  negate (ValueD d) = ValueD (-d)
+  signum (ValueI i) = ValueI $ signum i
+  signum (ValueD d) = ValueD $ signum d
+  abs (ValueD d) = ValueD (abs d)
+  abs (ValueI i) = ValueI (abs i)
+  (+) (ValueD d) (ValueD d') = ValueD (d+d')
+  (+) (ValueI i) (ValueD d) = ValueD ((fromIntegral i)+d)
+  (+) (ValueD d) (ValueI i) = ValueD ((fromIntegral i)+d)
+  (+) (ValueI i) (ValueI i') = ValueI (i+i')
+  (*) (ValueD d) (ValueD d') = ValueD (d*d')
+  (*) (ValueI i) (ValueD d) = ValueD ((fromIntegral i)*d)
+  (*) (ValueD d) (ValueI i) = ValueD ((fromIntegral i)*d)
+  (*) (ValueI i) (ValueI i') = ValueI (i*i')
+  fromInteger a = (ValueI (fromIntegral a))
+
+toDouble :: ASValue -> Maybe Double
+toDouble (ValueI i) = Just $ fromIntegral i
+toDouble (ValueD d) = Just d
+toDouble _ = Nothing
+
+isArithmSeq :: [Double] -> Bool
+isArithmSeq [] = False
+isArithmSeq [x] = False
+isArithmSeq [x,y] = True
+isArithmSeq (x:y:z:xs) = (eqDouble (x - y) (y - z)) && isArithmSeq (y:z:xs)
+  where eqDouble x y = (abs (x-y) < 1e-6) -- bad doubles comparison, but good enough for now
+
 arithMatcher :: PatternMatcher
 arithMatcher cells = result 
   where
     vals = map cellValue cells
-    ints = map isInt vals
-    result = if (any isNothing ints)
+    mDoubles = map toDouble vals
+    result = if (any isNothing mDoubles)
       then Nothing
       else p
         where
-          series = map (\(ValueI i) -> i) vals
-          p = if (isArithmSeq series)
-            then Just $ (cells,\i -> ValueI ((series!!0) + i*(series!!1-series!!0)))
+          p = if (isArithmSeq $ catMaybes mDoubles)
+            then Just $ (cells, \i -> (vals!!0) + (fromInteger . fromIntegral $ i)*(vals!!1-vals!!0))
             else Nothing
-
-isArithmSeq :: (Eq a, Num a) => [a] -> Bool
-isArithmSeq [] = False
-isArithmSeq [x] = False
-isArithmSeq [x,y] = True
-isArithmSeq (x:y:z:xs) = (x - y) == (y - z) && isArithmSeq (y:z:xs)
 
 lowercase :: ASValue -> ASValue
 lowercase (ValueS s) = (ValueS (map toLower s))

@@ -125,7 +125,7 @@ instance Num ENumeric where
   (*) (EValueI i) (EValueD d) = EValueD ((fromIntegral i)*d)
   (*) (EValueD d) (EValueI i) = EValueD ((fromIntegral i)*d)
   (*) (EValueI i) (EValueI i') = EValueI (i*i')
-  fromInteger a = (EValueD (fromIntegral a))
+  fromInteger a = (EValueI (fromIntegral a))
 
 intExp :: ENumeric -> ENumeric -> ENumeric
 intExp (EValueI b) (EValueI e)
