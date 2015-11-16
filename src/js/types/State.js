@@ -62,4 +62,4 @@ export type ASClientExpression = {
 };
 
 export type ASCellStore =
-  Dict<Dict<Dict<ASCell>>>;
+  Dict<Array<Array<ASCell>>>;

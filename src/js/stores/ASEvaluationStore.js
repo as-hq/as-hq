@@ -160,11 +160,11 @@ const ASEvaluationStore = Object.assign({}, BaseStore, {
           _data.lastUpdatedCells = [];
           let cellsToRemove = [];
           for (var s in _data.allCells){
-            for (var c in _data.allCells[s]){
-              for (var r in _data.allCells[s][c]){
-                cellsToRemove.push(_data.allCells[s][c][r]);
-              }
-            }
+            _data.allCells[s].forEach((colArray) => {
+              colArray.forEach((cell) => {
+                cellsToRemove.push(cell);
+              });
+            });
           }
 
           // remove possibly null cells
@@ -179,17 +179,17 @@ const ASEvaluationStore = Object.assign({}, BaseStore, {
         case 'CLEARED_SHEET':
           _data.lastUpdatedCells = [];
           let cr = [];
-          for (var c in _data.allCells[action.sheetId]){
-            for (var r in _data.allCells[action.sheetId][c]){
-              cr.push(_data.allCells[action.sheetId][c][r]);
-            }
-          }
+          _data.allCells[action.sheetId].forEach((colArray) => {
+            colArray.forEach((cell) => {
+              cr.push(cell);
+            });
+          });
 
           // remove possibly null cells
           cr = cr.filter((cell) => !!cell);
 
           ASEvaluationStore.removeCells(cr);
-          _data.allCells[action.sheetId] = {};
+          _data.allCells[action.sheetId] = [];
           // logDebug("Last updated cells: " + JSON.stringify(_data.lastUpdatedCells));
           ASEvaluationStore.emitChange();
           break;
@@ -276,6 +276,8 @@ const ASEvaluationStore = Object.assign({}, BaseStore, {
         }
       }
     }
+
+    return null;
   },
 
 
@@ -406,10 +408,9 @@ const ASEvaluationStore = Object.assign({}, BaseStore, {
   setCell(c) {
     let {col, row} = c.cellLocation.index,
         sheetId = c.cellLocation.sheetId;
-    let [colS, rowS] = [col, row].map((a) => a.toString());
-    if (!_data.allCells[sheetId]) _data.allCells[sheetId] = {};
-    if (!_data.allCells[sheetId][colS]) _data.allCells[sheetId][colS] = {};
-    _data.allCells[sheetId][colS][rowS] = c;
+    if (!_data.allCells[sheetId]) _data.allCells[sheetId] = [];
+    if (!_data.allCells[sheetId][col]) _data.allCells[sheetId][col] = [];
+    _data.allCells[sheetId][col][row] = c;
   },
 
   // Replace cells with empty ones
@@ -424,7 +425,7 @@ const ASEvaluationStore = Object.assign({}, BaseStore, {
     let sheetId = loc.sheetId,
         emptyCell = TC.makeEmptyCell(loc);
     if (this.locationExists(loc.index.col, loc.index.row, sheetId)) {
-      delete _data.allCells[sheetId][loc.index.col.toString()][loc.index.row.toString()];
+      delete _data.allCells[sheetId][loc.index.col][loc.index.row];
     }
 
     _data.lastUpdatedCells.push(emptyCell);
@@ -452,8 +453,8 @@ const ASEvaluationStore = Object.assign({}, BaseStore, {
   locationExists(col, row, mySheetId) {
     let sheetId = mySheetId || _data.currentSheet.sheetId;
     return !!(_data.allCells[sheetId]
-      && _data.allCells[sheetId][col.toString()]
-      && _data.allCells[sheetId][col.toString()][row.toString()]);
+      && _data.allCells[sheetId][col]
+      && _data.allCells[sheetId][col][row]);
   },
 
   /**************************************************************************************************************************/
@@ -491,7 +492,7 @@ const ASEvaluationStore = Object.assign({}, BaseStore, {
   getCell(col,row,mySheetId){
     let sheetId = mySheetId || _data.currentSheet.sheetId;
     if (this.locationExists(col, row, sheetId))
-      return _data.allCells[sheetId][col.toString()][row.toString()];
+      return _data.allCells[sheetId][col][row];
     else {
       return null;
     }
