@@ -16,12 +16,14 @@ cabal-version:       >=1.10
 library
   hs-source-dirs:      src
   exposed-modules:     AS.Daemon
+                       AS.LanguageDefs
                        AS.DB.API
                        AS.DB.Transaction
                        AS.DB.Util
                        AS.DB.Graph
                        AS.Dispatch.Core
                        AS.Dispatch.Repl
+                       AS.Dispatch.Expanding
                        AS.Clients
                        AS.Config.Paths
                        AS.Config.Settings

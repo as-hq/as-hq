@@ -117,6 +117,9 @@ deleteLocs :: Connection -> [ASIndex] -> IO ()
 deleteLocs _ [] = return ()
 deleteLocs conn locs = runRedis conn $ mapM_ DU.deleteLocRedis locs
 
+----------------------------------------------------------------------------------------------------------------------
+-- Locations
+
 locationsExist :: Connection -> [ASIndex] -> IO [Bool]
 locationsExist conn locs = do
   runRedis conn $ do
@@ -129,6 +132,16 @@ locationExists :: Connection -> ASIndex -> IO Bool
 locationExists conn loc = runRedis conn $ do
   Right result <- exists $ DU.getLocationKey loc
   return result
+
+-- | Returns the listkeys of all the lists that are entirely contained in the range.  
+fatCellsInRange :: Connection -> ASRange -> IO [RangeKey]
+fatCellsInRange conn rng = do
+  let sid = rangeSheetId rng
+  rangeKeys <- DU.getRangeKeysInSheet conn sid
+  let rects = map DU.rangeKeyToRect rangeKeys
+      zipRects = zip rangeKeys rects
+      zipRectsContained = filter (\(_,rect) -> U.rangeContainsRect rng rect) zipRects
+  return $ map fst zipRectsContained
 
 ----------------------------------------------------------------------------------------------------------------------
 -- WorkbookSheets (for frontend API)

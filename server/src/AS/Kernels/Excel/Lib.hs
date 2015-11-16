@@ -247,7 +247,7 @@ topLeftForMatrix f (Right (EntityMatrix (EMatrix _ _ v)))
 topLeftForMatrix _ r = r
 
 evalBasicFormula :: Context -> BasicFormula -> EResult
-evalBasicFormula c (Ref exLoc) = locToResult $ exRefToASRef (shName (curLoc c)) exLoc
+evalBasicFormula c (Ref exLoc) = locToResult $ exRefToASRef (locSheetId (curLoc c)) exLoc
 evalBasicFormula c (Var val)   = valToResult val
 evalBasicFormula c (Fun f fs)  = do
   fDes <- getFunc f
@@ -264,12 +264,13 @@ evalFormula c (ArrayConst b) = do
   fmap EntityMatrix $ arrConstToResult c $ map rights lstChildren
 
 evalArrayFormula :: Context -> Formula -> EResult
-evalArrayFormula c (Basic (Ref exLoc)) = locToResult $ exRefToASRef (shName (curLoc c)) exLoc
+evalArrayFormula c (Basic (Ref exLoc)) = locToResult $ exRefToASRef (locSheetId (curLoc c)) exLoc
 evalArrayFormula c (Basic (Var val)) = valToResult val
 evalArrayFormula c f@(ArrayConst b) = evalFormula c f
 evalArrayFormula c f@(Basic (Fun name fs)) = do
   fDes <- getFunc name
-  let s = shName (curLoc c)
+  -- curLoc is always an index (you evaluate from within a cell)
+  let s = shName (IndexRef $ curLoc c)
   refMap <- unexpectedRefMap c (getUnexpectedRefs s f)
   checkNumArgs name (maxNumArgs fDes) (length fs)
   case refMap of
@@ -298,7 +299,7 @@ evalArrayFormula' c mp f = evalArrayFormula c f
 -- | The callback function itself will throw an error if it has an invalid argument type
 getFunctionArg :: Context -> FuncDescriptor -> Arg Formula -> EResult
 getFunctionArg c fd (argNum,(ArrayConst lst)) = scalarizeArrConst c fd argNum lst
-getFunctionArg c fd (argNum,f) = scalarizeRef (curLoc c) fd (argNum,res)
+getFunctionArg c fd (argNum,f) = scalarizeRef (IndexRef $ curLoc c) fd (argNum,res) -- curLoc is always an index (you evaluate from within a cell)
   where
     res | elem argNum (arrFormEvalArgs fd) = evalArrayFormula c f
       | otherwise = evalFormula c f
@@ -417,19 +418,21 @@ refToEntity c (ERef l@(IndexRef i)) = case (asValueToEntity v) of
   Nothing -> Left $ CannotConvertToExcelValue l
   Just (EntityVal val) -> Right $ EntityMatrix $ EMatrix 1 1 (V.singleton val)
   where
-    v = case (M.lookup l (evalMap c)) of
+    v = case (M.lookup i (evalMap c)) of
       Nothing -> dbLookup i
-      Just v' -> v'
+      Just (CellValue v') -> v'
+      _ -> error "cannot insert ExpandingValue in excel expression"
 refToEntity c (ERef (l@(RangeRef r))) = if any isNothing vals
   then Left $ CannotConvertToExcelValue l
   else Right $ EntityMatrix $ EMatrix (getWidth l) (getHeight l) $ V.fromList $ catMaybes vals
   where
     mp = evalMap c
     idxs = rangeToIndicesRowMajor r
-    (inMap,needDB) = partition (((flip M.member) mp).IndexRef) idxs
-    mapVals = catMaybes $ map (((flip M.lookup) mp).IndexRef) inMap
+    (inMap,needDB) = partition ((flip M.member) mp) idxs
+    -- excel cannot operate on objects/expanding values, so it's safe to assume all composite values passed in are cell values
+    mapVals = map (\(CellValue v) -> v) $ catMaybes $ map ((flip M.lookup) mp) inMap
     dbVals = dbLookupBulk needDB
-    vals = map toEValue $ mapVals ++ dbVals
+    vals = map toEValue $ mapVals ++ dbVals 
 
 replace :: (M.Map ERef EEntity) -> EResult -> EResult
 replace mp r@(Right (EntityRef ref)) = case (M.lookup ref mp) of
@@ -839,7 +842,8 @@ intToCol = intToColStr -- from AS.Util
 -- | No argument = column of current selection
 eColumn :: EFunc
 eColumn c e = do
-  (ERef loc) <- getOptional "ref" (ERef (curLoc c)) "column" 1 e :: ThrowsError ERef
+  -- curLoc is always an index (you evaluate from within a cell)
+  (ERef loc) <- getOptional "ref" (ERef (IndexRef $ curLoc c)) "column" 1 e :: ThrowsError ERef
   case loc of
     IndexRef (Index _ (a,b)) -> valToResult $ EValueNum $ EValueI a
     RangeRef (Range _ ((a,b),(c,d))) -> Right $ EntityMatrix $ EMatrix (c-a+1) (d-b+1) (flattenMatrix m)
@@ -850,7 +854,8 @@ eColumn c e = do
 -- | See eColumn
 eRow :: EFunc
 eRow c e = do
-  (ERef loc) <- getOptional "ref" (ERef (curLoc c)) "row" 1 e :: ThrowsError ERef
+  -- curLoc is always an index (you evaluate from within a cell)
+  (ERef loc) <- getOptional "ref" (ERef (IndexRef $ curLoc c)) "row" 1 e :: ThrowsError ERef
   case loc of
     IndexRef (Index _ (a,b)) -> valToResult $ EValueNum $ EValueI b
     RangeRef (Range _((a,b),(c,d))) -> Right $ EntityMatrix $ EMatrix (c-a+1) (d-b+1) (flattenMatrix m)
@@ -864,7 +869,7 @@ eIndirect :: EFunc
 eIndirect c e = do
   refString <- getRequired "string" "indirect" 1 e :: ThrowsError String
   a1Bool <- getOptional "bool" True "indirect" 2 e :: ThrowsError Bool
-  case (stringToLoc a1Bool (refSheetId $ curLoc c) refString) of
+  case (stringToLoc a1Bool (locSheetId $ curLoc c) refString) of
     Nothing -> Left $ REF "Indirect did not refer to valid reference as first argument"
     Just loc -> return $ EntityRef (ERef loc)
 

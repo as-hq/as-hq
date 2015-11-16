@@ -13,6 +13,7 @@ import AS.Parsing.Show
 import AS.Parsing.Substitutions
 import AS.Parsing.Common
 import AS.Parsing.Excel
+import qualified AS.LanguageDefs as LD
 
 import Control.Exception (SomeException, catch)
 import Control.Applicative hiding ((<|>))
@@ -112,13 +113,13 @@ splitLastLine lang str = case (tryParse (firstLineAndRest lang) (reverse str)) o
 -- | Parser that splits multiline string into (firstLine, remaining lines)
 firstLineAndRest :: ASLanguage -> Parser (String, String)
 firstLineAndRest lang = do
-    firstLine <- manyTill anyChar $ string "\n" <|> string (lineDelim lang)
+    firstLine <- manyTill anyChar $ string "\n" <|> string (LD.inlineDelimiter lang)
     remainingLines <- manyTill anyChar (try eof)
     return (firstLine, remainingLines)
 
 lastLine :: ASLanguage ->  Parser String
 lastLine lang = do
-    string "\n" <|> string (lineDelim lang)
+    string "\n" <|> string (LD.inlineDelimiter lang)
     manyTill anyChar eof
 
 addPrintCmd :: ASLanguage -> String -> String
@@ -170,26 +171,6 @@ wrapCode lang isRepl str =
 -----------------------------------------------------------------------------------------------------------------------
 -- | Language-specific string modifiers
 
-lineDelim :: ASLanguage -> String
-lineDelim lang = case lang of
-    Python  -> ";"
-    R       -> ";"
-    OCaml   -> ";;"
-
-assignOp :: ASLanguage -> String
-assignOp lang = case lang of
-    R           -> "<-"
-    otherwise   -> "="
-
-returnOp :: ASLanguage -> String
-returnOp lang = case lang of
-    otherwise -> "return"
-
-importOp :: ASLanguage -> String
-importOp lang = case lang of
-    Python  -> "import"
-    R       -> "library"
-
 getRunnerCmd :: ASLanguage -> String
 getRunnerCmd lang = case lang of
     R       -> "Rscript "
@@ -218,18 +199,18 @@ addCompileCmd OCaml cmd = do
     let path = evalPath ++ "ocaml/"
     return $ cmd ++ "; " ++ path ++ "test"
 
+-----------------------------------------------------------------------------------------------------------------------
+-- | Value interpolation
 
 -- | Helper function for interpolate. Takes in a RefValMap and a reference and returns
 -- the value as a string.
 lookupString :: ASLanguage -> RefValMap -> ASReference -> String
-lookupString lang valuesMap loc = case loc of
-    IndexRef (Index sh (a,b)) -> showPrimitive lang $ valuesMap M.! loc
+lookupString lang valuesMap ref = case ref of
+    IndexRef idx -> showValue lang $ valuesMap M.! idx
     RangeRef (Range sh ((a,b),(c,d))) ->
-      if (M.member loc valuesMap)
-        then showPrimitive lang $ valuesMap M.! loc
-        else if (c==a)
-            then list lang [ ((showPrimitive lang) (valuesMap M.! (IndexRef $ Index sh (a,row)))) | row<-[b..d]]
-            else list lang [ list lang ([(showPrimitive lang) (valuesMap M.! (IndexRef $ Index sh (col,row)))| col <-[a..c]]) | row<-[b..d]]
+      if (c==a)
+        then list lang [ (showValue lang $ valuesMap M.! (Index sh (a,row))) | row<-[b..d]]
+        else list lang [ list lang [ showValue lang $ valuesMap M.! (Index sh (col,row)) | col <-[a..c]] | row<-[b..d]]
 
 
 -- | Replaces all the Excel references in an expression with the valuesMap corresponding to them.

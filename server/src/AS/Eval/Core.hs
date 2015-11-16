@@ -38,7 +38,7 @@ import Control.Exception (catch, SomeException)
 -----------------------------------------------------------------------------------------------------------------------
 -- Exposed functions
 
-evaluateLanguage :: ASReference -> ASSheetId -> RefValMap -> ASExpression -> EitherTExec CompositeValue
+evaluateLanguage :: ASIndex -> ASSheetId -> RefValMap -> ASExpression -> EitherTExec CompositeValue
 evaluateLanguage curRef sheetid valuesMap xp@(Expression str lang) = catchEitherT $ do
   printWithTimeT "Starting eval code"
   let maybeError = possiblyShortCircuit sheetid valuesMap xp
@@ -65,19 +65,19 @@ evaluateLanguageRepl (Expression str lang) = catchEitherT $ case lang of
 -- return Nothing. Otherwise, if there are errors that can't be dealt with, return appropriate ASValue error.
 possiblyShortCircuit :: ASSheetId -> RefValMap -> ASExpression -> Maybe ASValue
 possiblyShortCircuit sheetid valuesMap xp =
-  let depRefs  = getDependencies sheetid xp -- :: [ASReference]
-      depInds  = map refToIndices depRefs   -- :: [Maybe [ASIndex]]
-      depInds' = concat $ map (maybe [Nothing] (map Just)) depInds -- :: [ Maybe ASIndex ]
-      refs   = map (maybe OutOfBounds IndexRef) depInds' -- :: [ASReference]
-      lang = language xp
-      values = map (valuesMap M.!) $ refs in
-  MB.listToMaybe $ MB.catMaybes $ flip map (zip refs values) $ \(r,v) -> case r of
-    OutOfBounds -> Just $ ValueError ("Referencing cell out of bounds.") "RefError"
-    IndexRef i -> case v of 
-      NoValue                  -> handleNoValueInLang lang i
-      ve@(ValueError _ _)      -> handleErrorInLang lang ve
-      vee@(ValueExcelError _)  -> handleErrorInLang lang vee
-      otherwise                -> Nothing 
+  let depRefs       = getDependencies sheetid xp -- :: [ASReference]
+      depSets       = map refToIndices depRefs   -- :: [Maybe [ASIndex]]
+      isOutOfBounds = any MB.isNothing depSets
+      depInds       = concat $ filterNothing depSets
+      lang          = language xp
+      values        = map (valuesMap M.!) $ depInds
+  in if isOutOfBounds 
+    then Just $ ValueError ("Referencing cell out of bounds.") "RefError"
+    else MB.listToMaybe $ MB.catMaybes $ flip map (zip depInds values) $ \(i, v) -> case v of
+      CellValue NoValue                 -> handleNoValueInLang lang i
+      CellValue ve@(ValueError _ _)     -> handleErrorInLang lang ve
+      CellValue vee@(ValueExcelError _) -> handleErrorInLang lang vee
+      otherwise                         -> Nothing 
 
 -- | Nothing if it's OK to pass in NoValue, appropriate ValueError if not.
 handleNoValueInLang :: ASLanguage -> ASIndex -> Maybe ASValue
@@ -88,7 +88,7 @@ handleNoValueInLang _ cellRef = Just $ ValueError ("Reference cell " ++ (indexTo
 -- TDODO: replace (show cellRef) with the actual ref (e.g. C3) corresponding to it
 
 handleErrorInLang :: ASLanguage -> ASValue -> Maybe ASValue
-handleErrorInLang Excel _   = Nothing
+handleErrorInLang Excel _  = Nothing
 handleErrorInLang _ err = Just err
 
 execEvalInLang :: ASLanguage -> String -> EitherTExec CompositeValue

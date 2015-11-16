@@ -61,3 +61,17 @@ inlineDelimiter lang = case lang of
   OCaml -> ";;"
   SQL   -> ";"
   Excel -> ";"
+
+assignOp :: ASLanguage -> String
+assignOp lang = case lang of
+    R           -> "<-"
+    otherwise   -> "="
+
+returnOp :: ASLanguage -> String
+returnOp lang = case lang of
+    otherwise -> "return"
+
+importOp :: ASLanguage -> String
+importOp lang = case lang of
+    Python  -> "import"
+    R       -> "library"

@@ -345,11 +345,6 @@ rectsIntersect ((y,x),(y2,x2)) ((y',x'),(y2',x2'))
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Cells
 
---isListMember :: ASCell -> Bool
---isListMember (Cell _ _ _ ts) = any id $ map (\t -> case t of
---  (ListMember _) -> True
---  _ -> False) ts
-
 mergeCells :: [ASCell] -> [ASCell] -> [ASCell]
 mergeCells c1 c2 = L.unionBy isColocated c1 c2
 
@@ -361,17 +356,16 @@ blankCellsAt = map (\l -> Cell l (Expression "" Excel) NoValue [])
 removeCell :: ASIndex -> [ASCell] -> [ASCell]
 removeCell idx = filter (((/=) idx) . cellLocation)
 
---isMemberOfSpecifiedList :: ListKey -> ASCell -> Bool
---isMemberOfSpecifiedList key cell = case (getListTag cell) of
---  (Just (ListMember key')) -> key' == key
---  Nothing -> False
+isMemberOfSpecifiedRange :: RangeKey -> ASCell -> Bool
+isMemberOfSpecifiedRange key cell = case (cellExpression cell) of 
+  Coupled _ _ _ key' -> key == key'
+  _ -> False
 
----- partitions a set of cells into (cells belonging to one of the specified lists, other cells)
---partitionByListKeys :: [ASCell] -> [ListKey] -> ([ASCell], [ASCell])
---partitionByListKeys cells [] = ([], cells)
---partitionByListKeys cells keys = liftListTuple $ map (partitionByListKey cells) keys
---  where
---    partitionByListKey cs k = L.partition (isMemberOfSpecifiedList k) cs
+---- partitions a set of cells into (cells belonging to one of the specified ranges, other cells)
+partitionByRangeKey :: [ASCell] -> [RangeKey] -> ([ASCell], [ASCell])
+partitionByRangeKey cells [] = ([], cells)
+partitionByRangeKey cells keys = liftListTuple $ map (go cells) keys
+  where go cs k = L.partition (isMemberOfSpecifiedRange k) cs
 
 --listKeyOrdering :: ListKey -> ListKey -> Ordering
 --listKeyOrdering k1 k2 = if (k1 == k2)
@@ -408,11 +402,11 @@ refToIndices loc = case loc of
   --     endy = max (snd ul) (snd lr)
 
 getHeight :: ASReference -> Int
-getHeight (IndexRef (Index _ _)) = 1
+getHeight (IndexRef _) = 1
 getHeight (RangeRef (Range _ ((_,b),(_,d)))) = d-b+1
 
 getWidth :: ASReference -> Int
-getWidth (IndexRef (Index _ _)) = 1
+getWidth (IndexRef _) = 1
 getWidth (RangeRef (Range _ ((a,_),(c,_)))) = c-a+1
 
 isRange :: ASReference -> Bool

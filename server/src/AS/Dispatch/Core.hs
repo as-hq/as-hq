@@ -61,7 +61,7 @@ runDispatchCycle state cs src = do
     printObjT "Got cells to evaluate" cellsToEval
     ancLocs        <- G.getImmediateAncestors evalLocs
     printObjT "Got ancestor locs" ancLocs
-    initValuesMap  <- lift $ getValuesMap (zip roots rootsDepSets) ancLocs
+    initValuesMap  <- lift $ getValuesMap ancLocs
     printObjT "Created initial values map" initValuesMap
     printWithTimeT "Starting eval chain"
     (afterCells, cellLists) <- evalChain conn initValuesMap cellsToEval src -- start with current cells, then go through descendants
@@ -108,7 +108,7 @@ getCellsToEval conn locs origCells = do
 -- rootDeps is a subset of locs and we set both, but no need to remove duplicates from the map.
 getValuesMap :: [ASIndex] -> IO RefValMap
 getValuesMap locs = do
-  vals <- map getSanitizedCellValue <$> DB.getCells locs
+  vals <- map (CellValue . getSanitizedCellValue) <$> DB.getCells locs
   --groupedRefs <- concat <$> mapM groupRefs rootRelations
   return $ M.fromList $ zip locs vals
 
@@ -163,7 +163,7 @@ evalChain' conn valuesMap [] fatCells =
       isFatCellHead loc               = loc `elem` fatCellHeads
       locs                            = filter (not . isFatCellHead) $ map cellLocation cells
       checkCircular loc               = if (isFatCellHead loc) then (left $ CircularDepError loc) else (return ())
-      isInMap idx                     = (IndexRef idx) `M.notMember` valuesMap
+      isInMap idx                     = idx `M.notMember` valuesMap
   in do
     descLocs <- filter isInMap <$> G.getDescendants locs
     -- check for circular dependencies. IF a circular dependency exists, it necessarily has to
@@ -174,17 +174,16 @@ evalChain' conn valuesMap [] fatCells =
     -- DON'T need to re-eval anything that's already been evaluated
     -- #needsrefactor it seems like a large chunk of code here mirrors that in evalChain... should probably DRY
     ancLocs <- G.getImmediateAncestors descLocs
-    newKnownValues <- lift $ getValuesMap [] ancLocs
+    newKnownValues <- lift $ getValuesMap ancLocs
     cells' <- getCellsToEval conn descLocs [] -- the origCells are the list cells, which got filtered out of descLocs
     evalChain' conn (M.union valuesMap newKnownValues) cells' fatCells
 
 evalChain' conn valuesMap (c@(Cell loc xp _ ts):cs) fatCells = do
-  cv <- EC.evaluateLanguage (IndexRef (cellLocation c)) (locSheetId loc) valuesMap xp
+  cv <- EC.evaluateLanguage (cellLocation c) (locSheetId loc) valuesMap xp
   let maybeFatCell              = DE.decomposeCompositeValue c cv
-      addCell (Cell l _ v _) mp = M.insert (IndexRef l) v mp
+      addCell (Cell l _ v _) mp = M.insert l (CellValue v) mp
       newValuesMap              = case maybeFatCell of
-              Nothing                          -> 
-                let {(CellValue v) = cv} in M.insert (IndexRef loc) v valuesMap
+              Nothing -> M.insert loc cv valuesMap
               Just (FatCell expandedCells _ _) -> foldr addCell valuesMap expandedCells
       -- ^ adds all the cells in cellsList to the reference map
       fatCells' = case maybeFatCell of

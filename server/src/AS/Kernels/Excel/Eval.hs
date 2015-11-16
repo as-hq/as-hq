@@ -51,7 +51,7 @@ evalExcel s context = do
     (SimpleFormula formula) -> L.evalFormula context formula
 
 -- | Entire Excel eval; parse, evaluate, cast to ASValue
-evaluate :: String -> ASReference -> RefValMap -> EitherTExec CompositeValue
-evaluate s ref mp = convertEither context $ evalExcel s context
+evaluate :: String -> ASIndex -> RefValMap -> EitherTExec CompositeValue
+evaluate s idx mp = convertEither context $ evalExcel s context
   where
-    context = Context mp ref
+    context = Context mp idx

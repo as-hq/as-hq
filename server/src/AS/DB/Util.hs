@@ -211,6 +211,11 @@ rangeDescriptorToKey desc = case desc of
   ListDescriptor key -> key
   ObjectDescriptor key _ _ -> key
 
+cellToRangeKey :: ASCell -> Maybe RangeKey
+cellToRangeKey (Cell _ xp _ _ ) = case xp of 
+  Coupled _ _ _ key -> Just key
+  _ -> Nothing
+
 isFatCellMember :: ASCell -> Bool
 isFatCellMember (Cell _ xp _ _) = case xp of 
   Coupled _ _ _ _ -> True
@@ -220,11 +225,6 @@ isFatCellHead :: ASCell -> Bool
 isFatCellHead cell = case (cellToRangeKey cell) of 
   Just key -> (show2 . cellLocation $ cell) == (head $ splitBy keyPartDelimiter key)
   Nothing -> False
-
-cellToRangeKey :: ASCell -> Maybe RangeKey
-cellToRangeKey (Cell _ xp _ _ ) = case xp of 
-  Coupled _ _ _ key -> Just key
-  _ -> Nothing
 
 ----------------------------------------------------------------------------------------------------------------------
 -- | ByteString utils

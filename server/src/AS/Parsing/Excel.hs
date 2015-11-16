@@ -31,16 +31,21 @@ exRefToASRef sid exRef = case exRef of
       sid' = maybe sid id (getSheetIdFromSheetNameAndWorkbookName sn wn)
       IndexRef (Index _ tl) = exRefToASRef sid' $ ExLocRef f sn Nothing
       IndexRef (Index _ br) = exRefToASRef sid' $ ExLocRef s sn Nothing
+  ExPointerRef (ExIndex _ c r) sn wn -> IndexRef $ Pointer sid' (colStrToInt c, read r :: Int)
+    where sid' = maybe sid id (getSheetIdFromSheetNameAndWorkbookName sn wn)
 
 asRefToExRef :: ASReference -> ExRef
 asRefToExRef OutOfBounds = ExOutOfBounds
 asRefToExRef (IndexRef (Index sid (a,b))) = ExLocRef idx sname Nothing
   where idx = ExIndex REL_REL (intToColStr a) (show b)
         sname = getSheetNameFromSheetId sid
+asRefToExRef (IndexRef (Pointer sid (a,b))) = ExPointerRef idx sname Nothing
+  where idx = ExIndex REL_REL (intToColStr a) (show b)
+        sname = getSheetNameFromSheetId sid
 asRefToExRef (RangeRef (Range s (i1, i2))) = ExRangeRef rng Nothing Nothing
   where
-    ExLocRef i1' _ _ = asRefToExRef $ IndexRef $ Index s i1
-    ExLocRef i2' _ _ = asRefToExRef $ IndexRef $ Index s i2
+    ExLocRef i1' _ _ = asRefToExRef . IndexRef $ Index s i1
+    ExLocRef i2' _ _ = asRefToExRef . IndexRef $ Index s i2
     rng = ExRange i1' i2'
 
 -- #incomplete we should actually be looking in the db. For now, with the current UX of

@@ -56,7 +56,10 @@ data Direction = DUp | DDown | DLeft | DRight deriving (Show, Read, Eq, Generic)
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Locations
 
-data ASIndex = Index {locSheetId :: ASSheetId, index :: Coord} deriving (Show, Read, Eq, Generic, Ord)
+data ASIndex = 
+    Index {locSheetId :: ASSheetId, index :: Coord} 
+  | Pointer {pointerSheetId :: ASSheetId, pointerIndex :: Coord} 
+  deriving (Show, Read, Eq, Generic, Ord)
 data ASRange = Range {rangeSheetId :: ASSheetId, range :: (Coord, Coord)} deriving (Show, Read, Eq, Generic, Ord)
 data ASReference = IndexRef ASIndex | RangeRef ASRange | OutOfBounds deriving (Show, Read, Eq, Generic, Ord)
 
@@ -100,7 +103,8 @@ data ASValue =
 
 type RListKey = String
 data ASReplValue = ReplValue {replValue :: ASValue, replLang :: ASLanguage} deriving (Show, Read, Eq, Generic)
-type RefValMap = M.Map ASIndex ASValue
+
+type RefValMap = M.Map ASIndex CompositeValue
 
 data ComplexType = List | Object | Image | Error deriving (Show, Read, Eq, Generic)
 data ObjectType = RList | RDataFrame | NPArray | NPMatrix | PDataFrame | PSeries deriving (Show, Read, Eq, Generic)

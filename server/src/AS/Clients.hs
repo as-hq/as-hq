@@ -19,6 +19,7 @@ import AS.Types.Core
 import AS.Types.Excel hiding (row, col)
 import qualified AS.Types.DB as TD
 import AS.DB.API                as DB
+import AS.DB.Transaction        as DT
 import AS.DB.Util               as DU
 import AS.DB.Graph              as G
 import AS.Util                  as U
@@ -211,7 +212,7 @@ badCellsHandler :: R.Connection -> ASUserClient -> SomeException -> IO ()
 badCellsHandler conn user e = do 
   U.writeErrToLog ("Error while fetching cells: " ++ (show e)) (clientCommitSource user)
   printWithTime "Undoing last commit"
-  DB.undo conn (clientCommitSource user)
+  DT.undo conn (clientCommitSource user)
   return ()
 
 handleImport :: MVar ServerState -> ASPayload -> IO ()
@@ -221,9 +222,7 @@ handleImport state msg = return () -- TODO
 -- Eval handler
 
 handleEval :: (Client c) => c -> MVar ServerState -> ASPayload -> IO ()
-handleEval cl state payload  = do
-  let cells = case payload of 
-                PayloadCL cells' -> cells'
+handleEval cl state (PayloadCL cells)  = do
   putStrLn $ "IN EVAL HANDLER"
   msg' <- DP.runDispatchCycle state cells (clientCommitSource cl)
   reply cl state msg'
@@ -289,7 +288,7 @@ handleClear client state payload = case payload of
 handleUndo :: ASUserClient -> MVar ServerState -> IO ()
 handleUndo user state = do
   conn <- dbConn <$> readMVar state
-  commit <- DB.undo conn (clientCommitSource user)
+  commit <- DT.undo conn (clientCommitSource user)
   msg <- case commit of
     Nothing -> return $ failureMessage "Too far back"
     (Just c) -> return $ ServerMessage Undo Success (PayloadCommit c)
@@ -299,7 +298,7 @@ handleUndo user state = do
 handleRedo :: ASUserClient -> MVar ServerState -> IO ()
 handleRedo user state = do
   conn <- dbConn <$> readMVar state
-  commit <- DB.redo conn (clientCommitSource user)
+  commit <- DT.redo conn (clientCommitSource user)
   msg <- case commit of
     Nothing -> return $ failureMessage "Too far forwards"
     (Just c) -> return $ ServerMessage Redo Success (PayloadCommit c)
@@ -346,14 +345,14 @@ getPasteCells conn from to = do
 --   * if a cell is part of a list that is not contained entirely in the selection, decouple it. 
 sanitizeCopyCells :: R.Connection -> [ASCell] -> ASRange -> IO [ASCell]
 sanitizeCopyCells conn cells from
-  | all isListHead cells = return cells 
-  | otherwise            = do 
-      listsInRange <- getListsInRange conn from
-      let (listCells, nonListCells)             = L.partition U.isListMember cells
-          (containedListCells, cutoffListCells) = U.partitionByListKeys listCells listsInRange
-          decoupledCells                        = map decoupleCell cutoffListCells
-          containedListHeads                    = filter isListHead containedListCells
-      return $ nonListCells ++ decoupledCells ++ containedListHeads
+  | all DU.isFatCellHead cells = return cells 
+  | otherwise            = do
+      keys <- fatCellsInRange conn from
+      let (fatCellMembers, regularCells)  = L.partition DU.isFatCellMember cells
+          (containedCells, cutoffCells)   = U.partitionByRangeKey fatCellMembers keys
+          decoupledCells                  = map decoupleCell cutoffCells
+          containedFatCellHeads           = filter DU.isFatCellHead containedCells
+      return $ regularCells ++ decoupledCells ++ containedFatCellHeads
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Tag handlers
@@ -411,14 +410,10 @@ handleSetTag user state (PayloadTag tag rng) = do
 differentTagType :: ASCellTag -> ASCellTag -> Bool
 differentTagType (Color _) (Color _) = False
 differentTagType (Size _) (Size _) = False
-differentTagType Money Money = False
-differentTagType Percentage Percentage = False
 differentTagType (StreamTag _) (StreamTag _) = False
 differentTagType Tracking Tracking = False
 differentTagType Volatile Volatile = False
 differentTagType (ReadOnly _) (ReadOnly _) = False
-differentTagType (ListMember _) (ListMember _) = False
-differentTagType DFMember DFMember = False
 differentTagType _ _ = True
 
 handleRepeat :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
