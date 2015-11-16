@@ -243,6 +243,8 @@ function isNumeric(n) {
 
 export function equalValues(val1, val2) {
   logDebug(`${JSON.stringify(val1)} should be equal to ${JSON.stringify(val2)}`);
+  expect(val1).not.toBe(undefined);
+  expect(val2).not.toBe(undefined);
   if (val1.tag == 'ValueD') {
     // eps = 10^-3
     var eps = 0.001;
