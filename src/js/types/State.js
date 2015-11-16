@@ -1,10 +1,15 @@
 /* @flow */
 
 import type {
+  Dict
+} from './Base';
+
+import type {
   NakedIndex,
   NakedRange,
   ASIndex,
-  ASRange
+  ASRange,
+  ASCell
 } from './Eval';
 
 export type ASViewingWindow = ASRange;
@@ -13,6 +18,8 @@ export type ASSelection = {
   range: NakedRange;
   origin: NakedIndex;
 };
+
+export type ASFocusType = 'grid' | 'textbox' | 'editor';
 
 export type PythonClientLang = {
   Display: 'Python';
@@ -53,3 +60,6 @@ export type ASClientExpression = {
   expression: string;
   language: ASClientLanguage;
 };
+
+export type ASCellStore =
+  Dict<Dict<Dict<ASCell>>>;

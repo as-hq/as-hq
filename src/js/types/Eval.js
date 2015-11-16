@@ -5,8 +5,8 @@ import type {
 } from './Errors';
 
 import type {
-  ASUserId
-  //ASPermissions
+  ASUserId,
+  ASPermissions
 } from './User';
 
 export type NoValue = {
@@ -191,6 +191,7 @@ export type ASLanguage = string;
 export type ASExpression = {
   expression: string;
   language: ?ASLanguage;
+  dependencies?: Array<NakedRange>;
 };
 
 export type ASCellTag =
@@ -254,6 +255,7 @@ export type ASSheet = {
   tag: 'Sheet';
   sheetId: string;
   sheetName: string;
+  sheetPermissions: ASPermissions;
 };
 
 export type ASWorkbook = {

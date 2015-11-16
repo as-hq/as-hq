@@ -30,7 +30,7 @@ export type GotFailureAction = {
 
 export type ScrolledAction = {
   _type: 'SCROLLED';
-  locs: ASViewingWindow;
+  vWindow: ASViewingWindow;
 };
 
 export type GotUpdatedCellsAction = {
