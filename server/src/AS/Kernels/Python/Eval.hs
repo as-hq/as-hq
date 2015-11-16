@@ -66,7 +66,6 @@ evaluateHeader sid str = do
     -- for now when we don't have a better way to give the user the direct output of the header
     -- eval. 
     (_, evalCode) <- lift $ formatCodeRepl sid Python str
-    printDebugT "evalCode" evalCode
     -- perform eval, if there's something we actually need to return
     if (evalCode /= "" && str /= "")
         then execWrappedCode evalCode

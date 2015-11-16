@@ -267,7 +267,6 @@ writeHeaderFile sid lang contents = getHeaderFile sid lang >>= \f -> writeFile (
 getLanguageHeader :: ASSheetId -> ASLanguage -> IO String
 getLanguageHeader sid lang = do 
   f <- getHeaderFile sid lang
-  printDebug "(lang, header file)" (lang, f)
   P.appendFile f "" -- makes it exist if it doesn't 
   P.readFile f
 

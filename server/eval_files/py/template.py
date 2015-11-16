@@ -49,7 +49,7 @@ try:
 	# execfile(replFile)
 	# execfile(headerFile)
 	os.chdir(os.getcwd()+"/static")
-	#HdEADER#
+	#HEADER#
 	#CODE#
 	os.chdir('..')
 	print result
