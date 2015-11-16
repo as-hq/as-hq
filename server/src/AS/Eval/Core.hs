@@ -40,30 +40,20 @@ import Control.Exception (catch, SomeException)
 -----------------------------------------------------------------------------------------------------------------------
 -- Exposed functions
 
-evaluateLanguage :: ASSheetId -> ASReference -> IndValMap -> ASExpression -> EitherTExec (Formatted ASValue)
+evaluateLanguage :: ASSheetId -> ASReference -> FormattedIndValMap -> ASExpression -> EitherTExec (Formatted ASValue)
 evaluateLanguage sid curRef valuesMap xp@(Expression str lang) = catchEitherT $ do
   printWithTimeT "Starting eval code"
-  let maybeError = possiblyShortCircuit sid valuesMap xp
+  let unformattedValuesMap = M.map orig valuesMap
+      maybeError = possiblyShortCircuit sid unformattedValuesMap xp
   case maybeError of
     Just e -> return $ return e -- short-circuited, return this error
     Nothing -> case lang of
       Excel -> do 
-        formattedValuesMap <- lift $ formatValsMap valuesMap
-        KE.evaluate str curRef formattedValuesMap
+        KE.evaluate str curRef valuesMap
         -- Excel needs current location and un-substituted expression, and needs the formatted values for
         -- loading the initial entities
       otherwise -> return <$> execEvalInLang sid lang xpWithValuesSubstituted -- didn't short-circuit, proceed with eval as usual
-       where xpWithValuesSubstituted = insertValues sid valuesMap xp
-
-formatValsMap :: IndValMap -> IO FormattedIndValMap
-formatValsMap mp = do
-  let mp' = M.toList mp  
-      locs = map fst mp'
-      vals = map snd mp' 
-  cells <- DB.getPossiblyBlankCells locs 
-  let formats = map getCellFormatType cells
-      vals' = map (\(v, ft) -> Formatted v ft) (zip vals formats)
-  return $ M.fromList $ zip locs vals'
+       where xpWithValuesSubstituted = insertValues sid unformattedValuesMap xp
 
 -- no catchEitherT here for now, but that's because we're obsolescing Repl for now
 evaluateLanguageRepl :: ASSheetId -> ASExpression -> EitherTExec ASValue

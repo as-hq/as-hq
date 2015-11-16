@@ -48,7 +48,6 @@ import Control.Monad.Trans.Either
 -- the cells getting evaluated. We pull the rest from the DB. 
 runDispatchCycle :: MVar ServerState -> [ASCell] -> CommitSource -> IO ASServerMessage
 runDispatchCycle state cs src = do
-  let sid = locSheetId . cellLocation $ head cs
   errOrCells <- runEitherT $ do
     printObjT "STARTING DISPATCH CYCLE WITH CELLS: " cs
     roots          <- lift $ EM.evalMiddleware cs
@@ -62,9 +61,10 @@ runDispatchCycle state cs src = do
     ancLocs        <- G.getImmediateAncestors evalLocs
     printObjT "Got ancestor locs" ancLocs
     initValuesMap  <- lift $ getValuesMap ancLocs
-    printObjT "Created initial values map" initValuesMap
+    formattedValuesMap <- lift $ formatValsMap initValuesMap
+    printObjT "Created formatted values map" formattedValuesMap
     printWithTimeT "Starting eval chain"
-    (afterCells, cellLists) <- evalChain conn initValuesMap cellsToEval src -- start with current cells, then go through descendants
+    (afterCells, cellLists) <- evalChain conn formattedValuesMap cellsToEval src -- start with current cells, then go through descendants
     -- Apply endware
     finalizedCells <- lift $ EE.evalEndware state afterCells src roots
     let transaction = Transaction src roots finalizedCells cellLists
@@ -108,6 +108,21 @@ getValuesMap locs = do
   let vals = map cellValue cells
   return $ M.fromList $ zip locs vals
 
+-- Takes in a value map, and change it from (Index -> ASValue) to (Index -> Formatted ASValue), which
+-- is necessary for Excel evals.  Since this is only relevant for Excel evaluations, I'd ideally have
+-- this in Eval/Core and only call it for Excel evals, but that would require O(n) calls to the DB, 
+-- which is prohibitively expensive. 
+formatValsMap :: IndValMap -> IO FormattedIndValMap
+formatValsMap mp = do
+  let mp' = M.toList mp  
+      locs = map fst mp'
+      vals = map snd mp' 
+  cells <- DB.getPossiblyBlankCells locs 
+  let formats = map getCellFormatType cells
+      vals' = map (\(v, ft) -> Formatted v ft) (zip vals formats)
+  return $ M.fromList $ zip locs vals'
+
+
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Eval helpers
 
@@ -115,7 +130,7 @@ getValuesMap locs = do
 -- cell that's updated. The cells passed in are guaranteed to be topologically sorted, i.e.,
 -- if a cell references an ancestor, that ancestor is guaranteed to already have been
 -- added in the map.
-evalChain :: Connection -> IndValMap -> [ASCell] -> CommitSource -> EitherTExec ([ASCell], [ASList])
+evalChain :: Connection -> FormattedIndValMap -> [ASCell] -> CommitSource -> EitherTExec ([ASCell], [ASList])
 evalChain conn valuesMap cells src = do
   result <- liftIO $ catch (runEitherT $ evalChain' conn valuesMap cells [] []) (\e -> do
     printObj "Runtime exception caught" (e :: SomeException)
@@ -135,7 +150,7 @@ evalChain conn valuesMap cells src = do
 -- because we don't need to re-evaluate the individual cells in the list, ONLY their descendants.
 -- We also need to check for circular dependencies, which is why the pastListHeads are passed in.
 -- #needsrefactor there's probably a more Haskell way of doing this with a state monad or something.
-evalChain' :: Connection -> IndValMap -> [ASCell] -> [ASList] -> [ASIndex] -> EitherTExec ([ASCell], [ASList])
+evalChain' :: Connection -> FormattedIndValMap -> [ASCell] -> [ASList] -> [ASIndex] -> EitherTExec ([ASCell], [ASList])
 evalChain' _ _ [] [] _ = return ([], [])
 evalChain' conn valuesMap [] lists pastListHeads = do
   -- get cells from lists
@@ -153,16 +168,17 @@ evalChain' conn valuesMap [] lists pastListHeads = do
   -- #needsrefactor it seems like a large chunk of code here mirrors that in evalChain... should probably DRY
   ancLocs <- G.getImmediateAncestors descLocs'
   newKnownValues <- lift $ getValuesMap ancLocs
+  formattedNewValues <- lift $ formatValsMap newKnownValues
   cells' <- getCellsToEval conn descLocs' [] -- the origCells are the list cells, which got filtered out of descLocs
-  evalChain' conn (M.union valuesMap newKnownValues) cells' [] pastListHeads
+  evalChain' conn (M.union valuesMap formattedNewValues) cells' [] pastListHeads
 
 evalChain' conn valuesMap (c@(Cell loc xp _ ts):cs) next listHeads = do
   (Formatted cv f) <- EC.evaluateLanguage (locSheetId loc) (IndexRef (cellLocation c)) valuesMap xp
   let c' = formatCell f (Cell loc xp cv ts)
       listResult = createListCells c' cv
       newValuesMap = case listResult of
-        Nothing          -> M.insert loc cv valuesMap
-        (Just cellsList) -> foldr (\(Cell l _ v _) mp -> M.insert l v mp) valuesMap (snd cellsList)
+        Nothing          -> M.insert loc (Formatted cv f) valuesMap
+        (Just cellsList) -> foldr (\(Cell l _ v _) mp -> M.insert l (Formatted v f) mp) valuesMap (snd cellsList)
       -- ^ adds all the cells in cellsList to the reference map
       next' = case listResult of
         Nothing        -> next
