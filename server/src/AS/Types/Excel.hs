@@ -140,7 +140,7 @@ floatExp (EValueD b) (EValueD e) = EValueD $ b ** e
 instance Fractional ENumeric where
   (/) (EValueD d) (EValueD d') = EValueD $ d/d'
   (/) (EValueI i) (EValueD d) = EValueD $ (fromIntegral i)/d
-  (/) (EValueD d) (EValueI i) = EValueD $ (fromIntegral i)/d
+  (/) (EValueD d) (EValueI i) = EValueD $ d/(fromIntegral i)
   (/) (EValueI i) (EValueI i') = EValueD $ (fromIntegral i)/(fromIntegral i')
   fromRational r = EValueD $ fromRational r
 
