@@ -60,8 +60,7 @@ evaluateRepl sid str = do
 
 evaluateHeader :: ASSheetId -> String -> EitherTExec ASValue
 evaluateHeader sid str = do
-    -- preprocess expression
-    lift $ writeHeaderFile sid Python str -- appropriating the repl record for 
+    lift $ writeHeaderFile sid Python str 
     -- appropriating repl code for this. technically more correct to leave this blank, 
     -- since isPrintable from th REPL code is a screwed up function, but it works well enough
     -- for now when we don't have a better way to give the user the direct output of the header

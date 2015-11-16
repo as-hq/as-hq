@@ -45,6 +45,7 @@ import Control.Monad.Trans.Either
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Exposed functions
 
+-- Don't actually need the sheet id's as arguments right now. (Alex 11/15)
 evaluate :: ASSheetId -> EvalCode -> EitherTExec ASValue
 evaluate _ "" = return NoValue
 evaluate _ str = liftIO $ execOnString str (execR False)
@@ -54,10 +55,16 @@ evaluateRepl :: ASSheetId -> EvalCode -> EitherTExec ASValue
 evaluateRepl _ "" = return NoValue
 evaluateRepl _ str = liftIO $ execOnString str (execR True)
 
---clearRepl :: IO ()
---clearRepl = do
---  R.runRegion $ do [r| rm(list=ls()) |]
---  return ()
+evaluateHeader :: ASSheetId -> EvalCode -> EitherTExec ASValue
+evaluateHeader sid str = do 
+  lift $ writeHeaderFile sid R str
+  lift clearRepl
+  evaluateRepl sid str 
+
+clearRepl :: IO ()
+clearRepl = do
+ R.runRegion $ castR =<< do [r| rm(list=ls()) |]
+ return ()
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Helpers

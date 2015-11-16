@@ -153,7 +153,6 @@ int DAG::recomputeDAG () {
 		for (int i=0; i<numReplies; i++) {
 			redisGetReply(c, (void **)&reply);
 			if (reply->type == REDIS_REPLY_STRING) {
-				cout << reply->str;
 				DAG::Vertex toNode = getIndexFromCell(reply->str);
 				DAG::VertexSet fromNodes = parseDependencies(reply->str, toNode);
 				updateDAG(toNode, fromNodes, false); // no caching on reconstruction

@@ -77,6 +77,7 @@ evaluateLanguageRepl sid (Expression str lang) = case lang of
 evaluateHeader :: ASSheetId -> ASExpression -> EitherTExec ASValue
 evaluateHeader sid (Expression str lang) = case lang of 
   Python -> KP.evaluateHeader sid str
+  R      -> KR.evaluateHeader sid str
 
 -----------------------------------------------------------------------------------------------------------------------
 -- Helpers
