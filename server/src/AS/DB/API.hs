@@ -102,12 +102,12 @@ setCell c = setCells [c]
 
 setCells :: [ASCell] -> IO ()
 setCells [] = return ()
-setCells cells = do 
+setCells cells = 
   let str = intercalate DU.msgPartDelimiter $ (map (show2 . cellLocation) cells) ++ (map show2 cells)
       msg = DU.showB str
       num = length cells
-  DU.setCellsByMessage msg num
-
+  in do
+    DU.setCellsByMessage msg num
 
 deleteCells :: Connection -> [ASCell] -> IO ()
 deleteCells _ [] = return ()
@@ -167,6 +167,26 @@ modifyWorkbookSheets conn f wName = do
   (Just (Workbook wsName sheetIds)) <- getWorkbook conn wName
   let wbNew = Workbook wsName $ f sheetIds
   setWorkbook conn wbNew
+
+----------------------------------------------------------------------------------------------------------------------
+-- Ancestors
+
+-- | Update the ancestor relationships in the DB based on the expressions and locations of the
+-- cells passed in. (E.g. if a cell is passed in at A1 and its expression is "C1 + 1", C1->A1 is
+-- added to the graph.)
+setCellsAncestors :: [ASCell] -> EitherTExec [[ASReference]]
+setCellsAncestors cells = G.setRelations relations >> return depSets
+  where
+    depSets = map (\(Cell l e _ _) -> getDependencies (locSheetId l) e) cells
+    zipSets = zip cells depSets
+    relations = map (\((Cell l _ _ _), depSet) -> (l, concat $ catMaybes $ map refToIndices depSet)) zipSets
+
+-- | Should only be called when undoing or redoing commits, which should be guaranteed to not
+-- introduce errors.
+setCellsAncestorsForce :: [ASCell] -> IO ()
+setCellsAncestorsForce cells = do
+  runEitherT (setCellsAncestors cells)
+  return ()
 
 ----------------------------------------------------------------------------------------------------------------------
 -- Raw workbooks

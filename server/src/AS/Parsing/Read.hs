@@ -78,7 +78,7 @@ extractComplex lang =
       f =<< (try $ json lang) 
   <|> complain
   where f js = case (js .> "tag") of 
-            Just (JSONLeaf (PrimitiveValue (ValueS tag))) -> case (extractComplexValue tag js) of 
+            Just (JSONLeaf (SimpleValue (ValueS tag))) -> case (extractComplexValue tag js) of 
               Just val -> return val
               Nothing -> complain
             Nothing -> fail "expecting field \"tag\" in complex value"
@@ -99,13 +99,13 @@ extractCollection js key = case (js .> key) of
 
 extractImage :: JSON -> Maybe ASValue
 extractImage js = case (js .> "imagePath") of 
-  Just (JSONLeaf (PrimitiveValue (ValueS path))) -> Just $ ValueImage path
+  Just (JSONLeaf (SimpleValue (ValueS path))) -> Just $ ValueImage path
   _ -> Nothing
 
 extractObject :: JSON -> Maybe ExpandingValue
 extractObject js = case (js .> "objectType") of 
-  Just (JSONLeaf (PrimitiveValue (ValueS o))) -> case (read o :: Maybe ObjectType) of 
-    (Just otype) -> case otype of 
+  Just (JSONLeaf (SimpleValue (ValueS o))) -> case (read o :: Maybe ObjectType) of 
+    Just otype -> case otype of 
       NPArray -> VNPArray <$> extractCollection js "arrayVals"
       NPMatrix -> (\(M mat) -> VNPMatrix mat) <$> extractCollection js "matrixVals"
       PDataFrame -> VPDataFrame <$> dflabels <*> dfdata
@@ -113,7 +113,7 @@ extractObject js = case (js .> "objectType") of
           dflabels = rdLabels <$> extractCollection js "dfLabels"
           dfdata = extractCollection js "dfData"
           rdLabels coll = case coll of 
-            (A labels) -> map (\(ValueS s) -> s) labels
+            A labels -> map (\(ValueS s) -> s) labels
             _ -> error "expected dataframe labels to be list of strings"
       PSeries -> VPSeries . rdSeries <$> extractCollection js "seriesVals"
         where 
@@ -124,8 +124,8 @@ extractObject js = case (js .> "objectType") of
 
 extractError :: JSON -> Maybe ASValue
 extractError js = case (js .> "errorMsg") of 
-  Just (JSONLeaf (PrimitiveValue (ValueS emsg))) -> case (js .> "errorType") of
-    Just (JSONLeaf (PrimitiveValue (ValueS etype))) -> Just $ ValueError emsg etype
+  Just (JSONLeaf (SimpleValue (ValueS emsg))) -> case (js .> "errorType") of
+    Just (JSONLeaf (SimpleValue (ValueS etype))) -> Just $ ValueError emsg etype
     _ -> Nothing
   _ -> Nothing
 
@@ -146,7 +146,7 @@ json lang = extractMap
 jsonValue :: ASLanguage -> Parser JSONValue
 jsonValue lang = 
       ListValue <$> list lang
-  <|> PrimitiveValue <$> asValue lang
+  <|> SimpleValue <$> asValue lang
 
 -- this parser will only allow 1 and 2D lists
 list :: ASLanguage -> Parser Collection

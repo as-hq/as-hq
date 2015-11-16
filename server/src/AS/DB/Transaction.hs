@@ -1,5 +1,7 @@
 module AS.DB.Transaction where
 
+import Prelude
+
 import AS.Types.Core
 import AS.Types.DB
 import AS.DB.API as DB
@@ -12,17 +14,21 @@ import qualified Data.ByteString.Char8 as B
 import Data.List (nub)
 import Data.Maybe (catMaybes)
 
+import Control.Monad.IO.Class (liftIO)
+import Control.Monad.Trans.Either
+import Control.Monad.Trans.Class
+
 ----------------------------------------------------------------------------------------------------------------------
 -- top-level functions
 
 -- | Deal with updating all DB-related things after an eval. 
 writeTransaction :: Connection -> ASTransaction -> EitherTExec [ASCell]
 writeTransaction conn (Transaction src@(sid, _) roots afterCells fatCells) = 
-  let expandedCells   = concat $ map (\(FatCell cs _ _) -> cs) fatCells
+  let extraCells      = concat $ map expandedCells fatCells
       locs            = map cellLocation afterCells
-      afterCells'     = afterCells ++ expandedCells
+      afterCells'     = afterCells ++ extraCells
       locs'           = map cellLocation afterCells'
-      rangeKeys       = map (\(FatCell _ _ desc) -> getRangeKey desc) fatCells
+      rangeKeys       = map (rangeDescriptorToKey . descriptor) fatCells
   in do
     beforeCells <- lift $ catMaybes <$> DB.getCells locs'
     -- determine all fatcell intersections produced by eval
@@ -35,9 +41,11 @@ writeTransaction conn (Transaction src@(sid, _) roots afterCells fatCells) =
         afterCells''    = U.mergeCells afterCells' decoupledCells
         beforeCells'    = U.mergeCells beforeCells coupledCells
     -- set the database
-    liftIO $ setCells $ filter (not . isEmptyCell) afterCells''
-    liftIO $ mapM_ (\(FatCell _ desc) -> couple conn) fatCells
-    liftIO $ addCommit conn (beforeCells', afterCells') src
+    liftIO $ DB.setCells afterCells''
+    -- delete empty cells after setting them
+    liftIO $ deleteCells conn $ filter isEmptyCell afterCells''
+    liftIO $ mapM_ (couple conn . descriptor) fatCells
+    liftIO $ addCommit conn (beforeCells', afterCells'') src
     liftIO $ printWithTime "added commits"
     right afterCells'
 
@@ -46,12 +54,12 @@ writeTransaction conn (Transaction src@(sid, _) roots afterCells fatCells) =
 
 couple :: Connection -> RangeDescriptor -> IO ()
 couple conn desc = 
-  let rangeKey       = DU.getRangeKey desc 
+  let rangeKey       = DU.rangeDescriptorToKey desc 
       rangeKey'      = B.pack rangeKey
       sheetRangesKey = DU.getSheetRangesKey $ DU.rangeKeyToSheetId rangeKey
       rangeValue     = B.pack $ show desc
   in runRedis conn $ do
-      liftIO $ printWithTime $ "setting list locations for key: " ++ listKey
+      liftIO $ printWithTime $ "setting list locations for key: " ++ rangeKey
       set rangeKey' rangeValue
       sadd sheetRangesKey [rangeKey']
       return ()
@@ -67,7 +75,7 @@ decouple conn key =
   in do
     locKeys <- runRedis conn $ do
       TxSuccess result <- multiExec $ do
-        result <- smembers listKey
+        result <- smembers rangeKey
         del [rangeKey]
         srem sheetRangesKey [rangeKey]
         return result
@@ -85,40 +93,43 @@ decouple conn key =
 -- helpers
 
 -- | Returns the listkeys of all the lists that are entirely contained in the range.  
-getListsInRange :: Connection -> ASRange -> IO [ListKey]
-getListsInRange conn rng = do
+getFatCellsInRange :: Connection -> ASRange -> IO [RangeKey]
+getFatCellsInRange conn rng = do
   let sid = rangeSheetId rng
-  listKeys <- DU.getListKeysInSheet conn sid
-  let rects = map DU.getRectFromListKey listKeys
-      zipRects = zip listKeys rects
+  rangeKeys <- DU.getRangeKeysInSheet conn sid
+  let rects = map DU.rangeKeyToRect rangeKeys
+      zipRects = zip rangeKeys rects
       zipRectsContained = filter (\(_,rect) -> U.rangeContainsRect rng rect) zipRects
   return $ map fst zipRectsContained
 
 
-recoupleList :: Connection -> ListKey -> IO ()
-recoupleList conn key = do
-  let locs = DU.getLocationsFromListKey key
-  locsExist <- locationsExist conn locs
-  let locs' = U.zipFilter $ zip locs locsExist
-  setListLocations conn key locs'
+--recoupleList :: Connection -> RangeDescriptor -> IO ()
+--recoupleList conn key = do
+--  let locs = DU.getLocationsFromListKey key
+--  locsExist <- locationsExist conn locs
+--  let locs' = U.zipFilter $ zip locs locsExist
+--  setListLocations conn key locs'
 
   -- | Makes sure everything is synced -- the listKeys and ancestors in graph db should reflect 
 -- the cell changes that happen as a result of setting the cells. 
 setCellsPropagated :: Connection -> [ASCell] -> IO ()
-setCellsPropagated conn cells = do 
-  setCells cells
-  setCellsAncestorsForce $ filter (\c -> (not $ U.isListMember c) || DU.isListHead c) cells
-  let listKeys = nub $ catMaybes $ map DU.getCellListKey cells
-  mapM_ (recoupleList conn) listKeys
+setCellsPropagated conn cells = 
+  let rangeKeys = nub $ catMaybes $ map DU.cellToRangeKey cells
+      roots     = filter (\c -> (not $ DU.isFatCellMember c) || DU.isFatCellHead c) cells
+  in do
+    setCells cells
+    setCellsAncestorsForce roots
+    mapM_ (decouple conn) rangeKeys
 
 -- | Makes sure everything is synced -- the listKeys and ancestors in graph db should reflect 
 -- the cell changes that happen as a result of deleting the cells. 
 deleteCellsPropagated :: Connection -> [ASCell] -> IO ()
-deleteCellsPropagated conn cells = do 
-  deleteCells conn cells
-  setCellsAncestorsForce $ U.blankCellsAt (map cellLocation cells)
-  let listKeys = nub $ catMaybes $ map DU.getCellListKey cells
-  mapM_ (decoupleList conn) listKeys
+deleteCellsPropagated conn cells = 
+  let rangeKeys = nub $ catMaybes $ map DU.cellToRangeKey cells
+  in do 
+    deleteCells conn cells
+    setCellsAncestorsForce . U.blankCellsAt $ map cellLocation cells
+    mapM_ (decouple conn) rangeKeys
 
 ----------------------------------------------------------------------------------------------------------------------
 -- Commits

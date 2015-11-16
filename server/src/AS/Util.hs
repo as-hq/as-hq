@@ -318,8 +318,9 @@ getScrolledLocs (Window _ (-1,-1) (-1,-1)) (Window sheetid tl br) = [(Range shee
 getScrolledLocs w1@(Window _ (y,x) (y2,x2)) w2@(Window sheetid tl@(y',x') br@(y2',x2'))
   | windowsIntersect w1 w2 = getUncoveredLocs sheetid overlapping (tl, br)
   | otherwise = [(Range sheetid (tl, br))]
-    where overlapping = ((max y y', max x x'), (min y2 y2', min x2 x2'))
-          windowsIntersect (Window _ w1 (Window _ w2) = rectsIntersect w1 w2
+    where 
+      overlapping = ((max y y', max x x'), (min y2 y2', min x2 x2'))
+      windowsIntersect (Window _ tl br) (Window _ tl' br') = rectsIntersect (tl, br) (tl', br')
             
 getUncoveredLocs :: ASSheetId -> (Coord, Coord) -> (Coord, Coord) -> [ASRange]
 getUncoveredLocs sheet (tlo, bro) (tlw, brw) = [Range sheet corners | corners <- cs]

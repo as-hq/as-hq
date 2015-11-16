@@ -100,10 +100,11 @@ data ASValue =
 
 type RListKey = String
 data ASReplValue = ReplValue {replValue :: ASValue, replLang :: ASLanguage} deriving (Show, Read, Eq, Generic)
-type RefValMap = M.Map ASReference ASValue
+type RefValMap = M.Map ASIndex ASValue
 
 data ComplexType = List | Object | Image | Error deriving (Show, Read, Eq, Generic)
 data ObjectType = RList | RDataFrame | NPArray | NPMatrix | PDataFrame | PSeries deriving (Show, Read, Eq, Generic)
+-- [Dragme, matrix, array...] x [python, r, ocmal....]
 
 -- ephemeral types produced by eval 
 -- that will expand in createListCells
@@ -123,14 +124,18 @@ data ExpandingValue =
 
 data CompositeValue = Expanding ExpandingValue | CellValue ASValue deriving (Show, Read, Generic)
 
+-- turning a spreadsheet range into dataframe etc...
+-- only needed during at syntax and list decoupling
 data RangeDescriptor = 
     ListDescriptor { listKey :: RangeKey}
   | ObjectDescriptor { objKey :: RangeKey, objType :: ObjectType, objAttrs :: JSON }
+  deriving (Show, Read)
 
 -- range keys are used to access range descriptors, which relay metadata about a range of cells
 -- e.g. for embedded lists and objects
 type RangeKey = String
 data FatCell = FatCell { expandedCells :: [ASCell], headIndex :: ASIndex, descriptor :: RangeDescriptor }
+
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Parsing
 
@@ -138,8 +143,8 @@ data FatCell = FatCell { expandedCells :: [ASCell], headIndex :: ASIndex, descri
 -- String -> JSON -> CompositeValue -> FatCell -> [ASValue]
 type JSON = M.Map JSONKey JSONField 
 type JSONKey = String 
-data JSONField = JSONTree JSON | JSONLeaf JSONValue
-data JSONValue = ListValue Collection | PrimitiveValue ASValue
+data JSONField = JSONTree JSON | JSONLeaf JSONValue deriving (Show, Read)
+data JSONValue = ListValue Collection | SimpleValue ASValue deriving (Show, Read)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Errors

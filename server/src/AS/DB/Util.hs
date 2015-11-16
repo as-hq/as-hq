@@ -7,7 +7,7 @@ import AS.Types.DB
 import AS.Util as U
 import AS.Parsing.Common (tryParseListNonIso)
 import AS.Parsing.Read (integer)
-import AS.Parsing.Show (showValue)
+import AS.Parsing.Show (showPrimitive)
 
 import qualified Data.List                     as L
 import qualified Data.Text                     as T
@@ -175,12 +175,10 @@ getFatCellIntersections conn sid (Left locs) = do
     anyLocsContainedInRect ls r = any id $ map (indexInRect r) ls
     indexInRect ((a',b'),(a2',b2')) (Index _ (a,b)) = a >= a' && b >= b' &&  a <= a2' && b <= b2'
 
-getFatCellIntersections conn sid (Right key) = do
+getFatCellIntersections conn sid (Right keys) = do
   rangeKeys <- getRangeKeysInSheet conn sid
-  return $ isoFilter keyIntersects rangeRects rangeKeys
-    where
-      keyIntersects = rectsIntersect (rangeKeyToRect key)
-      rangeRects    = map rangeKeyToRect rangeKeys
+  return $ L.intersectBy keysIntersect keys rangeKeys
+    where keysIntersect k1 k2 = rectsIntersect (rangeKeyToRect k1) (rangeKeyToRect k2)
 
 rangeKeyToRect :: RangeKey -> Rect
 rangeKeyToRect key = ((col, row), (col + width - 1, row + height - 1))
@@ -198,7 +196,7 @@ getRangeKeysInSheet conn sid = runRedis conn $ do
   Right result <- smembers $ getSheetRangesKey sid
   return $ map BC.unpack result
 
-rangeKeyToSheetId :: ListKey -> ASSheetId
+rangeKeyToSheetId :: RangeKey -> ASSheetId
 rangeKeyToSheetId key = sid
   where
     parts = splitBy keyPartDelimiter key
@@ -206,21 +204,27 @@ rangeKeyToSheetId key = sid
 
 decoupleCell :: ASCell -> ASCell
 decoupleCell (Cell l (Coupled _ lang _ _) v ts) = Cell l e' v ts
-  where e' = Expression (showValue lang v) lang
+  where e' = Expression (showPrimitive lang v) lang
 
-getRangeKey :: RangeDescriptor -> RangeKey
-getRangeKey desc = case desc of 
+rangeDescriptorToKey :: RangeDescriptor -> RangeKey
+rangeDescriptorToKey desc = case desc of 
   ListDescriptor key -> key
   ObjectDescriptor key _ _ -> key
---isListHead :: ASCell -> Bool
---isListHead cell = case (getListTag cell) of
---  Nothing -> False
---  (Just (ListMember key)) -> (show2 . cellLocation $ cell) == (head $ splitBy keyPartDelimiter key)
 
---getCellListKey :: ASCell -> Maybe ListKey
---getCellListKey cell = case (getListTag cell) of
---  (Just (ListMember key)) -> Just key
---  Nothing -> Nothing
+isFatCellMember :: ASCell -> Bool
+isFatCellMember (Cell _ xp _ _) = case xp of 
+  Coupled _ _ _ _ -> True
+  _ -> False
+
+isFatCellHead :: ASCell -> Bool 
+isFatCellHead cell = case (cellToRangeKey cell) of 
+  Just key -> (show2 . cellLocation $ cell) == (head $ splitBy keyPartDelimiter key)
+  Nothing -> False
+
+cellToRangeKey :: ASCell -> Maybe RangeKey
+cellToRangeKey (Cell _ xp _ _ ) = case xp of 
+  Coupled _ _ _ key -> Just key
+  _ -> Nothing
 
 ----------------------------------------------------------------------------------------------------------------------
 -- | ByteString utils

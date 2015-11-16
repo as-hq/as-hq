@@ -92,7 +92,7 @@ getDimensions coll = case coll of
 
 --formatValuesForMap :: [(ASIndex, Maybe ASCell)] -> [(ASReference, ASValue)]
 --formatValuesForMap pairs = formattedPairs
---  where formattedPairs = map (\(l, c) -> (IndexRef l, getSanitizedCellValue c)) pairs
+--  where formattedPairs = map (\(l, c) -> (l, getSanitizedCellValue c)) pairs
 
 
 --------------------------------------------------------------------------------------------------------------

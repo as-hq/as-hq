@@ -106,22 +106,21 @@ getCellsToEval conn locs origCells = do
 -- because retaining ASRange in the root dep set makes checking for
 -- dataframes O(# lists) instead of O(n)
 -- rootDeps is a subset of locs and we set both, but no need to remove duplicates from the map.
-getValuesMap :: [(ASCell, [ASReference])] -> [ASIndex] -> IO RefValMap
-getValuesMap rootRelations locs = do
-  maybeCells <- DB.getCells locs
-  let simpleFormatted = formatValuesForMap $ zip locs maybeCells
-  groupedRefs <- concat <$> mapM groupRefs rootRelations
-  return $ M.fromList $ groupedRefs ++ simpleFormatted
+getValuesMap :: [ASIndex] -> IO RefValMap
+getValuesMap locs = do
+  vals <- map getSanitizedCellValue <$> DB.getCells locs
+  --groupedRefs <- concat <$> mapM groupRefs rootRelations
+  return $ M.fromList $ zip locs vals
 
-groupRefs :: (ASCell, [ASReference]) -> IO [(ASReference, ASValue)]
-groupRefs relation@(cell, refs) = if (shouldGroupRefs relation)
-  then do
-    let rngs = map (\(RangeRef rng) -> rng) $ filter isRange refs
-    rngValSets <- mapM DB.getCellsByRange rngs
-    let rngValSets' = map (\rs -> map getSanitizedCellValue rs) rngValSets
-        groupedRefs = map (groupRef . language . cellExpression $ cell) $ zip rngs rngValSets'
-    return $ filterNothing groupedRefs
-  else return []
+--groupRefs :: (ASCell, [ASReference]) -> IO [(ASReference, ASValue)]
+--groupRefs relation@(cell, refs) = if (shouldGroupRefs relation)
+--  then do
+--    let rngs = map (\(RangeRef rng) -> rng) $ filter isRange refs
+--    rngValSets <- mapM DB.getCellsByRange rngs
+--    let rngValSets' = map (\rs -> map getSanitizedCellValue rs) rngValSets
+--        groupedRefs = map (groupRef . language . cellExpression $ cell) $ zip rngs rngValSets'
+--    return $ filterNothing groupedRefs
+--  else return []
 
 getSanitizedCellValue :: Maybe ASCell -> ASValue
 getSanitizedCellValue c = case c of
@@ -136,7 +135,7 @@ getSanitizedCellValue c = case c of
 -- added in the map.
 evalChain :: Connection -> RefValMap -> [ASCell] -> CommitSource -> EitherTExec ([ASCell], [FatCell])
 evalChain conn valuesMap cells src = do
-  result <- liftIO $ catch (runEitherT $ evalChain' conn valuesMap cells [] []) (\e -> do
+  result <- liftIO $ catch (runEitherT $ evalChain' conn valuesMap cells []) (\e -> do
     printObj "Runtime exception caught" (e :: SomeException)
     U.writeErrToLog ("Runtime exception caught" ++ (show e)) src
     return $ Left RuntimeEvalException)
@@ -156,7 +155,7 @@ evalChain conn valuesMap cells src = do
 -- We also need to check for circular dependencies, which is why the pastListHeads are passed in.
 -- #needsrefactor there's probably a more Haskell way of doing this with a state monad or something.
 evalChain' :: Connection -> RefValMap -> [ASCell] -> [FatCell] -> EitherTExec ([ASCell], [FatCell])
-evalChain' _ _ [] [] _ = return ([], [])
+evalChain' _ _ [] fcells = return ([], [])
 evalChain' conn valuesMap [] fatCells = 
   -- get expanded cells from fat cells
   let unwrap (FatCell fcells fhead _) = (fcells, [fhead])
@@ -177,22 +176,25 @@ evalChain' conn valuesMap [] fatCells =
     ancLocs <- G.getImmediateAncestors descLocs
     newKnownValues <- lift $ getValuesMap [] ancLocs
     cells' <- getCellsToEval conn descLocs [] -- the origCells are the list cells, which got filtered out of descLocs
-    evalChain' conn (M.union valuesMap newKnownValues) cells' [] fatCellHeads
+    evalChain' conn (M.union valuesMap newKnownValues) cells' fatCells
 
 evalChain' conn valuesMap (c@(Cell loc xp _ ts):cs) fatCells = do
   cv <- EC.evaluateLanguage (IndexRef (cellLocation c)) (locSheetId loc) valuesMap xp
   let maybeFatCell              = DE.decomposeCompositeValue c cv
       addCell (Cell l _ v _) mp = M.insert (IndexRef l) v mp
       newValuesMap              = case maybeFatCell of
-              Nothing                          -> M.insert (IndexRef loc) cv valuesMap
+              Nothing                          -> 
+                let {(CellValue v) = cv} in M.insert (IndexRef loc) v valuesMap
               Just (FatCell expandedCells _ _) -> foldr addCell valuesMap expandedCells
       -- ^ adds all the cells in cellsList to the reference map
       fatCells' = case maybeFatCell of
                 Nothing -> fatCells
                 Just f  -> f:fatCells
   (restCells, restFatCells) <- evalChain' conn newValuesMap cs fatCells'
+  -- TODO investigate strictness here
   return $ case maybeFatCell of
-    Nothing          -> ((Cell loc xp cv ts):restCells, restFatCells)
+    Nothing        -> let {(CellValue v) = cv} 
+      in ((Cell loc xp v ts):restCells, restFatCells)
     (Just fatCell) -> (restCells, fatCell:restFatCells)
 
 -- Removed for now for a number of reasons: 
