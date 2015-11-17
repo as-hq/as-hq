@@ -8,7 +8,7 @@ import Prelude
 import GHC.Generics
 import Data.Aeson hiding (Success, Object, Array)
 import qualified Data.Aeson as DA
-import Data.Aeson.Types (defaultOptions)
+import Data.Aeson.Types (defaultOptions, Parser)
 import Data.Text hiding (foldr, map)
 import Data.ByteString (ByteString)
 import qualified Data.ByteString.Char8 as BC
@@ -104,7 +104,7 @@ data ASValue =
 type RListKey = String
 data ASReplValue = ReplValue {replValue :: ASValue, replLang :: ASLanguage} deriving (Show, Read, Eq, Generic)
 
-type RefValMap = M.Map ASIndex CompositeValue
+type ValMap = M.Map ASIndex CompositeValue
 
 data ComplexType = List | Object | Image | Error deriving (Show, Read, Eq, Generic)
 data ObjectType = RList | RDataFrame | NPArray | NPMatrix | PDataFrame | PSeries deriving (Show, Read, Eq, Generic)
@@ -414,8 +414,6 @@ instance ToJSON ObjectType
 instance FromJSON ObjectType
 instance ToJSON ASLanguage
 instance FromJSON ASLanguage
-instance ToJSON ASExpression
-instance FromJSON ASExpression
 instance ToJSON ASCell
 instance FromJSON ASCell
 instance ToJSON ASAction
@@ -527,6 +525,23 @@ instance FromJSON ASRange where
 instance ToJSON ASReference where
   toJSON (IndexRef idx) = toJSON idx
   toJSON (RangeRef rng) = toJSON rng
+
+instance ToJSON ASExpression where
+  toJSON (Expression xp lang) = object ["expression" .= xp,
+                                        "language" .= (show lang)]
+  toJSON (Coupled xp lang ctype key) = object ["expression" .= xp,
+                                               "language" .= (show lang),
+                                               "displayType" .= (show ctype),
+                                               "rangeKey" .= key]
+instance FromJSON ASExpression where
+  parseJSON (DA.Object v) = do
+    dType <- (v .:? "displayType") :: Parser (Maybe ComplexType)
+    case dType of 
+      Just _ -> Coupled <$> v .: "expression"
+                           <*> v .: "language"
+                           <*> v .: "displayType"
+                           <*> v .: "rangeKey"
+      Nothing -> Expression <$> v .: "expression" <*> v .: "language"
 
 instance ToJSON ASWindow where
   toJSON (Window sid (c,r) (c2, r2)) = object ["tag" .= ("window" :: String),

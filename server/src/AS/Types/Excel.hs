@@ -181,7 +181,7 @@ data EEntity =
 --------------------------------------------------------------------------------------------------------------------------------------------
 -- | Excel evaluation types
 
-data Context = Context {evalMap :: RefValMap, curLoc :: ASIndex}
+data Context = Context {evalMap :: ValMap, curLoc :: ASIndex}
 
 type ThrowsError = Either EError
 type EResult = ThrowsError EEntity

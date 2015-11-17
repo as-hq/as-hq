@@ -117,7 +117,7 @@ getCellsToEval conn locs origCells = do
 -- because retaining ASRange in the root dep set makes checking for
 -- dataframes O(# lists) instead of O(n)
 -- rootDeps is a subset of locs and we set both, but no need to remove duplicates from the map.
-getValuesMap :: [ASIndex] -> IO RefValMap
+getValuesMap :: [ASIndex] -> IO ValMap
 getValuesMap locs = do
   vals <- map (CellValue . getSanitizedCellValue) <$> DB.getCells locs
   --groupedRefs <- concat <$> mapM groupRefs rootRelations
@@ -144,7 +144,7 @@ getSanitizedCellValue c = case c of
 -- cell that's updated. The cells passed in are guaranteed to be topologically sorted, i.e.,
 -- if a cell references an ancestor, that ancestor is guaranteed to already have been
 -- added in the map.
-evalChain :: Connection -> RefValMap -> [ASCell] -> CommitSource -> EitherTExec ([ASCell], [FatCell])
+evalChain :: Connection -> ValMap -> [ASCell] -> CommitSource -> EitherTExec ([ASCell], [FatCell])
 evalChain conn valuesMap cells src = do
   result <- liftIO $ catch (runEitherT $ evalChain' conn valuesMap cells []) (\e -> do
     printObj "Runtime exception caught" (e :: SomeException)
@@ -165,7 +165,7 @@ evalChain conn valuesMap cells src = do
 -- because we don't need to re-evaluate the individual cells in the list, ONLY their descendants.
 -- We also need to check for circular dependencies, which is why the pastListHeads are passed in.
 -- #needsrefactor there's probably a more Haskell way of doing this with a state monad or something.
-evalChain' :: Connection -> RefValMap -> [ASCell] -> [FatCell] -> EitherTExec ([ASCell], [FatCell])
+evalChain' :: Connection -> ValMap -> [ASCell] -> [FatCell] -> EitherTExec ([ASCell], [FatCell])
 evalChain' _ _ [] fcells = return ([], [])
 evalChain' conn valuesMap [] fatCells = 
   -- get expanded cells from fat cells

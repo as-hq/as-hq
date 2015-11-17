@@ -202,9 +202,9 @@ addCompileCmd OCaml cmd = do
 -----------------------------------------------------------------------------------------------------------------------
 -- | Value interpolation
 
--- | Helper function for interpolate. Takes in a RefValMap and a reference and returns
+-- | Helper function for interpolate. Takes in a ValMap and a reference and returns
 -- the value as a string.
-lookupString :: ASLanguage -> RefValMap -> ASReference -> String
+lookupString :: ASLanguage -> ValMap -> ASReference -> String
 lookupString lang valuesMap ref = case ref of
     IndexRef idx -> showValue lang $ valuesMap M.! idx
     RangeRef (Range sh ((a,b),(c,d))) ->
@@ -215,7 +215,7 @@ lookupString lang valuesMap ref = case ref of
 
 -- | Replaces all the Excel references in an expression with the valuesMap corresponding to them.
 -- TODO clean up SQL mess
-insertValues :: ASSheetId -> RefValMap -> ASExpression -> String
+insertValues :: ASSheetId -> ValMap -> ASExpression -> String
 insertValues sheetid valuesMap xp@(Expression origString lang) = case lang of
   SQL -> contextStmt ++ evalStmt
     where

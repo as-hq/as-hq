@@ -38,7 +38,7 @@ import Control.Exception (catch, SomeException)
 -----------------------------------------------------------------------------------------------------------------------
 -- Exposed functions
 
-evaluateLanguage :: ASIndex -> ASSheetId -> RefValMap -> ASExpression -> EitherTExec CompositeValue
+evaluateLanguage :: ASIndex -> ASSheetId -> ValMap -> ASExpression -> EitherTExec CompositeValue
 evaluateLanguage curRef sheetid valuesMap xp@(Expression str lang) = catchEitherT $ do
   printWithTimeT "Starting eval code"
   let maybeError = possiblyShortCircuit sheetid valuesMap xp
@@ -63,7 +63,7 @@ evaluateLanguageRepl (Expression str lang) = catchEitherT $ case lang of
 
 -- | Checks for potentially bad inputs (NoValue or ValueError) among the arguments passed in. If no bad inputs,
 -- return Nothing. Otherwise, if there are errors that can't be dealt with, return appropriate ASValue error.
-possiblyShortCircuit :: ASSheetId -> RefValMap -> ASExpression -> Maybe ASValue
+possiblyShortCircuit :: ASSheetId -> ValMap -> ASExpression -> Maybe ASValue
 possiblyShortCircuit sheetid valuesMap xp =
   let depRefs       = getDependencies sheetid xp -- :: [ASReference]
       depSets       = map refToIndices depRefs   -- :: [Maybe [ASIndex]]
