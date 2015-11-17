@@ -275,3 +275,7 @@ declare class SyntheticTouchEvent extends SyntheticUIEvent {
     targetTouches: any;
     touches: any;
 }
+
+declare module 'react-dom' {
+  declare function findDOMNode(): HTMLElement;
+}

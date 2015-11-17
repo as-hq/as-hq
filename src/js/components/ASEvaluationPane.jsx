@@ -14,7 +14,7 @@ import type {
 
 import type Textbox from './Textbox.jsx';
 
-import {logDebug} from '../AS/Logger';
+import {logDebug, logError} from '../AS/Logger';
 
 import React from 'react';
 import ReactDOM from 'react-dom';
@@ -131,7 +131,8 @@ export default React.createClass({
   // Component getter methods
 
   _getSpreadsheet(): HGElement {
-    return ReactDOM.findDOMNode(this.refs.spreadsheet.refs.hypergrid);
+    let ele: HGElement = (ReactDOM.findDOMNode(this.refs.spreadsheet.refs.hypergrid): any);
+    return ele;
   },
 
   _getRawEditor(): AERawClass {
@@ -143,7 +144,8 @@ export default React.createClass({
   },
 
   _getDomEditor(): AEElement {
-    return ReactDOM.findDOMNode(this.refs.editorPane.refs.editor);
+    let ele: AEElement = (ReactDOM.findDOMNode(this.refs.editorPane.refs.editor): any);
+    return ele;
   },
 
   // _getReplEditor() {
@@ -250,7 +252,7 @@ export default React.createClass({
     return null;
   },
 
-  showAnyErrors(cv) {
+  showAnyErrors(cv: ASValue) {
     let err = this.getErrorMessage(cv);
     if (err) {
       this.setToast(err, "Error");
@@ -288,8 +290,13 @@ export default React.createClass({
     // I DO know that if you leave it out, cut doesn't save anything to the clipboard
     // if there's already external data on the clipboard, but copy DOES work, and I don't
     // understand why.
-    let sel = Store.getActiveSelection(),
-        vals = Store.getRowMajorCellValues(sel.range);
+    let sel = Store.getActiveSelection();
+    if (! sel) {
+      logDebug('No selection.'); // TODO: better handler for this. can we make it never be null
+      return;
+    }
+
+    let vals = Store.getRowMajorCellValues(sel.range);
 
     logDebug('Handling copy event');
 
@@ -310,8 +317,13 @@ export default React.createClass({
     logDebug('Handling paste event');
     Render.setMode(null);
 
-    let sel = Store.getActiveSelection(),
-        containsHTML = Util.arrContains(e.clipboardData.types,"text/html"),
+    let sel = Store.getActiveSelection();
+    if (! sel) {
+      logDebug('No selection.');
+      return;
+    }
+
+    let containsHTML = Util.arrContains(e.clipboardData.types,"text/html"),
         containsPlain = Util.arrContains(e.clipboardData.types,"text/plain"),
         isAlphaSheets = this.state.testMode ||
           (
@@ -327,6 +339,11 @@ export default React.createClass({
           sheetId = Store.getCurrentSheet().sheetId,
           {fromSheetId, fromRange} = ClipboardUtils.getAttrsFromHtmlString(e.clipboardData.getData("text/html")),
           toASRange = TC.simpleToASRange(sel.range);
+
+      if (! clipboard.area) {
+        logError('clipboard.area not found.');
+        return;
+      }
 
       // These lines are in principle redundant, but since browser clipboards aren't easily mocked,
       // fromRange and fromSheetId are null in frontend tests. (Alex 11/15)
@@ -476,7 +493,7 @@ export default React.createClass({
         changeSelToNewCell = !cell && !userIsTyping,
         changeSelWhileTypingNoInsert = userIsTyping && !canInsertRef;
 
-    if (changeSelToExistingCell) {
+    if (!! cell && changeSelToExistingCell) { // !! cell for flow.
       logDebug("Selected non-empty cell to move to");
       let {language, expression} = cell.cellExpression,
           val = cell.cellValue;
@@ -546,6 +563,12 @@ export default React.createClass({
   handleEvalRequest(xpObj: ASClientExpression, moveCol: ?number, moveRow: ?number) {
     logDebug("Handling EVAL request " + ExpStore.getExpression());
 
+    let selection = Store.getActiveSelection();
+    if (! selection) {
+      logError('No active selection');
+      return;
+    }
+
     this.refs.spreadsheet.refs.textbox.hideTextBox();
     ExpStore.setLastCursorPosition(Constants.CursorPosition.GRID);
     ExpStore.setUserIsTyping(false);
@@ -553,7 +576,7 @@ export default React.createClass({
     Store.setActiveCellDependencies([]);
     this.refs.spreadsheet.repaint();
 
-    let origin = Store.getActiveSelection().origin;
+    let {origin} = selection;
 
     if (moveCol !== null && moveRow !== null){
       logDebug("Shifting selection area");
@@ -656,7 +679,8 @@ export default React.createClass({
   //   this.setState({replLanguage:newLang});
   // },
 
-  _onEvalHeaderLanguageChange(e, index: number, menuItem) {
+  _onEvalHeaderLanguageChange(e: {}, index: number, menuItem: { payload: ASClientLanguage; }) {
+    // If e is ever actually used, we will notice and remove the {} annotation.
     EvalHeaderActionCreator.storeEvalHeaderExpression(this.state.evalHeaderLanguage.Display,
                                                       this._evalHeaderValue());
     let newLang = menuItem.payload;
