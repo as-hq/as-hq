@@ -157,17 +157,28 @@ export default {
         case "Streaming":
           config.isStreaming = true;
           break;
-        case "ListMember":
-          config.bgColor = colors["cornsilk"];
-          break;
-        case "DFMember":
-          config.bgColor = colors["lavender"];
-          break;
         default:
           break;
       }
     }
     return config;
+  },
+
+  displayTypeToRenderConfig(config: RendererConfig, dtype: DisplayType): RendererConfig {
+    switch (dtype) {
+      case "List":
+        config.bgColor = colors["cornsilk"];
+        return config;
+      case "Object":
+        config.bgColor = colors["lightcyan"];
+        return config;
+      case "Image":
+        config.bgColor = colors["lavender"];
+        return config;
+      case "Error":
+        config.bgColor = colors["lightred"];
+        return config;
+    }
   },
 
   valueToRenderConfig(config: RendererConfig, val: ASValue): RendererConfig {
@@ -178,9 +189,6 @@ export default {
         return config;
       case "ValueS":
         config.halign = 'left';
-        return config;
-      case "RList":
-        config.bgColor = colors['lightcyan'];
         return config;
       default:
         config.halign = 'center';

@@ -191,8 +191,12 @@ export type ASLanguage = 'Python' | 'R' | 'SQL' | 'Excel';
 export type ASExpression = {
   expression: string;
   language: ?ASLanguage;
+  displayType: ?DisplayType;
+  rangeKey: ?string;
   dependencies?: Array<NakedRange>;
 };
+
+export type DisplayType = 'List' | 'Object' | 'Image' | 'Error';
 
 export type ASCellTag =
   ColorTag

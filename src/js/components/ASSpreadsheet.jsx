@@ -712,6 +712,9 @@ export default React.createClass({
         if (cell.cellTags.length > 0){
           config = Util.tagsToRenderConfig(config, cell.cellTags);
         }
+        if (cell.cellExpression.displayType) {
+          config = Util.displayTypeToRenderConfig(config, cell.cellExpression.displayType);
+        }
       } else {
         config.halign = 'center';
       }
