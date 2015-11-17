@@ -149,9 +149,9 @@ castVector v = do
 rdVectorVals :: [CompositeValue] -> Collection
 rdVectorVals = M . (map mkArray)
   where
-    mkArray val = case val of 
-      (Expanding (VList (A arr))) -> arr
-      (CellValue v) -> [v]
+    mkArray row = case row of 
+      Expanding (VList (A arr)) -> arr
+      CellValue v -> [v]
       _ -> error "cannot cast multi-dimensional vector"
 
 --let firstRow = take (length vals) listNames'
@@ -166,9 +166,9 @@ rdVectorVals = M . (map mkArray)
 
 castListNames :: CompositeValue -> [String]
 castListNames val = case val of
-  (Expanding (VList (A names))) -> map (\(ValueS s)->s) names
-  (CellValue (ValueS s)) -> [s]
-  (CellValue NoValue)  -> ["NULL"]
+  Expanding (VList (A names)) -> map (\(ValueS s)->s) names
+  CellValue (ValueS s) -> [s]
+  CellValue NoValue  -> ["NULL"]
   _ -> error $ "could not cast dataframe list names from composite value " ++ (show val)
 
 -- TODO figure out S4 casting

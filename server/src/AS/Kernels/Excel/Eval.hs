@@ -22,21 +22,20 @@ convertEither _ (Left e) = return . CellValue $ ValueExcelError e
 convertEither c (Right entity) = return $ entityToComposite c entity
 
 -- | After successful Excel eval returning an entity, convert to ASValue
--- | NOTE: ASValue's ValueL is column-major
 -- Excel index refs are treated as 1x1 matrices, but don't treat them as lists below
 entityToComposite :: Context -> EEntity -> CompositeValue 
 entityToComposite c (EntityRef r) = case (L.refToEntity c r) of
   Left e -> CellValue $ ValueExcelError e
-  Right (EntityMatrix (EMatrix 1 1 v)) -> entityToASValue c $ EntityVal $ V.head v
-  Right entity -> entityToASValue c entity
-entityToASValue _ (EntityVal EBlank) = CellValue NoValue
-entityToASValue _ (EntityVal EMissing) = CellValue NoValue
-entityToASValue _ (EntityVal (EValueNum (EValueD d))) = CellValue $ ValueD d
-entityToASValue _ (EntityVal (EValueNum (EValueI i))) = CellValue $ ValueI i
-entityToASValue _ (EntityVal (EValueB b)) = CellValue $ ValueB b
-entityToASValue _ (EntityVal (EValueS s)) = CellValue $ ValueS s
-entityToASValue _ (EntityVal (EValueE s)) = CellValue $ ValueError s ""
-entityToASValue _ (EntityMatrix m) = case (transpose list2D) of
+  Right (EntityMatrix (EMatrix 1 1 v)) -> entityToComposite c $ EntityVal $ V.head v
+  Right entity -> entityToComposite c entity
+entityToComposite _ (EntityVal EBlank) = CellValue NoValue
+entityToComposite _ (EntityVal EMissing) = CellValue NoValue
+entityToComposite _ (EntityVal (EValueNum (EValueD d))) = CellValue $ ValueD d
+entityToComposite _ (EntityVal (EValueNum (EValueI i))) = CellValue $ ValueI i
+entityToComposite _ (EntityVal (EValueB b)) = CellValue $ ValueB b
+entityToComposite _ (EntityVal (EValueS s)) = CellValue $ ValueS s
+entityToComposite _ (EntityVal (EValueE s)) = CellValue $ ValueError s ""
+entityToComposite _ (EntityMatrix m) = case (transpose list2D) of
   [transposedCol] -> Expanding . VList . A $ transposedCol -- matches in this case iff original list2D is a vertical list
   otherwise -> Expanding . VList . M $ list2D
   where

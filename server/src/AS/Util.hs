@@ -29,6 +29,7 @@ import Control.Monad.Trans.Either
 
 import Control.Exception (catch, finally, SomeException)
 import Control.Monad.IO.Class(liftIO)
+import System.IO.Unsafe (unsafePerformIO)
 
 import Data.Ord
 
@@ -39,6 +40,9 @@ import Debug.Trace
 
 trace' :: (Show a) => String -> a -> a
 trace' s x = trace (s ++ (show x)) x
+
+unsafePrint :: String -> ()
+unsafePrint str = unsafePerformIO $ putStrLn str
 
 -------------------------------------------------------------------------------------------------------------------------
 -- Initializations
@@ -130,7 +134,7 @@ deleteSubset :: (Eq a) => [a] -> [a] -> [a]
 deleteSubset subset = filter (\e -> L.notElem e subset)
 
 isEmptyCell :: ASCell -> Bool
-isEmptyCell c = (null $ cellTags c) && (null $ expression $ cellExpression c)
+isEmptyCell c = (null $ cellTags c) && (null . xpString $ cellExpression c)
 
 liftEitherTuple :: Either b (a0, a1) -> (Either b a0, Either b a1)
 liftEitherTuple (Left b) = (Left b, Left b)

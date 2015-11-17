@@ -118,7 +118,7 @@ extractObject js = case (js .> "objectType") of
       PSeries -> VPSeries . rdSeries <$> extractCollection js "seriesVals"
         where 
           rdSeries coll = case coll of 
-            (A series) -> series
+            A series -> series
             _ -> error "expected pandas series to be one-dimensional" 
       _ -> Nothing
     _ -> Nothing

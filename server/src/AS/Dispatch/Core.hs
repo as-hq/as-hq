@@ -43,6 +43,15 @@ import Control.Monad.Trans.Class
 import Control.Monad.Trans.Either
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
+-- Debugging
+
+testDispatch :: MVar ServerState -> ASLanguage -> Coord -> String -> IO ASServerMessage
+testDispatch state lang crd str = runDispatchCycle state [Cell (Index sid crd) (Expression str Python) NoValue []] (sid, uid)
+  where 
+    sid = T.pack "sheetid"
+    uid = T.pack "userid"
+
+----------------------------------------------------------------------------------------------------------------------------------------------
 -- Regular eval route
 
 -- assumes all evaled cells are in the same sheet

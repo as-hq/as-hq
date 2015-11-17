@@ -67,9 +67,12 @@ def serialize(val):
 		return json.dumps({'tag': 'Object', 'objectType': 'NPMatrix', 'matrixVals': val.tolist()})
 	else: return json.dumps(val)
 
-def deserialize(str):
-	# shit
-
-
-
-
+def deserialize(dic):
+	if 'tag' in dic and dic['tag'] == 'Object':
+		if 'objectType' in dic:
+			if dic['objectType'] == 'PDict':
+				return dic['dict']
+			elif dic['objectType'] == 'NPArray':
+				return np.array(dic['arrayVals'])
+			elif dic['objectType'] == 'NPMatrix':
+				return np.matrix(dic['matrixVals'])

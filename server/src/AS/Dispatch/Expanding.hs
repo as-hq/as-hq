@@ -5,6 +5,8 @@ import Prelude
 import AS.Types.Core
 import AS.DB.Util as DU
 
+import qualified Data.Map as M
+
 decomposeCompositeValue :: ASCell -> CompositeValue -> Maybe FatCell
 decomposeCompositeValue _ (CellValue _) = Nothing
 
@@ -25,6 +27,21 @@ decomposeCompositeValue c@(Cell idx _ _ _) (Expanding (VList coll)) = Just $ Fat
 
 --decomposeCompositeValue c@(Cell idx _ _ _) (Expanding (VRDataFrame names values)) = Just $ FatCell cells desc
 --  where
+
+decomposeCompositeValue c@(Cell idx _ _ _) (Expanding (VNPArray coll)) = Just $ FatCell cells idx desc
+  where
+    dims      = getDimensions coll
+    rangeKey  = DU.getRangeKey idx dims
+    cells     = decomposeCells Object rangeKey c coll
+    desc      = ObjectDescriptor rangeKey NPArray $ M.fromList []
+
+decomposeCompositeValue c@(Cell idx _ _ _) (Expanding (VNPMatrix mat)) = Just $ FatCell cells idx desc
+  where
+    coll      = M mat
+    dims      = getDimensions coll
+    rangeKey  = DU.getRangeKey idx dims
+    cells     = decomposeCells Object rangeKey c coll
+    desc      = ObjectDescriptor rangeKey NPMatrix $ M.fromList []
 
 decomposeCells :: ComplexType -> RangeKey -> ASCell -> Collection -> [ASCell]
 decomposeCells cType rangeKey (Cell (Index sheet (c,r)) (Expression str lang) _ ts) coll = 

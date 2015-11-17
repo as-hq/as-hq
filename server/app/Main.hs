@@ -102,10 +102,7 @@ initDebug conn state = do
   --putStrLn $ show $ parse (PR.value Python) "" str
   --result <- runEitherT $ KP.evaluate "1+a" 
   --putStrLn $ show result
-  let sid = T.pack "sheetid"
-  let uid = T.pack "userid"
-  let str = "[1,2,3]"
-  result <- DC.runDispatchCycle state [Cell (Index sid (10,1)) (Expression str Python) NoValue []] (sid, uid)
+  result <- DC.testDispatch state Python (1,1) "np.array([1,2,3])"
   putStrLn $ show result
   return ()
 

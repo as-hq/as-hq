@@ -63,7 +63,7 @@ keyPartDelimiter = '?'
 
 -- key for fat cells
 getRangeKey :: ASIndex -> Dimensions -> RangeKey
-getRangeKey idx dims = (show2 idx) ++ (keyPartDelimiter:(show dims)) ++ "RANGEKEY"
+getRangeKey idx dims = (show2 idx) ++ (keyPartDelimiter:(show dims)) ++ (keyPartDelimiter:"RANGEKEY")
 
 -- key for set of all fat cells in a sheet
 getSheetRangesKey :: ASSheetId -> B.ByteString
