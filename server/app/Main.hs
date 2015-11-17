@@ -41,6 +41,7 @@ import AS.Kernels.Python.Eval as KP
 import AS.Kernels.LanguageUtils as KL
 import AS.Kernels.Excel.Compiler as KE
 import Text.ParserCombinators.Parsec (parse)
+import AS.Parsing.Read as PR
 import AS.Parsing.Excel (refMatch, sheetWorkbookMatch, exRefToASRef, asRefToExRef)
 import AS.Types.Excel
 
@@ -96,7 +97,10 @@ initApp = do
 
 -- | Initializes database with sheets, etc. for debugging mode. Only called if isDebug is true.
 initDebug :: R.Connection -> IO ()
-initDebug conn = return ()
+initDebug conn = do
+  let str = "{\"tag\" : \"Object\", \"objectType\": \"PSeries\", \"seriesVals\": [[1,2,3],[1]] }"
+  putStrLn $ show $ parse (PR.value Python) "" str
+  return ()
 
 application :: MVar ServerState -> WS.ServerApp
 application state pending = do

@@ -8,6 +8,7 @@ import qualified Data.Text as T
 import qualified Data.Text.Lazy (replace)
 import qualified Data.List as L
 import qualified Data.Map as M
+import Text.Read (readMaybe)
 
 import Text.ParserCombinators.Parsec
 import qualified Text.ParserCombinators.Parsec.Token as P
@@ -40,7 +41,6 @@ asValue lang =
   <|> try (ValueB <$> bool lang)
   <|> try (ValueS <$> quotedString)
   <|> try (nullValue lang)
-  <|> return NoValue
 
 -----------------------------------------------------------------------------------------------------------------------
 -- primitive parsers
@@ -84,7 +84,7 @@ extractComplex lang =
             Nothing -> fail "expecting field \"tag\" in complex value"
 
 extractComplexValue :: JSONKey -> JSON -> Maybe CompositeValue
-extractComplexValue tag js = case (read tag :: Maybe ComplexType) of 
+extractComplexValue tag js = case (readMaybe tag :: Maybe ComplexType) of 
   Nothing -> Nothing
   Just tag' -> case tag' of 
     List -> Expanding . VList <$> extractCollection js "listVals"
@@ -104,7 +104,7 @@ extractImage js = case (js .> "imagePath") of
 
 extractObject :: JSON -> Maybe ExpandingValue
 extractObject js = case (js .> "objectType") of 
-  Just (JSONLeaf (SimpleValue (ValueS o))) -> case (read o :: Maybe ObjectType) of 
+  Just (JSONLeaf (SimpleValue (ValueS o))) -> case (readMaybe o :: Maybe ObjectType) of 
     Just otype -> case otype of 
       NPArray -> VNPArray <$> extractCollection js "arrayVals"
       NPMatrix -> (\(M mat) -> VNPMatrix mat) <$> extractCollection js "matrixVals"
@@ -133,13 +133,15 @@ json :: ASLanguage -> Parser JSON
 json lang = extractMap
   where
     braces      = between (char '{') (char '}')
-    leaf        = JSONLeaf <$> (try $ jsonValue lang)
-    tree        = JSONTree <$> (try $ json lang)
+    leaf        = JSONLeaf <$> jsonValue lang
+    tree        = JSONTree <$> json lang
     delimiter   = spaces >> (char ',') >> spaces
     pair        = do
+      spaces
       key  <- quotedString
       spaces >> char ':' >> spaces
-      field <- tree <|> leaf
+      field <- try tree <|> try leaf
+      spaces
       return (key, field)
     extractMap      = M.fromList <$> (braces $ sepBy pair delimiter)
 
@@ -151,8 +153,8 @@ jsonValue lang =
 -- this parser will only allow 1 and 2D lists
 list :: ASLanguage -> Parser Collection
 list lang = 
-      A <$> array (asValue lang)
-  <|> M <$> array (array $ asValue lang)
+      A <$> try (array $ asValue lang)
+  <|> M <$> try (array $ array $ asValue lang)
   where
     (start, end) = LD.listStops lang
     brackets     = between (string start) (string end)

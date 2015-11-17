@@ -55,7 +55,7 @@ writeTransaction conn (Transaction src@(sid, _) roots afterCells fatCells) =
 couple :: Connection -> RangeDescriptor -> IO ()
 couple conn desc = 
   let rangeKey       = DU.rangeDescriptorToKey desc 
-      rangeKey'      = B.pack rangeKey
+      rangeKey'      = id $! B.pack rangeKey 
       sheetRangesKey = DU.getSheetRangesKey $ DU.rangeKeyToSheetId rangeKey
       rangeValue     = B.pack $ show desc
   in runRedis conn $ do
