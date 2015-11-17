@@ -2,9 +2,10 @@
 
 export type ASExecError = {
   errMsg: string;
-// TODO
+// TODO: split into union
 };
 
 export type ASExcelExecError = {
-// TODO
+  tag: string;
+// TODO: split into union
 };

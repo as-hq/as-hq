@@ -53,7 +53,7 @@ let _data: {
   lastActiveFocus: ASFocusType;
   activeCell: ?ASCell;
   clipboard: {
-    area: ?NakedRange;
+    area: ?ASSelection;
     isCut: boolean;
   };
   externalError: ?string;
@@ -341,7 +341,7 @@ const ASEvaluationStore = Object.assign({}, BaseStore, {
   //   }
   // },
 
-  setExternalError(err) {
+  setExternalError(err: ?string) {
     _data.externalError = err;
   },
   getExternalError(){

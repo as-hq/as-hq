@@ -1,6 +1,23 @@
+/* @flow */
+
+import type {
+  ASValue,
+  ASSheet
+} from '../types/Eval';
+
+import type {
+  ASSelection,
+  ASClientLanguage,
+  ASClientExpression,
+  ASFocusType
+} from '../types/State';
+
+import type Textbox from './Textbox.jsx';
+
 import {logDebug} from '../AS/Logger';
 
 import React from 'react';
+import ReactDOM from 'react-dom';
 import ASCodeEditor from './ASCodeEditor.jsx';
 import ASSpreadsheet from './ASSpreadsheet.jsx';
 import Render from '../AS/Render';
@@ -36,6 +53,22 @@ import ASFindBar from './ASFindBar.jsx'
 import ASFindModal from './ASFindModal.jsx'
 import FindAction from '../actions/ASFindActionCreators';
 
+type ASEvalPaneState = {
+  defaultLanguage: ASClientLanguage;
+  currentLanguage: ASClientLanguage;
+  varName: string;
+  focus: ?ASFocusType;
+  toastMessage: ?string;
+  toastAction: ?string;
+  expression: string;
+  expressionWithoutLastRef: string;
+  evalHeaderOpen: boolean;
+  evalHeaderLanguage: ASClientLanguage;
+  showFindBar: boolean;
+  showFindModal: boolean;
+  testMode: boolean;
+};
+
 
 // REPL stuff is getting temporarily phased out in favor of an Eval Header file. (Alex 11/12)
 
@@ -46,7 +79,7 @@ export default React.createClass({
   // React methods
 
   /* React method for getting the initial state */
-  getInitialState() {
+  getInitialState(): ASEvalPaneState {
     return {
       defaultLanguage: Constants.Languages.Excel, // the language displayed on a blank cell
       currentLanguage: Constants.Languages.Excel, // the language currently displayed
@@ -54,13 +87,13 @@ export default React.createClass({
       focus: null,
       toastMessage: '',
       toastAction: '',
+      expression: '',
+      expressionWithoutLastRef: '',
       // replOpen: false,
       // replLanguage: Constants.Languages.Python,
       // replSubmittedLanguage: null,
-      evalHeaderOpen: false, 
+      evalHeaderOpen: false,
       evalHeaderLanguage: Constants.Languages.Python,
-      focusDx: null,
-      focusDy: null,
       showFindBar:false,
       showFindModal:false,
       testMode: false
@@ -97,47 +130,47 @@ export default React.createClass({
   /***************************************************************************************************************************/
   // Component getter methods
 
-  _getSpreadsheet() {
-    return React.findDOMNode(this.refs.spreadsheet.refs.hypergrid);
+  _getSpreadsheet(): HGElement {
+    return ReactDOM.findDOMNode(this.refs.spreadsheet.refs.hypergrid);
   },
 
-  _getRawEditor() {
+  _getRawEditor(): AERawClass {
     return this.refs.editorPane.refs.editor.getRawEditor();
   },
 
-  _getEditorComponent(){
+  _getEditorComponent(): ASCodeEditor {
     return this.refs.editorPane.refs.editor;
   },
 
-  _getDomEditor() {
-    return React.findDOMNode(this.refs.editorPane.refs.editor);
+  _getDomEditor(): AEElement {
+    return ReactDOM.findDOMNode(this.refs.editorPane.refs.editor);
   },
 
   // _getReplEditor() {
   //   return this.refs.repl.refs.editor.getRawEditor();
   // },
 
-  _getEvalHeaderEditor() { 
+  _getEvalHeaderEditor(): AERawClass {
     return this.refs.evalHeader.refs.editor.getRawEditor();
   },
 
-  _getTextbox(){
+  _getTextbox(): Textbox {
     return this.refs.spreadsheet.refs.textbox;
   },
 
-  _getRawTextbox() {
+  _getRawTextbox(): AERawClass {
     return this.refs.spreadsheet.refs.textbox.getRawEditor();
   },
 
   /***************************************************************************************************************************/
   // Some basic on change handlers
 
-  selectLanguage(lang) {
+  selectLanguage(lang: ASClientLanguage) {
     this.setState({ defaultLanguage: lang, currentLanguage: lang });
     this.setFocus(Store.getFocus());
   },
 
-   _onSetVarName(name) {
+  _onSetVarName(name: string) {
     logDebug('var name set to', name);
     this.setState({ varName: name });
     //TODO: set var name on backend
@@ -169,7 +202,7 @@ export default React.createClass({
 
     err = err || Store.getExternalError();
 
-    if (err && !Store.shouldSuppressErrors()) {
+    if (!!err && !Store.shouldSuppressErrors()) {
       this.setToast(err, "Error");
     }
 
@@ -190,7 +223,7 @@ export default React.createClass({
 
   _onEvalHeaderUpdate() {
     let msg = EvalHeaderStore.getDispMessage();
-    if (msg != "") { 
+    if (msg != "") {
       this.setToast(msg);
     }
     this._getEvalHeaderEditor().focus();
@@ -208,7 +241,7 @@ export default React.createClass({
   /**************************************************************************************************************************/
   // Error handling
 
-  getErrorMessage(cv) {
+  getErrorMessage(cv: ASValue): ?string {
     if (cv.tag === "ValueError") {
       return cv.errMsg;
     } else if (cv.tag === "ValueExcelError") {
@@ -224,7 +257,7 @@ export default React.createClass({
     }
   },
 
-  setToast(msg, action) {
+  setToast(msg: ?string, action?: string) {
     this.setState({toastMessage: msg, toastAction: action});
     this.refs.snackbarError.show();
   },
@@ -234,7 +267,7 @@ export default React.createClass({
     this.refs.snackbarError.dismiss();
   },
 
-  _handleToastTap(e) {
+  _handleToastTap(e: SyntheticTouchEvent) {
     // TODO
     return;
   },
@@ -242,7 +275,7 @@ export default React.createClass({
   /**************************************************************************************************************************/
   /* Copy paste handling */
 
-  handleCopyTypeEventForGrid(e,isCut) {
+  handleCopyTypeEventForGrid(e: SyntheticClipboardEvent, isCut?: boolean) {
     KeyUtils.killEvent(e);
     // For now, the killEvent doesn't kill fin-hypergrid's default copy handler, since
     // fin's hypergrid component is a child of ASEvaluationPane. If all this code
@@ -270,7 +303,7 @@ export default React.createClass({
     }
   },
 
-  handlePasteEventForGrid(e) {
+  handlePasteEventForGrid(e: SyntheticClipboardEvent) {
     // KeyUtils.killEvent(e);
     // THIS killEvent doesn't do anything either, and that's because fin-hypergrid doesn't
     // even seem to have paste implemented by default...?
@@ -295,10 +328,10 @@ export default React.createClass({
           {fromSheetId, fromRange} = ClipboardUtils.getAttrsFromHtmlString(e.clipboardData.getData("text/html")),
           toASRange = TC.simpleToASRange(sel.range);
 
-      // These lines are in principle redundant, but since browser clipboards aren't easily mocked, 
+      // These lines are in principle redundant, but since browser clipboards aren't easily mocked,
       // fromRange and fromSheetId are null in frontend tests. (Alex 11/15)
       fromRange   = fromRange   || clipboard.area.range;
-      fromSheetId = fromSheetId || Store.getCurrentSheet().sheetId; 
+      fromSheetId = fromSheetId || Store.getCurrentSheet().sheetId;
 
       let fromASRange = TC.simpleToASRange(fromRange, fromSheetId);
       if (fromRange) {
@@ -329,26 +362,25 @@ export default React.createClass({
 
   /* TODO: handle other copy/paste events; from editor and textbox */
 
-  handleCutEvent(e) {
-    if (this._isEventFromGrid(e)) {
+  handleCutEvent(e: SyntheticClipboardEvent) {
+    if (this._isGridActive()) {
       this.handleCopyTypeEventForGrid(e,true);
     }
   },
 
-  handleCopyEvent(e) {
-    logDebug("FUCKING COPY");
-    if (this._isEventFromGrid(e)) {
+  handleCopyEvent(e: SyntheticClipboardEvent) {
+    if (this._isGridActive()) {
       this.handleCopyTypeEventForGrid(e,false);
     }
   },
 
-  handlePasteEvent(e) {
-    if (this._isEventFromGrid(e)) {
+  handlePasteEvent(e: SyntheticClipboardEvent) {
+    if (this._isGridActive()) {
       this.handlePasteEventForGrid(e);
     }
   },
 
-  _isEventFromGrid(e) {
+  _isGridActive(): boolean {
     return (document.activeElement.tagName == "FIN-HYPERGRID");
   },
 
@@ -356,13 +388,13 @@ export default React.createClass({
   /**************************************************************************************************************************/
   /* Key handling */
 
-  _onEditorDeferredKey(e) {
+  _onEditorDeferredKey(e: SyntheticKeyboardEvent) {
     logDebug("Editor deferred key");
     ShortcutUtils.tryShortcut(e, 'common');
     ShortcutUtils.tryShortcut(e, 'editor');
   },
 
-  _onGridNavKeyDown(e) {
+  _onGridNavKeyDown(e: SyntheticKeyboardEvent) {
     // should only get called if left, right, down, or up was pressed
     logDebug("Eval pane has grid's nav key");
     let insert = ExpStore.gridCanInsertRef();
@@ -387,7 +419,7 @@ export default React.createClass({
 
   },
 
-  _onGridDeferredKey(e) {
+  _onGridDeferredKey(e: SyntheticKeyboardEvent) {
     logDebug('\n\n\nGRID DEFERRED KEY\n\n\n', e);
     if (KeyUtils.producesTextChange(e)) {
       let editor = this._getRawEditor(),
@@ -396,11 +428,9 @@ export default React.createClass({
           xpStr = this.state.userIsTyping ? str : newStr;
       logDebug("New grid string: " + xpStr);
       this.setState({
-            xpChangeDetail:this.xpChange.FROM_GRID,
-            expressionWithoutLastRef:xpStr,
-            expression:xpStr,
-          },function() {editor.navigateFileEnd();}
-      );
+        expressionWithoutLastRef: xpStr,
+        expression: xpStr,
+      }, () => { editor.navigateFileEnd(); });
     } else {
       logDebug("Grid key not visible");
       ShortcutUtils.tryShortcut(e, 'common');
@@ -408,7 +438,7 @@ export default React.createClass({
     }
   },
 
-  _onTextBoxDeferredKey(e) {
+  _onTextBoxDeferredKey(e: SyntheticKeyboardEvent) {
     logDebug("Textbox key not visible");
     ShortcutUtils.tryShortcut(e, 'common');
     ShortcutUtils.tryShortcut(e, 'textbox');
@@ -423,7 +453,7 @@ export default React.createClass({
   /**************************************************************************************************************************/
   // Deal with selection change from grid
 
-  _onSelectionChange(sel) {
+  _onSelectionChange(sel: ASSelection) {
     let {range, origin} = sel,
         userIsTyping = ExpStore.getUserIsTyping(),
         cell = Store.getCell(origin.col, origin.row);
@@ -513,7 +543,7 @@ export default React.createClass({
     1) Get the selected region from the ASSpreadsheet component
     2) Send this and the editor state (expression, language) to the API action creator, which will send it to the backend
   */
-  handleEvalRequest(xpObj, moveCol, moveRow) {
+  handleEvalRequest(xpObj: ASClientExpression, moveCol: ?number, moveRow: ?number) {
     logDebug("Handling EVAL request " + ExpStore.getExpression());
 
     this.refs.spreadsheet.refs.textbox.hideTextBox();
@@ -545,7 +575,7 @@ export default React.createClass({
     this.setState({defaultLanguage: xpObj.language});
   },
 
-  openSheet(sheet) {
+  openSheet(sheet: ASSheet) {
     Store.setCurrentSheet(sheet);
     this.refs.spreadsheet.initializeBlank();
     this.refs.spreadsheet.getInitialData();
@@ -581,10 +611,13 @@ export default React.createClass({
   //   return this._getReplEditor().getValue();
   // },
 
-  _evalHeaderValue() { 
+  _evalHeaderValue(): string {
     return this._getEvalHeaderEditor().getValue();
   },
 
+  _toggleRepl() {
+    logDebug('Not implemented.'); // TODO
+  },
   // /* Method for tucking in/out the REPL. */
   // _toggleRepl() {
   //   /* Save expression in store if repl is about to close */
@@ -596,7 +629,7 @@ export default React.createClass({
   //   this.setState({replOpen: !this.state.replOpen});
   // },
 
-  // ::ALEX:: 
+  // ::ALEX::
   _toggleEvalHeader() {
     /* Save expression in store if repl is about to close */
     if (this.state.evalHeaderOpen) {
@@ -623,8 +656,8 @@ export default React.createClass({
   //   this.setState({replLanguage:newLang});
   // },
 
-  _onEvalHeaderLanguageChange(e, index, menuItem) {
-    EvalHeaderActionCreator.storeEvalHeaderExpression(this.state.evalHeaderLanguage.Display, 
+  _onEvalHeaderLanguageChange(e, index: number, menuItem) {
+    EvalHeaderActionCreator.storeEvalHeaderExpression(this.state.evalHeaderLanguage.Display,
                                                       this._evalHeaderValue());
     let newLang = menuItem.payload;
     let newValue = EvalHeaderStore.getEvalHeaderExp(newLang.Display);
@@ -632,11 +665,11 @@ export default React.createClass({
     this.setState({evalHeaderLanguage: newLang});
   },
 
-  _onSubmitEvalHeader() { 
-    let lang       = this.state.evalHeaderLanguage.Display, 
-        expression = this._evalHeaderValue(); 
+  _onSubmitEvalHeader() {
+    let lang       = this.state.evalHeaderLanguage.Display,
+        expression = this._evalHeaderValue();
 
-    EvalHeaderStore.updateEvalHeaderExp(lang, expression); 
+    EvalHeaderStore.updateEvalHeaderExp(lang, expression);
     API.evaluateHeader(expression, lang);
   },
 
@@ -669,7 +702,7 @@ export default React.createClass({
   /**************************************************************************************************************************/
   // Render
 
-  getEditorHeight() { // for future use in resize events
+  getEditorHeight(): string { // for future use in resize events
     return Constants.editorHeight + "px";
   },
 
@@ -696,8 +729,6 @@ export default React.createClass({
           onEvalHeaderClick={this._toggleEvalHeader}
           onSubmitDebug={this._submitDebug}
           onSelectLanguage={this.selectLanguage}
-          onExpressionChange={this.setExpression}
-          setXpDetailFromEditor={this.setXpDetailFromEditor}
           onSetVarName={this._onSetVarName}
           onDeferredKey={this._onEditorDeferredKey}
           value={expression}
