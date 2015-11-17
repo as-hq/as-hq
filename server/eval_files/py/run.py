@@ -17,22 +17,8 @@ from AS.ui.plot import *
 from sys import exc_info
 from AS.iterable import ASIterable
 
+import json
 import matplotlib._pylab_helpers
-
-def arr(lst):
-	return ASIterable(lst)
-
-def hide(lst): 
-	return ASIterable(lst).hide()
-
-def uniqueId():
-	lstFiles = os.listdir(imagesPath)
-	pythonImageFiles = filter(lambda s: s.startswith(imagePrefix),lstFiles)
-	pythonNumbers = map(lambda s: int(s[len(imagePrefix):-4]),pythonImageFiles)
-	newNumber = 1
-	if len(pythonNumbers) > 0:
-		newNumber = max(pythonNumbers) + 1
-	return imagePrefix + str(newNumber) + ".png"
 
 result = "error"
 
@@ -44,7 +30,7 @@ result = "error"
 try:
 	execfile(replFile)
 	os.chdir(os.getcwd()+"/static")
-	result = 'test!'
+	result = 1+a
 	os.chdir('..')
 	figures=[manager.canvas.figure for manager in matplotlib._pylab_helpers.Gcf.get_all_fig_managers()]
 	if len(figures) > 0:
@@ -52,12 +38,11 @@ try:
 		filePath = imagesPath+uid
 		figures[-1].savefig(filePath)
 		matplotlib._pylab_helpers.Gcf.destroy_all()
-		result = {"imagePath":uid}
+		result = {'tag': 'Image', 'imagePath': uid}
+	result = serialize(result)
 except Exception as e:
 	os.chdir(curWd)
 	exc_type, exc_obj, exc_tb = exc_info()
-	fname = 'AlphaSheets Python evaluator'
 	err = repr(e).replace("\'","").replace("'",'"')
-	pos = exc_tb.tb_lineno - 20 # subtract template lines
-	errJson = {'errType': repr(exc_type), 'file': fname, 'position': pos, 'error': err}
-	result = errJson
+	errJson = {'tag': 'Error', 'errorType': repr(exc_type), 'errorMsg': err}
+	result = json.dumps(errJson)

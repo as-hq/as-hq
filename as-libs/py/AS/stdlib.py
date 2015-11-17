@@ -1,9 +1,22 @@
 import numpy as np
 import random
 from AS.iterable import ASIterable
+import json
 
 def arr(lst):
 	return ASIterable(lst)
+
+def hide(lst): 
+	return ASIterable(lst).hide()
+
+def uniqueId():
+	lstFiles = os.listdir(imagesPath)
+	pythonImageFiles = filter(lambda s: s.startswith(imagePrefix),lstFiles)
+	pythonNumbers = map(lambda s: int(s[len(imagePrefix):-4]),pythonImageFiles)
+	newNumber = 1
+	if len(pythonNumbers) > 0:
+		newNumber = max(pythonNumbers) + 1
+	return imagePrefix + str(newNumber) + ".png"
 
 def space(lst, sp):
 	lst2 = map((lambda x: prefixPush(x, ["" for _ in range(sp)])), lst)
@@ -43,11 +56,20 @@ def rand(m=1,n=1,upperbound=1):
 		return np.random_sample*random.randint(1,upperbound)
 	else: return ASIterable(np.random.rand(m,n)*random.randint(1,upperbound))
 
-def as_pprint(val):
-	if isinstance(val, np.ndarray):
-		return val.tolist()
-	else:
-		return val
+def serialize(val):
+	if isinstance(val, list):
+		return json.dumps({'tag': 'List', 'listVals': val})
+	elif isinstance(val, dict):
+		return json.dumps({'tag': 'Object', 'objectType': 'PDict', 'dict': val})
+	elif isinstance(val, np.ndarray):
+		return json.dumps({'tag': 'Object', 'objectType': 'NPArray', 'arrayVals': val.tolist()})
+	elif isinstance(val, np.matrixlib.defmatrix.matrix):
+		return json.dumps({'tag': 'Object', 'objectType': 'NPMatrix', 'matrixVals': val.tolist()})
+	else: return json.dumps(val)
+
+def deserialize(str):
+	# shit
+
 
 
 

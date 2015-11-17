@@ -92,6 +92,6 @@ pyfiString evalStr = catch (Right <$> execString) whenCaught
 
 pyString :: String
 pyString = [str|
-def export(x=1):
-    return repr(result)
+def export(x=None):
+    return result
 |]

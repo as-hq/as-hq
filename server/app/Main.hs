@@ -98,8 +98,10 @@ initApp = do
 -- | Initializes database with sheets, etc. for debugging mode. Only called if isDebug is true.
 initDebug :: R.Connection -> IO ()
 initDebug conn = do
-  let str = "{\"tag\" : \"Object\", \"objectType\": \"PSeries\", \"seriesVals\": [[1,2,3],[1]] }"
-  putStrLn $ show $ parse (PR.value Python) "" str
+  --let str = "{\"tag\" : \"Object\", \"objectType\": \"PSeries\", \"seriesVals\": [1,2,3] }"
+  --putStrLn $ show $ parse (PR.value Python) "" str
+  result <- runEitherT $ KP.evaluate "1+a" 
+  putStrLn $ show result
   return ()
 
 application :: MVar ServerState -> WS.ServerApp

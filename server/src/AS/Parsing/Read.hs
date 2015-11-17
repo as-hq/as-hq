@@ -31,8 +31,8 @@ parseValue lang = readOutput . (parse (value lang) "")
 
 value :: ASLanguage -> Parser CompositeValue
 value lang = 
-      (try $ extractComplex lang)
-  <|> CellValue <$> (try $ asValue lang)
+      CellValue <$> try (asValue lang)
+  <|> (try $ extractComplex lang)
 
 asValue :: ASLanguage -> Parser ASValue
 asValue lang =
@@ -120,6 +120,8 @@ extractObject js = case (js .> "objectType") of
           rdSeries coll = case coll of 
             (A series) -> series
             _ -> error "expected pandas series to be one-dimensional" 
+      _ -> Nothing
+    _ -> Nothing
   _ -> Nothing
 
 extractError :: JSON -> Maybe ASValue
