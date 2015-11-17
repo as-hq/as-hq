@@ -36,9 +36,7 @@ showPrimitive lang v = case v of
 
 showExpanding :: ASLanguage -> ExpandingValue -> String
 
-showExpanding lang (VList coll) = case coll of 
-  A arr -> list lang $ map (showPrimitive lang) arr
-  M mat -> list lang $ map ((showExpanding lang) . VList . A) mat
+showExpanding lang (VList coll) = wrapList lang $ showCollection lang coll
 
 showExpanding R (VRList pairs) = "list(" ++ (concat $ L.intersperse "," $ map showRPair pairs) ++ ")"
   where 
@@ -49,17 +47,39 @@ showExpanding R (VRList pairs) = "list(" ++ (concat $ L.intersperse "," $ map sh
 
 --showExpanding R (VRDataFrame )
 
+showExpanding Python (VNPArray coll) = "np.array(" ++ arrayVals ++ ")"
+  where arrayVals = showCollection Python coll
+
+showExpanding Python (VNPMatrix mat) = "np.matrix(" ++ matrixVals ++ ")"
+  where matrixVals = showCollection Python $ M mat
+
 -----------------------------------------------------------------------------------------------------------------------
 -- helpers
 
-list :: ASLanguage -> [String] -> String
-list lang xs = wrapL ++ start ++ (L.intercalate dlm xs) ++ end ++ wrapR
+showCollection :: ASLanguage -> Collection -> String
+showCollection lang coll = case coll of 
+  A arr -> list lang $ map (showPrimitive lang) arr
+  M mat -> list lang $ map (\row -> list lang $ map (showPrimitive lang) row) mat
+
+wrapList :: ASLanguage -> String -> String
+wrapList lang l = wrapL ++ l ++ wrapR
   where
-    (start, end)   = LD.listStops lang
-    dlm            = (LD.listDelimiter lang):[] 
     (wrapL, wrapR) = case lang of 
       Python -> ("arr(", ")")
       _ -> ("", "") 
+
+list :: ASLanguage -> [String] -> String
+list lang xs = start ++ (L.intercalate dlm xs) ++ end
+  where
+    (start, end)   = LD.listStops lang
+    dlm            = (LD.listDelimiter lang):[] 
+
+mkObject :: ObjectType -> [JSONPair] -> String
+mkObject otype pairs = "deserialize({\"tag\":\"Object\",\"objectType\":\"" ++ otype' ++ "\"," ++ pairs' ++ "})"
+  where
+    otype' = show otype
+    pairs' = L.intercalate "," $ map showPair pairs
+    showPair pair = (fst pair) ++ ":" ++ (snd pair)
 
 --object :: ASLanguage -> ASValue -> String
 --object lang (ValueObject otype olist oattrs) =

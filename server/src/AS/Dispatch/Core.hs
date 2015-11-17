@@ -64,10 +64,12 @@ runDispatchCycle state cs src = do
     initValuesMap  <- lift $ getValuesMap ancLocs
     printObjT "Created initial values map" initValuesMap
     printWithTimeT "Starting eval chain"
-    (afterCells, cellLists) <- evalChain conn initValuesMap cellsToEval src -- start with current cells, then go through descendants
+    (afterCells, fatCells) <- evalChain conn initValuesMap cellsToEval src -- start with current cells, then go through descendants
+    printObjT "Eval chain produced cells" afterCells
+    liftIO $ putStrLn $ "Eval chain produced fatcells" ++ (show fatCells)
     -- Apply endware
     finalizedCells <- lift $ EE.evalEndware state afterCells src roots
-    let transaction = Transaction src roots finalizedCells cellLists
+    let transaction = Transaction src roots finalizedCells fatCells
     broadcastCells <- DT.writeTransaction conn transaction -- atomically performs DB ops. (Sort of a lie -- writing to server is not atomic.)
     return broadcastCells
   runEitherT $ rollbackGraphIfError errOrCells
@@ -180,6 +182,7 @@ evalChain' conn valuesMap [] fatCells =
 
 evalChain' conn valuesMap (c@(Cell loc xp _ ts):cs) fatCells = do
   cv <- EC.evaluateLanguage (cellLocation c) (locSheetId loc) valuesMap xp
+  liftIO $ putStrLn $ "PYTHON EVAL GOT VALUE: " ++ (show cv) ++ " AT INDEX: " ++ (show loc)
   let maybeFatCell              = DE.decomposeCompositeValue c cv
       addCell (Cell l _ v _) mp = M.insert l (CellValue v) mp
       newValuesMap              = case maybeFatCell of

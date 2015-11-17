@@ -44,7 +44,7 @@ import Text.ParserCombinators.Parsec (parse)
 import AS.Parsing.Read as PR
 import AS.Parsing.Excel (refMatch, sheetWorkbookMatch, exRefToASRef, asRefToExRef)
 import AS.Types.Excel
-
+import AS.Dispatch.Core as DC
 
 -- EitherT
 import Control.Monad.Trans.Class
@@ -63,7 +63,7 @@ main = R.withEmbeddedR R.defaultConfig $ do
     putStrLn "STARTING APP"
     (conn, ports, states) <- initApp
     if isDebug -- set in Settings.hs
-      then initDebug conn
+      then initDebug conn (head states)
       else return ()
     putStrLn $ "server started on ports " ++ (show ports)
     mapM_ (\(port, state) -> WS.runServer S.wsAddress port $ application state) (zip ports states)
@@ -96,11 +96,16 @@ initApp = do
   return (conn, ports, states)
 
 -- | Initializes database with sheets, etc. for debugging mode. Only called if isDebug is true.
-initDebug :: R.Connection -> IO ()
-initDebug conn = do
+initDebug :: R.Connection -> MVar ServerState -> IO ()
+initDebug conn state = do
   --let str = "{\"tag\" : \"Object\", \"objectType\": \"PSeries\", \"seriesVals\": [1,2,3] }"
   --putStrLn $ show $ parse (PR.value Python) "" str
-  result <- runEitherT $ KP.evaluate "1+a" 
+  --result <- runEitherT $ KP.evaluate "1+a" 
+  --putStrLn $ show result
+  let sid = T.pack "sheetid"
+  let uid = T.pack "userid"
+  let str = "[1,2,3]"
+  result <- DC.runDispatchCycle state [Cell (Index sid (10,1)) (Expression str Python) NoValue []] (sid, uid)
   putStrLn $ show result
   return ()
 

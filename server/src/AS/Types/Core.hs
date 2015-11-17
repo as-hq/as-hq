@@ -138,7 +138,7 @@ data RangeDescriptor =
 -- range keys are used to access range descriptors, which relay metadata about a range of cells
 -- e.g. for embedded lists and objects
 type RangeKey = String
-data FatCell = FatCell { expandedCells :: [ASCell], headIndex :: ASIndex, descriptor :: RangeDescriptor }
+data FatCell = FatCell { expandedCells :: [ASCell], headIndex :: ASIndex, descriptor :: RangeDescriptor } deriving (Show, Read)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Parsing
@@ -150,6 +150,7 @@ type JSONKey = String
 data JSONField = JSONTree JSON | JSONLeaf JSONValue deriving (Show, Read)
 data JSONValue = ListValue Collection | SimpleValue ASValue deriving (Show, Read)
 
+type JSONPair = (String, String)
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Errors
 
