@@ -160,15 +160,16 @@ cToASCell str = do
 --getListType key = last parts
 --  where parts = splitBy keyPartDelimiter key
 
---getLocationsFromListKey :: ListKey -> [ASIndex]
---getLocationsFromListKey key = rangeToIndices range
---  where
---    (Index sid (col, row), (height, width)) = rangeKeyToDimensions key
---    range = Range sid ((col, row), (col+width-1, row+height-1))
+rangeKeyToIndices :: RangeKey -> [ASIndex]
+rangeKeyToIndices key = rangeToIndices range
+  where
+    (Index sid (col, row), (height, width)) = rangeKeyToDimensions key
+    range = Range sid ((col, row), (col+width-1, row+height-1))
 
 getFatCellIntersections :: Connection -> ASSheetId -> Either [ASIndex] [RangeKey] -> IO [RangeKey]
 getFatCellIntersections conn sid (Left locs) = do
   rangeKeys <- getRangeKeysInSheet conn sid
+  putStrLn $ "All range keys in sheet: " ++ (show rangeKeys)
   return $ filter keyIntersects rangeKeys
   where
     keyIntersects k             = anyLocsContainedInRect locs (rangeKeyToRect k)
@@ -177,7 +178,8 @@ getFatCellIntersections conn sid (Left locs) = do
 
 getFatCellIntersections conn sid (Right keys) = do
   rangeKeys <- getRangeKeysInSheet conn sid
-  return $ L.intersectBy keysIntersect keys rangeKeys
+  putStrLn $ "Checking intersections against keys: " ++ (show keys)
+  return $ L.intersectBy keysIntersect rangeKeys keys
     where keysIntersect k1 k2 = rectsIntersect (rangeKeyToRect k1) (rangeKeyToRect k2)
 
 rangeKeyToRect :: RangeKey -> Rect

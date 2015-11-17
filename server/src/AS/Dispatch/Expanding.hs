@@ -88,7 +88,7 @@ decomposeCells cType rangeKey (Cell (Index sheet (c,r)) (Expression str lang) _ 
 
 getDimensions :: Collection -> Dimensions
 getDimensions coll = case coll of 
-  A arr -> (length arr, 0)
+  A arr -> (length arr, 1)
   M mat -> (length mat, maximum $ map length mat) 
 
 ----------------------------------------------------------------------------------------------------------------------------------------------

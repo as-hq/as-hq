@@ -35,6 +35,7 @@ writeTransaction conn (Transaction src@(sid, _) roots afterCells fatCells) =
     rangeKeysChangedByCells <- liftIO $ DU.getFatCellIntersections conn sid (Left locs)
     rangeKeysChangedByFatCells <- liftIO $ DU.getFatCellIntersections conn sid (Right rangeKeys)
     let rangeKeysChanged = rangeKeysChangedByCells ++ rangeKeysChangedByFatCells
+    printWithTimeT $ "Range keys changed: " ++ (show rangeKeysChanged)
     -- decouple the intersected fat cells
     coupledCells <- lift $ concat <$> (mapM (decouple conn) rangeKeysChanged)
     let decoupledCells  = map DU.decoupleCell coupledCells
@@ -47,7 +48,7 @@ writeTransaction conn (Transaction src@(sid, _) roots afterCells fatCells) =
     liftIO $ mapM_ (couple conn . descriptor) fatCells
     liftIO $ addCommit conn (beforeCells', afterCells'') src
     liftIO $ printWithTime "added commits"
-    right afterCells'
+    right afterCells''
 
 ----------------------------------------------------------------------------------------------------------------------
 -- helpers
@@ -73,17 +74,10 @@ decouple conn key =
   let rangeKey = B.pack key
       sheetRangesKey = DU.getSheetRangesKey $ DU.rangeKeyToSheetId key
   in do
-    locKeys <- runRedis conn $ do
-      TxSuccess result <- multiExec $ do
-        result <- smembers rangeKey
-        del [rangeKey]
-        srem sheetRangesKey [rangeKey]
-        return result
-      return result
-    printWithTime $ "got coupled locs: " ++ (U.truncated $ show locKeys)
-    case locKeys of
-      [] -> return []
-      ls -> U.filterNothing <$> DU.getCellsByKeys ls
+    runRedis conn $ multiExec $ do
+      del [rangeKey]
+      srem sheetRangesKey [rangeKey]
+    U.filterNothing <$> DB.getCells (DU.rangeKeyToIndices key)
 
 --getFatCellsInRange :: Connection -> ASRange -> IO [RangeKey]
 --getFatCellsInRange conn rng = 

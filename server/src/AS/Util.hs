@@ -337,14 +337,14 @@ getUncoveredLocs sheet (tlo, bro) (tlw, brw) = [Range sheet corners | corners <-
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- metrics
+
 rectsIntersect :: Rect -> Rect -> Bool
 rectsIntersect ((y,x),(y2,x2)) ((y',x'),(y2',x2'))
-  | y2 > y' = False 
-  | y < y2' = False
+  | y2 < y' = False 
+  | y > y2' = False
   | x2 < x' = False 
   | x > x2' = False
   | otherwise = True 
-
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Cells
