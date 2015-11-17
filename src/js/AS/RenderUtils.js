@@ -45,5 +45,28 @@ export default {
         eY = (br.origin.y - oY) + br.extent.y;
 
     gc.rect(oX, oY, eX, eY);
+  },
+
+  wrapText(gc, text, x, y, maxWidth, lineHeight) {
+    let words = text.split(' ');
+    let line = '';
+    let height = 0; 
+    for(var n = 0; n < words.length; n++) {
+      let testLine = line + words[n] + ' ';
+      let testWidth = gc.measureText(testLine).width;
+      if (testWidth > maxWidth && n > 0) {
+        gc.fillText(line, x, y);
+        line = words[n] + ' ';
+        y += lineHeight;
+        height += lineHeight;
+      } else {
+        line = testLine;
+      }
+    }
+    gc.fillText(line, x, y);
+    return height;
   }
+
+
+
 }

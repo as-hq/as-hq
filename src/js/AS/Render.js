@@ -3,16 +3,16 @@ import RenderUtils from './RenderUtils';
 let _renderParams = {
   mode: null, // null mode indicates normal behavior; any other string indicates otherwise
   deps: [],
-  cellWidth: 100,
+  cellWidth: 100, // should be in Constants.js, but it makes things faster to put it here
   selection: null,
   selectionRect: null,
   mouseoverError: 5,
   dragRect: null,
   shouldRenderSquareBox: true,
-  boxWidth:6,
-  topLeftBox:null, // {x,y} for the location of the top left corner of blue box, in pixels
+  boxWidth: 6,
+  topLeftBox: null, // {x,y} for the location of the top left corner of blue box, in pixels
   dragCorner: null, // {x,y} coordinate of corner of blue box dragging (not in pixels, in cells),
-  draggedBoxSelection: null
+  draggedBoxSelection: null,
 };
 
 export default {
@@ -20,27 +20,27 @@ export default {
   /*************************************************************************************************************************/
   // Getter and setters for blue box
 
-  getTopLeftBox(){
+  getTopLeftBox() {
     return _renderParams.topLeftBox;
   },
 
-  getBoxWidth(){
+  getBoxWidth() {
     return _renderParams.boxWidth;
   },
 
-  setShouldRenderSquareBox(b){
+  setShouldRenderSquareBox(b) {
     _renderParams.shouldRenderSquareBox = b;
   },
 
-  setDragCorner(locObj){
+  setDragCorner(locObj) {
     _renderParams.dragCorner = locObj;
   },
 
-  getDragCorner(){
+  getDragCorner() {
     return _renderParams.dragCorner;
   },
 
-  getDottedSelection(){
+  getDottedSelection() {
     return _renderParams.draggedBoxSelection;
   },
 
@@ -82,6 +82,7 @@ export default {
                                                  this.withinSegment(pX, x+width, 0)));
   },
 
+  
   /*************************************************************************************************************************/
   // Renderers
 
@@ -102,7 +103,7 @@ export default {
           leftIcon = val[0];
           rightIcon = val[2];
           val = val[1];
-          if (typeof val === 'object') { // must be an image
+          if (typeof val === 'object') { // means that val must be an image
               centerIcon = val;
               val = null;
           }
@@ -133,9 +134,8 @@ export default {
 
       //we must set this in order to compute the minimum width
       //for column autosizing purposes
-      // this.config.minWidth = textWidth + (2 * colHEdgeOffset);
-      this.config.minWidth = 0;
-      // TODO: this.config.minWidth = _renderParams.cellWidth;
+      this.config.minWidth = textWidth + (2 * colHEdgeOffset);
+      // Hypergrid : this.config.minWidth = _renderParams.cellWidth;
 
       if (halign === 'right') {
           //textWidth = this.config.getTextWidth(gc, this.config.value);
@@ -162,8 +162,20 @@ export default {
           gc.fillStyle = theColor;
           gc.strokeStyle = theColor;
       }
+
       if (val !== null) {
-          gc.fillText(val, x + halignOffset, y + valignOffset);
+        if (config.wrap && false) {
+          // let h = RenderUtils.wrapText(gc, val, x + halignOffset, y + valignOffset, width, fontMetrics.height);
+          // let {origin} = _renderParams.selection,
+          //     grid = this.getGrid(),
+          //     fixedRowCount = grid.getFixedRowCount(),
+          //     scrollY = grid.getVScrollValue();
+          //     originY = origin.row + fixedRowCount - scrollY - 1;
+          // debugger;
+          // this.getBehavior().setRowHeight(origin.row, h);
+        } else {
+        gc.fillText(val, x + halignOffset, y + valignOffset);
+        }
       }
 
       if (isColumnHovered && isRowHovered) {
@@ -313,7 +325,7 @@ export default {
   },
 
   cornerBoxRenderer: function(gc) {
-    if (!_renderParams.shouldRenderSquareBox){
+    if (!_renderParams.shouldRenderSquareBox) {
       return; // no box should show on double click
     } else {
       let grid = this.getGrid(),
@@ -350,17 +362,17 @@ export default {
 
       // We also have a dotted rectangle, depending on horizontal/vertical position
       // There's a blue filled rectangle and a green dotted rectangle (which overlap, but seems OK)
-      if (_renderParams.dragCorner !== null){
+      if (_renderParams.dragCorner !== null) {
         let {dragX,dragY} = _renderParams.dragCorner,
             // drag accounts for scrolling already
             drag = this._getBoundsOfCell(dragX, dragY),
             xInBounds = dragX >= tlX-scrollX && dragX <= brX-scrollX,
             yInBounds = dragY >= tlY-scrollY && dragY <= brY-scrollY,
             width = null, height = null, dottedTlY = null, dottedTlX = null, dottedRange = null;
-        if (xInBounds){ // draw vertical dotted line
+        if (xInBounds) { // draw vertical dotted line
           width = br.origin.x + br.extent.x - tl.origin.x;
           dottedTlX = tl.origin.x;
-          if (dragY >= brY-scrollY){
+          if (dragY >= brY-scrollY) {
             dottedTlY = br.origin.y + br.extent.y;
             height =  drag.origin.y + drag.extent.y - dottedTlY;
             RenderUtils.drawDottedVertical(gc,dottedTlX,dottedTlY,width,height);
@@ -380,7 +392,7 @@ export default {
         } else if (yInBounds) { // draw horizontal dotted line
           dottedTlY = tl.origin.y,
           height = br.origin.y + br.extent.y - tl.origin.y;
-          if (dragX >= brX-scrollX){
+          if (dragX >= brX-scrollX) {
             dottedTlX = br.origin.x + br.extent.x;
             width = drag.origin.x + drag.extent.x - dottedTlX;
             RenderUtils.drawDottedHorizontal(gc,dottedTlX,dottedTlY,width,height);
@@ -388,7 +400,7 @@ export default {
               tl: {col:tlX,row:tlY},
               br: {col:dragX+scrollX,row:brY}
             };
-          } else if (dragX <= tlX-scrollX){
+          } else if (dragX <= tlX-scrollX) {
             dottedTlX = tl.origin.x;
             width = drag.origin.x - dottedTlX;
             RenderUtils.drawDottedHorizontal(gc,dottedTlX,dottedTlY,width,height);
@@ -400,7 +412,7 @@ export default {
         }
         _renderParams.draggedBoxSelection = {origin:origin,range:dottedRange};
       }
-      if (boxShouldBeVisible){
+      if (boxShouldBeVisible) {
         gc.beginPath();
         gc.rect(topLeftBoxX,topLeftBoxY,boxWidth,boxWidth);
         gc.fillStyle = '#0066ff';

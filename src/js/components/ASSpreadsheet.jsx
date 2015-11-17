@@ -3,6 +3,7 @@ import {logDebug} from '../AS/Logger';
 import _ from 'lodash';
 
 import React from 'react';
+let ReactDOM = require('react-dom');
 
 import ActionCreator from '../actions/ASSpreadsheetActionCreators';
 import ExpActionCreator from '../actions/ASExpActionCreators';
@@ -68,9 +69,11 @@ export default React.createClass({
     };
   },
 
+
   componentDidMount() {
     // Be able to respond to events from ExpStore
     ExpStore.addChangeListener(this._onExpressionChange);
+    this._getSheetDOMNode().addEventListener("rowResize",this.handleRowResize);
     // Hypergrid initialization
     document.addEventListener('polymer-ready', () => {
       this.props.onReady();
@@ -152,6 +155,13 @@ export default React.createClass({
   },
 
   /*************************************************************************************************************************/
+  // Handle resize events
+
+  handleRowResize(e) {
+    console.log(e);
+  },
+
+  /*************************************************************************************************************************/
   // Handle mouse events by overriding hypergrid default
 
   getCoordsFromMouseEvent(grid, evt) {
@@ -223,6 +233,10 @@ export default React.createClass({
     return this._getHypergrid().getBehavior();
   },
 
+  _getSheetDOMNode() {
+    return ReactDOM.findDOMNode(this.refs.sheet);
+  },
+
   getSelectionArea() {
     let hg = this._getHypergrid(),
         selection = hg.getSelectionModel().selections[0],
@@ -273,8 +287,7 @@ export default React.createClass({
       let {col, row} = Store.getActiveSelection().origin,
           point = finRect.point.create(col - scroll.x, row - scroll.y);
       return this._getHypergrid().getBoundsOfCell(point);
-    }
-    else {
+    } else {
       return null;
     }
   },
@@ -289,6 +302,13 @@ export default React.createClass({
         model = hg.getBehavior(),
         self = this;
     hg.addGlobalProperties(this.gridProperties);
+    model.setRowHeight = (rowNum, height) => {
+      var tableState = this.getState();
+      tableState.rowHeights[rowNum] = Math.max(5, height);
+      this.changed();
+      let rowResizeEvent = new CustomEvent("rowResize");
+      self._getSheetDOMNode().dispatchEvent(rowResizeEvent);
+    };
     model.getColumnCount = () => { return Constants.numCols; };
     model.getRowCount = () => { return Constants.numRows; };
     model.getValue = (x, y) => { return ''; };
@@ -382,7 +402,6 @@ export default React.createClass({
       self.mouseDownInBox = false;
     };
 
-    this.setCellRenderer();
     this.setRenderers();
     let ind = {row: 1, col: 1};
     // This will make the first selection have properties of a click
@@ -418,14 +437,15 @@ export default React.createClass({
 
       model.setValue(gridCol, gridRow, display.toString());
       let newOverlays = this.updateOverlays(c);
-      if (c.cellValue.tag === "ValueImage"){
+
+      if (c.cellValue.tag === "ValueImage") {
         let scroll = this.state.scroll,
             point = finRect.point.create(gridCol + 1 - scroll.x, gridRow + 1 - scroll.y),
             {x,y} = this._getHypergrid().getBoundsOfCell(point).origin;
-        let overlay = Util.getImageOverlay(c,x,y);
-        console.log("OVERLAY",overlay);
+        let overlay = Util.getImageOverlay(c, x, y);
+        console.log("OVERLAY", overlay);
         newOverlays.push(overlay);
-        this.setState({overlays:newOverlays});
+        this.setState({overlays: newOverlays});
       }
     });
 
@@ -456,6 +476,7 @@ export default React.createClass({
   setFocus() {
     this._getHypergrid().takeFocus();
   },
+
   // do not call before polymer is ready.
   select(unsafeSelection, shouldScroll) {
     logDebug("Spreadsheet select start");
@@ -634,8 +655,7 @@ export default React.createClass({
   onTextBoxDeferredKey(e){
     if (e.ctrlKey) { // only for ctrl+arrowkeys
       ShortcutUtils.tryShortcut('grid');
-    }
-    else {
+    } else {
       this.navByKey(e); // all others handled by grid
     }
   },
@@ -699,6 +719,7 @@ export default React.createClass({
   setCellRenderer() {
     let model = this._getBehavior(),
         cellProvider = model.getCellProvider(),
+        hg = this._getHypergrid(),
         self = this;
     cellProvider.getCell = function(config) {
       let renderer = Render.defaultCellRenderer,
@@ -709,7 +730,7 @@ export default React.createClass({
       // tag-based cell styling
       if (cell) {
         config = Util.valueToRenderConfig(config, cell.cellValue);
-        if (cell.cellTags.length > 0){
+        if (cell.cellTags.length > 0) {
           config = Util.tagsToRenderConfig(config, cell.cellTags);
         }
       } else {
@@ -722,6 +743,8 @@ export default React.createClass({
   },
 
   setRenderers() {
+    this.setCellRenderer();
+
     let renderer = this._getHypergrid().getRenderer();
     renderer.addExtraRenderer(Render.selectionRenderer);
     renderer.addExtraRenderer(Render.dependencyRenderer);
@@ -735,7 +758,7 @@ export default React.createClass({
 
   render() {
     let {behavior, width, height, language} = this.props; //should also have onReady
-    let style = {width: width, height: height,cursor:this.state.cursorStyle};
+    let style = {width: width, height: height, cursor: this.state.cursorStyle};
     let behaviorElement;
     let self = this;
     switch (behavior) {
@@ -749,7 +772,7 @@ export default React.createClass({
 
     return (
       // NOTE: the 50px is for the scrollbar to show up.
-      <div style={{width:"100%",
+      <div ref="sheet" style={{width:"100%",
                    height:"calc(100% - 50px)",
                    position:'relative',
                    cursor: this.state.cursorStyle}} >

@@ -105,7 +105,7 @@ export default {
         case "Align":
           config.halign = tag.contents.toLowerCase();
           break;
-        case "Format":
+        case "Format": // should be in showValue, not tagsToRenderConfig
           switch (tag.contents) {
             case "Money":
               config.value = self.formatMoney("$", config.value, 2);
