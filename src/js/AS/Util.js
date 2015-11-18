@@ -406,9 +406,8 @@ export default {
     let beforeRange = immWordRange.clone();
         beforeRange.start.column = Math.max(0, wordStart-1);
 
-    let rowLength = session.getRowLength(),
-        afterRange = immWordRange.clone();
-        afterRange.end.column = wordEnd + 1; 
+    let afterRange = immWordRange.clone();
+        afterRange.end.column = wordEnd + 1; // doesn't matter if wordEnd is too large
 
     if (wordStart > 0 && session.getTextRange(beforeRange)[0] == ':') { 
       wordStart = session.getWordRange(r, wordStart - 1).start.column; 
@@ -425,31 +424,43 @@ export default {
     return extRange; 
   },
 
-  toggleReferenceType(xp: string): ?string {
+  toggleReference(xp: string): ?string {
     // TODO generalize to arbitrary range lengths
     let deps = this.parseRefs(xp);
-    if (deps.length === 0)
+    if (deps.length === 0) {
       return null;
-    else if (deps.length === 1)
-      return this.toggleReferenceIndex(deps[0]);
-    else throw "Single word contains multiple references.";
+    } else if (deps.length > 1) {
+      debugger;
+      throw "Single word contains multiple references.";
+    }
+
+    return this._toggleReference(deps[0]);
   },
 
-  toggleReferenceIndex(ref: string): ?string {
+  _toggleReference(ref: string): ?string {
+    let refs = ref.split(':');
+    if (refs.length > 1) { 
+      return refs.map((r) => this._toggleReference(r)).join(':');
+    }
+
     let dollarIndices = this.getIndicesOf('$', ref),
         cleanRef = ref.replace(/\$/g, ''),
         row = cleanRef.split(/[A-Za-z]+/).pop(),
         col = cleanRef.substring(0, cleanRef.length - row.length);
     if (dollarIndices.length === 0) {
-      return '$' + col + '$' + row;
+      return '$' + col + (row ? '$' + row : ''); // A -> $A, not $A$
     } else if (dollarIndices.length === 1 ) {
-      if (dollarIndices[0] === 0)
+      if (dollarIndices[0] === 0) {
         return col + row;
-      else
+      }
+      else {
         return '$' + col + row;
+      }
     } else if (dollarIndices.length === 2) {
       return col + '$' + row;
-    } else return null;
+    } else { 
+      return null;
+    }
   },
 
   intToChar(i: number): string {
@@ -530,12 +541,17 @@ export default {
     } else {
       let regIdx      = /!?\$?[A-Za-z]+\$?[0-9]+/g, 
           regRng      = /!?\$?[A-Za-z]+\$?[0-9]+:\$?[A-Za-z]+\$?[0-9]+/g, 
+          regCols     = /!?\$?[A-Za-z]+(\$?[0-9]+)?:\$?[A-Za-z]+(\$?[0-9]+)?/g, //matches ranges too, but only checks after we remove all ranges (see str2)
           rngs        = str.match(regRng), 
-          idxStr      = str.replace(regRng, ""), 
-          idxs        = idxStr.match(regIdx), 
-          rngsOnSheet = rngs ? rngs.filter((s) => s[0] != '!') : [], 
-          idxsOnSheet = idxs ? idxs.filter((s) => s[0] != '!') : [], 
-          matches = rngsOnSheet.concat(idxsOnSheet);
+          str2        = str.replace(regRng, ""), 
+          cols        = str2.match(regCols),
+          str3        = str2.replace(regCols, ""), 
+          idxs        = str3.match(regIdx), 
+          firstNotExc = ((s) => s[0] != '!'),
+          rngsOnSheet = rngs ? rngs.filter(firstNotExc) : [], 
+          idxsOnSheet = idxs ? idxs.filter(firstNotExc) : [], 
+          colsOnSheet = cols ? cols.filter(firstNotExc) : [],
+          matches = rngsOnSheet.concat(idxsOnSheet).concat(colsOnSheet);
       return matches;
     }
   },
