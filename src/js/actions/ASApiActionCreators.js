@@ -42,6 +42,7 @@ import type {
 import type {
   ASSelection,
   ASViewingWindow,
+  ASClientWindow,
   ASClientExpression,
   ASClientLanguage
 } from '../types/State';
@@ -100,7 +101,7 @@ wss.onmessage = (event: MessageEvent) => {
       isRunningTest = false;
     }
   } else {
-    if (isRunningTest && (!uiTestMode || msg.action != 'UpdateWindow') && currentCbs) {
+    if (isRunningTest && (!uiTestMode || (msg.action != 'UpdateWindow' && msg.action != 'Open')) && currentCbs) {
       currentCbs.fulfill(msg);
       isRunningTest = false;
     }
@@ -121,19 +122,19 @@ wss.onmessage = (event: MessageEvent) => {
       case "Open":
         Dispatcher.dispatch({
           _type: 'GOT_OPEN',
-          expressions: ((msg: any): OpenResponse).payload.contents
+          expressions: msg.payload.contents
         });
         break;
       case "Undo":
         Dispatcher.dispatch({
           _type: 'GOT_UNDO',
-          commit: ((msg: any): UndoResponse).payload.contents
+          commit: msg.payload.contents
         });
         break;
       case "Redo":
         Dispatcher.dispatch({
           _type: 'GOT_REDO',
-          commit: ((msg: any): RedoResponse).payload.contents
+          commit: msg.payload.contents
         });
        break;
       case "Update":
@@ -152,14 +153,14 @@ wss.onmessage = (event: MessageEvent) => {
       case "Get":
         Dispatcher.dispatch({
           _type: 'FETCHED_CELLS',
-          newCells: ((msg: any): GetResponse).payload.contents
+          newCells: msg.payload.contents
         });
         break;
       //Functionally equivalent to "Get", but useful to be able to distinguish for tests
       case "UpdateWindow":
         Dispatcher.dispatch({
           _type: 'FETCHED_CELLS',
-          newCells: ((msg: any): UpdateWindowResponse).payload.contents
+          newCells: msg.payload.contents
         });
         break;
       case "Clear":
@@ -177,7 +178,7 @@ wss.onmessage = (event: MessageEvent) => {
       case "JumpSelect":
         Dispatcher.dispatch({
           _type: 'GOT_SELECTION',
-          newSelection: ((msg: any): JumpSelectResponse).payload
+          newSelection: msg.payload
         });
         break;
       case "Delete":
@@ -197,13 +198,13 @@ wss.onmessage = (event: MessageEvent) => {
       case "EvaluateRepl":
         Dispatcher.dispatch({
           _type: 'GOT_REPL_RESPONSE',
-          response: ((msg: any): EvaluateReplResponse).payload.contents
+          response: msg.payload.contents
         });
         break;
       case "EvaluateHeader":
         Dispatcher.dispatch({
           _type: 'GOT_EVAL_HEADER_RESPONSE',
-          response: ((((msg: any): EvaluateHeaderResponse).payload.contents: any): ASValue)
+          response: msg.payload.contents
         });
         break;
       case "Find":
@@ -552,7 +553,7 @@ export default {
     this.send(msg);
   },
 
-  updateViewingWindow(vWindow: ASViewingWindow) {
+  updateViewingWindow(vWindow: ASClientWindow) {
     let msg = TC.makeClientMessage(Constants.ServerActions.UpdateWindow,
       "PayloadW",
       vWindow);

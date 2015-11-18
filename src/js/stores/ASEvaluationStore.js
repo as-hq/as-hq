@@ -1,10 +1,30 @@
+/* @flow */
+
+import type {
+  NakedIndex,
+  NakedRange,
+  ASIndex,
+  ASRange,
+  ASSheet,
+  ASCell
+} from '../types/Eval';
+
+import type {
+  ASSelection,
+  ASCellStore,
+  ASFocusType
+} from '../types/State';
+
+import type {
+  ASUserId
+} from '../types/User';
+
 import {logDebug} from '../AS/Logger';
 
 import Dispatcher from '../Dispatcher';
 import Constants from '../Constants';
 import BaseStore from './BaseStore';
 import ReplStore from  './ASReplStore';
-import assign from 'object-assign';
 import API from '../actions/ASApiActionCreators';
 import Util from '../AS/Util';
 import T from '../AS/Types';
@@ -19,7 +39,26 @@ Private variable keeping track of a viewing window (cached) of cells. Stores:
   4) Scroll position
 */
 
-let _data = {
+let _data: {
+  userId: ASUserId;
+  allCells: ASCellStore;
+  lastUpdatedCells: Array<ASCell>;
+  suppressErrors: boolean;
+  xscroll: number;
+  yscroll: number;
+  openSheets: Array<ASSheet>;
+  currentSheet: ASSheet;
+  activeSelection: ?ASSelection;
+  activeFocus: ASFocusType;
+  lastActiveFocus: ASFocusType;
+  activeCell: ?ASCell;
+  clipboard: {
+    area: ?ASSelection;
+    isCut: boolean;
+  };
+  externalError: ?string;
+  viewingWindow: { range: NakedRange };
+} = {
   userId: "TEST_USER_ID",
   allCells: {},
   lastUpdatedCells: [],
@@ -28,6 +67,7 @@ let _data = {
   yscroll: 0,
   openSheets: [],
   currentSheet: {
+    tag: 'Sheet',
     sheetId: "INIT_SHEET_ID",
     sheetName: "Sheet1",
     sheetPermissions: {
@@ -38,10 +78,9 @@ let _data = {
   activeSelection: null,
   activeFocus: 'grid',
   lastActiveFocus: 'textbox',
-  partialSelections: [],
   activeCell: null,
   clipboard: {
-    range: null,
+    area: null,
     isCut: false
   },
   externalError: null,
@@ -53,38 +92,38 @@ let _data = {
   }
 };
 
-const ASEvaluationStore = assign({}, BaseStore, {
+const ASEvaluationStore = Object.assign({}, BaseStore, {
 
   /* This function describes the actions of the ASEvaluationStore upon recieving a message from Dispatcher */
-  dispatcherIndex: Dispatcher.register(function (action) {
+  dispatcherIndex: Dispatcher.register((action) => {
     logDebug('Store received action', action);
 
       switch (action._type) {
-        case Constants.ActionTypes.FIND_INCREMENTED:
+        case 'FIND_INCREMENTED':
           break;
-        case Constants.ActionTypes.FIND_DECREMENTED:
+        case 'FIND_DECREMENTED':
           break;
-        case Constants.ActionTypes.GOT_FIND:
+        case 'GOT_FIND':
           // do nothing here on find; that's in the find store
           break;
         /*
           On an UNDO/REDO/UPDATE_CELLS, update the viewing window in the store based on the commit and
           send a change event to spreadsheet, which will rerender
         */
-        case Constants.ActionTypes.GOT_UNDO:
+        case 'GOT_UNDO':
           logDebug("action undo");
           _data.lastUpdatedCells = [];
           ASEvaluationStore.removeCells(action.commit.after);
           ASEvaluationStore.updateCells(action.commit.before);
           ASEvaluationStore.emitChange();
           break;
-        case Constants.ActionTypes.GOT_REDO:
+        case 'GOT_REDO':
           _data.lastUpdatedCells = [];
           ASEvaluationStore.removeCells(action.commit.before);
           ASEvaluationStore.updateCells(action.commit.after);
           ASEvaluationStore.emitChange();
           break;
-        case Constants.ActionTypes.GOT_UPDATED_CELLS:
+        case 'GOT_UPDATED_CELLS':
           _data.lastUpdatedCells = [];
           ASEvaluationStore.updateCells(action.updatedCells);
           // logDebug("Last updated cells: " + JSON.stringify(_data.lastUpdatedCells));
@@ -94,7 +133,7 @@ const ASEvaluationStore = assign({}, BaseStore, {
           This action is sent to Dispatcher by the ASSpreadsheet action creator on a scroll event
           It gets previous scroll state from the store and then uses the API to send a "get cells" message to server
         */
-        case Constants.ActionTypes.SCROLLED:
+        case 'SCROLLED':
           let extendedRange = Util.extendRangeByCache(action.vWindow.range),
               extendedWindow = TC.rangeToASWindow(extendedRange);
           _data.viewingWindow = action.vWindow;
@@ -105,7 +144,7 @@ const ASEvaluationStore = assign({}, BaseStore, {
           We now need to update the store based on these new values
           Called from Dispatcher, fired by API response from server
         */
-        case Constants.ActionTypes.FETCHED_CELLS:
+        case 'FETCHED_CELLS':
           _data.lastUpdatedCells = [];
           _data.suppressErrors = true; // don't show errors when fetching cells. will get set to false at end of emitChange()
           ASEvaluationStore.updateCells(action.newCells);
@@ -117,15 +156,15 @@ const ASEvaluationStore = assign({}, BaseStore, {
           Need to delete the store
           Called from Dispatcher, fired by API response from server
         */
-        case Constants.ActionTypes.CLEARED:
+        case 'CLEARED':
           _data.lastUpdatedCells = [];
           let cellsToRemove = [];
           for (var s in _data.allCells){
-            for (var c in _data.allCells[s]){
-              for (var r in _data.allCells[s][c]){
-                cellsToRemove.push(_data.allCells[s][c][r]);
-              }
-            }
+            _data.allCells[s].forEach((colArray) => {
+              colArray.forEach((cell) => {
+                cellsToRemove.push(cell);
+              });
+            });
           }
 
           // remove possibly null cells
@@ -137,49 +176,43 @@ const ASEvaluationStore = assign({}, BaseStore, {
           ASEvaluationStore.emitChange();
           break;
 
-        case Constants.ActionTypes.CLEARED_SHEET:
+        case 'CLEARED_SHEET':
           _data.lastUpdatedCells = [];
           let cr = [];
-          for (var c in _data.allCells[action.sheetId]){
-            for (var r in _data.allCells[action.sheetId][c]){
-              cr.push(_data.allCells[action.sheetId][c][r]);
-            }
-          }
+          _data.allCells[action.sheetId].forEach((colArray) => {
+            colArray.forEach((cell) => {
+              cr.push(cell);
+            });
+          });
 
           // remove possibly null cells
           cr = cr.filter((cell) => !!cell);
 
           ASEvaluationStore.removeCells(cr);
-          _data.allCells[action.sheetId] = {};
+          _data.allCells[action.sheetId] = [];
           // logDebug("Last updated cells: " + JSON.stringify(_data.lastUpdatedCells));
           ASEvaluationStore.emitChange();
           break;
 
-        case Constants.ActionTypes.GOT_SELECTION:
+        case 'GOT_SELECTION':
           ASEvaluationStore.setActiveSelection(TC.asSelectionToSimple(action.newSelection), "");
           ASEvaluationStore.emitChange();
           break;
-        case Constants.ActionTypes.DELETED_LOCS:
+        case 'DELETED_LOCS':
           _data.lastUpdatedCells = [];
           let locs = TC.rangeToASIndices(action.deletedRange.range);
           ASEvaluationStore.removeIndices(locs);
           ASEvaluationStore.updateCells(action.updatedCells);
           ASEvaluationStore.emitChange();
           break;
-        case Constants.ActionTypes.GOT_FAILURE:
+        case 'GOT_FAILURE':
           ASEvaluationStore.setExternalError(action.errorMsg);
           if (action.action === "EvaluateRepl"){
             ReplStore.advanceLine();
           }
           ASEvaluationStore.emitChange();
           break;
-        case Constants.ActionTypes.RECEIEVED_SHEET:
-          // TODO
-          break;
-        case Constants.ActionTypes.RECEIVED_WORKBOOK:
-          // TODO
-          break;
-        }
+      }
     }),
 
   /**************************************************************************************************************************/
@@ -197,10 +230,15 @@ const ASEvaluationStore = assign({}, BaseStore, {
     _data.currentSheet = sht;
   },
   setCurrentSheetById(sheetId) {
-    _data.currentSheet = {sheetId: sheetId, sheetName: "", sheetPermissions: {
-      tag: 'Blacklist',
-      contents: []
-    }};
+    _data.currentSheet = {
+      tag: 'Sheet',
+      sheetId: sheetId,
+      sheetName: "",
+      sheetPermissions: {
+        tag: 'Blacklist',
+        contents: []
+      }
+    };
   },
 
   setActiveSelection(sel, xp) {
@@ -218,14 +256,17 @@ const ASEvaluationStore = assign({}, BaseStore, {
     this.setActiveCellDependencies(activeCellDependencies);
   },
 
-  getParentList(c,r){
-    let thisExists = this.locationExists(c, r),
-        ctags = thisExists ? this.getCell(c,r).cellTags : null;
-    if (thisExists && ctags) {
-      for (var i = 0; i < ctags.length; ++i) {
-        if (ctags[i].hasOwnProperty('listKey')){
-          let listHead = Util.listKeyToListHead(ctags[i].listKey),
-              listDimensions = Util.listKeyToListDimensions(ctags[i].listKey);
+  getParentList(c, r){
+    let cell = this.getCell(c, r);
+    if (cell) {
+      let ctags = cell.cellTags;
+      if (ctags) {
+        let listKeyTag =
+          ctags.filter((ctag) => ctag.hasOwnProperty('listKey'))[0];
+        if (listKeyTag && listKeyTag.listKey) { // listKey flow hack
+          let {listKey} = listKeyTag;
+          let listHead = Util.listKeyToListHead(listKey);
+          let listDimensions = Util.listKeyToListDimensions(listKey);
           return {
             tl: {row: listHead.snd,
                  col: listHead.fst} ,
@@ -234,8 +275,9 @@ const ASEvaluationStore = assign({}, BaseStore, {
           }
         }
       }
-      return null;
-    } else return null;
+    }
+
+    return null;
   },
 
 
@@ -247,7 +289,11 @@ const ASEvaluationStore = assign({}, BaseStore, {
     return _data.activeCell;
   },
   getActiveCellDependencies() {
-    return(_data.activeCell.cellExpression.dependencies);
+    if (_data.activeCell) {
+      return (_data.activeCell.cellExpression.dependencies);
+    } else {
+      return null;
+    }
   },
   setClipboard(rng, isCut) {
     _data.clipboard.area = rng;
@@ -295,7 +341,7 @@ const ASEvaluationStore = assign({}, BaseStore, {
   //   }
   // },
 
-  setExternalError(err) {
+  setExternalError(err: ?string) {
     _data.externalError = err;
   },
   getExternalError(){
@@ -368,18 +414,18 @@ const ASEvaluationStore = assign({}, BaseStore, {
   },
 
   // Replace cells with empty ones
-  removeCells(cells) {
-    for (var key in cells) {
-      this.removeIndex(cells[key].cellLocation);
-    }
+  removeCells(cells: Array<ASCell>) {
+    cells.forEach((cell) => {
+      this.removeIndex(cell.cellLocation);
+    });
   },
 
   // Remove a cell at an ASIndex
-  removeIndex(loc) {
+  removeIndex(loc: ASIndex) {
     let sheetId = loc.sheetId,
         emptyCell = TC.makeEmptyCell(loc);
     if (this.locationExists(loc.index.col, loc.index.row, sheetId)) {
-      _data.allCells[sheetId][loc.index.col][loc.index.row] = null;
+      delete _data.allCells[sheetId][loc.index.col][loc.index.row];
     }
 
     _data.lastUpdatedCells.push(emptyCell);
@@ -395,14 +441,20 @@ const ASEvaluationStore = assign({}, BaseStore, {
   },
 
   setActiveCellDependencies(deps) {
-    _data.activeCell.cellExpression.dependencies = deps;
+    let cell = _data.activeCell;
+    if (!cell || !cell.cellExpression) {
+      return;
+    }
+    cell.cellExpression.dependencies = deps;
     Render.setDependencies(deps);
   },
 
 // @optional mySheetId
   locationExists(col, row, mySheetId) {
     let sheetId = mySheetId || _data.currentSheet.sheetId;
-    return !!(_data.allCells[sheetId] && _data.allCells[sheetId][col] && _data.allCells[sheetId][col][row]);
+    return !!(_data.allCells[sheetId]
+      && _data.allCells[sheetId][col]
+      && _data.allCells[sheetId][col][row]);
   },
 
   /**************************************************************************************************************************/
@@ -454,7 +506,6 @@ const ASEvaluationStore = assign({}, BaseStore, {
       case "Left": dc = -1; break;
       case "Down": dr = 1; break;
       case "Up": dr = -1; break;
-      default: throw "Invalid direction passed in to getDataBoundary()"; break;
     }
 
     let c = start.col, r = start.row;

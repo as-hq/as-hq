@@ -1,9 +1,11 @@
 /* @flow */
 
 export type ASExecError = {
-// TODO
+  errMsg: string;
+// TODO: split into union
 };
 
 export type ASExcelExecError = {
-// TODO
+  tag: string;
+// TODO: split into union
 };

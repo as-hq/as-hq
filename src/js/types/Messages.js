@@ -387,24 +387,6 @@ export type FindResponse = {
   result: ASBackendResult;
 };
 
-/*
-TODO: activate this definition when we have proper union types in flow. (#582)
-
-export type ASServerMessage =
-  NoActionResponse
-  | NewResponse
-  | UndoResponse
-  | RedoResponse
-  | UpdateResponse
-  | GetResponse
-  | UpdateWindowResponse
-  | ClearResponse
-  | JumpSelectResponse
-  | DeleteResponse
-  | EvaluateReplResponse
-  | FindResponse;
-*/
-
 export type ASClientWindow = {
   window: NakedRange;
   sheetId: string;
@@ -415,11 +397,21 @@ export type ASClientMessage = {
   payload: ASBackendPayload;
 };
 
-export type ASServerMessage = {
-  action: ASMessageAction;
-  payload: ASBackendPayload;
-  result: ASBackendResult;
-};
+export type ASServerMessage =
+  NoActionResponse
+  | NewResponse
+  | OpenResponse
+  | UndoResponse
+  | RedoResponse
+  | UpdateResponse
+  | GetResponse
+  | UpdateWindowResponse
+  | ClearResponse
+  | JumpSelectResponse
+  | DeleteResponse
+  | EvaluateReplResponse
+  | EvaluateHeaderResponse
+  | FindResponse;
 
 export type ASAPICallbackPair = {
   fulfill: (msg: ?ASServerMessage) => void;

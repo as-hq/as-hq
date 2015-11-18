@@ -70,7 +70,7 @@ export default {
     };
   },
 
-  makeEmptyCell(asIndex: ASIndex): ASCell {
+  makeEmptyCell(asIndex?: ASIndex): ASCell {
     let cl = asIndex || {tag:"index",
               sheetId: "TEST_SHEET_ID",
               index:{row: -1, col:-1}},
