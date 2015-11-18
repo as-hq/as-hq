@@ -323,8 +323,8 @@ export default React.createClass({
 
   draggingCol: false,
   draggingRow: false,
-  clickedColNum: null,
-  clickedRowNum: null,
+  clickedColNum: (null: ?number),
+  clickedRowNum: (null: ?number),
 
   /* Initial a sheet with blank entries */
   initialize() {
@@ -339,7 +339,7 @@ export default React.createClass({
     model.setRowHeight = (rowNum, height) => {
       var tableState = this.getState();
       tableState.rowHeights[rowNum] = Math.max(5, height);
-      this.changed();
+      model.changed();
       let rowResizeEvent = new CustomEvent("rowResize");
       self._getSheetDOMNode().dispatchEvent(rowResizeEvent);
     };
@@ -451,11 +451,15 @@ export default React.createClass({
         // Clean up dragging a column, and send an API message to backend to swap data
         if (self.draggingCol) {
           self.draggingCol = false;
-          API.dragCol(self.clickedColNum,evt.gridCell.x);
+          if (self.clickedColNum !== null) {
+            API.dragCol(self.clickedColNum,evt.gridCell.x);
+          }
           self.clickedColNum = null; 
         } else if (self.draggingRow) {
           self.draggingRow = false;
-          API.dragRow(self.clickedRowNum,evt.gridCell.y);
+          if (self.clickedRowNum !== null) {
+            API.dragRow(self.clickedRowNum,evt.gridCell.y);
+          }
           self.clickedRowNum = null;
         }
       }
