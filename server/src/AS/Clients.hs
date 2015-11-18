@@ -646,19 +646,19 @@ cellLocMap (DeleteRow r') i@(Index sid (c, r))
   | r == r'  = Nothing
   | r > r'   = Just $ Index sid (c, r-1)
   | r < r'   = Just i
-cellLocMap (DragCol oldC newC) i@(Index sid (c, r))
-  | c < oldC     = Just i
-  | c > newC     = Just i
-  | c == oldC    = Just $ Index sid (newC, r) 
-  | oldC < newC  = Just $ Index sid (c-1, r) -- here on we assume c is strictly between oldC and newC
-  | oldC > newC  = Just $ Index sid (c+1, r)
+cellLocMap (DragCol oldC newC) i@(Index sid (c, r)) -- DragCol 3 1 : (123) -> (312)
+  | c < min oldC newC = Just i
+  | c > max oldC newC = Just i
+  | c == oldC         = Just $ Index sid (newC, r) 
+  | oldC < newC       = Just $ Index sid (c-1, r) -- here on we assume c is strictly between oldC and newC
+  | oldC > newC       = Just $ Index sid (c+1, r)
   -- case oldC == newC can't happen because oldC < c < newC since third pattern-match
 cellLocMap (DragRow oldR newR) i@(Index sid (c, r))
-  | r < oldR     = Just i
-  | r > newR     = Just i
-  | r == oldR    = Just $ Index sid (c, newR)
-  | oldR < newR  = Just $ Index sid (c, r-1) -- here on we assume c is strictly between oldR and newR
-  | oldR > newR  = Just $ Index sid (c, r+1)
+  | r < min oldR newR = Just i
+  | r > max oldR newR = Just i
+  | r == oldR         = Just $ Index sid (c, newR)
+  | oldR < newR       = Just $ Index sid (c, r-1) -- here on we assume c is strictly between oldR and newR
+  | oldR > newR       = Just $ Index sid (c, r+1)
   -- case oldR == newR can't happen because oldR < r < newR since third pattern-match
 
 refMap :: MutateType -> (ExRef -> ExRef)
