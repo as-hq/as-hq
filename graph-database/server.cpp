@@ -39,9 +39,10 @@ vector<string> processRequest(DAG& dag, string& request){
         return dag.getImmediateAncestors(requestParts);
     else if (type == "SetRelations"){
         dag.clearPrevCache(); 
-
         dag.showGraph("BEFORE SETRELATIONS"); 
+
         int i = 0; 
+        vector<DAG::Vertex> toLocs;  
         while (i < requestParts.size()) {
             // cout << "processing request part: " << requestParts[i] << endl;
             // split the relation
@@ -55,9 +56,14 @@ vector<string> processRequest(DAG& dag, string& request){
 
             // set the relation
             dag.updateDAG(toLoc, fromLocs);
-            if (dag.containsCycle(toLoc))
-                return {toLoc, "CIRC_DEP"};
+            toLocs.push_back(toLoc);
             i++;
+        }
+
+        for (const auto& tl : toLocs) { 
+            if (dag.containsCycle(tl)) {
+                return {tl, "CIRC_DEP"};
+            }
         }
 
         dag.showGraph("AFTER SETRELATIONS"); 
