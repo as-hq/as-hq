@@ -92,6 +92,7 @@ xpLanguage (Coupled _ lang _ _) = lang
 
 data ASValue =
     NoValue
+  | ValueNaN  
   | ValueS String
   | ValueI Int
   | ValueD Double

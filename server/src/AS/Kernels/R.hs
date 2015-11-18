@@ -100,7 +100,7 @@ castSEXP x = case x of
   (hexp -> H.Nil)       -> return $ CellValue NoValue
   (hexp -> H.Real v)    -> return . rdVector $ map fromReal $ SV.toList v
   (hexp -> H.Int v)     -> return . rdVector $ map (ValueI . fromIntegral) $ SV.toList v
-  (hexp -> H.Logical v) -> return . rdVector $ map (ValueB . fromLogical) $ SV.toList v
+  (hexp -> H.Logical v) -> return . rdVector $ map fromLogical $ SV.toList v
   (hexp -> H.Char v)    -> return $ CellValue (castString v)
   (hexp -> H.String v)  -> return . rdVector $ map (\(hexp -> H.Char c) -> castString c) $ SV.toList v
   (hexp -> H.Symbol s s' s'')  -> castSEXP s
@@ -175,10 +175,10 @@ castListNames val = case val of
 castS4 :: R.SEXP s a -> R s ASValue
 castS4 s = return $ ValueError "S4 objects not currently supported." "R Error"
 
-fromLogical :: R.Logical -> Bool
-fromLogical R.TRUE  = True
-fromLogical R.FALSE = False
-fromLogical R.NA    = False
+fromLogical :: R.Logical -> ASValue
+fromLogical R.TRUE  = ValueB True
+fromLogical R.FALSE = ValueB False
+fromLogical R.NA    = ValueNaN
 
 fromReal :: Double -> ASValue
 fromReal d = case (fromDouble d) of

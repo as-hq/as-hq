@@ -36,6 +36,11 @@ null lang = case lang of
   SQL -> "None"
   _ -> error $ "null value not found for " ++ (show lang)
 
+nan :: ASLanguage -> String
+nan lang = case lang of 
+  Python -> "NaN"
+  _ -> error $ "nan value not found for " ++ (show lang)
+
 bool :: ASLanguage -> Bool -> String
 bool lang val = case val of 
   True -> case lang of 

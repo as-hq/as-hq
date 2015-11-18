@@ -41,6 +41,7 @@ asValue lang =
   <|> try (ValueB <$> bool lang)
   <|> try (ValueS <$> quotedString)
   <|> try (nullValue lang)
+  <|> try (nanValue lang)
 
 -----------------------------------------------------------------------------------------------------------------------
 -- primitive parsers
@@ -62,6 +63,11 @@ nullValue lang = case lang of
   Python -> string (LD.null Python) >> return NoValue
   R      -> string (LD.null R) >> return NoValue
   _      -> fail $ "No nullValue in " ++ (show lang)
+
+nanValue :: ASLanguage -> Parser ASValue
+nanValue lang = case lang of 
+  Python -> string (LD.nan Python) >> return ValueNaN
+  _      -> fail $ "No NaN value in " ++ (show lang)
 
 lexer = P.makeTokenParser Lang.haskellDef
 
