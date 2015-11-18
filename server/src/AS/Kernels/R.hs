@@ -80,7 +80,8 @@ execOnString str f = do
 -- change wd and then change back so that things like read.table will read from the static folder
 execR :: Bool -> EvalCode -> IO ASValue
 execR isGlobal s =
-  let whenCaught = (\e -> return $ ValueError (show e) "R_EXEC_ERROR" "" 0) :: (SomeException -> IO ASValue)
+  let whenCaught :: SomeException -> IO ASValue
+      whenCaught e = (R.runRegion $ castR =<< [r| setwd("../") |]) >> (return (ValueError (show e) "R_EXEC_ERROR" "" 0))
   in do
     result <- catch (R.runRegion $ castR =<< if isGlobal
       then [r| eval(parse(text=s_hs)) |]
