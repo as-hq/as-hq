@@ -23,12 +23,12 @@ import type {
 
 import type {
   CellBorder,
-  RendererConfig,
   ASOverlaySpec
 } from '../types/Hypergrid';
 
 import type {
   ASClientLanguage,
+  ASViewingWindow,
   ASSelection
 } from '../types/State';
 
@@ -73,7 +73,7 @@ export default {
 // Cell rendering
 
   /* Used to know what to display on the sheet */
-  showValue(cv: ASValue, isRepl: boolean): (string|number) {
+  showValue(cv: ASValue, isRepl: boolean = false): (string|number) {
     // logDebug("In show value: " + JSON.stringify(cv));
     let self = this;
     switch (cv.tag) {
@@ -121,7 +121,7 @@ export default {
     return JSON.stringify(cv.contents.map(this.showValue));
   },
 
-  tagsToRenderConfig(config: RendererConfig, tags: Array<ASCellTag>): RendererConfig {
+  tagsToRenderConfig(config: HGRendererConfig, tags: Array<ASCellTag>): HGRendererConfig {
     let self = this;
     for (var i=0; i<tags.length; i++) {
       let tag = tags[i];
@@ -170,7 +170,7 @@ export default {
     return config;
   },
 
-  valueToRenderConfig(config: RendererConfig, val: ASValue): RendererConfig {
+  valueToRenderConfig(config: HGRendererConfig, val: ASValue): HGRendererConfig {
     switch(val.tag) {
       case "ValueI":
       case "ValueD":
@@ -261,6 +261,10 @@ export default {
         rowE = c1.index.row === c2.index.row,
         sheetE = c1.sheetId === c2.sheetId
     return tagE && colE && rowE && sheetE;
+  },
+
+  simpleIndexEquals(c1: NakedIndex, c2: NakedIndex): boolean {
+    return (c1.row === c2.row) && (c1.col === c2.col);
   },
 
   getX(col: number, scrollX: number): string {
@@ -397,31 +401,69 @@ export default {
     return arr.indexOf(elem) > -1;
   },
 
-  toggleReferenceType(xp: string): ?string {
-    // TODO generalize to arbitrary range lengths
-    let deps = this.parseRefs(xp);
-    if (deps.length === 0)
-      return null
-    else if (deps.length === 1)
-      return this.toggleReferenceIndex(deps[0]);
-    else throw "Single word contains multiple references.";
+  // counts the char : as part of a word.
+  getExtendedWordRange(session: AESession, r: number, c: number): AEWordRange {
+    let immWordRange = session.getWordRange(r, c),
+        wordStart = immWordRange.start.column,
+        wordEnd   = immWordRange.end.column;
+        
+    let beforeRange = immWordRange.clone();
+        beforeRange.start.column = Math.max(0, wordStart-1);
+
+    let afterRange = immWordRange.clone();
+        afterRange.end.column = wordEnd + 1; // doesn't matter if wordEnd is too large
+
+    if (wordStart > 0 && session.getTextRange(beforeRange)[0] == ':') {
+      wordStart = session.getWordRange(r, wordStart - 1).start.column;
+    } else {
+      let after = session.getTextRange(afterRange);
+      if (after[after.length - 1] == ':') {
+        wordEnd = session.getWordRange(r, wordEnd + 1).end.column;
+      }
+    }
+
+    let extRange = immWordRange.clone();
+    extRange.start.column = wordStart;
+    extRange.end.column = wordEnd;
+    return extRange;
   },
 
-  toggleReferenceIndex(ref: string): ?string {
+  toggleReference(xp: string): ?string {
+    // TODO generalize to arbitrary range lengths
+    let deps = this.parseRefs(xp);
+    if (deps.length === 0) {
+      return null;
+    } else if (deps.length > 1) {
+      throw "Single word contains multiple references.";
+    }
+
+    return this._toggleReference(deps[0]);
+  },
+
+  _toggleReference(ref: string): ?string {
+    let refs = ref.split(':');
+    if (refs.length > 1) {
+      return refs.map((r) => this._toggleReference(r)).join(':');
+    }
+
     let dollarIndices = this.getIndicesOf('$', ref),
         cleanRef = ref.replace(/\$/g, ''),
         row = cleanRef.split(/[A-Za-z]+/).pop(),
         col = cleanRef.substring(0, cleanRef.length - row.length);
     if (dollarIndices.length === 0) {
-      return '$' + col + '$' + row;
+      return '$' + col + (row ? '$' + row : ''); // A -> $A, not $A$
     } else if (dollarIndices.length === 1 ) {
-      if (dollarIndices[0] === 0)
+      if (dollarIndices[0] === 0) {
         return col + row;
-      else
+      }
+      else {
         return '$' + col + row;
+      }
     } else if (dollarIndices.length === 2) {
       return col + '$' + row;
-    } else return null;
+    } else {
+      return null;
+    }
   },
 
   intToChar(i: number): string {
@@ -441,7 +483,7 @@ export default {
   excelToIndex(dollarRef: string): NakedIndex {
     let ref = dollarRef.replace(/\$/g, '').toUpperCase();
     var row=0, col=0, i=0, charIdx = 0;
-    while(i < ref.length && isNaN(ref.charAt(i))){
+    while (i < ref.length && isNaN(ref.charAt(i))) {
       charIdx = i+1;
       i++;
     }
@@ -450,7 +492,11 @@ export default {
       col = col + this.charToInt(ref.charAt(c)) * Math.pow(26, charIdx - c-1);
     }
 
-    return {col: col, row: parseInt(rawRow)};
+    if (rawRow.length > 0) {
+      return {col: col, row: parseInt(rawRow)};
+    } else {
+      return {col: col, row: Infinity};
+    }
   },
 
   excelToRange(xp: string): NakedRange {
@@ -458,8 +504,7 @@ export default {
     if (endpoints.length === 1){
       let idx = this.excelToIndex(endpoints[0]);
       return {tl: idx, br: idx};
-    }
-    else {
+    } else {
       let start = this.excelToIndex(endpoints[0]),
           end = this.excelToIndex(endpoints[1]);
       return { tl: start, br: end };
@@ -500,22 +545,27 @@ export default {
     if (str === "") {
       return [];
     } else {
-      let regIdx      = /!?\$?[A-Za-z]+\$?[0-9]+/g, 
-          regRng      = /!?\$?[A-Za-z]+\$?[0-9]+:\$?[A-Za-z]+\$?[0-9]+/g, 
-          rngs        = str.match(regRng), 
-          idxStr      = str.replace(regRng, ""), 
-          idxs        = idxStr.match(regIdx), 
-          rngsOnSheet = rngs ? rngs.filter((s) => s[0] != '!') : [], 
-          idxsOnSheet = idxs ? idxs.filter((s) => s[0] != '!') : [], 
-          matches = rngsOnSheet.concat(idxsOnSheet);
+      let regIdx      = /!?\$?[A-Za-z]+\$?[0-9]+/g,
+          regRng      = /!?\$?[A-Za-z]+\$?[0-9]+:\$?[A-Za-z]+\$?[0-9]+/g,
+          regCols     = /!?\$?[A-Za-z]+(\$?[0-9]+)?:\$?[A-Za-z]+(\$?[0-9]+)?/g, //matches ranges too, but only checks after we remove all ranges (see str2)
+          rngs        = str.match(regRng),
+          str2        = str.replace(regRng, ""),
+          cols        = str2.match(regCols),
+          str3        = str2.replace(regCols, ""),
+          idxs        = str3.match(regIdx),
+          firstNotExc = ((s) => s[0] != '!'),
+          rngsOnSheet = rngs ? rngs.filter(firstNotExc) : [],
+          idxsOnSheet = idxs ? idxs.filter(firstNotExc) : [],
+          colsOnSheet = cols ? cols.filter(firstNotExc) : [],
+          matches = rngsOnSheet.concat(idxsOnSheet).concat(colsOnSheet);
       return matches;
     }
   },
 
   parseDependencies(str: string, lang: ?ASLanguage): Array<NakedRange> {
     // logDebug("parsing dependencies of: " + str);
-    if (lang == 'Excel' && str.length > 0 && str[0] != '=') { 
-      return []; 
+    if (lang == 'Excel' && str.length > 0 && str[0] != '=') {
+      return [];
     }
     let matches = this.parseRefs(str),
         parsed = matches.map((m) => this.orientRange(this.excelToRange(m)), this);

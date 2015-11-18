@@ -156,11 +156,11 @@ export default {
         let editor = self._getRawEditor(),
             sesh = editor.getSession(),
             cursor = editor.getCursorPosition(),
-            range = sesh.getWordRange(cursor.row, cursor.column),
+            range = Util.getExtendedWordRange(sesh, cursor.row, cursor.column), 
             sel = editor.selection;
         sel.setRange(range);
         let oldRef = editor.getSelectedText(),
-            newRef = Util.toggleReferenceType(oldRef);
+            newRef = Util.toggleReference(oldRef);
         if (newRef !== null) {
           let newXp = xp.substring(0, xp.length - oldRef.length) + newRef;
           ExpActionCreator.handleGridChange(newXp);
@@ -169,10 +169,10 @@ export default {
         let editor = self._getRawEditor(),
             sesh = editor.getSession(),
             cursor = editor.getCursorPosition(),
-            range = sesh.getWordRange(cursor.row, cursor.column),
+            range = Util.getExtendedWordRange(sesh, cursor.row, cursor.column),
             sel = editor.selection;
         sel.setRange(range);
-        let newRef = Util.toggleReferenceType(editor.getSelectedText());
+        let newRef = Util.toggleReference(editor.getSelectedText());
         if (newRef !== null) {
           sesh.replace(range, newRef);
           ExpActionCreator.handleEditorChange(editor.getValue());
@@ -181,10 +181,10 @@ export default {
         let editor = self._getRawTextbox(),
             sesh = editor.getSession(),
             cursor = editor.getCursorPosition(),
-            range = sesh.getWordRange(cursor.row, cursor.column),
+            range = Util.getExtendedWordRange(sesh, cursor.row, cursor.column),
             sel = editor.selection;
         sel.setRange(range);
-        let newRef = Util.toggleReferenceType(editor.getSelectedText());
+        let newRef = Util.toggleReference(editor.getSelectedText());
         if (newRef !== null) {
           sesh.replace(range, newRef);
           ExpActionCreator.handleTextBoxChange(editor.getValue());

@@ -256,7 +256,7 @@ const ASEvaluationStore = Object.assign({}, BaseStore, {
     this.setActiveCellDependencies(activeCellDependencies);
   },
 
-  getParentList(c, r){
+  getParentList(c, r) {
     let cell = this.getCell(c, r);
     if (cell) {
       let ctags = cell.cellTags;

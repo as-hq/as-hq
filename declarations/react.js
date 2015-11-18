@@ -191,9 +191,11 @@ declare class SyntheticEvent {
     defaultPrevented: boolean;
     eventPhase: number;
     isDefaultPrevented(): boolean;
+    isPersistent: boolean;
     isPropagationStopped(): boolean;
     isTrusted: boolean;
     nativeEvent: Event;
+    persist(): void;
     preventDefault(): void;
     stopPropagation(): void;
     target: EventTarget;

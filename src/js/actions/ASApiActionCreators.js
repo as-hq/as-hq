@@ -41,7 +41,6 @@ import type {
 
 import type {
   ASSelection,
-  ASViewingWindow,
   ASClientWindow,
   ASClientExpression,
   ASClientLanguage

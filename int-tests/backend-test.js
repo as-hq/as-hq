@@ -959,13 +959,24 @@ describe('backend', () => {
         });
 
         describe('row drag', () => {
-          it('should move cells to correct locations', (done) => {
+          it('should move cells to correct locations when dragging left-to-right', (done) => {
             _do([
               python('A1', '10'), python('A2', '11'), python('A3', '12'),
               dragRow(1,3), 
               shouldBe('A1', valueI(11)),
               shouldBe('A2', valueI(12)), 
               shouldBe('A3', valueI(10)), 
+              exec(done)
+            ]);
+          });
+
+          it('should move cells to correct locations when dragging right-to-left', (done) => {
+            _do([
+              python('A1', '10'), python('A2', '11'), python('A3', '12'),
+              dragRow(3,1), 
+              shouldBe('A1', valueI(12)),
+              shouldBe('A2', valueI(10)), 
+              shouldBe('A3', valueI(11)), 
               exec(done)
             ]);
           });
@@ -1061,13 +1072,24 @@ describe('backend', () => {
         });
 
         describe('column drag', () => {
-          it('should move cells to correct locations', (done) => {
+          it('should move cells to correct locations when dragging up-to-down', (done) => {
             _do([
               python('A1', '10'), python('B1', '11'), python('C1', '12'),
               dragCol(1,3), 
               shouldBe('A1', valueI(11)),
               shouldBe('B1', valueI(12)), 
               shouldBe('C1', valueI(10)), 
+              exec(done)
+            ]);
+          });
+
+          it('should move cells to correct locations when dragging down-to-up', (done) => {
+            _do([
+              python('A1', '10'), python('B1', '11'), python('C1', '12'),
+              dragCol(3, 1), 
+              shouldBe('A1', valueI(12)),
+              shouldBe('B1', valueI(10)), 
+              shouldBe('C1', valueI(11)), 
               exec(done)
             ]);
           });
@@ -1079,6 +1101,17 @@ describe('backend', () => {
               shouldBe('B1', valueI(15)), 
               shouldBe('C1', valueI(19)), 
               shouldBe('D1', valueI(12)), 
+              exec(done)
+            ]);
+          });
+
+          it('should shift references appropriately in succession', (done) => {
+            _do([
+              python('A1', '10'), 
+              python('B1', 'A1'), 
+              dragCol(1, 2), 
+              dragCol(1, 2), 
+              expressionShouldBe('B1', 'A1'), 
               exec(done)
             ]);
           });
