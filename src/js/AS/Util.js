@@ -497,22 +497,17 @@ export default {
   },
 
   parseRefs(str: string): Array<string> {
-    if (str === "")
+    if (str === "") {
       return [];
-    else{
-      let regIdx = /\$?[A-Za-z]+\$?[0-9]+/g, regRng = /\$?[A-Za-z]+\$?[0-9]+:\$?[A-Za-z]+\$?[0-9]+/g;
-      let rngs = str.match(regRng);
-      let idxStr = str.replace(regRng, "");
-      let idxs = idxStr.match(regIdx);
-      let matches = null;
-      if (rngs && idxs)
-        matches = rngs.concat(idxs);
-      else if (rngs)
-        matches = rngs;
-      else if (idxs)
-        matches = idxs;
-      else
-        matches = [];
+    } else {
+      let regIdx      = /!?\$?[A-Za-z]+\$?[0-9]+/g, 
+          regRng      = /!?\$?[A-Za-z]+\$?[0-9]+:\$?[A-Za-z]+\$?[0-9]+/g, 
+          rngs        = str.match(regRng), 
+          idxStr      = str.replace(regRng, ""), 
+          idxs        = idxStr.match(regIdx), 
+          rngsOnSheet = rngs ? rngs.filter((s) => s[0] != '!') : [], 
+          idxsOnSheet = idxs ? idxs.filter((s) => s[0] != '!') : [], 
+          matches = rngsOnSheet.concat(idxsOnSheet);
       return matches;
     }
   },
