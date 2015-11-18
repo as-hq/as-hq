@@ -180,11 +180,14 @@ const ASEvaluationStore = Object.assign({}, BaseStore, {
         case 'CLEARED_SHEET':
           _data.lastUpdatedCells = [];
           let cr = [];
-          _data.allCells[action.sheetId].forEach((colArray) => {
-            colArray.forEach((cell) => {
-              cr.push(cell);
+
+          if (_data.allCells[action.sheetId]) { 
+            _data.allCells[action.sheetId].forEach((colArray) => {
+              colArray.forEach((cell) => {
+                cr.push(cell);
+              });
             });
-          });
+          }
 
           // remove possibly null cells
           cr = cr.filter((cell) => !!cell);

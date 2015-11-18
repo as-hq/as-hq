@@ -122,13 +122,24 @@ export function r(loc, xp) {
   return cell(loc, xp, 'R');
 }
 
+export function ocaml(loc, xp) {
+  return cell(loc, xp, 'ml');
+}
+
 export function excel(loc, xp) {
   return cell(loc, xp, 'excel');
 }
 
-export function ocaml(loc, xp) {
-  return cell(loc, xp, 'ml');
+export function evalHeader(xp, lang) { 
+  return apiExec(() => {
+    API.evaluateHeader(xp, lang);
+  });
 }
+
+export function pythonEvalHeader(xp) { 
+  return evalHeader(xp, 'Python');
+}
+
 
 export function repeat(rng, origin) {
   return apiExec(() => {
