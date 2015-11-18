@@ -104,14 +104,17 @@ void DAG::updateDAG(DAG::Vertex toLoc, const DAG::VertexSet& fromLocs, bool addT
 
 	/* Loop over the new fromLocs and add to the forward adjacency list */
 	for (const auto& fl : fromLocs) {
+		toFromAdjList[toLoc].insert(fl);
 		// if Pointer reference, put an Index ref in the forward list, and put the Pointer ref in the backward list.
 		// then evalChain' triggers the recomputation of an expression with an @ reference in it correctly
 		// using getDescendants, then uses getAncestors on those descendants to get the actual Pointer reference.
-		toFromAdjList[toLoc].insert(fl);
 		if (fl[0] == 'P') {
-			fl[0] = 'I'; 
+			DAG::Vertex flIndex = fl;
+			flIndex[0] = 'I'; 
+			fromToAdjList[flIndex].insert(toLoc);
+		} else {
+			fromToAdjList[fl].insert(toLoc);
 		}
-		fromToAdjList[fl].insert(toLoc);
 	/* Replace toLoc entry in backwards adjacency list */
 	}
 
