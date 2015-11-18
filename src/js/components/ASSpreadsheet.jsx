@@ -192,7 +192,6 @@ export default React.createClass({
   // Need to scroll even if no mouse event, but you're at the edge of the grid
   scrollWithDraggables(grid) {
     if (this.mouseDownInBox || this.dragSelectionOrigin !== null) {
-      console.log("DEALING WITH SCROLLING");
       let {x,y} = this.mousePosition,
           b = grid.getDataBounds(),
           numFixedColumns = grid.getFixedColumnCount(),
