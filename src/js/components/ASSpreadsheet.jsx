@@ -336,14 +336,6 @@ export default React.createClass({
     // This overrides the swapping of columns in hypergrid's internal state
     // Keeps the animation, but don't change state = column headers stay same, data stays same
     model.swapColumns = (src, tar) => {};
-    model.setRowHeight = (rowNum, height) => {
-      var tableState = this.getState();
-      tableState.rowHeights[rowNum] = Math.max(5, height);
-      model.changed();
-      let rowResizeEvent = new CustomEvent("rowResize");
-      self._getSheetDOMNode().dispatchEvent(rowResizeEvent);
-    };
-
     model.getColumnCount = () => { return Constants.numCols; };
     model.getRowCount = () => { return Constants.numRows; };
     model.getValue = (x, y) => { return ''; };
@@ -451,13 +443,13 @@ export default React.createClass({
         // Clean up dragging a column, and send an API message to backend to swap data
         if (self.draggingCol) {
           self.draggingCol = false;
-          if (self.clickedColNum !== null) {
+          if (self.clickedColNum != null) {
             API.dragCol(self.clickedColNum,evt.gridCell.x);
           }
           self.clickedColNum = null; 
         } else if (self.draggingRow) {
           self.draggingRow = false;
-          if (self.clickedRowNum !== null) {
+          if (self.clickedRowNum != null) {
             API.dragRow(self.clickedRowNum,evt.gridCell.y);
           }
           self.clickedRowNum = null;
