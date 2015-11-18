@@ -209,6 +209,7 @@ export default React.createClass({
   // Need to scroll even if no mouse event, but you're at the edge of the grid
   scrollWithDraggables(grid: HGElement) {
     if (this.mouseDownInBox || this.dragSelectionOrigin !== null) {
+
       let mousePos = this.mousePosition;
       if (! mousePos) {
         logDebug('No mouse position');
@@ -320,16 +321,26 @@ export default React.createClass({
   /*************************************************************************************************************************/
   // Hypergrid initialization
 
+  draggingCol: false,
+  draggingRow: false,
+  clickedColNum: (null: ?number),
+  clickedRowNum: (null: ?number),
+
   /* Initial a sheet with blank entries */
   initialize() {
     let hg = this._getHypergrid(),
         model = hg.getBehavior(),
         self = this;
     hg.addGlobalProperties(this.gridProperties);
+
+    // This overrides the swapping of columns in hypergrid's internal state
+    // Keeps the animation, but don't change state = column headers stay same, data stays same
+    model.swapColumns = (src, tar) => {};
     model.getColumnCount = () => { return Constants.numCols; };
     model.getRowCount = () => { return Constants.numRows; };
     model.getValue = (x, y) => { return ''; };
     model.getCellEditorAt = (x, y) => { return null; };
+
     model.handleMouseDown = (grid, evt) => {
       if (evt.primitiveEvent.detail.primitiveEvent.shiftKey) { // shift+click
         let {origin} = this.getSelectionArea(),
@@ -345,6 +356,12 @@ export default React.createClass({
           // dragging selections
           this.dragSelectionOrigin = {col: evt.gridCell.x, row: evt.gridCell.y};
         } else if (model.featureChain) {
+          // If the mouse is placed inside column header (not on a divider), we want to keep some extra state ourselves
+          if (model.featureChain.isFixedRow(grid,evt) && hg.overColumnDivider(evt) === -1) { 
+           self.clickedColNum = evt.gridCell.x; 
+          } else if (model.featureChain.isFixedColumn(grid,evt) && hg.overRowDivider(evt) === -1) {
+            self.clickedRowNum = evt.gridCell.y;
+          }
           model.featureChain.handleMouseDown(grid, evt);
           model.setCursor(grid);
         }
@@ -370,7 +387,6 @@ export default React.createClass({
       let selOrigin = this.dragSelectionOrigin;
       if (!! selOrigin) {
         // range dragging
-        console.log("\n\n\nSELECTION DRAG!!\n\n\n", evt);
         let {x, y} = this.getCoordsFromMouseEvent(grid, evt);
         let {range} = this.getSelectionArea();
         this.drawDraggedSelection(selOrigin, range, evt.gridCell.x, evt.gridCell.y);
@@ -387,6 +403,12 @@ export default React.createClass({
         this.scrollWithDraggables(grid);
         this.repaint(); // show dotted lines
       } else if (model.featureChain) {
+        // If we've mouse down'ed on a column header, we're now dragging a column
+        if (self.clickedColNum !== null) {
+          self.draggingCol = true;
+        } else if (self.clickedRowNum !== null) {
+          self.draggingRow = true;
+        }
         // do default
         model.featureChain.handleMouseDrag(grid, evt);
         model.setCursor(grid);
@@ -418,6 +440,20 @@ export default React.createClass({
       } else if (model.featureChain) {
         model.featureChain.handleMouseUp(grid, evt);
         model.setCursor(grid);
+        // Clean up dragging a column, and send an API message to backend to swap data
+        if (self.draggingCol) {
+          self.draggingCol = false;
+          if (self.clickedColNum != null) {
+            API.dragCol(self.clickedColNum,evt.gridCell.x);
+          }
+          self.clickedColNum = null; 
+        } else if (self.draggingRow) {
+          self.draggingRow = false;
+          if (self.clickedRowNum != null) {
+            API.dragRow(self.clickedRowNum,evt.gridCell.y);
+          }
+          self.clickedRowNum = null;
+        }
       }
       Render.setDragCorner(null);
       self.mouseDownInBox = false;
