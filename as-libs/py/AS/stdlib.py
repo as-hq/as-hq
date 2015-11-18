@@ -67,6 +67,10 @@ def serialize(val):
 		return json.dumps({'tag': 'Object', 'objectType': 'NPMatrix', 'matrixVals': val.tolist()})
 	elif isinstance(val, ASIterable): 
 		return json.dumps({'tag': 'List', 'listVals': val.toList()})
+	elif isinstance(val, bool):
+		return repr(val)
+	elif val is None:
+		return 'None'
 	else: return json.dumps(val)
 
 def deserialize(dic):
