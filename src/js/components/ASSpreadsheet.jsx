@@ -135,27 +135,6 @@ export default React.createClass({
       });
 
       let externalCallbacks = {
-        mouseup: (evt) => {
-          let {which, x, y, offsetX, offsetY} = (evt: any);
-          /* x, y: against the page, for rendering the dropdown */
-          /* offsetX, offsetY: against hypergrid, for finding coordinates */
-
-          if (which === 3) { // right click
-            let {gridCell: {x: col, y: row}} =
-              hg.renderer.getGridCellFromMousePoint({
-                x: offsetX,
-                y: offsetY
-              });
-
-            if (col != 0 || row != 0) { // right click on a row header
-              this.refs.rightClickMenu.openAt(x, y,
-                (col != 0)
-                  ? columnHeaderMenuItems(col)
-                  : rowHeaderMenuItems(row)
-              );
-            }
-          }
-        }
       };
 
       _.forEach(callbacks, (v, k) => {
@@ -215,7 +194,6 @@ export default React.createClass({
         return;
       }
 
-      console.log("DEALING WITH SCROLLING");
       let {x, y} = mousePos,
           b = grid.getDataBounds(),
           numFixedColumns = grid.getFixedColumnCount(),
@@ -370,7 +348,6 @@ export default React.createClass({
       let selOrigin = this.dragSelectionOrigin;
       if (!! selOrigin) {
         // range dragging
-        console.log("\n\n\nSELECTION DRAG!!\n\n\n", evt);
         let {x, y} = this.getCoordsFromMouseEvent(grid, evt);
         let {range} = this.getSelectionArea();
         this.drawDraggedSelection(selOrigin, range, evt.gridCell.x, evt.gridCell.y);
@@ -394,33 +371,54 @@ export default React.createClass({
     };
 
     model.onMouseUp = (grid, evt) => {
-      if (this.dragSelectionOrigin !== null) {
-        let {x, y} = this.getCoordsFromMouseEvent(grid, evt);
-        let sel = this.getSelectionArea();
-        let newSelRange = Render.getDragRect(),
-            fromRange = TC.simpleToASRange(sel.range),
-            toRange = TC.simpleToASRange(newSelRange),
-            newSel = {range: newSelRange, origin: newSelRange.tl};
-        this.select(newSel, false);
-        Render.setDragRect(null);
-        this.dragSelectionOrigin = null;
-        API.cut(fromRange, toRange);
-      } else if (Render.getDragCorner() !== null) {
-        let dottedSel = Render.getDottedSelection();
-        // Do nothing if the mouseup isn't in the right column or row
-        if (dottedSel.range !== null){
-          let activeSelection = Store.getActiveSelection();
-          if (!! activeSelection) {
-            API.drag(activeSelection.range, dottedSel.range);
-            self.select(dottedSel,true);
-          }
+      let {which} = evt.primitiveEvent.detail.primitiveEvent;
+
+      if (which === 3) { // right click
+        /* x, y: against the page, for rendering the dropdown */
+        /* relCol, relRow: cell coordinates, relative to top left of element, not A1 */
+          /* for example if we are scrolled to A24 at top, A25 is 1 not 25 */
+        let {
+          gridCell: {x: relCol, y: relRow},
+          primitiveEvent: {detail: {primitiveEvent: {x, y}}}
+        } = evt;
+        if (relCol != 0 || relRow != 0) { // right click on a row header
+          let [col, row] =
+            [relCol + hg.getHScrollValue(), relRow + hg.getVScrollValue()];
+          this.refs.rightClickMenu.openAt(x, y,
+            (col != 0)
+              ? columnHeaderMenuItems(col)
+              : rowHeaderMenuItems(row)
+          );
         }
-      } else if (model.featureChain) {
-        model.featureChain.handleMouseUp(grid, evt);
-        model.setCursor(grid);
+      } else {
+        if (this.dragSelectionOrigin !== null) {
+          let {x, y} = this.getCoordsFromMouseEvent(grid, evt);
+          let sel = this.getSelectionArea();
+          let newSelRange = Render.getDragRect(),
+              fromRange = TC.simpleToASRange(sel.range),
+              toRange = TC.simpleToASRange(newSelRange),
+              newSel = {range: newSelRange, origin: newSelRange.tl};
+          this.select(newSel, false);
+          Render.setDragRect(null);
+          this.dragSelectionOrigin = null;
+          API.cut(fromRange, toRange);
+        } else if (Render.getDragCorner() !== null) {
+          let dottedSel = Render.getDottedSelection();
+          // Do nothing if the mouseup isn't in the right column or row
+          if (dottedSel.range !== null){
+            let activeSelection = Store.getActiveSelection();
+            if (!! activeSelection) {
+              API.drag(activeSelection.range, dottedSel.range);
+              self.select(dottedSel,true);
+            }
+          }
+        } else if (model.featureChain) {
+          model.featureChain.handleMouseUp(grid, evt);
+          model.setCursor(grid);
+        }
+        Render.setDragCorner(null);
+        self.mouseDownInBox = false;
       }
-      Render.setDragCorner(null);
-      self.mouseDownInBox = false;
     };
 
     this.setRenderers();

@@ -17,7 +17,11 @@ declare class HGPrimitiveMouseEvent extends Event {
   detail: {
     mouse: HGPoint;
     keys: string;
-    primitiveEvent: HGMouseEvent;
+    primitiveEvent: SyntheticMouseEvent & {
+      x: number,
+      y: number,
+      which: number
+    };
   };
 }
 
