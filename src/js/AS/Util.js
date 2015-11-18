@@ -23,12 +23,12 @@ import type {
 
 import type {
   CellBorder,
-  RendererConfig,
   ASOverlaySpec
 } from '../types/Hypergrid';
 
 import type {
   ASClientLanguage,
+  ASViewingWindow,
   ASSelection
 } from '../types/State';
 
@@ -73,7 +73,7 @@ export default {
 // Cell rendering
 
   /* Used to know what to display on the sheet */
-  showValue(cv: ASValue, isRepl: boolean): (string|number) {
+  showValue(cv: ASValue, isRepl: boolean = false): (string|number) {
     // logDebug("In show value: " + JSON.stringify(cv));
     let self = this;
     switch (cv.tag) {
@@ -121,7 +121,7 @@ export default {
     return JSON.stringify(cv.contents.map(this.showValue));
   },
 
-  tagsToRenderConfig(config: RendererConfig, tags: Array<ASCellTag>): RendererConfig {
+  tagsToRenderConfig(config: HGRendererConfig, tags: Array<ASCellTag>): HGRendererConfig {
     let self = this;
     for (var i=0; i<tags.length; i++) {
       let tag = tags[i];
@@ -170,7 +170,7 @@ export default {
     return config;
   },
 
-  valueToRenderConfig(config: RendererConfig, val: ASValue): RendererConfig {
+  valueToRenderConfig(config: HGRendererConfig, val: ASValue): HGRendererConfig {
     switch(val.tag) {
       case "ValueI":
       case "ValueD":
@@ -261,6 +261,10 @@ export default {
         rowE = c1.index.row === c2.index.row,
         sheetE = c1.sheetId === c2.sheetId
     return tagE && colE && rowE && sheetE;
+  },
+
+  simpleIndexEquals(c1: NakedIndex, c2: NakedIndex): boolean {
+    return (c1.row === c2.row) && (c1.col === c2.col);
   },
 
   getX(col: number, scrollX: number): string {

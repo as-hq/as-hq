@@ -9,16 +9,6 @@ type Pair<T> = [T,T];
 
 export type CellBorder = FourTuple<?Pair<Pair<number>>>;
 
-export type RendererConfig = {
-  // TODO
-  fgColor: string;
-  bgColor: string;
-  font: string;
-  halign: string;
-  value: string;
-  isStreaming: boolean;
-};
-
 export type ASOverlaySpec = {
   id: string;
   src: string;

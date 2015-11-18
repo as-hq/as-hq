@@ -1,4 +1,23 @@
-import {logDebug} from '../AS/Logger';
+/* @flow */
+
+import type {
+  NakedIndex,
+  NakedRange,
+  ASRange,
+  ASCell
+} from '../types/Eval';
+
+import type {
+  ASOverlaySpec
+} from '../types/Hypergrid';
+
+import type {
+  ASCursorStyle,
+  ASSelection,
+  ASViewingWindow
+} from '../types/State';
+
+import {logDebug, logError} from '../AS/Logger';
 
 import _ from 'lodash';
 
@@ -29,16 +48,16 @@ import Textbox from './Textbox.jsx'
 import rowHeaderMenuItems from './menus/RowHeaderMenuItems.jsx';
 import columnHeaderMenuItems from './menus/ColumnHeaderMenuItems.jsx';
 
-let finRect = document.createElement('fin-rectangle');
+let finRect: HGRectangleElement = (document.createElement('fin-rectangle'): any);
 
 export default React.createClass({
 
   /*************************************************************************************************************************/
   // Non-rendering state
 
-  mousePosition: null,
+  mousePosition: (null: ?HGPoint),
   mouseDownInBox: false,
-  dragSelectionOrigin: null,
+  dragSelectionOrigin: (null: ?NakedIndex),
 
   /*************************************************************************************************************************/
   // React methods
@@ -59,7 +78,12 @@ export default React.createClass({
     };
   },
 
-  getInitialState() {
+  getInitialState(): ({
+    scroll: HGPoint;
+    overlays: Array<ASOverlaySpec>;
+    cursorStyle: ASCursorStyle;
+    selectionDraggable: boolean;
+  }) {
     return {
       // keep scroll values in state so overlays autoscroll with grid
       scroll: { x:0, y:0 },
@@ -112,7 +136,8 @@ export default React.createClass({
       });
 
       let externalCallbacks = {
-        mouseup: ({which, x, y, offsetX, offsetY}) => {
+        mouseup: (evt) => {
+          let {which, x, y, offsetX, offsetY} = (evt: any);
           /* x, y: against the page, for rendering the dropdown */
           /* offsetX, offsetY: against hypergrid, for finding coordinates */
 
@@ -164,7 +189,7 @@ export default React.createClass({
   /*************************************************************************************************************************/
   // Handle mouse events by overriding hypergrid default
 
-  getCoordsFromMouseEvent(grid, evt) {
+  getCoordsFromMouseEvent(grid: HGElement, evt: HGMouseEvent): HGPoint {
     let {x, y} = evt.mousePoint,
         point = finRect.point.create(evt.gridCell.x, evt.gridCell.y),
         {origin} = grid.getBoundsOfCell(point),
@@ -173,7 +198,7 @@ export default React.createClass({
     return {x: pX, y: pY};
   },
 
-  drawDraggedSelection(dragOrigin, selRange, targetX, targetY) {
+  drawDraggedSelection(dragOrigin: NakedIndex, selRange: NakedRange, targetX: number, targetY: number) {
     let dX = targetX - dragOrigin.col,
         dY = targetY - dragOrigin.row;
     let range = Util.offsetRange(selRange, dY, dX);
@@ -181,8 +206,8 @@ export default React.createClass({
   },
 
   // Is the mouse location inside a blue box
-  insideBox(event){
-   let {x,y} = event.primitiveEvent.detail.mouse,
+  insideBox(event: HGMouseEvent): boolean {
+    let {x, y} = event.primitiveEvent.detail.mouse,
        topLeftBox = Render.getTopLeftBox(),
        boxWidth   = Render.getBoxWidth();
     return Util.mouseLocIsContainedInBox(x,y,topLeftBox,boxWidth);
@@ -190,10 +215,16 @@ export default React.createClass({
 
   // Semi-recursive function via timeouts -- this is how hypergrid does it
   // Need to scroll even if no mouse event, but you're at the edge of the grid
-  scrollWithDraggables(grid) {
+  scrollWithDraggables(grid: HGElement) {
     if (this.mouseDownInBox || this.dragSelectionOrigin !== null) {
+      let mousePos = this.mousePosition;
+      if (! mousePos) {
+        logDebug('No mouse position');
+        return;
+      }
+
       console.log("DEALING WITH SCROLLING");
-      let {x,y} = this.mousePosition,
+      let {x, y} = mousePos,
           b = grid.getDataBounds(),
           numFixedColumns = grid.getFixedColumnCount(),
           numFixedRows = grid.getFixedRowCount(),
@@ -225,11 +256,11 @@ export default React.createClass({
   /*************************************************************************************************************************/
   // Default getter methods, relating to location/scrolling/selection
 
-  _getHypergrid() {
+  _getHypergrid(): HGElement {
     return React.findDOMNode(this.refs.hypergrid);
   },
 
-  _getBehavior(){
+  _getBehavior(): HGBehaviorElement {
     return this._getHypergrid().getBehavior();
   },
 
@@ -237,9 +268,9 @@ export default React.createClass({
     return ReactDOM.findDOMNode(this.refs.sheet);
   },
 
-  getSelectionArea() {
+  getSelectionArea(): ASSelection {
     let hg = this._getHypergrid(),
-        selection = hg.getSelectionModel().selections[0],
+        selection = hg.getSelectionModel().getSelections()[0],
         ul = selection.origin,
         range = Util.orientRange({
                   tl: {row:  ul.y + 1,
@@ -250,16 +281,16 @@ export default React.createClass({
         sel = {
           range: range,
           origin: {row: ul.y + 1, col: ul.x + 1}
-      };
+        };
     return sel;
   },
 
-  getScroll() {
+  getScroll(): HGPoint {
     let hg = this._getHypergrid();
     return {x: hg.hScrollValue, y: hg.vScrollValue};
   },
 
-  getViewingWindow() {
+  getViewingWindow(): ASViewingWindow {
     let hg = this._getHypergrid(),
         [vs, hs] = [hg.vScrollValue, hg.hScrollValue],
         [cols, rows] = [hg.getVisibleColumns(), hg.getVisibleRows()];
@@ -272,19 +303,20 @@ export default React.createClass({
                      br: {row: vs + rowLength, col: hs + colLength}} };
   },
 
-  isVisible(col, row){ // faster than accessing hypergrid properties
+  isVisible(col: number, row: number): boolean { // faster than accessing hypergrid properties
     return (this.state.scroll.x <= col && col <= this.state.scroll.x+Constants.numVisibleCols) &&
            (this.state.scroll.y <= row && row <= this.state.scroll.y+Constants.numVisibleRows);
   },
 
-  getVisibleRows() {
+  getVisibleRows(): number {
     return this._getHypergrid().getVisibleRows().length;
   },
 
-  getTextboxPosition() {
+  getTextboxPosition(): ?HGRectangle {
     let scroll = this.state.scroll;
-    if (Store.getActiveSelection()){
-      let {col, row} = Store.getActiveSelection().origin,
+    let activeSelection = Store.getActiveSelection();
+    if (activeSelection) {
+      let {col, row} = activeSelection.origin,
           point = finRect.point.create(col - scroll.x, row - scroll.y);
       return this._getHypergrid().getBoundsOfCell(point);
     } else {
@@ -350,22 +382,23 @@ export default React.createClass({
     };
 
     model.onMouseDrag = (grid, evt) => {
-      if (this.dragSelectionOrigin !== null) {
+      let selOrigin = this.dragSelectionOrigin;
+      if (!! selOrigin) {
         // range dragging
         console.log("\n\n\nSELECTION DRAG!!\n\n\n", evt);
         let {x, y} = this.getCoordsFromMouseEvent(grid, evt);
         let {range} = this.getSelectionArea();
-        this.drawDraggedSelection(this.dragSelectionOrigin, range, evt.gridCell.x, evt.gridCell.y);
-        this.mousePosition = {x:evt.primitiveEvent.detail.mouse.x,
-                              y:evt.primitiveEvent.detail.mouse.y};
+        this.drawDraggedSelection(selOrigin, range, evt.gridCell.x, evt.gridCell.y);
+        this.mousePosition = {x: evt.primitiveEvent.detail.mouse.x,
+                              y: evt.primitiveEvent.detail.mouse.y};
         this.scrollWithDraggables(grid);
         this.repaint();
       } else if (this.mouseDownInBox && !evt.primitiveEvent.detail.isRightClick) {
         // box dragging
         let {x,y} = evt.gridCell; // accounts for scrolling
-        Render.setDragCorner({dragX:x,dragY:y});
-        this.mousePosition = {x:evt.primitiveEvent.detail.mouse.x,
-                              y:evt.primitiveEvent.detail.mouse.y};
+        Render.setDragCorner({dragX: x, dragY: y});
+        this.mousePosition = {x: evt.primitiveEvent.detail.mouse.x,
+                              y: evt.primitiveEvent.detail.mouse.y};
         this.scrollWithDraggables(grid);
         this.repaint(); // show dotted lines
       } else if (model.featureChain) {
@@ -391,8 +424,11 @@ export default React.createClass({
         let dottedSel = Render.getDottedSelection();
         // Do nothing if the mouseup isn't in the right column or row
         if (dottedSel.range !== null){
-          API.drag(Store.getActiveSelection().range,dottedSel.range);
-          self.select(dottedSel,true);
+          let activeSelection = Store.getActiveSelection();
+          if (!! activeSelection) {
+            API.drag(activeSelection.range, dottedSel.range);
+            self.select(dottedSel,true);
+          }
         }
       } else if (model.featureChain) {
         model.featureChain.handleMouseUp(grid, evt);
@@ -417,7 +453,6 @@ export default React.createClass({
   },
 
   gridProperties: {
-    editorActivationKeys: [], // disable column picker
     scrollbarHoverOff: 'visible',
     columnAutosizing: true
   },
@@ -426,7 +461,7 @@ export default React.createClass({
   // Hypergrid update display
 
   /* Called by eval pane's onChange method, when eval pane receives a change event from the store */
-  updateCellValues(clientCells) {
+  updateCellValues(clientCells: Array<ASCell>) {
     let model = this._getBehavior();
     // update the hypergrid values
     clientCells.forEach((c) => {
@@ -441,9 +476,13 @@ export default React.createClass({
       if (c.cellValue.tag === "ValueImage") {
         let scroll = this.state.scroll,
             point = finRect.point.create(gridCol + 1 - scroll.x, gridRow + 1 - scroll.y),
-            {x,y} = this._getHypergrid().getBoundsOfCell(point).origin;
+            {x, y} = this._getHypergrid().getBoundsOfCell(point).origin;
         let overlay = Util.getImageOverlay(c, x, y);
-        console.log("OVERLAY", overlay);
+        if (! overlay) {
+          logDebug('Overlay is null even though cell has ValueImage');
+          return;
+        }
+
         newOverlays.push(overlay);
         this.setState({overlays: newOverlays});
       }
@@ -455,7 +494,7 @@ export default React.createClass({
 
   // Given a cell, delete any overlay at that location
   // If the expression updated at that location, there's no longer an overlay there
-  updateOverlays(c){
+  updateOverlays(c: ASCell): Array<ASOverlaySpec> {
     let overlays = this.state.overlays,
         locs = overlays.map((o)=>o.loc);
     for (var i = 0 ; i < locs.length; i++){
@@ -478,11 +517,8 @@ export default React.createClass({
   },
 
   // do not call before polymer is ready.
-  select(unsafeSelection, shouldScroll) {
+  select(unsafeSelection: ASSelection, shouldScroll: boolean = true) {
     logDebug("Spreadsheet select start");
-    if (typeof(shouldScroll) == "undefined") {
-      shouldScroll = true;
-    }
 
     // unsafe if it references values <= 0.
     let safeSelection = Util.getSafeSelection(unsafeSelection);
@@ -527,73 +563,105 @@ export default React.createClass({
     // set scroll
     if (shouldScroll) {
       let scroll = this._getNewScroll(oldSel, safeSelection);
-      this.scrollTo(scroll.scrollH, scroll.scrollV);
+      this.scrollTo(scroll.x, scroll.y);
     }
     this.repaint();
     this.props.onSelectionChange(safeSelection);
   },
 
-  _getNewScroll(oldSel, newSel) {
+  rowVisible(loc: NakedIndex): boolean {
+    let vWindow = this.getViewingWindow();
+    return (vWindow.range.tl.row <= loc.row && loc.row <= vWindow.range.br.row);
+  },
+
+  columnVisible(loc: NakedIndex): boolean {
+    let vWindow = this.getViewingWindow();
+    return (vWindow.range.tl.col <= loc.col && loc.col <= vWindow.range.br.col);
+  },
+
+  scrollVForBottomEdge(row: number): number {
     let hg = this._getHypergrid();
-    let {tl, br} = newSel.range;
-    let {col, row} = newSel.origin;
+    let vWindow = this.getViewingWindow();
+    return hg.getVScrollValue() + row - vWindow.range.br.row + 2;
+  },
+
+  scrollVForTopEdge(row: number): number {
+    return row - 1;
+  },
+
+  scrollHForRightEdge(col: number): number {
+    let hg = this._getHypergrid();
+    let vWindow = this.getViewingWindow();
+    return hg.getHScrollValue() + col - vWindow.range.br.col;
+  },
+
+  scrollHForLeftEdge(col: number): number {
+    return col - 1;
+  },
+
+  _getNewScroll(oldSel: ?ASSelection, newSel: ASSelection): HGPoint {
+    let hg = this._getHypergrid();
+    let {
+      range: {tl, br},
+      origin: {col, row}
+    } = newSel;
+
+    let win = this.getViewingWindow();
+    let scrollH = hg.getHScrollValue(), scrollV = hg.getVScrollValue();
 
     let oldOrigin, oldRange, oldTl, oldBr;
     if (oldSel) {
-        oldOrigin = oldSel.origin;
-        oldRange = oldSel.range;
-        oldTl = oldRange.tl;
-        oldBr = oldRange.br;
-    }
+      let {origin: oldOrigin, range: oldRange} = oldSel;
+      let {tl: oldTl, br: oldBr} = oldRange;
 
-    let win = this.getViewingWindow().range;
-    let scrollH = hg.getHScrollValue(), scrollV = hg.getVScrollValue();
+      // I think this code is a little hacky; I haven't thought this through deeply to ensure that
+      // it works in all cases. It does work for ctrl shift arrows and ctrl arrows though. (Alex 11/3/15)
 
-    // I think this code is a little hacky; I haven't thought this through deeply to ensure that
-    // it works in all cases. It does work for ctrl shift arrows and ctrl arrows though. (Alex 11/3/15)
-    if (oldOrigin && oldOrigin.col == col && oldOrigin.row == row) {
-      if (win.tl.row <= oldTl.row && oldTl.row <= win.br.row
-          && (tl.row < win.tl.row || tl.row > win.br.row)) {
-        // if the top left was in range before, and now isn't, scroll so that top left is at top now.
-        scrollV = tl.row - 1;
-      } else if (win.tl.row <= oldBr.row && oldBr.row <= win.br.row
-                 && (br.row < win.tl.row || br.row > win.br.row)) {
-        // ditto for bottom right
-        scrollV = hg.getVScrollValue() + br.row - win.br.row + 2; // for some reason it works better with the + 2
-      }
+      if (oldOrigin) {
+        if (Util.simpleIndexEquals(oldOrigin, newSel.origin)) {
+          if (this.rowVisible(oldTl) && !this.rowVisible(tl)) {
+            scrollV = this.scrollVForTopEdge(tl.row);
+          } else if (this.rowVisible(oldBr) && !this.rowVisible(br)) {
+            scrollV = this.scrollVForBottomEdge(br.row); // for some reason it works better with the + 2
+          }
 
-      if (win.tl.col <= oldTl.col && oldTl.col <= win.br.col
-          && (tl.col < win.tl.col || tl.col > win.br.col)) {
-        scrollH = tl.col - 1;
-      } else if (win.tl.col <= oldBr.col && oldBr.col <= win.br.col
-                 && (br.col < win.tl.col || br.col > win.br.col)) {
-        scrollH = hg.getHScrollValue() + br.col - win.br.col;
-      }
-    } else if (oldOrigin) {
-      if (col < win.tl.col) {
-        scrollH = col - 1;
-      } else if (col > win.br.col) {
-        scrollH = hg.getHScrollValue() + col - win.br.col;
-      }
+          if (this.columnVisible(oldTl) && !this.columnVisible(tl)) {
+            scrollH = this.scrollHForLeftEdge(tl.col);
+          } else if (this.columnVisible(oldBr) && !this.columnVisible(br)) {
+            scrollH = this.scrollHForRightEdge(br.col);
+          }
+        } else {
+          if (col < win.range.tl.col) {
+            scrollH = this.scrollHForLeftEdge(col)
+          } else if (col > win.range.br.col) {
+            scrollH = this.scrollHForRightEdge(col);
+          }
 
-      if (row < win.tl.row) {
-        scrollV = row - 1;
-      } else if (row > win.br.row) {
-        scrollV = hg.getVScrollValue() + row - win.br.row  + 2;
+          if (row < win.range.tl.row) {
+            scrollV = this.scrollVForTopEdge(row);
+          } else if (row > win.range.br.row) {
+            scrollV = this.scrollVForBottomEdge(row);
+          }
+        }
       }
     }
 
-    return {scrollH: scrollH, scrollV: scrollV};
+    return {x: scrollH, y: scrollV};
   },
 
-  shiftSelectionArea(dc, dr) {
+  shiftSelectionArea(dc: number, dr: number) {
     let sel = Store.getActiveSelection();
+    if (! sel) {
+      logError('Trying to shift null selection');
+      return;
+    }
+
     let origin = {row: sel.origin.row + dr, col: sel.origin.col + dc};
     let range = {tl: origin, br: origin};
     this.select({range: range, origin: origin});
   },
 
-  scrollTo(x, y){
+  scrollTo(x: number, y: number) {
     let hg = this._getHypergrid();
     if (hg.getHScrollValue() != x || hg.getVScrollValue() != y) {
       hg.setVScrollValue(y),
@@ -605,7 +673,7 @@ export default React.createClass({
   /*************************************************************************************************************************/
   // Handling events
 
-  _onKeyDown(e){
+  _onKeyDown(e: SyntheticKeyboardEvent) {
     logDebug("GRID KEYDOWN", e);
     e.persist(); // prevent react gc
     if (ShortcutUtils.gridShouldDeferKey(e)){ // not a nav key
@@ -624,8 +692,9 @@ export default React.createClass({
                                                   this.refs.textbox.editor);
 
         // if visible key and there was a last cell ref, move the selection back to the origin
-        if (ExpStore.getLastRef() !== null) {
-          this.select(Store.getActiveSelection());
+        let activeSelection = Store.getActiveSelection();
+        if (!! activeSelection && ExpStore.getLastRef() !== null) {
+          this.select(activeSelection);
         }
         this.props.hideToast();
         ExpActionCreator.handleGridChange(newStr);
@@ -636,7 +705,13 @@ export default React.createClass({
         ShortcutUtils.tryShortcut(e, 'grid');
       }
     } else { // nav key from grid
-      let {range, origin} = Store.getActiveSelection();
+      let activeSelection = Store.getActiveSelection();
+      if (! activeSelection) {
+        logDebug('No selection');
+        return;
+      }
+
+      let {range, origin} = activeSelection;
       logDebug("ACTIVE SEL AFTER NAV KEY", origin);
       if (KeyUtils.isPureArrowKey(e) && !T.isIndex(range)) {
         logDebug("MANUALLY HANDLING NAV KEY");
@@ -648,19 +723,17 @@ export default React.createClass({
     }
   },
 
-  _onKeyUp(e) {
+  _onKeyUp(e: SyntheticKeyboardEvent) {
     e.persist();
   },
 
-  onTextBoxDeferredKey(e){
+  onTextBoxDeferredKey(e: SyntheticKeyboardEvent) {
     if (e.ctrlKey) { // only for ctrl+arrowkeys
       ShortcutUtils.tryShortcut('grid');
-    } else {
-      this.navByKey(e); // all others handled by grid
     }
   },
 
-  _onFocus(e) {
+  _onFocus(e: SyntheticEvent) {
     /*
     Only sometimes, for reasons I don't fully understand
     (might have something to do with position props) updateTextBox causes onFocus to fire in grid
@@ -756,7 +829,7 @@ export default React.createClass({
   /*************************************************************************************************************************/
   // Render
 
-  render() {
+  render(): ReactElement {
     let {behavior, width, height, language} = this.props; //should also have onReady
     let style = {width: width, height: height, cursor: this.state.cursorStyle};
     let behaviorElement;
@@ -785,12 +858,12 @@ export default React.createClass({
             {behaviorElement}
         </fin-hypergrid>
 
-        {this.state.overlays.map(function (overlay) {
-          return (<ASOverlay key={overlay.id}
-                             overlay={overlay}
-                             scroll={self.state.scroll}
-                             isVisible={self.isVisible}/>);
-        })}
+        {this.state.overlays.map((overlay) =>
+          <ASOverlay key={overlay.id}
+                     overlay={overlay}
+                     scroll={self.state.scroll}
+                     isVisible={self.isVisible} />
+        )}
 
         <ASRightClickMenu ref="rightClickMenu" />
 

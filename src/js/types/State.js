@@ -12,7 +12,9 @@ import type {
   ASCell
 } from './Eval';
 
-export type ASViewingWindow = ASRange;
+export type ASViewingWindow = {
+  range: NakedRange;
+};
 
 export type ASSelection = {
   range: NakedRange;
@@ -63,3 +65,5 @@ export type ASClientExpression = {
 
 export type ASCellStore =
   Dict<Array<Array<ASCell>>>;
+
+export type ASCursorStyle = 'auto' | 'crosshair' | 'move';
