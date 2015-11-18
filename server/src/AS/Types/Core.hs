@@ -133,7 +133,7 @@ data CompositeValue = Expanding ExpandingValue | CellValue ASValue deriving (Sho
 data RangeDescriptor = 
     ListDescriptor { listKey :: RangeKey}
   | ObjectDescriptor { objKey :: RangeKey, objType :: ObjectType, objAttrs :: JSON }
-  deriving (Show, Read)
+  deriving (Show, Read, Eq, Generic)
 
 -- range keys are used to access range descriptors, which relay metadata about a range of cells
 -- e.g. for embedded lists and objects
@@ -148,8 +148,8 @@ data CompositeCell = Single ASCell | Fat FatCell
 -- String -> JSON -> CompositeValue -> FatCell -> [ASValue]
 type JSON = M.Map JSONKey JSONField 
 type JSONKey = String 
-data JSONField = JSONTree JSON | JSONLeaf JSONValue deriving (Show, Read)
-data JSONValue = ListValue Collection | SimpleValue ASValue deriving (Show, Read)
+data JSONField = JSONTree JSON | JSONLeaf JSONValue deriving (Show, Read, Eq, Generic)
+data JSONValue = ListValue Collection | SimpleValue ASValue deriving (Show, Read, Eq, Generic)
 
 type JSONPair = (String, String)
 ----------------------------------------------------------------------------------------------------------------------------------------------
@@ -318,6 +318,8 @@ type ASRelation = (ASIndex, [ASIndex]) -- for representing ancestry relationship
 
 data ASCommit = ASCommit {before :: [ASCell],
                           after :: [ASCell],
+                          beforeDescriptors :: [RangeDescriptor],
+                          afterDescriptors :: [RangeDescriptor],
                           time :: ASTime}
                           deriving (Show,Read,Eq,Generic)
 
@@ -459,6 +461,14 @@ instance FromJSON ASCommit
 instance ToJSON ASCommit
 instance FromJSON ComplexType
 instance ToJSON ComplexType
+instance FromJSON RangeDescriptor
+instance ToJSON RangeDescriptor
+instance FromJSON JSONField
+instance ToJSON JSONField
+instance FromJSON JSONValue
+instance ToJSON JSONValue
+instance FromJSON Collection
+instance ToJSON Collection
 -- The format Frontend uses for both client->server and server->client is
 -- { messageUserId: blah, action: blah, result: blah, payload: blah }
 instance ToJSON ASClientMessage where

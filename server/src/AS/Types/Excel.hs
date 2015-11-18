@@ -214,7 +214,7 @@ class EType a where
     -- | If the value is missing, return default
     -- | Must be the correct type if it exists as an argument
     | otherwise = case (entities!!(i-1)) of
-      (EntityVal EMissing) -> Right defaultVal
+      EntityVal EMissing -> Right defaultVal
       otherwise -> getRequired typeName f i entities
   -- | Same as above, but no default value (just return Nothing if the argument doesn't exist)
   getOptionalMaybe :: String -> ExtractArg (Maybe a)

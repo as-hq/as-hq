@@ -152,8 +152,8 @@ catchEitherT :: EitherTExec CompositeValue -> EitherTExec CompositeValue
 catchEitherT a = do
   result <- liftIO $ catch (runEitherT a) whenCaught
   case result of
-    (Left e) -> left e
-    (Right e) -> right e
+    Left e -> left e
+    Right e -> right e
     where 
       whenCaught :: SomeException -> IO (Either ASExecError CompositeValue)
       whenCaught e = return . Right . CellValue $ ValueError (show e) "StdErr" 
@@ -376,13 +376,6 @@ partitionByRangeKey cells [] = ([], cells)
 partitionByRangeKey cells keys = liftListTuple $ map (go cells) keys
   where go cs k = L.partition (isMemberOfSpecifiedRange k) cs
 
---listKeyOrdering :: ListKey -> ListKey -> Ordering
---listKeyOrdering k1 k2 = if (k1 == k2)
---  then EQ
---  else if (k1 > k2)
---    then GT
---    else LT
-
 isString :: ASValue -> Bool
 isString (ValueS _) = True
 isString _ = False
@@ -396,19 +389,9 @@ isString _ = False
 -- of just that index. It cannot take in a column.
 refToIndices :: ASReference -> Maybe [ASIndex]
 refToIndices loc = case loc of
-  (IndexRef ind) -> Just [ind]
-  (RangeRef r) -> Just $ rangeToIndices r
+  IndexRef ind -> Just [ind]
+  RangeRef r -> Just $ rangeToIndices r
   OutOfBounds -> Nothing
-
--- decomposeLocs :: ASReference -> [ASIndex]
--- decomposeLocs loc = case loc of
---   (IndexRef ind) -> [ind]
-  -- (RangeRef (Range sheet (ul, lr))) -> [Index sheet (x,y) | x <- [startx..endx], y <- [starty..endy] ]
-  --   where
-  --     startx = min (fst ul) (fst lr)
-  --     endx = max (fst ul) (fst lr)
-  --     starty = min (snd ul) (snd lr)
-  --     endy = max (snd ul) (snd lr)
 
 getHeight :: ASReference -> Int
 getHeight (IndexRef _) = 1

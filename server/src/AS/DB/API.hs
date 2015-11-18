@@ -95,9 +95,7 @@ getCompositeCells conn locs = do
       Pointer sid coord -> case ccell of 
         Just (Cell l (Coupled xp lang ctype key) v ts) -> do
           -- if the cell was coupled but no range descriptor exists, something fucked up.
-          (Just desc) <- runRedis conn $ do 
-            Right desc <- get (B.pack key)
-            return $ DU.bStrToRangeDescriptor desc
+          (Just desc) <- getRangeDescriptor conn key
           let fatLocs = DU.rangeKeyToIndices key
           let (headIdx, _) = DU.rangeKeyToDimensions key 
           cells <- map fromJust <$> getCells fatLocs
@@ -166,6 +164,11 @@ fatCellsInRange conn rng = do
       zipRects = zip rangeKeys rects
       zipRectsContained = filter (\(_,rect) -> U.rangeContainsRect rng rect) zipRects
   return $ map fst zipRectsContained
+
+getRangeDescriptor :: Connection -> RangeKey -> IO (Maybe RangeDescriptor)
+getRangeDescriptor conn key = runRedis conn $ do 
+  Right desc <- get (B.pack key)
+  return $ DU.bStrToRangeDescriptor desc
 
 ----------------------------------------------------------------------------------------------------------------------
 -- WorkbookSheets (for frontend API)
