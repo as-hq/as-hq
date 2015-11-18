@@ -102,7 +102,7 @@ getCompositeCells conn locs = do
           let (headIdx, _) = DU.rangeKeyToDimensions key 
           cells <- map fromJust <$> getCells fatLocs
           return . Just . Fat $ FatCell cells headIdx desc
-        _ -> return $ Single <$> ccell
+        _ -> (putStrLn $ "got pointer ref, but no fat cell: " ++ (show ccell)) >> (return $ Single <$> ccell)
       _ -> return $ Single <$> ccell 
 
 -- #incomplete LOL

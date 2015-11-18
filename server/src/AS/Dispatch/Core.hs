@@ -119,7 +119,7 @@ getValuesMap conn locs = do
 
 retrieveValue :: Maybe CompositeCell -> CompositeValue
 retrieveValue c = case c of
-  Just (Single cell) -> CellValue $cellValue cell
+  Just (Single cell) -> CellValue $ cellValue cell
   Just (Fat fcell) -> DE.recomposeCompositeValue fcell
   Nothing -> CellValue NoValue
 ----------------------------------------------------------------------------------------------------------------------------------------------
@@ -180,7 +180,14 @@ evalChain' conn valuesMap (c@(Cell loc xp _ ts):cs) fatCells = do
   let maybeFatCell              = DE.decomposeCompositeValue c cv
       addCell (Cell l _ v _) mp = M.insert l (CellValue v) mp
       newValuesMap              = case maybeFatCell of
-              Nothing -> M.insert loc cv valuesMap
+              Nothing -> if (M.member ptr valuesMap) 
+                then M.insert ptr cv idxInserted
+                else idxInserted
+      -- ^^ when updating a location in the map, check if there are Pointer references to the same location.
+      -- if so, update them too
+                where 
+                  ptr = indexToPointer loc
+                  idxInserted = M.insert loc cv valuesMap
               Just (FatCell expandedCells _ _) -> foldr addCell valuesMap expandedCells
       -- ^ adds all the cells in cellsList to the reference map
       fatCells' = case maybeFatCell of

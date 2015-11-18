@@ -43,14 +43,15 @@ evaluateLanguage curRef sheetid valuesMap xp =
   let maybeError = possiblyShortCircuit sheetid valuesMap xp
       lang = xpLanguage xp
       str = xpString xp
+      xpWithValuesSubstituted = insertValues sheetid valuesMap xp
   in catchEitherT $ do
-    printWithTimeT "Starting eval code"
+    printWithTimeT $ "Starting eval code: " ++ str 
+    printWithTimeT $ "with map: " ++ (show valuesMap)
     case maybeError of
       Just e -> return $ CellValue e -- short-circuited, return this error
       Nothing -> case lang of
         Excel -> KE.evaluate str curRef valuesMap -- Excel needs current location and un-substituted expression
         otherwise -> execEvalInLang lang xpWithValuesSubstituted -- didn't short-circuit, proceed with eval as usual
-         where xpWithValuesSubstituted = insertValues sheetid valuesMap xp
 
 evaluateLanguageRepl :: ASExpression -> EitherTExec CompositeValue
 evaluateLanguageRepl (Expression str lang) = catchEitherT $ case lang of

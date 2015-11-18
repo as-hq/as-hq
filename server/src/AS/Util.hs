@@ -498,6 +498,11 @@ pointerToIndex :: ASIndex -> ASIndex
 pointerToIndex idx = case idx of 
   Index _ _ -> idx
   Pointer sid coord -> Index sid coord
+
+indexToPointer :: ASIndex -> ASIndex
+indexToPointer idx = case idx of 
+  Index sid coord -> Pointer sid coord
+  Pointer _ _ -> idx
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Users
 

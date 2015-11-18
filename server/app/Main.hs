@@ -95,17 +95,9 @@ initApp = do
 
   return (conn, ports, states)
 
--- | Initializes database with sheets, etc. for debugging mode. Only called if isDebug is true.
+-- |  for debugging. Only called if isDebug is true.
 initDebug :: R.Connection -> MVar ServerState -> IO ()
-initDebug conn state = do
-  --let str = "{\"tag\" : \"Object\", \"objectType\": \"PSeries\", \"seriesVals\": [1,2,3] }"
-  --putStrLn $ show $ parse (PR.value Python) "" str
-  --result <- runEitherT $ KP.evaluate "1+a" 
-  --putStrLn $ show result
-  --result <- DC.testDispatch state Python (1,1) "np.array([1,2,3])"
-  --putStrLn $ show result
-  putStrLn $ show $ rectsIntersect ((2,1),(3,1)) ((1,1),(1,3))
-  return ()
+initDebug conn state = return ()
 
 application :: MVar ServerState -> WS.ServerApp
 application state pending = do
