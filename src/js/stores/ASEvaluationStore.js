@@ -6,7 +6,8 @@ import type {
   ASIndex,
   ASRange,
   ASSheet,
-  ASCell
+  ASCell, 
+  ASLanguage
 } from '../types/Eval';
 
 import type {
@@ -193,9 +194,8 @@ const ASEvaluationStore = Object.assign({}, BaseStore, {
           // logDebug("Last updated cells: " + JSON.stringify(_data.lastUpdatedCells));
           ASEvaluationStore.emitChange();
           break;
-
         case 'GOT_SELECTION':
-          ASEvaluationStore.setActiveSelection(TC.asSelectionToSimple(action.newSelection), "");
+          ASEvaluationStore.setActiveSelection(TC.asSelectionToSimple(action.newSelection), "", null);
           ASEvaluationStore.emitChange();
           break;
         case 'DELETED_LOCS':
@@ -241,12 +241,12 @@ const ASEvaluationStore = Object.assign({}, BaseStore, {
     };
   },
 
-  setActiveSelection(sel, xp) {
+  setActiveSelection(sel, xp, lang: ?ASLanguage) {
     Render.setSelection(sel);
     let origin = sel.origin;
     _data.activeSelection = sel;
     _data.activeCell = this.getCell(origin.col, origin.row) || TC.makeEmptyCell();
-    var activeCellDependencies = Util.parseDependencies(xp);
+    var activeCellDependencies = Util.parseDependencies(xp, lang);
     let c = sel.origin.col,
         r = sel.origin.row,
         listDep = this.getParentList(c, r);

@@ -497,17 +497,19 @@ export default React.createClass({
       logDebug("Selected non-empty cell to move to");
       let {language, expression} = cell.cellExpression,
           val = cell.cellValue;
-      Store.setActiveSelection(sel, expression);
+      Store.setActiveSelection(sel, expression, language);
       ExpActionCreator.handleSelChange(expression);
       this.hideToast();
       this.showAnyErrors(val);
       this.setState({currentLanguage: Constants.Languages[language]});
+      ExpStore.setLanguage(language);
     } else if (changeSelToNewCell) {
       logDebug("Selected empty cell to move to");
-      Store.setActiveSelection(sel, "");
+      Store.setActiveSelection(sel, "", null);
       this.refs.spreadsheet.repaint();
       ExpActionCreator.handleSelChange('');
       this.setState({currentLanguage: this.state.defaultLanguage});
+      ExpStore.setLanguage(this.state.defaultLanguage.Display);
       this.hideToast();
     } else if (changeSelWhileTypingNoInsert){ //click away while not parsable
       logDebug("Change sel while typing no insert");
@@ -519,10 +521,11 @@ export default React.createClass({
       // Otherwise the eval result shows up in the new sel
       this.handleEvalRequest(xpObj, null, null);
       if (cell && cell.cellExpression) {
-        Store.setActiveSelection(sel, cell.cellExpression.expression);
+        let {expression, language} = cell.cellExpression; 
+        Store.setActiveSelection(sel, expression, language); 
         this.showAnyErrors(cell.cellValue);
       } else {
-         Store.setActiveSelection(sel, "");
+         Store.setActiveSelection(sel, "", null);
          this.hideToast();
       }
     } else if (userIsTyping) {

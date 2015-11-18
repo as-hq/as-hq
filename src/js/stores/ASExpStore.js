@@ -20,11 +20,13 @@ This store is for holding common data for three-way data flow between grid, text
 let _data = {
 
   xpChangeOrigin: null,
-  lastCursorPosition: Constants.CursorPosition.GRID,
+  lastCursorPosition: Constants.CursorPosition.GRID, 
+
 
   deps: [],
 
   expression: '',
+  language: null,
   //scellRefChanging: '',
   lastRef: null,
   refInsertionBypass: false,
@@ -57,7 +59,7 @@ const ASExpStore = assign({}, BaseStore, {
             newXpStr = lastRef ?
               curXpStr.substring(0,curXpStr.length-lastRef.length) + action.excelStr:
               curXpStr + action.excelStr;
-        ASExpStore.updatePartialRef(action._type,newXpStr,action.excelStr);
+        ASExpStore.updatePartialRef(action._type, newXpStr, action.excelStr);
         break;
       case Constants.ActionTypes.PARTIAL_REF_CHANGE_WITH_EDITOR:
       case Constants.ActionTypes.PARTIAL_REF_CHANGE_WITH_TEXTBOX:
@@ -148,6 +150,14 @@ const ASExpStore = assign({}, BaseStore, {
     _data.lastRef=excel;
   },
 
+  getLanguage() { 
+    return _data.language; 
+  },
+
+  setLanguage(lang) { 
+    _data.language = lang; 
+  },
+
   getClickType(){
     return _data.clickType;
   },
@@ -196,12 +206,13 @@ const ASExpStore = assign({}, BaseStore, {
   /**************************************************************************************************************************/
   // Update helpers
 
-  updateStoreNormalTyping(type,xpStr){
+  updateStoreNormalTyping(type, xpStr) {
     this.setUserIsTyping(true);
     this.setXpChangeOrigin(type);
     this.setExpression(xpStr);
     this.setLastRef(null); // no longer have a "last ref"
-    let deps = Util.parseDependencies(xpStr);
+    let lang = this.getLanguage(), 
+        deps = Util.parseDependencies(xpStr, lang);
     logDebug("DEPS: " + JSON.stringify(deps));
     Store.setActiveCellDependencies(deps);
     this.emitChange();
@@ -215,11 +226,12 @@ const ASExpStore = assign({}, BaseStore, {
     this.emitChange();
   },
 
-  updatePartialRef(type,xpStr,excelStr){
+  updatePartialRef(type, xpStr, excelStr) {
     this.setXpChangeOrigin(type);
     this.setLastRef(excelStr);
     this.setExpression(xpStr);
-    Store.setActiveCellDependencies(Util.parseDependencies(xpStr));
+    let lang = this.getLanguage();
+    Store.setActiveCellDependencies(Util.parseDependencies(xpStr, lang));
     this.emitChange();
   },
 
