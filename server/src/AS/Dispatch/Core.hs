@@ -52,7 +52,7 @@ testDispatch state lang crd str = runDispatchCycle state [Cell (Index sid crd) (
     uid = T.pack "userid"
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
--- Regular eval route
+-- Exposed functions / regular eval route
 
 -- assumes all evaled cells are in the same sheet
 runDispatchCycle :: MVar ServerState -> [ASCell] -> CommitSource -> IO ASServerMessage
@@ -159,8 +159,9 @@ retrieveValue c = case c of
   Just (Single cell) -> CellValue $ cellValue cell
   Just (Fat fcell) -> DE.recomposeCompositeValue fcell
   Nothing -> CellValue NoValue
+
 ----------------------------------------------------------------------------------------------------------------------------------------------
--- Eval helpers
+-- EvalChain
 
 -- | Evaluates a list of cells, in serial order, updating the reference/value map with each
 -- cell that's updated. The cells passed in are guaranteed to be topologically sorted, i.e.,
@@ -220,11 +221,11 @@ evalChain' conn valuesMap (c@(Cell loc xp _ ts):cs) fatCells = do
               Nothing -> if (M.member ptr valuesMap) 
                 then M.insert ptr cv idxInserted
                 else idxInserted
-      -- ^^ when updating a location in the map, check if there are Pointer references to the same location.
-      -- if so, update them too
                 where 
                   ptr = indexToPointer loc
                   idxInserted = M.insert loc cv valuesMap
+      -- ^ when updating a location in the map, check if there are Pointer references to the same location.
+      -- if so, update them too
               Just (FatCell expandedCells _ _) -> foldr addCell valuesMap expandedCells
       -- ^ adds all the cells in cellsList to the reference map
       fatCells' = case maybeFatCell of
@@ -236,17 +237,3 @@ evalChain' conn valuesMap (c@(Cell loc xp _ ts):cs) fatCells = do
     Nothing        -> let {(CellValue v) = cv} 
       in ((Cell loc xp v ts):restCells, restFatCells)
     (Just fatCell) -> (restCells, fatCell:restFatCells)
-
--- Removed for now for a number of reasons: 
--- 1) confusing UX
--- 2) frontend sorta handles the thing we want to avoid by not sending eval messages if the expression 
--- was the same. 
--- 3) slows things down nontrivially. 
--- -- | You should always re-eval a cell, UNLESS you're a part of a list, your expression was 
--- -- the same as last time's, and you're not the head of the list. 
--- shouldReEval :: ASCell -> IO Bool
--- shouldReEval c@(Cell loc xp _ ts) = do 
---   maybeOldCell <- DB.getCell loc
---   case maybeOldCell of 
---     Nothing -> return True
---     Just oldCell -> return $ (not $ isListMember oldCell) || (xp /= (cellExpression oldCell)) || (DU.isListHead oldCell)

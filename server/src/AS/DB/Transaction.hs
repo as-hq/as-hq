@@ -95,14 +95,6 @@ getFatCellsInRange conn rng = do
       zipRectsContained = filter (\(_,rect) -> U.rangeContainsRect rng rect) zipRects
   return $ map fst zipRectsContained
 
-
---recoupleList :: Connection -> RangeDescriptor -> IO ()
---recoupleList conn key = do
---  let locs = DU.getLocationsFromListKey key
---  locsExist <- locationsExist conn locs
---  let locs' = U.zipFilter $ zip locs locsExist
---  setListLocations conn key locs'
-
   -- | Makes sure everything is synced -- the listKeys and ancestors in graph db should reflect 
 -- the cell changes that happen as a result of setting the cells. 
 setCellsPropagated :: Connection -> [ASCell] -> [RangeDescriptor] -> IO ()
