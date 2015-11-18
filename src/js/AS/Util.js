@@ -512,8 +512,11 @@ export default {
     }
   },
 
-  parseDependencies(str: string): Array<NakedRange> {
+  parseDependencies(str: string, lang: ?ASLanguage): Array<NakedRange> {
     // logDebug("parsing dependencies of: " + str);
+    if (lang == 'Excel' && str.length > 0 && str[0] != '=') { 
+      return []; 
+    }
     let matches = this.parseRefs(str),
         parsed = matches.map((m) => this.orientRange(this.excelToRange(m)), this);
     logDebug("parsed deps: "+JSON.stringify(matches));
