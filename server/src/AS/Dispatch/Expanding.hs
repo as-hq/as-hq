@@ -7,6 +7,7 @@ import AS.DB.Util as DU
 import AS.Util as U
 
 import qualified Data.Map as M
+import qualified Data.List as L
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- value decomposition (expansion)
@@ -124,7 +125,7 @@ recomposeCompositeValue (FatCell cells _ (ObjectDescriptor key PSeries attrs)) =
 recomposeCells :: Dimensions -> [ASCell] -> Collection
 recomposeCells dims cells = case (snd dims) of 
   1 -> A $ map cellValue cells
-  _ -> M $ map (\row -> map cellValue row) $ U.reshapeList cells dims
+  _ -> M . L.transpose $ map (\row -> map cellValue row) $ U.reshapeList cells (snd dims, fst dims)
 
 
 --------------------------------------------------------------------------------------------------------------
