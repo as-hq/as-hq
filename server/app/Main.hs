@@ -103,7 +103,9 @@ application :: MVar ServerState -> WS.ServerApp
 application state pending = do
   conn <- WS.acceptRequest pending -- initialize connection
   msg <- WS.receiveData conn -- waits until it receives data
-  handleFirstMessage state conn msg
+  if (isDebug && shouldPreprocess) 
+    then preprocess conn state
+    else handleFirstMessage state conn msg
 
 handleFirstMessage ::  MVar ServerState -> WS.Connection -> B.ByteString -> IO ()
 handleFirstMessage state conn msg =
@@ -118,25 +120,32 @@ handleFirstMessage state conn msg =
       sendMessage (failureMessage "Cannot connect") conn
 
 shouldPreprocess :: Bool
-shouldPreprocess = False
+shouldPreprocess = True
 
 -- | For debugging purposes. Reads in a list of ClientMessages from a file and processes them, as though
 -- sent from a frontend. 
-preprocess :: (Client c) => c -> MVar ServerState -> IO () 
-preprocess cl state = do
+preprocess :: WS.Connection -> MVar ServerState -> IO () 
+preprocess conn state = do
+  -- clear everything at the beginning
+  let tempUc = UserClient (T.pack "") conn (Window (T.pack "") (-1,-1) (-1,-1)) (T.pack "")
+  processMessage tempUc state (ClientMessage Clear (PayloadN ()))
+
+  -- prepare the preprocessing
   logDir <- getServerLogDir
   fileContents <- Prelude.readFile (logDir ++ "client_messages")
   let fileLinesWithNumbers = zip (L.lines fileContents) [1..]
       nonemptyNumberedFileLines =  filter (\(l, i) -> (l /= "") && (head l) /= '#') fileLinesWithNumbers
+
   mapM_ (\[(msg,i), (sid, _), (uid, _)] -> do 
-    putStrLn ("PROCESSING LINES" ++ (show i) ++ ": " ++ msg ++ "\n" ++ sid ++ "\n" ++ uid)
+    putStrLn ("PROCESSING LINE " ++ (show i) ++ ": " ++ msg ++ "\n" ++ sid ++ "\n" ++ uid)
     let win = Window (T.pack sid) (-1,-1) (-1,-1)
         cid = T.pack uid
-        mockUc = UserClient cid (conn cl) win (T.pack "")
+        mockUc = UserClient cid conn win (T.pack "")
     curState <- readMVar state
     when (isNothing $ US.getUserByClientId cid curState) $ liftIO $ modifyMVar_ state (\s -> return $ addClient mockUc s)
     processMessage mockUc state (read msg)
     putStrLn "\n\n\n\nFINISHED PROCESSING MESSAGE\n\n\n\n") (chunksOf 3 nonemptyNumberedFileLines)
+  putStrLn "\n\nFinished preprocessing."
 
 -- too lazy to import from Data.List.Split
 chunksOf :: Int -> [a] -> [[a]]
@@ -149,7 +158,6 @@ chunksOf n l
 initClient :: (Client c) => c -> MVar ServerState -> IO ()
 initClient client state = do
   liftIO $ modifyMVar_ state (\s -> return $ addClient client s) -- add client to state
-  if (isDebug && shouldPreprocess) then (preprocess client state) else (return ())
   finally (talk client state) (onDisconnect client state)
 
 -- | Maintains connection until user disconnects

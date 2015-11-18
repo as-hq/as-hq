@@ -302,7 +302,17 @@ logBugReport str (sid, uid) = do
   appendFile' bugLogPath loggedStr
 
 writeErrToLog :: String -> CommitSource -> IO ()
-writeErrToLog str src = writeToLog ("#ERROR: " ++ str) src
+writeErrToLog str (sid, uid) = do 
+  logDir <- getServerLogDir
+  time <- getTime
+  let sid' = T.unpack sid
+      uid' = T.unpack uid
+      loggedStr = "\n#ERROR: "++ str ++ "\n# " ++ sid' ++ "\n# " ++ uid'
+      logPath = logDir ++ "bug_reports"
+  appendFile' logPath loggedStr
+  -- then write to individual log for the sheet
+  let logPath' = logPath ++ sid'
+  appendFile' logPath' loggedStr
 
 printWithTimeT :: String -> EitherTExec ()
 printWithTimeT = lift . printWithTime
