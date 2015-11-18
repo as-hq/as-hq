@@ -80,6 +80,7 @@ class PersistentWebSocket {
 
       let {onmessage, onopen} = this._client;
 
+      logDebug('Reconnecting...');
       this._beforereconnect();
 
       this._client = new ws(this._url);
@@ -97,6 +98,7 @@ class PersistentWebSocket {
       }
     } else if (this._client.readyState > 1) {
       // logDebug('TIMING OUT DUE TO CLOSED WS');
+      logDebug('Closed WS state:', this._client.readyState);
       this._dcCount = TIMEOUT;
     }
   }
@@ -121,6 +123,7 @@ class PersistentWebSocket {
   }
 
   close() {
+    logDebug('Closed WS command from frontend');
     this._client.close();
     clearInterval(this._messagePump);
   }

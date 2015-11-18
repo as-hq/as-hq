@@ -6,7 +6,7 @@ import type {
   ASIndex,
   ASRange,
   ASSheet,
-  ASCell, 
+  ASCell,
   ASLanguage
 } from '../types/Eval';
 
@@ -179,20 +179,24 @@ const ASEvaluationStore = Object.assign({}, BaseStore, {
 
         case 'CLEARED_SHEET':
           _data.lastUpdatedCells = [];
-          let cr = [];
-          _data.allCells[action.sheetId].forEach((colArray) => {
-            colArray.forEach((cell) => {
-              cr.push(cell);
+
+          if (_data.allCells[action.sheetId]) {
+            let cr = [];
+            _data.allCells[action.sheetId].forEach((colArray) => {
+              colArray.forEach((cell) => {
+                cr.push(cell);
+              });
             });
-          });
 
-          // remove possibly null cells
-          cr = cr.filter((cell) => !!cell);
+            // remove possibly null cells
+            cr = cr.filter((cell) => !!cell);
 
-          ASEvaluationStore.removeCells(cr);
-          _data.allCells[action.sheetId] = [];
-          // logDebug("Last updated cells: " + JSON.stringify(_data.lastUpdatedCells));
-          ASEvaluationStore.emitChange();
+            ASEvaluationStore.removeCells(cr);
+            _data.allCells[action.sheetId] = [];
+            // logDebug("Last updated cells: " + JSON.stringify(_data.lastUpdatedCells));
+            ASEvaluationStore.emitChange();
+          }
+
           break;
         case 'GOT_SELECTION':
           ASEvaluationStore.setActiveSelection(TC.asSelectionToSimple(action.newSelection), "", null);
