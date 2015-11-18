@@ -48,8 +48,10 @@ decomposeCompositeValue c@(Cell idx _ _ _) (Expanding (VNPMatrix mat)) = Just $ 
     desc      = ObjectDescriptor rangeKey NPMatrix $ M.fromList []
 
 decomposeCells :: ComplexType -> RangeKey -> ASCell -> Collection -> [ASCell]
-decomposeCells cType rangeKey (Cell (Index sheet (c,r)) (Expression str lang) _ ts) coll = 
-  let xp' = Coupled str lang cType rangeKey 
+decomposeCells cType rangeKey (Cell (Index sheet (c,r)) xp _ ts) coll = 
+  let str = xpString xp
+      lang = xpLanguage xp
+      xp' = Coupled str lang cType rangeKey 
   in case coll of 
     A arr -> unpack $ zip [r..] arr
         where unpack = map (\(r', val) -> Cell (Index sheet (c,r')) xp' val ts)

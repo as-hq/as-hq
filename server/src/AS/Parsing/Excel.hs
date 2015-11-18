@@ -125,8 +125,8 @@ rangeMatch = do
 
 refMatch :: Parser ExRef
 refMatch = do
-  (sh, wb) <- option (Nothing, Nothing) $ try sheetWorkbookMatch
   point <- optionMaybe $ try pointer
+  (sh, wb) <- option (Nothing, Nothing) $ try sheetWorkbookMatch
   rng <- optionMaybe $ try rangeMatch 
   idx <- optionMaybe $ try indexMatch
   ofb <- optionMaybe $ try outOfBoundsMatch

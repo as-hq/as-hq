@@ -42,7 +42,7 @@ import AS.Kernels.LanguageUtils as KL
 import AS.Kernels.Excel.Compiler as KE
 import Text.ParserCombinators.Parsec (parse)
 import AS.Parsing.Read as PR
-import AS.Parsing.Excel (refMatch, sheetWorkbookMatch, exRefToASRef, asRefToExRef)
+import AS.Parsing.Excel (refMatch, sheetWorkbookMatch, exRefToASRef, asRefToExRef, shiftExRef)
 import AS.Types.Excel
 import AS.Dispatch.Core as DC
 
@@ -97,7 +97,9 @@ initApp = do
 
 -- |  for debugging. Only called if isDebug is true.
 initDebug :: R.Connection -> MVar ServerState -> IO ()
-initDebug conn state = return ()
+initDebug conn state = do
+  --putStrLn $ show $ shiftExRef (5,5) (ExPointerRef (ExIndex REL_REL "A" "1") (Just "sheet1") (Just "workbook1"))
+  return ()
 
 application :: MVar ServerState -> WS.ServerApp
 application state pending = do

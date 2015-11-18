@@ -104,8 +104,10 @@ getASRefsFromExRefs sheetid matches = map (exRefToASRef sheetid) matches
 -- | Takes in an offset and a cell, and returns the cell you get when you shift the cell by
 -- the offset. (The location changes, and the non-absolute references in the expression changes.)
 shiftCell :: Offset -> ASCell -> ASCell
-shiftCell offset (Cell loc xp@(Expression str lang) v ts) = shiftedCell
+shiftCell offset (Cell loc xp v ts) = shiftedCell
   where
+    str            = xpString xp
+    lang           = xpLanguage xp
     shiftedLoc     = shiftInd offset loc
     (inter,exRefs) = getUnquotedMatchesWithContext xp refMatch
     shiftedExRefs  = shiftExRefs offset exRefs

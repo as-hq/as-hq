@@ -41,14 +41,14 @@ class Ref a where
 
 instance Ref ExRef where
   sheetRef a = case a of 
-    (ExLocRef _ _ _) -> locSheet a
-    (ExRangeRef _ _ _) -> rangeSheet a
-    (ExPointerRef _ _ _) -> pointerSheet a
+    ExLocRef _ _ _ -> locSheet a
+    ExRangeRef _ _ _ -> rangeSheet a
+    ExPointerRef _ _ _ -> pointerSheet a
     ExOutOfBounds -> Nothing
   workbookRef a = case a of 
-    (ExLocRef _ _ _) -> locWorkbook a
-    (ExRangeRef _ _ _) -> rangeWorkbook a
-    (ExPointerRef _ _ _) -> pointerWorkbook a
+    ExLocRef _ _ _ -> locWorkbook a
+    ExRangeRef _ _ _ -> rangeWorkbook a
+    ExPointerRef _ _ _ -> pointerWorkbook a
     ExOutOfBounds -> Nothing
 
 instance Show ExRef where
@@ -58,7 +58,7 @@ instance Show ExRef where
       ExOutOfBounds                -> "#REF!"
       ExLocRef l _ _               -> prefix ++ (show l)
       ExRangeRef (ExRange f s) _ _ -> prefix ++ (show f) ++ ":" ++ (show s)
-      ExPointerRef l _ _           -> prefix ++ (show l)
+      ExPointerRef l _ _           -> '@':prefix ++ (show l)
 
 instance Show ExLoc where
   show (ExIndex rType c r) = d1 ++ c ++ d2 ++ r

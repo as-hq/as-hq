@@ -633,8 +633,10 @@ refMap mt er@(ExPointerRef el ps pw) = ExPointerRef el' ps pw
     ExLocRef el' _ _ = refMap mt (ExLocRef el ps pw)
 
 expressionMap :: MutateType -> (ASExpression -> ASExpression)
-expressionMap mt xp@(Expression str lang) = xp'
+expressionMap mt xp = xp'
   where
+    str = xpString xp
+    lang = xpLanguage xp
     (inter, exRefs)  = S.getUnquotedMatchesWithContext xp refMatch
     exRefs' = map (refMap mt) exRefs
     str' = S.replaceMatches (inter, exRefs') show str
