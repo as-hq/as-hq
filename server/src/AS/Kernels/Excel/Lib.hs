@@ -390,7 +390,7 @@ toValueAC _ (EntityVal v) = Right v
 -- | Only accept 1x1 matrices
 toValueAC _ (EntityMatrix (EMatrix c r v)) = case (c,r) of
   (1,1) -> Right $ V.head v
-  otherwise -> Left  $ ArrayConstantDim
+  otherwise -> Left ArrayConstantDim
 
 -- | Converts an array constant to a matrix (replaces non-range references)
 -- | Throws error for wrong dimensionality
@@ -527,7 +527,7 @@ argToNumVec :: EEntity -> ThrowsError (V.Vector EFormattedNumeric)
 argToNumVec (EntityVal (EValueNum n )) = Right $ V.singleton n
 argToNumVec (EntityVal (EValueS s))  = do  -- attempt to cast to numeric
   let str = extractString s
-  case ((TR.readMaybe (trace' "parsed str " str))::Maybe Int) of
+  case ((TR.readMaybe str)::Maybe Int) of
     Nothing -> case ((TR.readMaybe str)::Maybe Double) of
       Nothing -> Left $ VAL $ "Argument is not numeric"
       Just d  -> Right $ V.singleton $ return $ EValueD d
@@ -740,14 +740,17 @@ eIsError c r = do
 -- | Helpers
 boolEntity :: EEntity -> Bool
 boolEntity (EntityVal (EValueB _)) = True
+boolEntity (EntityMatrix (EMatrix 1 1 v)) = boolEntity $ EntityVal $ V.head v
 boolEntity _ = False
 
 blank :: EEntity -> Bool
 blank (EntityVal EBlank) = True
+blank (EntityMatrix (EMatrix 1 1 v)) = blank $ EntityVal $ V.head v
 blank _ = False
 
 numeric :: EEntity -> Bool
 numeric (EntityVal (EValueNum _)) = True
+numeric (EntityMatrix (EMatrix 1 1 v)) = numeric $ EntityVal $ V.head v
 numeric _ = False
 
 --------------------------------------------------------------------------------------------------------------
@@ -762,6 +765,9 @@ eIfError c r = do
   case (head r') of
     Left e -> errRes
     Right (EntityVal (EValueE _)) -> errRes
+    Right (EntityMatrix (EMatrix 1 1 v)) -> case V.head v of 
+      EValueE _ -> errRes
+      otherwise -> head r'
     otherwise -> head r'
 
 eIf :: EFunc
@@ -935,19 +941,19 @@ eMatch c e = do
   let matcher = getLambda lookupVal :: (EValue -> Bool)
   case lookupType of
     -- | Type 0 enables regex
-    0 -> case (V.findIndex matcher (trace' "match vector " vec)) of
+    0 -> case (V.findIndex matcher vec) of
       Nothing -> Left $ NA "No match found"
       Just i -> valToResult $ EValueNum $ return $ EValueI (i+1)
     1 -> do 
-      let indices = (V.filter (<=lookupVal) (trace' "match vector " vec)) 
+      let indices = (V.filter (<=lookupVal) vec) 
       let desiredValue = V.maximum indices
-      if (V.null (trace' "indices 1 " indices))
+      if (V.null indices)
         then Left $ NA "No match found"
         else valToResult $ EValueNum $ return $ EValueI $ (fromJust (V.findIndex (==desiredValue) vec)) + 1
     -1 -> do 
-      let indices = (V.filter (>=lookupVal) (trace' "match vector " vec)) 
+      let indices = (V.filter (>=lookupVal) vec) 
       let desiredValue = V.minimum indices
-      if (V.null (trace' "indices -1 " indices))
+      if (V.null indices)
         then Left $ NA "No match found"
         else valToResult $ EValueNum $ return $ EValueI $ (fromJust (V.findIndex (==desiredValue) vec)) + 1
     otherwise -> Left $ VAL $ "Last argument for MATCH must be -1,0, or 1 (default)"
@@ -987,7 +993,7 @@ eTranspose :: EFunc
 eTranspose c e = do
   m <- getRequired "matrix" "transpose" 1 e :: ThrowsError EMatrix
   let mT = matrixTranspose m
-  return $ EntityMatrix $ EMatrix (emRows m) (emCols m) (trace' "tranposed vec " (content mT))
+  return $ EntityMatrix $ EMatrix (emRows m) (emCols m) (content mT)
 
 eVlookup :: EFunc
 eVlookup c e = do 
@@ -1134,7 +1140,7 @@ variance_s xs = s / fromIntegral (n-1)
 sumSqDev :: V.Vector Double -> Double
 sumSqDev xs = s
   where
-    m = trace' "mean " $ mean xs
+    m = mean xs
     s = V.foldl' k 0 xs
     k s x = s + (x-m)*(x-m)
 
@@ -1422,13 +1428,13 @@ eSlope c e = do
   if (V.length v1 /= V.length v2) || V.length v1 == 0 || V.length v2 == 0
     then Left $ NA "Invalid dimensions for SLOPE arguments"
     else do
-      let y = trace' "y " $ toDouble $ filterNum v1
-      let x = trace' "x " $ toDouble $ filterNum v2
-      let denom = trace' "denom " $ sumSqDev x
+      let y = toDouble $ filterNum v1
+      let x = toDouble $ filterNum v2
+      let denom = sumSqDev x
       if V.length x /= V.length y || denom == 0
         then Left $ DIV0
         else do
-          let numerator = trace' "numerator " $ xyMinusMeanProd x y
+          let numerator = xyMinusMeanProd x y
           doubleToResult $ numerator/denom
 
 eVarP :: EFunc
