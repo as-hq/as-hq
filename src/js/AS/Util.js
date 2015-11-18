@@ -401,31 +401,31 @@ export default {
     return arr.indexOf(elem) > -1;
   },
 
-  // counts the char : as part of a word. 
-  getExtendedWordRange(session, r: number, c: number) { 
-    let immWordRange = session.getWordRange(r, c), 
-        wordStart = immWordRange.start.column, 
-        wordEnd   = immWordRange.end.column; 
-
+  // counts the char : as part of a word.
+  getExtendedWordRange(session: AESession, r: number, c: number): AEWordRange {
+    let immWordRange = session.getWordRange(r, c),
+        wordStart = immWordRange.start.column,
+        wordEnd   = immWordRange.end.column;
+        
     let beforeRange = immWordRange.clone();
         beforeRange.start.column = Math.max(0, wordStart-1);
 
     let afterRange = immWordRange.clone();
         afterRange.end.column = wordEnd + 1; // doesn't matter if wordEnd is too large
 
-    if (wordStart > 0 && session.getTextRange(beforeRange)[0] == ':') { 
-      wordStart = session.getWordRange(r, wordStart - 1).start.column; 
-    } else { 
-      let after = session.getTextRange(afterRange); 
-      if (after[after.length - 1] == ':') { 
-        wordEnd = session.getWordRange(r, wordEnd + 1).end.column; 
+    if (wordStart > 0 && session.getTextRange(beforeRange)[0] == ':') {
+      wordStart = session.getWordRange(r, wordStart - 1).start.column;
+    } else {
+      let after = session.getTextRange(afterRange);
+      if (after[after.length - 1] == ':') {
+        wordEnd = session.getWordRange(r, wordEnd + 1).end.column;
       }
     }
 
-    let extRange = immWordRange.clone(); 
-    extRange.start.column = wordStart; 
-    extRange.end.column = wordEnd; 
-    return extRange; 
+    let extRange = immWordRange.clone();
+    extRange.start.column = wordStart;
+    extRange.end.column = wordEnd;
+    return extRange;
   },
 
   toggleReference(xp: string): ?string {
@@ -442,7 +442,7 @@ export default {
 
   _toggleReference(ref: string): ?string {
     let refs = ref.split(':');
-    if (refs.length > 1) { 
+    if (refs.length > 1) {
       return refs.map((r) => this._toggleReference(r)).join(':');
     }
 
@@ -461,7 +461,7 @@ export default {
       }
     } else if (dollarIndices.length === 2) {
       return col + '$' + row;
-    } else { 
+    } else {
       return null;
     }
   },
@@ -492,9 +492,9 @@ export default {
       col = col + this.charToInt(ref.charAt(c)) * Math.pow(26, charIdx - c-1);
     }
 
-    if (rawRow.length > 0) { 
+    if (rawRow.length > 0) {
       return {col: col, row: parseInt(rawRow)};
-    } else { 
+    } else {
       return {col: col, row: Infinity};
     }
   },
@@ -545,17 +545,17 @@ export default {
     if (str === "") {
       return [];
     } else {
-      let regIdx      = /!?\$?[A-Za-z]+\$?[0-9]+/g, 
-          regRng      = /!?\$?[A-Za-z]+\$?[0-9]+:\$?[A-Za-z]+\$?[0-9]+/g, 
+      let regIdx      = /!?\$?[A-Za-z]+\$?[0-9]+/g,
+          regRng      = /!?\$?[A-Za-z]+\$?[0-9]+:\$?[A-Za-z]+\$?[0-9]+/g,
           regCols     = /!?\$?[A-Za-z]+(\$?[0-9]+)?:\$?[A-Za-z]+(\$?[0-9]+)?/g, //matches ranges too, but only checks after we remove all ranges (see str2)
-          rngs        = str.match(regRng), 
-          str2        = str.replace(regRng, ""), 
+          rngs        = str.match(regRng),
+          str2        = str.replace(regRng, ""),
           cols        = str2.match(regCols),
-          str3        = str2.replace(regCols, ""), 
-          idxs        = str3.match(regIdx), 
+          str3        = str2.replace(regCols, ""),
+          idxs        = str3.match(regIdx),
           firstNotExc = ((s) => s[0] != '!'),
-          rngsOnSheet = rngs ? rngs.filter(firstNotExc) : [], 
-          idxsOnSheet = idxs ? idxs.filter(firstNotExc) : [], 
+          rngsOnSheet = rngs ? rngs.filter(firstNotExc) : [],
+          idxsOnSheet = idxs ? idxs.filter(firstNotExc) : [],
           colsOnSheet = cols ? cols.filter(firstNotExc) : [],
           matches = rngsOnSheet.concat(idxsOnSheet).concat(colsOnSheet);
       return matches;
@@ -564,8 +564,8 @@ export default {
 
   parseDependencies(str: string, lang: ?ASLanguage): Array<NakedRange> {
     // logDebug("parsing dependencies of: " + str);
-    if (lang == 'Excel' && str.length > 0 && str[0] != '=') { 
-      return []; 
+    if (lang == 'Excel' && str.length > 0 && str[0] != '=') {
+      return [];
     }
     let matches = this.parseRefs(str),
         parsed = matches.map((m) => this.orientRange(this.excelToRange(m)), this);

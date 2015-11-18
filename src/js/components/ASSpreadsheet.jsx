@@ -97,7 +97,6 @@ export default React.createClass({
   componentDidMount() {
     // Be able to respond to events from ExpStore
     ExpStore.addChangeListener(this._onExpressionChange);
-    this._getSheetDOMNode().addEventListener("rowResize",this.handleRowResize);
     // Hypergrid initialization
     document.addEventListener('polymer-ready', () => {
       this.props.onReady();
@@ -177,13 +176,6 @@ export default React.createClass({
 
   componentWillUnmount(){
     ExpStore.removeChangeListener(this._onExpressionChange);
-  },
-
-  /*************************************************************************************************************************/
-  // Handle resize events
-
-  handleRowResize(e) {
-    console.log(e);
   },
 
   /*************************************************************************************************************************/
@@ -334,13 +326,6 @@ export default React.createClass({
         model = hg.getBehavior(),
         self = this;
     hg.addGlobalProperties(this.gridProperties);
-    model.setRowHeight = (rowNum, height) => {
-      var tableState = this.getState();
-      tableState.rowHeights[rowNum] = Math.max(5, height);
-      this.changed();
-      let rowResizeEvent = new CustomEvent("rowResize");
-      self._getSheetDOMNode().dispatchEvent(rowResizeEvent);
-    };
     model.getColumnCount = () => { return Constants.numCols; };
     model.getRowCount = () => { return Constants.numRows; };
     model.getValue = (x, y) => { return ''; };

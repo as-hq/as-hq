@@ -126,9 +126,27 @@ declare class HGElement extends HTMLElement {
   takeFocus(): void;
 }
 
+declare class AEPoint {
+  row: number;
+  column: number;
+}
+
+declare class AEWordRange {
+  start: AEPoint;
+  end: AEPoint;
+
+  clone(): AEWordRange;
+}
+
+declare class AESession {
+  getWordRange(r: number, c: number): AEWordRange;
+  getTextRange(rng: AEWordRange): string;
+}
+
 declare class AERawClass {
   focus(): void;
   getValue(): string;
+  getSession(): AESession;
   navigateFileEnd(): void;
 }
 
