@@ -22,13 +22,13 @@ import Control.Monad.Trans.Class
 -- top-level functions
 
 -- | Deal with updating all DB-related things after an eval. 
-writeTransaction :: Connection -> ASTransaction -> EitherTExec [ASCell]
-writeTransaction conn (Transaction src@(sid, _) roots afterCells fatCells) = 
+transactionToCommit :: Connection -> ASTransaction -> EitherTExec ASCommit
+transactionToCommit conn (Transaction (sid, _) afterCells fatCells) = 
   let extraCells       = concat $ map expandedCells fatCells
       locs             = map cellLocation afterCells
       afterCells'      = afterCells ++ extraCells
       locs'            = map cellLocation afterCells'
-      rangeKeys        = map (rangeDescriptorToKey . descriptor) fatCells
+      rangeKeys        = map (U.rangeDescriptorToKey . descriptor) fatCells
       afterDescriptors = map descriptor fatCells
   in do
     beforeCells <- lift $ catMaybes <$> DB.getCells locs'
@@ -49,16 +49,16 @@ writeTransaction conn (Transaction src@(sid, _) roots afterCells fatCells) =
     -- delete empty cells after setting them
     liftIO $ deleteCells conn $ filter isEmptyCell afterCells''
     liftIO $ mapM_ (couple conn) afterDescriptors
-    liftIO $ addCommit conn (beforeCells', afterCells'') (beforeDescriptors, afterDescriptors) src
-    liftIO $ printWithTime "added commits"
-    right afterCells''
+    --construct commit
+    time <- lift $ getASTime
+    right $ Commit beforeCells' afterCells'' beforeDescriptors afterDescriptors time
 
 ----------------------------------------------------------------------------------------------------------------------
 -- helpers
 
 couple :: Connection -> RangeDescriptor -> IO ()
 couple conn desc = 
-  let rangeKey       = DU.rangeDescriptorToKey desc 
+  let rangeKey       = U.rangeDescriptorToKey desc 
       rangeKey'      = id $! B.pack rangeKey 
       sheetRangesKey = DU.getSheetRangesKey $ DU.rangeKeyToSheetId rangeKey
       rangeDescriptor     = B.pack $ show desc
@@ -119,7 +119,7 @@ deleteCellsPropagated :: Connection -> [ASCell] -> [RangeDescriptor] -> IO ()
 deleteCellsPropagated conn cells descs = do
   deleteCells conn cells
   setCellsAncestorsForce . U.blankCellsAt $ map cellLocation cells
-  mapM_ (decouple conn) $ map DU.rangeDescriptorToKey descs
+  mapM_ (decouple conn) $ map U.rangeDescriptorToKey descs
 
 ----------------------------------------------------------------------------------------------------------------------
 -- Commits
@@ -127,13 +127,6 @@ deleteCellsPropagated conn cells descs = do
 -- TODO: need to deal with large commit sizes and max number of commits
 -- TODO: need to delete blank cells from the DB. (Otherwise e.g. if you delete a
 -- a huge range, you're going to have all those cells in the DB doing nothing.)
-
--- | Creates and pushes a commit to the DB
-addCommit :: Connection -> ([ASCell], [ASCell]) -> ([RangeDescriptor], [RangeDescriptor]) -> CommitSource -> IO ()
-addCommit conn (b,a) (bd, ad) src = do
-  time <- getASTime
-  let commit = ASCommit b a bd ad time
-  pushCommit conn commit src
 
 pushKey :: CommitSource -> B.ByteString
 pushKey (sid, uid) = B.pack $ (T.unpack sid) ++ '|':(T.unpack uid) ++ "pushed"
@@ -152,7 +145,7 @@ undo conn src = do
     return $ DU.bStrToASCommit justC
   case commit of
     Nothing -> return Nothing
-    Just c@(ASCommit b a bd ad t) -> do
+    Just c@(Commit b a bd ad t) -> do
       deleteCellsPropagated conn a ad
       setCellsPropagated conn b bd
       return $ Just c
@@ -168,7 +161,7 @@ redo conn src = do
       _ -> return Nothing
   case commit of
     Nothing -> return Nothing
-    Just c@(ASCommit b a bd ad t) -> do
+    Just c@(Commit b a bd ad t) -> do
       deleteCellsPropagated conn b bd
       setCellsPropagated conn a ad
       return $ Just c

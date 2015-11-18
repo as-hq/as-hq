@@ -208,11 +208,6 @@ decoupleCell :: ASCell -> ASCell
 decoupleCell (Cell l (Coupled _ lang _ _) v ts) = Cell l e' v ts
   where e' = Expression (showPrimitive lang v) lang
 
-rangeDescriptorToKey :: RangeDescriptor -> RangeKey
-rangeDescriptorToKey desc = case desc of 
-  ListDescriptor key -> key
-  ObjectDescriptor key _ _ -> key
-
 cellToRangeKey :: ASCell -> Maybe RangeKey
 cellToRangeKey (Cell _ xp _ _ ) = case xp of 
   Coupled _ _ _ key -> Just key

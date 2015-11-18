@@ -123,7 +123,7 @@ broadcast state message = do
 sheetsInPayload :: ASPayload -> [ASSheetId]
 sheetsInPayload (PayloadDelete rng cells) = (rangeSheetId rng):(map (locSheetId . cellLocation) cells)
 sheetsInPayload (PayloadS (Sheet sid _ _)) = [sid]
-sheetsInPayload (PayloadCommit (ASCommit bf af _ _ _)) = (map (locSheetId . cellLocation) bf) ++ (map (locSheetId . cellLocation) af)
+sheetsInPayload (PayloadCommit (Commit bf af _ _ _)) = (map (locSheetId . cellLocation) bf) ++ (map (locSheetId . cellLocation) af)
 
 -- | Figures out whom to send the message back to, based on the payload, and broadcasts the message
 -- to all the relevant recipients. 

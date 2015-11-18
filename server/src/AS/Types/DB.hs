@@ -10,7 +10,6 @@ import qualified Data.Text as T
 
 
 data ASTransaction = Transaction {transactionCommitSource :: CommitSource,
-                                  roots :: [ASCell], 
                                   afterCells :: [ASCell],
                                   fatCells :: [FatCell]}
 

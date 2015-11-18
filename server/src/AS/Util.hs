@@ -357,6 +357,20 @@ rectsIntersect ((y,x),(y2,x2)) ((y',x'),(y2',x2'))
 mergeCells :: [ASCell] -> [ASCell] -> [ASCell]
 mergeCells c1 c2 = L.unionBy isColocated c1 c2
 
+mergeCommits :: ASCommit -> ASCommit -> ASCommit
+mergeCommits (Commit b a bd ad _) (Commit b' a' bd' ad' t) = Commit b'' a'' bd'' ad'' t
+  where
+    b'' = mergeCells b' b
+    a'' = mergeCells a' a
+    bd'' = L.unionBy hasSameKey bd' bd
+    ad'' = L.unionBy hasSameKey ad' ad
+    hasSameKey d1 d2 = (rangeDescriptorToKey d1) == (rangeDescriptorToKey d2)
+
+rangeDescriptorToKey :: RangeDescriptor -> RangeKey
+rangeDescriptorToKey desc = case desc of 
+  ListDescriptor key -> key
+  ObjectDescriptor key _ _ -> key
+
 -- | Returns a list of blank cells at the given locations. For now, the language doesn't matter, 
 -- because blank cells sent to the frontend don't get their languages saved. 
 blankCellsAt :: [ASIndex] -> [ASCell]

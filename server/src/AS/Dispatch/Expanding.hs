@@ -58,7 +58,7 @@ decomposeCompositeValue c@(Cell idx _ _ _) (Expanding (VPDataFrame labels indice
 
 decomposeCompositeValue c@(Cell idx _ _ _) (Expanding (VPSeries indices vals)) = Just $ FatCell cells idx desc
   where
-    dims      = getDimensions $ A vals
+    dims      = getDimensions (A vals)
     rangeKey  = DU.getRangeKey idx dims
     cells     = decomposeCells Object rangeKey c (A vals)
     desc      = ObjectDescriptor rangeKey PSeries $ M.fromList [("dfIndices", JSONLeaf . ListValue . A $ indices)]

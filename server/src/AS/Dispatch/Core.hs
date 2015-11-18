@@ -58,31 +58,68 @@ testDispatch state lang crd str = runDispatchCycle state [Cell (Index sid crd) (
 runDispatchCycle :: MVar ServerState -> [ASCell] -> CommitSource -> IO ASServerMessage
 runDispatchCycle state cs src = do
   let sid = locSheetId . cellLocation $ head cs
+  roots <- EM.evalMiddleware cs
   errOrCells <- runEitherT $ do
-    printObjT "STARTING DISPATCH CYCLE WITH CELLS: " cs
-    roots          <- lift $ EM.evalMiddleware cs
-    conn           <- lift $ dbConn <$> readMVar state
-    rootsDepSets   <- DB.setCellsAncestors roots
-    printObjT "Set cell ancestors" rootsDepSets
-    descLocs       <- getEvalLocs conn roots
-    printObjT "Got eval locations" descLocs
-    cellsToEval    <- getCellsToEval conn descLocs roots
-    printObjT "Got cells to evaluate" cellsToEval
-    ancLocs        <- G.getImmediateAncestors descLocs
-    printObjT "Got ancestor locs" ancLocs
-    initValuesMap  <- lift $ getValuesMap conn ancLocs
-    printObjT "Created initial values map" initValuesMap
-    printWithTimeT "Starting eval chain"
-    (afterCells, fatCells) <- evalChain conn initValuesMap cellsToEval src -- start with current cells, then go through descendants
-    printObjT "Eval chain produced cells" afterCells
-    liftIO $ putStrLn $ "Eval chain produced fatcells" ++ (show fatCells)
-    -- Apply endware
-    finalizedCells <- lift $ EE.evalEndware state afterCells src roots
-    let transaction = Transaction src roots finalizedCells fatCells
-    broadcastCells <- DT.writeTransaction conn transaction -- atomically performs DB ops. (Sort of a lie -- writing to server is not atomic.)
+    transaction <- dispatch state roots src
+    broadcastCells <- commitResult state transaction-- atomically performs DB ops. (Sort of a lie -- writing to server is not atomic.)
     return broadcastCells
-  runEitherT $ rollbackGraphIfError errOrCells
+  case errOrCells of 
+    Left _ -> G.rollbackGraph
+    _      -> return ()
   return $ U.makeUpdateMessage errOrCells
+
+----------------------------------------------------------------------------------------------------------------------------------------------
+-- Dispatch helpers
+
+dispatch :: MVar ServerState -> [ASCell] -> CommitSource -> EitherTExec ASTransaction
+dispatch state roots src = do
+  conn <- lift $ dbConn <$> readMVar state
+  printObjT "STARTING DISPATCH CYCLE WITH CELLS: " roots
+  rootsDepSets   <- DB.setCellsAncestors roots
+  printObjT "Set cell ancestors" rootsDepSets
+  descLocs       <- getEvalLocs conn roots
+  printObjT "Got eval locations" descLocs
+  cellsToEval    <- getCellsToEval conn descLocs roots
+  printObjT "Got cells to evaluate" cellsToEval
+  ancLocs        <- G.getImmediateAncestors descLocs
+  printObjT "Got ancestor locs" ancLocs
+  initValuesMap  <- lift $ getValuesMap conn ancLocs
+  printObjT "Created initial values map" initValuesMap
+  printWithTimeT "Starting eval chain"
+  (afterCells, fatCells) <- evalChain conn initValuesMap cellsToEval src -- start with current cells, then go through descendants
+  printObjT "Eval chain produced cells" afterCells
+  liftIO $ putStrLn $ "Eval chain produced fatcells" ++ (show fatCells)
+  -- Apply endware
+  finalizedCells <- lift $ EE.evalEndware state afterCells src roots
+  right $ Transaction src finalizedCells fatCells
+
+runDecoupledDispatchCycle :: MVar ServerState -> [ASIndex] -> CommitSource -> IO (Maybe ASCommit)
+runDecoupledDispatchCycle state locs src = do
+  let sid = locSheetId $ head locs
+  roots <- U.filterNothing <$> DB.getCells locs
+  conn <- dbConn <$> readMVar state
+  errOrCommit <- runEitherT $ do
+    transaction <- dispatch state roots src
+    commit <- DT.transactionToCommit conn transaction
+    return commit
+  case errOrCommit of 
+    Left _ -> G.rollbackGraph >> return Nothing
+    Right commit -> return $ Just commit
+
+commitResult :: MVar ServerState -> ASTransaction -> EitherTExec [ASCell]
+commitResult state transaction@(Transaction src _ _) = do
+  conn <- lift $ dbConn <$> readMVar state
+  commit1@(Commit _ _ bd _ _) <- DT.transactionToCommit conn transaction 
+  let decoupleKeys = map U.rangeDescriptorToKey bd
+      decoupleLocs = concat $ map DU.rangeKeyToIndices decoupleKeys
+  decoupleDescendants <- G.getDescendants decoupleLocs
+  maybeCommit2 <- lift $ runDecoupledDispatchCycle state decoupleDescendants src
+  case maybeCommit2 of 
+    Just commit2 -> do
+      let fullCommit@(Commit _ afterCells _ _ _) = U.mergeCommits commit2 commit1
+      lift $ DT.pushCommit conn fullCommit src
+      right afterCells
+    Nothing -> left RuntimeEvalException
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Eval building blocks
@@ -213,8 +250,3 @@ evalChain' conn valuesMap (c@(Cell loc xp _ ts):cs) fatCells = do
 --   case maybeOldCell of 
 --     Nothing -> return True
 --     Just oldCell -> return $ (not $ isListMember oldCell) || (xp /= (cellExpression oldCell)) || (DU.isListHead oldCell)
-
--- type signature is sort of janky
-rollbackGraphIfError :: Either ASExecError [ASCell] -> EitherTExec [ASIndex]
-rollbackGraphIfError (Left e) = G.rollbackGraph
-rollbackGraphIfError _ = return []
