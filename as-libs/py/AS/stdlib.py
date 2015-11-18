@@ -65,6 +65,8 @@ def serialize(val):
 		return json.dumps({'tag': 'Object', 'objectType': 'NPArray', 'arrayVals': val.tolist()})
 	elif isinstance(val, np.matrixlib.defmatrix.matrix):
 		return json.dumps({'tag': 'Object', 'objectType': 'NPMatrix', 'matrixVals': val.tolist()})
+	elif isinstance(val, ASIterable): 
+		return json.dumps({'tag': 'List', 'listVals': val.toList()})
 	else: return json.dumps(val)
 
 def deserialize(dic):

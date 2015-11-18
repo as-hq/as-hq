@@ -60,15 +60,18 @@ parseUnquotedMatchesWithContext a = do
   return (inter,matches)
 
 getUnquotedMatchesWithContext :: ASExpression -> Parser t -> ([String],[t])
-getUnquotedMatchesWithContext (Expression target lang) p = 
+getUnquotedMatchesWithContext xp p = 
   if (isExcelLiteral)
-    then ([target], [])
-    else (fromRight . (parse (parseUnquotedMatchesWithContext p) "") $ target)
+    then ([str], [])
+    else (fromRight . (parse (parseUnquotedMatchesWithContext p) "") $ str)
   where
+    lang = xpLanguage xp
+    str = xpString xp
     fromRight (Right x) = x
-    isExcelLiteral = (lang == Excel) && (case (parse formula "" target) of 
+    isExcelLiteral = (lang == Excel) && parsedCorrectly
+    parsedCorrectly = case (parse formula "" str) of 
       Right _ -> False 
-      Left  _ -> True)
+      Left  _ -> True
 
 
 -- does no work with Parsec/actual parsing
