@@ -10,7 +10,7 @@ import Data.Char (isPunctuation, isSpace)
 import Data.Monoid (mappend)
 import Data.Text (Text)
 import Control.Exception
-import Control.Monad (forM_, forever)
+import Control.Monad (forM_, forever, when)
 import Control.Concurrent (MVar, newMVar, modifyMVar_, modifyMVar, readMVar)
 import Control.Monad.IO.Class (liftIO)
 import qualified Data.Text as T
@@ -21,7 +21,7 @@ import qualified Data.ByteString.Lazy.Char8 as B
 import qualified Data.List as L
 import qualified Network.WebSockets as WS
 
-import Data.Maybe (fromJust)
+import Data.Maybe (fromJust, isNothing)
 import Text.Read (readMaybe)
 
 import qualified Database.Redis as R
@@ -35,6 +35,7 @@ import AS.Config.Paths
 import AS.DB.API as DB
 import AS.DB.Graph as G
 import AS.DB.Util as DBU
+import AS.Users as US
 
 -- debugging
 import AS.Kernels.Python.Eval as KP
@@ -126,11 +127,23 @@ preprocess cl state = do
   logDir <- getServerLogDir
   fileContents <- Prelude.readFile (logDir ++ "client_messages")
   let fileLinesWithNumbers = zip (L.lines fileContents) [1..]
-  let nonemptyNumberedFileLines =  filter (\(l, i) -> (l /= "") && (head l) /= '#') fileLinesWithNumbers
-  mapM_ (\(l,i) -> do 
-    putStrLn ("PROCESSING LINE " ++ (show i) ++ ": " ++ l)
-    processMessage cl state (read l)
-    putStrLn "\n\n\n\nFINISHED PREVIOUS MESSAGE\n\n\n\n") nonemptyNumberedFileLines
+      nonemptyNumberedFileLines =  filter (\(l, i) -> (l /= "") && (head l) /= '#') fileLinesWithNumbers
+  mapM_ (\[(msg,i), (sid, _), (uid, _)] -> do 
+    putStrLn ("PROCESSING LINES" ++ (show i) ++ ": " ++ msg ++ "\n" ++ sid ++ "\n" ++ uid)
+    let win = Window (T.pack sid) (-1,-1) (-1,-1)
+        cid = T.pack uid
+        mockUc = UserClient cid (conn cl) win (T.pack "")
+    curState <- readMVar state
+    when (isNothing $ US.getUserByClientId cid curState) $ liftIO $ modifyMVar_ state (\s -> return $ addClient mockUc s)
+    processMessage mockUc state (read msg)
+    putStrLn "\n\n\n\nFINISHED PROCESSING MESSAGE\n\n\n\n") (chunksOf 3 nonemptyNumberedFileLines)
+
+-- too lazy to import from Data.List.Split
+chunksOf :: Int -> [a] -> [[a]]
+chunksOf _ [] = []
+chunksOf n l
+  | n > 0 = (take n l) : (chunksOf n (drop n l))
+  | otherwise = error "Negative n"
 
 
 initClient :: (Client c) => c -> MVar ServerState -> IO ()

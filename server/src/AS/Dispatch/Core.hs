@@ -68,7 +68,7 @@ runDispatchCycle state cs src = do
     -- Apply endware
     finalizedCells <- lift $ EE.evalEndware state afterCells src roots
     let transaction = Transaction src roots finalizedCells cellLists
-    broadcastCells <- DB.updateAfterEval conn transaction -- atomically performs DB ops. (Sort of a lie -- writing to server is not atomic.)
+    broadcastCells <- DB.updateAfterEval conn transaction -- atomically performs DB ops. (Sort of a lie -- writing to graph db is not atomic.)
     return broadcastCells
   runEitherT $ rollbackGraphIfError errOrCells
   return $ U.makeUpdateMessage errOrCells
