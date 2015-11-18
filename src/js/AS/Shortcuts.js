@@ -156,7 +156,7 @@ export default {
         let editor = self._getRawEditor(),
             sesh = editor.getSession(),
             cursor = editor.getCursorPosition(),
-            range = sesh.getWordRange(cursor.row, cursor.column),
+            range = Util.getExtendedWordRange(sesh, cursor.row, cursor.column), 
             sel = editor.selection;
         sel.setRange(range);
         let oldRef = editor.getSelectedText(),
@@ -169,7 +169,7 @@ export default {
         let editor = self._getRawEditor(),
             sesh = editor.getSession(),
             cursor = editor.getCursorPosition(),
-            range = sesh.getWordRange(cursor.row, cursor.column),
+            range = Util.getExtendedWordRange(sesh, cursor.row, cursor.column),
             sel = editor.selection;
         sel.setRange(range);
         let newRef = Util.toggleReferenceType(editor.getSelectedText());
@@ -181,7 +181,7 @@ export default {
         let editor = self._getRawTextbox(),
             sesh = editor.getSession(),
             cursor = editor.getCursorPosition(),
-            range = sesh.getWordRange(cursor.row, cursor.column),
+            range = Util.getExtendedWordRange(sesh, cursor.row, cursor.column),
             sel = editor.selection;
         sel.setRange(range);
         let newRef = Util.toggleReferenceType(editor.getSelectedText());

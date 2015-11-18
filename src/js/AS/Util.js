@@ -397,11 +397,39 @@ export default {
     return arr.indexOf(elem) > -1;
   },
 
+  // counts the char : as part of a word. 
+  getExtendedWordRange(session, r: number, c: number) { 
+    let immWordRange = session.getWordRange(r, c), 
+        wordStart = immWordRange.start.column, 
+        wordEnd   = immWordRange.end.column; 
+
+    let beforeRange = immWordRange.clone();
+        beforeRange.start.column = Math.max(0, wordStart-1);
+
+    let rowLength = session.getRowLength(),
+        afterRange = immWordRange.clone();
+        afterRange.end.column = wordEnd + 1; 
+
+    if (wordStart > 0 && session.getTextRange(beforeRange)[0] == ':') { 
+      wordStart = session.getWordRange(r, wordStart - 1).start.column; 
+    } else { 
+      let after = session.getTextRange(afterRange); 
+      if (after[after.length - 1] == ':') { 
+        wordEnd = session.getWordRange(r, wordEnd + 1).end.column; 
+      }
+    }
+
+    let extRange = immWordRange.clone(); 
+    extRange.start.column = wordStart; 
+    extRange.end.column = wordEnd; 
+    return extRange; 
+  },
+
   toggleReferenceType(xp: string): ?string {
     // TODO generalize to arbitrary range lengths
     let deps = this.parseRefs(xp);
     if (deps.length === 0)
-      return null
+      return null;
     else if (deps.length === 1)
       return this.toggleReferenceIndex(deps[0]);
     else throw "Single word contains multiple references.";
