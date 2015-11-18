@@ -69,17 +69,41 @@ clear conn = runRedis conn $ flushall >> return ()
 -- Cells
 
 getCell :: ASIndex -> IO (Maybe ASCell)
-getCell loc = return . head =<< getCells [loc]
+getCell loc = head <$> getCells [loc]
 
 getPossiblyBlankCell :: ASIndex -> IO ASCell
-getPossiblyBlankCell loc = return . head =<< getPossiblyBlankCells [loc]
+getPossiblyBlankCell loc = head <$> getPossiblyBlankCells [loc]
 
+-- expects all indices to be Index
 getCells :: [ASIndex] -> IO [Maybe ASCell]
 getCells [] = return []
 getCells locs = DU.getCellsByMessage msg num
   where
     msg = DU.showB $ intercalate DU.msgPartDelimiter $ map show2 locs
     num = length locs
+
+-- allows indices to be Pointer or Index
+getCompositeCells :: Connection -> [ASIndex] -> IO [Maybe CompositeCell]
+getCompositeCells _ [] = return []
+getCompositeCells conn locs = do
+  ccells <- DU.getCellsByMessage msg num
+  mapM expandPointerRefs $ zip locs ccells
+  where
+    msg = DU.showB $ intercalate DU.msgPartDelimiter $ map (show2 . pointerToIndex) locs
+    num = length locs
+    expandPointerRefs (loc, ccell) = case loc of 
+      Pointer sid coord -> case ccell of 
+        Just (Cell l (Coupled xp lang ctype key) v ts) -> do
+          -- if the cell was coupled but no range descriptor exists, something fucked up.
+          (Just desc) <- runRedis conn $ do 
+            Right desc <- get (B.pack key)
+            return $ DU.bStrToRangeDescriptor desc
+          let fatLocs = DU.rangeKeyToIndices key
+          let (headIdx, _) = DU.rangeKeyToDimensions key 
+          cells <- map fromJust <$> getCells fatLocs
+          return . Just . Fat $ FatCell cells headIdx desc
+        _ -> return $ Single <$> ccell
+      _ -> return $ Single <$> ccell 
 
 -- #incomplete LOL
 getCellsInSheet :: ASSheetId -> IO [ASCell]

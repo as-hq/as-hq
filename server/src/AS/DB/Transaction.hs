@@ -58,10 +58,10 @@ couple conn desc =
   let rangeKey       = DU.rangeDescriptorToKey desc 
       rangeKey'      = id $! B.pack rangeKey 
       sheetRangesKey = DU.getSheetRangesKey $ DU.rangeKeyToSheetId rangeKey
-      rangeValue     = B.pack $ show desc
+      rangeDescriptor     = B.pack $ show desc
   in runRedis conn $ do
       liftIO $ printWithTime $ "setting list locations for key: " ++ rangeKey
-      set rangeKey' rangeValue
+      set rangeKey' rangeDescriptor
       sadd sheetRangesKey [rangeKey']
       return ()
 

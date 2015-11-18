@@ -4,8 +4,12 @@ import Prelude
 
 import AS.Types.Core
 import AS.DB.Util as DU
+import AS.Util as U
 
 import qualified Data.Map as M
+
+----------------------------------------------------------------------------------------------------------------------------------------------
+-- value decomposition (expansion)
 
 decomposeCompositeValue :: ASCell -> CompositeValue -> Maybe FatCell
 decomposeCompositeValue _ (CellValue _) = Nothing
@@ -92,24 +96,31 @@ getDimensions coll = case coll of
   M mat -> (length mat, maximum $ map length mat) 
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
--- References in maps
+-- value recomposition
 
---shouldGroupRefs :: (ASCell, [ASReference]) -> Bool
---shouldGroupRefs (c, refs) = case (language $ cellExpression c) of
---  R -> containsRange refs
---  _ -> False
+recomposeCompositeValue :: FatCell -> CompositeValue
+recomposeCompositeValue (FatCell cells _ (ListDescriptor key)) = Expanding val
+  where
+    val = VList coll
+    coll = recomposeCells dims cells
+    (_, dims) = rangeKeyToDimensions key
 
---groupRef :: ASLanguage -> (ASRange, [ASValue]) -> Maybe (ASReference, ASValue)
---groupRef lang (ref@(Range _ ((c1,r1),(c2,r2))), vals) = case lang of
---  R -> Just (RangeRef ref, RDataFrame vals')
---    where
---      rows = chunksOf (r2-r1+1) vals
---      vals' = map ValueL rows
---  _ -> Nothing
+recomposeCompositeValue (FatCell cells _ (ObjectDescriptor key NPArray _)) = Expanding val
+  where
+    val = VNPArray coll
+    coll = recomposeCells dims cells
+    (_, dims) = rangeKeyToDimensions key
 
---formatValuesForMap :: [(ASIndex, Maybe ASCell)] -> [(ASReference, ASValue)]
---formatValuesForMap pairs = formattedPairs
---  where formattedPairs = map (\(l, c) -> (l, getSanitizedCellValue c)) pairs
+recomposeCompositeValue (FatCell cells _ (ObjectDescriptor key NPMatrix _)) = Expanding val
+  where
+    val = VNPMatrix mat
+    (M mat) = recomposeCells dims cells
+    (_, dims) = rangeKeyToDimensions key
+
+recomposeCells :: Dimensions -> [ASCell] -> Collection
+recomposeCells dims cells = case (snd dims) of 
+  1 -> A $ map cellValue cells
+  _ -> M $ map (\row -> map cellValue row) $ U.reshapeList cells dims
 
 
 --------------------------------------------------------------------------------------------------------------

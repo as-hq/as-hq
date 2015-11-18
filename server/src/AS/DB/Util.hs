@@ -283,3 +283,7 @@ bStrToWorkbook Nothing = Nothing
 bStrToASCell :: Maybe B.ByteString -> Maybe ASCell
 bStrToASCell Nothing = Nothing
 bStrToASCell (Just str) = Just (read2 (BC.unpack str) :: ASCell)
+
+bStrToRangeDescriptor :: Maybe B.ByteString -> Maybe RangeDescriptor
+bStrToRangeDescriptor Nothing = Nothing
+bStrToRangeDescriptor (Just str) = Just (read (BC.unpack str) :: RangeDescriptor)

@@ -164,6 +164,11 @@ fromDouble x = if (x == xInt)
   else Left x
   where xInt = fromInteger (round x)
 
+reshapeList :: [a] -> Dimensions -> [[a]]
+reshapeList xs (height, width) = case width of 
+  1 -> error "cannot reshape into 1-dimensional list"
+  _ -> chunksOf width xs
+
 --------------------------------------------------------------------------------------------------------------
 -- Key-value manip functions
 
@@ -489,6 +494,10 @@ getPasteOffsets from to = offsets
 getIndicesOffset :: ASIndex -> ASIndex -> Offset
 getIndicesOffset (Index _ (y, x)) (Index _ (y', x')) = (y'-y, x'-x)
 
+pointerToIndex :: ASIndex -> ASIndex
+pointerToIndex idx = case idx of 
+  Index _ _ -> idx
+  Pointer sid coord -> Index sid coord
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Users
 

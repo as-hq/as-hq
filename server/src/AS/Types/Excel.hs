@@ -55,10 +55,10 @@ instance Show ExRef where
   show a = 
     let prefix = showRefQualifier (workbookRef a) (sheetRef a)
     in case a of 
-      ExOutOfBounds                 -> "#REF!"
-      (ExLocRef l _ _)              -> prefix ++ (show l)
-      (ExRangeRef (ExRange f s) _ _)-> prefix ++ (show f) ++ ":" ++ (show s)
-      (ExPointerRef l _ _)          -> prefix ++ (show l)
+      ExOutOfBounds                -> "#REF!"
+      ExLocRef l _ _               -> prefix ++ (show l)
+      ExRangeRef (ExRange f s) _ _ -> prefix ++ (show f) ++ ":" ++ (show s)
+      ExPointerRef l _ _           -> prefix ++ (show l)
 
 instance Show ExLoc where
   show (ExIndex rType c r) = d1 ++ c ++ d2 ++ r

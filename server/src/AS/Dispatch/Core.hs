@@ -61,16 +61,16 @@ runDispatchCycle state cs src = do
   errOrCells <- runEitherT $ do
     printObjT "STARTING DISPATCH CYCLE WITH CELLS: " cs
     roots          <- lift $ EM.evalMiddleware cs
-    conn           <- lift $ fmap dbConn $ readMVar state
+    conn           <- lift $ dbConn <$> readMVar state
     rootsDepSets   <- DB.setCellsAncestors roots
     printObjT "Set cell ancestors" rootsDepSets
-    evalLocs       <- getEvalLocs conn roots
-    printObjT "Got eval locations" evalLocs
-    cellsToEval    <- getCellsToEval conn evalLocs roots
+    descLocs       <- getEvalLocs conn roots
+    printObjT "Got eval locations" descLocs
+    cellsToEval    <- getCellsToEval conn descLocs roots
     printObjT "Got cells to evaluate" cellsToEval
-    ancLocs        <- G.getImmediateAncestors evalLocs
+    ancLocs        <- G.getImmediateAncestors descLocs
     printObjT "Got ancestor locs" ancLocs
-    initValuesMap  <- lift $ getValuesMap ancLocs
+    initValuesMap  <- lift $ getValuesMap conn ancLocs
     printObjT "Created initial values map" initValuesMap
     printWithTimeT "Starting eval chain"
     (afterCells, fatCells) <- evalChain conn initValuesMap cellsToEval src -- start with current cells, then go through descendants
@@ -96,8 +96,7 @@ getEvalLocs :: Connection -> [ASCell] -> EitherTExec [ASIndex]
 getEvalLocs conn origCells = do
   let locs = map cellLocation origCells
   vLocs <- lift $ DB.getVolatileLocs conn -- Accounts for volatile cells being reevaluated each time
-  indices <- G.getDescendants (locs ++ vLocs)
-  return indices
+  G.getDescendants (locs ++ vLocs)
 
 -- | Given a set of locations to eval, return the corresponding set of cells to perform
 -- the evaluations in (which includes info about tags, language, and expression string).
@@ -113,30 +112,16 @@ getCellsToEval conn locs origCells = do
       else return $ fromJust mCell) (zip locs mCells) 
   -- if the mCell is Nothing and loc is not a part of the locCellMap, then something messed up. 
 
--- pass in the root deps in addition to the complete set of ancestors,
--- because retaining ASRange in the root dep set makes checking for
--- dataframes O(# lists) instead of O(n)
--- rootDeps is a subset of locs and we set both, but no need to remove duplicates from the map.
-getValuesMap :: [ASIndex] -> IO ValMap
-getValuesMap locs = do
-  vals <- map (CellValue . getSanitizedCellValue) <$> DB.getCells locs
-  --groupedRefs <- concat <$> mapM groupRefs rootRelations
+getValuesMap :: Connection -> [ASIndex] -> IO ValMap
+getValuesMap conn locs = do
+  vals <- map retrieveValue <$> DB.getCompositeCells conn locs
   return $ M.fromList $ zip locs vals
 
---groupRefs :: (ASCell, [ASReference]) -> IO [(ASReference, ASValue)]
---groupRefs relation@(cell, refs) = if (shouldGroupRefs relation)
---  then do
---    let rngs = map (\(RangeRef rng) -> rng) $ filter isRange refs
---    rngValSets <- mapM DB.getCellsByRange rngs
---    let rngValSets' = map (\rs -> map getSanitizedCellValue rs) rngValSets
---        groupedRefs = map (groupRef . language . cellExpression $ cell) $ zip rngs rngValSets'
---    return $ filterNothing groupedRefs
---  else return []
-
-getSanitizedCellValue :: Maybe ASCell -> ASValue
-getSanitizedCellValue c = case c of
-  Just cell -> cellValue cell
-  Nothing -> NoValue
+retrieveValue :: Maybe CompositeCell -> CompositeValue
+retrieveValue c = case c of
+  Just (Single cell) -> CellValue $cellValue cell
+  Just (Fat fcell) -> DE.recomposeCompositeValue fcell
+  Nothing -> CellValue NoValue
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Eval helpers
 
@@ -185,7 +170,7 @@ evalChain' conn valuesMap [] fatCells =
     -- DON'T need to re-eval anything that's already been evaluated
     -- #needsrefactor it seems like a large chunk of code here mirrors that in evalChain... should probably DRY
     ancLocs <- G.getImmediateAncestors descLocs
-    newKnownValues <- lift $ getValuesMap ancLocs
+    newKnownValues <- lift $ getValuesMap conn ancLocs
     cells' <- getCellsToEval conn descLocs [] -- the origCells are the list cells, which got filtered out of descLocs
     evalChain' conn (M.union valuesMap newKnownValues) cells' fatCells
 

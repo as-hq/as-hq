@@ -139,6 +139,7 @@ data RangeDescriptor =
 -- e.g. for embedded lists and objects
 type RangeKey = String
 data FatCell = FatCell { expandedCells :: [ASCell], headIndex :: ASIndex, descriptor :: RangeDescriptor } deriving (Show, Read)
+data CompositeCell = Single ASCell | Fat FatCell
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Parsing
