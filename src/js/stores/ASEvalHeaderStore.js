@@ -76,7 +76,7 @@ const ASEvalHeaderStore = Object.assign({}, BaseStore, {
     let message = "Header saved! ";
     switch (val.tag) {
       case "ValueError":
-        message += "(Error in header code: " + val.errMsg + ")";
+        message += "(Error in header code: " + val.errorMsg + ")";
         break;
       case "NoValue":
         break;

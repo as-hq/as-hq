@@ -56,10 +56,8 @@ export type ValueObject = {
 
 export type ValueError = {
   tag: 'ValueError';
-  errMsg: string;
-  errType: string;
-  file: string;
-  position: number;
+  errorMsg: string;
+  errorType: string;
 };
 
 export type ValueExcelError = {
