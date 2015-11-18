@@ -47,6 +47,21 @@ decomposeCompositeValue c@(Cell idx _ _ _) (Expanding (VNPMatrix mat)) = Just $ 
     cells     = decomposeCells Object rangeKey c coll
     desc      = ObjectDescriptor rangeKey NPMatrix $ M.fromList []
 
+decomposeCompositeValue c@(Cell idx _ _ _) (Expanding (VPDataFrame labels indices vals)) = Just $ FatCell cells idx desc
+  where
+    vals'     = M $ prependColumn (NoValue:indices) (labels:vals)
+    dims      = getDimensions vals'
+    rangeKey  = DU.getRangeKey idx dims
+    cells     = decomposeCells Object rangeKey c vals'
+    desc      = ObjectDescriptor rangeKey PDataFrame $ M.fromList []
+
+decomposeCompositeValue c@(Cell idx _ _ _) (Expanding (VPSeries indices vals)) = Just $ FatCell cells idx desc
+  where
+    dims      = getDimensions $ A vals
+    rangeKey  = DU.getRangeKey idx dims
+    cells     = decomposeCells Object rangeKey c (A vals)
+    desc      = ObjectDescriptor rangeKey PSeries $ M.fromList [("dfIndices", JSONLeaf . ListValue . A $ indices)]
+
 decomposeCells :: ComplexType -> RangeKey -> ASCell -> Collection -> [ASCell]
 decomposeCells cType rangeKey (Cell (Index sheet (c,r)) xp _ ts) coll = 
   let str = xpString xp
@@ -60,42 +75,13 @@ decomposeCells cType rangeKey (Cell (Index sheet (c,r)) xp _ ts) coll =
           unpack = map (\(r', row) -> unpackRow r' $ zip [c..] row)
           unpackRow r' = map (\(c', val) -> Cell (Index sheet (c',r')) xp' val ts)
 
----- turns a composite value into possible a list, plus a range descriptor
---createListCells :: ASCell -> ASValue -> Maybe ASLists
---createListCells _ (ValueL []) = Nothing
---createListCells _ (RDataFrame []) = Nothing
---createListCells (Cell (Index sheet (a,b)) xp _ ts) cv = if (shouldCreateListCells cv)
---  then Just (listKey, cells)s
---  else Nothing
---  where
---    values    = getValuesFromCV cv
---    origLoc   = Index sheet (a,b)
---    rows      = map toList values
---    zipVals   = zip [0..] values
---    locs      = map (Index sheet) (concat $ map (\(row, val) -> shift val row (a,b)) zipVals)
---    height    = length values
---    width     = maximum $ map length rows
---    listKey   = DU.getListKey origLoc (height, width)
---    tags      = getExtraTagsFromCV cv
---    cells     = map (\(loc, val) -> Cell loc xp val ((ListMember listKey):tags)) $ zip locs (concat rows)
-
---    getValuesFromCV (ValueL l)        = l
---    getValuesFromCV (RDataFrame rows) = U.transposeList rows
-
---    getExtraTagsFromCV (ValueL _)     = []
---    getExtraTagsFromCV (RDataFrame _) = [DFMember]
-
---    shift (ValueL v) r (a,b)  = [(a+c,b+r) | c<-[0..length(v)-1] ]
---    shift other r (a,b)       = [(a,b+r)]
-
---    shouldCreateListCells (ValueL _) = True
---    shouldCreateListCells (RDataFrame _) = True
---    shouldCreateListCells _ = False
-
 getDimensions :: Collection -> Dimensions
 getDimensions coll = case coll of 
   A arr -> (length arr, 1)
   M mat -> (length mat, maximum $ map length mat) 
+
+prependColumn :: Array -> Matrix -> Matrix
+prependColumn arr mat = map (\(x,xs) -> x:xs) $ zip arr mat
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- value recomposition
@@ -118,6 +104,22 @@ recomposeCompositeValue (FatCell cells _ (ObjectDescriptor key NPMatrix _)) = Ex
     val = VNPMatrix mat
     (M mat) = recomposeCells dims cells
     (_, dims) = rangeKeyToDimensions key
+
+recomposeCompositeValue (FatCell cells _ (ObjectDescriptor key PDataFrame _)) = Expanding val
+  where
+    val       = VPDataFrame labels indices vals
+    ((_:labels):indexedVals) = mat
+    indices   = map (\(index:_) -> index) indexedVals 
+    vals      = map (\(_:row) -> row) indexedVals
+    (M mat)   = recomposeCells dims cells
+    (_, dims) = rangeKeyToDimensions key
+
+recomposeCompositeValue (FatCell cells _ (ObjectDescriptor key PSeries attrs)) = Expanding val
+  where
+    val       = VPSeries indices vals
+    (JSONLeaf (ListValue (A indices))) = attrs M.! "seriesIndices"
+    (A vals)   = recomposeCells dims cells
+    dims = (length cells, 1)
 
 recomposeCells :: Dimensions -> [ASCell] -> Collection
 recomposeCells dims cells = case (snd dims) of 

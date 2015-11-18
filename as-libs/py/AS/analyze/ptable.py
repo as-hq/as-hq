@@ -1,6 +1,5 @@
 from pandas import DataFrame, pivot_table
 from AS.errors import ColumnHeaderNotPresent
-from AS.pandas.output import pprint
 import numpy as np
 
 def ptable(lst,values=None,index=None,columns=None,aggfunc = np.sum):

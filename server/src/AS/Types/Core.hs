@@ -122,8 +122,8 @@ data ExpandingValue =
   | VRDataFrame {dfNames :: [String], dfValues :: Collection}
   | VNPArray Collection
   | VNPMatrix Matrix
-  | VPDataFrame {dfLabels :: [String], dfData :: Collection}
-  | VPSeries Array
+  | VPDataFrame {dfLabels :: Array, dfIndices :: Array, dfData :: Matrix}
+  | VPSeries {seriesIndices :: Array, seriesData :: Array}
   deriving (Show, Read, Eq, Generic)
 
 data CompositeValue = Expanding ExpandingValue | CellValue ASValue deriving (Show, Read, Generic)

@@ -9,5 +9,5 @@ setup(name='AS',
       license='',
       packages=find_packages(),
       package_data={'AS': ['data/*.txt']},
-      install_requires=['numpy','matplotlib'],
+      install_requires=['numpy','matplotlib','pandas'],
       zip_safe=False)

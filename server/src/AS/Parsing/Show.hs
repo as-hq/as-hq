@@ -53,6 +53,19 @@ showExpanding Python (VNPArray coll) = "np.array(" ++ arrayVals ++ ")"
 showExpanding Python (VNPMatrix mat) = "np.matrix(" ++ matrixVals ++ ")"
   where matrixVals = showCollection Python $ M mat
 
+showExpanding Python (VPDataFrame labels indices vals) = "pd.DataFrame(" ++ inner ++ ")"
+  where 
+    inner = L.intercalate "," [vals', labels', indices']
+    vals' = "data=" ++ (showCollection Python $ M vals)
+    labels' = "columns=" ++ (showCollection Python $ A labels)
+    indices' = "index=" ++ (showCollection Python $ A indices)
+
+showExpanding Python (VPSeries indices vals) = "pd.Series(" ++ inner ++ ")"
+  where 
+    inner = vals' ++ "," ++ indices'
+    vals' = "data=" ++ (showCollection Python $ A vals)
+    indices' = "index=" ++ (showCollection Python $ A indices)
+    
 -----------------------------------------------------------------------------------------------------------------------
 -- helpers
 

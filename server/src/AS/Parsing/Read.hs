@@ -108,18 +108,16 @@ extractObject js = case (js .> "objectType") of
     Just otype -> case otype of 
       NPArray -> VNPArray <$> extractCollection js "arrayVals"
       NPMatrix -> (\(M mat) -> VNPMatrix mat) <$> extractCollection js "matrixVals"
-      PDataFrame -> VPDataFrame <$> dflabels <*> dfdata
+      PDataFrame -> Just $ VPDataFrame labels indices vals
         where
-          dflabels = rdLabels <$> extractCollection js "dfLabels"
-          dfdata = extractCollection js "dfData"
-          rdLabels coll = case coll of 
-            A labels -> map (\(ValueS s) -> s) labels
-            _ -> error "expected dataframe labels to be list of strings"
-      PSeries -> VPSeries . rdSeries <$> extractCollection js "seriesVals"
+          (Just (A labels)) = extractCollection js "dfLabels"
+          (Just (A indices)) = extractCollection js "dfIndices"
+          (Just (M vals)) = extractCollection js "dfData"
+        -- ^^ if these don't exist, something fucked up.
+      PSeries -> Just $ VPSeries indices vals
         where 
-          rdSeries coll = case coll of 
-            A series -> series
-            _ -> error "expected pandas series to be one-dimensional" 
+          (Just (A indices)) = extractCollection js "seriesIndices"
+          (Just (A vals)) = extractCollection js "seriesData"
       _ -> Nothing
     _ -> Nothing
   _ -> Nothing

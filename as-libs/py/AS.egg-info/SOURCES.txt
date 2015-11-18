@@ -40,9 +40,6 @@ AS/instruments/ETF.py
 AS/instruments/ORD.py
 AS/instruments/Stock.py
 AS/instruments/__init__.py
-AS/pandas/__init__.py
-AS/pandas/input.py
-AS/pandas/output.py
 AS/tests/__init__.py
 AS/tests/main.py
 AS/tests/min.py

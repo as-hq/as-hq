@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import random
 from AS.iterable import ASIterable
 import json
@@ -65,6 +66,22 @@ def serialize(val):
 		return json.dumps({'tag': 'Object', 'objectType': 'NPArray', 'arrayVals': val.tolist()})
 	elif isinstance(val, np.matrixlib.defmatrix.matrix):
 		return json.dumps({'tag': 'Object', 'objectType': 'NPMatrix', 'matrixVals': val.tolist()})
+	elif isinstance(val, pd.DataFrame):
+		labels = val.columns.values.tolist()
+		indices = val.index.values.tolist()
+		data = val.get_values().tolist()
+		return json.dumps({'tag': 'Object', 
+											 'objectType': 'PDataFrame', 
+											 'dfLabels': labels,
+											 'dfIndices': indices,
+											 'dfData': data})
+	elif isinstance(val, pd.Series):
+		indices = val.index.values.tolist()
+		data = val.get_values().tolist()
+		return json.dumps({'tag': 'Object',
+											 'objectType': 'PSeries',
+											 'seriesIndices': indices,
+											 'seriesData': data})
 	elif isinstance(val, ASIterable): 
 		return json.dumps({'tag': 'List', 'listVals': val.toList()})
 	elif isinstance(val, bool):
@@ -76,9 +93,21 @@ def serialize(val):
 def deserialize(dic):
 	if 'tag' in dic and dic['tag'] == 'Object':
 		if 'objectType' in dic:
-			if dic['objectType'] == 'PDict':
+			oType = dic['objectType']
+			if oType == 'PDict':
 				return dic['dict']
-			elif dic['objectType'] == 'NPArray':
+			elif oType == 'NPArray':
 				return np.array(dic['arrayVals'])
-			elif dic['objectType'] == 'NPMatrix':
+			elif oType == 'NPMatrix':
 				return np.matrix(dic['matrixVals'])
+			elif oType == 'PDataFrame':
+				return pd.DataFrame(data=dic['dfData'], columns=dic['dfLabels'], index=dic['dfIndices'])
+			elif oType == 'PSeries':
+				return pd.DataFrame(data=dic['seriesData'], index=dic['seriesIndices'])
+
+def pprintDataFrame(dataframe):
+	rows = repr(dataframe).split('\n')
+	mat = [row.split(' ') for row in rows]
+	cleaned = [[e for e in row if e is not ''] for row in mat]
+	cleaned[0].insert(0,'')
+	return cleaned
