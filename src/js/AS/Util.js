@@ -430,7 +430,6 @@ export default {
     if (deps.length === 0) {
       return null;
     } else if (deps.length > 1) {
-      debugger;
       throw "Single word contains multiple references.";
     }
 
@@ -480,7 +479,7 @@ export default {
   excelToIndex(dollarRef: string): NakedIndex {
     let ref = dollarRef.replace(/\$/g, '').toUpperCase();
     var row=0, col=0, i=0, charIdx = 0;
-    while(i < ref.length && isNaN(ref.charAt(i))){
+    while (i < ref.length && isNaN(ref.charAt(i))) {
       charIdx = i+1;
       i++;
     }
@@ -489,7 +488,11 @@ export default {
       col = col + this.charToInt(ref.charAt(c)) * Math.pow(26, charIdx - c-1);
     }
 
-    return {col: col, row: parseInt(rawRow)};
+    if (rawRow.length > 0) { 
+      return {col: col, row: parseInt(rawRow)};
+    } else { 
+      return {col: col, row: Infinity};
+    }
   },
 
   excelToRange(xp: string): NakedRange {
@@ -497,8 +500,7 @@ export default {
     if (endpoints.length === 1){
       let idx = this.excelToIndex(endpoints[0]);
       return {tl: idx, br: idx};
-    }
-    else {
+    } else {
       let start = this.excelToIndex(endpoints[0]),
           end = this.excelToIndex(endpoints[1]);
       return { tl: start, br: end };
