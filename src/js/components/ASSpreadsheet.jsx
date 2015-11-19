@@ -265,7 +265,7 @@ export default React.createClass({
     let hg = this._getHypergrid(),
         [vs, hs] = [hg.vScrollValue, hg.hScrollValue],
         [cols, rows] = [hg.getVisibleColumns(), hg.getVisibleRows()];
-        let colLength = cols.length, rowLength = rows.length; 
+        let colLength = cols.length, rowLength = rows.length;
         // This might fail on the initial load, since getVisibleColumns() and
         // getVisibleRows() might return nothing, ergo the below hack.
         if (colLength == 0) colLength = 20;
@@ -275,7 +275,7 @@ export default React.createClass({
     // getVisibleColumns and getVisibleRows were manually modified to show one more
     // column/row than what hypergrid says is visible (...since they're actually visible)
     // but that messed with the boundaries shown here, which is why we're subtracting 1
-    // from rowLength and colLength. 
+    // from rowLength and colLength.
   },
 
   isVisible(col: number, row: number): boolean { // faster than accessing hypergrid properties
@@ -328,25 +328,25 @@ export default React.createClass({
     renderer.getVisibleColumns = () => {
       // normally getVisibleColumns() just returns renderer.renderedColumns
       let rc = renderer.renderedColumns.slice(0);
-      if (rc.length > 0) { 
-        let last = rc[rc.length - 1]; 
-        if (!isNaN(last)) { 
+      if (rc.length > 0) {
+        let last = rc[rc.length - 1];
+        if (!isNaN(last)) {
           rc.push(last + 1);
           // rc.push(last + 2);
         }
       }
-      return rc; 
+      return rc;
     },
 
     renderer.getVisibleRows = () => {
       let rr = renderer.renderedRows.slice(0);
-      if (rr.length > 0) { 
-        let last = rr[rr.length - 1]; 
-        if (!isNaN(last)) { 
+      if (rr.length > 0) {
+        let last = rr[rr.length - 1];
+        if (!isNaN(last)) {
           rr.push(last + 1);
         }
       }
-      return rr; 
+      return rr;
     },
 
     model.handleMouseDown = (grid, evt) => {
@@ -446,8 +446,8 @@ export default React.createClass({
       } else {
         if (this.dragSelectionOrigin !== null) {
           this.dragSelectionOrigin = null;
-          if (Render.getDragRect() === null) { 
-            return; 
+          if (Render.getDragRect() === null) {
+            return;
           }
           let {x, y} = this.getCoordsFromMouseEvent(grid, evt);
           let sel = this.getSelectionArea();
@@ -481,7 +481,7 @@ export default React.createClass({
             if (self.clickedColNum != null) {
               API.dragCol(self.clickedColNum, evt.gridCell.x);
             }
-            self.clickedColNum = null; 
+            self.clickedColNum = null;
           } else if (self.draggingRow) {
             self.draggingRow = false;
             if (self.clickedRowNum != null) {
@@ -508,7 +508,7 @@ export default React.createClass({
   },
 
   gridProperties: {
-    editorActivationKeys: [], // disable column picker
+    editorActivationKeys: ([]: Array<any>), // disable column picker
     scrollbarHoverOff: 'visible',
     columnAutosizing: true
   },
