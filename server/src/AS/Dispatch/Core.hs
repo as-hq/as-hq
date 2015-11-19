@@ -201,9 +201,9 @@ formatCell (Just f) c = c'
 evalChain :: Connection -> FormattedValMap -> [ASCell] -> CommitSource -> EitherTExec ([ASCell], [FatCell])
 evalChain conn valuesMap cells src = 
   let whenCaught e = do
-    printObj "Runtime exception caught" (e :: SomeException)
-    U.writeErrToLog ("Runtime exception caught" ++ (show e)) src
-    return $ Left RuntimeEvalException
+          printObj "Runtime exception caught" (e :: SomeException)
+          U.writeErrToLog ("Runtime exception caught" ++ (show e)) src
+          return $ Left RuntimeEvalException
   in do
     result <- liftIO $ catch (runEitherT $ evalChain' conn valuesMap cells []) whenCaught
     hoistEither result
@@ -248,17 +248,17 @@ evalChain' conn valuesMap [] fatCells =
     evalChain' conn (M.union valuesMap formattedNewMap) cells' fatCells
 
 evalChain' conn valuesMap (c@(Cell loc xp _ ts):cs) fatCells = do
-  (Formatted cv f) <- EC.evaluateLanguage (cellLocation c) (locSheetId loc) valuesMap xp
+  cvf@(Formatted cv f) <- EC.evaluateLanguage (locSheetId loc) (cellLocation c) valuesMap xp
   liftIO $ putStrLn $ "PYTHON EVAL GOT VALUE: " ++ (show cv) ++ " AT INDEX: " ++ (show loc)
   let maybeFatCell              = DE.decomposeCompositeValue c cv
-      addCell (Cell l _ v _) mp = M.insert l (CellValue (Formatted v f)) mp
+      addCell (Cell l _ v _) mp = M.insert l (Formatted (CellValue v) f) mp
       newValuesMap              = case maybeFatCell of
               Nothing -> if (M.member ptr valuesMap) 
-                then M.insert ptr cv idxInserted
+                then M.insert ptr cvf idxInserted
                 else idxInserted
                 where 
                   ptr = indexToPointer loc
-                  idxInserted = M.insert loc cv valuesMap
+                  idxInserted = M.insert loc cvf valuesMap
       -- ^ when updating a location in the map, check if there are Pointer references to the same location.
       -- if so, update them too
               Just (FatCell expandedCells _ _) -> foldr addCell valuesMap expandedCells

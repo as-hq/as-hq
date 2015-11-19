@@ -108,7 +108,7 @@ type RListKey = String
 data ASReplValue = ReplValue {replValue :: ASValue, replLang :: ASLanguage} deriving (Show, Read, Eq, Generic)
 
 type ValMap = M.Map ASIndex CompositeValue
-type FormattedValMap = M.Map ASIndex (Formatted ASValue)
+type FormattedValMap = M.Map ASIndex (Formatted CompositeValue)
 
 data DisplayType = List | Object deriving (Show, Read, Eq, Generic)
 data ObjectType = RList | RDataFrame | NPArray | NPMatrix | PDataFrame | PSeries deriving (Show, Read, Eq, Generic)
@@ -130,7 +130,7 @@ data ExpandingValue =
   | VPSeries {seriesIndices :: Array, seriesData :: Array}
   deriving (Show, Read, Eq, Generic)
 
-data CompositeValue = Expanding ExpandingValue | CellValue ASValue deriving (Show, Read, Generic)
+data CompositeValue = Expanding ExpandingValue | CellValue ASValue deriving (Show, Read, Eq, Generic)
 
 -- turning a spreadsheet range into dataframe etc...
 -- only needed during at syntax and list decoupling
@@ -230,11 +230,8 @@ data ASCell = Cell {cellLocation :: ASIndex,
           cellValue :: ASValue,
           cellTags :: [ASCellTag]} deriving (Show, Read, Eq, Generic)
 
-type ListKey = String
-type ASList = (ListKey, [ASCell])
-type Rect = (Coord, Coord)
-
-
+----------------------------------------------------------------------------------------------------------------------------------------------
+-- Formats
 
 data FormatType = NoFormat | Money | Percentage | Date deriving (Show, Read, Eq, Generic)
 data Formatted a = Formatted { orig :: a, format :: Maybe FormatType }
@@ -331,7 +328,7 @@ data ASPayload =
   | PayloadXp ASExpression
   | PayloadXpL [ASExpression]
   | PayloadReplValue ASReplValue
-  | PayloadValue ASValue
+  | PayloadValue CompositeValue
   | PayloadList QueryList
   | PayloadText {text :: String}
   | PayloadMutate MutateType
@@ -503,6 +500,10 @@ instance FromJSON JSONValue
 instance ToJSON JSONValue
 instance FromJSON Collection
 instance ToJSON Collection
+instance FromJSON CompositeValue
+instance ToJSON CompositeValue
+instance FromJSON ExpandingValue
+instance ToJSON ExpandingValue
 -- The format Frontend uses for both client->server and server->client is
 -- { messageUserId: blah, action: blah, result: blah, payload: blah }
 instance ToJSON ASClientMessage where

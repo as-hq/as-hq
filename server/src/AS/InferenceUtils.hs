@@ -1,8 +1,8 @@
 module AS.InferenceUtils where
 
 import qualified Data.List.Split as LS
-import AS.Parsing.Out (showValue)
-import AS.Parsing.In (parseValue)
+import AS.Parsing.Show (showPrimitive)
+import AS.Parsing.Read (parseValue)
 import qualified Data.List as L
 import Data.Maybe
 import Data.Char
@@ -92,7 +92,7 @@ isFormulaCell cell = not valExpEqual
           excelToASValue (Right (Basic (Var eValue))) = Just $ eValToASValue eValue
           excelToASValue _ = Nothing
           maybeVal = excelToASValue formula
-      otherwise -> (parseValue lang xp) == (Right (cellValue cell))
+      otherwise -> (parseValue lang xp) == (Right (CellValue (cellValue cell)))
 
 -- Given the 2D list of cells in the sel range, extract all formula cells
 extractFormulaCells :: [[ASCell]] -> [ASCell]
@@ -163,7 +163,7 @@ translatePatternCells r1 r2 pattern = concat $ map translatePatternCell indexCel
         lang = language $ cellExpression cell
         newVals = map (snd pattern) seriesIndices
         newLocs = map (Index (rangeSheetId r1)) newPositions
-        newExpressions = map (\v -> Expression (showValue lang v) lang) newVals
+        newExpressions = map (\v -> Expression (showPrimitive lang v) lang) newVals
         newCells = map (\(l,e,v) -> Cell l e v (cellTags cell)) $ zip3 newLocs newExpressions newVals
 
 ------------------------------------------------------------------------------------------------------------------

@@ -84,12 +84,13 @@ getCells locs = DU.getCellsByMessage msg num
 
 -- Gets the cells at the locations with expressions and values removed, but tags intact. 
 getBlankedCellsAt :: [ASIndex] -> IO [ASCell]
-getBlankedCellsAt locs = do 
-  cells <- getPossiblyBlankCells locs
-  return $ map (\(Cell l xp v ts) -> Cell l (go xp) NoValue ts) cells
-    where go xp = case xp of 
-      Expression _ lang -> Expression "" lang
-      Coupled _ lang _ _ -> Expression "" lang
+getBlankedCellsAt locs = 
+  let blank xp = case xp of 
+            Expression _ lang -> Expression "" lang
+            Coupled _ lang _ _ -> Expression "" lang
+  in do 
+    cells <- getPossiblyBlankCells locs
+    return $ map (\(Cell l xp v ts) -> Cell l (blank xp) NoValue ts) cells
 
 -- allows indices to be Pointer or Index
 getCompositeCells :: Connection -> [ASIndex] -> IO [Maybe CompositeCell]

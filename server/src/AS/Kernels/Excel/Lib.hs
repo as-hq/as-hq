@@ -420,7 +420,7 @@ refToEntity c (ERef l@(IndexRef i)) = case (asValueToEntity v) of
   where
     v = case (M.lookup i (evalMap c)) of
       Nothing -> dbLookup i
-      Just (CellValue v') -> v'
+      Just (Formatted (CellValue v') f) -> Formatted v' f
       _ -> error "cannot insert ExpandingValue in excel expression"
 refToEntity c (ERef (l@(RangeRef r))) = if any isNothing vals
   then Left $ CannotConvertToExcelValue l
@@ -430,7 +430,7 @@ refToEntity c (ERef (l@(RangeRef r))) = if any isNothing vals
     idxs = rangeToIndicesRowMajor r
     (inMap,needDB) = partition ((flip M.member) mp) idxs
     -- excel cannot operate on objects/expanding values, so it's safe to assume all composite values passed in are cell values
-    mapVals = map (\(CellValue v) -> v) $ catMaybes $ map ((flip M.lookup) mp) inMap
+    mapVals = map (\(Formatted (CellValue v) f) -> Formatted v f) $ catMaybes $ map ((flip M.lookup) mp) inMap
     dbVals = dbLookupBulk needDB
     vals = map toEValue $ mapVals ++ dbVals 
 

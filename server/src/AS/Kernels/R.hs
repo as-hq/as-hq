@@ -45,16 +45,16 @@ import Control.Monad.Trans.Either
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Exposed functions
 
-evaluate :: EvalCode -> EitherTExec CompositeValue
-evaluate "" = return $ CellValue NoValue
-evaluate str = liftIO $ execOnString str (execR False)
+-- Don't actually need the sheet id's as arguments right now. (Alex 11/15)
+evaluate :: ASSheetId -> EvalCode -> EitherTExec CompositeValue
+evaluate _ "" = return $ CellValue NoValue
+evaluate _ str = liftIO $ execOnString str (execR False)
 
+evaluateRepl :: ASSheetId -> EvalCode -> EitherTExec CompositeValue
+evaluateRepl _ "" = return $ CellValue NoValue
+evaluateRepl _ str = liftIO $ execOnString str (execR True)
 
-evaluateRepl :: EvalCode -> EitherTExec CompositeValue
-evaluateRepl "" = return $ CellValue NoValue
-evaluateRepl str = liftIO $ execOnString str (execR True)
-
-evaluateHeader :: ASSheetId -> EvalCode -> EitherTExec ASValue
+evaluateHeader :: ASSheetId -> EvalCode -> EitherTExec CompositeValue
 evaluateHeader sid str = do 
   lift $ writeHeaderFile sid R str
   lift clearRepl
@@ -79,17 +79,12 @@ execOnString str f = do
 -- change wd and then change back so that things like read.table will read from the static folder
 execR :: Bool -> EvalCode -> IO CompositeValue
 execR isGlobal s =
-<<<<<<< HEAD
-  let whenCaught :: SomeException -> IO ASValue
-      whenCaught e = (R.runRegion $ castR =<< [r| setwd("../") |]) >> (return (ValueError (show e) "R_EXEC_ERROR" "" 0))
-=======
   let whenCaught :: SomeException -> IO CompositeValue
-      whenCaught e = return . CellValue $ ValueError (show e) "R_EXEC_ERROR" 
->>>>>>> objects
+      whenCaught e = (R.runRegion $ castR =<< [r| setwd("../") |]) >> (return . CellValue $ ValueError (show e) "R error")
   in do
     result <- catch (R.runRegion $ castR =<< if isGlobal
       then [r| eval(parse(text=s_hs)) |]
-      else [r| AS_LOCAL_ENV<-function(){eval(parse(text=s_hs));}; AS_LOCAL_EXEC<-AS_LOCAL_ENV(); AS_LOCAL_EXEC |]) whenCaught
+      else [r| AS_LOCAL_ENV<-function(){setwd(paste(getwd(),"/static",sep="")); result = eval(parse(text=s_hs)); setwd("../"); result}; AS_LOCAL_EXEC<-AS_LOCAL_ENV(); AS_LOCAL_EXEC |]) whenCaught
     return result
 
 -- @anand faster unboxing, but I can't figure out how to restrict x to (IsVector x)

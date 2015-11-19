@@ -17,21 +17,21 @@ import Control.Monad.Trans.Either
 
 -- | Convert Either EError EEntity ->  Formatted ASValue; lift from Excel to AS
 -- | In the case of an error, return a ValueExcelError
-convertEither :: Context -> EResult -> EitherTExec CompositeValue
+convertEither :: Context -> EResult -> Formatted CompositeValue
 convertEither _ (Left e) = return . CellValue $ ValueError (show e) "Excel"
-convertEither c (Right entity) = return $ entityToComposite c entity
+convertEither c (Right entity) = entityToComposite c entity
 
 -- | After successful Excel eval returning an entity, convert to ASValue
 -- Excel index refs are treated as 1x1 matrices, but don't treat them as lists below
 entityToComposite :: Context -> EEntity -> Formatted CompositeValue 
-entityToASValue c (EntityVal v) = CellValue $ eValToASValue v
+entityToASValue c (EntityVal v) = (\(Formatted v f) -> Formatted (CellValue v) f) $ eValToASValue v
 entityToComposite c (EntityRef r) = case (L.refToEntity c r) of
-  Left e -> CellValue $ ValueError (show e) "Excel"
+  Left e -> return . CellValue $ ValueError (show e) "Excel"
   Right (EntityMatrix (EMatrix 1 1 v)) -> entityToComposite c $ EntityVal $ V.head v
   Right entity -> entityToComposite c entity
 entityToComposite _ (EntityMatrix m) = case (transpose list2D) of
-  [transposedCol] -> Expanding . VList . A $ transposedCol -- matches in this case iff original list2D is a vertical list
-  otherwise -> Expanding . VList . M $ list2D
+  [transposedCol] -> return $ Expanding . VList . A $ transposedCol -- matches in this case iff original list2D is a vertical list
+  otherwise -> return $ Expanding . VList . M $ list2D
   where
     list2D = map (map $ orig . eValToASValue) (U.matrixTo2DList m)
 -- throws away formatting in this case... awaiting your refactor, Anand. (Alex 11/11)
@@ -45,7 +45,7 @@ evalExcel s context = do
     (SimpleFormula formula) -> L.evalFormula context formula
 
 -- | Entire Excel eval; parse, evaluate, cast to ASValue
-evaluate :: String -> ASIndex -> ValMap -> EitherTExec (Formatted CompositeValue)
-evaluate s idx mp = convertEither context $ evalExcel s context
+evaluate :: String -> ASIndex -> FormattedValMap -> EitherTExec (Formatted CompositeValue)
+evaluate s idx mp = right $ convertEither context $ evalExcel s context
   where
     context = Context mp idx

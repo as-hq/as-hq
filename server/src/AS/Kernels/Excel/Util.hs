@@ -2,17 +2,15 @@ module AS.Kernels.Excel.Util where
 
 import AS.Types.Core
 import AS.Types.Excel
-import qualified Data.Text as T
-
 import AS.Kernels.Excel.Compiler
+import AS.Util
+import AS.DB.API
+
+import qualified Data.Text as T
 import Data.Either
 import Data.Maybe
 import Data.List
 import qualified Data.Vector as V
-
-import AS.Util
-
-import AS.DB.API
 
 import System.IO.Unsafe
 
@@ -85,7 +83,7 @@ eValToASValue (EValueNum (Formatted (EValueI i) f)) = Formatted (ValueI i) f
 eValToASValue (EValueB b) = return $ ValueB b
 eValToASValue (EBlank)    = return NoValue
 eValToASValue (EMissing)  = return NoValue
-eValToASValue (EValueE s) = return $ ValueError s "" "" (-1)
+eValToASValue (EValueE s) = return $ ValueError s ""
 
 toEValue :: Formatted ASValue -> Maybe EValue
 toEValue (Formatted (ValueS s) _) = Just $ EValueS s

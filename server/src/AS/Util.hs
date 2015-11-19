@@ -71,8 +71,6 @@ differentTagType (StreamTag _) (StreamTag _) = False
 differentTagType Tracking Tracking = False
 differentTagType Volatile Volatile = False
 differentTagType (ReadOnly _) (ReadOnly _) = False
-differentTagType (ListMember _) (ListMember _) = False
-differentTagType DFMember DFMember = False
 differentTagType (ImageData _ _ _ _) (ImageData _ _ _ _) = False
 differentTagType _ _ = True
 
@@ -172,8 +170,8 @@ catchEitherT a = do
     Left e -> left e
     Right e -> right e
     where 
-      whenCaught :: SomeException -> IO (Either ASExecError CompositeValue)
-      whenCaught e = return . Right . CellValue $ ValueError (show e) "StdErr" 
+      whenCaught :: SomeException -> IO (Either ASExecError (Formatted CompositeValue))
+      whenCaught e = return . Right $ Formatted (CellValue $ ValueError (show e) "StdErr") Nothing
 
 fromDouble :: Double -> Either Double Int
 fromDouble x = if (x == xInt)

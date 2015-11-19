@@ -314,16 +314,14 @@ formattedFloatToEValue (Formatted d f) = EValueNum $ Formatted (EValueD d) f
 excelValue :: Parser Formula
 excelValue = fmap (Basic . Var) $
       try $ (formattedFloatToEValue <$> formattedFloat)
-  <|> try ((EValueNum . EValueD) <$> formattedFloat)
-  <|> try ((EValueNum . EValueI . fromInteger) <$> integer)
+  <|> try ((EValueNum . return . EValueI . fromInteger) <$> integer)
   <|> try (EValueB <$> C.bool)
   <|> try (EValueS <$> str)
 
 numOrBool :: Parser Formula
 numOrBool = fmap (Basic . Var) $
       try (formattedFloatToEValue <$> formattedFloat)
-  <|> try ((EValueNum . EValueD) <$> formattedFloat)
-  <|> try ((EValueNum . EValueI . fromInteger) <$> integer)
+  <|> try ((EValueNum . return . EValueI . fromInteger) <$> integer)
   <|> try (EValueB <$> C.bool)
 
 justNumOrBool :: Parser Formula

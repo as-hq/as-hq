@@ -64,7 +64,7 @@ main = R.withEmbeddedR R.defaultConfig $ do
   putStrLn "STARTING APP"
   (conn, ports, states) <- initApp
   if isDebug -- set in Settings.hs
-    then initDebug conn
+    then initDebug conn (head states)
     else return ()
   putStrLn $ "server started on ports " ++ (show ports)
   mapM_ (\(port, state) -> WS.runServer S.wsAddress port $ application state) (zip ports states)
@@ -99,7 +99,6 @@ initApp = do
 -- |  for debugging. Only called if isDebug is true.
 initDebug :: R.Connection -> MVar ServerState -> IO ()
 initDebug conn state = do
-  --putStrLn $ show $ shiftExRef (5,5) (ExPointerRef (ExIndex REL_REL "A" "1") (Just "sheet1") (Just "workbook1"))
   return ()
 
 application :: MVar ServerState -> WS.ServerApp

@@ -217,25 +217,25 @@ lookupRef lang valuesMap ref = case ref of
 
 -- | Replaces all the Excel references in an expression with the valuesMap corresponding to them.
 -- TODO clean up SQL mess
+-- | Replaces all the Excel references in an expression with the valuesMap corresponding to them.
+-- TODO clean up SQL mess
 insertValues :: ASSheetId -> ValMap -> ASExpression -> String
 insertValues sheetid valuesMap xp = 
-    let origString = xpString xp
-        lang = xpLanguage xp
-    in case lang of
-      SQL -> contextStmt ++ evalStmt
-        where
-            exRefs      = getUnquotedMatchesWithContext xp refMatch
-            matchLocs   = map (exRefToASRef sheetid) (snd exRefs)
-            context     = map (lookupString SQL valuesMap) matchLocs
-            st          = ["dataset"++(show i) | i<-[0..((L.length matchLocs)-1)]]
-            newExp      = replaceMatches exRefs (\el -> (L.!!) st (MB.fromJust (L.findIndex (el==) (snd exRefs)))) origString
-            contextStmt = "setGlobals("++(show context) ++")\n"
-            evalStmt    = "result = pprintSql(db(\'" ++ newExp ++ "\'))"
-      otherLang -> evalString
-        where
-            exRefToStringEval = (lookupString lang valuesMap) . (exRefToASRef sheetid) -- ExRef -> String. (Takes in ExRef, returns the ASValue corresponding to it, as a string.)
-            evalString = replaceMatches (getUnquotedMatchesWithContext xp refMatch) exRefToStringEval origString
-
+  let lang = xpLanguage xp
+  in case lang of
+    SQL -> contextStmt ++ evalStmt
+      where
+        exRefs = getUnquotedMatchesWithContext xp refMatch
+        matchRefs = map (exRefToASRef sheetid) (snd exRefs)
+        context = map (lookupRef SQL valuesMap) matchRefs
+        st = ["dataset"++(show i) | i<-[0..((L.length matchRefs)-1)]]
+        newExp = expression $ replaceRefs (\el -> (L.!!) st (MB.fromJust (L.findIndex (el==) (snd exRefs)))) xp
+        contextStmt = "setGlobals("++(show context) ++")\n"
+        evalStmt = "result = pprintSql(db(\'" ++ newExp ++ "\'))"
+    _ -> evalString
+      where
+        exRefToStringEval = (lookupRef lang valuesMap) . (exRefToASRef sheetid) -- ExRef -> String. (Takes in ExRef, returns the ASValue corresponding to it, as a string.)
+        evalString = expression $ replaceRefs exRefToStringEval xp
 -----------------------------------------------------------------------------------------------------------------------
 -- | File management
 

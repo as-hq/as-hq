@@ -87,8 +87,8 @@ replaceRefs f xp = xp'
     exRefs'         = map f exRefs 
     expression'     = blend inter exRefs'
     xp'             = case xp of 
-      Expression str lang -> Expression xp' lang
-      Coupled str lang dtype key -> Coupled xp' lang dtype key
+      Expression _ _ -> xp {expression = expression'}
+      Coupled _ _ _ _ -> xp {cExpression = expression'}
 
 -------------------------------------------------------------------------------------------------------------------------------------------------
 -- Helpers
