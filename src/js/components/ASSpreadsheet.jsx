@@ -135,27 +135,6 @@ export default React.createClass({
       });
 
       let externalCallbacks = {
-        mouseup: (evt) => {
-          let {which, x, y, offsetX, offsetY} = (evt: any);
-          /* x, y: against the page, for rendering the dropdown */
-          /* offsetX, offsetY: against hypergrid, for finding coordinates */
-
-          if (which === 3) { // right click
-            let {gridCell: {x: col, y: row}} =
-              hg.renderer.getGridCellFromMousePoint({
-                x: offsetX,
-                y: offsetY
-              });
-
-            if (col != 0 || row != 0) { // right click on a row header
-              this.refs.rightClickMenu.openAt(x, y,
-                (col != 0)
-                  ? columnHeaderMenuItems(col)
-                  : rowHeaderMenuItems(row)
-              );
-            }
-          }
-        }
       };
 
       _.forEach(callbacks, (v, k) => {
@@ -209,13 +188,13 @@ export default React.createClass({
   // Need to scroll even if no mouse event, but you're at the edge of the grid
   scrollWithDraggables(grid: HGElement) {
     if (this.mouseDownInBox || this.dragSelectionOrigin !== null) {
+
       let mousePos = this.mousePosition;
       if (! mousePos) {
         logDebug('No mouse position');
         return;
       }
 
-      console.log("DEALING WITH SCROLLING");
       let {x, y} = mousePos,
           b = grid.getDataBounds(),
           numFixedColumns = grid.getFixedColumnCount(),
@@ -320,16 +299,26 @@ export default React.createClass({
   /*************************************************************************************************************************/
   // Hypergrid initialization
 
+  draggingCol: false,
+  draggingRow: false,
+  clickedColNum: (null: ?number),
+  clickedRowNum: (null: ?number),
+
   /* Initial a sheet with blank entries */
   initialize() {
     let hg = this._getHypergrid(),
         model = hg.getBehavior(),
         self = this;
     hg.addGlobalProperties(this.gridProperties);
+
+    // This overrides the swapping of columns in hypergrid's internal state
+    // Keeps the animation, but don't change state = column headers stay same, data stays same
+    model.swapColumns = (src, tar) => {};
     model.getColumnCount = () => { return Constants.numCols; };
     model.getRowCount = () => { return Constants.numRows; };
     model.getValue = (x, y) => { return ''; };
     model.getCellEditorAt = (x, y) => { return null; };
+
     model.handleMouseDown = (grid, evt) => {
       if (evt.primitiveEvent.detail.primitiveEvent.shiftKey) { // shift+click
         let {origin} = this.getSelectionArea(),
@@ -345,6 +334,12 @@ export default React.createClass({
           // dragging selections
           this.dragSelectionOrigin = {col: evt.gridCell.x, row: evt.gridCell.y};
         } else if (model.featureChain) {
+          // If the mouse is placed inside column header (not on a divider), we want to keep some extra state ourselves
+          if (model.featureChain.isFixedRow(grid,evt) && hg.overColumnDivider(evt) === -1) {
+           self.clickedColNum = evt.gridCell.x;
+          } else if (model.featureChain.isFixedColumn(grid,evt) && hg.overRowDivider(evt) === -1) {
+            self.clickedRowNum = evt.gridCell.y;
+          }
           model.featureChain.handleMouseDown(grid, evt);
           model.setCursor(grid);
         }
@@ -370,7 +365,6 @@ export default React.createClass({
       let selOrigin = this.dragSelectionOrigin;
       if (!! selOrigin) {
         // range dragging
-        console.log("\n\n\nSELECTION DRAG!!\n\n\n", evt);
         let {x, y} = this.getCoordsFromMouseEvent(grid, evt);
         let {range} = this.getSelectionArea();
         this.drawDraggedSelection(selOrigin, range, evt.gridCell.x, evt.gridCell.y);
@@ -387,6 +381,12 @@ export default React.createClass({
         this.scrollWithDraggables(grid);
         this.repaint(); // show dotted lines
       } else if (model.featureChain) {
+        // If we've mouse down'ed on a column header, we're now dragging a column
+        if (self.clickedColNum !== null) {
+          self.draggingCol = true;
+        } else if (self.clickedRowNum !== null) {
+          self.draggingRow = true;
+        }
         // do default
         model.featureChain.handleMouseDrag(grid, evt);
         model.setCursor(grid);
@@ -394,33 +394,70 @@ export default React.createClass({
     };
 
     model.onMouseUp = (grid, evt) => {
-      if (this.dragSelectionOrigin !== null) {
-        let {x, y} = this.getCoordsFromMouseEvent(grid, evt);
-        let sel = this.getSelectionArea();
-        let newSelRange = Render.getDragRect(),
-            fromRange = TC.simpleToASRange(sel.range),
-            toRange = TC.simpleToASRange(newSelRange),
-            newSel = {range: newSelRange, origin: newSelRange.tl};
-        this.select(newSel, false);
-        Render.setDragRect(null);
-        this.dragSelectionOrigin = null;
-        API.cut(fromRange, toRange);
-      } else if (Render.getDragCorner() !== null) {
-        let dottedSel = Render.getDottedSelection();
-        // Do nothing if the mouseup isn't in the right column or row
-        if (dottedSel.range !== null){
-          let activeSelection = Store.getActiveSelection();
-          if (!! activeSelection) {
-            API.drag(activeSelection.range, dottedSel.range);
-            self.select(dottedSel,true);
+      let {which} = evt.primitiveEvent.detail.primitiveEvent;
+
+      if (which === 3) { // right click
+        /* x, y: against the page, for rendering the dropdown */
+        /* relCol, relRow: cell coordinates, relative to top left of element, not A1 */
+          /* for example if we are scrolled to A24 at top, A25 is 1 not 25 */
+        let {
+          gridCell: {x: relCol, y: relRow},
+          primitiveEvent: {detail: {primitiveEvent: {x, y}}}
+        } = evt;
+        if (relCol != 0 || relRow != 0) { // right click on a row header
+          let [col, row] =
+            [relCol + hg.getHScrollValue(), relRow + hg.getVScrollValue()];
+          this.refs.rightClickMenu.openAt(x, y,
+            (col != 0)
+              ? columnHeaderMenuItems(col)
+              : rowHeaderMenuItems(row)
+          );
+        }
+      } else {
+        if (this.dragSelectionOrigin !== null) {
+          let {x, y} = this.getCoordsFromMouseEvent(grid, evt);
+          let sel = this.getSelectionArea();
+          let newSelRange = Render.getDragRect(),
+              fromRange = TC.simpleToASRange(sel.range),
+              toRange = TC.simpleToASRange(newSelRange),
+              newSel = {range: newSelRange, origin: newSelRange.tl};
+          this.select(newSel, false);
+          Render.setDragRect(null);
+          this.dragSelectionOrigin = null;
+          API.cut(fromRange, toRange);
+        } else if (Render.getDragCorner() !== null) {
+          let dottedSel = Render.getDottedSelection();
+          // Do nothing if the mouseup isn't in the right column or row
+          if (dottedSel.range !== null){
+            let activeSelection = Store.getActiveSelection();
+            if (!! activeSelection) {
+              API.drag(activeSelection.range, dottedSel.range);
+              self.select(dottedSel,true);
+            }
+          }
+        } else if (model.featureChain) {
+          model.featureChain.handleMouseUp(grid, evt);
+          model.setCursor(grid);
+
+          Render.setDragCorner(null);
+          self.mouseDownInBox = false;
+
+          // Clean up dragging a column, and send an API message to backend to swap data
+          if (self.draggingCol) {
+            self.draggingCol = false;
+            if (self.clickedColNum != null) {
+              API.dragCol(self.clickedColNum, evt.gridCell.x);
+            }
+            self.clickedColNum = null; 
+          } else if (self.draggingRow) {
+            self.draggingRow = false;
+            if (self.clickedRowNum != null) {
+              API.dragRow(self.clickedRowNum, evt.gridCell.y);
+            }
+            self.clickedRowNum = null;
           }
         }
-      } else if (model.featureChain) {
-        model.featureChain.handleMouseUp(grid, evt);
-        model.setCursor(grid);
       }
-      Render.setDragCorner(null);
-      self.mouseDownInBox = false;
     };
 
     this.setRenderers();

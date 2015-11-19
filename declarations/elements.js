@@ -17,7 +17,11 @@ declare class HGPrimitiveMouseEvent extends Event {
   detail: {
     mouse: HGPoint;
     keys: string;
-    primitiveEvent: HGMouseEvent;
+    primitiveEvent: SyntheticMouseEvent & {
+      x: number,
+      y: number,
+      which: number
+    };
   };
 }
 
@@ -38,6 +42,15 @@ declare class HGRendererObject {
 
 declare class HGCellEditorElement extends HTMLElement {
 
+}
+
+declare class HGFeatureChainElement extends HTMLElement {
+  isFixedRow: (grid: HGElement, evt: HGMouseEvent) => boolean;
+  isFixedColumn: (grid: HGElement, evt: HGMouseEvent) => boolean;
+  handleMouseUp: (grid: HGElement, evt: HGMouseEvent) => void;
+  handleMouseDrag: (grid: HGElement, evt: HGMouseEvent) => void;
+  handleMouseMove: (grid: HGElement, evt: HGMouseEvent) => void;
+  handleMouseDown: (grid: HGElement, evt: HGMouseEvent) => void;
 }
 
 declare class HGCellProviderElement extends HTMLElement {
@@ -61,6 +74,11 @@ declare class HGBehaviorElement extends HTMLElement {
   onMouseMove: (grid: HGElement, evt: HGMouseEvent) => void;
   onMouseDrag: (grid: HGElement, evt: HGMouseEvent) => void;
   onMouseUp: (grid: HGElement, evt: HGMouseEvent) => void;
+
+  swapColumns: (c1: number, c2: number) => void;
+  setRowHeight: (rowNum: number, height: number) => void;
+  featureChain: HGFeatureChainElement;
+
 
   setCursor(grid: HGElement): void;
   setValue(x: number, y: number, val: string): void;
@@ -124,6 +142,9 @@ declare class HGElement extends HTMLElement {
   scrollBy(x: number, y: number): void;
   select(x: number, y: number, dx: number, dy: number): void;
   takeFocus(): void;
+
+  overColumnDivider: (evt: HGMouseEvent) => number;
+  overRowDivider: (evt: HGMouseEvent) => number;
 }
 
 declare class AEPoint {
