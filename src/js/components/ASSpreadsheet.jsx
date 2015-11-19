@@ -508,6 +508,7 @@ export default React.createClass({
   },
 
   gridProperties: {
+    editorActivationKeys: [], // disable column picker
     scrollbarHoverOff: 'visible',
     columnAutosizing: true
   },
