@@ -82,7 +82,7 @@ export default {
                                                  this.withinSegment(pX, x+width, 0)));
   },
 
-  
+
   /*************************************************************************************************************************/
   // Renderers
 
@@ -239,10 +239,10 @@ export default {
     var originCellBounds = this._getBoundsOfCell(originX, originY);
 
     //lets check if our selection rectangle is scrolled outside of the visible area
-    if (dpOX > lastVisibleColumn) {
+    if (dpOX - 1 > lastVisibleColumn) {
         return; //the top of our rectangle is below visible
     }
-    if (dpOY > lastVisibleRow) {
+    if (dpOY - 1 > lastVisibleRow) {
         return; //the left of our rectangle is to the right of being visible
     }
 
