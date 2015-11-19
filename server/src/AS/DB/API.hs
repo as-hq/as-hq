@@ -93,7 +93,7 @@ getCompositeCells conn locs = do
     num = length locs
     expandPointerRefs (loc, ccell) = case loc of 
       Pointer sid coord -> case ccell of 
-        Just (Cell l (Coupled xp lang ctype key) v ts) -> do
+        Just (Cell l (Coupled xp lang dtype key) v ts) -> do
           -- if the cell was coupled but no range descriptor exists, something fucked up.
           (Just desc) <- getRangeDescriptor conn key
           let fatLocs = DU.rangeKeyToIndices key

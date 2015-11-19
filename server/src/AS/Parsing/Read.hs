@@ -89,13 +89,17 @@ extractComplex lang =
             Nothing -> fail "expecting field \"tag\" in complex value"
 
 extractComplexValue :: JSONKey -> JSON -> Maybe CompositeValue
-extractComplexValue tag js = case (readMaybe tag :: Maybe ComplexType) of 
-  Nothing -> Nothing
-  Just tag' -> case tag' of 
-    List -> Expanding . VList <$> extractCollection js "listVals"
-    Object -> Expanding <$> extractObject js
-    Image -> CellValue <$> extractImage js
-    Error -> CellValue <$> extractError js
+extractComplexValue tag js = case tag of 
+  "List"   -> Expanding . VList <$> extractCollection js "listVals"
+  "Object" -> Expanding <$> extractObject js
+  "Image"  -> CellValue <$> extractImage js
+  "Error"  -> CellValue <$> extractError js
+  "Serialized"   -> CellValue . ValueSerialized <$> extractSerialized js
+
+extractSerialized :: JSON -> Maybe String
+extractSerialized js = case (js .> "serializedValue") of 
+  Just (JSONLeaf (SimpleValue (ValueS s))) -> Just s
+  _ -> Nothing
 
 extractCollection :: JSON -> JSONKey -> Maybe Collection
 extractCollection js key = case (js .> key) of 

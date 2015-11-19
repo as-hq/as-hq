@@ -61,7 +61,7 @@ def serialize(val):
 	if isinstance(val, list):
 		return json.dumps({'tag': 'List', 'listVals': val})
 	elif isinstance(val, dict):
-		return json.dumps({'tag': 'Object', 'objectType': 'PDict', 'dict': val})
+		return json.dumps({'tag': 'Serialized', 'serializedValue': json.dumps(val)})
 	elif isinstance(val, np.ndarray):
 		def f(e):
 			if isinstance(e, np.ndarray): return e.tolist()

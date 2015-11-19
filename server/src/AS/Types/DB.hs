@@ -60,7 +60,7 @@ instance (Show2 ASReference) where
 
 instance (Show2 ASExpression) where
   show2 (Expression xp lang) = 'E':exprDelimiter:xp ++ (exprDelimiter:(show lang))
-  show2 (Coupled xp lang ctype rangekey) = 'C':exprDelimiter:xp ++ (exprDelimiter:(show lang)) ++ (exprDelimiter:(show ctype)) ++ (exprDelimiter:rangekey)
+  show2 (Coupled xp lang dtype rangekey) = 'C':exprDelimiter:xp ++ (exprDelimiter:(show lang)) ++ (exprDelimiter:(show dtype)) ++ (exprDelimiter:rangekey)
 
 instance (Show2 ASValue) where
   show2 = show -- TODO optimize
@@ -110,7 +110,7 @@ instance (Read2 ASExpression)
             [xp, lang] -> Expression xp (read lang :: ASLanguage)
             _ -> error $ "read2 splits expression incorrectly: " ++ str 
           "C" -> case (tail splits) of 
-            [xp, lang, ctype, rangekey] -> Coupled xp (read lang :: ASLanguage) (read ctype :: ComplexType) rangekey
+            [xp, lang, dtype, rangekey] -> Coupled xp (read lang :: ASLanguage) (read dtype :: DisplayType) rangekey
             _ -> error $ "read2 splits expression incorrectly: " ++ str 
 
 instance (Read2 ASValue)

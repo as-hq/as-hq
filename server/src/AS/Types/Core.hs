@@ -76,7 +76,7 @@ type EvalCode = String
 
 data ASExpression =
     Expression { expression :: String, language :: ASLanguage }
-  | Coupled { cExpression :: String, cLanguage :: ASLanguage, cType :: ComplexType, cRangeKey :: RangeKey }
+  | Coupled { cExpression :: String, cLanguage :: ASLanguage, dType :: DisplayType, cRangeKey :: RangeKey }
   deriving (Show, Read, Eq, Generic)
 
 xpString :: ASExpression -> String
@@ -100,6 +100,7 @@ data ASValue =
   | ValueB Bool
   | ValueImage { imagePath :: String }
   | ValueError { errorMsg :: String, errorType :: String }
+  | ValueSerialized String
   deriving (Show, Read, Eq, Generic)
 
 type RListKey = String
@@ -107,7 +108,7 @@ data ASReplValue = ReplValue {replValue :: ASValue, replLang :: ASLanguage} deri
 
 type ValMap = M.Map ASIndex CompositeValue
 
-data ComplexType = List | Object | Image | Error deriving (Show, Read, Eq, Generic)
+data DisplayType = List | Object deriving (Show, Read, Eq, Generic)
 data ObjectType = RList | RDataFrame | NPArray | NPMatrix | PDataFrame | PSeries deriving (Show, Read, Eq, Generic)
 -- [Dragme, matrix, array...] x [python, r, ocmal....]
 
@@ -459,8 +460,8 @@ instance FromJSON ASTime
 instance ToJSON ASTime
 instance FromJSON ASCommit
 instance ToJSON ASCommit
-instance FromJSON ComplexType
-instance ToJSON ComplexType
+instance FromJSON DisplayType
+instance ToJSON DisplayType
 instance FromJSON RangeDescriptor
 instance ToJSON RangeDescriptor
 instance FromJSON JSONField
@@ -540,13 +541,13 @@ instance ToJSON ASReference where
 instance ToJSON ASExpression where
   toJSON (Expression xp lang) = object ["expression" .= xp,
                                         "language" .= (show lang)]
-  toJSON (Coupled xp lang ctype key) = object ["expression" .= xp,
+  toJSON (Coupled xp lang dtype key) = object ["expression" .= xp,
                                                "language" .= (show lang),
-                                               "displayType" .= (show ctype),
+                                               "displayType" .= (show dtype),
                                                "rangeKey" .= key]
 instance FromJSON ASExpression where
   parseJSON (DA.Object v) = do
-    dType <- (v .:? "displayType") :: Parser (Maybe ComplexType)
+    dType <- (v .:? "displayType") :: Parser (Maybe DisplayType)
     case dType of 
       Just _ -> Coupled <$> v .: "expression"
                            <*> v .: "language"

@@ -12,6 +12,9 @@ import qualified Data.List as L
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- value decomposition (expansion)
 
+-- TODO this function has a lot of repetition in its cases,
+-- but I think it's clearer to separate each case 
+-- instead of making a shitton of nested cases
 decomposeCompositeValue :: ASCell -> CompositeValue -> Maybe FatCell
 decomposeCompositeValue _ (CellValue _) = Nothing
 
@@ -70,11 +73,11 @@ decomposeCompositeValue c@(Cell idx _ _ _) (Expanding (VPSeries indices vals)) =
     cells     = decomposeCells Object rangeKey c (A vals)
     desc      = ObjectDescriptor rangeKey PSeries $ M.fromList [("dfIndices", JSONLeaf . ListValue . A $ indices)]
 
-decomposeCells :: ComplexType -> RangeKey -> ASCell -> Collection -> [ASCell]
-decomposeCells cType rangeKey (Cell (Index sheet (c,r)) xp _ ts) coll = 
+decomposeCells :: DisplayType -> RangeKey -> ASCell -> Collection -> [ASCell]
+decomposeCells dtype rangeKey (Cell (Index sheet (c,r)) xp _ ts) coll = 
   let str = xpString xp
       lang = xpLanguage xp
-      xp' = Coupled str lang cType rangeKey 
+      xp' = Coupled str lang dtype rangeKey 
   in case coll of 
     A arr -> unpack $ zip [r..] arr
         where unpack = map (\(r', val) -> Cell (Index sheet (c,r')) xp' val ts)
