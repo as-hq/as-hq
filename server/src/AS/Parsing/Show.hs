@@ -55,7 +55,7 @@ showExpanding R (VRDataFrame labels indices vals) = "{function(){" ++ statements
     labelDef   = "colnames(AS_DF_LOCAL) <- " ++ (showExpanding R $ VList . A $ labels)
     indexDef   = "rownames(AS_DF_LOCAL) <- " ++ (showExpanding R $ VList . A $ indices)
 
-showExpanding R (VPDataFrame labels indices vals) = showExpanding R (VRDataFrame labels indices (L.transpose vals))
+showExpanding R (VPDataFrame labels indices vals) = showExpanding R (VRDataFrame labels indices (L.transpose vals)) -- python and R dataframes have transposed representations
 
 showExpanding Python (VNPArray coll) = "np.array(" ++ arrayVals ++ ")"
   where arrayVals = showCollection Python coll
@@ -70,7 +70,7 @@ showExpanding Python (VPDataFrame labels indices vals) = "pd.DataFrame(" ++ inne
     labels'  = "columns=" ++ (showCollection Python $ A labels)
     indices' = "index=" ++ (showCollection Python $ A indices)
 
-showExpanding Python (VRDataFrame labels indices vals) = showExpanding Python (VPDataFrame labels indices (L.transpose vals))
+showExpanding Python (VRDataFrame labels indices vals) = showExpanding Python (VPDataFrame labels indices (L.transpose vals)) -- python and R dataframes have transposed representations
 
 showExpanding Python (VPSeries indices vals) = "pd.Series(" ++ inner ++ ")"
   where 
@@ -105,25 +105,3 @@ mkObject otype pairs = "deserialize({\"tag\":\"Object\",\"objectType\":\"" ++ ot
     otype' = show otype
     pairs' = L.intercalate "," $ map showPair pairs
     showPair pair = (fst pair) ++ ":" ++ (snd pair)
-
---object :: ASLanguage -> ASValue -> String
---object lang (ValueObject otype olist oattrs) =
---  let 
---    dlm = LD.blockDelimiter lang
---    olist' = showValue lang (ValueL olist)
---  in foldr (++) $ case lang of
---    Python  -> ["deserialize(", (show otype), ",", olist, (show oattrs), ")", dlm]
---    _ -> error "cannot deserialize object in languages other than python"
-
---showRDataFrame :: ASLanguage -> [ASValue] -> String
---showRDataFrame lang vals = case lang of
---  R -> "data.frame(" ++ (concat $ L.intersperse "," fields) ++ ")"
---    where fields = map showRPair $ splitNamesFromDataFrameValues vals
-
---splitNamesFromDataFrameValues :: [ASValue] -> [(String, ASValue)]
---splitNamesFromDataFrameValues vals = pairs
---  where
---    pairs = if (all isString names)
---      then zip (map str names) (map (\(ValueL l) -> ValueL $ tail l) vals)
---      else zip (repeat ("" :: String)) vals
---    names = map (\(ValueL l) -> head l) vals
