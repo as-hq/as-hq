@@ -172,22 +172,51 @@ int DAG::recomputeDAG () {
 
 // Given a list of cells, return all of their descendants in the DAG, sorted topologically. 
 //(X is a proper descendant of Y if there's a path of length >= 1 from X to Y.)
-vector<DAG::Vertex> DAG::getDescendants(const vector<DAG::Vertex>& locs){
+vector<DAG::Vertex> DAG::getAllDescendants(const vector<DAG::Vertex>& locs){
 	unordered_map<DAG::Vertex,bool> visited;
 	vector<DAG::Vertex> order; 
 
-	for (const auto& loc: locs)
+	for (const auto& loc: locs) {
 		visited[loc] = false;
+	}
 
 	for (const auto& loc: locs) {
-		if (!visited[loc])
+		if (!visited[loc]){
 			DAG::updateDAGDfs(loc, visited, order);
+		}
 	}
 
 	reverse(order.begin(),order.end());
 	order.push_back("OK");
 	return order;
 }
+
+vector<DAG::Vertex> DAG::getProperDescendants(const vector<DAG::Vertex>& locs){
+	unordered_map<DAG::Vertex,bool> visited;
+	vector<DAG::Vertex> order; 
+
+	for (const auto& loc: locs) {
+		visited[loc] = false;
+	}
+
+	for (const auto& loc: locs) {
+		if (!visited[loc]){
+			if (fromToAdjList.count(loc)) { // so that the fromToAdjList key isn't created if there's nothing there
+				for (const auto& toLoc : fromToAdjList[loc]){
+					if (!visited[toLoc]) {
+						DAG::updateDAGDfs(toLoc,visited,order);
+					}
+				}
+			}
+			visited[loc] = true; 
+		}
+	}
+
+	reverse(order.begin(),order.end());
+	order.push_back("OK");
+	return order;
+}
+
 
 /****************************************************************************************************************************************/
 
@@ -339,9 +368,9 @@ void showAdjList(const DAG::AdjacencyList& al, string msg) {
 }
 
 void DAG::showGraph(string msg) {
-	cout << "==================================================================================================================================";
-	cout << "\n" << msg << "\n\n";
-	showAdjList(fromToAdjList, "From To Adjacency List");
-	showAdjList(toFromAdjList, "To From Adjacency List");
-	showAdjList(prevCache, "Previous cache");
+	// cout << "==================================================================================================================================";
+	// cout << "\n" << msg << "\n\n";
+	// showAdjList(fromToAdjList, "From To Adjacency List");
+	// showAdjList(toFromAdjList, "To From Adjacency List");
+	// showAdjList(prevCache, "Previous cache");
 }

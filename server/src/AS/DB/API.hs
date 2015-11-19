@@ -124,9 +124,12 @@ setCells cells = do
 setCellsPropagated :: Connection -> [ASCell] -> IO ()
 setCellsPropagated conn cells = do 
   setCells cells
+  printWithTime "set cells"
   setCellsAncestorsForce $ filter (\c -> (not $ U.isListMember c) || DU.isListHead c) cells
+  printWithTime "setAncestors"
   let listKeys = nub $ catMaybes $ map DU.getCellListKey cells
   mapM_ (recoupleList conn) listKeys
+  printWithTime "dealt with list keys while setting"
 
 deleteCells :: Connection -> [ASCell] -> IO ()
 deleteCells _ [] = return ()
@@ -136,10 +139,14 @@ deleteCells conn cells = deleteLocs conn $ map cellLocation cells
 -- the cell changes that happen as a result of deleting the cells. 
 deleteCellsPropagated :: Connection -> [ASCell] -> IO ()
 deleteCellsPropagated conn cells = do 
+  printWithTime "about to delete cells"
   deleteCells conn cells
+  printWithTime "deleted cells, about to set ancestors by force"
   setCellsAncestorsForce $ U.blankCellsAt (map cellLocation cells)
+  printWithTime "set ancestors"
   let listKeys = nub $ catMaybes $ map DU.getCellListKey cells
   mapM_ (decoupleList conn) listKeys
+  printWithTime "dealt with list keys"
 
 deleteLocs :: Connection -> [ASIndex] -> IO ()
 deleteLocs _ [] = return ()
@@ -223,18 +230,25 @@ recoupleList conn key = do
 -- | Deal with updating all DB-related things after an eval. 
 updateAfterEval :: Connection -> ASTransaction -> EitherTExec [ASCell]
 updateAfterEval conn (Transaction src@(sid, _) roots afterCells lists) = do
+  liftIO $ printWithTime $ "starting update after eval"
   let newListCells         = concat $ map snd lists
       afterCellsWithLists  = afterCells ++ newListCells
       cellLocs             = map cellLocation afterCellsWithLists
   beforeCells     <- lift $ catMaybes <$> getCells cellLocs
+  liftIO $ printWithTime $ "got beforecells"
   listKeysChanged <- liftIO $ DU.getListIntersections conn sid cellLocs
+  liftIO $ printWithTime $ "got changed list keys"
   decoupleResult  <- lift $ mapM (decoupleList conn) listKeysChanged
+  liftIO $ printWithTime $ "got decouple result"
   let (coupledCells, decoupledCells) = U.liftListTuple decoupleResult
       afterCells'                    = U.mergeCells afterCellsWithLists decoupledCells
       beforeCells'                   = U.mergeCells beforeCells coupledCells
   liftIO $ setCells afterCells'
+  liftIO $ printWithTime $ "set after cells"
   liftIO $ deleteCells conn (filter isEmptyCell afterCells')
+  liftIO $ printWithTime $ "deleted empty cells"
   liftIO $ mapM_ (\(key, cells) -> setListLocations conn key (map cellLocation cells)) lists
+  liftIO $ printWithTime "done setting list locations"
   liftIO $ addCommit conn (beforeCells', afterCells') src
   liftIO $ printWithTime "added commits"
   right afterCells'
@@ -275,6 +289,7 @@ popKey (sid, uid)  = B.pack $ (T.unpack sid) ++ '|':(T.unpack uid) ++ "popped"
 -- | Update the DB so that there's always a source of truth (ie we will initEval undo to all relevant users)
 undo :: Connection -> CommitSource -> IO (Maybe ASCommit)
 undo conn src = do
+  printWithTime "starting undo in DB redis"
   commit <- runRedis conn $ do
     TxSuccess justC <- multiExec $ do
       commit <- rpoplpush (pushKey src) (popKey src)
@@ -300,6 +315,7 @@ redo conn src = do
   case commit of
     Nothing -> return Nothing
     Just c@(ASCommit b a t) -> do
+      putStrLn "about to propagate"
       deleteCellsPropagated conn b
       setCellsPropagated conn a
       -- mapM_ (decoupleList conn) listKeys

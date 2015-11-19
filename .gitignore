@@ -25,4 +25,4 @@ server/eval_files/**/headers/*.*
 
 server/static/images/*
 
-graph_database/server
+graph-database/server

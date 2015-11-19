@@ -18,7 +18,8 @@ public:
   //represent a vertex; it's either an OK or some error message, indicating the outcome
   //of the computation. It just happens that Vertex is a string, so this hacky
   //thing is allowed. 
-	std::vector<Vertex> getDescendants(const std::vector<Vertex>& locs);
+	std::vector<Vertex> getProperDescendants(const std::vector<Vertex>& locs);
+  std::vector<Vertex> getAllDescendants(const std::vector<Vertex>& locs);
 	std::vector<Vertex> getImmediateAncestors(const std::vector<Vertex>& locs);
 	void showGraph(std::string msg);
 	void rollback(); //can only roll back one "commit"; prevCache stores the previous values
