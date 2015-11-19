@@ -33,11 +33,13 @@ vector<string> processRequest(DAG& dag, string& request){
 
     cout << "Processing action: " << type << endl;
 
-    if (type == "GetDescendants")
-        return dag.getDescendants(requestParts);
-    else if (type == "GetImmediateAncestors")
+    if (type == "GetDescendants") {
+        return dag.getAllDescendants(requestParts);
+    } else if (type == "GetProperDescendants") {
+        return dag.getProperDescendants(requestParts);
+    } else if (type == "GetImmediateAncestors") {
         return dag.getImmediateAncestors(requestParts);
-    else if (type == "SetRelations"){
+    } else if (type == "SetRelations"){
         dag.clearPrevCache(); 
         dag.showGraph("BEFORE SETRELATIONS"); 
 

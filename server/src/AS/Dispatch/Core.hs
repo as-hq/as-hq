@@ -85,6 +85,7 @@ getEvalLocs :: Connection -> [ASCell] -> EitherTExec [ASIndex]
 getEvalLocs conn origCells = do
   let locs = map cellLocation origCells
   vLocs <- lift $ DB.getVolatileLocs conn -- Accounts for volatile cells being reevaluated each time
+  printWithTimeT "Got volatile locs"
   indices <- G.getDescendants (locs ++ vLocs)
   return indices
 
@@ -136,9 +137,7 @@ evalChain conn valuesMap cells src = do
     printObj "Runtime exception caught" (e :: SomeException)
     U.writeErrToLog ("Runtime exception caught" ++ (show e)) src
     return $ Left RuntimeEvalException)
-  case result of
-    (Left e) -> left e
-    (Right e) -> right e
+  hoistEither result
 
 -- | evalChain' works in two parts. First, it goes through the list of cells passed in and
 -- evaluates them. Along the way, new list cells (created as part of a list) are created
@@ -150,30 +149,41 @@ evalChain conn valuesMap cells src = do
 -- because we don't need to re-evaluate the individual cells in the list, ONLY their descendants.
 -- We also need to check for circular dependencies, which is why the pastListHeads are passed in.
 -- #needsrefactor there's probably a more Haskell way of doing this with a state monad or something.
+-- NOTE: we only need to deal with properDescLocs (not including original start locs) in this method, and not all desc locs
+-- This is because listCellLocs' already filters for not being in a pastListHead, 
+-- and also because the starting locs can't possibly be in the value map, and don't need to be re-evaluated
 evalChain' :: Connection -> FormattedIndValMap -> [ASCell] -> [ASList] -> [ASIndex] -> EitherTExec ([ASCell], [ASList])
 evalChain' _ _ [] [] _ = return ([], [])
 evalChain' conn valuesMap [] lists pastListHeads = do
+  printWithTimeT "doing base case of evalChain'"
   -- get cells from lists
   let cells         = concat $ map snd lists
       listCellLocs  = map cellLocation cells
       listCellLocs' = filter (\d -> not $ d `elem` pastListHeads) listCellLocs
-  descLocs <- G.getDescendants listCellLocs'
+  properDescLocs <- G.getProperDescendants listCellLocs'
+  -- let descLocs = listCellLocs' ++ properDescLocs
+  printWithTimeT $ "got descendants of list cells " ++ (show (length properDescLocs)) ++ " " ++ (show (length pastListHeads))
   -- check for circular dependencies. IF a circular dependency exists, it necessarily has to
   -- involve one of the list heads, since the cells created as part of a list depend only
   -- on the head. So we go through the descendants of the current list cells (sans the previous
   -- list heads), so if those contain any of the previous list heads we know there's a cycle.
-  mapM_ (\d -> if (d `elem` pastListHeads) then (left $ CircularDepError d) else (return ())) descLocs
+  mapM_ (\d -> if (d `elem` pastListHeads) then (left $ CircularDepError d) else (return ())) properDescLocs
+  printWithTimeT "checked for circular dep problems"
   -- DON'T need to re-eval anything that's already been evaluated
-  let descLocs' = filter (\d -> d `M.notMember` valuesMap) descLocs
+  let descLocs' = filter (\d -> d `M.notMember` valuesMap) properDescLocs
   -- #needsrefactor it seems like a large chunk of code here mirrors that in evalChain... should probably DRY
+  printWithTimeT "starting to get anc of desc"
   ancLocs <- G.getImmediateAncestors descLocs'
+  printWithTimeT "got ancestors of those descendants"
   newKnownValues <- lift $ getValuesMap ancLocs
   formattedNewValues <- lift $ formatValsMap newKnownValues
   cells' <- getCellsToEval conn descLocs' [] -- the origCells are the list cells, which got filtered out of descLocs
+  printWithTimeT "got new cells to eval"
   evalChain' conn (M.union valuesMap formattedNewValues) cells' [] pastListHeads
 
 evalChain' conn valuesMap (c@(Cell loc xp _ ts):cs) next listHeads = do
   (Formatted cv f) <- EC.evaluateLanguage (locSheetId loc) (IndexRef (cellLocation c)) valuesMap xp
+  printWithTimeT $ "done evaluating language"
   let c' = formatCell f (Cell loc xp cv ts)
       listResult = createListCells c' cv
       newValuesMap = case listResult of
@@ -187,6 +197,7 @@ evalChain' conn valuesMap (c@(Cell loc xp _ ts):cs) next listHeads = do
         Nothing -> listHeads
         Just _  -> loc:listHeads
   (restCells, restLists) <- evalChain' conn newValuesMap cs next' listHeads'
+  printWithTimeT "done with recursive eval chain"
   return $ case listResult of
     Nothing          -> (c':restCells, restLists)
     (Just cellsList) -> (restCells, cellsList:restLists)

@@ -24,8 +24,12 @@ import Control.Monad.Trans.Either
 getDescendants :: [ASIndex] -> EitherTExec [ASIndex]
 getDescendants = query GetDescendants
 
+getProperDescendants :: [ASIndex] -> EitherTExec [ASIndex]
+getProperDescendants = query GetProperDescendants
+
 getImmediateAncestors :: [ASIndex] -> EitherTExec [ASIndex]
-getImmediateAncestors = query GetImmediateAncestors
+getImmediateAncestors [] = right []
+getImmediateAncestors lst = query GetImmediateAncestors lst
 
 -- #incomplete. In the one place this is called, the non-immediate descendants don't cause any
 -- problems, so this works as a temporary solution. 

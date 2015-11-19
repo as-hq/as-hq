@@ -159,7 +159,7 @@ getCellsByMessage msg num = do
   cCells <- peekArray (fromIntegral num) ptrCells
   res <- mapM cToASCell cCells
   printObj "got cells" res
-  free ptrCells
+  -- free ptrCells
   return res
 
 setCellsByMessage :: B.ByteString -> Int -> IO ()
