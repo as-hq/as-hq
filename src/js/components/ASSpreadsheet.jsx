@@ -265,13 +265,17 @@ export default React.createClass({
     let hg = this._getHypergrid(),
         [vs, hs] = [hg.vScrollValue, hg.hScrollValue],
         [cols, rows] = [hg.getVisibleColumns(), hg.getVisibleRows()];
+        let colLength = cols.length, rowLength = rows.length; 
         // This might fail on the initial load, since getVisibleColumns() and
-        //getVisibleRows() might return nothing, ergo the below hack.
-        let colLength = cols.length, rowLength = rows.length;
+        // getVisibleRows() might return nothing, ergo the below hack.
         if (colLength == 0) colLength = 20;
         if (rowLength == 0) rowLength = 30;
     return { range: {tl: {row: vs+1, col: hs+1},
-                     br: {row: vs + rowLength, col: hs + colLength}} };
+                     br: {row: vs + rowLength - 1, col: hs + colLength - 1}} };
+    // getVisibleColumns and getVisibleRows were manually modified to show one more
+    // column/row than what hypergrid says is visible (...since they're actually visible)
+    // but that messed with the boundaries shown here, which is why we're subtracting 1
+    // from rowLength and colLength. 
   },
 
   isVisible(col: number, row: number): boolean { // faster than accessing hypergrid properties
@@ -308,6 +312,7 @@ export default React.createClass({
   initialize() {
     let hg = this._getHypergrid(),
         model = hg.getBehavior(),
+        renderer = hg.getRenderer(),
         self = this;
     hg.addGlobalProperties(this.gridProperties);
 
@@ -318,6 +323,31 @@ export default React.createClass({
     model.getRowCount = () => { return Constants.numRows; };
     model.getValue = (x, y) => { return ''; };
     model.getCellEditorAt = (x, y) => { return null; };
+
+    // Overriding the renderer's getVisibleColumns() and getVisibleRows(), because they're off by 1...
+    renderer.getVisibleColumns = () => {
+      // normally getVisibleColumns() just returns renderer.renderedColumns
+      let rc = renderer.renderedColumns.slice(0);
+      if (rc.length > 0) { 
+        let last = rc[rc.length - 1]; 
+        if (!isNaN(last)) { 
+          rc.push(last + 1);
+          // rc.push(last + 2);
+        }
+      }
+      return rc; 
+    },
+
+    renderer.getVisibleRows = () => {
+      let rr = renderer.renderedRows.slice(0);
+      if (rr.length > 0) { 
+        let last = rr[rr.length - 1]; 
+        if (!isNaN(last)) { 
+          rr.push(last + 1);
+        }
+      }
+      return rr; 
+    },
 
     model.handleMouseDown = (grid, evt) => {
       if (evt.primitiveEvent.detail.primitiveEvent.shiftKey) { // shift+click
