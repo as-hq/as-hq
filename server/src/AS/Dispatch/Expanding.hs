@@ -32,7 +32,13 @@ decomposeCompositeValue c@(Cell idx _ _ _) (Expanding (VRList pairs)) = Just $ F
     cells     = decomposeCells Object rangeKey c coll
     desc      = ObjectDescriptor rangeKey RList $ M.fromList []
 
-decomposeCompositeValue c@(Cell idx _ _ _) (Expanding (VRDataFrame labels indices vals)) = decomposeCompositeValue c $ Expanding (VPDataFrame labels indices vals)
+decomposeCompositeValue c@(Cell idx _ _ _) (Expanding (VRDataFrame labels indices vals)) = Just $ FatCell cells idx desc
+  where
+    vals'     = M $ prependColumn (NoValue:indices) (labels:vals)
+    dims      = getDimensions vals'
+    rangeKey  = DU.getRangeKey idx dims
+    cells     = decomposeCells Object rangeKey c vals'
+    desc      = ObjectDescriptor rangeKey RDataFrame $ M.fromList []
 
 decomposeCompositeValue c@(Cell idx _ _ _) (Expanding (VNPArray coll)) = Just $ FatCell cells idx desc
   where
@@ -101,6 +107,15 @@ recomposeCompositeValue (FatCell cells _ (ObjectDescriptor key RList _)) = Expan
     names' = map (\(ValueS s) -> s) names
     fields' = L.transpose fields
     (M (names:fields)) = recomposeCells dims cells
+    (_, dims) = rangeKeyToDimensions key
+
+recomposeCompositeValue (FatCell cells _ (ObjectDescriptor key RDataFrame _)) = Expanding val
+  where 
+    val       = VRDataFrame labels indices (L.transpose vals)
+    ((_:labels):indexedVals) = mat
+    indices   = map (\(index:_) -> index) indexedVals 
+    vals      = map (\(_:row) -> row) indexedVals
+    (M mat)   = recomposeCells dims cells
     (_, dims) = rangeKeyToDimensions key
 
 recomposeCompositeValue (FatCell cells _ (ObjectDescriptor key NPArray _)) = Expanding val

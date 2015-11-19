@@ -13,7 +13,7 @@ import AS.Config.Settings
 import AS.Config.Paths (getImagesPath)
 import AS.Util
 
-import Data.List (elem)
+import Data.List (elem, transpose)
 
 import qualified Data.ByteString.Char8 as BC
 
@@ -134,7 +134,7 @@ castVector v = do
       then do
         names <- castNames <$> (castR =<< [r|names(AS_LOCAL_EXEC)|])
         indices <- castNames <$> (castR =<< [r|rownames(AS_LOCAL_EXEC)|])
-        return . Expanding $ VRDataFrame names indices vals
+        return . Expanding $ VRDataFrame names indices (transpose vals)
       else do
         listNames <- castNames <$> (castR =<< [r|names(AS_LOCAL_EXEC)|])
         let nameStrs = map (\(ValueS s) -> s) listNames

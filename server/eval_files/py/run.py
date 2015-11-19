@@ -30,7 +30,7 @@ result = "error"
 try:
 	execfile(replFile)
 	os.chdir(os.getcwd()+"/static")
-	result = 'test!'
+	result = pd.DataFrame([1,2,3])
 	os.chdir('..')
 	figures=[manager.canvas.figure for manager in matplotlib._pylab_helpers.Gcf.get_all_fig_managers()]
 	if len(figures) > 0:

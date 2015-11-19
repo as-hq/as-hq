@@ -39,14 +39,23 @@ showExpanding :: ASLanguage -> ExpandingValue -> String
 
 showExpanding lang (VList coll) = wrapList lang $ showCollection lang coll
 
-showExpanding R (VRList pairs) = "list(" ++ (concat $ L.intersperse "," $ map showRPair pairs) ++ ")"
+showExpanding R (VRList pairs) = "list(" ++ inner ++ ")"
   where 
     showRPair (key, arr) = (prefix key) ++ (showExpanding R $ VList . A $ arr)
+    inner      = (concat $ L.intersperse "," $ map showRPair pairs)
     prefix key = case key of
       "" -> ""
       _ -> key ++ "="
 
---showExpanding R (VRDataFrame )
+showExpanding R (VRDataFrame labels indices vals) = "{function(){" ++ statements ++ "}}()"
+  where
+    statements = L.intercalate ";" [dfDef, labelDef, indexDef, "AS_DF_LOCAL"]
+    dfDef      = "AS_DF_LOCAL <- data.frame(" ++ dfInner ++ ")"
+    dfInner    = L.intercalate "," $ map ((showExpanding R) . VList . A) vals
+    labelDef   = "colnames(AS_DF_LOCAL) <- " ++ (showExpanding R $ VList . A $ labels)
+    indexDef   = "rownames(AS_DF_LOCAL) <- " ++ (showExpanding R $ VList . A $ indices)
+
+showExpanding R (VPDataFrame labels indices vals) = showExpanding R (VRDataFrame labels indices (L.transpose vals))
 
 showExpanding Python (VNPArray coll) = "np.array(" ++ arrayVals ++ ")"
   where arrayVals = showCollection Python coll
@@ -56,15 +65,17 @@ showExpanding Python (VNPMatrix mat) = "np.matrix(" ++ matrixVals ++ ")"
 
 showExpanding Python (VPDataFrame labels indices vals) = "pd.DataFrame(" ++ inner ++ ")"
   where 
-    inner = L.intercalate "," [vals', labels', indices']
-    vals' = "data=" ++ (showCollection Python $ M vals)
-    labels' = "columns=" ++ (showCollection Python $ A labels)
+    inner    = L.intercalate "," [vals', labels', indices']
+    vals'    = "data=" ++ (showCollection Python $ M vals)
+    labels'  = "columns=" ++ (showCollection Python $ A labels)
     indices' = "index=" ++ (showCollection Python $ A indices)
+
+showExpanding Python (VRDataFrame labels indices vals) = showExpanding Python (VPDataFrame labels indices (L.transpose vals))
 
 showExpanding Python (VPSeries indices vals) = "pd.Series(" ++ inner ++ ")"
   where 
-    inner = vals' ++ "," ++ indices'
-    vals' = "data=" ++ (showCollection Python $ A vals)
+    inner    = vals' ++ "," ++ indices'
+    vals'    = "data=" ++ (showCollection Python $ A vals)
     indices' = "index=" ++ (showCollection Python $ A indices)
     
 -----------------------------------------------------------------------------------------------------------------------

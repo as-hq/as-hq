@@ -45,8 +45,7 @@ evaluateLanguage curRef sheetid valuesMap xp =
       str = xpString xp
       xpWithValuesSubstituted = insertValues sheetid valuesMap xp
   in catchEitherT $ do
-    printWithTimeT $ "Starting eval code: " ++ str 
-    printWithTimeT $ "with map: " ++ (show valuesMap)
+    printWithTimeT $ "Starting eval code: " ++ xpWithValuesSubstituted 
     case maybeError of
       Just e -> return $ CellValue e -- short-circuited, return this error
       Nothing -> case lang of
