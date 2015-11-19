@@ -32,7 +32,7 @@ showPrimitive lang v = case v of
   ValueS s           -> show s
   ValueI i           -> show i
   ValueD d           -> show d
-  ValueB b           -> LD.bool lang b
+  ValueB b           -> LD.outBool lang b
   _ -> error ("In showPrimitive, failed to pattern match: " ++ (show v))
 
 showExpanding :: ASLanguage -> ExpandingValue -> String

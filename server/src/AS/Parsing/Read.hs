@@ -17,7 +17,7 @@ import qualified Text.Parsec.Language as Lang (haskellDef)
 import Control.Applicative hiding ((<|>), many)
 
 import AS.Types.Core
-import AS.Parsing.Common
+import AS.Parsing.Common as C
 import qualified AS.LanguageDefs as LD
 
 -----------------------------------------------------------------------------------------------------------------------
@@ -38,7 +38,7 @@ asValue :: ASLanguage -> Parser ASValue
 asValue lang =
       try (ValueD <$> float)
   <|> try (ValueI <$> integer)
-  <|> try (ValueB <$> bool)
+  <|> try (ValueB <$> C.bool)
   <|> try (ValueS <$> quotedString)
   <|> try (nullValue lang)
   <|> try (nanValue lang)

@@ -51,8 +51,8 @@ outNan lang = case lang of
   Python -> "np.nan"
   _ -> error $ "nan value not found for " ++ (show lang)
 
-bool :: ASLanguage -> Bool -> String
-bool lang val = case val of 
+outBool :: ASLanguage -> Bool -> String
+outBool lang val = case val of 
   True -> case lang of 
     R     -> "true"
     Python-> "True"

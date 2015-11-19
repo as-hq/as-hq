@@ -318,11 +318,11 @@ data ASTime = Time {day :: String, hour :: Int, minute :: Int, sec :: Int} deriv
 type ASRelation = (ASIndex, [ASIndex]) -- for representing ancestry relationships
 
 data ASCommit = Commit {before :: [ASCell],
-                          after :: [ASCell],
-                          beforeDescriptors :: [RangeDescriptor],
-                          afterDescriptors :: [RangeDescriptor],
-                          time :: ASTime}
-                          deriving (Show,Read,Eq,Generic)
+                        after :: [ASCell],
+                        beforeDescriptors :: [RangeDescriptor],
+                        afterDescriptors :: [RangeDescriptor],
+                        time :: ASTime}
+                        deriving (Show,Read,Eq,Generic)
 
 type CommitSource = (ASSheetId, ASUserId)
 
