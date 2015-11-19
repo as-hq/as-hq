@@ -35,8 +35,8 @@ export default React.createClass({
   render(){
     let buttonStyle = {
       position:'absolute',
-      width:this.props.style.width,
-      height:this.props.style.height
+      width: this.props.style.width,
+      height: this.props.style.height
     };
     return (
     	<Dropzone onDrop={this._onDrop} style={this.props.style} >

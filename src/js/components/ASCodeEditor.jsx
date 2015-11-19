@@ -65,9 +65,11 @@ export default React.createClass({
     let {language, theme, value, width, height} = this.props;
     let editor = language.Editor;
     // TODO: make this CSS better/put the import in the right place; this is just a skeleton
+    // counterpoint: don't give a crap about this because these buttons are all temporary anyway
+    // and crappy CSS is probably sufficient? (Alex 11/18)
     let fileInputStyle = {
           position:'relative',
-          left:'1200px',
+          left:'1000px',
           top:'-55px',
           width:'120px',
           height:'35px'
@@ -123,7 +125,7 @@ export default React.createClass({
               onClick={this._onTest}
               style={{
                 position: 'relative',
-                left: '150px',
+                left: '85px',
                 top: '-13px'
               }} />}
             <FileInput style={fileInputStyle} />
