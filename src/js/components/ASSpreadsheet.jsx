@@ -445,6 +445,10 @@ export default React.createClass({
         }
       } else {
         if (this.dragSelectionOrigin !== null) {
+          this.dragSelectionOrigin = null;
+          if (Render.getDragRect() === null) { 
+            return; 
+          }
           let {x, y} = this.getCoordsFromMouseEvent(grid, evt);
           let sel = this.getSelectionArea();
           let newSelRange = Render.getDragRect(),
@@ -453,7 +457,6 @@ export default React.createClass({
               newSel = {range: newSelRange, origin: newSelRange.tl};
           this.select(newSel, false);
           Render.setDragRect(null);
-          this.dragSelectionOrigin = null;
           API.cut(fromRange, toRange);
         } else if (Render.getDragCorner() !== null) {
           let dottedSel = Render.getDottedSelection();
