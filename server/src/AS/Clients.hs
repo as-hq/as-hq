@@ -127,6 +127,7 @@ sheetsInPayload :: ASPayload -> [ASSheetId]
 sheetsInPayload (PayloadDelete rng cells) = (rangeSheetId rng):(map (locSheetId . cellLocation) cells)
 sheetsInPayload (PayloadS (Sheet sid _ _)) = [sid]
 sheetsInPayload (PayloadCommit (ASCommit bf af _)) = (map (locSheetId . cellLocation) bf) ++ (map (locSheetId . cellLocation) af)
+sheetsInPayload (PayloadN ()) = []
 
 -- | Figures out whom to send the message back to, based on the payload, and broadcasts the message
 -- to all the relevant recipients. 
@@ -206,9 +207,9 @@ handleClose _ _ _ = return ()
 -- deleted on frontend), meaning we have to ensure that deleted cells are manually wiped from the 
 -- frontend store the moment they get deleted. 
 handleUpdateWindow :: ClientId -> MVar ServerState -> ASPayload -> IO ()
-handleUpdateWindow sid state (PayloadW w) = do
+handleUpdateWindow cid state (PayloadW w) = do
   curState <- readMVar state
-  let (Just user') = US.getUserByClientId sid curState -- user' is to get latest user on server; if this fails then somehow your connection isn't stored in the state
+  let (Just user') = US.getUserByClientId cid curState -- user' is to get latest user on server; if this fails then somehow your connection isn't stored in the state
   let oldWindow = userWindow user'
   (flip catch) (badCellsHandler (dbConn curState) user') (do
     let newLocs = U.getScrolledLocs oldWindow w

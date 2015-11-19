@@ -283,12 +283,12 @@ writeToLog str (sid, uid) = do
   logDir <- getServerLogDir
   let sid' = T.unpack sid
       uid' = T.unpack uid
-      loggedStr = '\n':str ++ "\n# SHEET_ID: " ++ sid' ++ "\n# USER_ID: " ++ uid'
+      loggedStr = '\n':str ++ "\n" ++ sid' ++ "\n" ++ uid'
       logPath = logDir ++ "server_log"
   appendFile' logPath loggedStr
   -- then write to individual log for the sheet
   let logPath' = logPath ++ sid'
-  appendFile' logPath' ('\n':str)
+  appendFile' logPath' loggedStr
 
 -- can probably refactor with writeToLog to reduce code duplication
 logBugReport :: String -> CommitSource -> IO ()
@@ -297,12 +297,22 @@ logBugReport str (sid, uid) = do
   time <- getTime
   let sid' = T.unpack sid
       uid' = T.unpack uid
-      loggedStr = '\n':str ++ "\n# SHEET_ID: " ++ sid' ++ "\n# USER_ID: " ++ uid' ++ "\n# TIME: " ++ time
+      loggedStr = '\n':str ++ "\n# " ++ sid' ++ "\n# " ++ uid'
       bugLogPath = logDir ++ "bug_reports"
   appendFile' bugLogPath loggedStr
 
 writeErrToLog :: String -> CommitSource -> IO ()
-writeErrToLog str src = writeToLog ("# ERROR: " ++ str) src
+writeErrToLog str (sid, uid) = do 
+  logDir <- getServerLogDir
+  time <- getTime
+  let sid' = T.unpack sid
+      uid' = T.unpack uid
+      loggedStr = "\n#ERROR: "++ str ++ "\n# " ++ sid' ++ "\n# " ++ uid'
+      logPath = logDir ++ "bug_reports"
+  appendFile' logPath loggedStr
+  -- then write to individual log for the sheet
+  let logPath' = logPath ++ sid'
+  appendFile' logPath' loggedStr
 
 printWithTimeT :: String -> EitherTExec ()
 printWithTimeT = lift . printWithTime
