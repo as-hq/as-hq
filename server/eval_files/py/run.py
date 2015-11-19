@@ -1,6 +1,7 @@
 import os
 curWd = os.getcwd()
 replFile =  os.getcwd() + "/eval_files/py/repl_record.py"
+headerFile =  os.getcwd() + "/eval_files/py/header.py"
 imagesPath = os.getcwd() + "/static/images/"
 imagePrefix = "pythonImage"
 
@@ -28,9 +29,11 @@ result = "error"
 # if there exist any plots in the current environment.
 # a workaround would be to check the type of result before setting it to ValueImage.
 try:
-	execfile(replFile)
+	# execfile(replFile)
+	# execfile(headerFile)
 	os.chdir(os.getcwd()+"/static")
-	result = {"a": 1}['a']
+	import numpy as np
+	result = 6
 	os.chdir('..')
 	figures=[manager.canvas.figure for manager in matplotlib._pylab_helpers.Gcf.get_all_fig_managers()]
 	if len(figures) > 0:
@@ -42,6 +45,7 @@ try:
 	result = serialize(result)
 except Exception as e:
 	os.chdir(curWd)
+	print "exception"
 	exc_type, exc_obj, exc_tb = exc_info()
 	err = repr(e).replace("\'","").replace("'",'"')
 	errJson = {'tag': 'Error', 'errorType': repr(exc_type), 'errorMsg': err}

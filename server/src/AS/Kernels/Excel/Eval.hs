@@ -22,14 +22,16 @@ convertEither _ (Left e) = return . CellValue $ ValueError (show e) "Excel"
 convertEither c (Right entity) = entityToComposite c entity
 
 -- | After successful Excel eval returning an entity, convert to ASValue
+-- | NOTE: ASValue's ValueL is column-major
 -- Excel index refs are treated as 1x1 matrices, but don't treat them as lists below
-entityToComposite :: Context -> EEntity -> Formatted CompositeValue 
-entityToASValue c (EntityVal v) = (\(Formatted v f) -> Formatted (CellValue v) f) $ eValToASValue v
+entityToComposite :: Context -> EEntity -> Formatted CompositeValue
+entityToComposite c (EntityVal v) = formattedValToComposite $ eValToASValue v
+  where formattedValToComposite (Formatted v f) = Formatted (CellValue v) f
 entityToComposite c (EntityRef r) = case (L.refToEntity c r) of
   Left e -> return . CellValue $ ValueError (show e) "Excel"
   Right (EntityMatrix (EMatrix 1 1 v)) -> entityToComposite c $ EntityVal $ V.head v
   Right entity -> entityToComposite c entity
-entityToComposite _ (EntityMatrix m) = case (transpose list2D) of
+entityToComposite _ (EntityMatrix m) = case (transpose list2D) of 
   [transposedCol] -> return $ Expanding . VList . A $ transposedCol -- matches in this case iff original list2D is a vertical list
   otherwise -> return $ Expanding . VList . M $ list2D
   where

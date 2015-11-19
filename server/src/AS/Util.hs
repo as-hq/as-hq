@@ -480,8 +480,12 @@ rangeToIndices (Range sheet (ul, lr)) = [Index sheet (x,y) | x <- [startx..endx]
     endy = max (snd ul) (snd lr)
 
 rangeContainsIndex :: ASRange -> ASIndex -> Bool
-rangeContainsIndex (Range sid1 ((x1,y1),(x2,y2))) (Index sid2 (x,y)) = and [ 
+rangeContainsIndex (Range sid1 ((x1,y1),(x2,y2))) idx = and [ 
   sid1 == sid2, x >= x1, x <= x2, y >= y1, y <= y2 ]
+    where
+      (x,y,sid2) = case idx of 
+        Pointer sid2 (x,y) -> (x,y,sid2)
+        Index sid2 (x,y) -> (x,y,sid2)
 
 rangeContainsRange :: ASRange -> ASRange -> Bool
 rangeContainsRange (Range sid1 ((x1, y1), (x2, y2))) (Range sid2 ((x1', y1'), (x2', y2'))) = and [ 
