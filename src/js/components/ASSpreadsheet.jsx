@@ -823,8 +823,11 @@ export default React.createClass({
         this.repaint();
         this.refs.textbox.updateTextBox(xpStr);
         break;
+      // hide textbox, if focus not already in grid, put it there
       case Constants.ActionTypes.NORMAL_SEL_CHANGED:
         this.refs.textbox.hideTextBox(xpStr);
+        this.props.setFocus('grid');
+        Store.setFocus('grid');
         break;
       case Constants.ActionTypes.BACKEND_UPDATED_AND_CELLS_CHANGED:
         break;
@@ -835,6 +838,11 @@ export default React.createClass({
       case Constants.ActionTypes.ESC_PRESSED:
         this.refs.textbox.updateTextBox(xpStr);
         this.refs.textbox.hideTextBox();
+        break;
+      // put focus on grid on get
+      case Constants.ActionTypes.FETCHED_CELLS:
+        this.props.setFocus('grid');
+        Store.setFocus('grid');
         break;
       default:
         break;
