@@ -250,17 +250,6 @@ readBool str = case (map toUpper str) of
   "TRUE"  -> True
   "FALSE" -> False
 
--- | Match the lowercase or uppercase form of 'c'
-caseInsensitiveChar :: Char -> Parser Char
-caseInsensitiveChar c = char (toLower c) <|> char (toUpper c)
-
--- | Match the string 's', accepting either lowercase or uppercase form of each character 
-caseInsensitiveString :: String -> Parser String
-caseInsensitiveString s = try (mapM caseInsensitiveChar s) <?> "\"" ++ s ++ "\""
-
-bool :: Parser Bool
-bool = fmap readBool $ caseInsensitiveString "TRUE" <|> caseInsensitiveString "FALSE"
-
 str :: Parser String
 str = C.quotedString
 
@@ -297,14 +286,14 @@ excelValue :: Parser Formula
 excelValue = fmap (Basic . Var) $
       try ((EValueNum . EValueD) <$> formattedFloat)
   <|> try ((EValueNum . EValueI . fromInteger) <$> integer)
-  <|> try (EValueB <$> bool)
+  <|> try (EValueB <$> C.bool)
   <|> try (EValueS <$> str)
 
 numOrBool :: Parser Formula
 numOrBool = fmap (Basic . Var) $
       try ((EValueNum . EValueD) <$> formattedFloat)
   <|> try ((EValueNum . EValueI . fromInteger) <$> integer)
-  <|> try (EValueB <$> bool)
+  <|> try (EValueB <$> C.bool)
 
 justNumOrBool :: Parser Formula
 justNumOrBool = do 

@@ -38,7 +38,7 @@ asValue :: ASLanguage -> Parser ASValue
 asValue lang =
       try (ValueD <$> float)
   <|> try (ValueI <$> integer)
-  <|> try (ValueB <$> bool lang)
+  <|> try (ValueB <$> bool)
   <|> try (ValueS <$> quotedString)
   <|> try (nullValue lang)
   <|> try (nanValue lang)
@@ -52,21 +52,15 @@ integer = fromInteger <$> P.integer lexer
 float :: Parser Double
 float = float' lexer
 
-bool :: ASLanguage -> Parser Bool
-bool lang = true <|> false
-  where
-    true = string (LD.bool lang True) >> return True
-    false = string (LD.bool lang False) >> return False
-
 nullValue :: ASLanguage -> Parser ASValue
 nullValue lang = case lang of 
-  Python -> string (LD.null Python) >> return NoValue
-  R      -> string (LD.null R) >> return NoValue
+  Python -> string (LD.inNull Python) >> return NoValue
+  R      -> string (LD.inNull R) >> return NoValue
   _      -> fail $ "No nullValue in " ++ (show lang)
 
 nanValue :: ASLanguage -> Parser ASValue
 nanValue lang = case lang of 
-  Python -> string (LD.nan Python) >> return ValueNaN
+  Python -> string (LD.inNan Python) >> return ValueNaN
   _      -> fail $ "No NaN value in " ++ (show lang)
 
 lexer = P.makeTokenParser Lang.haskellDef

@@ -9,8 +9,8 @@ import AS.Types.Core
 -----------------------------------------------------------------------------------------------------------------------
 -- functions
 
-readBool :: ASLanguage -> String -> Bool
-readBool lang str = case (head str) of
+readBool :: String -> Bool
+readBool str = case (head str) of
   't' -> True
   'T' -> True
   'f' -> False
@@ -29,16 +29,26 @@ listDelimiter lang = case lang of
   OCaml -> ';'
   _ -> ','
 
-null :: ASLanguage -> String
-null lang = case lang of 
+outNull :: ASLanguage -> String
+outNull lang = case lang of 
   Python -> "None"
   R -> "NULL"
   SQL -> "None"
   _ -> error $ "null value not found for " ++ (show lang)
 
-nan :: ASLanguage -> String
-nan lang = case lang of 
+inNull :: ASLanguage -> String
+inNull lang = case lang of 
+  Python -> "null"
+  _ -> outNull lang
+
+inNan :: ASLanguage -> String
+inNan lang = case lang of 
   Python -> "NaN"
+  _ -> error $ "nan value not found for " ++ (show lang)
+
+outNan :: ASLanguage -> String
+outNan lang = case lang of 
+  Python -> "np.nan"
   _ -> error $ "nan value not found for " ++ (show lang)
 
 bool :: ASLanguage -> Bool -> String

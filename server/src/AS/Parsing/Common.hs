@@ -16,11 +16,7 @@ import qualified Data.Text.Lazy as LA
 
 import AS.Types.Core
 import AS.Util
-
-deleteEmpty = filter ((/=) "")
-
-skip :: Parser a -> Parser String
-skip p = p >> (return "")
+import qualified AS.LanguageDefs as LD
 
 -- takes text, pattern, returns list of occurences
 regexList :: String -> String -> [String]
@@ -50,15 +46,10 @@ sortStrList (a1, b1) (a2, b2)
   | (show $ dropWhile isUpper a1) > (show $ dropWhile isUpper a2) = LT
   | otherwise = EQ
 
-rangeDiff :: (Coord, Coord) -> Dimensions
-rangeDiff (a,b) = (col b - col a + 1, row b - row a + 1)
+-------------------------------------------------------------------------------------------------------------------------
+-- Parse utils
 
-reshapeColArr :: [a] -> Dimensions -> [[a]]
-reshapeColArr lst@(x:xs) (m,n) = 
-  if (length lst) /= (m*n-m)
-    then (every m lst):(reshapeColArr xs (m,n))
-    else []
-
+deleteEmpty = filter ((/=) "")
 
 getDelimitedSubstring :: String -> String -> Int -> String
 getDelimitedSubstring str delim n = T.unpack $ (!!) (T.splitOn (T.pack delim) (T.pack str)) n
@@ -89,6 +80,12 @@ tryParse p s = parse p "" (T.pack s)
 containsAny :: [String] -> String -> Bool
 containsAny lst s = any (flip L.isInfixOf s) lst
 
+skip :: Parser a -> Parser String
+skip p = p >> (return "")
+
+-------------------------------------------------------------------------------------------------------------------------
+-- Value parsers
+
 -- | Because Haskell's float lexer doesn't parse negative floats out of the box. <__<
 float' :: P.TokenParser () -> Parser Double
 float' lexer = do 
@@ -113,3 +110,14 @@ quotedString = (quoteString <|> apostropheString)
     escapedChar code replacement = char code >> return replacement
     codes            = ['b',  'n',  'f',  'r',  't',  '\\', '\'', '\"', '/']
     replacements     = ['\b', '\n', '\f', '\r', '\t', '\\', '\'', '\"', '/']
+
+-- | Match the lowercase or uppercase form of 'c'
+caseInsensitiveChar :: Char -> Parser Char
+caseInsensitiveChar c = char (toLower c) <|> char (toUpper c)
+
+-- | Match the string 's', accepting either lowercase or uppercase form of each character 
+caseInsensitiveString :: String -> Parser String
+caseInsensitiveString s = try (mapM caseInsensitiveChar s) <?> "\"" ++ s ++ "\""
+
+bool :: Parser Bool
+bool = LD.readBool <$> (caseInsensitiveString "TRUE" <|> caseInsensitiveString "FALSE")

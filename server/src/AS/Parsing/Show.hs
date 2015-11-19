@@ -27,7 +27,8 @@ showValue lang v = case v of
 
 showPrimitive :: ASLanguage -> ASValue -> String
 showPrimitive lang v = case v of
-  NoValue            -> LD.null lang
+  NoValue            -> LD.outNull lang
+  ValueNaN           -> LD.outNan lang
   ValueS s           -> show s
   ValueI i           -> show i
   ValueD d           -> show d

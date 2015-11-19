@@ -11,7 +11,6 @@ import Text.ParserCombinators.Parsec
 import qualified Text.ParserCombinators.Parsec.Token as P
 
 import Data.Aeson hiding (Success)
-import Control.DeepSeq
 import qualified Network.WebSockets as WS
 import qualified Data.UUID as U (toString)
 import qualified Data.Text as T
@@ -350,6 +349,15 @@ rectsIntersect ((y,x),(y2,x2)) ((y',x'),(y2',x2'))
   | x2 < x' = False 
   | x > x2' = False
   | otherwise = True 
+
+rangeDiff :: (Coord, Coord) -> Dimensions
+rangeDiff (a,b) = (col b - col a + 1, row b - row a + 1)
+
+reshapeColArr :: [a] -> Dimensions -> [[a]]
+reshapeColArr lst@(x:xs) (m,n) = 
+  if (length lst) /= (m*n-m)
+    then (every m lst):(reshapeColArr xs (m,n))
+    else []
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Cells
