@@ -18,14 +18,14 @@ import Control.Monad.Trans.Either
 -- | Convert Either EError EEntity ->  Either ASExecError ASValue; lift from Excel to AS
 -- | In the case of an error, return a ValueExcelError
 convertEither :: Context -> EResult -> EitherTExec CompositeValue
-convertEither _ (Left e) = return . CellValue $ ValueExcelError e
+convertEither _ (Left e) = return . CellValue $ ValueError (show e) "Excel"
 convertEither c (Right entity) = return $ entityToComposite c entity
 
 -- | After successful Excel eval returning an entity, convert to ASValue
 -- Excel index refs are treated as 1x1 matrices, but don't treat them as lists below
 entityToComposite :: Context -> EEntity -> CompositeValue 
 entityToComposite c (EntityRef r) = case (L.refToEntity c r) of
-  Left e -> CellValue $ ValueExcelError e
+  Left e -> CellValue $ ValueError (show e) "Excel"
   Right (EntityMatrix (EMatrix 1 1 v)) -> entityToComposite c $ EntityVal $ V.head v
   Right entity -> entityToComposite c entity
 entityToComposite _ (EntityVal EBlank) = CellValue NoValue

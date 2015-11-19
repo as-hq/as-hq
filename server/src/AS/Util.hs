@@ -575,6 +575,12 @@ indexToExcel :: ASIndex -> String
 indexToExcel (Index _ (c,r)) = (intToColStr c) ++ (show r)
 
 ----------------------------------------------------------------------------------------------------------------------
+-- Errors
+
+execErrorToValueError :: ASExecError -> ASValue
+execErrorToValueError e = ValueError (show e) "Exec error"
+
+----------------------------------------------------------------------------------------------------------------------
 -- Testing
 
 testLocs :: Int -> [ASIndex]

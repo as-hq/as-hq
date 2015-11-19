@@ -80,7 +80,6 @@ possiblyShortCircuit sheetid valuesMap xp =
     else MB.listToMaybe $ MB.catMaybes $ flip map (zip depInds values) $ \(i, v) -> case v of
       CellValue NoValue                 -> handleNoValueInLang lang i
       CellValue ve@(ValueError _ _)     -> handleErrorInLang lang ve
-      CellValue vee@(ValueExcelError _) -> handleErrorInLang lang vee
       otherwise                         -> Nothing 
 
 -- | Nothing if it's OK to pass in NoValue, appropriate ValueError if not.

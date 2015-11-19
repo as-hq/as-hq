@@ -1,0 +1,24 @@
+
+[2015-11-19 00:59:38.044] Eval chain produced cells: [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (4,10)}, cellExpression = Expression {expression = "1+a", language = R}, cellValue = ValueError {errorMsg = "R Runtime Error: Error in eval(expr, envir, enclos) : object 'a' not found\n", errorType = "R_EXEC_ERROR"}, cellTags = []}]
+[2015-11-19 00:59:38.045] built message
+[2015-11-19 00:59:38.045] got cells: [Nothing]
+[2015-11-19 00:59:38.056] Range keys changed: []
+[2015-11-19 00:59:38.057] graph query: ["GetDescendants"]
+[2015-11-19 00:59:38.057] sent message to graph db: "\"GetDescendants\""
+[2015-11-19 00:59:38.058] STARTING DISPATCH CYCLE WITH CELLS: : []
+[2015-11-19 00:59:38.059] Connecting to graph database for multi query.
+[2015-11-19 00:59:38.059] Sent message: "\"SetRelations\""
+[2015-11-19 00:59:38.060] Received reply: ["OK"]
+[2015-11-19 00:59:38.060] Set cell ancestors: []
+[2015-11-19 00:59:38.060] graph query: ["GetDescendants"]
+[2015-11-19 00:59:38.060] sent message to graph db: "\"GetDescendants\""
+[2015-11-19 00:59:38.061] Got eval locations: []
+[2015-11-19 00:59:38.061] Got cells to evaluate: []
+[2015-11-19 00:59:38.061] graph query: ["GetImmediateAncestors"]
+[2015-11-19 00:59:38.061] sent message to graph db: "\"GetImmediateAncestors\""
+[2015-11-19 00:59:38.062] Got ancestor locs: []
+[2015-11-19 00:59:38.062] Created initial values map: fromList []
+[2015-11-19 00:59:38.062] Starting eval chain
+[2015-11-19 00:59:38.062] Eval chain produced cells: []
+[2015-11-19 00:59:38.062] Range keys changed: []
+[2015-11-19 00:59:38.063] Server sent message: ServerMessage {serverAction = Update, serverResult = Success, serverPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (4,10)}, cellExpression = Expression {expression = "1+a", language = R}, cellValue = ValueError {errorMsg = "R Runtime Error: Error in eval(expr, envir, enclos) : object 'a' not found\n", errorType = "R_EXEC_ERROR"}, cellTags = []}]}

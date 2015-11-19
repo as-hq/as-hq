@@ -99,7 +99,6 @@ data ASValue =
   | ValueB Bool
   | ValueImage { imagePath :: String }
   | ValueError { errorMsg :: String, errorType :: String }
-  | ValueExcelError EError -- #needsrefactor: should be a part of ValueError
   deriving (Show, Read, Eq, Generic)
 
 type RListKey = String
@@ -293,7 +292,6 @@ data ASPayload =
   | PayloadWorkbookSheets [WorkbookSheet]
   | PayloadW ASWindow
   | PayloadU ASUserId
-  | PayloadE ASExecError
   | PayloadCommit ASCommit
   | PayloadDelete ASRange [ASCell]
   | PayloadPaste {copyRange :: ASRange, copyTo :: ASRange}
@@ -590,3 +588,4 @@ instance NFData EError              where rnf = genericRnf
 instance NFData ASReference         where rnf = genericRnf
 instance NFData ASRange             where rnf = genericRnf
 instance NFData ASIndex             where rnf = genericRnf
+
