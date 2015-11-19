@@ -13,8 +13,12 @@ export type NoValue = {
   tag: 'NoValue';
 };
 
-export type ValueNull = {
-  tag: 'ValueNull';
+export type ValueNaN = {
+  tag: 'ValueNaN';
+};
+
+export type ValueInf = {
+  tag: 'ValueInf';
 };
 
 export type ValueS = {
@@ -37,44 +41,20 @@ export type ValueB = {
   contents: boolean;
 };
 
-export type ValueL = {
-  tag: 'ValueL';
-  contents: Array<ASValue>;
-};
-
 export type ValueImage = {
   tag: 'ValueImage';
   imagePath: string;
 };
 
-export type ValueObject = {
+export type ValueSerialized = {
   tag: 'ValueObject';
-  displayValue: string;
-  objectType: string;
-  jsonRepresentation: string;
+  contents: string;
 };
 
 export type ValueError = {
   tag: 'ValueError';
   errorMsg: string;
   errorType: string;
-};
-
-export type ValueExcelError = {
-  tag: 'ValueExcelError';
-  contents: ASExcelExecError;
-};
-
-export type RListKey = string;
-
-export type RList = {
-  tag: 'RList';
-  contents: Array<[RListKey, ASValue]>;
-};
-
-export type RDataFrame = {
-  tag: 'RDataFrame';
-  contents: Array<ASValue>;
 };
 
 export type ColorTag = {

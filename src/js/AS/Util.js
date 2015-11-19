@@ -83,6 +83,8 @@ export default {
         return "";
       case "ValueNaN":
         return "NaN";
+      case "ValueInf":
+        return "Inf";
       case "ValueB":
         return cv.contents.toString().toUpperCase();
       case "ValueD":
@@ -91,26 +93,14 @@ export default {
         return cv.contents;
       case "ValueS":
         return cv.contents;
-      case "ValueL":
-        if (isRepl)
-          return self.showFullValueList(cv);
-        else return self.showValue(cv.contents[0]);
-      case "RList":
-        if (isRepl)
-          return JSON.stringify(cv.contents);
-        else return "R_LIST";
       case "ValueError":
         if (isRepl)
           return ((cv: any): ValueError).errorMsg;
         else return "ERROR"; // TODO: show more descriptive errors. (#REF? #NAME?)
-      case "ValueExcelError":
-        return "ERROR";
       case "ValueImage":
         return "IMAGE";
-      case "ValueObject":
-        return cv.displayValue;
-      case "DisplayValue":
-        return cv.displayValue;
+      case "ValueSerialized":
+        return "SERIALIZED";
       default:
         logDebug("CELL CONTENTS SHOW VALUE: ", cv.contents);
         return JSON.stringify(cv.contents);
@@ -172,12 +162,6 @@ export default {
       case "Object":
         config.bgColor = colors["lightcyan"];
         return config;
-      case "Image":
-        config.bgColor = colors["lavender"];
-        return config;
-      case "Error":
-        config.bgColor = colors["lightred"];
-        return config;
     }
   },
 
@@ -189,6 +173,12 @@ export default {
         return config;
       case "ValueS":
         config.halign = 'left';
+        return config;
+      case "ValueImage":
+        config.bgColor = colors["lavender"];
+        return config;
+      case "ValueSerialized":
+        config.bgColor = colors["powderblue"];
         return config;
       default:
         config.halign = 'center';
