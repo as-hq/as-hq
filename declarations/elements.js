@@ -96,10 +96,12 @@ declare class HGRectangleElement extends HTMLElement {
 
 declare class HGRendererElement extends HTMLElement {
   addExtraRenderer(renderer: HGRendererObject): void;
-
   getGridCellFromMousePoint(pt: HGPoint): {gridCell: HGPoint};
-
   startAnimator(): void;
+  renderedColumns: Array<number>;
+  renderedRows: Array<number>;
+  getVisibleColumns: () => Array<number>;
+  getVisibleRows: () => Array<number>;
 }
 
 declare class HGMouseEvent {
