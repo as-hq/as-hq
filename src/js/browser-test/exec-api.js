@@ -1,3 +1,32 @@
+/* @flow */
+
+import type {
+  NakedIndex,
+  NakedRange,
+  ASIndex,
+  ASRange,
+  ValueD,
+  ValueI,
+  ValueS,
+  ValueB,
+  NoValue,
+  ASValue,
+  ASExpression,
+  ASLanguage,
+  ASCellTag,
+  ASCell
+} from '../types/Eval';
+
+import type {
+  ASServerMessage
+} from '../types/Messages';
+
+import type {
+  ASTestLanguage,
+  Prf,
+  Matcher
+} from '../types/Tests';
+
 import {
   logDebug
 } from '../AS/Logger';
@@ -8,46 +37,51 @@ import API from '../actions/ASApiActionCreators';
 import Util from '../AS/Util';
 import TC from '../AS/TypeConversions';
 import Store from '../stores/ASEvaluationStore';
+import Constants from '../Constants';
 
 import {promise, exec, fromToInclusive, _do, _doDefer} from './exec-monad';
+let {expect: exp} = require('./test-framework');
 
-let expect;
-export function __injectExpect(exp) {
+let expect: (val: any) => Matcher = exp;
+export function __injectExpect(exp: (val: any) => Matcher) {
   expect = exp;
 }
 
-export function actionAPIResponse(actionPrmFn, responseFn) {
+export function actionAPIResponse(
+  actionPrmFn: () => void,
+  responseFn: () => void
+): Prf {
   return _doDefer([
     apiExec(actionPrmFn),
     exec(responseFn)
   ]);
 }
 
-export function indFromExcel(exLoc) {
+export function indFromExcel(exLoc: string): NakedIndex {
   return Util.excelToIndex(exLoc);
 }
 
-export function rangeFromExcel(exLoc) {
+export function rangeFromExcel(exLoc: string): NakedRange {
   return Util.excelToRange(exLoc);
 }
 
-export function locToExcel(loc) {
+export function locToExcel(loc: NakedRange): string {
   return Util.rangeToExcel(loc);
 }
 
-export function numToAlpha(num) {
+export function numToAlpha(num: number): string {
   return String.fromCharCode(num + 'A'.charCodeAt(0));
 }
 
-export function asIndex(loc) {
+export function asIndex(loc: string): ASIndex {
   return TC.simpleToASIndex(Util.excelToIndex(loc));
 }
 
-export function asRange(loc) {
+export function asRange(loc: string): ASRange {
   return TC.simpleToASRange(Util.excelToRange(loc));
 }
 
-export function apiExec(fn) {
+export function apiExec(fn: () => void): Prf {
   return promise((fulfill, reject) => {
     API.test(fn, {
       fulfill: fulfill,
@@ -56,7 +90,7 @@ export function apiExec(fn) {
   });
 }
 
-export function apiSyncExec(fn) {
+export function apiSyncExec(fn: () => void): Prf {
   return promise((fulfill, reject) => {
     API.testSync(fn, {
       fulfill: fulfill,
@@ -65,7 +99,7 @@ export function apiSyncExec(fn) {
   });
 }
 
-export function directAPIExec(fn) {
+export function directAPIExec(fn: () => void): Promise {
   return new Promise((fulfill, reject) => {
     API.test(fn, {
       fulfill: fulfill,
@@ -74,13 +108,13 @@ export function directAPIExec(fn) {
   });
 }
 
-export function openSheet() {
+export function openSheet(): Prf {
   return apiExec(() => {
     API.openSheet();
   });
 }
 
-export function syncWindow() {
+export function syncWindow(): Prf {
   return apiExec(() => {
     let range = { tl: {col: 0, row: 0}, br: {col: 100, row: 100 }},
       vWindow = TC.rangeToASWindow(range);
@@ -88,175 +122,175 @@ export function syncWindow() {
   });
 }
 
-export function clear() {
+export function clear(): Prf {
   return apiExec(() => {
     API.clearSheet();
   });
 }
 
-export function init() {
+export function init(): Prf {
   return apiExec(() => {
     API.initialize();
   });
 }
 
-export function cell(loc, xp, lang) {
+export function cell(loc: string, xp: string, lang: ASTestLanguage): Prf {
   return apiExec(() => {
     let langMap = {
-      'py': 'Python',
-      'R': 'R',
-      'excel': 'Excel',
-      'ml': 'OCaml'
+      'py': Constants.Languages.Python,
+      'R': Constants.Languages.R,
+      'excel': Constants.Languages.Excel,
+      'ml': Constants.Languages.OCaml
     };
     let idx   = Util.excelToIndex(loc),
-        xpObj = { expression: xp, language: { Server: langMap[lang] } };
+        xpObj = { expression: xp, language: langMap[lang] };
     API.evaluate(idx, xpObj);
   });
 }
 
-export function python(loc, xp) {
+export function python(loc: string, xp: string): Prf {
   return cell(loc, xp, 'py');
 }
 
-export function r(loc, xp) {
+export function r(loc: string, xp: string): Prf {
   return cell(loc, xp, 'R');
 }
 
-export function ocaml(loc, xp) {
+export function ocaml(loc: string, xp: string): Prf {
   return cell(loc, xp, 'ml');
 }
 
-export function excel(loc, xp) {
+export function excel(loc: string, xp: string): Prf {
   return cell(loc, xp, 'excel');
 }
 
-export function evalHeader(xp, lang) { 
+export function evalHeader(xp: string, lang: ASLanguage): Prf {
   return apiExec(() => {
     API.evaluateHeader(xp, lang);
   });
 }
 
-export function pythonEvalHeader(xp) { 
+export function pythonEvalHeader(xp: string): Prf {
   return evalHeader(xp, 'Python');
 }
 
 
-export function repeat(rng, origin) {
+export function repeat(rng: string, origin: string): Prf {
   return apiExec(() => {
     let sel = {origin: indFromExcel(origin), range: rangeFromExcel(rng)}
     API.repeat(sel);
   });
 }
 
-export function insertCol(c) {
+export function insertCol(c: number): Prf {
   return apiExec(() => {
     API.insertCol(c);
   });
 }
 
-export function insertRow(r) {
+export function insertRow(r: number): Prf {
   return apiExec(() => {
     API.insertRow(r);
   });
 }
 
-export function deleteCol(c) {
+export function deleteCol(c: number): Prf {
   return apiExec(() => {
     API.deleteCol(c);
   });
 }
 
-export function deleteRow(r) {
+export function deleteRow(r: number): Prf {
   return apiExec(() => {
     API.deleteRow(r);
   });
 }
 
-export function dragCol(c1, c2) {
+export function dragCol(c1: number, c2: number): Prf {
   return apiExec(() => {
     API.dragCol(c1, c2);
   });
 }
 
-export function dragRow(r1, r2) {
+export function dragRow(r1: number, r2: number): Prf {
   return apiExec(() => {
     API.dragRow(r1, r2);
   });
 }
 
-export function copy(rng1, rng2) {
+export function copy(rng1: string, rng2: string): Prf {
   return apiExec(() => {
     let [asRng1, asRng2] = [rng1, rng2].map(asRange);
     API.copy(asRng1, asRng2);
   });
 }
 
-export function cut(rng1, rng2) {
+export function cut(rng1: string, rng2: string): Prf {
   return apiExec(() => {
     let [asRng1, asRng2] = [rng1, rng2].map(asRange);
     API.cut(asRng1, asRng2);
   });
 }
 
-export function undo() {
+export function undo(): Prf {
   return apiExec(() => {
     API.undo();
   });
 }
 
-export function redo() {
+export function redo(): Prf {
   return apiExec(() => {
     API.redo();
   });
 }
 
-export function delete_(rng) {
+export function delete_(rng: string): Prf {
   return apiExec(() => {
     API.deleteRange(TC.simpleToASRange(rangeFromExcel(rng)));
   });
 }
 
-export function toggleTag(rng, tag) {
+export function toggleTag(rng: string, tag: ASCellTag): Prf {
   return apiExec(() => {
     API.toggleTag(tag, rangeFromExcel(rng));
   });
 }
 
-export function setTag(rng, tag, val) {
+export function setTag(rng: string, tag: ASCellTag, val: any): Prf {
   return apiExec(() => {
     API.setTag(tag, val, rangeFromExcel(rng));
   });
 }
 
-export function valueD(val) {
+export function valueD(val: number): ValueD {
   return { tag: 'ValueD', contents: val };
 }
 
-export function valueI(val) {
+export function valueI(val: number): ValueI {
   return { tag: 'ValueI', contents: val };
 }
 
-export function valueB(val) {
+export function valueB(val: boolean): ValueB {
   return { tag: 'ValueB', contents: val };
 }
 
-export function valueS(val) {
+export function valueS(val: string): ValueS {
   return { tag: 'ValueS', contents: val };
 }
 
-export function noValue() {
+export function noValue(): NoValue {
   return {tag: 'NoValue', contents: []};
 }
 
-function isNumeric(n) {
+function isNumeric(n: any) {
   return !isNaN(parseFloat(n)) && isFinite(n);
 }
 
-export function equalValues(val1, val2) {
+export function equalValues(val1: ASValue, val2: ASValue): boolean {
   logDebug(`${JSON.stringify(val1)} should be equal to ${JSON.stringify(val2)}`);
   expect(val1).not.toBe(undefined);
   expect(val2).not.toBe(undefined);
-  if (val1.tag == 'ValueD') {
+  if (val1.tag === 'ValueD' && val2.tag === 'ValueD') {
     // eps = 10^-3
     var eps = 0.001;
     if (isNumeric(val1.contents) && isNumeric(val2.contents)) {
@@ -269,7 +303,7 @@ export function equalValues(val1, val2) {
 }
 
 // (() -> Promise a) -> (a -> Bool) -> (() -> Promise ())
-export function responseShouldSatisfy(prf, fn) {
+export function responseShouldSatisfy<A>(prf: Prf<A>, fn: (a: A) => boolean): Prf {
   return promise((fulfill, reject) => {
     prf().then((result) => {
       expect(fn(result)).toBe(true);
@@ -280,17 +314,28 @@ export function responseShouldSatisfy(prf, fn) {
   });
 }
 
-export function shouldError(prf) {
+export function shouldError(prf: Prf): Prf {
   return responseShouldSatisfy(prf, ({ result: { tag } }) => tag === 'Failure');
 }
 
-export function messageShouldSatisfy(loc, fn) {
+export function messageShouldSatisfy(loc: string, fn: (cs: Array<ASCell>) => void): Prf {
   return promise((fulfill, reject) => {
     API.test(() => {
       API.getIndices([ asIndex(loc) ]);
     }, {
-      fulfill: (result) => {
-        let cs = result.payload.contents;
+      fulfill: (result: ?ASServerMessage) => {
+        if (! result) {
+          reject();
+          return;
+        }
+
+        let {payload} = result;
+        if (payload.tag !== 'PayloadCL') {
+          reject();
+          return;
+        }
+
+        let {contents: cs} = payload;
         fn(cs);
 
         fulfill();
@@ -300,7 +345,7 @@ export function messageShouldSatisfy(loc, fn) {
   });
 }
 
-export function expressionShouldSatisfy(loc, fn) {
+export function expressionShouldSatisfy(loc: string, fn: (exp: ASExpression) => boolean): Prf {
   return messageShouldSatisfy(loc, (cs) => {
     logDebug(`${loc} expression should satisfy ${fn.toString()}`);
 
@@ -314,11 +359,11 @@ export function expressionShouldSatisfy(loc, fn) {
   });
 }
 
-export function expressionShouldBe(loc, xp) {
+export function expressionShouldBe(loc: string, xp: string): Prf {
   return expressionShouldSatisfy(loc, ({ expression }) => expression === xp);
 }
 
-export function shouldHaveTag(loc, tag) {
+export function shouldHaveTag(loc: string, tag: ASCellTag): Prf {
   return messageShouldSatisfy(loc, (cs) => {
     logDebug(`${loc} cell should have tag ${tag}`);
 
@@ -332,7 +377,7 @@ export function shouldHaveTag(loc, tag) {
   });
 }
 
-export function shouldNotHaveTag(loc, tag) {
+export function shouldNotHaveTag(loc: string, tag: ASCellTag): Prf {
   return messageShouldSatisfy(loc, (cs) => {
     logDebug(`${loc} cell should have tag ${tag}`);
 
@@ -346,7 +391,7 @@ export function shouldNotHaveTag(loc, tag) {
   });
 }
 
-export function valueShouldSatisfy(loc, fn) {
+export function valueShouldSatisfy(loc: string, fn: (val: ASValue) => boolean): Prf {
   return messageShouldSatisfy(loc, (cs) => {
     logDebug(`${loc} should satisfy ${fn.toString()}`);
 
@@ -362,19 +407,19 @@ export function valueShouldSatisfy(loc, fn) {
 }
 
 // String -> ASValue -> (() -> Promise ())
-export function shouldBe(loc, val) {
+export function shouldBe(loc: string, val: ASValue): Prf {
   return valueShouldSatisfy(loc, (cv) => equalValues(cv, val));
 }
 
-export function shouldBeError(loc) {
+export function shouldBeError(loc: string): Prf {
   return valueShouldSatisfy(loc, ({ tag }) => (tag === 'ValueError' || tag == 'ValueExcelError'));
 }
 
-export function shouldBeImage(loc) {
+export function shouldBeImage(loc: string): Prf {
   return valueShouldSatisfy(loc, ({ tag }) => (tag === 'ValueImage'));
 }
 
-export function shouldBeNothing(loc) {
+export function shouldBeNothing(loc: string): Prf {
   return messageShouldSatisfy(loc, (cs) => {
     logDebug(`${loc} should be nothing`);
     //server should return either nothing at the location or a blank cell
@@ -384,12 +429,17 @@ export function shouldBeNothing(loc) {
 }
 
 // [String] -> [ASValue] -> (() -> Promise ())
-export function shouldBeL(locs, vals) {
+export function shouldBeL(locs: Array<string>, vals: Array<ASValue>): Prf {
   return promise((fulfill, reject) => {
     API.test(() => {
       API.getIndices(locs.map(asIndex));
     }, {
-      fulfill: (result) => {
+      fulfill: (result: ?ASServerMessage) => {
+        if (! result || result.payload.tag !== 'PayloadCL') {
+          reject();
+          return;
+        }
+
         let cellValues = result.payload.contents.map((x) => x.cellValue);
 
         expect(_.

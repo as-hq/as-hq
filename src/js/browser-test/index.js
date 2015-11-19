@@ -62,7 +62,7 @@ import ShortcutUtils from '../AS/ShortcutUtils';
 
 // import Promise from 'bluebird';
 
-let evalPane, window_, clipboard = {}; 
+let evalPane, window_, clipboard = {};
 
 function spreadsheet() {
   return evalPane.refs.spreadsheet;
@@ -190,7 +190,7 @@ function pressCopy() {
       preventDefault() { },
       stopPropagation() { },
       clipboardData: {
-        setData(textType, val) { 
+        setData(textType, val) {
           clipboard[textType] = "<meta>" + val; // for chrome
         }
       }
@@ -204,8 +204,8 @@ function pressCut() {
       preventDefault() { },
       stopPropagation() { },
       clipboardData: {
-        setData(textType, val) { 
-          clipboard[textType] = val; 
+        setData(textType, val) {
+          clipboard[textType] = val;
         }
       }
     }, true);
@@ -756,5 +756,3 @@ export function install(w, ep) {
     registerExpectation(k, v);
   });
 }
-
-

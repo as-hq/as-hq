@@ -530,7 +530,7 @@ export default {
   },
 
   // @optional mySheet
-  openSheet(mySheet: ASSheet) {
+  openSheet(mySheet?: ASSheet) {
     let sheet = mySheet || Store.getCurrentSheet(),
         msg = TC.makeClientMessage(Constants.ServerActions.Open, "PayloadS", sheet);
     this.send(msg);

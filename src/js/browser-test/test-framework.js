@@ -133,11 +133,16 @@ function _doDeferWithWrap(action) {
 
 function runTestsWithCallbacks(tests, cbs) {
   let {
-    beforeAll = empty,
-    beforeEach = empty,
-    afterAll = empty,
-    afterEach = empty } =
+    beforeAll,
+    beforeEach,
+    afterAll,
+    afterEach } =
     _.mapValues(cbs, _doDefer);
+
+  beforeAll = beforeAll || empty;
+  beforeEach = beforeEach || empty;
+  afterAll = afterAll || empty;
+  afterEach = afterEach || empty;
 
   return _doDefer([
     beforeAll,
