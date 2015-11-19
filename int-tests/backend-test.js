@@ -37,6 +37,9 @@ describe('backend', () => {
     ocaml,
     excel,
 
+    evalHeader,
+    pythonEvalHeader,
+
     valueD,
     valueI,
     valueS,
@@ -1156,6 +1159,35 @@ describe('backend', () => {
     });
 
     describe('repl eval', () => {
+    });
+
+    describe('eval header', () => {
+      it('lets you declare global variables', (done) => {
+        _do([
+          pythonEvalHeader('a=1'),
+          python('A1', 'a+1'),
+          shouldBe('A1', valueI(2)),
+          exec(done)
+        ]);
+      });
+
+      it('lets you declare global functions', (done) => {
+        _do([
+          pythonEvalHeader('def sq(x):\n\treturn x**2'),
+          python('A1', 'sq(2)'),
+          shouldBe('A1', valueI(4)),
+          exec(done)
+        ]);
+      });
+
+      it('lets you make imports', (done) => {
+        _do([
+          pythonEvalHeader('import numpy as np'), 
+          python('A1', 'np.array([[1,2],[3,4]]).tolist()'),
+          shouldBe('B1', valueI(2)),
+          exec(done)
+        ]);
+      });
     });
 
     describe('cell transforms', () => {
