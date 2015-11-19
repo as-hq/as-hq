@@ -9,9 +9,11 @@ import qualified Data.Text as T
 import qualified Data.List as L
 
 import AS.Config.Paths
-import AS.Parsing.Out
+import AS.Parsing.Show
 import AS.Parsing.Substitutions
 import AS.Parsing.Common
+import AS.Parsing.Excel
+import qualified AS.LanguageDefs as LD
 
 import Control.Exception (SomeException, catch)
 import Control.Applicative hiding ((<|>))
@@ -110,14 +112,14 @@ splitLastLine lang str = case (tryParse (firstLineAndRest lang) (reverse str)) o
 -- | Parser that splits multiline string into (firstLine, remaining lines)
 firstLineAndRest :: ASLanguage -> Parser (String, String)
 firstLineAndRest lang = do
-  firstLine <- manyTill anyChar $ string "\n" <|> string (lineDelim lang)
-  remainingLines <- manyTill anyChar (try eof)
-  return (firstLine, remainingLines)
+    firstLine <- manyTill anyChar $ string "\n" <|> string (LD.inlineDelimiter lang)
+    remainingLines <- manyTill anyChar (try eof)
+    return (firstLine, remainingLines)
 
 lastLine :: ASLanguage ->  Parser String
 lastLine lang = do
-  string "\n" <|> string (lineDelim lang)
-  manyTill anyChar eof
+    string "\n" <|> string (LD.inlineDelimiter lang)
+    manyTill anyChar eof
 
 addPrintCmd :: ASLanguage -> String -> String
 addPrintCmd lang str = case lang of
@@ -171,26 +173,6 @@ wrapCode sid lang isRepl str = do
 -----------------------------------------------------------------------------------------------------------------------
 -- | Language-specific string modifiers
 
-lineDelim :: ASLanguage -> String
-lineDelim lang = case lang of
-  Python  -> ";"
-  R     -> ";"
-  OCaml   -> ";;"
-
-assignOp :: ASLanguage -> String
-assignOp lang = case lang of
-  R       -> "<-"
-  otherwise   -> "="
-
-returnOp :: ASLanguage -> String
-returnOp lang = case lang of
-  otherwise -> "return"
-
-importOp :: ASLanguage -> String
-importOp lang = case lang of
-  Python  -> "import"
-  R     -> "library"
-
 getRunnerCmd :: ASLanguage -> String
 getRunnerCmd lang = case lang of
   R     -> "Rscript "
@@ -219,33 +201,40 @@ addCompileCmd OCaml cmd = do
   let path = evalPath ++ "ocaml/"
   return $ cmd ++ "; " ++ path ++ "test"
 
+-----------------------------------------------------------------------------------------------------------------------
+-- | Value interpolation
 
--- | Helper function for interpolate. Takes in a IndValMap and a reference and returns
--- what that'd map to, as a string. as a string.
-lookUpRef :: ASLanguage -> IndValMap -> ASReference -> String
-lookUpRef lang valuesMap ref = case ref of
-  IndexRef ind -> showValue lang $ valuesMap M.! ind
-  RangeRef (Range sh ((a,b),(c,d))) -> if (c == a)
-  then modifiedLists lang (toListStr lang [ ((showValue lang) (valuesMap M.! (Index sh (a,row)))) | row<-[b..d]])
-  else modifiedLists lang (toListStr lang [modifiedLists lang (toListStr lang ([(showValue lang) (valuesMap M.! (Index sh (col,row)))| col <-[a..c]]))| row<-[b..d]])
+-- | Helper function for interpolate. Takes in a ValMap and a reference and returns
+-- the value as a string.
+lookupRef :: ASLanguage -> ValMap -> ASReference -> String
+lookupRef lang valuesMap ref = case ref of
+    IndexRef idx -> showValue lang $ valuesMap M.! idx
+    RangeRef (Range sh ((a,b),(c,d))) ->
+      if (c==a)
+        then list lang [ (showValue lang $ valuesMap M.! (Index sh (a,row))) | row<-[b..d]]
+        else list lang [ list lang [ showValue lang $ valuesMap M.! (Index sh (col,row)) | col <-[a..c]] | row<-[b..d]]
+
 
 -- | Replaces all the Excel references in an expression with the valuesMap corresponding to them.
 -- TODO clean up SQL mess
-insertValues :: ASSheetId -> IndValMap -> ASExpression -> String
-insertValues sheetid valuesMap xp@(Expression _ lang) = case lang of
-  SQL -> contextStmt ++ evalStmt
-    where
-      exRefs = getUnquotedMatchesWithContext xp refMatch
-      matchRefs = map (exRefToASRef sheetid) (snd exRefs)
-      context = map (lookUpRef SQL valuesMap) matchRefs
-      st = ["dataset"++(show i) | i<-[0..((L.length matchRefs)-1)]]
-      newExp = expression $ replaceRefs (\el -> (L.!!) st (MB.fromJust (L.findIndex (el==) (snd exRefs)))) xp
-      contextStmt = "setGlobals("++(show context) ++")\n"
-      evalStmt = "result = pprintSql(db(\'" ++ newExp ++ "\'))"
-  _ -> evalString
-    where
-      exRefToStringEval = (lookUpRef lang valuesMap) . (exRefToASRef sheetid) -- ExRef -> String. (Takes in ExRef, returns the ASValue corresponding to it, as a string.)
-      evalString = expression $ replaceRefs exRefToStringEval xp
+insertValues :: ASSheetId -> ValMap -> ASExpression -> String
+insertValues sheetid valuesMap xp = 
+    let origString = xpString xp
+        lang = xpLanguage xp
+    in case lang of
+      SQL -> contextStmt ++ evalStmt
+        where
+            exRefs      = getUnquotedMatchesWithContext xp refMatch
+            matchLocs   = map (exRefToASRef sheetid) (snd exRefs)
+            context     = map (lookupString SQL valuesMap) matchLocs
+            st          = ["dataset"++(show i) | i<-[0..((L.length matchLocs)-1)]]
+            newExp      = replaceMatches exRefs (\el -> (L.!!) st (MB.fromJust (L.findIndex (el==) (snd exRefs)))) origString
+            contextStmt = "setGlobals("++(show context) ++")\n"
+            evalStmt    = "result = pprintSql(db(\'" ++ newExp ++ "\'))"
+      otherLang -> evalString
+        where
+            exRefToStringEval = (lookupString lang valuesMap) . (exRefToASRef sheetid) -- ExRef -> String. (Takes in ExRef, returns the ASValue corresponding to it, as a string.)
+            evalString = replaceMatches (getUnquotedMatchesWithContext xp refMatch) exRefToStringEval origString
 
 -----------------------------------------------------------------------------------------------------------------------
 -- | File management

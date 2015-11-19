@@ -19,6 +19,7 @@ import AS.Types.Core
 import AS.Types.Excel hiding (row, col)
 import qualified AS.Types.DB as TD
 import AS.DB.API                as DB
+import AS.DB.Transaction        as DT
 import AS.DB.Util               as DU
 import AS.DB.Graph              as G
 import AS.Util                  as U
@@ -29,7 +30,7 @@ import AS.Dispatch.EvalHeader   as DEH
 import AS.Users                 as US
 import AS.Parsing.Substitutions as S
 import AS.Daemon                as DM
-import AS.Parsing.Out (exRefToASRef, asRefToExRef, refMatch)
+import AS.Parsing.Excel (exRefToASRef, asRefToExRef, refMatch)
 
 import AS.Config.Settings as  CS
 import qualified AS.InferenceUtils as IU
@@ -126,7 +127,7 @@ broadcast state message = do
 sheetsInPayload :: ASPayload -> [ASSheetId]
 sheetsInPayload (PayloadDelete rng cells) = (rangeSheetId rng):(map (locSheetId . cellLocation) cells)
 sheetsInPayload (PayloadS (Sheet sid _ _)) = [sid]
-sheetsInPayload (PayloadCommit (ASCommit bf af _)) = (map (locSheetId . cellLocation) bf) ++ (map (locSheetId . cellLocation) af)
+sheetsInPayload (PayloadCommit (Commit bf af _ _ _)) = (map (locSheetId . cellLocation) bf) ++ (map (locSheetId . cellLocation) af)
 sheetsInPayload (PayloadN ()) = []
 
 -- | Figures out whom to send the message back to, based on the payload, and broadcasts the message
@@ -225,7 +226,7 @@ badCellsHandler :: R.Connection -> ASUserClient -> SomeException -> IO ()
 badCellsHandler conn user e = do 
   U.writeErrToLog ("Error while fetching cells: " ++ (show e)) (clientCommitSource user)
   printWithTime "Undoing last commit"
-  DB.undo conn (clientCommitSource user)
+  DT.undo conn (clientCommitSource user)
   return ()
 
 handleImport :: MVar ServerState -> ASPayload -> IO ()
@@ -314,7 +315,7 @@ handleClear client state payload = case payload of
 handleUndo :: ASUserClient -> MVar ServerState -> IO ()
 handleUndo user state = do
   conn <- dbConn <$> readMVar state
-  commit <- DB.undo conn (clientCommitSource user)
+  commit <- DT.undo conn (clientCommitSource user)
   msg <- case commit of
     Nothing -> return $ failureMessage "Too far back"
     (Just c) -> return $ ServerMessage Undo Success (PayloadCommit c)
@@ -324,7 +325,7 @@ handleUndo user state = do
 handleRedo :: ASUserClient -> MVar ServerState -> IO ()
 handleRedo user state = do
   conn <- dbConn <$> readMVar state
-  commit <- DB.redo conn (clientCommitSource user)
+  commit <- DT.redo conn (clientCommitSource user)
   msg <- case commit of
     Nothing -> return $ failureMessage "Too far forwards"
     (Just c) -> return $ ServerMessage Redo Success (PayloadCommit c)
@@ -406,14 +407,14 @@ getCutNewDescCells from offset = do
 --   * if a cell is part of a list that is not contained entirely in the selection, decouple it. 
 sanitizeCopyCells :: R.Connection -> [ASCell] -> ASRange -> IO [ASCell]
 sanitizeCopyCells conn cells from
-  | all isListHead cells = return cells 
-  | otherwise            = do 
-      listsInRange <- getListsInRange conn from
-      let (listCells, nonListCells)             = L.partition U.isListMember cells
-          (containedListCells, cutoffListCells) = U.partitionByListKeys listCells listsInRange
-          decoupledCells                        = map decoupleCell cutoffListCells
-          containedListHeads                    = filter isListHead containedListCells
-      return $ nonListCells ++ decoupledCells ++ containedListHeads
+  | all DU.isFatCellHead cells = return cells 
+  | otherwise            = do
+      keys <- fatCellsInRange conn from
+      let (fatCellMembers, regularCells)  = L.partition DU.isFatCellMember cells
+          (containedCells, cutoffCells)   = U.partitionByRangeKey fatCellMembers keys
+          decoupledCells                  = map decoupleCell cutoffCells
+          containedFatCellHeads           = filter DU.isFatCellHead containedCells
+      return $ regularCells ++ decoupledCells ++ containedFatCellHeads
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Tag handlers

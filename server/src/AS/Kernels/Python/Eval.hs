@@ -7,7 +7,7 @@ import AS.Kernels.Common
 import AS.Kernels.LanguageUtils
 import AS.Kernels.Python.Pyfi
 
-import AS.Parsing.In
+import AS.Parsing.Read
 
 import AS.Util
 import AS.Config.Settings
@@ -21,26 +21,26 @@ import Control.Monad.Trans.Either
 -- | Exposed functions
 
 -- | Helper for evaluateRepl
-onParseSuccess :: String -> ASValue -> IO ()
-onParseSuccess replRecord v@(ValueError _ _ _ _) = writeReplRecord Python replRecord
+onParseSuccess :: String -> CompositeValue -> IO ()
+onParseSuccess previousRecord (CellValue (ValueError _ _)) = writeReplRecord Python previousRecord
 onParseSuccess _ v = return ()
 
 onParseFailure :: String -> ASExecError -> IO ()
-onParseFailure replRecord x = writeReplRecord Python replRecord
+onParseFailure previousRecord x = writeReplRecord Python previousRecord
 
 -- | python
-evaluate :: ASSheetId -> String -> EitherTExec ASValue
-evaluate sid "" = return NoValue
-evaluate sid str = do
-    validCode <- formatCode sid Python str
+evaluate :: String -> EitherTExec CompositeValue
+evaluate "" = return $ CellValue NoValue
+evaluate str = do
+    validCode <- introspectCode Python str
     if isDebug
         then lift $ writeExecFile Python validCode
         else return ()
     execWrappedCode validCode
 
-evaluateRepl :: ASSheetId -> String -> EitherTExec ASValue
-evaluateRepl sid "" = return NoValue
-evaluateRepl sid str = do
+evaluateRepl :: String -> EitherTExec CompositeValue
+evaluateRepl "" = return $ CellValue NoValue
+evaluateRepl str = do
     -- preprocess expression
     (recordCode, evalCode) <- lift $ formatCodeRepl sid Python str
     if isDebug
@@ -56,7 +56,7 @@ evaluateRepl sid str = do
             -- rollback to previous repl state if eval failed
             lift $ eitherT (onParseFailure replRecord) (onParseSuccess replRecord) parsed
             parsed
-        else return NoValue
+        else return (CellValue NoValue)
 
 evaluateHeader :: ASSheetId -> String -> EitherTExec ASValue
 evaluateHeader sid str = do
@@ -73,37 +73,38 @@ evaluateHeader sid str = do
 
 
 -- | SQL
-evaluateSql :: ASSheetId -> String -> EitherTExec ASValue
-evaluateSql _ "" = return NoValue
-evaluateSql sid str = do
-    validCode <- formatCode sid SQL str
+evaluateSql :: String -> EitherTExec CompositeValue
+evaluateSql "" = return $ CellValue NoValue
+evaluateSql str = do
+    validCode <- introspectCode SQL str
     if isDebug
         then lift $ writeExecFile SQL validCode
         else return ()
     execWrappedCode validCode
 
-evaluateSqlRepl :: ASSheetId -> String -> EitherTExec ASValue
-evaluateSqlRepl _ "" = return NoValue
-evaluateSqlRepl sid str = evaluateSql sid str
+evaluateSqlRepl :: String -> EitherTExec CompositeValue
+evaluateSqlRepl "" = return $ CellValue NoValue
+evaluateSqlRepl str = evaluateSql str
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | helpers
 
-execWrappedCode :: String -> EitherTExec ASValue
+execWrappedCode :: String -> EitherTExec CompositeValue
 execWrappedCode evalCode = do
     result <- lift $ pyfiString evalCode
     case result of 
       Right result' -> hoistEither $ parseValue Python result'
       Left e -> return e
 
-pyfiString :: String -> IO (Either ASValue String)
-pyfiString evalStr = catch (fmap Right execString) whenCaught
+pyfiString :: String -> IO (Either CompositeValue String)
+pyfiString evalStr = catch (Right <$> execString) whenCaught
     where
         execString = defVV (evalStr ++ pyString) ("Hello" :: String)
-        whenCaught = (\e -> return . Left $ ValueError (show e) "SyntaxError" "" 0) :: (SomeException -> IO (Either ASValue String))
+        whenCaught :: SomeException -> IO (Either CompositeValue String)
+        whenCaught e = return . Left . CellValue $ ValueError (show e) "Syntax error."
 
 pyString :: String
 pyString = [str|
-def export(x=1):
-    return repr(result)
+def export(x=None):
+    return result
 |]

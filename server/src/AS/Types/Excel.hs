@@ -42,24 +42,24 @@ class Ref a where
 
 instance Ref ExRef where
   sheetRef a = case a of 
-    (ExLocRef _ _ _) -> locSheet a
-    (ExRangeRef _ _ _) -> rangeSheet a
-    (ExPointerRef _ _ _) -> pointerSheet a
+    ExLocRef _ _ _ -> locSheet a
+    ExRangeRef _ _ _ -> rangeSheet a
+    ExPointerRef _ _ _ -> pointerSheet a
     ExOutOfBounds -> Nothing
   workbookRef a = case a of 
-    (ExLocRef _ _ _) -> locWorkbook a
-    (ExRangeRef _ _ _) -> rangeWorkbook a
-    (ExPointerRef _ _ _) -> pointerWorkbook a
+    ExLocRef _ _ _ -> locWorkbook a
+    ExRangeRef _ _ _ -> rangeWorkbook a
+    ExPointerRef _ _ _ -> pointerWorkbook a
     ExOutOfBounds -> Nothing
 
 instance Show ExRef where
   show a = 
     let prefix = showRefQualifier (workbookRef a) (sheetRef a)
     in case a of 
-      ExOutOfBounds                 -> "#REF!"
-      (ExLocRef l _ _)              -> prefix ++ (show l)
-      (ExRangeRef (ExRange f s) _ _)-> prefix ++ (show f) ++ ":" ++ (show s)
-      (ExPointerRef l _ _)          -> prefix ++ (show l)
+      ExOutOfBounds                -> "#REF!"
+      ExLocRef l _ _               -> prefix ++ (show l)
+      ExRangeRef (ExRange f s) _ _ -> prefix ++ (show f) ++ ":" ++ (show s)
+      ExPointerRef l _ _           -> '@':prefix ++ (show l)
 
 instance Show ExLoc where
   show (ExIndex rType c r) = d1 ++ c ++ d2 ++ r
@@ -85,7 +85,6 @@ showExcelValue val = case val of
   ValueI i      -> show i
   ValueD d      -> show d
   ValueB b      -> show b
-  ValueL l      -> toExcelList $ fmap showExcelValue l
 
 toExcelList :: [String] -> String
 toExcelList lst  = "[" ++ (intercalate "," lst) ++ "]"
@@ -206,7 +205,7 @@ data EEntity =
 --------------------------------------------------------------------------------------------------------------------------------------------
 -- | Excel evaluation types
 
-data Context = Context {evalMap :: FormattedIndValMap, curLoc :: ASReference}
+data Context = Context {evalMap :: FormattedValMap, curLoc :: ASIndex}
 
 type ThrowsError = Either EError
 type EResult = ThrowsError EEntity
@@ -239,7 +238,7 @@ class EType a where
     -- | If the value is missing, return default
     -- | Must be the correct type if it exists as an argument
     | otherwise = case (entities!!(i-1)) of
-      (EntityVal EMissing) -> Right defaultVal
+      EntityVal EMissing -> Right defaultVal
       otherwise -> getRequired typeName f i entities
   -- | Same as above, but no default value (just return Nothing if the argument doesn't exist)
   getOptionalMaybe :: String -> ExtractArg (Maybe a)

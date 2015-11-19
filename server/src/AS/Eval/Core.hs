@@ -21,8 +21,8 @@ import AS.Kernels.R as KR
 import AS.Kernels.Excel.Eval as KE
 import AS.Kernels.OCaml as KO
 
-import AS.Parsing.In
-import AS.Parsing.Out
+import AS.Parsing.Read
+import AS.Parsing.Show
 import AS.Parsing.Common
 import AS.Parsing.Substitutions
 
@@ -40,28 +40,27 @@ import Control.Exception (catch, SomeException)
 -----------------------------------------------------------------------------------------------------------------------
 -- Exposed functions
 
-evaluateLanguage :: ASSheetId -> ASReference -> FormattedIndValMap -> ASExpression -> EitherTExec (Formatted ASValue)
-evaluateLanguage sid curRef valuesMap xp@(Expression str lang) = catchEitherT $ do
-  printWithTimeT "Starting eval code"
-  let unformattedValuesMap = M.map orig valuesMap
-      maybeError = possiblyShortCircuit sid unformattedValuesMap xp
-  case maybeError of
-    Just e -> return $ return e -- short-circuited, return this error
-    Nothing -> case lang of
-      Excel -> do 
-        KE.evaluate str curRef valuesMap
-        -- Excel needs current location and un-substituted expression, and needs the formatted values for
-        -- loading the initial entities
-      otherwise -> return <$> execEvalInLang sid lang xpWithValuesSubstituted -- didn't short-circuit, proceed with eval as usual
-       where xpWithValuesSubstituted = insertValues sid unformattedValuesMap xp
+evaluateLanguage :: ASIndex -> ASSheetId -> ValMap -> ASExpression -> EitherTExec (Formatted CompositeValue)
+evaluateLanguage curRef sheetid valuesMap xp = 
+  let maybeError = possiblyShortCircuit sheetid valuesMap xp
+      lang = xpLanguage xp
+      str = xpString xp
+      xpWithValuesSubstituted = insertValues sheetid valuesMap xp
+      unformattedValuesMap = M.map orig valuesMap
+  in catchEitherT $ do
+    printWithTimeT $ "Starting eval code: " ++ xpWithValuesSubstituted 
+    case maybeError of
+      Just e -> return $ CellValue e -- short-circuited, return this error
+      Nothing -> case lang of
+        Excel -> KE.evaluate str curRef unformattedValuesMap -- Excel needs current location and un-substituted expression
+        otherwise -> execEvalInLang lang xpWithValuesSubstituted -- didn't short-circuit, proceed with eval as usual
 
--- no catchEitherT here for now, but that's because we're obsolescing Repl for now
-evaluateLanguageRepl :: ASSheetId -> ASExpression -> EitherTExec ASValue
-evaluateLanguageRepl sid (Expression str lang) = case lang of
-  Python  -> KP.evaluateRepl sid str
-  R       -> KR.evaluateRepl sid str
-  SQL     -> KP.evaluateSqlRepl sid str
-  OCaml   -> KO.evaluateRepl sid str
+evaluateLanguageRepl :: ASExpression -> EitherTExec CompositeValue
+evaluateLanguageRepl (Expression str lang) = catchEitherT $ case lang of
+  Python  -> KP.evaluateRepl str
+  R       -> KR.evaluateRepl str
+  SQL     -> KP.evaluateSqlRepl str
+  OCaml   -> KO.evaluateRepl str
 
 -- #incomplete needs stuff for R (Alex 11/13)
 evaluateHeader :: ASSheetId -> ASExpression -> EitherTExec ASValue
@@ -76,41 +75,36 @@ evaluateHeader sid (Expression str lang) = case lang of
 
 -- | Checks for potentially bad inputs (NoValue or ValueError) among the arguments passed in. If no bad inputs,
 -- return Nothing. Otherwise, if there are errors that can't be dealt with, return appropriate ASValue error.
-possiblyShortCircuit :: ASSheetId -> IndValMap -> ASExpression -> Maybe ASValue
+possiblyShortCircuit :: ASSheetId -> ValMap -> ASExpression -> Maybe ASValue
 possiblyShortCircuit sheetid valuesMap xp =
-  let depRefs   = getDependencies sheetid xp -- :: [ASReference]
-      depInds   = map refToIndices depRefs   -- :: [Maybe [ASIndex]]
-      depInds'  = MB.catMaybes depInds       -- :: [[ASIndex]]
-      depInds'' = concat depInds'            -- :: [ASIndex]
-      lang = language xp
-      values = map (valuesMap M.!) depInds'' in  -- :: [ASValue]
-  if (length depInds == length depInds') -- if there were no #REF!'s
-    then MB.listToMaybe $ MB.catMaybes $ map (\(i,v) -> case v of
-      NoValue                  -> handleNoValueInLang lang i
-      ve@(ValueError _ _ _ _)  -> handleErrorInLang lang ve
-      vee@(ValueExcelError _)  -> handleErrorInLang lang vee
-      otherwise                -> Nothing) (zip depInds'' values)
-    else handleRefErrorInLang lang
-
--- | Nothing if it's OK to pass in NoValue, appropriate ValueError if not.
-handleRefErrorInLang :: ASLanguage -> Maybe ASValue
-handleRefErrorInLang _ = Just $ ValueError "Referencing cell that does not exist" "RefError" "" (-1)
+  let depRefs       = getDependencies sheetid xp -- :: [ASReference]
+      depSets       = map refToIndices depRefs   -- :: [Maybe [ASIndex]]
+      isOutOfBounds = any MB.isNothing depSets
+      depInds       = concat $ filterNothing depSets
+      lang          = xpLanguage xp
+      values        = map (valuesMap M.!) $ depInds
+  in if isOutOfBounds 
+    then Just $ ValueError "Referencing cell out of bounds." "RefError"
+    else MB.listToMaybe $ MB.catMaybes $ flip map (zip depInds values) $ \(i, v) -> case v of
+      CellValue NoValue                 -> handleNoValueInLang lang i
+      CellValue ve@(ValueError _ _)     -> handleErrorInLang lang ve
+      otherwise                         -> Nothing 
 
 -- | Nothing if it's OK to pass in NoValue, appropriate ValueError if not.
 handleNoValueInLang :: ASLanguage -> ASIndex -> Maybe ASValue
 handleNoValueInLang Excel _   = Nothing
 handleNoValueInLang Python _  = Nothing
 handleNoValueInLang R _       = Nothing
-handleNoValueInLang _ cellRef = Just $ ValueError ("Reference cell " ++ (indexToExcel cellRef) ++ " is empty.") "RefError" "" (-1)
+handleNoValueInLang _ cellRef = Just $ ValueError ("Reference cell " ++ (indexToExcel cellRef) ++ " is empty.") "RefError"
 -- TDODO: replace (show cellRef) with the actual ref (e.g. C3) corresponding to it
 
 handleErrorInLang :: ASLanguage -> ASValue -> Maybe ASValue
-handleErrorInLang Excel _   = Nothing
+handleErrorInLang Excel _  = Nothing
 handleErrorInLang _ err = Just err
 
-execEvalInLang :: ASSheetId -> ASLanguage -> String -> EitherTExec ASValue
-execEvalInLang sid lang = case lang of
-  Python  -> KP.evaluate sid 
-  R       -> KR.evaluate sid 
-  SQL     -> KP.evaluateSql sid 
-  OCaml   -> KO.evaluate sid
+execEvalInLang :: ASLanguage -> String -> EitherTExec CompositeValue
+execEvalInLang lang = case lang of
+  Python  -> KP.evaluate
+  R       -> KR.evaluate
+  SQL     -> KP.evaluateSql
+  OCaml   -> KO.evaluate

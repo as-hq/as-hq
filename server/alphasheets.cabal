@@ -16,12 +16,15 @@ cabal-version:       >=1.10
 library
   hs-source-dirs:      src
   exposed-modules:     AS.Daemon
+                       AS.LanguageDefs
                        AS.DB.API
+                       AS.DB.Transaction
                        AS.DB.Util
                        AS.DB.Graph
                        AS.Dispatch.Core
                        AS.Dispatch.EvalHeader
                        AS.Dispatch.Repl
+                       AS.Dispatch.Expanding
                        AS.Clients
                        AS.Config.Paths
                        AS.Config.Settings
@@ -40,8 +43,9 @@ library
                        AS.Kernels.Common
                        AS.Kernels.R
                        AS.Parsing.Common
-                       AS.Parsing.In
-                       AS.Parsing.Out
+                       AS.Parsing.Show
+                       AS.Parsing.Read
+                       AS.Parsing.Excel
                        AS.Parsing.Substitutions
                        AS.Types.Core
                        AS.Types.DB

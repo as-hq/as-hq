@@ -42,10 +42,10 @@ import AS.Kernels.Python.Eval as KP
 import AS.Kernels.LanguageUtils as KL
 import AS.Kernels.Excel.Compiler as KE
 import Text.ParserCombinators.Parsec (parse)
-
-import AS.Parsing.Out (refMatch, sheetWorkbookMatch, exRefToASRef, asRefToExRef)
+import AS.Parsing.Read as PR
+import AS.Parsing.Excel (refMatch, sheetWorkbookMatch, exRefToASRef, asRefToExRef, shiftExRef)
 import AS.Types.Excel
-
+import AS.Dispatch.Core as DC
 
 -- EitherT
 import Control.Monad.Trans.Class
@@ -96,9 +96,11 @@ initApp = do
 
   return (conn, ports, states)
 
--- | Initializes database with sheets, etc. for debugging mode. Only called if isDebug is true.
-initDebug :: R.Connection -> IO ()
-initDebug conn = return ()
+-- |  for debugging. Only called if isDebug is true.
+initDebug :: R.Connection -> MVar ServerState -> IO ()
+initDebug conn state = do
+  --putStrLn $ show $ shiftExRef (5,5) (ExPointerRef (ExIndex REL_REL "A" "1") (Just "sheet1") (Just "workbook1"))
+  return ()
 
 application :: MVar ServerState -> WS.ServerApp
 application state pending = do

@@ -5,7 +5,7 @@ import AS.Types.Core
 import AS.Kernels.Common
 import AS.Kernels.LanguageUtils
 
-import AS.Parsing.In
+import AS.Parsing.Read
 
 import AS.Config.Settings
 import AS.Util
@@ -17,9 +17,9 @@ import Control.Monad.Trans.Either
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Exposed functions
 
-evaluate :: ASSheetId -> String -> EitherTExec ASValue
-evaluate _ "" = return NoValue
-evaluate _ str = do
+evaluate :: String -> EitherTExec CompositeValue
+evaluate "" = return $ CellValue NoValue
+evaluate str = do
     if isDebug 
         then lift $ writeExecFile OCaml str
         else return ()
@@ -27,9 +27,9 @@ evaluate _ str = do
     result <- lift $ execOcaml
     hoistEither $ parseValue OCaml result
 
-evaluateRepl :: ASSheetId -> String -> EitherTExec ASValue
-evaluateRepl _ "" = return NoValue
-evaluateRepl _ str = left ExecError -- TODO
+evaluateRepl :: String -> EitherTExec CompositeValue
+evaluateRepl "" = return $ CellValue NoValue
+evaluateRepl str = left ExecError -- TODO
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Helpers

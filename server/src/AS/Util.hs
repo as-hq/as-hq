@@ -11,7 +11,6 @@ import Text.ParserCombinators.Parsec
 import qualified Text.ParserCombinators.Parsec.Token as P
 
 import Data.Aeson hiding (Success)
-import Control.DeepSeq
 import qualified Network.WebSockets as WS
 import qualified Data.UUID as U (toString)
 import qualified Data.Text as T
@@ -29,6 +28,7 @@ import Control.Monad.Trans.Either
 
 import Control.Exception (catch, finally, SomeException)
 import Control.Monad.IO.Class(liftIO)
+import System.IO.Unsafe (unsafePerformIO)
 
 import Data.Ord
 
@@ -39,6 +39,9 @@ import Debug.Trace
 
 trace' :: (Show a) => String -> a -> a
 trace' s x = trace ("\n\n\n" ++ s ++ "\n" ++ (show x) ++ "\n\n\n") x
+
+unsafePrint :: String -> ()
+unsafePrint str = unsafePerformIO $ putStrLn str
 
 -------------------------------------------------------------------------------------------------------------------------
 -- Initializations
@@ -148,7 +151,7 @@ deleteSubset :: (Eq a) => [a] -> [a] -> [a]
 deleteSubset subset = filter (\e -> L.notElem e subset)
 
 isEmptyCell :: ASCell -> Bool
-isEmptyCell c = (null $ cellTags c) && (null $ expression $ cellExpression c)
+isEmptyCell c = (null $ cellTags c) && (null . xpString $ cellExpression c)
 
 liftEitherTuple :: Either b (a0, a1) -> (Either b a0, Either b a1)
 liftEitherTuple (Left b) = (Left b, Left b)
@@ -162,42 +165,26 @@ splitBy delimiter = foldr f [[]]
   where f c l@(x:xs) | c == delimiter = []:l
                      | otherwise = (c:x):xs
 
-catchEitherT :: EitherTExec (Formatted ASValue) -> EitherTExec (Formatted ASValue)
+catchEitherT :: EitherTExec (Formatted CompositeValue) -> EitherTExec (Formatted CompositeValue)
 catchEitherT a = do
   result <- liftIO $ catch (runEitherT a) whenCaught
   case result of
-    (Left e) -> left e
-    (Right e) -> right e
-    where whenCaught = (\e -> return . Right $ return $ ValueError (show e) "StdErr" "" 0) :: (SomeException -> IO (Either ASExecError (Formatted ASValue)))
+    Left e -> left e
+    Right e -> right e
+    where 
+      whenCaught :: SomeException -> IO (Either ASExecError CompositeValue)
+      whenCaught e = return . Right . CellValue $ ValueError (show e) "StdErr" 
 
 fromDouble :: Double -> Either Double Int
 fromDouble x = if (x == xInt)
   then Right $ fromInteger (round x)
   else Left x
   where xInt = fromInteger (round x)
---------------------------------------------------------------------------------------------------------------
--- Lists
 
--- assumes all rows have same length, and every input ASValue is a row (i.e. column-major)
--- TODO deal with case of RDataFrame
-transposeList :: [ASValue] -> [ASValue]
-transposeList l = case (head l) of
-  (ValueL _) -> map ValueL $ L.transpose $ map toList l
-  _ -> [ValueL l]
-
-isHighDimensional :: Int -> ASValue -> Bool
-isHighDimensional depth (ValueL l) = if (depth + 1 > 2)
-  then True
-  else isHighDimensional (depth + 1) (head l)
-isHighDimensional depth (RDataFrame l) = if (depth + 1 > 2)
-  then True
-  else isHighDimensional (depth + 1) (head l)
-isHighDimensional depth _ = False
-
-sanitizeList :: ASValue -> ASValue
-sanitizeList v = if (isHighDimensional 0 v)
-  then ValueError "Cannot embed lists of dimension > 2." "StdErr" "" 0
-  else v
+reshapeList :: [a] -> Dimensions -> [[a]]
+reshapeList xs (height, width) = case width of 
+  1 -> error "cannot reshape into 1-dimensional list"
+  _ -> chunksOf width xs
 
 --------------------------------------------------------------------------------------------------------------
 -- Key-value manip functions
@@ -367,14 +354,15 @@ getScrolledLocs (Window _ (-1,-1) (-1,-1)) (Window sheetid tl br) = [(Range shee
 getScrolledLocs w1@(Window _ (y,x) (y2,x2)) w2@(Window sheetid tl@(y',x') br@(y2',x2'))
   | windowsIntersect w1 w2 = getUncoveredLocs sheetid overlapping (tl, br)
   | otherwise = [(Range sheetid (tl, br))]
-    where overlapping = ((max y y', max x x'), (min y2 y2', min x2 x2'))
-          windowsIntersect (Window _ (y,x) (y2,x2)) (Window _ (y',x') (y2',x2'))
+    where 
+      overlapping = ((max y y', max x x'), (min y2 y2', min x2 x2'))
+      windowsIntersect (Window _ (y,x) (y2,x2)) (Window _ (y',x') (y2',x2'))
             | y2 > y' = False 
             | y < y2' = False
             | x2 < x' = False 
             | x > x2' = False
             | otherwise = True 
-
+            
 getUncoveredLocs :: ASSheetId -> (Coord, Coord) -> (Coord, Coord) -> [ASRange]
 getUncoveredLocs sheet (tlo, bro) (tlw, brw) = [Range sheet corners | corners <- cs]
     where
@@ -385,17 +373,46 @@ getUncoveredLocs sheet (tlo, bro) (tlw, brw) = [Range sheet corners | corners <-
       cs = [(tlw, tro), (trw, bro), (brw, blo), (blw, tlo)]
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
--- Cells
+-- metrics
 
-isListMember :: ASCell -> Bool
-isListMember (Cell _ _ _ ts) = any id $ map (\t -> case t of
-  (ListMember _) -> True
-  _ -> False) ts
+rectsIntersect :: Rect -> Rect -> Bool
+rectsIntersect ((y,x),(y2,x2)) ((y',x'),(y2',x2'))
+  | y2 < y' = False 
+  | y > y2' = False
+  | x2 < x' = False 
+  | x > x2' = False
+  | otherwise = True 
+
+rangeDiff :: (Coord, Coord) -> Dimensions
+rangeDiff (a,b) = (col b - col a + 1, row b - row a + 1)
+
+reshapeColArr :: [a] -> Dimensions -> [[a]]
+reshapeColArr lst@(x:xs) (m,n) = 
+  if (length lst) /= (m*n-m)
+    then (every m lst):(reshapeColArr xs (m,n))
+    else []
+
+----------------------------------------------------------------------------------------------------------------------------------------------
+-- Cells
 
 mergeCells :: [ASCell] -> [ASCell] -> [ASCell]
 mergeCells c1 c2 = L.unionBy isColocated c1 c2
 
--- | Returns a blank cell at the given location. For now, the language doesn't matter, 
+mergeCommits :: ASCommit -> ASCommit -> ASCommit
+mergeCommits (Commit b a bd ad _) (Commit b' a' bd' ad' t) = Commit b'' a'' bd'' ad'' t
+  where
+    b'' = mergeCells b' b
+    a'' = mergeCells a' a
+    bd'' = L.unionBy hasSameKey bd' bd
+    ad'' = L.unionBy hasSameKey ad' ad
+    hasSameKey d1 d2 = (rangeDescriptorToKey d1) == (rangeDescriptorToKey d2)
+
+rangeDescriptorToKey :: RangeDescriptor -> RangeKey
+rangeDescriptorToKey desc = case desc of 
+  ListDescriptor key -> key
+  ObjectDescriptor key _ _ -> key
+
+-- | Returns a list of blank cells at the given locations. For now, the language doesn't matter, 
 -- because blank cells sent to the frontend don't get their languages saved. 
 blankCellAt :: ASIndex -> ASCell
 blankCellAt l = Cell l (Expression "" Excel) NoValue []
@@ -406,75 +423,37 @@ blankCellsAt = map blankCellAt
 removeCell :: ASIndex -> [ASCell] -> [ASCell]
 removeCell idx = filter (((/=) idx) . cellLocation)
 
-isMemberOfSpecifiedList :: ListKey -> ASCell -> Bool
-isMemberOfSpecifiedList key cell = case (getListTag cell) of
-  (Just (ListMember key')) -> key' == key
-  Nothing -> False
+isMemberOfSpecifiedRange :: RangeKey -> ASCell -> Bool
+isMemberOfSpecifiedRange key cell = case (cellExpression cell) of 
+  Coupled _ _ _ key' -> key == key'
+  _ -> False
 
--- partitions a set of cells into (cells belonging to one of the specified lists, other cells)
-partitionByListKeys :: [ASCell] -> [ListKey] -> ([ASCell], [ASCell])
-partitionByListKeys cells [] = ([], cells)
-partitionByListKeys cells keys = liftListTuple $ map (partitionByListKey cells) keys
-  where
-    partitionByListKey cs k = L.partition (isMemberOfSpecifiedList k) cs
-
-listKeyOrdering :: ListKey -> ListKey -> Ordering
-listKeyOrdering k1 k2 = if (k1 == k2)
-  then EQ
-  else if (k1 > k2)
-    then GT
-    else LT
+---- partitions a set of cells into (cells belonging to one of the specified ranges, other cells)
+partitionByRangeKey :: [ASCell] -> [RangeKey] -> ([ASCell], [ASCell])
+partitionByRangeKey cells [] = ([], cells)
+partitionByRangeKey cells keys = liftListTuple $ map (go cells) keys
+  where go cs k = L.partition (isMemberOfSpecifiedRange k) cs
 
 isString :: ASValue -> Bool
 isString (ValueS _) = True
 isString _ = False
 
-----------------------------------------------------------------------------------------------------------------------------------------------
--- References in maps
-
-shouldGroupRefs :: (ASCell, [ASReference]) -> Bool
-shouldGroupRefs (c, refs) = case (language $ cellExpression c) of
-  R -> containsRange refs
-  _ -> False
-
-groupRef :: ASLanguage -> (ASRange, [ASValue]) -> Maybe (ASReference, ASValue)
-groupRef lang (ref@(Range _ ((c1,r1),(c2,r2))), vals) = case lang of
-  R -> Just (RangeRef ref, RDataFrame vals')
-    where
-      rows = chunksOf (r2-r1+1) vals
-      vals' = map ValueL rows
-  _ -> Nothing
-
-getSanitizedCellValue :: Maybe ASCell -> ASValue
-getSanitizedCellValue c = case c of
-  Just cell -> cellValue cell
-  Nothing -> NoValue
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Locations
 
 refToIndices :: ASReference -> Maybe [ASIndex]
 refToIndices loc = case loc of
-  (IndexRef ind) -> Just [ind]
-  (RangeRef r) -> Just $ rangeToIndices r
+  IndexRef ind -> Just [ind]
+  RangeRef r -> Just $ rangeToIndices r
   OutOfBounds -> Nothing
 
--- decomposeLocs :: ASReference -> [ASIndex]
--- decomposeLocs loc = case loc of
---   (IndexRef ind) -> [ind]
-  -- (RangeRef (Range sheet (ul, lr))) -> [Index sheet (x,y) | x <- [startx..endx], y <- [starty..endy] ]
-  --   where
-  --     startx = min (fst ul) (fst lr)
-  --     endx = max (fst ul) (fst lr)
-  --     starty = min (snd ul) (snd lr)
-  --     endy = max (snd ul) (snd lr)
-
 getHeight :: ASReference -> Int
-getHeight (IndexRef (Index _ _)) = 1
+getHeight (IndexRef _) = 1
 getHeight (RangeRef (Range _ ((_,b),(_,d)))) = d-b+1
 
 getWidth :: ASReference -> Int
-getWidth (IndexRef (Index _ _)) = 1
+getWidth (IndexRef _) = 1
 getWidth (RangeRef (Range _ ((a,_),(c,_)))) = c-a+1
 
 isRange :: ASReference -> Bool
@@ -570,6 +549,15 @@ getCopyOffSets from to = offsets
 getIndicesOffset :: ASIndex -> ASIndex -> Offset
 getIndicesOffset (Index _ (y, x)) (Index _ (y', x')) = (y'-y, x'-x)
 
+pointerToIndex :: ASIndex -> ASIndex
+pointerToIndex idx = case idx of 
+  Index _ _ -> idx
+  Pointer sid coord -> Index sid coord
+
+indexToPointer :: ASIndex -> ASIndex
+indexToPointer idx = case idx of 
+  Index sid coord -> Pointer sid coord
+  Pointer _ _ -> idx
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Users
 
@@ -589,25 +577,6 @@ hasPermissions uid (Whitelist entities) = any (isInEntity uid) entities
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Tags
-
-containsDFMember :: [Maybe ASCell] -> Bool
-containsDFMember = any (\c -> case c of
-  Just cell -> isDFMember cell
-  Nothing -> False)
-
-isDFMember :: ASCell -> Bool
-isDFMember (Cell _ _ _ ts) = any (\t -> case t of
-  DFMember -> True
-  _ -> False) ts
-
-getListKeyUnsafe :: ASCell -> ListKey
-getListKeyUnsafe cell = listKey
-  where (Just (ListMember listKey)) = getListTag cell
-
-getListTag :: ASCell -> Maybe ASCellTag
-getListTag (Cell _ _ _ ts) = L.find (\t -> case t of
-  (ListMember _) -> True
-  _ -> False) ts
 
 containsTrackingTag :: [ASCellTag] -> Bool
 containsTrackingTag [] = False
@@ -656,6 +625,12 @@ indexToExcel :: ASIndex -> String
 indexToExcel (Index _ (c,r)) = (intToColStr c) ++ (show r)
 
 ----------------------------------------------------------------------------------------------------------------------
+-- Errors
+
+execErrorToValueError :: ASExecError -> ASValue
+execErrorToValueError e = ValueError (show e) "Exec error"
+
+----------------------------------------------------------------------------------------------------------------------
 -- Testing
 
 testLocs :: Int -> [ASIndex]
@@ -663,40 +638,3 @@ testLocs n = [Index "" (i,1) | i <-[1..n]]
 
 testCells :: Int -> [ASCell]
 testCells n =  L.map (\l -> Cell (Index "" (l,1)) (Expression "hi" Python) (ValueS "Str") []) [1..n]
-
-----------------------------------------------------------------------------------------------------------------------
--- Parsing
-
--- | Matches an escaped string and returns the unescaped version. E.g. if the input is: 
--- "\"hello"
--- quotedString would match this and return this output: 
--- "hello
-quotedString :: Parser String
-quotedString = (quoteString <|> apostropheString)
-  where
-    quoteString      = quotes $ many $ escaped <|> noneOf ['"']
-    apostropheString = apostrophes $ many $ escaped <|> noneOf ['\'']
-    quotes           = between quote quote
-    quote            = char '"' --
-    apostrophes      = between apostrophe apostrophe
-    apostrophe       = char '\'' -- TODO apostrophes also
-    escaped          = char '\\' >> choice (zipWith escapedChar codes replacements)
-    escapedChar code replacement = char code >> return replacement
-    codes            = ['b',  'n',  'f',  'r',  't',  '\\', '\'', '\"', '/']
-    replacements     = ['\b', '\n', '\f', '\r', '\t', '\\', '\'', '\"', '/']
-
--- | Since Haskell's float parser doesn't parse negative floats out of the box, 
--- and sometimes gives dumb rounding errors, like 0.07 --> 0.069999999999, we have to 
--- write our own. (Code basically taken from 
--- https://www.fpcomplete.com/school/to-infinity-and-beyond/pick-of-the-week/parsing-floats-with-parsec.)
-float' :: Parser Double
-float' = fmap rd $ integer <++> decimal <++> exponent
-    where (<++>) a b = (++) <$> a <*> b
-          (<:>) a b  = (:) <$> a <*> b
-          plus       = char '+' *> number
-          number     = many1 digit
-          minus      = char '-' <:> number
-          integer    = plus <|> minus <|> number
-          rd         = read :: String -> Double
-          decimal    = char '.' <:> number
-          exponent   = option "" $ oneOf "eE" <:> integer

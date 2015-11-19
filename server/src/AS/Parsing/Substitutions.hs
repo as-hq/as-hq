@@ -4,7 +4,7 @@ import Prelude
 
 import Text.ParserCombinators.Parsec
 import Control.Applicative hiding ((<|>), many)
-import AS.Parsing.Out
+import AS.Parsing.Excel
 import AS.Types.Excel
 import AS.Kernels.Excel.Compiler (formula)
 import AS.Types.Core
@@ -60,15 +60,18 @@ parseUnquotedMatchesWithContext a = do
   return (inter,matches)
 
 getUnquotedMatchesWithContext :: ASExpression -> Parser t -> ([String],[t])
-getUnquotedMatchesWithContext (Expression target lang) p = 
+getUnquotedMatchesWithContext xp p = 
   if (isExcelLiteral)
-    then ([target], [])
-    else (fromRight . (parse (parseUnquotedMatchesWithContext p) "") $ target)
+    then ([str], [])
+    else (fromRight . (parse (parseUnquotedMatchesWithContext p) "") $ str)
   where
+    lang = xpLanguage xp
+    str = xpString xp
     fromRight (Right x) = x
-    isExcelLiteral = (lang == Excel) && (case (parse formula "" target) of 
+    isExcelLiteral = (lang == Excel) && parsedCorrectly
+    parsedCorrectly = case (parse formula "" str) of 
       Right _ -> False 
-      Left  _ -> True)
+      Left  _ -> True
 
 -- | Reconstructs a string from context (see description in parseUnquotedMatchesWithContext)
 blend :: [String] -> [String] -> String
@@ -78,11 +81,14 @@ blend [] y = concat y
 blend (x:xs) (y:ys) = x ++ y ++ (blend xs ys)
 
 replaceRefs :: (ExRef -> String) -> ASExpression -> ASExpression
-replaceRefs f xp = xp { expression = expression' }
+replaceRefs f xp = xp'
   where 
     (inter, exRefs) = getUnquotedMatchesWithContext xp refMatch
     exRefs'         = map f exRefs 
     expression'     = blend inter exRefs'
+    xp'             = case xp of 
+      Expression str lang -> Expression xp' lang
+      Coupled str lang dtype key -> Coupled xp' lang dtype key
 
 -------------------------------------------------------------------------------------------------------------------------------------------------
 -- Helpers

@@ -17,22 +17,21 @@ import Control.Monad.Trans.Either
 
 -- | Convert Either EError EEntity ->  Formatted ASValue; lift from Excel to AS
 -- | In the case of an error, return a ValueExcelError
-convertEither :: Context -> EResult -> Formatted ASValue
-convertEither _ (Left e)       = return $ ValueExcelError e
-convertEither c (Right entity) = entityToASValue c entity
+convertEither :: Context -> EResult -> EitherTExec CompositeValue
+convertEither _ (Left e) = return . CellValue $ ValueError (show e) "Excel"
+convertEither c (Right entity) = return $ entityToComposite c entity
 
 -- | After successful Excel eval returning an entity, convert to ASValue
--- | NOTE: ASValue's ValueL is column-major
 -- Excel index refs are treated as 1x1 matrices, but don't treat them as lists below
-entityToASValue :: Context -> EEntity -> Formatted ASValue
-entityToASValue c (EntityVal v) = eValToASValue v
-entityToASValue c (EntityRef r) = case (L.refToEntity c r) of
-  Left e -> return $ ValueExcelError e
-  Right (EntityMatrix (EMatrix 1 1 v)) -> entityToASValue c $ EntityVal $ V.head v
-  Right entity -> entityToASValue c entity
-entityToASValue _ (EntityMatrix m) = case (transpose list2D) of 
-  [transposedCol] -> return $ ValueL transposedCol -- matches in this case iff original list2D is a vertical list
-  otherwise -> return $ ValueL $ map ValueL list2D
+entityToComposite :: Context -> EEntity -> Formatted CompositeValue 
+entityToASValue c (EntityVal v) = CellValue $ eValToASValue v
+entityToComposite c (EntityRef r) = case (L.refToEntity c r) of
+  Left e -> CellValue $ ValueError (show e) "Excel"
+  Right (EntityMatrix (EMatrix 1 1 v)) -> entityToComposite c $ EntityVal $ V.head v
+  Right entity -> entityToComposite c entity
+entityToComposite _ (EntityMatrix m) = case (transpose list2D) of
+  [transposedCol] -> Expanding . VList . A $ transposedCol -- matches in this case iff original list2D is a vertical list
+  otherwise -> Expanding . VList . M $ list2D
   where
     list2D = map (map $ orig . eValToASValue) (U.matrixTo2DList m)
 -- throws away formatting in this case... awaiting your refactor, Anand. (Alex 11/11)
@@ -46,7 +45,7 @@ evalExcel s context = do
     (SimpleFormula formula) -> L.evalFormula context formula
 
 -- | Entire Excel eval; parse, evaluate, cast to ASValue
-evaluate :: String -> ASReference -> FormattedIndValMap -> EitherTExec (Formatted ASValue)
-evaluate s ref mp = right $ convertEither context $ evalExcel s context
+evaluate :: String -> ASIndex -> ValMap -> EitherTExec (Formatted CompositeValue)
+evaluate s idx mp = convertEither context $ evalExcel s context
   where
-    context = Context mp ref
+    context = Context mp idx

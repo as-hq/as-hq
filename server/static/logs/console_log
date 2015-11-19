@@ -1948,3 +1948,95 @@
 [2015-11-16 00:34:57.091] Message: "ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = \"INIT_SHEET_ID\", sheetName = \"\", sheetPermissions = Blacklist []})}"
 [2015-11-16 00:34:57.092] Client disconnected
 [2015-11-18 20:41:52.636] Starting eval code
+=======
+[2015-11-19 00:59:38.044] Eval chain produced cells: [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (4,10)}, cellExpression = Expression {expression = "1+a", language = R}, cellValue = ValueError {errorMsg = "R Runtime Error: Error in eval(expr, envir, enclos) : object 'a' not found\n", errorType = "R_EXEC_ERROR"}, cellTags = []}]
+[2015-11-19 00:59:38.045] built message
+[2015-11-19 00:59:38.045] got cells: [Nothing]
+[2015-11-19 00:59:38.056] Range keys changed: []
+[2015-11-19 00:59:38.057] graph query: ["GetDescendants"]
+[2015-11-19 00:59:38.057] sent message to graph db: "\"GetDescendants\""
+[2015-11-19 00:59:38.058] STARTING DISPATCH CYCLE WITH CELLS: : []
+[2015-11-19 00:59:38.059] Connecting to graph database for multi query.
+[2015-11-19 00:59:38.059] Sent message: "\"SetRelations\""
+[2015-11-19 00:59:38.060] Received reply: ["OK"]
+[2015-11-19 00:59:38.060] Set cell ancestors: []
+[2015-11-19 00:59:38.060] graph query: ["GetDescendants"]
+[2015-11-19 00:59:38.060] sent message to graph db: "\"GetDescendants\""
+[2015-11-19 00:59:38.061] Got eval locations: []
+[2015-11-19 00:59:38.061] Got cells to evaluate: []
+[2015-11-19 00:59:38.061] graph query: ["GetImmediateAncestors"]
+[2015-11-19 00:59:38.061] sent message to graph db: "\"GetImmediateAncestors\""
+[2015-11-19 00:59:38.062] Got ancestor locs: []
+[2015-11-19 00:59:38.062] Created initial values map: fromList []
+[2015-11-19 00:59:38.062] Starting eval chain
+[2015-11-19 00:59:38.062] Eval chain produced cells: []
+[2015-11-19 00:59:38.062] Range keys changed: []
+[2015-11-19 00:59:38.063] Server sent message: ServerMessage {serverAction = Update, serverResult = Success, serverPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (4,10)}, cellExpression = Expression {expression = "1+a", language = R}, cellValue = ValueError {errorMsg = "R Runtime Error: Error in eval(expr, envir, enclos) : object 'a' not found\n", errorType = "R_EXEC_ERROR"}, cellTags = []}]}
+[2015-11-19 01:46:48.262] Eval chain produced cells: [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (4,18)}, cellExpression = Expression {expression = "list(a=c(1,2,3),=2)", language = R}, cellValue = ValueError {errorMsg = "R Runtime Error: Error in parse(text = \"list(a=c(1,2,3),=2)\") : \n  <text>:1:17: unexpected '='\n1: list(a=c(1,2,3),=\n                    ^\n", errorType = "R_EXEC_ERROR"}, cellTags = []}]
+[2015-11-19 01:46:48.263] built message
+[2015-11-19 01:46:48.263] got cells: [Nothing]
+[2015-11-19 01:46:48.263] Range keys changed: []
+[2015-11-19 01:46:48.264] graph query: ["GetDescendants"]
+[2015-11-19 01:46:48.264] sent message to graph db: "\"GetDescendants\""
+[2015-11-19 01:46:48.265] STARTING DISPATCH CYCLE WITH CELLS: : []
+[2015-11-19 01:46:48.265] Connecting to graph database for multi query.
+[2015-11-19 01:46:48.265] Sent message: "\"SetRelations\""
+[2015-11-19 01:46:48.265] Received reply: ["OK"]
+[2015-11-19 01:46:48.266] Set cell ancestors: []
+[2015-11-19 01:46:48.266] graph query: ["GetDescendants"]
+[2015-11-19 01:46:48.266] sent message to graph db: "\"GetDescendants\""
+[2015-11-19 01:46:48.269] Got eval locations: []
+[2015-11-19 01:46:48.270] Got cells to evaluate: []
+[2015-11-19 01:46:48.270] graph query: ["GetImmediateAncestors"]
+[2015-11-19 01:46:48.270] sent message to graph db: "\"GetImmediateAncestors\""
+[2015-11-19 01:46:48.270] Got ancestor locs: []
+[2015-11-19 01:46:48.271] Created initial values map: fromList []
+[2015-11-19 01:46:48.271] Starting eval chain
+[2015-11-19 01:46:48.271] Eval chain produced cells: []
+[2015-11-19 01:46:48.271] Range keys changed: []
+[2015-11-19 01:46:48.276] Server sent message: ServerMessage {serverAction = Update, serverResult = Success, serverPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (4,18)}, cellExpression = Expression {expression = "list(a=c(1,2,3),=2)", language = R}, cellValue = ValueError {errorMsg = "R Runtime Error: Error in parse(text = \"list(a=c(1,2,3),=2)\") : \n  <text>:1:17: unexpected '='\n1: list(a=c(1,2,3),=\n                    ^\n", errorType = "R_EXEC_ERROR"}, cellTags = []}]}
+[2015-11-19 01:46:55.215] Message: "ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = \"INIT_SHEET_ID\", index = (4,18)}, cellExpression = Expression {expression = \"list(a=c(1,2,3),b=2)\", language = R}, cellValue = NoValue, cellTags = []}]}"
+[2015-11-19 01:46:55.215] built message
+[2015-11-19 01:46:55.216] got cells: [Just (Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (4,18)}, cellExpression = Expression {expression = "list(a=c(1,2,3),=2)", language = R}, cellValue = ValueError {errorMsg = "R Runtime Error: Error in parse(text = \"list(a=c(1,2,3),=2)\") : \n  <text>:1:17: unexpected '='\n1: list(a=c(1,2,3),=\n                    ^\n", errorType = "R_EXEC_ERROR"}, cellTags = []})]
+[2015-11-19 01:46:55.217] STARTING DISPATCH CYCLE WITH CELLS: : [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (4,18)}, cellExpression = Expression {expression = "list(a=c(1,2,3),b=2)", language = R}, cellValue = NoValue, cellTags = []}]
+[2015-11-19 01:46:55.217] Connecting to graph database for multi query.
+[2015-11-19 01:46:55.218] Sent message: "\"SetRelations`I/INIT_SHEET_ID/(4,18)\""
+[2015-11-19 01:46:55.222] Received reply: ["OK"]
+[2015-11-19 01:46:55.222] Set cell ancestors: [[]]
+[2015-11-19 01:46:55.223] graph query: ["GetDescendants","I/INIT_SHEET_ID/(4,18)"]
+[2015-11-19 01:46:55.223] sent message to graph db: "\"GetDescendants`I/INIT_SHEET_ID/(4,18)\""
+[2015-11-19 01:46:55.224] Got eval locations: [Index {locSheetId = "INIT_SHEET_ID", index = (4,18)}]
+[2015-11-19 01:46:55.224] built message
+[2015-11-19 01:46:55.225] got cells: [Just (Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (4,18)}, cellExpression = Expression {expression = "list(a=c(1,2,3),=2)", language = R}, cellValue = ValueError {errorMsg = "R Runtime Error: Error in parse(text = \"list(a=c(1,2,3),=2)\") : \n  <text>:1:17: unexpected '='\n1: list(a=c(1,2,3),=\n                    ^\n", errorType = "R_EXEC_ERROR"}, cellTags = []})]
+[2015-11-19 01:46:55.226] Got cells to evaluate: [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (4,18)}, cellExpression = Expression {expression = "list(a=c(1,2,3),b=2)", language = R}, cellValue = NoValue, cellTags = []}]
+[2015-11-19 01:46:55.226] graph query: ["GetImmediateAncestors","I/INIT_SHEET_ID/(4,18)"]
+[2015-11-19 01:46:55.226] sent message to graph db: "\"GetImmediateAncestors`I/INIT_SHEET_ID/(4,18)\""
+[2015-11-19 01:46:55.234] Got ancestor locs: []
+[2015-11-19 01:46:55.234] Created initial values map: fromList []
+[2015-11-19 01:46:55.235] Starting eval chain
+[2015-11-19 01:46:55.235] Starting eval code: list(a=c(1,2,3),b=2)
+[2015-11-19 01:46:55.235] with map: fromList []
+[2015-11-19 01:46:55.236] starting R eval
+[2015-11-19 01:46:55.237] Eval chain produced cells: [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (4,18)}, cellExpression = Expression {expression = "list(a=c(1,2,3),b=2)", language = R}, cellValue = ValueError {errorMsg = "R Runtime Error: Error in setwd(paste(getwd(), \"/static\", sep = \"\")) : \n  cannot change working directory\n", errorType = "R_EXEC_ERROR"}, cellTags = []}]
+[2015-11-19 01:46:55.238] built message
+[2015-11-19 01:46:55.238] got cells: [Just (Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (4,18)}, cellExpression = Expression {expression = "list(a=c(1,2,3),=2)", language = R}, cellValue = ValueError {errorMsg = "R Runtime Error: Error in parse(text = \"list(a=c(1,2,3),=2)\") : \n  <text>:1:17: unexpected '='\n1: list(a=c(1,2,3),=\n                    ^\n", errorType = "R_EXEC_ERROR"}, cellTags = []})]
+[2015-11-19 01:46:55.241] Range keys changed: []
+[2015-11-19 01:46:55.241] graph query: ["GetDescendants"]
+[2015-11-19 01:46:55.242] sent message to graph db: "\"GetDescendants\""
+[2015-11-19 01:46:55.243] STARTING DISPATCH CYCLE WITH CELLS: : []
+[2015-11-19 01:46:55.243] Connecting to graph database for multi query.
+[2015-11-19 01:46:55.243] Sent message: "\"SetRelations\""
+[2015-11-19 01:46:55.244] Received reply: ["OK"]
+[2015-11-19 01:46:55.244] Set cell ancestors: []
+[2015-11-19 01:46:55.245] graph query: ["GetDescendants"]
+[2015-11-19 01:46:55.245] sent message to graph db: "\"GetDescendants\""
+[2015-11-19 01:46:55.245] Got eval locations: []
+[2015-11-19 01:46:55.245] Got cells to evaluate: []
+[2015-11-19 01:46:55.245] graph query: ["GetImmediateAncestors"]
+[2015-11-19 01:46:55.246] sent message to graph db: "\"GetImmediateAncestors\""
+[2015-11-19 01:46:55.250] Got ancestor locs: []
+[2015-11-19 01:46:55.250] Created initial values map: fromList []
+[2015-11-19 01:46:55.250] Starting eval chain
+[2015-11-19 01:46:55.250] Eval chain produced cells: []
+[2015-11-19 01:46:55.251] Range keys changed: []
+[2015-11-19 01:46:55.253] Server sent message: ServerMessage {serverAction = Update, serverResult = Success, serverPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (4,18)}, cellExpression = Expression {expression = "list(a=c(1,2,3),b=2)", language = R}, cellValue = ValueError {errorMsg = "R Runtime Error: Error in setwd(paste(getwd(), \"/static\", sep = \"\")) : \n  cannot change working directory\n", errorType = "R_EXEC_ERROR"}, cellTags = []}]}

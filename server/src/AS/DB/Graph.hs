@@ -46,8 +46,8 @@ getImmediateDescendantsForced locs = do
 
 
 -- TODO: should really be returning EitherTExec (), kind of like clear.
-rollbackGraph :: EitherTExec [ASIndex]
-rollbackGraph = query RollbackGraph []
+rollbackGraph :: IO ()
+rollbackGraph = exec_ RollbackGraph
 
 query :: GraphQuery -> [ASIndex] -> EitherTExec [ASIndex]
 query q locs =

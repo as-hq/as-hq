@@ -1,30 +1,32 @@
 module AS.Dispatch.Core where
 
 -- AlphaSheets and base
-import AS.Types.Core
-import AS.Types.DB
 import Prelude
-import qualified AS.Eval.Core as EC (evaluateLanguage)
 import qualified Data.Map   as M
 import qualified Data.Set   as S
-import qualified AS.DB.API  as DB
-import qualified AS.DB.Util as DU
 import qualified Data.List  as L
-import AS.Parsing.Common
-import AS.Parsing.Out hiding (first)
-import AS.Parsing.In
 import Data.Maybe (fromJust, isNothing,catMaybes)
 import Text.ParserCombinators.Parsec
 import Control.Applicative
 import Data.Time.Clock
 import Data.Text as T (unpack,pack)
-import AS.Util as U
-import AS.Eval.Middleware as EM
-import AS.Eval.Endware as EE
-import qualified AS.DB.Graph as G
 import Control.Exception.Base
 
--- Websockets
+import AS.Types.Core
+import AS.Types.DB
+import AS.Dispatch.Expanding        as DE
+import qualified AS.Eval.Core       as EC (evaluateLanguage)
+import qualified AS.DB.API          as DB
+import qualified AS.DB.Transaction  as DT
+import qualified AS.DB.Util         as DU
+import AS.Util                      as U
+import AS.Eval.Middleware           as EM
+import AS.Eval.Endware              as EE
+import qualified AS.DB.Graph        as G
+import AS.Parsing.Common
+import AS.Parsing.Show hiding (first)
+import AS.Parsing.Read
+
 import Control.Monad
 import Control.Concurrent
 import Control.Monad.IO.Class (liftIO)
@@ -41,38 +43,86 @@ import Control.Monad.Trans.Class
 import Control.Monad.Trans.Either
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
--- Regular eval route
+-- Debugging
+
+testDispatch :: MVar ServerState -> ASLanguage -> Coord -> String -> IO ASServerMessage
+testDispatch state lang crd str = runDispatchCycle state [Cell (Index sid crd) (Expression str Python) NoValue []] (sid, uid)
+  where 
+    sid = T.pack "sheetid"
+    uid = T.pack "userid"
+
+----------------------------------------------------------------------------------------------------------------------------------------------
+-- Exposed functions / regular eval route
 
 -- assumes all evaled cells are in the same sheet
 -- the only information we're really passed in from the cells is the locations and the expressions of
 -- the cells getting evaluated. We pull the rest from the DB. 
 runDispatchCycle :: MVar ServerState -> [ASCell] -> CommitSource -> IO ASServerMessage
 runDispatchCycle state cs src = do
+  let sid = locSheetId . cellLocation $ head cs
+  roots <- EM.evalMiddleware cs
   errOrCells <- runEitherT $ do
-    printObjT "STARTING DISPATCH CYCLE WITH CELLS: " cs
-    roots          <- lift $ EM.evalMiddleware cs
-    conn           <- lift $ fmap dbConn $ readMVar state
-    rootsDepSets   <- DB.setCellsAncestors roots
-    printObjT "Set cell ancestors" rootsDepSets
-    evalLocs       <- getEvalLocs conn roots
-    printObjT "Got eval locations" evalLocs
-    cellsToEval    <- getCellsToEval conn evalLocs roots
-    printObjT "Got cells to evaluate" cellsToEval
-    ancLocs        <- G.getImmediateAncestors evalLocs
-    printObjT "Got ancestor locs" ancLocs
-    initValuesMap  <- lift $ getValuesMap ancLocs
-    formattedValuesMap <- lift $ formatValsMap initValuesMap
-    printObjT "Created formatted values map" formattedValuesMap
-    printWithTimeT "Starting eval chain"
-    (afterCells, cellLists) <- evalChain conn formattedValuesMap cellsToEval src -- start with current cells, then go through descendants
-    printWithTimeT "Finished eval chain"
-    -- Apply endware
-    finalizedCells <- lift $ EE.evalEndware state afterCells src roots
-    let transaction = Transaction src roots finalizedCells cellLists
-    broadcastCells <- DB.updateAfterEval conn transaction -- atomically performs DB ops. (Sort of a lie -- writing to graph db is not atomic.)
+    transaction <- dispatch state roots src
+    broadcastCells <- commitResult state transaction-- atomically performs DB ops. (Sort of a lie -- writing to server is not atomic.)
     return broadcastCells
-  runEitherT $ rollbackGraphIfError errOrCells
+  case errOrCells of 
+    Left _ -> G.rollbackGraph
+    _      -> return ()
   return $ U.makeUpdateMessage errOrCells
+
+----------------------------------------------------------------------------------------------------------------------------------------------
+-- Dispatch helpers
+
+dispatch :: MVar ServerState -> [ASCell] -> CommitSource -> EitherTExec ASTransaction
+dispatch state roots src = do
+  conn <- lift $ dbConn <$> readMVar state
+  printObjT "STARTING DISPATCH CYCLE WITH CELLS: " roots
+  rootsDepSets   <- DB.setCellsAncestors roots
+  printObjT "Set cell ancestors" rootsDepSets
+  descLocs       <- getEvalLocs conn roots
+  printObjT "Got eval locations" descLocs
+  cellsToEval    <- getCellsToEval conn descLocs roots
+  printObjT "Got cells to evaluate" cellsToEval
+  ancLocs        <- G.getImmediateAncestors descLocs
+  printObjT "Got ancestor locs" ancLocs
+  initValuesMap  <- lift $ getValuesMap conn ancLocs
+  formattedValuesMap <- lift $ formatValsMap initValuesMap
+  printObjT "Created initial values map" initValuesMap
+  printWithTimeT "Starting eval chain"
+  (afterCells, fatCells) <- evalChain conn formattedValuesMap cellsToEval src -- start with current cells, then go through descendants
+  printObjT "Eval chain produced cells" afterCells
+  liftIO $ putStrLn $ "Eval chain produced fatcells" ++ (show fatCells)
+  -- Apply endware
+  finalizedCells <- lift $ EE.evalEndware state afterCells src roots
+  right $ Transaction src finalizedCells fatCells
+
+runDecoupledDispatchCycle :: MVar ServerState -> [ASIndex] -> CommitSource -> IO (Maybe ASCommit)
+runDecoupledDispatchCycle state locs src = do
+  let sid = locSheetId $ head locs
+  roots <- U.filterNothing <$> DB.getCells locs
+  conn <- dbConn <$> readMVar state
+  errOrCommit <- runEitherT $ do
+    transaction <- dispatch state roots src
+    commit <- DT.transactionToCommit conn transaction
+    return commit
+  case errOrCommit of 
+    Left _ -> G.rollbackGraph >> return Nothing
+    Right commit -> return $ Just commit
+
+commitResult :: MVar ServerState -> ASTransaction -> EitherTExec [ASCell]
+commitResult state transaction@(Transaction src _ _) = do
+  conn <- lift $ dbConn <$> readMVar state
+  commit1@(Commit _ _ bd _ _) <- DT.transactionToCommit conn transaction 
+  let decoupleKeys = map U.rangeDescriptorToKey bd
+      decoupleLocs = concat $ map DU.rangeKeyToIndices decoupleKeys
+  decoupleDescendants <- G.getDescendants decoupleLocs
+  maybeCommit2 <- lift $ runDecoupledDispatchCycle state decoupleDescendants src
+  case maybeCommit2 of 
+    Just commit2 -> do
+      let fullCommit@(Commit _ afterCells _ _ _) = U.mergeCommits commit2 commit1
+      lift $ DT.pushCommit conn fullCommit src
+      right afterCells
+    Nothing -> left RuntimeEvalException
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Eval building blocks
@@ -86,9 +136,7 @@ getEvalLocs :: Connection -> [ASCell] -> EitherTExec [ASIndex]
 getEvalLocs conn origCells = do
   let locs = map cellLocation origCells
   vLocs <- lift $ DB.getVolatileLocs conn -- Accounts for volatile cells being reevaluated each time
-  printWithTimeT "Got volatile locs"
-  indices <- G.getDescendants (locs ++ vLocs)
-  return indices
+  G.getDescendants (locs ++ vLocs)
 
 -- | Given a set of locations to eval, return the corresponding set of cells to perform
 -- the evaluations in (which includes info about tags, language, and expression string).
@@ -104,17 +152,15 @@ getCellsToEval conn locs origCells = do
       else return $ fromJust mCell) (zip locs mCells) 
   -- if the mCell is Nothing and loc is not a part of the locCellMap, then something messed up. 
 
-getValuesMap :: [ASIndex] -> IO IndValMap
-getValuesMap locs = do
-  cells <- DB.getPossiblyBlankCells locs
-  let vals = map cellValue cells
-  return $ M.fromList $ zip locs vals
+----------------------------------------------------------------------------------------------------------------------------------------------
+-- Maps 
 
 -- Takes in a value map, and change it from (Index -> ASValue) to (Index -> Formatted ASValue), which
 -- is necessary for Excel evals.  Since this is only relevant for Excel evaluations, I'd ideally have
 -- this in Eval/Core and only call it for Excel evals, but that would require O(n) calls to the DB, 
 -- which is prohibitively expensive. 
-formatValsMap :: IndValMap -> IO FormattedIndValMap
+-- TODO WTF
+formatValsMap :: ValMap -> IO FormattedValMap
 formatValsMap mp = do
   let mp' = M.toList mp  
       locs = map fst mp'
@@ -124,84 +170,16 @@ formatValsMap mp = do
       vals' = map (\(v, ft) -> Formatted v ft) (zip vals formats)
   return $ M.fromList $ zip locs vals'
 
+getValuesMap :: Connection -> [ASIndex] -> IO ValMap
+getValuesMap conn locs = do
+  vals <- map retrieveValue <$> DB.getCompositeCells conn locs
+  return $ M.fromList $ zip locs vals
 
-----------------------------------------------------------------------------------------------------------------------------------------------
--- Eval helpers
-
--- | Evaluates a list of cells, in serial order, updating the reference/value map with each
--- cell that's updated. The cells passed in are guaranteed to be topologically sorted, i.e.,
--- if a cell references an ancestor, that ancestor is guaranteed to already have been
--- added in the map.
-evalChain :: Connection -> FormattedIndValMap -> [ASCell] -> CommitSource -> EitherTExec ([ASCell], [ASList])
-evalChain conn valuesMap cells src = do
-  result <- liftIO $ catch (runEitherT $ evalChain' conn valuesMap cells [] []) (\e -> do
-    printObj "Runtime exception caught" (e :: SomeException)
-    U.writeErrToLog ("Runtime exception caught" ++ (show e)) src
-    return $ Left RuntimeEvalException)
-  hoistEither result
-
--- | evalChain' works in two parts. First, it goes through the list of cells passed in and
--- evaluates them. Along the way, new list cells (created as part of a list) are created
--- that may need to get re-evaluated. These get recorded in the fourth argument (type [ASList]),
--- and the heads of these lists get recorded in the fifth.
---
--- When we finish evaluating the original list of cells, we go through the newly created list cells
--- and essentially re-evaluate those. We are NOT just running eval on this list of cells directly,
--- because we don't need to re-evaluate the individual cells in the list, ONLY their descendants.
--- We also need to check for circular dependencies, which is why the pastListHeads are passed in.
--- #needsrefactor there's probably a more Haskell way of doing this with a state monad or something.
--- NOTE: we only need to deal with properDescLocs (not including original start locs) in this method, and not all desc locs
--- This is because listCellLocs' already filters for not being in a pastListHead, 
--- and also because the starting locs can't possibly be in the value map, and don't need to be re-evaluated
-evalChain' :: Connection -> FormattedIndValMap -> [ASCell] -> [ASList] -> [ASIndex] -> EitherTExec ([ASCell], [ASList])
-evalChain' _ _ [] [] _ = return ([], [])
-evalChain' conn valuesMap [] lists pastListHeads = do
-  printWithTimeT "doing base case of evalChain'"
-  -- get cells from lists
-  let cells         = concat $ map snd lists
-      listCellLocs  = map cellLocation cells
-      listCellLocs' = filter (\d -> not $ d `elem` pastListHeads) listCellLocs
-  properDescLocs <- G.getProperDescendants listCellLocs'
-  -- let descLocs = listCellLocs' ++ properDescLocs
-  printWithTimeT $ "got descendants of list cells " ++ (show (length properDescLocs)) ++ " " ++ (show (length pastListHeads))
-  -- check for circular dependencies. IF a circular dependency exists, it necessarily has to
-  -- involve one of the list heads, since the cells created as part of a list depend only
-  -- on the head. So we go through the descendants of the current list cells (sans the previous
-  -- list heads), so if those contain any of the previous list heads we know there's a cycle.
-  mapM_ (\d -> if (d `elem` pastListHeads) then (left $ CircularDepError d) else (return ())) properDescLocs
-  printWithTimeT "checked for circular dep problems"
-  -- DON'T need to re-eval anything that's already been evaluated
-  let descLocs' = filter (\d -> d `M.notMember` valuesMap) properDescLocs
-  -- #needsrefactor it seems like a large chunk of code here mirrors that in evalChain... should probably DRY
-  printWithTimeT "starting to get anc of desc"
-  ancLocs <- G.getImmediateAncestors descLocs'
-  printWithTimeT "got ancestors of those descendants"
-  newKnownValues <- lift $ getValuesMap ancLocs
-  formattedNewValues <- lift $ formatValsMap newKnownValues
-  cells' <- getCellsToEval conn descLocs' [] -- the origCells are the list cells, which got filtered out of descLocs
-  printWithTimeT "got new cells to eval"
-  evalChain' conn (M.union valuesMap formattedNewValues) cells' [] pastListHeads
-
-evalChain' conn valuesMap (c@(Cell loc xp _ ts):cs) next listHeads = do
-  (Formatted cv f) <- EC.evaluateLanguage (locSheetId loc) (IndexRef (cellLocation c)) valuesMap xp
-  printWithTimeT $ "done evaluating language"
-  let c' = formatCell f (Cell loc xp cv ts)
-      listResult = createListCells c' cv
-      newValuesMap = case listResult of
-        Nothing          -> M.insert loc (Formatted cv f) valuesMap
-        (Just cellsList) -> foldr (\(Cell l _ v _) mp -> M.insert l (Formatted v f) mp) valuesMap (snd cellsList)
-      -- ^ adds all the cells in cellsList to the reference map
-      next' = case listResult of
-        Nothing        -> next
-        Just cellsList -> cellsList:next
-      listHeads' = case listResult of
-        Nothing -> listHeads
-        Just _  -> loc:listHeads
-  (restCells, restLists) <- evalChain' conn newValuesMap cs next' listHeads'
-  printWithTimeT "done with recursive eval chain"
-  return $ case listResult of
-    Nothing          -> (c':restCells, restLists)
-    (Just cellsList) -> (restCells, cellsList:restLists)
+retrieveValue :: Maybe CompositeCell -> CompositeValue
+retrieveValue c = case c of
+  Just (Single cell) -> CellValue $ cellValue cell
+  Just (Fat fcell) -> DE.recomposeCompositeValue fcell
+  Nothing -> CellValue NoValue
 
 formatCell :: Maybe FormatType -> ASCell -> ASCell
 formatCell Nothing c = c
@@ -213,61 +191,84 @@ formatCell (Just f) c = c'
       NoFormat -> c { cellTags = ts' }
       _        -> c { cellTags = (Format f):ts' }
 
--- Removed for now for a number of reasons: 
--- 1) confusing UX
--- 2) frontend sorta handles the thing we want to avoid by not sending eval messages if the expression 
--- was the same. 
--- 3) slows things down nontrivially. 
--- -- | You should always re-eval a cell, UNLESS you're a part of a list, your expression was 
--- -- the same as last time's, and you're not the head of the list. 
--- shouldReEval :: ASCell -> IO Bool
--- shouldReEval c@(Cell loc xp _ ts) = do 
---   maybeOldCell <- DB.getCell loc
---   case maybeOldCell of 
---     Nothing -> return True
---     Just oldCell -> return $ (not $ isListMember oldCell) || (xp /= (cellExpression oldCell)) || (DU.isListHead oldCell)
+----------------------------------------------------------------------------------------------------------------------------------------------
+-- EvalChain
 
--- | If a cell C contains a 1D or 2D list, it'll be represented in the grid as a matrix.
--- This function takes in the starting cell with the starting expression, and creates the list
--- of cells. For example, [[1,2],[3,4]] entered into A1 should put values of 1 in A1, 2 in B1,
--- 3 in A2, and 4 in B2. createListCells called on A1 with the expression [[1,2],[3,4]] in it
--- should return a list of cells located at A1, A2, B1, B2, with:
---   1) the values 1, 2, 3, and 4, in them,
---   2) references to the original cell being called
---   3) the expression [[1,2],[3,4]] stored in them.
-createListCells :: ASCell -> ASValue -> Maybe ASList
-createListCells _ (ValueL []) = Nothing
-createListCells _ (RDataFrame []) = Nothing
-createListCells (Cell (Index sheet (a,b)) xp _ ts) cv = if (shouldCreateListCells cv)
-  then Just (listKey, cells)
-  else Nothing
-  where
-    values    = getValuesFromCV cv
-    origLoc   = Index sheet (a,b)
-    rows      = map toList values
-    zipVals   = zip [0..] values
-    locs      = map (Index sheet) (concat $ map (\(row, val) -> shift val row (a,b)) zipVals)
-    height    = length values
-    width     = maximum $ map length rows
-    listKey   = DU.getListKey origLoc (height, width)
-    tags      = getExtraTagsFromCV cv
-    cells     = map (\(loc, val) -> Cell loc xp val ((ListMember listKey):tags ++ ts)) $ zip locs (concat rows)
+-- | Evaluates a list of cells, in serial order, updating the reference/value map with each
+-- cell that's updated. The cells passed in are guaranteed to be topologically sorted, i.e.,
+-- if a cell references an ancestor, that ancestor is guaranteed to already have been
+-- added in the map.
+evalChain :: Connection -> FormattedValMap -> [ASCell] -> CommitSource -> EitherTExec ([ASCell], [FatCell])
+evalChain conn valuesMap cells src = 
+  let whenCaught e = do
+    printObj "Runtime exception caught" (e :: SomeException)
+    U.writeErrToLog ("Runtime exception caught" ++ (show e)) src
+    return $ Left RuntimeEvalException
+  in do
+    result <- liftIO $ catch (runEitherT $ evalChain' conn valuesMap cells []) whenCaught
+    hoistEither result
 
-    getValuesFromCV (ValueL l)        = l
-    getValuesFromCV (RDataFrame rows) = U.transposeList rows
+-- | evalChain' works in two parts. First, it goes through the list of cells passed in and
+-- evaluates them. Along the way, new list cells (created as part of a list) are created
+-- that may need to get re-evaluated. These get recorded in the fourth argument (type [ASList]),
+-- and the heads of these lists get recorded in the fifth.
+--
+-- When we finish evaluating the original list of cells, we go through the newly created list cells
+-- and essentially re-evaluate those. We are NOT just running eval on this list of cells directly,
+-- because we don't need to re-evaluate the individual cells in the list, ONLY their descendants.
+-- We also need to check for circular dependencies, which is why the pastListHeads are passed in.
+-- #needsrefactor there's probably a more Haskell way of doing this with a state monad or something.
 
-    getExtraTagsFromCV (ValueL _)     = []
-    getExtraTagsFromCV (RDataFrame _) = [DFMember]
+evalChain' :: Connection -> FormattedValMap -> [ASCell] -> [FatCell] -> EitherTExec ([ASCell], [FatCell])
+evalChain' _ _ [] fcells = return ([], [])
+evalChain' conn valuesMap [] fatCells = 
+  -- get expanded cells from fat cells
+  let unwrap (FatCell fcells fhead _) = (fcells, [fhead])
+      (cells, fatCellHeads)           = U.liftListTuple $ map unwrap fatCells
+      isFatCellHead loc               = loc `elem` fatCellHeads
+      locs                            = filter (not . isFatCellHead) $ map cellLocation cells
+      checkCircular loc               = if (isFatCellHead loc) then (left $ CircularDepError loc) else (return ())
+      isInMap idx                     = idx `M.notMember` valuesMap
+  in do
+    -- NOTE: we only need to deal with properDescLocs (not including original start locs) in this method, and not all desc locs
+    -- This is because listCellLocs' already filters for not being in a pastListHead, 
+    -- and also because the starting locs can't possibly be in the value map, and don't need to be re-evaluated
+    descLocs <- filter isInMap <$> G.getProperDescendants locs
+    -- check for circular dependencies. IF a circular dependency exists, it necessarily has to
+    -- involve one of the list heads, since the cells created as part of a list depend only
+    -- on the head. So we go through the descendants of the current list cells (sans the previous
+    -- list heads), so if those contain any of the previous list heads we know there's a cycle.
+    mapM_ checkCircular descLocs
+    -- DON'T need to re-eval anything that's already been evaluated
+    -- #needsrefactor it seems like a large chunk of code here mirrors that in evalChain... should probably DRY
+    ancLocs <- G.getImmediateAncestors descLocs
+    newMap <- lift $ getValuesMap conn ancLocs
+    formattedNewMap <- lift $ formatValsMap newMap
+    cells' <- getCellsToEval conn descLocs [] -- the origCells are the list cells, which got filtered out of descLocs
+    evalChain' conn (M.union valuesMap formattedNewMap) cells' fatCells
 
-    shift (ValueL v) r (a,b)  = [(a+c,b+r) | c<-[0..length(v)-1] ]
-    shift other r (a,b)       = [(a,b+r)]
-
-    shouldCreateListCells (ValueL _) = True
-    shouldCreateListCells (RDataFrame _) = True
-    shouldCreateListCells _ = False
-
-
--- type signature is sort of janky
-rollbackGraphIfError :: Either ASExecError [ASCell] -> EitherTExec [ASIndex]
-rollbackGraphIfError (Left e) = G.rollbackGraph
-rollbackGraphIfError _ = return []
+evalChain' conn valuesMap (c@(Cell loc xp _ ts):cs) fatCells = do
+  (Formatted cv f) <- EC.evaluateLanguage (cellLocation c) (locSheetId loc) valuesMap xp
+  liftIO $ putStrLn $ "PYTHON EVAL GOT VALUE: " ++ (show cv) ++ " AT INDEX: " ++ (show loc)
+  let maybeFatCell              = DE.decomposeCompositeValue c cv
+      addCell (Cell l _ v _) mp = M.insert l (CellValue (Formatted v f)) mp
+      newValuesMap              = case maybeFatCell of
+              Nothing -> if (M.member ptr valuesMap) 
+                then M.insert ptr cv idxInserted
+                else idxInserted
+                where 
+                  ptr = indexToPointer loc
+                  idxInserted = M.insert loc cv valuesMap
+      -- ^ when updating a location in the map, check if there are Pointer references to the same location.
+      -- if so, update them too
+              Just (FatCell expandedCells _ _) -> foldr addCell valuesMap expandedCells
+      -- ^ adds all the cells in cellsList to the reference map
+      fatCells' = case maybeFatCell of
+                Nothing -> fatCells
+                Just f  -> f:fatCells
+  (restCells, restFatCells) <- evalChain' conn newValuesMap cs fatCells'
+  -- TODO investigate strictness here
+  return $ case maybeFatCell of
+    Nothing        -> let {(CellValue v) = cv} 
+      in ((Cell loc xp v ts):restCells, restFatCells)
+    (Just fatCell) -> (restCells, fatCell:restFatCells)

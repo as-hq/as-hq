@@ -2,8 +2,8 @@ module AS.Kernels.Excel.Compiler where
 
 import AS.Types.Core hiding (str,error,SyntaxError)
 import AS.Types.Excel
-import AS.Parsing.Out (refMatch)
-import qualified AS.Util as U
+import AS.Parsing.Excel (refMatch)
+import qualified AS.Parsing.Common as C
 
 import Text.ParserCombinators.Parsec
 import qualified Text.ParserCombinators.Parsec.Token as P
@@ -130,7 +130,7 @@ lexeme        = P.lexeme lexer
 symbol        = P.symbol lexer
 natural       = P.natural lexer
 integer       = P.integer lexer
-float         = U.float'
+float         = C.float' lexer
 parens        = P.parens lexer
 semi          = P.semi lexer
 semiSep       = P.semiSep lexer
@@ -251,19 +251,8 @@ readBool str = case (map toUpper str) of
   "TRUE"  -> True
   "FALSE" -> False
 
--- | Match the lowercase or uppercase form of 'c'
-caseInsensitiveChar :: Char -> Parser Char
-caseInsensitiveChar c = char (toLower c) <|> char (toUpper c)
-
--- | Match the string 's', accepting either lowercase or uppercase form of each character 
-caseInsensitiveString :: String -> Parser String
-caseInsensitiveString s = try (mapM caseInsensitiveChar s) <?> "\"" ++ s ++ "\""
-
-bool :: Parser Bool
-bool = fmap readBool $ caseInsensitiveString "TRUE" <|> caseInsensitiveString "FALSE"
-
 str :: Parser String
-str = U.quotedString
+str = C.quotedString
 
 
 -- dirty, dirty hack to turn integer "123" into float "0.123"
@@ -325,15 +314,17 @@ formattedFloatToEValue (Formatted d f) = EValueNum $ Formatted (EValueD d) f
 excelValue :: Parser Formula
 excelValue = fmap (Basic . Var) $
       try $ (formattedFloatToEValue <$> formattedFloat)
-  <|> try ((EValueNum . return . EValueI . fromInteger) <$> integer)
-  <|> try (EValueB <$> bool)
+  <|> try ((EValueNum . EValueD) <$> formattedFloat)
+  <|> try ((EValueNum . EValueI . fromInteger) <$> integer)
+  <|> try (EValueB <$> C.bool)
   <|> try (EValueS <$> str)
 
 numOrBool :: Parser Formula
 numOrBool = fmap (Basic . Var) $
       try (formattedFloatToEValue <$> formattedFloat)
-  <|> try ((EValueNum . return . EValueI . fromInteger) <$> integer)
-  <|> try (EValueB <$> bool)
+  <|> try ((EValueNum . EValueD) <$> formattedFloat)
+  <|> try ((EValueNum . EValueI . fromInteger) <$> integer)
+  <|> try (EValueB <$> C.bool)
 
 justNumOrBool :: Parser Formula
 justNumOrBool = do 

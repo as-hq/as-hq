@@ -59,9 +59,6 @@ import Control.Monad.Trans.Either
 -- | Workbooks
 -- stored identically to Sheets
 
--- | Commits
--- stored as before, as a list of commits
-
 -- | Volatile locs
 -- stored as before, as a set with key volatileLocs
 
@@ -72,11 +69,12 @@ clear conn = runRedis conn $ flushall >> return ()
 -- Cells
 
 getCell :: ASIndex -> IO (Maybe ASCell)
-getCell loc = return . head =<< getCells [loc]
+getCell loc = head <$> getCells [loc]
 
 getPossiblyBlankCell :: ASIndex -> IO ASCell
-getPossiblyBlankCell loc = return . head =<< getPossiblyBlankCells [loc]
+getPossiblyBlankCell loc = head <$> getPossiblyBlankCells [loc]
 
+-- expects all indices to be Index
 getCells :: [ASIndex] -> IO [Maybe ASCell]
 getCells [] = return []
 getCells locs = DU.getCellsByMessage msg num
@@ -88,7 +86,31 @@ getCells locs = DU.getCellsByMessage msg num
 getBlankedCellsAt :: [ASIndex] -> IO [ASCell]
 getBlankedCellsAt locs = do 
   cells <- getPossiblyBlankCells locs
-  return $ map (\(Cell l (Expression e lang) v ts) -> Cell l (Expression "" lang) NoValue ts) cells
+  return $ map (\(Cell l xp v ts) -> Cell l (go xp) NoValue ts) cells
+    where go xp = case xp of 
+      Expression _ lang -> Expression "" lang
+      Coupled _ lang _ _ -> Expression "" lang
+
+-- allows indices to be Pointer or Index
+getCompositeCells :: Connection -> [ASIndex] -> IO [Maybe CompositeCell]
+getCompositeCells _ [] = return []
+getCompositeCells conn locs = do
+  ccells <- DU.getCellsByMessage msg num
+  mapM expandPointerRefs $ zip locs ccells
+  where
+    msg = DU.showB $ intercalate DU.msgPartDelimiter $ map (show2 . pointerToIndex) locs
+    num = length locs
+    expandPointerRefs (loc, ccell) = case loc of 
+      Pointer sid coord -> case ccell of 
+        Just (Cell l (Coupled xp lang dtype key) v ts) -> do
+          -- if the cell was coupled but no range descriptor exists, something fucked up.
+          (Just desc) <- getRangeDescriptor conn key
+          let fatLocs = DU.rangeKeyToIndices key
+          let (headIdx, _) = DU.rangeKeyToDimensions key 
+          cells <- map fromJust <$> getCells fatLocs
+          return . Just . Fat $ FatCell cells headIdx desc
+        _ -> (putStrLn $ "got pointer ref, but no fat cell: " ++ (show ccell)) >> (return $ Single <$> ccell)
+      _ -> return $ Single <$> ccell 
 
 -- #incomplete LOL
 getCellsInSheet :: ASSheetId -> IO [ASCell]
@@ -113,46 +135,22 @@ setCell c = setCells [c]
 
 setCells :: [ASCell] -> IO ()
 setCells [] = return ()
-setCells cells = do 
-  let str = intercalate DU.msgPartDelimiter $ (map (show2 . cellLocation) cells) ++ (map show2 cells)
-      msg = DU.showB str
-      num = length cells
-  DU.setCellsByMessage msg num
-
--- | Makes sure everything is synced -- the listKeys and ancestors in graph db should reflect 
--- the cell changes that happen as a result of setting the cells. 
-setCellsPropagated :: Connection -> [ASCell] -> IO ()
-setCellsPropagated conn cells = do 
-  setCells cells
-  printWithTime "set cells"
-  setCellsAncestorsForce $ filter (\c -> (not $ U.isListMember c) || DU.isListHead c) cells
-  printWithTime "setAncestors"
-  let listKeys = nub $ catMaybes $ map DU.getCellListKey cells
-  mapM_ (recoupleList conn) listKeys
-  printWithTime "dealt with list keys while setting"
+setCells cells = DU.setCellsByMessage msg num
+  where 
+    str = intercalate DU.msgPartDelimiter $ (map (show2 . cellLocation) cells) ++ (map show2 cells)
+    msg = DU.showB str
+    num = length cells
 
 deleteCells :: Connection -> [ASCell] -> IO ()
 deleteCells _ [] = return ()
 deleteCells conn cells = deleteLocs conn $ map cellLocation cells
 
--- | Makes sure everything is synced -- the listKeys and ancestors in graph db should reflect 
--- the cell changes that happen as a result of deleting the cells. 
-deleteCellsPropagated :: Connection -> [ASCell] -> IO ()
-deleteCellsPropagated conn cells = do 
-  printWithTime "about to delete cells"
-  deleteCells conn cells
-  printWithTime "deleted cells, about to set ancestors by force"
-  setCellsAncestorsForce $ U.blankCellsAt (map cellLocation cells)
-  printWithTime "set ancestors"
-  let listKeys = nub $ catMaybes $ map DU.getCellListKey cells
-  mapM_ (decoupleList conn) listKeys
-  printWithTime "dealt with list keys"
-
 deleteLocs :: Connection -> [ASIndex] -> IO ()
 deleteLocs _ [] = return ()
-deleteLocs conn locs = runRedis conn $ do
-  _ <- mapM_ DU.deleteLocRedis locs
-  return ()
+deleteLocs conn locs = runRedis conn $ mapM_ DU.deleteLocRedis locs
+
+----------------------------------------------------------------------------------------------------------------------
+-- Locations
 
 locationsExist :: Connection -> [ASIndex] -> IO [Bool]
 locationsExist conn locs = do
@@ -168,168 +166,19 @@ locationExists conn loc = runRedis conn $ do
   return result
 
 -- | Returns the listkeys of all the lists that are entirely contained in the range.  
-getListsInRange :: Connection -> ASRange -> IO [ListKey]
-getListsInRange conn rng = do
+fatCellsInRange :: Connection -> ASRange -> IO [RangeKey]
+fatCellsInRange conn rng = do
   let sid = rangeSheetId rng
-  listKeys <- DU.getListKeysInSheet conn sid
-  let rects = map DU.getRectFromListKey listKeys
-      zipRects = zip listKeys rects
+  rangeKeys <- DU.getRangeKeysInSheet conn sid
+  let rects = map DU.rangeKeyToRect rangeKeys
+      zipRects = zip rangeKeys rects
       zipRectsContained = filter (\(_,rect) -> U.rangeContainsRect rng rect) zipRects
   return $ map fst zipRectsContained
 
-setListLocations :: Connection -> ListKey -> [ASIndex] -> IO ()
-setListLocations conn listKey locs
-  | null locs = return ()
-  | otherwise = do 
-    let locKeys       = map DU.getLocationKey locs
-        listKey'      = B.pack listKey
-        sheetListsKey = DU.getSheetListsKey . locSheetId $ head locs
-    runRedis conn $ do
-      liftIO $ printWithTime $ "setting list locations for key: " ++ listKey
-      sadd listKey' locKeys
-      sadd sheetListsKey [listKey']
-      return ()
-
--- | Takes in a cell that's tied to a list. Decouples all the cells in that list from that
--- | returns: (cells before decoupling, cells after decoupling)
--- Note: this operation is O(n)
--- TODO move to C client because it's expensive
-decoupleList :: Connection -> ListKey -> IO ([ASCell], [ASCell])
-decoupleList conn listString = do
-  let listKey = B.pack listString
-  let sheetListsKey = DU.getSheetListsKey $ DU.getSheetIdFromListKey listString
-  locs <- runRedis conn $ do
-    TxSuccess result <- multiExec $ do
-      result <- smembers listKey
-      del [listKey]
-      srem sheetListsKey [listKey]
-      return result
-    return result
-  printWithTime $ "got coupled locs: " ++ (U.truncated $ show locs)
-  case locs of
-    [] -> return ([],[])
-    ls -> do
-      listCells <- U.filterNothing <$> DU.getCellsByKeys ls
-      let decoupledCells = map DU.decoupleCell listCells
-      return (listCells, decoupledCells)
-
-recoupleList :: Connection -> ListKey -> IO ()
-recoupleList conn key = do
-  let locs = DU.getLocationsFromListKey key
-  locsExist <- locationsExist conn locs
-  let locs' = U.zipFilter $ zip locs locsExist
-  setListLocations conn key locs'
-
-----------------------------------------------------------------------------------------------------------------------
--- Commits
-
--- TODO: need to deal with large commit sizes and max number of commits
--- TODO: need to delete blank cells from the DB. (Otherwise e.g. if you delete a
--- a huge range, you're going to have all those cells in the DB doing nothing.)
-
--- | Deal with updating all DB-related things after an eval. 
-updateAfterEval :: Connection -> ASTransaction -> EitherTExec [ASCell]
-updateAfterEval conn (Transaction src@(sid, _) roots afterCells lists) = do
-  liftIO $ printWithTime $ "starting update after eval"
-  let newListCells         = concat $ map snd lists
-      afterCellsWithLists  = afterCells ++ newListCells
-      cellLocs             = map cellLocation afterCellsWithLists
-  beforeCells     <- lift $ catMaybes <$> getCells cellLocs
-  liftIO $ printWithTime $ "got beforecells"
-  listKeysChanged <- liftIO $ DU.getListIntersections conn sid cellLocs
-  liftIO $ printWithTime $ "got changed list keys"
-  decoupleResult  <- lift $ mapM (decoupleList conn) listKeysChanged
-  liftIO $ printWithTime $ "got decouple result"
-  let (coupledCells, decoupledCells) = U.liftListTuple decoupleResult
-      afterCells'                    = U.mergeCells afterCellsWithLists decoupledCells
-      beforeCells'                   = U.mergeCells beforeCells coupledCells
-  liftIO $ setCells afterCells'
-  liftIO $ printWithTime $ "set after cells"
-  liftIO $ deleteCells conn (filter isEmptyCell afterCells')
-  liftIO $ printWithTime $ "deleted empty cells"
-  liftIO $ mapM_ (\(key, cells) -> setListLocations conn key (map cellLocation cells)) lists
-  liftIO $ printWithTime "done setting list locations"
-  liftIO $ addCommit conn (beforeCells', afterCells') src
-  liftIO $ printWithTime "added commits"
-  right afterCells'
-
--- | Update the ancestor relationships in the DB based on the expressions and locations of the
--- cells passed in. (E.g. if a cell is passed in at A1 and its expression is "C1 + 1", C1->A1 is
--- added to the graph.)
-setCellsAncestors :: [ASCell] -> EitherTExec [[ASReference]]
-setCellsAncestors cells = G.setRelations relations >> return depSets
-  where
-    depSets = map (\(Cell l e _ _) -> getDependencies (locSheetId l) e) cells
-    zipSets = zip cells depSets
-    relations = map (\((Cell l _ _ _), depSet) -> (l, concat $ catMaybes $ map refToIndices depSet)) zipSets
-
--- | Should only be called when undoing or redoing commits, which should be guaranteed to not
--- introduce errors.
-setCellsAncestorsForce :: [ASCell] -> IO ()
-setCellsAncestorsForce cells = do
-  runEitherT (setCellsAncestors cells)
-  return ()
-
--- | Creates and pushes a commit to the DB
-addCommit :: Connection -> ([ASCell], [ASCell]) -> CommitSource -> IO ()
-addCommit conn (b,a) src = do
-  time <- getASTime
-  let commit = ASCommit b a time
-  pushCommit conn commit src
-  --putStrLn $ show commit
-
--- Slightly 
-pushKey :: CommitSource -> BS.ByteString
-pushKey (sid, uid) = B.pack $ (T.unpack sid) ++ '|':(T.unpack uid) ++ "pushed"
-
-popKey :: CommitSource -> BS.ByteString
-popKey (sid, uid)  = B.pack $ (T.unpack sid) ++ '|':(T.unpack uid) ++ "popped"
-
--- | Return a commit if possible (not possible if you undo past the beginning of time, etc)
--- | Update the DB so that there's always a source of truth (ie we will initEval undo to all relevant users)
-undo :: Connection -> CommitSource -> IO (Maybe ASCommit)
-undo conn src = do
-  printWithTime "starting undo in DB redis"
-  commit <- runRedis conn $ do
-    TxSuccess justC <- multiExec $ do
-      commit <- rpoplpush (pushKey src) (popKey src)
-      return commit
-    return $ DU.bStrToASCommit justC
-  case commit of
-    Nothing -> return Nothing
-    Just c@(ASCommit b a t) -> do
-      deleteCellsPropagated conn a
-      setCellsPropagated conn b
-      -- mapM_ (recoupleList conn) listKeys
-      return $ Just c
-
-redo :: Connection -> CommitSource -> IO (Maybe ASCommit)
-redo conn src = do
-  commit <- runRedis conn $ do
-    Right result <- lpop (popKey src)
-    case result of
-      (Just commit) -> do
-        rpush (pushKey src) [commit]
-        return $ DU.bStrToASCommit (Just commit)
-      _ -> return Nothing
-  case commit of
-    Nothing -> return Nothing
-    Just c@(ASCommit b a t) -> do
-      putStrLn "about to propagate"
-      deleteCellsPropagated conn b
-      setCellsPropagated conn a
-      -- mapM_ (decoupleList conn) listKeys
-      return $ Just c
-
-pushCommit :: Connection -> ASCommit -> CommitSource -> IO ()
-pushCommit conn c src = do
-  let commit = (B.pack . show) c
-  runRedis conn $ do
-    TxSuccess _ <- multiExec $ do
-      rpush (pushKey src) [commit]
-      incrbyfloat "numCommits" 1
-      del [popKey src]
-    return ()
+getRangeDescriptor :: Connection -> RangeKey -> IO (Maybe RangeDescriptor)
+getRangeDescriptor conn key = runRedis conn $ do 
+  Right desc <- get (B.pack key)
+  return $ DU.bStrToRangeDescriptor desc
 
 ----------------------------------------------------------------------------------------------------------------------
 -- WorkbookSheets (for frontend API)
@@ -368,6 +217,26 @@ modifyWorkbookSheets conn f wName = do
   (Just (Workbook wsName sheetIds)) <- getWorkbook conn wName
   let wbNew = Workbook wsName $ f sheetIds
   setWorkbook conn wbNew
+
+----------------------------------------------------------------------------------------------------------------------
+-- Ancestors
+
+-- | Update the ancestor relationships in the DB based on the expressions and locations of the
+-- cells passed in. (E.g. if a cell is passed in at A1 and its expression is "C1 + 1", C1->A1 is
+-- added to the graph.)
+setCellsAncestors :: [ASCell] -> EitherTExec [[ASReference]]
+setCellsAncestors cells = G.setRelations relations >> return depSets
+  where
+    depSets = map (\(Cell l e _ _) -> getDependencies (locSheetId l) e) cells
+    zipSets = zip cells depSets
+    relations = map (\((Cell l _ _ _), depSet) -> (l, concat $ catMaybes $ map refToIndices depSet)) zipSets
+
+-- | Should only be called when undoing or redoing commits, which should be guaranteed to not
+-- introduce errors.
+setCellsAncestorsForce :: [ASCell] -> IO ()
+setCellsAncestorsForce cells = do
+  runEitherT (setCellsAncestors cells)
+  return ()
 
 ----------------------------------------------------------------------------------------------------------------------
 -- Raw workbooks
@@ -544,13 +413,11 @@ canAccessAll :: Connection -> ASUserId -> [ASIndex] -> IO Bool
 canAccessAll conn uid locs = return . all id =<< mapM (canAccess conn uid) locs
 
 isPermissibleMessage :: ASUserId -> Connection -> ASClientMessage -> IO Bool
-isPermissibleMessage uid conn (ClientMessage _ (PayloadCL cells))  = canAccessAll conn uid (map cellLocation cells)
-isPermissibleMessage uid conn (ClientMessage _ (PayloadLL locs))   = canAccessAll conn uid locs
-isPermissibleMessage uid conn (ClientMessage _ (PayloadS sheet))   = canAccessSheet conn uid (sheetId sheet)
-isPermissibleMessage uid conn (ClientMessage _ (PayloadW window))  = canAccessSheet conn uid (windowSheetId window)
-isPermissibleMessage uid conn (ClientMessage _ (PayloadTag _ rng)) = canAccessAll conn uid (rangeToIndices rng)
-isPermissibleMessage _ _ _ = return True
-
-
-----------------------------------------------------------------------------------------------------------------------
--- Users and Permissons TODO
+isPermissibleMessage uid conn (ClientMessage _ payload) = case payload of 
+  PayloadCL cells -> canAccessAll conn uid (map cellLocation cells)
+  PayloadLL locs -> canAccessAll conn uid locs
+  PayloadS sheet -> canAccessSheet conn uid (sheetId sheet)
+  PayloadW window -> canAccessSheet conn uid (windowSheetId window)
+  PayloadTag _ rng -> canAccessAll conn uid (rangeToIndices rng)
+  _ -> return True
+isPermissibleMessage uid conn _ = return True

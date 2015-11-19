@@ -1,4 +1,4 @@
-module AS.Parsing.Out where
+module AS.Parsing.Excel where
 
 import Prelude
 import Data.List (elemIndex)
@@ -13,101 +13,7 @@ import qualified Data.Text.Lazy (replace)
 
 import AS.Types.Core
 import AS.Types.Excel
-import AS.Parsing.Common
 import AS.Util
-
-toListStr :: ASLanguage -> [String] -> String
-toListStr lang lst  = end ++ (L.intercalate delim lst) ++ start
-  where
-    (end, delim, start) = case lang of
-      R     -> ("c(", ",", ")")
-      Python-> ("[", ",", "]")
-      OCaml -> ("[", ";", "]")
-      SQL   -> ("[", ",", "]")
-      Excel -> ("[", ",", "]")
-
-modifiedLists :: ASLanguage -> String -> String
-modifiedLists lang str = case lang of
-  Python -> "arr(" ++ str ++ ")"
-  otherwise -> str
-
-getBlockDelim :: ASLanguage -> String
-getBlockDelim lang = case lang of
-  R     -> ""
-  Python-> ""
-  OCaml -> ";;"
-  SQL   -> ""
-  Excel -> ""
-
-getInlineDelim :: ASLanguage -> String
-getInlineDelim lang = case lang of
-  R     -> ";"
-  Python-> ";"
-  OCaml -> ";;"
-  SQL   -> ";"
-  Excel -> ";"
-
-jsonDeserialize :: ASLanguage -> String -> String -> String
-jsonDeserialize lang objType jsonRep =
-  let
-    dlm = getBlockDelim lang
-  in case lang of
-    R       -> objType ++ "$(" ++ jsonRep ++ ")" ++ dlm
-    Python  -> objType ++ ".deserialize(" ++ jsonRep ++ ")" ++ dlm
-    OCaml   -> "Serialization# " ++ objType ++ " " ++ jsonRep ++ dlm
-    SQL     -> objType ++ ".deserialize(" ++ jsonRep ++ ")" ++ dlm
-
-bool :: ASLanguage -> Bool -> String
-bool lang b = case lang of
-  Python-> show b
-  R     -> map C.toUpper $ show b
-  OCaml -> (\str -> (C.toLower (head str)):(tail str)) $ show b
-  SQL   -> show b
-  Excel -> show b
-
-showValue :: ASLanguage -> ASValue -> String
-showValue lang v = case v of
-  NoValue            -> showNull lang
-  ValueS s           -> case lang of
-    Excel -> init $ tail $ show s -- don't include quotes
-    otherwise -> show s
-  ValueI i           -> show i
-  ValueD d           -> show d
-  ValueB b           -> bool lang b
-  ValueL l           -> toListStr lang $ fmap (showValue lang) l
-  ValueObject _ o js -> jsonDeserialize lang o js
-  RList vals         -> showRList lang vals
-  RDataFrame vals    -> showRDataFrame lang vals
-  _ -> error ("In showValue, failed to pattern match: " ++ (show v))
-
-showNull :: ASLanguage -> String
-showNull lang = case lang of 
-  Python -> "None"
-  SQL -> "None"
-  R -> "NULL"
-
-showRList :: ASLanguage -> [(RListKey, ASValue)] -> String
-showRList lang l = case lang of
-  R -> "list(" ++ (concat $ L.intersperse "," $ map showRPair l) ++ ")"
-
-showRPair :: (RListKey, ASValue) -> String
-showRPair (key, val) = case key of
-  "" -> showValue R val
-  _ -> key ++ "=" ++ (showValue R val)
-
-showRDataFrame :: ASLanguage -> [ASValue] -> String
-showRDataFrame lang vals = case lang of
-  R -> "data.frame(" ++ (concat $ L.intersperse "," fields) ++ ")"
-    where fields = map showRPair $ splitNamesFromDataFrameValues vals
-
-splitNamesFromDataFrameValues :: [ASValue] -> [(String, ASValue)]
-splitNamesFromDataFrameValues vals = pairs
-  where
-    pairs = if (all isString names)
-      then zip (map str names) (map (\(ValueL l) -> ValueL $ tail l) vals)
-      else zip (repeat ("" :: String)) vals
-    names = map (\(ValueL l) -> head l) vals
-
 
 -------------------------------------------------------------------------------------------------------------------------------------------------
 -- Type for parsing Excel Locations
@@ -119,33 +25,38 @@ exRefToASRef :: ASSheetId -> ExRef -> ASReference
 exRefToASRef sid exRef = case exRef of
   ExOutOfBounds -> OutOfBounds
   ExLocRef (ExIndex _ c r) sn wn -> IndexRef $ Index sid' (colStrToInt c, read r :: Int)
-    where sid' = maybe sid id (getSheetIdFromSheetNameAndWorkbookName sn wn)
+    where sid' = maybe sid id (sheetIdFromContext sn wn)
   ExRangeRef (ExRange f s) sn wn -> RangeRef $ Range sid' (tl, br)
     where
-      sid' = maybe sid id (getSheetIdFromSheetNameAndWorkbookName sn wn)
+      sid' = maybe sid id (sheetIdFromContext sn wn)
       IndexRef (Index _ tl) = exRefToASRef sid' $ ExLocRef f sn Nothing
       IndexRef (Index _ br) = exRefToASRef sid' $ ExLocRef s sn Nothing
+  ExPointerRef (ExIndex _ c r) sn wn -> IndexRef $ Pointer sid' (colStrToInt c, read r :: Int)
+    where sid' = maybe sid id (sheetIdFromContext sn wn)
 
 asRefToExRef :: ASReference -> ExRef
 asRefToExRef OutOfBounds = ExOutOfBounds
 asRefToExRef (IndexRef (Index sid (a,b))) = ExLocRef idx sname Nothing
   where idx = ExIndex REL_REL (intToColStr a) (show b)
-        sname = getSheetNameFromSheetId sid
+        sname = sheetIdToSheetName sid
+asRefToExRef (IndexRef (Pointer sid (a,b))) = ExPointerRef idx sname Nothing
+  where idx = ExIndex REL_REL (intToColStr a) (show b)
+        sname = sheetIdToSheetName sid
 asRefToExRef (RangeRef (Range s (i1, i2))) = ExRangeRef rng Nothing Nothing
   where
-    ExLocRef i1' _ _ = asRefToExRef $ IndexRef $ Index s i1
-    ExLocRef i2' _ _ = asRefToExRef $ IndexRef $ Index s i2
+    ExLocRef i1' _ _ = asRefToExRef . IndexRef $ Index s i1
+    ExLocRef i2' _ _ = asRefToExRef . IndexRef $ Index s i2
     rng = ExRange i1' i2'
 
 -- #incomplete we should actually be looking in the db. For now, with the current UX of
 -- equating sheet names and sheet id's with the dialog box, 
-getSheetNameFromSheetId :: ASSheetId -> Maybe SheetName
-getSheetNameFromSheetId = Just . T.unpack
+sheetIdToSheetName :: ASSheetId -> Maybe SheetName
+sheetIdToSheetName = Just . T.unpack
 
 -- #incomplete lol. just returns sheet name from sheet id for now. 
-getSheetIdFromSheetNameAndWorkbookName :: Maybe SheetName -> Maybe WorkbookName -> Maybe ASSheetId
-getSheetIdFromSheetNameAndWorkbookName (Just sn) _ = Just $ T.pack sn
-getSheetIdFromSheetNameAndWorkbookName _ _ = Nothing
+sheetIdFromContext :: Maybe SheetName -> Maybe WorkbookName -> Maybe ASSheetId
+sheetIdFromContext (Just sn) _ = Just $ T.pack sn
+sheetIdFromContext _ _ = Nothing
 
 -------------------------------------------------------------------------------------------------------------------------------------------------
 -- Parsers to match special excel characters
@@ -214,8 +125,8 @@ rangeMatch = do
 
 refMatch :: Parser ExRef
 refMatch = do
-  (sh, wb) <- option (Nothing, Nothing) $ try sheetWorkbookMatch
   point <- optionMaybe $ try pointer
+  (sh, wb) <- option (Nothing, Nothing) $ try sheetWorkbookMatch
   rng <- optionMaybe $ try rangeMatch 
   idx <- optionMaybe $ try indexMatch
   ofb <- optionMaybe $ try outOfBoundsMatch
