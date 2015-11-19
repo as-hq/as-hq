@@ -43,7 +43,7 @@ import Control.Monad.Trans.Class
 import Control.Monad.Trans.Either
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
--- | Exposed functions
+-- Exposed functions
 
 evaluate :: EvalCode -> EitherTExec CompositeValue
 evaluate "" = return $ CellValue NoValue
@@ -60,7 +60,7 @@ evaluateRepl str = liftIO $ execOnString str (execR True)
 --  return ()
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
--- | Helpers
+-- Exec helpers
 
 execOnString :: EvalCode -> (EvalCode -> IO CompositeValue) -> IO CompositeValue
 execOnString str f = do
@@ -78,7 +78,7 @@ execR isGlobal s =
   in do
     result <- catch (R.runRegion $ castR =<< if isGlobal
       then [r| eval(parse(text=s_hs)) |]
-      else [r| AS_LOCAL_ENV<-function(){setwd(paste(getwd(),"/static",sep="")); result = eval(parse(text=s_hs)); setwd("../"); result}; AS_LOCAL_EXEC<-AS_LOCAL_ENV(); AS_LOCAL_EXEC |]) whenCaught
+      else [r| AS_LOCAL_ENV<-function(){eval(parse(text=s_hs));}; AS_LOCAL_EXEC<-AS_LOCAL_ENV(); AS_LOCAL_EXEC |]) whenCaught
     return result
 
 -- @anand faster unboxing, but I can't figure out how to restrict x to (IsVector x)
@@ -91,6 +91,9 @@ execR isGlobal s =
     --(hexp -> H.Logical _) -> (map (ValueB . fromLogical)) <$> (peekArray offset =<< R.logical x)
     --(hexp -> H.Char _)    -> (\s -> [ValueS s]) <$> (peekCString =<< R.char x)
     --(hexp -> H.String _)  -> (map ValueS) <$> (mapM peekCString =<< mapM R.char =<< peekArray offset =<< R.string x)
+
+----------------------------------------------------------------------------------------------------------------------------------------------
+-- Casting helpers
 
 castR :: R.SomeSEXP a -> R a CompositeValue
 castR (R.SomeSEXP s) = castSEXP s
@@ -129,11 +132,13 @@ castVector v = do
   if isList
     then if isDf
       then do
-        listNames <- castListNames <$> (castR =<< [r|names(AS_LOCAL_EXEC)|])
-        return . Expanding $ VRDataFrame listNames vals
+        names <- castNames <$> (castR =<< [r|names(AS_LOCAL_EXEC)|])
+        indices <- castNames <$> (castR =<< [r|rownames(AS_LOCAL_EXEC)|])
+        return . Expanding $ VRDataFrame names indices vals
       else do
-        listNames <- castListNames <$> (castR =<< [r|names(AS_LOCAL_EXEC)|])
-        if (isRPlot listNames)
+        listNames <- castNames <$> (castR =<< [r|names(AS_LOCAL_EXEC)|])
+        let nameStrs = map (\(ValueS s) -> s) listNames
+        if (isRPlot nameStrs)
           then do
             uid <- liftIO getUniqueId
             path <- liftIO getImagesPath
@@ -141,35 +146,23 @@ castVector v = do
                 imagePath = path ++ imageUid
             [r|ggsave(filename=imagePath_hs, plot=AS_LOCAL_EXEC)|]
             return . CellValue $ ValueImage imageUid
-          else 
-            let (M listRows) = vals
-            in return . Expanding $ VRList (zip listNames listRows)
-    else return . Expanding $ VList vals
+          else return . Expanding . VRList $ zip nameStrs vals
+    else return . Expanding . VList . M $ vals
 
-rdVectorVals :: [CompositeValue] -> Collection
-rdVectorVals = M . (map mkArray)
+rdVectorVals :: [CompositeValue] -> Matrix
+rdVectorVals = map mkArray
   where
     mkArray row = case row of 
       Expanding (VList (A arr)) -> arr
       CellValue v -> [v]
       _ -> error "cannot cast multi-dimensional vector"
 
---let firstRow = take (length vals) listNames'
---            vals' = prependRowToColumnMajorList firstRow vals
-
---prependRowToColumnMajorList :: [ASValue] -> [ASValue] -> [ASValue]
---prependRowToColumnMajorList row cols = cols'
---  where
---    cols' = map (\(rowElem,col) -> case col of
---      (ValueL l) -> ValueL $ rowElem:l
---      _ -> ValueL $ rowElem:col:[]) $ zip row cols
-
-castListNames :: CompositeValue -> [String]
-castListNames val = case val of
-  Expanding (VList (A names)) -> map (\(ValueS s)->s) names
-  CellValue (ValueS s) -> [s]
-  CellValue NoValue  -> ["NULL"]
-  _ -> error $ "could not cast dataframe list names from composite value " ++ (show val)
+castNames :: CompositeValue -> [ASValue]
+castNames val = case val of
+  Expanding (VList (A names)) -> names
+  CellValue (ValueS s) -> [ValueS s]
+  CellValue NoValue  -> [ValueS "NULL"]
+  _ -> error $ "could not cast dataframe labels from composite value " ++ (show val)
 
 -- TODO figure out S4 casting
 castS4 :: R.SEXP s a -> R s ASValue
@@ -184,18 +177,6 @@ fromReal :: Double -> ASValue
 fromReal d = case (fromDouble d) of
   Left dDouble -> ValueD dDouble
   Right dInt -> ValueI dInt
-
---sanitizeList :: ASValue -> ASValue
---sanitizeList v = if (isHighDimensional 0 v)
---  then ValueError "Cannot embed lists of dimension > 2." "R_Error" "" 0
---  else undegenerateList v
-
---undegenerateList :: ASValue -> ASValue
---undegenerateList (ValueL [l]) = l 
---undegenerateList v = v
-
---(<.) :: R a -> R ASValue
---(<.) a = castR =<< a
 
 isRPlot :: [RListKey] -> Bool
 isRPlot = elem "plot_env"

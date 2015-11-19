@@ -1,0 +1,4 @@
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (4,18)}, cellExpression = Expression {expression = "list(a=c(1,2,3),b=2)", language = R}, cellValue = NoValue, cellTags = []}]}
+# SHEET_ID: INIT_SHEET_ID
+# USER_ID: TEST_USER_ID

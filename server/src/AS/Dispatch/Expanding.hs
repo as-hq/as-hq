@@ -22,16 +22,17 @@ decomposeCompositeValue c@(Cell idx _ _ _) (Expanding (VList coll)) = Just $ Fat
     cells     = decomposeCells List rangeKey c coll
     desc      = ListDescriptor rangeKey
 
---decomposeCompositeValue c@(Cell idx _ _ _) (Expanding (VRList pairs)) = Just $ FatCell cells desc
---  where
---    cells     = decomposeCells Object c (M $ map snd pairs)
---    listkey   = DU.getListKey idx dims
---    listNames = JSONLeaf . ListValue . A $ map fst pairs
---    attrs     = JSON $ M.fromList [("listKeys", listNames)]
---    desc      = ObjectDescriptor listkey RList attrs
+decomposeCompositeValue c@(Cell idx _ _ _) (Expanding (VRList pairs)) = Just $ FatCell cells idx desc
+  where
+    names     = map (ValueS . fst) pairs
+    vals      = transpose' $ map snd pairs
+    coll      = M $ names:vals
+    dims      = getDimensions coll
+    rangeKey  = DU.getRangeKey idx dims
+    cells     = decomposeCells Object rangeKey c coll
+    desc      = ObjectDescriptor rangeKey RList $ M.fromList []
 
---decomposeCompositeValue c@(Cell idx _ _ _) (Expanding (VRDataFrame names values)) = Just $ FatCell cells desc
---  where
+decomposeCompositeValue c@(Cell idx _ _ _) (Expanding (VRDataFrame labels indices vals)) = decomposeCompositeValue c $ Expanding (VPDataFrame labels indices vals)
 
 decomposeCompositeValue c@(Cell idx _ _ _) (Expanding (VNPArray coll)) = Just $ FatCell cells idx desc
   where
@@ -94,6 +95,14 @@ recomposeCompositeValue (FatCell cells _ (ListDescriptor key)) = Expanding val
     coll = recomposeCells dims cells
     (_, dims) = rangeKeyToDimensions key
 
+recomposeCompositeValue (FatCell cells _ (ObjectDescriptor key RList _)) = Expanding val
+  where
+    val = VRList $ zip names' fields'
+    names' = map (\(ValueS s) -> s) names
+    fields' = L.transpose fields
+    (M (names:fields)) = recomposeCells dims cells
+    (_, dims) = rangeKeyToDimensions key
+
 recomposeCompositeValue (FatCell cells _ (ObjectDescriptor key NPArray _)) = Expanding val
   where
     val = VNPArray coll
@@ -127,16 +136,14 @@ recomposeCells dims cells = case (snd dims) of
   1 -> A $ map cellValue cells
   _ -> M . L.transpose $ map (\row -> map cellValue row) $ U.reshapeList cells (snd dims, fst dims)
 
+transpose' :: [[ASValue]] -> [[ASValue]]
+transpose' vals = L.transpose squarified
+  where
+    width      = maximum $ map length vals
+    squarified = map (\row -> take width $ row ++ (repeat NoValue)) vals
 
 --------------------------------------------------------------------------------------------------------------
 -- Lists
-
----- assumes all rows have same length, and every input ASValue is a row (i.e. column-major)
----- TODO deal with case of RDataFrame
---transposeList :: [ASValue] -> [ASValue]
---transposeList l = case (head l) of
---  (ValueL _) -> map ValueL $ L.transpose $ map toList l
---  _ -> [ValueL l]
 
 --isHighDimensional :: Int -> ASValue -> Bool
 --isHighDimensional depth (ValueL l) = if (depth + 1 > 2)

@@ -119,7 +119,7 @@ data Collection = A Array | M Matrix deriving (Show, Read, Eq, Generic)
 data ExpandingValue = 
     VList Collection
   | VRList [(RListKey, Array)]
-  | VRDataFrame {dfNames :: [String], dfValues :: Collection}
+  | VRDataFrame {rdfLabels :: Array, rdfIndices :: Array, rdfValues :: Matrix}
   | VNPArray Collection
   | VNPMatrix Matrix
   | VPDataFrame {dfLabels :: Array, dfIndices :: Array, dfData :: Matrix}
