@@ -1,7 +1,7 @@
 /* @flow */
 
 export type ASExecError = {
-  errMsg: string;
+  errorMsg: string;
 // TODO: split into union
 };
 

@@ -245,7 +245,7 @@ export default React.createClass({
 
   getErrorMessage(cv: ASValue): ?string {
     if (cv.tag === "ValueError") {
-      return cv.errMsg;
+      return cv.errorMsg;
     } else if (cv.tag === "ValueExcelError") {
       return cv.contents.tag; // ValueExcelError should become a part of ValueError eventually
     }

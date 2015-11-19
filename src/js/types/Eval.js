@@ -13,8 +13,12 @@ export type NoValue = {
   tag: 'NoValue';
 };
 
-export type ValueNull = {
-  tag: 'ValueNull';
+export type ValueNaN = {
+  tag: 'ValueNaN';
+};
+
+export type ValueInf = {
+  tag: 'ValueInf';
 };
 
 export type ValueS = {
@@ -37,46 +41,20 @@ export type ValueB = {
   contents: boolean;
 };
 
-export type ValueL = {
-  tag: 'ValueL';
-  contents: Array<ASValue>;
-};
-
 export type ValueImage = {
   tag: 'ValueImage';
   imagePath: string;
 };
 
-export type ValueObject = {
+export type ValueSerialized = {
   tag: 'ValueObject';
-  displayValue: string;
-  objectType: string;
-  jsonRepresentation: string;
+  contents: string;
 };
 
 export type ValueError = {
   tag: 'ValueError';
-  errMsg: string;
-  errType: string;
-  file: string;
-  position: number;
-};
-
-export type ValueExcelError = {
-  tag: 'ValueExcelError';
-  contents: ASExcelExecError;
-};
-
-export type RListKey = string;
-
-export type RList = {
-  tag: 'RList';
-  contents: Array<[RListKey, ASValue]>;
-};
-
-export type RDataFrame = {
-  tag: 'RDataFrame';
-  contents: Array<ASValue>;
+  errorMsg: string;
+  errorType: string;
 };
 
 export type ColorTag = {
@@ -191,8 +169,12 @@ export type ASLanguage = 'Python' | 'R' | 'SQL' | 'Excel';
 export type ASExpression = {
   expression: string;
   language: ?ASLanguage;
+  displayType: ?DisplayType;
+  rangeKey: ?string;
   dependencies?: Array<NakedRange>;
 };
+
+export type DisplayType = 'List' | 'Object' | 'Image' | 'Error';
 
 export type ASCellTag =
   ColorTag
