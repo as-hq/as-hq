@@ -42,6 +42,7 @@ asValue lang =
   <|> try (ValueS <$> quotedString)
   <|> try (nullValue lang)
   <|> try (nanValue lang)
+  <|> try (infValue lang)
 
 -----------------------------------------------------------------------------------------------------------------------
 -- primitive parsers
@@ -55,13 +56,17 @@ float = float' lexer
 nullValue :: ASLanguage -> Parser ASValue
 nullValue lang = case lang of 
   Python -> string (LD.inNull Python) >> return NoValue
-  R      -> string (LD.inNull R) >> return NoValue
   _      -> fail $ "No nullValue in " ++ (show lang)
 
 nanValue :: ASLanguage -> Parser ASValue
 nanValue lang = case lang of 
   Python -> string (LD.inNan Python) >> return ValueNaN
   _      -> fail $ "No NaN value in " ++ (show lang)
+
+infValue :: ASLanguage -> Parser ASValue
+infValue lang = case lang of 
+  Python -> string (LD.inInf Python) >> return ValueInf
+  _      -> fail $ "No Inf value in " ++ (show lang)
 
 lexer = P.makeTokenParser Lang.haskellDef
 

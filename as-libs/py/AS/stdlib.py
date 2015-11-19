@@ -63,7 +63,11 @@ def serialize(val):
 	elif isinstance(val, dict):
 		return json.dumps({'tag': 'Object', 'objectType': 'PDict', 'dict': val})
 	elif isinstance(val, np.ndarray):
-		return json.dumps({'tag': 'Object', 'objectType': 'NPArray', 'arrayVals': val.tolist()})
+		def f(e):
+			if isinstance(e, np.ndarray): return e.tolist()
+			else: return e
+		vals = [f(e) for e in val]
+		return json.dumps({'tag': 'Object', 'objectType': 'NPArray', 'arrayVals': vals})
 	elif isinstance(val, np.matrixlib.defmatrix.matrix):
 		return json.dumps({'tag': 'Object', 'objectType': 'NPMatrix', 'matrixVals': val.tolist()})
 	elif isinstance(val, pd.DataFrame):

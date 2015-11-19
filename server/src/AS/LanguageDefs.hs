@@ -49,7 +49,19 @@ inNan lang = case lang of
 outNan :: ASLanguage -> String
 outNan lang = case lang of 
   Python -> "np.nan"
+  R -> "NaN"
   _ -> error $ "nan value not found for " ++ (show lang)
+
+inInf :: ASLanguage -> String
+inInf lang = case lang of 
+  Python -> "Infinity"
+  _ -> error $ "nan value not found for " ++ (show lang)
+
+outInf :: ASLanguage -> String
+outInf lang = case lang of 
+  Python -> "np.inf"
+  R -> "Inf"
+  _ -> error $ "inf value not found for " ++ (show lang)
 
 outBool :: ASLanguage -> Bool -> String
 outBool lang val = case val of 

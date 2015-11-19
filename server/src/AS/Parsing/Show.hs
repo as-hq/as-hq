@@ -27,12 +27,13 @@ showValue lang v = case v of
 
 showPrimitive :: ASLanguage -> ASValue -> String
 showPrimitive lang v = case v of
-  NoValue            -> LD.outNull lang
-  ValueNaN           -> LD.outNan lang
-  ValueS s           -> show s
-  ValueI i           -> show i
-  ValueD d           -> show d
-  ValueB b           -> LD.outBool lang b
+  NoValue    -> LD.outNull lang
+  ValueNaN   -> LD.outNan lang
+  ValueInf   -> LD.outInf lang
+  ValueS s   -> show s
+  ValueI i   -> show i
+  ValueD d   -> show d
+  ValueB b   -> LD.outBool lang b
   _ -> error ("In showPrimitive, failed to pattern match: " ++ (show v))
 
 showExpanding :: ASLanguage -> ExpandingValue -> String
@@ -57,6 +58,12 @@ showExpanding R (VRDataFrame labels indices vals) = "{function(){" ++ statements
 
 showExpanding R (VPDataFrame labels indices vals) = showExpanding R (VRDataFrame labels indices (L.transpose vals)) -- python and R dataframes have transposed representations
 
+showExpanding R (VNPArray coll) = wrapList R $ showCollection R coll
+
+showExpanding R (VNPMatrix mat) = wrapList R $ showCollection R (M mat)
+
+showExpanding R (VPSeries indices vals) = wrapList R $ showCollection R (A vals)
+
 showExpanding Python (VNPArray coll) = "np.array(" ++ arrayVals ++ ")"
   where arrayVals = showCollection Python coll
 
@@ -77,6 +84,8 @@ showExpanding Python (VPSeries indices vals) = "pd.Series(" ++ inner ++ ")"
     inner    = vals' ++ "," ++ indices'
     vals'    = "data=" ++ (showCollection Python $ A vals)
     indices' = "index=" ++ (showCollection Python $ A indices)
+
+showExpanding l v = error $ "cannot insert value " ++ (show v) ++ " in language " ++ (show l)
     
 -----------------------------------------------------------------------------------------------------------------------
 -- helpers
