@@ -615,7 +615,7 @@ describe('backend', () => {
                 exec(done)
             ]);
         });
-        fit ('SUM', (done) => {
+        it ('SUM', (done) => {
           _do([
             excel('A1', '-5'),
             excel('A2', '15'),
@@ -634,7 +634,7 @@ describe('backend', () => {
             exec(done)
           ]);
         });
-        fit ('COVAR', (done) => {
+        it ('COVAR', (done) => {
           _do([
               excel('A1', 'Data1'),
               excel('A2', '3'),

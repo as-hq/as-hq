@@ -138,6 +138,7 @@ export default React.createClass({
           hideToast={this.props.hideToast}
           theme={theme}
           width={width} height={height}
+          maxLines={this.props.getCodeEditorMaxLines()}
           onDeferredKey={this.props.onDeferredKey} />
       </div>
     );

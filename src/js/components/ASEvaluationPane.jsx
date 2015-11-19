@@ -626,8 +626,12 @@ export default React.createClass({
     }
   },
 
-  _handleEditorFocus(){ // need to remove blinking cursor from textbox
+  _handleEditorFocus() { // need to remove blinking cursor from textbox
     this.refs.spreadsheet.refs.textbox.editor.renderer.$cursorLayer.hideCursor();
+  },
+
+  _getCodeEditorMaxLines() { 
+    return (Store.getFocus() == 'editor') ? 10 : 3;
   },
 
   /**************************************************************************************************************************/
@@ -751,6 +755,7 @@ export default React.createClass({
         <ASCodeEditor
           ref='editorPane'
           handleEditorFocus={this._handleEditorFocus}
+          getCodeEditorMaxLines={this._getCodeEditorMaxLines}
           language={currentLanguage}
           onReplClick={this._toggleRepl}
           onEvalHeaderClick={this._toggleEvalHeader}
