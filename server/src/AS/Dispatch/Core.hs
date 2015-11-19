@@ -65,6 +65,7 @@ runDispatchCycle state cs src = do
     printObjT "Created formatted values map" formattedValuesMap
     printWithTimeT "Starting eval chain"
     (afterCells, cellLists) <- evalChain conn formattedValuesMap cellsToEval src -- start with current cells, then go through descendants
+    printWithTimeT "Finished eval chain"
     -- Apply endware
     finalizedCells <- lift $ EE.evalEndware state afterCells src roots
     let transaction = Transaction src roots finalizedCells cellLists

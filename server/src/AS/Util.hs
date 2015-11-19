@@ -38,7 +38,7 @@ import Debug.Trace
 -- For debugging purposes only 
 
 trace' :: (Show a) => String -> a -> a
-trace' s x = trace (s ++ (show x)) x
+trace' s x = trace ("\n\n\n" ++ s ++ "\n" ++ (show x) ++ "\n\n\n") x
 
 -------------------------------------------------------------------------------------------------------------------------
 -- Initializations
@@ -96,10 +96,6 @@ lastN' n xs = L.foldl' (const . drop 1) xs (drop n xs)
 -- always includes first element
 every :: Int -> [a] -> [a]
 every n = map head . takeWhile (not . null) . iterate (drop n)
-
-(<++>) a b = (++) <$> a <*> b
-
-(<:>) a b  = (:) <$> a <*> b
 
 fromRight :: Either a b -> b
 fromRight (Right b) = b
@@ -689,9 +685,18 @@ quotedString = (quoteString <|> apostropheString)
     codes            = ['b',  'n',  'f',  'r',  't',  '\\', '\'', '\"', '/']
     replacements     = ['\b', '\n', '\f', '\r', '\t', '\\', '\'', '\"', '/']
 
--- | Because Haskell's float lexer doesn't parse negative floats out of the box. <__<
-float' :: P.TokenParser () -> Parser Double
-float' lexer = do 
-  maybeMinus <- option ' ' $ try (char '-') 
-  f <- P.float lexer
-  if (maybeMinus == ' ') then (return f) else (return (-f))
+-- | Since Haskell's float parser doesn't parse negative floats out of the box, 
+-- and sometimes gives dumb rounding errors, like 0.07 --> 0.069999999999, we have to 
+-- write our own. (Code basically taken from 
+-- https://www.fpcomplete.com/school/to-infinity-and-beyond/pick-of-the-week/parsing-floats-with-parsec.)
+float' :: Parser Double
+float' = fmap rd $ integer <++> decimal <++> exponent
+    where (<++>) a b = (++) <$> a <*> b
+          (<:>) a b  = (:) <$> a <*> b
+          plus       = char '+' *> number
+          number     = many1 digit
+          minus      = char '-' <:> number
+          integer    = plus <|> minus <|> number
+          rd         = read :: String -> Double
+          decimal    = char '.' <:> number
+          exponent   = option "" $ oneOf "eE" <:> integer

@@ -19,7 +19,7 @@ import qualified Data.Text.Lazy (replace)
 
 import AS.Types.Core
 import AS.Parsing.Common
-import AS.Util as U
+import qualified AS.Util as U
 
 -- removes the first and last brackets from expression, if they exist
 removeBrackets :: String -> String
@@ -64,7 +64,7 @@ valueS = ValueS <$> U.quotedString
 
 
 valueL :: ASLanguage -> Parser ASValue
-valueL lang = sanitizeList . ValueL <$> (brackets $ sepBy (asValue lang) (delim >> spaces))
+valueL lang = U.sanitizeList . ValueL <$> (brackets $ sepBy (asValue lang) (delim >> spaces))
   where
     brackets  = between (string start) (string end)
       where
@@ -160,5 +160,5 @@ parseValue lang = readOutput . (parse (asValue lang) "")
 lexer :: P.TokenParser ()
 lexer = P.makeTokenParser Lang.haskellDef
 
-integer   = fromInteger <$> P.integer lexer
-float = U.float' lexer
+integer = fromInteger <$> P.integer lexer
+float = U.float'

@@ -42,6 +42,7 @@ import AS.Kernels.Python.Eval as KP
 import AS.Kernels.LanguageUtils as KL
 import AS.Kernels.Excel.Compiler as KE
 import Text.ParserCombinators.Parsec (parse)
+
 import AS.Parsing.Out (refMatch, sheetWorkbookMatch, exRefToASRef, asRefToExRef)
 import AS.Types.Excel
 
@@ -59,15 +60,15 @@ import Language.R.QQ
 
 main :: IO ()
 main = R.withEmbeddedR R.defaultConfig $ do
-    -- initializations
-    putStrLn "STARTING APP"
-    (conn, ports, states) <- initApp
-    if isDebug -- set in Settings.hs
-      then initDebug conn
-      else return ()
-    putStrLn $ "server started on ports " ++ (show ports)
-    mapM_ (\(port, state) -> WS.runServer S.wsAddress port $ application state) (zip ports states)
-    putStrLn $ "DONE WITH MAIN"
+  -- initializations
+  putStrLn "STARTING APP"
+  (conn, ports, states) <- initApp
+  if isDebug -- set in Settings.hs
+    then initDebug conn
+    else return ()
+  putStrLn $ "server started on ports " ++ (show ports)
+  mapM_ (\(port, state) -> WS.runServer S.wsAddress port $ application state) (zip ports states)
+  putStrLn $ "DONE WITH MAIN"
 
 initApp :: IO (R.Connection, [Port], [MVar ServerState])
 initApp = do
