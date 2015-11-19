@@ -30,6 +30,8 @@ export default {
         fixedRowCount = grid.getFixedRowCount(),
         scrollX = grid.getHScrollValue(),
         scrollY = grid.getVScrollValue(),
+        firstVisibleColumn = renderer.getVisibleColumns()[0],
+        firstVisibleRow = renderer.getVisibleRows()[0], 
         lastVisibleColumn = renderer.getVisibleColumns().slice(-1)[0],
         lastVisibleRow = renderer.getVisibleRows().slice(-1)[0];
 
@@ -44,6 +46,10 @@ export default {
         eX = (br.origin.x - oX) + br.extent.x,
         eY = (br.origin.y - oY) + br.extent.y;
 
+    if (brX < firstVisibleColumn || tlX > lastVisibleColumn ||
+        brY < firstVisibleRow || tlY > lastVisibleRow) {
+        return; 
+    } 
     gc.rect(oX, oY, eX, eY);
   },
 
