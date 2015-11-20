@@ -116,7 +116,7 @@ runPostDispatch state transaction@(Transaction src _ _) = do
   originalCommit@(Commit _ _ bd _ _) <- DT.transactionToCommit conn transaction 
   let decoupleKeys = map descriptorKey bd
       decoupleLocs = concat $ map DU.rangeKeyToIndices decoupleKeys
-  decoupleDescendants <- G.getProperDescendants decoupleLocs
+  decoupleDescendants <- G.getDescendants decoupleLocs
   maybeDecoupledCommit <- lift $ runDecoupledDispatchCycle state decoupleDescendants src
   case maybeDecoupledCommit of 
     Just decoupledCommit -> do

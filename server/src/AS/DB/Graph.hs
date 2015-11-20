@@ -28,7 +28,6 @@ getProperDescendants :: [ASIndex] -> EitherTExec [ASIndex]
 getProperDescendants = query GetProperDescendants
 
 getImmediateAncestors :: [ASIndex] -> EitherTExec [ASIndex]
-getImmediateAncestors [] = right []
 getImmediateAncestors lst = query GetImmediateAncestors lst
 
 -- #incomplete. In the one place this is called, the non-immediate descendants don't cause any
@@ -76,6 +75,7 @@ query q locs =
 -- | Takes in a list of (cell, [list of ancestors of that cell])'s and sets the ancestor relationship in the DB.
 -- Note: ASRelation is of type (ASIndex, [ASIndex])
 setRelations :: [ASRelation] -> EitherTExec ()
+setRelations [] = return ()
 setRelations rels =
   let
     locSets = map (\(root, deps)-> (root:deps)) rels
