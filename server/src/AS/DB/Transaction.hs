@@ -21,16 +21,32 @@ import Control.Monad.Trans.Class
 ----------------------------------------------------------------------------------------------------------------------
 -- top-level functions
 
+
+-- takes in [new cells], [new fat cells] as a result of evalChain, and returns the list 
+-- of locations decoupled as a result.
+getDecouplingEffects :: Connection -> ASSheetId -> [ASCell] -> [FatCell] -> IO ([ASIndex])
+getDecouplingEffects conn sid cells fcells = 
+  let locs = map cellLocation cells
+      keys = map (descriptorKey . descriptor) fcells
+  in do
+    rangeKeysChangedByCells <- liftIO $ DU.getFatCellIntersections conn sid (Left locs)
+    rangeKeysChangedByFatCells <- liftIO $ DU.getFatCellIntersections conn sid (Right keys)
+    let rangeKeysChanged = rangeKeysChangedByCells ++ rangeKeysChangedByFatCells
+    let decoupledLocs = concat $ map DU.rangeKeyToIndices rangeKeysChanged
+    return decoupledLocs
+
 -- | Deal with updating all DB-related things after an eval. 
 writeTransaction :: Connection -> ASTransaction -> EitherTExec [ASCell]
-writeTransaction conn (Transaction src@(sid, _) afterCells fatCells) = 
+writeTransaction conn (Transaction src@(sid, _) afterCells fatCells deletedLocs) = 
   let extraCells       = concat $ map expandedCells fatCells
       locs             = map cellLocation afterCells
-      afterCells'      = afterCells ++ extraCells
+      deletedCells     = U.blankCellsAt deletedLocs
+      afterCells'      = U.mergeCells (afterCells ++ extraCells) deletedCells
       locs'            = map cellLocation afterCells'
       rangeKeys        = map (descriptorKey . descriptor) fatCells
       afterDescriptors = map descriptor fatCells
   in do
+    printWithTimeT $ "GOT DELETED LOCS: " ++ (show $ map show2 deletedLocs)
     beforeCells <- lift $ catMaybes <$> DB.getCells locs'
     -- determine all fatcell intersections produced by eval
     rangeKeysChangedByCells <- liftIO $ DU.getFatCellIntersections conn sid (Left locs)
@@ -60,10 +76,10 @@ writeTransaction conn (Transaction src@(sid, _) afterCells fatCells) =
 
 couple :: Connection -> RangeDescriptor -> IO ()
 couple conn desc = 
-  let rangeKey       = descriptorKey desc 
-      rangeKey'      = id $! B.pack rangeKey 
-      sheetRangesKey = DU.makeSheetRangesKey $ DU.rangeKeyToSheetId rangeKey
-      rangeDescriptor     = B.pack $ show desc
+  let rangeKey        = descriptorKey desc 
+      rangeKey'       = id $! B.pack rangeKey 
+      sheetRangesKey  = DU.makeSheetRangesKey $ DU.rangeKeyToSheetId rangeKey
+      rangeDescriptor = B.pack $ show desc
   in runRedis conn $ do
       liftIO $ printWithTime $ "setting list locations for key: " ++ rangeKey
       set rangeKey' rangeDescriptor
@@ -82,7 +98,7 @@ decouple conn key =
     runRedis conn $ multiExec $ do
       del [rangeKey]
       srem sheetRangesKey [rangeKey]
-    catMaybes <$> DB.getCells (DU.indicesInRange key)
+    catMaybes <$> DB.getCells (DU.rangeKeyToIndices key)
 
 ----------------------------------------------------------------------------------------------------------------------
 -- helpers

@@ -95,22 +95,22 @@ getBlankedCellsAt locs =
 -- allows indices to be Pointer or Index
 getCompositeCells :: Connection -> [ASIndex] -> IO [Maybe CompositeCell]
 getCompositeCells _ [] = return []
-getCompositeCells conn locs = do
-  ccells <- DU.getCellsByMessage msg num
-  mapM expandPointerRefs $ zip locs ccells
-  where
-    msg = DU.showB $ intercalate DU.msgPartDelimiter $ map (show2 . pointerToIndex) locs
-    num = length locs
-    expandPointerRefs (loc, ccell) = case loc of 
-      Pointer sid coord -> case ccell of 
-        Just (Cell l (Coupled xp lang dtype key) v ts) -> do
-          -- if the cell was coupled but no range descriptor exists, something fucked up.
-          (Just desc) <- getRangeDescriptor conn key
-          let fatLocs = DU.indicesInRange key
-          cells <- map fromJust <$> getCells fatLocs
-          return . Just . Fat $ FatCell cells desc
-        _ -> (putStrLn $ "got pointer ref, but no fat cell: " ++ (show ccell)) >> (return $ Single <$> ccell)
-      _ -> return $ Single <$> ccell 
+getCompositeCells conn locs =
+  let msg = DU.showB $ intercalate DU.msgPartDelimiter $ map (show2 . pointerToIndex) locs
+      num = length locs
+      expandPointerRefs (loc, ccell) = case loc of 
+        Pointer sid coord -> case ccell of 
+          Just (Cell l (Coupled xp lang dtype key) v ts) -> do
+            -- if the cell was coupled but no range descriptor exists, something fucked up.
+            (Just desc) <- getRangeDescriptor conn key
+            let fatLocs = DU.rangeKeyToIndices key
+            cells <- map fromJust <$> getCells fatLocs
+            return . Just . Fat $ FatCell cells desc
+          _ -> return Nothing
+        _ -> return $ Single <$> ccell 
+  in do 
+    ccells <- DU.getCellsByMessage msg num
+    mapM expandPointerRefs $ zip locs ccells
 
 -- #incomplete LOL
 getCellsInSheet :: ASSheetId -> IO [ASCell]

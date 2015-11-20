@@ -159,9 +159,12 @@ cToASCell str = do
 --getListType :: ListKey -> String
 --getListType key = last parts
 --  where parts = splitBy keyPartDelimiter key
+indexIsHead :: ASIndex -> RangeKey -> Bool
+indexIsHead idx key = idx == idx'
+  where (idx', _) = readRangeKey key 
 
-indicesInRange :: RangeKey -> [ASIndex]
-indicesInRange key = rangeToIndices range
+rangeKeyToIndices :: RangeKey -> [ASIndex]
+rangeKeyToIndices key = rangeToIndices range
   where
     (Index sid (col, row), (height, width)) = readRangeKey key
     range = Range sid ((col, row), (col+width-1, row+height-1))

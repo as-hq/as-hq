@@ -87,12 +87,10 @@ dispatch state roots src = do
   formattedValuesMap <- lift $ formatValsMap initValuesMap
   printObjT "Created initial values map" initValuesMap
   printWithTimeT "Starting eval chain"
-  (afterCells, fatCells) <- evalChain conn formattedValuesMap cellsToEval src -- start with current cells, then go through descendants
-  printObjT "Eval chain produced cells" afterCells
-  printObjT "Eval chain produced fatcells" fatCells
+  (afterCells, fatCells, deletedLocs) <- evalChain conn formattedValuesMap cellsToEval src -- start with current cells, then go through descendants
   -- Apply endware
   finalizedCells <- lift $ EE.evalEndware state afterCells src roots
-  right $ Transaction src finalizedCells fatCells
+  right $ Transaction src finalizedCells fatCells deletedLocs
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Eval building blocks
@@ -168,14 +166,14 @@ formatCell (Just f) c = c'
 -- cell that's updated. The cells passed in are guaranteed to be topologically sorted, i.e.,
 -- if a cell references an ancestor, that ancestor is guaranteed to already have been
 -- added in the map.
-evalChain :: Connection -> FormattedValMap -> [ASCell] -> CommitSource -> EitherTExec ([ASCell], [FatCell])
+evalChain :: Connection -> FormattedValMap -> [ASCell] -> CommitSource -> EitherTExec ([ASCell], [FatCell], [ASIndex])
 evalChain conn valuesMap cells src = 
   let whenCaught e = do
           printObj "Runtime exception caught" (e :: SomeException)
           U.writeErrToLog ("Runtime exception caught" ++ (show e)) src
           return $ Left RuntimeEvalException
   in do
-    result <- liftIO $ catch (runEitherT $ evalChain' conn valuesMap cells [] []) whenCaught
+    result <- liftIO $ catch (runEitherT $ evalChain' conn valuesMap cells [] [] []) whenCaught
     hoistEither result
 
 -- | evalChain' works in two parts. First, it goes through the list of cells passed in and
@@ -192,12 +190,17 @@ evalChain conn valuesMap cells src =
 -- then evalChains where we're processing fatCells, normal evalChains, fatCell processing evalChains, 
 -- etc. Note also that pastFatCellHeads accumulates across all of these, and doesn't just reflect the
 -- heads of the cells passed in from the latest eval. 
+--
+-- finally, in the second case of evalChain', we might evaluate a Coupled expression which belong to a 
+-- list head. If so, we evaluate it, but "delete" the cells in the previous list by passing the argument
+-- "deletedLocs", the 6th argument. This is how shrink lists work. In DT.writeTransaction, we turn these 
+-- locations into actual blank cells and delete them. 
 -- 
 -- #needsrefactor there's probably a more Haskell way of doing this with a state monad or something.
-evalChain' :: Connection -> FormattedValMap -> [ASCell] -> [FatCell] -> [ASIndex] -> EitherTExec ([ASCell], [FatCell])
-evalChain' _ _ [] [] _ = return ([], [])
+evalChain' :: Connection -> FormattedValMap -> [ASCell] -> [FatCell] -> [ASIndex] -> [ASIndex] -> EitherTExec ([ASCell], [FatCell], [ASIndex])
+evalChain' _ _ [] [] _ _ = return ([], [], [])
 
-evalChain' conn valuesMap [] fatCells pastFatCellHeads = 
+evalChain' conn valuesMap [] fatCells pastFatCellHeads _ = 
   -- get expanded cells from fat cells
   let unwrap (FatCell fcells _) = fcells
       cells                     = concat $ map unwrap fatCells
@@ -224,10 +227,21 @@ evalChain' conn valuesMap [] fatCells pastFatCellHeads =
     ancLocs <- G.getImmediateAncestors nextLocs
     formattedNewMap <- lift $ formatValsMap =<< getValuesMap conn ancLocs
     cells' <- getCellsToEval conn nextLocs [] -- the origCells are the list cells, which got filtered out of nextLocs
-    evalChain' conn (M.union valuesMap formattedNewMap) cells' [] pastFatCellHeads
+    evalChain' conn (M.union valuesMap formattedNewMap) cells' [] pastFatCellHeads []
 
-evalChain' conn valuesMap (c@(Cell loc xp _ ts):cs) fatCells fatCellHeads = do
-  cvf@(Formatted cv f) <- EC.evaluateLanguage (locSheetId loc) (cellLocation c) valuesMap xp
+evalChain' conn valuesMap (c@(Cell loc xp _ ts):cs) fatCells fatCellHeads pastDeletedLocs = do
+  (cvf@(Formatted cv f), deletedLocs) <- case xp of 
+    Expression _ _ -> (,) <$> evalResult <*> return []
+      where evalResult = EC.evaluateLanguage (locSheetId loc) (cellLocation c) valuesMap xp
+    -- if we receive a coupled cell to evaluate, and it's the head of the list, we should evaluate, as long as we get rid of cruft.
+    -- where "get rid of cruft" = get rid of all the non-head cells first, which is deletedCells
+    Coupled str lang _ key -> if (DU.isFatCellHead c)
+      then (,) <$> evalResult <*> return decoupleLocs
+      else left WillNotEvaluate
+        where evalResult = EC.evaluateLanguage (locSheetId loc) (cellLocation c) valuesMap xp'
+              xp' = Expression str lang
+              decoupleLocs = DU.rangeKeyToIndices key
+
   let maybeFatCell              = DE.decomposeCompositeValue c cv
       addCell (Cell l _ v _) mp = M.insert l (Formatted (CellValue v) f) mp
       newValuesMap              = case maybeFatCell of
@@ -244,11 +258,23 @@ evalChain' conn valuesMap (c@(Cell loc xp _ ts):cs) fatCells fatCellHeads = do
       (fatCells', fatCellHeads') = case maybeFatCell of
                 Nothing -> (fatCells, fatCellHeads)
                 Just f  -> (f:fatCells, loc:fatCellHeads)
-  (restCells, restFatCells) <- evalChain' conn newValuesMap cs fatCells' fatCellHeads'
+  (restCells, restFatCells, restDeletedLocs) <- evalChain' conn newValuesMap cs fatCells' fatCellHeads' []
   -- TODO investigate strictness here
-  return $ case maybeFatCell of
-    Nothing        -> (newCell:restCells, restFatCells)
-      where
-        (CellValue v) = cv
-        newCell = formatCell f (Cell loc xp v ts)
-    Just fatCell -> (restCells, fatCell:restFatCells)
+  let (CellValue v) = cv
+      newCell       = formatCell f (Cell loc xp v ts)
+      (resultCells, resultFatCells) = case maybeFatCell of
+          Nothing      -> (newCell:restCells, restFatCells)
+          Just fatCell -> (restCells, fatCell:restFatCells)
+      resultDeletedLocs = pastDeletedLocs ++ deletedLocs ++ restDeletedLocs
+
+  right (resultCells, resultFatCells, resultDeletedLocs)
+
+
+ ---- now, we check if evalChain caused anything to be decoupled, and propagate the decoupleds'
+ -- -- descendants if necessary.
+ -- decoupledLocs <- lift $ DT.getDecouplingEffects conn (locSheetId loc) resultCells resultFatCells
+ -- decoupleDescendants <- G.getProperDescendants decoupledLocs 
+ -- ancLocs <- G.getImmediateAncestors decoupleDescendants
+ -- formattedNewMap <- lift $ formatValsMap =<< getValuesMap conn ancLocs
+ -- cells' <- getCellsToEval conn decoupleDescendants []
+ -- (restCells', restFatCells', restDeletedLocs') <- evalChain' conn (M.union valuesMap formattedNewMap) cells' [] fatCellHeads []
