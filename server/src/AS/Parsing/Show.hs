@@ -34,7 +34,7 @@ showPrimitive lang v = case v of
   ValueI i   -> show i
   ValueD d   -> show d
   ValueB b   -> LD.outBool lang b
-  ValueSerialized s -> s
+  ValueSerialized s _ -> s
   _ -> error ("In showPrimitive, failed to pattern match: " ++ (show v))
 
 showExpanding :: ASLanguage -> ExpandingValue -> String

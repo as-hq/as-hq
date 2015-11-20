@@ -61,7 +61,10 @@ def serialize(val):
 	if isinstance(val, list):
 		return json.dumps({'tag': 'Expanding', 'expandingType': 'List', 'listVals': val})
 	elif isinstance(val, dict):
-		return json.dumps({'tag': 'CellValue', 'cellValueType': 'Serialized', 'serializedValue': json.dumps(val)})
+		return json.dumps({'tag': 'CellValue', 
+											 'cellValueType': 'Serialized', 
+											 'serializedValue': json.dumps(val), 
+											 'displayName': 'DICT'})
 	elif isinstance(val, np.matrixlib.defmatrix.matrix):
 		return json.dumps({'tag': 'Expanding', 'expandingType': 'NPMatrix', 'matrixVals': val.tolist()})
 	elif isinstance(val, np.ndarray):
@@ -87,7 +90,13 @@ def serialize(val):
 											 'seriesIndices': indices,
 											 'seriesData': data})
 	elif isinstance(val, ASIterable): 
-		return json.dumps({'tag': 'Expanding', 'expandingType': 'List', 'listVals': val.toList()})
+		if val.hidden:
+			return json.dumps({'tag': 'CellValue', 
+												 'cellValueType': 'Serialized', 
+												 'serializedValue': 'arr('+ json.dumps(val.toList()) + ').hide()', 
+												 'displayName': 'HIDDEN RANGE'})
+		else: 
+			return json.dumps({'tag': 'Expanding', 'expandingType': 'List', 'listVals': val.toList()})
 	else: return json.dumps(val)
 
 def pprintDataFrame(dataframe):

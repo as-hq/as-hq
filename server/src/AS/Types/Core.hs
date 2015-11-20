@@ -101,7 +101,7 @@ data ASValue =
   | ValueB Bool
   | ValueImage { imagePath :: String }
   | ValueError { errorMsg :: String, errorType :: String }
-  | ValueSerialized String
+  | ValueSerialized { serializedValue :: String, displayName :: String  }
   deriving (Show, Read, Eq, Generic)
 
 type RListKey = String
