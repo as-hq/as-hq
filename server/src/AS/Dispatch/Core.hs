@@ -67,7 +67,7 @@ runDispatchCycle state cs src = do
     broadcastCells <- DT.writeTransaction conn transaction-- atomically performs DB ops. (Sort of a lie -- writing to server is not atomic.)
     return broadcastCells
   case errOrCells of 
-    Left _ -> G.rollbackGraph
+    Left _ -> G.exec_ Recompute -- #needsrefactor. Overkill. But recording all cells that might have changed is a PITA. (Alex 11/20)
     _      -> return ()
   return $ U.makeUpdateMessage errOrCells
 
@@ -204,10 +204,13 @@ evalChain' conn valuesMap [] fatCells pastFatCellHeads _ =
   -- get expanded cells from fat cells
   let unwrap (FatCell fcells _) = fcells
       cells                     = concat $ map unwrap fatCells
-      isFatCellHead loc         = loc `elem` pastFatCellHeads
-      nonHeadLocs               = filter (not . isFatCellHead) $ map cellLocation cells
+      isFatCellHeadLoc loc      = loc `elem` pastFatCellHeads
+      nonHeadLocs               = filter (not . isFatCellHeadLoc) $ map cellLocation cells
       isNotInMap loc            = loc `M.notMember` valuesMap
   in do
+    -- If we've overwritten old cells with list cells, we remove their dependencies from the graph
+    -- database. 
+    DB.removeAncestorsAt nonHeadLocs
     -- We only need to deal with proper descendants, because the starting locs can't possibly 
     -- be in the value map and don't need to be re-evaluated. 
     nonHeadDescs <- G.getDescendants nonHeadLocs
@@ -215,7 +218,7 @@ evalChain' conn valuesMap [] fatCells pastFatCellHeads _ =
     -- involve one of the list heads, since the cells created as part of a list depend only
     -- on the head. So we go through the descendants of the current list cells (sans the previous
     -- list heads), and if those contain any of the previous list heads we know there's a cycle.
-    let checkCircular loc = if (isFatCellHead loc) then (left $ CircularDepError loc) else (return ())
+    let checkCircular loc = if (isFatCellHeadLoc loc) then (left $ CircularDepError loc) else (return ())
     mapM_ checkCircular nonHeadDescs
     -- We can now remove the descendants that are already in the map, because they've already 
     -- been evaluated. (We also MUST remove them, because some of the descendants might not have

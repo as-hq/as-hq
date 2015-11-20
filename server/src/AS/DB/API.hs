@@ -231,12 +231,18 @@ setCellsAncestors cells = G.setRelations relations >> return depSets
     zipSets = zip cells depSets
     relations = map (\((Cell l _ _ _), depSet) -> (l, concat $ catMaybes $ map refToIndices depSet)) zipSets
 
+-- | It'll parse no dependencies from the blank cells at these locations, so each location in the
+-- graph DB gets all its ancestors removed. 
+removeAncestorsAt :: [ASIndex] -> EitherTExec [[ASReference]]
+removeAncestorsAt = setCellsAncestors . U.blankCellsAt
+
 -- | Should only be called when undoing or redoing commits, which should be guaranteed to not
--- introduce errors.
+-- introduce errors. 
 setCellsAncestorsForce :: [ASCell] -> IO ()
-setCellsAncestorsForce cells = do
-  runEitherT (setCellsAncestors cells)
-  return ()
+setCellsAncestorsForce cells = runEitherT (setCellsAncestors cells) >> return ()
+
+removeAncestorsAtForced :: [ASIndex] -> IO ()
+removeAncestorsAtForced locs = runEitherT (removeAncestorsAt locs) >> return ()
 
 ----------------------------------------------------------------------------------------------------------------------
 -- Raw workbooks

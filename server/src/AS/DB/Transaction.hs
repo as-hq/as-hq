@@ -128,7 +128,7 @@ setCellsPropagated conn cells descs =
 deleteCellsPropagated :: Connection -> [ASCell] -> [RangeDescriptor] -> IO ()
 deleteCellsPropagated conn cells descs = do
   deleteCells conn cells
-  setCellsAncestorsForce . U.blankCellsAt $ map cellLocation cells
+  removeAncestorsAtForced $ map cellLocation cells
   mapM_ (decouple conn) $ map descriptorKey descs
 
 ----------------------------------------------------------------------------------------------------------------------
