@@ -19,6 +19,7 @@ def arr(lst):
 result = ""
 try:
 	#CODE#
+	result = serialize(result)
 except Exception as e: 
 	exc_type, exc_obj, exc_tb = exc_info()
 	fname = 'AlphaSheets Python evaluator'

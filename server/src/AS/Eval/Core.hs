@@ -57,8 +57,7 @@ evaluateLanguage sid curRef valuesMap xp@(Expression str lang) =
          where xpWithValuesSubstituted = insertValues sid unformattedValuesMap xp
 evaluateLanguage _ _ _ (Coupled _ _ _ _) = left WillNotEvaluate
 
-
--- no catchEitherT here for now, but that's because we're obsolescing Repl for now
+-- no catchEitherT here for now, but that's because we're obsolescing Repl for now. (Alex ~11/10)
 evaluateLanguageRepl :: ASSheetId -> ASExpression -> EitherTExec CompositeValue
 evaluateLanguageRepl sid (Expression str lang) = case lang of
   Python  -> KP.evaluateRepl sid str
@@ -66,7 +65,6 @@ evaluateLanguageRepl sid (Expression str lang) = case lang of
   SQL     -> KP.evaluateSqlRepl sid str
   OCaml   -> KO.evaluateRepl sid str
 
--- #incomplete needs stuff for R (Alex 11/13)
 evaluateHeader :: ASSheetId -> ASExpression -> EitherTExec CompositeValue
 evaluateHeader sid (Expression str lang) = case lang of 
   Python -> KP.evaluateHeader sid str
@@ -74,8 +72,6 @@ evaluateHeader sid (Expression str lang) = case lang of
 
 -----------------------------------------------------------------------------------------------------------------------
 -- Helpers
-
--- [Maybe [ASIndex]] --> [[ Maybe ASIndex ]]
 
 -- | Checks for potentially bad inputs (NoValue or ValueError) among the arguments passed in. If no bad inputs,
 -- return Nothing. Otherwise, if there are errors that can't be dealt with, return appropriate ASValue error.
