@@ -42,7 +42,7 @@ import Control.Monad.Trans.Either
 
 -- | Cells
 -- key-value hashes
--- key is produced by cellLocation (see DU.getLocationKey) and is unique
+-- key is produced by cellLocation (see DU.makeLocationKey) and is unique
 -- fields are "cellExpression", "cellValue", "cellTags" with corresponding stringified values
 
 -- | DAG
@@ -50,11 +50,11 @@ import Control.Monad.Trans.Either
 -- access set with key "DAGLocSet"
 
 -- | Sheets
--- stored as key (DU.getSheetKey ASSheetId) value (stringified ASSheet)
+-- stored as key (DU.makeSheetKey ASSheetId) value (stringified ASSheet)
 -- additionally, the set of all locations belonging to a sheet are stored as
--- set key (DU.getSheetSetKey ASSheetId) members (ASIndexKey)
+-- set key (DU.makeSheetSetKey ASSheetId) members (ASIndexKey)
 -- this set is updated automatically during setCells.
--- finally, a record of all sheetKeys is stored as a set with key "sheets" and members (DU.getSheetKey sheetid)
+-- finally, a record of all sheetKeys is stored as a set with key "sheets" and members (DU.makeSheetKey sheetid)
 
 -- | Workbooks
 -- stored identically to Sheets
@@ -106,7 +106,7 @@ getCompositeCells conn locs = do
         Just (Cell l (Coupled xp lang dtype key) v ts) -> do
           -- if the cell was coupled but no range descriptor exists, something fucked up.
           (Just desc) <- getRangeDescriptor conn key
-          let fatLocs = DU.rangeKeyToIndices key
+          let fatLocs = DU.indicesInRange key
           cells <- map fromJust <$> getCells fatLocs
           return . Just . Fat $ FatCell cells desc
         _ -> (putStrLn $ "got pointer ref, but no fat cell: " ++ (show ccell)) >> (return $ Single <$> ccell)
@@ -156,21 +156,21 @@ locationsExist :: Connection -> [ASIndex] -> IO [Bool]
 locationsExist conn locs = do
   runRedis conn $ do
     TxSuccess results <- multiExec $ do
-      bools <- mapM (\l -> exists $ DU.getLocationKey l) locs
+      bools <- mapM (\l -> exists $ DU.makeLocationKey l) locs
       return $ sequence bools
     return results
 
 locationExists :: Connection -> ASIndex -> IO Bool
 locationExists conn loc = runRedis conn $ do
-  Right result <- exists $ DU.getLocationKey loc
+  Right result <- exists $ DU.makeLocationKey loc
   return result
 
 -- | Returns the listkeys of all the lists that are entirely contained in the range.  
 fatCellsInRange :: Connection -> ASRange -> IO [RangeKey]
 fatCellsInRange conn rng = do
   let sid = rangeSheetId rng
-  rangeKeys <- DU.getRangeKeysInSheet conn sid
-  let rects = map DU.rangeKeyToRect rangeKeys
+  rangeKeys <- DU.makeRangeKeysInSheet conn sid
+  let rects = map DU.rangeRect rangeKeys
       zipRects = zip rangeKeys rects
       zipRectsContained = filter (\(_,rect) -> U.rangeContainsRect rng rect) zipRects
   return $ map fst zipRectsContained
@@ -256,7 +256,7 @@ getUniqueWbName conn = do
 getWorkbook :: Connection -> String -> IO (Maybe ASWorkbook)
 getWorkbook conn name = do
     runRedis conn $ do
-        mwb <- get $ DU.getWorkbookKey name
+        mwb <- get $ DU.makeWorkbookKey name
         case mwb of
             (Right wb) -> return $ DU.bStrToWorkbook wb
             (Left _) -> return Nothing
@@ -271,7 +271,7 @@ getAllWorkbooks conn = do
 setWorkbook :: Connection -> ASWorkbook -> IO ()
 setWorkbook conn wb = do
     runRedis conn $ do
-        let workbookKey = DU.getWorkbookKey . workbookName $ wb
+        let workbookKey = DU.makeWorkbookKey . workbookName $ wb
         TxSuccess _ <- multiExec $ do
             set workbookKey (B.pack . show $ wb)  -- set the workbook as key-value
             sadd "workbookKeys" [workbookKey]  -- add the workbook key to the set of all sheets
@@ -280,14 +280,14 @@ setWorkbook conn wb = do
 workbookExists :: Connection -> String -> IO Bool
 workbookExists conn wName = do
   runRedis conn $ do
-    Right result <- exists $ DU.getWorkbookKey wName
+    Right result <- exists $ DU.makeWorkbookKey wName
     return result
 
 -- only removes the workbook, not contained sheets
 deleteWorkbook :: Connection -> String -> IO ()
 deleteWorkbook conn name = do
     runRedis conn $ do
-        let workbookKey = DU.getWorkbookKey name
+        let workbookKey = DU.makeWorkbookKey name
         _ <- multiExec $ do
             del [workbookKey]
             srem "workbookKeys" [workbookKey]
@@ -302,7 +302,7 @@ deleteWorkbookAndSheets conn name = do
         (Just wb) -> do
             mapM_ (deleteSheetUnsafe conn) (workbookSheets wb) -- remove sheets
             runRedis conn $ do
-                let workbookKey = DU.getWorkbookKey name
+                let workbookKey = DU.makeWorkbookKey name
                 TxSuccess _ <- multiExec $ do
                     del [workbookKey]   -- remove workbook from key-value
                     srem "workbookKeys" [workbookKey] -- remove workbook from set
@@ -314,7 +314,7 @@ deleteWorkbookAndSheets conn name = do
 getSheet :: Connection -> ASSheetId -> IO (Maybe ASSheet)
 getSheet conn sid = do
     runRedis conn $ do
-        msheet <- get $ DU.getSheetKey sid
+        msheet <- get $ DU.makeSheetKey sid
         case msheet of
             (Right sheet) -> return $ DU.bStrToSheet sheet
             (Left _) -> return Nothing
@@ -343,7 +343,7 @@ getUniqueSheetName conn = do
 setSheet :: Connection -> ASSheet -> IO ()
 setSheet conn sheet = do
     runRedis conn $ do
-        let sheetKey = DU.getSheetKey . sheetId $ sheet
+        let sheetKey = DU.makeSheetKey . sheetId $ sheet
         TxSuccess _ <- multiExec $ do
             set sheetKey (B.pack . show $ sheet)  -- set the sheet as key-value
             sadd "sheetKeys" [sheetKey]  -- add the sheet key to the set of all sheets
@@ -351,10 +351,10 @@ setSheet conn sheet = do
 
 clearSheet :: Connection -> ASSheetId -> IO ()
 clearSheet conn sid = do
-  keys <- map B.pack <$> DU.getRangeKeysInSheet conn sid
+  keys <- map B.pack <$> DU.makeRangeKeysInSheet conn sid
   runRedis conn $ do
     del keys
-    del [(DU.getSheetRangesKey sid)]
+    del [(DU.makeSheetRangesKey sid)]
   DU.deleteLocsInSheet sid
   -- TODO: also clear undo, redo, and last message (for ctrl+Y) (Alex 11/20)
 
@@ -362,8 +362,8 @@ clearSheet conn sid = do
 deleteSheetUnsafe :: Connection -> ASSheetId -> IO ()
 deleteSheetUnsafe conn sid = do
     runRedis conn $ do
-        let setKey = DU.getSheetSetKey sid
-            sheetKey = DU.getSheetKey sid
+        let setKey = DU.makeSheetSetKey sid
+            sheetKey = DU.makeSheetKey sid
 
         mlocKeys <- smembers setKey
         TxSuccess _ <- multiExec $ do

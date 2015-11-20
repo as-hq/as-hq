@@ -83,8 +83,7 @@ instance Client ASUserClient where
       Cut            -> handleCut user state payload
       ToggleTag      -> handleToggleTag user state payload
       SetTag         -> handleSetTag user state payload
-      Repeat         -> handleClear user state (PayloadS $ Sheet "INIT_SHEET_ID" "asf" (Blacklist []))
-      --Repeat         -> handleRepeat user state payload
+      Repeat         -> handleRepeat user state payload
       BugReport      -> handleBugReport user payload
       JumpSelect     -> handleJumpSelect user state payload
       MutateSheet    -> handleMutateSheet user state payload

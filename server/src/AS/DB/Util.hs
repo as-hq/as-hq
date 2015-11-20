@@ -62,28 +62,28 @@ relationDelimiter = "&"
 keyPartDelimiter = '?'
 
 -- key for fat cells
-getRangeKey :: ASIndex -> Dimensions -> RangeKey
-getRangeKey idx dims = (show2 idx) ++ (keyPartDelimiter:(show dims)) ++ (keyPartDelimiter:"RANGEKEY")
+makeRangeKey :: ASIndex -> Dimensions -> RangeKey
+makeRangeKey idx dims = (show2 idx) ++ (keyPartDelimiter:(show dims)) ++ (keyPartDelimiter:"RANGEKEY")
 
 -- key for set of all fat cells in a sheet
-getSheetRangesKey :: ASSheetId -> B.ByteString
-getSheetRangesKey sid = BC.pack $ (T.unpack sid) ++ (keyPartDelimiter:"ALL_RANGES")
+makeSheetRangesKey :: ASSheetId -> B.ByteString
+makeSheetRangesKey sid = BC.pack $ (T.unpack sid) ++ (keyPartDelimiter:"ALL_RANGES")
 
 -- key for locations
-getLocationKey :: ASIndex -> B.ByteString
-getLocationKey = BC.pack . show2
+makeLocationKey :: ASIndex -> B.ByteString
+makeLocationKey = BC.pack . show2
 
 -- key for sheet
-getSheetKey :: ASSheetId -> B.ByteString -- for storing the actual sheet as key-value
-getSheetKey = BC.pack . T.unpack
+makeSheetKey :: ASSheetId -> B.ByteString -- for storing the actual sheet as key-value
+makeSheetKey = BC.pack . T.unpack
 
 -- key for all location keys in a sheet
-getSheetSetKey :: ASSheetId -> B.ByteString
-getSheetSetKey sid = BC.pack $! (T.unpack sid) ++ "Locations"
+makeSheetSetKey :: ASSheetId -> B.ByteString
+makeSheetSetKey sid = BC.pack $! (T.unpack sid) ++ "Locations"
 
 -- key for workbook
-getWorkbookKey :: String -> B.ByteString
-getWorkbookKey = BC.pack
+makeWorkbookKey :: String -> B.ByteString
+makeWorkbookKey = BC.pack
 
 -- given "Untitled" and ["Untitled1", "Untitled2"], produces "Untitled3"
 -- only works on integer suffixes
@@ -135,11 +135,11 @@ setCellsByMessage msg num = do
   return ()
 
 deleteLocRedis :: ASIndex -> Redis ()
-deleteLocRedis loc = del [getLocationKey loc] >> return ()
+deleteLocRedis loc = del [makeLocationKey loc] >> return ()
 
 getSheetLocsRedis :: ASSheetId -> Redis [B.ByteString]
 getSheetLocsRedis sheetid = do
-  Right keys <- smembers $ getSheetSetKey sheetid
+  Right keys <- smembers $ makeSheetSetKey sheetid
   return keys
 
 deleteLocsInSheet :: ASSheetId -> IO ()
@@ -160,42 +160,45 @@ cToASCell str = do
 --getListType key = last parts
 --  where parts = splitBy keyPartDelimiter key
 
-rangeKeyToIndices :: RangeKey -> [ASIndex]
-rangeKeyToIndices key = rangeToIndices range
+indicesInRange :: RangeKey -> [ASIndex]
+indicesInRange key = rangeToIndices range
   where
-    (Index sid (col, row), (height, width)) = rangeKeyToDimensions key
+    (Index sid (col, row), (height, width)) = readRangeKey key
     range = Range sid ((col, row), (col+width-1, row+height-1))
 
 getFatCellIntersections :: Connection -> ASSheetId -> Either [ASIndex] [RangeKey] -> IO [RangeKey]
 getFatCellIntersections conn sid (Left locs) = do
-  rangeKeys <- getRangeKeysInSheet conn sid
+  rangeKeys <- makeRangeKeysInSheet conn sid
   printObj "All range keys in sheet" rangeKeys
   return $ filter keyIntersects rangeKeys
   where
-    keyIntersects k             = anyLocsContainedInRect locs (rangeKeyToRect k)
+    keyIntersects k             = anyLocsContainedInRect locs (rangeRect k)
     anyLocsContainedInRect ls r = any id $ map (indexInRect r) ls
     indexInRect ((a',b'),(a2',b2')) (Index _ (a,b)) = a >= a' && b >= b' &&  a <= a2' && b <= b2'
 
 getFatCellIntersections conn sid (Right keys) = do
-  rangeKeys <- getRangeKeysInSheet conn sid
+  rangeKeys <- makeRangeKeysInSheet conn sid
   printObj "Checking intersections against keys" keys
   return $ L.intersectBy keysIntersect rangeKeys keys
-    where keysIntersect k1 k2 = rectsIntersect (rangeKeyToRect k1) (rangeKeyToRect k2)
+    where keysIntersect k1 k2 = rectsIntersect (rangeRect k1) (rangeRect k2)
 
-rangeKeyToRect :: RangeKey -> Rect
-rangeKeyToRect key = ((col, row), (col + width - 1, row + height - 1))
-  where (Index _ (col, row), (height, width)) = rangeKeyToDimensions key
+rangeRect :: RangeKey -> Rect
+rangeRect key = ((col, row), (col + width - 1, row + height - 1))
+  where (Index _ (col, row), (height, width)) = readRangeKey key
 
-rangeKeyToDimensions :: RangeKey -> (ASIndex, Dimensions)
-rangeKeyToDimensions key = (idx, dims)
+rangeDimensions :: RangeKey -> Dimensions
+rangeDimensions = snd . readRangeKey
+
+readRangeKey :: RangeKey -> (ASIndex, Dimensions)
+readRangeKey key = (idx, dims)
   where
     parts = splitBy keyPartDelimiter key
     idx   = read2 (head parts) :: ASIndex
     dims  = read (parts !! 1) :: Dimensions
 
-getRangeKeysInSheet :: Connection -> ASSheetId -> IO [RangeKey]
-getRangeKeysInSheet conn sid = runRedis conn $ do
-  Right result <- smembers $ getSheetRangesKey sid
+makeRangeKeysInSheet :: Connection -> ASSheetId -> IO [RangeKey]
+makeRangeKeysInSheet conn sid = runRedis conn $ do
+  Right result <- smembers $ makeSheetRangesKey sid
   return $ map BC.unpack result
 
 rangeKeyToSheetId :: RangeKey -> ASSheetId

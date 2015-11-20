@@ -62,7 +62,7 @@ couple :: Connection -> RangeDescriptor -> IO ()
 couple conn desc = 
   let rangeKey       = descriptorKey desc 
       rangeKey'      = id $! B.pack rangeKey 
-      sheetRangesKey = DU.getSheetRangesKey $ DU.rangeKeyToSheetId rangeKey
+      sheetRangesKey = DU.makeSheetRangesKey $ DU.rangeKeyToSheetId rangeKey
       rangeDescriptor     = B.pack $ show desc
   in runRedis conn $ do
       liftIO $ printWithTime $ "setting list locations for key: " ++ rangeKey
@@ -77,12 +77,12 @@ couple conn desc =
 decouple :: Connection -> RangeKey -> IO [ASCell]
 decouple conn key = 
   let rangeKey = B.pack key
-      sheetRangesKey = DU.getSheetRangesKey $ DU.rangeKeyToSheetId key
+      sheetRangesKey = DU.makeSheetRangesKey $ DU.rangeKeyToSheetId key
   in do
     runRedis conn $ multiExec $ do
       del [rangeKey]
       srem sheetRangesKey [rangeKey]
-    catMaybes <$> DB.getCells (DU.rangeKeyToIndices key)
+    catMaybes <$> DB.getCells (DU.indicesInRange key)
 
 ----------------------------------------------------------------------------------------------------------------------
 -- helpers
@@ -91,8 +91,8 @@ decouple conn key =
 getFatCellsInRange :: Connection -> ASRange -> IO [RangeKey]
 getFatCellsInRange conn rng = do
   let sid = rangeSheetId rng
-  rangeKeys <- DU.getRangeKeysInSheet conn sid
-  let rects = map DU.rangeKeyToRect rangeKeys
+  rangeKeys <- DU.makeRangeKeysInSheet conn sid
+  let rects = map DU.rangeRect rangeKeys
       zipRects = zip rangeKeys rects
       zipRectsContained = filter (\(_,rect) -> U.rangeContainsRect rng rect) zipRects
   return $ map fst zipRectsContained

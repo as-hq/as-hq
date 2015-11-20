@@ -21,7 +21,7 @@ decomposeCompositeValue _ (CellValue _) = Nothing
 decomposeCompositeValue c@(Cell idx _ _ _) (Expanding (VList coll)) = Just $ FatCell cells desc
   where
     dims      = getDimensions coll
-    rangeKey  = DU.getRangeKey idx dims
+    rangeKey  = DU.makeRangeKey idx dims
     desc      = RangeDescriptor rangeKey List $ M.fromList []
     cells     = decomposeCells desc c coll
 
@@ -31,7 +31,7 @@ decomposeCompositeValue c@(Cell idx _ _ _) (Expanding (VRList pairs)) = Just $ F
     vals      = transpose' $ map snd pairs
     coll      = M $ names:vals
     dims      = getDimensions coll
-    rangeKey  = DU.getRangeKey idx dims
+    rangeKey  = DU.makeRangeKey idx dims
     desc      = RangeDescriptor rangeKey RList $ M.fromList []
     cells     = decomposeCells desc c coll
 
@@ -39,14 +39,14 @@ decomposeCompositeValue c@(Cell idx _ _ _) (Expanding (VRDataFrame labels indice
   where
     vals'     = M $ prependColumn (NoValue:indices) (labels:vals)
     dims      = getDimensions vals'
-    rangeKey  = DU.getRangeKey idx dims
+    rangeKey  = DU.makeRangeKey idx dims
     desc      = RangeDescriptor rangeKey RDataFrame $ M.fromList []
     cells     = decomposeCells desc c vals'
 
 decomposeCompositeValue c@(Cell idx _ _ _) (Expanding (VNPArray coll)) = Just $ FatCell cells desc
   where
     dims      = getDimensions coll
-    rangeKey  = DU.getRangeKey idx dims
+    rangeKey  = DU.makeRangeKey idx dims
     desc      = RangeDescriptor rangeKey NPArray $ M.fromList []
     cells     = decomposeCells desc c coll
 
@@ -54,7 +54,7 @@ decomposeCompositeValue c@(Cell idx _ _ _) (Expanding (VNPMatrix mat)) = Just $ 
   where
     coll      = M mat
     dims      = getDimensions coll
-    rangeKey  = DU.getRangeKey idx dims
+    rangeKey  = DU.makeRangeKey idx dims
     desc      = RangeDescriptor rangeKey NPMatrix $ M.fromList []
     cells     = decomposeCells desc c coll
 
@@ -62,14 +62,14 @@ decomposeCompositeValue c@(Cell idx _ _ _) (Expanding (VPDataFrame labels indice
   where
     vals'     = M $ prependColumn (NoValue:indices) (labels:vals)
     dims      = getDimensions vals'
-    rangeKey  = DU.getRangeKey idx dims
+    rangeKey  = DU.makeRangeKey idx dims
     desc      = RangeDescriptor rangeKey PDataFrame $ M.fromList []
     cells     = decomposeCells desc c vals'
 
 decomposeCompositeValue c@(Cell idx _ _ _) (Expanding (VPSeries indices vals)) = Just $ FatCell cells desc
   where
     dims      = getDimensions (A vals)
-    rangeKey  = DU.getRangeKey idx dims
+    rangeKey  = DU.makeRangeKey idx dims
     desc      = RangeDescriptor rangeKey PSeries $ M.fromList [("dfIndices", JSONLeaf . ListValue . A $ indices)]
     cells     = decomposeCells desc c (A vals)
 
@@ -102,7 +102,7 @@ recomposeCompositeValue (FatCell cells (RangeDescriptor key List _)) = Expanding
   where
     val = VList coll
     coll = recomposeCells dims cells
-    (_, dims) = rangeKeyToDimensions key
+    dims = rangeDimensions key
 
 recomposeCompositeValue (FatCell cells (RangeDescriptor key RList _)) = Expanding val
   where
@@ -110,7 +110,7 @@ recomposeCompositeValue (FatCell cells (RangeDescriptor key RList _)) = Expandin
     names' = map (\(ValueS s) -> s) names
     fields' = L.transpose fields
     (M (names:fields)) = recomposeCells dims cells
-    (_, dims) = rangeKeyToDimensions key
+    dims = rangeDimensions key
 
 recomposeCompositeValue (FatCell cells (RangeDescriptor key RDataFrame _)) = Expanding val
   where 
@@ -119,19 +119,19 @@ recomposeCompositeValue (FatCell cells (RangeDescriptor key RDataFrame _)) = Exp
     indices   = map (\(index:_) -> index) indexedVals 
     vals      = map (\(_:row) -> row) indexedVals
     (M mat)   = recomposeCells dims cells
-    (_, dims) = rangeKeyToDimensions key
+    dims = rangeDimensions key
 
 recomposeCompositeValue (FatCell cells (RangeDescriptor key NPArray _)) = Expanding val
   where
     val = VNPArray coll
     coll = recomposeCells dims cells
-    (_, dims) = rangeKeyToDimensions key
+    dims = rangeDimensions key
 
 recomposeCompositeValue (FatCell cells (RangeDescriptor key NPMatrix _)) = Expanding val
   where
     val = VNPMatrix mat
     (M mat) = recomposeCells dims cells
-    (_, dims) = rangeKeyToDimensions key
+    dims = rangeDimensions key
 
 recomposeCompositeValue (FatCell cells (RangeDescriptor key PDataFrame _)) = Expanding val
   where
@@ -140,7 +140,7 @@ recomposeCompositeValue (FatCell cells (RangeDescriptor key PDataFrame _)) = Exp
     indices   = map (\(index:_) -> index) indexedVals 
     vals      = map (\(_:row) -> row) indexedVals
     (M mat)   = recomposeCells dims cells
-    (_, dims) = rangeKeyToDimensions key
+    dims = rangeDimensions key
 
 recomposeCompositeValue (FatCell cells (RangeDescriptor key PSeries attrs)) = Expanding val
   where
