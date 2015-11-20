@@ -211,8 +211,8 @@ lookupRef lang valuesMap ref = case ref of
     IndexRef idx -> showValue lang $ valuesMap M.! idx
     RangeRef (Range sh ((a,b),(c,d))) ->
       if (c==a)
-        then list lang [ (showValue lang $ valuesMap M.! (Index sh (a,row))) | row<-[b..d]]
-        else list lang [ list lang [ showValue lang $ valuesMap M.! (Index sh (col,row)) | col <-[a..c]] | row<-[b..d]]
+        then wrapList lang $ list lang [ (showValue lang $ valuesMap M.! (Index sh (a,row))) | row<-[b..d]]
+        else wrapList lang $ list lang [ list lang [ showValue lang $ valuesMap M.! (Index sh (col,row)) | col <-[a..c]] | row<-[b..d]]
 
 
 -- | Replaces all the Excel references in an expression with the valuesMap corresponding to them.
