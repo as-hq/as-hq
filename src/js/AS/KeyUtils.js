@@ -65,7 +65,7 @@ var modifiers = [16, 17, 18, 19]; //shift, ctrl, alt, pause, break
 var specials = [27, 46, 36, 35, 33, 34, 9, 20]; //esc, delete, home, end, pgup, pgdown, tab, capslock
 
 // based on https://css-tricks.com/snippets/javascript/javascript-keycodes/
-var miscKeys = [8, 9, 13, 32, //backspace, tab, enter, space
+var miscKeys = [9, 13, 32, //tab, enter, space
                 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, //numpad
                 106, 107, 109, 110, 111, //add, subtract, decimal point, divide,
                 186, 187, 188, 189, 190, 191, 192, //misc punctuation
@@ -133,13 +133,18 @@ export default {
   },
 
   isTextAreaNavKey(e) {
-    return e.which === 36 || e.which === 35; // home, end
+    return e.which == 33 || e.which == 34 || // PgUp / PgDown
+           e.which === 36 || e.which === 35; // home, end
+  },
+
+  isCtrlA(e) { 
+    return e.ctrlKey && e.which === 65;
   },
 
   keyToString(e) {
     let c = e.which;
 
-    if (this.isDestructiveKey(e) || Util.arrContains(specials, c)){
+    if (this.isDestructiveKey(e) || Util.arrContains(specials, c)) {
       return "";
     } else {
       // console.log("key has code: " + c);
@@ -163,27 +168,35 @@ export default {
   // determines whether editor should defer key in favor of shortcuts
   // NOTE: any Shift+??? shortcuts need to be manually cased here (shifts by default produce a visible character)
   producesTextChange(e) {
+    let isDestructive    = this.isDestructiveKey(e);
+    let isCopyPaste      = this.isCopyPasteType(e);
+    let makesVisibleChar = this.producesVisibleChar(e);
+    let isUndoOrRedo     = this.isUndoType(e);
+
+    return makesVisibleChar || isDestructive || isCopyPaste || isUndoOrRedo;
+  },
+
+  producesVisibleChar(e) { 
+    // based off http://www.cambiaresearch.com/articles/15/javascript-char-codes-key-codes and
+    // https://css-tricks.com/snippets/javascript/javascript-keycodes/
     // If you're holding down ctrl, alt, or a meta key, you're not going to be producing visible text.
     let noModifications = !(e.ctrlKey || e.altKey || e.metaKey);
 
-    // If anything in autoFail is true, fail. If anything in autoSucceed is true, succeed. autoSucceed
-    // takes precedence.
-    let notShiftSpace   = !(e.shiftKey && e.which === 32); // shift+space doesn't produce text
-    let isDestructive   = this.isDestructiveKey(e);
-
-    // based off http://www.cambiaresearch.com/articles/15/javascript-char-codes-key-codes and
-    // https://css-tricks.com/snippets/javascript/javascript-keycodes/
+    let notShiftSpace    = !(e.shiftKey && e.which === 32); // shift+space doesn't produce text
     let isAlphaNum    = (e.which >= 48 && e.which <= 90);
     let isMiscVisible = Util.arrContains(miscKeys, e.which);     //more misc punctuation
 
-    return (noModifications &&
-            notShiftSpace &&
-            (isAlphaNum || isMiscVisible)) || isDestructive;
+    return noModifications && notShiftSpace && (isAlphaNum || isMiscVisible);
   },
 
-  //is it a copy event or a paste event or a cut event?
-  isCopyPasteType(e){
-    return e.ctrlKey && (e.which === 67 || e.which === 86 || e.which === 88)
+  // is it a copy event or a paste event or a cut event?
+  isCopyPasteType(e) {
+    return e.ctrlKey && (e.which === 67 || e.which === 86 || e.which === 88);
+  },
+
+  // is it an undo or redo? (includes ctrl+shift+z)
+  isUndoType(e) {
+    return e.ctrlKey && (e.which === 89 || e.which === 90);
   },
 
   appendStringByKey(str, e) {

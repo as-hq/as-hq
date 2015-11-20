@@ -732,13 +732,12 @@ export default React.createClass({
   _onKeyDown(e: SyntheticKeyboardEvent) {
     logDebug("GRID KEYDOWN", e);
     e.persist(); // prevent react gc
-    if (ShortcutUtils.gridShouldDeferKey(e)){ // not a nav key
+    if (ShortcutUtils.gridShouldDeferKey(e)) { // not a nav key
       KeyUtils.killEvent(e);
       let userIsTyping = ExpStore.getUserIsTyping(),
           clickType    = ExpStore.getClickType();
       logDebug("CLICK TYPE " + clickType);
-      if ((KeyUtils.producesTextChange(e) && !KeyUtils.isEvalKey(e) && !KeyUtils.isDestructiveKey(e)) ||
-          (KeyUtils.isDestructiveKey(e) && userIsTyping)) {
+      if (ShortcutUtils.gridShouldAddToTextbox(userIsTyping, e)) {
         // Need to update the editor and textbox now via action creators
         logDebug("Grid key down going to AC");
         let newStr = KeyUtils.modifyTextboxForKey(e,

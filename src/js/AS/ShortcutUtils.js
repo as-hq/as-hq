@@ -84,19 +84,28 @@ export default {
     return false;
   },
 
-  gridShouldDeferKey(e){
+  gridShouldDeferKey(e) {
     return (e.ctrlKey ||
             KeyUtils.isEvalKey(e) || // tab
             !KeyUtils.isNavKey(e)) &&
            !KeyUtils.isCopyPasteType(e);
   },
 
+  gridShouldAddToTextbox(userIsTyping, e) { 
+    let notEvalKey           = !KeyUtils.isEvalKey(e),
+        typingAndMakesChange = userIsTyping && KeyUtils.producesTextChange(e), 
+        startsTyping         = !userIsTyping && KeyUtils.producesVisibleChar(e);
+
+    return notEvalKey && (typingAndMakesChange || startsTyping);
+  },
+
   editorShouldDeferKey(e) {
-    return (!KeyUtils.producesTextChange(e) &&
-            !KeyUtils.isNavKey(e) &&
-            !KeyUtils.isCopyPasteType(e) &&
-            !(e.ctrlKey && e.which === 65)) && // Ctrl+A
-           !KeyUtils.isTextAreaNavKey(e);    // don't defer if editor should use the key
+    return !KeyUtils.producesTextChange(e) &&
+           !KeyUtils.isNavKey(e) &&
+           !KeyUtils.isCopyPasteType(e) &&
+           !KeyUtils.isCtrlA(e) && 
+           !KeyUtils.isUndoType(e) &&
+           !KeyUtils.isTextAreaNavKey(e); 
   },
 
   textboxShouldDeferKey(e) {
