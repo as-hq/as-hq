@@ -521,8 +521,8 @@ export default React.createClass({
       // Otherwise the eval result shows up in the new sel
       this.handleEvalRequest(xpObj, null, null);
       if (cell && cell.cellExpression) {
-        let {expression, language} = cell.cellExpression; 
-        Store.setActiveSelection(sel, expression, language); 
+        let {expression, language} = cell.cellExpression;
+        Store.setActiveSelection(sel, expression, language);
         this.showAnyErrors(cell.cellValue);
       } else {
          Store.setActiveSelection(sel, "", null);
@@ -630,7 +630,7 @@ export default React.createClass({
     this.refs.spreadsheet.refs.textbox.editor.renderer.$cursorLayer.hideCursor();
   },
 
-  _getCodeEditorMaxLines() { 
+  _getCodeEditorMaxLines(): number {
     return (Store.getFocus() == 'editor') ? 10 : 3;
   },
 
