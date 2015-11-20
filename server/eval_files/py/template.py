@@ -41,12 +41,12 @@ try:
 		filePath = imagesPath+uid
 		figures[-1].savefig(filePath)
 		matplotlib._pylab_helpers.Gcf.destroy_all()
-		result = {'tag': 'Image', 'imagePath': uid}
+		result = {'tag': 'CellValue', 'cellValueType': 'Image', 'imagePath': uid}
 	result = serialize(result)
 except Exception as e:
 	os.chdir(curWd)
 	print "exception"
 	exc_type, exc_obj, exc_tb = exc_info()
 	err = repr(e).replace("\'","").replace("'",'"')
-	errJson = {'tag': 'Error', 'errorType': repr(exc_type), 'errorMsg': err}
+	errJson = {'tag': 'CellValue', 'cellValueType': 'Error', 'errorType': repr(exc_type), 'errorMsg': err}
 	result = json.dumps(errJson)
