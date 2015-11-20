@@ -48,6 +48,7 @@ describe('backend', () => {
 
     shouldError,
     shouldBe,
+    shouldBeExact,
     shouldBeL,
     shouldBeError,
     shouldBeNothing,
@@ -174,7 +175,6 @@ describe('backend', () => {
           ]);
         });
 
-        // KNOWN TO FAIL!! 
         it('should delete ancestors that are overwritten by ranges', (done) => {
           _do([
             python('A1', '1'),
@@ -182,6 +182,14 @@ describe('backend', () => {
             python('A1', 'range(10)'),
             python('A1', '10'),
             shouldBe('A1', valueI(10)),
+            exec(done)
+          ]);
+        });
+
+        it('should not give weird floating point rounding problems on parse', (done) => {
+          _do([
+            python('A1', '0.07'),
+            shouldBeExact('A1', valueD(0.07)),
             exec(done)
           ]);
         });

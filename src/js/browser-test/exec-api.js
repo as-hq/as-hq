@@ -302,6 +302,13 @@ export function equalValues(val1: ASValue, val2: ASValue): boolean {
   return _.isEqual(val1, val2);
 }
 
+export function equalValuesExact(val1: ASValue, val2: ASValue): boolean {
+  logDebug(`${JSON.stringify(val1)} should be equal to ${JSON.stringify(val2)}`);
+  expect(val1).not.toBe(undefined);
+  expect(val2).not.toBe(undefined);
+  return _.isEqual(val1, val2);
+}
+
 // (() -> Promise a) -> (a -> Bool) -> (() -> Promise ())
 export function responseShouldSatisfy<A>(prf: Prf<A>, fn: (a: A) => boolean): Prf {
   return promise((fulfill, reject) => {
@@ -409,6 +416,10 @@ export function valueShouldSatisfy(loc: string, fn: (val: ASValue) => boolean): 
 // String -> ASValue -> (() -> Promise ())
 export function shouldBe(loc: string, val: ASValue): Prf {
   return valueShouldSatisfy(loc, (cv) => equalValues(cv, val));
+}
+
+export function shouldBeExact(loc: string, val: ASValue): Prf {
+  return valueShouldSatisfy(loc, (cv) => equalValuesExact(cv, val));
 }
 
 export function shouldBeError(loc: string): Prf {

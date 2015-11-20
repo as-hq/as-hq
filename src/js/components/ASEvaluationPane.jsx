@@ -562,7 +562,6 @@ export default React.createClass({
     2) Send this and the editor state (expression, language) to the API action creator, which will send it to the backend
   */
   handleEvalRequest(xpObj: ASClientExpression, moveCol: ?number, moveRow: ?number) {
-    debugger;
     logDebug("Handling EVAL request " + ExpStore.getExpression());
 
     let selection = Store.getActiveSelection();
