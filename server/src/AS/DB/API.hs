@@ -354,7 +354,11 @@ clearSheet conn sid = do
   keys <- map B.pack <$> DU.getRangeKeysInSheet conn sid
   runRedis conn $ do
     del keys
+    del [(DU.getSheetRangesKey sid)]
   DU.deleteLocsInSheet sid
+  -- TODO: also clear undo, redo, and last message (for ctrl+Y)
+  remainingCells <- getCellsInSheet sid
+  printDebug "remaining cells" remainingCells
 
 -- deletes the sheet only, does not remove from any containing workbooks
 deleteSheetUnsafe :: Connection -> ASSheetId -> IO ()
