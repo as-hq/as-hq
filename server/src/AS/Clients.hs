@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 module AS.Clients where
 
 import Control.Exception
@@ -82,7 +83,8 @@ instance Client ASUserClient where
       Cut            -> handleCut user state payload
       ToggleTag      -> handleToggleTag user state payload
       SetTag         -> handleSetTag user state payload
-      Repeat         -> handleRepeat user state payload
+      Repeat         -> handleClear user state (PayloadS $ Sheet "INIT_SHEET_ID" "asf" (Blacklist []))
+      --Repeat         -> handleRepeat user state payload
       BugReport      -> handleBugReport user payload
       JumpSelect     -> handleJumpSelect user state payload
       MutateSheet    -> handleMutateSheet user state payload
@@ -308,7 +310,8 @@ handleClear client state payload = case payload of
     G.exec_ TD.Clear
     reply client state $ ServerMessage Clear Success $ PayloadN ()
   (PayloadS (Sheet sid _ _)) -> do
-    DB.clearSheet sid 
+    conn <- dbConn <$> readMVar state
+    DB.clearSheet conn sid 
     G.exec_ TD.Recompute
     reply client state $ ServerMessage Clear Success payload
 

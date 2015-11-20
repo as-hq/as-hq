@@ -350,8 +350,12 @@ setSheet conn sheet = do
             sadd "sheetKeys" [sheetKey]  -- add the sheet key to the set of all sheets
         return ()
 
-clearSheet :: ASSheetId -> IO ()
-clearSheet = DU.deleteLocsInSheet
+clearSheet :: Connection -> ASSheetId -> IO ()
+clearSheet conn sid = do
+  keys <- map B.pack <$> DU.getRangeKeysInSheet conn sid
+  runRedis conn $ do
+    del keys
+  DU.deleteLocsInSheet sid
 
 -- deletes the sheet only, does not remove from any containing workbooks
 deleteSheetUnsafe :: Connection -> ASSheetId -> IO ()
