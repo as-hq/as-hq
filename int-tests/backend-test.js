@@ -18,9 +18,9 @@ describe('backend', () => {
 
     insertCol,
     insertRow,
-    deleteCol, 
+    deleteCol,
     deleteRow,
-    dragCol, 
+    dragCol,
     dragRow,
 
     copy,
@@ -53,7 +53,7 @@ describe('backend', () => {
     shouldBeNothing,
     shouldBeImage,
     expressionShouldBe,
-    shouldHaveTag, 
+    shouldHaveTag,
     shouldNotHaveTag
   } = require('../src/js/browser-test/exec-api');
   const {
@@ -554,8 +554,8 @@ describe('backend', () => {
         it('should evaluate lists correctly', (done) => {
           _do([
             r('A1', 'list(a=1,b=2)'),
-            r('B1', 'A1$a'),
-            shouldBe('B1', valueI(1)),
+            r('C1', '@A1$a'),
+            shouldBe('C1', valueI(1)),
             exec(done)
           ]);
         });
@@ -897,11 +897,11 @@ describe('backend', () => {
           it('should move cells to correct locations', (done) => {
             _do([
               python('A1', '10'), python('A2', '11'), python('A3', '12'),
-              insertRow(2), 
+              insertRow(2),
               shouldBe('A1', valueI(10)),
-              shouldBeNothing('A2'), 
-              shouldBe('A3', valueI(11)), 
-              shouldBe('A4', valueI(12)), 
+              shouldBeNothing('A2'),
+              shouldBe('A3', valueI(11)),
+              shouldBe('A4', valueI(12)),
               exec(done)
             ]);
           });
@@ -909,10 +909,10 @@ describe('backend', () => {
           it('should shift references appropriately', (done) => {
             _do([
               python('A1', '10'), python('A2', 'A1+1'), python('A3', 'A2+1'), python('A4', 'A3+1'),
-              insertRow(2), 
-              shouldBe('A3', valueI(11)), 
-              shouldBe('A4', valueI(12)), 
-              shouldBe('A5', valueI(13)), 
+              insertRow(2),
+              shouldBe('A3', valueI(11)),
+              shouldBe('A4', valueI(12)),
+              shouldBe('A5', valueI(13)),
               exec(done)
             ]);
           });
@@ -920,9 +920,9 @@ describe('backend', () => {
           it('should shift range references appropriately', (done) => {
             _do([
               python('A1', '[range(10)]'),
-              excel('A2', '=SUM(A1:J1)'), 
-              insertRow(1), 
-              shouldBe('A3', valueI(45)), 
+              excel('A2', '=SUM(A1:J1)'),
+              insertRow(1),
+              shouldBe('A3', valueI(45)),
               exec(done)
             ]);
           });
@@ -932,9 +932,9 @@ describe('backend', () => {
           it('should move cells to correct locations', (done) => {
             _do([
               python('A1', '10'), python('A2', '11'), python('A3', '12'),
-              deleteRow(2), 
+              deleteRow(2),
               shouldBe('A1', valueI(10)),
-              shouldBe('A2', valueI(12)), 
+              shouldBe('A2', valueI(12)),
               exec(done)
             ]);
           });
@@ -942,10 +942,10 @@ describe('backend', () => {
           it('should shift references appropriately', (done) => {
             _do([
               python('A1', '10'), python('A2', 'A1+1'), python('A3', 'A2+1'), python('A4', 'A3+1'),
-              deleteRow(2), 
-              shouldBeError('A2'), // this used to be A3, which had A2+1 in it. 
+              deleteRow(2),
+              shouldBeError('A2'), // this used to be A3, which had A2+1 in it.
               python('A2', 'A1+5'),
-              shouldBe('A3', valueI(16)), 
+              shouldBe('A3', valueI(16)),
               exec(done)
             ]);
           });
@@ -953,9 +953,9 @@ describe('backend', () => {
           it('should shift range references appropriately', (done) => {
             _do([
               python('A2', '[range(10)]'),
-              excel('A3', '=SUM(A2:J2)'), 
-              deleteRow(1), 
-              shouldBe('A2', valueI(45)), 
+              excel('A3', '=SUM(A2:J2)'),
+              deleteRow(1),
+              shouldBe('A2', valueI(45)),
               exec(done)
             ]);
           });
@@ -965,10 +965,10 @@ describe('backend', () => {
           it('should move cells to correct locations when dragging left-to-right', (done) => {
             _do([
               python('A1', '10'), python('A2', '11'), python('A3', '12'),
-              dragRow(1,3), 
+              dragRow(1,3),
               shouldBe('A1', valueI(11)),
-              shouldBe('A2', valueI(12)), 
-              shouldBe('A3', valueI(10)), 
+              shouldBe('A2', valueI(12)),
+              shouldBe('A3', valueI(10)),
               exec(done)
             ]);
           });
@@ -976,10 +976,10 @@ describe('backend', () => {
           it('should move cells to correct locations when dragging right-to-left', (done) => {
             _do([
               python('A1', '10'), python('A2', '11'), python('A3', '12'),
-              dragRow(3,1), 
+              dragRow(3,1),
               shouldBe('A1', valueI(12)),
-              shouldBe('A2', valueI(10)), 
-              shouldBe('A3', valueI(11)), 
+              shouldBe('A2', valueI(10)),
+              shouldBe('A3', valueI(11)),
               exec(done)
             ]);
           });
@@ -987,10 +987,10 @@ describe('backend', () => {
           it('should shift references appropriately', (done) => {
             _do([
               python('A1', '10'), python('A2', 'A1+2'), python('A3', 'A2+3'), python('A4', 'A3+4'),
-              dragRow(2,4), //1,2,3,4 --> 1,3,4,2 
-              shouldBe('A2', valueI(15)), 
-              shouldBe('A3', valueI(19)), 
-              shouldBe('A4', valueI(12)), 
+              dragRow(2,4), //1,2,3,4 --> 1,3,4,2
+              shouldBe('A2', valueI(15)),
+              shouldBe('A3', valueI(19)),
+              shouldBe('A4', valueI(12)),
               exec(done)
             ]);
           });
@@ -998,9 +998,9 @@ describe('backend', () => {
           it('should shift range references appropriately', (done) => {
             _do([
               python('A1', '0'), python('A2', '1'), python('B1', '3'), python('B2', '4'),
-              excel('A5', '=SUM(A1:B2)'), 
+              excel('A5', '=SUM(A1:B2)'),
               dragRow(2,3),
-              shouldBe('A5', valueI(8)), 
+              shouldBe('A5', valueI(8)),
               exec(done)
             ]);
           });
@@ -1010,11 +1010,11 @@ describe('backend', () => {
           it('should move cells to correct locations', (done) => {
             _do([
               python('A1', '10'), python('B1', '11'), python('C1', '12'),
-              insertCol(2), 
+              insertCol(2),
               shouldBe('A1', valueI(10)),
-              shouldBeNothing('B1'), 
-              shouldBe('C1', valueI(11)), 
-              shouldBe('D1', valueI(12)), 
+              shouldBeNothing('B1'),
+              shouldBe('C1', valueI(11)),
+              shouldBe('D1', valueI(12)),
               exec(done)
             ]);
           });
@@ -1022,10 +1022,10 @@ describe('backend', () => {
           it('should shift references appropriately', (done) => {
             _do([
               python('A1', '10'), python('B1', 'A1+1'), python('C1', 'B1+1'), python('D1', 'C1+1'),
-              insertCol(2), 
-              shouldBe('C1', valueI(11)), 
-              shouldBe('D1', valueI(12)), 
-              shouldBe('E1', valueI(13)), 
+              insertCol(2),
+              shouldBe('C1', valueI(11)),
+              shouldBe('D1', valueI(12)),
+              shouldBe('E1', valueI(13)),
               exec(done)
             ]);
           });
@@ -1033,9 +1033,9 @@ describe('backend', () => {
           it('should shift range references appropriately', (done) => {
             _do([
               python('A1', 'range(10)'),
-              excel('B1', '=SUM(A1:A10)'), 
-              insertCol(1), 
-              shouldBe('C1', valueI(45)), 
+              excel('B1', '=SUM(A1:A10)'),
+              insertCol(1),
+              shouldBe('C1', valueI(45)),
               exec(done)
             ]);
           });
@@ -1045,9 +1045,9 @@ describe('backend', () => {
           it('should move cells to correct locations', (done) => {
             _do([
               python('A1', '10'), python('B1', '11'), python('C1', '12'),
-              deleteCol(2), 
+              deleteCol(2),
               shouldBe('A1', valueI(10)),
-              shouldBe('B1', valueI(12)), 
+              shouldBe('B1', valueI(12)),
               exec(done)
             ]);
           });
@@ -1055,10 +1055,10 @@ describe('backend', () => {
           it('should shift references appropriately', (done) => {
             _do([
               python('A1', '10'), python('B1', 'A1+1'), python('C1', 'B1+1'), python('D1', 'C1+1'),
-              deleteCol(2), 
-              shouldBeError('B1'), // this used to be A3, which had A2+1 in it. 
+              deleteCol(2),
+              shouldBeError('B1'), // this used to be A3, which had A2+1 in it.
               python('B1', 'A1+5'),
-              shouldBe('C1', valueI(16)), 
+              shouldBe('C1', valueI(16)),
               exec(done)
             ]);
           });
@@ -1066,9 +1066,9 @@ describe('backend', () => {
           it('should shift range references appropriately', (done) => {
             _do([
               python('B1', 'range(10)'),
-              excel('C1', '=SUM(B1:B10)'), 
-              deleteCol(1), 
-              shouldBe('B1', valueI(45)), 
+              excel('C1', '=SUM(B1:B10)'),
+              deleteCol(1),
+              shouldBe('B1', valueI(45)),
               exec(done)
             ]);
           });
@@ -1078,10 +1078,10 @@ describe('backend', () => {
           it('should move cells to correct locations when dragging up-to-down', (done) => {
             _do([
               python('A1', '10'), python('B1', '11'), python('C1', '12'),
-              dragCol(1,3), 
+              dragCol(1,3),
               shouldBe('A1', valueI(11)),
-              shouldBe('B1', valueI(12)), 
-              shouldBe('C1', valueI(10)), 
+              shouldBe('B1', valueI(12)),
+              shouldBe('C1', valueI(10)),
               exec(done)
             ]);
           });
@@ -1089,10 +1089,10 @@ describe('backend', () => {
           it('should move cells to correct locations when dragging down-to-up', (done) => {
             _do([
               python('A1', '10'), python('B1', '11'), python('C1', '12'),
-              dragCol(3, 1), 
+              dragCol(3, 1),
               shouldBe('A1', valueI(12)),
-              shouldBe('B1', valueI(10)), 
-              shouldBe('C1', valueI(11)), 
+              shouldBe('B1', valueI(10)),
+              shouldBe('C1', valueI(11)),
               exec(done)
             ]);
           });
@@ -1100,21 +1100,21 @@ describe('backend', () => {
           it('should shift references appropriately', (done) => {
             _do([
               python('A1', '10'), python('B1', 'A1+2'), python('C1', 'B1+3'), python('D1', 'C1+4'),
-              dragCol(2,4), //1,2,3,4 --> 1,3,4,2 
-              shouldBe('B1', valueI(15)), 
-              shouldBe('C1', valueI(19)), 
-              shouldBe('D1', valueI(12)), 
+              dragCol(2,4), //1,2,3,4 --> 1,3,4,2
+              shouldBe('B1', valueI(15)),
+              shouldBe('C1', valueI(19)),
+              shouldBe('D1', valueI(12)),
               exec(done)
             ]);
           });
 
           it('should shift references appropriately in succession', (done) => {
             _do([
-              python('A1', '10'), 
-              python('B1', 'A1'), 
-              dragCol(1, 2), 
-              dragCol(1, 2), 
-              expressionShouldBe('B1', 'A1'), 
+              python('A1', '10'),
+              python('B1', 'A1'),
+              dragCol(1, 2),
+              dragCol(1, 2),
+              expressionShouldBe('B1', 'A1'),
               exec(done)
             ]);
           });
@@ -1122,9 +1122,9 @@ describe('backend', () => {
           it('should shift range references appropriately', (done) => {
             _do([
               python('A1', '0'), python('A2', '1'), python('B1', '3'), python('B2', '4'),
-              excel('E1', '=SUM(A1:B2)'), 
+              excel('E1', '=SUM(A1:B2)'),
               dragCol(2,3),
-              shouldBe('E1', valueI(8)), 
+              shouldBe('E1', valueI(8)),
               exec(done)
             ]);
           });
@@ -1182,7 +1182,7 @@ describe('backend', () => {
 
       it('lets you make imports', (done) => {
         _do([
-          pythonEvalHeader('import numpy as np'), 
+          pythonEvalHeader('import numpy as np'),
           python('A1', 'np.array([[1,2],[3,4]]).tolist()'),
           shouldBe('B1', valueI(2)),
           exec(done)
@@ -1465,10 +1465,10 @@ describe('backend', () => {
 
         it('should only shift dependencies entirely contained in the cut region for ranges', (done) => {
           _do([
-            python('A1', '10'), python('A2', '11'), python('A3', '12'), 
-            python('A4', 'sum(A1:A3)'), 
+            python('A1', '10'), python('A2', '11'), python('A3', '12'),
+            python('A4', 'sum(A1:A3)'),
             python('A5', 'sum(A3:A4)'),
-            cut('A3:A5', 'B3:B5'), 
+            cut('A3:A5', 'B3:B5'),
             expressionShouldBe('B4', 'sum(A1:A3)'),
             expressionShouldBe('B5', 'sum(B3:B4)'),
             exec(done)
@@ -1477,8 +1477,8 @@ describe('backend', () => {
 
         it('should shift absolute index references within the cut region', (done) => {
           _do([
-            python('A1', '10'), python('A2', '$A$1+5'), 
-            cut('A1:A2', 'B1:B2'), 
+            python('A1', '10'), python('A2', '$A$1+5'),
+            cut('A1:A2', 'B1:B2'),
             expressionShouldBe('B2', '$B$1+5'),
             exec(done)
           ]);
@@ -1486,9 +1486,9 @@ describe('backend', () => {
 
         it('should shift absolute range references within the cut region', (done) => {
           _do([
-            python('A1', '10'), python('A2', '11'), python('A3', '12'), 
-            python('A4', 'sum($A$1:$A$3)'), 
-            cut('A1:A4', 'B1:B4'), 
+            python('A1', '10'), python('A2', '11'), python('A3', '12'),
+            python('A4', 'sum($A$1:$A$3)'),
+            cut('A1:A4', 'B1:B4'),
             expressionShouldBe('B4', 'sum($B$1:$B$3)'),
             exec(done)
           ]);
@@ -1496,8 +1496,8 @@ describe('backend', () => {
 
         it('should shift index references in descendant cells', (done) => {
           _do([
-            python('A1', '10'), python('A2', '11'), python('A3', '$A$1'), 
-            cut('A1:A2', 'B1:B2'), 
+            python('A1', '10'), python('A2', '11'), python('A3', '$A$1'),
+            cut('A1:A2', 'B1:B2'),
             expressionShouldBe('A3', '$B$1'),
             exec(done)
           ]);
@@ -1505,8 +1505,8 @@ describe('backend', () => {
 
         it('should only shift references in range of cut', (done) => {
           _do([
-            python('A1', '10'), python('A2', '11'), python('A4', 'sum($A$2:A3)'), 
-            cut('A1:A2', 'B1:B2'), 
+            python('A1', '10'), python('A2', '11'), python('A4', 'sum($A$2:A3)'),
+            cut('A1:A2', 'B1:B2'),
             expressionShouldBe('A4', 'sum($A$2:A3)'),
             exec(done)
           ]);
@@ -1564,8 +1564,8 @@ describe('backend', () => {
             python('A1', '1'),
             python('A2', '2'),
             toggleTag('A1:A2', 'Bold'),
-            shouldHaveTag('A1', 'Bold'), 
-            shouldHaveTag('A2', 'Bold'), 
+            shouldHaveTag('A1', 'Bold'),
+            shouldHaveTag('A2', 'Bold'),
             exec(done)
           ]);
         });
@@ -1576,8 +1576,8 @@ describe('backend', () => {
             python('A2', '2'),
             toggleTag('A1', 'Bold'),
             toggleTag('A1:A2', 'Bold'),
-            shouldHaveTag('A1', 'Bold'), 
-            shouldHaveTag('A2', 'Bold'), 
+            shouldHaveTag('A1', 'Bold'),
+            shouldHaveTag('A2', 'Bold'),
             exec(done)
           ]);
         });
@@ -1589,8 +1589,8 @@ describe('backend', () => {
             toggleTag('A1', 'Bold'),
             toggleTag('A1:A2', 'Bold'),
             toggleTag('A1:A2', 'Bold'),
-            shouldNotHaveTag('A1', 'Bold'), 
-            shouldNotHaveTag('A2', 'Bold'), 
+            shouldNotHaveTag('A1', 'Bold'),
+            shouldNotHaveTag('A2', 'Bold'),
             exec(done)
           ]);
         });
@@ -1599,7 +1599,7 @@ describe('backend', () => {
           _do([
             toggleTag('A1', 'Bold'),
             python('A1', '1'),
-            shouldHaveTag('A1', 'Bold'), 
+            shouldHaveTag('A1', 'Bold'),
             exec(done)
           ]);
         });
@@ -1609,7 +1609,7 @@ describe('backend', () => {
             python('A1', '1'),
             toggleTag('A1', 'Bold'),
             delete_('A1'),
-            shouldHaveTag('A1', 'Bold'), 
+            shouldHaveTag('A1', 'Bold'),
             exec(done)
           ]);
         });
@@ -1619,7 +1619,7 @@ describe('backend', () => {
             python('A1', '1'),
             toggleTag('A1', 'Bold'),
             cut('A1', 'B1'),
-            shouldNotHaveTag('A1', 'Bold'), 
+            shouldNotHaveTag('A1', 'Bold'),
             exec(done)
           ]);
         });
@@ -1631,8 +1631,8 @@ describe('backend', () => {
             python('A1', '1'),
             python('A2', '2'),
             setTag('A1:A2', 'Format', 'Money'),
-            shouldHaveTag('A1', 'Format'), 
-            shouldHaveTag('A2', 'Format'), 
+            shouldHaveTag('A1', 'Format'),
+            shouldHaveTag('A2', 'Format'),
             exec(done)
           ]);
         });
@@ -1641,7 +1641,7 @@ describe('backend', () => {
           _do([
             setTag('A1', 'Format', 'Money'),
             python('A1', '1'),
-            shouldHaveTag('A1', 'Format'), 
+            shouldHaveTag('A1', 'Format'),
             exec(done)
           ]);
         });

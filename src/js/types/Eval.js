@@ -48,7 +48,8 @@ export type ValueImage = {
 
 export type ValueSerialized = {
   tag: 'ValueObject';
-  contents: string;
+  serializedValue: string;
+  displayName: string;
 };
 
 export type ValueError = {

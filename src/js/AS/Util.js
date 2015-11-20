@@ -100,10 +100,10 @@ export default {
       case "ValueImage":
         return "IMAGE";
       case "ValueSerialized":
-        return "SERIALIZED";
+        return cv.displayName;
       default:
-        logDebug("CELL CONTENTS SHOW VALUE: ", cv.contents);
-        return JSON.stringify(cv.contents);
+        logDebug("CELL CONTENTS SHOW VALUE: ", cv);
+        return JSON.stringify(cv);
     }
   },
 
