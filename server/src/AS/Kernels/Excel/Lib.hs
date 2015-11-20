@@ -971,7 +971,7 @@ eIndex c e = do
   col <- getOptionalMaybe "int" "index" 3 e :: ThrowsError (Maybe Int)
   (row',col') <- case (row,col) of
     (Nothing,Nothing) -> Left $ VAL "Not enough arguments for Index"
-    (a,b) -> Right $ (f a,f b)
+    (a,b) -> Right (f a, f b)
       where
         f Nothing = 1
         f (Just i) = i
@@ -980,11 +980,11 @@ eIndex c e = do
 -- | Row and Col start at 1. Row/col value of 0 = slice
 indexOrSlice :: EMatrix -> Int -> Int -> EResult
 indexOrSlice m@(EMatrix nCol nRow v) row col
-  | row>=nRow || col>=nCol || row<0 || col<0 = err
+  | row > nRow || col > nCol || row < 0 || col < 0 = err
   | row==0 && col>=1 = Right $ EntityMatrix $ EMatrix 1 nRow vertical
   | row>=1 && col==0 = Right $ EntityMatrix $ EMatrix nCol 1 horizontal
   | row==0 && col==0 = Right $ EntityMatrix m -- whole matrix
-  | row>=1 && col>=1 = valToResult $ matrixIndex (col,row) m
+  | row>=1 && col>=1 = valToResult $ matrixIndex (col-1, row-1) m
     where
       err = Left $ REF $ "Index out of bounds"
       horizontal = V.unsafeSlice ((row-1)*nCol) nCol v
