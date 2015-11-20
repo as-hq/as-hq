@@ -208,6 +208,10 @@ decoupleCell :: ASCell -> ASCell
 decoupleCell (Cell l (Coupled _ lang _ _) v ts) = Cell l e' v ts
   where e' = Expression (showPrimitive lang v) lang
 
+-- | Converts a coupled cell to a normal cell
+toUncoupled :: ASCell -> ASCell
+toUncoupled c@(Cell _ (Coupled xp lang _ _) _ _) = c { cellExpression = Expression xp lang }
+
 cellToRangeKey :: ASCell -> Maybe RangeKey
 cellToRangeKey (Cell _ xp _ _ ) = case xp of 
   Coupled _ _ _ key -> Just key

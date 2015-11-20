@@ -5,7 +5,7 @@ import Prelude
 import qualified Data.Map   as M
 import qualified Data.Set   as S
 import qualified Data.List  as L
-import Data.Maybe (fromJust, isNothing,catMaybes)
+import Data.Maybe (fromJust, isNothing, catMaybes)
 import Text.ParserCombinators.Parsec
 import Control.Applicative
 import Data.Time.Clock
@@ -59,6 +59,7 @@ testDispatch state lang crd str = runDispatchCycle state [Cell (Index sid crd) (
 -- the cells getting evaluated. We pull the rest from the DB. 
 runDispatchCycle :: MVar ServerState -> [ASCell] -> CommitSource -> IO ASServerMessage
 runDispatchCycle state cs src = do
+  printObj "cs" cs
   roots <- EM.evalMiddleware cs
   conn <- dbConn <$> readMVar state
   errOrCells <- runEitherT $ do
@@ -73,7 +74,7 @@ runDispatchCycle state cs src = do
 dispatch :: MVar ServerState -> [ASCell] -> CommitSource -> EitherTExec ASTransaction
 dispatch state roots src = do
   conn <- lift $ dbConn <$> readMVar state
-  printObjT "STARTING DISPATCH CYCLE WITH CELLS: " roots
+  printObjT "STARTING DISPATCH CYCLE WITH CELLS" roots
   rootsDepSets   <- DB.setCellsAncestors roots
   printObjT "Set cell ancestors" rootsDepSets
   descLocs       <- getEvalLocs conn roots
@@ -88,7 +89,7 @@ dispatch state roots src = do
   printWithTimeT "Starting eval chain"
   (afterCells, fatCells) <- evalChain conn formattedValuesMap cellsToEval src -- start with current cells, then go through descendants
   printObjT "Eval chain produced cells" afterCells
-  liftIO $ putStrLn $ "Eval chain produced fatcells" ++ (show fatCells)
+  printObjT "Eval chain produced fatcells" fatCells
   -- Apply endware
   finalizedCells <- lift $ EE.evalEndware state afterCells src roots
   right $ Transaction src finalizedCells fatCells

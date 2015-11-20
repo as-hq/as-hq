@@ -388,7 +388,7 @@ getCutCells conn from to = do
 getCutToCells :: R.Connection -> ASRange -> Offset -> IO [ASCell]
 getCutToCells conn from offset = do 
   fromCells          <- DB.getPossiblyBlankCells (rangeToIndices from)
-  sanitizedFromCells <- sanitizeCopyCells conn fromCells from
+  sanitizedFromCells <- sanitizeCutCells conn fromCells from
   let shiftLoc    = shiftInd offset
       changeExpr  = S.shiftExpressionForCut from offset
   return $ map ((replaceCellLocs shiftLoc) . (replaceCellExpressions changeExpr)) sanitizedFromCells
@@ -402,22 +402,26 @@ getCutNewDescCells from offset = do
   descs <- catMaybes <$> DB.getCells immDescLocs'
   return $ map (replaceCellExpressions changeExpr) descs
 
--- | Decouples cells appropriately for re-eval on copy/paste or cut/paste, as follows:
---   * if everything is a list head, leave it as is. 
+-- | Decouples cells appropriately for re-eval on cut/paste, as follows:
 --   * if a cell is not a part of a list, leave it as is. 
 --   * if an entire list is contained in the range, keep just the head of the list. (So on eval
 --     the entire list is re-evaluated)
 --   * if a cell is part of a list that is not contained entirely in the selection, decouple it. 
+sanitizeCutCells :: R.Connection -> [ASCell] -> ASRange -> IO [ASCell]
+sanitizeCutCells conn cells from = do 
+  keys <- fatCellsInRange conn from
+  let (fatCellMembers, regularCells)  = L.partition DU.isFatCellMember cells
+      (containedCells, cutoffCells)   = U.partitionByRangeKey fatCellMembers keys
+      decoupledCells                  = map decoupleCell cutoffCells
+      containedFatCellHeads           = filter DU.isFatCellHead containedCells
+      containedFatCellHeadsUncoupled  = map DU.toUncoupled containedFatCellHeads
+  return $ regularCells ++ decoupledCells ++ containedFatCellHeadsUncoupled
+
+-- Same as above, except if everything is a list head, leave it as is. 
 sanitizeCopyCells :: R.Connection -> [ASCell] -> ASRange -> IO [ASCell]
 sanitizeCopyCells conn cells from
-  | all DU.isFatCellHead cells = return cells 
-  | otherwise            = do
-      keys <- fatCellsInRange conn from
-      let (fatCellMembers, regularCells)  = L.partition DU.isFatCellMember cells
-          (containedCells, cutoffCells)   = U.partitionByRangeKey fatCellMembers keys
-          decoupledCells                  = map decoupleCell cutoffCells
-          containedFatCellHeads           = filter DU.isFatCellHead containedCells
-      return $ regularCells ++ decoupledCells ++ containedFatCellHeads
+  | all DU.isFatCellHead cells = return $ map DU.toUncoupled cells 
+  | otherwise = sanitizeCutCells conn cells from 
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Tag handlers
@@ -690,6 +694,11 @@ expressionMap :: MutateType -> (ASExpression -> ASExpression)
 expressionMap mt = S.replaceRefs (show . (refMap mt))
 
 cellMap :: MutateType -> (ASCell -> Maybe ASCell)
-cellMap mt (Cell loc xp v ts) = case ((cellLocMap mt) loc) of 
+cellMap mt c@(Cell loc xp v ts) = case ((cellLocMap mt) loc) of 
   Nothing -> Nothing 
-  Just loc' -> Just $ Cell loc' ((expressionMap mt) xp) v ts
+  Just loc' -> let c' = Cell loc' ((expressionMap mt) xp) v ts 
+    in case xp of 
+      Expression _ _ -> Just c'
+      Coupled _ _ _ _ -> if DU.isFatCellHead c
+        then Just $ DU.toUncoupled c' 
+        else Nothing

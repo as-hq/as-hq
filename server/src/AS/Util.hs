@@ -293,7 +293,7 @@ writeErrToLog str (sid, uid) = do
   appendFile' logPath' loggedStr
 
 printWithTimeT :: String -> EitherTExec ()
-printWithTimeT = lift . printWithTime
+printWithTimeT s = (lift . printWithTime) (s ++ "\n")
 
 printObj :: (Show a) => String -> a -> IO ()
 printObj disp obj = printWithTime (disp ++ ": " ++ (show $ seq () obj))

@@ -81,11 +81,14 @@ blend [] y = concat y
 blend (x:xs) (y:ys) = x ++ y ++ (blend xs ys)
 
 replaceRefs :: (ExRef -> String) -> ASExpression -> ASExpression
-replaceRefs f xp = xp {expression = expression'}
+replaceRefs f xp = xp'
   where 
     (inter, exRefs) = getUnquotedMatchesWithContext xp refMatch
     exRefs'         = map f exRefs 
     expression'     = blend inter exRefs'
+    xp' = case xp of
+      Expression _ lang -> Expression expression' lang
+      Coupled _ l t r   -> Coupled expression' l t r
 
 -------------------------------------------------------------------------------------------------------------------------------------------------
 -- Helpers

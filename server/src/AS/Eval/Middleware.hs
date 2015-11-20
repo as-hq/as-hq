@@ -3,12 +3,13 @@ module AS.Eval.Middleware where
 import Prelude
 import Data.List
 import Database.Redis (Connection)
+import Data.Maybe
 
 import AS.Types.Core
 import AS.Eval.Core as R
 import AS.Util as U
 import AS.DB.API as DB
-
+import AS.DB.Util (isFatCellHead, toUncoupled)
 {-
     Middlewares take a message (cells, etc) pushed to server, and process them before handing them off (to eval, etc)
     Here we apply a stack of middlewares
