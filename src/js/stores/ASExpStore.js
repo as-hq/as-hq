@@ -83,7 +83,10 @@ const ASExpStore = assign({}, BaseStore, {
             cell = Store.getCell(sel.origin.col, sel.origin.row);
         ASExpStore.updateOnBackendChange(cell);
         break;
-
+      // The spreadsheet listens to this and sets focus to grid 
+      case Constants.ActionTypes.FETCHED_CELLS:
+        ASExpStore.emitChange();
+        break;
       default:
         break;
     }
