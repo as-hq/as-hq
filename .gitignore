@@ -24,5 +24,6 @@ server/eval_files/**/headers/*.*
 !server/eval_files/**/headers/dummy
 
 server/static/images/*
+server/static/*
 
 graph-database/server
