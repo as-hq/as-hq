@@ -153,7 +153,7 @@ export default React.createClass({
     });
   },
 
-  componentWillUnmount(){
+  componentWillUnmount() {
     ExpStore.removeChangeListener(this._onExpressionChange);
   },
 
@@ -205,17 +205,17 @@ export default React.createClass({
           yOffset = 0;
       if (x > b.origin.x + b.extent.x) {
         xOffset = 1;
-      } else if (x < b.origin.x){
+      } else if (x < b.origin.x) {
         xOffset = -1;
       }
       if (y > b.origin.y + b.extent.y) {
         yOffset = 1;
-      } else if (y < b.origin.y){
+      } else if (y < b.origin.y) {
         yOffset = -1;
       }
       let dragCellOffsetX = dragEndInFixedAreaX ? 0 : xOffset,
           dragCellOffsetY = dragEndInFixedAreaY ? 0 : yOffset;
-      if (xOffset !== 0 || yOffset !== 0){
+      if (xOffset !== 0 || yOffset !== 0) {
         grid.scrollBy(xOffset, yOffset);
         grid.repaint();
       }
@@ -461,7 +461,7 @@ export default React.createClass({
         } else if (Render.getDragCorner() !== null) {
           let dottedSel = Render.getDottedSelection();
           // Do nothing if the mouseup isn't in the right column or row
-          if (dottedSel.range !== null){
+          if (dottedSel.range !== null) {
             let activeSelection = Store.getActiveSelection();
             if (!! activeSelection) {
               API.drag(activeSelection.range, dottedSel.range);
@@ -502,7 +502,7 @@ export default React.createClass({
   },
 
   // expects that the current sheet has already been set
-  getInitialData(){
+  getInitialData() {
     API.openSheet(Store.getCurrentSheet());
     ActionCreator.scroll(this.getViewingWindow());
   },
@@ -553,8 +553,8 @@ export default React.createClass({
   updateOverlays(c: ASCell): Array<ASOverlaySpec> {
     let overlays = this.state.overlays,
         locs = overlays.map((o)=>o.loc);
-    for (var i = 0 ; i < locs.length; i++){
-      if (Util.locEquals(locs[i], c.cellLocation)){
+    for (var i = 0 ; i < locs.length; i++) {
+      if (Util.locEquals(locs[i], c.cellLocation)) {
         overlays.splice(i,1);
       }
     }
@@ -796,7 +796,7 @@ export default React.createClass({
     -- RITESH
     */
     logDebug("Grid on focus");
-    if (ExpStore.getClickType() === Constants.ClickType.DOUBLE_CLICK){
+    if (ExpStore.getClickType() === Constants.ClickType.DOUBLE_CLICK) {
       Store.setFocus('textbox');
       this.props.setFocus('textbox');
     } else {
@@ -807,11 +807,11 @@ export default React.createClass({
   /*************************************************************************************************************************/
   // Respond to change event from ExpStore
 
-  _onExpressionChange(){
+  _onExpressionChange() {
     let xpChangeOrigin = ExpStore.getXpChangeOrigin(),
         xpStr = ExpStore.getExpression();
     logDebug("Grid caught exp update of_type: " +  xpChangeOrigin);
-    switch(xpChangeOrigin){
+    switch(xpChangeOrigin) {
       case Constants.ActionTypes.TEXTBOX_CHANGED:
         Render.setShouldRenderSquareBox(false);
         // no square box while typing

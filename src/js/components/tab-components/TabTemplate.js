@@ -17,7 +17,7 @@ const styles = {
 
 class TabTemplate extends React.Component {
 
-  render(){
+  render() {
     let style;
     if (!this.props.selected) {
       style = StyleOverride.merge(styles.root, styles.unselected);

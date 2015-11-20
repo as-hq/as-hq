@@ -234,7 +234,7 @@ export default {
   killEvent(e) {
     e.preventDefault();
     e.stopPropagation();
-    if (e.nativeEvent){
+    if (e.nativeEvent) {
       e.nativeEvent.stopImmediatePropagation();
     }
   },
@@ -303,7 +303,7 @@ export default {
 
   // gets the matched wildcard, in string format
   getWildcard(e, s) {
-    if (s.optionKeys){
+    if (s.optionKeys) {
       return this.keyToWildcard(e);
     } else return null;
   },

@@ -6,7 +6,7 @@ import Tabs from './tab-components/Tabs.js'
 
 
 export default React.createClass({
-  getInitialState(){
+  getInitialState() {
     return {
       tabs:[
             (<Tab key={'tab0'} title={'Sheet-1'} >

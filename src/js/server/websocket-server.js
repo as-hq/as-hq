@@ -53,8 +53,8 @@ var interpolateLocations = function(rng) {
         interpolated = [],
         idx=0;
 
-    for (var r=tl[0]; r<br[0]+1; r++){
-      for (var c=tl[1]; c<br[1]+1; c++){
+    for (var r=tl[0]; r<br[0]+1; r++) {
+      for (var c=tl[1]; c<br[1]+1; c++) {
         interpolated[idx] = [r,c]
         idx++;
       }
@@ -132,7 +132,7 @@ var fakeWorkbookSheets = function() {
 
 wss.on("connection", function(ws) {
   console.log("websocket connection open");
-  ws.on("message", function(message){
+  ws.on("message", function(message) {
     console.log("message received by server: " + message); // the message will be an ASCell
     parsed = JSON.parse(message);
 
@@ -140,7 +140,7 @@ wss.on("connection", function(ws) {
     // do some propagation in backend with message
     // for now, send a fake cell
     if (parsed.action === "Get") {
-      if (parsed.payload.tag === "PayloadLL"){
+      if (parsed.payload.tag === "PayloadLL") {
         var cells = parsed.payload.contents.map(fakeCellFromASLoc);
         msg = toServerMessageFormat("NoAction", "PayloadCL", cells);
       } else if (parsed.payload.tag === 'PayloadList') {

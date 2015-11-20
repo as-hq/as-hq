@@ -95,61 +95,61 @@ const ASExpStore = assign({}, BaseStore, {
   /**************************************************************************************************************************/
   // store getter and setter methods
 
-  getXpChangeOrigin(){
+  getXpChangeOrigin() {
     return _data.xpChangeOrigin;
   },
 
-  setXpChangeOrigin(xpChangeOrigin){
+  setXpChangeOrigin(xpChangeOrigin) {
     _data.xpChangeOrigin = xpChangeOrigin;
   },
 
-  getExpression(){
+  getExpression() {
     return _data.expression;
   },
 
-  setExpression(xpStr){
+  setExpression(xpStr) {
     _data.expression = xpStr;
     // update deps
   },
 
-  getDoEditorCallback(){
+  getDoEditorCallback() {
     return _data.doEditorCallback;
   },
 
-  setDoEditorCallback(bool){
+  setDoEditorCallback(bool) {
     _data.doEditorCallback = bool;
   },
 
-  getDoTextBoxCallback(){
+  getDoTextBoxCallback() {
     return _data.doTextBoxCallback;
   },
 
-  setDoTextBoxCallback(bool){
+  setDoTextBoxCallback(bool) {
     _data.doTextBoxCallback = bool;
   },
 
-  getUserIsTyping(){
+  getUserIsTyping() {
     return _data.userIsTyping;
   },
 
-  setUserIsTyping(bool){
+  setUserIsTyping(bool) {
     _data.userIsTyping = bool;
   },
 
-  getLastCursorPosition(){
+  getLastCursorPosition() {
     return _data.lastCursorPosition;
   },
 
-  setLastCursorPosition(f){
+  setLastCursorPosition(f) {
     _data.lastCursorPosition = f;
   },
 
 
-  getLastRef(){
+  getLastRef() {
     return _data.lastRef;
   },
 
-  setLastRef(excel){
+  setLastRef(excel) {
     _data.lastRef=excel;
   },
 
@@ -161,11 +161,11 @@ const ASExpStore = assign({}, BaseStore, {
     _data.language = lang; 
   },
 
-  getClickType(){
+  getClickType() {
     return _data.clickType;
   },
 
-  setClickType(t){
+  setClickType(t) {
     _data.clickType = t;
     Render.setShouldRenderSquareBox((t === Constants.ClickType.CLICK));
   },
@@ -183,19 +183,19 @@ const ASExpStore = assign({}, BaseStore, {
   /**************************************************************************************************************************/
   // Inserting ref helpers
 
-  editorCanInsertRef(editor){
+  editorCanInsertRef(editor) {
     return this.getLastCursorPosition() === Constants.CursorPosition.EDITOR ?
       _data.refInsertionBypass || ParseUtils.canInsertCellRef(editor,this.getLastRef()) : false;
   },
 
-  textBoxCanInsertRef(editor){
+  textBoxCanInsertRef(editor) {
     return this.getLastCursorPosition() === Constants.CursorPosition.TEXTBOX ?
       _data.refInsertionBypass || ParseUtils.canInsertCellRef(editor,this.getLastRef()) : false;
   },
 
-  gridCanInsertRef(){
+  gridCanInsertRef() {
     let gridCanInsertRef = false;
-    if (this.getLastCursorPosition() === Constants.CursorPosition.GRID){
+    if (this.getLastCursorPosition() === Constants.CursorPosition.GRID) {
       let xp = this.getExpression(),
           lRef = this.getLastRef();
       gridCanInsertRef = lRef ?
@@ -221,7 +221,7 @@ const ASExpStore = assign({}, BaseStore, {
     this.emitChange();
   },
 
-  updateStoreSelChange(xpStr){
+  updateStoreSelChange(xpStr) {
     this.setUserIsTyping(false);
     this.setXpChangeOrigin(Constants.ActionTypes.NORMAL_SEL_CHANGED);
     this.setExpression(xpStr);
@@ -238,11 +238,11 @@ const ASExpStore = assign({}, BaseStore, {
     this.emitChange();
   },
 
-  updateOnBackendChange(cell){
+  updateOnBackendChange(cell) {
     // Only do these changes if the user isn't typing (has evalled)
     // Needed bc eval broadcasts to all users, but we don't want to do these things (like changing the expression) for all users
     if (!this.getUserIsTyping()) {
-      if (cell !== null){
+      if (cell !== null) {
         this.setExpression(cell.cellExpression.expression);
       } else {
         this.setExpression('');

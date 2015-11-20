@@ -14,7 +14,7 @@ const config = {
 
 export default React.createClass({
 
-  getStyles(){
+  getStyles() {
     return {
       root: {
         width: '100%',
@@ -49,7 +49,7 @@ export default React.createClass({
     docked: React.PropTypes.bool,
   },
 
-  getDefaultProps(){
+  getDefaultProps() {
     return {
       docked: false
     };
@@ -70,14 +70,14 @@ export default React.createClass({
     if (this.props.docked === nextProps.docked)
       return;
     /* Change the state (width of leftComp) to full once sidebar is tucked away */
-    if (this.props.docked){
+    if (this.props.docked) {
       this.setState({
         lastLeftWidth:this.state.leftWidth,
         leftWidth:"100%"
       });
     }
     /* When sidebar about to be visible (left width is full), change left width */
-    if (!this.props.docked && this.state.leftWidth === "100%"){
+    if (!this.props.docked && this.state.leftWidth === "100%") {
       logDebug("received props");
       this.setState({
         leftWidth:this.state.lastLeftWidth

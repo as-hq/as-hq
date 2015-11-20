@@ -160,7 +160,7 @@ const ASEvaluationStore = Object.assign({}, BaseStore, {
         case 'CLEARED':
           _data.lastUpdatedCells = [];
           let cellsToRemove = [];
-          for (var s in _data.allCells){
+          for (var s in _data.allCells) {
             _data.allCells[s].forEach((colArray) => {
               colArray.forEach((cell) => {
                 cellsToRemove.push(cell);
@@ -211,7 +211,7 @@ const ASEvaluationStore = Object.assign({}, BaseStore, {
           break;
         case 'GOT_FAILURE':
           ASEvaluationStore.setExternalError(action.errorMsg);
-          if (action.action === "EvaluateRepl"){
+          if (action.action === "EvaluateRepl") {
             ReplStore.advanceLine();
           }
           ASEvaluationStore.emitChange();
@@ -307,7 +307,7 @@ const ASEvaluationStore = Object.assign({}, BaseStore, {
   getClipboard() {
     return _data.clipboard;
   },
-  setScroll(x, y){
+  setScroll(x, y) {
     _data.xscroll = x;
     _data.yscroll = y;
   },
@@ -315,7 +315,7 @@ const ASEvaluationStore = Object.assign({}, BaseStore, {
     return {x: _data.xscroll, y: _data.yscroll};
   },
   /* Usually called by AS components so that they can get the updated values of the store */
-  getLastUpdatedCells(){
+  getLastUpdatedCells() {
     return _data.lastUpdatedCells;
   },
   resetLastUpdatedCells() {
@@ -348,7 +348,7 @@ const ASEvaluationStore = Object.assign({}, BaseStore, {
   setExternalError(err: ?string) {
     _data.externalError = err;
   },
-  getExternalError(){
+  getExternalError() {
     return _data.externalError;
   },
 
@@ -357,7 +357,7 @@ const ASEvaluationStore = Object.assign({}, BaseStore, {
   /* Copy paste helpers */
 
    // Converts a range to a row major list of lists of values,
-   getRowMajorCellValues(rng){
+   getRowMajorCellValues(rng) {
      if (T.isIndex(rng)) {
       let cell = this.getCell(rng.tl.col, rng.tl.row);
       return [[cell ? cell.cellValue.contents : null]];
@@ -493,7 +493,7 @@ const ASEvaluationStore = Object.assign({}, BaseStore, {
   /* Updating expression when user clicks on a cell */
 
 // @optional mySheetId
-  getCell(col,row,mySheetId){
+  getCell(col,row,mySheetId) {
     let sheetId = mySheetId || _data.currentSheet.sheetId;
     if (this.locationExists(col, row, sheetId))
       return _data.allCells[sheetId][col][row];

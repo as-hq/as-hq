@@ -225,8 +225,8 @@ export default {
           imageHeight =  300,
           imageOffsetX = 0,
           imageOffsetY = 0;
-      for (var i = 0 ; i < ct.length; i++){
-        if (ct[i].tag==="ImageData"){
+      for (var i = 0 ; i < ct.length; i++) {
+        if (ct[i].tag==="ImageData") {
           imageOffsetX = ct[i].imageOffsetX;
           imageOffsetY = ct[i].imageOffsetY;
           imageWidth = ct[i].imageWidth;
@@ -449,8 +449,7 @@ export default {
     } else if (dollarIndices.length === 1 ) {
       if (dollarIndices[0] === 0) {
         return col + row;
-      }
-      else {
+      } else {
         return '$' + col + row;
       }
     } else if (dollarIndices.length === 2) {
@@ -495,7 +494,7 @@ export default {
 
   excelToRange(xp: string): NakedRange {
     let endpoints = xp.split(":");
-    if (endpoints.length === 1){
+    if (endpoints.length === 1) {
       let idx = this.excelToIndex(endpoints[0]);
       return {tl: idx, br: idx};
     } else {
@@ -518,7 +517,7 @@ export default {
   },
 
   rangeToExcel(rng: NakedRange): string {
-    if (T.isIndex(rng)){
+    if (T.isIndex(rng)) {
       return this.intToExcelCol(rng.tl.col) + rng.tl.row;
     } else {
       let {tl, br} = this.orientRange(rng);

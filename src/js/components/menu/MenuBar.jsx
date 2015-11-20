@@ -22,9 +22,7 @@ var MenuBar = React.createClass({
   componentDidUpdate(prevProps, prevState) {
     if (this.state.isActive && !prevState.isActive) {
       this.bindSetInactiveHandler()
-    }
-
-    else if (prevState.isActive && !this.state.isActive) {
+    } else if (prevState.isActive && !this.state.isActive) {
       this.unbindSetInactiveHandler()
     }
   },

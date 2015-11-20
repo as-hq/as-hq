@@ -229,7 +229,7 @@ class Tabs extends React.Component {
     }
   }
 
-  doubleClickHandlerWithKey(key){
+  doubleClickHandlerWithKey(key) {
     return (e) => {
       this.props.onTabDoubleClick(e, key);
     };

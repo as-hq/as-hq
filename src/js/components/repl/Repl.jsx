@@ -46,7 +46,7 @@ export default React.createClass({
         </Toolbar>
         <ReplEditor
           ref="editor" name="repl"
-          onChange={function(){}}
+          onChange={function() {}}
           mode={this.props.replLanguage.Editor}
           language={this.props.replLanguage}
           theme="monokai"

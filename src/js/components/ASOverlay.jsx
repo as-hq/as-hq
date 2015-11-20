@@ -10,27 +10,27 @@ import Store from '../stores/ASEvaluationStore';
 
 export default React.createClass({
 
-  updateTag(val){
+  updateTag(val) {
     let rng = {tl:this.props.overlay.loc.index,br:this.props.overlay.loc.index};
     API.setImageTag(val,rng);
   },
 
-  _onStop(e,detail){
+  _onStop(e,detail) {
     let tagValue = {
       imageOffsetX: parseFloat(detail.position.left) + this.props.overlay.offsetX,
       imageOffsetY: parseFloat(detail.position.top) + this.props.overlay.offsetY,
       imageWidth: this.props.overlay.width,
       imageHeight: this.props.overlay.height
     };
-    if (detail.position.left !== 0 || detail.position.top !== 0){
+    if (detail.position.left !== 0 || detail.position.top !== 0) {
       this.updateTag(tagValue);
     }
   },
 
-  _onMouseUp(e){
+  _onMouseUp(e) {
     console.log("MOUSES");
     let node = ReactDOM.findDOMNode(this.refs.image);
-    if (node !== null){
+    if (node !== null) {
       let {width,height} = node.style,
           tagValue = {
             imageOffsetX: this.props.overlay.offsetX,
@@ -38,7 +38,7 @@ export default React.createClass({
             imageWidth: parseFloat(width),
             imageHeight: parseFloat(height)
           };
-      if (tagValue.imageWidth !== this.props.overlay.width || tagValue.imageHeight !== this.props.overlay.height){
+      if (tagValue.imageWidth !== this.props.overlay.width || tagValue.imageHeight !== this.props.overlay.height) {
         this.updateTag(tagValue);
       }
     }

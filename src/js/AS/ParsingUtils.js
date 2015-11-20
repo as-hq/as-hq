@@ -12,12 +12,12 @@ export default {
   postfixOp: [')'],
 
   // NOTE: do not modify editor
-  canInsertCellRef(editor,lastRef){
+  canInsertCellRef(editor,lastRef) {
     let lines = this.getLinesWithoutLastRef(editor,lastRef),
         pos = this.getCursorPosAfterDeletingLastRef(editor,lastRef),
         currentLine = lines[pos.row];
     logDebug("PARSING CELL REF: ", currentLine, pos);
-    if (pos.column === 0 || currentLine.length === 0 || lines[0][0] !== '='){
+    if (pos.column === 0 || currentLine.length === 0 || lines[0][0] !== '=') {
       return false;
     } else {
       var lookbackOk = false, lookforwardOk = false;
@@ -51,8 +51,8 @@ export default {
     }
   },
 
-  getLinesWithoutLastRef(editor,lastRef){
-    if (lastRef !== null){
+  getLinesWithoutLastRef(editor,lastRef) {
+    if (lastRef !== null) {
       let pos = editor.getCursorPosition(),
         line = editor.getSession().doc.getLine(pos.row),
         lines = editor.getSession().doc.getAllLines(),
@@ -65,9 +65,9 @@ export default {
     }
   },
 
-  getCursorPosAfterDeletingLastRef(editor,lastRef){
+  getCursorPosAfterDeletingLastRef(editor,lastRef) {
     let pos = editor.getCursorPosition();
-    if (lastRef !== null){
+    if (lastRef !== null) {
       return {row: pos.row, column: pos.column - lastRef.length};
     } else {
       return pos;
@@ -77,7 +77,7 @@ export default {
   // Given current editor and a string (not null) that's the last ref (ex A4)
   // Delete that from the cursor position
   // Actually modifies editor
-  deleteLastRef(editor,lastRef){
+  deleteLastRef(editor,lastRef) {
     let lines = this.getLinesWithoutLastRef(editor,lastRef);
     let newPos = this.getCursorPosAfterDeletingLastRef(editor,lastRef);
     editor.setValue(lines.join('\n')); // or '' ???

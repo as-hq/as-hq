@@ -511,7 +511,7 @@ export default React.createClass({
       this.setState({currentLanguage: this.state.defaultLanguage});
       ExpStore.setLanguage(this.state.defaultLanguage.Display);
       this.hideToast();
-    } else if (changeSelWhileTypingNoInsert){ //click away while not parsable
+    } else if (changeSelWhileTypingNoInsert) { //click away while not parsable
       logDebug("Change sel while typing no insert");
       let xpObj = {
           expression: ExpStore.getExpression(),
@@ -529,22 +529,20 @@ export default React.createClass({
          this.hideToast();
       }
     } else if (userIsTyping) {
-      if (editorCanInsertRef){ // insert cell ref in editor
+      if (editorCanInsertRef) { // insert cell ref in editor
         logDebug("Eval pane inserting cell ref in editor");
         let excelStr = Util.rangeToExcel(range);
         this._getEditorComponent().insertRef(excelStr);
         let newStr = this._getRawEditor().getValue(); // new value
         ExpActionCreator.handlePartialRefEditor(newStr,excelStr);
-      }
-      else if (textBoxCanInsertRef){ // insert cell ref in textbox
+      } else if (textBoxCanInsertRef) { // insert cell ref in textbox
         logDebug("Eval pane inserting cell ref in textbox");
         logDebug("Current value: " + this._getTextbox().editor.getValue());
         let excelStr = Util.rangeToExcel(range);
         this._getTextbox().insertRef(excelStr);
         let newStr = this._getTextbox().editor.getValue();
         ExpActionCreator.handlePartialRefTextBox(newStr,excelStr);
-      }
-      else if (gridCanInsertRef){ // insert cell ref in textbox
+      } else if (gridCanInsertRef) { // insert cell ref in textbox
         logDebug("Eval pane inserting cell ref originating from grid");
         let excelStr = Util.rangeToExcel(range);
         ExpActionCreator.handlePartialRefGrid(excelStr);
@@ -581,7 +579,7 @@ export default React.createClass({
 
     let {origin} = selection;
 
-    if (moveCol !== null && moveRow !== null){
+    if (moveCol !== null && moveRow !== null) {
       logDebug("Shifting selection area");
       this.refs.spreadsheet.shiftSelectionArea(moveCol, moveRow);
     }
@@ -617,7 +615,7 @@ export default React.createClass({
   /* Focus */
 
   setFocus(elem) {
-    if (elem === 'editor'){
+    if (elem === 'editor') {
       this._getRawEditor().focus();
     } else if (elem === 'grid') {
       this.refs.spreadsheet.setFocus();
@@ -707,25 +705,25 @@ export default React.createClass({
   /**************************************************************************************************************************/
   /* Find bar and modal */
 
-  closeFindBar(){
+  closeFindBar() {
     this.setState({showFindBar:false});
   },
-  closeFindModal(){
+  closeFindModal() {
     this.setState({showFindModal:false});
   },
-  onFindBarEnter(){
+  onFindBarEnter() {
       API.find(FindStore.getFindText());
   },
-  openFindModal(){
+  openFindModal() {
     this.setState({showFindBar:false, showFindModal: true});
   },
-  onFindBarNext(){
+  onFindBarNext() {
     FindAction.incrementSelection();
   },
-  onFindBarPrev(){
+  onFindBarPrev() {
     FindAction.decrementSelection();
   },
-  _onFindChange(){
+  _onFindChange() {
     this.refs.spreadsheet.repaint();
   },
 

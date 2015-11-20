@@ -152,7 +152,7 @@ export default {
 
   rangeToASIndices(rng: NakedRange): Array<ASIndex> {
     let inds = [];
-    for (var r = rng.tl.row; r <= rng.br.row; r++){
+    for (var r = rng.tl.row; r <= rng.br.row; r++) {
       for (var c = rng.tl.col; c <= rng.br.col; c++) {
         inds.push(this.simpleToASIndex({row: r, col: c}));
       }
@@ -162,7 +162,7 @@ export default {
 
   rangeToIndices(rng: NakedRange): Array<NakedIndex> {
     let inds = [];
-    for (var r = rng.tl.row; r <= rng.br.row; r++){
+    for (var r = rng.tl.row; r <= rng.br.row; r++) {
       for (var c = rng.tl.col; c <= rng.br.col; c++) {
         inds.push({row: r, col: c});
       }

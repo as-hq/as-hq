@@ -60,9 +60,15 @@ export default {
     let checksMatch = true;
     Object.getOwnPropertyNames(contextChecks).forEach((check) => {
       if (s.config && s.config.hasOwnProperty(check)) {
-        if (contextChecks[check]()) { return; }
-        else { checksMatch = false; return; }
-      } else return;
+        if (contextChecks[check]()) { 
+          return; 
+        } else { 
+          checksMatch = false; 
+          return; 
+        }
+      } else {
+        return;
+      }
     });
     return checksMatch;
   },
@@ -70,7 +76,7 @@ export default {
   tryShortcut(e, set) {
     let ss = _S[set]; // shortcut set to try
     for (var key in ss) {
-      if (this.shortcutMatches(ss[key], e)){
+      if (this.shortcutMatches(ss[key], e)) {
         if (this.checkContext(ss[key])) {
           logDebug("shortcut matched and will be exec: ", JSON.stringify(ss[key]));
           ss[key].callback(KeyUtils.getWildcard(e, ss[key]));

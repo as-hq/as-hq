@@ -56,7 +56,7 @@ export default {
     SU.add('common', 'cell_eval_arrayformula', 'Ctrl+Shift+Enter', (wildcard) => {
       // Always eval and stay put, but only sometimes add brackets
       let editorValue = self._getRawEditor().getValue();
-      if (self.state.currentLanguage == Constants.Languages.Excel){
+      if (self.state.currentLanguage == Constants.Languages.Excel) {
         if (editorValue[0]==='=') {
           editorValue = '{' + editorValue + '}';
           self._getRawEditor().setValue(editorValue);

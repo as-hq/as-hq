@@ -88,7 +88,7 @@ module.exports = React.createClass({
     onPropsSet(this.editor, this.props);
   },
 
-  componentWillUnmount(){
+  componentWillUnmount() {
     ExpStore.removeChangeListener(this._onExpressionChange);
   },
 
@@ -103,7 +103,7 @@ module.exports = React.createClass({
     return this.editor;
   },
 
-  insertRef(newRef){
+  insertRef(newRef) {
     let lastRef = ExpStore.getLastRef();
     logDebug("Inserting ref in editor " + newRef);
     ExpStore.setDoEditorCallback(false);
@@ -128,8 +128,7 @@ module.exports = React.createClass({
       logDebug("Deferring editor key down");
       KeyUtils.killEvent(e);
       this.props.onDeferredKey(e);
-    }
-    else {
+    } else {
       ExpStore.setDoEditorCallback(true);
     }
   },
@@ -143,9 +142,9 @@ module.exports = React.createClass({
   If you don't want the callback (action creator) to fire, need to set doAceCallback in ExpStore to false
   Since keydown sets this to true, events originating within ace will be sent to the callback (action creator)
   */
-  _onChange(e){
+  _onChange(e) {
     let xpStr = this.editor.getValue();
-    if (ExpStore.getDoEditorCallback()){
+    if (ExpStore.getDoEditorCallback()) {
       logDebug("Ace editor detected keychange with callback: " + xpStr);
       ExpActionCreator.handleEditorChange(xpStr);
     }
@@ -154,7 +153,7 @@ module.exports = React.createClass({
   /*
   When the editor receives focus, notify the stores
   */
-  _onFocus(e){
+  _onFocus(e) {
     logDebug("The editor now has focus");
     Store.setFocus('editor');
     this.props.hideToast();
@@ -170,10 +169,10 @@ module.exports = React.createClass({
   Case on the origin in the ExpStore, which is the reason for this expression update
   Most of the cases just call updateValue
   */
-  _onExpressionChange(){
+  _onExpressionChange() {
     let xpChangeOrigin = ExpStore.getXpChangeOrigin();
     logDebug("Editor caught exp update of_type: " +  xpChangeOrigin);
-    switch(xpChangeOrigin){
+    switch(xpChangeOrigin) {
       case Constants.ActionTypes.GRID_KEY_PRESSED:
       case Constants.ActionTypes.TEXTBOX_CHANGED:
       case Constants.ActionTypes.NORMAL_SEL_CHANGED:
@@ -194,7 +193,7 @@ module.exports = React.createClass({
   Don't do a onChange callback; as this request is external (due to Action Creator), not from the editor itself
   Just set value and unselect
   */
-  updateValue(){
+  updateValue() {
     logDebug("Expression: " + ExpStore.getExpression());
     ExpStore.setDoEditorCallback(false);
     this.editor.setValue(ExpStore.getExpression());

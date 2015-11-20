@@ -74,7 +74,7 @@ const ASWorkbookStore = Object.assign({}, BaseStore, {
   mergeWorkbooks(wbs: Dict<ASBackendWorkbookSheet>) {
     for (var key in wbs) {
       let wb = wbs[key];
-      if (_data.workbooks[key]){
+      if (_data.workbooks[key]) {
         // assumes the sheets are actually new
         _data.workbooks[key].wsSheets =
             Util.mergeSheets(_data.workbooks[key].wsSheets,
@@ -87,7 +87,7 @@ const ASWorkbookStore = Object.assign({}, BaseStore, {
   deleteWorkbooks(wbs) {
     // TODO
     for (var key in wbs) {
-      if (_data.workbooks[key]){
+      if (_data.workbooks[key]) {
         _data.workbooks[key].wsSheets =
             Util.removeSheets(_data.workbooks[key].wsSheets,
               wbs[key].wsSheets);

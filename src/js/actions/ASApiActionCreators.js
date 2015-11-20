@@ -137,7 +137,7 @@ wss.onmessage = (event: MessageEvent) => {
         });
        break;
       case "Update":
-        if (msg.payload.tag === "PayloadCL"){
+        if (msg.payload.tag === "PayloadCL") {
           Dispatcher.dispatch({
             _type: 'GOT_UPDATED_CELLS',
             updatedCells: msg.payload.contents
@@ -209,7 +209,7 @@ wss.onmessage = (event: MessageEvent) => {
       case "Find":
         // TODO
       /*
-        let toClientLoc = function(x){
+        let toClientLoc = function(x) {
           return {row:x.index[1],col:x.index[0]};
         };
         let clientLocs = msg.payload.contents.map(toClientLoc);
@@ -323,15 +323,15 @@ export default {
   /**************************************************************************************************************************/
   /* Sending undo/redo/clear messages to the server */
 
-  undo(){
+  undo() {
     let msg = TC.makeClientMessage(Constants.ServerActions.Undo, "PayloadN", []);;
     this.send(msg);
   },
-  redo(){
+  redo() {
     let msg = TC.makeClientMessage(Constants.ServerActions.Redo, "PayloadN", []);
     this.send(msg);
   },
-  clear(){
+  clear() {
     let msg = TC.makeClientMessage(Constants.ServerActions.Clear, "PayloadN", []);
     this.send(msg);
   },
@@ -407,7 +407,7 @@ export default {
     imageHeight: number;
     imageOffsetX: number;
     imageOffsetY: number;
-  }, rng: NakedRange){
+  }, rng: NakedRange) {
     let msg = TC.makeClientMessageRaw(Constants.ServerActions.SetTag, {
       "tag": "PayloadTag",
       "cellTag": {
@@ -422,7 +422,7 @@ export default {
     this.send(msg);
   },
 
-  drag(activeRng: NakedRange, dragRng: NakedRange){
+  drag(activeRng: NakedRange, dragRng: NakedRange) {
     let msg = TC.makeClientMessageRaw(Constants.ServerActions.Drag, {
       tag: "PayloadDrag",
       initialRange: TC.simpleToASRange(activeRng),

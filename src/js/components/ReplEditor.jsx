@@ -35,21 +35,20 @@ function onPropsSet(editor, props) {
           line = editor.getSession().getLine(pos.row),
           lines = editor.getValue().split('\n');
       logDebug("Old backspace value: " + JSON.stringify(lines));
-      if (pos.column < 4){ // In dead-zone
+      if (pos.column < 4) { // In dead-zone
         return;
       }
-      if (pos.column == 4 ){ // At border
+      if (pos.column == 4 ) { // At border
           let isAtPrompt = line.substring(0,4) === ">>> ";
           if (!isAtPrompt) {
               logDebug("Key down position: " + pos.row + " " + pos.column);
               let column = editor.getSession().getLine(pos.row-1).length;
               // goToLine starts at 1, but pos starts at 0
-              if (line.trim() === ""){ // line is empty
+              if (line.trim() === "") { // line is empty
                 let backspaceValPrompt = val.substring(0,val.length-5);
                 editor.setValue(backspaceValPrompt);
                 editor.clearSelection();
-              }
-              else { //line has content to be moved back
+              } else { //line has content to be moved back
                 lines[pos.row-1]+=lines[pos.row].substring(4);
                 lines.splice(pos.row,1);
                 editor.setValue(lines.join('\n'));
@@ -60,8 +59,7 @@ function onPropsSet(editor, props) {
               logDebug("New position: " + JSON.stringify(editor.getCursorPosition()));
               logDebug("New backspace value: " + JSON.stringify(editor.getValue().split('\n')));
               return;
-            }
-          else {
+            } else {
             return;
           }
       }
@@ -134,13 +132,13 @@ module.exports = React.createClass({
     else don't do anything if col < 4. There's also a backspace command triggered on key down.
     Otherwise, act as usual */
     logDebug("REPL KEYDOWN: " + e.which);
-    if (ShortcutUtils.replShouldDeferKey(e)){
+    if (ShortcutUtils.replShouldDeferKey(e)) {
       KeyUtils.killEvent(e);
       this.props.onDeferredKey(e);
     }
     let pos = this.editor.getCursorPosition();
     // If your column position on key down is less than 4 (behind >>> ), do nothing
-    if (pos.column < 4 ){
+    if (pos.column < 4 ) {
       logDebug("WTF BITCH");
       e.preventDefault();
       e.stopPropagation();
@@ -157,15 +155,13 @@ module.exports = React.createClass({
         lastChar = val.substring(val.length-1);
     if (e.which === 13) { // pressed enter
       if (lastChar === "\t") {
-        if (cursor.column === 4){ // automatic tab
+        if (cursor.column === 4) { // automatic tab
           this.editor.getSession().indentRow(cursor.row, cursor.row, "    ");
-        }
-        else if (cursor.column === 1){
+        } else if (cursor.column === 1) {
           val = val.substring(0,val.length-1) + "    \t";
           this.editor.setValue(val);
         }
-      }
-      else if (cursor.column < 4){ // add four spaces to the new line
+      } else if (cursor.column < 4) { // add four spaces to the new line
         logDebug("Enter with current val: " + JSON.stringify(this.editor.getValue().split('\n')));
         let lines = this.editor.getValue().split('\n');
         lines[cursor.row]="    "+lines[cursor.row];
@@ -175,7 +171,7 @@ module.exports = React.createClass({
       }
       this.editor.selection.clearSelection();
     } // end of enter casing
-    else if (lastChar === "\n"){
+    else if (lastChar === "\n") {
       this.editor.setValue(val + "    ");
       this.editor.selection.clearSelection();
     }
@@ -183,7 +179,7 @@ module.exports = React.createClass({
 
   handleClick(e) {
     let cursor = this.editor.selection.getCursor();
-    if (cursor.column <= 4){
+    if (cursor.column <= 4) {
       this.editor.selection.moveCursorToPosition({row: cursor.row, column: 4});
       this.editor.selection.clearSelection();
     }

@@ -25,13 +25,13 @@ export default React.createClass({
   	initialSelection:React.PropTypes.number.isRequired,
   	onClose: React.PropTypes.func.isRequired
   },
-  click(a){
+  click(a) {
   	logDebug("CLICK " + a );
   },
-  _onClose(){
+  _onClose() {
   	this.props.onClose();
   },
-  render(){
+  render() {
   	let button = <IconButton >
   			<FontIcon className="muidocs-icon-custom-sort"/>
 		</IconButton>;

@@ -14,15 +14,15 @@ export default React.createClass({
   	style: React.PropTypes.object.isRequired
   },
 
-  getStaticUrl(){
-    if (Constants.isRemote){
+  getStaticUrl() {
+    if (Constants.isRemote) {
       return 'http://' + HOST_IP + ':9000';
     } else {
       return 'http://' + HOST_BASE_URL + ':9000';
     }
   },
 
-  _onDrop(files){
+  _onDrop(files) {
     console.log('Received files: ', files);
     let req = request
       .post(this.getStaticUrl());
@@ -32,7 +32,7 @@ export default React.createClass({
     req.end();
   },
  
-  render(){
+  render() {
     let buttonStyle = {
       position:'absolute',
       width: this.props.style.width,

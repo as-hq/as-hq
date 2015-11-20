@@ -1,7 +1,7 @@
 import React from 'react';
 
 export default React.createClass({
-  getDefaultProps(){
+  getDefaultProps() {
     return {
       height:'25px'
     }
@@ -10,7 +10,7 @@ export default React.createClass({
     let defaultPad = 2;
     let children = [];
     if (this.props.children) { // deal with only one child
-      if (!Array.isArray(this.props.children)){
+      if (!Array.isArray(this.props.children)) {
         this.props.children = [this.props.children];
       }
       for (var key in this.props.children) {

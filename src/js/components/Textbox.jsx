@@ -26,14 +26,14 @@ export default React.createClass({
     position: React.PropTypes.func.isRequired
   },
 
-  getInitialState(){
+  getInitialState() {
     return {
       isVisible: false,
       renderTrigger: false // WTF we have to do this I feel so dirty
     };
   },
 
-  componentDidMount(){
+  componentDidMount() {
     this.editor = ace.edit('textbox');
     this.editor.$blockScrolling = Infinity;
     this.editor.on('focus', this._onFocus);
@@ -55,10 +55,10 @@ export default React.createClass({
   /**************************************************************************************************************************/
   // Text box focus and update methods
 
-  updateTextBox(xpStr){
+  updateTextBox(xpStr) {
     logDebug("Updating textbox: " + xpStr);
     ExpStore.setDoTextBoxCallback(false);
-    if (!this.state.isVisible){ //will be visible after update, put cursor in textbox
+    if (!this.state.isVisible) { //will be visible after update, put cursor in textbox
       this.showCursor();
     }
 
@@ -67,16 +67,16 @@ export default React.createClass({
     this.editor.clearSelection(); // otherwise ace highlights whole xp
   },
 
-  hideTextBox(){
+  hideTextBox() {
     this.setState({isVisible:false});
   },
 
-  showCursor(){
+  showCursor() {
     this.editor.renderer.$cursorLayer.showCursor(); // blinking cursor on textbox
   },
 
-  getWidth(){
-    if (Store.getActiveSelection()){
+  getWidth() {
+    if (Store.getActiveSelection()) {
       let xp = this.editor.getValue(),
           rows = xp.split("\n"),
           longestStr = rows.reduce(function (a, b) { return a.length > b.length ? a : b; }),
@@ -98,12 +98,12 @@ export default React.createClass({
   /**************************************************************************************************************************/
   // Helpers
 
-  insertRef(newRef){
+  insertRef(newRef) {
     let lastRef = ExpStore.getLastRef();
     logDebug("Inserting ref in textbox " + newRef);
     logDebug("Expression before insertion: " + this.editor.getValue());
     ExpStore.setDoTextBoxCallback(false);
-    if (lastRef !== null){
+    if (lastRef !== null) {
       ParseUtils.deleteLastRef(this.editor,lastRef);
     }
     this.editor.getSession().insert(this.editor.getCursorPosition(),newRef);
@@ -113,7 +113,7 @@ export default React.createClass({
   /**************************************************************************************************************************/
   // Respond to events from ace
 
-  _onKeyDown(e){
+  _onKeyDown(e) {
     logDebug("\n\nTEXTBOX KEYDOWN");
     if (ShortcutUtils.textboxShouldDeferKey(e)) {
       // console.log("TEXTBOX DEFERRING KEY");
@@ -127,9 +127,9 @@ export default React.createClass({
     }
   },
 
-  _onChange(e){
+  _onChange(e) {
     let xpStr = this.editor.getValue();
-    if (ExpStore.getDoTextBoxCallback()){
+    if (ExpStore.getDoTextBoxCallback()) {
       logDebug("Textbox change new string: " + xpStr);
       ExpActionCreator.handleTextBoxChange(xpStr);
     }

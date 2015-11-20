@@ -15,7 +15,7 @@ export default {
   },
 
   // Textbox onkeyup fired, xpStr is the new string
-  handleTextBoxChange(xpStr){
+  handleTextBoxChange(xpStr) {
     Dispatcher.dispatch({
      _type: Constants.ActionTypes.TEXTBOX_CHANGED,
       xpStr: xpStr
@@ -24,21 +24,21 @@ export default {
 
   // Grid key pressed; xpStr is the updated str
   // namely, the old string with a new character at the end
-  handleGridChange(xpStr){
+  handleGridChange(xpStr) {
     Dispatcher.dispatch({
      _type: Constants.ActionTypes.GRID_KEY_PRESSED,
       xpStr: xpStr
     });
   },
 
-  handleSelChange(xpStr){
+  handleSelChange(xpStr) {
     Dispatcher.dispatch({
      _type: Constants.ActionTypes.NORMAL_SEL_CHANGED,
       xpStr: xpStr
     });
   },
 
-  handlePartialRefEditor(xpStr,excelStr){
+  handlePartialRefEditor(xpStr,excelStr) {
     Dispatcher.dispatch({
      _type: Constants.ActionTypes.PARTIAL_REF_CHANGE_WITH_EDITOR,
       xpStr: xpStr,
@@ -46,7 +46,7 @@ export default {
     });
   },
 
-  handlePartialRefTextBox(xpStr,excelStr){
+  handlePartialRefTextBox(xpStr,excelStr) {
     Dispatcher.dispatch({
      _type: Constants.ActionTypes.PARTIAL_REF_CHANGE_WITH_TEXTBOX,
       xpStr: xpStr,
@@ -54,14 +54,14 @@ export default {
     });
   },
 
-  handlePartialRefGrid(excelStr){
+  handlePartialRefGrid(excelStr) {
     Dispatcher.dispatch({
      _type: Constants.ActionTypes.PARTIAL_REF_CHANGE_WITH_GRID,
       excelStr:excelStr
     });
   },
 
-  handleEscape(){
+  handleEscape() {
     Dispatcher.dispatch({
      _type: Constants.ActionTypes.ESC_PRESSED
     });

@@ -19,7 +19,7 @@ export default React.createClass({
   	onModal: React.PropTypes.func.isRequired
   },
 
-  getInitialState(){
+  getInitialState() {
   	return {
   		// Don't set to 0; otherwise you lose position state upon reloading find bar
   		// This is for the "1 of 5" stuff
@@ -28,43 +28,42 @@ export default React.createClass({
   	};
   },
 
-  componentDidMount(){
+  componentDidMount() {
   	// Place focus in the find textarea upon mounting
   	this.refs.findText.focus();
   	Store.addChangeListener(this.handleChange);
   },
 
-  componentWillUnmount(){
+  componentWillUnmount() {
   	Store.removeChangeListener(this.handleChange);
   },
 
   // Respond to a find response from backend
-  handleChange(){
+  handleChange() {
   	this.setState({pos:Store.getFindPos(),total:Store.getFindTotal()});
   },
 
-  _onClose(){
+  _onClose() {
   	Store.setFindText(this.refs.findText.getValue());
   	this.props.onClose();
   },
 
-  _onEnter(){
+  _onEnter() {
   	let curText = this.refs.findText.getValue();
-  	if (Store.getFindText() === curText){ // increment 
+  	if (Store.getFindText() === curText) { // increment 
   		this.props.onNext();
-  	}
-  	else {
+  	} else {
   		Store.setFindText(curText);
   		this.props.onEnter();
   	}
   },
 
-  _onModal(){
+  _onModal() {
   	Store.setFindText(this.refs.findText.getValue());
   	this.props.onModal();
   },
 
-  render(){
+  render() {
   	let buttonStyle = {
   		left:"5px",
   		display:"inline-block",

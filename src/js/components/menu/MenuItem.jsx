@@ -19,9 +19,7 @@ var MenuItem = React.createClass({
   componentDidUpdate(prevProps, prevState) {
     if (this.state.open && !prevState.open) {
       this.bindCloseHandlers()
-    }
-
-    else if (prevState.open && !this.state.open) {
+    } else if (prevState.open && !this.state.open) {
       this.unbindCloseHandlers()
     }
   },

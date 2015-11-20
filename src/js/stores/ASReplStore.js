@@ -45,43 +45,45 @@ dispatcherIndex: Dispatcher.register(function (action) {
 
 const ASReplStore = assign({}, BaseStore, {
 
-  updateReplExp(lang,value){
+  updateReplExp(lang,value) {
     logDebug("In repl store, updating repl data "+ lang + " " + value);
     _data.replExps[lang] = value;
     logDebug(JSON.stringify(_data.replExps));
   },
 
-  getReplExp(lang){
+  getReplExp(lang) {
     return _data.replExps[lang];
   },
 
-  getExps(){
+  getExps() {
     return _data.replExps;
   },
 
-  getSubmittedLanguage(){
+  getSubmittedLanguage() {
     return _data.replSubmitLang;
   },
 
-  updateUponResponse(resp){
+  updateUponResponse(resp) {
     logDebug("In repl store, updating response repl data "+ JSON.stringify(resp));
     let lang = resp.replLang,
         val = Util.showValue(resp.replValue, true);
     _data.replShow = this.shouldShowResponse(resp);
     _data.replSubmitLang = lang
     logDebug("previous data: " +_data.replExps[lang] );
-    if (_data.replShow){
+    if (_data.replShow) {
       _data.replExps[lang] += "\n>>> " + val + "\n>>> ";
+    } else {
+      this.advanceLine(lang);
     }
-    else this.advanceLine(lang);
   },
 
 // @optional lang
   advanceLine(lang) {
-    if (lang)
+    if (lang) {
       _data.replExps[lang] += "\n>>> ";
-    else
+    } else {
       _data.replExps[_data.currentLanguage.Server] += "\n>>> ";
+    }
   },
 
   setLanguage(lang) {
@@ -89,8 +91,8 @@ const ASReplStore = assign({}, BaseStore, {
   },
 
   // TODO: make fully correct (seems alright for now -- Ritesh 10/12)
-  shouldShowResponse(resp){
-    if (resp.replValue.tag=="NoValue"){
+  shouldShowResponse(resp) {
+    if (resp.replValue.tag=="NoValue") {
       return false;
     }
     return true;

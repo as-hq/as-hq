@@ -48,7 +48,7 @@ export default React.createClass({
 
   onSelect: function (command) {
     // console.log('Selected: %s', command);
-    switch (command){
+    switch (command) {
       case "undo":
         API.sendUndoRequest();
         break;

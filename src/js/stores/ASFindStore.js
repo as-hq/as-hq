@@ -39,39 +39,39 @@ const ASFindStore = assign({}, BaseStore, {
   /**************************************************************************************************************************/
   // store modification methods
 
-  getFindText(){
+  getFindText() {
     return _data.findText;
   },
-  setFindText(v){
+  setFindText(v) {
     _data.findText=v;
   },
-  getFindPos(){
+  getFindPos() {
     return _data.findPos;
   },
-  setFindPos(pos){
+  setFindPos(pos) {
     _data.findPos=pos;
   },
-  getFindTotal(){
+  getFindTotal() {
     return _data.findTotal;
   },
-  setFindTotal(t){
+  setFindTotal(t) {
     _data.findTotal=t;
   },
-  setFindLocs(locs){
+  setFindLocs(locs) {
     _data.findLocs = locs;
   },
-  getFindLocs(){
+  getFindLocs() {
     return _data.findLocs;
   },
-  increment(){
-    if (this.getFindTotal() !== 0){
+  increment() {
+    if (this.getFindTotal() !== 0) {
       let n = this.getFindTotal(),
           p = this.getFindPos()+1;
       this.setFindPos(((p % n) + n) % n); // fucking js
     }
   },
-  decrement(){
-    if (this.getFindTotal() !== 0){
+  decrement() {
+    if (this.getFindTotal() !== 0) {
       let n = this.getFindTotal(),
           p = this.getFindPos()-1;
       this.setFindPos(((p % n) + n) % n);
