@@ -688,7 +688,7 @@ describe('backend', () => {
         });
       });
 
-      xdescribe('excel', () => {
+      describe('excel', () => {
         it('should evaluate sums', (done) => {
           _do([
             python('A1', 'range(10)'),
@@ -892,7 +892,7 @@ describe('backend', () => {
 
       });
 
-      xdescribe('row/col insertion, deletion, and swapping', () => {
+      describe('row/col insertion, deletion, and swapping', () => {
         describe('row insertion', () => {
           it('should move cells to correct locations', (done) => {
             _do([
