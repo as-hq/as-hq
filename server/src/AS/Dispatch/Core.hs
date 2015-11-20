@@ -178,42 +178,50 @@ evalChain conn valuesMap cells src =
     hoistEither result
 
 -- | evalChain' works in two parts. First, it goes through the list of cells passed in and
--- evaluates them. Along the way, new list cells (created as part of a list) are created
--- that may need to get re-evaluated. These get recorded in the fourth argument (type [ASList]),
+-- evaluates them. Along the way, new fat cells (created as part of a list) are created
+-- that may need to get re-evaluated. These get recorded in the fourth argument (type [FatCell]),
 -- and the heads of these lists get recorded in the fifth.
 --
--- When we finish evaluating the original list of cells, we go through the newly created list cells
--- and essentially re-evaluate those. We are NOT just running eval on this list of cells directly,
+-- When we finish evaluating the original list of cells, we go through the newly created fat cells
+-- and re-evaluate those. We are NOT just running eval on this list of cells directly,
 -- because we don't need to re-evaluate the individual cells in the list, ONLY their descendants.
 -- We also need to check for circular dependencies, which is why the pastListHeads are passed in.
+-- 
+-- Note that we can get into arbitrarily many cycles of alternating between normal evalChains, 
+-- then evalChains where we're processing fatCells, normal evalChains, fatCell processing evalChains, 
+-- etc. Note also that pastFatCellHeads accumulates across all of these, and doesn't just reflect the
+-- heads of the cells passed in from the latest eval. 
+-- 
 -- #needsrefactor there's probably a more Haskell way of doing this with a state monad or something.
-
 evalChain' :: Connection -> FormattedValMap -> [ASCell] -> [FatCell] -> [ASIndex] -> EitherTExec ([ASCell], [FatCell])
 evalChain' _ _ [] [] _ = return ([], [])
 
 evalChain' conn valuesMap [] fatCells pastFatCellHeads = 
   -- get expanded cells from fat cells
-  let unwrap (FatCell fcells _)     = fcells
-      cells                           = concat $ map unwrap fatCells
-      isFatCellHead loc               = loc `elem` pastFatCellHeads
-      nonHeadLocs                     = filter (not . isFatCellHead) $ map cellLocation cells
-      checkCircular loc               = if (isFatCellHead loc) then (left $ CircularDepError loc) else (return ())
-      isNotInMap loc                  = loc `M.notMember` valuesMap
+  let unwrap (FatCell fcells _) = fcells
+      cells                     = concat $ map unwrap fatCells
+      isFatCellHead loc         = loc `elem` pastFatCellHeads
+      nonHeadLocs               = filter (not . isFatCellHead) $ map cellLocation cells
+      isNotInMap loc            = loc `M.notMember` valuesMap
   in do
-    -- NOTE: we only need to deal with properDescLocs (not including original start locs) in this method, and not all desc locs
-    -- This is because listCellLocs' already filters for not being in a pastListHead, 
-    -- and also because the starting locs can't possibly be in the value map, and don't need to be re-evaluated
-    descLocs <- filter isNotInMap <$> G.getDescendants nonHeadLocs
+    -- NOTE: we only need to deal with proper descendants, because the starting locs can't possibly 
+    -- be in the value map and don't need to be re-evaluated. 
+    -- 
+    -- We can also remove the descendants that are already in the map, because they've already 
+    -- been evaluated. (We also MUST remove them, because some of the descendants might not have
+    -- existed before the eval, and if we include them among nextLocs we'll get an error when we
+    -- try to pull out the cell at that location in getCellsToEval.)
+    nextLocs <- filter isNotInMap <$> G.getDescendants nonHeadLocs
     -- check for circular dependencies. IF a circular dependency exists, it necessarily has to
     -- involve one of the list heads, since the cells created as part of a list depend only
     -- on the head. So we go through the descendants of the current list cells (sans the previous
-    -- list heads), so if those contain any of the previous list heads we know there's a cycle.
-    mapM_ checkCircular descLocs
-    -- DON'T need to re-eval anything that's already been evaluated
+    -- list heads), and if those contain any of the previous list heads we know there's a cycle.
+    let checkCircular loc = if (isFatCellHead loc) then (left $ CircularDepError loc) else (return ())
+    mapM_ checkCircular nextLocs
     -- #needsrefactor it seems like a large chunk of code here mirrors that in evalChain... should probably DRY
-    ancLocs <- G.getImmediateAncestors descLocs
+    ancLocs <- G.getImmediateAncestors nextLocs
     formattedNewMap <- lift $ formatValsMap =<< getValuesMap conn ancLocs
-    cells' <- getCellsToEval conn descLocs [] -- the origCells are the list cells, which got filtered out of descLocs
+    cells' <- getCellsToEval conn nextLocs [] -- the origCells are the list cells, which got filtered out of nextLocs
     evalChain' conn (M.union valuesMap formattedNewMap) cells' [] pastFatCellHeads
 
 evalChain' conn valuesMap (c@(Cell loc xp _ ts):cs) fatCells fatCellHeads = do
