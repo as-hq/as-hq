@@ -8,13 +8,13 @@ import type {
   NakedIndex,
   NakedRange,
   ASIndex,
-  ValueL,
   ValueError,
   ASValue,
   ASLanguage,
   ASSheet,
   ASCellTag,
-  ASCell
+  ASCell,
+  ExpandingType
 } from '../types/Eval';
 
 import type {
@@ -107,10 +107,6 @@ export default {
     }
   },
 
-  showFullValueList(cv: ValueL): string {
-    return JSON.stringify(cv.contents.map(this.showValue));
-  },
-
   tagsToRenderConfig(config: HGRendererConfig, tags: Array<ASCellTag>): HGRendererConfig {
     let self = this;
     for (var i=0; i<tags.length; i++) {
@@ -154,12 +150,12 @@ export default {
     return config;
   },
 
-  displayTypeToRenderConfig(config: HGRendererConfig, dtype: DisplayType): RendererConfig {
-    switch (dtype) {
+  expandingTypeToRenderConfig(config: HGRendererConfig, etype: ExpandingType): HGRendererConfig {
+    switch (etype) {
       case "List":
         config.bgColor = colors["cornsilk"];
         return config;
-      case "Object":
+      default:
         config.bgColor = colors["lightcyan"];
         return config;
     }
