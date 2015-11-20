@@ -938,6 +938,19 @@ describe('backend', () => {
               exec(done)
             ]);
           });
+
+          xit('should decouple lists', (done) => {
+            _do([
+              python('A1', 'range(10)'),
+              insertRow(3), 
+              shouldBe('A1', valueI(0)),
+              shouldBe('A2', valueI(1)),
+              shouldBeNothing('A3'), 
+              shouldBe('A4', valueI(2)),
+              shouldBe('A11', valueI(9)),
+              exec(done)
+            ]);
+          });
         });
 
         describe('row deletion', () => {
@@ -1048,6 +1061,19 @@ describe('backend', () => {
               excel('B1', '=SUM(A1:A10)'),
               insertCol(1),
               shouldBe('C1', valueI(45)),
+              exec(done)
+            ]);
+          });
+
+          xit('should decouple lists', (done) => {
+            _do([
+              python('A1', '[range(10)]'),
+              insertCol(3), 
+              shouldBe('A1', valueI(0)),
+              shouldBe('B1', valueI(1)),
+              shouldBeNothing('C1'), 
+              shouldBe('D1', valueI(2)),
+              shouldBe('K1', valueI(9)),
               exec(done)
             ]);
           });
@@ -1520,6 +1546,16 @@ describe('backend', () => {
             python('A1', '10'), python('A2', '11'), python('A4', 'sum($A$2:A3)'),
             cut('A1:A2', 'B1:B2'),
             expressionShouldBe('A4', 'sum($A$2:A3)'),
+            exec(done)
+          ]);
+        });
+
+        it('should not re-eval the head of a fat cell', (done) => {
+          _do([
+            python('A1', 'range(10)'), 
+            cut('A1', 'B1'),
+            shouldBe('B1', valueI(0)), 
+            shouldBe('A2', valueI(1)),
             exec(done)
           ]);
         });
