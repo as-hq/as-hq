@@ -87,13 +87,17 @@ skip p = p >> (return "")
 -- Value parsers
 
 -- | Because Haskell's float lexer doesn't parse negative floats out of the box. <__<
-float' :: P.TokenParser () -> Parser Double
-float' lexer = do 
-  maybeMinus <- optionMaybe $ try (char '-') 
-  f <- P.float lexer
-  case maybeMinus of 
-    Nothing -> return f 
-    _ -> return (-f)
+float' :: Parser Double
+float' = fmap rd $ integer <++> decimal <++> exponent
+  where (<++>) a b = (++) <$> a <*> b
+        (<:>) a b  = (:) <$> a <*> b
+        plus       = char '+' *> number
+        number     = many1 digit
+        minus      = char '-' <:> number
+        integer    = plus <|> minus <|> number
+        rd         = read :: String -> Double
+        decimal    = char '.' <:> number
+        exponent   = option "" $ oneOf "eE" <:> integer
 
 -- | Matches an escaped string and returns the unescaped version. E.g. 
 -- "\"hello" -> "hello

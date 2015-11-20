@@ -51,7 +51,7 @@ integer :: Parser Int
 integer = fromInteger <$> P.integer lexer
 
 float :: Parser Double
-float = float' lexer
+float = float'
 
 nullValue :: ASLanguage -> Parser ASValue
 nullValue lang = case lang of 
