@@ -54,20 +54,16 @@ testDispatch state lang crd str = runDispatchCycle state [Cell (Index sid crd) (
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Exposed functions / regular eval route
 
-
-
-----------------------------------------------------------------------------------------------------------------------------------------------
--- Dispatch helpers
-
 -- assumes all evaled cells are in the same sheet
 -- the only information we're really passed in from the cells is the locations and the expressions of
 -- the cells getting evaluated. We pull the rest from the DB. 
 runDispatchCycle :: MVar ServerState -> [ASCell] -> CommitSource -> IO ASServerMessage
 runDispatchCycle state cs src = do
   roots <- EM.evalMiddleware cs
+  conn <- dbConn <$> readMVar state
   errOrCells <- runEitherT $ do
     transaction <- dispatch state roots src
-    broadcastCells <- runPostDispatch state transaction-- atomically performs DB ops. (Sort of a lie -- writing to server is not atomic.)
+    broadcastCells <- DT.writeTransaction conn transaction-- atomically performs DB ops. (Sort of a lie -- writing to server is not atomic.)
     return broadcastCells
   case errOrCells of 
     Left _ -> G.rollbackGraph
@@ -96,34 +92,6 @@ dispatch state roots src = do
   -- Apply endware
   finalizedCells <- lift $ EE.evalEndware state afterCells src roots
   right $ Transaction src finalizedCells fatCells
-
--- TODO get rid of
-runDecoupledDispatchCycle :: MVar ServerState -> [ASIndex] -> CommitSource -> IO (Maybe ASCommit)
-runDecoupledDispatchCycle state locs src = do
-  roots <- catMaybes <$> DB.getCells locs
-  conn <- dbConn <$> readMVar state
-  errOrCommit <- runEitherT $ do
-    transaction <- dispatch state roots src
-    commit <- DT.transactionToCommit conn transaction
-    return commit
-  case errOrCommit of 
-    Left _ -> G.rollbackGraph >> return Nothing
-    Right commit -> return $ Just commit
-
-runPostDispatch :: MVar ServerState -> ASTransaction -> EitherTExec [ASCell]
-runPostDispatch state transaction@(Transaction src _ _) = do
-  conn <- lift $ dbConn <$> readMVar state
-  originalCommit@(Commit _ _ bd _ _) <- DT.transactionToCommit conn transaction 
-  let decoupleKeys = map descriptorKey bd
-      decoupleLocs = concat $ map DU.rangeKeyToIndices decoupleKeys
-  decoupleDescendants <- G.getDescendants decoupleLocs
-  maybeDecoupledCommit <- lift $ runDecoupledDispatchCycle state decoupleDescendants src
-  case maybeDecoupledCommit of 
-    Just decoupledCommit -> do
-      let fullCommit@(Commit _ afterCells _ _ _) = U.mergeCommits decoupledCommit originalCommit
-      lift $ DT.pushCommit conn fullCommit src
-      right afterCells
-    Nothing -> left RuntimeEvalException
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Eval building blocks
@@ -206,7 +174,7 @@ evalChain conn valuesMap cells src =
           U.writeErrToLog ("Runtime exception caught" ++ (show e)) src
           return $ Left RuntimeEvalException
   in do
-    result <- liftIO $ catch (runEitherT $ evalChain' conn valuesMap cells []) whenCaught
+    result <- liftIO $ catch (runEitherT $ evalChain' conn valuesMap cells [] []) whenCaught
     hoistEither result
 
 -- | evalChain' works in two parts. First, it goes through the list of cells passed in and
@@ -220,10 +188,35 @@ evalChain conn valuesMap cells src =
 -- We also need to check for circular dependencies, which is why the pastListHeads are passed in.
 -- #needsrefactor there's probably a more Haskell way of doing this with a state monad or something.
 
-evalChain' :: Connection -> FormattedValMap -> [ASCell] -> [FatCell] -> EitherTExec ([ASCell], [FatCell])
-evalChain' _ _ [] fcells = return ([], [])
+evalChain' :: Connection -> FormattedValMap -> [ASCell] -> [FatCell] -> [ASIndex] -> EitherTExec ([ASCell], [FatCell])
+evalChain' _ _ [] [] _ = return ([], [])
 
-evalChain' conn valuesMap (c@(Cell loc xp _ ts):cs) fatCells = do
+evalChain' conn valuesMap [] fatCells pastFatCellHeads = 
+  -- get expanded cells from fat cells
+  let unwrap (FatCell fcells _)     = fcells
+      cells                           = concat $ map unwrap fatCells
+      isFatCellHead loc               = loc `elem` pastFatCellHeads
+      nonHeadLocs                     = filter (not . isFatCellHead) $ map cellLocation cells
+      checkCircular loc               = if (isFatCellHead loc) then (left $ CircularDepError loc) else (return ())
+      isNotInMap loc                  = loc `M.notMember` valuesMap
+  in do
+    -- NOTE: we only need to deal with properDescLocs (not including original start locs) in this method, and not all desc locs
+    -- This is because listCellLocs' already filters for not being in a pastListHead, 
+    -- and also because the starting locs can't possibly be in the value map, and don't need to be re-evaluated
+    descLocs <- filter isNotInMap <$> G.getDescendants nonHeadLocs
+    -- check for circular dependencies. IF a circular dependency exists, it necessarily has to
+    -- involve one of the list heads, since the cells created as part of a list depend only
+    -- on the head. So we go through the descendants of the current list cells (sans the previous
+    -- list heads), so if those contain any of the previous list heads we know there's a cycle.
+    mapM_ checkCircular descLocs
+    -- DON'T need to re-eval anything that's already been evaluated
+    -- #needsrefactor it seems like a large chunk of code here mirrors that in evalChain... should probably DRY
+    ancLocs <- G.getImmediateAncestors descLocs
+    formattedNewMap <- lift $ formatValsMap =<< getValuesMap conn ancLocs
+    cells' <- getCellsToEval conn descLocs [] -- the origCells are the list cells, which got filtered out of descLocs
+    evalChain' conn (M.union valuesMap formattedNewMap) cells' [] pastFatCellHeads
+
+evalChain' conn valuesMap (c@(Cell loc xp _ ts):cs) fatCells fatCellHeads = do
   cvf@(Formatted cv f) <- EC.evaluateLanguage (locSheetId loc) (cellLocation c) valuesMap xp
   let maybeFatCell              = DE.decomposeCompositeValue c cv
       addCell (Cell l _ v _) mp = M.insert l (Formatted (CellValue v) f) mp
@@ -236,40 +229,16 @@ evalChain' conn valuesMap (c@(Cell loc xp _ ts):cs) fatCells = do
                   idxInserted = M.insert loc cvf valuesMap
       -- ^ when updating a location in the map, check if there are Pointer references to the same location.
       -- if so, update them too
-              Just (FatCell expandedCells _ _) -> foldr addCell valuesMap expandedCells
+              Just (FatCell expandedCells _) -> foldr addCell valuesMap expandedCells
       -- ^ adds all the cells in cellsList to the reference map
-      fatCells' = case maybeFatCell of
-                Nothing -> fatCells
-                Just f  -> f:fatCells
-  (restCells, restFatCells) <- evalChain' conn newValuesMap cs fatCells'
+      (fatCells', fatCellHeads') = case maybeFatCell of
+                Nothing -> (fatCells, fatCellHeads)
+                Just f  -> (f:fatCells, loc:fatCellHeads)
+  (restCells, restFatCells) <- evalChain' conn newValuesMap cs fatCells' fatCellHeads'
   -- TODO investigate strictness here
   return $ case maybeFatCell of
-    Nothing        -> let {(CellValue v) = cv} 
-      in ((Cell loc xp v ts):restCells, restFatCells)
-    (Just fatCell) -> (restCells, fatCell:restFatCells)
-
-evalChain' conn valuesMap [] fatCells = 
-  -- get expanded cells from fat cells
-  let unwrap (FatCell fcells fhead _) = (fcells, [fhead])
-      (cells, fatCellHeads)           = U.liftListTuple $ map unwrap fatCells
-      isFatCellHead loc               = loc `elem` fatCellHeads
-      locs                            = filter (not . isFatCellHead) $ map cellLocation cells
-      checkCircular loc               = if (isFatCellHead loc) then (left $ CircularDepError loc) else (return ())
-  in do
-    -- NOTE: we only need to deal with properDescLocs (not including original start locs) in this method, and not all desc locs
-    -- This is because listCellLocs' already filters for not being in a pastListHead, 
-    -- and also because the starting locs can't possibly be in the value map, and don't need to be re-evaluated
-    descLocs <- G.getProperDescendants locs
-    -- check for circular dependencies. IF a circular dependency exists, it necessarily has to
-    -- involve one of the list heads, since the cells created as part of a list depend only
-    -- on the head. So we go through the descendants of the current list cells (sans the previous
-    -- list heads), so if those contain any of the previous list heads we know there's a cycle.
-    mapM_ checkCircular descLocs
-    -- DON'T need to re-eval anything that's already been evaluated
-    -- #needsrefactor it seems like a large chunk of code here mirrors that in evalChain... should probably DRY
-    ancLocs <- G.getImmediateAncestors descLocs
-    newMap <- lift $ getValuesMap conn ancLocs
-    formattedNewMap <- lift $ formatValsMap newMap
-    cells' <- getCellsToEval conn descLocs [] -- the origCells are the list cells, which got filtered out of descLocs
-    evalChain' conn (M.union valuesMap formattedNewMap) cells' fatCells
-
+    Nothing        -> (newCell:restCells, restFatCells)
+      where
+        (CellValue v) = cv
+        newCell = formatCell f (Cell loc xp v ts)
+    Just fatCell -> (restCells, fatCell:restFatCells)

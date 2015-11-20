@@ -107,9 +107,8 @@ getCompositeCells conn locs = do
           -- if the cell was coupled but no range descriptor exists, something fucked up.
           (Just desc) <- getRangeDescriptor conn key
           let fatLocs = DU.rangeKeyToIndices key
-          let (headIdx, _) = DU.rangeKeyToDimensions key 
           cells <- map fromJust <$> getCells fatLocs
-          return . Just . Fat $ FatCell cells headIdx desc
+          return . Just . Fat $ FatCell cells desc
         _ -> (putStrLn $ "got pointer ref, but no fat cell: " ++ (show ccell)) >> (return $ Single <$> ccell)
       _ -> return $ Single <$> ccell 
 

@@ -139,7 +139,7 @@ data RangeDescriptor = RangeDescriptor { descriptorKey :: RangeKey, expandingTyp
 -- range keys are used to access range descriptors, which relay metadata about a range of cells
 -- e.g. for embedded lists and objects
 type RangeKey = String
-data FatCell = FatCell { expandedCells :: [ASCell], headIndex :: ASIndex, descriptor :: RangeDescriptor } deriving (Show, Read)
+data FatCell = FatCell { expandedCells :: [ASCell], descriptor :: RangeDescriptor } deriving (Show, Read)
 data CompositeCell = Single ASCell | Fat FatCell
 
 ----------------------------------------------------------------------------------------------------------------------------------------------

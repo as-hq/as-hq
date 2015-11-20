@@ -22,8 +22,8 @@ import Control.Monad.Trans.Class
 -- top-level functions
 
 -- | Deal with updating all DB-related things after an eval. 
-transactionToCommit :: Connection -> ASTransaction -> EitherTExec ASCommit
-transactionToCommit conn (Transaction (sid, _) afterCells fatCells) = 
+writeTransaction :: Connection -> ASTransaction -> EitherTExec [ASCell]
+writeTransaction conn (Transaction src@(sid, _) afterCells fatCells) = 
   let extraCells       = concat $ map expandedCells fatCells
       locs             = map cellLocation afterCells
       afterCells'      = afterCells ++ extraCells
@@ -51,7 +51,9 @@ transactionToCommit conn (Transaction (sid, _) afterCells fatCells) =
     liftIO $ mapM_ (couple conn) afterDescriptors
     --construct commit
     time <- lift $ getASTime
-    right $ Commit beforeCells' afterCells'' beforeDescriptors afterDescriptors time
+    let commit = Commit beforeCells' afterCells'' beforeDescriptors afterDescriptors time
+    lift $ pushCommit conn commit src
+    right afterCells''
 
 ----------------------------------------------------------------------------------------------------------------------
 -- helpers

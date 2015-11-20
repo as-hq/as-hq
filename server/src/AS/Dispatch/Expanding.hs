@@ -18,14 +18,14 @@ import qualified Data.List as L
 decomposeCompositeValue :: ASCell -> CompositeValue -> Maybe FatCell
 decomposeCompositeValue _ (CellValue _) = Nothing
 
-decomposeCompositeValue c@(Cell idx _ _ _) (Expanding (VList coll)) = Just $ FatCell cells idx desc
+decomposeCompositeValue c@(Cell idx _ _ _) (Expanding (VList coll)) = Just $ FatCell cells desc
   where
     dims      = getDimensions coll
     rangeKey  = DU.getRangeKey idx dims
     desc      = RangeDescriptor rangeKey List $ M.fromList []
     cells     = decomposeCells desc c coll
 
-decomposeCompositeValue c@(Cell idx _ _ _) (Expanding (VRList pairs)) = Just $ FatCell cells idx desc
+decomposeCompositeValue c@(Cell idx _ _ _) (Expanding (VRList pairs)) = Just $ FatCell cells desc
   where
     names     = map (ValueS . fst) pairs
     vals      = transpose' $ map snd pairs
@@ -35,7 +35,7 @@ decomposeCompositeValue c@(Cell idx _ _ _) (Expanding (VRList pairs)) = Just $ F
     desc      = RangeDescriptor rangeKey RList $ M.fromList []
     cells     = decomposeCells desc c coll
 
-decomposeCompositeValue c@(Cell idx _ _ _) (Expanding (VRDataFrame labels indices vals)) = Just $ FatCell cells idx desc
+decomposeCompositeValue c@(Cell idx _ _ _) (Expanding (VRDataFrame labels indices vals)) = Just $ FatCell cells desc
   where
     vals'     = M $ prependColumn (NoValue:indices) (labels:vals)
     dims      = getDimensions vals'
@@ -43,14 +43,14 @@ decomposeCompositeValue c@(Cell idx _ _ _) (Expanding (VRDataFrame labels indice
     desc      = RangeDescriptor rangeKey RDataFrame $ M.fromList []
     cells     = decomposeCells desc c vals'
 
-decomposeCompositeValue c@(Cell idx _ _ _) (Expanding (VNPArray coll)) = Just $ FatCell cells idx desc
+decomposeCompositeValue c@(Cell idx _ _ _) (Expanding (VNPArray coll)) = Just $ FatCell cells desc
   where
     dims      = getDimensions coll
     rangeKey  = DU.getRangeKey idx dims
     desc      = RangeDescriptor rangeKey NPArray $ M.fromList []
     cells     = decomposeCells desc c coll
 
-decomposeCompositeValue c@(Cell idx _ _ _) (Expanding (VNPMatrix mat)) = Just $ FatCell cells idx desc
+decomposeCompositeValue c@(Cell idx _ _ _) (Expanding (VNPMatrix mat)) = Just $ FatCell cells desc
   where
     coll      = M mat
     dims      = getDimensions coll
@@ -58,7 +58,7 @@ decomposeCompositeValue c@(Cell idx _ _ _) (Expanding (VNPMatrix mat)) = Just $ 
     desc      = RangeDescriptor rangeKey NPMatrix $ M.fromList []
     cells     = decomposeCells desc c coll
 
-decomposeCompositeValue c@(Cell idx _ _ _) (Expanding (VPDataFrame labels indices vals)) = Just $ FatCell cells idx desc
+decomposeCompositeValue c@(Cell idx _ _ _) (Expanding (VPDataFrame labels indices vals)) = Just $ FatCell cells desc
   where
     vals'     = M $ prependColumn (NoValue:indices) (labels:vals)
     dims      = getDimensions vals'
@@ -66,7 +66,7 @@ decomposeCompositeValue c@(Cell idx _ _ _) (Expanding (VPDataFrame labels indice
     desc      = RangeDescriptor rangeKey PDataFrame $ M.fromList []
     cells     = decomposeCells desc c vals'
 
-decomposeCompositeValue c@(Cell idx _ _ _) (Expanding (VPSeries indices vals)) = Just $ FatCell cells idx desc
+decomposeCompositeValue c@(Cell idx _ _ _) (Expanding (VPSeries indices vals)) = Just $ FatCell cells desc
   where
     dims      = getDimensions (A vals)
     rangeKey  = DU.getRangeKey idx dims
@@ -98,13 +98,13 @@ prependColumn arr mat = map (\(x,xs) -> x:xs) $ zip arr mat
 -- value recomposition
 
 recomposeCompositeValue :: FatCell -> CompositeValue
-recomposeCompositeValue (FatCell cells _ (RangeDescriptor key List _)) = Expanding val
+recomposeCompositeValue (FatCell cells (RangeDescriptor key List _)) = Expanding val
   where
     val = VList coll
     coll = recomposeCells dims cells
     (_, dims) = rangeKeyToDimensions key
 
-recomposeCompositeValue (FatCell cells _ (RangeDescriptor key RList _)) = Expanding val
+recomposeCompositeValue (FatCell cells (RangeDescriptor key RList _)) = Expanding val
   where
     val = VRList $ zip names' fields'
     names' = map (\(ValueS s) -> s) names
@@ -112,7 +112,7 @@ recomposeCompositeValue (FatCell cells _ (RangeDescriptor key RList _)) = Expand
     (M (names:fields)) = recomposeCells dims cells
     (_, dims) = rangeKeyToDimensions key
 
-recomposeCompositeValue (FatCell cells _ (RangeDescriptor key RDataFrame _)) = Expanding val
+recomposeCompositeValue (FatCell cells (RangeDescriptor key RDataFrame _)) = Expanding val
   where 
     val       = VRDataFrame labels indices (L.transpose vals)
     ((_:labels):indexedVals) = mat
@@ -121,19 +121,19 @@ recomposeCompositeValue (FatCell cells _ (RangeDescriptor key RDataFrame _)) = E
     (M mat)   = recomposeCells dims cells
     (_, dims) = rangeKeyToDimensions key
 
-recomposeCompositeValue (FatCell cells _ (RangeDescriptor key NPArray _)) = Expanding val
+recomposeCompositeValue (FatCell cells (RangeDescriptor key NPArray _)) = Expanding val
   where
     val = VNPArray coll
     coll = recomposeCells dims cells
     (_, dims) = rangeKeyToDimensions key
 
-recomposeCompositeValue (FatCell cells _ (RangeDescriptor key NPMatrix _)) = Expanding val
+recomposeCompositeValue (FatCell cells (RangeDescriptor key NPMatrix _)) = Expanding val
   where
     val = VNPMatrix mat
     (M mat) = recomposeCells dims cells
     (_, dims) = rangeKeyToDimensions key
 
-recomposeCompositeValue (FatCell cells _ (RangeDescriptor key PDataFrame _)) = Expanding val
+recomposeCompositeValue (FatCell cells (RangeDescriptor key PDataFrame _)) = Expanding val
   where
     val       = VPDataFrame labels indices vals
     ((_:labels):indexedVals) = mat
@@ -142,7 +142,7 @@ recomposeCompositeValue (FatCell cells _ (RangeDescriptor key PDataFrame _)) = E
     (M mat)   = recomposeCells dims cells
     (_, dims) = rangeKeyToDimensions key
 
-recomposeCompositeValue (FatCell cells _ (RangeDescriptor key PSeries attrs)) = Expanding val
+recomposeCompositeValue (FatCell cells (RangeDescriptor key PSeries attrs)) = Expanding val
   where
     val       = VPSeries indices vals
     (JSONLeaf (ListValue (A indices))) = attrs M.! "seriesIndices"
