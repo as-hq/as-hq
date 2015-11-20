@@ -84,7 +84,7 @@ possiblyShortCircuit sheetid valuesMap xp =
   let depRefs       = getDependencies sheetid xp -- :: [ASReference]
       depSets       = map refToIndices depRefs   -- :: [Maybe [ASIndex]]
       isOutOfBounds = any MB.isNothing depSets
-      depInds       = concat $ filterNothing depSets
+      depInds       = concat $ MB.catMaybes depSets
       lang          = xpLanguage xp
       values        = map (valuesMap M.!) $ depInds
   in if isOutOfBounds 

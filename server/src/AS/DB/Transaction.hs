@@ -80,7 +80,7 @@ decouple conn key =
     runRedis conn $ multiExec $ do
       del [rangeKey]
       srem sheetRangesKey [rangeKey]
-    U.filterNothing <$> DB.getCells (DU.rangeKeyToIndices key)
+    catMaybes <$> DB.getCells (DU.rangeKeyToIndices key)
 
 ----------------------------------------------------------------------------------------------------------------------
 -- helpers

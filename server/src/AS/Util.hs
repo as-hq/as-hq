@@ -109,9 +109,6 @@ lookupLambda func elm lst = case (filter (((==) elm) . func) lst) of
 tuple3 :: a -> b -> c -> (a,b,c)
 tuple3 a b c = (a,b,c)
 
-filterNothing :: [Maybe a] -> [a]
-filterNothing l = catMaybes $ filter (not . isNothing) l
-
 isoFilter :: (a -> Bool) -> [a] -> [b] -> [b]
 isoFilter f pimg img = map snd $ filter (\(a,b) -> f a) $ zip pimg img
 
