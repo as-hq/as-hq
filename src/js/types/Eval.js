@@ -47,7 +47,7 @@ export type ValueImage = {
 };
 
 export type ValueSerialized = {
-  tag: 'ValueObject';
+  tag: 'ValueSerialized';
   serializedValue: string;
   displayName: string;
 };
@@ -190,6 +190,81 @@ export type ASValue =
   | ValueImage
   | ValueError
   | ValueSerialized;
+
+export type ArrayCollection = {
+  tag: 'A';
+  contents: Array<ASValue>;
+};
+
+export type MatrixCollection = {
+  tag: 'M';
+  contents: Array<ArrayCollection>;
+};
+
+export type Collection = ArrayCollection | MatrixCollection;
+
+export type RListKey = string;
+
+export type VList = {
+  tag: 'VList';
+  contents: Collection;
+};
+
+export type VRList = {
+  tag: 'VRList';
+  contents: Array<[RListKey, ArrayCollection]>;
+};
+
+export type VRDataFrame = {
+  tag: 'VRDataFrame';
+  rdfLabels: ArrayCollection;
+  rdfIndices: ArrayCollection;
+  rdfValues: MatrixCollection;
+};
+
+export type VNPArray = {
+  tag: 'VNPArray';
+  contents: Collection;
+};
+
+export type VNPMatrix = {
+  tag: 'VNPMatrix';
+  contents: MatrixCollection;
+};
+
+export type VPDataFrame = {
+  tag: 'VPDataFrame';
+  dfLabels: ArrayCollection;
+  dfIndices: ArrayCollection;
+  dfData: MatrixCollection;
+};
+
+export type VPSeries = {
+  tag: 'VPSeries';
+  seriesIndices: ArrayCollection;
+  seriesData: ArrayCollection;
+};
+
+export type ExpandingValue =
+  VList
+  | VRList
+  | VRDataFrame
+  | VNPArray
+  | VNPMatrix
+  | VPDataFrame
+  | VPSeries;
+
+export type Expanding = {
+  tag: 'Expanding';
+  contents: ExpandingValue;
+};
+
+export type CellValue = {
+  tag: 'CellValue';
+  contents: ASValue;
+};
+
+export type ASCompositeValue = Expanding | CellValue;
 
 export type ASReplValue = {
   replValue: ASValue;

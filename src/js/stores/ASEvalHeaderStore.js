@@ -1,6 +1,10 @@
 /* @flow */
 
 import type {
+  ASCompositeValue
+} from '../types/Eval';
+
+import type {
   ASClientLanguage
 } from '../types/State';
 
@@ -72,9 +76,9 @@ const ASEvalHeaderStore = Object.assign({}, BaseStore, {
     logDebug(JSON.stringify(_data.evalHeaderExps));
   },
 
-  makeDispMessage(val) {
+  makeDispMessage(val: ASCompositeValue) {
     let message = "Header saved! ";
-    if (val.tag == "CellValue") { 
+    if (val.tag == "CellValue") {
       let cellVal = val.contents;
       switch (cellVal.tag) {
         case "ValueError":
@@ -86,20 +90,20 @@ const ASEvalHeaderStore = Object.assign({}, BaseStore, {
           message += "(Header code evaluated to " + JSON.stringify(((cellVal: any): { contents: any }).contents) + ")";
           break;
       }
-    } else if (val.tag == "Expanding") { 
+    } else if (val.tag == "Expanding") {
       let expVal = val.contents;
       switch (expVal.tag) {
         case "VList":
-          let listVal = expVal.contents; 
-          switch (listVal.tag) { 
-            case "A": 
-              message += "(Header code evaluated to : [" + listVal.contents.map((c) => c.contents).join(',') + "])";
+          let listVal = expVal.contents;
+          switch (listVal.tag) {
+            case "A":
+              message += "(Header code evaluated to : [" + listVal.contents.map(Util.safeExtractContentsFromValue).join(',') + "])";
               break;
-            default: 
+            default:
               message += "(Header code evaluated to a list with dimension > 1.)";
-              break; 
+              break;
           }
-          break; 
+          break;
         default:
           message += "(Header code evaluated to a non-list expanding value.)";
           break;

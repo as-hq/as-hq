@@ -10,6 +10,7 @@ import type {
   ASIndex,
   ValueError,
   ASValue,
+  Collection,
   ASLanguage,
   ASSheet,
   ASCellTag,
@@ -71,6 +72,25 @@ export default {
 
 /*************************************************************************************************************************/
 // Cell rendering
+  safeExtractContentsFromValue(cv: ASValue): string {
+    switch (cv.tag) {
+      case 'NoValue':
+      case 'ValueNaN':
+      case 'ValueInf':
+      case 'ValueImage':
+        return cv.tag;
+      case 'ValueSerialized':
+        return cv.displayName;
+      case 'ValueError':
+        return cv.errorMsg;
+      case 'ValueB':
+      case 'ValueD':
+      case 'ValueI':
+      case 'ValueS':
+        return cv.contents.toString();
+    }
+    return 'Extraneous type';
+  },
 
   /* Used to know what to display on the sheet */
   showValue(cv: ASValue, isRepl: boolean = false): (string|number) {
@@ -78,8 +98,6 @@ export default {
     let self = this;
     switch (cv.tag) {
       case "NoValue":
-        return "";
-      case "ValueNull":
         return "";
       case "ValueNaN":
         return "NaN";
