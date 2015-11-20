@@ -22,13 +22,6 @@ AS/data/stock_samples.txt
 AS/datasources/__init__.py
 AS/datasources/bloomberg.py
 AS/datasources/yahoo.py
-AS/excel/__init__.py
-AS/excel/io.py
-AS/excel/pycel/__init__.py
-AS/excel/pycel/excelcompiler.py
-AS/excel/pycel/excellib.py
-AS/excel/pycel/tokenizer.py
-AS/excel/pycel/version.py
 AS/functions/__init__.py
 AS/functions/avg.py
 AS/functions/betas.py

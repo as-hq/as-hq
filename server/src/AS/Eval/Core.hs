@@ -41,11 +41,9 @@ import Control.Exception (catch, SomeException)
 -- Exposed functions
 
 evaluateLanguage :: ASSheetId -> ASIndex -> FormattedValMap -> ASExpression -> EitherTExec (Formatted CompositeValue)
-evaluateLanguage sid curRef valuesMap xp = 
+evaluateLanguage sid curRef valuesMap xp@(Expression str lang) = 
   let unformattedValuesMap = M.map orig valuesMap
       maybeError = possiblyShortCircuit sid unformattedValuesMap xp
-      str = xpString xp
-      lang = xpLanguage xp
   in catchEitherT $ do
     printWithTimeT "Starting eval code"
     case maybeError of
@@ -57,6 +55,7 @@ evaluateLanguage sid curRef valuesMap xp =
           -- loading the initial entities
         otherwise -> return <$> execEvalInLang sid lang xpWithValuesSubstituted -- didn't short-circuit, proceed with eval as usual
          where xpWithValuesSubstituted = insertValues sid unformattedValuesMap xp
+evaluateLanguage _ _ _ (Coupled _ _ _ _) = left WillNotEvaluate
 
 
 -- no catchEitherT here for now, but that's because we're obsolescing Repl for now

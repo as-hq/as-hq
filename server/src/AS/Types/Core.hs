@@ -77,7 +77,7 @@ type EvalCode = String
 
 data ASExpression =
     Expression { expression :: String, language :: ASLanguage }
-  | Coupled { cExpression :: String, cLanguage :: ASLanguage, dType :: DisplayType, cRangeKey :: RangeKey }
+  | Coupled { cExpression :: String, cLanguage :: ASLanguage, cType :: ExpandingType, cRangeKey :: RangeKey }
   deriving (Show, Read, Eq, Generic)
 
 xpString :: ASExpression -> String
@@ -110,8 +110,7 @@ data ASReplValue = ReplValue {replValue :: ASValue, replLang :: ASLanguage} deri
 type ValMap = M.Map ASIndex CompositeValue
 type FormattedValMap = M.Map ASIndex (Formatted CompositeValue)
 
-data DisplayType = List | Object deriving (Show, Read, Eq, Generic)
-data ObjectType = RList | RDataFrame | NPArray | NPMatrix | PDataFrame | PSeries deriving (Show, Read, Eq, Generic)
+data ExpandingType = List | RList | RDataFrame | NPArray | NPMatrix | PDataFrame | PSeries deriving (Show, Read, Eq, Generic)
 -- [Dragme, matrix, array...] x [python, r, ocmal....]
 
 -- ephemeral types produced by eval 
@@ -134,9 +133,7 @@ data CompositeValue = Expanding ExpandingValue | CellValue ASValue deriving (Sho
 
 -- turning a spreadsheet range into dataframe etc...
 -- only needed during at syntax and list decoupling
-data RangeDescriptor = 
-    ListDescriptor { listKey :: RangeKey}
-  | ObjectDescriptor { objKey :: RangeKey, objType :: ObjectType, objAttrs :: JSON }
+data RangeDescriptor = RangeDescriptor { descriptorKey :: RangeKey, expandingType :: ExpandingType, attrs :: JSON }
   deriving (Show, Read, Eq, Generic)
 
 -- range keys are used to access range descriptors, which relay metadata about a range of cells
@@ -189,6 +186,7 @@ data EError =
 
 data ASExecError =
     Timeout
+  | WillNotEvaluate
   | EvaluationError {evalErrorDesc :: String}
   | DependenciesLocked {lockUserId :: ASUserId}
   | DBNothingException {badLocs :: [ASIndex]}
@@ -256,7 +254,7 @@ instance (Eq a) => Eq (Formatted a) where
 -- Streaming
 
 -- Stream sources
-data Bloomberg = Bloomberg {url :: String, key :: String} deriving (Show, Read, Eq, Generic)
+data Bloomberg = Bloomberg {url :: String, bmbKey :: String} deriving (Show, Read, Eq, Generic)
 data StreamSource = StreamB Bloomberg | NoSource deriving (Show, Read, Eq, Generic)
 -- A stream just needs a source and a frequency
 data Stream = Stream {streamSource :: StreamSource, streamFreq :: Int} deriving (Show, Read, Eq, Generic)
@@ -440,12 +438,8 @@ isColocated c1 c2 = (cellLocation c1) == (cellLocation c2)
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- JSON
 instance FromJSON ASReference
--- instance ToJSON EvalErrorType
--- instance FromJSON EvalErrorType
 instance ToJSON ASValue
 instance FromJSON ASValue
-instance ToJSON ObjectType
-instance FromJSON ObjectType
 instance ToJSON ASLanguage
 instance FromJSON ASLanguage
 instance ToJSON ASCell
@@ -490,8 +484,8 @@ instance FromJSON ASTime
 instance ToJSON ASTime
 instance FromJSON ASCommit
 instance ToJSON ASCommit
-instance FromJSON DisplayType
-instance ToJSON DisplayType
+instance FromJSON ExpandingType
+instance ToJSON ExpandingType
 instance FromJSON RangeDescriptor
 instance ToJSON RangeDescriptor
 instance FromJSON JSONField
@@ -577,15 +571,15 @@ instance ToJSON ASExpression where
                                         "language" .= (show lang)]
   toJSON (Coupled xp lang dtype key) = object ["expression" .= xp,
                                                "language" .= (show lang),
-                                               "displayType" .= (show dtype),
+                                               "expandingType" .= (show dtype),
                                                "rangeKey" .= key]
 instance FromJSON ASExpression where
   parseJSON (DA.Object v) = do
-    dType <- (v .:? "displayType") :: Parser (Maybe DisplayType)
+    dType <- (v .:? "expandingType") :: Parser (Maybe ExpandingType)
     case dType of 
       Just _ -> Coupled <$> v .: "expression"
                            <*> v .: "language"
-                           <*> v .: "displayType"
+                           <*> v .: "expandingType"
                            <*> v .: "rangeKey"
       Nothing -> Expression <$> v .: "expression" <*> v .: "language"
 

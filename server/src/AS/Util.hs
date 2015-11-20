@@ -403,12 +403,7 @@ mergeCommits (Commit b a bd ad _) (Commit b' a' bd' ad' t) = Commit b'' a'' bd''
     a'' = mergeCells a' a
     bd'' = L.unionBy hasSameKey bd' bd
     ad'' = L.unionBy hasSameKey ad' ad
-    hasSameKey d1 d2 = (rangeDescriptorToKey d1) == (rangeDescriptorToKey d2)
-
-rangeDescriptorToKey :: RangeDescriptor -> RangeKey
-rangeDescriptorToKey desc = case desc of 
-  ListDescriptor key -> key
-  ObjectDescriptor key _ _ -> key
+    hasSameKey d1 d2 = (descriptorKey d1) == (descriptorKey d2)
 
 -- | Returns a list of blank cells at the given locations. For now, the language doesn't matter, 
 -- because blank cells sent to the frontend don't get their languages saved. 

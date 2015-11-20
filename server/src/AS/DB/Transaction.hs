@@ -28,7 +28,7 @@ transactionToCommit conn (Transaction (sid, _) afterCells fatCells) =
       locs             = map cellLocation afterCells
       afterCells'      = afterCells ++ extraCells
       locs'            = map cellLocation afterCells'
-      rangeKeys        = map (U.rangeDescriptorToKey . descriptor) fatCells
+      rangeKeys        = map (descriptorKey . descriptor) fatCells
       afterDescriptors = map descriptor fatCells
   in do
     beforeCells <- lift $ catMaybes <$> DB.getCells locs'
@@ -58,7 +58,7 @@ transactionToCommit conn (Transaction (sid, _) afterCells fatCells) =
 
 couple :: Connection -> RangeDescriptor -> IO ()
 couple conn desc = 
-  let rangeKey       = U.rangeDescriptorToKey desc 
+  let rangeKey       = descriptorKey desc 
       rangeKey'      = id $! B.pack rangeKey 
       sheetRangesKey = DU.getSheetRangesKey $ DU.rangeKeyToSheetId rangeKey
       rangeDescriptor     = B.pack $ show desc
@@ -111,7 +111,7 @@ deleteCellsPropagated :: Connection -> [ASCell] -> [RangeDescriptor] -> IO ()
 deleteCellsPropagated conn cells descs = do
   deleteCells conn cells
   setCellsAncestorsForce . U.blankCellsAt $ map cellLocation cells
-  mapM_ (decouple conn) $ map U.rangeDescriptorToKey descs
+  mapM_ (decouple conn) $ map descriptorKey descs
 
 ----------------------------------------------------------------------------------------------------------------------
 -- Commits

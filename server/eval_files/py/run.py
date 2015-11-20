@@ -33,7 +33,7 @@ try:
 	# execfile(headerFile)
 	os.chdir(os.getcwd()+"/static")
 	import numpy as np
-	result = 9
+	result = np.matrix([1,2])
 	os.chdir('..')
 	figures=[manager.canvas.figure for manager in matplotlib._pylab_helpers.Gcf.get_all_fig_managers()]
 	if len(figures) > 0:

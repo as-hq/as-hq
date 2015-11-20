@@ -110,7 +110,7 @@ instance (Read2 ASExpression)
             [xp, lang] -> Expression xp (read lang :: ASLanguage)
             _ -> error $ "read2 splits expression incorrectly: " ++ str 
           "C" -> case (tail splits) of 
-            [xp, lang, dtype, rangekey] -> Coupled xp (read lang :: ASLanguage) (read dtype :: DisplayType) rangekey
+            [xp, lang, dtype, rangekey] -> Coupled xp (read lang :: ASLanguage) (read dtype :: ExpandingType) rangekey
             _ -> error $ "read2 splits expression incorrectly: " ++ str 
 
 instance (Read2 ASValue)

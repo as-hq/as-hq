@@ -43,8 +43,8 @@ evalExcel :: String -> Context -> EResult
 evalExcel s context = do
   f <- C.parseFormula s
   case f of
-    (ArrayFormula formula) -> L.evalArrayFormula context formula
-    (SimpleFormula formula) -> L.evalFormula context formula
+    ArrayFormula formula -> L.evalArrayFormula context formula
+    SimpleFormula formula -> L.evalFormula context formula
 
 -- | Entire Excel eval; parse, evaluate, cast to ASValue
 evaluate :: String -> ASIndex -> FormattedValMap -> EitherTExec (Formatted CompositeValue)

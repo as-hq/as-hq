@@ -108,10 +108,3 @@ list lang xs = start ++ (L.intercalate dlm xs) ++ end
   where
     (start, end)   = LD.listStops lang
     dlm            = (LD.listDelimiter lang):[] 
-
-mkObject :: ObjectType -> [JSONPair] -> String
-mkObject otype pairs = "deserialize({\"tag\":\"Object\",\"objectType\":\"" ++ otype' ++ "\"," ++ pairs' ++ "})"
-  where
-    otype' = show otype
-    pairs' = L.intercalate "," $ map showPair pairs
-    showPair pair = (fst pair) ++ ":" ++ (snd pair)

@@ -50,6 +50,7 @@ rollbackGraph :: IO ()
 rollbackGraph = exec_ RollbackGraph
 
 query :: GraphQuery -> [ASIndex] -> EitherTExec [ASIndex]
+query q [] = return []
 query q locs =
   let
     elements = (show q):(map show2 locs)

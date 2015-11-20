@@ -32,7 +32,7 @@ parseValue lang = readOutput . (parse (value lang) "")
 value :: ASLanguage -> Parser CompositeValue
 value lang = 
       CellValue <$> try (asValue lang)
-  <|> (try $ extractComplex lang)
+  <|> (try $ parseComposite lang)
 
 asValue :: ASLanguage -> Parser ASValue
 asValue lang =
@@ -71,64 +71,66 @@ infValue lang = case lang of
 lexer = P.makeTokenParser Lang.haskellDef
 
 -----------------------------------------------------------------------------------------------------------------------
--- complex parsers
+-- composite parsers
 
+-- for looking up fields
 (.>) :: JSON -> JSONKey -> Maybe JSONField
 (.>) = flip M.lookup
 
+-- for looking up strings
+(.$>) :: JSON -> JSONKey -> Maybe String
+(.$>) js key = (\(JSONLeaf (SimpleValue (ValueS s))) -> s) <$> M.lookup key js
+
 complain = fail "could not parse complex/object/json value"
 
-extractComplex :: ASLanguage -> Parser CompositeValue
-extractComplex lang = 
+parseComposite :: ASLanguage -> Parser CompositeValue
+parseComposite lang = 
       f =<< (try $ json lang) 
   <|> complain
-  where f js = case (js .> "tag") of 
-            Just (JSONLeaf (SimpleValue (ValueS tag))) -> case (extractComplexValue tag js) of 
+  where f js = case (js .$> "tag") of 
+            Just tag -> case (extractCompositeValue tag js) of 
               Just val -> return val
               Nothing -> complain
             Nothing -> fail "expecting field \"tag\" in complex value"
 
-extractComplexValue :: JSONKey -> JSON -> Maybe CompositeValue
-extractComplexValue tag js = case tag of 
-  "List"   -> Expanding . VList <$> extractCollection js "listVals"
-  "Object" -> Expanding <$> extractObject js
-  "Image"  -> CellValue <$> extractImage js
-  "Error"  -> CellValue <$> extractError js
-  "Serialized"   -> CellValue . ValueSerialized <$> extractSerialized js
+extractCompositeValue :: JSONKey -> JSON -> Maybe CompositeValue
+extractCompositeValue tag js = case tag of 
+  "CellValue" -> CellValue <$> extractCellValue js
+  "Expanding" -> Expanding <$> extractExpanding js
 
-extractSerialized :: JSON -> Maybe String
-extractSerialized js = case (js .> "serializedValue") of 
-  Just (JSONLeaf (SimpleValue (ValueS s))) -> Just s
+extractCellValue :: JSON -> Maybe ASValue
+extractCellValue js = case (js .$> "cellValueType") of 
+  Just "Image"      -> extractImage js 
+  Just "Error"      -> extractError js
+  Just "Serialized" -> extractSerialized js
   _ -> Nothing
 
-extractCollection :: JSON -> JSONKey -> Maybe Collection
-extractCollection js key = case (js .> key) of 
-  Just (JSONLeaf (ListValue collection)) -> Just collection
-  _ -> Nothing 
+extractExpanding :: JSON -> Maybe ExpandingValue
+extractExpanding js = 
+  let readEType e = read e :: ExpandingType
+  in case (readEType <$> js .$> "expandingType") of 
+    Just List -> VList <$> extractCollection js "listVals"
+    Just NPArray -> VNPArray <$> extractCollection js "arrayVals"
+    Just NPMatrix -> (\(M mat) -> VNPMatrix mat) <$> extractCollection js "matrixVals"
+    Just PDataFrame -> Just $ VPDataFrame labels indices vals
+      where
+        (Just (A labels)) = extractCollection js "dfLabels"
+        (Just (A indices)) = extractCollection js "dfIndices"
+        (Just (M vals)) = extractCollection js "dfData"
+    Just PSeries -> Just $ VPSeries indices vals
+      where 
+        (Just (A indices)) = extractCollection js "seriesIndices"
+        (Just (A vals)) = extractCollection js "seriesData"
+    _ -> Nothing
+
+extractSerialized :: JSON -> Maybe ASValue
+extractSerialized js = case (js .$> "serializedValue") of 
+  Just s -> Just $ ValueSerialized s
+  _ -> Nothing
 
 extractImage :: JSON -> Maybe ASValue
 extractImage js = case (js .> "imagePath") of 
   Just (JSONLeaf (SimpleValue (ValueS path))) -> Just $ ValueImage path
-  _ -> Nothing
-
-extractObject :: JSON -> Maybe ExpandingValue
-extractObject js = case (js .> "objectType") of 
-  Just (JSONLeaf (SimpleValue (ValueS o))) -> case (readMaybe o :: Maybe ObjectType) of 
-    Just otype -> case otype of 
-      NPArray -> VNPArray <$> extractCollection js "arrayVals"
-      NPMatrix -> (\(M mat) -> VNPMatrix mat) <$> extractCollection js "matrixVals"
-      PDataFrame -> Just $ VPDataFrame labels indices vals
-        where
-          (Just (A labels)) = extractCollection js "dfLabels"
-          (Just (A indices)) = extractCollection js "dfIndices"
-          (Just (M vals)) = extractCollection js "dfData"
-        -- ^^ if these don't exist, something fucked up.
-      PSeries -> Just $ VPSeries indices vals
-        where 
-          (Just (A indices)) = extractCollection js "seriesIndices"
-          (Just (A vals)) = extractCollection js "seriesData"
-      _ -> Nothing
-    _ -> Nothing
   _ -> Nothing
 
 extractError :: JSON -> Maybe ASValue
@@ -137,6 +139,14 @@ extractError js = case (js .> "errorMsg") of
     Just (JSONLeaf (SimpleValue (ValueS etype))) -> Just $ ValueError emsg etype
     _ -> Nothing
   _ -> Nothing
+
+extractCollection :: JSON -> JSONKey -> Maybe Collection
+extractCollection js key = case (js .> key) of 
+  Just (JSONLeaf (ListValue collection)) -> Just collection
+  _ -> Nothing 
+
+-----------------------------------------------------------------------------------------------------------------------
+-- low-level parsers
 
 json :: ASLanguage -> Parser JSON
 json lang = extractMap

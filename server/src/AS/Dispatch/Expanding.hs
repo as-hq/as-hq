@@ -12,7 +12,7 @@ import qualified Data.List as L
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- value decomposition (expansion)
 
--- TODO this function has a lot of repetition in its cases,
+-- this function has a lot of repetition in its cases,
 -- but I think it's clearer to separate each case 
 -- instead of making a shitton of nested cases
 decomposeCompositeValue :: ASCell -> CompositeValue -> Maybe FatCell
@@ -22,8 +22,8 @@ decomposeCompositeValue c@(Cell idx _ _ _) (Expanding (VList coll)) = Just $ Fat
   where
     dims      = getDimensions coll
     rangeKey  = DU.getRangeKey idx dims
-    cells     = decomposeCells List rangeKey c coll
-    desc      = ListDescriptor rangeKey
+    desc      = RangeDescriptor rangeKey List $ M.fromList []
+    cells     = decomposeCells desc c coll
 
 decomposeCompositeValue c@(Cell idx _ _ _) (Expanding (VRList pairs)) = Just $ FatCell cells idx desc
   where
@@ -32,52 +32,52 @@ decomposeCompositeValue c@(Cell idx _ _ _) (Expanding (VRList pairs)) = Just $ F
     coll      = M $ names:vals
     dims      = getDimensions coll
     rangeKey  = DU.getRangeKey idx dims
-    cells     = decomposeCells Object rangeKey c coll
-    desc      = ObjectDescriptor rangeKey RList $ M.fromList []
+    desc      = RangeDescriptor rangeKey RList $ M.fromList []
+    cells     = decomposeCells desc c coll
 
 decomposeCompositeValue c@(Cell idx _ _ _) (Expanding (VRDataFrame labels indices vals)) = Just $ FatCell cells idx desc
   where
     vals'     = M $ prependColumn (NoValue:indices) (labels:vals)
     dims      = getDimensions vals'
     rangeKey  = DU.getRangeKey idx dims
-    cells     = decomposeCells Object rangeKey c vals'
-    desc      = ObjectDescriptor rangeKey RDataFrame $ M.fromList []
+    desc      = RangeDescriptor rangeKey RDataFrame $ M.fromList []
+    cells     = decomposeCells desc c vals'
 
 decomposeCompositeValue c@(Cell idx _ _ _) (Expanding (VNPArray coll)) = Just $ FatCell cells idx desc
   where
     dims      = getDimensions coll
     rangeKey  = DU.getRangeKey idx dims
-    cells     = decomposeCells Object rangeKey c coll
-    desc      = ObjectDescriptor rangeKey NPArray $ M.fromList []
+    desc      = RangeDescriptor rangeKey NPArray $ M.fromList []
+    cells     = decomposeCells desc c coll
 
 decomposeCompositeValue c@(Cell idx _ _ _) (Expanding (VNPMatrix mat)) = Just $ FatCell cells idx desc
   where
     coll      = M mat
     dims      = getDimensions coll
     rangeKey  = DU.getRangeKey idx dims
-    cells     = decomposeCells Object rangeKey c coll
-    desc      = ObjectDescriptor rangeKey NPMatrix $ M.fromList []
+    desc      = RangeDescriptor rangeKey NPMatrix $ M.fromList []
+    cells     = decomposeCells desc c coll
 
 decomposeCompositeValue c@(Cell idx _ _ _) (Expanding (VPDataFrame labels indices vals)) = Just $ FatCell cells idx desc
   where
     vals'     = M $ prependColumn (NoValue:indices) (labels:vals)
     dims      = getDimensions vals'
     rangeKey  = DU.getRangeKey idx dims
-    cells     = decomposeCells Object rangeKey c vals'
-    desc      = ObjectDescriptor rangeKey PDataFrame $ M.fromList []
+    desc      = RangeDescriptor rangeKey PDataFrame $ M.fromList []
+    cells     = decomposeCells desc c vals'
 
 decomposeCompositeValue c@(Cell idx _ _ _) (Expanding (VPSeries indices vals)) = Just $ FatCell cells idx desc
   where
     dims      = getDimensions (A vals)
     rangeKey  = DU.getRangeKey idx dims
-    cells     = decomposeCells Object rangeKey c (A vals)
-    desc      = ObjectDescriptor rangeKey PSeries $ M.fromList [("dfIndices", JSONLeaf . ListValue . A $ indices)]
+    desc      = RangeDescriptor rangeKey PSeries $ M.fromList [("dfIndices", JSONLeaf . ListValue . A $ indices)]
+    cells     = decomposeCells desc c (A vals)
 
-decomposeCells :: DisplayType -> RangeKey -> ASCell -> Collection -> [ASCell]
-decomposeCells dtype rangeKey (Cell (Index sheet (c,r)) xp _ ts) coll = 
+decomposeCells :: RangeDescriptor -> ASCell -> Collection -> [ASCell]
+decomposeCells (RangeDescriptor key etype _) (Cell (Index sheet (c,r)) xp _ ts) coll = 
   let str = xpString xp
       lang = xpLanguage xp
-      xp' = Coupled str lang dtype rangeKey 
+      xp' = Coupled str lang etype key
   in case coll of 
     A arr -> unpack $ zip [r..] arr
         where unpack = map (\(r', val) -> Cell (Index sheet (c,r')) xp' val ts)
@@ -98,13 +98,13 @@ prependColumn arr mat = map (\(x,xs) -> x:xs) $ zip arr mat
 -- value recomposition
 
 recomposeCompositeValue :: FatCell -> CompositeValue
-recomposeCompositeValue (FatCell cells _ (ListDescriptor key)) = Expanding val
+recomposeCompositeValue (FatCell cells _ (RangeDescriptor key List _)) = Expanding val
   where
     val = VList coll
     coll = recomposeCells dims cells
     (_, dims) = rangeKeyToDimensions key
 
-recomposeCompositeValue (FatCell cells _ (ObjectDescriptor key RList _)) = Expanding val
+recomposeCompositeValue (FatCell cells _ (RangeDescriptor key RList _)) = Expanding val
   where
     val = VRList $ zip names' fields'
     names' = map (\(ValueS s) -> s) names
@@ -112,7 +112,7 @@ recomposeCompositeValue (FatCell cells _ (ObjectDescriptor key RList _)) = Expan
     (M (names:fields)) = recomposeCells dims cells
     (_, dims) = rangeKeyToDimensions key
 
-recomposeCompositeValue (FatCell cells _ (ObjectDescriptor key RDataFrame _)) = Expanding val
+recomposeCompositeValue (FatCell cells _ (RangeDescriptor key RDataFrame _)) = Expanding val
   where 
     val       = VRDataFrame labels indices (L.transpose vals)
     ((_:labels):indexedVals) = mat
@@ -121,19 +121,19 @@ recomposeCompositeValue (FatCell cells _ (ObjectDescriptor key RDataFrame _)) = 
     (M mat)   = recomposeCells dims cells
     (_, dims) = rangeKeyToDimensions key
 
-recomposeCompositeValue (FatCell cells _ (ObjectDescriptor key NPArray _)) = Expanding val
+recomposeCompositeValue (FatCell cells _ (RangeDescriptor key NPArray _)) = Expanding val
   where
     val = VNPArray coll
     coll = recomposeCells dims cells
     (_, dims) = rangeKeyToDimensions key
 
-recomposeCompositeValue (FatCell cells _ (ObjectDescriptor key NPMatrix _)) = Expanding val
+recomposeCompositeValue (FatCell cells _ (RangeDescriptor key NPMatrix _)) = Expanding val
   where
     val = VNPMatrix mat
     (M mat) = recomposeCells dims cells
     (_, dims) = rangeKeyToDimensions key
 
-recomposeCompositeValue (FatCell cells _ (ObjectDescriptor key PDataFrame _)) = Expanding val
+recomposeCompositeValue (FatCell cells _ (RangeDescriptor key PDataFrame _)) = Expanding val
   where
     val       = VPDataFrame labels indices vals
     ((_:labels):indexedVals) = mat
@@ -142,7 +142,7 @@ recomposeCompositeValue (FatCell cells _ (ObjectDescriptor key PDataFrame _)) = 
     (M mat)   = recomposeCells dims cells
     (_, dims) = rangeKeyToDimensions key
 
-recomposeCompositeValue (FatCell cells _ (ObjectDescriptor key PSeries attrs)) = Expanding val
+recomposeCompositeValue (FatCell cells _ (RangeDescriptor key PSeries attrs)) = Expanding val
   where
     val       = VPSeries indices vals
     (JSONLeaf (ListValue (A indices))) = attrs M.! "seriesIndices"
@@ -154,25 +154,9 @@ recomposeCells dims cells = case (snd dims) of
   1 -> A $ map cellValue cells
   _ -> M . L.transpose $ map (\row -> map cellValue row) $ U.reshapeList cells (snd dims, fst dims)
 
+-- transposes non-rectangular matrices by filling in gaps with NoValue
 transpose' :: [[ASValue]] -> [[ASValue]]
-transpose' vals = L.transpose squarified
+transpose' vals = L.transpose matrixified
   where
-    width      = maximum $ map length vals
-    squarified = map (\row -> take width $ row ++ (repeat NoValue)) vals
-
---------------------------------------------------------------------------------------------------------------
--- Lists
-
---isHighDimensional :: Int -> ASValue -> Bool
---isHighDimensional depth (ValueL l) = if (depth + 1 > 2)
---  then True
---  else isHighDimensional (depth + 1) (head l)
---isHighDimensional depth (RDataFrame l) = if (depth + 1 > 2)
---  then True
---  else isHighDimensional (depth + 1) (head l)
---isHighDimensional depth _ = False
-
---sanitizeList :: ASValue -> ASValue
---sanitizeList v = if (isHighDimensional 0 v)
---  then ValueError "Cannot embed lists of dimension > 2." "StdErr" "" 0
---  else v
+    width       = maximum $ map length vals
+    matrixified = map (\row -> take width $ row ++ (repeat NoValue)) vals

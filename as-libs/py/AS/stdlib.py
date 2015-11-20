@@ -59,51 +59,36 @@ def rand(m=1,n=1,upperbound=1):
 
 def serialize(val):
 	if isinstance(val, list):
-		return json.dumps({'tag': 'List', 'listVals': val})
+		return json.dumps({'tag': 'Expanding', 'expandingType': 'List', 'listVals': val})
 	elif isinstance(val, dict):
-		return json.dumps({'tag': 'Serialized', 'serializedValue': json.dumps(val)})
+		return json.dumps({'tag': 'CellValue', 'cellValueType': 'Serialized', 'serializedValue': json.dumps(val)})
 	elif isinstance(val, np.ndarray):
 		def f(e):
 			if isinstance(e, np.ndarray): return e.tolist()
 			else: return e
 		vals = [f(e) for e in val]
-		return json.dumps({'tag': 'Object', 'objectType': 'NPArray', 'arrayVals': vals})
+		return json.dumps({'tag': 'Expanding', 'expandingType': 'NPArray', 'arrayVals': vals})
 	elif isinstance(val, np.matrixlib.defmatrix.matrix):
-		return json.dumps({'tag': 'Object', 'objectType': 'NPMatrix', 'matrixVals': val.tolist()})
+		return json.dumps({'tag': 'Expanding', 'expandingType': 'NPMatrix', 'matrixVals': val.tolist()})
 	elif isinstance(val, pd.DataFrame):
 		labels = val.columns.values.tolist()
 		indices = val.index.values.tolist()
 		data = val.get_values().tolist()
-		return json.dumps({'tag': 'Object', 
-											 'objectType': 'PDataFrame', 
+		return json.dumps({'tag': 'Expanding', 
+											 'expandingType': 'PDataFrame', 
 											 'dfLabels': labels,
 											 'dfIndices': indices,
 											 'dfData': data})
 	elif isinstance(val, pd.Series):
 		indices = val.index.values.tolist()
 		data = val.get_values().tolist()
-		return json.dumps({'tag': 'Object',
-											 'objectType': 'PSeries',
+		return json.dumps({'tag': 'Expanding',
+											 'expandingType': 'PSeries',
 											 'seriesIndices': indices,
 											 'seriesData': data})
 	elif isinstance(val, ASIterable): 
-		return json.dumps({'tag': 'List', 'listVals': val.toList()})
+		return json.dumps({'tag': 'Expanding', 'expandingType': 'List', 'listVals': val.toList()})
 	else: return json.dumps(val)
-
-def deserialize(dic):
-	if 'tag' in dic and dic['tag'] == 'Object':
-		if 'objectType' in dic:
-			oType = dic['objectType']
-			if oType == 'PDict':
-				return dic['dict']
-			elif oType == 'NPArray':
-				return np.array(dic['arrayVals'])
-			elif oType == 'NPMatrix':
-				return np.matrix(dic['matrixVals'])
-			elif oType == 'PDataFrame':
-				return pd.DataFrame(data=dic['dfData'], columns=dic['dfLabels'], index=dic['dfIndices'])
-			elif oType == 'PSeries':
-				return pd.DataFrame(data=dic['seriesData'], index=dic['seriesIndices'])
 
 def pprintDataFrame(dataframe):
 	rows = repr(dataframe).split('\n')
