@@ -2040,3 +2040,16 @@
 [2015-11-19 01:46:55.250] Eval chain produced cells: []
 [2015-11-19 01:46:55.251] Range keys changed: []
 [2015-11-19 01:46:55.253] Server sent message: ServerMessage {serverAction = Update, serverResult = Success, serverPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (4,18)}, cellExpression = Expression {expression = "list(a=c(1,2,3),b=2)", language = R}, cellValue = ValueError {errorMsg = "R Runtime Error: Error in setwd(paste(getwd(), \"/static\", sep = \"\")) : \n  cannot change working directory\n", errorType = "R_EXEC_ERROR"}, cellTags = []}]}
+
+[2015-11-20 22:38:25.186] Message: "ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = \"INIT_SHEET_ID\", sheetName = \"\", sheetPermissions = Blacklist []})}"
+[2015-11-20 22:38:25.193] Client disconnected
+[2015-11-20 22:38:25.323] Message: "ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = \"INIT_SHEET_ID\", sheetName = \"\", sheetPermissions = Blacklist []})}"
+[2015-11-20 22:38:25.324] Client disconnected
+[2015-11-20 22:38:25.474] Message: "ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = \"INIT_SHEET_ID\", sheetName = \"\", sheetPermissions = Blacklist []})}"
+[2015-11-20 22:38:25.474] Client disconnected
+[2015-11-20 22:38:25.626] Message: "ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = \"INIT_SHEET_ID\", sheetName = \"\", sheetPermissions = Blacklist []})}"
+[2015-11-20 22:38:25.626] Client disconnected
+[2015-11-20 22:38:25.774] Message: "ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = \"INIT_SHEET_ID\", sheetName = \"\", sheetPermissions = Blacklist []})}"
+[2015-11-20 22:38:25.775] Client disconnected
+[2015-11-20 22:38:25.929] Message: "ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = \"INIT_SHEET_ID\", sheetName = \"\", sheetPermissions = Blacklist []})}"
+[2015-11-20 22:38:25.929] Client disconnected

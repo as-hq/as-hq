@@ -209,7 +209,9 @@ rangeKeyToSheetId key = sid
 
 decoupleCell :: ASCell -> ASCell
 decoupleCell (Cell l (Coupled _ lang _ _) v ts) = Cell l e' v ts
-  where e' = Expression (showPrimitive lang v) lang
+  where e' = case v of 
+               NoValue   -> Expression "" lang
+               otherwise -> Expression (showPrimitive lang v) lang
 
 -- | Converts a coupled cell to a normal cell
 toUncoupled :: ASCell -> ASCell
