@@ -74,15 +74,38 @@ const ASEvalHeaderStore = Object.assign({}, BaseStore, {
 
   makeDispMessage(val) {
     let message = "Header saved! ";
-    switch (val.tag) {
-      case "ValueError":
-        message += "(Error in header code: " + val.errorMsg + ")";
-        break;
-      case "NoValue":
-        break;
-      default:
-        message += "(Header code evaluated to " + JSON.stringify(((val: any): { contents: any }).contents) + ")";
-        break;
+    if (val.tag == "CellValue") { 
+      let cellVal = val.contents;
+      switch (cellVal.tag) {
+        case "ValueError":
+          message += "(Error in header code: " + cellVal.errorMsg + ")";
+          break;
+        case "NoValue":
+          break;
+        default:
+          message += "(Header code evaluated to " + JSON.stringify(((cellVal: any): { contents: any }).contents) + ")";
+          break;
+      }
+    } else if (val.tag == "Expanding") { 
+      let expVal = val.contents;
+      switch (expVal.tag) {
+        case "VList":
+          let listVal = expVal.contents; 
+          switch (listVal.tag) { 
+            case "A": 
+              message += "(Header code evaluated to : [" + listVal.contents.map((c) => c.contents).join(',') + "])";
+              break;
+            default: 
+              message += "(Header code evaluated to a list with dimension > 1.)";
+              break; 
+          }
+          break; 
+        default:
+          message += "(Header code evaluated to a non-list expanding value.)";
+          break;
+      }
+    } else {
+      throw "val of unknown type passed to makeDispMessage";
     }
     return message;
   },
