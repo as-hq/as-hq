@@ -174,6 +174,18 @@ describe('backend', () => {
           ]);
         });
 
+        // KNOWN TO FAIL!! 
+        it('should delete ancestors that are overwritten by ranges', (done) => {
+          _do([
+            python('A1', '1'),
+            python('A2', 'A1'),
+            python('A1', 'range(10)'),
+            python('A1', '10'),
+            shouldBe('A1', valueI(10)),
+            exec(done)
+          ]);
+        });
+
         it('should rollback ancestors set in failed evals', (done) => {
           _do([
             python('A1', '1'),
