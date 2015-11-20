@@ -732,7 +732,7 @@ export default React.createClass({
   _onKeyDown(e: SyntheticKeyboardEvent) {
     logDebug("GRID KEYDOWN", e);
     e.persist(); // prevent react gc
-    if (ShortcutUtils.gridShouldDeferKey(e)) { // not a nav key
+    if (ShortcutUtils.gridShouldDeferKey(e)) {
       KeyUtils.killEvent(e);
       let userIsTyping = ExpStore.getUserIsTyping(),
           clickType    = ExpStore.getClickType();
@@ -759,9 +759,9 @@ export default React.createClass({
         ShortcutUtils.tryShortcut(e, 'common');
         ShortcutUtils.tryShortcut(e, 'grid');
       }
-    } else { // nav key from grid
+    } else if (KeyUtils.isNavKey(e)) { // nav key from grid
       let activeSelection = Store.getActiveSelection();
-      if (! activeSelection) {
+      if (!activeSelection) {
         logDebug('No selection');
         return;
       }

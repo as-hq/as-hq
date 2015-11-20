@@ -92,7 +92,7 @@ export default {
 
   gridShouldDeferKey(e) {
     return (e.ctrlKey ||
-            KeyUtils.isEvalKey(e) || // tab
+            KeyUtils.isEvalKey(e) || // tab or enter
             !KeyUtils.isNavKey(e)) &&
            !KeyUtils.isCopyPasteType(e);
   },
