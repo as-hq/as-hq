@@ -129,7 +129,7 @@ getCellsToEval conn locs origCells = do
 -- is necessary for Excel evals.  Since this is only relevant for Excel evaluations, I'd ideally have
 -- this in Eval/Core and only call it for Excel evals, but that would require O(n) calls to the DB, 
 -- which is prohibitively expensive. 
--- TODO WTF
+-- TODO refactor s.t. we construct a formatted map from the beginning
 formatValsMap :: ValMap -> IO FormattedValMap
 formatValsMap mp = do
   let mp' = M.toList mp  

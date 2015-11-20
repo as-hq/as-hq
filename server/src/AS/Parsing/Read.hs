@@ -73,7 +73,7 @@ lexer = P.makeTokenParser Lang.haskellDef
 -----------------------------------------------------------------------------------------------------------------------
 -- composite parsers
 
--- for looking up fields
+-- for looking up arbitrary fields
 (.>) :: JSON -> JSONKey -> Maybe JSONField
 (.>) = flip M.lookup
 
@@ -125,18 +125,20 @@ extractExpanding js =
 
 extractSerialized :: JSON -> Maybe ASValue
 extractSerialized js = case (js .$> "serializedValue") of 
-  Just s -> Just $ ValueSerialized s
+  Just s -> case (js .$> "displayName") of 
+    Just n -> Just $ ValueSerialized s n
+    _ -> Nothing
   _ -> Nothing
 
 extractImage :: JSON -> Maybe ASValue
-extractImage js = case (js .> "imagePath") of 
-  Just (JSONLeaf (SimpleValue (ValueS path))) -> Just $ ValueImage path
+extractImage js = case (js .$> "imagePath") of 
+  Just path -> Just $ ValueImage path
   _ -> Nothing
 
 extractError :: JSON -> Maybe ASValue
-extractError js = case (js .> "errorMsg") of 
-  Just (JSONLeaf (SimpleValue (ValueS emsg))) -> case (js .> "errorType") of
-    Just (JSONLeaf (SimpleValue (ValueS etype))) -> Just $ ValueError emsg etype
+extractError js = case (js .$> "errorMsg") of 
+  Just emsg -> case (js .$> "errorType") of
+    Just etype -> Just $ ValueError emsg etype
     _ -> Nothing
   _ -> Nothing
 
