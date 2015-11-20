@@ -595,7 +595,7 @@ ifFunc f c e = do
   -- | refToEntity will throw an error if any ASValue cannot be mapped to an Excel value
   critEntity <- refToEntity c critRange
   valEntity <- refToEntity c valRange'
-  let matcher = getLambda criteria :: (EValue -> Bool)
+  let matcher = matchLambda criteria :: (EValue -> Bool)
   case critEntity of
     -- | Excel *IF functions work with non-range references; return 0 as default if no match
     (EntityVal v) -> if (matcher v)
@@ -614,7 +614,7 @@ ifsFunc f e = do
   (EMatrix _ _ valVec) <- getRequired "matrix" f 1 e :: ThrowsError EMatrix
   criteriaMatrices <- mapM (\n -> getRequired "matrix" f n e) [2*arg | arg<-[1..(length e) `div` 2]]
   criteria <- mapM (\n -> getRequired "value" f n e) [2*arg+1 | arg<-[1..(length e-1) `div` 2]]
-  let matches =  map getLambda criteria -- [EValue -> Bool]
+  let matches =  map matchLambda criteria -- [EValue -> Bool]
   let dims = map matrixDim criteriaMatrices
   if (allTheSame dims) -- make sure that all ranges have the same dimension
     then do
@@ -666,9 +666,9 @@ collapseBool f c e = do
 -- | Excel match parsing
 
 -- | Helper; Given a value (eg string like "(*)"), produces a lambda for equality to an EValue
-getLambda :: EValue -> EValue -> Bool
-getLambda (EValueS "") EBlank = True
-getLambda (EValueS s) v = case (outerComparator s) of
+matchLambda :: EValue -> EValue -> Bool
+matchLambda (EValueS "") EBlank = True
+matchLambda (EValueS s) v = case (outerComparator s) of
   Nothing -> case v of
     EValueS s' -> criteria s s'
     otherwise  -> False
@@ -677,7 +677,7 @@ getLambda (EValueS s) v = case (outerComparator s) of
       EValueS s' -> criteria regex s'
       otherwise  -> False
     otherwise -> f v otherwise
-getLambda v1 v2 = v1 == v2
+matchLambda v1 v2 = v1 == v2
 
 valParser :: String -> EValue
 valParser s = either (\_ -> EValueS s) (\(Basic (Var v)) -> v) $ parse excelValue "" s
@@ -943,7 +943,7 @@ eMatch c e = do
       then Left $ VAL "Lookup range for MATCH cannot be empty"
       else return v
   lookupType <- getOptional "int" 1 "match" 3 e :: ThrowsError Int
-  let matcher = getLambda lookupVal :: (EValue -> Bool)
+  let matcher = matchLambda lookupVal :: (EValue -> Bool)
   case lookupType of
     -- | Type 0 enables regex
     0 -> case (V.findIndex matcher vec) of
@@ -1012,21 +1012,23 @@ eVlookup c e = do
   if len < 1
     then Left $ VAL "Matrix for VLOOKUP is too small"
     else Right ()
-  if approx
+  if approx -- assumes first col is sorted
     then do 
-      -- Excel isn't very clear about this, I'm implementing it as the largest elem less than lookupVal
-      let sortedFirstCol = sort $ head lstCols
-      let i = findIndex (\elem -> elem >= lookupVal) sortedFirstCol -- first index >= lookupVal
+      -- Excel isn't very clear about this, I'm implementing it as the largest elem <= lookupVal
+      let firstCol = head lstCols
+      let i = findIndex (\x -> x > lookupVal) firstCol 
+      -- ^ first index with lookupVal > index. i-1 is the index of the largest
+      -- element <= lookupVal, unless i is 0 or there was simply nothing found. 
       case i of
-        Nothing -> Left $ NA $ "Cannot find lookup value for VLOOKUP"
-        Just 1  -> Left $ NA $ "Cannot find lookup value for VLOOKUP"
+        Nothing  -> Left $ NA $ "Cannot find lookup value for VLOOKUP"
+        Just 0   -> Left $ NA $ "Cannot find lookup value for VLOOKUP"
         Just ind -> getElemFromCol m colNum (ind-1)
     else do 
       -- accept wildcards for an exact match
-      let mIndex = findIndex (getLambda lookupVal) (head lstCols)
+      let mIndex = findIndex (matchLambda lookupVal) (head lstCols)
       case mIndex of
         Nothing -> Left $ NA $ "Cannot find lookup value for VLOOKUP"
-        Just i  -> getElemFromCol m colNum i
+        Just ind  -> getElemFromCol m colNum ind
 
 -- Vlookup helper; given a matrix, the column number (starting from 1), and index in that column (start from 0)
 -- return that element, or throw an error if out of bounds
