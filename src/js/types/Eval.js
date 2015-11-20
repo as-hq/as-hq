@@ -120,11 +120,6 @@ export type ReadOnlyTag = {
   contents: Array<ASUserId>;
 };
 
-export type ListMemberTag = {
-  tag: 'ListMember';
-  listKey: string;
-};
-
 export type NoFormat = {
   tag: 'NoFormat';
 };
@@ -152,10 +147,6 @@ export type FormatTag = {
   contents: FormatType;
 };
 
-export type DFMemberTag = {
-  tag: 'DFMember';
-};
-
 export type ImageDataTag = {
   tag: 'ImageData';
   imageWidth: number;
@@ -169,12 +160,12 @@ export type ASLanguage = 'Python' | 'R' | 'SQL' | 'Excel';
 export type ASExpression = {
   expression: string;
   language: ?ASLanguage;
-  displayType: ?DisplayType;
-  rangeKey: ?string;
+  expandingType?: ExpandingType;
+  rangeKey?: string;
   dependencies?: Array<NakedRange>;
 };
 
-export type DisplayType = 'List' | 'Object' | 'Image' | 'Error';
+export type ExpandingType = 'List' | 'RList' | 'RDataFrame' | 'NPArray' | 'NPMatrix' | 'PDataFrame' | 'PSeries';
 
 export type ASCellTag =
   ColorTag
@@ -184,25 +175,20 @@ export type ASCellTag =
   | TrackingTag
   | VolatileTag
   | ReadOnlyTag
-  | ListMemberTag
   | FormatTag
-  | DFMemberTag
   | ImageDataTag;
 
 export type ASValue =
   NoValue
-  | ValueNull
+  | ValueNaN
+  | ValueInf
   | ValueS
   | ValueI
   | ValueD
   | ValueB
-  | ValueL
   | ValueImage
-  | ValueObject
   | ValueError
-  | ValueExcelError
-  | RList
-  | RDataFrame;
+  | ValueSerialized;
 
 export type ASReplValue = {
   replValue: ASValue;
