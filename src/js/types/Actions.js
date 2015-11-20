@@ -6,6 +6,7 @@ import type {
   ASCell,
   ASExpression,
   ASValue,
+  ASCompositeValue,
   ASLanguage,
   ASReplValue
 } from './Eval';
@@ -96,7 +97,7 @@ export type GotReplResponseAction = {
 
 export type GotEvalHeaderResponseAction = {
   _type: 'GOT_EVAL_HEADER_RESPONSE';
-  response: ASValue;
+  response: ASCompositeValue;
 };
 
 export type GotFindAction = {

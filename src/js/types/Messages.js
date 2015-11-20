@@ -11,6 +11,7 @@ import type {
   ASIndex,
   ASSheet,
   ASValue,
+  ASCompositeValue,
   ASExpression,
   ASReplValue,
   ASWorkbook,
@@ -223,7 +224,7 @@ export type PayloadFind = {
 
 export type PayloadValue = {
   tag: 'PayloadValue';
-  contents: ASValue;
+  contents: ASCompositeValue;
 };
 
 export type ASBackendPayload =
