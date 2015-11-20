@@ -205,20 +205,21 @@ evalChain' conn valuesMap [] fatCells pastFatCellHeads =
       nonHeadLocs               = filter (not . isFatCellHead) $ map cellLocation cells
       isNotInMap loc            = loc `M.notMember` valuesMap
   in do
-    -- NOTE: we only need to deal with proper descendants, because the starting locs can't possibly 
+    -- We only need to deal with proper descendants, because the starting locs can't possibly 
     -- be in the value map and don't need to be re-evaluated. 
-    -- 
-    -- We can also remove the descendants that are already in the map, because they've already 
-    -- been evaluated. (We also MUST remove them, because some of the descendants might not have
-    -- existed before the eval, and if we include them among nextLocs we'll get an error when we
-    -- try to pull out the cell at that location in getCellsToEval.)
-    nextLocs <- filter isNotInMap <$> G.getDescendants nonHeadLocs
-    -- check for circular dependencies. IF a circular dependency exists, it necessarily has to
+    nonHeadDescs <- G.getDescendants nonHeadLocs
+    -- Check for circular dependencies. IF a circular dependency exists, it necessarily has to
     -- involve one of the list heads, since the cells created as part of a list depend only
     -- on the head. So we go through the descendants of the current list cells (sans the previous
     -- list heads), and if those contain any of the previous list heads we know there's a cycle.
     let checkCircular loc = if (isFatCellHead loc) then (left $ CircularDepError loc) else (return ())
-    mapM_ checkCircular nextLocs
+    mapM_ checkCircular nonHeadDescs
+    -- We can now remove the descendants that are already in the map, because they've already 
+    -- been evaluated. (We also MUST remove them, because some of the descendants might not have
+    -- existed before the eval, and if we include them among nextLocs we'll get an error when we
+    -- try to pull out the cell at that location in getCellsToEval. We couldn't remove them when checking
+    -- for circular dependencies though.)
+    let nextLocs = filter isNotInMap nonHeadDescs
     -- #needsrefactor it seems like a large chunk of code here mirrors that in evalChain... should probably DRY
     ancLocs <- G.getImmediateAncestors nextLocs
     formattedNewMap <- lift $ formatValsMap =<< getValuesMap conn ancLocs

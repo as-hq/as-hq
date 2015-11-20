@@ -248,7 +248,7 @@ printWithTime :: String -> IO ()
 printWithTime str = do
   time <- getTime
   let disp = "[" ++ time ++ "] " ++ str
-  putStrLn ((truncated disp) ++ "\n\n")
+  putStrLn ((truncated disp) ++ "\n")
   logDir <- getServerLogDir
   appendFile' (logDir ++ "console_log") ('\n':disp)
 
@@ -304,7 +304,7 @@ printObjT disp obj = lift (printObj disp obj)
 
 -- | For debugging purposes
 printDebug :: (Show a) => String -> a -> IO ()
-printDebug name obj = putStrLn ("\n\n" ++ name ++ ": " ++ (show $ seq () obj) ++ "\n\n")
+printDebug name obj = putStrLn ("\n\nDEBUG\n============================================================\n" ++ name ++ ": " ++ (show $ seq () obj) ++ "\n============================================================\n\n")
 
 printDebugT :: (Show a) => String -> a -> EitherTExec ()
 printDebugT name obj = lift (printDebug name obj)
