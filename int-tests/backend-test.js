@@ -1613,6 +1613,17 @@ describe('backend', () => {
       });
     });
 
+    describe('delete', () => { 
+      it('should replace a decoupled blank cell with a blank cell', (done) => {
+        _do([
+          python('A1', '[[None, 2],[3,4]]'),
+          delete_('A1'),
+          shouldBeNothing('A1'),
+          exec(done)
+        ]);
+      })
+    });
+
     describe('tags', () => {
       describe('bolding', () => {
         it('should bold blocks of cells at once', (done) => {
