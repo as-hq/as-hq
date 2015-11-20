@@ -428,4 +428,3 @@ isPermissibleMessage uid conn (ClientMessage _ payload) = case payload of
   PayloadW window -> canAccessSheet conn uid (windowSheetId window)
   PayloadTag _ rng -> canAccessAll conn uid (rangeToIndices rng)
   _ -> return True
-isPermissibleMessage uid conn _ = return True

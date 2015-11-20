@@ -701,4 +701,4 @@ cellMap mt c@(Cell loc xp v ts) = case ((cellLocMap mt) loc) of
       Expression _ _ -> Just c'
       Coupled _ _ _ _ -> if DU.isFatCellHead c
         then Just $ DU.toUncoupled c' 
-        else Nothing
+        else Just $ DU.decoupleCell c' 

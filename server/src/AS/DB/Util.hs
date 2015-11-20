@@ -169,7 +169,7 @@ rangeKeyToIndices key = rangeToIndices range
 getFatCellIntersections :: Connection -> ASSheetId -> Either [ASIndex] [RangeKey] -> IO [RangeKey]
 getFatCellIntersections conn sid (Left locs) = do
   rangeKeys <- getRangeKeysInSheet conn sid
-  putStrLn $ "All range keys in sheet: " ++ (show rangeKeys)
+  printObj "All range keys in sheet" rangeKeys
   return $ filter keyIntersects rangeKeys
   where
     keyIntersects k             = anyLocsContainedInRect locs (rangeKeyToRect k)
@@ -178,7 +178,7 @@ getFatCellIntersections conn sid (Left locs) = do
 
 getFatCellIntersections conn sid (Right keys) = do
   rangeKeys <- getRangeKeysInSheet conn sid
-  putStrLn $ "Checking intersections against keys: " ++ (show keys)
+  printObj "Checking intersections against keys" keys
   return $ L.intersectBy keysIntersect rangeKeys keys
     where keysIntersect k1 k2 = rectsIntersect (rangeKeyToRect k1) (rangeKeyToRect k2)
 
