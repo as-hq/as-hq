@@ -62,14 +62,14 @@ def serialize(val):
 		return json.dumps({'tag': 'Expanding', 'expandingType': 'List', 'listVals': val})
 	elif isinstance(val, dict):
 		return json.dumps({'tag': 'CellValue', 'cellValueType': 'Serialized', 'serializedValue': json.dumps(val)})
+	elif isinstance(val, np.matrixlib.defmatrix.matrix):
+		return json.dumps({'tag': 'Expanding', 'expandingType': 'NPMatrix', 'matrixVals': val.tolist()})
 	elif isinstance(val, np.ndarray):
 		def f(e):
 			if isinstance(e, np.ndarray): return e.tolist()
 			else: return e
 		vals = [f(e) for e in val]
 		return json.dumps({'tag': 'Expanding', 'expandingType': 'NPArray', 'arrayVals': vals})
-	elif isinstance(val, np.matrixlib.defmatrix.matrix):
-		return json.dumps({'tag': 'Expanding', 'expandingType': 'NPMatrix', 'matrixVals': val.tolist()})
 	elif isinstance(val, pd.DataFrame):
 		labels = val.columns.values.tolist()
 		indices = val.index.values.tolist()
