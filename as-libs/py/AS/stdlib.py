@@ -3,6 +3,7 @@ import pandas as pd
 import random
 from AS.iterable import ASIterable
 import json
+import cPickle
 
 def arr(lst):
 	return ASIterable(lst)
@@ -57,22 +58,32 @@ def rand(m=1,n=1,upperbound=1):
 		return np.random_sample*random.randint(1,upperbound)
 	else: return ASIterable(np.random.rand(m,n)*random.randint(1,upperbound))
 
+#----------------------------------------------------------------------------------------------------------------------------------------------
+#-- Serialization
+
 def serialize(val):
 	if isinstance(val, list):
-		return json.dumps({'tag': 'Expanding', 'expandingType': 'List', 'listVals': val})
+		if np.array(val).ndim > 2:
+			return json.dumps(generalSerialize(val, 'LIST'))
+		else: 
+			vals = [serializeListElem(e) for e in val]
+			sVal = {'tag': 'Expanding', 'expandingType': 'List', 'listVals': vals}
+			return json.dumps(sVal)
+
 	elif isinstance(val, dict):
-		return json.dumps({'tag': 'CellValue', 
-											 'cellValueType': 'Serialized', 
-											 'serializedValue': json.dumps(val), 
-											 'displayName': 'DICT'})
+		return json.dumps(generalSerialize(val, 'DICT'))
+
 	elif isinstance(val, np.matrixlib.defmatrix.matrix):
 		return json.dumps({'tag': 'Expanding', 'expandingType': 'NPMatrix', 'matrixVals': val.tolist()})
+
 	elif isinstance(val, np.ndarray):
-		def f(e):
-			if isinstance(e, np.ndarray): return e.tolist()
-			else: return e
-		vals = [f(e) for e in val]
-		return json.dumps({'tag': 'Expanding', 'expandingType': 'NPArray', 'arrayVals': vals})
+		if val.ndim > 2:
+			return json.dumps(generalSerialize(val, 'NP ARRAY'))
+		else: 
+			vals = [serializeListElem(e) for e in val.tolist()]
+			sVal = {'tag': 'Expanding', 'expandingType': 'NPArray', 'arrayVals': vals}
+			return json.dumps(sVal)
+
 	elif isinstance(val, pd.DataFrame):
 		labels = val.columns.values.tolist()
 		indices = val.index.values.tolist()
@@ -82,6 +93,7 @@ def serialize(val):
 											 'dfLabels': labels,
 											 'dfIndices': indices,
 											 'dfData': data})
+
 	elif isinstance(val, pd.Series):
 		indices = val.index.values.tolist()
 		data = val.get_values().tolist()
@@ -89,15 +101,44 @@ def serialize(val):
 											 'expandingType': 'PSeries',
 											 'seriesIndices': indices,
 											 'seriesData': data})
+
 	elif isinstance(val, ASIterable): 
-		if val.hidden:
-			return json.dumps({'tag': 'CellValue', 
-												 'cellValueType': 'Serialized', 
-												 'serializedValue': 'arr('+ json.dumps(val.toList()) + ').hide()', 
-												 'displayName': 'HIDDEN RANGE'})
+		if val.hidden or val.arr.ndim > 2:
+			return json.dumps(generalSerialize(val, 'HIDDEN RANGE'))
 		else: 
-			return json.dumps({'tag': 'Expanding', 'expandingType': 'List', 'listVals': val.toList()})
-	else: return json.dumps(val)
+			vals = [serializeListElem(e) for e in val.toList()]
+			sVal = {'tag': 'Expanding', 'expandingType': 'List', 'listVals': vals}
+			return json.dumps(sVal)
+
+	else: 
+		try:
+			return json.dumps(val)
+		except Exception as e:
+			return json.dumps(generalSerialize(val, 'GENERIC'))
+
+def serializeListElem(val):
+	if isinstance(val, list):
+		return [serializeListElem(e) for e in val]
+	elif isinstance(val, np.ndarray):
+		return [serializeListElem(e) for e in val.tolist()]
+	elif isinstance(val, ASIterable):
+		return [serializeListElem(e) for e in val.toList()]
+	elif isinstance(val, dict):
+		return generalSerialize(val, 'DICT')
+	elif isPrimitive(val):
+		return val
+	else:
+		return generalSerialize(val, 'GENERIC')
+
+def generalSerialize(val, name):
+	sval = 'cPickle.loads(' + json.dumps(cPickle.dumps(val)) + ')' # because newline escaping for cPickle bullshit
+	return {'tag': 'CellValue', 
+				  'cellValueType': 'Serialized', 
+				  'serializedValue': sval, 
+				  'displayName': name}
+
+def isPrimitive(val):
+	return (type(val) in (int, float, bool, str, np.int64, np.float64, np.string_)) or (val is None)
 
 def pprintDataFrame(dataframe):
 	rows = repr(dataframe).split('\n')

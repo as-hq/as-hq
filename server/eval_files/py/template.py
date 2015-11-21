@@ -41,8 +41,9 @@ try:
 		filePath = imagesPath+uid
 		figures[-1].savefig(filePath)
 		matplotlib._pylab_helpers.Gcf.destroy_all()
-		result = {'tag': 'CellValue', 'cellValueType': 'Image', 'imagePath': uid}
-	result = serialize(result)
+		result = json.dumps({'tag': 'CellValue', 'cellValueType': 'Image', 'imagePath': uid})
+	else:
+		result = serialize(result)
 except Exception as e:
 	os.chdir(curWd)
 	print "exception"
