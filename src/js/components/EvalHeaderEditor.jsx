@@ -45,7 +45,7 @@ module.exports = React.createClass({
     sendBackExpression : React.PropTypes.func
   },
 
-  getDefaultProps: function() {
+  getDefaultProps() {
     return {
       name   : 'brace-editor',
       mode   : 'python',
@@ -69,14 +69,14 @@ module.exports = React.createClass({
     return this.editor;
   },
 
-  componentDidMount: function() {
+  componentDidMount() {
     this.editor = ace.edit(this.props.name);
     this.editor.$blockScrolling = Infinity;
     this.editor.setValue(this.props.value, 1);
     onPropsSet(this.editor, this.props);
   },
 
-  componentWillReceiveProps: function(nextProps) {
+  componentWillReceiveProps(nextProps) {
     if (this.editor.getValue() !== nextProps.value) {
       this.editor.setValue(nextProps.value, 1);
     }
@@ -98,7 +98,7 @@ module.exports = React.createClass({
     EvalHeaderActionCreator.storeEvalHeaderExpression(lang, val); 
   },
 
-  render: function() {
+  render() {
     let divStyle = {
       width: this.props.width,
       height: this.props.height,

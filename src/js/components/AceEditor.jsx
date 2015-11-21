@@ -203,7 +203,7 @@ module.exports = React.createClass({
   /*************************************************************************************************************************/
   // Render
 
-  render: function() {
+  render() {
     let divStyle = {
       width: this.props.width,
       height: this.props.height,
