@@ -6,7 +6,7 @@ export default React.createClass({
       height:'110px'
     }
   },
-  render: function() {
+  render() {
     let defaultPad = 2;
     let children = [];
     if (this.props.children) { // deal with only one child

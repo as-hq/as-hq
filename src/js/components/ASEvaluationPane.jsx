@@ -107,7 +107,7 @@ export default React.createClass({
     Store.addChangeListener(this._onChange);
     FindStore.addChangeListener(this._onFindChange);
     // ReplStore.addChangeListener(this._onReplChange);
-    EvalHeaderStore.addChangeListener(this._onEvalHeaderUpdate); //misnomer; not really a change
+    EvalHeaderStore.addChangeListener(this._onEvalHeaderUpdate); 
     ExpStore.addChangeListener(this._onExpChange);
     Shortcuts.addShortcuts(this);
 
@@ -698,7 +698,6 @@ export default React.createClass({
     let lang       = this.state.evalHeaderLanguage.Display,
         expression = this._evalHeaderValue();
 
-    EvalHeaderStore.updateEvalHeaderExp(lang, expression);
     API.evaluateHeader(expression, lang);
   },
 

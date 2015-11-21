@@ -44,7 +44,7 @@ let _data: {
 dispatcherIndex: Dispatcher.register(function (action) {
     switch (action._type) {
       /* Called by Eval Pane upon leaving/changing a REPL (simply sets the expression in store) */
-      case 'EVAL_HEADER_CLOSED':
+      case 'EVAL_HEADER_UPDATED':
         ASEvalHeaderStore.updateEvalHeaderExp(action.lang, action.value);
         break;
       case 'GOT_EVAL_HEADER_RESPONSE':
