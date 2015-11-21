@@ -64,7 +64,8 @@ runDispatchCycle state cs src = do
   conn <- dbConn <$> readMVar state
   errOrCells <- runEitherT $ do
     transaction <- dispatch state roots src
-    broadcastCells <- DT.writeTransaction conn transaction-- atomically performs DB ops. (Sort of a lie -- writing to server is not atomic.)
+    -- atomically performs DB ops. (Sort of a lie -- writing to server is not atomic.)
+    broadcastCells <- DT.possiblyWriteTransaction conn state transaction
     return broadcastCells
   case errOrCells of 
     Left _ -> G.exec_ Recompute -- #needsrefactor. Overkill. But recording all cells that might have changed is a PITA. (Alex 11/20)

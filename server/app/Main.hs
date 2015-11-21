@@ -88,7 +88,8 @@ initApp = do
   let ports = case intArgs of 
         [] -> [S.wsDefaultPort]
         _ -> intArgs
-  states <- mapM (\p -> newMVar $ State [] [] conn p) ports
+  emptyCommit <- (Commit [] [] [] []) <$> getASTime
+  states <- mapM (\p -> newMVar $ State [] [] conn p emptyCommit) ports 
   -- init data
   let sheet = Sheet "INIT_SHEET_ID" "Sheet1" (Blacklist [])
   DB.setSheet conn sheet

@@ -240,6 +240,7 @@ data ASExecError =
   | DBNothingException {badLocs :: [ASIndex]}
   | DBGraphUnreachable -- failed to connect
   | CircularDepError {badLoc :: ASIndex}
+  | DecoupleAttempt
   | NetworkDown
   | RuntimeEvalException
   | ResourceLimitReached
@@ -340,9 +341,10 @@ data ASAction =
   | JumpSelect
   | MutateSheet
   | Drag
+  | Decouple
   deriving (Show, Read, Eq, Generic)
 
-data ASResult = Success | Failure {failDesc :: String} | NoResult deriving (Show, Read, Eq, Generic)
+data ASResult = Success | Failure {failDesc :: String} | DecoupleDuringEval | NoResult deriving (Show, Read, Eq, Generic)
 
 -- for open, close dialogs
 data QueryList =
@@ -411,7 +413,13 @@ data ASInitDaemonConnection = ASInitDaemonConnection {parentUserId :: ASUserId, 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- State
 
-data ServerState = State {userClients :: [ASUserClient], daemonClients :: [ASDaemonClient], dbConn :: R.Connection, appPort :: Port}
+data ServerState = State {  
+  userClients :: [ASUserClient], 
+  daemonClients :: [ASDaemonClient], 
+  dbConn :: R.Connection, 
+  appPort :: Port, 
+  tempCommit :: ASCommit
+}
 type Port = Int
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Clients

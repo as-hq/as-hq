@@ -48,11 +48,11 @@ instance Client ASUserClient where
   clientId = sessionId
   ownerName = userId
   clientSheetId (UserClient _ _ (Window sid _ _) _) = sid
-  addClient uc s@(State ucs dcs dbc port)
+  addClient uc s@(State ucs dcs dbc port tc)
     | uc `elem` ucs = s
-    | otherwise = State (uc:ucs) dcs dbc port
-  removeClient uc s@(State ucs dcs dbc port)
-    | uc `elem` ucs = State (L.delete uc ucs) dcs dbc port
+    | otherwise = State (uc:ucs) dcs dbc port tc
+  removeClient uc s@(State ucs dcs dbc port tc)
+    | uc `elem` ucs = State (L.delete uc ucs) dcs dbc port tc
     | otherwise = s
   clientCommitSource (UserClient uid _ (Window sid _ _) _) = (sid, uid)
   handleClientMessage user state message = do 
@@ -88,6 +88,7 @@ instance Client ASUserClient where
       JumpSelect     -> handleJumpSelect user state payload
       MutateSheet    -> handleMutateSheet user state payload
       Drag           -> handleDrag user state payload
+      Decouple       -> handleDecouple user state payload
       where payload = clientPayload message
       -- Undo         -> handleToggleTag user state (PayloadTags [StreamTag (Stream NoSource 1000)] (Index (T.pack "TEST_SHEET_ID2") (1,1)))
       -- ^^ above is to test streaming when frontend hasn't been implemented yet
@@ -100,11 +101,11 @@ instance Client ASDaemonClient where
   clientId = T.pack . DM.getDaemonName . daemonLoc
   ownerName = daemonOwner
   clientSheetId (DaemonClient (Index sid _ ) _ _) = sid
-  addClient dc s@(State ucs dcs dbc port)
+  addClient dc s@(State ucs dcs dbc port tc)
     | dc `elem` dcs = s
-    | otherwise = State ucs (dc:dcs) dbc port
-  removeClient dc s@(State ucs dcs dbc port)
-    | dc `elem` dcs = State ucs (L.delete dc dcs) dbc port
+    | otherwise = State ucs (dc:dcs) dbc port tc
+  removeClient dc s@(State ucs dcs dbc port tc)
+    | dc `elem` dcs = State ucs (L.delete dc dcs) dbc port tc
     | otherwise = s
   clientCommitSource (DaemonClient (Index sid _ ) _ uid) = (sid, uid)
   handleClientMessage daemon state message = case (clientAction message) of
@@ -118,7 +119,7 @@ instance Client ASDaemonClient where
 
 broadcast :: MVar ServerState -> ASServerMessage -> IO ()
 broadcast state message = do
-  (State ucs _ _ _) <- readMVar state
+  ucs <- userClients <$> readMVar state
   let ucsSheetIds = zip ucs (map clientSheetId ucs)
       affectedUsers = map fst $ filter (\(_, sid) ->  sid `elem` sheetsInPayload (serverPayload message)) ucsSheetIds
   forM_ affectedUsers $ \(UserClient _ conn _ _) -> U.sendMessage message conn
@@ -136,11 +137,12 @@ sheetsInPayload (PayloadN ()) = []
 -- Shouldn't this logic be dealt with by the individual handlers? (Alex 11/13)
 reply :: (Client c) => c -> MVar ServerState -> ASServerMessage -> IO ()
 reply cl state msg@(ServerMessage _ (Failure e) _) = sendToOriginal cl msg
+reply cl state msg@(ServerMessage _ (DecoupleDuringEval) _) = sendToOriginal cl msg
 reply _ state msg@(ServerMessage _ _ (PayloadCommit _)) = broadcast state msg 
 reply _ state msg@(ServerMessage Clear _ _) = broadcast state msg 
 reply _ state msg@(ServerMessage Delete _ _) = broadcast state msg  -- don't filter broadcast, since scrolling only updates non-blank cells. (See comment in handleUpdateWindow)
 reply _  state msg = liftIO $ do
-  (State ucs _ _ _) <- readMVar state
+  ucs <- userClients <$> readMVar state
   broadcastFiltered msg ucs
 
 -- | Given a message (commit, cells, etc), only send (to each user) the cells in their viewing window
@@ -248,6 +250,12 @@ handleEval cl state payload  = do
   let cells' = map (\(c, ts) -> c { cellTags = ts }) (zip cells oldTags)
   msg' <- DP.runDispatchCycle state cells' (clientCommitSource cl)
   reply cl state msg'
+
+handleDecouple :: (Client c) => c -> MVar ServerState -> ASPayload -> IO ()
+handleDecouple cl state payload = do 
+  commit <- tempCommit <$> readMVar state
+  conn <- dbConn <$> readMVar state
+  DT.updateDBAfterEval conn (clientCommitSource cl) commit
 
 handleEvalRepl :: (Client c) => c -> ASPayload -> IO ()
 handleEvalRepl cl (PayloadXp xp) = do

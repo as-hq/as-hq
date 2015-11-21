@@ -8,7 +8,7 @@ import AS.DB.API as DB
 import AS.DB.Util as DU
 import AS.Util as U
 
-import Database.Redis
+import Database.Redis hiding (time)
 import qualified Data.Text as T
 import qualified Data.ByteString.Char8 as B
 import Data.List (nub)
@@ -17,6 +17,8 @@ import Data.Maybe (catMaybes, fromJust)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Trans.Either
 import Control.Monad.Trans.Class
+import Control.Concurrent
+
 
 ----------------------------------------------------------------------------------------------------------------------
 -- top-level functions
@@ -36,8 +38,8 @@ getDecouplingEffects conn sid cells fcells =
     return decoupledLocs
 
 -- | Deal with updating all DB-related things after an eval. 
-writeTransaction :: Connection -> ASTransaction -> EitherTExec [ASCell]
-writeTransaction conn (Transaction src@(sid, _) afterCells fatCells deletedLocs) = 
+possiblyWriteTransaction :: Connection -> MVar ServerState -> ASTransaction -> EitherTExec [ASCell]
+possiblyWriteTransaction conn state (Transaction src@(sid, _) afterCells fatCells deletedLocs) = 
   let extraCells       = concat $ map expandedCells fatCells
       locs             = map cellLocation afterCells
       deletedCells     = U.blankCellsAt deletedLocs
@@ -60,16 +62,25 @@ writeTransaction conn (Transaction src@(sid, _) afterCells fatCells deletedLocs)
     let decoupledCells  = map DU.decoupleCell coupledCells
         afterCells''    = U.mergeCells afterCells' decoupledCells
         beforeCells'    = U.mergeCells beforeCells coupledCells
-    -- set the database
-    liftIO $ DB.setCells afterCells''
-    -- delete empty cells after setting them
-    liftIO $ deleteCells conn $ filter isEmptyCell afterCells''
-    liftIO $ mapM_ (couple conn) afterDescriptors
-    --construct commit
     time <- lift $ getASTime
     let commit = Commit beforeCells' afterCells'' beforeDescriptors afterDescriptors time
-    lift $ pushCommit conn commit src
-    right afterCells''
+    -- set the database if there are no decouplings (if decoupling should happen, issue a warning to user)
+    if (length decoupledCells == 0)
+      then do 
+        liftIO $ updateDBAfterEval conn src commit
+        right  $ afterCells''
+      else do 
+        -- update state with commit
+        liftIO $ modifyMVar_ state $ \(State uc dc conn port _) -> return $ State uc dc conn port commit
+        left $ DecoupleAttempt
+
+-- Do the writes to the DB
+updateDBAfterEval :: Connection -> CommitSource -> ASCommit -> IO ()
+updateDBAfterEval conn src c@(Commit beforeCells' afterCells'' beforeDescriptors afterDescriptors time) = do 
+  DB.setCells afterCells''
+  deleteCells conn $ filter isEmptyCell afterCells''
+  mapM_ (couple conn) afterDescriptors
+  pushCommit conn c src
 
 ----------------------------------------------------------------------------------------------------------------------
 -- helpers

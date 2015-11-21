@@ -196,6 +196,7 @@ addToAL l key value = (key, value) : delFromAL l key
 -- | When you have a list of cells from an eval request, this function constructs
 -- the message to send back. 
 makeUpdateMessage :: Either ASExecError [ASCell] -> ASServerMessage
+makeUpdateMessage (Left DecoupleAttempt) = ServerMessage Update DecoupleDuringEval (PayloadN ())
 makeUpdateMessage (Left e) = ServerMessage Update (Failure (generateErrorMessage e)) (PayloadN ())
 makeUpdateMessage (Right cells) = ServerMessage Update Success (PayloadCL cells)
 
