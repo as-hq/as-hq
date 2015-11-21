@@ -3,6 +3,9 @@ import {logDebug} from '../AS/Logger';
 import KeyUtils from '../AS/KeyUtils';
 import ShortcutUtils from '../AS/ShortcutUtils';
 import Store from '../stores/ASEvaluationStore';
+import EvalHeaderActionCreator from '../actions/ASEvalHeaderActionCreators';
+import API from '../actions/ASApiActionCreators';
+
 var ace = require('brace');
 var React = require('react');
 
@@ -80,6 +83,21 @@ module.exports = React.createClass({
     onPropsSet(this.editor, nextProps);
   },
 
+  handleKeyDown(e: SyntheticKeyboardEvent) { 
+    let lang = this.props.language.Display, 
+        val = this.editor.getValue();
+    if (KeyUtils.isCtrlS(e)) {
+      KeyUtils.killEvent(e);
+      API.evaluateHeader(val, lang);
+    }
+  },
+
+  handleKeyUp(e: SyntheticKeyboardEvent) { 
+    let lang = this.props.language.Display, 
+        val = this.editor.getValue();
+    EvalHeaderActionCreator.storeEvalHeaderExpression(lang, val); 
+  },
+
   render: function() {
     let divStyle = {
       width: this.props.width,
@@ -88,7 +106,9 @@ module.exports = React.createClass({
     };
     return (<div
         id={this.props.name}
-        style={divStyle}>
+        style={divStyle}
+        onKeyDown={this.handleKeyDown}
+        onKeyUp={this.handleKeyUp}>
       </div>);
   }
 });

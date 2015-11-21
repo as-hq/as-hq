@@ -141,6 +141,10 @@ export default {
     return e.ctrlKey && e.which === 65;
   },
 
+  isCtrlS(e) { 
+    return e.ctrlKey && e.which === 83;
+  },
+
   keyToString(e) {
     let c = e.which;
 
