@@ -16,15 +16,15 @@ from sys import exc_info
 from AS.iterable import ASIterable
 
 def arr(lst):
-  return ASIterable(lst)
+	return ASIterable(lst)
 result = ""
 try:
-  #CODE#
-  result = serialize(result)
+	#CODE#
+	result = serialize(result)
 except Exception as e:
-  os.chdir(curWd)
-  print "exception"
-  exc_type, exc_obj, exc_tb = exc_info()
-  err = repr(e).replace("\'","").replace("'",'"')
-  errJson = {'tag': 'CellValue', 'cellValueType': 'Error', 'errorType': repr(exc_type), 'errorMsg': err}
-  result = json.dumps(errJson)
+	os.chdir(curWd)
+	print "exception"
+	exc_type, exc_obj, exc_tb = exc_info()
+	err = repr(e).replace("\'","").replace("'",'"')
+	errJson = {'tag': 'CellValue', 'cellValueType': 'Error', 'errorType': repr(exc_type), 'errorMsg': err}
+	result = json.dumps(errJson)

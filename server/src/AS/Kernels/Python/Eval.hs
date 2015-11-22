@@ -62,10 +62,11 @@ evaluateHeader :: ASSheetId -> String -> EitherTExec CompositeValue
 evaluateHeader sid str = do
     lift $ writeHeaderFile sid Python str 
     -- appropriating repl code for this. technically more correct to leave this blank, 
-    -- since isPrintable from th REPL code is a screwed up function, but it works well enough
+    -- since isPrintable from the REPL code is a screwed up function, but it works well enough
     -- for now when we don't have a better way to give the user the direct output of the header
     -- eval. 
     (_, evalCode) <- lift $ formatCodeRepl sid Python str
+    lift $ writeHeaderRecord Python evalCode
     -- perform eval, if there's something we actually need to return
     if (evalCode /= "" && str /= "")
         then execWrappedCode evalCode
