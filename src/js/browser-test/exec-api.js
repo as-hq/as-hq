@@ -282,6 +282,14 @@ export function noValue(): NoValue {
   return {tag: 'NoValue', contents: []};
 }
 
+export function valueNaN(): ValueNaN {
+  return {tag: 'ValueNaN', contents: []};
+}
+
+export function valueInf(): ValueInf {
+  return {tag: 'ValueInf', contents: []};
+}
+
 function isNumeric(n: any) {
   return !isNaN(parseFloat(n)) && isFinite(n);
 }
@@ -412,7 +420,7 @@ export function shouldBe(loc: string, val: ASValue): Prf {
 }
 
 export function shouldBeError(loc: string): Prf {
-  return valueShouldSatisfy(loc, ({ tag }) => (tag === 'ValueError' || tag == 'ValueExcelError'));
+  return valueShouldSatisfy(loc, ({ tag }) => (tag === 'ValueError'));
 }
 
 export function shouldBeImage(loc: string): Prf {
@@ -426,6 +434,10 @@ export function shouldBeNothing(loc: string): Prf {
     let isEmpty = (cs.length == 0) || (cs[0].cellExpression.expression == "");
     expect(isEmpty).toBe(true);
   });
+}
+
+export function shouldBeSerialized(loc: string): Prf {
+  return valueShouldSatisfy(loc, ({ tag }) => (tag === 'ValueSerialized'));
 }
 
 // [String] -> [ASValue] -> (() -> Promise ())

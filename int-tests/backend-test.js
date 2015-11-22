@@ -45,6 +45,8 @@ describe('backend', () => {
     valueS,
     valueB,
     noValue,
+    valueInf,
+    valueNaN,
 
     shouldError,
     shouldBe,
@@ -52,6 +54,7 @@ describe('backend', () => {
     shouldBeError,
     shouldBeNothing,
     shouldBeImage,
+    shouldBeSerialized,
     expressionShouldBe,
     shouldHaveTag,
     shouldNotHaveTag
@@ -1801,6 +1804,101 @@ describe('backend', () => {
             exec(done)
           ]);
         });
+      });
+    });
+
+    describe('pointer syntax', () => {
+      it('references python lists', (done) => {
+        _do([
+          python('A1', 'range(3)'),
+          python('B1', '@A1.sum()'),
+          shouldBe('B1', valueI(3)),
+          exec(done)
+          ]);
+      });
+      it('references r lists ', (done) => {
+        _do([
+          r('A1', 'c(1,2)'),
+          r('B1', 'c(3,4)'),
+          r('C1', 'union(@A1, @B1)'),
+          shouldBeL(['C1', 'C2', 'C3', 'C4'], [1,2,3,4].map(valueI)),
+          exec(done)
+          ]);
+      });
+      it('references dataframes', (done) => {
+        _do([
+          r('A1', 'data.frame(a=c(1,2))'),
+          python('C1', '@A1.T'),
+          shouldBe('C2', valueS('a')),
+          exec(done)
+          ]);
+      });
+      xit('references series', (done) => {
+        _do([
+          python('A1', 'pd.Series([1,2,3])'),
+          r('B1', '@A1'),
+          shouldBeL(['B1','B2','B3'], [1,2,3].map(valueI)),
+          exec(done)
+          ]);
+      });
+      it('references np matrices', (done) => {
+        _do([
+          python('A1', 'np.matrix([[1,2],[3,4]])'),
+          python('C1', '@A1 * 2'),
+          shouldBe('C1', valueI(2)),
+          exec(done)
+          ]);
+      });
+      it('embeds dictionaries', (done) => {
+        _do([
+          python('A1', '{\'a\':1, \'b\':[1,2,3], \'c\': \'SHIT\'}'),
+          shouldBeSerialized('A1'),
+          python('B1', '@A1[\'c\']'),
+          shouldBe('B1', valueS('SHIT')),
+          exec(done)
+          ]);
+      });
+      xit('converts NaNs', (done) => {
+        _do([
+          python('A1', 'np.nan'),
+          r('B1', 'A1 + 1'),
+          shouldBe('B1', valueNaN()),
+          r('A2', 'NaN'),
+          python('B2', 'A2 + 1'),
+          shouldBe('B2', valueNaN()),
+          exec(done)
+          ]);
+      });
+      xit('converts Infs', (done) => {
+        _do([
+          python('A1', 'np.inf'),
+          r('B1', 'A1 + 1'),
+          shouldBe('B1', valueInf()),
+          r('A2', 'Inf'),
+          python('B2', 'A2 + 1'),
+          shouldBe('B2', valueInf()),
+          exec(done)
+          ]);
+      });
+    });
+
+    describe('dependencies on expanding cells', (done) => {
+      xit('propagates expanding dependencies', (done) => {
+        _do([
+          python('A1', 'range(10)'),
+          python('B1', '@A1'),
+          python('A1', '10'),
+          shouldBeError('B1'),
+          exec(done)
+          ]);
+      });
+      it('deletes fat cell heads properly', (done) => {
+        _do([
+          python('A1', 'range(10)'),
+          _delete('A1'),
+          shouldBeDecoupled('A1'),
+          exec(done)
+          ]);
       });
     });
 
