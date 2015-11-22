@@ -272,7 +272,7 @@ describe('backend', () => {
           ]);
         });
 
-        it ('should evaluate None correctly', (done) => {
+        it('should evaluate None correctly', (done) => {
           _do([
             python('A1', '[1,2,3,None]'),
             python('B1', 'A1:A4.reversed()'),
@@ -610,7 +610,7 @@ describe('backend', () => {
 
       describe('excelfunctions', () => {
         // This test won't work until double equality is fixed.
-        xit ('CORREL', (done) => {
+        xit('CORREL', (done) => {
             _do([
                 excel('A1', 'Data1'),
                 excel('A2', '3'),
@@ -635,7 +635,7 @@ describe('backend', () => {
                 exec(done)
             ]);
         });
-        it ('SUM', (done) => {
+        it('SUM', (done) => {
           _do([
             excel('A1', '-5'),
             excel('A2', '15'),
@@ -654,7 +654,7 @@ describe('backend', () => {
             exec(done)
           ]);
         });
-        it ('COVAR', (done) => {
+        it('COVAR', (done) => {
           _do([
               excel('A1', 'Data1'),
               excel('A2', '3'),
@@ -677,7 +677,7 @@ describe('backend', () => {
               exec(done)
           ]);
         });
-        xit ('MATCH', (done) => {
+        xit('MATCH', (done) => {
             _do([
                 excel('A1', 'Product'),
                 excel('A2', 'Bananas'),
@@ -718,7 +718,7 @@ describe('backend', () => {
           ]);
         });
 
-        it ('should treat blanks as zeroes for arithmetic operations', (done) => {
+        it('should treat blanks as zeroes for arithmetic operations', (done) => {
           _do([
             python('A1', '5'),
             excel('B1', '=A2+A3'),
@@ -1198,6 +1198,18 @@ describe('backend', () => {
             }),
             python('A1', '1'),
             shouldBeNothing('B2'),
+            exec(done)
+          ]);
+        });
+
+        // KNOWN TO HANG -- fix this when we diagnose the problem better
+        fit('should something something something critch bug', (done) => { 
+          _do([
+            python('A1', 'range(10)'),
+            python('C1', '@A1'),
+            insertCol(1),
+            python('A1', '10'),
+            shouldBe('A1', valueI(10)),
             exec(done)
           ]);
         });
