@@ -65,7 +65,6 @@ export default React.createClass({
 
     return (
        <div style={{width:"100%",height:"100%"}} >
-       {null/*
         <LeftNav
           ref="leftNav"
           menuItems={leftNavMenuItems}
@@ -74,7 +73,7 @@ export default React.createClass({
           onDocumentTabChange={this._onDocumentTabChange}
           onRibbonTabChange={this._onRibbonTabChange}
           onAlphaButtonTap={this._onAlphaButtonTap}/>
-        <ASRibbon activeTab={this.state.activeRibbonTab} />*/}
+        <ASRibbon activeTab={this.state.activeRibbonTab} />
         <div style={{width: '100%', height: '100%'}}>
           <div style={{display: 'inline-block', width: '10%', height: '100%', verticalAlign: 'top'}}>
             <ASTreeNav
