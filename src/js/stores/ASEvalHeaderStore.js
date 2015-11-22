@@ -87,7 +87,8 @@ const ASEvalHeaderStore = Object.assign({}, BaseStore, {
         case "NoValue":
           break;
         default:
-          message += "(Header code evaluated to " + JSON.stringify(((cellVal: any): { contents: any }).contents) + ")";
+          let str = JSON.stringify(((cellVal: any): { contents: any }).contents);
+          message += "(Header code evaluated to " + str + ")";
           break;
       }
     } else if (val.tag == "Expanding") {

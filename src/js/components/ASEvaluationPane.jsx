@@ -260,6 +260,10 @@ export default React.createClass({
   },
 
   setToast(msg: ?string, action?: string) {
+    // possibly truncate message
+    if (msg.length > 66) { 
+      msg = msg.substring(0, 63) + "...";
+    }
     this.setState({toastMessage: msg, toastAction: action});
     this.refs.snackbarError.show();
   },
