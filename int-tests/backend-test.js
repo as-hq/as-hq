@@ -1203,7 +1203,7 @@ describe('backend', () => {
         });
 
         // KNOWN TO HANG -- fix this when we diagnose the problem better
-        fit('should something something something critch bug', (done) => { 
+        it('should something something something critch bug', (done) => { 
           _do([
             python('A1', 'range(10)'),
             python('C1', '@A1'),
@@ -1576,6 +1576,16 @@ describe('backend', () => {
             cut('A1', 'B1'),
             shouldBe('B1', valueI(0)), 
             shouldBe('A2', valueI(1)),
+            exec(done)
+          ]);
+        });
+
+        it('should cut/paste entire ranges', (done) => {
+          _do([
+            python('A1', 'range(10)'), 
+            cut('A1:A10', 'B1:B10'),
+            shouldBe('B1', valueI(0)), 
+            shouldBeNothing('A1', valueI(0)),
             exec(done)
           ]);
         });
