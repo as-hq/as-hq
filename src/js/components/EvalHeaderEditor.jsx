@@ -84,7 +84,7 @@ module.exports = React.createClass({
   },
 
   handleKeyDown(e: SyntheticKeyboardEvent) { 
-    let lang = this.props.language.Display, 
+    let lang = this.props.language, 
         val = this.editor.getValue();
     if (KeyUtils.isCtrlS(e)) {
       KeyUtils.killEvent(e);
@@ -93,7 +93,7 @@ module.exports = React.createClass({
   },
 
   handleKeyUp(e: SyntheticKeyboardEvent) { 
-    let lang = this.props.language.Display, 
+    let lang = this.props.language, 
         val = this.editor.getValue();
     EvalHeaderActionCreator.storeEvalHeaderExpression(lang, val); 
   },

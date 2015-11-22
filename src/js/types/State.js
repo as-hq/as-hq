@@ -9,7 +9,8 @@ import type {
   NakedRange,
   ASIndex,
   ASRange,
-  ASCell
+  ASCell, 
+  ASLanguage
 } from './Eval';
 
 export type ASViewingWindow = {
@@ -60,7 +61,7 @@ export type ASClientLanguage =
 
 export type ASClientExpression = {
   expression: string;
-  language: ASClientLanguage;
+  language: ASLanguage;
 };
 
 export type ASCellStore =

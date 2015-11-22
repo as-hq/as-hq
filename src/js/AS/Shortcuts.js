@@ -140,7 +140,7 @@ export default {
       logDebug('SEND REPL: ' + JSON.stringify(send));
       let xpObj = {
         expression: send,
-        language: self.state.replLanguage.Server
+        language: self.state.replLanguage
       };
       // parse exp to get the last thing
       self.handleReplRequest(xpObj);

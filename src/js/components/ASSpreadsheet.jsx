@@ -935,7 +935,7 @@ export default React.createClass({
 
         <Textbox
                  ref="textbox"
-                 language={language.Editor}
+                 mode={Constants.AceMode[language]}
                  scroll={self.state.scroll}
                  onDeferredKey={this.props.onTextBoxDeferredKey}
                  hideToast={this.props.hideToast}

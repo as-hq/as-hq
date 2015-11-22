@@ -88,15 +88,15 @@ export default {
   /* External conversions */
 
   externalStringToExpression(str, lang) {
-    if (lang.Server == "Excel") { // is language.Editor the correct thing?
+    if (lang == "Excel") {
       return str;
     } else if (str != null && typeof(str) != "undefined") {
       if (!isNaN(Number(str))) {
         return str;
       } else if (str.toUpperCase() == "TRUE") {
-        return this.externalStringToBool(true, lang.Server);
+        return this.externalStringToBool(true, lang);
       } else if (str.toUpperCase() == "FALSE") {
-        return this.externalStringToBool(false, lang.Server);
+        return this.externalStringToBool(false, lang);
       } else {
         return JSON.stringify(str);
       }

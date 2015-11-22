@@ -82,7 +82,7 @@ const ASReplStore = assign({}, BaseStore, {
     if (lang) {
       _data.replExps[lang] += "\n>>> ";
     } else {
-      _data.replExps[_data.currentLanguage.Server] += "\n>>> ";
+      _data.replExps[_data.currentLanguage] += "\n>>> ";
     }
   },
 
