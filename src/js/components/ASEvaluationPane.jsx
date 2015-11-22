@@ -344,13 +344,9 @@ export default React.createClass({
           {fromSheetId, fromRange} = ClipboardUtils.getAttrsFromHtmlString(e.clipboardData.getData("text/html")),
           toASRange = TC.simpleToASRange(sel.range);
 
-      if (! clipboard.area) {
-        logError('clipboard.area not found.');
-        return;
-      }
-
       // These lines are in principle redundant, but since browser clipboards aren't easily mocked,
-      // fromRange and fromSheetId are null in frontend tests. (Alex 11/15)
+      // fromRange and fromSheetId are null in frontend tests. (Alex 11/15) clipboard.area is basically
+      // obsolete, except for allowing copy/paste within the same sheets for browser tests. 
       fromRange   = fromRange   || clipboard.area.range;
       fromSheetId = fromSheetId || Store.getCurrentSheet().sheetId;
 
