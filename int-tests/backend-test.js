@@ -1189,7 +1189,7 @@ describe('backend', () => {
           ]);
         });
 
-        xit('should shrink a range based on a dependency', (done) => {
+        it('should shrink a range based on a dependency', (done) => {
           _do([
             python('A1', '10'),
             python('B1', 'range(A1)'),
