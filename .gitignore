@@ -18,9 +18,11 @@ server/client_messages
 
 server/eval_files/py/run.py
 server/eval_files/py/run_repl.py
+server/eval_files/py/header_record.py
 server/eval_files/**/headers/*
 server/eval_files/**/headers/*.*
 !server/eval_files/**/template.*
+!server/eval_files/**/template_repl.*
 !server/eval_files/**/headers/dummy
 
 server/static/images/*
