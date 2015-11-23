@@ -137,7 +137,12 @@ wss.onmessage = (event: MessageEvent) => {
         });
        break;
       case "Update":
-        if (msg.payload.tag === "PayloadCL") {
+        if (msg.result.tag === "DecoupleDuringEval") {
+          Dispatcher.dispatch({
+            _type: 'EVAL_TRIED_TO_DECOUPLE',
+            updatedCells: msg.payload.contents
+          });
+        } else if (msg.payload.tag === "PayloadCL") {
           Dispatcher.dispatch({
             _type: 'GOT_UPDATED_CELLS',
             updatedCells: msg.payload.contents
@@ -258,7 +263,6 @@ export default {
   ackMessage(innerClient: WebSocket) {
     let msg: ASClientMessage = TC.makeClientMessage(Constants.ServerActions.Acknowledge,
       'PayloadN', []);
-    //logDebug('Sending ACK from API action creators');
     innerClient.send(JSON.stringify(msg));
   },
 
@@ -318,6 +322,12 @@ export default {
       expression: xpObj.expression,
       language: xpObj.language
     });
+    this.send(msg);
+  },
+
+  decouple() {
+    let msg: ASClientMessage = TC.makeClientMessage(Constants.ServerActions.Decouple,
+      "PayloadN", []);
     this.send(msg);
   },
   /**************************************************************************************************************************/

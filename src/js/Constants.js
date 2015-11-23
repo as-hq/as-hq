@@ -80,7 +80,8 @@ export default Object.assign({
     PARTIAL_REF_CHANGE_WITH_GRID:null,
     PARTIAL_REF_CHANGE_WITH_TEXTBOX:null,
     ESC_PRESSED:null,
-    BACKEND_UPDATED_AND_CELLS_CHANGED: null
+    BACKEND_UPDATED_AND_CELLS_CHANGED: null,
+    EVAL_TRIED_TO_DECOUPLE: null
   }),
 
   ActionSources: keyMirror({
@@ -136,7 +137,8 @@ export default Object.assign({
     SetTag: "SetTag",
     JumpSelect: "JumpSelect",
     MutateSheet: "MutateSheet",
-    Drag: "Drag"
+    Drag: "Drag",
+    Decouple: "Decouple"
   },
 
   CursorPosition:{

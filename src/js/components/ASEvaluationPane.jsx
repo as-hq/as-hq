@@ -186,6 +186,15 @@ export default React.createClass({
     3) Treat the special case of errors/other styles
   */
   _onChange() {
+    if (Store.getDecoupleAttempt()) {
+      let resp = window.confirm("You're attempting to decouple cells. Are you sure?");
+      if (resp) {
+        API.decouple();
+      } else {
+        debugger;
+      }
+      Store.setDecoupleAttempt(false);
+    }
     logDebug("Eval pane detected event change from store");
     let updatedCellsOnSheet = Store.getLastUpdatedCells().filter((cell) => {
       return cell.cellLocation.sheetId == Store.getCurrentSheet().sheetId;

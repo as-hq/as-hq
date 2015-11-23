@@ -44,6 +44,7 @@ let _data: {
   userId: ASUserId;
   allCells: ASCellStore;
   lastUpdatedCells: Array<ASCell>;
+  decoupleAttempt: boolean;
   suppressErrors: boolean;
   xscroll: number;
   yscroll: number;
@@ -63,6 +64,7 @@ let _data: {
   userId: "TEST_USER_ID",
   allCells: {},
   lastUpdatedCells: [],
+  decoupleAttempt: false,
   suppressErrors: false,
   xscroll: 0,
   yscroll: 0,
@@ -128,6 +130,10 @@ const ASEvaluationStore = Object.assign({}, BaseStore, {
           _data.lastUpdatedCells = [];
           ASEvaluationStore.updateCells(action.updatedCells);
           // logDebug("Last updated cells: " + JSON.stringify(_data.lastUpdatedCells));
+          ASEvaluationStore.emitChange();
+          break;
+        case 'EVAL_TRIED_TO_DECOUPLE':
+          _data.decoupleAttempt = true;
           ASEvaluationStore.emitChange();
           break;
         /*
@@ -223,6 +229,12 @@ const ASEvaluationStore = Object.assign({}, BaseStore, {
   /* getter and setter methods */
   getUserId() {
     return _data.userId;
+  },
+  getDecoupleAttempt() {
+    return _data.decoupleAttempt;
+  },
+  setDecoupleAttempt(b) {
+    _data.decoupleAttempt = b;
   },
   setUserId(id) {
     _data.userId = id;
