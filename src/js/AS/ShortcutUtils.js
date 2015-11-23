@@ -11,7 +11,7 @@ import ExpStore from '../stores/ASExpStore';
 //   name: "toggle_focus",
 //   key: "F2",
 //   keyCode: 113,
-//   callback: function(e, parent) {
+//   callback(e, parent) {
 //     logDebug("focus toggled");
 //     parent.toggleFocus();
 //   }

@@ -29,7 +29,7 @@ function onPropsSet(editor, props) {
   editor.commands.addCommand({
     name: 'backspace',
     bindKey: {win: 'backspace',  mac: 'backspace'},
-    exec: function(editor) {
+    exec(editor) {
       let pos = editor.getCursorPosition(),
           val = editor.getValue(),
           line = editor.getSession().getLine(pos.row),
@@ -96,7 +96,7 @@ module.exports = React.createClass({
     sendBackExpression : React.PropTypes.func
   },
 
-  getDefaultProps: function() {
+  getDefaultProps() {
     return {
       name   : 'brace-editor',
       mode   : 'python',
@@ -116,7 +116,7 @@ module.exports = React.createClass({
     };
   },
 
-  onChange: function() {
+  onChange() {
     let value = this.editor.getValue();
     if (this.props.onChange) {
       this.props.onChange(value);
@@ -185,7 +185,7 @@ module.exports = React.createClass({
     }
   },
 
-  componentDidMount: function() {
+  componentDidMount() {
     this.editor = ace.edit(this.props.name);
     this.editor.$blockScrolling = Infinity;
     this.editor.on('change', this.onChange);
@@ -193,14 +193,14 @@ module.exports = React.createClass({
     onPropsSet(this.editor, this.props);
   },
 
-  componentWillReceiveProps: function(nextProps) {
+  componentWillReceiveProps(nextProps) {
     if (this.editor.getValue() !== nextProps.value) {
       this.editor.setValue(nextProps.value, 1);
     }
     onPropsSet(this.editor, nextProps);
   },
 
-  render: function() {
+  render() {
     let divStyle = {
       width: this.props.width,
       height: this.props.height,

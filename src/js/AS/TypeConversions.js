@@ -60,7 +60,7 @@ export default {
       "cellExpression": {
         "tag": "Expression",
         "expression": xpObj.expression,
-        "language": xpObj.language.Server
+        "language": xpObj.language
       },
       "cellValue":{
         "tag": "NoValue",

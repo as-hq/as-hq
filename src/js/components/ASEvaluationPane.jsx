@@ -2,12 +2,12 @@
 
 import type {
   ASValue,
+  ASLanguage,
   ASSheet
 } from '../types/Eval';
 
 import type {
   ASSelection,
-  ASClientLanguage,
   ASClientExpression,
   ASFocusType
 } from '../types/State';
@@ -54,8 +54,8 @@ import ASFindModal from './ASFindModal.jsx'
 import FindAction from '../actions/ASFindActionCreators';
 
 type ASEvalPaneState = {
-  defaultLanguage: ASClientLanguage;
-  currentLanguage: ASClientLanguage;
+  defaultLanguage: ASLanguage;
+  currentLanguage: ASLanguage;
   varName: string;
   focus: ?ASFocusType;
   toastMessage: ?string;
@@ -63,7 +63,7 @@ type ASEvalPaneState = {
   expression: string;
   expressionWithoutLastRef: string;
   evalHeaderOpen: boolean;
-  evalHeaderLanguage: ASClientLanguage;
+  evalHeaderLanguage: ASLanguage;
   showFindBar: boolean;
   showFindModal: boolean;
   testMode: boolean;
@@ -107,7 +107,7 @@ export default React.createClass({
     Store.addChangeListener(this._onChange);
     FindStore.addChangeListener(this._onFindChange);
     // ReplStore.addChangeListener(this._onReplChange);
-    EvalHeaderStore.addChangeListener(this._onEvalHeaderUpdate); //misnomer; not really a change
+    EvalHeaderStore.addChangeListener(this._onEvalHeaderUpdate); 
     ExpStore.addChangeListener(this._onExpChange);
     Shortcuts.addShortcuts(this);
 
@@ -167,7 +167,7 @@ export default React.createClass({
   /***************************************************************************************************************************/
   // Some basic on change handlers
 
-  selectLanguage(lang: ASClientLanguage) {
+  selectLanguage(lang: ASLanguage) {
     this.setState({ defaultLanguage: lang, currentLanguage: lang });
     this.setFocus(Store.getFocus());
   },
@@ -269,6 +269,10 @@ export default React.createClass({
   },
 
   setToast(msg: ?string, action?: string) {
+    // possibly truncate message
+    if (msg.length > 66) { 
+      msg = msg.substring(0, 63) + "...";
+    }
     this.setState({toastMessage: msg, toastAction: action});
     this.refs.snackbarError.show();
   },
@@ -349,13 +353,9 @@ export default React.createClass({
           {fromSheetId, fromRange} = ClipboardUtils.getAttrsFromHtmlString(e.clipboardData.getData("text/html")),
           toASRange = TC.simpleToASRange(sel.range);
 
-      if (! clipboard.area) {
-        logError('clipboard.area not found.');
-        return;
-      }
-
       // These lines are in principle redundant, but since browser clipboards aren't easily mocked,
-      // fromRange and fromSheetId are null in frontend tests. (Alex 11/15)
+      // fromRange and fromSheetId are null in frontend tests. (Alex 11/15) clipboard.area is basically
+      // obsolete, except for allowing copy/paste within the same sheets for browser tests. 
       fromRange   = fromRange   || clipboard.area.range;
       fromSheetId = fromSheetId || Store.getCurrentSheet().sheetId;
 
@@ -518,7 +518,7 @@ export default React.createClass({
       this.refs.spreadsheet.repaint();
       ExpActionCreator.handleSelChange('');
       this.setState({currentLanguage: this.state.defaultLanguage});
-      ExpStore.setLanguage(this.state.defaultLanguage.Display);
+      ExpStore.setLanguage(this.state.defaultLanguage);
       this.hideToast();
     } else if (changeSelWhileTypingNoInsert) { //click away while not parsable
       logDebug("Change sel while typing no insert");
@@ -601,7 +601,7 @@ export default React.createClass({
       }
     } else {
       let {expression, language} = curCell.cellExpression;
-      if (expression != xpObj.expression || language != xpObj.language.Server) {
+      if (expression != xpObj.expression || language != xpObj.language) {
         API.evaluate(origin, xpObj);
       }
     }
@@ -616,7 +616,7 @@ export default React.createClass({
 
   // /* When a REPl request is made, first update the store and then send the request to the backend */
   // handleReplRequest(xpObj) {
-  //   ReplActionCreator.storeReplExpression(this.state.replLanguage.Display,this._replValue());
+  //   ReplActionCreator.storeReplExpression(this.state.replLanguage,this._replValue());
   //   API.evaluateRepl(xpObj);
   // },
 
@@ -659,7 +659,7 @@ export default React.createClass({
   // _toggleRepl() {
   //   /* Save expression in store if repl is about to close */
   //   if (this.state.replOpen) {
-  //     ReplActionCreator.storeReplExpression(this.state.replLanguage.Display,this._replValue());
+  //     ReplActionCreator.storeReplExpression(this.state.replLanguage,this._replValue());
   //   } else {
   //     this._getReplEditor().focus();
   //   }
@@ -670,7 +670,7 @@ export default React.createClass({
   _toggleEvalHeader() {
     /* Save expression in store if repl is about to close */
     if (this.state.evalHeaderOpen) {
-      EvalHeaderActionCreator.storeEvalHeaderExpression(this.state.evalHeaderLanguage.Display,
+      EvalHeaderActionCreator.storeEvalHeaderExpression(this.state.evalHeaderLanguage,
                                                         this._evalHeaderValue());
     } else {
       this._getEvalHeaderEditor().focus();
@@ -685,29 +685,28 @@ export default React.createClass({
 
   // /*  When the REPL language changes, set state, save current text value, and set the next text value of the REPL editor */
   // _onReplLanguageChange(e,index,menuItem) {
-  //   ReplActionCreator.storeReplExpression(this.state.replLanguage.Display,this._replValue());
+  //   ReplActionCreator.storeReplExpression(this.state.replLanguage,this._replValue());
   //   let newLang = menuItem.payload;
-  //   let newValue = ReplStore.getReplExp(newLang.Display);
+  //   let newValue = ReplStore.getReplExp(newLang);
   //   ReplStore.setLanguage(newLang);
-  //   // logDebug("REPL lang changed from " + this.state.replLanguage.Display + " to " + newLang.Display + ", new value: "+ newValue);
+  //   // logDebug("REPL lang changed from " + this.state.replLanguage + " to " + newLang + ", new value: "+ newValue);
   //   this.setState({replLanguage:newLang});
   // },
 
-  _onEvalHeaderLanguageChange(e: {}, index: number, menuItem: { payload: ASClientLanguage; }) {
+  _onEvalHeaderLanguageChange(e: {}, index: number, menuItem: { payload: ASLanguage; }) {
     // If e is ever actually used, we will notice and remove the {} annotation.
-    EvalHeaderActionCreator.storeEvalHeaderExpression(this.state.evalHeaderLanguage.Display,
+    EvalHeaderActionCreator.storeEvalHeaderExpression(this.state.evalHeaderLanguage,
                                                       this._evalHeaderValue());
     let newLang = menuItem.payload;
-    let newValue = EvalHeaderStore.getEvalHeaderExp(newLang.Display);
+    let newValue = EvalHeaderStore.getEvalHeaderExp(newLang);
     EvalHeaderStore.setLanguage(newLang);
     this.setState({evalHeaderLanguage: newLang});
   },
 
   _onSubmitEvalHeader() {
-    let lang       = this.state.evalHeaderLanguage.Display,
+    let lang       = this.state.evalHeaderLanguage,
         expression = this._evalHeaderValue();
 
-    EvalHeaderStore.updateEvalHeaderExp(lang, expression);
     API.evaluateHeader(expression, lang);
   },
 
@@ -795,13 +794,13 @@ export default React.createClass({
     //   replLanguage={this.state.replLanguage}
     //   onDeferredKey={this._onReplDeferredKey}
     //   onClick={this._toggleRepl}
-    //   replValue={ReplStore.getReplExp(this.state.replLanguage.Display)}
+    //   replValue={ReplStore.getReplExp(this.state.replLanguage)}
     //   onReplLanguageChange={this._onReplLanguageChange} />;
 
     let sidebarContent = <EvalHeader
       ref="evalHeader"
       evalHeaderLanguage={this.state.evalHeaderLanguage}
-      evalHeaderValue={EvalHeaderStore.getEvalHeaderExp(this.state.evalHeaderLanguage.Display)}
+      evalHeaderValue={EvalHeaderStore.getEvalHeaderExp(this.state.evalHeaderLanguage)}
       onEvalHeaderLanguageChange={this._onEvalHeaderLanguageChange}
       onSubmitEvalHeader={this._onSubmitEvalHeader} />;
 

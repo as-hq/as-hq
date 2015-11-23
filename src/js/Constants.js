@@ -61,7 +61,7 @@ export default Object.assign({
     RECEIVED_WORKBOOK: null,
     DELETED_LOCS: null,
     REPL_LEFT:null,
-    EVAL_HEADER_CLOSED:null,
+    EVAL_HEADER_UPDATED:null,
     GOT_REPL_RESP:null,
     GOT_EVAL_HEADER_RESP:null,
     GOT_FIND:null,
@@ -89,27 +89,18 @@ export default Object.assign({
     VIEW_ACTION: null
   }),
 
-  Languages: {
-    Excel: {
-      Display: 'Excel',
-      Server: 'Excel',
-      Editor: 'python'
-    },
-    Python: {
-      Display: 'Python',
-      Server: 'Python',
-      Editor: 'python'
-    },
-    R: {
-      Display: 'R',
-      Server: 'R',
-      Editor: 'r'
-    },
-    SQL: {
-      Display: 'SQL',
-      Server: 'SQL',
-      Editor: 'mysql'
-    }
+  Languages: { 
+    Excel: 'Excel', 
+    Python: 'Python', 
+    R: 'R', 
+    SQL: 'SQL'
+  },
+
+  AceMode: {
+    'Excel': 'text', 
+    'Python': 'python', 
+    'R': 'r', 
+    'SQL': 'mysql'
   },
 
   ServerActions: {

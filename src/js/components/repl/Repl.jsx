@@ -19,7 +19,7 @@ let languages = [];
 for (var key in Constants.Languages) {
   languages.push({
     payload: Constants.Languages[key],
-    text: Constants.Languages[key].Display
+    text: Constants.Languages[key]
   });
 }
 
@@ -46,8 +46,7 @@ export default React.createClass({
         </Toolbar>
         <ReplEditor
           ref="editor" name="repl"
-          onChange={function() {}}
-          mode={this.props.replLanguage.Editor}
+          mode={Constants.AceMode[this.props.replLanguage]}
           language={this.props.replLanguage}
           theme="monokai"
           value={this.props.replValue}
