@@ -48,11 +48,11 @@ instance Client ASUserClient where
   clientId = sessionId
   ownerName = userId
   clientSheetId (UserClient _ _ (Window sid _ _) _) = sid
-  addClient uc s@(State ucs dcs dbc port tc)
+  addClient uc s@(State ucs dcs dbc port)
     | uc `elem` ucs = s
-    | otherwise = State (uc:ucs) dcs dbc port tc
-  removeClient uc s@(State ucs dcs dbc port tc)
-    | uc `elem` ucs = State (L.delete uc ucs) dcs dbc port tc
+    | otherwise = State (uc:ucs) dcs dbc port
+  removeClient uc s@(State ucs dcs dbc port)
+    | uc `elem` ucs = State (L.delete uc ucs) dcs dbc port
     | otherwise = s
   clientCommitSource (UserClient uid _ (Window sid _ _) _) = (sid, uid)
   handleClientMessage user state message = do 
@@ -101,11 +101,11 @@ instance Client ASDaemonClient where
   clientId = T.pack . DM.getDaemonName . daemonLoc
   ownerName = daemonOwner
   clientSheetId (DaemonClient (Index sid _ ) _ _) = sid
-  addClient dc s@(State ucs dcs dbc port tc)
+  addClient dc s@(State ucs dcs dbc port)
     | dc `elem` dcs = s
-    | otherwise = State ucs (dc:dcs) dbc port tc
-  removeClient dc s@(State ucs dcs dbc port tc)
-    | dc `elem` dcs = State ucs (L.delete dc dcs) dbc port tc
+    | otherwise = State ucs (dc:dcs) dbc port 
+  removeClient dc s@(State ucs dcs dbc port)
+    | dc `elem` dcs = State ucs (L.delete dc dcs) dbc port
     | otherwise = s
   clientCommitSource (DaemonClient (Index sid _ ) _ uid) = (sid, uid)
   handleClientMessage daemon state message = case (clientAction message) of
@@ -137,7 +137,7 @@ sheetsInPayload (PayloadN ()) = []
 -- Shouldn't this logic be dealt with by the individual handlers? (Alex 11/13)
 reply :: (Client c) => c -> MVar ServerState -> ASServerMessage -> IO ()
 reply cl state msg@(ServerMessage _ (Failure e) _) = sendToOriginal cl msg
-reply cl state msg@(ServerMessage _ (DecoupleDuringEval) _) = sendToOriginal cl msg
+reply cl state msg@(ServerMessage _ (DecoupleDuringEval) _) = sendToOriginal cl msg -- upon decouple attempt
 reply _ state msg@(ServerMessage _ _ (PayloadCommit _)) = broadcast state msg 
 reply _ state msg@(ServerMessage Clear _ _) = broadcast state msg 
 reply _ state msg@(ServerMessage Delete _ _) = broadcast state msg  -- don't filter broadcast, since scrolling only updates non-blank cells. (See comment in handleUpdateWindow)
@@ -251,11 +251,24 @@ handleEval cl state payload  = do
   msg' <- DP.runDispatchCycle state cells' (clientCommitSource cl)
   reply cl state msg'
 
+-- The user has said OK to the decoupling
+-- We've stored the changed range keys and the last commit, which need to be used to modify DB
 handleDecouple :: (Client c) => c -> MVar ServerState -> ASPayload -> IO ()
 handleDecouple cl state payload = do 
-  commit <- tempCommit <$> readMVar state
   conn <- dbConn <$> readMVar state
-  DT.updateDBAfterEval conn (clientCommitSource cl) commit
+  let src = clientCommitSource cl
+  mCommit <- DT.getTempCommit conn src
+  mRangeKeys <- DT.getRangeKeysChanged conn src
+  case mCommit of
+    Nothing -> return ()
+    Just c  -> do 
+      case mRangeKeys of 
+        Nothing -> return ()
+        Just rangeKeysChanged -> do 
+          concat <$> (mapM (DT.decouple conn) rangeKeysChanged)
+          DT.updateDBAfterEval conn src c
+          let msg = ServerMessage Update Success (PayloadCL (after c))
+          reply cl state msg
 
 handleEvalRepl :: (Client c) => c -> ASPayload -> IO ()
 handleEvalRepl cl (PayloadXp xp) = do

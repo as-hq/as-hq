@@ -65,7 +65,7 @@ runDispatchCycle state cs src = do
   errOrCells <- runEitherT $ do
     transaction <- dispatch state roots src
     -- atomically performs DB ops. (Sort of a lie -- writing to server is not atomic.)
-    broadcastCells <- DT.possiblyWriteTransaction conn state transaction
+    broadcastCells <- DT.possiblyWriteTransaction conn transaction
     return broadcastCells
   case errOrCells of 
     Left _ -> G.exec_ Recompute -- #needsrefactor. Overkill. But recording all cells that might have changed is a PITA. (Alex 11/20)

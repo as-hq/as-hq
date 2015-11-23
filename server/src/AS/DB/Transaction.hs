@@ -38,8 +38,8 @@ getDecouplingEffects conn sid cells fcells =
     return decoupledLocs
 
 -- | Deal with updating all DB-related things after an eval. 
-possiblyWriteTransaction :: Connection -> MVar ServerState -> ASTransaction -> EitherTExec [ASCell]
-possiblyWriteTransaction conn state (Transaction src@(sid, _) afterCells fatCells deletedLocs) = 
+possiblyWriteTransaction :: Connection -> ASTransaction -> EitherTExec [ASCell]
+possiblyWriteTransaction conn (Transaction src@(sid, _) afterCells fatCells deletedLocs) = 
   let extraCells       = concat $ map expandedCells fatCells
       locs             = map cellLocation afterCells
       deletedCells     = U.blankCellsAt deletedLocs
@@ -57,21 +57,25 @@ possiblyWriteTransaction conn state (Transaction src@(sid, _) afterCells fatCell
     -- hold on to the decoupled descriptors 
     beforeDescriptors <- liftIO $ map fromJust <$> mapM (DB.getRangeDescriptor conn) rangeKeysChanged
     printWithTimeT $ "Range keys changed: " ++ (show rangeKeysChanged)
-    -- decouple the intersected fat cells
-    coupledCells <- lift $ concat <$> (mapM (decouple conn) rangeKeysChanged)
-    let decoupledCells  = map DU.decoupleCell coupledCells
-        afterCells''    = U.mergeCells afterCells' decoupledCells
-        beforeCells'    = U.mergeCells beforeCells coupledCells
     time <- lift $ getASTime
-    let commit = Commit beforeCells' afterCells'' beforeDescriptors afterDescriptors time
-    -- set the database if there are no decouplings (if decoupling should happen, issue a warning to user)
-    if (length decoupledCells == 0)
+    if (length rangeKeysChanged == 0) -- no decoupling; decoupledCells = []
       then do 
-        liftIO $ updateDBAfterEval conn src commit
-        right  $ afterCells''
+      let afterCells''    = U.mergeCells afterCells' []
+          beforeCells'    = U.mergeCells beforeCells []
+      let commit = Commit beforeCells' afterCells'' beforeDescriptors afterDescriptors time
+      -- set the database if there are no decouplings (if decoupling should happen, issue a warning to user)
+      liftIO $ updateDBAfterEval conn src commit
+      right  $ afterCells''
       else do 
-        -- update state with commit
-        liftIO $ modifyMVar_ state $ \(State uc dc conn port _) -> return $ State uc dc conn port commit
+        -- make a note of the temp commit in the DB, actually make the commit later on if user says OK
+        -- In the line below, we don't actually change any range keys in the DB
+        coupledCells <- lift $ concat <$> (mapM (getCellsBeforeDecoupling conn) rangeKeysChanged)
+        let decoupledCells  = map DU.decoupleCell coupledCells
+            afterCells''    = U.mergeCells afterCells' decoupledCells
+            beforeCells'    = U.mergeCells beforeCells coupledCells
+        let commit = Commit beforeCells' afterCells'' beforeDescriptors afterDescriptors time
+        liftIO $ setTempCommit conn commit src
+        liftIO $ setRangeKeysChanged conn rangeKeysChanged src
         left $ DecoupleAttempt
 
 -- Do the writes to the DB
@@ -81,6 +85,7 @@ updateDBAfterEval conn src c@(Commit beforeCells' afterCells'' beforeDescriptors
   deleteCells conn $ filter isEmptyCell afterCells''
   mapM_ (couple conn) afterDescriptors
   pushCommit conn c src
+
 
 ----------------------------------------------------------------------------------------------------------------------
 -- helpers
@@ -109,6 +114,15 @@ decouple conn key =
     runRedis conn $ multiExec $ do
       del [rangeKey]
       srem sheetRangesKey [rangeKey]
+    catMaybes <$> DB.getCells (DU.rangeKeyToIndices key)
+
+-- Same as above, but don't modify DB (we want to send a decoupling warning)
+-- Still gets the cells before decoupling, but don't set range keys
+getCellsBeforeDecoupling :: Connection -> RangeKey -> IO [ASCell]
+getCellsBeforeDecoupling conn key = 
+  let rangeKey = B.pack key
+      sheetRangesKey = DU.makeSheetRangesKey $ DU.rangeKeyToSheetId key
+  in do
     catMaybes <$> DB.getCells (DU.rangeKeyToIndices key)
 
 ----------------------------------------------------------------------------------------------------------------------
@@ -196,3 +210,48 @@ pushCommit conn c src = do
       incrbyfloat "numCommits" 1
       del [popKey src]
     return ()
+
+-- Each commit source has a temp commit, used for decouple warnings
+-- Key: commitSource + "tempcommit", value: ASCommit bytestring
+getTempCommit :: Connection -> CommitSource -> IO (Maybe ASCommit)
+getTempCommit conn src = do 
+  let commitSource = B.pack $ (show src) ++ "tempcommit"
+  maybeBStr <- runRedis conn $ do
+    TxSuccess c <- multiExec $ do
+      get commitSource
+    return c
+  return $ bStrToASCommit maybeBStr
+  
+
+setTempCommit :: Connection  -> ASCommit -> CommitSource -> IO ()
+setTempCommit conn c src = do 
+  let commit = (B.pack . show) c 
+  let commitSource = B.pack $ (show src) ++ "tempcommit"
+  runRedis conn $ do
+    TxSuccess _ <- multiExec $ do
+      set commitSource commit
+    return ()
+
+
+-- We also want to store the changed range keys in the DB, so that we can actually do the decoupling
+-- (remove range key etc) if user says OK
+getRangeKeysChanged :: Connection -> CommitSource -> IO (Maybe [RangeKey])
+getRangeKeysChanged conn src = do 
+  let commitSource = B.pack $ (show src) ++ "rangekeys"
+  maybeRKeys <- runRedis conn $ do
+    TxSuccess rkeys <- multiExec $ do
+      get commitSource 
+    return rkeys
+  return $ bStrToRangeKeys maybeRKeys
+
+setRangeKeysChanged :: Connection  -> [RangeKey] -> CommitSource -> IO ()
+setRangeKeysChanged conn keys src = do 
+  let rangeKeys = (B.pack . show) keys 
+  let commitSource = B.pack $ (show src) ++ "rangekeys"
+  runRedis conn $ do
+    TxSuccess _ <- multiExec $ do
+      set commitSource rangeKeys
+    return ()
+
+
+

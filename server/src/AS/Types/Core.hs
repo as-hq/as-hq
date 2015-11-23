@@ -417,8 +417,7 @@ data ServerState = State {
   userClients :: [ASUserClient], 
   daemonClients :: [ASDaemonClient], 
   dbConn :: R.Connection, 
-  appPort :: Port, 
-  tempCommit :: ASCommit
+  appPort :: Port
 }
 type Port = Int
 ----------------------------------------------------------------------------------------------------------------------------------------------

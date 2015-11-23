@@ -38,7 +38,7 @@ getDaemonName loc = (show loc) ++ "daemon"
 
 getConnByLoc :: ASIndex -> MVar ServerState -> IO (Maybe WS.Connection)
 getConnByLoc loc state = do 
-  (State users daemons _ _ tc) <- readMVar state
+  (State users daemons _ _) <- readMVar state
   let daemon = L.filter (\(DaemonClient l _ _) -> (l == loc)) daemons
   case daemon of 
     [] -> return Nothing
