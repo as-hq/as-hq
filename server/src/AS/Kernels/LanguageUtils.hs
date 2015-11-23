@@ -253,6 +253,9 @@ writeReplRecord lang contents = getReplRecordFile lang >>= \f -> writeFile (f ::
 writeHeaderFile :: ASSheetId -> ASLanguage -> String -> IO ()
 writeHeaderFile sid lang contents = getHeaderFile sid lang >>= \f -> writeFile (f :: System.IO.FilePath) contents
 
+writeHeaderRecord :: ASLanguage -> String -> IO ()
+writeHeaderRecord lang contents = getHeaderRecordFile lang >>= \f -> writeFile (f :: System.IO.FilePath) contents
+
 getLanguageHeader :: ASSheetId -> ASLanguage -> IO String
 getLanguageHeader sid lang = do 
   f <- getHeaderFile sid lang
@@ -331,3 +334,11 @@ getHeaderFile sid lang = do
     file = case lang of
       Python -> "py/headers/" ++ (T.unpack sid) ++ ".py"
       R    -> "r/headers/" ++ (T.unpack sid) ++ ".r"
+
+getHeaderRecordFile :: ASLanguage -> IO String
+getHeaderRecordFile lang = do
+  path <- getEvalPath
+  return $ path ++ file
+  where
+    file = case lang of
+      Python  -> "py/header_record.py"

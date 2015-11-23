@@ -199,8 +199,7 @@ instance Show EErrorType where
 
 instance Show EError where
   show e = "Excel " ++ (show errorType) ++ " error, possibly due to " ++ detail
-    where
-      (errorType, detail) = getExcelErrorType e
+    where (errorType, detail) = getExcelErrorType e
 
 getExcelErrorType :: EError -> (EErrorType, String)
 getExcelErrorType ExcelSyntaxError  = (NAErr, "an error in syntax")

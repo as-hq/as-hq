@@ -1,4 +1,5 @@
 import os
+curWd = os.getcwd()
 filename = os.getcwd() + "/eval_files/py/repl_record.py"
 execfile(filename)
 
@@ -20,10 +21,10 @@ result = ""
 try:
 	#CODE#
 	result = serialize(result)
-except Exception as e: 
+except Exception as e:
+	os.chdir(curWd)
+	print "exception"
 	exc_type, exc_obj, exc_tb = exc_info()
-	fname = 'AlphaSheets Python evaluator'
 	err = repr(e).replace("\'","").replace("'",'"')
-	pos = exc_tb.tb_lineno - 20 # subtract template lines
-	errJson = {'errType': repr(exc_type), 'file': fname, 'position': pos, 'error': err}
-	result = errJson
+	errJson = {'tag': 'CellValue', 'cellValueType': 'Error', 'errorType': repr(exc_type), 'errorMsg': err}
+	result = json.dumps(errJson)

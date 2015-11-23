@@ -43,6 +43,7 @@ asValue lang =
   <|> try (nullValue lang)
   <|> try (nanValue lang)
   <|> try (infValue lang)
+  <|> try (cellJsonValue lang)
 
 -----------------------------------------------------------------------------------------------------------------------
 -- primitive parsers
@@ -69,6 +70,13 @@ infValue lang = case lang of
   _      -> fail $ "No Inf value in " ++ (show lang)
 
 lexer = P.makeTokenParser Lang.haskellDef
+
+cellJsonValue :: ASLanguage -> Parser ASValue
+cellJsonValue lang = f =<< (try $ json lang)
+  where 
+    f js = case (extractCellValue js) of 
+      Just v -> return v
+      Nothing -> complain
 
 -----------------------------------------------------------------------------------------------------------------------
 -- composite parsers
@@ -164,7 +172,7 @@ json lang = extractMap
       field <- try tree <|> try leaf
       spaces
       return (key, field)
-    extractMap      = M.fromList <$> (braces $ sepBy pair delimiter)
+    extractMap  = M.fromList <$> (braces $ sepBy pair delimiter)
 
 jsonValue :: ASLanguage -> Parser JSONValue
 jsonValue lang = 

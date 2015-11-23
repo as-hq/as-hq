@@ -81,6 +81,8 @@ execR :: Bool -> EvalCode -> IO CompositeValue
 execR isGlobal s =
   let whenCaught :: SomeException -> IO CompositeValue
       whenCaught e = (R.runRegion $ castR =<< [r| setwd("../") |]) >> (return . CellValue $ ValueError (show e) "R error")
+      -- ^ #needsrefactor: should probably change it back to working directory, not just one directory back, if e.g. 
+      -- setwd() fails. 
   in do
     result <- catch (R.runRegion $ castR =<< if isGlobal
       then [r| eval(parse(text=s_hs)) |]

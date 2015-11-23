@@ -99,6 +99,10 @@ initApp = do
 -- |  for debugging. Only called if isDebug is true.
 initDebug :: R.Connection -> MVar ServerState -> IO ()
 initDebug conn state = do
+  let str = "{\"tag\": \"Expanding\", \"arrayVals\": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], \"expandingType\": \"NPArray\"}"
+  --let str = "{\"tag\": \"CellValue\", \"cellValueType\": \"Error\", \"errorMsg\": \"name\", \"errorType\": \"name\"}"
+  --let str = "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]"
+  putStrLn $ show $ parse (PR.json Python) "" str
   return ()
 
 application :: MVar ServerState -> WS.ServerApp

@@ -260,9 +260,10 @@ writeToLog :: String -> CommitSource -> IO ()
 writeToLog str (sid, uid) = do 
   -- first, write to master to log
   logDir <- getServerLogDir
+  time <- getTime
   let sid' = T.unpack sid
       uid' = T.unpack uid
-      loggedStr = '\n':str ++ "\n" ++ sid' ++ "\n" ++ uid'
+      loggedStr = '\n':str ++ "\n" ++ sid' ++ "\n" ++ uid' ++ "\n#" ++ time
       logPath = logDir ++ "server_log"
   appendFile' logPath loggedStr
   -- then write to individual log for the sheet
@@ -276,7 +277,7 @@ logBugReport str (sid, uid) = do
   time <- getTime
   let sid' = T.unpack sid
       uid' = T.unpack uid
-      loggedStr = '\n':str ++ "\n# " ++ sid' ++ "\n# " ++ uid'
+      loggedStr = '\n':str ++ "\n# " ++ sid' ++ "\n# " ++ uid' ++ "\n#" ++ time
       bugLogPath = logDir ++ "bug_reports"
   appendFile' bugLogPath loggedStr
 
@@ -286,7 +287,7 @@ writeErrToLog str (sid, uid) = do
   time <- getTime
   let sid' = T.unpack sid
       uid' = T.unpack uid
-      loggedStr = "\n#ERROR: "++ str ++ "\n# " ++ sid' ++ "\n# " ++ uid'
+      loggedStr = "\n#ERROR: "++ str ++ "\n# " ++ sid' ++ "\n# " ++ uid' ++ "\n#" ++ time
       logPath = logDir ++ "bug_reports"
   appendFile' logPath loggedStr
   -- then write to individual log for the sheet
