@@ -53,13 +53,16 @@ export function logRed(str) {
 
 export function setLogLevel(level) {
     /*
-     * 0: debug
-     * 1: warn
-     * 2: error
-     * 3: test
+     * 0: normal
+     * 1: test
+     * higher: ???? (Michael forgot what they meant. -- Alex 11/23)
      */
 
   logLevel = level;
+}
+
+export function isTesting() {
+  return logLevel > 0; 
 }
 
 export function setTestMode() {

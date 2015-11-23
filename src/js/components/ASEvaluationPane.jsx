@@ -14,7 +14,7 @@ import type {
 
 import type Textbox from './Textbox.jsx';
 
-import {logDebug, logError} from '../AS/Logger';
+import {logDebug, logError, isTesting} from '../AS/Logger';
 
 import React from 'react';
 import ReactDOM from 'react-dom';
@@ -107,7 +107,7 @@ export default React.createClass({
     Store.addChangeListener(this._onChange);
     FindStore.addChangeListener(this._onFindChange);
     // ReplStore.addChangeListener(this._onReplChange);
-    EvalHeaderStore.addChangeListener(this._onEvalHeaderUpdate); 
+    EvalHeaderStore.addChangeListener(this._onEvalHeaderUpdate);
     ExpStore.addChangeListener(this._onExpChange);
     Shortcuts.addShortcuts(this);
 
@@ -234,7 +234,7 @@ export default React.createClass({
 
   _onEvalHeaderUpdate() {
     let msg = EvalHeaderStore.getDispMessage();
-    if (msg != "") {
+    if (!! msg && msg !== "") {
       this.setToast(msg);
     }
     this._getEvalHeaderEditor().focus();
@@ -268,9 +268,9 @@ export default React.createClass({
     }
   },
 
-  setToast(msg: ?string, action?: string) {
+  setToast(msg: string, action?: string) {
     // possibly truncate message
-    if (msg.length > 66) { 
+    if (msg.length > 66) {
       msg = msg.substring(0, 63) + "...";
     }
     this.setState({toastMessage: msg, toastAction: action});
@@ -353,11 +353,14 @@ export default React.createClass({
           {fromSheetId, fromRange} = ClipboardUtils.getAttrsFromHtmlString(e.clipboardData.getData("text/html")),
           toASRange = TC.simpleToASRange(sel.range);
 
-      // These lines are in principle redundant, but since browser clipboards aren't easily mocked,
-      // fromRange and fromSheetId are null in frontend tests. (Alex 11/15) clipboard.area is basically
-      // obsolete, except for allowing copy/paste within the same sheets for browser tests. 
-      fromRange   = fromRange   || clipboard.area.range;
-      fromSheetId = fromSheetId || Store.getCurrentSheet().sheetId;
+      // clipboard.area is basically obsolete, except for allowing copy/paste within the same sheets
+      // for browser tests. (We need a special case for this because mocking the actual clipboard is difficult.) 
+      if (isTesting()) { 
+        if (!! clipboard.area) { 
+          fromRange   = clipboard.area.range;
+          fromSheetId = Store.getCurrentSheet().sheetId;
+        }
+      }
 
       let fromASRange = TC.simpleToASRange(fromRange, fromSheetId);
       if (fromRange) {
