@@ -14,7 +14,7 @@ import type {
 
 import type Textbox from './Textbox.jsx';
 
-import {logDebug, logError} from '../AS/Logger';
+import {logDebug, logError, isTesting} from '../AS/Logger';
 
 import React from 'react';
 import ReactDOM from 'react-dom';
@@ -344,11 +344,14 @@ export default React.createClass({
           {fromSheetId, fromRange} = ClipboardUtils.getAttrsFromHtmlString(e.clipboardData.getData("text/html")),
           toASRange = TC.simpleToASRange(sel.range);
 
-      // These lines are in principle redundant, but since browser clipboards aren't easily mocked,
-      // fromRange and fromSheetId are null in frontend tests. (Alex 11/15) clipboard.area is basically
-      // obsolete, except for allowing copy/paste within the same sheets for browser tests.
-      fromRange   = fromRange   || clipboard.area.range;
-      fromSheetId = fromSheetId || Store.getCurrentSheet().sheetId;
+      // clipboard.area is basically obsolete, except for allowing copy/paste within the same sheets
+      // for browser tests. (We need a special case for this because mocking the actual clipboard is difficult.) 
+      if (isTesting()) { 
+        if (!! clipboard.area) { 
+          fromRange   = clipboard.area.range;
+          fromSheetId = Store.getCurrentSheet().sheetId;
+        }
+      }
 
       let fromASRange = TC.simpleToASRange(fromRange, fromSheetId);
       if (fromRange) {
