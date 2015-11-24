@@ -432,3 +432,38 @@ isPermissibleMessage uid conn (ClientMessage _ payload) = case payload of
   PayloadW window -> canAccessSheet conn uid (windowSheetId window)
   PayloadProp _ rng -> canAccessAll conn uid (rangeToIndices rng)
   _ -> return True
+
+
+----------------------------------------------------------------------------------------------------------------------------------------------
+-- Repeat handlers
+
+lastMessageKey :: CommitSource -> B.ByteString
+lastMessageKey src = B.pack ("LASTMESSAGE" ++ show src)
+
+storeLastMessage :: Connection -> ASClientMessage -> CommitSource -> IO () 
+storeLastMessage conn msg src = case (clientAction msg) of 
+  Repeat -> return ()
+  _ -> runRedis conn (set (lastMessageKey src) (B.pack $ show msg)) >> return ()
+
+getLastMessage :: Connection -> CommitSource -> IO ASClientMessage
+getLastMessage conn src = runRedis conn $ do 
+  msg <- get $ lastMessageKey src
+  return $ case msg of 
+    Right (Just msg') -> read (B.unpack msg')
+    _ -> ClientMessage NoAction (PayloadN ())
+
+----------------------------------------------------------------------------------------------------------------------------------------------
+-- Conditional formatting handlers
+
+condFormattingRulesKey :: ASSheetId -> B.ByteString
+condFormattingRulesKey sid = B.pack ("CONDFORMATTINGRULES" ++ (show sid))
+
+getCondFormattingRules :: Connection -> ASSheetId -> IO [CondFormatRule] 
+getCondFormattingRules conn sid = runRedis conn $ do 
+  msg <- get $ condFormattingRulesKey sid
+  return $ case msg of 
+    Right (Just msg') -> read (B.unpack msg')
+    Left _ -> error "Failed to retrieve conditional formatting rules"
+
+setCondFormattingRules :: Connection -> ASSheetId -> [CondFormatRule] -> IO ()
+setCondFormattingRules conn sid rules = runRedis conn (set (condFormattingRulesKey sid) (B.pack $ show rules)) >> return ()

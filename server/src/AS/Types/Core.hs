@@ -403,6 +403,7 @@ data ASAction =
   | JumpSelect
   | MutateSheet
   | Drag
+  | CondFormatting
   deriving (Show, Read, Eq, Generic)
 
 data ASResult = Success | Failure {failDesc :: String} | NoResult deriving (Show, Read, Eq, Generic)
@@ -442,12 +443,17 @@ data ASPayload =
   | PayloadText {text :: String}
   | PayloadMutate MutateType
   | PayloadDrag {initialRange :: ASRange, dragRange :: ASRange}
+  | PayloadCondFormat { condFormatRules :: [CondFormatRule] }
   deriving (Show, Read, Generic)
 
-data MutateType = InsertCol {insertColNum :: Int} | InsertRow { insertRowNum :: Int } |
+data MutateType = InsertCol { insertColNum :: Int } | InsertRow { insertRowNum :: Int } |
                   DeleteCol { deleteColNum :: Int } | DeleteRow { deleteRowNum :: Int } |
                   DragCol { oldColNum :: Int, newColNum :: Int } | DragRow { oldRowNum :: Int, newRowNum :: Int } 
                   deriving (Show, Read, Eq, Generic)
+
+data CondFormatRule = CondFormatRule { cellLocs :: [ASRange], 
+                                       condition :: ASExpression, 
+                                       condFormat :: CellProp } deriving (Show, Read, Generic, Eq)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Version Control
@@ -737,6 +743,9 @@ instance FromJSON MutateType
 
 instance ToJSON FormatType
 instance FromJSON FormatType
+
+instance ToJSON CondFormatRule
+instance FromJSON CondFormatRule
 
 -- memory region exposure instances for R value unboxing
 instance NFData CompositeValue      where rnf = genericRnf

@@ -63,7 +63,7 @@ instance Client ASUserClient where
       putStrLn "=========================================================="
       printObj "Message" (show message)
     redisConn <- dbConn <$> readMVar state
-    recordMessage redisConn message (clientCommitSource user)
+    DB.storeLastMessage redisConn message (clientCommitSource user)
     case (clientAction message) of
       Acknowledge    -> handleAcknowledge user
       New            -> handleNew user state payload
@@ -88,6 +88,7 @@ instance Client ASUserClient where
       JumpSelect     -> handleJumpSelect user state payload
       MutateSheet    -> handleMutateSheet user state payload
       Drag           -> handleDrag user state payload
+      CondFormatting -> handleCondFormat user state payload
       where payload = clientPayload message
       -- Undo         -> handleToggleProp user state (PayloadTags [StreamTag (Stream NoSource 1000)] (Index (T.pack "TEST_SHEET_ID2") (1,1)))
       -- ^^ above is to test streaming when frontend hasn't been implemented yet
@@ -472,7 +473,7 @@ handleSetProp user state (PayloadProp prop rng) = do
 handleRepeat :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
 handleRepeat user state (PayloadSelection range origin) = do
   conn <- dbConn <$> readMVar state
-  ClientMessage lastAction lastPayload <- getLastMessage conn (clientCommitSource user)
+  ClientMessage lastAction lastPayload <- DB.getLastMessage conn (clientCommitSource user)
   case lastAction of 
     Evaluate -> do 
       let PayloadCL ((Cell l e v ts):[]) = lastPayload
@@ -484,21 +485,6 @@ handleRepeat user state (PayloadSelection range origin) = do
     Delete -> handleDelete user state (PayloadR range)
     Undo -> handleRedo user state
     otherwise -> sendToOriginal user $ ServerMessage Repeat (Failure "Repeat not supported for this action") (PayloadN ())
-
-----------------------------------------------------------------------------------------------------------------------------------------------
--- Repeat handlers
-
-recordMessage :: R.Connection -> ASClientMessage -> CommitSource -> IO () 
-recordMessage conn msg src = case (clientAction msg) of 
-  Repeat -> return ()
-  _ -> R.runRedis conn (R.set (B.pack ("LASTMESSAGE" ++ show src)) (B.pack $ show msg)) >> return ()
-
-getLastMessage :: R.Connection -> CommitSource -> IO ASClientMessage
-getLastMessage conn src = R.runRedis conn $ do 
-  msg <- R.get (B.pack ("LASTMESSAGE" ++ show src))
-  return $ case msg of 
-    Right (Just msg') -> read (B.unpack msg')
-    _ -> ClientMessage NoAction (PayloadN ())
 
 -- | For now, all this does is acknowledge that a bug report got sent. The actual contents
 -- of the bug report (part of the payload) are output to the server log in handleClientMessage, 
@@ -697,3 +683,16 @@ cellMap mt c@(Cell loc xp v ts) = case ((cellLocMap mt) loc) of
       Coupled _ _ _ _ -> if DU.isFatCellHead c
         then Just $ DU.toUncoupled c' 
         else Just $ DU.decoupleCell c' 
+
+----------------------------------------------------------------------------------------------------------------------------------------------
+-- Conditional formatting
+
+handleCondFormat :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
+handleCondFormat user state (PayloadCondFormat rules) = do 
+  conn <- dbConn <$> readMVar state
+  let src  = clientCommitSource user
+      locs = concat $ map rangeToIndices $ concat $ map cellLocs rules
+  DB.setCondFormattingRules conn (fst src) rules
+  cells <- DB.getPossiblyBlankCells locs
+  msg <- runDispatchCycle state cells src -- maybe only eval on the xor of new and old?
+  reply user state msg
