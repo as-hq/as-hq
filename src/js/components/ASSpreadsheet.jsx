@@ -457,6 +457,7 @@ export default React.createClass({
               newSel = {range: newSelRange, origin: newSelRange.tl};
           this.select(newSel, false);
           Render.setDragRect(null);
+          self.repaint();
           API.cut(fromRange, toRange);
         } else if (Render.getDragCorner() !== null) {
           let dottedSel = Render.getDottedSelection();
@@ -866,8 +867,8 @@ export default React.createClass({
       // tag-based cell styling
       if (cell) {
         config = Util.valueToRenderConfig(config, cell.cellValue);
-        if (cell.cellTags.length > 0) {
-          config = Util.tagsToRenderConfig(config, cell.cellTags);
+        if (cell.cellProps.length > 0) {
+          config = Util.propsToRenderConfig(config, cell.cellProps);
         }
         if (cell.cellExpression.expandingType) {
           config = Util.expandingTypeToRenderConfig(config, cell.cellExpression.expandingType);

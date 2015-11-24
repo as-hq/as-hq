@@ -91,15 +91,15 @@ export default {
       // TODO other wildcards
       if (wildcard === '$') dispType = "Money";
       else if (wildcard === '%') dispType = "Percentage";
-      API.setTag("Format", dispType, Store.getActiveSelection().range);
+      API.setFormat(dispType, Store.getActiveSelection().range);
       self.refs.spreadsheet.repaint();
     });
     SU.add("common", "bold", "Ctrl+B", (wildcard) => {
-      API.toggleTag("Bold", Store.getActiveSelection().range);
+      API.toggleProp("Bold", Store.getActiveSelection().range);
       self.refs.spreadsheet.repaint();
     });
     SU.add("common", "italic", "Ctrl+I", (wildcard) => {
-      API.toggleTag("Italic", Store.getActiveSelection().range);
+      API.toggleProp("Italic", Store.getActiveSelection().range);
       self.refs.spreadsheet.repaint();
     });
     SU.add('common', 'toggle_repl', 'Alt+F11', (wildcard) => {

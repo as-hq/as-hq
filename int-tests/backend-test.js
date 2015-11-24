@@ -29,8 +29,8 @@ describe('backend', () => {
     redo,
     delete_,
 
-    toggleTag,
-    setTag,
+    toggleProp,
+    setFormat,
 
     python,
     r,
@@ -54,8 +54,8 @@ describe('backend', () => {
     shouldBeNothing,
     shouldBeImage,
     expressionShouldBe,
-    shouldHaveTag,
-    shouldNotHaveTag
+    shouldHaveProp,
+    shouldNotHaveProp
   } = require('../src/js/browser-test/exec-api');
   const {
     fromToInclusive,
@@ -1652,9 +1652,9 @@ describe('backend', () => {
           _do([
             python('A1', '1'),
             python('A2', '2'),
-            toggleTag('A1:A2', 'Bold'),
-            shouldHaveTag('A1', 'Bold'),
-            shouldHaveTag('A2', 'Bold'),
+            toggleProp('A1:A2', 'Bold'),
+            shouldHaveProp('A1', 'Bold'),
+            shouldHaveProp('A2', 'Bold'),
             exec(done)
           ]);
         });
@@ -1663,10 +1663,10 @@ describe('backend', () => {
           _do([
             python('A1', '1'),
             python('A2', '2'),
-            toggleTag('A1', 'Bold'),
-            toggleTag('A1:A2', 'Bold'),
-            shouldHaveTag('A1', 'Bold'),
-            shouldHaveTag('A2', 'Bold'),
+            toggleProp('A1', 'Bold'),
+            toggleProp('A1:A2', 'Bold'),
+            shouldHaveProp('A1', 'Bold'),
+            shouldHaveProp('A2', 'Bold'),
             exec(done)
           ]);
         });
@@ -1675,20 +1675,20 @@ describe('backend', () => {
           _do([
             python('A1', '1'),
             python('A2', '2'),
-            toggleTag('A1', 'Bold'),
-            toggleTag('A1:A2', 'Bold'),
-            toggleTag('A1:A2', 'Bold'),
-            shouldNotHaveTag('A1', 'Bold'),
-            shouldNotHaveTag('A2', 'Bold'),
+            toggleProp('A1', 'Bold'),
+            toggleProp('A1:A2', 'Bold'),
+            toggleProp('A1:A2', 'Bold'),
+            shouldNotHaveProp('A1', 'Bold'),
+            shouldNotHaveProp('A2', 'Bold'),
             exec(done)
           ]);
         });
 
         it('should bold blank cells', (done) => {
           _do([
-            toggleTag('A1', 'Bold'),
+            toggleProp('A1', 'Bold'),
             python('A1', '1'),
-            shouldHaveTag('A1', 'Bold'),
+            shouldHaveProp('A1', 'Bold'),
             exec(done)
           ]);
         });
@@ -1696,9 +1696,9 @@ describe('backend', () => {
         it('should stay bold after a delete', (done) => {
           _do([
             python('A1', '1'),
-            toggleTag('A1', 'Bold'),
+            toggleProp('A1', 'Bold'),
             delete_('A1'),
-            shouldHaveTag('A1', 'Bold'),
+            shouldHaveProp('A1', 'Bold'),
             exec(done)
           ]);
         });
@@ -1706,9 +1706,9 @@ describe('backend', () => {
         it('should not stay bold after a cut', (done) => {
           _do([
             python('A1', '1'),
-            toggleTag('A1', 'Bold'),
+            toggleProp('A1', 'Bold'),
             cut('A1', 'B1'),
-            shouldNotHaveTag('A1', 'Bold'),
+            shouldNotHaveProp('A1', 'Bold'),
             exec(done)
           ]);
         });
@@ -1719,18 +1719,18 @@ describe('backend', () => {
           _do([
             python('A1', '1'),
             python('A2', '2'),
-            setTag('A1:A2', 'Format', 'Money'),
-            shouldHaveTag('A1', 'Format'),
-            shouldHaveTag('A2', 'Format'),
+            setFormat('A1:A2', 'Money'),
+            shouldHaveProp('A1', 'ValueFormat', 'Money'),
+            shouldHaveProp('A2', 'ValueFormat', 'Money'),
             exec(done)
           ]);
         });
 
         it('should format blank cells', (done) => {
           _do([
-            setTag('A1', 'Format', 'Money'),
+            setFormat('A1', 'Money'),
             python('A1', '1'),
-            shouldHaveTag('A1', 'Format'),
+            shouldHaveProp('A1', 'ValueFormat', 'Money'),
             exec(done)
           ]);
         });

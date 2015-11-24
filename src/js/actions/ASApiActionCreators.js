@@ -18,7 +18,7 @@ import type {
   ASExpression,
   ASValue,
   ASSheet,
-  ASCellTag,
+  ASCellProp,
   ASCell
 } from '../types/Eval';
 
@@ -383,32 +383,40 @@ export default {
     this.send(msg);
   },
 
-  toggleTag(tag: ASCellTag, rng: NakedRange) {
-    let msg = TC.makeClientMessageRaw(Constants.ServerActions.ToggleTag, {
-      "tag": "PayloadTag",
-      "cellTag": {tag: tag, contents: []},
+  toggleProp(prop: ASCellProp, rng: NakedRange) {
+    let msg = TC.makeClientMessageRaw(Constants.ServerActions.ToggleProp, {
+      "tag": "PayloadProp",
+      "prop": {tag: prop, contents: []},
       "tagRange": TC.simpleToASRange(rng)
     });
     this.send(msg);
   },
 
-  setTag(tag: ASCellTag, val: any, rng: NakedRange) {
-    let msg = TC.makeClientMessageRaw(Constants.ServerActions.SetTag, {
-      "tag": "PayloadTag",
-      "cellTag": {tag: tag, contents: val},
+  setProp(prop: any, rng: NakedRange) {
+    let msg = TC.makeClientMessageRaw(Constants.ServerActions.SetProp, {
+      "tag": "PayloadProp",
+      "prop": prop,
       "tagRange": TC.simpleToASRange(rng)
     });
     this.send(msg);
+  },
+
+  setFormat(formatType: string, rng: NakedRange) { 
+    let formatProp = { 
+      tag: "ValueFormat", 
+      formatType: formatType
+    };
+    this.setProp(formatProp, rng);
   },
 
   // Image tags actually have data, so the message is a bit different
-  setImageTag(val: {
+  setImageProp(val: {
     imageWidth: number;
     imageHeight: number;
     imageOffsetX: number;
     imageOffsetY: number;
   }, rng: NakedRange) {
-    let msg = TC.makeClientMessageRaw(Constants.ServerActions.SetTag, {
+    let msg = TC.makeClientMessageRaw(Constants.ServerActions.SetProp, {
       "tag": "PayloadTag",
       "cellTag": {
         tag: "ImageData",

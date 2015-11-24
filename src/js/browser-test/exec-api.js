@@ -13,7 +13,7 @@ import type {
   ASValue,
   ASExpression,
   ASLanguage,
-  ASCellTag,
+  ASCellProp,
   ASCell
 } from '../types/Eval';
 
@@ -250,15 +250,15 @@ export function delete_(rng: string): Prf {
   });
 }
 
-export function toggleTag(rng: string, tag: ASCellTag): Prf {
+export function toggleProp(rng: string, prop: ASCellProp): Prf {
   return apiExec(() => {
-    API.toggleTag(tag, rangeFromExcel(rng));
+    API.toggleProp(prop, rangeFromExcel(rng));
   });
 }
 
-export function setTag(rng: string, tag: ASCellTag, val: any): Prf {
+export function setFormat(rng: string, format: string): Prf {
   return apiExec(() => {
-    API.setTag(tag, val, rangeFromExcel(rng));
+    API.setFormat(format, rangeFromExcel(rng));
   });
 }
 
@@ -370,31 +370,31 @@ export function expressionShouldBe(loc: string, xp: string): Prf {
   return expressionShouldSatisfy(loc, ({ expression }) => expression === xp);
 }
 
-export function shouldHaveTag(loc: string, tag: ASCellTag): Prf {
+export function shouldHaveProp(loc: string, prop: ASCellProp): Prf {
   return messageShouldSatisfy(loc, (cs) => {
-    logDebug(`${loc} cell should have tag ${tag}`);
+    logDebug(`${loc} cell should have prop ${prop}`);
 
     expect(cs.length).not.toBe(0);
     if (cs.length == 0) {
       return;
     }
 
-    let [{ cellTags }] = cs;
-    expect(cellTags.map((c) => c.tag).indexOf(tag)).not.toBe(-1, "meaning the tag wasn't found");
+    let [{ cellProps }] = cs;
+    expect(cellProps.map((c) => c.tag).indexOf(prop)).not.toBe(-1, "meaning the prop wasn't found");
   });
 }
 
-export function shouldNotHaveTag(loc: string, tag: ASCellTag): Prf {
+export function shouldNotHaveProp(loc: string, prop: ASCellProp): Prf {
   return messageShouldSatisfy(loc, (cs) => {
-    logDebug(`${loc} cell should have tag ${tag}`);
+    logDebug(`${loc} cell should have prop ${prop}`);
 
     if (cs.length == 0) {
       expect(true).toBe(true);
       return;
     }
 
-    let [{ cellTags }] = cs;
-    expect(cellTags.map((c) => c.tag).indexOf(tag)).toBe(-1, "meaning the tag wasn't found");
+    let [{ cellProps }] = cs;
+    expect(cellProps.map((c) => c.tag).indexOf(prop)).toBe(-1, "meaning the prop wasn't found");
   });
 }
 

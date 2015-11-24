@@ -13,7 +13,7 @@ import type {
   Collection,
   ASLanguage,
   ASSheet,
-  ASCellTag,
+  ASCellProp,
   ASCell,
   ExpandingType
 } from '../types/Eval';
@@ -125,13 +125,14 @@ export default {
     }
   },
 
-  tagsToRenderConfig(config: HGRendererConfig, tags: Array<ASCellTag>): HGRendererConfig {
+  // ::ALEX::
+  propsToRenderConfig(config: HGRendererConfig, props: Array<ASCellProp>): HGRendererConfig {
     let self = this;
-    for (var i=0; i<tags.length; i++) {
-      let tag = tags[i];
-      switch(tag.tag) {
+    for (var i=0; i<props.length; i++) {
+      let prop = props[i];
+      switch (prop.tag) {
         case "TextColor":
-          config.fgColor = self.colorToHtml(tag.contents);
+          config.fgColor = self.colorToHtml(prop.contents);
           break;
         case "Bold":
           config.font = "bold " + config.font;
@@ -140,13 +141,13 @@ export default {
           config.font = "italic " + config.font;
           break;
         case "BgColor":
-          config.bgColor = self.colorToHtml(tag.contents);
+          config.bgColor = self.colorToHtml(prop.contents);
           break;
         case "Align":
-          config.halign = tag.contents.toLowerCase();
+          config.halign = prop.contents.toLowerCase();
           break;
-        case "Format": // should be in showValue, not tagsToRenderConfig
-          switch (tag.contents) {
+        case "ValueFormat": 
+          switch (prop.formatType) {
             case "Money":
               config.value = self.formatMoney("$", config.value, 2);
               break;
@@ -238,7 +239,7 @@ export default {
     let {cellValue: cv} = c;
     if (cv.tag === 'ValueImage') {
       let self = this,
-          ct = c.cellTags,
+          ct = c.cellProps,
           imageWidth = 300,
           imageHeight =  300,
           imageOffsetX = 0,
@@ -374,7 +375,7 @@ export default {
   },
 
   isEmptyCell(c: ASCell): boolean {
-    return !c || ((c.cellExpression.expression == "") && (c.cellTags.length == 0));
+    return !c || ((c.cellExpression.expression == "") && (c.cellProps.length == 0));
   },
 
   removeEmptyLines(str: string): string {

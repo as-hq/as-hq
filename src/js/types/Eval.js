@@ -58,26 +58,78 @@ export type ValueError = {
   errorType: string;
 };
 
-export type ColorTag = {
-  tag: 'Color';
+export type TextColor = {
+  tag: 'TextColor';
   contents: string;
 };
 
-export type SizeTag = {
-  tag: 'Size';
-  contents: number;
+export type FillColor = {
+  tag: 'FillColor';
+  contents: string;
 };
 
-export type BoldTag = {
+export type VAlign = {
+  tag: 'VAlign';
+  contents: number; //::ALEX::
+};
+
+export type HAlign = {
+  tag: 'HAlign';
+  contents: number; //::ALEX::
+};
+
+export type FontSize = {
+  tag: 'FontSize';
+  contents: number; 
+};
+
+export type FontName = {
+  tag: 'FontName';
+  contents: string; 
+};
+
+export type ValueFormat = { 
+  tag: 'ValueFormat'; 
+  formatType: FormatType;
+};
+
+export type ImageData = {
+  tag: 'ImageData';
+  imageWidth: number;
+  imageHeight: number;
+  imageOffsetX: number;
+  imageOffsetY: number;
+};
+
+export type StreamInfo = {
+  tag: 'StreamInfo';
+  streamSource: StreamSource;
+  streamFreq: number;
+};
+
+export type ReadOnly = {
+  tag: 'ReadOnly';
+  contents: Array<ASUserId>;
+};
+
+export type Bold = {
   tag: 'Bold';
 };
 
-export type ItalicTag = {
+export type Italic = {
   tag: 'Italic';
 };
 
-export type UnderlineTag = {
+export type Underline = {
   tag: 'Underline';
+};
+
+export type Volatile = {
+  tag: 'Volatile';
+};
+
+export type Tracking = {
+  tag: 'Tracking';
 };
 
 export type Bloomberg = {
@@ -85,6 +137,8 @@ export type Bloomberg = {
   url: string;
   key: string;
 };
+
+// Streams
 
 export type StreamB = {
   tag: 'StreamB';
@@ -97,29 +151,13 @@ export type NoSource = {
 
 export type StreamSource = StreamB | NoSource;
 
-export type Stream = {
-  tag: 'Stream';
-  streamSource: StreamSource;
-  streamFreq: number;
-};
+// Formats
 
-export type StreamTag = {
-  tag: 'Stream';
-  contents: Stream;
-};
-
-export type TrackingTag = {
-  tag: 'Tracking';
-};
-
-export type VolatileTag = {
-  tag: 'Volatile';
-};
-
-export type ReadOnlyTag = {
-  tag: 'ReadOnly';
-  contents: Array<ASUserId>;
-};
+export type FormatType =
+  NoFormat
+  | MoneyFormat
+  | PercentageFormat
+  | DateFormat;
 
 export type NoFormat = {
   tag: 'NoFormat';
@@ -137,25 +175,6 @@ export type DateFormat = {
   tag: 'Date';
 };
 
-export type FormatType =
-  NoFormat
-  | MoneyFormat
-  | PercentageFormat
-  | DateFormat;
-
-export type FormatTag = {
-  tag: 'Format';
-  contents: FormatType;
-};
-
-export type ImageDataTag = {
-  tag: 'ImageData';
-  imageWidth: number;
-  imageHeight: number;
-  imageOffsetX: number;
-  imageOffsetY: number;
-};
-
 export type ASLanguage = 'Python' | 'R' | 'SQL' | 'Excel';
 
 export type ASExpression = {
@@ -168,16 +187,20 @@ export type ASExpression = {
 
 export type ExpandingType = 'List' | 'RList' | 'RDataFrame' | 'NPArray' | 'NPMatrix' | 'PDataFrame' | 'PSeries';
 
-export type ASCellTag =
-  ColorTag
-  | SizeTag
-  | BoldTag | ItalicTag | UnderlineTag
-  | StreamTag
-  | TrackingTag
-  | VolatileTag
-  | ReadOnlyTag
-  | FormatTag
-  | ImageDataTag;
+export type ASCellProp =
+    TextColor
+  | FillColor
+  | VAlign
+  | HAlign
+  | FontSize
+  | FontName
+  | ValueFormat
+  | ImageData
+  | StreamInfo
+  | ReadOnly
+  | Bold | Italic | Underline 
+  | Volatile
+  | Tracking;
 
 export type ASValue =
   NoValue
@@ -312,5 +335,5 @@ export type ASCell = {
   cellExpression: ASExpression;
   cellValue: ASValue;
   cellLocation: ASIndex;
-  cellTags: Array<ASCellTag>;
+  cellProps: Array<ASCellProp>;
 };

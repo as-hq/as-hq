@@ -660,10 +660,10 @@ export default React.createClass({
   //   this.setState({replOpen: !this.state.replOpen});
   // },
 
-  // ::ALEX::
   _toggleEvalHeader() {
     /* Save expression in store if repl is about to close */
     if (this.state.evalHeaderOpen) {
+      // might be redundant? (Alex 11/24)
       EvalHeaderActionCreator.storeEvalHeaderExpression(this.state.evalHeaderLanguage,
                                                         this._evalHeaderValue());
     } else {
