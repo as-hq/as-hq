@@ -70,12 +70,12 @@ export type FillColor = {
 
 export type VAlign = {
   tag: 'VAlign';
-  contents: number; //::ALEX::
+  contents: VAlignType; 
 };
 
 export type HAlign = {
   tag: 'HAlign';
-  contents: number; //::ALEX::
+  contents: HAlignType; 
 };
 
 export type FontSize = {
@@ -112,6 +112,11 @@ export type ReadOnly = {
   contents: Array<ASUserId>;
 };
 
+export type URL = {
+  tag: 'URL';
+  urlLink: string; 
+};
+
 export type Bold = {
   tag: 'Bold';
 };
@@ -138,6 +143,13 @@ export type Bloomberg = {
   key: string;
 };
 
+///////////////////////////////////////////////////////////////////////////////
+// Alignment types
+
+export type HAlignType = 'LeftAlign' | 'HCenterAlign' | 'RightAlign'; 
+export type VAlignType = 'TopAlign' | 'VCenterAlign' | 'BottomAlign'; 
+
+///////////////////////////////////////////////////////////////////////////////
 // Streams
 
 export type StreamB = {
@@ -151,6 +163,7 @@ export type NoSource = {
 
 export type StreamSource = StreamB | NoSource;
 
+///////////////////////////////////////////////////////////////////////////////
 // Formats
 
 export type FormatType =
@@ -198,6 +211,7 @@ export type ASCellProp =
   | ImageData
   | StreamInfo
   | ReadOnly
+  | URL
   | Bold | Italic | Underline 
   | Volatile
   | Tracking;

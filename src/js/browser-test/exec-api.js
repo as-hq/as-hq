@@ -14,7 +14,9 @@ import type {
   ASExpression,
   ASLanguage,
   ASCellProp,
-  ASCell
+  ASCell, 
+  VAlignType, 
+  HAlignType
 } from '../types/Eval';
 
 import type {
@@ -256,9 +258,51 @@ export function toggleProp(rng: string, prop: ASCellProp): Prf {
   });
 }
 
-export function setFormat(rng: string, format: string): Prf {
+export function setTextColor(rng: string, contents: string): Prf {
   return apiExec(() => {
-    API.setFormat(format, rangeFromExcel(rng));
+    API.setTextColor(contents, rangeFromExcel(rng));
+  });
+}
+
+export function setFillColor(rng: string, contents: string): Prf {
+  return apiExec(() => {
+    API.setFillColor(contents, rangeFromExcel(rng));
+  });
+}
+
+export function setVAlign(rng: string, contents: VAlignType): Prf {
+  return apiExec(() => {
+    API.setVAlign(contents, rangeFromExcel(rng));
+  });
+}
+
+export function setHAlign(rng: string, contents: HAlignType): Prf {
+  return apiExec(() => {
+    API.setHAlign(contents, rangeFromExcel(rng));
+  });
+}
+
+export function setFontSize(rng: string, contents: number): Prf {
+  return apiExec(() => {
+    API.setFontSize(contents, rangeFromExcel(rng));
+  });
+}
+
+export function setFontName(rng: string, contents: string): Prf {
+  return apiExec(() => {
+    API.setFontName(contents, rangeFromExcel(rng));
+  });
+}
+
+export function setFormat(rng: string, formatType: string): Prf {
+  return apiExec(() => {
+    API.setFormat(formatType, rangeFromExcel(rng));
+  });
+}
+
+export function setUrl(rng: string, urlLink: string): Prf {
+  return apiExec(() => {
+    API.setUrl(urlLink, rangeFromExcel(rng));
   });
 }
 

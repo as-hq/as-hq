@@ -30,7 +30,14 @@ describe('backend', () => {
     delete_,
 
     toggleProp,
+    setTextColor, 
+    setFillColor,
+    setVAlign,
+    setHAlign,
+    setFontSize,
+    setFontName,
     setFormat,
+    setUrl,
 
     python,
     r,
@@ -1646,7 +1653,7 @@ describe('backend', () => {
       })
     });
 
-    describe('tags', () => {
+    describe('toggling props', () => {
       describe('bolding', () => {
         it('should bold blocks of cells at once', (done) => {
           _do([
@@ -1714,7 +1721,7 @@ describe('backend', () => {
         });
       });
 
-      describe('formatting', () => {
+      describe('setting props', () => {
         it('should format blocks of cells at once', (done) => {
           _do([
             python('A1', '1'),
@@ -1731,6 +1738,29 @@ describe('backend', () => {
             setFormat('A1', 'Money'),
             python('A1', '1'),
             shouldHaveProp('A1', 'ValueFormat', 'Money'),
+            exec(done)
+          ]);
+        });
+
+        it('should call the API prop setters successfully', (done) => {
+          _do([
+            python('A1', 'range(10)'),
+            setTextColor('A1', 'red'),
+            setFillColor('A2', 'blue'),
+            setVAlign('A3', 'TopAlign'),
+            setHAlign('A4', 'LeftAlign'),
+            setFontSize('A5', 20), 
+            setFontName('A6', 'Comic Sans'), 
+            setFormat('A7', 'Money'),
+            setUrl('A8', 'PLEASE DO NOT CLICK!!!', 'http://meatspin.com'),
+            shouldHaveProp('A1', 'TextColor'), 
+            shouldHaveProp('A2', 'FillColor'), 
+            shouldHaveProp('A3', 'VAlign'), 
+            shouldHaveProp('A4', 'HAlign'), 
+            shouldHaveProp('A5', 'FontSize'), 
+            shouldHaveProp('A6', 'FontName'), 
+            shouldHaveProp('A7', 'ValueFormat'), 
+            shouldHaveProp('A8', 'URL'), 
             exec(done)
           ]);
         });

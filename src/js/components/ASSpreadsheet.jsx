@@ -865,13 +865,15 @@ export default React.createClass({
           cell = Store.getCell(col, row);
 
       // tag-based cell styling
-      if (cell) {
-        config = Util.valueToRenderConfig(config, cell.cellValue);
-        if (cell.cellProps.length > 0) {
-          config = Util.propsToRenderConfig(config, cell.cellProps);
-        }
+      if (!! cell) {
+        Util.valueToRenderConfig(config, cell.cellValue);
         if (cell.cellExpression.expandingType) {
-          config = Util.expandingTypeToRenderConfig(config, cell.cellExpression.expandingType);
+          Util.expandingTypeToRenderConfig(config, cell.cellExpression.expandingType);
+        }
+
+        // props take highest precedence
+        if (cell.cellProps.length > 0) { // props take higher precedence
+          Util.propsToRenderConfig(config, cell.cellProps);
         }
       } else {
         config.halign = 'center';

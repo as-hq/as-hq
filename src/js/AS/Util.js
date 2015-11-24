@@ -125,7 +125,6 @@ export default {
     }
   },
 
-  // ::ALEX::
   propsToRenderConfig(config: HGRendererConfig, props: Array<ASCellProp>): HGRendererConfig {
     let self = this;
     for (var i=0; i<props.length; i++) {
@@ -134,18 +133,20 @@ export default {
         case "TextColor":
           config.fgColor = self.colorToHtml(prop.contents);
           break;
-        case "Bold":
-          config.font = "bold " + config.font;
-          break;
-        case "Italic":
-          config.font = "italic " + config.font;
-          break;
-        case "BgColor":
+        case "FillColor":
           config.bgColor = self.colorToHtml(prop.contents);
           break;
-        case "Align":
-          config.halign = prop.contents.toLowerCase();
+        case "TopAlign": // not implemented yet
+          break; 
+        case "HAlign":
+          config.halign = self.asHAlignToHtml(prop.contents); 
           break;
+        case "FontSize": //not implemented yet
+          break; 
+        case "FontName": //not implemented yet
+          break; 
+        case "URL": //not implemented yet
+          break; 
         case "ValueFormat": 
           switch (prop.formatType) {
             case "Money":
@@ -159,7 +160,13 @@ export default {
               break;
           }
           break;
-        case "Streaming":
+        case "Bold":
+          config.font = "bold " + config.font;
+          break;
+        case "Italic":
+          config.font = "italic " + config.font;
+          break;
+        case "Streaming": // obsolete; need to update to StreamInfo
           config.isStreaming = true;
           break;
         default:
@@ -402,6 +409,19 @@ export default {
     if (str.charAt(0) === "#" || str.substring(0,2) === "rgb") // if color already correct format
       return str;
     else return this.colorNameToHex(str);
+  },
+
+  asHAlignToHtml(align: string): string { 
+    switch (align) { 
+      case 'LeftAlign': 
+        return 'left'; 
+      case 'HCenterAlign': 
+        return 'center'; 
+      case 'RightAlign': 
+        return 'right'; 
+      default: 
+        throw "Invalid HAlign passed in";
+    }
   },
 
   colorNameToHex(color: string): ?string {
