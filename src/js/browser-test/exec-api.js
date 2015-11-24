@@ -13,8 +13,10 @@ import type {
   ASValue,
   ASExpression,
   ASLanguage,
-  ASCellTag,
-  ASCell
+  ASCellProp,
+  ASCell, 
+  VAlignType, 
+  HAlignType
 } from '../types/Eval';
 
 import type {
@@ -250,15 +252,57 @@ export function delete_(rng: string): Prf {
   });
 }
 
-export function toggleTag(rng: string, tag: ASCellTag): Prf {
+export function toggleProp(rng: string, prop: ASCellProp): Prf {
   return apiExec(() => {
-    API.toggleTag(tag, rangeFromExcel(rng));
+    API.toggleProp(prop, rangeFromExcel(rng));
   });
 }
 
-export function setTag(rng: string, tag: ASCellTag, val: any): Prf {
+export function setTextColor(rng: string, contents: string): Prf {
   return apiExec(() => {
-    API.setTag(tag, val, rangeFromExcel(rng));
+    API.setTextColor(contents, rangeFromExcel(rng));
+  });
+}
+
+export function setFillColor(rng: string, contents: string): Prf {
+  return apiExec(() => {
+    API.setFillColor(contents, rangeFromExcel(rng));
+  });
+}
+
+export function setVAlign(rng: string, contents: VAlignType): Prf {
+  return apiExec(() => {
+    API.setVAlign(contents, rangeFromExcel(rng));
+  });
+}
+
+export function setHAlign(rng: string, contents: HAlignType): Prf {
+  return apiExec(() => {
+    API.setHAlign(contents, rangeFromExcel(rng));
+  });
+}
+
+export function setFontSize(rng: string, contents: number): Prf {
+  return apiExec(() => {
+    API.setFontSize(contents, rangeFromExcel(rng));
+  });
+}
+
+export function setFontName(rng: string, contents: string): Prf {
+  return apiExec(() => {
+    API.setFontName(contents, rangeFromExcel(rng));
+  });
+}
+
+export function setFormat(rng: string, formatType: string): Prf {
+  return apiExec(() => {
+    API.setFormat(formatType, rangeFromExcel(rng));
+  });
+}
+
+export function setUrl(rng: string, urlLink: string): Prf {
+  return apiExec(() => {
+    API.setUrl(urlLink, rangeFromExcel(rng));
   });
 }
 
@@ -307,6 +351,13 @@ export function equalValues(val1: ASValue, val2: ASValue): boolean {
     }
     return false;
   }
+  return _.isEqual(val1, val2);
+}
+
+export function equalValuesExact(val1: ASValue, val2: ASValue): boolean {
+  logDebug(`${JSON.stringify(val1)} should be equal to ${JSON.stringify(val2)}`);
+  expect(val1).not.toBe(undefined);
+  expect(val2).not.toBe(undefined);
   return _.isEqual(val1, val2);
 }
 
@@ -371,31 +422,31 @@ export function expressionShouldBe(loc: string, xp: string): Prf {
   return expressionShouldSatisfy(loc, ({ expression }) => expression === xp);
 }
 
-export function shouldHaveTag(loc: string, tag: ASCellTag): Prf {
+export function shouldHaveProp(loc: string, prop: ASCellProp): Prf {
   return messageShouldSatisfy(loc, (cs) => {
-    logDebug(`${loc} cell should have tag ${tag}`);
+    logDebug(`${loc} cell should have prop ${prop}`);
 
     expect(cs.length).not.toBe(0);
     if (cs.length == 0) {
       return;
     }
 
-    let [{ cellTags }] = cs;
-    expect(cellTags.map((c) => c.tag).indexOf(tag)).not.toBe(-1, "meaning the tag wasn't found");
+    let [{ cellProps }] = cs;
+    expect(cellProps.map((c) => c.tag).indexOf(prop)).not.toBe(-1, "meaning the prop wasn't found");
   });
 }
 
-export function shouldNotHaveTag(loc: string, tag: ASCellTag): Prf {
+export function shouldNotHaveProp(loc: string, prop: ASCellProp): Prf {
   return messageShouldSatisfy(loc, (cs) => {
-    logDebug(`${loc} cell should have tag ${tag}`);
+    logDebug(`${loc} cell should have prop ${prop}`);
 
     if (cs.length == 0) {
       expect(true).toBe(true);
       return;
     }
 
-    let [{ cellTags }] = cs;
-    expect(cellTags.map((c) => c.tag).indexOf(tag)).toBe(-1, "meaning the tag wasn't found");
+    let [{ cellProps }] = cs;
+    expect(cellProps.map((c) => c.tag).indexOf(prop)).toBe(-1, "meaning the prop wasn't found");
   });
 }
 
@@ -417,6 +468,10 @@ export function valueShouldSatisfy(loc: string, fn: (val: ASValue) => boolean): 
 // String -> ASValue -> (() -> Promise ())
 export function shouldBe(loc: string, val: ASValue): Prf {
   return valueShouldSatisfy(loc, (cv) => equalValues(cv, val));
+}
+
+export function shouldBeExact(loc: string, val: ASValue): Prf {
+  return valueShouldSatisfy(loc, (cv) => equalValuesExact(cv, val));
 }
 
 export function shouldBeError(loc: string): Prf {

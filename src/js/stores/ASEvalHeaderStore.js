@@ -1,6 +1,10 @@
 /* @flow */
 
 import type {
+  ASCompositeValue
+} from '../types/Eval';
+
+import type {
   ASClientLanguage
 } from '../types/State';
 
@@ -40,7 +44,7 @@ let _data: {
 dispatcherIndex: Dispatcher.register(function (action) {
     switch (action._type) {
       /* Called by Eval Pane upon leaving/changing a REPL (simply sets the expression in store) */
-      case 'EVAL_HEADER_CLOSED':
+      case 'EVAL_HEADER_UPDATED':
         ASEvalHeaderStore.updateEvalHeaderExp(action.lang, action.value);
         break;
       case 'GOT_EVAL_HEADER_RESPONSE':
@@ -72,17 +76,41 @@ const ASEvalHeaderStore = Object.assign({}, BaseStore, {
     logDebug(JSON.stringify(_data.evalHeaderExps));
   },
 
-  makeDispMessage(val) {
+  makeDispMessage(val: ASCompositeValue) {
     let message = "Header saved! ";
-    switch (val.tag) {
-      case "ValueError":
-        message += "(Error in header code: " + val.errorMsg + ")";
-        break;
-      case "NoValue":
-        break;
-      default:
-        message += "(Header code evaluated to " + JSON.stringify(((val: any): { contents: any }).contents) + ")";
-        break;
+    if (val.tag == "CellValue") {
+      let cellVal = val.contents;
+      switch (cellVal.tag) {
+        case "ValueError":
+          message += "(Error in header code: " + cellVal.errorMsg + ")";
+          break;
+        case "NoValue":
+          break;
+        default:
+          let str = JSON.stringify(((cellVal: any): { contents: any }).contents);
+          message += "(Header code evaluated to " + str + ")";
+          break;
+      }
+    } else if (val.tag == "Expanding") {
+      let expVal = val.contents;
+      switch (expVal.tag) {
+        case "VList":
+          let listVal = expVal.contents;
+          switch (listVal.tag) {
+            case "A":
+              message += "(Header code evaluated to : [" + listVal.contents.map(Util.safeExtractContentsFromValue).join(',') + "])";
+              break;
+            default:
+              message += "(Header code evaluated to a list with dimension > 1.)";
+              break;
+          }
+          break;
+        default:
+          message += "(Header code evaluated to a non-list expanding value.)";
+          break;
+      }
+    } else {
+      throw "val of unknown type passed to makeDispMessage";
     }
     return message;
   },

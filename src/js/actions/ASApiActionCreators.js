@@ -18,8 +18,10 @@ import type {
   ASExpression,
   ASValue,
   ASSheet,
-  ASCellTag,
-  ASCell
+  ASCellProp,
+  ASCell, 
+  VAlignType, 
+  HAlignType
 } from '../types/Eval';
 
 import type {
@@ -383,32 +385,96 @@ export default {
     this.send(msg);
   },
 
-  toggleTag(tag: ASCellTag, rng: NakedRange) {
-    let msg = TC.makeClientMessageRaw(Constants.ServerActions.ToggleTag, {
-      "tag": "PayloadTag",
-      "cellTag": {tag: tag, contents: []},
+  toggleProp(prop: ASCellProp, rng: NakedRange) {
+    let msg = TC.makeClientMessageRaw(Constants.ServerActions.ToggleProp, {
+      "tag": "PayloadProp",
+      "prop": {tag: prop, contents: []},
       "tagRange": TC.simpleToASRange(rng)
     });
     this.send(msg);
   },
 
-  setTag(tag: ASCellTag, val: any, rng: NakedRange) {
-    let msg = TC.makeClientMessageRaw(Constants.ServerActions.SetTag, {
-      "tag": "PayloadTag",
-      "cellTag": {tag: tag, contents: val},
+  setProp(prop: any, rng: NakedRange) {
+    let msg = TC.makeClientMessageRaw(Constants.ServerActions.SetProp, {
+      "tag": "PayloadProp",
+      "prop": prop,
       "tagRange": TC.simpleToASRange(rng)
     });
     this.send(msg);
+  },
+
+  setTextColor(contents: string, rng: NakedRange) { 
+    let prop = { 
+      tag: "TextColor", 
+      contents: contents
+    };
+    this.setProp(prop, rng);
+  },
+
+  setFillColor(contents: string, rng: NakedRange) { 
+    let prop = { 
+      tag: "FillColor", 
+      contents: contents
+    };
+    this.setProp(prop, rng);
+  },
+
+  setVAlign(contents: VAlignType, rng: NakedRange) { 
+    let prop = { 
+      tag: "VAlign", 
+      contents: contents
+    };
+    this.setProp(prop, rng);
+  },
+
+  setHAlign(contents: HAlignType, rng: NakedRange) { 
+    let prop = { 
+      tag: "HAlign", 
+      contents: contents
+    };
+    this.setProp(prop, rng);
+  },
+
+  setFontSize(contents: number, rng: NakedRange) { 
+    let prop = { 
+      tag: "FontSize", 
+      contents: contents
+    };
+    this.setProp(prop, rng);
+  },
+
+  setFontName(contents: string, rng: NakedRange) { 
+    let prop = { 
+      tag: "FontName", 
+      contents: contents
+    };
+    this.setProp(prop, rng);
+  },
+
+  setFormat(formatType: string, rng: NakedRange) { 
+    let formatProp = { 
+      tag: "ValueFormat", 
+      formatType: formatType
+    };
+    this.setProp(formatProp, rng);
+  },
+
+  setUrl(urlLink: string, rng: NakedRange) { 
+    let prop = { 
+      tag: "URL", 
+      urlLink: urlLink
+    };
+    this.setProp(prop, rng);
   },
 
   // Image tags actually have data, so the message is a bit different
-  setImageTag(val: {
+  setImageProp(val: {
     imageWidth: number;
     imageHeight: number;
     imageOffsetX: number;
     imageOffsetY: number;
   }, rng: NakedRange) {
-    let msg = TC.makeClientMessageRaw(Constants.ServerActions.SetTag, {
+    let msg = TC.makeClientMessageRaw(Constants.ServerActions.SetProp, {
       "tag": "PayloadTag",
       "cellTag": {
         tag: "ImageData",

@@ -29,8 +29,15 @@ describe('backend', () => {
     redo,
     delete_,
 
-    toggleTag,
-    setTag,
+    toggleProp,
+    setTextColor, 
+    setFillColor,
+    setVAlign,
+    setHAlign,
+    setFontSize,
+    setFontName,
+    setFormat,
+    setUrl,
 
     python,
     r,
@@ -50,6 +57,7 @@ describe('backend', () => {
 
     shouldError,
     shouldBe,
+    shouldBeExact,
     shouldBeL,
     shouldBeError,
     shouldBeNothing,
@@ -58,8 +66,8 @@ describe('backend', () => {
     shouldBeDecoupled,
     shouldBeCoupled,
     expressionShouldBe,
-    shouldHaveTag,
-    shouldNotHaveTag
+    shouldHaveProp,
+    shouldNotHaveProp
   } = require('../src/js/browser-test/exec-api');
   const {
     fromToInclusive,
@@ -179,6 +187,25 @@ describe('backend', () => {
           ]);
         });
 
+        it('should delete ancestors that are overwritten by ranges', (done) => {
+          _do([
+            python('A1', '1'),
+            python('A2', 'A1'),
+            python('A1', 'range(10)'),
+            python('A1', '10'),
+            shouldBe('A1', valueI(10)),
+            exec(done)
+          ]);
+        });
+
+        it('should not give weird floating point rounding problems on parse', (done) => {
+          _do([
+            python('A1', '0.07'),
+            shouldBeExact('A1', valueD(0.07)),
+            exec(done)
+          ]);
+        });
+
         it('should rollback ancestors set in failed evals', (done) => {
           _do([
             python('A1', '1'),
@@ -250,14 +277,14 @@ describe('backend', () => {
         it('should reference ancestors of dependencies introduced by list cells in round 2 evals', (done) => {
           _do([
             python('B3', '5'),
-            python('C3', 'A3:B3.sum()'),
+            excel('C3', '=SUM(A3:B3)'),
             python('A1', 'range(3)'),
             shouldBe('C3', valueI(7)),
             exec(done)
           ]);
         });
 
-        it ('should evaluate None correctly', (done) => {
+        it('should evaluate None correctly', (done) => {
           _do([
             python('A1', '[1,2,3,None]'),
             python('B1', 'A1:A4.reversed()'),
@@ -595,7 +622,7 @@ describe('backend', () => {
 
       describe('excelfunctions', () => {
         // This test won't work until double equality is fixed.
-        xit ('CORREL', (done) => {
+        xit('CORREL', (done) => {
             _do([
                 excel('A1', 'Data1'),
                 excel('A2', '3'),
@@ -620,7 +647,7 @@ describe('backend', () => {
                 exec(done)
             ]);
         });
-        it ('SUM', (done) => {
+        it('SUM', (done) => {
           _do([
             excel('A1', '-5'),
             excel('A2', '15'),
@@ -639,7 +666,7 @@ describe('backend', () => {
             exec(done)
           ]);
         });
-        it ('COVAR', (done) => {
+        it('COVAR', (done) => {
           _do([
               excel('A1', 'Data1'),
               excel('A2', '3'),
@@ -662,7 +689,7 @@ describe('backend', () => {
               exec(done)
           ]);
         });
-        xit ('MATCH', (done) => {
+        xit('MATCH', (done) => {
             _do([
                 excel('A1', 'Product'),
                 excel('A2', 'Bananas'),
@@ -703,7 +730,7 @@ describe('backend', () => {
           ]);
         });
 
-        it ('should treat blanks as zeroes for arithmetic operations', (done) => {
+        it('should treat blanks as zeroes for arithmetic operations', (done) => {
           _do([
             python('A1', '5'),
             excel('B1', '=A2+A3'),
@@ -931,6 +958,19 @@ describe('backend', () => {
               exec(done)
             ]);
           });
+
+          xit('should decouple lists', (done) => {
+            _do([
+              python('A1', 'range(10)'),
+              insertRow(3), 
+              shouldBe('A1', valueI(0)),
+              shouldBe('A2', valueI(1)),
+              shouldBeNothing('A3'), 
+              shouldBe('A4', valueI(2)),
+              shouldBe('A11', valueI(9)),
+              exec(done)
+            ]);
+          });
         });
 
         describe('row deletion', () => {
@@ -1044,6 +1084,19 @@ describe('backend', () => {
               exec(done)
             ]);
           });
+
+          xit('should decouple lists', (done) => {
+            _do([
+              python('A1', '[range(10)]'),
+              insertCol(3), 
+              shouldBe('A1', valueI(0)),
+              shouldBe('B1', valueI(1)),
+              shouldBeNothing('C1'), 
+              shouldBe('D1', valueI(2)),
+              shouldBe('K1', valueI(9)),
+              exec(done)
+            ]);
+          });
         });
 
         describe('column deletion', () => {
@@ -1148,7 +1201,7 @@ describe('backend', () => {
           ]);
         });
 
-        xit('should shrink a range based on a dependency', (done) => {
+        it('should shrink a range based on a dependency', (done) => {
           _do([
             python('A1', '10'),
             python('B1', 'range(A1)'),
@@ -1157,6 +1210,18 @@ describe('backend', () => {
             }),
             python('A1', '1'),
             shouldBeNothing('B2'),
+            exec(done)
+          ]);
+        });
+
+        // KNOWN TO HANG -- fix this when we diagnose the problem better
+        xit('should something something something critch bug', (done) => { 
+          _do([
+            python('A1', 'range(10)'),
+            python('C1', '@A1'),
+            insertCol(1),
+            python('A1', '10'),
+            shouldBe('A1', valueI(10)),
             exec(done)
           ]);
         });
@@ -1516,6 +1581,26 @@ describe('backend', () => {
             exec(done)
           ]);
         });
+
+        it('should not re-eval the head of a fat cell', (done) => {
+          _do([
+            python('A1', 'range(10)'), 
+            cut('A1', 'B1'),
+            shouldBe('B1', valueI(0)), 
+            shouldBe('A2', valueI(1)),
+            exec(done)
+          ]);
+        });
+
+        it('should cut/paste entire ranges', (done) => {
+          _do([
+            python('A1', 'range(10)'), 
+            cut('A1:A10', 'B1:B10'),
+            shouldBe('B1', valueI(0)), 
+            shouldBeNothing('A1', valueI(0)),
+            exec(done)
+          ]);
+        });
       });
 
       describe('repeat', () => {
@@ -1562,15 +1647,26 @@ describe('backend', () => {
       });
     });
 
-    describe('tags', () => {
+    describe('delete', () => { 
+      it('should replace a decoupled blank cell with a blank cell', (done) => {
+        _do([
+          python('A1', '[[None, 2],[3,4]]'),
+          delete_('A1'),
+          shouldBeNothing('A1'),
+          exec(done)
+        ]);
+      })
+    });
+
+    describe('toggling props', () => {
       describe('bolding', () => {
         it('should bold blocks of cells at once', (done) => {
           _do([
             python('A1', '1'),
             python('A2', '2'),
-            toggleTag('A1:A2', 'Bold'),
-            shouldHaveTag('A1', 'Bold'),
-            shouldHaveTag('A2', 'Bold'),
+            toggleProp('A1:A2', 'Bold'),
+            shouldHaveProp('A1', 'Bold'),
+            shouldHaveProp('A2', 'Bold'),
             exec(done)
           ]);
         });
@@ -1579,10 +1675,10 @@ describe('backend', () => {
           _do([
             python('A1', '1'),
             python('A2', '2'),
-            toggleTag('A1', 'Bold'),
-            toggleTag('A1:A2', 'Bold'),
-            shouldHaveTag('A1', 'Bold'),
-            shouldHaveTag('A2', 'Bold'),
+            toggleProp('A1', 'Bold'),
+            toggleProp('A1:A2', 'Bold'),
+            shouldHaveProp('A1', 'Bold'),
+            shouldHaveProp('A2', 'Bold'),
             exec(done)
           ]);
         });
@@ -1591,20 +1687,20 @@ describe('backend', () => {
           _do([
             python('A1', '1'),
             python('A2', '2'),
-            toggleTag('A1', 'Bold'),
-            toggleTag('A1:A2', 'Bold'),
-            toggleTag('A1:A2', 'Bold'),
-            shouldNotHaveTag('A1', 'Bold'),
-            shouldNotHaveTag('A2', 'Bold'),
+            toggleProp('A1', 'Bold'),
+            toggleProp('A1:A2', 'Bold'),
+            toggleProp('A1:A2', 'Bold'),
+            shouldNotHaveProp('A1', 'Bold'),
+            shouldNotHaveProp('A2', 'Bold'),
             exec(done)
           ]);
         });
 
         it('should bold blank cells', (done) => {
           _do([
-            toggleTag('A1', 'Bold'),
+            toggleProp('A1', 'Bold'),
             python('A1', '1'),
-            shouldHaveTag('A1', 'Bold'),
+            shouldHaveProp('A1', 'Bold'),
             exec(done)
           ]);
         });
@@ -1612,9 +1708,9 @@ describe('backend', () => {
         it('should stay bold after a delete', (done) => {
           _do([
             python('A1', '1'),
-            toggleTag('A1', 'Bold'),
+            toggleProp('A1', 'Bold'),
             delete_('A1'),
-            shouldHaveTag('A1', 'Bold'),
+            shouldHaveProp('A1', 'Bold'),
             exec(done)
           ]);
         });
@@ -1622,31 +1718,54 @@ describe('backend', () => {
         it('should not stay bold after a cut', (done) => {
           _do([
             python('A1', '1'),
-            toggleTag('A1', 'Bold'),
+            toggleProp('A1', 'Bold'),
             cut('A1', 'B1'),
-            shouldNotHaveTag('A1', 'Bold'),
+            shouldNotHaveProp('A1', 'Bold'),
             exec(done)
           ]);
         });
       });
 
-      describe('formatting', () => {
+      describe('setting props', () => {
         it('should format blocks of cells at once', (done) => {
           _do([
             python('A1', '1'),
             python('A2', '2'),
-            setTag('A1:A2', 'Format', 'Money'),
-            shouldHaveTag('A1', 'Format'),
-            shouldHaveTag('A2', 'Format'),
+            setFormat('A1:A2', 'Money'),
+            shouldHaveProp('A1', 'ValueFormat', 'Money'),
+            shouldHaveProp('A2', 'ValueFormat', 'Money'),
             exec(done)
           ]);
         });
 
         it('should format blank cells', (done) => {
           _do([
-            setTag('A1', 'Format', 'Money'),
+            setFormat('A1', 'Money'),
             python('A1', '1'),
-            shouldHaveTag('A1', 'Format'),
+            shouldHaveProp('A1', 'ValueFormat', 'Money'),
+            exec(done)
+          ]);
+        });
+
+        it('should call the API prop setters successfully', (done) => {
+          _do([
+            python('A1', 'range(10)'),
+            setTextColor('A1', 'red'),
+            setFillColor('A2', 'blue'),
+            setVAlign('A3', 'TopAlign'),
+            setHAlign('A4', 'LeftAlign'),
+            setFontSize('A5', 20), 
+            setFontName('A6', 'Comic Sans'), 
+            setFormat('A7', 'Money'),
+            setUrl('A8', 'PLEASE DO NOT CLICK!!!', 'http://meatspin.com'),
+            shouldHaveProp('A1', 'TextColor'), 
+            shouldHaveProp('A2', 'FillColor'), 
+            shouldHaveProp('A3', 'VAlign'), 
+            shouldHaveProp('A4', 'HAlign'), 
+            shouldHaveProp('A5', 'FontSize'), 
+            shouldHaveProp('A6', 'FontName'), 
+            shouldHaveProp('A7', 'ValueFormat'), 
+            shouldHaveProp('A8', 'URL'), 
             exec(done)
           ]);
         });

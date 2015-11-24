@@ -3,6 +3,9 @@ import {logDebug} from '../AS/Logger';
 import KeyUtils from '../AS/KeyUtils';
 import ShortcutUtils from '../AS/ShortcutUtils';
 import Store from '../stores/ASEvaluationStore';
+import EvalHeaderActionCreator from '../actions/ASEvalHeaderActionCreators';
+import API from '../actions/ASApiActionCreators';
+
 var ace = require('brace');
 var React = require('react');
 
@@ -42,7 +45,7 @@ module.exports = React.createClass({
     sendBackExpression : React.PropTypes.func
   },
 
-  getDefaultProps: function() {
+  getDefaultProps() {
     return {
       name   : 'brace-editor',
       mode   : 'python',
@@ -66,21 +69,36 @@ module.exports = React.createClass({
     return this.editor;
   },
 
-  componentDidMount: function() {
+  componentDidMount() {
     this.editor = ace.edit(this.props.name);
     this.editor.$blockScrolling = Infinity;
     this.editor.setValue(this.props.value, 1);
     onPropsSet(this.editor, this.props);
   },
 
-  componentWillReceiveProps: function(nextProps) {
+  componentWillReceiveProps(nextProps) {
     if (this.editor.getValue() !== nextProps.value) {
       this.editor.setValue(nextProps.value, 1);
     }
     onPropsSet(this.editor, nextProps);
   },
 
-  render: function() {
+  handleKeyDown(e: SyntheticKeyboardEvent) { 
+    let lang = this.props.language, 
+        val = this.editor.getValue();
+    if (KeyUtils.isCtrlS(e)) {
+      KeyUtils.killEvent(e);
+      API.evaluateHeader(val, lang);
+    }
+  },
+
+  handleKeyUp(e: SyntheticKeyboardEvent) { 
+    let lang = this.props.language, 
+        val = this.editor.getValue();
+    EvalHeaderActionCreator.storeEvalHeaderExpression(lang, val); 
+  },
+
+  render() {
     let divStyle = {
       width: this.props.width,
       height: this.props.height,
@@ -88,7 +106,9 @@ module.exports = React.createClass({
     };
     return (<div
         id={this.props.name}
-        style={divStyle}>
+        style={divStyle}
+        onKeyDown={this.handleKeyDown}
+        onKeyUp={this.handleKeyUp}>
       </div>);
   }
 });

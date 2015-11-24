@@ -12,7 +12,7 @@ export default React.createClass({
 
   updateTag(val) {
     let rng = {tl:this.props.overlay.loc.index,br:this.props.overlay.loc.index};
-    API.setImageTag(val,rng);
+    API.setImageProp(val,rng);
   },
 
   _onStop(e,detail) {

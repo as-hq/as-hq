@@ -82,12 +82,11 @@ export default {
                                                  this.withinSegment(pX, x+width, 0)));
   },
 
-
   /*************************************************************************************************************************/
   // Renderers
 
   defaultCellRenderer: {
-    paint: function(gc, x, y, width, height, isLink) {
+    paint(gc, x, y, width, height, isLink) {
       isLink = isLink || false;
       var colHEdgeOffset = this.config.properties.cellPadding,
           halignOffset = 0,
@@ -211,7 +210,7 @@ export default {
     }
   },
 
-  selectionRenderer: function(gc) {
+  selectionRenderer(gc) {
     var grid = this.getGrid();
     if (_renderParams.selection === null) return;
 
@@ -302,7 +301,7 @@ export default {
     gc.stroke();
   },
 
-  dependencyRenderer: function(gc) {
+  dependencyRenderer(gc) {
     _renderParams.deps.forEach((dep) => {
       gc.beginPath();
       RenderUtils.drawRect(dep, this, gc);
@@ -312,7 +311,7 @@ export default {
     }, this);
   },
 
-  draggingRenderer: function(gc) {
+  draggingRenderer(gc) {
     if (_renderParams.dragRect !== null) {
       console.log("DRAWING DRAG:", JSON.stringify(_renderParams.dragRect));
       gc.beginPath();
@@ -324,7 +323,7 @@ export default {
     }
   },
 
-  cornerBoxRenderer: function(gc) {
+  cornerBoxRenderer(gc) {
     if (!_renderParams.shouldRenderSquareBox) {
       return; // no box should show on double click
     } else {

@@ -18,12 +18,12 @@ let languages = [];
 for (var key in Constants.Languages) {
   languages.push({
     payload: Constants.Languages[key],
-    text: Constants.Languages[key].Display
+    text: Constants.Languages[key]
   });
 }
 
 function languageIndex(lang) {
-  return languages.map((l) => l.text).indexOf(lang.Display);
+  return languages.map((l) => l.text).indexOf(lang);
 }
 
 export default React.createClass({
@@ -63,7 +63,7 @@ export default React.createClass({
 
   render() {
     let {language, theme, value, width, height} = this.props;
-    let editor = language.Editor;
+    let mode = Constants.AceMode[language];
     // TODO: make this CSS better/put the import in the right place; this is just a skeleton
     // counterpoint: don't give a crap about this because these buttons are all temporary anyway
     // and crappy CSS is probably sufficient? (Alex 11/18)
@@ -133,7 +133,7 @@ export default React.createClass({
         <AceEditor
           ref="editor"
           handleEditorFocus={this.props.handleEditorFocus}
-          mode={editor}
+          mode={mode}
           language={language}
           hideToast={this.props.hideToast}
           theme={theme}

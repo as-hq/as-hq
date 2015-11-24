@@ -6,29 +6,30 @@ export default React.createClass({
       height:'110px'
     }
   },
-  render: function() {
+  render() {
     let defaultPad = 2;
     let children = [];
     if (this.props.children) { // deal with only one child
-      if (!Array.isArray(this.props.children)) {
-        this.props.children = [this.props.children];
+      let premapChildren = this.props.children;
+      if (!Array.isArray(premapChildren)) {
+        premapChildren = [premapChildren];
       }
       let sumHeights = 0;
       let numChildren = 0;
-      for (var key in this.props.children) {
-        if (this.props.children[key].props.height) {
-          sumHeights += parseFloat(this.props.children[key].props.height);
+      for (var key in premapChildren) {
+        if (premapChildren[key].props.height) {
+          sumHeights += parseFloat(premapChildren[key].props.height);
           numChildren += 1;
         }
       }
-      for (var key in this.props.children) {
+      for (var key in premapChildren) {
         /* All child elements of a col inherit its width for simplicity */
-        let child = React.cloneElement(this.props.children[key],{width:this.props.width});
+        let child = React.cloneElement(premapChildren[key],{width:this.props.width});
 
         if (key == 0) {
           let firstStyle = {};
           let pt = (parseFloat(this.props.height)-sumHeights-(numChildren-1)*defaultPad)/2 + 'px';
-          if (this.props.children.length>1) {
+          if (premapChildren.length>1) {
             firstStyle = {
               paddingTop: pt
             };
@@ -40,7 +41,7 @@ export default React.createClass({
           }
           children.push(<div style={firstStyle}>{child}</div>);
           // console.log("COL " + sumHeights + " " + JSON.stringify(firstStyle));
-        } else if (key == this.props.children.length-1) {
+        } else if (key == premapChildren.length-1) {
           let pb = (parseFloat(this.props.height)-sumHeights-(numChildren-1)*defaultPad)/2 + 'px';
           let firstStyle = {
             paddingTop: defaultPad + 'px',

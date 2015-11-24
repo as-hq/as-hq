@@ -1,4 +1,5 @@
 declare module lodash {
+  declare function extend<A,B>(a: A, b: B): (A&B);
   declare function forEach<A,B>(
     obj: {[key: A]: B},
     cb: (v: B, k: A) => void

@@ -41,7 +41,7 @@ var fakeCell = function(contents) {
         "tag": "ValueS",
         "contents": JSON.stringify(contents.cellLocation.index)
       },
-      "cellTags": []
+      "cellProps": []
   };
 };
 
@@ -146,7 +146,7 @@ wss.on("connection", function(ws) {
       } else if (parsed.payload.tag === 'PayloadList') {
         var msg = toServerMessageFormat('Update', 'PayloadWorkbookSheets', fakeWorkbookSheets());
       }
-    } else if (parsed.action === "Evaluate") {
+    } else if (parsed.action === "Evaluate") { // WTF is this code?? (Alex 11/24)
       var cell = null;
       switch(getExpressionFromPayload(parsed.payload)) {
         case "makeImage":
@@ -159,12 +159,12 @@ wss.on("connection", function(ws) {
         case "makeColor":
           console.log("making color!");
           cell = fakeCell(parsed.payload.contents);
-          cell.cellTags = [{tag:"TextColor", contents:"blue"}];
+          cell.cellProps = [{tag:"TextColor", contents:"blue"}]; 
           break;
         case "makeStreaming":
           console.log("making stream cell");
           cell = fakeCell(parsed.payload.contents);
-          cell.cellTags = [{tag: "Streaming", contents: ""}];
+          cell.cellProps = [{tag: "Streaming", contents: ""}];
           break;
         case "makeError":
           console.log("making error");

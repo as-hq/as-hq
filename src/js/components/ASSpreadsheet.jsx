@@ -457,6 +457,7 @@ export default React.createClass({
               newSel = {range: newSelRange, origin: newSelRange.tl};
           this.select(newSel, false);
           Render.setDragRect(null);
+          self.repaint();
           API.cut(fromRange, toRange);
         } else if (Render.getDragCorner() !== null) {
           let dottedSel = Render.getDottedSelection();
@@ -864,13 +865,15 @@ export default React.createClass({
           cell = Store.getCell(col, row);
 
       // tag-based cell styling
-      if (cell) {
-        config = Util.valueToRenderConfig(config, cell.cellValue);
-        if (cell.cellTags.length > 0) {
-          config = Util.tagsToRenderConfig(config, cell.cellTags);
-        }
+      if (!! cell) {
+        Util.valueToRenderConfig(config, cell.cellValue);
         if (cell.cellExpression.expandingType) {
-          config = Util.expandingTypeToRenderConfig(config, cell.cellExpression.expandingType);
+          Util.expandingTypeToRenderConfig(config, cell.cellExpression.expandingType);
+        }
+
+        // props take highest precedence
+        if (cell.cellProps.length > 0) { // props take higher precedence
+          Util.propsToRenderConfig(config, cell.cellProps);
         }
       } else {
         config.halign = 'center';
@@ -935,7 +938,7 @@ export default React.createClass({
 
         <Textbox
                  ref="textbox"
-                 language={language.Editor}
+                 mode={Constants.AceMode[language]}
                  scroll={self.state.scroll}
                  onDeferredKey={this.props.onTextBoxDeferredKey}
                  hideToast={this.props.hideToast}

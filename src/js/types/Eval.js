@@ -47,7 +47,7 @@ export type ValueImage = {
 };
 
 export type ValueSerialized = {
-  tag: 'ValueObject';
+  tag: 'ValueSerialized';
   serializedValue: string;
   displayName: string;
 };
@@ -58,26 +58,83 @@ export type ValueError = {
   errorType: string;
 };
 
-export type ColorTag = {
-  tag: 'Color';
+export type TextColor = {
+  tag: 'TextColor';
   contents: string;
 };
 
-export type SizeTag = {
-  tag: 'Size';
-  contents: number;
+export type FillColor = {
+  tag: 'FillColor';
+  contents: string;
 };
 
-export type BoldTag = {
+export type VAlign = {
+  tag: 'VAlign';
+  contents: VAlignType; 
+};
+
+export type HAlign = {
+  tag: 'HAlign';
+  contents: HAlignType; 
+};
+
+export type FontSize = {
+  tag: 'FontSize';
+  contents: number; 
+};
+
+export type FontName = {
+  tag: 'FontName';
+  contents: string; 
+};
+
+export type ValueFormat = { 
+  tag: 'ValueFormat'; 
+  formatType: FormatType;
+};
+
+export type ImageData = {
+  tag: 'ImageData';
+  imageWidth: number;
+  imageHeight: number;
+  imageOffsetX: number;
+  imageOffsetY: number;
+};
+
+export type StreamInfo = {
+  tag: 'StreamInfo';
+  streamSource: StreamSource;
+  streamFreq: number;
+};
+
+export type ReadOnly = {
+  tag: 'ReadOnly';
+  contents: Array<ASUserId>;
+};
+
+export type URL = {
+  tag: 'URL';
+  urlLink: string; 
+};
+
+export type Bold = {
   tag: 'Bold';
 };
 
-export type ItalicTag = {
+export type Italic = {
   tag: 'Italic';
 };
 
-export type UnderlineTag = {
+export type Underline = {
   tag: 'Underline';
+};
+
+export type Volatile = {
+  tag: 'Volatile';
+};
+
+export type Tracking = {
+  tag: 'Tracking';
 };
 
 export type Bloomberg = {
@@ -85,6 +142,15 @@ export type Bloomberg = {
   url: string;
   key: string;
 };
+
+///////////////////////////////////////////////////////////////////////////////
+// Alignment types
+
+export type HAlignType = 'LeftAlign' | 'HCenterAlign' | 'RightAlign'; 
+export type VAlignType = 'TopAlign' | 'VCenterAlign' | 'BottomAlign'; 
+
+///////////////////////////////////////////////////////////////////////////////
+// Streams
 
 export type StreamB = {
   tag: 'StreamB';
@@ -97,29 +163,14 @@ export type NoSource = {
 
 export type StreamSource = StreamB | NoSource;
 
-export type Stream = {
-  tag: 'Stream';
-  streamSource: StreamSource;
-  streamFreq: number;
-};
+///////////////////////////////////////////////////////////////////////////////
+// Formats
 
-export type StreamTag = {
-  tag: 'Stream';
-  contents: Stream;
-};
-
-export type TrackingTag = {
-  tag: 'Tracking';
-};
-
-export type VolatileTag = {
-  tag: 'Volatile';
-};
-
-export type ReadOnlyTag = {
-  tag: 'ReadOnly';
-  contents: Array<ASUserId>;
-};
+export type FormatType =
+  NoFormat
+  | MoneyFormat
+  | PercentageFormat
+  | DateFormat;
 
 export type NoFormat = {
   tag: 'NoFormat';
@@ -137,25 +188,6 @@ export type DateFormat = {
   tag: 'Date';
 };
 
-export type FormatType =
-  NoFormat
-  | MoneyFormat
-  | PercentageFormat
-  | DateFormat;
-
-export type FormatTag = {
-  tag: 'Format';
-  contents: FormatType;
-};
-
-export type ImageDataTag = {
-  tag: 'ImageData';
-  imageWidth: number;
-  imageHeight: number;
-  imageOffsetX: number;
-  imageOffsetY: number;
-};
-
 export type ASLanguage = 'Python' | 'R' | 'SQL' | 'Excel';
 
 export type ASExpression = {
@@ -168,16 +200,21 @@ export type ASExpression = {
 
 export type ExpandingType = 'List' | 'RList' | 'RDataFrame' | 'NPArray' | 'NPMatrix' | 'PDataFrame' | 'PSeries';
 
-export type ASCellTag =
-  ColorTag
-  | SizeTag
-  | BoldTag | ItalicTag | UnderlineTag
-  | StreamTag
-  | TrackingTag
-  | VolatileTag
-  | ReadOnlyTag
-  | FormatTag
-  | ImageDataTag;
+export type ASCellProp =
+    TextColor
+  | FillColor
+  | VAlign
+  | HAlign
+  | FontSize
+  | FontName
+  | ValueFormat
+  | ImageData
+  | StreamInfo
+  | ReadOnly
+  | URL
+  | Bold | Italic | Underline 
+  | Volatile
+  | Tracking;
 
 export type ASValue =
   NoValue
@@ -190,6 +227,81 @@ export type ASValue =
   | ValueImage
   | ValueError
   | ValueSerialized;
+
+export type ArrayCollection = {
+  tag: 'A';
+  contents: Array<ASValue>;
+};
+
+export type MatrixCollection = {
+  tag: 'M';
+  contents: Array<ArrayCollection>;
+};
+
+export type Collection = ArrayCollection | MatrixCollection;
+
+export type RListKey = string;
+
+export type VList = {
+  tag: 'VList';
+  contents: Collection;
+};
+
+export type VRList = {
+  tag: 'VRList';
+  contents: Array<[RListKey, ArrayCollection]>;
+};
+
+export type VRDataFrame = {
+  tag: 'VRDataFrame';
+  rdfLabels: ArrayCollection;
+  rdfIndices: ArrayCollection;
+  rdfValues: MatrixCollection;
+};
+
+export type VNPArray = {
+  tag: 'VNPArray';
+  contents: Collection;
+};
+
+export type VNPMatrix = {
+  tag: 'VNPMatrix';
+  contents: MatrixCollection;
+};
+
+export type VPDataFrame = {
+  tag: 'VPDataFrame';
+  dfLabels: ArrayCollection;
+  dfIndices: ArrayCollection;
+  dfData: MatrixCollection;
+};
+
+export type VPSeries = {
+  tag: 'VPSeries';
+  seriesIndices: ArrayCollection;
+  seriesData: ArrayCollection;
+};
+
+export type ExpandingValue =
+  VList
+  | VRList
+  | VRDataFrame
+  | VNPArray
+  | VNPMatrix
+  | VPDataFrame
+  | VPSeries;
+
+export type Expanding = {
+  tag: 'Expanding';
+  contents: ExpandingValue;
+};
+
+export type CellValue = {
+  tag: 'CellValue';
+  contents: ASValue;
+};
+
+export type ASCompositeValue = Expanding | CellValue;
 
 export type ASReplValue = {
   replValue: ASValue;
@@ -237,5 +349,5 @@ export type ASCell = {
   cellExpression: ASExpression;
   cellValue: ASValue;
   cellLocation: ASIndex;
-  cellTags: Array<ASCellTag>;
+  cellProps: Array<ASCellProp>;
 };

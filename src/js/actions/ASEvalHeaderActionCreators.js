@@ -6,7 +6,7 @@ import Constants from '../Constants';
 export default {
   storeEvalHeaderExpression(lang, value) {
     Dispatcher.dispatch({
-      type: Constants.ActionTypes.EVAL_HEADER_CLOSED,
+      _type: Constants.ActionTypes.EVAL_HEADER_UPDATED,
       lang: lang,
       value: value
     });

@@ -15,8 +15,8 @@ export default React.createClass({
     iconClassName: React.PropTypes.string,
     label: React.PropTypes.string,
     defaultPushedIn: React.PropTypes.bool,
-    onCheckChange: React.PropTypes.func.isRequired, 
-    iconImageSource: React.PropTypes.string, 
+    onCheckChange: React.PropTypes.func.isRequired,
+    iconImageSource: React.PropTypes.string,
   },
 
   getInitialState() {
@@ -50,7 +50,7 @@ export default React.createClass({
     let labelElementStyle = {
       position: 'relative',
       opacity: 1,
-      fontSize: '18px',
+      fontSize: '10px',
       letterSpacing: 0,
       textTransform: 'uppercase',
       fontWeight: Typography.fontWeightMedium,
@@ -69,9 +69,9 @@ export default React.createClass({
       <div style={{ display: 'inline' }}>
         <FontIcon
           style={{
-            width:"90%",
-            height:"90%",
-            verticalAlign:"middle"
+            float: 'left',
+            fontSize: '18px',
+            lineHeight: '24px'
           }}
           className="material-icons"
           color={Colors.grey50}
@@ -85,7 +85,7 @@ export default React.createClass({
         }
       </div>);
 
-    if (iconImageSource) { 
+    if (iconImageSource) {
       labelElement = (
         <span style={labelElementStyle}>
           <img src={iconImageSource} width="18" height="24" />
@@ -97,6 +97,9 @@ export default React.createClass({
       <ASButton
         ref="button"
         labelElement={labelElement}
+        labelStyle={{
+          padding: '0px 7px'
+        }}
         style={{
           width: width,
           minWidth: width,

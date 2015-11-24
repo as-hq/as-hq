@@ -11,10 +11,11 @@ import type {
   ASIndex,
   ASSheet,
   ASValue,
+  ASCompositeValue,
   ASExpression,
   ASReplValue,
   ASWorkbook,
-  ASCellTag,
+  ASCellProp,
   ASCell
 } from './Eval';
 
@@ -129,9 +130,9 @@ export type PayloadPaste = {
   copyTo: ASRange;
 };
 
-export type PayloadTag = {
+export type PayloadProp = {
   tag: 'PayloadTag';
-  cellTag: ASCellTag;
+  prop: ASCellProp;
   tagRange: ASRange;
 };
 
@@ -223,7 +224,7 @@ export type PayloadFind = {
 
 export type PayloadValue = {
   tag: 'PayloadValue';
-  contents: ASValue;
+  contents: ASCompositeValue;
 };
 
 export type ASBackendPayload =
@@ -245,7 +246,7 @@ export type ASBackendPayload =
   | PayloadCommit
   | PayloadDelete
   | PayloadPaste
-  | PayloadTag
+  | PayloadProp
   | PayloadXp
   | PayloadXpL
   | PayloadReplValue
@@ -297,7 +298,7 @@ export type ASMessageAction =
   | 'Undo' | 'Redo'
   | 'Clear'
   | 'UpdateWindow'
-  | 'SetTag' | 'ToggleTag'
+  | 'SetProp' | 'ToggleProp'
   | 'Repeat'
   | 'BugReport'
   | 'JumpSelect'

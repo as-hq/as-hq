@@ -41,7 +41,7 @@ export default React.createClass({
     this.editor.container.addEventListener('keydown',this._onKeyDown,true);
     this.showCursor();
     // TODO: add a lang prop or something
-    this.editor.getSession().setMode('ace/mode/' + this.props.language);
+    this.editor.getSession().setMode('ace/mode/' + this.props.mode);
     this.editor.setFontSize(12);
     this.editor.setOption('maxLines', Infinity);
     this.editor.renderer.setShowGutter(false); // no line numbers
@@ -49,7 +49,7 @@ export default React.createClass({
   },
 
   componentWillReceiveProps(nextProps) {
-    this.editor.getSession().setMode('ace/mode/' + nextProps.language);
+    this.editor.getSession().setMode('ace/mode/' + nextProps.mode);
   },
 
   /**************************************************************************************************************************/

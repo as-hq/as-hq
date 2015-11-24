@@ -1,3 +1,18 @@
+/* @flow */
+
+import type {
+  Callback,
+  Dict
+} from '../types/Base';
+
+import type {
+  ASSheet
+} from '../types/Eval';
+
+import type {
+  ASBackendWorkbookSheet
+} from '../types/Messages';
+
 import {logDebug} from '../AS/Logger';
 
 import React, {PropTypes} from 'react';
@@ -5,7 +20,7 @@ import {ASHorizontalDropdownButton} from './basic-controls/index.jsx';
 import {FontIcon, Paper, Styles} from 'material-ui';
 import Store from '../stores/ASWorkbooksStore';
 import API from '../actions/ASApiActionCreators';
-import _ from 'underscore';
+import _ from 'lodash';
 
 let {Colors} = Styles;
 
@@ -67,29 +82,42 @@ export default React.createClass({
   },
 
   getInitialState() {
-    return { workbooks: [], open: {}, hoverItem: null, hovering: false };
+    return {
+      workbooks: ({}: Dict<ASBackendWorkbookSheet>),
+      open: ({}: Dict<boolean>),
+      hoverItem: (null: ?string),
+      hovering: false
+    };
   },
 
   componentDidMount() {
     Store.addChangeListener(this._onChange);
-    API.sendGetWorkbooks();
+    API.getWorkbooks();
   },
 
   componentWillUnmount() {
     Store.removeChangeListener(this._onChange);
   },
 
-  _getTheme() {
+  _getTheme(): ({
+    color?: string,
+    textColor?: string,
+    primaryColor?: string,
+    primaryTextColor?: string,
+    secondaryColor?: string,
+    secondaryTextColor?: string,
+    disabledColor?: string,
+    disabledTextColor?: string
+  }) {
     return this.context.muiTheme.component.raisedButton;
   },
 
-  _getTextColor() {
+  _getTextColor(): ?string {
     return this._getTheme().textColor;
   },
 
   render() {
     let {workbooks, open} = this.state;
-    logDebug(workbooks);
     let dropdownArrowClass = (id) => open[id] ? "keyboard_arrow_down" : 'keyboard_arrow_right';
 
     return (
@@ -169,7 +197,7 @@ export default React.createClass({
                           height: '24px',
                           cursor: 'pointer'
                         }}>
-                        <HoverIndicator color={this._isHovered(s.shetId) ? Colors.pink700 : null} />
+                        <HoverIndicator color={this._isHovered(s.sheetId) ? Colors.pink700 : null} />
                         <div
                           style={{
                             display: 'inline-block',
@@ -207,7 +235,7 @@ export default React.createClass({
     this.setState({ workbooks: Store.getWorkbooks() });
   },
 
-  _onDropdown(id) {
+  _onDropdown(id: string): Callback {
     return (() => {
       let {open} = _.extend({}, this.state);
       open[id] = !open[id];
@@ -215,13 +243,13 @@ export default React.createClass({
     });
   },
 
-  _onClick(s) {
+  _onClick(s: ASSheet): Callback {
     return (() => {
       this.props.onDocumentOpen(s);
     });
   },
 
-  _onClickNew(itemTitle) {
+  _onClickNew(itemTitle: string) {
     logDebug(itemTitle);
     if (itemTitle === 'Sheet') {
       this.props.onSheetCreate();
@@ -230,19 +258,19 @@ export default React.createClass({
     }
   },
 
-  _onMouseOverNavItem(id) {
+  _onMouseOverNavItem(id: string): Callback {
     return () => {
       this.setState({ hoverItem: id, hovering: true });
     };
   },
 
-  _onMouseOutNavItem(id) {
+  _onMouseOutNavItem(id: string): Callback {
     return () => {
       this.setState({ hovering: false });
     };
   },
 
-  _isHovered(id) {
+  _isHovered(id: string): boolean {
     return this.state.hovering && this.state.hoverItem == id;
   }
 });
