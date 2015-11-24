@@ -16,7 +16,8 @@ import type {
   ASReplValue,
   ASWorkbook,
   ASCellProp,
-  ASCell
+  ASCell, 
+  FormatType
 } from './Eval';
 
 import type {
@@ -225,6 +226,18 @@ export type PayloadFind = {
 export type PayloadValue = {
   tag: 'PayloadValue';
   contents: ASCompositeValue;
+};
+
+export type PayloadCondFormat = {
+  tag: 'PayloadCondFormat';
+  condFormatRules: Array<CondFormatRule>; 
+};
+
+export type CondFormatRule = { 
+  tag: 'CondFormatRule';
+  condFormat: FormatType; 
+  condition: ASExpression; 
+  cellLocs: Array<ASRange>;
 };
 
 export type ASBackendPayload =

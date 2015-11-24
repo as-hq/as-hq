@@ -16,11 +16,13 @@ import type {
   ASCellProp,
   ASCell, 
   VAlignType, 
-  HAlignType
+  HAlignType,
+  FormatType
 } from '../types/Eval';
 
 import type {
-  ASServerMessage
+  ASServerMessage, 
+  CondFormatRule
 } from '../types/Messages';
 
 import type {
@@ -303,6 +305,29 @@ export function setFormat(rng: string, formatType: string): Prf {
 export function setUrl(rng: string, urlLink: string): Prf {
   return apiExec(() => {
     API.setUrl(urlLink, rangeFromExcel(rng));
+  });
+}
+
+export function setCondFormattingRules(rules: Array<CondFormatRule>): Prf {
+  return apiExec(() => {
+    API.setCondFormattingRules(rules);
+  });
+}
+
+export function addCondFormattingRuleExcel(rng: string, format: FormatType, rule: string): Prf {
+  return apiExec(() => {
+    let xpObj = {
+      "tag": "Expression",
+      "expression": rule,
+      "language": "Excel"
+    };
+    let asRule = { 
+      "tag": "CondFormatRule", 
+      "condition": xpObj, 
+      "cellLocs": [TC.simpleToASRange(rangeFromExcel(rng))], 
+      "condFormat": format
+    };
+    API.setCondFormattingRules([asRule]); 
   });
 }
 

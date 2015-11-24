@@ -39,6 +39,8 @@ describe('backend', () => {
     setFormat,
     setUrl,
 
+    addCondFormattingRuleExcel,
+
     python,
     r,
     ocaml,
@@ -1767,6 +1769,17 @@ describe('backend', () => {
       });
     });
 
+    describe('conditional formatting', () => {
+      fit('should get sent to server properly', (done) => {
+        _do([
+          addCondFormattingRuleExcel("A1", { 
+              tag: 'ValueFormat', 
+              formatType: "Money"
+          }, "=IF(A>!)"),
+          exec(done)
+        ]);
+      });
+    });
 
     describe('vcs', () => {
       describe('undo', () => {
