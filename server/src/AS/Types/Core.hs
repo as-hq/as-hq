@@ -270,6 +270,7 @@ data CellPropType =
   | ImageDataProp
   | StreamInfoProp
   | ReadOnlyProp
+  | URLProp
   | BoldProp | ItalicProp | UnderlineProp 
   | VolatileProp
   | TrackingProp
@@ -286,6 +287,7 @@ data CellProp =
   | StreamInfo Stream
   | ImageData {imageWidth :: Int, imageHeight :: Int, imageOffsetX :: Int, imageOffsetY :: Int}
   | ReadOnly [ASUserId]
+  | URL { urlLink :: String }
   | Bold | Italic | Underline
   | Volatile
   | Tracking
@@ -316,6 +318,7 @@ propType (ValueFormat _) = ValueFormatProp
 propType (StreamInfo _) = StreamInfoProp
 propType (ImageData _ _ _ _) = ImageDataProp
 propType (ReadOnly _) = ReadOnlyProp 
+propType (URL _) = URLProp
 propType Bold = BoldProp 
 propType Italic = ItalicProp 
 propType Underline = UnderlineProp 
