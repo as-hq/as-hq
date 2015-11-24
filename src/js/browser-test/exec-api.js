@@ -440,6 +440,14 @@ export function shouldBeSerialized(loc: string): Prf {
   return valueShouldSatisfy(loc, ({ tag }) => (tag === 'ValueSerialized'));
 }
 
+export function shouldBeDecoupled(loc: string): Prf {
+  return expressionShouldSatisfy(loc, (xp) => (!xp.hasOwnProperty('rangeKey')));
+}
+
+export function shouldBeCoupled(loc: string): Prf {
+  return !shouldBeDecoupled(loc);
+}
+
 // [String] -> [ASValue] -> (() -> Promise ())
 export function shouldBeL(locs: Array<string>, vals: Array<ASValue>): Prf {
   return promise((fulfill, reject) => {

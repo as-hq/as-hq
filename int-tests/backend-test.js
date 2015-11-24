@@ -55,6 +55,8 @@ describe('backend', () => {
     shouldBeNothing,
     shouldBeImage,
     shouldBeSerialized,
+    shouldBeDecoupled,
+    shouldBeCoupled,
     expressionShouldBe,
     shouldHaveTag,
     shouldNotHaveTag
