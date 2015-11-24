@@ -30,7 +30,7 @@ describe('backend', () => {
     delete_,
 
     toggleProp,
-    setTextColor, 
+    setTextColor,
     setFillColor,
     setVAlign,
     setHAlign,
@@ -962,10 +962,10 @@ describe('backend', () => {
           xit('should decouple lists', (done) => {
             _do([
               python('A1', 'range(10)'),
-              insertRow(3), 
+              insertRow(3),
               shouldBe('A1', valueI(0)),
               shouldBe('A2', valueI(1)),
-              shouldBeNothing('A3'), 
+              shouldBeNothing('A3'),
               shouldBe('A4', valueI(2)),
               shouldBe('A11', valueI(9)),
               exec(done)
@@ -1088,10 +1088,10 @@ describe('backend', () => {
           xit('should decouple lists', (done) => {
             _do([
               python('A1', '[range(10)]'),
-              insertCol(3), 
+              insertCol(3),
               shouldBe('A1', valueI(0)),
               shouldBe('B1', valueI(1)),
-              shouldBeNothing('C1'), 
+              shouldBeNothing('C1'),
               shouldBe('D1', valueI(2)),
               shouldBe('K1', valueI(9)),
               exec(done)
@@ -1215,7 +1215,7 @@ describe('backend', () => {
         });
 
         // KNOWN TO HANG -- fix this when we diagnose the problem better
-        xit('should something something something critch bug', (done) => { 
+        xit('should something something something critch bug', (done) => {
           _do([
             python('A1', 'range(10)'),
             python('C1', '@A1'),
@@ -1584,9 +1584,9 @@ describe('backend', () => {
 
         it('should not re-eval the head of a fat cell', (done) => {
           _do([
-            python('A1', 'range(10)'), 
+            python('A1', 'range(10)'),
             cut('A1', 'B1'),
-            shouldBe('B1', valueI(0)), 
+            shouldBe('B1', valueI(0)),
             shouldBe('A2', valueI(1)),
             exec(done)
           ]);
@@ -1594,9 +1594,9 @@ describe('backend', () => {
 
         it('should cut/paste entire ranges', (done) => {
           _do([
-            python('A1', 'range(10)'), 
+            python('A1', 'range(10)'),
             cut('A1:A10', 'B1:B10'),
-            shouldBe('B1', valueI(0)), 
+            shouldBe('B1', valueI(0)),
             shouldBeNothing('A1', valueI(0)),
             exec(done)
           ]);
@@ -1647,7 +1647,7 @@ describe('backend', () => {
       });
     });
 
-    describe('delete', () => { 
+    describe('delete', () => {
       it('should replace a decoupled blank cell with a blank cell', (done) => {
         _do([
           python('A1', '[[None, 2],[3,4]]'),
@@ -1754,18 +1754,18 @@ describe('backend', () => {
             setFillColor('A2', 'blue'),
             setVAlign('A3', 'TopAlign'),
             setHAlign('A4', 'LeftAlign'),
-            setFontSize('A5', 20), 
-            setFontName('A6', 'Comic Sans'), 
+            setFontSize('A5', 20),
+            setFontName('A6', 'Comic Sans'),
             setFormat('A7', 'Money'),
             setUrl('A8', 'PLEASE DO NOT CLICK!!!', 'http://meatspin.com'),
-            shouldHaveProp('A1', 'TextColor'), 
-            shouldHaveProp('A2', 'FillColor'), 
-            shouldHaveProp('A3', 'VAlign'), 
-            shouldHaveProp('A4', 'HAlign'), 
-            shouldHaveProp('A5', 'FontSize'), 
-            shouldHaveProp('A6', 'FontName'), 
-            shouldHaveProp('A7', 'ValueFormat'), 
-            shouldHaveProp('A8', 'URL'), 
+            shouldHaveProp('A1', 'TextColor'),
+            shouldHaveProp('A2', 'FillColor'),
+            shouldHaveProp('A3', 'VAlign'),
+            shouldHaveProp('A4', 'HAlign'),
+            shouldHaveProp('A5', 'FontSize'),
+            shouldHaveProp('A6', 'FontName'),
+            shouldHaveProp('A7', 'ValueFormat'),
+            shouldHaveProp('A8', 'URL'),
             exec(done)
           ]);
         });
@@ -1974,8 +1974,22 @@ describe('backend', () => {
         _do([
           python('A1', '{\'a\':1, \'b\':[1,2,3], \'c\': \'SHIT\'}'),
           shouldBeSerialized('A1'),
-          python('B1', '@A1[\'c\']'),
+          python('B1', 'A1[\'c\']'),
           shouldBe('B1', valueS('SHIT')),
+          exec(done)
+          ]);
+      });
+      it('python NaNs', (done) => {
+        _do([
+          python('A1', 'np.nan'),
+          shouldBe('A1', valueNaN()),
+          exec(done)
+          ]);
+      });
+      it('python Infs', (done) => {
+        _do([
+          python('A1', 'np.inf'),
+          shouldBe('A1', valueInf()),
           exec(done)
           ]);
       });
@@ -2004,7 +2018,7 @@ describe('backend', () => {
     });
 
     describe('dependencies on expanding cells', (done) => {
-      xit('propagates expanding dependencies', (done) => {
+      xit('throws error on incorrect pointer ref', (done) => {
         _do([
           python('A1', 'range(10)'),
           python('B1', '@A1'),
@@ -2016,8 +2030,91 @@ describe('backend', () => {
       it('deletes fat cell heads properly', (done) => {
         _do([
           python('A1', 'range(10)'),
-          _delete('A1'),
-          shouldBeDecoupled('A1'),
+          delete_('A1'),
+          shouldBeDecoupled('A2'),
+          exec(done)
+          ]);
+      });
+      xit('propagates overwritten expanded cells', (done) => {
+        _do([
+          python('A1', 'range(10)'),
+          python('B1', '@A1'),
+          python('A1', 'range(5)'),
+          shouldBeNothing('B6'),
+          exec(done)
+          ]);
+      });
+      xit('propagates overwritten expanded cells', (done) => {
+        _do([
+          python('A1', 'range(10)'),
+          python('B1', '@A1'),
+          python('A1', 'range(5)'),
+          shouldBeNothing('B6'),
+          exec(done)
+          ]);
+      });
+    });
+
+    describe('arbitrary datatype embedding in python', (done) => {
+      it('embeds lists of dicts', (done) => {
+        _do([
+          python('A1', '[{\'a\': 1}, {\'b\': 2}]'),
+          shouldBeSerialized('A2'),
+          exec(done)
+          ]);
+      });
+      it('embeds multidimensional lists', (done) => {
+        _do([
+          python('A1', '[[[1]]]'),
+          shouldBeSerialized('A1'),
+          python ('B1', 'A1[0][0][0]'),
+          shouldBe('B1', valueI(1)),
+          exec(done)
+          ]);
+      });
+      it('embeds arbitrary cell-defined objects', (done) => {
+        _do([
+          python('A1', 'class A(object):\n\tdef __init__(self):\n\t\tself.x = 5\nA()'),
+          shouldBeSerialized('A1'),
+          exec(done)
+          ]);
+      });
+      it('lets you reference cell-defined objects', (done) => {
+        _do([
+          python('A1', 'class A(object):\n\tdef __init__(self):\n\t\tself.x = 5\nA()'),
+          python('B1', 'A1.x'),
+          shouldBe('B1', valueI(5)),
+          exec(done)
+          ]);
+      });
+      xit('expands high-dimensional lists when possible', (done) => {
+        _do([
+          python('A1', '[[[1]], [[2]]]'),
+          shouldBeSerialized('A2'),
+          exec(done)
+          ]);
+      });
+      it('lets you make numpy arrays with dtype=dict', (done) => {
+        _do([
+          python('A1', 'np.array([1, {\'a\': 1}])'),
+          shouldBeSerialized('A2'),
+          python('B1', 'A2[\'a\']'),
+          shouldBe('B1', valueI(1)),
+          exec(done)
+          ]);
+      });
+      xit('lets you import scikit datasets', (done) => {
+        _do([
+          python('A1', 'from sklearn import datsets\ndatasets.load_iris()'),
+          shouldBeSerialized('A1'),
+          exec(done)
+          ]);
+      });
+      xit('references scikit datasets properly', (done) => {
+        _do([
+          python('A1', 'from sklearn import datasets\ndatasets.load_iris()'),
+          python('B1', 'A1.data'),
+          shouldBeCoupled('B1'),
           exec(done)
           ]);
       });

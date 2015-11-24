@@ -9,13 +9,15 @@ import type {
   ValueI,
   ValueS,
   ValueB,
+  ValueNaN,
+  ValueInf,
   NoValue,
   ASValue,
   ASExpression,
   ASLanguage,
   ASCellProp,
-  ASCell, 
-  VAlignType, 
+  ASCell,
+  VAlignType,
   HAlignType
 } from '../types/Eval';
 
@@ -500,7 +502,7 @@ export function shouldBeDecoupled(loc: string): Prf {
 }
 
 export function shouldBeCoupled(loc: string): Prf {
-  return !shouldBeDecoupled(loc);
+  return expressionShouldSatisfy(loc, (xp) => (xp.hasOwnProperty('rangeKey')));
 }
 
 // [String] -> [ASValue] -> (() -> Promise ())
