@@ -264,11 +264,11 @@ bStrToASValue :: Maybe B.ByteString -> Maybe ASValue
 bStrToASValue (Just b) = Just (read2 (BC.unpack b) :: ASValue)
 bStrToASValue Nothing = Nothing
 
-bStrToTags :: Maybe B.ByteString -> Maybe [ASCellTag]
-bStrToTags (Just b) = Just (read (BC.unpack b) :: [ASCellTag])
+bStrToTags :: Maybe B.ByteString -> Maybe ASCellProps
+bStrToTags (Just b) = Just (read (BC.unpack b) :: ASCellProps)
 bStrToTags Nothing = Nothing
 
-maybeASCell :: (ASIndex, Maybe ASExpression,Maybe ASValue, Maybe [ASCellTag]) -> Maybe ASCell
+maybeASCell :: (ASIndex, Maybe ASExpression,Maybe ASValue, Maybe ASCellProps) -> Maybe ASCell
 maybeASCell (l, Just e, Just v, Just tags) = Just $ Cell l e v tags
 maybeASCell _ = Nothing
 

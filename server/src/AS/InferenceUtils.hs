@@ -164,7 +164,7 @@ translatePatternCells r1 r2 pattern = concat $ map translatePatternCell indexCel
         newVals = map (snd pattern) seriesIndices
         newLocs = map (Index (rangeSheetId r1)) newPositions
         newExpressions = map (\v -> Expression (showPrimitive lang v) lang) newVals
-        newCells = map (\(l,e,v) -> Cell l e v (cellTags cell)) $ zip3 newLocs newExpressions newVals
+        newCells = map (\(l,e,v) -> Cell l e v (cellProps cell)) $ zip3 newLocs newExpressions newVals
 
 ------------------------------------------------------------------------------------------------------------------
 -- deal with the actual pattern matching (quite literally)

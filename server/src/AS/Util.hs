@@ -17,6 +17,7 @@ import qualified Data.Text as T
 import qualified Data.Char as C
 import qualified Data.List as L
 import qualified Data.Set as S
+import qualified Data.Map as M
 
 import Control.Applicative hiding ((<|>), many)
 import Data.Maybe (isNothing,catMaybes,fromJust)
@@ -62,25 +63,8 @@ truncated str
   | length str < 500 = str 
   | otherwise = (take 500 str) ++ ("... [Truncated]")
 
--- Alex 10/22: seems kind of ugly. 
-differentTagType :: ASCellTag -> ASCellTag -> Bool
-differentTagType (Color _) (Color _) = False
-differentTagType (Size _) (Size _) = False
-differentTagType (Format _) (Format _) = False
-differentTagType (StreamTag _) (StreamTag _) = False
-differentTagType Tracking Tracking = False
-differentTagType Volatile Volatile = False
-differentTagType (ReadOnly _) (ReadOnly _) = False
-differentTagType (ImageData _ _ _ _) (ImageData _ _ _ _) = False
-differentTagType _ _ = True
-
 getCellFormatType :: ASCell -> Maybe FormatType
-getCellFormatType cell = ft
-  where
-    ts = cellTags cell
-    ft = case L.find (\t -> not $ differentTagType (Format NoFormat) t) ts of
-      Nothing -> Nothing
-      Just (Format ft') -> Just ft'
+getCellFormatType (Cell _ _ _ props) = maybe Nothing (Just . formatType) $ getProp ValueFormatProp props
 
 sendMessage :: (ToJSON a, Show a) => a -> WS.Connection -> IO ()
 sendMessage msg conn = do
@@ -146,7 +130,7 @@ deleteSubset :: (Eq a) => [a] -> [a] -> [a]
 deleteSubset subset = filter (\e -> L.notElem e subset)
 
 isEmptyCell :: ASCell -> Bool
-isEmptyCell c = (null $ cellTags c) && (null . xpString $ cellExpression c)
+isEmptyCell c = (null . underlyingProps $ cellProps c) && (null . xpString $ cellExpression c)
 
 liftEitherTuple :: Either b (a0, a1) -> (Either b a0, Either b a1)
 liftEitherTuple (Left b) = (Left b, Left b)
@@ -406,7 +390,7 @@ mergeCommits (Commit b a bd ad _) (Commit b' a' bd' ad' t) = Commit b'' a'' bd''
 -- | Returns a list of blank cells at the given locations. For now, the language doesn't matter, 
 -- because blank cells sent to the frontend don't get their languages saved. 
 blankCellAt :: ASIndex -> ASCell
-blankCellAt l = Cell l (Expression "" Excel) NoValue []
+blankCellAt l = Cell l (Expression "" Excel) NoValue emptyProps
 
 blankCellsAt :: [ASIndex] -> [ASCell]
 blankCellsAt = map blankCellAt
@@ -571,30 +555,13 @@ hasPermissions uid (Blacklist entities) = not $ any (isInEntity uid) entities
 hasPermissions uid (Whitelist entities) = any (isInEntity uid) entities
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
--- Tags
-
-containsTrackingTag :: [ASCellTag] -> Bool
-containsTrackingTag [] = False
-containsTrackingTag ((Tracking):tags) = True
-containsTrackingTag (tag:tags) = containsTrackingTag tags
-
-hasVolatileTag :: ASCell -> Bool
-hasVolatileTag = containsVolatileTag . cellTags
-
-containsVolatileTag :: [ASCellTag] -> Bool
-containsVolatileTag [] = False
-containsVolatileTag ((Volatile):tags) = True
-containsVolatileTag (tag:tags) = containsVolatileTag tags
-
-getStreamTag :: [ASCellTag] -> Maybe Stream
-getStreamTag [] = Nothing
-getStreamTag ((StreamTag s):tags) = Just s
-getStreamTag (tag:tags) = getStreamTag tags
+-- Props
 
 -- | Would look at an expression like TODAY()+DAY() and get the stream tag (update every 10 seconds if any of today etc show up)
 -- | TODO: implement
-getStreamTagFromExpression :: ASExpression -> Maybe Stream
-getStreamTagFromExpression xp = Nothing
+
+getStreamPropFromExpression :: ASExpression -> Maybe Stream
+getStreamPropFromExpression xp = Nothing
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Converting between Excel and AlphaSheets formats
@@ -632,4 +599,4 @@ testLocs :: Int -> [ASIndex]
 testLocs n = [Index "" (i,1) | i <-[1..n]]
 
 testCells :: Int -> [ASCell]
-testCells n =  L.map (\l -> Cell (Index "" (l,1)) (Expression "hi" Python) (ValueS "Str") []) [1..n]
+testCells n =  L.map (\l -> Cell (Index "" (l,1)) (Expression "hi" Python) (ValueS "Str") emptyProps) [1..n]

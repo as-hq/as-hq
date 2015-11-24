@@ -75,7 +75,7 @@ instance (Read2 ASCell) where
     where
       (l, xp, v, ts) = case splitBy cellDelimiter str of 
         [locstr, xpstr, valstr, tagstr] -> (read2 locstr :: ASIndex, read2 xpstr :: ASExpression, 
-                                            read2 valstr :: ASValue, read tagstr :: [ASCellTag])
+                                            read2 valstr :: ASValue, read tagstr :: ASCellProps)
         _ -> error ("read2 :: ASCell failed on string " ++ str)
 
 instance (Read2 ASReference) where

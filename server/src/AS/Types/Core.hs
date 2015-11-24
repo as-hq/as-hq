@@ -16,6 +16,7 @@ import qualified Network.WebSockets as WS
 import qualified Database.Redis as R
 import qualified Data.Map as M
 import qualified Data.Text as T
+import Data.Maybe 
 import Control.Concurrent (MVar)
 import Control.Applicative
 import Control.Monad (liftM, ap)
@@ -258,22 +259,82 @@ type EitherTExec = EitherT ASExecError IO
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Cells
 
-data ASCellTag =
-    Color String
-  | Size Int
-  | Bold | Italic | Underline
-  | StreamTag Stream
-  | Tracking
-  | Volatile
-  | ReadOnly [ASUserId]
-  | Format FormatType
+data CellPropType = 
+    TextColorProp
+  | FillColorProp
+  | VAlignProp
+  | HAlignProp
+  | FontSizeProp
+  | FontNameProp
+  | ValueFormatProp
+  | ImageDataProp
+  | StreamInfoProp
+  | ReadOnlyProp
+  | BoldProp | ItalicProp | UnderlineProp 
+  | VolatileProp
+  | TrackingProp
+  deriving (Show, Read, Eq, Generic, Ord)
+
+data CellProp = 
+    TextColor Color 
+  | FillColor Color
+  | VAlign VAlignType
+  | HAlign HAlignType
+  | FontSize Int
+  | FontName String
+  | ValueFormat {formatType :: FormatType}
+  | StreamInfo Stream
   | ImageData {imageWidth :: Int, imageHeight :: Int, imageOffsetX :: Int, imageOffsetY :: Int}
+  | ReadOnly [ASUserId]
+  | Bold | Italic | Underline
+  | Volatile
+  | Tracking
   deriving (Show, Read, Eq, Generic)
+
+type Color = String
+data HAlignType = LeftAlign | HCenterAlign | RightAlign deriving (Show, Read, Eq, Generic)
+data VAlignType = TopAlign | VCenterAlign | BottomAlign deriving (Show, Read, Eq, Generic)
+
+newtype ASCellProps = ASCellProps { underlyingProps :: M.Map CellPropType CellProp } deriving (Show, Read, Generic)
+instance Eq ASCellProps where
+  (==) (ASCellProps m1) (ASCellProps m2) = (m1 == m2)
+
+getProp :: CellPropType -> ASCellProps -> Maybe CellProp
+getProp pt (ASCellProps m) = M.lookup pt m
+
+hasProp :: CellPropType -> ASCellProps -> Bool
+hasProp pt p = isJust $ getProp pt p
+
+propType :: CellProp -> CellPropType
+propType (TextColor _) = TextColorProp 
+propType (FillColor _) = FillColorProp 
+propType (VAlign _) = VAlignProp 
+propType (HAlign _) = HAlignProp 
+propType (FontSize _) = FontSizeProp 
+propType (FontName _) = FontNameProp 
+propType (ValueFormat _) = ValueFormatProp 
+propType (StreamInfo _) = StreamInfoProp
+propType (ImageData _ _ _ _) = ImageDataProp
+propType (ReadOnly _) = ReadOnlyProp 
+propType Bold = BoldProp 
+propType Italic = ItalicProp 
+propType Underline = UnderlineProp 
+propType Volatile = VolatileProp 
+propType Tracking = TrackingProp
+
+setProp :: CellProp -> ASCellProps -> ASCellProps
+setProp cp (ASCellProps m) = ASCellProps $ M.insert (propType cp) cp m 
+
+removeProp :: CellPropType -> ASCellProps -> ASCellProps
+removeProp pt (ASCellProps m) = ASCellProps $ M.delete pt m
+
+emptyProps :: ASCellProps
+emptyProps = ASCellProps $ M.empty
 
 data ASCell = Cell {cellLocation :: ASIndex,
           cellExpression :: ASExpression,
           cellValue :: ASValue,
-          cellTags :: [ASCellTag]} deriving (Show, Read, Eq, Generic)
+          cellProps :: ASCellProps} deriving (Show, Read, Eq, Generic)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Formats
@@ -312,13 +373,13 @@ data Stream = Stream {streamSource :: StreamSource, streamFreq :: Int} deriving 
 data ASClientMessage = ClientMessage {
   clientAction :: ASAction,
   clientPayload :: ASPayload
-} deriving (Show, Read, Eq, Generic)
+} deriving (Show, Read, Generic)
 
 data ASServerMessage = ServerMessage {
   serverAction :: ASAction,
   serverResult :: ASResult,
   serverPayload :: ASPayload
-} deriving (Show, Read, Eq, Generic)
+} deriving (Show, Read, Generic)
 
 data ASAction =
     NoAction
@@ -333,7 +394,7 @@ data ASAction =
   | Undo | Redo
   | Clear
   | UpdateWindow
-  | SetTag | ToggleTag
+  | SetProp | ToggleProp
   | Repeat
   | BugReport
   | JumpSelect
@@ -369,7 +430,7 @@ data ASPayload =
   | PayloadCommit ASCommit
   | PayloadDelete ASRange [ASCell]
   | PayloadPaste {copyRange :: ASRange, copyTo :: ASRange}
-  | PayloadTag {cellTag :: ASCellTag, tagRange :: ASRange}
+  | PayloadProp {prop :: CellProp, tagRange :: ASRange}
   | PayloadXp ASExpression
   | PayloadXpL [ASExpression]
   | PayloadReplValue ASReplValue
@@ -378,7 +439,7 @@ data ASPayload =
   | PayloadText {text :: String}
   | PayloadMutate MutateType
   | PayloadDrag {initialRange :: ASRange, dragRange :: ASRange}
-  deriving (Show, Read, Eq, Generic)
+  deriving (Show, Read, Generic)
 
 data MutateType = InsertCol {insertColNum :: Int} | InsertRow { insertRowNum :: Int } |
                   DeleteCol { deleteColNum :: Int } | DeleteRow { deleteRowNum :: Int } |
@@ -397,7 +458,7 @@ data ASCommit = Commit {before :: [ASCell],
                         beforeDescriptors :: [RangeDescriptor],
                         afterDescriptors :: [RangeDescriptor],
                         time :: ASTime}
-                        deriving (Show,Read,Eq,Generic)
+                        deriving (Show, Read, Generic)
 
 type CommitSource = (ASSheetId, ASUserId)
 
@@ -574,8 +635,23 @@ instance ToJSON ASPayload where
     where fields = object $ map (\wb -> (T.pack $ wsName wb) .= wb) wbs
   toJSON a = genericToJSON defaultOptions a
 
-instance FromJSON ASCellTag
-instance ToJSON ASCellTag
+instance FromJSON CellPropType
+instance ToJSON CellPropType
+
+instance FromJSON CellProp
+instance ToJSON CellProp
+
+instance FromJSON ASCellProps where 
+  parseJSON v = ASCellProps <$> M.fromList <$> (parseJSON v :: Parser [(CellPropType, CellProp)])
+
+instance ToJSON ASCellProps where 
+  toJSON (ASCellProps m) = toJSON (map snd $ M.toList m)
+
+instance FromJSON VAlignType
+instance ToJSON VAlignType
+
+instance FromJSON HAlignType
+instance ToJSON HAlignType
 
 instance ToJSON ASIndex where
   toJSON (Index sid (c,r)) = object ["tag"     .= ("index" :: String),
@@ -668,4 +744,3 @@ instance NFData EError              where rnf = genericRnf
 instance NFData ASReference         where rnf = genericRnf
 instance NFData ASRange             where rnf = genericRnf
 instance NFData ASIndex             where rnf = genericRnf
-

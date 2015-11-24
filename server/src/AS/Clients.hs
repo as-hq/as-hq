@@ -81,15 +81,15 @@ instance Client ASUserClient where
       Redo           -> handleRedo user state
       Copy           -> handleCopy user state payload
       Cut            -> handleCut user state payload
-      ToggleTag      -> handleToggleTag user state payload
-      SetTag         -> handleSetTag user state payload
+      ToggleProp     -> handleToggleProp user state payload
+      SetProp        -> handleSetProp user state payload
       Repeat         -> handleRepeat user state payload
       BugReport      -> handleBugReport user payload
       JumpSelect     -> handleJumpSelect user state payload
       MutateSheet    -> handleMutateSheet user state payload
       Drag           -> handleDrag user state payload
       where payload = clientPayload message
-      -- Undo         -> handleToggleTag user state (PayloadTags [StreamTag (Stream NoSource 1000)] (Index (T.pack "TEST_SHEET_ID2") (1,1)))
+      -- Undo         -> handleToggleProp user state (PayloadTags [StreamTag (Stream NoSource 1000)] (Index (T.pack "TEST_SHEET_ID2") (1,1)))
       -- ^^ above is to test streaming when frontend hasn't been implemented yet
 
 -------------------------------------------------------------------------------------------------------------------------
@@ -244,8 +244,8 @@ handleEval cl state payload  = do
   -- expression to evaluate and the location of evaluation. In particular, the value passed in the cells
   -- are irrelevant, and there are no tags passed in, so we have to get the tags from the database
   -- manually. 
-  oldTags <- DB.getTagsAt (map cellLocation cells)
-  let cells' = map (\(c, ts) -> c { cellTags = ts }) (zip cells oldTags)
+  oldTags <- DB.getPropsAt (map cellLocation cells)
+  let cells' = map (\(c, ps) -> c { cellProps = ps }) (zip cells oldTags)
   msg' <- DP.runDispatchCycle state cells' (clientCommitSource cl)
   reply cl state msg'
 
@@ -423,53 +423,49 @@ sanitizeCopyCells conn cells from
   | otherwise = sanitizeCutCells conn cells from 
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
--- Tag handlers
-handleToggleTag :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
-handleToggleTag user state (PayloadTag t rng) = do
+-- Prop handlers
+
+-- | Used mostly for flag props that only take ()'s
+handleToggleProp :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
+handleToggleProp user state (PayloadProp p rng) = do
   let locs = rangeToIndices rng
+      pt   =  propType p
   cells <- DB.getPossiblyBlankCells locs
-  let (cellsWithTag, cellsWithoutTag) = L.partition (\c -> t `elem` cellTags c) cells
-  -- if there's a single tag present in the range, remove this tag from all the cells; 
-  -- otherwise set the tag in all the cells. 
-  if (null cellsWithoutTag)
+  let (cellsWithProp, cellsWithoutProp) = L.partition ((hasProp pt) . cellProps) cells
+  -- if there's a single prop present in the range, remove this prop from all the cells; 
+  -- otherwise set the prop in all the cells. 
+  if (null cellsWithoutProp)
     then do 
-      let cells' = map (\(Cell l e v ts) -> Cell l e v (L.delete t ts)) cellsWithTag
+      let cells' = map (\(Cell l e v ps) -> Cell l e v (removeProp pt ps)) cellsWithProp
           (emptyCells, nonEmptyCells) = L.partition U.isEmptyCell cells'
       DB.setCells nonEmptyCells
       conn <- dbConn <$> readMVar state
       DB.deleteCells conn emptyCells
-      mapM_ (removeTagEndware state t) nonEmptyCells
+      mapM_ (removePropEndware state p) nonEmptyCells
       reply user state $ ServerMessage Update Success (PayloadCL cells')
     else do
-      let cells' = map (\(Cell l e v ts) -> Cell l e v (t:ts)) cellsWithoutTag
+      let cells' = map (\(Cell l e v ps) -> Cell l e v (setProp p ps)) cellsWithoutProp
       DB.setCells cells'
-      mapM_ (addTagEndware state t) cells'
+      mapM_ (setPropEndware state p) cells'
       reply user state $ ServerMessage Update Success (PayloadCL cells')
     -- don't HAVE to send back the entire cells, but that's an optimization for a later time. 
     -- Said toad. (Alex 11/7)
 
-addTagEndware :: MVar ServerState -> ASCellTag -> ASCell -> IO ()
-addTagEndware state (StreamTag s) c = DM.modifyDaemon state s (cellLocation c) evalMsg
+setPropEndware :: MVar ServerState -> CellProp -> ASCell -> IO ()
+setPropEndware state (StreamInfo s) c = DM.modifyDaemon state s (cellLocation c) evalMsg
   where evalMsg = ClientMessage Evaluate (PayloadCL [c])
-addTagEndware _ _ _ = return ()
+setPropEndware _ _ _ = return ()
 
-removeTagEndware :: MVar ServerState -> ASCellTag -> ASCell -> IO ()
-removeTagEndware state (StreamTag s) c = DM.removeDaemon (cellLocation c) state
-removeTagEndware _ _ _ = return ()
+removePropEndware :: MVar ServerState -> CellProp -> ASCell -> IO ()
+removePropEndware state (StreamInfo s) c = DM.removeDaemon (cellLocation c) state
+removePropEndware _ _ _ = return ()
 
--- Should refactor to props instead of tags for non-Bools. (Alex 11/11)
-handleSetTag :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
-handleSetTag user state (PayloadTag tag rng) = do
+handleSetProp :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
+handleSetProp user state (PayloadProp prop rng) = do
   curState <- readMVar state
   let locs = rangeToIndices rng
   cells <- DB.getPossiblyBlankCells locs
-  cells' <- (flip mapM cells) $ \(Cell l e v ts) -> do 
-        let ts' = filter (U.differentTagType tag) ts
-            c'  = Cell l e v (tag:ts')
-        if (ts' /= ts) -- if you ended up removing an old version of the tag
-          then (removeTagEndware state tag c')
-          else (addTagEndware state tag c')
-        return c'
+  let cells' = map (\(Cell l e v oldProps) -> Cell l e v (setProp prop oldProps)) cells
   DB.setCells cells'
   reply user state $ ServerMessage Update Success (PayloadCL cells')
 

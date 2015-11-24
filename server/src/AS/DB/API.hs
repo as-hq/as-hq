@@ -125,10 +125,10 @@ getPossiblyBlankCells locs = do
     Just c' -> c'
     Nothing -> blankCellAt l) (zip locs cells)
 
-getTagsAt :: [ASIndex] -> IO [[ASCellTag]]
-getTagsAt locs = do 
+getPropsAt :: [ASIndex] -> IO [ASCellProps]
+getPropsAt locs = do 
   cells <- getPossiblyBlankCells locs
-  return $ map cellTags cells
+  return $ map cellProps cells
 
 setCell :: ASCell -> IO ()
 setCell c = setCells [c]
@@ -396,14 +396,14 @@ getVolatileLocs conn = do
 -- TODO: some of the cells may change from volatile -> not volatile, but they're still in volLocs
 setChunkVolatileCells :: [ASCell] -> Redis ()
 setChunkVolatileCells cells = do
-  let vLocs = map cellLocation $ filter (U.hasVolatileTag) cells
+  let vLocs = map cellLocation $ filter ((hasProp VolatileProp) . cellProps) cells
   let locStrs = map (B.pack . show) vLocs
   sadd "volatileLocs" locStrs
   return ()
 
 deleteChunkVolatileCells :: [ASCell] -> Redis ()
 deleteChunkVolatileCells cells = do
-  let vLocs = map cellLocation $ filter (U.hasVolatileTag) cells
+  let vLocs = map cellLocation $ filter ((hasProp VolatileProp) . cellProps) cells
   let locStrs = map (B.pack . show) vLocs
   srem "volatileLocs" locStrs
   return ()
@@ -430,5 +430,5 @@ isPermissibleMessage uid conn (ClientMessage _ payload) = case payload of
   PayloadLL locs -> canAccessAll conn uid locs
   PayloadS sheet -> canAccessSheet conn uid (sheetId sheet)
   PayloadW window -> canAccessSheet conn uid (windowSheetId window)
-  PayloadTag _ rng -> canAccessAll conn uid (rangeToIndices rng)
+  PayloadProp _ rng -> canAccessAll conn uid (rangeToIndices rng)
   _ -> return True

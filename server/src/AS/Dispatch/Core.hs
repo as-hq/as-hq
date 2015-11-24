@@ -46,7 +46,7 @@ import Control.Monad.Trans.Either
 -- Debugging
 
 testDispatch :: MVar ServerState -> ASLanguage -> Coord -> String -> IO ASServerMessage
-testDispatch state lang crd str = runDispatchCycle state [Cell (Index sid crd) (Expression str Python) NoValue []] (sid, uid)
+testDispatch state lang crd str = runDispatchCycle state [Cell (Index sid crd) (Expression str Python) NoValue emptyProps] (sid, uid)
   where 
     sid = T.pack "sheetid"
     uid = T.pack "userid"
@@ -151,13 +151,7 @@ retrieveValue c = case c of
 
 formatCell :: Maybe FormatType -> ASCell -> ASCell
 formatCell Nothing c = c
-formatCell (Just f) c = c' 
-  where 
-    ts  = cellTags c
-    ts' = filter (U.differentTagType (Format f)) ts -- the cell without that tag
-    c' = case f of 
-      NoFormat -> c { cellTags = ts' }
-      _        -> c { cellTags = (Format f):ts' }
+formatCell (Just f) c@(Cell _ _ _ cellProps) = c { cellProps = setProp (ValueFormat f) cellProps } 
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- EvalChain
