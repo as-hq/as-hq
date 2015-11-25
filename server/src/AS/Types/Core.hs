@@ -469,6 +469,7 @@ data ASCommit = Commit {before :: [ASCell],
                         time :: ASTime}
                         deriving (Show, Read, Generic)
 
+-- Should refactor to not be an ordered pair
 type CommitSource = (ASSheetId, ASUserId)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
