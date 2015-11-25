@@ -110,11 +110,15 @@ getASRefsFromExRefs sheetid matches = map (exRefToASRef sheetid) matches
 
 -- | Takes in an offset and a cell, and returns the cell you get when you shift the cell by
 -- the offset. (The location changes, and the non-absolute references in the expression changes.)
+
+shiftExpression :: Offset -> ASExpression -> ASExpression
+shiftExpression offset xp = replaceRefs (show . (shiftExRef offset)) xp
+
 shiftCell :: Offset -> ASCell -> ASCell
 shiftCell offset (Cell loc xp v ts) = cell'
   where
     loc'  = shiftInd offset loc
-    xp'   = replaceRefs (show . (shiftExRef offset)) xp
+    xp'   = shiftExpression offset xp
     cell' = Cell loc' xp' v ts
 
 -- | Offsets all the references in an expression that are contained in the cut range (passed in as 

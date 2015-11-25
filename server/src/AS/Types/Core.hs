@@ -240,6 +240,7 @@ data ASExecError =
   | DBNothingException {badLocs :: [ASIndex]}
   | DBGraphUnreachable -- failed to connect
   | CircularDepError {badLoc :: ASIndex}
+  | CondFormattingError String
   | NetworkDown
   | RuntimeEvalException
   | ResourceLimitReached

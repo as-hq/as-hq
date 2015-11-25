@@ -694,5 +694,5 @@ handleCondFormat user state (PayloadCondFormat rules) = do
       locs = concat $ map rangeToIndices $ concat $ map cellLocs rules
   DB.setCondFormattingRules conn (fst src) rules
   cells <- DB.getPossiblyBlankCells locs
-  msg <- runDispatchCycle state cells src -- eventually, only eval on the xor of new and old?
+  msg <- runDispatchCycle state cells src -- ::ALEX:: eventually, only eval on the xor of new and old?
   reply user state msg

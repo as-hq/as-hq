@@ -87,9 +87,9 @@ dispatch state roots src = do
   formattedValuesMap <- lift $ formatValsMap initValuesMap
   printObjT "Created initial values map" initValuesMap
   printWithTimeT "Starting eval chain"
-  (afterCells, fatCells, deletedLocs) <- evalChain conn formattedValuesMap cellsToEval src -- start with current cells, then go through descendants
+  (afterCells, fatCells, deletedLocs, afterValMap) <- evalChain conn formattedValuesMap cellsToEval src -- start with current cells, then go through descendants
   -- Apply endware
-  finalizedCells <- lift $ EE.evalEndware state afterCells src roots
+  finalizedCells <- EE.evalEndware state afterCells src roots afterValMap
   right $ Transaction src finalizedCells fatCells deletedLocs
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
@@ -160,7 +160,7 @@ formatCell (Just f) c@(Cell _ _ _ cellProps) = c { cellProps = setProp (ValueFor
 -- cell that's updated. The cells passed in are guaranteed to be topologically sorted, i.e.,
 -- if a cell references an ancestor, that ancestor is guaranteed to already have been
 -- added in the map.
-evalChain :: Connection -> FormattedValMap -> [ASCell] -> CommitSource -> EitherTExec ([ASCell], [FatCell], [ASIndex])
+evalChain :: Connection -> FormattedValMap -> [ASCell] -> CommitSource -> EitherTExec ([ASCell], [FatCell], [ASIndex], FormattedValMap)
 evalChain conn valuesMap cells src = 
   let whenCaught e = do
           printObj "Runtime exception caught" (e :: SomeException)
@@ -191,8 +191,8 @@ evalChain conn valuesMap cells src =
 -- locations into actual blank cells and delete them. 
 -- 
 -- #needsrefactor there's probably a more Haskell way of doing this with a state monad or something.
-evalChain' :: Connection -> FormattedValMap -> [ASCell] -> [FatCell] -> [ASIndex] -> [ASIndex] -> EitherTExec ([ASCell], [FatCell], [ASIndex])
-evalChain' _ _ [] [] _ _ = return ([], [], [])
+evalChain' :: Connection -> FormattedValMap -> [ASCell] -> [FatCell] -> [ASIndex] -> [ASIndex] -> EitherTExec ([ASCell], [FatCell], [ASIndex], FormattedValMap)
+evalChain' _ valMap [] [] _ _ = return ([], [], [], valMap)
 
 evalChain' conn valuesMap [] fatCells pastFatCellHeads _ = 
   -- get expanded cells from fat cells
@@ -255,7 +255,7 @@ evalChain' conn valuesMap (c@(Cell loc xp _ ts):cs) fatCells fatCellHeads pastDe
       (fatCells', fatCellHeads') = case maybeFatCell of
                 Nothing -> (fatCells, fatCellHeads)
                 Just f  -> (f:fatCells, loc:fatCellHeads)
-  (restCells, restFatCells, restDeletedLocs) <- evalChain' conn newValuesMap cs fatCells' fatCellHeads' []
+  (restCells, restFatCells, restDeletedLocs, restValuesMap) <- evalChain' conn newValuesMap cs fatCells' fatCellHeads' []
   -- TODO investigate strictness here
   let (CellValue v) = cv
       newCell       = formatCell f (Cell loc xp v ts)
@@ -264,7 +264,7 @@ evalChain' conn valuesMap (c@(Cell loc xp _ ts):cs) fatCells fatCellHeads pastDe
           Just fatCell -> (restCells, fatCell:restFatCells)
       resultDeletedLocs = pastDeletedLocs ++ deletedLocs ++ restDeletedLocs
 
-  right (resultCells, resultFatCells, resultDeletedLocs)
+  right (resultCells, resultFatCells, resultDeletedLocs, restValuesMap)
 
 
  ---- now, we check if evalChain caused anything to be decoupled, and propagate the decoupleds'

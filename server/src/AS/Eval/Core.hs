@@ -77,13 +77,13 @@ evaluateHeader sid (Expression str lang) = case lang of
 -- return Nothing. Otherwise, if there are errors that can't be dealt with, return appropriate ASValue error.
 possiblyShortCircuit :: ASSheetId -> ValMap -> ASExpression -> Maybe ASValue
 possiblyShortCircuit sheetid valuesMap xp =
-  let depRefs       = getDependencies sheetid xp -- :: [ASReference]
-      depSets       = map refToIndices depRefs   -- :: [Maybe [ASIndex]]
-      isOutOfBounds = any MB.isNothing depSets
-      depInds       = concat $ MB.catMaybes depSets
-      lang          = xpLanguage xp
-      values        = map (valuesMap M.!) $ depInds
-  in if isOutOfBounds 
+  let depRefs        = getDependencies sheetid xp -- :: [ASReference]
+      depSets        = map refToIndices depRefs   -- :: [Maybe [ASIndex]]
+      depInds        = concat $ MB.catMaybes depSets
+      hasOutOfBounds = any MB.isNothing depSets   -- pretty horrible way of checking this for now. 
+      lang           = xpLanguage xp
+      values         = map (valuesMap M.!) $ depInds
+  in if hasOutOfBounds 
     then Just $ ValueError "Referencing cell out of bounds." "RefError"
     else MB.listToMaybe $ MB.catMaybes $ flip map (zip depInds values) $ \(i, v) -> case v of
       CellValue NoValue                 -> handleNoValueInLang lang i
