@@ -179,6 +179,7 @@ getFatCellIntersections conn sid (Left locs) = do
     anyLocsContainedInRect ls r = any id $ map (indexInRect r) ls
     indexInRect ((a',b'),(a2',b2')) (Index _ (a,b)) = a >= a' && b >= b' &&  a <= a2' && b <= b2'
 
+-- ::ALEX:: why does this case exist? 
 getFatCellIntersections conn sid (Right keys) = do
   rangeKeys <- makeRangeKeysInSheet conn sid
   printObj "Checking intersections against keys" keys

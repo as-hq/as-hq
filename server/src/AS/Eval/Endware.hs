@@ -35,9 +35,11 @@ import AS.Daemon as DM
 evalEndware :: MVar ServerState -> [ASCell] -> CommitSource -> [ASCell] -> FormattedValMap -> EitherTExec [ASCell]
 evalEndware state finalCells (sid, uid) origCells valMap = do 
   mapM_ (\c -> lift $ DM.possiblyCreateDaemon state uid c) origCells
-  let cells1 = changeExcelExpressions finalCells
   conn <- lift $ dbConn <$> readMVar state
+  let cells1 = changeExcelExpressions finalCells
   cells2 <- conditionallyFormatCells conn sid cells1 valMap
+  printDebugT "cells1" cells1
+  printDebugT "cells2" cells2
   return cells2
    
 ----------------------------------------------------------------------------------------------------------------------------------------------
@@ -91,6 +93,7 @@ meetsCondition sid valMap xp@(Expression str lang) v = do
       valMapToMerge = map (\(Cell l _ v ps) -> (l, Formatted (CellValue v) $ getFormat ps)) cells 
       valMap' = M.union valMap (M.fromList valMapToMerge)
   (Formatted res _) <- evaluateLanguage sid dummyLoc valMap' xp
+  printDebugT "res" res
   case res of
     CellValue (ValueB b) -> return b
     val                  -> do 

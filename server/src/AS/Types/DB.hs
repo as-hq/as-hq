@@ -11,7 +11,7 @@ import qualified Data.Text as T
 
 data ASTransaction = Transaction {transactionCommitSource :: CommitSource,
                                   afterCells :: [ASCell],
-                                  fatCells :: [FatCell],
+                                  fatCells :: [RangeDescriptor],
                                   deletedLocations :: [ASIndex] }
 
 ----------------------------------------------------------------------------------------------------------------------------------------------

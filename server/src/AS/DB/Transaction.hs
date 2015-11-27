@@ -37,21 +37,16 @@ getDecouplingEffects conn sid cells fcells =
 
 -- | Deal with updating all DB-related things after an eval. 
 writeTransaction :: Connection -> ASTransaction -> EitherTExec [ASCell]
-writeTransaction conn (Transaction src@(sid, _) afterCells fatCells deletedLocs) = 
-  let extraCells       = concat $ map expandedCells fatCells
-      locs             = map cellLocation afterCells
-      deletedCells     = U.blankCellsAt deletedLocs
-      afterCells'      = U.mergeCells (afterCells ++ extraCells) deletedCells
+writeTransaction conn (Transaction src@(sid, _) afterCells afterDescriptors deletedLocs) = 
+  let deletedCells     = U.blankCellsAt deletedLocs
+      afterCells'      = U.mergeCells afterCells deletedCells
       locs'            = map cellLocation afterCells'
-      rangeKeys        = map (descriptorKey . descriptor) fatCells
-      afterDescriptors = map descriptor fatCells
+      rangeKeys        = map descriptorKey afterDescriptors
   in do
     printWithTimeT $ "GOT DELETED LOCS: " ++ (show $ map show2 deletedLocs)
     beforeCells <- lift $ catMaybes <$> DB.getCells locs'
     -- determine all fatcell intersections produced by eval
-    rangeKeysChangedByCells <- liftIO $ DU.getFatCellIntersections conn sid (Left locs)
-    rangeKeysChangedByFatCells <- liftIO $ DU.getFatCellIntersections conn sid (Right rangeKeys)
-    let rangeKeysChanged = rangeKeysChangedByCells ++ rangeKeysChangedByFatCells
+    rangeKeysChanged <- liftIO $ DU.getFatCellIntersections conn sid (Left locs')
     -- hold on to the decoupled descriptors 
     beforeDescriptors <- liftIO $ map fromJust <$> mapM (DB.getRangeDescriptor conn) rangeKeysChanged
     printWithTimeT $ "Range keys changed: " ++ (show rangeKeysChanged)

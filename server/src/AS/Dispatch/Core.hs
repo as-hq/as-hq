@@ -89,8 +89,10 @@ dispatch state roots src = do
   printWithTimeT "Starting eval chain"
   (afterCells, fatCells, deletedLocs, afterValMap) <- evalChain conn formattedValuesMap cellsToEval src -- start with current cells, then go through descendants
   -- Apply endware
-  finalizedCells <- EE.evalEndware state afterCells src roots afterValMap
-  right $ Transaction src finalizedCells fatCells deletedLocs
+  let afterCells' = L.union afterCells $ concat $ map expandedCells fatCells
+      afterDescriptors = map descriptor fatCells
+  finalizedCells <- EE.evalEndware state afterCells' src roots afterValMap
+  right $ Transaction src finalizedCells afterDescriptors deletedLocs
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Eval building blocks
