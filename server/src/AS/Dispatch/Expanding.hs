@@ -2,7 +2,7 @@ module AS.Dispatch.Expanding where
 
 import Prelude
 
-import AS.Types.Core
+import AS.Types.Cell
 import AS.DB.Util as DU
 import AS.Util as U
 

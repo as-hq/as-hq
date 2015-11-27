@@ -12,7 +12,11 @@ import Data.Time.Clock
 import Data.Text as T (unpack,pack)
 import Control.Exception.Base
 
-import AS.Types.Core
+import AS.Types.Cell
+import AS.Types.CellProps
+import AS.Types.Messages
+import AS.Types.Network
+
 import AS.Types.DB
 import AS.Dispatch.Expanding        as DE
 import qualified AS.Eval.Core       as EC (evaluateLanguage)

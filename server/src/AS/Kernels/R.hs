@@ -4,8 +4,10 @@
 
 module AS.Kernels.R where
 
-import AS.Types.Core
-
+import AS.Types.Cell (ASLanguage( R ))
+import AS.Types.Eval
+import AS.Types.Errors
+import AS.Types.Sheets
 import AS.Kernels.Common
 import AS.Kernels.LanguageUtils
 
@@ -41,6 +43,8 @@ import Control.Exception (catch, SomeException)
 -- EitherT
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.Either
+
+type EvalCode = String
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Exposed functions

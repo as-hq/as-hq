@@ -5,7 +5,7 @@ import Data.List
 import Database.Redis (Connection)
 import Data.Maybe
 
-import AS.Types.Core
+import AS.Types.Cell
 import AS.Eval.Core as R
 import AS.Util as U
 import AS.DB.API as DB

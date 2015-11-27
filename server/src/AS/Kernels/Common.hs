@@ -1,6 +1,6 @@
 module AS.Kernels.Common where
 
-import AS.Types.Core
+import AS.Types.Cell
 
 import System.Process
 import System.IO

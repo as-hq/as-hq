@@ -9,8 +9,10 @@ import Data.List
 import qualified Text.Show.ByteString      as BS
 import qualified Data.ByteString.Char8     as BC
 
-import AS.Types.Core
+import AS.Types.Locations
 import AS.Types.DB
+import AS.Types.Eval
+
 import AS.Config.Settings as S
 import AS.DB.Util
 import AS.Util

@@ -1,6 +1,6 @@
 module AS.Kernels.OCaml where
 
-import AS.Types.Core
+import AS.Types.Cell
 
 import AS.Kernels.Common
 import AS.Kernels.LanguageUtils

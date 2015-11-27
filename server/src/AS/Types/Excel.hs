@@ -1,3 +1,5 @@
+-- TODO: split this up to, and separate types into core types and Excel types? 
+
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE TypeSynonymInstances #-}
@@ -5,7 +7,12 @@
 
 module AS.Types.Excel where
 
-import AS.Types.Core
+import AS.Types.CellProps
+import AS.Types.Locations
+import AS.Types.Errors
+import AS.Types.Eval
+import AS.Types.Sheets
+
 import Prelude
 import GHC.Generics
 import Data.List

@@ -1,6 +1,5 @@
 module AS.Kernels.LanguageUtils where
 
-import AS.Types.Core
 
 import Prelude
 import Text.Parsec
@@ -8,6 +7,7 @@ import Text.Parsec.Text
 import qualified Data.Text as T
 import qualified Data.List as L
 
+import AS.Types.Cell
 import AS.Config.Paths
 import AS.Parsing.Show
 import AS.Parsing.Substitutions
@@ -55,7 +55,7 @@ formatCodeRepl sid lang str = do
   let trimmed = trimWhitespace lang str
       (startLines, endLine) = splitLastLine lang str
   case (tryPrintingLastRepl lang trimmed) of
-    (Left _) -> return $ (trimmed, emptyExpression) -- nothing to print, so nothing to evaluate
+    (Left _) -> return $ (trimmed, "") -- nothing to print, so nothing to evaluate
     (Right (recordXp, printedLine)) -> do
       evalXp <- wrapCode sid lang True $ recombineLines (recordXp, printedLine)
       return (recordXp, evalXp)
@@ -107,7 +107,7 @@ replacePrintStmt lang = case lang of
 splitLastLine :: ASLanguage -> String -> (String, String)
 splitLastLine lang str = case (tryParse (firstLineAndRest lang) (reverse str)) of
   (Right (reversedLastLine, reversedRest))  -> (reverse reversedRest, reverse reversedLastLine)
-  (Left _)    -> (emptyExpression, str) -- only one line, which becomes the 'last' line
+  (Left _)    -> ("", str) -- only one line, which becomes the 'last' line
 
 -- | Parser that splits multiline string into (firstLine, remaining lines)
 firstLineAndRest :: ASLanguage -> Parser (String, String)

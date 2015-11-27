@@ -13,7 +13,8 @@ import qualified Data.Map as M
 import qualified Data.List as L
 import qualified Data.Text as T
 
-import AS.Types.Core hiding (str)
+import AS.Types.Eval
+import AS.Types.Cell
 
 import AS.Kernels.LanguageUtils
 import AS.Kernels.Python.Eval as KP

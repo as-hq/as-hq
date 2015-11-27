@@ -4,7 +4,8 @@ module AS.DB.API where
 
 import Prelude
 
-import AS.Types.Core hiding (location,expression,value,min)
+import AS.Types.Cell
+import AS.Types.Messages
 import AS.Types.DB
 import AS.Util as U
 import qualified AS.DB.Util as DU
@@ -463,7 +464,8 @@ getCondFormattingRules conn sid = runRedis conn $ do
   msg <- get $ condFormattingRulesKey sid
   return $ case msg of 
     Right (Just msg') -> read (B.unpack msg')
-    Left _ -> error "Failed to retrieve conditional formatting rules"
+    Right Nothing     -> []
+    Left _            -> error "Failed to retrieve conditional formatting rules"
 
 setCondFormattingRules :: Connection -> ASSheetId -> [CondFormatRule] -> IO ()
 setCondFormattingRules conn sid rules = runRedis conn (set (condFormattingRulesKey sid) (B.pack $ show rules)) >> return ()

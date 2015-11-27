@@ -2,7 +2,7 @@ module AS.DB.Transaction where
 
 import Prelude
 
-import AS.Types.Core
+import AS.Types.Cell
 import AS.Types.DB
 import AS.DB.API as DB
 import AS.DB.Util as DU

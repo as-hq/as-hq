@@ -47,9 +47,18 @@ library
                        AS.Parsing.Read
                        AS.Parsing.Excel
                        AS.Parsing.Substitutions
-                       AS.Types.Core
+                       AS.Types.Cell
+                       AS.Types.CellProps
+                       AS.Types.Commits
                        AS.Types.DB
+                       AS.Types.Errors
+                       AS.Types.Eval
                        AS.Types.Excel
+                       AS.Types.Locations
+                       AS.Types.Messages
+                       AS.Types.Network
+                       AS.Types.Sheets
+                       AS.Types.User
                        AS.Users
                        AS.Util
                        AS.InferenceUtils

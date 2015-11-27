@@ -1,8 +1,9 @@
 module AS.Kernels.Excel.Lib where
 
 import AS.Util (rangeToIndicesRowMajor)
-import AS.Types.Core
+
 import AS.Types.Excel
+import AS.Types.Cell
 import AS.Kernels.Excel.Util
 import AS.Kernels.Excel.Compiler
 import qualified Data.Map.Strict as M

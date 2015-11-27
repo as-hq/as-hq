@@ -2,7 +2,9 @@ module AS.Dispatch.Repl where
 
 import Prelude
 
-import AS.Types.Core
+import AS.Types.Cell
+import AS.Types.Messages 
+
 import AS.Eval.Core as R (evaluateLanguageRepl)
 import Control.Concurrent (MVar, newMVar, modifyMVar_, modifyMVar, readMVar)
 

@@ -6,8 +6,11 @@ import Text.ParserCombinators.Parsec
 import Control.Applicative hiding ((<|>), many)
 import AS.Parsing.Excel
 import AS.Types.Excel
+import AS.Types.Cell
+import AS.Types.Locations
+import AS.Types.Sheets
 import AS.Kernels.Excel.Compiler (formula)
-import AS.Types.Core
+
 import AS.Util
 
 -------------------------------------------------------------------------------------------------------------------------------------------------

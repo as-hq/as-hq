@@ -16,7 +16,10 @@ import Data.Aeson hiding (Success)
 import qualified Network.WebSockets as WS
 import qualified Database.Redis as R
 
-import AS.Types.Core
+import AS.Types.Network
+import AS.Types.Cell
+import AS.Types.Messages
+
 import AS.Types.Excel hiding (row, col)
 import qualified AS.Types.DB as TD
 import AS.DB.API                as DB
@@ -129,7 +132,7 @@ broadcast state message = do
 sheetsInPayload :: ASPayload -> [ASSheetId]
 sheetsInPayload (PayloadDelete rng cells) = (rangeSheetId rng):(map (locSheetId . cellLocation) cells)
 sheetsInPayload (PayloadS (Sheet sid _ _)) = [sid]
-sheetsInPayload (PayloadCommit (Commit bf af _ _ _)) = (map (locSheetId . cellLocation) bf) ++ (map (locSheetId . cellLocation) af)
+sheetsInPayload (PayloadCommit (TD.Commit bf af _ _ _)) = (map (locSheetId . cellLocation) bf) ++ (map (locSheetId . cellLocation) af)
 sheetsInPayload (PayloadN ()) = []
 
 -- | Figures out whom to send the message back to, based on the payload, and broadcasts the message
@@ -426,7 +429,7 @@ sanitizeCopyCells conn cells from
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Prop handlers
 
--- | Used mostly for flag props that only take ()'s
+-- | Used only for flag props. 
 handleToggleProp :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
 handleToggleProp user state (PayloadProp p rng) = do
   let locs = rangeToIndices rng

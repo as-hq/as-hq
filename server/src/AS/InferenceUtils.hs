@@ -6,8 +6,9 @@ import AS.Parsing.Read (parseValue)
 import qualified Data.List as L
 import Data.Maybe
 import Data.Char
-import AS.Types.Core
+
 import AS.Types.Excel
+import AS.Types.Cell
 import AS.DB.API                as DB
 import AS.Parsing.Substitutions as S
 import AS.Util

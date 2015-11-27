@@ -2,8 +2,8 @@ module AS.DB.Util where
 
 import Prelude
 
-import AS.Types.Core
 import AS.Types.DB
+import AS.Types.Cell
 import AS.Util as U
 import AS.Parsing.Common (tryParseListNonIso)
 import AS.Parsing.Read (integer)

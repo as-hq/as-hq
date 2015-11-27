@@ -1,7 +1,8 @@
 module AS.Kernels.Excel.Compiler where
 
-import AS.Types.Core hiding (str,error,SyntaxError)
 import AS.Types.Excel
+import AS.Types.CellProps
+import AS.Types.Errors
 import AS.Parsing.Excel (refMatch)
 import qualified AS.Parsing.Common as C
 
@@ -259,7 +260,7 @@ str = C.quotedString
 integerToDecimal :: Integer -> Double
 integerToDecimal i = read ("0." ++ (show i)) :: Double
 
-percentToDecimal :: Percent -> Double
+percentToDecimal :: Double -> Double
 percentToDecimal p = p / 100
 
 dateToDecimal :: Integer -> Integer -> Integer -> Double

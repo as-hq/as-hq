@@ -11,7 +11,7 @@ import Control.Applicative hiding ((<|>), many)
 import qualified Data.Map as M
 import qualified Data.Text.Lazy (replace)
 
-import AS.Types.Core
+import AS.Types.Cell
 import AS.Types.Excel
 import AS.Util
 

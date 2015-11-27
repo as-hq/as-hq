@@ -2,7 +2,8 @@ module AS.Dispatch.EvalHeader where
 
 import Prelude
 
-import AS.Types.Core
+import AS.Types.Cell
+import AS.Types.Messages
 import AS.Eval.Core as R (evaluateHeader)
 import Control.Concurrent (MVar, newMVar, modifyMVar_, modifyMVar, readMVar)
 

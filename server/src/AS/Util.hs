@@ -1,9 +1,13 @@
 module AS.Util where
 
-import AS.Types.Core
+import AS.Types.Cell
+import AS.Types.Network
+import AS.Types.Messages
+import AS.Types.Commits
+
+import AS.Config.Paths
 
 import Prelude
-import AS.Config.Paths
 import Data.Time.Clock
 import Data.Maybe (isNothing,fromJust)
 import Data.UUID.V4 (nextRandom)
@@ -138,11 +142,6 @@ liftEitherTuple (Right (a0, a1)) = (Right a0, Right a1)
 
 liftListTuple :: [([a],[b])] -> ([a], [b])
 liftListTuple t = (concat $ map fst t, concat $ map snd t)
-
-splitBy :: (Eq a) => a -> [a] -> [[a]]
-splitBy delimiter = foldr f [[]]
-  where f c l@(x:xs) | c == delimiter = []:l
-                     | otherwise = (c:x):xs
 
 catchEitherT :: EitherTExec (Formatted CompositeValue) -> EitherTExec (Formatted CompositeValue)
 catchEitherT a = do
@@ -375,6 +374,9 @@ reshapeColArr lst@(x:xs) (m,n) =
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Cells
 
+isColocated :: ASCell -> ASCell -> Bool
+isColocated c1 c2 = (cellLocation c1) == (cellLocation c2)
+
 mergeCells :: [ASCell] -> [ASCell] -> [ASCell]
 mergeCells c1 c2 = L.unionBy isColocated c1 c2
 
@@ -451,10 +453,10 @@ rangeContainsRect (Range _ ((x,y),(x2,y2))) ((x',y'),(x2',y2')) = tl && br
 rangeToIndices :: ASRange -> [ASIndex]
 rangeToIndices (Range sheet (ul, lr)) = [Index sheet (x,y) | x <- [startx..endx], y <- [starty..endy] ]
   where
-    startx = min (fst ul) (fst lr)
-    endx = max (fst ul) (fst lr)
-    starty = min (snd ul) (snd lr)
-    endy = max (snd ul) (snd lr)
+    startx = min (col ul) (col lr)
+    endx = max (col ul) (col lr)
+    starty = min (row ul) (row lr)
+    endy = max (row ul) (row lr)
 
 rangeContainsIndex :: ASRange -> ASIndex -> Bool
 rangeContainsIndex (Range sid1 ((x1,y1),(x2,y2))) idx = and [ 
@@ -484,10 +486,10 @@ orientRange (Range sid (tl, br)) = Range sid (tl',br')
 rangeToIndicesRowMajor :: ASRange -> [ASIndex]
 rangeToIndicesRowMajor (Range sheet (ul, lr)) = [Index sheet (x,y) | y <- [starty..endy],x <- [startx..endx] ]
   where
-    startx = min (fst ul) (fst lr)
-    endx = max (fst ul) (fst lr)
-    starty = min (snd ul) (snd lr)
-    endy = max (snd ul) (snd lr)
+    startx = min (col ul) (col lr)
+    endx = max (col ul) (col lr)
+    starty = min (row ul) (row lr)
+    endy = max (row ul) (row lr)
 
 matchSheets :: [ASWorkbook] -> [ASSheet] -> [WorkbookSheet]
 matchSheets ws ss = [WorkbookSheet (workbookName w) (catMaybes $ lookupSheets w ss) | w <- ws]
@@ -546,7 +548,7 @@ isGroupMember uid group = any ((==) uid) (groupMembers group)
 isGroupAdmin :: ASUserId -> ASUserGroup -> Bool
 isGroupAdmin uid group = any ((==) uid) (groupAdmins group)
 
-isInEntity :: ASUserId -> ASEntity -> Bool
+isInEntity :: ASUserId -> ASUserEntity -> Bool
 isInEntity uid (EntityGroup group) = isGroupMember uid group
 isInEntity uid (EntityUser userid) = uid == userid
 

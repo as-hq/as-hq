@@ -1,7 +1,11 @@
 module AS.Eval.Endware where
 
 import Prelude
-import AS.Types.Core
+import AS.Types.Cell
+import AS.Types.Network
+import AS.Types.Messages
+import AS.Types.Commits
+
 import AS.Util as U
 import AS.Eval.Core
 import AS.DB.API as DB
