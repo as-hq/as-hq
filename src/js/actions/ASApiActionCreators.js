@@ -38,7 +38,8 @@ import type {
   ASBackendPayload,
   ASServerMessage,
   ASClientMessage,
-  ASAPICallbackPair
+  ASAPICallbackPair, 
+  CondFormatRule
 } from '../types/Messages';
 
 import type {
@@ -615,6 +616,14 @@ export default {
     let msg = TC.makeClientMessage(Constants.ServerActions.New,
       "PayloadWB",
       wb);
+    this.send(msg);
+  },
+
+  setCondFormattingRules(condFormatRules: Array<CondFormatRule>) {
+    let msg = TC.makeClientMessageRaw(Constants.ServerActions.CondFormatting, {
+      tag: "PayloadCondFormat",
+      condFormatRules: condFormatRules
+    });
     this.send(msg);
   },
 
