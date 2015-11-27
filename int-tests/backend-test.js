@@ -39,7 +39,8 @@ describe('backend', () => {
     setFormat,
     setUrl,
 
-    addCondFormattingRuleExcel,
+    setCondFormattingRules,
+    makeCondFormattingRuleFontExcel,
 
     python,
     r,
@@ -311,26 +312,6 @@ describe('backend', () => {
                 exec(done)
               ]);
             });
-
-            // No longer supported. (Alex 11/9)
-            // it('should act like lists when horizontal', (done) => {
-            //   _do([
-            //     python('A1', '[range(10)]'),
-            //     python('A5', 'A1:D1[2]'),
-            //     shouldBe('A5', valueI(2)),
-
-            //     exec(done)
-            //   ]);
-            // });
-
-            // it('can be iterated over like a 1D list', (done) => {
-            //   _do([
-            //     python('A1', '[range(10)]'),
-            //     python('A2', '[x ** 2 for x in B1:D1]'), // expands to vertical list
-            //     shouldBe('A3', valueI(4)),
-            //     exec(done)
-            //   ]);
-            // });
 
             it('initialized to strings works', (done) => {
               _do([
@@ -1770,12 +1751,42 @@ describe('backend', () => {
     });
 
     describe('conditional formatting', () => {
-      fit('should get sent to server properly', (done) => {
+      it('should format cells already present', (done) => {
         _do([
-          addCondFormattingRuleExcel("A1", { 
-              tag: 'ValueFormat', 
-              formatType: "Money"
-          }, "=IF(A>!)"),
+          python('A1', 'range(10)'), 
+          setCondFormattingRules([
+            makeCondFormattingRuleFontExcel("A1:A10", "Italic", "=A1<6"),
+          ]),
+          shouldHaveProp('A6', 'Italic'),
+          shouldNotHaveProp('A7', 'Italic'),
+          exec(done)
+        ]);
+      });
+
+      it('should format newly added cells', (done) => {
+        _do([
+          setCondFormattingRules([
+            makeCondFormattingRuleFontExcel("A1:A10", "Italic", "=A1>5"),
+          ]),
+          python('A1', 'range(10)'), 
+          shouldHaveProp('A7', 'Italic'),
+          shouldNotHaveProp('A6', 'Italic'),
+          exec(done)
+        ]);
+      });
+
+      it('should apply multiple rules simultaneously', (done) => {
+        _do([
+          python('A1', 'range(10)'), 
+          python('B1', 'range(10)'), 
+          setCondFormattingRules([
+            makeCondFormattingRuleFontExcel("B1:B10", "Bold", "=B1>4"),
+            makeCondFormattingRuleFontExcel("A1:B10", "Italic", "=A1>5"),
+          ]),
+          shouldHaveProp('B10', 'Italic'),
+          shouldHaveProp('B10', 'Bold'),
+          shouldHaveProp('A10', 'Italic'),
+          shouldNotHaveProp('A10', 'Bold'),
           exec(done)
         ]);
       });

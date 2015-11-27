@@ -314,21 +314,22 @@ export function setCondFormattingRules(rules: Array<CondFormatRule>): Prf {
   });
 }
 
-export function addCondFormattingRuleExcel(rng: string, format: FormatType, rule: string): Prf {
-  return apiExec(() => {
-    let xpObj = {
-      "tag": "Expression",
-      "expression": rule,
-      "language": "Excel"
-    };
-    let asRule = { 
-      "tag": "CondFormatRule", 
-      "condition": xpObj, 
-      "cellLocs": [TC.simpleToASRange(rangeFromExcel(rng))], 
-      "condFormat": format
-    };
-    API.setCondFormattingRules([asRule]); 
-  });
+export function makeCondFormattingRuleFontExcel(rng: string, prop: ASCellProp, rule: string): any {
+  let xpObj = {
+    "tag": "Expression",
+    "expression": rule,
+    "language": "Excel"
+  };
+  let asRule = { 
+    "tag": "CondFormatRule", 
+    "condition": xpObj, 
+    "cellLocs": [TC.simpleToASRange(rangeFromExcel(rng))], 
+    "condFormat": { 
+      tag: prop, 
+      contents: []
+    }
+  };
+  return asRule; 
 }
 
 export function valueD(val: number): ValueD {
