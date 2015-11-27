@@ -28,6 +28,7 @@ library
                        AS.Clients
                        AS.Config.Paths
                        AS.Config.Settings
+                       AS.Eval.CondFormat
                        AS.Eval.Core
                        AS.Eval.Endware
                        AS.Eval.Middleware

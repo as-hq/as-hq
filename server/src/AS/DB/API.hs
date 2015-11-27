@@ -361,9 +361,10 @@ clearSheet conn sid = do
   keys <- map B.pack <$> DU.makeRangeKeysInSheet conn sid
   runRedis conn $ do
     del keys
-    del [(DU.makeSheetRangesKey sid)]
+    del [DU.makeSheetRangesKey sid]
+    del [condFormattingRulesKey sid]
   DU.deleteLocsInSheet sid
-  -- TODO: also clear undo, redo, and last message (for ctrl+Y) (Alex 11/20)
+  -- TODO: also clear undo, redo, and last message (for Ctrl+Y) (Alex 11/20)
 
 -- deletes the sheet only, does not remove from any containing workbooks
 deleteSheetUnsafe :: Connection -> ASSheetId -> IO ()

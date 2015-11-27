@@ -232,7 +232,7 @@ evalChain' conn valuesMap [] fatCells pastFatCellHeads _ =
     cells' <- getCellsToEval conn nextLocs [] -- the origCells are the list cells, which got filtered out of nextLocs
     evalChain' conn (M.union valuesMap formattedNewMap) cells' [] pastFatCellHeads []
 
-evalChain' conn valuesMap (c@(Cell loc xp _ ts):cs) fatCells fatCellHeads pastDeletedLocs = do
+evalChain' conn valuesMap (c@(Cell loc xp oldVal ts):cs) fatCells fatCellHeads pastDeletedLocs = do
   (cvf@(Formatted cv f), deletedLocs) <- case xp of 
     Expression _ _ -> (,) <$> evalResult <*> return []
       where evalResult = EC.evaluateLanguage (locSheetId loc) (cellLocation c) valuesMap xp
@@ -240,7 +240,7 @@ evalChain' conn valuesMap (c@(Cell loc xp _ ts):cs) fatCells fatCellHeads pastDe
     -- where "get rid of cruft" = get rid of all the non-head cells first, which is deletedCells
     Coupled str lang _ key -> if (DU.isFatCellHead c)
       then (,) <$> evalResult <*> return decoupleLocs
-      else left WillNotEvaluate
+      else (,) <$> (return $ Formatted (CellValue oldVal) (formatType <$> getProp ValueFormatProp ts)) <*> return [] -- temporary patch -- eval needs to get restructured
         where evalResult = EC.evaluateLanguage (locSheetId loc) (cellLocation c) valuesMap xp'
               xp' = Expression str lang
               decoupleLocs = DU.rangeKeyToIndices key
