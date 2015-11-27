@@ -1795,6 +1795,33 @@ describe('backend', () => {
           exec(done)
         ]);
       });
+
+      xit('should revert formats when a rule is deleted (1)', (done) => {
+        _do([
+          python('A1', 'range(10)'), 
+          setCondFormattingRules([
+            makeCondFormattingRuleFontExcel("A1:A10", "Italic", "=A1<6"),
+          ]),
+          shouldHaveProp('A6', 'Italic'),
+          setCondFormattingRules([]),
+          shouldNotHaveProp('A6', 'Italic'),
+          exec(done)
+        ]);
+      });
+
+      xit('should revert formats when a rule is deleted (2)', (done) => {
+        _do([
+          python('A1', 'range(10)'), 
+          toggleProp('A1', 'Italic'),
+          setCondFormattingRules([
+            makeCondFormattingRuleFontExcel("A1:A10", "Italic", "=A1<6"),
+          ]),
+          shouldHaveProp('A6', 'Italic'),
+          setCondFormattingRules([]),
+          shouldHaveProp('A6', 'Italic'),
+          exec(done)
+        ]);
+      });
     });
 
     describe('vcs', () => {
