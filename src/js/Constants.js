@@ -128,7 +128,8 @@ export default Object.assign({
     JumpSelect: "JumpSelect",
     MutateSheet: "MutateSheet",
     Drag: "Drag",
-    CondFormatting: "CondFormatting"
+    SetCondFormatRules: "SetCondFormatRules",
+    GetCondFormatRules: "GetCondFormatRules"
   },
 
   CursorPosition:{

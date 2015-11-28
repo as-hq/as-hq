@@ -621,9 +621,17 @@ export default {
   },
 
   setCondFormattingRules(condFormatRules: Array<CondFormatRule>) {
-    let msg = TC.makeClientMessageRaw(Constants.ServerActions.CondFormatting, {
+    let msg = TC.makeClientMessageRaw(Constants.ServerActions.SetCondFormatRules, {
       tag: "PayloadCondFormat",
       condFormatRules: condFormatRules
+    });
+    this.send(msg);
+  },
+
+  getCondFormattingRules() {
+    let msg = TC.makeClientMessageRaw(Constants.ServerActions.GetCondFormatRules, {
+      tag: "PayloadN",
+      contents: []
     });
     this.send(msg);
   },
