@@ -124,7 +124,8 @@ wss.onmessage = (event: MessageEvent) => {
       case "Open":
         Dispatcher.dispatch({
           _type: 'GOT_OPEN',
-          expressions: msg.payload.contents
+          expressions: msg.payload.initHeaderExpressions,
+          condFormatRules: msg.payload.initCondFormatRules,
         });
         break;
       case "Undo":
