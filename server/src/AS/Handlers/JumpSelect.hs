@@ -28,7 +28,7 @@ handleJumpSelect uc state p@(PayloadJump sel origin shifted dir) =
     jumpSelect :: Connection -> [Int] -> Bool -> IO (Maybe ASReference)
     jumpSelect _ [] _ = return Nothing
     jumpSelect conn (iter:iters) startExists = case dir of
-      DRight -> do
+      DirRight -> do
         thisExists <- DB.locationExists conn (Index sid (iter,row orig))
         let idx = if thisExists then (iter,row tl) else (iter-1,row tl)
             resultCol = if isOrientedH then (col tl) else (col idx)
@@ -40,7 +40,7 @@ handleJumpSelect uc state p@(PayloadJump sel origin shifted dir) =
           then return result 
           else jumpSelect conn iters startExists
               
-      DDown -> do
+      DirDown -> do
         thisExists <- DB.locationExists conn (Index sid (col orig,iter))
         let idx = if thisExists then (col tl,iter) else (col tl,iter-1)
             resultRow = if isOrientedV then (row tl) else (row idx)
@@ -52,7 +52,7 @@ handleJumpSelect uc state p@(PayloadJump sel origin shifted dir) =
           then return result 
           else jumpSelect conn iters startExists
 
-      DLeft -> do
+      DirLeft -> do
         thisExists <- DB.locationExists conn (Index sid (iter,row orig))
         let idx = if thisExists then (iter,row tl) else (iter+1,row tl)
             resultCol = if isOrientedH then (col tl) else (col idx)
@@ -64,7 +64,7 @@ handleJumpSelect uc state p@(PayloadJump sel origin shifted dir) =
           then return result 
           else jumpSelect conn iters startExists
 
-      DUp -> do
+      DirUp -> do
         thisExists <- DB.locationExists conn (Index sid (col orig,iter))
         let idx = if thisExists then (col tl,iter) else (col tl,iter+1)
             resultRow = if isOrientedV then (row tl) else (row idx)
@@ -79,7 +79,7 @@ handleJumpSelect uc state p@(PayloadJump sel origin shifted dir) =
   in do
     conn <- dbConn <$> readMVar state
     newSel <- case dir of 
-      DRight -> do
+      DirRight -> do
         nextExists <- DB.locationExists conn (Index sid (hExtremum+1,row tl))
         let startCol = if nextExists then hExtremum else (hExtremum + 1)
         startExists <- DB.locationExists conn (Index sid (startCol,row tl))
@@ -88,7 +88,7 @@ handleJumpSelect uc state p@(PayloadJump sel origin shifted dir) =
         return $ case maybeNewSel of 
           Nothing -> RangeRef sel
           (Just newSel) -> newSel 
-      DDown -> do
+      DirDown -> do
         nextExists <- DB.locationExists conn (Index sid (col tl,vExtremum+1))
         let startRow = if nextExists then vExtremum else (vExtremum + 1)
         startExists <- DB.locationExists conn (Index sid (col tl,startRow))
@@ -97,7 +97,7 @@ handleJumpSelect uc state p@(PayloadJump sel origin shifted dir) =
         return $ case maybeNewSel of 
           Nothing -> RangeRef sel
           (Just newSel) -> newSel 
-      DLeft -> do
+      DirLeft -> do
         nextExists <- DB.locationExists conn (Index sid (hExtremum-1,row tl))
         let startCol = if nextExists then hExtremum else (hExtremum - 1)
         startExists <- DB.locationExists conn (Index sid (startCol,row tl))
@@ -109,7 +109,7 @@ handleJumpSelect uc state p@(PayloadJump sel origin shifted dir) =
               col2 = if shifted then (if isOrientedH then (col tl) else (col br)) else 1
               row2 = if shifted then (row br) else (row tl)
           (Just newSel) -> newSel 
-      DUp -> do
+      DirUp -> do
         nextExists <- DB.locationExists conn (Index sid (col tl,vExtremum-1))
         let startRow = if nextExists then vExtremum else (vExtremum - 1)
         startExists <- DB.locationExists conn (Index sid (col tl,startRow))

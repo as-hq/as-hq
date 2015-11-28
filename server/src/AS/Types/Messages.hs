@@ -49,7 +49,7 @@ data ASAction =
   | JumpSelect
   | MutateSheet
   | Drag
-  | CondFormatting
+  | GetCondFormatRules | SetCondFormatRules
   deriving (Show, Read, Eq, Generic)
 
 data ASResult = Success | Failure {failDesc :: String} | NoResult deriving (Show, Read, Eq, Generic)
@@ -108,7 +108,7 @@ data CondFormatRule = CondFormatRule { cellLocs :: [ASRange],
                                        condFormat :: CellProp } deriving (Show, Read, Generic, Eq)
 
 -- should get renamed
-data Direction = DUp | DDown | DLeft | DRight deriving (Show, Read, Eq, Generic)
+data Direction = DirUp | DirDown | DirLeft | DirRight deriving (Show, Read, Eq, Generic)
 
 
 

@@ -46,30 +46,31 @@ instance Client ASUserClient where
     redisConn <- dbConn <$> readMVar state
     storeLastMessage redisConn message (userCommitSource user)
     case (clientAction message) of
-      Acknowledge    -> handleAcknowledge user
-      New            -> handleNew user state payload
-      Open           -> handleOpen user state payload
-      Close          -> handleClose user state payload
-      UpdateWindow   -> handleUpdateWindow (sessionId user) state payload
-      Import         -> handleImport state payload
-      Evaluate       -> handleEval user state payload
-      EvaluateRepl   -> handleEvalRepl user payload
-      EvaluateHeader -> handleEvalHeader user payload
-      Get            -> handleGet user state payload
-      Delete         -> handleDelete user state payload
-      Clear          -> handleClear user state payload
-      Undo           -> handleUndo user state
-      Redo           -> handleRedo user state
-      Copy           -> handleCopy user state payload
-      Cut            -> handleCut user state payload
-      ToggleProp     -> handleToggleProp user state payload
-      SetProp        -> handleSetProp user state payload
-      Repeat         -> handleRepeat user state payload
-      BugReport      -> handleBugReport user payload
-      JumpSelect     -> handleJumpSelect user state payload
-      MutateSheet    -> handleMutateSheet user state payload
-      Drag           -> handleDrag user state payload
-      CondFormatting -> handleCondFormat user state payload
+      Acknowledge        -> handleAcknowledge user
+      New                -> handleNew user state payload
+      Open               -> handleOpen user state payload
+      Close              -> handleClose user state payload
+      UpdateWindow       -> handleUpdateWindow (sessionId user) state payload
+      Import             -> handleImport state payload
+      Evaluate           -> handleEval user state payload
+      EvaluateRepl       -> handleEvalRepl user payload
+      EvaluateHeader     -> handleEvalHeader user payload
+      Get                -> handleGet user state payload
+      Delete             -> handleDelete user state payload
+      Clear              -> handleClear user state payload
+      Undo               -> handleUndo user state
+      Redo               -> handleRedo user state
+      Copy               -> handleCopy user state payload
+      Cut                -> handleCut user state payload
+      ToggleProp         -> handleToggleProp user state payload
+      SetProp            -> handleSetProp user state payload
+      Repeat             -> handleRepeat user state payload
+      BugReport          -> handleBugReport user payload
+      JumpSelect         -> handleJumpSelect user state payload
+      MutateSheet        -> handleMutateSheet user state payload
+      Drag               -> handleDrag user state payload
+      SetCondFormatRules -> handleSetCondFormatRules user state payload
+      GetCondFormatRules -> handleGetCondFormatRules user state payload
       where payload = clientPayload message
       -- Undo         -> handleToggleProp user state (PayloadTags [StreamTag (Stream NoSource 1000)] (Index (T.pack "TEST_SHEET_ID2") (1,1)))
       -- ^^ above is to test streaming when frontend hasn't been implemented yet

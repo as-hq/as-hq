@@ -199,8 +199,8 @@ handleBugReport uc (PayloadText report) = do
   logBugReport report (userCommitSource uc)
   WS.sendTextData (userConn uc) ("ACK" :: T.Text)
 
-handleCondFormat :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
-handleCondFormat uc state (PayloadCondFormat rules) = do 
+handleSetCondFormatRules :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
+handleSetCondFormatRules uc state (PayloadCondFormat rules) = do 
   conn <- dbConn <$> readMVar state
   let src  = userCommitSource uc
       locs = concat $ map rangeToIndices $ concat $ map cellLocs rules
@@ -208,3 +208,9 @@ handleCondFormat uc state (PayloadCondFormat rules) = do
   cells <- DB.getPossiblyBlankCells locs
   msg <- DP.runDispatchCycle state cells src -- ::ALEX:: eventually, only eval on the xor of new and old?
   broadcastFiltered state uc msg
+
+handleGetCondFormatRules :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
+handleGetCondFormatRules uc state _ = do 
+  conn <- dbConn <$> readMVar state
+  rules <- DB.getCondFormattingRules conn (userSheetId uc) 
+  sendToOriginal uc $ ServerMessage GetCondFormatRules Success (PayloadCondFormat rules)
