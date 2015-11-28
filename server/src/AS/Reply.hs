@@ -6,6 +6,7 @@ import AS.Types.Network
 import AS.Types.Messages
 import AS.Types.User
 import AS.Util
+import AS.Window
 
 import Control.Concurrent
 

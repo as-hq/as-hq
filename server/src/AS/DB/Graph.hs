@@ -15,7 +15,7 @@ import AS.Types.Eval
 
 import AS.Config.Settings as S
 import AS.DB.Util
-import AS.Util
+import AS.Logging
 
 -- EitherT
 import Control.Monad.Trans.Class

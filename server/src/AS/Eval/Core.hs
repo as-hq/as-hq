@@ -6,14 +6,15 @@ import System.IO
 import System.Process
 import Control.Applicative
 
-import qualified Data.Maybe as MB
-import Data.Time.Clock
-import Data.Text as T (unpack,pack)
+import Data.Maybe
+import Data.Text as T (unpack, pack)
+
 import qualified Data.Map as M
 import qualified Data.List as L
 import qualified Data.Text as T
 
 import AS.Types.Eval
+import AS.Types.Excel (indexToExcel)
 import AS.Types.Cell
 
 import AS.Kernels.LanguageUtils
@@ -29,13 +30,14 @@ import AS.Parsing.Substitutions
 
 import AS.DB.API as DB
 
-import AS.Util
+import AS.Logging
 import AS.Config.Settings
 
 -- EitherT
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.Either
 
+import Control.Monad.IO.Class (liftIO)
 import Control.Exception (catch, SomeException)
 
 -----------------------------------------------------------------------------------------------------------------------
@@ -74,19 +76,29 @@ evaluateHeader sid (Expression str lang) = case lang of
 -----------------------------------------------------------------------------------------------------------------------
 -- Helpers
 
+catchEitherT :: EitherTExec (Formatted CompositeValue) -> EitherTExec (Formatted CompositeValue)
+catchEitherT a = do
+  result <- liftIO $ catch (runEitherT a) whenCaught
+  case result of
+    Left e -> left e
+    Right e -> right e
+    where 
+      whenCaught :: SomeException -> IO (Either ASExecError (Formatted CompositeValue))
+      whenCaught e = return . Right $ Formatted (CellValue $ ValueError (show e) "StdErr") Nothing
+
 -- | Checks for potentially bad inputs (NoValue or ValueError) among the arguments passed in. If no bad inputs,
 -- return Nothing. Otherwise, if there are errors that can't be dealt with, return appropriate ASValue error.
 possiblyShortCircuit :: ASSheetId -> ValMap -> ASExpression -> Maybe ASValue
 possiblyShortCircuit sheetid valuesMap xp =
   let depRefs        = getDependencies sheetid xp -- :: [ASReference]
       depSets        = map refToIndices depRefs   -- :: [Maybe [ASIndex]]
-      depInds        = concat $ MB.catMaybes depSets
-      hasOutOfBounds = any MB.isNothing depSets   -- pretty horrible way of checking this for now. 
+      depInds        = concat $ catMaybes depSets
+      hasOutOfBounds = any isNothing depSets   -- pretty horrible way of checking this for now. 
       lang           = xpLanguage xp
       values         = map (valuesMap M.!) $ depInds
   in if hasOutOfBounds 
     then Just $ ValueError "Referencing cell out of bounds." "RefError"
-    else MB.listToMaybe $ MB.catMaybes $ flip map (zip depInds values) $ \(i, v) -> case v of
+    else listToMaybe $ catMaybes $ flip map (zip depInds values) $ \(i, v) -> case v of
       CellValue NoValue                 -> handleNoValueInLang lang i
       CellValue ve@(ValueError _ _)     -> handleErrorInLang lang ve
       otherwise                         -> Nothing 

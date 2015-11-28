@@ -1,7 +1,5 @@
 module AS.Kernels.Excel.Lib where
 
-import AS.Util (rangeToIndicesRowMajor)
-
 import AS.Types.Excel
 import AS.Types.Cell
 import AS.Kernels.Excel.Util
@@ -32,7 +30,7 @@ import Data.Ord (comparing)
 
 import qualified Data.Map.Lazy as ML
 
-import AS.Parsing.Excel (exRefToASRef, refMatch)
+import AS.Parsing.Excel (refMatch)
 import Control.Exception.Base hiding (try)
 
 import AS.Util
@@ -535,7 +533,7 @@ argToNumVec (EntityVal (EValueS s))  = do  -- attempt to cast to numeric
     Nothing -> case ((TR.readMaybe str)::Maybe Double) of
       Nothing -> Left $ VAL $ "Argument is not numeric"
       Just d  -> Right $ V.singleton $ return $ EValueD d
-    Just i -> Right $ V.singleton $ return $ EValueI i
+    Just i -> Right $ V.singleton $ return $ EValueI $ fromIntegral i
 argToNumVec (EntityVal (EValueE e)) = Left $ Default e
 argToNumVec (EntityVal (EValueB True)) = Right $ V.singleton $ return $ EValueI 1
 argToNumVec (EntityVal (EValueB False)) = Right $ V.singleton $ return $ EValueI 0
@@ -852,11 +850,11 @@ eColumn c e = do
   -- curLoc is always an index (you evaluate from within a cell)
   (ERef loc) <- getOptional "ref" (ERef (IndexRef $ curLoc c)) "column" 1 e :: ThrowsError ERef
   case loc of
-    IndexRef (Index _ (a,b)) -> valToResult $ EValueNum $ return $ EValueI a
+    IndexRef (Index _ (a,b)) -> valToResult $ EValueNum $ return $ EValueI $ fromIntegral a
     RangeRef (Range _ ((a,b),(c,d))) -> Right $ EntityMatrix $ EMatrix (c-a+1) (d-b+1) (flattenMatrix m)
       where
         m = V.replicate (d-b+1) firstRow
-        firstRow = V.map (EValueNum . return . EValueI) $ V.enumFromN a (c-a+1)
+        firstRow = V.map (EValueNum . return . EValueI . fromIntegral) $ V.enumFromN a (c-a+1)
 
 -- | See eColumn
 eRow :: EFunc
@@ -864,11 +862,11 @@ eRow c e = do
   -- curLoc is always an index (you evaluate from within a cell)
   (ERef loc) <- getOptional "ref" (ERef (IndexRef $ curLoc c)) "row" 1 e :: ThrowsError ERef
   case loc of
-    IndexRef (Index _ (a,b)) -> valToResult $ EValueNum $ return $ EValueI b
+    IndexRef (Index _ (a,b)) -> valToResult $ EValueNum $ return $ EValueI $ fromIntegral b
     RangeRef (Range _((a,b),(c,d))) -> Right $ EntityMatrix $ EMatrix (c-a+1) (d-b+1) (flattenMatrix m)
       where
         m = V.map (V.replicate (d-b+1)) colValues
-        colValues = V.map (EValueNum . return . EValueI) $ V.enumFromN a (c-a+1)
+        colValues = V.map (EValueNum . return . EValueI . fromIntegral) $ V.enumFromN a (c-a+1)
 
 -- | If the argument is a string that parses as a reference, return that reference
 -- | If the reference is fed into another function, that function will replace the reference (via DB/context) if necessary
@@ -949,19 +947,19 @@ eMatch c e = do
     -- | Type 0 enables regex
     0 -> case (V.findIndex matcher vec) of
       Nothing -> Left $ NA "No match found"
-      Just i -> valToResult $ EValueNum $ return $ EValueI (i+1)
+      Just i -> intToResult (i+1)
     1 -> do 
       let indices = (V.filter (<=lookupVal) vec) 
       let desiredValue = V.maximum indices
       if (V.null indices)
         then Left $ NA "No match found"
-        else valToResult $ EValueNum $ return $ EValueI $ (fromJust (V.findIndex (==desiredValue) vec)) + 1
+        else intToResult $ (fromJust (V.findIndex (==desiredValue) vec)) + 1
     -1 -> do 
       let indices = (V.filter (>=lookupVal) vec) 
       let desiredValue = V.minimum indices
       if (V.null indices)
         then Left $ NA "No match found"
-        else valToResult $ EValueNum $ return $ EValueI $ (fromJust (V.findIndex (==desiredValue) vec)) + 1
+        else intToResult $ (fromJust (V.findIndex (==desiredValue) vec)) + 1
     otherwise -> Left $ VAL $ "Last argument for MATCH must be -1,0, or 1 (default)"
 
 -- | Has a "reference mode" and a "value mode", currently only doing value mode
@@ -1418,7 +1416,7 @@ groupEq :: [(EFormattedNumeric, Int)] -> [(EFormattedNumeric, EValue)]
 groupEq group = zip (map fst group) (repeat commonRank)
   where
     ranks =  map snd group
-    commonRank = EValueNum $ return $ EValueI $ minimum ranks
+    commonRank = EValueNum $ return $ EValueI $ fromIntegral $ minimum ranks
 
 -- | Helper for rankavg
 groupAvg :: [(EFormattedNumeric,Int)] -> [(EFormattedNumeric,EValue)]
@@ -1521,7 +1519,6 @@ eLen :: EFunc
 eLen c e = do
   str <- getRequired "string" "len" 1 e :: ThrowsError String
   intToResult $ length str
-
 
 -- |  Convert text to lowercase
 eLower ::  EFunc

@@ -9,6 +9,8 @@ import AS.Types.User
 import AS.Handlers.Eval
 import AS.Handlers.Paste
 
+import AS.Window
+import AS.Logging
 import AS.Reply
 
 import qualified AS.Dispatch.Core         as DP
@@ -76,18 +78,18 @@ handleUpdateWindow cid state (PayloadW w) = do
   let (Just user') = US.getUserByClientId cid curState -- user' is to get latest user on server; if this fails then somehow your connection isn't stored in the state
   let oldWindow = userWindow user'
   (flip catch) (badCellsHandler (dbConn curState) user') (do
-    let newLocs = U.getScrolledLocs oldWindow w
-    mcells <- DB.getCells $ concat $ map U.rangeToIndices newLocs
-    sendToOriginal user' $ U.makeUpdateWindowMessage (catMaybes mcells)
-    US.modifyUser (U.updateWindow w) user' state)
+    let newLocs = getScrolledLocs oldWindow w
+    mcells <- DB.getCells $ concat $ map rangeToIndices newLocs
+    sendToOriginal user' $ makeUpdateWindowMessage (catMaybes mcells)
+    US.modifyUser (updateWindow w) user' state)
 
 -- | If a message is failing to parse from the server, undo the last commit (the one that added
 -- the message to the server.) I doubt this fix is completely foolproof, but it keeps data
 -- from getting lost and doesn't require us to manually reset the server. 
 badCellsHandler :: R.Connection -> ASUserClient -> SomeException -> IO ()
 badCellsHandler conn uc e = do 
-  U.writeErrToLog ("Error while fetching cells: " ++ (show e)) (userCommitSource uc)
-  U.printWithTime "Undoing last commit"
+  writeErrToLog ("Error while fetching cells: " ++ (show e)) (userCommitSource uc)
+  printWithTime "Undoing last commit"
   DT.undo conn (userCommitSource uc)
   return ()
 
@@ -98,7 +100,7 @@ handleGet :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
 handleGet uc state (PayloadLL locs) = do
   curState <- readMVar state
   mcells <- DB.getCells locs
-  sendToOriginal uc (U.makeGetMessage $ catMaybes mcells)
+  sendToOriginal uc (makeGetMessage $ catMaybes mcells)
 handleGet uc state (PayloadList Sheets) = do
   curState <- readMVar state
   ss <- DB.getAllSheets (dbConn curState)
@@ -110,7 +112,7 @@ handleGet uc state (PayloadList Workbooks) = do
 handleGet uc state (PayloadList WorkbookSheets) = do
   curState <- readMVar state
   wss <- DB.getAllWorkbookSheets (dbConn curState)
-  U.printWithTime $ "getting all workbooks: "  ++ (show wss)
+  printWithTime $ "getting all workbooks: "  ++ (show wss)
   sendToOriginal uc $ ServerMessage Update Success (PayloadWorkbookSheets wss)
 
 handleDelete :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
@@ -125,11 +127,11 @@ handleDelete uc state p@(PayloadWB workbook) = do
   broadcast state $ ServerMessage Delete Success p
   return ()
 handleDelete uc state (PayloadR rng) = do
-  let locs = U.rangeToIndices rng
+  let locs = rangeToIndices rng
   conn <- dbConn <$> readMVar state
   blankedCells <- DB.getBlankedCellsAt locs
   updateMsg <- DP.runDispatchCycle state blankedCells (userCommitSource uc)
-  broadcast state $ U.makeDeleteMessage rng updateMsg
+  broadcast state $ makeDeleteMessage rng updateMsg
 
 handleClear :: (Client c) => c  -> MVar ServerState -> ASPayload -> IO ()
 handleClear client state payload = case payload of 
@@ -152,7 +154,7 @@ handleUndo uc state = do
               Nothing -> failureMessage "Too far back"
               Just c  -> ServerMessage Undo Success (PayloadCommit c)
   broadcast state msg
-  U.printWithTime "Server processed undo"
+  printWithTime "Server processed undo"
 
 handleRedo :: ASUserClient -> MVar ServerState -> IO ()
 handleRedo uc state = do
@@ -162,7 +164,7 @@ handleRedo uc state = do
               Nothing -> failureMessage "Too far forwards"
               Just c  -> ServerMessage Redo Success (PayloadCommit c)
   broadcast state msg
-  U.printWithTime "Server processed redo"
+  printWithTime "Server processed redo"
 
 -- Drag/autofill
 handleDrag :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
@@ -180,7 +182,7 @@ handleRepeat uc state (PayloadSelection range origin) = do
   case lastAction of 
     Evaluate -> do 
       let PayloadCL ((Cell l e v ts):[]) = lastPayload
-          cells = map (\l' -> Cell l' e v ts) (U.rangeToIndices range)
+          cells = map (\l' -> Cell l' e v ts) (rangeToIndices range)
       handleEval uc state (PayloadCL cells)
     Copy -> do 
       let PayloadPaste from to = lastPayload
@@ -194,14 +196,14 @@ handleRepeat uc state (PayloadSelection range origin) = do
 -- which is where we want it end up anyway, for now. (Alex 10/28/15)
 handleBugReport :: ASUserClient -> ASPayload -> IO ()
 handleBugReport uc (PayloadText report) = do 
-  U.logBugReport report (userCommitSource uc)
+  logBugReport report (userCommitSource uc)
   WS.sendTextData (userConn uc) ("ACK" :: T.Text)
 
 handleCondFormat :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
 handleCondFormat uc state (PayloadCondFormat rules) = do 
   conn <- dbConn <$> readMVar state
   let src  = userCommitSource uc
-      locs = concat $ map U.rangeToIndices $ concat $ map cellLocs rules
+      locs = concat $ map rangeToIndices $ concat $ map cellLocs rules
   DB.setCondFormattingRules conn (fst src) rules
   cells <- DB.getPossiblyBlankCells locs
   msg <- DP.runDispatchCycle state cells src -- ::ALEX:: eventually, only eval on the xor of new and old?

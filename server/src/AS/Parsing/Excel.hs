@@ -16,49 +16,6 @@ import AS.Types.Excel
 import AS.Util
 
 -------------------------------------------------------------------------------------------------------------------------------------------------
--- Type for parsing Excel Locations
-             -- d1,d2 = "" or "$"
-
--- | Turns an Excel reference to an AlphaSheets reference. (first arg is the sheet of the
--- ref, unless it's a part of the ExRef)
-exRefToASRef :: ASSheetId -> ExRef -> ASReference
-exRefToASRef sid exRef = case exRef of
-  ExOutOfBounds -> OutOfBounds
-  ExLocRef (ExIndex _ c r) sn wn -> IndexRef $ Index sid' (colStrToInt c, read r :: Int)
-    where sid' = maybe sid id (sheetIdFromContext sn wn)
-  ExRangeRef (ExRange f s) sn wn -> RangeRef $ Range sid' (tl, br)
-    where
-      sid' = maybe sid id (sheetIdFromContext sn wn)
-      IndexRef (Index _ tl) = exRefToASRef sid' $ ExLocRef f sn Nothing
-      IndexRef (Index _ br) = exRefToASRef sid' $ ExLocRef s sn Nothing
-  ExPointerRef (ExIndex _ c r) sn wn -> IndexRef $ Pointer sid' (colStrToInt c, read r :: Int)
-    where sid' = maybe sid id (sheetIdFromContext sn wn)
-
-asRefToExRef :: ASReference -> ExRef
-asRefToExRef OutOfBounds = ExOutOfBounds
-asRefToExRef (IndexRef (Index sid (a,b))) = ExLocRef idx sname Nothing
-  where idx = ExIndex REL_REL (intToColStr a) (show b)
-        sname = sheetIdToSheetName sid
-asRefToExRef (IndexRef (Pointer sid (a,b))) = ExPointerRef idx sname Nothing
-  where idx = ExIndex REL_REL (intToColStr a) (show b)
-        sname = sheetIdToSheetName sid
-asRefToExRef (RangeRef (Range s (i1, i2))) = ExRangeRef rng Nothing Nothing
-  where
-    ExLocRef i1' _ _ = asRefToExRef . IndexRef $ Index s i1
-    ExLocRef i2' _ _ = asRefToExRef . IndexRef $ Index s i2
-    rng = ExRange i1' i2'
-
--- #incomplete we should actually be looking in the db. For now, with the current UX of
--- equating sheet names and sheet id's with the dialog box, 
-sheetIdToSheetName :: ASSheetId -> Maybe SheetName
-sheetIdToSheetName = Just . T.unpack
-
--- #incomplete lol. just returns sheet name from sheet id for now. 
-sheetIdFromContext :: Maybe SheetName -> Maybe WorkbookName -> Maybe ASSheetId
-sheetIdFromContext (Just sn) _ = Just $ T.pack sn
-sheetIdFromContext _ _ = Nothing
-
--------------------------------------------------------------------------------------------------------------------------------------------------
 -- Parsers to match special excel characters
 
 readRefType :: Maybe Char -> Maybe Char -> RefType 

@@ -49,8 +49,8 @@ asValue lang =
 -----------------------------------------------------------------------------------------------------------------------
 -- primitive parsers
 
-integer :: Parser Int
-integer = fromInteger <$> P.integer lexer
+integer :: Parser Integer
+integer = P.integer lexer
 
 float :: Parser Double
 float = float'

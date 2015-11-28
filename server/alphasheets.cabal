@@ -38,6 +38,7 @@ library
                        AS.Handlers.Mutate
                        AS.Handlers.Paste
                        AS.Handlers.Props
+                       AS.InferenceUtils
                        AS.Kernels.Python.Eval
                        AS.Kernels.Python.Pyfi
                        AS.Kernels.Python.Str
@@ -49,6 +50,7 @@ library
                        AS.Kernels.OCaml
                        AS.Kernels.Common
                        AS.Kernels.R
+                       AS.Logging
                        AS.Parsing.Common
                        AS.Parsing.Show
                        AS.Parsing.Read
@@ -69,7 +71,7 @@ library
                        AS.Types.User
                        AS.Users
                        AS.Util
-                       AS.InferenceUtils
+                       AS.Window
   build-depends:       base >= 4.7 && < 5
                      , text >= 0.11 && < 2.0
                      , filepath

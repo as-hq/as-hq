@@ -8,7 +8,6 @@ import qualified Data.List  as L
 import Data.Maybe (fromJust, isNothing, catMaybes)
 import Text.ParserCombinators.Parsec
 import Control.Applicative
-import Data.Time.Clock
 import Data.Text as T (unpack,pack)
 import Control.Exception.Base
 
@@ -27,6 +26,7 @@ import AS.Util                      as U
 import AS.Eval.Middleware           as EM
 import AS.Eval.Endware              as EE
 import qualified AS.DB.Graph        as G
+import AS.Logging
 import AS.Parsing.Common
 import AS.Parsing.Show hiding (first)
 import AS.Parsing.Read
@@ -73,7 +73,7 @@ runDispatchCycle state cs src = do
   case errOrCells of 
     Left _ -> G.exec_ Recompute -- #needsrefactor. Overkill. But recording all cells that might have changed is a PITA. (Alex 11/20)
     _      -> return ()
-  return $ U.makeUpdateMessage errOrCells
+  return $ makeUpdateMessage errOrCells
 
 dispatch :: MVar ServerState -> [ASCell] -> CommitSource -> EitherTExec ASTransaction
 dispatch state roots src = do
@@ -169,9 +169,9 @@ formatCell (Just f) c@(Cell _ _ _ cellProps) = c { cellProps = setProp (ValueFor
 evalChain :: Connection -> FormattedValMap -> [ASCell] -> CommitSource -> EitherTExec ([ASCell], [FatCell], [ASIndex], FormattedValMap)
 evalChain conn valuesMap cells src = 
   let whenCaught e = do
-          printObj "Runtime exception caught" (e :: SomeException)
-          U.writeErrToLog ("Runtime exception caught" ++ (show e)) src
-          return $ Left RuntimeEvalException
+        printObj "Runtime exception caught" (e :: SomeException)
+        writeErrToLog ("Runtime exception caught" ++ (show e)) src
+        return $ Left RuntimeEvalException
   in do
     result <- liftIO $ catch (runEitherT $ evalChain' conn valuesMap cells [] [] []) whenCaught
     hoistEither result

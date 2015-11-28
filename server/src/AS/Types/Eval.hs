@@ -37,7 +37,7 @@ data ASValue =
   | ValueNaN  
   | ValueInf 
   | ValueS String
-  | ValueI Int
+  | ValueI Integer
   | ValueD Double
   | ValueB Bool
   | ValueImage { imagePath :: String }

@@ -15,7 +15,7 @@ import qualified AS.Daemon as DM
 import AS.DB.API (getPropsAt, storeLastMessage)
 import AS.Dispatch.Core
 import AS.Reply
-import AS.Util
+import AS.Logging
 
 import qualified Data.List as L
 import qualified Data.Text as T

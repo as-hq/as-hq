@@ -4,6 +4,7 @@ import AS.Types.Cell
 import AS.Types.Network
 import AS.Types.Messages
 import AS.Types.User
+import AS.Types.Excel
 import AS.Parsing.Substitutions
 
 import AS.DB.Util
@@ -41,6 +42,18 @@ handleCut uc state (PayloadPaste from to) = do
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Copy helpers
 ----------------------------------------------------------------------------------------------------------------------------------------------
+
+getCopyOffSets :: ASRange -> ASRange -> [Offset]
+getCopyOffSets from to = offsets
+  where
+    (fromYDim, fromXDim) = getRangeDims from
+    (toYDim, toXDim) = getRangeDims to
+    yRep = max 1 (toYDim `div` fromYDim)
+    xRep = max 1 (toXDim `div` fromXDim)
+    (topYOffset, topXOffset) = getRangeOffset from to
+    yRepOffsets = take yRep [0,fromYDim..]
+    xRepOffsets = take xRep [0,fromXDim..]
+    offsets = [(topYOffset + y, topXOffset + x) | y <- yRepOffsets, x <- xRepOffsets]
 
 -- | Gets you the new cells to eval after shifting from a copy/paste. 
 getCopyCells :: R.Connection -> ASRange -> ASRange -> IO [ASCell]

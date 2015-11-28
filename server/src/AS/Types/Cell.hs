@@ -11,6 +11,7 @@ import AS.Types.CellProps
 
 import GHC.Generics
 import Data.Aeson
+import Data.List
 
 import Data.Aeson.Types (Parser)
 import Control.DeepSeq
@@ -78,3 +79,42 @@ instance ToJSON RangeDescriptor
 
 instance ToJSON ASLanguage
 instance FromJSON ASLanguage
+
+----------------------------------------------------------------------------------------------------------------------------------------------
+-- Helpers
+----------------------------------------------------------------------------------------------------------------------------------------------
+
+isColocated :: ASCell -> ASCell -> Bool
+isColocated c1 c2 = (cellLocation c1) == (cellLocation c2)
+
+isEmptyCell :: ASCell -> Bool
+isEmptyCell c = (null . underlyingProps $ cellProps c) && (null . xpString $ cellExpression c)
+
+mergeCells :: [ASCell] -> [ASCell] -> [ASCell]
+mergeCells c1 c2 = unionBy isColocated c1 c2
+
+-- | Returns a list of blank cells at the given locations. For now, the language doesn't matter, 
+-- because blank cells sent to the frontend don't get their languages saved. 
+blankCellAt :: ASIndex -> ASCell
+blankCellAt l = Cell l (Expression "" Excel) NoValue emptyProps
+
+blankCellsAt :: [ASIndex] -> [ASCell]
+blankCellsAt = map blankCellAt
+
+isMemberOfSpecifiedRange :: RangeKey -> ASCell -> Bool
+isMemberOfSpecifiedRange key cell = case (cellExpression cell) of 
+  Coupled _ _ _ key' -> key == key'
+  _ -> False
+
+---- partitions a set of cells into (cells belonging to one of the specified ranges, other cells)
+partitionByRangeKey :: [ASCell] -> [RangeKey] -> ([ASCell], [ASCell])
+partitionByRangeKey cells [] = ([], cells)
+partitionByRangeKey cells keys = liftListTuple $ map (go cells) keys
+  where go cs k = partition (isMemberOfSpecifiedRange k) cs
+        liftListTuple t = (concat $ map fst t, concat $ map snd t)
+
+getCellFormatType :: ASCell -> Maybe FormatType
+getCellFormatType (Cell _ _ _ props) = maybe Nothing (Just . formatType) $ getProp ValueFormatProp props
+
+execErrorToValueError :: ASExecError -> ASValue
+execErrorToValueError e = ValueError (show e) "Exec error"

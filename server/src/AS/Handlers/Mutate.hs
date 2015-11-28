@@ -8,7 +8,6 @@ import AS.Types.Excel
 import AS.DB.Util as DU
 import qualified Data.Text as T
 
-import AS.Parsing.Excel (exRefToASRef, asRefToExRef, refMatch)
 import AS.Parsing.Substitutions
 import AS.Reply
 import AS.Util as U
@@ -27,9 +26,9 @@ handleMutateSheet uc state (PayloadMutate mutateType) = do
       oldCellsNewCells' = filter (\(c, c') -> (isNothing c') || (c /= fromJust c')) oldCellsNewCells
       -- ^ get rid of cells that haven't changed.
       oldCells' = map fst oldCellsNewCells
-      blankedCells = U.blankCellsAt (map cellLocation oldCells')
+      blankedCells = blankCellsAt (map cellLocation oldCells')
       newCells' = catMaybes $ map snd oldCellsNewCells
-      updatedCells   = U.mergeCells newCells' blankedCells -- eval blanks at the old cell locations, re-eval at new locs
+      updatedCells   = mergeCells newCells' blankedCells -- eval blanks at the old cell locations, re-eval at new locs
   updateMsg <- runDispatchCycle state updatedCells (userCommitSource uc)
   broadcastFiltered state uc updateMsg
 

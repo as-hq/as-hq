@@ -19,12 +19,15 @@ import Data.List
 
 import Text.Read
 
-import qualified Data.Vector as V
+import qualified Data.Vector     as V
+import qualified Data.Char       as C
 import qualified Data.Map.Strict as M
 import Control.Monad.Except
+import Data.Maybe
 import Control.Monad (liftM, ap)
 import qualified Data.Vector as V
 import qualified Data.Vector.Unboxed as VU
+import qualified Data.Text as T
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Excel Location Parsing
@@ -101,7 +104,7 @@ toExcelList lst  = "[" ++ (intercalate "," lst) ++ "]"
 
 data ERef = ERef ASReference deriving (Show, Read, Eq, Ord)
 
-data ENumeric = EValueI Int | EValueD Double deriving (Show)
+data ENumeric = EValueI Integer | EValueD Double deriving (Show)
 
 
 instance Eq ENumeric where
@@ -277,10 +280,16 @@ instance EType ERef where
   extractType (EntityRef r) = Just r
   extractType _ = Nothing
 
-instance EType Int where
+instance EType Integer where
   extractType (EntityMatrix (EMatrix 1 1 v)) = extractType $ EntityVal $ V.head v
   extractType (EntityVal (EValueNum (Formatted (EValueD d) _))) = Just $ floor d
   extractType (EntityVal (EValueNum (Formatted (EValueI i) _))) = Just i
+  extractType _ = Nothing
+
+instance EType Int where
+  extractType (EntityMatrix (EMatrix 1 1 v)) = extractType $ EntityVal $ V.head v
+  extractType (EntityVal (EValueNum (Formatted (EValueD d) _))) = Just $ floor d
+  extractType (EntityVal (EValueNum (Formatted (EValueI i) _))) = Just $ fromIntegral i
   extractType _ = Nothing
 
 instance EType Double where
@@ -309,8 +318,8 @@ getType (EntityVal (EValueB _)) = "bool"
 getType (EntityMatrix m) = "matrix"
 getType (EntityVal v) = "value"
 
- -----------------------------------------------------------------------------
--- * Abstract syntax
+-----------------------------------------------------------------------------
+-- Abstract syntax
 
 -- | The type of formulas.
 data BasicFormula =
@@ -323,3 +332,64 @@ data Formula = ArrayConst [[BasicFormula]] | Basic BasicFormula deriving (Show)
 -- designates arrayFormula or not
 data ContextualFormula = ArrayFormula Formula | SimpleFormula Formula deriving (Show)
 
+-----------------------------------------------------------------------------
+-- Conversions between ASRef's and ExRef's
+
+-- | "AA" -> 27
+colStrToInt :: String -> Int
+colStrToInt "" = 0
+colStrToInt (c:cs) = 26^(length(cs)) * coef + colStrToInt cs
+  where
+    coef = fromJust (elemIndex (C.toUpper c) ['A'..'Z']) + 1
+
+-- | 27 -> "AA",  218332954 ->"RITESH"
+intToColStr :: Int -> String
+intToColStr x
+  | x <= 26 = [['A'..'Z'] !! (x-1)]
+  | otherwise = intToColStr d ++ [['A'..'Z'] !! m]
+      where
+        m = (x-1) `mod` 26
+        d = (x-1) `div` 26
+
+-- used in DB Ranges
+indexToExcel :: ASIndex -> String
+indexToExcel (Index _ (c,r)) = (intToColStr c) ++ (show r)
+
+-- | Turns an Excel reference to an AlphaSheets reference. (first arg is the sheet of the
+-- ref, unless it's a part of the ExRef)
+exRefToASRef :: ASSheetId -> ExRef -> ASReference
+exRefToASRef sid exRef = case exRef of
+  ExOutOfBounds -> OutOfBounds
+  ExLocRef (ExIndex _ c r) sn wn -> IndexRef $ Index sid' (colStrToInt c, read r :: Int)
+    where sid' = maybe sid id (sheetIdFromContext sn wn)
+  ExRangeRef (ExRange f s) sn wn -> RangeRef $ Range sid' (tl, br)
+    where
+      sid' = maybe sid id (sheetIdFromContext sn wn)
+      IndexRef (Index _ tl) = exRefToASRef sid' $ ExLocRef f sn Nothing
+      IndexRef (Index _ br) = exRefToASRef sid' $ ExLocRef s sn Nothing
+  ExPointerRef (ExIndex _ c r) sn wn -> IndexRef $ Pointer sid' (colStrToInt c, read r :: Int)
+    where sid' = maybe sid id (sheetIdFromContext sn wn)
+
+asRefToExRef :: ASReference -> ExRef
+asRefToExRef OutOfBounds = ExOutOfBounds
+asRefToExRef (IndexRef (Index sid (a,b))) = ExLocRef idx sname Nothing
+  where idx = ExIndex REL_REL (intToColStr a) (show b)
+        sname = sheetIdToSheetName sid
+asRefToExRef (IndexRef (Pointer sid (a,b))) = ExPointerRef idx sname Nothing
+  where idx = ExIndex REL_REL (intToColStr a) (show b)
+        sname = sheetIdToSheetName sid
+asRefToExRef (RangeRef (Range s (i1, i2))) = ExRangeRef rng Nothing Nothing
+  where
+    ExLocRef i1' _ _ = asRefToExRef . IndexRef $ Index s i1
+    ExLocRef i2' _ _ = asRefToExRef . IndexRef $ Index s i2
+    rng = ExRange i1' i2'
+
+-- #incomplete we should actually be looking in the db. For now, with the current UX of
+-- equating sheet names and sheet id's with the dialog box, 
+sheetIdToSheetName :: ASSheetId -> Maybe SheetName
+sheetIdToSheetName = Just . T.unpack
+
+-- #incomplete lol. just returns sheet name from sheet id for now. 
+sheetIdFromContext :: Maybe SheetName -> Maybe WorkbookName -> Maybe ASSheetId
+sheetIdFromContext (Just sn) _ = Just $ T.pack sn
+sheetIdFromContext _ _ = Nothing

@@ -5,6 +5,7 @@ import Prelude
 import AS.Types.DB
 import AS.Types.Cell
 import AS.Util as U
+import AS.Logging
 import AS.Parsing.Common (tryParseListNonIso)
 import AS.Parsing.Read (integer)
 import AS.Parsing.Show (showPrimitive)
@@ -184,7 +185,14 @@ getFatCellIntersections conn sid (Right keys) = do
   rangeKeys <- makeRangeKeysInSheet conn sid
   printObj "Checking intersections against keys" keys
   return $ L.intersectBy keysIntersect rangeKeys keys
-    where keysIntersect k1 k2 = rectsIntersect (rangeRect k1) (rangeRect k2)
+    where 
+      rectsIntersect ((y,x),(y2,x2)) ((y',x'),(y2',x2'))
+        | y2 < y' = False 
+        | y > y2' = False
+        | x2 < x' = False 
+        | x > x2' = False
+        | otherwise = True 
+      keysIntersect k1 k2 = rectsIntersect (rangeRect k1) (rangeRect k2)
 
 rangeRect :: RangeKey -> Rect
 rangeRect key = ((col, row), (col + width - 1, row + height - 1))

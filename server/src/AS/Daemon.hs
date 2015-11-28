@@ -46,13 +46,19 @@ getConnByLoc loc state = do
     [] -> return Nothing
     d -> return $ Just $ daemonConn $  L.head d 
 
+-- | If it's something like TODAY() + DATE(), figure that out and automatically make the
+-- cell stream. 
+-- TODO: implement
+getStreamPropFromExpression :: ASExpression -> Maybe Stream
+getStreamPropFromExpression _ = Nothing
+
 -- | Creates a streaming daemon for this cell if one of the tags is a streaming tag. 
 possiblyCreateDaemon :: MVar ServerState -> ASUserId -> ASCell -> IO ()
 possiblyCreateDaemon state owner cell@(Cell loc xp val props) = do 
   let msg = ClientMessage Evaluate (PayloadCL [cell])
   case getProp StreamInfoProp props of 
     Nothing -> do 
-      let maybeTag = U.getStreamPropFromExpression xp 
+      let maybeTag = getStreamPropFromExpression xp
       case maybeTag of 
         Nothing -> return ()
         Just tag -> createDaemon state tag loc msg

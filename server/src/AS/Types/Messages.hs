@@ -2,13 +2,16 @@
 
 module AS.Types.Messages where
 
+import AS.Window
+
 import AS.Types.DB (ASCommit)
 import AS.Types.Cell
 import AS.Types.Sheets
+import AS.Types.Excel (indexToExcel)
 
 import GHC.Generics
-import Data.Aeson
-import Data.Aeson.Types (defaultOptions)
+import Data.Aeson hiding (Success)
+import Data.Aeson.Types (defaultOptions) 
 import qualified Data.Text as T
 
 
@@ -166,3 +169,47 @@ instance ToJSON ASReplValue
 
 instance FromJSON QueryList
 instance ToJSON QueryList
+
+
+--------------------------------------------------------------------------------------------------------------
+-- Helpers
+
+-- | Not fully implemented yet
+generateErrorMessage :: ASExecError -> String
+generateErrorMessage e = case e of
+  CircularDepError circDepLoc -> "Circular dependecy detected in cell " ++ (indexToExcel circDepLoc)
+  (DBNothingException _)      -> "Unable to fetch cells from database."
+  ExpressionNotEvaluable      -> "Expression not does not contain evaluable statement."
+  ExecError                   -> "Error while evaluating expression."
+  SyntaxError                 -> "Syntax error."
+  _                           -> show e
+
+
+-- | When you have a list of cells from an eval request, this function constructs
+-- the message to send back. 
+makeUpdateMessage :: Either ASExecError [ASCell] -> ASServerMessage
+makeUpdateMessage (Left e) = ServerMessage Update (Failure (generateErrorMessage e)) (PayloadN ())
+makeUpdateMessage (Right cells) = ServerMessage Update Success (PayloadCL cells)
+
+-- getBadLocs :: [ASReference] -> [Maybe ASCell] -> [ASReference]
+-- getBadLocs locs mcells = map fst $ filter (\(l,c)->isNothing c) (zip locs mcells)
+
+-- | Poorly named. When you have a list of cells from a get request, this function constructs
+-- the message to send back. 
+makeGetMessage :: [ASCell] -> ASServerMessage
+makeGetMessage cells = changeMessageAction Get $ makeUpdateMessage (Right cells)
+
+makeUpdateWindowMessage :: [ASCell] -> ASServerMessage
+makeUpdateWindowMessage cells = changeMessageAction UpdateWindow $ makeUpdateMessage (Right cells)
+
+-- | Makes a delete message from an Update message and a list of locs to delete
+makeDeleteMessage :: ASRange -> ASServerMessage -> ASServerMessage
+makeDeleteMessage _ s@(ServerMessage _ (Failure _) _) = s
+makeDeleteMessage deleteLocs s@(ServerMessage _ _ (PayloadCL cells)) = ServerMessage Delete Success payload
+  where locsCells = zip (map cellLocation cells) cells
+        cells'    = map snd $ filter (\(l, _) -> not $ rangeContainsIndex deleteLocs l) locsCells
+        payload   = PayloadDelete deleteLocs cells'
+        -- remove the sels from the update that we know are blank from the deleted locs
+
+changeMessageAction :: ASAction -> ASServerMessage -> ASServerMessage
+changeMessageAction a (ServerMessage _ r p) = ServerMessage a r p

@@ -8,6 +8,7 @@ import qualified Data.Text as T
 import qualified Data.List as L
 
 import AS.Types.Cell
+import AS.Types.Excel
 import AS.Config.Paths
 import AS.Parsing.Show
 import AS.Parsing.Substitutions

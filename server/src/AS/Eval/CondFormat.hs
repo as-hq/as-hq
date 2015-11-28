@@ -1,7 +1,6 @@
 module AS.Eval.CondFormat (conditionallyFormatCells) where
 
 import AS.DB.API as DB
-import AS.Util as U
 
 import AS.Types.Cell
 import AS.Types.Messages
@@ -28,12 +27,12 @@ conditionallyFormatCells conn origSid cells valMap = do
 -- #needsrefactor will eventually have to change ranges to refs in CondFormatRule
 ruleToCellTransform :: ASSheetId -> FormattedValMap -> CondFormatRule -> (ASCell -> EitherTExec ASCell)
 ruleToCellTransform sid valMap (CondFormatRule rngs cond format) c@(Cell l e v ps) = do
-  let containingRange = find (flip U.rangeContainsIndex l) rngs
+  let containingRange = find (flip rangeContainsIndex l) rngs
   case containingRange of 
     Nothing -> return c
     Just rng -> do
-      let tl = U.getTopLeft rng
-          offset = U.getIndicesOffset tl l
+      let tl = getTopLeft rng
+          offset = getIndicesOffset tl l
           cond'  = shiftExpression offset cond
       satisfiesCond <- meetsCondition sid valMap cond' v
       if satisfiesCond

@@ -2,7 +2,11 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE DataKinds #-}
 
-module AS.Kernels.R where
+module AS.Kernels.R
+  ( evaluate
+  , evaluateRepl
+  , evaluateHeader
+  ) where
 
 import AS.Types.Cell (ASLanguage( R ))
 import AS.Types.Eval
@@ -13,7 +17,8 @@ import AS.Kernels.LanguageUtils
 
 import AS.Config.Settings
 import AS.Config.Paths (getImagesPath)
-import AS.Util
+import AS.Logging
+import AS.Util (getUniqueId, trace')
 
 import Data.List (elem, transpose)
 
@@ -186,9 +191,8 @@ fromLogical R.FALSE = ValueB False
 fromLogical R.NA    = ValueNaN
 
 fromReal :: Double -> ASValue
-fromReal d = case (fromDouble d) of
-  Left dDouble -> ValueD dDouble
-  Right dInt -> ValueI dInt
+fromReal d = if d == fromInteger dInt then ValueI dInt else ValueD d
+  where dInt = round d
 
 isRPlot :: [RListKey] -> Bool
 isRPlot = elem "plot_env"

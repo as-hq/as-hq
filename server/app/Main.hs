@@ -5,49 +5,43 @@ module Main where
 
 import System.Environment (getArgs)
 
-import Prelude
-import Data.Char (isPunctuation, isSpace)
-import Data.Monoid (mappend)
-import Data.Text (Text)
-import Control.Exception
-import Control.Monad (forM_, forever, when)
-import Control.Concurrent (MVar, newMVar, modifyMVar_, modifyMVar, readMVar)
-import Control.Monad.IO.Class (liftIO)
-import qualified Data.Text as T
-import qualified Data.Text.IO as T
-import Data.Aeson hiding (Success)
-import qualified Data.ByteString.Char8 as BC 
-import qualified Data.ByteString.Lazy.Char8 as B
-import qualified Data.List as L
-import qualified Network.WebSockets as WS
-
-import Data.Maybe (fromJust, isNothing)
-import Text.Read (readMaybe)
-
-import qualified Database.Redis as R
-
-import AS.Clients
 import AS.Types.Messages
 import AS.Types.Network
 import AS.Types.Locations
 import AS.Config.Settings as S
-import AS.Util
+
 import AS.Users
+import AS.Clients
+import AS.Logging
+import AS.Window
+import AS.Util (sendMessage)
 import AS.Config.Paths
 import AS.DB.API as DB
 import AS.DB.Graph as G
 import AS.DB.Util as DBU
 import AS.Users as US
 
+import Prelude
+import Control.Exception
+import Control.Monad (forM_, forever, when)
+import Control.Concurrent
+import Control.Monad.IO.Class (liftIO)
+
+import qualified Data.Text as T
+import qualified Data.ByteString.Lazy.Char8 as B
+import qualified Data.List as L
+
+import qualified Network.WebSockets as WS
+import qualified Database.Redis as R
+
+import Data.Aeson hiding (Success)
+import Data.Maybe
+
+import Text.Read (readMaybe)
+
 -- debugging
 import AS.Kernels.Python.Eval as KP
-import AS.Kernels.LanguageUtils as KL
-import AS.Kernels.Excel.Compiler as KE
 import Text.ParserCombinators.Parsec (parse)
-import AS.Parsing.Read as PR
-import AS.Parsing.Excel (refMatch, sheetWorkbookMatch, exRefToASRef, asRefToExRef, shiftExRef)
-import AS.Types.Excel
-import AS.Dispatch.Core as DC
 
 -- EitherT
 import Control.Monad.Trans.Class

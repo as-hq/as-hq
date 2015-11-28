@@ -6,7 +6,7 @@ import AS.Types.Cell
 import AS.Types.DB
 import AS.DB.API as DB
 import AS.DB.Util as DU
-import AS.Util as U
+import AS.Logging
 
 import Database.Redis
 import qualified Data.Text as T
@@ -38,8 +38,8 @@ getDecouplingEffects conn sid cells fcells =
 -- | Deal with updating all DB-related things after an eval. 
 writeTransaction :: Connection -> ASTransaction -> EitherTExec [ASCell]
 writeTransaction conn (Transaction src@(sid, _) afterCells afterDescriptors deletedLocs) = 
-  let deletedCells     = U.blankCellsAt deletedLocs
-      afterCells'      = U.mergeCells afterCells deletedCells
+  let deletedCells     = blankCellsAt deletedLocs
+      afterCells'      = mergeCells afterCells deletedCells
       locs'            = map cellLocation afterCells'
       rangeKeys        = map descriptorKey afterDescriptors
   in do
@@ -53,8 +53,8 @@ writeTransaction conn (Transaction src@(sid, _) afterCells afterDescriptors dele
     -- decouple the intersected fat cells
     coupledCells <- lift $ concat <$> (mapM (decouple conn) rangeKeysChanged)
     let decoupledCells  = map DU.decoupleCell coupledCells
-        afterCells''    = U.mergeCells afterCells' decoupledCells
-        beforeCells'    = U.mergeCells beforeCells coupledCells
+        afterCells''    = mergeCells afterCells' decoupledCells
+        beforeCells'    = mergeCells beforeCells coupledCells
     -- set the database
     liftIO $ DB.setCells afterCells''
     -- delete empty cells after setting them
@@ -105,7 +105,7 @@ getFatCellsInRange conn rng = do
   rangeKeys <- DU.makeRangeKeysInSheet conn sid
   let rects = map DU.rangeRect rangeKeys
       zipRects = zip rangeKeys rects
-      zipRectsContained = filter (\(_,rect) -> U.rangeContainsRect rng rect) zipRects
+      zipRectsContained = filter (\(_, rect) -> rangeContainsRect rng rect) zipRects
   return $ map fst zipRectsContained
 
   -- | Makes sure everything is synced -- the listKeys and ancestors in graph db should reflect 

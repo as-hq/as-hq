@@ -11,6 +11,7 @@ import AS.Util as U
 import qualified AS.DB.Util as DU
 import AS.Parsing.Substitutions (getDependencies)
 import AS.DB.Graph as G
+import AS.Window
 
 import Data.List (zip4,head,partition,nub,intercalate)
 import Data.Maybe (isNothing,fromJust,catMaybes)
@@ -28,7 +29,7 @@ import Data.Time
 import Database.Redis hiding (decode)
 
 import qualified Data.Text as T
-import qualified Data.Text.IO as T
+import Data.List as L
 import Data.Aeson hiding (Success)
 import qualified Data.ByteString.Char8 as B
 import qualified Data.ByteString as BS
@@ -173,7 +174,7 @@ fatCellsInRange conn rng = do
   rangeKeys <- DU.makeRangeKeysInSheet conn sid
   let rects = map DU.rangeRect rangeKeys
       zipRects = zip rangeKeys rects
-      zipRectsContained = filter (\(_,rect) -> U.rangeContainsRect rng rect) zipRects
+      zipRectsContained = filter (\(_,rect) -> rangeContainsRect rng rect) zipRects
   return $ map fst zipRectsContained
 
 getRangeDescriptor :: Connection -> RangeKey -> IO (Maybe RangeDescriptor)
@@ -184,11 +185,17 @@ getRangeDescriptor conn key = runRedis conn $ do
 ----------------------------------------------------------------------------------------------------------------------
 -- WorkbookSheets (for frontend API)
 
+matchSheets :: [ASWorkbook] -> [ASSheet] -> [WorkbookSheet]
+matchSheets ws ss = [WorkbookSheet (workbookName w) (catMaybes $ lookUpSheets w ss) | w <- ws]
+  where
+    findSheet sid = L.find (\sh -> sid == sheetId sh) ss
+    lookUpSheets workbook sheets = map findSheet (workbookSheets workbook)
+
 getAllWorkbookSheets :: Connection -> IO [WorkbookSheet]
 getAllWorkbookSheets conn = do
   ws <- getAllWorkbooks conn
   ss <- getAllSheets conn
-  return $ U.matchSheets ws ss
+  return $ matchSheets ws ss
 
 createWorkbookSheet :: Connection -> WorkbookSheet -> IO WorkbookSheet
 createWorkbookSheet conn wbs = do
@@ -210,7 +217,8 @@ deleteWorkbookSheet conn wbs = do
   mapM_ (deleteSheetUnsafe conn) delSheets
   wbResult <- getWorkbook conn $ wsName wbs
   case wbResult of
-    (Just wb) -> modifyWorkbookSheets conn (\ss -> deleteSubset delSheets ss) (workbookName wb)
+    (Just wb) -> modifyWorkbookSheets conn deleteSheets (workbookName wb)
+      where deleteSheets = filter $ \s -> not $ s `elem` delSheets
     Nothing -> return ()
 
 modifyWorkbookSheets :: Connection -> ([ASSheetId] -> [ASSheetId]) -> String -> IO ()
@@ -235,7 +243,7 @@ setCellsAncestors cells = G.setRelations relations >> return depSets
 -- | It'll parse no dependencies from the blank cells at these locations, so each location in the
 -- graph DB gets all its ancestors removed. 
 removeAncestorsAt :: [ASIndex] -> EitherTExec [[ASReference]]
-removeAncestorsAt = setCellsAncestors . U.blankCellsAt
+removeAncestorsAt = setCellsAncestors . blankCellsAt
 
 -- | Should only be called when undoing or redoing commits, which should be guaranteed to not
 -- introduce errors. 
