@@ -38,7 +38,8 @@ import type {
   ASBackendPayload,
   ASServerMessage,
   ASClientMessage,
-  ASAPICallbackPair
+  ASAPICallbackPair, 
+  CondFormatRule
 } from '../types/Messages';
 
 import type {
@@ -123,7 +124,8 @@ wss.onmessage = (event: MessageEvent) => {
       case "Open":
         Dispatcher.dispatch({
           _type: 'GOT_OPEN',
-          expressions: msg.payload.contents
+          expressions: msg.payload.initHeaderExpressions,
+          condFormatRules: msg.payload.initCondFormatRules,
         });
         break;
       case "Undo":
@@ -615,6 +617,22 @@ export default {
     let msg = TC.makeClientMessage(Constants.ServerActions.New,
       "PayloadWB",
       wb);
+    this.send(msg);
+  },
+
+  setCondFormattingRules(condFormatRules: Array<CondFormatRule>) {
+    let msg = TC.makeClientMessageRaw(Constants.ServerActions.SetCondFormatRules, {
+      tag: "PayloadCondFormat",
+      condFormatRules: condFormatRules
+    });
+    this.send(msg);
+  },
+
+  getCondFormattingRules() {
+    let msg = TC.makeClientMessageRaw(Constants.ServerActions.GetCondFormatRules, {
+      tag: "PayloadN",
+      contents: []
+    });
     this.send(msg);
   },
 

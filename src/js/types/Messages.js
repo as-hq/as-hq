@@ -16,7 +16,8 @@ import type {
   ASReplValue,
   ASWorkbook,
   ASCellProp,
-  ASCell
+  ASCell, 
+  FormatType
 } from './Eval';
 
 import type {
@@ -197,9 +198,10 @@ export type PayloadXp = {
   contents: ASExpression;
 };
 
-export type PayloadXpL = {
-  tag: 'PayloadXpL';
-  contents: Array<ASExpression>;
+export type PayloadOpen = {
+  tag: 'PayloadOpen';
+  initHeaderExpressions: Array<ASExpression>;
+  initCondFormatRules: Array<CondFormatRule>;
 };
 
 export type PayloadReplValue = {
@@ -227,6 +229,18 @@ export type PayloadValue = {
   contents: ASCompositeValue;
 };
 
+export type PayloadCondFormat = {
+  tag: 'PayloadCondFormat';
+  condFormatRules: Array<CondFormatRule>; 
+};
+
+export type CondFormatRule = { 
+  tag: 'CondFormatRule';
+  condFormat: FormatType; 
+  condition: ASExpression; 
+  cellLocs: Array<ASRange>;
+};
+
 export type ASBackendPayload =
   PayloadN
   | PayloadInit
@@ -248,7 +262,7 @@ export type ASBackendPayload =
   | PayloadPaste
   | PayloadProp
   | PayloadXp
-  | PayloadXpL
+  | PayloadOpen
   | PayloadReplValue
   | PayloadList
   | PayloadText
@@ -319,7 +333,7 @@ export type NewResponse = {
 
 export type OpenResponse = {
   action: 'Open';
-  payload: PayloadXpL;
+  payload: PayloadOpen;
   result: ASBackendResult;
 };
 
