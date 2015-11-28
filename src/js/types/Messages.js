@@ -16,7 +16,7 @@ import type {
   ASReplValue,
   ASWorkbook,
   ASCellProp,
-  ASCell, 
+  ASCell,
   FormatType
 } from './Eval';
 
@@ -231,13 +231,13 @@ export type PayloadValue = {
 
 export type PayloadCondFormat = {
   tag: 'PayloadCondFormat';
-  condFormatRules: Array<CondFormatRule>; 
+  condFormatRules: Array<CondFormatRule>;
 };
 
-export type CondFormatRule = { 
+export type CondFormatRule = {
   tag: 'CondFormatRule';
-  condFormat: FormatType; 
-  condition: ASExpression; 
+  condFormat: ASCellProp;
+  condition: ASExpression;
   cellLocs: Array<ASRange>;
 };
 
@@ -268,7 +268,8 @@ export type ASBackendPayload =
   | PayloadText
   | PayloadMutate
   | PayloadDrag
-  | PayloadFind;
+  | PayloadFind
+  | PayloadCondFormat;
 
 export type ASBackendCommit = {
   tag: 'ASCommit';

@@ -19,8 +19,8 @@ import type {
   ASValue,
   ASSheet,
   ASCellProp,
-  ASCell, 
-  VAlignType, 
+  ASCell,
+  VAlignType,
   HAlignType
 } from '../types/Eval';
 
@@ -38,7 +38,7 @@ import type {
   ASBackendPayload,
   ASServerMessage,
   ASClientMessage,
-  ASAPICallbackPair, 
+  ASAPICallbackPair,
   CondFormatRule
 } from '../types/Messages';
 
@@ -154,6 +154,11 @@ wss.onmessage = (event: MessageEvent) => {
           Dispatcher.dispatch({
             _type: 'GOT_UPDATED_WORKBOOKS',
             workbooks: msg.payload.contents
+          });
+        } else if (msg.payload.tag === 'PayloadCondFormat') {
+          Dispatcher.dispatch({
+            _type: 'GOT_UPDATED_RULES',
+            rules: msg.payload.condFormatRules
           });
         }
         break;
@@ -418,65 +423,65 @@ export default {
     this.send(msg);
   },
 
-  setTextColor(contents: string, rng: NakedRange) { 
-    let prop = { 
-      tag: "TextColor", 
+  setTextColor(contents: string, rng: NakedRange) {
+    let prop = {
+      tag: "TextColor",
       contents: contents
     };
     this.setProp(prop, rng);
   },
 
-  setFillColor(contents: string, rng: NakedRange) { 
-    let prop = { 
-      tag: "FillColor", 
+  setFillColor(contents: string, rng: NakedRange) {
+    let prop = {
+      tag: "FillColor",
       contents: contents
     };
     this.setProp(prop, rng);
   },
 
-  setVAlign(contents: VAlignType, rng: NakedRange) { 
-    let prop = { 
-      tag: "VAlign", 
+  setVAlign(contents: VAlignType, rng: NakedRange) {
+    let prop = {
+      tag: "VAlign",
       contents: contents
     };
     this.setProp(prop, rng);
   },
 
-  setHAlign(contents: HAlignType, rng: NakedRange) { 
-    let prop = { 
-      tag: "HAlign", 
+  setHAlign(contents: HAlignType, rng: NakedRange) {
+    let prop = {
+      tag: "HAlign",
       contents: contents
     };
     this.setProp(prop, rng);
   },
 
-  setFontSize(contents: number, rng: NakedRange) { 
-    let prop = { 
-      tag: "FontSize", 
+  setFontSize(contents: number, rng: NakedRange) {
+    let prop = {
+      tag: "FontSize",
       contents: contents
     };
     this.setProp(prop, rng);
   },
 
-  setFontName(contents: string, rng: NakedRange) { 
-    let prop = { 
-      tag: "FontName", 
+  setFontName(contents: string, rng: NakedRange) {
+    let prop = {
+      tag: "FontName",
       contents: contents
     };
     this.setProp(prop, rng);
   },
 
-  setFormat(formatType: string, rng: NakedRange) { 
-    let formatProp = { 
-      tag: "ValueFormat", 
+  setFormat(formatType: string, rng: NakedRange) {
+    let formatProp = {
+      tag: "ValueFormat",
       formatType: formatType
     };
     this.setProp(formatProp, rng);
   },
 
-  setUrl(urlLink: string, rng: NakedRange) { 
-    let prop = { 
-      tag: "URL", 
+  setUrl(urlLink: string, rng: NakedRange) {
+    let prop = {
+      tag: "URL",
       urlLink: urlLink
     };
     this.setProp(prop, rng);
@@ -637,14 +642,6 @@ export default {
     let msg = TC.makeClientMessageRaw(Constants.ServerActions.SetCondFormatRules, {
       tag: "PayloadCondFormat",
       condFormatRules: condFormatRules
-    });
-    this.send(msg);
-  },
-
-  getCondFormattingRules() {
-    let msg = TC.makeClientMessageRaw(Constants.ServerActions.GetCondFormatRules, {
-      tag: "PayloadN",
-      contents: []
     });
     this.send(msg);
   },

@@ -744,6 +744,12 @@ export default {
 
   isMac(): boolean {
     return window.navigator.platform.toUpperCase().indexOf('MAC') >= 0;
-  }
+  },
 
+  /*******/
+  // general
+
+  clone<T>(obj: T): T {
+    return JSON.parse(JSON.stringify(obj));
+  }
 };

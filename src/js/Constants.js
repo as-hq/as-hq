@@ -89,17 +89,23 @@ export default Object.assign({
     VIEW_ACTION: null
   }),
 
-  Languages: { 
-    Excel: 'Excel', 
-    Python: 'Python', 
-    R: 'R', 
+  CellProps: {
+    Bold: { tag: 'Bold' },
+    Italic: { tag: 'Italic' },
+    Underline: { tag: 'Underline' }
+  },
+
+  Languages: {
+    Excel: 'Excel',
+    Python: 'Python',
+    R: 'R',
     SQL: 'SQL'
   },
 
   AceMode: {
-    'Excel': 'text', 
-    'Python': 'python', 
-    'R': 'r', 
+    'Excel': 'text',
+    'Python': 'python',
+    'R': 'r',
     'SQL': 'mysql'
   },
 
