@@ -23,7 +23,6 @@ sheetsInPayload (PayloadS (Sheet sid _ _)) = [sid]
 sheetsInPayload (PayloadCommit (Commit bf af _ _ _)) = (map (locSheetId . cellLocation) bf) ++ (map (locSheetId . cellLocation) af)
 sheetsInPayload (PayloadN ()) = []
 
-
 broadcast :: MVar ServerState -> ASServerMessage -> IO ()
 broadcast state message = do
   (State ucs _ _ _) <- readMVar state

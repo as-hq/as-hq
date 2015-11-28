@@ -79,7 +79,7 @@ data ASPayload =
   | PayloadPaste {copyRange :: ASRange, copyTo :: ASRange}
   | PayloadProp {prop :: CellProp, tagRange :: ASRange}
   | PayloadXp ASExpression
-  | PayloadXpL [ASExpression]
+  | PayloadOpen {initHeaderExpressions :: [ASExpression], initCondFormatRules :: [CondFormatRule]}
   | PayloadReplValue ASReplValue
   | PayloadValue CompositeValue
   | PayloadList QueryList

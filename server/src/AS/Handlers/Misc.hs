@@ -46,15 +46,17 @@ handleNew uc state (PayloadWB wb) = do
 handleOpen :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
 handleOpen uc state (PayloadS (Sheet sheetid _ _)) = do 
   -- update state
-  let makeNewWindow (UserClient uid conn _ sid) = UserClient uid conn startWindow sid
+  conn <- dbConn <$> readMVar state
+  let makeNewWindow (UserClient uid c _ sid) = UserClient uid c startWindow sid
       startWindow = Window sheetid (-1,-1) (-1,-1)
   US.modifyUser makeNewWindow uc state
   -- send back header files data to user
   let langs = [Python, R] -- should probably make list of langs a const somewhere...
       sid = userSheetId uc
-  headers <- mapM (LU.getLanguageHeader sid) langs
+  headers         <- mapM (LU.getLanguageHeader sid) langs
+  condFormatRules <- DB.getCondFormattingRules conn sid
   let xps = map (\(str, lang) -> Expression str lang) (zip headers langs)
-  sendToOriginal uc $ ServerMessage Open Success (PayloadXpL xps)
+  sendToOriginal uc $ ServerMessage Open Success $ PayloadOpen xps condFormatRules
 
 -- Had relevance back when UserClients could have multiple windows, which never made sense anyway. 
 -- (Alex 11/3)
