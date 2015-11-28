@@ -201,18 +201,6 @@ describe('backend', () => {
           ]);
         });
 
-        xit('should not give a circular dependency in this contrived example', (done) => {
-          _do([
-            python('A1', '1'),
-            python('B1', 'range(A1)'),
-            python('B2', 'A1'),
-            python('C1', 'B2'),
-            python('A1', '2'),
-            shouldBe('C1', valueI(1)),
-            exec(done)
-          ]);
-        });
-
         it('should not give weird floating point rounding problems on parse', (done) => {
           _do([
             python('A1', '0.07'),
@@ -606,7 +594,7 @@ describe('backend', () => {
           ]);
         });
 
-        it('plots shit', (done) => {
+        xit('plots shit', (done) => {
           _do([
             r('A1','qplot(x=\'x\',y=\'y\',data=data.frame(c(1,2)))'),
             shouldBeImage('A1'),
@@ -1301,6 +1289,18 @@ describe('backend', () => {
             }),
             python('A1', '1'),
             shouldBeNothing('B2'),
+            exec(done)
+          ]);
+        });
+
+        // KNOWN TO HANG -- fix this when we diagnose the problem better
+        xit('should something something something critch bug', (done) => {
+          _do([
+            python('A1', 'range(10)'),
+            python('C1', '@A1'),
+            insertCol(1),
+            python('A1', '10'),
+            shouldBe('A1', valueI(10)),
             exec(done)
           ]);
         });
@@ -2084,7 +2084,6 @@ describe('backend', () => {
           exec(done)
           ]);
       });
-
       it('references r lists ', (done) => {
         _do([
           r('A1', 'c(1,2)'),
@@ -2094,7 +2093,6 @@ describe('backend', () => {
           exec(done)
           ]);
       });
-
       it('references dataframes', (done) => {
         _do([
           r('A1', 'data.frame(a=c(1,2))'),
@@ -2103,7 +2101,6 @@ describe('backend', () => {
           exec(done)
           ]);
       });
-
       xit('references series', (done) => {
         _do([
           python('A1', 'pd.Series([1,2,3])'),
@@ -2112,7 +2109,6 @@ describe('backend', () => {
           exec(done)
           ]);
       });
-
       it('references np matrices', (done) => {
         _do([
           python('A1', 'np.matrix([[1,2],[3,4]])'),
@@ -2121,7 +2117,6 @@ describe('backend', () => {
           exec(done)
           ]);
       });
-
       it('embeds dictionaries', (done) => {
         _do([
           python('A1', '{\'a\':1, \'b\':[1,2,3], \'c\': \'SHIT\'}'),
@@ -2131,7 +2126,6 @@ describe('backend', () => {
           exec(done)
           ]);
       });
-
       it('python NaNs', (done) => {
         _do([
           python('A1', 'np.nan'),
@@ -2139,7 +2133,6 @@ describe('backend', () => {
           exec(done)
           ]);
       });
-
       it('python Infs', (done) => {
         _do([
           python('A1', 'np.inf'),
@@ -2147,7 +2140,6 @@ describe('backend', () => {
           exec(done)
           ]);
       });
-
       xit('converts NaNs', (done) => {
         _do([
           python('A1', 'np.nan'),
@@ -2159,7 +2151,6 @@ describe('backend', () => {
           exec(done)
           ]);
       });
-
       xit('converts Infs', (done) => {
         _do([
           python('A1', 'np.inf'),
@@ -2170,18 +2161,6 @@ describe('backend', () => {
           shouldBe('B2', valueInf()),
           exec(done)
           ]);
-      });
-
-      // KNOWN TO HANG -- fix this when we diagnose the problem better
-      xit('should something something something critch bug', (done) => {
-        _do([
-          python('A1', 'range(10)'),
-          python('C1', '@A1'),
-          insertCol(1),
-          python('A1', '10'),
-          shouldBe('A1', valueI(10)),
-          exec(done)
-        ]);
       });
     });
 
