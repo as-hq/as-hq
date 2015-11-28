@@ -41,9 +41,6 @@ import Foreign.C
 ----------------------------------------------------------------------------------------------------------------------
 -- Settings
 
-dagChunkSize :: Int
-dagChunkSize = 1000
-
 -- | Haskell Redis connection object
 cInfo :: ConnectInfo
 cInfo = ConnInfo
@@ -119,21 +116,15 @@ getCellsByKeys keys = getCellsByMessage msg num
 -- takes a message and number of locations queried
 getCellsByMessage :: B.ByteString -> Int -> IO [Maybe ASCell]
 getCellsByMessage msg num = do
-  --putStrLn $ "get cells by key with num: " ++ (show num) ++ ", " ++ (show msg)
-  ptrCells <- BU.unsafeUseAsCString msg $ \str -> do
-    printWithTime "built message"
-    c <- c_getCells str (fromIntegral num)
-    return c
-  cCells <- peekArray (fromIntegral num) ptrCells
-  res <- mapM cToASCell cCells
+  ptrCells <- BU.unsafeUseAsCString msg $ \str -> c_getCells str (fromIntegral num)
+  cCells   <- peekArray (fromIntegral num) ptrCells
+  res      <- mapM cToASCell cCells
   printObj "got cells" res
-  -- free ptrCells
+  free ptrCells
   return res
 
 setCellsByMessage :: B.ByteString -> Int -> IO ()
-setCellsByMessage msg num = do
-  _ <- BU.unsafeUseAsCString msg $ \lstr -> c_setCells lstr (fromIntegral num)
-  return ()
+setCellsByMessage msg num = BU.unsafeUseAsCString msg $ \lstr -> c_setCells lstr (fromIntegral num)
 
 deleteLocRedis :: ASIndex -> Redis ()
 deleteLocRedis loc = del [makeLocationKey loc] >> return ()
@@ -217,7 +208,7 @@ rangeKeyToSheetId :: RangeKey -> ASSheetId
 rangeKeyToSheetId key = sid
   where
     parts = splitBy keyPartDelimiter key
-    (Index sid _)   = read2 (head parts) :: ASIndex
+    (Index sid _) = read2 (head parts) :: ASIndex
 
 decoupleCell :: ASCell -> ASCell
 decoupleCell (Cell l (Coupled _ lang _ _) v ts) = Cell l e' v ts
@@ -277,7 +268,7 @@ bStrToTags :: Maybe B.ByteString -> Maybe ASCellProps
 bStrToTags (Just b) = Just (read (BC.unpack b) :: ASCellProps)
 bStrToTags Nothing = Nothing
 
-maybeASCell :: (ASIndex, Maybe ASExpression,Maybe ASValue, Maybe ASCellProps) -> Maybe ASCell
+maybeASCell :: (ASIndex, Maybe ASExpression, Maybe ASValue, Maybe ASCellProps) -> Maybe ASCell
 maybeASCell (l, Just e, Just v, Just tags) = Just $ Cell l e v tags
 maybeASCell _ = Nothing
 

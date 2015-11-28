@@ -155,17 +155,13 @@ deleteLocs conn locs = runRedis conn $ mapM_ DU.deleteLocRedis locs
 -- Locations
 
 locationsExist :: Connection -> [ASIndex] -> IO [Bool]
-locationsExist conn locs = do
-  runRedis conn $ do
-    TxSuccess results <- multiExec $ do
-      bools <- mapM (\l -> exists $ DU.makeLocationKey l) locs
-      return $ sequence bools
-    return results
+locationsExist conn locs = runRedis conn $ map fromRight <$> mapM locExists locs
+  where
+    fromRight (Right a) = a
+    locExists l         = exists $ DU.makeLocationKey l
 
 locationExists :: Connection -> ASIndex -> IO Bool
-locationExists conn loc = runRedis conn $ do
-  Right result <- exists $ DU.makeLocationKey loc
-  return result
+locationExists conn loc = head <$> locationsExist conn [loc] 
 
 -- | Returns the listkeys of all the lists that are entirely contained in the range.  
 fatCellsInRange :: Connection -> ASRange -> IO [RangeKey]
@@ -273,8 +269,8 @@ getWorkbook conn name = do
     runRedis conn $ do
         mwb <- get $ DU.makeWorkbookKey name
         case mwb of
-            (Right wb) -> return $ DU.bStrToWorkbook wb
-            (Left _) -> return Nothing
+            Right wb -> return $ DU.bStrToWorkbook wb
+            Left _   -> return Nothing
 
 getAllWorkbooks :: Connection -> IO [ASWorkbook]
 getAllWorkbooks conn = do
@@ -303,9 +299,9 @@ deleteWorkbook :: Connection -> String -> IO ()
 deleteWorkbook conn name = do
     runRedis conn $ do
         let workbookKey = DU.makeWorkbookKey name
-        _ <- multiExec $ do
-            del [workbookKey]
-            srem "workbookKeys" [workbookKey]
+        multiExec $ do
+          del [workbookKey]
+          srem "workbookKeys" [workbookKey]
         return ()
 
 -- note: this is an expensive operation
@@ -314,7 +310,7 @@ deleteWorkbookAndSheets conn name = do
     mwb <- getWorkbook conn name
     case mwb of
         Nothing -> return ()
-        (Just wb) -> do
+        Just wb -> do
             mapM_ (deleteSheetUnsafe conn) (workbookSheets wb) -- remove sheets
             runRedis conn $ do
                 let workbookKey = DU.makeWorkbookKey name
@@ -331,15 +327,16 @@ getSheet conn sid = do
     runRedis conn $ do
         msheet <- get $ DU.makeSheetKey sid
         case msheet of
-            (Right sheet) -> return $ DU.bStrToSheet sheet
-            (Left _) -> return Nothing
+            Right sheet -> return $ DU.bStrToSheet sheet
+            Left _      -> return Nothing
 
 getAllSheets :: Connection -> IO [ASSheet]
-getAllSheets conn = do
-    runRedis conn $ do
-        Right sheetKeys <- smembers "sheetKeys"
-        sheets <- mapM get sheetKeys
-        return $ map (\(Right (Just s)) -> read (B.unpack s) :: ASSheet) sheets
+getAllSheets conn = 
+  let readSheet (Right (Just s)) = read (B.unpack s) :: ASSheet
+  in runRedis conn $ do
+    Right sheetKeys <- smembers "sheetKeys"
+    sheets <- mapM get sheetKeys
+    return $ map readSheet sheets
 
 -- creates a sheet with unique id
 createSheet :: Connection -> ASSheet -> IO ASSheet
@@ -384,11 +381,9 @@ deleteSheetUnsafe conn sid = do
         mlocKeys <- smembers setKey
         TxSuccess _ <- multiExec $ do
             case mlocKeys of
-                (Right []) -> return () -- hedis can't delete empty list
-                (Right locKeys) -> do
-                    del locKeys -- delete all locs in the sheet
-                    return ()
-                (Left _) -> return ()
+                Right []      -> return () -- hedis can't delete empty list
+                Right locKeys -> del locKeys >> return ()
+                Left _        -> return ()
             del [setKey]      -- delete the loc set
             del [sheetKey]    -- delete the sheet
             srem "sheetKeys" [sheetKey] -- remove the sheet key from the set of sheets
@@ -426,7 +421,7 @@ canAccessSheet conn uid sheetId = do
   sheet <- getSheet conn sheetId
   case sheet of
     Nothing -> return False
-    (Just someSheet) -> return $ hasPermissions uid (sheetPermissions someSheet)
+    Just someSheet -> return $ hasPermissions uid (sheetPermissions someSheet)
 
 canAccess :: Connection -> ASUserId -> ASIndex -> IO Bool
 canAccess conn uid loc = canAccessSheet conn uid (locSheetId loc)

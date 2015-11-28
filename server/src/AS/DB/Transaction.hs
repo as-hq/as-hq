@@ -29,10 +29,10 @@ getDecouplingEffects conn sid cells fcells =
   let locs = map cellLocation cells
       keys = map (descriptorKey . descriptor) fcells
   in do
-    rangeKeysChangedByCells <- liftIO $ DU.getFatCellIntersections conn sid (Left locs)
+    rangeKeysChangedByCells    <- liftIO $ DU.getFatCellIntersections conn sid (Left locs)
     rangeKeysChangedByFatCells <- liftIO $ DU.getFatCellIntersections conn sid (Right keys)
     let rangeKeysChanged = rangeKeysChangedByCells ++ rangeKeysChangedByFatCells
-    let decoupledLocs = concat $ map DU.rangeKeyToIndices rangeKeysChanged
+    let decoupledLocs    = concat $ map DU.rangeKeyToIndices rangeKeysChanged
     return decoupledLocs
 
 -- | Deal with updating all DB-related things after an eval. 
@@ -72,7 +72,7 @@ writeTransaction conn (Transaction src@(sid, _) afterCells afterDescriptors dele
 couple :: Connection -> RangeDescriptor -> IO ()
 couple conn desc = 
   let rangeKey        = descriptorKey desc 
-      rangeKey'       = id $! B.pack rangeKey 
+      rangeKey'       = B.pack rangeKey 
       sheetRangesKey  = DU.makeSheetRangesKey $ DU.rangeKeyToSheetId rangeKey
       rangeDescriptor = B.pack $ show desc
   in runRedis conn $ do
@@ -144,10 +144,8 @@ popKey (sid, uid)  = B.pack $ (T.unpack sid) ++ '|':(T.unpack uid) ++ "popped"
 undo :: Connection -> CommitSource -> IO (Maybe ASCommit)
 undo conn src = do
   commit <- runRedis conn $ do
-    TxSuccess justC <- multiExec $ do
-      commit <- rpoplpush (pushKey src) (popKey src)
-      return commit
-    return $ DU.bStrToASCommit justC
+    (Right commit) <- rpoplpush (pushKey src) (popKey src)
+    return $ DU.bStrToASCommit commit
   case commit of
     Nothing -> return Nothing
     Just c@(Commit b a bd ad t) -> do
@@ -160,7 +158,7 @@ redo conn src = do
   commit <- runRedis conn $ do
     Right result <- lpop (popKey src)
     case result of
-      (Just commit) -> do
+      Just commit -> do
         rpush (pushKey src) [commit]
         return $ DU.bStrToASCommit (Just commit)
       _ -> return Nothing

@@ -93,7 +93,7 @@ data ASExecError =
   | EvaluationError {evalErrorDesc :: String}
   | DependenciesLocked {lockUserId :: ASUserId}
   | DBNothingException {badLocs :: [ASIndex]}
-  | DBGraphUnreachable -- failed to connect
+  | UnknownGraphError 
   | CircularDepError {badLoc :: ASIndex}
   | CondFormattingError String
   | NetworkDown
