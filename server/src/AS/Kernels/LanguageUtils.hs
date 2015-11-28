@@ -225,11 +225,11 @@ insertValues sheetid valuesMap xp =
   in case lang of
     SQL -> contextStmt ++ evalStmt
       where
-        exRefs = getUnquotedMatchesWithContext xp refMatch
-        matchRefs = map (exRefToASRef sheetid) (snd exRefs)
+        exRefs = getExcelReferences xp
+        matchRefs = map (exRefToASRef sheetid) exRefs
         context = map (lookUpRef SQL valuesMap) matchRefs
         st = ["dataset"++(show i) | i<-[0..((L.length matchRefs)-1)]]
-        newExp = expression $ replaceRefs (\el -> (L.!!) st (MB.fromJust (L.findIndex (el==) (snd exRefs)))) xp
+        newExp = expression $ replaceRefs (\el -> (L.!!) st (MB.fromJust (L.findIndex (el==) exRefs))) xp
         contextStmt = "setGlobals("++(show context) ++")\n"
         evalStmt = "result = pprintSql(db(\'" ++ newExp ++ "\'))"
     _ -> evalString

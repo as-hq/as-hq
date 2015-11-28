@@ -34,12 +34,10 @@ type ClientId = Text
 
 class Client c where
   conn :: c -> WS.Connection
-  clientId :: c -> ClientId
-  clientSheetId :: c -> ASSheetId
   ownerName :: c -> ASUserId
+  clientId :: c -> ClientId
   addClient :: c -> ServerState -> ServerState
   removeClient :: c -> ServerState -> ServerState
-  clientCommitSource :: c -> CommitSource
   handleClientMessage :: c -> MVar ServerState -> ASClientMessage -> IO ()
 
 -- the actual implementations of these in UserClient and DaemonClient will appear in Client.hs
@@ -48,6 +46,12 @@ class Client c where
 -- User client
 
 data ASUserClient = UserClient {userId :: ASUserId, userConn :: WS.Connection, userWindow :: ASWindow, sessionId :: ClientId}
+
+userSheetId :: ASUserClient -> ASSheetId
+userSheetId (UserClient _ _ (Window sid _ _) _) = sid
+
+userCommitSource :: ASUserClient -> CommitSource
+userCommitSource (UserClient uid _ (Window sid _ _) _) = (sid, uid)
 
 instance Eq ASUserClient where
   c1 == c2 = (sessionId c1) == (sessionId c2)

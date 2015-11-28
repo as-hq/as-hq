@@ -32,6 +32,12 @@ library
                        AS.Eval.Core
                        AS.Eval.Endware
                        AS.Eval.Middleware
+                       AS.Handlers.Eval
+                       AS.Handlers.JumpSelect
+                       AS.Handlers.Misc
+                       AS.Handlers.Mutate
+                       AS.Handlers.Paste
+                       AS.Handlers.Props
                        AS.Kernels.Python.Eval
                        AS.Kernels.Python.Pyfi
                        AS.Kernels.Python.Str
@@ -48,6 +54,7 @@ library
                        AS.Parsing.Read
                        AS.Parsing.Excel
                        AS.Parsing.Substitutions
+                       AS.Reply
                        AS.Types.Cell
                        AS.Types.CellProps
                        AS.Types.Commits
