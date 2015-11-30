@@ -15,8 +15,9 @@ import type {
   ASExpression,
   ASReplValue,
   ASWorkbook,
-  ASCellTag,
-  ASCell
+  ASCellProp,
+  ASCell, 
+  FormatType
 } from './Eval';
 
 import type {
@@ -130,9 +131,9 @@ export type PayloadPaste = {
   copyTo: ASRange;
 };
 
-export type PayloadTag = {
+export type PayloadProp = {
   tag: 'PayloadTag';
-  cellTag: ASCellTag;
+  prop: ASCellProp;
   tagRange: ASRange;
 };
 
@@ -197,9 +198,10 @@ export type PayloadXp = {
   contents: ASExpression;
 };
 
-export type PayloadXpL = {
-  tag: 'PayloadXpL';
-  contents: Array<ASExpression>;
+export type PayloadOpen = {
+  tag: 'PayloadOpen';
+  initHeaderExpressions: Array<ASExpression>;
+  initCondFormatRules: Array<CondFormatRule>;
 };
 
 export type PayloadReplValue = {
@@ -227,6 +229,18 @@ export type PayloadValue = {
   contents: ASCompositeValue;
 };
 
+export type PayloadCondFormat = {
+  tag: 'PayloadCondFormat';
+  condFormatRules: Array<CondFormatRule>; 
+};
+
+export type CondFormatRule = { 
+  tag: 'CondFormatRule';
+  condFormat: FormatType; 
+  condition: ASExpression; 
+  cellLocs: Array<ASRange>;
+};
+
 export type ASBackendPayload =
   PayloadN
   | PayloadInit
@@ -246,9 +260,9 @@ export type ASBackendPayload =
   | PayloadCommit
   | PayloadDelete
   | PayloadPaste
-  | PayloadTag
+  | PayloadProp
   | PayloadXp
-  | PayloadXpL
+  | PayloadOpen
   | PayloadReplValue
   | PayloadList
   | PayloadText
@@ -298,7 +312,7 @@ export type ASMessageAction =
   | 'Undo' | 'Redo'
   | 'Clear'
   | 'UpdateWindow'
-  | 'SetTag' | 'ToggleTag'
+  | 'SetProp' | 'ToggleProp'
   | 'Repeat'
   | 'BugReport'
   | 'JumpSelect'
@@ -319,7 +333,7 @@ export type NewResponse = {
 
 export type OpenResponse = {
   action: 'Open';
-  payload: PayloadXpL;
+  payload: PayloadOpen;
   result: ASBackendResult;
 };
 

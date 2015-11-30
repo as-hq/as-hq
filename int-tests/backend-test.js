@@ -29,8 +29,18 @@ describe('backend', () => {
     redo,
     delete_,
 
-    toggleTag,
-    setTag,
+    toggleProp,
+    setTextColor,
+    setFillColor,
+    setVAlign,
+    setHAlign,
+    setFontSize,
+    setFontName,
+    setFormat,
+    setUrl,
+
+    setCondFormattingRules,
+    makeCondFormattingRuleFontExcel,
 
     python,
     r,
@@ -45,6 +55,8 @@ describe('backend', () => {
     valueS,
     valueB,
     noValue,
+    valueInf,
+    valueNaN,
 
     shouldError,
     shouldBe,
@@ -53,9 +65,12 @@ describe('backend', () => {
     shouldBeError,
     shouldBeNothing,
     shouldBeImage,
+    shouldBeSerialized,
+    shouldBeDecoupled,
+    shouldBeCoupled,
     expressionShouldBe,
-    shouldHaveTag,
-    shouldNotHaveTag
+    shouldHaveProp,
+    shouldNotHaveProp
   } = require('../src/js/browser-test/exec-api');
   const {
     fromToInclusive,
@@ -186,6 +201,18 @@ describe('backend', () => {
           ]);
         });
 
+        xit('should not give a circular dependency in this contrived example', (done) => {
+          _do([
+            python('A1', '1'),
+            python('B1', 'range(A1)'),
+            python('B2', 'A1'),
+            python('C1', 'B2'),
+            python('A1', '2'),
+            shouldBe('C1', valueI(1)),
+            exec(done)
+          ]);
+        });
+
         it('should not give weird floating point rounding problems on parse', (done) => {
           _do([
             python('A1', '0.07'),
@@ -302,26 +329,6 @@ describe('backend', () => {
                 exec(done)
               ]);
             });
-
-            // No longer supported. (Alex 11/9)
-            // it('should act like lists when horizontal', (done) => {
-            //   _do([
-            //     python('A1', '[range(10)]'),
-            //     python('A5', 'A1:D1[2]'),
-            //     shouldBe('A5', valueI(2)),
-
-            //     exec(done)
-            //   ]);
-            // });
-
-            // it('can be iterated over like a 1D list', (done) => {
-            //   _do([
-            //     python('A1', '[range(10)]'),
-            //     python('A2', '[x ** 2 for x in B1:D1]'), // expands to vertical list
-            //     shouldBe('A3', valueI(4)),
-            //     exec(done)
-            //   ]);
-            // });
 
             it('initialized to strings works', (done) => {
               _do([
@@ -599,7 +606,7 @@ describe('backend', () => {
           ]);
         });
 
-        xit('plots shit', (done) => {
+        it('plots shit', (done) => {
           _do([
             r('A1','qplot(x=\'x\',y=\'y\',data=data.frame(c(1,2)))'),
             shouldBeImage('A1'),
@@ -912,6 +919,109 @@ describe('backend', () => {
 
       });
 
+      describe('A:A and  1:1 parsing tests', () => {
+        xit('A:A should display ranges properly', (done) => {
+          _do([
+            python('A1', '[range(10)]'),
+            python('B1', 'A:A'), 
+            python('C1', 'A1:A'), 
+            shouldBe('B9', valueI(8)), 
+            shouldBe('B10', valueI(9)), 
+            shouldBe('C10', valueI(9)), 
+            exec(done)
+          ]);
+        });
+        xit('A2:A should display ranges properly', (done) => {
+          _do([
+            python('A1', '[range(10)]'),
+            python('B1', 'A2:A'), 
+            shouldBe('B1', valueI(1)), 
+            shouldBe('B9', valueI(9)), 
+            exec(done)
+          ]);
+        });
+        xit('A2:B should display ranges properly', (done) => {
+          _do([
+            python('A1', '[range(10)]'),
+            python('B1', 'A:A'),
+            python('C1', 'A2:B'), 
+            shouldBe('C1', valueI(1)), 
+            shouldBe('D1', valueI(1)), 
+            shouldBe('C7', valueI(7)), 
+            shouldBe('D7', valueI(7)), 
+            shouldBe('C8', valueI(8)), 
+            shouldBe('D8', valueI(8)), 
+            shouldBe('C9', valueI(9)), 
+            shouldBe('D9', valueI(9)), 
+            exec(done)
+          ]);
+        });
+        xit('A:B should display ranges properly', (done) => {
+          _do([
+            python('A1', '[range(10)]'),
+            python('B1', 'A2:A'), 
+            python('B10', '1'), 
+            python('C1', 'A:B'), 
+            shouldBe('B9', valueI(9)), 
+            shouldBe('C1', valueI(2)), 
+            shouldBe('D1', valueI(2)), 
+            shouldBe('C7', valueI(3)), 
+            shouldBe('D7', valueI(3)), 
+            shouldBe('C8', valueI(7)), 
+            shouldBe('D8', valueI(7)), 
+            shouldBe('C10', noValue()), 
+            shouldBe('D10', noValue()), 
+            exec(done)
+          ]);
+        });
+        xit('1:1 should display ranges properly', (done) => {
+          _do([
+            python('A1', '[range(10)]'),
+            python('B1', '1:1'),
+            shouldBe('B1', valueI(0)),
+            shouldBe('B2', noValue()),
+            exec(done)
+          ]);
+        });
+        xit('Deleting ranges should work with A:A parsing', (done) => {
+          _do([
+            python('A1', '[range(10)]'),
+            delete_('A1'),
+            delete_('A3'),
+            delete_('A4'),
+            delete_('A5'),
+            delete_('A8'),
+            delete_('A9'),
+            python('B1', 'A:A'), 
+            shouldBe('B1', noValue()), 
+            shouldBe('B2', valueI(1)), 
+            shouldBe('B3', noValue()), 
+            shouldBe('B9', noValue()), 
+            shouldBe('B10', valueI(9)), 
+            exec(done)
+          ]);
+        });
+
+        xit('should do undo for A:A', (done) => {
+          _do([
+            python('A1', 'range(10)'),
+            python('B1', 'A:A'),
+            undo(),
+            shouldBe('B1', noValue()),
+            shouldBe('B4', noValue()),
+            shouldBe('B10', noValue()),
+            shouldBe('A1', noValue()),
+            exec(done)
+          ]);
+        });
+        xit('should redo on Ctrl+Y after undo for A:A', (done) => {
+        _do([
+          //TODO: timchu
+          python('A1', 'range(10)'),
+          shouldBe('A1', 1),
+          exec(done)
+          ]);
+      });
       describe('row/col insertion, deletion, and swapping', () => {
         describe('row insertion', () => {
           it('should move cells to correct locations', (done) => {
@@ -950,10 +1060,10 @@ describe('backend', () => {
           xit('should decouple lists', (done) => {
             _do([
               python('A1', 'range(10)'),
-              insertRow(3), 
+              insertRow(3),
               shouldBe('A1', valueI(0)),
               shouldBe('A2', valueI(1)),
-              shouldBeNothing('A3'), 
+              shouldBeNothing('A3'),
               shouldBe('A4', valueI(2)),
               shouldBe('A11', valueI(9)),
               exec(done)
@@ -1076,10 +1186,10 @@ describe('backend', () => {
           xit('should decouple lists', (done) => {
             _do([
               python('A1', '[range(10)]'),
-              insertCol(3), 
+              insertCol(3),
               shouldBe('A1', valueI(0)),
               shouldBe('B1', valueI(1)),
-              shouldBeNothing('C1'), 
+              shouldBeNothing('C1'),
               shouldBe('D1', valueI(2)),
               shouldBe('K1', valueI(9)),
               exec(done)
@@ -1198,18 +1308,6 @@ describe('backend', () => {
             }),
             python('A1', '1'),
             shouldBeNothing('B2'),
-            exec(done)
-          ]);
-        });
-
-        // KNOWN TO HANG -- fix this when we diagnose the problem better
-        xit('should something something something critch bug', (done) => { 
-          _do([
-            python('A1', 'range(10)'),
-            python('C1', '@A1'),
-            insertCol(1),
-            python('A1', '10'),
-            shouldBe('A1', valueI(10)),
             exec(done)
           ]);
         });
@@ -1572,9 +1670,9 @@ describe('backend', () => {
 
         it('should not re-eval the head of a fat cell', (done) => {
           _do([
-            python('A1', 'range(10)'), 
+            python('A1', 'range(10)'),
             cut('A1', 'B1'),
-            shouldBe('B1', valueI(0)), 
+            shouldBe('B1', valueI(0)),
             shouldBe('A2', valueI(1)),
             exec(done)
           ]);
@@ -1582,9 +1680,9 @@ describe('backend', () => {
 
         it('should cut/paste entire ranges', (done) => {
           _do([
-            python('A1', 'range(10)'), 
+            python('A1', 'range(10)'),
             cut('A1:A10', 'B1:B10'),
-            shouldBe('B1', valueI(0)), 
+            shouldBe('B1', valueI(0)),
             shouldBeNothing('A1', valueI(0)),
             exec(done)
           ]);
@@ -1635,7 +1733,7 @@ describe('backend', () => {
       });
     });
 
-    describe('delete', () => { 
+    describe('delete', () => {
       it('should replace a decoupled blank cell with a blank cell', (done) => {
         _do([
           python('A1', '[[None, 2],[3,4]]'),
@@ -1646,15 +1744,15 @@ describe('backend', () => {
       })
     });
 
-    describe('tags', () => {
+    describe('toggling props', () => {
       describe('bolding', () => {
         it('should bold blocks of cells at once', (done) => {
           _do([
             python('A1', '1'),
             python('A2', '2'),
-            toggleTag('A1:A2', 'Bold'),
-            shouldHaveTag('A1', 'Bold'),
-            shouldHaveTag('A2', 'Bold'),
+            toggleProp('A1:A2', 'Bold'),
+            shouldHaveProp('A1', 'Bold'),
+            shouldHaveProp('A2', 'Bold'),
             exec(done)
           ]);
         });
@@ -1663,10 +1761,10 @@ describe('backend', () => {
           _do([
             python('A1', '1'),
             python('A2', '2'),
-            toggleTag('A1', 'Bold'),
-            toggleTag('A1:A2', 'Bold'),
-            shouldHaveTag('A1', 'Bold'),
-            shouldHaveTag('A2', 'Bold'),
+            toggleProp('A1', 'Bold'),
+            toggleProp('A1:A2', 'Bold'),
+            shouldHaveProp('A1', 'Bold'),
+            shouldHaveProp('A2', 'Bold'),
             exec(done)
           ]);
         });
@@ -1675,20 +1773,20 @@ describe('backend', () => {
           _do([
             python('A1', '1'),
             python('A2', '2'),
-            toggleTag('A1', 'Bold'),
-            toggleTag('A1:A2', 'Bold'),
-            toggleTag('A1:A2', 'Bold'),
-            shouldNotHaveTag('A1', 'Bold'),
-            shouldNotHaveTag('A2', 'Bold'),
+            toggleProp('A1', 'Bold'),
+            toggleProp('A1:A2', 'Bold'),
+            toggleProp('A1:A2', 'Bold'),
+            shouldNotHaveProp('A1', 'Bold'),
+            shouldNotHaveProp('A2', 'Bold'),
             exec(done)
           ]);
         });
 
         it('should bold blank cells', (done) => {
           _do([
-            toggleTag('A1', 'Bold'),
+            toggleProp('A1', 'Bold'),
             python('A1', '1'),
-            shouldHaveTag('A1', 'Bold'),
+            shouldHaveProp('A1', 'Bold'),
             exec(done)
           ]);
         });
@@ -1696,9 +1794,9 @@ describe('backend', () => {
         it('should stay bold after a delete', (done) => {
           _do([
             python('A1', '1'),
-            toggleTag('A1', 'Bold'),
+            toggleProp('A1', 'Bold'),
             delete_('A1'),
-            shouldHaveTag('A1', 'Bold'),
+            shouldHaveProp('A1', 'Bold'),
             exec(done)
           ]);
         });
@@ -1706,37 +1804,128 @@ describe('backend', () => {
         it('should not stay bold after a cut', (done) => {
           _do([
             python('A1', '1'),
-            toggleTag('A1', 'Bold'),
+            toggleProp('A1', 'Bold'),
             cut('A1', 'B1'),
-            shouldNotHaveTag('A1', 'Bold'),
+            shouldNotHaveProp('A1', 'Bold'),
             exec(done)
           ]);
         });
       });
 
-      describe('formatting', () => {
+      describe('setting props', () => {
         it('should format blocks of cells at once', (done) => {
           _do([
             python('A1', '1'),
             python('A2', '2'),
-            setTag('A1:A2', 'Format', 'Money'),
-            shouldHaveTag('A1', 'Format'),
-            shouldHaveTag('A2', 'Format'),
+            setFormat('A1:A2', 'Money'),
+            shouldHaveProp('A1', 'ValueFormat', 'Money'),
+            shouldHaveProp('A2', 'ValueFormat', 'Money'),
             exec(done)
           ]);
         });
 
         it('should format blank cells', (done) => {
           _do([
-            setTag('A1', 'Format', 'Money'),
+            setFormat('A1', 'Money'),
             python('A1', '1'),
-            shouldHaveTag('A1', 'Format'),
+            shouldHaveProp('A1', 'ValueFormat', 'Money'),
+            exec(done)
+          ]);
+        });
+
+        it('should call the API prop setters successfully', (done) => {
+          _do([
+            python('A1', 'range(10)'),
+            setTextColor('A1', 'red'),
+            setFillColor('A2', 'blue'),
+            setVAlign('A3', 'TopAlign'),
+            setHAlign('A4', 'LeftAlign'),
+            setFontSize('A5', 20),
+            setFontName('A6', 'Comic Sans'),
+            setFormat('A7', 'Money'),
+            setUrl('A8', 'PLEASE DO NOT CLICK!!!', 'http://meatspin.com'),
+            shouldHaveProp('A1', 'TextColor'),
+            shouldHaveProp('A2', 'FillColor'),
+            shouldHaveProp('A3', 'VAlign'),
+            shouldHaveProp('A4', 'HAlign'),
+            shouldHaveProp('A5', 'FontSize'),
+            shouldHaveProp('A6', 'FontName'),
+            shouldHaveProp('A7', 'ValueFormat'),
+            shouldHaveProp('A8', 'URL'),
             exec(done)
           ]);
         });
       });
     });
 
+    describe('conditional formatting', () => {
+      it('should format cells already present', (done) => {
+        _do([
+          python('A1', 'range(10)'), 
+          setCondFormattingRules([
+            makeCondFormattingRuleFontExcel("A1:A10", "Italic", "=A1<6"),
+          ]),
+          shouldHaveProp('A6', 'Italic'),
+          shouldNotHaveProp('A7', 'Italic'),
+          exec(done)
+        ]);
+      });
+
+      it('should format newly added cells', (done) => {
+        _do([
+          setCondFormattingRules([
+            makeCondFormattingRuleFontExcel("A1:A10", "Italic", "=A1>5"),
+          ]),
+          python('A1', 'range(10)'), 
+          shouldHaveProp('A7', 'Italic'),
+          shouldNotHaveProp('A6', 'Italic'),
+          exec(done)
+        ]);
+      });
+
+      it('should apply multiple rules simultaneously', (done) => {
+        _do([
+          python('A1', 'range(10)'), 
+          python('B1', 'range(10)'), 
+          setCondFormattingRules([
+            makeCondFormattingRuleFontExcel("B1:B10", "Bold", "=B1>4"),
+            makeCondFormattingRuleFontExcel("A1:B10", "Italic", "=A1>5"),
+          ]),
+          shouldHaveProp('B10', 'Italic'),
+          shouldHaveProp('B10', 'Bold'),
+          shouldHaveProp('A10', 'Italic'),
+          shouldNotHaveProp('A10', 'Bold'),
+          exec(done)
+        ]);
+      });
+
+      xit('should revert formats when a rule is deleted (1)', (done) => {
+        _do([
+          python('A1', 'range(10)'), 
+          setCondFormattingRules([
+            makeCondFormattingRuleFontExcel("A1:A10", "Italic", "=A1<6"),
+          ]),
+          shouldHaveProp('A6', 'Italic'),
+          setCondFormattingRules([]),
+          shouldNotHaveProp('A6', 'Italic'),
+          exec(done)
+        ]);
+      });
+
+      xit('should revert formats when a rule is deleted (2)', (done) => {
+        _do([
+          python('A1', 'range(10)'), 
+          toggleProp('A1', 'Italic'),
+          setCondFormattingRules([
+            makeCondFormattingRuleFontExcel("A1:A10", "Italic", "=A1<6"),
+          ]),
+          shouldHaveProp('A6', 'Italic'),
+          setCondFormattingRules([]),
+          shouldHaveProp('A6', 'Italic'),
+          exec(done)
+        ]);
+      });
+    });
 
     describe('vcs', () => {
       describe('undo', () => {
@@ -1890,6 +2079,219 @@ describe('backend', () => {
             exec(done)
           ]);
         });
+      });
+    });
+
+    describe('pointer syntax', () => {
+      it('references python lists', (done) => {
+        _do([
+          python('A1', 'range(3)'),
+          python('B1', '@A1.sum()'),
+          shouldBe('B1', valueI(3)),
+          exec(done)
+          ]);
+      });
+
+      it('references r lists ', (done) => {
+        _do([
+          r('A1', 'c(1,2)'),
+          r('B1', 'c(3,4)'),
+          r('C1', 'union(@A1, @B1)'),
+          shouldBeL(['C1', 'C2', 'C3', 'C4'], [1,2,3,4].map(valueI)),
+          exec(done)
+          ]);
+      });
+
+      it('references dataframes', (done) => {
+        _do([
+          r('A1', 'data.frame(a=c(1,2))'),
+          python('C1', '@A1.T'),
+          shouldBe('C2', valueS('a')),
+          exec(done)
+          ]);
+      });
+
+      xit('references series', (done) => {
+        _do([
+          python('A1', 'pd.Series([1,2,3])'),
+          r('B1', '@A1'),
+          shouldBeL(['B1','B2','B3'], [1,2,3].map(valueI)),
+          exec(done)
+          ]);
+      });
+
+      it('references np matrices', (done) => {
+        _do([
+          python('A1', 'np.matrix([[1,2],[3,4]])'),
+          python('C1', '@A1 * 2'),
+          shouldBe('C1', valueI(2)),
+          exec(done)
+          ]);
+      });
+
+      it('embeds dictionaries', (done) => {
+        _do([
+          python('A1', '{\'a\':1, \'b\':[1,2,3], \'c\': \'SHIT\'}'),
+          shouldBeSerialized('A1'),
+          python('B1', 'A1[\'c\']'),
+          shouldBe('B1', valueS('SHIT')),
+          exec(done)
+          ]);
+      });
+
+      it('python NaNs', (done) => {
+        _do([
+          python('A1', 'np.nan'),
+          shouldBe('A1', valueNaN()),
+          exec(done)
+          ]);
+      });
+
+      it('python Infs', (done) => {
+        _do([
+          python('A1', 'np.inf'),
+          shouldBe('A1', valueInf()),
+          exec(done)
+          ]);
+      });
+
+      xit('converts NaNs', (done) => {
+        _do([
+          python('A1', 'np.nan'),
+          r('B1', 'A1 + 1'),
+          shouldBe('B1', valueNaN()),
+          r('A2', 'NaN'),
+          python('B2', 'A2 + 1'),
+          shouldBe('B2', valueNaN()),
+          exec(done)
+          ]);
+      });
+
+      xit('converts Infs', (done) => {
+        _do([
+          python('A1', 'np.inf'),
+          r('B1', 'A1 + 1'),
+          shouldBe('B1', valueInf()),
+          r('A2', 'Inf'),
+          python('B2', 'A2 + 1'),
+          shouldBe('B2', valueInf()),
+          exec(done)
+          ]);
+      });
+
+      // KNOWN TO HANG -- fix this when we diagnose the problem better
+      xit('should something something something critch bug', (done) => {
+        _do([
+          python('A1', 'range(10)'),
+          python('C1', '@A1'),
+          insertCol(1),
+          python('A1', '10'),
+          shouldBe('A1', valueI(10)),
+          exec(done)
+        ]);
+      });
+    });
+
+    describe('dependencies on expanding cells', (done) => {
+      xit('throws error on incorrect pointer ref', (done) => {
+        _do([
+          python('A1', 'range(10)'),
+          python('B1', '@A1'),
+          python('A1', '10'),
+          shouldBeError('B1'),
+          exec(done)
+          ]);
+      });
+      it('deletes fat cell heads properly', (done) => {
+        _do([
+          python('A1', 'range(10)'),
+          delete_('A1'),
+          shouldBeDecoupled('A2'),
+          exec(done)
+          ]);
+      });
+      xit('propagates overwritten expanded cells', (done) => {
+        _do([
+          python('A1', 'range(10)'),
+          python('B1', '@A1'),
+          python('A1', 'range(5)'),
+          shouldBeNothing('B6'),
+          exec(done)
+          ]);
+      });
+      xit('propagates overwritten expanded cells', (done) => {
+        _do([
+          python('A1', 'range(10)'),
+          python('B1', '@A1'),
+          python('A1', 'range(5)'),
+          shouldBeNothing('B6'),
+          exec(done)
+          ]);
+      });
+    });
+
+    describe('arbitrary datatype embedding in python', (done) => {
+      it('embeds lists of dicts', (done) => {
+        _do([
+          python('A1', '[{\'a\': 1}, {\'b\': 2}]'),
+          shouldBeSerialized('A2'),
+          exec(done)
+          ]);
+      });
+      it('embeds multidimensional lists', (done) => {
+        _do([
+          python('A1', '[[[1]]]'),
+          shouldBeSerialized('A1'),
+          python ('B1', 'A1[0][0][0]'),
+          shouldBe('B1', valueI(1)),
+          exec(done)
+          ]);
+      });
+      it('embeds arbitrary cell-defined objects', (done) => {
+        _do([
+          python('A1', 'class A(object):\n\tdef __init__(self):\n\t\tself.x = 5\nA()'),
+          shouldBeSerialized('A1'),
+          exec(done)
+          ]);
+      });
+      it('lets you reference cell-defined objects', (done) => {
+        _do([
+          python('A1', 'class A(object):\n\tdef __init__(self):\n\t\tself.x = 5\nA()'),
+          python('B1', 'A1.x'),
+          shouldBe('B1', valueI(5)),
+          exec(done)
+          ]);
+      });
+      xit('expands high-dimensional lists when possible', (done) => {
+        _do([
+          python('A1', '[[[1]], [[2]]]'),
+          shouldBeSerialized('A2'),
+          exec(done)
+          ]);
+      });
+      it('lets you make numpy arrays with dtype=dict', (done) => {
+        _do([
+          python('A1', 'np.array([1, {\'a\': 1}])'),
+          shouldBeSerialized('A2'),
+          python('B1', 'A2[\'a\']'),
+          shouldBe('B1', valueI(1)),
+          exec(done)
+          ]);
+      });
+      xit('lets you import scikit datasets', (done) => {
+        _do([
+          python('A1', 'from sklearn import datsets\ndatasets.load_iris()'),
+          shouldBeSerialized('A1'),
+          exec(done)
+          ]);
+      });
+      xit('references scikit datasets properly', (done) => {
+        _do([
+          python('A1', 'from sklearn import datasets\ndatasets.load_iris()'),
+          python('B1', 'A1.data'),
+          shouldBeCoupled('B1'),
+          exec(done)
+          ]);
       });
     });
 

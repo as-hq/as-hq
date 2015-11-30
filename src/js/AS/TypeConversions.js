@@ -66,7 +66,7 @@ export default {
         "tag": "NoValue",
         "contents": []
       },
-      "cellTags": []
+      "cellProps": []
     };
   },
 
@@ -76,8 +76,8 @@ export default {
               index:{row: -1, col:-1}},
         ce = {tag:"Expression",expression:"",language:null},
         cv = {tag:"NoValue", contents: []},
-        ct = [];
-    return {cellLocation:cl,cellExpression:ce,cellValue:cv,cellTags:ct};
+        cp = [];
+    return {cellLocation:cl, cellExpression:ce, cellValue:cv, cellProps:cp};
   },
 
   makeASIndex(sheetId: string, col: number, row: number): ASIndex {

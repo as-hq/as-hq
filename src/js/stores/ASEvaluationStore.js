@@ -275,10 +275,10 @@ const ASEvaluationStore = Object.assign({}, BaseStore, {
   getParentList(c, r) {
     let cell = this.getCell(c, r);
     if (cell) {
-      let ctags = cell.cellTags;
-      if (ctags) {
+      let cProps = cell.cellProps;
+      if (cProps) {
         let listKeyTag =
-          ctags.filter((ctag) => ctag.hasOwnProperty('listKey'))[0];
+          cProps.filter((cProp) => cProp.hasOwnProperty('listKey'))[0];
         if (listKeyTag && listKeyTag.listKey) { // listKey flow hack
           let {listKey} = listKeyTag;
           let listHead = Util.listKeyToListHead(listKey);
@@ -343,7 +343,7 @@ const ASEvaluationStore = Object.assign({}, BaseStore, {
   //   let {col, row} = loc;
   //   let sheetId = _data.currentSheet.sheetId;
   //   if (this.locationExists(col, row, sheetId)) {
-  //     let ct = _data.allCells[sheetId][col][row].cellTags;
+  //     let ct = _data.allCells[sheetId][col][row].cellProps;
   //     let ind = -1;
 
   //     for (let i = 0; i < ct.length; i++) {

@@ -13,7 +13,7 @@ import type {
   Collection,
   ASLanguage,
   ASSheet,
-  ASCellTag,
+  ASCellProp,
   ASCell,
   ExpandingType
 } from '../types/Eval';
@@ -125,28 +125,30 @@ export default {
     }
   },
 
-  tagsToRenderConfig(config: HGRendererConfig, tags: Array<ASCellTag>): HGRendererConfig {
+  propsToRenderConfig(config: HGRendererConfig, props: Array<ASCellProp>): HGRendererConfig {
     let self = this;
-    for (var i=0; i<tags.length; i++) {
-      let tag = tags[i];
-      switch(tag.tag) {
+    for (var i=0; i<props.length; i++) {
+      let prop = props[i];
+      switch (prop.tag) {
         case "TextColor":
-          config.fgColor = self.colorToHtml(tag.contents);
+          config.fgColor = self.colorToHtml(prop.contents);
           break;
-        case "Bold":
-          config.font = "bold " + config.font;
+        case "FillColor":
+          config.bgColor = self.colorToHtml(prop.contents);
           break;
-        case "Italic":
-          config.font = "italic " + config.font;
+        case "TopAlign": // not implemented yet
+          break; 
+        case "HAlign":
+          config.halign = self.asHAlignToHtml(prop.contents); 
           break;
-        case "BgColor":
-          config.bgColor = self.colorToHtml(tag.contents);
-          break;
-        case "Align":
-          config.halign = tag.contents.toLowerCase();
-          break;
-        case "Format": // should be in showValue, not tagsToRenderConfig
-          switch (tag.contents) {
+        case "FontSize": //not implemented yet
+          break; 
+        case "FontName": //not implemented yet
+          break; 
+        case "URL": //not implemented yet
+          break; 
+        case "ValueFormat": 
+          switch (prop.formatType) {
             case "Money":
               config.value = self.formatMoney("$", config.value, 2);
               break;
@@ -158,7 +160,13 @@ export default {
               break;
           }
           break;
-        case "Streaming":
+        case "Bold":
+          config.font = "bold " + config.font;
+          break;
+        case "Italic":
+          config.font = "italic " + config.font;
+          break;
+        case "Streaming": // obsolete; need to update to StreamInfo
           config.isStreaming = true;
           break;
         default:
@@ -238,7 +246,7 @@ export default {
     let {cellValue: cv} = c;
     if (cv.tag === 'ValueImage') {
       let self = this,
-          ct = c.cellTags,
+          ct = c.cellProps,
           imageWidth = 300,
           imageHeight =  300,
           imageOffsetX = 0,
@@ -374,7 +382,7 @@ export default {
   },
 
   isEmptyCell(c: ASCell): boolean {
-    return !c || ((c.cellExpression.expression == "") && (c.cellTags.length == 0));
+    return !c || ((c.cellExpression.expression == "") && (c.cellProps.length == 0));
   },
 
   removeEmptyLines(str: string): string {
@@ -401,6 +409,19 @@ export default {
     if (str.charAt(0) === "#" || str.substring(0,2) === "rgb") // if color already correct format
       return str;
     else return this.colorNameToHex(str);
+  },
+
+  asHAlignToHtml(align: string): string { 
+    switch (align) { 
+      case 'LeftAlign': 
+        return 'left'; 
+      case 'HCenterAlign': 
+        return 'center'; 
+      case 'RightAlign': 
+        return 'right'; 
+      default: 
+        throw "Invalid HAlign passed in";
+    }
   },
 
   colorNameToHex(color: string): ?string {
