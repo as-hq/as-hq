@@ -43,6 +43,7 @@ import {
   copy,
   undo,
   redo,
+  decouple,
 
   shouldBe,
   shouldBeNothing,
@@ -547,6 +548,7 @@ let tests = () => {
           waitForResponse(
             backspace()
           ),
+          decouple(),
           _forM_(fromToInclusive(1, 10),
             (i) => _expect(`A${i}`)._toBeNothing()
           )
