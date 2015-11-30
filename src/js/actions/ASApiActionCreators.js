@@ -45,8 +45,7 @@ import type {
 import type {
   ASSelection,
   ASClientWindow,
-  ASClientExpression,
-  ASClientLanguage
+  ASClientExpression
 } from '../types/State';
 
 import {logDebug} from '../AS/Logger';
@@ -163,14 +162,14 @@ wss.onmessage = (event: MessageEvent) => {
           newCells: msg.payload.contents
         });
         break;
-      case 'SetCondFormat':
+      case 'SetCondFormatRules':
         Dispatcher.dispatch({
           _type: 'FETCHED_CELLS',
-          newCells: msg.payload.cells
+          newCells: msg.payload.condFormatCellsUpdated
         });
         Dispatcher.dispatch({
           _type: 'GOT_UPDATED_RULES',
-          rules: msg.payload.condFormatRules
+          rules: msg.payload.condFormatRulesResult
         });
         break;
       //Functionally equivalent to "Get", but useful to be able to distinguish for tests

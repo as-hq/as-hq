@@ -236,8 +236,8 @@ export type PayloadCondFormat = {
 
 export type PayloadCondFormatResult = {
   tag: 'PayloadCondFormatResult';
-  cells: Array<ASCell>;
-  condFormatRules: Array<CondFormatRule>;
+  condFormatCellsUpdated: Array<ASCell>;
+  condFormatRulesResult: Array<CondFormatRule>;
 };
 
 export type CondFormatRule = {
@@ -326,7 +326,7 @@ export type ASMessageAction =
   | 'JumpSelect'
   | 'MutateSheet'
   | 'Drag'
-  | 'CondFormat' | 'SetCondFormat';
+  | 'CondFormat' | 'SetCondFormatRules';
 
 export type NoActionResponse = {
   action: 'NoAction';
@@ -413,7 +413,7 @@ export type FindResponse = {
 };
 
 export type SetCondFormatResponse = {
-  action: 'SetCondFormat';
+  action: 'SetCondFormatRules';
   payload: PayloadCondFormatResult;
   result: ASBackendResult;
 };

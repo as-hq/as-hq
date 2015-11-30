@@ -16,14 +16,14 @@ import type {
   ASExpression,
   ASLanguage,
   ASCellProp,
-  ASCell, 
-  VAlignType, 
+  ASCell,
+  VAlignType,
   HAlignType,
   FormatType
 } from '../types/Eval';
 
 import type {
-  ASServerMessage, 
+  ASServerMessage,
   CondFormatRule
 } from '../types/Messages';
 
@@ -145,8 +145,7 @@ export function cell(loc: string, xp: string, lang: ASTestLanguage): Prf {
     let langMap = {
       'py': Constants.Languages.Python,
       'R': Constants.Languages.R,
-      'excel': Constants.Languages.Excel,
-      'ml': Constants.Languages.OCaml
+      'excel': Constants.Languages.Excel
     };
     let idx   = Util.excelToIndex(loc),
         xpObj = { expression: xp, language: langMap[lang] };
@@ -160,10 +159,6 @@ export function python(loc: string, xp: string): Prf {
 
 export function r(loc: string, xp: string): Prf {
   return cell(loc, xp, 'R');
-}
-
-export function ocaml(loc: string, xp: string): Prf {
-  return cell(loc, xp, 'ml');
 }
 
 export function excel(loc: string, xp: string): Prf {
@@ -336,16 +331,16 @@ export function makeCondFormattingRuleFontExcel(rng: string, prop: ASCellProp, r
     "expression": rule,
     "language": "Excel"
   };
-  let asRule = { 
-    "tag": "CondFormatRule", 
-    "condition": xpObj, 
-    "cellLocs": [TC.simpleToASRange(rangeFromExcel(rng))], 
-    "condFormat": { 
-      tag: prop, 
+  let asRule = {
+    "tag": "CondFormatRule",
+    "condition": xpObj,
+    "cellLocs": [TC.simpleToASRange(rangeFromExcel(rng))],
+    "condFormat": {
+      tag: prop,
       contents: []
     }
   };
-  return asRule; 
+  return asRule;
 }
 
 export function valueD(val: number): ValueD {

@@ -28,7 +28,6 @@ import type {
 } from '../types/Hypergrid';
 
 import type {
-  ASClientLanguage,
   ASViewingWindow,
   ASSelection
 } from '../types/State';
@@ -603,10 +602,6 @@ export default {
         parsed = matches.map((m) => this.orientRange(this.excelToRange(m)), this);
     logDebug("parsed deps: "+JSON.stringify(matches));
     return parsed;
-  },
-
-  getAgnosticLanguageFromServer(lang: ASLanguage): ASClientLanguage {
-    return Constants.Languages[lang];
   },
 
   // indexStringToPair("(a,b)") := {row:a, col:b}

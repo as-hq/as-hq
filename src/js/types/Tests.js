@@ -2,7 +2,7 @@
 
 import type {Dict} from './Base';
 
-export type ASTestLanguage = 'py' | 'R' | 'excel' | 'ml';
+export type ASTestLanguage = 'py' | 'R' | 'excel';
 
 export type Prf<V> = () => Promise<V>;
 
