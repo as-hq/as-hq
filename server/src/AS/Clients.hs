@@ -12,7 +12,7 @@ import AS.Handlers.JumpSelect
 import AS.Handlers.Misc
 
 import qualified AS.Daemon as DM
-import AS.DB.API (getPropsAt, storeLastMessage)
+import AS.DB.API (getPropsAt, storeLastMessage, getCellsInSheet)
 import AS.Dispatch.Core
 import AS.Reply
 import AS.Logging
@@ -68,7 +68,7 @@ instance Client ASUserClient where
       BugReport          -> handleBugReport user payload
       JumpSelect         -> handleJumpSelect user state payload
       MutateSheet        -> handleMutateSheet user state payload
-      Drag               -> handleDrag user state payload
+      Drag               -> handleDrag user state payload 
       SetCondFormatRules -> handleSetCondFormatRules user state payload
       GetCondFormatRules -> handleGetCondFormatRules user state payload
       where payload = clientPayload message

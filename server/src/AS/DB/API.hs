@@ -84,6 +84,9 @@ getCells locs = DU.getCellsByMessage msg num
     msg = DU.showB $ intercalate DU.msgPartDelimiter $ map show2 locs
     num = length locs
 
+getCellsInSheet :: ASSheetId -> IO [ASCell]
+getCellsInSheet = DU.cellsInSheet
+
 -- Gets the cells at the locations with expressions and values removed, but tags intact. 
 getBlankedCellsAt :: [ASIndex] -> IO [ASCell]
 getBlankedCellsAt locs = 
@@ -113,12 +116,6 @@ getCompositeCells conn locs =
   in do 
     ccells <- DU.getCellsByMessage msg num
     mapM expandPointerRefs $ zip locs ccells
-
--- #incomplete LOL
-getCellsInSheet :: ASSheetId -> IO [ASCell]
-getCellsInSheet sid = do 
-  cells <- (getCells . rangeToIndices) (Range sid ((1,1), (100,100)))
-  return $ catMaybes cells
 
 getPossiblyBlankCells :: [ASIndex] -> IO [ASCell]
 getPossiblyBlankCells locs = do 

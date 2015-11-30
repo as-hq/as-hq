@@ -88,8 +88,8 @@ void clearSheet(char* sheetId) {
   c = redisConnect((const char*)HOST, PORT);
 
   printf("GOT SHEETID FOR CLEAR: %s", sheetId);
-  reply = (redisReply *)redisCommand(c, "scan 0 match I/%s/* count %i", sheetId, (int)SCAN_BOUND);
-  int i;
+  reply = (redisReply *)redisCommand(c, "scan 0 match I/%s/(*,*) count %i", sheetId, (int)SCAN_BOUND);
+  int i = 0;
 
   if (reply->type == REDIS_REPLY_ARRAY && reply->element[1]->type == REDIS_REPLY_ARRAY) {
     for (i = 0; i < reply->element[1]->elements; i++) {
@@ -99,6 +99,46 @@ void clearSheet(char* sheetId) {
       }
     }
     freeReplyObject(reply);
+  } else {
+    printf("Error: received Redis reply of type other than array\n\n");
+    freeReplyObject(reply);
+  }
+}
+
+char** getCellsInSheet(char* sheetId) {
+  redisContext *c;
+  redisReply *reply;
+  c = redisConnect((const char*)HOST, PORT);
+
+  reply = (redisReply *)redisCommand(c, "scan 0 match I/%s/(*,*) count %i", sheetId, (int)SCAN_BOUND);
+  int i = 0;
+  int count = 0;
+
+  if (reply->type == REDIS_REPLY_ARRAY && reply->element[1]->type == REDIS_REPLY_ARRAY) {
+    count = reply->element[1]->elements;
+    for (i = 0; i < count; i++) {
+      if (reply->element[1]->element[i]->type == REDIS_REPLY_STRING) {
+        char* key = reply->element[1]->element[i]->str;
+        redisAppendCommand(c, "get %s", key);
+      }
+    }
+
+    freeReplyObject(reply);
+    char** cells = malloc((count + 1) * sizeof(char*));
+    sprintf(cells[0], "%d", count);
+
+    for (i = 0; i < count; i++) {
+      redisGetReply(c,(void **) &reply);
+      if (reply->type == REDIS_REPLY_STRING) {
+        cells[i+1] = strdup(reply->str);
+      } else {
+        cells[i+1] = "Nothing";
+      }
+      freeReplyObject(reply);
+    }
+    redisFree(c);
+    puts("got here");
+    return cells;
   } else {
     printf("Error: received Redis reply of type other than array\n\n");
     freeReplyObject(reply);
