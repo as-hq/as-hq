@@ -63,5 +63,9 @@ broadcastFiltered' state msg@(ServerMessage _ _ (PayloadLL locs)) = do
   State ucs _ _ _ <- readMVar state
   mapM_ (sendFilteredLocs msg locs) ucs
 
+broadcastFiltered' state msg@(ServerMessage _ _ (PayloadCondFormatResult _ cells)) = do 
+  State ucs _ _ _ <- readMVar state
+  mapM_ (sendFilteredCells msg cells) ucs
+
 sendToOriginal :: ASUserClient -> ASServerMessage -> IO ()
 sendToOriginal uc msg = sendMessage msg (userConn uc)

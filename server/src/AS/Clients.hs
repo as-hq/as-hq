@@ -70,7 +70,6 @@ instance Client ASUserClient where
       MutateSheet        -> handleMutateSheet user state payload
       Drag               -> handleDrag user state payload
       SetCondFormatRules -> handleSetCondFormatRules user state payload
-      GetCondFormatRules -> handleGetCondFormatRules user state payload
       where payload = clientPayload message
       -- Undo         -> handleToggleProp user state (PayloadTags [StreamTag (Stream NoSource 1000)] (Index (T.pack "TEST_SHEET_ID2") (1,1)))
       -- ^^ above is to test streaming when frontend hasn't been implemented yet

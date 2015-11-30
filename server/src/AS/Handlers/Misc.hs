@@ -207,10 +207,5 @@ handleSetCondFormatRules uc state (PayloadCondFormat rules) = do
   DB.setCondFormattingRules conn (fst src) rules
   cells <- DB.getPossiblyBlankCells locs
   msg <- DP.runDispatchCycle state cells src -- ::ALEX:: eventually, only eval on the xor of new and old?
-  broadcastFiltered state uc msg
-
-handleGetCondFormatRules :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
-handleGetCondFormatRules uc state _ = do 
-  conn <- dbConn <$> readMVar state
-  rules <- DB.getCondFormattingRules conn (userSheetId uc) 
-  sendToOriginal uc $ ServerMessage GetCondFormatRules Success (PayloadCondFormat rules)
+  let msg' = makeCondFormatMessage rules msg
+  broadcastFiltered state uc msg'
