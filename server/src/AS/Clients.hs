@@ -12,7 +12,7 @@ import AS.Handlers.JumpSelect
 import AS.Handlers.Misc
 
 import qualified AS.Daemon as DM
-import AS.DB.API (getPropsAt, storeLastMessage)
+import AS.DB.API (getPropsAt, storeLastMessage, getCellsInSheet)
 import AS.Dispatch.Core
 import AS.Reply
 import AS.Logging
