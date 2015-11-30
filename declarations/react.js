@@ -474,6 +474,11 @@ declare class ReactHTMLAttributesBase<T> extends ReactDOMAttributesBase<T> {
   unselectable?: boolean;
 }
 
+declare class ReactLink<T> {
+  value: T;
+  requestChange(newValue: T): void;
+}
+
 declare module 'react-dom' {
   declare function findDOMNode(): HTMLElement;
 }

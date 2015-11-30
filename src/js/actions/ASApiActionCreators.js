@@ -155,17 +155,22 @@ wss.onmessage = (event: MessageEvent) => {
             _type: 'GOT_UPDATED_WORKBOOKS',
             workbooks: msg.payload.contents
           });
-        } else if (msg.payload.tag === 'PayloadCondFormat') {
-          Dispatcher.dispatch({
-            _type: 'GOT_UPDATED_RULES',
-            rules: msg.payload.condFormatRules
-          });
         }
         break;
       case "Get":
         Dispatcher.dispatch({
           _type: 'FETCHED_CELLS',
           newCells: msg.payload.contents
+        });
+        break;
+      case 'SetCondFormat':
+        Dispatcher.dispatch({
+          _type: 'FETCHED_CELLS',
+          newCells: msg.payload.cells
+        });
+        Dispatcher.dispatch({
+          _type: 'GOT_UPDATED_RULES',
+          rules: msg.payload.condFormatRules
         });
         break;
       //Functionally equivalent to "Get", but useful to be able to distinguish for tests

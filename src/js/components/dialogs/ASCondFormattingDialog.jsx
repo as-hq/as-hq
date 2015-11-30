@@ -35,7 +35,7 @@ export default React.createClass({
     };
   },
 
-  render() {
+  render(): ReactElement {
     let {open, onRequestClose} = this.props;
     let {rules, openRule} = this.state;
 

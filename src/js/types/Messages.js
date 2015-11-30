@@ -234,6 +234,12 @@ export type PayloadCondFormat = {
   condFormatRules: Array<CondFormatRule>;
 };
 
+export type PayloadCondFormatResult = {
+  tag: 'PayloadCondFormatResult';
+  cells: Array<ASCell>;
+  condFormatRules: Array<CondFormatRule>;
+};
+
 export type CondFormatRule = {
   tag: 'CondFormatRule';
   condFormat: ASCellProp;
@@ -269,7 +275,8 @@ export type ASBackendPayload =
   | PayloadMutate
   | PayloadDrag
   | PayloadFind
-  | PayloadCondFormat;
+  | PayloadCondFormat
+  | PayloadCondFormatResult;
 
 export type ASBackendCommit = {
   tag: 'ASCommit';
@@ -318,7 +325,8 @@ export type ASMessageAction =
   | 'BugReport'
   | 'JumpSelect'
   | 'MutateSheet'
-  | 'Drag';
+  | 'Drag'
+  | 'CondFormat' | 'SetCondFormat';
 
 export type NoActionResponse = {
   action: 'NoAction';
@@ -395,11 +403,18 @@ export type EvaluateReplResponse = {
 export type EvaluateHeaderResponse = {
   action: 'EvaluateHeader';
   payload: PayloadValue;
+  result: ASBackendResult;
 };
 
 export type FindResponse = {
   action: 'Find';
   payload: PayloadFind;
+  result: ASBackendResult;
+};
+
+export type SetCondFormatResponse = {
+  action: 'SetCondFormat';
+  payload: PayloadCondFormatResult;
   result: ASBackendResult;
 };
 
@@ -427,7 +442,8 @@ export type ASServerMessage =
   | DeleteResponse
   | EvaluateReplResponse
   | EvaluateHeaderResponse
-  | FindResponse;
+  | FindResponse
+  | SetCondFormatResponse;
 
 export type ASAPICallbackPair = {
   fulfill: (msg: ?ASServerMessage) => void;

@@ -14,13 +14,16 @@ import type {
   CondFormatRule
 } from '../../types/Messages';
 
+import type {
+  MenuItemRequest
+} from 'material-ui';
+
 import _ from 'lodash';
 
 import React from 'react';
 import {TextField, DropDownMenu} from 'material-ui';
 
 import Dialog from './DialogWrapper.jsx';
-import RuleDialog from './ASCondFormattingRuleDialog.jsx';
 
 import API from '../../actions/ASApiActionCreators';
 import CFStore from '../../stores/ASCondFormatStore';
@@ -29,11 +32,6 @@ import Util from '../../AS/Util';
 import TC from '../../AS/TypeConversions';
 
 type StyleMenuItem = 'bold' | 'italic' | 'underline' | 'bg_color' | 'text_color';
-
-type MUIMenuItem = {
-  text: string;
-  payload: string;
-};
 
 export default React.createClass({
   getInitialState() {
@@ -109,16 +107,20 @@ export default React.createClass({
     );
   },
 
-  _onChangeCondition(evt, idx: number, menuItem: MUIMenuItem) {
+  _onChangeCondition(evt: any, idx: number, menuItem: MenuItemRequest) {
     let {payload} = menuItem;
+    if (! payload) return;
+
     this.setState({
       currentConditionMenuItem: payload,
       showConditionTextField: this._showTextField(payload)
     });
   },
 
-  _onChangeStyle(evt, idx: number, menuItem: MUIMenuItem) {
+  _onChangeStyle(evt: any, idx: number, menuItem: MenuItemRequest) {
     let {payload} = menuItem;
+    if (! payload) return;
+    
     this.setState({
       currentStyleMenuItem: payload,
       showStyleColorField: this._showColorField(payload)
