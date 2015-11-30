@@ -49,6 +49,7 @@ import {
   shouldBeL,
 
   actionAPIResponse,
+  waitForResponse,
 
   setUITestMode,
   unsetUITestMode
@@ -284,12 +285,6 @@ function atRow(num) {
   return ({br: {row: bottomRow}}) => {
     return (bottomRow - 5 <= num) && (bottomRow + 5 >= num);
   }
-}
-
-function waitForResponse(act) {
-  return promise((fulfill, reject) => {
-    actionAPIResponse(act, fulfill)();
-  });
 }
 
 let hooks = {

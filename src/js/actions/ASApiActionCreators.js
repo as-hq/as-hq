@@ -144,7 +144,6 @@ wss.onmessage = (event: MessageEvent) => {
         if (msg.result.tag === "DecoupleDuringEval") {
           Dispatcher.dispatch({
             _type: 'EVAL_TRIED_TO_DECOUPLE',
-            updatedCells: msg.payload.contents
           });
         } else if (msg.payload.tag === "PayloadCL") {
           Dispatcher.dispatch({
@@ -190,7 +189,11 @@ wss.onmessage = (event: MessageEvent) => {
         });
         break;
       case "Delete":
-        if (msg.payload.tag === "PayloadDelete") {
+        if (msg.result.tag === "DecoupleDuringEval") {
+          Dispatcher.dispatch({
+            _type: 'EVAL_TRIED_TO_DECOUPLE'
+          });
+        } else if (msg.payload.tag === "PayloadDelete") {
           Dispatcher.dispatch({
             _type: 'DELETED_LOCS',
             deletedRange: msg.payload.contents[0],

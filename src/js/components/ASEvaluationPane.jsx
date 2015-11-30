@@ -187,12 +187,14 @@ export default React.createClass({
   */
   _onChange() {
     if (Store.getDecoupleAttempt()) {
-      let resp = window.confirm("You're attempting to decouple cells. Are you sure?");
-      if (resp) {
-        API.decouple();
-      } else {
-        debugger;
-      }
+      let resp = true;
+      // If testing, don't show confirm box. The test will send decouple msg.
+      if (!isTesting()) {
+        resp = window.confirm("You're attempting to decouple cells. Are you sure?");
+        if (resp) {
+          API.decouple();
+        } 
+      } 
       Store.setDecoupleAttempt(false);
     }
     logDebug("Eval pane detected event change from store");

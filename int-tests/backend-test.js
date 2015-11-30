@@ -27,6 +27,7 @@ describe('backend', () => {
     cut,
     undo,
     redo,
+    decouple,
     delete_,
 
     toggleProp,
@@ -71,6 +72,7 @@ describe('backend', () => {
     expressionShouldBe,
     shouldHaveProp,
     shouldNotHaveProp
+
   } = require('../src/js/browser-test/exec-api');
   const {
     fromToInclusive,
@@ -196,6 +198,7 @@ describe('backend', () => {
             python('A2', 'A1'),
             python('A1', 'range(10)'),
             python('A1', '10'),
+            decouple(),
             shouldBe('A1', valueI(10)),
             exec(done)
           ]);
@@ -248,6 +251,7 @@ describe('backend', () => {
             python('A1', 'range(2)'),
             python('B2', 'A2 + 1'),
             python('A1', 'range(4,6)'),
+            decouple(),
             shouldBe('B2', valueI(6)),
             exec(done)
           ]);
@@ -259,6 +263,7 @@ describe('backend', () => {
             python('C3', 'range(A3, A3+3)'),
             python('E3', 'range(A3, A3+4)'),
             python('A1', 'range(C3,E5)'),
+            decouple(),
             shouldBe('A1', valueI(104)),
             shouldError(
               python('A1', 'range(C3,E6)')
@@ -601,6 +606,7 @@ describe('backend', () => {
             r('B1', 'typeof(A4)'),
             shouldBe('B1', valueS('double')),
             r('A1', 'c("a","b","c","d")'),
+            decouple(),
             shouldBe('B1', valueS('character')),
             exec(done)
           ]);
@@ -1015,13 +1021,15 @@ describe('backend', () => {
           ]);
         });
         xit('should redo on Ctrl+Y after undo for A:A', (done) => {
-        _do([
-          //TODO: timchu
-          python('A1', 'range(10)'),
-          shouldBe('A1', 1),
-          exec(done)
-          ]);
+          _do([
+            //TODO: timchu
+            python('A1', 'range(10)'),
+            shouldBe('A1', 1),
+            exec(done)
+            ]);
+        });
       });
+
       describe('row/col insertion, deletion, and swapping', () => {
         describe('row insertion', () => {
           it('should move cells to correct locations', (done) => {
@@ -1052,6 +1060,7 @@ describe('backend', () => {
               python('A1', '[range(10)]'),
               excel('A2', '=SUM(A1:J1)'),
               insertRow(1),
+              decouple(),
               shouldBe('A3', valueI(45)),
               exec(done)
             ]);
@@ -1098,6 +1107,7 @@ describe('backend', () => {
               python('A2', '[range(10)]'),
               excel('A3', '=SUM(A2:J2)'),
               deleteRow(1),
+              decouple(),
               shouldBe('A2', valueI(45)),
               exec(done)
             ]);
@@ -1178,6 +1188,7 @@ describe('backend', () => {
               python('A1', 'range(10)'),
               excel('B1', '=SUM(A1:A10)'),
               insertCol(1),
+              decouple(),
               shouldBe('C1', valueI(45)),
               exec(done)
             ]);
@@ -1224,6 +1235,7 @@ describe('backend', () => {
               python('B1', 'range(10)'),
               excel('C1', '=SUM(B1:B10)'),
               deleteCol(1),
+              decouple(),
               shouldBe('B1', valueI(45)),
               exec(done)
             ]);
@@ -1307,6 +1319,7 @@ describe('backend', () => {
               return shouldBe(`B${i + 1}`, valueI(i));
             }),
             python('A1', '1'),
+            decouple(),
             shouldBeNothing('B2'),
             exec(done)
           ]);
@@ -1672,6 +1685,7 @@ describe('backend', () => {
           _do([
             python('A1', 'range(10)'),
             cut('A1', 'B1'),
+            decouple(),
             shouldBe('B1', valueI(0)),
             shouldBe('A2', valueI(1)),
             exec(done)
@@ -1682,6 +1696,7 @@ describe('backend', () => {
           _do([
             python('A1', 'range(10)'),
             cut('A1:A10', 'B1:B10'),
+            decouple(),
             shouldBe('B1', valueI(0)),
             shouldBeNothing('A1', valueI(0)),
             exec(done)
@@ -1716,6 +1731,7 @@ describe('backend', () => {
             python('B1', '1'),
             delete_('B1'),
             repeat('A1:B10', 'B1'),
+            decouple(),
             shouldBeNothing('A1'),
             exec(done)
           ]);
@@ -1738,6 +1754,7 @@ describe('backend', () => {
         _do([
           python('A1', '[[None, 2],[3,4]]'),
           delete_('A1'),
+          decouple(),
           shouldBeNothing('A1'),
           exec(done)
         ]);
@@ -1859,7 +1876,7 @@ describe('backend', () => {
     });
 
     describe('conditional formatting', () => {
-      it('should format cells already present', (done) => {
+      xit('should format cells already present', (done) => {
         _do([
           python('A1', 'range(10)'), 
           setCondFormattingRules([
@@ -1883,7 +1900,7 @@ describe('backend', () => {
         ]);
       });
 
-      it('should apply multiple rules simultaneously', (done) => {
+      xit('should apply multiple rules simultaneously', (done) => {
         _do([
           python('A1', 'range(10)'), 
           python('B1', 'range(10)'), 
@@ -2206,6 +2223,7 @@ describe('backend', () => {
         _do([
           python('A1', 'range(10)'),
           delete_('A1'),
+          decouple(),
           shouldBeDecoupled('A2'),
           exec(done)
           ]);

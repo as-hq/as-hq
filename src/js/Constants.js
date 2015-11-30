@@ -129,7 +129,7 @@ export default Object.assign({
     JumpSelect: "JumpSelect",
     MutateSheet: "MutateSheet",
     Drag: "Drag",
-    Decouple: "Decouple"
+    Decouple: "Decouple",
     SetCondFormatRules: "SetCondFormatRules",
     GetCondFormatRules: "GetCondFormatRules"
   },

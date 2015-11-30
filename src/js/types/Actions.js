@@ -168,6 +168,10 @@ export type BackendUpdatedAndCellsChangedAction = {
   _type: 'BACKEND_UPDATED_AND_CELLS_CHANGED';
 };
 
+export type EvalTriedToDecoupleAction = {
+  _type: 'EVAL_TRIED_TO_DECOUPLE';
+};
+
 export type WorkbookAction =
   GotUpdatedWorkbooksAction
   | GotNewWorkbooksAction
@@ -203,4 +207,5 @@ export type ASAction =
   | PartialRefChangeWithGridAction
   | PartialRefChangeWithTextboxAction
   | EscPressedAction
-  | BackendUpdatedAndCellsChangedAction;
+  | BackendUpdatedAndCellsChangedAction
+  | EvalTriedToDecoupleAction;

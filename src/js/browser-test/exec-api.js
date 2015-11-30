@@ -250,6 +250,12 @@ export function redo(): Prf {
   });
 }
 
+export function decouple(): Prf {
+  return apiExec(() => {
+    API.decouple();
+  });
+}
+
 export function delete_(rng: string): Prf {
   return apiExec(() => {
     API.deleteRange(TC.simpleToASRange(rangeFromExcel(rng)));
@@ -567,3 +573,10 @@ export function setUITestMode() {
 export function unsetUITestMode() {
   API.unsetUITestMode();
 }
+
+export function waitForResponse(act: () => void) : Prf {
+  return promise((fulfill, reject) => {
+    actionAPIResponse(act, fulfill)();
+  });
+}
+
