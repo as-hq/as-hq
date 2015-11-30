@@ -139,7 +139,7 @@ cellsInSheet :: ASSheetId -> IO [ASCell]
 cellsInSheet sid = do
   ptrCells <- withCString (T.unpack sid) c_getCellsInSheet
   len      <- (\a -> read a :: Int) <$> (peekCString =<< peek ptrCells)
-  cCells   <- peekArray (fromIntegral len) ptrCells
+  cCells   <- peekArray (fromIntegral $ len + 1) ptrCells
   res      <- map (\str -> read2 str :: ASCell) <$> (mapM peekCString $ tail cCells)
   free ptrCells
   return res
