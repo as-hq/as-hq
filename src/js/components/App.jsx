@@ -1,11 +1,11 @@
 import {logDebug} from '../AS/Logger';
 
 import React, {PropTypes} from 'react';
+import ASActionBar from './ASActionBar.jsx';
 import ASTreeNav from './ASTreeNav.jsx';
 import ASEvaluationPane from './ASEvaluationPane.jsx';
 import {AppCanvas, LeftNav, Paper, Styles} from 'material-ui';
 import ASNavBar from './ASNavBar.jsx';
-import ASRibbon from './ASRibbon.jsx';
 import API from '../actions/ASApiActionCreators';
 import Constants from '../Constants';
 import Store from '../stores/ASEvaluationStore.js';
@@ -64,24 +64,10 @@ export default React.createClass({
     ];
 
     return (
-       <div style={{width:"100%",height:"100%"}} >
-        <LeftNav
-          ref="leftNav"
-          menuItems={leftNavMenuItems}
-          docked={false}/>
-        <ASNavBar
-          onDocumentTabChange={this._onDocumentTabChange}
-          onRibbonTabChange={this._onRibbonTabChange}
-          onAlphaButtonTap={this._onAlphaButtonTap}/>
-        <ASRibbon activeTab={this.state.activeRibbonTab} />
+      <div style={{width:"100%",height:"100%"}} >
+        <ASActionBar />
         <div style={{width: '100%', height: '100%'}}>
-          <div style={{display: 'inline-block', width: '10%', height: '100%', verticalAlign: 'top'}}>
-            <ASTreeNav
-              onDocumentOpen={this._onDocumentOpen}
-              onSheetCreate={this._onSheetCreate}
-              onWorkbookCreate={this._onWorkbookCreate}/>
-          </div>
-          <div style={{display: 'inline-block', width: '90%', height:'100%',verticalAlign:'top'}}>
+          <div style={{display: 'inline-block', width: '100%', height:'100%',verticalAlign:'top'}}>
             <ASEvaluationPane behavior="default" ref="evalPane" initInfo={this.state.initEvalInfo} height='100%'/>
           </div>
         </div>
