@@ -50,9 +50,10 @@ data ASAction =
   | MutateSheet
   | Drag
   | SetCondFormatRules
+  | Decouple
   deriving (Show, Read, Eq, Generic)
 
-data ASResult = Success | Failure {failDesc :: String} | NoResult deriving (Show, Read, Eq, Generic)
+data ASResult = Success | Failure {failDesc :: String} | NoResult | DecoupleDuringEval deriving (Show, Read, Eq, Generic)
 
 -- for open, close dialogs
 data QueryList =
@@ -189,6 +190,7 @@ generateErrorMessage e = case e of
 -- | When you have a list of cells from an eval request, this function constructs
 -- the message to send back. 
 makeUpdateMessage :: Either ASExecError [ASCell] -> ASServerMessage
+makeUpdateMessage (Left DecoupleAttempt) = ServerMessage Update DecoupleDuringEval (PayloadN ())
 makeUpdateMessage (Left e) = ServerMessage Update (Failure (generateErrorMessage e)) (PayloadN ())
 makeUpdateMessage (Right cells) = ServerMessage Update Success (PayloadCL cells)
 
@@ -206,6 +208,7 @@ makeUpdateWindowMessage cells = changeMessageAction UpdateWindow $ makeUpdateMes
 -- | Makes a delete message from an Update message and a list of locs to delete
 makeDeleteMessage :: ASRange -> ASServerMessage -> ASServerMessage
 makeDeleteMessage _ s@(ServerMessage _ (Failure _) _) = s
+makeDeleteMessage _ s@(ServerMessage _ (DecoupleDuringEval) _) = ServerMessage Delete DecoupleDuringEval (PayloadN ())
 makeDeleteMessage deleteLocs s@(ServerMessage _ _ (PayloadCL cells)) = ServerMessage Delete Success payload
   where locsCells = zip (map cellLocation cells) cells
         cells'    = map snd $ filter (\(l, _) -> not $ rangeContainsIndex deleteLocs l) locsCells
@@ -214,7 +217,8 @@ makeDeleteMessage deleteLocs s@(ServerMessage _ _ (PayloadCL cells)) = ServerMes
 
 makeCondFormatMessage :: [CondFormatRule] -> ASServerMessage -> ASServerMessage
 makeCondFormatMessage _ s@(ServerMessage _ (Failure _) _) = s
-makeCondFormatMessage rules s@(ServerMessage _ _ (PayloadCL cells)) = ServerMessage SetCondFormatRules Success payload
+makeCondFormatMessage _ s@(ServerMessage _ DecoupleDuringEval _) = s
+makeCondFormatMessage rules (ServerMessage _ _ (PayloadCL cells)) = ServerMessage SetCondFormatRules Success payload
   where payload = PayloadCondFormatResult rules cells
 
 changeMessageAction :: ASAction -> ASServerMessage -> ASServerMessage

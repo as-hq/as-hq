@@ -14,6 +14,7 @@ import qualified Data.List                     as L
 import qualified Data.Text                     as T
 import           Data.List.Split
 import Data.Word (Word8)
+import Data.Maybe (fromJust)
 
 import qualified Data.ByteString.Char8         as BC
 import qualified Data.ByteString               as B
@@ -40,9 +41,6 @@ import Foreign.C
 
 ----------------------------------------------------------------------------------------------------------------------
 -- Settings
-
-dagChunkSize :: Int
-dagChunkSize = 1000
 
 -- | Haskell Redis connection object
 cInfo :: ConnectInfo
@@ -102,6 +100,7 @@ getUniquePrefixedName pref strs = pref ++ (show idx)
 -- FFI
 
 foreign import ccall unsafe "hiredis/redis_db.c getCells" c_getCells :: CString -> CInt -> IO (Ptr CString)
+foreign import ccall unsafe "hiredis/redis_db.c getCellsInSheet" c_getCellsInSheet :: CString -> IO (Ptr CString)
 foreign import ccall unsafe "hiredis/redis_db.c setCells" c_setCells :: CString -> CInt -> IO ()
 foreign import ccall unsafe "hiredis/redis_db.c clearSheet" c_clearSheet :: CString -> IO ()
 
@@ -119,21 +118,14 @@ getCellsByKeys keys = getCellsByMessage msg num
 -- takes a message and number of locations queried
 getCellsByMessage :: B.ByteString -> Int -> IO [Maybe ASCell]
 getCellsByMessage msg num = do
-  --putStrLn $ "get cells by key with num: " ++ (show num) ++ ", " ++ (show msg)
-  ptrCells <- BU.unsafeUseAsCString msg $ \str -> do
-    printWithTime "built message"
-    c <- c_getCells str (fromIntegral num)
-    return c
-  cCells <- peekArray (fromIntegral num) ptrCells
-  res <- mapM cToASCell cCells
-  printObj "got cells" res
-  -- free ptrCells
+  ptrCells <- BU.unsafeUseAsCString msg $ \str -> c_getCells str (fromIntegral num)
+  cCells   <- peekArray (fromIntegral num) ptrCells
+  res      <- mapM cToASCell cCells
+  free ptrCells
   return res
 
 setCellsByMessage :: B.ByteString -> Int -> IO ()
-setCellsByMessage msg num = do
-  _ <- BU.unsafeUseAsCString msg $ \lstr -> c_setCells lstr (fromIntegral num)
-  return ()
+setCellsByMessage msg num = BU.unsafeUseAsCString msg $ \lstr -> c_setCells lstr (fromIntegral num)
 
 deleteLocRedis :: ASIndex -> Redis ()
 deleteLocRedis loc = del [makeLocationKey loc] >> return ()
@@ -142,6 +134,15 @@ getSheetLocsRedis :: ASSheetId -> Redis [B.ByteString]
 getSheetLocsRedis sheetid = do
   Right keys <- smembers $ makeSheetSetKey sheetid
   return keys
+
+cellsInSheet :: ASSheetId -> IO [ASCell]
+cellsInSheet sid = do
+  ptrCells <- withCString (T.unpack sid) c_getCellsInSheet
+  len      <- (\a -> read a :: Int) <$> (peekCString =<< peek ptrCells)
+  cCells   <- peekArray (fromIntegral $ len + 1) ptrCells
+  res      <- map (\str -> read2 str :: ASCell) <$> (mapM peekCString $ tail cCells)
+  free ptrCells
+  return res
 
 deleteLocsInSheet :: ASSheetId -> IO ()
 deleteLocsInSheet sid = withCString (T.unpack sid) c_clearSheet
@@ -217,7 +218,7 @@ rangeKeyToSheetId :: RangeKey -> ASSheetId
 rangeKeyToSheetId key = sid
   where
     parts = splitBy keyPartDelimiter key
-    (Index sid _)   = read2 (head parts) :: ASIndex
+    (Index sid _) = read2 (head parts) :: ASIndex
 
 decoupleCell :: ASCell -> ASCell
 decoupleCell (Cell l (Coupled _ lang _ _) v ts) = Cell l e' v ts
@@ -277,7 +278,7 @@ bStrToTags :: Maybe B.ByteString -> Maybe ASCellProps
 bStrToTags (Just b) = Just (read (BC.unpack b) :: ASCellProps)
 bStrToTags Nothing = Nothing
 
-maybeASCell :: (ASIndex, Maybe ASExpression,Maybe ASValue, Maybe ASCellProps) -> Maybe ASCell
+maybeASCell :: (ASIndex, Maybe ASExpression, Maybe ASValue, Maybe ASCellProps) -> Maybe ASCell
 maybeASCell (l, Just e, Just v, Just tags) = Just $ Cell l e v tags
 maybeASCell _ = Nothing
 
@@ -303,3 +304,7 @@ bStrToASCell (Just str) = Just (read2 (BC.unpack str) :: ASCell)
 bStrToRangeDescriptor :: Maybe B.ByteString -> Maybe RangeDescriptor
 bStrToRangeDescriptor Nothing = Nothing
 bStrToRangeDescriptor (Just str) = Just (read (BC.unpack str) :: RangeDescriptor)
+
+bStrToRangeKeys :: Maybe B.ByteString -> Maybe [RangeKey]
+bStrToRangeKeys Nothing = Nothing
+bStrToRangeKeys (Just str) = Just (read (BC.unpack str) :: [RangeKey])

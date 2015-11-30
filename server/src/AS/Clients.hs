@@ -12,7 +12,7 @@ import AS.Handlers.JumpSelect
 import AS.Handlers.Misc
 
 import qualified AS.Daemon as DM
-import AS.DB.API (getPropsAt, storeLastMessage)
+import AS.DB.API (getPropsAt, storeLastMessage, getCellsInSheet)
 import AS.Dispatch.Core
 import AS.Reply
 import AS.Logging
@@ -69,6 +69,7 @@ instance Client ASUserClient where
       JumpSelect         -> handleJumpSelect user state payload
       MutateSheet        -> handleMutateSheet user state payload
       Drag               -> handleDrag user state payload
+      Decouple           -> handleDecouple user state payload
       SetCondFormatRules -> handleSetCondFormatRules user state payload
       where payload = clientPayload message
       -- Undo         -> handleToggleProp user state (PayloadTags [StreamTag (Stream NoSource 1000)] (Index (T.pack "TEST_SHEET_ID2") (1,1)))
@@ -104,3 +105,5 @@ instance Client ASDaemonClient where
         case msg' of 
           ServerMessage _ (Failure _) _ -> return ()
           otherwise                     -> broadcastFiltered' state msg'
+-- Handlers take message payloads and send the response to the client(s)
+

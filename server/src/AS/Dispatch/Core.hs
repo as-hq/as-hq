@@ -68,7 +68,8 @@ runDispatchCycle state cs src = do
   conn <- dbConn <$> readMVar state
   errOrCells <- runEitherT $ do
     transaction <- dispatch state roots src
-    broadcastCells <- DT.writeTransaction conn transaction-- atomically performs DB ops. (Sort of a lie -- writing to server is not atomic.)
+    -- atomically performs DB ops. (Sort of a lie -- writing to server is not atomic.)
+    broadcastCells <- DT.possiblyWriteTransaction conn transaction
     return broadcastCells
   case errOrCells of 
     Left _ -> G.exec_ Recompute -- #needsrefactor. Overkill. But recording all cells that might have changed is a PITA. (Alex 11/20)
@@ -79,14 +80,17 @@ dispatch :: MVar ServerState -> [ASCell] -> CommitSource -> EitherTExec ASTransa
 dispatch state roots src = do
   conn <- lift $ dbConn <$> readMVar state
   printObjT "STARTING DISPATCH CYCLE WITH CELLS" roots
+  -- For all the original cells, add the edges in the graph DB; parse + setRelations
   rootsDepSets   <- DB.setCellsAncestors roots
   printObjT "Set cell ancestors" rootsDepSets
   descLocs       <- getEvalLocs conn roots
   printObjT "Got eval locations" descLocs
+  -- Turn the descLocs into Cells, but the roots are already given as cells, so no DB actions needed there
   cellsToEval    <- getCellsToEval conn descLocs roots
   printObjT "Got cells to evaluate" cellsToEval
   ancLocs        <- G.getImmediateAncestors descLocs
   printObjT "Got ancestor locs" ancLocs
+  -- The initial lookup cache has the ancestors of all descendants
   initValuesMap  <- lift $ getValuesMap conn ancLocs
   formattedValuesMap <- lift $ formatValsMap initValuesMap
   printObjT "Created initial values map" initValuesMap
@@ -116,7 +120,7 @@ getEvalLocs conn origCells = do
 -- the evaluations in (which includes info about tags, language, and expression string).
 -- Distinguishes between new cells to evaluate (the ones passed into runDispatchCycle)
 -- and old cells already in the database, which all reference the new cells. For the new 
--- cells, just evaluate them as-is; for old cells, pull them from the database.
+-- cells, just evaluate them as-is (we already have the cells); for old cells, pull them from the database.
 getCellsToEval :: Connection -> [ASIndex] -> [ASCell] -> EitherTExec [ASCell]
 getCellsToEval conn locs origCells = do
   let locCellMap = M.fromList $ map (\c -> (cellLocation c, c)) origCells
@@ -208,12 +212,15 @@ evalChain' conn valuesMap [] fatCells pastFatCellHeads _ =
       nonHeadLocs               = filter (not . isFatCellHeadLoc) $ map cellLocation cells
       isNotInMap loc            = loc `M.notMember` valuesMap
   in do
+    printWithTimeT $ "pastCellHeads " ++ (show pastFatCellHeads)
+    printWithTimeT $ "nonHeadLocs " ++ (show nonHeadLocs)
     -- If we've overwritten old cells with list cells, we remove their dependencies from the graph
     -- database. 
     DB.removeAncestorsAt nonHeadLocs
     -- We only need to deal with proper descendants, because the starting locs can't possibly 
     -- be in the value map and don't need to be re-evaluated. 
     nonHeadDescs <- G.getDescendants nonHeadLocs
+    printWithTimeT $ "nonHeadDesc " ++ (show nonHeadDescs)
     -- Check for circular dependencies. IF a circular dependency exists, it necessarily has to
     -- involve one of the list heads, since the cells created as part of a list depend only
     -- on the head. So we go through the descendants of the current list cells (sans the previous
@@ -236,6 +243,7 @@ evalChain' conn valuesMap (c@(Cell loc xp oldVal ts):cs) fatCells fatCellHeads p
   (cvf@(Formatted cv f), deletedLocs) <- case xp of 
     Expression _ _ -> (,) <$> evalResult <*> return []
       where evalResult = EC.evaluateLanguage (locSheetId loc) (cellLocation c) valuesMap xp
+    -- we might receive a non-list-head coupled cell to evaluate during copy/paste, row insertion, etc.  
     -- if we receive a coupled cell to evaluate, and it's the head of the list, we should evaluate, as long as we get rid of cruft.
     -- where "get rid of cruft" = get rid of all the non-head cells first, which is deletedCells
     Coupled str lang _ key -> if (DU.isFatCellHead c)

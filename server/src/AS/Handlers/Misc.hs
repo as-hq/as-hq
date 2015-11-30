@@ -131,7 +131,11 @@ handleDelete uc state (PayloadR rng) = do
   conn <- dbConn <$> readMVar state
   blankedCells <- DB.getBlankedCellsAt locs
   updateMsg <- DP.runDispatchCycle state blankedCells (userCommitSource uc)
-  broadcast state $ makeDeleteMessage rng updateMsg
+  let msg = makeDeleteMessage rng updateMsg
+  case (serverResult msg) of  
+    (Failure _) -> sendToOriginal uc msg
+    DecoupleDuringEval -> sendToOriginal uc msg
+    otherwise -> broadcast state msg
 
 handleClear :: (Client c) => c  -> MVar ServerState -> ASPayload -> IO ()
 handleClear client state payload = case payload of 

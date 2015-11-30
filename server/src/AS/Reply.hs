@@ -51,6 +51,7 @@ sendFilteredLocs msg locs uc = do
 -- Unless there was a failure, in which case send the failure message back to the original user. 
 broadcastFiltered :: MVar ServerState -> ASUserClient -> ASServerMessage -> IO ()
 broadcastFiltered _ orig msg@(ServerMessage _ (Failure _) _) = sendToOriginal orig msg
+broadcastFiltered _ orig msg@(ServerMessage _ (DecoupleDuringEval) _) = sendToOriginal orig msg
 broadcastFiltered state _ msg = broadcastFiltered' state msg
 
 -- | Assumes message is not failure message. (Also assumes the payload is either cells or locations.)

@@ -70,9 +70,9 @@ query q locs =
         return $ result
       "CIRC_DEP" -> do
         let circDepLoc = read2 $ B.unpack $ head reply
-        return $ Left $ CircularDepError circDepLoc
+        return . Left $ CircularDepError circDepLoc
       _ -> do
-        return $ Left DBGraphUnreachable
+        return $ Left UnknownGraphError
 
 -- | Takes in a list of (cell, [list of ancestors of that cell])'s and sets the ancestor relationship in the DB.
 -- Note: ASRelation is of type (ASIndex, [ASIndex])
@@ -98,7 +98,7 @@ setRelations rels =
         let circDepLoc = read2 $ B.unpack $ head reply
         return $ Left $ CircularDepError circDepLoc
       _ -> do
-        return $ Left DBGraphUnreachable
+        return $ Left UnknownGraphError
 
 exec_ :: GraphQuery -> IO ()
 exec_ q = runZMQ $ do 
