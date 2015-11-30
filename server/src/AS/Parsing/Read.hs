@@ -10,13 +10,14 @@ import qualified Data.List as L
 import qualified Data.Map as M
 import Text.Read (readMaybe)
 
+import AS.Types.Cell
 import Text.ParserCombinators.Parsec
 import qualified Text.ParserCombinators.Parsec.Token as P
 import qualified Text.Parsec.Token as O
 import qualified Text.Parsec.Language as Lang (haskellDef)
 import Control.Applicative hiding ((<|>), many)
 
-import AS.Types.Core
+
 import AS.Parsing.Common as C
 import qualified AS.LanguageDefs as LD
 
@@ -48,8 +49,8 @@ asValue lang =
 -----------------------------------------------------------------------------------------------------------------------
 -- primitive parsers
 
-integer :: Parser Int
-integer = fromInteger <$> P.integer lexer
+integer :: Parser Integer
+integer = P.integer lexer
 
 float :: Parser Double
 float = float'

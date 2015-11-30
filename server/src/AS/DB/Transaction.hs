@@ -2,11 +2,11 @@ module AS.DB.Transaction where
 
 import Prelude
 
-import AS.Types.Core
+import AS.Types.Cell
 import AS.Types.DB
 import AS.DB.API as DB
 import AS.DB.Util as DU
-import AS.Util as U
+import AS.Logging
 
 import Database.Redis hiding (time)
 import qualified Data.Text as T
@@ -31,48 +31,42 @@ getDecouplingEffects conn sid cells fcells =
   let locs = map cellLocation cells
       keys = map (descriptorKey . descriptor) fcells
   in do
-    rangeKeysChangedByCells <- liftIO $ DU.getFatCellIntersections conn sid (Left locs)
+    rangeKeysChangedByCells    <- liftIO $ DU.getFatCellIntersections conn sid (Left locs)
     rangeKeysChangedByFatCells <- liftIO $ DU.getFatCellIntersections conn sid (Right keys)
     let rangeKeysChanged = rangeKeysChangedByCells ++ rangeKeysChangedByFatCells
-    let decoupledLocs = concat $ map DU.rangeKeyToIndices rangeKeysChanged
+    let decoupledLocs    = concat $ map DU.rangeKeyToIndices rangeKeysChanged
     return decoupledLocs
 
 -- | Deal with updating all DB-related things after an eval. 
 possiblyWriteTransaction :: Connection -> ASTransaction -> EitherTExec [ASCell]
-possiblyWriteTransaction conn (Transaction src@(sid, _) afterCells fatCells deletedLocs) = 
-  let extraCells       = concat $ map expandedCells fatCells
-      locs             = map cellLocation afterCells
-      deletedCells     = U.blankCellsAt deletedLocs
-      afterCells'      = U.mergeCells (afterCells ++ extraCells) deletedCells
+possiblyWriteTransaction conn (Transaction src@(sid, _) afterCells afterDescriptors deletedLocs) = 
+  let deletedCells     = blankCellsAt deletedLocs
+      afterCells'      = mergeCells afterCells deletedCells
       locs'            = map cellLocation afterCells'
-      rangeKeys        = map (descriptorKey . descriptor) fatCells
-      afterDescriptors = map descriptor fatCells
+      rangeKeys        = map descriptorKey afterDescriptors
   in do
     printWithTimeT $ "GOT DELETED LOCS: " ++ (show $ map show2 deletedLocs)
     beforeCells <- lift $ catMaybes <$> DB.getCells locs'
     -- determine all fatcell intersections produced by eval
-    rangeKeysChangedByCells <- liftIO $ DU.getFatCellIntersections conn sid (Left locs)
-    rangeKeysChangedByFatCells <- liftIO $ DU.getFatCellIntersections conn sid (Right rangeKeys)
-    let rangeKeysChanged = rangeKeysChangedByCells ++ rangeKeysChangedByFatCells
+    rangeKeysChanged <- liftIO $ DU.getFatCellIntersections conn sid (Left locs')
     -- hold on to the decoupled descriptors 
     beforeDescriptors <- liftIO $ map fromJust <$> mapM (DB.getRangeDescriptor conn) rangeKeysChanged
     printWithTimeT $ "Range keys changed: " ++ (show rangeKeysChanged)
+    -- decouple the intersected fat cells
     time <- lift $ getASTime
     if (length rangeKeysChanged == 0) -- no decoupling; decoupledCells = []
       then do 
-      let afterCells''    = U.mergeCells afterCells' []
-          beforeCells'    = U.mergeCells beforeCells []
-      let commit = Commit beforeCells' afterCells'' beforeDescriptors afterDescriptors time
+      let commit = Commit beforeCells afterCells' beforeDescriptors afterDescriptors time
       -- set the database if there are no decouplings (if decoupling should happen, issue a warning to user)
       liftIO $ updateDBAfterEval conn src commit
-      right  $ afterCells''
+      right  $ afterCells'
       else do 
         -- make a note of the temp commit in the DB, actually make the commit later on if user says OK
         -- In the line below, we don't actually change any range keys in the DB
         coupledCells <- lift $ concat <$> (mapM (getCellsBeforeDecoupling conn) rangeKeysChanged)
         let decoupledCells  = map DU.decoupleCell coupledCells
-            afterCells''    = U.mergeCells afterCells' decoupledCells
-            beforeCells'    = U.mergeCells beforeCells coupledCells
+            afterCells''    = mergeCells afterCells' decoupledCells
+            beforeCells'    = mergeCells beforeCells coupledCells
         let commit = Commit beforeCells' afterCells'' beforeDescriptors afterDescriptors time
         liftIO $ setTempCommit conn commit src
         liftIO $ setRangeKeysChanged conn rangeKeysChanged src
@@ -86,14 +80,13 @@ updateDBAfterEval conn src c@(Commit beforeCells' afterCells'' beforeDescriptors
   mapM_ (couple conn) afterDescriptors
   pushCommit conn c src
 
-
 ----------------------------------------------------------------------------------------------------------------------
 -- helpers
 
 couple :: Connection -> RangeDescriptor -> IO ()
 couple conn desc = 
   let rangeKey        = descriptorKey desc 
-      rangeKey'       = id $! B.pack rangeKey 
+      rangeKey'       = B.pack rangeKey 
       sheetRangesKey  = DU.makeSheetRangesKey $ DU.rangeKeyToSheetId rangeKey
       rangeDescriptor = B.pack $ show desc
   in runRedis conn $ do
@@ -135,7 +128,7 @@ getFatCellsInRange conn rng = do
   rangeKeys <- DU.makeRangeKeysInSheet conn sid
   let rects = map DU.rangeRect rangeKeys
       zipRects = zip rangeKeys rects
-      zipRectsContained = filter (\(_,rect) -> U.rangeContainsRect rng rect) zipRects
+      zipRectsContained = filter (\(_, rect) -> rangeContainsRect rng rect) zipRects
   return $ map fst zipRectsContained
 
   -- | Makes sure everything is synced -- the listKeys and ancestors in graph db should reflect 
@@ -174,10 +167,8 @@ popKey (sid, uid)  = B.pack $ (T.unpack sid) ++ '|':(T.unpack uid) ++ "popped"
 undo :: Connection -> CommitSource -> IO (Maybe ASCommit)
 undo conn src = do
   commit <- runRedis conn $ do
-    TxSuccess justC <- multiExec $ do
-      commit <- rpoplpush (pushKey src) (popKey src)
-      return commit
-    return $ DU.bStrToASCommit justC
+    (Right commit) <- rpoplpush (pushKey src) (popKey src)
+    return $ DU.bStrToASCommit commit
   case commit of
     Nothing -> return Nothing
     Just c@(Commit b a bd ad t) -> do
@@ -190,7 +181,7 @@ redo conn src = do
   commit <- runRedis conn $ do
     Right result <- lpop (popKey src)
     case result of
-      (Just commit) -> do
+      Just commit -> do
         rpush (pushKey src) [commit]
         return $ DU.bStrToASCommit (Just commit)
       _ -> return Nothing

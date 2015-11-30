@@ -1,7 +1,7 @@
 module AS.Config.Settings where
 
 import Prelude
-import AS.Types.Core
+import AS.Types.Network
 
 wsAddress = "0.0.0.0"
 wsDefaultPort= 5000 :: Port

@@ -1,6 +1,6 @@
 module AS.Kernels.OCaml where
 
-import AS.Types.Core
+import AS.Types.Cell
 
 import AS.Kernels.Common
 import AS.Kernels.LanguageUtils
@@ -8,7 +8,7 @@ import AS.Kernels.LanguageUtils
 import AS.Parsing.Read
 
 import AS.Config.Settings
-import AS.Util
+import AS.Logging
 
 -- EitherT
 import Control.Monad.Trans.Class

@@ -1,7 +1,9 @@
 module AS.Daemon where
 
 import Prelude
-import AS.Types.Core
+import AS.Types.Cell
+import AS.Types.Messages
+import AS.Types.Network
 
 import Data.Char (isPunctuation, isSpace)
 import Data.Monoid (mappend)
@@ -44,17 +46,23 @@ getConnByLoc loc state = do
     [] -> return Nothing
     d -> return $ Just $ daemonConn $  L.head d 
 
+-- | If it's something like TODAY() + DATE(), figure that out and automatically make the
+-- cell stream. 
+-- TODO: implement
+getStreamPropFromExpression :: ASExpression -> Maybe Stream
+getStreamPropFromExpression _ = Nothing
+
 -- | Creates a streaming daemon for this cell if one of the tags is a streaming tag. 
 possiblyCreateDaemon :: MVar ServerState -> ASUserId -> ASCell -> IO ()
-possiblyCreateDaemon state owner cell@(Cell loc xp val ts) = do 
+possiblyCreateDaemon state owner cell@(Cell loc xp val props) = do 
   let msg = ClientMessage Evaluate (PayloadCL [cell])
-  case (U.getStreamTag ts) of 
+  case getProp StreamInfoProp props of 
     Nothing -> do 
-      let maybeTag = U.getStreamTagFromExpression xp 
+      let maybeTag = getStreamPropFromExpression xp
       case maybeTag of 
         Nothing -> return ()
         Just tag -> createDaemon state tag loc msg
-    Just sTag -> createDaemon state sTag loc msg
+    Just (StreamInfo s) -> createDaemon state s loc msg
 
 -- | Creates a streaming daemon to regularly update the cell at a location. 
 -- Does so by creating client that talks to server, pinging it with the regularity 

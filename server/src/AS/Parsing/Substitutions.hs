@@ -1,4 +1,10 @@
-module AS.Parsing.Substitutions where
+module AS.Parsing.Substitutions (
+    replaceRefs
+  , getExcelReferences
+  , getDependencies
+  , shiftExpression
+  , shiftCell
+  ) where
 
 import Prelude
 
@@ -6,8 +12,11 @@ import Text.ParserCombinators.Parsec
 import Control.Applicative hiding ((<|>), many)
 import AS.Parsing.Excel
 import AS.Types.Excel
+import AS.Types.Cell
+import AS.Types.Locations
+import AS.Types.Sheets
 import AS.Kernels.Excel.Compiler (formula)
-import AS.Types.Core
+
 import AS.Util
 
 -------------------------------------------------------------------------------------------------------------------------------------------------
@@ -93,16 +102,13 @@ replaceRefs f xp = xp'
 -------------------------------------------------------------------------------------------------------------------------------------------------
 -- Helpers
 
+-- | Returns the list of excel references in an ASExpression. 
+getExcelReferences :: ASExpression -> [ExRef]
+getExcelReferences xp = snd $ getUnquotedMatchesWithContext xp refMatch
+
 -- | Returns the list of dependencies in ASExpression. 
 getDependencies :: ASSheetId -> ASExpression -> [ASReference]
-getDependencies sheetid xp = deps
-  where
-    (_, exRefs) = getUnquotedMatchesWithContext xp refMatch -- the only place that Parsec is used
-    deps = map (exRefToASRef sheetid) exRefs
-
--- | Takes in a list of ExRef's and converts them to a list of ASIndex's.
-getASRefsFromExRefs :: ASSheetId -> [ExRef] -> [ASReference]
-getASRefsFromExRefs sheetid matches = map (exRefToASRef sheetid) matches
+getDependencies sheetId = map (exRefToASRef sheetId) . getExcelReferences
 
 
 ----------------------------------------------------------------------------------------------------------------------------------
@@ -110,26 +116,14 @@ getASRefsFromExRefs sheetid matches = map (exRefToASRef sheetid) matches
 
 -- | Takes in an offset and a cell, and returns the cell you get when you shift the cell by
 -- the offset. (The location changes, and the non-absolute references in the expression changes.)
+
+shiftExpression :: Offset -> ASExpression -> ASExpression
+shiftExpression offset xp = replaceRefs (show . (shiftExRef offset)) xp
+
+-- | Shift the cell's location, and shift all references satisfying the condition passed in. 
 shiftCell :: Offset -> ASCell -> ASCell
 shiftCell offset (Cell loc xp v ts) = cell'
   where
     loc'  = shiftInd offset loc
-    xp'   = replaceRefs (show . (shiftExRef offset)) xp
+    xp'   = shiftExpression offset xp
     cell' = Cell loc' xp' v ts
-
--- | Offsets all the references in an expression that are contained in the cut range (passed in as 
--- the argument "from"). 
-shiftExpressionForCut :: ASRange -> Offset -> ASExpression -> ASExpression
-shiftExpressionForCut from offset xp = xp' 
-  where 
-    fromSid     = rangeSheetId from
-    shouldShift = (rangeContainsRef from) . (exRefToASRef fromSid)
-    shiftFunc   = \ref -> if (shouldShift ref) then (shiftExRefForced offset ref) else ref
-    xp'         = replaceRefs (show . shiftFunc) xp
-
--- | Shift the cell's location, and shift all references satisfying the condition passed in. 
-replaceCellLocs :: (ASIndex -> ASIndex) -> ASCell -> ASCell
-replaceCellLocs f c = c { cellLocation = f $ cellLocation c }
-
-replaceCellExpressions :: (ASExpression -> ASExpression) -> ASCell -> ASCell
-replaceCellExpressions f c = c { cellExpression = f $ cellExpression c }

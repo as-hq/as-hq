@@ -5,47 +5,43 @@ module Main where
 
 import System.Environment (getArgs)
 
-import Prelude
-import Data.Char (isPunctuation, isSpace)
-import Data.Monoid (mappend)
-import Data.Text (Text)
-import Control.Exception
-import Control.Monad (forM_, forever, when)
-import Control.Concurrent (MVar, newMVar, modifyMVar_, modifyMVar, readMVar)
-import Control.Monad.IO.Class (liftIO)
-import qualified Data.Text as T
-import qualified Data.Text.IO as T
-import Data.Aeson hiding (Success)
-import qualified Data.ByteString.Char8 as BC 
-import qualified Data.ByteString.Lazy.Char8 as B
-import qualified Data.List as L
-import qualified Network.WebSockets as WS
-
-import Data.Maybe (fromJust, isNothing)
-import Text.Read (readMaybe)
-
-import qualified Database.Redis as R
-
-import AS.Clients
-import AS.Types.Core
+import AS.Types.Messages
+import AS.Types.Network
+import AS.Types.Locations
 import AS.Config.Settings as S
-import AS.Util
+
 import AS.Users
+import AS.Clients
+import AS.Logging
+import AS.Window
+import AS.Util (sendMessage)
 import AS.Config.Paths
 import AS.DB.API as DB
 import AS.DB.Graph as G
 import AS.DB.Util as DBU
 import AS.Users as US
 
+import Prelude
+import Control.Exception
+import Control.Monad (forM_, forever, when)
+import Control.Concurrent
+import Control.Monad.IO.Class (liftIO)
+
+import qualified Data.Text as T
+import qualified Data.ByteString.Lazy.Char8 as B
+import qualified Data.List as L
+
+import qualified Network.WebSockets as WS
+import qualified Database.Redis as R
+
+import Data.Aeson hiding (Success)
+import Data.Maybe
+
+import Text.Read (readMaybe)
+
 -- debugging
 import AS.Kernels.Python.Eval as KP
-import AS.Kernels.LanguageUtils as KL
-import AS.Kernels.Excel.Compiler as KE
 import Text.ParserCombinators.Parsec (parse)
-import AS.Parsing.Read as PR
-import AS.Parsing.Excel (refMatch, sheetWorkbookMatch, exRefToASRef, asRefToExRef, shiftExRef)
-import AS.Types.Excel
-import AS.Dispatch.Core as DC
 
 -- EitherT
 import Control.Monad.Trans.Class
@@ -72,8 +68,6 @@ main = R.withEmbeddedR R.defaultConfig $ do
 
 initApp :: IO (R.Connection, [Port], [MVar ServerState])
 initApp = do
-  -- init eval
-  mapM_ KL.clearReplRecord [Python] -- clear/write repl record files
   runEitherT $ KP.evaluate (T.pack "") "\'test!\'" -- force load C python sources so that first eval isn't slow
   -- init R
   R.runRegion $ do
@@ -99,10 +93,10 @@ initApp = do
 -- |  for debugging. Only called if isDebug is true.
 initDebug :: R.Connection -> MVar ServerState -> IO ()
 initDebug conn state = do
-  let str = "{\"tag\": \"Expanding\", \"arrayVals\": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], \"expandingType\": \"NPArray\"}"
-  --let str = "{\"tag\": \"CellValue\", \"cellValueType\": \"Error\", \"errorMsg\": \"name\", \"errorType\": \"name\"}"
-  --let str = "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]"
-  putStrLn $ show $ parse (PR.json Python) "" str
+  -- let str = "{\"tag\": \"Expanding\", \"arrayVals\": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], \"expandingType\": \"NPArray\"}"
+  -- --let str = "{\"tag\": \"CellValue\", \"cellValueType\": \"Error\", \"errorMsg\": \"name\", \"errorType\": \"name\"}"
+  -- --let str = "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]"
+  -- putStrLn $ show $ parse (PR.json Python) "" str
   return ()
 
 application :: MVar ServerState -> WS.ServerApp
@@ -178,7 +172,7 @@ handleRuntimeException :: ASUserClient -> MVar ServerState -> SomeException -> I
 handleRuntimeException user state e = do
   let logMsg = "Runtime error caught: " ++ (show e)
   putStrLn logMsg
-  writeErrToLog logMsg (clientCommitSource user)
+  writeErrToLog logMsg (userCommitSource user)
   port <- appPort     <$> readMVar state
   purgeZombies state
   WS.runServer S.wsAddress port $ application state

@@ -1,10 +1,11 @@
 module AS.LanguageDefs where
 
 import Prelude
+import AS.Types.Cell
 
 import qualified Data.List as L
 
-import AS.Types.Core
+
 
 -----------------------------------------------------------------------------------------------------------------------
 -- functions

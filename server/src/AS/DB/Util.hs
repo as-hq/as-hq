@@ -2,9 +2,10 @@ module AS.DB.Util where
 
 import Prelude
 
-import AS.Types.Core
 import AS.Types.DB
+import AS.Types.Cell
 import AS.Util as U
+import AS.Logging
 import AS.Parsing.Common (tryParseListNonIso)
 import AS.Parsing.Read (integer)
 import AS.Parsing.Show (showPrimitive)
@@ -39,9 +40,6 @@ import Foreign.C
 
 ----------------------------------------------------------------------------------------------------------------------
 -- Settings
-
-dagChunkSize :: Int
-dagChunkSize = 1000
 
 -- | Haskell Redis connection object
 cInfo :: ConnectInfo
@@ -118,21 +116,15 @@ getCellsByKeys keys = getCellsByMessage msg num
 -- takes a message and number of locations queried
 getCellsByMessage :: B.ByteString -> Int -> IO [Maybe ASCell]
 getCellsByMessage msg num = do
-  --putStrLn $ "get cells by key with num: " ++ (show num) ++ ", " ++ (show msg)
-  ptrCells <- BU.unsafeUseAsCString msg $ \str -> do
-    printWithTime "built message"
-    c <- c_getCells str (fromIntegral num)
-    return c
-  cCells <- peekArray (fromIntegral num) ptrCells
-  res <- mapM cToASCell cCells
+  ptrCells <- BU.unsafeUseAsCString msg $ \str -> c_getCells str (fromIntegral num)
+  cCells   <- peekArray (fromIntegral num) ptrCells
+  res      <- mapM cToASCell cCells
   printObj "got cells" res
-  -- free ptrCells
+  free ptrCells
   return res
 
 setCellsByMessage :: B.ByteString -> Int -> IO ()
-setCellsByMessage msg num = do
-  _ <- BU.unsafeUseAsCString msg $ \lstr -> c_setCells lstr (fromIntegral num)
-  return ()
+setCellsByMessage msg num = BU.unsafeUseAsCString msg $ \lstr -> c_setCells lstr (fromIntegral num)
 
 deleteLocRedis :: ASIndex -> Redis ()
 deleteLocRedis loc = del [makeLocationKey loc] >> return ()
@@ -179,11 +171,19 @@ getFatCellIntersections conn sid (Left locs) = do
     anyLocsContainedInRect ls r = any id $ map (indexInRect r) ls
     indexInRect ((a',b'),(a2',b2')) (Index _ (a,b)) = a >= a' && b >= b' &&  a <= a2' && b <= b2'
 
+-- ::ALEX:: why does this case exist? 
 getFatCellIntersections conn sid (Right keys) = do
   rangeKeys <- makeRangeKeysInSheet conn sid
   printObj "Checking intersections against keys" keys
   return $ L.intersectBy keysIntersect rangeKeys keys
-    where keysIntersect k1 k2 = rectsIntersect (rangeRect k1) (rangeRect k2)
+    where 
+      rectsIntersect ((y,x),(y2,x2)) ((y',x'),(y2',x2'))
+        | y2 < y' = False 
+        | y > y2' = False
+        | x2 < x' = False 
+        | x > x2' = False
+        | otherwise = True 
+      keysIntersect k1 k2 = rectsIntersect (rangeRect k1) (rangeRect k2)
 
 rangeRect :: RangeKey -> Rect
 rangeRect key = ((col, row), (col + width - 1, row + height - 1))
@@ -208,7 +208,7 @@ rangeKeyToSheetId :: RangeKey -> ASSheetId
 rangeKeyToSheetId key = sid
   where
     parts = splitBy keyPartDelimiter key
-    (Index sid _)   = read2 (head parts) :: ASIndex
+    (Index sid _) = read2 (head parts) :: ASIndex
 
 decoupleCell :: ASCell -> ASCell
 decoupleCell (Cell l (Coupled _ lang _ _) v ts) = Cell l e' v ts
@@ -264,11 +264,11 @@ bStrToASValue :: Maybe B.ByteString -> Maybe ASValue
 bStrToASValue (Just b) = Just (read2 (BC.unpack b) :: ASValue)
 bStrToASValue Nothing = Nothing
 
-bStrToTags :: Maybe B.ByteString -> Maybe [ASCellTag]
-bStrToTags (Just b) = Just (read (BC.unpack b) :: [ASCellTag])
+bStrToTags :: Maybe B.ByteString -> Maybe ASCellProps
+bStrToTags (Just b) = Just (read (BC.unpack b) :: ASCellProps)
 bStrToTags Nothing = Nothing
 
-maybeASCell :: (ASIndex, Maybe ASExpression,Maybe ASValue, Maybe [ASCellTag]) -> Maybe ASCell
+maybeASCell :: (ASIndex, Maybe ASExpression, Maybe ASValue, Maybe ASCellProps) -> Maybe ASCell
 maybeASCell (l, Just e, Just v, Just tags) = Just $ Cell l e v tags
 maybeASCell _ = Nothing
 

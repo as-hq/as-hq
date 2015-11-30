@@ -1,25 +1,20 @@
 module AS.Eval.Endware where
 
 import Prelude
-import AS.Types.Core
+import AS.Types.Cell
+import AS.Types.Commits
+import AS.Types.Network
+
+import AS.Eval.CondFormat
 import AS.Util as U
-import qualified Data.List as L
-
-import Data.Char (isPunctuation, isSpace, toUpper)
-import Data.Monoid (mappend)
-import Data.Text (Text)
-import Control.Exception 
-import Control.Monad (forM_, forever)
-import Control.Concurrent (MVar, newMVar, modifyMVar_, modifyMVar, readMVar)
-import Control.Monad.IO.Class (liftIO)
-import qualified Data.Text as T
-import qualified Data.Text.IO as T
-import Data.Aeson hiding (Success)
-import Data.ByteString.Char8 hiding (putStrLn,filter,any,length)
-import Data.ByteString.Lazy.Char8 as B hiding (putStrLn,filter,any,length)
-import qualified Network.WebSockets as WS
-
+import AS.DB.API as DB
 import AS.Daemon as DM
+
+
+import Control.Monad.Trans.Class (lift)
+import qualified Network.WebSockets as WS
+import Database.Redis as R
+import Control.Concurrent
 
 
 -- | Here, we apply a stack of endwares.
@@ -27,12 +22,13 @@ import AS.Daemon as DM
 -- | Examples: green(x) in python -> produces styled value with string in output -> string parsed to Color tag
 -- | Bloomberg(x) in java -> produces json with stream specs -> converted to Stream tag, kickoff daemon
 
-evalEndware :: MVar ServerState -> [ASCell] -> CommitSource -> [ASCell] -> IO [ASCell]
-evalEndware state finalCells (_, uid) origCells = do 
-  let newCells = changeExcelExpressions finalCells
-  mapM_ (DM.possiblyCreateDaemon state uid) origCells
-  return newCells
-  -- let newCells = (tagStyledCells . (changeExcelExpressions origCell)) finalCells
+evalEndware :: MVar ServerState -> [ASCell] -> CommitSource -> [ASCell] -> FormattedValMap -> EitherTExec [ASCell]
+evalEndware state finalCells (sid, uid) origCells valMap = do 
+  conn <- lift $ dbConn <$> readMVar state
+  mapM_ (\c -> lift $ DM.possiblyCreateDaemon state uid c) origCells
+  let cells1 = changeExcelExpressions finalCells
+  cells2 <- conditionallyFormatCells conn sid cells1 valMap
+  return cells2
    
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Endwares
@@ -50,11 +46,3 @@ changeExcelExpressions = id
 -- 				e' = L.map toUpper e
 -- 		upperCase c = c
 -- #incomplete should change all function names to upper-cased forms
-
-
-----------------------------------------------------------------------------------------------------------------------------------------------
-
-
-
-
-

@@ -1,10 +1,18 @@
-module AS.Dispatch.Expanding where
+module AS.Dispatch.Expanding
+  ( decomposeCompositeValue
+  , recomposeCells
+  , decomposeCells
+  , getDimensions
+  , recomposeCompositeValue
+  ) where
 
 import Prelude
 
-import AS.Types.Core
+import AS.Types.Cell
 import AS.DB.Util as DU
 import AS.Util as U
+
+import Data.List.Split (chunksOf)
 
 import qualified Data.Map as M
 import qualified Data.List as L
@@ -91,9 +99,6 @@ getDimensions coll = case coll of
   A arr -> (length arr, 1)
   M mat -> (length mat, maximum $ map length mat) 
 
-prependColumn :: Array -> Matrix -> Matrix
-prependColumn arr mat = map (\(x,xs) -> x:xs) $ zip arr mat
-
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- value recomposition
 
@@ -152,11 +157,22 @@ recomposeCompositeValue (FatCell cells (RangeDescriptor key PSeries attrs)) = Ex
 recomposeCells :: Dimensions -> [ASCell] -> Collection
 recomposeCells dims cells = case (snd dims) of 
   1 -> A $ map cellValue cells
-  _ -> M . L.transpose $ map (\row -> map cellValue row) $ U.reshapeList cells (snd dims, fst dims)
+  _ -> M . L.transpose $ map (\row -> map cellValue row) $ reshapeList cells (snd dims, fst dims)
+
+----------------------------------------------------------------------------------------------------------------------------------------------
+-- Helpers
 
 -- transposes non-rectangular matrices by filling in gaps with NoValue
+reshapeList :: [a] -> Dimensions -> [[a]]
+reshapeList xs (height, width) = case width of 
+  1 -> error "cannot reshape into 1-dimensional list"
+  _ -> chunksOf width xs
+
 transpose' :: [[ASValue]] -> [[ASValue]]
 transpose' vals = L.transpose matrixified
   where
     width       = maximum $ map length vals
     matrixified = map (\row -> take width $ row ++ (repeat NoValue)) vals
+
+prependColumn :: Array -> Matrix -> Matrix
+prependColumn arr mat = map (\(x,xs) -> x:xs) $ zip arr mat

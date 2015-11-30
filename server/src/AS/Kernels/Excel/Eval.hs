@@ -1,7 +1,8 @@
 module AS.Kernels.Excel.Eval where
 
-import AS.Types.Core
+
 import AS.Types.Excel
+import AS.Types.Cell
 import Data.List (transpose)
 
 import AS.Kernels.Excel.Compiler as C

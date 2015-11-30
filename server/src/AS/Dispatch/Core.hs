@@ -8,11 +8,14 @@ import qualified Data.List  as L
 import Data.Maybe (fromJust, isNothing, catMaybes)
 import Text.ParserCombinators.Parsec
 import Control.Applicative
-import Data.Time.Clock
 import Data.Text as T (unpack,pack)
 import Control.Exception.Base
 
-import AS.Types.Core
+import AS.Types.Cell
+import AS.Types.CellProps
+import AS.Types.Messages
+import AS.Types.Network
+
 import AS.Types.DB
 import AS.Dispatch.Expanding        as DE
 import qualified AS.Eval.Core       as EC (evaluateLanguage)
@@ -23,6 +26,7 @@ import AS.Util                      as U
 import AS.Eval.Middleware           as EM
 import AS.Eval.Endware              as EE
 import qualified AS.DB.Graph        as G
+import AS.Logging
 import AS.Parsing.Common
 import AS.Parsing.Show hiding (first)
 import AS.Parsing.Read
@@ -46,7 +50,7 @@ import Control.Monad.Trans.Either
 -- Debugging
 
 testDispatch :: MVar ServerState -> ASLanguage -> Coord -> String -> IO ASServerMessage
-testDispatch state lang crd str = runDispatchCycle state [Cell (Index sid crd) (Expression str Python) NoValue []] (sid, uid)
+testDispatch state lang crd str = runDispatchCycle state [Cell (Index sid crd) (Expression str Python) NoValue emptyProps] (sid, uid)
   where 
     sid = T.pack "sheetid"
     uid = T.pack "userid"
@@ -70,7 +74,7 @@ runDispatchCycle state cs src = do
   case errOrCells of 
     Left _ -> G.exec_ Recompute -- #needsrefactor. Overkill. But recording all cells that might have changed is a PITA. (Alex 11/20)
     _      -> return ()
-  return $ U.makeUpdateMessage errOrCells
+  return $ makeUpdateMessage errOrCells
 
 dispatch :: MVar ServerState -> [ASCell] -> CommitSource -> EitherTExec ASTransaction
 dispatch state roots src = do
@@ -91,10 +95,12 @@ dispatch state roots src = do
   formattedValuesMap <- lift $ formatValsMap initValuesMap
   printObjT "Created initial values map" initValuesMap
   printWithTimeT "Starting eval chain"
-  (afterCells, fatCells, deletedLocs) <- evalChain conn formattedValuesMap cellsToEval src -- start with current cells, then go through descendants
+  (afterCells, fatCells, deletedLocs, afterValMap) <- evalChain conn formattedValuesMap cellsToEval src -- start with current cells, then go through descendants
   -- Apply endware
-  finalizedCells <- lift $ EE.evalEndware state afterCells src roots
-  right $ Transaction src finalizedCells fatCells deletedLocs
+  let afterCells' = L.union afterCells $ concat $ map expandedCells fatCells
+      afterDescriptors = map descriptor fatCells
+  finalizedCells <- EE.evalEndware state afterCells' src roots afterValMap
+  right $ Transaction src finalizedCells afterDescriptors deletedLocs
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Eval building blocks
@@ -155,13 +161,7 @@ retrieveValue c = case c of
 
 formatCell :: Maybe FormatType -> ASCell -> ASCell
 formatCell Nothing c = c
-formatCell (Just f) c = c' 
-  where 
-    ts  = cellTags c
-    ts' = filter (U.differentTagType (Format f)) ts -- the cell without that tag
-    c' = case f of 
-      NoFormat -> c { cellTags = ts' }
-      _        -> c { cellTags = (Format f):ts' }
+formatCell (Just f) c@(Cell _ _ _ cellProps) = c { cellProps = setProp (ValueFormat f) cellProps } 
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- EvalChain
@@ -170,12 +170,12 @@ formatCell (Just f) c = c'
 -- cell that's updated. The cells passed in are guaranteed to be topologically sorted, i.e.,
 -- if a cell references an ancestor, that ancestor is guaranteed to already have been
 -- added in the map.
-evalChain :: Connection -> FormattedValMap -> [ASCell] -> CommitSource -> EitherTExec ([ASCell], [FatCell], [ASIndex])
+evalChain :: Connection -> FormattedValMap -> [ASCell] -> CommitSource -> EitherTExec ([ASCell], [FatCell], [ASIndex], FormattedValMap)
 evalChain conn valuesMap cells src = 
   let whenCaught e = do
-          printObj "Runtime exception caught" (e :: SomeException)
-          U.writeErrToLog ("Runtime exception caught" ++ (show e)) src
-          return $ Left RuntimeEvalException
+        printObj "Runtime exception caught" (e :: SomeException)
+        writeErrToLog ("Runtime exception caught" ++ (show e)) src
+        return $ Left RuntimeEvalException
   in do
     result <- liftIO $ catch (runEitherT $ evalChain' conn valuesMap cells [] [] []) whenCaught
     hoistEither result
@@ -201,8 +201,8 @@ evalChain conn valuesMap cells src =
 -- locations into actual blank cells and delete them. 
 -- 
 -- #needsrefactor there's probably a more Haskell way of doing this with a state monad or something.
-evalChain' :: Connection -> FormattedValMap -> [ASCell] -> [FatCell] -> [ASIndex] -> [ASIndex] -> EitherTExec ([ASCell], [FatCell], [ASIndex])
-evalChain' _ _ [] [] _ _ = return ([], [], [])
+evalChain' :: Connection -> FormattedValMap -> [ASCell] -> [FatCell] -> [ASIndex] -> [ASIndex] -> EitherTExec ([ASCell], [FatCell], [ASIndex], FormattedValMap)
+evalChain' _ valMap [] [] _ _ = return ([], [], [], valMap)
 
 evalChain' conn valuesMap [] fatCells pastFatCellHeads _ = 
   -- get expanded cells from fat cells
@@ -239,7 +239,7 @@ evalChain' conn valuesMap [] fatCells pastFatCellHeads _ =
     cells' <- getCellsToEval conn nextLocs [] -- the origCells are the list cells, which got filtered out of nextLocs
     evalChain' conn (M.union valuesMap formattedNewMap) cells' [] pastFatCellHeads []
 
-evalChain' conn valuesMap (c@(Cell loc xp _ ts):cs) fatCells fatCellHeads pastDeletedLocs = do
+evalChain' conn valuesMap (c@(Cell loc xp oldVal ts):cs) fatCells fatCellHeads pastDeletedLocs = do
   (cvf@(Formatted cv f), deletedLocs) <- case xp of 
     Expression _ _ -> (,) <$> evalResult <*> return []
       where evalResult = EC.evaluateLanguage (locSheetId loc) (cellLocation c) valuesMap xp
@@ -248,7 +248,7 @@ evalChain' conn valuesMap (c@(Cell loc xp _ ts):cs) fatCells fatCellHeads pastDe
     -- where "get rid of cruft" = get rid of all the non-head cells first, which is deletedCells
     Coupled str lang _ key -> if (DU.isFatCellHead c)
       then (,) <$> evalResult <*> return decoupleLocs
-      else left WillNotEvaluate
+      else (,) <$> (return $ Formatted (CellValue oldVal) (formatType <$> getProp ValueFormatProp ts)) <*> return [] -- temporary patch -- eval needs to get restructured
         where evalResult = EC.evaluateLanguage (locSheetId loc) (cellLocation c) valuesMap xp'
               xp' = Expression str lang
               decoupleLocs = DU.rangeKeyToIndices key
@@ -269,7 +269,7 @@ evalChain' conn valuesMap (c@(Cell loc xp _ ts):cs) fatCells fatCellHeads pastDe
       (fatCells', fatCellHeads') = case maybeFatCell of
                 Nothing -> (fatCells, fatCellHeads)
                 Just f  -> (f:fatCells, loc:fatCellHeads)
-  (restCells, restFatCells, restDeletedLocs) <- evalChain' conn newValuesMap cs fatCells' fatCellHeads' []
+  (restCells, restFatCells, restDeletedLocs, restValuesMap) <- evalChain' conn newValuesMap cs fatCells' fatCellHeads' []
   -- TODO investigate strictness here
   let (CellValue v) = cv
       newCell       = formatCell f (Cell loc xp v ts)
@@ -278,7 +278,7 @@ evalChain' conn valuesMap (c@(Cell loc xp _ ts):cs) fatCells fatCellHeads pastDe
           Just fatCell -> (restCells, fatCell:restFatCells)
       resultDeletedLocs = pastDeletedLocs ++ deletedLocs ++ restDeletedLocs
 
-  right (resultCells, resultFatCells, resultDeletedLocs)
+  right (resultCells, resultFatCells, resultDeletedLocs, restValuesMap)
 
 
  ---- now, we check if evalChain caused anything to be decoupled, and propagate the decoupleds'

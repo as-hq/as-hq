@@ -1,7 +1,8 @@
 module AS.Kernels.Excel.Util where
 
-import AS.Types.Core
+
 import AS.Types.Excel
+import AS.Types.Cell
 import AS.Kernels.Excel.Compiler
 import AS.Util
 import AS.DB.API
@@ -71,7 +72,7 @@ doubleToResult :: Double -> EResult
 doubleToResult = valToResult . EValueNum . return . EValueD
 
 intToResult :: Int ->  EResult
-intToResult = valToResult . EValueNum . return . EValueI
+intToResult = valToResult . EValueNum . return . EValueI . fromIntegral
 
 -------------------------------------------------------------------------------------------------------------
 -- | Other conversion functions

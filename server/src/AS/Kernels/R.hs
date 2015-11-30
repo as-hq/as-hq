@@ -2,16 +2,23 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE DataKinds #-}
 
-module AS.Kernels.R where
+module AS.Kernels.R
+  ( evaluate
+  , evaluateRepl
+  , evaluateHeader
+  ) where
 
-import AS.Types.Core
-
+import AS.Types.Cell (ASLanguage( R ))
+import AS.Types.Eval
+import AS.Types.Errors
+import AS.Types.Sheets
 import AS.Kernels.Common
 import AS.Kernels.LanguageUtils
 
 import AS.Config.Settings
 import AS.Config.Paths (getImagesPath)
-import AS.Util
+import AS.Logging
+import AS.Util (getUniqueId, trace')
 
 import Data.List (elem, transpose)
 
@@ -34,7 +41,6 @@ import Language.R.HExp as H
 import qualified Data.Vector.SEXP as SV
 import Data.Word (Word8)
 
---import Control.Monad (msum)
 import Control.Monad.IO.Class
 import Control.Applicative
 import Control.Exception (catch, SomeException)
@@ -42,16 +48,18 @@ import Control.Exception (catch, SomeException)
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.Either
 
+type EvalCode = String
+
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Exposed functions
 
 -- Don't actually need the sheet id's as arguments right now. (Alex 11/15)
 evaluate :: ASSheetId -> EvalCode -> EitherTExec CompositeValue
-evaluate _ "" = return $ CellValue NoValue
+evaluate _ ""  = return $ CellValue NoValue
 evaluate _ str = liftIO $ execOnString str (execR False)
 
 evaluateRepl :: ASSheetId -> EvalCode -> EitherTExec CompositeValue
-evaluateRepl _ "" = return $ CellValue NoValue
+evaluateRepl _ ""  = return $ CellValue NoValue
 evaluateRepl _ str = liftIO $ execOnString str (execR True)
 
 evaluateHeader :: ASSheetId -> EvalCode -> EitherTExec CompositeValue
@@ -62,7 +70,7 @@ evaluateHeader sid str = do
 
 clearRepl :: IO ()
 clearRepl = do
- R.runRegion $ castR =<< do [r| rm(list=ls()) |]
+ R.runRegion $ castR =<< [r| rm(list=ls()) |]
  return ()
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
@@ -114,20 +122,20 @@ castSEXP x = case x of
   (hexp -> H.Logical v) -> return . rdVector $ map fromLogical $ SV.toList v
   (hexp -> H.Char v)    -> return $ CellValue (castString v)
   (hexp -> H.String v)  -> return . rdVector $ map (\(hexp -> H.Char c) -> castString c) $ SV.toList v
-  (hexp -> H.Symbol s s' s'')  -> castSEXP s
+  (hexp -> H.Symbol s s' s'') -> castSEXP s
   --(hexp -> H.List car cdr tag) -> return . concat =<< mapM castSEXP [car, cdr, tag] -- this case only fires on pairlists, due to HaskellR issue #214
-  (hexp -> H.Special i) -> return $ CellValue (ValueI $ fromIntegral i)
-  (hexp -> H.DotDotDot s) -> castSEXP s
+  (hexp -> H.Special i)    -> return $ CellValue (ValueI $ fromIntegral i)
+  (hexp -> H.DotDotDot s)  -> castSEXP s
   (hexp -> H.Vector len v) -> castVector v
-  (hexp -> H.Builtin i) -> return $ CellValue (ValueI $ fromIntegral i)
-  (hexp -> H.Raw v) -> return $ CellValue (ValueS . bytesToString $ SV.toList v)
-  (hexp -> H.S4 s) -> CellValue <$> castS4 s
+  (hexp -> H.Builtin i)    -> return $ CellValue (ValueI $ fromIntegral i)
+  (hexp -> H.Raw v)        -> return $ CellValue (ValueS . bytesToString $ SV.toList v)
+  (hexp -> H.S4 s)         -> CellValue <$> castS4 s
   _ -> return . CellValue $ ValueError "Could not cast R value." "R Error"
 
 rdVector :: [ASValue] -> CompositeValue
 rdVector vals
-  | length vals == 1 = CellValue (head vals) 
-  | otherwise = Expanding . VList . A $ vals
+  | length vals == 1 = CellValue $ head vals 
+  | otherwise        = Expanding . VList . A $ vals
 
 castString :: SV.Vector s 'R.Char Word8 -> ASValue
 castString v = ValueS . bytesToString $ SV.toList v
@@ -150,10 +158,10 @@ castVector v = do
           then do
             uid <- liftIO getUniqueId
             path <- liftIO getImagesPath
-            let imageUid = uid ++ ".png"
-                imagePath = path ++ imageUid
-            [r|ggsave(filename=imagePath_hs, plot=AS_LOCAL_EXEC)|]
-            return . CellValue $ ValueImage imageUid
+            let imageName = uid ++ ".png"
+                savePath = path ++ imageName
+            [r|ggsave(filename=savePath_hs, plot=AS_LOCAL_EXEC)|]
+            return . CellValue $ ValueImage imageName
           else return . Expanding . VRList $ zip nameStrs vals
     else return . Expanding . VList . M $ vals
 
@@ -162,14 +170,14 @@ rdVectorVals = map mkArray
   where
     mkArray row = case row of 
       Expanding (VList (A arr)) -> arr
-      CellValue v -> [v]
+      CellValue v               -> [v]
       _ -> error "cannot cast multi-dimensional vector"
 
 castNames :: CompositeValue -> [ASValue]
 castNames val = case val of
   Expanding (VList (A names)) -> names
-  CellValue (ValueS s) -> [ValueS s]
-  CellValue NoValue  -> [ValueS "NULL"]
+  CellValue (ValueS s)        -> [ValueS s]
+  CellValue NoValue           -> [ValueS "NULL"]
   _ -> error $ "could not cast dataframe labels from composite value " ++ (show val)
 
 -- TODO figure out S4 casting
@@ -182,9 +190,10 @@ fromLogical R.FALSE = ValueB False
 fromLogical R.NA    = ValueNaN
 
 fromReal :: Double -> ASValue
-fromReal d = case (fromDouble d) of
-  Left dDouble -> ValueD dDouble
-  Right dInt -> ValueI dInt
+fromReal d 
+  | d == fromInteger dInt = ValueI dInt
+  | otherwise             = ValueD d
+  where dInt = round d
 
 isRPlot :: [RListKey] -> Bool
 isRPlot = elem "plot_env"

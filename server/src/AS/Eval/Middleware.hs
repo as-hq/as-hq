@@ -5,7 +5,7 @@ import Data.List
 import Database.Redis (Connection)
 import Data.Maybe
 
-import AS.Types.Core
+import AS.Types.Cell
 import AS.Eval.Core as R
 import AS.Util as U
 import AS.DB.API as DB
@@ -30,7 +30,7 @@ evalMiddleware = return
 
 -- -- This would be much better to implement if we didn't store this as a tag...
 -- -- #needsrefactor (Alex 11/11)
--- isListTag :: ASCellTag -> Bool
+-- isListTag :: CellProp -> Bool
 -- isListTag (ListMember _) = True
 -- isListTag DFMember = True
 -- isListTag _ = False

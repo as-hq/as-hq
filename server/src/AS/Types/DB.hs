@@ -1,17 +1,20 @@
-module AS.Types.DB where
+module AS.Types.DB
+  ( module AS.Types.DB
+  , module AS.Types.Commits
+  ) where
 
-import AS.Types.Core
-import AS.Util (splitBy)
+import AS.Types.Cell
+import AS.Types.Commits
 
 import Prelude
-import GHC.Generics
-import Data.Aeson hiding (Success)
 import qualified Data.Text as T 
 
+----------------------------------------------------------------------------------------------------------------------------------------------
+-- Transactions
 
 data ASTransaction = Transaction {transactionCommitSource :: CommitSource,
                                   afterCells :: [ASCell],
-                                  fatCells :: [FatCell],
+                                  fatCells :: [RangeDescriptor],
                                   deletedLocations :: [ASIndex] }
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
@@ -35,6 +38,11 @@ cellDelimiter = '©'
 exprDelimiter = '®'
 refDelimiter = '/'
 
+-- TODO: hide this on export
+splitBy :: (Eq a) => a -> [a] -> [[a]]
+splitBy delimiter = foldr f [[]]
+  where f c l@(x:xs) | c == delimiter = []:l
+                     | otherwise = (c:x):xs
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Compressed read/show 
@@ -75,7 +83,7 @@ instance (Read2 ASCell) where
     where
       (l, xp, v, ts) = case splitBy cellDelimiter str of 
         [locstr, xpstr, valstr, tagstr] -> (read2 locstr :: ASIndex, read2 xpstr :: ASExpression, 
-                                            read2 valstr :: ASValue, read tagstr :: [ASCellTag])
+                                            read2 valstr :: ASValue, read tagstr :: ASCellProps)
         _ -> error ("read2 :: ASCell failed on string " ++ str)
 
 instance (Read2 ASReference) where

@@ -9,11 +9,13 @@ import Data.List
 import qualified Text.Show.ByteString      as BS
 import qualified Data.ByteString.Char8     as BC
 
-import AS.Types.Core
+import AS.Types.Locations
 import AS.Types.DB
+import AS.Types.Eval
+
 import AS.Config.Settings as S
 import AS.DB.Util
-import AS.Util
+import AS.Logging
 
 -- EitherT
 import Control.Monad.Trans.Class
@@ -68,9 +70,9 @@ query q locs =
         return $ result
       "CIRC_DEP" -> do
         let circDepLoc = read2 $ B.unpack $ head reply
-        return $ Left $ CircularDepError circDepLoc
+        return . Left $ CircularDepError circDepLoc
       _ -> do
-        return $ Left DBGraphUnreachable
+        return $ Left UnknownGraphError
 
 -- | Takes in a list of (cell, [list of ancestors of that cell])'s and sets the ancestor relationship in the DB.
 -- Note: ASRelation is of type (ASIndex, [ASIndex])
@@ -96,7 +98,7 @@ setRelations rels =
         let circDepLoc = read2 $ B.unpack $ head reply
         return $ Left $ CircularDepError circDepLoc
       _ -> do
-        return $ Left DBGraphUnreachable
+        return $ Left UnknownGraphError
 
 exec_ :: GraphQuery -> IO ()
 exec_ q = runZMQ $ do 
