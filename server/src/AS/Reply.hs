@@ -47,6 +47,14 @@ sendFilteredLocs msg locs uc = do
     [] -> return ()
     _  -> sendMessage msg' (userConn uc)
 
+sendFilteredCondFormatResults :: ASServerMessage -> [ASCell] -> ASUserClient -> IO ()
+sendFilteredCondFormatResults msg cells uc = do
+  let cells' = intersectViewingWindow cells (userWindow uc)
+      msg'   = msg { serverPayload = (serverPayload msg) { condFormatCellsUpdated = cells' } }
+  case cells' of
+    [] -> return ()
+    _  -> sendMessage msg' (userConn uc)
+
 -- | Given a message (commit, cells, etc), only send (to each user) the cells in their viewing window. 
 -- Unless there was a failure, in which case send the failure message back to the original user. 
 broadcastFiltered :: MVar ServerState -> ASUserClient -> ASServerMessage -> IO ()
@@ -66,7 +74,7 @@ broadcastFiltered' state msg@(ServerMessage _ _ (PayloadLL locs)) = do
 
 broadcastFiltered' state msg@(ServerMessage _ _ (PayloadCondFormatResult _ cells)) = do 
   State ucs _ _ _ <- readMVar state
-  mapM_ (sendFilteredCells msg cells) ucs
+  mapM_ (sendFilteredCondFormatResults msg cells) ucs
 
 sendToOriginal :: ASUserClient -> ASServerMessage -> IO ()
 sendToOriginal uc msg = sendMessage msg (userConn uc)
