@@ -177,7 +177,7 @@ handleDrag uc state (PayloadDrag selRng dragRng) = do
   nCells <- IU.getCellsRect selRng dragRng
   let newCells = (IU.getMappedFormulaCells selRng dragRng nCells) ++ (IU.getMappedPatternGroups selRng dragRng nCells)
   msg' <- DP.runDispatchCycle state newCells (userCommitSource uc)
-  broadcast state msg'
+  broadcastFiltered state uc msg'
 
 handleRepeat :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
 handleRepeat uc state (PayloadSelection range origin) = do

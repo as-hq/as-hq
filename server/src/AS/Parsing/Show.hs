@@ -30,7 +30,10 @@ showPrimitive lang v = case v of
   NoValue    -> LD.outNull lang
   ValueNaN   -> LD.outNan lang
   ValueInf   -> LD.outInf lang
-  ValueS s   -> show s
+  -- Excel strings shouldn't have quotes around them, during dragging inference, where this function is used
+  ValueS s   -> case lang of
+    Excel -> s
+    otherwise -> show s
   ValueI i   -> show i
   ValueD d   -> show d
   ValueB b   -> LD.outBool lang b
