@@ -224,12 +224,20 @@ export function dragRow(r1: number, r2: number): Prf {
   });
 }
 
+export function dragInference(rng1: string, rng2: string): Prf {
+  return apiExec(() => {
+    let [nakedRng1, nakedRng2] = [rng1, rng2].map(rangeFromExcel);
+    API.drag(nakedRng1, nakedRng2);
+  });
+}
+
 export function copy(rng1: string, rng2: string): Prf {
   return apiExec(() => {
     let [asRng1, asRng2] = [rng1, rng2].map(asRange);
     API.copy(asRng1, asRng2);
   });
 }
+
 
 export function cut(rng1: string, rng2: string): Prf {
   return apiExec(() => {

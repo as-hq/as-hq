@@ -22,6 +22,7 @@ describe('backend', () => {
     deleteRow,
     dragCol,
     dragRow,
+    dragInference,
 
     copy,
     cut,
@@ -139,6 +140,32 @@ describe('backend', () => {
     });
 
     describe('eval', () => {
+
+      describe('inference', () => {
+        it('should extend 2-elem arithmetic sequence', (done) => {
+          _do([
+            excel('A1', '1'),
+            python('A2', '3'),
+            dragInference('A1:A2','A1:A4'),
+            shouldBe('A3', valueI(5)),
+            shouldBe('A4', valueI(7)),
+            exec(done)
+          ]);
+        });
+
+        it('should not escape excel strings', (done) => {
+          _do([
+            excel('A1', 'jan'),
+            excel('A2', 'feb'),
+            dragInference('A1:A2','A1:A4'),
+            shouldBe('A3', valueS("mar")),
+            shouldBe('A4', valueS("apr")),
+            exec(done)
+          ]);
+        });
+
+      });
+
       describe('python', () => {
         it('should evaluate at all', (done) => {
           _do([
@@ -935,6 +962,7 @@ describe('backend', () => {
       describe('ocaml', () => {
 
       });
+
 
       describe('A:A and  1:1 parsing tests', () => {
         xit('A:A should display ranges properly', (done) => {
