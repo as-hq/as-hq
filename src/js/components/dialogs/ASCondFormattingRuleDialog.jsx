@@ -45,21 +45,7 @@ type RuleDialogProps = {
   onRequestClose: () => void;
 };
 
-export default (React.createClass({
-  propTypes: {
-    initialRule: PropTypes.any,
-    open: PropTypes.bool.isRequired,
-    onRequestClose: PropTypes.func.isRequired
-  },
-
-  getDefaultProps(): RuleDialogProps {
-    return {
-      initialRule: null,
-      open: false,
-      onRequestClose: () => {}
-    }
-  },
-
+export default React.createClass({
   getInitialState() {
     return {
       showConditionTextField: true,
@@ -89,8 +75,10 @@ export default (React.createClass({
           ref="range"
           defaultValue={
             Just(initialRule)
-              .fmap(({cellLocs: [firstCellLoc]}) => firstCellLoc)
-              .fmap(Util.rangeToExcel)
+              .fmap(({cellLocs}) => cellLocs)
+              .fmap(([firstLoc]) => firstLoc)
+              .fmap(({range}) => range)
+              .fmap(x => Util.rangeToExcel(x))
               .out() || ''
           }
           style={standardPadding}
@@ -171,6 +159,10 @@ export default (React.createClass({
   _onChangeCondition(evt: any, idx: number, menuItem: MenuItemRequest) {
     let {payload} = menuItem;
     if (! payload) return;
+
+    this.refs.condition.setState({
+      selectedIndex: idx
+    });
 
     this.setState({
       currentConditionMenuItem: payload,
@@ -261,4 +253,4 @@ export default (React.createClass({
     this.props.onSubmitRule(this._getRuleFromForm());
     this.props.onRequestClose();
   }
-}) : ReactClass<RuleDialogProps, RuleDialogProps, any>);
+});
