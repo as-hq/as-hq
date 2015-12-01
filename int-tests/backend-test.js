@@ -235,6 +235,17 @@ describe('backend', () => {
           ]);
         });
 
+        xit('should correctly parse dependencies in graph-db', (done) => {
+          _do([
+            python('A1', '1'),
+            python('A3', '"A1"'),
+            python('A2', '=A1+A2'), // should cause graph-db to recompute ancestors, which should NOT cause A3 to think it's a descendant of A1
+            python('A1', 'A3'),   
+            shouldBe('A1', valueS('A1')),
+            exec(done)
+          ]);
+        });
+
         it('should fail to evaluate a circular dependency arising from a range cell', (done) => {
           _do([
             python('A5', '5'),
