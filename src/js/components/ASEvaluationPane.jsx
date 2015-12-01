@@ -279,8 +279,17 @@ export default React.createClass({
     this.refs.snackbarError.show();
   },
 
+  // I think this is equivalent to the toast being hidden, but not sure -- RITESH
+  toastIsHidden() : boolean {
+    let {toastMessage, toastAction} = this.state;
+    return (toastMessage == "") && (toastAction === "hide");
+  },
+
   hideToast() {
-    this.setState({toastMessage: "", toastAction: "hide"});
+    // Only hide a toast (and cause a rerender) if toast isn't already hidden
+    if (!this.toastIsHidden()) {
+      this.setState({toastMessage: "", toastAction: "hide"});
+    }
     this.refs.snackbarError.dismiss();
   },
 
@@ -515,14 +524,20 @@ export default React.createClass({
       ExpActionCreator.handleSelChange(expression);
       this.hideToast();
       this.showAnyErrors(val);
-      this.setState({currentLanguage: Constants.Languages[language]});
+      // TODO: refactor so that lang isn't in state. Anyway, should only setState if there's a diff. 
+      // Set state is expensive at this high-up component
+      if (this.state.currentLanguage !== Constants.Languages[language]) {
+        this.setState({currentLanguage: Constants.Languages[language]});
+      }
       ExpStore.setLanguage(language);
     } else if (changeSelToNewCell) {
       logDebug("Selected empty cell to move to");
       Store.setActiveSelection(sel, "", null);
       this.refs.spreadsheet.repaint();
       ExpActionCreator.handleSelChange('');
-      this.setState({currentLanguage: this.state.defaultLanguage});
+      if (this.state.currentLanguage !== this.state.defaultLanguage) {
+        this.setState({currentLanguage: this.state.defaultLanguage});
+      }
       ExpStore.setLanguage(this.state.defaultLanguage);
       this.hideToast();
     } else if (changeSelWhileTypingNoInsert) { //click away while not parsable
