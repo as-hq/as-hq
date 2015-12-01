@@ -63,6 +63,7 @@ module.exports = {
     },
     evalFile: 'test-context-eval.js',
     excelFile: 'test-context-excel.js',
+    formulaFile: 'test-context-formula.js',
     allFile: 'test-context-all.js'
   }
 };
