@@ -49,8 +49,8 @@ data ASAction =
   | JumpSelect
   | MutateSheet
   | Drag
+  | SetCondFormatRules
   | Decouple
-  | GetCondFormatRules | SetCondFormatRules
   deriving (Show, Read, Eq, Generic)
 
 data ASResult = Success | Failure {failDesc :: String} | NoResult | DecoupleDuringEval deriving (Show, Read, Eq, Generic)
@@ -91,6 +91,7 @@ data ASPayload =
   | PayloadMutate MutateType
   | PayloadDrag {initialRange :: ASRange, dragRange :: ASRange}
   | PayloadCondFormat { condFormatRules :: [CondFormatRule] }
+  | PayloadCondFormatResult { condFormatRulesResult :: [CondFormatRule], condFormatCellsUpdated :: [ASCell] }
   deriving (Show, Read, Generic)
 
 data ASReplValue = ReplValue {replValue :: ASValue, replLang :: ASLanguage} deriving (Show, Read, Eq, Generic)
@@ -213,6 +214,12 @@ makeDeleteMessage deleteLocs s@(ServerMessage _ _ (PayloadCL cells)) = ServerMes
         cells'    = map snd $ filter (\(l, _) -> not $ rangeContainsIndex deleteLocs l) locsCells
         payload   = PayloadDelete deleteLocs cells'
         -- remove the sels from the update that we know are blank from the deleted locs
+
+makeCondFormatMessage :: [CondFormatRule] -> ASServerMessage -> ASServerMessage
+makeCondFormatMessage _ s@(ServerMessage _ (Failure _) _) = s
+makeCondFormatMessage _ s@(ServerMessage _ DecoupleDuringEval _) = s
+makeCondFormatMessage rules (ServerMessage _ _ (PayloadCL cells)) = ServerMessage SetCondFormatRules Success payload
+  where payload = PayloadCondFormatResult rules cells
 
 changeMessageAction :: ASAction -> ASServerMessage -> ASServerMessage
 changeMessageAction a (ServerMessage _ r p) = ServerMessage a r p
