@@ -153,6 +153,12 @@ export type PayloadInit = {
   contents: ASInitConnection;
 };
 
+export type PayloadOpen = {
+  tag: 'PayloadOpen';
+  initHeaderExpressions: Array<ASExpression>;
+  initCondFormatRules: Array<CondFormatRule>;
+};
+
 export type PayloadR = {
   tag: 'PayloadR';
   contents: ASRange;
@@ -250,6 +256,7 @@ export type CondFormatRule = {
 export type ASBackendPayload =
   PayloadN
   | PayloadInit
+  | PayloadOpen
   | PayloadCL
   | PayloadLL
   | PayloadR

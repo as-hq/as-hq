@@ -1,6 +1,10 @@
 /* @flow */
 
 import type {
+  Maybe
+} from '../../AS/Maybe';
+
+import type {
   Callback
 } from '../../types/Base';
 
@@ -20,8 +24,10 @@ import type {
 
 import _ from 'lodash';
 
-import React from 'react';
+import React, {PropTypes} from 'react';
 import {TextField, DropDownMenu} from 'material-ui';
+
+import {Just, Nothing} from '../../AS/Maybe';
 
 import Dialog from './DialogWrapper.jsx';
 
@@ -33,7 +39,27 @@ import TC from '../../AS/TypeConversions';
 
 type StyleMenuItem = 'bold' | 'italic' | 'underline' | 'bg_color' | 'text_color';
 
-export default React.createClass({
+type RuleDialogProps = {
+  initialRule: ?CondFormatRule;
+  open: boolean;
+  onRequestClose: () => void;
+};
+
+export default (React.createClass({
+  propTypes: {
+    initialRule: PropTypes.any,
+    open: PropTypes.bool.isRequired,
+    onRequestClose: PropTypes.func.isRequired
+  },
+
+  getDefaultProps(): RuleDialogProps {
+    return {
+      initialRule: null,
+      open: false,
+      onRequestClose: () => {}
+    }
+  },
+
   getInitialState() {
     return {
       showConditionTextField: true,
@@ -46,8 +72,6 @@ export default React.createClass({
   render() {
     let {initialRule, open, onRequestClose} = this.props;
     let {showConditionTextField, showStyleColorField} = this.state;
-
-    //TODO: do initialRule
 
     let standardPadding = { paddingLeft: '24px' };
 
@@ -62,12 +86,30 @@ export default React.createClass({
         open={open}
         onRequestClose={onRequestClose}>
         <TextField
-          style={standardPadding}
           ref="range"
+          defaultValue={
+            Just(initialRule)
+              .fmap(({cellLocs: [firstCellLoc]}) => firstCellLoc)
+              .fmap(Util.rangeToExcel)
+              .out() || ''
+          }
+          style={standardPadding}
           hintText="Range" />
         <br />
         <DropDownMenu
           ref="condition"
+          selectedIndex={
+            Just(initialRule)
+              .fmap(({condition}) => condition)
+              .fmap(({language}) => language)
+              .fmap((language) => {
+                switch (language) {
+                  case 'Python': return 0;
+                  case 'Excel': return 1;
+                }
+              })
+              .out() || 0
+          }
           menuItems={
             [
               { payload: 'python_matcher', text: 'Cell satisfies Python expression' },
@@ -79,14 +121,33 @@ export default React.createClass({
         {showConditionTextField ? (
           [
             <TextField
-              style={standardPadding}
               ref="conditionField"
+              defaultValue={
+                Just(initialRule)
+                  .fmap(({condition}) => condition)
+                  .fmap(({expression}) => expression)
+                  .out() || ''
+              }
+              style={standardPadding}
               hintText="Value or formula"/>,
             <br />
           ]
         ) : null}
         <DropDownMenu
           ref="style"
+          selectedIndex={
+            Just(initialRule)
+              .fmap(({condFormat}) => condFormat)
+              .fmap(({tag}) => {
+                switch (tag) {
+                  case 'Bold': return 0;
+                  case 'Italic': return 1;
+                  case 'Underline': return 2;
+                  default: return undefined;
+                }
+              })
+              .out() || 0
+          }
           menuItems={
             [
               { payload: 'bold', text: 'Bold' },
@@ -120,7 +181,7 @@ export default React.createClass({
   _onChangeStyle(evt: any, idx: number, menuItem: MenuItemRequest) {
     let {payload} = menuItem;
     if (! payload) return;
-    
+
     this.setState({
       currentStyleMenuItem: payload,
       showStyleColorField: this._showColorField(payload)
@@ -200,4 +261,4 @@ export default React.createClass({
     this.props.onSubmitRule(this._getRuleFromForm());
     this.props.onRequestClose();
   }
-});
+}) : ReactClass<RuleDialogProps, RuleDialogProps, any>);
