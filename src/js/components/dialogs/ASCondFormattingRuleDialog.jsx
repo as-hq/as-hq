@@ -30,6 +30,7 @@ import {TextField, DropDownMenu} from 'material-ui';
 import {Just, Nothing} from '../../AS/Maybe';
 
 import Dialog from './DialogWrapper.jsx';
+import SelectField from '../basic-controls/ASSelectField.jsx';
 
 import API from '../../actions/ASApiActionCreators';
 import CFStore from '../../stores/ASCondFormatStore';
@@ -46,12 +47,58 @@ type RuleDialogProps = {
 };
 
 export default React.createClass({
+  conditionMenuItems: [
+    { payload: 'python_matcher', text: 'Cell satisfies Python expression' },
+    { payload: 'excel_matcher', text: 'Cell satisfies Excel expression' }
+  ],
+
+  stylingMenuItems: [
+    { payload: 'bold', text: 'Bold' },
+    { payload: 'italic', text: 'Italic' },
+    { payload: 'underline', text: 'Underline' },
+    { payload: 'bg_color', text: 'Background color' },
+    { payload: 'text_color', text: 'Text color' }
+  ],
+
+  getDefaultConditionMenuValue(): number {
+    return Just(this.props.initialRule)
+      .fmap(({condition}) => condition)
+      .fmap(({language}) => language)
+      .fmap((language) => {
+        switch (language) {
+          case 'Python': return 0;
+          case 'Excel': return 1;
+        }
+      })
+      .out() || 0;
+  },
+
+  getDefaultStyleMenuValue(): number {
+    return Just(this.props.initialRule)
+      .fmap(({condFormat}) => condFormat)
+      .fmap(({tag}) => {
+        switch (tag) {
+          case 'Bold': return 0;
+          case 'Italic': return 1;
+          case 'Underline': return 2;
+          default: return undefined;
+        }
+      })
+      .out() || 0;
+  },
+
+  getDefaultConditionMenuItem(): string {
+    return this.conditionMenuItems[this.getDefaultConditionMenuValue()].payload;
+  },
+
+  getDefaultStyleMenuItem(): string {
+    return this.conditionMenuItems[this.getDefaultStyleMenuValue()].payload;
+  },
+
   getInitialState() {
     return {
-      showConditionTextField: true,
-      showStyleColorField: false,
-      currentConditionMenuItem: 'python_matcher',
-      currentStyleMenuItem: 'bold'
+      showConditionTextField: this._showTextField(this.getDefaultConditionMenuItem()),
+      showStyleColorField: this._showColorField(this.getDefaultStyleMenuItem())
     };
   },
 
@@ -59,7 +106,10 @@ export default React.createClass({
     let {initialRule, open, onRequestClose} = this.props;
     let {showConditionTextField, showStyleColorField} = this.state;
 
-    let standardPadding = { paddingLeft: '24px' };
+    let standardStyling = {
+      width: '400px',
+      paddingLeft: '24px'
+    };
 
     return (
       <Dialog
@@ -81,29 +131,14 @@ export default React.createClass({
               .fmap(x => Util.rangeToExcel(x))
               .out() || ''
           }
-          style={standardPadding}
+          style={standardStyling}
           hintText="Range" />
         <br />
-        <DropDownMenu
+        <SelectField
           ref="condition"
-          selectedIndex={
-            Just(initialRule)
-              .fmap(({condition}) => condition)
-              .fmap(({language}) => language)
-              .fmap((language) => {
-                switch (language) {
-                  case 'Python': return 0;
-                  case 'Excel': return 1;
-                }
-              })
-              .out() || 0
-          }
-          menuItems={
-            [
-              { payload: 'python_matcher', text: 'Cell satisfies Python expression' },
-              { payload: 'excel_matcher', text: 'Cell satisfies Excel expression' }
-            ]
-          }
+          defaultValue={this.getDefaultConditionMenuValue()}
+          style={standardStyling}
+          menuItems={this.conditionMenuItems}
           onChange={this._onChangeCondition} />
         <br />
         {showConditionTextField ? (
@@ -116,35 +151,16 @@ export default React.createClass({
                   .fmap(({expression}) => expression)
                   .out() || ''
               }
-              style={standardPadding}
+              style={standardStyling}
               hintText="Value or formula"/>,
             <br />
           ]
         ) : null}
-        <DropDownMenu
+        <SelectField
           ref="style"
-          selectedIndex={
-            Just(initialRule)
-              .fmap(({condFormat}) => condFormat)
-              .fmap(({tag}) => {
-                switch (tag) {
-                  case 'Bold': return 0;
-                  case 'Italic': return 1;
-                  case 'Underline': return 2;
-                  default: return undefined;
-                }
-              })
-              .out() || 0
-          }
-          menuItems={
-            [
-              { payload: 'bold', text: 'Bold' },
-              { payload: 'italic', text: 'Italic' },
-              { payload: 'underline', text: 'Underline' },
-              { payload: 'bg_color', text: 'Background color' },
-              { payload: 'text_color', text: 'Text color' }
-            ]
-          }
+          defaultValue={this.getDefaultStyleMenuValue()}
+          style={standardStyling}
+          menuItems={this.stylingMenuItems}
           onChange={this._onChangeStyle} />
         <br />
         {showStyleColorField ? (
@@ -160,12 +176,7 @@ export default React.createClass({
     let {payload} = menuItem;
     if (! payload) return;
 
-    this.refs.condition.setState({
-      selectedIndex: idx
-    });
-
     this.setState({
-      currentConditionMenuItem: payload,
       showConditionTextField: this._showTextField(payload)
     });
   },
@@ -175,7 +186,6 @@ export default React.createClass({
     if (! payload) return;
 
     this.setState({
-      currentStyleMenuItem: payload,
       showStyleColorField: this._showColorField(payload)
     });
   },
@@ -200,6 +210,14 @@ export default React.createClass({
     }
   },
 
+  _getConditionMenuItem(): string {
+    return this.refs.condition.getPayload();
+  },
+
+  _getStyleMenuItem(): string {
+    return this.refs.style.getPayload();
+  },
+
   _getCellLocsFromForm(): Array<ASRange> {
     return [TC.simpleToASRange(Util.excelToRange(this.refs.range.getValue()))];
   },
@@ -207,7 +225,7 @@ export default React.createClass({
   _getExpressionFromForm(): ASExpression {
     let language = 'Excel';
 
-    switch (this.state.currentConditionMenuItem) {
+    switch (this._getConditionMenuItem()) {
       case 'python_matcher':
         language = 'Python';
         break;
@@ -224,7 +242,7 @@ export default React.createClass({
   },
 
   _getCellPropFromForm(): ASCellProp {
-    switch (this.state.currentStyleMenuItem) {
+    switch (this._getStyleMenuItem()) {
       case 'bold':
         return { tag: 'Bold', contents: [] };
       case 'italic':

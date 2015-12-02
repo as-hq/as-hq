@@ -18,7 +18,7 @@ export default React.createClass({
   },
 
   render() {
-    let {title, actions, onRequestClose} = this.props;
+    let {title, actions, onRequestClose, ...props} = this.props;
 
     return (
       <Dialog
@@ -26,7 +26,8 @@ export default React.createClass({
         actions={actions}
         onClickAway={onRequestClose}
         onDismiss={onRequestClose}
-        ref="dialog">
+        ref="dialog"
+        {...props} >
         {this.props.children}
       </Dialog>
     );

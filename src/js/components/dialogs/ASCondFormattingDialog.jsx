@@ -55,6 +55,11 @@ export default React.createClass({
                 onMouseUp={this._onEditRule(idx)}
                 label="Edit"
                 selectable={false} />
+              <ASButton
+                primary={true}
+                onMouseUp={this._onDeleteRule(idx)}
+                label="Delete"
+                selectable={false} />
             </div>
           )}
         </Dialog>
@@ -83,6 +88,14 @@ export default React.createClass({
       this.setState({
         openRule: ruleIdx
       });
+    };
+  },
+
+  _onDeleteRule(ruleIdx: number): Callback {
+    return () => {
+      let rules = Util.clone(CFStore.getRules());
+      rules.splice(ruleIdx, 1);
+      API.setCondFormattingRules(rules);
     };
   },
 
