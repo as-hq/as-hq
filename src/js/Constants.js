@@ -1,10 +1,24 @@
+/* @flow */
 
-import keyMirror from 'keymirror';
 import Environment from './Environment';
 
 export const HOST_BASE_URL = 'localhost';
 export const HOST_WS_PORT = 5000;
 export const HOST_IP = '18.102.225.27';
+
+function keyMirror<T>(obj: T): T {
+  let ret: any = {};
+  var key;
+  if (!(obj instanceof Object && !Array.isArray(obj))) {
+    throw new Error('keyMirror(...): Argument must be an object.');
+  }
+  for (key in obj) {
+    if (obj.hasOwnProperty(key)) {
+      ret[key] = key;
+    }
+  }
+  return (ret: T);
+}
 
 export default Object.assign({
   HOST_WS_URL: 'ws://' + HOST_BASE_URL + ':' + HOST_WS_PORT,
@@ -89,17 +103,23 @@ export default Object.assign({
     VIEW_ACTION: null
   }),
 
-  Languages: { 
-    Excel: 'Excel', 
-    Python: 'Python', 
-    R: 'R', 
+  CellProps: {
+    Bold: { tag: 'Bold' },
+    Italic: { tag: 'Italic' },
+    Underline: { tag: 'Underline' }
+  },
+
+  Languages: {
+    Excel: 'Excel',
+    Python: 'Python',
+    R: 'R',
     SQL: 'SQL'
   },
 
   AceMode: {
-    'Excel': 'text', 
-    'Python': 'python', 
-    'R': 'r', 
+    'Excel': 'text',
+    'Python': 'python',
+    'R': 'r',
     'SQL': 'mysql'
   },
 
@@ -130,8 +150,7 @@ export default Object.assign({
     MutateSheet: "MutateSheet",
     Drag: "Drag",
     Decouple: "Decouple",
-    SetCondFormatRules: "SetCondFormatRules",
-    GetCondFormatRules: "GetCondFormatRules"
+    SetCondFormatRules: "SetCondFormatRules"
   },
 
   CursorPosition:{

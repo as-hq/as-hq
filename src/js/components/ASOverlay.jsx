@@ -28,7 +28,6 @@ export default React.createClass({
   },
 
   _onMouseUp(e) {
-    console.log("MOUSES");
     let node = ReactDOM.findDOMNode(this.refs.image);
     if (node !== null) {
       let {width,height} = node.style,

@@ -1,12 +1,9 @@
 /* @flow */
 
 import type {
-  ASCompositeValue
+  ASCompositeValue,
+  ASLanguage
 } from '../types/Eval';
-
-import type {
-  ASClientLanguage
-} from '../types/State';
 
 import {logDebug} from '../AS/Logger';
 
@@ -30,9 +27,9 @@ for (var key in Constants.Languages) {
 
 let _data: {
   evalHeaderExps: {[key: string]: string};
-  evalHeaderSubmitLang: ?ASClientLanguage;
+  evalHeaderSubmitLang: ?ASLanguage;
   evalHeaderDispMessage: ?string;
-  currentLanguage: ASClientLanguage;
+  currentLanguage: ASLanguage;
 } = {
   evalHeaderExps: evalHeaderExps,
   evalHeaderSubmitLang: null,

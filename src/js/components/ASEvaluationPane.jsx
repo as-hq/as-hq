@@ -366,7 +366,7 @@ export default React.createClass({
 
       // clipboard.area is basically obsolete, except for allowing copy/paste within the same sheets
       // for browser tests. (We need a special case for this because mocking the actual clipboard is difficult.)
-      if (isTesting()) {
+      if (isTesting() || Util.isMac()) {
         if (!! clipboard.area) {
           fromRange   = clipboard.area.range;
           fromSheetId = Store.getCurrentSheet().sheetId;
@@ -520,14 +520,16 @@ export default React.createClass({
       logDebug("Selected non-empty cell to move to");
       let {language, expression} = cell.cellExpression,
           val = cell.cellValue;
+      if (! language) {
+        throw new Error('Language invalid!');
+      }
+
       Store.setActiveSelection(sel, expression, language);
       ExpActionCreator.handleSelChange(expression);
       this.hideToast();
       this.showAnyErrors(val);
-      // TODO: refactor so that lang isn't in state. Anyway, should only setState if there's a diff.
-      // Set state is expensive at this high-up component
-      if (this.state.currentLanguage !== Constants.Languages[language]) {
-        this.setState({currentLanguage: Constants.Languages[language]});
+      if (this.state.currentLanguage !== language) {
+        this.setState({currentLanguage: language});
       }
       ExpStore.setLanguage(language);
     } else if (changeSelToNewCell) {

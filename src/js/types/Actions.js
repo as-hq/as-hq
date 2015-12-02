@@ -16,6 +16,7 @@ import type {
 } from './State';
 
 import type {
+  CondFormatRule,
   ASBackendCommit,
   PayloadSelection,
   ASBackendWorkbookSheet,
@@ -81,6 +82,11 @@ export type ClearedSheetAction = {
 export type GotUpdatedWorkbooksAction = {
   _type: 'GOT_UPDATED_WORKBOOKS';
   workbooks: Array<ASBackendWorkbookSheet>
+};
+
+export type GotUpdatedRulesAction = {
+  _type: 'GOT_UPDATED_RULES';
+  rules: Array<CondFormatRule>;
 };
 
 export type DeletedLocsAction = {
@@ -185,6 +191,7 @@ export type WorkbookAction =
 export type ASAction =
   GotFailureAction
   | GotUpdatedWorkbooksAction
+  | GotUpdatedRulesAction
   | GotNewWorkbooksAction
   | DeletedWorkbooksAction
   | ScrolledAction

@@ -9,7 +9,7 @@ import type {
   NakedRange,
   ASIndex,
   ASRange,
-  ASCell, 
+  ASCell,
   ASLanguage
 } from './Eval';
 
@@ -24,40 +24,10 @@ export type ASSelection = {
 
 export type ASFocusType = 'grid' | 'textbox' | 'editor';
 
-export type PythonClientLang = {
-  Display: 'Python';
-  Server: 'Python';
-  Editor: 'python';
-};
-
-export type ExcelClientLang = {
-  Display: 'Excel';
-  Server: 'Excel';
-  Editor: 'python';
-};
-
-export type RClientLang = {
-  Display: 'R';
-  Server: 'R';
-  Editor: 'r';
-};
-
-export type SQLClientLang = {
-  Display: 'SQL';
-  Server: 'SQL';
-  Editor: 'mysql';
-};
-
 export type ASClientWindow = {
   window: NakedRange;
   sheetId: string;
 };
-
-export type ASClientLanguage =
-  PythonClientLang
-  | RClientLang
-  | ExcelClientLang
-  | SQLClientLang;
 
 export type ASClientExpression = {
   expression: string;

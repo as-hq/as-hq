@@ -4,6 +4,7 @@ import ActionCreator from '../actions/ASCodeEditorActionCreators';
 import Constants from '../Constants';
 
 import {AppBar, Toolbar, ToolbarGroup, FlatButton, TextField, DropDownMenu, Styles} from 'material-ui';
+import ASCondFormattingDialog from './dialogs/ASCondFormattingDialog.jsx';
 import FileInput from './FileInput.jsx';
 
 require('brace/mode/python');
@@ -42,6 +43,12 @@ export default React.createClass({
     };
   },
 
+  getInitialState() {
+    return {
+      condFormattingOpen: false
+    };
+  },
+
   // RE: the "SUBMIT BUG REPORT" button. It's temporary. It does not actually belong in
   // ASCodeEdtior (AT ALL!) but this is the simplest place to stick it for now. Also,
 
@@ -77,7 +84,11 @@ export default React.createClass({
 
     return (
       <div>
-      <Toolbar
+        <ASCondFormattingDialog
+          open={this.state.condFormattingOpen}
+          onRequestClose={this._onCondFormatClose}/>
+
+        <Toolbar
           style={{backgroundColor: Styles.Colors.grey700, height:'60px'}}
           showMenuIconButton={false} >
             <TextField
@@ -103,6 +114,14 @@ export default React.createClass({
                 left: '40px',
                 top: '0px'
               }}/>
+            <FlatButton
+              label="COND FORMATTING"
+              onClick={this._onCondFormatClick}
+              style={{
+                position: 'relative',
+                left: '100px',
+                top: '-13px'
+              }} />
             <FlatButton
               label="HEADER"
               onClick={this.props.onEvalHeaderClick}
@@ -136,7 +155,7 @@ export default React.createClass({
                 top:'-13px',
               }} />
             <FileInput style={fileInputStyle} />
-            </Toolbar>
+        </Toolbar>
         <AceEditor
           ref="editor"
           handleEditorFocus={this.props.handleEditorFocus}
@@ -149,6 +168,14 @@ export default React.createClass({
           onDeferredKey={this.props.onDeferredKey} />
       </div>
     );
+  },
+
+  _onCondFormatClick() {
+    this.setState({ condFormattingOpen: true });
+  },
+
+  _onCondFormatClose() {
+    this.setState({ condFormattingOpen: false });
   },
 
   _onTest() {

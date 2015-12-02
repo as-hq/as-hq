@@ -10,12 +10,12 @@ export default {
 	valsToHtml(vals, rng) {
 		let table = document.createElement('table');
 		table.setAttribute("id","alphasheets"); // how we indicate the copy originated from within alphasheets
-    table.setAttribute("data-sheet-id", Store.getCurrentSheet().sheetId); 
-    table.setAttribute("data-from-range", JSON.stringify(rng)); 
+    table.setAttribute("data-sheet-id", Store.getCurrentSheet().sheetId);
+    table.setAttribute("data-from-range", JSON.stringify(rng));
 		let tableBody = document.createElement('tbody');
-		vals.forEach(function(rowVals) {
+		vals.forEach((rowVals) => {
 			let row = document.createElement('tr');
-			rowVals.forEach(function(elem) {
+			rowVals.forEach((elem) => {
 				let cell = document.createElement('td');
 				cell.appendChild(document.createTextNode(elem));
 				row.appendChild(cell);
@@ -30,7 +30,7 @@ export default {
 	Ex. [[3,4]] -> "3\t4" */
 	valsToPlain(vals) {
 		let rowStrs = [];
-		vals.forEach(function(row) {
+		vals.forEach((row) => {
 			rowStrs.push(row.join('\t'));
 		});
 		return rowStrs.join('\n');
@@ -43,8 +43,9 @@ export default {
 	},
 
   getAttrsFromHtmlString(s) {
+		// I'm aware this is dumb, but it's sufficient for now
     s += "</meta>"; // works in Chrome, which puts a single unclosed <meta> tag at the beginning of the paste string.
-    let parser = new DOMParser(), 
+    let parser = new DOMParser(),
         doc = parser.parseFromString(s, "text/xml"),
         table = doc.firstChild.firstChild,
         fromSheetId = table.getAttribute('data-sheet-id'),
@@ -56,7 +57,7 @@ export default {
 	TODO: make correct in all cases (need to look at text/html for that)
 	Right now, if a row has a tab, separate by tab. Else, push the row as a single value.
   Works for Sheets, MAY OR MAY NOT work for sheets,Libre,gfin.
-	-- Ritesh 10/16 
+	-- Ritesh 10/16
   -- Updated to not include commas, Alex 11/5*/
 	plainStringToVals(s) {
 		logDebug("CONVERTING PLAIN STRING TO VALS: " + s);
@@ -64,7 +65,7 @@ export default {
 			vals = [],
 			self = this;
 		rows.forEach(function(row) {
-      vals.push(row.split('\t')); 
+      vals.push(row.split('\t'));
 		});
 		logDebug("VALS: " + JSON.stringify(vals));
 		return vals;

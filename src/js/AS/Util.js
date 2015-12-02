@@ -28,7 +28,6 @@ import type {
 } from '../types/Hypergrid';
 
 import type {
-  ASClientLanguage,
   ASViewingWindow,
   ASSelection
 } from '../types/State';
@@ -605,10 +604,6 @@ export default {
     return parsed;
   },
 
-  getAgnosticLanguageFromServer(lang: ASLanguage): ASClientLanguage {
-    return Constants.Languages[lang];
-  },
-
   // indexStringToPair("(a,b)") := {row:a, col:b}
   indexStringToPair(indexString: string): PairObject<number> {
     var ab = indexString.substr(1, indexString.length-2).split(",");
@@ -761,6 +756,16 @@ export default {
     a.download = f.name;
     a.click();
     window.URL.revokeObjectURL(url);
-  }
+  },
 
+/*************************************************************************************************************************/
+  // general
+
+  isMac(): boolean {
+    return window.navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+  },
+
+  clone<T>(obj: T): T {
+    return JSON.parse(JSON.stringify(obj));
+  }
 };

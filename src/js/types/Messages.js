@@ -16,7 +16,7 @@ import type {
   ASReplValue,
   ASWorkbook,
   ASCellProp,
-  ASCell, 
+  ASCell,
   FormatType
 } from './Eval';
 
@@ -153,6 +153,12 @@ export type PayloadInit = {
   contents: ASInitConnection;
 };
 
+export type PayloadOpen = {
+  tag: 'PayloadOpen';
+  initHeaderExpressions: Array<ASExpression>;
+  initCondFormatRules: Array<CondFormatRule>;
+};
+
 export type PayloadR = {
   tag: 'PayloadR';
   contents: ASRange;
@@ -198,12 +204,6 @@ export type PayloadXp = {
   contents: ASExpression;
 };
 
-export type PayloadOpen = {
-  tag: 'PayloadOpen';
-  initHeaderExpressions: Array<ASExpression>;
-  initCondFormatRules: Array<CondFormatRule>;
-};
-
 export type PayloadReplValue = {
   tag: 'PayloadReplValue';
   contents: ASReplValue;
@@ -231,19 +231,26 @@ export type PayloadValue = {
 
 export type PayloadCondFormat = {
   tag: 'PayloadCondFormat';
-  condFormatRules: Array<CondFormatRule>; 
+  condFormatRules: Array<CondFormatRule>;
 };
 
-export type CondFormatRule = { 
+export type PayloadCondFormatResult = {
+  tag: 'PayloadCondFormatResult';
+  condFormatCellsUpdated: Array<ASCell>;
+  condFormatRulesResult: Array<CondFormatRule>;
+};
+
+export type CondFormatRule = {
   tag: 'CondFormatRule';
-  condFormat: FormatType; 
-  condition: ASExpression; 
+  condFormat: ASCellProp;
+  condition: ASExpression;
   cellLocs: Array<ASRange>;
 };
 
 export type ASBackendPayload =
   PayloadN
   | PayloadInit
+  | PayloadOpen
   | PayloadCL
   | PayloadLL
   | PayloadR
@@ -268,7 +275,9 @@ export type ASBackendPayload =
   | PayloadText
   | PayloadMutate
   | PayloadDrag
-  | PayloadFind;
+  | PayloadFind
+  | PayloadCondFormat
+  | PayloadCondFormatResult;
 
 export type ASBackendCommit = {
   tag: 'ASCommit';
@@ -317,7 +326,8 @@ export type ASMessageAction =
   | 'BugReport'
   | 'JumpSelect'
   | 'MutateSheet'
-  | 'Drag';
+  | 'Drag'
+  | 'CondFormat' | 'SetCondFormatRules';
 
 export type NoActionResponse = {
   action: 'NoAction';
@@ -394,11 +404,18 @@ export type EvaluateReplResponse = {
 export type EvaluateHeaderResponse = {
   action: 'EvaluateHeader';
   payload: PayloadValue;
+  result: ASBackendResult;
 };
 
 export type FindResponse = {
   action: 'Find';
   payload: PayloadFind;
+  result: ASBackendResult;
+};
+
+export type SetCondFormatResponse = {
+  action: 'SetCondFormatRules';
+  payload: PayloadCondFormatResult;
   result: ASBackendResult;
 };
 
@@ -426,7 +443,8 @@ export type ASServerMessage =
   | DeleteResponse
   | EvaluateReplResponse
   | EvaluateHeaderResponse
-  | FindResponse;
+  | FindResponse
+  | SetCondFormatResponse;
 
 export type ASAPICallbackPair = {
   fulfill: (msg: ?ASServerMessage) => void;

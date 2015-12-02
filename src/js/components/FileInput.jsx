@@ -1,3 +1,5 @@
+import {logDebug} from '../AS/Logger';
+
 import React from 'react';
 import Constants from '../Constants';
 import {HOST_IP, HOST_BASE_URL} from '../Constants';
@@ -23,7 +25,7 @@ export default React.createClass({
   },
 
   _onDrop(files) {
-    console.log('Received files: ', files);
+    logDebug('Received files: ', files);
     let req = request
       .post(this.getStaticUrl());
     files.forEach((file) => {

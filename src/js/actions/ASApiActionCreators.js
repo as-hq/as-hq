@@ -45,8 +45,7 @@ import type {
 import type {
   ASSelection,
   ASClientWindow,
-  ASClientExpression,
-  ASClientLanguage
+  ASClientExpression
 } from '../types/State';
 
 import {logDebug} from '../AS/Logger';
@@ -117,134 +116,147 @@ wss.onmessage = (event: MessageEvent) => {
       }
 
       switch (msg.action) {
-        case "New":
-          if (msg.payload.tag === "PayloadWorkbookSheets") {
-            Dispatcher.dispatch({
-              _type: 'GOT_NEW_WORKBOOKS',
-              workbooks: msg.payload.contents
-            });
-          }
-          break;
-        case "NoAction":
-          break;
-        case "Acknowledge":
-          break;
-        case "Open":
+      case "New":
+        if (msg.payload.tag === "PayloadWorkbookSheets") {
           Dispatcher.dispatch({
-            _type: 'GOT_OPEN',
-            expressions: msg.payload.initHeaderExpressions,
-            condFormatRules: msg.payload.initCondFormatRules,
+            _type: 'GOT_NEW_WORKBOOKS',
+            workbooks: msg.payload.contents
           });
-          break;
-        case "Undo":
+        }
+        break;
+      case "NoAction":
+        break;
+      case "Acknowledge":
+        break;
+      case "Open":
+        Dispatcher.dispatch({
+          _type: 'GOT_OPEN',
+          expressions: msg.payload.initHeaderExpressions
+        });
+        Dispatcher.dispatch({
+          _type: 'GOT_UPDATED_RULES',
+          rules: msg.payload.initCondFormatRules
+        });
+        break;
+      case "Undo":
+        Dispatcher.dispatch({
+          _type: 'GOT_UNDO',
+          commit: msg.payload.contents
+        });
+        break;
+      case "Redo":
+        Dispatcher.dispatch({
+          _type: 'GOT_REDO',
+          commit: msg.payload.contents
+        });
+       break;
+      case "Update":
+        if (msg.result.tag === "DecoupleDuringEval") {
           Dispatcher.dispatch({
-            _type: 'GOT_UNDO',
-            commit: msg.payload.contents
+            _type: 'EVAL_TRIED_TO_DECOUPLE',
           });
-          break;
-        case "Redo":
+        } else if (msg.payload.tag === "PayloadCL") {
           Dispatcher.dispatch({
-            _type: 'GOT_REDO',
-            commit: msg.payload.contents
+            _type: 'GOT_UPDATED_CELLS',
+            updatedCells: msg.payload.contents
           });
-         break;
-        case "Update":
-          if (msg.result.tag === "DecoupleDuringEval") {
-            Dispatcher.dispatch({
-              _type: 'EVAL_TRIED_TO_DECOUPLE',
-            });
-          } else if (msg.payload.tag === "PayloadCL") {
-            Dispatcher.dispatch({
-              _type: 'GOT_UPDATED_CELLS',
-              updatedCells: msg.payload.contents
-            });
-          } else if (msg.payload.tag === "PayloadWorkbookSheets") {
-            Dispatcher.dispatch({
-              _type: 'GOT_UPDATED_WORKBOOKS',
-              workbooks: msg.payload.contents
-            });
-          }
-          break;
-        case "Get":
+        } else if (msg.payload.tag === "PayloadWorkbookSheets") {
           Dispatcher.dispatch({
-            _type: 'FETCHED_CELLS',
-            newCells: msg.payload.contents
+            _type: 'GOT_UPDATED_WORKBOOKS',
+            workbooks: msg.payload.contents
           });
-          break;
-        //Functionally equivalent to "Get", but useful to be able to distinguish for tests
-        case "UpdateWindow":
+        }
+        break;
+      case "Get":
+        Dispatcher.dispatch({
+          _type: 'FETCHED_CELLS',
+          newCells: msg.payload.contents
+        });
+        break;
+      case 'SetCondFormatRules':
+        Dispatcher.dispatch({
+          _type: 'FETCHED_CELLS',
+          newCells: msg.payload.condFormatCellsUpdated
+        });
+        Dispatcher.dispatch({
+          _type: 'GOT_UPDATED_RULES',
+          rules: msg.payload.condFormatRulesResult
+        });
+        break;
+      //Functionally equivalent to "Get", but useful to be able to distinguish for tests
+      case "UpdateWindow":
+        Dispatcher.dispatch({
+          _type: 'FETCHED_CELLS',
+          newCells: msg.payload.contents
+        });
+        break;
+      case "Clear":
+        if (msg.payload.tag === "PayloadS") {
           Dispatcher.dispatch({
-            _type: 'FETCHED_CELLS',
-            newCells: msg.payload.contents
+            _type: 'CLEARED_SHEET',
+            sheetId: msg.payload.contents.sheetId
           });
-          break;
-        case "Clear":
-          if (msg.payload.tag === "PayloadS") {
-            Dispatcher.dispatch({
-              _type: 'CLEARED_SHEET',
-              sheetId: msg.payload.contents.sheetId
-            });
-          } else {
-            Dispatcher.dispatch({
-              _type: 'CLEARED'
-            });
-          }
-          break;
-        case "JumpSelect":
+        } else {
           Dispatcher.dispatch({
-            _type: 'GOT_SELECTION',
-            newSelection: msg.payload
+            _type: 'CLEARED'
           });
-          break;
-        case "Delete":
-          if (msg.result.tag === "DecoupleDuringEval") {
-            Dispatcher.dispatch({
-              _type: 'EVAL_TRIED_TO_DECOUPLE'
-            });
-          } else if (msg.payload.tag === "PayloadDelete") {
-            Dispatcher.dispatch({
-              _type: 'DELETED_LOCS',
-              deletedRange: msg.payload.contents[0],
-              updatedCells: msg.payload.contents[1]
-            });
-          } else if (msg.payload.tag === "PayloadWorkbookSheets") {
-            Dispatcher.dispatch({
-              _type: 'DELETED_WORKBOOKS',
-              workbooks: msg.payload.contents
-            });
-          } // no case for PayloadWB ??
-          break;
-        case "EvaluateRepl":
+        }
+        break;
+      case "JumpSelect":
+        Dispatcher.dispatch({
+          _type: 'GOT_SELECTION',
+          newSelection: msg.payload
+        });
+        break;
+      case "Delete":
+        if (msg.result.tag === "DecoupleDuringEval") {
           Dispatcher.dispatch({
-            _type: 'GOT_REPL_RESPONSE',
-            response: msg.payload.contents
+            _type: 'EVAL_TRIED_TO_DECOUPLE'
           });
-          break;
-        case "EvaluateHeader":
+        } else if (msg.payload.tag === "PayloadDelete") {
           Dispatcher.dispatch({
-            _type: 'GOT_EVAL_HEADER_RESPONSE',
-            response: msg.payload.contents
+            _type: 'DELETED_LOCS',
+            deletedRange: msg.payload.contents[0],
+            updatedCells: msg.payload.contents[1]
           });
-          break;
-        case "Find":
-          // TODO
-        /*
-          let toClientLoc = function(x) {
-            return {row:x.index[1],col:x.index[0]};
-          };
-          let clientLocs = msg.payload.contents.map(toClientLoc);
-          logDebug("GOT BACK FIND RESPONSE: " + JSON.stringify(clientLocs));
+        } else if (msg.payload.tag === "PayloadWorkbookSheets") {
           Dispatcher.dispatch({
-            _type: 'GOT_FIND',
-            findLocs:clientLocs
-          }); */
-          break;
-        case "Import":
-          Dispatcher.dispatch({
-            _type: 'GOT_IMPORT',
-            newCells: msg.payload.contents
+            _type: 'DELETED_WORKBOOKS',
+            workbooks: msg.payload.contents
           });
-          break;
+        } // no case for PayloadWB ??
+        break;
+      case "EvaluateRepl":
+        Dispatcher.dispatch({
+          _type: 'GOT_REPL_RESPONSE',
+          response: msg.payload.contents
+        });
+        break;
+      case "EvaluateHeader":
+        Dispatcher.dispatch({
+          _type: 'GOT_EVAL_HEADER_RESPONSE',
+          response: msg.payload.contents
+        });
+        break;
+      case "Find":
+        // TODO
+      /*
+        let toClientLoc = function(x) {
+          return {row:x.index[1],col:x.index[0]};
+        };
+        let clientLocs = msg.payload.contents.map(toClientLoc);
+        logDebug("GOT BACK FIND RESPONSE: " + JSON.stringify(clientLocs));
+        Dispatcher.dispatch({
+          _type: 'GOT_FIND',
+          findLocs:clientLocs
+        }); */
+        break;
+      case "Import":
+        Dispatcher.dispatch({
+          _type: 'GOT_IMPORT',
+          newCells: msg.payload.contents
+        });
+        break;
       }
     }
   }
@@ -662,14 +674,6 @@ export default {
     let msg = TC.makeClientMessageRaw(Constants.ServerActions.SetCondFormatRules, {
       tag: "PayloadCondFormat",
       condFormatRules: condFormatRules
-    });
-    this.send(msg);
-  },
-
-  getCondFormattingRules() {
-    let msg = TC.makeClientMessageRaw(Constants.ServerActions.GetCondFormatRules, {
-      tag: "PayloadN",
-      contents: []
     });
     this.send(msg);
   },
