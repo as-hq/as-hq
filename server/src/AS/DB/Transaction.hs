@@ -86,11 +86,11 @@ updateDBAfterEval conn src c@(Commit beforeCells' afterCells'' beforeDescriptors
 couple :: Connection -> RangeDescriptor -> IO ()
 couple conn desc = 
   let rangeKey        = descriptorKey desc 
-      rangeKey'       = B.pack rangeKey 
+      rangeKey'       = B.pack . show2 $ rangeKey
       sheetRangesKey  = DU.makeSheetRangesKey $ DU.rangeKeyToSheetId rangeKey
       rangeDescriptor = B.pack $ show desc
   in runRedis conn $ do
-      liftIO $ printWithTime $ "setting list locations for key: " ++ rangeKey
+      liftIO $ printWithTime $ "setting list locations for key: " ++ (show2 rangeKey)
       set rangeKey' rangeDescriptor
       sadd sheetRangesKey [rangeKey']
       return ()
@@ -101,7 +101,7 @@ couple conn desc =
 -- TODO move to C client because it's expensive
 decouple :: Connection -> RangeKey -> IO [ASCell]
 decouple conn key = 
-  let rangeKey = B.pack key
+  let rangeKey       = B.pack . show2 $ key
       sheetRangesKey = DU.makeSheetRangesKey $ DU.rangeKeyToSheetId key
   in do
     runRedis conn $ multiExec $ do
@@ -113,7 +113,7 @@ decouple conn key =
 -- Still gets the cells before decoupling, but don't set range keys
 getCellsBeforeDecoupling :: Connection -> RangeKey -> IO [ASCell]
 getCellsBeforeDecoupling conn key = 
-  let rangeKey = B.pack key
+  let rangeKey       = B.pack . show2 $ key
       sheetRangesKey = DU.makeSheetRangesKey $ DU.rangeKeyToSheetId key
   in do
     catMaybes <$> DB.getCells (DU.rangeKeyToIndices key)
@@ -125,7 +125,7 @@ getCellsBeforeDecoupling conn key =
 getFatCellsInRange :: Connection -> ASRange -> IO [RangeKey]
 getFatCellsInRange conn rng = do
   let sid = rangeSheetId rng
-  rangeKeys <- DU.makeRangeKeysInSheet conn sid
+  rangeKeys <- DU.getRangeKeysInSheet conn sid
   let rects = map DU.rangeRect rangeKeys
       zipRects = zip rangeKeys rects
       zipRectsContained = filter (\(_, rect) -> rangeContainsRect rng rect) zipRects
@@ -243,6 +243,5 @@ setRangeKeysChanged conn keys src = do
     TxSuccess _ <- multiExec $ do
       set commitSource rangeKeys
     return ()
-
 
 

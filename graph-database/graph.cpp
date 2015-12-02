@@ -141,7 +141,7 @@ int DAG::recomputeDAG () {
     	return -1;
 	}
 
-	string redisCmd = "scan 0 match I/* count " + to_string(SCAN_BOUND);
+	string redisCmd = "scan 0 match I/*/(*,*) count " + to_string(SCAN_BOUND);
 	reply = (redisReply *)redisCommand(c, redisCmd.c_str());
 
 	int numReplies=0; 
@@ -158,7 +158,6 @@ int DAG::recomputeDAG () {
 		}
 
   	freeReplyObject(reply);
-
 		for (int i=0; i<numReplies; i++) {
 			redisGetReply(c, (void **)&reply);
 			if (reply->type == REDIS_REPLY_STRING) {

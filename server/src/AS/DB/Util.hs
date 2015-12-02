@@ -56,14 +56,6 @@ cInfo = ConnInfo
 ----------------------------------------------------------------------------------------------------------------------
 -- Redis key utilities
 
-msgPartDelimiter = "`" -- TODO: should require real parsing instead of weird char strings
-relationDelimiter = "&"
-keyPartDelimiter = '?'
-
--- key for fat cells
-makeRangeKey :: ASIndex -> Dimensions -> RangeKey
-makeRangeKey idx dims = (show2 idx) ++ (keyPartDelimiter:(show dims)) ++ (keyPartDelimiter:"RANGEKEY")
-
 -- key for set of all fat cells in a sheet
 makeSheetRangesKey :: ASSheetId -> B.ByteString
 makeSheetRangesKey sid = BC.pack $ (T.unpack sid) ++ (keyPartDelimiter:"ALL_RANGES")
@@ -157,18 +149,18 @@ cToASCell str = do
 --getListType key = last parts
 --  where parts = splitBy keyPartDelimiter key
 indexIsHead :: ASIndex -> RangeKey -> Bool
-indexIsHead idx key = idx == idx'
-  where (idx', _) = readRangeKey key 
+indexIsHead idx (RangeKey idx' _) = idx == idx'
 
 rangeKeyToIndices :: RangeKey -> [ASIndex]
-rangeKeyToIndices key = rangeToIndices range
+rangeKeyToIndices (RangeKey idx dims) = rangeToIndices range
   where
-    (Index sid (col, row), (height, width)) = readRangeKey key
-    range = Range sid ((col, row), (col+width-1, row+height-1))
+    Index sid (col, row) = idx
+    (height, width)      = dims
+    range                = Range sid ((col, row), (col+width-1, row+height-1))
 
 getFatCellIntersections :: Connection -> ASSheetId -> Either [ASIndex] [RangeKey] -> IO [RangeKey]
 getFatCellIntersections conn sid (Left locs) = do
-  rangeKeys <- makeRangeKeysInSheet conn sid
+  rangeKeys <- getRangeKeysInSheet conn sid
   printObj "All range keys in sheet" rangeKeys
   return $ filter keyIntersects rangeKeys
   where
@@ -178,7 +170,7 @@ getFatCellIntersections conn sid (Left locs) = do
 
 -- ::ALEX:: why does this case exist? 
 getFatCellIntersections conn sid (Right keys) = do
-  rangeKeys <- makeRangeKeysInSheet conn sid
+  rangeKeys <- getRangeKeysInSheet conn sid
   printObj "Checking intersections against keys" keys
   return $ L.intersectBy keysIntersect rangeKeys keys
     where 
@@ -191,29 +183,18 @@ getFatCellIntersections conn sid (Right keys) = do
       keysIntersect k1 k2 = rectsIntersect (rangeRect k1) (rangeRect k2)
 
 rangeRect :: RangeKey -> Rect
-rangeRect key = ((col, row), (col + width - 1, row + height - 1))
-  where (Index _ (col, row), (height, width)) = readRangeKey key
+rangeRect (RangeKey idx dims) = ((col, row), (col + width - 1, row + height - 1))
+  where Index _ (col, row) = idx
+        (height, width)    = dims
 
-rangeDimensions :: RangeKey -> Dimensions
-rangeDimensions = snd . readRangeKey
-
-readRangeKey :: RangeKey -> (ASIndex, Dimensions)
-readRangeKey key = (idx, dims)
-  where
-    parts = splitBy keyPartDelimiter key
-    idx   = read2 (head parts) :: ASIndex
-    dims  = read (parts !! 1) :: Dimensions
-
-makeRangeKeysInSheet :: Connection -> ASSheetId -> IO [RangeKey]
-makeRangeKeysInSheet conn sid = runRedis conn $ do
-  Right result <- smembers $ makeSheetRangesKey sid
-  return $ map BC.unpack result
+getRangeKeysInSheet :: Connection -> ASSheetId -> IO [RangeKey]
+getRangeKeysInSheet conn sid = runRedis conn $ do
+  Right keys <- smembers $ makeSheetRangesKey sid
+  liftIO $ printObj "GOT RANGEKEYS IN SHEET: " keys
+  return $ map (\k -> read2 (BC.unpack k) :: RangeKey) keys
 
 rangeKeyToSheetId :: RangeKey -> ASSheetId
-rangeKeyToSheetId key = sid
-  where
-    parts = splitBy keyPartDelimiter key
-    (Index sid _) = read2 (head parts) :: ASIndex
+rangeKeyToSheetId = locSheetId . keyIndex
 
 decoupleCell :: ASCell -> ASCell
 decoupleCell (Cell l (Coupled _ lang _ _) v ts) = Cell l e' v ts
@@ -237,7 +218,7 @@ isFatCellMember (Cell _ xp _ _) = case xp of
 
 isFatCellHead :: ASCell -> Bool 
 isFatCellHead cell = case (cellToRangeKey cell) of 
-  Just key -> (show2 . cellLocation $ cell) == (head $ splitBy keyPartDelimiter key)
+  Just (RangeKey idx _) -> cellLocation cell == idx
   Nothing -> False
 
 ----------------------------------------------------------------------------------------------------------------------

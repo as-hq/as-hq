@@ -47,7 +47,7 @@ data RangeDescriptor = RangeDescriptor { descriptorKey :: RangeKey, expandingTyp
 
 -- range keys are used to access range descriptors, which relay metadata about a range of cells
 -- e.g. for embedded lists and objects
-type RangeKey = String
+data RangeKey = RangeKey {keyIndex :: ASIndex, keyDimensions :: Dimensions} deriving (Show, Read, Eq, Generic)
 
 -- For internal use only. Represents a "cell" that takes up numerous cells (e.g., range(10)).
 data FatCell = FatCell { expandedCells :: [ASCell], descriptor :: RangeDescriptor } deriving (Show, Read)
@@ -79,6 +79,9 @@ instance ToJSON RangeDescriptor
 
 instance ToJSON ASLanguage
 instance FromJSON ASLanguage
+
+instance ToJSON RangeKey
+instance FromJSON RangeKey
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Helpers
