@@ -8,6 +8,8 @@ import System.Environment (getArgs)
 import AS.Types.Messages
 import AS.Types.Network
 import AS.Types.Locations
+import AS.Types.Cell
+import AS.Types.DB hiding (Clear)
 import AS.Config.Settings as S
 
 import AS.Users
@@ -93,10 +95,6 @@ initApp = do
 -- |  for debugging. Only called if isDebug is true.
 initDebug :: R.Connection -> MVar ServerState -> IO ()
 initDebug conn state = do
-  -- let str = "{\"tag\": \"Expanding\", \"arrayVals\": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], \"expandingType\": \"NPArray\"}"
-  -- --let str = "{\"tag\": \"CellValue\", \"cellValueType\": \"Error\", \"errorMsg\": \"name\", \"errorType\": \"name\"}"
-  -- --let str = "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]"
-  -- putStrLn $ show $ parse (PR.json Python) "" str
   return ()
 
 application :: MVar ServerState -> WS.ServerApp
