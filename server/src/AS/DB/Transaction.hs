@@ -26,13 +26,13 @@ import Control.Concurrent
 
 -- takes in [new cells], [new fat cells] as a result of evalChain, and returns the list 
 -- of locations decoupled as a result.
-getDecouplingEffects :: Connection -> ASSheetId -> [ASCell] -> [FatCell] -> IO ([ASIndex])
+getDecouplingEffects :: Connection -> ASSheetId -> [ASCell] -> [FatCell] -> IO [ASIndex]
 getDecouplingEffects conn sid cells fcells = 
   let locs = map cellLocation cells
       keys = map (descriptorKey . descriptor) fcells
   in do
-    rangeKeysChangedByCells    <- liftIO $ DU.getFatCellIntersections conn sid (Left locs)
-    rangeKeysChangedByFatCells <- liftIO $ DU.getFatCellIntersections conn sid (Right keys)
+    rangeKeysChangedByCells    <- DU.getFatCellIntersections conn sid (Left locs)
+    rangeKeysChangedByFatCells <- DU.getFatCellIntersections conn sid (Right keys)
     let rangeKeysChanged = rangeKeysChangedByCells ++ rangeKeysChangedByFatCells
     let decoupledLocs    = concat $ map DU.rangeKeyToIndices rangeKeysChanged
     return decoupledLocs

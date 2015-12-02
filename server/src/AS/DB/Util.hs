@@ -14,7 +14,7 @@ import qualified Data.List                     as L
 import qualified Data.Text                     as T
 import           Data.List.Split
 import Data.Word (Word8)
-import Data.Maybe (fromJust)
+import Data.Maybe (fromJust, catMaybes)
 
 import qualified Data.ByteString.Char8         as BC
 import qualified Data.ByteString               as B
@@ -100,7 +100,6 @@ getUniquePrefixedName pref strs = pref ++ (show idx)
 -- FFI
 
 foreign import ccall unsafe "hiredis/redis_db.c getCells" c_getCells :: CString -> CInt -> IO (Ptr CString)
-foreign import ccall unsafe "hiredis/redis_db.c getCellsInSheet" c_getCellsInSheet :: CString -> IO (Ptr CString)
 foreign import ccall unsafe "hiredis/redis_db.c setCells" c_setCells :: CString -> CInt -> IO ()
 foreign import ccall unsafe "hiredis/redis_db.c clearSheet" c_clearSheet :: CString -> IO ()
 
@@ -121,7 +120,7 @@ getCellsByMessage msg num = do
   ptrCells <- BU.unsafeUseAsCString msg $ \str -> c_getCells str (fromIntegral num)
   cCells   <- peekArray (fromIntegral num) ptrCells
   res      <- mapM cToASCell cCells
-  free ptrCells
+  --free ptrCells
   return res
 
 setCellsByMessage :: B.ByteString -> Int -> IO ()
@@ -135,14 +134,10 @@ getSheetLocsRedis sheetid = do
   Right keys <- smembers $ makeSheetSetKey sheetid
   return keys
 
-cellsInSheet :: ASSheetId -> IO [ASCell]
-cellsInSheet sid = do
-  ptrCells <- withCString (T.unpack sid) c_getCellsInSheet
-  len      <- (\a -> read a :: Int) <$> (peekCString =<< peek ptrCells)
-  cCells   <- peekArray (fromIntegral $ len + 1) ptrCells
-  res      <- map (\str -> read2 str :: ASCell) <$> (mapM peekCString $ tail cCells)
-  free ptrCells
-  return res
+cellsInSheet :: Connection -> ASSheetId -> IO [ASCell]
+cellsInSheet conn sid = runRedis conn $ do
+  Right locKeys <- keys . BC.pack $ "I/" ++ (T.unpack sid) ++ "/(*,*)"
+  catMaybes <$> (liftIO $ getCellsByKeys locKeys)
 
 deleteLocsInSheet :: ASSheetId -> IO ()
 deleteLocsInSheet sid = withCString (T.unpack sid) c_clearSheet
