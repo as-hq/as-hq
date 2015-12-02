@@ -3,7 +3,7 @@ import Constants from '../Constants';
 import {HOST_IP, HOST_BASE_URL} from '../Constants';
 
 import Store from '../stores/ASFindStore';
-let Dropzone = require('react-dropzone');
+import Dropzone from 'react-dropzone';
 import {FlatButton,Styles} from 'material-ui';
 let request = require('superagent');
 
@@ -31,7 +31,7 @@ export default React.createClass({
     });
     req.end();
   },
- 
+
   render() {
     let buttonStyle = {
       position:'absolute',

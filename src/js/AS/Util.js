@@ -137,17 +137,17 @@ export default {
           config.bgColor = self.colorToHtml(prop.contents);
           break;
         case "TopAlign": // not implemented yet
-          break; 
+          break;
         case "HAlign":
-          config.halign = self.asHAlignToHtml(prop.contents); 
+          config.halign = self.asHAlignToHtml(prop.contents);
           break;
         case "FontSize": //not implemented yet
-          break; 
+          break;
         case "FontName": //not implemented yet
-          break; 
+          break;
         case "URL": //not implemented yet
-          break; 
-        case "ValueFormat": 
+          break;
+        case "ValueFormat":
           switch (prop.formatType) {
             case "Money":
               config.value = self.formatMoney("$", config.value, 2);
@@ -411,15 +411,15 @@ export default {
     else return this.colorNameToHex(str);
   },
 
-  asHAlignToHtml(align: string): string { 
-    switch (align) { 
-      case 'LeftAlign': 
-        return 'left'; 
-      case 'HCenterAlign': 
-        return 'center'; 
-      case 'RightAlign': 
-        return 'right'; 
-      default: 
+  asHAlignToHtml(align: string): string {
+    switch (align) {
+      case 'LeftAlign':
+        return 'left';
+      case 'HCenterAlign':
+        return 'center';
+      case 'RightAlign':
+        return 'right';
+      default:
         throw "Invalid HAlign passed in";
     }
   },
@@ -738,6 +738,29 @@ export default {
         yInBounds = mouseLocY >= topLeftBoxObj.y &&
                     mouseLocY <= topLeftBoxObj.y + boxWidth;
     return xInBounds && yInBounds;
+  },
+
+/*************************************************************************************************************************/
+  // Files
+
+  blobToFile(theBlob: Blob, fileName: string): File{
+    // #anand casts necessary because types Blob and File don't have an explicit OO relationship,
+    // but you turn a Blob into a File by adding two fields. because yavascript.
+    let f = ((theBlob : any) : File);
+    f.lastModifiedDate = new Date();
+    f.name = fileName;
+    return f;
+  },
+
+  promptSave(f: File) {
+    let a = document.createElement("a");
+    document.body.appendChild(a);
+    a.setAttribute('style', 'display: none');
+    let url = window.URL.createObjectURL(f);
+    a.href = url;
+    a.download = f.name;
+    a.click();
+    window.URL.revokeObjectURL(url);
   }
 
 };

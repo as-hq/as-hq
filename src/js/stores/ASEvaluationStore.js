@@ -165,7 +165,7 @@ const ASEvaluationStore = Object.assign({}, BaseStore, {
         */
         case 'CLEARED':
           _data.lastUpdatedCells = [];
-          let cellsToRemove = [];
+          var cellsToRemove = [];
           for (var s in _data.allCells) {
             _data.allCells[s].forEach((colArray) => {
               colArray.forEach((cell) => {
@@ -213,6 +213,24 @@ const ASEvaluationStore = Object.assign({}, BaseStore, {
           let locs = TC.rangeToASIndices(action.deletedRange.range);
           ASEvaluationStore.removeIndices(locs);
           ASEvaluationStore.updateCells(action.updatedCells);
+          ASEvaluationStore.emitChange();
+          break;
+        case 'GOT_IMPORT':
+          _data.lastUpdatedCells = [];
+          _data.suppressErrors = true; // don't show errors when fetching cells. will get set to false at end of emitChange()
+          let sheetId = action.newCells[0].cellLocation.sheetId; // assumes all imported cells are within the same sheet, which should be true.
+          // first, remove cells in current sheet
+          var cellsToRemove = [];
+          _data.allCells[sheetId].forEach((colArray) => {
+            colArray.forEach((cell) => {
+              cellsToRemove.push(cell);
+            });
+          });
+          cellsToRemove = cellsToRemove.filter((cell) => !!cell); // remove nulls
+          ASEvaluationStore.removeCells(cellsToRemove);
+          _data.allCells[sheetId] = [];
+          // then, update with the imported cells
+          ASEvaluationStore.updateCells(action.newCells);
           ASEvaluationStore.emitChange();
           break;
         case 'GOT_FAILURE':

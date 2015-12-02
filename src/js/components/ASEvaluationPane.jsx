@@ -193,8 +193,8 @@ export default React.createClass({
         resp = window.confirm("You're attempting to decouple cells. Are you sure?");
         if (resp) {
           API.decouple();
-        } 
-      } 
+        }
+      }
       Store.setDecoupleAttempt(false);
     }
     logDebug("Eval pane detected event change from store");
@@ -365,9 +365,9 @@ export default React.createClass({
           toASRange = TC.simpleToASRange(sel.range);
 
       // clipboard.area is basically obsolete, except for allowing copy/paste within the same sheets
-      // for browser tests. (We need a special case for this because mocking the actual clipboard is difficult.) 
-      if (isTesting()) { 
-        if (!! clipboard.area) { 
+      // for browser tests. (We need a special case for this because mocking the actual clipboard is difficult.)
+      if (isTesting()) {
+        if (!! clipboard.area) {
           fromRange   = clipboard.area.range;
           fromSheetId = Store.getCurrentSheet().sheetId;
         }
@@ -524,7 +524,7 @@ export default React.createClass({
       ExpActionCreator.handleSelChange(expression);
       this.hideToast();
       this.showAnyErrors(val);
-      // TODO: refactor so that lang isn't in state. Anyway, should only setState if there's a diff. 
+      // TODO: refactor so that lang isn't in state. Anyway, should only setState if there's a diff.
       // Set state is expensive at this high-up component
       if (this.state.currentLanguage !== Constants.Languages[language]) {
         this.setState({currentLanguage: Constants.Languages[language]});
@@ -755,6 +755,12 @@ export default React.createClass({
     this.refs.spreadsheet.repaint();
   },
 
+  /**************************************************************************************************************************/
+  /* File management */
+
+  _exportFile() { API.export(Store.getCurrentSheet()); },
+
+  _onFileDrop(files: Array<File>) { API.import(files[0]); },
 
   /**************************************************************************************************************************/
   // Render
@@ -785,6 +791,7 @@ export default React.createClass({
           language={currentLanguage}
           onReplClick={this._toggleRepl}
           onEvalHeaderClick={this._toggleEvalHeader}
+          onExport={this._exportFile}
           onSubmitDebug={this._submitDebug}
           onSelectLanguage={this.selectLanguage}
           onSetVarName={this._onSetVarName}
@@ -800,6 +807,7 @@ export default React.createClass({
           onNavKeyDown={this._onGridNavKeyDown}
           onTextBoxDeferredKey={this._onTextBoxDeferredKey}
           onSelectionChange={this._onSelectionChange}
+          onFileDrop={this._onFileDrop}
           hideToast={this.hideToast}
           width="100%"
           height={`calc(100% - ${this.getEditorHeight()})`}  />

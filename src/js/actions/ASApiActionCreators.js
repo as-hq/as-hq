@@ -19,8 +19,8 @@ import type {
   ASValue,
   ASSheet,
   ASCellProp,
-  ASCell, 
-  VAlignType, 
+  ASCell,
+  VAlignType,
   HAlignType
 } from '../types/Eval';
 
@@ -38,7 +38,7 @@ import type {
   ASBackendPayload,
   ASServerMessage,
   ASClientMessage,
-  ASAPICallbackPair, 
+  ASAPICallbackPair,
   CondFormatRule
 } from '../types/Messages';
 
@@ -86,151 +86,166 @@ let refreshDialogShown: boolean = false;
 wss.onmessage = (event: MessageEvent) => {
   if (event.data === 'ACK') return;
 
-  logDebug("Client received data from server: " + JSON.stringify(event.data));
+  logDebug("Client received data from server: " + event.data.toString());
 
-  let msg: ASServerMessage = JSON.parse(event.data);
-  if (msg.result.tag === "Failure") {
-    Dispatcher.dispatch({
-      _type: 'GOT_FAILURE',
-      action: msg.action,
-      errorMsg: msg.result.failDesc
-    });
-
-    if (isRunningTest && currentCbs) {
-      // sometimes we want to test whether it errors, so it fulfills anyways!
-      logDebug('Fulfilling due to server failure');
-      currentCbs.fulfill(msg);
-      isRunningTest = false;
-    }
+  if (event.data instanceof Blob) {
+    console.log("Received binary data from server.");
+    let fName = Store.getCurrentSheet().sheetId + ".as";
+    // #anand event.data typecasts to Blob, because we already checked the instance above
+    // and flow doesn't understand that event.data is type DOMString | Blob | ...
+    let f = Util.blobToFile(((event.data: any): Blob), fName);
+    Util.promptSave(f);
   } else {
-    if (isRunningTest && (!uiTestMode || (msg.action != 'UpdateWindow' && msg.action != 'Open')) && currentCbs) {
-      currentCbs.fulfill(msg);
-      isRunningTest = false;
-    }
+    let msg: ASServerMessage = JSON.parse(event.data);
+    if (msg.result.tag === "Failure") {
+      Dispatcher.dispatch({
+        _type: 'GOT_FAILURE',
+        action: msg.action,
+        errorMsg: msg.result.failDesc
+      });
 
-    switch (msg.action) {
-      case "New":
-        if (msg.payload.tag === "PayloadWorkbookSheets") {
+      if (isRunningTest && currentCbs) {
+        // sometimes we want to test whether it errors, so it fulfills anyways!
+        logDebug('Fulfilling due to server failure');
+        currentCbs.fulfill(msg);
+        isRunningTest = false;
+      }
+    } else {
+      if (isRunningTest && (!uiTestMode || (msg.action != 'UpdateWindow' && msg.action != 'Open')) && currentCbs) {
+        currentCbs.fulfill(msg);
+        isRunningTest = false;
+      }
+
+      switch (msg.action) {
+        case "New":
+          if (msg.payload.tag === "PayloadWorkbookSheets") {
+            Dispatcher.dispatch({
+              _type: 'GOT_NEW_WORKBOOKS',
+              workbooks: msg.payload.contents
+            });
+          }
+          break;
+        case "NoAction":
+          break;
+        case "Acknowledge":
+          break;
+        case "Open":
           Dispatcher.dispatch({
-            _type: 'GOT_NEW_WORKBOOKS',
-            workbooks: msg.payload.contents
+            _type: 'GOT_OPEN',
+            expressions: msg.payload.initHeaderExpressions,
+            condFormatRules: msg.payload.initCondFormatRules,
           });
-        }
-        break;
-      case "NoAction":
-        break;
-      case "Acknowledge":
-        break;
-      case "Open":
-        Dispatcher.dispatch({
-          _type: 'GOT_OPEN',
-          expressions: msg.payload.initHeaderExpressions,
-          condFormatRules: msg.payload.initCondFormatRules,
-        });
-        break;
-      case "Undo":
-        Dispatcher.dispatch({
-          _type: 'GOT_UNDO',
-          commit: msg.payload.contents
-        });
-        break;
-      case "Redo":
-        Dispatcher.dispatch({
-          _type: 'GOT_REDO',
-          commit: msg.payload.contents
-        });
-       break;
-      case "Update":
-        if (msg.result.tag === "DecoupleDuringEval") {
+          break;
+        case "Undo":
           Dispatcher.dispatch({
-            _type: 'EVAL_TRIED_TO_DECOUPLE',
+            _type: 'GOT_UNDO',
+            commit: msg.payload.contents
           });
-        } else if (msg.payload.tag === "PayloadCL") {
+          break;
+        case "Redo":
           Dispatcher.dispatch({
-            _type: 'GOT_UPDATED_CELLS',
-            updatedCells: msg.payload.contents
+            _type: 'GOT_REDO',
+            commit: msg.payload.contents
           });
-        } else if (msg.payload.tag === "PayloadWorkbookSheets") {
+         break;
+        case "Update":
+          if (msg.result.tag === "DecoupleDuringEval") {
+            Dispatcher.dispatch({
+              _type: 'EVAL_TRIED_TO_DECOUPLE',
+            });
+          } else if (msg.payload.tag === "PayloadCL") {
+            Dispatcher.dispatch({
+              _type: 'GOT_UPDATED_CELLS',
+              updatedCells: msg.payload.contents
+            });
+          } else if (msg.payload.tag === "PayloadWorkbookSheets") {
+            Dispatcher.dispatch({
+              _type: 'GOT_UPDATED_WORKBOOKS',
+              workbooks: msg.payload.contents
+            });
+          }
+          break;
+        case "Get":
           Dispatcher.dispatch({
-            _type: 'GOT_UPDATED_WORKBOOKS',
-            workbooks: msg.payload.contents
+            _type: 'FETCHED_CELLS',
+            newCells: msg.payload.contents
           });
-        }
-        break;
-      case "Get":
-        Dispatcher.dispatch({
-          _type: 'FETCHED_CELLS',
-          newCells: msg.payload.contents
-        });
-        break;
-      //Functionally equivalent to "Get", but useful to be able to distinguish for tests
-      case "UpdateWindow":
-        Dispatcher.dispatch({
-          _type: 'FETCHED_CELLS',
-          newCells: msg.payload.contents
-        });
-        break;
-      case "Clear":
-        if (msg.payload.tag === "PayloadS") {
+          break;
+        //Functionally equivalent to "Get", but useful to be able to distinguish for tests
+        case "UpdateWindow":
           Dispatcher.dispatch({
-            _type: 'CLEARED_SHEET',
-            sheetId: msg.payload.contents.sheetId
+            _type: 'FETCHED_CELLS',
+            newCells: msg.payload.contents
           });
-        } else {
+          break;
+        case "Clear":
+          if (msg.payload.tag === "PayloadS") {
+            Dispatcher.dispatch({
+              _type: 'CLEARED_SHEET',
+              sheetId: msg.payload.contents.sheetId
+            });
+          } else {
+            Dispatcher.dispatch({
+              _type: 'CLEARED'
+            });
+          }
+          break;
+        case "JumpSelect":
           Dispatcher.dispatch({
-            _type: 'CLEARED'
+            _type: 'GOT_SELECTION',
+            newSelection: msg.payload
           });
-        }
-        break;
-      case "JumpSelect":
-        Dispatcher.dispatch({
-          _type: 'GOT_SELECTION',
-          newSelection: msg.payload
-        });
-        break;
-      case "Delete":
-        if (msg.result.tag === "DecoupleDuringEval") {
+          break;
+        case "Delete":
+          if (msg.result.tag === "DecoupleDuringEval") {
+            Dispatcher.dispatch({
+              _type: 'EVAL_TRIED_TO_DECOUPLE'
+            });
+          } else if (msg.payload.tag === "PayloadDelete") {
+            Dispatcher.dispatch({
+              _type: 'DELETED_LOCS',
+              deletedRange: msg.payload.contents[0],
+              updatedCells: msg.payload.contents[1]
+            });
+          } else if (msg.payload.tag === "PayloadWorkbookSheets") {
+            Dispatcher.dispatch({
+              _type: 'DELETED_WORKBOOKS',
+              workbooks: msg.payload.contents
+            });
+          } // no case for PayloadWB ??
+          break;
+        case "EvaluateRepl":
           Dispatcher.dispatch({
-            _type: 'EVAL_TRIED_TO_DECOUPLE'
+            _type: 'GOT_REPL_RESPONSE',
+            response: msg.payload.contents
           });
-        } else if (msg.payload.tag === "PayloadDelete") {
+          break;
+        case "EvaluateHeader":
           Dispatcher.dispatch({
-            _type: 'DELETED_LOCS',
-            deletedRange: msg.payload.contents[0],
-            updatedCells: msg.payload.contents[1]
+            _type: 'GOT_EVAL_HEADER_RESPONSE',
+            response: msg.payload.contents
           });
-        } else if (msg.payload.tag === "PayloadWorkbookSheets") {
+          break;
+        case "Find":
+          // TODO
+        /*
+          let toClientLoc = function(x) {
+            return {row:x.index[1],col:x.index[0]};
+          };
+          let clientLocs = msg.payload.contents.map(toClientLoc);
+          logDebug("GOT BACK FIND RESPONSE: " + JSON.stringify(clientLocs));
           Dispatcher.dispatch({
-            _type: 'DELETED_WORKBOOKS',
-            workbooks: msg.payload.contents
+            _type: 'GOT_FIND',
+            findLocs:clientLocs
+          }); */
+          break;
+        case "Import":
+          Dispatcher.dispatch({
+            _type: 'GOT_IMPORT',
+            newCells: msg.payload.contents
           });
-        } // no case for PayloadWB ??
-        break;
-      case "EvaluateRepl":
-        Dispatcher.dispatch({
-          _type: 'GOT_REPL_RESPONSE',
-          response: msg.payload.contents
-        });
-        break;
-      case "EvaluateHeader":
-        Dispatcher.dispatch({
-          _type: 'GOT_EVAL_HEADER_RESPONSE',
-          response: msg.payload.contents
-        });
-        break;
-      case "Find":
-        // TODO
-      /*
-        let toClientLoc = function(x) {
-          return {row:x.index[1],col:x.index[0]};
-        };
-        let clientLocs = msg.payload.contents.map(toClientLoc);
-        logDebug("GOT BACK FIND RESPONSE: " + JSON.stringify(clientLocs));
-        Dispatcher.dispatch({
-          _type: 'GOT_FIND',
-          findLocs:clientLocs
-        }); */
-        break;
+          break;
+      }
     }
   }
 };
@@ -299,6 +314,16 @@ export default {
   close() {
     logDebug('Sending close message');
     wss.close();
+  },
+
+  export(sheet: ASSheet) {
+    let msg = TC.makeClientMessage('Export', 'PayloadS', sheet);
+    this.send(msg);
+  },
+
+  import(file: File) {
+    // any typecast necessary because wss.send is an overloaded, untyped function...
+    wss.send(((file: any): string), {binary: true});
   },
 
   // ************************************************************************************************************************
@@ -418,65 +443,65 @@ export default {
     this.send(msg);
   },
 
-  setTextColor(contents: string, rng: NakedRange) { 
-    let prop = { 
-      tag: "TextColor", 
+  setTextColor(contents: string, rng: NakedRange) {
+    let prop = {
+      tag: "TextColor",
       contents: contents
     };
     this.setProp(prop, rng);
   },
 
-  setFillColor(contents: string, rng: NakedRange) { 
-    let prop = { 
-      tag: "FillColor", 
+  setFillColor(contents: string, rng: NakedRange) {
+    let prop = {
+      tag: "FillColor",
       contents: contents
     };
     this.setProp(prop, rng);
   },
 
-  setVAlign(contents: VAlignType, rng: NakedRange) { 
-    let prop = { 
-      tag: "VAlign", 
+  setVAlign(contents: VAlignType, rng: NakedRange) {
+    let prop = {
+      tag: "VAlign",
       contents: contents
     };
     this.setProp(prop, rng);
   },
 
-  setHAlign(contents: HAlignType, rng: NakedRange) { 
-    let prop = { 
-      tag: "HAlign", 
+  setHAlign(contents: HAlignType, rng: NakedRange) {
+    let prop = {
+      tag: "HAlign",
       contents: contents
     };
     this.setProp(prop, rng);
   },
 
-  setFontSize(contents: number, rng: NakedRange) { 
-    let prop = { 
-      tag: "FontSize", 
+  setFontSize(contents: number, rng: NakedRange) {
+    let prop = {
+      tag: "FontSize",
       contents: contents
     };
     this.setProp(prop, rng);
   },
 
-  setFontName(contents: string, rng: NakedRange) { 
-    let prop = { 
-      tag: "FontName", 
+  setFontName(contents: string, rng: NakedRange) {
+    let prop = {
+      tag: "FontName",
       contents: contents
     };
     this.setProp(prop, rng);
   },
 
-  setFormat(formatType: string, rng: NakedRange) { 
-    let formatProp = { 
-      tag: "ValueFormat", 
+  setFormat(formatType: string, rng: NakedRange) {
+    let formatProp = {
+      tag: "ValueFormat",
       formatType: formatType
     };
     this.setProp(formatProp, rng);
   },
 
-  setUrl(urlLink: string, rng: NakedRange) { 
-    let prop = { 
-      tag: "URL", 
+  setUrl(urlLink: string, rng: NakedRange) {
+    let prop = {
+      tag: "URL",
       urlLink: urlLink
     };
     this.setProp(prop, rng);

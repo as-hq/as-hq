@@ -75,7 +75,6 @@ export default React.createClass({
           height:'35px'
         };
 
-
     return (
       <div>
       <Toolbar
@@ -117,7 +116,7 @@ export default React.createClass({
               onClick={this.props.onSubmitDebug}
               style={{
                 position: 'relative',
-                left: '60px',
+                left: '50px',
                 top: '-13px'
               }} />
             {Constants.isProduction ? null : <FlatButton
@@ -125,9 +124,17 @@ export default React.createClass({
               onClick={this._onTest}
               style={{
                 position: 'relative',
-                left: '85px',
+                left: '60px',
                 top: '-13px'
               }} />}
+            <FlatButton
+              label="EXPORT"
+              onClick={this.props.onExport}
+              style={{
+                position:'relative',
+                left:'70px',
+                top:'-13px',
+              }} />
             <FileInput style={fileInputStyle} />
             </Toolbar>
         <AceEditor

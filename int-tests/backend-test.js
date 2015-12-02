@@ -267,7 +267,7 @@ describe('backend', () => {
             python('A1', '1'),
             python('A3', '"A1"'),
             python('A2', '=A1+A2'), // should cause graph-db to recompute ancestors, which should NOT cause A3 to think it's a descendant of A1
-            python('A1', 'A3'),   
+            python('A1', 'A3'),
             shouldBe('A1', valueS('A1')),
             exec(done)
           ]);
@@ -968,20 +968,20 @@ describe('backend', () => {
         xit('A:A should display ranges properly', (done) => {
           _do([
             python('A1', '[range(10)]'),
-            python('B1', 'A:A'), 
-            python('C1', 'A1:A'), 
-            shouldBe('B9', valueI(8)), 
-            shouldBe('B10', valueI(9)), 
-            shouldBe('C10', valueI(9)), 
+            python('B1', 'A:A'),
+            python('C1', 'A1:A'),
+            shouldBe('B9', valueI(8)),
+            shouldBe('B10', valueI(9)),
+            shouldBe('C10', valueI(9)),
             exec(done)
           ]);
         });
         xit('A2:A should display ranges properly', (done) => {
           _do([
             python('A1', '[range(10)]'),
-            python('B1', 'A2:A'), 
-            shouldBe('B1', valueI(1)), 
-            shouldBe('B9', valueI(9)), 
+            python('B1', 'A2:A'),
+            shouldBe('B1', valueI(1)),
+            shouldBe('B9', valueI(9)),
             exec(done)
           ]);
         });
@@ -989,33 +989,33 @@ describe('backend', () => {
           _do([
             python('A1', '[range(10)]'),
             python('B1', 'A:A'),
-            python('C1', 'A2:B'), 
-            shouldBe('C1', valueI(1)), 
-            shouldBe('D1', valueI(1)), 
-            shouldBe('C7', valueI(7)), 
-            shouldBe('D7', valueI(7)), 
-            shouldBe('C8', valueI(8)), 
-            shouldBe('D8', valueI(8)), 
-            shouldBe('C9', valueI(9)), 
-            shouldBe('D9', valueI(9)), 
+            python('C1', 'A2:B'),
+            shouldBe('C1', valueI(1)),
+            shouldBe('D1', valueI(1)),
+            shouldBe('C7', valueI(7)),
+            shouldBe('D7', valueI(7)),
+            shouldBe('C8', valueI(8)),
+            shouldBe('D8', valueI(8)),
+            shouldBe('C9', valueI(9)),
+            shouldBe('D9', valueI(9)),
             exec(done)
           ]);
         });
         xit('A:B should display ranges properly', (done) => {
           _do([
             python('A1', '[range(10)]'),
-            python('B1', 'A2:A'), 
-            python('B10', '1'), 
-            python('C1', 'A:B'), 
-            shouldBe('B9', valueI(9)), 
-            shouldBe('C1', valueI(2)), 
-            shouldBe('D1', valueI(2)), 
-            shouldBe('C7', valueI(3)), 
-            shouldBe('D7', valueI(3)), 
-            shouldBe('C8', valueI(7)), 
-            shouldBe('D8', valueI(7)), 
-            shouldBe('C10', noValue()), 
-            shouldBe('D10', noValue()), 
+            python('B1', 'A2:A'),
+            python('B10', '1'),
+            python('C1', 'A:B'),
+            shouldBe('B9', valueI(9)),
+            shouldBe('C1', valueI(2)),
+            shouldBe('D1', valueI(2)),
+            shouldBe('C7', valueI(3)),
+            shouldBe('D7', valueI(3)),
+            shouldBe('C8', valueI(7)),
+            shouldBe('D8', valueI(7)),
+            shouldBe('C10', noValue()),
+            shouldBe('D10', noValue()),
             exec(done)
           ]);
         });
@@ -1037,12 +1037,12 @@ describe('backend', () => {
             delete_('A5'),
             delete_('A8'),
             delete_('A9'),
-            python('B1', 'A:A'), 
-            shouldBe('B1', noValue()), 
-            shouldBe('B2', valueI(1)), 
-            shouldBe('B3', noValue()), 
-            shouldBe('B9', noValue()), 
-            shouldBe('B10', valueI(9)), 
+            python('B1', 'A:A'),
+            shouldBe('B1', noValue()),
+            shouldBe('B2', valueI(1)),
+            shouldBe('B3', noValue()),
+            shouldBe('B9', noValue()),
+            shouldBe('B10', valueI(9)),
             exec(done)
           ]);
         });
@@ -1917,7 +1917,7 @@ describe('backend', () => {
     describe('conditional formatting', () => {
       xit('should format cells already present', (done) => {
         _do([
-          python('A1', 'range(10)'), 
+          python('A1', 'range(10)'),
           setCondFormattingRules([
             makeCondFormattingRuleFontExcel("A1:A10", "Italic", "=A1<6"),
           ]),
@@ -1932,7 +1932,7 @@ describe('backend', () => {
           setCondFormattingRules([
             makeCondFormattingRuleFontExcel("A1:A10", "Italic", "=A1>5"),
           ]),
-          python('A1', 'range(10)'), 
+          python('A1', 'range(10)'),
           shouldHaveProp('A7', 'Italic'),
           shouldNotHaveProp('A6', 'Italic'),
           exec(done)
@@ -1941,8 +1941,8 @@ describe('backend', () => {
 
       xit('should apply multiple rules simultaneously', (done) => {
         _do([
-          python('A1', 'range(10)'), 
-          python('B1', 'range(10)'), 
+          python('A1', 'range(10)'),
+          python('B1', 'range(10)'),
           setCondFormattingRules([
             makeCondFormattingRuleFontExcel("B1:B10", "Bold", "=B1>4"),
             makeCondFormattingRuleFontExcel("A1:B10", "Italic", "=A1>5"),
@@ -1957,7 +1957,7 @@ describe('backend', () => {
 
       xit('should revert formats when a rule is deleted (1)', (done) => {
         _do([
-          python('A1', 'range(10)'), 
+          python('A1', 'range(10)'),
           setCondFormattingRules([
             makeCondFormattingRuleFontExcel("A1:A10", "Italic", "=A1<6"),
           ]),
@@ -1970,7 +1970,7 @@ describe('backend', () => {
 
       xit('should revert formats when a rule is deleted (2)', (done) => {
         _do([
-          python('A1', 'range(10)'), 
+          python('A1', 'range(10)'),
           toggleProp('A1', 'Italic'),
           setCondFormattingRules([
             makeCondFormattingRuleFontExcel("A1:A10", "Italic", "=A1<6"),

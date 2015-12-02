@@ -47,6 +47,8 @@ import Textbox from './Textbox.jsx'
 
 import rowHeaderMenuItems from './menus/RowHeaderMenuItems.jsx';
 import columnHeaderMenuItems from './menus/ColumnHeaderMenuItems.jsx';
+// $FlowFixMe: this module clearly exists and works in other files, but flow can't find it??!
+import Dropzone from 'react-dropzone';
 
 let finRect: HGRectangleElement = (document.createElement('fin-rectangle'): any);
 
@@ -903,6 +905,10 @@ export default React.createClass({
   render(): ReactElement {
     let {behavior, width, height, language} = this.props; //should also have onReady
     let style = {width: width, height: height, cursor: this.state.cursorStyle};
+    let outerStyle = {width:"100%",
+                     height:"calc(100% - 50px)",
+                     position:'relative',
+                     cursor: this.state.cursorStyle};
     let behaviorElement;
     let self = this;
     switch (behavior) {
@@ -916,37 +922,36 @@ export default React.createClass({
 
     return (
       // NOTE: the 50px is for the scrollbar to show up.
-      <div ref="sheet" style={{width:"100%",
-                   height:"calc(100% - 50px)",
-                   position:'relative',
-                   cursor: this.state.cursorStyle}} >
-        <fin-hypergrid
-          style={style}
-          ref="hypergrid"
-          onKeyDown={this._onKeyDown}
-          onKeyUp={this._onKeyUp}
-          onFocus={this._onFocus}>
-            {behaviorElement}
-        </fin-hypergrid>
+      <Dropzone onDrop={this.props.onFileDrop} disableClick={true} style={outerStyle}>
+        <div ref="sheet" style={outerStyle} >
+          <fin-hypergrid
+            style={style}
+            ref="hypergrid"
+            onKeyDown={this._onKeyDown}
+            onKeyUp={this._onKeyUp}
+            onFocus={this._onFocus}>
+              {behaviorElement}
+          </fin-hypergrid>
 
-        {this.state.overlays.map((overlay) =>
-          <ASOverlay key={overlay.id}
-                     overlay={overlay}
-                     scroll={self.state.scroll}
-                     isVisible={self.isVisible} />
-        )}
+          {this.state.overlays.map((overlay) =>
+            <ASOverlay key={overlay.id}
+                       overlay={overlay}
+                       scroll={self.state.scroll}
+                       isVisible={self.isVisible} />
+          )}
 
-        <ASRightClickMenu ref="rightClickMenu" />
+          <ASRightClickMenu ref="rightClickMenu" />
 
-        <Textbox
-                 ref="textbox"
-                 mode={Constants.AceMode[language]}
-                 scroll={self.state.scroll}
-                 onDeferredKey={this.props.onTextBoxDeferredKey}
-                 hideToast={this.props.hideToast}
-                 position={this.getTextboxPosition}/>
+          <Textbox
+                   ref="textbox"
+                   mode={Constants.AceMode[language]}
+                   scroll={self.state.scroll}
+                   onDeferredKey={this.props.onTextBoxDeferredKey}
+                   hideToast={this.props.hideToast}
+                   position={this.getTextboxPosition}/>
 
-      </div>
+        </div>
+      // </Dropzone>
     );
   }
 

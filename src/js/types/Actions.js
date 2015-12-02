@@ -64,6 +64,11 @@ export type FetchedCellsAction = {
   newCells: Array<ASCell>;
 };
 
+export type ImportAction = {
+  _type: 'GOT_IMPORT';
+  newCells: Array<ASCell>;
+};
+
 export type ClearedAction = {
   _type: 'CLEARED';
 };
@@ -189,6 +194,7 @@ export type ASAction =
   | GotRedoAction
   | GotSelectionAction
   | FetchedCellsAction
+  | ImportAction
   | ClearedAction
   | ClearedSheetAction
   | DeletedLocsAction
