@@ -283,18 +283,16 @@ evalChain' conn valuesMap (c@(Cell loc xp oldVal ts):cs) fatCells fatCellHeads p
          resultDeletedLocs, 
          restValuesMap)
 
-  --now, we check if evalChain caused anything to be decoupled, and propagate the decoupleds'
-   --descendants if necessary.
+ -- now, we check if evalChain caused anything to be decoupled, and propagate the decoupleds'
+  -- descendants if necessary.
   --decoupledLocs <- lift $ DT.getDecouplingEffects conn (locSheetId loc) resultCells resultFatCells
   --decoupleDescendants <- G.getProperDescendants decoupledLocs 
   --ancLocs <- G.getImmediateAncestors decoupleDescendants
   --formattedNewMap <- lift $ formatValsMap =<< getValuesMap conn ancLocs
   --cells' <- getCellsToEval conn decoupleDescendants []
-  --printObjT "\n\nGOT DECOUPLE DESCS: " cells'
   --(restCellsD, restFatCellsD, restDeletedLocsD, restValuesMapD) <- evalChain' conn (M.union valuesMap formattedNewMap) cells' [] fatCellHeads []
-  --printObjT "\n\nGOT DECOUPLE DESC CELLS: " restCellsD
 
-  --right (mergeCells restCellsD resultCells, 
+  --right (resultCells ++ restCellsD, 
   --       resultFatCells ++ restFatCellsD, 
   --       L.union resultDeletedLocs restDeletedLocsD, 
   --       M.union restValuesMap restValuesMapD)

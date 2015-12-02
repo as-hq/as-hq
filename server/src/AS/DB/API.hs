@@ -81,7 +81,7 @@ getCells :: [ASIndex] -> IO [Maybe ASCell]
 getCells [] = return []
 getCells locs = DU.getCellsByMessage msg num
   where
-    msg = DU.showB $ intercalate msgPartDelimiter $ map show2 locs
+    msg = DU.showB $ intercalate DU.msgPartDelimiter $ map show2 locs
     num = length locs
 
 getCellsInSheet :: Connection -> ASSheetId -> IO [ASCell]
@@ -101,7 +101,7 @@ getBlankedCellsAt locs =
 getCompositeCells :: Connection -> [ASIndex] -> IO [Maybe CompositeCell]
 getCompositeCells _ [] = return []
 getCompositeCells conn locs =
-  let msg = DU.showB $ intercalate msgPartDelimiter $ map (show2 . pointerToIndex) locs
+  let msg = DU.showB $ intercalate DU.msgPartDelimiter $ map (show2 . pointerToIndex) locs
       num = length locs
       expandPointerRefs (loc, ccell) = case loc of 
         Pointer sid coord -> case ccell of 
@@ -136,7 +136,7 @@ setCells :: [ASCell] -> IO ()
 setCells [] = return ()
 setCells cells = DU.setCellsByMessage msg num
   where 
-    str = intercalate msgPartDelimiter $ (map (show2 . cellLocation) cells) ++ (map show2 cells)
+    str = intercalate DU.msgPartDelimiter $ (map (show2 . cellLocation) cells) ++ (map show2 cells)
     msg = DU.showB str
     num = length cells
 
@@ -164,7 +164,7 @@ locationExists conn loc = head <$> locationsExist conn [loc]
 fatCellsInRange :: Connection -> ASRange -> IO [RangeKey]
 fatCellsInRange conn rng = do
   let sid = rangeSheetId rng
-  rangeKeys <- DU.getRangeKeysInSheet conn sid
+  rangeKeys <- DU.makeRangeKeysInSheet conn sid
   let rects = map DU.rangeRect rangeKeys
       zipRects = zip rangeKeys rects
       zipRectsContained = filter (\(_,rect) -> rangeContainsRect rng rect) zipRects
@@ -172,7 +172,7 @@ fatCellsInRange conn rng = do
 
 getRangeDescriptor :: Connection -> RangeKey -> IO (Maybe RangeDescriptor)
 getRangeDescriptor conn key = runRedis conn $ do 
-  Right desc <- get (B.pack . show2 $ key)
+  Right desc <- get (B.pack key)
   return $ DU.bStrToRangeDescriptor desc
 
 ----------------------------------------------------------------------------------------------------------------------
@@ -360,7 +360,7 @@ setSheet conn sheet = do
 
 clearSheet :: Connection -> ASSheetId -> IO ()
 clearSheet conn sid = do
-  keys <- map (B.pack . show2) <$> DU.getRangeKeysInSheet conn sid
+  keys <- map B.pack <$> DU.makeRangeKeysInSheet conn sid
   runRedis conn $ do
     del keys
     del [DU.makeSheetRangesKey sid]
