@@ -461,6 +461,8 @@ export default React.createClass({
           API.cut(fromRange, toRange);
         } else if (Render.getDragCorner() !== null) {
           let dottedSel = Render.getDottedSelection();
+          Render.setDragCorner(null);
+          self.mouseDownInBox = false;
           // Do nothing if the mouseup isn't in the right column or row
           if (dottedSel.range !== null) {
             let activeSelection = Store.getActiveSelection();
