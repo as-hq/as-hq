@@ -60,11 +60,11 @@ export default {
     let checksMatch = true;
     Object.getOwnPropertyNames(contextChecks).forEach((check) => {
       if (s.config && s.config.hasOwnProperty(check)) {
-        if (contextChecks[check]()) { 
-          return; 
-        } else { 
-          checksMatch = false; 
-          return; 
+        if (contextChecks[check]()) {
+          return;
+        } else {
+          checksMatch = false;
+          return;
         }
       } else {
         return;
@@ -91,15 +91,15 @@ export default {
   },
 
   gridShouldDeferKey(e) {
-    return (e.ctrlKey ||
+    return (e.ctrlKey || e.metaKey ||
             KeyUtils.isEvalKey(e) || // tab or enter
             !KeyUtils.isNavKey(e)) &&
            !KeyUtils.isCopyPasteType(e);
   },
 
-  gridShouldAddToTextbox(userIsTyping, e) { 
+  gridShouldAddToTextbox(userIsTyping, e) {
     let notEvalKey           = !KeyUtils.isEvalKey(e),
-        typingAndMakesChange = userIsTyping && KeyUtils.producesTextChange(e), 
+        typingAndMakesChange = userIsTyping && KeyUtils.producesTextChange(e),
         startsTyping         = !userIsTyping && KeyUtils.producesVisibleChar(e);
 
     return notEvalKey && (typingAndMakesChange || startsTyping);
@@ -109,9 +109,9 @@ export default {
     return !KeyUtils.producesTextChange(e) &&
            !KeyUtils.isNavKey(e) &&
            !KeyUtils.isCopyPasteType(e) &&
-           !KeyUtils.isCtrlA(e) && 
+           !KeyUtils.isCtrlA(e) &&
            !KeyUtils.isUndoType(e) &&
-           !KeyUtils.isTextAreaNavKey(e); 
+           !KeyUtils.isTextAreaNavKey(e);
   },
 
   textboxShouldDeferKey(e) {
