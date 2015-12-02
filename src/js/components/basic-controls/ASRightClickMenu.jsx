@@ -41,7 +41,6 @@ export default React.createClass({
   },
 
   openAt(x, y, menuItems) {
-    console.log('OPENING MENU');
     this.setState({
       x: x,
       y: y,
@@ -71,7 +70,7 @@ export default React.createClass({
         zIndex: 100,
         position: 'absolute',
         left: x,
-        top: y - 100
+        top: y
       },
 
       menu: {

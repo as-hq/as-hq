@@ -432,9 +432,9 @@ export default React.createClass({
           /* for example if we are scrolled to A24 at top, A25 is 1 not 25 */
         let {
           gridCell: {x: relCol, y: relRow},
-          primitiveEvent: {detail: {primitiveEvent: {x, y}}}
+          primitiveEvent: {detail: {primitiveEvent: {offsetX: x, offsetY: y}}}
         } = evt;
-        if (relCol != 0 || relRow != 0) { // right click on a row header
+        if (relCol !== 0 || relRow !== 0) { // right click on a row header
           let [col, row] =
             [relCol + hg.getHScrollValue(), relRow + hg.getVScrollValue()];
           this.refs.rightClickMenu.openAt(x, y,

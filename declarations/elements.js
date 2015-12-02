@@ -20,6 +20,8 @@ declare class HGPrimitiveMouseEvent extends Event {
     primitiveEvent: SyntheticMouseEvent & {
       x: number,
       y: number,
+      offsetX: number,
+      offsetY: number,
       which: number
     };
   };
