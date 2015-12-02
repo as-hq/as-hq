@@ -137,17 +137,17 @@ export default {
           config.bgColor = self.colorToHtml(prop.contents);
           break;
         case "TopAlign": // not implemented yet
-          break; 
+          break;
         case "HAlign":
-          config.halign = self.asHAlignToHtml(prop.contents); 
+          config.halign = self.asHAlignToHtml(prop.contents);
           break;
         case "FontSize": //not implemented yet
-          break; 
+          break;
         case "FontName": //not implemented yet
-          break; 
+          break;
         case "URL": //not implemented yet
-          break; 
-        case "ValueFormat": 
+          break;
+        case "ValueFormat":
           switch (prop.formatType) {
             case "Money":
               config.value = self.formatMoney("$", config.value, 2);
@@ -411,15 +411,15 @@ export default {
     else return this.colorNameToHex(str);
   },
 
-  asHAlignToHtml(align: string): string { 
-    switch (align) { 
-      case 'LeftAlign': 
-        return 'left'; 
-      case 'HCenterAlign': 
-        return 'center'; 
-      case 'RightAlign': 
-        return 'right'; 
-      default: 
+  asHAlignToHtml(align: string): string {
+    switch (align) {
+      case 'LeftAlign':
+        return 'left';
+      case 'HCenterAlign':
+        return 'center';
+      case 'RightAlign':
+        return 'right';
+      default:
         throw "Invalid HAlign passed in";
     }
   },
@@ -738,6 +738,12 @@ export default {
         yInBounds = mouseLocY >= topLeftBoxObj.y &&
                     mouseLocY <= topLeftBoxObj.y + boxWidth;
     return xInBounds && yInBounds;
+  },
+
+  /************/
+
+  isMac(): boolean {
+    return window.navigator.platform.toUpperCase().indexOf('MAC') >= 0;
   }
 
 };
