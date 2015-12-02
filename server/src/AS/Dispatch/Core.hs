@@ -72,7 +72,7 @@ runDispatchCycle state cs src = do
     broadcastCells <- DT.possiblyWriteTransaction conn transaction
     return broadcastCells
   case errOrCells of 
-    Left _ -> G.exec_ Recompute -- #needsrefactor. Overkill. But recording all cells that might have changed is a PITA. (Alex 11/20)
+    Left _ -> G.recompute -- #needsrefactor. Overkill. But recording all cells that might have changed is a PITA. (Alex 11/20)
     _      -> return ()
   return $ makeUpdateMessage errOrCells
 

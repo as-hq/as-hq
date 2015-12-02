@@ -100,6 +100,9 @@ setRelations rels =
       _ -> do
         return $ Left UnknownGraphError
 
+recompute = exec_ Recompute
+clear     = exec_ Clear
+
 exec_ :: GraphQuery -> IO ()
 exec_ q = runZMQ $ do 
   reqSocket <- socket Req

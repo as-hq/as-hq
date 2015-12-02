@@ -51,7 +51,8 @@ instance Client ASUserClient where
       Open               -> handleOpen user state payload
       Close              -> handleClose user state payload
       UpdateWindow       -> handleUpdateWindow (sessionId user) state payload
-      Import             -> handleImport state payload
+      Import             -> handleImport user state payload
+      Export             -> handleExport user state payload
       Evaluate           -> handleEval user state payload
       EvaluateRepl       -> handleEvalRepl user payload
       EvaluateHeader     -> handleEvalHeader user payload

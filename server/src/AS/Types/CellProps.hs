@@ -3,10 +3,12 @@
 module AS.Types.CellProps where
 
 import AS.Types.User
+import AS.Types.Common
 
 import GHC.Generics
 import Data.Aeson
 
+import Data.Serialize (Serialize)
 import Data.Aeson.Types (Parser)
 import Data.Maybe (isJust)
 import qualified Data.Map as M
@@ -149,3 +151,13 @@ instance FromJSON Stream
 
 instance ToJSON StreamSource
 instance FromJSON StreamSource
+
+instance Serialize ASCellProps
+instance Serialize CellPropType
+instance Serialize CellProp
+instance Serialize VAlignType
+instance Serialize HAlignType
+instance Serialize Stream
+instance Serialize StreamSource
+instance Serialize Bloomberg
+instance Serialize FormatType

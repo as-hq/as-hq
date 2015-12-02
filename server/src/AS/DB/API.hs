@@ -85,7 +85,10 @@ getCells locs = DU.getCellsByMessage msg num
     num = length locs
 
 getCellsInSheet :: Connection -> ASSheetId -> IO [ASCell]
-getCellsInSheet = DU.cellsInSheet
+getCellsInSheet conn sid = DU.getCellsByKeyPattern conn $ "I/" ++ (T.unpack sid) ++ "/(*,*)"
+
+getAllCells :: Connection -> IO [ASCell]
+getAllCells conn = DU.getCellsByKeyPattern conn "I/*/(*,*)"
 
 -- Gets the cells at the locations with expressions and values removed, but tags intact. 
 getBlankedCellsAt :: [ASIndex] -> IO [ASCell]
@@ -148,6 +151,7 @@ deleteLocs :: Connection -> [ASIndex] -> IO ()
 deleteLocs _ [] = return ()
 deleteLocs conn locs = runRedis conn $ mapM_ DU.deleteLocRedis locs
 
+
 ----------------------------------------------------------------------------------------------------------------------
 -- Locations
 
@@ -174,6 +178,11 @@ getRangeDescriptor :: Connection -> RangeKey -> IO (Maybe RangeDescriptor)
 getRangeDescriptor conn key = runRedis conn $ do 
   Right desc <- get (B.pack . show2 $ key)
   return $ DU.bStrToRangeDescriptor desc
+
+getRangeDescriptorsInSheet :: Connection -> ASSheetId -> IO [RangeDescriptor]
+getRangeDescriptorsInSheet conn sid = do
+  keys <- DU.getRangeKeysInSheet conn sid
+  map fromJust <$> mapM (getRangeDescriptor conn) keys
 
 ----------------------------------------------------------------------------------------------------------------------
 -- WorkbookSheets (for frontend API)

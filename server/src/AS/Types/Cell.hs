@@ -1,4 +1,5 @@
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DefaultSignatures #-}
 
 module AS.Types.Cell
   ( module AS.Types.Cell
@@ -8,11 +9,13 @@ module AS.Types.Cell
 
 import AS.Types.Eval
 import AS.Types.CellProps
+import AS.Types.Common
 
 import GHC.Generics
 import Data.Aeson
 import Data.List
 
+import Data.Serialize (Serialize)
 import Data.Aeson.Types (Parser)
 import Control.DeepSeq
 import Control.DeepSeq.Generics (genericRnf)
@@ -53,7 +56,6 @@ data RangeKey = RangeKey {keyIndex :: ASIndex, keyDimensions :: Dimensions} deri
 data FatCell = FatCell { expandedCells :: [ASCell], descriptor :: RangeDescriptor } deriving (Show, Read)
 data CompositeCell = Single ASCell | Fat FatCell
 
-
 instance ToJSON ASExpression where
   toJSON (Expression xp lang) = object ["expression" .= xp,
                                         "language" .= (show lang)]
@@ -82,6 +84,17 @@ instance FromJSON ASLanguage
 
 instance ToJSON RangeKey
 instance FromJSON RangeKey
+
+instance Serialize RangeDescriptor
+instance Serialize ASCell 
+instance Serialize ASValue
+instance Serialize ASExpression
+instance Serialize ExpandingType
+instance Serialize RangeKey
+instance Serialize ASLanguage
+instance Serialize JSONField 
+instance Serialize JSONValue 
+instance Serialize Collection 
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Helpers

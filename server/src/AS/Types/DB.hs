@@ -1,7 +1,11 @@
+{-# LANGUAGE DeriveGeneric #-}
+
 module AS.Types.DB
   ( module AS.Types.DB
   , module AS.Types.Commits
   ) where
+
+import GHC.Generics
 
 import AS.Types.Cell
 import AS.Types.Commits
@@ -9,6 +13,7 @@ import Debug.Trace
 
 import Prelude
 import qualified Data.Text as T 
+import Data.Serialize (Serialize)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Transactions
@@ -17,6 +22,11 @@ data ASTransaction = Transaction {transactionCommitSource :: CommitSource,
                                   afterCells :: [ASCell],
                                   fatCells :: [RangeDescriptor],
                                   deletedLocations :: [ASIndex] }
+
+----------------------------------------------------------------------------------------------------------------------------------------------
+-- Exporting/Importing
+
+data ExportData = ExportData { exportCells :: [ASCell], exportDescriptors :: [RangeDescriptor] } deriving (Show, Read, Eq, Generic)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Queries
@@ -50,9 +60,11 @@ splitBy delimiter = foldr f [[]]
                      | otherwise = (c:x):xs
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
--- Compressed read/show 
+-- instances
 
--- Show
+instance Serialize ExportData
+
+-- compressed show
 
 class Show2 a where
   show2 :: a -> String
@@ -89,7 +101,7 @@ instance (Show2 RangeKey) where
                            ++ (keyPartDelimiter:(show dims)) 
                            ++ (keyPartDelimiter:"RANGEKEY")
 
--- Read
+-- compressed read
 
 class Read2 a where
   read2 :: (Show2 a) => String -> a
