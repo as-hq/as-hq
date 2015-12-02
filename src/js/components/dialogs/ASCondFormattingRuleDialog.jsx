@@ -60,7 +60,7 @@ export default React.createClass({
     { payload: 'text_color', text: 'Text color' }
   ],
 
-  getDefaultConditionMenuValue(): number {
+  getInitialConditionMenuValue(): number {
     return Just(this.props.initialRule)
       .fmap(({condition}) => condition)
       .fmap(({language}) => language)
@@ -73,7 +73,11 @@ export default React.createClass({
       .out() || 0;
   },
 
-  getDefaultStyleMenuValue(): number {
+  getInitialConditionMenuPayload(): string {
+    return this.conditionMenuItems[this.getInitialConditionMenuValue()].payload;
+  },
+
+  getInitialStyleMenuValue(): number {
     return Just(this.props.initialRule)
       .fmap(({condFormat}) => condFormat)
       .fmap(({tag}) => {
@@ -87,18 +91,14 @@ export default React.createClass({
       .out() || 0;
   },
 
-  getDefaultConditionMenuItem(): string {
-    return this.conditionMenuItems[this.getDefaultConditionMenuValue()].payload;
-  },
-
-  getDefaultStyleMenuItem(): string {
-    return this.conditionMenuItems[this.getDefaultStyleMenuValue()].payload;
+  getInitialStyleMenuPayload(): string {
+    return this.stylingMenuItems[this.getInitialStyleMenuValue()].payload;
   },
 
   getInitialState() {
     return {
-      showConditionTextField: this._showTextField(this.getDefaultConditionMenuItem()),
-      showStyleColorField: this._showColorField(this.getDefaultStyleMenuItem())
+      showConditionTextField: this._showTextField(),
+      showStyleColorField: this._showColorField()
     };
   },
 
@@ -136,7 +136,7 @@ export default React.createClass({
         <br />
         <SelectField
           ref="condition"
-          defaultValue={this.getDefaultConditionMenuValue()}
+          defaultValue={this.getInitialConditionMenuValue()}
           style={standardStyling}
           menuItems={this.conditionMenuItems}
           onChange={this._onChangeCondition} />
@@ -158,7 +158,7 @@ export default React.createClass({
         ) : null}
         <SelectField
           ref="style"
-          defaultValue={this.getDefaultStyleMenuValue()}
+          defaultValue={this.getInitialStyleMenuValue()}
           style={standardStyling}
           menuItems={this.stylingMenuItems}
           onChange={this._onChangeStyle} />
@@ -173,25 +173,19 @@ export default React.createClass({
   },
 
   _onChangeCondition(evt: any, idx: number, menuItem: MenuItemRequest) {
-    let {payload} = menuItem;
-    if (! payload) return;
-
     this.setState({
-      showConditionTextField: this._showTextField(payload)
+      showConditionTextField: this._showTextField()
     });
   },
 
   _onChangeStyle(evt: any, idx: number, menuItem: MenuItemRequest) {
-    let {payload} = menuItem;
-    if (! payload) return;
-
     this.setState({
-      showStyleColorField: this._showColorField(payload)
+      showStyleColorField: this._showColorField()
     });
   },
 
-  _showTextField(menuItem: string): boolean {
-    switch (menuItem) {
+  _showTextField(): boolean {
+    switch (this._getConditionMenuItem()) {
       case 'cell_empty':
       case 'cell_not_empty':
         return false;
@@ -200,8 +194,8 @@ export default React.createClass({
     }
   },
 
-  _showColorField(menuItem: string): boolean {
-    switch (menuItem) {
+  _showColorField(): boolean {
+    switch (this._getStyleMenuItem()) {
       case 'bg_color':
       case 'text_color':
         return true;
@@ -211,11 +205,19 @@ export default React.createClass({
   },
 
   _getConditionMenuItem(): string {
-    return this.refs.condition.getPayload();
+    if (this.refs.condition) {
+      return this.refs.condition.getPayload();
+    } else {
+      return this.getInitialConditionMenuPayload();
+    }
   },
 
   _getStyleMenuItem(): string {
-    return this.refs.style.getPayload();
+    if (this.refs.style) {
+      return this.refs.style.getPayload();
+    } else {
+      return this.getInitialStyleMenuPayload();
+    }
   },
 
   _getCellLocsFromForm(): Array<ASRange> {
