@@ -50,6 +50,7 @@ type Dim = (Col,Row)
 -- | TODO: make sure that ifFunc's can deal with array constants as arguments if acceptable
 -- | TODO: index is only array-mode at this point (tuples needed for ref mode)
 -- | TODO: apparently index(A1:B2,{1;2},{1,2}) works WTF
+-- | TODO: maxNumArgs shouldn't be a Maybe anymore, since there's an argNumLimit?
 
 -- | NOTE: Any reference with an unmappable ASValue -> EValue returns error (we get to define this behavior)
 
@@ -124,7 +125,7 @@ functions =  M.fromList $
     ("isblank"        , normalD 1 eIsBlank),
     ("iserror"        , FuncDescriptor [1] [1] [] [1] (Just 1) eIsError), -- efuncresult
     ("islogical"      , normalD 1 eIsLogical),
-    ("isnumber"       , normalD 1 eIsNumber),
+    ("isnumber"       , FuncDescriptor [1] [1] [] [1] (Just 1) eIsNumber),
 
     -- | Excel logical functions
     ("iferror"        , FuncDescriptor [1,2] [1,2] [] [1,2] (Just 2) eIfError), -- efuncresult
@@ -250,9 +251,9 @@ evalBasicFormula c (Ref exLoc) = locToResult $ exRefToASRef (locSheetId (curLoc 
 evalBasicFormula c (Var val)   = valToResult val
 evalBasicFormula c (Fun f fs)  = do
   fDes <- getFunc f
-  let args = map (getFunctionArg c fDes) (zip [1..argNumLimit] fs)
+  let args = map (getFunctionArg c fDes) (zip [1..argNumLimit] (trace' "FS " fs))
   let argsRef = substituteRefsInArgs c fDes args
-  checkNumArgs f (maxNumArgs fDes) (length argsRef)
+  checkNumArgs f (maxNumArgs fDes) (length (trace' "ARGSREF " argsRef))
   topLeftForMatrix f $ (callback fDes) c argsRef
 
 evalFormula :: Context -> Formula -> EResult
@@ -727,10 +728,14 @@ eIsLogical c e = do
   e' <- testNumArgs 1 "islogical" e
   valToResult $ EValueB $ boolEntity $ head e'
 
-eIsNumber :: EFunc
-eIsNumber c e = do
-  e' <- testNumArgs 1 "isnumber" e
-  valToResult $ EValueB $ numeric $ head e'
+-- This function should return only true or false, and not throw an error if one of its args is an error
+-- which is why it's implemented as an EFuncResult
+eIsNumber :: EFuncResult
+eIsNumber c r = do
+  e' <- testNumArgs 1 "isnumber" r
+  case (head r) of
+    Left _ -> valToResult $ EValueB False
+    Right e -> valToResult $ EValueB $ numeric $ e
 
 eIsError :: EFuncResult
 eIsError c r = do
@@ -1069,8 +1074,15 @@ eSqrtPi c e = do
   num <- getRequired "numeric" "abs" 1 e :: ThrowsError EFormattedNumeric
   eSqrt c [EntityVal $ EValueNum $ num * (return $ EValueD pi)]
 
+-- Need to implement an error if negative numbers provided, so this isn't just oneArgDouble
 eSqrt :: EFunc
-eSqrt = oneArgDouble "sqrt" sqrt
+eSqrt c e = do 
+  num <- getRequired "numeric" "sqrt" 1 e :: ThrowsError EFormattedNumeric
+  if (num < 0)
+    then Left $ NUM $ "trying to take the sqrt of a negative number"
+    else Right ()
+  oneArgDouble "sqrt" sqrt c e 
+
 
 -- | Finds the product of all of its arguments, decomposing matrices
 -- | Built-in product starts folding with ValueD, so we use foldl1'
