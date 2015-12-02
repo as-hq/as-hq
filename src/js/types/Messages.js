@@ -204,12 +204,6 @@ export type PayloadXp = {
   contents: ASExpression;
 };
 
-export type PayloadOpen = {
-  tag: 'PayloadOpen';
-  initHeaderExpressions: Array<ASExpression>;
-  initCondFormatRules: Array<CondFormatRule>;
-};
-
 export type PayloadReplValue = {
   tag: 'PayloadReplValue';
   contents: ASReplValue;
