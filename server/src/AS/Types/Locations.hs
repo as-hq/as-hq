@@ -6,6 +6,7 @@ module AS.Types.Locations
   ) where
 
 import AS.Types.Sheets
+import AS.Types.Common
 
 import GHC.Generics
 import Data.Aeson
@@ -13,6 +14,7 @@ import Data.Aeson
 import Control.DeepSeq
 import Control.DeepSeq.Generics (genericRnf)
 
+import Data.Serialize (Serialize)
 
 type Col = Int
 type Row = Int
@@ -78,6 +80,8 @@ instance FromJSON ASReference
 instance NFData ASIndex             where rnf = genericRnf
 instance NFData ASRange             where rnf = genericRnf
 instance NFData ASReference         where rnf = genericRnf
+
+instance Serialize ASIndex 
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Helpers
@@ -150,9 +154,9 @@ rangeToIndicesRowMajor :: ASRange -> [ASIndex]
 rangeToIndicesRowMajor (Range sheet (ul, lr)) = [Index sheet (x,y) | y <- [starty..endy],x <- [startx..endx] ]
   where
     startx = min (col ul) (col lr)
-    endx = max (col ul) (col lr)
+    endx   = max (col ul) (col lr)
     starty = min (row ul) (row lr)
-    endy = max (row ul) (row lr)
+    endy   = max (row ul) (row lr)
 
 shiftLoc :: Offset -> ASReference -> ASReference
 shiftLoc (dy, dx) (IndexRef (Index sh (y,x))) = IndexRef $ Index sh (y+dy, x+dx)

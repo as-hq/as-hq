@@ -20,6 +20,7 @@ import AS.DB.API as DB
 import AS.DB.Graph as G
 import AS.DB.Util as DBU
 import AS.Users as US
+import AS.Handlers.Misc (handleImportBinary)
 
 import Prelude
 import Control.Exception
@@ -163,17 +164,22 @@ initClient client state = do
 -- | Maintains connection until user disconnects
 talk :: (Client c) => c -> MVar ServerState -> IO ()
 talk client state = forever $ do
-  msg <- WS.receiveData (conn client)
-  case (decode msg :: Maybe ASClientMessage) of
-    Just m  -> processMessage client state m
-    Nothing -> printWithTime ("SERVER ERROR: unable to decode message " ++ (show msg))
+  dmsg <- WS.receiveDataMessage (conn client)
+  case dmsg of 
+    WS.Binary b -> handleImportBinary client state b
+    WS.Text msg -> case (eitherDecode msg :: Either String ASClientMessage) of
+      Right m -> processMessage client state m
+      Left s -> printWithTime ("SERVER ERROR: unable to decode message " 
+                               ++ (show msg) 
+                               ++ "\n\n due to parse error: " 
+                               ++ s)
 
 handleRuntimeException :: ASUserClient -> MVar ServerState -> SomeException -> IO ()
 handleRuntimeException user state e = do
   let logMsg = "Runtime error caught: " ++ (show e)
   putStrLn logMsg
   logError logMsg (userCommitSource user)
-  port <- appPort     <$> readMVar state
+  port <- appPort <$> readMVar state
   purgeZombies state
   WS.runServer S.wsAddress port $ application state
 

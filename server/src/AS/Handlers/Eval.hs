@@ -11,6 +11,7 @@ import AS.Dispatch.Repl
 import AS.Dispatch.EvalHeader
 
 import AS.DB.API
+import AS.DB.Expanding
 import AS.DB.Transaction
 import AS.Reply
 

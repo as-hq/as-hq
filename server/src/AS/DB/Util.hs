@@ -115,6 +115,11 @@ getCellsByMessage msg num = do
   --free ptrCells
   return res
 
+getCellsByKeyPattern :: Connection -> String -> IO [ASCell]
+getCellsByKeyPattern conn pattern = runRedis conn $ do
+  Right locKeys <- keys . BC.pack $ pattern
+  catMaybes <$> (liftIO $ getCellsByKeys locKeys)
+
 setCellsByMessage :: B.ByteString -> Int -> IO ()
 setCellsByMessage msg num = BU.unsafeUseAsCString msg $ \lstr -> c_setCells lstr (fromIntegral num)
 
@@ -125,11 +130,6 @@ getSheetLocsRedis :: ASSheetId -> Redis [B.ByteString]
 getSheetLocsRedis sheetid = do
   Right keys <- smembers $ makeSheetSetKey sheetid
   return keys
-
-cellsInSheet :: Connection -> ASSheetId -> IO [ASCell]
-cellsInSheet conn sid = runRedis conn $ do
-  Right locKeys <- keys . BC.pack $ "I/" ++ (T.unpack sid) ++ "/(*,*)"
-  catMaybes <$> (liftIO $ getCellsByKeys locKeys)
 
 deleteLocsInSheet :: ASSheetId -> IO ()
 deleteLocsInSheet sid = withCString (T.unpack sid) c_clearSheet

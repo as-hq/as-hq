@@ -18,6 +18,8 @@ library
   exposed-modules:     AS.Daemon
                        AS.LanguageDefs
                        AS.DB.API
+                       AS.DB.Expanding
+                       AS.DB.Export
                        AS.DB.Transaction
                        AS.DB.Util
                        AS.DB.Graph
@@ -57,6 +59,7 @@ library
                        AS.Parsing.Excel
                        AS.Parsing.Substitutions
                        AS.Reply
+                       AS.Types.Common
                        AS.Types.Cell
                        AS.Types.CellProps
                        AS.Types.Commits
@@ -106,6 +109,7 @@ library
                      , inline-r
                      , deepseq
                      , deepseq-generics
+                     , cereal
   default-language:    Haskell2010
   default-extensions:  QuasiQuotes
                        FlexibleContexts
