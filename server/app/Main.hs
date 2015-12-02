@@ -172,7 +172,7 @@ handleRuntimeException :: ASUserClient -> MVar ServerState -> SomeException -> I
 handleRuntimeException user state e = do
   let logMsg = "Runtime error caught: " ++ (show e)
   putStrLn logMsg
-  writeErrToLog logMsg (userCommitSource user)
+  logError logMsg (userCommitSource user)
   port <- appPort     <$> readMVar state
   purgeZombies state
   WS.runServer S.wsAddress port $ application state

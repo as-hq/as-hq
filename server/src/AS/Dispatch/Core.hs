@@ -174,7 +174,7 @@ evalChain :: Connection -> FormattedValMap -> [ASCell] -> CommitSource -> Either
 evalChain conn valuesMap cells src = 
   let whenCaught e = do
         printObj "Runtime exception caught" (e :: SomeException)
-        writeErrToLog ("Runtime exception caught" ++ (show e)) src
+        logError ("Runtime exception caught" ++ (show e)) src
         return $ Left RuntimeEvalException
   in do
     result <- liftIO $ catch (runEitherT $ evalChain' conn valuesMap cells [] [] []) whenCaught

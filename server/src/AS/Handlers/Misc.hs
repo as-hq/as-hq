@@ -88,7 +88,7 @@ handleUpdateWindow cid state (PayloadW w) = do
 -- from getting lost and doesn't require us to manually reset the server. 
 badCellsHandler :: R.Connection -> ASUserClient -> SomeException -> IO ()
 badCellsHandler conn uc e = do 
-  writeErrToLog ("Error while fetching cells: " ++ (show e)) (userCommitSource uc)
+  logError ("Error while fetching cells: " ++ (show e)) (userCommitSource uc)
   printWithTime "Undoing last commit"
   DT.undo conn (userCommitSource uc)
   return ()
