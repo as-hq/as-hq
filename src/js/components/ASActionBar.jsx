@@ -1,5 +1,3 @@
-/* @flow */
-
 import React from 'react';
 import {AppBar, FlatButton, Styles} from 'material-ui';
 
@@ -12,7 +10,7 @@ import ASFileImportButton from './ASFileImportButton.jsx';
 let {Colors} = Styles;
 
 export default React.createClass({
-  render(): ReactElement {
+  render() {
     return (
       <AppBar
         style={{
