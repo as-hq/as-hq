@@ -3,61 +3,62 @@
 #include "graph.cpp"
 #include <time.h>    
 
+using namespace std;
 
-// BOOST_AUTO_TEST_SUITE(updating)
+Location a1 = Location(Location::LocationType::INDEX,"",1,1,0,0);
+Location a2 = Location(Location::LocationType::INDEX,"",1,2,0,0);
+Location b1 = Location(Location::LocationType::INDEX,"",2,1,0,0);
+Location b2 = Location(Location::LocationType::INDEX,"",2,2,0,0);
 
+Location a1b1 = Location(Location::LocationType::RANGE,"",1,1,2,1);
+Location a1a3 = Location(Location::LocationType::RANGE,"",1,1,1,3);
 
-// BOOST_AUTO_TEST_CASE(updateEmpty){
-// 	DAG d;
-// 	std::vector<std::string> toLocs = {"b","c"};
-// 	d.updateDAG("a",toLocs);
-// 	d.showGraph();
-// }
-
-// BOOST_AUTO_TEST_CASE(doubleUpdate){
-//     DAG d;
-// 	std::vector<std::string> toLocs = {"b","c"};
-// 	d.updateDAG("a",toLocs);
-// 	d.updateDAG("a",toLocs);
-// 	d.showGraph();
-// }
-
-// BOOST_AUTO_TEST_CASE(manySmallUpdates){
-// 	std::cout << "Doing many small updates" << std::endl; 
-//     DAG d;
-//     clock_t begin = clock(); 
-//     std::vector<std::string> fl = {"d"};
-// 	for (int i = 0 ; i < 10000; ++i){
-// 		d.updateDAG(std::to_string(i),fl);
-// 	}
-// 	clock_t end = clock(); 
-// 	printf("Time taken: %.2fs\n", (double)(end - begin)/CLOCKS_PER_SEC);
-// }
-
-// BOOST_AUTO_TEST_CASE(oneBigUpdate){
-// 	std::cout << "Doing one big update" << std::endl; 
-//     DAG d;
-//     clock_t begin = clock(); 
-//     std::vector<std::string> toLocs;
-// 	for (int i = 0 ; i < 10000; ++i){
-// 		toLocs.push_back(std::to_string(i));
-// 	}
-// 	d.updateDAG("a",toLocs);
-// 	clock_t end = clock(); 
-// 	printf("Time taken: %.2fs\n", (double)(end - begin)/CLOCKS_PER_SEC);
-// }
-
-// BOOST_AUTO_TEST_CASE(replaceUpdateShouldDeleteExtraVertices){
-//     DAG d;
-// 	std::vector<std::string> toLocs = {"b","c"};
-// 	std::vector<std::string> newToLocs = {"d"};
-// 	d.updateDAG("a",toLocs);
-// 	d.updateDAG("a",newToLocs);
-// 	d.showGraph();
-// }
+Location pa1 = Location(Location::LocationType::POINTER,"",1,1,0,0);
+Location pa2 = Location(Location::LocationType::POINTER,"",1,2,0,0);
 
 
-// BOOST_AUTO_TEST_SUITE_END()
+BOOST_AUTO_TEST_SUITE(updating)
+
+BOOST_AUTO_TEST_CASE(updateEmpty) {
+	DAG d;
+	unordered_set<Location> fromLocs = {a1,a2};
+	d.updateDAG(b1,fromLocs);
+	d.showGraph("updateEmpty");
+}
+
+BOOST_AUTO_TEST_CASE(updatesAreIdempotent ){
+  DAG d;
+	unordered_set<Location> fromLocs = {a1,a2};
+	d.updateDAG(b1,fromLocs);
+	d.updateDAG(b1,fromLocs);
+	d.showGraph("doubleUpdate");
+}
+
+
+BOOST_AUTO_TEST_CASE(replaceUpdateShouldDeleteExtraVertices) {
+  DAG d;
+	unordered_set<Location> fromLocs = {a1,a2};
+	unordered_set<Location> newFromLocs = {b2};
+	d.updateDAG(b1,fromLocs);
+	d.updateDAG(b1,newFromLocs);
+	d.showGraph("replaceUpdate");
+}
+
+BOOST_AUTO_TEST_CASE(updateRange1) {
+  DAG d;
+	unordered_set<Location> fromLocs = {a1,a1a3};
+	d.updateDAG(b1,fromLocs);
+	d.showGraph("updateRange1");
+}
+
+BOOST_AUTO_TEST_CASE(updateRange2) {
+  DAG d;
+	unordered_set<Location> fromLocs = {a1b1,a1a3};
+	d.updateDAG(b2,fromLocs);
+	d.showGraph("updateRange2");
+}
+
+BOOST_AUTO_TEST_SUITE_END()
 
 // /****************************************************************************************************************************************/
 
@@ -95,54 +96,49 @@
 
 BOOST_AUTO_TEST_SUITE(cycles)
 
-BOOST_AUTO_TEST_CASE(testContainsCycleInTriangle){
+BOOST_AUTO_TEST_CASE(notAlwaysCycle) {
 	DAG d; 
-	d.updateDAG("a", {"b"});
-	d.updateDAG("b", {"c"});
-	d.updateDAG("c", {"a"});
-	BOOST_CHECK(d.containsCycle("a"));
+	d.updateDAG(a1, {a2});
+	BOOST_CHECK(!d.containsCycle(a1));
 }
 
-BOOST_AUTO_TEST_CASE(testContainsNoCycleInDiamond){
+BOOST_AUTO_TEST_CASE(pointerCycle) {
 	DAG d; 
-	d.updateDAG("d", {"b"});
-	d.updateDAG("d", {"c"});
-	d.updateDAG("b", {"a"});
-	d.updateDAG("c", {"a"});
-	BOOST_CHECK(!d.containsCycle("a"));
-	BOOST_CHECK(!d.containsCycle("b"));
-	BOOST_CHECK(!d.containsCycle("c"));
-	BOOST_CHECK(!d.containsCycle("d"));
+	d.updateDAG(a1, {pa2});
+	d.updateDAG(a2, {pa1});
+	BOOST_CHECK(d.containsCycle(a1));
 }
 
-BOOST_AUTO_TEST_CASE(testContainsCycleInSelfRef){
+BOOST_AUTO_TEST_CASE(containsCycleInTriangle) {
+	DAG d; 
+	d.updateDAG(a2, {a1});
+	d.updateDAG(b1, {a2});
+	d.updateDAG(a1, {b1});
+	BOOST_CHECK(d.containsCycle(a1));
+}
+
+BOOST_AUTO_TEST_CASE(containsCycleInSelfRef) {
 	DAG d; 
 	std::vector<std::string> rels; 
-	d.updateDAG("a", {"a"});
-	BOOST_CHECK(d.containsCycle("a"));
+	d.updateDAG(a1, {a1,a2});
+	BOOST_CHECK(d.containsCycle(a1));
 }
 
 
-BOOST_AUTO_TEST_SUITE_END()
-
-/****************************************************************************************************************************************/
-
-BOOST_AUTO_TEST_SUITE(ROLLBACKS)
-
-BOOST_AUTO_TEST_CASE(rollbackRevertsDAGUPdate){
+BOOST_AUTO_TEST_CASE(containsCycleForIntersectingRange) {
 	DAG d; 
-	std::unordered_set<std::string> rels; 
-	d.updateDAG("a", {"b"});
-
-	DAG oldDag(d);
-
-	d.clearPrevCache();
-	d.updateDAG("b", {"c"});
-	d.updateDAG("a", {"b", "e", "h"});
-	d.updateDAG("b", {"d"});
-
-	d.rollback();
-	BOOST_CHECK(d == oldDag);
+	std::vector<std::string> rels; 
+	d.updateDAG(a1, {a1a3});
+	BOOST_CHECK(d.containsCycle(a1));
 }
+
+BOOST_AUTO_TEST_CASE(containsCycleForSelfPointer) {
+	DAG d; 
+	std::vector<std::string> rels; 
+	d.updateDAG(a1, {pa1,a2});
+	BOOST_CHECK(d.containsCycle(a1));
+}
+
+
 
 BOOST_AUTO_TEST_SUITE_END()

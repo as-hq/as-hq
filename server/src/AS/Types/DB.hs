@@ -5,6 +5,9 @@ module AS.Types.DB
 
 import AS.Types.Cell
 import AS.Types.Commits
+import AS.Types.Locations
+import AS.Types.Eval
+import AS.Types.CellProps
 
 import Prelude
 import qualified Data.Text as T 
@@ -18,16 +21,40 @@ data ASTransaction = Transaction {transactionCommitSource :: CommitSource,
                                   deletedLocations :: [ASIndex] }
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
--- Queries
+-- Graph queries
 
-data GraphQuery = 
-  GetDescendants | GetImmediateDescendants | GetProperDescendants |
-  GetImmediateAncestors |
-  SetRelations | 
-  RollbackGraph |
-  Recompute |
-  Clear
+-- A relation (toLoc,[fromLoc]); a toLoc must be an index, a fromLoc can be any ancestor
+type ASRelation = (ASIndex,[GraphAncestor])
+
+-- Graph read (getX) and write (setX) requests
+data GraphReadRequest = GetDescendants | GetImmediateDescendants | GetProperDescendants | GetImmediateAncestors 
   deriving (Show)
+
+data GraphWriteRequest = SetRelations | RollbackGraph | Recompute | Clear 
+  deriving (Show)
+
+-- Graph input for functions like getDescendants can be indexes or ranges. Getting the descendants 
+-- of a range = descendants of decomposed indices in ranges
+data GraphReadInput  = IndexInput ASIndex | RangeInput ASRange
+
+-- The output of a graph descendant can only be an index (currently)
+-- One can imagine in the future that there's a constant in A1 that gets dragged down in an absolute reference
+-- In this case, that constant would have a lot of descendants, and it might be better to have a range for its
+-- returned descendants. If this or ancestor changes, need to change show2 and read2 as well. 
+data GraphDescendant = IndexDesc ASIndex 
+
+-- The output of a graph ancestor can be an index, pointer, or range, because that's what are in 
+-- user-defined expressions
+type GraphAncestor   = ASReference
+
+descendantsToIndices :: [GraphDescendant] -> [ASIndex]
+descendantsToIndices = map dToI
+  where
+    dToI (IndexDesc i) = i 
+
+indicesToGraphReadInput :: [ASIndex] -> [GraphReadInput]
+indicesToGraphReadInput = map IndexInput
+
 
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
@@ -50,33 +77,36 @@ splitBy delimiter = foldr f [[]]
 class Show2 a where
   show2 :: a -> String
 
-instance Show2 ASCell where
+class Read2 a where
+  read2 :: (Show2 a) => String -> a
+
+readCells :: String -> [ASCell]
+readCells str = map (\c -> read2 c :: ASCell) $ splitBy ',' str
+
+instance (Show2 ASCell) where
   show2 (Cell l e v ts) = (show2 l) ++ (cellDelimiter:(show2 e)) 
                           ++ (cellDelimiter:(show2 v)) ++ (cellDelimiter:(show ts))
-
 instance (Show2 ASIndex) where 
   show2 (Index sid a) = 'I':refDelimiter:(T.unpack sid) ++ (refDelimiter:(show a))
+instance (Show2 ASPointer) where
   show2 (Pointer sid a) = 'P':refDelimiter:(T.unpack sid) ++ (refDelimiter:(show a))
-
 instance (Show2 ASRange) where 
   show2 (Range sid a) = 'R':refDelimiter:(T.unpack sid) ++ (refDelimiter:(show a))
-
+instance (Show2 GraphReadInput) where
+  show2 (IndexInput i) = show2 i
+  show2 (RangeInput r) = show2 r
+instance (Show2 GraphDescendant) where
+  show2 (IndexDesc i) = show2 i
 instance (Show2 ASReference) where
   show2 (IndexRef il) = show2 il 
   show2 (RangeRef rl) = show2 rl
   show2 (OutOfBounds) = "OUTOFBOUNDS"
-
-
 instance (Show2 ASExpression) where
   show2 (Expression xp lang) = 'E':exprDelimiter:xp ++ (exprDelimiter:(show lang))
   show2 (Coupled xp lang dtype rangekey) = 'C':exprDelimiter:xp ++ (exprDelimiter:(show lang)) ++ (exprDelimiter:(show dtype)) ++ (exprDelimiter:rangekey)
-
 instance (Show2 ASValue) where
   show2 = show -- TODO optimize
 
-
-class Read2 a where
-  read2 :: (Show2 a) => String -> a
 
 instance (Read2 ASCell) where
   read2 str = Cell l xp v ts
@@ -85,7 +115,6 @@ instance (Read2 ASCell) where
         [locstr, xpstr, valstr, tagstr] -> (read2 locstr :: ASIndex, read2 xpstr :: ASExpression, 
                                             read2 valstr :: ASValue, read tagstr :: ASCellProps)
         _ -> error ("read2 :: ASCell failed on string " ++ str)
-
 instance (Read2 ASReference) where
   read2 str = loc
     where
@@ -98,17 +127,19 @@ instance (Read2 ASReference) where
               _ -> error ("read2 :: ASReference failed to split string " ++ str)
             loc' = case tag of 
               "I" -> IndexRef $ Index (T.pack sid) (read locstr :: Coord)
-              "P" -> IndexRef $ Pointer (T.pack sid) (read locstr :: Coord)
+              "P" -> PointerRef $ Pointer (T.pack sid) (read locstr :: Coord)
               "R" -> RangeRef $ Range (T.pack sid) (read locstr :: (Coord, Coord))
-
 instance (Read2 ASIndex) where 
   read2 str = case ((read2 :: String -> ASReference) str) of 
     IndexRef i -> i
-
 instance (Read2 ASRange) where 
   read2 str = case ((read2 :: String -> ASReference) str) of 
     RangeRef r -> r
-
+instance (Read2 ASPointer) where 
+  read2 str = case ((read2 :: String -> ASReference) str) of 
+    PointerRef p -> p
+instance (Read2 GraphDescendant) where
+  read2 s = IndexDesc (read2 s :: ASIndex)
 instance (Read2 ASExpression)
   where
     read2 str = xp
@@ -121,10 +152,7 @@ instance (Read2 ASExpression)
           "C" -> case (tail splits) of 
             [xp, lang, dtype, rangekey] -> Coupled xp (read lang :: ASLanguage) (read dtype :: ExpandingType) rangekey
             _ -> error $ "read2 splits expression incorrectly: " ++ str 
-
 instance (Read2 ASValue)
   where 
     read2 = read -- TODO optimize
 
-readCells :: String -> [ASCell]
-readCells str = map (\c -> read2 c :: ASCell) $ splitBy ',' str

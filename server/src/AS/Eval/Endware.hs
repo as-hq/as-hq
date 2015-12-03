@@ -4,6 +4,8 @@ import Prelude
 import AS.Types.Cell
 import AS.Types.Commits
 import AS.Types.Network
+import AS.Types.Eval
+import AS.Types.Errors
 
 import AS.Eval.CondFormat
 import AS.Util as U
@@ -22,12 +24,12 @@ import Control.Concurrent
 -- | Examples: green(x) in python -> produces styled value with string in output -> string parsed to Color tag
 -- | Bloomberg(x) in java -> produces json with stream specs -> converted to Stream tag, kickoff daemon
 
-evalEndware :: MVar ServerState -> [ASCell] -> CommitSource -> [ASCell] -> FormattedValMap -> EitherTExec [ASCell]
-evalEndware state finalCells (sid, uid) origCells valMap = do 
+evalEndware :: MVar ServerState -> [ASCell] -> CommitSource -> [ASCell] -> EvalContext -> EitherTExec [ASCell]
+evalEndware state finalCells (sid, uid) origCells ctx = do 
   conn <- lift $ dbConn <$> readMVar state
   mapM_ (\c -> lift $ DM.possiblyCreateDaemon state uid c) origCells
   let cells1 = changeExcelExpressions finalCells
-  cells2 <- conditionallyFormatCells conn sid cells1 valMap
+  cells2 <- conditionallyFormatCells conn sid cells1 ctx
   return cells2
    
 ----------------------------------------------------------------------------------------------------------------------------------------------

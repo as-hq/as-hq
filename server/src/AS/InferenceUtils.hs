@@ -1,14 +1,16 @@
 module AS.InferenceUtils where
 
 import qualified Data.List.Split as LS
-import AS.Parsing.Show (showPrimitive)
-import AS.Parsing.Read (parseValue)
 import qualified Data.List as L
 import Data.Maybe
 import Data.Char
 
 import AS.Types.Excel
 import AS.Types.Cell
+import AS.Types.Eval
+
+import AS.Parsing.Show (showPrimitive)
+import AS.Parsing.Read (parseValue)
 import AS.DB.API                as DB
 import AS.Parsing.Substitutions as S
 import AS.Util

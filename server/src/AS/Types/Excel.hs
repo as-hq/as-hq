@@ -7,6 +7,7 @@
 
 module AS.Types.Excel where
 
+import AS.Types.Cell
 import AS.Types.CellProps
 import AS.Types.Locations
 import AS.Types.Errors
@@ -215,7 +216,7 @@ data EEntity =
 --------------------------------------------------------------------------------------------------------------------------------------------
 -- | Excel evaluation types
 
-data Context = Context {evalMap :: FormattedValMap, curLoc :: ASIndex}
+data Context = Context {evalMap :: ValMap, curLoc :: ASIndex}
 
 type ThrowsError = Either EError
 type EResult = ThrowsError EEntity
@@ -367,7 +368,7 @@ exRefToASRef sid exRef = case exRef of
       sid' = maybe sid id (sheetIdFromContext sn wn)
       IndexRef (Index _ tl) = exRefToASRef sid' $ ExLocRef f sn Nothing
       IndexRef (Index _ br) = exRefToASRef sid' $ ExLocRef s sn Nothing
-  ExPointerRef (ExIndex _ c r) sn wn -> IndexRef $ Pointer sid' (colStrToInt c, read r :: Int)
+  ExPointerRef (ExIndex _ c r) sn wn -> PointerRef $ Pointer sid' (colStrToInt c, read r :: Int)
     where sid' = maybe sid id (sheetIdFromContext sn wn)
 
 asRefToExRef :: ASReference -> ExRef
@@ -375,7 +376,7 @@ asRefToExRef OutOfBounds = ExOutOfBounds
 asRefToExRef (IndexRef (Index sid (a,b))) = ExLocRef idx sname Nothing
   where idx = ExIndex REL_REL (intToColStr a) (show b)
         sname = sheetIdToSheetName sid
-asRefToExRef (IndexRef (Pointer sid (a,b))) = ExPointerRef idx sname Nothing
+asRefToExRef (PointerRef (Pointer sid (a,b))) = ExPointerRef idx sname Nothing
   where idx = ExIndex REL_REL (intToColStr a) (show b)
         sname = sheetIdToSheetName sid
 asRefToExRef (RangeRef (Range s (i1, i2))) = ExRangeRef rng Nothing Nothing

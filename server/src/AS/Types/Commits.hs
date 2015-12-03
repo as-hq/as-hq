@@ -3,6 +3,7 @@
 module AS.Types.Commits where
 
 import AS.Types.Cell
+import AS.Types.Eval
 
 import Prelude
 import GHC.Generics
@@ -13,8 +14,6 @@ import Data.List
 -- Version Control
 
 data ASTime = Time {day :: String, hour :: Int, minute :: Int, sec :: Int} deriving (Show, Read, Eq, Generic)
-
-type ASRelation = (ASIndex, [ASIndex]) -- for representing ancestry relationships
 
 data ASCommit = Commit {before :: [ASCell],
                         after :: [ASCell],

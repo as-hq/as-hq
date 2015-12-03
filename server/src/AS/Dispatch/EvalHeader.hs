@@ -4,6 +4,8 @@ import Prelude
 
 import AS.Types.Cell
 import AS.Types.Messages
+import AS.Types.Eval
+
 import AS.Eval.Core as R (evaluateHeader)
 import Control.Concurrent (MVar, newMVar, modifyMVar_, modifyMVar, readMVar)
 

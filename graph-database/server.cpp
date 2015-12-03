@@ -10,85 +10,133 @@
 #include <boost/algorithm/string/regex.hpp>
 #include <boost/regex.hpp>
 
-/* 
-    Cases on type of request and calls the correct handler 
-    Always returns a list of strings, the first of which is success/fail
-*/
-
 using namespace boost; 
 using namespace std; 
+
+/***********************************************************************************************************************/
+/* Communication with graph methods, involves show and read methods mainly */
 
 const char* msgPartDelimiter = "`";
 const char* relationDelimiter = "&";
 
-vector<string> processRequest(DAG& dag, string& request){
+/*
+    For functions like getDescendants, given the requestParts and an empty location vector,
+    simply cast to Location type for the function
+*/
+vector<Location>& generateLocs(const vector<string>& requestParts, vector<Location>& locs){
+    locs.resize(requestParts.size());
+    transform(requestParts.begin(),requestParts.end(),locs.begin(),fromString);
+    return locs;
+}
 
-    // split the message 
+/*
+    Stringify a DAG Status to send as last part of message back 
+*/
+string stringifyStatus(const DAG::DAGStatus& status){
+    switch(status){
+        case DAG::DAGStatus::OK:
+            return "OK";
+            break;
+        case DAG::DAGStatus::CIRC_DEP:
+            return "CIRC_DEP";
+            break;
+        case DAG::DAGStatus::ERROR:
+            return "ERROR";
+            break;
+        case DAG::DAGStatus::UNKNOWN_REQUEST_TYPE:
+            return "UNKNOWN_REQUEST_TYPE";
+            break;
+    }
+}
+
+/*
+    Take a DAG response and an empty string of responses, 
+    Return a list of strings to send back to  Haskell
+    First n-1 are just location strings, last string is status
+*/
+vector<string>& stringifyResponse(const DAG::DAGResponse& resp, vector<string>& response){
+    response.resize(resp.locs.size());
+    transform(resp.locs.begin(),resp.locs.end(),response.begin(),toString);
+    response.push_back(stringifyStatus(resp.status));
+    return response;
+}
+
+/*
+    Given all of the request parts, split them by relation delimiter and set all of those relations
+    (We can set multiple relations at once in the DB, useful for eval, delete, etc. that take [ASCell])
+    Can possibly result in circular error and its head (any vertex of the cycle)
+*/
+DAG::DAGResponse applySetRelations(DAG& dag, const vector<string>& requestParts){
+    int i = 0; 
+    vector<DAG::Vertex> toLocs;  
+    while (i < requestParts.size()) {
+        // get the next relation by splitting
+        vector<string> relation;
+        boost::split(relation, requestParts[i], boost::is_any_of(relationDelimiter));
+        // get the to and from locs
+        DAG::Vertex toLoc = fromString(relation[0]); 
+        DAG::VertexSet fromLocs;
+        for (int i = 1; i < relation.size(); ++i)
+            fromLocs.insert(fromString(relation[i]));
+        // set the relation
+        dag.updateDAG(toLoc, fromLocs);
+        toLocs.push_back(toLoc);
+        i++;
+    }
+    vector<Location> responseLocs = {};
+    // Handle circular dependencies
+    for (const auto& tl : toLocs) { 
+        if (dag.containsCycle(tl)) {
+            responseLocs.push_back(tl);
+            return {responseLocs,DAG::DAGStatus::CIRC_DEP};
+        }
+    }
+    return {responseLocs,DAG::DAGStatus::OK};
+}
+
+/***********************************************************************************************************************/
+
+/* 
+    Returns the vector of strings that's the response to Haskell, given the current dag and the overall request 
+    Main non-ZMQ logic within the server is here 
+*/
+vector<string> processRequest(DAG& dag, string& request){
+    // Split message by message delimiter 
     vector<string> requestParts; 
     boost::algorithm::split_regex(requestParts, request, regex(msgPartDelimiter));
-
-    // handle different request types
     string type = requestParts[0];
     requestParts.erase(requestParts.begin());
 
     cout << "Processing action: " << type << endl;
+    vector<Location> tempLocs;
+    vector<string> response;
 
     if (type == "GetDescendants") {
-        return dag.getAllDescendants(requestParts);
+        DAG::DAGResponse r = dag.getAllDescendants(generateLocs(requestParts, tempLocs));
+        return stringifyResponse(r,response);
     } else if (type == "GetProperDescendants") {
-        return dag.getProperDescendants(requestParts);
+        DAG::DAGResponse r = dag.getProperDescendants(generateLocs(requestParts, tempLocs));
+        return stringifyResponse(r,response);
     } else if (type == "GetImmediateAncestors") {
-        return dag.getImmediateAncestors(requestParts);
-    } else if (type == "SetRelations"){
-        dag.clearPrevCache(); 
-        dag.showGraph("BEFORE SETRELATIONS"); 
-
-        int i = 0; 
-        vector<DAG::Vertex> toLocs;  
-        while (i < requestParts.size()) {
-            // cout << "processing request part: " << requestParts[i] << endl;
-            // split the relation
-            vector<string> relation;
-            boost::split(relation, requestParts[i], boost::is_any_of(relationDelimiter));
-
-            DAG::Vertex toLoc = relation[0]; 
-            DAG::VertexSet fromLocs;
-            for (int i = 1; i < relation.size(); ++i)
-                fromLocs.insert(relation[i]);
-
-            // set the relation
-            dag.updateDAG(toLoc, fromLocs);
-            toLocs.push_back(toLoc);
-            i++;
-        }
-
-        for (const auto& tl : toLocs) { 
-            if (dag.containsCycle(tl)) {
-                return {tl, "CIRC_DEP"};
-            }
-        }
-
-        dag.showGraph("AFTER SETRELATIONS"); 
-        return {"OK"};
+        DAG::DAGResponse r = dag.getImmediateAncestors(generateLocs(requestParts, tempLocs));
+        return stringifyResponse(r,response);
+    } else if (type == "SetRelations") {
+        DAG::DAGResponse r = applySetRelations(dag, requestParts);
+        return stringifyResponse(r,response);
     } else if (type == "Clear") {
         dag.clearDAG();
-        cout << "DAG cleared.";
-        return {"OK"};
-    } else if (type == "RollbackGraph") { 
-        dag.rollback(); 
-        dag.showGraph("AFTER ROLLBACKGRAPH"); 
-        return {"OK"};
+        return {stringifyStatus(DAG::DAGStatus::OK)};
     } else if (type == "Recompute") {
         dag.clearDAG();
-        int computeResult = dag.recomputeDAG();
-        cout << "DAG recomputed.";
-        if (computeResult == 0)
-            return {"OK"};
-        else 
-            return {"ERROR"};
+        int computeResult = 0; //dag.recomputeDAG();
+        if (computeResult == 0){
+            return {stringifyStatus(DAG::DAGStatus::OK)};
+        } else {
+            return {stringifyStatus(DAG::DAGStatus::ERROR)};
+        }
+    } else {
+        return {stringifyStatus(DAG::DAGStatus::UNKNOWN_REQUEST_TYPE)};
     }
-
-    return {"UNKNOWN_REQUEST_TYPE"};
 }
 
 
@@ -121,9 +169,6 @@ int main () {
         string request = string(static_cast<char*>(requestMsg.data()), requestMsg.size());
         // removes first and last quotes from string (artifact of ByteString show)
         request = request.substr(1, request.size() - 2); 
-
-        // cout << "Received message: " << request << endl;
-
         vector<string> response = processRequest(dag,request);
 
         clock_t end = clock(); 
@@ -138,9 +183,6 @@ int main () {
         zmq::message_t res (response.back().length());
         memcpy ((void *) res.data (), response.back().c_str(), response.back().length());
         socket.send (res); 
-
-        // cout << "Sent response" << endl;
-        // dag.showGraph();
+        /* ^ Sent back request */
     }
 }
-

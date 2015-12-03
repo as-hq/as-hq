@@ -4,6 +4,9 @@ import Prelude
 
 import AS.Types.DB
 import AS.Types.Cell
+import AS.Types.CellProps
+import AS.Types.Eval
+
 import AS.Util as U
 import AS.Logging
 import AS.Parsing.Common (tryParseListNonIso)
@@ -171,9 +174,9 @@ rangeKeyToIndices key = rangeToIndices range
     (Index sid (col, row), (height, width)) = readRangeKey key
     range = Range sid ((col, row), (col+width-1, row+height-1))
 
-getFatCellIntersections :: Connection -> ASSheetId -> Either [ASIndex] [RangeKey] -> IO [RangeKey]
-getFatCellIntersections conn sid (Left locs) = do
-  rangeKeys <- makeRangeKeysInSheet conn sid
+getFatCellIntersections :: Connection -> Either [ASIndex] [RangeKey] -> IO [RangeKey]
+getFatCellIntersections conn (Left locs) = do
+  rangeKeys <- concat <$> mapM (getRangeKeysInSheet conn) (nub $ map locSheetId locs)
   printObj "All range keys in sheet" rangeKeys
   return $ filter keyIntersects rangeKeys
   where
@@ -182,8 +185,8 @@ getFatCellIntersections conn sid (Left locs) = do
     indexInRect ((a',b'),(a2',b2')) (Index _ (a,b)) = a >= a' && b >= b' &&  a <= a2' && b <= b2'
 
 -- ::ALEX:: why does this case exist? 
-getFatCellIntersections conn sid (Right keys) = do
-  rangeKeys <- makeRangeKeysInSheet conn sid
+getFatCellIntersections conn (Right keys) = do
+  rangeKeys <- concat <$> mapM  (getRangeKeysInSheet conn) (nub $ map (locSheetId . descriptorIndex) keys)
   printObj "Checking intersections against keys" keys
   return $ L.intersectBy keysIntersect rangeKeys keys
     where 
@@ -209,8 +212,8 @@ readRangeKey key = (idx, dims)
     idx   = read2 (head parts) :: ASIndex
     dims  = read (parts !! 1) :: Dimensions
 
-makeRangeKeysInSheet :: Connection -> ASSheetId -> IO [RangeKey]
-makeRangeKeysInSheet conn sid = runRedis conn $ do
+getRangeKeysInSheet :: Connection -> ASSheetId -> IO [RangeKey]
+getRangeKeysInSheet conn sid = runRedis conn $ do
   Right result <- smembers $ makeSheetRangesKey sid
   return $ map BC.unpack result
 

@@ -33,6 +33,8 @@ import AS.DB.API as DB
 import AS.Logging
 import AS.Config.Settings
 
+import Database.Redis (Connection)
+
 -- EitherT
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.Either
@@ -43,21 +45,18 @@ import Control.Exception (catch, SomeException)
 -----------------------------------------------------------------------------------------------------------------------
 -- Exposed functions
 
-evaluateLanguage :: ASSheetId -> ASIndex -> FormattedValMap -> ASExpression -> EitherTExec (Formatted CompositeValue)
-evaluateLanguage sid curRef valuesMap xp@(Expression str lang) = 
-  let unformattedValuesMap = M.map orig valuesMap
-      maybeError = possiblyShortCircuit sid unformattedValuesMap xp
-  in catchEitherT $ do
-    printWithTimeT "Starting eval code"
-    case maybeError of
-      Just e -> return . return . CellValue $ e -- short-circuited, return this error
-      Nothing -> case lang of
-        Excel -> do 
-          KE.evaluate str curRef valuesMap
-          -- Excel needs current location and un-substituted expression, and needs the formatted values for
-          -- loading the initial entities
-        otherwise -> return <$> execEvalInLang sid lang xpWithValuesSubstituted -- didn't short-circuit, proceed with eval as usual
-         where xpWithValuesSubstituted = insertValues sid unformattedValuesMap xp
+evaluateLanguage :: Connection -> ASIndex -> EvalContext -> ASExpression -> EitherTExec (Formatted CompositeValue)
+evaluateLanguage conn idx@(Index sid _) ctx@(EvalContext mp _ _ _) xp@(Expression str lang) = catchEitherT $ do
+  printWithTimeT "Starting eval code"
+  case (possiblyShortCircuit sid mp xp) of
+    Just e -> return . return . CellValue $ e -- short-circuited, return this error
+    Nothing -> case lang of
+      Excel -> do 
+        KE.evaluate str idx mp
+        -- Excel needs current location and un-substituted expression, and needs the formatted values for
+        -- loading the initial entities
+      otherwise -> return <$> (execEvalInLang sid lang =<< lift xpWithValuesSubstituted) -- didn't short-circuit, proceed with eval as usual
+       where xpWithValuesSubstituted = insertValues conn sid ctx xp
 evaluateLanguage _ _ _ (Coupled _ _ _ _) = left WillNotEvaluate
 
 -- no catchEitherT here for now, but that's because we're obsolescing Repl for now. (Alex ~11/10)
@@ -95,13 +94,13 @@ possiblyShortCircuit sheetid valuesMap xp =
       depInds        = concat $ catMaybes depSets
       hasOutOfBounds = any isNothing depSets   -- pretty horrible way of checking this for now. 
       lang           = xpLanguage xp
-      values         = map (valuesMap M.!) $ depInds
+      values         = map (cellValue . (valuesMap M.!)) depInds
   in if hasOutOfBounds 
     then Just $ ValueError "Referencing cell out of bounds." "RefError"
     else listToMaybe $ catMaybes $ flip map (zip depInds values) $ \(i, v) -> case v of
-      CellValue NoValue                 -> handleNoValueInLang lang i
-      CellValue ve@(ValueError _ _)     -> handleErrorInLang lang ve
-      otherwise                         -> Nothing 
+      NoValue                 -> handleNoValueInLang lang i
+      ve@(ValueError _ _)     -> handleErrorInLang lang ve
+      otherwise               -> Nothing 
 
 -- | Nothing if it's OK to pass in NoValue, appropriate ValueError if not.
 handleNoValueInLang :: ASLanguage -> ASIndex -> Maybe ASValue

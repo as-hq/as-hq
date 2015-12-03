@@ -2,6 +2,9 @@ module AS.Kernels.Excel.Lib where
 
 import AS.Types.Excel
 import AS.Types.Cell
+import AS.Types.Errors
+import AS.Types.Eval
+
 import AS.Kernels.Excel.Util
 import AS.Kernels.Excel.Compiler
 import qualified Data.Map.Strict as M
@@ -420,7 +423,7 @@ refToEntity c (ERef l@(IndexRef i)) = case (asValueToEntity v) of
   where
     v = case (M.lookup i (evalMap c)) of
       Nothing -> dbLookup i
-      Just (Formatted (CellValue v') f) -> Formatted v' f
+      c -> cellToFormattedVal c 
       _ -> error "cannot insert ExpandingValue in excel expression"
 refToEntity c (ERef (l@(RangeRef r))) = if any isNothing vals
   then Left $ CannotConvertToExcelValue l
@@ -430,7 +433,7 @@ refToEntity c (ERef (l@(RangeRef r))) = if any isNothing vals
     idxs = rangeToIndicesRowMajor r
     (inMap,needDB) = partition ((flip M.member) mp) idxs
     -- excel cannot operate on objects/expanding values, so it's safe to assume all composite values passed in are cell values
-    mapVals = map (\(Formatted (CellValue v) f) -> Formatted v f) $ catMaybes $ map ((flip M.lookup) mp) inMap
+    mapVals = map (cellToFormattedVal . Just . (mp M.!)) inMap
     dbVals = dbLookupBulk needDB
     vals = map toEValue $ mapVals ++ dbVals 
 

@@ -30,19 +30,21 @@ row = snd
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Locations
 
-data ASIndex = 
-    Index {locSheetId :: ASSheetId, index :: Coord} 
-  | Pointer {pointerSheetId :: ASSheetId, pointerIndex :: Coord} 
+data ASIndex = Index {locSheetId :: ASSheetId, index :: Coord} 
   deriving (Show, Read, Eq, Generic, Ord)
-data ASRange = Range {rangeSheetId :: ASSheetId, range :: (Coord, Coord)} deriving (Show, Read, Eq, Generic, Ord)
-data ASReference = IndexRef ASIndex | RangeRef ASRange | OutOfBounds deriving (Show, Read, Eq, Generic, Ord)
+data ASPointer = Pointer {pointerSheetId :: ASSheetId, pointerIndex :: Coord} 
+  deriving (Show, Read, Eq, Generic, Ord)
+
+data ASRange = Range {rangeSheetId :: ASSheetId, range :: (Coord, Coord)} 
+  deriving (Show, Read, Eq, Generic, Ord)
+data ASReference = IndexRef ASIndex | RangeRef ASRange | PointerRef ASPointer | OutOfBounds 
+  deriving (Show, Read, Eq, Generic, Ord)
 
 instance ToJSON ASIndex where
   toJSON (Index sid (c,r)) = object ["tag"     .= ("index" :: String),
                                      "sheetId" .= sid,
                                      "index"   .= object ["row" .= r, 
                                                           "col" .= c]]
-
 instance FromJSON ASIndex where
   parseJSON (Object v) = do
     loc <- v .: "index"
@@ -50,6 +52,20 @@ instance FromJSON ASIndex where
     idx <- (,) <$> loc .: "col" <*> loc .: "row"
     return $ Index sid idx
   parseJSON _          = fail "client message JSON attributes missing"
+
+instance ToJSON ASPointer where
+  toJSON (Pointer sid (c,r)) = object ["tag"     .= ("index" :: String),
+                                     "sheetId" .= sid,
+                                     "index"   .= object ["row" .= r, 
+                                                          "col" .= c]]
+instance FromJSON ASPointer where
+  parseJSON (Object v) = do
+    loc <- v .: "index"
+    sid <- v .: "sheetId"
+    idx <- (,) <$> loc .: "col" <*> loc .: "row"
+    return $ Pointer sid idx
+  parseJSON _          = fail "client message JSON attributes missing"
+
 
 instance ToJSON ASRange where
   toJSON (Range sid ((c,r),(c2,r2))) = object ["tag" .= ("range" :: String),
@@ -76,6 +92,7 @@ instance FromJSON ASReference
 
 -- memory region exposure instances for R value unboxing
 instance NFData ASIndex             where rnf = genericRnf
+instance NFData ASPointer           where rnf = genericRnf
 instance NFData ASRange             where rnf = genericRnf
 instance NFData ASReference         where rnf = genericRnf
 
@@ -126,7 +143,6 @@ rangeContainsIndex (Range sid1 ((x1,y1),(x2,y2))) idx = and [
   sid1 == sid2, x >= x1, x <= x2, y >= y1, y <= y2 ]
     where
       (x,y,sid2) = case idx of 
-        Pointer sid2 (x,y) -> (x,y,sid2)
         Index sid2 (x,y) -> (x,y,sid2)
 
 rangeContainsRange :: ASRange -> ASRange -> Bool
@@ -154,6 +170,14 @@ rangeToIndicesRowMajor (Range sheet (ul, lr)) = [Index sheet (x,y) | y <- [start
     starty = min (row ul) (row lr)
     endy = max (row ul) (row lr)
 
+rangeToIndicesRowMajor2D :: ASRange -> [[ASIndex]]
+rangeToIndicesRowMajor2D (Range sheet (ul, lr)) = map (\y -> [Index sheet (x,y) | x <- [startx..endx]]) [starty..endy]
+  where
+    startx = min (col ul) (col lr)
+    endx = max (col ul) (col lr)
+    starty = min (row ul) (row lr)
+    endy = max (row ul) (row lr)
+
 shiftLoc :: Offset -> ASReference -> ASReference
 shiftLoc (dy, dx) (IndexRef (Index sh (y,x))) = IndexRef $ Index sh (y+dy, x+dx)
 shiftLoc (dy, dx) (RangeRef (Range sh ((y,x),(y2,x2)))) = RangeRef $ Range sh ((y+dy, x+dx), (y2+dy, x2+dx))
@@ -175,12 +199,8 @@ getRangeOffset r1 r2 = getIndicesOffset (getTopLeft r1) (getTopLeft r2)
 getIndicesOffset :: ASIndex -> ASIndex -> Offset
 getIndicesOffset (Index _ (y, x)) (Index _ (y', x')) = (y'-y, x'-x)
 
-pointerToIndex :: ASIndex -> ASIndex
-pointerToIndex idx = case idx of 
-  Index _ _ -> idx
-  Pointer sid coord -> Index sid coord
+pointerToIndex :: ASPointer -> ASIndex
+pointerToIndex (Pointer s c) = Index s c
 
-indexToPointer :: ASIndex -> ASIndex
-indexToPointer idx = case idx of 
-  Index sid coord -> Pointer sid coord
-  Pointer _ _ -> idx
+indexToPointer :: ASIndex -> ASPointer
+indexToPointer (Index s c) = Pointer s c

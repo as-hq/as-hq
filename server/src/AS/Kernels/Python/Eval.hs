@@ -7,7 +7,7 @@ import AS.Kernels.Python.Pyfi
 
 import AS.Parsing.Read
 
-import AS.Types.Cell (ASLanguage( Python, SQL ))
+import AS.Types.Cell
 import AS.Types.Eval
 import AS.Types.Errors
 import AS.Types.Sheets

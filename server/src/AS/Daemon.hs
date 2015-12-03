@@ -4,6 +4,7 @@ import Prelude
 import AS.Types.Cell
 import AS.Types.Messages
 import AS.Types.Network
+import AS.Types.CellProps
 
 import Data.Char (isPunctuation, isSpace)
 import Data.Monoid (mappend)

@@ -122,6 +122,7 @@ executable alphasheets-exe
   ghc-options:         -O2
                        -threaded
                        -with-rtsopts=-N
+                       -W
   build-depends:       base
                      , alphasheets
                      , aeson

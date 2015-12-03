@@ -7,6 +7,10 @@ import Prelude
 import AS.Types.Cell
 import AS.Types.Messages
 import AS.Types.DB
+import AS.Types.CellProps
+import AS.Types.Errors
+import AS.Types.Eval
+
 import AS.Util as U
 import qualified AS.DB.Util as DU
 import AS.Parsing.Substitutions (getDependencies)
@@ -97,25 +101,25 @@ getBlankedCellsAt locs =
     cells <- getPossiblyBlankCells locs
     return $ map (\(Cell l xp v ts) -> Cell l (blank xp) NoValue ts) cells
 
--- allows indices to be Pointer or Index
-getCompositeCells :: Connection -> [ASIndex] -> IO [Maybe CompositeCell]
-getCompositeCells _ [] = return []
-getCompositeCells conn locs =
-  let msg = DU.showB $ intercalate DU.msgPartDelimiter $ map (show2 . pointerToIndex) locs
-      num = length locs
-      expandPointerRefs (loc, ccell) = case loc of 
-        Pointer sid coord -> case ccell of 
-          Just (Cell l (Coupled xp lang dtype key) v ts) -> do
-            -- if the cell was coupled but no range descriptor exists, something fucked up.
-            (Just desc) <- getRangeDescriptor conn key
-            let fatLocs = DU.rangeKeyToIndices key
-            cells <- map fromJust <$> getCells fatLocs
-            return . Just . Fat $ FatCell cells desc
-          _ -> return Nothing
-        _ -> return $ Single <$> ccell 
-  in do 
-    ccells <- DU.getCellsByMessage msg num
-    mapM expandPointerRefs $ zip locs ccells
+---- allows indices to be Pointer or Index
+--getCompositeCells :: Connection -> [ASIndex] -> IO [Maybe CompositeCell]
+--getCompositeCells _ [] = return []
+--getCompositeCells conn locs =
+--  let msg = DU.showB $ intercalate DU.msgPartDelimiter $ map (show2 . pointerToIndex) locs
+--      num = length locs
+--      expandPointerRefs (loc, ccell) = case loc of 
+--        Pointer sid coord -> case ccell of 
+--          Just (Cell l (Coupled xp lang dtype key) v ts) -> do
+--            -- if the cell was coupled but no range descriptor exists, something fucked up.
+--            (Just desc) <- getRangeDescriptor conn key
+--            let fatLocs = DU.rangeKeyToIndices key
+--            cells <- map fromJust <$> getCells fatLocs
+--            return . Just . Fat $ FatCell cells desc
+--          _ -> return Nothing
+--        _ -> return $ Single <$> ccell 
+--  in do 
+--    ccells <- DU.getCellsByMessage msg num
+--    mapM expandPointerRefs $ zip locs ccells
 
 getPossiblyBlankCells :: [ASIndex] -> IO [ASCell]
 getPossiblyBlankCells locs = do 
@@ -223,15 +227,16 @@ modifyWorkbookSheets conn f wName = do
 ----------------------------------------------------------------------------------------------------------------------
 -- Ancestors
 
--- | Update the ancestor relationships in the DB based on the expressions and locations of the
--- cells passed in. (E.g. if a cell is passed in at A1 and its expression is "C1 + 1", C1->A1 is
+-- Update the ancestor relationships in the DB based on the expressions and locations of the
+-- cells passed in. (E.g. if a cell is passed in at A1 and its expression is "C1 + 1", C1 -> A1 is
 -- added to the graph.)
+-- Note that a relation is (ASIndex, [ASReference]), where a graph ancestor can be any valid reference type, 
+-- including pointer, range, and index. 
 setCellsAncestors :: [ASCell] -> EitherTExec [[ASReference]]
 setCellsAncestors cells = G.setRelations relations >> return depSets
   where
     depSets = map (\(Cell l e _ _) -> getDependencies (locSheetId l) e) cells
-    zipSets = zip cells depSets
-    relations = map (\((Cell l _ _ _), depSet) -> (l, concat $ catMaybes $ map refToIndices depSet)) zipSets
+    relations = (zip (map cellLocation cells) depSets) :: [ASRelation]
 
 -- | It'll parse no dependencies from the blank cells at these locations, so each location in the
 -- graph DB gets all its ancestors removed. 

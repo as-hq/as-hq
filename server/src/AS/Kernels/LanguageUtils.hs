@@ -9,6 +9,9 @@ import qualified Data.List as L
 
 import AS.Types.Cell
 import AS.Types.Excel
+import AS.Types.Eval
+import AS.Types.Errors
+
 import AS.Config.Paths
 import AS.Parsing.Show
 import AS.Parsing.Substitutions
@@ -31,6 +34,10 @@ import qualified Prelude as P
 import AS.Util
 
 import AS.Parsing.Common as C
+
+import AS.DB.Transaction as DT
+import Database.Redis (Connection)
+
 
 -- EitherT
 import Control.Monad.Trans.Class
@@ -205,38 +212,32 @@ addCompileCmd OCaml cmd = do
 -----------------------------------------------------------------------------------------------------------------------
 -- | Value interpolation
 
--- | Helper function for interpolate. Takes in a ValMap and a reference and returns
--- the value as a string.
-lookUpRef :: ASLanguage -> ValMap -> ASReference -> String
-lookUpRef lang valuesMap ref = case ref of
-    IndexRef idx -> showValue lang $ valuesMap M.! idx
-    RangeRef (Range sh ((a,b),(c,d))) ->
-      if (c==a)
-        then wrapList lang $ list lang [ (showValue lang $ valuesMap M.! (Index sh (a,row))) | row<-[b..d]]
-        else wrapList lang $ list lang [ list lang [ showValue lang $ valuesMap M.! (Index sh (col,row)) | col <-[a..c]] | row<-[b..d]]
 
+lookUpRef :: Connection -> ASLanguage -> EvalContext ->  ASReference -> IO String
+lookUpRef conn lang context ref = showValue lang <$> DT.referenceToCompositeValue conn context ref
 
+  
 -- | Replaces all the Excel references in an expression with the valuesMap corresponding to them.
 -- TODO clean up SQL mess
 -- | Replaces all the Excel references in an expression with the valuesMap corresponding to them.
 -- TODO clean up SQL mess
-insertValues :: ASSheetId -> ValMap -> ASExpression -> String
-insertValues sheetid valuesMap xp = 
+insertValues ::  Connection -> ASSheetId -> EvalContext -> ASExpression -> IO String
+insertValues conn sheetid ctx@(EvalContext mp _ _ _) xp = do 
   let lang = xpLanguage xp
-  in case lang of
-    SQL -> contextStmt ++ evalStmt
-      where
-        exRefs = getExcelReferences xp
-        matchRefs = map (exRefToASRef sheetid) exRefs
-        context = map (lookUpRef SQL valuesMap) matchRefs
-        st = ["dataset"++(show i) | i<-[0..((L.length matchRefs)-1)]]
-        newExp = expression $ replaceRefs (\el -> (L.!!) st (MB.fromJust (L.findIndex (el==) exRefs))) xp
-        contextStmt = "setGlobals("++(show context) ++")\n"
-        evalStmt = "result = pprintSql(db(\'" ++ newExp ++ "\'))"
-    _ -> evalString
-      where
-        exRefToStringEval = (lookUpRef lang valuesMap) . (exRefToASRef sheetid) -- ExRef -> String. (Takes in ExRef, returns the ASValue corresponding to it, as a string.)
-        evalString = expression $ replaceRefs exRefToStringEval xp
+  case lang of
+    SQL -> do 
+      let exRefs = getExcelReferences xp
+          matchRefs = map (exRefToASRef sheetid) exRefs
+      refStrings <- mapM (lookUpRef conn SQL ctx) matchRefs
+      let st = ["dataset"++(show i) | i<-[0..((L.length matchRefs)-1)]]
+      let newExp = expression $ replaceRefs (\el -> (L.!!) st (MB.fromJust (L.findIndex (el==) exRefs))) xp
+      let contextStmt = "setGlobals("++(show refStrings) ++")\n"
+          evalStmt = "result = pprintSql(db(\'" ++ newExp ++ "\'))"
+      return $ contextStmt ++ evalStmt
+    _ -> do 
+      let exRefToStringEval = ((lookUpRef conn lang ctx) . (exRefToASRef sheetid)) :: ExRef -> IO String
+      expression <$> replaceRefsIO exRefToStringEval xp
+
 -----------------------------------------------------------------------------------------------------------------------
 -- | File management
 

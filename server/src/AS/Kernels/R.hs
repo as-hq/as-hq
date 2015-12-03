@@ -8,7 +8,7 @@ module AS.Kernels.R
   , evaluateHeader
   ) where
 
-import AS.Types.Cell (ASLanguage( R ))
+import AS.Types.Cell
 import AS.Types.Eval
 import AS.Types.Errors
 import AS.Types.Sheets

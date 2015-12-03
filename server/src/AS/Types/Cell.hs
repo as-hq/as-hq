@@ -2,12 +2,13 @@
 
 module AS.Types.Cell
   ( module AS.Types.Cell
-  , module AS.Types.Eval
+  , module AS.Types.Locations
   , module AS.Types.CellProps
   ) where
 
-import AS.Types.Eval
+import AS.Types.Locations
 import AS.Types.CellProps
+import AS.Types.Errors
 
 import GHC.Generics
 import Data.Aeson
@@ -19,6 +20,8 @@ import Control.DeepSeq.Generics (genericRnf)
 
 
 data ASLanguage = R | Python | OCaml | CPP | Java | SQL | Excel deriving (Show, Read, Eq, Generic)
+
+data ExpandingType = List | RList | RDataFrame | NPArray | NPMatrix | PDataFrame | PSeries deriving (Show, Read, Eq, Generic)
 
 data ASExpression =
     Expression { expression :: String, language :: ASLanguage }
@@ -33,25 +36,30 @@ xpLanguage :: ASExpression -> ASLanguage
 xpLanguage (Expression _ lang) = lang
 xpLanguage (Coupled _ lang _ _) = lang
 
+-- exactly the values that can be contained in a single cell
+data ASValue =
+    NoValue
+  | ValueNaN  
+  | ValueInf 
+  | ValueS String
+  | ValueI Integer
+  | ValueD Double
+  | ValueB Bool
+  | ValueImage { imagePath :: String }
+  | ValueError { errorMsg :: String, errorType :: String }
+  | ValueSerialized { serializedValue :: String, displayName :: String  }
+  deriving (Show, Read, Eq, Generic)
+
 
 data ASCell = Cell {cellLocation :: ASIndex,
           cellExpression :: ASExpression,
           cellValue :: ASValue,
           cellProps :: ASCellProps} deriving (Show, Read, Eq, Generic)
 
-
--- turning a spreadsheet range into dataframe etc...
--- only needed during at syntax and list decoupling
-data RangeDescriptor = RangeDescriptor { descriptorKey :: RangeKey, expandingType :: ExpandingType, attrs :: JSON }
-  deriving (Show, Read, Eq, Generic)
-
 -- range keys are used to access range descriptors, which relay metadata about a range of cells
 -- e.g. for embedded lists and objects
 type RangeKey = String
 
--- For internal use only. Represents a "cell" that takes up numerous cells (e.g., range(10)).
-data FatCell = FatCell { expandedCells :: [ASCell], descriptor :: RangeDescriptor } deriving (Show, Read)
-data CompositeCell = Single ASCell | Fat FatCell
 
 
 instance ToJSON ASExpression where
@@ -74,11 +82,15 @@ instance FromJSON ASExpression where
 instance ToJSON ASCell
 instance FromJSON ASCell
 
-instance FromJSON RangeDescriptor
-instance ToJSON RangeDescriptor
-
 instance ToJSON ASLanguage
 instance FromJSON ASLanguage
+
+instance ToJSON ASValue
+instance FromJSON ASValue
+
+instance FromJSON ExpandingType
+instance ToJSON ExpandingType
+
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Helpers

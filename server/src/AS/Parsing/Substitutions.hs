@@ -1,5 +1,6 @@
 module AS.Parsing.Substitutions (
     replaceRefs
+  , replaceRefsIO
   , getExcelReferences
   , getDependencies
   , shiftExpression
@@ -98,6 +99,15 @@ replaceRefs f xp = xp'
     xp' = case xp of
       Expression _ lang -> Expression expression' lang
       Coupled _ l t r   -> Coupled expression' l t r
+
+replaceRefsIO :: (ExRef -> IO String) -> ASExpression -> IO ASExpression
+replaceRefsIO f xp = do 
+  let (inter, exRefs) = getUnquotedMatchesWithContext xp refMatch
+  exRefs' <- mapM f exRefs 
+  let expression' = blend inter exRefs'
+  case xp of
+    Expression _ lang -> return $ Expression expression' lang
+    Coupled _ l t r   -> return $ Coupled expression' l t r
 
 -------------------------------------------------------------------------------------------------------------------------------------------------
 -- Helpers

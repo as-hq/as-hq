@@ -3,6 +3,8 @@ module AS.Kernels.Excel.Eval where
 
 import AS.Types.Excel
 import AS.Types.Cell
+import AS.Types.Eval
+
 import Data.List (transpose)
 
 import AS.Kernels.Excel.Compiler as C
@@ -48,7 +50,7 @@ evalExcel s context = do
     SimpleFormula formula -> L.evalFormula context formula
 
 -- | Entire Excel eval; parse, evaluate, cast to ASValue
-evaluate :: String -> ASIndex -> FormattedValMap -> EitherTExec (Formatted CompositeValue)
+evaluate :: String -> ASIndex -> ValMap -> EitherTExec (Formatted CompositeValue)
 evaluate s idx mp = right $ convertEither context $ evalExcel s context
   where
     context = Context mp idx

@@ -9,6 +9,8 @@ module AS.Dispatch.Expanding
 import Prelude
 
 import AS.Types.Cell
+import AS.Types.Eval
+
 import AS.DB.Util as DU
 import AS.Util as U
 

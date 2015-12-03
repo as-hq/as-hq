@@ -1,6 +1,8 @@
 module AS.Kernels.OCaml where
 
 import AS.Types.Cell
+import AS.Types.Eval
+import AS.Types.Errors
 
 import AS.Kernels.Common
 import AS.Kernels.LanguageUtils

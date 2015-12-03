@@ -8,6 +8,10 @@ import AS.Types.DB (ASCommit)
 import AS.Types.Cell
 import AS.Types.Sheets
 import AS.Types.Excel (indexToExcel)
+import AS.Types.Locations
+import AS.Types.Errors
+import AS.Types.Eval 
+import AS.Types.CellProps
 
 import GHC.Generics
 import Data.Aeson hiding (Success)

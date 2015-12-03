@@ -13,6 +13,8 @@ import qualified Data.Text.Lazy (replace)
 
 import AS.Types.Cell
 import AS.Types.Excel
+import AS.Types.Eval
+
 import AS.Parsing.Common
 import AS.Util
 import qualified AS.LanguageDefs as LD

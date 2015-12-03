@@ -3,6 +3,8 @@ module AS.Kernels.Excel.Util where
 
 import AS.Types.Excel
 import AS.Types.Cell
+import AS.Types.Errors
+
 import AS.Kernels.Excel.Compiler
 import AS.Util
 import AS.DB.API

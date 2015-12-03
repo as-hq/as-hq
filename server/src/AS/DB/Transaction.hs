@@ -4,80 +4,103 @@ import Prelude
 
 import AS.Types.Cell
 import AS.Types.DB
+import AS.Types.Eval
+import AS.Types.Errors
+
 import AS.DB.API as DB
 import AS.DB.Util as DU
+import AS.Dispatch.Expanding as DE (recomposeCompositeValue)
 import AS.Logging
 
 import Database.Redis hiding (time)
 import qualified Data.Text as T
 import qualified Data.ByteString.Char8 as B
 import Data.List (nub)
-import Data.Maybe (catMaybes, fromJust)
+import Data.Maybe 
+import qualified Data.Map as M
+import Data.List
 
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Trans.Either
 import Control.Monad.Trans.Class
 import Control.Concurrent
 
+-- If the range descriptor associated with a range key is in the context, return it. Else, return Nothing. 
+getRangeDescriptorUsingContext :: Connection -> EvalContext -> RangeKey -> IO (Maybe RangeDescriptor)
+getRangeDescriptorUsingContext conn (EvalContext _ _ removedDescriptors addedDescriptors) rKey = if (isJust inRemoved)
+  then return Nothing 
+  else case inAdded of
+    Nothing -> DB.getRangeDescriptor conn rKey
+    Just d -> return $ Just d
+  where
+    inRemoved = find (\descriptor -> descriptorKey descriptor == rKey) removedDescriptors
+    inAdded = find (\descriptor -> descriptorKey descriptor == rKey) addedDescriptors
+
+-- used by lookUpRef
+referenceToCompositeValue :: Connection -> EvalContext -> ASReference -> IO CompositeValue
+referenceToCompositeValue _ (EvalContext mp _ _ _) (IndexRef i) = return $ CellValue . cellValue $ mp M.! i 
+referenceToCompositeValue conn ctx (PointerRef p) = do 
+  let idx = pointerToIndex p
+  let mp = contextMap ctx
+  let cell = mp M.! idx
+  case (cellExpression cell) of
+    Expression _ _ -> error "Pointer to normal expression, flipping a shit" 
+    Coupled _ _ expType rKey -> do 
+      mDescriptor <- getRangeDescriptorUsingContext conn ctx rKey
+      case mDescriptor of
+        Nothing -> error "Couldn't find range descriptor of coupled expression, flipping a shit"
+        Just descriptor -> return $ DE.recomposeCompositeValue fatCell
+          where
+            indices = DU.rangeKeyToIndices rKey
+            cells   = map ((contextMap ctx) M.!) indices
+            fatCell = FatCell cells descriptor
+referenceToCompositeValue conn ctx (RangeRef r) = return . Expanding . VList . M $ vals
+  where
+    indices = rangeToIndicesRowMajor2D r
+    indToVal ind = cellValue $ (contextMap ctx) M.! ind
+    vals    = map (map indToVal) indices
+
 
 ----------------------------------------------------------------------------------------------------------------------
 -- top-level functions
 
 
--- takes in [new cells], [new fat cells] as a result of evalChain, and returns the list 
--- of locations decoupled as a result.
-getDecouplingEffects :: Connection -> ASSheetId -> [ASCell] -> [FatCell] -> IO ([ASIndex])
-getDecouplingEffects conn sid cells fcells = 
-  let locs = map cellLocation cells
-      keys = map (descriptorKey . descriptor) fcells
-  in do
-    rangeKeysChangedByCells    <- liftIO $ DU.getFatCellIntersections conn sid (Left locs)
-    rangeKeysChangedByFatCells <- liftIO $ DU.getFatCellIntersections conn sid (Right keys)
-    let rangeKeysChanged = rangeKeysChangedByCells ++ rangeKeysChangedByFatCells
-    let decoupledLocs    = concat $ map DU.rangeKeyToIndices rangeKeysChanged
-    return decoupledLocs
+---- takes in [new cells], [new fat cells] as a result of evalChain, and returns the list 
+---- of locations decoupled as a result.
+--getDecouplingEffects :: Connection -> ASSheetId -> [ASCell] -> [FatCell] -> IO ([ASIndex])
+--getDecouplingEffects conn sid cells fcells = 
+--  let locs = map cellLocation cells
+--      keys = map (descriptorKey . descriptor) fcells
+--  in do
+--    rangeKeysChangedByCells    <- liftIO $ DU.getFatCellIntersections conn sid (Left locs)
+--    rangeKeysChangedByFatCells <- liftIO $ DU.getFatCellIntersections conn sid (Right keys)
+--    let rangeKeysChanged = rangeKeysChangedByCells ++ rangeKeysChangedByFatCells
+--    let decoupledLocs    = concat $ map DU.rangeKeyToIndices rangeKeysChanged
+--    return decoupledLocs
 
--- | Deal with updating all DB-related things after an eval. 
-possiblyWriteTransaction :: Connection -> ASTransaction -> EitherTExec [ASCell]
-possiblyWriteTransaction conn (Transaction src@(sid, _) afterCells afterDescriptors deletedLocs) = 
-  let deletedCells     = blankCellsAt deletedLocs
-      afterCells'      = mergeCells afterCells deletedCells
-      locs'            = map cellLocation afterCells'
-      rangeKeys        = map descriptorKey afterDescriptors
-  in do
-    printWithTimeT $ "GOT DELETED LOCS: " ++ (show $ map show2 deletedLocs)
-    beforeCells <- lift $ catMaybes <$> DB.getCells locs'
-    -- determine all fatcell intersections produced by eval
-    rangeKeysChanged <- liftIO $ DU.getFatCellIntersections conn sid (Left locs')
-    -- hold on to the decoupled descriptors 
-    beforeDescriptors <- liftIO $ map fromJust <$> mapM (DB.getRangeDescriptor conn) rangeKeysChanged
-    printWithTimeT $ "Range keys changed: " ++ (show rangeKeysChanged)
-    -- decouple the intersected fat cells
-    time <- lift $ getASTime
-    if (length rangeKeysChanged == 0) -- no decoupling; decoupledCells = []
-      then do 
-      let commit = Commit beforeCells afterCells' beforeDescriptors afterDescriptors time
-      -- set the database if there are no decouplings (if decoupling should happen, issue a warning to user)
-      liftIO $ updateDBAfterEval conn src commit
-      right  $ afterCells'
-      else do 
-        -- make a note of the temp commit in the DB, actually make the commit later on if user says OK
-        -- In the line below, we don't actually change any range keys in the DB
-        coupledCells <- lift $ concat <$> (mapM (getCellsBeforeDecoupling conn) rangeKeysChanged)
-        let decoupledCells  = map DU.decoupleCell coupledCells
-            afterCells''    = mergeCells afterCells' decoupledCells
-            beforeCells'    = mergeCells beforeCells coupledCells
-        let commit = Commit beforeCells' afterCells'' beforeDescriptors afterDescriptors time
-        liftIO $ setTempCommit conn commit src
-        liftIO $ setRangeKeysChanged conn rangeKeysChanged src
-        left $ DecoupleAttempt
+-- After getting the final context, update the DB and return the cells changed by the entire eval
+updateDBFromEvalContext :: Connection -> CommitSource -> EvalContext -> EitherTExec [ASCell]
+updateDBFromEvalContext conn src (EvalContext mp afterCells removedDescriptors addedDescriptors) = do
+  beforeCells <- lift $ catMaybes <$> DB.getCells (map cellLocation afterCells)
+  time <- lift $ getASTime
+  let commit = Commit beforeCells afterCells removedDescriptors addedDescriptors time
+  if (length removedDescriptors == 0) -- there were no decoupled cells
+    then do 
+      lift $ updateDBAfterEval conn src commit
+      return afterCells
+    else do
+      let rangeKeysChanged = map descriptorKey removedDescriptors
+      coupledCells <- lift $ concat <$> (mapM (getCellsBeforeDecoupling conn) rangeKeysChanged)
+      liftIO $ setTempCommit conn commit src
+      liftIO $ setRangeKeysChanged conn rangeKeysChanged src
+      left $ DecoupleAttempt
 
 -- Do the writes to the DB
 updateDBAfterEval :: Connection -> CommitSource -> ASCommit -> IO ()
-updateDBAfterEval conn src c@(Commit beforeCells' afterCells'' beforeDescriptors afterDescriptors time) = do 
-  DB.setCells afterCells''
-  deleteCells conn $ filter isEmptyCell afterCells''
-  mapM_ (couple conn) afterDescriptors
+updateDBAfterEval conn src c@(Commit beforeCells afterCells removedDescriptors addedDescriptors time) = do 
+  DB.setCells afterCells
+  deleteCells conn $ filter isEmptyCell afterCells
+  mapM_ (couple conn) addedDescriptors
   pushCommit conn c src
 
 ----------------------------------------------------------------------------------------------------------------------

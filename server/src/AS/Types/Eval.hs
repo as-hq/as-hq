@@ -9,6 +9,7 @@ module AS.Types.Eval
 import AS.Types.CellProps
 import AS.Types.Locations
 import AS.Types.Errors
+import AS.Types.Cell
 
 import GHC.Generics
 import Data.Aeson hiding (Array)
@@ -17,13 +18,32 @@ import Control.DeepSeq.Generics (genericRnf)
 import Control.Monad.Trans.Either
 import qualified Data.Map as M
 
+-- turning a spreadsheet range into dataframe etc...
+-- only needed during at syntax and list decoupling
+data RangeDescriptor = RangeDescriptor { descriptorKey :: RangeKey, expandingType :: ExpandingType, attrs :: JSON }
+  deriving (Show, Read, Eq, Generic)
+
+-- For internal use only. Represents a "cell" that takes up numerous cells (e.g., range(10)).
+data FatCell = FatCell { expandedCells :: [ASCell], descriptor :: RangeDescriptor } deriving (Show, Read)
+data CompositeCell = Single ASCell | Fat FatCell
+
+instance FromJSON RangeDescriptor
+instance ToJSON RangeDescriptor
+
+
 type RListKey = String
 
-type ValMap = M.Map ASIndex CompositeValue
-type FormattedValMap = M.Map ASIndex (Formatted CompositeValue)
+type ValMap = M.Map ASIndex ASCell
 
-data ExpandingType = List | RList | RDataFrame | NPArray | NPMatrix | PDataFrame | PSeries deriving (Show, Read, Eq, Generic)
--- [Dragme, matrix, array...] x [python, r, ocmal....]
+-- This should be thought of as a mini spreadsheet used by eval as a cache (which can be updated)
+data EvalContext = EvalContext { contextMap :: ValMap
+                                ,addedCells :: [ASCell]
+                                ,removedDescriptors :: [RangeDescriptor]
+                                ,addedDescriptors :: [RangeDescriptor] }
+  deriving (Show, Read, Eq)
+
+emptyContext :: EvalContext
+emptyContext = EvalContext M.empty [] [] []
 
 -- ephemeral types produced by eval 
 -- that will expand in createListCells
@@ -31,19 +51,6 @@ type Array = [ASValue]
 type Matrix = [Array] 
 data Collection = A Array | M Matrix deriving (Show, Read, Eq, Generic)
 
--- exactly the values that can be contained in a single cell
-data ASValue =
-    NoValue
-  | ValueNaN  
-  | ValueInf 
-  | ValueS String
-  | ValueI Integer
-  | ValueD Double
-  | ValueB Bool
-  | ValueImage { imagePath :: String }
-  | ValueError { errorMsg :: String, errorType :: String }
-  | ValueSerialized { serializedValue :: String, displayName :: String  }
-  deriving (Show, Read, Eq, Generic)
 
 data ExpandingValue = 
     VList Collection
@@ -74,9 +81,6 @@ type JSONPair = (String, String)
 
 type EitherTExec = EitherT ASExecError IO
 
-instance ToJSON ASValue
-instance FromJSON ASValue
-
 instance FromJSON CompositeValue
 instance ToJSON CompositeValue
 
@@ -88,9 +92,6 @@ instance ToJSON Collection
 
 instance FromJSON JSONField
 instance ToJSON JSONField
-
-instance FromJSON ExpandingType
-instance ToJSON ExpandingType
 
 instance FromJSON JSONValue
 instance ToJSON JSONValue
