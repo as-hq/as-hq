@@ -93,6 +93,11 @@ replaceCellLocs f c = c { cellLocation = f $ cellLocation c }
 replaceCellExpressions :: (ASExpression -> ASExpression) -> ASCell -> ASCell
 replaceCellExpressions f c = c { cellExpression = f $ cellExpression c }
 
+shiftRangeKey :: Offset -> ASCell -> ASCell
+shiftRangeKey offset c@(Cell _ (Expression _ _) _ _) = c
+shiftRangeKey offset (Cell l (Coupled xp lang typ (RangeKey ind dims)) v ts) = (Cell l (Coupled xp lang typ (RangeKey ind' dims)) v ts)
+  where ind' = shiftInd offset ind
+
 getCutCells :: R.Connection -> ASRange -> ASRange -> IO [ASCell]
 getCutCells conn from to = do 
   let offset = getRangeOffset from to
@@ -109,7 +114,8 @@ getCutToCells conn from offset = do
   sanitizedFromCells <- sanitizeCutCells conn fromCells from
   let shiftLoc    = shiftInd offset
       changeExpr  = shiftExpressionForCut from offset
-  return $ map ((replaceCellLocs shiftLoc) . (replaceCellExpressions changeExpr)) sanitizedFromCells
+      modifyCell  = (shiftRangeKey offset) . (replaceCellLocs shiftLoc) . (replaceCellExpressions changeExpr)
+  return $ map modifyCell sanitizedFromCells
 
 -- | Returns the cells that reference the cut cells with their expressions updated. 
 getCutNewDescCells :: ASRange -> Offset -> IO [ASCell]
@@ -131,6 +137,4 @@ sanitizeCutCells conn cells from = do
   let (fatCellMembers, regularCells)  = partition isFatCellMember cells
       (containedCells, cutoffCells)   = partitionByRangeKey fatCellMembers keys
       decoupledCells                  = map toDecoupled cutoffCells
-      containedFatCellHeads           = filter isFatCellHead containedCells
-      containedFatCellHeadsUncoupled  = map toUncoupled containedFatCellHeads
-  return $ regularCells ++ decoupledCells ++ containedFatCellHeadsUncoupled
+  return $ regularCells ++ decoupledCells ++ containedCells

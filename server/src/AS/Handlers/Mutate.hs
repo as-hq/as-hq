@@ -13,6 +13,7 @@ import AS.Reply
 import AS.Util as U
 import AS.DB.API as DB
 import AS.Dispatch.Core
+import AS.Logging
 
 import Control.Concurrent
 import Data.Maybe
@@ -23,12 +24,13 @@ handleMutateSheet uc state (PayloadMutate mutateType) = do
   allCells <- DB.getCellsInSheet conn (userSheetId uc)
   let newCells = map (cellMap mutateType) allCells
       oldCellsNewCells = zip allCells newCells
-      oldCellsNewCells' = filter (\(c, c') -> (isNothing c') || (c /= fromJust c')) oldCellsNewCells
-      -- ^ get rid of cells that haven't changed.
+      oldCellsNewCells' = filter (\(c, c') -> (Just c /= c')) oldCellsNewCells
+      -- ^ don't update cells that haven't changed
       oldCells' = map fst oldCellsNewCells
-      blankedCells = blankCellsAt (map cellLocation oldCells')
       newCells' = catMaybes $ map snd oldCellsNewCells
+      blankedCells = blankCellsAt (map cellLocation oldCells')
       updatedCells   = mergeCells newCells' blankedCells -- eval blanks at the old cell locations, re-eval at new locs
+  printObj "newCells" newCells
   updateMsg <- runDispatchCycle state updatedCells (userCommitSource uc)
   broadcastFiltered state uc updateMsg
 
@@ -85,23 +87,21 @@ expressionMap mt = replaceRefs (show . (refMap mt))
 cellMap :: MutateType -> (ASCell -> Maybe ASCell)
 cellMap mt c@(Cell loc xp v ps) = case ((cellLocMap mt) loc) of 
   Nothing -> Nothing 
-  Just loc' -> trace' "sanitizeMutateCell value" $ sanitizeMutateCell mt loc $ Cell loc' ((expressionMap mt) xp) v ps 
+  Just loc' -> Just $ sanitizeMutateCell mt loc $ Cell loc' ((expressionMap mt) xp) v ps 
 
 -- | If the cell passed in is uncoupled, leave it as is. Otherwise: 
 -- * if its range would get decoupled by the mutation, decouple it. 
 -- * if not, if it is a fat cell head, make it an uncoupled cell that'll get re-evaled. 
 -- * if it is not a fat cell head, delete it. 
 -- whether the fatcell it was a part of would get split up by the type of mutation.  
-sanitizeMutateCell :: MutateType -> ASIndex -> ASCell -> Maybe ASCell
-sanitizeMutateCell _ _ c@(Cell _ (Expression _ _) _ _) = Just c
+sanitizeMutateCell :: MutateType -> ASIndex -> ASCell -> ASCell
+sanitizeMutateCell _ _ c@(Cell _ (Expression _ _) _ _) = c
 sanitizeMutateCell mt oldLoc c = cell'
   where 
     Just rk = cellToRangeKey c
-    cell' = if rangeGotMutated mt $ trace' "rk" rk
-      then Just $ DU.toDecoupled c
-      else if indexIsHead oldLoc rk
-            then Just $ DU.toUncoupled c
-            else Nothing
+    cell' = if fatCellGotMutated mt rk
+      then DU.toDecoupled c
+      else c { cellExpression = (cellExpression c) { cRangeKey = rk { keyIndex = fromJust $ cellLocMap mt (keyIndex rk) } } } 
 
 colInRange :: Int -> RangeKey -> Bool
 colInRange c (RangeKey (Index _ (tlc, _)) (dC, _)) = (c >= tlc) && (c <= tlc + dC)
@@ -109,10 +109,22 @@ colInRange c (RangeKey (Index _ (tlc, _)) (dC, _)) = (c >= tlc) && (c <= tlc + d
 rowInRange :: Int -> RangeKey -> Bool
 rowInRange r (RangeKey (Index _ (_, tlr)) (_, dR)) = (r >= tlr) && (r <= tlr + dR)
 
-rangeGotMutated :: MutateType -> RangeKey -> Bool
-rangeGotMutated (InsertCol c) rk = colInRange c rk
-rangeGotMutated (InsertRow r) rk = rowInRange r rk
-rangeGotMutated (DeleteCol c) rk = colInRange c rk
-rangeGotMutated (DeleteRow r) rk = rowInRange r rk
-rangeGotMutated (DragCol c1 c2) rk = (colInRange c1 rk) && (colInRange c2 rk)
-rangeGotMutated (DragRow r1 r2) rk = (rowInRange r1 rk) && (rowInRange r2 rk)
+isBetween :: Int -> Int -> Int -> Bool
+isBetween lower upper x = (x >= lower) && (x <= upper)
+
+fatCellGotMutated :: MutateType -> RangeKey -> Bool
+fatCellGotMutated (InsertCol c) (RangeKey (Index _ (tlc, _)) (dC, _)) = isBetween (tlc + 1) (tlc + dC - 1) c
+fatCellGotMutated (InsertRow r) (RangeKey (Index _ (_, tlr)) (_, dR)) = isBetween (tlr + 1) (tlr + dR - 1) r
+
+fatCellGotMutated (DeleteCol c) (RangeKey (Index _ (tlc, _)) (dC, _)) = isBetween tlc (tlc + dC - 1) c
+fatCellGotMutated (DeleteRow r) (RangeKey (Index _ (_, tlr)) (_, dR)) = isBetween tlr (tlr + dR - 1) r
+
+fatCellGotMutated _ (RangeKey _ (1, _)) = False
+fatCellGotMutated (DragCol c1 c2) (RangeKey (Index _ (tlc, _)) (dC, _)) = or [
+  isBetween tlc (tlc + dC - 1) c1, 
+  isBetween (tlc + 1) (tlc + dC - 1) c2 ]
+
+fatCellGotMutated _ (RangeKey _ (_, 1)) = False
+fatCellGotMutated (DragRow r1 r2) (RangeKey (Index _ (_, tlr)) (_, dR)) = or [ 
+  isBetween tlr (tlr + dR - 1) r1, 
+  isBetween (tlr + 1) (tlr + dR - 1) r2 ]

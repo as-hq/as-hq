@@ -20,7 +20,6 @@ import Data.Aeson.Types (Parser)
 import Control.DeepSeq
 import Control.DeepSeq.Generics (genericRnf)
 
-
 data ASLanguage = R | Python | OCaml | CPP | Java | SQL | Excel deriving (Show, Read, Eq, Generic)
 
 data ASExpression =

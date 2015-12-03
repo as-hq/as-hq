@@ -56,10 +56,10 @@ possiblyWriteTransaction conn (Transaction src@(sid, _) afterCells afterDescript
     time <- lift $ getASTime
     if (length rangeKeysChanged == 0) -- no decoupling; decoupledCells = []
       then do 
-      let commit = Commit beforeCells afterCells' beforeDescriptors afterDescriptors time
-      -- set the database if there are no decouplings (if decoupling should happen, issue a warning to user)
-      liftIO $ updateDBAfterEval conn src commit
-      right  $ afterCells'
+        let commit = Commit beforeCells afterCells' beforeDescriptors afterDescriptors time
+        -- set the database if there are no decouplings (if decoupling should happen, issue a warning to user)
+        liftIO $ updateDBAfterEval conn src commit
+        right  $ afterCells'
       else do 
         -- make a note of the temp commit in the DB, actually make the commit later on if user says OK
         -- In the line below, we don't actually change any range keys in the DB
