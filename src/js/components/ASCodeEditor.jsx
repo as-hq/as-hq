@@ -4,7 +4,6 @@ import ActionCreator from '../actions/ASCodeEditorActionCreators';
 import Constants from '../Constants';
 
 import {AppBar, Toolbar, ToolbarGroup, FlatButton, TextField, DropDownMenu, Styles} from 'material-ui';
-import ASCondFormattingDialog from './dialogs/ASCondFormattingDialog.jsx';
 import FileInput from './ASFileImportButton.jsx';
 
 require('brace/mode/python');
@@ -43,12 +42,6 @@ export default React.createClass({
     };
   },
 
-  getInitialState() {
-    return {
-      condFormattingOpen: false
-    };
-  },
-
   // RE: the "SUBMIT BUG REPORT" button. It's temporary. It does not actually belong in
   // ASCodeEdtior (AT ALL!) but this is the simplest place to stick it for now. Also,
 
@@ -84,9 +77,6 @@ export default React.createClass({
 
     return (
       <div>
-        <ASCondFormattingDialog
-          open={this.state.condFormattingOpen}
-          onRequestClose={this._onCondFormatClose}/>
 
         <Toolbar
           style={{backgroundColor: Styles.Colors.grey700, height:'60px'}}
@@ -128,14 +118,6 @@ export default React.createClass({
           onDeferredKey={this.props.onDeferredKey} />
       </div>
     );
-  },
-
-  _onCondFormatClick() {
-    this.setState({ condFormattingOpen: true });
-  },
-
-  _onCondFormatClose() {
-    this.setState({ condFormattingOpen: false });
   },
 
   _onTest() {

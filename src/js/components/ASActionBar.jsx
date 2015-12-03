@@ -5,11 +5,18 @@ import API from '../actions/ASApiActionCreators';
 import Constants from '../Constants';
 
 import ASButton from './basic-controls/ASButton.jsx';
+import ASCondFormattingDialog from './dialogs/ASCondFormattingDialog.jsx';
 import ASFileImportButton from './ASFileImportButton.jsx';
 
 let {Colors} = Styles;
 
 export default React.createClass({
+  getInitialState() {
+    return ({
+      condFormattingOpen: false
+    });
+  },
+
   render() {
     return (
       <AppBar
@@ -17,10 +24,16 @@ export default React.createClass({
           backgroundColor: Colors.grey900
         }}
         onLeftIconButtonTouchTap={this._onAlphaButtonTap}>
+        <ASCondFormattingDialog
+          open={this.state.condFormattingOpen}
+          onRequestClose={this._onCondFormatClose}/>
         <div style={{width: '250px', maxWidth: '250px', display: 'inline-block'}} />
         <FlatButton
           label="HEADER"
           onClick={this._toggleEvalHeader} />
+        <FlatButton
+          label="COND. FORMATTING"
+          onClick={this._onCondFormatOpen} />
         <FlatButton
           label="SUBMIT BUG REPORT"
           onClick={this._submitBugReport} />
@@ -48,8 +61,12 @@ export default React.createClass({
     window.test();
   },
 
-  _importFile() {
+  _onCondFormatOpen() {
+    this.setState({ condFormattingOpen: true });
+  },
 
+  _onCondFormatClose() {
+    this.setState({ condFormattingOpen: false });
   },
 
   _onAlphaButtonTap() {
