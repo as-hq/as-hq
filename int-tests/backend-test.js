@@ -231,7 +231,7 @@ describe('backend', () => {
           ]);
         });
 
-        xit('should not give a circular dependency in this contrived example', (done) => {
+        it('should not give a circular dependency in this contrived example', (done) => {
           _do([
             python('A1', '1'),
             python('B1', 'range(A1)'),
