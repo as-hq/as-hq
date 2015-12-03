@@ -4,8 +4,7 @@ import ActionCreator from '../actions/ASCodeEditorActionCreators';
 import Constants from '../Constants';
 
 import {AppBar, Toolbar, ToolbarGroup, FlatButton, TextField, DropDownMenu, Styles} from 'material-ui';
-import ASCondFormattingDialog from './dialogs/ASCondFormattingDialog.jsx';
-import FileInput from './FileInput.jsx';
+import FileInput from './ASFileImportButton.jsx';
 
 require('brace/mode/python');
 require('brace/mode/r');
@@ -43,12 +42,6 @@ export default React.createClass({
     };
   },
 
-  getInitialState() {
-    return {
-      condFormattingOpen: false
-    };
-  },
-
   // RE: the "SUBMIT BUG REPORT" button. It's temporary. It does not actually belong in
   // ASCodeEdtior (AT ALL!) but this is the simplest place to stick it for now. Also,
 
@@ -76,7 +69,7 @@ export default React.createClass({
     // and crappy CSS is probably sufficient? (Alex 11/18)
     let fileInputStyle = {
           position:'relative',
-          left:'1000px',
+          left: '500px',
           top:'-55px',
           width:'120px',
           height:'35px'
@@ -84,9 +77,6 @@ export default React.createClass({
 
     return (
       <div>
-        <ASCondFormattingDialog
-          open={this.state.condFormattingOpen}
-          onRequestClose={this._onCondFormatClose}/>
 
         <Toolbar
           style={{backgroundColor: Styles.Colors.grey700, height:'60px'}}
@@ -114,46 +104,6 @@ export default React.createClass({
                 left: '40px',
                 top: '0px'
               }}/>
-            <FlatButton
-              label="COND FORMATTING"
-              onClick={this._onCondFormatClick}
-              style={{
-                position: 'relative',
-                left: '100px',
-                top: '-13px'
-              }} />
-            <FlatButton
-              label="HEADER"
-              onClick={this.props.onEvalHeaderClick}
-              style={{
-                position: 'relative',
-                left: '40px',
-                top: '-13px'
-              }} />
-            <FlatButton
-              label="SUBMIT BUG REPORT"
-              onClick={this.props.onSubmitDebug}
-              style={{
-                position: 'relative',
-                left: '50px',
-                top: '-13px'
-              }} />
-            {Constants.isProduction ? null : <FlatButton
-              label="TEST ALPHASHEETS"
-              onClick={this._onTest}
-              style={{
-                position: 'relative',
-                left: '60px',
-                top: '-13px'
-              }} />}
-            <FlatButton
-              label="EXPORT"
-              onClick={this.props.onExport}
-              style={{
-                position:'relative',
-                left:'70px',
-                top:'-13px',
-              }} />
             <FileInput style={fileInputStyle} />
         </Toolbar>
         <AceEditor
@@ -168,14 +118,6 @@ export default React.createClass({
           onDeferredKey={this.props.onDeferredKey} />
       </div>
     );
-  },
-
-  _onCondFormatClick() {
-    this.setState({ condFormattingOpen: true });
-  },
-
-  _onCondFormatClose() {
-    this.setState({ condFormattingOpen: false });
   },
 
   _onTest() {

@@ -688,7 +688,7 @@ export default React.createClass({
   //   this.setState({replOpen: !this.state.replOpen});
   // },
 
-  _toggleEvalHeader() {
+  toggleEvalHeader() {
     /* Save expression in store if repl is about to close */
     if (this.state.evalHeaderOpen) {
       // might be redundant? (Alex 11/24)
@@ -792,8 +792,8 @@ export default React.createClass({
           getCodeEditorMaxLines={this._getCodeEditorMaxLines}
           language={currentLanguage}
           onReplClick={this._toggleRepl}
-          onEvalHeaderClick={this._toggleEvalHeader}
           onExport={this._exportFile}
+          onEvalHeaderClick={this.toggleEvalHeader}
           onSubmitDebug={this._submitDebug}
           onSelectLanguage={this.selectLanguage}
           onSetVarName={this._onSetVarName}
