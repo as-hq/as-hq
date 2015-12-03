@@ -1490,6 +1490,15 @@ eStdS c e = do
 --------------------------------------------------------------------------------------------------------------
 -- | Excel text functions
 
+-- | Returns location of substring in a string. Helper for textFind. 
+findStr :: String -> String -> Maybe Int
+findStr pat str = findStrHelp pat str 0
+  where
+    findStrHelp _ [] _ = Nothing
+    findStrHelp pat s@(x:xs) n
+      | pat == (take (length pat) s) = Just n
+      | otherwise = findStrHelp pat xs (n+1)
+
 -- | Find position of one string within another; casing on case-sensitivity
 textFind :: Bool -> EFunc
 textFind caseSensitive c e = do
@@ -1500,17 +1509,15 @@ textFind caseSensitive c e = do
   let withinText = normString caseSensitive withinText'
   -- | Optional starting position, starting from 1 (default)
   startNum <- getOptional "int" 1 f 3 e :: ThrowsError Int
-  if startNum <=0 || startNum >= (length withinText)
+  if startNum <= 0 || startNum >= (length withinText)
     then Left $ VAL "Starting position out of bounds for FIND"
-    else do
-      if findText == ""
-        then intToResult 1
-        else do
-          let shiftedWithin = drop (startNum-1) withinText
-          case (elemIndex findText (tails shiftedWithin)) of
-            Nothing -> Left $ VAL "Couldn't find smaller string in larger for FIND"
-            -- | Answer is from beginning of original withinText (add one for 1-indexing)
-            Just pos -> intToResult $ pos + 1 + startNum
+    else do 
+      let shiftedWithin = drop (startNum-1) withinText
+      case findStr findText shiftedWithin of 
+        Nothing -> Left $ VAL "Couldn't find smaller string in larger for FIND"
+        Just pos -> intToResult $ pos + startNum
+        -- ^ Answer is from beginning of original withinText (add startNum-1 for that offset, 
+        -- then add 1 for Excel's 1-indexing)
 
 -- | Helper for above
 normString :: Bool -> String -> String
