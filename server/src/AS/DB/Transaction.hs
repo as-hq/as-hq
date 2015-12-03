@@ -64,7 +64,7 @@ possiblyWriteTransaction conn (Transaction src@(sid, _) afterCells afterDescript
         -- make a note of the temp commit in the DB, actually make the commit later on if user says OK
         -- In the line below, we don't actually change any range keys in the DB
         coupledCells <- lift $ concat <$> (mapM (getCellsBeforeDecoupling conn) rangeKeysChanged)
-        let decoupledCells  = map DU.decoupleCell coupledCells
+        let decoupledCells  = map DU.toDecoupled coupledCells
             afterCells''    = mergeCells afterCells' decoupledCells
             beforeCells'    = mergeCells beforeCells coupledCells
         let commit = Commit beforeCells' afterCells'' beforeDescriptors afterDescriptors time

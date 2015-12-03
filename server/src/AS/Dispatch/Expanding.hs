@@ -96,8 +96,8 @@ decomposeCells (RangeDescriptor key etype _) (Cell (Index sheet (c,r)) xp _ ts) 
 
 getDimensions :: Collection -> Dimensions
 getDimensions coll = case coll of 
-  A arr -> (length arr, 1)
-  M mat -> (length mat, maximum $ map length mat) 
+  A arr -> (1, length arr)
+  M mat -> (maximum $ map length mat, length mat)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- value recomposition
@@ -152,22 +152,22 @@ recomposeCompositeValue (FatCell cells (RangeDescriptor key PSeries attrs)) = Ex
     val       = VPSeries indices vals
     (JSONLeaf (ListValue (A indices))) = attrs M.! "seriesIndices"
     (A vals)  = recomposeCells dims cells
-    dims      = (length cells, 1)
+    dims      = (1, length cells)
 
 recomposeCells :: Dimensions -> [ASCell] -> Collection
-recomposeCells dims cells = case (snd dims) of 
+recomposeCells dims cells = case (fst dims) of 
   1 -> A $ map cellValue cells
-  _ -> M . L.transpose $ map (\row -> map cellValue row) $ reshapeList cells (snd dims, fst dims)
+  _ -> M . map (map cellValue) $ reshapeList cells dims
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Helpers
 
--- transposes non-rectangular matrices by filling in gaps with NoValue
 reshapeList :: [a] -> Dimensions -> [[a]]
-reshapeList xs (height, width) = case width of 
+reshapeList xs (width, height) = case width of 
   1 -> error "cannot reshape into 1-dimensional list"
   _ -> chunksOf width xs
 
+-- transposes non-rectangular matrices by filling in gaps with NoValue
 transpose' :: [[ASValue]] -> [[ASValue]]
 transpose' vals = L.transpose matrixified
   where

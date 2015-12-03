@@ -151,11 +151,12 @@ cToASCell str = do
 indexIsHead :: ASIndex -> RangeKey -> Bool
 indexIsHead idx (RangeKey idx' _) = idx == idx'
 
+-- | Produces a flattened row-major array of locations. 
 rangeKeyToIndices :: RangeKey -> [ASIndex]
 rangeKeyToIndices (RangeKey idx dims) = rangeToIndices range
   where
     Index sid (col, row) = idx
-    (height, width)      = dims
+    (width, height)      = dims
     range                = Range sid ((col, row), (col+width-1, row+height-1))
 
 getFatCellIntersections :: Connection -> ASSheetId -> Either [ASIndex] [RangeKey] -> IO [RangeKey]
@@ -185,7 +186,7 @@ getFatCellIntersections conn sid (Right keys) = do
 rangeRect :: RangeKey -> Rect
 rangeRect (RangeKey idx dims) = ((col, row), (col + width - 1, row + height - 1))
   where Index _ (col, row) = idx
-        (height, width)    = dims
+        (width, height)    = dims
 
 getRangeKeysInSheet :: Connection -> ASSheetId -> IO [RangeKey]
 getRangeKeysInSheet conn sid = runRedis conn $ do
@@ -196,8 +197,8 @@ getRangeKeysInSheet conn sid = runRedis conn $ do
 rangeKeyToSheetId :: RangeKey -> ASSheetId
 rangeKeyToSheetId = locSheetId . keyIndex
 
-decoupleCell :: ASCell -> ASCell
-decoupleCell (Cell l (Coupled _ lang _ _) v ts) = Cell l e' v ts
+toDecoupled :: ASCell -> ASCell
+toDecoupled (Cell l (Coupled _ lang _ _) v ts) = Cell l e' v ts
   where e' = case v of 
                NoValue   -> Expression "" lang
                otherwise -> Expression (showPrimitive lang v) lang

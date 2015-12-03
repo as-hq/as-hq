@@ -130,7 +130,7 @@ sanitizeCutCells conn cells from = do
   keys <- fatCellsInRange conn from
   let (fatCellMembers, regularCells)  = partition isFatCellMember cells
       (containedCells, cutoffCells)   = partitionByRangeKey fatCellMembers keys
-      decoupledCells                  = map decoupleCell cutoffCells
+      decoupledCells                  = map toDecoupled cutoffCells
       containedFatCellHeads           = filter isFatCellHead containedCells
       containedFatCellHeadsUncoupled  = map toUncoupled containedFatCellHeads
   return $ regularCells ++ decoupledCells ++ containedFatCellHeadsUncoupled

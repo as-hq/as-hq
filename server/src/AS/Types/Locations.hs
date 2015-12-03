@@ -117,8 +117,10 @@ rangeContainsRect (Range _ ((x,y),(x2,y2))) ((x',y'),(x2',y2')) = tl && br
     tl = (x' >= x) && (y' >= y)
     br = (x2' <= x2) && (y2' <= y2)
 
+-- | Range at ((1,1), (2,2)) --> [(1,1), (2, 1), (1, 2), (2, 2)]
+-- Produces a flattened row-major array of locations.
 rangeToIndices :: ASRange -> [ASIndex]
-rangeToIndices (Range sheet (ul, lr)) = [Index sheet (x,y) | x <- [startx..endx], y <- [starty..endy] ]
+rangeToIndices (Range sheet (ul, lr)) = [Index sheet (x,y) | y <- [starty..endy], x <- [startx..endx] ]
   where
     startx = min (col ul) (col lr)
     endx = max (col ul) (col lr)

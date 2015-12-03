@@ -83,11 +83,36 @@ expressionMap :: MutateType -> (ASExpression -> ASExpression)
 expressionMap mt = replaceRefs (show . (refMap mt))
 
 cellMap :: MutateType -> (ASCell -> Maybe ASCell)
-cellMap mt c@(Cell loc xp v ts) = case ((cellLocMap mt) loc) of 
+cellMap mt c@(Cell loc xp v ps) = case ((cellLocMap mt) loc) of 
   Nothing -> Nothing 
-  Just loc' -> let c' = Cell loc' ((expressionMap mt) xp) v ts 
-    in case xp of 
-      Expression _ _ -> Just c'
-      Coupled _ _ _ _ -> if DU.isFatCellHead c
-        then Just $ DU.toUncoupled c' 
-        else Just $ DU.decoupleCell c' 
+  Just loc' -> trace' "sanitizeMutateCell value" $ sanitizeMutateCell mt loc $ Cell loc' ((expressionMap mt) xp) v ps 
+
+-- | If the cell passed in is uncoupled, leave it as is. Otherwise: 
+-- * if its range would get decoupled by the mutation, decouple it. 
+-- * if not, if it is a fat cell head, make it an uncoupled cell that'll get re-evaled. 
+-- * if it is not a fat cell head, delete it. 
+-- whether the fatcell it was a part of would get split up by the type of mutation.  
+sanitizeMutateCell :: MutateType -> ASIndex -> ASCell -> Maybe ASCell
+sanitizeMutateCell _ _ c@(Cell _ (Expression _ _) _ _) = Just c
+sanitizeMutateCell mt oldLoc c = cell'
+  where 
+    Just rk = cellToRangeKey c
+    cell' = if rangeGotMutated mt $ trace' "rk" rk
+      then Just $ DU.toDecoupled c
+      else if indexIsHead oldLoc rk
+            then Just $ DU.toUncoupled c
+            else Nothing
+
+colInRange :: Int -> RangeKey -> Bool
+colInRange c (RangeKey (Index _ (tlc, _)) (dC, _)) = (c >= tlc) && (c <= tlc + dC)
+
+rowInRange :: Int -> RangeKey -> Bool
+rowInRange r (RangeKey (Index _ (_, tlr)) (_, dR)) = (r >= tlr) && (r <= tlr + dR)
+
+rangeGotMutated :: MutateType -> RangeKey -> Bool
+rangeGotMutated (InsertCol c) rk = colInRange c rk
+rangeGotMutated (InsertRow r) rk = rowInRange r rk
+rangeGotMutated (DeleteCol c) rk = colInRange c rk
+rangeGotMutated (DeleteRow r) rk = rowInRange r rk
+rangeGotMutated (DragCol c1 c2) rk = (colInRange c1 rk) && (colInRange c2 rk)
+rangeGotMutated (DragRow r1 r2) rk = (rowInRange r1 rk) && (rowInRange r2 rk)
