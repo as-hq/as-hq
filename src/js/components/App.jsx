@@ -65,7 +65,8 @@ export default React.createClass({
 
     return (
       <div style={{width:"100%",height:"100%"}} >
-        <ASActionBar />
+        <ASActionBar
+          toggleEvalHeader={this._toggleEvalHeader} />
         <div style={{width: '100%', height: '100%'}}>
           <div style={{display: 'inline-block', width: '100%', height:'100%',verticalAlign:'top'}}>
             <ASEvaluationPane behavior="default" ref="evalPane" initInfo={this.state.initEvalInfo} height='100%'/>
@@ -80,6 +81,10 @@ export default React.createClass({
 
 /**************************************************************************************************************************/
 /* Top-level ui state changes */
+
+  _toggleEvalHeader() {
+    this.refs.evalPane.toggleEvalHeader();
+  },
 
   _onDocumentTabChange(tabKey) {
     this.setState({ activeDocumentTab: tabKey });

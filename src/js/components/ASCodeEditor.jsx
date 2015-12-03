@@ -5,7 +5,7 @@ import Constants from '../Constants';
 
 import {AppBar, Toolbar, ToolbarGroup, FlatButton, TextField, DropDownMenu, Styles} from 'material-ui';
 import ASCondFormattingDialog from './dialogs/ASCondFormattingDialog.jsx';
-import FileInput from './FileInput.jsx';
+import FileInput from './ASFileImportButton.jsx';
 
 require('brace/mode/python');
 require('brace/mode/r');
@@ -76,7 +76,7 @@ export default React.createClass({
     // and crappy CSS is probably sufficient? (Alex 11/18)
     let fileInputStyle = {
           position:'relative',
-          left:'1000px',
+          left: '500px',
           top:'-55px',
           width:'120px',
           height:'35px'
@@ -114,46 +114,6 @@ export default React.createClass({
                 left: '40px',
                 top: '0px'
               }}/>
-            <FlatButton
-              label="COND FORMATTING"
-              onClick={this._onCondFormatClick}
-              style={{
-                position: 'relative',
-                left: '100px',
-                top: '-13px'
-              }} />
-            <FlatButton
-              label="HEADER"
-              onClick={this.props.onEvalHeaderClick}
-              style={{
-                position: 'relative',
-                left: '40px',
-                top: '-13px'
-              }} />
-            <FlatButton
-              label="SUBMIT BUG REPORT"
-              onClick={this.props.onSubmitDebug}
-              style={{
-                position: 'relative',
-                left: '50px',
-                top: '-13px'
-              }} />
-            {Constants.isProduction ? null : <FlatButton
-              label="TEST ALPHASHEETS"
-              onClick={this._onTest}
-              style={{
-                position: 'relative',
-                left: '60px',
-                top: '-13px'
-              }} />}
-            <FlatButton
-              label="EXPORT"
-              onClick={this.props.onExport}
-              style={{
-                position:'relative',
-                left:'70px',
-                top:'-13px',
-              }} />
             <FileInput style={fileInputStyle} />
         </Toolbar>
         <AceEditor
