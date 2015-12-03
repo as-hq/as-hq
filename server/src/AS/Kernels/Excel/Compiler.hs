@@ -185,7 +185,7 @@ cellReference = fmap (Basic . Ref) refMatch
 functionApplication :: Parser Formula
 functionApplication = do
   i <- option "tuple" $ try identifier
-  fs <- parens (commaSep expr)
+  fs <- parens (try (spaces >> return []) <|> (commaSep expr))
   return . Basic $ Fun i fs
 
 

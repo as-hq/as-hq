@@ -121,7 +121,7 @@ extractPatternGroups cells = concat $ map (LS.splitWhen isFormulaCell) cells
 getMappedPatternGroups :: ASRange -> ASRange -> [[ASCell]] -> [ASCell]
 getMappedPatternGroups r1 r2 cells = concat $ map (translatePatternGroupCells r1 r2) patternGroups
   where
-    patternGroups = trace' "PATTERN GROUPS " $ extractPatternGroups cells
+    patternGroups = extractPatternGroups cells
 
 -- Given the sel and drag ranges, and the pattern group, return all the new cells it creates
 translatePatternGroupCells :: ASRange -> ASRange -> PatternGroup -> [ASCell]
@@ -137,11 +137,11 @@ decomposePatternGroup :: PatternGroup -> [Pattern]
 decomposePatternGroup [] = []
 decomposePatternGroup pg = patterns
   where
-    searchOrder = reverse $ L.inits $ (trace' "INPUT " pg)
+    searchOrder = reverse $ L.inits pg
     len = length pg
     lengths = [len,(len-1)..0]
     searchItems =  zip searchOrder lengths
-    patternSplit = trace' "PATTERN SPLIT " $ L.find (\(x,_) -> isJust (getPattern x)) searchItems
+    patternSplit = L.find (\(x,_) -> isJust (getPattern x)) searchItems
     patterns = if isNothing patternSplit
       then [] 
       else largestStartPattern : (decomposePatternGroup restOfPatternGroup)

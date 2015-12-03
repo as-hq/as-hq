@@ -252,7 +252,7 @@ evalBasicFormula c (Var val)   = valToResult val
 evalBasicFormula c (Fun f fs)  = do
   fDes <- getFunc f
   let args = map (getFunctionArg c fDes) (zip [1..argNumLimit] fs)
-  let argsRef = substituteRefsInArgs c fDes args
+      argsRef = substituteRefsInArgs c fDes args
   checkNumArgs f (maxNumArgs fDes) (length argsRef)
   topLeftForMatrix f $ (callback fDes) c argsRef
 
@@ -491,7 +491,7 @@ sumInt = V.foldl' (+) (return $ EValueI 0)
 testNumArgs :: Int -> String -> [a] -> ThrowsError [a]
 testNumArgs n name lst
   | (length lst) == n = Right lst
-  | otherwise = Left $ NumArgs name n (length lst)
+  | otherwise = Left $ NumArgs name n $ length lst
 
 -- | Make sure that the number of arguments isn't too high
 testNumArgsUpper :: Int -> String -> [a] -> ThrowsError [a]
