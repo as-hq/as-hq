@@ -99,6 +99,9 @@ vector2 f = FuncDescriptor [] [] [1,2] [1..argNumLimit] (Just 2) (transform f)
 infixD :: EFunc -> FuncDescriptor
 infixD = normalD 2 
 
+cellType :: EFuncResult -> FuncDescriptor
+cellType = FuncDescriptor [1] [1] [] [1] (Just 1)
+
 -- | Map function names to function descriptors
 functions :: M.Map String FuncDescriptor
 functions =  M.fromList $
@@ -122,10 +125,10 @@ functions =  M.fromList $
     (" "              , FuncDescriptor [1,2] [1,2] [] [] (Just 2) (transform eSpace)), -- don't replace refs
 
     -- | Excel information functions
-    ("isblank"        , normalD 1 eIsBlank),
-    ("iserror"        , FuncDescriptor [1] [1] [] [1] (Just 1) eIsError), -- efuncresult
-    ("islogical"      , normalD 1 eIsLogical),
-    ("isnumber"       , normalD 1 eIsNumber),
+    ("isblank"        , cellType eIsBlank),
+    ("iserror"        , cellType eIsError), -- efuncresult
+    ("islogical"      , cellType eIsLogical),
+    ("isnumber"       , cellType eIsNumber),
 
     -- | Excel logical functions
     ("iferror"        , FuncDescriptor [1,2] [1,2] [] [1,2] (Just 2) eIfError), -- efuncresult
@@ -718,43 +721,40 @@ stringMatch (c:cs) = case c of
 --------------------------------------------------------------------------------------------------------------
 -- | Excel information functions
 
-eIsBlank :: EFunc
-eIsBlank c e = do
-  e' <- testNumArgs 1 "isblank" e
-  valToResult $ EValueB $ blank (head e')
+typeVerifier :: String -> (EEntity -> Bool) -> Bool -> EFuncResult
+typeVerifier name verifier errDefault c e = do 
+  e' <- testNumArgs 1 name e
+  case head e' of 
+    Left _ -> valToResult $ EValueB errDefault
+    Right x -> valToResult $ EValueB $ verifier x 
 
-eIsLogical :: EFunc
-eIsLogical c e = do
-  e' <- testNumArgs 1 "islogical" e
-  valToResult $ EValueB $ boolEntity $ head e'
+eIsBlank :: EFuncResult
+eIsBlank = typeVerifier "isblank" isBlank False
 
-eIsNumber :: EFunc
-eIsNumber c e = do
-  e' <- testNumArgs 1 "isnumber" e
-  valToResult $ EValueB $ numeric $ head e'
+eIsLogical :: EFuncResult
+eIsLogical = typeVerifier "islogical" isBool False
+
+eIsNumber :: EFuncResult
+eIsNumber = typeVerifier "isnumber" isNumeric False
 
 eIsError :: EFuncResult
-eIsError c r = do
-  r' <- testNumArgs 1 "iserror" r
-  case (head r) of
-    Left  _ ->  valToResult $ EValueB True
-    Right _ -> valToResult $ EValueB False
+eIsError = typeVerifier "iserror" (const False) True
 
 -- | Helpers
-boolEntity :: EEntity -> Bool
-boolEntity (EntityVal (EValueB _)) = True
-boolEntity (EntityMatrix (EMatrix 1 1 v)) = boolEntity $ EntityVal $ V.head v
-boolEntity _ = False
+isBool :: EEntity -> Bool
+isBool (EntityVal (EValueB _)) = True
+isBool (EntityMatrix (EMatrix 1 1 v)) = isBool $ EntityVal $ V.head v
+isBool _ = False
 
-blank :: EEntity -> Bool
-blank (EntityVal EBlank) = True
-blank (EntityMatrix (EMatrix 1 1 v)) = blank $ EntityVal $ V.head v
-blank _ = False
+isBlank :: EEntity -> Bool
+isBlank (EntityVal EBlank) = True
+isBlank (EntityMatrix (EMatrix 1 1 v)) = isBlank $ EntityVal $ V.head v
+isBlank _ = False
 
-numeric :: EEntity -> Bool
-numeric (EntityVal (EValueNum _)) = True
-numeric (EntityMatrix (EMatrix 1 1 v)) = numeric $ EntityVal $ V.head v
-numeric _ = False
+isNumeric :: EEntity -> Bool
+isNumeric (EntityVal (EValueNum _)) = True
+isNumeric (EntityMatrix (EMatrix 1 1 v)) = isNumeric $ EntityVal $ V.head v
+isNumeric _ = False
 
 --------------------------------------------------------------------------------------------------------------
 -- | Excel logical functions
