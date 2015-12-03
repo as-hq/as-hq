@@ -1,7 +1,11 @@
+{-# LANGUAGE DeriveGeneric #-}
+
 module AS.Types.DB
   ( module AS.Types.DB
   , module AS.Types.Commits
   ) where
+
+import GHC.Generics
 
 import AS.Types.Cell
 import AS.Types.Commits
@@ -9,8 +13,11 @@ import AS.Types.Locations
 import AS.Types.Eval
 import AS.Types.CellProps
 
+import Debug.Trace
+
 import Prelude
 import qualified Data.Text as T 
+import Data.Serialize (Serialize)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Transactions
@@ -29,6 +36,10 @@ type ASRelation = (ASIndex,[GraphAncestor])
 -- Graph read (getX) and write (setX) requests
 data GraphReadRequest = GetDescendants | GetImmediateDescendants | GetProperDescendants | GetImmediateAncestors 
   deriving (Show)
+
+-- Exporting/Importing
+data ExportData = ExportData { exportCells :: [ASCell], exportDescriptors :: [RangeDescriptor] } deriving (Show, Read, Eq, Generic)
+
 
 data GraphWriteRequest = SetRelations | RollbackGraph | Recompute | Clear 
   deriving (Show)
@@ -60,6 +71,10 @@ indicesToGraphReadInput = map IndexInput
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Delimiters
 
+msgPartDelimiter = "`" -- TODO: should require real parsing instead of weird char strings
+relationDelimiter = "&"
+keyPartDelimiter = '?'
+
 -- TODO: should require real parsing instead of never-used unicode chars at some point
 cellDelimiter = '©'
 exprDelimiter = '®'
@@ -72,7 +87,11 @@ splitBy delimiter = foldr f [[]]
                      | otherwise = (c:x):xs
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
--- Compressed read/show 
+-- instances
+
+instance Serialize ExportData
+
+-- compressed show
 
 class Show2 a where
   show2 :: a -> String
@@ -103,10 +122,20 @@ instance (Show2 ASReference) where
   show2 (OutOfBounds) = "OUTOFBOUNDS"
 instance (Show2 ASExpression) where
   show2 (Expression xp lang) = 'E':exprDelimiter:xp ++ (exprDelimiter:(show lang))
-  show2 (Coupled xp lang dtype rangekey) = 'C':exprDelimiter:xp ++ (exprDelimiter:(show lang)) ++ (exprDelimiter:(show dtype)) ++ (exprDelimiter:rangekey)
+  show2 (Coupled xp lang dtype rangekey) = 'C':exprDelimiter:xp 
+                                        ++ (exprDelimiter:(show lang)) 
+                                        ++ (exprDelimiter:(show dtype)) 
+                                        ++ (exprDelimiter:(show2 rangekey))
+
 instance (Show2 ASValue) where
   show2 = show -- TODO optimize
 
+instance (Show2 RangeKey) where
+  show2 (RangeKey idx dims) = (show2 idx) 
+                           ++ (keyPartDelimiter:(show dims)) 
+                           ++ (keyPartDelimiter:"RANGEKEY")
+
+-- compressed read
 
 instance (Read2 ASCell) where
   read2 str = Cell l xp v ts
@@ -150,9 +179,18 @@ instance (Read2 ASExpression)
             [xp, lang] -> Expression xp (read lang :: ASLanguage)
             _ -> error $ "read2 splits expression incorrectly: " ++ str 
           "C" -> case (tail splits) of 
-            [xp, lang, dtype, rangekey] -> Coupled xp (read lang :: ASLanguage) (read dtype :: ExpandingType) rangekey
+            [xp, lang, dtype, rangekey] -> Coupled xp (read lang :: ASLanguage) (read dtype :: ExpandingType) (read2 rangekey :: RangeKey)
             _ -> error $ "read2 splits expression incorrectly: " ++ str 
 instance (Read2 ASValue)
   where 
     read2 = read -- TODO optimize
 
+readCells :: String -> [ASCell]
+readCells str = map (\c -> read2 c :: ASCell) $ splitBy ',' str
+
+instance (Read2 RangeKey) where
+  read2 str = RangeKey idx dims
+    where
+     idxStr:dimsStr:_ = splitBy keyPartDelimiter str
+     idx = read2 idxStr :: ASIndex
+     dims = read dimsStr :: Dimensions

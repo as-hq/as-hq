@@ -85,11 +85,14 @@ getCells :: [ASIndex] -> IO [Maybe ASCell]
 getCells [] = return []
 getCells locs = DU.getCellsByMessage msg num
   where
-    msg = DU.showB $ intercalate DU.msgPartDelimiter $ map show2 locs
+    msg = DU.showB $ intercalate msgPartDelimiter $ map show2 locs
     num = length locs
 
-getCellsInSheet :: ASSheetId -> IO [ASCell]
-getCellsInSheet = DU.cellsInSheet
+getCellsInSheet :: Connection -> ASSheetId -> IO [ASCell]
+getCellsInSheet conn sid = DU.getCellsByKeyPattern conn $ "I/" ++ (T.unpack sid) ++ "/(*,*)"
+
+getAllCells :: Connection -> IO [ASCell]
+getAllCells conn = DU.getCellsByKeyPattern conn "I/*/(*,*)"
 
 -- Gets the cells at the locations with expressions and values removed, but tags intact. 
 getBlankedCellsAt :: [ASIndex] -> IO [ASCell]
@@ -140,7 +143,7 @@ setCells :: [ASCell] -> IO ()
 setCells [] = return ()
 setCells cells = DU.setCellsByMessage msg num
   where 
-    str = intercalate DU.msgPartDelimiter $ (map (show2 . cellLocation) cells) ++ (map show2 cells)
+    str = intercalate msgPartDelimiter $ (map (show2 . cellLocation) cells) ++ (map show2 cells)
     msg = DU.showB str
     num = length cells
 
@@ -151,6 +154,7 @@ deleteCells conn cells = deleteLocs conn $ map cellLocation cells
 deleteLocs :: Connection -> [ASIndex] -> IO ()
 deleteLocs _ [] = return ()
 deleteLocs conn locs = runRedis conn $ mapM_ DU.deleteLocRedis locs
+
 
 ----------------------------------------------------------------------------------------------------------------------
 -- Locations
@@ -168,7 +172,7 @@ locationExists conn loc = head <$> locationsExist conn [loc]
 fatCellsInRange :: Connection -> ASRange -> IO [RangeKey]
 fatCellsInRange conn rng = do
   let sid = rangeSheetId rng
-  rangeKeys <- DU.makeRangeKeysInSheet conn sid
+  rangeKeys <- DU.getRangeKeysInSheet conn sid
   let rects = map DU.rangeRect rangeKeys
       zipRects = zip rangeKeys rects
       zipRectsContained = filter (\(_,rect) -> rangeContainsRect rng rect) zipRects
@@ -176,8 +180,13 @@ fatCellsInRange conn rng = do
 
 getRangeDescriptor :: Connection -> RangeKey -> IO (Maybe RangeDescriptor)
 getRangeDescriptor conn key = runRedis conn $ do 
-  Right desc <- get (B.pack key)
+  Right desc <- get (B.pack . show2 $ key)
   return $ DU.bStrToRangeDescriptor desc
+
+getRangeDescriptorsInSheet :: Connection -> ASSheetId -> IO [RangeDescriptor]
+getRangeDescriptorsInSheet conn sid = do
+  keys <- DU.getRangeKeysInSheet conn sid
+  map fromJust <$> mapM (getRangeDescriptor conn) keys
 
 ----------------------------------------------------------------------------------------------------------------------
 -- WorkbookSheets (for frontend API)
@@ -365,7 +374,7 @@ setSheet conn sheet = do
 
 clearSheet :: Connection -> ASSheetId -> IO ()
 clearSheet conn sid = do
-  keys <- map B.pack <$> DU.makeRangeKeysInSheet conn sid
+  keys <- map (B.pack . show2) <$> DU.getRangeKeysInSheet conn sid
   runRedis conn $ do
     del keys
     del [DU.makeSheetRangesKey sid]

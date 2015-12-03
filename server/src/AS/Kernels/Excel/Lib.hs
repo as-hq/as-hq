@@ -17,6 +17,7 @@ import qualified Data.Vector.Generic as VG
 import qualified Data.Vector.Unboxed as VU
 
 import Text.Read as TR
+import Text.Regex
 import Data.Char (toLower,toUpper)
 import qualified Data.Text as T
 import qualified Data.String.Utils as SU
@@ -102,6 +103,9 @@ vector2 f = FuncDescriptor [] [] [1,2] [1..argNumLimit] (Just 2) (transform f)
 infixD :: EFunc -> FuncDescriptor
 infixD = normalD 2 
 
+cellType :: EFuncResult -> FuncDescriptor
+cellType = FuncDescriptor [1] [1] [] [1] (Just 1)
+
 -- | Map function names to function descriptors
 functions :: M.Map String FuncDescriptor
 functions =  M.fromList $
@@ -125,10 +129,10 @@ functions =  M.fromList $
     (" "              , FuncDescriptor [1,2] [1,2] [] [] (Just 2) (transform eSpace)), -- don't replace refs
 
     -- | Excel information functions
-    ("isblank"        , normalD 1 eIsBlank),
-    ("iserror"        , FuncDescriptor [1] [1] [] [1] (Just 1) eIsError), -- efuncresult
-    ("islogical"      , normalD 1 eIsLogical),
-    ("isnumber"       , FuncDescriptor [1] [1] [] [1] (Just 1) eIsNumber),
+    ("isblank"        , cellType eIsBlank),
+    ("iserror"        , cellType eIsError), -- efuncresult
+    ("islogical"      , cellType eIsLogical),
+    ("isnumber"       , cellType eIsNumber),
 
     -- | Excel logical functions
     ("iferror"        , FuncDescriptor [1,2] [1,2] [] [1,2] (Just 2) eIfError), -- efuncresult
@@ -254,9 +258,9 @@ evalBasicFormula c (Ref exLoc) = locToResult $ exRefToASRef (locSheetId (curLoc 
 evalBasicFormula c (Var val)   = valToResult val
 evalBasicFormula c (Fun f fs)  = do
   fDes <- getFunc f
-  let args = map (getFunctionArg c fDes) (zip [1..argNumLimit] (trace' "FS " fs))
-  let argsRef = substituteRefsInArgs c fDes args
-  checkNumArgs f (maxNumArgs fDes) (length (trace' "ARGSREF " argsRef))
+  let args = map (getFunctionArg c fDes) (zip [1..argNumLimit] fs)
+      argsRef = substituteRefsInArgs c fDes args
+  checkNumArgs f (maxNumArgs fDes) (length argsRef)
   topLeftForMatrix f $ (callback fDes) c argsRef
 
 evalFormula :: Context -> Formula -> EResult
@@ -494,7 +498,7 @@ sumInt = V.foldl' (+) (return $ EValueI 0)
 testNumArgs :: Int -> String -> [a] -> ThrowsError [a]
 testNumArgs n name lst
   | (length lst) == n = Right lst
-  | otherwise = Left $ NumArgs name n (length lst)
+  | otherwise = Left $ NumArgs name n $ length lst
 
 -- | Make sure that the number of arguments isn't too high
 testNumArgsUpper :: Int -> String -> [a] -> ThrowsError [a]
@@ -721,47 +725,40 @@ stringMatch (c:cs) = case c of
 --------------------------------------------------------------------------------------------------------------
 -- | Excel information functions
 
-eIsBlank :: EFunc
-eIsBlank c e = do
-  e' <- testNumArgs 1 "isblank" e
-  valToResult $ EValueB $ blank (head e')
+typeVerifier :: String -> (EEntity -> Bool) -> Bool -> EFuncResult
+typeVerifier name verifier errDefault c e = do 
+  e' <- testNumArgs 1 name e
+  case head e' of 
+    Left _ -> valToResult $ EValueB errDefault
+    Right x -> valToResult $ EValueB $ verifier x 
 
-eIsLogical :: EFunc
-eIsLogical c e = do
-  e' <- testNumArgs 1 "islogical" e
-  valToResult $ EValueB $ boolEntity $ head e'
+eIsBlank :: EFuncResult
+eIsBlank = typeVerifier "isblank" isBlank False
 
--- This function should return only true or false, and not throw an error if one of its args is an error
--- which is why it's implemented as an EFuncResult
+eIsLogical :: EFuncResult
+eIsLogical = typeVerifier "islogical" isBool False
+
 eIsNumber :: EFuncResult
-eIsNumber c r = do
-  e' <- testNumArgs 1 "isnumber" r
-  case (head r) of
-    Left _ -> valToResult $ EValueB False
-    Right e -> valToResult $ EValueB $ numeric $ e
+eIsNumber = typeVerifier "isnumber" isNumeric False
 
 eIsError :: EFuncResult
-eIsError c r = do
-  r' <- testNumArgs 1 "iserror" r
-  case (head r) of
-    Left  _ ->  valToResult $ EValueB True
-    Right _ -> valToResult $ EValueB False
+eIsError = typeVerifier "iserror" (const False) True
 
 -- | Helpers
-boolEntity :: EEntity -> Bool
-boolEntity (EntityVal (EValueB _)) = True
-boolEntity (EntityMatrix (EMatrix 1 1 v)) = boolEntity $ EntityVal $ V.head v
-boolEntity _ = False
+isBool :: EEntity -> Bool
+isBool (EntityVal (EValueB _)) = True
+isBool (EntityMatrix (EMatrix 1 1 v)) = isBool $ EntityVal $ V.head v
+isBool _ = False
 
-blank :: EEntity -> Bool
-blank (EntityVal EBlank) = True
-blank (EntityMatrix (EMatrix 1 1 v)) = blank $ EntityVal $ V.head v
-blank _ = False
+isBlank :: EEntity -> Bool
+isBlank (EntityVal EBlank) = True
+isBlank (EntityMatrix (EMatrix 1 1 v)) = isBlank $ EntityVal $ V.head v
+isBlank _ = False
 
-numeric :: EEntity -> Bool
-numeric (EntityVal (EValueNum _)) = True
-numeric (EntityMatrix (EMatrix 1 1 v)) = numeric $ EntityVal $ V.head v
-numeric _ = False
+isNumeric :: EEntity -> Bool
+isNumeric (EntityVal (EValueNum _)) = True
+isNumeric (EntityMatrix (EMatrix 1 1 v)) = isNumeric $ EntityVal $ V.head v
+isNumeric _ = False
 
 --------------------------------------------------------------------------------------------------------------
 -- | Excel logical functions
@@ -1079,13 +1076,16 @@ eSqrtPi c e = do
 
 -- Need to implement an error if negative numbers provided, so this isn't just oneArgDouble
 eSqrt :: EFunc
-eSqrt c e = do 
-  num <- getRequired "numeric" "sqrt" 1 e :: ThrowsError EFormattedNumeric
-  if (num < 0)
-    then Left $ NUM $ "trying to take the sqrt of a negative number"
-    else Right ()
-  oneArgDouble "sqrt" sqrt c e 
-
+eSqrt c e = do
+  formattedNum <- getRequired "numeric" "sqrt" 1 e :: ThrowsError EFormattedNumeric
+  let num = orig formattedNum
+  if num < EValueD 0 
+    then Left $ SqrtNegative $ fromJust $ extractType $ EntityVal $ EValueNum formattedNum
+    else do 
+      let ans = case num of
+                    EValueI i -> sqrt (fromIntegral i)
+                    EValueD d -> sqrt d
+      valToResult $ EValueNum $ return $ EValueD ans
 
 -- | Finds the product of all of its arguments, decomposing matrices
 -- | Built-in product starts folding with ValueD, so we use foldl1'
@@ -1495,6 +1495,15 @@ eStdS c e = do
 --------------------------------------------------------------------------------------------------------------
 -- | Excel text functions
 
+-- | Returns location of substring in a string. Helper for textFind. 
+findStr :: String -> String -> Maybe Int
+findStr pat str = findStrHelp pat str 0
+  where
+    findStrHelp _ [] _ = Nothing
+    findStrHelp pat s@(x:xs) n
+      | pat == (take (length pat) s) = Just n
+      | otherwise = findStrHelp pat xs (n+1)
+
 -- | Find position of one string within another; casing on case-sensitivity
 textFind :: Bool -> EFunc
 textFind caseSensitive c e = do
@@ -1505,17 +1514,15 @@ textFind caseSensitive c e = do
   let withinText = normString caseSensitive withinText'
   -- | Optional starting position, starting from 1 (default)
   startNum <- getOptional "int" 1 f 3 e :: ThrowsError Int
-  if startNum <=0 || startNum >= (length withinText)
+  if startNum <= 0 || startNum >= (length withinText)
     then Left $ VAL "Starting position out of bounds for FIND"
-    else do
-      if findText == ""
-        then intToResult 1
-        else do
-          let shiftedWithin = drop (startNum-1) withinText
-          case (elemIndex findText (tails shiftedWithin)) of
-            Nothing -> Left $ VAL "Couldn't find smaller string in larger for FIND"
-            -- | Answer is from beginning of original withinText (add one for 1-indexing)
-            Just pos -> intToResult $ pos + 1 + startNum
+    else do 
+      let shiftedWithin = drop (startNum-1) withinText
+      case findStr findText shiftedWithin of 
+        Nothing -> Left $ VAL "Couldn't find smaller string in larger for FIND"
+        Just pos -> intToResult $ pos + startNum
+        -- ^ Answer is from beginning of original withinText (add startNum-1 for that offset, 
+        -- then add 1 for Excel's 1-indexing)
 
 -- | Helper for above
 normString :: Bool -> String -> String
@@ -1567,11 +1574,14 @@ eRight c e = do
       let n' = min (length str) n -- Return whole string if n is large
       stringResult $ drop ((length str)-n') str
 
+excelTrim :: String -> String
+excelTrim str = subRegex (mkRegex "\\s\\s+") str " " 
+
 -- | Trim whitespace from a string
 eTrim :: EFunc
 eTrim c e = do
   str <- getRequired "string" "trim" 1 e :: ThrowsError String
-  stringResult $ T.unpack $ T.strip $ T.pack str
+  stringResult $ T.unpack $ T.strip $ T.pack $ excelTrim str
 
 -- | Substitute new string for old string in larger string
 eSubstitute :: EFunc
@@ -1582,7 +1592,9 @@ eSubstitute c e = do
   new <- getRequired "string" f 3 e :: ThrowsError String
   n <- getOptional "int" 0 f 4 e :: ThrowsError Int -- which occurrence of old to replace (default = all)
   if n == 0
-    then stringResult $ SU.replace old new str
+    then if (not $ null old) 
+      then stringResult $ SU.replace old new str
+      else stringResult str
     else do
       let parts = SU.split old str
       let (before,after) = splitAt n parts

@@ -15,6 +15,7 @@ import Data.UUID (toString)
 import qualified Network.WebSockets as WS
 import Data.Aeson
 import Debug.Trace 
+import qualified Data.ByteString.Lazy as BL
 
 -------------------------------------------------------------------------------------------------------------------------
 -- For debugging purposes only 

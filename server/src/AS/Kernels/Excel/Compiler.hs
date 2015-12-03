@@ -184,8 +184,8 @@ cellReference = fmap (Basic . Ref) refMatch
 -- | Function application.
 functionApplication :: Parser Formula
 functionApplication = do
-  i <- option "tuple" $ try identifier
-  fs <- parens (commaSep expr)
+  i <- option "tuple" $ try identifier -- Do we actually have a TUPLE() function???
+  fs <- try (parens (spaces >> return [])) <|> parens (commaSep expr)
   return . Basic $ Fun i fs
 
 

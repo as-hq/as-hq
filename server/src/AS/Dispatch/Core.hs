@@ -74,7 +74,7 @@ runDispatchCycle state cs src = do
     broadcastCells <- DT.updateDBFromEvalContext conn src ctx
     return broadcastCells
   case errOrCells of 
-    Left _ -> G.execGraphWriteQuery Recompute -- #needsrefactor. Overkill. But recording all cells that might have changed is a PITA. (Alex 11/20)
+    Left _ -> G.recompute -- #needsrefactor. Overkill. But recording all cells that might have changed is a PITA. (Alex 11/20)
     _      -> return ()
   return $ makeUpdateMessage errOrCells
 
@@ -249,11 +249,6 @@ contextInsert conn c@(Cell idx xp _ ps) (Formatted cv f) (EvalContext mp cells r
       dispatch conn cs finalContext' True
 
 
-
-
-
-
-
   --case (DE.decomposeCompositeValue cv) of 
   --  Nothing -> do
   --    let CellValue v = cv
@@ -411,4 +406,3 @@ contextInsert conn c@(Cell idx xp _ ps) (Formatted cv f) (EvalContext mp cells r
 --      resultDeletedLocs = pastDeletedLocs ++ deletedLocs ++ restDeletedLocs
 
 --  right (resultCells, resultFatCells, resultDeletedLocs, restValuesMap)
-

@@ -51,9 +51,7 @@ sendFilteredCondFormatResults :: ASServerMessage -> [ASCell] -> ASUserClient -> 
 sendFilteredCondFormatResults msg cells uc = do
   let cells' = intersectViewingWindow cells (userWindow uc)
       msg'   = msg { serverPayload = (serverPayload msg) { condFormatCellsUpdated = cells' } }
-  case cells' of
-    [] -> return ()
-    _  -> sendMessage msg' (userConn uc)
+  sendMessage msg' (userConn uc)
 
 -- | Given a message (commit, cells, etc), only send (to each user) the cells in their viewing window. 
 -- Unless there was a failure, in which case send the failure message back to the original user. 

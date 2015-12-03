@@ -20,7 +20,7 @@ import Data.Maybe
 handleMutateSheet :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
 handleMutateSheet uc state (PayloadMutate mutateType) = do 
   conn <- dbConn <$> readMVar state
-  allCells <- DB.getCellsInSheet (userSheetId uc)
+  allCells <- DB.getCellsInSheet conn (userSheetId uc)
   let newCells = map (cellMap mutateType) allCells
       oldCellsNewCells = zip allCells newCells
       oldCellsNewCells' = filter (\(c, c') -> (isNothing c') || (c /= fromJust c')) oldCellsNewCells

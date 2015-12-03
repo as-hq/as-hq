@@ -40,7 +40,7 @@ instance Client ASUserClient where
     -- second arg is supposed to be sheet id; temporary hack is to always set userId = sheetId
     -- on frontend. 
     unless (clientAction message == Acknowledge) $ do 
-      writeToLog (show message) (userCommitSource user)
+      logClientMessage (show message) (userCommitSource user)
       putStrLn "=========================================================="
       printObj "Message" (show message)
     redisConn <- dbConn <$> readMVar state
@@ -51,7 +51,8 @@ instance Client ASUserClient where
       Open               -> handleOpen user state payload
       Close              -> handleClose user state payload
       UpdateWindow       -> handleUpdateWindow (sessionId user) state payload
-      Import             -> handleImport state payload
+      Import             -> handleImport user state payload
+      Export             -> handleExport user state payload
       Evaluate           -> handleEval user state payload
       EvaluateRepl       -> handleEvalRepl user payload
       EvaluateHeader     -> handleEvalHeader user payload

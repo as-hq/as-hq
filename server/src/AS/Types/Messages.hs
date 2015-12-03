@@ -38,7 +38,8 @@ data ASAction =
     NoAction
   | Acknowledge
   | SetInitialSheet
-  | New | Import
+  | New 
+  | Import | Export
   | Open | Close
   | Evaluate | EvaluateRepl | EvaluateHeader
   | Update

@@ -17,7 +17,7 @@ import qualified Data.List                     as L
 import qualified Data.Text                     as T
 import           Data.List.Split
 import Data.Word (Word8)
-import Data.Maybe (fromJust)
+import Data.Maybe (fromJust, catMaybes)
 
 import qualified Data.ByteString.Char8         as BC
 import qualified Data.ByteString               as B
@@ -59,14 +59,6 @@ cInfo = ConnInfo
 ----------------------------------------------------------------------------------------------------------------------
 -- Redis key utilities
 
-msgPartDelimiter = "`" -- TODO: should require real parsing instead of weird char strings
-relationDelimiter = "&"
-keyPartDelimiter = '?'
-
--- key for fat cells
-makeRangeKey :: ASIndex -> Dimensions -> RangeKey
-makeRangeKey idx dims = (show2 idx) ++ (keyPartDelimiter:(show dims)) ++ (keyPartDelimiter:"RANGEKEY")
-
 -- key for set of all fat cells in a sheet
 makeSheetRangesKey :: ASSheetId -> B.ByteString
 makeSheetRangesKey sid = BC.pack $ (T.unpack sid) ++ (keyPartDelimiter:"ALL_RANGES")
@@ -103,7 +95,6 @@ getUniquePrefixedName pref strs = pref ++ (show idx)
 -- FFI
 
 foreign import ccall unsafe "hiredis/redis_db.c getCells" c_getCells :: CString -> CInt -> IO (Ptr CString)
-foreign import ccall unsafe "hiredis/redis_db.c getCellsInSheet" c_getCellsInSheet :: CString -> IO (Ptr CString)
 foreign import ccall unsafe "hiredis/redis_db.c setCells" c_setCells :: CString -> CInt -> IO ()
 foreign import ccall unsafe "hiredis/redis_db.c clearSheet" c_clearSheet :: CString -> IO ()
 
@@ -124,8 +115,13 @@ getCellsByMessage msg num = do
   ptrCells <- BU.unsafeUseAsCString msg $ \str -> c_getCells str (fromIntegral num)
   cCells   <- peekArray (fromIntegral num) ptrCells
   res      <- mapM cToASCell cCells
-  free ptrCells
+  --free ptrCells
   return res
+
+getCellsByKeyPattern :: Connection -> String -> IO [ASCell]
+getCellsByKeyPattern conn pattern = runRedis conn $ do
+  Right locKeys <- keys . BC.pack $ pattern
+  catMaybes <$> (liftIO $ getCellsByKeys locKeys)
 
 setCellsByMessage :: B.ByteString -> Int -> IO ()
 setCellsByMessage msg num = BU.unsafeUseAsCString msg $ \lstr -> c_setCells lstr (fromIntegral num)
@@ -137,15 +133,6 @@ getSheetLocsRedis :: ASSheetId -> Redis [B.ByteString]
 getSheetLocsRedis sheetid = do
   Right keys <- smembers $ makeSheetSetKey sheetid
   return keys
-
-cellsInSheet :: ASSheetId -> IO [ASCell]
-cellsInSheet sid = do
-  ptrCells <- withCString (T.unpack sid) c_getCellsInSheet
-  len      <- (\a -> read a :: Int) <$> (peekCString =<< peek ptrCells)
-  cCells   <- peekArray (fromIntegral $ len + 1) ptrCells
-  res      <- map (\str -> read2 str :: ASCell) <$> (mapM peekCString $ tail cCells)
-  free ptrCells
-  return res
 
 deleteLocsInSheet :: ASSheetId -> IO ()
 deleteLocsInSheet sid = withCString (T.unpack sid) c_clearSheet
@@ -165,28 +152,26 @@ cToASCell str = do
 --getListType key = last parts
 --  where parts = splitBy keyPartDelimiter key
 indexIsHead :: ASIndex -> RangeKey -> Bool
-indexIsHead idx key = idx == idx'
-  where (idx', _) = readRangeKey key 
+indexIsHead idx (RangeKey idx' _) = idx == idx'
 
 rangeKeyToIndices :: RangeKey -> [ASIndex]
-rangeKeyToIndices key = rangeToIndices range
+rangeKeyToIndices (RangeKey idx dims) = rangeToIndices range
   where
-    (Index sid (col, row), (height, width)) = readRangeKey key
-    range = Range sid ((col, row), (col+width-1, row+height-1))
+    Index sid (col, row) = idx
+    (height, width)      = dims
+    range                = Range sid ((col, row), (col+width-1, row+height-1))
 
 getFatCellIntersections :: Connection -> Either [ASIndex] [RangeKey] -> IO [RangeKey]
 getFatCellIntersections conn (Left locs) = do
   rangeKeys <- concat <$> mapM (getRangeKeysInSheet conn) (nub $ map locSheetId locs)
-  printObj "All range keys in sheet" rangeKeys
   return $ filter keyIntersects rangeKeys
   where
     keyIntersects k             = anyLocsContainedInRect locs (rangeRect k)
     anyLocsContainedInRect ls r = any id $ map (indexInRect r) ls
     indexInRect ((a',b'),(a2',b2')) (Index _ (a,b)) = a >= a' && b >= b' &&  a <= a2' && b <= b2'
 
--- ::ALEX:: why does this case exist? 
 getFatCellIntersections conn (Right keys) = do
-  rangeKeys <- concat <$> mapM  (getRangeKeysInSheet conn) (nub $ map (locSheetId . descriptorIndex) keys)
+  rangeKeys <- concat <$> mapM  (getRangeKeysInSheet conn) (nub $ map (locSheetId . keyIndex) keys)
   printObj "Checking intersections against keys" keys
   return $ L.intersectBy keysIntersect rangeKeys keys
     where 
@@ -199,29 +184,18 @@ getFatCellIntersections conn (Right keys) = do
       keysIntersect k1 k2 = rectsIntersect (rangeRect k1) (rangeRect k2)
 
 rangeRect :: RangeKey -> Rect
-rangeRect key = ((col, row), (col + width - 1, row + height - 1))
-  where (Index _ (col, row), (height, width)) = readRangeKey key
-
-rangeDimensions :: RangeKey -> Dimensions
-rangeDimensions = snd . readRangeKey
-
-readRangeKey :: RangeKey -> (ASIndex, Dimensions)
-readRangeKey key = (idx, dims)
-  where
-    parts = splitBy keyPartDelimiter key
-    idx   = read2 (head parts) :: ASIndex
-    dims  = read (parts !! 1) :: Dimensions
+rangeRect (RangeKey idx dims) = ((col, row), (col + width - 1, row + height - 1))
+  where Index _ (col, row) = idx
+        (height, width)    = dims
 
 getRangeKeysInSheet :: Connection -> ASSheetId -> IO [RangeKey]
 getRangeKeysInSheet conn sid = runRedis conn $ do
-  Right result <- smembers $ makeSheetRangesKey sid
-  return $ map BC.unpack result
+  Right keys <- smembers $ makeSheetRangesKey sid
+  liftIO $ printObj "GOT RANGEKEYS IN SHEET: " keys
+  return $ map (\k -> read2 (BC.unpack k) :: RangeKey) keys
 
 rangeKeyToSheetId :: RangeKey -> ASSheetId
-rangeKeyToSheetId key = sid
-  where
-    parts = splitBy keyPartDelimiter key
-    (Index sid _) = read2 (head parts) :: ASIndex
+rangeKeyToSheetId = locSheetId . keyIndex
 
 decoupleCell :: ASCell -> ASCell
 decoupleCell (Cell l (Coupled _ lang _ _) v ts) = Cell l e' v ts
@@ -245,7 +219,7 @@ isFatCellMember (Cell _ xp _ _) = case xp of
 
 isFatCellHead :: ASCell -> Bool 
 isFatCellHead cell = case (cellToRangeKey cell) of 
-  Just key -> (show2 . cellLocation $ cell) == (head $ splitBy keyPartDelimiter key)
+  Just (RangeKey idx _) -> cellLocation cell == idx
   Nothing -> False
 
 ----------------------------------------------------------------------------------------------------------------------

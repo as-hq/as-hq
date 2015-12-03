@@ -5,6 +5,7 @@ import AS.Types.Cell
 import AS.Types.Network
 import AS.Types.Messages
 import AS.Types.User
+import AS.Types.DB hiding (Clear)
 
 import AS.Handlers.Eval
 import AS.Handlers.Paste
@@ -15,17 +16,21 @@ import AS.Reply
 
 import qualified AS.Dispatch.Core         as DP
 import qualified AS.DB.Transaction        as DT
-import qualified AS.Types.DB              as TD
 import qualified AS.DB.API                as DB
+import qualified AS.DB.Export             as DX
 import qualified AS.DB.Graph              as G
 import qualified AS.Util                  as U
 import qualified AS.Kernels.LanguageUtils as LU
 import qualified AS.Users                 as US
 import qualified AS.InferenceUtils        as IU
 
-import qualified Network.WebSockets as WS
-import qualified Database.Redis as R
+import qualified Data.ByteString.Lazy as BL
+import qualified Data.Serialize as DS
 import qualified Data.Text as T 
+
+import qualified Database.Redis as R
+import qualified Network.WebSockets as WS
+
 import Data.List
 import Data.Maybe
 import Control.Concurrent
@@ -88,13 +93,10 @@ handleUpdateWindow cid state (PayloadW w) = do
 -- from getting lost and doesn't require us to manually reset the server. 
 badCellsHandler :: R.Connection -> ASUserClient -> SomeException -> IO ()
 badCellsHandler conn uc e = do 
-  writeErrToLog ("Error while fetching cells: " ++ (show e)) (userCommitSource uc)
+  logError ("Error while fetching cells: " ++ (show e)) (userCommitSource uc)
   printWithTime "Undoing last commit"
   DT.undo conn (userCommitSource uc)
   return ()
-
-handleImport :: MVar ServerState -> ASPayload -> IO ()
-handleImport state msg = return () -- TODO
 
 handleGet :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
 handleGet uc state (PayloadLL locs) = do
@@ -142,12 +144,12 @@ handleClear client state payload = case payload of
   (PayloadN ()) -> do
     conn <- dbConn <$> readMVar state
     DB.clear conn
-    G.exec_ TD.Clear
+    G.clear
     broadcast state $ ServerMessage Clear Success $ PayloadN ()
   (PayloadS (Sheet sid _ _)) -> do
     conn <- dbConn <$> readMVar state
     DB.clearSheet conn sid 
-    G.exec_ TD.Recompute
+    G.recompute
     broadcast state $ ServerMessage Clear Success payload
 
 handleUndo :: ASUserClient -> MVar ServerState -> IO ()
@@ -213,3 +215,29 @@ handleSetCondFormatRules uc state (PayloadCondFormat rules) = do
   msg <- DP.runDispatchCycle state cells src -- ::ALEX:: eventually, only eval on the xor of new and old?
   let msg' = makeCondFormatMessage rules msg
   broadcastFiltered state uc msg'
+
+-- used for importing arbitrary files
+handleImport :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
+handleImport uc state msg = return () -- TODO
+
+-- #anand used for importing binary alphasheets files (making a separate REST server for alphasheets
+  -- import/export seems overkill given that it's a temporarily needed solution)
+  -- so we just send alphasheets files as binary data over websockets and immediately load
+  -- into the current sheet. 
+handleImportBinary :: (Client c) => c -> MVar ServerState -> BL.ByteString -> IO ()
+handleImportBinary c state bin = do
+  redisConn <- dbConn <$> readMVar state
+  case (DS.decodeLazy bin :: Either String ExportData) of 
+    Left s -> 
+      let msg = ServerMessage Import (Failure $ "could not process binary file, decode error: " ++ s) (PayloadN ())
+      in U.sendMessage msg (conn c)
+    Right exported -> do
+      DX.importData redisConn exported
+      let msg = ServerMessage Import Success (PayloadCL $ exportCells exported)
+      U.sendMessage msg (conn c)
+
+handleExport :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
+handleExport uc state (PayloadS (Sheet sid _ _))  = do
+  conn  <- dbConn <$> readMVar state
+  exported <- DX.exportData conn sid
+  WS.sendBinaryData (userConn uc) (DS.encodeLazy exported)

@@ -5,8 +5,8 @@ module AS.Logging
   , printObjT
   , printDebug
   , printDebugT
-  , writeToLog
-  , writeErrToLog
+  , logClientMessage
+  , logError
   , logBugReport
   ) where
 
@@ -24,10 +24,13 @@ truncated str
   | length str < 500 = str 
   | otherwise = (take 500 str) ++ ("... [Truncated]")
 
+-- Gets date in format 2015-12-02 20:44:24.515
 getTime :: IO String
-getTime = do 
-  t <- getCurrentTime
-  return $ take 23 $ show t
+getTime = getCurrentTime >>= (return . (take 23) . show)
+
+-- | Gets date in format 2015-12-02
+getDate :: IO String
+getDate = getCurrentTime >>= (return . (take 10) . show)
 
 appendFile' :: String -> String -> IO ()
 appendFile' fname msg = catch (appendFile fname msg) (\e -> putStrLn $ ("Error writing to log: " ++ show (e :: SomeException)))
@@ -35,51 +38,51 @@ appendFile' fname msg = catch (appendFile fname msg) (\e -> putStrLn $ ("Error w
 printWithTime :: String -> IO ()
 printWithTime str = do
   time <- getTime
+  date <- getDate
   let disp = "[" ++ time ++ "] " ++ str
   putStrLn ((truncated disp) ++ "\n")
   logDir <- getServerLogDir
-  appendFile' (logDir ++ "console_log") ('\n':disp)
+  appendFile' (logDir ++ "console_log" ++ date) ('\n':'\n':disp)
 
 printWithTimeT :: String -> EitherTExec ()
 printWithTimeT = lift . printWithTime
 
-writeToLog :: String -> CommitSource -> IO ()
-writeToLog str (sid, uid) = do 
-  -- first, write to master to log
+writeToASLog :: String -> String -> IO ()
+writeToASLog logRootName msg = do
   logDir <- getServerLogDir
+  date <- getDate
+  let logPath = logDir ++ logRootName ++ date
+  appendFile' logPath ('\n':msg)
+
+writeToASLogWithMetadata :: String -> String -> CommitSource -> IO ()
+writeToASLogWithMetadata logRootName msg (sid, uid) = do
   time <- getTime
   let sid' = T.unpack sid
       uid' = T.unpack uid
-      loggedStr = '\n':str ++ "\n" ++ sid' ++ "\n" ++ uid' ++ "\n#" ++ time
-      logPath = logDir ++ "server_log"
-  appendFile' logPath loggedStr
-  -- then write to individual log for the sheet
-  let logPath' = logPath ++ sid'
-  appendFile' logPath' loggedStr
+      logMsg = msg ++ '\n':sid' ++ '\n':uid' ++ '\n':'#':time
+  writeToASLog logRootName logMsg
 
--- can probably refactor with writeToLog to reduce code duplication
+serverLogsRoot :: String
+serverLogsRoot = "server_log_"
+
+logClientMessage :: String -> CommitSource -> IO ()
+logClientMessage msg cs@(sid, _) = do 
+  -- master log
+  writeToASLogWithMetadata serverLogsRoot msg cs
+  -- log for just the sheet
+  writeToASLogWithMetadata (serverLogsRoot ++ T.unpack sid) msg cs
+
 logBugReport :: String -> CommitSource -> IO ()
-logBugReport str (sid, uid) = do 
-  logDir <- getServerLogDir
-  time <- getTime
-  let sid' = T.unpack sid
-      uid' = T.unpack uid
-      loggedStr = '\n':str ++ "\n# " ++ sid' ++ "\n# " ++ uid' ++ "\n#" ++ time
-      bugLogPath = logDir ++ "bug_reports"
-  appendFile' bugLogPath loggedStr
+logBugReport bugReport cs = writeToASLogWithMetadata "bug_reports" ('#':bugReport) cs
 
-writeErrToLog :: String -> CommitSource -> IO ()
-writeErrToLog str (sid, uid) = do 
-  logDir <- getServerLogDir
+logError :: String -> CommitSource -> IO ()
+logError err (sid, uid) = do 
   time <- getTime
   let sid' = T.unpack sid
       uid' = T.unpack uid
-      loggedStr = "\n#ERROR: "++ str ++ "\n# " ++ sid' ++ "\n# " ++ uid' ++ "\n#" ++ time
-      logPath = logDir ++ "bug_reports"
-  appendFile' logPath loggedStr
-  -- then write to individual log for the sheet
-  let logPath' = logPath ++ sid'
-  appendFile' logPath' loggedStr
+      logMsg = "#ERROR: " ++ err ++ '\n':'#':sid' ++ ',':uid' ++ "\n#" ++ time
+  writeToASLog serverLogsRoot logMsg
+  writeToASLog (serverLogsRoot ++ sid') logMsg
 
 printObj :: (Show a) => String -> a -> IO ()
 printObj disp obj = printWithTime (disp ++ ": " ++ (show $ seq () obj))

@@ -8,6 +8,7 @@ import AS.Types.Eval
 import AS.Types.Errors
 
 import AS.DB.API as DB
+import AS.DB.Expanding
 import AS.DB.Util as DU
 import AS.Dispatch.Expanding as DE (recomposeCompositeValue)
 import AS.Logging
@@ -64,7 +65,6 @@ referenceToCompositeValue conn ctx (RangeRef r) = return . Expanding . VList . M
 ----------------------------------------------------------------------------------------------------------------------
 -- top-level functions
 
-
 ---- takes in [new cells], [new fat cells] as a result of evalChain, and returns the list 
 ---- of locations decoupled as a result.
 --getDecouplingEffects :: Connection -> ASSheetId -> [ASCell] -> [FatCell] -> IO ([ASIndex])
@@ -94,7 +94,7 @@ updateDBFromEvalContext conn src (EvalContext mp afterCells removedDescriptors a
       liftIO $ setTempCommit conn commit src
       liftIO $ setRangeKeysChanged conn rangeKeysChanged src
       left $ DecoupleAttempt
-
+      
 -- Do the writes to the DB
 updateDBAfterEval :: Connection -> CommitSource -> ASCommit -> IO ()
 updateDBAfterEval conn src c@(Commit beforeCells afterCells removedDescriptors addedDescriptors time) = do 
@@ -105,54 +105,6 @@ updateDBAfterEval conn src c@(Commit beforeCells afterCells removedDescriptors a
 
 ----------------------------------------------------------------------------------------------------------------------
 -- helpers
-
-couple :: Connection -> RangeDescriptor -> IO ()
-couple conn desc = 
-  let rangeKey        = descriptorKey desc 
-      rangeKey'       = B.pack rangeKey 
-      sheetRangesKey  = DU.makeSheetRangesKey $ DU.rangeKeyToSheetId rangeKey
-      rangeDescriptor = B.pack $ show desc
-  in runRedis conn $ do
-      liftIO $ printWithTime $ "setting list locations for key: " ++ rangeKey
-      set rangeKey' rangeDescriptor
-      sadd sheetRangesKey [rangeKey']
-      return ()
-
--- | Takes in a cell that's tied to a list. Decouples all the cells in that list from that
--- | returns: cells before decoupling
--- Note: this operation is O(n)
--- TODO move to C client because it's expensive
-decouple :: Connection -> RangeKey -> IO [ASCell]
-decouple conn key = 
-  let rangeKey = B.pack key
-      sheetRangesKey = DU.makeSheetRangesKey $ DU.rangeKeyToSheetId key
-  in do
-    runRedis conn $ multiExec $ do
-      del [rangeKey]
-      srem sheetRangesKey [rangeKey]
-    catMaybes <$> DB.getCells (DU.rangeKeyToIndices key)
-
--- Same as above, but don't modify DB (we want to send a decoupling warning)
--- Still gets the cells before decoupling, but don't set range keys
-getCellsBeforeDecoupling :: Connection -> RangeKey -> IO [ASCell]
-getCellsBeforeDecoupling conn key = 
-  let rangeKey = B.pack key
-      sheetRangesKey = DU.makeSheetRangesKey $ DU.rangeKeyToSheetId key
-  in do
-    catMaybes <$> DB.getCells (DU.rangeKeyToIndices key)
-
-----------------------------------------------------------------------------------------------------------------------
--- helpers
-
--- | Returns the listkeys of all the lists that are entirely contained in the range.  
-getFatCellsInRange :: Connection -> ASRange -> IO [RangeKey]
-getFatCellsInRange conn rng = do
-  let sid = rangeSheetId rng
-  rangeKeys <- DU.makeRangeKeysInSheet conn sid
-  let rects = map DU.rangeRect rangeKeys
-      zipRects = zip rangeKeys rects
-      zipRectsContained = filter (\(_, rect) -> rangeContainsRect rng rect) zipRects
-  return $ map fst zipRectsContained
 
   -- | Makes sure everything is synced -- the listKeys and ancestors in graph db should reflect 
 -- the cell changes that happen as a result of setting the cells. 
@@ -245,27 +197,3 @@ setTempCommit conn c src = do
     TxSuccess _ <- multiExec $ do
       set commitSource commit
     return ()
-
-
--- We also want to store the changed range keys in the DB, so that we can actually do the decoupling
--- (remove range key etc) if user says OK
-getRangeKeysChanged :: Connection -> CommitSource -> IO (Maybe [RangeKey])
-getRangeKeysChanged conn src = do 
-  let commitSource = B.pack $ (show src) ++ "rangekeys"
-  maybeRKeys <- runRedis conn $ do
-    TxSuccess rkeys <- multiExec $ do
-      get commitSource 
-    return rkeys
-  return $ bStrToRangeKeys maybeRKeys
-
-setRangeKeysChanged :: Connection  -> [RangeKey] -> CommitSource -> IO ()
-setRangeKeysChanged conn keys src = do 
-  let rangeKeys = (B.pack . show) keys 
-  let commitSource = B.pack $ (show src) ++ "rangekeys"
-  runRedis conn $ do
-    TxSuccess _ <- multiExec $ do
-      set commitSource rangeKeys
-    return ()
-
-
-
