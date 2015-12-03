@@ -37,6 +37,7 @@ data EError =
   NUM String |
   DIV0 | 
   NegExpBaseWithFloatingExp | 
+  SqrtNegative Double |
   ZeroToTheZero
   deriving (Read, Eq, Ord, Generic)
 
@@ -60,6 +61,7 @@ instance Show EError where
 getExcelErrorType :: EError -> (EErrorType, String)
 getExcelErrorType ExcelSyntaxError  = (NAErr, "an error in syntax")
 getExcelErrorType (EmptyMatrix s) = (ValErr, "an empty matrix: " ++ s)
+getExcelErrorType (SqrtNegative d) = (NumErr, "trying to take the square root of a negative number, " ++ (show d))
 getExcelErrorType (NotFunction s) = (NameErr, "a function, " ++ s ++ ", that doesn't exist")
 getExcelErrorType (TooManyArgs s) = (NAErr, "giving too many arguments to " ++ s)
 getExcelErrorType ArrayConstantDim = (ValErr, "incorrect array constant dimensionality")

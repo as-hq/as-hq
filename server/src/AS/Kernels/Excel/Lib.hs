@@ -1071,7 +1071,16 @@ eSqrtPi c e = do
   eSqrt c [EntityVal $ EValueNum $ num * (return $ EValueD pi)]
 
 eSqrt :: EFunc
-eSqrt = oneArgDouble "sqrt" sqrt
+eSqrt c e = do
+  formattedNum <- getRequired "numeric" "sqrt" 1 e :: ThrowsError EFormattedNumeric
+  let num = orig formattedNum
+  if num < EValueD 0 
+    then Left $ SqrtNegative $ fromJust $ extractType $ EntityVal $ EValueNum formattedNum
+    else do 
+      let ans = case num of
+                    EValueI i -> sqrt (fromIntegral i)
+                    EValueD d -> sqrt d
+      valToResult $ EValueNum $ return $ EValueD ans
 
 -- | Finds the product of all of its arguments, decomposing matrices
 -- | Built-in product starts folding with ValueD, so we use foldl1'
