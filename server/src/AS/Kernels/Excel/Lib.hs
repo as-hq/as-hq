@@ -1587,7 +1587,7 @@ eSubstitute c e = do
   new <- getRequired "string" f 3 e :: ThrowsError String
   n <- getOptional "int" 0 f 4 e :: ThrowsError Int -- which occurrence of old to replace (default = all)
   if n == 0
-    then if (old /= "") 
+    then if (not $ null old) 
       then stringResult $ SU.replace old new str
       else stringResult str
     else do
