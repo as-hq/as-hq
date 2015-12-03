@@ -110,6 +110,7 @@ library
                      , deepseq
                      , deepseq-generics
                      , cereal
+                     , regex-compat
   default-language:    Haskell2010
   default-extensions:  QuasiQuotes
                        FlexibleContexts

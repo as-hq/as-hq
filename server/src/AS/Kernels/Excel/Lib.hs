@@ -14,6 +14,7 @@ import qualified Data.Vector.Generic as VG
 import qualified Data.Vector.Unboxed as VU
 
 import Text.Read as TR
+import Text.Regex
 import Data.Char (toLower,toUpper)
 import qualified Data.Text as T
 import qualified Data.String.Utils as SU
@@ -1552,11 +1553,14 @@ eRight c e = do
       let n' = min (length str) n -- Return whole string if n is large
       stringResult $ drop ((length str)-n') str
 
+excelTrim :: String -> String
+excelTrim str = subRegex (mkRegex "\\s\\s+") str " " 
+
 -- | Trim whitespace from a string
 eTrim :: EFunc
 eTrim c e = do
   str <- getRequired "string" "trim" 1 e :: ThrowsError String
-  stringResult $ T.unpack $ T.strip $ T.pack str
+  stringResult $ T.unpack $ T.strip $ T.pack $ excelTrim str
 
 -- | Substitute new string for old string in larger string
 eSubstitute :: EFunc
