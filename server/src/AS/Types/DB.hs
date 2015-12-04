@@ -116,6 +116,7 @@ instance (Show2 GraphDescendant) where
 instance (Show2 ASReference) where
   show2 (IndexRef il) = show2 il 
   show2 (RangeRef rl) = show2 rl
+  show2 (PointerRef p) = show2 p
   show2 (OutOfBounds) = "OUTOFBOUNDS"
 instance (Show2 ASExpression) where
   show2 (Expression xp lang) = 'E':exprDelimiter:xp ++ (exprDelimiter:(show lang))

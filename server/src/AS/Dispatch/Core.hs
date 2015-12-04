@@ -12,6 +12,7 @@ import Data.Text as T (unpack,pack)
 import Control.Exception.Base
 
 import AS.Types.Cell
+import AS.Types.Locations
 import AS.Types.CellProps
 import AS.Types.Messages
 import AS.Types.Network
@@ -98,7 +99,7 @@ dispatch conn roots oldContext shouldGetProperDescs = do
   ancLocs        <- G.getImmediateAncestors $ indicesToGraphReadInput descLocs
   printObjT "Got ancestor locs" ancLocs
   -- The initial lookup cache has the ancestors of all descendants
-  initContext <- lift $ getInitialContext conn ancLocs oldContext
+  initContext <- getInitialContext conn ancLocs oldContext
   printObjT "Created initial context" initContext
   printWithTimeT "Starting eval chain"
   evalChainException conn initContext cellsToEval -- start with current cells, then go through descendants
@@ -154,11 +155,11 @@ getCellsToEval conn locs origCells = do
 --  return $ M.fromList $ zip locs vals'
 
 -- see the comments above dispatch to see why an old evalContext is passed in.
-getInitialContext :: Connection -> [GraphAncestor] -> EvalContext -> IO EvalContext
+getInitialContext :: Connection -> [ASReference] -> EvalContext -> EitherTExec EvalContext
 getInitialContext conn ancs oldContext = do
    -- ::RITESH::  hella unsafe
-   let indices = map (\(IndexRef i) -> i) ancs
-   cells <- DB.getPossiblyBlankCells indices
+   indices <- concat <$> mapM refToIndices ancs
+   cells <- lift $ DB.getPossiblyBlankCells indices
    let oldMap = contextMap oldContext
        newContext = oldContext { contextMap = insertMultiple oldMap indices cells }
    return newContext

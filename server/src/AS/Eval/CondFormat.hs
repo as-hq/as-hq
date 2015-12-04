@@ -47,9 +47,8 @@ meetsCondition conn sid ctx xp@(Expression str lang) v = do
   let dummyLoc = Index sid (-1,-1) -- #needsrefactor sucks. evaluateLanguage should take in a Maybe index. Until then 
       valMap = contextMap ctx
       deps = getDependencies sid xp -- #needsrefactor will compress these all to indices
-      depSets = map refToIndices deps   -- :: [Maybe [ASIndex]]
-      depInds = concat $ catMaybes depSets
-      depIndsToGet = filter (not . (flip M.member) valMap) depInds
+  depInds <- concat <$> mapM refToIndices deps   
+  let depIndsToGet = filter (not . (flip M.member) valMap) depInds
   cells <- lift $ DB.getPossiblyBlankCells depIndsToGet
   let valMap' = insertMultiple valMap depIndsToGet cells
       ctx' = ctx { contextMap = valMap' }

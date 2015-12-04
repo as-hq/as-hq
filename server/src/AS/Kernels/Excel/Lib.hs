@@ -428,7 +428,6 @@ refToEntity c (ERef l@(IndexRef i)) = case (asValueToEntity v) of
     v = case (M.lookup i (evalMap c)) of
       Nothing -> dbLookup i
       c -> cellToFormattedVal c 
-      _ -> error "cannot insert ExpandingValue in excel expression"
 refToEntity c (ERef (l@(RangeRef r))) = if any isNothing vals
   then Left $ CannotConvertToExcelValue l
   else Right $ EntityMatrix $ EMatrix (getWidth l) (getHeight l) $ V.fromList $ catMaybes vals

@@ -48,7 +48,8 @@ import Control.Exception (catch, SomeException)
 evaluateLanguage :: Connection -> ASIndex -> EvalContext -> ASExpression -> EitherTExec (Formatted CompositeValue)
 evaluateLanguage conn idx@(Index sid _) ctx@(EvalContext mp _ _ _) xp@(Expression str lang) = catchEitherT $ do
   printWithTimeT "Starting eval code"
-  case (possiblyShortCircuit sid mp xp) of
+  maybeShortCircuit <- possiblyShortCircuit sid mp xp
+  case maybeShortCircuit of
     Just e -> return . return . CellValue $ e -- short-circuited, return this error
     Nothing -> case lang of
       Excel -> do 
@@ -87,20 +88,16 @@ catchEitherT a = do
 
 -- | Checks for potentially bad inputs (NoValue or ValueError) among the arguments passed in. If no bad inputs,
 -- return Nothing. Otherwise, if there are errors that can't be dealt with, return appropriate ASValue error.
-possiblyShortCircuit :: ASSheetId -> ValMap -> ASExpression -> Maybe ASValue
-possiblyShortCircuit sheetid valuesMap xp =
+possiblyShortCircuit :: ASSheetId -> ValMap -> ASExpression -> EitherTExec (Maybe ASValue)
+possiblyShortCircuit sheetid valuesMap xp = do 
   let depRefs        = getDependencies sheetid xp -- :: [ASReference]
-      depSets        = map refToIndices depRefs   -- :: [Maybe [ASIndex]]
-      depInds        = concat $ catMaybes depSets
-      hasOutOfBounds = any isNothing depSets   -- pretty horrible way of checking this for now. 
-      lang           = xpLanguage xp
+  depInds <- concat <$> mapM refToIndices depRefs   -- :: [Maybe [ASIndex]]
+  let lang           = xpLanguage xp
       values         = map (cellValue . (valuesMap M.!)) depInds
-  in if hasOutOfBounds 
-    then Just $ ValueError "Referencing cell out of bounds." "RefError"
-    else listToMaybe $ catMaybes $ flip map (zip depInds values) $ \(i, v) -> case v of
-      NoValue                 -> handleNoValueInLang lang i
-      ve@(ValueError _ _)     -> handleErrorInLang lang ve
-      otherwise               -> Nothing 
+  return $ listToMaybe $ catMaybes $ flip map (zip depInds values) $ \(i, v) -> case v of
+    NoValue                 -> handleNoValueInLang lang i
+    ve@(ValueError _ _)     -> handleErrorInLang lang ve
+    otherwise               -> Nothing 
 
 -- | Nothing if it's OK to pass in NoValue, appropriate ValueError if not.
 handleNoValueInLang :: ASLanguage -> ASIndex -> Maybe ASValue

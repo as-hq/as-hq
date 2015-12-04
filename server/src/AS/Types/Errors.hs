@@ -98,6 +98,8 @@ data ASExecError =
   | DecoupleAttempt
   | UnknownGraphError 
   | CircularDepError {badLoc :: ASIndex}
+  | IndexOfPointerNonExistant 
+  | PointerToNormalCell
   | CondFormattingError String
   | NetworkDown
   | RuntimeEvalException

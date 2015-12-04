@@ -155,6 +155,17 @@ deleteLocs :: Connection -> [ASIndex] -> IO ()
 deleteLocs _ [] = return ()
 deleteLocs conn locs = runRedis conn $ mapM_ DU.deleteLocRedis locs
 
+refToIndices :: ASReference -> EitherTExec [ASIndex]
+refToIndices (IndexRef i) = return [i]
+refToIndices (RangeRef r) = return $ rangeToIndices r
+refToIndices (PointerRef p) = do
+  let index = pointerToIndex p 
+  cell <- lift $ getCell index 
+  case cell of
+    Nothing -> left $ IndexOfPointerNonExistant
+    Just cell' -> case (DU.cellToRangeKey cell') of
+        Nothing -> left $ PointerToNormalCell
+        Just rKey -> return $  DU.rangeKeyToIndices rKey
 
 ----------------------------------------------------------------------------------------------------------------------
 -- Locations

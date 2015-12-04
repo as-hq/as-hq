@@ -103,11 +103,6 @@ instance Serialize ASIndex
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Helpers
 
-refToIndices :: ASReference -> Maybe [ASIndex]
-refToIndices loc = case loc of
-  IndexRef ind -> Just [ind]
-  RangeRef r -> Just $ rangeToIndices r
-  OutOfBounds -> Nothing
 
 getHeight :: ASReference -> Int
 getHeight (IndexRef _) = 1
