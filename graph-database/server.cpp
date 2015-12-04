@@ -23,8 +23,8 @@ const char* relationDelimiter = "&";
     For functions like getDescendants, given the requestParts and an empty location vector,
     simply cast to Location type for the function
 */
-vector<Location>& generateLocs(const vector<string>& requestParts, vector<Location>& locs){
-    locs.resize(requestParts.size());
+vector<Location>& generateLocs(const vector<string>& requestParts, vector<Location>& locs) {
+    locs.resize(requestParts.size()); 
     transform(requestParts.begin(),requestParts.end(),locs.begin(),fromString);
     return locs;
 }
@@ -54,9 +54,11 @@ string stringifyStatus(const DAG::DAGStatus& status){
     Return a list of strings to send back to  Haskell
     First n-1 are just location strings, last string is status
 */
-vector<string>& stringifyResponse(const DAG::DAGResponse& resp, vector<string>& response){
-    response.resize(resp.locs.size());
-    transform(resp.locs.begin(),resp.locs.end(),response.begin(),toString);
+vector<string> stringifyResponse(const DAG::DAGResponse& resp, vector<string>& response) {
+    cout << "in stringify response " << resp.locs.size() << endl;
+    for (const auto& loc: resp.locs) {
+        response.push_back(toString(loc));
+    }
     response.push_back(stringifyStatus(resp.status));
     return response;
 }
@@ -66,9 +68,9 @@ vector<string>& stringifyResponse(const DAG::DAGResponse& resp, vector<string>& 
     (We can set multiple relations at once in the DB, useful for eval, delete, etc. that take [ASCell])
     Can possibly result in circular error and its head (any vertex of the cycle)
 */
-DAG::DAGResponse applySetRelations(DAG& dag, const vector<string>& requestParts){
+DAG::DAGResponse applySetRelations(DAG& dag, const vector<string>& requestParts) {
     int i = 0; 
-    vector<DAG::Vertex> toLocs;  
+    vector<DAG::Vertex> toLocs; 
     while (i < requestParts.size()) {
         // get the next relation by splitting
         vector<string> relation;
@@ -76,8 +78,9 @@ DAG::DAGResponse applySetRelations(DAG& dag, const vector<string>& requestParts)
         // get the to and from locs
         DAG::Vertex toLoc = fromString(relation[0]); 
         DAG::VertexSet fromLocs;
-        for (int i = 1; i < relation.size(); ++i)
+        for (int i = 1; i < relation.size(); ++i) {
             fromLocs.insert(fromString(relation[i]));
+        }
         // set the relation
         dag.updateDAG(toLoc, fromLocs);
         toLocs.push_back(toLoc);
@@ -91,7 +94,7 @@ DAG::DAGResponse applySetRelations(DAG& dag, const vector<string>& requestParts)
             return {responseLocs,DAG::DAGStatus::CIRC_DEP};
         }
     }
-    return {responseLocs,DAG::DAGStatus::OK};
+    return {responseLocs, DAG::DAGStatus::OK};
 }
 
 /***********************************************************************************************************************/
@@ -100,7 +103,7 @@ DAG::DAGResponse applySetRelations(DAG& dag, const vector<string>& requestParts)
     Returns the vector of strings that's the response to Haskell, given the current dag and the overall request 
     Main non-ZMQ logic within the server is here 
 */
-vector<string> processRequest(DAG& dag, string& request){
+vector<string> processRequest(DAG& dag, string& request) {
     // Split message by message delimiter 
     vector<string> requestParts; 
     boost::algorithm::split_regex(requestParts, request, regex(msgPartDelimiter));
@@ -122,7 +125,10 @@ vector<string> processRequest(DAG& dag, string& request){
         return stringifyResponse(r,response);
     } else if (type == "SetRelations") {
         DAG::DAGResponse r = applySetRelations(dag, requestParts);
-        return stringifyResponse(r,response);
+        cout << "response size " << r.locs.size() <<  endl;
+        cout << "response status " << stringifyStatus(r.status) << endl;
+        cout << "actual vector respones size" << response.size() << endl;
+        return stringifyResponse(r, response);
     } else if (type == "Clear") {
         dag.clearDAG();
         return {stringifyStatus(DAG::DAGStatus::OK)};

@@ -99,9 +99,6 @@ class Show2 a where
 class Read2 a where
   read2 :: (Show2 a) => String -> a
 
-readCells :: String -> [ASCell]
-readCells str = map (\c -> read2 c :: ASCell) $ splitBy ',' str
-
 instance (Show2 ASCell) where
   show2 (Cell l e v ts) = (show2 l) ++ (cellDelimiter:(show2 e)) 
                           ++ (cellDelimiter:(show2 v)) ++ (cellDelimiter:(show ts))

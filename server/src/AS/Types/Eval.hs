@@ -17,6 +17,7 @@ import Control.DeepSeq
 import Control.DeepSeq.Generics (genericRnf)
 import Control.Monad.Trans.Either
 import qualified Data.Map as M
+import Data.Serialize (Serialize)
 
 -- turning a spreadsheet range into dataframe etc...
 -- only needed during at syntax and list decoupling
@@ -95,6 +96,12 @@ instance ToJSON JSONField
 
 instance FromJSON JSONValue
 instance ToJSON JSONValue
+
+instance Serialize RangeDescriptor
+instance Serialize JSONField 
+instance Serialize JSONValue 
+instance Serialize Collection 
+
 
 -- memory region exposure instances for R value unboxing
 instance NFData ASValue             where rnf = genericRnf

@@ -163,7 +163,7 @@ rangeKeyToIndices (RangeKey idx dims) = rangeToIndices range
 
 getFatCellIntersections :: Connection -> Either [ASIndex] [RangeKey] -> IO [RangeKey]
 getFatCellIntersections conn (Left locs) = do
-  rangeKeys <- concat <$> mapM (getRangeKeysInSheet conn) (nub $ map locSheetId locs)
+  rangeKeys <- concat <$> mapM (getRangeKeysInSheet conn) (L.nub $ map locSheetId locs)
   return $ filter keyIntersects rangeKeys
   where
     keyIntersects k             = anyLocsContainedInRect locs (rangeRect k)
@@ -171,7 +171,7 @@ getFatCellIntersections conn (Left locs) = do
     indexInRect ((a',b'),(a2',b2')) (Index _ (a,b)) = a >= a' && b >= b' &&  a <= a2' && b <= b2'
 
 getFatCellIntersections conn (Right keys) = do
-  rangeKeys <- concat <$> mapM  (getRangeKeysInSheet conn) (nub $ map (locSheetId . keyIndex) keys)
+  rangeKeys <- concat <$> mapM  (getRangeKeysInSheet conn) (L.nub $ map (locSheetId . keyIndex) keys)
   printObj "Checking intersections against keys" keys
   return $ L.intersectBy keysIntersect rangeKeys keys
     where 

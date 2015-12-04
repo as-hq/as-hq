@@ -47,8 +47,7 @@ bool DAG::containsCycle(const DAG::Vertex& start) {
 /* Set one relation in the DAG */
 void DAG::updateDAG(DAG::Vertex toLoc, const DAG::VertexSet& fromLocs) {
 	DAG::VertexSet vl = toFromAdjList[toLoc]; //old fromLocs
-
-	/* Loop over the current fromLocs of toLoc and delete from forward adjacency list */
+		/* Loop over the current fromLocs of toLoc and delete from forward adjacency list */
 	for (const auto& oldFl : vl){
 		fromToAdjList[oldFl].erase(toLoc);
 
@@ -57,6 +56,7 @@ void DAG::updateDAG(DAG::Vertex toLoc, const DAG::VertexSet& fromLocs) {
 			fromToAdjList.erase(oldFl);
 	}
 	toFromAdjList.erase(toLoc); 
+
 
 	/* Loop over the new fromLocs and add to the forward adjacency list */
 	for (const auto& fl : fromLocs) {
@@ -101,52 +101,6 @@ void DAG::depthFirstSearch (const DAG::Vertex& loc, unordered_map<DAG::Vertex,bo
 	visited[loc] = true; 
 }
 
-<<<<<<< HEAD
-=======
-int DAG::recomputeDAG () {
-	cout << "Rebuilding DAG..." << endl;
-	redisContext *c = redisConnect(REDIS_HOST, REDIS_PORT);
-	redisReply *reply;
-	if (c->err) {
-    	cerr << "Connection error: " << c->errstr << endl;
-    	return -1;
-	}
-
-	string redisCmd = "scan 0 match I/*/(*,*) count " + to_string(SCAN_BOUND);
-	reply = (redisReply *)redisCommand(c, redisCmd.c_str());
-
-	int numReplies=0; 
-
-	if (reply->type == REDIS_REPLY_ARRAY && reply->element[1]->type == REDIS_REPLY_ARRAY) {
-
-		for (int i = 0; i < reply->element[1]->elements; i++) {
-			if (reply->element[1]->element[i]->type == REDIS_REPLY_STRING) {
-				numReplies = reply->element[1]->elements;
-				string key = reply->element[1]->element[i]->str;
-				string redisGetCmd = "get " + key;
-				redisAppendCommand(c, redisGetCmd.c_str());
-			}
-		}
-
-  	freeReplyObject(reply);
-		for (int i=0; i<numReplies; i++) {
-			redisGetReply(c, (void **)&reply);
-			if (reply->type == REDIS_REPLY_STRING) {
-				DAG::Vertex toNode = getIndexFromCell(reply->str);
-				DAG::VertexSet fromNodes = parseDependencies(reply->str, toNode);
-				updateDAG(toNode, fromNodes, false); // no caching on reconstruction
-			}
-			freeReplyObject(reply);
-		}
-		cout << "Done.\n" << endl;
-		return 0;
-  } else {
-  	cout << "Error: received Redis reply of type other than array\n" << endl;
-  	freeReplyObject(reply);
-    	return -1;
-  }
-}
->>>>>>> 4ccdabc939b08a21e0a9b4b7f75adfe82dd726d3
 
 /****************************************************************************************************************************************/
 

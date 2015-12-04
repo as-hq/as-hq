@@ -3,6 +3,7 @@ module AS.DB.Expanding where
 import Prelude
 
 import AS.Types.Cell
+import AS.Types.Eval
 import AS.Types.DB
 import AS.DB.API as DB
 import AS.DB.Util as DU

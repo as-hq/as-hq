@@ -96,16 +96,13 @@ instance ToJSON ExpandingType
 instance ToJSON RangeKey
 instance FromJSON RangeKey
 
-instance Serialize RangeDescriptor
 instance Serialize ASCell 
 instance Serialize ASValue
 instance Serialize ASExpression
-instance Serialize ExpandingType
 instance Serialize RangeKey
 instance Serialize ASLanguage
-instance Serialize JSONField 
-instance Serialize JSONValue 
-instance Serialize Collection 
+instance Serialize ExpandingType
+
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Helpers

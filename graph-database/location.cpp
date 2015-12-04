@@ -16,6 +16,7 @@ Location Location::pointerToIndex() const {
   if (type == LocationType::POINTER) {
     return Location(LocationType::INDEX,sheetName,tlCol,tlRow,0,0);
   } else {
+    cout << "Didn't use pointerToIndex on a POINTER type" << endl;
     throw "Didn't use pointerToIndex on a POINTER type";
   }
 };
@@ -29,6 +30,7 @@ void Location::rangeToIndices(vector<Location>& indices) const {
       }
     }
   } else {
+    cout << "Didn't use rangeToIndices on a RANGE type" << endl;
     throw "Didn't use rangeToIndices on a RANGE type";
   }
 };
@@ -53,8 +55,7 @@ namespace std {
   Throw error if no parse
 */
 Location fromString(string str) {
-  // TODO: sheet names are currently only made up of letters
-  string prefix = "^([IPR])\\" + refDelimiter + "([A-Za-z]+)\\" + refDelimiter;
+  string prefix = "^([IPR])\\" + refDelimiter + "(.*)\\" + refDelimiter;
   string index = "\\(([0-9]+),([0-9]+)\\)$";
   string range = "\\(\\(([0-9]+),([0-9]+)\\),\\(([0-9]+),([0-9]+)\\)\\)$";
   boost::regex indexPattern(prefix + index);
@@ -83,6 +84,7 @@ Location fromString(string str) {
       return Location(Location::LocationType::RANGE,sheet,stoi(col),stoi(row),stoi(col2),stoi(row2));
     }
   } 
+  cout << "Could not parse string into location " << str << endl;
   throw "Could not parse string into location";
 }
 

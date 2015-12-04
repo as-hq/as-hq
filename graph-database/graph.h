@@ -26,7 +26,7 @@ public:
   
   /* A response is a vector of locations (descendants, etc) and a status */
   struct DAGResponse {
-    vector<Location>& locs;
+    vector<Location> locs;
     DAGStatus status;
   };
 

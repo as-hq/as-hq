@@ -68,7 +68,9 @@ runDispatchCycle state cs src = do
   roots <- EM.evalMiddleware cs
   conn <- dbConn <$> readMVar state
   errOrCells <- runEitherT $ do
+    printWithTimeT $ "about to start dispatch"
     ctxAfterDispatch <- dispatch conn roots emptyContext False
+    printWithTimeT $ "finished dispatch"
     finalizedCells <- EE.evalEndware state (addedCells ctxAfterDispatch) src roots ctxAfterDispatch
     let ctx = ctxAfterDispatch { addedCells = finalizedCells }
     broadcastCells <- DT.updateDBFromEvalContext conn src ctx
@@ -117,7 +119,7 @@ getEvalLocs conn origCells shouldGetProperDescs = do
   vLocs <- lift $ DB.getVolatileLocs conn -- Accounts for volatile cells being reevaluated each time
   if shouldGetProperDescs
     then G.getProperDescendantsIndices $ (locs ++ vLocs)
-    else G.getDescendantsIndices $ (locs ++ vLocs)
+    else (G.getDescendantsIndices $ (locs ++ vLocs)) >>= (\idxs -> printObjT "DESC INDICES: " idxs >> return idxs)
 
 -- | Given a set of locations to eval, return the corresponding set of cells to perform
 -- the evaluations in (which includes info about tags, language, and expression string).
@@ -189,8 +191,9 @@ evalChainException conn ctx cells =
     hoistEither result
 
 evalChain :: Connection -> EvalContext -> [ASCell] -> EitherTExec EvalContext
-evalChain _ ctx [] = return ctx
+evalChain _ ctx [] = printWithTimeT "empty evalchain" >> return ctx
 evalChain conn ctx (c@(Cell loc xp val ps):cs) = do
+  printWithTimeT $ "running eval chain with cells: " ++ (show (c:cs))
   let getEvalResult = EC.evaluateLanguage conn loc ctx
   cvf <- case xp of 
     Expression _ _         ->  getEvalResult xp
@@ -203,20 +206,21 @@ evalChain conn ctx (c@(Cell loc xp val ps):cs) = do
 
 contextInsert :: Connection -> ASCell -> Formatted CompositeValue -> EvalContext -> EitherTExec EvalContext
 contextInsert conn c@(Cell idx xp _ ps) (Formatted cv f) (EvalContext mp cells removedDescriptors addedDescriptors) = do 
+  printWithTimeT $ "running context insert with cell " ++ (show c)
   let maybeFatCell = DE.decomposeCompositeValue c cv
   -- The newly created cell(s) may have caused decouplings, which we're going to deal with. First, we get the decoupled keys 
-  decoupledKeys <- case maybeFatCell of
+  decoupledKeys <- lift $ case maybeFatCell of
     Nothing -> DU.getFatCellIntersections conn (Left [idx])
     Just (FatCell _ descriptor) -> DU.getFatCellIntersections conn (Right [descriptorKey descriptor])
   -- We then get the range descriptors of those keys from the DB. These are the descriptors that need 
   -- to be removed. There's currently no batched getDescriptors, so we mapM. 
-  newlyRemovedDescriptors <- map fromJust <$> lift $ mapM (DB.getRangeDescriptor conn) decoupledKeys
+  newlyRemovedDescriptors <- lift $ map fromJust <$> mapM (DB.getRangeDescriptor conn) decoupledKeys
   -- The locations we have to decouple can be constructed from the range keys, which have info about the
   -- head and size of the range
   let decoupledLocs = concat $ map DU.rangeKeyToIndices decoupledKeys
   -- Given the locs, we get the cells that we have to decouple from the DB and then change their expressions
   -- to be decoupled (by using the value of the cell)
-  decoupledCells <- map DU.decoupleCell <$> lift $ DB.getCells decoupledLocs
+  decoupledCells <- lift $ (map DU.decoupleCell) <$> (catMaybes <$> DB.getCells decoupledLocs)
   -- We want to update all of the decoupled cells in our mini-spreadsheet map
   let mpWithDecoupledCells = insertMultiple mp decoupledLocs decoupledCells
   -- Add our decoupled descriptors to the current list of removedDescriptors
@@ -234,7 +238,7 @@ contextInsert conn c@(Cell idx xp _ ps) (Formatted cv f) (EvalContext mp cells r
       let finalCells = mergeCells decoupledCells (newCell:cells)
           resultContext = EvalContext finalMp finalCells finalRemovedDescriptors addedDescriptors
       -- now, propagate the descandants of the decoupled cells
-      dispatch conn [decoupledCells] resultContext True
+      dispatch conn decoupledCells resultContext True
     Just (FatCell cs descriptor) -> do 
       -- Modify the props of our current cells to reflect any format
       let newCells = map (formatCell f) cs
@@ -244,7 +248,7 @@ contextInsert conn c@(Cell idx xp _ ps) (Formatted cv f) (EvalContext mp cells r
           finalCells = mergeCells cs $ mergeCells decoupledCells cells
           finalContext = EvalContext finalMp finalCells finalRemovedDescriptors finalAddedDescriptors
       -- propagate the descandants of the decoupled cells
-      finalContext' <- dispatch conn [decoupledCells] finalContext True
+      finalContext' <- dispatch conn decoupledCells finalContext True
       -- propagate the descendants of the expanded cells (except for the list head)
       dispatch conn cs finalContext' True
 

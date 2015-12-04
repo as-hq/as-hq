@@ -90,12 +90,12 @@ getImmediateDescendants :: [GraphReadInput] -> EitherTExec [GraphDescendant]
 getImmediateDescendants = getDescendants
 
 -- ugly and bad
-getImmediateDescendantsForced :: [GraphReadInput] -> IO [GraphDescendant]
+getImmediateDescendantsForced :: [ASIndex] -> IO [ASIndex]
 getImmediateDescendantsForced locs = do 
-  e <- runEitherT $ getImmediateDescendants locs
+  e <- runEitherT $ getImmediateDescendants (indicesToGraphReadInput locs)
   case e of 
     Left _ -> return []
-    Right ancLocs -> return ancLocs 
+    Right ancLocs -> return (descendantsToIndices ancLocs)
 
 ------------------------------------------------------------------------------------------------------------------
 -- Deal with writing to the graph
@@ -108,8 +108,8 @@ execGraphWriteQuery q = runZMQ $ do
   send reqSocket [] $ BC.pack (show $ show q) -- graph db requires quotes around message
   return ()
 
--- TODO: should really be returning EitherTExec (), kind of like clear
-rollbackGraph :: IO ()
+recompute = execGraphWriteQuery Recompute
+clear     = execGraphWriteQuery Clear
 rollbackGraph = execGraphWriteQuery RollbackGraph
 
 -- Takes in a list of (index, [list of ancestors of that cell])'s and sets the ancestor relationship in the graph
