@@ -57,7 +57,7 @@ cellLocMap (DragRow oldR newR) i@(Index sid (c, r))
   | r < min oldR newR = Just i
   | r > max oldR newR = Just i
   | r == oldR         = Just $ Index sid (c, newR)
-  | oldR < newR       = Just $ Index sid (c, r-1) -- here on we assume c is strictly between oldR and newR
+  | oldR < newR       = Just $ Index sid (c, r-1) -- here on we assume r is strictly between oldR and newR
   | oldR > newR       = Just $ Index sid (c, r+1)
   -- case oldR == newR can't happen because oldR < r < newR since third pattern-match
 
@@ -99,32 +99,26 @@ sanitizeMutateCell _ _ c@(Cell _ (Expression _ _) _ _) = c
 sanitizeMutateCell mt oldLoc c = cell'
   where 
     Just rk = cellToRangeKey c
-    cell' = if fatCellGotMutated mt rk
+    cell' = if trace' "mutated?" $ fatCellGotMutated mt rk
       then DU.toDecoupled c
       else c { cellExpression = (cellExpression c) { cRangeKey = rk { keyIndex = fromJust $ cellLocMap mt (keyIndex rk) } } } 
 
-colInRange :: Int -> RangeKey -> Bool
-colInRange c (RangeKey (Index _ (tlc, _)) (dC, _)) = (c >= tlc) && (c <= tlc + dC)
-
-rowInRange :: Int -> RangeKey -> Bool
-rowInRange r (RangeKey (Index _ (_, tlr)) (_, dR)) = (r >= tlr) && (r <= tlr + dR)
-
-isBetween :: Int -> Int -> Int -> Bool
-isBetween lower upper x = (x >= lower) && (x <= upper)
+between :: Int -> Int -> Int -> Bool
+between lower upper x = (x >= lower) && (x <= upper)
 
 fatCellGotMutated :: MutateType -> RangeKey -> Bool
-fatCellGotMutated (InsertCol c) (RangeKey (Index _ (tlc, _)) (dC, _)) = isBetween (tlc + 1) (tlc + dC - 1) c
-fatCellGotMutated (InsertRow r) (RangeKey (Index _ (_, tlr)) (_, dR)) = isBetween (tlr + 1) (tlr + dR - 1) r
+fatCellGotMutated (InsertCol c) (RangeKey (Index _ (tlc, _)) (dC, _)) = between (tlc + 1) (tlc + dC - 1) c
+fatCellGotMutated (InsertRow r) (RangeKey (Index _ (_, tlr)) (_, dR)) = between (tlr + 1) (tlr + dR - 1) r
 
-fatCellGotMutated (DeleteCol c) (RangeKey (Index _ (tlc, _)) (dC, _)) = isBetween tlc (tlc + dC - 1) c
-fatCellGotMutated (DeleteRow r) (RangeKey (Index _ (_, tlr)) (_, dR)) = isBetween tlr (tlr + dR - 1) r
+fatCellGotMutated (DeleteCol c) (RangeKey (Index _ (tlc, _)) (dC, _)) = between tlc (tlc + dC - 1) c
+fatCellGotMutated (DeleteRow r) (RangeKey (Index _ (_, tlr)) (_, dR)) = between tlr (tlr + dR - 1) r
 
-fatCellGotMutated _ (RangeKey _ (1, _)) = False
+fatCellGotMutated (DragCol _ _) (RangeKey _ (1, _)) = False
 fatCellGotMutated (DragCol c1 c2) (RangeKey (Index _ (tlc, _)) (dC, _)) = or [
-  isBetween tlc (tlc + dC - 1) c1, 
-  isBetween (tlc + 1) (tlc + dC - 1) c2 ]
+  between tlc (tlc + dC - 1) c1, 
+  between (tlc + 1) (tlc + dC - 1) c2 ]
 
-fatCellGotMutated _ (RangeKey _ (_, 1)) = False
+fatCellGotMutated (DragRow _ _) (RangeKey _ (_, 1)) = False
 fatCellGotMutated (DragRow r1 r2) (RangeKey (Index _ (_, tlr)) (_, dR)) = or [ 
-  isBetween tlr (tlr + dR - 1) r1, 
-  isBetween (tlr + 1) (tlr + dR - 1) r2 ]
+  between tlr (tlr + dR - 1) r1, 
+  between (tlr + 1) (tlr + dR - 1) r2 ]
