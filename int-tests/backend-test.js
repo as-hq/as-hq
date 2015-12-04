@@ -2062,7 +2062,7 @@ describe('backend', () => {
     });
 
     describe('conditional formatting', () => {
-      xit('should format cells already present', (done) => {
+      it('should format cells already present', (done) => {
         _do([
           python('A1', 'range(10)'),
           setCondFormattingRules([
@@ -2086,7 +2086,7 @@ describe('backend', () => {
         ]);
       });
 
-      xit('should apply multiple rules simultaneously', (done) => {
+      it('should apply multiple rules simultaneously', (done) => {
         _do([
           python('A1', 'range(10)'),
           python('B1', 'range(10)'),
@@ -2102,7 +2102,7 @@ describe('backend', () => {
         ]);
       });
 
-      xit('should revert formats when a rule is deleted (1)', (done) => {
+      it('should revert formats when a rule is deleted (1)', (done) => {
         _do([
           python('A1', 'range(10)'),
           setCondFormattingRules([
@@ -2115,10 +2115,10 @@ describe('backend', () => {
         ]);
       });
 
-      xit('should revert formats when a rule is deleted (2)', (done) => {
+      it('should revert formats when a rule is deleted (2)', (done) => {
         _do([
           python('A1', 'range(10)'),
-          toggleProp('A1', 'Italic'),
+          toggleProp('A6', 'Italic'),
           setCondFormattingRules([
             makeCondFormattingRuleFontExcel("A1:A10", "Italic", "=A1<6"),
           ]),
