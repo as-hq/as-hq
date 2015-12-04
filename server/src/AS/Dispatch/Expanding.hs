@@ -11,7 +11,7 @@ import Prelude
 import AS.Types.Cell
 import AS.Types.Eval
 
-import AS.DB.Util as DU
+import AS.DB.Internal
 import AS.Util as U
 
 import Data.List.Split (chunksOf)

@@ -19,6 +19,7 @@ import Control.Monad.Trans.Either
 import qualified Data.Map as M
 import Data.Serialize (Serialize)
 
+
 -- turning a spreadsheet range into dataframe etc...
 -- only needed during at syntax and list decoupling
 data RangeDescriptor = RangeDescriptor { descriptorKey :: RangeKey, expandingType :: ExpandingType, attrs :: JSON }
@@ -81,6 +82,51 @@ data JSONValue = ListValue Collection | SimpleValue ASValue deriving (Show, Read
 type JSONPair = (String, String)
 
 type EitherTExec = EitherT ASExecError IO
+
+data DescendantsSetting = ProperDescendants | DescendantsWithParent 
+data AncestrySetting = SetAncestry | DontSetAncestry
+
+----------------------------------------------------------------------------------------------------------------------
+-- Fat cells
+
+--getListType :: ListKey -> String
+--getListType key = last parts
+--  where parts = splitBy keyPartDelimiter key
+indexIsHead :: ASIndex -> RangeKey -> Bool
+indexIsHead idx (RangeKey idx' _) = idx == idx'
+
+rangeKeyToIndices :: RangeKey -> [ASIndex]
+rangeKeyToIndices (RangeKey idx dims) = rangeToIndices range
+  where
+    Index sid (col, row) = idx
+    (height, width)      = dims
+    range                = Range sid ((col, row), (col+width-1, row+height-1))
+
+rangeRect :: RangeKey -> Rect
+rangeRect (RangeKey idx dims) = ((col, row), (col + width - 1, row + height - 1))
+  where Index _ (col, row) = idx
+        (height, width)    = dims
+
+rangeKeyToSheetId :: RangeKey -> ASSheetId
+rangeKeyToSheetId = locSheetId . keyIndex
+
+cellToRangeKey :: ASCell -> Maybe RangeKey
+cellToRangeKey (Cell _ xp _ _ ) = case xp of 
+  Coupled _ _ _ key -> Just key
+  _ -> Nothing
+
+isFatCellMember :: ASCell -> Bool
+isFatCellMember (Cell _ xp _ _) = case xp of 
+  Coupled _ _ _ _ -> True
+  _ -> False
+
+isFatCellHead :: ASCell -> Bool 
+isFatCellHead cell = case (cellToRangeKey cell) of 
+  Just (RangeKey idx _) -> cellLocation cell == idx
+  Nothing -> False
+
+----------------------------------------------------------------------------------------------------------------------
+-- Instances
 
 instance FromJSON CompositeValue
 instance ToJSON CompositeValue

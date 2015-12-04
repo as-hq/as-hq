@@ -18,7 +18,7 @@ import AS.Util (sendMessage)
 import AS.Config.Paths
 import AS.DB.API as DB
 import AS.DB.Graph as G
-import AS.DB.Util as DBU
+import AS.DB.Internal as DI
 import AS.Users as US
 import AS.Handlers.Misc (handleImportBinary)
 
@@ -79,7 +79,7 @@ initApp = do
     [r|library("ggplot2")|]
     return ()
   -- init state
-  conn <- R.connect DBU.cInfo
+  conn <- R.connect DI.cInfo
   args <- getArgs
   let intArgs = map (\a -> read a :: Int) args
   let ports = case intArgs of 

@@ -12,7 +12,7 @@ import AS.Types.Errors
 import AS.Types.Eval
 
 import AS.Util as U
-import qualified AS.DB.Util as DU
+import qualified AS.DB.Internal as DI
 import AS.Parsing.Substitutions (getDependencies)
 import AS.Window
 import AS.Logging
@@ -49,7 +49,7 @@ import Control.Monad.Trans.Either
 
 -- | Cells
 -- key-value hashes
--- key is produced by cellLocation (see DU.makeLocationKey) and is unique
+-- key is produced by cellLocation (see makeLocationKey) and is unique
 -- fields are "cellExpression", "cellValue", "cellTags" with corresponding stringified values
 
 -- | DAG
@@ -57,11 +57,11 @@ import Control.Monad.Trans.Either
 -- access set with key "DAGLocSet"
 
 -- | Sheets
--- stored as key (DU.makeSheetKey ASSheetId) value (stringified ASSheet)
+-- stored as key (DI.makeSheetKey ASSheetId) value (stringified ASSheet)
 -- additionally, the set of all locations belonging to a sheet are stored as
--- set key (DU.makeSheetSetKey ASSheetId) members (ASIndexKey)
+-- set key (DI.makeSheetSetKey ASSheetId) members (ASIndexKey)
 -- this set is updated automatically during setCells.
--- finally, a record of all sheetKeys is stored as a set with key "sheets" and members (DU.makeSheetKey sheetid)
+-- finally, a record of all sheetKeys is stored as a set with key "sheets" and members (DI.makeSheetKey sheetid)
 
 -- | Workbooks
 -- stored identically to Sheets
@@ -84,16 +84,16 @@ getPossiblyBlankCell loc = head <$> getPossiblyBlankCells [loc]
 -- expects all indices to be Index
 getCells :: [ASIndex] -> IO [Maybe ASCell]
 getCells [] = return []
-getCells locs = DU.getCellsByMessage msg num
+getCells locs = DI.getCellsByMessage msg num
   where
-    msg = DU.showB $ intercalate msgPartDelimiter $ map show2 locs
+    msg = DI.showB $ intercalate msgPartDelimiter $ map show2 locs
     num = length locs
 
 getCellsInSheet :: Connection -> ASSheetId -> IO [ASCell]
-getCellsInSheet conn sid = DU.getCellsByKeyPattern conn $ "I/" ++ (T.unpack sid) ++ "/(*,*)"
+getCellsInSheet conn sid = DI.getCellsByKeyPattern conn $ "I/" ++ (T.unpack sid) ++ "/(*,*)"
 
 getAllCells :: Connection -> IO [ASCell]
-getAllCells conn = DU.getCellsByKeyPattern conn "I/*/(*,*)"
+getAllCells conn = DI.getCellsByKeyPattern conn "I/*/(*,*)"
 
 -- Gets the cells at the locations with expressions and values removed, but tags intact. 
 getBlankedCellsAt :: [ASIndex] -> IO [ASCell]
@@ -109,20 +109,20 @@ getBlankedCellsAt locs =
 --getCompositeCells :: Connection -> [ASIndex] -> IO [Maybe CompositeCell]
 --getCompositeCells _ [] = return []
 --getCompositeCells conn locs =
---  let msg = DU.showB $ intercalate DU.msgPartDelimiter $ map (show2 . pointerToIndex) locs
+--  let msg = DI.showB $ intercalate DI.msgPartDelimiter $ map (show2 . pointerToIndex) locs
 --      num = length locs
 --      expandPointerRefs (loc, ccell) = case loc of 
 --        Pointer sid coord -> case ccell of 
 --          Just (Cell l (Coupled xp lang dtype key) v ts) -> do
 --            -- if the cell was coupled but no range descriptor exists, something fucked up.
 --            (Just desc) <- getRangeDescriptor conn key
---            let fatLocs = DU.rangeKeyToIndices key
+--            let fatLocs = DI.rangeKeyToIndices key
 --            cells <- map fromJust <$> getCells fatLocs
 --            return . Just . Fat $ FatCell cells desc
 --          _ -> return Nothing
 --        _ -> return $ Single <$> ccell 
 --  in do 
---    ccells <- DU.getCellsByMessage msg num
+--    ccells <- DI.getCellsByMessage msg num
 --    mapM expandPointerRefs $ zip locs ccells
 
 getPossiblyBlankCells :: [ASIndex] -> IO [ASCell]
@@ -142,10 +142,10 @@ setCell c = setCells [c]
 
 setCells :: [ASCell] -> IO ()
 setCells [] = return ()
-setCells cells = DU.setCellsByMessage msg num
+setCells cells = DI.setCellsByMessage msg num
   where 
     str = intercalate msgPartDelimiter $ (map (show2 . cellLocation) cells) ++ (map show2 cells)
-    msg = DU.showB str
+    msg = DI.showB str
     num = length cells
 
 deleteCells :: Connection -> [ASCell] -> IO ()
@@ -154,7 +154,7 @@ deleteCells conn cells = deleteLocs conn $ map cellLocation cells
 
 deleteLocs :: Connection -> [ASIndex] -> IO ()
 deleteLocs _ [] = return ()
-deleteLocs conn locs = runRedis conn $ mapM_ DU.deleteLocRedis locs
+deleteLocs conn locs = runRedis conn $ mapM_ DI.deleteLocRedis locs
 
 refToIndices :: ASReference -> EitherTExec [ASIndex]
 refToIndices (IndexRef i) = return [i]
@@ -164,9 +164,9 @@ refToIndices (PointerRef p) = do
   cell <- lift $ getCell index 
   case cell of
     Nothing -> left $ IndexOfPointerNonExistant
-    Just cell' -> case (DU.cellToRangeKey cell') of
+    Just cell' -> case (cellToRangeKey cell') of
         Nothing -> left $ PointerToNormalCell
-        Just rKey -> return $  DU.rangeKeyToIndices rKey
+        Just rKey -> return $  rangeKeyToIndices rKey
 
 -- converts ref to indices using the evalContext, then the DB, in that order.
 -- because our evalContext might contain information the DB doesn't (e.g. decoupling)
@@ -177,15 +177,15 @@ refToIndicesWithContext _ (RangeRef r) = return $ rangeToIndices r
 refToIndicesWithContext (EvalContext mp _ _ _) (PointerRef p) = do
   let index = pointerToIndex p
   case (M.lookup index mp) of 
-    Just (Cell _ (Coupled _ _ _ rKey) _ _) -> return $ DU.rangeKeyToIndices rKey
+    Just (Cell _ (Coupled _ _ _ rKey) _ _) -> return $ rangeKeyToIndices rKey
     Just (Cell _ (Expression _ _) _ _) -> left $ PointerToNormalCell
     Nothing -> do
       cell <- lift $ getCell index 
       case cell of
         Nothing -> left $ IndexOfPointerNonExistant
-        Just cell' -> case (DU.cellToRangeKey cell') of
+        Just cell' -> case (cellToRangeKey cell') of
             Nothing -> left $ PointerToNormalCell
-            Just rKey -> return $  DU.rangeKeyToIndices rKey
+            Just rKey -> return $ rangeKeyToIndices rKey
 
 
 ----------------------------------------------------------------------------------------------------------------------
@@ -195,7 +195,7 @@ locationsExist :: Connection -> [ASIndex] -> IO [Bool]
 locationsExist conn locs = runRedis conn $ map fromRight <$> mapM locExists locs
   where
     fromRight (Right a) = a
-    locExists l         = exists $ DU.makeLocationKey l
+    locExists l         = exists $ makeLocationKey l
 
 locationExists :: Connection -> ASIndex -> IO Bool
 locationExists conn loc = head <$> locationsExist conn [loc] 
@@ -204,8 +204,8 @@ locationExists conn loc = head <$> locationsExist conn [loc]
 fatCellsInRange :: Connection -> ASRange -> IO [RangeKey]
 fatCellsInRange conn rng = do
   let sid = rangeSheetId rng
-  rangeKeys <- DU.getRangeKeysInSheet conn sid
-  let rects = map DU.rangeRect rangeKeys
+  rangeKeys <- DI.getRangeKeysInSheet conn sid
+  let rects = map rangeRect rangeKeys
       zipRects = zip rangeKeys rects
       zipRectsContained = filter (\(_,rect) -> rangeContainsRect rng rect) zipRects
   return $ map fst zipRectsContained
@@ -213,11 +213,11 @@ fatCellsInRange conn rng = do
 getRangeDescriptor :: Connection -> RangeKey -> IO (Maybe RangeDescriptor)
 getRangeDescriptor conn key = runRedis conn $ do 
   Right desc <- get (B.pack . show2 $ key)
-  return $ DU.bStrToRangeDescriptor desc
+  return $ DI.bStrToRangeDescriptor desc
 
 getRangeDescriptorsInSheet :: Connection -> ASSheetId -> IO [RangeDescriptor]
 getRangeDescriptorsInSheet conn sid = do
-  keys <- DU.getRangeKeysInSheet conn sid
+  keys <- DI.getRangeKeysInSheet conn sid
   map fromJust <$> mapM (getRangeDescriptor conn) keys
 
 ----------------------------------------------------------------------------------------------------------------------
@@ -279,14 +279,14 @@ createWorkbook conn sheetids = do
 getUniqueWbName :: Connection -> IO String
 getUniqueWbName conn = do
   wbs <- getAllWorkbooks conn
-  return $ DU.getUniquePrefixedName "Workbook" $ map workbookName wbs
+  return $ DI.getUniquePrefixedName "Workbook" $ map workbookName wbs
 
 getWorkbook :: Connection -> String -> IO (Maybe ASWorkbook)
 getWorkbook conn name = do
     runRedis conn $ do
-        mwb <- get $ DU.makeWorkbookKey name
+        mwb <- get $ makeWorkbookKey name
         case mwb of
-            Right wb -> return $ DU.bStrToWorkbook wb
+            Right wb -> return $ DI.bStrToWorkbook wb
             Left _   -> return Nothing
 
 getAllWorkbooks :: Connection -> IO [ASWorkbook]
@@ -299,7 +299,7 @@ getAllWorkbooks conn = do
 setWorkbook :: Connection -> ASWorkbook -> IO ()
 setWorkbook conn wb = do
     runRedis conn $ do
-        let workbookKey = DU.makeWorkbookKey . workbookName $ wb
+        let workbookKey = makeWorkbookKey . workbookName $ wb
         TxSuccess _ <- multiExec $ do
             set workbookKey (B.pack . show $ wb)  -- set the workbook as key-value
             sadd "workbookKeys" [workbookKey]  -- add the workbook key to the set of all sheets
@@ -308,14 +308,14 @@ setWorkbook conn wb = do
 workbookExists :: Connection -> String -> IO Bool
 workbookExists conn wName = do
   runRedis conn $ do
-    Right result <- exists $ DU.makeWorkbookKey wName
+    Right result <- exists $ makeWorkbookKey wName
     return result
 
 -- only removes the workbook, not contained sheets
 deleteWorkbook :: Connection -> String -> IO ()
 deleteWorkbook conn name = do
     runRedis conn $ do
-        let workbookKey = DU.makeWorkbookKey name
+        let workbookKey = makeWorkbookKey name
         multiExec $ do
           del [workbookKey]
           srem "workbookKeys" [workbookKey]
@@ -330,7 +330,7 @@ deleteWorkbookAndSheets conn name = do
         Just wb -> do
             mapM_ (deleteSheetUnsafe conn) (workbookSheets wb) -- remove sheets
             runRedis conn $ do
-                let workbookKey = DU.makeWorkbookKey name
+                let workbookKey = makeWorkbookKey name
                 TxSuccess _ <- multiExec $ do
                     del [workbookKey]   -- remove workbook from key-value
                     srem "workbookKeys" [workbookKey] -- remove workbook from set
@@ -342,9 +342,9 @@ deleteWorkbookAndSheets conn name = do
 getSheet :: Connection -> ASSheetId -> IO (Maybe ASSheet)
 getSheet conn sid = do
     runRedis conn $ do
-        msheet <- get $ DU.makeSheetKey sid
+        msheet <- get $ makeSheetKey sid
         case msheet of
-            Right sheet -> return $ DU.bStrToSheet sheet
+            Right sheet -> return $ DI.bStrToSheet sheet
             Left _      -> return Nothing
 
 getAllSheets :: Connection -> IO [ASSheet]
@@ -367,12 +367,12 @@ createSheet conn (Sheet sid _ sperms) = do
 getUniqueSheetName :: Connection -> IO String
 getUniqueSheetName conn = do
   ss <- getAllSheets conn
-  return $ DU.getUniquePrefixedName "Sheet" $ map sheetName ss
+  return $ DI.getUniquePrefixedName "Sheet" $ map sheetName ss
 
 setSheet :: Connection -> ASSheet -> IO ()
 setSheet conn sheet = do
     runRedis conn $ do
-        let sheetKey = DU.makeSheetKey . sheetId $ sheet
+        let sheetKey = makeSheetKey . sheetId $ sheet
         TxSuccess _ <- multiExec $ do
             set sheetKey (B.pack . show $ sheet)  -- set the sheet as key-value
             sadd "sheetKeys" [sheetKey]  -- add the sheet key to the set of all sheets
@@ -380,20 +380,20 @@ setSheet conn sheet = do
 
 clearSheet :: Connection -> ASSheetId -> IO ()
 clearSheet conn sid = do
-  keys <- map (B.pack . show2) <$> DU.getRangeKeysInSheet conn sid
+  keys <- map (B.pack . show2) <$> DI.getRangeKeysInSheet conn sid
   runRedis conn $ do
     del keys
-    del [DU.makeSheetRangesKey sid]
+    del [makeSheetRangesKey sid]
     del [condFormattingRulesKey sid]
-  DU.deleteLocsInSheet sid
+  DI.deleteLocsInSheet sid
   -- TODO: also clear undo, redo, and last message (for Ctrl+Y) (Alex 11/20)
 
 -- deletes the sheet only, does not remove from any containing workbooks
 deleteSheetUnsafe :: Connection -> ASSheetId -> IO ()
 deleteSheetUnsafe conn sid = do
     runRedis conn $ do
-        let setKey = DU.makeSheetSetKey sid
-            sheetKey = DU.makeSheetKey sid
+        let setKey = makeSheetSetKey sid
+            sheetKey = makeSheetKey sid
 
         mlocKeys <- smembers setKey
         TxSuccess _ <- multiExec $ do
@@ -413,7 +413,7 @@ getVolatileLocs :: Connection -> IO [ASIndex]
 getVolatileLocs conn = do
   runRedis conn $ do
       Right vl <- smembers "volatileLocs"
-      return $ map DU.bStrToASIndex vl
+      return $ map DI.bStrToASIndex vl
 
 -- TODO: some of the cells may change from volatile -> not volatile, but they're still in volLocs
 setChunkVolatileCells :: [ASCell] -> Redis ()

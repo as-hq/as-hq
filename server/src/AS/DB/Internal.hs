@@ -1,4 +1,4 @@
-module AS.DB.Util where
+module AS.DB.Internal where
 
 import Prelude
 
@@ -57,27 +57,14 @@ cInfo = ConnInfo
     }
 
 ----------------------------------------------------------------------------------------------------------------------
--- Redis key utilities
+-- FFI
 
--- key for set of all fat cells in a sheet
-makeSheetRangesKey :: ASSheetId -> B.ByteString
-makeSheetRangesKey sid = BC.pack $ (T.unpack sid) ++ (keyPartDelimiter:"ALL_RANGES")
+foreign import ccall unsafe "hiredis/redis_db.c getCells" c_getCells :: CString -> CInt -> IO (Ptr CString)
+foreign import ccall unsafe "hiredis/redis_db.c setCells" c_setCells :: CString -> CInt -> IO ()
+foreign import ccall unsafe "hiredis/redis_db.c clearSheet" c_clearSheet :: CString -> IO ()
 
--- key for locations
-makeLocationKey :: ASIndex -> B.ByteString
-makeLocationKey = BC.pack . show2
-
--- key for sheet
-makeSheetKey :: ASSheetId -> B.ByteString -- for storing the actual sheet as key-value
-makeSheetKey = BC.pack . T.unpack
-
--- key for all location keys in a sheet
-makeSheetSetKey :: ASSheetId -> B.ByteString
-makeSheetSetKey sid = BC.pack $! (T.unpack sid) ++ "Locations"
-
--- key for workbook
-makeWorkbookKey :: String -> B.ByteString
-makeWorkbookKey = BC.pack
+----------------------------------------------------------------------------------------------------------------------
+-- Private DB functions
 
 -- given "Untitled" and ["Untitled1", "Untitled2"], produces "Untitled3"
 -- only works on integer suffixes
@@ -90,17 +77,6 @@ getUniquePrefixedName pref strs = pref ++ (show idx)
     idx     = case idxs of
       [] -> 1
       _  -> (L.maximum idxs) + 1
-
-----------------------------------------------------------------------------------------------------------------------
--- FFI
-
-foreign import ccall unsafe "hiredis/redis_db.c getCells" c_getCells :: CString -> CInt -> IO (Ptr CString)
-foreign import ccall unsafe "hiredis/redis_db.c setCells" c_setCells :: CString -> CInt -> IO ()
-foreign import ccall unsafe "hiredis/redis_db.c clearSheet" c_clearSheet :: CString -> IO ()
-
-
-----------------------------------------------------------------------------------------------------------------------
--- Private DB functions
 
 getCellsByKeys :: [B.ByteString] -> IO [Maybe ASCell]
 getCellsByKeys keys = getCellsByMessage msg num
@@ -148,80 +124,22 @@ cToASCell str = do
 ----------------------------------------------------------------------------------------------------------------------
 -- Fat cells
 
---getListType :: ListKey -> String
---getListType key = last parts
---  where parts = splitBy keyPartDelimiter key
-indexIsHead :: ASIndex -> RangeKey -> Bool
-indexIsHead idx (RangeKey idx' _) = idx == idx'
-
-rangeKeyToIndices :: RangeKey -> [ASIndex]
-rangeKeyToIndices (RangeKey idx dims) = rangeToIndices range
-  where
-    Index sid (col, row) = idx
-    (height, width)      = dims
-    range                = Range sid ((col, row), (col+width-1, row+height-1))
-
-getFatCellIntersections :: Connection -> Either [ASIndex] [RangeKey] -> IO [RangeKey]
-getFatCellIntersections conn (Left locs) = do
-  rangeKeys <- concat <$> mapM (getRangeKeysInSheet conn) (L.nub $ map locSheetId locs)
-  return $ filter keyIntersects rangeKeys
-  where
-    keyIntersects k             = anyLocsContainedInRect locs (rangeRect k)
-    anyLocsContainedInRect ls r = any id $ map (indexInRect r) ls
-    indexInRect ((a',b'),(a2',b2')) (Index _ (a,b)) = a >= a' && b >= b' &&  a <= a2' && b <= b2'
-
-getFatCellIntersections conn (Right keys) = do
-  rangeKeys <- concat <$> mapM  (getRangeKeysInSheet conn) (L.nub $ map (locSheetId . keyIndex) keys)
-  printObj "Checking intersections against keys" keys
-  return $ L.intersectBy keysIntersect rangeKeys keys
-    where 
-      rectsIntersect ((y,x),(y2,x2)) ((y',x'),(y2',x2'))
-        | y2 < y' = False 
-        | y > y2' = False
-        | x2 < x' = False 
-        | x > x2' = False
-        | otherwise = True 
-      keysIntersect k1 k2 = rectsIntersect (rangeRect k1) (rangeRect k2)
-
-rangeRect :: RangeKey -> Rect
-rangeRect (RangeKey idx dims) = ((col, row), (col + width - 1, row + height - 1))
-  where Index _ (col, row) = idx
-        (height, width)    = dims
-
 getRangeKeysInSheet :: Connection -> ASSheetId -> IO [RangeKey]
 getRangeKeysInSheet conn sid = runRedis conn $ do
   Right keys <- smembers $ makeSheetRangesKey sid
   liftIO $ printObj "GOT RANGEKEYS IN SHEET: " keys
   return $ map (\k -> read2 (BC.unpack k) :: RangeKey) keys
 
-rangeKeyToSheetId :: RangeKey -> ASSheetId
-rangeKeyToSheetId = locSheetId . keyIndex
-
-decoupleCell :: ASCell -> ASCell
-decoupleCell (Cell l (Coupled _ lang _ _) v ts) = Cell l e' v ts
+toDecoupled :: ASCell -> ASCell
+toDecoupled (Cell l (Coupled _ lang _ _) v ts) = Cell l e' v ts
   where e' = case v of 
                NoValue   -> Expression "" lang
                otherwise -> Expression (showPrimitive lang v) lang
-decoupleCell c = c
+toDecoupled c = c
 
 -- | Converts a coupled cell to a normal cell
 toUncoupled :: ASCell -> ASCell
 toUncoupled c@(Cell _ (Coupled xp lang _ _) _ _) = c { cellExpression = Expression xp lang }
-
-cellToRangeKey :: ASCell -> Maybe RangeKey
-cellToRangeKey (Cell _ xp _ _ ) = case xp of 
-  Coupled _ _ _ key -> Just key
-  _ -> Nothing
-
-isFatCellMember :: ASCell -> Bool
-isFatCellMember (Cell _ xp _ _) = case xp of 
-  Coupled _ _ _ _ -> True
-  _ -> False
-
-isFatCellHead :: ASCell -> Bool 
-isFatCellHead cell = case (cellToRangeKey cell) of 
-  Just (RangeKey idx _) -> cellLocation cell == idx
-  Nothing -> False
 
 ----------------------------------------------------------------------------------------------------------------------
 -- | ByteString utils
@@ -286,3 +204,4 @@ bStrToRangeDescriptor (Just str) = Just (read (BC.unpack str) :: RangeDescriptor
 bStrToRangeKeys :: Maybe B.ByteString -> Maybe [RangeKey]
 bStrToRangeKeys Nothing = Nothing
 bStrToRangeKeys (Just str) = Just (read (BC.unpack str) :: [RangeKey])
+

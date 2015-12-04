@@ -10,7 +10,7 @@ import AS.Types.Errors
 import AS.DB.API as DB
 import qualified AS.DB.Graph as G
 import AS.DB.Expanding
-import AS.DB.Util as DU
+import AS.DB.Internal as DI
 import AS.Dispatch.Expanding as DE (recomposeCompositeValue)
 import AS.Logging
 
@@ -53,7 +53,7 @@ referenceToCompositeValue conn ctx (PointerRef p) = do
         Nothing -> error "Couldn't find range descriptor of coupled expression, flipping a shit"
         Just descriptor -> return $ DE.recomposeCompositeValue fatCell
           where
-            indices = DU.rangeKeyToIndices rKey
+            indices = rangeKeyToIndices rKey
             cells   = map ((contextMap ctx) M.!) indices
             fatCell = FatCell cells descriptor
 referenceToCompositeValue conn ctx (RangeRef r) = return . Expanding . VList . M $ vals
@@ -73,10 +73,10 @@ referenceToCompositeValue conn ctx (RangeRef r) = return . Expanding . VList . M
 --  let locs = map cellLocation cells
 --      keys = map (descriptorKey . descriptor) fcells
 --  in do
---    rangeKeysChangedByCells    <- liftIO $ DU.getFatCellIntersections conn sid (Left locs)
---    rangeKeysChangedByFatCells <- liftIO $ DU.getFatCellIntersections conn sid (Right keys)
+--    rangeKeysChangedByCells    <- liftIO $ DI.getFatCellIntersections conn sid (Left locs)
+--    rangeKeysChangedByFatCells <- liftIO $ DI.getFatCellIntersections conn sid (Right keys)
 --    let rangeKeysChanged = rangeKeysChangedByCells ++ rangeKeysChangedByFatCells
---    let decoupledLocs    = concat $ map DU.rangeKeyToIndices rangeKeysChanged
+--    let decoupledLocs    = concat $ map DI.rangeKeyToIndices rangeKeysChanged
 --    return decoupledLocs
 
 -- After getting the final context, update the DB and return the cells changed by the entire eval
@@ -111,7 +111,7 @@ updateDBAfterEval conn src c@(Commit beforeCells afterCells removedDescriptors a
 -- the cell changes that happen as a result of setting the cells. 
 setCellsPropagated :: Connection -> [ASCell] -> [RangeDescriptor] -> IO ()
 setCellsPropagated conn cells descs = 
-  let roots = filter (\c -> (not $ DU.isFatCellMember c) || DU.isFatCellHead c) cells
+  let roots = filter (\c -> (not $ isFatCellMember c) || isFatCellHead c) cells
   in do
     setCells cells
     G.setCellsAncestorsForce roots
@@ -144,7 +144,7 @@ undo :: Connection -> CommitSource -> IO (Maybe ASCommit)
 undo conn src = do
   commit <- runRedis conn $ do
     (Right commit) <- rpoplpush (pushKey src) (popKey src)
-    return $ DU.bStrToASCommit commit
+    return $ DI.bStrToASCommit commit
   case commit of
     Nothing -> return Nothing
     Just c@(Commit b a bd ad t) -> do
@@ -159,7 +159,7 @@ redo conn src = do
     case result of
       Just commit -> do
         rpush (pushKey src) [commit]
-        return $ DU.bStrToASCommit (Just commit)
+        return $ DI.bStrToASCommit (Just commit)
       _ -> return Nothing
   case commit of
     Nothing -> return Nothing

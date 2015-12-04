@@ -19,8 +19,8 @@ import AS.Types.DB
 import AS.Types.Eval
 
 import AS.Config.Settings as S
-import AS.DB.API as DB hiding (clear)
-import AS.DB.Util
+import qualified AS.DB.API as DB
+import AS.DB.Internal
 import AS.Logging
 import AS.Parsing.Substitutions (getDependencies)
 

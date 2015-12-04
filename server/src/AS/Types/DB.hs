@@ -17,6 +17,9 @@ import Debug.Trace
 
 import Prelude
 import qualified Data.Text as T 
+import qualified Data.List as L
+import qualified Data.ByteString.Char8         as BC
+import qualified Data.ByteString               as B
 import Data.Serialize (Serialize)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
@@ -190,3 +193,26 @@ instance (Read2 RangeKey) where
      idxStr:dimsStr:_ = splitBy keyPartDelimiter str
      idx = read2 idxStr :: ASIndex
      dims = read dimsStr :: Dimensions
+
+----------------------------------------------------------------------------------------------------------------------
+-- Redis key constructors
+
+-- key for set of all fat cells in a sheet
+makeSheetRangesKey :: ASSheetId -> B.ByteString
+makeSheetRangesKey sid = BC.pack $ (T.unpack sid) ++ (keyPartDelimiter:"ALL_RANGES")
+
+-- key for locations
+makeLocationKey :: ASIndex -> B.ByteString
+makeLocationKey = BC.pack . show2
+
+-- key for sheet
+makeSheetKey :: ASSheetId -> B.ByteString -- for storing the actual sheet as key-value
+makeSheetKey = BC.pack . T.unpack
+
+-- key for all location keys in a sheet
+makeSheetSetKey :: ASSheetId -> B.ByteString
+makeSheetSetKey sid = BC.pack $! (T.unpack sid) ++ "Locations"
+
+-- key for workbook
+makeWorkbookKey :: String -> B.ByteString
+makeWorkbookKey = BC.pack

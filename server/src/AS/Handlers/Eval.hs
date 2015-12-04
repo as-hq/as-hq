@@ -5,6 +5,7 @@ import AS.Types.Network
 import AS.Types.Messages
 import AS.Types.User
 import AS.Types.Commits
+import AS.Types.Eval
 
 import AS.Dispatch.Core
 import AS.Dispatch.Repl
@@ -30,7 +31,7 @@ handleEval uc state payload  = do
   -- manually. 
   oldTags <- getPropsAt (map cellLocation cells)
   let cells' = map (\(c, ps) -> c { cellProps = ps }) (zip cells oldTags)
-  msg' <- runDispatchCycle state cells' False (userCommitSource uc)
+  msg' <- runDispatchCycle state cells' DescendantsWithParent (userCommitSource uc)
   broadcastFiltered state uc msg'
 
 handleEvalRepl :: ASUserClient -> ASPayload -> IO ()

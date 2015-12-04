@@ -5,14 +5,15 @@ import AS.Types.Network
 import AS.Types.Messages
 import AS.Types.User
 import AS.Types.Excel
-import AS.Parsing.Substitutions
-
-import AS.DB.Util
-import AS.DB.API
-import AS.DB.Graph
+import AS.Types.Eval
 
 import AS.Parsing.Substitutions
 import AS.Parsing.Excel
+
+import AS.DB.Internal
+import AS.DB.API
+import AS.DB.Graph
+
 import AS.Util
 import AS.Dispatch.Core
 import AS.Reply
@@ -28,14 +29,14 @@ handleCopy :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
 handleCopy uc state (PayloadPaste from to) = do
   conn <- dbConn <$> readMVar state
   toCells <- getCopyCells conn from to
-  msg' <- runDispatchCycle state toCells False (userCommitSource uc)
+  msg' <- runDispatchCycle state toCells DescendantsWithParent (userCommitSource uc)
   broadcastFiltered state uc msg'
 
 handleCut :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
 handleCut uc state (PayloadPaste from to) = do
   conn <- dbConn <$> readMVar state
   newCells <- getCutCells conn from to
-  msg' <- runDispatchCycle state newCells False (userCommitSource uc)
+  msg' <- runDispatchCycle state newCells DescendantsWithParent (userCommitSource uc)
   broadcastFiltered state uc msg'
 
 
@@ -130,7 +131,7 @@ sanitizeCutCells conn cells from = do
   keys <- fatCellsInRange conn from
   let (fatCellMembers, regularCells)  = partition isFatCellMember cells
       (containedCells, cutoffCells)   = partitionByRangeKey fatCellMembers keys
-      decoupledCells                  = map decoupleCell cutoffCells
+      decoupledCells                  = map toDecoupled cutoffCells
       containedFatCellHeads           = filter isFatCellHead containedCells
       containedFatCellHeadsUncoupled  = map toUncoupled containedFatCellHeads
   return $ regularCells ++ decoupledCells ++ containedFatCellHeadsUncoupled

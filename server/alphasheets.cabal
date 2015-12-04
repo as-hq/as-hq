@@ -21,7 +21,7 @@ library
                        AS.DB.Expanding
                        AS.DB.Export
                        AS.DB.Transaction
-                       AS.DB.Util
+                       AS.DB.Internal
                        AS.DB.Graph
                        AS.Dispatch.Core
                        AS.Dispatch.EvalHeader

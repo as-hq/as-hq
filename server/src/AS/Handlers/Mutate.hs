@@ -5,7 +5,9 @@ import AS.Types.Network
 import AS.Types.Messages
 import AS.Types.User
 import AS.Types.Excel
-import AS.DB.Util as DU
+import AS.Types.Eval
+
+import AS.DB.Internal as DI
 import qualified Data.Text as T
 
 import AS.Parsing.Substitutions
@@ -29,7 +31,7 @@ handleMutateSheet uc state (PayloadMutate mutateType) = do
       blankedCells = blankCellsAt (map cellLocation oldCells')
       newCells' = catMaybes $ map snd oldCellsNewCells
       updatedCells   = mergeCells newCells' blankedCells -- eval blanks at the old cell locations, re-eval at new locs
-  updateMsg <- runDispatchCycle state updatedCells False (userCommitSource uc)
+  updateMsg <- runDispatchCycle state updatedCells DescendantsWithParent (userCommitSource uc)
   broadcastFiltered state uc updateMsg
 
 
@@ -83,11 +85,40 @@ expressionMap :: MutateType -> (ASExpression -> ASExpression)
 expressionMap mt = replaceRefs (show . (refMap mt))
 
 cellMap :: MutateType -> (ASCell -> Maybe ASCell)
-cellMap mt c@(Cell loc xp v ts) = case ((cellLocMap mt) loc) of 
+cellMap mt c@(Cell loc xp v ps) = case ((cellLocMap mt) loc) of 
   Nothing -> Nothing 
-  Just loc' -> let c' = Cell loc' ((expressionMap mt) xp) v ts 
-    in case xp of 
-      Expression _ _ -> Just c'
-      Coupled _ _ _ _ -> if DU.isFatCellHead c
-        then Just $ DU.toUncoupled c' 
-        else Just $ DU.decoupleCell c' 
+  Just loc' -> Just $ sanitizeMutateCell mt loc $ Cell loc' ((expressionMap mt) xp) v ps 
+
+-- | If the cell passed in is uncoupled, leave it as is. Otherwise: 
+-- * if its range would get decoupled by the mutation, decouple it. 
+-- * if not, if it is a fat cell head, make it an uncoupled cell that'll get re-evaled. 
+-- * if it is not a fat cell head, delete it. 
+-- whether the fatcell it was a part of would get split up by the type of mutation.  
+sanitizeMutateCell :: MutateType -> ASIndex -> ASCell -> ASCell
+sanitizeMutateCell _ _ c@(Cell _ (Expression _ _) _ _) = c
+sanitizeMutateCell mt oldLoc c = cell'
+  where 
+    Just rk = cellToRangeKey c
+    cell' = if trace' "mutated?" $ fatCellGotMutated mt rk
+      then DI.toDecoupled c
+      else c { cellExpression = (cellExpression c) { cRangeKey = rk { keyIndex = fromJust $ cellLocMap mt (keyIndex rk) } } } 
+
+between :: Int -> Int -> Int -> Bool
+between lower upper x = (x >= lower) && (x <= upper)
+
+fatCellGotMutated :: MutateType -> RangeKey -> Bool
+fatCellGotMutated (InsertCol c) (RangeKey (Index _ (tlc, _)) (dC, _)) = between (tlc + 1) (tlc + dC - 1) c
+fatCellGotMutated (InsertRow r) (RangeKey (Index _ (_, tlr)) (_, dR)) = between (tlr + 1) (tlr + dR - 1) r
+
+fatCellGotMutated (DeleteCol c) (RangeKey (Index _ (tlc, _)) (dC, _)) = between tlc (tlc + dC - 1) c
+fatCellGotMutated (DeleteRow r) (RangeKey (Index _ (_, tlr)) (_, dR)) = between tlr (tlr + dR - 1) r
+
+fatCellGotMutated (DragCol _ _) (RangeKey _ (1, _)) = False
+fatCellGotMutated (DragCol c1 c2) (RangeKey (Index _ (tlc, _)) (dC, _)) = or [
+  between tlc (tlc + dC - 1) c1, 
+  between (tlc + 1) (tlc + dC - 1) c2 ]
+
+fatCellGotMutated (DragRow _ _) (RangeKey _ (_, 1)) = False
+fatCellGotMutated (DragRow r1 r2) (RangeKey (Index _ (_, tlr)) (_, dR)) = or [ 
+  between tlr (tlr + dR - 1) r1, 
+  between (tlr + 1) (tlr + dR - 1) r2 ]
