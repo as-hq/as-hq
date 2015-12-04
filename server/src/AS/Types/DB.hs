@@ -34,15 +34,13 @@ data ASTransaction = Transaction {transactionCommitSource :: CommitSource,
 type ASRelation = (ASIndex,[GraphAncestor])
 
 -- Graph read (getX) and write (setX) requests
-data GraphReadRequest = GetDescendants | GetImmediateDescendants | GetProperDescendants | GetImmediateAncestors 
-  deriving (Show)
+data GraphReadRequest = GetDescendants | GetImmediateDescendants | GetProperDescendants | GetImmediateAncestors deriving (Show)
 
 -- Exporting/Importing
 data ExportData = ExportData { exportCells :: [ASCell], exportDescriptors :: [RangeDescriptor] } deriving (Show, Read, Eq, Generic)
 
 
-data GraphWriteRequest = SetRelations | RollbackGraph | Recompute | Clear 
-  deriving (Show)
+data GraphWriteRequest = SetRelations | Recompute | Clear deriving (Show)
 
 -- Graph input for functions like getDescendants can be indexes or ranges. Getting the descendants 
 -- of a range = descendants of decomposed indices in ranges

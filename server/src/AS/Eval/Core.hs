@@ -46,14 +46,14 @@ import Control.Exception (catch, SomeException)
 -- Exposed functions
 
 evaluateLanguage :: Connection -> ASIndex -> EvalContext -> ASExpression -> EitherTExec (Formatted CompositeValue)
-evaluateLanguage conn idx@(Index sid _) ctx@(EvalContext mp _ _ _) xp@(Expression str lang) = catchEitherT $ do
+evaluateLanguage conn idx@(Index sid _) ctx xp@(Expression str lang) = catchEitherT $ do
   printWithTimeT "Starting eval code"
-  maybeShortCircuit <- possiblyShortCircuit sid mp xp
+  maybeShortCircuit <- possiblyShortCircuit sid ctx xp
   case maybeShortCircuit of
     Just e -> return . return . CellValue $ e -- short-circuited, return this error
     Nothing -> case lang of
       Excel -> do 
-        KE.evaluate str idx mp
+        KE.evaluate str idx (contextMap ctx)
         -- Excel needs current location and un-substituted expression, and needs the formatted values for
         -- loading the initial entities
       otherwise -> return <$> (execEvalInLang sid lang =<< lift xpWithValuesSubstituted) -- didn't short-circuit, proceed with eval as usual
@@ -88,10 +88,10 @@ catchEitherT a = do
 
 -- | Checks for potentially bad inputs (NoValue or ValueError) among the arguments passed in. If no bad inputs,
 -- return Nothing. Otherwise, if there are errors that can't be dealt with, return appropriate ASValue error.
-possiblyShortCircuit :: ASSheetId -> ValMap -> ASExpression -> EitherTExec (Maybe ASValue)
-possiblyShortCircuit sheetid valuesMap xp = do 
+possiblyShortCircuit :: ASSheetId -> EvalContext -> ASExpression -> EitherTExec (Maybe ASValue)
+possiblyShortCircuit sheetid ctx@ (EvalContext valuesMap _ _ _) xp = do 
   let depRefs        = getDependencies sheetid xp -- :: [ASReference]
-  depInds <- concat <$> mapM refToIndices depRefs   -- :: [Maybe [ASIndex]]
+  depInds <- concat <$> mapM (refToIndicesWithContext ctx) depRefs   -- :: [Maybe [ASIndex]]
   let lang           = xpLanguage xp
       values         = map (cellValue . (valuesMap M.!)) depInds
   return $ listToMaybe $ catMaybes $ flip map (zip depInds values) $ \(i, v) -> case v of

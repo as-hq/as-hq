@@ -6,23 +6,53 @@ import Data.List.NonEmpty as N (fromList)
 
 import System.ZMQ4.Monadic
 
-import Data.ByteString.Char8 as B 
 import Control.Monad (forM)
 import qualified Text.Show.ByteString      as BS
 import qualified Data.ByteString.Char8     as BC 
+import qualified Data.ByteString.Char8     as B 
 import qualified Data.ByteString.Lazy      as BL
+import qualified Database.Redis as R
 
+import AS.Types.Cell
 import AS.Types.Locations
 import AS.Types.DB
 import AS.Types.Eval
 
 import AS.Config.Settings as S
+import AS.DB.API as DB hiding (clear)
 import AS.DB.Util
 import AS.Logging
+import AS.Parsing.Substitutions (getDependencies)
 
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.Either
 
+----------------------------------------------------------------------------------------------------------------------
+-- Ancestors
+
+-- Update the ancestor relationships in the DB based on the expressions and locations of the
+-- cells passed in. (E.g. if a cell is passed in at A1 and its expression is "C1 + 1", C1 -> A1 is
+-- added to the graph.)
+-- Note that a relation is (ASIndex, [ASReference]), where a graph ancestor can be any valid reference type, 
+-- including pointer, range, and index. 
+setCellsAncestors :: [ASCell] -> EitherTExec [[ASReference]]
+setCellsAncestors cells = setRelations relations >> printObjT "setting relations: " relations >> return depSets
+  where
+    depSets = map (\(Cell l e _ _) -> getDependencies (locSheetId l) e) cells
+    relations = (zip (map cellLocation cells) depSets) :: [ASRelation]
+
+-- | It'll parse no dependencies from the blank cells at these locations, so each location in the
+-- graph DB gets all its ancestors removed. 
+removeAncestorsAt :: [ASIndex] -> EitherTExec [[ASReference]]
+removeAncestorsAt = setCellsAncestors . blankCellsAt
+
+-- | Should only be called when undoing or redoing commits, which should be guaranteed to not
+-- introduce errors. 
+setCellsAncestorsForce :: [ASCell] -> IO ()
+setCellsAncestorsForce cells = runEitherT (setCellsAncestors cells) >> return ()
+
+removeAncestorsAtForced :: [ASIndex] -> IO ()
+removeAncestorsAtForced locs = runEitherT (removeAncestorsAt locs) >> return ()
 
 
 ------------------------------------------------------------------------------------------------------------------
@@ -108,9 +138,14 @@ execGraphWriteQuery q = runZMQ $ do
   send reqSocket [] $ BC.pack (show $ show q) -- graph db requires quotes around message
   return ()
 
-recompute = execGraphWriteQuery Recompute
-clear     = execGraphWriteQuery Clear
-rollbackGraph = execGraphWriteQuery RollbackGraph
+recompute :: R.Connection -> IO ()
+recompute conn = do
+  cells <- DB.getAllCells conn
+  clear
+  setCellsAncestorsForce cells
+  return ()
+
+clear = execGraphWriteQuery Clear
 
 -- Takes in a list of (index, [list of ancestors of that cell])'s and sets the ancestor relationship in the graph
 -- Note: ASRelation is of type (ASIndex, [ASReference])

@@ -141,15 +141,15 @@ handleDelete uc state (PayloadR rng) = do
 
 handleClear :: (Client c) => c  -> MVar ServerState -> ASPayload -> IO ()
 handleClear client state payload = case payload of 
-  (PayloadN ()) -> do
+  PayloadN () -> do
     conn <- dbConn <$> readMVar state
     DB.clear conn
     G.clear
     broadcast state $ ServerMessage Clear Success $ PayloadN ()
-  (PayloadS (Sheet sid _ _)) -> do
+  PayloadS (Sheet sid _ _) -> do
     conn <- dbConn <$> readMVar state
     DB.clearSheet conn sid 
-    G.recompute
+    G.recompute conn
     broadcast state $ ServerMessage Clear Success payload
 
 handleUndo :: ASUserClient -> MVar ServerState -> IO ()

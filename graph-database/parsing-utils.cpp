@@ -10,6 +10,7 @@
 #define SCAN_BOUND 100000
 #define INDEX_REGEX "\\$?[A-Za-z]+\\$?[0-9]+"
 #define RANGE_REGEX "\\$?[A-Za-z]+\\$?[0-9]+:\\$?[A-Za-z]+\\$?[0-9]+"
+#define POINTER_REGEX "@\\$?[A-Za-z]+\\$?[0-9]+"
 #define AS_INDEX_REGEX "I\\/[^\\/]+\\/\\([0-9]+,[0-9]+\\)"
 #define REF_PART_REGEX "\\/"
 #define REF_PART "/"
@@ -102,7 +103,6 @@ DAG::VertexSet parseDependencies(const string& str, const DAG::Vertex& fromLoc) 
  vector<string> rangeMatches = regexAll(str, RANGE_REGEX);
  string rangesRemoved = regex_replace(str, regex(RANGE_REGEX), "");
  vector<string> indexMatches = regexAll(rangesRemoved, INDEX_REGEX);
-
  indexMatches.insert(indexMatches.end(), rangeMatches.begin(), rangeMatches.end());
  // cout << "index matches: " << endl;
  // printVec(indexMatches);

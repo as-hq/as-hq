@@ -8,6 +8,7 @@ import AS.Types.Eval
 import AS.Types.Errors
 
 import AS.DB.API as DB
+import qualified AS.DB.Graph as G
 import AS.DB.Expanding
 import AS.DB.Util as DU
 import AS.Dispatch.Expanding as DE (recomposeCompositeValue)
@@ -113,7 +114,7 @@ setCellsPropagated conn cells descs =
   let roots = filter (\c -> (not $ DU.isFatCellMember c) || DU.isFatCellHead c) cells
   in do
     setCells cells
-    setCellsAncestorsForce roots
+    G.setCellsAncestorsForce roots
     mapM_ (couple conn) descs
 
 -- | Makes sure everything is synced -- the listKeys and ancestors in graph db should reflect 
@@ -121,7 +122,7 @@ setCellsPropagated conn cells descs =
 deleteCellsPropagated :: Connection -> [ASCell] -> [RangeDescriptor] -> IO ()
 deleteCellsPropagated conn cells descs = do
   deleteCells conn cells
-  removeAncestorsAtForced $ map cellLocation cells
+  G.removeAncestorsAtForced $ map cellLocation cells
   mapM_ (decouple conn) $ map descriptorKey descs
 
 ----------------------------------------------------------------------------------------------------------------------

@@ -23,5 +23,5 @@ importData :: Connection -> ExportData -> IO ()
 importData conn (ExportData cs descriptors) = do
   DB.clearSheet conn $ locSheetId . cellLocation . head $ cs -- assumes all cells are in the same sheet.
   DB.setCells cs
-  G.recompute
+  G.recompute conn
   mapM_ (DE.couple conn) descriptors

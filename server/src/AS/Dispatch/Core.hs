@@ -77,7 +77,7 @@ runDispatchCycle state cs src = do
     broadcastCells <- DT.updateDBFromEvalContext conn src ctx
     return broadcastCells
   case errOrCells of 
-    Left _ -> G.recompute -- #needsrefactor. Overkill. But recording all cells that might have changed is a PITA. (Alex 11/20)
+    Left _ -> G.recompute conn -- #needsrefactor. Overkill. But recording all cells that might have changed is a PITA. (Alex 11/20)
     _      -> return ()
   return $ makeUpdateMessage errOrCells
 
@@ -89,7 +89,7 @@ dispatch :: Connection -> [ASCell] -> EvalContext -> Bool -> EitherTExec EvalCon
 dispatch conn roots oldContext shouldGetProperDescs = do
   printObjT "STARTING DISPATCH CYCLE WITH CELLS" roots
   -- For all the original cells, add the edges in the graph DB; parse + setRelations
-  rootsDepSets   <- DB.setCellsAncestors roots
+  rootsDepSets <- G.setCellsAncestors roots
   printObjT "Set cell ancestors" rootsDepSets
   descLocs       <- getEvalLocs conn roots shouldGetProperDescs
   printObjT "Got eval locations" descLocs
@@ -99,10 +99,10 @@ dispatch conn roots oldContext shouldGetProperDescs = do
   ancLocs        <- G.getImmediateAncestors $ indicesToGraphReadInput descLocs
   printObjT "Got ancestor locs" ancLocs
   -- The initial lookup cache has the ancestors of all descendants
-  initContext <- getInitialContext conn ancLocs oldContext
-  printObjT "Created initial context" initContext
+  modifiedContext <- getModifiedContext conn ancLocs oldContext
+  printObjT "Created initial context" modifiedContext
   printWithTimeT "Starting eval chain"
-  evalChainException conn initContext cellsToEval -- start with current cells, then go through descendants
+  evalChainException conn modifiedContext cellsToEval -- start with current cells, then go through descendants
 
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
@@ -120,7 +120,7 @@ getEvalLocs conn origCells shouldGetProperDescs = do
   vLocs <- lift $ DB.getVolatileLocs conn -- Accounts for volatile cells being reevaluated each time
   if shouldGetProperDescs
     then G.getProperDescendantsIndices $ (locs ++ vLocs)
-    else (G.getDescendantsIndices $ (locs ++ vLocs)) >>= (\idxs -> printObjT "DESC INDICES: " idxs >> return idxs)
+    else G.getDescendantsIndices $ (locs ++ vLocs)
 
 -- | Given a set of locations to eval, return the corresponding set of cells to perform
 -- the evaluations in (which includes info about tags, language, and expression string).
@@ -155,13 +155,14 @@ getCellsToEval conn locs origCells = do
 --  return $ M.fromList $ zip locs vals'
 
 -- see the comments above dispatch to see why an old evalContext is passed in.
-getInitialContext :: Connection -> [ASReference] -> EvalContext -> EitherTExec EvalContext
-getInitialContext conn ancs oldContext = do
+getModifiedContext :: Connection -> [ASReference] -> EvalContext -> EitherTExec EvalContext
+getModifiedContext conn ancs oldContext = do
    -- ::RITESH::  hella unsafe
-   indices <- concat <$> mapM DB.refToIndices ancs
-   cells <- lift $ DB.getPossiblyBlankCells indices
+   ancIndices <- concat <$> mapM (DB.refToIndicesWithContext oldContext) ancs 
+   let nonContextAncIndices = filter (not . (flip M.member (contextMap oldContext))) ancIndices
+   cells <- lift $ DB.getPossiblyBlankCells nonContextAncIndices
    let oldMap = contextMap oldContext
-       newContext = oldContext { contextMap = insertMultiple oldMap indices cells }
+       newContext = oldContext { contextMap = insertMultiple oldMap nonContextAncIndices cells }
    return newContext
 
 retrieveValue :: Maybe CompositeCell -> CompositeValue
@@ -220,7 +221,7 @@ contextInsert conn c@(Cell idx xp _ ps) (Formatted cv f) (EvalContext mp cells r
   let decoupledLocs = concat $ map DU.rangeKeyToIndices decoupledKeys
   -- Given the locs, we get the cells that we have to decouple from the DB and then change their expressions
   -- to be decoupled (by using the value of the cell)
-  decoupledCells <- lift $ (map DU.decoupleCell) <$> (catMaybes <$> DB.getCells decoupledLocs)
+  decoupledCells <- lift $ ((map DU.decoupleCell) . catMaybes) <$> DB.getCells decoupledLocs
   -- We want to update all of the decoupled cells in our mini-spreadsheet map
   let mpWithDecoupledCells = insertMultiple mp decoupledLocs decoupledCells
   -- Add our decoupled descriptors to the current list of removedDescriptors
@@ -248,7 +249,7 @@ contextInsert conn c@(Cell idx xp _ ps) (Formatted cv f) (EvalContext mp cells r
           finalCells = mergeCells cs $ mergeCells decoupledCells cells
           finalContext = EvalContext finalMp finalCells finalRemovedDescriptors finalAddedDescriptors
       -- propagate the descandants of the decoupled cells
-      finalContext' <- dispatch conn decoupledCells finalContext True
+      finalContext' <- dispatch conn decoupledCells finalContext True 
       -- propagate the descendants of the expanded cells (except for the list head)
       dispatch conn cs finalContext' True
 

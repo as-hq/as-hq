@@ -1,4 +1,4 @@
-#include "zmq.hpp"
+#include "zmq.h"
 #include "graph.cpp"
 
 #include <string>
@@ -160,11 +160,11 @@ int main () {
     cout << "\nServer started\n";
     /* DAG to be stored in memory */
     DAG dag; 
-    int computeResult = dag.recomputeDAG();
-    if (computeResult != 0) {
-        cout << "Graph DB recomputation failure. Exiting..." << endl << endl;
-        return -1;
-    }
+    // int computeResult = dag.recomputeDAG();
+    // if (computeResult != 0) {
+    //     cout << "Graph DB recomputation failure. Exiting..." << endl << endl;
+    //     return -1;
+    // }
 
     while (true) {
         /* Wait for next multi-part message from client */
@@ -176,6 +176,11 @@ int main () {
         // removes first and last quotes from string (artifact of ByteString show)
         request = request.substr(1, request.size() - 2); 
         vector<string> response = processRequest(dag,request);
+
+        cout << "response" << endl;
+        for (const auto& str : response) {
+            cout << "\t" << str << endl;
+        }
 
         clock_t end = clock(); 
         cout << "Time taken: " << (double)(end - begin)/CLOCKS_PER_SEC << endl; 

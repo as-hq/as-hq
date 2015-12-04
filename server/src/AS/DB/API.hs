@@ -14,11 +14,12 @@ import AS.Types.Eval
 import AS.Util as U
 import qualified AS.DB.Util as DU
 import AS.Parsing.Substitutions (getDependencies)
-import AS.DB.Graph as G
 import AS.Window
+import AS.Logging
 
 import Data.List (zip4,head,partition,nub,intercalate)
 import Data.Maybe (isNothing,fromJust,catMaybes)
+import qualified Data.Map as M
 
 import Foreign
 import Foreign.C.Types
@@ -167,6 +168,26 @@ refToIndices (PointerRef p) = do
         Nothing -> left $ PointerToNormalCell
         Just rKey -> return $  DU.rangeKeyToIndices rKey
 
+-- converts ref to indices using the evalContext, then the DB, in that order.
+-- because our evalContext might contain information the DB doesn't (e.g. decoupling)
+-- so in the pointer case, we need to check the evalContext first for changes that might have happened during eval
+refToIndicesWithContext :: EvalContext -> ASReference -> EitherTExec [ASIndex]
+refToIndicesWithContext _ (IndexRef i) = return [i]
+refToIndicesWithContext _ (RangeRef r) = return $ rangeToIndices r
+refToIndicesWithContext (EvalContext mp _ _ _) (PointerRef p) = do
+  let index = pointerToIndex p
+  case (M.lookup index mp) of 
+    Just (Cell _ (Coupled _ _ _ rKey) _ _) -> return $ DU.rangeKeyToIndices rKey
+    Just (Cell _ (Expression _ _) _ _) -> left $ PointerToNormalCell
+    Nothing -> do
+      cell <- lift $ getCell index 
+      case cell of
+        Nothing -> left $ IndexOfPointerNonExistant
+        Just cell' -> case (DU.cellToRangeKey cell') of
+            Nothing -> left $ PointerToNormalCell
+            Just rKey -> return $  DU.rangeKeyToIndices rKey
+
+
 ----------------------------------------------------------------------------------------------------------------------
 -- Locations
 
@@ -244,32 +265,6 @@ modifyWorkbookSheets conn f wName = do
   let wbNew = Workbook wsName $ f sheetIds
   setWorkbook conn wbNew
 
-----------------------------------------------------------------------------------------------------------------------
--- Ancestors
-
--- Update the ancestor relationships in the DB based on the expressions and locations of the
--- cells passed in. (E.g. if a cell is passed in at A1 and its expression is "C1 + 1", C1 -> A1 is
--- added to the graph.)
--- Note that a relation is (ASIndex, [ASReference]), where a graph ancestor can be any valid reference type, 
--- including pointer, range, and index. 
-setCellsAncestors :: [ASCell] -> EitherTExec [[ASReference]]
-setCellsAncestors cells = G.setRelations relations >> return depSets
-  where
-    depSets = map (\(Cell l e _ _) -> getDependencies (locSheetId l) e) cells
-    relations = (zip (map cellLocation cells) depSets) :: [ASRelation]
-
--- | It'll parse no dependencies from the blank cells at these locations, so each location in the
--- graph DB gets all its ancestors removed. 
-removeAncestorsAt :: [ASIndex] -> EitherTExec [[ASReference]]
-removeAncestorsAt = setCellsAncestors . blankCellsAt
-
--- | Should only be called when undoing or redoing commits, which should be guaranteed to not
--- introduce errors. 
-setCellsAncestorsForce :: [ASCell] -> IO ()
-setCellsAncestorsForce cells = runEitherT (setCellsAncestors cells) >> return ()
-
-removeAncestorsAtForced :: [ASIndex] -> IO ()
-removeAncestorsAtForced locs = runEitherT (removeAncestorsAt locs) >> return ()
 
 ----------------------------------------------------------------------------------------------------------------------
 -- Raw workbooks
