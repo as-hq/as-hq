@@ -231,7 +231,7 @@ describe('backend', () => {
           ]);
         });
 
-        xit('should not give a circular dependency in this contrived example', (done) => {
+        it('should not give a circular dependency in this contrived example', (done) => {
           _do([
             python('A1', '1'),
             python('B1', 'range(A1)'),
@@ -1105,15 +1105,28 @@ describe('backend', () => {
             ]);
           });
 
-          xit('should decouple lists', (done) => {
+          it('should decouple lists when it destroys it', (done) => {
             _do([
               python('A1', 'range(10)'),
               insertRow(3),
+              decouple(),
               shouldBe('A1', valueI(0)),
               shouldBe('A2', valueI(1)),
               shouldBeNothing('A3'),
               shouldBe('A4', valueI(2)),
               shouldBe('A11', valueI(9)),
+              exec(done)
+            ]);
+          });
+
+          it('should not decouple lists when it does not destroy it', (done) => {
+            _do([
+              python('A1', 'range(10)'),
+              insertRow(1),
+              decouple(), // artifact of how decoupling is currently implemented
+              shouldBeNothing('A1'),
+              shouldBe('A2', valueI(0)),
+              shouldBeCoupled('A2'),
               exec(done)
             ]);
           });
@@ -1148,6 +1161,28 @@ describe('backend', () => {
               deleteRow(1),
               decouple(),
               shouldBe('A2', valueI(45)),
+              exec(done)
+            ]);
+          });
+
+          it('should decouple lists when it destroys it', (done) => {
+            _do([
+              python('A1', 'range(10)'),
+              deleteRow(3),
+              decouple(),
+              shouldBe('A3', valueI(3)),
+              shouldBeDecoupled('A3'),
+              exec(done)
+            ]);
+          });
+
+          it('should not decouple lists when it does not destroy it', (done) => {
+            _do([
+              python('A1', 'range(10)'),
+              deleteRow(11),
+              decouple(),
+              shouldBe('A2', valueI(1)),
+              shouldBeCoupled('A2'),
               exec(done)
             ]);
           });
@@ -1196,6 +1231,44 @@ describe('backend', () => {
               exec(done)
             ]);
           });
+
+          it('should decouple lists when it destroys it', (done) => {
+            _do([
+              python('A1', 'range(10)'),
+              dragRow(3,1),
+              decouple(),
+              shouldBeDecoupled('A1'),
+
+              python('A1', '[[1,2],[3,4]]'),
+              dragRow(1,3),
+              decouple(),
+              shouldBeDecoupled('A1'),
+
+              python('A1', '[[1,2],[3,4],[5,6]]'),
+              dragRow(5,2),
+              decouple(),
+              shouldBeDecoupled('A1'),
+
+              exec(done)
+            ]);
+          });
+
+          it('should not decouple lists when it does not destroy it', (done) => {
+            _do([
+              python('A1', '[range(3)]'),
+              dragRow(1,2),
+              decouple(), // artifact of how decoupling is currently implemented
+              shouldBe('B2', valueI(1)),
+              shouldBeCoupled('B2'),
+
+              python('D1', 'range(10)'),
+              dragRow(11, 1), 
+              decouple(), 
+              shouldBe('D2', valueI(0)),
+              shouldBeCoupled('D2'),
+              exec(done)
+            ]);
+          });
         });
 
         describe('column insertion', () => {
@@ -1233,10 +1306,11 @@ describe('backend', () => {
             ]);
           });
 
-          xit('should decouple lists', (done) => {
+          it('should decouple lists when it destroys it', (done) => {
             _do([
               python('A1', '[range(10)]'),
               insertCol(3),
+              decouple(),
               shouldBe('A1', valueI(0)),
               shouldBe('B1', valueI(1)),
               shouldBeNothing('C1'),
@@ -1245,6 +1319,19 @@ describe('backend', () => {
               exec(done)
             ]);
           });
+
+          it('should not decouple lists when it does not destroy it', (done) => {
+            _do([
+              python('A1', '[range(10)]'),
+              insertCol(1),
+              decouple(), // artifact of how decoupling is currently implemented
+              shouldBeNothing('A1'),
+              shouldBe('B1', valueI(0)),
+              shouldBeCoupled('B1'),
+              exec(done)
+            ]);
+          });
+
         });
 
         describe('column deletion', () => {
@@ -1276,6 +1363,28 @@ describe('backend', () => {
               deleteCol(1),
               decouple(),
               shouldBe('B1', valueI(45)),
+              exec(done)
+            ]);
+          });
+
+          it('should decouple lists when it destroys it', (done) => {
+            _do([
+              python('A1', '[range(10)]'),
+              deleteCol(3),
+              decouple(),
+              shouldBe('C1', valueI(3)),
+              shouldBeDecoupled('C1'),
+              exec(done)
+            ]);
+          });
+
+          it('should not decouple lists when it does not destroy it', (done) => {
+            _do([
+              python('A1', '[range(10)]'),
+              deleteCol(11),
+              decouple(), // artifact of current decouple code
+              shouldBe('B1', valueI(1)),
+              shouldBeCoupled('B1'),
               exec(done)
             ]);
           });
@@ -1332,6 +1441,44 @@ describe('backend', () => {
               excel('E1', '=SUM(A1:B2)'),
               dragCol(2,3),
               shouldBe('E1', valueI(8)),
+              exec(done)
+            ]);
+          });
+
+          it('should decouple lists when it destroys it', (done) => {
+            _do([
+              python('A1', '[range(10)]'),
+              dragCol(3,1),
+              decouple(),
+              shouldBeDecoupled('A1'),
+
+              python('A1', '[[1,2],[3,4]]'),
+              dragCol(1,3),
+              decouple(),
+              shouldBeDecoupled('A1'),
+
+              python('A1', '[[1,2],[3,4],[5,6]]'),
+              dragCol(5,2),
+              decouple(),
+              shouldBeDecoupled('A1'),
+
+              exec(done)
+            ]);
+          });
+
+          it('should not decouple lists when it does not destroy it', (done) => {
+            _do([
+              python('A1', 'range(3)'),
+              dragCol(1,2),
+              decouple(), // artifact of how decoupling is currently implemente
+              shouldBe('B2', valueI(1)),
+              shouldBeCoupled('B2'),
+
+              python('A4', '[range(10)]'),
+              dragCol(11, 1), 
+              decouple(), 
+              shouldBe('B4', valueI(0)),
+              shouldBeCoupled('B4'),
               exec(done)
             ]);
           });
