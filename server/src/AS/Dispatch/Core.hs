@@ -158,7 +158,7 @@ getCellsToEval conn locs origCells = do
 getInitialContext :: Connection -> [ASReference] -> EvalContext -> EitherTExec EvalContext
 getInitialContext conn ancs oldContext = do
    -- ::RITESH::  hella unsafe
-   indices <- concat <$> mapM refToIndices ancs
+   indices <- concat <$> mapM DB.refToIndices ancs
    cells <- lift $ DB.getPossiblyBlankCells indices
    let oldMap = contextMap oldContext
        newContext = oldContext { contextMap = insertMultiple oldMap indices cells }
@@ -204,7 +204,6 @@ evalChain conn ctx (c@(Cell loc xp val ps):cs) = do
   newContext <- contextInsert conn c cvf ctx
   evalChain conn newContext cs 
 
-
 contextInsert :: Connection -> ASCell -> Formatted CompositeValue -> EvalContext -> EitherTExec EvalContext
 contextInsert conn c@(Cell idx xp _ ps) (Formatted cv f) (EvalContext mp cells removedDescriptors addedDescriptors) = do 
   printWithTimeT $ "running context insert with cell " ++ (show c)
@@ -236,7 +235,7 @@ contextInsert conn c@(Cell idx xp _ ps) (Formatted cv f) (EvalContext mp cells r
       let finalMp = M.insert idx newCell mpWithDecoupledCells
       -- Add our decoupled descriptors to the current list of removedDescriptors, and note that
       -- a simple CellValue cannot add any descriptors
-      let finalCells = mergeCells decoupledCells (newCell:cells)
+      let finalCells = mergeCells [newCell] $ mergeCells decoupledCells cells
           resultContext = EvalContext finalMp finalCells finalRemovedDescriptors addedDescriptors
       -- now, propagate the descandants of the decoupled cells
       dispatch conn decoupledCells resultContext True
