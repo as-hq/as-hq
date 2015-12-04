@@ -28,14 +28,14 @@ handleCopy :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
 handleCopy uc state (PayloadPaste from to) = do
   conn <- dbConn <$> readMVar state
   toCells <- getCopyCells conn from to
-  msg' <- runDispatchCycle state toCells (userCommitSource uc)
+  msg' <- runDispatchCycle state toCells False (userCommitSource uc)
   broadcastFiltered state uc msg'
 
 handleCut :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
 handleCut uc state (PayloadPaste from to) = do
   conn <- dbConn <$> readMVar state
   newCells <- getCutCells conn from to
-  msg' <- runDispatchCycle state newCells (userCommitSource uc)
+  msg' <- runDispatchCycle state newCells False (userCommitSource uc)
   broadcastFiltered state uc msg'
 
 

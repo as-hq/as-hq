@@ -202,6 +202,7 @@ decoupleCell (Cell l (Coupled _ lang _ _) v ts) = Cell l e' v ts
   where e' = case v of 
                NoValue   -> Expression "" lang
                otherwise -> Expression (showPrimitive lang v) lang
+decoupleCell c = c
 
 -- | Converts a coupled cell to a normal cell
 toUncoupled :: ASCell -> ASCell

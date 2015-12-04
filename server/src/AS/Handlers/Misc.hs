@@ -132,10 +132,10 @@ handleDelete uc state (PayloadR rng) = do
   let locs = rangeToIndices rng
   conn <- dbConn <$> readMVar state
   blankedCells <- DB.getBlankedCellsAt locs
-  updateMsg <- DP.runDispatchCycle state blankedCells (userCommitSource uc)
+  updateMsg <- DP.runDispatchCycle state blankedCells True (userCommitSource uc)
   let msg = makeDeleteMessage rng updateMsg
   case (serverResult msg) of  
-    (Failure _) -> sendToOriginal uc msg
+    Failure _ -> sendToOriginal uc msg
     DecoupleDuringEval -> sendToOriginal uc msg
     otherwise -> broadcast state msg
 
@@ -178,7 +178,7 @@ handleDrag uc state (PayloadDrag selRng dragRng) = do
   conn <- dbConn <$> readMVar state
   nCells <- IU.getCellsRect selRng dragRng
   let newCells = (IU.getMappedFormulaCells selRng dragRng nCells) ++ (IU.getMappedPatternGroups selRng dragRng nCells)
-  msg' <- DP.runDispatchCycle state newCells (userCommitSource uc)
+  msg' <- DP.runDispatchCycle state newCells False (userCommitSource uc)
   broadcastFiltered state uc msg'
 
 handleRepeat :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
@@ -212,7 +212,7 @@ handleSetCondFormatRules uc state (PayloadCondFormat rules) = do
       locs = concat $ map rangeToIndices $ concat $ map cellLocs rules
   DB.setCondFormattingRules conn (fst src) rules
   cells <- DB.getPossiblyBlankCells locs
-  msg <- DP.runDispatchCycle state cells src -- ::ALEX:: eventually, only eval on the xor of new and old?
+  msg <- DP.runDispatchCycle state cells False src -- ::ALEX:: eventually, only eval on the xor of new and old?
   let msg' = makeCondFormatMessage rules msg
   broadcastFiltered state uc msg'
 

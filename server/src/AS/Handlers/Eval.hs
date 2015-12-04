@@ -30,7 +30,7 @@ handleEval uc state payload  = do
   -- manually. 
   oldTags <- getPropsAt (map cellLocation cells)
   let cells' = map (\(c, ps) -> c { cellProps = ps }) (zip cells oldTags)
-  msg' <- runDispatchCycle state cells' (userCommitSource uc)
+  msg' <- runDispatchCycle state cells' False (userCommitSource uc)
   broadcastFiltered state uc msg'
 
 handleEvalRepl :: ASUserClient -> ASPayload -> IO ()

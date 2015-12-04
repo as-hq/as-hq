@@ -29,7 +29,7 @@ handleMutateSheet uc state (PayloadMutate mutateType) = do
       blankedCells = blankCellsAt (map cellLocation oldCells')
       newCells' = catMaybes $ map snd oldCellsNewCells
       updatedCells   = mergeCells newCells' blankedCells -- eval blanks at the old cell locations, re-eval at new locs
-  updateMsg <- runDispatchCycle state updatedCells (userCommitSource uc)
+  updateMsg <- runDispatchCycle state updatedCells False (userCommitSource uc)
   broadcastFiltered state uc updateMsg
 
 

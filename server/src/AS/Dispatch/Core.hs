@@ -52,7 +52,7 @@ import Control.Monad.Trans.Either
 -- Debugging
 
 testDispatch :: MVar ServerState -> ASLanguage -> Coord -> String -> IO ASServerMessage
-testDispatch state lang crd str = runDispatchCycle state [Cell (Index sid crd) (Expression str Python) NoValue emptyProps] (sid, uid)
+testDispatch state lang crd str = runDispatchCycle state [Cell (Index sid crd) (Expression str Python) NoValue emptyProps] False (sid, uid)
   where 
     sid = T.pack "sheetid"
     uid = T.pack "userid"
@@ -63,14 +63,14 @@ testDispatch state lang crd str = runDispatchCycle state [Cell (Index sid crd) (
 -- assumes all evaled cells are in the same sheet
 -- the only information we're really passed in from the cells is the locations and the expressions of
 -- the cells getting evaluated. We pull the rest from the DB. 
-runDispatchCycle :: MVar ServerState -> [ASCell] -> CommitSource -> IO ASServerMessage
-runDispatchCycle state cs src = do
+runDispatchCycle :: MVar ServerState -> [ASCell] -> Bool -> CommitSource -> IO ASServerMessage
+runDispatchCycle state cs shouldGetProperDescs src = do
   printObj "cs" cs
   roots <- EM.evalMiddleware cs
   conn <- dbConn <$> readMVar state
   errOrCells <- runEitherT $ do
     printWithTimeT $ "about to start dispatch"
-    ctxAfterDispatch <- dispatch conn roots emptyContext False
+    ctxAfterDispatch <- dispatch conn roots emptyContext shouldGetProperDescs
     printWithTimeT $ "finished dispatch"
     finalizedCells <- EE.evalEndware state (addedCells ctxAfterDispatch) src roots ctxAfterDispatch
     let ctx = ctxAfterDispatch { addedCells = finalizedCells }
@@ -86,6 +86,7 @@ runDispatchCycle state cs src = do
 -- and hoping we union them in the right order. This means that at any point in time, there is a *single*
 -- EvalContext in existence, and we just continue writing to it every time dispatch is called recursively. 
 dispatch :: Connection -> [ASCell] -> EvalContext -> Bool -> EitherTExec EvalContext
+dispatch conn [] context _ = return context
 dispatch conn roots oldContext shouldGetProperDescs = do
   printObjT "STARTING DISPATCH CYCLE WITH CELLS" roots
   -- For all the original cells, add the edges in the graph DB; parse + setRelations
@@ -102,7 +103,7 @@ dispatch conn roots oldContext shouldGetProperDescs = do
   modifiedContext <- getModifiedContext conn ancLocs oldContext
   printObjT "Created initial context" modifiedContext
   printWithTimeT "Starting eval chain"
-  evalChainException conn modifiedContext cellsToEval -- start with current cells, then go through descendants
+  evalChainWithException conn modifiedContext cellsToEval -- start with current cells, then go through descendants
 
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
@@ -179,12 +180,9 @@ formatCell mf c = case mf of
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- EvalChain
 
--- | Evaluates a list of cells, in serial order, updating the reference/value map with each
--- cell that's updated. The cells passed in are guaranteed to be topologically sorted, i.e.,
--- if a cell references an ancestor, that ancestor is guaranteed to already have been
--- added in the map.
-evalChainException :: Connection  -> EvalContext -> [ASCell] -> EitherTExec EvalContext
-evalChainException conn ctx cells = 
+-- A wrapper around evalChain which catches errors
+evalChainWithException :: Connection  -> EvalContext -> [ASCell] -> EitherTExec EvalContext
+evalChainWithException conn ctx cells = 
   let whenCaught e = do
         printObj "Runtime exception caught" (e :: SomeException)
         return $ Left RuntimeEvalException
@@ -192,21 +190,45 @@ evalChainException conn ctx cells =
     result <- liftIO $ catch (runEitherT $ evalChain conn ctx cells) whenCaught
     hoistEither result
 
+
 evalChain :: Connection -> EvalContext -> [ASCell] -> EitherTExec EvalContext
 evalChain _ ctx [] = printWithTimeT "empty evalchain" >> return ctx
 evalChain conn ctx (c@(Cell loc xp val ps):cs) = do
   printWithTimeT $ "running eval chain with cells: " ++ (show (c:cs))
-  let getEvalResult = EC.evaluateLanguage conn loc ctx
+  let getEvalResult expression = EC.evaluateLanguage conn loc ctx expression 
   cvf <- case xp of 
     Expression _ _         ->  getEvalResult xp
     Coupled str lang _ key -> if (DU.isFatCellHead c)
       then getEvalResult $ Expression str lang
-      else return $ Formatted (CellValue val) (formatType <$> getProp ValueFormatProp ps) -- temporary patch -- eval needs to get restructured
+      else return $ Formatted (CellValue val) (formatType <$> getProp ValueFormatProp ps) 
   newContext <- contextInsert conn c cvf ctx
   evalChain conn newContext cs 
 
+-- Deal with a possible shrink list. The ASCell passed in is a descendant during dispatch. We're not doing anything if it isn't coupled. All descendants of a cell
+-- must be fat cell heads or normal cells. If it's a fat cell head, we're going to blank out all indices in the corresponding objectfor now and propagate 
+-- those changes. The composite value returned by the previous eval chain will then write over this object in contextInsert. 
+-- Example: if range(10) becomes range(5) because of an upstream change, blank out A1:A10. The cv in the previous evalChain has the coupled range(5) cells and 
+-- will replace the contextMap. Essentially, this transform exists because you should delete an object before overwriting it while evaluating a descendant. 
+possiblyDeletePreviousFatCell :: Connection -> ASCell -> EvalContext -> EitherTExec EvalContext
+possiblyDeletePreviousFatCell conn c@(Cell idx xp _ ps) ctx = case xp of 
+  Expression _ _         ->  return ctx
+  Coupled str lang _ key -> if (DU.isFatCellHead c)
+    then let indices = DU.rangeKeyToIndices key
+             blankCells = map blankCellAt indices
+             ctx' = ctx { contextMap = insertMultiple (contextMap ctx) indices blankCells }
+         in dispatch conn blankCells ctx' True
+    else left WillNotEvaluate
+
+
+-- current state: when you do a1=5, a2=range(a1), then a1=2, it doesn't work. We think this is bc the old range descriptor still exists when you do a dispatch with
+-- the deleted cells. getFatCellIntersetions should sometimes look at context first.
+
+-- the cell passed in is the old cell (we insert the old cell + new eval'ed value into the context at the end of this function, 
+-- after all side effects due to insertion have been handled)
 contextInsert :: Connection -> ASCell -> Formatted CompositeValue -> EvalContext -> EitherTExec EvalContext
-contextInsert conn c@(Cell idx xp _ ps) (Formatted cv f) (EvalContext mp cells removedDescriptors addedDescriptors) = do 
+contextInsert conn c@(Cell idx xp _ ps) (Formatted cv f) ctx = do 
+  -- this should be the very first transform to EvalContext applied, because you should delete an object before overwriting it while evaluating a descendant. 
+  (EvalContext mp cells removedDescriptors addedDescriptors) <- possiblyDeletePreviousFatCell conn c ctx
   printWithTimeT $ "running context insert with cell " ++ (show c)
   let maybeFatCell = DE.decomposeCompositeValue c cv
   -- The newly created cell(s) may have caused decouplings, which we're going to deal with. First, we get the decoupled keys 

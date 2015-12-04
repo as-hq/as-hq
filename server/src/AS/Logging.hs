@@ -1,6 +1,8 @@
 module AS.Logging 
   ( printWithTime
   , printWithTimeT
+  , printList2
+  , printListT2
   , printObj
   , printObjT
   , printDebug
@@ -12,6 +14,7 @@ module AS.Logging
 
 import AS.Types.Eval
 import AS.Types.Commits
+import AS.Types.DB
 import AS.Config.Paths
 
 import qualified Data.Text as T
@@ -19,10 +22,13 @@ import Control.Monad.Trans.Class (lift)
 import Data.Time.Clock (getCurrentTime)
 import Control.Exception (catch, SomeException)
 
+truncateLength :: Int
+truncateLength = 1000
+
 truncated :: String -> String
 truncated str
-  | length str < 500 = str 
-  | otherwise = (take 500 str) ++ ("... [Truncated]")
+  | length str < truncateLength = str 
+  | otherwise = (take truncateLength str) ++ ("... [Truncated]")
 
 -- Gets date in format 2015-12-02 20:44:24.515
 getTime :: IO String
@@ -88,8 +94,14 @@ printObj :: (Show a) => String -> a -> IO ()
 printObj disp obj = printWithTime (disp ++ ": " ++ (show $ seq () obj))
 -- the seq is necessary so that the object gets evaluated before the time does in printWithTime. 
 
+printList2 :: (Show2 a) => String -> [a] -> IO ()
+printList2 disp l = printWithTime (disp ++ ": " ++ (show $ map show2 $ seq () l))
+
 printObjT :: (Show a) => String -> a -> EitherTExec () 
 printObjT disp obj = lift (printObj disp obj)
+
+printListT2 :: (Show2 a) => String -> [a] -> EitherTExec ()
+printListT2 disp l = lift $ printList2 disp l
 
 -- | For debugging purposes
 printDebug :: (Show a) => String -> a -> IO ()
