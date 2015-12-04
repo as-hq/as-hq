@@ -760,8 +760,6 @@ export default React.createClass({
   /**************************************************************************************************************************/
   /* File management */
 
-  _exportFile() { API.export(Store.getCurrentSheet()); },
-
   _onFileDrop(files: Array<File>) { API.import(files[0]); },
 
   /**************************************************************************************************************************/
@@ -791,10 +789,6 @@ export default React.createClass({
           handleEditorFocus={this._handleEditorFocus}
           getCodeEditorMaxLines={this._getCodeEditorMaxLines}
           language={currentLanguage}
-          onReplClick={this._toggleRepl}
-          onExport={this._exportFile}
-          onEvalHeaderClick={this.toggleEvalHeader}
-          onSubmitDebug={this._submitDebug}
           onSelectLanguage={this.selectLanguage}
           onSetVarName={this._onSetVarName}
           onDeferredKey={this._onEditorDeferredKey}
