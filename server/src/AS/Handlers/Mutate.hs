@@ -99,7 +99,7 @@ sanitizeMutateCell _ _ c@(Cell _ (Expression _ _) _ _) = c
 sanitizeMutateCell mt oldLoc c = cell'
   where 
     Just rk = cellToRangeKey c
-    cell' = if trace' "mutated?" $ fatCellGotMutated mt rk
+    cell' = if fatCellGotMutated mt rk
       then DU.toDecoupled c
       else c { cellExpression = (cellExpression c) { cRangeKey = rk { keyIndex = fromJust $ cellLocMap mt (keyIndex rk) } } } 
 

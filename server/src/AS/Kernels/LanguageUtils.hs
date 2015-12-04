@@ -127,7 +127,7 @@ addPrintCmd lang str = case lang of
   R     -> str
   Python  -> "result = " ++ str
   OCaml   -> "print_string(Std.dump(" ++ str ++ "))"
-  SQL   -> "result = pprintSql(db(\'" ++ str ++ "\'))" -- hardcoded db() function usage for demos
+  SQL   -> "result = serialize(db(\'" ++ str ++ "\'))" -- hardcoded db() function usage for demos
 
 recombineLines :: (String, String) -> String
 recombineLines ("", endLine) = endLine
@@ -232,7 +232,7 @@ insertValues sheetid valuesMap xp =
         st = ["dataset"++(show i) | i<-[0..((L.length matchRefs)-1)]]
         newExp = expression $ replaceRefs (\el -> (L.!!) st (MB.fromJust (L.findIndex (el==) exRefs))) xp
         contextStmt = "setGlobals("++(show context) ++")\n"
-        evalStmt = "result = pprintSql(db(\'" ++ newExp ++ "\'))"
+        evalStmt = "result = serialize(db(\'" ++ newExp ++ "\'))"
     _ -> evalString
       where
         exRefToStringEval = (lookUpRef lang valuesMap) . (exRefToASRef sheetid) -- ExRef -> String. (Takes in ExRef, returns the ASValue corresponding to it, as a string.)
@@ -335,6 +335,7 @@ getHeaderFile sid lang = do
     file = case lang of
       Python -> "py/headers/" ++ (T.unpack sid) ++ ".py"
       R    -> "r/headers/" ++ (T.unpack sid) ++ ".r"
+      SQL  -> "sql/headers/" ++ (T.unpack sid) ++ ".py"
 
 getHeaderRecordFile :: ASLanguage -> IO String
 getHeaderRecordFile lang = do

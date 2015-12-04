@@ -52,12 +52,11 @@ evaluateLanguage sid curRef valuesMap xp@(Expression str lang) =
     case maybeError of
       Just e -> return . return . CellValue $ e -- short-circuited, return this error
       Nothing -> case lang of
-        Excel -> do 
-          KE.evaluate str curRef valuesMap
+        Excel -> KE.evaluate str curRef valuesMap
           -- Excel needs current location and un-substituted expression, and needs the formatted values for
           -- loading the initial entities
         otherwise -> return <$> execEvalInLang sid lang xpWithValuesSubstituted -- didn't short-circuit, proceed with eval as usual
-         where xpWithValuesSubstituted = insertValues sid unformattedValuesMap xp
+          where xpWithValuesSubstituted = insertValues sid unformattedValuesMap xp
 evaluateLanguage _ _ _ (Coupled _ _ _ _) = left WillNotEvaluate
 
 -- no catchEitherT here for now, but that's because we're obsolescing Repl for now. (Alex ~11/10)

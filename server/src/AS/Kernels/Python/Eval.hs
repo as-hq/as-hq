@@ -74,7 +74,6 @@ evaluateHeader sid str = do
         then execWrappedCode evalCode
         else return $ CellValue NoValue
 
-
 -- | SQL
 evaluateSql :: ASSheetId -> String -> EitherTExec CompositeValue
 evaluateSql _ "" = return $ CellValue NoValue
@@ -88,6 +87,7 @@ evaluateSql sid str = do
 evaluateSqlRepl :: ASSheetId -> String -> EitherTExec CompositeValue
 evaluateSqlRepl _ "" = return $ CellValue NoValue
 evaluateSqlRepl sid str = evaluateSql sid str
+
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | helpers
 
