@@ -29,7 +29,11 @@ data ExpandingType = List | RList | RDataFrame | NPArray | NPMatrix | PDataFrame
 data ASExpression =
     Expression { expression :: String, language :: ASLanguage }
   | Coupled { cExpression :: String, cLanguage :: ASLanguage, cType :: ExpandingType, cRangeKey :: RangeKey }
-  deriving (Show, Read, Eq, Generic)
+  deriving (Read, Eq, Generic)
+
+instance Show ASExpression where
+  show (Expression xp lang) = xp ++ ", " ++ (show lang)
+  show (Coupled xp lang _ _) = xp ++ ", coupled, " ++ (show lang)
 
 xpString :: ASExpression -> String
 xpString (Expression xp _) = xp
@@ -57,7 +61,10 @@ data ASValue =
 data ASCell = Cell {cellLocation :: ASIndex,
           cellExpression :: ASExpression,
           cellValue :: ASValue,
-          cellProps :: ASCellProps} deriving (Show, Read, Eq, Generic)
+          cellProps :: ASCellProps} deriving (Read, Eq, Generic)
+
+instance Show ASCell where
+  show (Cell l e v p) = show (l, e, v)
 
 -- range keys are used to access range descriptors, which relay metadata about a range of cells
 -- e.g. for embedded lists and objects

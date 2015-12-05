@@ -57,10 +57,6 @@ decouple conn key =
 -- Still gets the cells before decoupling, but don't set range keys
 getCellsBeforeDecoupling :: Connection -> RangeKey -> IO [ASCell]
 getCellsBeforeDecoupling conn key = catMaybes <$> DB.getCells (rangeKeyToIndices key)
-  where 
-    rangeKey       = B.pack . show2 $ key
-    sheetRangesKey = makeSheetRangesKey . rangeKeyToSheetId $ key
-
 
 -------------------------------------------------------------------------------------------------------------------------
 -- Range keys
@@ -95,30 +91,23 @@ setRangeKeysChanged conn keys src = do
       set commitSource rangeKeys
     return ()
 
--- given a list of rangeKeys, remove the ones that we've indicated as removed in the given evalContext
-filterRangeKeysByContext :: EvalContext -> [RangeKey] -> [RangeKey]
-filterRangeKeysByContext (EvalContext _ _ removedDescriptors _) = filter (not . isRemoved)
-  where 
-    removedRangeKeys = map descriptorKey removedDescriptors
-    isRemoved        = flip elem removedRangeKeys
-
-getFatCellIntersections :: Connection -> EvalContext -> Either [ASIndex] [RangeKey] -> IO [RangeKey]
-getFatCellIntersections conn ctx (Left locs) = (filterKeys ctx) . concat <$> getRangeKeys conn locs
+getFatCellIntersections :: Connection -> EvalContext -> Either [ASIndex] [RangeKey] -> IO [RangeDescriptor]
+getFatCellIntersections conn ctx (Left locs) = (filter descriptorIntersects) . concat <$> mapM (getRangeDescriptorsInSheetWithContext conn ctx) sheetIds
   where
-    filterKeys ctx              = (filter keyIntersects) . (filterRangeKeysByContext ctx)
-    getRangeKeys conn myLocs    = mapM (DI.getRangeKeysInSheet conn) (L.nub $ map locSheetId myLocs)
-    keyIntersects k             = anyLocsContainedInRect locs (rangeRect k)
+    sheetIds = L.nub $ map locSheetId locs
+    descriptorIntersects r = anyLocsContainedInRect locs (rangeRect . descriptorKey $ r)
     anyLocsContainedInRect ls r = any id $ map (indexInRect r) ls
     indexInRect ((a',b'),(a2',b2')) (Index _ (a,b)) = a >= a' && b >= b' &&  a <= a2' && b <= b2'
 
 getFatCellIntersections conn ctx (Right keys) = do
-  rangeKeys <- concat <$> getRangeKeys conn keys
-  printObj "Checking intersections against keys in sheet" rangeKeys
-  return $ filterKeys ctx rangeKeys 
+  descriptors <- concat <$> mapM (getRangeDescriptorsInSheetWithContext conn ctx) sheetIds
+  printObj "Checking intersections against keys in sheet" descriptors
+  return $ descriptorsIntersectingKeys descriptors keys
     where 
-      getRangeKeys conn myKeys = mapM (getRangeKeysInSheet conn) (L.nub $ map (locSheetId . keyIndex) myKeys)
-      filterKeys ctx         = filterIntersectingKeys . (filterRangeKeysByContext ctx)
-      filterIntersectingKeys = L.intersectBy keysIntersect keys
+      sheetIds = L.nub $ map (locSheetId . keyIndex) keys
+      -- given a list of keys and a descriptor, return True iff the descriptor intersects any of the keys
+      descriptorIntersectsAnyKeyInList ks d = length (filter (\key -> keysIntersect (descriptorKey d) key) ks) > 0
+      descriptorsIntersectingKeys ds ks = filter (descriptorIntersectsAnyKeyInList ks) ds
       keysIntersect k1 k2    = rectsIntersect (rangeRect k1) (rangeRect k2)
       rectsIntersect ((y,x),(y2,x2)) ((y',x'),(y2',x2'))
         | y2 < y' = False 

@@ -8,7 +8,8 @@ import AS.Logging
 import Prelude
 
 import qualified Data.Map as M
-import Data.List (foldl')
+import Data.List (foldl', find)
+import Data.Maybe (isJust)
 
 import Data.UUID.V4 (nextRandom)
 import Data.UUID (toString)
@@ -42,3 +43,6 @@ getUniqueId = return . toString =<< nextRandom
 insertMultiple :: (Ord k) => M.Map k v -> [k] -> [v] -> M.Map k v
 insertMultiple mp keys values = foldl' (\curMap (key,value) -> M.insert key value curMap) mp assoc
   where assoc = zip keys values
+
+filterBy :: (a -> b) -> (b -> Bool) -> [a] -> [a]
+filterBy f filt l = map snd $ filter (\(fe, _) -> filt fe) $ zip (map f l) l

@@ -83,8 +83,8 @@ type JSONPair = (String, String)
 
 type EitherTExec = EitherT ASExecError IO
 
-data DescendantsSetting = ProperDescendants | DescendantsWithParent 
-data AncestrySetting = SetAncestry | DontSetAncestry
+data DescendantsSetting = ProperDescendants | DescendantsWithParent deriving (Show, Read, Eq)
+data AncestrySetting = SetAncestry | DontSetAncestry deriving (Show, Read, Eq)
 
 ----------------------------------------------------------------------------------------------------------------------
 -- Fat cells

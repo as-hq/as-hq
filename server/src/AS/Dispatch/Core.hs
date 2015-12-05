@@ -90,6 +90,7 @@ dispatch :: Connection -> [ASCell] -> EvalContext -> DescendantsSetting -> Ances
 dispatch conn [] context _ _ = return context
 dispatch conn roots oldContext descSetting ancSetting = do
   printObjT "STARTING DISPATCH CYCLE WITH CELLS" roots
+  printWithTimeT $ "Settings: Descendants: " ++ (show descSetting) ++ ", Ancestors: " ++ (show ancSetting)
   -- For all the original cells, add the edges in the graph DB; parse + setRelations
   rootsDepSets <- case ancSetting of 
     SetAncestry -> G.setCellsAncestors roots
@@ -104,7 +105,7 @@ dispatch conn roots oldContext descSetting ancSetting = do
   printObjT "Got ancestor locs" ancLocs
   -- The initial lookup cache has the ancestors of all descendants
   modifiedContext <- getModifiedContext conn ancLocs oldContext
-  lift $ putStrLn $ "Created initial context"  ++ (show modifiedContext)
+  lift $ putStrLn $ "Created initial context"  -- ++ (show modifiedContext)
   printWithTimeT "Starting eval chain"
   evalChainWithException conn modifiedContext cellsToEval -- start with current cells, then go through descendants
 
@@ -213,13 +214,23 @@ evalChain conn ctx (c@(Cell loc xp val ps):cs) = do
 -- Example: if range(10) becomes range(5) because of an upstream change, blank out A1:A10. The cv in the previous evalChain has the coupled range(5) cells and 
 -- will replace the contextMap. Essentially, this transform exists because you should delete an object before overwriting it while evaluating a descendant. 
 possiblyDeletePreviousFatCell :: Connection -> ASCell -> EvalContext -> EitherTExec EvalContext
-possiblyDeletePreviousFatCell conn c@(Cell idx xp _ ps) ctx = case xp of 
+possiblyDeletePreviousFatCell conn c@(Cell idx xp _ ps) ctx@(EvalContext mp addedCells removedDescriptors addedDescriptors) = case xp of 
   Expression _ _         ->  return ctx
   Coupled str lang _ key -> if (isFatCellHead c)
-    then let indices = rangeKeyToIndices key
-             blankCells = map blankCellAt indices
-             ctx' = ctx { contextMap = insertMultiple (contextMap ctx) indices blankCells }
-         in dispatch conn blankCells ctx' ProperDescendants DontSetAncestry
+    then do 
+      let indices = rangeKeyToIndices key
+          blankCells = map blankCellAt indices
+      descriptor <- lift $ DB.getRangeDescriptorUsingContext conn ctx key
+      printWithTimeT $ "REMOVED DESCRIPTOR IN DELETE PREVIOUS FAT CELL: " ++ (show descriptor)
+      printWithTimeT $ "BLANK CELLS: " ++ (show blankCells)
+      -- remove the descriptor
+      let newRemovedDescriptors = case descriptor of
+                Nothing -> removedDescriptors
+                Just d  -> d:removedDescriptors
+          -- the blanked cells have to be added to the list of added cells. If anything replaces these blank cells, contextInsert will merge them in. 
+          newAddedCells = mergeCells blankCells addedCells
+      let ctx' = ctx { contextMap = insertMultiple (contextMap ctx) indices blankCells, removedDescriptors = newRemovedDescriptors, addedCells = newAddedCells }
+      dispatch conn blankCells ctx' ProperDescendants DontSetAncestry
     else left WillNotEvaluate
 
 
@@ -234,18 +245,16 @@ contextInsert conn c@(Cell idx xp _ ps) (Formatted cv f) ctx = do
   -- this should be the very first transform to EvalContext applied, because you should delete an object before overwriting it while evaluating a descendant. 
   (EvalContext mp cells removedDescriptors addedDescriptors) <- possiblyDeletePreviousFatCell conn c ctx
   printWithTimeT $ "running context insert with cell " ++ (show c)
+  printWithTimeT $ "the context insert has value " ++ (show cv)
   let maybeFatCell = DE.decomposeCompositeValue c cv
   -- The newly created cell(s) may have caused decouplings, which we're going to deal with. First, we get the decoupled keys 
-  decoupledKeys <- lift $ case maybeFatCell of
+  newlyRemovedDescriptors <- lift $ case maybeFatCell of
     Nothing -> DX.getFatCellIntersections conn ctx (Left [idx])
     Just (FatCell _ descriptor) -> DX.getFatCellIntersections conn ctx (Right [descriptorKey descriptor])
-  printObjT "got decoupled keys in contextInsert" decoupledKeys
-  -- We then get the range descriptors of those keys from the DB. These are the descriptors that need 
-  -- to be removed. There's currently no batched getDescriptors, so we mapM. 
-  newlyRemovedDescriptors <- lift $ map fromJust <$> mapM (DB.getRangeDescriptor conn) decoupledKeys
+  printObjT "got decoupled descriptors in contextInsert" newlyRemovedDescriptors
   -- The locations we have to decouple can be constructed from the range keys, which have info about the
   -- head and size of the range
-  let decoupledLocs = concat $ map rangeKeyToIndices decoupledKeys
+  let decoupledLocs = concat $ map (rangeKeyToIndices . descriptorKey) newlyRemovedDescriptors
   -- Given the locs, we get the cells that we have to decouple from the DB and then change their expressions
   -- to be decoupled (by using the value of the cell)
   decoupledCells <- lift $ ((map DI.toDecoupled) . catMaybes) <$> DB.getCells decoupledLocs
@@ -282,161 +291,3 @@ contextInsert conn c@(Cell idx xp _ ps) (Formatted cv f) ctx = do
       -- you don't set relations of the newly expanded cells, because those relations do not exist. Only the head of the list has an ancestor at this point.
       dispatch conn cs finalContext' ProperDescendants DontSetAncestry
 
-
-  --case (DE.decomposeCompositeValue cv) of 
-  --  Nothing -> do
-  --    let CellValue v = cv
-  --    -- The newly created cell may have caused decouplings, which we're going to deal with.  
-  --    -- First, we get the decoupled keys 
-  --    decoupledKeys <- DI.getFatCellIntersections conn (Left [idx]) 
-  --    -- We then get the range descriptors of those keys from the DB. These are the descriptors that need 
-  --    -- to be removed. There's currently no batched getDescriptors, so we mapM. 
-  --    newlyRemovedDescriptors <- map fromJust <$> mapM (DB.getRangeDescriptor conn) decoupledKeys
-  --    -- The locations we have to decouple can be constructed from the range keys, which have info about the
-  --    -- head and size of the range
-  --    let decoupledLocs = concat $ map DI.rangeKeyToIndices decoupledKeys
-  --    -- Given the locs, we get the cells that we have to decouple from the DB and then change their expressions
-  --    -- to be decoupled (by using the value of the cell)
-  --    decoupledCells <- map DI.toDecoupled <$> DB.getCells decoupledLocs
-  --    -- We want to update all of the decoupled cells in our mini-spreadsheet map
-  --    let mpWithDecoupledCells = insertMultiple mp decoupledLocs decoupledCells
-  --    -- Modify the props of our current cell to reflect any format
-  --    let newCell = formatCell f $ Cell idx xp v ps
-  --    -- The final updated map also has our newly evaluated cell in it, with updated cell value and props
-  --    let finalMp = M.insert idx newCell mpWithDecoupledCells
-  --    -- Add our decoupled descriptors to the current list of removedDescriptors, and note that
-  --    -- a simple CellValue cannot add any descriptors
-  --    let finalRemovedDescriptors = removedDescriptors ++ newlyRemovedDescriptors
-  --        finalCells = mergeCells decoupledCells (newCell:cells)
-  --        resultContext = EvalContext newMp finalCells finalRemovedDescriptors addedDescriptors
-  --    -- now, propagate the descandants of the decoupled cells
-  --    dispatch conn [decoupledCells] resultContext True
-
-  --  Just (FatCell cs descriptor) -> do
-  --    -- The newly created cell may have caused decouplings, which we're going to deal with.  
-  --    -- First, we get the decoupled keys 
-  --    decoupledKeys <- DI.getFatCellIntersections conn (Right [descriptorKey descriptor]) 
-  --    -- We then get the range descriptors of those keys from the DB. These are the descriptors that need 
-  --    -- to be removed. There's currently no batched getDescriptors, so we mapM. 
-  --    newlyRemovedDescriptors <- map fromJust <$> mapM (DB.getRangeDescriptor conn) decoupledKeys
-  --    -- The locations we have to decouple can be constructed from the range keys, which have info about the
-  --    -- head and size of the range
-  --    let decoupledLocs = concat $ map DI.rangeKeyToIndices decoupledKeys
-  --    -- Given the locs, we get the cells that we have to decouple from the DB and then change their expressions
-  --    -- to be decoupled (by using the value of the cell)
-  --    decoupledCells <- map DI.toDecoupled <$> DB.getCells decoupledLocs
-  --    -- We want to update all of the decoupled cells in our mini-spreadsheet map
-  --    let mpWithDecoupledCells = insertMultiple mp decoupledLocs decoupledCells
-  --    -- Modify the props of our current cells to reflect any format
-  --    let newCells = map (formatCell f) cs
-  --    -- The final updated map also has our newly evaluated cells in it, with updated cell value and props
-  --    let finalMp = insertMultiple mpWithDecoupledCells (map cellLocation newCells) newCells
-  --        finalRemovedDescriptors = removedDescriptors ++ newlyRemovedDescriptors
-  --        finalAddedDescriptors = descriptor:addedDescriptors
-  --        finalCells = mergeCells cs $ mergeCells decoupledCells cells
-  --        finalContext = EvalContext finalMp finalCells finalRemovedDescriptors finalAddedDescriptors
-  --    -- propagate the descandants of the decoupled cells
-  --    finalContext' <- dispatch conn [decoupledCells] finalContext True
-  --    -- propagate the descendants of the expanded cells (except for the list head)
-  --    dispatch conn cs finalContext' True
-
-
----- | evalChain' works in two parts. First, it goes through the list of cells passed in and
----- evaluates them. Along the way, new fat cells (created as part of a list) are created
----- that may need to get re-evaluated. These get rnecorded in the fourth argument (type [FatCell]),
----- and the heads of these lists get recorded in the fifth.
-----
----- When we finish evaluating the original list of cells, we go through the newly created fat cells
----- and re-evaluate those. We are NOT just running eval on this list of cells directly,
----- because we don't need to re-evaluate the individual cells in the list, ONLY their descendants.
----- We also need to check for circular dependencies, which is why the pastListHeads are passed in.
----- 
----- Note that we can get into arbitrarily many cycles of alternating between normal evalChains, 
----- then evalChains where we're processing fatCells, normal evalChains, fatCell processing evalChains, 
----- etc. Note also that pastFatCellHeads accumulates across all of these, and doesn't just reflect the
----- heads of the cells passed in from the latest eval. 
-----
----- finally, in the second case of evalChain', we might evaluate a Coupled expression which belong to a 
----- list head. If so, we evaluate it, but "delete" the cells in the previous list by passing the argument
----- "deletedLocs", the 6th argument. This is how shrink lists work. In DT.writeTransaction, we turn these 
----- locations into actual blank cells and delete them. 
----- 
----- #needsrefactor there's probably a more Haskell way of doing this with a state monad or something.
---evalChain' :: Connection -> EvalContext -> [ASCell]  -> [ASIndex] -> [ASIndex] -> EitherTExec ([ASCell], [FatCell], [ASIndex], FormattedValMap)
---evalChain' _ ctx [] [] _ _ = return ([], [], [], valMap)
-
---evalChain' conn valuesMap [] fatCells pastFatCellHeads _ = 
---  -- get expanded cells from fat cells
---  let unwrap (FatCell fcells _) = fcells
---      cells                     = concat $ map unwrap fatCells
---      isFatCellHeadLoc loc      = loc `elem` pastFatCellHeads
---      nonHeadLocs               = filter (not . isFatCellHeadLoc) $ map cellLocation cells
---      isNotInMap loc            = loc `M.notMember` valuesMap
---  in do
---    printWithTimeT $ "pastCellHeads " ++ (show pastFatCellHeads)
---    printWithTimeT $ "nonHeadLocs " ++ (show nonHeadLocs)
---    -- If we've overwritten old cells with list cells, we remove their dependencies from the graph
---    -- database. 
---    DB.removeAncestorsAt nonHeadLocs
---    -- We only need to deal with proper descendants, because the starting locs can't possibly 
---    -- be in the value map and don't need to be re-evaluated. 
---    nonHeadDescs <- G.getDescendantsIndices $ nonHeadLocs
---    printWithTimeT $ "nonHeadDesc " ++ (show nonHeadDescs)
---    -- Check for circular dependencies. IF a circular dependency exists, it necessarily has to
---    -- involve one of the list heads, since the cells created as part of a list depend only
---    -- on the head. So we go through the descendants of the current list cells (sans the previous
---    -- list heads), and if those contain any of the previous list heads we know there's a cycle.
---    let checkCircular loc = if (isFatCellHeadLoc loc) then (left $ CircularDepError loc) else (return ())
---    mapM_ checkCircular $ nonHeadDescs
---    -- We can now remove the descendants that are already in the map, because they've already 
---    -- been evaluated. (We also MUST remove them, because some of the descendants might not have
---    -- existed before the eval, and if we include them among nextLocs we'll get an error when we
---    -- try to pull out the cell at that location in getCellsToEval. We couldn't remove them when checking
---    -- for circular dependencies though.)
---    let nextLocs = filter isNotInMap nonHeadDescs
---    -- #needsrefactor it seems like a large chunk of code here mirrors that in evalChain... should probably DRY
---    ancLocs <- G.getImmediateAncestors $ indicesToGraphReadInput nextLocs
---    formattedNewMap <- lift $ formatValsMap =<< getValuesMap conn ancLocs
---    cells' <- getCellsToEval conn nextLocs [] -- the origCells are the list cells, which got filtered out of nextLocs
---    evalChain' conn (M.union valuesMap formattedNewMap) cells' [] pastFatCellHeads []
-
---evalChain' conn valuesMap (c@(Cell loc xp oldVal ps):cs) fatCells fatCellHeads pastDeletedLocs = do
---  (cvf@(Formatted cv f), deletedLocs) <- case xp of 
---    Expression _ _ -> (,) <$> evalResult <*> return []
---      where evalResult = EC.evaluateLanguage (locSheetId loc) (cellLocation c) valuesMap xp
---    -- we might receive a non-list-head coupled cell to evaluate during copy/paste, row insertion, etc.  
---    -- if we receive a coupled cell to evaluate, and it's the head of the list, we should evaluate, as long as we get rid of cruft.
---    -- where "get rid of cruft" = get rid of all the non-head cells first, which is deletedCells
---    Coupled str lang _ key -> if (DI.isFatCellHead c)
---      then (,) <$> evalResult <*> return decoupleLocs
---      else (,) <$> (return $ Formatted (CellValue oldVal) (formatType <$> getProp ValueFormatProp ps)) <*> return [] -- temporary patch -- eval needs to get restructured
---        where evalResult = EC.evaluateLanguage (locSheetId loc) (cellLocation c) valuesMap xp'
---              xp' = Expression str lang
---              decoupleLocs = DI.rangeKeyToIndices key
-
---  let maybeFatCell              = DE.decomposeCompositeValue c cv
---      addCell (Cell l _ v _) mp = M.insert l (Formatted (CellValue v) f) mp
---      newValuesMap              = case maybeFatCell of
---              Nothing -> if (M.member ptr valuesMap) 
---                then M.insert ptr cvf idxInserted
---                else idxInserted
---                where 
---                  ptr = indexToPointer loc
---                  idxInserted = M.insert loc cvf valuesMap
---      -- ^ when updating a location in the map, check if there are Pointer references to the same location.
---      -- if so, update them too
---              Just (FatCell expandedCells _) -> foldr addCell valuesMap expandedCells
---      -- ^ adds all the cells in cellsList to the reference map
---      (fatCells', fatCellHeads') = case maybeFatCell of
---                Nothing -> (fatCells, fatCellHeads)
---                Just f  -> (f:fatCells, loc:fatCellHeads)
---  (restCells, restFatCells, restDeletedLocs, restValuesMap) <- evalChain' conn newValuesMap cs fatCells' fatCellHeads' []
---  -- TODO investigate strictness here
---  let (CellValue v) = cv
---      newCell       = formatCell f (Cell loc xp v ps)
---      (resultCells, resultFatCells) = case maybeFatCell of
---          Nothing      -> (newCell:restCells, restFatCells)
---          Just fatCell -> (restCells, fatCell:restFatCells)
---      resultDeletedLocs = pastDeletedLocs ++ deletedLocs ++ restDeletedLocs
-
---  right (resultCells, resultFatCells, resultDeletedLocs, restValuesMap)

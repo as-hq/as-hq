@@ -138,9 +138,14 @@ execGraphWriteQuery q = runZMQ $ do
   send reqSocket [] $ BC.pack (show $ show q) -- graph db requires quotes around message
   return ()
 
+shouldSetRelationsOfCellWhenRecomputing :: ASCell -> Bool 
+shouldSetRelationsOfCellWhenRecomputing cell = case (cellToRangeKey cell) of 
+  Just (RangeKey idx _) -> cellLocation cell == idx -- should be a fat cell head
+  Nothing -> True -- keep normal cells
+
 recompute :: R.Connection -> IO ()
 recompute conn = do
-  cells <- DB.getAllCells conn
+  cells <- filter shouldSetRelationsOfCellWhenRecomputing <$> DB.getAllCells conn
   clear
   setCellsAncestorsForce cells
   return ()

@@ -18,7 +18,7 @@ import AS.Window
 import AS.Logging
 
 import Data.List (zip4,head,partition,nub,intercalate)
-import Data.Maybe (isNothing,fromJust,catMaybes)
+import Data.Maybe 
 import qualified Data.Map as M
 
 import Foreign
@@ -166,7 +166,7 @@ refToIndices (PointerRef p) = do
     Nothing -> left $ IndexOfPointerNonExistant
     Just cell' -> case (cellToRangeKey cell') of
         Nothing -> left $ PointerToNormalCell
-        Just rKey -> return $  rangeKeyToIndices rKey
+        Just rKey -> return $ rangeKeyToIndices rKey
 
 -- converts ref to indices using the evalContext, then the DB, in that order.
 -- because our evalContext might contain information the DB doesn't (e.g. decoupling)
@@ -219,6 +219,25 @@ getRangeDescriptorsInSheet :: Connection -> ASSheetId -> IO [RangeDescriptor]
 getRangeDescriptorsInSheet conn sid = do
   keys <- DI.getRangeKeysInSheet conn sid
   map fromJust <$> mapM (getRangeDescriptor conn) keys
+
+getRangeDescriptorsInSheetWithContext :: Connection -> EvalContext -> ASSheetId -> IO [RangeDescriptor]
+getRangeDescriptorsInSheetWithContext conn ctx@(EvalContext _ _ addedDescriptors removedDescriptors) sid = do
+  putStrLn $ "removed descriptors in getRangeDescriptorsInSheetWithContext " ++ (show removedDescriptors)
+  dbKeys <- DI.getRangeKeysInSheet conn sid
+  let dbKeys' = dbKeys \\ (map descriptorKey removedDescriptors)
+  dbDescriptors <- map fromJust <$> mapM (getRangeDescriptor conn) dbKeys' 
+  return $ addedDescriptors ++ dbDescriptors
+
+-- If the range descriptor associated with a range key is in the context, return it. Else, return Nothing. 
+getRangeDescriptorUsingContext :: Connection -> EvalContext -> RangeKey -> IO (Maybe RangeDescriptor)
+getRangeDescriptorUsingContext conn (EvalContext _ _ removedDescriptors addedDescriptors) rKey = if (isJust inRemoved)
+  then return Nothing 
+  else case inAdded of
+    Nothing -> getRangeDescriptor conn rKey
+    Just d -> return $ Just d
+  where
+    inRemoved = find (\descriptor -> descriptorKey descriptor == rKey) removedDescriptors
+    inAdded = find (\descriptor -> descriptorKey descriptor == rKey) addedDescriptors
 
 ----------------------------------------------------------------------------------------------------------------------
 -- WorkbookSheets (for frontend API)

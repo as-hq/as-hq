@@ -27,17 +27,6 @@ import Control.Monad.Trans.Either
 import Control.Monad.Trans.Class
 import Control.Concurrent
 
--- If the range descriptor associated with a range key is in the context, return it. Else, return Nothing. 
-getRangeDescriptorUsingContext :: Connection -> EvalContext -> RangeKey -> IO (Maybe RangeDescriptor)
-getRangeDescriptorUsingContext conn (EvalContext _ _ removedDescriptors addedDescriptors) rKey = if (isJust inRemoved)
-  then return Nothing 
-  else case inAdded of
-    Nothing -> DB.getRangeDescriptor conn rKey
-    Just d -> return $ Just d
-  where
-    inRemoved = find (\descriptor -> descriptorKey descriptor == rKey) removedDescriptors
-    inAdded = find (\descriptor -> descriptorKey descriptor == rKey) addedDescriptors
-
 -- used by lookUpRef
 referenceToCompositeValue :: Connection -> EvalContext -> ASReference -> IO CompositeValue
 referenceToCompositeValue _ (EvalContext mp _ _ _) (IndexRef i) = return $ CellValue . cellValue $ mp M.! i 
@@ -90,8 +79,10 @@ updateDBFromEvalContext conn src (EvalContext mp afterCells removedDescriptors a
       lift $ updateDBAfterEval conn src commit
       return afterCells
     else do
+      printWithTimeT $ "DEALING WITH DECOUPLING OF DESCRIPTORS " ++ (show removedDescriptors)
       let rangeKeysChanged = map descriptorKey removedDescriptors
       coupledCells <- lift $ concat <$> (mapM (getCellsBeforeDecoupling conn) rangeKeysChanged)
+      printWithTimeT $ "COUPLED CELLS " ++ (show coupledCells)
       liftIO $ setTempCommit conn commit src
       liftIO $ setRangeKeysChanged conn rangeKeysChanged src
       left $ DecoupleAttempt
