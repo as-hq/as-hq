@@ -64,7 +64,6 @@ evaluateRepl _ str = liftIO $ execOnString str (execR True)
 
 evaluateHeader :: ASSheetId -> EvalCode -> EitherTExec CompositeValue
 evaluateHeader sid str = do 
-  lift $ writeHeaderFile sid R str
   lift clearRepl
   evaluateRepl sid str 
 

@@ -479,3 +479,21 @@ getCondFormattingRules conn sid = runRedis conn $ do
 
 setCondFormattingRules :: Connection -> ASSheetId -> [CondFormatRule] -> IO ()
 setCondFormattingRules conn sid rules = runRedis conn (set (condFormattingRulesKey sid) (B.pack $ show rules)) >> return ()
+
+----------------------------------------------------------------------------------------------------------------------------------------------
+-- Header expressions handlers
+
+evalHeaderKey :: ASSheetId -> ASLanguage -> B.ByteString
+evalHeaderKey sid lang = B.pack ("EVALHEADER" ++ (show sid) ++ (show lang)) 
+
+getEvalHeader :: Connection -> ASSheetId -> ASLanguage -> IO String
+getEvalHeader conn sid lang = runRedis conn $ do 
+  msg <- get $ evalHeaderKey sid lang
+  return $ case msg of 
+    Right (Just msg') -> B.unpack msg'
+    Left _            -> error "Failed to retrieve eval header"
+    -- #needsrefactor don't actually know what the cases are here, also using error is bad. 
+    -- (Alex 12/4)
+
+setEvalHeader :: Connection -> ASSheetId -> ASLanguage -> String -> IO ()
+setEvalHeader conn sid lang xp = runRedis conn (set (evalHeaderKey sid lang) (B.pack xp)) >> return ()

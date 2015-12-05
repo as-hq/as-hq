@@ -55,7 +55,7 @@ instance Client ASUserClient where
       Export             -> handleExport user state payload
       Evaluate           -> handleEval user state payload
       EvaluateRepl       -> handleEvalRepl user payload
-      EvaluateHeader     -> handleEvalHeader user payload
+      EvaluateHeader     -> handleEvalHeader user state payload
       Get                -> handleGet user state payload
       Delete             -> handleDelete user state payload
       Clear              -> handleClear user state payload

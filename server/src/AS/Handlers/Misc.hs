@@ -61,26 +61,19 @@ handleOpen uc state (PayloadS (Sheet sheetid _ _)) = do
   let makeNewWindow (UserClient uid c _ sid) = UserClient uid c startWindow sid
       startWindow = Window sheetid (-1,-1) (-1,-1)
   US.modifyUser makeNewWindow uc state
-  -- send back header files data to user
+  -- get header files data to send back to user user
   let langs = [Python, R] -- should probably make list of langs a const somewhere...
       sid = userSheetId uc
   headers         <- mapM (LU.getLanguageHeader sid) langs
+  -- get conditional formatting data to send back to user user
   condFormatRules <- DB.getCondFormattingRules conn sid
   let xps = map (\(str, lang) -> Expression str lang) (zip headers langs)
   sendToOriginal uc $ ServerMessage Open Success $ PayloadOpen xps condFormatRules
-
--- Had relevance back when UserClients could have multiple windows, which never made sense anyway.
--- (Alex 11/3)
-handleClose :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
-handleClose _ _ _ = return ()
--- handleClose user state (PayloadS (Sheet sheetid _ _)) = US.modifyUser closeWindow user state
---   where closeWindow (UserClient uid conn window sid) = UserClient uid conn (filter (((/=) sheetid) . windowSheetId) windows) sid
 
 -- NOTE: doesn't send back blank cells. This means that if, e.g., there are cells that got blanked
 -- in the database, those blank cells will not get passed to the user (and those cells don't get
 -- deleted on frontend), meaning we have to ensure that deleted cells are manually wiped from the
 -- frontend store the moment they get deleted.
-
 handleUpdateWindow :: ClientId -> MVar ServerState -> ASPayload -> IO ()
 handleUpdateWindow cid state (PayloadW w) = do
   curState <- readMVar state
@@ -142,6 +135,11 @@ handleDelete uc state (PayloadR rng) = do
     (Failure _) -> sendToOriginal uc msg
     DecoupleDuringEval -> sendToOriginal uc msg
     otherwise -> broadcast state msg
+
+-- Had relevance back when UserClients could have multiple windows, which never made sense anyway.
+-- (Alex 11/3)
+handleClose :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
+handleClose _ _ _ = return ()
 
 handleClear :: (Client c) => c  -> MVar ServerState -> ASPayload -> IO ()
 handleClear client state payload = case payload of

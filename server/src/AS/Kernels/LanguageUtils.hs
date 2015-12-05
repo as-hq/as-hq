@@ -251,9 +251,6 @@ writeReplFile lang contents = getRunReplFile lang >>= \f -> writeFile (f :: Syst
 writeReplRecord :: ASLanguage -> String -> IO ()
 writeReplRecord lang contents = getReplRecordFile lang >>= \f -> writeFile (f :: System.IO.FilePath) contents
 
-writeHeaderFile :: ASSheetId -> ASLanguage -> String -> IO ()
-writeHeaderFile sid lang contents = getHeaderFile sid lang >>= \f -> writeFile (f :: System.IO.FilePath) contents
-
 writeHeaderRecord :: ASLanguage -> String -> IO ()
 writeHeaderRecord lang contents = getHeaderRecordFile lang >>= \f -> writeFile (f :: System.IO.FilePath) contents
 
