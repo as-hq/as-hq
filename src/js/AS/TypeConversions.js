@@ -137,6 +137,23 @@ export default {
     return {tag: 'index', index: idx, sheetId: sheetId};
   },
 
+  //xcxc: I know it's bad that this is here, but I couldn't get it to work in Util.js.
+  //  Apparently JS is really bad at circular dependency injection and it was fucking up
+  //  getHostUrl()
+  excelToASRange(xp: string): ASRange {
+    let parts = xp.split('!');
+
+    if (parts.length === 1) {
+      let [nakedExcel] = parts;
+      return this.simpleToASRange(Util.excelToRange(nakedExcel));
+    } else if (parts.length === 2) {
+      let [sheetId, nakedExcel] = parts;
+      return this.simpleToASRange(Util.excelToRange(nakedExcel), sheetId);
+    } else {
+      throw new Error('Does not support workbooks yet');
+    }
+  },
+
   indexToRange(ind: NakedIndex): NakedRange {
     return { tl: ind, br: ind };
   },
