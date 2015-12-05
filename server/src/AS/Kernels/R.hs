@@ -54,18 +54,18 @@ type EvalCode = String
 -- Exposed functions
 
 -- Don't actually need the sheet id's as arguments right now. (Alex 11/15)
-evaluate :: ASSheetId -> EvalCode -> EitherTExec CompositeValue
+evaluate :: String -> EvalCode -> EitherTExec CompositeValue
 evaluate _ ""  = return $ CellValue NoValue
 evaluate _ str = liftIO $ execOnString str (execR False)
 
-evaluateRepl :: ASSheetId -> EvalCode -> EitherTExec CompositeValue
-evaluateRepl _ ""  = return $ CellValue NoValue
-evaluateRepl _ str = liftIO $ execOnString str (execR True)
+evaluateRepl :: EvalCode -> EitherTExec CompositeValue
+evaluateRepl ""  = return $ CellValue NoValue
+evaluateRepl str = liftIO $ execOnString str (execR True)
 
-evaluateHeader :: ASSheetId -> EvalCode -> EitherTExec CompositeValue
-evaluateHeader sid str = do 
+evaluateHeader :: EvalCode -> EitherTExec CompositeValue
+evaluateHeader str = do 
   lift clearRepl
-  evaluateRepl sid str 
+  evaluateRepl str 
 
 clearRepl :: IO ()
 clearRepl = do

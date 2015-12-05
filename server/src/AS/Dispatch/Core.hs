@@ -242,14 +242,14 @@ evalChain' conn valuesMap [] fatCells pastFatCellHeads _ =
 evalChain' conn valuesMap (c@(Cell loc xp oldVal ts):cs) fatCells fatCellHeads pastDeletedLocs = do
   (cvf@(Formatted cv f), deletedLocs) <- case xp of 
     Expression _ _ -> (,) <$> evalResult <*> return []
-      where evalResult = EC.evaluateLanguage (locSheetId loc) (cellLocation c) valuesMap xp
+      where evalResult = EC.evaluateLanguage conn (locSheetId loc) (cellLocation c) valuesMap xp
     -- we might receive a non-list-head coupled cell to evaluate during copy/paste, row insertion, etc.  
     -- if we receive a coupled cell to evaluate, and it's the head of the list, we should evaluate, as long as we get rid of cruft.
     -- where "get rid of cruft" = get rid of all the non-head cells first, which is deletedCells
     Coupled str lang _ key -> if (DU.isFatCellHead c)
       then (,) <$> evalResult <*> return decoupleLocs
       else (,) <$> (return $ Formatted (CellValue oldVal) (formatType <$> getProp ValueFormatProp ts)) <*> return [] -- temporary patch -- eval needs to get restructured
-        where evalResult = EC.evaluateLanguage (locSheetId loc) (cellLocation c) valuesMap xp'
+        where evalResult = EC.evaluateLanguage conn (locSheetId loc) (cellLocation c) valuesMap xp'
               xp' = Expression str lang
               decoupleLocs = DU.rangeKeyToIndices key
 

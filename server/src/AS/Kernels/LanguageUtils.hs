@@ -39,26 +39,26 @@ import Control.Monad.Trans.Either
 -----------------------------------------------------------------------------------------------------------------------
 -- | Exposed functions
 
-formatCode :: ASSheetId -> ASLanguage -> String -> EitherTExec String
-formatCode sid lang str = do
+formatCode :: String -> ASLanguage -> String -> EitherTExec String
+formatCode header lang str = do
   let trimmed = trimWhitespace lang str
-      onSuccess = (wrapCode sid lang False) . recombineLines
+      onSuccess = (wrapCode header lang False) . recombineLines
       onFailure _ = return ExpressionNotEvaluable
   case lang of
-    SQL     -> lift $ wrapCode sid SQL False trimmed
+    SQL     -> lift $ wrapCode header SQL False trimmed
     otherwise   -> case (tryPrintingLast lang trimmed) of
       (Left _)    -> left ExpressionNotEvaluable
-      (Right result)  -> lift $ wrapCode sid lang False $ recombineLines result
+      (Right result)  -> lift $ wrapCode header lang False $ recombineLines result
 
 -- returns (repl record code, repl eval code)
-formatCodeRepl :: ASSheetId -> ASLanguage -> String -> IO (String, String)
-formatCodeRepl sid lang str = do
+formatCodeRepl :: String -> ASLanguage -> String -> IO (String, String)
+formatCodeRepl header lang str = do
   let trimmed = trimWhitespace lang str
       (startLines, endLine) = splitLastLine lang str
   case (tryPrintingLastRepl lang trimmed) of
     (Left _) -> return $ (trimmed, "") -- nothing to print, so nothing to evaluate
     (Right (recordXp, printedLine)) -> do
-      evalXp <- wrapCode sid lang True $ recombineLines (recordXp, printedLine)
+      evalXp <- wrapCode header lang True $ recombineLines (recordXp, printedLine)
       return (recordXp, evalXp)
 
 -----------------------------------------------------------------------------------------------------------------------
@@ -161,9 +161,8 @@ formatCodeForInsert lang str = case lang of
   SQL -> replaceSubstrings str [("\n", "\n\t")]
   otherwise -> str
 
-wrapCode :: ASSheetId -> ASLanguage -> Bool -> String -> IO String
-wrapCode sid lang isRepl str = do 
-  header <- getLanguageHeader sid lang
+wrapCode :: String -> ASLanguage -> Bool -> String -> IO String
+wrapCode header lang isRepl str = do 
   let insertedCode = formatCodeForInsert lang str
       insertedHeader = formatCodeForInsert lang header
   template <- if isRepl
@@ -254,12 +253,6 @@ writeReplRecord lang contents = getReplRecordFile lang >>= \f -> writeFile (f ::
 writeHeaderRecord :: ASLanguage -> String -> IO ()
 writeHeaderRecord lang contents = getHeaderRecordFile lang >>= \f -> writeFile (f :: System.IO.FilePath) contents
 
-getLanguageHeader :: ASSheetId -> ASLanguage -> IO String
-getLanguageHeader sid lang = do 
-  f <- getHeaderFile sid lang
-  P.appendFile f "" -- makes it exist if it doesn't 
-  P.readFile f
-
 clearReplRecord :: ASLanguage -> IO ()
 clearReplRecord lang = getReplRecordFile lang >>= \f -> writeFile (f :: System.IO.FilePath)  ""
 
@@ -323,16 +316,6 @@ getReplRecordFile lang = do
   where
     file = case lang of
       Python  -> "py/repl_record.py"
-
-getHeaderFile :: ASSheetId -> ASLanguage -> IO String
-getHeaderFile sid lang = do
-  path <- getEvalPath
-  return $ path ++ file
-  where
-    file = case lang of
-      Python -> "py/headers/" ++ (T.unpack sid) ++ ".py"
-      R    -> "r/headers/" ++ (T.unpack sid) ++ ".r"
-      SQL  -> "sql/headers/" ++ (T.unpack sid) ++ ".py"
 
 getHeaderRecordFile :: ASLanguage -> IO String
 getHeaderRecordFile lang = do

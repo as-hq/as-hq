@@ -64,7 +64,7 @@ handleOpen uc state (PayloadS (Sheet sheetid _ _)) = do
   -- get header files data to send back to user user
   let langs = [Python, R] -- should probably make list of langs a const somewhere...
       sid = userSheetId uc
-  headers         <- mapM (LU.getLanguageHeader sid) langs
+  headers         <- mapM (DB.getEvalHeader conn sid) langs
   -- get conditional formatting data to send back to user user
   condFormatRules <- DB.getCondFormattingRules conn sid
   let xps = map (\(str, lang) -> Expression str lang) (zip headers langs)

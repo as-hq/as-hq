@@ -369,11 +369,13 @@ setSheet conn sheet = do
 
 clearSheet :: Connection -> ASSheetId -> IO ()
 clearSheet conn sid = do
+  let headerLangs = [Python, R] -- should REALLY put this in a Constants file
   keys <- map (B.pack . show2) <$> DU.getRangeKeysInSheet conn sid
   runRedis conn $ do
     del keys
     del [DU.makeSheetRangesKey sid]
     del [condFormattingRulesKey sid]
+    mapM (\l -> del [evalHeaderKey sid l]) headerLangs
   DU.deleteLocsInSheet sid
   -- TODO: also clear undo, redo, and last message (for Ctrl+Y) (Alex 11/20)
 
@@ -491,6 +493,7 @@ getEvalHeader conn sid lang = runRedis conn $ do
   msg <- get $ evalHeaderKey sid lang
   return $ case msg of 
     Right (Just msg') -> B.unpack msg'
+    Right Nothing -> ""
     Left _            -> error "Failed to retrieve eval header"
     -- #needsrefactor don't actually know what the cases are here, also using error is bad. 
     -- (Alex 12/4)
