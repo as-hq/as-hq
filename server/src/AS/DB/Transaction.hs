@@ -29,7 +29,7 @@ import Control.Concurrent
 
 -- used by lookUpRef
 referenceToCompositeValue :: Connection -> EvalContext -> ASReference -> IO CompositeValue
-referenceToCompositeValue _ (EvalContext mp _ _ _) (IndexRef i) = return $ CellValue . cellValue $ mp M.! i 
+referenceToCompositeValue _ (EvalContext mp _ _) (IndexRef i) = return $ CellValue . cellValue $ mp M.! i 
 referenceToCompositeValue conn ctx (PointerRef p) = do 
   let idx = pointerToIndex p
   let mp = contextMap ctx
@@ -70,29 +70,32 @@ referenceToCompositeValue conn ctx (RangeRef r) = return . Expanding . VList . M
 
 -- After getting the final context, update the DB and return the cells changed by the entire eval
 updateDBFromEvalContext :: Connection -> CommitSource -> EvalContext -> EitherTExec [ASCell]
-updateDBFromEvalContext conn src (EvalContext mp afterCells removedDescriptors addedDescriptors) = do
-  beforeCells <- lift $ catMaybes <$> DB.getCells (map cellLocation afterCells)
+updateDBFromEvalContext conn src (EvalContext mp cells ddiff) = do
+  bcells <- lift $ catMaybes <$> DB.getCells (map cellLocation cells)
   time <- lift $ getASTime
-  let commit = Commit beforeCells afterCells removedDescriptors addedDescriptors time
-  if (length removedDescriptors == 0) -- there were no decoupled cells
+  let cdiff   = CellDiff { beforeCells = bcells, afterCells = cells}
+      commit  = Commit cdiff ddiff time
+      rd      = removedDescriptors ddiff
+  if (length rd == 0) -- there were no decoupled cells
     then do 
       lift $ updateDBAfterEval conn src commit
-      return afterCells
+      return cells
     else do
-      printWithTimeT $ "DEALING WITH DECOUPLING OF DESCRIPTORS " ++ (show removedDescriptors)
-      let rangeKeysChanged = map descriptorKey removedDescriptors
-      coupledCells <- lift $ concat <$> (mapM (getCellsBeforeDecoupling conn) rangeKeysChanged)
+      printWithTimeT $ "DEALING WITH DECOUPLING OF DESCRIPTORS " ++ (show rd)
+      let rangeKeysRemoved = map descriptorKey rd
+      coupledCells <- lift $ concat <$> (mapM (getCellsBeforeDecoupling conn) rangeKeysRemoved)
       printWithTimeT $ "COUPLED CELLS " ++ (show coupledCells)
       liftIO $ setTempCommit conn commit src
-      liftIO $ setRangeKeysChanged conn rangeKeysChanged src
+      liftIO $ setRangeKeysChanged conn rangeKeysRemoved src
       left $ DecoupleAttempt
       
 -- Do the writes to the DB
 updateDBAfterEval :: Connection -> CommitSource -> ASCommit -> IO ()
-updateDBAfterEval conn src c@(Commit beforeCells afterCells removedDescriptors addedDescriptors time) = do 
-  DB.setCells afterCells
-  deleteCells conn $ filter isEmptyCell afterCells
-  mapM_ (couple conn) addedDescriptors
+updateDBAfterEval conn src c@(Commit cdiff ddiff time) = do 
+  let af = afterCells cdiff
+  DB.setCells af
+  deleteCells conn $ filter isEmptyCell af
+  mapM_ (couple conn) (addedDescriptors ddiff)
   pushCommit conn c src
 
 ----------------------------------------------------------------------------------------------------------------------
@@ -138,9 +141,9 @@ undo conn src = do
     return $ DI.bStrToASCommit commit
   case commit of
     Nothing -> return Nothing
-    Just c@(Commit b a bd ad t) -> do
-      deleteCellsPropagated conn a ad
-      setCellsPropagated conn b bd
+    Just c@(Commit cdiff ddiff t) -> do
+      deleteCellsPropagated conn (afterCells cdiff) (addedDescriptors ddiff)
+      setCellsPropagated conn (beforeCells cdiff) (removedDescriptors ddiff)
       return $ Just c
 
 redo :: Connection -> CommitSource -> IO (Maybe ASCommit)
@@ -154,9 +157,9 @@ redo conn src = do
       _ -> return Nothing
   case commit of
     Nothing -> return Nothing
-    Just c@(Commit b a bd ad t) -> do
-      deleteCellsPropagated conn b bd
-      setCellsPropagated conn a ad
+    Just c@(Commit cdiff ddiff t) -> do
+      deleteCellsPropagated conn (beforeCells cdiff) (removedDescriptors ddiff)
+      setCellsPropagated conn (afterCells cdiff) (addedDescriptors ddiff)
       return $ Just c
 
 pushCommit :: Connection -> ASCommit -> CommitSource -> IO ()

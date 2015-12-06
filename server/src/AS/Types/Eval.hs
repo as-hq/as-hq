@@ -39,13 +39,17 @@ type ValMap = M.Map ASIndex ASCell
 
 -- This should be thought of as a mini spreadsheet used by eval as a cache (which can be updated)
 data EvalContext = EvalContext { contextMap :: ValMap
-                                ,addedCells :: [ASCell]
-                                ,removedDescriptors :: [RangeDescriptor]
-                                ,addedDescriptors :: [RangeDescriptor] }
-  deriving (Show, Read, Eq)
+                               , addedCells :: [ASCell]
+                               , descriptorDiff :: DescriptorDiff }
+                               deriving (Show, Read, Eq)
+
+-- NORM: never expand this type. always modify and access it using the records.
+data DescriptorDiff = DescriptorDiff { addedDescriptors :: [RangeDescriptor]
+                                     , removedDescriptors :: [RangeDescriptor] } 
+                                     deriving (Show, Read, Eq, Generic)
 
 emptyContext :: EvalContext
-emptyContext = EvalContext M.empty [] [] []
+emptyContext = EvalContext M.empty [] (DescriptorDiff [] [])
 
 -- ephemeral types produced by eval 
 -- that will expand in createListCells
@@ -142,6 +146,9 @@ instance ToJSON JSONField
 
 instance FromJSON JSONValue
 instance ToJSON JSONValue
+
+instance FromJSON DescriptorDiff
+instance ToJSON DescriptorDiff
 
 instance Serialize RangeDescriptor
 instance Serialize JSONField 

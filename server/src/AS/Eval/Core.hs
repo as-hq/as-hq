@@ -89,11 +89,11 @@ catchEitherT a = do
 -- | Checks for potentially bad inputs (NoValue or ValueError) among the arguments passed in. If no bad inputs,
 -- return Nothing. Otherwise, if there are errors that can't be dealt with, return appropriate ASValue error.
 possiblyShortCircuit :: ASSheetId -> EvalContext -> ASExpression -> EitherTExec (Maybe ASValue)
-possiblyShortCircuit sheetid ctx@ (EvalContext valuesMap _ _ _) xp = do 
+possiblyShortCircuit sheetid ctx xp = do 
   let depRefs        = getDependencies sheetid xp -- :: [ASReference]
   depInds <- concat <$> mapM (refToIndicesWithContext ctx) depRefs   -- :: [Maybe [ASIndex]]
   let lang           = xpLanguage xp
-      values         = map (cellValue . (valuesMap M.!)) depInds
+      values         = map (cellValue . ((contextMap ctx) M.!)) depInds
   return $ listToMaybe $ catMaybes $ flip map (zip depInds values) $ \(i, v) -> case v of
     NoValue                 -> handleNoValueInLang lang i
     ve@(ValueError _ _)     -> handleErrorInLang lang ve

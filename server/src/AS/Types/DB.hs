@@ -23,18 +23,10 @@ import qualified Data.ByteString               as B
 import Data.Serialize (Serialize)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
--- Transactions
-
-data ASTransaction = Transaction {transactionCommitSource :: CommitSource,
-                                  afterCells :: [ASCell],
-                                  fatCells :: [RangeDescriptor],
-                                  deletedLocations :: [ASIndex] }
-
-----------------------------------------------------------------------------------------------------------------------------------------------
 -- Graph queries
 
 -- A relation (toLoc,[fromLoc]); a toLoc must be an index, a fromLoc can be any ancestor
-type ASRelation = (ASIndex,[GraphAncestor])
+type ASRelation = (ASIndex, [GraphAncestor])
 
 -- Graph read (getX) and write (setX) requests
 data GraphReadRequest = GetDescendants | GetImmediateDescendants | GetProperDescendants | GetImmediateAncestors deriving (Show)

@@ -33,9 +33,7 @@ row = snd
 -- Locations
 
 data ASIndex = Index {locSheetId :: ASSheetId, index :: Coord} 
-  deriving (Read, Eq, Generic, Ord)
-instance Show ASIndex where
-  show (Index sid c) = show c
+  deriving (Show, Read, Eq, Generic, Ord)
 data ASPointer = Pointer {pointerSheetId :: ASSheetId, pointerIndex :: Coord} 
   deriving (Show, Read, Eq, Generic, Ord)
 

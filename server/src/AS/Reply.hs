@@ -21,7 +21,11 @@ import Control.Concurrent
 sheetsInPayload :: ASPayload -> [ASSheetId]
 sheetsInPayload (PayloadDelete rng cells) = (rangeSheetId rng):(map (locSheetId . cellLocation) cells)
 sheetsInPayload (PayloadS (Sheet sid _ _)) = [sid]
-sheetsInPayload (PayloadCommit (Commit bf af _ _ _)) = (map (locSheetId . cellLocation) bf) ++ (map (locSheetId . cellLocation) af)
+sheetsInPayload (PayloadCommit (Commit cdiff _ _)) = (map getSheet bf) ++ (map getSheet af)
+  where
+    bf = beforeCells cdiff
+    af = afterCells cdiff
+    getSheet = locSheetId . cellLocation
 sheetsInPayload (PayloadN ()) = []
 
 broadcast :: MVar ServerState -> ASServerMessage -> IO ()

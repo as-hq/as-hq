@@ -222,7 +222,7 @@ lookUpRef conn lang context ref = showValue lang <$> DT.referenceToCompositeValu
 -- | Replaces all the Excel references in an expression with the valuesMap corresponding to them.
 -- TODO clean up SQL mess
 insertValues ::  Connection -> ASSheetId -> EvalContext -> ASExpression -> IO String
-insertValues conn sheetid ctx@(EvalContext mp _ _ _) xp = do 
+insertValues conn sheetid ctx xp = do 
   let lang = xpLanguage xp
   case lang of
     SQL -> do 

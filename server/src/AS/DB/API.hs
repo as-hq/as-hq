@@ -174,7 +174,7 @@ refToIndices (PointerRef p) = do
 refToIndicesWithContext :: EvalContext -> ASReference -> EitherTExec [ASIndex]
 refToIndicesWithContext _ (IndexRef i) = return [i]
 refToIndicesWithContext _ (RangeRef r) = return $ rangeToIndices r
-refToIndicesWithContext (EvalContext mp _ _ _) (PointerRef p) = do
+refToIndicesWithContext (EvalContext mp _ _) (PointerRef p) = do
   let index = pointerToIndex p
   case (M.lookup index mp) of 
     Just (Cell _ (Coupled _ _ _ rKey) _ _) -> return $ rangeKeyToIndices rKey
@@ -221,23 +221,23 @@ getRangeDescriptorsInSheet conn sid = do
   map fromJust <$> mapM (getRangeDescriptor conn) keys
 
 getRangeDescriptorsInSheetWithContext :: Connection -> EvalContext -> ASSheetId -> IO [RangeDescriptor]
-getRangeDescriptorsInSheetWithContext conn ctx@(EvalContext _ _ addedDescriptors removedDescriptors) sid = do
-  putStrLn $ "removed descriptors in getRangeDescriptorsInSheetWithContext " ++ (show removedDescriptors)
+getRangeDescriptorsInSheetWithContext conn ctx@(EvalContext _ _ ddiff) sid = do
+  putStrLn $ "removed descriptors in getRangeDescriptorsInSheetWithContext " ++ (show $ removedDescriptors ddiff)
   dbKeys <- DI.getRangeKeysInSheet conn sid
-  let dbKeys' = dbKeys \\ (map descriptorKey removedDescriptors)
+  let dbKeys' = dbKeys \\ (map descriptorKey $ removedDescriptors ddiff)
   dbDescriptors <- map fromJust <$> mapM (getRangeDescriptor conn) dbKeys' 
-  return $ addedDescriptors ++ dbDescriptors
+  return $ (addedDescriptors ddiff) ++ dbDescriptors
 
 -- If the range descriptor associated with a range key is in the context, return it. Else, return Nothing. 
 getRangeDescriptorUsingContext :: Connection -> EvalContext -> RangeKey -> IO (Maybe RangeDescriptor)
-getRangeDescriptorUsingContext conn (EvalContext _ _ removedDescriptors addedDescriptors) rKey = if (isJust inRemoved)
+getRangeDescriptorUsingContext conn (EvalContext _ _ ddiff) rKey = if (isJust inRemoved)
   then return Nothing 
   else case inAdded of
     Nothing -> getRangeDescriptor conn rKey
     Just d -> return $ Just d
   where
-    inRemoved = find (\descriptor -> descriptorKey descriptor == rKey) removedDescriptors
-    inAdded = find (\descriptor -> descriptorKey descriptor == rKey) addedDescriptors
+    inRemoved = find (\d -> descriptorKey d == rKey) (removedDescriptors ddiff)
+    inAdded = find (\d -> descriptorKey d == rKey) (addedDescriptors ddiff)
 
 ----------------------------------------------------------------------------------------------------------------------
 -- WorkbookSheets (for frontend API)

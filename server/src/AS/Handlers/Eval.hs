@@ -62,6 +62,6 @@ handleDecouple cl state payload = do
         Just rangeKeysChanged -> do 
           concat <$> (mapM (decouple conn) rangeKeysChanged)
           updateDBAfterEval conn src c
-          let msg = ServerMessage Update Success (PayloadCL (after c))
+          let msg = ServerMessage Update Success (PayloadCL (afterCells . cellDiff $ c))
           broadcastFiltered state cl msg
 
