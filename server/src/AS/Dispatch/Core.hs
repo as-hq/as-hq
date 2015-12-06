@@ -294,15 +294,15 @@ contextInsert conn c@(Cell idx xp _ ps) (Formatted cv f) ctx = do
       -- propagate the descandants of the decoupled cells
       -- decoupled cells don't have ancestors, so you don't set relations.
       lift $ putStrLn "running decouple transform"
-      finalContext' <- dispatch conn decoupledCells finalContext ProperDescendants DontSetAncestry 
+      --finalContext' <- dispatch conn decoupledCells finalContext ProperDescendants DontSetAncestry 
       -- propagate the descendants of the expanded cells (except for the list head)
       -- you don't set relations of the newly expanded cells, because those relations do not exist. Only the head of the list has an ancestor at this point.
       lift $ putStrLn "running expanded cells transform"
       -- first, check if we blanked out anything as a result of possiblyDeletePreviousFatCell. if so, look up the new cells from the map. 
       -- e.g. if range(5) -> range(2), possiblyDeletePrevious... will return indices A1...A5, and we're going to need to run dispatch on all of those.
       -- so this particular dispatch merges the context transforms (1) expanded cells, (2) blanked cells due to fat cell deletion
-      let cs' = case blankedIndices of 
+      let cs' = flip mergeCells decoupledCells $ case blankedIndices of 
                 Nothing -> cs
-                Just inds -> map (\elem -> (contextMap finalContext') M.! elem) inds
-      dispatch conn cs' finalContext' ProperDescendants DontSetAncestry
+                Just inds -> map (\elem -> (contextMap finalContext) M.! elem) inds
+      dispatch conn cs' finalContext ProperDescendants DontSetAncestry
 

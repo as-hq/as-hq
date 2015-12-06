@@ -166,9 +166,7 @@ recomposeCells dims cells = case (snd dims) of
 
 -- transposes non-rectangular matrices by filling in gaps with NoValue
 reshapeList :: [a] -> Dimensions -> [[a]]
-reshapeList xs (height, width) = case width of 
-  1 -> error "cannot reshape into 1-dimensional list"
-  _ -> chunksOf width xs
+reshapeList xs (_, height) = chunksOf height xs
 
 transpose' :: [[ASValue]] -> [[ASValue]]
 transpose' vals = L.transpose matrixified
