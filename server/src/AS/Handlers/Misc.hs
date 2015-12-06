@@ -55,20 +55,21 @@ handleNew uc state (PayloadWB wb) = do
   return () -- TODO determine whether users should be notified
 
 handleOpen :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
-handleOpen uc state (PayloadS (Sheet sheetid _ _)) = do
+handleOpen uc state (PayloadS (Sheet sid _ _)) = do
   -- update state
   conn <- dbConn <$> readMVar state
   let makeNewWindow (UserClient uid c _ sid) = UserClient uid c startWindow sid
-      startWindow = Window sheetid (-1,-1) (-1,-1)
+      startWindow = Window sid (-1,-1) (-1,-1)
   US.modifyUser makeNewWindow uc state
   -- get header files data to send back to user user
   let langs = [Python, R] -- should probably make list of langs a const somewhere...
-      sid = userSheetId uc
   headers         <- mapM (DB.getEvalHeader conn sid) langs
   -- get conditional formatting data to send back to user user
   condFormatRules <- DB.getCondFormattingRules conn sid
   let xps = map (\(str, lang) -> Expression str lang) (zip headers langs)
-  sendToOriginal uc $ ServerMessage Open Success $ PayloadOpen xps condFormatRules
+  -- get column props
+  colProps <- DB.getAllColProps conn sid
+  sendToOriginal uc $ ServerMessage Open Success $ PayloadOpen xps condFormatRules colProps
 
 -- NOTE: doesn't send back blank cells. This means that if, e.g., there are cells that got blanked
 -- in the database, those blank cells will not get passed to the user (and those cells don't get
@@ -220,6 +221,20 @@ handleSetCondFormatRules uc state (PayloadCondFormat rules) = do
   let onFormatSuccess cs = DB.setCondFormattingRules conn sid rules >> DB.setCells cs
   either (const $ return ()) onFormatSuccess errOrCells
   broadcastFiltered state uc $ makeCondFormatMessage errOrCells rules
+
+handleSetColumnWidth :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
+handleSetColumnWidth uc state p@(PayloadColumnWidth ind width) = do 
+  conn <- dbConn <$> readMVar state
+  let sid = userSheetId uc
+  DB.setColProps conn sid ind width
+  sendToOriginal uc $ ServerMessage SetColumnWidth Success p
+
+handleSetRowHeight :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
+handleSetRowHeight uc state p@(PayloadRowHeight ind width) = do 
+  conn <- dbConn <$> readMVar state
+  let sid = userSheetId uc
+  DB.setRowProps conn sid ind width
+  sendToOriginal uc $ ServerMessage SetRowHeight Success p
 
 -- used for importing arbitrary files
 handleImport :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()

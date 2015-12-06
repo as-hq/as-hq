@@ -45,6 +45,7 @@ data ASAction =
   | Clear
   | UpdateWindow
   | SetProp | ToggleProp
+  | SetColumnWidth | SetRowHeight
   | Repeat
   | BugReport
   | JumpSelect
@@ -84,7 +85,7 @@ data ASPayload =
   | PayloadPaste {copyRange :: ASRange, copyTo :: ASRange}
   | PayloadProp {prop :: CellProp, tagRange :: ASRange}
   | PayloadXp ASExpression
-  | PayloadOpen {initHeaderExpressions :: [ASExpression], initCondFormatRules :: [CondFormatRule]}
+  | PayloadOpen {initHeaderExpressions :: [ASExpression], initCondFormatRules :: [CondFormatRule], initColumnProps :: [(Int, Int)]}
   | PayloadReplValue ASReplValue
   | PayloadValue CompositeValue
   | PayloadList QueryList
@@ -93,6 +94,8 @@ data ASPayload =
   | PayloadDrag {initialRange :: ASRange, dragRange :: ASRange}
   | PayloadCondFormat { condFormatRules :: [CondFormatRule] }
   | PayloadCondFormatResult { condFormatRulesResult :: [CondFormatRule], condFormatCellsUpdated :: [ASCell] }
+  | PayloadColumnWidth {colIndex :: Int, colWidth :: Int}
+  | PayloadRowHeight {rowIndex :: Int, rowHeight :: Int}
   deriving (Show, Read, Generic)
 
 data ASReplValue = ReplValue {replValue :: ASValue, replLang :: ASLanguage} deriving (Show, Read, Eq, Generic)
