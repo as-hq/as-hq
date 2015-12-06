@@ -32,14 +32,6 @@ export type Direction = 'Down' | 'Up' | 'Left' | 'Right';
 
 export type ASBackendDirection = 'DDown' | 'DUp' | 'DLeft' | 'DRight';
 
-export type ASBackendTime = {
-  tag: 'Time';
-  day: string;
-  hour: number;
-  minute: number;
-  sec: number;
-};
-
 export type QueryList = 'Sheets' | 'Workbooks' | 'WorkbookSheets';
 
 export type InsertCol = {
@@ -308,9 +300,13 @@ export type ASBackendPayload =
 
 export type ASBackendCommit = {
   tag: 'ASCommit';
-  before: Array<ASCell>;
-  after: Array<ASCell>;
-  time: ASBackendTime;
+  cellDiff: ASCellDiff;
+};
+
+export type ASCellDiff = {
+  tag: 'CellDiff';
+  beforeCells: Array<ASCell>;
+  afterCells: Array<ASCell>;
 };
 
 export type ASBackendWorkbookSheet = {

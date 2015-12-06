@@ -116,14 +116,14 @@ const ASEvaluationStore = Object.assign({}, BaseStore, {
         case 'GOT_UNDO':
           logDebug("action undo");
           _data.lastUpdatedCells = [];
-          ASEvaluationStore.removeCells(action.commit.after);
-          ASEvaluationStore.updateCells(action.commit.before);
+          ASEvaluationStore.removeCells(action.commit.cellDiff.afterCells);
+          ASEvaluationStore.updateCells(action.commit.cellDiff.beforeCells);
           ASEvaluationStore.emitChange();
           break;
         case 'GOT_REDO':
           _data.lastUpdatedCells = [];
-          ASEvaluationStore.removeCells(action.commit.before);
-          ASEvaluationStore.updateCells(action.commit.after);
+          ASEvaluationStore.removeCells(action.commit.cellDiff.beforeCells);
+          ASEvaluationStore.updateCells(action.commit.cellDiff.afterCells);
           ASEvaluationStore.emitChange();
           break;
         case 'GOT_UPDATED_CELLS':
