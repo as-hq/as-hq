@@ -51,6 +51,7 @@ declare class HGFeatureChainElement extends HTMLElement {
   isFixedColumn: (grid: HGElement, evt: HGMouseEvent) => boolean;
   handleMouseUp: (grid: HGElement, evt: HGMouseEvent) => void;
   handleMouseDrag: (grid: HGElement, evt: HGMouseEvent) => void;
+  handleDoubleClick: (grid: HGElement, evt: HGMouseEvent) => void;
   handleMouseMove: (grid: HGElement, evt: HGMouseEvent) => void;
   handleMouseDown: (grid: HGElement, evt: HGMouseEvent) => void;
 }
@@ -76,11 +77,13 @@ declare class HGBehaviorElement extends HTMLElement {
   onMouseMove: (grid: HGElement, evt: HGMouseEvent) => void;
   onMouseDrag: (grid: HGElement, evt: HGMouseEvent) => void;
   onMouseUp: (grid: HGElement, evt: HGMouseEvent) => void;
+  onDoubleClick: (grid: HGElement, evt: HGMouseEvent) => void;
 
   swapColumns: (c1: number, c2: number) => void;
   setRowHeight: (rowNum: number, height: number) => void;
   featureChain: HGFeatureChainElement;
 
+  _setColumnWidth(columnIndex: number, columnWidth: number): void;
 
   setCursor(grid: HGElement): void;
   setValue(x: number, y: number, val: string): void;
@@ -141,6 +144,9 @@ declare class HGElement extends HTMLElement {
   setMouseDown(pt: HGPoint): void;
   setHScrollValue(x: number): void;
   setVScrollValue(y: number): void;
+
+  setColumnWidth: (columnIndex: number, columnWidth: number) => void;
+  getColumnWidth: (columnIndex: number) => number;
 
   repaint(): void;
   scrollBy(x: number, y: number): void;

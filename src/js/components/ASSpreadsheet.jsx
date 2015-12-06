@@ -34,6 +34,7 @@ import KeyUtils from '../AS/KeyUtils';
 import Store from '../stores/ASEvaluationStore';
 import FindStore from '../stores/ASFindStore';
 import ExpStore from '../stores/ASExpStore';
+import InitRowColPropsStore from '../stores/ASInitRowColPropsStore.js';
 
 import T from '../AS/Types';
 import TC from '../AS/TypeConversions';
@@ -99,6 +100,7 @@ export default React.createClass({
   componentDidMount() {
     // Be able to respond to events from ExpStore
     ExpStore.addChangeListener(this._onExpressionChange);
+    InitRowColPropsStore.addChangeListener(this._onInitRowColPropsChange);
     // Hypergrid initialization
     document.addEventListener('polymer-ready', () => {
       this.props.onReady();
@@ -286,6 +288,7 @@ export default React.createClass({
   },
 
   getVisibleRows(): number {
+
     return this._getHypergrid().getVisibleRows().length;
   },
 
@@ -307,8 +310,9 @@ export default React.createClass({
 
   draggingCol: false,
   draggingRow: false,
-  clickedColNum: (null: ?number),
-  clickedRowNum: (null: ?number),
+  clickedColNum: (null: ?number), 
+  clickedRowNum: (null: ?number), 
+  resizedColNum: (null: ?number), 
 
   /* Initial a sheet with blank entries */
   initialize() {
@@ -317,6 +321,12 @@ export default React.createClass({
         renderer = hg.getRenderer(),
         self = this;
     hg.addGlobalProperties(this.gridProperties);
+
+    hg.setColumnWidth = (columnIndex, columnWidth) => {
+        self.resizedColNum = columnIndex;
+        console.log(columnIndex); 
+        model._setColumnWidth(columnIndex, columnWidth);
+    },
 
     // This overrides the swapping of columns in hypergrid's internal state
     // Keeps the animation, but don't change state = column headers stay same, data stays same
@@ -391,6 +401,16 @@ export default React.createClass({
           model.setCursor(grid);
         }
       }
+    };
+
+    model.onDoubleClick = (grid, evt) => {
+      if (model.featureChain) {
+          model.featureChain.handleDoubleClick(grid, evt);
+          model.setCursor(grid);
+      }
+
+      self.clickedColNum = evt.gridCell.x;
+      self.finishColumnResize();
     };
 
     model.onMouseDrag = (grid, evt) => {
@@ -494,6 +514,9 @@ export default React.createClass({
             }
             self.clickedRowNum = null;
           }
+
+          // Ditto for resizing
+          self.finishColumnResize();
         }
       }
     };
@@ -504,6 +527,16 @@ export default React.createClass({
     // Namely, the blue box will show up
     ExpStore.setClickType(Constants.ClickType.CLICK);
     this.select({origin: ind, range: {tl: ind, br: ind}}, false);
+  },
+
+  finishColumnResize() { 
+    let col = this.resizedColNum;
+    if (col != null) {
+      let hg = this._getHypergrid(),
+          width = hg.getColumnWidth(col);
+      API.setColumnWidth(col+1, width); 
+      this.resizedColNum = null;
+    } 
   },
 
   // expects that the current sheet has already been set
@@ -521,7 +554,7 @@ export default React.createClass({
   /*************************************************************************************************************************/
   // Hypergrid update display
 
-  /* Called by eval pane's onChange method, when eval pane receives a change event from the store */
+  /* Called by eval pane's onChange method, when eval pane receives a change evt from the store */
   updateCellValues(clientCells: Array<ASCell>) {
     let model = this._getBehavior();
     // update the hypergrid values
@@ -810,7 +843,7 @@ export default React.createClass({
   },
 
   /*************************************************************************************************************************/
-  // Respond to change event from ExpStore
+  // Respond to change evt from ExpStore
 
   _onExpressionChange() {
     let xpChangeOrigin = ExpStore.getXpChangeOrigin(),
@@ -851,6 +884,14 @@ export default React.createClass({
       default:
         break;
     }
+  },
+
+  _onInitRowColPropsChange() { 
+    let initColProps = InitRowColPropsStore.getInitColumnProps(),
+        hg = this._getHypergrid();
+
+    //column index on DB is 1-indexed, while for hypergrid its 0-indexed. 
+    initColProps.map((prop) => hg.setColumnWidth(prop[0]-1, prop[1]));
   },
 
 

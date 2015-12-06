@@ -131,7 +131,8 @@ wss.onmessage = (event: MessageEvent) => {
       case "Open":
         Dispatcher.dispatch({
           _type: 'GOT_OPEN',
-          expressions: msg.payload.initHeaderExpressions
+          expressions: msg.payload.initHeaderExpressions,
+          initColumnProps: msg.payload.initColumnProps
         });
         Dispatcher.dispatch({
           _type: 'GOT_UPDATED_RULES',
@@ -428,13 +429,24 @@ export default {
     });
     this.send(msg);
   },
+
   deleteIndices(locs: Array<ASIndex>) {
     let msg = TC.makeClientMessage(Constants.ServerActions.Delete, "PayloadLL", locs);
     this.send(msg);
   },
+
   deleteRange(rng: ASRange) {
     let msg = TC.makeClientMessage(Constants.ServerActions.Delete, "PayloadR", rng);
     this.send(msg);
+  },
+
+  setColumnWidth(col: number, width: number) { 
+    let msg = TC.makeClientMessageRaw(Constants.ServerActions.SetColumnWidth, {
+      tag: "PayloadColumnWidth",
+      colIndex: col, 
+      colWidth: width
+    });
+    this.send(msg);    
   },
 
   toggleProp(prop: ASCellProp, rng: NakedRange) {

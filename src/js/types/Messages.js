@@ -157,6 +157,7 @@ export type PayloadOpen = {
   tag: 'PayloadOpen';
   initHeaderExpressions: Array<ASExpression>;
   initCondFormatRules: Array<CondFormatRule>;
+  initColumnProps: Array<Array<number>>;
 };
 
 export type PayloadR = {
@@ -240,6 +241,18 @@ export type PayloadCondFormatResult = {
   condFormatRulesResult: Array<CondFormatRule>;
 };
 
+export type PayloadColumnWidth = {
+  tag: 'PayloadColumnWidth';
+  colIndex: number; 
+  colWidth: number; 
+};
+
+export type PayloadRowHeight = {
+  tag: 'PayloadRowHeight';
+  rowIndex: number; 
+  rowHeight: number; 
+};
+
 export type CondFormatRule = {
   tag: 'CondFormatRule';
   condFormat: ASCellProp;
@@ -269,7 +282,6 @@ export type ASBackendPayload =
   | PayloadPaste
   | PayloadProp
   | PayloadXp
-  | PayloadOpen
   | PayloadReplValue
   | PayloadList
   | PayloadText
@@ -277,7 +289,9 @@ export type ASBackendPayload =
   | PayloadDrag
   | PayloadFind
   | PayloadCondFormat
-  | PayloadCondFormatResult;
+  | PayloadCondFormatResult
+  | PayloadColumnWidth
+  | PayloadRowHeight; 
 
 export type ASBackendCommit = {
   tag: 'ASCommit';

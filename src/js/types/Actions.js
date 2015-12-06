@@ -43,6 +43,7 @@ export type GotUpdatedCellsAction = {
 export type GotOpenAction = {
   _type: 'GOT_OPEN';
   expressions: Array<ASExpression>;
+  initColumnProps: Array<Array<number>>;
 };
 
 export type GotUndoAction = {

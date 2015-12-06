@@ -150,7 +150,9 @@ export default Object.assign({
     MutateSheet: "MutateSheet",
     Drag: "Drag",
     Decouple: "Decouple",
-    SetCondFormatRules: "SetCondFormatRules"
+    SetCondFormatRules: "SetCondFormatRules",
+    SetColumnWidth: "SetColumnWidth",
+    SetRowHeight: "SetRowHeight"
   },
 
   CursorPosition:{
