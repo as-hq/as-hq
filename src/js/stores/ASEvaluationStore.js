@@ -50,7 +50,7 @@ let _data: {
   yscroll: number;
   openSheets: Array<ASSheet>;
   currentSheet: ASSheet;
-  activeSelection: ?ASSelection;
+  activeSelection: ASSelection;
   activeFocus: ASFocusType;
   lastActiveFocus: ASFocusType;
   activeCell: ?ASCell;
@@ -78,7 +78,9 @@ let _data: {
       contents: []
     }
   },
-  activeSelection: null,
+  activeSelection: {origin: {row: 1, col: 1},
+                    range: {tl: {row: 1, col: 1},
+                            br: {row: 1, col: 1}}},
   activeFocus: 'grid',
   lastActiveFocus: 'textbox',
   activeCell: null,

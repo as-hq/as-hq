@@ -48,7 +48,7 @@ import Textbox from './Textbox.jsx'
 
 import rowHeaderMenuItems from './menus/RowHeaderMenuItems.jsx';
 import columnHeaderMenuItems from './menus/ColumnHeaderMenuItems.jsx';
-// $FlowFixMe: this module clearly exists and works in other files, but flow can't find it??!
+// $FlowFixMe: this module clearly exists, but flow can't find it??!
 import Dropzone from 'react-dropzone';
 
 let finRect: HGRectangleElement = (document.createElement('fin-rectangle'): any);

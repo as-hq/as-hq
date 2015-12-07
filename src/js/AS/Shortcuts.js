@@ -1,3 +1,5 @@
+/* @flow */
+
 import {logDebug} from './Logger';
 
 import Constants from '../Constants';
@@ -9,27 +11,29 @@ import Util from '../AS/Util';
 import TC from '../AS/TypeConversions';
 import KeyUtils from '../AS/KeyUtils';
 
+import ASEvalPane from '../components/ASEvaluationPane.jsx';
+
 import ExpStore from '../stores/ASExpStore';
 import ExpActionCreator from '../actions/ASExpActionCreators';
 
 export default {
-  addShortcuts(evalPane) {
+  addShortcuts(evalPane: ASEvalPane) {
     // Should really technically be a part of ASEvaluationPane.jsx. Separated for convenience
     // though, hence self = evalPane.
     let self = evalPane;
 
     // common shortcuts -------------------------------------------------------------------------------
 
-    SU.add('common', 'toggle_focus', 'F2', (wildcard) => {
+    SU.add('common', 'toggle_focus', 'F2', (wildcard: string) => {
       logDebug('F2 PRESSED ');
       Store.toggleFocusF2();
       self.refs.spreadsheet.refs.textbox.updateTextBox(ExpStore.getExpression());
       self.setFocus(Store.getFocus());
     });
-    SU.add('common', 'new_sheet', 'Shift+F11', (wildcard) => {
+    SU.add('common', 'new_sheet', 'Shift+F11', (wildcard: string) => {
       // TODO
     });
-    SU.add('common', 'cell_eval', 'Ctrl+Enter', (wildcard) => {
+    SU.add('common', 'cell_eval', 'Ctrl+Enter', (wildcard: string) => {
       let xpObj = {
         expression: self._getRawEditor().getValue(),
         language: self.state.currentLanguage
@@ -37,7 +41,7 @@ export default {
       self.setFocus('grid');
       self.handleEvalRequest(xpObj, null, null);
     });
-    SU.add('common', 'cell_eval_up', 'Shift+Enter', (wildcard) => {
+    SU.add('common', 'cell_eval_up', 'Shift+Enter', (wildcard: string) => {
       let xpObj = {
         expression: self._getRawEditor().getValue(),
         language: self.state.currentLanguage
@@ -45,7 +49,7 @@ export default {
       self.setFocus('grid');
       self.handleEvalRequest(xpObj, 0, -1);
     });
-    SU.add('common', 'cell_eval_left', 'Shift+Tab', (wildcard) => {
+    SU.add('common', 'cell_eval_left', 'Shift+Tab', (wildcard: string) => {
       let xpObj = {
         expression: self._getRawEditor().getValue(),
         language: self.state.currentLanguage
@@ -53,7 +57,7 @@ export default {
       self.setFocus('grid');
       self.handleEvalRequest(xpObj, -1, 0);
     });
-    SU.add('common', 'cell_eval_arrayformula', 'Ctrl+Shift+Enter', (wildcard) => {
+    SU.add('common', 'cell_eval_arrayformula', 'Ctrl+Shift+Enter', (wildcard: string) => {
       // Always eval and stay put, but only sometimes add brackets
       let editorValue = self._getRawEditor().getValue();
       if (self.state.currentLanguage == Constants.Languages.Excel) {
@@ -70,7 +74,7 @@ export default {
       self.handleEvalRequest(xpObj, 0, 0);
     });
 
-    SU.add('common', 'set_language', 'Ctrl+1/2/3/4/5/6/7/8/9', (wildcard) => {
+    SU.add('common', 'set_language', 'Ctrl+1/2/3/4/5/6/7/8/9', (wildcard: string) => {
       switch(wildcard) {
           case '1':
             self.selectLanguage(Constants.Languages.Excel);
@@ -86,7 +90,7 @@ export default {
             break;
         }
     });
-    SU.add('common', 'format_value', 'Ctrl+Shift+2/3/4/5/6', (wildcard) => {
+    SU.add('common', 'format_value', 'Ctrl+Shift+2/3/4/5/6', (wildcard: string) => {
       let dispType;
       // TODO other wildcards
       if (wildcard === '$') dispType = "Money";
@@ -94,18 +98,18 @@ export default {
       API.setFormat(dispType, Store.getActiveSelection().range);
       self.refs.spreadsheet.repaint();
     });
-    SU.add("common", "bold", "Ctrl+B", (wildcard) => {
-      API.toggleProp("Bold", Store.getActiveSelection().range);
+    SU.add("common", "bold", "Ctrl+B", (wildcard: string) => {
+      API.toggleProp({tag: "Bold"}, Store.getActiveSelection().range);
       self.refs.spreadsheet.repaint();
     });
-    SU.add("common", "italic", "Ctrl+I", (wildcard) => {
-      API.toggleProp("Italic", Store.getActiveSelection().range);
+    SU.add("common", "italic", "Ctrl+I", (wildcard: string) => {
+      API.toggleProp({tag: "Italic"}, Store.getActiveSelection().range);
       self.refs.spreadsheet.repaint();
     });
-    SU.add('common', 'toggle_repl', 'Alt+F11', (wildcard) => {
+    SU.add('common', 'toggle_repl', 'Alt+F11', (wildcard: string) => {
       self._toggleRepl();
     });
-    SU.add('common', 'esc', 'Esc', (wildcard) => {
+    SU.add('common', 'esc', 'Esc', (wildcard: string) => {
       logDebug('Esc pressed');
       ExpActionCreator.handleEscape();
       self.refs.spreadsheet.select(Store.getActiveSelection());
@@ -114,7 +118,7 @@ export default {
       self.refs.spreadsheet.repaint(); // render immediately
     });
 
-    SU.add('common', 'find', 'Ctrl+F', (wildcard) => {
+    SU.add('common', 'find', 'Ctrl+F', (wildcard: string) => {
       logDebug('Find pressed');
       self.setState({showFindBar:true,userIsTyping:false});
     });
@@ -127,28 +131,30 @@ export default {
     });
 
     // repl shortcuts -------------------------------------------------------------------------------
-    SU.add('repl', 'repl_submit', ['Enter', 'Ctrl+Enter'], (wildcard) => {
-      /* Preprocessing of repl value to get the 'last' part to send to server */
-      let strs = self._replValue().split('>>>').slice(-1)[0].substring(1);
-      let lines = strs.split('\n');
-      let send = lines.map((l) => {
-        if (l.substring(0,4) === '    ')
-          return l.substring(4);
-        else return l;
-      }).join('\n');
+    // NOT WORKING -- using header file right now
 
-      logDebug('SEND REPL: ' + JSON.stringify(send));
-      let xpObj = {
-        expression: send,
-        language: self.state.replLanguage
-      };
-      // parse exp to get the last thing
-      self.handleReplRequest(xpObj);
-    });
+    // SU.add('repl', 'repl_submit', ['Enter', 'Ctrl+Enter'], (wildcard: string) => {
+    //   /* Preprocessing of repl value to get the 'last' part to send to server */
+    //   let strs = self._replValue().split('>>>').slice(-1)[0].substring(1);
+    //   let lines = strs.split('\n');
+    //   let send = lines.map((l) => {
+    //     if (l.substring(0,4) === '    ')
+    //       return l.substring(4);
+    //     else return l;
+    //   }).join('\n');
+
+    //   logDebug('SEND REPL: ' + JSON.stringify(send));
+    //   let xpObj = {
+    //     expression: send,
+    //     language: self.state.replLanguage
+    //   };
+    //   // parse exp to get the last thing
+    //   self.handleReplRequest(xpObj);
+    // });
 
 
     // editor shortcuts -------------------------------------------------------------------------------
-    SU.add('common', 'toggle_reference', 'F4', (wildcard) => {
+    SU.add('common', 'toggle_reference', 'F4', (wildcard: string) => {
       let focus = Store.getFocus(),
           xp = ExpStore.getExpression();
 
@@ -156,7 +162,7 @@ export default {
         let editor = self._getRawEditor(),
             sesh = editor.getSession(),
             cursor = editor.getCursorPosition(),
-            range = Util.getExtendedWordRange(sesh, cursor.row, cursor.column), 
+            range = Util.getExtendedWordRange(sesh, cursor.row, cursor.column),
             sel = editor.selection;
         sel.setRange(range);
         let oldRef = editor.getSelectedText(),
@@ -173,7 +179,7 @@ export default {
             sel = editor.selection;
         sel.setRange(range);
         let newRef = Util.toggleReference(editor.getSelectedText());
-        if (newRef !== null) {
+        if (!! newRef) {
           sesh.replace(range, newRef);
           ExpActionCreator.handleEditorChange(editor.getValue());
         }
@@ -185,7 +191,7 @@ export default {
             sel = editor.selection;
         sel.setRange(range);
         let newRef = Util.toggleReference(editor.getSelectedText());
-        if (newRef !== null) {
+        if (!! newRef) {
           sesh.replace(range, newRef);
           ExpActionCreator.handleTextBoxChange(editor.getValue());
         }
@@ -195,15 +201,15 @@ export default {
 
 
     // grid shortcuts -------------------------------------------------------------------------------
-    // SU.add('grid', 'moveto_data_boundary', 'Ctrl+Up/Down/Left/Right', (wildcard) => {
+    // SU.add('grid', 'moveto_data_boundary', 'Ctrl+Up/Down/Left/Right', (wildcard: string) => {
     //    // -- For when backend-based jump is completed
     //    let {range, origin} = Store.getActiveSelection();
-    //    API.jumpSelect(range, origin, false, wildcard);
+    //    API.jumpSelect(range, origin, false, wildcard: string);
     //  });
-    //  SU.add('grid', 'moveto_data_boundary_extended', 'Ctrl+Shift+Up/Down/Left/Right', (wildcard) => {
+    //  SU.add('grid', 'moveto_data_boundary_extended', 'Ctrl+Shift+Up/Down/Left/Right', (wildcard: string) => {
     //    // -- For when backend-based jump is completed
     //    let {range, origin} = Store.getActiveSelection();
-    //    API.jumpSelect(range, origin, true, wildcard);
+    //    API.jumpSelect(range, origin, true, wildcard: string);
     //  });
     SU.add('grid', 'moveto_data_boundary', 'Ctrl+Up/Down/Left/Right', (dir) => {
       // Needs to work even when you're selecting references while typing in the textbox
@@ -220,21 +226,21 @@ export default {
       let newSelection = Store.getDataBoundSelection(oldSelection, dir);
       self.refs.spreadsheet.select(newSelection);
     });
-    SU.add('grid', 'grid_fill_down', 'Ctrl+D', (wildcard) => {
+    SU.add('grid', 'grid_fill_down', 'Ctrl+D', (wildcard: string) => {
       let {tl, br} = Store.getActiveSelection().range;
       let copyFrom = TC.simpleToASRange({ tl: tl, br: {row: tl.row, col: br.col} }),
           copyTo = TC.simpleToASRange({ tl: {row: tl.row, col: tl.col},
                                                br: {row: br.row, col: tl.col} });
       API.copy(copyFrom, copyTo);
     });
-    SU.add('grid', 'grid_fill_right', 'Ctrl+R', (wildcard) => {
+    SU.add('grid', 'grid_fill_right', 'Ctrl+R', (wildcard: string) => {
       let {tl, br} = Store.getActiveSelection().range;
       let copyFrom = TC.simpleToASRange({ tl: tl, br: {row: br.row, col: tl.col} }),
           copyTo = TC.simpleToASRange({ tl: {row: tl.row, col: tl.col},
                                                br: {row: tl.row, col: br.col} });
       API.copy(copyFrom, copyTo);
     });
-    SU.add('grid', 'grid_select_all', 'Ctrl+A', (wildcard) => {
+    SU.add('grid', 'grid_select_all', 'Ctrl+A', (wildcard: string) => {
       if (ExpStore.getUserIsTyping()) {
         self._getRawTextbox().selectAll();
       } else {
@@ -243,44 +249,44 @@ export default {
         self.refs.spreadsheet.select({origin: origin, range: range}, false);
       }
     });
-    SU.add('grid,isTyping', 'grid_home_typing', ['Home', 'Ctrl+Home'], (wildcard) => {
+    SU.add('grid,isTyping', 'grid_home_typing', ['Home', 'Ctrl+Home'], (wildcard: string) => {
       self.setFocus('textbox');
       self._getRawTextbox().navigateFileStart();
     });
-    SU.add('grid,notTyping', 'grid_home', ['Home', 'Ctrl+Home'], (wildcard) => {
+    SU.add('grid,notTyping', 'grid_home', ['Home', 'Ctrl+Home'], (wildcard: string) => {
       let idx = {row: 1, col: 1};
       self.refs.spreadsheet.select(TC.indexToSelection(idx));
     });
-    SU.add('grid,isTyping', 'grid_end_typing', 'End', (wildcard) => {
+    SU.add('grid,isTyping', 'grid_end_typing', 'End', (wildcard: string) => {
       self.setFocus('textbox');
       self._getRawTextbox().navigateFileEnd();
     });
-    SU.add('grid', 'move_vwindow_above', 'PageUp', (wildcard) => {
+    SU.add('grid', 'move_vwindow_above', 'PageUp', (wildcard: string) => {
       let dY = self.refs.spreadsheet.getVisibleRows();
       self.refs.spreadsheet.shiftSelectionArea(0, -dY);
     });
-    SU.add('grid', 'move_vwindow_above', 'PageDown', (wildcard) => {
+    SU.add('grid', 'move_vwindow_above', 'PageDown', (wildcard: string) => {
       let dY = self.refs.spreadsheet.getVisibleRows();
       self.refs.spreadsheet.shiftSelectionArea(0, dY);
     });
-    SU.add('grid', 'grid_delete', 'Del/Backspace', (wildcard) => {
+    SU.add('grid', 'grid_delete', 'Del/Backspace', (wildcard: string) => {
       let rng = Store.getActiveSelection().range;
       API.deleteRange(TC.simpleToASRange(rng));
     });
-    SU.add('grid', 'grid_undo', 'Ctrl+Z', (wildcard) => {
+    SU.add('grid', 'grid_undo', 'Ctrl+Z', (wildcard: string) => {
       API.undo();
     });
-    SU.add('grid', 'grid_redo', 'Ctrl+Shift+Z', (wildcard) => {
+    SU.add('grid', 'grid_redo', 'Ctrl+Shift+Z', (wildcard: string) => {
       API.redo();
     });
-    SU.add('grid', 'grid_repeat_last_action', 'Ctrl+Y', (wildcard) => {
+    SU.add('grid', 'grid_repeat_last_action', 'Ctrl+Y', (wildcard: string) => {
       let sel = Store.getActiveSelection();
       API.repeat(sel);
     });
-    SU.add('grid', 'chart', 'F11', (wildcard) => {
+    SU.add('grid', 'chart', 'F11', (wildcard: string) => {
       // TODO
     });
-    SU.add('grid', 'select_row', 'Shift+Space', (wildcard) => {
+    SU.add('grid', 'select_row', 'Shift+Space', (wildcard: string) => {
       if (ExpStore.getUserIsTyping()) {
         logDebug("Grid key down going to AC");
         let newStr = ExpStore.getExpression() + ' ';
@@ -291,40 +297,46 @@ export default {
                                      origin: origin}, false);
       }
     });
-    SU.add('grid,notTyping', 'select_col', 'Ctrl+Space', (wildcard) => {
+    SU.add('grid,notTyping', 'select_col', 'Ctrl+Space', (wildcard: string) => {
       let {origin} = Store.getActiveSelection();
       self.refs.spreadsheet.select({range: {tl: {row: 1, col: origin.col}, br: {row: Infinity, col: origin.col}},
                                     origin: origin}, false);
     });
-    SU.add('grid', 'insert_row', 'Ctrl+Shift+[', (wildcard) => {
+    SU.add('grid', 'insert_row', 'Ctrl+Shift+[', (wildcard: string) => {
       // TODO
     });
-    SU.add('grid', 'insert_col', 'Ctrl+Shift+]', (wildcard) => {
+    SU.add('grid', 'insert_col', 'Ctrl+Shift+]', (wildcard: string) => {
       // TODO
     });
-    SU.add('grid', 'grid_outline_range', 'Ctrl+Shift+5', (wildcard) => {
+    SU.add('grid', 'grid_outline_range', 'Ctrl+Shift+5', (wildcard: string) => {
       // TODO
     });
-    SU.add('grid', 'copy_expression_above', 'Ctrl+Shift+\'', (wildcard) => {
+    SU.add('grid', 'copy_expression_above', 'Ctrl+Shift+\'', (wildcard: string) => {
       // TODO test
       let {tl} = Store.getActiveSelection().range,
           cell = Store.getCell(tl.col, tl.row-1);
       if (cell) {
         let xp = cell.cellExpression.expression || '';
-        self.setExpression(xp);
+        ExpActionCreator.handleEditorChange(xp);
       } else self.setToast('No cell above.', 'Error');
     });
-    SU.add('grid', 'copy_value_above', 'Ctrl+\'', (wildcard) => {
+    SU.add('grid', 'copy_value_above', 'Ctrl+\'', (wildcard: string) => {
       // TODO test
       let tl = Store.getActiveSelection().range.tl,
           cell = Store.getCell(tl.col, tl.row-1);
       if (cell) {
         let xp = Util.showValue(cell.cellValue) || '';
-        self.setExpression(xp);
+        ExpActionCreator.handleEditorChange(xp);
+        let xpObj = {
+          expression: self._getRawEditor().getValue(),
+          language: self.state.currentLanguage
+        };
+        self.setFocus('grid');
+        self.handleEvalRequest(xpObj, null, null);
       } else self.setToast('No cell above.', 'Error');
     });
 
-    SU.add('grid', 'grid_enter', 'Enter', (wildcard) => {
+    SU.add('grid', 'grid_enter', 'Enter', (wildcard: string) => {
       let xpObj = {
         expression: self._getRawEditor().getValue(),
         language: self.state.currentLanguage
@@ -332,7 +344,7 @@ export default {
       self.handleEvalRequest(xpObj, 0, 1);
     });
 
-    SU.add('grid', 'grid_eval_right', 'Tab', (wildcard) => {
+    SU.add('grid', 'grid_eval_right', 'Tab', (wildcard: string) => {
       let xpObj = {
         expression: self._getRawEditor().getValue(),
         language: self.state.currentLanguage
@@ -344,6 +356,7 @@ export default {
       evalPane.handleCopyTypeEventForGrid({
         preventDefault() { },
         stopPropagation() { },
+        persist() { },
         clipboardData: {
           setData() { }
         }
@@ -354,6 +367,7 @@ export default {
       evalPane.handleCopyTypeEventForGrid({
         preventDefault() { },
         stopPropagation() { },
+        persist() { },
         clipboardData: {
           setData() { }
         }
@@ -364,6 +378,7 @@ export default {
       evalPane.handlePasteEventForGrid({
         preventDefault() { },
         stopPropagation() { },
+        persist() { },
         clipboardData: {
           getData(x) { return 'alphasheets'; },
           types: ['text/html']
@@ -372,7 +387,7 @@ export default {
     });
 
     // textbox shortcuts -------------------------------------------------------------------------------
-    SU.add('textbox', 'textbox_enter', 'Enter', (wildcard) => {
+    SU.add('textbox', 'textbox_enter', 'Enter', (wildcard: string) => {
       let xpObj = {
         expression: self._getRawEditor().getValue(),
         language: self.state.currentLanguage
@@ -381,7 +396,7 @@ export default {
       self.handleEvalRequest(xpObj, 0, 1);
     });
 
-    SU.add('textbox', 'textbox_eval_right', 'Tab', (wildcard) => {
+    SU.add('textbox', 'textbox_eval_right', 'Tab', (wildcard: string) => {
       let xpObj = {
         expression: self._getRawEditor().getValue(),
         language: self.state.currentLanguage

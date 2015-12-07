@@ -200,13 +200,29 @@ declare class AEWordRange {
 declare class AESession {
   getWordRange(r: number, c: number): AEWordRange;
   getTextRange(rng: AEWordRange): string;
+  replace(rng: AEWordRange, str: string): void;
+}
+
+declare class AESelection {
+  setRange(rng: AEWordRange): void;
+}
+
+declare class AECursorPosition {
+  row: number;
+  column: number
 }
 
 declare class AERawClass {
   focus(): void;
   getValue(): string;
   getSession(): AESession;
+  getCursorPosition(): AECursorPosition;
+  getSelectedText(): string;
+  setValue(str: string): void;
+  selectAll(): void;
+  navigateFileStart(): void;
   navigateFileEnd(): void;
+  selection: AESelection;
 }
 
 declare class AEElement extends HTMLElement {

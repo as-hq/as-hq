@@ -56,6 +56,7 @@ import FindAction from '../actions/ASFindActionCreators';
 type ASEvalPaneState = {
   defaultLanguage: ASLanguage;
   currentLanguage: ASLanguage;
+  replLanguage: ASLanguage;
   varName: string;
   focus: ?ASFocusType;
   toastMessage: ?string;
@@ -65,6 +66,7 @@ type ASEvalPaneState = {
   evalHeaderOpen: boolean;
   evalHeaderLanguage: ASLanguage;
   showFindBar: boolean;
+  userIsTyping: boolean;
   showFindModal: boolean;
   testMode: boolean;
 };
@@ -83,6 +85,7 @@ export default React.createClass({
     return {
       defaultLanguage: Constants.Languages.Excel, // the language displayed on a blank cell
       currentLanguage: Constants.Languages.Excel, // the language currently displayed
+      replLanguage: Constants.Languages.Python,
       varName: '',
       focus: null,
       toastMessage: '',
@@ -92,6 +95,7 @@ export default React.createClass({
       // replOpen: false,
       // replLanguage: Constants.Languages.Python,
       // replSubmittedLanguage: null,
+      userIsTyping: false,
       evalHeaderOpen: false,
       evalHeaderLanguage: Constants.Languages.Python,
       showFindBar:false,

@@ -245,16 +245,16 @@ export default {
     if (cv.tag === 'ValueImage') {
       let self = this,
           ct = c.cellProps,
-          imageWidth = 300,
-          imageHeight =  300,
+          imageWidth   = 300,
+          imageHeight  = 300,
           imageOffsetX = 0,
           imageOffsetY = 0;
       for (var i = 0 ; i < ct.length; i++) {
-        if (ct[i].tag==="ImageData") {
+        if (ct[i].tag === "ImageData") {
           imageOffsetX = ct[i].imageOffsetX;
           imageOffsetY = ct[i].imageOffsetY;
-          imageWidth = ct[i].imageWidth;
-          imageHeight = ct[i].imageHeight;
+          imageWidth   = ct[i].imageWidth;
+          imageHeight  = ct[i].imageHeight;
         }
       }
       return {

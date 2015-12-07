@@ -70,26 +70,26 @@ export type FillColor = {
 
 export type VAlign = {
   tag: 'VAlign';
-  contents: VAlignType; 
+  contents: VAlignType;
 };
 
 export type HAlign = {
   tag: 'HAlign';
-  contents: HAlignType; 
+  contents: HAlignType;
 };
 
 export type FontSize = {
   tag: 'FontSize';
-  contents: number; 
+  contents: number;
 };
 
 export type FontName = {
   tag: 'FontName';
-  contents: string; 
+  contents: string;
 };
 
-export type ValueFormat = { 
-  tag: 'ValueFormat'; 
+export type ValueFormat = {
+  tag: 'ValueFormat';
   formatType: FormatType;
 };
 
@@ -114,7 +114,7 @@ export type ReadOnly = {
 
 export type URL = {
   tag: 'URL';
-  urlLink: string; 
+  urlLink: string;
 };
 
 export type Bold = {
@@ -146,8 +146,8 @@ export type Bloomberg = {
 ///////////////////////////////////////////////////////////////////////////////
 // Alignment types
 
-export type HAlignType = 'LeftAlign' | 'HCenterAlign' | 'RightAlign'; 
-export type VAlignType = 'TopAlign' | 'VCenterAlign' | 'BottomAlign'; 
+export type HAlignType = 'LeftAlign' | 'HCenterAlign' | 'RightAlign';
+export type VAlignType = 'TopAlign' | 'VCenterAlign' | 'BottomAlign';
 
 ///////////////////////////////////////////////////////////////////////////////
 // Streams
@@ -192,7 +192,7 @@ export type ASCellProp =
   | StreamInfo
   | ReadOnly
   | URL
-  | Bold | Italic | Underline 
+  | Bold | Italic | Underline
   | Volatile
   | Tracking;
 
