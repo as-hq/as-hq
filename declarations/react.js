@@ -196,8 +196,8 @@ declare class SyntheticEvent {
     isTrusted?: boolean;
     nativeEvent?: Event;
     persist: () => void;
-    preventDefault?: () => void;
-    stopPropagation?: () => void;
+    preventDefault: () => void;
+    stopPropagation: () => void;
     target?: EventTarget;
     timeStamp?: number;
     type?: string;
