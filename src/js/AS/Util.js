@@ -7,7 +7,7 @@ import type {
 import type {
   NakedIndex,
   NakedRange,
-  ASSelection
+  ASSelection,
   ASIndex,
   ValueError,
   ASValue,

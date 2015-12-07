@@ -229,7 +229,7 @@ export default {
 
   //clickType type is wrong
   modifyTextboxForKey(e: SyntheticKeyboardEvent, userIsTyping: boolean, 
-                      clickType: string, oldXp: string, isEditorEmpty: boolean): string {
+                      clickType: ?string, oldXp: string, isEditorEmpty: boolean): string {
     // Append to string if double click, replace if single click
     if (userIsTyping || clickType === Constants.ClickType.DOUBLE_CLICK) {
       // first check if editor has a thing selected

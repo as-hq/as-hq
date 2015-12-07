@@ -169,7 +169,7 @@ export default {
         sel.setRange(range);
         let oldRef = editor.getSelectedText(),
             newRef = Util.toggleReference(oldRef);
-        if (newRef !== null) {
+        if (newRef != null) {
           let newXp = xp.substring(0, xp.length - oldRef.length) + newRef;
           ExpActionCreator.handleGridChange(newXp);
         }
