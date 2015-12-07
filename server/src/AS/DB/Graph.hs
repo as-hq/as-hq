@@ -35,15 +35,24 @@ import Control.Monad.Trans.Either
 -- added to the graph.)
 -- Note that a relation is (ASIndex, [ASReference]), where a graph ancestor can be any valid reference type, 
 -- including pointer, range, and index. 
-setCellsAncestors :: [ASCell] -> EitherTExec [[ASReference]]
-setCellsAncestors cells = setRelations relations >> printObjT "setting relations: " relations >> return depSets
+setCellsAncestors :: [ASCell] -> EitherTExec ()
+setCellsAncestors cells = do
+  setRelations relations 
+  printObjT "Set cell ancestors" relations
   where
-    depSets = map (\(Cell l e _ _) -> getDependencies (locSheetId l) e) cells
+    depSets = map getAncestorsForCell cells
     relations = (zip (map cellLocation cells) depSets) :: [ASRelation]
+
+-- If a cell is a fat cell head or a normal cell, you can parse its ancestors from the expression. However, for a non-fat-cell-head coupled
+-- cell, we only want to set an edge from it to the head of the list (for checking circular dependencies).
+getAncestorsForCell :: ASCell -> [ASReference]
+getAncestorsForCell c@(Cell l xp _ _) = if ((not $ isFatCellHead c) && isCoupled c)
+  then [IndexRef . keyIndex . cRangeKey $ xp]
+  else getDependencies (locSheetId l) xp
 
 -- | It'll parse no dependencies from the blank cells at these locations, so each location in the
 -- graph DB gets all its ancestors removed. 
-removeAncestorsAt :: [ASIndex] -> EitherTExec [[ASReference]]
+removeAncestorsAt :: [ASIndex] -> EitherTExec ()
 removeAncestorsAt = setCellsAncestors . blankCellsAt
 
 -- | Should only be called when undoing or redoing commits, which should be guaranteed to not
@@ -87,8 +96,7 @@ processGraphReply reply = case (B.unpack $ L.last reply) of
 -- produce the message to send the graph, currently a giant lazy bytestring
 produceReadMessage :: GraphReadRequest -> [GraphReadInput] -> BL.ByteString
 produceReadMessage r input = BS.show $ L.intercalate msgPartDelimiter elements
-  where
-    elements = (show r):(L.map show2 input)
+  where elements = (show r):(L.map show2 input)
 
 -- Deal with the entire cycle of a read request. First produce the read message, then execute the query, 
 -- then process the reply. 

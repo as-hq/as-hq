@@ -76,7 +76,7 @@ runDispatchCycle state cs descSetting src = do
     -- you must insert the roots into the initial context, because getCellsToEval will give you cells to evaluate that
     -- are only in the context or in the DB (in that order of prececdence). IF neither, you won't get anything. 
     -- this maintains the invariant that context always contains the most up-to-date, complete information. 
-    ctxAfterDispatch <- dispatch conn roots initialContext descSetting SetAncestry
+    ctxAfterDispatch <- dispatch conn roots initialContext descSetting
     printWithTimeT $ "finished dispatch"
     finalizedCells <- EE.evalEndware state (addedCells ctxAfterDispatch) src roots ctxAfterDispatch
     let ctx = ctxAfterDispatch { addedCells = finalizedCells }
@@ -91,20 +91,17 @@ runDispatchCycle state cs descSetting src = do
 -- this seems conceptually better than letting each round of dispatch produce a new context, 
 -- and hoping we union them in the right order. This means that at any point in time, there is a *single*
 -- EvalContext in existence, and we just continue writing to it every time dispatch is called recursively. 
-dispatch :: Connection -> [ASCell] -> EvalContext -> DescendantsSetting -> AncestrySetting -> EitherTExec EvalContext
-dispatch conn [] context _ _ = printWithTimeT "empty dispatch" >> return context
-dispatch conn roots oldContext descSetting ancSetting = do
+dispatch :: Connection -> [ASCell] -> EvalContext -> DescendantsSetting -> EitherTExec EvalContext
+dispatch conn [] context _ = printWithTimeT "empty dispatch" >> return context
+dispatch conn roots oldContext descSetting = do
   printObjT "STARTING DISPATCH CYCLE WITH CELLS" roots
-  printWithTimeT $ "Settings: Descendants: " ++ (show descSetting) ++ ", Ancestors: " ++ (show ancSetting)
+  printWithTimeT $ "Settings: Descendants: " ++ (show descSetting)
   -- For all the original cells, add the edges in the graph DB; parse + setRelations
-  rootsDepSets <- case ancSetting of 
-    SetAncestry -> G.setCellsAncestors roots
-    DontSetAncestry -> return []
-  printObjT "Set cell ancestors" rootsDepSets
+  G.setCellsAncestors roots
   descLocs       <- getEvalLocs conn roots descSetting
   printObjT "Got eval locations" descLocs
   -- Turn the descLocs into Cells, but the roots are already given as cells, so no DB actions needed there
-  cellsToEval    <- getCellsToEval conn descLocs oldContext
+  cellsToEval    <- getCellsToEval oldContext descLocs
   printObjT "Got cells to evaluate" cellsToEval
   ancLocs        <- G.getImmediateAncestors $ indicesToGraphReadInput descLocs
   printObjT "Got ancestor locs" ancLocs
@@ -139,30 +136,14 @@ getEvalLocs conn origCells descSetting = do
 
 -- | Given a set of locations to eval, return the corresponding set of cells to perform
 -- the evaluations in. We look up locs in the DB, but give precedence to EvalContext (if a cell is in the context, we use that instead, 
--- as it is the most up-to-date info we have). In addition, if a cell we get is a non-fatcell-head coupled expression, we will not add it
--- to the result (which should be interpreted as the list of cells to evaluate). This is because fatcells have priority, and we want them to 
--- "overwrite" their contents. Example: A1 = 1, A2 = A1, A1 = range(10) should keep A1 coupled. It shouldn't eval the range, then eval A2, which 
--- would decouple the range. In our function, A2 wouldn't even be added to the list of things to eval. 
-getCellsToEval :: Connection -> [ASIndex] -> EvalContext -> EitherTExec [ASCell]
-getCellsToEval conn locs ctx = 
-  let replaceWithContext (ind, mCell) = case mCell of
-        -- if the loc wasn't in the DB, it might be in context. If it's in neither, DB Nothing exception
-        Nothing -> case ind `M.lookup` (contextMap ctx) of
-          Nothing -> left $ DBNothingException [ind]
-          Just cell -> return cell 
-        -- if the loc was in the DB, still give context precedence
-        Just cell -> case ind `M.lookup` (contextMap ctx) of
-          Nothing -> return cell 
-          Just contextCell -> return contextCell 
-      giveFatCellsOverwritePower c = if (not (isFatCellHead c) && isCoupled c)
-        then Nothing 
-        else Just c
- in do
-  mCells <- lift $ DB.getCells locs
-  let pairs = zip locs mCells   
-  cellsWithContextPriority <- mapM replaceWithContext pairs
-  -- Map cells that are coupled but not fat cell heads to Nothing, then do a catMaybes to get rid of them
-  return $ catMaybes $ map giveFatCellsOverwritePower cellsWithContextPriority
+-- as it is the most up-to-date info we have). 
+getCellsToEval :: EvalContext -> [ASIndex] -> EitherTExec [ASCell]
+getCellsToEval ctx locs = (++) contextCells <$> (mapM checkExists =<< zip locs <$> (lift $ DB.getCells nonContextLocs))
+  where 
+    checkExists (loc, Nothing)    = left $ DBNothingException [loc]
+    checkExists (_, Just c)       = return c
+    (contextLocs, nonContextLocs) = L.partition (flip M.member (contextMap ctx)) locs
+    contextCells                  = map ((M.!) (contextMap ctx)) contextLocs
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Maps 
@@ -216,10 +197,23 @@ evalChainWithException conn ctx cells =
     result <- liftIO $ catch (runEitherT $ evalChain conn ctx cells) whenCaught
     hoistEither result
 
-
 evalChain :: Connection -> EvalContext -> [ASCell] -> EitherTExec EvalContext
-evalChain _ ctx [] = printWithTimeT "empty evalchain" >> return ctx
-evalChain conn ctx (c@(Cell loc xp val ps):cs) = do
+evalChain conn ctx cells = evalChain' conn ctx filteredCells
+  -- if a cell we get is a non-fatcell-head coupled expression, we will not add it to the list of cells to evaluate). This is because 
+  -- fatcells have priority, and we want them to "overwrite" their contents. Example: A1 = 1, A2 = A1, A1 = range(10) should keep A1 coupled. 
+  -- It shouldn't eval the range, then eval A2, which would decouple the range. In our function, A2 wouldn't even be evalled.
+  where 
+    filteredCells = filter shouldEvaluate updatedCells
+    updatedCells = map replaceWithContext cells
+    shouldEvaluate c = isFatCellHead c || (not $ isCoupled c)
+      -- replace all currently queued cells with their updated versions from the context, if they exist.
+    replaceWithContext c = case (cellLocation c) `M.lookup` (contextMap ctx) of
+      Nothing -> c
+      Just c' -> c'
+
+evalChain' :: Connection -> EvalContext -> [ASCell] -> EitherTExec EvalContext
+evalChain' _ ctx [] = printWithTimeT "empty evalchain" >> return ctx
+evalChain' conn ctx (c@(Cell loc xp val ps):cs) = do
   printWithTimeT $ "running eval chain with cells: " ++ (show (c:cs))
   let getEvalResult expression = EC.evaluateLanguage conn loc ctx expression 
   cvf <- case xp of 
@@ -304,7 +298,7 @@ contextInsert conn c@(Cell idx xp _ ps) (Formatted cv f) ctx = do
           resultContext = EvalContext finalMp finalCells ddiffWithRemovedDescriptors
       -- now, propagate the descandants of the decoupled cells
       lift $ putStrLn "running decouple transform"
-      dispatch conn decoupledCells resultContext ProperDescendants DontSetAncestry
+      dispatch conn decoupledCells resultContext ProperDescendants
     Just (FatCell cs descriptor) -> do 
       -- Modify the props of our current cells to reflect any format
       let newCells = map (formatCell f) cs
@@ -322,5 +316,5 @@ contextInsert conn c@(Cell idx xp _ ps) (Formatted cv f) ctx = do
       let cs' = flip mergeCells decoupledCells $ case blankedIndices of 
                 Nothing -> cs
                 Just inds -> map (\elem -> (contextMap finalContext) M.! elem) inds
-      dispatch conn cs' finalContext ProperDescendants DontSetAncestry
+      dispatch conn cs' finalContext ProperDescendants
 
