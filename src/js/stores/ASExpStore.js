@@ -64,9 +64,9 @@ const ASExpStore = Object.assign({}, BaseStore, {
   dispatcherIndex: Dispatcher.register(function (action) {
     logDebug("Exp Store detected dispatcher payload");
     switch (action._type) {
-      case Constants.ActionTypes.GRID_KEY_PRESSED:
-      case Constants.ActionTypes.EDITOR_CHANGED:
-      case Constants.ActionTypes.TEXTBOX_CHANGED:
+        case Constants.ActionTypes.GRID_KEY_PRESSED:
+        case Constants.ActionTypes.EDITOR_CHANGED:
+        case Constants.ActionTypes.TEXTBOX_CHANGED:
         ASExpStore.updateStoreNormalTyping(action._type, action.xpStr);
         break;
       case Constants.ActionTypes.NORMAL_SEL_CHANGED:
