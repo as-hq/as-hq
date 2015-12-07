@@ -132,7 +132,7 @@ wss.onmessage = (event: MessageEvent) => {
         Dispatcher.dispatch({
           _type: 'GOT_OPEN',
           expressions: msg.payload.initHeaderExpressions,
-          initColumnProps: msg.payload.initColumnProps
+          initRowCols: msg.payload.initRowCols
         });
         Dispatcher.dispatch({
           _type: 'GOT_UPDATED_RULES',
@@ -441,11 +441,8 @@ export default {
   },
 
   setColumnWidth(col: number, width: number) { 
-    let msg = TC.makeClientMessageRaw(Constants.ServerActions.SetColumnWidth, {
-      tag: "PayloadColumnWidth",
-      colIndex: col, 
-      colWidth: width
-    });
+    let msg = TC.makeClientMessage(Constants.ServerActions.SetRowColProp, "PayloadSetRowColProp",
+      ['ColumnType', col, {tag: 'Dimension', contents: width}]);
     this.send(msg);    
   },
 

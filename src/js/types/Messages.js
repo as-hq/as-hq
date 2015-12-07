@@ -76,6 +76,27 @@ export type MutateType =
   | DragCol
   | DragRow;
 
+export type RowColType = 'ColumnType' | 'RowType';
+
+export type RowColProp = Dimension | FromCellProp;  
+
+export type Dimension = { 
+  tag: 'Dimension'; 
+  contents: number;  
+};
+
+export type FromCellProp = { 
+  tag: 'FromCellProp'; 
+  contents: ASCellProp;  
+};
+
+export type RowCol = {
+  tag: 'RowCol';
+  rowColType: RowColType;
+  rowColIndex: number; 
+  rowColProps: Array<RowColProp>; 
+};
+
 export type ASInitConnection = {
   tag: 'ASInitConnection';
   connUserId: ASUserId;
@@ -157,7 +178,7 @@ export type PayloadOpen = {
   tag: 'PayloadOpen';
   initHeaderExpressions: Array<ASExpression>;
   initCondFormatRules: Array<CondFormatRule>;
-  initColumnProps: Array<Array<number>>;
+  initRowCols: Array<RowCol>;
 };
 
 export type PayloadR = {
@@ -241,16 +262,9 @@ export type PayloadCondFormatResult = {
   condFormatRulesResult: Array<CondFormatRule>;
 };
 
-export type PayloadColumnWidth = {
-  tag: 'PayloadColumnWidth';
-  colIndex: number; 
-  colWidth: number; 
-};
-
-export type PayloadRowHeight = {
-  tag: 'PayloadRowHeight';
-  rowIndex: number; 
-  rowHeight: number; 
+export type PayloadSetRowColProp = {
+  tag: 'PayloadSetRowColProp';
+  contents: [RowColType, number, RowColProp];
 };
 
 export type CondFormatRule = {
@@ -290,8 +304,7 @@ export type ASBackendPayload =
   | PayloadFind
   | PayloadCondFormat
   | PayloadCondFormatResult
-  | PayloadColumnWidth
-  | PayloadRowHeight; 
+  | PayloadSetRowColProp;
 
 export type ASBackendCommit = {
   tag: 'ASCommit';

@@ -151,8 +151,7 @@ export default Object.assign({
     Drag: "Drag",
     Decouple: "Decouple",
     SetCondFormatRules: "SetCondFormatRules",
-    SetColumnWidth: "SetColumnWidth",
-    SetRowHeight: "SetRowHeight"
+    SetRowColProp: "SetRowColProp"
   },
 
   CursorPosition:{

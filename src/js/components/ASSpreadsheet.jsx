@@ -324,7 +324,6 @@ export default React.createClass({
 
     hg.setColumnWidth = (columnIndex, columnWidth) => {
         self.resizedColNum = columnIndex;
-        console.log(columnIndex); 
         model._setColumnWidth(columnIndex, columnWidth);
     },
 
@@ -535,6 +534,7 @@ export default React.createClass({
       let hg = this._getHypergrid(),
           width = hg.getColumnWidth(col);
       API.setColumnWidth(col+1, width); 
+      // column index on DB is 1-indexed, while for hypergrid it's 0-indexed. 
       this.resizedColNum = null;
     } 
   },
@@ -887,11 +887,11 @@ export default React.createClass({
   },
 
   _onInitRowColPropsChange() { 
-    let initColProps = InitRowColPropsStore.getInitColumnProps(),
+    let initColWidths = InitRowColPropsStore.getInitColumnWidths(),
         hg = this._getHypergrid();
 
-    //column index on DB is 1-indexed, while for hypergrid its 0-indexed. 
-    initColProps.map((prop) => hg.setColumnWidth(prop[0]-1, prop[1]));
+    //column index on DB is 1-indexed, while for hypergrid it's 0-indexed. 
+    initColWidths.map((prop) => hg.setColumnWidth(prop[0]-1, prop[1]));
   },
 
 

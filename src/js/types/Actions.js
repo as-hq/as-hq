@@ -21,7 +21,8 @@ import type {
   PayloadSelection,
   ASBackendWorkbookSheet,
   ASMessageAction,
-  ASServerMessage
+  ASServerMessage,
+  RowCol,
 } from './Messages';
 
 export type GotFailureAction = {
@@ -43,7 +44,7 @@ export type GotUpdatedCellsAction = {
 export type GotOpenAction = {
   _type: 'GOT_OPEN';
   expressions: Array<ASExpression>;
-  initColumnProps: Array<Array<number>>;
+  initRowCols: Array<RowCol>; 
 };
 
 export type GotUndoAction = {
