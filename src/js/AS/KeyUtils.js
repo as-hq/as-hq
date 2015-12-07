@@ -146,11 +146,11 @@ export default {
            e.which === 36 || e.which === 35; // home, end
   },
 
-  isCtrlA(e: SyntheticKeyboardEvent): boolean { 
+  isCtrlA(e: SyntheticKeyboardEvent): boolean {
     return e.ctrlKey && e.which === 65;
   },
 
-  isCtrlS(e: SyntheticKeyboardEvent): boolean { 
+  isCtrlS(e: SyntheticKeyboardEvent): boolean {
     return e.ctrlKey && e.which === 83;
   },
 
@@ -189,7 +189,7 @@ export default {
     return makesVisibleChar || isDestructive || isCopyPaste || isUndoOrRedo;
   },
 
-  producesVisibleChar(e: SyntheticKeyboardEvent): boolean { 
+  producesVisibleChar(e: SyntheticKeyboardEvent): boolean {
     // based off http://www.cambiaresearch.com/articles/15/javascript-char-codes-key-codes and
     // https://css-tricks.com/snippets/javascript/javascript-keycodes/
     // If you're holding down ctrl, alt, or a meta key, you're not going to be producing visible text.
@@ -228,7 +228,7 @@ export default {
   },
 
   //clickType type is wrong
-  modifyTextboxForKey(e: SyntheticKeyboardEvent, userIsTyping: boolean, 
+  modifyTextboxForKey(e: SyntheticKeyboardEvent, userIsTyping: boolean,
                       clickType: ?string, oldXp: string, isEditorEmpty: boolean): string {
     // Append to string if double click, replace if single click
     if (userIsTyping || clickType === Constants.ClickType.DOUBLE_CLICK) {
@@ -245,7 +245,7 @@ export default {
       } else {
         return this.appendStringByKey(oldXp, e);
       }
-    } else { 
+    } else {
       return this.keyToString(e);
     }
   },
@@ -275,21 +275,21 @@ export default {
     let k = _.invert(keyMap);
     if (k[e.which])
       return k[e.which];
-    else 
+    else
       return this.keyToString(e);
   },
 
   shiftIndexByKey(e: SyntheticKeyboardEvent, idx: NakedIndex): NakedIndex {
-    switch (e.which) { 
-      case 37: 
+    switch (e.which) {
+      case 37:
         return {row: idx.row, col: idx.col - 1};
-      case 38: 
+      case 38:
         return {row: idx.row - 1, col: idx.col};
-      case 39: 
+      case 39:
         return {row: idx.row, col: idx.col + 1};
-      case 40: 
+      case 40:
         return {row: idx.row + 1, col: idx.col};
-      default: 
+      default:
         throw "Invalid keyboard event passed in to shiftIndexByKey";
     }
   }
