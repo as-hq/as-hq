@@ -40,6 +40,9 @@ propType (FromCell cp) = FromCellProp $ CP.propType cp
 emptyProps :: ASRowColProps
 emptyProps = ASRowColProps M.empty
 
+-- Will need these eventually for eval. (e.g., bolding entire columns, and checking if a cell
+-- is in a column with defualt properties.)
+
 -- getProp :: RowColPropType -> ASRowColProps -> Maybe RowColProp
 -- getProp pt (ASRowColProps m) = M.lookup pt m
 

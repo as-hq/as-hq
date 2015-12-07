@@ -502,7 +502,9 @@ setEvalHeader :: Connection -> ASSheetId -> ASLanguage -> String -> IO ()
 setEvalHeader conn sid lang xp = runRedis conn (set (evalHeaderKey sid lang) (B.pack xp)) >> return ()
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
--- Row/col dimensions getters/setters
+-- Row/col getters/setters
+
+-- #needsrefactor the keys here are horrendous. 
 
 rowColPropsKey :: ASSheetId -> RP.RowColType -> Int -> B.ByteString
 rowColPropsKey sid rct ind = B.pack ((show rct) ++ "PROPS" ++ (show sid) ++ '`':(show ind)) 
@@ -520,6 +522,7 @@ getRowColProps conn sid rct ind  = runRedis conn $ do
     Right Nothing     -> Nothing
     Left _            -> error "Failed to retrieve row or column props"
 
+-- #needsrefactor the hard-coding, and the use of keys in hedis, are not great. 
 getRowColsInSheet :: Connection -> ASSheetId -> IO [RP.RowCol]
 getRowColsInSheet conn sid = do 
   mColKeys <- runRedis conn (keys $ B.pack $ (show RP.ColumnType) ++ "PROPS" ++ (show sid) ++ "*")
@@ -532,7 +535,6 @@ getRowColsInSheet conn sid = do
       rows = map (\(x, Just y) -> RP.RowCol RP.RowType x y) $ filter (isJust . snd) $ zip rowInds rowProps
   return $ union cols rows
 
--- ::ALEX:: wrong!! need to call setProp on it
 setRowColProps :: Connection -> ASSheetId -> RP.RowCol -> IO ()
 setRowColProps conn sid (RP.RowCol rct ind props) = do
   runRedis conn (set (rowColPropsKey sid rct ind) (B.pack $ show props))
