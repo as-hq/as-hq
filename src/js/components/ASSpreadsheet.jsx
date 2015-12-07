@@ -800,7 +800,7 @@ export default React.createClass({
       KeyUtils.killEvent(e);
       let userIsTyping = ExpStore.getUserIsTyping(),
           clickType    = ExpStore.getClickType();
-      logDebug("CLICK TYPE " + clickType);
+      logDebug("CLICK TYPE ", clickType);
       if (ShortcutUtils.gridShouldAddToTextbox(userIsTyping, e)) {
         // Need to update the editor and textbox now via action creators
         logDebug("Grid key down going to AC");
@@ -873,7 +873,11 @@ export default React.createClass({
   _onExpressionChange() {
     let xpChangeOrigin = ExpStore.getXpChangeOrigin(),
         xpStr = ExpStore.getExpression();
-    logDebug("Grid caught exp update of_type: " +  xpChangeOrigin);
+    if (xpChangeOrigin != null) {
+     logDebug("Grid caught exp update of_type: " +  xpChangeOrigin);
+    } else {
+     logDebug("Grid cauhgt exp udpate of_type: null");
+    }
     switch(xpChangeOrigin) {
       case Constants.ActionTypes.TEXTBOX_CHANGED:
         Render.setShouldRenderSquareBox(false);

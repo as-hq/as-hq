@@ -507,12 +507,12 @@ export default React.createClass({
         gridCanInsertRef = ExpStore.gridCanInsertRef(),
         textBoxCanInsertRef = ExpStore.textBoxCanInsertRef(this._getTextbox().editor);
 
-    logDebug("Current expression: " + ExpStore.getExpression());
-    logDebug("Cursor position: " + ExpStore.getLastCursorPosition());
+    logDebug("Current expression: " , ExpStore.getExpression());
+    logDebug("Cursor position: " , ExpStore.getLastCursorPosition());
 
-    logDebug("Editor insert: " + editorCanInsertRef);
-    logDebug("Grid insert: " + gridCanInsertRef);
-    logDebug("Textbox insert: " + textBoxCanInsertRef);
+    logDebug("Editor insert: " , editorCanInsertRef);
+    logDebug("Grid insert: " , gridCanInsertRef);
+    logDebug("Textbox insert: " , textBoxCanInsertRef);
 
 
     let canInsertRef = editorCanInsertRef || gridCanInsertRef || textBoxCanInsertRef;
