@@ -3,11 +3,11 @@
 import type {
   ASValue,
   ASLanguage,
-  ASSheet
+  ASSheet,
+  ASSelection
 } from '../types/Eval';
 
 import type {
-  ASSelection,
   ASClientExpression,
   ASFocusType
 } from '../types/State';

@@ -1,6 +1,18 @@
+/* @flow */
+
 import RenderUtils from './RenderUtils';
 
-let _renderParams = {
+import type {
+  DragCorner,
+  RenderParams
+} from '../types/Render';
+
+import type {
+  NakedRange,
+  ASSelection
+} from '../types/Eval';
+
+let _renderParams : RenderParams = {
   mode: null, // null mode indicates normal behavior; any other string indicates otherwise
   deps: [],
   cellWidth: 100, // should be in Constants.js, but it makes things faster to put it here
@@ -12,7 +24,7 @@ let _renderParams = {
   boxWidth: 6,
   topLeftBox: null, // {x,y} for the location of the top left corner of blue box, in pixels
   dragCorner: null, // {x,y} coordinate of corner of blue box dragging (not in pixels, in cells),
-  draggedBoxSelection: null,
+  draggedBoxSelection: null
 };
 
 export default {
@@ -20,27 +32,27 @@ export default {
   /*************************************************************************************************************************/
   // Getter and setters for blue box
 
-  getTopLeftBox() {
+  getTopLeftBox() : ?HGPoint {
     return _renderParams.topLeftBox;
   },
 
-  getBoxWidth() {
+  getBoxWidth() : number {
     return _renderParams.boxWidth;
   },
 
-  setShouldRenderSquareBox(b) {
+  setShouldRenderSquareBox(b: boolean) {
     _renderParams.shouldRenderSquareBox = b;
   },
 
-  setDragCorner(locObj) {
+  setDragCorner(locObj: ?DragCorner) {
     _renderParams.dragCorner = locObj;
   },
 
-  getDragCorner() {
+  getDragCorner() : ?DragCorner {
     return _renderParams.dragCorner;
   },
 
-  getDottedSelection() {
+  getDottedSelection() : ?ASSelection {
     return _renderParams.draggedBoxSelection;
   },
 
@@ -48,33 +60,36 @@ export default {
   /*************************************************************************************************************************/
   // Other getters and setters
 
-  setMode(mode) {
+  setMode(mode: ?string) {
     _renderParams.mode = mode;
   },
 
-  setSelection(sel) {
+  setSelection(sel: ?ASSelection) {
     _renderParams.selection = sel;
   },
 
-  setDependencies(deps) {
+  setDependencies(deps: Array<NakedRange>) {
     _renderParams.deps = deps;
   },
 
-  setDragRect(rng) { _renderParams.dragRect = rng; },
+  setDragRect(rng: ?NakedRange) { _renderParams.dragRect = rng; },
 
-  getDragRect() { return _renderParams.dragRect; },
+  getDragRect() : ?NakedRange { return _renderParams.dragRect; },
 
   /*************************************************************************************************************************/
   // Misc utils
 
-  withinSegment(p, endpoint, length) {
+  withinSegment(p: number, endpoint: number, length: number) : boolean {
     return (endpoint - _renderParams.mouseoverError <= p) &&
            (endpoint + length + _renderParams.mouseoverError >= p);
   },
 
   // given mouse coordinates,
   // returns the edge ("top"/"left"/etc) hovered over by these
-  isOnSelectionEdge(pX, pY) {
+  isOnSelectionEdge(pX: number, pY: number) : boolean {
+    if (_renderParams.selectionRect == null) {
+      return false;
+    }
     let {x, y, width, height} = _renderParams.selectionRect;
     return (this.withinSegment(pX, x, width) && (this.withinSegment(pY, y, 0) ||
                                                  this.withinSegment(pY, y+height, 0)))
@@ -82,11 +97,29 @@ export default {
                                                  this.withinSegment(pX, x+width, 0)));
   },
 
+  underline(config: HGRendererConfig, gc: GraphicsContext, text: string, x: number, y: number, thickness: number) {
+    let width : number = config.getTextWidth(gc, text);
+
+    switch (gc.textAlign) {
+      case 'center':
+          x -= (width / 2);
+          break;
+      case 'right':
+          x -= width;
+          break;
+    }
+
+    //gc.beginPath();
+    gc.lineWidth = thickness;
+    gc.moveTo(x + 0.5, y + 0.5);
+    gc.lineTo(x + width + 0.5, y + 0.5);
+  },
+
   /*************************************************************************************************************************/
   // Renderers
 
-  defaultCellRenderer: {
-    paint(gc, x, y, width, height, isLink) {
+  defaultCellRenderer: ({
+    paint(gc: GraphicsContext, x: number, y: number, width: number, height: number, isLink?: boolean) {
       isLink = isLink || false;
       var colHEdgeOffset = this.config.properties.cellPadding,
           halignOffset = 0,
@@ -163,7 +196,7 @@ export default {
       }
 
       if (val !== null) {
-        if (config.wrap && false) {
+        if (this.config.wrap && false) {
           // let h = RenderUtils.wrapText(gc, val, x + halignOffset, y + valignOffset, width, fontMetrics.height);
           // let {origin} = _renderParams.selection,
           //     grid = this.getGrid(),
@@ -181,7 +214,7 @@ export default {
           gc.beginPath();
           if (isLink) {
               gc.beginPath();
-              underline(this.config, gc, val, x + halignOffset, y + valignOffset + Math.floor(fontMetrics.height / 2), 1);
+              this.underline(this.config, gc, val, x + halignOffset, y + valignOffset + Math.floor(fontMetrics.height / 2), 1);
               gc.stroke();
               gc.closePath();
           }
@@ -208,11 +241,11 @@ export default {
       }
       this.config.minWidth = this.config.minWidth + 2 * (iconWidth);
     }
-  },
+  }: HGRendererObject),
 
-  selectionRenderer(gc) {
+  selectionRenderer(gc: GraphicsContext) {
     var grid = this.getGrid();
-    if (_renderParams.selection === null) return;
+    if (_renderParams.selection == null) return;
 
     var {origin, range} = _renderParams.selection;
     var selection = {origin: {x: range.tl.col - 1, y: range.tl.row - 1},
@@ -301,7 +334,7 @@ export default {
     gc.stroke();
   },
 
-  dependencyRenderer(gc) {
+  dependencyRenderer(gc: GraphicsContext) {
     _renderParams.deps.forEach((dep) => {
       gc.beginPath();
       RenderUtils.drawRect(dep, this, gc);
@@ -311,9 +344,8 @@ export default {
     }, this);
   },
 
-  draggingRenderer(gc) {
+  draggingRenderer(gc: GraphicsContext) {
     if (_renderParams.dragRect !== null) {
-      console.log("DRAWING DRAG:", JSON.stringify(_renderParams.dragRect));
       gc.beginPath();
       RenderUtils.drawRect(_renderParams.dragRect, this, gc);
       gc.lineWidth = 1;
@@ -323,7 +355,7 @@ export default {
     }
   },
 
-  cornerBoxRenderer(gc) {
+  cornerBoxRenderer(gc: GraphicsContext) {
     if (!_renderParams.shouldRenderSquareBox) {
       return; // no box should show on double click
     } else {
@@ -335,6 +367,9 @@ export default {
           lastVisibleColumn = this.getVisibleColumns().slice(-1)[0],
           lastVisibleRow = this.getVisibleRows().slice(-1)[0];
 
+      if (_renderParams.selection == null) {
+        return;
+      }
       let {origin,range} = _renderParams.selection,
           tlX = Math.min(range.tl.col - 1, lastVisibleColumn) + fixedColCount,
           tlY = Math.min(range.tl.row - 1, lastVisibleRow) + fixedRowCount,
@@ -362,6 +397,9 @@ export default {
       // We also have a dotted rectangle, depending on horizontal/vertical position
       // There's a blue filled rectangle and a green dotted rectangle (which overlap, but seems OK)
       if (_renderParams.dragCorner !== null) {
+        if (_renderParams.dragCorner == null) {
+          return;
+        }
         let {dragX,dragY} = _renderParams.dragCorner,
             // drag accounts for scrolling already
             drag = this._getBoundsOfCell(dragX, dragY),
@@ -409,7 +447,9 @@ export default {
             };
           }
         }
-        _renderParams.draggedBoxSelection = {origin:origin,range:dottedRange};
+        if (dottedRange != null) {
+        _renderParams.draggedBoxSelection = {origin: origin, range: dottedRange};
+        }
       }
       if (boxShouldBeVisible) {
         gc.beginPath();

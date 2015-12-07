@@ -14,6 +14,7 @@ import type {
   NakedIndex,
   ASIndex,
   ASRange,
+  ASSelection,
   ASLanguage,
   ASExpression,
   ASValue,
@@ -43,7 +44,6 @@ import type {
 } from '../types/Messages';
 
 import type {
-  ASSelection,
   ASClientWindow,
   ASClientExpression
 } from '../types/State';

@@ -5,13 +5,13 @@ import type {
   NakedRange,
   ASIndex,
   ASRange,
+  ASSelection,
   ASSheet,
   ASCell,
   ASLanguage
 } from '../types/Eval';
 
 import type {
-  ASSelection,
   ASCellStore,
   ASFocusType
 } from '../types/State';

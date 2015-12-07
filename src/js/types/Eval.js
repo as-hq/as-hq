@@ -298,6 +298,11 @@ export type NakedRange = {
   br: NakedIndex;
 };
 
+export type ASSelection = {
+  origin: NakedIndex;
+  range: NakedRange;
+};
+
 export type ASIndex = {
   tag: 'index';
   sheetId: string;

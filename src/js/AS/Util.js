@@ -7,6 +7,7 @@ import type {
 import type {
   NakedIndex,
   NakedRange,
+  ASSelection
   ASIndex,
   ValueError,
   ASValue,
@@ -28,8 +29,7 @@ import type {
 } from '../types/Hypergrid';
 
 import type {
-  ASViewingWindow,
-  ASSelection
+  ASViewingWindow
 } from '../types/State';
 
 import {logDebug} from './Logger';
@@ -737,9 +737,12 @@ export default {
   mouseLocIsContainedInBox(
     mouseLocX: number,
     mouseLocY: number,
-    topLeftBoxObj: { x: number, y: number },
+    topLeftBoxObj: ?HGPoint,
     boxWidth: number
   ): boolean {
+    if (topLeftBoxObj == null) {
+      return false;
+    }
     let xInBounds = mouseLocX >= topLeftBoxObj.x &&
                     mouseLocX <= topLeftBoxObj.x + boxWidth,
         yInBounds = mouseLocY >= topLeftBoxObj.y &&
