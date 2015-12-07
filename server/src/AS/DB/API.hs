@@ -4,6 +4,7 @@ module AS.DB.API where
 
 import Prelude
 import AS.Types.Cell
+import qualified AS.Types.RowColProps as RP
 import AS.Types.Messages
 import AS.Types.DB
 import AS.Util as U
@@ -36,6 +37,7 @@ import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy.Char8 as C
 import Data.ByteString.Unsafe as BU
 import Data.List.Split
+
 -- EitherT
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.Either
@@ -502,45 +504,36 @@ setEvalHeader conn sid lang xp = runRedis conn (set (evalHeaderKey sid lang) (B.
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Row/col dimensions getters/setters
 
-colPropsKey :: ASSheetId -> Int -> B.ByteString
-colPropsKey sid ind = B.pack ("COLPROPS" ++ (show sid) ++ '`':(show ind)) 
+rowColPropsKey :: ASSheetId -> RP.RowColType -> Int -> B.ByteString
+rowColPropsKey sid rct ind = B.pack ((show rct) ++ "PROPS" ++ (show sid) ++ '`':(show ind)) 
 
-getColFromColPropsKey :: B.ByteString -> Int
-getColFromColPropsKey = read . last . (splitOn "`") . B.unpack
+getIndFromRowColPropsKey :: B.ByteString -> Int
+getIndFromRowColPropsKey = read . last . (splitOn "`") . B.unpack
 
 -- TODO: eventually should extend to record generic row/col formats, like default font in the column, 
 -- rather than just its width. 
-getColProps :: Connection -> ASSheetId -> Int -> IO (Maybe Int)
-getColProps conn sid ind  = runRedis conn $ do 
-  msg <- get $ colPropsKey sid ind
+getRowColProps :: Connection -> ASSheetId -> RP.RowColType -> Int -> IO (Maybe RP.ASRowColProps)
+getRowColProps conn sid rct ind  = runRedis conn $ do 
+  msg <- get $ rowColPropsKey sid rct ind
   return $ case msg of 
     Right (Just msg') -> Just $ read $ B.unpack msg'
     Right Nothing     -> Nothing
-    Left _            -> error "Failed to retrieve eval header"
+    Left _            -> error "Failed to retrieve row or column props"
 
-getAllColProps :: Connection -> ASSheetId -> IO [(Int, Int)]
-getAllColProps conn sid = do 
-  mKeys <- runRedis conn (keys $ B.pack $ "COLPROPS" ++ (show sid) ++ "*")
-  let cols = either (error "Failed to retrieve eval header") (map getColFromColPropsKey) mKeys
-  props <- mapM (getColProps conn sid) cols
-  return $ map (\(x, Just y) -> (x, y)) $ filter (isJust . snd) $ zip cols props
+getRowColsInSheet :: Connection -> ASSheetId -> IO [RP.RowCol]
+getRowColsInSheet conn sid = do 
+  mColKeys <- runRedis conn (keys $ B.pack $ (show RP.ColumnType) ++ "PROPS" ++ (show sid) ++ "*")
+  mRowKeys <- runRedis conn (keys $ B.pack $ (show RP.RowType) ++ "PROPS" ++ (show sid) ++ "*")
+  let colInds = either (error "Failed to retrieve eval header") (map getIndFromRowColPropsKey) mColKeys
+      rowInds = either (error "Failed to retrieve eval header") (map getIndFromRowColPropsKey) mRowKeys
+  colProps <- mapM (getRowColProps conn sid RP.ColumnType) colInds
+  rowProps <- mapM (getRowColProps conn sid RP.RowType) rowInds
+  let cols = map (\(x, Just y) -> RP.RowCol RP.ColumnType x y) $ filter (isJust . snd) $ zip colInds colProps
+      rows = map (\(x, Just y) -> RP.RowCol RP.RowType x y) $ filter (isJust . snd) $ zip rowInds rowProps
+  return $ union cols rows
 
-setColProps :: Connection -> ASSheetId -> Int -> Int -> IO ()
-setColProps conn sid ind width = runRedis conn (set (colPropsKey sid ind) (B.pack $ show width)) >> return ()
-
-rowPropsKey :: ASSheetId -> Int -> B.ByteString
-rowPropsKey sid ind = B.pack ("ROWPROPS" ++ (show sid) ++ (show ind)) 
-
--- TODO: eventually should extend to record generic row/Row formats, like default font in the Rowumn, 
--- rather than just its width. 
-getRowProps :: Connection -> ASSheetId -> Int -> IO (Maybe Int)
-getRowProps conn sid ind  = runRedis conn $ do 
-  msg <- get $ rowPropsKey sid ind
-  return $ case msg of 
-    Right (Just msg') -> Just $ read $ B.unpack msg'
-    Right Nothing     -> Nothing
-    Left _            -> error "Failed to retrieve eval header"
-
-setRowProps :: Connection -> ASSheetId -> Int -> Int -> IO ()
-setRowProps conn sid ind width = runRedis conn (set (colPropsKey sid ind) (B.pack $ show width)) >> return ()
-
+-- ::ALEX:: wrong!! need to call setProp on it
+setRowColProps :: Connection -> ASSheetId -> RP.RowCol -> IO ()
+setRowColProps conn sid (RP.RowCol rct ind props) = do
+  runRedis conn (set (rowColPropsKey sid rct ind) (B.pack $ show props))
+  return ()

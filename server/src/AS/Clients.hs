@@ -72,8 +72,7 @@ instance Client ASUserClient where
       Drag               -> handleDrag user state payload
       Decouple           -> handleDecouple user state payload
       SetCondFormatRules -> handleSetCondFormatRules user state payload
-      SetColumnWidth     -> handleSetColumnWidth user state payload
-      SetRowHeight       -> handleSetRowHeight user state payload
+      SetRowColProp      -> handleSetRowColProp user state payload
       where payload = clientPayload message
       -- Undo         -> handleToggleProp user state (PayloadTags [StreamTag (Stream NoSource 1000)] (Index (T.pack "TEST_SHEET_ID2") (1,1)))
       -- ^^ above is to test streaming when frontend hasn't been implemented yet

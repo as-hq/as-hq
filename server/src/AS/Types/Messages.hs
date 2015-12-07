@@ -6,6 +6,7 @@ import AS.Window
 
 import AS.Types.DB (ASCommit)
 import AS.Types.Cell
+import AS.Types.RowColProps
 import AS.Types.Sheets
 import AS.Types.Excel (indexToExcel)
 
@@ -45,7 +46,7 @@ data ASAction =
   | Clear
   | UpdateWindow
   | SetProp | ToggleProp
-  | SetColumnWidth | SetRowHeight
+  | SetRowColProp
   | Repeat
   | BugReport
   | JumpSelect
@@ -85,7 +86,7 @@ data ASPayload =
   | PayloadPaste {copyRange :: ASRange, copyTo :: ASRange}
   | PayloadProp {prop :: CellProp, tagRange :: ASRange}
   | PayloadXp ASExpression
-  | PayloadOpen {initHeaderExpressions :: [ASExpression], initCondFormatRules :: [CondFormatRule], initColumnProps :: [(Int, Int)]}
+  | PayloadOpen {initHeaderExpressions :: [ASExpression], initCondFormatRules :: [CondFormatRule], initRowCols :: [RowCol]}
   | PayloadReplValue ASReplValue
   | PayloadValue CompositeValue
   | PayloadList QueryList
@@ -94,8 +95,7 @@ data ASPayload =
   | PayloadDrag {initialRange :: ASRange, dragRange :: ASRange}
   | PayloadCondFormat { condFormatRules :: [CondFormatRule] }
   | PayloadCondFormatResult { condFormatRulesResult :: [CondFormatRule], condFormatCellsUpdated :: [ASCell] }
-  | PayloadColumnWidth {colIndex :: Int, colWidth :: Int}
-  | PayloadRowHeight {rowIndex :: Int, rowHeight :: Int}
+  | PayloadSetRowColProp RowColType Int RowColProp
   deriving (Show, Read, Generic)
 
 data ASReplValue = ReplValue {replValue :: ASValue, replLang :: ASLanguage} deriving (Show, Read, Eq, Generic)

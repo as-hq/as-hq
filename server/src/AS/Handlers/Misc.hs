@@ -6,6 +6,7 @@ import AS.Types.Network
 import AS.Types.Messages
 import AS.Types.User
 import AS.Types.DB hiding (Clear)
+import qualified AS.Types.RowColProps as RP
 
 import AS.Handlers.Eval
 import AS.Eval.CondFormat
@@ -24,7 +25,6 @@ import qualified AS.Util                  as U
 import qualified AS.Kernels.LanguageUtils as LU
 import qualified AS.Users                 as US
 import qualified AS.InferenceUtils        as IU
-
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.Serialize as DS
 import qualified Data.Text as T
@@ -68,8 +68,8 @@ handleOpen uc state (PayloadS (Sheet sid _ _)) = do
   condFormatRules <- DB.getCondFormattingRules conn sid
   let xps = map (\(str, lang) -> Expression str lang) (zip headers langs)
   -- get column props
-  colProps <- DB.getAllColProps conn sid
-  sendToOriginal uc $ ServerMessage Open Success $ PayloadOpen xps condFormatRules colProps
+  rowColProps <- DB.getRowColsInSheet conn sid
+  sendToOriginal uc $ ServerMessage Open Success $ PayloadOpen xps condFormatRules rowColProps
 
 -- NOTE: doesn't send back blank cells. This means that if, e.g., there are cells that got blanked
 -- in the database, those blank cells will not get passed to the user (and those cells don't get
@@ -222,19 +222,19 @@ handleSetCondFormatRules uc state (PayloadCondFormat rules) = do
   either (const $ return ()) onFormatSuccess errOrCells
   broadcastFiltered state uc $ makeCondFormatMessage errOrCells rules
 
-handleSetColumnWidth :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
-handleSetColumnWidth uc state p@(PayloadColumnWidth ind width) = do 
+-- The type here is slightly wrong. This payload should really only indicate whether we're passed
+-- a row or a column, the index of this row/col, and a *single* prop to modify. For now, this is
+-- just the simplest type we can work with. 
+handleSetRowColProp :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
+handleSetRowColProp uc state (PayloadSetRowColProp rct ind prop) = do 
   conn <- dbConn <$> readMVar state
   let sid = userSheetId uc
-  DB.setColProps conn sid ind width
-  sendToOriginal uc $ ServerMessage SetColumnWidth Success p
-
-handleSetRowHeight :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
-handleSetRowHeight uc state p@(PayloadRowHeight ind width) = do 
-  conn <- dbConn <$> readMVar state
-  let sid = userSheetId uc
-  DB.setRowProps conn sid ind width
-  sendToOriginal uc $ ServerMessage SetRowHeight Success p
+  mOldProps <- DB.getRowColProps conn sid rct ind
+  let oldProps = maybe RP.emptyProps id mOldProps
+      newProps = RP.setProp prop oldProps
+      newRc    = RP.RowCol rct ind newProps
+  DB.setRowColProps conn sid newRc
+  sendToOriginal uc $ ServerMessage SetRowColProp Success (PayloadN ())
 
 -- used for importing arbitrary files
 handleImport :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
