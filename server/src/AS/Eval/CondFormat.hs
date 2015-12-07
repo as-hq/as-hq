@@ -53,7 +53,8 @@ meetsCondition conn sid valMap xp@(Expression str lang) v = do
       valMap' = M.union valMap (M.fromList valMapToMerge)
   (Formatted res _) <- evaluateLanguage conn sid dummyLoc valMap' xp
   case res of
-    CellValue (ValueB b) -> return b
-    val                  -> do
-      let errMsg = "Tried to apply " ++ str ++ " in " ++ (show lang) ++ " but got non-boolean value " ++ (show val) ++ ". "
+    CellValue (ValueB True)      -> return True
+    CellValue (ValueError msg _) -> do 
+      let errMsg = "Tried to apply conditional formatting rule " ++ str ++ " but got error" ++ (show msg) ++ ". "
       left $ CondFormattingError errMsg
+    otherwise                    -> return False
