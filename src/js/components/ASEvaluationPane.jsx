@@ -168,6 +168,7 @@ export default React.createClass({
   // Some basic on change handlers
 
   selectLanguage(lang: ASLanguage) {
+    ExpStore.setLanguage(lang);
     this.setState({ defaultLanguage: lang, currentLanguage: lang });
     this.setFocus(Store.getFocus());
   },
