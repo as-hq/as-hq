@@ -71,7 +71,12 @@ runDispatchCycle state cs descSetting src = do
   conn <- dbConn <$> readMVar state
   errOrCells <- runEitherT $ do
     printWithTimeT $ "about to start dispatch"
-    ctxAfterDispatch <- dispatch conn roots emptyContext descSetting SetAncestry
+    let initialEvalMap = M.fromList $ zip (map cellLocation cs) cs
+        initialContext = EvalContext initialEvalMap [] emptyDiff
+    -- you must insert the roots into the initial context, because getCellsToEval will give you cells to evaluate that
+    -- are only in the context or in the DB (in that order of prececdence). IF neither, you won't get anything. 
+    -- this maintains the invariant that context always contains the most up-to-date, complete information. 
+    ctxAfterDispatch <- dispatch conn roots initialContext descSetting SetAncestry
     printWithTimeT $ "finished dispatch"
     finalizedCells <- EE.evalEndware state (addedCells ctxAfterDispatch) src roots ctxAfterDispatch
     let ctx = ctxAfterDispatch { addedCells = finalizedCells }
@@ -99,7 +104,7 @@ dispatch conn roots oldContext descSetting ancSetting = do
   descLocs       <- getEvalLocs conn roots descSetting
   printObjT "Got eval locations" descLocs
   -- Turn the descLocs into Cells, but the roots are already given as cells, so no DB actions needed there
-  cellsToEval    <- getCellsToEval conn descLocs roots
+  cellsToEval    <- getCellsToEval conn descLocs oldContext
   printObjT "Got cells to evaluate" cellsToEval
   ancLocs        <- G.getImmediateAncestors $ indicesToGraphReadInput descLocs
   printObjT "Got ancestor locs" ancLocs
@@ -128,18 +133,31 @@ getEvalLocs conn origCells descSetting = do
     DescendantsWithParent -> G.getDescendantsIndices $ (locs ++ vLocs)
 
 -- | Given a set of locations to eval, return the corresponding set of cells to perform
--- the evaluations in (which includes info about tags, language, and expression string).
--- Distinguishes between new cells to evaluate (the ones passed into runDispatchCycle)
--- and old cells already in the database, which all reference the new cells. For the new 
--- cells, just evaluate them as-is (we already have the cells); for old cells, pull them from the database.
-getCellsToEval :: Connection -> [ASIndex] -> [ASCell] -> EitherTExec [ASCell]
-getCellsToEval conn locs origCells = do
-  let locCellMap = M.fromList $ map (\c -> (cellLocation c, c)) origCells
+-- the evaluations in. We look up locs in the DB, but give precedence to EvalContext (if a cell is in the context, we use that instead, 
+-- as it is the most up-to-date info we have). In addition, if a cell we get is a non-fatcell-head coupled expression, we will not add it
+-- to the result (which should be interpreted as the list of cells to evaluate). This is because fatcells have priority, and we want them to 
+-- "overwrite" their contents. Example: A1 = 1, A2 = A1, A1 = range(10) should keep A1 coupled. It shouldn't eval the range, then eval A2, which 
+-- would decouple the range. In our function, A2 wouldn't even be added to the list of things to eval. 
+getCellsToEval :: Connection -> [ASIndex] -> EvalContext -> EitherTExec [ASCell]
+getCellsToEval conn locs ctx = 
+  let replaceWithContext (ind, mCell) = case mCell of
+        -- if the loc wasn't in the DB, it might be in context. If it's in neither, DB Nothing exception
+        Nothing -> case ind `M.lookup` (contextMap ctx) of
+          Nothing -> left $ DBNothingException [ind]
+          Just cell -> return cell 
+        -- if the loc was in the DB, still give context precedence
+        Just cell -> case ind `M.lookup` (contextMap ctx) of
+          Nothing -> return cell 
+          Just contextCell -> return contextCell 
+      giveFatCellsOverwritePower c = if (not (isFatCellHead c) && isCoupled c)
+        then Nothing 
+        else Just c
+ in do
   mCells <- lift $ DB.getCells locs
-  lift $ mapM (\(loc, mCell) -> if loc `M.member` locCellMap
-      then return $ locCellMap M.! loc
-      else return $ fromJust mCell) (zip locs mCells) 
-  -- if the mCell is Nothing and loc is not a part of the locCellMap, then something messed up. 
+  let pairs = zip locs mCells   
+  cellsWithContextPriority <- mapM replaceWithContext pairs
+  -- Map cells that are coupled but not fat cell heads to Nothing, then do a catMaybes to get rid of them
+  return $ catMaybes $ map giveFatCellsOverwritePower cellsWithContextPriority
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Maps 
@@ -205,7 +223,8 @@ evalChain conn ctx (c@(Cell loc xp val ps):cs) = do
       then getEvalResult $ Expression str lang
       else return $ Formatted (CellValue val) (formatType <$> getProp ValueFormatProp ps) 
   newContext <- contextInsert conn c cvf ctx
-  evalChain conn newContext cs 
+  evalChain conn newContext cs
+
 
 -- Deal with a possible shrink list. The ASCell passed in is a descendant during dispatch. We're not doing anything if it isn't coupled. All descendants of a cell
 -- must be fat cell heads or normal cells. If it's a fat cell head, we're going to blank out all indices in the corresponding objectfor now and propagate 
@@ -231,8 +250,8 @@ possiblyDeletePreviousFatCell conn c@(Cell idx xp _ ps) ctx@(EvalContext mp adde
           -- the blanked cells have to be added to the list of added cells. If anything replaces these blank cells, contextInsert will merge them in. 
           newAddedCells = mergeCells blankCells addedCells
       let ctx' = ctx { contextMap = insertMultiple (contextMap ctx) indices blankCells
-                      , addedCells = newAddedCells
-                      , descriptorDiff = ddiff' }
+                     , addedCells = newAddedCells
+                     , descriptorDiff = ddiff' }
       lift $ putStrLn $ "NEW CONTEXT AFTER FAT CELL DELETION " ++ (show ctx')
       return (ctx', Just indices)
     else left WillNotEvaluate
@@ -278,7 +297,6 @@ contextInsert conn c@(Cell idx xp _ ps) (Formatted cv f) ctx = do
       -- a simple CellValue cannot add any descriptors
       let finalCells = mergeCells [newCell] $ mergeCells decoupledCells cells
           resultContext = EvalContext finalMp finalCells ddiffWithRemovedDescriptors
-          
       -- now, propagate the descandants of the decoupled cells
       lift $ putStrLn "running decouple transform"
       dispatch conn decoupledCells resultContext ProperDescendants DontSetAncestry

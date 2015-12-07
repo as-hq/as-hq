@@ -52,6 +52,9 @@ data DescriptorDiff = DescriptorDiff { addedDescriptors :: [RangeDescriptor]
 emptyContext :: EvalContext
 emptyContext = EvalContext M.empty [] (DescriptorDiff [] [])
 
+emptyDiff :: DescriptorDiff
+emptyDiff = DescriptorDiff [] [] 
+
 -- ephemeral types produced by eval 
 -- that will expand in createListCells
 type Array = [ASValue]
