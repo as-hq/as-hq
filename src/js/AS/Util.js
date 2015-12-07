@@ -553,15 +553,15 @@ export default {
     return code;
   },
 
-  // named after the Ruby function. 
+  // named after the Ruby function.
   toSentence(strs: Array<string>): string {
-    switch (strs.length) { 
-      case 0: return ""; 
-      case 1: return strs[0]; 
-      case 2: return strs[0] + " " + strs[1]; 
-      default: 
+    switch (strs.length) {
+      case 0: return "";
+      case 1: return strs[0];
+      case 2: return strs[0] + " " + strs[1];
+      default:
         let strs2 = strs.splice(0);
-        strs2[strs2.length-1] = "and " + strs2[strs2.length-1]; 
+        strs2[strs2.length-1] = "and " + strs2[strs2.length-1];
         return strs2.join(', ');
     }
   },
