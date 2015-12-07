@@ -647,12 +647,17 @@ export default React.createClass({
   /* Focus */
 
   setFocus(elem) {
-    if (elem === 'editor') {
-      this._getRawEditor().focus();
-    } else if (elem === 'grid') {
-      this.refs.spreadsheet.setFocus();
-    } else if (elem === 'textbox') {
-      this._getRawTextbox().focus();
+    switch (elem) { 
+      case 'editor': this._getRawEditor().focus(); break; 
+      case 'grid': this.refs.spreadsheet.setFocus(); break; 
+      case 'textbox': this._getRawTextbox().focus(); break; 
+      default: throw "invalid argument passed into setFocus()";
+    }
+
+    Store.setFocus(elem);
+    // so that we don't unnecessarily rerender
+    if (elem != this.state.focus) { 
+      this.setState({focus: elem});
     }
   },
 
@@ -661,7 +666,7 @@ export default React.createClass({
   },
 
   _getCodeEditorMaxLines(): number {
-    return (Store.getFocus() == 'editor') ? 10 : 3;
+    return (this.state.focus == 'editor') ? 10 : 3;
   },
 
   /**************************************************************************************************************************/
@@ -790,7 +795,7 @@ export default React.createClass({
         <ASCodeEditor
           ref='editorPane'
           handleEditorFocus={this._handleEditorFocus}
-          getCodeEditorMaxLines={this._getCodeEditorMaxLines}
+          maxLines={this._getCodeEditorMaxLines()}
           language={currentLanguage}
           onReplClick={this._toggleRepl}
           onExport={this._exportFile}
@@ -801,6 +806,7 @@ export default React.createClass({
           onDeferredKey={this._onEditorDeferredKey}
           value={expression}
           hideToast={this.hideToast}
+          setFocus={this.setFocus}
           width="100%" height={this.getEditorHeight()} />
         <ASSpreadsheet
           ref='spreadsheet'

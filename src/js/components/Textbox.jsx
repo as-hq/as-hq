@@ -139,7 +139,7 @@ export default React.createClass({
   _onFocus(e) {
     this.props.hideToast();
     logDebug("FOCUS ON TEXTBOX");
-    Store.setFocus('textbox');
+    this.props.setFocus('textbox');
     ExpStore.setLastCursorPosition(Constants.CursorPosition.TEXTBOX);
     ExpStore.setLastRef(null);
     this.showCursor();

@@ -133,7 +133,6 @@ export default React.createClass({
           // TODO: double clicking inside blue box has diff behavior
           ExpStore.setClickType(Constants.ClickType.DOUBLE_CLICK);
           self.refs.textbox.updateTextBox(ExpStore.getExpression());
-          Store.setFocus('textbox');
           self.props.setFocus('textbox');
         }
       });
@@ -860,10 +859,9 @@ export default React.createClass({
     */
     logDebug("Grid on focus");
     if (ExpStore.getClickType() === Constants.ClickType.DOUBLE_CLICK) {
-      Store.setFocus('textbox');
       this.props.setFocus('textbox');
     } else {
-      Store.setFocus('grid');
+      this.props.setFocus('grid');
     }
   },
 
@@ -889,7 +887,6 @@ export default React.createClass({
       case Constants.ActionTypes.NORMAL_SEL_CHANGED:
         this.refs.textbox.hideTextBox(xpStr);
         this.props.setFocus('grid');
-        Store.setFocus('grid');
         break;
       case Constants.ActionTypes.BACKEND_UPDATED_AND_CELLS_CHANGED:
         break;
@@ -904,7 +901,6 @@ export default React.createClass({
       // put focus on grid on get
       case Constants.ActionTypes.FETCHED_CELLS:
         this.props.setFocus('grid');
-        Store.setFocus('grid');
         break;
       default:
         break;
@@ -1016,7 +1012,8 @@ export default React.createClass({
                    scroll={self.state.scroll}
                    onDeferredKey={this.props.onTextBoxDeferredKey}
                    hideToast={this.props.hideToast}
-                   position={this.getTextboxPosition}/>
+                   position={this.getTextboxPosition}
+                   setFocus={this.props.setFocus} />
 
         </div>
       // </Dropzone>

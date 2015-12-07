@@ -155,7 +155,7 @@ module.exports = React.createClass({
   */
   _onFocus(e) {
     logDebug("The editor now has focus");
-    Store.setFocus('editor');
+    this.props.setFocus('editor');
     this.props.hideToast();
     ExpStore.setLastCursorPosition(Constants.CursorPosition.EDITOR);
     ExpStore.setLastRef(null);
