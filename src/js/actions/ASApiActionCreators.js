@@ -446,6 +446,12 @@ export default {
     this.send(msg);    
   },
 
+  setRowHeight(row: number, height: number) { 
+    let msg = TC.makeClientMessage(Constants.ServerActions.SetRowColProp, "PayloadSetRowColProp",
+      ['RowType', row, {tag: 'Dimension', contents: height}]);
+    this.send(msg);    
+  },
+
   toggleProp(prop: ASCellProp, rng: NakedRange) {
     let msg = TC.makeClientMessageRaw(Constants.ServerActions.ToggleProp, {
       "tag": "PayloadProp",

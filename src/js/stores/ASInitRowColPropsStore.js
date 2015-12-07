@@ -24,36 +24,46 @@ const ASInitRowColPropsStore = Object.assign({}, BaseStore, {
     switch (action._type) {
       case 'GOT_OPEN':
         let initRowCols = action.initRowCols,
-            initCols = initRowCols.filter((irc) => irc.rowColType == 'ColumnType');
-        ASInitRowColPropsStore.setInitColumns(initCols);
+            initCols = initRowCols.filter((irc) => irc.rowColType == 'ColumnType'),
+            initRows = initRowCols.filter((irc) => irc.rowColType == 'RowType');
+        ASInitRowColPropsStore._setInitColumns(initCols);
+        ASInitRowColPropsStore._setInitRows(initRows);
         ASInitRowColPropsStore.emitChange();
         break;
     }
   }),
 
-  getInitColumns(): Array<RowCol> {
-    return _data.initColumns;
+  getInitColumnWidths(): Array<[number,number]> {
+    return this._getInitDimensions(_data.initColumns);
   },
 
-  getInitColumnWidths(): Array<[number,number]> {
-    let columnWidths = []; 
-    _data.initColumns.forEach(({rowColIndex, rowColProps}) => {
+  getInitRowHeights(): Array<[number,number]> {
+    return this._getInitDimensions(_data.initRows);
+  },
+
+  _getInitDimensions(rowsOrCols: Array<RowCol>): Array<[number,number]> {
+    let dims = []; 
+    rowsOrCols.forEach(({rowColIndex, rowColProps}) => {
       let dimInd = rowColProps.map(({tag}) => tag).indexOf('Dimension');
       if (dimInd >= 0) {
         let dimensionProp = rowColProps[dimInd];
         switch (dimensionProp.tag) {
           case 'Dimension':
-            columnWidths.push([rowColIndex, dimensionProp.contents]);
+            dims.push([rowColIndex, dimensionProp.contents]);
             break;
         }
       }
     });
 
-    return columnWidths;
+    return dims;
   },
 
-  setInitColumns(initCols: Array<RowCol>) {
+  _setInitColumns(initCols: Array<RowCol>) {
     _data.initColumns = initCols;
+  },
+
+  _setInitRows(initRows: Array<RowCol>) {
+    _data.initRows = initRows;
   }
 });
 

@@ -80,10 +80,10 @@ declare class HGBehaviorElement extends HTMLElement {
   onDoubleClick: (grid: HGElement, evt: HGMouseEvent) => void;
 
   swapColumns: (c1: number, c2: number) => void;
-  setRowHeight: (rowNum: number, height: number) => void;
   featureChain: HGFeatureChainElement;
 
   _setColumnWidth(columnIndex: number, columnWidth: number): void;
+  setRowHeight: (rowNum: number, height: number) => void;
 
   setCursor(grid: HGElement): void;
   setValue(x: number, y: number, val: string): void;
@@ -147,6 +147,9 @@ declare class HGElement extends HTMLElement {
 
   setColumnWidth: (columnIndex: number, columnWidth: number) => void;
   getColumnWidth: (columnIndex: number) => number;
+
+  setRowHeight: (rowIndex: number, rowHeight: number) => void;
+  getRowHeight: (rowIndex: number) => number; 
 
   repaint(): void;
   scrollBy(x: number, y: number): void;

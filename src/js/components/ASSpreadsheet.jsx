@@ -313,6 +313,7 @@ export default React.createClass({
   clickedColNum: (null: ?number), 
   clickedRowNum: (null: ?number), 
   resizedColNum: (null: ?number), 
+  resizedRowNum: (null: ?number), 
 
   /* Initial a sheet with blank entries */
   initialize() {
@@ -325,6 +326,11 @@ export default React.createClass({
     hg.setColumnWidth = (columnIndex, columnWidth) => {
         self.resizedColNum = columnIndex;
         model._setColumnWidth(columnIndex, columnWidth);
+    },
+
+    hg.setRowHeight = (rowIndex, rowHeight) => {
+        self.resizedRowNum = rowIndex;
+        model.setRowHeight(rowIndex, rowHeight);
     },
 
     // This overrides the swapping of columns in hypergrid's internal state
@@ -402,15 +408,22 @@ export default React.createClass({
       }
     };
 
-    model.onDoubleClick = (grid, evt) => {
-      if (model.featureChain) {
-          model.featureChain.handleDoubleClick(grid, evt);
-          model.setCursor(grid);
-      }
+    //  For now, double-clicks don't get saved to backend. We need a way to tell whether the
+    //  mouse clicked off a cell, which will probably involve counting pixels; deprioritizing
+    //  this for now. (Alex 12/7)
+    //  model.onDoubleClick = (grid, evt) => {
+    //   if (model.featureChain) {
+    //       model.featureChain.handleDoubleClick(grid, evt);
+    //       model.setCursor(grid);
+    //   }
 
-      self.clickedColNum = evt.gridCell.x;
-      self.finishColumnResize();
-    };
+    //   // ::TODO:: need to do a check here!!
+    //   self.clickedColNum = evt.gridCell.x;
+    //   self.clickedRowNum = evt.gridCell.y;
+
+    //   self.finishColumnResize();
+    //   self.finishRowResize(); 
+    // };
 
     model.onMouseDrag = (grid, evt) => {
       let selOrigin = this.dragSelectionOrigin;
@@ -516,6 +529,7 @@ export default React.createClass({
 
           // Ditto for resizing
           self.finishColumnResize();
+          self.finishRowResize();
         }
       }
     };
@@ -536,6 +550,17 @@ export default React.createClass({
       API.setColumnWidth(col+1, width); 
       // column index on DB is 1-indexed, while for hypergrid it's 0-indexed. 
       this.resizedColNum = null;
+    } 
+  },
+
+  finishRowResize() { 
+    let row = this.resizedRowNum;
+    if (row != null) {
+      let hg = this._getHypergrid(),
+          height = hg.getRowHeight(row);
+      API.setRowHeight(row+1, height); 
+      // row index on DB is 1-indexed, while for hypergrid it's 0-indexed. 
+      this.resizedRowNum = null;
     } 
   },
 
@@ -887,11 +912,13 @@ export default React.createClass({
   },
 
   _onInitRowColPropsChange() { 
-    let initColWidths = InitRowColPropsStore.getInitColumnWidths(),
+    let initColWidths  = InitRowColPropsStore.getInitColumnWidths(),
+        initRowHeights = InitRowColPropsStore.getInitRowHeights(),
         hg = this._getHypergrid();
 
     //column index on DB is 1-indexed, while for hypergrid it's 0-indexed. 
     initColWidths.map((prop) => hg.setColumnWidth(prop[0]-1, prop[1]));
+    initRowHeights.map((prop) => hg.setRowHeight(prop[0]-1, prop[1]));
   },
 
 
