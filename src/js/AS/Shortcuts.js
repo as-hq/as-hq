@@ -91,12 +91,14 @@ export default {
         }
     });
     SU.add('common', 'format_value', 'Ctrl+Shift+2/3/4/5/6', (wildcard: string) => {
-      let dispType;
+      let formatType;
       // TODO other wildcards
-      if (wildcard === '$') dispType = "Money";
-      else if (wildcard === '%') dispType = "Percentage";
-      API.setFormat(dispType, Store.getActiveSelection().range);
-      self.refs.spreadsheet.repaint();
+      if (wildcard === '$') formatType = "MoneyFormat";
+      else if (wildcard === '%') formatType = "PercentageFormat";
+      if (!! formatType) {
+        API.setFormat(formatType, Store.getActiveSelection().range);
+        self.refs.spreadsheet.repaint();
+      }
     });
     SU.add("common", "bold", "Ctrl+B", (wildcard: string) => {
       API.toggleProp({tag: "Bold"}, Store.getActiveSelection().range);
