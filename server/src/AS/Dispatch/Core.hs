@@ -132,6 +132,11 @@ getEvalLocs conn origCells descSetting = do
     ProperDescendants -> G.getProperDescendantsIndices $ (locs ++ vLocs)
     DescendantsWithParent -> G.getDescendantsIndices $ (locs ++ vLocs)
 
+-- STATE: A1, A2 = A1, then A1= range(10) doesn't work. The reason is that the beginning of evalChain has A1 and A2. Even though we nuke A2 during
+-- one of the dispatches above (due to filtration in getCellsToEval), it's still there in the recursive evalChain. The proposed solution was to 
+-- do this filtration (giveFatCellsOverwritePower) at the beginning of evalChain, so that we NEVER eval such cells. However, we also want to delete
+-- the A1 -> A2 edge in the graph, perhaps immediately. 
+
 -- | Given a set of locations to eval, return the corresponding set of cells to perform
 -- the evaluations in. We look up locs in the DB, but give precedence to EvalContext (if a cell is in the context, we use that instead, 
 -- as it is the most up-to-date info we have). In addition, if a cell we get is a non-fatcell-head coupled expression, we will not add it
