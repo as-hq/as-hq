@@ -71,23 +71,23 @@ referenceToCompositeValue conn ctx (RangeRef r) = return . Expanding . VList . M
 -- After getting the final context, update the DB and return the cells changed by the entire eval
 updateDBFromEvalContext :: Connection -> CommitSource -> EvalContext -> EitherTExec [ASCell]
 updateDBFromEvalContext conn src (EvalContext mp cells ddiff) = do
-  bcells <- lift $ catMaybes <$> DB.getCells (map cellLocation cells)
+  mbcells <- lift $ DB.getCells (map cellLocation cells)
   time <- lift $ getASTime
-  let cdiff   = CellDiff { beforeCells = bcells, afterCells = cells}
+  let cdiff   = CellDiff { beforeCells = (catMaybes mbcells), afterCells = cells}
       commit  = Commit cdiff ddiff time
       rd      = removedDescriptors ddiff
-  if (length rd == 0) -- there were no decoupled cells
+      didDecouple = any isDecouplePair $ zip mbcells cells
+      isDecouplePair (mbcell, acell) = case mbcell of 
+        Nothing -> False
+        Just bcell -> (isCoupled bcell) && (not $ isCoupled acell)
+  if (didDecouple) -- there were any decoupled cells
     then do 
+      printWithTimeT $ "DEALING WITH DECOUPLING OF DESCRIPTORS " ++ (show rd)
+      liftIO $ setTempCommit conn commit src
+      left DecoupleAttempt
+    else do
       lift $ updateDBAfterEval conn src commit
       return cells
-    else do
-      printWithTimeT $ "DEALING WITH DECOUPLING OF DESCRIPTORS " ++ (show rd)
-      let rangeKeysRemoved = map descriptorKey rd
-      coupledCells <- lift $ concat <$> (mapM (getCellsBeforeDecoupling conn) rangeKeysRemoved)
-      printWithTimeT $ "COUPLED CELLS " ++ (show coupledCells)
-      liftIO $ setTempCommit conn commit src
-      liftIO $ setRangeKeysChanged conn rangeKeysRemoved src
-      left $ DecoupleAttempt
       
 -- Do the writes to the DB
 updateDBAfterEval :: Connection -> CommitSource -> ASCommit -> IO ()
@@ -95,7 +95,8 @@ updateDBAfterEval conn src c@(Commit cdiff ddiff time) = do
   let af = afterCells cdiff
   DB.setCells af
   deleteCells conn $ filter isEmptyCell af
-  mapM_ (couple conn) (addedDescriptors ddiff)
+  mapM_ (setDescriptor conn) (addedDescriptors ddiff)
+  mapM_ (deleteDescriptor conn) (removedDescriptors ddiff)
   pushCommit conn c src
 
 ----------------------------------------------------------------------------------------------------------------------
@@ -109,7 +110,7 @@ setCellsPropagated conn cells descs =
   in do
     setCells cells
     G.setCellsAncestorsForce roots
-    mapM_ (couple conn) descs
+    mapM_ (setDescriptor conn) descs
 
 -- | Makes sure everything is synced -- the listKeys and ancestors in graph db should reflect 
 -- the cell changes that happen as a result of deleting the cells. 
@@ -117,7 +118,7 @@ deleteCellsPropagated :: Connection -> [ASCell] -> [RangeDescriptor] -> IO ()
 deleteCellsPropagated conn cells descs = do
   deleteCells conn cells
   G.removeAncestorsAtForced $ map cellLocation cells
-  mapM_ (decouple conn) $ map descriptorKey descs
+  mapM_ (deleteDescriptor conn) descs
 
 ----------------------------------------------------------------------------------------------------------------------
 -- Commits

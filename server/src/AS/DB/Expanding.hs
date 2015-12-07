@@ -27,31 +27,42 @@ import Control.Concurrent
 -------------------------------------------------------------------------------------------------------------------------
 -- coupling
 
-couple :: Connection -> RangeDescriptor -> IO ()
-couple conn desc = 
-  let rangeKey        = descriptorKey desc 
+setDescriptor :: Connection -> RangeDescriptor -> IO ()
+setDescriptor conn d = 
+  let rangeKey        = descriptorKey d 
       rangeKey'       = B.pack . show2 $ rangeKey
       sheetRangesKey  = makeSheetRangesKey . rangeKeyToSheetId $ rangeKey
-      rangeDescriptor = B.pack $ show desc
+      rangeDescriptor = B.pack $ show d
   in runRedis conn $ do
       liftIO $ printWithTime $ "setting list locations for key: " ++ (show2 rangeKey)
       set rangeKey' rangeDescriptor
       sadd sheetRangesKey [rangeKey']
       return ()
 
+deleteDescriptor :: Connection -> RangeDescriptor -> IO ()
+deleteDescriptor conn d = 
+  let key            = descriptorKey d
+      key'           = B.pack . show2 $ key
+      sheetRangesKey = makeSheetRangesKey . rangeKeyToSheetId $ key
+  in runRedis conn $ do
+    del [key']
+    srem sheetRangesKey [key']
+    return ()
+
 -- | Takes in a cell that's tied to a list. Decouples all the cells in that list from that
--- | returns: cells before decoupling
+-- | r
+-- turns: cells before decoupling
 -- Note: this operation is O(n)
 -- TODO move to C client because it's expensive
-decouple :: Connection -> RangeKey -> IO [ASCell]
-decouple conn key = 
-  let rangeKey       = B.pack . show2 $ key
-      sheetRangesKey = makeSheetRangesKey . rangeKeyToSheetId $ key
-  in do
-    runRedis conn $ multiExec $ do
-      del [rangeKey]
-      srem sheetRangesKey [rangeKey]
-    catMaybes <$> DB.getCells (rangeKeyToIndices key)
+--decouple :: Connection -> RangeKey -> IO [ASCell]
+--decouple conn key = 
+--  let rangeKey       = B.pack . show2 $ key
+--      sheetRangesKey = makeSheetRangesKey . rangeKeyToSheetId $ key
+--  in do
+--    runRedis conn $ multiExec $ do
+--      del [rangeKey]
+--      srem sheetRangesKey [rangeKey]
+--    catMaybes <$> DB.getCells (rangeKeyToIndices key)
 
 -- Same as above, but don't modify DB (we want to send a decoupling warning)
 -- Still gets the cells before decoupling, but don't set range keys
@@ -70,26 +81,6 @@ getFatCellsInRange conn rng = do
       zipRects = zip rangeKeys rects
       zipRectsContained = filter (\(_, rect) -> rangeContainsRect rng rect) zipRects
   return $ map fst zipRectsContained
-
--- We also want to store the changed range keys in the DB, so that we can actually do the decoupling
--- (remove range key etc) if user says OK
-getRangeKeysChanged :: Connection -> CommitSource -> IO (Maybe [RangeKey])
-getRangeKeysChanged conn src = do 
-  let commitSource = B.pack $ (show src) ++ "rangekeys"
-  maybeRKeys <- runRedis conn $ do
-    TxSuccess rkeys <- multiExec $ do
-      get commitSource 
-    return rkeys
-  return $ bStrToRangeKeys maybeRKeys
-
-setRangeKeysChanged :: Connection  -> [RangeKey] -> CommitSource -> IO ()
-setRangeKeysChanged conn keys src = do 
-  let rangeKeys = (B.pack . show) keys 
-  let commitSource = B.pack $ (show src) ++ "rangekeys"
-  runRedis conn $ do
-    TxSuccess _ <- multiExec $ do
-      set commitSource rangeKeys
-    return ()
 
 getFatCellIntersections :: Connection -> EvalContext -> Either [ASIndex] [RangeKey] -> IO [RangeDescriptor]
 getFatCellIntersections conn ctx (Left locs) = (printObj "FUCK YOU" ctx) >> (filter descriptorIntersects) . concat <$> mapM (getRangeDescriptorsInSheetWithContext conn ctx) sheetIds

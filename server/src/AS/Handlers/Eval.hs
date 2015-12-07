@@ -49,19 +49,14 @@ handleEvalHeader uc (PayloadXp xp) = do
 -- The user has said OK to the decoupling
 -- We've stored the changed range keys and the last commit, which need to be used to modify DB
 handleDecouple :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
-handleDecouple cl state payload = do 
+handleDecouple uc state payload = do 
   conn <- dbConn <$> readMVar state
-  let src = userCommitSource cl
+  let src = userCommitSource uc
   mCommit <- getTempCommit conn src
-  mRangeKeys <- getRangeKeysChanged conn src
   case mCommit of
     Nothing -> return ()
-    Just c  -> do 
-      case mRangeKeys of 
-        Nothing -> return ()
-        Just rangeKeysChanged -> do 
-          concat <$> (mapM (decouple conn) rangeKeysChanged)
-          updateDBAfterEval conn src c
-          let msg = ServerMessage Update Success (PayloadCL (afterCells . cellDiff $ c))
-          broadcastFiltered state cl msg
+    Just c -> do
+      updateDBAfterEval conn src c
+      let msg = ServerMessage Update Success (PayloadCL (afterCells . cellDiff $ c))
+      broadcastFiltered state uc msg
 

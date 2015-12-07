@@ -222,23 +222,22 @@ possiblyDeletePreviousFatCell conn c@(Cell idx xp _ ps) ctx@(EvalContext mp adde
           blankCells = map blankCellAt indices
       descriptor <- lift $ DB.getRangeDescriptorUsingContext conn ctx key
       printWithTimeT $ "REMOVED DESCRIPTOR IN DELETE PREVIOUS FAT CELL: " ++ (show descriptor)
-      printWithTimeT $ "BLANK CELLS: " ++ (show blankCells)
+      printWithTimeT $ "BLANK CELLS: " ++ (show blankCells)          
       -- remove the descriptor
-      let newRemovedDescriptors = case descriptor of
-                Nothing -> removedDescriptors ddiff
-                Just d  -> d:(removedDescriptors ddiff)
+      let ddiff = descriptorDiff ctx
+      let ddiff' = case descriptor of
+                Nothing -> ddiff
+                Just d  -> removeDescriptor ddiff d
           -- the blanked cells have to be added to the list of added cells. If anything replaces these blank cells, contextInsert will merge them in. 
           newAddedCells = mergeCells blankCells addedCells
       let ctx' = ctx { contextMap = insertMultiple (contextMap ctx) indices blankCells
-                     , addedCells = newAddedCells
-                     , descriptorDiff = ddiff { removedDescriptors = newRemovedDescriptors } }
-      lift $ putStrLn $ "NEW CONTEXT AFTER FAT CLEL DELETION " ++ (show ctx')
+                      , addedCells = newAddedCells
+                      , descriptorDiff = ddiff' }
+      lift $ putStrLn $ "NEW CONTEXT AFTER FAT CELL DELETION " ++ (show ctx')
       return (ctx', Just indices)
     else left WillNotEvaluate
 
-
--- current state: when you do a1=5, a2=range(a1), then a1=2, it doesn't work. We think this is bc the old range descriptor still exists when you do a dispatch with
--- the deleted cells. getFatCellIntersetions should sometimes look at context first.
+-- NEXT: do checks on rangekeys being in both added and removed.
 
 -- the cell passed in is the old cell (we insert the old cell + new eval'ed value into the context at the end of this function, 
 -- after all side effects due to insertion have been handled)
@@ -265,7 +264,8 @@ contextInsert conn c@(Cell idx xp _ ps) (Formatted cv f) ctx = do
   -- We want to update all of the decoupled cells in our mini-spreadsheet map
   let mpWithDecoupledCells = insertMultiple mp decoupledLocs decoupledCells
   -- Add our decoupled descriptors to the current list of removedDescriptors
-  let finalRemovedDescriptors = (removedDescriptors ddiff) ++ newlyRemovedDescriptors
+  let ddiff = descriptorDiff ctx'
+  let ddiffWithRemovedDescriptors = L.foldl' removeDescriptor ddiff newlyRemovedDescriptors
   -- Wrap up by modifying the context
   case maybeFatCell of
     Nothing -> do
@@ -277,8 +277,8 @@ contextInsert conn c@(Cell idx xp _ ps) (Formatted cv f) ctx = do
       -- Add our decoupled descriptors to the current list of removedDescriptors, and note that
       -- a simple CellValue cannot add any descriptors
       let finalCells = mergeCells [newCell] $ mergeCells decoupledCells cells
-          ddiff' = ddiff { removedDescriptors = finalRemovedDescriptors }
-          resultContext = EvalContext finalMp finalCells ddiff'
+          resultContext = EvalContext finalMp finalCells ddiffWithRemovedDescriptors
+          
       -- now, propagate the descandants of the decoupled cells
       lift $ putStrLn "running decouple transform"
       dispatch conn decoupledCells resultContext ProperDescendants DontSetAncestry
@@ -287,17 +287,12 @@ contextInsert conn c@(Cell idx xp _ ps) (Formatted cv f) ctx = do
       let newCells = map (formatCell f) cs
       -- The final updated map also has our newly evaluated cells in it, with updated cell value and props
       let finalMp = insertMultiple mpWithDecoupledCells (map cellLocation newCells) newCells
-          finalAddedDescriptors = descriptor:(addedDescriptors ddiff)
+          finalDDiff = addDescriptor ddiffWithRemovedDescriptors descriptor
           finalCells = mergeCells cs $ mergeCells decoupledCells cells
-          ddiff' = DescriptorDiff { addedDescriptors = finalAddedDescriptors, removedDescriptors = finalRemovedDescriptors }
-          finalContext = EvalContext finalMp finalCells ddiff'
-      -- propagate the descandants of the decoupled cells
-      -- decoupled cells don't have ancestors, so you don't set relations.
-      lift $ putStrLn "running decouple transform"
-      --finalContext' <- dispatch conn decoupledCells finalContext ProperDescendants DontSetAncestry 
+          finalContext = EvalContext finalMp finalCells finalDDiff
+      lift $ putStrLn "running expanded cells transform"
       -- propagate the descendants of the expanded cells (except for the list head)
       -- you don't set relations of the newly expanded cells, because those relations do not exist. Only the head of the list has an ancestor at this point.
-      lift $ putStrLn "running expanded cells transform"
       -- first, check if we blanked out anything as a result of possiblyDeletePreviousFatCell. if so, look up the new cells from the map. 
       -- e.g. if range(5) -> range(2), possiblyDeletePrevious... will return indices A1...A5, and we're going to need to run dispatch on all of those.
       -- so this particular dispatch merges the context transforms (1) expanded cells, (2) blanked cells due to fat cell deletion

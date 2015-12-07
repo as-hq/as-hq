@@ -10,6 +10,7 @@ import AS.Types.CellProps
 import AS.Types.Locations
 import AS.Types.Errors
 import AS.Types.Cell
+import qualified Data.List as L
 
 import GHC.Generics
 import Data.Aeson hiding (Array)
@@ -128,6 +129,27 @@ isFatCellHead :: ASCell -> Bool
 isFatCellHead cell = case (cellToRangeKey cell) of 
   Just (RangeKey idx _) -> cellLocation cell == idx
   Nothing -> False
+
+isCoupled :: ASCell -> Bool
+isCoupled c = case (cellExpression c) of 
+  Coupled _ _ _ _ -> True
+  _ -> False
+
+-- Given the descriptorDiff, add a descriptor to the descriptorDiff. It it's already in removedDescriptors, remove it from that list and don't add it to 
+-- addedDescriptors. This maintains the invariant that the same rangeDescriptor is never in both the added and removed lists. 
+addDescriptor :: DescriptorDiff -> RangeDescriptor -> DescriptorDiff
+addDescriptor ddiff d = if (inRemoved d) 
+  then ddiff { removedDescriptors = L.delete d (removedDescriptors ddiff) } 
+  else ddiff { addedDescriptors = d:(addedDescriptors ddiff) } 
+    where 
+      inRemoved x = L.elem x (removedDescriptors ddiff)
+
+removeDescriptor :: DescriptorDiff -> RangeDescriptor -> DescriptorDiff
+removeDescriptor ddiff d = if (inAdded d)
+  then ddiff { addedDescriptors = L.delete d (addedDescriptors ddiff) } 
+  else ddiff { removedDescriptors = d:(removedDescriptors ddiff) } 
+    where 
+      inAdded x = L.elem x (addedDescriptors ddiff)
 
 ----------------------------------------------------------------------------------------------------------------------
 -- Instances
