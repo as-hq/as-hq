@@ -40,7 +40,7 @@ export default {
       keyStr.map((k) => self.add(config, name, k, callback));
     else {
       let s = KeyUtils.parseShortcutConfig(config);
-      s = KeyUtils.parseKeysIntoShortcut(s, keyStr);
+      s = this.parseKeysIntoShortcut(s, keyStr);
       s.name = name;
       s.callback = callback;
       _S[s.set].push(s);
@@ -134,6 +134,55 @@ export default {
         ['ctrlKey', 'metaKey'].every(propertyMatches)
         || (s.ctrlKey && !s.metaKey && e.metaKey && !e.ctrlKey)
       );
-  }
+  },
 
+  parseModifierIntoShortcut(s, m) {
+    switch(m) {
+      case "Ctrl":
+        s.ctrlKey = true;
+        return s;
+      case "Cmd":
+        s.metaKey = true;
+        return s;
+      case "Shift":
+        s.shiftKey = true;
+        return s;
+      case "Alt":
+        s.altKey = true;
+        return s;
+      case "Meta":
+        s.metaKey = true;
+        return s;
+    }
+  },
+
+  // assumes fornat: modifier + modifer + .. + key/key/key/key..
+  parseKeysIntoShortcut(s, keyStr) {
+    let tokens = keyStr.split("+"),
+        options = tokens[tokens.length-1].split("/");
+    if (options.length == 1)
+      s.keyCode = this.stringToKey(options[0]);
+    else
+      s.optionKeys = options.map(this.stringToKey);
+    for (var i=0; i<tokens.length-1; i++)
+      s = this.parseModifierIntoShortcut(s, tokens[i]);
+    return s;
+  },
+
+  // gets the matched wildcard, in string format
+  getWildcard(e, s) {
+    if (s.optionKeys) {
+      return this.keyToWildcard(e);
+    } else { 
+      return null;
+    }
+  },
+
+  // assumes spec format: set,option,option,...
+  parseShortcutConfig(configStr) {
+    let tokens = configStr.split(","),
+        shortcut = {set: tokens[0], config: {}};
+    for (let i=1; i<tokens.length; i++) { shortcut.config[tokens[i]] = true; }
+    return shortcut;
+  }
 };

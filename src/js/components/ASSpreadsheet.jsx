@@ -808,7 +808,7 @@ export default React.createClass({
                                                   userIsTyping,
                                                   clickType,
                                                   ExpStore.getExpression(),
-                                                  this.refs.textbox.editor);
+                                                  this.refs.textbox.editor.getSelection().$isEmpty);
 
         // if visible key and there was a last cell ref, move the selection back to the origin
         let activeSelection = Store.getActiveSelection();
