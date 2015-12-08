@@ -18,6 +18,7 @@ import API from '../../actions/ASApiActionCreators';
 import CFStore from '../../stores/ASCondFormatStore';
 
 import Util from '../../AS/Util';
+import TC from '../../AS/TypeConversions';
 
 export default React.createClass({
   componentDidMount() {
@@ -35,6 +36,15 @@ export default React.createClass({
     };
   },
 
+  _showRule(rule: CondFormatRule): string {
+    // #needsrefactor why the hell do I have to do .map((r) => Util.rangeToExcel(r)) instead of 
+    // .map(Util.rangeToExcel) ??? 
+    let rngsStr = Util.toSentence(rule.cellLocs.map(TC.asLocationToSimple).map((r) => Util.rangeToExcel(r)));
+        // cond    = rule.condition.expression; 
+
+    return rngsStr + ": ";
+  },
+
   render(): ReactElement {
     let {open, onRequestClose} = this.props;
     let {rules, openRule} = this.state;
@@ -50,7 +60,7 @@ export default React.createClass({
             onMouseUp={this._onCreateRule} />
           {rules.map((rule, idx) =>
             <div>
-              blah blah blah
+              <div>{this._showRule(rule)}</div>
               <ASButton
                 onMouseUp={this._onEditRule(idx)}
                 label="Edit"
