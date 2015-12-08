@@ -166,6 +166,208 @@ describe('backend', () => {
 
       });
 
+      describe('decoupling', () => {
+
+        it('should decouple a single value and send message', (done) => {
+          _do([
+            python('A1', 'range(5)'),
+            python('A2', '44'),
+            decouple(),
+            shouldBe('A1', valueI(0)),
+            expressionShouldBe('A1','0'),
+            shouldBe('A2', valueI(44)),
+            exec(done)
+          ]);
+        });
+
+        it('should decouple when replacing head with a smaller range and send message', (done) => {
+          _do([
+            python('A1', 'range(5)'),
+            r('A1', 'c(4,5)'),
+            decouple(),
+            shouldBe('A1', valueI(4)),
+            shouldBe('A3', valueI(2)),
+            exec(done)
+          ]);
+        });
+
+        it('should decouple when replacing middle of object and send message', (done) => {
+          _do([
+            python('A1', '[[1,2],[3,4],[5,6]])'),
+            python('A2', 'range(2)'),
+            decouple(),
+            shouldBe('A1', valueI(1)),
+            shouldBe('B1', valueI(2)),
+            shouldBe('A2', valueI(0)),
+            shouldBe('A3', valueI(1)),
+            expressionShouldBe('A3', 'range(2)'),
+            shouldBe('B2', valueI(4)),
+            exec(done)
+          ]);
+        });
+
+        it('should not send decouple message when replacing list of same size', (done) => {
+          _do([
+            python('A1', 'range(5)'),
+            r('A1', 'c(3,4,5,6,7)'),
+            shouldBe('A1', valueI(3)),
+            shouldBe('A2', valueI(4)),
+            exec(done)
+          ]);
+        });
+
+        it('should not send decouple message when deleting list', (done) => {
+          _do([
+            python('A1', 'range(5)'),
+            delete_('A1:A5'),
+            shouldBeNothing('A1'),
+            exec(done)
+          ]);
+        });
+
+      });
+
+
+      describe('fat cells', () => {
+
+        describe('overwrite power', () => {
+
+          it('should have overwrite power on any descendants inside itself', (done) => {
+            _do([
+              python('A2', '2'),
+              python('B2', 'A2+1'),
+              python('A3', 'B2+1'),
+              shouldBe('A3', valueI(4)),
+              python('A1', 'range(6)'),
+              _forM_(_.range(6), (i) => {
+                return shouldBe(`A${i + 1}`, valueI(i)); // overwrite power, these can no longer change
+              }),
+              shouldBe('B2', '2'), // proopagation should still happen
+              expressionShouldBe('B2', 'A2+1'),
+              expressionShouldBe('A2', 'range(6)'), // should be coupled now
+              expressionShouldBe('A3', 'range(6)'),
+              exec(done)
+            ]);
+          });
+
+          it('should have overwrite power on immediate descendants inside itself', (done) => {
+            _do([
+              python('A1', '69'),
+              python('A2', 'A1'),
+              python('A1', 'range(10)'),
+              _forM_(_.range(10), (i) => {
+                return shouldBe(`A${i + 1}`, valueI(i));
+              }),
+              expressionShouldBe('A1', 'range(10)'), // should be coupled
+              expressionShouldBe('A2', 'range(10)'),
+              exec(done)
+            ]);
+          });
+
+          it('should give all fat cells created overwrite power', (done) => {
+            _do([
+              python('A2', '1'),
+              python('B2', 'range(A2)'),
+              python('B3', 'B2'),
+              python('A4', 'B3+1'),
+              shouldBe('B3',valueI(0)),
+              shouldBe('A4',valueI(1)),
+              python('A1','[2,3,4,5,6]'),
+              // This creates two fat cells, and both should have overwrite power
+              shouldBe('A4', valueI(5)),
+              expressionShouldBe('A4', '[2,3,4,5,6]'),
+              shouldBe('B2', valueI(0)),
+              expressionShouldBe('B2', 'range(A2)'),
+              shouldBe('B3', valueI(1)),
+              expressionShouldBe('B3', 'range(A2)'),
+              exec(done)
+            ]);
+          });
+
+          it('should have overwrite power on immediate descendants inside itself', (done) => {
+            _do([
+              python('A1', '69'),
+              python('A2', 'A1'),
+              python('A1', 'range(10)'),
+              _forM_(_.range(10), (i) => {
+                return shouldBe(`A${i + 1}`, valueI(i));
+              }),
+              expressionShouldBe('A1', 'range(10)'), // should be coupled
+              expressionShouldBe('A2', 'range(10)'),
+              exec(done)
+            ]);
+          });
+
+        });
+
+        describe('circular dependency catching', () => {
+
+          it('should be a circ dep if the head expression refers to a cell in the expansion', (done) => {
+            _do([
+              python('A2', '5'),
+              shouldError(python('A1', 'range(A2)')),
+              exec(done)
+            ]);
+          });
+
+          it('more complicated circ dep when the list expands', (done) => {
+            _do([
+              python('A2', '1'),
+              python('B2', 'A2+1'),
+              python('A3', 'B2+1'),
+              python('A1', 'range(A2)'),
+              shouldError(python('A2','6')),
+              exec(done)
+            ]);
+          });
+
+        });
+
+        describe('pointers', () => {
+
+          it('should shrink if their references are smaller', (done) => {
+            _do([
+              python('A1', 'range(5)'),
+              python('B2','@A1'),
+              python('A1', '[1,2]'),
+              shouldBe('A3', valueI(2)),
+              expressionShouldBe('A3', '2'),
+              expressionShouldBe('A1', '[1,2]'),
+              shouldBeNothing('B3'),
+              shouldBeNothing('B4'),
+              expressionShouldBe('B1','@A1'),
+              expressionShouldBe('B2','@A1'),
+              exec(done)
+            ]);
+          });
+
+          it('should change if the object they reference updates', (done) => {
+            _do([
+              python('B1', 'range(5)'),
+              python('C1', '@B1'),
+              python('A1', '[[1,2]]'),
+              // B should decouple and C1 should be a horizontal range now
+              expressionShouldBe('B1', '[[1,2]]'),
+              expressionShouldBe('B2', '1'),
+              expressionShouldBe('C1', '@B1'),
+              expressionShouldBe('D1', '@B1'),
+              exec(done)
+            ]);
+          });
+
+          it('should dereference if their reference is decoupled', (done) => {
+            _do([
+              python('A1', 'range(5)'),
+              python('B2', '@A3'),
+              shouldError(python('A1', '[1,2]')),
+              exec(done)
+            ]);
+          });
+
+        });
+
+      });
+
       describe('python', () => {
         it('should evaluate at all', (done) => {
           _do([
