@@ -20,7 +20,7 @@ handleToggleProp uc state (PayloadProp p rng) = do
   let locs = rangeToIndices rng
       pt   =  propType p
   cells <- getPossiblyBlankCells locs
-  let (cellsWithProp, cellsWithoutProp) = partition ((hasProp pt) . cellProps) cells
+  let (cellsWithProp, cellsWithoutProp) = partition ((hasPropType pt) . cellProps) cells
   -- if there's a single prop present in the range, remove this prop from all the cells; 
   -- otherwise set the prop in all the cells. 
   if (null cellsWithoutProp)

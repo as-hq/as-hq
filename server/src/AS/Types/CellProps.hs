@@ -60,8 +60,11 @@ instance Eq ASCellProps where
 getProp :: CellPropType -> ASCellProps -> Maybe CellProp
 getProp pt (ASCellProps m cm) = listToMaybe $ catMaybes $ [M.lookup pt cm, M.lookup pt m]
 
-hasProp :: CellPropType -> ASCellProps -> Bool
-hasProp pt p = isJust $ getProp pt p
+hasPropType :: CellPropType -> ASCellProps -> Bool
+hasPropType pt p = isJust $ getProp pt p
+
+hasProp :: CellProp -> ASCellProps -> Bool
+hasProp p ps = (getProp (propType p) ps) == Just p
 
 propType :: CellProp -> CellPropType
 propType (TextColor _) = TextColorProp

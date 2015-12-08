@@ -46,8 +46,8 @@ emptyProps = ASRowColProps M.empty
 -- getProp :: RowColPropType -> ASRowColProps -> Maybe RowColProp
 -- getProp pt (ASRowColProps m) = M.lookup pt m
 
--- hasProp :: RowColPropType -> ASRowColProps -> Bool
--- hasProp pt p = isJust $ getProp pt p
+-- hasPropType :: RowColPropType -> ASRowColProps -> Bool
+-- hasPropType pt p = isJust $ getProp pt p
 
 -- removeProp :: RowColPropType -> ASRowColProps -> ASRowColProps
 -- removeProp pt (ASRowColProps m) = ASRowColProps $ M.delete pt m

@@ -411,14 +411,14 @@ getVolatileLocs conn = do
 -- TODO: some of the cells may change from volatile -> not volatile, but they're still in volLocs
 setChunkVolatileCells :: [ASCell] -> Redis ()
 setChunkVolatileCells cells = do
-  let vLocs = map cellLocation $ filter ((hasProp VolatileProp) . cellProps) cells
+  let vLocs = map cellLocation $ filter ((hasPropType VolatileProp) . cellProps) cells
   let locStrs = map (B.pack . show) vLocs
   sadd "volatileLocs" locStrs
   return ()
 
 deleteChunkVolatileCells :: [ASCell] -> Redis ()
 deleteChunkVolatileCells cells = do
-  let vLocs = map cellLocation $ filter ((hasProp VolatileProp) . cellProps) cells
+  let vLocs = map cellLocation $ filter ((hasPropType VolatileProp) . cellProps) cells
   let locStrs = map (B.pack . show) vLocs
   srem "volatileLocs" locStrs
   return ()

@@ -128,9 +128,18 @@ handleDelete uc state p@(PayloadWB workbook) = do
   return ()
 handleDelete uc state (PayloadR rng) = do
   let locs = rangeToIndices rng
+      badFormats = [ValueFormat Date]
+      -- ^ Deleting a cell keeps some of the formats but deletes others. This is the current list of
+      -- formats to remove upon deletion. 
   conn <- dbConn <$> readMVar state
-  blankedCells <- DB.getBlankedCellsAt locs
-  updateMsg <- DP.runDispatchCycle state blankedCells (userCommitSource uc)
+  -- []
+  blankedCells <- DB.getBlankedCellsAt locs -- need to know the formats at the old locations
+  let removeBadFormat p c = if (hasProp p (cellProps c)) then removeCellProp (propType p) c else c
+      -- ^ CellProp -> ASCell -> ASCell
+      removeBadFormats ps = foldl' (.) id (map removeBadFormat ps)
+      -- ^ [CellProp] -> ASCell -> ASCell
+      blankedCells' = map (removeBadFormats badFormats) blankedCells
+  updateMsg <- DP.runDispatchCycle state blankedCells' (userCommitSource uc)
   let msg = makeDeleteMessage rng updateMsg
   case (serverResult msg) of
     (Failure _) -> sendToOriginal uc msg
