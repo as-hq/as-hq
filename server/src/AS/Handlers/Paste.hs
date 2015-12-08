@@ -22,8 +22,7 @@ import Data.Maybe
 import Data.List
 import Control.Concurrent
 
-
-import qualified Database.Redis as R
+import Database.Redis (Connection)
 
 handleCopy :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
 handleCopy uc state (PayloadPaste from to) = do
@@ -47,17 +46,17 @@ handleCut uc state (PayloadPaste from to) = do
 getCopyOffSets :: ASRange -> ASRange -> [Offset]
 getCopyOffSets from to = offsets
   where
-    (fromYDim, fromXDim) = getRangeDims from
-    (toYDim, toXDim) = getRangeDims to
-    yRep = max 1 (toYDim `div` fromYDim)
-    xRep = max 1 (toXDim `div` fromXDim)
-    (topYOffset, topXOffset) = getRangeOffset from to
-    yRepOffsets = take yRep [0,fromYDim..]
-    xRepOffsets = take xRep [0,fromXDim..]
-    offsets = [(topYOffset + y, topXOffset + x) | y <- yRepOffsets, x <- xRepOffsets]
+    fromDims = getRangeDims from
+    toDims = getRangeDims to
+    xRep = max 1 ((width toDims) `div` (width fromDims))
+    yRep = max 1 ((height toDims) `div` (height fromDims))
+    xRepOffsets = take xRep [0, (width fromDims)..]
+    yRepOffsets = take yRep [0, (height fromDims)..]
+    tlOffset = getRangeOffset from to
+    offsets = [Offset { dX = (dX tlOffset) + x, dY = (dY tlOffset) + y } | x <- xRepOffsets, y <- yRepOffsets]
 
 -- | Gets you the new cells to eval after shifting from a copy/paste. 
-getCopyCells :: R.Connection -> ASRange -> ASRange -> IO [ASCell]
+getCopyCells :: Connection -> ASRange -> ASRange -> IO [ASCell]
 getCopyCells conn from to = do 
   fromCells          <- getPossiblyBlankCells (rangeToIndices from)
   sanitizedFromCells <- sanitizeCopyCells conn fromCells from
@@ -68,7 +67,7 @@ getCopyCells conn from to = do
   return toCells'
 
 -- Same as sanitizeCutCells, except if everything is a list head, leave it as is. 
-sanitizeCopyCells :: R.Connection -> [ASCell] -> ASRange -> IO [ASCell]
+sanitizeCopyCells :: Connection -> [ASCell] -> ASRange -> IO [ASCell]
 sanitizeCopyCells conn cells from
   | all isFatCellHead cells = return $ map toUncoupled cells 
   | otherwise = sanitizeCutCells conn cells from 
@@ -94,7 +93,12 @@ replaceCellLocs f c = c { cellLocation = f $ cellLocation c }
 replaceCellExpressions :: (ASExpression -> ASExpression) -> ASCell -> ASCell
 replaceCellExpressions f c = c { cellExpression = f $ cellExpression c }
 
-getCutCells :: R.Connection -> ASRange -> ASRange -> IO [ASCell]
+shiftRangeKey :: Offset -> ASCell -> ASCell
+shiftRangeKey offset c@(Cell _ (Expression _ _) _ _) = c
+shiftRangeKey offset (Cell l (Coupled xp lang typ (RangeKey ind dims)) v ts) = (Cell l (Coupled xp lang typ (RangeKey ind' dims)) v ts)
+  where ind' = shiftInd offset ind
+
+getCutCells :: Connection -> ASRange -> ASRange -> IO [ASCell]
 getCutCells conn from to = do 
   let offset = getRangeOffset from to
   toCells      <- getCutToCells conn from offset
@@ -104,13 +108,14 @@ getCutCells conn from to = do
   return $ mergeCells toCells (mergeCells newDescCells blankedCells)
 
 -- | Constructs the cells at the locations you'll be pasting to
-getCutToCells :: R.Connection -> ASRange -> Offset -> IO [ASCell]
+getCutToCells :: Connection -> ASRange -> Offset -> IO [ASCell]
 getCutToCells conn from offset = do 
   fromCells          <- getPossiblyBlankCells (rangeToIndices from)
   sanitizedFromCells <- sanitizeCutCells conn fromCells from
   let shiftLoc    = shiftInd offset
       changeExpr  = shiftExpressionForCut from offset
-  return $ map ((replaceCellLocs shiftLoc) . (replaceCellExpressions changeExpr)) sanitizedFromCells
+      modifyCell  = (shiftRangeKey offset) . (replaceCellLocs shiftLoc) . (replaceCellExpressions changeExpr)
+  return $ map modifyCell sanitizedFromCells
 
 -- | Returns the cells that reference the cut cells with their expressions updated. 
 getCutNewDescCells :: ASRange -> Offset -> IO [ASCell]
@@ -126,12 +131,10 @@ getCutNewDescCells from offset = do
 --   * if an entire list is contained in the range, keep just the head of the list. (So on eval
 --     the entire list is re-evaluated)
 --   * if a cell is part of a list that is not contained entirely in the selection, decouple it. 
-sanitizeCutCells :: R.Connection -> [ASCell] -> ASRange -> IO [ASCell]
+sanitizeCutCells :: Connection -> [ASCell] -> ASRange -> IO [ASCell]
 sanitizeCutCells conn cells from = do 
   keys <- fatCellsInRange conn from
-  let (coupledCells, regularCells)    = partition isCoupled cells
-      (containedCells, cutoffCells)   = partitionByRangeKey coupledCells keys
+  let (fatCellMembers, regularCells)  = partition isCoupled cells
+      (containedCells, cutoffCells)   = partitionByRangeKey fatCellMembers keys
       decoupledCells                  = map toDecoupled cutoffCells
-      containedFatCellHeads           = filter isFatCellHead containedCells
-      containedFatCellHeadsUncoupled  = map toUncoupled containedFatCellHeads
-  return $ regularCells ++ decoupledCells ++ containedFatCellHeadsUncoupled
+  return $ regularCells ++ decoupledCells ++ containedCells

@@ -6,6 +6,7 @@ import AS.Window
 
 import AS.Types.DB (ASCommit)
 import AS.Types.Cell
+import AS.Types.RowColProps
 import AS.Types.Sheets
 import AS.Types.Excel (indexToExcel)
 import AS.Types.Locations
@@ -15,7 +16,7 @@ import AS.Types.CellProps
 
 import GHC.Generics
 import Data.Aeson hiding (Success)
-import Data.Aeson.Types (defaultOptions) 
+import Data.Aeson.Types (defaultOptions)
 import qualified Data.Text as T
 
 
@@ -30,7 +31,7 @@ data ASServerMessage = ServerMessage {
   serverPayload :: ASPayload
 } deriving (Show, Read, Generic)
 
--- maybe move to Util? 
+-- maybe move to Util?
 failureMessage :: String -> ASServerMessage
 failureMessage s = ServerMessage NoAction (Failure s) (PayloadN ())
 
@@ -38,7 +39,7 @@ data ASAction =
     NoAction
   | Acknowledge
   | SetInitialSheet
-  | New 
+  | New
   | Import | Export
   | Open | Close
   | Evaluate | EvaluateRepl | EvaluateHeader
@@ -49,6 +50,7 @@ data ASAction =
   | Clear
   | UpdateWindow
   | SetProp | ToggleProp
+  | SetRowColProp
   | Repeat
   | BugReport
   | JumpSelect
@@ -88,7 +90,7 @@ data ASPayload =
   | PayloadPaste {copyRange :: ASRange, copyTo :: ASRange}
   | PayloadProp {prop :: CellProp, tagRange :: ASRange}
   | PayloadXp ASExpression
-  | PayloadOpen {initHeaderExpressions :: [ASExpression], initCondFormatRules :: [CondFormatRule]}
+  | PayloadOpen {initHeaderExpressions :: [ASExpression], initCondFormatRules :: [CondFormatRule], initRowCols :: [RowCol]}
   | PayloadReplValue ASReplValue
   | PayloadValue CompositeValue
   | PayloadList QueryList
@@ -97,6 +99,7 @@ data ASPayload =
   | PayloadDrag {initialRange :: ASRange, dragRange :: ASRange}
   | PayloadCondFormat { condFormatRules :: [CondFormatRule] }
   | PayloadCondFormatResult { condFormatRulesResult :: [CondFormatRule], condFormatCellsUpdated :: [ASCell] }
+  | PayloadSetRowColProp RowColType Int RowColProp
   deriving (Show, Read, Generic)
 
 data ASReplValue = ReplValue {replValue :: ASValue, replLang :: ASLanguage} deriving (Show, Read, Eq, Generic)
@@ -107,11 +110,11 @@ data ASInitDaemonConnection = ASInitDaemonConnection {parentUserId :: ASUserId, 
 
 data MutateType = InsertCol { insertColNum :: Int } | InsertRow { insertRowNum :: Int } |
                   DeleteCol { deleteColNum :: Int } | DeleteRow { deleteRowNum :: Int } |
-                  DragCol { oldColNum :: Int, newColNum :: Int } | DragRow { oldRowNum :: Int, newRowNum :: Int } 
+                  DragCol { oldColNum :: Int, newColNum :: Int } | DragRow { oldRowNum :: Int, newRowNum :: Int }
                   deriving (Show, Read, Eq, Generic)
 
-data CondFormatRule = CondFormatRule { cellLocs :: [ASRange], 
-                                       condition :: ASExpression, 
+data CondFormatRule = CondFormatRule { cellLocs :: [ASRange],
+                                       condition :: ASExpression,
                                        condFormat :: CellProp } deriving (Show, Read, Generic, Eq)
 
 -- should get renamed
@@ -168,7 +171,7 @@ instance FromJSON MutateType
 instance ToJSON CondFormatRule
 instance FromJSON CondFormatRule
 
-instance ToJSON Direction 
+instance ToJSON Direction
 instance FromJSON Direction
 
 instance FromJSON ASReplValue
@@ -192,18 +195,22 @@ generateErrorMessage e = case e of
   _                           -> show e
 
 
+-- | Creates a server message from an ASExecError. Used in makeUpdateMessage and  makeDeleteMessage.
+makeErrorMessage :: ASExecError -> ASAction -> ASServerMessage
+makeErrorMessage DecoupleAttempt a = ServerMessage a DecoupleDuringEval (PayloadN ())
+makeErrorMessage e a = ServerMessage a (Failure (generateErrorMessage e)) (PayloadN ())
+
 -- | When you have a list of cells from an eval request, this function constructs
--- the message to send back. 
+-- the message to send back.
 makeUpdateMessage :: Either ASExecError [ASCell] -> ASServerMessage
-makeUpdateMessage (Left DecoupleAttempt) = ServerMessage Update DecoupleDuringEval (PayloadN ())
-makeUpdateMessage (Left e) = ServerMessage Update (Failure (generateErrorMessage e)) (PayloadN ())
+makeUpdateMessage (Left err) = makeErrorMessage err Update
 makeUpdateMessage (Right cells) = ServerMessage Update Success (PayloadCL cells)
 
 -- getBadLocs :: [ASReference] -> [Maybe ASCell] -> [ASReference]
 -- getBadLocs locs mcells = map fst $ filter (\(l,c)->isNothing c) (zip locs mcells)
 
 -- | Poorly named. When you have a list of cells from a get request, this function constructs
--- the message to send back. 
+-- the message to send back.
 makeGetMessage :: [ASCell] -> ASServerMessage
 makeGetMessage cells = changeMessageAction Get $ makeUpdateMessage (Right cells)
 
@@ -220,10 +227,11 @@ makeDeleteMessage deleteLocs s@(ServerMessage _ _ (PayloadCL cells)) = ServerMes
         payload   = PayloadDelete deleteLocs cells'
         -- remove the sels from the update that we know are blank from the deleted locs
 
-makeCondFormatMessage :: [CondFormatRule] -> ASServerMessage -> ASServerMessage
-makeCondFormatMessage _ s@(ServerMessage _ (Failure _) _) = s
-makeCondFormatMessage _ s@(ServerMessage _ DecoupleDuringEval _) = s
-makeCondFormatMessage rules (ServerMessage _ _ (PayloadCL cells)) = ServerMessage SetCondFormatRules Success payload
+-- handle failure cases like makeUpdateMessage
+-- otherwise: send payload CondFormatResult.
+makeCondFormatMessage :: Either ASExecError [ASCell] -> [CondFormatRule] -> ASServerMessage
+makeCondFormatMessage (Left err) _ = makeErrorMessage err SetCondFormatRules
+makeCondFormatMessage (Right cells) rules = ServerMessage SetCondFormatRules Success payload
   where payload = PayloadCondFormatResult rules cells
 
 changeMessageAction :: ASAction -> ASServerMessage -> ASServerMessage

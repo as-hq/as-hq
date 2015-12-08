@@ -109,45 +109,45 @@ refMatch = do
 -- ex. ExIndex $A3 (1,1) -> ExIndex $A4
 -- doesn't do any work with Parsec/actual parsing
 shiftExRef :: Offset -> ExRef -> ExRef
-shiftExRef (dC, dR) exRef = case exRef of
+shiftExRef o exRef = case exRef of
   ExOutOfBounds -> ExOutOfBounds
   ExLocRef (ExIndex dType c r) _ _ -> exRef' 
     where
-      newColVal = shiftCol dC dType c
-      newRowVal = shiftRow dR dType r
+      newColVal = shiftCol (dX o) dType c
+      newRowVal = shiftRow (dY o) dType r
       idx = if (newColVal >= 1 && newRowVal >= 1) 
         then Just $ ExIndex dType (intToColStr newColVal) (show newRowVal) 
         else Nothing
       exRef' = maybe ExOutOfBounds (\i -> exRef { exLoc = i }) idx
   ExRangeRef (ExRange f s) sh wb -> exRef' 
       where
-        shiftedInds = (shiftExRef (dC, dR) (ExLocRef f sh wb), shiftExRef (dC, dR) (ExLocRef s sh wb))
+        shiftedInds = (shiftExRef o (ExLocRef f sh wb), shiftExRef o (ExLocRef s sh wb))
         exRef' = case shiftedInds of 
           (ExLocRef f' _ _, ExLocRef s' _ _) -> exRef { exRange = ExRange f' s' }
           _ -> ExOutOfBounds
   ExPointerRef l sh wb -> exRef { pointerLoc = l' }
-      where ExLocRef l' _ _ = shiftExRef (dC, dR) (ExLocRef l sh wb)
+      where ExLocRef l' _ _ = shiftExRef o (ExLocRef l sh wb)
 
 -- shifts absolute references too
 shiftExRefForced :: Offset -> ExRef -> ExRef
-shiftExRefForced (dC, dR) exRef = case exRef of
+shiftExRefForced o exRef = case exRef of
   ExOutOfBounds -> ExOutOfBounds
   ExLocRef (ExIndex dType c r) _ _ -> exRef' 
     where
-      newColVal = shiftCol dC REL_REL c
-      newRowVal = shiftRow dR REL_REL r
+      newColVal = shiftCol (dX o) REL_REL c
+      newRowVal = shiftRow (dY o) REL_REL r
       idx = if (newColVal >= 1 && newRowVal >= 1) 
         then Just $ ExIndex dType (intToColStr newColVal) (show newRowVal) 
         else Nothing
       exRef' = maybe ExOutOfBounds (\i -> exRef { exLoc = i }) idx
   ExRangeRef (ExRange f s) sh wb -> exRef' 
       where
-        shiftedInds = (shiftExRefForced (dC, dR) (ExLocRef f sh wb), shiftExRefForced (dC, dR) (ExLocRef s sh wb))
+        shiftedInds = (shiftExRefForced o (ExLocRef f sh wb), shiftExRefForced o (ExLocRef s sh wb))
         exRef' = case shiftedInds of 
           (ExLocRef f' _ _, ExLocRef s' _ _) -> exRef { exRange = ExRange f' s' }
           _ -> ExOutOfBounds
   ExPointerRef l sh wb -> exRef { pointerLoc = l' }
-      where ExLocRef l' _ _ = shiftExRefForced (dC, dR) (ExLocRef l sh wb)
+      where ExLocRef l' _ _ = shiftExRefForced o (ExLocRef l sh wb)
 
 shiftCol :: Int -> RefType -> String -> Int
 shiftCol dC rType c = newCVal

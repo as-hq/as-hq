@@ -104,16 +104,15 @@ indexIsHead :: ASIndex -> RangeKey -> Bool
 indexIsHead idx (RangeKey idx' _) = idx == idx'
 
 rangeKeyToIndices :: RangeKey -> [ASIndex]
-rangeKeyToIndices (RangeKey idx dims) = rangeToIndices range
-  where
-    Index sid (col, row) = idx
-    (height, width)      = dims
-    range                = Range sid ((col, row), (col+width-1, row+height-1))
+rangeKeyToIndices k = rangeToIndices range
+  where range = Range (locSheetId . keyIndex $ k) (rangeRect k)
 
 rangeRect :: RangeKey -> Rect
-rangeRect (RangeKey idx dims) = ((col, row), (col + width - 1, row + height - 1))
-  where Index _ (col, row) = idx
-        (height, width)    = dims
+rangeRect (RangeKey idx dims) = (tl, br)
+  where 
+    Index _ (col, row) = idx
+    tl = (col, row)
+    br = (col + (width dims) - 1, row + (height dims) - 1)
 
 rangeKeyToSheetId :: RangeKey -> ASSheetId
 rangeKeyToSheetId = locSheetId . keyIndex
@@ -142,15 +141,13 @@ addDescriptor :: DescriptorDiff -> RangeDescriptor -> DescriptorDiff
 addDescriptor ddiff d = if (inRemoved d) 
   then ddiff { removedDescriptors = L.delete d (removedDescriptors ddiff) } 
   else ddiff { addedDescriptors = d:(addedDescriptors ddiff) } 
-    where 
-      inRemoved x = L.elem x (removedDescriptors ddiff)
+    where inRemoved x = L.elem x (removedDescriptors ddiff)
 
 removeDescriptor :: DescriptorDiff -> RangeDescriptor -> DescriptorDiff
 removeDescriptor ddiff d = if (inAdded d)
   then ddiff { addedDescriptors = L.delete d (addedDescriptors ddiff) } 
   else ddiff { removedDescriptors = d:(removedDescriptors ddiff) } 
-    where 
-      inAdded x = L.elem x (addedDescriptors ddiff)
+    where inAdded x = L.elem x (addedDescriptors ddiff)
 
 ----------------------------------------------------------------------------------------------------------------------
 -- Instances

@@ -123,8 +123,11 @@ instance (Show2 ASValue) where
 
 instance (Show2 RangeKey) where
   show2 (RangeKey idx dims) = (show2 idx) 
-                           ++ (keyPartDelimiter:(show dims)) 
+                           ++ (keyPartDelimiter:(show2 dims)) 
                            ++ (keyPartDelimiter:"RANGEKEY")
+
+instance (Show2 Dimensions) where
+  show2 dims = show (width dims, height dims)
 
 -- compressed read
 
@@ -183,8 +186,12 @@ instance (Read2 RangeKey) where
   read2 str = RangeKey idx dims
     where
      idxStr:dimsStr:_ = splitBy keyPartDelimiter str
-     idx = read2 idxStr :: ASIndex
-     dims = read dimsStr :: Dimensions
+     idx              = read2 idxStr :: ASIndex
+     dims             = read2 dimsStr :: Dimensions
+
+instance (Read2 Dimensions) where
+  read2 str = Dimensions { width = w, height = h }
+    where (w, h) = read str :: (Int, Int)
 
 ----------------------------------------------------------------------------------------------------------------------
 -- Redis key constructors

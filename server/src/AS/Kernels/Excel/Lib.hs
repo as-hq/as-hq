@@ -477,12 +477,12 @@ mapArgs (c,r) fDes con e = do
 
 -- | Given a function descriptor, a list of arguments (results) and an offset
 -- | Replace each argument with the offsetted value if fDes says to
-getOffsetArgs :: FuncDescriptor -> [EResult] -> Offset -> [EResult]
-getOffsetArgs fDes rs offset = map (getEntityElem fDes offset) (zip [1..argNumLimit] rs)
+getOffsetArgs :: FuncDescriptor -> [EResult] -> Coord -> [EResult]
+getOffsetArgs fDes rs coord = map (getEntityElem fDes coord) (zip [1..argNumLimit] rs)
   where
-    getEntityElem :: FuncDescriptor -> Offset -> Arg EResult -> EResult
-    getEntityElem fDes offset (argNum,r@(Right (EntityMatrix m)))
-      | (elem argNum (mapArgsIfArrayFormula fDes)) = valToResult $ matrixIndex offset m
+    getEntityElem :: FuncDescriptor -> Coord -> Arg EResult -> EResult
+    getEntityElem fDes coord (argNum,r@(Right (EntityMatrix m)))
+      | (elem argNum (mapArgsIfArrayFormula fDes)) = valToResult $ matrixIndex coord m
       | otherwise = r
     getEntityElem _ _ x = snd x
 

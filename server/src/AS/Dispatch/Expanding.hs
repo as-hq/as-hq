@@ -98,8 +98,8 @@ decomposeCells (RangeDescriptor key etype _) (Cell (Index sheet (c,r)) xp _ ts) 
 
 getDimensions :: Collection -> Dimensions
 getDimensions coll = case coll of 
-  A arr -> (length arr, 1)
-  M mat -> (length mat, maximum $ map length mat) 
+  A arr -> Dimensions { width = 1, height = length arr }
+  M mat -> Dimensions { width = maximum $ map length mat, height = length mat }
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- value recomposition
@@ -107,7 +107,7 @@ getDimensions coll = case coll of
 recomposeCompositeValue :: FatCell -> CompositeValue
 recomposeCompositeValue (FatCell cells (RangeDescriptor key List _)) = Expanding val
   where
-    val = VList coll
+    val  = VList coll
     coll = recomposeCells dims cells
     dims = keyDimensions key
 
@@ -154,20 +154,20 @@ recomposeCompositeValue (FatCell cells (RangeDescriptor key PSeries attrs)) = Ex
     val       = VPSeries indices vals
     (JSONLeaf (ListValue (A indices))) = attrs M.! "seriesIndices"
     (A vals)  = recomposeCells dims cells
-    dims      = (length cells, 1)
+    dims      = Dimensions { width = 1, height = length cells }
 
 recomposeCells :: Dimensions -> [ASCell] -> Collection
-recomposeCells dims cells = case (snd dims) of 
+recomposeCells dims cells = case (width dims) of 
   1 -> A $ map cellValue cells
-  _ -> M . L.transpose $ map (\row -> map cellValue row) $ reshapeList cells (snd dims, fst dims)
+  _ -> M . map (map cellValue) $ reshapeList cells dims
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Helpers
 
--- transposes non-rectangular matrices by filling in gaps with NoValue
 reshapeList :: [a] -> Dimensions -> [[a]]
-reshapeList xs (_, height) = chunksOf height xs
+reshapeList xs dims = chunksOf (width dims) xs
 
+-- transposes non-rectangular matrices by filling in gaps with NoValue
 transpose' :: [[ASValue]] -> [[ASValue]]
 transpose' vals = L.transpose matrixified
   where

@@ -43,7 +43,7 @@ getAbsoluteDragPositions (Range _ ((a,b),(c,d))) (Range _ ((a',b'),(c',d'))) (x,
 
 -- Same as above, but only return the offsets and not the absolute positions
 getDragOffsets :: ASRange -> ASRange -> Position -> [Offset]
-getDragOffsets r1 r2 (x,y) = map (\(a,b) -> (a-x,b-y)) $ getAbsoluteDragPositions r1 r2 (x,y)
+getDragOffsets r1 r2 (x,y) = map (\(a,b) -> Offset { dX = a-x, dY = b-y }) $ getAbsoluteDragPositions r1 r2 (x,y)
 
 -- Given the sel range and drag range, return the cells in the sel range by DB lookup
 -- If the selection was horizontal, row-major, else column major

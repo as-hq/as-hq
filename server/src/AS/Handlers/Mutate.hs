@@ -15,6 +15,7 @@ import AS.Reply
 import AS.Util as U
 import AS.DB.API as DB
 import AS.Dispatch.Core
+import AS.Logging
 
 import Control.Concurrent
 import Data.Maybe
@@ -25,12 +26,13 @@ handleMutateSheet uc state (PayloadMutate mutateType) = do
   allCells <- DB.getCellsInSheet conn (userSheetId uc)
   let newCells = map (cellMap mutateType) allCells
       oldCellsNewCells = zip allCells newCells
-      oldCellsNewCells' = filter (\(c, c') -> (isNothing c') || (c /= fromJust c')) oldCellsNewCells
-      -- ^ get rid of cells that haven't changed.
+      oldCellsNewCells' = filter (\(c, c') -> (Just c /= c')) oldCellsNewCells
+      -- ^ don't update cells that haven't changed
       oldCells' = map fst oldCellsNewCells
-      blankedCells = blankCellsAt (map cellLocation oldCells')
       newCells' = catMaybes $ map snd oldCellsNewCells
+      blankedCells = blankCellsAt (map cellLocation oldCells')
       updatedCells   = mergeCells newCells' blankedCells -- eval blanks at the old cell locations, re-eval at new locs
+  printObj "newCells" newCells
   updateMsg <- runDispatchCycle state updatedCells DescendantsWithParent (userCommitSource uc)
   broadcastFiltered state uc updateMsg
 
@@ -57,7 +59,7 @@ cellLocMap (DragRow oldR newR) i@(Index sid (c, r))
   | r < min oldR newR = Just i
   | r > max oldR newR = Just i
   | r == oldR         = Just $ Index sid (c, newR)
-  | oldR < newR       = Just $ Index sid (c, r-1) -- here on we assume c is strictly between oldR and newR
+  | oldR < newR       = Just $ Index sid (c, r-1) -- here on we assume r is strictly between oldR and newR
   | oldR > newR       = Just $ Index sid (c, r+1)
   -- case oldR == newR can't happen because oldR < r < newR since third pattern-match
 
@@ -99,7 +101,7 @@ sanitizeMutateCell _ _ c@(Cell _ (Expression _ _) _ _) = c
 sanitizeMutateCell mt oldLoc c = cell'
   where 
     Just rk = cellToRangeKey c
-    cell' = if trace' "mutated?" $ fatCellGotMutated mt rk
+    cell' = if fatCellGotMutated mt rk
       then DI.toDecoupled c
       else c { cellExpression = (cellExpression c) { cRangeKey = rk { keyIndex = fromJust $ cellLocMap mt (keyIndex rk) } } } 
 
@@ -107,18 +109,22 @@ between :: Int -> Int -> Int -> Bool
 between lower upper x = (x >= lower) && (x <= upper)
 
 fatCellGotMutated :: MutateType -> RangeKey -> Bool
-fatCellGotMutated (InsertCol c) (RangeKey (Index _ (tlc, _)) (dC, _)) = between (tlc + 1) (tlc + dC - 1) c
-fatCellGotMutated (InsertRow r) (RangeKey (Index _ (_, tlr)) (_, dR)) = between (tlr + 1) (tlr + dR - 1) r
+fatCellGotMutated (InsertCol c) (RangeKey (Index _ (tlc, _)) dims) = between (tlc + 1) (tlc + (width dims) - 1) c
+fatCellGotMutated (InsertRow r) (RangeKey (Index _ (_, tlr)) dims) = between (tlr + 1) (tlr + (height dims) - 1) r
 
-fatCellGotMutated (DeleteCol c) (RangeKey (Index _ (tlc, _)) (dC, _)) = between tlc (tlc + dC - 1) c
-fatCellGotMutated (DeleteRow r) (RangeKey (Index _ (_, tlr)) (_, dR)) = between tlr (tlr + dR - 1) r
+fatCellGotMutated (DeleteCol c) (RangeKey (Index _ (tlc, _)) dims) = between tlc (tlc + (width dims) - 1) c
+fatCellGotMutated (DeleteRow r) (RangeKey (Index _ (_, tlr)) dims) = between tlr (tlr + (height dims) - 1) r
 
-fatCellGotMutated (DragCol _ _) (RangeKey _ (1, _)) = False
-fatCellGotMutated (DragCol c1 c2) (RangeKey (Index _ (tlc, _)) (dC, _)) = or [
-  between tlc (tlc + dC - 1) c1, 
-  between (tlc + 1) (tlc + dC - 1) c2 ]
+fatCellGotMutated (DragCol c1 c2) (RangeKey (Index _ (tlc, _)) dims) = case (width dims) of 
+  1 -> False -- if width of the dragged col area was 1, then nothing happened.
+  _ -> or [
+      between tlc (tlc + (width dims) - 1) c1
+    , between (tlc + 1) (tlc + (width dims) - 1) c2 
+    ]
 
-fatCellGotMutated (DragRow _ _) (RangeKey _ (_, 1)) = False
-fatCellGotMutated (DragRow r1 r2) (RangeKey (Index _ (_, tlr)) (_, dR)) = or [ 
-  between tlr (tlr + dR - 1) r1, 
-  between (tlr + 1) (tlr + dR - 1) r2 ]
+fatCellGotMutated (DragRow r1 r2) (RangeKey (Index _ (_, tlr)) dims) = case (height dims) of 
+  1 -> False -- if height of the dragged row area was 1, then nothing happened.
+  _ -> or [ 
+      between tlr (tlr + (height dims) - 1) r1 
+    , between (tlr + 1) (tlr + (height dims) - 1) r2 
+    ]

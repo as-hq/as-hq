@@ -7,6 +7,7 @@ import AS.Types.Messages
 import AS.Types.Eval
 import AS.Types.Errors
 
+
 import AS.Eval.Core
 import AS.Parsing.Substitutions
 import AS.Util (insertMultiple)
@@ -20,18 +21,18 @@ import Control.Monad.Trans.Class (lift)
 import Control.Monad.Trans.Either (left)
 import Data.Maybe
 
-conditionallyFormatCells :: Connection -> ASSheetId -> [ASCell] -> EvalContext -> EitherTExec [ASCell]
-conditionallyFormatCells conn origSid cells ctx = do 
-  rules <- lift $ DB.getCondFormattingRules conn origSid
-  let transforms = map (ruleToCellTransform conn origSid ctx) rules
+conditionallyFormatCells :: Connection -> ASSheetId -> [ASCell] -> [CondFormatRule] -> EvalContext -> EitherTExec [ASCell]
+conditionallyFormatCells conn origSid cells rules ctx = do
+  let cells' = map (\c -> c { cellProps = clearCondFormatProps (cellProps c) }) cells
+      transforms = map (ruleToCellTransform conn origSid ctx) rules
       transformsComposed = foldr (>=>) return transforms
-  mapM transformsComposed cells
+  mapM transformsComposed cells'
 
 -- #needsrefactor will eventually have to change ranges to refs in CondFormatRule
 ruleToCellTransform :: Connection -> ASSheetId -> EvalContext -> CondFormatRule -> (ASCell -> EitherTExec ASCell)
 ruleToCellTransform conn sid ctx (CondFormatRule rngs cond format) c@(Cell l e v ps) = do
   let containingRange = find (flip rangeContainsIndex l) rngs
-  case containingRange of 
+  case containingRange of
     Nothing -> return c
     Just rng -> do
       let tl = getTopLeft rng
@@ -39,7 +40,7 @@ ruleToCellTransform conn sid ctx (CondFormatRule rngs cond format) c@(Cell l e v
           cond'  = shiftExpression offset cond
       satisfiesCond <- meetsCondition conn sid ctx cond' v
       if satisfiesCond
-        then return $ Cell l e v (setProp format ps)
+        then return $ Cell l e v (setCondFormatProp format ps)
         else return c
 
 meetsCondition :: Connection -> ASSheetId -> EvalContext -> ASExpression -> ASValue -> EitherTExec Bool
@@ -55,6 +56,6 @@ meetsCondition conn sid ctx xp@(Expression str lang) v = do
   (Formatted res _) <- evaluateLanguage conn dummyLoc ctx' xp
   case res of
     CellValue (ValueB b) -> return b
-    val                  -> do 
+    val                  -> do
       let errMsg = "Tried to apply " ++ str ++ " in " ++ (show lang) ++ " but got non-boolean value " ++ (show val) ++ ". "
       left $ CondFormattingError errMsg

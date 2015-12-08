@@ -20,7 +20,9 @@ import Control.Monad.Trans.Either
 runReplDispatch :: ASSheetId -> ASExpression -> IO ASServerMessage
 runReplDispatch sid xp = do
     let lang = language xp
-    val <- runEitherT $ R.evaluateLanguageRepl sid xp 
+    -- "" for header right now because the repl is out of commission for now, so I'm not going
+    -- to fix it. (Alex 12/4)
+    val <- runEitherT $ R.evaluateLanguageRepl "" xp 
     return $ case val of 
         (Right (CellValue v)) -> ServerMessage EvaluateRepl Success (PayloadReplValue $ ReplValue v lang)
         (Left e) -> ServerMessage EvaluateRepl (Failure $ generateErrorMessage e) (PayloadReplValue $ ReplValue (execErrorToValueError e) lang)

@@ -19,7 +19,7 @@ import Control.Monad.Trans.Either
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Exposed functions
 
-evaluate :: ASSheetId -> String -> EitherTExec CompositeValue
+evaluate :: String -> String -> EitherTExec CompositeValue
 evaluate _ "" = return $ CellValue NoValue
 evaluate _ str = do
     if isDebug 
@@ -29,7 +29,7 @@ evaluate _ str = do
     result <- lift $ execOcaml
     hoistEither $ parseValue OCaml result
 
-evaluateRepl :: ASSheetId -> String -> EitherTExec CompositeValue
+evaluateRepl :: String -> String -> EitherTExec CompositeValue
 evaluateRepl _ "" = return $ CellValue NoValue
 evaluateRepl _ str = left ExecError -- TODO
 ----------------------------------------------------------------------------------------------------------------------------------------------

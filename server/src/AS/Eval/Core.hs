@@ -42,6 +42,8 @@ import Control.Monad.Trans.Either
 import Control.Monad.IO.Class (liftIO)
 import Control.Exception (catch, SomeException)
 
+import Database.Redis (Connection)
+
 -----------------------------------------------------------------------------------------------------------------------
 -- Exposed functions
 
@@ -49,6 +51,8 @@ evaluateLanguage :: Connection -> ASIndex -> EvalContext -> ASExpression -> Eith
 evaluateLanguage conn idx@(Index sid _) ctx xp@(Expression str lang) = catchEitherT $ do
   printWithTimeT "Starting eval code"
   maybeShortCircuit <- possiblyShortCircuit sid ctx xp
+  header <- lift $ DB.getEvalHeader conn sid lang
+  xpWithValuesSubstituted <- lift $ insertValues conn sid ctx xp
   case maybeShortCircuit of
     Just e -> return . return . CellValue $ e -- short-circuited, return this error
     Nothing -> case lang of
@@ -56,22 +60,21 @@ evaluateLanguage conn idx@(Index sid _) ctx xp@(Expression str lang) = catchEith
         KE.evaluate str idx (contextMap ctx)
         -- Excel needs current location and un-substituted expression, and needs the formatted values for
         -- loading the initial entities
-      otherwise -> return <$> (execEvalInLang sid lang =<< lift xpWithValuesSubstituted) -- didn't short-circuit, proceed with eval as usual
-       where xpWithValuesSubstituted = insertValues conn sid ctx xp
+      otherwise -> return <$> execEvalInLang header lang xpWithValuesSubstituted -- didn't short-circuit, proceed with eval as usual
 evaluateLanguage _ _ _ (Coupled _ _ _ _) = left WillNotEvaluate
 
 -- no catchEitherT here for now, but that's because we're obsolescing Repl for now. (Alex ~11/10)
-evaluateLanguageRepl :: ASSheetId -> ASExpression -> EitherTExec CompositeValue
-evaluateLanguageRepl sid (Expression str lang) = case lang of
-  Python  -> KP.evaluateRepl sid str
-  R       -> KR.evaluateRepl sid str
-  SQL     -> KP.evaluateSqlRepl sid str
-  OCaml   -> KO.evaluateRepl sid str
+evaluateLanguageRepl :: String -> ASExpression -> EitherTExec CompositeValue
+evaluateLanguageRepl header (Expression str lang) = case lang of
+  Python  -> KP.evaluateRepl header str
+  R       -> KR.evaluateRepl str
+  SQL     -> KP.evaluateSqlRepl header str
+  OCaml   -> KO.evaluateRepl header str
 
-evaluateHeader :: ASSheetId -> ASExpression -> EitherTExec CompositeValue
-evaluateHeader sid (Expression str lang) = case lang of 
-  Python -> KP.evaluateHeader sid str
-  R      -> KR.evaluateHeader sid str
+evaluateHeader :: ASExpression -> EitherTExec CompositeValue
+evaluateHeader (Expression str lang) = case lang of 
+  Python -> KP.evaluateHeader str
+  R      -> KR.evaluateHeader str
 
 -----------------------------------------------------------------------------------------------------------------------
 -- Helpers
@@ -91,7 +94,7 @@ catchEitherT a = do
 possiblyShortCircuit :: ASSheetId -> EvalContext -> ASExpression -> EitherTExec (Maybe ASValue)
 possiblyShortCircuit sheetid ctx xp = do 
   let depRefs        = getDependencies sheetid xp -- :: [ASReference]
-  depInds <- concat <$> mapM (refToIndicesWithContext ctx) depRefs   -- :: [Maybe [ASIndex]]
+  depInds <- concat <$> mapM (refToIndicesWithContextDuringEval ctx) depRefs   -- :: [Maybe [ASIndex]]
   let lang           = xpLanguage xp
       values         = map (cellValue . ((contextMap ctx) M.!)) depInds
   return $ listToMaybe $ catMaybes $ flip map (zip depInds values) $ \(i, v) -> case v of
@@ -111,9 +114,9 @@ handleErrorInLang :: ASLanguage -> ASValue -> Maybe ASValue
 handleErrorInLang Excel _  = Nothing
 handleErrorInLang _ err = Just err
 
-execEvalInLang :: ASSheetId -> ASLanguage -> String -> EitherTExec CompositeValue
-execEvalInLang sid lang = case lang of
-  Python  -> KP.evaluate sid 
-  R       -> KR.evaluate sid 
-  SQL     -> KP.evaluateSql sid 
-  OCaml   -> KO.evaluate sid
+execEvalInLang :: String -> ASLanguage -> String -> EitherTExec CompositeValue
+execEvalInLang header lang = case lang of
+  Python  -> KP.evaluate header 
+  R       -> KR.evaluate header 
+  SQL     -> KP.evaluateSql header 
+  OCaml   -> KO.evaluate header

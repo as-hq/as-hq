@@ -29,7 +29,7 @@ matrixTo2DList (EMatrix c r v) = (V.toList firstRow):otherRows
     otherRows = matrixTo2DList (EMatrix c (r-1) rest)
 
 -- | Extracts an element of a matrix
-matrixIndex :: (Int,Int) -> EMatrix -> EValue
+matrixIndex :: Coord -> EMatrix -> EValue
 matrixIndex (c,r) (EMatrix numCols numRows v) = (V.!) v (r*numCols+c)
 
 -- | Cast ASValue (from ValMap) to an Excel entity. 

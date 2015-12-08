@@ -21,7 +21,6 @@ import Data.Aeson.Types (Parser)
 import Control.DeepSeq
 import Control.DeepSeq.Generics (genericRnf)
 
-
 data ASLanguage = R | Python | OCaml | CPP | Java | SQL | Excel deriving (Show, Read, Eq, Generic)
 
 data ExpandingType = List | RList | RDataFrame | NPArray | NPMatrix | PDataFrame | PSeries deriving (Show, Read, Eq, Generic)
@@ -54,15 +53,17 @@ data ASValue =
   deriving (Show, Read, Eq, Generic)
 
 
-data ASCell = Cell {cellLocation :: ASIndex,
-          cellExpression :: ASExpression,
-          cellValue :: ASValue,
-          cellProps :: ASCellProps} deriving (Read, Show, Eq, Generic)
+data ASCell = Cell { cellLocation :: ASIndex
+                   , cellExpression :: ASExpression
+                   , cellValue :: ASValue
+                   , cellProps :: ASCellProps } 
+                   deriving (Read, Show, Eq, Generic)
 
 -- range keys are used to access range descriptors, which relay metadata about a range of cells
 -- e.g. for embedded lists and objects
-data RangeKey = RangeKey {keyIndex :: ASIndex, keyDimensions :: Dimensions} deriving (Show, Read, Eq, Generic)
-
+data RangeKey = RangeKey { keyIndex :: ASIndex
+                         , keyDimensions :: Dimensions } 
+                         deriving (Show, Read, Eq, Generic)
 
 instance ToJSON ASExpression where
   toJSON (Expression xp lang) = object ["expression" .= xp,

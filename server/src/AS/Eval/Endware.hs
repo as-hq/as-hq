@@ -29,7 +29,8 @@ evalEndware state finalCells (sid, uid) origCells ctx = do
   conn <- lift $ dbConn <$> readMVar state
   mapM_ (\c -> lift $ DM.possiblyCreateDaemon state uid c) origCells
   let cells1 = changeExcelExpressions finalCells
-  cells2 <- conditionallyFormatCells conn sid cells1 ctx
+  rules <- lift $ DB.getCondFormattingRules conn sid 
+  cells2 <- conditionallyFormatCells conn sid cells1 rules ctx
   return cells2
    
 ----------------------------------------------------------------------------------------------------------------------------------------------

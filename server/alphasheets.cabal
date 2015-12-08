@@ -70,6 +70,7 @@ library
                        AS.Types.Locations
                        AS.Types.Messages
                        AS.Types.Network
+                       AS.Types.RowColProps
                        AS.Types.Sheets
                        AS.Types.User
                        AS.Users

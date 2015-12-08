@@ -56,7 +56,7 @@ instance Client ASUserClient where
       Export             -> handleExport user state payload
       Evaluate           -> handleEval user state payload
       EvaluateRepl       -> handleEvalRepl user payload
-      EvaluateHeader     -> handleEvalHeader user payload
+      EvaluateHeader     -> handleEvalHeader user state payload
       Get                -> handleGet user state payload
       Delete             -> handleDelete user state payload
       Clear              -> handleClear user state payload
@@ -73,6 +73,7 @@ instance Client ASUserClient where
       Drag               -> handleDrag user state payload
       Decouple           -> handleDecouple user state payload
       SetCondFormatRules -> handleSetCondFormatRules user state payload
+      SetRowColProp      -> handleSetRowColProp user state payload
       where payload = clientPayload message
       -- Undo         -> handleToggleProp user state (PayloadTags [StreamTag (Stream NoSource 1000)] (Index (T.pack "TEST_SHEET_ID2") (1,1)))
       -- ^^ above is to test streaming when frontend hasn't been implemented yet

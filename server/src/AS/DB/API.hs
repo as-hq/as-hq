@@ -3,8 +3,8 @@
 module AS.DB.API where
 
 import Prelude
-
 import AS.Types.Cell
+import qualified AS.Types.RowColProps as RP
 import AS.Types.Messages
 import AS.Types.DB
 import AS.Types.CellProps
@@ -19,6 +19,7 @@ import AS.Logging
 
 import Data.List (zip4,head,partition,nub,intercalate)
 import Data.Maybe 
+import Data.List.Split
 import qualified Data.Map as M
 
 import Foreign
@@ -41,6 +42,7 @@ import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy.Char8 as C
 import Data.ByteString.Unsafe as BU
 import Data.List.Split
+
 -- EitherT
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.Either
@@ -159,18 +161,18 @@ refToIndices (PointerRef p) = do
   let index = pointerToIndex p 
   cell <- lift $ getCell index 
   case cell of
-    Nothing -> left $ IndexOfPointerNonExistant
+    Nothing -> left IndexOfPointerNonExistant
     Just cell' -> case (cellToRangeKey cell') of
-        Nothing -> left $ PointerToNormalCell
+        Nothing -> left PointerToNormalCell
         Just rKey -> return $ rangeKeyToIndices rKey
 
 -- converts ref to indices using the evalContext, then the DB, in that order.
 -- because our evalContext might contain information the DB doesn't (e.g. decoupling)
 -- so in the pointer case, we need to check the evalContext first for changes that might have happened during eval
-refToIndicesWithContext :: EvalContext -> ASReference -> EitherTExec [ASIndex]
-refToIndicesWithContext _ (IndexRef i) = return [i]
-refToIndicesWithContext _ (RangeRef r) = return $ rangeToIndices r
-refToIndicesWithContext (EvalContext mp _ _) (PointerRef p) = do
+refToIndicesWithContextDuringEval :: EvalContext -> ASReference -> EitherTExec [ASIndex]
+refToIndicesWithContextDuringEval _ (IndexRef i) = return [i]
+refToIndicesWithContextDuringEval _ (RangeRef r) = return $ rangeToIndices r
+refToIndicesWithContextDuringEval (EvalContext mp _ _) (PointerRef p) = do
   let index = pointerToIndex p
   case (M.lookup index mp) of 
     Just (Cell _ (Coupled _ _ _ rKey) _ _) -> return $ rangeKeyToIndices rKey
@@ -178,10 +180,30 @@ refToIndicesWithContext (EvalContext mp _ _) (PointerRef p) = do
     Nothing -> do
       cell <- lift $ getCell index 
       case cell of
-        Nothing -> left $ IndexOfPointerNonExistant
+        Nothing -> left IndexOfPointerNonExistant
         Just cell' -> case (cellToRangeKey cell') of
-            Nothing -> left $ PointerToNormalCell
+            Nothing -> left PointerToNormalCell
             Just rKey -> return $ rangeKeyToIndices rKey
+
+-- This is the function we use to convert ref to indices for updating the map PRIOR TO eval. There are some cases where we don't flip a shit. 
+-- For example, if the map currently has A1 as a normal expression, and we have @A1 somewhere downstream, we won't flip a shit, and instead expect that
+-- by the time the pointer is evalled, A1 will have a coupled expression due to toposort. We flip a shit if it's not the case then. 
+refToIndicesWithContextBeforeEval :: EvalContext -> ASReference -> IO [ASIndex]
+refToIndicesWithContextBeforeEval _ (IndexRef i) = return [i]
+refToIndicesWithContextBeforeEval _ (RangeRef r) = return $ rangeToIndices r
+refToIndicesWithContextBeforeEval (EvalContext mp _ _) (PointerRef p) = do
+  let index = pointerToIndex p
+  case (M.lookup index mp) of 
+    Just (Cell _ (Coupled _ _ _ rKey) _ _) -> return $ rangeKeyToIndices rKey
+    Just (Cell _ (Expression _ _) _ _) -> return $ []
+    Nothing -> do
+      cell <- getCell index 
+      case cell of
+        Nothing -> return $ []
+        Just cell' -> case (cellToRangeKey cell') of
+            Nothing -> return $ []
+            Just rKey -> return $ rangeKeyToIndices rKey
+
 
 
 ----------------------------------------------------------------------------------------------------------------------
@@ -395,11 +417,13 @@ setSheet conn sheet = do
 
 clearSheet :: Connection -> ASSheetId -> IO ()
 clearSheet conn sid = do
+  let headerLangs = [Python, R] -- should REALLY put this in a Constants file
   keys <- map (B.pack . show2) <$> DI.getRangeKeysInSheet conn sid
   runRedis conn $ do
     del keys
     del [makeSheetRangesKey sid]
     del [condFormattingRulesKey sid]
+    mapM (\l -> del [evalHeaderKey sid l]) headerLangs
   DI.deleteLocsInSheet sid
   -- TODO: also clear undo, redo, and last message (for Ctrl+Y) (Alex 11/20)
 
@@ -505,3 +529,57 @@ getCondFormattingRules conn sid = runRedis conn $ do
 
 setCondFormattingRules :: Connection -> ASSheetId -> [CondFormatRule] -> IO ()
 setCondFormattingRules conn sid rules = runRedis conn (set (condFormattingRulesKey sid) (B.pack $ show rules)) >> return ()
+
+----------------------------------------------------------------------------------------------------------------------------------------------
+-- Header expressions handlers
+
+evalHeaderKey :: ASSheetId -> ASLanguage -> B.ByteString
+evalHeaderKey sid lang = B.pack ("EVALHEADER" ++ (show sid) ++ (show lang)) 
+
+getEvalHeader :: Connection -> ASSheetId -> ASLanguage -> IO String
+getEvalHeader conn sid lang = runRedis conn $ do 
+  msg <- get $ evalHeaderKey sid lang
+  return $ case msg of 
+    Right (Just msg') -> B.unpack msg'
+    Right Nothing -> ""
+    Left _            -> error "Failed to retrieve eval header"
+
+setEvalHeader :: Connection -> ASSheetId -> ASLanguage -> String -> IO ()
+setEvalHeader conn sid lang xp = runRedis conn (set (evalHeaderKey sid lang) (B.pack xp)) >> return ()
+
+----------------------------------------------------------------------------------------------------------------------------------------------
+-- Row/col dimensions getters/setters
+
+rowColPropsKey :: ASSheetId -> RP.RowColType -> Int -> B.ByteString
+rowColPropsKey sid rct ind = B.pack ((show rct) ++ "PROPS" ++ (show sid) ++ '`':(show ind)) 
+
+getIndFromRowColPropsKey :: B.ByteString -> Int
+getIndFromRowColPropsKey = read . last . (splitOn "`") . B.unpack
+
+-- TODO: eventually should extend to record generic row/col formats, like default font in the column, 
+-- rather than just its width. 
+getRowColProps :: Connection -> ASSheetId -> RP.RowColType -> Int -> IO (Maybe RP.ASRowColProps)
+getRowColProps conn sid rct ind  = runRedis conn $ do 
+  msg <- get $ rowColPropsKey sid rct ind
+  return $ case msg of 
+    Right (Just msg') -> Just $ read $ B.unpack msg'
+    Right Nothing     -> Nothing
+    Left _            -> error "Failed to retrieve row or column props"
+
+getRowColsInSheet :: Connection -> ASSheetId -> IO [RP.RowCol]
+getRowColsInSheet conn sid = do 
+  mColKeys <- runRedis conn (keys $ B.pack $ (show RP.ColumnType) ++ "PROPS" ++ (show sid) ++ "*")
+  mRowKeys <- runRedis conn (keys $ B.pack $ (show RP.RowType) ++ "PROPS" ++ (show sid) ++ "*")
+  let colInds = either (error "Failed to retrieve eval header") (map getIndFromRowColPropsKey) mColKeys
+      rowInds = either (error "Failed to retrieve eval header") (map getIndFromRowColPropsKey) mRowKeys
+  colProps <- mapM (getRowColProps conn sid RP.ColumnType) colInds
+  rowProps <- mapM (getRowColProps conn sid RP.RowType) rowInds
+  let cols = map (\(x, Just y) -> RP.RowCol RP.ColumnType x y) $ filter (isJust . snd) $ zip colInds colProps
+      rows = map (\(x, Just y) -> RP.RowCol RP.RowType x y) $ filter (isJust . snd) $ zip rowInds rowProps
+  return $ union cols rows
+
+-- ::ALEX:: wrong!! need to call setProp on it
+setRowColProps :: Connection -> ASSheetId -> RP.RowCol -> IO ()
+setRowColProps conn sid (RP.RowCol rct ind props) = do
+  runRedis conn (set (rowColPropsKey sid rct ind) (B.pack $ show props))
+  return ()

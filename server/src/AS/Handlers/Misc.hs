@@ -7,8 +7,10 @@ import AS.Types.Messages
 import AS.Types.User
 import AS.Types.DB hiding (Clear)
 import AS.Types.Eval
+import qualified AS.Types.RowColProps as RP
 
 import AS.Handlers.Eval
+import AS.Eval.CondFormat
 import AS.Handlers.Paste
 
 import AS.Window
@@ -24,18 +26,20 @@ import qualified AS.Util                  as U
 import qualified AS.Kernels.LanguageUtils as LU
 import qualified AS.Users                 as US
 import qualified AS.InferenceUtils        as IU
-
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.Serialize as DS
-import qualified Data.Text as T 
+import qualified Data.Text as T
 
 import qualified Database.Redis as R
 import qualified Network.WebSockets as WS
 
 import Data.List
+import qualified Data.Map as M
 import Data.Maybe
 import Control.Concurrent
 import Control.Exception
+--EitherT
+import Control.Monad.Trans.Either
 
 handleAcknowledge :: ASUserClient -> IO ()
 handleAcknowledge uc = WS.sendTextData (userConn uc) ("ACK" :: T.Text)
@@ -52,32 +56,26 @@ handleNew uc state (PayloadWB wb) = do
   return () -- TODO determine whether users should be notified
 
 handleOpen :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
-handleOpen uc state (PayloadS (Sheet sheetid _ _)) = do 
+handleOpen uc state (PayloadS (Sheet sid _ _)) = do
   -- update state
   conn <- dbConn <$> readMVar state
   let makeNewWindow (UserClient uid c _ sid) = UserClient uid c startWindow sid
-      startWindow = Window sheetid (-1,-1) (-1,-1)
+      startWindow = Window sid (-1,-1) (-1,-1)
   US.modifyUser makeNewWindow uc state
-  -- send back header files data to user
+  -- get header files data to send back to user user
   let langs = [Python, R] -- should probably make list of langs a const somewhere...
-      sid = userSheetId uc
-  headers         <- mapM (LU.getLanguageHeader sid) langs
+  headers         <- mapM (DB.getEvalHeader conn sid) langs
+  -- get conditional formatting data to send back to user user
   condFormatRules <- DB.getCondFormattingRules conn sid
   let xps = map (\(str, lang) -> Expression str lang) (zip headers langs)
-  sendToOriginal uc $ ServerMessage Open Success $ PayloadOpen xps condFormatRules
-
--- Had relevance back when UserClients could have multiple windows, which never made sense anyway. 
--- (Alex 11/3)
-handleClose :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
-handleClose _ _ _ = return ()
--- handleClose user state (PayloadS (Sheet sheetid _ _)) = US.modifyUser closeWindow user state
---   where closeWindow (UserClient uid conn window sid) = UserClient uid conn (filter (((/=) sheetid) . windowSheetId) windows) sid
+  -- get column props
+  rowColProps <- DB.getRowColsInSheet conn sid
+  sendToOriginal uc $ ServerMessage Open Success $ PayloadOpen xps condFormatRules rowColProps
 
 -- NOTE: doesn't send back blank cells. This means that if, e.g., there are cells that got blanked
 -- in the database, those blank cells will not get passed to the user (and those cells don't get
--- deleted on frontend), meaning we have to ensure that deleted cells are manually wiped from the 
--- frontend store the moment they get deleted. 
-
+-- deleted on frontend), meaning we have to ensure that deleted cells are manually wiped from the
+-- frontend store the moment they get deleted.
 handleUpdateWindow :: ClientId -> MVar ServerState -> ASPayload -> IO ()
 handleUpdateWindow cid state (PayloadW w) = do
   curState <- readMVar state
@@ -91,9 +89,9 @@ handleUpdateWindow cid state (PayloadW w) = do
 
 -- | If a message is failing to parse from the server, undo the last commit (the one that added
 -- the message to the server.) I doubt this fix is completely foolproof, but it keeps data
--- from getting lost and doesn't require us to manually reset the server. 
+-- from getting lost and doesn't require us to manually reset the server.
 badCellsHandler :: R.Connection -> ASUserClient -> SomeException -> IO ()
-badCellsHandler conn uc e = do 
+badCellsHandler conn uc e = do
   logError ("Error while fetching cells: " ++ (show e)) (userCommitSource uc)
   printWithTime "Undoing last commit"
   DT.undo conn (userCommitSource uc)
@@ -140,6 +138,11 @@ handleDelete uc state (PayloadR rng) = do
     DecoupleDuringEval -> sendToOriginal uc msg
     otherwise -> broadcast state msg
 
+-- Had relevance back when UserClients could have multiple windows, which never made sense anyway.
+-- (Alex 11/3)
+handleClose :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
+handleClose _ _ _ = return ()
+
 handleClear :: (Client c) => c  -> MVar ServerState -> ASPayload -> IO ()
 handleClear client state payload = case payload of 
   PayloadN () -> do
@@ -149,7 +152,7 @@ handleClear client state payload = case payload of
     broadcast state $ ServerMessage Clear Success $ PayloadN ()
   PayloadS (Sheet sid _ _) -> do
     conn <- dbConn <$> readMVar state
-    DB.clearSheet conn sid 
+    DB.clearSheet conn sid
     G.recompute conn
     broadcast state $ ServerMessage Clear Success payload
 
@@ -175,7 +178,7 @@ handleRedo uc state = do
 
 -- Drag/autofill
 handleDrag :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
-handleDrag uc state (PayloadDrag selRng dragRng) = do 
+handleDrag uc state (PayloadDrag selRng dragRng) = do
   conn <- dbConn <$> readMVar state
   nCells <- IU.getCellsRect selRng dragRng
   let newCells = (IU.getMappedFormulaCells selRng dragRng nCells) ++ (IU.getMappedPatternGroups selRng dragRng nCells)
@@ -186,12 +189,12 @@ handleRepeat :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
 handleRepeat uc state (PayloadSelection range origin) = do
   conn <- dbConn <$> readMVar state
   ClientMessage lastAction lastPayload <- DB.getLastMessage conn (userCommitSource uc)
-  case lastAction of 
-    Evaluate -> do 
+  case lastAction of
+    Evaluate -> do
       let PayloadCL ((Cell l e v ts):[]) = lastPayload
           cells = map (\l' -> Cell l' e v ts) (rangeToIndices range)
       handleEval uc state (PayloadCL cells)
-    Copy -> do 
+    Copy -> do
       let PayloadPaste from to = lastPayload
       handleCopy uc state (PayloadPaste from range)
     Delete -> handleDelete uc state (PayloadR range)
@@ -199,23 +202,40 @@ handleRepeat uc state (PayloadSelection range origin) = do
     otherwise -> sendToOriginal uc $ ServerMessage Repeat (Failure "Repeat not supported for this action") (PayloadN ())
 
 -- | For now, all this does is acknowledge that a bug report got sent. The actual contents
--- of the bug report (part of the payload) are output to the server log in handleClientMessage, 
+-- of the bug report (part of the payload) are output to the server log in handleClientMessage,
 -- which is where we want it end up anyway, for now. (Alex 10/28/15)
 handleBugReport :: ASUserClient -> ASPayload -> IO ()
-handleBugReport uc (PayloadText report) = do 
+handleBugReport uc (PayloadText report) = do
   logBugReport report (userCommitSource uc)
   WS.sendTextData (userConn uc) ("ACK" :: T.Text)
 
 handleSetCondFormatRules :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
-handleSetCondFormatRules uc state (PayloadCondFormat rules) = do 
+handleSetCondFormatRules uc state (PayloadCondFormat rules) = do
   conn <- dbConn <$> readMVar state
   let src  = userCommitSource uc
-      locs = concat $ map rangeToIndices $ concat $ map cellLocs rules
-  DB.setCondFormattingRules conn (fst src) rules
+      sid = fst src
+  oldRules <- DB.getCondFormattingRules conn sid
+  let symDiff = (union rules oldRules) \\ (intersect rules oldRules)
+      locs = concatMap rangeToIndices $ concatMap cellLocs symDiff
   cells <- DB.getPossiblyBlankCells locs
-  msg <- DP.runDispatchCycle state cells DescendantsWithParent src -- ::ALEX:: eventually, only eval on the xor of new and old?
-  let msg' = makeCondFormatMessage rules msg
-  broadcastFiltered state uc msg'
+  errOrCells <- runEitherT $ conditionallyFormatCells conn sid cells rules emptyContext
+  let onFormatSuccess cs = DB.setCondFormattingRules conn sid rules >> DB.setCells cs
+  either (const $ return ()) onFormatSuccess errOrCells
+  broadcastFiltered state uc $ makeCondFormatMessage errOrCells rules
+
+-- The type here is slightly wrong. This payload should really only indicate whether we're passed
+-- a row or a column, the index of this row/col, and a *single* prop to modify. For now, this is
+-- just the simplest type we can work with. 
+handleSetRowColProp :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
+handleSetRowColProp uc state (PayloadSetRowColProp rct ind prop) = do 
+  conn <- dbConn <$> readMVar state
+  let sid = userSheetId uc
+  mOldProps <- DB.getRowColProps conn sid rct ind
+  let oldProps = maybe RP.emptyProps id mOldProps
+      newProps = RP.setProp prop oldProps
+      newRc    = RP.RowCol rct ind newProps
+  DB.setRowColProps conn sid newRc
+  sendToOriginal uc $ ServerMessage SetRowColProp Success (PayloadN ())
 
 -- used for importing arbitrary files
 handleImport :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
@@ -224,12 +244,12 @@ handleImport uc state msg = return () -- TODO
 -- #anand used for importing binary alphasheets files (making a separate REST server for alphasheets
   -- import/export seems overkill given that it's a temporarily needed solution)
   -- so we just send alphasheets files as binary data over websockets and immediately load
-  -- into the current sheet. 
+  -- into the current sheet.
 handleImportBinary :: (Client c) => c -> MVar ServerState -> BL.ByteString -> IO ()
 handleImportBinary c state bin = do
   redisConn <- dbConn <$> readMVar state
-  case (DS.decodeLazy bin :: Either String ExportData) of 
-    Left s -> 
+  case (DS.decodeLazy bin :: Either String ExportData) of
+    Left s ->
       let msg = ServerMessage Import (Failure $ "could not process binary file, decode error: " ++ s) (PayloadN ())
       in U.sendMessage msg (conn c)
     Right exported -> do

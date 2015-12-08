@@ -40,9 +40,11 @@ handleEvalRepl uc (PayloadXp xp) = do
   msg' <- runReplDispatch sid xp
   sendToOriginal uc msg'
 
-handleEvalHeader :: ASUserClient -> ASPayload -> IO ()
-handleEvalHeader uc (PayloadXp xp) = do
+handleEvalHeader :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
+handleEvalHeader uc state (PayloadXp xp@(Expression str lang)) = do
   let sid = userSheetId uc
+  conn <- dbConn <$> readMVar state
+  setEvalHeader conn sid lang str
   msg' <- runEvalHeader sid xp
   sendToOriginal uc msg'
 
