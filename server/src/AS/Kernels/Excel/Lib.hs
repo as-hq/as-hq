@@ -1,7 +1,7 @@
 module AS.Kernels.Excel.Lib where
 
 import AS.Types.Excel
-import AS.Types.Cell
+import AS.Types.Cell hiding (isBlank)
 import AS.Types.Errors
 import AS.Types.Eval
 

@@ -111,6 +111,12 @@ instance Serialize ExpandingType
 isColocated :: ASCell -> ASCell -> Bool
 isColocated c1 c2 = (cellLocation c1) == (cellLocation c2)
 
+-- checks if a cell is "blank", in the sense that it has NoValue
+isBlank :: ASCell -> Bool
+isBlank (Cell _ _ NoValue _) = True
+isBlank _ = False
+
+-- checks if a cell is actually "empty", in the sense that it has no props and no expression.
 isEmptyCell :: ASCell -> Bool
 isEmptyCell c = (null . underlyingProps $ cellProps c) && (null . xpString $ cellExpression c)
 

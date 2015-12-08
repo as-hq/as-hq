@@ -29,7 +29,7 @@ handleToggleProp uc state (PayloadProp p rng) = do
           (emptyCells, nonEmptyCells) = partition isEmptyCell cells'
       setCells nonEmptyCells
       conn <- dbConn <$> readMVar state
-      deleteCells conn emptyCells
+      deleteLocs conn $ map cellLocation emptyCells
       mapM_ (removePropEndware state p) nonEmptyCells
       broadcastFiltered state uc $ ServerMessage Update Success (PayloadCL cells')
     else do

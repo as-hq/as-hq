@@ -192,19 +192,19 @@ evalChainWithException conn ctx cells =
     result <- liftIO $ catch (runEitherT $ evalChain conn ctx cells) whenCaught
     hoistEither result
 
+-- If a cell input to evalChain is a coupled cell that's not a fat-cell-head, then we NEVER evaluate it. In addition, if there's a normal cell
+-- in the list of cells that has a coupled counterpart in the context, we don't evaluate that cell either. The reason is that we want to give 
+-- fat cells overwrite power (this is a UX feature that we're adding, so it requires special casing).  Example: A1 = 1, A2 = A1, A1 = range(10) 
+-- should keep A1 coupled.  It shouldn't eval the range, then eval A2, which would decouple the range. In our function, A2 wouldn't even 
+-- be evalled even if it were in the queue as a normal cell. 
 evalChain :: Connection -> EvalContext -> [ASCell] -> EitherTExec EvalContext
-evalChain conn ctx cells = evalChain' conn ctx filteredCells
-  -- if a cell we get is a non-fatcell-head coupled expression, we will not add it to the list of cells to evaluate). This is because 
-  -- fatcells have priority, and we want them to "overwrite" their contents. Example: A1 = 1, A2 = A1, A1 = range(10) should keep A1 coupled. 
-  -- It shouldn't eval the range, then eval A2, which would decouple the range. In our function, A2 wouldn't even be evalled.
+evalChain conn ctx cells = evalChain' conn ctx cells''
   where 
-    filteredCells = filter shouldEvaluate updatedCells
-    updatedCells = map replaceWithContext cells
-    shouldEvaluate c = isFatCellHead c || (not $ isCoupled c)
-      -- replace all currently queued cells with their updated versions from the context, if they exist.
-    replaceWithContext c = case (cellLocation c) `M.lookup` (contextMap ctx) of
-      Nothing -> c
-      Just c' -> c'
+    hasCoupledCounterpartInMap c = case (cellLocation c) `M.lookup` (contextMap ctx) of
+      Nothing -> False
+      Just c' -> (isCoupled c')
+    cells' = filter isEvaluable cells
+    cells'' = filter (not . hasCoupledCounterpartInMap) cells'
 
 evalChain' :: Connection -> EvalContext -> [ASCell] -> EitherTExec EvalContext
 evalChain' _ ctx [] = printWithTimeT "empty evalchain" >> return ctx

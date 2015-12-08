@@ -46,7 +46,7 @@ setCellsAncestors cells = do
 -- If a cell is a fat cell head or a normal cell, you can parse its ancestors from the expression. However, for a non-fat-cell-head coupled
 -- cell, we only want to set an edge from it to the head of the list (for checking circular dependencies).
 getAncestorsForCell :: ASCell -> [ASReference]
-getAncestorsForCell c@(Cell l xp _ _) = if ((not $ isFatCellHead c) && isCoupled c)
+getAncestorsForCell c@(Cell l xp _ _) = if (not $ isEvaluable c)
   then [IndexRef . keyIndex . cRangeKey $ xp]
   else getDependencies (locSheetId l) xp
 

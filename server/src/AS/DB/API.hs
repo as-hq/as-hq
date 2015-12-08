@@ -148,10 +148,6 @@ setCells cells = DI.setCellsByMessage msg num
     msg = DI.showB str
     num = length cells
 
-deleteCells :: Connection -> [ASCell] -> IO ()
-deleteCells _ [] = return ()
-deleteCells conn cells = deleteLocs conn $ map cellLocation cells
-
 deleteLocs :: Connection -> [ASIndex] -> IO ()
 deleteLocs _ [] = return ()
 deleteLocs conn locs = runRedis conn $ mapM_ DI.deleteLocRedis locs

@@ -123,11 +123,6 @@ cellToRangeKey (Cell _ xp _ _ ) = case xp of
   Coupled _ _ _ key -> Just key
   _ -> Nothing
 
-isFatCellMember :: ASCell -> Bool
-isFatCellMember (Cell _ xp _ _) = case xp of 
-  Coupled _ _ _ _ -> True
-  _ -> False
-
 isFatCellHead :: ASCell -> Bool 
 isFatCellHead cell = case (cellToRangeKey cell) of 
   Just (RangeKey idx _) -> cellLocation cell == idx
@@ -137,6 +132,9 @@ isCoupled :: ASCell -> Bool
 isCoupled c = case (cellExpression c) of 
   Coupled _ _ _ _ -> True
   _ -> False
+
+isEvaluable :: ASCell -> Bool
+isEvaluable c = isFatCellHead c || (not $ isCoupled c)
 
 -- Given the descriptorDiff, add a descriptor to the descriptorDiff. It it's already in removedDescriptors, remove it from that list and don't add it to 
 -- addedDescriptors. This maintains the invariant that the same rangeDescriptor is never in both the added and removed lists. 

@@ -77,9 +77,16 @@ updateDBFromEvalContext conn src (EvalContext mp cells ddiff) = do
       commit  = Commit cdiff ddiff time
       rd      = removedDescriptors ddiff
       didDecouple = any isDecouplePair $ zip mbcells cells
+      -- determines whether to send a decouple message.
+      -- we send a decouple message if there are any decoupled, *visible* cells remaining on the spreadsheet.
+      -- i.e. deleting an entire range will not cause a decouple message, but deleting part of it will because 
+      -- decoupled cells remain visible on the sheet.
       isDecouplePair (mbcell, acell) = case mbcell of 
         Nothing -> False
-        Just bcell -> (isCoupled bcell) && (not $ isCoupled acell)
+        Just bcell -> if (isCoupled bcell) && (not $ isCoupled acell)
+          then not $ all isBlank previousFatCellMembers
+          else False
+            where previousFatCellMembers = map ((M.!) mp) $ rangeKeyToIndices . cRangeKey . cellExpression $ bcell
   if (didDecouple) -- there were any decoupled cells
     then do 
       printWithTimeT $ "DEALING WITH DECOUPLING OF DESCRIPTORS " ++ (show rd)
@@ -94,7 +101,7 @@ updateDBAfterEval :: Connection -> CommitSource -> ASCommit -> IO ()
 updateDBAfterEval conn src c@(Commit cdiff ddiff time) = do 
   let af = afterCells cdiff
   DB.setCells af
-  deleteCells conn $ filter isEmptyCell af
+  deleteLocs conn $ map cellLocation $ filter isEmptyCell af
   mapM_ (setDescriptor conn) (addedDescriptors ddiff)
   mapM_ (deleteDescriptor conn) (removedDescriptors ddiff)
   pushCommit conn c src
@@ -106,7 +113,7 @@ updateDBAfterEval conn src c@(Commit cdiff ddiff time) = do
 -- the cell changes that happen as a result of setting the cells. 
 setCellsPropagated :: Connection -> [ASCell] -> [RangeDescriptor] -> IO ()
 setCellsPropagated conn cells descs = 
-  let roots = filter (\c -> (not $ isFatCellMember c) || isFatCellHead c) cells
+  let roots = filter isEvaluable cells
   in do
     setCells cells
     G.setCellsAncestorsForce roots
@@ -114,10 +121,10 @@ setCellsPropagated conn cells descs =
 
 -- | Makes sure everything is synced -- the listKeys and ancestors in graph db should reflect 
 -- the cell changes that happen as a result of deleting the cells. 
-deleteCellsPropagated :: Connection -> [ASCell] -> [RangeDescriptor] -> IO ()
-deleteCellsPropagated conn cells descs = do
-  deleteCells conn cells
-  G.removeAncestorsAtForced $ map cellLocation cells
+deleteLocsPropagated :: Connection -> [ASIndex] -> [RangeDescriptor] -> IO ()
+deleteLocsPropagated conn locs descs = do
+  deleteLocs conn locs
+  G.removeAncestorsAtForced locs
   mapM_ (deleteDescriptor conn) descs
 
 ----------------------------------------------------------------------------------------------------------------------
@@ -143,7 +150,7 @@ undo conn src = do
   case commit of
     Nothing -> return Nothing
     Just c@(Commit cdiff ddiff t) -> do
-      deleteCellsPropagated conn (afterCells cdiff) (addedDescriptors ddiff)
+      deleteLocsPropagated conn (map cellLocation $ afterCells cdiff) (addedDescriptors ddiff)
       setCellsPropagated conn (beforeCells cdiff) (removedDescriptors ddiff)
       return $ Just c
 
@@ -159,7 +166,7 @@ redo conn src = do
   case commit of
     Nothing -> return Nothing
     Just c@(Commit cdiff ddiff t) -> do
-      deleteCellsPropagated conn (beforeCells cdiff) (removedDescriptors ddiff)
+      deleteLocsPropagated conn (map cellLocation $ beforeCells cdiff) (removedDescriptors ddiff)
       setCellsPropagated conn (afterCells cdiff) (addedDescriptors ddiff)
       return $ Just c
 
