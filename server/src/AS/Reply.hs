@@ -39,17 +39,13 @@ sendFilteredCells :: ASServerMessage -> [ASCell] -> ASUserClient -> IO ()
 sendFilteredCells msg cells uc = do
   let cells' = intersectViewingWindow cells (userWindow uc)
       msg'   = msg { serverPayload = PayloadCL cells' }
-  case cells' of
-    [] -> return ()
-    _  -> sendMessage msg' (userConn uc)
+  sendMessage msg' (userConn uc)
 
 sendFilteredLocs :: ASServerMessage -> [ASIndex] -> ASUserClient -> IO ()
 sendFilteredLocs msg locs uc = do
   let locs' = intersectViewingWindowLocs locs (userWindow uc)
       msg'  = msg { serverPayload = PayloadLL locs' }
-  case locs' of
-    [] -> return ()
-    _  -> sendMessage msg' (userConn uc)
+  sendMessage msg' (userConn uc)
 
 sendFilteredCondFormatResults :: ASServerMessage -> [ASCell] -> ASUserClient -> IO ()
 sendFilteredCondFormatResults msg cells uc = do

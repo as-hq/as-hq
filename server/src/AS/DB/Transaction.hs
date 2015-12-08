@@ -83,10 +83,7 @@ updateDBFromEvalContext conn src (EvalContext mp cells ddiff) = do
       -- decoupled cells remain visible on the sheet.
       isDecouplePair (mbcell, acell) = case mbcell of 
         Nothing -> False
-        Just bcell -> if (isCoupled bcell) && (not $ isCoupled acell)
-          then not $ all isBlank previousFatCellMembers
-          else False
-            where previousFatCellMembers = map ((M.!) mp) $ rangeKeyToIndices . cRangeKey . cellExpression $ bcell
+        Just bcell -> (isCoupled bcell) && (not $ isCoupled acell) && (not $ isBlank acell)
   if (didDecouple) -- there were any decoupled cells
     then do 
       printWithTimeT $ "DEALING WITH DECOUPLING OF DESCRIPTORS " ++ (show rd)

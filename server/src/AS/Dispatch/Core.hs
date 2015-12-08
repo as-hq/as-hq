@@ -77,15 +77,18 @@ runDispatchCycle state cs descSetting src = do
     -- are only in the context or in the DB (in that order of prececdence). IF neither, you won't get anything. 
     -- this maintains the invariant that context always contains the most up-to-date, complete information. 
     ctxAfterDispatch <- dispatch conn roots initialContext descSetting
-    printWithTimeT $ "finished dispatch"
+    printWithTimeT "finished dispatch"
     finalizedCells <- EE.evalEndware state (addedCells ctxAfterDispatch) src roots ctxAfterDispatch
     let ctx = ctxAfterDispatch { addedCells = finalizedCells }
     broadcastCells <- DT.updateDBFromEvalContext conn src ctx
+    printWithTimeT "updated DB after dispatch"
     return broadcastCells
   case errOrCells of 
     Left _ -> G.recompute conn -- #needsrefactor. Overkill. But recording all cells that might have changed is a PITA. (Alex 11/20)
     _      -> return ()
-  return $ makeUpdateMessage errOrCells
+  let msg = makeUpdateMessage errOrCells
+  printObj "made message: " msg
+  return msg
 
 -- takes an old context, inserts the new values necessary for this round of eval, and evals using the new context.
 -- this seems conceptually better than letting each round of dispatch produce a new context, 
@@ -202,7 +205,7 @@ evalChain conn ctx cells = evalChain' conn ctx cells''
   where 
     hasCoupledCounterpartInMap c = case (cellLocation c) `M.lookup` (contextMap ctx) of
       Nothing -> False
-      Just c' -> (isCoupled c')
+      Just c' -> (isCoupled c') && (not $ isFatCellHead c')
     cells' = filter isEvaluable cells
     cells'' = filter (not . hasCoupledCounterpartInMap) cells'
 
