@@ -20,7 +20,7 @@ import AS.Reply
 import Data.Maybe
 import Data.List
 import Control.Concurrent
-
+import Control.Monad ((>=>))
 
 import qualified Database.Redis as R
 
@@ -61,7 +61,7 @@ getCopyCells conn from to = do
   fromCells          <- getPossiblyBlankCells (rangeToIndices from)
   sanitizedFromCells <- sanitizeCopyCells conn fromCells from
   let offsets       = getCopyOffSets from to  -- how much to shift these cells for copy/copy/paste
-      toCells       = concat $ map (\o -> map (shiftCell o) sanitizedFromCells) offsets
+      toCells       = catMaybes $ concatMap (\o -> map (shiftCell o) sanitizedFromCells) offsets
       updateSheetId = \l -> l { locSheetId = rangeSheetId to }
       toCells'      = map (replaceCellLocs updateSheetId) toCells
   return toCells'
@@ -90,12 +90,19 @@ shiftExpressionForCut from offset xp = xp'
 replaceCellLocs :: (ASIndex -> ASIndex) -> ASCell -> ASCell
 replaceCellLocs f c = c { cellLocation = f $ cellLocation c }
 
+replaceCellLocsMaybe :: (ASIndex -> Maybe ASIndex) -> ASCell -> Maybe ASCell
+replaceCellLocsMaybe f c = case f $ cellLocation c of 
+  Nothing -> Nothing 
+  Just l -> Just $ c { cellLocation = l }
+
 replaceCellExpressions :: (ASExpression -> ASExpression) -> ASCell -> ASCell
 replaceCellExpressions f c = c { cellExpression = f $ cellExpression c }
 
-shiftRangeKey :: Offset -> ASCell -> ASCell
-shiftRangeKey offset c@(Cell _ (Expression _ _) _ _) = c
-shiftRangeKey offset (Cell l (Coupled xp lang typ (RangeKey ind dims)) v ts) = (Cell l (Coupled xp lang typ (RangeKey ind' dims)) v ts)
+shiftRangeKey :: Offset -> ASCell -> Maybe ASCell
+shiftRangeKey offset c@(Cell _ (Expression _ _) _ _) = Just c
+shiftRangeKey offset (Cell l (Coupled xp lang typ (RangeKey ind dims)) v ts) = case ind' of 
+  Nothing -> Nothing
+  Just i  -> Just $ Cell l (Coupled xp lang typ (RangeKey i dims)) v ts
   where ind' = shiftInd offset ind
 
 getCutCells :: R.Connection -> ASRange -> ASRange -> IO [ASCell]
@@ -114,8 +121,8 @@ getCutToCells conn from offset = do
   sanitizedFromCells <- sanitizeCutCells conn fromCells from
   let shiftLoc    = shiftInd offset
       changeExpr  = shiftExpressionForCut from offset
-      modifyCell  = (shiftRangeKey offset) . (replaceCellLocs shiftLoc) . (replaceCellExpressions changeExpr)
-  return $ map modifyCell sanitizedFromCells
+      modifyCell  = (shiftRangeKey offset) >=> (replaceCellLocsMaybe shiftLoc) . (replaceCellExpressions changeExpr)
+  return $ catMaybes $ map modifyCell sanitizedFromCells
 
 -- | Returns the cells that reference the cut cells with their expressions updated. 
 getCutNewDescCells :: ASRange -> Offset -> IO [ASCell]

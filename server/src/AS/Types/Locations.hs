@@ -164,8 +164,10 @@ shiftLoc :: Offset -> ASReference -> ASReference
 shiftLoc (dy, dx) (IndexRef (Index sh (y,x))) = IndexRef $ Index sh (y+dy, x+dx)
 shiftLoc (dy, dx) (RangeRef (Range sh ((y,x),(y2,x2)))) = RangeRef $ Range sh ((y+dy, x+dx), (y2+dy, x2+dx))
 
-shiftInd :: Offset -> ASIndex -> ASIndex
-shiftInd (dy, dx) (Index sh (y,x)) = Index sh (y+dy, x+dx)
+shiftInd :: Offset -> ASIndex -> Maybe ASIndex
+shiftInd (dy, dx) (Index sh (y,x)) = if y+dy >= 1 && x+dx >= 1 
+  then Just $ Index sh (y+dy, x+dx)
+  else Nothing
 
 getTopLeft :: ASRange -> ASIndex
 getTopLeft (Range sh (tl,_)) = Index sh tl
