@@ -129,11 +129,6 @@ getEvalLocs conn origCells descSetting = do
     ProperDescendants -> G.getProperDescendantsIndices $ (locs ++ vLocs)
     DescendantsWithParent -> G.getDescendantsIndices $ (locs ++ vLocs)
 
--- STATE: A1, A2 = A1, then A1= range(10) doesn't work. The reason is that the beginning of evalChain has A1 and A2. Even though we nuke A2 during
--- one of the dispatches above (due to filtration in getCellsToEval), it's still there in the recursive evalChain. The proposed solution was to 
--- do this filtration (giveFatCellsOverwritePower) at the beginning of evalChain, so that we NEVER eval such cells. However, we also want to delete
--- the A1 -> A2 edge in the graph, perhaps immediately. 
-
 -- | Given a set of locations to eval, return the corresponding set of cells to perform
 -- the evaluations in. We look up locs in the DB, but give precedence to EvalContext (if a cell is in the context, we use that instead, 
 -- as it is the most up-to-date info we have). 
@@ -302,6 +297,7 @@ contextInsert conn c@(Cell idx xp _ ps) (Formatted cv f) ctx = do
     Just (FatCell cs descriptor) -> do 
       -- Modify the props of our current cells to reflect any format
       let newCells = map (formatCell f) cs
+      printWithTimeT $ "FAT CELL EXPANDED CELLS: " ++ (show cs)
       -- The final updated map also has our newly evaluated cells in it, with updated cell value and props
       let finalMp = insertMultiple mpWithDecoupledCells (map cellLocation newCells) newCells
           finalDDiff = addDescriptor ddiffWithRemovedDescriptors descriptor
@@ -313,8 +309,10 @@ contextInsert conn c@(Cell idx xp _ ps) (Formatted cv f) ctx = do
       -- first, check if we blanked out anything as a result of possiblyDeletePreviousFatCell. if so, look up the new cells from the map. 
       -- e.g. if range(5) -> range(2), possiblyDeletePrevious... will return indices A1...A5, and we're going to need to run dispatch on all of those.
       -- so this particular dispatch merges the context transforms (1) expanded cells, (2) blanked cells due to fat cell deletion
-      let cs' = flip mergeCells decoupledCells $ case blankedIndices of 
-                Nothing -> cs
-                Just inds -> map (\elem -> (contextMap finalContext) M.! elem) inds
+      let blankCells = case blankedIndices of 
+                        Nothing -> []
+                        Just inds -> map ((M.!) (contextMap finalContext)) inds
+          cs' = mergeCells cs $ mergeCells decoupledCells blankCells
+      printWithTimeT $ "CELLS SENT TO DISPATCH FOR EXPANSION: " ++ (show cs')
       dispatch conn cs' finalContext ProperDescendants
 
