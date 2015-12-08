@@ -163,7 +163,6 @@ describe('backend', () => {
             exec(done)
           ]);
         });
-
       });
 
       describe('python', () => {
@@ -1671,6 +1670,20 @@ describe('backend', () => {
           ]);
         });
 
+        it('should not save cells that go out of bounds', (done) => {
+          _do([
+            // fun fact, the below works
+            // python('A0', '0'),
+            // shouldBe('A0', valueI(0)),
+            python('A1', '1'),
+            python('A2', '2'),
+            copy('A1:A2', 'B0:B1'), // fun fact, this actually works
+            shouldBe('B1', valueI(2)), 
+            shouldBeNothing('B0'), 
+            exec(done)
+          ]);
+        });
+
         it('should copy expressions with both a list and a dependency to the list', (done) => {
           _do([
             python('A1', 'range(10)'),
@@ -1912,6 +1925,20 @@ describe('backend', () => {
             decouple(),
             shouldBe('B1', valueI(0)),
             shouldBeNothing('A1', valueI(0)),
+            exec(done)
+          ]);
+        });
+
+        it('should not save cells that go out of bounds', (done) => {
+          _do([
+            // fun fact, the below works
+            // python('A0', '0'),
+            // shouldBe('A0', valueI(0)),
+            python('A1', '1'),
+            python('A2', '2'),
+            cut('A1:A2', 'B0:B1'), // fun fact, this actually works
+            shouldBe('B1', valueI(2)), 
+            shouldBeNothing('B0'), 
             exec(done)
           ]);
         });
