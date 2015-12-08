@@ -39,8 +39,11 @@ export default React.createClass({
           label="SUBMIT BUG REPORT"
           onClick={this._submitBugReport} />
         <FlatButton
-          label="EXPORT SHEET"
-          onClick={this._onExportFile} />
+          label="SAVE SHEET"
+          onClick={this._onSaveFile} />
+        <FlatButton
+          label="OPEN SHEET"
+          onClick={this._onOpenFile} />
         {
           Constants.isProduction
             ? null
@@ -73,8 +76,12 @@ export default React.createClass({
     this.setState({ condFormattingOpen: false });
   },
 
-  _onExportFile() {
+  _onSaveFile() {
     API.export(Store.getCurrentSheet());
+  },
+
+  _onOpenFile() {
+    alert("To open a saved AlphaSheets sheet, drag it onto the spreadsheet on this page. (Cut us some slack, this is an MVP.)");
   },
 
   _onAlphaButtonTap() {
