@@ -491,6 +491,11 @@ const ASEvaluationStore = Object.assign({}, BaseStore, {
       && _data.allCells[sheetId][col][row]);
   },
 
+  isNonBlankCell(col, row, mySheetId) { 
+    let sheetId = mySheetId || _data.currentSheet.sheetId;
+    return this.locationExists(col, row, mySheetId) && _data.allCells[sheetId][col][row].cellExpression.expression != "";
+  },
+
   /**************************************************************************************************************************/
   /* Focus */
 
@@ -546,8 +551,8 @@ const ASEvaluationStore = Object.assign({}, BaseStore, {
     while (c >= 1 && r >= 1 && c <= Constants.numCols && r <= Constants.numRows) {
       c += dc;
       r += dr;
-      if (this.locationExists(c, r)
-       && !(this.locationExists(c + dc, r + dr) && this.locationExists(c - dc, r - dr))) {
+      if (this.isNonBlankCell(c, r)
+       && !(this.isNonBlankCell(c + dc, r + dr) && this.isNonBlankCell(c - dc, r - dr))) {
         break;
       }
     }
