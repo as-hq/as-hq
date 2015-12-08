@@ -133,7 +133,7 @@ handleDelete uc state (PayloadR rng) = do
   let locs = rangeToIndices rng
   conn <- dbConn <$> readMVar state
   blankedCells <- DB.getBlankedCellsAt locs
-  updateMsg <- DP.runDispatchCycle state blankedCells ProperDescendants (userCommitSource uc)
+  updateMsg <- DP.runDispatchCycle state blankedCells DescendantsWithParent (userCommitSource uc)
   let msg = makeDeleteMessage rng updateMsg
   case (serverResult msg) of  
     Failure _ -> sendToOriginal uc msg
