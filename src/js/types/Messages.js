@@ -70,23 +70,23 @@ export type MutateType =
 
 export type RowColType = 'ColumnType' | 'RowType';
 
-export type RowColProp = Dimension | FromCellProp;  
+export type RowColProp = Dimension | FromCellProp;
 
-export type Dimension = { 
-  tag: 'Dimension'; 
-  contents: number;  
+export type Dimension = {
+  tag: 'Dimension';
+  contents: number;
 };
 
-export type FromCellProp = { 
-  tag: 'FromCellProp'; 
-  contents: ASCellProp;  
+export type FromCellProp = {
+  tag: 'FromCellProp';
+  contents: ASCellProp;
 };
 
 export type RowCol = {
   tag: 'RowCol';
   rowColType: RowColType;
-  rowColIndex: number; 
-  rowColProps: Array<RowColProp>; 
+  rowColIndex: number;
+  rowColProps: Array<RowColProp>;
 };
 
 export type ASInitConnection = {
@@ -298,15 +298,19 @@ export type ASBackendPayload =
   | PayloadCondFormatResult
   | PayloadSetRowColProp;
 
-export type ASBackendCommit = {
-  tag: 'ASCommit';
-  cellDiff: ASCellDiff;
+export type ASBackendTime = {
+  tag: 'Time';
+  day: string;
+  hour: number;
+  minute: number;
+  sec: number;
 };
 
-export type ASCellDiff = {
-  tag: 'CellDiff';
-  beforeCells: Array<ASCell>;
-  afterCells: Array<ASCell>;
+export type ASBackendCommit = {
+  tag: 'ASCommit';
+  before: Array<ASCell>;
+  after: Array<ASCell>;
+  time: ASBackendTime;
 };
 
 export type ASBackendWorkbookSheet = {

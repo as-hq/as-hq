@@ -118,14 +118,14 @@ const ASEvaluationStore = Object.assign({}, BaseStore, {
         case 'GOT_UNDO':
           logDebug("action undo");
           _data.lastUpdatedCells = [];
-          ASEvaluationStore.removeCells(action.commit.cellDiff.afterCells);
-          ASEvaluationStore.updateCells(action.commit.cellDiff.beforeCells);
+          ASEvaluationStore.removeCells(action.commit.after);
+          ASEvaluationStore.updateCells(action.commit.before);
           ASEvaluationStore.emitChange();
           break;
         case 'GOT_REDO':
           _data.lastUpdatedCells = [];
-          ASEvaluationStore.removeCells(action.commit.cellDiff.beforeCells);
-          ASEvaluationStore.updateCells(action.commit.cellDiff.afterCells);
+          ASEvaluationStore.removeCells(action.commit.before);
+          ASEvaluationStore.updateCells(action.commit.after);
           ASEvaluationStore.emitChange();
           break;
         case 'GOT_UPDATED_CELLS':
@@ -493,7 +493,7 @@ const ASEvaluationStore = Object.assign({}, BaseStore, {
       && _data.allCells[sheetId][col][row]);
   },
 
-  isNonBlankCell(col, row, mySheetId) { 
+  isNonBlankCell(col, row, mySheetId) {
     let sheetId = mySheetId || _data.currentSheet.sheetId;
     return this.locationExists(col, row, mySheetId) && _data.allCells[sheetId][col][row].cellExpression.expression != "";
   },
