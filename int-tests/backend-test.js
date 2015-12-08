@@ -1771,6 +1771,21 @@ describe('backend', () => {
         });
       });
 
+      describe('delete', () => {
+        it('should remove date formatting on delete but keep the rest', (done) => {
+          _do([
+            excel('A1', '12/12/12'),
+            excel('A2', '$100'),
+            excel('A3', '50%'),
+            delete_('A1'), delete_('A2'), delete_('A3'),
+            shouldNotHaveProp('A1', 'ValueFormat'), 
+            shouldHaveProp('A2', 'ValueFormat', 'Money'),
+            shouldHaveProp('A3', 'ValueFormat', 'Percent'),
+            exec(done)
+          ]);
+        });
+      });
+
       describe('cut/paste', () => {
         it('should cut properly', (done) => {
           _do([
