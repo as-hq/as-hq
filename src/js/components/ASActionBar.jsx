@@ -3,6 +3,7 @@ import {AppBar, FlatButton, Styles} from 'material-ui';
 
 import API from '../actions/ASApiActionCreators';
 import Constants from '../Constants';
+import Store from '../stores/ASEvaluationStore';
 
 import ASButton from './basic-controls/ASButton.jsx';
 import ASCondFormattingDialog from './dialogs/ASCondFormattingDialog.jsx';
@@ -37,6 +38,9 @@ export default React.createClass({
         <FlatButton
           label="SUBMIT BUG REPORT"
           onClick={this._submitBugReport} />
+        <FlatButton
+          label="EXPORT SHEET"
+          onClick={this._onExportFile} />
         {
           Constants.isProduction
             ? null
@@ -67,6 +71,10 @@ export default React.createClass({
 
   _onCondFormatClose() {
     this.setState({ condFormattingOpen: false });
+  },
+
+  _onExportFile() {
+    API.export(Store.getCurrentSheet());
   },
 
   _onAlphaButtonTap() {

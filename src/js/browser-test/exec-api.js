@@ -84,7 +84,7 @@ export function asIndex(loc: string): ASIndex {
 }
 
 export function asRange(loc: string): ASRange {
-  return TC.simpleToASRange(Util.excelToRange(loc));
+  return TC.excelToASRange(loc);
 }
 
 export function apiExec(fn: () => void): Prf {
@@ -582,4 +582,3 @@ export function waitForResponse(act: () => void) : Prf {
     actionAPIResponse(act, fulfill)();
   });
 }
-
