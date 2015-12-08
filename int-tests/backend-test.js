@@ -1878,6 +1878,18 @@ describe('backend', () => {
           ]);
         });
 
+        // known to fail. should work after eval refactor.
+        xit('pointer to decoupled cells from cut return errors', (done) => {
+          _do([
+            python('A1', 'range(10)'),
+            python('C1', '@A1'),
+            cut('A1', 'B1'),
+            decouple(),
+            shouldBeError('A5'), 
+            exec(done)
+          ]);
+        });
+
         it('should cut/paste entire ranges', (done) => {
           _do([
             python('A1', 'range(10)'),
