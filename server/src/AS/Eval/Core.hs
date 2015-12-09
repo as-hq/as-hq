@@ -51,8 +51,6 @@ evaluateLanguage :: Connection -> ASIndex -> EvalContext -> ASExpression -> Eith
 evaluateLanguage conn idx@(Index sid _) ctx xp@(Expression str lang) = catchEitherT $ do
   printWithTimeT "Starting eval code"
   maybeShortCircuit <- possiblyShortCircuit sid ctx xp
-  header <- lift $ DB.getEvalHeader conn sid lang
-  xpWithValuesSubstituted <- lift $ insertValues conn sid ctx xp
   case maybeShortCircuit of
     Just e -> return . return . CellValue $ e -- short-circuited, return this error
     Nothing -> case lang of
@@ -60,7 +58,11 @@ evaluateLanguage conn idx@(Index sid _) ctx xp@(Expression str lang) = catchEith
         KE.evaluate str idx (contextMap ctx)
         -- Excel needs current location and un-substituted expression, and needs the formatted values for
         -- loading the initial entities
-      otherwise -> return <$> execEvalInLang header lang xpWithValuesSubstituted -- didn't short-circuit, proceed with eval as usual
+      otherwise -> do 
+        header <- lift $ DB.getEvalHeader conn sid lang
+        xpWithValuesSubstituted <- lift $ insertValues conn sid ctx xp
+        return <$> execEvalInLang header lang xpWithValuesSubstituted 
+        -- ^ didn't short-circuit, proceed with eval as usual
 evaluateLanguage _ _ _ (Coupled _ _ _ _) = left WillNotEvaluate
 
 -- no catchEitherT here for now, but that's because we're obsolescing Repl for now. (Alex ~11/10)
@@ -79,6 +81,12 @@ evaluateHeader (Expression str lang) = case lang of
 -----------------------------------------------------------------------------------------------------------------------
 -- Helpers
 
+-- | Map over both failure and success.
+bimapEitherT' :: Functor m => (e -> b) -> (a -> b) -> EitherT e m a -> EitherT e m b
+bimapEitherT' f g (EitherT m) = EitherT (fmap h m) where
+  h (Left e)  = Right (f e)
+  h (Right a) = Right (g a)
+
 catchEitherT :: EitherTExec (Formatted CompositeValue) -> EitherTExec (Formatted CompositeValue)
 catchEitherT a = do
   result <- liftIO $ catch (runEitherT a) whenCaught
@@ -94,13 +102,25 @@ catchEitherT a = do
 possiblyShortCircuit :: ASSheetId -> EvalContext -> ASExpression -> EitherTExec (Maybe ASValue)
 possiblyShortCircuit sheetid ctx xp = do 
   let depRefs        = getDependencies sheetid xp -- :: [ASReference]
-  depInds <- concat <$> mapM (refToIndicesWithContextDuringEval ctx) depRefs   -- :: [Maybe [ASIndex]]
-  let lang           = xpLanguage xp
-      values         = map (cellValue . ((contextMap ctx) M.!)) depInds
-  return $ listToMaybe $ catMaybes $ flip map (zip depInds values) $ \(i, v) -> case v of
-    NoValue                 -> handleNoValueInLang lang i
-    ve@(ValueError _ _)     -> handleErrorInLang lang ve
-    otherwise               -> Nothing 
+  let depInds = concat <$> mapM (refToIndicesWithContextDuringEval ctx) depRefs
+  bimapEitherT' (Just . onRefToIndicesFailure) (onRefToIndicesSuccess ctx xp) depInds
+
+-- When eval's ref to indices fails, we want the error message to be in the actual cell. Possibly short circuit will
+-- do this for us, because the evaluateLanguage code bypasses eval in this case. 
+onRefToIndicesFailure :: ASExecError -> ASValue
+onRefToIndicesFailure PointerToNormalCell = ValueError "Pointer to normal cell" "EvalError"
+onRefToIndicesFailure IndexOfPointerNonExistant = ValueError "Index of pointer doesn't exist" "EvalError"
+onRefToIndicesFailure _ = ValueError "Some eval error" "EvalError"
+
+onRefToIndicesSuccess :: EvalContext -> ASExpression -> [ASIndex] -> Maybe ASValue
+onRefToIndicesSuccess ctx xp depInds = listToMaybe $ catMaybes $ flip map (zip depInds values) $ \(i, v) -> case v of
+  NoValue                 -> handleNoValueInLang lang i
+  ve@(ValueError _ _)     -> handleErrorInLang lang ve
+  otherwise               -> Nothing 
+  where
+    lang           = xpLanguage xp
+    values         = map (cellValue . ((contextMap ctx) M.!)) depInds
+
 
 -- | Nothing if it's OK to pass in NoValue, appropriate ValueError if not.
 handleNoValueInLang :: ASLanguage -> ASIndex -> Maybe ASValue
