@@ -62,7 +62,7 @@ testDispatch state lang crd str = runDispatchCycle state [Cell (Index sid crd) (
 -- Exposed functions / regular eval route
 
 -- dispatch invariants:
--- TODO
+-- 
 
 -- dispatch questions unanswered:
 -- should we try to detect ambiguity when executing one of several possible eval paths? (e.g. where one path would cause a circ dep, and another would be fine)

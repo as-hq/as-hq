@@ -104,7 +104,7 @@ extractFormulaCells cells = concat $ map (filter isFormulaCell) cells
 -- Given the sel range, drag range, and 2D list of sel range cells, return all cells corresponding to formula cells
 -- (for each formula cell, do a copy-like operation to fill the drag range)
 getMappedFormulaCells :: ASRange -> ASRange -> [[ASCell]] -> [ASCell]
-getMappedFormulaCells r1 r2 cells = concat $ map translateCell formulaCells
+getMappedFormulaCells r1 r2 cells = catMaybes $ concatMap translateCell formulaCells
   where
     formulaCells = extractFormulaCells cells
     translateCell c = map (\offset -> S.shiftCell offset c) $ (getDragOffsets r1 r2 (pos c))

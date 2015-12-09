@@ -131,9 +131,11 @@ shiftExpression :: Offset -> ASExpression -> ASExpression
 shiftExpression offset xp = replaceRefs (show . (shiftExRef offset)) xp
 
 -- | Shift the cell's location, and shift all references satisfying the condition passed in. 
-shiftCell :: Offset -> ASCell -> ASCell
+shiftCell :: Offset -> ASCell -> Maybe ASCell
 shiftCell offset (Cell loc xp v ts) = cell'
   where
     loc'  = shiftInd offset loc
     xp'   = shiftExpression offset xp
-    cell' = Cell loc' xp' v ts
+    cell' = case loc' of 
+              Nothing -> Nothing
+              Just l ->Just $ Cell l xp' v ts

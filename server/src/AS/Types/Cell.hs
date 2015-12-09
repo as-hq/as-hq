@@ -149,3 +149,9 @@ getCellFormatType (Cell _ _ _ props) = maybe Nothing (Just . formatType) $ getPr
 
 execErrorToValueError :: ASExecError -> ASValue
 execErrorToValueError e = ValueError (show e) "Exec error"
+
+removeCellProp :: CellPropType -> ASCell -> ASCell
+removeCellProp pt (Cell l e v ps) = Cell l e v (removeProp pt ps)
+
+setCellProp :: CellProp -> ASCell -> ASCell 
+setCellProp cp (Cell l e v ps) = Cell l e v (setProp cp ps)

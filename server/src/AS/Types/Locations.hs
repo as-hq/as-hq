@@ -194,8 +194,10 @@ shiftLoc o (IndexRef (Index sh (x,y))) = IndexRef $ Index sh (x+(dX o), y+(dY o)
 shiftLoc o (PointerRef (Pointer sh (x,y))) = PointerRef $ Pointer sh (x+(dX o), y+(dY o))
 shiftLoc o (RangeRef (Range sh ((x,y),(x2,y2)))) = RangeRef $ Range sh ((x+(dX o), y+(dY o)), (x2+(dX o), y2+(dY o)))
 
-shiftInd :: Offset -> ASIndex -> ASIndex
-shiftInd o (Index sh (x,y)) = Index sh (x + (dX o), y + (dY o))
+shiftInd :: Offset -> ASIndex -> Maybe ASIndex
+shiftInd o (Index sh (x,y)) = if x+(dX o) >= 1 && y+(dY o) >= 1 
+  then Just $ Index sh (x+(dX o), y+(dY o))
+  else Nothing
 
 getTopLeft :: ASRange -> ASIndex
 getTopLeft (Range sh (tl,_)) = Index sh tl
