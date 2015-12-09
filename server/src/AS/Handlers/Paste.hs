@@ -26,6 +26,7 @@ import Database.Redis (Connection)
 
 handleCopy :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
 handleCopy uc state (PayloadPaste from to) = do
+  putStrLn $ "IN HANDLE COPY"
   conn <- dbConn <$> readMVar state
   toCells <- getCopyCells conn from to
   msg' <- runDispatchCycle state toCells DescendantsWithParent (userCommitSource uc)
@@ -61,7 +62,8 @@ getCopyCells conn from to = do
   fromCells          <- getPossiblyBlankCells (rangeToIndices from)
   sanitizedFromCells <- sanitizeCopyCells conn fromCells from
   let offsets       = getCopyOffSets from to  -- how much to shift these cells for copy/copy/paste
-      toCells       = concat $ map (\o -> map (shiftCell o) sanitizedFromCells) offsets
+      translateCell o = (shiftRangeKey o) . (shiftCell o) -- remember to shift the range key of a coupled expression as well
+      toCells       = concat $ map (\o -> map (translateCell o) sanitizedFromCells) offsets
       updateSheetId = \l -> l { locSheetId = rangeSheetId to }
       toCells'      = map (replaceCellLocs updateSheetId) toCells
   return toCells'
