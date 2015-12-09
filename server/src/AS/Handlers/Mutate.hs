@@ -28,7 +28,7 @@ handleMutateSheet uc state (PayloadMutate mutateType) = do
       oldCellsNewCells = zip oldCells newCells
       oldCellsNewCells' = filter (\(c, c') -> (Just c /= c')) oldCellsNewCells
       -- ^ don't update cells that haven't changed
-      newCells' = map (fromJust . snd) oldCellsNewCells'
+      newCells' = catMaybes $ map snd oldCellsNewCells'
       blankedCells = blankCellsAt $ map (cellLocation . fst) oldCellsNewCells'
       updatedCells = mergeCells newCells' blankedCells -- eval blanks at the old cell locations, re-eval at new locs
   printObj "newCells" newCells
