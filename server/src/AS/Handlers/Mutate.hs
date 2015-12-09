@@ -56,20 +56,20 @@ rowColMap (InsertRow r') rc@(RP.RowCol rct rci rcp) =
 rowColMap (DeleteCol c') rc@(RP.RowCol rct rci rcp) =
   case rct of
        RP.ColumnType -> if rci == c'
-                        then Nothing
-                        else Just $ RP.RowCol rct (if rci >= c' then rci-1 else rci) rcp
+                          then Nothing
+                          else Just $ RP.RowCol rct (if rci >= c' then rci-1 else rci) rcp
        RP.RowType -> Just rc
 rowColMap (DeleteRow r') rc@(RP.RowCol rct rci rcp) =
   case rct of
        RP.ColumnType -> if rci == r'
-                        then Nothing
-                        else Just $ RP.RowCol rct (if rci >= r' then rci-1 else rci) rcp
+                          then Nothing
+                          else Just $ RP.RowCol rct (if rci >= r' then rci-1 else rci) rcp
        RP.RowType -> Just rc
 rowColMap (DragCol oldC newC) rc@(RP.RowCol rct rci rcp) =
   case rct of
        RP.ColumnType -> if rci == oldC
                            then Just $ RP.RowCol rct newC rcp
-                           else if (rci == newC)
+                           else if rci == newC
                                then Just $ RP.RowCol rct oldC rcp
                                else Just rc
        RP.RowType -> Just rc
@@ -78,7 +78,7 @@ rowColMap (DragRow oldR newR) rc@(RP.RowCol rct rci rcp) =
        RP.ColumnType -> Just rc
        RP.RowType -> if rci == oldR
                         then Just $ RP.RowCol rct newR rcp
-                        else if rci == newR 
+                        else if rci == newR
                             then Just $ RP.RowCol rct oldR rcp
                             else Just rc
 
