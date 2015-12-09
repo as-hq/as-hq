@@ -35,11 +35,11 @@ referenceToCompositeValue conn ctx (PointerRef p) = do
   let mp = contextMap ctx
   let cell = mp M.! idx
   case (cellExpression cell) of
-    Expression _ _ -> error "Pointer to normal expression, flipping a shit" 
+    Expression _ _ -> error "Pointer to normal expression!" 
     Coupled _ _ expType rKey -> do 
       mDescriptor <- getRangeDescriptorUsingContext conn ctx rKey
       case mDescriptor of
-        Nothing -> error "Couldn't find range descriptor of coupled expression, flipping a shit"
+        Nothing -> error "Couldn't find range descriptor of coupled expression!"
         Just descriptor -> return $ DE.recomposeCompositeValue fatCell
           where
             indices = rangeKeyToIndices rKey
