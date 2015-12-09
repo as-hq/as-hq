@@ -57,6 +57,7 @@ import {
 } from './exec-api';
 
 import ASCellStore from '../stores/ASCellStore';
+import SheetStateStore from '../stores/ASSheetStateStore';
 import ASExpStore from '../stores/ASExpStore';
 import Util from '../AS/Util';
 import KeyUtils from '../AS/KeyUtils';
@@ -87,7 +88,7 @@ function textboxHasFocus() {
 }
 
 function activeSelection() {
-  return ASSheetStateStore.getActiveSelection();
+  return SheetStateStore.getActiveSelection();
 }
 
 function activeRange() {
@@ -258,7 +259,7 @@ function focusOnComponent(comp) {
 }
 
 function clipboardRange() {
-  return ASSheetStateStore.getClipboard().area.range;
+  return SheetStateStore.getClipboard().area.range;
 }
 
 function formatTestCellToStore() {
