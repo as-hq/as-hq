@@ -308,9 +308,14 @@ export type ASBackendPayload =
 
 export type ASBackendCommit = {
   tag: 'ASCommit';
-  before: Array<ASCell>;
-  after: Array<ASCell>;
+  cellDiff: ASCellDiff;
   time: ASBackendTime;
+};
+
+export type ASCellDiff = {
+  tag: 'CellDiff';
+  beforeCells: Array<ASCell>;
+  afterCells: Array<ASCell>;
 };
 
 export type ASBackendWorkbookSheet = {
