@@ -66,7 +66,7 @@ testDispatch state lang crd str = runDispatchCycle state [Cell (Index sid crd) (
 -- the cells getting evaluated. We pull the rest from the DB. 
 runDispatchCycle :: MVar ServerState -> [ASCell] -> DescendantsSetting -> CommitSource -> IO ASServerMessage
 runDispatchCycle state cs descSetting src = do
-  printObj "cs" cs
+  liftIO $ putStrLn $ "run dispatch cycle with cells: " ++ (show cs) 
   roots <- EM.evalMiddleware cs
   conn <- dbConn <$> readMVar state
   errOrCells <- runEitherT $ do
@@ -249,7 +249,6 @@ possiblyDeletePreviousFatCell conn c@(Cell idx xp _ ps) ctx@(EvalContext mp adde
       let ctx' = ctx { contextMap = insertMultiple (contextMap ctx) indices blankCells
                      , addedCells = newAddedCells
                      , descriptorDiff = ddiff' }
-      lift $ putStrLn $ "NEW CONTEXT AFTER FAT CELL DELETION " ++ (show ctx')
       return (ctx', Just indices)
     else left WillNotEvaluate
 

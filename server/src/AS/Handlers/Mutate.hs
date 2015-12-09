@@ -23,15 +23,14 @@ import Data.Maybe
 handleMutateSheet :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
 handleMutateSheet uc state (PayloadMutate mutateType) = do 
   conn <- dbConn <$> readMVar state
-  allCells <- DB.getCellsInSheet conn (userSheetId uc)
-  let newCells = map (cellMap mutateType) allCells
-      oldCellsNewCells = zip allCells newCells
+  oldCells <- DB.getCellsInSheet conn (userSheetId uc)
+  let newCells = map (cellMap mutateType) oldCells
+      oldCellsNewCells = zip oldCells newCells
       oldCellsNewCells' = filter (\(c, c') -> (Just c /= c')) oldCellsNewCells
       -- ^ don't update cells that haven't changed
-      oldCells' = map fst oldCellsNewCells
-      newCells' = catMaybes $ map snd oldCellsNewCells
-      blankedCells = blankCellsAt (map cellLocation oldCells')
-      updatedCells   = mergeCells newCells' blankedCells -- eval blanks at the old cell locations, re-eval at new locs
+      newCells' = map (fromJust . snd) oldCellsNewCells'
+      blankedCells = blankCellsAt $ map (cellLocation . fst) oldCellsNewCells'
+      updatedCells = mergeCells newCells' blankedCells -- eval blanks at the old cell locations, re-eval at new locs
   printObj "newCells" newCells
   updateMsg <- runDispatchCycle state updatedCells DescendantsWithParent (userCommitSource uc)
   broadcastFiltered state uc updateMsg

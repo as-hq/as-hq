@@ -49,8 +49,22 @@ void DAG::updateDAG(DAG::Vertex toLoc, const DAG::VertexSet& fromLocs) {
 	DAG::VertexSet vl = toFromAdjList[toLoc]; //old fromLocs
 		/* Loop over the current fromLocs of toLoc and delete from forward adjacency list */
 	for (const auto& oldFl : vl){
-		fromToAdjList[oldFl].erase(toLoc);
-
+		// if oldFl is a pointer, convert to index and delete toLoc from the index's dependencies
+		// To clarify with an example, when D5=@C5 is entered, D5's ancestor is Pointer C5 and Index C5's descendant is D5. 
+		// When you want to update D5's ancestors, you have to delete Index C5 -> D5 from fromTo, and not Pointer C5 -> D5, which doesn't exist. 
+		// Similar logic exists for ranges;  there's a symmetry between updating and replacing.
+		if (oldFl.getLocationType() == Location::LocationType::POINTER) {
+			fromToAdjList[oldFl.pointerToIndex()].erase(toLoc);
+		} else if (oldFl.getLocationType() == Location::LocationType::RANGE) {
+			vector<Location> indices;
+			oldFl.rangeToIndices(indices); // indices now has the decomposed Indices
+			for (const auto& index: indices) {
+				fromToAdjList[index].erase(toLoc);
+			}
+		} else { // normal index erasal
+			fromToAdjList[oldFl].erase(toLoc);
+		}
+		
 		// If a vertex no longer has fromLocs, delete it
 		if (fromToAdjList[oldFl].empty())
 			fromToAdjList.erase(oldFl);
