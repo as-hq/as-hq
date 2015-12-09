@@ -354,11 +354,13 @@ describe('backend', () => {
             ]);
           });
 
-          it('should dereference if their reference is decoupled', (done) => {
+          it('should dereference if their reference is decoupled by small list', (done) => {
             _do([
               python('A1', 'range(5)'),
               python('B2', '@A3'),
-              shouldError(python('A1', '[1,2]')),
+              python('A1', '[1,2]'),
+              decouple(),
+              shouldBeError('B2'), // an error should show up inside B2
               exec(done)
             ]);
           });
@@ -2581,11 +2583,12 @@ describe('backend', () => {
     });
 
     describe('dependencies on expanding cells', () => {
-      xit('throws error on incorrect pointer ref', (done) => {
+      it('throws error on incorrect pointer ref', (done) => {
         _do([
           python('A1', 'range(10)'),
           python('B1', '@A1'),
           python('A1', '10'),
+          decouple(),
           shouldBeError('B1'),
           exec(done)
           ]);
