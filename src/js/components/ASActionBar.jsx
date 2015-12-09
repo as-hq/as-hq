@@ -3,7 +3,7 @@ import {AppBar, FlatButton, Styles} from 'material-ui';
 
 import API from '../actions/ASApiActionCreators';
 import Constants from '../Constants';
-import Store from '../stores/ASEvaluationStore';
+import CellStore from '../stores/ASCellStore';
 
 import ASButton from './basic-controls/ASButton.jsx';
 import ASCondFormattingDialog from './dialogs/ASCondFormattingDialog.jsx';
@@ -77,7 +77,7 @@ export default React.createClass({
   },
 
   _onSaveFile() {
-    API.export(Store.getCurrentSheet());
+    API.export(SheetStateStore.getCurrentSheet());
   },
 
   _onOpenFile() {

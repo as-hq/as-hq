@@ -2,7 +2,7 @@ import {logDebug} from '../AS/Logger';
 
 import KeyUtils from '../AS/KeyUtils';
 import ShortcutUtils from '../AS/ShortcutUtils';
-import Store from '../stores/ASEvaluationStore';
+import CellStore from '../stores/ASCellStore';
 var ace = require('brace');
 var React = require('react');
 

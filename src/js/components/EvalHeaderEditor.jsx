@@ -2,7 +2,7 @@ import {logDebug} from '../AS/Logger';
 
 import KeyUtils from '../AS/KeyUtils';
 import ShortcutUtils from '../AS/ShortcutUtils';
-import Store from '../stores/ASEvaluationStore';
+import CellStore from '../stores/ASCellStore';
 import EvalHeaderActionCreator from '../actions/ASEvalHeaderActionCreators';
 import API from '../actions/ASApiActionCreators';
 

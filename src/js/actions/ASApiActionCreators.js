@@ -54,7 +54,8 @@ import Dispatcher from '../Dispatcher';
 import Constants from '../Constants';
 import T from '../AS/Types';
 import TC from '../AS/TypeConversions';
-import Store from '../stores/ASEvaluationStore';
+import CellStore from '../stores/ASCellStore';
+import SheetStateStore from '../stores/ASSheetStateStore';
 import Util from '../AS/Util';
 import ws from '../AS/PersistentWebSocket';
 
@@ -89,7 +90,7 @@ wss.onmessage = (event: MessageEvent) => {
 
   if (event.data instanceof Blob) {
     console.log("Received binary data from server.");
-    let fName = Store.getCurrentSheet().sheetId + ".as";
+    let fName = SheetStateStore.getCurrentSheet().sheetId + ".as";
     // #anand event.data typecasts to Blob, because we already checked the instance above
     // and flow doesn't understand that event.data is type DOMString | Blob | ...
     let f = Util.blobToFile(((event.data: any): Blob), fName);
@@ -289,8 +290,8 @@ export default {
   initMessage() {
     let msg: ASClientMessage = TC.makeClientMessage(Constants.ServerActions.Acknowledge,
       "PayloadInit",
-      {"connUserId": Store.getUserId(),
-        "connSheetId": Store.getCurrentSheet().sheetId});
+      {"connUserId": SheetStateStore.getUserId(),
+        "connSheetId": SheetStateStore.getCurrentSheet().sheetId});
     // logDebug("Sending init message: " + JSON.stringify(msg));
     this.send(msg);
   },
@@ -305,7 +306,7 @@ export default {
     this.initMessage();
     this.openSheet();
     this.updateViewingWindow(
-      TC.rangeToASWindow(Store.getViewingWindow().range)
+      TC.rangeToASWindow(SheetStateStore.getViewingWindow().range)
     );
   },
 
@@ -393,7 +394,7 @@ export default {
   clearSheet() {
     let msg = TC.makeClientMessage(Constants.ServerActions.Clear,
                                    "PayloadS",
-                                   Store.getCurrentSheet());
+                                   SheetStateStore.getCurrentSheet());
     this.send(msg);
   },
   find(findText: string) {
@@ -664,7 +665,7 @@ export default {
 
   // @optional mySheet
   openSheet(mySheet?: ASSheet) {
-    let sheet = mySheet || Store.getCurrentSheet(),
+    let sheet = mySheet || SheetStateStore.getCurrentSheet(),
         msg = TC.makeClientMessage(Constants.ServerActions.Open, "PayloadS", sheet);
     this.send(msg);
   },

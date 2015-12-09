@@ -7,7 +7,7 @@ import ParseUtils from '../AS/ParsingUtils';
 
 import Constants from '../Constants';
 
-import Store from '../stores/ASEvaluationStore';
+import CellStore from '../stores/ASCellStore';
 import ExpStore from '../stores/ASExpStore';
 import ExpActionCreator from '../actions/ASExpActionCreators.js';
 

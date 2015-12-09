@@ -23,43 +23,43 @@ export default React.createClass({
   	return {
   		// Don't set to 0; otherwise you lose position state upon reloading find bar
   		// This is for the "1 of 5" stuff
-  		pos:Store.getFindPos(),
-  		total:Store.getFindTotal()
+  		pos:CellStore.getFindPos(),
+  		total:CellStore.getFindTotal()
   	};
   },
 
   componentDidMount() {
   	// Place focus in the find textarea upon mounting
   	this.refs.findText.focus();
-  	Store.addChangeListener(this.handleChange);
+  	CellStore.addChangeListener(this.handleChange);
   },
 
   componentWillUnmount() {
-  	Store.removeChangeListener(this.handleChange);
+  	CellStore.removeChangeListener(this.handleChange);
   },
 
   // Respond to a find response from backend
   handleChange() {
-  	this.setState({pos:Store.getFindPos(),total:Store.getFindTotal()});
+  	this.setState({pos:CellStore.getFindPos(),total:CellStore.getFindTotal()});
   },
 
   _onClose() {
-  	Store.setFindText(this.refs.findText.getValue());
+  	CellStore.setFindText(this.refs.findText.getValue());
   	this.props.onClose();
   },
 
   _onEnter() {
   	let curText = this.refs.findText.getValue();
-  	if (Store.getFindText() === curText) { // increment 
+  	if (CellStore.getFindText() === curText) { // increment 
   		this.props.onNext();
   	} else {
-  		Store.setFindText(curText);
+  		CellStore.setFindText(curText);
   		this.props.onEnter();
   	}
   },
 
   _onModal() {
-  	Store.setFindText(this.refs.findText.getValue());
+  	CellStore.setFindText(this.refs.findText.getValue());
   	this.props.onModal();
   },
 
@@ -105,7 +105,7 @@ export default React.createClass({
           zIndex:10,
           backgroundColor:Styles.Colors.grey900
           }} >
-	  		<TextField ref="findText" style={textStyle} hintText="Find Text" defaultValue={Store.getFindText()}
+	  		<TextField ref="findText" style={textStyle} hintText="Find Text" defaultValue={CellStore.getFindText()}
 	  				   underlineStyle={{borderColor: Styles.Colors.amber900}}
 					   onEnterKeyDown={this._onEnter} />
 	  		<TextField style={matchStyle} disabled={true} hintText={position}

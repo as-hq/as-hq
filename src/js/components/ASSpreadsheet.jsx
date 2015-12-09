@@ -31,7 +31,8 @@ import ShortcutUtils from '../AS/ShortcutUtils';
 import API from '../actions/ASApiActionCreators';
 import KeyUtils from '../AS/KeyUtils';
 
-import Store from '../stores/ASEvaluationStore';
+import CellStore from '../stores/ASCellStore';
+import SheetStateStore from '../stores/ASSheetStateStore';
 import FindStore from '../stores/ASFindStore';
 import ExpStore from '../stores/ASExpStore';
 import InitRowColPropsStore from '../stores/ASInitRowColPropsStore.js';
@@ -293,7 +294,7 @@ export default React.createClass({
 
   getTextboxPosition(): ?HGRectangle {
     let scroll = this.state.scroll;
-    let activeSelection = Store.getActiveSelection();
+    let activeSelection = SheetStateStore.getActiveSelection();
     if (activeSelection) {
       let {col, row} = activeSelection.origin,
           point = finRect.point.create(col - scroll.x, row - scroll.y);
@@ -498,7 +499,7 @@ export default React.createClass({
           self.mouseDownInBox = false;
           // Do nothing if the mouseup isn't in the right column or row
           if (dottedSel.range !== null) {
-            let activeSelection = Store.getActiveSelection();
+            let activeSelection = SheetStateStore.getActiveSelection();
             if (!! activeSelection) {
               API.drag(activeSelection.range, dottedSel.range);
               self.select(dottedSel,true);
@@ -565,7 +566,7 @@ export default React.createClass({
 
   // expects that the current sheet has already been set
   getInitialData() {
-    API.openSheet(Store.getCurrentSheet());
+    API.openSheet(SheetStateStore.getCurrentSheet());
     ActionCreator.scroll(this.getViewingWindow());
   },
 
@@ -607,7 +608,7 @@ export default React.createClass({
     });
 
     model.changed(); // causes hypergrid to show updated values
-    Store.resetLastUpdatedCells();
+    CellStore.resetLastUpdatedCells();
   },
 
   // Given a cell, delete any overlay at that location
@@ -643,7 +644,7 @@ export default React.createClass({
     let {tl, br} = safeSelection.range;
     let {col, row} = safeSelection.origin;
 
-    let oldSel = Store.getActiveSelection();
+    let oldSel = SheetStateStore.getActiveSelection();
     // make selection
     let hg = this._getHypergrid(),
         originIsCorner = Util.originIsCornerOfSelection(safeSelection),
@@ -768,7 +769,7 @@ export default React.createClass({
   },
 
   shiftSelectionArea(dc: number, dr: number) {
-    let sel = Store.getActiveSelection();
+    let sel = SheetStateStore.getActiveSelection();
     if (! sel) {
       logError('Trying to shift null selection');
       return;
@@ -809,7 +810,7 @@ export default React.createClass({
                                                   this.refs.textbox.editor);
 
         // if visible key and there was a last cell ref, move the selection back to the origin
-        let activeSelection = Store.getActiveSelection();
+        let activeSelection = SheetStateStore.getActiveSelection();
         if (!! activeSelection && ExpStore.getLastRef() !== null) {
           this.select(activeSelection);
         }
@@ -822,7 +823,7 @@ export default React.createClass({
         ShortcutUtils.tryShortcut(e, 'grid');
       }
     } else if (KeyUtils.isNavKey(e)) { // nav key from grid
-      let activeSelection = Store.getActiveSelection();
+      let activeSelection = SheetStateStore.getActiveSelection();
       if (!activeSelection) {
         logDebug('No selection');
         return;
@@ -930,7 +931,7 @@ export default React.createClass({
       let renderer = Render.defaultCellRenderer,
           col = config.x + 1,
           row = config.y + 1,
-          cell = Store.getCell(col, row);
+          cell = CellStore.getCell(col, row);
 
       // tag-based cell styling
       if (!! cell) {

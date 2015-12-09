@@ -5,7 +5,8 @@ import Constants from '../Constants';
 import BaseStore from './BaseStore';
 import assign from 'object-assign';
 
-import Store from './ASEvaluationStore';
+import CellStore from './ASCellStore';
+import SheetStateStore from './ASSheetStateStore';
 
 import API from '../actions/ASApiActionCreators';
 import Util from '../AS/Util';
@@ -78,9 +79,9 @@ const ASExpStore = assign({}, BaseStore, {
       case Constants.ActionTypes.GOT_REDO:
       case Constants.ActionTypes.DELETED_LOCS:
       case Constants.ActionTypes.GOT_UPDATED_CELLS:
-        Dispatcher.waitFor([Store.dispatcherIndex]);
-        let sel = Store.getActiveSelection(),
-            cell = Store.getCell(sel.origin.col, sel.origin.row);
+        Dispatcher.waitFor([CellStore.dispatcherIndex]);
+        let sel = SheetStateStore.getActiveSelection(),
+            cell = CellStore.getCell(sel.origin.col, sel.origin.row);
         ASExpStore.updateOnBackendChange(cell);
         break;
       // The spreadsheet listens to this and sets focus to grid 
@@ -217,7 +218,7 @@ const ASExpStore = assign({}, BaseStore, {
     let lang = this.getLanguage(), 
         deps = Util.parseDependencies(xpStr, lang);
     logDebug("DEPS: " + JSON.stringify(deps));
-    Store.setActiveCellDependencies(deps);
+    SheetStateStore.setActiveCellDependencies(deps);
     this.emitChange();
   },
 
@@ -234,7 +235,7 @@ const ASExpStore = assign({}, BaseStore, {
     this.setLastRef(excelStr);
     this.setExpression(xpStr);
     let lang = this.getLanguage();
-    Store.setActiveCellDependencies(Util.parseDependencies(xpStr, lang));
+    SheetStateStore.setActiveCellDependencies(Util.parseDependencies(xpStr, lang));
     this.emitChange();
   },
 

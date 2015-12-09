@@ -5,6 +5,7 @@ import Constants from '../Constants';
 
 import {AppBar, Toolbar, ToolbarGroup, FlatButton, TextField, DropDownMenu, Styles} from 'material-ui';
 import FileInput from './ASFileImportButton.jsx';
+import ASCellPropsToggleButton from './basic-controls/ASCellPropsToggleButton.jsx';
 
 require('brace/mode/python');
 require('brace/mode/r');
@@ -68,12 +69,7 @@ export default React.createClass({
     // counterpoint: don't give a crap about this because these buttons are all temporary anyway
     // and crappy CSS is probably sufficient? (Alex 11/18)
     let fileInputStyle = {
-          position:'relative',
-          left: '500px',
-          top:'-55px',
-          width:'120px',
-          height:'35px'
-        };
+    };
 
     return (
       <div>
@@ -101,10 +97,15 @@ export default React.createClass({
               underlineStyle={{ display: 'none' }}
               style={{
                 position: 'relative',
-                left: '40px',
+                marginLeft: '40px',
                 top: '0px'
               }}/>
             <FileInput style={fileInputStyle} />
+            <ASCellPropsToggleButton cellProp="Bold" iconClassName="format_bold" style={{
+              position: 'relative',
+              marginLeft: '40px',
+              top: '0px'
+            }} />
         </Toolbar>
         <AceEditor
           ref="editor"

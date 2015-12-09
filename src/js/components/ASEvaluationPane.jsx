@@ -22,7 +22,8 @@ import ASCodeEditor from './ASCodeEditor.jsx';
 import ASSpreadsheet from './ASSpreadsheet.jsx';
 import Render from '../AS/Render';
 
-import Store from '../stores/ASEvaluationStore';
+import CellStore from '../stores/ASCellStore';
+import SheetStateStore from '../stores/ASSheetStateStore';
 // import ReplStore from '../stores/ASReplStore';
 import EvalHeaderStore from '../stores/ASEvalHeaderStore';
 import FindStore from '../stores/ASFindStore';
@@ -104,7 +105,8 @@ export default React.createClass({
     window.addEventListener('copy',this.handleCopyEvent);
     window.addEventListener('paste',this.handlePasteEvent);
     window.addEventListener('cut',this.handleCutEvent);
-    Store.addChangeListener(this._onChange);
+    CellStore.addChangeListener(this._onCellsChange);
+    SheetStateStore.addChangeListener(this._onSheetStateChange);
     FindStore.addChangeListener(this._onFindChange);
     // ReplStore.addChangeListener(this._onReplChange);
     EvalHeaderStore.addChangeListener(this._onEvalHeaderUpdate);
@@ -120,7 +122,8 @@ export default React.createClass({
     window.removeEventListener('paste',this.handlePasteEvent);
     window.removeEventListener('cut',this.handleCutEvent);
     API.close();
-    Store.removeChangeListener(this._onChange);
+    CellStore.removeChangeListener(this._onCellsChange);
+    SheetStateStore.addChangeListener(this._onSheetStateChange);
     FindStore.removeChangeListener(this._onFindChange);
     // ReplStore.removeChangeListener(this._onReplChange);
     ExpStore.removeChangeListener(this._onExpChange);
@@ -170,7 +173,7 @@ export default React.createClass({
   selectLanguage(lang: ASLanguage) {
     ExpStore.setLanguage(lang);
     this.setState({ defaultLanguage: lang, currentLanguage: lang });
-    this.setFocus(Store.getFocus());
+    this.setFocus(SheetStateStore.getFocus());
   },
 
   _onSetVarName(name: string) {
@@ -186,8 +189,9 @@ export default React.createClass({
     2) Call a ASSpreadsheet component method that forces an update of values
     3) Treat the special case of errors/other styles
   */
-  _onChange() {
-    if (Store.getDecoupleAttempt()) {
+  _onSheetStateChange() { 
+    logDebug("Eval pane detected spreadsheet change from store");
+    if (SheetStateStore.getDecoupleAttempt()) {
       let resp = true;
       // If testing, don't show confirm box. The test will send decouple msg.
       if (!isTesting()) {
@@ -196,12 +200,16 @@ export default React.createClass({
           API.decouple();
         }
       }
-      Store.setDecoupleAttempt(false);
+      SheetStateStore.setDecoupleAttempt(false);
     }
-    logDebug("Eval pane detected event change from store");
-    let updatedCellsOnSheet = Store.getLastUpdatedCells().filter((cell) => {
-      return cell.cellLocation.sheetId == Store.getCurrentSheet().sheetId;
+  },
+
+  _onCellsChange() {
+    logDebug("Eval pane detected cells change from store");
+    let updatedCellsOnSheet = CellStore.getLastUpdatedCells().filter((cell) => {
+      return cell.cellLocation.sheetId == SheetStateStore.getCurrentSheet().sheetId;
     });
+    
     this.refs.spreadsheet.updateCellValues(updatedCellsOnSheet);
     //toast the error of at least one value in the cell
     let err;
@@ -214,14 +222,14 @@ export default React.createClass({
       }
     }
 
-    err = err || Store.getExternalError();
+    err = err || SheetStateStore.getExternalError();
 
-    if (!!err && !Store.shouldSuppressErrors()) {
+    if (!!err && !SheetStateStore.shouldSuppressErrors()) {
       this.setToast(err, "Error");
     }
 
-    Store.setExternalError(null);
-    Store.stopSuppressingErrors();
+    SheetStateStore.setExternalError(null);
+    SheetStateStore.stopSuppressingErrors();
   },
 
   // _onReplChange() {
@@ -315,18 +323,18 @@ export default React.createClass({
     // I DO know that if you leave it out, cut doesn't save anything to the clipboard
     // if there's already external data on the clipboard, but copy DOES work, and I don't
     // understand why.
-    let sel = Store.getActiveSelection();
+    let sel = SheetStateStore.getActiveSelection();
     if (! sel) {
       logDebug('No selection.'); // TODO: better handler for this. can we make it never be null
       return;
     }
 
-    let vals = Store.getRowMajorCellValues(sel.range);
+    let vals = CellStore.getRowMajorCellValues(sel.range);
 
     logDebug('Handling copy event');
 
     if (vals) {
-      Store.setClipboard(sel, isCut);
+      SheetStateStore.setClipboard(sel, isCut);
       let html = ClipboardUtils.valsToHtml(vals, sel.range),
           plain = ClipboardUtils.valsToPlain(vals);
       this.refs.spreadsheet.repaint(); // render immediately
@@ -342,7 +350,7 @@ export default React.createClass({
     logDebug('Handling paste event');
     Render.setMode(null);
 
-    let sel = Store.getActiveSelection();
+    let sel = SheetStateStore.getActiveSelection();
     if (! sel) {
       logDebug('No selection.');
       return;
@@ -360,8 +368,8 @@ export default React.createClass({
     // #incomplete should either be checking if you're from the same sheet, OR support
     // copy/pasting across sheets.
     if (isAlphaSheets) { // From AS
-      let clipboard = Store.getClipboard(),
-          sheetId = Store.getCurrentSheet().sheetId,
+      let clipboard = SheetStateStore.getClipboard(),
+          sheetId = SheetStateStore.getCurrentSheet().sheetId,
           {fromSheetId, fromRange} = ClipboardUtils.getAttrsFromHtmlString(e.clipboardData.getData("text/html")),
           toASRange = TC.simpleToASRange(sel.range);
 
@@ -370,7 +378,7 @@ export default React.createClass({
       if (isTesting() || Util.isMac()) {
         if (!! clipboard.area) {
           fromRange   = clipboard.area.range;
-          fromSheetId = Store.getCurrentSheet().sheetId;
+          fromSheetId = SheetStateStore.getCurrentSheet().sheetId;
         }
       }
 
@@ -378,7 +386,7 @@ export default React.createClass({
       if (fromRange) {
         if (clipboard.isCut && sheetId == fromSheetId) { // only give cut behavior within sheets
           API.cut(fromASRange, toASRange);
-          Store.setClipboard(null, false);
+          SheetStateStore.setClipboard(null, false);
         } else {
           API.copy(fromASRange, toASRange);
         }
@@ -497,7 +505,7 @@ export default React.createClass({
   _onSelectionChange(sel: ASSelection) {
     let {range, origin} = sel,
         userIsTyping = ExpStore.getUserIsTyping(),
-        cell = Store.getCell(origin.col, origin.row);
+        cell = CellStore.getCell(origin.col, origin.row);
 
     let editorCanInsertRef = ExpStore.editorCanInsertRef(this._getRawEditor()),
         gridCanInsertRef = ExpStore.gridCanInsertRef(),
@@ -525,7 +533,7 @@ export default React.createClass({
         throw new Error('Language invalid!');
       }
 
-      Store.setActiveSelection(sel, expression, language);
+      SheetStateStore.setActiveSelection(sel, expression, language);
       ExpActionCreator.handleSelChange(expression);
       this.hideToast();
       this.showAnyErrors(val);
@@ -535,7 +543,7 @@ export default React.createClass({
       ExpStore.setLanguage(language);
     } else if (changeSelToNewCell) {
       logDebug("Selected empty cell to move to");
-      Store.setActiveSelection(sel, "", null);
+      SheetStateStore.setActiveSelection(sel, "", null);
       this.refs.spreadsheet.repaint();
       ExpActionCreator.handleSelChange('');
       if (this.state.currentLanguage !== this.state.defaultLanguage) {
@@ -554,10 +562,10 @@ export default React.createClass({
       this.handleEvalRequest(xpObj, null, null);
       if (cell && cell.cellExpression) {
         let {expression, language} = cell.cellExpression;
-        Store.setActiveSelection(sel, expression, language);
+        SheetStateStore.setActiveSelection(sel, expression, language);
         this.showAnyErrors(cell.cellValue);
       } else {
-         Store.setActiveSelection(sel, "", null);
+         SheetStateStore.setActiveSelection(sel, "", null);
          this.hideToast();
       }
     } else if (userIsTyping) {
@@ -596,7 +604,7 @@ export default React.createClass({
   handleEvalRequest(xpObj: ASClientExpression, moveCol: ?number, moveRow: ?number) {
     logDebug("Handling EVAL request " + ExpStore.getExpression());
 
-    let selection = Store.getActiveSelection();
+    let selection = SheetStateStore.getActiveSelection();
     if (! selection) {
       logError('No active selection');
       return;
@@ -606,7 +614,7 @@ export default React.createClass({
     ExpStore.setLastCursorPosition(Constants.CursorPosition.GRID);
     ExpStore.setUserIsTyping(false);
 
-    Store.setActiveCellDependencies([]);
+    SheetStateStore.setActiveCellDependencies([]);
     this.refs.spreadsheet.repaint();
 
     let {origin} = selection;
@@ -617,7 +625,7 @@ export default React.createClass({
     }
 
     // Only re-eval if the cell actually changed from before.
-    let curCell = Store.getCell(origin.col, origin.row);
+    let curCell = CellStore.getCell(origin.col, origin.row);
     if (!curCell) {
       if (xpObj.expression != "") {
         API.evaluate(origin, xpObj);
@@ -632,7 +640,7 @@ export default React.createClass({
   },
 
   openSheet(sheet: ASSheet) {
-    Store.setCurrentSheet(sheet);
+    SheetStateStore.setCurrentSheet(sheet);
     this.refs.spreadsheet.initializeBlank();
     this.refs.spreadsheet.getInitialData();
   },
@@ -654,7 +662,7 @@ export default React.createClass({
       default: throw "invalid argument passed into setFocus()";
     }
 
-    Store.setFocus(elem);
+    SheetStateStore.setFocus(elem);
     // so that we don't unnecessarily rerender
     if (elem != this.state.focus) { 
       this.setState({focus: elem});

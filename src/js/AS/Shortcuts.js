@@ -1,7 +1,8 @@
 import {logDebug} from './Logger';
 
 import Constants from '../Constants';
-import Store from '../stores/ASEvaluationStore';
+import CellStore from '../stores/ASCellStore';
+import SheetStateStore from '../stores/ASSheetStateStore';
 import FindStore from '../stores/ASFindStore';
 import SU from './ShortcutUtils';
 import API from '../actions/ASApiActionCreators';
@@ -22,9 +23,9 @@ export default {
 
     SU.add('common', 'toggle_focus', 'F2', (wildcard) => {
       logDebug('F2 PRESSED ');
-      Store.toggleFocusF2();
+      SheetStateStore.toggleFocusF2();
       self.refs.spreadsheet.refs.textbox.updateTextBox(ExpStore.getExpression());
-      self.setFocus(Store.getFocus());
+      self.setFocus(SheetStateStore.getFocus());
     });
     SU.add('common', 'new_sheet', 'Shift+F11', (wildcard) => {
       // TODO
@@ -91,15 +92,15 @@ export default {
       // TODO other wildcards
       if (wildcard === '$') dispType = "Money";
       else if (wildcard === '%') dispType = "Percentage";
-      API.setFormat(dispType, Store.getActiveSelection().range);
+      API.setFormat(dispType, SheetStateStore.getActiveSelection().range);
       self.refs.spreadsheet.repaint();
     });
     SU.add("common", "bold", "Ctrl+B", (wildcard) => {
-      API.toggleProp("Bold", Store.getActiveSelection().range);
+      API.toggleProp("Bold", SheetStateStore.getActiveSelection().range);
       self.refs.spreadsheet.repaint();
     });
     SU.add("common", "italic", "Ctrl+I", (wildcard) => {
-      API.toggleProp("Italic", Store.getActiveSelection().range);
+      API.toggleProp("Italic", SheetStateStore.getActiveSelection().range);
       self.refs.spreadsheet.repaint();
     });
     SU.add('common', 'toggle_repl', 'Alt+F11', (wildcard) => {
@@ -108,8 +109,8 @@ export default {
     SU.add('common', 'esc', 'Esc', (wildcard) => {
       logDebug('Esc pressed');
       ExpActionCreator.handleEscape();
-      self.refs.spreadsheet.select(Store.getActiveSelection());
-      Store.setClipboard(null, false);
+      self.refs.spreadsheet.select(SheetStateStore.getActiveSelection());
+      SheetStateStore.setClipboard(null, false);
       self.setState({focus: 'grid', showFindBar: false, userIsTyping: false});
       self.refs.spreadsheet.repaint(); // render immediately
     });
@@ -149,7 +150,7 @@ export default {
 
     // editor shortcuts -------------------------------------------------------------------------------
     SU.add('common', 'toggle_reference', 'F4', (wildcard) => {
-      let focus = Store.getFocus(),
+      let focus = SheetStateStore.getFocus(),
           xp = ExpStore.getExpression();
 
       if (focus === 'grid') {
@@ -197,12 +198,12 @@ export default {
     // grid shortcuts -------------------------------------------------------------------------------
     // SU.add('grid', 'moveto_data_boundary', 'Ctrl+Up/Down/Left/Right', (wildcard) => {
     //    // -- For when backend-based jump is completed
-    //    let {range, origin} = Store.getActiveSelection();
+    //    let {range, origin} = SheetStateStore.getActiveSelection();
     //    API.jumpSelect(range, origin, false, wildcard);
     //  });
     //  SU.add('grid', 'moveto_data_boundary_extended', 'Ctrl+Shift+Up/Down/Left/Right', (wildcard) => {
     //    // -- For when backend-based jump is completed
-    //    let {range, origin} = Store.getActiveSelection();
+    //    let {range, origin} = SheetStateStore.getActiveSelection();
     //    API.jumpSelect(range, origin, true, wildcard);
     //  });
     SU.add('grid', 'moveto_data_boundary', 'Ctrl+Up/Down/Left/Right', (dir) => {
@@ -210,25 +211,25 @@ export default {
       // grid, which is why we're getting the spreadsheet's selection rather than the store's.
       // Might not be robust. (Alex 11/4)
       let oldInd = self.refs.spreadsheet.getSelectionArea().origin;
-      let newInd = Store.getDataBoundary(oldInd, dir);
+      let newInd = SheetStateStore.getDataBoundary(oldInd, dir);
       self.refs.spreadsheet.select(TC.indexToSelection(newInd));
     });
     SU.add('grid', 'moveto_data_boundary_selected', 'Ctrl+Shift+Up/Down/Left/Right', (dir) => {
       // same comment as in moveto_data_boundary applies.
-      // let oldSelection = Store.getActiveSelection();
+      // let oldSelection = SheetStateStore.getActiveSelection();
       let oldSelection = self.refs.spreadsheet.getSelectionArea();
-      let newSelection = Store.getDataBoundSelection(oldSelection, dir);
+      let newSelection = SheetStateStore.getDataBoundSelection(oldSelection, dir);
       self.refs.spreadsheet.select(newSelection);
     });
     SU.add('grid', 'grid_fill_down', 'Ctrl+D', (wildcard) => {
-      let {tl, br} = Store.getActiveSelection().range;
+      let {tl, br} = SheetStateStore.getActiveSelection().range;
       let copyFrom = TC.simpleToASRange({ tl: tl, br: {row: tl.row, col: br.col} }),
           copyTo = TC.simpleToASRange({ tl: {row: tl.row, col: tl.col},
                                                br: {row: br.row, col: tl.col} });
       API.copy(copyFrom, copyTo);
     });
     SU.add('grid', 'grid_fill_right', 'Ctrl+R', (wildcard) => {
-      let {tl, br} = Store.getActiveSelection().range;
+      let {tl, br} = SheetStateStore.getActiveSelection().range;
       let copyFrom = TC.simpleToASRange({ tl: tl, br: {row: br.row, col: tl.col} }),
           copyTo = TC.simpleToASRange({ tl: {row: tl.row, col: tl.col},
                                                br: {row: tl.row, col: br.col} });
@@ -238,7 +239,7 @@ export default {
       if (ExpStore.getUserIsTyping()) {
         self._getRawTextbox().selectAll();
       } else {
-        let {origin} = Store.getActiveSelection();
+        let {origin} = SheetStateStore.getActiveSelection();
         let range = self.refs.spreadsheet.getViewingWindow().range;
         self.refs.spreadsheet.select({origin: origin, range: range}, false);
       }
@@ -264,7 +265,7 @@ export default {
       self.refs.spreadsheet.shiftSelectionArea(0, dY);
     });
     SU.add('grid', 'grid_delete', 'Del/Backspace', (wildcard) => {
-      let rng = Store.getActiveSelection().range;
+      let rng = SheetStateStore.getActiveSelection().range;
       API.deleteRange(TC.simpleToASRange(rng));
     });
     SU.add('grid', 'grid_undo', 'Ctrl+Z', (wildcard) => {
@@ -274,7 +275,7 @@ export default {
       API.redo();
     });
     SU.add('grid', 'grid_repeat_last_action', 'Ctrl+Y', (wildcard) => {
-      let sel = Store.getActiveSelection();
+      let sel = SheetStateStore.getActiveSelection();
       API.repeat(sel);
     });
     SU.add('grid', 'chart', 'F11', (wildcard) => {
@@ -286,13 +287,13 @@ export default {
         let newStr = ExpStore.getExpression() + ' ';
         ExpActionCreator.handleGridChange(newStr);
       } else {
-        let {origin} = Store.getActiveSelection();
+        let {origin} = SheetStateStore.getActiveSelection();
         self.refs.spreadsheet.select({range: {tl: {row: origin.row, col: 1}, br: {row: origin.row, col: Infinity}},
                                      origin: origin}, false);
       }
     });
     SU.add('grid,notTyping', 'select_col', 'Ctrl+Space', (wildcard) => {
-      let {origin} = Store.getActiveSelection();
+      let {origin} = SheetStateStore.getActiveSelection();
       self.refs.spreadsheet.select({range: {tl: {row: 1, col: origin.col}, br: {row: Infinity, col: origin.col}},
                                     origin: origin}, false);
     });
@@ -307,8 +308,8 @@ export default {
     });
     SU.add('grid', 'copy_expression_above', 'Ctrl+Shift+\'', (wildcard) => {
       // TODO test
-      let {tl} = Store.getActiveSelection().range,
-          cell = Store.getCell(tl.col, tl.row-1);
+      let {tl} = SheetStateStore.getActiveSelection().range,
+          cell = CellStore.getCell(tl.col, tl.row-1);
       if (cell) {
         let xp = cell.cellExpression.expression || '';
         self.setExpression(xp);
@@ -316,8 +317,8 @@ export default {
     });
     SU.add('grid', 'copy_value_above', 'Ctrl+\'', (wildcard) => {
       // TODO test
-      let tl = Store.getActiveSelection().range.tl,
-          cell = Store.getCell(tl.col, tl.row-1);
+      let tl = SheetStateStore.getActiveSelection().range.tl,
+          cell = CellStore.getCell(tl.col, tl.row-1);
       if (cell) {
         let xp = Util.showValue(cell.cellValue) || '';
         self.setExpression(xp);

@@ -8,7 +8,8 @@ import KeyUtils from '../AS/KeyUtils';
 import ShortcutUtils from '../AS/ShortcutUtils';
 import ParseUtils from '../AS/ParsingUtils';
 
-import Store from '../stores/ASEvaluationStore';
+import CellStore from '../stores/ASCellStore';
+import SheetStateStore from '../stores/ASSheetStateStore';
 import ExpStore from '../stores/ASExpStore';
 import ExpActionCreator from '../actions/ASExpActionCreators.js';
 
@@ -76,7 +77,7 @@ export default React.createClass({
   },
 
   getWidth() {
-    if (Store.getActiveSelection()) {
+    if (SheetStateStore.getActiveSelection()) {
       let xp = this.editor.getValue(),
           rows = xp.split("\n"),
           longestStr = rows.reduce(function (a, b) { return a.length > b.length ? a : b; }),

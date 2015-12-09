@@ -56,7 +56,7 @@ import {
   unsetUITestMode
 } from './exec-api';
 
-import ASEvaluationStore from '../stores/ASEvaluationStore';
+import ASCellStore from '../stores/ASCellStore';
 import ASExpStore from '../stores/ASExpStore';
 import Util from '../AS/Util';
 import KeyUtils from '../AS/KeyUtils';
@@ -87,7 +87,7 @@ function textboxHasFocus() {
 }
 
 function activeSelection() {
-  return ASEvaluationStore.getActiveSelection();
+  return ASSheetStateStore.getActiveSelection();
 }
 
 function activeRange() {
@@ -258,7 +258,7 @@ function focusOnComponent(comp) {
 }
 
 function clipboardRange() {
-  return ASEvaluationStore.getClipboard().area.range;
+  return ASSheetStateStore.getClipboard().area.range;
 }
 
 function formatTestCellToStore() {
@@ -276,7 +276,7 @@ function blockUntilCopy(rng) {
 function blockOnGetCells(cs) {
   return blockUntil(() =>
       _.isEqual(
-        ASEvaluationStore.getLastUpdatedCells(),
+        ASCellStore.getLastUpdatedCells(),
         cs.map(formatTestCellToStore)
       )
   );

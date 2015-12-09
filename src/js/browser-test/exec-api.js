@@ -42,7 +42,7 @@ import _ from 'lodash';
 import API from '../actions/ASApiActionCreators';
 import Util from '../AS/Util';
 import TC from '../AS/TypeConversions';
-import Store from '../stores/ASEvaluationStore';
+import CellStore from '../stores/ASCellStore';
 import Constants from '../Constants';
 
 import {promise, exec, fromToInclusive, _do, _doDefer} from './exec-monad';

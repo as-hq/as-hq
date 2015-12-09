@@ -5,7 +5,7 @@ let Draggable = require('react-draggable');
 let ReactDOM = require('react-dom');
 import API from '../actions/ASApiActionCreators';
 import TC from '../AS/TypeConversions';
-import Store from '../stores/ASEvaluationStore';
+import CellStore from '../stores/ASCellStore';
 
 
 export default React.createClass({

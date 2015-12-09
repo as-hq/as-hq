@@ -8,7 +8,7 @@ import {AppCanvas, LeftNav, Paper, Styles} from 'material-ui';
 import ASNavBar from './ASNavBar.jsx';
 import API from '../actions/ASApiActionCreators';
 import Constants from '../Constants';
-import Store from '../stores/ASEvaluationStore.js';
+import SheetStateStore from '../stores/ASSheetStateStore';
 
 const ThemeManager = new Styles.ThemeManager();
 
@@ -27,8 +27,8 @@ export default React.createClass({
       userId = "TEST_USER_ID";
     }
 
-    Store.setCurrentSheetById(sheetId);
-    Store.setUserId(userId);
+    SheetStateStore.setCurrentSheetById(sheetId);
+    SheetStateStore.setUserId(userId);
     API.initialize();
   },
 

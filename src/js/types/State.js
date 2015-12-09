@@ -34,7 +34,7 @@ export type ASClientExpression = {
   language: ASLanguage;
 };
 
-export type ASCellStore =
+export type ASCellGrid =
   Dict<Array<Array<ASCell>>>;
 
 export type ASCursorStyle = 'auto' | 'crosshair' | 'move';

@@ -30,7 +30,8 @@ import type {
 } from '../types/Messages';
 
 import Constants from '../Constants';
-import Store from '../stores/ASEvaluationStore';
+import CellStore from '../stores/ASCellStore';
+import SheetStateStore from '../stores/ASSheetStateStore';
 import Util from '../AS/Util';
 import T from '../AS/Types';
 
@@ -128,12 +129,12 @@ export default {
   /* Type conversions */
 
   simpleToASRange(rng: NakedRange, sheetId?: string): ASRange {
-    if (typeof(sheetId) == "undefined") sheetId = Store.getCurrentSheet().sheetId;
+    if (typeof(sheetId) == "undefined") sheetId = SheetStateStore.getCurrentSheet().sheetId;
     return {tag: 'range', range: rng, sheetId: sheetId};
   },
 
   simpleToASIndex(idx: NakedIndex, sheetId?: string): ASIndex {
-    if (typeof(sheetId) == "undefined") sheetId = Store.getCurrentSheet().sheetId;
+    if (typeof(sheetId) == "undefined") sheetId = SheetStateStore.getCurrentSheet().sheetId;
     return {tag: 'index', index: idx, sheetId: sheetId};
   },
 
@@ -163,7 +164,7 @@ export default {
   },
 
   rangeToASWindow(rng: NakedRange): ASClientWindow {
-    let sheetId = Store.getCurrentSheet().sheetId;
+    let sheetId = SheetStateStore.getCurrentSheet().sheetId;
     return { window: rng, sheetId: sheetId };
   },
 

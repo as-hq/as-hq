@@ -1,6 +1,6 @@
 import {logDebug} from './Logger';
 
-import Store from '../stores/ASEvaluationStore';
+import CellStore from '../stores/ASCellStore';
 import TC from './TypeConversions';
 import Util from './Util';
 
@@ -10,7 +10,7 @@ export default {
 	valsToHtml(vals, rng) {
 		let table = document.createElement('table');
 		table.setAttribute("id","alphasheets"); // how we indicate the copy originated from within alphasheets
-    table.setAttribute("data-sheet-id", Store.getCurrentSheet().sheetId);
+    table.setAttribute("data-sheet-id", SheetStateStore.getCurrentSheet().sheetId);
     table.setAttribute("data-from-range", JSON.stringify(rng));
 		let tableBody = document.createElement('tbody');
 		vals.forEach((rowVals) => {
