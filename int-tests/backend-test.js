@@ -465,7 +465,7 @@ describe('backend', () => {
           ]);
         });
 
-        xit('should correctly parse dependencies in graph-db', (done) => {
+        it('should correctly parse dependencies in graph-db', (done) => {
           _do([
             python('A1', '1'),
             python('A3', '"A1"'),
@@ -2569,8 +2569,7 @@ describe('backend', () => {
           ]);
       });
 
-      // KNOWN TO HANG -- fix this when we diagnose the problem better
-      xit('should something something something critch bug', (done) => {
+      it('should something something something critch bug', (done) => {
         _do([
           python('A1', 'range(10)'),
           python('C1', '@A1'),
