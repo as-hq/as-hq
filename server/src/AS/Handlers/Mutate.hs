@@ -8,6 +8,8 @@ import AS.Types.Excel
 import AS.Types.Eval
 
 import AS.DB.Internal as DI
+import AS.DB.Internal as RP
+import qualified AS.Types.RowColProps as RP
 import qualified Data.Text as T
 
 import AS.Parsing.Substitutions
@@ -21,7 +23,8 @@ import Control.Concurrent
 import Data.Maybe
 
 handleMutateSheet :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
-handleMutateSheet uc state (PayloadMutate mutateType) = do 
+handleMutateSheet uc state (PayloadMutate mutateType) = do
+  let sid = userSheetId uc
   conn <- dbConn <$> readMVar state
   oldCells <- DB.getCellsInSheet conn (userSheetId uc)
   let newCells = map (cellMap mutateType) oldCells
@@ -32,9 +35,52 @@ handleMutateSheet uc state (PayloadMutate mutateType) = do
       blankedCells = blankCellsAt $ map (cellLocation . fst) oldCellsNewCells'
       updatedCells = mergeCells newCells' blankedCells -- eval blanks at the old cell locations, re-eval at new locs
   printObj "newCells" newCells
+  allRowCols <- DB.getRowColsInSheet conn sid
+  let newRowCols = catMaybes $ map (rowColMap mutateType) allRowCols
+  deleteRowColsInSheet conn sid
+  foldl (>>) (return ()) $ map (setRowColProps conn sid) newRowCols
   updateMsg <- runDispatchCycle state updatedCells DescendantsWithParent (userCommitSource uc)
   broadcastFiltered state uc updateMsg
 
+-- | For a mutate, maps the old row to the new row. 
+-- | Could be done by making separate functions for RP.RowTypes and RP.ColumnTypes
+rowColMap :: MutateType -> RP.RowCol -> Maybe RP.RowCol
+rowColMap (InsertCol c') rc@(RP.RowCol rct rci rcp) =
+  case rct of
+       RP.ColumnType -> Just $ RP.RowCol rct (if rci >= c' then rci+1 else rci) rcp
+       RP.RowType -> Just rc
+rowColMap (InsertRow r') rc@(RP.RowCol rct rci rcp) =
+  case rct of
+       RP.ColumnType -> Just rc
+       RP.RowType -> Just $ RP.RowCol rct (if rci >= r' then rci+1 else rci) rcp
+rowColMap (DeleteCol c') rc@(RP.RowCol rct rci rcp) =
+  case rct of
+       RP.ColumnType -> if rci == c'
+                        then Nothing
+                        else Just $ RP.RowCol rct (if rci >= c' then rci-1 else rci) rcp
+       RP.RowType -> Just rc
+rowColMap (DeleteRow r') rc@(RP.RowCol rct rci rcp) =
+  case rct of
+       RP.ColumnType -> if rci == r'
+                        then Nothing
+                        else Just $ RP.RowCol rct (if rci >= r' then rci-1 else rci) rcp
+       RP.RowType -> Just rc
+rowColMap (DragCol oldC newC) rc@(RP.RowCol rct rci rcp) =
+  case rct of
+       RP.ColumnType -> if rci == oldC
+                           then Just $ RP.RowCol rct newC rcp
+                           else if (rci == newC)
+                               then Just $ RP.RowCol rct oldC rcp
+                               else Just rc
+       RP.RowType -> Just rc
+rowColMap (DragRow oldR newR) rc@(RP.RowCol rct rci rcp) =
+  case rct of
+       RP.ColumnType -> Just rc
+       RP.RowType -> if rci == oldR
+                        then Just $ RP.RowCol rct newR rcp
+                        else if rci == newR 
+                            then Just $ RP.RowCol rct oldR rcp
+                            else Just rc
 
 cellLocMap :: MutateType -> (ASIndex -> Maybe ASIndex)
 cellLocMap (InsertCol c') (Index sid (c, r)) = Just $ Index sid (if c >= c' then c+1 else c, r)
