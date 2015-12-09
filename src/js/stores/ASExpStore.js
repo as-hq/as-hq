@@ -64,15 +64,15 @@ const ASExpStore = Object.assign({}, BaseStore, {
   dispatcherIndex: Dispatcher.register(function (action) {
     logDebug("Exp Store detected dispatcher payload");
     switch (action._type) {
-      case Constants.ActionTypes.GRID_KEY_PRESSED:
-      case Constants.ActionTypes.EDITOR_CHANGED:
-      case Constants.ActionTypes.TEXTBOX_CHANGED:
+      case 'GRID_KEY_PRESSED':
+      case 'EDITOR_CHANGED':
+      case 'TEXTBOX_CHANGED':
         ASExpStore.updateStoreNormalTyping(action._type, action.xpStr);
         break;
-      case Constants.ActionTypes.NORMAL_SEL_CHANGED:
+      case 'NORMAL_SEL_CHANGED':
         ASExpStore.updateStoreSelChange(action.xpStr);
         break;
-      case Constants.ActionTypes.PARTIAL_REF_CHANGE_WITH_GRID:
+      case 'PARTIAL_REF_CHANGE_WITH_GRID':
         let curXpStr = ASExpStore.getExpression(),
             lastRef = ASExpStore.getLastRef(),
             newXpStr = lastRef ?
@@ -80,11 +80,11 @@ const ASExpStore = Object.assign({}, BaseStore, {
               curXpStr + action.excelStr;
         ASExpStore.updatePartialRef(action._type, newXpStr, action.excelStr);
         break;
-      case Constants.ActionTypes.PARTIAL_REF_CHANGE_WITH_EDITOR:
-      case Constants.ActionTypes.PARTIAL_REF_CHANGE_WITH_TEXTBOX:
+      case 'PARTIAL_REF_CHANGE_WITH_EDITOR':
+      case 'PARTIAL_REF_CHANGE_WITH_TEXTBOX':
         ASExpStore.updatePartialRef(action._type,action.xpStr,action.excelStr);
         break;
-      case Constants.ActionTypes.ESC_PRESSED:
+      case 'ESC_PRESSED':
         logDebug("Exp store found ESC");
         ASExpStore.setExpression("");
         ASExpStore.setUserIsTyping(false);
@@ -93,10 +93,10 @@ const ASExpStore = Object.assign({}, BaseStore, {
         break;
 
       // Also need to update after some "Eval"-type events
-      case Constants.ActionTypes.GOT_UNDO:
-      case Constants.ActionTypes.GOT_REDO:
-      case Constants.ActionTypes.DELETED_LOCS:
-      case Constants.ActionTypes.GOT_UPDATED_CELLS:
+      case 'GOT_UNDO':
+      case 'GOT_REDO':
+      case 'DELETED_LOCS':
+      case 'GOT_UPDATED_CELLS':
         Dispatcher.waitFor([Store.dispatcherIndex]);
         let sel = Store.getActiveSelection();
 
@@ -106,7 +106,7 @@ const ASExpStore = Object.assign({}, BaseStore, {
         }
         break;
       // The spreadsheet listens to this and sets focus to grid
-      case Constants.ActionTypes.FETCHED_CELLS:
+      case 'FETCHED_CELLS':
         ASExpStore.emitChange();
         break;
       default:
@@ -236,7 +236,7 @@ const ASExpStore = Object.assign({}, BaseStore, {
     this.setXpChangeOrigin(type);
     this.setExpression(xpStr);
     this.setLastRef(null); // no longer have a "last ref"
-    let lang = this.getLanguage(), 
+    let lang = this.getLanguage(),
         deps = Util.parseDependencies(xpStr, lang);
     logDebug("DEPS: " + JSON.stringify(deps));
     Store.setActiveCellDependencies(deps);
