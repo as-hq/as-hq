@@ -64,6 +64,9 @@ testDispatch state lang crd str = runDispatchCycle state [Cell (Index sid crd) (
 -- dispatch invariants:
 -- TODO
 
+-- dispatch questions unanswered:
+-- should we try to detect ambiguity when executing one of several possible eval paths? (e.g. where one path would cause a circ dep, and another would be fine)
+
 -- assumes all evaled cells are in the same sheet
 -- the only information we're really passed in from the cells is the locations and the expressions of
 -- the cells getting evaluated. We pull the rest from the DB. 
