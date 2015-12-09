@@ -193,7 +193,7 @@ describe('backend', () => {
 
         it('should decouple when replacing middle of object and send message', (done) => {
           _do([
-            python('A1', '[[1,2],[3,4],[5,6]])'),
+            python('A1', '[[1,2],[3,4],[5,6]]'),
             python('A2', 'range(2)'),
             decouple(),
             shouldBe('A1', valueI(1)),
@@ -239,10 +239,9 @@ describe('backend', () => {
               python('A3', 'B2+1'),
               shouldBe('A3', valueI(4)),
               python('A1', 'range(6)'),
-              _forM_(_.range(6), (i) => {
-                return shouldBe(`A${i + 1}`, valueI(i)); // overwrite power, these can no longer change
-              }),
-              shouldBe('B2', '2'), // proopagation should still happen
+              shouldBe('A2', valueI(1)),
+              shouldBe('A3', valueI(2)),
+              shouldBe('B2', valueI(2)), // proopagation should still happen
               expressionShouldBe('B2', 'A2+1'),
               expressionShouldBe('A2', 'range(6)'), // should be coupled now
               expressionShouldBe('A3', 'range(6)'),
@@ -255,9 +254,9 @@ describe('backend', () => {
               python('A1', '69'),
               python('A2', 'A1'),
               python('A1', 'range(10)'),
-              _forM_(_.range(10), (i) => {
-                return shouldBe(`A${i + 1}`, valueI(i));
-              }),
+              shouldBe('A1', valueI(0)),
+              shouldBe('A2', valueI(1)),
+              shouldBe('A3', valueI(2)),
               expressionShouldBe('A1', 'range(10)'), // should be coupled
               expressionShouldBe('A2', 'range(10)'),
               exec(done)
@@ -330,12 +329,11 @@ describe('backend', () => {
               python('A1', 'range(5)'),
               python('B2','@A1'),
               python('A1', '[1,2]'),
+              decouple(),
               shouldBe('A3', valueI(2)),
               expressionShouldBe('A3', '2'),
               expressionShouldBe('A1', '[1,2]'),
-              shouldBeNothing('B3'),
               shouldBeNothing('B4'),
-              expressionShouldBe('B1','@A1'),
               expressionShouldBe('B2','@A1'),
               exec(done)
             ]);
@@ -346,6 +344,7 @@ describe('backend', () => {
               python('B1', 'range(5)'),
               python('C1', '@B1'),
               python('A1', '[[1,2]]'),
+              decouple(),
               // B should decouple and C1 should be a horizontal range now
               expressionShouldBe('B1', '[[1,2]]'),
               expressionShouldBe('B2', '1'),
@@ -502,16 +501,8 @@ describe('backend', () => {
             python('A1', 'range(102,110)'),
             python('C3', 'range(A3, A3+3)'),
             python('E3', 'range(A3, A3+4)'),
-            python('A1', 'range(C3,E5)'),
-            decouple(),
-            shouldBe('A1', valueI(104)),
             shouldError(
-              python('A1', 'range(C3,E6)')
-            ),
-            python('E3', 'range(A3+C4-104,A3+C3-104+4)'),
-            shouldBe('A1', valueI(104)),
-            shouldError(
-              python('A1', 'range(C3,E6)')
+              python('A1', 'range(C3,E5)'),
             ),
             exec(done)
           ]);
@@ -1301,7 +1292,6 @@ describe('backend', () => {
               python('A1', '[range(10)]'),
               excel('A2', '=SUM(A1:J1)'),
               insertRow(1),
-              decouple(),
               shouldBe('A3', valueI(45)),
               exec(done)
             ]);
@@ -1325,7 +1315,6 @@ describe('backend', () => {
             _do([
               python('A1', 'range(10)'),
               insertRow(1),
-              decouple(), // artifact of how decoupling is currently implemented
               shouldBeNothing('A1'),
               shouldBe('A2', valueI(0)),
               shouldBeCoupled('A2'),
@@ -1382,7 +1371,6 @@ describe('backend', () => {
             _do([
               python('A1', 'range(10)'),
               deleteRow(11),
-              decouple(),
               shouldBe('A2', valueI(1)),
               shouldBeCoupled('A2'),
               exec(done)
@@ -1459,13 +1447,12 @@ describe('backend', () => {
             _do([
               python('A1', '[range(3)]'),
               dragRow(1,2),
-              decouple(), // artifact of how decoupling is currently implemented
               shouldBe('B2', valueI(1)),
               shouldBeCoupled('B2'),
 
               python('D1', 'range(10)'),
-              dragRow(11, 1), 
-              decouple(), 
+              dragRow(11, 1),
+              decouple(),
               shouldBe('D2', valueI(0)),
               shouldBeCoupled('D2'),
               exec(done)
@@ -1502,7 +1489,6 @@ describe('backend', () => {
               python('A1', 'range(10)'),
               excel('B1', '=SUM(A1:A10)'),
               insertCol(1),
-              decouple(),
               shouldBe('C1', valueI(45)),
               exec(done)
             ]);
@@ -1526,7 +1512,6 @@ describe('backend', () => {
             _do([
               python('A1', '[range(10)]'),
               insertCol(1),
-              decouple(), // artifact of how decoupling is currently implemented
               shouldBeNothing('A1'),
               shouldBe('B1', valueI(0)),
               shouldBeCoupled('B1'),
@@ -1584,7 +1569,6 @@ describe('backend', () => {
             _do([
               python('A1', '[range(10)]'),
               deleteCol(11),
-              decouple(), // artifact of current decouple code
               shouldBe('B1', valueI(1)),
               shouldBeCoupled('B1'),
               exec(done)
@@ -1672,13 +1656,12 @@ describe('backend', () => {
             _do([
               python('A1', 'range(3)'),
               dragCol(1,2),
-              decouple(), // artifact of how decoupling is currently implemente
               shouldBe('B2', valueI(1)),
               shouldBeCoupled('B2'),
 
               python('A4', '[range(10)]'),
-              dragCol(11, 1), 
-              decouple(), 
+              dragCol(11, 1),
+              decouple(),
               shouldBe('B4', valueI(0)),
               shouldBeCoupled('B4'),
               exec(done)
@@ -2516,7 +2499,7 @@ describe('backend', () => {
           ]);
       });
 
-      xit('references series', (done) => {
+      it('references series', (done) => {
         _do([
           python('A1', 'pd.Series([1,2,3])'),
           r('B1', '@A1'),
@@ -2597,7 +2580,7 @@ describe('backend', () => {
       });
     });
 
-    describe('dependencies on expanding cells', (done) => {
+    describe('dependencies on expanding cells', () => {
       xit('throws error on incorrect pointer ref', (done) => {
         _do([
           python('A1', 'range(10)'),
@@ -2616,27 +2599,19 @@ describe('backend', () => {
           exec(done)
           ]);
       });
-      xit('propagates overwritten expanded cells', (done) => {
+      it('propagates overwritten expanded cells', (done) => {
         _do([
           python('A1', 'range(10)'),
           python('B1', '@A1'),
           python('A1', 'range(5)'),
-          shouldBeNothing('B6'),
-          exec(done)
-          ]);
-      });
-      xit('propagates overwritten expanded cells', (done) => {
-        _do([
-          python('A1', 'range(10)'),
-          python('B1', '@A1'),
-          python('A1', 'range(5)'),
+          decouple(),
           shouldBeNothing('B6'),
           exec(done)
           ]);
       });
     });
 
-    describe('arbitrary datatype embedding in python', (done) => {
+    describe('arbitrary datatype embedding in python', () => {
       it('embeds lists of dicts', (done) => {
         _do([
           python('A1', '[{\'a\': 1}, {\'b\': 2}]'),
