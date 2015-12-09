@@ -502,7 +502,7 @@ describe('backend', () => {
             python('C3', 'range(A3, A3+3)'),
             python('E3', 'range(A3, A3+4)'),
             shouldError(
-              python('A1', 'range(C3,E5)'),
+              python('A1', 'range(C3,E5)')
             ),
             exec(done)
           ]);
