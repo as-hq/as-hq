@@ -17,7 +17,7 @@ import AS.Parsing.Substitutions (getDependencies)
 import AS.Window
 import AS.Logging
 
-import Data.List (zip4,head,partition,nub,intercalate)
+import Data.List (zip4,head,nub,intercalate)
 import Data.Maybe 
 import Data.List.Split
 import qualified Data.Map as M
@@ -83,7 +83,7 @@ getCell loc = head <$> getCells [loc]
 getPossiblyBlankCell :: ASIndex -> IO ASCell
 getPossiblyBlankCell loc = head <$> getPossiblyBlankCells [loc]
 
--- expects all indices to be Index
+-- this function is order-preserving
 getCells :: [ASIndex] -> IO [Maybe ASCell]
 getCells [] = return []
 getCells locs = DI.getCellsByMessage msg num
@@ -91,12 +91,14 @@ getCells locs = DI.getCellsByMessage msg num
     msg = DI.showB $ intercalate msgPartDelimiter $ map show2 locs
     num = length locs
 
+-- looks up cells in the given context, then in the database, in that precedence order
+-- this function is order-preserving
 getCellsWithContext :: EvalContext -> [ASIndex] -> IO [Maybe ASCell]
-getCellsWithContext (EvalContext mp _ _) locs = (++) ctxCells <$> dbCells
+getCellsWithContext (EvalContext mp _ _) locs = map replaceWithContext <$> zip locs <$> getCells locs
   where
-    (locsInContext, locsNotInContext) = partition (flip M.member mp) locs 
-    ctxCells = map (Just . ((M.!) mp)) locsInContext
-    dbCells = getCells locsNotInContext
+    replaceWithContext (l, c) = case (M.lookup l mp) of 
+      Just foundCell -> Just foundCell
+      Nothing -> c
 
 getCellsInSheet :: Connection -> ASSheetId -> IO [ASCell]
 getCellsInSheet conn sid = DI.getCellsByKeyPattern conn $ "I/" ++ (T.unpack sid) ++ "/(*,*)"
@@ -105,6 +107,7 @@ getAllCells :: Connection -> IO [ASCell]
 getAllCells conn = DI.getCellsByKeyPattern conn "I/*/(*,*)"
 
 -- Gets the cells at the locations with expressions and values removed, but tags intact. 
+-- this function is order-preserving
 getBlankedCellsAt :: [ASIndex] -> IO [ASCell]
 getBlankedCellsAt locs = 
   let blank xp = case xp of 
@@ -114,26 +117,7 @@ getBlankedCellsAt locs =
     cells <- getPossiblyBlankCells locs
     return $ map (\(Cell l xp v ts) -> Cell l (blank xp) NoValue ts) cells
 
----- allows indices to be Pointer or Index
---getCompositeCells :: Connection -> [ASIndex] -> IO [Maybe CompositeCell]
---getCompositeCells _ [] = return []
---getCompositeCells conn locs =
---  let msg = DI.showB $ intercalate DI.msgPartDelimiter $ map (show2 . pointerToIndex) locs
---      num = length locs
---      expandPointerRefs (loc, ccell) = case loc of 
---        Pointer sid coord -> case ccell of 
---          Just (Cell l (Coupled xp lang dtype key) v ts) -> do
---            -- if the cell was coupled but no range descriptor exists, something fucked up.
---            (Just desc) <- getRangeDescriptor conn key
---            let fatLocs = DI.rangeKeyToIndices key
---            cells <- map fromJust <$> getCells fatLocs
---            return . Just . Fat $ FatCell cells desc
---          _ -> return Nothing
---        _ -> return $ Single <$> ccell 
---  in do 
---    ccells <- DI.getCellsByMessage msg num
---    mapM expandPointerRefs $ zip locs ccells
-
+-- this function is order-preserving
 getPossiblyBlankCells :: [ASIndex] -> IO [ASCell]
 getPossiblyBlankCells locs = do 
   cells <- getCells locs

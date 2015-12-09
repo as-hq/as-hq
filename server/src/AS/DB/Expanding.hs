@@ -83,7 +83,7 @@ getFatCellsInRange conn rng = do
   return $ map fst zipRectsContained
 
 getFatCellIntersections :: Connection -> EvalContext -> Either [ASIndex] [RangeKey] -> IO [RangeDescriptor]
-getFatCellIntersections conn ctx (Left locs) = (printObj "FUCK YOU" ctx) >> (filter descriptorIntersects) . concat <$> mapM (getRangeDescriptorsInSheetWithContext conn ctx) sheetIds
+getFatCellIntersections conn ctx (Left locs) = (filter descriptorIntersects) . concat <$> mapM (getRangeDescriptorsInSheetWithContext conn ctx) sheetIds
   where
     sheetIds = L.nub $ map locSheetId locs
     descriptorIntersects r = anyLocsContainedInRect locs (rangeRect . descriptorKey $ r)

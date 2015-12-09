@@ -61,6 +61,9 @@ testDispatch state lang crd str = runDispatchCycle state [Cell (Index sid crd) (
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Exposed functions / regular eval route
 
+-- dispatch invariants:
+-- TODO
+
 -- assumes all evaled cells are in the same sheet
 -- the only information we're really passed in from the cells is the locations and the expressions of
 -- the cells getting evaluated. We pull the rest from the DB. 
@@ -135,31 +138,17 @@ getEvalLocs conn origCells descSetting = do
 -- | Given a set of locations to eval, return the corresponding set of cells to perform
 -- the evaluations in. We look up locs in the DB, but give precedence to EvalContext (if a cell is in the context, we use that instead, 
 -- as it is the most up-to-date info we have). 
+-- this function is order-preserving
 getCellsToEval :: EvalContext -> [ASIndex] -> EitherTExec [ASCell]
-getCellsToEval ctx locs = (++) contextCells <$> (mapM checkExists =<< zip locs <$> (lift $ DB.getCells nonContextLocs))
+getCellsToEval ctx locs = possiblyThrowException =<< (lift $ DB.getCellsWithContext ctx locs)
   where 
-    checkExists (loc, Nothing)    = left $ DBNothingException [loc]
-    checkExists (_, Just c)       = return c
-    (contextLocs, nonContextLocs) = L.partition (flip M.member (contextMap ctx)) locs
-    contextCells                  = map ((M.!) (contextMap ctx)) contextLocs
+    possiblyThrowException mcells = if any isNothing mcells
+      then left $ DBNothingException missingLocs
+      else return $ map fromJust mcells
+        where missingLocs = map fst $ filter (\(_,mc) -> isNothing mc) $ zip locs mcells 
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Maps 
-
----- Takes in a value map, and change it from (Index -> ASValue) to (Index -> Formatted ASValue), which
----- is necessary for Excel evals.  Since this is only relevant for Excel evaluations, I'd ideally have
----- this in Eval/Core and only call it for Excel evals, but that would require O(n) calls to the DB, 
----- which is prohibitively expensive. 
----- TODO refactor s.t. we construct a formatted map from the beginning
---formatValsMap :: ValMap -> IO FormattedValMap
---formatValsMap mp = do
---  let mp' = M.toList mp  
---      locs = map fst mp'
---      vals = map snd mp' 
---  cells <- DB.getPossiblyBlankCells locs 
---  let formats = map getCellFormatType cells
---      vals' = map (\(v, ft) -> Formatted v ft) (zip vals formats)
---  return $ M.fromList $ zip locs vals'
 
 -- see the comments above dispatch to see why an old evalContext is passed in.
 getModifiedContext :: Connection -> [ASReference] -> EvalContext -> EitherTExec EvalContext
