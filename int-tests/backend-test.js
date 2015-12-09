@@ -206,6 +206,23 @@ describe('backend', () => {
           ]);
         });
 
+        // this test actually passes if you run it by hand
+        // but we currently don't have a monadic or function.
+        xit('should decouple one list or the other when they intersect nondeterministically', (done) => {
+          _do([
+            python('A1', '2'),
+            python('C1', 'range(A1)'),
+            python('A3', '[range(A1)]'),
+            python('A1', '4'),
+            // need an or here???
+            // or([
+            //   and([shouldBeCoupled('C4'), shouldBeDecoupled('D3')]),
+            //   and([shouldBeDecoupled('C4'), shouldBeCoupled('D3')])
+            // ]),
+            exec(done)
+          ]);
+        });
+
         it('should not send decouple message when replacing list of same size', (done) => {
           _do([
             python('A1', 'range(5)'),
@@ -221,6 +238,19 @@ describe('backend', () => {
             python('A1', 'range(5)'),
             delete_('A1:A5'),
             shouldBeNothing('A1'),
+            exec(done)
+          ]);
+        });
+
+        // Note: where "bitch" = "cell with descendants"
+        it('should not fuck bitches during decouple after having eaten them', (done) => {
+          _do([
+            python('A2', '5'),
+            python('B2', 'A2 * 10'),
+            python('A1', 'range(3)'),
+            shouldBe('B2', valueI(10)),
+            python('A3', '10'),
+            shouldBe('B2', valueI(10)), // checks decoupling did not cause the bitch's children to change value
             exec(done)
           ]);
         });
@@ -1824,6 +1854,18 @@ describe('backend', () => {
           ]);
         });
 
+        it('can copy a range onto another and decouple', (done) => {
+          _do([
+            python('B1', 'range(1)'),
+            python('C1', 'range(2)'),
+            copy('B1', 'C1'),
+            decouple(),
+            shouldBeCoupled('C1'),
+            shouldBeDecoupled('C2'),
+            exec(done)
+          ]);
+        });
+
         it('should trigger eval when a cell is copied into a dependency', (done) => {
           _do([
             python('A1', '1'),
@@ -1989,6 +2031,20 @@ describe('backend', () => {
             shouldBe('C1', valueI(3)),
             shouldBe('B2', valueI(3)),
             shouldBeNothing('C2'),
+            exec(done)
+          ]);
+        });
+
+        it('should cut ranges and pointers to those ranges properly', (done) => {
+          _do([
+            python('A1', 'range(1)'),
+            python('B1', '@A1'),
+            cut('A1:B1', 'A2:B2'),
+            shouldBeNothing('A1'),
+            shouldBeNothing('B1'),
+            python('A2', 'range(2)'),
+            shouldBe('A3', valueI(1)),
+            shouldBe('B3', valueI(1)),
             exec(done)
           ]);
         });
