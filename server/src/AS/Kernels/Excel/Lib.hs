@@ -439,6 +439,7 @@ refToEntity c (ERef (l@(RangeRef r))) = if any isNothing vals
     mapVals = map (cellToFormattedVal . Just . (mp M.!)) inMap
     dbVals = dbLookupBulk needDB
     vals = map toEValue $ mapVals ++ dbVals 
+refToEntity c (ERef (PointerRef p)) = Left $ REF $ "Can't convert pointer to entity"
 
 replace :: (M.Map ERef EEntity) -> EResult -> EResult
 replace mp r@(Right (EntityRef ref)) = case (M.lookup ref mp) of
@@ -855,6 +856,7 @@ eColumn c e = do
   (ERef loc) <- getOptional "ref" (ERef (IndexRef $ curLoc c)) "column" 1 e :: ThrowsError ERef
   case loc of
     IndexRef (Index _ (a,b)) -> valToResult $ EValueNum $ return $ EValueI $ fromIntegral a
+    PointerRef _ -> Left $ REF $ "Can't convert pointer to entity"
     RangeRef (Range _ ((a,b),(c,d))) -> Right $ EntityMatrix $ EMatrix (c-a+1) (d-b+1) (flattenMatrix m)
       where
         m = V.replicate (d-b+1) firstRow
@@ -867,6 +869,7 @@ eRow c e = do
   (ERef loc) <- getOptional "ref" (ERef (IndexRef $ curLoc c)) "row" 1 e :: ThrowsError ERef
   case loc of
     IndexRef (Index _ (a,b)) -> valToResult $ EValueNum $ return $ EValueI $ fromIntegral b
+    PointerRef _ -> Left $ REF $ "Can't convert pointer to entity"
     RangeRef (Range _((a,b),(c,d))) -> Right $ EntityMatrix $ EMatrix (c-a+1) (d-b+1) (flattenMatrix m)
       where
         m = V.map (V.replicate (d-b+1)) colValues

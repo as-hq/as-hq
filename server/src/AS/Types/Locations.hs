@@ -90,6 +90,7 @@ instance FromJSON ASRange where
 
 instance ToJSON ASReference where
   toJSON (IndexRef idx) = toJSON idx
+  toJSON (PointerRef p) = toJSON p
   toJSON (RangeRef rng) = toJSON rng
 instance FromJSON ASReference
 
@@ -111,14 +112,17 @@ instance Serialize Dimensions
 
 getHeight :: ASReference -> Int
 getHeight (IndexRef _) = 1
+getHeight (PointerRef _) = 1
 getHeight (RangeRef (Range _ ((_,b),(_,d)))) = d-b+1
 
 getWidth :: ASReference -> Int
 getWidth (IndexRef _) = 1
+getWidth (PointerRef _) = 1
 getWidth (RangeRef (Range _ ((a,_),(c,_)))) = c-a+1
 
 isRange :: ASReference -> Bool
 isRange (IndexRef _) = False
+isRange (PointerRef _) = False
 isRange (RangeRef _) = True
 
 -- tail recursive for speed
@@ -159,6 +163,7 @@ rangeContainsRange (Range sid1 ((x1, y1), (x2, y2))) (Range sid2 ((x1', y1'), (x
 rangeContainsRef :: ASRange -> ASReference -> Bool
 rangeContainsRef r ref = case ref of 
   IndexRef i  -> rangeContainsIndex r i
+  PointerRef p -> rangeContainsIndex r (pointerToIndex p)
   RangeRef r' -> rangeContainsRange r r'
   OutOfBounds -> False 
 
@@ -186,6 +191,7 @@ rangeToIndicesRowMajor2D (Range sheet (ul, lr)) = map (\y -> [Index sheet (x,y) 
 
 shiftLoc :: Offset -> ASReference -> ASReference
 shiftLoc o (IndexRef (Index sh (x,y))) = IndexRef $ Index sh (x+(dX o), y+(dY o))
+shiftLoc o (PointerRef (Pointer sh (x,y))) = PointerRef $ Pointer sh (x+(dX o), y+(dY o))
 shiftLoc o (RangeRef (Range sh ((x,y),(x2,y2)))) = RangeRef $ Range sh ((x+(dX o), y+(dY o)), (x2+(dX o), y2+(dY o)))
 
 shiftInd :: Offset -> ASIndex -> ASIndex

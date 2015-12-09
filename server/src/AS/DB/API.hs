@@ -91,6 +91,13 @@ getCells locs = DI.getCellsByMessage msg num
     msg = DI.showB $ intercalate msgPartDelimiter $ map show2 locs
     num = length locs
 
+getCellsWithContext :: EvalContext -> [ASIndex] -> IO [Maybe ASCell]
+getCellsWithContext (EvalContext mp _ _) locs = (++) ctxCells <$> dbCells
+  where
+    (locsInContext, locsNotInContext) = partition (flip M.member mp) locs 
+    ctxCells = map (Just . ((M.!) mp)) locsInContext
+    dbCells = getCells locsNotInContext
+
 getCellsInSheet :: Connection -> ASSheetId -> IO [ASCell]
 getCellsInSheet conn sid = DI.getCellsByKeyPattern conn $ "I/" ++ (T.unpack sid) ++ "/(*,*)"
 

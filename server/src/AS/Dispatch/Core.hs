@@ -275,7 +275,7 @@ contextInsert conn c@(Cell idx xp _ ps) (Formatted cv f) ctx = do
   let decoupledLocs = concat $ map (rangeKeyToIndices . descriptorKey) newlyRemovedDescriptors
   -- Given the locs, we get the cells that we have to decouple from the DB and then change their expressions
   -- to be decoupled (by using the value of the cell)
-  decoupledCells <- lift $ ((map DI.toDecoupled) . catMaybes) <$> DB.getCells decoupledLocs
+  decoupledCells <- lift $ ((map DI.toDecoupled) . catMaybes) <$> DB.getCellsWithContext ctx' decoupledLocs
   printWithTimeT $ "DECOUPLED CELLS: " ++ (show decoupledCells)
   -- We want to update all of the decoupled cells in our mini-spreadsheet map
   let mpWithDecoupledCells = insertMultiple mp decoupledLocs decoupledCells
