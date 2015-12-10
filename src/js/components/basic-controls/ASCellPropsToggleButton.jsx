@@ -76,17 +76,16 @@ export default React.createClass({
     let newIndices = TC.rangeToIndices(activeSelection.range);
     console.log('indices', newIndices);
     let newCells = Util.removeEmpty(newIndices.map(
-      ({row, col}) => CellStore.getCell(row, col)
+      ({col, row}) => CellStore.getCell(col, row)
     ));
     console.log('new cells', newCells);
     let active = newCells.map((cell) =>
       {
-        let ret=  Util.cellPropIsActive(this.props.cellProp, cell);
+        let ret = Util.cellPropIsActive(this.props.cellProp, cell);
         console.log('cell prop is active', ret);
         return ret;
       }
-    ).every((val) => val);
-
+    ).every((val) => val) && (newCells.length > 0);
     this.setState({
       active: active
     });

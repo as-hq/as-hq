@@ -684,11 +684,11 @@ export default {
   /*************************************************************************************************************************/
   // Cells
 
-  cellPropIsActive(prop: ASCellProp, cell: ASCell): boolean {
+  cellPropIsActive(propName: string, cell: ASCell): boolean {
     let {cellProps} = cell;
     let props = cellProps.map(({tag}) => tag);
     console.log('cell props', props);
-    return props.indexOf(prop.tag) >= 0;
+    return props.indexOf(propName) >= 0;
   },
 
  /*************************************************************************************************************************/
@@ -800,7 +800,7 @@ export default {
   removeEmpty<T>(arr: Array<?T>): Array<T> {
     let ret: Array<T> = [];
     arr.forEach((ele) => {
-      if (!! ele) {
+      if (ele != null) {
         ret.push(ele);
       }
     });

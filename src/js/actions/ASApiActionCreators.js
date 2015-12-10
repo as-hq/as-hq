@@ -456,7 +456,7 @@ export default {
   toggleProp(prop: ASCellProp, rng: NakedRange) {
     let msg = TC.makeClientMessageRaw(Constants.ServerActions.ToggleProp, {
       "tag": "PayloadProp",
-      "prop": {tag: prop, contents: []},
+      "prop": prop,
       "tagRange": TC.simpleToASRange(rng)
     });
     this.send(msg);

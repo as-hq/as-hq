@@ -106,13 +106,13 @@ export default {
     });
     SU.add("common", "bold", "Ctrl+B", (wildcard: string) => {
       SelectionStore.withActiveSelection((sel) => {
-        API.toggleProp({tag: "Bold"}, sel.range);
+        API.toggleProp({tag: "Bold", contents: []}, sel.range);
         self.refs.spreadsheet.repaint();
       });
     });
     SU.add("common", "italic", "Ctrl+I", (wildcard: string) => {
       SelectionStore.withActiveSelection((sel) => {
-        API.toggleProp({tag: "Italic"}, sel.range);
+        API.toggleProp({tag: "Italic", contents: []}, sel.range);
         self.refs.spreadsheet.repaint();
       });
     });
