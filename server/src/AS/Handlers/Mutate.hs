@@ -31,14 +31,14 @@ handleMutateSheet uc state (PayloadMutate mutateType) = do
       oldCellsNewCells = zip oldCells newCells
       oldCellsNewCells' = filter (\(c, c') -> (Just c /= c')) oldCellsNewCells
       -- ^ don't update cells that haven't changed
-      newCells' = catMaybes $ map snd oldCellsNewCells'
+      newCells' = mapMaybe snd oldCellsNewCells'
       blankedCells = blankCellsAt $ map (cellLocation . fst) oldCellsNewCells'
       updatedCells = mergeCells newCells' blankedCells -- eval blanks at the old cell locations, re-eval at new locs
   printObj "newCells" newCells
-  allRowCols <- DB.getRowColsInSheet conn sid
-  let newRowCols = catMaybes $ map (rowColMap mutateType) allRowCols
+--  allRowCols <- DB.getRowColsInSheet conn sid
+--  let newRowCols = mapMaybe (rowColMap mutateType) allRowCols
   deleteRowColsInSheet conn sid
-  mapM (setRowColProps conn sid) newRowCols
+--  mapM_ (setRowColProps conn sid) newRowCols
   updateMsg <- runDispatchCycle state updatedCells DescendantsWithParent (userCommitSource uc)
   broadcastFiltered state uc updateMsg
 
@@ -65,18 +65,23 @@ rowColMap (DeleteRow r') rc@(RP.RowCol rct rci rcp) =
 
 rowColMap (DragCol oldC newC) rc@(RP.RowCol rct rci rcp) =
   case rct of
-       RP.ColumnType | rci == (trace'  "\n\n\n oldC: " oldC) -> Just $ RP.RowCol (trace' "\n\n\n rctCL " rct) (trace' "\n\n\n newC" newC) (trace' "\n\n\n rcp" rcp)
-                     | (trace' "\n\n\n oldC2: " oldC) < (trace' "\n\n\n rci2: " rci) && rci <= (trace' "\n\n\n newC2: " newC) -> Just $ RP.RowCol (trace' "\n\n\n rct: " rct) (rci - 1) (trace' "\n\n\n rcp2: " rcp)
-                     | (trace' "\n\n\n oldC3: " oldC) > (trace' "\n\n\n rcib: " rci) && rci >= newC -> Just $ RP.RowCol (trace' "\n\n\n rct3: " rct) (rci + 1) (trace' "\n\n\n rcp3: " rcp)
-                     | otherwise -> Just rc
+       RP.ColumnType
+         | rci < min oldC newC -> Just rc
+         | rci > max oldC newC -> Just rc
+         | rci == oldC         -> Just $ RP.RowCol rct newC rcp
+         | oldC < newC       -> Just $ RP.RowCol rct (rci-1) rcp -- here on we assume c is strictly between oldC and newC
+         | oldC > newC       -> Just $ RP.RowCol rct (rci+1) rcp
        RP.RowType -> Just rc
 rowColMap (DragRow oldR newR) rc@(RP.RowCol rct rci rcp) =
   case rct of
        RP.ColumnType -> Just rc
-       RP.RowType | rci == oldR -> Just $ RP.RowCol rct newR rcp
-                  | oldR < rci && rci <= newR -> Just $ RP.RowCol rct (rci - 1) rcp
-                  | oldR > rci && rci >= newR -> Just $ RP.RowCol rct (rci + 1) rcp
-                  | otherwise -> Just rc
+       RP.RowType
+         | rci < min oldR newR -> Just rc
+         | rci > max oldR newR -> Just rc
+         | rci == oldR         -> Just $ RP.RowCol rct newR rcp
+         | oldR < newR       -> Just $ RP.RowCol rct (rci-1) rcp-- here on we assume r is strictly between oldR and newR
+         | oldR > newR       -> Just $ RP.RowCol rct (rci+1) rcp
+  -- case oldR == newR can't happen because oldR < r < newR since third pattern-match
 
 cellLocMap :: MutateType -> (ASIndex -> Maybe ASIndex)
 cellLocMap (InsertCol c') (Index sid (c, r)) = Just $ Index sid (if c >= c' then c+1 else c, r)
