@@ -572,6 +572,19 @@ getRowColsInSheet conn sid = do
       rows = map (\(x, Just y) -> RP.RowCol RP.RowType x y) $ filter (isJust . snd) $ zip rowInds rowProps
   return $ union cols rows
 
+deleteRowColsInSheet :: Connection -> ASSheetId -> IO ()
+deleteRowColsInSheet conn sid = do
+  mColKeys <- runRedis conn (keys $ B.pack $ (show RP.ColumnType) ++ "PROPS" ++ (show sid) ++ "*")
+  mRowKeys <- runRedis conn (keys $ B.pack $ (show RP.RowType) ++ "PROPS" ++ (show sid) ++ "*")
+  let colKeys = case mColKeys of
+                     Right ck' -> ck'
+                     Left _ -> error "Failed to retrieve row props in delete rowcols"
+      rowKeys = case mRowKeys of
+                     Right ck' -> ck'
+                     Left _ -> error "Failed to retrieve row props in delete rowcols"
+  runRedis conn $ del (colKeys ++ rowKeys)
+  return()
+
 setRowColProps :: Connection -> ASSheetId -> RP.RowCol -> IO ()
 setRowColProps conn sid (RP.RowCol rct ind props) = do
   runRedis conn (set (rowColPropsKey sid rct ind) (B.pack $ show props))
