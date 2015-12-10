@@ -10,6 +10,7 @@ import ParseUtils from '../AS/ParsingUtils';
 
 import CellStore from '../stores/ASCellStore';
 import SheetStateStore from '../stores/ASSheetStateStore';
+import SelectionStore from '../stores/ASSelectionStore';
 import ExpStore from '../stores/ASExpStore';
 import ExpActionCreator from '../actions/ASExpActionCreators.js';
 

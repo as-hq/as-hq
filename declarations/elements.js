@@ -27,6 +27,26 @@ declare class HGPrimitiveMouseEvent extends Event {
   };
 }
 
+declare class GraphicsContext {
+  font: string;
+  textAlign: string;
+  textBaseline: string;
+  lineWidth: number;
+  fillStyle: string;
+  fillRect: (x: number, y: number, width: number, height: number) => void;
+  rect: (x: number, y: number, width: number, height: number) => void;
+  strokeStyle: string;
+  fillText: (val: string, x: number, y: number, maxWidth?: number) => void;
+  beginPath: () => void;
+  stroke: () => void;
+  closePath: () => void;
+  drawImage: (rightIcon: any, x: number, y: number) => void;
+  setLineDash: (dashes: Array<number>) => void;
+  fill: () => void;
+  moveTo: (x: number, y: number) => void;
+  lineTo: (x: number, y: number) => void;
+}
+
 declare class HGRendererConfig {
   fgColor: string;
   bgColor: string;
@@ -36,11 +56,16 @@ declare class HGRendererConfig {
   isStreaming: boolean;
   x: number;
   y: number;
+  wrap: boolean;
+  getTextWidth: (gc: GraphicsContext, text: string) => number;
 }
 
+
 declare class HGRendererObject {
-  paint: (gc: GraphicsContext) => void;
+  config?: HGRendererConfig;
+  paint?: (gc: GraphicsContext, x: number, y: number, width: number, height: number, isLink?: boolean) => void;
 }
+
 
 declare class HGCellEditorElement extends HTMLElement {
 
@@ -100,7 +125,7 @@ declare class HGRectangleElement extends HTMLElement {
 }
 
 declare class HGRendererElement extends HTMLElement {
-  addExtraRenderer(renderer: HGRendererObject): void;
+  addExtraRenderer(renderer: (gc: GraphicsContext) => void): void;
   getGridCellFromMousePoint(pt: HGPoint): {gridCell: HGPoint};
   startAnimator(): void;
   renderedColumns: Array<number>;
@@ -175,13 +200,29 @@ declare class AEWordRange {
 declare class AESession {
   getWordRange(r: number, c: number): AEWordRange;
   getTextRange(rng: AEWordRange): string;
+  replace(rng: AEWordRange, str: string): void;
+}
+
+declare class AESelection {
+  setRange(rng: AEWordRange): void;
+}
+
+declare class AECursorPosition {
+  row: number;
+  column: number
 }
 
 declare class AERawClass {
   focus(): void;
   getValue(): string;
   getSession(): AESession;
+  getCursorPosition(): AECursorPosition;
+  getSelectedText(): string;
+  setValue(str: string): void;
+  selectAll(): void;
+  navigateFileStart(): void;
   navigateFileEnd(): void;
+  selection: AESelection;
 }
 
 declare class AEElement extends HTMLElement {

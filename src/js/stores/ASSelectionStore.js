@@ -8,14 +8,16 @@ import Render from '../AS/Render';
 import SheetStateStore from './ASSheetStateStore';
 import CellStore from './ASCellStore';
 import TC from '../AS/TypeConversions';
+import {Just} from '../AS/Maybe';
 
 import type {
-  ASLanguage
+  ASLanguage,
+  ASSelection
 } from '../types/Eval';
 
 import type {
-  ASSelection,
-} from '../types/State';
+  Callback
+} from '../types/Base';
 
 type SelectionStoreData = {
   activeSelection: ?ASSelection;
@@ -59,7 +61,11 @@ const ASSelectionStore = Object.assign({}, BaseStore, {
 
   getActiveSelection(): ?ASSelection {
     return _data.activeSelection;
-  }
+  },
+
+  withActiveSelection(cb: Callback<ASSelection>) {
+    Just(this.getActiveSelection()).fmap(cb);
+  },
 });
 
 export default ASSelectionStore;

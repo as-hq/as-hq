@@ -18,11 +18,11 @@ import SelectionStore from '../../stores/ASSelectionStore';
 
 export default React.createClass({
   componentDidMount() {
-    CellStore.addChangeListener(this._onEvalStoreChange);
+    SelectionStore.addChangeListener(this._onSelectionStoreChange);
   },
 
   componentWillUnmount() {
-    CellStore.removeChangeListener(this._onEvalStoreChange);
+    SelectionStore.removeChangeListener(this._onSelectionStoreChange);
   },
 
   getInitialState() {
@@ -55,7 +55,7 @@ export default React.createClass({
     API.toggleProp(cellProp, activeSelection.range);
   },
 
-  _onEvalStoreChange() {
+  _onSelectionStoreChange() {
     // this is like this so that future refactors are easier
 
     this._onCellChange();

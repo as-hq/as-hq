@@ -3,11 +3,11 @@
 import type {
   ASValue,
   ASLanguage,
-  ASSheet
+  ASSheet,
+  ASSelection
 } from '../types/Eval';
 
 import type {
-  ASSelection,
   ASClientExpression,
   ASFocusType
 } from '../types/State';
@@ -58,6 +58,7 @@ import FindAction from '../actions/ASFindActionCreators';
 type ASEvalPaneState = {
   defaultLanguage: ASLanguage;
   currentLanguage: ASLanguage;
+  replLanguage: ASLanguage;
   varName: string;
   focus: ?ASFocusType;
   toastMessage: ?string;
@@ -67,6 +68,7 @@ type ASEvalPaneState = {
   evalHeaderOpen: boolean;
   evalHeaderLanguage: ASLanguage;
   showFindBar: boolean;
+  userIsTyping: boolean;
   showFindModal: boolean;
   testMode: boolean;
 };
@@ -85,6 +87,7 @@ export default React.createClass({
     return {
       defaultLanguage: Constants.Languages.Excel, // the language displayed on a blank cell
       currentLanguage: Constants.Languages.Excel, // the language currently displayed
+      replLanguage: Constants.Languages.Python,
       varName: '',
       focus: null,
       toastMessage: '',
@@ -94,6 +97,7 @@ export default React.createClass({
       // replOpen: false,
       // replLanguage: Constants.Languages.Python,
       // replSubmittedLanguage: null,
+      userIsTyping: false,
       evalHeaderOpen: false,
       evalHeaderLanguage: Constants.Languages.Python,
       showFindBar:false,
@@ -512,12 +516,12 @@ export default React.createClass({
         gridCanInsertRef = ExpStore.gridCanInsertRef(),
         textBoxCanInsertRef = ExpStore.textBoxCanInsertRef(this._getTextbox().editor);
 
-    logDebug("Current expression: " + ExpStore.getExpression());
-    logDebug("Cursor position: " + ExpStore.getLastCursorPosition());
+    logDebug("Current expression: " , ExpStore.getExpression());
+    logDebug("Cursor position: " , ExpStore.getLastCursorPosition());
 
-    logDebug("Editor insert: " + editorCanInsertRef);
-    logDebug("Grid insert: " + gridCanInsertRef);
-    logDebug("Textbox insert: " + textBoxCanInsertRef);
+    logDebug("Editor insert: " , editorCanInsertRef);
+    logDebug("Grid insert: " , gridCanInsertRef);
+    logDebug("Textbox insert: " , textBoxCanInsertRef);
 
 
     let canInsertRef = editorCanInsertRef || gridCanInsertRef || textBoxCanInsertRef;
@@ -655,7 +659,7 @@ export default React.createClass({
   /**************************************************************************************************************************/
   /* Focus */
 
-  setFocus(elem) {
+  setFocus(elem: ASFocusType) {
     switch (elem) {
       case 'editor': this._getRawEditor().focus(); break;
       case 'grid': this.refs.spreadsheet.setFocus(); break;

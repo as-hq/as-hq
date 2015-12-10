@@ -143,7 +143,7 @@ function generateSyntheticBaseEvent() {
 }
 
 function generateSyntheticKeyEvent(key) {
-  let {keyCode, ...keyEvent} = KeyUtils.parseKeysIntoShortcut({}, key);
+  let {keyCode, ...keyEvent} = ShortcutUtils.parseKeysIntoShortcut({}, key);
   let patchedKeyEvent = {
     ctrlKey: false,
     shiftKey: false,
@@ -730,6 +730,7 @@ let tests = () => {
 };
 
 export function install(w, ep) {
+  console.log('installing tests', w, ep);
   [evalPane, window_] = [ep, w];
   w.test = () => { tests()(); };
   __injectExpect(expect);

@@ -4,7 +4,8 @@ import type {
   NakedIndex,
   NakedRange,
   ASRange,
-  ASCell
+  ASCell,
+  ASSelection
 } from '../types/Eval';
 
 import type {
@@ -13,7 +14,6 @@ import type {
 
 import type {
   ASCursorStyle,
-  ASSelection,
   ASViewingWindow
 } from '../types/State';
 
@@ -50,7 +50,7 @@ import Textbox from './Textbox.jsx'
 
 import rowHeaderMenuItems from './menus/RowHeaderMenuItems.jsx';
 import columnHeaderMenuItems from './menus/ColumnHeaderMenuItems.jsx';
-// $FlowFixMe: this module clearly exists and works in other files, but flow can't find it??!
+// $FlowFixMe: this module clearly exists, but flow can't find it??!
 import Dropzone from 'react-dropzone';
 
 let finRect: HGRectangleElement = (document.createElement('fin-rectangle'): any);
@@ -487,19 +487,21 @@ export default React.createClass({
           let {x, y} = this.getCoordsFromMouseEvent(grid, evt);
           let sel = this.getSelectionArea();
           let newSelRange = Render.getDragRect(),
-              fromRange = TC.simpleToASRange(sel.range),
-              toRange = TC.simpleToASRange(newSelRange),
-              newSel = {range: newSelRange, origin: newSelRange.tl};
-          this.select(newSel, false);
-          Render.setDragRect(null);
-          self.repaint();
-          API.cut(fromRange, toRange);
+              fromRange = TC.simpleToASRange(sel.range);
+          if (newSelRange != null) {
+            let toRange = TC.simpleToASRange(newSelRange),
+                newSel = {range: newSelRange, origin: newSelRange.tl};
+            this.select(newSel, false);
+            Render.setDragRect(null);
+            self.repaint();
+            API.cut(fromRange, toRange);
+          }
         } else if (Render.getDragCorner() !== null) {
           let dottedSel = Render.getDottedSelection();
           Render.setDragCorner(null);
           self.mouseDownInBox = false;
           // Do nothing if the mouseup isn't in the right column or row
-          if (dottedSel.range !== null) {
+          if (dottedSel != null && dottedSel.range !== null) {
             let activeSelection = SelectionStore.getActiveSelection();
             if (!! activeSelection) {
               API.drag(activeSelection.range, dottedSel.range);
@@ -800,7 +802,7 @@ export default React.createClass({
       KeyUtils.killEvent(e);
       let userIsTyping = ExpStore.getUserIsTyping(),
           clickType    = ExpStore.getClickType();
-      logDebug("CLICK TYPE " + clickType);
+      logDebug("CLICK TYPE ", clickType);
       if (ShortcutUtils.gridShouldAddToTextbox(userIsTyping, e)) {
         // Need to update the editor and textbox now via action creators
         logDebug("Grid key down going to AC");
@@ -808,7 +810,7 @@ export default React.createClass({
                                                   userIsTyping,
                                                   clickType,
                                                   ExpStore.getExpression(),
-                                                  this.refs.textbox.editor);
+                                                  this.refs.textbox.editor.getSelection().$isEmpty);
 
         // if visible key and there was a last cell ref, move the selection back to the origin
         let activeSelection = SelectionStore.getActiveSelection();
@@ -848,7 +850,7 @@ export default React.createClass({
 
   onTextBoxDeferredKey(e: SyntheticKeyboardEvent) {
     if (e.ctrlKey) { // only for ctrl+arrowkeys
-      ShortcutUtils.tryShortcut('grid');
+      ShortcutUtils.tryShortcut(e, 'grid');
     }
   },
 
@@ -873,7 +875,11 @@ export default React.createClass({
   _onExpressionChange() {
     let xpChangeOrigin = ExpStore.getXpChangeOrigin(),
         xpStr = ExpStore.getExpression();
-    logDebug("Grid caught exp update of_type: " +  xpChangeOrigin);
+    if (xpChangeOrigin != null) {
+     logDebug("Grid caught exp update of_type: " +  xpChangeOrigin);
+    } else {
+     logDebug("Grid cauhgt exp udpate of_type: null");
+    }
     switch(xpChangeOrigin) {
       case Constants.ActionTypes.TEXTBOX_CHANGED:
         Render.setShouldRenderSquareBox(false);

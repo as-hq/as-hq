@@ -7,6 +7,7 @@ import type {
 import type {
   NakedIndex,
   NakedRange,
+  ASSelection,
   ASIndex,
   ValueError,
   ASValue,
@@ -28,8 +29,7 @@ import type {
 } from '../types/Hypergrid';
 
 import type {
-  ASViewingWindow,
-  ASSelection
+  ASViewingWindow
 } from '../types/State';
 
 import {logDebug} from './Logger';
@@ -245,16 +245,16 @@ export default {
     if (cv.tag === 'ValueImage') {
       let self = this,
           ct = c.cellProps,
-          imageWidth = 300,
-          imageHeight =  300,
+          imageWidth   = 300,
+          imageHeight  = 300,
           imageOffsetX = 0,
           imageOffsetY = 0;
       for (var i = 0 ; i < ct.length; i++) {
-        if (ct[i].tag==="ImageData") {
+        if (ct[i].tag === "ImageData") {
           imageOffsetX = ct[i].imageOffsetX;
           imageOffsetY = ct[i].imageOffsetY;
-          imageWidth = ct[i].imageWidth;
-          imageHeight = ct[i].imageHeight;
+          imageWidth   = ct[i].imageWidth;
+          imageHeight  = ct[i].imageHeight;
         }
       }
       return {
@@ -399,7 +399,7 @@ export default {
     return indices;
   },
 
-  getUniqueId() {
+  getUniqueId(): string {
     return shortid.generate();
   },
 
@@ -747,9 +747,12 @@ export default {
   mouseLocIsContainedInBox(
     mouseLocX: number,
     mouseLocY: number,
-    topLeftBoxObj: { x: number, y: number },
+    topLeftBoxObj: ?HGPoint,
     boxWidth: number
   ): boolean {
+    if (topLeftBoxObj == null) {
+      return false;
+    }
     let xInBounds = mouseLocX >= topLeftBoxObj.x &&
                     mouseLocX <= topLeftBoxObj.x + boxWidth,
         yInBounds = mouseLocY >= topLeftBoxObj.y &&

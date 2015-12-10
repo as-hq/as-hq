@@ -17,11 +17,6 @@ export type ASViewingWindow = {
   range: NakedRange;
 };
 
-export type ASSelection = {
-  range: NakedRange;
-  origin: NakedIndex;
-};
-
 export type ASFocusType = 'grid' | 'textbox' | 'editor';
 
 export type ASClientWindow = {

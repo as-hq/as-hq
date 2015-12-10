@@ -19,11 +19,11 @@ import type {
   ASRange,
   ASSheet,
   ASCell,
-  ASLanguage
+  ASLanguage,
+  ASSelection
 } from '../types/Eval';
 
 import type {
-  ASSelection,
   ASCellGrid,
   ASFocusType
 } from '../types/State';

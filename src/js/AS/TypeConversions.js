@@ -7,6 +7,7 @@ import type {
 import type {
   NakedIndex,
   NakedRange,
+  ASSelection,
   ASIndex,
   ASRange,
   ASLocation,
@@ -16,7 +17,6 @@ import type {
 } from '../types/Eval';
 
 import type {
-  ASSelection,
   ASViewingWindow,
   ASClientExpression
 } from '../types/State';

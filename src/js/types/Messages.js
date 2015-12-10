@@ -32,14 +32,6 @@ export type Direction = 'Down' | 'Up' | 'Left' | 'Right';
 
 export type ASBackendDirection = 'DDown' | 'DUp' | 'DLeft' | 'DRight';
 
-export type ASBackendTime = {
-  tag: 'Time';
-  day: string;
-  hour: number;
-  minute: number;
-  sec: number;
-};
-
 export type QueryList = 'Sheets' | 'Workbooks' | 'WorkbookSheets';
 
 export type InsertCol = {
@@ -78,23 +70,23 @@ export type MutateType =
 
 export type RowColType = 'ColumnType' | 'RowType';
 
-export type RowColProp = Dimension | FromCellProp;  
+export type RowColProp = Dimension | FromCellProp;
 
-export type Dimension = { 
-  tag: 'Dimension'; 
-  contents: number;  
+export type Dimension = {
+  tag: 'Dimension';
+  contents: number;
 };
 
-export type FromCellProp = { 
-  tag: 'FromCellProp'; 
-  contents: ASCellProp;  
+export type FromCellProp = {
+  tag: 'FromCellProp';
+  contents: ASCellProp;
 };
 
 export type RowCol = {
   tag: 'RowCol';
   rowColType: RowColType;
-  rowColIndex: number; 
-  rowColProps: Array<RowColProp>; 
+  rowColIndex: number;
+  rowColProps: Array<RowColProp>;
 };
 
 export type ASInitConnection = {
@@ -305,6 +297,14 @@ export type ASBackendPayload =
   | PayloadCondFormat
   | PayloadCondFormatResult
   | PayloadSetRowColProp;
+
+export type ASBackendTime = {
+  tag: 'Time';
+  day: string;
+  hour: number;
+  minute: number;
+  sec: number;
+};
 
 export type ASBackendCommit = {
   tag: 'ASCommit';

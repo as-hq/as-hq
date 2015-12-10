@@ -185,22 +185,22 @@ declare module React {
 }
 
 declare class SyntheticEvent {
-    bubbles: boolean;
-    cancelable: boolean;
-    currentTarget: EventTarget;
-    defaultPrevented: boolean;
-    eventPhase: number;
-    isDefaultPrevented(): boolean;
-    isPersistent: boolean;
-    isPropagationStopped(): boolean;
-    isTrusted: boolean;
-    nativeEvent: Event;
-    persist(): void;
-    preventDefault(): void;
-    stopPropagation(): void;
-    target: EventTarget;
-    timeStamp: number;
-    type: string;
+    bubbles?: boolean;
+    cancelable?: boolean;
+    currentTarget?: EventTarget;
+    defaultPrevented?: boolean;
+    eventPhase?: number;
+    isDefaultPrevented?: () => boolean;
+    isPersistent?: boolean;
+    isPropagationStopped?: () => boolean;
+    isTrusted?: boolean;
+    nativeEvent?: Event;
+    persist: () => void;
+    preventDefault: () => void;
+    stopPropagation: () => void;
+    target?: EventTarget;
+    timeStamp?: number;
+    type?: string;
 }
 
 declare class SyntheticClipboardEvent extends SyntheticEvent {
