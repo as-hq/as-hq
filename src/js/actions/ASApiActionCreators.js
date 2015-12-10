@@ -462,7 +462,7 @@ export default {
     this.send(msg);
   },
 
-  setProp(prop: any, rng: NakedRange) {
+  setProp(prop: ASCellProp, rng: NakedRange) {
     let msg = TC.makeClientMessageRaw(Constants.ServerActions.SetProp, {
       "tag": "PayloadProp",
       "prop": prop,

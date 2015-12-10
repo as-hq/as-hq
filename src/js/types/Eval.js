@@ -137,6 +137,8 @@ export type Tracking = {
   tag: 'Tracking';
 };
 
+export type BooleanCellTag = 'Bold' | 'Italic' | 'Underline' | 'Volatile' | 'Tracking';
+
 export type Bloomberg = {
   tag: 'Bloomberg';
   url: string;

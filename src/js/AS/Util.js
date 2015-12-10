@@ -783,6 +783,21 @@ export default {
     window.URL.revokeObjectURL(url);
   },
 
+/*****/
+  // cell props
+
+  getPropByTag(tag: string, cell: ASCell): ?ASCellProp {
+    let {cellProps} = cell,
+        retProps = cellProps.filter(
+          ({tag: cellPropTag}) => tag === cellPropTag
+        );
+    if (retProps.length === 0) {
+      return null;
+    } else {
+      return retProps[0];
+    }
+  },
+
 /*************************************************************************************************************************/
   // general
 

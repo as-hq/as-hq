@@ -1,5 +1,9 @@
 /* @flow */
 
+import type {
+  Callback
+} from '../types/Base';
+
 class _Maybe<T>{
   _isJust: boolean;
   _val: ?T;
@@ -25,6 +29,13 @@ class _Maybe<T>{
     return this.bind((v) => Just(func(v)));
   }
 
+  fmap_(func: (v: T) => void): void {
+    this.bind((v) => {
+      func(v);
+      return Nothing();
+    });
+  }
+
   out(): ?T {
     return this._val;
   }
@@ -38,4 +49,8 @@ export function Just<T>(val: ?T): Maybe<T> {
 
 export function Nothing<T>(): Maybe<T> {
   return new _Maybe(false);
+}
+
+export function using<T>(a: ?T): Callback<Callback<T>> {
+  return (cb: Callback<T>) => Just(a).fmap_(cb);
 }
