@@ -309,10 +309,10 @@ export default React.createClass({
 
   draggingCol: false,
   draggingRow: false,
-  clickedColNum: (null: ?number), 
-  clickedRowNum: (null: ?number), 
-  resizedColNum: (null: ?number), 
-  resizedRowNum: (null: ?number), 
+  clickedColNum: (null: ?number),
+  clickedRowNum: (null: ?number),
+  resizedColNum: (null: ?number),
+  resizedRowNum: (null: ?number),
 
   /* Initial a sheet with blank entries */
   initialize() {
@@ -421,7 +421,7 @@ export default React.createClass({
     //   self.clickedRowNum = evt.gridCell.y;
 
     //   self.finishColumnResize();
-    //   self.finishRowResize(); 
+    //   self.finishRowResize();
     // };
 
     model.onMouseDrag = (grid, evt) => {
@@ -543,26 +543,26 @@ export default React.createClass({
     this.select({origin: ind, range: {tl: ind, br: ind}}, false);
   },
 
-  finishColumnResize() { 
+  finishColumnResize() {
     let col = this.resizedColNum;
     if (col != null) {
       let hg = this._getHypergrid(),
           width = hg.getColumnWidth(col);
-      API.setColumnWidth(col+1, width); 
-      // column index on DB is 1-indexed, while for hypergrid it's 0-indexed. 
+      API.setColumnWidth(col+1, width);
+      // column index on DB is 1-indexed, while for hypergrid it's 0-indexed.
       this.resizedColNum = null;
-    } 
+    }
   },
 
-  finishRowResize() { 
+  finishRowResize() {
     let row = this.resizedRowNum;
     if (row != null) {
       let hg = this._getHypergrid(),
           height = hg.getRowHeight(row);
-      API.setRowHeight(row+1, height); 
-      // row index on DB is 1-indexed, while for hypergrid it's 0-indexed. 
+      API.setRowHeight(row+1, height);
+      // row index on DB is 1-indexed, while for hypergrid it's 0-indexed.
       this.resizedRowNum = null;
-    } 
+    }
   },
 
   // expects that the current sheet has already been set
@@ -848,7 +848,7 @@ export default React.createClass({
 
   onTextBoxDeferredKey(e: SyntheticKeyboardEvent) {
     if (e.ctrlKey) { // only for ctrl+arrowkeys
-      ShortcutUtils.tryShortcut('grid');
+      ShortcutUtils.tryShortcut(e, 'grid');
     }
   },
 
@@ -913,12 +913,12 @@ export default React.createClass({
     }
   },
 
-  _onInitRowColPropsChange() { 
+  _onInitRowColPropsChange() {
     let initColWidths  = InitRowColPropsStore.getInitColumnWidths(),
         initRowHeights = InitRowColPropsStore.getInitRowHeights(),
         hg = this._getHypergrid();
 
-    //column index on DB is 1-indexed, while for hypergrid it's 0-indexed. 
+    //column index on DB is 1-indexed, while for hypergrid it's 0-indexed.
     initColWidths.map((prop) => hg.setColumnWidth(prop[0]-1, prop[1]));
     initRowHeights.map((prop) => hg.setRowHeight(prop[0]-1, prop[1]));
   },

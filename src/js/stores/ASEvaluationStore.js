@@ -50,7 +50,7 @@ let _data: {
   yscroll: number;
   openSheets: Array<ASSheet>;
   currentSheet: ASSheet;
-  activeSelection: ASSelection;
+  activeSelection: ?ASSelection;
   activeFocus: ASFocusType;
   lastActiveFocus: ASFocusType;
   activeCell: ?ASCell;
@@ -78,9 +78,7 @@ let _data: {
       contents: []
     }
   },
-  activeSelection: {origin: {row: 1, col: 1},
-                    range: {tl: {row: 1, col: 1},
-                            br: {row: 1, col: 1}}},
+  activeSelection: null,
   activeFocus: 'grid',
   lastActiveFocus: 'textbox',
   activeCell: null,
@@ -318,6 +316,10 @@ const ASEvaluationStore = Object.assign({}, BaseStore, {
 
 
   getActiveSelection() {
+    console.log('active selection:', _data.activeSelection);
+    if (! _data.activeSelection) {
+      console.trace();
+    }
     return _data.activeSelection;
   },
 

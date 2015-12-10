@@ -729,6 +729,7 @@ let tests = () => {
 };
 
 export function install(w, ep) {
+  console.log('installing tests', w, ep);
   [evalPane, window_] = [ep, w];
   w.test = () => { tests()(); };
   __injectExpect(expect);

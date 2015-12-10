@@ -650,17 +650,17 @@ export default React.createClass({
   /**************************************************************************************************************************/
   /* Focus */
 
-  setFocus(elem) {
-    switch (elem) { 
-      case 'editor': this._getRawEditor().focus(); break; 
-      case 'grid': this.refs.spreadsheet.setFocus(); break; 
-      case 'textbox': this._getRawTextbox().focus(); break; 
+  setFocus(elem: ASFocusType) {
+    switch (elem) {
+      case 'editor': this._getRawEditor().focus(); break;
+      case 'grid': this.refs.spreadsheet.setFocus(); break;
+      case 'textbox': this._getRawTextbox().focus(); break;
       default: throw "invalid argument passed into setFocus()";
     }
 
     Store.setFocus(elem);
     // so that we don't unnecessarily rerender
-    if (elem != this.state.focus) { 
+    if (elem != this.state.focus) {
       this.setState({focus: elem});
     }
   },

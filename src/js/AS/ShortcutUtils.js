@@ -1,3 +1,17 @@
+/* @flow */
+
+import type {
+  Callback
+} from '../types/Base';
+
+import type {
+  ASShortcutTarget,
+  ASShortcut,
+  ASKeyCombination,
+  ASKeyModifier,
+  ASKeyProperty
+} from '../types/Keyboard';
+
 import {logDebug} from './Logger';
 
 import Util from './Util';
@@ -17,13 +31,13 @@ import ExpStore from '../stores/ASExpStore';
 //   }
 // },
 
-let _S = {
-  'grid': [],
-  'editor': [],
-  'common': [],
-  'toplevel': [],
-  'repl':[],
-  'textbox':[]
+let _S: {[key: ASShortcutTarget]: Array<ASKeyCombination>} = {
+  grid: [],
+  editor: [],
+  common: [],
+  toplevel: [],
+  repl: [],
+  textbox: []
 };
 
 // are all functions so that checks can be lazy evaluated
@@ -33,13 +47,12 @@ let contextChecks = {
 };
 
 export default {
-
-  add(config, name, keyStr, callback) {
+  add(config: string, name: string, keyStr: (string|Array<string>), callback: Callback<string>) {
     var self = this;
-    if (keyStr.constructor === Array)
-      keyStr.map((k) => self.add(config, name, k, callback));
-    else {
-      let s = KeyUtils.parseShortcutConfig(config);
+    if (keyStr instanceof Array) {
+      keyStr.forEach((k) => self.add(config, name, k, callback));
+    } else {
+      let s = this.parseShortcutConfig(config);
       s = this.parseKeysIntoShortcut(s, keyStr);
       s.name = name;
       s.callback = callback;
@@ -47,21 +60,21 @@ export default {
     }
   },
 
-  shortcutMatches(s, e) {
+  shortcutMatches(s: ASKeyCombination, e: SyntheticKeyboardEvent): boolean {
     if (this.compareModifiers(s, e)) {
       if (s.optionKeys && Util.arrContains(s.optionKeys, e.which))
         return true;
-      else return (s.keyCode && s.keyCode === e.which);
+      else return ((!! s.keyCode) && s.keyCode === e.which);
     } else return false;
   },
 
   // check that we can execute the shortcut in the current context
-  checkContext(s) {
+  checkContext(s: ASShortcut): boolean {
     let checksMatch = true;
     Object.getOwnPropertyNames(contextChecks).forEach((check) => {
       if (s.config && s.config.hasOwnProperty(check)) {
         if (contextChecks[check]()) {
-          return;
+          return; // return applies only to the forEach, not the outer function
         } else {
           checksMatch = false;
           return;
@@ -73,31 +86,32 @@ export default {
     return checksMatch;
   },
 
-  tryShortcut(e, set) {
+  tryShortcut(e: SyntheticKeyboardEvent, set: ASShortcutTarget): boolean {
     let ss = _S[set]; // shortcut set to try
-    for (var key in ss) {
-      if (this.shortcutMatches(ss[key], e)) {
-        if (this.checkContext(ss[key])) {
-          logDebug("shortcut matched and will be exec: ", JSON.stringify(ss[key]));
-          ss[key].callback(KeyUtils.getWildcard(e, ss[key]));
+
+    return ss.some((keyComb) => {
+      if (this.shortcutMatches(keyComb, e)) {
+        if (this.checkContext(keyComb)) {
+          logDebug("shortcut matched and will be exec: ", JSON.stringify(keyComb));
+          keyComb.callback(this.getWildcard(e, keyComb));
+          return true;
         } else {
-          logDebug("shortcut matched but context prevented exec: ", JSON.stringify(ss[key]));
-          continue;
+          logDebug("shortcut matched but context prevented exec: ", JSON.stringify(keyComb));
         }
-        return true;
       }
-    }
-    return false;
+
+      return false;
+    });
   },
 
-  gridShouldDeferKey(e) {
+  gridShouldDeferKey(e: SyntheticKeyboardEvent): boolean {
     return (e.ctrlKey || e.metaKey ||
             KeyUtils.isEvalKey(e) || // tab or enter
             !KeyUtils.isNavKey(e)) &&
            !KeyUtils.isCopyPasteType(e);
   },
 
-  gridShouldAddToTextbox(userIsTyping, e) {
+  gridShouldAddToTextbox(userIsTyping: boolean, e: SyntheticKeyboardEvent): boolean {
     let notEvalKey           = !KeyUtils.isEvalKey(e),
         typingAndMakesChange = userIsTyping && KeyUtils.producesTextChange(e),
         startsTyping         = !userIsTyping && KeyUtils.producesVisibleChar(e);
@@ -105,7 +119,7 @@ export default {
     return notEvalKey && (typingAndMakesChange || startsTyping);
   },
 
-  editorShouldDeferKey(e) {
+  editorShouldDeferKey(e: SyntheticKeyboardEvent): boolean {
     return !KeyUtils.producesTextChange(e) &&
            !KeyUtils.isNavKey(e) &&
            !KeyUtils.isCopyPasteType(e) &&
@@ -114,21 +128,21 @@ export default {
            !KeyUtils.isTextAreaNavKey(e);
   },
 
-  textboxShouldDeferKey(e) {
+  textboxShouldDeferKey(e: SyntheticKeyboardEvent): boolean {
     return KeyUtils.isEvalKey(e) ||          // defer on eval
           this.editorShouldDeferKey(e);  // defer when editor defers
   },
 
-  replShouldDeferKey(e) {
+  replShouldDeferKey(e: SyntheticKeyboardEvent): boolean {
     if (e.which === 13 && e.shiftKey === false) {
       return true;
     }
     return !KeyUtils.producesTextChange(e);
   },
 
-  compareModifiers(s, e) {
+  compareModifiers(s: ASKeyCombination, e: SyntheticKeyboardEvent): boolean {
     let propertyMatches =
-      (name) => (!!s[name]) === (!!e[name]);
+      (name: ASKeyProperty) => (!!s[name]) === (!!e[name]);
     return ['shiftKey', 'altKey'].every(propertyMatches)
       && (
         ['ctrlKey', 'metaKey'].every(propertyMatches)
@@ -136,7 +150,7 @@ export default {
       );
   },
 
-  parseModifierIntoShortcut(s, m) {
+  parseModifierIntoShortcut(s: ASKeyCombination, m: ASKeyModifier): ASKeyCombination {
     switch(m) {
       case "Ctrl":
         s.ctrlKey = true;
@@ -153,36 +167,44 @@ export default {
       case "Meta":
         s.metaKey = true;
         return s;
+      default:
+        return s;
     }
   },
 
   // assumes fornat: modifier + modifer + .. + key/key/key/key..
-  parseKeysIntoShortcut(s, keyStr) {
+  parseKeysIntoShortcut(s: ASKeyCombination, keyStr: string): ASKeyCombination {
     let tokens = keyStr.split("+"),
         options = tokens[tokens.length-1].split("/");
     if (options.length == 1)
-      s.keyCode = this.stringToKey(options[0]);
+      s.keyCode = KeyUtils.stringToKey(options[0]);
     else
-      s.optionKeys = options.map(this.stringToKey);
+      s.optionKeys = options.map(KeyUtils.stringToKey);
     for (var i=0; i<tokens.length-1; i++)
       s = this.parseModifierIntoShortcut(s, tokens[i]);
     return s;
   },
 
   // gets the matched wildcard, in string format
-  getWildcard(e, s) {
+  getWildcard(e: SyntheticKeyboardEvent, s: ASKeyCombination): ?string {
     if (s.optionKeys) {
-      return this.keyToWildcard(e);
-    } else { 
+      return KeyUtils.keyToWildcard(e);
+    } else {
       return null;
     }
   },
 
   // assumes spec format: set,option,option,...
-  parseShortcutConfig(configStr) {
-    let tokens = configStr.split(","),
-        shortcut = {set: tokens[0], config: {}};
-    for (let i=1; i<tokens.length; i++) { shortcut.config[tokens[i]] = true; }
+  parseShortcutConfig(configStr: string): ASShortcut {
+    let tokens = configStr.split(",");
+    let [set, ...checks] = tokens;
+
+    //xcxc: (set: any) because set is an arbitrary string right now
+    let shortcut = {set: (set: any), config: {}};
+
+    checks.forEach((check) => {
+      shortcut.config[check] = true;
+    });
     return shortcut;
   }
 };

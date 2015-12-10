@@ -399,7 +399,7 @@ export default {
     return indices;
   },
 
-  getUniqueId() {
+  getUniqueId(): string {
     return shortid.generate();
   },
 
