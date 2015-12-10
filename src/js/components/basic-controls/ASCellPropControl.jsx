@@ -27,32 +27,36 @@ type ASCellPropControlProps<T> = {
   setBackendCellProp: (rng: NakedRange) => void;
 };
 
-export default React.createClass({
+class ASCellPropControl<T>
+  extends React.Component<{}, ASCellPropControlProps<T>, {}>
+{
   componentDidMount() {
     SelectionStore.addChangeListener(this._onActiveCellChange);
     CellStore.addChangeListener(this._onActiveCellChange);
-  },
+  }
 
   componentWillUnmount() {
     SelectionStore.removeChangeListener(this._onActiveCellChange);
     CellStore.removeChangeListener(this._onActiveCellChange);
-  },
+  }
 
-  // also includes cell updates
+  // fired both when the active selection changes and when the active
+  // cell updates.
   _onActiveCellChange() {
-    using(SheetStateStore.getActiveCell())((ac) => {
+    let ac = SheetStateStore.getActiveCell();
+    if (!!ac) {
       let prop = Util.getPropByTag(this.props.propTag, ac);
       this.props.setControlStateFromCellProp(prop);
-    });
-  },
+    }
+  }
 
   onControlStateChange() {
     SelectionStore.withActiveSelection(({range: activeRange}) => {
       this.props.setBackendCellProp(activeRange);
     })
-  },
+  }
 
-  render(): ReactElement {
+  render(): React.Element {
     return this.props.control;
   }
-});
+}
