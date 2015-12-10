@@ -100,8 +100,6 @@ void DAG::updateDAG(DAG::Vertex toLoc, const DAG::VertexSet& fromLocs) {
 		}
 	}
 
-	showGraph("After a set relations");
-
 }
 
 /* Given a location, current visited state, current (reverse) topological order, do one more layer of the DFS and recurse */
