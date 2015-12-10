@@ -58,6 +58,7 @@ import {
 
 import ASCellStore from '../stores/ASCellStore';
 import SheetStateStore from '../stores/ASSheetStateStore';
+import SelectionStore from '../stores/ASSelectionStore';
 import ASExpStore from '../stores/ASExpStore';
 import Util from '../AS/Util';
 import KeyUtils from '../AS/KeyUtils';
