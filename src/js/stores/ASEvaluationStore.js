@@ -1,6 +1,10 @@
 /* @flow */
 
 import type {
+  Callback
+} from '../types/Base';
+
+import type {
   NakedIndex,
   NakedRange,
   ASIndex,
@@ -27,6 +31,7 @@ import Constants from '../Constants';
 import BaseStore from './BaseStore';
 import ReplStore from  './ASReplStore';
 import API from '../actions/ASApiActionCreators';
+import {Just} from '../AS/Maybe';
 import Util from '../AS/Util';
 import T from '../AS/Types';
 import TC from '../AS/TypeConversions';
@@ -314,13 +319,12 @@ const ASEvaluationStore = Object.assign({}, BaseStore, {
     return null;
   },
 
-
-  getActiveSelection() {
-    console.log('active selection:', _data.activeSelection);
-    if (! _data.activeSelection) {
-      console.trace();
-    }
+  getActiveSelection(): ?ASSelection {
     return _data.activeSelection;
+  },
+
+  withActiveSelection(cb: Callback<ASSelection>) {
+    Just(this.getActiveSelection()).fmap(cb);
   },
 
   getActiveCell() {

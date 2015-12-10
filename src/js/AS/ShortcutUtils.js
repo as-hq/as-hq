@@ -141,8 +141,8 @@ export default {
   },
 
   compareModifiers(s: ASKeyCombination, e: SyntheticKeyboardEvent): boolean {
-    let propertyMatches =
-      (name: ASKeyProperty) => (!!s[name]) === (!!e[name]);
+    // TODO: $FlowFixMe: This can't currently be flowed because of s[name] and e[name]
+    let propertyMatches = (name: ASKeyProperty) => (!!s[name]) === (!!e[name]);
     return ['shiftKey', 'altKey'].every(propertyMatches)
       && (
         ['ctrlKey', 'metaKey'].every(propertyMatches)

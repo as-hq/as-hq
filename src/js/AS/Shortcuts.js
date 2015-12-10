@@ -91,33 +91,41 @@ export default {
         }
     });
     SU.add('common', 'format_value', 'Ctrl+Shift+2/3/4/5/6', (wildcard: string) => {
-      let formatType;
-      // TODO other wildcards
-      if (wildcard === '$') formatType = "MoneyFormat";
-      else if (wildcard === '%') formatType = "PercentageFormat";
-      if (!! formatType) {
-        API.setFormat(formatType, Store.getActiveSelection().range);
-        self.refs.spreadsheet.repaint();
-      }
+      Store.withActiveSelection((sel) => {
+        let formatType;
+        // TODO other wildcards
+        if (wildcard === '$') formatType = "MoneyFormat";
+        else if (wildcard === '%') formatType = "PercentageFormat";
+        if (!! formatType) {
+          API.setFormat(formatType, sel.range);
+          self.refs.spreadsheet.repaint();
+        }
+      });
     });
     SU.add("common", "bold", "Ctrl+B", (wildcard: string) => {
-      API.toggleProp({tag: "Bold"}, Store.getActiveSelection().range);
-      self.refs.spreadsheet.repaint();
+      Store.withActiveSelection((sel) => {
+        API.toggleProp({tag: "Bold"}, sel.range);
+        self.refs.spreadsheet.repaint();
+      });
     });
     SU.add("common", "italic", "Ctrl+I", (wildcard: string) => {
-      API.toggleProp({tag: "Italic"}, Store.getActiveSelection().range);
-      self.refs.spreadsheet.repaint();
+      Store.withActiveSelection((sel) => {
+        API.toggleProp({tag: "Italic"}, sel.range);
+        self.refs.spreadsheet.repaint();
+      });
     });
     SU.add('common', 'toggle_repl', 'Alt+F11', (wildcard: string) => {
       self._toggleRepl();
     });
     SU.add('common', 'esc', 'Esc', (wildcard: string) => {
-      logDebug('Esc pressed');
-      ExpActionCreator.handleEscape();
-      self.refs.spreadsheet.select(Store.getActiveSelection());
-      Store.setClipboard(null, false);
-      self.setState({focus: 'grid', showFindBar: false, userIsTyping: false});
-      self.refs.spreadsheet.repaint(); // render immediately
+      Store.withActiveSelection((sel) => {
+        logDebug('Esc pressed');
+        ExpActionCreator.handleEscape();
+        self.refs.spreadsheet.select(sel);
+        Store.setClipboard(null, false);
+        self.setState({focus: 'grid', showFindBar: false, userIsTyping: false});
+        self.refs.spreadsheet.repaint(); // render immediately
+      });
     });
 
     SU.add('common', 'find', 'Ctrl+F', (wildcard: string) => {
@@ -229,26 +237,32 @@ export default {
       self.refs.spreadsheet.select(newSelection);
     });
     SU.add('grid', 'grid_fill_down', 'Ctrl+D', (wildcard: string) => {
-      let {tl, br} = Store.getActiveSelection().range;
-      let copyFrom = TC.simpleToASRange({ tl: tl, br: {row: tl.row, col: br.col} }),
-          copyTo = TC.simpleToASRange({ tl: {row: tl.row, col: tl.col},
-                                               br: {row: br.row, col: tl.col} });
-      API.copy(copyFrom, copyTo);
+      Store.withActiveSelection((sel) => {
+        let {tl, br} = sel.range;
+        let copyFrom = TC.simpleToASRange({ tl: tl, br: {row: tl.row, col: br.col} }),
+            copyTo = TC.simpleToASRange({ tl: {row: tl.row, col: tl.col},
+                                                 br: {row: br.row, col: tl.col} });
+        API.copy(copyFrom, copyTo);
+      });
     });
     SU.add('grid', 'grid_fill_right', 'Ctrl+R', (wildcard: string) => {
-      let {tl, br} = Store.getActiveSelection().range;
-      let copyFrom = TC.simpleToASRange({ tl: tl, br: {row: br.row, col: tl.col} }),
-          copyTo = TC.simpleToASRange({ tl: {row: tl.row, col: tl.col},
-                                               br: {row: tl.row, col: br.col} });
-      API.copy(copyFrom, copyTo);
+      Store.withActiveSelection((sel) => {
+        let {tl, br} = sel.range;
+        let copyFrom = TC.simpleToASRange({ tl: tl, br: {row: br.row, col: tl.col} }),
+            copyTo = TC.simpleToASRange({ tl: {row: tl.row, col: tl.col},
+                                                 br: {row: tl.row, col: br.col} });
+        API.copy(copyFrom, copyTo);
+      });
     });
     SU.add('grid', 'grid_select_all', 'Ctrl+A', (wildcard: string) => {
       if (ExpStore.getUserIsTyping()) {
         self._getRawTextbox().selectAll();
       } else {
-        let {origin} = Store.getActiveSelection();
-        let range = self.refs.spreadsheet.getViewingWindow().range;
-        self.refs.spreadsheet.select({origin: origin, range: range}, false);
+        Store.withActiveSelection((sel) => {
+          let {origin} = sel;
+          let range = self.refs.spreadsheet.getViewingWindow().range;
+          self.refs.spreadsheet.select({origin: origin, range: range}, false);
+        });
       }
     });
     SU.add('grid,isTyping', 'grid_home_typing', ['Home', 'Ctrl+Home'], (wildcard: string) => {
@@ -272,8 +286,10 @@ export default {
       self.refs.spreadsheet.shiftSelectionArea(0, dY);
     });
     SU.add('grid', 'grid_delete', 'Del/Backspace', (wildcard: string) => {
-      let rng = Store.getActiveSelection().range;
-      API.deleteRange(TC.simpleToASRange(rng));
+      Store.withActiveSelection((sel) => {
+        let rng = sel.range;
+        API.deleteRange(TC.simpleToASRange(rng));
+      });
     });
     SU.add('grid', 'grid_undo', 'Ctrl+Z', (wildcard: string) => {
       API.undo();
@@ -282,8 +298,9 @@ export default {
       API.redo();
     });
     SU.add('grid', 'grid_repeat_last_action', 'Ctrl+Y', (wildcard: string) => {
-      let sel = Store.getActiveSelection();
-      API.repeat(sel);
+      Store.withActiveSelection((sel) => {
+        API.repeat(sel);
+      });
     });
     SU.add('grid', 'chart', 'F11', (wildcard: string) => {
       // TODO
@@ -294,15 +311,19 @@ export default {
         let newStr = ExpStore.getExpression() + ' ';
         ExpActionCreator.handleGridChange(newStr);
       } else {
-        let {origin} = Store.getActiveSelection();
-        self.refs.spreadsheet.select({range: {tl: {row: origin.row, col: 1}, br: {row: origin.row, col: Infinity}},
-                                     origin: origin}, false);
+        Store.withActiveSelection((sel) => {
+          let {origin} = sel;
+          self.refs.spreadsheet.select({range: {tl: {row: origin.row, col: 1}, br: {row: origin.row, col: Infinity}},
+                                       origin: origin}, false);
+        });
       }
     });
     SU.add('grid,notTyping', 'select_col', 'Ctrl+Space', (wildcard: string) => {
-      let {origin} = Store.getActiveSelection();
-      self.refs.spreadsheet.select({range: {tl: {row: 1, col: origin.col}, br: {row: Infinity, col: origin.col}},
-                                    origin: origin}, false);
+      Store.withActiveSelection((sel) => {
+        let {origin} = sel;
+        self.refs.spreadsheet.select({range: {tl: {row: 1, col: origin.col}, br: {row: Infinity, col: origin.col}},
+                                      origin: origin}, false);
+      });
     });
     SU.add('grid', 'insert_row', 'Ctrl+Shift+[', (wildcard: string) => {
       // TODO
@@ -315,27 +336,31 @@ export default {
     });
     SU.add('grid', 'copy_expression_above', 'Ctrl+Shift+\'', (wildcard: string) => {
       // TODO test
-      let {tl} = Store.getActiveSelection().range,
-          cell = Store.getCell(tl.col, tl.row-1);
-      if (cell) {
-        let xp = cell.cellExpression.expression || '';
-        ExpActionCreator.handleEditorChange(xp);
-      } else self.setToast('No cell above.', 'Error');
+      Store.withActiveSelection((sel) => {
+        let {tl} = sel.range,
+            cell = Store.getCell(tl.col, tl.row-1);
+        if (cell) {
+          let xp = cell.cellExpression.expression || '';
+          ExpActionCreator.handleEditorChange(xp);
+        } else self.setToast('No cell above.', 'Error');
+      });
     });
     SU.add('grid', 'copy_value_above', 'Ctrl+\'', (wildcard: string) => {
       // TODO test
-      let tl = Store.getActiveSelection().range.tl,
-          cell = Store.getCell(tl.col, tl.row-1);
-      if (cell) {
-        let xp = Util.showValue(cell.cellValue) || '';
-        ExpActionCreator.handleEditorChange(xp);
-        let xpObj = {
-          expression: self._getRawEditor().getValue(),
-          language: self.state.currentLanguage
-        };
-        self.setFocus('grid');
-        self.handleEvalRequest(xpObj, null, null);
-      } else self.setToast('No cell above.', 'Error');
+      Store.withActiveSelection((sel) => {
+        let tl = sel.range.tl,
+            cell = Store.getCell(tl.col, tl.row-1);
+        if (cell) {
+          let xp = Util.showValue(cell.cellValue) || '';
+          ExpActionCreator.handleEditorChange(xp);
+          let xpObj = {
+            expression: self._getRawEditor().getValue(),
+            language: self.state.currentLanguage
+          };
+          self.setFocus('grid');
+          self.handleEvalRequest(xpObj, null, null);
+        } else self.setToast('No cell above.', 'Error');
+      });
     });
 
     SU.add('grid', 'grid_enter', 'Enter', (wildcard: string) => {
