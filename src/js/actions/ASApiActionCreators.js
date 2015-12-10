@@ -441,16 +441,16 @@ export default {
     this.send(msg);
   },
 
-  setColumnWidth(col: number, width: number) { 
+  setColumnWidth(col: number, width: number) {
     let msg = TC.makeClientMessage(Constants.ServerActions.SetRowColProp, "PayloadSetRowColProp",
       ['ColumnType', col, {tag: 'Dimension', contents: width}]);
-    this.send(msg);    
+    this.send(msg);
   },
 
-  setRowHeight(row: number, height: number) { 
+  setRowHeight(row: number, height: number) {
     let msg = TC.makeClientMessage(Constants.ServerActions.SetRowColProp, "PayloadSetRowColProp",
       ['RowType', row, {tag: 'Dimension', contents: height}]);
-    this.send(msg);    
+    this.send(msg);
   },
 
   toggleProp(prop: ASCellProp, rng: NakedRange) {

@@ -33,6 +33,7 @@ import KeyUtils from '../AS/KeyUtils';
 
 import CellStore from '../stores/ASCellStore';
 import SheetStateStore from '../stores/ASSheetStateStore';
+import SelectionStore from '../stores/ASSelectionStore';
 import FindStore from '../stores/ASFindStore';
 import ExpStore from '../stores/ASExpStore';
 import InitRowColPropsStore from '../stores/ASInitRowColPropsStore.js';
@@ -294,7 +295,7 @@ export default React.createClass({
 
   getTextboxPosition(): ?HGRectangle {
     let scroll = this.state.scroll;
-    let activeSelection = SheetStateStore.getActiveSelection();
+    let activeSelection = SelectionStore.getActiveSelection();
     if (activeSelection) {
       let {col, row} = activeSelection.origin,
           point = finRect.point.create(col - scroll.x, row - scroll.y);
@@ -310,10 +311,10 @@ export default React.createClass({
 
   draggingCol: false,
   draggingRow: false,
-  clickedColNum: (null: ?number), 
-  clickedRowNum: (null: ?number), 
-  resizedColNum: (null: ?number), 
-  resizedRowNum: (null: ?number), 
+  clickedColNum: (null: ?number),
+  clickedRowNum: (null: ?number),
+  resizedColNum: (null: ?number),
+  resizedRowNum: (null: ?number),
 
   /* Initial a sheet with blank entries */
   initialize() {
@@ -422,7 +423,7 @@ export default React.createClass({
     //   self.clickedRowNum = evt.gridCell.y;
 
     //   self.finishColumnResize();
-    //   self.finishRowResize(); 
+    //   self.finishRowResize();
     // };
 
     model.onMouseDrag = (grid, evt) => {
@@ -499,7 +500,7 @@ export default React.createClass({
           self.mouseDownInBox = false;
           // Do nothing if the mouseup isn't in the right column or row
           if (dottedSel.range !== null) {
-            let activeSelection = SheetStateStore.getActiveSelection();
+            let activeSelection = SelectionStore.getActiveSelection();
             if (!! activeSelection) {
               API.drag(activeSelection.range, dottedSel.range);
               self.select(dottedSel,true);
@@ -542,26 +543,26 @@ export default React.createClass({
     this.select({origin: ind, range: {tl: ind, br: ind}}, false);
   },
 
-  finishColumnResize() { 
+  finishColumnResize() {
     let col = this.resizedColNum;
     if (col != null) {
       let hg = this._getHypergrid(),
           width = hg.getColumnWidth(col);
-      API.setColumnWidth(col+1, width); 
-      // column index on DB is 1-indexed, while for hypergrid it's 0-indexed. 
+      API.setColumnWidth(col+1, width);
+      // column index on DB is 1-indexed, while for hypergrid it's 0-indexed.
       this.resizedColNum = null;
-    } 
+    }
   },
 
-  finishRowResize() { 
+  finishRowResize() {
     let row = this.resizedRowNum;
     if (row != null) {
       let hg = this._getHypergrid(),
           height = hg.getRowHeight(row);
-      API.setRowHeight(row+1, height); 
-      // row index on DB is 1-indexed, while for hypergrid it's 0-indexed. 
+      API.setRowHeight(row+1, height);
+      // row index on DB is 1-indexed, while for hypergrid it's 0-indexed.
       this.resizedRowNum = null;
-    } 
+    }
   },
 
   // expects that the current sheet has already been set
@@ -644,7 +645,7 @@ export default React.createClass({
     let {tl, br} = safeSelection.range;
     let {col, row} = safeSelection.origin;
 
-    let oldSel = SheetStateStore.getActiveSelection();
+    let oldSel = SelectionStore.getActiveSelection();
     // make selection
     let hg = this._getHypergrid(),
         originIsCorner = Util.originIsCornerOfSelection(safeSelection),
@@ -769,7 +770,7 @@ export default React.createClass({
   },
 
   shiftSelectionArea(dc: number, dr: number) {
-    let sel = SheetStateStore.getActiveSelection();
+    let sel = SelectionStore.getActiveSelection();
     if (! sel) {
       logError('Trying to shift null selection');
       return;
@@ -810,7 +811,7 @@ export default React.createClass({
                                                   this.refs.textbox.editor);
 
         // if visible key and there was a last cell ref, move the selection back to the origin
-        let activeSelection = SheetStateStore.getActiveSelection();
+        let activeSelection = SelectionStore.getActiveSelection();
         if (!! activeSelection && ExpStore.getLastRef() !== null) {
           this.select(activeSelection);
         }
@@ -823,7 +824,7 @@ export default React.createClass({
         ShortcutUtils.tryShortcut(e, 'grid');
       }
     } else if (KeyUtils.isNavKey(e)) { // nav key from grid
-      let activeSelection = SheetStateStore.getActiveSelection();
+      let activeSelection = SelectionStore.getActiveSelection();
       if (!activeSelection) {
         logDebug('No selection');
         return;
@@ -908,12 +909,12 @@ export default React.createClass({
     }
   },
 
-  _onInitRowColPropsChange() { 
+  _onInitRowColPropsChange() {
     let initColWidths  = InitRowColPropsStore.getInitColumnWidths(),
         initRowHeights = InitRowColPropsStore.getInitRowHeights(),
         hg = this._getHypergrid();
 
-    //column index on DB is 1-indexed, while for hypergrid it's 0-indexed. 
+    //column index on DB is 1-indexed, while for hypergrid it's 0-indexed.
     initColWidths.map((prop) => hg.setColumnWidth(prop[0]-1, prop[1]));
     initRowHeights.map((prop) => hg.setRowHeight(prop[0]-1, prop[1]));
   },

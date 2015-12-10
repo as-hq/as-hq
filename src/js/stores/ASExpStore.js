@@ -80,7 +80,7 @@ const ASExpStore = assign({}, BaseStore, {
       case Constants.ActionTypes.DELETED_LOCS:
       case Constants.ActionTypes.GOT_UPDATED_CELLS:
         Dispatcher.waitFor([CellStore.dispatcherIndex]);
-        let sel = SheetStateStore.getActiveSelection(),
+        let sel = SelectionStore.getActiveSelection(),
             cell = CellStore.getCell(sel.origin.col, sel.origin.row);
         ASExpStore.updateOnBackendChange(cell);
         break;

@@ -3,6 +3,7 @@ import {logDebug} from './Logger';
 import Constants from '../Constants';
 import CellStore from '../stores/ASCellStore';
 import SheetStateStore from '../stores/ASSheetStateStore';
+import SelectionStore from '../stores/ASSelectionStore';
 import FindStore from '../stores/ASFindStore';
 import SU from './ShortcutUtils';
 import API from '../actions/ASApiActionCreators';
@@ -92,15 +93,15 @@ export default {
       // TODO other wildcards
       if (wildcard === '$') dispType = "Money";
       else if (wildcard === '%') dispType = "Percentage";
-      API.setFormat(dispType, SheetStateStore.getActiveSelection().range);
+      API.setFormat(dispType, SelectionStore.getActiveSelection().range);
       self.refs.spreadsheet.repaint();
     });
     SU.add("common", "bold", "Ctrl+B", (wildcard) => {
-      API.toggleProp("Bold", SheetStateStore.getActiveSelection().range);
+      API.toggleProp("Bold", SelectionStore.getActiveSelection().range);
       self.refs.spreadsheet.repaint();
     });
     SU.add("common", "italic", "Ctrl+I", (wildcard) => {
-      API.toggleProp("Italic", SheetStateStore.getActiveSelection().range);
+      API.toggleProp("Italic", SelectionStore.getActiveSelection().range);
       self.refs.spreadsheet.repaint();
     });
     SU.add('common', 'toggle_repl', 'Alt+F11', (wildcard) => {
@@ -109,7 +110,7 @@ export default {
     SU.add('common', 'esc', 'Esc', (wildcard) => {
       logDebug('Esc pressed');
       ExpActionCreator.handleEscape();
-      self.refs.spreadsheet.select(SheetStateStore.getActiveSelection());
+      self.refs.spreadsheet.select(SelectionStore.getActiveSelection());
       SheetStateStore.setClipboard(null, false);
       self.setState({focus: 'grid', showFindBar: false, userIsTyping: false});
       self.refs.spreadsheet.repaint(); // render immediately
@@ -157,7 +158,7 @@ export default {
         let editor = self._getRawEditor(),
             sesh = editor.getSession(),
             cursor = editor.getCursorPosition(),
-            range = Util.getExtendedWordRange(sesh, cursor.row, cursor.column), 
+            range = Util.getExtendedWordRange(sesh, cursor.row, cursor.column),
             sel = editor.selection;
         sel.setRange(range);
         let oldRef = editor.getSelectedText(),
@@ -198,12 +199,12 @@ export default {
     // grid shortcuts -------------------------------------------------------------------------------
     // SU.add('grid', 'moveto_data_boundary', 'Ctrl+Up/Down/Left/Right', (wildcard) => {
     //    // -- For when backend-based jump is completed
-    //    let {range, origin} = SheetStateStore.getActiveSelection();
+    //    let {range, origin} = SelectionStore.getActiveSelection();
     //    API.jumpSelect(range, origin, false, wildcard);
     //  });
     //  SU.add('grid', 'moveto_data_boundary_extended', 'Ctrl+Shift+Up/Down/Left/Right', (wildcard) => {
     //    // -- For when backend-based jump is completed
-    //    let {range, origin} = SheetStateStore.getActiveSelection();
+    //    let {range, origin} = SelectionStore.getActiveSelection();
     //    API.jumpSelect(range, origin, true, wildcard);
     //  });
     SU.add('grid', 'moveto_data_boundary', 'Ctrl+Up/Down/Left/Right', (dir) => {
@@ -216,20 +217,20 @@ export default {
     });
     SU.add('grid', 'moveto_data_boundary_selected', 'Ctrl+Shift+Up/Down/Left/Right', (dir) => {
       // same comment as in moveto_data_boundary applies.
-      // let oldSelection = SheetStateStore.getActiveSelection();
+      // let oldSelection = SelectionStore.getActiveSelection();
       let oldSelection = self.refs.spreadsheet.getSelectionArea();
       let newSelection = SheetStateStore.getDataBoundSelection(oldSelection, dir);
       self.refs.spreadsheet.select(newSelection);
     });
     SU.add('grid', 'grid_fill_down', 'Ctrl+D', (wildcard) => {
-      let {tl, br} = SheetStateStore.getActiveSelection().range;
+      let {tl, br} = SelectionStore.getActiveSelection().range;
       let copyFrom = TC.simpleToASRange({ tl: tl, br: {row: tl.row, col: br.col} }),
           copyTo = TC.simpleToASRange({ tl: {row: tl.row, col: tl.col},
                                                br: {row: br.row, col: tl.col} });
       API.copy(copyFrom, copyTo);
     });
     SU.add('grid', 'grid_fill_right', 'Ctrl+R', (wildcard) => {
-      let {tl, br} = SheetStateStore.getActiveSelection().range;
+      let {tl, br} = SelectionStore.getActiveSelection().range;
       let copyFrom = TC.simpleToASRange({ tl: tl, br: {row: br.row, col: tl.col} }),
           copyTo = TC.simpleToASRange({ tl: {row: tl.row, col: tl.col},
                                                br: {row: tl.row, col: br.col} });
@@ -239,7 +240,7 @@ export default {
       if (ExpStore.getUserIsTyping()) {
         self._getRawTextbox().selectAll();
       } else {
-        let {origin} = SheetStateStore.getActiveSelection();
+        let {origin} = SelectionStore.getActiveSelection();
         let range = self.refs.spreadsheet.getViewingWindow().range;
         self.refs.spreadsheet.select({origin: origin, range: range}, false);
       }
@@ -265,7 +266,7 @@ export default {
       self.refs.spreadsheet.shiftSelectionArea(0, dY);
     });
     SU.add('grid', 'grid_delete', 'Del/Backspace', (wildcard) => {
-      let rng = SheetStateStore.getActiveSelection().range;
+      let rng = SelectionStore.getActiveSelection().range;
       API.deleteRange(TC.simpleToASRange(rng));
     });
     SU.add('grid', 'grid_undo', 'Ctrl+Z', (wildcard) => {
@@ -275,7 +276,7 @@ export default {
       API.redo();
     });
     SU.add('grid', 'grid_repeat_last_action', 'Ctrl+Y', (wildcard) => {
-      let sel = SheetStateStore.getActiveSelection();
+      let sel = SelectionStore.getActiveSelection();
       API.repeat(sel);
     });
     SU.add('grid', 'chart', 'F11', (wildcard) => {
@@ -287,13 +288,13 @@ export default {
         let newStr = ExpStore.getExpression() + ' ';
         ExpActionCreator.handleGridChange(newStr);
       } else {
-        let {origin} = SheetStateStore.getActiveSelection();
+        let {origin} = SelectionStore.getActiveSelection();
         self.refs.spreadsheet.select({range: {tl: {row: origin.row, col: 1}, br: {row: origin.row, col: Infinity}},
                                      origin: origin}, false);
       }
     });
     SU.add('grid,notTyping', 'select_col', 'Ctrl+Space', (wildcard) => {
-      let {origin} = SheetStateStore.getActiveSelection();
+      let {origin} = SelectionStore.getActiveSelection();
       self.refs.spreadsheet.select({range: {tl: {row: 1, col: origin.col}, br: {row: Infinity, col: origin.col}},
                                     origin: origin}, false);
     });
@@ -308,7 +309,7 @@ export default {
     });
     SU.add('grid', 'copy_expression_above', 'Ctrl+Shift+\'', (wildcard) => {
       // TODO test
-      let {tl} = SheetStateStore.getActiveSelection().range,
+      let {tl} = SelectionStore.getActiveSelection().range,
           cell = CellStore.getCell(tl.col, tl.row-1);
       if (cell) {
         let xp = cell.cellExpression.expression || '';
@@ -317,7 +318,7 @@ export default {
     });
     SU.add('grid', 'copy_value_above', 'Ctrl+\'', (wildcard) => {
       // TODO test
-      let tl = SheetStateStore.getActiveSelection().range.tl,
+      let tl = SelectionStore.getActiveSelection().range.tl,
           cell = CellStore.getCell(tl.col, tl.row-1);
       if (cell) {
         let xp = Util.showValue(cell.cellValue) || '';

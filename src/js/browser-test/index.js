@@ -88,7 +88,7 @@ function textboxHasFocus() {
 }
 
 function activeSelection() {
-  return SheetStateStore.getActiveSelection();
+  return SelectionStore.getActiveSelection();
 }
 
 function activeRange() {

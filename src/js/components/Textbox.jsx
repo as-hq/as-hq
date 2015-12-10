@@ -77,7 +77,7 @@ export default React.createClass({
   },
 
   getWidth() {
-    if (SheetStateStore.getActiveSelection()) {
+    if (SelectionStore.getActiveSelection()) {
       let xp = this.editor.getValue(),
           rows = xp.split("\n"),
           longestStr = rows.reduce(function (a, b) { return a.length > b.length ? a : b; }),

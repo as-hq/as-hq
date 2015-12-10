@@ -40,7 +40,6 @@ type SheetStateStoreData = {
   yscroll: number;
   openSheets: Array<ASSheet>;
   currentSheet: ASSheet;
-  activeSelection: ?ASSelection;
   activeFocus: ASFocusType;
   lastActiveFocus: ASFocusType;
   activeCell: ?ASCell;
@@ -68,7 +67,6 @@ let _data: SheetStateStoreData = {
       contents: []
     }
   },
-  activeSelection: null,
   activeFocus: 'grid',
   lastActiveFocus: 'textbox',
   activeCell: null,
@@ -113,10 +111,6 @@ const ASSheetStateStore = Object.assign({}, BaseStore, {
         _data.viewingWindow = action.vWindow;
         API.updateViewingWindow(extendedWindow);
         break;
-      case 'GOT_SELECTION':
-        ASSheetStateStore.setActiveSelection(TC.asSelectionToSimple(action.newSelection), "", null);
-        ASSheetStateStore.emitChange();
-        break;
       case 'GOT_FAILURE':
         ASSheetStateStore.setExternalError(action.errorMsg);
         if (action.action === "EvaluateRepl") {
@@ -126,7 +120,7 @@ const ASSheetStateStore = Object.assign({}, BaseStore, {
         break;
       case 'GOT_IMPORT':
         _data.suppressErrors = true; // don't show errors when fetching cells. will get set to false at end of emitChange()
-        break;      
+        break;
     }
   }),
 
@@ -164,21 +158,6 @@ const ASSheetStateStore = Object.assign({}, BaseStore, {
   setCurrentSheet(sht) {
     _data.currentSheet = sht;
   },
-  
-  setActiveSelection(sel, xp, lang: ?ASLanguage) {
-    Render.setSelection(sel);
-    let origin = sel.origin;
-    _data.activeSelection = sel;
-    _data.activeCell = CellStore.getCell(origin.col, origin.row) || TC.makeEmptyCell();
-    var activeCellDependencies = Util.parseDependencies(xp, lang);
-    let c = sel.origin.col,
-        r = sel.origin.row,
-        listDep = CellStore.getParentList(c, r);
-    if (listDep !== null) {
-      activeCellDependencies.push(listDep);
-    }
-    this.setActiveCellDependencies(activeCellDependencies);
-  },
 
   setCurrentSheetById(sheetId) {
     _data.currentSheet = {
@@ -207,10 +186,6 @@ const ASSheetStateStore = Object.assign({}, BaseStore, {
     } else {
       return null;
     }
-  },
-
-  getActiveSelection(): ?ASSelection {
-    return _data.activeSelection;
   },
 
   setClipboard(rng, isCut) {

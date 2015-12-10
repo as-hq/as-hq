@@ -24,6 +24,7 @@ import Render from '../AS/Render';
 
 import CellStore from '../stores/ASCellStore';
 import SheetStateStore from '../stores/ASSheetStateStore';
+import SelectionStore from '../stores/ASSelectionStore';
 // import ReplStore from '../stores/ASReplStore';
 import EvalHeaderStore from '../stores/ASEvalHeaderStore';
 import FindStore from '../stores/ASFindStore';
@@ -189,7 +190,7 @@ export default React.createClass({
     2) Call a ASSpreadsheet component method that forces an update of values
     3) Treat the special case of errors/other styles
   */
-  _onSheetStateChange() { 
+  _onSheetStateChange() {
     logDebug("Eval pane detected spreadsheet change from store");
     if (SheetStateStore.getDecoupleAttempt()) {
       let resp = true;
@@ -209,7 +210,7 @@ export default React.createClass({
     let updatedCellsOnSheet = CellStore.getLastUpdatedCells().filter((cell) => {
       return cell.cellLocation.sheetId == SheetStateStore.getCurrentSheet().sheetId;
     });
-    
+
     this.refs.spreadsheet.updateCellValues(updatedCellsOnSheet);
     //toast the error of at least one value in the cell
     let err;
@@ -323,7 +324,7 @@ export default React.createClass({
     // I DO know that if you leave it out, cut doesn't save anything to the clipboard
     // if there's already external data on the clipboard, but copy DOES work, and I don't
     // understand why.
-    let sel = SheetStateStore.getActiveSelection();
+    let sel = SelectionStore.getActiveSelection();
     if (! sel) {
       logDebug('No selection.'); // TODO: better handler for this. can we make it never be null
       return;
@@ -350,7 +351,7 @@ export default React.createClass({
     logDebug('Handling paste event');
     Render.setMode(null);
 
-    let sel = SheetStateStore.getActiveSelection();
+    let sel = SelectionStore.getActiveSelection();
     if (! sel) {
       logDebug('No selection.');
       return;
@@ -533,7 +534,7 @@ export default React.createClass({
         throw new Error('Language invalid!');
       }
 
-      SheetStateStore.setActiveSelection(sel, expression, language);
+      SelectionStore.setActiveSelection(sel, expression, language);
       ExpActionCreator.handleSelChange(expression);
       this.hideToast();
       this.showAnyErrors(val);
@@ -543,7 +544,7 @@ export default React.createClass({
       ExpStore.setLanguage(language);
     } else if (changeSelToNewCell) {
       logDebug("Selected empty cell to move to");
-      SheetStateStore.setActiveSelection(sel, "", null);
+      SelectionStore.setActiveSelection(sel, "", null);
       this.refs.spreadsheet.repaint();
       ExpActionCreator.handleSelChange('');
       if (this.state.currentLanguage !== this.state.defaultLanguage) {
@@ -562,10 +563,10 @@ export default React.createClass({
       this.handleEvalRequest(xpObj, null, null);
       if (cell && cell.cellExpression) {
         let {expression, language} = cell.cellExpression;
-        SheetStateStore.setActiveSelection(sel, expression, language);
+        SelectionStore.setActiveSelection(sel, expression, language);
         this.showAnyErrors(cell.cellValue);
       } else {
-         SheetStateStore.setActiveSelection(sel, "", null);
+         SelectionStore.setActiveSelection(sel, "", null);
          this.hideToast();
       }
     } else if (userIsTyping) {
@@ -604,7 +605,7 @@ export default React.createClass({
   handleEvalRequest(xpObj: ASClientExpression, moveCol: ?number, moveRow: ?number) {
     logDebug("Handling EVAL request " + ExpStore.getExpression());
 
-    let selection = SheetStateStore.getActiveSelection();
+    let selection = SelectionStore.getActiveSelection();
     if (! selection) {
       logError('No active selection');
       return;
@@ -655,16 +656,16 @@ export default React.createClass({
   /* Focus */
 
   setFocus(elem) {
-    switch (elem) { 
-      case 'editor': this._getRawEditor().focus(); break; 
-      case 'grid': this.refs.spreadsheet.setFocus(); break; 
-      case 'textbox': this._getRawTextbox().focus(); break; 
+    switch (elem) {
+      case 'editor': this._getRawEditor().focus(); break;
+      case 'grid': this.refs.spreadsheet.setFocus(); break;
+      case 'textbox': this._getRawTextbox().focus(); break;
       default: throw "invalid argument passed into setFocus()";
     }
 
     SheetStateStore.setFocus(elem);
     // so that we don't unnecessarily rerender
-    if (elem != this.state.focus) { 
+    if (elem != this.state.focus) {
       this.setState({focus: elem});
     }
   },

@@ -14,6 +14,7 @@ import TC from '../../AS/TypeConversions';
 import API from '../../actions/ASApiActionCreators';
 import CellStore from '../../stores/ASCellStore';
 import SheetStateStore from '../../stores/ASSheetStateStore';
+import SelectionStore from '../../stores/ASSelectionStore';
 
 export default React.createClass({
   componentDidMount() {
@@ -46,7 +47,7 @@ export default React.createClass({
 
   _onToggleClick() {
     let {cellProp} = this.props;
-    let activeSelection = SheetStateStore.getActiveSelection();
+    let activeSelection = SelectionStore.getActiveSelection();
     if (! activeSelection) {
       throw new Error('Tried to toggle on nonexistent selection');
     }
@@ -66,7 +67,7 @@ export default React.createClass({
     // just computes whether all of them have the same prop
     // if not, set active to false
 
-    let activeSelection = SheetStateStore.getActiveSelection();
+    let activeSelection = SelectionStore.getActiveSelection();
     if (! activeSelection) {
       throw new Error('Cell changed without active selection');
     }
