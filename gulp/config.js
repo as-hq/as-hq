@@ -28,7 +28,7 @@ module.exports = {
     src: src + '/js/index.jsx',
     dest: dest + '/js',
     outputName: 'index.js',
-    debug: gutil.env.type === 'dev'
+    debug: true // TURN OFF FOR PRODUCTION
   },
   html: {
     src: 'src/*.html',
