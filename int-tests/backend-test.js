@@ -1907,8 +1907,8 @@ describe('backend', () => {
             python('A1', '1'),
             python('A2', '2'),
             copy('A1:A2', 'B0:B1'), // fun fact, this actually works
-            shouldBe('B1', valueI(2)), 
-            shouldBeNothing('B0'), 
+            shouldBe('B1', valueI(2)),
+            shouldBeNothing('B0'),
             exec(done)
           ]);
         });
@@ -2020,7 +2020,7 @@ describe('backend', () => {
             excel('A2', '$100'),
             excel('A3', '50%'),
             delete_('A1'), delete_('A2'), delete_('A3'),
-            shouldNotHaveProp('A1', 'ValueFormat'), 
+            shouldNotHaveProp('A1', 'ValueFormat'),
             shouldHaveProp('A2', 'ValueFormat', 'Money'),
             shouldHaveProp('A3', 'ValueFormat', 'Percent'),
             exec(done)
@@ -2156,7 +2156,7 @@ describe('backend', () => {
             python('C1', '@A1'),
             cut('A1', 'B1'),
             decouple(),
-            shouldBeError('A5'), 
+            shouldBeError('A5'),
             exec(done)
           ]);
         });
@@ -2180,8 +2180,8 @@ describe('backend', () => {
             python('A1', '1'),
             python('A2', '2'),
             cut('A1:A2', 'B0:B1'), // fun fact, this actually works
-            shouldBe('B1', valueI(2)), 
-            shouldBeNothing('B0'), 
+            shouldBe('B1', valueI(2)),
+            shouldBeNothing('B0'),
             exec(done)
           ]);
         });

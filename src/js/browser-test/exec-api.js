@@ -19,6 +19,7 @@ import type {
   ASCell,
   VAlignType,
   HAlignType,
+  BooleanCellTag,
   FormatType
 } from '../types/Eval';
 
@@ -265,9 +266,10 @@ export function delete_(rng: string): Prf {
   });
 }
 
-export function toggleProp(rng: string, prop: ASCellProp): Prf {
+export function toggleProp(rng: string, propName: BooleanCellTag): Prf {
   return apiExec(() => {
-    API.toggleProp(prop, rangeFromExcel(rng));
+    // $FlowFixMe 
+    API.toggleProp({tag: propName, contents: []}, rangeFromExcel(rng));
   });
 }
 
@@ -459,7 +461,7 @@ export function expressionShouldBe(loc: string, xp: string): Prf {
   return expressionShouldSatisfy(loc, ({ expression }) => expression === xp);
 }
 
-export function shouldHaveProp(loc: string, prop: ASCellProp): Prf {
+export function shouldHaveProp(loc: string, prop: string): Prf {
   return messageShouldSatisfy(loc, (cs) => {
     logDebug(`${loc} cell should have prop ${prop}`);
 
