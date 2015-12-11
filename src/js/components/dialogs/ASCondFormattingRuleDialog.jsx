@@ -86,6 +86,8 @@ export default React.createClass({
           case 'Bold': return 0;
           case 'Italic': return 1;
           case 'Underline': return 2;
+          case 'FillColor': return 3;
+          case 'TextColor': return 4;
           default: return undefined;
         }
       })
@@ -94,6 +96,17 @@ export default React.createClass({
 
   getInitialStyleMenuPayload(): string {
     return this.stylingMenuItems[this.getInitialStyleMenuValue()].payload;
+  },
+
+  getInitialColorPickerColor(): string {
+    let initRule = this.props.initialRule;
+    if (initRule != null) {
+      let format = initRule.condFormat;
+      if (format.tag === 'FillColor' || format.tag === 'TextColor') {
+        return Util.colorToHtml(format.contents);
+      }
+    }
+    return "#000000";
   },
 
   getInitialState() {
@@ -165,7 +178,8 @@ export default React.createClass({
           onChange={this._onChangeStyle} />
         <br />
         {showStyleColorField ?
-          <ASColorPicker ref="colorPicker" /> : null}
+          <ASColorPicker ref="colorPicker"
+                         defaultValue={this.getInitialColorPickerColor()} /> : null}
         {_.range(7).map(() => <br />)}
       </Dialog>
     );
@@ -178,7 +192,6 @@ export default React.createClass({
   },
 
   _onChangeStyle(evt: any, idx: number, menuItem: MenuItemRequest) {
-    debugger;
     this.setState({
       showStyleColorField: this._showColorField(menuItem.payload)
     });
@@ -195,7 +208,6 @@ export default React.createClass({
   },
 
   _showColorField(menuItemText: ?string): boolean {
-    debugger;
     switch (menuItemText) {
       case 'bg_color':
       case 'text_color':

@@ -9,7 +9,7 @@ export default React.createClass({
 
   render(): ReactElement {
     return (
-      <input ref="colorPicker" type="color" />
+      <input ref="colorPicker" type="color" defaultValue={this.props.defaultValue} />
     );
   }
 });

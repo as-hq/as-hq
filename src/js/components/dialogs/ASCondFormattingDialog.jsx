@@ -37,10 +37,10 @@ export default React.createClass({
   },
 
   _showRule(rule: CondFormatRule): string {
-    // #needsrefactor why the hell do I have to do .map((r) => Util.rangeToExcel(r)) instead of 
-    // .map(Util.rangeToExcel) ??? 
+    // #needsrefactor why the hell do I have to do .map((r) => Util.rangeToExcel(r)) instead of
+    // .map(Util.rangeToExcel) ???
     let rngsStr = Util.toSentence(rule.cellLocs.map(TC.asLocationToSimple).map((r) => Util.rangeToExcel(r)));
-        // cond    = rule.condition.expression; 
+        // cond    = rule.condition.expression;
 
     return rngsStr + ": ";
   },
