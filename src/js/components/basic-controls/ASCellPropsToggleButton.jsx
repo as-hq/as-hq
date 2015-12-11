@@ -10,6 +10,7 @@ import type {
 
 import React, {PropTypes} from 'react';
 import ASButton from './ASButton.jsx';
+import ASCheckedButton from './ASCheckedButton.jsx';
 
 import Util from '../../AS/Util';
 import TC from '../../AS/TypeConversions';
@@ -65,9 +66,8 @@ export default React.createClass({
     return (
       <ASCellPropControl
         ref="controller"
-        control={<ASButton
-          height="24px"
-          primary={active}
+        control={<ASCheckedButton
+          checked={active}
           iconClassName={iconClassName}
           onTouchTap={this._onTouchTap}
           {...etc}

@@ -12,23 +12,17 @@ export default React.createClass({
   propTypes: {
     width: React.PropTypes.string,
     height: React.PropTypes.string,
+    checked: React.PropTypes.bool.isRequired,
     iconClassName: React.PropTypes.string,
     label: React.PropTypes.string,
-    defaultPushedIn: React.PropTypes.bool,
     onCheckChange: React.PropTypes.func.isRequired,
     iconImageSource: React.PropTypes.string,
   },
 
-  getInitialState() {
-    return {
-      hover: false
-    };
-  },
-
   getDefaultProps() {
     return {
-      height: '24px',
-      defaultPushedIn: false
+      width: '32px',
+      height: '24px'
     };
   },
 
@@ -45,7 +39,7 @@ export default React.createClass({
   },
 
   render() {
-    let {width, height, iconClassName, label, defaultPushedIn, iconImageSource} = this.props;
+    let {width, height, checked, iconClassName, label, iconImageSource, style, ...etc} = this.props;
 
     let labelElementStyle = {
       position: 'relative',
@@ -96,34 +90,20 @@ export default React.createClass({
     return (
       <ASButton
         ref="button"
+        primary={checked}
         labelElement={labelElement}
         labelStyle={{
           padding: '0px 7px'
         }}
         style={{
+          ...style,
           width: width,
           minWidth: width,
           height: height
         }}
-        backgroundColor={ this.state.hover ? Colors.cyan400 : Colors.grey800 }
-        selectable={true}
-        defaultPushedIn={defaultPushedIn}
-        onMouseEnter={this._onMouseEnter}
-        onMouseLeave={this._onMouseLeave}
-        onMouseUp={this._onMouseUp}
+        selectable={false}
+        {...etc}
       />
     );
-  },
-
-  _onMouseEnter() {
-    this.setState({ hover: true });
-  },
-
-  _onMouseLeave() {
-    this.setState({ hover: false });
-  },
-
-  _onMouseUp() {
-    this.props.onCheckChange(this.refs.button.state.pushedIn);
   }
 });
