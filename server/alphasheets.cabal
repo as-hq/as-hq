@@ -167,6 +167,9 @@ benchmark alphasheets-bench
                     , cereal
                     , bytestring
                     , containers
+                    , hashmap
+                    , hashtables
+                    , hashable
   PkgConfig-Depends:   python
   extra-libraries:     hiredis
   extra-lib-dirs:      /usr/local/lib

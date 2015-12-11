@@ -122,7 +122,7 @@ isEmptyCell :: ASCell -> Bool
 isEmptyCell c = (null . underlyingProps $ cellProps c) && (null . xpString $ cellExpression c)
 
 mergeCells :: [ASCell] -> [ASCell] -> [ASCell]
-mergeCells c1 c2 = unionBy isColocated c1 c2
+mergeCells c1 c2 = map snd $ M.toList $ M.union (toMap c1) (toMap c2)
 
 -- | Returns a list of blank cells at the given locations. For now, the language doesn't matter, 
 -- because blank cells sent to the frontend don't get their languages saved. 

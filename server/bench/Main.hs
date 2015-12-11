@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveGeneric, StandaloneDeriving #-}
+{-# LANGUAGE DeriveGeneric, StandaloneDeriving, OverloadedStrings #-}
 
 module Main where
 
@@ -14,6 +14,8 @@ import AS.Types.DB
 import AS.Types.RowColProps
 
 import AS.Dispatch.Core 
+import qualified AS.DB.API as DB
+import qualified AS.DB.Graph as G
 import qualified AS.DB.Internal as DI
 import AS.Window
 import AS.Util
@@ -25,6 +27,9 @@ import qualified Data.Text as T
 import qualified Data.ByteString.Char8 as BC
 import qualified Data.Serialize as S
 import qualified Data.Map as M
+import qualified Data.HashMap as H
+import qualified Data.HashTable.IO as HI
+import Data.Hashable
 import Control.Monad.Trans.Either
 import Control.Applicative
 import Control.Concurrent (newMVar, MVar)
@@ -87,16 +92,22 @@ instance NFData ASInitConnection where rnf = genericRnf
 instance NFData ASUserClient where rnf = genericRnf
 instance NFData ASDaemonClient where rnf = genericRnf
 instance NFData ServerState where rnf = genericRnf
+instance NFData ASExecError where rnf = genericRnf
 
+-- don't really give a shit about deep evaluating these types...
 instance NFData WS.Connection where rnf conn = seq conn ()
 instance NFData R.Connection where rnf conn = seq conn ()
 instance NFData (MVar a) where rnf x = seq x ()
+
+instance (NFData k, NFData v) => NFData (HI.IOHashTable HI.HashTable k v) where
+  rnf h = seq h ()
+instance Hashable ASIndex
 
 data ASEnv = ASEnv { envConn :: R.Connection, envState :: MVar ServerState, envSource :: CommitSource } deriving (Generic)
 instance NFData ASEnv where rnf = genericRnf
 
 testCells :: Int -> [ASCell]
-testCells n = take n $ repeat (testCell id)
+testCells n = map (\i -> testCell { cellLocation = Index "BENCH_ID" (1,i) }) [1..n]
 
 emptyEvaluate    = nf id ()
 it               = bench
@@ -118,33 +129,66 @@ setupEnv = do
 setupEnvWith :: (NFData a) => a -> IO (ASEnv, a)
 setupEnvWith x = (,) <$> setupEnv <*> return x
 
+setCells' :: R.Connection -> [ASCell] -> IO ()
+setCells' conn cs = R.runRedis conn $ do
+  mapM_ (\c -> R.set (S.encode . cellLocation $ c) (S.encode c)) cs
+  return ()
+
+toMap cs = H.fromList $ zip (map cellLocation cs) cs
+
+testMap = toMap . testCells
+
+mergeCells' :: [ASCell] -> [ASCell] -> [ASCell]
+mergeCells' c1 c2 = map snd $ H.toList $ H.union (toMap c1) (toMap c2)
+
 main :: IO ()
 main = do
   defaultMain [
 
-    describe "dispatch"
-      [ has (testCells 1000) $ \ ~(myEnv, cells) ->
-          it "dispatches 1000 cells" $ 
+    xdescribe "dispatch"
+      [ has (testCells 500) $ \ ~(myEnv, cells) ->
+          it "dispatches 500 cells" $ 
             runIO $ runDispatchCycle (envState myEnv) cells DescendantsWithParent (envSource myEnv)
       ]
 
-    , has (testCells 10000) $ \ ~(_, cells) -> 
-        describe "serialization"
+    , has (testCells 1000) $ \ ~(_, cells) -> 
+        xdescribe "serialization"
           [ it "serializes 10000 cells with cereal" $ 
-              run S.encode cells 
+              run (map S.encode) cells 
           , it "serializes 1000 cells with bytestrings" $ 
               run (BC.pack . show) cells 
+          , has (map S.encode cells) $ \ ~(_, scells) -> 
+              it "deserializes 1000 cells" $ 
+                run (map (\c -> S.decode c :: Either String ASCell)) scells
           ]
 
-    , has (testCells 10000) $ \ ~(_, cells) -> 
+    , has ((testMap 10000, testCells 10000)) $ \ ~(_, (m, cells)) -> 
         describe "misc cell datastructures"
           [ it "creates 10000-cell map" $
               run (\cs -> M.fromList $ zip (map cellLocation cs) cs) cells
+          , it "creates 10000-cell hashmap" $
+              run (\cs -> H.fromList $ zip (map cellLocation cs) cs) cells
+          --, it "inserts 10000 cells 10into a hashtable" $
+              --runIO $ HI.fromList $ zip (map cellLocation cells) cells
           , it "inserts 10000 cells into a map" $ 
               run (\cs -> insertMultiple (M.empty) (map cellLocation cs) cs) cells
-          , has (testCells 1000, reverse $ testCells 1000) $ \ ~(_, (cells1, cells2)) -> 
-              it "merges two lists of 1000 cells" $
-                run (\(c1, c2) -> mergeCells c1 c2) (cells1, cells2)
+          , it "inserts 10000 cells into a map" $ 
+              run (\cs -> insertMultiple (M.empty) (map cellLocation cs) cs) cells
+          , has (reverse cells) $ \ ~(_, rcells) -> 
+              describe "merging cells" 
+              [ it "merges two lists using hashmaps" $ 
+                  run (\(c1, c2) -> mergeCells' c1 c2) (cells, rcells)  
+              ]
+          ]
+
+    , has (testCells 10000) $ \ ~(myEnv, cells) -> 
+        xdescribe "DB"
+          [ it "inserts 10000 cells with binary serialization" $ 
+              runIO $ (setCells' (envConn myEnv) cells) 
+          , it "inserts 10000 cells with bytestrings" $ 
+              runIO $ (DB.setCells cells)
+          , it "sets the ancestors of 10000 cells" $ 
+              runIO $ runEitherT $ G.setCellsAncestors cells
           ]
 
     ]
