@@ -165,6 +165,8 @@ benchmark alphasheets-bench
                     , websockets
                     , either
                     , cereal
+                    , bytestring
+                    , containers
   PkgConfig-Depends:   python
   extra-libraries:     hiredis
   extra-lib-dirs:      /usr/local/lib

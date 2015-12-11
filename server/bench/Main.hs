@@ -22,10 +22,15 @@ import qualified AS.Kernels.Python.Eval as KP
 import qualified Database.Redis as R
 import qualified Network.WebSockets as WS
 import qualified Data.Text as T
+import qualified Data.ByteString.Char8 as BC
+import qualified Data.Serialize as S
+import qualified Data.Map as M
 import Control.Monad.Trans.Either
+import Control.Applicative
 import Control.Concurrent (newMVar, MVar)
 import Control.DeepSeq
 import Control.DeepSeq.Generics (genericRnf)
+import Debug.Trace
 import GHC.Generics
 
 import Criterion.Main
@@ -87,24 +92,59 @@ instance NFData WS.Connection where rnf conn = seq conn ()
 instance NFData R.Connection where rnf conn = seq conn ()
 instance NFData (MVar a) where rnf x = seq x ()
 
-type ASEnv = (R.Connection, MVar ServerState, CommitSource)
+data ASEnv = ASEnv { envConn :: R.Connection, envState :: MVar ServerState, envSource :: CommitSource } deriving (Generic)
+instance NFData ASEnv where rnf = genericRnf
+
+testCells :: Int -> [ASCell]
+testCells n = take n $ repeat (testCell id)
+
+emptyEvaluate    = nf id ()
+it               = bench
+has a b          = env (setupEnvWith a) b 
+describe         = bgroup
+xdescribe desc _ = trace ("skipped group: " ++ desc) $ bgroup desc []
+run :: NFData b => (a -> b) -> a -> Benchmarkable
+run = nf
+runIO :: NFData a => IO a -> Benchmarkable
+runIO = nfIO
 
 setupEnv :: IO ASEnv
 setupEnv = do
   conn <- R.connect DI.cInfo
   state <- newMVar $ State [] [] conn (0 :: Port)
   let src = (T.pack "sheetid", T.pack "userid")
-  return (conn, state, src)
+  return $ ASEnv conn state src
 
-setupEnvWithCells :: Int -> IO (ASEnv, [ASCell])
-setupEnvWithCells n = do
-  let cells = take n $ repeat (testCell id)
-  e <- setupEnv
-  return (e, cells)
+setupEnvWith :: (NFData a) => a -> IO (ASEnv, a)
+setupEnvWith x = (,) <$> setupEnv <*> return x
 
 main :: IO ()
 main = do
   defaultMain [
-      env (setupEnvWithCells 1000) $ \ ~((conn, state, src), cells) ->
-        bench "dispatch 1000 cells" $ nfIO (runDispatchCycle state cells DescendantsWithParent src)
+
+    describe "dispatch"
+      [ has (testCells 1000) $ \ ~(myEnv, cells) ->
+          it "dispatches 1000 cells" $ 
+            runIO $ runDispatchCycle (envState myEnv) cells DescendantsWithParent (envSource myEnv)
+      ]
+
+    , has (testCells 10000) $ \ ~(_, cells) -> 
+        describe "serialization"
+          [ it "serializes 10000 cells with cereal" $ 
+              run S.encode cells 
+          , it "serializes 1000 cells with bytestrings" $ 
+              run (BC.pack . show) cells 
+          ]
+
+    , has (testCells 10000) $ \ ~(_, cells) -> 
+        describe "misc cell datastructures"
+          [ it "creates 10000-cell map" $
+              run (\cs -> M.fromList $ zip (map cellLocation cs) cs) cells
+          , it "inserts 10000 cells into a map" $ 
+              run (\cs -> insertMultiple (M.empty) (map cellLocation cs) cs) cells
+          , has (testCells 1000, reverse $ testCells 1000) $ \ ~(_, (cells1, cells2)) -> 
+              it "merges two lists of 1000 cells" $
+                run (\(c1, c2) -> mergeCells c1 c2) (cells1, cells2)
+          ]
+
     ]
