@@ -79,7 +79,7 @@ testDispatch state lang crd str = runDispatchCycle state [Cell (Index sid crd) (
 -- the cells getting evaluated. We pull the rest from the DB. 
 runDispatchCycle :: MVar ServerState -> [ASCell] -> DescendantsSetting -> CommitSource -> IO ASServerMessage
 runDispatchCycle state cs descSetting src = do
-  liftIO $ putStrLn $ "run dispatch cycle with cells: " ++ (show cs) 
+  printWithTime $ "run dispatch cycle with cells: " ++ (show cs) 
   roots <- EM.evalMiddleware cs
   conn <- dbConn <$> readMVar state
   errOrCells <- runEitherT $ do
@@ -123,7 +123,7 @@ dispatch conn roots oldContext descSetting = do
   printObjT "Got ancestor locs" ancLocs
   -- The initial lookup cache has the ancestors of all descendants
   modifiedContext <- getModifiedContext conn ancLocs oldContext
-  lift $ putStrLn $ "Created initial context"  -- ++ (show modifiedContext)
+  printWithTimeT "Created initial context"  -- ++ (show modifiedContext)
   printWithTimeT "Starting eval chain"
   evalChainWithException conn cellsToEval modifiedContext -- start with current cells, then go through descendants
 
@@ -333,10 +333,10 @@ contextInsert conn c@(Cell idx xp _ ps) (Formatted cv f) ctx = do
   -- Wrap up and dispatch
   case maybeFatCell of
     Nothing -> do 
-      lift $ putStrLn "\nrunning decouple transform"
+      printWithTimeT "\nrunning decouple transform"
       dispatch conn decoupledCells ctxWithEvalCells ProperDescendants
     Just (FatCell cs descriptor) -> do 
-      lift $ putStrLn "\nrunning expanded cells transform"
+      printWithTimeT "\nrunning expanded cells transform"
       let blankCells = case blankedIndices of 
                         Nothing -> []
                         Just inds -> map ((M.!) (contextMap ctxWithEvalCells)) inds

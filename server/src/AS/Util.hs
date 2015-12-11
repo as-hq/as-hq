@@ -25,8 +25,9 @@ import qualified Data.ByteString.Lazy as BL
 trace' :: (Show a) => String -> a -> a
 trace' s x = trace ("\n\n\n" ++ s ++ "\n" ++ (show x) ++ "\n\n\n") x
 
-testCell :: ASCell
-testCell =  Cell (Index "" (1,1)) (Expression "hi" Python) (ValueS "Str") emptyProps
+-- takes a cell transform to convert the test cell to something desired
+testCell :: (ASCell -> ASCell) -> ASCell
+testCell f = f $ Cell (Index "" (1,1)) (Expression "=1+1" Excel) NoValue emptyProps
 
 --------------------------------------------------------------------------------------------------------------
 -- Misc

@@ -44,7 +44,7 @@ referenceToCompositeValue conn ctx (PointerRef p) = do
           let indices = rangeKeyToIndices rKey
               cells  = map ((contextMap ctx) M.!) indices
               fatCell = FatCell cells descriptor
-          putStrLn $ "REF TO COMPOSITE DESCRIPTOR: " ++ (show descriptor)
+          printObj "REF TO COMPOSITE DESCRIPTOR: " descriptor
           return $ DE.recomposeCompositeValue fatCell
 referenceToCompositeValue conn ctx (RangeRef r) = return . Expanding . VList . M $ vals
   where

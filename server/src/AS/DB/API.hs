@@ -231,7 +231,7 @@ getRangeDescriptorsInSheet conn sid = do
 
 getRangeDescriptorsInSheetWithContext :: Connection -> EvalContext -> ASSheetId -> IO [RangeDescriptor]
 getRangeDescriptorsInSheetWithContext conn ctx@(EvalContext _ _ ddiff) sid = do
-  putStrLn $ "removed descriptors in getRangeDescriptorsInSheetWithContext " ++ (show $ removedDescriptors ddiff)
+  printObj "removed descriptors in getRangeDescriptorsInSheetWithContext " $ removedDescriptors ddiff
   dbKeys <- DI.getRangeKeysInSheet conn sid
   let dbKeys' = dbKeys \\ (map descriptorKey $ removedDescriptors ddiff)
   dbDescriptors <- map fromJust <$> mapM (getRangeDescriptor conn) dbKeys' 

@@ -170,7 +170,7 @@ char** getCells(char* msg, int length){
   redisFree(c);
   assert(length == count);
   clock_t end = clock();
-  printf("Get cells time: %f seconds\n", (double)(end - connect) / CLOCKS_PER_SEC);
+  // printf("Get cells time: %f seconds\n", (double)(end - connect) / CLOCKS_PER_SEC);
   return cells; 
 }
 
@@ -186,7 +186,7 @@ void setCells(char* msg, int length){
     freeRedis(c,reply); 
   }
   clock_t connect = clock(); 
-  printf("Set cells connecting time: %f seconds\n", (double)(connect - begin) / CLOCKS_PER_SEC);
+  // printf("Set cells connecting time: %f seconds\n", (double)(connect - begin) / CLOCKS_PER_SEC);
 
 
   // removes first and last quotes from string (artifact of ByteString show)
@@ -198,7 +198,7 @@ void setCells(char* msg, int length){
   char** lstMsg = strsplit(pmsg, msgPartDelimiter);
 
   clock_t split = clock();
-  printf("Set cells splitting message time: %f seconds\n", (double)(split - connect) / CLOCKS_PER_SEC);
+  // printf("Set cells splitting message time: %f seconds\n", (double)(split - connect) / CLOCKS_PER_SEC);
 
   int i,j,k; 
   int batch = determineBatchSize(length);
@@ -230,7 +230,7 @@ void setCells(char* msg, int length){
   }
   redisFree(c);
   clock_t end = clock();
-  printf("Set cells redis time: %f seconds\n", (double)(end - split) / CLOCKS_PER_SEC);
+  // printf("Set cells redis time: %f seconds\n", (double)(end - split) / CLOCKS_PER_SEC);
 
 }
 
