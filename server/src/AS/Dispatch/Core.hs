@@ -54,7 +54,7 @@ import Control.Monad.Trans.Either
 
 testDispatch :: MVar ServerState -> ASLanguage -> Coord -> String -> IO ASServerMessage
 testDispatch state lang crd str = runDispatchCycle state [Cell (Index sid crd) (Expression str Python) NoValue emptyProps] DescendantsWithParent (sid, uid)
-  where 
+  where
     sid = T.pack "sheetid"
     uid = T.pack "userid"
 
@@ -70,8 +70,74 @@ testDispatch state lang crd str = runDispatchCycle state [Cell (Index sid crd) (
 -- assumes all evaled cells are in the same sheet
 -- the only information we're really passed in from the cells is the locations and the expressions of
 -- the cells getting evaluated. We pull the rest from the DB. 
+
+-- ||| BEGIN TIM CHU EDITS
+--
+
+evalContextToCommit :: EvalContext -> IO (ASCommit, Bool)
+evalContextToCommit (EvalContext mp cells ddiff) = do
+  mbcells <- DB.getCells (map cellLocation cells)
+  time <- getASTime
+  let cdiff   = CellDiff { beforeCells = (catMaybes mbcells), afterCells = cells}
+      commit  = Commit cdiff ddiff time
+      rd      = removedDescriptors ddiff
+      didDecouple = any isDecouplePair $ zip mbcells cells
+      -- determines whether to send a decouple message.
+      -- we send a decouple message if there are any decoupled, *visible* cells remaining on the spreadsheet.
+      -- i.e. deleting an entire range will not cause a decouple message, but deleting part of it will because 
+      -- decoupled cells remain visible on the sheet.
+      isDecouplePair (mbcell, acell) = case mbcell of 
+        Nothing -> False
+        Just bcell -> (isCoupled bcell) && (not $ isCoupled acell) && (not $ isBlank acell)
+  printWithTime $ "DEALING WITH DECOUPLING OF DESCRIPTORS " ++ (show rd)
+  return (commit, didDecouple)
+
+pushTempCommit :: Connection -> CommitSource -> ASCommit -> IO()
+pushTempCommit conn src commit = do
+  DT.setTempCommit conn commit src
+
+pushCommitOrTempCommit :: Connection -> CommitSource -> Bool -> ASCommit -> IO()
+pushCommitOrTempCommit conn src shouldDecouple commit =
+  if shouldDecouple
+    then pushTempCommit conn src commit
+    else DT.updateDBAfterEval conn src commit
+
 runDispatchCycle :: MVar ServerState -> [ASCell] -> DescendantsSetting -> CommitSource -> IO ASServerMessage
 runDispatchCycle state cs descSetting src = do
+  liftIO $ putStrLn $ "run dispatch cycle with cells: " ++ (show cs) 
+  roots <- EM.evalMiddleware cs
+  conn <- dbConn <$> readMVar state
+  -- UPDATED TO ERR OR COMMIT
+  -- BEGIN BOILERPLATE
+  errOrCommit <- runEitherT $ do
+    printWithTimeT $ "about to start dispatch"
+    let initialEvalMap = M.fromList $ zip (map cellLocation cs) cs
+        initialContext = EvalContext initialEvalMap [] emptyDiff
+    -- you must insert the roots into the initial context, because getCellsToEval will give you cells to evaluate that
+    -- are only in the context or in the DB (in that order of prececdence). IF neither, you won't get anything. 
+    -- this maintains the invariant that context always contains the most up-to-date, complete information. 
+    ctxAfterDispatch <- dispatch conn roots initialContext descSetting
+    printWithTimeT "finished dispatch"
+    finalizedCells <- EE.evalEndware state (addedCells ctxAfterDispatch) src roots ctxAfterDispatch
+    let ctx = ctxAfterDispatch { addedCells = finalizedCells }
+        -- END BOILERPLATE
+        --
+    (commit,didDecouple) <- lift $ evalContextToCommit ctx
+    lift $ pushCommitOrTempCommit conn src didDecouple commit
+    if (didDecouple)
+      then left DecoupleAttempt
+      else return commit
+
+  let msg = newMakeUpdateMessage errOrCommit
+  printObj "made message: " msg
+  return msg
+
+newMakeUpdateMessage :: Either ASExecError ASCommit -> ASServerMessage
+newMakeUpdateMessage (Left err) = makeErrorMessage err Update
+newMakeUpdateMessage (Right comm) = ServerMessage Update Success (PayloadCL $ afterCells $ cellDiff comm)
+
+oldRunDispatchCycle :: MVar ServerState -> [ASCell] -> DescendantsSetting -> CommitSource -> IO ASServerMessage
+oldRunDispatchCycle state cs descSetting src = do
   liftIO $ putStrLn $ "run dispatch cycle with cells: " ++ (show cs) 
   roots <- EM.evalMiddleware cs
   conn <- dbConn <$> readMVar state
