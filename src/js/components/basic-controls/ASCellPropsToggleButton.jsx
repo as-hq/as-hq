@@ -22,34 +22,41 @@ import ASCellPropControl from './ASCellPropControl.jsx';
 
 type ToggleButtonProps = {
   iconClassName: string;
-  propTag: BooleanCellTag;
+  propTag: string;
 };
 
 type ToggleButtonState = {
   active: boolean;
 };
 
-export class ASCellPropsToggleButton
-  extends React.Component<{}, ToggleButtonProps, ToggleButtonState>
-{
+export default React.createClass({
+  propTypes: {
+    iconClassName: React.PropTypes.string.isRequired,
+    propTag: React.PropTypes.string.isRequired
+  },
+
   getInitialState(): ToggleButtonState {
     return ({
       active: false
     });
-  }
+  },
 
-  _setBackendCellProp(rng: NakedRange) {
-    let prop = (({ tag: this.props.propTag }): any);
+  _setBackendCellProp(nextState: boolean, rng: NakedRange) {
+    let prop = (({ tag: this.props.propTag, contents: []}): any);
     API.toggleProp(prop, rng);
-  }
+    // TODO: make this reflect current state, rather than assuming that
+    // state changes <--> prop changes. (Even though that should always
+    // be true in principle, it would be more stable if we didn't have
+    // to assume this.)
+  },
 
   _setControlStateFromCellProp(prop: ?ASCellProp) {
-    this.setState({active: !!prop});
-  }
+    this.setState({active: prop !== null});
+  },
 
-  componentDidUpdate(prevProps: ToggleButtonProps, prevState: ToggleButtonState) {
-    this.refs.controller.onControlStateChange();
-  }
+  _onTouchTap() {
+    this.refs.controller.onControlStateChange(!this.state.active);
+  },
 
   render(): React.Element {
     let {iconClassName, propTag, ...etc} = this.props;
@@ -62,6 +69,7 @@ export class ASCellPropsToggleButton
           height="24px"
           primary={active}
           iconClassName={iconClassName}
+          onTouchTap={this._onTouchTap}
           {...etc}
         />}
         setBackendCellProp={this._setBackendCellProp}
@@ -69,9 +77,4 @@ export class ASCellPropsToggleButton
         propTag={this.props.propTag}/>
     );
   }
-}
-
-ASCellPropsToggleButton.propTypes = {
-  iconClassName: React.PropTypes.string.isRequired,
-  propTag: React.PropTypes.string.isRequired
-};
+});

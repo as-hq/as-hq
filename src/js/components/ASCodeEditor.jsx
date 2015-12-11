@@ -101,6 +101,11 @@ export default React.createClass({
                 top: '0px'
               }}/>
             <FileInput style={fileInputStyle} />
+            <ASCellPropsToggleButton propTag="Bold" iconClassName="format_bold" style={{
+              position: 'relative',
+              marginLeft: '40px',
+              top: '0px'
+            }} />
         </Toolbar>
         <AceEditor
           ref="editor"
@@ -121,11 +126,3 @@ export default React.createClass({
     window.test();
   }
 });
-
-/*
-<ASCellPropsToggleButton cellProp="Bold" iconClassName="format_bold" style={{
-  position: 'relative',
-  marginLeft: '40px',
-  top: '0px'
-}} />
-*/

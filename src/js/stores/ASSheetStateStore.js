@@ -42,7 +42,6 @@ type SheetStateStoreData = {
   currentSheet: ASSheet;
   activeFocus: ASFocusType;
   lastActiveFocus: ASFocusType;
-  activeCell: ?ASCell;
   clipboard: {
     area: ?ASSelection;
     isCut: boolean;
@@ -69,7 +68,6 @@ let _data: SheetStateStoreData = {
   },
   activeFocus: 'grid',
   lastActiveFocus: 'textbox',
-  activeCell: null,
   clipboard: {
     area: null,
     isCut: false
@@ -143,14 +141,6 @@ const ASSheetStateStore = Object.assign({}, BaseStore, {
     _data.userId = id;
   },
 
-  getActiveCell() {
-    return _data.activeCell;
-  },
-
-  setActiveCell(c) {
-    _data.activeCell = c;
-  },
-
   getCurrentSheet() {
     return _data.currentSheet;
   },
@@ -169,23 +159,6 @@ const ASSheetStateStore = Object.assign({}, BaseStore, {
         contents: []
       }
     };
-  },
-
-  setActiveCellDependencies(deps) {
-    let cell = _data.activeCell;
-    if (!cell || !cell.cellExpression) {
-      return;
-    }
-    cell.cellExpression.dependencies = deps;
-    Render.setDependencies(deps);
-  },
-
-  getActiveCellDependencies() {
-    if (_data.activeCell) {
-      return (_data.activeCell.cellExpression.dependencies);
-    } else {
-      return null;
-    }
   },
 
   setClipboard(rng, isCut) {

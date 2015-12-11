@@ -619,7 +619,6 @@ export default React.createClass({
     ExpStore.setLastCursorPosition(Constants.CursorPosition.GRID);
     ExpStore.setUserIsTyping(false);
 
-    SheetStateStore.setActiveCellDependencies([]);
     this.refs.spreadsheet.repaint();
 
     let {origin} = selection;

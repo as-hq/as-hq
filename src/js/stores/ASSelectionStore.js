@@ -1,4 +1,9 @@
 /* @flow */
+
+import type {
+  Maybe
+} from '../AS/Maybe';
+
 import React from 'react';
 import Dispatcher from '../Dispatcher';
 import BaseStore from './BaseStore';
@@ -47,7 +52,6 @@ const ASSelectionStore = Object.assign({}, BaseStore, {
     Render.setSelection(sel);
     let origin = sel.origin;
     _data.activeSelection = sel;
-    SheetStateStore.setActiveCell(CellStore.getCell(origin.col, origin.row) || TC.makeEmptyCell());
     var activeCellDependencies = Util.parseDependencies(xp, lang);
     let c = sel.origin.col,
         r = sel.origin.row,
@@ -55,7 +59,7 @@ const ASSelectionStore = Object.assign({}, BaseStore, {
     if (listDep !== null) {
       activeCellDependencies.push(listDep);
     }
-    SheetStateStore.setActiveCellDependencies(activeCellDependencies);
+    CellStore.setActiveCellDependencies(activeCellDependencies);
     ASSelectionStore.emitChange();
   },
 
@@ -63,8 +67,8 @@ const ASSelectionStore = Object.assign({}, BaseStore, {
     return _data.activeSelection;
   },
 
-  withActiveSelection(cb: Callback<ASSelection>) {
-    Just(this.getActiveSelection()).fmap(cb);
+  withActiveSelection<T>(cb: (sel: ASSelection) => T): ?T {
+    return Just(this.getActiveSelection()).fmap(cb).out();
   },
 });
 

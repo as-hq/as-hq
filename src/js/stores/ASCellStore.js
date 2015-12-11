@@ -30,7 +30,7 @@ import T from '../AS/Types';
 import TC from '../AS/TypeConversions';
 import Render from '../AS/Render';
 import SheetStateStore from './ASSheetStateStore.js';
-
+import SelectionStore from './ASSelectionStore.js';
 /*
 Private variable keeping track of a viewing window (cached) of cells. Stores:
   1) Sheet name
@@ -103,7 +103,7 @@ const ASCellStore = Object.assign({}, BaseStore, {
               cellsToRemove.push(cell);
             });
           });
-        }
+      }
 
         // remove possibly null cells
         cellsToRemove = cellsToRemove.filter((cell) => !!cell);
@@ -164,6 +164,30 @@ const ASCellStore = Object.assign({}, BaseStore, {
 
   /**************************************************************************************************************************/
   /* getter and setter methods */
+
+  getActiveCell() {
+    return SelectionStore.withActiveSelection(({origin: {row, col}}) => {
+      return this.getCell(col, row);
+    });
+  },
+
+  setActiveCellDependencies(deps) {
+    let cell = this.getActiveCell();
+    if (!cell || !cell.cellExpression) {
+      return;
+    }
+    cell.cellExpression.dependencies = deps;
+    Render.setDependencies(deps);
+  },
+
+  getActiveCellDependencies() {
+    let cell = this.getActiveCell();
+    if (cell) {
+      return (cell.cellExpression.dependencies);
+    } else {
+      return null;
+    }
+  },
 
   getParentList(c, r) {
     let cell = this.getCell(c, r);
