@@ -100,12 +100,10 @@ const ASExpStore = Object.assign({}, BaseStore, {
       case 'DELETED_LOCS':
       case 'GOT_UPDATED_CELLS':
         Dispatcher.waitFor([CellStore.dispatcherIndex]);
-        let sel = SelectionStore.getActiveSelection();
-
-        if (sel != null) {
-            let cell = CellStore.getCell(sel.origin.col, sel.origin.row);
-            ASExpStore.updateOnBackendChange(cell);
-        }
+        SelectionStore.withActiveSelection((sel) => {
+          let cell = CellStore.getCell(sel.origin.col, sel.origin.row);
+          ASExpStore.updateOnBackendChange(cell);
+        });
         break;
       // The spreadsheet listens to this and sets focus to grid
       case 'FETCHED_CELLS':
