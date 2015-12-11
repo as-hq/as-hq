@@ -23,7 +23,7 @@ import ASCellPropControl from './ASCellPropControl.jsx';
 
 type ToggleButtonProps = {
   iconClassName: string;
-  propTag: string;
+  propTag: BooleanCellTag;
 };
 
 type ToggleButtonState = {

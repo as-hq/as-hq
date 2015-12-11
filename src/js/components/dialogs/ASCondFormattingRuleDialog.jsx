@@ -31,6 +31,7 @@ import {Just, Nothing} from '../../AS/Maybe';
 
 import Dialog from './DialogWrapper.jsx';
 import SelectField from '../basic-controls/ASSelectField.jsx';
+import ASColorPicker from '../basic-controls/ASColorPicker.jsx';
 
 import API from '../../actions/ASApiActionCreators';
 import CFStore from '../../stores/ASCondFormatStore';
@@ -97,8 +98,8 @@ export default React.createClass({
 
   getInitialState() {
     return {
-      showConditionTextField: this._showTextField(),
-      showStyleColorField: this._showColorField()
+      showConditionTextField: this._showTextField(this._getConditionMenuItem()),
+      showStyleColorField: this._showColorField(this._getStyleMenuItem())
     };
   },
 
@@ -163,10 +164,8 @@ export default React.createClass({
           menuItems={this.stylingMenuItems}
           onChange={this._onChangeStyle} />
         <br />
-        {showStyleColorField ? (
-          null // TODO!!!!!
-        ) : null}
-
+        {showStyleColorField ?
+          <ASColorPicker ref="colorPicker" /> : null}
         {_.range(7).map(() => <br />)}
       </Dialog>
     );
@@ -174,18 +173,19 @@ export default React.createClass({
 
   _onChangeCondition(evt: any, idx: number, menuItem: MenuItemRequest) {
     this.setState({
-      showConditionTextField: this._showTextField()
+      showConditionTextField: this._showTextField(menuItem.payload)
     });
   },
 
   _onChangeStyle(evt: any, idx: number, menuItem: MenuItemRequest) {
+    debugger;
     this.setState({
-      showStyleColorField: this._showColorField()
+      showStyleColorField: this._showColorField(menuItem.payload)
     });
   },
 
-  _showTextField(): boolean {
-    switch (this._getConditionMenuItem()) {
+  _showTextField(menuItemText: ?string): boolean {
+    switch (menuItemText) {
       case 'cell_empty':
       case 'cell_not_empty':
         return false;
@@ -194,8 +194,9 @@ export default React.createClass({
     }
   },
 
-  _showColorField(): boolean {
-    switch (this._getStyleMenuItem()) {
+  _showColorField(menuItemText: ?string): boolean {
+    debugger;
+    switch (menuItemText) {
       case 'bg_color':
       case 'text_color':
         return true;
@@ -252,9 +253,9 @@ export default React.createClass({
       case 'underline':
         return { tag: 'Underline', contents: [] };
       case 'bg_color':
+        return { tag: 'FillColor', contents: this.refs.colorPicker.getValue() };
       case 'text_color':
-        //TODO!!!!!!
-        return { tag: 'Bold', contents: [] };
+        return { tag: 'TextColor', contents: this.refs.colorPicker.getValue() };
       default:
         return { tag: 'Bold', contents: [] }; //unreachable
     }
