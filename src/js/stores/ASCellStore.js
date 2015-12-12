@@ -235,7 +235,7 @@ const ASCellStore = Object.assign({}, BaseStore, {
    getRowMajorCellValues(rng) {
      if (L.isIndex(rng)) {
       let cell = this.getCell(rng.tl.col, rng.tl.row);
-      return [[cell ? cell.cellValue.contents : null]];
+      return [[cell ? cell.cellValue.contents : '']];
      } else {
       let {tl, br} = rng,
           height = br.row - tl.row + 1,
