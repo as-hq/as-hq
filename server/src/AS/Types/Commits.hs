@@ -10,6 +10,8 @@ import GHC.Generics
 import Data.Aeson hiding (Success)
 import Data.List
 
+import Data.Serialize (Serialize)
+
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Version Control
 
@@ -35,6 +37,9 @@ instance ToJSON ASCommit
 instance FromJSON CellDiff
 instance ToJSON CellDiff
 
+instance Serialize ASTime
+instance Serialize ASCommit
+instance Serialize CellDiff
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Helpers

@@ -175,6 +175,7 @@ instance Serialize RangeDescriptor
 instance Serialize JSONField 
 instance Serialize JSONValue 
 instance Serialize Collection 
+instance Serialize DescriptorDiff
 
 
 -- memory region exposure instances for R value unboxing

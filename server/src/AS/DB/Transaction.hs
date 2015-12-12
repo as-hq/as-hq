@@ -13,15 +13,16 @@ import AS.DB.Expanding
 import AS.DB.Internal as DI
 import AS.Dispatch.Expanding as DE (recomposeCompositeValue)
 import AS.Logging
+import AS.Util
 
-import Database.Redis hiding (time)
 import qualified Data.Text as T
 import qualified Data.ByteString.Char8 as B
-import Data.List (nub)
-import Data.Maybe 
 import qualified Data.Map as M
-import Data.List
+import qualified Data.List as L
+import qualified Data.Serialize as S
+import Data.Maybe 
 
+import Database.Redis hiding (time)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Trans.Either
 import Control.Monad.Trans.Class
@@ -55,19 +56,6 @@ referenceToCompositeValue conn ctx (RangeRef r) = return . Expanding . VList . M
 
 ----------------------------------------------------------------------------------------------------------------------
 -- top-level functions
-
----- takes in [new cells], [new fat cells] as a result of evalChain, and returns the list 
----- of locations decoupled as a result.
---getDecouplingEffects :: Connection -> ASSheetId -> [ASCell] -> [FatCell] -> IO ([ASIndex])
---getDecouplingEffects conn sid cells fcells = 
---  let locs = map cellLocation cells
---      keys = map (descriptorKey . descriptor) fcells
---  in do
---    rangeKeysChangedByCells    <- liftIO $ DI.getFatCellIntersections conn sid (Left locs)
---    rangeKeysChangedByFatCells <- liftIO $ DI.getFatCellIntersections conn sid (Right keys)
---    let rangeKeysChanged = rangeKeysChangedByCells ++ rangeKeysChangedByFatCells
---    let decoupledLocs    = concat $ map DI.rangeKeyToIndices rangeKeysChanged
---    return decoupledLocs
 
 -- After getting the final context, update the DB and return the cells changed by the entire eval
 updateDBFromEvalContext :: Connection -> CommitSource -> EvalContext -> EitherTExec [ASCell]
@@ -143,8 +131,8 @@ popKey (sid, uid)  = B.pack $ (T.unpack sid) ++ '|':(T.unpack uid) ++ "popped"
 undo :: Connection -> CommitSource -> IO (Maybe ASCommit)
 undo conn src = do
   commit <- runRedis conn $ do
-    (Right commit) <- rpoplpush (pushKey src) (popKey src)
-    return $ DI.bStrToASCommit commit
+    Right commit <- rpoplpush (pushKey src) (popKey src)
+    return $ decodeMaybe =<< commit
   case commit of
     Nothing -> return Nothing
     Just c@(Commit cdiff ddiff t) -> do
@@ -159,7 +147,7 @@ redo conn src = do
     case result of
       Just commit -> do
         rpush (pushKey src) [commit]
-        return $ DI.bStrToASCommit (Just commit)
+        return $ decodeMaybe commit
       _ -> return Nothing
   case commit of
     Nothing -> return Nothing
@@ -170,10 +158,9 @@ redo conn src = do
 
 pushCommit :: Connection -> ASCommit -> CommitSource -> IO ()
 pushCommit conn c src = do
-  let commit = (B.pack . show) c
   runRedis conn $ do
     TxSuccess _ <- multiExec $ do
-      rpush (pushKey src) [commit]
+      rpush (pushKey src) [S.encode c]
       incrbyfloat "numCommits" 1
       del [popKey src]
     return ()
@@ -187,9 +174,8 @@ getTempCommit conn src = do
     TxSuccess c <- multiExec $ do
       get commitSource
     return c
-  return $ bStrToASCommit maybeBStr
+  return $ decodeMaybe =<< maybeBStr
   
-
 setTempCommit :: Connection  -> ASCommit -> CommitSource -> IO ()
 setTempCommit conn c src = do 
   let commit = (B.pack . show) c 

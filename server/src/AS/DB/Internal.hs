@@ -71,21 +71,6 @@ getUniquePrefixedName pref strs = pref ++ (show idx)
       [] -> 1
       _  -> (L.maximum idxs) + 1
 
--- TODO
-deleteLocsInSheet :: ASSheetId -> IO ()
-deleteLocsInSheet sid = return () 
-
-getCellsByKeyPattern :: Connection -> B.ByteString -> IO [ASCell]
-getCellsByKeyPattern conn pattern = do
-  locs <- runRedis conn $ do
-    Right ks <- keys pattern
-    let locs = catMaybes $ map readLoc ks
-        readLoc k = case (decodeMaybe k) of 
-          Just l@(Index _ _) -> Just l
-          _ -> Nothing
-    return locs
-  map fromJust <$> getCells conn locs
-
 ----------------------------------------------------------------------------------------------------------------------
 -- Fat cells
 

@@ -82,11 +82,7 @@ getCells :: Connection -> [ASIndex] -> IO [Maybe ASCell]
 getCells _ [] = return []
 getCells conn locs = runRedis conn $ do
   sCells <- map fromRight <$> mapM (get . S.encode) locs
-  return $ map deserializeResult sCells
-    where 
-      deserializeResult ms = case ms of
-        Nothing -> Nothing
-        Just s -> decodeMaybe s
+  return $ map (decodeMaybe =<<) sCells
 
 setCells :: Connection -> [ASCell] -> IO ()
 setCells _ [] = return ()
@@ -113,10 +109,31 @@ getPossiblyBlankCell :: Connection -> ASIndex -> IO ASCell
 getPossiblyBlankCell conn loc = head <$> getPossiblyBlankCells conn [loc]
 
 getCellsInSheet :: Connection -> ASSheetId -> IO [ASCell]
-getCellsInSheet conn sid = DI.getCellsByKeyPattern conn $ BC.pack $ "*" ++ (T.unpack sid) ++ "*"
+getCellsInSheet conn sid = getCellsByKeyPattern conn $ BC.pack $ "*" ++ (T.unpack sid) ++ "*"
 
 getAllCells :: Connection -> IO [ASCell]
-getAllCells conn = DI.getCellsByKeyPattern conn "*"
+getAllCells conn = getCellsByKeyPattern conn "*"
+
+deleteLocsInSheet :: Connection -> ASSheetId -> IO ()
+deleteLocsInSheet conn sid = runRedis conn $ do
+  Right ks <- keys $ BC.pack $ "*" ++ (T.unpack sid) ++ "*"
+  let locKeys = catMaybes $ map readLocKey ks
+      readLocKey k = case (decodeMaybe k) of 
+        Just (Index _ _) -> Just k
+        _ -> Nothing
+  del locKeys
+  return ()
+
+getCellsByKeyPattern :: Connection -> B.ByteString -> IO [ASCell]
+getCellsByKeyPattern conn pattern = do
+  locs <- runRedis conn $ do
+    Right ks <- keys pattern
+    let locs = catMaybes $ map readLoc ks
+        readLoc k = case (decodeMaybe k) of 
+          Just l@(Index _ _) -> Just l
+          _ -> Nothing
+    return locs
+  map fromJust <$> getCells conn locs
 
 -- Gets the cells at the locations with expressions and values removed, but tags intact. 
 -- this function is order-preserving
@@ -335,7 +352,7 @@ clearSheet conn sid = do
     del [makeSheetRangesKey sid]
     del [condFormattingRulesKey sid]
     mapM (\l -> del [makeEvalHeaderKey sid l]) headerLangs
-  DI.deleteLocsInSheet sid
+  deleteLocsInSheet conn sid
   -- TODO: also clear undo, redo, and last message (for Ctrl+Y) (Alex 11/20)
 
 ----------------------------------------------------------------------------------------------------------------------
