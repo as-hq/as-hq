@@ -20,7 +20,7 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import ASCodeEditor from './ASCodeEditor.jsx';
 import ASSpreadsheet from './ASSpreadsheet.jsx';
-import Render from '../AS/Render';
+import Render from '../AS/Renderers';
 
 import CellStore from '../stores/ASCellStore';
 import SheetStateStore from '../stores/ASSheetStateStore';
@@ -35,15 +35,18 @@ import API from '../actions/ASApiActionCreators';
 import EvalHeaderActionCreator from '../actions/ASEvalHeaderActionCreators';
 import ExpActionCreator from '../actions/ASExpActionCreators';
 
+import U from '../AS/Util';
 import Shortcuts from '../AS/Shortcuts';
-import ShortcutUtils from '../AS/ShortcutUtils';
-import ClipboardUtils from '../AS/ClipboardUtils';
-import Util from '../AS/Util';
-import ParseUtils from '../AS/ParsingUtils';
+
+let {
+  Shortcut: ShortcutUtils,
+  Clipboard: ClipboardUtils,
+  Parsing: ParseUtils,
+  Conversion: TC,
+  Key: KeyUtils
+} = U;
 
 import Constants from '../Constants';
-import TC from '../AS/TypeConversions';
-import KeyUtils from '../AS/KeyUtils';
 import {Snackbar} from 'material-ui';
 
 import * as BrowserTests from '../browser-test/index';
@@ -361,8 +364,8 @@ export default React.createClass({
       return;
     }
 
-    let containsHTML = Util.arrContains(e.clipboardData.types,"text/html"),
-        containsPlain = Util.arrContains(e.clipboardData.types,"text/plain"),
+    let containsHTML = e.clipboardData.types.includes("text/html"),
+        containsPlain = e.clipboardData.types.includes("text/plain"),
         isAlphaSheets = this.state.testMode ||
           (
             containsHTML
@@ -380,7 +383,7 @@ export default React.createClass({
 
       // clipboard.area is basically obsolete, except for allowing copy/paste within the same sheets
       // for browser tests. (We need a special case for this because mocking the actual clipboard is difficult.)
-      if (isTesting() || Util.isMac()) {
+      if (isTesting() || U.Browser.isMac()) {
         if (!! clipboard.area) {
           fromRange   = clipboard.area.range;
           fromSheetId = SheetStateStore.getCurrentSheet().sheetId;
@@ -404,7 +407,7 @@ export default React.createClass({
         let plain = e.clipboardData.getData("text/plain"),
             vals = ClipboardUtils.plainStringToVals(plain),
             cells = ClipboardUtils.externalStringsToASCells(sel.origin, vals, this.state.currentLanguage),
-            concatCells = Util.concatAll(cells);
+            concatCells = U.Array.concatAll(cells);
         API.pasteSimple(concatCells);
         // The normal eval handling will make the paste show up
       } else {
@@ -556,20 +559,20 @@ export default React.createClass({
     } else if (userIsTyping) {
       if (editorCanInsertRef) { // insert cell ref in editor
         logDebug("Eval pane inserting cell ref in editor");
-        let excelStr = Util.rangeToExcel(range);
+        let excelStr = TC.rangeToExcel(range);
         this._getEditorComponent().insertRef(excelStr);
         let newStr = this._getRawEditor().getValue(); // new value
         ExpActionCreator.handlePartialRefEditor(newStr,excelStr);
       } else if (textBoxCanInsertRef) { // insert cell ref in textbox
         logDebug("Eval pane inserting cell ref in textbox");
         logDebug("Current value: " + this._getTextbox().editor.getValue());
-        let excelStr = Util.rangeToExcel(range);
+        let excelStr = TC.rangeToExcel(range);
         this._getTextbox().insertRef(excelStr);
         let newStr = this._getTextbox().editor.getValue();
         ExpActionCreator.handlePartialRefTextBox(newStr,excelStr);
       } else if (gridCanInsertRef) { // insert cell ref in textbox
         logDebug("Eval pane inserting cell ref originating from grid");
-        let excelStr = Util.rangeToExcel(range);
+        let excelStr = TC.rangeToExcel(range);
         ExpActionCreator.handlePartialRefGrid(excelStr);
       }
     } else {

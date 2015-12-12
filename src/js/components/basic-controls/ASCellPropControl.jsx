@@ -12,8 +12,11 @@ import ASButton from './ASButton.jsx';
 
 import {using} from '../../AS/Maybe';
 
-import Util from '../../AS/Util';
-import TC from '../../AS/TypeConversions';
+import U from '../../AS/Util';
+let {
+  Conversion: TC
+} = U;
+
 import API from '../../actions/ASApiActionCreators';
 import CellStore from '../../stores/ASCellStore';
 import SheetStateStore from '../../stores/ASSheetStateStore';
@@ -43,7 +46,7 @@ export default React.createClass({
   // cell updates.
   _onActiveCellChange() {
     let ac = CellStore.getActiveCell(),
-        prop = (ac != null) ? Util.getPropByTag(this.props.propTag, ac) : null;
+        prop = (ac != null) ? U.Cell.getPropByTag(this.props.propTag, ac) : null;
     this.props.setControlStateFromCellProp(prop);
   },
 

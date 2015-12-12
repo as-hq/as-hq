@@ -36,8 +36,10 @@ import ASColorPicker from '../basic-controls/ASColorPicker.jsx';
 import API from '../../actions/ASApiActionCreators';
 import CFStore from '../../stores/ASCondFormatStore';
 
-import Util from '../../AS/Util';
-import TC from '../../AS/TypeConversions';
+import U from '../../AS/Util';
+let {
+  Conversion: TC
+} = U;
 
 type StyleMenuItem = 'bold' | 'italic' | 'underline' | 'bg_color' | 'text_color';
 
@@ -103,7 +105,7 @@ export default React.createClass({
     if (initRule != null) {
       let format = initRule.condFormat;
       if (format.tag === 'FillColor' || format.tag === 'TextColor') {
-        return Util.colorToHtml(format.contents);
+        return TC.colorToHtml(format.contents);
       }
     }
     return "#000000";
@@ -142,7 +144,7 @@ export default React.createClass({
               .fmap(({cellLocs}) => cellLocs)
               .fmap(([firstLoc]) => firstLoc)
               .fmap(({range}) => range)
-              .fmap(x => Util.rangeToExcel(x))
+              .fmap(x => TC.rangeToExcel(x))
               .out() || ''
           }
           style={standardStyling}
@@ -234,7 +236,7 @@ export default React.createClass({
   },
 
   _getCellLocsFromForm(): Array<ASRange> {
-    return [TC.simpleToASRange(Util.excelToRange(this.refs.range.getValue()))];
+    return [TC.simpleToASRange(TC.excelToRange(this.refs.range.getValue()))];
   },
 
   _getExpressionFromForm(): ASExpression {

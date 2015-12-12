@@ -1,13 +1,18 @@
 /* @flow */
 
+import {logDebug} from '../AS/Logger';
+
 import React from 'react';
 import Dispatcher from '../Dispatcher';
 import BaseStore from './BaseStore';
 import Constants from '../Constants';
-import Util from '../AS/Util';
-import {logDebug} from '../AS/Logger';
-import Render from '../AS/Render';
-import TC from '../AS/TypeConversions';
+
+import U from '../AS/Util';
+let {
+  Conversion: TC
+} = U;
+
+import Render from '../AS/Renderers';
 import ReplStore from  './ASReplStore';
 import API from '../actions/ASApiActionCreators';
 import CellStore from './ASCellStore';
@@ -104,7 +109,7 @@ const ASSheetStateStore = Object.assign({}, BaseStore, {
         It gets previous scroll state from the store and then uses the API to send a "get cells" message to server
       */
       case 'SCROLLED':
-        let extendedRange = Util.extendRangeByCache(action.vWindow.range),
+        let extendedRange = U.Location.extendRangeByCache(action.vWindow.range),
             extendedWindow = TC.rangeToASWindow(extendedRange);
         _data.viewingWindow = action.vWindow;
         API.updateViewingWindow(extendedWindow);
@@ -280,7 +285,7 @@ const ASSheetStateStore = Object.assign({}, BaseStore, {
     }
     // I haven't actually figured out why the above code works, it seems like it sort of just does.
 
-    return { range: Util.orientRange({tl: newTl, br: newBr}), origin: origin };
+    return { range: U.Location.orientRange({tl: newTl, br: newBr}), origin: origin };
   },
 
   // TODO actually get the data boundaries by iterating, or something

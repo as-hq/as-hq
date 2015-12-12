@@ -11,7 +11,6 @@ import React, {PropTypes} from 'react';
 
 import Constants from '../../Constants';
 import Util from '../../AS/Util';
-import TC from '../../AS/TypeConversions';
 import API from '../../actions/ASApiActionCreators';
 import CellStore from '../../stores/ASCellStore';
 import SheetStateStore from '../../stores/ASSheetStateStore';

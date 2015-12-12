@@ -27,9 +27,7 @@ let ReactDOM = require('react-dom');
 import ActionCreator from '../actions/ASSpreadsheetActionCreators';
 import ExpActionCreator from '../actions/ASExpActionCreators';
 
-import ShortcutUtils from '../AS/ShortcutUtils';
 import API from '../actions/ASApiActionCreators';
-import KeyUtils from '../AS/KeyUtils';
 
 import CellStore from '../stores/ASCellStore';
 import SheetStateStore from '../stores/ASSheetStateStore';
@@ -38,11 +36,15 @@ import FindStore from '../stores/ASFindStore';
 import ExpStore from '../stores/ASExpStore';
 import InitRowColPropsStore from '../stores/ASInitRowColPropsStore.js';
 
-import T from '../AS/Types';
-import TC from '../AS/TypeConversions';
-import Util from '../AS/Util';
+import U from '../AS/Util';
+let {
+  Conversion: TC,
+  Key: KeyUtils,
+  Shortcut: ShortcutUtils
+} = U;
+
 import Constants from '../Constants';
-import Render from '../AS/Render';
+import Render from '../AS/Renderers';
 
 import ASRightClickMenu from './basic-controls/ASRightClickMenu.jsx';
 import ASOverlay from './ASOverlay.jsx';
@@ -177,7 +179,7 @@ export default React.createClass({
   drawDraggedSelection(dragOrigin: NakedIndex, selRange: NakedRange, targetX: number, targetY: number) {
     let dX = targetX - dragOrigin.col,
         dY = targetY - dragOrigin.row;
-    let range = Util.offsetRange(selRange, dY, dX);
+    let range = U.Location.offsetRange(selRange, dY, dX);
     Render.setDragRect(range);
   },
 
@@ -186,7 +188,7 @@ export default React.createClass({
     let {x, y} = event.primitiveEvent.detail.mouse,
        topLeftBox = Render.getTopLeftBox(),
        boxWidth   = Render.getBoxWidth();
-    return Util.mouseLocIsContainedInBox(x,y,topLeftBox,boxWidth);
+    return U.Location.mouseLocIsContainedInBox(x,y,topLeftBox,boxWidth);
   },
 
   // Semi-recursive function via timeouts -- this is how hypergrid does it
@@ -248,7 +250,7 @@ export default React.createClass({
     let hg = this._getHypergrid(),
         selection = hg.getSelectionModel().getSelections()[0],
         ul = selection.origin,
-        range = Util.orientRange({
+        range = U.Location.orientRange({
                   tl: {row:  ul.y + 1,
                        col:  ul.x + 1},
                   br: {row: ul.y + selection.height() + 1,
@@ -371,7 +373,7 @@ export default React.createClass({
       if (evt.primitiveEvent.detail.primitiveEvent.shiftKey) { // shift+click
         let {origin} = this.getSelectionArea(),
             newBr = {col: evt.gridCell.x, row: evt.gridCell.y},
-            newSel = {origin: origin, range: Util.orientRange({tl: origin, br: newBr})};
+            newSel = {origin: origin, range: U.Location.orientRange({tl: origin, br: newBr})};
         this.select(newSel, false);
       } else {
         let {x, y} = this.getCoordsFromMouseEvent(grid, evt);
@@ -590,7 +592,7 @@ export default React.createClass({
       let cellSheetId = c.cellLocation.sheetId,
           gridCol = c.cellLocation.index.col-1, // hypergrid starts indexing at 0
           gridRow = c.cellLocation.index.row-1, // hypergrid starts indexing at 0
-          display = Util.showValue(c.cellValue);
+          display = U.Render.showValue(c.cellValue);
 
       model.setValue(gridCol, gridRow, display.toString());
       let newOverlays = this.updateOverlays(c);
@@ -599,7 +601,7 @@ export default React.createClass({
         let scroll = this.state.scroll,
             point = finRect.point.create(gridCol + 1 - scroll.x, gridRow + 1 - scroll.y),
             {x, y} = this._getHypergrid().getBoundsOfCell(point).origin;
-        let overlay = Util.getImageOverlay(c, x, y);
+        let overlay = U.Render.getImageOverlay(c, x, y);
         if (! overlay) {
           logDebug('Overlay is null even though cell has ValueImage');
           return;
@@ -620,7 +622,7 @@ export default React.createClass({
     let overlays = this.state.overlays,
         locs = overlays.map((o)=>o.loc);
     for (var i = 0 ; i < locs.length; i++) {
-      if (Util.locEquals(locs[i], c.cellLocation)) {
+      if (U.Render.locEquals(locs[i], c.cellLocation)) {
         overlays.splice(i,1);
       }
     }
@@ -643,14 +645,14 @@ export default React.createClass({
     logDebug("Spreadsheet select start");
 
     // unsafe if it references values <= 0.
-    let safeSelection = Util.getSafeSelection(unsafeSelection);
+    let safeSelection = U.Location.getSafeSelection(unsafeSelection);
     let {tl, br} = safeSelection.range;
     let {col, row} = safeSelection.origin;
 
     let oldSel = SelectionStore.getActiveSelection();
     // make selection
     let hg = this._getHypergrid(),
-        originIsCorner = Util.originIsCornerOfSelection(safeSelection),
+        originIsCorner = U.Location.originIsCornerOfSelection(safeSelection),
         c, r, dC, dR;
 
     if (originIsCorner) {
@@ -740,7 +742,7 @@ export default React.createClass({
       // it works in all cases. It does work for ctrl shift arrows and ctrl arrows though. (Alex 11/3/15)
 
       if (oldOrigin) {
-        if (Util.simpleIndexEquals(oldOrigin, newSel.origin)) {
+        if (U.Render.simpleIndexEquals(oldOrigin, newSel.origin)) {
           if (this.rowVisible(oldTl) && !this.rowVisible(tl)) {
             scrollV = this.scrollVForTopEdge(tl.row);
           } else if (this.rowVisible(oldBr) && !this.rowVisible(br)) {
@@ -835,7 +837,7 @@ export default React.createClass({
 
       let {range, origin} = activeSelection;
       logDebug("ACTIVE SEL AFTER NAV KEY", origin);
-      if (KeyUtils.isPureArrowKey(e) && !T.isIndex(range)) {
+      if (KeyUtils.isPureArrowKey(e) && !U.Location.isIndex(range)) {
         logDebug("MANUALLY HANDLING NAV KEY");
         KeyUtils.killEvent(e);
         let newOrigin = KeyUtils.shiftIndexByKey(e, origin);
@@ -944,14 +946,14 @@ export default React.createClass({
 
       // tag-based cell styling
       if (!! cell) {
-        Util.valueToRenderConfig(config, cell.cellValue);
+        U.Render.valueToRenderConfig(config, cell.cellValue);
         if (cell.cellExpression.expandingType) {
-          Util.expandingTypeToRenderConfig(config, cell.cellExpression.expandingType);
+          U.Render.expandingTypeToRenderConfig(config, cell.cellExpression.expandingType);
         }
 
         // props take highest precedence
         if (cell.cellProps.length > 0) { // props take higher precedence
-          Util.propsToRenderConfig(config, cell.cellProps);
+          U.Render.propsToRenderConfig(config, cell.cellProps);
         }
       } else {
         config.halign = 'center';

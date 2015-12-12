@@ -29,10 +29,7 @@ let _data: {
 };
 
 function isNotWorkbookAction(action: ASAction): boolean {
-  return !Util.arrContains(
-    ['GOT_UPDATED_WORKBOOKS', 'GOT_NEW_WORKBOOKS', 'DELETED_WORKBOOKS'],
-    action._type
-  );
+  return !['GOT_UPDATED_WORKBOOKS', 'GOT_NEW_WORKBOOKS', 'DELETED_WORKBOOKS'].includes(action._type);
 }
 
 const ASWorkbookStore = Object.assign({}, BaseStore, {
@@ -77,7 +74,7 @@ const ASWorkbookStore = Object.assign({}, BaseStore, {
       if (_data.workbooks[key]) {
         // assumes the sheets are actually new
         _data.workbooks[key].wsSheets =
-            Util.mergeSheets(_data.workbooks[key].wsSheets,
+            Util.Workbook.mergeSheets(_data.workbooks[key].wsSheets,
               wb.wsSheets);
       } else
         _data.workbooks[key] = wbs[key];
@@ -89,7 +86,7 @@ const ASWorkbookStore = Object.assign({}, BaseStore, {
     for (var key in wbs) {
       if (_data.workbooks[key]) {
         _data.workbooks[key].wsSheets =
-            Util.removeSheets(_data.workbooks[key].wsSheets,
+            Util.Workbook.removeSheets(_data.workbooks[key].wsSheets,
               wbs[key].wsSheets);
       }
     }

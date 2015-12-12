@@ -7,11 +7,14 @@ import CellStore from '../stores/ASCellStore';
 import SheetStateStore from '../stores/ASSheetStateStore';
 import SelectionStore from '../stores/ASSelectionStore';
 import FindStore from '../stores/ASFindStore';
-import SU from './ShortcutUtils';
 import API from '../actions/ASApiActionCreators';
-import Util from '../AS/Util';
-import TC from '../AS/TypeConversions';
-import KeyUtils from '../AS/KeyUtils';
+import U from './Util';
+
+let {
+  Shortcut: SU,
+  Conversion: TC,
+  Key: KeyUtils
+} = U;
 
 import ASEvalPane from '../components/ASEvaluationPane.jsx';
 
@@ -176,11 +179,11 @@ export default {
         let editor = self._getRawEditor(),
             sesh = editor.getSession(),
             cursor = editor.getCursorPosition(),
-            range = Util.getExtendedWordRange(sesh, cursor.row, cursor.column),
+            range = U.Parsing.getExtendedWordRange(sesh, cursor.row, cursor.column),
             sel = editor.selection;
         sel.setRange(range);
         let oldRef = editor.getSelectedText(),
-            newRef = Util.toggleReference(oldRef);
+            newRef = U.Parsing.toggleReference(oldRef);
         if (newRef != null) {
           let newXp = xp.substring(0, xp.length - oldRef.length) + newRef;
           ExpActionCreator.handleGridChange(newXp);
@@ -189,10 +192,10 @@ export default {
         let editor = self._getRawEditor(),
             sesh = editor.getSession(),
             cursor = editor.getCursorPosition(),
-            range = Util.getExtendedWordRange(sesh, cursor.row, cursor.column),
+            range = U.Parsing.getExtendedWordRange(sesh, cursor.row, cursor.column),
             sel = editor.selection;
         sel.setRange(range);
-        let newRef = Util.toggleReference(editor.getSelectedText());
+        let newRef = U.Parsing.toggleReference(editor.getSelectedText());
         if (!! newRef) {
           sesh.replace(range, newRef);
           ExpActionCreator.handleEditorChange(editor.getValue());
@@ -201,10 +204,10 @@ export default {
         let editor = self._getRawTextbox(),
             sesh = editor.getSession(),
             cursor = editor.getCursorPosition(),
-            range = Util.getExtendedWordRange(sesh, cursor.row, cursor.column),
+            range = U.Parsing.getExtendedWordRange(sesh, cursor.row, cursor.column),
             sel = editor.selection;
         sel.setRange(range);
-        let newRef = Util.toggleReference(editor.getSelectedText());
+        let newRef = U.Parsing.toggleReference(editor.getSelectedText());
         if (!! newRef) {
           sesh.replace(range, newRef);
           ExpActionCreator.handleTextBoxChange(editor.getValue());
@@ -359,7 +362,7 @@ export default {
         let tl = sel.range.tl,
             cell = CellStore.getCell(tl.col, tl.row-1);
         if (cell) {
-          let xp = Util.showValue(cell.cellValue) || '';
+          let xp = U.Render.showValue(cell.cellValue) || '';
           ExpActionCreator.handleEditorChange(xp);
           let xpObj = {
             expression: self._getRawEditor().getValue(),

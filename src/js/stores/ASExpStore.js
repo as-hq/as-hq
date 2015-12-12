@@ -18,8 +18,7 @@ import SelectionStore from './ASSelectionStore';
 
 import API from '../actions/ASApiActionCreators';
 import Util from '../AS/Util';
-import ParseUtils from '../AS/ParsingUtils';
-import Render from '../AS/Render';
+import Render from '../AS/Renderers';
 
 /*
 This store is for holding common data for three-way data flow between grid, textbox, and editor
@@ -216,12 +215,12 @@ const ASExpStore = Object.assign({}, BaseStore, {
 
   editorCanInsertRef(editor) : boolean {
     return this.getLastCursorPosition() === Constants.CursorPosition.EDITOR ?
-      _data.refInsertionBypass || ParseUtils.canInsertCellRef(editor,this.getLastRef()) : false;
+      _data.refInsertionBypass || Util.Parsing.canInsertCellRef(editor,this.getLastRef()) : false;
   },
 
   textBoxCanInsertRef(editor) : boolean {
     return this.getLastCursorPosition() === Constants.CursorPosition.TEXTBOX ?
-      _data.refInsertionBypass || ParseUtils.canInsertCellRef(editor,this.getLastRef()) : false;
+      _data.refInsertionBypass || Util.Parsing.canInsertCellRef(editor,this.getLastRef()) : false;
   },
 
   gridCanInsertRef() : boolean {
@@ -230,8 +229,8 @@ const ASExpStore = Object.assign({}, BaseStore, {
       let xp = this.getExpression(),
           lRef = this.getLastRef();
       gridCanInsertRef = lRef ?
-        ParseUtils.canInsertCellRefAfterPrefix(xp.substring(0,xp.length-lRef.length)) :
-        ParseUtils.canInsertCellRefAfterPrefix(xp);
+        Util.Parsing.canInsertCellRefAfterPrefix(xp.substring(0,xp.length-lRef.length)) :
+        Util.Parsing.canInsertCellRefAfterPrefix(xp);
     }
     return _data.refInsertionBypass || gridCanInsertRef;
   },
@@ -255,7 +254,7 @@ const ASExpStore = Object.assign({}, BaseStore, {
     this.setUserIsTyping(true);
     this.setLastRef(null); // no longer have a "last ref"
     let lang = this.getLanguage(),
-        deps = Util.parseDependencies(xpStr, lang);
+        deps = Util.Parsing.parseDependencies(xpStr, lang);
     logDebug("DEPS: " + JSON.stringify(deps));
     CellStore.setActiveCellDependencies(deps);
     this.emitChange();
@@ -274,7 +273,7 @@ const ASExpStore = Object.assign({}, BaseStore, {
     this.setLastRef(excelStr);
     this.setExpression(xpStr);
     let lang = this.getLanguage();
-    CellStore.setActiveCellDependencies(Util.parseDependencies(xpStr, lang));
+    CellStore.setActiveCellDependencies(Util.Parsing.parseDependencies(xpStr, lang));
     this.emitChange();
   },
 

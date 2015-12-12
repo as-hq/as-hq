@@ -25,10 +25,16 @@ import {logDebug} from '../AS/Logger';
 import Dispatcher from '../Dispatcher';
 import BaseStore from './BaseStore';
 import API from '../actions/ASApiActionCreators';
+
 import Util from '../AS/Util';
-import T from '../AS/Types';
-import TC from '../AS/TypeConversions';
-import Render from '../AS/Render';
+let {
+  Array: A,
+  Cell: C,
+  Conversion: TC,
+  Location: L
+} = Util;
+
+import Render from '../AS/Renderers';
 import SheetStateStore from './ASSheetStateStore.js';
 import SelectionStore from './ASSelectionStore.js';
 /*
@@ -198,8 +204,8 @@ const ASCellStore = Object.assign({}, BaseStore, {
           cProps.filter((cProp) => cProp.hasOwnProperty('listKey'))[0];
         if (listKeyTag && listKeyTag.listKey) { // listKey flow hack
           let {listKey} = listKeyTag;
-          let listHead = Util.listKeyToListHead(listKey);
-          let listDimensions = Util.listKeyToListDimensions(listKey);
+          let listHead = TC.listKeyToListHead(listKey);
+          let listDimensions = TC.listKeyToListDimensions(listKey);
           return {
             tl: {row: listHead.snd,
                  col: listHead.fst} ,
@@ -227,7 +233,7 @@ const ASCellStore = Object.assign({}, BaseStore, {
 
    // Converts a range to a row major list of lists of values,
    getRowMajorCellValues(rng) {
-     if (T.isIndex(rng)) {
+     if (L.isIndex(rng)) {
       let cell = this.getCell(rng.tl.col, rng.tl.row);
       return [[cell ? cell.cellValue.contents : null]];
      } else {
@@ -235,7 +241,7 @@ const ASCellStore = Object.assign({}, BaseStore, {
           height = br.row - tl.row + 1,
           length = br.col - tl.col + 1,
           self = this,
-          rowMajorValues = Util.make2DArrayOf("", height, length);
+          rowMajorValues = A.make2DArrayOf("", height, length);
       for (let i = 0; i < height; ++i) {
         let currentRow = tl.row + i;
         rowMajorValues[i] = rowMajorValues[i].map(function(value, index) {
@@ -267,7 +273,7 @@ const ASCellStore = Object.assign({}, BaseStore, {
   updateCells(cells) {
     let removedCells = [];
     cells.forEach((c) => {
-      if (!Util.isEmptyCell(c)) {
+      if (!C.isEmptyCell(c)) {
         this.setCell(c);
         _data.lastUpdatedCells.push(c);
       } else {

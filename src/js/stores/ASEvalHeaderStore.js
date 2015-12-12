@@ -10,7 +10,7 @@ import {logDebug} from '../AS/Logger';
 import Dispatcher from '../Dispatcher';
 import Constants from '../Constants';
 import BaseStore from './BaseStore';
-import Util from '../AS/Util';
+import U from '../AS/Util';
 
 /*
 This store has evalHeader interactions with backend
@@ -95,7 +95,7 @@ const ASEvalHeaderStore = Object.assign({}, BaseStore, {
           let listVal = expVal.contents;
           switch (listVal.tag) {
             case "A":
-              message += "(Header code evaluated to : [" + listVal.contents.map(Util.safeExtractContentsFromValue).join(',') + "])";
+              message += "(Header code evaluated to : [" + listVal.contents.map(U.Render.safeExtractContentsFromValue).join(',') + "])";
               break;
             default:
               message += "(Header code evaluated to a list with dimension > 1.)";

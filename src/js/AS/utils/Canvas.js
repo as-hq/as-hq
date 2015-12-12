@@ -1,6 +1,18 @@
+/* @flow */
+
+import type {
+  NakedRange
+} from '../../types/Eval';
+
 export default {
   // The below two methods draw three sides of the rectangle
-  drawDottedHorizontal: (gc,ox,oy,ex,ey) => {
+  drawDottedHorizontal(
+    gc: GraphicsContext,
+    ox: number,
+    oy: number,
+    ex: number,
+    ey: number
+  ) {
     gc.beginPath();
     gc.setLineDash([6]);
     gc.moveTo(ox,oy);
@@ -12,7 +24,13 @@ export default {
     gc.stroke();
   },
 
-  drawDottedVertical: (gc,ox,oy,ex,ey) => {
+  drawDottedVertical(
+    gc: GraphicsContext,
+    ox: number,
+    oy: number,
+    ex: number,
+    ey: number
+  ) {
     gc.beginPath();
     gc.setLineDash([6]);
     gc.moveTo(ox,oy);
@@ -24,14 +42,14 @@ export default {
     gc.stroke();
   },
 
-  drawRect: (rng, renderer, gc) => {
+  drawRect: (rng: NakedRange, renderer: HGRendererElement, gc: GraphicsContext) => {
     let grid = renderer.getGrid(),
         fixedColCount = grid.getFixedColumnCount(),
         fixedRowCount = grid.getFixedRowCount(),
         scrollX = grid.getHScrollValue(),
         scrollY = grid.getVScrollValue(),
         firstVisibleColumn = renderer.getVisibleColumns()[0],
-        firstVisibleRow = renderer.getVisibleRows()[0], 
+        firstVisibleRow = renderer.getVisibleRows()[0],
         lastVisibleColumn = renderer.getVisibleColumns().slice(-1)[0],
         lastVisibleRow = renderer.getVisibleRows().slice(-1)[0];
 
@@ -48,15 +66,22 @@ export default {
 
     if (brX < firstVisibleColumn || tlX > lastVisibleColumn ||
         brY < firstVisibleRow || tlY > lastVisibleRow) {
-        return; 
-    } 
+        return;
+    }
     gc.rect(oX, oY, eX, eY);
   },
 
-  wrapText(gc, text, x, y, maxWidth, lineHeight) {
+  wrapText(
+    gc: GraphicsContext,
+    text: string,
+    x: number,
+    y: number,
+    maxWidth: number,
+    lineHeight: number
+  ): number {
     let words = text.split(' ');
     let line = '';
-    let height = 0; 
+    let height = 0;
     for(var n = 0; n < words.length; n++) {
       let testLine = line + words[n] + ' ';
       let testWidth = gc.measureText(testLine).width;
@@ -72,7 +97,4 @@ export default {
     gc.fillText(line, x, y);
     return height;
   }
-
-
-
-}
+};

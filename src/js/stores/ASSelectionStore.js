@@ -6,13 +6,19 @@ import type {
 
 import React from 'react';
 import Dispatcher from '../Dispatcher';
-import BaseStore from './BaseStore';
-import Util from '../AS/Util';
+
+import U from '../AS/Util';
+let {
+  Conversion: TC
+} = U;
+
 import {logDebug} from '../AS/Logger';
-import Render from '../AS/Render';
+import Render from '../AS/Renderers';
+
+import BaseStore from './BaseStore';
 import SheetStateStore from './ASSheetStateStore';
 import CellStore from './ASCellStore';
-import TC from '../AS/TypeConversions';
+
 import {Just} from '../AS/Maybe';
 
 import type {
@@ -52,7 +58,7 @@ const ASSelectionStore = Object.assign({}, BaseStore, {
     Render.setSelection(sel);
     let origin = sel.origin;
     _data.activeSelection = sel;
-    var activeCellDependencies = Util.parseDependencies(xp, lang);
+    var activeCellDependencies = U.Parsing.parseDependencies(xp, lang);
     let c = sel.origin.col,
         r = sel.origin.row,
         listDep = CellStore.getParentList(c, r);

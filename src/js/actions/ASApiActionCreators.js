@@ -52,15 +52,19 @@ import {logDebug} from '../AS/Logger';
 
 import Dispatcher from '../Dispatcher';
 import Constants from '../Constants';
-import T from '../AS/Types';
-import TC from '../AS/TypeConversions';
+
+import U from '../AS/Util';
+
+let {
+  Conversion: TC
+} = U;
+
 import CellStore from '../stores/ASCellStore';
 import SheetStateStore from '../stores/ASSheetStateStore';
-import Util from '../AS/Util';
 import ws from '../AS/PersistentWebSocket';
 
 let ActionTypes = Constants.ActionTypes;
-let wss: ws = new ws(Util.getHostUrl());
+let wss: ws = new ws(Constants.getHostUrl());
 
 let currentCbs: ?ASAPICallbackPair = undefined;
 let uiTestMode: boolean = false;
@@ -93,8 +97,8 @@ wss.onmessage = (event: MessageEvent) => {
     let fName = SheetStateStore.getCurrentSheet().sheetId + ".as";
     // #anand event.data typecasts to Blob, because we already checked the instance above
     // and flow doesn't understand that event.data is type DOMString | Blob | ...
-    let f = Util.blobToFile(((event.data: any): Blob), fName);
-    Util.promptSave(f);
+    let f = U.File.blobToFile(((event.data: any): Blob), fName);
+    U.File.promptSave(f);
   } else {
     let msg: ASServerMessage = JSON.parse(event.data);
     if (msg.result.tag === "Failure") {

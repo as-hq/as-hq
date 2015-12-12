@@ -18,7 +18,8 @@ import API from '../../actions/ASApiActionCreators';
 import CFStore from '../../stores/ASCondFormatStore';
 
 import Util from '../../AS/Util';
-import TC from '../../AS/TypeConversions';
+
+import _ from 'lodash';
 
 export default React.createClass({
   componentDidMount() {
@@ -39,7 +40,11 @@ export default React.createClass({
   _showRule(rule: CondFormatRule): string {
     // #needsrefactor why the hell do I have to do .map((r) => Util.rangeToExcel(r)) instead of
     // .map(Util.rangeToExcel) ???
-    let rngsStr = Util.toSentence(rule.cellLocs.map(TC.asLocationToSimple).map((r) => Util.rangeToExcel(r)));
+    let rngsStr = Util.String.toSentence(
+      rule.cellLocs.
+        map(Util.Conversion.asLocationToSimple).
+        map((r) => Util.Conversion.rangeToExcel(r))
+    );
         // cond    = rule.condition.expression;
 
     return rngsStr + ": ";
@@ -103,7 +108,7 @@ export default React.createClass({
 
   _onDeleteRule(ruleIdx: number): Callback {
     return () => {
-      let rules = Util.clone(CFStore.getRules());
+      let rules = _.cloneDeep(CFStore.getRules());
       rules.splice(ruleIdx, 1);
       API.setCondFormattingRules(rules);
     };
@@ -130,13 +135,13 @@ export default React.createClass({
   },
 
   _updateRule(ruleIdx: number, newRule: CondFormatRule) {
-    let rules = Util.clone(CFStore.getRules());
+    let rules = _.cloneDeep(CFStore.getRules());
     rules[ruleIdx] = newRule;
     API.setCondFormattingRules(rules);
   },
 
   _createRule(newRule: CondFormatRule) {
-    let rules = Util.clone(CFStore.getRules());
+    let rules = _.cloneDeep(CFStore.getRules());
     rules.push(newRule);
     API.setCondFormattingRules(rules);
   },

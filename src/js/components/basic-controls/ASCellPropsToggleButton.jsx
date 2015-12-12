@@ -13,7 +13,6 @@ import ASButton from './ASButton.jsx';
 import ASCheckedButton from './ASCheckedButton.jsx';
 
 import Util from '../../AS/Util';
-import TC from '../../AS/TypeConversions';
 import API from '../../actions/ASApiActionCreators';
 import CellStore from '../../stores/ASCellStore';
 import SheetStateStore from '../../stores/ASSheetStateStore';

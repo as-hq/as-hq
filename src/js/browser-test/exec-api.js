@@ -41,8 +41,12 @@ import {
 import _ from 'lodash';
 
 import API from '../actions/ASApiActionCreators';
+
 import Util from '../AS/Util';
-import TC from '../AS/TypeConversions';
+let {
+  Conversion: TC
+} = Util;
+
 import CellStore from '../stores/ASCellStore';
 import Constants from '../Constants';
 
@@ -65,15 +69,15 @@ export function actionAPIResponse(
 }
 
 export function indFromExcel(exLoc: string): NakedIndex {
-  return Util.excelToIndex(exLoc);
+  return TC.excelToIndex(exLoc);
 }
 
 export function rangeFromExcel(exLoc: string): NakedRange {
-  return Util.excelToRange(exLoc);
+  return TC.excelToRange(exLoc);
 }
 
 export function locToExcel(loc: NakedRange): string {
-  return Util.rangeToExcel(loc);
+  return TC.rangeToExcel(loc);
 }
 
 export function numToAlpha(num: number): string {
@@ -81,7 +85,7 @@ export function numToAlpha(num: number): string {
 }
 
 export function asIndex(loc: string): ASIndex {
-  return TC.simpleToASIndex(Util.excelToIndex(loc));
+  return TC.simpleToASIndex(TC.excelToIndex(loc));
 }
 
 export function asRange(loc: string): ASRange {
@@ -148,7 +152,7 @@ export function cell(loc: string, xp: string, lang: ASTestLanguage): Prf {
       'R': Constants.Languages.R,
       'excel': Constants.Languages.Excel
     };
-    let idx   = Util.excelToIndex(loc),
+    let idx   = TC.excelToIndex(loc),
         xpObj = { expression: xp, language: langMap[lang] };
     API.evaluate(idx, xpObj);
   });
@@ -268,7 +272,7 @@ export function delete_(rng: string): Prf {
 
 export function toggleProp(rng: string, propName: BooleanCellTag): Prf {
   return apiExec(() => {
-    // $FlowFixMe 
+    // $FlowFixMe
     API.toggleProp({tag: propName, contents: []}, rangeFromExcel(rng));
   });
 }

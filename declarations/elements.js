@@ -1,5 +1,3 @@
-declare class GraphicsContext {}
-
 declare class HGPoint {
   x: number; y: number;
 }
@@ -45,6 +43,7 @@ declare class GraphicsContext {
   fill: () => void;
   moveTo: (x: number, y: number) => void;
   lineTo: (x: number, y: number) => void;
+  measureText: (line: string) => { width: number };
 }
 
 declare class HGRendererConfig {
@@ -126,12 +125,15 @@ declare class HGRectangleElement extends HTMLElement {
 
 declare class HGRendererElement extends HTMLElement {
   addExtraRenderer(renderer: (gc: GraphicsContext) => void): void;
+  getGrid(): HGElement;
   getGridCellFromMousePoint(pt: HGPoint): {gridCell: HGPoint};
   startAnimator(): void;
   renderedColumns: Array<number>;
   renderedRows: Array<number>;
   getVisibleColumns: () => Array<number>;
   getVisibleRows: () => Array<number>;
+
+  _getBoundsOfCell(): HGRectangle;
 }
 
 declare class HGMouseEvent {
@@ -197,7 +199,13 @@ declare class AEWordRange {
   clone(): AEWordRange;
 }
 
+declare class AEDocument {
+  getAllLines(): Array<string>;
+  getLine(n: number): string;
+}
+
 declare class AESession {
+  doc: AEDocument;
   getWordRange(r: number, c: number): AEWordRange;
   getTextRange(rng: AEWordRange): string;
   replace(rng: AEWordRange, str: string): void;
@@ -213,12 +221,14 @@ declare class AECursorPosition {
 }
 
 declare class AERawClass {
+  clearSelection(): void;
   focus(): void;
   getValue(): string;
   getSession(): AESession;
   getCursorPosition(): AECursorPosition;
   moveCursorTo(row: number, column: number): void;
   getSelectedText(): string;
+  moveCursorToPosition(pos: AECursorPosition): void;
   setValue(str: string): void;
   selectAll(): void;
   navigateFileStart(): void;

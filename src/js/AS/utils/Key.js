@@ -1,17 +1,20 @@
 /* @flow */
 
-import Util from './Util';
-import Constants from '../Constants';
-import _ from 'lodash';
 import type {
   NakedIndex,
-} from '../types/Eval';
+} from '../../types/Eval';
 
 import type {
   Dict
-} from '../types/Base';
+} from '../../types/Base';
 
-import ExpStore from '../stores/ASExpStore.js';
+import StringUtils from './String';
+
+import Constants from '../../Constants';
+
+import _ from 'lodash';
+
+import ExpStore from '../../stores/ASExpStore.js';
 
 // -----------------------------------------------------------------------------------------------------
 // Key constants
@@ -114,17 +117,17 @@ var keyMap: Dict<number> = {
 };
 
 
-export default {
+let Key = {
   // -----------------------------------------------------------------------------------------------------
   // Key conversions and utils
   navKeys: [37, 38, 39, 40],
 
   isNavKey(e: SyntheticKeyboardEvent): boolean {
-    return Util.arrContains(this.navKeys, e.which);
+    return Key.navKeys.includes(e.which);
   },
 
   isPureArrowKey(e: SyntheticKeyboardEvent): boolean {
-    return this.isNavKey(e) && !this.containsModifiers(e);
+    return Key.isNavKey(e) && !Key.containsModifiers(e);
   },
 
   isEvalKey(e: SyntheticKeyboardEvent): boolean {
@@ -159,7 +162,7 @@ export default {
   keyToString(e: SyntheticKeyboardEvent): string {
     let c = e.which;
 
-    if (this.isDestructiveKey(e) || Util.arrContains(specials, c)) {
+    if (Key.isDestructiveKey(e) || specials.includes(c)) {
       return "";
     } else {
       // console.log("key has code: " + c);
@@ -183,10 +186,10 @@ export default {
   // determines whether editor should defer key in favor of shortcuts
   // NOTE: any Shift+??? shortcuts need to be manually cased here (shifts by default produce a visible character)
   producesTextChange(e: SyntheticKeyboardEvent): boolean {
-    let isDestructive    = this.isDestructiveKey(e);
-    let isCopyPaste      = this.isCopyPasteType(e);
-    let makesVisibleChar = this.producesVisibleChar(e);
-    let isUndoOrRedo     = this.isUndoType(e);
+    let isDestructive    = Key.isDestructiveKey(e);
+    let isCopyPaste      = Key.isCopyPasteType(e);
+    let makesVisibleChar = Key.producesVisibleChar(e);
+    let isUndoOrRedo     = Key.isUndoType(e);
 
     return makesVisibleChar || isDestructive || isCopyPaste || isUndoOrRedo;
   },
@@ -199,7 +202,7 @@ export default {
 
     let notShiftSpace    = !(e.shiftKey && e.which === 32); // shift+space doesn't produce text
     let isAlphaNum    = (e.which >= 48 && e.which <= 90);
-    let isMiscVisible = Util.arrContains(miscKeys, e.which);     //more misc punctuation
+    let isMiscVisible = miscKeys.includes(e.which);     //more misc punctuation
 
     return noModifications && notShiftSpace && (isAlphaNum || isMiscVisible);
   },
@@ -216,28 +219,28 @@ export default {
 
   modifyStringByKey(str: string, cursorPos: ?number, e: SyntheticKeyboardEvent): [string, number] {
     if (cursorPos != null) {
-      let newStart = this._appendStringByKey(str.slice(0, cursorPos), e),
+      let newStart = Key._appendStringByKey(str.slice(0, cursorPos), e),
           newEnd = str.slice(cursorPos);
 
       return [newStart + newEnd, newStart.length];
     } else { // treat it as though cursorPos is at the end
-      let newStr = this._appendStringByKey(str, e);
+      let newStr = Key._appendStringByKey(str, e);
       return [newStr, newStr.length];
     }
   },
 
   _appendStringByKey(str: string, e: SyntheticKeyboardEvent): string {
-    if (this.isDestructiveKey(e)) {
+    if (Key.isDestructiveKey(e)) {
       if (e.which === 8) { // backspace
         if (e.ctrlKey) {
-          let edited = Util.removeLastWord(str);
+          let edited = StringUtils.removeLastWord(str);
           return edited;
         } else {
           return str.substring(0, str.length-1);
         }
       } else return str;
     } else {
-      return str + this.keyToString(e);
+      return str + Key.keyToString(e);
     }
   },
 
@@ -252,19 +255,19 @@ export default {
         // as of 11/2, only way to select xp from grid is with Ctrl+A
         // so if selection exists, the whole expression must be selected
         // so we destroy the current xp and replace it.
-        if (this.isDestructiveKey(e)) {
+        if (Key.isDestructiveKey(e)) {
           return ["", 0];
         } else {
-          return [this.keyToString(e), 1];
+          return [Key.keyToString(e), 1];
         }
       } else {
-        return this.modifyStringByKey(oldXp, editor.getCursorPosition().column, e);
+        return Key.modifyStringByKey(oldXp, editor.getCursorPosition().column, e);
       }
     } else {
       if (!ExpStore.shouldHandlePercentFormat()) {
-        return [this.keyToString(e), 1];
+        return [Key.keyToString(e), 1];
       } else {
-        return [this.keyToString(e) + "%", 1];
+        return [Key.keyToString(e) + "%", 1];
       }
     }
   },
@@ -295,7 +298,7 @@ export default {
     if (k[e.which])
       return k[e.which];
     else
-      return this.keyToString(e);
+      return Key.keyToString(e);
   },
 
   shiftIndexByKey(e: SyntheticKeyboardEvent, idx: NakedIndex): NakedIndex {
@@ -337,3 +340,5 @@ export default {
     };
   }
 };
+
+export default Key;

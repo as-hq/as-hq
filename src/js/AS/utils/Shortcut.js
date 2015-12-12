@@ -2,7 +2,7 @@
 
 import type {
   Callback
-} from '../types/Base';
+} from '../../types/Base';
 
 import type {
   ASShortcutTarget,
@@ -10,14 +10,13 @@ import type {
   ASKeyCombination,
   ASKeyModifier,
   ASKeyProperty
-} from '../types/Keyboard';
+} from '../../types/Keyboard';
 
-import {logDebug} from './Logger';
+import {logDebug} from '../Logger';
 
-import Util from './Util';
-import Constants from '../Constants';
-import KeyUtils from './KeyUtils';
-import ExpStore from '../stores/ASExpStore';
+import Constants from '../../Constants';
+import KeyUtils from './Key';
+import ExpStore from '../../stores/ASExpStore';
 
 // example raw shortcut
 
@@ -62,7 +61,7 @@ export default {
 
   shortcutMatches(s: ASKeyCombination, e: SyntheticKeyboardEvent): boolean {
     if (this.compareModifiers(s, e)) {
-      if (s.optionKeys && Util.arrContains(s.optionKeys, e.which))
+      if (s.optionKeys && s.optionKeys.includes(e.which))
         return true;
       else return ((!! s.keyCode) && s.keyCode === e.which);
     } else return false;

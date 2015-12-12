@@ -1,6 +1,6 @@
 /* @flow */
 
-import RenderUtils from './RenderUtils';
+import Util from './Util';
 
 import type {
   DragCorner,
@@ -197,7 +197,7 @@ export default {
 
       if (val !== null) {
         if (this.config.wrap && false) {
-          // let h = RenderUtils.wrapText(gc, val, x + halignOffset, y + valignOffset, width, fontMetrics.height);
+          // let h = Util.Canvas.wrapText(gc, val, x + halignOffset, y + valignOffset, width, fontMetrics.height);
           // let {origin} = _renderParams.selection,
           //     grid = this.getGrid(),
           //     fixedRowCount = grid.getFixedRowCount(),
@@ -206,7 +206,7 @@ export default {
           // debugger;
           // this.getBehavior().setRowHeight(origin.row, h);
         } else {
-        gc.fillText(val, x + halignOffset, y + valignOffset);
+          gc.fillText(val, x + halignOffset, y + valignOffset);
         }
       }
 
@@ -337,7 +337,7 @@ export default {
   dependencyRenderer(gc: GraphicsContext) {
     _renderParams.deps.forEach((dep) => {
       gc.beginPath();
-      RenderUtils.drawRect(dep, this, gc);
+      Util.Canvas.drawRect(dep, this, gc);
       gc.lineWidth = 1;
       gc.strokeStyle = 'orange';
       gc.stroke();
@@ -345,9 +345,13 @@ export default {
   },
 
   draggingRenderer(gc: GraphicsContext) {
-    if (_renderParams.dragRect !== null) {
+    if (_renderParams.dragRect !== null && _renderParams.dragRect !== undefined) {
       gc.beginPath();
-      RenderUtils.drawRect(_renderParams.dragRect, this, gc);
+      if (_renderParams.dragRect === null || _renderParams.dragRect === undefined) {
+        throw new Error('The drag rect was nullified by beginPath, apparently');
+      }
+      
+      Util.Canvas.drawRect(_renderParams.dragRect, this, gc);
       gc.lineWidth = 1;
       gc.strokeStyle = 'blue';
       gc.setLineDash([5,5]);
@@ -412,7 +416,7 @@ export default {
           if (dragY >= brY-scrollY) {
             dottedTlY = br.origin.y + br.extent.y;
             height =  drag.origin.y + drag.extent.y - dottedTlY;
-            RenderUtils.drawDottedVertical(gc,dottedTlX,dottedTlY,width,height);
+            Util.Canvas.drawDottedVertical(gc,dottedTlX,dottedTlY,width,height);
             dottedRange = {
               tl: {col:tlX,row:tlY},
               br: {col:brX,row:dragY+scrollY}
@@ -420,7 +424,7 @@ export default {
           } else if (dragY <= tlY-scrollY) {
             dottedTlY = tl.origin.y;
             height = drag.origin.y - dottedTlY;
-            RenderUtils.drawDottedVertical(gc,dottedTlX,dottedTlY,width,height);
+            Util.Canvas.drawDottedVertical(gc,dottedTlX,dottedTlY,width,height);
             dottedRange = {
               tl: {col:tlX,row:dragY+scrollY},
               br: {col:brX,row:brY}
@@ -432,7 +436,7 @@ export default {
           if (dragX >= brX-scrollX) {
             dottedTlX = br.origin.x + br.extent.x;
             width = drag.origin.x + drag.extent.x - dottedTlX;
-            RenderUtils.drawDottedHorizontal(gc,dottedTlX,dottedTlY,width,height);
+            Util.Canvas.drawDottedHorizontal(gc,dottedTlX,dottedTlY,width,height);
             dottedRange = {
               tl: {col:tlX,row:tlY},
               br: {col:dragX+scrollX,row:brY}
@@ -440,7 +444,7 @@ export default {
           } else if (dragX <= tlX-scrollX) {
             dottedTlX = tl.origin.x;
             width = drag.origin.x - dottedTlX;
-            RenderUtils.drawDottedHorizontal(gc,dottedTlX,dottedTlY,width,height);
+            Util.Canvas.drawDottedHorizontal(gc,dottedTlX,dottedTlY,width,height);
             dottedRange  = {
               tl: {col:dragX+scrollX,row:tlY},
               br: {col:brX,row:brY}
