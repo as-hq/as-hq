@@ -168,7 +168,7 @@ export type StreamSource = StreamB | NoSource;
 ///////////////////////////////////////////////////////////////////////////////
 // Formats
 
-export type FormatType = 'NoFormat' | 'MoneyFormat' | 'PercentageFormat' | 'DateFormat';
+export type FormatType = 'NoFormat' | 'Money' | 'Percentage' | 'Date';
 
 export type ASLanguage = 'Python' | 'R' | 'SQL' | 'Excel';
 

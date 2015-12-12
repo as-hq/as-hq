@@ -470,26 +470,6 @@ export default React.createClass({
       // and then you press a nav key
       // Shouldn't happen anymore -- RITESH
     }
-
-  },
-
-  _onGridDeferredKey(e: SyntheticKeyboardEvent) {
-    logDebug('\n\n\nGRID DEFERRED KEY\n\n\n', e);
-    if (KeyUtils.producesTextChange(e)) {
-      let editor = this._getRawEditor(),
-          str = KeyUtils.appendStringByKey(editor.getValue(), e),
-          newStr = KeyUtils.keyToString(e),
-          xpStr = this.state.userIsTyping ? str : newStr;
-      logDebug("New grid string: " + xpStr);
-      this.setState({
-        expressionWithoutLastRef: xpStr,
-        expression: xpStr,
-      }, () => { editor.navigateFileEnd(); });
-    } else {
-      logDebug("Grid key not visible");
-      ShortcutUtils.tryShortcut(e, 'common');
-      ShortcutUtils.tryShortcut(e, 'grid');
-    }
   },
 
   _onTextBoxDeferredKey(e: SyntheticKeyboardEvent) {

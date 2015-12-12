@@ -32,6 +32,7 @@ let _data : {
     deps: Array<NakedRange>,
     expression: string,
     language : ?ASLanguage,
+    cursorPos: ?number, // currently only relevant for grid
     lastRef : ?string,
     refInsertionBypass: boolean,
     userIsTyping: boolean,
@@ -43,11 +44,11 @@ let _data : {
   xpChangeOrigin: null,
   lastCursorPosition: Constants.CursorPosition.GRID,
 
-
   deps: [],
 
   expression: '',
   language: null,
+  cursorPos: null,
 
   lastRef: null,
   refInsertionBypass: false,
@@ -66,10 +67,12 @@ const ASExpStore = Object.assign({}, BaseStore, {
   dispatcherIndex: Dispatcher.register(function (action) {
     logDebug("Exp Store detected dispatcher payload");
     switch (action._type) {
-      case 'GRID_KEY_PRESSED':
       case 'EDITOR_CHANGED':
       case 'TEXTBOX_CHANGED':
         ASExpStore.updateStoreNormalTyping(action._type, action.xpStr);
+        break;
+      case 'GRID_KEY_PRESSED':
+        ASExpStore.updateStoreNormalTyping(action._type, action.xpStr, action.cursorPos);
         break;
       case 'NORMAL_SEL_CHANGED':
         ASExpStore.updateStoreSelChange(action.xpStr);
@@ -133,7 +136,14 @@ const ASExpStore = Object.assign({}, BaseStore, {
 
   setExpression(xpStr : string) {
     _data.expression = xpStr;
-    // update deps
+  },
+
+  getCursorPos() {
+    return _data.cursorPos;
+  },
+
+  setCursorPos(pos: ?number) {
+    _data.cursorPos = pos;
   },
 
   getDoEditorCallback() {
@@ -167,7 +177,6 @@ const ASExpStore = Object.assign({}, BaseStore, {
   setLastCursorPosition(f : ?string) {
     _data.lastCursorPosition = f;
   },
-
 
   getLastRef(): ?string {
     return _data.lastRef;
@@ -233,10 +242,19 @@ const ASExpStore = Object.assign({}, BaseStore, {
   /**************************************************************************************************************************/
   // Update helpers
 
-  updateStoreNormalTyping(type, xpStr) {
-    this.setUserIsTyping(true);
+  // Checks if you're newly adding text to a cell with a % in it.
+  shouldHandlePercentFormat() {
+    let percentProp = {tag: "ValueFormat", formatType: 'Percentage'},
+        wasTyping = this.getUserIsTyping(),
+        cell = CellStore.getActiveCell();
+    return (!wasTyping && cell != undefined && Util.cellHasProp(percentProp, cell));
+  },
+
+  updateStoreNormalTyping(type, xpStr, cursorPos) {
     this.setXpChangeOrigin(type);
     this.setExpression(xpStr);
+    this.setCursorPos(cursorPos);
+    this.setUserIsTyping(true);
     this.setLastRef(null); // no longer have a "last ref"
     let lang = this.getLanguage(),
         deps = Util.parseDependencies(xpStr, lang);

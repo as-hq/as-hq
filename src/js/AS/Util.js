@@ -38,6 +38,7 @@ import Constants from '../Constants';
 import {HOST_IP, HOST_WS_PORT} from '../Constants';
 import shortid from 'shortid';
 import T from './Types';
+import _ from 'lodash';
 
 var colors = {"aliceblue":"#f0f8ff","antiquewhite":"#faebd7","aqua":"#00ffff","aquamarine":"#7fffd4","azure":"#f0ffff",
       "beige":"#f5f5dc","bisque":"#ffe4c4","black":"#000000","blanchedalmond":"#ffebcd","blue":"#0000ff","blueviolet":"#8a2be2","brown":"#a52a2a","burlywood":"#deb887",
@@ -686,9 +687,16 @@ export default {
 
   cellPropIsActive(propName: string, cell: ASCell): boolean {
     let {cellProps} = cell;
-    let props = cellProps.map(({tag}) => tag);
-    console.log('cell props', props);
-    return props.indexOf(propName) >= 0;
+    let propNames = cellProps.map(({tag}) => tag);
+    console.log('cell prop names', propNames);
+    return propNames.indexOf(propName) >= 0;
+  },
+
+  // can probably be condensed a little? whatever
+  cellHasProp(prop: ASCellProp, cell: ASCell): boolean {
+    let {cellProps} = cell, {tag} = prop;
+    let propInd = cellProps.map(({tag}) => tag).indexOf(tag);
+    return (propInd >= 0 && _.isEqual(cellProps[propInd], prop));
   },
 
  /*************************************************************************************************************************/

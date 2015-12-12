@@ -174,7 +174,7 @@ declare class HGElement extends HTMLElement {
   getColumnWidth: (columnIndex: number) => number;
 
   setRowHeight: (rowIndex: number, rowHeight: number) => void;
-  getRowHeight: (rowIndex: number) => number; 
+  getRowHeight: (rowIndex: number) => number;
 
   repaint(): void;
   scrollBy(x: number, y: number): void;
@@ -217,6 +217,7 @@ declare class AERawClass {
   getValue(): string;
   getSession(): AESession;
   getCursorPosition(): AECursorPosition;
+  moveCursorTo(row: number, column: number): void;
   getSelectedText(): string;
   setValue(str: string): void;
   selectAll(): void;

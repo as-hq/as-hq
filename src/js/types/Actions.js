@@ -44,7 +44,7 @@ export type GotUpdatedCellsAction = {
 export type GotOpenAction = {
   _type: 'GOT_OPEN';
   expressions: Array<ASExpression>;
-  initRowCols: Array<RowCol>; 
+  initRowCols: Array<RowCol>;
 };
 
 export type GotUndoAction = {
@@ -139,6 +139,7 @@ export type FindDecrementedAction = {
 export type GridKeyPressedAction = {
   _type: 'GRID_KEY_PRESSED';
   xpStr: string;
+  cursorPos: number; 
 };
 
 export type EditorChangedAction = {

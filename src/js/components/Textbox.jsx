@@ -57,7 +57,8 @@ export default React.createClass({
   /**************************************************************************************************************************/
   // Text box focus and update methods
 
-  updateTextBox(xpStr) {
+  // null/undefined cursorPos means selection goes to the end
+  updateTextBox(xpStr, cursorPos) {
     logDebug("Updating textbox: " + xpStr);
     ExpStore.setDoTextBoxCallback(false);
     if (!this.state.isVisible) { //will be visible after update, put cursor in textbox
@@ -66,6 +67,9 @@ export default React.createClass({
 
     this.setState({isVisible: true});
     this.editor.setValue(xpStr);
+    if (cursorPos != null) {
+      this.editor.moveCursorTo(0, cursorPos);
+    }
     this.editor.clearSelection(); // otherwise ace highlights whole xp
   },
 
@@ -129,9 +133,11 @@ export default React.createClass({
     }
   },
 
+  // Appends a % to the end of the editor string, and sets the cursor to
+  // be one before the %.
   _onChange(e) {
-    let xpStr = this.editor.getValue();
     if (ExpStore.getDoTextBoxCallback()) {
+      let xpStr = this.editor.getValue();
       logDebug("Textbox change new string: " + xpStr);
       ExpActionCreator.handleTextBoxChange(xpStr);
     }

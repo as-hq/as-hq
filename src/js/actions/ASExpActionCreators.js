@@ -24,10 +24,11 @@ export default {
 
   // Grid key pressed; xpStr is the updated str
   // namely, the old string with a new character at the end
-  handleGridChange(xpStr) {
+  handleGridChange(xpStr, cursorPos) {
     Dispatcher.dispatch({
      _type: Constants.ActionTypes.GRID_KEY_PRESSED,
-      xpStr: xpStr
+      xpStr: xpStr,
+      cursorPos: cursorPos
     });
   },
 

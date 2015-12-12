@@ -11,6 +11,8 @@ import type {
   Dict
 } from '../types/Base';
 
+import ExpStore from '../stores/ASExpStore.js';
+
 // -----------------------------------------------------------------------------------------------------
 // Key constants
 
@@ -212,7 +214,19 @@ export default {
     return e.ctrlKey && (e.which === 89 || e.which === 90);
   },
 
-  appendStringByKey(str: string, e: SyntheticKeyboardEvent): string {
+  modifyStringByKey(str: string, cursorPos: ?number, e: SyntheticKeyboardEvent): [string, number] {
+    if (cursorPos != null) {
+      let newStart = this._appendStringByKey(str.slice(0, cursorPos), e),
+          newEnd = str.slice(cursorPos);
+
+      return [newStart + newEnd, newStart.length];
+    } else { // treat it as though cursorPos is at the end
+      let newStr = this._appendStringByKey(str, e);
+      return [newStr, newStr.length];
+    }
+  },
+
+  _appendStringByKey(str: string, e: SyntheticKeyboardEvent): string {
     if (this.isDestructiveKey(e)) {
       if (e.which === 8) { // backspace
         if (e.ctrlKey) {
@@ -229,24 +243,29 @@ export default {
 
   //clickType type is wrong
   modifyTextboxForKey(e: SyntheticKeyboardEvent, userIsTyping: boolean,
-                      clickType: ?string, oldXp: string, isEditorEmpty: boolean): string {
+                      clickType: ?string, oldXp: string,
+                      editor: AERawClass): [string, number] {
     // Append to string if double click, replace if single click
     if (userIsTyping || clickType === Constants.ClickType.DOUBLE_CLICK) {
       // first check if editor has a thing selected
-      if (!isEditorEmpty) {
+      if (editor.getSelectedText() != "") {
         // as of 11/2, only way to select xp from grid is with Ctrl+A
         // so if selection exists, the whole expression must be selected
         // so we destroy the current xp and replace it.
         if (this.isDestructiveKey(e)) {
-          return "";
+          return ["", 0];
         } else {
-          return this.keyToString(e);
+          return [this.keyToString(e), 1];
         }
       } else {
-        return this.appendStringByKey(oldXp, e);
+        return this.modifyStringByKey(oldXp, editor.getCursorPosition().column, e);
       }
     } else {
-      return this.keyToString(e);
+      if (!ExpStore.shouldHandlePercentFormat()) {
+        return [this.keyToString(e), 1];
+      } else {
+        return [this.keyToString(e) + "%", 1];
+      }
     }
   },
 
@@ -292,5 +311,29 @@ export default {
       default:
         throw "Invalid keyboard event passed in to shiftIndexByKey";
     }
+  },
+
+  // the only relevant attribute here should be the which
+  mockedKeyboardEvent(which: number): SyntheticKeyboardEvent {
+    let noop = () => {};
+    return {
+      altKey: false,
+      charCode: 0,
+      ctrlKey: false,
+      getModifierState: null,
+      key: "",
+      keyCode: 0,
+      locale: "",
+      location: 0,
+      metaKey: false,
+      repeat: false,
+      shiftKey: false,
+      which: which,
+      view: null,
+      detail: 0,
+      persist: noop,
+      preventDefault: noop,
+      stopPropagation: noop
+    };
   }
 };

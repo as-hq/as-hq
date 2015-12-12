@@ -806,11 +806,11 @@ export default React.createClass({
       if (ShortcutUtils.gridShouldAddToTextbox(userIsTyping, e)) {
         // Need to update the editor and textbox now via action creators
         logDebug("Grid key down going to AC");
-        let newStr = KeyUtils.modifyTextboxForKey(e,
+        let [newStr, cursorPos] = KeyUtils.modifyTextboxForKey(e,
                                                   userIsTyping,
                                                   clickType,
                                                   ExpStore.getExpression(),
-                                                  this.refs.textbox.editor.getSelection().$isEmpty);
+                                                  this.refs.textbox.editor);
 
         // if visible key and there was a last cell ref, move the selection back to the origin
         let activeSelection = SelectionStore.getActiveSelection();
@@ -818,7 +818,8 @@ export default React.createClass({
           this.select(activeSelection);
         }
         this.props.hideToast();
-        ExpActionCreator.handleGridChange(newStr);
+
+        ExpActionCreator.handleGridChange(newStr, cursorPos);
       } else {
         // Try shortcuts
         logDebug("Grid key down, trying shortcut");
@@ -874,11 +875,12 @@ export default React.createClass({
 
   _onExpressionChange() {
     let xpChangeOrigin = ExpStore.getXpChangeOrigin(),
-        xpStr = ExpStore.getExpression();
+        xpStr = ExpStore.getExpression(),
+        cursorPos = ExpStore.getCursorPos();
     if (xpChangeOrigin != null) {
-     logDebug("Grid caught exp update of_type: " +  xpChangeOrigin);
+      logDebug("Grid caught exp update of_type: " +  xpChangeOrigin);
     } else {
-     logDebug("Grid cauhgt exp udpate of_type: null");
+      logDebug("Grid caught exp udpate of_type: null");
     }
     switch(xpChangeOrigin) {
       case Constants.ActionTypes.TEXTBOX_CHANGED:
@@ -889,7 +891,7 @@ export default React.createClass({
       case Constants.ActionTypes.GRID_KEY_PRESSED:
         Render.setShouldRenderSquareBox(false);
         this.repaint();
-        this.refs.textbox.updateTextBox(xpStr);
+        this.refs.textbox.updateTextBox(xpStr, cursorPos);
         break;
       // hide textbox, if focus not already in grid, put it there
       case Constants.ActionTypes.NORMAL_SEL_CHANGED:
@@ -1027,5 +1029,4 @@ export default React.createClass({
       // </Dropzone>
     );
   }
-
 });

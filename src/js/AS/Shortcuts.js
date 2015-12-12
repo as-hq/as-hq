@@ -25,7 +25,6 @@ export default {
     let self = evalPane;
 
     // common shortcuts -------------------------------------------------------------------------------
-
     SU.add('common', 'toggle_focus', 'F2', (wildcard: string) => {
       logDebug('F2 PRESSED ');
       SheetStateStore.toggleFocusF2();
@@ -96,9 +95,12 @@ export default {
       SelectionStore.withActiveSelection((sel) => {
         let formatType;
         // TODO other wildcards
-        if (wildcard === '$') formatType = "MoneyFormat";
-        else if (wildcard === '%') formatType = "PercentageFormat";
-        if (!! formatType) {
+        if (wildcard === '$') {
+          formatType = "Money";
+        }  if (wildcard === '%') {
+          formatType = "Percentage";
+        }
+        if (formatType != null) {
           API.setFormat(formatType, sel.range);
           self.refs.spreadsheet.repaint();
         }
@@ -310,8 +312,12 @@ export default {
     SU.add('grid', 'select_row', 'Shift+Space', (wildcard: string) => {
       if (ExpStore.getUserIsTyping()) {
         logDebug("Grid key down going to AC");
-        let newStr = ExpStore.getExpression() + ' ';
-        ExpActionCreator.handleGridChange(newStr);
+        let oldStr = ExpStore.getExpression(),
+            editor = self.refs.spreadsheet.refs.textbox.editor,
+           [newStr, newPos] = KeyUtils.modifyTextboxForKey(KeyUtils.mockedKeyboardEvent(32),
+                                                           true, null,
+                                                           oldStr, editor);
+        ExpActionCreator.handleGridChange(newStr, newPos);
       } else {
         SelectionStore.withActiveSelection((sel) => {
           let {origin} = sel;
