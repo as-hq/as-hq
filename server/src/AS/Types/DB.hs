@@ -215,3 +215,7 @@ makeSheetSetKey sid = BC.pack $! (T.unpack sid) ++ "Locations"
 -- key for workbook
 makeWorkbookKey :: String -> B.ByteString
 makeWorkbookKey = BC.pack
+
+-- key for eval header
+makeEvalHeaderKey :: ASSheetId -> ASLanguage -> B.ByteString
+makeEvalHeaderKey sid lang = BC.pack ("EVALHEADER" ++ (show sid) ++ (show lang)) 

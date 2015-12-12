@@ -29,6 +29,7 @@ import Control.Monad (liftM, ap)
 import qualified Data.Vector as V
 import qualified Data.Vector.Unboxed as VU
 import qualified Data.Text as T
+import Database.Redis (Connection)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Excel Location Parsing
@@ -216,7 +217,7 @@ data EEntity =
 --------------------------------------------------------------------------------------------------------------------------------------------
 -- | Excel evaluation types
 
-data Context = Context {evalMap :: ValMap, curLoc :: ASIndex}
+data Context = Context {evalMap :: ValMap, curLoc :: ASIndex, dbConn :: Connection}
 
 type ThrowsError = Either EError
 type EResult = ThrowsError EEntity

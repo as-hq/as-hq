@@ -4,7 +4,7 @@ import AS.Types.Cell
 import AS.Types.Network
 import AS.Types.Messages
 import AS.Types.User
-import AS.Types.Excel
+import AS.Types.Excel hiding (dbConn)
 import AS.Types.Eval
 
 import AS.Parsing.Substitutions
@@ -60,7 +60,7 @@ getCopyOffSets from to = offsets
 -- | Gets you the new cells to eval after shifting from a copy/paste. 
 getCopyCells :: Connection -> ASRange -> ASRange -> IO [ASCell]
 getCopyCells conn from to = do 
-  fromCells          <- getPossiblyBlankCells (rangeToIndices from)
+  fromCells          <- getPossiblyBlankCells conn (rangeToIndices from)
   sanitizedFromCells <- sanitizeCopyCells conn fromCells from
   let offsets       = getCopyOffSets from to  -- how much to shift these cells for copy/copy/paste
       -- technically, this function should be shiftCell. shiftCell should _always_ shift the inner range key as well.
@@ -114,7 +114,7 @@ getCutCells :: Connection -> ASRange -> ASRange -> IO [ASCell]
 getCutCells conn from to = do 
   let offset = getRangeOffset from to
   toCells      <- getCutToCells conn from offset
-  newDescCells <- getCutNewDescCells from offset
+  newDescCells <- getCutNewDescCells conn from offset
   let blankedCells = blankCellsAt (rangeToIndices from) -- want to forget about tags
   -- precedence: toCells > updated descendant cells > blank cells
   return $ mergeCells toCells (mergeCells newDescCells blankedCells)
@@ -122,7 +122,7 @@ getCutCells conn from to = do
 -- | Constructs the cells at the locations you'll be pasting to
 getCutToCells :: Connection -> ASRange -> Offset -> IO [ASCell]
 getCutToCells conn from offset = do 
-  fromCells          <- getPossiblyBlankCells (rangeToIndices from)
+  fromCells          <- getPossiblyBlankCells conn (rangeToIndices from)
   sanitizedFromCells <- sanitizeCutCells conn fromCells from
   let shiftLoc    = shiftInd offset
       changeExpr  = shiftExpressionForCut from offset
@@ -130,12 +130,12 @@ getCutToCells conn from offset = do
   return $ catMaybes $ map modifyCell sanitizedFromCells
 
 -- | Returns the cells that reference the cut cells with their expressions updated. 
-getCutNewDescCells :: ASRange -> Offset -> IO [ASCell]
-getCutNewDescCells from offset = do 
+getCutNewDescCells :: Connection -> ASRange -> Offset -> IO [ASCell]
+getCutNewDescCells conn from offset = do 
   immDescLocs <- getImmediateDescendantsForced (rangeToIndices from)
   let immDescLocs' = filter (not . (rangeContainsIndex from)) immDescLocs
       changeExpr   = shiftExpressionForCut from offset
-  descs <- catMaybes <$> getCells immDescLocs'
+  descs <- catMaybes <$> getCells conn immDescLocs'
   return $ map (replaceCellExpressions changeExpr) descs
 
 -- | Decouples cells appropriately for re-eval on cut/paste, as follows:

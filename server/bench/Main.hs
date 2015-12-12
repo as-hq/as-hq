@@ -101,19 +101,17 @@ instance NFData (MVar a) where rnf x = seq x ()
 
 instance (NFData k, NFData v) => NFData (HI.IOHashTable HI.HashTable k v) where
   rnf h = seq h ()
-instance Hashable ASIndex
 
 data ASEnv = ASEnv { envConn :: R.Connection, envState :: MVar ServerState, envSource :: CommitSource } deriving (Generic)
 instance NFData ASEnv where rnf = genericRnf
 
-testCells :: Int -> [ASCell]
-testCells n = map (\i -> testCell { cellLocation = Index "BENCH_ID" (1,i) }) [1..n]
 
-emptyEvaluate    = nf id ()
+emptyBench       = bgroup "" []
 it               = bench
 has a b          = env (setupEnvWith a) b 
 describe         = bgroup
-xdescribe desc _ = trace ("skipped group: " ++ desc) $ bgroup desc []
+xdescribe desc _ = trace ("skipped group: " ++ desc) emptyBench
+xit desc _       = trace ("skipped:" ++ desc) emptyBench
 run :: NFData b => (a -> b) -> a -> Benchmarkable
 run = nf
 runIO :: NFData a => IO a -> Benchmarkable
@@ -129,13 +127,7 @@ setupEnv = do
 setupEnvWith :: (NFData a) => a -> IO (ASEnv, a)
 setupEnvWith x = (,) <$> setupEnv <*> return x
 
-setCells' :: R.Connection -> [ASCell] -> IO ()
-setCells' conn cs = R.runRedis conn $ do
-  mapM_ (\c -> R.set (S.encode . cellLocation $ c) (S.encode c)) cs
-  return ()
-
-toMap cs = H.fromList $ zip (map cellLocation cs) cs
-
+testCells = map (\i -> testCell { cellLocation = Index "BENCH_ID" (1,i) })
 testMap = toMap . testCells
 
 mergeCells' :: [ASCell] -> [ASCell] -> [ASCell]
@@ -146,24 +138,24 @@ main = do
   defaultMain [
 
     xdescribe "dispatch"
-      [ has (testCells 500) $ \ ~(myEnv, cells) ->
+      [ has (testCells [1..500]) $ \ ~(myEnv, cells) ->
           it "dispatches 500 cells" $ 
             runIO $ runDispatchCycle (envState myEnv) cells DescendantsWithParent (envSource myEnv)
       ]
 
-    , has (testCells 1000) $ \ ~(_, cells) -> 
-        xdescribe "serialization"
-          [ it "serializes 10000 cells with cereal" $ 
+    , has (testCells [1..1000]) $ \ ~(_, cells) -> 
+        describe "serialization"
+          [ xit "serializes 10000 cells with cereal" $ 
               run (map S.encode) cells 
-          , it "serializes 1000 cells with bytestrings" $ 
+          , xit "serializes 1000 cells with bytestrings" $ 
               run (BC.pack . show) cells 
           , has (map S.encode cells) $ \ ~(_, scells) -> 
               it "deserializes 1000 cells" $ 
                 run (map (\c -> S.decode c :: Either String ASCell)) scells
           ]
 
-    , has ((testMap 10000, testCells 10000)) $ \ ~(_, (m, cells)) -> 
-        describe "misc cell datastructures"
+    , has ((testMap [1..10000], testCells [1..10000])) $ \ ~(_, (m, cells)) -> 
+        xdescribe "misc cell datastructures"
           [ it "creates 10000-cell map" $
               run (\cs -> M.fromList $ zip (map cellLocation cs) cs) cells
           , it "creates 10000-cell hashmap" $
@@ -181,7 +173,7 @@ main = do
               ]
           ]
 
-    , has (testCells 10000) $ \ ~(myEnv, cells) -> 
+    , has (testCells [1..10000]) $ \ ~(myEnv, cells) -> 
         xdescribe "DB"
           [ it "inserts 10000 cells with binary serialization" $ 
               runIO $ (setCells' (envConn myEnv) cells) 
@@ -190,5 +182,7 @@ main = do
           , it "sets the ancestors of 10000 cells" $ 
               runIO $ runEitherT $ G.setCellsAncestors cells
           ]
+
+    --, has (testCells [1..5000], testCells [3000..7000]) $ \ ~(_, ) 
 
     ]

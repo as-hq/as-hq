@@ -12,6 +12,7 @@ import AS.Dispatch.Repl
 import AS.Dispatch.EvalHeader
 
 import AS.DB.API
+import AS.DB.Eval
 import AS.DB.Expanding
 import AS.DB.Transaction
 import AS.Reply
@@ -29,7 +30,8 @@ handleEval uc state payload  = do
   -- expression to evaluate and the location of evaluation. In particular, the value passed in the cells
   -- are irrelevant, and there are no tags passed in, so we have to get the tags from the database
   -- manually. 
-  oldTags <- getPropsAt (map cellLocation cells)
+  conn <- dbConn <$> readMVar state
+  oldTags <- getPropsAt conn (map cellLocation cells)
   let cells' = map (\(c, ps) -> c { cellProps = ps }) (zip cells oldTags)
   msg' <- runDispatchCycle state cells' DescendantsWithParent (userCommitSource uc)
   broadcastFiltered state uc msg'

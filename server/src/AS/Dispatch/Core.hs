@@ -20,6 +20,7 @@ import AS.Types.DB
 import AS.Types.Eval
 
 import AS.Dispatch.Expanding        as DE
+import AS.DB.Eval
 import qualified AS.Eval.Core       as EC (evaluateLanguage)
 import qualified AS.DB.API          as DB
 import qualified AS.DB.Transaction  as DT
@@ -117,7 +118,7 @@ dispatch conn roots oldContext descSetting = do
   descLocs       <- getEvalLocs conn roots descSetting
   printObjT "Got eval locations" descLocs
   -- Turn the descLocs into Cells, but the roots are already given as cells, so no DB actions needed there
-  cellsToEval    <- getCellsToEval oldContext descLocs
+  cellsToEval    <- getCellsToEval conn oldContext descLocs
   printObjT "Got cells to evaluate" cellsToEval
   ancLocs        <- G.getImmediateAncestors $ indicesToGraphReadInput descLocs
   printObjT "Got ancestor locs" ancLocs
@@ -149,8 +150,8 @@ getEvalLocs conn origCells descSetting = do
 -- the evaluations in. We look up locs in the DB, but give precedence to EvalContext (if a cell is in the context, we use that instead, 
 -- as it is the most up-to-date info we have). 
 -- this function is order-preserving
-getCellsToEval :: EvalContext -> [ASIndex] -> EitherTExec [ASCell]
-getCellsToEval ctx locs = possiblyThrowException =<< (lift $ DB.getCellsWithContext ctx locs)
+getCellsToEval :: Connection -> EvalContext -> [ASIndex] -> EitherTExec [ASCell]
+getCellsToEval conn ctx locs = possiblyThrowException =<< (lift $ getCellsWithContext conn ctx locs)
   where 
     possiblyThrowException mcells = if any isNothing mcells
       then left $ DBNothingException missingLocs
@@ -163,9 +164,9 @@ getCellsToEval ctx locs = possiblyThrowException =<< (lift $ DB.getCellsWithCont
 -- see the comments above dispatch to see why an old evalContext is passed in.
 getModifiedContext :: Connection -> [ASReference] -> EvalTransform
 getModifiedContext conn ancs oldContext = do
-   ancIndices <-  lift $ concat <$> mapM (DB.refToIndicesWithContextBeforeEval oldContext) ancs 
+   ancIndices <-  lift $ concat <$> mapM (refToIndicesWithContextBeforeEval conn oldContext) ancs 
    let nonContextAncIndices = filter (not . (flip M.member (contextMap oldContext))) ancIndices
-   cells <- lift $ DB.getPossiblyBlankCells nonContextAncIndices
+   cells <- lift $ DB.getPossiblyBlankCells conn nonContextAncIndices
    let oldMap = contextMap oldContext
        newContext = oldContext { contextMap = insertMultiple oldMap nonContextAncIndices cells }
    return newContext
@@ -302,7 +303,7 @@ addCurFatCellToContext conn idx maybeFatCell ctx = do
   -- Then, given the locs, we get the cells that we have to decouple from the DB and then change their expressions
   -- to be decoupled (by using the value of the cell)
   let decoupledLocs = concat $ map (rangeKeyToIndices . descriptorKey) newlyRemovedDescriptors
-  decoupledCells <- lift $ ((map DI.toDecoupled) . catMaybes) <$> DB.getCellsWithContext ctx decoupledLocs
+  decoupledCells <- lift $ ((map DI.toDecoupled) . catMaybes) <$> getCellsWithContext conn ctx decoupledLocs
   let ctx' = removeMultipleDescriptorsFromContext newlyRemovedDescriptors $ addCellsToContext decoupledCells ctx
   let ctx'' = case maybeFatCell of
                 Nothing -> ctx'

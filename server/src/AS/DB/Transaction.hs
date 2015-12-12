@@ -72,7 +72,7 @@ referenceToCompositeValue conn ctx (RangeRef r) = return . Expanding . VList . M
 -- After getting the final context, update the DB and return the cells changed by the entire eval
 updateDBFromEvalContext :: Connection -> CommitSource -> EvalContext -> EitherTExec [ASCell]
 updateDBFromEvalContext conn src (EvalContext mp cells ddiff) = do
-  mbcells <- lift $ DB.getCells (map cellLocation cells)
+  mbcells <- lift $ DB.getCells conn (map cellLocation cells)
   time <- lift $ getASTime
   let cdiff   = CellDiff { beforeCells = (catMaybes mbcells), afterCells = cells}
       commit  = Commit cdiff ddiff time
@@ -98,7 +98,7 @@ updateDBFromEvalContext conn src (EvalContext mp cells ddiff) = do
 updateDBAfterEval :: Connection -> CommitSource -> ASCommit -> IO ()
 updateDBAfterEval conn src c@(Commit cdiff ddiff time) = do 
   let af = afterCells cdiff
-  DB.setCells af
+  DB.setCells conn af
   deleteLocs conn $ map cellLocation $ filter isEmptyCell af
   mapM_ (setDescriptor conn) (addedDescriptors ddiff)
   mapM_ (deleteDescriptor conn) (removedDescriptors ddiff)
@@ -113,7 +113,7 @@ setCellsPropagated :: Connection -> [ASCell] -> [RangeDescriptor] -> IO ()
 setCellsPropagated conn cells descs = 
   let roots = filter isEvaluable cells
   in do
-    setCells cells
+    setCells conn cells
     G.setCellsAncestorsForce roots
     mapM_ (setDescriptor conn) descs
 

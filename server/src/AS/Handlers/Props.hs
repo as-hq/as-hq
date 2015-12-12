@@ -19,7 +19,8 @@ handleToggleProp :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
 handleToggleProp uc state (PayloadProp p rng) = do
   let locs = rangeToIndices rng
       pt   =  propType p
-  cells <- getPossiblyBlankCells locs
+  conn <- dbConn <$> readMVar state
+  cells <- getPossiblyBlankCells conn locs
   let (cellsWithProp, cellsWithoutProp) = partition ((hasPropType pt) . cellProps) cells
   -- if there's a single prop present in the range, remove this prop from all the cells; 
   -- otherwise set the prop in all the cells. 
@@ -27,14 +28,15 @@ handleToggleProp uc state (PayloadProp p rng) = do
     then do 
       let cells' = map (\(Cell l e v ps) -> Cell l e v (removeProp pt ps)) cellsWithProp
           (emptyCells, nonEmptyCells) = partition isEmptyCell cells'
-      setCells nonEmptyCells
       conn <- dbConn <$> readMVar state
+      setCells conn nonEmptyCells
       deleteLocs conn $ map cellLocation emptyCells
       mapM_ (removePropEndware state p) nonEmptyCells
       broadcastFiltered state uc $ ServerMessage Update Success (PayloadCL cells')
     else do
       let cells' = map (\(Cell l e v ps) -> Cell l e v (setProp p ps)) cellsWithoutProp
-      setCells cells'
+      conn <- dbConn <$> readMVar state
+      setCells conn cells'
       mapM_ (setPropEndware state p) cells'
       broadcastFiltered state uc $ ServerMessage Update Success (PayloadCL cells')
     -- don't HAVE to send back the entire cells, but that's an optimization for a later time. 
@@ -53,7 +55,7 @@ handleSetProp :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
 handleSetProp uc state (PayloadProp prop rng) = do
   curState <- readMVar state
   let locs = rangeToIndices rng
-  cells <- getPossiblyBlankCells locs
+  cells <- getPossiblyBlankCells (dbConn curState) locs
   let cells' = map (\(Cell l e v oldProps) -> Cell l e v (setProp prop oldProps)) cells
-  setCells cells'
+  setCells (dbConn curState) cells'
   broadcastFiltered state uc $ ServerMessage Update Success (PayloadCL cells')

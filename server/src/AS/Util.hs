@@ -17,7 +17,8 @@ import qualified Network.WebSockets as WS
 import Data.Aeson
 import Debug.Trace 
 import qualified Data.ByteString.Lazy as BL
-
+import qualified Data.ByteString as B
+import qualified Data.Serialize as S
 
 -------------------------------------------------------------------------------------------------------------------------
 -- For debugging purposes only 
@@ -48,3 +49,11 @@ insertMultiple mp keys values = foldl' (\curMap (key,value) -> M.insert key valu
 
 filterBy :: (a -> b) -> (b -> Bool) -> [a] -> [a]
 filterBy f filt l = map snd $ filter (\(fe, _) -> filt fe) $ zip (map f l) l
+
+fromRight :: Either a b -> b
+fromRight (Right a) = a
+
+decodeMaybe :: (S.Serialize a) => B.ByteString -> Maybe a
+decodeMaybe b = case (S.decode b) of 
+  Right a -> Just a
+  Left _ -> Nothing

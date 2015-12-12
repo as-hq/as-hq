@@ -18,27 +18,29 @@ import AS.Logging
 import AS.Reply
 
 import qualified AS.Dispatch.Core         as DP
-import qualified AS.DB.Transaction        as DT
-import qualified AS.DB.API                as DB
-import qualified AS.DB.Export             as DX
-import qualified AS.DB.Graph              as G
 import qualified AS.Util                  as U
 import qualified AS.Kernels.LanguageUtils as LU
 import qualified AS.Users                 as US
 import qualified AS.InferenceUtils        as IU
+
+import AS.DB.Eval
+import qualified AS.DB.Transaction        as DT
+import qualified AS.DB.API                as DB
+import qualified AS.DB.Export             as DX
+import qualified AS.DB.Graph              as G
+
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.Serialize as DS
 import qualified Data.Text as T
+import qualified Data.Map as M
+import Data.List
+import Data.Maybe
 
 import qualified Database.Redis as R
 import qualified Network.WebSockets as WS
 
-import Data.List
-import qualified Data.Map as M
-import Data.Maybe
 import Control.Concurrent
 import Control.Exception
---EitherT
 import Control.Monad.Trans.Either
 
 handleAcknowledge :: ASUserClient -> IO ()
@@ -64,7 +66,7 @@ handleOpen uc state (PayloadS (Sheet sid _ _)) = do
   US.modifyUser makeNewWindow uc state
   -- get header files data to send back to user user
   let langs = [Python, R] -- should probably make list of langs a const somewhere...
-  headers         <- mapM (DB.getEvalHeader conn sid) langs
+  headers         <- mapM (getEvalHeader conn sid) langs
   -- get conditional formatting data to send back to user user
   condFormatRules <- DB.getCondFormattingRules conn sid
   let xps = map (\(str, lang) -> Expression str lang) (zip headers langs)
@@ -83,7 +85,7 @@ handleUpdateWindow cid state (PayloadW w) = do
   let oldWindow = userWindow user'
   (flip catch) (badCellsHandler (dbConn curState) user') (do
     let newLocs = getScrolledLocs oldWindow w
-    mcells <- DB.getCells $ concat $ map rangeToIndices newLocs
+    mcells <- DB.getCells (dbConn curState) $ concat $ map rangeToIndices newLocs
     sendToOriginal user' $ makeUpdateWindowMessage (catMaybes mcells)
     US.modifyUser (updateWindow w) user' state)
 
@@ -100,7 +102,7 @@ badCellsHandler conn uc e = do
 handleGet :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
 handleGet uc state (PayloadLL locs) = do
   curState <- readMVar state
-  mcells <- DB.getCells locs
+  mcells <- DB.getCells (dbConn curState) locs
   sendToOriginal uc (makeGetMessage $ catMaybes mcells)
 handleGet uc state (PayloadList Sheets) = do
   curState <- readMVar state
@@ -134,7 +136,7 @@ handleDelete uc state (PayloadR rng) = do
       -- formats to remove upon deletion. 
   conn <- dbConn <$> readMVar state
   -- []
-  blankedCells <- DB.getBlankedCellsAt locs -- need to know the formats at the old locations
+  blankedCells <- DB.getBlankedCellsAt conn locs -- need to know the formats at the old locations
   let removeBadFormat p c = if (hasProp p (cellProps c)) then removeCellProp (propType p) c else c
       -- ^ CellProp -> ASCell -> ASCell
       removeBadFormats ps = foldl' (.) id (map removeBadFormat ps)
@@ -189,7 +191,7 @@ handleRedo uc state = do
 handleDrag :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
 handleDrag uc state (PayloadDrag selRng dragRng) = do
   conn <- dbConn <$> readMVar state
-  nCells <- IU.getCellsRect selRng dragRng
+  nCells <- IU.getCellsRect conn selRng dragRng
   let newCells = (IU.getMappedFormulaCells selRng dragRng nCells) ++ (IU.getMappedPatternGroups selRng dragRng nCells)
   msg' <- DP.runDispatchCycle state newCells DescendantsWithParent (userCommitSource uc)
   broadcastFiltered state uc msg'
@@ -226,9 +228,9 @@ handleSetCondFormatRules uc state (PayloadCondFormat rules) = do
   oldRules <- DB.getCondFormattingRules conn sid
   let symDiff = (union rules oldRules) \\ (intersect rules oldRules)
       locs = concatMap rangeToIndices $ concatMap cellLocs symDiff
-  cells <- DB.getPossiblyBlankCells locs
+  cells <- DB.getPossiblyBlankCells conn locs
   errOrCells <- runEitherT $ conditionallyFormatCells conn sid cells rules emptyContext
-  let onFormatSuccess cs = DB.setCondFormattingRules conn sid rules >> DB.setCells cs
+  let onFormatSuccess cs = DB.setCondFormattingRules conn sid rules >> DB.setCells conn cs
   either (const $ return ()) onFormatSuccess errOrCells
   broadcastFiltered state uc $ makeCondFormatMessage errOrCells rules
 

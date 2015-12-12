@@ -67,7 +67,7 @@ deleteDescriptor conn d =
 -- Same as above, but don't modify DB (we want to send a decoupling warning)
 -- Still gets the cells before decoupling, but don't set range keys
 getCellsBeforeDecoupling :: Connection -> RangeKey -> IO [ASCell]
-getCellsBeforeDecoupling conn key = catMaybes <$> DB.getCells (rangeKeyToIndices key)
+getCellsBeforeDecoupling conn key = catMaybes <$> DB.getCells conn (rangeKeyToIndices key)
 
 -------------------------------------------------------------------------------------------------------------------------
 -- Range keys

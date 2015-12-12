@@ -4,7 +4,7 @@ import AS.Types.Cell
 import AS.Types.Network
 import AS.Types.Messages
 import AS.Types.User
-import AS.Types.Excel
+import AS.Types.Excel hiding (dbConn)
 import AS.Types.Eval
 
 import AS.DB.Internal as DI

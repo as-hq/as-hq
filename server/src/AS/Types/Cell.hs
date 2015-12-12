@@ -16,6 +16,7 @@ import GHC.Generics
 import Data.Aeson
 import Data.List
 
+import qualified Data.Map as M
 import Data.Serialize (Serialize)
 import Data.Aeson.Types (Parser)
 import Control.DeepSeq
@@ -123,6 +124,9 @@ isEmptyCell c = (null . underlyingProps $ cellProps c) && (null . xpString $ cel
 
 mergeCells :: [ASCell] -> [ASCell] -> [ASCell]
 mergeCells c1 c2 = map snd $ M.toList $ M.union (toMap c1) (toMap c2)
+
+toMap :: [ASCell] -> M.Map ASIndex ASCell
+toMap cs = M.fromList $ zip (map cellLocation cs) cs
 
 -- | Returns a list of blank cells at the given locations. For now, the language doesn't matter, 
 -- because blank cells sent to the frontend don't get their languages saved. 

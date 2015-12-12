@@ -112,6 +112,8 @@ library
                      , deepseq-generics
                      , cereal
                      , regex-compat
+                     , hashmap
+                     , hashable
   default-language:    Haskell2010
   default-extensions:  QuasiQuotes
                        FlexibleContexts
@@ -168,8 +170,8 @@ benchmark alphasheets-bench
                     , bytestring
                     , containers
                     , hashmap
-                    , hashtables
                     , hashable
+                    , hashtables
   PkgConfig-Depends:   python
   extra-libraries:     hiredis
   extra-lib-dirs:      /usr/local/lib
