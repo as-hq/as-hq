@@ -102,9 +102,12 @@ pushCommitOrTempCommit conn src shouldDecouple commit =
     then pushTempCommit conn src commit
     else DT.updateDBAfterEval conn src commit
 
-runDispatchCycle :: MVar ServerState -> [ASCell] -> DescendantsSetting -> CommitSource -> IO ASServerMessage
-runDispatchCycle state cs descSetting src = do
-  liftIO $ putStrLn $ "run dispatch cycle with cells: " ++ (show cs) 
+runDispatchCycle ::  MVar ServerState -> [ASCell] -> DescendantsSetting -> CommitSource -> IO ASServerMessage
+runDispatchCycle state cs descSetting src = flexibleRunDispatchCycle id state cs descSetting src
+
+flexibleRunDispatchCycle :: (Commit -> Commit) -> MVar ServerState -> [ASCell] -> DescendantsSetting -> CommitSource -> IO ASServerMessage
+flexibleRunDispatchCycle commitTransform state cs descSetting src = do
+  liftIO $ putStrLn $ "run dispatch cycle with cells: " ++ (show cs)
   roots <- EM.evalMiddleware cs
   conn <- dbConn <$> readMVar state
   -- UPDATED TO ERR OR COMMIT
@@ -123,10 +126,11 @@ runDispatchCycle state cs descSetting src = do
         -- END BOILERPLATE
         --
     (commit,didDecouple) <- lift $ evalContextToCommit ctx
-    lift $ pushCommitOrTempCommit conn src didDecouple commit
+    let finalizedCommit = commitTransform commit
+    lift $ pushCommitOrTempCommit conn src didDecouple finalizedCommit
     if (didDecouple)
       then left DecoupleAttempt
-      else return commit
+      else return finalizedCommit
 
   let msg = newMakeUpdateMessage errOrCommit
   printObj "made message: " msg

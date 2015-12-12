@@ -35,11 +35,14 @@ handleMutateSheet uc state (PayloadMutate mutateType) = do
       blankedCells = blankCellsAt $ map (cellLocation . fst) oldCellsNewCells'
       updatedCells = mergeCells newCells' blankedCells -- eval blanks at the old cell locations, re-eval at new locs
   printObj "newCells" newCells
---  allRowCols <- DB.getRowColsInSheet conn sid
---  let newRowCols = mapMaybe (rowColMap mutateType) allRowCols
+  --TIMCHU EDITS BEGIN
+  oldProps <- DB.getRowColProps conn (userSheetId uc)
+  --TIMCHU EDITS END
+  allRowCols <- DB.getRowColsInSheet conn sid
+  let newRowCols = mapMaybe (rowColMap mutateType) allRowCols
   deleteRowColsInSheet conn sid
---  mapM_ (setRowColProps conn sid) newRowCols
-  updateMsg <- runDispatchCycle state updatedCells DescendantsWithParent (userCommitSource uc)
+  mapM_ (setRowColProps conn sid) newRowCols
+  updateMsg <- flexibleRunDispatchCycle state updatedCells DescendantsWithParent (userCommitSource uc)
   broadcastFiltered state uc updateMsg
 
 -- | For a mutate, maps the old row and column to the new row and column.
