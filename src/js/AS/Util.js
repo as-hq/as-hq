@@ -1,19 +1,35 @@
 /* @flow */
 
+import ArrayU from './utils/Array';
+import BrowserU from './utils/Browser';
+import CanvasU from './utils/Canvas';
+import CellU from './utils/Cell';
+import ClipboardU from './utils/Clipboard';
+import ConversionU from './utils/Conversion';
+import FileU from './utils/File';
+import FormatU from './utils/Format';
+import KeyU from './utils/Key';
+import LocationU from './utils/Location';
+import ParsingU from './utils/Parsing';
+import RenderU from './utils/Render';
+import ShortcutU from './utils/Shortcut';
+import StringU from './utils/String';
+import WorkbookU from './utils/Workbook';
+
 export default {
-  Array: require('./utils/Array').default,
-  Browser: require('./utils/Browser').default,
-  Canvas: require('./utils/Canvas').default,
-  Cell: require('./utils/Cell').default,
-  Clipboard: require('./utils/Clipboard').default,
-  Conversion: require('./utils/Conversion').default,
-  File: require('./utils/File').default,
-  Format: require('./utils/Format').default,
-  Key: require('./utils/Key').default,
-  Location: require('./utils/Location').default,
-  Parsing: require('./utils/Parsing').default,
-  Render: require('./utils/Render').default,
-  Shortcut: require('./utils/Shortcut').default,
-  String: require('./utils/String').default,
-  Workbook: require('./utils/Workbook').default
+  Array: ArrayU,
+  Browser: BrowserU,
+  Canvas: CanvasU,
+  Cell: CellU,
+  Clipboard: ClipboardU,
+  Conversion: ConversionU,
+  File: FileU,
+  Format: FormatU,
+  Key: KeyU,
+  Location: LocationU,
+  Parsing: ParsingU,
+  Render: RenderU,
+  Shortcut: ShortcutU,
+  String: StringU,
+  Workbook: WorkbookU
 };
