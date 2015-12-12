@@ -88,25 +88,13 @@ getCells conn locs = runRedis conn $ do
         Nothing -> Nothing
         Just s -> decodeMaybe s
 
-getCells_c :: [ASIndex] -> IO [Maybe ASCell]
-getCells_c [] = return []
-getCells_c locs = DI.getCellsByMessage msg num
-  where
-    msg = DI.showB $ intercalate msgPartDelimiter $ map show2 locs
-    num = length locs
-
 setCells :: Connection -> [ASCell] -> IO ()
+setCells _ [] = return ()
 setCells conn cs = runRedis conn $ do
   mapM_ (\c -> set (S.encode . cellLocation $ c) (S.encode c)) cs
+  let sheetIds = nub' $ map (locSheetId . cellLocation) cs
+  sadd allSheetsKey $ map S.encode sheetIds
   return ()
-
-setCells_c :: [ASCell] -> IO ()
-setCells_c [] = return ()
-setCells_c cells = DI.setCellsByMessage msg num
-  where 
-    str = intercalate msgPartDelimiter $ (map (show2 . cellLocation) cells) ++ (map show2 cells)
-    msg = DI.showB str
-    num = length cells
 
 deleteLocs :: Connection -> [ASIndex] -> IO ()
 deleteLocs _ [] = return ()
@@ -118,14 +106,26 @@ deleteLocs conn locs = runRedis conn $ del (map S.encode locs) >> return ()
 getCell :: Connection -> ASIndex -> IO (Maybe ASCell)
 getCell conn loc = head <$> getCells conn [loc]
 
+setCell :: Connection -> ASCell -> IO ()
+setCell conn c = setCells conn [c]
+
 getPossiblyBlankCell :: Connection -> ASIndex -> IO ASCell
 getPossiblyBlankCell conn loc = head <$> getPossiblyBlankCells conn [loc]
 
+-- TODO
 getCellsInSheet :: Connection -> ASSheetId -> IO [ASCell]
-getCellsInSheet conn sid = DI.getCellsByKeyPattern conn $ "I/" ++ (T.unpack sid) ++ "/(*,*)"
+getCellsInSheet conn sid = return []
 
 getAllCells :: Connection -> IO [ASCell]
-getAllCells conn = DI.getCellsByKeyPattern conn "I/*/(*,*)"
+getAllCells conn = do
+  locs <- runRedis conn $ do
+    Right ks <- keys "*"
+    let locs = catMaybes $ map readLoc ks
+        readLoc k = case (decodeMaybe k) of 
+          Just l@(Index _ _) -> Just l
+          _ -> Nothing
+    return locs
+  map fromJust <$> getCells conn locs
 
 -- Gets the cells at the locations with expressions and values removed, but tags intact. 
 -- this function is order-preserving
@@ -151,16 +151,11 @@ getPropsAt conn locs = do
   cells <- getPossiblyBlankCells conn locs
   return $ map cellProps cells
 
-setCell :: Connection -> ASCell -> IO ()
-setCell conn c = setCells conn [c]
-
-
 ----------------------------------------------------------------------------------------------------------------------
 -- Locations
 
 locationsExist :: Connection -> [ASIndex] -> IO [Bool]
-locationsExist conn locs = runRedis conn $ map fromRight <$> mapM locExists locs
-  where locExists l         = exists $ makeLocationKey l
+locationsExist conn locs = runRedis conn $ map fromRight <$> mapM (exists . S.encode) locs
 
 locationExists :: Connection -> ASIndex -> IO Bool
 locationExists conn loc = head <$> locationsExist conn [loc] 
@@ -236,16 +231,6 @@ createWorkbookSheet conn wbs = do
       wb <- createWorkbook conn newSheetIds
       return $ WorkbookSheet (workbookName wb) newSheets'
 
-deleteWorkbookSheet :: Connection -> WorkbookSheet -> IO ()
-deleteWorkbookSheet conn wbs = do
-  let delSheets = map sheetId $ wsSheets wbs
-  mapM_ (deleteSheetUnsafe conn) delSheets
-  wbResult <- getWorkbook conn $ wsName wbs
-  case wbResult of
-    (Just wb) -> modifyWorkbookSheets conn deleteSheets (workbookName wb)
-      where deleteSheets = filter $ \s -> not $ s `elem` delSheets
-    Nothing -> return ()
-
 modifyWorkbookSheets :: Connection -> ([ASSheetId] -> [ASSheetId]) -> String -> IO ()
 modifyWorkbookSheets conn f wName = do
   (Just (Workbook wsName sheetIds)) <- getWorkbook conn wName
@@ -308,21 +293,6 @@ deleteWorkbook conn name = do
           srem "workbookKeys" [workbookKey]
         return ()
 
--- note: this is an expensive operation
-deleteWorkbookAndSheets :: Connection -> String -> IO ()
-deleteWorkbookAndSheets conn name = do
-    mwb <- getWorkbook conn name
-    case mwb of
-        Nothing -> return ()
-        Just wb -> do
-            mapM_ (deleteSheetUnsafe conn) (workbookSheets wb) -- remove sheets
-            runRedis conn $ do
-                let workbookKey = makeWorkbookKey name
-                TxSuccess _ <- multiExec $ do
-                    del [workbookKey]   -- remove workbook from key-value
-                    srem "workbookKeys" [workbookKey] -- remove workbook from set
-                return ()
-
 ----------------------------------------------------------------------------------------------------------------------
 -- Raw sheets
 
@@ -376,24 +346,6 @@ clearSheet conn sid = do
     mapM (\l -> del [makeEvalHeaderKey sid l]) headerLangs
   DI.deleteLocsInSheet sid
   -- TODO: also clear undo, redo, and last message (for Ctrl+Y) (Alex 11/20)
-
--- deletes the sheet only, does not remove from any containing workbooks
-deleteSheetUnsafe :: Connection -> ASSheetId -> IO ()
-deleteSheetUnsafe conn sid = do
-    runRedis conn $ do
-        let setKey = makeSheetSetKey sid
-            sheetKey = makeSheetKey sid
-
-        mlocKeys <- smembers setKey
-        TxSuccess _ <- multiExec $ do
-            case mlocKeys of
-                Right []      -> return () -- hedis can't delete empty list
-                Right locKeys -> del locKeys >> return ()
-                Left _        -> return ()
-            del [setKey]      -- delete the loc set
-            del [sheetKey]    -- delete the sheet
-            srem "sheetKeys" [sheetKey] -- remove the sheet key from the set of sheets
-        return ()
 
 ----------------------------------------------------------------------------------------------------------------------
 -- Volatile cell methods

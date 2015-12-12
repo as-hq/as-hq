@@ -57,3 +57,6 @@ decodeMaybe :: (S.Serialize a) => B.ByteString -> Maybe a
 decodeMaybe b = case (S.decode b) of 
   Right a -> Just a
   Left _ -> Nothing
+
+nub' :: (Eq a, Ord a) => [a] -> [a]
+nub' xs = map fst $ M.toList . M.fromList $ zip xs (repeat ())

@@ -20,7 +20,7 @@ import qualified Data.Text as T
 import qualified Data.List as L
 import qualified Data.ByteString.Char8         as BC
 import qualified Data.ByteString               as B
-import Data.Serialize (Serialize)
+import qualified Data.Serialize as S
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Graph queries
@@ -82,7 +82,7 @@ splitBy delimiter = foldr f [[]]
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- instances
 
-instance Serialize ExportData
+instance S.Serialize ExportData
 
 -- compressed show
 
@@ -209,8 +209,8 @@ makeSheetKey :: ASSheetId -> B.ByteString -- for storing the actual sheet as key
 makeSheetKey = BC.pack . T.unpack
 
 -- key for all location keys in a sheet
-makeSheetSetKey :: ASSheetId -> B.ByteString
-makeSheetSetKey sid = BC.pack $! (T.unpack sid) ++ "Locations"
+makeSheetLocsKey :: ASSheetId -> B.ByteString
+makeSheetLocsKey sid = S.encode $ (T.unpack sid) ++ "Locations"
 
 -- key for workbook
 makeWorkbookKey :: String -> B.ByteString
@@ -219,3 +219,6 @@ makeWorkbookKey = BC.pack
 -- key for eval header
 makeEvalHeaderKey :: ASSheetId -> ASLanguage -> B.ByteString
 makeEvalHeaderKey sid lang = BC.pack ("EVALHEADER" ++ (show sid) ++ (show lang)) 
+
+allSheetsKey :: B.ByteString
+allSheetsKey = "SHEETS"

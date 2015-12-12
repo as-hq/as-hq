@@ -18,6 +18,7 @@ library
   exposed-modules:     AS.Daemon
                        AS.LanguageDefs
                        AS.DB.API
+                       AS.DB.Eval
                        AS.DB.Expanding
                        AS.DB.Export
                        AS.DB.Transaction

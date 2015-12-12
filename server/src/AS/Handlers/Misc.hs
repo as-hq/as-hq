@@ -119,16 +119,17 @@ handleGet uc state (PayloadList WorkbookSheets) = do
   sendToOriginal uc $ ServerMessage Update Success (PayloadWorkbookSheets wss)
 
 handleDelete :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
-handleDelete uc state p@(PayloadWorkbookSheets (wbs:[])) = do
-  conn <- dbConn <$> readMVar state
-  DB.deleteWorkbookSheet conn wbs
-  broadcast state $ ServerMessage Delete Success p
-  return ()
-handleDelete uc state p@(PayloadWB workbook) = do
-  conn <- dbConn <$> readMVar state
-  DB.deleteWorkbook conn (workbookName workbook)
-  broadcast state $ ServerMessage Delete Success p
-  return ()
+-- these handlers are DEPRECATED
+--handleDelete uc state p@(PayloadWorkbookSheets (wbs:[])) = do
+--  conn <- dbConn <$> readMVar state
+--  DB.deleteWorkbookSheet conn wbs
+--  broadcast state $ ServerMessage Delete Success p
+--  return ()
+--handleDelete uc state p@(PayloadWB workbook) = do
+--  conn <- dbConn <$> readMVar state
+--  DB.deleteWorkbook conn (workbookName workbook)
+--  broadcast state $ ServerMessage Delete Success p
+--  return ()
 handleDelete uc state (PayloadR rng) = do
   let locs = rangeToIndices rng
       badFormats = [ValueFormat Date]

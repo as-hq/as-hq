@@ -57,13 +57,6 @@ cInfo = ConnInfo
     }
 
 ----------------------------------------------------------------------------------------------------------------------
--- FFI
-
-foreign import ccall unsafe "hiredis/redis_db.c getCells" c_getCells :: CString -> CInt -> IO (Ptr CString)
-foreign import ccall unsafe "hiredis/redis_db.c setCells" c_setCells :: CString -> CInt -> IO ()
-foreign import ccall unsafe "hiredis/redis_db.c clearSheet" c_clearSheet :: CString -> IO ()
-
-----------------------------------------------------------------------------------------------------------------------
 -- Private DB functions
 
 -- given "Untitled" and ["Untitled1", "Untitled2"], produces "Untitled3"
@@ -78,48 +71,9 @@ getUniquePrefixedName pref strs = pref ++ (show idx)
       [] -> 1
       _  -> (L.maximum idxs) + 1
 
-getCellsByKeys :: [B.ByteString] -> IO [Maybe ASCell]
-getCellsByKeys keys = getCellsByMessage msg num
-  where
-    msg      = B.concat $ [BC.pack "\"", internal, BC.pack "\"\NUL"]
-    internal = B.intercalate (BC.pack msgPartDelimiter) keys
-    num      = length keys
-
--- takes a message and number of locations queried
-getCellsByMessage :: B.ByteString -> Int -> IO [Maybe ASCell]
-getCellsByMessage msg num = do
-  ptrCells <- BU.unsafeUseAsCString msg $ \str -> c_getCells str (fromIntegral num)
-  cCells   <- peekArray (fromIntegral num) ptrCells
-  res      <- mapM cToASCell cCells
-  --free ptrCells
-  return res
-
-getCellsByKeyPattern :: Connection -> String -> IO [ASCell]
-getCellsByKeyPattern conn pattern = runRedis conn $ do
-  Right locKeys <- keys . BC.pack $ pattern
-  catMaybes <$> (liftIO $ getCellsByKeys locKeys)
-
-setCellsByMessage :: B.ByteString -> Int -> IO ()
-setCellsByMessage msg num = BU.unsafeUseAsCString msg $ \lstr -> c_setCells lstr (fromIntegral num)
-
-deleteLocRedis :: ASIndex -> Redis ()
-deleteLocRedis loc = del [makeLocationKey loc] >> return ()
-
-getSheetLocsRedis :: ASSheetId -> Redis [B.ByteString]
-getSheetLocsRedis sheetid = do
-  Right keys <- smembers $ makeSheetSetKey sheetid
-  return keys
-
+-- TODO
 deleteLocsInSheet :: ASSheetId -> IO ()
-deleteLocsInSheet sid = withCString (T.unpack sid) c_clearSheet
-
-cToASCell :: CString -> IO (Maybe ASCell)
-cToASCell str = do
-  str' <- peekCString str
-  let str'' = read ('"':str' ++ ['"']) -- Need to unescape the string (what's passed to Redis was escaped by Bytestring.show)
-  return $ case str'' of
-    "Nothing" -> Nothing
-    otherwise -> Just (read2 str'' :: ASCell)
+deleteLocsInSheet sid = return () 
 
 ----------------------------------------------------------------------------------------------------------------------
 -- Fat cells

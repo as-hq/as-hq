@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveGeneric, StandaloneDeriving, OverloadedStrings #-}
+{-# LANGUAGE DeriveGeneric, StandaloneDeriving, OverloadedStrings, BangPatterns #-}
 
 module Main where
 
@@ -99,19 +99,22 @@ instance NFData WS.Connection where rnf conn = seq conn ()
 instance NFData R.Connection where rnf conn = seq conn ()
 instance NFData (MVar a) where rnf x = seq x ()
 
-instance (NFData k, NFData v) => NFData (HI.IOHashTable HI.HashTable k v) where
-  rnf h = seq h ()
+--instance (NFData k, NFData v) => NFData (HI.IOHashTable HI.HashTable k v) where
+--  rnf h = seq h ()
 
 data ASEnv = ASEnv { envConn :: R.Connection, envState :: MVar ServerState, envSource :: CommitSource } deriving (Generic)
 instance NFData ASEnv where rnf = genericRnf
 
-
+yellow :: String -> String
+yellow s = "\x1b[33m" ++ s ++ "\x1b[0m"
+green :: String -> String
+green s = "\x1b[32m" ++ s ++ "\x1b[0m"
 emptyBench       = bgroup "" []
-it               = bench
+it               = bench . green
 has a b          = env (setupEnvWith a) b 
-describe         = bgroup
-xdescribe desc _ = trace ("skipped group: " ++ desc) emptyBench
-xit desc _       = trace ("skipped:" ++ desc) emptyBench
+describe         = bgroup . green
+xdescribe desc _ = trace (yellow $ "skipped group: " ++ desc) emptyBench
+xit desc _       = trace (yellow $ "skipped:" ++ desc) emptyBench
 run :: NFData b => (a -> b) -> a -> Benchmarkable
 run = nf
 runIO :: NFData a => IO a -> Benchmarkable
@@ -130,9 +133,6 @@ setupEnvWith x = (,) <$> setupEnv <*> return x
 testCells = map (\i -> testCell { cellLocation = Index "BENCH_ID" (1,i) })
 testMap = toMap . testCells
 
-mergeCells' :: [ASCell] -> [ASCell] -> [ASCell]
-mergeCells' c1 c2 = map snd $ H.toList $ H.union (toMap c1) (toMap c2)
-
 main :: IO ()
 main = do
   defaultMain [
@@ -144,10 +144,10 @@ main = do
       ]
 
     , has (testCells [1..1000]) $ \ ~(_, cells) -> 
-        describe "serialization"
-          [ xit "serializes 10000 cells with cereal" $ 
+        xdescribe "serialization"
+          [ it "serializes 10000 cells with cereal" $ 
               run (map S.encode) cells 
-          , xit "serializes 1000 cells with bytestrings" $ 
+          , it "serializes 1000 cells with bytestrings" $ 
               run (BC.pack . show) cells 
           , has (map S.encode cells) $ \ ~(_, scells) -> 
               it "deserializes 1000 cells" $ 
@@ -169,20 +169,20 @@ main = do
           , has (reverse cells) $ \ ~(_, rcells) -> 
               describe "merging cells" 
               [ it "merges two lists using hashmaps" $ 
-                  run (\(c1, c2) -> mergeCells' c1 c2) (cells, rcells)  
+                  run (\(c1, c2) -> mergeCells c1 c2) (cells, rcells)  
               ]
           ]
 
-    , has (testCells [1..10000]) $ \ ~(myEnv, cells) -> 
-        xdescribe "DB"
+    , has (testCells [1..10000], testCells [10001..20000]) $ \ ~(myEnv, (cells1, cells2)) -> 
+        describe "DB"
           [ it "inserts 10000 cells with binary serialization" $ 
-              runIO $ (setCells' (envConn myEnv) cells) 
-          , it "inserts 10000 cells with bytestrings" $ 
-              runIO $ (DB.setCells cells)
-          , it "sets the ancestors of 10000 cells" $ 
-              runIO $ runEitherT $ G.setCellsAncestors cells
+              runIO $ (DB.setCells (envConn myEnv) cells1) 
+          --, it "inserts 10000 cells with bytestrings" $ 
+              --runIO $ (DB.setCells_c cells2)
+          , it "gets all cells after having inserted 10000" $ 
+              runIO $ DB.getAllCells (envConn myEnv)
+          , xit "sets the ancestors of 10000 cells" $ 
+              runIO $ runEitherT $ G.setCellsAncestors cells1
           ]
-
-    --, has (testCells [1..5000], testCells [3000..7000]) $ \ ~(_, ) 
 
     ]
