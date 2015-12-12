@@ -44,7 +44,7 @@ var Constants = Object.assign({
   // event name triggered from store, listened to by views
   CHANGE_EVENT: 'change',
 
-  LARGE_SEARCH_BOUND: 1000, // for searching for data boundaries, etc.
+  LARGE_SEARCH_BOUND: 1000, // for searching for data boundaries, eU.Conversion.
 
   scrollCacheX: 50,
   scrollCacheY: 50,

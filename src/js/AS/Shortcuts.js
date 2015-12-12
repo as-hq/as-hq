@@ -234,7 +234,7 @@ export default {
       // Might not be robust. (Alex 11/4)
       let oldInd = self.refs.spreadsheet.getSelectionArea().origin;
       let newInd = SheetStateStore.getDataBoundary(oldInd, dir);
-      self.refs.spreadsheet.select(TC.indexToSelection(newInd));
+      self.refs.spreadsheet.select(U.Conversion.indexToSelection(newInd));
     });
     SU.add('grid', 'moveto_data_boundary_selected', 'Ctrl+Shift+Up/Down/Left/Right', (dir) => {
       // same comment as in moveto_data_boundary applies.
@@ -246,8 +246,8 @@ export default {
     SU.add('grid', 'grid_fill_down', 'Ctrl+D', (wildcard: string) => {
       SelectionStore.withActiveSelection((sel) => {
         let {tl, br} = sel.range;
-        let copyFrom = TC.simpleToASRange({ tl: tl, br: {row: tl.row, col: br.col} }),
-            copyTo = TC.simpleToASRange({ tl: {row: tl.row, col: tl.col},
+        let copyFrom = U.Conversion.simpleToASRange({ tl: tl, br: {row: tl.row, col: br.col} }),
+            copyTo = U.Conversion.simpleToASRange({ tl: {row: tl.row, col: tl.col},
                                                  br: {row: br.row, col: tl.col} });
         API.copy(copyFrom, copyTo);
       });
@@ -255,8 +255,8 @@ export default {
     SU.add('grid', 'grid_fill_right', 'Ctrl+R', (wildcard: string) => {
       SelectionStore.withActiveSelection((sel) => {
         let {tl, br} = sel.range;
-        let copyFrom = TC.simpleToASRange({ tl: tl, br: {row: br.row, col: tl.col} }),
-            copyTo = TC.simpleToASRange({ tl: {row: tl.row, col: tl.col},
+        let copyFrom = U.Conversion.simpleToASRange({ tl: tl, br: {row: br.row, col: tl.col} }),
+            copyTo = U.Conversion.simpleToASRange({ tl: {row: tl.row, col: tl.col},
                                                  br: {row: tl.row, col: br.col} });
         API.copy(copyFrom, copyTo);
       });
@@ -278,7 +278,7 @@ export default {
     });
     SU.add('grid,notTyping', 'grid_home', ['Home', 'Ctrl+Home'], (wildcard: string) => {
       let idx = {row: 1, col: 1};
-      self.refs.spreadsheet.select(TC.indexToSelection(idx));
+      self.refs.spreadsheet.select(U.Conversion.indexToSelection(idx));
     });
     SU.add('grid,isTyping', 'grid_end_typing', 'End', (wildcard: string) => {
       self.setFocus('textbox');
@@ -295,7 +295,7 @@ export default {
     SU.add('grid', 'grid_delete', 'Del/Backspace', (wildcard: string) => {
       SelectionStore.withActiveSelection((sel) => {
         let rng = sel.range;
-        API.deleteRange(TC.simpleToASRange(rng));
+        API.deleteRange(U.Conversion.simpleToASRange(rng));
       });
     });
     SU.add('grid', 'grid_undo', 'Ctrl+Z', (wildcard: string) => {

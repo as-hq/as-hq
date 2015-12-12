@@ -8,9 +8,6 @@ import BaseStore from './BaseStore';
 import Constants from '../Constants';
 
 import U from '../AS/Util';
-let {
-  Conversion: TC
-} = U;
 
 import Render from '../AS/Renderers';
 import ReplStore from  './ASReplStore';
@@ -110,7 +107,7 @@ const ASSheetStateStore = Object.assign({}, BaseStore, {
       */
       case 'SCROLLED':
         let extendedRange = U.Location.extendRangeByCache(action.vWindow.range),
-            extendedWindow = TC.rangeToASWindow(extendedRange);
+            extendedWindow = U.Conversion.rangeToASWindow(extendedRange);
         _data.viewingWindow = action.vWindow;
         API.updateViewingWindow(extendedWindow);
         break;

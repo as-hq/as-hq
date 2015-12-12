@@ -8,9 +8,6 @@ import React from 'react';
 import Dispatcher from '../Dispatcher';
 
 import U from '../AS/Util';
-let {
-  Conversion: TC
-} = U;
 
 import {logDebug} from '../AS/Logger';
 import Render from '../AS/Renderers';
@@ -42,7 +39,7 @@ const ASSelectionStore = Object.assign({}, BaseStore, {
   dispatcherIndex: Dispatcher.register((action) => {
     switch (action._type) {
       case 'GOT_SELECTION':
-        ASSelectionStore.setActiveSelection(TC.asSelectionToSimple(action.newSelection), "", null);
+        ASSelectionStore.setActiveSelection(U.Conversion.asSelectionToSimple(action.newSelection), "", null);
         break;
     }
   }),

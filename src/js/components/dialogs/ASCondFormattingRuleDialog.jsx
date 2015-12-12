@@ -105,7 +105,7 @@ export default React.createClass({
     if (initRule != null) {
       let format = initRule.condFormat;
       if (format.tag === 'FillColor' || format.tag === 'TextColor') {
-        return TC.colorToHtml(format.contents);
+        return U.Conversion.colorToHtml(format.contents);
       }
     }
     return "#000000";
@@ -144,7 +144,7 @@ export default React.createClass({
               .fmap(({cellLocs}) => cellLocs)
               .fmap(([firstLoc]) => firstLoc)
               .fmap(({range}) => range)
-              .fmap(x => TC.rangeToExcel(x))
+              .fmap(x => U.Conversion.rangeToExcel(x))
               .out() || ''
           }
           style={standardStyling}
@@ -236,7 +236,7 @@ export default React.createClass({
   },
 
   _getCellLocsFromForm(): Array<ASRange> {
-    return [TC.simpleToASRange(TC.excelToRange(this.refs.range.getValue()))];
+    return [U.Conversion.simpleToASRange(U.Conversion.excelToRange(this.refs.range.getValue()))];
   },
 
   _getExpressionFromForm(): ASExpression {

@@ -55,10 +55,6 @@ import Constants from '../Constants';
 
 import U from '../AS/Util';
 
-let {
-  Conversion: TC
-} = U;
-
 import CellStore from '../stores/ASCellStore';
 import SheetStateStore from '../stores/ASSheetStateStore';
 import ws from '../AS/PersistentWebSocket';
@@ -292,7 +288,7 @@ export default {
   },
 
   initMessage() {
-    let msg: ASClientMessage = TC.makeClientMessage(Constants.ServerActions.Acknowledge,
+    let msg: ASClientMessage = U.Conversion.makeClientMessage(Constants.ServerActions.Acknowledge,
       "PayloadInit",
       {"connUserId": SheetStateStore.getUserId(),
         "connSheetId": SheetStateStore.getCurrentSheet().sheetId});
@@ -301,7 +297,7 @@ export default {
   },
 
   ackMessage(innerClient: WebSocket) {
-    let msg: ASClientMessage = TC.makeClientMessage(Constants.ServerActions.Acknowledge,
+    let msg: ASClientMessage = U.Conversion.makeClientMessage(Constants.ServerActions.Acknowledge,
       'PayloadN', []);
     innerClient.send(JSON.stringify(msg));
   },
@@ -310,7 +306,7 @@ export default {
     this.initMessage();
     this.openSheet();
     this.updateViewingWindow(
-      TC.rangeToASWindow(SheetStateStore.getViewingWindow().range)
+      U.Conversion.rangeToASWindow(SheetStateStore.getViewingWindow().range)
     );
   },
 
@@ -325,7 +321,7 @@ export default {
   /* Sending admin-related requests to the server */
 
   getWorkbooks() {
-    let msg = TC.makeClientMessage('Get', 'PayloadList', 'WorkbookSheets');
+    let msg = U.Conversion.makeClientMessage('Get', 'PayloadList', 'WorkbookSheets');
     this.send(msg);
   },
 
@@ -335,7 +331,7 @@ export default {
   },
 
   export(sheet: ASSheet) {
-    let msg = TC.makeClientMessage('Export', 'PayloadS', sheet);
+    let msg = U.Conversion.makeClientMessage('Export', 'PayloadS', sheet);
     this.send(msg);
   },
 
@@ -349,16 +345,16 @@ export default {
 
   /* This function is called by handleEvalRequest in the eval pane */
   evaluate(origin: NakedIndex, xpObj: ASClientExpression) {
-    let asIndex = TC.simpleToASIndex(origin),
-        asCell = TC.makeEvalCell(asIndex, xpObj),
-        msg = TC.makeClientMessage(Constants.ServerActions.Evaluate,
+    let asIndex = U.Conversion.simpleToASIndex(origin),
+        asCell = U.Conversion.makeEvalCell(asIndex, xpObj),
+        msg = U.Conversion.makeClientMessage(Constants.ServerActions.Evaluate,
                                           "PayloadCL",
                                           [asCell]);
     this.send(msg);
   },
 
   evaluateHeader(expression: string, language: ASLanguage) {
-    let msg = TC.makeClientMessage(Constants.ServerActions.EvalHeader, "PayloadXp", {
+    let msg = U.Conversion.makeClientMessage(Constants.ServerActions.EvalHeader, "PayloadXp", {
       tag: "Expression",
       expression: expression,
       language: language
@@ -367,7 +363,7 @@ export default {
   },
 
   evaluateRepl(xpObj: ASExpression) {
-    let msg = TC.makeClientMessage(Constants.ServerActions.Repl, "PayloadXp", {
+    let msg = U.Conversion.makeClientMessage(Constants.ServerActions.Repl, "PayloadXp", {
       tag: "Expression",
       expression: xpObj.expression,
       language: xpObj.language
@@ -376,7 +372,7 @@ export default {
   },
 
   decouple() {
-    let msg: ASClientMessage = TC.makeClientMessage(Constants.ServerActions.Decouple,
+    let msg: ASClientMessage = U.Conversion.makeClientMessage(Constants.ServerActions.Decouple,
       "PayloadN", []);
     this.send(msg);
   },
@@ -384,25 +380,25 @@ export default {
   /* Sending undo/redo/clear messages to the server */
 
   undo() {
-    let msg = TC.makeClientMessage(Constants.ServerActions.Undo, "PayloadN", []);;
+    let msg = U.Conversion.makeClientMessage(Constants.ServerActions.Undo, "PayloadN", []);;
     this.send(msg);
   },
   redo() {
-    let msg = TC.makeClientMessage(Constants.ServerActions.Redo, "PayloadN", []);
+    let msg = U.Conversion.makeClientMessage(Constants.ServerActions.Redo, "PayloadN", []);
     this.send(msg);
   },
   clear() {
-    let msg = TC.makeClientMessage(Constants.ServerActions.Clear, "PayloadN", []);
+    let msg = U.Conversion.makeClientMessage(Constants.ServerActions.Clear, "PayloadN", []);
     this.send(msg);
   },
   clearSheet() {
-    let msg = TC.makeClientMessage(Constants.ServerActions.Clear,
+    let msg = U.Conversion.makeClientMessage(Constants.ServerActions.Clear,
                                    "PayloadS",
                                    SheetStateStore.getCurrentSheet());
     this.send(msg);
   },
   find(findText: string) {
-    let msg = TC.makeClientMessageRaw(Constants.ServerActions.Find, {
+    let msg = U.Conversion.makeClientMessageRaw(Constants.ServerActions.Find, {
       tag: "PayloadFind",
       findText: findText,
       matchWithCase:false,
@@ -418,17 +414,17 @@ export default {
     isShifted: boolean,
     direction: Direction
   ) {
-    let msg = TC.makeClientMessageRaw(Constants.ServerActions.JumpSelect, {
+    let msg = U.Conversion.makeClientMessageRaw(Constants.ServerActions.JumpSelect, {
       tag: "PayloadJump",
       isShifted: isShifted,
-      jumpRange: TC.simpleToASRange(range),
-      jumpOrigin: TC.simpleToASIndex(origin),
+      jumpRange: U.Conversion.simpleToASRange(range),
+      jumpOrigin: U.Conversion.simpleToASIndex(origin),
       jumpDirection: "D" + direction
     });
     this.send(msg);
   },
   bugReport(report: string) {
-    let msg = TC.makeClientMessageRaw(Constants.ServerActions.BugReport, {
+    let msg = U.Conversion.makeClientMessageRaw(Constants.ServerActions.BugReport, {
       tag: "PayloadText",
       text: report,
     });
@@ -436,41 +432,41 @@ export default {
   },
 
   deleteIndices(locs: Array<ASIndex>) {
-    let msg = TC.makeClientMessage(Constants.ServerActions.Delete, "PayloadLL", locs);
+    let msg = U.Conversion.makeClientMessage(Constants.ServerActions.Delete, "PayloadLL", locs);
     this.send(msg);
   },
 
   deleteRange(rng: ASRange) {
-    let msg = TC.makeClientMessage(Constants.ServerActions.Delete, "PayloadR", rng);
+    let msg = U.Conversion.makeClientMessage(Constants.ServerActions.Delete, "PayloadR", rng);
     this.send(msg);
   },
 
   setColumnWidth(col: number, width: number) {
-    let msg = TC.makeClientMessage(Constants.ServerActions.SetRowColProp, "PayloadSetRowColProp",
+    let msg = U.Conversion.makeClientMessage(Constants.ServerActions.SetRowColProp, "PayloadSetRowColProp",
       ['ColumnType', col, {tag: 'Dimension', contents: width}]);
     this.send(msg);
   },
 
   setRowHeight(row: number, height: number) {
-    let msg = TC.makeClientMessage(Constants.ServerActions.SetRowColProp, "PayloadSetRowColProp",
+    let msg = U.Conversion.makeClientMessage(Constants.ServerActions.SetRowColProp, "PayloadSetRowColProp",
       ['RowType', row, {tag: 'Dimension', contents: height}]);
     this.send(msg);
   },
 
   toggleProp(prop: ASCellProp, rng: NakedRange) {
-    let msg = TC.makeClientMessageRaw(Constants.ServerActions.ToggleProp, {
+    let msg = U.Conversion.makeClientMessageRaw(Constants.ServerActions.ToggleProp, {
       "tag": "PayloadProp",
       "prop": prop,
-      "tagRange": TC.simpleToASRange(rng)
+      "tagRange": U.Conversion.simpleToASRange(rng)
     });
     this.send(msg);
   },
 
   setProp(prop: ASCellProp, rng: NakedRange) {
-    let msg = TC.makeClientMessageRaw(Constants.ServerActions.SetProp, {
+    let msg = U.Conversion.makeClientMessageRaw(Constants.ServerActions.SetProp, {
       "tag": "PayloadProp",
       "prop": prop,
-      "tagRange": TC.simpleToASRange(rng)
+      "tagRange": U.Conversion.simpleToASRange(rng)
     });
     this.send(msg);
   },
@@ -546,7 +542,7 @@ export default {
     imageOffsetX: number;
     imageOffsetY: number;
   }, rng: NakedRange) {
-    let msg = TC.makeClientMessageRaw(Constants.ServerActions.SetProp, {
+    let msg = U.Conversion.makeClientMessageRaw(Constants.ServerActions.SetProp, {
       "tag": "PayloadTag",
       "cellTag": {
         tag: "ImageData",
@@ -555,22 +551,22 @@ export default {
         imageOffsetX: val.imageOffsetX,
         imageOffsetY: val.imageOffsetY
       },
-      "tagRange": TC.simpleToASRange(rng)
+      "tagRange": U.Conversion.simpleToASRange(rng)
     });
     this.send(msg);
   },
 
   drag(activeRng: NakedRange, dragRng: NakedRange) {
-    let msg = TC.makeClientMessageRaw(Constants.ServerActions.Drag, {
+    let msg = U.Conversion.makeClientMessageRaw(Constants.ServerActions.Drag, {
       tag: "PayloadDrag",
-      initialRange: TC.simpleToASRange(activeRng),
-      dragRange: TC.simpleToASRange(dragRng)
+      initialRange: U.Conversion.simpleToASRange(activeRng),
+      dragRange: U.Conversion.simpleToASRange(dragRng)
     });
     this.send(msg);
   },
 
   copy(fromRng: ASRange, toRng: ASRange) {
-    let msg = TC.makeClientMessageRaw(Constants.ServerActions.Copy, {
+    let msg = U.Conversion.makeClientMessageRaw(Constants.ServerActions.Copy, {
       tag: "PayloadPaste",
       copyRange: fromRng,
       copyTo: toRng
@@ -579,7 +575,7 @@ export default {
   },
 
   cut(fromRng: ASRange, toRng: ASRange) {
-    let msg = TC.makeClientMessageRaw(Constants.ServerActions.Cut, {
+    let msg = U.Conversion.makeClientMessageRaw(Constants.ServerActions.Cut, {
       tag: "PayloadPaste",
       copyRange: fromRng,
       copyTo: toRng
@@ -588,25 +584,25 @@ export default {
   },
 
   pasteSimple(cells: Array<ASCell>) {
-    let msg = TC.makeClientMessage(Constants.ServerActions.Evaluate, "PayloadCL", cells);
+    let msg = U.Conversion.makeClientMessage(Constants.ServerActions.Evaluate, "PayloadCL", cells);
     this.send(msg);
   },
 
   getIndices(locs: Array<ASIndex>) {
-    let msg = TC.makeClientMessage(Constants.ServerActions.Get, "PayloadLL", locs);
+    let msg = U.Conversion.makeClientMessage(Constants.ServerActions.Get, "PayloadLL", locs);
     this.send(msg);
   },
 
   getRange(rng: ASRange) {
-    let msg = TC.makeClientMessage(Constants.ServerActions.Get, "PayloadR", rng);
+    let msg = U.Conversion.makeClientMessage(Constants.ServerActions.Get, "PayloadR", rng);
     this.send(msg);
   },
 
   repeat(sel: ASSelection) {
-    let msg = TC.makeClientMessageRaw(Constants.ServerActions.Repeat, {
+    let msg = U.Conversion.makeClientMessageRaw(Constants.ServerActions.Repeat, {
       tag: "PayloadSelection",
-      selectionRange: TC.simpleToASRange(sel.range),
-      selectionOrigin: TC.simpleToASIndex(sel.origin)
+      selectionRange: U.Conversion.simpleToASRange(sel.range),
+      selectionOrigin: U.Conversion.simpleToASIndex(sel.origin)
     });
     this.send(msg);
   },
@@ -616,7 +612,7 @@ export default {
       tag: "InsertCol",
       insertColNum: c
     };
-    let msg = TC.makeClientMessage(Constants.ServerActions.MutateSheet, "PayloadMutate", mutateType);
+    let msg = U.Conversion.makeClientMessage(Constants.ServerActions.MutateSheet, "PayloadMutate", mutateType);
     this.send(msg);
   },
 
@@ -625,7 +621,7 @@ export default {
       tag: "InsertRow",
       insertRowNum: r
     };
-    let msg = TC.makeClientMessage(Constants.ServerActions.MutateSheet, "PayloadMutate", mutateType);
+    let msg = U.Conversion.makeClientMessage(Constants.ServerActions.MutateSheet, "PayloadMutate", mutateType);
     this.send(msg);
   },
 
@@ -634,7 +630,7 @@ export default {
       tag: "DeleteCol",
       deleteColNum: c
     };
-    let msg = TC.makeClientMessage(Constants.ServerActions.MutateSheet, "PayloadMutate", mutateType);
+    let msg = U.Conversion.makeClientMessage(Constants.ServerActions.MutateSheet, "PayloadMutate", mutateType);
     this.send(msg);
   },
 
@@ -643,7 +639,7 @@ export default {
       tag: "DeleteRow",
       deleteRowNum: r
     };
-    let msg = TC.makeClientMessage(Constants.ServerActions.MutateSheet, "PayloadMutate", mutateType);
+    let msg = U.Conversion.makeClientMessage(Constants.ServerActions.MutateSheet, "PayloadMutate", mutateType);
     this.send(msg);
   },
 
@@ -653,7 +649,7 @@ export default {
       oldColNum: c1,
       newColNum: c2
     };
-    let msg = TC.makeClientMessage(Constants.ServerActions.MutateSheet, "PayloadMutate", mutateType);
+    let msg = U.Conversion.makeClientMessage(Constants.ServerActions.MutateSheet, "PayloadMutate", mutateType);
     this.send(msg);
   },
 
@@ -663,35 +659,35 @@ export default {
       oldRowNum: r1,
       newRowNum: r2
     };
-    let msg = TC.makeClientMessage(Constants.ServerActions.MutateSheet, "PayloadMutate", mutateType);
+    let msg = U.Conversion.makeClientMessage(Constants.ServerActions.MutateSheet, "PayloadMutate", mutateType);
     this.send(msg);
   },
 
   // @optional mySheet
   openSheet(mySheet?: ASSheet) {
     let sheet = mySheet || SheetStateStore.getCurrentSheet(),
-        msg = TC.makeClientMessage(Constants.ServerActions.Open, "PayloadS", sheet);
+        msg = U.Conversion.makeClientMessage(Constants.ServerActions.Open, "PayloadS", sheet);
     this.send(msg);
   },
 
   createSheet() {
-    let wbs = TC.makeWorkbookSheet();
-    let msg = TC.makeClientMessage(Constants.ServerActions.New,
+    let wbs = U.Conversion.makeWorkbookSheet();
+    let msg = U.Conversion.makeClientMessage(Constants.ServerActions.New,
       "PayloadWorkbookSheets",
       [wbs]);
     this.send(msg);
   },
 
   createWorkbook() {
-    let wb = TC.makeWorkbook();
-    let msg = TC.makeClientMessage(Constants.ServerActions.New,
+    let wb = U.Conversion.makeWorkbook();
+    let msg = U.Conversion.makeClientMessage(Constants.ServerActions.New,
       "PayloadWB",
       wb);
     this.send(msg);
   },
 
   setCondFormattingRules(condFormatRules: Array<CondFormatRule>) {
-    let msg = TC.makeClientMessageRaw(Constants.ServerActions.SetCondFormatRules, {
+    let msg = U.Conversion.makeClientMessageRaw(Constants.ServerActions.SetCondFormatRules, {
       tag: "PayloadCondFormat",
       condFormatRules: condFormatRules
     });
@@ -699,7 +695,7 @@ export default {
   },
 
   updateViewingWindow(vWindow: ASClientWindow) {
-    let msg = TC.makeClientMessage(Constants.ServerActions.UpdateWindow,
+    let msg = U.Conversion.makeClientMessage(Constants.ServerActions.UpdateWindow,
       "PayloadW",
       vWindow);
     this.send(msg);

@@ -42,10 +42,7 @@ import _ from 'lodash';
 
 import API from '../actions/ASApiActionCreators';
 
-import Util from '../AS/Util';
-let {
-  Conversion: TC
-} = Util;
+import U from '../AS/Util';
 
 import CellStore from '../stores/ASCellStore';
 import Constants from '../Constants';
@@ -69,15 +66,15 @@ export function actionAPIResponse(
 }
 
 export function indFromExcel(exLoc: string): NakedIndex {
-  return TC.excelToIndex(exLoc);
+  return U.Conversion.excelToIndex(exLoc);
 }
 
 export function rangeFromExcel(exLoc: string): NakedRange {
-  return TC.excelToRange(exLoc);
+  return U.Conversion.excelToRange(exLoc);
 }
 
 export function locToExcel(loc: NakedRange): string {
-  return TC.rangeToExcel(loc);
+  return U.Conversion.rangeToExcel(loc);
 }
 
 export function numToAlpha(num: number): string {
@@ -85,11 +82,11 @@ export function numToAlpha(num: number): string {
 }
 
 export function asIndex(loc: string): ASIndex {
-  return TC.simpleToASIndex(TC.excelToIndex(loc));
+  return U.Conversion.simpleToASIndex(U.Conversion.excelToIndex(loc));
 }
 
 export function asRange(loc: string): ASRange {
-  return TC.excelToASRange(loc);
+  return U.Conversion.excelToASRange(loc);
 }
 
 export function apiExec(fn: () => void): Prf {
@@ -128,7 +125,7 @@ export function openSheet(): Prf {
 export function syncWindow(): Prf {
   return apiExec(() => {
     let range = { tl: {col: 0, row: 0}, br: {col: 100, row: 100 }},
-      vWindow = TC.rangeToASWindow(range);
+      vWindow = U.Conversion.rangeToASWindow(range);
     API.updateViewingWindow(vWindow);
   });
 }
@@ -152,7 +149,7 @@ export function cell(loc: string, xp: string, lang: ASTestLanguage): Prf {
       'R': Constants.Languages.R,
       'excel': Constants.Languages.Excel
     };
-    let idx   = TC.excelToIndex(loc),
+    let idx   = U.Conversion.excelToIndex(loc),
         xpObj = { expression: xp, language: langMap[lang] };
     API.evaluate(idx, xpObj);
   });
@@ -266,7 +263,7 @@ export function decouple(): Prf {
 
 export function delete_(rng: string): Prf {
   return apiExec(() => {
-    API.deleteRange(TC.simpleToASRange(rangeFromExcel(rng)));
+    API.deleteRange(U.Conversion.simpleToASRange(rangeFromExcel(rng)));
   });
 }
 
@@ -340,7 +337,7 @@ export function makeCondFormattingRuleFontExcel(rng: string, prop: ASCellProp, r
   let asRule = {
     "tag": "CondFormatRule",
     "condition": xpObj,
-    "cellLocs": [TC.simpleToASRange(rangeFromExcel(rng))],
+    "cellLocs": [U.Conversion.simpleToASRange(rangeFromExcel(rng))],
     "condFormat": {
       tag: prop,
       contents: []

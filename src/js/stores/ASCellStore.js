@@ -26,13 +26,7 @@ import Dispatcher from '../Dispatcher';
 import BaseStore from './BaseStore';
 import API from '../actions/ASApiActionCreators';
 
-import Util from '../AS/Util';
-let {
-  Array: A,
-  Cell: C,
-  Conversion: TC,
-  Location: L
-} = Util;
+import U from '../AS/Util';
 
 import Render from '../AS/Renderers';
 import SheetStateStore from './ASSheetStateStore.js';
@@ -143,7 +137,7 @@ const ASCellStore = Object.assign({}, BaseStore, {
         break;
       case 'DELETED_LOCS':
         _data.lastUpdatedCells = [];
-        let locs = TC.rangeToASIndices(action.deletedRange.range);
+        let locs = U.Conversion.rangeToASIndices(action.deletedRange.range);
         ASCellStore.removeIndices(locs);
         ASCellStore.updateCells(action.updatedCells);
         ASCellStore.emitChange();
@@ -204,8 +198,8 @@ const ASCellStore = Object.assign({}, BaseStore, {
           cProps.filter((cProp) => cProp.hasOwnProperty('listKey'))[0];
         if (listKeyTag && listKeyTag.listKey) { // listKey flow hack
           let {listKey} = listKeyTag;
-          let listHead = TC.listKeyToListHead(listKey);
-          let listDimensions = TC.listKeyToListDimensions(listKey);
+          let listHead = U.Conversion.listKeyToListHead(listKey);
+          let listDimensions = U.Conversion.listKeyToListDimensions(listKey);
           return {
             tl: {row: listHead.snd,
                  col: listHead.fst} ,
@@ -233,7 +227,7 @@ const ASCellStore = Object.assign({}, BaseStore, {
 
    // Converts a range to a row major list of lists of values,
    getRowMajorCellValues(rng) {
-     if (L.isIndex(rng)) {
+     if (U.Location.isIndex(rng)) {
       let cell = this.getCell(rng.tl.col, rng.tl.row);
       return [[cell ? cell.cellValue.contents : '']];
      } else {
@@ -241,7 +235,7 @@ const ASCellStore = Object.assign({}, BaseStore, {
           height = br.row - tl.row + 1,
           length = br.col - tl.col + 1,
           self = this,
-          rowMajorValues = A.make2DArrayOf("", height, length);
+          rowMajorValues = U.Array.make2DArrayOf("", height, length);
       for (let i = 0; i < height; ++i) {
         let currentRow = tl.row + i;
         rowMajorValues[i] = rowMajorValues[i].map(function(value, index) {
@@ -273,7 +267,7 @@ const ASCellStore = Object.assign({}, BaseStore, {
   updateCells(cells) {
     let removedCells = [];
     cells.forEach((c) => {
-      if (!C.isEmptyCell(c)) {
+      if (!U.Cell.isEmptyCell(c)) {
         this.setCell(c);
         _data.lastUpdatedCells.push(c);
       } else {
@@ -302,7 +296,7 @@ const ASCellStore = Object.assign({}, BaseStore, {
   // Remove a cell at an ASIndex
   removeIndex(loc: ASIndex) {
     let sheetId = loc.sheetId,
-        emptyCell = TC.makeEmptyCell(loc);
+        emptyCell = U.Conversion.makeEmptyCell(loc);
     if (this.locationExists(loc.index.col, loc.index.row, sheetId)) {
       delete _data.allCells[sheetId][loc.index.col][loc.index.row];
     }

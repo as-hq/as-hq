@@ -489,9 +489,9 @@ export default React.createClass({
           let {x, y} = this.getCoordsFromMouseEvent(grid, evt);
           let sel = this.getSelectionArea();
           let newSelRange = Render.getDragRect(),
-              fromRange = TC.simpleToASRange(sel.range);
+              fromRange = U.Conversion.simpleToASRange(sel.range);
           if (newSelRange != null) {
-            let toRange = TC.simpleToASRange(newSelRange),
+            let toRange = U.Conversion.simpleToASRange(newSelRange),
                 newSel = {range: newSelRange, origin: newSelRange.tl};
             this.select(newSel, false);
             Render.setDragRect(null);
