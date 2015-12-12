@@ -112,20 +112,11 @@ setCell conn c = setCells conn [c]
 getPossiblyBlankCell :: Connection -> ASIndex -> IO ASCell
 getPossiblyBlankCell conn loc = head <$> getPossiblyBlankCells conn [loc]
 
--- TODO
 getCellsInSheet :: Connection -> ASSheetId -> IO [ASCell]
-getCellsInSheet conn sid = return []
+getCellsInSheet conn sid = DI.getCellsByKeyPattern conn $ BC.pack $ "*" ++ (T.unpack sid) ++ "*"
 
 getAllCells :: Connection -> IO [ASCell]
-getAllCells conn = do
-  locs <- runRedis conn $ do
-    Right ks <- keys "*"
-    let locs = catMaybes $ map readLoc ks
-        readLoc k = case (decodeMaybe k) of 
-          Just l@(Index _ _) -> Just l
-          _ -> Nothing
-    return locs
-  map fromJust <$> getCells conn locs
+getAllCells conn = DI.getCellsByKeyPattern conn "*"
 
 -- Gets the cells at the locations with expressions and values removed, but tags intact. 
 -- this function is order-preserving
