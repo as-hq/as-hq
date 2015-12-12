@@ -163,6 +163,10 @@ export default Object.assign({
   ClickType:{
     DOUBLE_CLICK: "DOUBLE_CLICK",
     CLICK: "CLICK"
-  }
+  },
 
+  DefaultColors: {
+    TextColor: '#000000',
+    FillColor: '#ffffff'
+  }
 }, Environment);

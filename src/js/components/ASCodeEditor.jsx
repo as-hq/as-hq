@@ -6,6 +6,7 @@ import Constants from '../Constants';
 import {AppBar, Toolbar, ToolbarGroup, FlatButton, TextField, DropDownMenu, Styles} from 'material-ui';
 import FileInput from './ASFileImportButton.jsx';
 import ASCellPropsToggleButton from './basic-controls/ASCellPropsToggleButton.jsx';
+import ASCellPropsColorSetButton from './basic-controls/ASCellPropsColorSetButton.jsx';
 
 require('brace/mode/python');
 require('brace/mode/r');
@@ -103,8 +104,19 @@ export default React.createClass({
             <FileInput style={fileInputStyle} />
             <ASCellPropsToggleButton propTag="Bold" iconClassName="format_bold" style={{
               position: 'relative',
-              marginLeft: '40px',
-              top: '0px'
+              marginLeft: '0px'
+            }} />
+            <ASCellPropsToggleButton propTag="Italic" iconClassName="format_italic" style={{
+              position: 'relative',
+              marginLeft: '0px'
+            }} />
+            <ASCellPropsColorSetButton propTag="TextColor" style={{
+              position: 'relative',
+              marginLeft: '20px'
+            }} />
+            <ASCellPropsColorSetButton propTag="FillColor" style={{
+              position: 'relative',
+              marginLeft: '20px'
             }} />
         </Toolbar>
         <AceEditor
