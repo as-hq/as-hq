@@ -33,7 +33,6 @@ import {
 
   python,
   r,
-  ocaml,
   excel,
 
   valueI,
@@ -60,9 +59,7 @@ import ASCellStore from '../stores/ASCellStore';
 import SheetStateStore from '../stores/ASSheetStateStore';
 import SelectionStore from '../stores/ASSelectionStore';
 import ASExpStore from '../stores/ASExpStore';
-import Util from '../AS/Util';
-import KeyUtils from '../AS/KeyUtils';
-import ShortcutUtils from '../AS/ShortcutUtils';
+import U from '../AS/Util';
 
 // import Promise from 'bluebird';
 
@@ -105,7 +102,7 @@ function expression() {
 }
 
 function cellConfig(excelCell) {
-  let {col, row} = Util.excelToIndex(excelCell);
+  let {col, row} = U.Conversion.excelToIndex(excelCell);
   let [x, y] = [col - 1, row - 1];
   let config = { x: x, y: y };
   let provider = cellProvider();
@@ -144,7 +141,7 @@ function generateSyntheticBaseEvent() {
 }
 
 function generateSyntheticKeyEvent(key) {
-  let {keyCode, ...keyEvent} = ShortcutUtils.parseKeysIntoShortcut({}, key);
+  let {keyCode, ...keyEvent} = U.Shortcut.parseKeysIntoShortcut({}, key);
   let patchedKeyEvent = {
     ctrlKey: false,
     shiftKey: false,
@@ -246,8 +243,8 @@ function selectRange(excelRng, excelOrigin='') {
   }
 
   return exec(() => {
-    let hgRange = Util.excelToRange(excelRng),
-        hgOrigin = Util.excelToRange(excelOrigin);
+    let hgRange = U.Conversion.excelToRange(excelRng),
+        hgOrigin = U.Conversion.excelToRange(excelOrigin);
 
     spreadsheet().select({range: hgRange, origin: hgOrigin.tl});
   });
@@ -737,8 +734,6 @@ export function install(w, ep) {
   __injectExpect(expect);
 
   w.$as = {};
-  w.$as.ShortcutUtils = ShortcutUtils;
-  w.$as.KeyUtils = KeyUtils;
 
   /* only do this with bluebird */
   // Promise.config({ longStackTraces: true, warnings: true });

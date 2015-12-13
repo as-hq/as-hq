@@ -1,10 +1,10 @@
 import {logDebug} from '../AS/Logger';
 
-import KeyUtils from '../AS/KeyUtils';
-import ShortcutUtils from '../AS/ShortcutUtils';
 import CellStore from '../stores/ASCellStore';
 import EvalHeaderActionCreator from '../actions/ASEvalHeaderActionCreators';
 import API from '../actions/ASApiActionCreators';
+
+import U from '../AS/Util';
 
 var ace = require('brace');
 var React = require('react');
@@ -83,19 +83,19 @@ module.exports = React.createClass({
     onPropsSet(this.editor, nextProps);
   },
 
-  handleKeyDown(e: SyntheticKeyboardEvent) { 
-    let lang = this.props.language, 
+  handleKeyDown(e: SyntheticKeyboardEvent) {
+    let lang = this.props.language,
         val = this.editor.getValue();
-    if (KeyUtils.isCtrlS(e)) {
-      KeyUtils.killEvent(e);
+    if (U.Key.isCtrlS(e)) {
+      U.Key.killEvent(e);
       API.evaluateHeader(val, lang);
     }
   },
 
-  handleKeyUp(e: SyntheticKeyboardEvent) { 
-    let lang = this.props.language, 
+  handleKeyUp(e: SyntheticKeyboardEvent) {
+    let lang = this.props.language,
         val = this.editor.getValue();
-    EvalHeaderActionCreator.storeEvalHeaderExpression(lang, val); 
+    EvalHeaderActionCreator.storeEvalHeaderExpression(lang, val);
   },
 
   render() {

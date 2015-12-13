@@ -3,10 +3,7 @@ import {logDebug} from '../AS/Logger';
 import React from 'react';
 import Constants from '../Constants';
 
-import Util from '../AS/Util';
-import KeyUtils from '../AS/KeyUtils';
-import ShortcutUtils from '../AS/ShortcutUtils';
-import ParseUtils from '../AS/ParsingUtils';
+import U from '../AS/Util';
 
 import CellStore from '../stores/ASCellStore';
 import SheetStateStore from '../stores/ASSheetStateStore';
@@ -110,7 +107,7 @@ export default React.createClass({
     logDebug("Expression before insertion: " + this.editor.getValue());
     ExpStore.setDoTextBoxCallback(false);
     if (lastRef !== null) {
-      ParseUtils.deleteLastRef(this.editor,lastRef);
+      U.Parsing.deleteLastRef(this.editor,lastRef);
     }
     this.editor.getSession().insert(this.editor.getCursorPosition(),newRef);
     logDebug("New textbox xp: " + this.editor.getValue());
@@ -121,9 +118,9 @@ export default React.createClass({
 
   _onKeyDown(e) {
     logDebug("\n\nTEXTBOX KEYDOWN");
-    if (ShortcutUtils.textboxShouldDeferKey(e)) {
+    if (U.Shortcut.textboxShouldDeferKey(e)) {
       // console.log("TEXTBOX DEFERRING KEY");
-      KeyUtils.killEvent(e);
+      U.Key.killEvent(e);
       this.props.onDeferredKey(e);
     } else {
         // onChange will call an action creator

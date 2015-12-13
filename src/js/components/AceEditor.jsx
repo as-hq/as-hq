@@ -1,9 +1,6 @@
 import {logDebug} from '../AS/Logger';
 
-import KeyUtils from '../AS/KeyUtils';
-import ShortcutUtils from '../AS/ShortcutUtils';
-import Util from '../AS/Util';
-import ParseUtils from '../AS/ParsingUtils';
+import U from '../AS/Util';
 
 import Constants from '../Constants';
 
@@ -107,7 +104,7 @@ module.exports = React.createClass({
     let lastRef = ExpStore.getLastRef();
     logDebug("Inserting ref in editor " + newRef);
     ExpStore.setDoEditorCallback(false);
-    if (lastRef) ParseUtils.deleteLastRef(this.editor,lastRef)
+    if (lastRef) U.Parsing.deleteLastRef(this.editor,lastRef)
     this.editor.insert(newRef);
   },
 
@@ -123,10 +120,10 @@ module.exports = React.createClass({
   */
   _onKeyDown(e) {
     logDebug("\n\nACE KEYDOWN");
-    if (ShortcutUtils.editorShouldDeferKey(e)) {
+    if (U.Shortcut.editorShouldDeferKey(e)) {
       // Try shortcut in eval pane
       logDebug("Deferring editor key down");
-      KeyUtils.killEvent(e);
+      U.Key.killEvent(e);
       this.props.onDeferredKey(e);
     } else {
       ExpStore.setDoEditorCallback(true);
