@@ -244,7 +244,7 @@ const ASExpStore = Object.assign({}, BaseStore, {
     let percentProp = {tag: "ValueFormat", formatType: 'Percentage'},
         wasTyping = this.getUserIsTyping(),
         cell = CellStore.getActiveCell();
-    return (!wasTyping && cell != undefined && Util.cellHasProp(percentProp, cell));
+    return (!wasTyping && cell != undefined && Util.Cell.cellHasProp(percentProp, cell));
   },
 
   updateStoreNormalTyping(type, xpStr, cursorPos) {

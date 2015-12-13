@@ -94,7 +94,7 @@ describe('backend', () => {
   describe('login', () => {
   });
 
-  describe('crud', () => {
+  xdescribe('crud', () => {
     beforeAll((done) => {
       _do([
         logP('Initializing...'),
