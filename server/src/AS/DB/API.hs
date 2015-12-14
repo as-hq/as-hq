@@ -232,7 +232,7 @@ createWorkbookSheet conn wbs = do
   let newSheetIds = map sheetId newSheets'
   wbResult <- getWorkbook conn $ wsName wbs
   case wbResult of
-    (Just wb) -> do
+    Just wb -> do
       modifyWorkbookSheets conn (\ss -> nub $ newSheetIds ++ ss) (workbookName wb)
       return wbs
     Nothing -> do

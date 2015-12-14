@@ -39,8 +39,8 @@ main :: IO ()
 main = do
   defaultMain [
 
-    xdescribe "dispatch"
-      [ has (testCells [1..500]) $ \ ~(myEnv, cells) ->
+    describe "dispatch"
+      [ has (testCells [1..100]) $ \ ~(myEnv, cells) ->
           it "dispatches 500 cells" $ 
             runIO $ runDispatchCycle (envState myEnv) cells DescendantsWithParent (envSource myEnv)
       ]
@@ -49,23 +49,29 @@ main = do
         xdescribe "serialization"
           [ it "serializes 10000 cells with cereal" $ 
               run (map S.encode) cells 
+
           , it "serializes 1000 cells with bytestrings" $ 
               run (BC.pack . show) cells 
+
           , has (map S.encode cells) $ \ ~(_, scells) -> 
               it "deserializes 1000 cells" $ 
-                run (map (\c -> S.decode c :: Either String ASCell)) scells
+                run (map (fromRight . S.decode)) scells
           ]
 
     , has ((testMap [1..10000], testCells [1..10000])) $ \ ~(_, (m, cells)) -> 
         xdescribe "misc cell datastructures"
           [ it "creates 10000-cell map" $
               run (\cs -> M.fromList $ zip (map cellLocation cs) cs) cells
+
           , it "creates 10000-cell hashmap" $
               run (\cs -> H.fromList $ zip (map cellLocation cs) cs) cells
+
           , it "inserts 10000 cells into a map" $ 
               run (\cs -> insertMultiple (M.empty) (map cellLocation cs) cs) cells
-          , it "inserts 10000 cells into a map" $ 
-              run (\cs -> insertMultiple (M.empty) (map cellLocation cs) cs) cells
+
+          , it "inserts 10000 cells into a hashmap" $ 
+              run (\cs -> insertMultiple (H.empty) (map cellLocation cs) cs) cells
+
           , has (reverse cells) $ \ ~(_, rcells) -> 
               describe "merging cells" 
               [ it "merges two lists using hashmaps" $ 
@@ -74,13 +80,16 @@ main = do
           ]
 
     , has (testCells [1..10000], testCells [10001..20000]) $ \ ~(myEnv, (cells1, cells2)) -> 
-        describe "DB"
+        xdescribe "DB"
           [ xit "inserts 10000 cells with binary serialization" $ 
               runIO $ (DB.setCells (envConn myEnv) cells1) 
+
           , xit "gets all cells after having inserted 10000" $ 
               runIO $ DB.getAllCells (envConn myEnv)
+
           , xit "sets the ancestors of 10000 cells" $ 
               runIO $ runEitherT $ G.setCellsAncestors cells1
+
           , it "deletes all cells in sheet BENCH_ID" $ 
               runIO $ DB.deleteLocsInSheet (envConn myEnv) "BENCH_ID"
           ]
