@@ -177,6 +177,10 @@ export function pythonEvalHeader(xp: string): Prf {
   return evalHeader(xp, 'Python');
 }
 
+export function rEvalHeader(xp: string): Prf {
+  return evalHeader(xp, 'R');
+}
+
 
 export function repeat(rng: string, origin: string): Prf {
   return apiExec(() => {
