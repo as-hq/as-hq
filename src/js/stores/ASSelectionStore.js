@@ -53,12 +53,10 @@ const ASSelectionStore = Object.assign({}, BaseStore, {
     // variable from the store is empirically much slower than just setting
     // its value directly in the file. (Relayed from Anand -- Alex 12/9)
     Render.setSelection(sel);
-    let origin = sel.origin;
+    let origin = sel.origin,
+        activeCellDependencies = U.Parsing.parseDependencies(xp, lang),
+        listDep = CellStore.getParentList(origin);
     _data.activeSelection = sel;
-    var activeCellDependencies = U.Parsing.parseDependencies(xp, lang);
-    let c = sel.origin.col,
-        r = sel.origin.row,
-        listDep = CellStore.getParentList(c, r);
     if (listDep !== null) {
       activeCellDependencies.push(listDep);
     }

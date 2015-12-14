@@ -102,8 +102,8 @@ const ASExpStore = Object.assign({}, BaseStore, {
       case 'DELETED_LOCS':
       case 'GOT_UPDATED_CELLS':
         Dispatcher.waitFor([CellStore.dispatcherIndex]);
-        SelectionStore.withActiveSelection((sel) => {
-          let cell = CellStore.getCell(sel.origin.col, sel.origin.row);
+        SelectionStore.withActiveSelection(({origin}) => {
+          let cell = CellStore.getCell(origin);
           ASExpStore.updateOnBackendChange(cell);
         });
         break;

@@ -493,7 +493,7 @@ export default React.createClass({
   _onSelectionChange(sel: ASSelection) {
     let {range, origin} = sel,
         userIsTyping = ExpStore.getUserIsTyping(),
-        cell = CellStore.getCell(origin.col, origin.row);
+        cell = CellStore.getCell(origin);
 
     let editorCanInsertRef = ExpStore.editorCanInsertRef(this._getRawEditor()),
         gridCanInsertRef = ExpStore.gridCanInsertRef(),
@@ -612,7 +612,7 @@ export default React.createClass({
     }
 
     // Only re-eval if the cell actually changed from before.
-    let curCell = CellStore.getCell(origin.col, origin.row);
+    let curCell = CellStore.getCell(origin); 
     if (!curCell) {
       if (xpObj.expression != "") {
         API.evaluate(origin, xpObj);

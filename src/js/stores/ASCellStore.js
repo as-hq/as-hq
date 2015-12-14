@@ -166,8 +166,8 @@ const ASCellStore = Object.assign({}, BaseStore, {
   /* getter and setter methods */
 
   getActiveCell() {
-    return SelectionStore.withActiveSelection(({origin: {row, col}}) => {
-      return this.getCell(col, row);
+    return SelectionStore.withActiveSelection(({origin}) => {
+      return this.getCell(origin);
     });
   },
 
@@ -189,8 +189,8 @@ const ASCellStore = Object.assign({}, BaseStore, {
     }
   },
 
-  getParentList(c, r) {
-    let cell = this.getCell(c, r);
+  getParentList(loc: NakedIndex) {
+    let cell = this.getCell(loc);
     if (cell) {
       let cProps = cell.cellProps;
       if (cProps) {
@@ -228,7 +228,7 @@ const ASCellStore = Object.assign({}, BaseStore, {
    // Converts a range to a row major list of lists of values,
    getRowMajorCellValues(rng) {
      if (U.Location.isIndex(rng)) {
-      let cell = this.getCell(rng.tl.col, rng.tl.row);
+      let cell = this.getCell(rng.tl);
       return [[cell ? cell.cellValue.contents : '']];
      } else {
       let {tl, br} = rng,
@@ -240,7 +240,7 @@ const ASCellStore = Object.assign({}, BaseStore, {
         let currentRow = tl.row + i;
         rowMajorValues[i] = rowMajorValues[i].map(function(value, index) {
             let currentColumn = tl.col + index,
-                cell = self.getCell(currentColumn, currentRow);
+                cell = self.getCell({col: currentColumn, row: currentRow});
             return cell ? cell.cellValue.contents : "";
         });
       }
@@ -326,8 +326,8 @@ const ASCellStore = Object.assign({}, BaseStore, {
   },
 
   // @optional mySheetId
-  getCell(col: number, row: number, mySheetId?: string): ?ASCell {
-    let sheetId = mySheetId || SheetStateStore.getCurrentSheet().sheetId;
+  getCell({col, row}: NakedIndex): ?ASCell {
+    let sheetId = SheetStateStore.getCurrentSheet().sheetId;
     if (this.locationExists(col, row, sheetId))
       return _data.allCells[sheetId][col][row];
     else {

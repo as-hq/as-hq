@@ -349,7 +349,7 @@ export default {
       // TODO test
       SelectionStore.withActiveSelection((sel) => {
         let {tl} = sel.range,
-            cell = CellStore.getCell(tl.col, tl.row-1);
+            cell = CellStore.getCell({col: tl.col, row: tl.row-1});
         if (cell) {
           let xp = cell.cellExpression.expression || '';
           ExpActionCreator.handleEditorChange(xp);
@@ -360,7 +360,7 @@ export default {
       // TODO test
       SelectionStore.withActiveSelection((sel) => {
         let tl = sel.range.tl,
-            cell = CellStore.getCell(tl.col, tl.row-1);
+            cell = CellStore.getCell({col: tl.col, row: tl.row-1});
         if (cell) {
           let xp = U.Render.showValue(cell.cellValue) || '';
           ExpActionCreator.handleEditorChange(xp);

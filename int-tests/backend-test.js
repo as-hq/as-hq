@@ -1761,15 +1761,6 @@ describe('backend', () => {
         ]);
       });
 
-      it('lets you make imports', (done) => {
-        _do([
-          pythonEvalHeader('import numpy as np'),
-          python('A1', 'np.array([[1,2],[3,4]]).tolist()'),
-          shouldBe('B1', valueI(2)),
-          exec(done)
-        ]);
-      });
-
       it('allows you to continue evaluating after a failure', (done) => {
         _do([
           rEvalHeader("x=read.table(\"test.csv\", sep=\",\")"),

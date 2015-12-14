@@ -942,7 +942,7 @@ export default React.createClass({
       let renderer = Render.defaultCellRenderer,
           col = config.x + 1,
           row = config.y + 1,
-          cell = CellStore.getCell(col, row);
+          cell = CellStore.getCell({col: col, row: row});
 
       // tag-based cell styling
       if (!! cell) {
