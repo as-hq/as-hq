@@ -25,7 +25,7 @@ var Constants = Object.assign({
     // let baseUrl = process.env.NODE_ENV ? HOST_IP : 'localhost';
     // logDebug("GOT ENV ARG: ", process.env.NODE_ENV);
     // return 'ws://' + baseUrl + ':' + HOST_WS_PORT;
-    return Environment.isRemote
+    return Constants.isRemote
       ? ('ws://' + HOST_IP + ':' + HOST_WS_PORT)
       : Constants.HOST_WS_URL;
   },
