@@ -11,15 +11,6 @@ def arr(lst):
 def hide(lst): 
 	return ASIterable(lst).hide()
 
-def uniqueId():
-	lstFiles = os.listdir(imagesPath)
-	pythonImageFiles = filter(lambda s: s.startswith(imagePrefix),lstFiles)
-	pythonNumbers = map(lambda s: int(s[len(imagePrefix):-4]),pythonImageFiles)
-	newNumber = 1
-	if len(pythonNumbers) > 0:
-		newNumber = max(pythonNumbers) + 1
-	return imagePrefix + str(newNumber) + ".png"
-
 def space(lst, sp):
 	lst2 = map((lambda x: prefixPush(x, ["" for _ in range(sp)])), lst)
 	return flat(lst2)[:-sp]

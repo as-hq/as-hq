@@ -1,0 +1,851 @@
+
+ClientMessage {clientAction = Get, clientPayload = PayloadLL [Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:10.785
+ClientMessage {clientAction = Clear, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:10.836
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}, cellExpression = Expression {expression = "-5", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:10.888
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,2)}, cellExpression = Expression {expression = "15", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:10.938
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,3)}, cellExpression = Expression {expression = "20", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:10.990
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,4)}, cellExpression = Expression {expression = "5", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:11.041
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,5)}, cellExpression = Expression {expression = "TRUE", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:11.092
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,1)}, cellExpression = Expression {expression = "=SUM(A1,A2)", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:11.143
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,2)}, cellExpression = Expression {expression = "=SUM(A2:A4,15)", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:11.194
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,2)}, cellExpression = Expression {expression = "=SUM(A2:A5,15)", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:11.249
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,3)}, cellExpression = Expression {expression = "=SUM(\"5\", 15, TRUE)", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:11.296
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,4)}, cellExpression = Expression {expression = "=SUM(A5,A6, 2)", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:11.347
+ClientMessage {clientAction = Get, clientPayload = PayloadLL [Index {locSheetId = "INIT_SHEET_ID", index = (2,1)}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:11.398
+ClientMessage {clientAction = Get, clientPayload = PayloadLL [Index {locSheetId = "INIT_SHEET_ID", index = (2,2)}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:11.450
+ClientMessage {clientAction = Get, clientPayload = PayloadLL [Index {locSheetId = "INIT_SHEET_ID", index = (2,3)}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:11.501
+ClientMessage {clientAction = Get, clientPayload = PayloadLL [Index {locSheetId = "INIT_SHEET_ID", index = (2,4)}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:11.552
+ClientMessage {clientAction = Clear, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:11.603
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}, cellExpression = Expression {expression = "Data1", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:11.654
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,2)}, cellExpression = Expression {expression = "3", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:11.706
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,3)}, cellExpression = Expression {expression = "2", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:11.756
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,4)}, cellExpression = Expression {expression = "4", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:11.809
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,5)}, cellExpression = Expression {expression = "5", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:11.858
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,6)}, cellExpression = Expression {expression = "6", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:11.909
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,7)}, cellExpression = Expression {expression = "Formula", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:11.962
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,8)}, cellExpression = Expression {expression = "=COVAR(A2:A6, B2:B6)", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:12.012
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,1)}, cellExpression = Expression {expression = "Data2", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:12.063
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,2)}, cellExpression = Expression {expression = "9", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:12.114
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,3)}, cellExpression = Expression {expression = "7", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:12.165
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,4)}, cellExpression = Expression {expression = "12", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:12.228
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,5)}, cellExpression = Expression {expression = "15", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:12.318
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,6)}, cellExpression = Expression {expression = "17", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:12.371
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,7)}, cellExpression = Expression {expression = "Description", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:12.421
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,8)}, cellExpression = Expression {expression = "Covariance, the average of the products of deviations for each data point pair above.", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:12.471
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (3,7)}, cellExpression = Expression {expression = "Result", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:12.523
+ClientMessage {clientAction = Get, clientPayload = PayloadLL [Index {locSheetId = "INIT_SHEET_ID", index = (1,8)}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:12.574
+ClientMessage {clientAction = Clear, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:12.625
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}, cellExpression = Expression {expression = "range(10)", language = Python}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:12.677
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,1)}, cellExpression = Expression {expression = "=A1+A2", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:12.727
+ClientMessage {clientAction = Get, clientPayload = PayloadLL [Index {locSheetId = "INIT_SHEET_ID", index = (2,1)}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:12.835
+ClientMessage {clientAction = Clear, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:12.880
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}, cellExpression = Expression {expression = "5", language = Python}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:12.932
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,1)}, cellExpression = Expression {expression = "=A2+A3", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:12.982
+ClientMessage {clientAction = Get, clientPayload = PayloadLL [Index {locSheetId = "INIT_SHEET_ID", index = (2,1)}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:13.085
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,2)}, cellExpression = Expression {expression = "=A1+A3", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:13.136
+ClientMessage {clientAction = Get, clientPayload = PayloadLL [Index {locSheetId = "INIT_SHEET_ID", index = (2,2)}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:13.187
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,3)}, cellExpression = Expression {expression = "=A1*A2", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:13.241
+ClientMessage {clientAction = Get, clientPayload = PayloadLL [Index {locSheetId = "INIT_SHEET_ID", index = (2,3)}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:13.296
+ClientMessage {clientAction = Clear, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:13.340
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}, cellExpression = Expression {expression = "1", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:13.392
+ClientMessage {clientAction = Get, clientPayload = PayloadLL [Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:13.442
+ClientMessage {clientAction = Clear, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:13.494
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}, cellExpression = Expression {expression = "\"hello\"hello\"hello\"", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:13.545
+ClientMessage {clientAction = Get, clientPayload = PayloadLL [Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:13.596
+ClientMessage {clientAction = Clear, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:13.647
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}, cellExpression = Expression {expression = "\"hello\"", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:13.698
+ClientMessage {clientAction = Get, clientPayload = PayloadLL [Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:13.749
+ClientMessage {clientAction = Clear, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:13.800
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}, cellExpression = Expression {expression = "=SUM(1,2)ASDF\"sadf", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:13.851
+ClientMessage {clientAction = Get, clientPayload = PayloadLL [Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:13.902
+ClientMessage {clientAction = Clear, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:13.954
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}, cellExpression = Expression {expression = "=SUM(1,SUM(2,3))", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:14.005
+ClientMessage {clientAction = Get, clientPayload = PayloadLL [Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:14.056
+ClientMessage {clientAction = Clear, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:14.107
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}, cellExpression = Expression {expression = "1", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:14.158
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,2)}, cellExpression = Expression {expression = "2", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:14.209
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,3)}, cellExpression = Expression {expression = "=sUm(A1,A2)", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:14.261
+ClientMessage {clientAction = Get, clientPayload = PayloadLL [Index {locSheetId = "INIT_SHEET_ID", index = (1,3)}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:14.314
+ClientMessage {clientAction = Clear, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:14.362
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}, cellExpression = Expression {expression = "TrUe", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:14.413
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,2)}, cellExpression = Expression {expression = "false", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:14.464
+ClientMessage {clientAction = Get, clientPayload = PayloadLL [Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:14.516
+ClientMessage {clientAction = Get, clientPayload = PayloadLL [Index {locSheetId = "INIT_SHEET_ID", index = (1,2)}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:14.567
+ClientMessage {clientAction = Clear, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:14.618
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}, cellExpression = Expression {expression = "   ", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:14.669
+ClientMessage {clientAction = Get, clientPayload = PayloadLL [Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:14.723
+ClientMessage {clientAction = Clear, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:14.773
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}, cellExpression = Expression {expression = "=++--+-2", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:14.822
+ClientMessage {clientAction = Get, clientPayload = PayloadLL [Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:14.875
+ClientMessage {clientAction = Clear, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:14.924
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}, cellExpression = Expression {expression = "range(10)", language = Python}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:14.976
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,1)}, cellExpression = Expression {expression = "=abs(A2)", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:15.027
+ClientMessage {clientAction = Get, clientPayload = PayloadLL [Index {locSheetId = "INIT_SHEET_ID", index = (2,1)}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:15.078
+ClientMessage {clientAction = Clear, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:15.129
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}, cellExpression = Expression {expression = "range(10)", language = Python}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:15.180
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,1)}, cellExpression = Expression {expression = "=abs(A$1:A$10)", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:15.235
+ClientMessage {clientAction = Copy, clientPayload = PayloadPaste {copyRange = Range {rangeSheetId = "INIT_SHEET_ID", range = ((2,1),(2,1))}, copyTo = Range {rangeSheetId = "INIT_SHEET_ID", range = ((2,2),(2,10))}}}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:15.333
+ClientMessage {clientAction = Get, clientPayload = PayloadLL [Index {locSheetId = "INIT_SHEET_ID", index = (2,1)},Index {locSheetId = "INIT_SHEET_ID", index = (2,2)},Index {locSheetId = "INIT_SHEET_ID", index = (2,3)},Index {locSheetId = "INIT_SHEET_ID", index = (2,4)},Index {locSheetId = "INIT_SHEET_ID", index = (2,5)},Index {locSheetId = "INIT_SHEET_ID", index = (2,6)},Index {locSheetId = "INIT_SHEET_ID", index = (2,7)},Index {locSheetId = "INIT_SHEET_ID", index = (2,8)},Index {locSheetId = "INIT_SHEET_ID", index = (2,9)},Index {locSheetId = "INIT_SHEET_ID", index = (2,10)}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:15.545
+ClientMessage {clientAction = Clear, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:15.589
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}, cellExpression = Expression {expression = "1", language = Python}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:15.640
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,1)}, cellExpression = Expression {expression = "=A1=1", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:15.752
+ClientMessage {clientAction = Get, clientPayload = PayloadLL [Index {locSheetId = "INIT_SHEET_ID", index = (2,1)}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:15.794
+ClientMessage {clientAction = Clear, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:15.844
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}, cellExpression = Expression {expression = "range(2)", language = Python}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:15.897
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,1)}, cellExpression = Expression {expression = "{=A1:A2=1}", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:15.947
+ClientMessage {clientAction = Get, clientPayload = PayloadLL [Index {locSheetId = "INIT_SHEET_ID", index = (2,1)},Index {locSheetId = "INIT_SHEET_ID", index = (2,2)}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 04:15:15.998
+#ERROR: Runtime error caught: CloseRequest 1001 ""
+#INIT_SHEET_ID,TEST_USER_ID
+#2015-12-12 04:15:16.016
+ClientMessage {clientAction = Get, clientPayload = PayloadLL [Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:48.330
+ClientMessage {clientAction = Clear, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:48.381
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}, cellExpression = Expression {expression = "-5", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:48.432
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,2)}, cellExpression = Expression {expression = "15", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:48.483
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,3)}, cellExpression = Expression {expression = "20", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:48.535
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,4)}, cellExpression = Expression {expression = "5", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:48.586
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,5)}, cellExpression = Expression {expression = "TRUE", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:48.637
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,1)}, cellExpression = Expression {expression = "=SUM(A1,A2)", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:48.688
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,2)}, cellExpression = Expression {expression = "=SUM(A2:A4,15)", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:48.739
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,2)}, cellExpression = Expression {expression = "=SUM(A2:A5,15)", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:48.790
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,3)}, cellExpression = Expression {expression = "=SUM(\"5\", 15, TRUE)", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:48.842
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,4)}, cellExpression = Expression {expression = "=SUM(A5,A6, 2)", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:48.892
+ClientMessage {clientAction = Get, clientPayload = PayloadLL [Index {locSheetId = "INIT_SHEET_ID", index = (2,1)}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:48.943
+ClientMessage {clientAction = Get, clientPayload = PayloadLL [Index {locSheetId = "INIT_SHEET_ID", index = (2,2)}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:48.994
+ClientMessage {clientAction = Get, clientPayload = PayloadLL [Index {locSheetId = "INIT_SHEET_ID", index = (2,3)}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:49.045
+ClientMessage {clientAction = Get, clientPayload = PayloadLL [Index {locSheetId = "INIT_SHEET_ID", index = (2,4)}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:49.097
+ClientMessage {clientAction = Clear, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:49.148
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}, cellExpression = Expression {expression = "Data1", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:49.209
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,2)}, cellExpression = Expression {expression = "3", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:49.250
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,3)}, cellExpression = Expression {expression = "2", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:49.301
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,4)}, cellExpression = Expression {expression = "4", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:49.352
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,5)}, cellExpression = Expression {expression = "5", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:49.403
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,6)}, cellExpression = Expression {expression = "6", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:49.465
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,7)}, cellExpression = Expression {expression = "Formula", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:49.506
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,8)}, cellExpression = Expression {expression = "=COVAR(A2:A6, B2:B6)", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:49.557
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,1)}, cellExpression = Expression {expression = "Data2", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:49.608
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,2)}, cellExpression = Expression {expression = "9", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:49.659
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,3)}, cellExpression = Expression {expression = "7", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:49.761
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,4)}, cellExpression = Expression {expression = "12", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:49.812
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,5)}, cellExpression = Expression {expression = "15", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:49.863
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,6)}, cellExpression = Expression {expression = "17", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:49.914
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,7)}, cellExpression = Expression {expression = "Description", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:49.965
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,8)}, cellExpression = Expression {expression = "Covariance, the average of the products of deviations for each data point pair above.", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:50.017
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (3,7)}, cellExpression = Expression {expression = "Result", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:50.067
+ClientMessage {clientAction = Get, clientPayload = PayloadLL [Index {locSheetId = "INIT_SHEET_ID", index = (1,8)}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:50.119
+ClientMessage {clientAction = Clear, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:50.170
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}, cellExpression = Expression {expression = "range(10)", language = Python}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:50.221
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,1)}, cellExpression = Expression {expression = "=A1+A2", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:50.272
+ClientMessage {clientAction = Get, clientPayload = PayloadLL [Index {locSheetId = "INIT_SHEET_ID", index = (2,1)}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:50.323
+ClientMessage {clientAction = Clear, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:50.374
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}, cellExpression = Expression {expression = "5", language = Python}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:50.426
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,1)}, cellExpression = Expression {expression = "=A2+A3", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:50.479
+ClientMessage {clientAction = Get, clientPayload = PayloadLL [Index {locSheetId = "INIT_SHEET_ID", index = (2,1)}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:50.527
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,2)}, cellExpression = Expression {expression = "=A1+A3", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:50.579
+ClientMessage {clientAction = Get, clientPayload = PayloadLL [Index {locSheetId = "INIT_SHEET_ID", index = (2,2)}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:50.630
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,3)}, cellExpression = Expression {expression = "=A1*A2", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:50.681
+ClientMessage {clientAction = Get, clientPayload = PayloadLL [Index {locSheetId = "INIT_SHEET_ID", index = (2,3)}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:50.732
+ClientMessage {clientAction = Clear, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:50.783
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}, cellExpression = Expression {expression = "1", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:50.834
+ClientMessage {clientAction = Get, clientPayload = PayloadLL [Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:50.891
+ClientMessage {clientAction = Clear, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:50.936
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}, cellExpression = Expression {expression = "\"hello\"hello\"hello\"", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:50.988
+ClientMessage {clientAction = Get, clientPayload = PayloadLL [Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:51.038
+ClientMessage {clientAction = Clear, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:51.089
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}, cellExpression = Expression {expression = "\"hello\"", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:51.141
+ClientMessage {clientAction = Get, clientPayload = PayloadLL [Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:51.192
+ClientMessage {clientAction = Clear, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:51.243
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}, cellExpression = Expression {expression = "=SUM(1,2)ASDF\"sadf", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:51.295
+ClientMessage {clientAction = Get, clientPayload = PayloadLL [Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:51.345
+ClientMessage {clientAction = Clear, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:51.396
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}, cellExpression = Expression {expression = "=SUM(1,SUM(2,3))", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:51.447
+ClientMessage {clientAction = Get, clientPayload = PayloadLL [Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:51.498
+ClientMessage {clientAction = Clear, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:51.549
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}, cellExpression = Expression {expression = "1", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:51.601
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,2)}, cellExpression = Expression {expression = "2", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:51.651
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,3)}, cellExpression = Expression {expression = "=sUm(A1,A2)", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:51.703
+ClientMessage {clientAction = Get, clientPayload = PayloadLL [Index {locSheetId = "INIT_SHEET_ID", index = (1,3)}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:51.754
+ClientMessage {clientAction = Clear, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:51.805
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}, cellExpression = Expression {expression = "TrUe", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:51.856
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,2)}, cellExpression = Expression {expression = "false", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:51.909
+ClientMessage {clientAction = Get, clientPayload = PayloadLL [Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:51.958
+ClientMessage {clientAction = Get, clientPayload = PayloadLL [Index {locSheetId = "INIT_SHEET_ID", index = (1,2)}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:52.010
+ClientMessage {clientAction = Clear, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:52.060
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}, cellExpression = Expression {expression = "   ", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:52.112
+ClientMessage {clientAction = Get, clientPayload = PayloadLL [Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:52.163
+ClientMessage {clientAction = Clear, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:52.214
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}, cellExpression = Expression {expression = "=++--+-2", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:52.265
+ClientMessage {clientAction = Get, clientPayload = PayloadLL [Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:52.316
+ClientMessage {clientAction = Clear, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:52.367
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}, cellExpression = Expression {expression = "range(10)", language = Python}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:52.418
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,1)}, cellExpression = Expression {expression = "=abs(A2)", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:52.469
+ClientMessage {clientAction = Get, clientPayload = PayloadLL [Index {locSheetId = "INIT_SHEET_ID", index = (2,1)}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:52.520
+ClientMessage {clientAction = Clear, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:52.571
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}, cellExpression = Expression {expression = "range(10)", language = Python}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:52.623
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,1)}, cellExpression = Expression {expression = "=abs(A$1:A$10)", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:52.674
+ClientMessage {clientAction = Copy, clientPayload = PayloadPaste {copyRange = Range {rangeSheetId = "INIT_SHEET_ID", range = ((2,1),(2,1))}, copyTo = Range {rangeSheetId = "INIT_SHEET_ID", range = ((2,2),(2,10))}}}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:52.725
+ClientMessage {clientAction = Get, clientPayload = PayloadLL [Index {locSheetId = "INIT_SHEET_ID", index = (2,1)},Index {locSheetId = "INIT_SHEET_ID", index = (2,2)},Index {locSheetId = "INIT_SHEET_ID", index = (2,3)},Index {locSheetId = "INIT_SHEET_ID", index = (2,4)},Index {locSheetId = "INIT_SHEET_ID", index = (2,5)},Index {locSheetId = "INIT_SHEET_ID", index = (2,6)},Index {locSheetId = "INIT_SHEET_ID", index = (2,7)},Index {locSheetId = "INIT_SHEET_ID", index = (2,8)},Index {locSheetId = "INIT_SHEET_ID", index = (2,9)},Index {locSheetId = "INIT_SHEET_ID", index = (2,10)}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:52.828
+ClientMessage {clientAction = Clear, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:52.878
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}, cellExpression = Expression {expression = "1", language = Python}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:52.929
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,1)}, cellExpression = Expression {expression = "=A1=1", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:52.980
+ClientMessage {clientAction = Get, clientPayload = PayloadLL [Index {locSheetId = "INIT_SHEET_ID", index = (2,1)}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:53.032
+ClientMessage {clientAction = Clear, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:53.084
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}, cellExpression = Expression {expression = "range(2)", language = Python}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:53.134
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,1)}, cellExpression = Expression {expression = "{=A1:A2=1}", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:53.185
+ClientMessage {clientAction = Get, clientPayload = PayloadLL [Index {locSheetId = "INIT_SHEET_ID", index = (2,1)},Index {locSheetId = "INIT_SHEET_ID", index = (2,2)}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:02:53.236
+#ERROR: Runtime error caught: CloseRequest 1001 ""
+#INIT_SHEET_ID,TEST_USER_ID
+#2015-12-12 20:02:53.245
+ClientMessage {clientAction = Open, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:03:47.042
+ClientMessage {clientAction = UpdateWindow, clientPayload = PayloadW (Window {windowSheetId = "INIT_SHEET_ID", topLeft = (0,0), bottomRight = (100,100)})}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:03:47.093
+ClientMessage {clientAction = Clear, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:03:47.298
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}, cellExpression = Expression {expression = "1", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:03:47.350
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,2)}, cellExpression = Expression {expression = "3", language = Python}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:03:47.401
+ClientMessage {clientAction = Drag, clientPayload = PayloadDrag {initialRange = Range {rangeSheetId = "INIT_SHEET_ID", range = ((1,1),(1,2))}, dragRange = Range {rangeSheetId = "INIT_SHEET_ID", range = ((1,1),(1,4))}}}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:03:47.452
+ClientMessage {clientAction = Get, clientPayload = PayloadLL [Index {locSheetId = "INIT_SHEET_ID", index = (1,3)}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:03:47.503
+ClientMessage {clientAction = Get, clientPayload = PayloadLL [Index {locSheetId = "INIT_SHEET_ID", index = (1,4)}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:03:47.554
+ClientMessage {clientAction = Clear, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:03:47.605
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}, cellExpression = Expression {expression = "jan", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:03:47.656
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,2)}, cellExpression = Expression {expression = "feb", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:03:47.759
+ClientMessage {clientAction = Drag, clientPayload = PayloadDrag {initialRange = Range {rangeSheetId = "INIT_SHEET_ID", range = ((1,1),(1,2))}, dragRange = Range {rangeSheetId = "INIT_SHEET_ID", range = ((1,1),(1,4))}}}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:03:47.810
+ClientMessage {clientAction = Get, clientPayload = PayloadLL [Index {locSheetId = "INIT_SHEET_ID", index = (1,3)}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:03:47.861
+ClientMessage {clientAction = Get, clientPayload = PayloadLL [Index {locSheetId = "INIT_SHEET_ID", index = (1,4)}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:03:47.912
+ClientMessage {clientAction = Clear, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:03:47.963
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}, cellExpression = Expression {expression = "range(5)", language = Python}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:03:48.016
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,2)}, cellExpression = Expression {expression = "44", language = Python}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:03:48.065
+ClientMessage {clientAction = Decouple, clientPayload = PayloadN ()}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:03:48.116
+ClientMessage {clientAction = Clear, clientPayload = PayloadS (Sheet {sheetId = "INIT_SHEET_ID", sheetName = "Sheet1", sheetPermissions = Blacklist []})}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:03:57.978
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}, cellExpression = Expression {expression = "range(5)", language = Python}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:03:58.030
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}, cellExpression = Expression {expression = "c(4,5)", language = R}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-12 20:03:58.080

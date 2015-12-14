@@ -1,4 +1,5 @@
 {-# LANGUAGE ViewPatterns #-}
+{-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE DataKinds #-}
 
@@ -40,6 +41,7 @@ import Language.R.HExp as H
 
 import qualified Data.Vector.SEXP as SV
 import Data.Word (Word8)
+import System.Directory
 
 import Control.Monad.IO.Class
 import Control.Applicative
@@ -85,16 +87,14 @@ execOnString str f = do
 -- takes (isGlobalExecution, str)
 -- change wd and then change back so that things like read.table will read from the static folder
 execR :: Bool -> EvalCode -> IO CompositeValue
-execR isGlobal s =
+execR isGlobal s = do 
+  !cwd <- getCurrentDirectory
   let whenCaught :: SomeException -> IO CompositeValue
-      whenCaught e = (R.runRegion $ castR =<< [r| setwd("../") |]) >> (return . CellValue $ ValueError (show e) "R error")
-      -- ^ #needsrefactor: should probably change it back to working directory, not just one directory back, if e.g. 
-      -- setwd() fails. 
-  in do
-    result <- catch (R.runRegion $ castR =<< if isGlobal
-      then [r| eval(parse(text=s_hs)) |]
-      else [r| AS_LOCAL_ENV<-function(){setwd(paste(getwd(),"/static",sep="")); result = eval(parse(text=s_hs)); setwd("../"); result}; AS_LOCAL_EXEC<-AS_LOCAL_ENV(); AS_LOCAL_EXEC |]) whenCaught
-    return result
+      whenCaught e = (R.runRegion $ castR =<< [r| setwd(cwd_hs) |]) >> (return . CellValue $ ValueError (show e) "R error")
+  result <- catch (R.runRegion $ castR =<< if isGlobal
+    then [r| eval(parse(text=s_hs)) |]
+    else [r| AS_LOCAL_ENV<-function(){setwd(paste(getwd(),"/static",sep="")); result = eval(parse(text=s_hs)); setwd(cwd_hs); result}; AS_LOCAL_EXEC<-AS_LOCAL_ENV(); AS_LOCAL_EXEC |]) whenCaught
+  return result
 
 -- @anand faster unboxing, but I can't figure out how to restrict x to (IsVector x)
 --castR :: (IsVector a) => (R.SomeSEXP (R.SEXP (Control.Memory.Region s) a) -> IO ASValue
