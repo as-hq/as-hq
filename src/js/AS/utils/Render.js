@@ -17,10 +17,9 @@ import type {
 } from '../../types/Hypergrid';
 
 import {logDebug} from '../Logger';
-
 import Constants from '../../Constants';
-
 import LocationUtils from './Location';
+import shortid from 'shortid';
 
 export default {
   safeExtractContentsFromValue(cv: ASValue): string {
@@ -191,6 +190,10 @@ export default {
   getPaintedBorders(col: number, row: number, rngs: Array<NakedRange>): Array<CellBorder> {
     let result = rngs.map((rng) => this.getBordersForInteriorCell(col, row, rng), this);
     return this.concatAll(result);
+  },
+
+  getUniqueId(): string {
+    return shortid.generate();
   },
 
   getImageOverlay(c: ASCell, originX: number, originY: number): ?ASOverlaySpec {
