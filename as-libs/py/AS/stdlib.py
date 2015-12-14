@@ -95,7 +95,10 @@ def serialize(val):
 
 	elif isinstance(val, ASIterable): 
 		if val.hidden or val.arr.ndim > 2:
-			return json.dumps(generalSerialize(val, 'HIDDEN RANGE'))
+			name = 'HIDDEN RANGE'
+			if val.name:
+				name = val.name
+			return json.dumps(generalSerialize(val, name))
 		else: 
 			vals = [serializeListElem(e) for e in val.toList()]
 			sVal = {'tag': 'Expanding', 'expandingType': 'List', 'listVals': vals}
