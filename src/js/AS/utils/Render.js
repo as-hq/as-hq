@@ -215,7 +215,7 @@ export default {
       }
       return {
         id: self.getUniqueId(),
-        src: Constants.HOST_STATIC_URL + "/images/" + cv.imagePath,
+        src: Constants.getHostStaticUrl() + "/images/" + cv.imagePath,
         width: imageWidth,
         height: imageHeight,
         offsetX: imageOffsetX,
