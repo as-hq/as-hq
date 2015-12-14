@@ -31,19 +31,18 @@ handleMutateSheet uc state (PayloadMutate mutateType) = do
       oldCellsNewCells = zip oldCells newCells
       oldCellsNewCells' = filter (\(c, c') -> (Just c /= c')) oldCellsNewCells
       -- ^ don't update cells that haven't changed
-      newCells' = catMaybes $ map snd oldCellsNewCells'
+      newCells' = mapMaybe snd oldCellsNewCells'
       blankedCells = blankCellsAt $ map (cellLocation . fst) oldCellsNewCells'
       updatedCells = mergeCells newCells' blankedCells -- eval blanks at the old cell locations, re-eval at new locs
   printObj "newCells" newCells
-  allRowCols <- DB.getRowColsInSheet conn sid
-  let newRowCols = catMaybes $ map (rowColMap mutateType) allRowCols
+--  allRowCols <- DB.getRowColsInSheet conn sid
+--  let newRowCols = mapMaybe (rowColMap mutateType) allRowCols
   deleteRowColsInSheet conn sid
-  foldl (>>) (return ()) $ map (setRowColProps conn sid) newRowCols
+--  mapM_ (setRowColProps conn sid) newRowCols
   updateMsg <- runDispatchCycle state updatedCells DescendantsWithParent (userCommitSource uc)
   broadcastFiltered state uc updateMsg
 
--- | For a mutate, maps the old row to the new row. 
--- | Could be done by making separate functions for RP.RowTypes and RP.ColumnTypes
+-- | For a mutate, maps the old row and column to the new row and column.
 rowColMap :: MutateType -> RP.RowCol -> Maybe RP.RowCol
 rowColMap (InsertCol c') rc@(RP.RowCol rct rci rcp) =
   case rct of
@@ -55,32 +54,34 @@ rowColMap (InsertRow r') rc@(RP.RowCol rct rci rcp) =
        RP.RowType -> Just $ RP.RowCol rct (if rci >= r' then rci+1 else rci) rcp
 rowColMap (DeleteCol c') rc@(RP.RowCol rct rci rcp) =
   case rct of
-       RP.ColumnType -> if rci == c'
-                        then Nothing
-                        else Just $ RP.RowCol rct (if rci >= c' then rci-1 else rci) rcp
+       RP.ColumnType | rci == c' -> Nothing
+                     | otherwise -> Just $ RP.RowCol rct (if rci >= c' then rci-1 else rci) rcp
        RP.RowType -> Just rc
 rowColMap (DeleteRow r') rc@(RP.RowCol rct rci rcp) =
   case rct of
-       RP.ColumnType -> if rci == r'
-                        then Nothing
-                        else Just $ RP.RowCol rct (if rci >= r' then rci-1 else rci) rcp
-       RP.RowType -> Just rc
+       RP.ColumnType -> Just rc
+       RP.RowType | rci == r' ->  Nothing
+                  | otherwise -> Just $ RP.RowCol rct (if rci >= r' then rci-1 else rci) rcp
+
 rowColMap (DragCol oldC newC) rc@(RP.RowCol rct rci rcp) =
   case rct of
-       RP.ColumnType -> if rci == oldC
-                           then Just $ RP.RowCol rct newC rcp
-                           else if (rci == newC)
-                               then Just $ RP.RowCol rct oldC rcp
-                               else Just rc
+       RP.ColumnType
+         | rci < min oldC newC -> Just rc
+         | rci > max oldC newC -> Just rc
+         | rci == oldC         -> Just $ RP.RowCol rct newC rcp
+         | oldC < newC       -> Just $ RP.RowCol rct (rci-1) rcp -- here on we assume c is strictly between oldC and newC
+         | oldC > newC       -> Just $ RP.RowCol rct (rci+1) rcp
        RP.RowType -> Just rc
 rowColMap (DragRow oldR newR) rc@(RP.RowCol rct rci rcp) =
   case rct of
        RP.ColumnType -> Just rc
-       RP.RowType -> if rci == oldR
-                        then Just $ RP.RowCol rct newR rcp
-                        else if rci == newR 
-                            then Just $ RP.RowCol rct oldR rcp
-                            else Just rc
+       RP.RowType
+         | rci < min oldR newR -> Just rc
+         | rci > max oldR newR -> Just rc
+         | rci == oldR         -> Just $ RP.RowCol rct newR rcp
+         | oldR < newR       -> Just $ RP.RowCol rct (rci-1) rcp-- here on we assume r is strictly between oldR and newR
+         | oldR > newR       -> Just $ RP.RowCol rct (rci+1) rcp
+  -- case oldR == newR can't happen because oldR < r < newR since third pattern-match
 
 cellLocMap :: MutateType -> (ASIndex -> Maybe ASIndex)
 cellLocMap (InsertCol c') (Index sid (c, r)) = Just $ Index sid (if c >= c' then c+1 else c, r)
