@@ -350,7 +350,7 @@ export default {
       if (_renderParams.dragRect === null || _renderParams.dragRect === undefined) {
         throw new Error('The drag rect was nullified by beginPath, apparently');
       }
-      
+
       Util.Canvas.drawRect(_renderParams.dragRect, this, gc);
       gc.lineWidth = 1;
       gc.strokeStyle = 'blue';

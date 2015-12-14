@@ -612,7 +612,7 @@ export default React.createClass({
     }
 
     // Only re-eval if the cell actually changed from before.
-    let curCell = CellStore.getCell(origin); 
+    let curCell = CellStore.getCell(origin);
     if (!curCell) {
       if (xpObj.expression != "") {
         API.evaluate(origin, xpObj);

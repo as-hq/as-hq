@@ -173,11 +173,11 @@ const ASCellStore = Object.assign({}, BaseStore, {
 
   setActiveCellDependencies(deps) {
     let cell = this.getActiveCell();
+    Render.setDependencies(deps);
     if (!cell || !cell.cellExpression) {
       return;
     }
     cell.cellExpression.dependencies = deps;
-    Render.setDependencies(deps);
   },
 
   getActiveCellDependencies() {
