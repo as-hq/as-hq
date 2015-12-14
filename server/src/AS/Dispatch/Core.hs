@@ -71,15 +71,15 @@ testDispatch state lang crd str = runDispatchCycle state [Cell (Index sid crd) (
 -- the only information we're really passed in from the cells is the locations and the expressions of
 -- the cells getting evaluated. We pull the rest from the DB. 
 
--- ||| BEGIN TIM CHU EDITS
---
+-- || evalContextToCommit gives empty rowcols.
 
 evalContextToCommit :: EvalContext -> IO (ASCommit, Bool)
 evalContextToCommit (EvalContext mp cells ddiff) = do
   mbcells <- DB.getCells (map cellLocation cells)
   time <- getASTime
   let cdiff   = CellDiff { beforeCells = (catMaybes mbcells), afterCells = cells}
-      commit  = Commit cdiff ddiff time
+      rcdiff = RowColDiff {beforeRowCols = [], afterRowCols = []}
+      commit  = Commit rcdiff cdiff ddiff time
       rd      = removedDescriptors ddiff
       didDecouple = any isDecouplePair $ zip mbcells cells
       -- determines whether to send a decouple message.
@@ -96,8 +96,8 @@ pushTempCommit :: Connection -> CommitSource -> ASCommit -> IO()
 pushTempCommit conn src commit = do
   DT.setTempCommit conn commit src
 
-pushCommitOrTempCommit :: Connection -> CommitSource -> Bool -> ASCommit -> IO()
-pushCommitOrTempCommit conn src shouldDecouple commit =
+cautiouslyPushCommit :: Connection -> CommitSource -> Bool -> ASCommit -> IO()
+cautiouslyPushCommit conn src shouldDecouple commit =
   if shouldDecouple
     then pushTempCommit conn src commit
     else DT.updateDBAfterEval conn src commit
@@ -105,13 +105,11 @@ pushCommitOrTempCommit conn src shouldDecouple commit =
 runDispatchCycle ::  MVar ServerState -> [ASCell] -> DescendantsSetting -> CommitSource -> IO ASServerMessage
 runDispatchCycle state cs descSetting src = flexibleRunDispatchCycle id state cs descSetting src
 
-flexibleRunDispatchCycle :: (Commit -> Commit) -> MVar ServerState -> [ASCell] -> DescendantsSetting -> CommitSource -> IO ASServerMessage
+flexibleRunDispatchCycle :: (ASCommit -> ASCommit) -> MVar ServerState -> [ASCell] -> DescendantsSetting -> CommitSource -> IO ASServerMessage
 flexibleRunDispatchCycle commitTransform state cs descSetting src = do
   liftIO $ putStrLn $ "run dispatch cycle with cells: " ++ (show cs)
   roots <- EM.evalMiddleware cs
   conn <- dbConn <$> readMVar state
-  -- UPDATED TO ERR OR COMMIT
-  -- BEGIN BOILERPLATE
   errOrCommit <- runEitherT $ do
     printWithTimeT $ "about to start dispatch"
     let initialEvalMap = M.fromList $ zip (map cellLocation cs) cs
@@ -123,16 +121,14 @@ flexibleRunDispatchCycle commitTransform state cs descSetting src = do
     printWithTimeT "finished dispatch"
     finalizedCells <- EE.evalEndware state (addedCells ctxAfterDispatch) src roots ctxAfterDispatch
     let ctx = ctxAfterDispatch { addedCells = finalizedCells }
-        -- END BOILERPLATE
-        --
     (commit,didDecouple) <- lift $ evalContextToCommit ctx
     let finalizedCommit = commitTransform commit
-    lift $ pushCommitOrTempCommit conn src didDecouple finalizedCommit
+    lift $ cautiouslyPushCommit conn src didDecouple finalizedCommit
     if (didDecouple)
       then left DecoupleAttempt
       else return finalizedCommit
 
-  let msg = newMakeUpdateMessage errOrCommit
+  let msg = makeUpdateMessageFromCommit errOrCommit
   printObj "made message: " msg
   return msg
 

@@ -6,9 +6,9 @@ import AS.Types.Messages
 import AS.Types.User
 import AS.Types.Excel
 import AS.Types.Eval
+import AS.Types.Commits
 
 import AS.DB.Internal as DI
-import AS.DB.Internal as RP
 import qualified AS.Types.RowColProps as RP
 import qualified Data.Text as T
 
@@ -21,6 +21,9 @@ import AS.Logging
 
 import Control.Concurrent
 import Data.Maybe
+
+injectRowColDiffIntoCommit :: RowColDiff -> ASCommit -> ASCommit
+injectRowColDiffIntoCommit rcd c = c { rowColDiff = rcd }
 
 handleMutateSheet :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
 handleMutateSheet uc state (PayloadMutate mutateType) = do
@@ -35,14 +38,13 @@ handleMutateSheet uc state (PayloadMutate mutateType) = do
       blankedCells = blankCellsAt $ map (cellLocation . fst) oldCellsNewCells'
       updatedCells = mergeCells newCells' blankedCells -- eval blanks at the old cell locations, re-eval at new locs
   printObj "newCells" newCells
-  --TIMCHU EDITS BEGIN
-  oldProps <- DB.getRowColProps conn (userSheetId uc)
-  --TIMCHU EDITS END
   allRowCols <- DB.getRowColsInSheet conn sid
   let newRowCols = mapMaybe (rowColMap mutateType) allRowCols
   deleteRowColsInSheet conn sid
   mapM_ (setRowColProps conn sid) newRowCols
-  updateMsg <- flexibleRunDispatchCycle state updatedCells DescendantsWithParent (userCommitSource uc)
+  let rcdiff = RowColDiff {beforeRowCols = allRowCols, afterRowCols = newRowCols}
+      commitTransform = injectRowColDiffIntoCommit rcdiff
+  updateMsg <- flexibleRunDispatchCycle commitTransform state updatedCells DescendantsWithParent (userCommitSource uc)
   broadcastFiltered state uc updateMsg
 
 -- | For a mutate, maps the old row and column to the new row and column.
