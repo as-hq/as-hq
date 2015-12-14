@@ -5,23 +5,24 @@ let ReactDOM = require('react-dom');
 import API from '../actions/ASApiActionCreators';
 import CellStore from '../stores/ASCellStore';
 
-
 export default React.createClass({
 
-  updateTag(val) {
-    let rng = {tl:this.props.overlay.loc.index,br:this.props.overlay.loc.index};
-    API.setImageProp(val,rng);
+  updateImageProps(prop) {
+    let rng = {tl:this.props.overlay.loc.index, br:this.props.overlay.loc.index};
+    API.setProp(prop, rng);
   },
 
-  _onStop(e,detail) {
-    let tagValue = {
+  _onStop(e, detail) {
+    let prop = {
+      tag: "ImageData",
       imageOffsetX: parseFloat(detail.position.left) + this.props.overlay.offsetX,
       imageOffsetY: parseFloat(detail.position.top) + this.props.overlay.offsetY,
       imageWidth: this.props.overlay.width,
       imageHeight: this.props.overlay.height
     };
+
     if (detail.position.left !== 0 || detail.position.top !== 0) {
-      this.updateTag(tagValue);
+      this.updateImageProps(prop);
     }
   },
 
@@ -36,7 +37,7 @@ export default React.createClass({
             imageHeight: parseFloat(height)
           };
       if (tagValue.imageWidth !== this.props.overlay.width || tagValue.imageHeight !== this.props.overlay.height) {
-        this.updateTag(tagValue);
+        this.updateImageProps(tagValue);
       }
     }
   },

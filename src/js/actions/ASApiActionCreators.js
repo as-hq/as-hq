@@ -535,27 +535,6 @@ export default {
     this.setProp(prop, rng);
   },
 
-  // Image tags actually have data, so the message is a bit different
-  setImageProp(val: {
-    imageWidth: number;
-    imageHeight: number;
-    imageOffsetX: number;
-    imageOffsetY: number;
-  }, rng: NakedRange) {
-    let msg = U.Conversion.makeClientMessageRaw(Constants.ServerActions.SetProp, {
-      "tag": "PayloadTag",
-      "cellTag": {
-        tag: "ImageData",
-        imageHeight: val.imageHeight,
-        imageWidth: val.imageWidth,
-        imageOffsetX: val.imageOffsetX,
-        imageOffsetY: val.imageOffsetY
-      },
-      "tagRange": U.Conversion.simpleToASRange(rng)
-    });
-    this.send(msg);
-  },
-
   drag(activeRng: NakedRange, dragRng: NakedRange) {
     let msg = U.Conversion.makeClientMessageRaw(Constants.ServerActions.Drag, {
       tag: "PayloadDrag",
