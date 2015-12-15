@@ -120,18 +120,12 @@ deleteLocsPropagated conn locs descs = do
 -- TODO: need to delete blank cells from the DB. (Otherwise e.g. if you delete a
 -- a huge range, you're going to have all those cells in the DB doing nothing.)
 
-pushKey :: CommitSource -> B.ByteString
-pushKey (sid, uid) = B.pack $ (T.unpack sid) ++ '|':(T.unpack uid) ++ "pushed"
-
-popKey :: CommitSource -> B.ByteString
-popKey (sid, uid)  = B.pack $ (T.unpack sid) ++ '|':(T.unpack uid) ++ "popped"
-
 -- | Return a commit if possible (not possible if you undo past the beginning of time, etc)
 -- | Update the DB so that there's always a source of truth (ie we will initEval undo to all relevant users)
 undo :: Connection -> CommitSource -> IO (Maybe ASCommit)
 undo conn src = do
   commit <- runRedis conn $ do
-    Right commit <- rpoplpush (pushKey src) (popKey src)
+    Right commit <- rpoplpush (makePushKey src) (makePopKey src)
     return $ decodeMaybe =<< commit
   case commit of
     Nothing -> return Nothing
@@ -143,10 +137,10 @@ undo conn src = do
 redo :: Connection -> CommitSource -> IO (Maybe ASCommit)
 redo conn src = do
   commit <- runRedis conn $ do
-    Right result <- lpop (popKey src)
+    Right result <- lpop (makePopKey src)
     case result of
       Just commit -> do
-        rpush (pushKey src) [commit]
+        rpush (makePushKey src) [commit]
         return $ decodeMaybe commit
       _ -> return Nothing
   case commit of
@@ -160,27 +154,19 @@ pushCommit :: Connection -> ASCommit -> CommitSource -> IO ()
 pushCommit conn c src = do
   runRedis conn $ do
     TxSuccess _ <- multiExec $ do
-      rpush (pushKey src) [S.encode c]
-      incrbyfloat "numCommits" 1
-      del [popKey src]
+      rpush (makePushKey src) [S.encode c]
+      del [makePopKey src]
     return ()
 
 -- Each commit source has a temp commit, used for decouple warnings
 -- Key: commitSource + "tempcommit", value: ASCommit bytestring
 getTempCommit :: Connection -> CommitSource -> IO (Maybe ASCommit)
 getTempCommit conn src = do 
-  let commitSource = B.pack $ (show src) ++ "tempcommit"
-  maybeBStr <- runRedis conn $ do
-    TxSuccess c <- multiExec $ do
-      get commitSource
-    return c
+  let commitKey = makeTempCommitKey src
+  maybeBStr <- runRedis conn $ fromRight <$> get commitKey
   return $ decodeMaybe =<< maybeBStr
   
 setTempCommit :: Connection  -> ASCommit -> CommitSource -> IO ()
 setTempCommit conn c src = do 
-  let commit = (B.pack . show) c 
-  let commitSource = B.pack $ (show src) ++ "tempcommit"
-  runRedis conn $ do
-    TxSuccess _ <- multiExec $ do
-      set commitSource commit
-    return ()
+  let commitSource = makeTempCommitKey src
+  runRedis conn $ set commitSource (S.encode c) >> return ()

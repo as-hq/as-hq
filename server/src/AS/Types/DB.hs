@@ -222,3 +222,12 @@ makeEvalHeaderKey sid lang = BC.pack ("EVALHEADER" ++ (show sid) ++ (show lang))
 
 allSheetsKey :: B.ByteString
 allSheetsKey = "SHEETS"
+
+makeTempCommitKey :: CommitSource -> B.ByteString 
+makeTempCommitKey src = BC.pack $ (show src) ++ "tempcommit"
+
+makePushKey :: CommitSource -> B.ByteString
+makePushKey (sid, uid) = BC.pack $ (T.unpack sid) ++ '|':(T.unpack uid) ++ "pushed"
+
+makePopKey :: CommitSource -> B.ByteString
+makePopKey (sid, uid)  = BC.pack $ (T.unpack sid) ++ '|':(T.unpack uid) ++ "popped"

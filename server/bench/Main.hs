@@ -27,6 +27,7 @@ import qualified Database.Redis as R
 import qualified Network.WebSockets as WS
 import qualified Data.Text as T
 import qualified Data.ByteString.Char8 as BC
+import qualified Data.ByteString as B
 import qualified Data.Serialize as S
 import qualified Data.Map as M
 import qualified Data.HashMap as H
@@ -40,8 +41,8 @@ main = do
   defaultMain [
 
     describe "dispatch"
-      [ has (testCells [1..100]) $ \ ~(myEnv, cells) ->
-          it "dispatches 500 cells" $ 
+      [ has (testCells [1..1000]) $ \ ~(myEnv, cells) ->
+          it "dispatches 1000 cells" $ 
             runIO $ runDispatchCycle (envState myEnv) cells DescendantsWithParent (envSource myEnv)
       ]
 
@@ -55,7 +56,7 @@ main = do
 
           , has (map S.encode cells) $ \ ~(_, scells) -> 
               it "deserializes 1000 cells" $ 
-                run (map (fromRight . S.decode)) scells
+                run (map (fromRight . S.decode) :: [B.ByteString] -> [ASCell]) (scells :: [B.ByteString])
           ]
 
     , has ((testMap [1..10000], testCells [1..10000])) $ \ ~(_, (m, cells)) -> 
@@ -69,9 +70,6 @@ main = do
           , it "inserts 10000 cells into a map" $ 
               run (\cs -> insertMultiple (M.empty) (map cellLocation cs) cs) cells
 
-          , it "inserts 10000 cells into a hashmap" $ 
-              run (\cs -> insertMultiple (H.empty) (map cellLocation cs) cs) cells
-
           , has (reverse cells) $ \ ~(_, rcells) -> 
               describe "merging cells" 
               [ it "merges two lists using hashmaps" $ 
@@ -81,13 +79,13 @@ main = do
 
     , has (testCells [1..10000], testCells [10001..20000]) $ \ ~(myEnv, (cells1, cells2)) -> 
         xdescribe "DB"
-          [ xit "inserts 10000 cells with binary serialization" $ 
+          [ it "inserts 10000 cells with binary serialization" $ 
               runIO $ (DB.setCells (envConn myEnv) cells1) 
 
-          , xit "gets all cells after having inserted 10000" $ 
+          , it "gets all cells after having inserted 10000" $ 
               runIO $ DB.getAllCells (envConn myEnv)
 
-          , xit "sets the ancestors of 10000 cells" $ 
+          , it "sets the ancestors of 10000 cells" $ 
               runIO $ runEitherT $ G.setCellsAncestors cells1
 
           , it "deletes all cells in sheet BENCH_ID" $ 

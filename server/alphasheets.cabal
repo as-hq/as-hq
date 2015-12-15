@@ -146,10 +146,7 @@ executable alphasheets-exe
                      , inline-r
                      , parsec
   PkgConfig-Depends:   python
-  extra-libraries:     hiredis
-  extra-lib-dirs:      /usr/local/lib
-  c-sources:           src/csources/redis_db.c
-                     , src/AS/Kernels/Python/cdefs.c
+  c-sources:           src/AS/Kernels/Python/cdefs.c
   default-language:    Haskell2010
 
 benchmark alphasheets-bench
@@ -174,10 +171,7 @@ benchmark alphasheets-bench
                     , hashable
                     , hashtables
   PkgConfig-Depends:   python
-  extra-libraries:     hiredis
-  extra-lib-dirs:      /usr/local/lib
-  c-sources:           src/csources/redis_db.c
-                     , src/AS/Kernels/Python/cdefs.c
+  c-sources:           src/AS/Kernels/Python/cdefs.c
   default-language:   Haskell2010
 
 test-suite alphasheets-test
@@ -200,11 +194,7 @@ test-suite alphasheets-test
                        -threaded
                        -with-rtsopts=-N
   PkgConfig-Depends:   python
-  extra-libraries:     hiredis
-  extra-lib-dirs:     /usr/local/lib
-
-  c-sources:           src/csources/redis_db.c
-                     , src/AS/Kernels/Python/cdefs.c
+  c-sources:           src/AS/Kernels/Python/cdefs.c
   default-language:    Haskell2010
 
 test-suite excel-test
@@ -226,11 +216,7 @@ test-suite excel-test
                        -threaded
                        -with-rtsopts=-N
   PkgConfig-Depends:   python
-  extra-libraries:     hiredis
-  extra-lib-dirs:     /usr/local/lib
-
-  c-sources:           src/csources/redis_db.c
-                     , src/AS/Kernels/Python/cdefs.c
+  c-sources:           src/AS/Kernels/Python/cdefs.c
   default-language:    Haskell2010
 
 source-repository head
