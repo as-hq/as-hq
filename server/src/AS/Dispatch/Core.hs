@@ -133,12 +133,15 @@ flexibleRunDispatchCycle commitTransform state cs descSetting src = do
     printWithTimeT "finished dispatch"
     finalizedCells <- EE.evalEndware state (addedCells ctxAfterDispatch) src roots ctxAfterDispatch
     let ctx = ctxAfterDispatch { addedCells = finalizedCells }
-    (commit,didDecouple) <- lift $ evalContextToCommit ctx
+    (commit, didDecouple) <- lift $ evalContextToCommit ctx
     let finalizedCommit = commitTransform commit
     lift $ cautiouslyPushCommit conn src didDecouple finalizedCommit
     if (didDecouple)
       then left DecoupleAttempt
       else return finalizedCommit
+  case errOrCommit of 
+    Left _ -> G.recompute conn -- #needsrefactor. Overkill. But recording all cells that might have changed is a PITA. (Alex 11/20)
+    _      -> return ()
 
   let msg = makeUpdateMessageFromCommit errOrCommit
   printObj "made message: " msg
