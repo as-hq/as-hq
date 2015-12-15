@@ -102,10 +102,9 @@ export default React.createClass({
                 marginLeft: '40px',
                 marginBottom: 'auto'
               }}/>
-            <FileInput style={fileInputStyle} />
             <ASCellPropsToggleButton propTag="Bold" iconClassName="format_bold" style={{
               position: 'relative',
-              marginLeft: '20px',
+              marginLeft: '0px',
               top: '-6px'
             }} />
             <ASCellPropsToggleButton propTag="Italic" iconClassName="format_italic" style={{
@@ -116,12 +115,12 @@ export default React.createClass({
             <ASCellPropsColorSetButton propTag="TextColor" style={{
               position: 'relative',
               marginLeft: '20px',
-              top: '-10px'
+              top: '-11px'
             }} />
             <ASCellPropsColorSetButton propTag="FillColor" style={{
               position: 'relative',
               marginLeft: '0px',
-              top: '-10px'
+              top: '-11px'
             }} />
         </Toolbar>
         <AceEditor
