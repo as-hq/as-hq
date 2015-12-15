@@ -77,11 +77,13 @@ testDispatch state lang crd str = runDispatchCycle state [Cell (Index sid crd) (
 
 -- assumes all evaled cells are in the same sheet
 -- the only information we're really passed in from the cells is the locations and the expressions of
--- the cells getting evaluated. We pull the rest from the DB. 
+-- the cells getting evaluated. We pull the rest from the DB.
 
 -- || evalContextToCommit gives empty rowcols.
 
 -- | Commit uses rowCols in sheet as both before and after rowcols.
+-- TODO: timchu, 12/14/15. This could be refactored to split off didDecouple
+-- and Commit. But we're not because of DB latency.
 evalContextToCommit :: EvalContext -> IO (ASCommit, Bool)
 evalContextToCommit (EvalContext mp cells ddiff) = do
   mbcells <- DB.getCells (map cellLocation cells)
@@ -109,7 +111,7 @@ cautiouslyPushCommit :: Connection -> CommitSource -> Bool -> ASCommit -> IO()
 cautiouslyPushCommit conn src shouldDecouple commit =
   if shouldDecouple
     then pushTempCommit conn src commit
-    else DT.updateDBAfterEval conn src commit
+    else DT.updateDBWithCommit conn src commit
 
 runDispatchCycle ::  MVar ServerState -> [ASCell] -> DescendantsSetting -> CommitSource -> IO ASServerMessage
 runDispatchCycle state cs descSetting src@(sid, _) =  do

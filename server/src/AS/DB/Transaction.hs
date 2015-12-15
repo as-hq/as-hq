@@ -71,8 +71,8 @@ referenceToCompositeValue conn ctx (RangeRef r) = return . Expanding . VList . M
 
 
 -- Do the writes to the DB
-updateDBAfterEval :: Connection -> CommitSource -> ASCommit -> IO ()
-updateDBAfterEval conn src@(sid, _) c@(Commit rcdiff cdiff ddiff time) = do 
+updateDBWithCommit :: Connection -> CommitSource -> ASCommit -> IO ()
+updateDBWithCommit conn src@(sid, _) c@(Commit rcdiff cdiff ddiff time) = do 
   let arc = afterRowCols rcdiff
       af = afterCells cdiff
   DB.setCells af

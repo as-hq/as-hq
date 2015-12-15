@@ -250,7 +250,7 @@ handleSetRowColProp uc state (PayloadSetRowColProp rct ind prop) = do
   time <- getASTime
   let rcdiff = RowColDiff { beforeRowCols = [], afterRowCols = [newRc]}
       commit = Commit { rowColDiff = rcdiff, cellDiff = CellDiff { beforeCells = [], afterCells = [] }, commitDescriptorDiff = DescriptorDiff { addedDescriptors = [], removedDescriptors = [] }, time = time}
-  DT.updateDBAfterEval conn (userCommitSource uc) commit
+  DT.updateDBWithCommit conn (userCommitSource uc) commit
   sendToOriginal uc $ ServerMessage SetRowColProp Success (PayloadN ())
 
 -- used for importing arbitrary files
