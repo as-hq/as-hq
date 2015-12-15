@@ -60,3 +60,5 @@ decodeMaybe b = case (S.decode b) of
 
 nub' :: (Eq a, Ord a) => [a] -> [a]
 nub' xs = map fst $ M.toList . M.fromList $ zip xs (repeat ())
+
+(<++>) a b = (++) <$> a <*> b

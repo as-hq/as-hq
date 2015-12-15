@@ -9,6 +9,7 @@ import Prelude
 import GHC.Generics
 import Data.Aeson hiding (Success)
 import Data.List
+import qualified Data.Text as T
 
 import Data.Serialize (Serialize)
 
@@ -27,8 +28,7 @@ data ASCommit = Commit { cellDiff :: CellDiff
                        , time :: ASTime }
                        deriving (Show, Read, Generic)
 
--- Should refactor to not be an ordered pair
-type CommitSource = (ASSheetId, ASUserId)
+data CommitSource = CommitSource { srcSheetId :: ASSheetId, srcUserId :: ASUserId }
 
 instance FromJSON ASTime
 instance ToJSON ASTime

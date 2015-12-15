@@ -64,7 +64,7 @@ writeToASLog logRootName msg = do
   appendFile' logPath ('\n':msg)
 
 writeToASLogWithMetadata :: String -> String -> CommitSource -> IO ()
-writeToASLogWithMetadata logRootName msg (sid, uid) = do
+writeToASLogWithMetadata logRootName msg (CommitSource sid uid) = do
   time <- getTime
   let sid' = T.unpack sid
       uid' = T.unpack uid
@@ -75,17 +75,17 @@ serverLogsRoot :: String
 serverLogsRoot = "server_log_"
 
 logClientMessage :: String -> CommitSource -> IO ()
-logClientMessage msg cs@(sid, _) = do 
+logClientMessage msg src = do 
   -- master log
-  writeToASLogWithMetadata serverLogsRoot msg cs
+  writeToASLogWithMetadata serverLogsRoot msg src
   -- log for just the sheet
-  writeToASLogWithMetadata (serverLogsRoot ++ T.unpack sid) msg cs
+  writeToASLogWithMetadata (serverLogsRoot ++ T.unpack (srcSheetId src)) msg src
 
 logBugReport :: String -> CommitSource -> IO ()
-logBugReport bugReport cs = writeToASLogWithMetadata "bug_reports" ('#':bugReport) cs
+logBugReport bugReport src = writeToASLogWithMetadata "bug_reports" ('#':bugReport) src
 
 logError :: String -> CommitSource -> IO ()
-logError err (sid, uid) = do 
+logError err (CommitSource sid uid) = do 
   time <- getTime
   let sid' = T.unpack sid
       uid' = T.unpack uid
