@@ -19,6 +19,7 @@ import type {
 import {logDebug} from '../Logger';
 import Constants from '../../Constants';
 import LocationUtils from './Location';
+import Format from './Format';
 import shortid from 'shortid';
 
 export default {
@@ -100,13 +101,14 @@ export default {
         case "ValueFormat":
           switch (prop.formatType) {
             case "Money":
-              config.value = self.formatMoney("$", config.value, 2);
+              config.value = Format.formatMoney("$", config.value, 2);
               break;
             case "Percentage":
-              config.value = self.formatPercentage(config.value);
+              debugger;
+              config.value = Format.formatPercentage(config.value);
               break;
             case "Date":
-              config.value = self.formatDate(config.value);
+              config.value = Format.formatDate(config.value);
               break;
           }
           break;
