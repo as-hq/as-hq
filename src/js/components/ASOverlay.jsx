@@ -13,6 +13,9 @@ export default React.createClass({
   },
 
   _onStop(e, detail) {
+    // ImageData shouldn't leak into this part of the code; should probably
+    // create an ImageData type with imageOffsetX, etc., and pass that around,
+    // and only insert tag: "ImageData" in the API. (Alex 12/15)
     let prop = {
       tag: "ImageData",
       imageOffsetX: parseFloat(detail.position.left) + this.props.overlay.offsetX,
@@ -31,6 +34,7 @@ export default React.createClass({
     if (node !== null) {
       let {width,height} = node.style,
           tagValue = {
+            tag: "ImageData",
             imageOffsetX: this.props.overlay.offsetX,
             imageOffsetY: this.props.overlay.offsetY,
             imageWidth: parseFloat(width),
