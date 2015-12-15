@@ -89,6 +89,7 @@ logError err (sid, uid) = do
       logMsg = "#ERROR: " ++ err ++ '\n':'#':sid' ++ ',':uid' ++ "\n#" ++ time
   writeToASLog serverLogsRoot logMsg
   writeToASLog (serverLogsRoot ++ sid') logMsg
+  printWithTime logMsg
 
 printObj :: (Show a) => String -> a -> IO ()
 printObj disp obj = printWithTime (disp ++ ": " ++ (show $ seq () obj))

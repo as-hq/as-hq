@@ -1,8 +1,8 @@
 # ::TODO:: why are we referencing files outside of this project ????
 
-import matplotlib.pyplot as plt
 import matplotlib
-# matplotlib.use('Qt4Agg')
+matplotlib.use('TkAgg')
+import matplotlib.pyplot as plt
 # matplotlib.rcParams['backend.qt4']='PySide'
 import os.path 
 from AS.iterable import ASIterable

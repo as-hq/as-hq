@@ -23,18 +23,22 @@ import matplotlib._pylab_helpers
 
 result = "error"
 
-# NOTE: if you make a plot anywhere in the expression, then do something else like '1+1',
-# only the ValueImage will be returned, and not the ValueD.
-# this is because the if statement below will always produce ValueImage
-# if there exist any plots in the current environment.
-# a workaround would be to check the type of result before setting it to ValueImage.
+def uniqueId():
+	lstFiles = os.listdir(imagesPath)
+	pythonImageFiles = filter(lambda s: s.startswith(imagePrefix),lstFiles)
+	pythonNumbers = map(lambda s: int(s[len(imagePrefix):-4]),pythonImageFiles)
+	newNumber = 1
+	if len(pythonNumbers) > 0:
+		newNumber = max(pythonNumbers) + 1
+	return imagePrefix + str(newNumber) + ".png"
+
 try:
 	# execfile(replFile)
 	# execfile(headerFile)
 	os.chdir(os.getcwd()+"/static")
 	#HEADER#
 	#CODE#
-	os.chdir('..')
+	os.chdir(curWd)
 	figures=[manager.canvas.figure for manager in matplotlib._pylab_helpers.Gcf.get_all_fig_managers()]
 	if len(figures) > 0:
 		uid = uniqueId()

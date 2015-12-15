@@ -42,8 +42,9 @@ handleMutateSheet uc state (PayloadMutate mutateType) = do
   let newRowCols = mapMaybe (rowColMap mutateType) allRowCols
   deleteRowColsInSheet conn sid
   mapM_ (setRowColProps conn sid) newRowCols
-  let rcdiff = RowColDiff {beforeRowCols = allRowCols, afterRowCols = newRowCols}
+  let rcdiff = RowColDiff { beforeRowCols = allRowCols, afterRowCols = newRowCols }
       commitTransform = injectRowColDiffIntoCommit rcdiff
+  printObj "Commit Transform in Handle Mutate Sheet" rcdiff
   updateMsg <- flexibleRunDispatchCycle commitTransform state updatedCells DescendantsWithParent (userCommitSource uc)
   broadcastFiltered state uc updateMsg
 

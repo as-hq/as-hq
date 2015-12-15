@@ -16,8 +16,9 @@ import AS.Types.Locations
 import AS.Types.CellProps
 import AS.Types.Messages
 import AS.Types.Network
-import AS.Types.DB
+import AS.Types.Commits
 import AS.Types.Eval
+import AS.Types.DB
 
 import AS.Dispatch.Expanding        as DE
 import qualified AS.Eval.Core       as EC (evaluateLanguage)
@@ -49,6 +50,13 @@ import Database.Redis (Connection)
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.Either
 
+-- an impure eval transform 
+type EvalTransform = EvalContext -> EitherTExec EvalContext
+-- an impure eval transform with extra info about the transform
+type EvalTransformWithInfo a = EvalContext -> EitherTExec (EvalContext, a)
+-- a pure function modifying context
+type PureEvalTransform = EvalContext -> EvalContext
+
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Debugging
 
@@ -78,7 +86,7 @@ evalContextToCommit (EvalContext mp cells ddiff) = do
   mbcells <- DB.getCells (map cellLocation cells)
   time <- getASTime
   let cdiff   = CellDiff { beforeCells = (catMaybes mbcells), afterCells = cells}
-      rcdiff = RowColDiff {beforeRowCols = [], afterRowCols = []}
+      rcdiff = RowColDiff { beforeRowCols = [], afterRowCols = [] }
       commit  = Commit rcdiff cdiff ddiff time
       rd      = removedDescriptors ddiff
       didDecouple = any isDecouplePair $ zip mbcells cells
@@ -103,7 +111,12 @@ cautiouslyPushCommit conn src shouldDecouple commit =
     else DT.updateDBAfterEval conn src commit
 
 runDispatchCycle ::  MVar ServerState -> [ASCell] -> DescendantsSetting -> CommitSource -> IO ASServerMessage
-runDispatchCycle state cs descSetting src = flexibleRunDispatchCycle id state cs descSetting src
+runDispatchCycle state cs descSetting src@(sid, _) =  do
+  conn <- dbConn <$> readMVar state
+  rowCols <- DB.getRowColsInSheet conn sid
+  let rcDiff = RowColDiff { beforeRowCols = rowCols, afterRowCols = rowCols }
+      injectExistingRowCols comm = comm {rowColDiff = rcDiff}
+  flexibleRunDispatchCycle injectExistingRowCols state cs descSetting src
 
 flexibleRunDispatchCycle :: (ASCommit -> ASCommit) -> MVar ServerState -> [ASCell] -> DescendantsSetting -> CommitSource -> IO ASServerMessage
 flexibleRunDispatchCycle commitTransform state cs descSetting src = do
@@ -158,7 +171,7 @@ dispatch conn roots oldContext descSetting = do
   modifiedContext <- getModifiedContext conn ancLocs oldContext
   lift $ putStrLn $ "Created initial context"  -- ++ (show modifiedContext)
   printWithTimeT "Starting eval chain"
-  evalChainWithException conn modifiedContext cellsToEval -- start with current cells, then go through descendants
+  evalChainWithException conn cellsToEval modifiedContext -- start with current cells, then go through descendants
 
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
@@ -194,7 +207,7 @@ getCellsToEval ctx locs = possiblyThrowException =<< (lift $ DB.getCellsWithCont
 -- Maps 
 
 -- see the comments above dispatch to see why an old evalContext is passed in.
-getModifiedContext :: Connection -> [ASReference] -> EvalContext -> EitherTExec EvalContext
+getModifiedContext :: Connection -> [ASReference] -> EvalTransform
 getModifiedContext conn ancs oldContext = do
    ancIndices <-  lift $ concat <$> mapM (DB.refToIndicesWithContextBeforeEval oldContext) ancs 
    let nonContextAncIndices = filter (not . (flip M.member (contextMap oldContext))) ancIndices
@@ -218,13 +231,13 @@ formatCell mf c = case mf of
 -- EvalChain
 
 -- A wrapper around evalChain which catches errors
-evalChainWithException :: Connection  -> EvalContext -> [ASCell] -> EitherTExec EvalContext
-evalChainWithException conn ctx cells = 
+evalChainWithException :: Connection  -> [ASCell] -> EvalTransform
+evalChainWithException conn cells ctx = 
   let whenCaught e = do
         printObj "Runtime exception caught" (e :: SomeException)
         return $ Left RuntimeEvalException
   in do
-    result <- liftIO $ catch (runEitherT $ evalChain conn ctx cells) whenCaught
+    result <- liftIO $ catch (runEitherT $ evalChain conn cells ctx) whenCaught
     hoistEither result
 
 -- If a cell input to evalChain is a coupled cell that's not a fat-cell-head, then we NEVER evaluate it. In addition, if there's a normal cell
@@ -232,8 +245,8 @@ evalChainWithException conn ctx cells =
 -- fat cells overwrite power (this is a UX feature that we're adding, so it requires special casing).  Example: A1 = 1, A2 = A1, A1 = range(10) 
 -- should keep A1 coupled.  It shouldn't eval the range, then eval A2, which would decouple the range. In our function, A2 wouldn't even 
 -- be evalled even if it were in the queue as a normal cell. 
-evalChain :: Connection -> EvalContext -> [ASCell] -> EitherTExec EvalContext
-evalChain conn ctx cells = evalChain' conn ctx cells''
+evalChain :: Connection -> [ASCell] -> EvalTransform
+evalChain conn cells ctx = evalChain' conn cells'' ctx
   where 
     hasCoupledCounterpartInMap c = case (cellLocation c) `M.lookup` (contextMap ctx) of
       Nothing -> False
@@ -241,9 +254,9 @@ evalChain conn ctx cells = evalChain' conn ctx cells''
     cells' = filter isEvaluable cells
     cells'' = filter (not . hasCoupledCounterpartInMap) cells'
 
-evalChain' :: Connection -> EvalContext -> [ASCell] -> EitherTExec EvalContext
-evalChain' _ ctx [] = printWithTimeT "empty evalchain" >> return ctx
-evalChain' conn ctx (c@(Cell loc xp val ps):cs) = do
+evalChain' :: Connection -> [ASCell] -> EvalTransform
+evalChain' _ [] ctx = printWithTimeT "empty evalchain" >> return ctx
+evalChain' conn (c@(Cell loc xp val ps):cs) ctx = do
   printWithTimeT $ "running eval chain with cells: " ++ (show (c:cs))
   let getEvalResult expression = EC.evaluateLanguage conn loc ctx expression 
   cvf <- case xp of 
@@ -252,101 +265,135 @@ evalChain' conn ctx (c@(Cell loc xp val ps):cs) = do
       then getEvalResult $ Expression str lang
       else return $ Formatted (CellValue val) (formatType <$> getProp ValueFormatProp ps) 
   newContext <- contextInsert conn c cvf ctx
-  evalChain conn newContext cs
+  evalChain conn cs newContext
+
+  ----------------------------------------------------------------------------------------------------------------------------------------------
+  -- Context modification
+
+-- Helper function that removes a maybe descriptor from a context and returns the updated context. 
+removeMaybeDescriptorFromContext :: Maybe RangeDescriptor -> PureEvalTransform
+removeMaybeDescriptorFromContext descriptor ctx = ctx { descriptorDiff = ddiff' }
+  where 
+    ddiff = descriptorDiff ctx
+    ddiff' = case descriptor of
+      Nothing -> ddiff
+      Just d -> removeDescriptor ddiff d
+
+-- Helper function that removes multiple descriptors from the ddiff of the context. 
+removeMultipleDescriptorsFromContext :: [RangeDescriptor] -> PureEvalTransform
+removeMultipleDescriptorsFromContext descriptors ctx = ctx { descriptorDiff = ddiffWithRemovedDescriptors }
+  where
+    ddiff = descriptorDiff ctx
+    ddiffWithRemovedDescriptors = L.foldl' removeDescriptor ddiff descriptors
+
+-- Helper function  that adds a descriptor to the ddiff of a context
+addDescriptorToContext :: RangeDescriptor -> PureEvalTransform
+addDescriptorToContext descriptor ctx = ctx { descriptorDiff = ddiff' }
+  where
+    ddiff  =  descriptorDiff ctx
+    ddiff' = addDescriptor ddiff descriptor
+
+-- Helper function that adds cells to a context, by merging them to addedCells and the map (with priority).
+addCellsToContext :: [ASCell] -> PureEvalTransform
+addCellsToContext cells ctx = ctx { contextMap = newMap, addedCells = newAddedCells}
+  where
+    newAddedCells = mergeCells cells (addedCells ctx)
+    newMap   = insertMultiple (contextMap ctx) (map cellLocation cells) cells
 
 
--- Deal with a possible shrink list. The ASCell passed in is a descendant during dispatch. We're not doing anything if it isn't coupled. All descendants of a cell
--- must be fat cell heads or normal cells. If it's a fat cell head, we're going to blank out all indices in the corresponding objectfor now and propagate 
--- those changes. The composite value returned by the previous eval chain will then write over this object in contextInsert. 
--- Example: if range(10) becomes range(5) because of an upstream change, blank out A1:A10. The cv in the previous evalChain has the coupled range(5) cells and 
--- will replace the contextMap. Essentially, this transform exists because you should delete an object before overwriting it while evaluating a descendant. 
--- its return type is (new context, list of indices that were blanked out as a result)
-possiblyDeletePreviousFatCell :: Connection -> ASCell -> EvalContext -> EitherTExec (EvalContext, Maybe [ASIndex])
-possiblyDeletePreviousFatCell conn c@(Cell idx xp _ ps) ctx@(EvalContext mp addedCells ddiff) = case xp of 
+-- Deal with a possible shrink list. The ASCell passed in is a descendant during dispatch. 
+-- We're not doing anything if it isn't coupled. Note that all descendants of a cell
+-- must be fat cell heads or normal cells. If it's a fat cell head, we're going to blank out all indices
+-- in the corresponding objectfor now and propagate those changes. 
+-- The composite value returned by the previous eval chain will then write over this object in contextInsert 
+-- Example: if range(10) becomes range(5) because of an upstream change, blank out A1:A10. 
+-- The cv in the previous evalChain has the coupled range(5) cells and will replace the contextMap. 
+-- Essentially, this transform exists because you should delete an object before overwriting 
+-- Returns the new context and the blanked out indices, if any
+delPrevFatCellFromContext :: Connection -> ASCell -> EvalTransformWithInfo (Maybe [ASIndex])
+delPrevFatCellFromContext conn c@(Cell idx xp _ _) ctx = case xp of 
   Expression _ _         ->  return (ctx, Nothing)
-  Coupled str lang _ key -> if (isFatCellHead c)
+  Coupled _ _ _ key -> if (isFatCellHead c)
     then do 
       let indices = rangeKeyToIndices key
           blankCells = map blankCellAt indices
       descriptor <- lift $ DB.getRangeDescriptorUsingContext conn ctx key
       printWithTimeT $ "REMOVED DESCRIPTOR IN DELETE PREVIOUS FAT CELL: " ++ (show descriptor)
       printWithTimeT $ "BLANK CELLS: " ++ (show blankCells)          
-      -- remove the descriptor
-      let ddiff = descriptorDiff ctx
-      let ddiff' = case descriptor of
-                Nothing -> ddiff
-                Just d  -> removeDescriptor ddiff d
-          -- the blanked cells have to be added to the list of added cells. If anything replaces these blank cells, contextInsert will merge them in. 
-          newAddedCells = mergeCells blankCells addedCells
-      let ctx' = ctx { contextMap = insertMultiple (contextMap ctx) indices blankCells
-                     , addedCells = newAddedCells
-                     , descriptorDiff = ddiff' }
+      -- Remove the descriptor from context, and then add the blank cells to the list of added cells. This must be done
+      -- so that the blanked out cells make it into the commit (ie so that the context is correct up to now). If anything
+      -- replaces these blanked out cells, they will be merged in by a future contextInsert.
+      let ctx' =  addCellsToContext blankCells $ removeMaybeDescriptorFromContext descriptor ctx
       return (ctx', Just indices)
     else left WillNotEvaluate
 
--- NEXT: do checks on rangekeys being in both added and removed.
+-- This transform conceptually does the following
+-- (1) generates the range descriptors to remove, if any, from the new cell/fatcell produced during eval, 
+-- and removes these descriptors from context
+-- (2) gets the cells decoupled by the new cell/fatcell produced during eval, if any, and merges them into the
+-- addedCells of the context as well as the contextMap
+-- (3) add a descriptor to the context if a fatcell is produced
+-- Note that the index passed in is the old location, and the maybe fatcell is the compositeValue from eval
+-- Returns the new context and the decoupled cells caused by the possible fat cell
+addCurFatCellToContext :: Connection -> ASIndex -> Maybe FatCell -> EvalTransformWithInfo [ASCell]
+addCurFatCellToContext conn idx maybeFatCell ctx = do 
+  -- The newly created cell(s) may have caused decouplings, which we're going to deal with. 
+  -- First, we get a possible fatcell created, from which we get the newly removed descriptors, if any
+  -- We need to remove the ones that intersect our newly produced cell/fatcell (they're decoupled now)
+  newlyRemovedDescriptors <- lift $ case maybeFatCell of
+    Nothing -> DX.getFatCellIntersections conn ctx (Left [idx])
+    Just (FatCell _ descriptor) -> DX.getFatCellIntersections conn ctx (Right [descriptorKey descriptor])
+  printObjT "GOT DECOUPLED DESCRIPTORS" newlyRemovedDescriptors
+  -- The locations we have to decouple can be constructed from the range keys
+  -- Then, given the locs, we get the cells that we have to decouple from the DB and then change their expressions
+  -- to be decoupled (by using the value of the cell)
+  let decoupledLocs = concat $ map (rangeKeyToIndices . descriptorKey) newlyRemovedDescriptors
+  decoupledCells <- lift $ ((map DI.toDecoupled) . catMaybes) <$> DB.getCellsWithContext ctx decoupledLocs
+  let ctx' = removeMultipleDescriptorsFromContext newlyRemovedDescriptors $ addCellsToContext decoupledCells ctx
+  let ctx'' = case maybeFatCell of
+                Nothing -> ctx'
+                Just (FatCell _ descriptor) -> addDescriptorToContext descriptor ctx'
+  return (ctx'', decoupledCells)
 
--- the cell passed in is the old cell (we insert the old cell + new eval'ed value into the context at the end of this function, 
--- after all side effects due to insertion have been handled)
--- if you get here, your cell has already been evaluated, and we're from now on going to call dispatch with ProperDescendants set.
-contextInsert :: Connection -> ASCell -> Formatted CompositeValue -> EvalContext -> EitherTExec EvalContext
+
+  -- NEXT: do checks on rangekeys being in both added and removed.
+  -- the cell passed in is the old cell (we insert the old cell + new eval'ed value into the context at the end of this function, 
+  -- after all side effects due to insertion have been handled)
+  -- if you get here, your cell has already been evaluated, and we're from now on going to call dispatch with ProperDescendants set.
+contextInsert :: Connection -> ASCell -> Formatted CompositeValue -> EvalTransform
 contextInsert conn c@(Cell idx xp _ ps) (Formatted cv f) ctx = do 
   printWithTimeT $ "running context insert with old cell " ++ (show c)
   printWithTimeT $ "the context insert has value " ++ (show cv)
-  -- this should be the very first transform to EvalContext applied, because you should delete an object before overwriting it while evaluating a descendant. 
-  lift $ putStrLn "running previous fatcell removal transform"
-  (ctx'@(EvalContext mp cells ddiff), blankedIndices) <- possiblyDeletePreviousFatCell conn c ctx
-  -- The newly created cell(s) may have caused decouplings, which we're going to deal with. First, we get the decoupled keys 
   let maybeFatCell = DE.decomposeCompositeValue c cv
-  newlyRemovedDescriptors <- lift $ case maybeFatCell of
-    Nothing -> DX.getFatCellIntersections conn ctx' (Left [idx])
-    Just (FatCell _ descriptor) -> DX.getFatCellIntersections conn ctx' (Right [descriptorKey descriptor])
-  printObjT "got decoupled descriptors in contextInsert" newlyRemovedDescriptors
-  -- The locations we have to decouple can be constructed from the range keys, which have info about the
-  -- head and size of the range
-  let decoupledLocs = concat $ map (rangeKeyToIndices . descriptorKey) newlyRemovedDescriptors
-  -- Given the locs, we get the cells that we have to decouple from the DB and then change their expressions
-  -- to be decoupled (by using the value of the cell)
-  decoupledCells <- lift $ ((map DI.toDecoupled) . catMaybes) <$> DB.getCellsWithContext ctx' decoupledLocs
-  printWithTimeT $ "DECOUPLED CELLS: " ++ (show decoupledCells)
-  -- We want to update all of the decoupled cells in our mini-spreadsheet map
-  let mpWithDecoupledCells = insertMultiple mp decoupledLocs decoupledCells
-  -- Add our decoupled descriptors to the current list of removedDescriptors
-  let ddiff = descriptorDiff ctx'
-  let ddiffWithRemovedDescriptors = L.foldl' removeDescriptor ddiff newlyRemovedDescriptors
-  -- Wrap up by modifying the context
+  -- Get the new cells created by eval, with formatting as well, and add them into the context
+  let newCellsFromEval = case maybeFatCell of
+                          Nothing -> [formatCell f $ Cell idx xp v ps]
+                            where 
+                              CellValue v = cv
+                          Just (FatCell cs _) -> map (formatCell f) cs
+  -- Account for overwriting a fat cell (blanking out), adding a new fat cell (decoupling), and adding eval cells
+  (ctxWithBlanks, blankedIndices) <- delPrevFatCellFromContext conn c ctx 
+  (ctxWithDecoupledCells, decoupledCells) <- addCurFatCellToContext conn idx maybeFatCell ctxWithBlanks
+  let ctxWithEvalCells = addCellsToContext newCellsFromEval ctxWithDecoupledCells
+  printWithTimeT $ "DECOUPLED CELLS" ++ (show decoupledCells)
+  -- Wrap up and dispatch
   case maybeFatCell of
-    Nothing -> do
-      let CellValue v = cv
-      -- Modify the props of our current cell to reflect any format
-      let newCell = formatCell f $ Cell idx xp v ps
-      -- The final updated map also has our newly evaluated cell in it, with updated cell value and props
-      let finalMp = M.insert idx newCell mpWithDecoupledCells
-      -- Add our decoupled descriptors to the current list of removedDescriptors, and note that
-      -- a simple CellValue cannot add any descriptors
-      let finalCells = mergeCells [newCell] $ mergeCells decoupledCells cells
-          resultContext = EvalContext finalMp finalCells ddiffWithRemovedDescriptors
-      -- now, propagate the descandants of the decoupled cells
-      lift $ putStrLn "running decouple transform"
-      dispatch conn decoupledCells resultContext ProperDescendants
+    Nothing -> do 
+      lift $ putStrLn "\nrunning decouple transform"
+      dispatch conn decoupledCells ctxWithEvalCells ProperDescendants
     Just (FatCell cs descriptor) -> do 
-      -- Modify the props of our current cells to reflect any format
-      let newCells = map (formatCell f) cs
-      printWithTimeT $ "FAT CELL EXPANDED CELLS: " ++ (show cs)
-      -- The final updated map also has our newly evaluated cells in it, with updated cell value and props
-      let finalMp = insertMultiple mpWithDecoupledCells (map cellLocation newCells) newCells
-          finalDDiff = addDescriptor ddiffWithRemovedDescriptors descriptor
-          finalCells = mergeCells cs $ mergeCells decoupledCells cells
-          finalContext = EvalContext finalMp finalCells finalDDiff
-      lift $ putStrLn "running expanded cells transform"
-      -- propagate the descendants of the expanded cells (except for the list head)
-      -- you don't set relations of the newly expanded cells, because those relations do not exist. Only the head of the list has an ancestor at this point.
-      -- first, check if we blanked out anything as a result of possiblyDeletePreviousFatCell. if so, look up the new cells from the map. 
-      -- e.g. if range(5) -> range(2), possiblyDeletePrevious... will return indices A1...A5, and we're going to need to run dispatch on all of those.
-      -- so this particular dispatch merges the context transforms (1) expanded cells, (2) blanked cells due to fat cell deletion
+      lift $ putStrLn "\nrunning expanded cells transform"
       let blankCells = case blankedIndices of 
                         Nothing -> []
-                        Just inds -> map ((M.!) (contextMap finalContext)) inds
-          cs' = mergeCells cs $ mergeCells decoupledCells blankCells
-      printWithTimeT $ "CELLS SENT TO DISPATCH FOR EXPANSION: " ++ (show cs')
-      dispatch conn cs' finalContext ProperDescendants
+                        Just inds -> map ((M.!) (contextMap ctxWithEvalCells)) inds
+          dispatchCells = mergeCells newCellsFromEval $ mergeCells decoupledCells blankCells
+      dispatch conn dispatchCells ctxWithEvalCells ProperDescendants
+      -- ^ propagate the descendants of the expanded cells (except for the list head)
+      -- you don't set relations of the newly expanded cells, because those relations do not exist. 
+      -- Only the head of the list has an ancestor at this point.
+      -- first, check if we blanked out anything as a result of possiblyDeletePreviousFatCell. 
+      -- if so, look up the new cells from the map. 
+      -- e.g. if range(5) -> range(2), possiblyDeletePrevious... will return indices A1...A5, 
+      -- and we're going to need to run dispatch on all of those.
+      -- so this particular dispatch merges the context transforms (1) expanded cells, 
+      -- (2) blanked cells due to fat cell deletion

@@ -7,6 +7,7 @@ import AS.Types.Messages
 import AS.Types.User
 import AS.Types.DB hiding (Clear)
 import AS.Types.Eval
+import AS.Types.Commits
 import qualified AS.Types.RowColProps as RP
 
 import AS.Handlers.Eval
@@ -232,6 +233,22 @@ handleSetCondFormatRules uc state (PayloadCondFormat rules) = do
   either (const $ return ()) onFormatSuccess errOrCells
   broadcastFiltered state uc $ makeCondFormatMessage errOrCells rules
 
+-- Helper method to add rowCol to a list of RowCols.
+-- Can probably be abstracted somehow. Timchu, 12/15/15.
+-- TODO: List not the right data structure here. Bad design!
+addRowCol :: RP.RowCol -> [RP.RowCol] -> [RP.RowCol]
+addRowCol rc rcs = 
+  let rctis = zip (map RP.rowColType rcs) (map RP.rowColIndex rcs)
+      rcti = (RP.rowColType rc, RP.rowColIndex rc)
+      f rowCol = case (RP.rowColType rowCol, RP.rowColIndex rowCol) of
+                      rcti -> rc
+                      _ -> rowCol in
+  -- f is a function that replaces a rowCol with rc has matching RP.rowColType
+  -- and RowColIndex
+  if rcti `elem` rctis
+     then map f rcs
+     else rc:rcs
+
 -- The type here is slightly wrong. This payload should really only indicate whether we're passed
 -- a row or a column, the index of this row/col, and a *single* prop to modify. For now, this is
 -- just the simplest type we can work with. 
@@ -239,11 +256,19 @@ handleSetRowColProp :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
 handleSetRowColProp uc state (PayloadSetRowColProp rct ind prop) = do 
   conn <- dbConn <$> readMVar state
   let sid = userSheetId uc
+  oldRowCols <- DB.getRowColsInSheet conn sid
   mOldProps <- DB.getRowColProps conn sid rct ind
   let oldProps = maybe RP.emptyProps id mOldProps
       newProps = RP.setProp prop oldProps
       newRc    = RP.RowCol rct ind newProps
   DB.setRowColProps conn sid newRc
+
+  -- Add the RP.rowColProps to the commit. 
+  time <- getASTime
+  let newRowCols = addRowCol newRc oldRowCols
+      rcdiff = RowColDiff { beforeRowCols = oldRowCols, afterRowCols = newRowCols}
+      commit = Commit { rowColDiff = rcdiff, cellDiff = CellDiff { beforeCells = [], afterCells = [] }, commitDescriptorDiff = DescriptorDiff { addedDescriptors = [], removedDescriptors = [] }, time = time}
+  DT.updateDBAfterEval conn (userCommitSource uc) commit
   sendToOriginal uc $ ServerMessage SetRowColProp Success (PayloadN ())
 
 -- used for importing arbitrary files

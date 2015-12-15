@@ -11,15 +11,6 @@ def arr(lst):
 def hide(lst): 
 	return ASIterable(lst).hide()
 
-def uniqueId():
-	lstFiles = os.listdir(imagesPath)
-	pythonImageFiles = filter(lambda s: s.startswith(imagePrefix),lstFiles)
-	pythonNumbers = map(lambda s: int(s[len(imagePrefix):-4]),pythonImageFiles)
-	newNumber = 1
-	if len(pythonNumbers) > 0:
-		newNumber = max(pythonNumbers) + 1
-	return imagePrefix + str(newNumber) + ".png"
-
 def space(lst, sp):
 	lst2 = map((lambda x: prefixPush(x, ["" for _ in range(sp)])), lst)
 	return flat(lst2)[:-sp]
@@ -104,7 +95,10 @@ def serialize(val):
 
 	elif isinstance(val, ASIterable): 
 		if val.hidden or val.arr.ndim > 2:
-			return json.dumps(generalSerialize(val, 'HIDDEN RANGE'))
+			name = 'HIDDEN RANGE'
+			if val.name:
+				name = val.name
+			return json.dumps(generalSerialize(val, name))
 		else: 
 			vals = [serializeListElem(e) for e in val.toList()]
 			sVal = {'tag': 'Expanding', 'expandingType': 'List', 'listVals': vals}

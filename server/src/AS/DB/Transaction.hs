@@ -40,11 +40,12 @@ referenceToCompositeValue conn ctx (PointerRef p) = do
       mDescriptor <- getRangeDescriptorUsingContext conn ctx rKey
       case mDescriptor of
         Nothing -> error "Couldn't find range descriptor of coupled expression!"
-        Just descriptor -> return $ DE.recomposeCompositeValue fatCell
-          where
-            indices = rangeKeyToIndices rKey
-            cells   = map ((contextMap ctx) M.!) indices
-            fatCell = FatCell cells descriptor
+        Just descriptor -> do 
+          let indices = rangeKeyToIndices rKey
+              cells  = map ((contextMap ctx) M.!) indices
+              fatCell = FatCell cells descriptor
+          putStrLn $ "REF TO COMPOSITE DESCRIPTOR: " ++ (show descriptor)
+          return $ DE.recomposeCompositeValue fatCell
 referenceToCompositeValue conn ctx (RangeRef r) = return . Expanding . VList . M $ vals
   where
     indices = rangeToIndicesRowMajor2D r
@@ -124,6 +125,7 @@ undo conn src@(sid, _) = do
   commit <- runRedis conn $ do
     (Right commit) <- rpoplpush (pushKey src) (popKey src)
     return $ DI.bStrToASCommit commit
+  printObj "COMMIT IN UNDO : " commit
   case commit of
     Nothing -> return Nothing
     Just c@(Commit rcdiff cdiff ddiff t) -> do
@@ -131,6 +133,7 @@ undo conn src@(sid, _) = do
       setCellsPropagated conn (beforeCells cdiff) (removedDescriptors ddiff)
       DB.deleteRowColsInSheet conn sid
       mapM_(DB.setRowColProps conn sid) $ beforeRowCols rcdiff
+      printObj "UNDO BEFORE ROW COLS: " $ beforeRowCols rcdiff
       return $ Just c
 
 redo :: Connection -> CommitSource -> IO (Maybe ASCommit)
