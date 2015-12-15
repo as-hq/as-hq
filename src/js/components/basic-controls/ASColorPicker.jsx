@@ -8,7 +8,7 @@ export default React.createClass({
   },
 
   render(): ReactElement {
-    let {value, defaultValue} = this.props;
+    let {value, defaultValue, ...etc} = this.props;
 
     return (
       <input
@@ -16,7 +16,8 @@ export default React.createClass({
         type="color"
         value={value}
         defaultValue={defaultValue}
-        onChange={this._handleChange} />
+        onChange={this._handleChange}
+        {...etc} />
     );
   },
 

@@ -5,7 +5,6 @@ import ASActionBar from './ASActionBar.jsx';
 import ASTreeNav from './ASTreeNav.jsx';
 import ASEvaluationPane from './ASEvaluationPane.jsx';
 import {AppCanvas, LeftNav, Paper, Styles} from 'material-ui';
-import ASNavBar from './ASNavBar.jsx';
 import API from '../actions/ASApiActionCreators';
 import Constants from '../Constants';
 import SheetStateStore from '../stores/ASSheetStateStore';
