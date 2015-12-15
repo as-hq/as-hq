@@ -20,6 +20,7 @@ def arr(lst):
 result = ""
 try:
 	#CODE#
+	os.chdir(curWd)
 	result = serialize(result)
 except Exception as e:
 	os.chdir(curWd)
