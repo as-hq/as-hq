@@ -38,11 +38,11 @@ handleMutateSheet uc state (PayloadMutate mutateType) = do
       blankedCells = blankCellsAt $ map (cellLocation . fst) oldCellsNewCells'
       updatedCells = mergeCells newCells' blankedCells -- eval blanks at the old cell locations, re-eval at new locs
   printObj "newCells" newCells
-  allRowCols <- DB.getRowColsInSheet conn sid
-  let newRowCols = mapMaybe (rowColMap mutateType) allRowCols
-  deleteRowColsInSheet conn sid
-  mapM_ (setRowColProps conn sid) newRowCols
-  let rcdiff = RowColDiff { beforeRowCols = allRowCols, afterRowCols = newRowCols }
+  -- rowColProps update. TODO: timchu, refactor oldRowCols and newRowCols
+  oldRowCols <- DB.getRowColsInSheet conn sid
+  let newRowCols = mapMaybe (rowColMap mutateType) oldRowCols
+  DB.replaceRowCols conn sid oldRowCols newRowCols
+  let rcdiff = RowColDiff { beforeRowCols = oldRowCols, afterRowCols = newRowCols }
       commitTransform = injectRowColDiffIntoCommit rcdiff
   printObj "Commit Transform in Handle Mutate Sheet" rcdiff
   updateMsg <- flexibleRunDispatchCycle commitTransform state updatedCells DescendantsWithParent (userCommitSource uc)

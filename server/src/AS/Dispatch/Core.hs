@@ -81,12 +81,13 @@ testDispatch state lang crd str = runDispatchCycle state [Cell (Index sid crd) (
 
 -- || evalContextToCommit gives empty rowcols.
 
+-- | Commit uses rowCols in sheet as both before and after rowcols.
 evalContextToCommit :: EvalContext -> IO (ASCommit, Bool)
 evalContextToCommit (EvalContext mp cells ddiff) = do
   mbcells <- DB.getCells (map cellLocation cells)
   time <- getASTime
   let cdiff   = CellDiff { beforeCells = (catMaybes mbcells), afterCells = cells}
-      rcdiff = RowColDiff { beforeRowCols = [], afterRowCols = [] }
+      rcdiff  = RowColDiff { beforeRowCols = [], afterRowCols = [] }
       commit  = Commit rcdiff cdiff ddiff time
       rd      = removedDescriptors ddiff
       didDecouple = any isDecouplePair $ zip mbcells cells
@@ -112,11 +113,7 @@ cautiouslyPushCommit conn src shouldDecouple commit =
 
 runDispatchCycle ::  MVar ServerState -> [ASCell] -> DescendantsSetting -> CommitSource -> IO ASServerMessage
 runDispatchCycle state cs descSetting src@(sid, _) =  do
-  conn <- dbConn <$> readMVar state
-  rowCols <- DB.getRowColsInSheet conn sid
-  let rcDiff = RowColDiff { beforeRowCols = rowCols, afterRowCols = rowCols }
-      injectExistingRowCols comm = comm {rowColDiff = rcDiff}
-  flexibleRunDispatchCycle injectExistingRowCols state cs descSetting src
+  flexibleRunDispatchCycle id state cs descSetting src
 
 flexibleRunDispatchCycle :: (ASCommit -> ASCommit) -> MVar ServerState -> [ASCell] -> DescendantsSetting -> CommitSource -> IO ASServerMessage
 flexibleRunDispatchCycle commitTransform state cs descSetting src = do

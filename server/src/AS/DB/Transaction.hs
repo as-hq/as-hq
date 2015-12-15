@@ -80,8 +80,7 @@ updateDBAfterEval conn src@(sid, _) c@(Commit rcdiff cdiff ddiff time) = do
   mapM_ (setDescriptor conn) (addedDescriptors ddiff)
   mapM_ (deleteDescriptor conn) (removedDescriptors ddiff)
   -- update Rows and Columns in sheet
-  DB.deleteRowColsInSheet conn sid
-  mapM_(DB.setRowColProps conn sid) arc
+  DB.replaceRowCols conn sid (beforeRowCols rcdiff) (afterRowCols rcdiff)
 
   pushCommit conn c src
 
@@ -131,9 +130,7 @@ undo conn src@(sid, _) = do
     Just c@(Commit rcdiff cdiff ddiff t) -> do
       deleteLocsPropagated conn (map cellLocation $ afterCells cdiff) (addedDescriptors ddiff)
       setCellsPropagated conn (beforeCells cdiff) (removedDescriptors ddiff)
-      DB.deleteRowColsInSheet conn sid
-      mapM_(DB.setRowColProps conn sid) $ beforeRowCols rcdiff
-      printObj "UNDO BEFORE ROW COLS: " $ beforeRowCols rcdiff
+      DB.replaceRowCols conn sid (afterRowCols rcdiff) (beforeRowCols rcdiff)
       return $ Just c
 
 redo :: Connection -> CommitSource -> IO (Maybe ASCommit)
@@ -150,8 +147,7 @@ redo conn src@(sid, _) = do
     Just c@(Commit rcdiff cdiff ddiff t) -> do
       deleteLocsPropagated conn (map cellLocation $ beforeCells cdiff) (removedDescriptors ddiff)
       setCellsPropagated conn (afterCells cdiff) (addedDescriptors ddiff)
-      DB.deleteRowColsInSheet conn sid
-      mapM_(DB.setRowColProps conn sid) $ afterRowCols rcdiff
+      DB.replaceRowCols conn sid (beforeRowCols rcdiff) (afterRowCols rcdiff)
       return $ Just c
 
 pushCommit :: Connection -> ASCommit -> CommitSource -> IO ()
