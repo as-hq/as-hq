@@ -55,7 +55,6 @@ string stringifyStatus(const DAG::DAGStatus& status){
     First n-1 are just location strings, last string is status
 */
 vector<string> stringifyResponse(const DAG::DAGResponse& resp, vector<string>& response) {
-    cout << "in stringify response " << resp.locs.size() << endl;
     for (const auto& loc: resp.locs) {
         response.push_back(toString(loc));
     }
@@ -125,9 +124,6 @@ vector<string> processRequest(DAG& dag, string& request) {
         return stringifyResponse(r,response);
     } else if (type == "SetRelations") {
         DAG::DAGResponse r = applySetRelations(dag, requestParts);
-        cout << "response size " << r.locs.size() <<  endl;
-        cout << "response status " << stringifyStatus(r.status) << endl;
-        cout << "actual vector respones size" << response.size() << endl;
         return stringifyResponse(r, response);
     } else if (type == "Clear") {
         dag.clearDAG();
@@ -176,11 +172,6 @@ int main () {
         // removes first and last quotes from string (artifact of ByteString show)
         request = request.substr(1, request.size() - 2); 
         vector<string> response = processRequest(dag,request);
-
-        cout << "response" << endl;
-        for (const auto& str : response) {
-            cout << "\t" << str << endl;
-        }
 
         clock_t end = clock(); 
         cout << "Time taken: " << (double)(end - begin)/CLOCKS_PER_SEC << endl; 

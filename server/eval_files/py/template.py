@@ -32,11 +32,6 @@ def uniqueId():
 		newNumber = max(pythonNumbers) + 1
 	return imagePrefix + str(newNumber) + ".png"
 
-# NOTE: if you make a plot anywhere in the expression, then do something else like '1+1',
-# only the ValueImage will be returned, and not the ValueD.
-# this is because the if statement below will always produce ValueImage
-# if there exist any plots in the current environment.
-# a workaround would be to check the type of result before setting it to ValueImage.
 try:
 	# execfile(replFile)
 	# execfile(headerFile)

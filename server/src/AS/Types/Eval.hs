@@ -49,6 +49,7 @@ data DescriptorDiff = DescriptorDiff { addedDescriptors :: [RangeDescriptor]
                                      , removedDescriptors :: [RangeDescriptor] } 
                                      deriving (Show, Read, Eq, Generic)
 
+
 emptyContext :: EvalContext
 emptyContext = EvalContext M.empty [] (DescriptorDiff [] [])
 

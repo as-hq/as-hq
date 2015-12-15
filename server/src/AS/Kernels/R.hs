@@ -84,6 +84,7 @@ execOnString str f = do
     "" -> return $ CellValue NoValue
     trimmed -> f trimmed
 
+
 -- takes (isGlobalExecution, str)
 -- change wd and then change back so that things like read.table will read from the static folder
 execR :: Bool -> EvalCode -> IO CompositeValue
