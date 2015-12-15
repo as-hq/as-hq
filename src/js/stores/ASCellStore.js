@@ -68,8 +68,8 @@ const ASCellStore = Object.assign({}, BaseStore, {
         break;
       case 'GOT_REDO':
         _data.lastUpdatedCells = [];
-        ASCellStore.removeCells(action.commit.cellDiff.afterCells);
-        ASCellStore.updateCells(action.commit.cellDiff.beforeCells);
+        ASCellStore.removeCells(action.commit.cellDiff.beforeCells);
+        ASCellStore.updateCells(action.commit.cellDiff.afterCells);
         ASCellStore.emitChange();
         break;
       case 'GOT_UPDATED_CELLS':
