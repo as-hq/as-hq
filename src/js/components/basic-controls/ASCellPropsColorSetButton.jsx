@@ -73,7 +73,8 @@ export default React.createClass({
           <ASColorPicker
             ref="colorPicker"
             value={color}
-            onValueChange={this._onValueChange} />
+            onValueChange={this._onValueChange}
+            {...etc} />
         }
         setBackendCellProp={this._setBackendCellProp}
         setControlStateFromCellProp={this._setControlStateFromCellProp}

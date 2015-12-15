@@ -70,6 +70,7 @@ export default React.createClass({
     // counterpoint: don't give a crap about this because these buttons are all temporary anyway
     // and crappy CSS is probably sufficient? (Alex 11/18)
     let fileInputStyle = {
+      top: '5px'
     };
 
     return (
@@ -97,26 +98,30 @@ export default React.createClass({
               onChange={this._onSelectLanguage}
               underlineStyle={{ display: 'none' }}
               style={{
-                position: 'relative',
+                marginTop: 'auto',
                 marginLeft: '40px',
-                top: '0px'
+                marginBottom: 'auto'
               }}/>
             <FileInput style={fileInputStyle} />
             <ASCellPropsToggleButton propTag="Bold" iconClassName="format_bold" style={{
               position: 'relative',
-              marginLeft: '0px'
+              marginLeft: '20px',
+              top: '-6px'
             }} />
             <ASCellPropsToggleButton propTag="Italic" iconClassName="format_italic" style={{
               position: 'relative',
-              marginLeft: '0px'
+              marginLeft: '0px',
+              top: '-6px'
             }} />
             <ASCellPropsColorSetButton propTag="TextColor" style={{
               position: 'relative',
-              marginLeft: '20px'
+              marginLeft: '20px',
+              top: '-10px'
             }} />
             <ASCellPropsColorSetButton propTag="FillColor" style={{
               position: 'relative',
-              marginLeft: '20px'
+              marginLeft: '0px',
+              top: '-10px'
             }} />
         </Toolbar>
         <AceEditor
