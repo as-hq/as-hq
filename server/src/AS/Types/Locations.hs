@@ -106,6 +106,7 @@ instance NFData ASReference         where rnf = genericRnf
 
 instance Serialize ASIndex 
 instance Serialize Dimensions
+instance Serialize ASRange
 
 instance Hashable ASIndex
 

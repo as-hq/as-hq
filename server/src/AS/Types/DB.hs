@@ -12,6 +12,7 @@ import AS.Types.Commits
 import AS.Types.Locations
 import AS.Types.Eval
 import AS.Types.CellProps
+import AS.Types.RowColProps
 
 import Debug.Trace
 
@@ -220,9 +221,6 @@ makeWorkbookKey = BC.pack
 makeEvalHeaderKey :: ASSheetId -> ASLanguage -> B.ByteString
 makeEvalHeaderKey sid lang = BC.pack ("EVALHEADER" ++ (show sid) ++ (show lang)) 
 
-allSheetsKey :: B.ByteString
-allSheetsKey = "SHEETS"
-
 makeTempCommitKey :: CommitSource -> B.ByteString 
 makeTempCommitKey src = BC.pack $ (show src) ++ "tempcommit"
 
@@ -231,3 +229,21 @@ makePushKey (sid, uid) = BC.pack $ (T.unpack sid) ++ '|':(T.unpack uid) ++ "push
 
 makePopKey :: CommitSource -> B.ByteString
 makePopKey (sid, uid)  = BC.pack $ (T.unpack sid) ++ '|':(T.unpack uid) ++ "popped"
+
+makeLastMessageKey :: CommitSource -> B.ByteString
+makeLastMessageKey src = BC.pack ("LASTMESSAGE" ++ show src)
+
+condFormattingRulesKey :: ASSheetId -> B.ByteString
+condFormattingRulesKey sid = BC.pack ("CONDFORMATTINGRULES" ++ (show sid))
+
+rowColPropsKey :: ASSheetId -> RowColType -> Int -> B.ByteString
+rowColPropsKey sid rct ind = BC.pack ((show rct) ++ "PROPS" ++ (show sid) ++ '`':(show ind)) 
+
+allWorkbooksKey :: B.ByteString
+allWorkbooksKey = "WORKBOOKS"
+
+allSheetsKey :: B.ByteString
+allSheetsKey = "SHEETS"
+
+volatileLocsKey :: B.ByteString
+volatileLocsKey = "volatileLocs"

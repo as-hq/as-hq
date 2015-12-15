@@ -71,6 +71,9 @@ getUniquePrefixedName pref strs = pref ++ (show idx)
       [] -> 1
       _  -> (L.maximum idxs) + 1
 
+getKeysByPattern :: Connection -> B.ByteString -> IO [B.ByteString]
+getKeysByPattern conn pattern = runRedis conn $ fromRight <$> keys pattern
+
 ----------------------------------------------------------------------------------------------------------------------
 -- Fat cells
 

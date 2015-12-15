@@ -86,11 +86,7 @@ getCells conn locs = runRedis conn $ do
 
 setCells :: Connection -> [ASCell] -> IO ()
 setCells _ [] = return ()
-setCells conn cs = runRedis conn $ do
-  mapM_ (\c -> set (S.encode . cellLocation $ c) (S.encode c)) cs
-  let sheetIds = nub' $ map (locSheetId . cellLocation) cs
-  sadd allSheetsKey $ map S.encode sheetIds
-  return ()
+setCells conn cs = runRedis conn $ mapM_ (\c -> set (S.encode . cellLocation $ c) (S.encode c)) cs
 
 deleteLocs :: Connection -> [ASIndex] -> IO ()
 deleteLocs _ [] = return ()
@@ -126,13 +122,12 @@ deleteLocsInSheet conn sid = runRedis conn $ do
 
 getCellsByKeyPattern :: Connection -> B.ByteString -> IO [ASCell]
 getCellsByKeyPattern conn pattern = do
-  locs <- runRedis conn $ do
-    Right ks <- keys pattern
-    let locs = catMaybes $ map readLoc ks
-        readLoc k = case (decodeMaybe k) of 
-          Just l@(Index _ _) -> Just l
-          _ -> Nothing
-    return locs
+  ks <- DI.getKeysByPattern conn pattern
+  let locs = catMaybes $ map readLoc ks
+      readLoc k = case (decodeMaybe k) of 
+        Just l@(Index _ _) -> Just l
+        _ -> Nothing
+  return locs
   map fromJust <$> getCells conn locs
 
 -- Gets the cells at the locations with expressions and values removed, but tags intact. 
@@ -272,7 +267,7 @@ getWorkbook conn name = do
 getAllWorkbooks :: Connection -> IO [ASWorkbook]
 getAllWorkbooks conn = do
     runRedis conn $ do
-        Right wbKeys <- smembers "workbookKeys"
+        Right wbKeys <- smembers allWorkbooksKey
         wbs <- mapM get wbKeys
         return $ map (\(Right (Just w)) -> read (BC.unpack w) :: ASWorkbook) wbs
 
@@ -282,7 +277,7 @@ setWorkbook conn wb = do
         let workbookKey = makeWorkbookKey . workbookName $ wb
         TxSuccess _ <- multiExec $ do
             set workbookKey (BC.pack . show $ wb)  -- set the workbook as key-value
-            sadd "workbookKeys" [workbookKey]  -- add the workbook key to the set of all sheets
+            sadd allWorkbooksKey [workbookKey]  -- add the workbook key to the set of all sheets
         return ()
 
 workbookExists :: Connection -> String -> IO Bool
@@ -298,7 +293,7 @@ deleteWorkbook conn name = do
         let workbookKey = makeWorkbookKey name
         multiExec $ do
           del [workbookKey]
-          srem "workbookKeys" [workbookKey]
+          srem allWorkbooksKey [workbookKey]
         return ()
 
 ----------------------------------------------------------------------------------------------------------------------
@@ -316,7 +311,7 @@ getAllSheets :: Connection -> IO [ASSheet]
 getAllSheets conn = 
   let readSheet (Right (Just s)) = read (BC.unpack s) :: ASSheet
   in runRedis conn $ do
-    Right sheetKeys <- smembers "sheetKeys"
+    Right sheetKeys <- smembers allSheetsKey
     sheets <- mapM get sheetKeys
     return $ map readSheet sheets
 
@@ -340,18 +335,19 @@ setSheet conn sheet = do
         let sheetKey = makeSheetKey . sheetId $ sheet
         TxSuccess _ <- multiExec $ do
             set sheetKey (BC.pack . show $ sheet)  -- set the sheet as key-value
-            sadd "sheetKeys" [sheetKey]  -- add the sheet key to the set of all sheets
+            sadd allSheetsKey [sheetKey]  -- add the sheet key to the set of all sheets
         return ()
 
 clearSheet :: Connection -> ASSheetId -> IO ()
 clearSheet conn sid = do
   let headerLangs = [Python, R] -- should REALLY put this in a Constants file
-  keys <- map (BC.pack . show2) <$> DI.getRangeKeysInSheet conn sid
-  runRedis conn $ do
-    del keys
-    del [makeSheetRangesKey sid]
-    del [condFormattingRulesKey sid]
-    mapM (\l -> del [makeEvalHeaderKey sid l]) headerLangs
+      evalHeaderKeys = map (makeEvalHeaderKey sid) headerLangs
+  rangeKeys <- map (BC.pack . show2) <$> DI.getRangeKeysInSheet conn sid
+  pushedKeys <- DI.getKeysByPattern conn $ BC.pack $ (T.unpack sid) ++ "|*pushed"
+  poppedKeys <- DI.getKeysByPattern conn $ BC.pack $ (T.unpack sid) ++ "|*popped"
+  lastMessageKeys <- DI.getKeysByPattern conn "*LASTMESSAGE"
+  let keysToDelete = (makeSheetRangesKey sid):(condFormattingRulesKey sid):(rangeKeys ++ pushedKeys ++ poppedKeys ++ lastMessageKeys ++ evalHeaderKeys)
+  runRedis conn $ del keysToDelete
   deleteLocsInSheet conn sid
   -- TODO: also clear undo, redo, and last message (for Ctrl+Y) (Alex 11/20)
 
@@ -361,7 +357,7 @@ clearSheet conn sid = do
 getVolatileLocs :: Connection -> IO [ASIndex]
 getVolatileLocs conn = do
   runRedis conn $ do
-      Right vl <- smembers "volatileLocs"
+      Right vl <- smembers volatileLocsKey
       return $ map DI.bStrToASIndex vl
 
 -- TODO: some of the cells may change from volatile -> not volatile, but they're still in volLocs
@@ -369,14 +365,14 @@ setChunkVolatileCells :: [ASCell] -> Redis ()
 setChunkVolatileCells cells = do
   let vLocs = map cellLocation $ filter ((hasPropType VolatileProp) . cellProps) cells
   let locStrs = map (BC.pack . show) vLocs
-  sadd "volatileLocs" locStrs
+  sadd volatileLocsKey locStrs
   return ()
 
 deleteChunkVolatileCells :: [ASCell] -> Redis ()
 deleteChunkVolatileCells cells = do
   let vLocs = map cellLocation $ filter ((hasPropType VolatileProp) . cellProps) cells
   let locStrs = map (BC.pack . show) vLocs
-  srem "volatileLocs" locStrs
+  srem volatileLocsKey locStrs
   return ()
 
 ----------------------------------------------------------------------------------------------------------------------
@@ -393,7 +389,7 @@ canAccess :: Connection -> ASUserId -> ASIndex -> IO Bool
 canAccess conn uid loc = canAccessSheet conn uid (locSheetId loc)
 
 canAccessAll :: Connection -> ASUserId -> [ASIndex] -> IO Bool
-canAccessAll conn uid locs = return . all id =<< mapM (canAccess conn uid) locs
+canAccessAll conn uid locs = all id <$> mapM (canAccess conn uid) locs
 
 isPermissibleMessage :: ASUserId -> Connection -> ASClientMessage -> IO Bool
 isPermissibleMessage uid conn (ClientMessage _ payload) = case payload of 
@@ -408,26 +404,20 @@ isPermissibleMessage uid conn (ClientMessage _ payload) = case payload of
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Repeat handlers
 
-lastMessageKey :: CommitSource -> B.ByteString
-lastMessageKey src = BC.pack ("LASTMESSAGE" ++ show src)
-
 storeLastMessage :: Connection -> ASClientMessage -> CommitSource -> IO () 
 storeLastMessage conn msg src = case (clientAction msg) of 
   Repeat -> return ()
-  _ -> runRedis conn (set (lastMessageKey src) (BC.pack $ show msg)) >> return ()
+  _ -> runRedis conn (set (makeLastMessageKey src) (S.encode msg)) >> return ()
 
 getLastMessage :: Connection -> CommitSource -> IO ASClientMessage
 getLastMessage conn src = runRedis conn $ do 
-  msg <- get $ lastMessageKey src
-  return $ case msg of 
-    Right (Just msg') -> read (BC.unpack msg')
+  msg <- fromRight <$> get (makeLastMessageKey src)
+  return $ case (decodeMaybe =<< msg) of 
+    Just m@(ClientMessage _ _) -> m
     _ -> ClientMessage NoAction (PayloadN ())
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Conditional formatting handlers
-
-condFormattingRulesKey :: ASSheetId -> B.ByteString
-condFormattingRulesKey sid = BC.pack ("CONDFORMATTINGRULES" ++ (show sid))
 
 getCondFormattingRules :: Connection -> ASSheetId -> IO [CondFormatRule] 
 getCondFormattingRules conn sid = runRedis conn $ do 
@@ -444,9 +434,6 @@ setCondFormattingRules conn sid rules = runRedis conn (set (condFormattingRulesK
 -- Row/col getters/setters
 
 -- #needsrefactor the keys here are horrendous. 
-
-rowColPropsKey :: ASSheetId -> RP.RowColType -> Int -> B.ByteString
-rowColPropsKey sid rct ind = BC.pack ((show rct) ++ "PROPS" ++ (show sid) ++ '`':(show ind)) 
 
 getIndFromRowColPropsKey :: B.ByteString -> Int
 getIndFromRowColPropsKey = read . last . (splitOn "`") . BC.unpack

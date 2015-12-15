@@ -176,7 +176,8 @@ instance Serialize JSONField
 instance Serialize JSONValue 
 instance Serialize Collection 
 instance Serialize DescriptorDiff
-
+instance Serialize CompositeValue
+instance Serialize ExpandingValue
 
 -- memory region exposure instances for R value unboxing
 instance NFData ASValue             where rnf = genericRnf
