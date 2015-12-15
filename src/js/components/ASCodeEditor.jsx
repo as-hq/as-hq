@@ -4,7 +4,6 @@ import ActionCreator from '../actions/ASCodeEditorActionCreators';
 import Constants from '../Constants';
 
 import {AppBar, Toolbar, ToolbarGroup, FlatButton, TextField, DropDownMenu, Styles} from 'material-ui';
-import FileInput from './ASFileImportButton.jsx';
 import ASCellPropsToggleButton from './basic-controls/ASCellPropsToggleButton.jsx';
 import ASCellPropsColorSetButton from './basic-controls/ASCellPropsColorSetButton.jsx';
 
@@ -66,12 +65,6 @@ export default React.createClass({
   render() {
     let {language, theme, value, width, height} = this.props;
     let mode = Constants.AceMode[language];
-    // TODO: make this CSS better/put the import in the right place; this is just a skeleton
-    // counterpoint: don't give a crap about this because these buttons are all temporary anyway
-    // and crappy CSS is probably sufficient? (Alex 11/18)
-    let fileInputStyle = {
-      top: '5px'
-    };
 
     return (
       <div>

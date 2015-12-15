@@ -7,7 +7,6 @@ import CellStore from '../stores/ASCellStore';
 
 import ASButton from './basic-controls/ASButton.jsx';
 import ASCondFormattingDialog from './dialogs/ASCondFormattingDialog.jsx';
-import ASFileImportButton from './ASFileImportButton.jsx';
 
 let {Colors} = Styles;
 

@@ -340,6 +340,17 @@ export default {
     wss.send(((file: any): string), {binary: true});
   },
 
+  importCSV(origin: NakedIndex, lang: ASLanguage, fileName: string) {
+    let asIndex = U.Conversion.simpleToASIndex(origin);
+    let msg = U.Conversion.makeClientMessageRaw(Constants.ServerActions.ImportCSV, {
+      tag: "PayloadCSV",
+      csvIndex: asIndex,
+      csvLang: lang,
+      csvFileName: fileName
+    });
+    this.send(msg);
+  },
+
   // ************************************************************************************************************************
   /* Sending an eval request to the server */
 

@@ -38,6 +38,9 @@ import ExpActionCreator from '../actions/ASExpActionCreators';
 import U from '../AS/Util';
 import Shortcuts from '../AS/Shortcuts';
 
+import FileImportDialog from '../AS/FileImportDialog.js';
+
+
 let {
   Shortcut: ShortcutUtils,
   Clipboard: ClipboardUtils,
@@ -182,6 +185,7 @@ export default React.createClass({
     ExpStore.setLanguage(lang);
     this.setState({ defaultLanguage: lang, currentLanguage: lang });
     this.setFocus(SheetStateStore.getFocus());
+    FileImportDialog.openFileDialog(true, this.importCSVCallback);
   },
 
   _onSetVarName(name: string) {
@@ -486,11 +490,23 @@ export default React.createClass({
   //   ShortcutUtils.tryShortcut(e, 'repl');
   // },
 
+  // Given a file, get the index and language, and send a message to backend
+  importCSVCallback(file: File) {
+    let sel = SelectionStore.getActiveSelection();
+    if (sel == null){
+      return;
+    } else {
+      let simpleIndex = sel.origin,
+          lang = this.state.currentLanguage;
+      API.importCSV(simpleIndex, lang, file.name);
+    }
+  },
 
   /**************************************************************************************************************************/
   // Deal with selection change from grid
 
   _onSelectionChange(sel: ASSelection) {
+
     let {range, origin} = sel,
         userIsTyping = ExpStore.getUserIsTyping(),
         cell = CellStore.getCell(origin);
