@@ -246,10 +246,6 @@ handleSetRowColProp uc state (PayloadSetRowColProp rct ind prop) = do
   DB.setRowColProps conn sid newRc
   sendToOriginal uc $ ServerMessage SetRowColProp Success (PayloadN ())
 
--- used for importing arbitrary files
-handleImport :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
-handleImport uc state msg = return () -- TODO
-
 -- #anand used for importing binary alphasheets files (making a separate REST server for alphasheets
   -- import/export seems overkill given that it's a temporarily needed solution)
   -- so we just send alphasheets files as binary data over websockets and immediately load

@@ -40,7 +40,7 @@ data ASAction =
   | Acknowledge
   | SetInitialSheet
   | New
-  | Import | Export
+  | Import | Export | ImportCSV
   | Open | Close
   | Evaluate | EvaluateRepl | EvaluateHeader
   | Update
@@ -100,6 +100,7 @@ data ASPayload =
   | PayloadCondFormat { condFormatRules :: [CondFormatRule] }
   | PayloadCondFormatResult { condFormatRulesResult :: [CondFormatRule], condFormatCellsUpdated :: [ASCell] }
   | PayloadSetRowColProp RowColType Int RowColProp
+  | PayloadCSV {csvIndex :: ASIndex, csvLang :: ASLanguage, csvFileName :: String}
   deriving (Show, Read, Generic)
 
 data ASReplValue = ReplValue {replValue :: ASValue, replLang :: ASLanguage} deriving (Show, Read, Eq, Generic)

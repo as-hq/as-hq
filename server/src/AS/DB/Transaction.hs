@@ -93,6 +93,7 @@ updateDBFromEvalContext conn src (EvalContext mp cells ddiff) = do
     else do
       lift $ updateDBAfterEval conn src commit
       return cells
+
       
 -- Do the writes to the DB
 updateDBAfterEval :: Connection -> CommitSource -> ASCommit -> IO ()

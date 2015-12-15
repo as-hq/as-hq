@@ -50,3 +50,10 @@ mergeCommits (Commit cdiff' ddiff' t) (Commit cdiff ddiff _) = Commit cdiff'' dd
 
 getASTime :: IO ASTime
 getASTime = return $ Time "hi" 1 2 3
+
+generateCommitFromCells :: [ASCell] -> IO ASCommit
+generateCommitFromCells cells = do 
+  time <- getASTime
+  let cdiff = CellDiff { beforeCells = [], afterCells = cells }
+      ddiff = DescriptorDiff { addedDescriptors = [], removedDescriptors = [] }
+  return $ Commit cdiff ddiff time
