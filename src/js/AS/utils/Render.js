@@ -18,6 +18,7 @@ import type {
 
 import {logDebug} from '../Logger';
 import Constants from '../../Constants';
+import Conversion from './Conversion';
 import LocationUtils from './Location';
 import Format from './Format';
 import shortid from 'shortid';
@@ -82,15 +83,15 @@ export default {
       let prop = props[i];
       switch (prop.tag) {
         case "TextColor":
-          config.fgColor = self.colorToHtml(prop.contents);
+          config.fgColor = Conversion.colorToHtml(prop.contents);
           break;
         case "FillColor":
-          config.bgColor = self.colorToHtml(prop.contents);
+          config.bgColor = Conversion.colorToHtml(prop.contents);
           break;
         case "TopAlign": // not implemented yet
           break;
         case "HAlign":
-          config.halign = self.asHAlignToHtml(prop.contents);
+          config.halign = Conversion.asHAlignToHtml(prop.contents);
           break;
         case "FontSize": //not implemented yet
           break;
