@@ -104,7 +104,6 @@ export default {
               config.value = Format.formatMoney("$", config.value, 2);
               break;
             case "Percentage":
-              debugger;
               config.value = Format.formatPercentage(config.value);
               break;
             case "Date":
