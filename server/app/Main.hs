@@ -98,6 +98,7 @@ initDebug conn state = do
       rkey = RangeKey idx (Dimensions 5 2)
       key = show2 $ RedisRangeKey rkey
   putStrLn $ show2 (read2 key :: RedisKey RangeType)
+  DB.clearSheet conn "INIT_SHEET_ID"
   return ()
 
 application :: MVar ServerState -> WS.ServerApp

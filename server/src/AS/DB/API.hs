@@ -338,14 +338,12 @@ clearSheet conn sid =
       cfRulesKey = toRedisFormat $ CFRulesKey sid
       evalHeaderKeys = map (toRedisFormat . (EvalHeaderKey sid)) Settings.headerLangs
       rangeKeys = map (toRedisFormat . RedisRangeKey) <$> DI.getRangeKeysInSheet conn sid
-      pushedKeys = DI.getKeysInSheetByType conn PushCommitType sid
-      poppedKeys = DI.getKeysInSheetByType conn PopCommitType sid
-      lastMsgKeys = DI.getKeysInSheetByType conn LastMessageType sid
+      pluralKeyTypes = [PushCommitType, PopCommitType, TempCommitType, LastMessageType]
+      pluralKeys = (evalHeaderKeys ++) . concat <$> mapM (DI.getKeysInSheetByType conn sid) pluralKeyTypes
   in runRedis conn $ do
-    otherKeys <- liftIO $ (evalHeaderKeys ++) <$> rangeKeys <++> pushedKeys <++> lastMsgKeys
-    del $ sheetRangesKey : cfRulesKey : otherKeys
+    pluralKeys <- liftIO pluralKeys
+    del $ sheetRangesKey : cfRulesKey : pluralKeys
     liftIO $ deleteLocsInSheet conn sid
-  -- TODO: also clear undo, redo, and last message (for Ctrl+Y) (Alex 11/20)
 
 ----------------------------------------------------------------------------------------------------------------------
 -- Volatile cell methods

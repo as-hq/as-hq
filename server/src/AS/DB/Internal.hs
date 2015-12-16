@@ -76,8 +76,8 @@ getUniquePrefixedName pref strs = pref ++ (show idx)
 getKeysByType :: Connection -> RedisKeyType -> IO [B.ByteString]
 getKeysByType conn = (getKeysByPattern conn) . keyPattern
 
-getKeysInSheetByType :: Connection -> RedisKeyType -> ASSheetId -> IO [B.ByteString]
-getKeysInSheetByType conn kt sid = getKeysByPattern conn $ keyPatternBySheet kt sid
+getKeysInSheetByType :: Connection -> ASSheetId -> RedisKeyType -> IO [B.ByteString]
+getKeysInSheetByType conn sid kt = getKeysByPattern conn $ keyPatternBySheet kt sid
 
 getKeysByPattern :: Connection -> String -> IO [B.ByteString]
 getKeysByPattern conn pattern = runRedis conn $ fromRight <$> keys (BC.pack pattern)
