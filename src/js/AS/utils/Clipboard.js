@@ -103,11 +103,37 @@ export default {
   /**************************************************************************************************************************/
   /* External conversions */
 
+	_isPlainNumber(string: str): boolean {
+		return !isNaN(Number(str));
+	},
+
+	_isPercent(string: str): boolean {
+		let strLen = str.length;
+		return (str[strLen-1] == '%') && this._isPlainNumber(str.splice(0, strLen-1));
+	},
+
+	_isCurrency(string: str): boolean {
+		return (str[0] == '$') && this._isPlainNumber(str.splice(1));
+	},
+
+	_isDate(string: str): boolean {
+		let parts = str.split('/');
+		return (parts.lenth == 3 && parts.every(this._isPlainNumber));
+	},
+
+	_isNumeric(string: str, lang: ASLanguage): boolean {
+		if (lang != 'Excel') {
+			return this._isPlainNumber(str);
+		} else {
+			return this._isPlainNumber(str) || this._isPercent(str) || this._isCurrency(str) || this._isDate(str);
+		}
+	},
+
   externalStringToExpression(str: string, lang: ASLanguage): string {
     if (lang == "Excel") {
       return str;
     } else {
-      if (!isNaN(Number(str))) {
+      if (this._isNumeric(Number(str), lang)) {
         return str;
       } else if (str.toUpperCase() == "TRUE") {
         return this.externalStringToBool(true, lang);
