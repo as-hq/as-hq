@@ -403,7 +403,9 @@ export default React.createClass({
       } else if (Render.isOnSelectionEdge(x, y)) {
         this.setState({cursorStyle: 'move'});
       } else {
-        self.setState({cursorStyle:'auto'});
+        if (this.state.cursorStyle !== 'auto') {
+          self.setState({cursorStyle:'auto'});
+        }
         if (model.featureChain) {
           model.featureChain.handleMouseMove(grid, evt);
           model.setCursor(grid);
@@ -872,6 +874,10 @@ export default React.createClass({
     }
   },
 
+  _restoreFocus() {
+      this.props.setFocus(SheetStateStore.getFocus());
+  },
+
   /*************************************************************************************************************************/
   // Respond to change evt from ExpStore
 
@@ -1016,7 +1022,8 @@ export default React.createClass({
                        isVisible={self.isVisible} />
           )}
 
-          <ASRightClickMenu ref="rightClickMenu" />
+          <ASRightClickMenu ref="rightClickMenu"
+                            restoreFocus={this._restoreFocus}/>
 
           <Textbox
                    ref="textbox"

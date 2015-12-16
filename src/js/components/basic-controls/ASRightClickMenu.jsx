@@ -52,6 +52,7 @@ export default React.createClass({
 
   close() {
     if (this.state.expanded) {
+      this.props.restoreFocus(); // so the focus goes back to spreadsheet after menu closes
       this.setState({ clickAwayBuffer: false, expanded: false });
     }
   },
@@ -118,6 +119,8 @@ export default React.createClass({
     );
   },
 
+  // timeout is here because some guy on the internet who was probably more
+  // experienced put a timeout here. 
   _handleItemTouchTap(e, child) {
     this._timeout = setTimeout(() => {
       this.close();
