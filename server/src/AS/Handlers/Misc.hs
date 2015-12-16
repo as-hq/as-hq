@@ -244,11 +244,13 @@ handleSetRowColProp uc state (PayloadSetRowColProp rct ind prop) = do
   let oldProps = maybe RP.emptyProps id mOldProps
       newProps = RP.setProp prop oldProps
       newRc    = RP.RowCol rct ind newProps
+      oldRcs   = case mOldProps of
+                      Nothing -> []
+                      Just _ -> [RP.RowCol rct ind oldProps]
   DB.setRowColProps conn sid newRc
-
-  -- Add the RP.rowColProps to the commit. 
+  -- Add the RP.rowColProps to the commit.
   time <- getASTime
-  let rcdiff = RowColDiff { beforeRowCols = [], afterRowCols = [newRc]}
+  let rcdiff = RowColDiff { beforeRowCols = oldRcs, afterRowCols = [newRc]}
       commit = Commit { rowColDiff = rcdiff, cellDiff = CellDiff { beforeCells = [], afterCells = [] }, commitDescriptorDiff = DescriptorDiff { addedDescriptors = [], removedDescriptors = [] }, time = time}
   DT.updateDBWithCommit conn (userCommitSource uc) commit
   sendToOriginal uc $ ServerMessage SetRowColProp Success (PayloadN ())
