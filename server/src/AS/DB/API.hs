@@ -180,7 +180,7 @@ fatCellsInRange conn rng = do
 getRangeDescriptor :: Connection -> RangeKey -> IO (Maybe RangeDescriptor)
 getRangeDescriptor conn key = runRedis conn $ do 
   Right desc <- get . toRedisFormat $ RedisRangeKey key
-  return $ DI.bStrToRangeDescriptor desc
+  return $ decodeMaybe =<< desc
 
 getRangeDescriptorsInSheet :: Connection -> ASSheetId -> IO [RangeDescriptor]
 getRangeDescriptorsInSheet conn sid = do
@@ -351,24 +351,23 @@ clearSheet conn sid =
 -- Volatile cell methods
 
 getVolatileLocs :: Connection -> IO [ASIndex]
-getVolatileLocs conn = do
-  runRedis conn $ do
-      Right vl <- smembers $ toRedisFormat VolatileLocsKey
-      return $ map DI.bStrToASIndex vl
+getVolatileLocs conn = runRedis conn $ do
+  vl <- (map decodeMaybe) . fromRight <$> (smembers $ toRedisFormat VolatileLocsKey)
+  if any isNothing vl 
+    then error "Error decoding volatile locs!!!"
+    else return $ map fromJust vl
 
 -- TODO: some of the cells may change from volatile -> not volatile, but they're still in volLocs
 setChunkVolatileCells :: [ASCell] -> Redis ()
 setChunkVolatileCells cells = do
   let vLocs = map cellLocation $ filter ((hasPropType VolatileProp) . cellProps) cells
-  let locStrs = map (BC.pack . show) vLocs
-  sadd (toRedisFormat VolatileLocsKey) locStrs
+  sadd (toRedisFormat VolatileLocsKey) (map S.encode vLocs)
   return ()
 
 deleteChunkVolatileCells :: [ASCell] -> Redis ()
 deleteChunkVolatileCells cells = do
   let vLocs = map cellLocation $ filter ((hasPropType VolatileProp) . cellProps) cells
-  let locStrs = map (BC.pack . show) vLocs
-  srem (toRedisFormat VolatileLocsKey) locStrs
+  srem (toRedisFormat VolatileLocsKey) (map S.encode vLocs)
   return ()
 
 ----------------------------------------------------------------------------------------------------------------------

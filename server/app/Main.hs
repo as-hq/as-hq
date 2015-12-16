@@ -1,14 +1,14 @@
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE OverloadedStrings, QuasiQuotes, DataKinds #-}
 
 module Main where
 
-import System.Environment (getArgs)
+import AS.Config.Settings as S
 
 import AS.Types.Messages
 import AS.Types.Network
 import AS.Types.Locations
-import AS.Config.Settings as S
+import AS.Types.DB hiding (Clear)
+import AS.Types.Cell
 
 import AS.Users
 import AS.Clients
@@ -21,28 +21,26 @@ import AS.DB.Graph as G
 import AS.DB.Internal as DI
 import AS.Users as US
 import AS.Handlers.Misc (handleImportBinary)
+import AS.Kernels.Python.Eval as KP
 
 import Prelude
+import System.Environment (getArgs)
+
 import Control.Exception
 import Control.Monad (forM_, forever, when)
 import Control.Concurrent
 import Control.Monad.IO.Class (liftIO)
 
+import Data.Aeson hiding (Success)
+import Data.Maybe
 import qualified Data.Text as T
 import qualified Data.ByteString.Lazy.Char8 as B
 import qualified Data.List as L
+import Text.Read (readMaybe)
+import Text.ParserCombinators.Parsec (parse)
 
 import qualified Network.WebSockets as WS
 import qualified Database.Redis as R
-
-import Data.Aeson hiding (Success)
-import Data.Maybe
-
-import Text.Read (readMaybe)
-
--- debugging
-import AS.Kernels.Python.Eval as KP
-import Text.ParserCombinators.Parsec (parse)
 
 -- EitherT
 import Control.Monad.Trans.Class
@@ -96,10 +94,10 @@ initApp = do
 -- |  for debugging. Only called if isDebug is true.
 initDebug :: R.Connection -> MVar ServerState -> IO ()
 initDebug conn state = do
-  -- let str = "{\"tag\": \"Expanding\", \"arrayVals\": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], \"expandingType\": \"NPArray\"}"
-  -- --let str = "{\"tag\": \"CellValue\", \"cellValueType\": \"Error\", \"errorMsg\": \"name\", \"errorType\": \"name\"}"
-  -- --let str = "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]"
-  -- putStrLn $ show $ parse (PR.json Python) "" str
+  let idx = Index "FUCK_YOU_ID" (1,1)
+      rkey = RangeKey idx (Dimensions 5 2)
+      key = show2 $ RedisRangeKey rkey
+  putStrLn $ show2 (read2 key :: RedisKey RangeType)
   return ()
 
 application :: MVar ServerState -> WS.ServerApp

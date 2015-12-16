@@ -1,0 +1,39 @@
+
+
+[2015-12-16 07:22:50.108] Server sent message: ServerMessage {serverAction = EvaluateHeader, serverResult = Success, serverPayload = PayloadValue (CellValue (ValueError {errorMsg = "R Runtime Error: Error in file(file, \"rt\") : cannot open the connection\n", errorType = "R error"}))}
+
+[2015-12-16 07:22:50.154] Message: "ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = \"INIT_SHEET_ID\", index = (1,1)}, cellExpression = Expression {expression = \"3\", language = R}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}"
+
+[2015-12-16 07:22:50.155] run dispatch cycle with cells: [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}, cellExpression = Expression {expression = "3", language = R}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]
+
+[2015-12-16 07:22:50.156] about to start dispatch
+
+[2015-12-16 07:22:50.156] STARTING DISPATCH CYCLE WITH CELLS: [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}, cellExpression = Expression {expression = "3", language = R}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]
+
+[2015-12-16 07:22:50.156] Settings: Descendants: DescendantsWithParent
+
+[2015-12-16 07:22:50.156] sent message to graph db: "\"SetRelations`I/INIT_SHEET_ID/(1,1)\""
+
+[2015-12-16 07:22:50.157] Set cell ancestors: [(Index {locSheetId = "INIT_SHEET_ID", index = (1,1)},[])]
+
+[2015-12-16 07:22:50.157] sent message to graph db: "\"GetDescendants`I/INIT_SHEET_ID/(1,1)\""
+
+[2015-12-16 07:22:50.158] Got eval locations: [Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}]
+
+[2015-12-16 07:22:50.158] Got cells to evaluate: [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}, cellExpression = Expression {expression = "3", language = R}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]
+
+[2015-12-16 07:22:50.158] sent message to graph db: "\"GetImmediateAncestors`I/INIT_SHEET_ID/(1,1)\""
+
+[2015-12-16 07:22:50.159] Got ancestor locs: []
+
+[2015-12-16 07:22:50.159] Created initial context
+
+[2015-12-16 07:22:50.159] Starting eval chain
+
+[2015-12-16 07:22:50.159] running eval chain with cells: [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}, cellExpression = Expression {expression = "3", language = R}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]
+
+[2015-12-16 07:22:50.159] Starting eval code
+
+[2015-12-16 07:22:50.160] eval language with cells in context: : fromList [(Index {locSheetId = "INIT_SHEET_ID", index = (1,1)},Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}, cellExpression = Expression {expression = "3", language = R}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}})]
+
+[2015-12-16 07:22:50.160] starting R eval

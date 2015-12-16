@@ -107,48 +107,7 @@ toUncoupled :: ASCell -> ASCell
 toUncoupled c@(Cell _ (Coupled xp lang _ _) _ _) = c { cellExpression = Expression xp lang }
 
 ----------------------------------------------------------------------------------------------------------------------
--- | ByteString utils
-
---toStrict2 :: BL.ByteString -> B.ByteString
---toStrict2 BLI.Empty = B.empty
---toStrict2 (BLI.Chunk c BLI.Empty) = c
---toStrict2 lb = BI.unsafeCreate len $ go lb
---  where
---    len = BLI.foldlChunks (\l sb -> l + B.length sb) 0 lb
---    go  BLI.Empty                   _   = return ()
---    go (BLI.Chunk (BI.PS fp s l) r) ptr =
---        withForeignPtr fp $ \p -> do
---            BI.memcpy ptr (p `plusPtr` s) (fromIntegral l)
---            go r (ptr `plusPtr` l)
-
---showB :: (BS.Show a) => a -> B.ByteString
---showB a = toStrict2 $ BL.snoc (BS.show $! a) (0::Word8)
-
-----------------------------------------------------------------------------------------------------------------------
--- Reading bytestrings
-
---bStrToASExpression :: Maybe B.ByteString -> Maybe ASExpression
---bStrToASExpression (Just b) = Just (read2 (BC.unpack b) :: ASExpression)
---bStrToASExpression Nothing = Nothing
-
---bStrToASValue :: Maybe B.ByteString -> Maybe ASValue
---bStrToASValue (Just b) = Just (read2 (BC.unpack b) :: ASValue)
---bStrToASValue Nothing = Nothing
-
---bStrToTags :: Maybe B.ByteString -> Maybe ASCellProps
---bStrToTags (Just b) = Just (read (BC.unpack b) :: ASCellProps)
---bStrToTags Nothing = Nothing
-
-maybeASCell :: (ASIndex, Maybe ASExpression, Maybe ASValue, Maybe ASCellProps) -> Maybe ASCell
-maybeASCell (l, Just e, Just v, Just tags) = Just $ Cell l e v tags
-maybeASCell _ = Nothing
-
-bStrToASIndex :: B.ByteString -> ASIndex
-bStrToASIndex b = (read2 (BC.unpack b) :: ASIndex)
-
---bStrToASCommit :: Maybe B.ByteString -> Maybe ASCommit
---bStrToASCommit (Just b) = Just (read (BC.unpack b) :: ASCommit)
---bStrToASCommit Nothing = Nothing
+-- DB conversions
 
 bStrToSheet :: Maybe B.ByteString -> Maybe ASSheet
 bStrToSheet (Just b) = Just (read (BC.unpack b) :: ASSheet)
@@ -157,16 +116,3 @@ bStrToSheet Nothing = Nothing
 bStrToWorkbook :: Maybe B.ByteString -> Maybe ASWorkbook
 bStrToWorkbook (Just b) = Just (read (BC.unpack b) :: ASWorkbook)
 bStrToWorkbook Nothing = Nothing
-
---bStrToASCell :: Maybe B.ByteString -> Maybe ASCell
---bStrToASCell Nothing = Nothing
---bStrToASCell (Just str) = Just (read2 (BC.unpack str) :: ASCell)
-
-bStrToRangeDescriptor :: Maybe B.ByteString -> Maybe RangeDescriptor
-bStrToRangeDescriptor Nothing = Nothing
-bStrToRangeDescriptor (Just str) = Just (read (BC.unpack str) :: RangeDescriptor)
-
-bStrToRangeKeys :: Maybe B.ByteString -> Maybe [RangeKey]
-bStrToRangeKeys Nothing = Nothing
-bStrToRangeKeys (Just str) = Just (read (BC.unpack str) :: [RangeKey])
-
