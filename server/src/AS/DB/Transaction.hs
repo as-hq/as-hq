@@ -1,4 +1,4 @@
-module AS.DB.Transaction where
+module AS.DB.Transaction where 
 
 import Prelude
 
@@ -69,40 +69,19 @@ referenceToCompositeValue conn ctx (RangeRef r) = return . Expanding . VList . M
 --    let decoupledLocs    = concat $ map DI.rangeKeyToIndices rangeKeysChanged
 --    return decoupledLocs
 
--- After getting the final context, update the DB and return the cells changed by the entire eval
-updateDBFromEvalContext :: Connection -> CommitSource -> EvalContext -> EitherTExec [ASCell]
-updateDBFromEvalContext conn src (EvalContext mp cells ddiff) = do
-  mbcells <- lift $ DB.getCells (map cellLocation cells)
-  time <- lift $ getASTime
-  let cdiff   = CellDiff { beforeCells = (catMaybes mbcells), afterCells = cells}
-      commit  = Commit cdiff ddiff time
-      rd      = removedDescriptors ddiff
-      didDecouple = any isDecouplePair $ zip mbcells cells
-      -- determines whether to send a decouple message.
-      -- we send a decouple message if there are any decoupled, *visible* cells remaining on the spreadsheet.
-      -- i.e. deleting an entire range will not cause a decouple message, but deleting part of it will because 
-      -- decoupled cells remain visible on the sheet.
-      isDecouplePair (mbcell, acell) = case mbcell of 
-        Nothing -> False
-        Just bcell -> (isCoupled bcell) && (not $ isCoupled acell) && (not $ isBlank acell)
-  if (didDecouple) -- there were any decoupled cells
-    then do 
-      printWithTimeT $ "DEALING WITH DECOUPLING OF DESCRIPTORS " ++ (show rd)
-      liftIO $ setTempCommit conn commit src
-      left DecoupleAttempt
-    else do
-      lift $ updateDBAfterEval conn src commit
-      return cells
 
-      
 -- Do the writes to the DB
-updateDBAfterEval :: Connection -> CommitSource -> ASCommit -> IO ()
-updateDBAfterEval conn src c@(Commit cdiff ddiff time) = do 
-  let af = afterCells cdiff
+updateDBWithCommit :: Connection -> CommitSource -> ASCommit -> IO ()
+updateDBWithCommit conn src@(sid, _) c@(Commit rcdiff cdiff ddiff time) = do 
+  let arc = afterRowCols rcdiff
+      af = afterCells cdiff
   DB.setCells af
   deleteLocs conn $ map cellLocation $ filter isEmptyCell af
   mapM_ (setDescriptor conn) (addedDescriptors ddiff)
   mapM_ (deleteDescriptor conn) (removedDescriptors ddiff)
+  -- update Rows and Columns in sheet
+  DB.replaceRowCols conn sid (beforeRowCols rcdiff) (afterRowCols rcdiff)
+
   pushCommit conn c src
 
 ----------------------------------------------------------------------------------------------------------------------
@@ -126,7 +105,6 @@ deleteLocsPropagated conn locs descs = do
   G.removeAncestorsAtForced locs
   mapM_ (deleteDescriptor conn) descs
 
-----------------------------------------------------------------------------------------------------------------------
 -- Commits
 
 -- TODO: need to deal with large commit sizes and max number of commits
@@ -142,19 +120,21 @@ popKey (sid, uid)  = B.pack $ (T.unpack sid) ++ '|':(T.unpack uid) ++ "popped"
 -- | Return a commit if possible (not possible if you undo past the beginning of time, etc)
 -- | Update the DB so that there's always a source of truth (ie we will initEval undo to all relevant users)
 undo :: Connection -> CommitSource -> IO (Maybe ASCommit)
-undo conn src = do
+undo conn src@(sid, _) = do
   commit <- runRedis conn $ do
     (Right commit) <- rpoplpush (pushKey src) (popKey src)
     return $ DI.bStrToASCommit commit
+  printObj "COMMIT IN UNDO : " commit
   case commit of
     Nothing -> return Nothing
-    Just c@(Commit cdiff ddiff t) -> do
+    Just c@(Commit rcdiff cdiff ddiff t) -> do
       deleteLocsPropagated conn (map cellLocation $ afterCells cdiff) (addedDescriptors ddiff)
       setCellsPropagated conn (beforeCells cdiff) (removedDescriptors ddiff)
+      DB.replaceRowCols conn sid (afterRowCols rcdiff) (beforeRowCols rcdiff)
       return $ Just c
 
 redo :: Connection -> CommitSource -> IO (Maybe ASCommit)
-redo conn src = do
+redo conn src@(sid, _) = do
   commit <- runRedis conn $ do
     Right result <- lpop (popKey src)
     case result of
@@ -164,9 +144,10 @@ redo conn src = do
       _ -> return Nothing
   case commit of
     Nothing -> return Nothing
-    Just c@(Commit cdiff ddiff t) -> do
+    Just c@(Commit rcdiff cdiff ddiff t) -> do
       deleteLocsPropagated conn (map cellLocation $ beforeCells cdiff) (removedDescriptors ddiff)
       setCellsPropagated conn (afterCells cdiff) (addedDescriptors ddiff)
+      DB.replaceRowCols conn sid (beforeRowCols rcdiff) (afterRowCols rcdiff)
       return $ Just c
 
 pushCommit :: Connection -> ASCommit -> CommitSource -> IO ()

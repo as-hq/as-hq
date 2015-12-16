@@ -41,7 +41,7 @@ handleCSVImport uc state (PayloadCSV ind lang s) = do
           cells = toList2D vCells
       -- generate and push commit to DB
       commit <- generateCommitFromCells cells
-      DT.updateDBAfterEval conn src commit
+      DT.updateDBWithCommit conn src commit
       -- send list of cells back to frontend
       let msg = ServerMessage Update Success (PayloadCL cells)
       broadcastFiltered state uc msg
