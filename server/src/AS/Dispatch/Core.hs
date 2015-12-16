@@ -16,8 +16,9 @@ import AS.Types.Locations
 import AS.Types.CellProps
 import AS.Types.Messages
 import AS.Types.Network
-import AS.Types.DB
+import AS.Types.Commits
 import AS.Types.Eval
+import AS.Types.DB
 
 import AS.Dispatch.Expanding        as DE
 import qualified AS.Eval.Core       as EC (evaluateLanguage)
@@ -61,7 +62,7 @@ type PureEvalTransform = EvalContext -> EvalContext
 
 testDispatch :: MVar ServerState -> ASLanguage -> Coord -> String -> IO ASServerMessage
 testDispatch state lang crd str = runDispatchCycle state [Cell (Index sid crd) (Expression str Python) NoValue emptyProps] DescendantsWithParent (sid, uid)
-  where 
+  where
     sid = T.pack "sheetid"
     uid = T.pack "userid"
 
@@ -76,13 +77,52 @@ testDispatch state lang crd str = runDispatchCycle state [Cell (Index sid crd) (
 
 -- assumes all evaled cells are in the same sheet
 -- the only information we're really passed in from the cells is the locations and the expressions of
--- the cells getting evaluated. We pull the rest from the DB. 
-runDispatchCycle :: MVar ServerState -> [ASCell] -> DescendantsSetting -> CommitSource -> IO ASServerMessage
-runDispatchCycle state cs descSetting src = do
-  liftIO $ putStrLn $ "run dispatch cycle with cells: " ++ (show cs) 
+-- the cells getting evaluated. We pull the rest from the DB.
+
+-- || evalContextToCommit gives empty rowcols.
+
+-- | Commit uses rowCols in sheet as both before and after rowcols.
+-- TODO: timchu, 12/14/15. This could be refactored to split off didDecouple
+-- and Commit. But we're not because of DB latency.
+evalContextToCommit :: EvalContext -> IO (ASCommit, Bool)
+evalContextToCommit (EvalContext mp cells ddiff) = do
+  mbcells <- DB.getCells (map cellLocation cells)
+  time <- getASTime
+  let cdiff   = CellDiff { beforeCells = (catMaybes mbcells), afterCells = cells}
+      rcdiff  = RowColDiff { beforeRowCols = [], afterRowCols = [] }
+      commit  = Commit rcdiff cdiff ddiff time
+      rd      = removedDescriptors ddiff
+      didDecouple = any isDecouplePair $ zip mbcells cells
+      -- determines whether to send a decouple message.
+      -- we send a decouple message if there are any decoupled, *visible* cells remaining on the spreadsheet.
+      -- i.e. deleting an entire range will not cause a decouple message, but deleting part of it will because 
+      -- decoupled cells remain visible on the sheet.
+      isDecouplePair (mbcell, acell) = case mbcell of 
+        Nothing -> False
+        Just bcell -> (isCoupled bcell) && (not $ isCoupled acell) && (not $ isBlank acell)
+  printWithTime $ "DEALING WITH DECOUPLING OF DESCRIPTORS " ++ (show rd)
+  return (commit, didDecouple)
+
+pushTempCommit :: Connection -> CommitSource -> ASCommit -> IO()
+pushTempCommit conn src commit = do
+  DT.setTempCommit conn commit src
+
+cautiouslyPushCommit :: Connection -> CommitSource -> Bool -> ASCommit -> IO()
+cautiouslyPushCommit conn src shouldDecouple commit =
+  if shouldDecouple
+    then pushTempCommit conn src commit
+    else DT.updateDBWithCommit conn src commit
+
+runDispatchCycle ::  MVar ServerState -> [ASCell] -> DescendantsSetting -> CommitSource -> IO ASServerMessage
+runDispatchCycle state cs descSetting src@(sid, _) =  do
+  flexibleRunDispatchCycle id state cs descSetting src
+
+flexibleRunDispatchCycle :: (ASCommit -> ASCommit) -> MVar ServerState -> [ASCell] -> DescendantsSetting -> CommitSource -> IO ASServerMessage
+flexibleRunDispatchCycle commitTransform state cs descSetting src = do
+  liftIO $ putStrLn $ "run dispatch cycle with cells: " ++ (show cs)
   roots <- EM.evalMiddleware cs
   conn <- dbConn <$> readMVar state
-  errOrCells <- runEitherT $ do
+  errOrCommit <- runEitherT $ do
     printWithTimeT $ "about to start dispatch"
     let initialEvalMap = M.fromList $ zip (map cellLocation cs) cs
         initialContext = EvalContext initialEvalMap [] emptyDiff
@@ -93,15 +133,23 @@ runDispatchCycle state cs descSetting src = do
     printWithTimeT "finished dispatch"
     finalizedCells <- EE.evalEndware state (addedCells ctxAfterDispatch) src roots ctxAfterDispatch
     let ctx = ctxAfterDispatch { addedCells = finalizedCells }
-    broadcastCells <- DT.updateDBFromEvalContext conn src ctx
-    printWithTimeT "updated DB after dispatch"
-    return broadcastCells
-  case errOrCells of 
+    (commit, didDecouple) <- lift $ evalContextToCommit ctx
+    let finalizedCommit = commitTransform commit
+    lift $ cautiouslyPushCommit conn src didDecouple finalizedCommit
+    if (didDecouple)
+      then left DecoupleAttempt
+      else return finalizedCommit
+  case errOrCommit of 
     Left _ -> G.recompute conn -- #needsrefactor. Overkill. But recording all cells that might have changed is a PITA. (Alex 11/20)
     _      -> return ()
-  let msg = makeUpdateMessage errOrCells
+
+  let msg = makeUpdateMessageFromCommit errOrCommit
   printObj "made message: " msg
   return msg
+
+makeUpdateMessageFromCommit :: Either ASExecError ASCommit -> ASServerMessage
+makeUpdateMessageFromCommit (Left err) = makeErrorMessage err Update
+makeUpdateMessageFromCommit (Right comm) = ServerMessage Update Success (PayloadCL $ afterCells $ cellDiff comm)
 
 -- takes an old context, inserts the new values necessary for this round of eval, and evals using the new context.
 -- this seems conceptually better than letting each round of dispatch produce a new context, 
@@ -351,4 +399,3 @@ contextInsert conn c@(Cell idx xp _ ps) (Formatted cv f) ctx = do
       -- and we're going to need to run dispatch on all of those.
       -- so this particular dispatch merges the context transforms (1) expanded cells, 
       -- (2) blanked cells due to fat cell deletion
-

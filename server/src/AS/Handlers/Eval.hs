@@ -58,7 +58,7 @@ handleDecouple uc state payload = do
   case mCommit of
     Nothing -> return ()
     Just c -> do
-      updateDBAfterEval conn src c
+      updateDBWithCommit conn src c
       let msg = ServerMessage Update Success (PayloadCL (afterCells . cellDiff $ c))
       broadcastFiltered state uc msg
 

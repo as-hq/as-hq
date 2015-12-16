@@ -7,6 +7,7 @@ import AS.Types.Messages
 import AS.Types.User
 import AS.Types.DB hiding (Clear)
 import AS.Types.Eval
+import AS.Types.Commits
 import qualified AS.Types.RowColProps as RP
 
 import AS.Handlers.Eval
@@ -244,6 +245,12 @@ handleSetRowColProp uc state (PayloadSetRowColProp rct ind prop) = do
       newProps = RP.setProp prop oldProps
       newRc    = RP.RowCol rct ind newProps
   DB.setRowColProps conn sid newRc
+
+  -- Add the RP.rowColProps to the commit. 
+  time <- getASTime
+  let rcdiff = RowColDiff { beforeRowCols = [], afterRowCols = [newRc]}
+      commit = Commit { rowColDiff = rcdiff, cellDiff = CellDiff { beforeCells = [], afterCells = [] }, commitDescriptorDiff = DescriptorDiff { addedDescriptors = [], removedDescriptors = [] }, time = time}
+  DT.updateDBWithCommit conn (userCommitSource uc) commit
   sendToOriginal uc $ ServerMessage SetRowColProp Success (PayloadN ())
 
 -- #anand used for importing binary alphasheets files (making a separate REST server for alphasheets

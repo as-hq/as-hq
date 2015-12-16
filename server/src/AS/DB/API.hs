@@ -589,3 +589,13 @@ setRowColProps :: Connection -> ASSheetId -> RP.RowCol -> IO ()
 setRowColProps conn sid (RP.RowCol rct ind props) = do
   runRedis conn (set (rowColPropsKey sid rct ind) (B.pack $ show props))
   return ()
+
+deleteRowColProps :: Connection -> ASSheetId -> RP.RowCol -> IO ()
+deleteRowColProps conn sid (RP.RowCol rct ind _) = do
+  runRedis conn $ del [rowColPropsKey sid rct ind]
+  return ()
+
+replaceRowCols :: Connection -> ASSheetId -> [RP.RowCol] -> [RP.RowCol] -> IO()
+replaceRowCols conn sid fromRowCols toRowCols = do
+  mapM_ (deleteRowColProps conn sid) fromRowCols
+  mapM_ (setRowColProps conn sid) toRowCols
