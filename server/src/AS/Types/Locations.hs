@@ -10,6 +10,7 @@ import AS.Types.Common
 
 import GHC.Generics
 import Data.Aeson
+import Data.Hashable
 
 import Control.DeepSeq
 import Control.DeepSeq.Generics (genericRnf)
@@ -105,6 +106,9 @@ instance NFData ASReference         where rnf = genericRnf
 
 instance Serialize ASIndex 
 instance Serialize Dimensions
+instance Serialize ASRange
+
+instance Hashable ASIndex
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Helpers

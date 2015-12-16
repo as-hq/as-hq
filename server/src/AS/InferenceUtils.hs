@@ -22,6 +22,8 @@ import qualified Text.ParserCombinators.Parsec.Token as P
 import Text.ParserCombinators.Parsec.Language
 import Text.ParserCombinators.Parsec.Expr
 
+import Database.Redis (Connection)
+
 type Position = (Col,Row)
 type PatternGroup = [ASCell]
 type Pattern = ([ASCell],(Int -> ASValue))
@@ -49,21 +51,21 @@ getDragOffsets r1 r2 (x,y) = map (\(a,b) -> Offset { dX = a-x, dY = b-y }) $ get
 -- If the selection was horizontal, row-major, else column major
 -- Directionality matters; if drag left, each row is from right to left
 -- Inference ignores empty cells, so they can safely be filtered out here
-getCellsRect :: ASRange -> ASRange -> IO [[ASCell]]
-getCellsRect r1@(Range _ ((a,b),(c,d))) r2@(Range _ ((a',b'),(c',d'))) =  fmap filterMaybeNumCells rectCells
+getCellsRect :: Connection -> ASRange -> ASRange -> IO [[ASCell]]
+getCellsRect conn r1@(Range _ ((a,b),(c,d))) r2@(Range _ ((a',b'),(c',d'))) =  fmap filterMaybeNumCells rectCells
   where
     rectCells 
       | (a==a') && (b==b') && (d==d') = do 
-        cells <- DB.getCells $ rangeToIndicesRowMajor r1
+        cells <- DB.getCells conn $ rangeToIndicesRowMajor r1
         return $ formatRect (c-a+1) cells 
       | (c==c') && (d==d') && (b==b') = do 
-        cells <- DB.getCells $ rangeToIndicesRowMajor r1
+        cells <- DB.getCells conn $ rangeToIndicesRowMajor r1
         return $ map reverse $ formatRect (c-a+1) cells
       | (a==a') && (b==b') && (c==c') = do 
-        cells <- DB.getCells $ rangeToIndices r1
+        cells <- DB.getCells conn $ rangeToIndices r1
         return $ formatRect (d-b+1) cells
       | otherwise = do 
-        cells <- DB.getCells $ rangeToIndices r1
+        cells <- DB.getCells conn $ rangeToIndices r1
         return $ map reverse $ formatRect (d-b+1) cells
 
 formatRect :: Int -> [a] -> [[a]]

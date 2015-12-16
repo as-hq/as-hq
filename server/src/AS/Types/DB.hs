@@ -1,10 +1,11 @@
-{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE OverloadedStrings, DeriveGeneric, DataKinds, KindSignatures, GADTs #-}
 
 module AS.Types.DB
   ( module AS.Types.DB
   , module AS.Types.Commits
   ) where
 
+import Prelude
 import GHC.Generics
 
 import AS.Types.Cell
@@ -12,15 +13,16 @@ import AS.Types.Commits
 import AS.Types.Locations
 import AS.Types.Eval
 import AS.Types.CellProps
+import AS.Types.RowColProps
 
 import Debug.Trace
 
-import Prelude
+import Data.List.Split (splitOn)
 import qualified Data.Text as T 
 import qualified Data.List as L
 import qualified Data.ByteString.Char8         as BC
 import qualified Data.ByteString               as B
-import Data.Serialize (Serialize)
+import qualified Data.Serialize as S
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Graph queries
@@ -66,12 +68,12 @@ indicesToGraphReadInput = map IndexInput
 
 msgPartDelimiter = "`" -- TODO: should require real parsing instead of weird char strings
 relationDelimiter = "&"
-keyPartDelimiter = '?'
+keyPartDelimiter :: String
+keyPartDelimiter = "?"
 
 -- TODO: should require real parsing instead of never-used unicode chars at some point
-cellDelimiter = '©'
-exprDelimiter = '®'
 refDelimiter = '/'
+keyTypeSeparator = "~"
 
 -- TODO: hide this on export
 splitBy :: (Eq a) => a -> [a] -> [[a]]
@@ -82,7 +84,7 @@ splitBy delimiter = foldr f [[]]
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- instances
 
-instance Serialize ExportData
+instance S.Serialize ExportData
 
 -- compressed show
 
@@ -92,52 +94,31 @@ class Show2 a where
 class Read2 a where
   read2 :: (Show2 a) => String -> a
 
-instance (Show2 ASCell) where
-  show2 (Cell l e v ts) = (show2 l) ++ (cellDelimiter:(show2 e)) 
-                          ++ (cellDelimiter:(show2 v)) ++ (cellDelimiter:(show ts))
 instance (Show2 ASIndex) where 
   show2 (Index sid a) = 'I':refDelimiter:(T.unpack sid) ++ (refDelimiter:(show a))
+
 instance (Show2 ASPointer) where
   show2 (Pointer sid a) = 'P':refDelimiter:(T.unpack sid) ++ (refDelimiter:(show a))
+
 instance (Show2 ASRange) where 
   show2 (Range sid a) = 'R':refDelimiter:(T.unpack sid) ++ (refDelimiter:(show a))
+
 instance (Show2 GraphReadInput) where
   show2 (IndexInput i) = show2 i
   show2 (RangeInput r) = show2 r
+
 instance (Show2 GraphDescendant) where
   show2 (IndexDesc i) = show2 i
+
 instance (Show2 ASReference) where
   show2 (IndexRef il) = show2 il 
   show2 (RangeRef rl) = show2 rl
   show2 (PointerRef p) = show2 p
   show2 (OutOfBounds) = "OUTOFBOUNDS"
-instance (Show2 ASExpression) where
-  show2 (Expression xp lang) = 'E':exprDelimiter:xp ++ (exprDelimiter:(show lang))
-  show2 (Coupled xp lang dtype rangekey) = 'C':exprDelimiter:xp 
-                                        ++ (exprDelimiter:(show lang)) 
-                                        ++ (exprDelimiter:(show dtype)) 
-                                        ++ (exprDelimiter:(show2 rangekey))
-
-instance (Show2 ASValue) where
-  show2 = show -- TODO optimize
-
-instance (Show2 RangeKey) where
-  show2 (RangeKey idx dims) = (show2 idx) 
-                           ++ (keyPartDelimiter:(show2 dims)) 
-                           ++ (keyPartDelimiter:"RANGEKEY")
 
 instance (Show2 Dimensions) where
   show2 dims = show (width dims, height dims)
 
--- compressed read
-
-instance (Read2 ASCell) where
-  read2 str = Cell l xp v ts
-    where
-      (l, xp, v, ts) = case splitBy cellDelimiter str of 
-        [locstr, xpstr, valstr, tagstr] -> (read2 locstr :: ASIndex, read2 xpstr :: ASExpression, 
-                                            read2 valstr :: ASValue, read tagstr :: ASCellProps)
-        _ -> error ("read2 :: ASCell failed on string " ++ str)
 instance (Read2 ASReference) where
   read2 str = loc
     where
@@ -152,66 +133,117 @@ instance (Read2 ASReference) where
               "I" -> IndexRef $ Index (T.pack sid) (read locstr :: Coord)
               "P" -> PointerRef $ Pointer (T.pack sid) (read locstr :: Coord)
               "R" -> RangeRef $ Range (T.pack sid) (read locstr :: (Coord, Coord))
+
 instance (Read2 ASIndex) where 
   read2 str = case ((read2 :: String -> ASReference) str) of 
     IndexRef i -> i
+
 instance (Read2 ASRange) where 
   read2 str = case ((read2 :: String -> ASReference) str) of 
     RangeRef r -> r
+
 instance (Read2 ASPointer) where 
   read2 str = case ((read2 :: String -> ASReference) str) of 
     PointerRef p -> p
+
 instance (Read2 GraphDescendant) where
   read2 s = IndexDesc (read2 s :: ASIndex)
-instance (Read2 ASExpression)
-  where
-    read2 str = xp
-      where
-        splits = splitBy exprDelimiter str
-        xp = case (head splits) of 
-          "E" -> case (tail splits) of 
-            [xp, lang] -> Expression xp (read lang :: ASLanguage)
-            _ -> error $ "read2 splits expression incorrectly: " ++ str 
-          "C" -> case (tail splits) of 
-            [xp, lang, dtype, rangekey] -> Coupled xp (read lang :: ASLanguage) (read dtype :: ExpandingType) (read2 rangekey :: RangeKey)
-            _ -> error $ "read2 splits expression incorrectly: " ++ str 
-instance (Read2 ASValue)
-  where 
-    read2 = read -- TODO optimize
-
-readCells :: String -> [ASCell]
-readCells str = map (\c -> read2 c :: ASCell) $ splitBy ',' str
-
-instance (Read2 RangeKey) where
-  read2 str = RangeKey idx dims
-    where
-     idxStr:dimsStr:_ = splitBy keyPartDelimiter str
-     idx              = read2 idxStr :: ASIndex
-     dims             = read2 dimsStr :: Dimensions
 
 instance (Read2 Dimensions) where
   read2 str = Dimensions { width = w, height = h }
     where (w, h) = read str :: (Int, Int)
 
 ----------------------------------------------------------------------------------------------------------------------
--- Redis key constructors
+-- Redis keys 
 
--- key for set of all fat cells in a sheet
-makeSheetRangesKey :: ASSheetId -> B.ByteString
-makeSheetRangesKey sid = BC.pack $ (T.unpack sid) ++ (keyPartDelimiter:"ALL_RANGES")
+data RedisKeyType = 
+    SheetRangesType 
+  | SheetType 
+  | WorkbookType 
+  | EvalHeaderType 
+  | TempCommitType
+  | PushCommitType 
+  | PopCommitType 
+  | LastMessageType 
+  | CFRulesType 
+  | RCPropsType 
+  | AllWorkbooksType 
+  | AllSheetsType
+  | VolatileLocsType
+  | RangeType
+  deriving (Show, Read)
 
--- key for locations
-makeLocationKey :: ASIndex -> B.ByteString
-makeLocationKey = BC.pack . show2
+data RedisKey :: RedisKeyType -> * where
+  SheetRangesKey  :: ASSheetId -> RedisKey SheetRangesType
+  SheetKey        :: ASSheetId -> RedisKey SheetType
+  WorkbookKey     :: WorkbookName -> RedisKey WorkbookType
+  EvalHeaderKey   :: ASSheetId -> ASLanguage -> RedisKey EvalHeaderType
+  TempCommitKey   :: CommitSource -> RedisKey TempCommitType
+  PushCommitKey   :: CommitSource -> RedisKey PushCommitType
+  PopCommitKey    :: CommitSource -> RedisKey PopCommitType
+  LastMessageKey  :: CommitSource -> RedisKey LastMessageType
+  CFRulesKey      :: ASSheetId -> RedisKey CFRulesType
+  RCPropsKey      :: ASSheetId -> RowColType -> Int -> RedisKey RCPropsType
+  AllWorkbooksKey :: RedisKey AllWorkbooksType 
+  AllSheetsKey    :: RedisKey AllSheetsType
+  VolatileLocsKey :: RedisKey VolatileLocsType
+  RedisRangeKey   :: RangeKey -> RedisKey RangeType
 
--- key for sheet
-makeSheetKey :: ASSheetId -> B.ByteString -- for storing the actual sheet as key-value
-makeSheetKey = BC.pack . T.unpack
+instance Show2 (RedisKey a) where
+  show2 k = case k of 
+    SheetRangesKey sid      -> (keyPrefix SheetRangesType) ++ T.unpack sid
+    SheetKey sid            -> (keyPrefix SheetType) ++ T.unpack sid
+    WorkbookKey wname       -> (keyPrefix WorkbookType) ++ wname
+    EvalHeaderKey sid lang  -> (keyPrefix EvalHeaderType) ++ (T.unpack sid) ++ keyPartDelimiter ++ (show lang)
+    TempCommitKey c         -> (keyPrefix TempCommitType) ++ show c
+    PushCommitKey c         -> (keyPrefix PushCommitType) ++ show c
+    PopCommitKey c          -> (keyPrefix PopCommitType) ++ show c
+    LastMessageKey c        -> (keyPrefix LastMessageType) ++ show c
+    CFRulesKey sid          -> (keyPrefix CFRulesType) ++ T.unpack sid
+    RCPropsKey sid rct ind  -> (keyPrefix RCPropsType) ++ (T.unpack sid) ++ keyPartDelimiter ++ (show rct) ++ keyPartDelimiter ++ (show ind) -- #refactor this show
+    AllWorkbooksKey         -> keyPrefix AllWorkbooksType
+    AllSheetsKey            -> keyPrefix AllSheetsType
+    VolatileLocsKey         -> keyPrefix VolatileLocsType
+    RedisRangeKey (RangeKey idx dims) -> (keyPrefix RangeType) ++ (show2 idx) ++ keyPartDelimiter ++ (show2 dims)
 
--- key for all location keys in a sheet
-makeSheetSetKey :: ASSheetId -> B.ByteString
-makeSheetSetKey sid = BC.pack $! (T.unpack sid) ++ "Locations"
+-- value-dependent instances mothafucka!
+instance Read2 (RedisKey RangeType) where
+  read2 s = RedisRangeKey rkey
+    where 
+      [typeStr, keyStr] = splitOn keyTypeSeparator s
+      [idxStr, dimsStr] = splitOn keyPartDelimiter keyStr
+      rkey = case (read typeStr :: RedisKeyType) of 
+        RangeType -> RangeKey (read2 idxStr :: ASIndex) (read2 dimsStr :: Dimensions)
 
--- key for workbook
-makeWorkbookKey :: String -> B.ByteString
-makeWorkbookKey = BC.pack
+instance Read2 (RedisKey RCPropsType) where
+    read2 s = RCPropsKey sid rct ind
+      where
+        [typeStr, keyStr] = splitOn keyTypeSeparator s
+        [sidStr, rctStr, indStr] = splitOn keyPartDelimiter keyStr
+        sid = T.pack sidStr
+        rct = read rctStr :: RowColType
+        ind = read indStr :: Int
+
+instance Show CommitSource where
+  show (CommitSource sid uid) = (T.unpack sid) ++ keyPartDelimiter ++ (T.unpack uid)
+
+keyPrefix :: RedisKeyType -> String
+keyPrefix kt = (show kt) ++ keyTypeSeparator
+
+keyPattern :: RedisKeyType -> String
+keyPattern kt = (keyPrefix kt) ++ "*" 
+
+keyPatternBySheet :: RedisKeyType -> ASSheetId -> String
+keyPatternBySheet kt sid = 
+  let sid' = T.unpack sid 
+  in (keyPrefix kt) ++ case kt of 
+    TempCommitType  -> sid' ++ "*"
+    PushCommitType  -> sid' ++ "*"
+    PopCommitType   -> sid' ++ "*"
+    LastMessageType -> sid' ++ "*"
+
+rcPropsKeyPattern :: ASSheetId -> RowColType -> String
+rcPropsKeyPattern sid rct = (keyPrefix RCPropsType) ++ (T.unpack sid) ++ keyPartDelimiter ++ (show rct) ++ "*"
+
+toRedisFormat :: RedisKey a -> B.ByteString
+toRedisFormat = BC.pack . show2

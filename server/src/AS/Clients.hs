@@ -4,6 +4,7 @@ import AS.Types.Network
 import AS.Types.Cell
 import AS.Types.Messages
 import AS.Types.Eval
+import AS.Types.DB hiding (Clear)
 
 import AS.Handlers.Mutate
 import AS.Handlers.Paste
@@ -104,9 +105,10 @@ instance Client ASDaemonClient where
         -- expression to evaluate and the location of evaluation. In particular, the value passed in the cells
         -- are irrelevant, and there are no tags passed in, so we have to get the tags from the database
         -- manually. 
-        oldTags <- getPropsAt (map cellLocation cells)
+        redisConn <- dbConn <$> readMVar state
+        oldTags <- getPropsAt redisConn (map cellLocation cells)
         let cells' = map (\(c, ps) -> c { cellProps = ps }) (zip cells oldTags)
-        msg' <- runDispatchCycle state cells' DescendantsWithParent (sid, uid)
+        msg' <- runDispatchCycle state cells' DescendantsWithParent (CommitSource sid uid) id
         case msg' of 
           ServerMessage _ (Failure _) _ -> return ()
           otherwise                     -> broadcastFiltered' state msg'

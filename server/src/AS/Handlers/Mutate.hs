@@ -4,7 +4,7 @@ import AS.Types.Cell
 import AS.Types.Network
 import AS.Types.Messages
 import AS.Types.User
-import AS.Types.Excel
+import AS.Types.Excel hiding (dbConn)
 import AS.Types.Eval
 import AS.Types.Commits
 
@@ -45,7 +45,7 @@ handleMutateSheet uc state (PayloadMutate mutateType) = do
   let rcdiff = RowColDiff { beforeRowCols = oldRowCols, afterRowCols = newRowCols }
       commitTransform = injectRowColDiffIntoCommit rcdiff
   printObj "Commit Transform in Handle Mutate Sheet" rcdiff
-  updateMsg <- flexibleRunDispatchCycle commitTransform state updatedCells DescendantsWithParent (userCommitSource uc)
+  updateMsg <- runDispatchCycle state updatedCells DescendantsWithParent (userCommitSource uc) commitTransform
   broadcastFiltered state uc updateMsg
 
 -- | For a mutate, maps the old row and column to the new row and column.

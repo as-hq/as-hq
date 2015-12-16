@@ -17,7 +17,8 @@ import qualified Network.WebSockets as WS
 import Data.Aeson
 import Debug.Trace 
 import qualified Data.ByteString.Lazy as BL
-
+import qualified Data.ByteString as B
+import qualified Data.Serialize as S
 
 -------------------------------------------------------------------------------------------------------------------------
 -- For debugging purposes only 
@@ -25,8 +26,9 @@ import qualified Data.ByteString.Lazy as BL
 trace' :: (Show a) => String -> a -> a
 trace' s x = trace ("\n\n\n" ++ s ++ "\n" ++ (show x) ++ "\n\n\n") x
 
+-- takes a cell transform to convert the test cell to something desired
 testCell :: ASCell
-testCell =  Cell (Index "" (1,1)) (Expression "hi" Python) (ValueS "Str") emptyProps
+testCell = Cell (Index "" (1,1)) (Expression "=1+1" Excel) NoValue emptyProps
 
 --------------------------------------------------------------------------------------------------------------
 -- Misc
@@ -47,3 +49,16 @@ insertMultiple mp keys values = foldl' (\curMap (key,value) -> M.insert key valu
 
 filterBy :: (a -> b) -> (b -> Bool) -> [a] -> [a]
 filterBy f filt l = map snd $ filter (\(fe, _) -> filt fe) $ zip (map f l) l
+
+fromRight :: Either a b -> b
+fromRight (Right a) = a
+
+decodeMaybe :: (S.Serialize a) => B.ByteString -> Maybe a
+decodeMaybe b = case (S.decode b) of 
+  Right a -> Just a
+  Left _ -> Nothing
+
+nub' :: (Eq a, Ord a) => [a] -> [a]
+nub' xs = map fst $ M.toList . M.fromList $ zip xs (repeat ())
+
+(<++>) a b = (++) <$> a <*> b

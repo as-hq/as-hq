@@ -12,8 +12,12 @@ import AS.Types.Cell
 
 import GHC.Generics
 import Data.Aeson
+import Data.Serialize (Serialize)
 
 data ASWindow = Window {windowSheetId :: ASSheetId, topLeft :: Coord, bottomRight :: Coord} deriving (Show,Read,Eq,Generic)
+
+----------------------------------------------------------------------------------------------------------------------------------------------
+-- Instances
 
 instance ToJSON ASWindow where
   toJSON (Window sid (c,r) (c2, r2)) = object ["tag" .= ("window" :: String),
@@ -32,6 +36,8 @@ instance FromJSON ASWindow where
     sid <- v .: "sheetId"
     return $ Window sid tl' br'
   parseJSON _          = fail "client message JSON attributes missing"
+
+instance Serialize ASWindow
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Helpers

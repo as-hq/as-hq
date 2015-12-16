@@ -9,6 +9,7 @@ import Data.Aeson
 
 import Data.Serialize (Serialize)
 import Data.Aeson.Types (Parser)
+import Data.Serialize (Serialize)
 import Data.Maybe
 import qualified Data.Map as M
 import Control.Applicative
@@ -52,7 +53,8 @@ emptyProps = ASRowColProps M.empty
 -- removeProp :: RowColPropType -> ASRowColProps -> ASRowColProps
 -- removeProp pt (ASRowColProps m) = ASRowColProps $ M.delete pt m
 
-
+----------------------------------------------------------------------------------------------------------------------------------------------
+-- Instances
 
 -- Just to get this to compile. We're never actually gettting passed these from frontend. 
 instance FromJSON ASRowColProps where
@@ -68,3 +70,9 @@ instance ToJSON RowColType
 
 instance FromJSON RowCol
 instance ToJSON RowCol
+
+instance Serialize RowColType
+instance Serialize RowColProp
+instance Serialize RowCol
+instance Serialize ASRowColProps
+instance Serialize RowColPropType

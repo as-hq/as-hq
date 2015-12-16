@@ -25,7 +25,7 @@ import Control.Concurrent
 -- | Bloomberg(x) in java -> produces json with stream specs -> converted to Stream tag, kickoff daemon
 
 evalEndware :: MVar ServerState -> [ASCell] -> CommitSource -> [ASCell] -> EvalContext -> EitherTExec [ASCell]
-evalEndware state finalCells (sid, uid) origCells ctx = do 
+evalEndware state finalCells (CommitSource sid uid) origCells ctx = do 
   conn <- lift $ dbConn <$> readMVar state
   mapM_ (\c -> lift $ DM.possiblyCreateDaemon state uid c) origCells
   let cells1 = changeExcelExpressions finalCells

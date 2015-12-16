@@ -18,6 +18,8 @@ import qualified Data.Vector as V
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.Either
 
+import Database.Redis (Connection)
+
 -- | Convert Either EError EEntity ->  Formatted ASValue; lift from Excel to AS
 -- | In the case of an error, return a ValueExcelError
 convertEither :: Context -> EResult -> Formatted CompositeValue
@@ -50,7 +52,6 @@ evalExcel s context = do
     SimpleFormula formula -> L.evalFormula context formula
 
 -- | Entire Excel eval; parse, evaluate, cast to ASValue
-evaluate :: String -> ASIndex -> ValMap -> EitherTExec (Formatted CompositeValue)
-evaluate s idx mp = right $ convertEither context $ evalExcel s context
-  where
-    context = Context mp idx
+evaluate :: Connection -> String -> ASIndex -> ValMap -> EitherTExec (Formatted CompositeValue)
+evaluate conn s idx mp = right $ convertEither context $ evalExcel s context
+  where context = Context mp idx conn

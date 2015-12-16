@@ -1,6 +1,7 @@
 module AS.Eval.CondFormat (conditionallyFormatCells) where
 
 import AS.DB.API as DB
+import AS.DB.Eval
 
 import AS.Types.Cell
 import AS.Types.Messages
@@ -48,9 +49,9 @@ meetsCondition conn sid ctx xp@(Expression str lang) v = do
   let dummyLoc = Index sid (-1,-1) -- #needsrefactor sucks. evaluateLanguage should take in a Maybe index. Until then 
       valMap = contextMap ctx
       deps = getDependencies sid xp -- #needsrefactor will compress these all to indices
-  depInds <- concat <$> mapM refToIndices deps   
+  depInds <- concat <$> mapM (refToIndices conn) deps   
   let depIndsToGet = filter (not . (flip M.member) valMap) depInds
-  cells <- lift $ DB.getPossiblyBlankCells depIndsToGet
+  cells <- lift $ DB.getPossiblyBlankCells conn depIndsToGet
   let valMap' = insertMultiple valMap depIndsToGet cells
       ctx' = ctx { contextMap = valMap' }
   (Formatted res _) <- evaluateLanguage conn dummyLoc ctx' xp
