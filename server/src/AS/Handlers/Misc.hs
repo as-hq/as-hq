@@ -224,8 +224,8 @@ handleBugReport uc (PayloadText report) = do
 handleSetCondFormatRules :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
 handleSetCondFormatRules uc state (PayloadCondFormat rules) = do
   conn <- dbConn <$> readMVar state
-  let src  = userCommitSource uc
-      sid = fst src
+  let src = userCommitSource uc
+      sid = srcSheetId src
   oldRules <- DB.getCondFormattingRules conn sid
   let symDiff = (union rules oldRules) \\ (intersect rules oldRules)
       locs = concatMap rangeToIndices $ concatMap cellLocs symDiff

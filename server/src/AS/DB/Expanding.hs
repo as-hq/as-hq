@@ -9,13 +9,14 @@ import AS.DB.API as DB
 import AS.DB.Internal as DI
 import AS.Logging
 
-import Database.Redis hiding (time)
+import Data.List (nub)
+import Data.Maybe (catMaybes, fromJust)
 import qualified Data.Text as T
 import qualified Data.List as L
 import qualified Data.ByteString.Char8 as B
-import Data.List (nub)
-import Data.Maybe (catMaybes, fromJust)
+import qualified Data.Serialize as S
 
+import Database.Redis hiding (time)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Trans.Either
 import Control.Monad.Trans.Class
@@ -28,25 +29,23 @@ import Control.Concurrent
 -- coupling
 
 setDescriptor :: Connection -> RangeDescriptor -> IO ()
-setDescriptor conn d = 
-  let rangeKey        = descriptorKey d 
-      rangeKey'       = B.pack . show2 $ rangeKey
-      sheetRangesKey  = makeSheetRangesKey . rangeKeyToSheetId $ rangeKey
-      rangeDescriptor = B.pack $ show d
+setDescriptor conn descriptor = 
+  let rangeKey        = descriptorKey descriptor 
+      rangeKey'       = toRedisFormat . RedisRangeKey $ rangeKey
+      sheetRangesKey  = toRedisFormat . SheetRangesKey . rangeKeyToSheetId $ rangeKey
   in runRedis conn $ do
-      liftIO $ printWithTime $ "setting list locations for key: " ++ (show2 rangeKey)
-      set rangeKey' rangeDescriptor
+      set rangeKey' (S.encode descriptor)
       sadd sheetRangesKey [rangeKey']
       return ()
 
 deleteDescriptor :: Connection -> RangeDescriptor -> IO ()
 deleteDescriptor conn d = 
-  let key            = descriptorKey d
-      key'           = B.pack . show2 $ key
-      sheetRangesKey = makeSheetRangesKey . rangeKeyToSheetId $ key
+  let rangeKey       = descriptorKey d
+      rangeKey'      = toRedisFormat . RedisRangeKey $ rangeKey 
+      sheetRangesKey = toRedisFormat . SheetRangesKey . rangeKeyToSheetId $ rangeKey
   in runRedis conn $ do
-    del [key']
-    srem sheetRangesKey [key']
+    del [rangeKey']
+    srem sheetRangesKey [rangeKey']
     return ()
 
 -- | Takes in a cell that's tied to a list. Decouples all the cells in that list from that

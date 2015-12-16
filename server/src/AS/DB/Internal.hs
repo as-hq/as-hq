@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings, GADTs, DataKinds #-}
+
 module AS.DB.Internal where
 
 import Prelude
@@ -85,9 +87,13 @@ getKeysByPattern conn pattern = runRedis conn $ fromRight <$> keys (BC.pack patt
 
 getRangeKeysInSheet :: Connection -> ASSheetId -> IO [RangeKey]
 getRangeKeysInSheet conn sid = runRedis conn $ do
-  Right ks <- fromRight <$> smembers . toRedisFormat $ SheetRangesKey sid
+  Right ks <- smembers . toRedisFormat $ SheetRangesKey sid
   liftIO $ printObj "GOT RANGEKEYS IN SHEET: " ks
-  return $ map ((\(RedisRangeKey k) -> k) . fromRedisFormat) ks
+  return $ map (unpackKey . fromRedis) ks
+    where
+      fromRedis k = read2 (BC.unpack k) :: RedisKey RangeType
+      unpackKey :: RedisKey RangeType -> RangeKey
+      unpackKey (RedisRangeKey k) = k
 
 toDecoupled :: ASCell -> ASCell
 toDecoupled (Cell l (Coupled _ lang _ _) v ts) = Cell l e' v ts

@@ -87,11 +87,13 @@ refToIndicesWithContextBeforeEval conn (EvalContext mp _ _) (PointerRef p) = do
 
 getEvalHeader :: Connection -> ASSheetId -> ASLanguage -> IO String
 getEvalHeader conn sid lang = runRedis conn $ do 
-  msg <- get $ makeEvalHeaderKey sid lang
+  msg <- get . toRedisFormat $ EvalHeaderKey sid lang
   return $ case msg of 
     Right (Just msg') -> BC.unpack msg'
     Right Nothing -> ""
     Left _            -> error "Failed to retrieve eval header"
 
 setEvalHeader :: Connection -> ASSheetId -> ASLanguage -> String -> IO ()
-setEvalHeader conn sid lang xp = runRedis conn (set (makeEvalHeaderKey sid lang) (BC.pack xp)) >> return ()
+setEvalHeader conn sid lang xp = runRedis conn $ do
+  set (toRedisFormat $ EvalHeaderKey sid lang) (BC.pack xp)
+  return ()

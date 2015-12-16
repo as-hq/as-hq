@@ -124,8 +124,10 @@ deleteLocsPropagated conn locs descs = do
 -- | Update the DB so that there's always a source of truth (ie we will initEval undo to all relevant users)
 undo :: Connection -> CommitSource -> IO (Maybe ASCommit)
 undo conn src = do
+  let pushKey = toRedisFormat . PushCommitKey $ src
+      popKey = toRedisFormat . PopCommitKey $ src
   commit <- runRedis conn $ do
-    Right commit <- rpoplpush (makePushKey src) (makePopKey src)
+    Right commit <- rpoplpush pushKey popKey
     return $ decodeMaybe =<< commit
   case commit of
     Nothing -> return Nothing
@@ -136,11 +138,13 @@ undo conn src = do
 
 redo :: Connection -> CommitSource -> IO (Maybe ASCommit)
 redo conn src = do
+  let pushKey = toRedisFormat . PushCommitKey $ src
+      popKey = toRedisFormat . PopCommitKey $ src
   commit <- runRedis conn $ do
-    Right result <- lpop (makePopKey src)
+    Right result <- lpop popKey
     case result of
       Just commit -> do
-        rpush (makePushKey src) [commit]
+        rpush pushKey [commit]
         return $ decodeMaybe commit
       _ -> return Nothing
   case commit of
@@ -151,22 +155,22 @@ redo conn src = do
       return $ Just c
 
 pushCommit :: Connection -> ASCommit -> CommitSource -> IO ()
-pushCommit conn c src = do
-  runRedis conn $ do
-    TxSuccess _ <- multiExec $ do
-      rpush (makePushKey src) [S.encode c]
-      del [makePopKey src]
-    return ()
+pushCommit conn c src = runRedis conn $ do
+  let pushKey = toRedisFormat . PushCommitKey $ src
+      popKey = toRedisFormat . PopCommitKey $ src
+  TxSuccess _ <- multiExec $ do
+    rpush pushKey [S.encode c]
+    del [popKey]
+  return ()
 
 -- Each commit source has a temp commit, used for decouple warnings
 -- Key: commitSource + "tempcommit", value: ASCommit bytestring
 getTempCommit :: Connection -> CommitSource -> IO (Maybe ASCommit)
 getTempCommit conn src = do 
-  let commitKey = makeTempCommitKey src
-  maybeBStr <- runRedis conn $ fromRight <$> get commitKey
+  maybeBStr <- runRedis conn $ fromRight <$> get (toRedisFormat . TempCommitKey $ src)
   return $ decodeMaybe =<< maybeBStr
   
 setTempCommit :: Connection  -> ASCommit -> CommitSource -> IO ()
 setTempCommit conn c src = do 
-  let commitSource = makeTempCommitKey src
-  runRedis conn $ set commitSource (S.encode c) >> return ()
+  runRedis conn $ set (toRedisFormat . TempCommitKey $ src) (S.encode c) 
+  return ()

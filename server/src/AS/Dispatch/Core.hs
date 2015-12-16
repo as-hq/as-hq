@@ -61,8 +61,10 @@ type PureEvalTransform = EvalContext -> EvalContext
 -- Debugging
 
 testDispatch :: MVar ServerState -> ASLanguage -> Coord -> String -> IO ASServerMessage
-testDispatch state lang crd str = runDispatchCycle state [Cell (Index sid crd) (Expression str Python) NoValue emptyProps] DescendantsWithParent (sid, uid)
+testDispatch state lang crd str = runDispatchCycle state [cell] DescendantsWithParent src
   where 
+    cell = Cell (Index sid crd) (Expression str Python) NoValue emptyProps
+    src = CommitSource sid uid
     sid = T.pack "sheetid"
     uid = T.pack "userid"
 

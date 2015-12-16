@@ -106,7 +106,7 @@ getPossiblyBlankCell :: Connection -> ASIndex -> IO ASCell
 getPossiblyBlankCell conn loc = head <$> getPossiblyBlankCells conn [loc]
 
 getCellsInSheet :: Connection -> ASSheetId -> IO [ASCell]
-getCellsInSheet conn sid = getCellsByKeyPattern conn $ BC.pack $ "*" ++ (T.unpack sid) ++ "*"
+getCellsInSheet conn sid = getCellsByKeyPattern conn $ "*" ++ (T.unpack sid) ++ "*"
 
 getAllCells :: Connection -> IO [ASCell]
 getAllCells conn = getCellsByKeyPattern conn "*"
@@ -121,7 +121,7 @@ deleteLocsInSheet conn sid = runRedis conn $ do
   del locKeys
   return ()
 
-getCellsByKeyPattern :: Connection -> B.ByteString -> IO [ASCell]
+getCellsByKeyPattern :: Connection -> String -> IO [ASCell]
 getCellsByKeyPattern conn pattern = do
   ks <- DI.getKeysByPattern conn pattern
   let locs = catMaybes $ map readLoc ks
@@ -179,7 +179,7 @@ fatCellsInRange conn rng = do
 
 getRangeDescriptor :: Connection -> RangeKey -> IO (Maybe RangeDescriptor)
 getRangeDescriptor conn key = runRedis conn $ do 
-  Right desc <- get (BC.pack . show2 $ key)
+  Right desc <- get . toRedisFormat $ RedisRangeKey key
   return $ DI.bStrToRangeDescriptor desc
 
 getRangeDescriptorsInSheet :: Connection -> ASSheetId -> IO [RangeDescriptor]
@@ -266,53 +266,46 @@ getWorkbook conn name = do
             Left _   -> return Nothing
 
 getAllWorkbooks :: Connection -> IO [ASWorkbook]
-getAllWorkbooks conn = do
-    runRedis conn $ do
-        Right wbKeys <- smembers allWorkbooksKey
-        wbs <- mapM get wbKeys
-        return $ map (\(Right (Just w)) -> read (BC.unpack w) :: ASWorkbook) wbs
+getAllWorkbooks conn = runRedis conn $ do
+  Right wbKeys <- smembers . toRedisFormat $ AllWorkbooksKey
+  wbs <- mapM get wbKeys
+  return $ map (\(Right (Just w)) -> read (BC.unpack w) :: ASWorkbook) wbs
 
 setWorkbook :: Connection -> ASWorkbook -> IO ()
-setWorkbook conn wb = do
-    runRedis conn $ do
-        let workbookKey = makeWorkbookKey . workbookName $ wb
-        TxSuccess _ <- multiExec $ do
-            set workbookKey (BC.pack . show $ wb)  -- set the workbook as key-value
-            sadd allWorkbooksKey [workbookKey]  -- add the workbook key to the set of all sheets
-        return ()
+setWorkbook conn wb = runRedis conn $ do
+  let workbookKey = toRedisFormat . WorkbookKey . workbookName $ wb
+  TxSuccess _ <- multiExec $ do
+      set workbookKey (BC.pack . show $ wb)  -- set the workbook as key-value
+      sadd (toRedisFormat AllWorkbooksKey) [workbookKey]  -- add the workbook key to the set of all sheets
+  return ()
 
 workbookExists :: Connection -> WorkbookName -> IO Bool
-workbookExists conn wName = do
-  runRedis conn $ do
-    Right result <- exists $ makeWorkbookKey wName
-    return result
+workbookExists conn wName = runRedis conn $ do
+  Right result <- exists . toRedisFormat $ WorkbookKey wName
+  return result
 
 -- only removes the workbook, not contained sheets
 deleteWorkbook :: Connection -> WorkbookName -> IO ()
-deleteWorkbook conn name = do
-    runRedis conn $ do
-        let workbookKey = makeWorkbookKey name
-        multiExec $ do
-          del [workbookKey]
-          srem allWorkbooksKey [workbookKey]
-        return ()
+deleteWorkbook conn name = runRedis conn $ do
+  let workbookKey = toRedisFormat $ WorkbookKey name
+  multiExec $ do
+    del [workbookKey]
+    srem (toRedisFormat AllWorkbooksKey) [workbookKey]
+  return ()
 
 ----------------------------------------------------------------------------------------------------------------------
 -- Raw sheets
 
 getSheet :: Connection -> ASSheetId -> IO (Maybe ASSheet)
-getSheet conn sid = do
-    runRedis conn $ do
-        msheet <- get $ makeSheetKey sid
-        case msheet of
-            Right sheet -> return $ DI.bStrToSheet sheet
-            Left _      -> return Nothing
+getSheet conn sid = runRedis conn $ do
+  Right sheet <- get . toRedisFormat $ SheetKey sid
+  return $ DI.bStrToSheet sheet
 
 getAllSheets :: Connection -> IO [ASSheet]
 getAllSheets conn = 
   let readSheet (Right (Just s)) = read (BC.unpack s) :: ASSheet
   in runRedis conn $ do
-    Right sheetKeys <- smembers allSheetsKey
+    Right sheetKeys <- smembers (toRedisFormat AllSheetsKey)
     sheets <- mapM get sheetKeys
     return $ map readSheet sheets
 
@@ -333,10 +326,10 @@ getUniqueSheetName conn = do
 setSheet :: Connection -> ASSheet -> IO ()
 setSheet conn sheet = do
     runRedis conn $ do
-        let sheetKey = makeSheetKey . sheetId $ sheet
+        let sheetKey = toRedisFormat . SheetKey . sheetId $ sheet
         TxSuccess _ <- multiExec $ do
             set sheetKey (BC.pack . show $ sheet)  -- set the sheet as key-value
-            sadd allSheetsKey [sheetKey]  -- add the sheet key to the set of all sheets
+            sadd (toRedisFormat AllSheetsKey) [sheetKey]  -- add the sheet key to the set of all sheets
         return ()
 
 clearSheet :: Connection -> ASSheetId -> IO ()
@@ -349,9 +342,9 @@ clearSheet conn sid =
       poppedKeys = DI.getKeysInSheetByType conn PopCommitType sid
       lastMsgKeys = DI.getKeysInSheetByType conn LastMessageType sid
   in runRedis conn $ do
-    otherKeys <- evalHeaderKeys <++> rangeKeys <++> pushedKeys <++> lastMsgKeys
+    otherKeys <- liftIO $ (evalHeaderKeys ++) <$> rangeKeys <++> pushedKeys <++> lastMsgKeys
     del $ sheetRangesKey : cfRulesKey : otherKeys
-    deleteLocsInSheet conn sid
+    liftIO $ deleteLocsInSheet conn sid
   -- TODO: also clear undo, redo, and last message (for Ctrl+Y) (Alex 11/20)
 
 ----------------------------------------------------------------------------------------------------------------------

@@ -68,13 +68,14 @@ indicesToGraphReadInput = map IndexInput
 
 msgPartDelimiter = "`" -- TODO: should require real parsing instead of weird char strings
 relationDelimiter = "&"
+keyPartDelimiter :: String
 keyPartDelimiter = "?"
 
 -- TODO: should require real parsing instead of never-used unicode chars at some point
 --cellDelimiter = '©'
 --exprDelimiter = '®'
 refDelimiter = '/'
-keyTypeSeparator = '~'
+keyTypeSeparator = "~"
 
 -- TODO: hide this on export
 splitBy :: (Eq a) => a -> [a] -> [[a]]
@@ -225,32 +226,32 @@ instance Show2 (RedisKey a) where
     SheetRangesKey sid      -> (keyPrefix SheetRangesType) ++ T.unpack sid
     SheetKey sid            -> (keyPrefix SheetType) ++ T.unpack sid
     WorkbookKey wname       -> (keyPrefix WorkbookType) ++ wname
-    EvalHeaderKey sid lang  -> (keyPrefix EvalHeaderType) ++ (T.unpack sid) ++ keyPartDelimiter:(show lang)
+    EvalHeaderKey sid lang  -> (keyPrefix EvalHeaderType) ++ (T.unpack sid) ++ keyPartDelimiter ++ (show lang)
     TempCommitKey c         -> (keyPrefix TempCommitType) ++ show c
     PushCommitKey c         -> (keyPrefix PushCommitType) ++ show c
     PopCommitKey c          -> (keyPrefix PopCommitType) ++ show c
     LastMessageKey c        -> (keyPrefix LastMessageType) ++ show c
     CFRulesKey sid          -> (keyPrefix CFRulesType) ++ T.unpack sid
-    RCPropsKey sid rct idx  -> (keyPrefix RCPropsType) ++ (T.unpack sid) ++ keyPartDelimiter:(show rct) ++ keyPartDelimiter:(show idx) -- #refactor this show
+    RCPropsKey sid rct idx  -> (keyPrefix RCPropsType) ++ (T.unpack sid) ++ keyPartDelimiter ++ (show rct) ++ keyPartDelimiter ++ (show idx) -- #refactor this show
     AllWorkbooksKey         -> keyPrefix AllWorkbooksType
     AllSheetsKey            -> keyPrefix AllSheetsType
     VolatileLocsKey         -> keyPrefix VolatileLocsType
-    RedisRangeKey (RangeKey idx dims) -> (keyPrefix RangeType) ++ (show2 idx) ++ keyPartDelimiter:(show2 dims)
+    RedisRangeKey (RangeKey idx dims) -> (keyPrefix RangeType) ++ (show2 idx) ++ keyPartDelimiter ++ (show2 dims)
 
--- GADTs give us value-dependent instances!
+-- value-dependent instances mothafucka!
 instance Read2 (RedisKey RangeType) where
   read2 s = RedisRangeKey rkey
     where 
-      [typeStr, keyStr] = splitBy keyTypeSeparator s
-      [idxStr, dimsStr] = splitBy keyPartDelimiter keyStr
+      [typeStr, keyStr] = splitOn keyTypeSeparator s
+      [idxStr, dimsStr] = splitOn keyPartDelimiter keyStr
       rkey = case (read typeStr :: RedisKeyType) of 
         RangeType -> RangeKey (read2 idxStr :: ASIndex) (read2 dimsStr :: Dimensions)
 
 instance Show CommitSource where
-  show (CommitSource sid uid) = (T.unpack sid) ++ keyPartDelimiter:(T.unpack uid)
+  show (CommitSource sid uid) = (T.unpack sid) ++ keyPartDelimiter ++ (T.unpack uid)
 
 keyPrefix :: RedisKeyType -> String
-keyPrefix kt = (show kt) ++ keyTypeSeparator:[]
+keyPrefix kt = (show kt) ++ keyTypeSeparator
 
 keyPattern :: RedisKeyType -> String
 keyPattern kt = (keyPrefix kt) ++ "*" 
@@ -259,14 +260,11 @@ keyPatternBySheet :: RedisKeyType -> ASSheetId -> String
 keyPatternBySheet kt sid = 
   let sid' = T.unpack sid 
   in (keyPrefix kt) ++ case kt of 
-    TempCommitType -> sid' ++ "*"
-    PushCommitType -> sid' ++ "*"
-    PopCommitType -> sid' ++ "*"
+    TempCommitType  -> sid' ++ "*"
+    PushCommitType  -> sid' ++ "*"
+    PopCommitType   -> sid' ++ "*"
     LastMessageType -> sid' ++ "*"
-    RCPropsType -> sid' ++ "*"
+    RCPropsType     -> sid' ++ "*"
 
 toRedisFormat :: RedisKey a -> B.ByteString
 toRedisFormat = BC.pack . show2
-
-fromRedisFormat :: (Read2 (RedisKey a)) => B.ByteString -> RedisKey a
-fromRedisFormat = read2 . BC.unpack
