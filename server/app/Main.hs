@@ -62,6 +62,7 @@ main = R.withEmbeddedR R.defaultConfig $ do
   (conn, ports, states) <- initApp
   G.recompute conn
   putStrLn "RECOMPUTED DAG"
+
   if isDebug -- set in Settings.hs
     then initDebug conn (head states)
     else return ()

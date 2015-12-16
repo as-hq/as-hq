@@ -24,10 +24,10 @@ handleImport :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
 handleImport uc state msg = return () -- TODO
 
 -- Simply update the DB with the CSV data, and do a "trivial" parsing eval. No propagation/dispatch for an initial import.
--- All cells created will have the default language passed in
+-- Frontend already put the file in the static folder, and all cells created will have the default language passed in
 handleCSVImport :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
 handleCSVImport uc state (PayloadCSV ind lang s) = do 
-  csvData <- BL.readFile s
+  csvData <- BL.readFile $ "static/" ++ s
   conn <- dbConn <$> readMVar state
   let src = userCommitSource uc
   let decoded = CSV.decode CSV.NoHeader csvData :: Either String (V.Vector (V.Vector String))
@@ -65,10 +65,10 @@ toList2D :: V.Vector (V.Vector a) -> [a]
 toList2D = V.toList . V.concat . V.toList 
 
 -- Given a language and CSV data, produce an ASValue by trivial parsing (no eval)
--- An error in parsing any individual value becomes a ValueError
+-- If parsing ever returns an expanding cell, return a ValueError. If parsing normally didn't work, return a ValueS.
 csvValue :: ASLanguage -> String -> ASValue
 csvValue lang s = case PR.parseValue lang s of
-  Left e -> ValueError "Couldn't parse value" "CSVParse"
+  Left e -> ValueS s
   Right (Expanding _) -> ValueError "Couldn't parse value" "CSVParse"
   Right (CellValue v) -> v
 

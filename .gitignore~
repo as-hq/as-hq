@@ -29,6 +29,5 @@ server/static/images/*
 server/static/logs/*
 !server/static/images/dummy
 !server/static/dummy
-!server/static/file-input-handler.py
 
 graph-database/server

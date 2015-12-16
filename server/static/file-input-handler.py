@@ -4,12 +4,12 @@ import cgi
 
 # If connected to the server, address = ip address of server
 # localhost configs: change serverAddress to localhost
-serverAddress = 'localhost'
+serverAddress = '18.102.225.27'
 serverPort = '8080'
 fileHandlingPort = 9000
 
 # Very simple server that saves to the current folder (static)
-# Handles file uploads
+# Handles file uploads, should also deal with multiple files/parts
 class FileInputHandler(BaseHTTPRequestHandler):
   def do_POST(self):
     print "got post request"
