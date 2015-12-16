@@ -38,6 +38,7 @@ export default class ASMenuBar extends React.Component<{}, ASMenuBarProps, ASMen
             title={menu.title}
             menuItems={menu.menuItems}
             onClick={this._handleMenuClick(idx).bind(this)}
+            onHover={this._handleMenuHover(idx).bind(this)}
             onRequestClose={this._handleMenuRequestClose(idx).bind(this)} />
         )}
       </div>
@@ -50,6 +51,16 @@ export default class ASMenuBar extends React.Component<{}, ASMenuBarProps, ASMen
       this.setState({
         currentMenuIdx: idx
       });
+    };
+  }
+
+  _handleMenuHover(idx: number): Callback {
+    return () => {
+      if (this.state.currentMenuIdx !== -1) {
+        this.setState({
+          currentMenuIdx: idx
+        });
+      }
     };
   }
 

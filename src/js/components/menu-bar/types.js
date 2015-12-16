@@ -36,6 +36,7 @@ export type ASMenuProps = {
   title: string;
   menuItems: Array<MenuItemSpec>;
   onClick: Callback;
+  onHover: Callback;
   onRequestClose: Callback;
 };
 

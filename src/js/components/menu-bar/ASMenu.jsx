@@ -17,13 +17,14 @@ import ReactDOM from 'react-dom';
 import U from '../../AS/Util';
 import _Styles from '../../styles/menu-bar/ASMenuBar';
 
-import ASMenuHeaderButton from './ASMenuHeaderButton.jsx';
+import {FlatButton} from 'material-ui';
 
 import Menu from 'material-ui/lib/menus/menu';
 import MenuItem from 'material-ui/lib/menus/menu-item';
 import {Popover} from 'material-ui';
 
 const CONST_PROPS = {
+  enclosingDivStyle: { display: 'inline-block' },
   anchorOrigin: { horizontal: 'left', vertical: 'bottom' },
   menuProps: { desktop: true }
 };
@@ -50,15 +51,17 @@ export default class ASMenu extends React.Component<{}, ASMenuProps, ASMenuState
     let {anchor} = this.state;
 
     return (
-      <div>
-        <ASMenuHeaderButton
-          title={title}
-          onTouchTap={this._handleMenuClick} />
+      <div style={CONST_PROPS.enclosingDivStyle} >
+        <FlatButton
+          label={title}
+          style={_Styles.menu}
+          onTouchTap={this._handleMenuClick.bind(this)}
+          onMouseEnter={this._handleMenuHover.bind(this)} />
         <Popover
           anchorOrigin={CONST_PROPS.anchorOrigin}
           anchorEl={anchor}
           open={open}
-          onRequestClose={this._handleMenuRequestClose} >
+          onRequestClose={this._handleMenuRequestClose.bind(this)} >
           <Menu
             style={_Styles.menuDropRoot}
             {...CONST_PROPS.menuProps} >
@@ -106,6 +109,10 @@ export default class ASMenu extends React.Component<{}, ASMenuProps, ASMenuState
 
   _handleMenuClick() {
     this.props.onClick();
+  }
+
+  _handleMenuHover() {
+    this.props.onHover();
   }
 
   _handleMenuItemClick(menuItem: SimpleItemSpec): Callback {

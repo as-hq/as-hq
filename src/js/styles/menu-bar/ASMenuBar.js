@@ -3,12 +3,14 @@
 export default {
   root: {
     width: '100%',
-    height: '36px'
+    height: '36px',
+    backgroundColor: '#333333'
   },
 
   menu: {
-    minWidth: '80px',
-    width: '80px',
+    display: 'inline-block',
+    minWidth: '60px',
+    width: '60px',
     height: '36px'
   },
 

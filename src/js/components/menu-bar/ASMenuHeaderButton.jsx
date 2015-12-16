@@ -6,18 +6,21 @@ import type {
 
 import React from 'react';
 
+import {FlatButton} from 'material-ui';
+
 import _Styles from '../../styles/menu-bar/ASMenuBar';
 
-import ASButton from '../basic-controls/ASButton.jsx';
+// import ASButton from '../basic-controls/ASButton.jsx';
 
 export default class ASMenuHeaderButton extends React.Component<{}, ASMenuHeaderButtonProps, {}> {
   render(): React.Element {
-    let {title} = this.props;
+    let {title, ...etc} = this.props;
 
     return (
-      <ASButton
+      <FlatButton
         label={title}
-        style={_Styles.menu} />
+        style={_Styles.menu}
+        {...etc} />
     );
   }
 }
