@@ -11,7 +11,7 @@ import AS.Types.Sheets
 import AS.Types.Excel (indexToExcel)
 import AS.Types.Locations
 import AS.Types.Errors
-import AS.Types.Eval 
+import AS.Types.Eval
 import AS.Types.CellProps
 
 import GHC.Generics
@@ -114,8 +114,52 @@ data MutateType = InsertCol { insertColNum :: Int } | InsertRow { insertRowNum :
                   deriving (Show, Read, Eq, Generic)
 
 data CondFormatRule = CondFormatRule { cellLocs :: [ASRange],
-                                       condition :: ASExpression,
+                                       condition :: CondFormatCondition,
                                        condFormat :: CellProp } deriving (Show, Read, Generic, Eq)
+
+-- TODO: Timchu, 12/14/15. This is not complete! Date expressions are not online,
+-- nor are text expressions.
+data CondFormatCondition =
+    OneExpressionCondition { oneExpressionType :: OneExpressionType
+                           , oneExpression :: ASExpression }
+  | NoExpressionsCondition { noExpressionsType :: NoExpressionsType }
+--  | DateExpression { dateExpressionType :: DateExpressionType
+--                   , dateExpression  :: DateExpression }
+  | TwoExpressionsCondition { twoExpressionsType  :: TwoExpressionsType
+                  , expression1 ::ASExpression
+                  , expression2 :: ASExpression}
+   deriving (Show, Read, Generic, Eq)
+
+data OneExpressionType = CustomExpression | InequalityExpression {ineqExpression :: InequalityExpression}-- | TextExpression
+  deriving (Show, Read, Generic, Eq)
+
+data InequalityExpression = GreaterThan | Equals | Geq | Leq | LessThan | NotEquals
+  deriving (Show, Read, Generic, Eq)
+
+data NoExpressionsType = IsEmpty | IsNotEmpty
+  deriving (Show, Read, Generic, Eq)
+
+data DateExpressionType = DateIs  | DateIsBefore | DateIsAfter
+  deriving (Show, Read, Generic, Eq)
+
+data TwoExpressionsType = IsBetween | IsNotBetween
+  deriving (Show, Read, Generic, Eq)
+
+
+instance ToJSON CondFormatCondition
+instance FromJSON CondFormatCondition
+
+instance ToJSON OneExpressionType
+instance FromJSON OneExpressionType
+
+instance ToJSON NoExpressionsType
+instance FromJSON NoExpressionsType
+
+instance ToJSON TwoExpressionsType
+instance FromJSON TwoExpressionsType
+
+instance ToJSON InequalityExpression
+instance FromJSON InequalityExpression
 
 -- should get renamed
 data Direction = DirUp | DirDown | DirLeft | DirRight deriving (Show, Read, Eq, Generic)
