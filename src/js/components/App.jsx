@@ -4,6 +4,8 @@ import React, {PropTypes} from 'react';
 import ASActionBar from './ASActionBar.jsx';
 import ASTreeNav from './ASTreeNav.jsx';
 import ASEvaluationPane from './ASEvaluationPane.jsx';
+import ASTopBar from './ASTopBar.jsx';
+
 import {AppCanvas, LeftNav, Paper, Styles} from 'material-ui';
 import API from '../actions/ASApiActionCreators';
 import Constants from '../Constants';
@@ -64,6 +66,7 @@ export default React.createClass({
 
     return (
       <div style={{width:"100%",height:"100%"}} >
+        <ASTopBar />
         <ASActionBar
           toggleEvalHeader={this._toggleEvalHeader} />
         <div style={{width: '100%', height: '100%'}}>
