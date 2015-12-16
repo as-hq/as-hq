@@ -201,6 +201,7 @@ handleRepeat :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
 handleRepeat uc state (PayloadSelection range origin) = do
   conn <- dbConn <$> readMVar state
   ClientMessage lastAction lastPayload <- DB.getLastMessage conn (userCommitSource uc)
+  printObj "Got last thing for repeat: " (lastAction, lastPayload)
   case lastAction of
     Evaluate -> do
       let PayloadCL ((Cell l e v ts):[]) = lastPayload

@@ -20,6 +20,7 @@ import AS.Config.Paths (getImagesPath)
 import AS.Logging
 import AS.Util (getUniqueId, trace')
 
+import System.Directory (getCurrentDirectory)
 import Data.List (elem, transpose)
 
 import qualified Data.ByteString.Char8 as BC
@@ -49,6 +50,7 @@ import Control.Monad.Trans.Class
 import Control.Monad.Trans.Either
 
 type EvalCode = String
+type ASFilePath = String
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Exposed functions
@@ -56,11 +58,15 @@ type EvalCode = String
 -- Don't actually need the sheet id's as arguments right now. (Alex 11/15)
 evaluate :: String -> EvalCode -> EitherTExec CompositeValue
 evaluate _ ""  = return $ CellValue NoValue
-evaluate _ str = liftIO $ execOnString str (execR False)
+evaluate _ str = do
+  fp <- liftIO $ getCurrentDirectory 
+  liftIO $ execOnString str (execR fp False)
 
 evaluateRepl :: EvalCode -> EitherTExec CompositeValue
 evaluateRepl ""  = return $ CellValue NoValue
-evaluateRepl str = liftIO $ execOnString str (execR True)
+evaluateRepl str = do
+  fp <- liftIO $ getCurrentDirectory
+  liftIO $ execOnString str (execR fp True)
 
 evaluateHeader :: EvalCode -> EitherTExec CompositeValue
 evaluateHeader str = do 
@@ -82,14 +88,12 @@ execOnString str f = do
     "" -> return $ CellValue NoValue
     trimmed -> f trimmed
 
--- takes (isGlobalExecution, str)
+-- takes (current project dir, isGlobalExecution, str)
 -- change wd and then change back so that things like read.table will read from the static folder
-execR :: Bool -> EvalCode -> IO CompositeValue
-execR isGlobal s =
+execR :: ASFilePath -> Bool -> EvalCode -> IO CompositeValue
+execR fp isGlobal s =
   let whenCaught :: SomeException -> IO CompositeValue
-      whenCaught e = (R.runRegion $ castR =<< [r| setwd("../") |]) >> (return . CellValue $ ValueError (show e) "R error")
-      -- ^ #needsrefactor: should probably change it back to working directory, not just one directory back, if e.g. 
-      -- setwd() fails. 
+      whenCaught e = (R.runRegion $ castR =<< [r| setwd(fp_hs) |]) >> (return . CellValue $ ValueError (show e) "R error")
   in flip catch whenCaught $ R.runRegion $ castR =<< if isGlobal
     then [r| eval(parse(text=s_hs)) |]
     else [r| AS_LOCAL_ENV<-function(){setwd(paste(getwd(),"/static",sep="")); result = eval(parse(text=s_hs)); setwd("../"); result}; AS_LOCAL_EXEC<-AS_LOCAL_ENV(); AS_LOCAL_EXEC |]

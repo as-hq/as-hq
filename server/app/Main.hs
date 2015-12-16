@@ -94,11 +94,6 @@ initApp = do
 -- |  for debugging. Only called if isDebug is true.
 initDebug :: R.Connection -> MVar ServerState -> IO ()
 initDebug conn state = do
-  let idx = Index "FUCK_YOU_ID" (1,1)
-      rkey = RangeKey idx (Dimensions 5 2)
-      key = show2 $ RedisRangeKey rkey
-  putStrLn $ show2 (read2 key :: RedisKey RangeType)
-  DB.clearSheet conn "INIT_SHEET_ID"
   return ()
 
 application :: MVar ServerState -> WS.ServerApp

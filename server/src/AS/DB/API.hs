@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings, DataKinds, GADTs #-}
 
 module AS.DB.API where
 
@@ -414,42 +414,40 @@ getLastMessage conn src = runRedis conn $ do
 
 getCondFormattingRules :: Connection -> ASSheetId -> IO [CondFormatRule] 
 getCondFormattingRules conn sid = runRedis conn $ do 
-  msg <- get . toRedisFormat $ CFRulesKey sid
-  return $ case msg of 
-    Right (Just msg') -> read (BC.unpack msg')
-    Right Nothing     -> []
-    Left _            -> error "Failed to retrieve conditional formatting rules"
+  Right msg <- get . toRedisFormat $ CFRulesKey sid
+  case (decodeMaybe =<< msg) of 
+    Just rules -> return rules
+    Nothing -> return []
 
 setCondFormattingRules :: Connection -> ASSheetId -> [CondFormatRule] -> IO ()
-setCondFormattingRules conn sid rules = do
-  runRedis conn $ set (toRedisFormat $ CFRulesKey sid) (BC.pack $ show rules)
+setCondFormattingRules conn sid rules = runRedis conn $ do
+  set (toRedisFormat $ CFRulesKey sid) (S.encode rules)
   return ()
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Row/col getters/setters
 
--- #needsrefactor the keys here are horrendous. 
-
-getIndFromRowColPropsKey :: B.ByteString -> Int
-getIndFromRowColPropsKey = read . last . (splitOn "`") . BC.unpack
-
 -- TODO: eventually should extend to record generic row/col formats, like default font in the column, 
 -- rather than just its width. 
 getRowColProps :: Connection -> ASSheetId -> RP.RowColType -> Int -> IO (Maybe RP.ASRowColProps)
 getRowColProps conn sid rct ind  = runRedis conn $ do 
-  msg <- get . toRedisFormat $ RCPropsKey sid rct ind
-  return $ case msg of 
-    Right (Just msg') -> Just $ read $ BC.unpack msg'
-    Right Nothing     -> Nothing
-    Left _            -> error "Failed to retrieve row or column props"
+  Right msg <- get . toRedisFormat $ RCPropsKey sid rct ind
+  return $ decodeMaybe =<< msg
 
--- #needsrefactor the hard-coding, and the use of keys in hedis, are not great. 
+setRowColProps :: Connection -> ASSheetId -> RP.RowCol -> IO ()
+setRowColProps conn sid (RP.RowCol rct ind props) = do
+  runRedis conn $ set (toRedisFormat $ RCPropsKey sid rct ind) (S.encode props)
+  return ()
+
 getRowColsInSheet :: Connection -> ASSheetId -> IO [RP.RowCol]
 getRowColsInSheet conn sid = do 
-  mColKeys <- runRedis conn (keys $ BC.pack $ (show RP.ColumnType) ++ "PROPS" ++ (show sid) ++ "*")
-  mRowKeys <- runRedis conn (keys $ BC.pack $ (show RP.RowType) ++ "PROPS" ++ (show sid) ++ "*")
-  let colInds = either (error "Failed to retrieve eval header") (map getIndFromRowColPropsKey) mColKeys
-      rowInds = either (error "Failed to retrieve eval header") (map getIndFromRowColPropsKey) mRowKeys
+  let readKey k = read2 (BC.unpack k) :: RedisKey RCPropsType
+      extractInd :: RedisKey RCPropsType -> Int
+      extractInd (RCPropsKey _ _ ind) = ind
+  mColKeys <- fromRight <$> runRedis conn (keys $ BC.pack $ rcPropsKeyPattern sid RP.ColumnType)
+  mRowKeys <- fromRight <$> runRedis conn (keys $ BC.pack $ rcPropsKeyPattern sid RP.RowType)
+  let colInds = map (extractInd . readKey) mColKeys
+      rowInds = map (extractInd . readKey) mRowKeys
   colProps <- mapM (getRowColProps conn sid RP.ColumnType) colInds
   rowProps <- mapM (getRowColProps conn sid RP.RowType) rowInds
   let cols = map (\(x, Just y) -> RP.RowCol RP.ColumnType x y) $ filter (isJust . snd) $ zip colInds colProps
@@ -458,18 +456,8 @@ getRowColsInSheet conn sid = do
 
 deleteRowColsInSheet :: Connection -> ASSheetId -> IO ()
 deleteRowColsInSheet conn sid = do
-  mColKeys <- runRedis conn (keys $ BC.pack $ (show RP.ColumnType) ++ "PROPS" ++ (show sid) ++ "*")
-  mRowKeys <- runRedis conn (keys $ BC.pack $ (show RP.RowType) ++ "PROPS" ++ (show sid) ++ "*")
-  let colKeys = case mColKeys of
-                     Right ck' -> ck'
-                     Left _ -> error "Failed to retrieve row props in delete rowcols"
-      rowKeys = case mRowKeys of
-                     Right ck' -> ck'
-                     Left _ -> error "Failed to retrieve row props in delete rowcols"
+  colKeys <- fromRight <$> runRedis conn (keys $ BC.pack $ rcPropsKeyPattern sid RP.ColumnType)
+  rowKeys <- fromRight <$> runRedis conn (keys $ BC.pack $ rcPropsKeyPattern sid RP.RowType)
   runRedis conn $ del (colKeys ++ rowKeys)
-  return()
-
-setRowColProps :: Connection -> ASSheetId -> RP.RowCol -> IO ()
-setRowColProps conn sid (RP.RowCol rct ind props) = do
-  runRedis conn $ set (toRedisFormat $ RCPropsKey sid rct ind) (BC.pack $ show props)
   return ()
+

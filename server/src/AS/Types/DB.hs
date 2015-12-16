@@ -200,7 +200,7 @@ instance Show2 (RedisKey a) where
     PopCommitKey c          -> (keyPrefix PopCommitType) ++ show c
     LastMessageKey c        -> (keyPrefix LastMessageType) ++ show c
     CFRulesKey sid          -> (keyPrefix CFRulesType) ++ T.unpack sid
-    RCPropsKey sid rct idx  -> (keyPrefix RCPropsType) ++ (T.unpack sid) ++ keyPartDelimiter ++ (show rct) ++ keyPartDelimiter ++ (show idx) -- #refactor this show
+    RCPropsKey sid rct ind  -> (keyPrefix RCPropsType) ++ (T.unpack sid) ++ keyPartDelimiter ++ (show rct) ++ keyPartDelimiter ++ (show ind) -- #refactor this show
     AllWorkbooksKey         -> keyPrefix AllWorkbooksType
     AllSheetsKey            -> keyPrefix AllSheetsType
     VolatileLocsKey         -> keyPrefix VolatileLocsType
@@ -214,6 +214,15 @@ instance Read2 (RedisKey RangeType) where
       [idxStr, dimsStr] = splitOn keyPartDelimiter keyStr
       rkey = case (read typeStr :: RedisKeyType) of 
         RangeType -> RangeKey (read2 idxStr :: ASIndex) (read2 dimsStr :: Dimensions)
+
+instance Read2 (RedisKey RCPropsType) where
+    read2 s = RCPropsKey sid rct ind
+      where
+        [typeStr, keyStr] = splitOn keyTypeSeparator s
+        [sidStr, rctStr, indStr] = splitOn keyPartDelimiter keyStr
+        sid = T.pack sidStr
+        rct = read rctStr :: RowColType
+        ind = read indStr :: Int
 
 instance Show CommitSource where
   show (CommitSource sid uid) = (T.unpack sid) ++ keyPartDelimiter ++ (T.unpack uid)
@@ -232,7 +241,9 @@ keyPatternBySheet kt sid =
     PushCommitType  -> sid' ++ "*"
     PopCommitType   -> sid' ++ "*"
     LastMessageType -> sid' ++ "*"
-    RCPropsType     -> sid' ++ "*"
+
+rcPropsKeyPattern :: ASSheetId -> RowColType -> String
+rcPropsKeyPattern sid rct = (keyPrefix RCPropsType) ++ (T.unpack sid) ++ keyPartDelimiter ++ (show rct) ++ "*"
 
 toRedisFormat :: RedisKey a -> B.ByteString
 toRedisFormat = BC.pack . show2
