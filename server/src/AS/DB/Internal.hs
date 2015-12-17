@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings, GADTs, DataKinds #-}
+
 module AS.DB.Internal where
 
 import Prelude
@@ -57,13 +59,6 @@ cInfo = ConnInfo
     }
 
 ----------------------------------------------------------------------------------------------------------------------
--- FFI
-
-foreign import ccall unsafe "hiredis/redis_db.c getCells" c_getCells :: CString -> CInt -> IO (Ptr CString)
-foreign import ccall unsafe "hiredis/redis_db.c setCells" c_setCells :: CString -> CInt -> IO ()
-foreign import ccall unsafe "hiredis/redis_db.c clearSheet" c_clearSheet :: CString -> IO ()
-
-----------------------------------------------------------------------------------------------------------------------
 -- Private DB functions
 
 -- given "Untitled" and ["Untitled1", "Untitled2"], produces "Untitled3"
@@ -78,57 +73,27 @@ getUniquePrefixedName pref strs = pref ++ (show idx)
       [] -> 1
       _  -> (L.maximum idxs) + 1
 
-getCellsByKeys :: [B.ByteString] -> IO [Maybe ASCell]
-getCellsByKeys keys = getCellsByMessage msg num
-  where
-    msg      = B.concat $ [BC.pack "\"", internal, BC.pack "\"\NUL"]
-    internal = B.intercalate (BC.pack msgPartDelimiter) keys
-    num      = length keys
+getKeysByType :: Connection -> RedisKeyType -> IO [B.ByteString]
+getKeysByType conn = (getKeysByPattern conn) . keyPattern
 
--- takes a message and number of locations queried
-getCellsByMessage :: B.ByteString -> Int -> IO [Maybe ASCell]
-getCellsByMessage msg num = do
-  ptrCells <- BU.unsafeUseAsCString msg $ \str -> c_getCells str (fromIntegral num)
-  cCells   <- peekArray (fromIntegral num) ptrCells
-  res      <- mapM cToASCell cCells
-  --free ptrCells
-  return res
+getKeysInSheetByType :: Connection -> ASSheetId -> RedisKeyType -> IO [B.ByteString]
+getKeysInSheetByType conn sid kt = getKeysByPattern conn $ keyPatternBySheet kt sid
 
-getCellsByKeyPattern :: Connection -> String -> IO [ASCell]
-getCellsByKeyPattern conn pattern = runRedis conn $ do
-  Right locKeys <- keys . BC.pack $ pattern
-  catMaybes <$> (liftIO $ getCellsByKeys locKeys)
-
-setCellsByMessage :: B.ByteString -> Int -> IO ()
-setCellsByMessage msg num = BU.unsafeUseAsCString msg $ \lstr -> c_setCells lstr (fromIntegral num)
-
-deleteLocRedis :: ASIndex -> Redis ()
-deleteLocRedis loc = del [makeLocationKey loc] >> return ()
-
-getSheetLocsRedis :: ASSheetId -> Redis [B.ByteString]
-getSheetLocsRedis sheetid = do
-  Right keys <- smembers $ makeSheetSetKey sheetid
-  return keys
-
-deleteLocsInSheet :: ASSheetId -> IO ()
-deleteLocsInSheet sid = withCString (T.unpack sid) c_clearSheet
-
-cToASCell :: CString -> IO (Maybe ASCell)
-cToASCell str = do
-  str' <- peekCString str
-  let str'' = read ('"':str' ++ ['"']) -- Need to unescape the string (what's passed to Redis was escaped by Bytestring.show)
-  return $ case str'' of
-    "Nothing" -> Nothing
-    otherwise -> Just (read2 str'' :: ASCell)
+getKeysByPattern :: Connection -> String -> IO [B.ByteString]
+getKeysByPattern conn pattern = runRedis conn $ fromRight <$> keys (BC.pack pattern)
 
 ----------------------------------------------------------------------------------------------------------------------
 -- Fat cells
 
 getRangeKeysInSheet :: Connection -> ASSheetId -> IO [RangeKey]
 getRangeKeysInSheet conn sid = runRedis conn $ do
-  Right keys <- smembers $ makeSheetRangesKey sid
-  liftIO $ printObj "GOT RANGEKEYS IN SHEET: " keys
-  return $ map (\k -> read2 (BC.unpack k) :: RangeKey) keys
+  Right ks <- smembers . toRedisFormat $ SheetRangesKey sid
+  liftIO $ printObj "GOT RANGEKEYS IN SHEET: " ks
+  return $ map (unpackKey . fromRedis) ks
+    where
+      fromRedis k = read2 (BC.unpack k) :: RedisKey RangeType
+      unpackKey :: RedisKey RangeType -> RangeKey
+      unpackKey (RedisRangeKey k) = k
 
 toDecoupled :: ASCell -> ASCell
 toDecoupled (Cell l (Coupled _ lang _ _) v ts) = Cell l e' v ts
@@ -142,48 +107,7 @@ toUncoupled :: ASCell -> ASCell
 toUncoupled c@(Cell _ (Coupled xp lang _ _) _ _) = c { cellExpression = Expression xp lang }
 
 ----------------------------------------------------------------------------------------------------------------------
--- | ByteString utils
-
-toStrict2 :: BL.ByteString -> B.ByteString
-toStrict2 BLI.Empty = B.empty
-toStrict2 (BLI.Chunk c BLI.Empty) = c
-toStrict2 lb = BI.unsafeCreate len $ go lb
-  where
-    len = BLI.foldlChunks (\l sb -> l + B.length sb) 0 lb
-    go  BLI.Empty                   _   = return ()
-    go (BLI.Chunk (BI.PS fp s l) r) ptr =
-        withForeignPtr fp $ \p -> do
-            BI.memcpy ptr (p `plusPtr` s) (fromIntegral l)
-            go r (ptr `plusPtr` l)
-
-showB :: (BS.Show a) => a -> B.ByteString
-showB a = toStrict2 $ BL.snoc (BS.show $! a) (0::Word8)
-
-----------------------------------------------------------------------------------------------------------------------
--- Reading bytestrings
-
-bStrToASExpression :: Maybe B.ByteString -> Maybe ASExpression
-bStrToASExpression (Just b) = Just (read2 (BC.unpack b) :: ASExpression)
-bStrToASExpression Nothing = Nothing
-
-bStrToASValue :: Maybe B.ByteString -> Maybe ASValue
-bStrToASValue (Just b) = Just (read2 (BC.unpack b) :: ASValue)
-bStrToASValue Nothing = Nothing
-
-bStrToTags :: Maybe B.ByteString -> Maybe ASCellProps
-bStrToTags (Just b) = Just (read (BC.unpack b) :: ASCellProps)
-bStrToTags Nothing = Nothing
-
-maybeASCell :: (ASIndex, Maybe ASExpression, Maybe ASValue, Maybe ASCellProps) -> Maybe ASCell
-maybeASCell (l, Just e, Just v, Just tags) = Just $ Cell l e v tags
-maybeASCell _ = Nothing
-
-bStrToASIndex :: B.ByteString -> ASIndex
-bStrToASIndex b = (read2 (BC.unpack b) :: ASIndex)
-
-bStrToASCommit :: Maybe B.ByteString -> Maybe ASCommit
-bStrToASCommit (Just b) = Just (read (BC.unpack b) :: ASCommit)
-bStrToASCommit Nothing = Nothing
+-- DB conversions
 
 bStrToSheet :: Maybe B.ByteString -> Maybe ASSheet
 bStrToSheet (Just b) = Just (read (BC.unpack b) :: ASSheet)
@@ -192,16 +116,3 @@ bStrToSheet Nothing = Nothing
 bStrToWorkbook :: Maybe B.ByteString -> Maybe ASWorkbook
 bStrToWorkbook (Just b) = Just (read (BC.unpack b) :: ASWorkbook)
 bStrToWorkbook Nothing = Nothing
-
-bStrToASCell :: Maybe B.ByteString -> Maybe ASCell
-bStrToASCell Nothing = Nothing
-bStrToASCell (Just str) = Just (read2 (BC.unpack str) :: ASCell)
-
-bStrToRangeDescriptor :: Maybe B.ByteString -> Maybe RangeDescriptor
-bStrToRangeDescriptor Nothing = Nothing
-bStrToRangeDescriptor (Just str) = Just (read (BC.unpack str) :: RangeDescriptor)
-
-bStrToRangeKeys :: Maybe B.ByteString -> Maybe [RangeKey]
-bStrToRangeKeys Nothing = Nothing
-bStrToRangeKeys (Just str) = Just (read (BC.unpack str) :: [RangeKey])
-

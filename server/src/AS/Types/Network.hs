@@ -7,7 +7,7 @@ module AS.Types.Network
 
 import AS.Types.Sheets 
 import AS.Types.Locations
-import AS.Types.DB (CommitSource)
+import AS.Types.Commits
 import AS.Types.Messages
 
 import AS.Window
@@ -57,7 +57,7 @@ userSheetId :: ASUserClient -> ASSheetId
 userSheetId (UserClient _ _ (Window sid _ _) _) = sid
 
 userCommitSource :: ASUserClient -> CommitSource
-userCommitSource (UserClient uid _ (Window sid _ _) _) = (sid, uid)
+userCommitSource (UserClient uid _ (Window sid _ _) _) = CommitSource sid uid
 
 updateWindow :: ASWindow -> ASUserClient -> ASUserClient
 updateWindow w (UserClient uid conn _ sid) = UserClient uid conn w sid

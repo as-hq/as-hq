@@ -21,6 +21,7 @@ import AS.Types.Eval
 import AS.Types.DB
 
 import AS.Dispatch.Expanding        as DE
+import AS.DB.Eval
 import qualified AS.Eval.Core       as EC (evaluateLanguage)
 import qualified AS.DB.API          as DB
 import qualified AS.DB.Transaction  as DT
@@ -61,8 +62,10 @@ type PureEvalTransform = EvalContext -> EvalContext
 -- Debugging
 
 testDispatch :: MVar ServerState -> ASLanguage -> Coord -> String -> IO ASServerMessage
-testDispatch state lang crd str = runDispatchCycle state [Cell (Index sid crd) (Expression str Python) NoValue emptyProps] DescendantsWithParent (sid, uid)
-  where
+testDispatch state lang crd str = runDispatchCycle state [cell] DescendantsWithParent src id
+  where 
+    cell = Cell (Index sid crd) (Expression str Python) NoValue emptyProps
+    src = CommitSource sid uid
     sid = T.pack "sheetid"
     uid = T.pack "userid"
 
@@ -79,47 +82,10 @@ testDispatch state lang crd str = runDispatchCycle state [Cell (Index sid crd) (
 -- the only information we're really passed in from the cells is the locations and the expressions of
 -- the cells getting evaluated. We pull the rest from the DB.
 
--- || evalContextToCommit gives empty rowcols.
 
--- | Commit uses rowCols in sheet as both before and after rowcols.
--- TODO: timchu, 12/14/15. This could be refactored to split off didDecouple
--- and Commit. But we're not because of DB latency.
-evalContextToCommit :: EvalContext -> IO (ASCommit, Bool)
-evalContextToCommit (EvalContext mp cells ddiff) = do
-  mbcells <- DB.getCells (map cellLocation cells)
-  time <- getASTime
-  let cdiff   = CellDiff { beforeCells = (catMaybes mbcells), afterCells = cells}
-      rcdiff  = RowColDiff { beforeRowCols = [], afterRowCols = [] }
-      commit  = Commit rcdiff cdiff ddiff time
-      rd      = removedDescriptors ddiff
-      didDecouple = any isDecouplePair $ zip mbcells cells
-      -- determines whether to send a decouple message.
-      -- we send a decouple message if there are any decoupled, *visible* cells remaining on the spreadsheet.
-      -- i.e. deleting an entire range will not cause a decouple message, but deleting part of it will because 
-      -- decoupled cells remain visible on the sheet.
-      isDecouplePair (mbcell, acell) = case mbcell of 
-        Nothing -> False
-        Just bcell -> (isCoupled bcell) && (not $ isCoupled acell) && (not $ isBlank acell)
-  printWithTime $ "DEALING WITH DECOUPLING OF DESCRIPTORS " ++ (show rd)
-  return (commit, didDecouple)
-
-pushTempCommit :: Connection -> CommitSource -> ASCommit -> IO()
-pushTempCommit conn src commit = do
-  DT.setTempCommit conn commit src
-
-cautiouslyPushCommit :: Connection -> CommitSource -> Bool -> ASCommit -> IO()
-cautiouslyPushCommit conn src shouldDecouple commit =
-  if shouldDecouple
-    then pushTempCommit conn src commit
-    else DT.updateDBWithCommit conn src commit
-
-runDispatchCycle ::  MVar ServerState -> [ASCell] -> DescendantsSetting -> CommitSource -> IO ASServerMessage
-runDispatchCycle state cs descSetting src@(sid, _) =  do
-  flexibleRunDispatchCycle id state cs descSetting src
-
-flexibleRunDispatchCycle :: (ASCommit -> ASCommit) -> MVar ServerState -> [ASCell] -> DescendantsSetting -> CommitSource -> IO ASServerMessage
-flexibleRunDispatchCycle commitTransform state cs descSetting src = do
-  liftIO $ putStrLn $ "run dispatch cycle with cells: " ++ (show cs)
+runDispatchCycle :: MVar ServerState -> [ASCell] -> DescendantsSetting -> CommitSource -> CommitTransform -> IO ASServerMessage
+runDispatchCycle state cs descSetting src ctf = do
+  printObj "run dispatch cycle with cells: " cs
   roots <- EM.evalMiddleware cs
   conn <- dbConn <$> readMVar state
   errOrCommit <- runEitherT $ do
@@ -131,14 +97,9 @@ flexibleRunDispatchCycle commitTransform state cs descSetting src = do
     -- this maintains the invariant that context always contains the most up-to-date, complete information. 
     ctxAfterDispatch <- dispatch conn roots initialContext descSetting
     printWithTimeT "finished dispatch"
-    finalizedCells <- EE.evalEndware state (addedCells ctxAfterDispatch) src roots ctxAfterDispatch
-    let ctx = ctxAfterDispatch { addedCells = finalizedCells }
-    (commit, didDecouple) <- lift $ evalContextToCommit ctx
-    let finalizedCommit = commitTransform commit
-    lift $ cautiouslyPushCommit conn src didDecouple finalizedCommit
-    if (didDecouple)
-      then left DecoupleAttempt
-      else return finalizedCommit
+    finalCells <- EE.evalEndware state (addedCells ctxAfterDispatch) src roots ctxAfterDispatch
+    let ctx = ctxAfterDispatch { addedCells = finalCells }
+    DT.updateDBWithContext conn src ctx ctf
   case errOrCommit of 
     Left _ -> G.recompute conn -- #needsrefactor. Overkill. But recording all cells that might have changed is a PITA. (Alex 11/20)
     _      -> return ()
@@ -165,13 +126,13 @@ dispatch conn roots oldContext descSetting = do
   descLocs       <- getEvalLocs conn roots descSetting
   printObjT "Got eval locations" descLocs
   -- Turn the descLocs into Cells, but the roots are already given as cells, so no DB actions needed there
-  cellsToEval    <- getCellsToEval oldContext descLocs
+  cellsToEval    <- getCellsToEval conn oldContext descLocs
   printObjT "Got cells to evaluate" cellsToEval
   ancLocs        <- G.getImmediateAncestors $ indicesToGraphReadInput descLocs
   printObjT "Got ancestor locs" ancLocs
   -- The initial lookup cache has the ancestors of all descendants
   modifiedContext <- getModifiedContext conn ancLocs oldContext
-  lift $ putStrLn $ "Created initial context"  -- ++ (show modifiedContext)
+  printWithTimeT "Created initial context"  -- ++ (show modifiedContext)
   printWithTimeT "Starting eval chain"
   evalChainWithException conn cellsToEval modifiedContext -- start with current cells, then go through descendants
 
@@ -197,8 +158,8 @@ getEvalLocs conn origCells descSetting = do
 -- the evaluations in. We look up locs in the DB, but give precedence to EvalContext (if a cell is in the context, we use that instead, 
 -- as it is the most up-to-date info we have). 
 -- this function is order-preserving
-getCellsToEval :: EvalContext -> [ASIndex] -> EitherTExec [ASCell]
-getCellsToEval ctx locs = possiblyThrowException =<< (lift $ DB.getCellsWithContext ctx locs)
+getCellsToEval :: Connection -> EvalContext -> [ASIndex] -> EitherTExec [ASCell]
+getCellsToEval conn ctx locs = possiblyThrowException =<< (lift $ getCellsWithContext conn ctx locs)
   where 
     possiblyThrowException mcells = if any isNothing mcells
       then left $ DBNothingException missingLocs
@@ -211,9 +172,9 @@ getCellsToEval ctx locs = possiblyThrowException =<< (lift $ DB.getCellsWithCont
 -- see the comments above dispatch to see why an old evalContext is passed in.
 getModifiedContext :: Connection -> [ASReference] -> EvalTransform
 getModifiedContext conn ancs oldContext = do
-   ancIndices <-  lift $ concat <$> mapM (DB.refToIndicesWithContextBeforeEval oldContext) ancs 
+   ancIndices <-  lift $ concat <$> mapM (refToIndicesWithContextBeforeEval conn oldContext) ancs 
    let nonContextAncIndices = filter (not . (flip M.member (contextMap oldContext))) ancIndices
-   cells <- lift $ DB.getPossiblyBlankCells nonContextAncIndices
+   cells <- lift $ DB.getPossiblyBlankCells conn nonContextAncIndices
    let oldMap = contextMap oldContext
        newContext = oldContext { contextMap = insertMultiple oldMap nonContextAncIndices cells }
    return newContext
@@ -350,7 +311,7 @@ addCurFatCellToContext conn idx maybeFatCell ctx = do
   -- Then, given the locs, we get the cells that we have to decouple from the DB and then change their expressions
   -- to be decoupled (by using the value of the cell)
   let decoupledLocs = concat $ map (rangeKeyToIndices . descriptorKey) newlyRemovedDescriptors
-  decoupledCells <- lift $ ((map DI.toDecoupled) . catMaybes) <$> DB.getCellsWithContext ctx decoupledLocs
+  decoupledCells <- lift $ ((map DI.toDecoupled) . catMaybes) <$> getCellsWithContext conn ctx decoupledLocs
   let ctx' = removeMultipleDescriptorsFromContext newlyRemovedDescriptors $ addCellsToContext decoupledCells ctx
   let ctx'' = case maybeFatCell of
                 Nothing -> ctx'
@@ -381,10 +342,10 @@ contextInsert conn c@(Cell idx xp _ ps) (Formatted cv f) ctx = do
   -- Wrap up and dispatch
   case maybeFatCell of
     Nothing -> do 
-      lift $ putStrLn "\nrunning decouple transform"
+      printWithTimeT "\nrunning decouple transform"
       dispatch conn decoupledCells ctxWithEvalCells ProperDescendants
     Just (FatCell cs descriptor) -> do 
-      lift $ putStrLn "\nrunning expanded cells transform"
+      printWithTimeT "\nrunning expanded cells transform"
       let blankCells = case blankedIndices of 
                         Nothing -> []
                         Just inds -> map ((M.!) (contextMap ctxWithEvalCells)) inds

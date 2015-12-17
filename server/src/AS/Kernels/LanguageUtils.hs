@@ -35,7 +35,7 @@ import AS.Util
 
 import AS.Parsing.Common as C
 
-import AS.DB.Transaction as DT
+import qualified AS.DB.Eval as DV
 import Database.Redis (Connection)
 
 
@@ -213,7 +213,7 @@ addCompileCmd OCaml cmd = do
 
 
 lookUpRef :: Connection -> ASLanguage -> EvalContext -> ASReference -> IO String
-lookUpRef conn lang context ref = showValue lang <$> DT.referenceToCompositeValue conn context ref
+lookUpRef conn lang context ref = showValue lang <$> DV.referenceToCompositeValue conn context ref
 
   
 -- | Replaces all the Excel references in an expression with the valuesMap corresponding to them.

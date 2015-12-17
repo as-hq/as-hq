@@ -1,0 +1,17 @@
+
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (1,1)}, cellExpression = Expression {expression = "3", language = R}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-16 07:22:50.154
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,16)}, cellExpression = Expression {expression = "1", language = Excel}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-16 19:09:58.024
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (3,9)}, cellExpression = Expression {expression = "1", language = R}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-16 19:10:01.616
+ClientMessage {clientAction = Evaluate, clientPayload = PayloadCL [Cell {cellLocation = Index {locSheetId = "INIT_SHEET_ID", index = (2,10)}, cellExpression = Expression {expression = "1", language = Python}, cellValue = NoValue, cellProps = ASCellProps {underlyingProps = fromList [], condFormatProps = fromList []}}]}
+INIT_SHEET_ID
+TEST_USER_ID
+#2015-12-16 19:11:49.148
