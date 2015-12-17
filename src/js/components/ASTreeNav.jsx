@@ -109,7 +109,7 @@ export default React.createClass({
     disabledColor?: string,
     disabledTextColor?: string
   }) {
-    return this.context.muiTheme.component.raisedButton;
+    return this.context.muiTheme.raisedButton;
   },
 
   _getTextColor(): ?string {

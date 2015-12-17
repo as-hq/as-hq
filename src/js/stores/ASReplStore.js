@@ -3,7 +3,6 @@ import {logDebug} from '../AS/Logger';
 import Dispatcher from '../Dispatcher';
 import Constants from '../Constants';
 import BaseStore from './BaseStore';
-import assign from 'object-assign';
 import Util from '../AS/Util';
 
 /*
@@ -43,7 +42,7 @@ dispatcherIndex: Dispatcher.register(function (action) {
       }
   })
 
-const ASReplStore = assign({}, BaseStore, {
+const ASReplStore = Object.assign({}, BaseStore, {
 
   updateReplExp(lang,value) {
     logDebug("In repl store, updating repl data "+ lang + " " + value);

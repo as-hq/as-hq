@@ -25,16 +25,16 @@ import type {
 import _ from 'lodash';
 
 import React, {PropTypes} from 'react';
-import {TextField, DropDownMenu} from 'material-ui';
+import {Dialog, TextField, DropDownMenu} from 'material-ui';
 
 import {Just, Nothing} from '../../AS/Maybe';
 
-import Dialog from './DialogWrapper.jsx';
 import SelectField from '../basic-controls/ASSelectField.jsx';
 import ASColorPicker from '../basic-controls/ASColorPicker.jsx';
 
 import API from '../../actions/ASApiActionCreators';
 import CFStore from '../../stores/ASCondFormatStore';
+import SelectionStore from '../../stores/ASSelectionStore';
 
 import U from '../../AS/Util';
 let {
@@ -111,6 +111,18 @@ export default React.createClass({
     return "#000000";
   },
 
+  getInitialRange(): string {
+    let activeSel = SelectionStore.getActiveSelection(),
+        curSelStr = (activeSel != null) ? U.Conversion.rangeToExcel(activeSel.range) : '';
+
+    return Just(this.props.initialRule)
+      .fmap(({cellLocs}) => cellLocs)
+      .fmap(([firstLoc]) => firstLoc)
+      .fmap(({range}) => range)
+      .fmap(x => U.Conversion.rangeToExcel(x))
+      .out() || curSelStr;
+  },
+
   getInitialState() {
     return {
       showConditionTextField: this._showTextField(this._getConditionMenuItem()),
@@ -139,14 +151,7 @@ export default React.createClass({
         onRequestClose={onRequestClose}>
         <TextField
           ref="range"
-          defaultValue={
-            Just(initialRule)
-              .fmap(({cellLocs}) => cellLocs)
-              .fmap(([firstLoc]) => firstLoc)
-              .fmap(({range}) => range)
-              .fmap(x => U.Conversion.rangeToExcel(x))
-              .out() || ''
-          }
+          defaultValue={this.getInitialRange()}
           style={standardStyling}
           hintText="Range" />
         <br />

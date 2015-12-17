@@ -103,11 +103,15 @@ export default {
   /**************************************************************************************************************************/
   /* External conversions */
 
+	_isPlainNumber(str: string): boolean {
+		return !isNaN(Number(str));
+	},
+
   externalStringToExpression(str: string, lang: ASLanguage): string {
     if (lang == "Excel") {
       return str;
     } else {
-      if (!isNaN(Number(str))) {
+      if (this._isPlainNumber(str, lang)) {
         return str;
       } else if (str.toUpperCase() == "TRUE") {
         return this.externalStringToBool(true, lang);

@@ -18,7 +18,9 @@ import type {
 
 import {logDebug} from '../Logger';
 import Constants from '../../Constants';
+import Conversion from './Conversion';
 import LocationUtils from './Location';
+import Format from './Format';
 import shortid from 'shortid';
 
 export default {
@@ -81,15 +83,15 @@ export default {
       let prop = props[i];
       switch (prop.tag) {
         case "TextColor":
-          config.fgColor = self.colorToHtml(prop.contents);
+          config.fgColor = Conversion.colorToHtml(prop.contents);
           break;
         case "FillColor":
-          config.bgColor = self.colorToHtml(prop.contents);
+          config.bgColor = Conversion.colorToHtml(prop.contents);
           break;
         case "TopAlign": // not implemented yet
           break;
         case "HAlign":
-          config.halign = self.asHAlignToHtml(prop.contents);
+          config.halign = Conversion.asHAlignToHtml(prop.contents);
           break;
         case "FontSize": //not implemented yet
           break;
@@ -100,13 +102,13 @@ export default {
         case "ValueFormat":
           switch (prop.formatType) {
             case "Money":
-              config.value = self.formatMoney("$", config.value, 2);
+              config.value = Format.formatMoney("$", config.value, 2);
               break;
             case "Percentage":
-              config.value = self.formatPercentage(config.value);
+              config.value = Format.formatPercentage(config.value);
               break;
             case "Date":
-              config.value = self.formatDate(config.value);
+              config.value = Format.formatDate(config.value);
               break;
           }
           break;
@@ -194,39 +196,6 @@ export default {
 
   getUniqueId(): string {
     return shortid.generate();
-  },
-
-  getImageOverlay(c: ASCell, originX: number, originY: number): ?ASOverlaySpec {
-    let {cellValue: cv} = c;
-    if (cv.tag === 'ValueImage') {
-      let self = this,
-          ct = c.cellProps,
-          imageWidth   = 300,
-          imageHeight  = 300,
-          imageOffsetX = 0,
-          imageOffsetY = 0;
-      for (var i = 0 ; i < ct.length; i++) {
-        if (ct[i].tag === "ImageData") {
-          imageOffsetX = ct[i].imageOffsetX;
-          imageOffsetY = ct[i].imageOffsetY;
-          imageWidth   = ct[i].imageWidth;
-          imageHeight  = ct[i].imageHeight;
-        }
-      }
-      return {
-        id: self.getUniqueId(),
-        src: Constants.getHostStaticUrl() + "/images/" + cv.imagePath,
-        width: imageWidth,
-        height: imageHeight,
-        offsetX: imageOffsetX,
-        offsetY: imageOffsetY,
-        left: originX,
-        top: originY,
-        loc: c.cellLocation
-      };
-    }
-
-    return null;
   },
 
   locEquals(c1: ASIndex, c2: ASIndex): boolean {

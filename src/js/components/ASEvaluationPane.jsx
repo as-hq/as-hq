@@ -194,13 +194,6 @@ export default React.createClass({
     //TODO: set var name on backend
   },
 
-
-  /*
-  Upon a change event from the eval store (for example, eval has already happened)
-    1) Get the last updated cells
-    2) Call a ASSpreadsheet component method that forces an update of values
-    3) Treat the special case of errors/other styles
-  */
   _onSheetStateChange() {
     logDebug("Eval pane detected spreadsheet change from store");
     if (SheetStateStore.getDecoupleAttempt()) {
@@ -214,7 +207,14 @@ export default React.createClass({
       }
       SheetStateStore.setDecoupleAttempt(false);
     }
+
+    // This is a terrible, terrible hack to show an error message when no cells have
+    // changed, but the server returned an error. Ideally we'd create an
+    // an error message store to handle this, but we're probably
+    // going to do away with external errors entirely at some point, making it moot. 
+    this._onCellsChange();
   },
+
 
   _onCellsChange() {
     logDebug("Eval pane detected cells change from store");
