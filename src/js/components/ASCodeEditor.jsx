@@ -5,6 +5,7 @@ import Constants from '../Constants';
 
 import {AppBar, Toolbar, ToolbarGroup, FlatButton, TextField, DropDownMenu, Styles} from 'material-ui';
 import FileInput from './ASFileImportButton.jsx';
+import U from '../AS/Util';
 import ASCellPropsToggleButton from './basic-controls/ASCellPropsToggleButton.jsx';
 import ASCellPropsColorSetButton from './basic-controls/ASCellPropsColorSetButton.jsx';
 
@@ -16,17 +17,21 @@ require('brace/mode/java');
 require('brace/mode/c_cpp');
 require('brace/theme/monokai');
 
-let languages = [];
-for (var key in Constants.Languages) {
-  languages.push({
-    payload: Constants.Languages[key],
-    text: Constants.Languages[key]
-  });
+function languageIndex(lang) {
+  return Object.keys(Constants.Languages).indexOf(lang);
 }
 
-function languageIndex(lang) {
-  return languages.map((l) => l.text).indexOf(lang);
+function appendLanguageChangeShortcut(lang) {
+  return lang + " (" + U.Browser.metaKeyName() + " " + String(languageIndex(lang) + 1) + ")";
 }
+
+let languages = Object.keys(Constants.Languages).map((l) => {
+  return {payload: l, text: l};
+});
+
+let languagesWithShortcuts = Object.keys(Constants.Languages).map((l) => {
+  return {payload: l, text: appendLanguageChangeShortcut(l)};
+});
 
 export default React.createClass({
 
@@ -75,7 +80,6 @@ export default React.createClass({
 
     return (
       <div>
-
         <Toolbar
           style={{backgroundColor: Styles.Colors.grey700, height:'60px'}}
           showMenuIconButton={false} >
@@ -93,7 +97,7 @@ export default React.createClass({
               onBlur={this._onBlurVarName} />
             <DropDownMenu
               selectedIndex={languageIndex(language)}
-              menuItems={languages}
+              menuItems={languagesWithShortcuts}
               onChange={this._onSelectLanguage}
               underlineStyle={{ display: 'none' }}
               style={{
