@@ -332,17 +332,21 @@ export function setCondFormattingRules(rules: Array<CondFormatRule>): Prf {
   });
 }
 
-export function makeCondFormattingRuleFontExcel(rng: string, prop: ASCellProp, rule: string): any {
-  let xpObj = {
-    "tag": "Expression",
-    "expression": rule,
-    "language": "Excel"
+export function makeCustomCondFormattingFontRuleExcel(rng: string, prop: BooleanCellTag, rule: string): CondFormatRule {
+  let cond = {
+    tag: 'CustomCondition',
+    contents: {
+      tag: "Expression",
+      expression: rule,
+      language: "Excel"
+    }
   };
   let asRule = {
-    "tag": "CondFormatRule",
-    "condition": xpObj,
-    "cellLocs": [U.Conversion.simpleToASRange(rangeFromExcel(rng))],
-    "condFormat": {
+    tag: "CondFormatRule",
+    condition: cond,
+    cellLocs: [U.Conversion.simpleToASRange(rangeFromExcel(rng))],
+    condFormat: {
+      // $FlowFixMe
       tag: prop,
       contents: []
     }
@@ -480,7 +484,7 @@ export function shouldHaveProp(loc: string, prop: string): Prf {
   });
 }
 
-export function shouldNotHaveProp(loc: string, prop: ASCellProp): Prf {
+export function shouldNotHaveProp(loc: string, prop: string): Prf {
   return messageShouldSatisfy(loc, (cs) => {
     logDebug(`${loc} cell should have prop ${prop}`);
 
