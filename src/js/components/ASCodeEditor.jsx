@@ -85,7 +85,6 @@ export default React.createClass({
               style={{
                 position: 'relative',
                 left: '-5px',
-                top: '-15px',
                 fontFamily: '"Lucida Console", Monaco, monospace'
               }}
               floatingLabelStyle={{
@@ -105,22 +104,20 @@ export default React.createClass({
             <ASCellPropsToggleButton propTag="Bold" iconClassName="format_bold" style={{
               position: 'relative',
               marginLeft: '0px',
-              top: '-6px'
+              top: '5px'
             }} />
             <ASCellPropsToggleButton propTag="Italic" iconClassName="format_italic" style={{
               position: 'relative',
               marginLeft: '0px',
-              top: '-6px'
+              top: '5px'
             }} />
             <ASCellPropsColorSetButton propTag="TextColor" style={{
               position: 'relative',
-              marginLeft: '20px',
-              top: '-11px'
+              marginLeft: '20px'
             }} />
             <ASCellPropsColorSetButton propTag="FillColor" style={{
               position: 'relative',
-              marginLeft: '0px',
-              top: '-11px'
+              marginLeft: '0px'
             }} />
         </Toolbar>
         <AceEditor

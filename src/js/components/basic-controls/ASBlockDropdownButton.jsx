@@ -18,7 +18,7 @@ export default React.createClass({
   },
 
   getTheme() {
-    return this.context.muiTheme.component.raisedButton;
+    return this.context.muiTheme.raisedButton;
   },
 
   _getLabelColor() {

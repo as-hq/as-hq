@@ -1,5 +1,7 @@
 /* @flow */
 
+import GeneralU from './utils/General';
+
 import ArrayU from './utils/Array';
 import BrowserU from './utils/Browser';
 import CanvasU from './utils/Canvas';
@@ -17,6 +19,8 @@ import StringU from './utils/String';
 import WorkbookU from './utils/Workbook';
 
 export default {
+  _: GeneralU,
+  
   Array: ArrayU,
   Browser: BrowserU,
   Canvas: CanvasU,
