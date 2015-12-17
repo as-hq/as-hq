@@ -262,9 +262,35 @@ export type PayloadSetRowColProp = {
 export type CondFormatRule = {
   tag: 'CondFormatRule';
   condFormat: ASCellProp;
-  condition: ASExpression;
+  condition: CondFormatCondition;
   cellLocs: Array<ASRange>;
 };
+
+export type CondFormatCondition = NoExpressionsCondition | OneExpressionCondition | TwoExpressionsCondition | CustomCondition;
+
+export type NoExpressionsCondition = {
+  tag: 'NoExpressionsCondition';
+  contents: NoExpressionsType;
+}
+
+export type OneExpressionCondition = {
+  tag: 'OneExpressionCondition';
+  contents: [OneExpressionType, ASExpression];
+}
+
+export type TwoExpressionsCondition = {
+  tag: 'TwoExpressionsCondition';
+  contents: [TwoExpressionsType, ASExpression, ASExpression];
+}
+
+export type CustomCondition = {
+  tag: 'CustomCondition';
+  contents: ASExpression;
+}
+
+export type NoExpressionsType  = 'IsEmpty' | 'IsNotEmpty';
+export type OneExpressionType  = 'GreaterThan' | 'Equals' | 'Geq' | 'Leq' | 'LessThan' | 'NotEquals';
+export type TwoExpressionsType = 'IsBetween' | 'IsNotBetween';
 
 export type ASBackendPayload =
   PayloadN
