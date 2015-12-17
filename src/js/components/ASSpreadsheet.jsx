@@ -646,7 +646,6 @@ export default React.createClass({
   Note that we don't account for scroll here. The scroll state is passed as a prop to Overlay, which will deal with the scroll
   */
   getImageOverlayForCell(cell: ASCell): ?ASOverlaySpec {
-    if (cell.cellValue.tag !== "ValueImage") return null;
     let {col, row} =  cell.cellLocation.index,
         p =  finRect.point.create(col, row),
         point = this._getHypergrid().getBoundsOfCell(p).origin;
@@ -664,18 +663,23 @@ export default React.createClass({
         imageHeight  = ct[i].imageHeight;
       }
     }
-    // Return the overlay spec, and note that the overlay shouldn't be in view if the point isn't
-    return {
-      id: U.Render.getUniqueId(),
-      src: Constants.getHostStaticUrl() + "/images/" + cell.cellValue.imagePath,
-      width: imageWidth,
-      height: imageHeight,
-      offsetX: imageOffsetX,
-      offsetY: imageOffsetY,
-      left: point.x, 
-      top:  point.y,
-      loc: cell.cellLocation
-    };
+    if (cell.cellValue.tag !== "ValueImage") {
+      return null;
+    }  else {
+      let imagePath = cell.cellValue.imagePath;
+      // Return the overlay spec, and note that the overlay shouldn't be in view if the point isn't
+      return {
+        id: U.Render.getUniqueId(),
+        src: Constants.getHostStaticUrl() + "/images/" + imagePath,
+        width: imageWidth,
+        height: imageHeight,
+        offsetX: imageOffsetX,
+        offsetY: imageOffsetY,
+        left: point.x, 
+        top:  point.y,
+        loc: cell.cellLocation
+      };
+    }
   },
 
   /* 
