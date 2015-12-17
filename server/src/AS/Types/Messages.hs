@@ -120,7 +120,8 @@ data CondFormatRule = CondFormatRule { cellLocs :: [ASRange],
 -- TODO: Timchu, 12/14/15. This is not complete! Date expressions are not online,
 -- nor are text expressions.
 data CondFormatCondition =
-    OneExpressionCondition { oneExpressionType :: OneExpressionType
+  CustomExpressionCondition { customExpression :: ASExpression }
+  |  OneExpressionCondition { oneExpressionType :: OneExpressionType
                            , oneExpression :: ASExpression }
   | NoExpressionsCondition { noExpressionsType :: NoExpressionsType }
 --  | DateExpression { dateExpressionType :: DateExpressionType
@@ -130,21 +131,79 @@ data CondFormatCondition =
                   , expression2 :: ASExpression}
    deriving (Show, Read, Generic, Eq)
 
-data OneExpressionType = CustomExpression | InequalityExpression {ineqExpression :: InequalityExpression}-- | TextExpression
-  deriving (Show, Read, Generic, Eq)
 
-data InequalityExpression = GreaterThan | Equals | Geq | Leq | LessThan | NotEquals
+-- TODO: timchu, 12/17/15. Maybe want to split this into InequalityExpTypes and TextExpTypes?
+data OneExpressionType = GreaterThan | Equals | Geq | Leq | LessThan | NotEquals
   deriving (Show, Read, Generic, Eq)
 
 data NoExpressionsType = IsEmpty | IsNotEmpty
   deriving (Show, Read, Generic, Eq)
 
-data DateExpressionType = DateIs  | DateIsBefore | DateIsAfter
-  deriving (Show, Read, Generic, Eq)
+-- data DateExpressionType = DateIs  | DateIsBefore | DateIsAfter
+--   deriving (Show, Read, Generic, Eq)
 
 data TwoExpressionsType = IsBetween | IsNotBetween
   deriving (Show, Read, Generic, Eq)
 
+-- timchu, 12/17/15. Begin functions that help with Conditional formatting.
+-- TODO: timchu, 12/17/15. Change the names!
+-- | Functions that help with InequalityExpressionTypes
+functionFromOneExpressionType :: OneExpressionType -> (ASValue -> ASValue -> Bool)
+functionFromOneExpressionType iet =
+  case iet of
+       GreaterThan -> (>=)
+       Geq -> (>)
+       LessThan -> (<)
+       Leq -> (<=)
+       Equals -> (==)
+       NotEquals -> (/=)
+
+-- NOTE: timchu, this may be in wrong place.
+-- TODO: timchu, 12/17/15. this is not exactly right. Should be the same as Evalues.
+instance Ord ASValue where
+  -- TODO: is this right?
+  (<=) NoValue v  = (<=) (ValueI 0) v
+  (<=) (ValueB True) v = (<=) (ValueI 1) v
+  (<=) v (ValueB True) = (<=) v (ValueI 1)
+  (<=) (ValueB False) v = (<=) (ValueI 0) v
+  (<=) v (ValueB False) = (<=) v (ValueI 0)
+
+  (<=) (ValueS s) (ValueI i) = False
+  (<=) (ValueI i) (ValueS s)  = False
+
+  (<=) (ValueS s) (ValueD d) = False
+  (<=) (ValueD d) (ValueS s)  = False
+
+  (<=) (ValueI i) (ValueD d) = (<=) (fromIntegral i) d
+  (<=) (ValueD d) (ValueI i)  = (<=) d (fromIntegral i)
+
+  (<=) (ValueS s1) (ValueS s2) = (<=) s1 s2
+  (<=) (ValueI i1) (ValueI i2) = (<=) i1 i2
+  (<=) (ValueD d1) (ValueD d2) = (<=) d1 d2
+  (<=) _ _ = error "Invalid ASValue comparison"
+
+-- | Functions that help with isEmpty types.
+-- TODO: timchu, these names suck!!!!
+isEmpty :: ASValue  -> Bool
+isEmpty v =
+  case v of
+       NoValue -> True
+       otherwise -> False
+functionFromNoExpressionsType ::  NoExpressionsType -> (ASValue -> Bool)
+functionFromNoExpressionsType neType =
+  case neType of
+       IsEmpty -> isEmpty
+       IsNotEmpty -> not . isEmpty
+
+isBetween :: ASValue -> ASValue -> ASValue -> Bool
+isBetween a1 a2 value = value >= min a1 a2 && max a1 a2 >= value
+
+functionFromTwoExpressionsType :: TwoExpressionsType -> ASValue -> ASValue -> ASValue -> Bool
+functionFromTwoExpressionsType tet a1 a2 value =
+  case tet of
+       IsBetween ->  isBetween a1 a2 value
+       IsNotBetween ->  not $ isBetween a1 a2 value
+-- End of functions that help with conditional formatting.
 
 instance ToJSON CondFormatCondition
 instance FromJSON CondFormatCondition
@@ -157,9 +216,6 @@ instance FromJSON NoExpressionsType
 
 instance ToJSON TwoExpressionsType
 instance FromJSON TwoExpressionsType
-
-instance ToJSON InequalityExpression
-instance FromJSON InequalityExpression
 
 -- should get renamed
 data Direction = DirUp | DirDown | DirLeft | DirRight deriving (Show, Read, Eq, Generic)
