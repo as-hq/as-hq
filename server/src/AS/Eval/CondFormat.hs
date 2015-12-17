@@ -53,11 +53,13 @@ ruleToCellTransform conn sid ctx cfr@(CondFormatRule rngs cfc format) c@(Cell l 
              let cond' = shiftExpression offset cond
              xpVal <- evalXp conn sid ctx cond'
              -- TODO: Timchu, haven't thoroughly checked if this is right.
-             return $ (functionFromOneExpressionType eType) xpVal v
+             return $ (functionFromOneExpressionType eType) v xpVal
            TwoExpressionsCondition eType condOne condTwo -> do
-             xpValOne <- evalXp conn sid ctx condOne
-             xpValTwo <- evalXp conn sid ctx condTwo
-             return $ (functionFromTwoExpressionsType eType) xpValOne xpValTwo v
+             let condOne' = shiftExpression offset condOne
+             let condTwo' = shiftExpression offset condTwo
+             xpValOne <- evalXp conn sid ctx condOne'
+             xpValTwo <- evalXp conn sid ctx condTwo'
+             return $ (functionFromTwoExpressionsType eType) v xpValOne xpValTwo
       if meetsCondition
          then return $ Cell l e v (setCondFormatProp format ps)
          else return c

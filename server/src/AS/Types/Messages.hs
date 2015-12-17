@@ -119,6 +119,11 @@ data CondFormatRule = CondFormatRule { cellLocs :: [ASRange],
 
 -- TODO: Timchu, 12/14/15. This is not complete! Date expressions are not online,
 -- nor are text expressions.
+-- CustomExpressions are separate from OneExpresssionConditions since
+-- OneExpressionConditions work by evaluating the condition, then applying a
+-- function with two ASValue Arguments into it.
+-- Could potentially refactor CustomExpression to be a OneExpressionCondition
+-- by passing in an appropriate function.
 data CondFormatCondition =
   CustomExpressionCondition { customExpression :: ASExpression }
   |  OneExpressionCondition { oneExpressionType :: OneExpressionType
@@ -145,8 +150,8 @@ data NoExpressionsType = IsEmpty | IsNotEmpty
 data TwoExpressionsType = IsBetween | IsNotBetween
   deriving (Show, Read, Generic, Eq)
 
--- timchu, 12/17/15. Begin functions that help with Conditional formatting.
--- TODO: timchu, 12/17/15. Change the names!
+-- timchu, 12/17/15. Begin helper functions that help with Conditional formatting.
+-- TODO: timchu, 12/17/15.  Ask Ritesh about names.
 -- | Functions that help with InequalityExpressionTypes
 functionFromOneExpressionType :: OneExpressionType -> (ASValue -> ASValue -> Bool)
 functionFromOneExpressionType iet =
@@ -160,6 +165,8 @@ functionFromOneExpressionType iet =
 
 -- NOTE: timchu, this may be in wrong place.
 -- TODO: timchu, 12/17/15. this is not exactly right. Should be the same as Evalues.
+-- This is a temporary thing to avoid having to reimplement all the EValue helper
+-- functions.
 instance Ord ASValue where
   -- TODO: is this right?
   (<=) NoValue v  = (<=) (ValueI 0) v
@@ -189,20 +196,22 @@ isEmpty v =
   case v of
        NoValue -> True
        otherwise -> False
+
 functionFromNoExpressionsType ::  NoExpressionsType -> (ASValue -> Bool)
 functionFromNoExpressionsType neType =
   case neType of
        IsEmpty -> isEmpty
        IsNotEmpty -> not . isEmpty
 
+-- tests if value is between a1 and a2 inclusive.  Excel does it this way.
 isBetween :: ASValue -> ASValue -> ASValue -> Bool
-isBetween a1 a2 value = value >= min a1 a2 && max a1 a2 >= value
+isBetween value a1 a2 = value >= min a1 a2 && max a1 a2 >= value
 
 functionFromTwoExpressionsType :: TwoExpressionsType -> ASValue -> ASValue -> ASValue -> Bool
-functionFromTwoExpressionsType tet a1 a2 value =
+functionFromTwoExpressionsType tet value a1 a2 =
   case tet of
-       IsBetween ->  isBetween a1 a2 value
-       IsNotBetween ->  not $ isBetween a1 a2 value
+       IsBetween ->  isBetween value a1 a2
+       IsNotBetween ->  not $ isBetween value a1 a2
 -- End of functions that help with conditional formatting.
 
 instance ToJSON CondFormatCondition
