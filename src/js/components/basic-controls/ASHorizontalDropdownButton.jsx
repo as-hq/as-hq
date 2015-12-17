@@ -24,11 +24,11 @@ export default React.createClass({
   },
 
   getTheme() {
-    return this.context.muiTheme.component.raisedButton;
+    return this.context.muiTheme.raisedButton;
   },
 
   getThemeButton() {
-    return this.context.muiTheme.component.button;
+    return this.context.muiTheme.button;
   },
 
   _getLabelColor() {

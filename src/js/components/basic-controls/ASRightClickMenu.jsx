@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactTransitionGroup from 'react-addons-transition-group';
 
-import Menu from 'material-ui/lib/menus/menu';
+import Menu from './ASUnselectedMenu.jsx';
 import MenuItem from 'material-ui/lib/menus/menu-item';
 import {Mixins} from 'material-ui';
 
