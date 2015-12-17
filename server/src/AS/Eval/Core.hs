@@ -28,7 +28,7 @@ import AS.Parsing.Show
 import AS.Parsing.Common
 import AS.Parsing.Substitutions
 
-import AS.DB.API as DB
+import AS.DB.Eval
 
 import AS.Logging
 import AS.Config.Settings
@@ -38,7 +38,6 @@ import Database.Redis (Connection)
 -- EitherT
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.Either
-
 import Control.Monad.IO.Class (liftIO)
 import Control.Exception (catch, SomeException)
 
@@ -51,16 +50,16 @@ evaluateLanguage :: Connection -> ASIndex -> EvalContext -> ASExpression -> Eith
 evaluateLanguage conn idx@(Index sid _) ctx xp@(Expression str lang) = catchEitherT $ do
   printWithTimeT "Starting eval code"
   printObjT "eval language with cells in context: " (contextMap ctx)
-  maybeShortCircuit <- possiblyShortCircuit sid ctx xp
+  maybeShortCircuit <- possiblyShortCircuit conn sid ctx xp
   case maybeShortCircuit of
     Just e -> return . return . CellValue $ e -- short-circuited, return this error
     Nothing -> case lang of
       Excel -> do 
-        KE.evaluate str idx (contextMap ctx)
+        KE.evaluate conn str idx (contextMap ctx)
         -- Excel needs current location and un-substituted expression, and needs the formatted values for
         -- loading the initial entities
       otherwise -> do 
-        header <- lift $ DB.getEvalHeader conn sid lang
+        header <- lift $ getEvalHeader conn sid lang
         xpWithValuesSubstituted <- lift $ insertValues conn sid ctx xp
         return <$> execEvalInLang header lang xpWithValuesSubstituted 
         -- ^ didn't short-circuit, proceed with eval as usual
@@ -100,10 +99,10 @@ catchEitherT a = do
 
 -- | Checks for potentially bad inputs (NoValue or ValueError) among the arguments passed in. If no bad inputs,
 -- return Nothing. Otherwise, if there are errors that can't be dealt with, return appropriate ASValue error.
-possiblyShortCircuit :: ASSheetId -> EvalContext -> ASExpression -> EitherTExec (Maybe ASValue)
-possiblyShortCircuit sheetid ctx xp = do 
+possiblyShortCircuit :: Connection -> ASSheetId -> EvalContext -> ASExpression -> EitherTExec (Maybe ASValue)
+possiblyShortCircuit conn sheetid ctx xp = do 
   let depRefs        = getDependencies sheetid xp -- :: [ASReference]
-  let depInds = concat <$> mapM (refToIndicesWithContextDuringEval ctx) depRefs
+  let depInds = concat <$> mapM (refToIndicesWithContextDuringEval conn ctx) depRefs
   bimapEitherT' (Just . onRefToIndicesFailure) (onRefToIndicesSuccess ctx xp) depInds
 
 -- When eval's ref to indices fails, we want the error message to be in the actual cell. Possibly short circuit will

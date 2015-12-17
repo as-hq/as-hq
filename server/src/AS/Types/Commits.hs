@@ -9,6 +9,9 @@ import Prelude
 import GHC.Generics
 import Data.Aeson hiding (Success)
 import Data.List
+import qualified Data.Text as T
+
+import Data.Serialize (Serialize)
 
 import AS.Types.RowColProps
 
@@ -26,14 +29,18 @@ data RowColDiff = RowColDiff { beforeRowCols :: [RowCol]
                          , afterRowCols :: [RowCol] }
                          deriving (Show, Read, Generic)
 
+emptyRowColDiff :: RowColDiff
+emptyRowColDiff = RowColDiff [] []
+
 data ASCommit = Commit { rowColDiff :: RowColDiff
                        , cellDiff :: CellDiff
                        , commitDescriptorDiff :: DescriptorDiff
                        , time :: ASTime }
                        deriving (Show, Read, Generic)
 
--- Should refactor to not be an ordered pair
-type CommitSource = (ASSheetId, ASUserId)
+data CommitSource = CommitSource { srcSheetId :: ASSheetId, srcUserId :: ASUserId }
+
+type CommitTransform = ASCommit -> ASCommit
 
 instance FromJSON ASTime
 instance ToJSON ASTime
@@ -44,6 +51,10 @@ instance ToJSON CellDiff
 instance FromJSON RowColDiff
 instance ToJSON RowColDiff
 
+instance Serialize ASTime
+instance Serialize ASCommit
+instance Serialize CellDiff
+instance Serialize RowColDiff
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Helpers
@@ -60,3 +71,11 @@ instance ToJSON RowColDiff
 
 getASTime :: IO ASTime
 getASTime = return $ Time "hi" 1 2 3
+
+generateCommitFromCells :: [ASCell] -> IO ASCommit
+generateCommitFromCells cells = do 
+  time <- getASTime
+  let cdiff = CellDiff { beforeCells = [], afterCells = cells }
+      ddiff = DescriptorDiff { addedDescriptors = [], removedDescriptors = [] }
+  return $ Commit emptyRowColDiff cdiff ddiff time
+

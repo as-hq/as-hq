@@ -69,6 +69,6 @@ def pprintErr(e):
 
 try:
 	setGlobals([])
-	result = serialize(db(''))
+	result = serialize(db('e'))
 except Exception as e:
 	result = pprintErr(e)

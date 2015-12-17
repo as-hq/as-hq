@@ -2,9 +2,12 @@
 
 module AS.Types.User where
 
+import AS.Types.Common
+
 import GHC.Generics
 import Data.Text hiding (any)
 import Data.Aeson
+import Data.Serialize (Serialize)
 
 type ASUserId = Text
 
@@ -17,6 +20,9 @@ data ASPermissions = Blacklist [ASUserEntity] |
                      Whitelist [ASUserEntity]
                       deriving (Show, Read, Eq, Generic)
 
+----------------------------------------------------------------------------------------------------------------------------------------------
+-- Instances
+
 instance FromJSON ASUserGroup
 instance ToJSON ASUserGroup
 
@@ -25,6 +31,10 @@ instance ToJSON ASUserEntity
 
 instance FromJSON ASPermissions
 instance ToJSON ASPermissions
+
+instance Serialize ASPermissions
+instance Serialize ASUserEntity
+instance Serialize ASUserGroup
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Helpers

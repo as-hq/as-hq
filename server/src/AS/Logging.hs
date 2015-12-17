@@ -16,6 +16,7 @@ import AS.Types.Eval
 import AS.Types.Commits
 import AS.Types.DB
 import AS.Config.Paths
+import AS.Config.Settings 
 
 import qualified Data.Text as T
 import Control.Monad.Trans.Class (lift)
@@ -42,13 +43,15 @@ appendFile' :: String -> String -> IO ()
 appendFile' fname msg = catch (appendFile fname msg) (\e -> putStrLn $ ("Error writing to log: " ++ show (e :: SomeException)))
 
 printWithTime :: String -> IO ()
-printWithTime str = do
-  time <- getTime
-  date <- getDate
-  let disp = "[" ++ time ++ "] " ++ str
-  putStrLn ((truncated disp) ++ "\n")
-  logDir <- getServerLogDir
-  appendFile' (logDir ++ "console_log" ++ date) ('\n':'\n':disp)
+printWithTime str = if isBenchmark 
+  then return ()
+  else do
+    time <- getTime
+    date <- getDate
+    let disp = "[" ++ time ++ "] " ++ str
+    putStrLn ((truncated disp) ++ "\n")
+    logDir <- getServerLogDir
+    appendFile' (logDir ++ "console_log" ++ date) ('\n':'\n':disp)
 
 printWithTimeT :: String -> EitherTExec ()
 printWithTimeT = lift . printWithTime
@@ -61,7 +64,7 @@ writeToASLog logRootName msg = do
   appendFile' logPath ('\n':msg)
 
 writeToASLogWithMetadata :: String -> String -> CommitSource -> IO ()
-writeToASLogWithMetadata logRootName msg (sid, uid) = do
+writeToASLogWithMetadata logRootName msg (CommitSource sid uid) = do
   time <- getTime
   let sid' = T.unpack sid
       uid' = T.unpack uid
@@ -72,17 +75,17 @@ serverLogsRoot :: String
 serverLogsRoot = "server_log_"
 
 logClientMessage :: String -> CommitSource -> IO ()
-logClientMessage msg cs@(sid, _) = do 
+logClientMessage msg src = do 
   -- master log
-  writeToASLogWithMetadata serverLogsRoot msg cs
+  writeToASLogWithMetadata serverLogsRoot msg src
   -- log for just the sheet
-  writeToASLogWithMetadata (serverLogsRoot ++ T.unpack sid) msg cs
+  writeToASLogWithMetadata (serverLogsRoot ++ T.unpack (srcSheetId src)) msg src
 
 logBugReport :: String -> CommitSource -> IO ()
-logBugReport bugReport cs = writeToASLogWithMetadata "bug_reports" ('#':bugReport) cs
+logBugReport bugReport src = writeToASLogWithMetadata "bug_reports" ('#':bugReport) src
 
 logError :: String -> CommitSource -> IO ()
-logError err (sid, uid) = do 
+logError err (CommitSource sid uid) = do 
   time <- getTime
   let sid' = T.unpack sid
       uid' = T.unpack uid

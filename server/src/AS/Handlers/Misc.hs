@@ -19,27 +19,29 @@ import AS.Logging
 import AS.Reply
 
 import qualified AS.Dispatch.Core         as DP
-import qualified AS.DB.Transaction        as DT
-import qualified AS.DB.API                as DB
-import qualified AS.DB.Export             as DX
-import qualified AS.DB.Graph              as G
 import qualified AS.Util                  as U
 import qualified AS.Kernels.LanguageUtils as LU
 import qualified AS.Users                 as US
 import qualified AS.InferenceUtils        as IU
+
+import AS.DB.Eval
+import qualified AS.DB.Transaction        as DT
+import qualified AS.DB.API                as DB
+import qualified AS.DB.Export             as DX
+import qualified AS.DB.Graph              as G
+
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.Serialize as DS
 import qualified Data.Text as T
+import qualified Data.Map as M
+import Data.List
+import Data.Maybe
 
 import qualified Database.Redis as R
 import qualified Network.WebSockets as WS
 
-import Data.List
-import qualified Data.Map as M
-import Data.Maybe
 import Control.Concurrent
 import Control.Exception
---EitherT
 import Control.Monad.Trans.Either
 
 handleAcknowledge :: ASUserClient -> IO ()
@@ -65,7 +67,7 @@ handleOpen uc state (PayloadS (Sheet sid _ _)) = do
   US.modifyUser makeNewWindow uc state
   -- get header files data to send back to user user
   let langs = [Python, R] -- should probably make list of langs a const somewhere...
-  headers         <- mapM (DB.getEvalHeader conn sid) langs
+  headers         <- mapM (getEvalHeader conn sid) langs
   -- get conditional formatting data to send back to user user
   condFormatRules <- DB.getCondFormattingRules conn sid
   let xps = map (\(str, lang) -> Expression str lang) (zip headers langs)
@@ -84,7 +86,7 @@ handleUpdateWindow cid state (PayloadW w) = do
   let oldWindow = userWindow user'
   (flip catch) (badCellsHandler (dbConn curState) user') (do
     let newLocs = getScrolledLocs oldWindow w
-    mcells <- DB.getCells $ concat $ map rangeToIndices newLocs
+    mcells <- DB.getCells (dbConn curState) $ concat $ map rangeToIndices newLocs
     sendToOriginal user' $ makeUpdateWindowMessage (catMaybes mcells)
     US.modifyUser (updateWindow w) user' state)
 
@@ -101,7 +103,7 @@ badCellsHandler conn uc e = do
 handleGet :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
 handleGet uc state (PayloadLL locs) = do
   curState <- readMVar state
-  mcells <- DB.getCells locs
+  mcells <- DB.getCells (dbConn curState) locs
   sendToOriginal uc (makeGetMessage $ catMaybes mcells)
 handleGet uc state (PayloadList Sheets) = do
   curState <- readMVar state
@@ -118,16 +120,17 @@ handleGet uc state (PayloadList WorkbookSheets) = do
   sendToOriginal uc $ ServerMessage Update Success (PayloadWorkbookSheets wss)
 
 handleDelete :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
-handleDelete uc state p@(PayloadWorkbookSheets (wbs:[])) = do
-  conn <- dbConn <$> readMVar state
-  DB.deleteWorkbookSheet conn wbs
-  broadcast state $ ServerMessage Delete Success p
-  return ()
-handleDelete uc state p@(PayloadWB workbook) = do
-  conn <- dbConn <$> readMVar state
-  DB.deleteWorkbook conn (workbookName workbook)
-  broadcast state $ ServerMessage Delete Success p
-  return ()
+-- these handlers are DEPRECATED
+--handleDelete uc state p@(PayloadWorkbookSheets (wbs:[])) = do
+--  conn <- dbConn <$> readMVar state
+--  DB.deleteWorkbookSheet conn wbs
+--  broadcast state $ ServerMessage Delete Success p
+--  return ()
+--handleDelete uc state p@(PayloadWB workbook) = do
+--  conn <- dbConn <$> readMVar state
+--  DB.deleteWorkbook conn (workbookName workbook)
+--  broadcast state $ ServerMessage Delete Success p
+--  return ()
 handleDelete uc state (PayloadR rng) = do
   let locs = rangeToIndices rng
       badFormats = [ValueFormat Date]
@@ -135,13 +138,13 @@ handleDelete uc state (PayloadR rng) = do
       -- formats to remove upon deletion. 
   conn <- dbConn <$> readMVar state
   -- []
-  blankedCells <- DB.getBlankedCellsAt locs -- need to know the formats at the old locations
+  blankedCells <- DB.getBlankedCellsAt conn locs -- need to know the formats at the old locations
   let removeBadFormat p c = if (hasProp p (cellProps c)) then removeCellProp (propType p) c else c
       -- ^ CellProp -> ASCell -> ASCell
       removeBadFormats ps = foldl' (.) id (map removeBadFormat ps)
       -- ^ [CellProp] -> ASCell -> ASCell
       blankedCells' = map (removeBadFormats badFormats) blankedCells
-  updateMsg <- DP.runDispatchCycle state blankedCells' DescendantsWithParent (userCommitSource uc)
+  updateMsg <- DP.runDispatchCycle state blankedCells' DescendantsWithParent (userCommitSource uc) id
   let msg = makeDeleteMessage rng updateMsg
   case (serverResult msg) of  
     Failure _ -> sendToOriginal uc msg
@@ -190,15 +193,16 @@ handleRedo uc state = do
 handleDrag :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
 handleDrag uc state (PayloadDrag selRng dragRng) = do
   conn <- dbConn <$> readMVar state
-  nCells <- IU.getCellsRect selRng dragRng
+  nCells <- IU.getCellsRect conn selRng dragRng
   let newCells = (IU.getMappedFormulaCells selRng dragRng nCells) ++ (IU.getMappedPatternGroups selRng dragRng nCells)
-  msg' <- DP.runDispatchCycle state newCells DescendantsWithParent (userCommitSource uc)
+  msg' <- DP.runDispatchCycle state newCells DescendantsWithParent (userCommitSource uc) id
   broadcastFiltered state uc msg'
 
 handleRepeat :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
 handleRepeat uc state (PayloadSelection range origin) = do
   conn <- dbConn <$> readMVar state
   ClientMessage lastAction lastPayload <- DB.getLastMessage conn (userCommitSource uc)
+  printObj "Got last thing for repeat: " (lastAction, lastPayload)
   case lastAction of
     Evaluate -> do
       let PayloadCL ((Cell l e v ts):[]) = lastPayload
@@ -222,14 +226,14 @@ handleBugReport uc (PayloadText report) = do
 handleSetCondFormatRules :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
 handleSetCondFormatRules uc state (PayloadCondFormat rules) = do
   conn <- dbConn <$> readMVar state
-  let src  = userCommitSource uc
-      sid = fst src
+  let src = userCommitSource uc
+      sid = srcSheetId src
   oldRules <- DB.getCondFormattingRules conn sid
   let symDiff = (union rules oldRules) \\ (intersect rules oldRules)
       locs = concatMap rangeToIndices $ concatMap cellLocs symDiff
-  cells <- DB.getPossiblyBlankCells locs
+  cells <- DB.getPossiblyBlankCells conn locs
   errOrCells <- runEitherT $ conditionallyFormatCells conn sid cells rules emptyContext
-  let onFormatSuccess cs = DB.setCondFormattingRules conn sid rules >> DB.setCells cs
+  let onFormatSuccess cs = DB.setCondFormattingRules conn sid rules >> DB.setCells conn cs
   either (const $ return ()) onFormatSuccess errOrCells
   broadcastFiltered state uc $ makeCondFormatMessage errOrCells rules
 
@@ -244,18 +248,16 @@ handleSetRowColProp uc state (PayloadSetRowColProp rct ind prop) = do
   let oldProps = maybe RP.emptyProps id mOldProps
       newProps = RP.setProp prop oldProps
       newRc    = RP.RowCol rct ind newProps
+      oldRcs   = case mOldProps of
+                      Nothing -> []
+                      Just _ -> [RP.RowCol rct ind oldProps]
   DB.setRowColProps conn sid newRc
-
-  -- Add the RP.rowColProps to the commit. 
+  -- Add the RP.rowColProps to the commit.
   time <- getASTime
-  let rcdiff = RowColDiff { beforeRowCols = [], afterRowCols = [newRc]}
+  let rcdiff = RowColDiff { beforeRowCols = oldRcs, afterRowCols = [newRc]}
       commit = Commit { rowColDiff = rcdiff, cellDiff = CellDiff { beforeCells = [], afterCells = [] }, commitDescriptorDiff = DescriptorDiff { addedDescriptors = [], removedDescriptors = [] }, time = time}
   DT.updateDBWithCommit conn (userCommitSource uc) commit
   sendToOriginal uc $ ServerMessage SetRowColProp Success (PayloadN ())
-
--- used for importing arbitrary files
-handleImport :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
-handleImport uc state msg = return () -- TODO
 
 -- #anand used for importing binary alphasheets files (making a separate REST server for alphasheets
   -- import/export seems overkill given that it's a temporarily needed solution)

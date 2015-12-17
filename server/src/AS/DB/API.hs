@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings, DataKinds, GADTs #-}
 
 module AS.DB.API where
 
@@ -11,6 +11,7 @@ import AS.Types.CellProps
 import AS.Types.Errors
 import AS.Types.Eval
 
+import qualified AS.Config.Settings as Settings
 import AS.Util as U
 import qualified AS.DB.Internal as DI
 import AS.Parsing.Substitutions (getDependencies)
@@ -35,11 +36,11 @@ import Data.Time
 import Database.Redis hiding (decode)
 
 import qualified Data.Text as T
+import qualified Data.ByteString.Char8 as BC
+import qualified Data.ByteString as B
+import qualified Data.Serialize as S
 import Data.List as L
 import Data.Aeson hiding (Success)
-import qualified Data.ByteString.Char8 as B
-import qualified Data.ByteString as BS
-import qualified Data.ByteString.Lazy.Char8 as C
 import Data.ByteString.Unsafe as BU
 import Data.List.Split
 
@@ -75,139 +76,96 @@ clear :: Connection -> IO ()
 clear conn = runRedis conn $ flushall >> return ()
 
 ----------------------------------------------------------------------------------------------------------------------
--- Cells
+-- Raw cells API
+-- all of these functions are order-preserving unless noted otherwise.
 
-getCell :: ASIndex -> IO (Maybe ASCell)
-getCell loc = head <$> getCells [loc]
+getCells :: Connection -> [ASIndex] -> IO [Maybe ASCell]
+getCells _ [] = return []
+getCells conn locs = runRedis conn $ do
+  sCells <- map fromRight <$> mapM (get . S.encode) locs
+  return $ map (decodeMaybe =<<) sCells
 
-getPossiblyBlankCell :: ASIndex -> IO ASCell
-getPossiblyBlankCell loc = head <$> getPossiblyBlankCells [loc]
+setCells :: Connection -> [ASCell] -> IO ()
+setCells _ [] = return ()
+setCells conn cs = runRedis conn $ mapM_ (\c -> set (S.encode . cellLocation $ c) (S.encode c)) cs
 
--- this function is order-preserving
-getCells :: [ASIndex] -> IO [Maybe ASCell]
-getCells [] = return []
-getCells locs = DI.getCellsByMessage msg num
-  where
-    msg = DI.showB $ intercalate msgPartDelimiter $ map show2 locs
-    num = length locs
+deleteLocs :: Connection -> [ASIndex] -> IO ()
+deleteLocs _ [] = return ()
+deleteLocs conn locs = runRedis conn $ del (map S.encode locs) >> return ()
 
--- looks up cells in the given context, then in the database, in that precedence order
--- this function is order-preserving
-getCellsWithContext :: EvalContext -> [ASIndex] -> IO [Maybe ASCell]
-getCellsWithContext (EvalContext mp _ _) locs = map replaceWithContext <$> zip locs <$> getCells locs
-  where
-    replaceWithContext (l, c) = case (M.lookup l mp) of 
-      Just foundCell -> Just foundCell
-      Nothing -> c
+----------------------------------------------------------------------------------------------------------------------
+-- Additional cell API methods
+
+getCell :: Connection -> ASIndex -> IO (Maybe ASCell)
+getCell conn loc = head <$> getCells conn [loc]
+
+setCell :: Connection -> ASCell -> IO ()
+setCell conn c = setCells conn [c]
+
+getPossiblyBlankCell :: Connection -> ASIndex -> IO ASCell
+getPossiblyBlankCell conn loc = head <$> getPossiblyBlankCells conn [loc]
 
 getCellsInSheet :: Connection -> ASSheetId -> IO [ASCell]
-getCellsInSheet conn sid = DI.getCellsByKeyPattern conn $ "I/" ++ (T.unpack sid) ++ "/(*,*)"
+getCellsInSheet conn sid = getCellsByKeyPattern conn $ "*" ++ (T.unpack sid) ++ "*"
 
 getAllCells :: Connection -> IO [ASCell]
-getAllCells conn = DI.getCellsByKeyPattern conn "I/*/(*,*)"
+getAllCells conn = getCellsByKeyPattern conn "*"
+
+deleteLocsInSheet :: Connection -> ASSheetId -> IO ()
+deleteLocsInSheet conn sid = runRedis conn $ do
+  Right ks <- keys $ BC.pack $ "*" ++ (T.unpack sid) ++ "*"
+  let locKeys = catMaybes $ map readLocKey ks
+      readLocKey k = case (decodeMaybe k) of 
+        Just (Index _ _) -> Just k
+        _ -> Nothing
+  del locKeys
+  return ()
+
+getCellsByKeyPattern :: Connection -> String -> IO [ASCell]
+getCellsByKeyPattern conn pattern = do
+  ks <- DI.getKeysByPattern conn pattern
+  let locs = catMaybes $ map readLoc ks
+      readLoc k = case (decodeMaybe k) of 
+        Just l@(Index _ _) -> Just l
+        _ -> Nothing
+  return locs
+  map fromJust <$> getCells conn locs
 
 -- Gets the cells at the locations with expressions and values removed, but tags intact. 
 -- this function is order-preserving
-getBlankedCellsAt :: [ASIndex] -> IO [ASCell]
-getBlankedCellsAt locs = 
+getBlankedCellsAt :: Connection -> [ASIndex] -> IO [ASCell]
+getBlankedCellsAt conn locs = 
   let blank xp = case xp of 
             Expression _ lang -> Expression "" lang
             Coupled _ lang _ _ -> Expression "" lang
   in do 
-    cells <- getPossiblyBlankCells locs
+    cells <- getPossiblyBlankCells conn locs
     return $ map (\(Cell l xp v ts) -> Cell l (blank xp) NoValue ts) cells
 
 -- this function is order-preserving
-getPossiblyBlankCells :: [ASIndex] -> IO [ASCell]
-getPossiblyBlankCells locs = do 
-  cells <- getCells locs
+getPossiblyBlankCells :: Connection -> [ASIndex] -> IO [ASCell]
+getPossiblyBlankCells conn locs = do 
+  cells <- getCells conn locs
   return $ map (\(l,c) -> case c of 
     Just c' -> c'
     Nothing -> blankCellAt l) (zip locs cells)
 
-getPropsAt :: [ASIndex] -> IO [ASCellProps]
-getPropsAt locs = do 
-  cells <- getPossiblyBlankCells locs
+getPropsAt :: Connection -> [ASIndex] -> IO [ASCellProps]
+getPropsAt conn locs = do 
+  cells <- getPossiblyBlankCells conn locs
   return $ map cellProps cells
-
-setCell :: ASCell -> IO ()
-setCell c = setCells [c]
-
-setCells :: [ASCell] -> IO ()
-setCells [] = return ()
-setCells cells = DI.setCellsByMessage msg num
-  where 
-    str = intercalate msgPartDelimiter $ (map (show2 . cellLocation) cells) ++ (map show2 cells)
-    msg = DI.showB str
-    num = length cells
-
-deleteLocs :: Connection -> [ASIndex] -> IO ()
-deleteLocs _ [] = return ()
-deleteLocs conn locs = runRedis conn $ mapM_ DI.deleteLocRedis locs
-
-refToIndices :: ASReference -> EitherTExec [ASIndex]
-refToIndices (IndexRef i) = return [i]
-refToIndices (RangeRef r) = return $ rangeToIndices r
-refToIndices (PointerRef p) = do
-  let index = pointerToIndex p 
-  cell <- lift $ getCell index 
-  case cell of
-    Nothing -> left IndexOfPointerNonExistant
-    Just cell' -> case (cellToRangeKey cell') of
-        Nothing -> left PointerToNormalCell
-        Just rKey -> return $ rangeKeyToIndices rKey
-
--- converts ref to indices using the evalContext, then the DB, in that order.
--- because our evalContext might contain information the DB doesn't (e.g. decoupling)
--- so in the pointer case, we need to check the evalContext first for changes that might have happened during eval
-refToIndicesWithContextDuringEval :: EvalContext -> ASReference -> EitherTExec [ASIndex]
-refToIndicesWithContextDuringEval _ (IndexRef i) = return [i]
-refToIndicesWithContextDuringEval _ (RangeRef r) = return $ rangeToIndices r
-refToIndicesWithContextDuringEval (EvalContext mp _ _) (PointerRef p) = do
-  let index = pointerToIndex p
-  case (M.lookup index mp) of 
-    Just (Cell _ (Coupled _ _ _ rKey) _ _) -> return $ rangeKeyToIndices rKey
-    Just (Cell _ (Expression _ _) _ _) -> left $ PointerToNormalCell
-    Nothing -> do
-      cell <- lift $ getCell index 
-      case cell of
-        Nothing -> left IndexOfPointerNonExistant
-        Just cell' -> case (cellToRangeKey cell') of
-            Nothing -> left PointerToNormalCell
-            Just rKey -> return $ rangeKeyToIndices rKey
-
--- This is the function we use to convert ref to indices for updating the map PRIOR TO eval. There are some cases where we don't flip a shit. 
--- For example, if the map currently has A1 as a normal expression, and we have @A1 somewhere downstream, we won't flip a shit, and instead expect that
--- by the time the pointer is evalled, A1 will have a coupled expression due to toposort. We flip a shit if it's not the case then. 
-refToIndicesWithContextBeforeEval :: EvalContext -> ASReference -> IO [ASIndex]
-refToIndicesWithContextBeforeEval _ (IndexRef i) = return [i]
-refToIndicesWithContextBeforeEval _ (RangeRef r) = return $ rangeToIndices r
-refToIndicesWithContextBeforeEval (EvalContext mp _ _) (PointerRef p) = do
-  let index = pointerToIndex p
-  case (M.lookup index mp) of 
-    Just (Cell _ (Coupled _ _ _ rKey) _ _) -> return $ rangeKeyToIndices rKey
-    Just (Cell _ (Expression _ _) _ _) -> return $ []
-    Nothing -> do
-      cell <- getCell index 
-      case cell of
-        Nothing -> return $ []
-        Just cell' -> case (cellToRangeKey cell') of
-            Nothing -> return $ []
-            Just rKey -> return $ rangeKeyToIndices rKey
-
-
 
 ----------------------------------------------------------------------------------------------------------------------
 -- Locations
 
 locationsExist :: Connection -> [ASIndex] -> IO [Bool]
-locationsExist conn locs = runRedis conn $ map fromRight <$> mapM locExists locs
-  where
-    fromRight (Right a) = a
-    locExists l         = exists $ makeLocationKey l
+locationsExist conn locs = runRedis conn $ map fromRight <$> mapM (exists . S.encode) locs
 
 locationExists :: Connection -> ASIndex -> IO Bool
 locationExists conn loc = head <$> locationsExist conn [loc] 
+
+----------------------------------------------------------------------------------------------------------------------
+-- Fat cells
 
 -- | Returns the listkeys of all the lists that are entirely contained in the range.  
 fatCellsInRange :: Connection -> ASRange -> IO [RangeKey]
@@ -221,8 +179,8 @@ fatCellsInRange conn rng = do
 
 getRangeDescriptor :: Connection -> RangeKey -> IO (Maybe RangeDescriptor)
 getRangeDescriptor conn key = runRedis conn $ do 
-  Right desc <- get (B.pack . show2 $ key)
-  return $ DI.bStrToRangeDescriptor desc
+  Right desc <- get . toRedisFormat $ RedisRangeKey key
+  return $ decodeMaybe =<< desc
 
 getRangeDescriptorsInSheet :: Connection -> ASSheetId -> IO [RangeDescriptor]
 getRangeDescriptorsInSheet conn sid = do
@@ -231,7 +189,7 @@ getRangeDescriptorsInSheet conn sid = do
 
 getRangeDescriptorsInSheetWithContext :: Connection -> EvalContext -> ASSheetId -> IO [RangeDescriptor]
 getRangeDescriptorsInSheetWithContext conn ctx@(EvalContext _ _ ddiff) sid = do
-  putStrLn $ "removed descriptors in getRangeDescriptorsInSheetWithContext " ++ (show $ removedDescriptors ddiff)
+  printObj "removed descriptors in getRangeDescriptorsInSheetWithContext " $ removedDescriptors ddiff
   dbKeys <- DI.getRangeKeysInSheet conn sid
   let dbKeys' = dbKeys \\ (map descriptorKey $ removedDescriptors ddiff)
   dbDescriptors <- map fromJust <$> mapM (getRangeDescriptor conn) dbKeys' 
@@ -270,22 +228,12 @@ createWorkbookSheet conn wbs = do
   let newSheetIds = map sheetId newSheets'
   wbResult <- getWorkbook conn $ wsName wbs
   case wbResult of
-    (Just wb) -> do
+    Just wb -> do
       modifyWorkbookSheets conn (\ss -> nub $ newSheetIds ++ ss) (workbookName wb)
       return wbs
     Nothing -> do
       wb <- createWorkbook conn newSheetIds
       return $ WorkbookSheet (workbookName wb) newSheets'
-
-deleteWorkbookSheet :: Connection -> WorkbookSheet -> IO ()
-deleteWorkbookSheet conn wbs = do
-  let delSheets = map sheetId $ wsSheets wbs
-  mapM_ (deleteSheetUnsafe conn) delSheets
-  wbResult <- getWorkbook conn $ wsName wbs
-  case wbResult of
-    (Just wb) -> modifyWorkbookSheets conn deleteSheets (workbookName wb)
-      where deleteSheets = filter $ \s -> not $ s `elem` delSheets
-    Nothing -> return ()
 
 modifyWorkbookSheets :: Connection -> ([ASSheetId] -> [ASSheetId]) -> String -> IO ()
 modifyWorkbookSheets conn f wName = do
@@ -304,82 +252,60 @@ createWorkbook conn sheetids = do
   setWorkbook conn wb
   return wb
 
-getUniqueWbName :: Connection -> IO String
+getUniqueWbName :: Connection -> IO WorkbookName
 getUniqueWbName conn = do
   wbs <- getAllWorkbooks conn
   return $ DI.getUniquePrefixedName "Workbook" $ map workbookName wbs
 
-getWorkbook :: Connection -> String -> IO (Maybe ASWorkbook)
+getWorkbook :: Connection -> WorkbookName -> IO (Maybe ASWorkbook)
 getWorkbook conn name = do
     runRedis conn $ do
-        mwb <- get $ makeWorkbookKey name
+        mwb <- get . toRedisFormat $ WorkbookKey name
         case mwb of
             Right wb -> return $ DI.bStrToWorkbook wb
             Left _   -> return Nothing
 
 getAllWorkbooks :: Connection -> IO [ASWorkbook]
-getAllWorkbooks conn = do
-    runRedis conn $ do
-        Right wbKeys <- smembers "workbookKeys"
-        wbs <- mapM get wbKeys
-        return $ map (\(Right (Just w)) -> read (B.unpack w) :: ASWorkbook) wbs
+getAllWorkbooks conn = runRedis conn $ do
+  Right wbKeys <- smembers . toRedisFormat $ AllWorkbooksKey
+  wbs <- mapM get wbKeys
+  return $ map (\(Right (Just w)) -> read (BC.unpack w) :: ASWorkbook) wbs
 
 setWorkbook :: Connection -> ASWorkbook -> IO ()
-setWorkbook conn wb = do
-    runRedis conn $ do
-        let workbookKey = makeWorkbookKey . workbookName $ wb
-        TxSuccess _ <- multiExec $ do
-            set workbookKey (B.pack . show $ wb)  -- set the workbook as key-value
-            sadd "workbookKeys" [workbookKey]  -- add the workbook key to the set of all sheets
-        return ()
+setWorkbook conn wb = runRedis conn $ do
+  let workbookKey = toRedisFormat . WorkbookKey . workbookName $ wb
+  TxSuccess _ <- multiExec $ do
+      set workbookKey (BC.pack . show $ wb)  -- set the workbook as key-value
+      sadd (toRedisFormat AllWorkbooksKey) [workbookKey]  -- add the workbook key to the set of all sheets
+  return ()
 
-workbookExists :: Connection -> String -> IO Bool
-workbookExists conn wName = do
-  runRedis conn $ do
-    Right result <- exists $ makeWorkbookKey wName
-    return result
+workbookExists :: Connection -> WorkbookName -> IO Bool
+workbookExists conn wName = runRedis conn $ do
+  Right result <- exists . toRedisFormat $ WorkbookKey wName
+  return result
 
 -- only removes the workbook, not contained sheets
-deleteWorkbook :: Connection -> String -> IO ()
-deleteWorkbook conn name = do
-    runRedis conn $ do
-        let workbookKey = makeWorkbookKey name
-        multiExec $ do
-          del [workbookKey]
-          srem "workbookKeys" [workbookKey]
-        return ()
-
--- note: this is an expensive operation
-deleteWorkbookAndSheets :: Connection -> String -> IO ()
-deleteWorkbookAndSheets conn name = do
-    mwb <- getWorkbook conn name
-    case mwb of
-        Nothing -> return ()
-        Just wb -> do
-            mapM_ (deleteSheetUnsafe conn) (workbookSheets wb) -- remove sheets
-            runRedis conn $ do
-                let workbookKey = makeWorkbookKey name
-                TxSuccess _ <- multiExec $ do
-                    del [workbookKey]   -- remove workbook from key-value
-                    srem "workbookKeys" [workbookKey] -- remove workbook from set
-                return ()
+deleteWorkbook :: Connection -> WorkbookName -> IO ()
+deleteWorkbook conn name = runRedis conn $ do
+  let workbookKey = toRedisFormat $ WorkbookKey name
+  multiExec $ do
+    del [workbookKey]
+    srem (toRedisFormat AllWorkbooksKey) [workbookKey]
+  return ()
 
 ----------------------------------------------------------------------------------------------------------------------
 -- Raw sheets
 
 getSheet :: Connection -> ASSheetId -> IO (Maybe ASSheet)
-getSheet conn sid = do
-    runRedis conn $ do
-        msheet <- get $ makeSheetKey sid
-        case msheet of
-            Right sheet -> return $ DI.bStrToSheet sheet
-            Left _      -> return Nothing
+getSheet conn sid = runRedis conn $ do
+  Right sheet <- get . toRedisFormat $ SheetKey sid
+  return $ DI.bStrToSheet sheet
 
 getAllSheets :: Connection -> IO [ASSheet]
 getAllSheets conn = 
-  let readSheet (Right (Just s)) = read (B.unpack s) :: ASSheet
+  let readSheet (Right (Just s)) = read (BC.unpack s) :: ASSheet
   in runRedis conn $ do
-    Right sheetKeys <- smembers "sheetKeys"
+    Right sheetKeys <- smembers (toRedisFormat AllSheetsKey)
     sheets <- mapM get sheetKeys
     return $ map readSheet sheets
 
@@ -400,64 +326,46 @@ getUniqueSheetName conn = do
 setSheet :: Connection -> ASSheet -> IO ()
 setSheet conn sheet = do
     runRedis conn $ do
-        let sheetKey = makeSheetKey . sheetId $ sheet
+        let sheetKey = toRedisFormat . SheetKey . sheetId $ sheet
         TxSuccess _ <- multiExec $ do
-            set sheetKey (B.pack . show $ sheet)  -- set the sheet as key-value
-            sadd "sheetKeys" [sheetKey]  -- add the sheet key to the set of all sheets
+            set sheetKey (BC.pack . show $ sheet)  -- set the sheet as key-value
+            sadd (toRedisFormat AllSheetsKey) [sheetKey]  -- add the sheet key to the set of all sheets
         return ()
 
 clearSheet :: Connection -> ASSheetId -> IO ()
-clearSheet conn sid = do
-  let headerLangs = [Python, R] -- should REALLY put this in a Constants file
-  keys <- map (B.pack . show2) <$> DI.getRangeKeysInSheet conn sid
-  runRedis conn $ do
-    del keys
-    del [makeSheetRangesKey sid]
-    del [condFormattingRulesKey sid]
-    mapM (\l -> del [evalHeaderKey sid l]) headerLangs
-  DI.deleteLocsInSheet sid
-  -- TODO: also clear undo, redo, and last message (for Ctrl+Y) (Alex 11/20)
-
--- deletes the sheet only, does not remove from any containing workbooks
-deleteSheetUnsafe :: Connection -> ASSheetId -> IO ()
-deleteSheetUnsafe conn sid = do
-    runRedis conn $ do
-        let setKey = makeSheetSetKey sid
-            sheetKey = makeSheetKey sid
-
-        mlocKeys <- smembers setKey
-        TxSuccess _ <- multiExec $ do
-            case mlocKeys of
-                Right []      -> return () -- hedis can't delete empty list
-                Right locKeys -> del locKeys >> return ()
-                Left _        -> return ()
-            del [setKey]      -- delete the loc set
-            del [sheetKey]    -- delete the sheet
-            srem "sheetKeys" [sheetKey] -- remove the sheet key from the set of sheets
-        return ()
+clearSheet conn sid = 
+  let sheetRangesKey = toRedisFormat $ SheetRangesKey sid
+      cfRulesKey = toRedisFormat $ CFRulesKey sid
+      evalHeaderKeys = map (toRedisFormat . (EvalHeaderKey sid)) Settings.headerLangs
+      rangeKeys = map (toRedisFormat . RedisRangeKey) <$> DI.getRangeKeysInSheet conn sid
+      pluralKeyTypes = [PushCommitType, PopCommitType, TempCommitType, LastMessageType]
+      pluralKeys = (evalHeaderKeys ++) . concat <$> mapM (DI.getKeysInSheetByType conn sid) pluralKeyTypes
+  in runRedis conn $ do
+    pluralKeys <- liftIO pluralKeys
+    del $ sheetRangesKey : cfRulesKey : pluralKeys
+    liftIO $ deleteLocsInSheet conn sid
 
 ----------------------------------------------------------------------------------------------------------------------
 -- Volatile cell methods
 
 getVolatileLocs :: Connection -> IO [ASIndex]
-getVolatileLocs conn = do
-  runRedis conn $ do
-      Right vl <- smembers "volatileLocs"
-      return $ map DI.bStrToASIndex vl
+getVolatileLocs conn = runRedis conn $ do
+  vl <- (map decodeMaybe) . fromRight <$> (smembers $ toRedisFormat VolatileLocsKey)
+  if any isNothing vl 
+    then error "Error decoding volatile locs!!!"
+    else return $ map fromJust vl
 
 -- TODO: some of the cells may change from volatile -> not volatile, but they're still in volLocs
 setChunkVolatileCells :: [ASCell] -> Redis ()
 setChunkVolatileCells cells = do
   let vLocs = map cellLocation $ filter ((hasPropType VolatileProp) . cellProps) cells
-  let locStrs = map (B.pack . show) vLocs
-  sadd "volatileLocs" locStrs
+  sadd (toRedisFormat VolatileLocsKey) (map S.encode vLocs)
   return ()
 
 deleteChunkVolatileCells :: [ASCell] -> Redis ()
 deleteChunkVolatileCells cells = do
   let vLocs = map cellLocation $ filter ((hasPropType VolatileProp) . cellProps) cells
-  let locStrs = map (B.pack . show) vLocs
-  srem "volatileLocs" locStrs
+  srem (toRedisFormat VolatileLocsKey) (map S.encode vLocs)
   return ()
 
 ----------------------------------------------------------------------------------------------------------------------
@@ -474,7 +382,7 @@ canAccess :: Connection -> ASUserId -> ASIndex -> IO Bool
 canAccess conn uid loc = canAccessSheet conn uid (locSheetId loc)
 
 canAccessAll :: Connection -> ASUserId -> [ASIndex] -> IO Bool
-canAccessAll conn uid locs = return . all id =<< mapM (canAccess conn uid) locs
+canAccessAll conn uid locs = all id <$> mapM (canAccess conn uid) locs
 
 isPermissibleMessage :: ASUserId -> Connection -> ASClientMessage -> IO Bool
 isPermissibleMessage uid conn (ClientMessage _ payload) = case payload of 
@@ -489,83 +397,67 @@ isPermissibleMessage uid conn (ClientMessage _ payload) = case payload of
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Repeat handlers
 
-lastMessageKey :: CommitSource -> B.ByteString
-lastMessageKey src = B.pack ("LASTMESSAGE" ++ show src)
-
 storeLastMessage :: Connection -> ASClientMessage -> CommitSource -> IO () 
 storeLastMessage conn msg src = case (clientAction msg) of 
   Repeat -> return ()
-  _ -> runRedis conn (set (lastMessageKey src) (B.pack $ show msg)) >> return ()
+  _ -> runRedis conn (set (toRedisFormat $ LastMessageKey src) (S.encode msg)) >> return ()
 
 getLastMessage :: Connection -> CommitSource -> IO ASClientMessage
 getLastMessage conn src = runRedis conn $ do 
-  msg <- get $ lastMessageKey src
-  return $ case msg of 
-    Right (Just msg') -> read (B.unpack msg')
+  msg <- fromRight <$> get (toRedisFormat $ LastMessageKey src)
+  return $ case (decodeMaybe =<< msg) of 
+    Just m@(ClientMessage _ _) -> m
     _ -> ClientMessage NoAction (PayloadN ())
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Conditional formatting handlers
 
-condFormattingRulesKey :: ASSheetId -> B.ByteString
-condFormattingRulesKey sid = B.pack ("CONDFORMATTINGRULES" ++ (show sid))
-
 getCondFormattingRules :: Connection -> ASSheetId -> IO [CondFormatRule] 
 getCondFormattingRules conn sid = runRedis conn $ do 
-  msg <- get $ condFormattingRulesKey sid
-  return $ case msg of 
-    Right (Just msg') -> read (B.unpack msg')
-    Right Nothing     -> []
-    Left _            -> error "Failed to retrieve conditional formatting rules"
+  Right msg <- get . toRedisFormat $ CFRulesKey sid
+  case (decodeMaybe =<< msg) of 
+    Just rules -> return rules
+    Nothing -> return []
 
 setCondFormattingRules :: Connection -> ASSheetId -> [CondFormatRule] -> IO ()
-setCondFormattingRules conn sid rules = runRedis conn (set (condFormattingRulesKey sid) (B.pack $ show rules)) >> return ()
-
-----------------------------------------------------------------------------------------------------------------------------------------------
--- Header expressions handlers
-
-evalHeaderKey :: ASSheetId -> ASLanguage -> B.ByteString
-evalHeaderKey sid lang = B.pack ("EVALHEADER" ++ (show sid) ++ (show lang)) 
-
-getEvalHeader :: Connection -> ASSheetId -> ASLanguage -> IO String
-getEvalHeader conn sid lang = runRedis conn $ do 
-  msg <- get $ evalHeaderKey sid lang
-  return $ case msg of 
-    Right (Just msg') -> B.unpack msg'
-    Right Nothing -> ""
-    Left _            -> error "Failed to retrieve eval header"
-
-setEvalHeader :: Connection -> ASSheetId -> ASLanguage -> String -> IO ()
-setEvalHeader conn sid lang xp = runRedis conn (set (evalHeaderKey sid lang) (B.pack xp)) >> return ()
+setCondFormattingRules conn sid rules = runRedis conn $ do
+  set (toRedisFormat $ CFRulesKey sid) (S.encode rules)
+  return ()
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Row/col getters/setters
-
--- #needsrefactor the keys here are horrendous. 
-
-rowColPropsKey :: ASSheetId -> RP.RowColType -> Int -> B.ByteString
-rowColPropsKey sid rct ind = B.pack ((show rct) ++ "PROPS" ++ (show sid) ++ '`':(show ind)) 
-
-getIndFromRowColPropsKey :: B.ByteString -> Int
-getIndFromRowColPropsKey = read . last . (splitOn "`") . B.unpack
 
 -- TODO: eventually should extend to record generic row/col formats, like default font in the column, 
 -- rather than just its width. 
 getRowColProps :: Connection -> ASSheetId -> RP.RowColType -> Int -> IO (Maybe RP.ASRowColProps)
 getRowColProps conn sid rct ind  = runRedis conn $ do 
-  msg <- get $ rowColPropsKey sid rct ind
-  return $ case msg of 
-    Right (Just msg') -> Just $ read $ B.unpack msg'
-    Right Nothing     -> Nothing
-    Left _            -> error "Failed to retrieve row or column props"
+  Right msg <- get . toRedisFormat $ RCPropsKey sid rct ind
+  return $ decodeMaybe =<< msg
 
--- #needsrefactor the hard-coding, and the use of keys in hedis, are not great. 
+setRowColProps :: Connection -> ASSheetId -> RP.RowCol -> IO ()
+setRowColProps conn sid (RP.RowCol rct ind props) = do
+  runRedis conn $ set (toRedisFormat $ RCPropsKey sid rct ind) (S.encode props)
+  return ()
+
+deleteRowColProps :: Connection -> ASSheetId -> RP.RowCol -> IO ()
+deleteRowColProps conn sid (RP.RowCol rct ind _) = do
+  runRedis conn $ del [toRedisFormat $ RCPropsKey sid rct ind]
+  return ()
+
+replaceRowCols :: Connection -> ASSheetId -> [RP.RowCol] -> [RP.RowCol] -> IO()
+replaceRowCols conn sid fromRowCols toRowCols = do
+  mapM_ (deleteRowColProps conn sid) fromRowCols
+  mapM_ (setRowColProps conn sid) toRowCols
+
 getRowColsInSheet :: Connection -> ASSheetId -> IO [RP.RowCol]
 getRowColsInSheet conn sid = do 
-  mColKeys <- runRedis conn (keys $ B.pack $ (show RP.ColumnType) ++ "PROPS" ++ (show sid) ++ "*")
-  mRowKeys <- runRedis conn (keys $ B.pack $ (show RP.RowType) ++ "PROPS" ++ (show sid) ++ "*")
-  let colInds = either (error "Failed to retrieve eval header") (map getIndFromRowColPropsKey) mColKeys
-      rowInds = either (error "Failed to retrieve eval header") (map getIndFromRowColPropsKey) mRowKeys
+  let readKey k = read2 (BC.unpack k) :: RedisKey RCPropsType
+      extractInd :: RedisKey RCPropsType -> Int
+      extractInd (RCPropsKey _ _ ind) = ind
+  mColKeys <- fromRight <$> runRedis conn (keys $ BC.pack $ rcPropsKeyPattern sid RP.ColumnType)
+  mRowKeys <- fromRight <$> runRedis conn (keys $ BC.pack $ rcPropsKeyPattern sid RP.RowType)
+  let colInds = map (extractInd . readKey) mColKeys
+      rowInds = map (extractInd . readKey) mRowKeys
   colProps <- mapM (getRowColProps conn sid RP.ColumnType) colInds
   rowProps <- mapM (getRowColProps conn sid RP.RowType) rowInds
   let cols = map (\(x, Just y) -> RP.RowCol RP.ColumnType x y) $ filter (isJust . snd) $ zip colInds colProps
@@ -574,28 +466,7 @@ getRowColsInSheet conn sid = do
 
 deleteRowColsInSheet :: Connection -> ASSheetId -> IO ()
 deleteRowColsInSheet conn sid = do
-  mColKeys <- runRedis conn (keys $ B.pack $ (show RP.ColumnType) ++ "PROPS" ++ (show sid) ++ "*")
-  mRowKeys <- runRedis conn (keys $ B.pack $ (show RP.RowType) ++ "PROPS" ++ (show sid) ++ "*")
-  let colKeys = case mColKeys of
-                     Right ck' -> ck'
-                     Left _ -> error "Failed to retrieve row props in delete rowcols"
-      rowKeys = case mRowKeys of
-                     Right ck' -> ck'
-                     Left _ -> error "Failed to retrieve row props in delete rowcols"
+  colKeys <- fromRight <$> runRedis conn (keys $ BC.pack $ rcPropsKeyPattern sid RP.ColumnType)
+  rowKeys <- fromRight <$> runRedis conn (keys $ BC.pack $ rcPropsKeyPattern sid RP.RowType)
   runRedis conn $ del (colKeys ++ rowKeys)
-  return()
-
-setRowColProps :: Connection -> ASSheetId -> RP.RowCol -> IO ()
-setRowColProps conn sid (RP.RowCol rct ind props) = do
-  runRedis conn (set (rowColPropsKey sid rct ind) (B.pack $ show props))
   return ()
-
-deleteRowColProps :: Connection -> ASSheetId -> RP.RowCol -> IO ()
-deleteRowColProps conn sid (RP.RowCol rct ind _) = do
-  runRedis conn $ del [rowColPropsKey sid rct ind]
-  return ()
-
-replaceRowCols :: Connection -> ASSheetId -> [RP.RowCol] -> [RP.RowCol] -> IO()
-replaceRowCols conn sid fromRowCols toRowCols = do
-  mapM_ (deleteRowColProps conn sid) fromRowCols
-  mapM_ (setRowColProps conn sid) toRowCols

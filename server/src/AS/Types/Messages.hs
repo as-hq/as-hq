@@ -17,6 +17,7 @@ import AS.Types.CellProps
 import GHC.Generics
 import Data.Aeson hiding (Success)
 import Data.Aeson.Types (defaultOptions)
+import Data.Serialize (Serialize)
 import qualified Data.Text as T
 
 
@@ -40,7 +41,7 @@ data ASAction =
   | Acknowledge
   | SetInitialSheet
   | New
-  | Import | Export
+  | Import | Export | ImportCSV
   | Open | Close
   | Evaluate | EvaluateRepl | EvaluateHeader
   | Update
@@ -100,6 +101,7 @@ data ASPayload =
   | PayloadCondFormat { condFormatRules :: [CondFormatRule] }
   | PayloadCondFormatResult { condFormatRulesResult :: [CondFormatRule], condFormatCellsUpdated :: [ASCell] }
   | PayloadSetRowColProp RowColType Int RowColProp
+  | PayloadCSV {csvIndex :: ASIndex, csvLang :: ASLanguage, csvFileName :: String}
   deriving (Show, Read, Generic)
 
 data ASReplValue = ReplValue {replValue :: ASValue, replLang :: ASLanguage} deriving (Show, Read, Eq, Generic)
@@ -230,7 +232,8 @@ instance FromJSON TwoExpressionsType
 data Direction = DirUp | DirDown | DirLeft | DirRight deriving (Show, Read, Eq, Generic)
 
 
-
+--------------------------------------------------------------------------------------------------------------
+-- Instances
 
 -- The format Frontend uses for both client->server and server->client is
 -- { messageUserId: blah, action: blah, result: blah, payload: blah }
@@ -289,6 +292,19 @@ instance ToJSON ASReplValue
 instance FromJSON QueryList
 instance ToJSON QueryList
 
+instance Serialize ASClientMessage
+instance Serialize ASPayload
+instance Serialize ASAction
+instance Serialize WorkbookSheet
+instance Serialize ASSheet
+instance Serialize ASWorkbook
+instance Serialize QueryList
+instance Serialize MutateType
+instance Serialize Direction
+instance Serialize CondFormatRule
+instance Serialize ASReplValue
+instance Serialize ASInitConnection
+instance Serialize ASInitDaemonConnection
 
 --------------------------------------------------------------------------------------------------------------
 -- Helpers
@@ -297,7 +313,7 @@ instance ToJSON QueryList
 generateErrorMessage :: ASExecError -> String
 generateErrorMessage e = case e of
   CircularDepError circDepLoc -> "Circular dependecy detected in cell " ++ (indexToExcel circDepLoc)
-  (DBNothingException _)      -> "Unable to fetch cells from database."
+  DBNothingException locs     -> "Unable to fetch cells from database."
   ExpressionNotEvaluable      -> "Expression not does not contain evaluable statement."
   ExecError                   -> "Error while evaluating expression."
   SyntaxError                 -> "Syntax error."

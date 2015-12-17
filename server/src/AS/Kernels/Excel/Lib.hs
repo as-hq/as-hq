@@ -426,7 +426,7 @@ refToEntity c (ERef l@(IndexRef i)) = case (asValueToEntity v) of
   Just (EntityVal val) -> Right $ EntityMatrix $ EMatrix 1 1 (V.singleton val)
   where
     v = case (M.lookup i (evalMap c)) of
-      Nothing -> dbLookup i
+      Nothing -> dbLookup (dbConn c) i
       c -> cellToFormattedVal c 
 refToEntity c (ERef (l@(RangeRef r))) = if any isNothing vals
   then Left $ CannotConvertToExcelValue l
@@ -437,7 +437,7 @@ refToEntity c (ERef (l@(RangeRef r))) = if any isNothing vals
     (inMap,needDB) = partition ((flip M.member) mp) idxs
     -- excel cannot operate on objects/expanding values, so it's safe to assume all composite values passed in are cell values
     mapVals = map (cellToFormattedVal . Just . (mp M.!)) inMap
-    dbVals = dbLookupBulk needDB
+    dbVals = dbLookupBulk (dbConn c) needDB
     vals = map toEValue $ mapVals ++ dbVals 
 refToEntity c (ERef (PointerRef p)) = Left $ REF $ "Can't convert pointer to entity"
 

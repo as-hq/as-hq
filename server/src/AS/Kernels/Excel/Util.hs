@@ -16,7 +16,7 @@ import Data.List
 import qualified Data.Vector as V
 
 import System.IO.Unsafe
-
+import Database.Redis (Connection)
 -------------------------------------------------------------------------------------------------------------
 -- | Matrix methods
 
@@ -105,11 +105,11 @@ cellToFormattedVal Nothing = return NoValue
 
 -- | The use of unsafePerformIO is temporary. Eventually a lot of this code may move into IO because of
 -- things like rand.
-dbLookup :: ASIndex -> Formatted ASValue
-dbLookup = cellToFormattedVal . unsafePerformIO . getCell
+dbLookup :: Connection -> ASIndex -> Formatted ASValue
+dbLookup conn = cellToFormattedVal . unsafePerformIO . (getCell conn)
 
-dbLookupBulk :: [ASIndex] -> [Formatted ASValue]
-dbLookupBulk = (map cellToFormattedVal) . unsafePerformIO . getCells
+dbLookupBulk :: Connection -> [ASIndex] -> [Formatted ASValue]
+dbLookupBulk conn = (map cellToFormattedVal) . unsafePerformIO . (getCells conn)
 
 -------------------------------------------------------------------------------------------------------------
 -- | AS Reference utility methods
