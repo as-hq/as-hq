@@ -167,9 +167,10 @@ functionFromOneExpressionType iet =
 
 -- COMMENT: timchu, Perhaps these functions are best split into Types/CondFormat?
 -- Messages is getting large.
--- TODO: timchu, 12/17/15. this is not exactly right. Should be the same as Evalues.
--- This is a temporary thing to avoid having to reimplement all the EValue helper
--- functions.
+-- TODO: timchu, 12/17/15. this is not exactly right. Should be the same as
+-- the ordering on Evalues.
+-- This is a temporary hack. Defining inequalities should be done in one place
+-- and implemented for both ASValues and EValues.
 instance Ord ASValue where
   -- TODO: is this right?
   (<=) NoValue v  = (<=) (ValueI 0) v
