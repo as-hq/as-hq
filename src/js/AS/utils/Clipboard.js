@@ -107,37 +107,11 @@ export default {
 		return !isNaN(Number(str));
 	},
 
-	_isPercent(str: string): boolean {
-		let strLen = str.length;
-		return (str[strLen-1] == '%') && this._isPlainNumber(str.substring(0, strLen-1));
-	},
-
-	_isCurrency(str: string): boolean {
-		return (str[0] == '$') && this._isPlainNumber(str.substring(1));
-	},
-
-	_isDate(str: string): boolean {
-		let parts = str.split('/');
-		// not technically correct, since e.g. 1.0/2.0/3.0 gets counted, but for now
-		// this is only used in one place, and having 1.0/2.0/3.0 interpreted literally
-		// is fine in that case. (So is, e.g., 100/200/300, which does not make sense
-		// as a date.)
-		return (parts.length == 3 && parts.every(this._isPlainNumber));
-	},
-
-	_isNumeric(str: string, lang: ASLanguage): boolean {
-		if (lang != 'Excel') {
-			return this._isPlainNumber(str);
-		} else {
-			return this._isPlainNumber(str) || this._isPercent(str) || this._isCurrency(str) || this._isDate(str);
-		}
-	},
-
   externalStringToExpression(str: string, lang: ASLanguage): string {
     if (lang == "Excel") {
       return str;
     } else {
-      if (this._isNumeric(Number(str), lang)) {
+      if (this._isPlainNumber(str, lang)) {
         return str;
       } else if (str.toUpperCase() == "TRUE") {
         return this.externalStringToBool(true, lang);
