@@ -14,6 +14,7 @@ import React from 'react';
 
 import API from '../actions/ASApiActionCreators';
 import SheetStateStore from '../stores/ASSheetStateStore';
+import Constants from '../Constants';
 
 import ASCondFormattingDialog from './dialogs/ASCondFormattingDialog.jsx';
 import ASMenuBar from './menu-bar/ASMenuBar.jsx';
@@ -50,6 +51,18 @@ export default class ASTopBar extends React.Component<{}, ASTopBarProps, ASTopBa
 
   render(): React.Element {
     let self = this;
+
+    let testAlphaSheets =
+      Constants.isProduction
+        ? []
+        : [(
+          simple({
+            title: 'Test AlphaSheets',
+            callback() {
+              window.test();
+            }
+          })
+        )];
 
     return (
       <span>
@@ -100,7 +113,9 @@ export default class ASTopBar extends React.Component<{}, ASTopBarProps, ASTopBa
                 let bugReport = window.prompt("Please describe the bug you encountered.","");
                 API.bugReport(bugReport);
               }
-            })
+            }),
+
+            ...testAlphaSheets
           ]}
         ]} />
       </span>
