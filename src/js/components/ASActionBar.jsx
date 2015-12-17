@@ -44,6 +44,9 @@ export default React.createClass({
         <FlatButton
           label="OPEN SHEET"
           onClick={this._onOpenFile} />
+        <FlatButton
+          label="CHART"
+          onClick={this._onChart} />
         {
           Constants.isProduction
             ? null
@@ -82,6 +85,10 @@ export default React.createClass({
 
   _onOpenFile() {
     alert("To open a saved AlphaSheets sheet, drag it onto the spreadsheet on this page. (Cut us some slack, this is an MVP.)");
+  },
+
+  _onChart() {
+    this.props.onChart();
   },
 
   _onAlphaButtonTap() {

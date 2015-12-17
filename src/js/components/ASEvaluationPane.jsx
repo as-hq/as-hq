@@ -207,7 +207,7 @@ export default React.createClass({
     // This is a terrible, terrible hack to show an error message when no cells have
     // changed, but the server returned an error. Ideally we'd create an
     // an error message store to handle this, but we're probably
-    // going to do away with external errors entirely at some point, making it moot. 
+    // going to do away with external errors entirely at some point, making it moot.
     this._onCellsChange();
   },
 
@@ -224,7 +224,7 @@ export default React.createClass({
     for (let i = 0; i < updatedCellsOnSheet.length; ++i) {
       let cell = updatedCellsOnSheet[i],
           val = cell.cellValue;
-      if (val.tag == "ValueError" || val.tag == "ValueExcelError") {
+      if (val.tag == "ValueError") {
         err = this.getErrorMessage(val);
         break;
       }
