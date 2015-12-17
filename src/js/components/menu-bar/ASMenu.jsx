@@ -24,7 +24,6 @@ import MenuItem from 'material-ui/lib/menus/menu-item';
 import {Popover} from 'material-ui';
 
 const CONST_PROPS = {
-  enclosingDivStyle: { display: 'inline-block' },
   anchorOrigin: { horizontal: 'left', vertical: 'bottom' },
   menuProps: { desktop: true }
 };
@@ -51,7 +50,7 @@ export default class ASMenu extends React.Component<{}, ASMenuProps, ASMenuState
     let {anchor} = this.state;
 
     return (
-      <div style={CONST_PROPS.enclosingDivStyle} >
+      <div style={_Styles.menuRoot} >
         <FlatButton
           label={title}
           style={_Styles.menu}
@@ -118,6 +117,7 @@ export default class ASMenu extends React.Component<{}, ASMenuProps, ASMenuState
   _handleMenuItemClick(menuItem: SimpleItemSpec): Callback {
     return () => {
       menuItem.callback();
+      this._handleMenuRequestClose();
     };
   }
 
