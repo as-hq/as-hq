@@ -40,7 +40,8 @@ import type {
   ASServerMessage,
   ASClientMessage,
   ASAPICallbackPair,
-  CondFormatRule
+  CondFormatRule,
+  CondFormatCondition
 } from '../types/Messages';
 
 import type {

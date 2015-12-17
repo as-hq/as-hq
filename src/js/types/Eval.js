@@ -119,22 +119,27 @@ export type URL = {
 
 export type Bold = {
   tag: 'Bold';
+  contents: Array<any>; // should really be forced to make it [], don't know how to do that in flow. (Alex 12/17)
 };
 
 export type Italic = {
   tag: 'Italic';
+  contents: Array<any>; // should really be forced to make it [], don't know how to do that in flow. (Alex 12/17)
 };
 
 export type Underline = {
   tag: 'Underline';
+  contents: Array<any>; // should really be forced to make it [], don't know how to do that in flow. (Alex 12/17)
 };
 
 export type Volatile = {
   tag: 'Volatile';
+  contents: Array<any>; // should really be forced to make it [], don't know how to do that in flow. (Alex 12/17)
 };
 
 export type Tracking = {
   tag: 'Tracking';
+  contents: Array<any>; // should really be forced to make it [], don't know how to do that in flow. (Alex 12/17)
 };
 
 export type BooleanCellTag = 'Bold' | 'Italic' | 'Underline' | 'Volatile' | 'Tracking';
