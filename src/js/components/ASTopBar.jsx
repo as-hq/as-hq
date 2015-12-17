@@ -42,7 +42,7 @@ function simple({callback, title}): SimpleItemSpec {
 }
 
 export default class ASTopBar extends React.Component<{}, ASTopBarProps, ASTopBarState> {
-  constructor(props) {
+  constructor(props: ASTopBarProps) {
     super(props);
 
     this.state = { condFormattingOpen: false };

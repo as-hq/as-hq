@@ -87,6 +87,62 @@ declare module 'material-ui' {
     onChange?: (e: SyntheticTouchEvent, index: number, menuItem: MenuItemRequest) => void;
   }
 
+  declare class DialogAction {
+    id?: string;
+    text: string;
+    ref?: string;
+
+    onTouchTap?: (e: SyntheticTouchEvent) => void;
+    onClick?: (e: SyntheticMouseEvent) => void;
+  }
+
+  declare class DialogProps extends ReactProps<any> {
+    actions?: Array<DialogAction | ReactElement>;
+    actionFocus?: string;
+    autoDetectWindowHeight?: boolean;
+    autoScrollBodyContent?: boolean;
+    style?: {[key: string]: any};
+    bodyStyle?: {[key: string]: any};
+    contentClassName?: string;
+    contentInnerStyle?: {[key: string]: any};
+    contentStyle?: {[key: string]: any};
+    modal?: boolean;
+    openImmediately?: boolean;
+    repositionOnUpdate?: boolean;
+    title?: string;
+    defaultOpen?: boolean;
+    open?: boolean;
+
+    onClickAway?: () => void;
+    onDismiss?: () => void;
+    onShow?: () => void;
+    onRequestClose?: (buttonClicked: boolean) => void;
+  }
+
+  declare class FlatButtonProps extends ReactProps<any> {
+    hoverColor?: string;
+    label?: string;
+    labelPosition?: string;
+    labelStyle?: {[key: string]: any};
+    linkButton?: boolean;
+    primary?: boolean;
+    secondary?: boolean;
+    rippleColor?: string;
+    style?: {[key: string]: any};
+  }
+
+  declare class PopoverOrigin {
+    horizontal: 'left' | 'right';
+    vertical: 'top' | 'bottom';
+  }
+
+  declare class PopoverProps extends ReactProps<any> {
+    anchorOrigin: PopoverOrigin;
+    anchorEl: ?HTMLElement;
+    open: boolean;
+    onRequestClose: () => void;
+  }
+
   declare class FontIcon extends ReactComponent<FontIconProps, FontIconProps, {}> {
   }
 
@@ -97,6 +153,15 @@ declare module 'material-ui' {
   }
 
   declare class DropDownMenu extends ReactComponent<DropDownMenuProps, DropDownMenuProps, {}> {
+  }
+
+  declare class Dialog extends ReactComponent<DialogProps, DialogProps, {}> {
+  }
+
+  declare class FlatButton extends ReactComponent<FlatButtonProps, FlatButtonProps, {}> {
+  }
+
+  declare class Popover extends ReactComponent<PopoverProps, PopoverProps, {}> {
   }
 
   declare var Styles: {

@@ -19,7 +19,9 @@ import _Styles from '../../styles/menu-bar/ASMenuBar';
 
 import {FlatButton} from 'material-ui';
 
+// $FlowFixMe: don't know how to declare this in Flow yet
 import Menu from 'material-ui/lib/menus/menu';
+// $FlowFixMe: don't know how to declare this in Flow yet
 import MenuItem from 'material-ui/lib/menus/menu-item';
 import {Popover} from 'material-ui';
 
