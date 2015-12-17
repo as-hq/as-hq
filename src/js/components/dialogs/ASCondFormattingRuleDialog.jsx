@@ -25,11 +25,10 @@ import type {
 import _ from 'lodash';
 
 import React, {PropTypes} from 'react';
-import {TextField, DropDownMenu} from 'material-ui';
+import {Dialog, TextField, DropDownMenu} from 'material-ui';
 
 import {Just, Nothing} from '../../AS/Maybe';
 
-import Dialog from './DialogWrapper.jsx';
 import SelectField from '../basic-controls/ASSelectField.jsx';
 import ASColorPicker from '../basic-controls/ASColorPicker.jsx';
 

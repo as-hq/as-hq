@@ -90,11 +90,11 @@ export default React.createClass({
   },
 
   getThemeButton() {
-    return this.context.muiTheme.component.button;
+    return this.context.muiTheme.button;
   },
 
   getTheme() {
-    return this.context.muiTheme.component.raisedButton;
+    return this.context.muiTheme.raisedButton;
   },
 
   getStyles() {
@@ -130,7 +130,7 @@ export default React.createClass({
         textTransform: 'uppercase',
         fontWeight: Typography.fontWeightMedium,
         margin: 0,
-        padding: '0px ' + this.context.muiTheme.spacing.desktopGutterLess + 'px',
+        padding: '0px ' + this.getTheme().padding + 'px',
         userSelect: 'none',
         lineHeight: (this.props.style && this.props.style.height) ?
          this.props.style.height : this.getThemeButton().height + 'px',
@@ -140,7 +140,7 @@ export default React.createClass({
         position: 'relative',
         opacity: 1,
         margin: 0,
-        padding: '0px ' + this.context.muiTheme.spacing.desktopGutterLess + 'px',
+        padding: '0px ' + this.getTheme().padding + 'px',
         fontSize: '14px',
         letterSpacing: 0,
         textTransform: 'uppercase',
@@ -177,14 +177,14 @@ export default React.createClass({
       finalizedLabelElement = React.cloneElement(labelElement, {
         style: this.mergeAndPrefix(styles.labelElement, this.props.labelStyle)
       });
-    } else if (label) { 
+    } else if (label) {
       finalizedLabelElement = (
         <span style={this.mergeAndPrefix(styles.label, this.props.labelStyle)}>
           {label}
         </span>
       );
     }
-    
+
     let rippleColor = styles.label.color;
     let rippleOpacity = !(primary || secondary) ? 0.1 : 0.16;
 

@@ -3,7 +3,6 @@ import {logDebug} from '../AS/Logger';
 import Dispatcher from '../Dispatcher';
 import Constants from '../Constants';
 import BaseStore from './BaseStore';
-import assign from 'object-assign';
 import API from '../actions/ASApiActionCreators';
 import Util from '../AS/Util';
 
@@ -34,7 +33,7 @@ dispatcherIndex: Dispatcher.register(function (action) {
   }
 });
 
-const ASFindStore = assign({}, BaseStore, {
+const ASFindStore = Object.assign({}, BaseStore, {
 
   /**************************************************************************************************************************/
   // store modification methods
