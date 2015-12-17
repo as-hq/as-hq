@@ -186,7 +186,7 @@ export default React.createClass({
     this.setState({ defaultLanguage: lang, currentLanguage: lang });
     this.setFocus(SheetStateStore.getFocus());
     FileImportDialog.openFileDialog(true, this.importCSVCallback);
-  },
+  }, 
 
   _onSetVarName(name: string) {
     logDebug('var name set to', name);

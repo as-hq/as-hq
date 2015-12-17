@@ -28,17 +28,18 @@ export default {
   /*
   Given a boolean to allow multiple files, and a callback function to call if the POST file is successful (on each file),
   create a fileSelector HTML element that has an input file, and simulate a click on that element.
-  We want an onchange to fire, which is why there's the hack of setting value = "".
+  We want an onchange to fire, which is why we create and dispatch a change event
   In the onchange after the click and the files are selected, send them via HTTP to a Python file server.
   Note that having the callback here guarantees that it is called only after a successful POST
   */
-  openFileDialog(allowMultiple: boolean, callbackAfterSuccess: ((file: File) => void)): ?FileList {
+  openFileDialog(allowMultiple: boolean, callbackAfterSuccess: ((file: File) => void)): ?FileList { 
     let fileSelector = document.createElement('input');
     fileSelector.setAttribute('type', 'file');
     if (allowMultiple) {
       fileSelector.setAttribute('multiple', 'multiple');
     }
     fileSelector.addEventListener("change", (evt) => {
+      evt.preventDefault();
       let files = evt.target.files;
       debugger;
       let req = request.post(this.getStaticUrl());
@@ -60,7 +61,8 @@ export default {
       });
     });
     fileSelector.click();
-    fileSelector.value = "";
+    let event = new Event('change');
+    fileSelector.dispatchEvent(event);
   }
 
 };
