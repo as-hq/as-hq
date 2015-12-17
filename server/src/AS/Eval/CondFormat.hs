@@ -24,6 +24,10 @@ import Data.Maybe
 import AS.Logging
 
 
+-- The cells passed into conditionallyFormatCell should be the most recently passed in value.
+-- In particular, if this was called through an eval, the values of ASCell should
+-- agree with the values in EvalContext. If not, they should be the most recent values anyways.
+-- timchu, 12/17/15 (with help from Alex).
 conditionallyFormatCells :: Connection -> ASSheetId -> [ASCell] -> [CondFormatRule] -> EvalContext -> EitherTExec [ASCell]
 conditionallyFormatCells conn origSid cells rules ctx = do
   let cells' = map (\c -> c { cellProps = clearCondFormatProps (cellProps c) }) cells
@@ -48,7 +52,8 @@ ruleToCellTransform conn sid ctx cfr@(CondFormatRule rngs cfc format) c@(Cell l 
              if xpVal == ValueB True
                 then return True
                 else return False
-           NoExpressionsCondition eType -> return $ (functionFromNoExpressionsType eType) v
+           NoExpressionsCondition eType ->
+             return $ (functionFromNoExpressionsType eType) v
            OneExpressionCondition eType cond -> do
              let cond' = shiftExpression offset cond
              xpVal <- evalXp conn sid ctx cond'
@@ -64,8 +69,6 @@ ruleToCellTransform conn sid ctx cfr@(CondFormatRule rngs cfc format) c@(Cell l 
          then return $ Cell l e v (setCondFormatProp format ps)
          else return c
 
--- get your value, shove it into a new ASExpresssion, finish.
--- TODO: Timchu, I have no idea what this code does!!!!
 evalXp :: Connection -> ASSheetId -> EvalContext -> ASExpression -> EitherTExec ASValue
 evalXp conn sid ctx xp@(Expression str lang) = do
   let dummyLoc = Index sid (-1,-1) -- #needsrefactor sucks. evaluateLanguage should take in a Maybe index. Until then
