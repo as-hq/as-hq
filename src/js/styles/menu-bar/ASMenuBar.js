@@ -15,8 +15,8 @@ export default {
 
   menu: {
     display: 'inline-block',
-    minWidth: '60px',
-    width: '60px',
+    minWidth: '80px',
+    width: '80px',
     height: '36px',
     zIndex: '10000'
   },

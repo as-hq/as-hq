@@ -10,7 +10,8 @@ import type {
 
 import React from 'react';
 
-import Dialog from './DialogWrapper.jsx';
+import {Dialog} from 'material-ui';
+
 import ASButton from '../basic-controls/ASButton.jsx';
 import RuleDialog from './ASCondFormattingRuleDialog.jsx';
 

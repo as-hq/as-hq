@@ -69,7 +69,7 @@ export default React.createClass({
 
     return (
       <div style={{width:"100%",height:"100%"}} >
-        <ASTopBar />
+        <ASTopBar toggleEvalHeader={this._toggleEvalHeader} />
         <div style={{width: '100%', height: '100%'}}>
           <div style={{display: 'inline-block', width: '100%', height:'100%',verticalAlign:'top'}}>
             <ASEvaluationPane behavior="default" ref="evalPane" initInfo={this.state.initEvalInfo} height='100%'/>
