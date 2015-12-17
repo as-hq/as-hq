@@ -302,6 +302,10 @@ instance Serialize QueryList
 instance Serialize MutateType
 instance Serialize Direction
 instance Serialize CondFormatRule
+instance Serialize CondFormatCondition
+instance Serialize TwoExpressionsType
+instance Serialize OneExpressionType
+instance Serialize NoExpressionsType
 instance Serialize ASReplValue
 instance Serialize ASInitConnection
 instance Serialize ASInitDaemonConnection
