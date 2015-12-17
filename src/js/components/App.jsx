@@ -4,18 +4,20 @@ import React, {PropTypes} from 'react';
 import ASActionBar from './ASActionBar.jsx';
 import ASTreeNav from './ASTreeNav.jsx';
 import ASEvaluationPane from './ASEvaluationPane.jsx';
+import ASTopBar from './ASTopBar.jsx';
+
 import {AppCanvas, LeftNav, Paper, Styles} from 'material-ui';
 import API from '../actions/ASApiActionCreators';
 import Constants from '../Constants';
 import SheetStateStore from '../stores/ASSheetStateStore';
 
-const ThemeManager = new Styles.ThemeManager();
+import ThemeManager from 'material-ui/lib/styles/theme-manager';
+import DarkTheme from 'material-ui/lib/styles/raw-themes/dark-raw-theme';
 
 export default React.createClass({
 
   /* When mounting, send a message to the backend to signify a connection */
   componentWillMount() {
-    ThemeManager.setTheme(ThemeManager.types.DARK);
     let sheetId, userId;
 
     if (Constants.isProduction || Constants.promptUser) {
@@ -40,15 +42,18 @@ export default React.createClass({
       initEvalInfo: {}
     }
   },
+
   getDefaultProps() {
     return {}
   },
+
   childContextTypes: {
     muiTheme: React.PropTypes.object
   },
+
   getChildContext() {
     return {
-      muiTheme: ThemeManager.getCurrentTheme()
+      muiTheme: ThemeManager.getMuiTheme(DarkTheme)
     };
   },
 
@@ -64,8 +69,7 @@ export default React.createClass({
 
     return (
       <div style={{width:"100%",height:"100%"}} >
-        <ASActionBar
-          toggleEvalHeader={this._toggleEvalHeader} />
+        <ASTopBar toggleEvalHeader={this._toggleEvalHeader} />
         <div style={{width: '100%', height: '100%'}}>
           <div style={{display: 'inline-block', width: '100%', height:'100%',verticalAlign:'top'}}>
             <ASEvaluationPane behavior="default" ref="evalPane" initInfo={this.state.initEvalInfo} height='100%'/>
