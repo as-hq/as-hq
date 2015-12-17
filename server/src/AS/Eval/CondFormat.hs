@@ -46,6 +46,8 @@ ruleToCellTransform conn sid ctx cfr@(CondFormatRule rngs cfc format) c@(Cell l 
       let tl = getTopLeft rng
           offset = getIndicesOffset tl l
       -- TODO: timchu, 12/16/15. Can definitely split this into multiple functions.
+      -- Cases  on the Conditional Format Condition. Requires that v is the most
+      -- up to date ASValue at location l whenever this function is called.
       meetsCondition <- case cfc of
            CustomExpressionCondition cond -> do
              let cond' = shiftExpression offset cond
@@ -75,7 +77,7 @@ evalXp conn sid ctx xp@(Expression str lang) = do
   let dummyLoc = Index sid (-1,-1) -- #needsrefactor sucks. evaluateLanguage should take in a Maybe index. Until then
       valMap = contextMap ctx
       deps = getDependencies sid xp -- #needsrefactor will compress these all to indices
-  depInds <- concat <$> mapM (refToIndices conn) deps   
+  depInds <- concat <$> mapM (refToIndices conn) deps
   let depIndsToGet = filter (not . (flip M.member) valMap) depInds
   cells <- lift $ DB.getPossiblyBlankCells conn depIndsToGet
   let valMap' = insertMultiple valMap depIndsToGet cells

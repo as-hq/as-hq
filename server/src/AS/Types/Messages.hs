@@ -165,7 +165,8 @@ functionFromOneExpressionType iet =
        Equals -> (==)
        NotEquals -> (/=)
 
--- NOTE: timchu, this may be in wrong place.
+-- COMMENT: timchu, Perhaps these functions are best split into Types/CondFormat?
+-- Messages is getting large.
 -- TODO: timchu, 12/17/15. this is not exactly right. Should be the same as Evalues.
 -- This is a temporary thing to avoid having to reimplement all the EValue helper
 -- functions.
@@ -205,7 +206,7 @@ functionFromNoExpressionsType neType =
        IsEmpty -> isEmpty
        IsNotEmpty -> not . isEmpty
 
--- tests if value is between a1 and a2 inclusive.  Excel does it this way.
+-- tests if value is between a1 and a2 inclusive. Uses the Ord defined on ASValue above.
 isBetween :: ASValue -> ASValue -> ASValue -> Bool
 isBetween value a1 a2 = value >= min a1 a2 && max a1 a2 >= value
 
@@ -310,6 +311,8 @@ instance Serialize ASReplValue
 instance Serialize ASInitConnection
 instance Serialize ASInitDaemonConnection
 
+-- TODO: Timchu,check with team if the above empty defs of serializing the CondFormatRule types
+-- are legit.
 --------------------------------------------------------------------------------------------------------------
 -- Helpers
 
