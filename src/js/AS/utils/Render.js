@@ -198,39 +198,6 @@ export default {
     return shortid.generate();
   },
 
-  getImageOverlay(c: ASCell, originX: number, originY: number): ?ASOverlaySpec {
-    let {cellValue: cv} = c;
-    if (cv.tag === 'ValueImage') {
-      let self = this,
-          ct = c.cellProps,
-          imageWidth   = 300,
-          imageHeight  = 300,
-          imageOffsetX = 0,
-          imageOffsetY = 0;
-      for (var i = 0 ; i < ct.length; i++) {
-        if (ct[i].tag === "ImageData") {
-          imageOffsetX = ct[i].imageOffsetX;
-          imageOffsetY = ct[i].imageOffsetY;
-          imageWidth   = ct[i].imageWidth;
-          imageHeight  = ct[i].imageHeight;
-        }
-      }
-      return {
-        id: self.getUniqueId(),
-        src: Constants.getHostStaticUrl() + "/images/" + cv.imagePath,
-        width: imageWidth,
-        height: imageHeight,
-        offsetX: imageOffsetX,
-        offsetY: imageOffsetY,
-        left: originX,
-        top: originY,
-        loc: c.cellLocation
-      };
-    }
-
-    return null;
-  },
-
   locEquals(c1: ASIndex, c2: ASIndex): boolean {
     let tagE = c1.tag === c2.tag,
         colE = c1.index.col === c2.index.col,
