@@ -56,13 +56,13 @@ ruleToCellTransform conn sid ctx cfr@(CondFormatRule rngs condFormatCondition fo
              val <- evalInConnSidCtx $ shiftXpByOffset xp
              return $ val == (ValueB True)
            NoExpressionsCondition eType ->
-             return $ (getNoExpressionsTypeFunc eType) v
+             return $ (noExpressionsFunc eType) v
            OneExpressionCondition eType xp -> do
              val <- evalInConnSidCtx $ shiftXpByOffset xp
-             return $ (getOneExpressionTypeFunc eType) v val
+             return $ (oneExpressionFunc eType) v val
            TwoExpressionsCondition eType xpOne xpTwo -> do
              [valOne, valTwo] <- mapM (evalInConnSidCtx . shiftXpByOffset) [xpOne, xpTwo]
-             return $ (getTwoExpressionsTypeFunc eType) v valOne valTwo
+             return $ (twoExpressionsFunc eType) v valOne valTwo
       if meetsCondition
          then return $ Cell l e v (setCondFormatProp format ps)
          else return c

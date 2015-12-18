@@ -127,8 +127,8 @@ data CondFormatRule = CondFormatRule { cellLocs :: [ASRange],
 -- Could potentially refactor CustomExpression to be a OneExpressionCondition
 -- by passing in an appropriate function.
 data CondFormatCondition =
-  CustomExpressionCondition { customExpression :: ASExpression }
-  |  OneExpressionCondition { oneExpressionType :: OneExpressionType
+    CustomExpressionCondition { customExpression :: ASExpression }
+  | OneExpressionCondition { oneExpressionType :: OneExpressionType
                             , singleExpression :: ASExpression }
   | NoExpressionsCondition { noExpressionsType :: NoExpressionsType }
 --  | DateExpression { dateExpressionType :: DateExpressionType
@@ -182,29 +182,30 @@ instance Ord ASValue where
 
 
 -- timchu, 12/17/15. Begin helper functions that help with Conditional formatting.
+-- TODO: timchu, 12/17/15. These should probably go in a different file.
 -- TODO: timchu, 12/17/15.  Ask Ritesh about names.
-getOneExpressionTypeFunc :: OneExpressionType -> (ASValue -> ASValue -> Bool)
-getOneExpressionTypeFunc iet =
+oneExpressionFunc :: OneExpressionType -> (ASValue -> ASValue -> Bool)
+oneExpressionFunc iet =
   case iet of
        GreaterThan -> (>=)
-       Geq -> (>)
-       LessThan -> (<)
-       Leq -> (<=)
-       Equals -> (==)
-       NotEquals -> (/=)
+       Geq         -> (>)
+       LessThan    -> (<)
+       Leq         -> (<=)
+       Equals      -> (==)
+       NotEquals   -> (/=)
 
-getNoExpressionsTypeFunc :: NoExpressionsType -> (ASValue -> Bool)
-getNoExpressionsTypeFunc neType =
-  case neType of
-       IsEmpty -> (==) NoValue
+noExpressionsFunc :: NoExpressionsType -> (ASValue -> Bool)
+noExpressionsFunc net =
+  case net of
+       IsEmpty    -> (==) NoValue
        IsNotEmpty -> (/=) NoValue
 
 -- tests if value is between a1 and a2 inclusive. Uses the Ord defined on ASValue above.
 isBetween :: ASValue -> ASValue -> ASValue -> Bool
 isBetween value a1 a2 = value >= min a1 a2 && max a1 a2 >= value
 
-getTwoExpressionsTypeFunc :: TwoExpressionsType -> (ASValue -> ASValue -> ASValue -> Bool)
-getTwoExpressionsTypeFunc tet value a1 a2 =
+twoExpressionsFunc :: TwoExpressionsType -> (ASValue -> ASValue -> ASValue -> Bool)
+twoExpressionsFunc tet value a1 a2 =
   case tet of
        IsBetween ->  isBetween value a1 a2
        IsNotBetween ->  not $ isBetween value a1 a2
