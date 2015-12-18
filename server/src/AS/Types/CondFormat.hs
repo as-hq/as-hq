@@ -88,8 +88,8 @@ symbolTableLookup0 net =
 symbolTableLookup1 :: OneExpressionType -> (ASValue -> ASValue -> Bool)
 symbolTableLookup1 oet =
   case oet of
-       GreaterThan -> (>=)
-       Geq         -> (>)
+       GreaterThan -> (>)
+       Geq         -> (>=)
        LessThan    -> (<)
        Leq         -> (<=)
        Equals      -> (==)
