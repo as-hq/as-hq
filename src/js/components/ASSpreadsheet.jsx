@@ -116,7 +116,8 @@ export default React.createClass({
           hg = this._getHypergrid(),
           model = hg.getBehavior();
       this.getInitialData();
-
+      
+      hg.autoScrollAcceleration = false; 
       let callbacks = ({
         /*
           Call onSelectionChange method in eval pane to deal with selection change
