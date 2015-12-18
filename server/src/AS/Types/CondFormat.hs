@@ -13,6 +13,8 @@ import Data.Aeson hiding (Success)
 import Data.Aeson.Types (defaultOptions)
 import Data.Serialize (Serialize)
 import qualified Data.Text as T
+
+
 instance ToJSON CondFormatRule
 instance FromJSON CondFormatRule
 
@@ -27,13 +29,10 @@ data CondFormatRule = CondFormatRule { cellLocs :: [ASRange],
                                        condition :: CondFormatCondition,
                                        condFormat :: CellProp } deriving (Show, Read, Generic, Eq)
 
--- TODO: Timchu, 12/14/15. This is not complete! Date expressions have not been implemented.
--- nor are text expressions.
+-- TODO: Timchu, 12/14/15. This is MVP; does not have date expressions or text expressions.
 -- CustomExpressions are separate from OneExpresssionConditions since
 -- OneExpressionConditions work by evaluating the expression in the condition, then applying the
 -- relevant function (example: GreaterThan) to the value in the cell.
--- Could potentially refactor CustomExpression to be a OneExpressionCondition
--- by passing in an appropriate function.
 data CondFormatCondition =
     CustomExpressionCondition ASExpression
   | NoExpressionsCondition NoExpressionsType
@@ -42,7 +41,6 @@ data CondFormatCondition =
    deriving (Show, Read, Generic, Eq)
 
 
--- TODO: timchu, 12/17/15. Maybe want to split this into InequalityExpTypes and TextExpTypes?
 data OneExpressionType = GreaterThan | Equals | Geq | Leq | LessThan | NotEquals
   deriving (Show, Read, Generic, Eq)
 
@@ -80,10 +78,7 @@ instance Ord ASValue where
   (<=) _ _ = error "Invalid ASValue comparison"
 
 
--- timchu, 12/17/15. Begin helper functions that help with Conditional formatting.
--- TODO: timchu, 12/17/15. These should probably go in a different file.
-
--- toFuncN takes an NExpressionType to function with N variables.
+-- symbolTableLookupN takes an NExpressionType to function with N variables.
 symbolTableLookup0 :: NoExpressionsType -> (ASValue -> Bool)
 symbolTableLookup0 net =
   case net of
@@ -109,7 +104,6 @@ symbolTableLookup2 tet value a1 a2 =
   case tet of
        IsBetween ->  isBetween value a1 a2
        IsNotBetween ->  not $ isBetween value a1 a2
--- End of functions that help with conditional formatting.
 
 instance ToJSON CondFormatCondition
 instance FromJSON CondFormatCondition

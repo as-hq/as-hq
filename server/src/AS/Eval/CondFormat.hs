@@ -26,10 +26,10 @@ import Data.Maybe
 import AS.Logging
 
 
--- The cells passed into conditionallyFormatCell should contain the most recently updated values.
+-- The cells passed into conditionallyFormatCell should contain the most recent values for the cells.
 -- In particular, if this was called through an eval, the values of ASCell should
--- agree with the values in EvalContext. If not, they should be the most recent values.
--- timchu, 12/17/15 (with help from Alex).
+-- agree with the values in EvalContext. If not, they should be the most recent values in the DB.
+-- timchu, 12/17/15.
 conditionallyFormatCells :: Connection -> ASSheetId -> [ASCell] -> [CondFormatRule] -> EvalContext -> EitherTExec [ASCell]
 conditionallyFormatCells conn origSid cells rules ctx = do
   let cells' = map (\c -> c { cellProps = clearCondFormatProps (cellProps c) }) cells
@@ -47,26 +47,28 @@ ruleToCellTransform conn sid ctx cfr@(CondFormatRule rngs condFormatCondition fo
     Just rng -> do
       let tl = getTopLeft rng
           offset = getIndicesOffset tl l
-          evalInConnSidCtx = evalXp conn sid ctx
-          shiftXpByOffset = shiftExpression offset
-      -- TODO: timchu, 12/16/15. See if these functions are secretly doing
-      -- the same thing / can be made into shorter cleaner code.
-      -- Cases on the Conditional Format Condition.
-      meetsCondition <- case condFormatCondition of
-           CustomExpressionCondition xp -> do
-             val <- evalInConnSidCtx $ shiftXpByOffset xp
-             return $ val == (ValueB True)
-           NoExpressionsCondition eType ->
-             return $ (symbolTableLookup0 eType) v
-           OneExpressionCondition eType xp -> do
-             val <- evalInConnSidCtx $ shiftXpByOffset xp
-             return $ (symbolTableLookup1 eType) v val
-           TwoExpressionsCondition eType xpOne xpTwo -> do
-             [valOne, valTwo] <- mapM (evalInConnSidCtx . shiftXpByOffset) [xpOne, xpTwo]
-             return $ (symbolTableLookup2 eType) v valOne valTwo
-      if meetsCondition
+      mc <- meetsCondition conn sid ctx condFormatCondition offset v
+      if mc
          then return $ Cell l e v (setCondFormatProp format ps)
          else return c
+
+meetsCondition :: Connection -> ASSheetId -> EvalContext -> CondFormatCondition -> Offset -> ASValue -> EitherTExec Bool
+meetsCondition conn sid ctx condFormatCondition offset v = do
+  let shiftXp = shiftExpression offset
+      eval = evalXp conn sid ctx
+      shiftAndEvalXp = eval . shiftXp
+  case condFormatCondition of
+       CustomExpressionCondition xp -> do
+         val <- shiftAndEvalXp xp
+         return $ val == (ValueB True)
+       NoExpressionsCondition eType ->
+         return $ (symbolTableLookup0 eType) v
+       OneExpressionCondition eType xp -> do
+         val <- shiftAndEvalXp xp
+         return $ (symbolTableLookup1 eType) v val
+       TwoExpressionsCondition eType xpOne xpTwo -> do
+         [valOne, valTwo] <- mapM shiftAndEvalXp [xpOne, xpTwo]
+         return $ (symbolTableLookup2 eType) v valOne valTwo
 
 evalXp :: Connection -> ASSheetId -> EvalContext -> ASExpression -> EitherTExec ASValue
 evalXp conn sid ctx xp@(Expression str lang) = do
