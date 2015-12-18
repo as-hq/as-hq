@@ -146,6 +146,7 @@ declare class HGMouseEvent {
 declare class HGElement extends HTMLElement {
   hScrollValue: number;
   vScrollValue: number;
+  autoScrollAcceleration: boolean;
   renderer: HGRendererElement;
 
   addFinEventListener(
