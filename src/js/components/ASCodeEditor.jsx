@@ -26,11 +26,11 @@ function languageIndex(lang) {
 }
 
 function languageChangeShortcut(lang) {
-  return "(" + U.Browser.metaKeyName() + " " + String(languageIndex(lang) + 1) + ")";
+  return U.Browser.metaKeyName() + "+" + String(languageIndex(lang) + 1);
 }
 
 let languages = Object.keys(Constants.Languages).map((l) => {
-  return {payload: l, text: l, shortcut: "15"};//languageChangeShortcut(l)};
+  return {payload: l, text: l, shortcut: languageChangeShortcut(l)};
 });
 
 export default React.createClass({
@@ -57,7 +57,7 @@ export default React.createClass({
 
   _onSelectLanguage(e, selectedIndex, menuItem) {
     //notify editor to change
-    this.props.onSelectLanguage(menuItem.payload);
+    this.props.onSelectLanguage(menuItem); // why not menuItem.payload?
   },
 
   _onBlurVarName() {
@@ -96,6 +96,7 @@ export default React.createClass({
               }}
               onBlur={this._onBlurVarName} />
             <ASDropDownMenu
+              autoWidth={false}
               selectedIndex={languageIndex(language)}
               menuItems={languages}
               onChange={this._onSelectLanguage}

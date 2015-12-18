@@ -319,7 +319,7 @@ const ASDropDownMenu = React.createClass({
 
     let popoverStyle;
     if (anchorEl && !autoWidth) {
-      popoverStyle = {width: anchorEl.clientWidth};
+      popoverStyle = {width: 130}; // hard-coded hack
     }
 
     return (
