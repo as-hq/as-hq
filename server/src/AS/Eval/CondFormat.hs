@@ -25,9 +25,9 @@ import Data.Maybe
 import AS.Logging
 
 
--- The cells passed into conditionallyFormatCell should be the most recently passed in value.
+-- The cells passed into conditionallyFormatCell should contain the most recently updated values.
 -- In particular, if this was called through an eval, the values of ASCell should
--- agree with the values in EvalContext. If not, they should be the most recent values anyways.
+-- agree with the values in EvalContext. If not, they should be the most recent values.
 -- timchu, 12/17/15 (with help from Alex).
 conditionallyFormatCells :: Connection -> ASSheetId -> [ASCell] -> [CondFormatRule] -> EvalContext -> EitherTExec [ASCell]
 conditionallyFormatCells conn origSid cells rules ctx = do
@@ -37,37 +37,32 @@ conditionallyFormatCells conn origSid cells rules ctx = do
   mapM transformsComposed cells'
 
 -- #needsrefactor will eventually have to change ranges to refs in CondFormatRule
-ruleToCellTransform :: Connection -> ASSheetId -> EvalContext -> CondFormatRule -> (ASCell -> EitherTExec ASCell)
-ruleToCellTransform conn sid ctx cfr@(CondFormatRule rngs cfc format) c@(Cell l e v ps) = do
+-- Requires that v is the most up to date ASValue at location l whenever this function is called.
+uleToCellTransform :: Connection -> ASSheetId -> EvalContext -> CondFormatRule -> (ASCell -> EitherTExec ASCell)
+ruleToCellTransform conn sid ctx cfr@(CondFormatRule rngs condFormatCondition format) c@(Cell l e v ps) = do
   let containingRange = find (flip rangeContainsIndex l) rngs
   case containingRange of
     Nothing -> return c
     Just rng -> do
       let tl = getTopLeft rng
           offset = getIndicesOffset tl l
-      -- TODO: timchu, 12/16/15. Can definitely split this into multiple functions.
-      -- Cases  on the Conditional Format Condition. Requires that v is the most
-      -- up to date ASValue at location l whenever this function is called.
-      meetsCondition <- case cfc of
+          evalInConnSidCtx = evalXp conn sid ctx
+          shiftXpByOffset = shiftExpression offset
+      -- TODO: timchu, 12/16/15. See if these functions are secretly doing
+      -- the same thing / can be made into shorter cleaner code.
+      -- Cases on the Conditional Format Condition.
+      meetsCondition <- case condFormatCondition of
            CustomExpressionCondition cond -> do
-             let cond' = shiftExpression offset cond
-             xpVal <- evalXp conn sid ctx cond'
-             if xpVal == ValueB True
-                then return True
-                else return False
+             val <- evalGivenCond . shiftXpByOffset cond
+             return val == ValueB True
            NoExpressionsCondition eType ->
-             return $ (functionFromNoExpressionsType eType) v
+             return $ (getNoExpressionsTypeFunc eType) v
            OneExpressionCondition eType cond -> do
-             let cond' = shiftExpression offset cond
-             xpVal <- evalXp conn sid ctx cond'
-             -- TODO: Timchu, haven't thoroughly checked if this is right.
-             return $ (functionFromOneExpressionType eType) v xpVal
+             val <- evalInConnSidCtx shiftXpByOffset cond
+             return $ (getOneExpressionTypeFunc eType) v val
            TwoExpressionsCondition eType condOne condTwo -> do
-             let condOne' = shiftExpression offset condOne
-             let condTwo' = shiftExpression offset condTwo
-             xpValOne <- evalXp conn sid ctx condOne'
-             xpValTwo <- evalXp conn sid ctx condTwo'
-             return $ (functionFromTwoExpressionsType eType) v xpValOne xpValTwo
+             vals <- mapM (evalGivenCond . shiftE) [condOne, condTwo]
+             return $ (getTwoExpressionsTypeFunc eType) v (fst val) (snd val)
       if meetsCondition
          then return $ Cell l e v (setCondFormatProp format ps)
          else return c

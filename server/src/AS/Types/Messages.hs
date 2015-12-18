@@ -122,8 +122,8 @@ data CondFormatRule = CondFormatRule { cellLocs :: [ASRange],
 -- TODO: Timchu, 12/14/15. This is not complete! Date expressions are not online,
 -- nor are text expressions.
 -- CustomExpressions are separate from OneExpresssionConditions since
--- OneExpressionConditions work by evaluating the condition, then applying a
--- function with two ASValue Arguments into it.
+-- OneExpressionConditions work by evaluating the expression in the condition, then applying the
+-- relevant function (example: GreaterThan) to the value in the cell.
 -- Could potentially refactor CustomExpression to be a OneExpressionCondition
 -- by passing in an appropriate function.
 data CondFormatCondition =
@@ -152,19 +152,6 @@ data NoExpressionsType = IsEmpty | IsNotEmpty
 data TwoExpressionsType = IsBetween | IsNotBetween
   deriving (Show, Read, Generic, Eq)
 
--- timchu, 12/17/15. Begin helper functions that help with Conditional formatting.
--- TODO: timchu, 12/17/15.  Ask Ritesh about names.
--- | Functions that help with InequalityExpressionTypes
-functionFromOneExpressionType :: OneExpressionType -> (ASValue -> ASValue -> Bool)
-functionFromOneExpressionType iet =
-  case iet of
-       GreaterThan -> (>=)
-       Geq -> (>)
-       LessThan -> (<)
-       Leq -> (<=)
-       Equals -> (==)
-       NotEquals -> (/=)
-
 -- COMMENT: timchu, Perhaps these functions are best split into Types/CondFormat?
 -- Messages is getting large.
 -- TODO: timchu, 12/17/15. this is not exactly right. Should be the same as
@@ -173,46 +160,51 @@ functionFromOneExpressionType iet =
 -- and implemented for both ASValues and EValues.
 instance Ord ASValue where
   -- TODO: is this right?
-  (<=) NoValue v  = (<=) (ValueI 0) v
-  (<=) (ValueB True) v = (<=) (ValueI 1) v
-  (<=) v (ValueB True) = (<=) v (ValueI 1)
+  (<=) NoValue v        = (<=) (ValueI 0) v
+  (<=) (ValueB True)  v = (<=) (ValueI 1) v
+  (<=) v (ValueB True)  = (<=) v (ValueI 1)
   (<=) (ValueB False) v = (<=) (ValueI 0) v
   (<=) v (ValueB False) = (<=) v (ValueI 0)
 
   (<=) (ValueS s) (ValueI i) = False
-  (<=) (ValueI i) (ValueS s)  = False
+  (<=) (ValueI i) (ValueS s) = False
 
   (<=) (ValueS s) (ValueD d) = False
-  (<=) (ValueD d) (ValueS s)  = False
+  (<=) (ValueD d) (ValueS s) = False
 
   (<=) (ValueI i) (ValueD d) = (<=) (fromIntegral i) d
-  (<=) (ValueD d) (ValueI i)  = (<=) d (fromIntegral i)
+  (<=) (ValueD d) (ValueI i) = (<=) d (fromIntegral i)
 
   (<=) (ValueS s1) (ValueS s2) = (<=) s1 s2
   (<=) (ValueI i1) (ValueI i2) = (<=) i1 i2
   (<=) (ValueD d1) (ValueD d2) = (<=) d1 d2
   (<=) _ _ = error "Invalid ASValue comparison"
 
--- | Functions that help with isEmpty types.
--- TODO: timchu, these names suck!!!!
-isEmpty :: ASValue  -> Bool
-isEmpty v =
-  case v of
-       NoValue -> True
-       otherwise -> False
 
-functionFromNoExpressionsType ::  NoExpressionsType -> (ASValue -> Bool)
-functionFromNoExpressionsType neType =
+-- timchu, 12/17/15. Begin helper functions that help with Conditional formatting.
+-- TODO: timchu, 12/17/15.  Ask Ritesh about names.
+getOneExpressionTypeFunc :: OneExpressionType -> (ASValue -> ASValue -> Bool)
+getOneExpressionTypeFunc iet =
+  case iet of
+       GreaterThan -> (>=)
+       Geq -> (>)
+       LessThan -> (<)
+       Leq -> (<=)
+       Equals -> (==)
+       NotEquals -> (/=)
+
+getNoExpressionsTypeFunc ::  NoExpressionsType -> (ASValue -> Bool)
+getNoExpressionTypeFunc neType =
   case neType of
-       IsEmpty -> isEmpty
-       IsNotEmpty -> not . isEmpty
+       IsEmpty -> (==) NoValue
+       IsNotEmpty -> /= NoValue
 
 -- tests if value is between a1 and a2 inclusive. Uses the Ord defined on ASValue above.
 isBetween :: ASValue -> ASValue -> ASValue -> Bool
 isBetween value a1 a2 = value >= min a1 a2 && max a1 a2 >= value
 
-functionFromTwoExpressionsType :: TwoExpressionsType -> ASValue -> ASValue -> ASValue -> Bool
-functionFromTwoExpressionsType tet value a1 a2 =
+getTwoExpressionsTypeFunc :: TwoExpressionsType -> (ASValue -> ASValue -> ASValue -> Bool)
+getTwoExpressionsTypeFunc tet value a1 a2 =
   case tet of
        IsBetween ->  isBetween value a1 a2
        IsNotBetween ->  not $ isBetween value a1 a2
