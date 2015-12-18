@@ -182,17 +182,16 @@ export default {
       halignOffset = Math.max(0, halignOffset);
       valignOffset = valignOffset + Math.ceil(height / 2);
 
-      //fill background only if our bgColor is populated or we are a selected cell
-      if (this.config.bgColor || this.config.isSelected) {
-          gc.fillStyle = this.config.isSelected ? this.config.bgSelColor : this.config.bgColor;
+      //fill background only if our bgColor is populated
+      if (this.config.bgColor) {
+          gc.fillStyle = this.config.bgColor;
           gc.fillRect(x, y, width, height);
       }
 
       //draw text
-      var theColor = this.config.isSelected ? this.config.fgSelColor : this.config.fgColor;
-      if (gc.fillStyle !== theColor) {
-          gc.fillStyle = theColor;
-          gc.strokeStyle = theColor;
+      if (gc.fillStyle !== this.config.fgColor) {
+          gc.fillStyle = this.config.fgColor;
+          gc.strokeStyle = this.config.fgColor;
       }
 
       if (val !== null) {
