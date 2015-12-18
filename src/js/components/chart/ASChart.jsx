@@ -1,9 +1,9 @@
 import React from 'react';
 import Chart from 'react-chartjs';
 
-import {ChartTypes} from '../Constants';
-import CellStore from '../stores/CellStore';
-import {isContainedInLocs} from '../AS/utils/Location';
+import {ChartTypes} from '../../Constants';
+import CellStore from '../../stores/CellStore';
+import {isContainedInLocs} from '../../AS/utils/Location';
 
 Chart.defaults.global.responsive = true;
 
@@ -87,6 +87,9 @@ export default React.createClass({
     }
   },
 
+  // #needsrefactor I want an either type here.
+  // the next two functions are quite repetitive, but they do return different types...
+
   // ChartContext -> [CartesianDataset]
   _generateCartesianDatasets(ctx) {
     let datasets = Array(ctx.values.length);
@@ -153,6 +156,11 @@ export default React.createClass({
   // a -> Int -> [a]
   _repeat(val, n) {
     return Array(...Array(n)).map(() => val);
+  },
+
+  // Int -> [Nat]
+  _takeNat(n) {
+    return Array.from(new Array(n), (x,i) => i+1)
   },
 
   // [[a]] -> ThrowsError a
