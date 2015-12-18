@@ -19,6 +19,9 @@ import Constants from '../Constants';
 import ASCondFormattingDialog from './dialogs/ASCondFormattingDialog.jsx';
 import ASMenuBar from './menu-bar/ASMenuBar.jsx';
 
+import FileImportDialog from '../AS/FileImportDialog';
+
+
 type ASTopBarProps = {
   toggleEvalHeader: Callback;
 };
@@ -74,7 +77,14 @@ export default class ASTopBar extends React.Component<{}, ASTopBarProps, ASTopBa
             simple({
               title: 'Open',
               callback() {
-                alert("To open a saved AlphaSheets sheet, drag it onto the spreadsheet on this page. (Cut us some slack, this is an MVP.)");
+                alert("To open a saved AlphaSheets sheet, drag it onto the spreadsheet on this page.");
+              }
+            }),
+
+            simple({
+              title: 'Import CSV',
+              callback() {
+                FileImportDialog.openFileDialog(false, FileImportDialog.importCSVCallback);
               }
             }),
 

@@ -1,11 +1,16 @@
 /* @flow */
 
-import {logDebug} from '../AS/Logger';
-
 import React from 'react';
+let request = require('superagent');
+
+import {logDebug} from '../AS/Logger';
 import Constants from '../Constants';
 import {HOST_IP, HOST_BASE_URL} from '../Constants';
-let request = require('superagent');
+
+import ExpStore from '../stores/ASExpStore.js';
+import SelectionStore from '../stores/ASSelectionStore';
+import API from '../actions/ASApiActionCreators';
+
 
 /*
 A similar React class used to be called FileImportButton, but there will no longer be file import buttons.
@@ -25,6 +30,18 @@ export default {
     }
   },
 
+  // Given a file, get the index and language, and send a message to backend
+  importCSVCallback(file: File) {
+    let sel = SelectionStore.getActiveSelection();
+    if (sel == null){
+      return;
+    } else {
+      let simpleIndex = sel.origin,
+          lang = ExpStore.getLanguage();
+      API.importCSV(simpleIndex, lang, file.name);
+    }
+  },
+
   /*
   Given a boolean to allow multiple files, and a callback function to call if the POST file is successful (on each file),
   create a fileSelector HTML element that has an input file, and simulate a click on that element.
@@ -41,13 +58,11 @@ export default {
     fileSelector.addEventListener("change", (evt) => {
       evt.preventDefault();
       let files = evt.target.files;
-      debugger;
       let req = request.post(this.getStaticUrl());
       for (var i = 0; i < files.length; i++) {
         let file = files[i];
         req.attach(file.name, file);
       }
-      debugger;
       req.end((err, res) => {
         // Upon failure, do nothing, upon success, execute callback
         if (err || !res.ok) {
