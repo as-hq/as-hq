@@ -1,3 +1,10 @@
+// copy-pasted from https://github.com/callemall/material-ui/blob/master/src/DropDownMenu/DropDownMenu.jsx
+// commit da4a685
+
+// Extends material-ui's DropdownMenu in two ways: 
+//   - user can specify width of label and popover as a prop
+//   - user can specify secondary text in the menu
+
 import React from 'react';
 import Transitions from 'material-ui/lib/styles/transitions';
 import DropDownArrow from 'material-ui/lib/svg-icons/navigation/arrow-drop-down';
@@ -9,7 +16,7 @@ import ThemeManager from 'material-ui/lib/styles/theme-manager';
 import Popover from 'material-ui/lib/popover/popover';
 import PopoverAnimationFromTop from 'material-ui/lib/popover/popover-animation-from-top';
 import styleUtils from 'material-ui/lib/utils/styles';
-// import warning from 'material-ui/lib/warning';
+import warning from 'warning';
 
 const ASDropDownMenu = React.createClass({
 
@@ -141,7 +148,7 @@ const ASDropDownMenu = React.createClass({
       displayMember: 'text',
       openImmediately: false,
       maxHeight: 500,
-      labelMember: 'text',
+      labelMember: 'text'
     };
   },
 
@@ -246,7 +253,6 @@ const ASDropDownMenu = React.createClass({
       displayMember,
       iconStyle,
       labelMember,
-      labelStyle,
       maxHeight,
       menuItems,
       menuStyle,
@@ -254,6 +260,7 @@ const ASDropDownMenu = React.createClass({
       underlineStyle,
       valueLink,
       valueMember,
+      width,
       ...other,
     } = this.props;
 
@@ -269,8 +276,8 @@ const ASDropDownMenu = React.createClass({
     let selectedIndex = this._isControlled() ? null : this.state.selectedIndex;
 
     if (menuItems && typeof selectedIndex === 'number') {
-      // warning(menuItems[selectedIndex],
-      //   `SelectedIndex of ${selectedIndex} does not exist in menuItems.`);
+      warning(menuItems[selectedIndex],
+        `SelectedIndex of ${selectedIndex} does not exist in menuItems.`);
     }
 
     if (valueMember && this._isControlled()) {
@@ -305,7 +312,7 @@ const ASDropDownMenu = React.createClass({
           <MenuItem
             key={idx}
             primaryText={item[displayMember]}
-            secondaryText={item['shortcut']}
+            secondaryText={item.shortcut}
             value={item[valueMember]}
             onTouchTap={this._onMenuItemTouchTap.bind(this, idx, item[valueMember])} />
         ))
@@ -317,9 +324,16 @@ const ASDropDownMenu = React.createClass({
         return clone;
       });
 
-    let popoverStyle;
-    if (anchorEl && !autoWidth) {
-      popoverStyle = {width: 130}; // hard-coded hack
+    let popoverStyle = {};
+    let {labelStyle} = this.props;
+    if (!autoWidth) {
+      popoverStyle = {
+        width: width
+      };
+      labelStyle = {
+        width: width,
+        ...labelStyle
+      };
     }
 
     return (
@@ -357,23 +371,23 @@ const ASDropDownMenu = React.createClass({
   },
 
   _testDeprecations() {
-    // warning(this.props.displayMember === 'text',
-    //   'displayMember will be removed in favor of composability. refer to the documentation for more information');
-    //
-    // warning(this.props.labelMember === 'text',
-    //   'labelMember will be removed in favor of composability. refer to the documentation for more information');
-    //
-    // warning(!this.props.hasOwnProperty('menuItems'),
-    //   'menuItems will be removed in favor of composability. refer to the documentation for more information');
-    //
-    // warning(!this.props.hasOwnProperty('selectedIndex'),
-    //   'selectedIndex will be removed. use value instead to control the component.');
-    //
-    // warning(!this.props.hasOwnProperty('valueLink'),
-    //   'valueLink will be removed. use value and onChange');
-    //
-    // warning(this.props.valueMember === 'payload',
-    //   'valueMember will be removed in favor of composability. refer to the documentation for more information');
+    warning(this.props.displayMember === 'text',
+      'displayMember will be removed in favor of composability. refer to the documentation for more information');
+
+    warning(this.props.labelMember === 'text',
+      'labelMember will be removed in favor of composability. refer to the documentation for more information');
+
+    warning(!this.props.hasOwnProperty('menuItems'),
+      'menuItems will be removed in favor of composability. refer to the documentation for more information');
+
+    warning(!this.props.hasOwnProperty('selectedIndex'),
+      'selectedIndex will be removed. use value instead to control the component.');
+
+    warning(!this.props.hasOwnProperty('valueLink'),
+      'valueLink will be removed. use value and onChange');
+
+    warning(this.props.valueMember === 'payload',
+      'valueMember will be removed in favor of composability. refer to the documentation for more information');
   },
 
   _setWidth() {
@@ -384,7 +398,7 @@ const ASDropDownMenu = React.createClass({
   },
 
   _setSelectedIndex(index) {
-    // warning(index >= 0, 'Cannot set selectedIndex to a negative index.');
+    warning(index >= 0, 'Cannot set selectedIndex to a negative index.');
     this.setState({selectedIndex: (index >= 0) ? index : 0});
   },
 
