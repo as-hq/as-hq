@@ -26,8 +26,8 @@ data CellDiff = CellDiff { beforeCells :: [ASCell]
                          deriving (Show, Read, Generic)
 
 data RowColDiff = RowColDiff { beforeRowCols :: [RowCol]
-                         , afterRowCols :: [RowCol] }
-                         deriving (Show, Read, Generic)
+                             , afterRowCols :: [RowCol] }
+                             deriving (Show, Read, Generic)
 
 emptyRowColDiff :: RowColDiff
 emptyRowColDiff = RowColDiff [] []
