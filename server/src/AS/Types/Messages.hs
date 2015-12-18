@@ -129,13 +129,13 @@ data CondFormatRule = CondFormatRule { cellLocs :: [ASRange],
 data CondFormatCondition =
   CustomExpressionCondition { customExpression :: ASExpression }
   |  OneExpressionCondition { oneExpressionType :: OneExpressionType
-                           , oneExpression :: ASExpression }
+                            , singleExpression :: ASExpression }
   | NoExpressionsCondition { noExpressionsType :: NoExpressionsType }
 --  | DateExpression { dateExpressionType :: DateExpressionType
 --                   , dateExpression  :: DateExpression }
   | TwoExpressionsCondition { twoExpressionsType  :: TwoExpressionsType
-                  , expression1 ::ASExpression
-                  , expression2 :: ASExpression}
+                            , firstExpression ::ASExpression
+                            , secondExpression :: ASExpression}
    deriving (Show, Read, Generic, Eq)
 
 
