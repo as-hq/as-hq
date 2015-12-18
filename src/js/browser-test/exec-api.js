@@ -334,7 +334,7 @@ export function setCondFormattingRules(rules: Array<CondFormatRule>): Prf {
 
 export function makeCustomCondFormattingFontRuleExcel(rng: string, prop: BooleanCellTag, rule: string): CondFormatRule {
   let cond = {
-    tag: 'CustomCondition',
+    tag: 'CustomExpressionCondition',
     contents: {
       tag: "Expression",
       expression: rule,

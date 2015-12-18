@@ -266,7 +266,7 @@ export type CondFormatRule = {
   cellLocs: Array<ASRange>;
 };
 
-export type CondFormatCondition = NoExpressionsCondition | OneExpressionCondition | TwoExpressionsCondition | CustomCondition;
+export type CondFormatCondition = NoExpressionsCondition | OneExpressionCondition | TwoExpressionsCondition | CustomExpressionCondition;
 
 export type NoExpressionsCondition = {
   tag: 'NoExpressionsCondition';
@@ -283,8 +283,8 @@ export type TwoExpressionsCondition = {
   contents: [TwoExpressionsType, ASExpression, ASExpression];
 }
 
-export type CustomCondition = {
-  tag: 'CustomCondition';
+export type CustomExpressionCondition = {
+  tag: 'CustomExpressionCondition';
   contents: ASExpression;
 }
 
