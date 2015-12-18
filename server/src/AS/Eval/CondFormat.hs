@@ -38,7 +38,7 @@ conditionallyFormatCells conn origSid cells rules ctx = do
 
 -- #needsrefactor will eventually have to change ranges to refs in CondFormatRule
 -- Requires that v is the most up to date ASValue at location l whenever this function is called.
-uleToCellTransform :: Connection -> ASSheetId -> EvalContext -> CondFormatRule -> (ASCell -> EitherTExec ASCell)
+ruleToCellTransform :: Connection -> ASSheetId -> EvalContext -> CondFormatRule -> (ASCell -> EitherTExec ASCell)
 ruleToCellTransform conn sid ctx cfr@(CondFormatRule rngs condFormatCondition format) c@(Cell l e v ps) = do
   let containingRange = find (flip rangeContainsIndex l) rngs
   case containingRange of
@@ -52,17 +52,17 @@ ruleToCellTransform conn sid ctx cfr@(CondFormatRule rngs condFormatCondition fo
       -- the same thing / can be made into shorter cleaner code.
       -- Cases on the Conditional Format Condition.
       meetsCondition <- case condFormatCondition of
-           CustomExpressionCondition cond -> do
-             val <- evalGivenCond . shiftXpByOffset cond
-             return val == ValueB True
+           CustomExpressionCondition xp -> do
+             val <- evalInConnSidCtx $ shiftXpByOffset xp
+             return $ val == (ValueB True)
            NoExpressionsCondition eType ->
              return $ (getNoExpressionsTypeFunc eType) v
-           OneExpressionCondition eType cond -> do
-             val <- evalInConnSidCtx shiftXpByOffset cond
+           OneExpressionCondition eType xp -> do
+             val <- evalInConnSidCtx $ shiftXpByOffset xp
              return $ (getOneExpressionTypeFunc eType) v val
-           TwoExpressionsCondition eType condOne condTwo -> do
-             vals <- mapM (evalGivenCond . shiftE) [condOne, condTwo]
-             return $ (getTwoExpressionsTypeFunc eType) v (fst val) (snd val)
+           TwoExpressionsCondition eType xpOne xpTwo -> do
+             [valOne, valTwo] <- mapM (evalInConnSidCtx . shiftXpByOffset) [xpOne, xpTwo]
+             return $ (getTwoExpressionsTypeFunc eType) v valOne valTwo
       if meetsCondition
          then return $ Cell l e v (setCondFormatProp format ps)
          else return c

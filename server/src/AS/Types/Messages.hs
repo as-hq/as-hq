@@ -193,11 +193,11 @@ getOneExpressionTypeFunc iet =
        Equals -> (==)
        NotEquals -> (/=)
 
-getNoExpressionsTypeFunc ::  NoExpressionsType -> (ASValue -> Bool)
-getNoExpressionTypeFunc neType =
+getNoExpressionsTypeFunc :: NoExpressionsType -> (ASValue -> Bool)
+getNoExpressionsTypeFunc neType =
   case neType of
        IsEmpty -> (==) NoValue
-       IsNotEmpty -> /= NoValue
+       IsNotEmpty -> (/=) NoValue
 
 -- tests if value is between a1 and a2 inclusive. Uses the Ord defined on ASValue above.
 isBetween :: ASValue -> ASValue -> ASValue -> Bool
