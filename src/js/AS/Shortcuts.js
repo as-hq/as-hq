@@ -137,7 +137,7 @@ export default {
 
     SU.add('common', 'find', 'Ctrl+F', (wildcard: string) => {
       logDebug('Find pressed');
-      self.setState({showFindBar:true,userIsTyping:false});
+      self.setState({showFindBar:true, userIsTyping:false});
     });
 
     SU.add('common', 'insert_ref', 'Ctrl+J', () => {

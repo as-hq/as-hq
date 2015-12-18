@@ -55,8 +55,8 @@ import * as BrowserTests from '../browser-test/index';
 // import Repl from './repl/Repl.jsx'
 import EvalHeader from './eval-header/EvalHeader.jsx'
 import ResizableRightPanel from './repl/ResizableRightPanel.jsx'
-import ASFindBar from './ASFindBar.jsx'
-import ASFindModal from './ASFindModal.jsx'
+import ASFindBar from './ASFindBar.jsx';
+import ASFindModal from './ASFindModal.jsx';
 import FindAction from '../actions/ASFindActionCreators';
 
 type ASEvalPaneState = {
@@ -739,16 +739,16 @@ export default React.createClass({
   /* Find bar and modal */
 
   closeFindBar() {
-    this.setState({showFindBar:false});
+    this.setState({showFindBar: false});
   },
   closeFindModal() {
-    this.setState({showFindModal:false});
+    this.setState({showFindModal: false});
   },
   onFindBarEnter() {
       API.find(FindStore.getFindText());
   },
   openFindModal() {
-    this.setState({showFindBar:false, showFindModal: true});
+    this.setState({showFindBar: false, showFindModal: true});
   },
   onFindBarNext() {
     FindAction.incrementSelection();
