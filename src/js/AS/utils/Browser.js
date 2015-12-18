@@ -6,6 +6,6 @@ export default {
   },
 
   metaKeyName(): string {
-    return this.isMac() ? "Cmd" : "Ctrl"; 
+    return this.isMac() ? "⌘" : "Ctrl"; 
   }
 };
