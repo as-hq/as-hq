@@ -6,6 +6,7 @@ import Constants from '../Constants';
 import {AppBar, Toolbar, ToolbarGroup, FlatButton, TextField, DropDownMenu, Styles} from 'material-ui';
 import ASCellPropsToggleButton from './basic-controls/ASCellPropsToggleButton.jsx';
 import ASCellPropsColorSetButton from './basic-controls/ASCellPropsColorSetButton.jsx';
+import ASLanguageMenu from './basic-controls/ASLanguageMenu.jsx';
 
 require('brace/mode/python');
 require('brace/mode/r');
@@ -14,18 +15,6 @@ require('brace/mode/mysql');
 require('brace/mode/java');
 require('brace/mode/c_cpp');
 require('brace/theme/monokai');
-
-let languages = [];
-for (var key in Constants.Languages) {
-  languages.push({
-    payload: Constants.Languages[key],
-    text: Constants.Languages[key]
-  });
-}
-
-function languageIndex(lang) {
-  return languages.map((l) => l.text).indexOf(lang);
-}
 
 export default React.createClass({
 
@@ -51,7 +40,7 @@ export default React.createClass({
 
   _onSelectLanguage(e, selectedIndex, menuItem) {
     //notify editor to change
-    this.props.onSelectLanguage(menuItem.payload);
+    this.props.onSelectLanguage(menuItem); 
   },
 
   _onBlurVarName() {
@@ -68,7 +57,6 @@ export default React.createClass({
 
     return (
       <div>
-
         <Toolbar
           style={{backgroundColor: Styles.Colors.grey700, height:'60px'}}
           showMenuIconButton={false} >
@@ -84,16 +72,14 @@ export default React.createClass({
                 fontFamily: 'Roboto, sans-serif'
               }}
               onBlur={this._onBlurVarName} />
-            <DropDownMenu
-              selectedIndex={languageIndex(language)}
-              menuItems={languages}
-              onChange={this._onSelectLanguage}
-              underlineStyle={{ display: 'none' }}
+            <ASLanguageMenu 
+              onSelectLanguage={this._onSelectLanguage}
+              language={language}
               style={{
                 marginTop: 'auto',
                 marginLeft: '40px',
                 marginBottom: 'auto'
-              }}/>
+            }} />
             <ASCellPropsToggleButton propTag="Bold" iconClassName="format_bold" style={{
               position: 'relative',
               marginLeft: '0px',
