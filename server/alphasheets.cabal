@@ -65,6 +65,7 @@ library
                        AS.Types.Cell
                        AS.Types.CellProps
                        AS.Types.Commits
+                       AS.Types.CondFormat
                        AS.Types.DB
                        AS.Types.Errors
                        AS.Types.Eval

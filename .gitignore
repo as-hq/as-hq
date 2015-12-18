@@ -32,3 +32,18 @@ server/logs/*
 !server/static/file-input-handler.py
 
 graph-database/server
+
+
+
+#TIMs FILES
+hdevtools/
+installs/
+server/Double
+server/app/.Main.hs.swp
+server/deleteme.txt
+server/nuclide/
+server/src/AS/Eval/.CondFormat.hs.swp
+server/src/AS/Types/.CondFormat.hs.swp
+server/src/AS/Types/CondFormat.hs
+server/test/CondFormatTest.hs
+

@@ -8,6 +8,7 @@ import AS.Types.User
 import AS.Types.DB hiding (Clear)
 import AS.Types.Eval
 import AS.Types.Commits
+import AS.Types.CondFormat
 import qualified AS.Types.RowColProps as RP
 
 import AS.Handlers.Eval

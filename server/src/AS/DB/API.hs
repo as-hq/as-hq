@@ -10,6 +10,7 @@ import AS.Types.DB
 import AS.Types.CellProps
 import AS.Types.Errors
 import AS.Types.Eval
+import AS.Types.CondFormat
 
 import qualified AS.Config.Settings as Settings
 import AS.Util as U

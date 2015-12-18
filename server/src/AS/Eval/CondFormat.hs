@@ -7,6 +7,7 @@ import AS.Types.Cell
 import AS.Types.Messages
 import AS.Types.Eval
 import AS.Types.Errors
+import AS.Types.CondFormat
 
 
 import AS.Eval.Core
@@ -56,13 +57,13 @@ ruleToCellTransform conn sid ctx cfr@(CondFormatRule rngs condFormatCondition fo
              val <- evalInConnSidCtx $ shiftXpByOffset xp
              return $ val == (ValueB True)
            NoExpressionsCondition eType ->
-             return $ (noExpressionsFunc eType) v
+             return $ (symbolTableLookup0 eType) v
            OneExpressionCondition eType xp -> do
              val <- evalInConnSidCtx $ shiftXpByOffset xp
-             return $ (oneExpressionFunc eType) v val
+             return $ (symbolTableLookup1 eType) v val
            TwoExpressionsCondition eType xpOne xpTwo -> do
              [valOne, valTwo] <- mapM (evalInConnSidCtx . shiftXpByOffset) [xpOne, xpTwo]
-             return $ (twoExpressionsFunc eType) v valOne valTwo
+             return $ (symbolTableLookup2 eType) v valOne valTwo
       if meetsCondition
          then return $ Cell l e v (setCondFormatProp format ps)
          else return c

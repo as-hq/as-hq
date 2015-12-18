@@ -13,6 +13,7 @@ import AS.Types.Locations
 import AS.Types.Errors
 import AS.Types.Eval
 import AS.Types.CellProps
+import AS.Types.CondFormat
 
 import GHC.Generics
 import Data.Aeson hiding (Success)
@@ -115,114 +116,6 @@ data MutateType = InsertCol { insertColNum :: Int } | InsertRow { insertRowNum :
                   DragCol { oldColNum :: Int, newColNum :: Int } | DragRow { oldRowNum :: Int, newRowNum :: Int }
                   deriving (Show, Read, Eq, Generic)
 
-data CondFormatRule = CondFormatRule { cellLocs :: [ASRange],
-                                       condition :: CondFormatCondition,
-                                       condFormat :: CellProp } deriving (Show, Read, Generic, Eq)
-
--- TODO: Timchu, 12/14/15. This is not complete! Date expressions are not online,
--- nor are text expressions.
--- CustomExpressions are separate from OneExpresssionConditions since
--- OneExpressionConditions work by evaluating the expression in the condition, then applying the
--- relevant function (example: GreaterThan) to the value in the cell.
--- Could potentially refactor CustomExpression to be a OneExpressionCondition
--- by passing in an appropriate function.
-data CondFormatCondition =
-    CustomExpressionCondition { customExpression :: ASExpression }
-  | OneExpressionCondition { oneExpressionType :: OneExpressionType
-                            , singleExpression :: ASExpression }
-  | NoExpressionsCondition { noExpressionsType :: NoExpressionsType }
---  | DateExpression { dateExpressionType :: DateExpressionType
---                   , dateExpression  :: DateExpression }
-  | TwoExpressionsCondition { twoExpressionsType  :: TwoExpressionsType
-                            , firstExpression ::ASExpression
-                            , secondExpression :: ASExpression}
-   deriving (Show, Read, Generic, Eq)
-
-
--- TODO: timchu, 12/17/15. Maybe want to split this into InequalityExpTypes and TextExpTypes?
-data OneExpressionType = GreaterThan | Equals | Geq | Leq | LessThan | NotEquals
-  deriving (Show, Read, Generic, Eq)
-
-data NoExpressionsType = IsEmpty | IsNotEmpty
-  deriving (Show, Read, Generic, Eq)
-
--- data DateExpressionType = DateIs  | DateIsBefore | DateIsAfter
---   deriving (Show, Read, Generic, Eq)
-
-data TwoExpressionsType = IsBetween | IsNotBetween
-  deriving (Show, Read, Generic, Eq)
-
--- COMMENT: timchu, Perhaps these functions are best split into Types/CondFormat?
--- Messages is getting large.
--- TODO: timchu, 12/17/15. this is not exactly right. Should be the same as
--- the ordering on Evalues.
--- This is a temporary hack. Defining inequalities should be done in one place
--- and implemented for both ASValues and EValues.
-instance Ord ASValue where
-  -- TODO: is this right?
-  (<=) NoValue v        = (<=) (ValueI 0) v
-  (<=) (ValueB True)  v = (<=) (ValueI 1) v
-  (<=) v (ValueB True)  = (<=) v (ValueI 1)
-  (<=) (ValueB False) v = (<=) (ValueI 0) v
-  (<=) v (ValueB False) = (<=) v (ValueI 0)
-
-  (<=) (ValueS s) (ValueI i) = False
-  (<=) (ValueI i) (ValueS s) = False
-
-  (<=) (ValueS s) (ValueD d) = False
-  (<=) (ValueD d) (ValueS s) = False
-
-  (<=) (ValueI i) (ValueD d) = (<=) (fromIntegral i) d
-  (<=) (ValueD d) (ValueI i) = (<=) d (fromIntegral i)
-
-  (<=) (ValueS s1) (ValueS s2) = (<=) s1 s2
-  (<=) (ValueI i1) (ValueI i2) = (<=) i1 i2
-  (<=) (ValueD d1) (ValueD d2) = (<=) d1 d2
-  (<=) _ _ = error "Invalid ASValue comparison"
-
-
--- timchu, 12/17/15. Begin helper functions that help with Conditional formatting.
--- TODO: timchu, 12/17/15. These should probably go in a different file.
--- TODO: timchu, 12/17/15.  Ask Ritesh about names.
-oneExpressionFunc :: OneExpressionType -> (ASValue -> ASValue -> Bool)
-oneExpressionFunc iet =
-  case iet of
-       GreaterThan -> (>=)
-       Geq         -> (>)
-       LessThan    -> (<)
-       Leq         -> (<=)
-       Equals      -> (==)
-       NotEquals   -> (/=)
-
-noExpressionsFunc :: NoExpressionsType -> (ASValue -> Bool)
-noExpressionsFunc net =
-  case net of
-       IsEmpty    -> (==) NoValue
-       IsNotEmpty -> (/=) NoValue
-
--- tests if value is between a1 and a2 inclusive. Uses the Ord defined on ASValue above.
-isBetween :: ASValue -> ASValue -> ASValue -> Bool
-isBetween value a1 a2 = value >= min a1 a2 && max a1 a2 >= value
-
-twoExpressionsFunc :: TwoExpressionsType -> (ASValue -> ASValue -> ASValue -> Bool)
-twoExpressionsFunc tet value a1 a2 =
-  case tet of
-       IsBetween ->  isBetween value a1 a2
-       IsNotBetween ->  not $ isBetween value a1 a2
--- End of functions that help with conditional formatting.
-
-instance ToJSON CondFormatCondition
-instance FromJSON CondFormatCondition
-
-instance ToJSON OneExpressionType
-instance FromJSON OneExpressionType
-
-instance ToJSON NoExpressionsType
-instance FromJSON NoExpressionsType
-
-instance ToJSON TwoExpressionsType
-instance FromJSON TwoExpressionsType
-
 -- should get renamed
 data Direction = DirUp | DirDown | DirLeft | DirRight deriving (Show, Read, Eq, Generic)
 
@@ -275,9 +168,6 @@ instance ToJSON ASInitDaemonConnection
 instance ToJSON MutateType
 instance FromJSON MutateType
 
-instance ToJSON CondFormatRule
-instance FromJSON CondFormatRule
-
 instance ToJSON Direction
 instance FromJSON Direction
 
@@ -296,16 +186,9 @@ instance Serialize ASWorkbook
 instance Serialize QueryList
 instance Serialize MutateType
 instance Serialize Direction
-instance Serialize CondFormatRule
-instance Serialize CondFormatCondition
-instance Serialize TwoExpressionsType
-instance Serialize OneExpressionType
-instance Serialize NoExpressionsType
 instance Serialize ASReplValue
 instance Serialize ASInitConnection
 instance Serialize ASInitDaemonConnection
-
--- TODO: Timchu,check with team if the above empty defs of serializing the CondFormatRule types
 -- are legit.
 --------------------------------------------------------------------------------------------------------------
 -- Helpers
