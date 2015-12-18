@@ -1,3 +1,6 @@
+
+// copy-pasted from https://github.com/callemall/material-ui/blob/master/src/DropDownMenu/DropDownMenu.jsx
+// commit da4a685
 import React from 'react';
 import AceEditor from './AceEditor.jsx';
 import ActionCreator from '../actions/ASCodeEditorActionCreators';
@@ -8,6 +11,7 @@ import FileInput from './ASFileImportButton.jsx';
 import U from '../AS/Util';
 import ASCellPropsToggleButton from './basic-controls/ASCellPropsToggleButton.jsx';
 import ASCellPropsColorSetButton from './basic-controls/ASCellPropsColorSetButton.jsx';
+import ASDropDownMenu from './basic-controls/ASDropdownMenu.jsx';
 
 require('brace/mode/python');
 require('brace/mode/r');
@@ -21,16 +25,12 @@ function languageIndex(lang) {
   return Object.keys(Constants.Languages).indexOf(lang);
 }
 
-function appendLanguageChangeShortcut(lang) {
-  return lang + " (" + U.Browser.metaKeyName() + " " + String(languageIndex(lang) + 1) + ")";
+function languageChangeShortcut(lang) {
+  return "(" + U.Browser.metaKeyName() + " " + String(languageIndex(lang) + 1) + ")";
 }
 
 let languages = Object.keys(Constants.Languages).map((l) => {
-  return {payload: l, text: l};
-});
-
-let languagesWithShortcuts = Object.keys(Constants.Languages).map((l) => {
-  return {payload: l, text: appendLanguageChangeShortcut(l)};
+  return {payload: l, text: l, shortcut: "15"};//languageChangeShortcut(l)};
 });
 
 export default React.createClass({
@@ -95,9 +95,9 @@ export default React.createClass({
                 fontFamily: 'Roboto, sans-serif'
               }}
               onBlur={this._onBlurVarName} />
-            <DropDownMenu
+            <ASDropDownMenu
               selectedIndex={languageIndex(language)}
-              menuItems={languagesWithShortcuts}
+              menuItems={languages}
               onChange={this._onSelectLanguage}
               underlineStyle={{ display: 'none' }}
               style={{
