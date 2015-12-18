@@ -140,6 +140,7 @@ declare class HGMouseEvent {
   gridCell: HGPoint;
   mousePoint: HGPoint;
   primitiveEvent: HGPrimitiveMouseEvent;
+  detail: any;
 }
 
 declare class HGElement extends HTMLElement {
