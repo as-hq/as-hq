@@ -89,7 +89,7 @@ wss.onmessage = (event: MessageEvent) => {
   logDebug("Client received data from server: " + event.data.toString());
 
   if (event.data instanceof Blob) {
-    console.log("Received binary data from server.");
+    logDebug("Received binary data from server.");
     let fName = SheetStateStore.getCurrentSheet().sheetId + ".as";
     // #anand event.data typecasts to Blob, because we already checked the instance above
     // and flow doesn't understand that event.data is type DOMString | Blob | ...
@@ -112,6 +112,7 @@ wss.onmessage = (event: MessageEvent) => {
       }
     } else {
       if (isRunningTest && (!uiTestMode || (msg.action != 'UpdateWindow' && msg.action != 'Open')) && currentCbs) {
+        logDebug('Fulfilled server message normally');
         currentCbs.fulfill(msg);
         isRunningTest = false;
       }
