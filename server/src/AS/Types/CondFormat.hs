@@ -51,13 +51,15 @@ data TwoExpressionsType = IsBetween | IsNotBetween
   deriving (Show, Read, Generic, Eq)
 
 -- TODO: timchu, 12/17/15. this Ord is not exactly right. Should be the same as
--- the ordering on Evalues.
--- This is a temporary hack. Defining inequalities should be done in one place
+-- the ordering on Evalues. This has not been vetted for completeness or tested
+-- for correctness.
+-- This is a temporary hack. Defining these ineqs should be done in one place
 -- and implemented for both ASValues and EValues.
 -- This is also not the definitive Ord on ASValue, only used in CondFormat.
 instance Ord ASValue where
   -- TODO: is this right?
   (<=) NoValue v        = (<=) (ValueI 0) v
+  (<=) v NoValue        = (<=) (ValueI 0) v
   (<=) (ValueB True)  v = (<=) (ValueI 1) v
   (<=) v (ValueB True)  = (<=) v (ValueI 1)
   (<=) (ValueB False) v = (<=) (ValueI 0) v
@@ -75,7 +77,7 @@ instance Ord ASValue where
   (<=) (ValueS s1) (ValueS s2) = (<=) s1 s2
   (<=) (ValueI i1) (ValueI i2) = (<=) i1 i2
   (<=) (ValueD d1) (ValueD d2) = (<=) d1 d2
-  (<=) _ _ = error "Invalid ASValue comparison"
+  (<=) x1 x2 = False
 
 
 -- symbolTableLookupN takes an NExpressionType to function with N variables.
