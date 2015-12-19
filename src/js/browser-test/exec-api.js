@@ -374,7 +374,7 @@ export function makeNoXpCondFormattingFontRuleExcel(rng: string, prop: BooleanCe
     tag: 'NoExpressionsCondition',
     contents: xpType
   };
-    return makeCondFormattingRuleExcel(cond, rng, prop);
+  return makeCondFormattingRuleExcel(cond, rng, prop);
 }
 
 export function makeOneXpCondFormattingFontRuleExcel(rng: string, prop: BooleanCellTag, rule: string, xpType: OneExpressionType): CondFormatRule {
