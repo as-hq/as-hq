@@ -346,6 +346,21 @@ const ASCellStore = Object.assign({}, BaseStore, {
                 null;
       });
     });
+  },
+
+  getValues(rng: NakedRange): Array<Array<string | number>> {
+    return this.getCells(rng).map((cs) => cs.map(this.cellToJSVal));
+  },
+
+  cellToJSVal(c: ASCell): string | number {
+    switch (c.cellValue.tag) {
+      case "ValueI":
+      case "ValueD":
+      case "ValueS":
+        return c.cellValue.contents;
+      default:
+        return null;
+    };
   }
 });
 

@@ -75,7 +75,7 @@ export default class ASTopBar extends React.Component<{}, ASTopBarProps, ASTopBa
           onRequestClose={this._onCondFormatClose.bind(this)} />
         <ASChartDialog
           open={this.state.chartOpen}
-          onRequestClose={this._onChartClose}
+          onRequestClose={this._onChartClose.bind(this)}
           onCreate={ASSpreadsheet.addOverlay} />
         <ASMenuBar menus={[
           {title: 'File', menuItems: [

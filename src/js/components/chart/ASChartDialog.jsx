@@ -33,16 +33,16 @@ export default React.createClass({
   },
 
   _getSourceValues() {
-    if (this.refs.valueRangeInput) {
-       let vals = this._excelRefToVals(this.refs.valueRangeInput.getValue());
+    if (this.state.valueRange) {
+       let vals = CellStore.getValues(this.state.valueRange);
       // can't polar-plot multidimensional data, so check the data
       return CU.isCartesian(this.state.chartType) ? vals : CU.reduceNestedArray(vals);
     } else { return null; }
   },
 
   _getXLabels() {
-    if (this.refs.xLabelRangeInput) {
-      let xLabels = this._excelRefToVals(this.refs.xLabelRangeInput.getValue());
+    if (this.state.xLabelRange) {
+      let xLabels = CellStore.getValues(this.state.xLabelRange);
       let {tl, br} = this.state.valueRange;
       // polar plots don't have x-axis labels for obvious reasons
       return CU.isCartesian(this.state.chartType) ?
@@ -52,8 +52,8 @@ export default React.createClass({
   },
 
   _getPlotLabels() {
-    if (this.refs.labelRangeInput && ) {
-      let plotLabels = this._excelRefToVals(this.refs.labelRangeInput.getValue());
+    if (this.state.plotLabelRange) {
+      let plotLabels = CellStore.getValues(this.state.plotLabelRange);
       let {tl, br} = this.state.valueRange;
       return plotLabels || CU.repeat(null, br.col - tl.col);
     } else { return null; }
@@ -68,7 +68,7 @@ export default React.createClass({
     };
   },
 
-  _getInitialRange() {
+  _getInitialRangeExpression() {
     let sel = SelStore.getActiveSelection();
     if (!! sel){ return U.Conversion.rangeToExcel(sel); }
     else { return ''; }
@@ -161,7 +161,7 @@ export default React.createClass({
               <TableRowColumn>
                 <TextField
                   ref="valueRangeInput"
-                  defaultValue={this._getInitialRange()}
+                  defaultValue={this._getInitialRangeExpression()}
                   hintText="Data Range"
                   onChange={this._onSourceChange()} />
                 <br />
