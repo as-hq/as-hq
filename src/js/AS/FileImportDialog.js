@@ -38,7 +38,12 @@ export default {
     } else {
       let simpleIndex = sel.origin,
           lang = ExpStore.getLanguage();
-      API.importCSV(simpleIndex, lang, file.name);
+      if (lang != null) {
+        API.importCSV(simpleIndex, lang, file.name);
+      } else { 
+        // make Excel the default language. Would do ExpStore.getLanguage() || 'Excel', but Flow. 
+        API.importCSV(simpleIndex, 'Excel', file.name);
+      }
     }
   },
 
