@@ -10,7 +10,9 @@ import type {
 import type {
   ASChartType,
   ASChartContext,
-  ASChartData
+  ASChartData,
+  CartesianDataset,
+  PolarDataset
 } from './types';
 
 import React from 'react';
@@ -78,52 +80,70 @@ export default class ASChart extends React.Component<{}, ASChartProps, ASChartSt
   }
 
   _updateData(cs: Array<ASCell>) {
-    let newData = this.state.data;
-    cs.forEach((c) => {
-      let {col, row} = this._getRelativeIndex(c.cellLocation.index);
-      let val = CU.cellToJSVal(c.cellValue);
-      newData.datasets[col].data[row] = val;
-    });
-    this.setState({data: newData});
+    if (this.state.data) {
+      let newData = this.state.data;
+      cs.forEach((c) => {
+        let {col, row} = this._getRelativeIndex(c.cellLocation.index);
+        let val = CU.cellToChartVal(c);
+        // cartesian data case
+        if (newData.datasets !== null && newData.datasets !== undefined) {
+          newData.datasets[col].data[row] = val;
+        } else if (newData instanceof Array) {
+          let insertIdx = Math.max(col, row);
+          newData[col].value = val;
+        }
+      });
+      this.setState({data: newData});
+    }
   }
 
   // ChartContext -> ChartData
   _contextToData(ctx: ASChartContext): ASChartData {
-    if (CU.isCartesian(ctx.chartType)) {
+    console.log("Contexttodata: " + JSON.stringify(ctx));
+    const {xLabels} = ctx;
+    if (CU.isCartesian(ctx.chartType) && xLabels !== null && xLabels !== undefined) {
       return {
-        labels: ctx.xLabels,
+        labels: xLabels,
         datasets: this._generateCartesianDatasets(ctx)
       };
     } else if (CU.isPolar(ctx.chartType)) {
       return this._generatePolarDatasets(ctx);
-    }
+    } else throw new Error("Not even cartesian or polar: " + JSON.stringify(ctx.chartType));
   }
 
   // #needsrefactor I want an either type here.
   // the next two functions are quite repetitive, but they do return different types...
 
   // ChartContext -> [CartesianDataset]
-  _generateCartesianDatasets(ctx) {
-    let datasets = Array(ctx.values.length);
-    for (var i=0; i<ctx.values.length; i++) {
-      datasets[i] = this._generateDatasetGraphicOptions(ctx.chartType)
-        .assign({
-          label: ctx.plotLabels[i],
-          data: ctx.values[i]
-        });
-    } return datasets;
+  _generateCartesianDatasets(ctx: ASChartContext): Array<CartesianDataset> {
+    let datasets = [];
+    const {values, plotLabels} = ctx;
+    if (values !== null && values !== undefined && plotLabels !== null && plotLabels !== undefined) {
+      for (var i = 0; i < values.length; i++) {
+        // $FlowFixMe can't declare object.assign...
+        datasets.push(Object.assign(this._generateDatasetGraphicOptions(ctx.chartType), {
+            label: plotLabels[i],
+            data: values[i]
+          }
+        ));
+      } return datasets;
+    } else throw new Error("Couldn't generate cartesian datasets");
   }
 
   // ChartContext -> [PolarDataset]
-  _generatePolarDatasets(ctx) {
-    let datasets = Array(ctx.values.length);
-    for (var i=0; i<ctx.values.length; i++) {
-      datasets[i] = this._generateDatasetGraphicOptions(ctx.chartType)
-        .assign({
-          label: ctx.plotLabels[i],
-          value: ctx.values[i]
-        });
-    } return datasets;
+  _generatePolarDatasets(ctx: ASChartContext): Array<PolarDataset> {
+    let datasets = [];
+    const {values, plotLabels} = ctx;
+    if (values !== null && values !== undefined && plotLabels !== null && plotLabels !== undefined) {
+      for (var i=0; i<values.length; i++) {
+        // $FlowFixMe fuck you object.assign
+        datasets.push(Object.assign(this._generateDatasetGraphicOptions(ctx.chartType), {
+            label: plotLabels[i],
+            value: values[i]
+          }
+        ));
+      } return datasets;
+    } else throw new Error("Couldn't generate polar datasets");
   }
 
   // ChartType -> GraphicOptions

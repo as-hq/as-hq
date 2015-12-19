@@ -7,11 +7,11 @@ export type ASPolarChartType = 'PolarArea' | 'Pie' | 'Doughnut';
 export type ASChartType =
   ASCartesianChartType | ASPolarChartType;
 
-export type ASChartOptions = 'poop';// TODO
+export type ASChartOptions = {};// TODO
 
 export type ASChartContext = {
   chartType: ASChartType;
-  values: ?(Array<Array<number|string>> | Array<number|string>);
+  values: ?(Array<Array<number>> | Array<number>);
   xLabels: ?Array<string>;
   plotLabels: ?Array<string>;
   options: ASChartOptions;
@@ -54,3 +54,6 @@ export type ASCartesianData = {
 export type ASPolarData = Array<PolarDataset>;
 
 export type ASChartData = ASCartesianData | ASPolarData;
+
+export type ASCartesianValues = Array<Array<number>>;
+export type ASPolarValues = Array<number>;

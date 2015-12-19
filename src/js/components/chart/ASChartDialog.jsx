@@ -17,7 +17,9 @@ import type {
   ASChartType,
   ASCartesianChartType,
   ASPolarChartType,
-  ASChartContext
+  ASChartContext,
+  ASPolarValues,
+  ASCartesianValues
 } from './types';
 
 import React from 'react';
@@ -53,6 +55,7 @@ type ASChartDialogState = {
   plotLabelRange: ?NakedRange;
   xLabelRange: ?NakedRange;
   chartType: ASChartType;
+  chartTypeIndex: number;
 };
 
 const LIST_ITEMS = [
@@ -68,39 +71,28 @@ export default class ASChartDialog extends React.Component<{}, ASChartDialogProp
   constructor(props: ASChartDialogProps) {
     super(props);
 
-    let sel = SelStore.getActiveSelection();
-
     this.state = {
-      valueRange: sel ? sel.range : {tl: {col: 1, row: 1}, br: {col: 1, row: 1}},
+      chartTypeIndex: 1,
+      valueRange: {tl: {col: 1, row: 1}, br: {col: 1, row: 1}},
       plotLabelRange: null,
       xLabelRange: null,
       chartType: 'Bar'
     };
   }
 
-  _excelRefToVals(xp: string): Array<Array<?(string|number)>> {
-    let cs = CellStore.getCells(this.state.valueRange);
-    return cs.map((col) => {
-      return col.map((cell) => {
-        if (!cell) return null;
-        return CU.cellToJSVal(cell);
-      });
-    });
-  }
-
-  //this type is poop because of Anand
-  _getSourceValues(): ?(Array<Array<number|string>> | Array<number|string>) {
+  _getSourceValues(): ?(ASCartesianValues | ASPolarValues) {
     if (this.state.valueRange) {
-       let vals = CellStore.getValues(this.state.valueRange);
+       let vals = CellStore.getCells(this.state.valueRange)
+                    .map((cs) => cs.map(CU.cellToChartVal));
       // can't polar-plot multidimensional data, so check the data
-      return CU.isCartesian(this.state.chartType) ? vals : CU.reduceNestedArray(vals);
+      return CU.isCartesian(this.state.chartType) ? vals : CU.reduceNestedArrayNum(vals);
     } else { return null; }
   }
 
   _getXLabels(): ?Array<string> {
     if (this.state.xLabelRange) {
-      let xLabels = CellStore.getValues(this.state.xLabelRange)
-        .map((x) => x.map((y) => y.toString()));
+      let xLabels = CellStore.getCells(this.state.xLabelRange)
+        .map((cs) => cs.map(CU.cellToLabel));
       let {tl, br} = this.state.valueRange;
 
       if (!(tl.row === br.row || tl.col === br.col)) {
@@ -109,32 +101,35 @@ export default class ASChartDialog extends React.Component<{}, ASChartDialogProp
 
       // polar plots don't have x-axis labels for obvious reasons
       return CU.isCartesian(this.state.chartType) ?
-              (CU.reduceNestedArray(xLabels) || CU.takeNat(br.row - tl.row).map((n) => n.toString())) :
+              (CU.reduceNestedArrayStr(xLabels) || CU.takeNat(br.row - tl.row).map((n) => n.toString())) :
               null;
     } else { return null; }
   }
 
   _getPlotLabels(): ?Array<string> {
     if (this.state.plotLabelRange) {
-      let plotLabels = CellStore.getValues(this.state.plotLabelRange)
-        .map((x) => x.map((y) => y.toString()));
+      let plotLabels = CellStore.getCells(this.state.plotLabelRange)
+        .map((cs) => cs.map(CU.cellToLabel));
       let {tl, br} = this.state.valueRange;
 
       if (!(tl.row === br.row || tl.col === br.col)) {
         throw new Error('Not a one-dimensional range');
       }
 
-      return CU.reduceNestedArray(plotLabels) || CU.repeat(null, br.col - tl.col);
+      return CU.reduceNestedArrayStr(plotLabels) || CU.repeat(null, br.col - tl.col);
     } else { return null; }
   }
 
   _generateContext(): ASChartContext {
-    return {
+    let ctx = {
       chartType: this.state.chartType,
       values: this._getSourceValues(),
       xLabels: this._getXLabels(),
-      plotLabels: this._getPlotLabels()
+      plotLabels: this._getPlotLabels(),
+      options: {} // no options for now
     };
+    console.log("Generate context: \n\n" + JSON.stringify(ctx));
+    return ctx;
   }
 
   _getInitialRangeExpression(): string {
@@ -157,26 +152,10 @@ export default class ASChartDialog extends React.Component<{}, ASChartDialogProp
     });
   }
 
-  _onChartTypeChange(chartType: ASChartType) {
-    this.setState({chartType: chartType});
+  _onChartTypeChange(chartType: ASChartType, idx: number) {
+    this.setState({chartType: chartType, chartTypeIndex: idx});
   }
 
-/*
-  _generateEventListener(ele: TextField): ((rng: NakedRange) => {}) => Callback {
-    return (f: (rng: NakedRange) => {}) => {
-      if (ele) {
-        let str = ele.getValue();
-        if (U.Parsing.isValidExcelRef(str)) {
-          let rng = U.Conversion.excelToRange(str);
-          this.setState(f())
-        } else {
-          ele.errorText = 'Please enter a valid A1:B2 style reference.'; //TODO: no global state change cuz anand sucks balls
-        }
-      }
-    }
-  } */
-
-// #needsrefactor kind of repetitive, these event listeners...
   _onSourceChange() {
     if (this.refs.valueRangeInput) {
       let str = this.refs.valueRangeInput.getValue();
@@ -272,7 +251,7 @@ export default class ASChartDialog extends React.Component<{}, ASChartDialogProp
             <td>
               <SelectableList
                 subheader="Chart types"
-                valueLink={{value: chartType, requestChange: this._onChartTypeChange.bind(this)}} >
+                valueLink={{value: this.state.chartTypeIndex, requestChange: this._onChartTypeChange.bind(this)}} >
                 {LIST_ITEMS.map((item) => {
                   return ([
                     <ListItem

@@ -15,24 +15,35 @@ import Constants from '../../Constants';
 let {ChartTypes} = Constants;
 
 export default {
-    // ASCell -> Maybe JSVal
-  cellToJSVal(c: ASCell): ?(string|number) {
-    switch (c.cellValue.tag) {
-      case "ValueI":
-      case "ValueD":
-      case "ValueS":
-        return c.cellValue.contents;
-      default:
-        return null;
-    };
+  cellToChartVal(c: ?ASCell): number {
+    if (c !== null && c !== undefined) {
+      switch (c.cellValue.tag) {
+        case "ValueI":
+        case "ValueD":
+          return c.cellValue.contents;
+        default:
+          return 0;
+      };
+    } else return 0;
+  },
+
+  cellToLabel(c: ?ASCell): string {
+    if (c !== null && c !== undefined) {
+      switch (c.cellValue.tag) {
+        case "ValueS":
+          return c.cellValue.contents;
+        default:
+          return "DefaultLabel";
+      };
+    } else return "DefaultLabel";
   },
 
   isCartesian(chartType: ASChartType): boolean {
-    return [ChartTypes.Line, ChartTypes.Bar, ChartTypes.Radar].includes(chartType);
+    return ["Line", "Bar", "Radar"].includes(chartType);
   },
 
   isPolar(chartType: ASChartType): boolean {
-    return [ChartTypes.PolarArea, ChartTypes.Pie, ChartTypes.Doughnut].includes(chartType);
+    return ["PolarArea", "Pie", "Doughnut"].includes(chartType);
   },
 
   // a -> Int -> [a]
@@ -46,7 +57,15 @@ export default {
   },
 
   // [[a]] -> ThrowsError [a]
-  reduceNestedArray<T>(arr: Array<Array<T>>): Array<T> {
+  reduceNestedArrayStr(arr: Array<Array<string>>): Array<string> {
+    console.assert(arr.constructor === Array && arr.every((elem) => { return elem.constructor === Array; }));
+    console.assert(arr.length == 1 || arr.every((subArr) => { return subArr.length == 1; }));
+    if (arr.length == 1) return arr[0];
+    else return arr.map((elem) => { return elem[0]; });
+  },
+
+  // wtf flow... can't make this a polymorphic function
+  reduceNestedArrayNum(arr: Array<Array<number>>): Array<number> {
     console.assert(arr.constructor === Array && arr.every((elem) => { return elem.constructor === Array; }));
     console.assert(arr.length == 1 || arr.every((subArr) => { return subArr.length == 1; }));
     if (arr.length == 1) return arr[0];
