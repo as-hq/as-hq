@@ -20,12 +20,20 @@ import type {
   VAlignType,
   HAlignType,
   BooleanCellTag,
-  FormatType
+  FormatType,
 } from '../types/Eval';
 
 import type {
   ASServerMessage,
-  CondFormatRule
+  CondFormatRule,
+  CondFormatCondition,
+  CustomExpressionCondition,
+  NoExpressionsCondition,
+  OneExpressionCondition,
+  TwoExpressionsCondition,
+  NoExpressionsType,
+  OneExpressionType,
+  TwoExpressionsType
 } from '../types/Messages';
 
 import type {
@@ -331,23 +339,58 @@ export function setCondFormattingRules(rules: Array<CondFormatRule>): Prf {
     API.setCondFormattingRules(rules);
   });
 }
-
-export function makeCondFormattingRuleFontExcel(rng: string, prop: ASCellProp, rule: string): any {
-  let xpObj = {
-    "tag": "Expression",
-    "expression": rule,
-    "language": "Excel"
-  };
-  let asRule = {
-    "tag": "CondFormatRule",
-    "condition": xpObj,
-    "cellLocs": [U.Conversion.simpleToASRange(rangeFromExcel(rng))],
-    "condFormat": {
-      tag: prop,
-      contents: []
+function makeCondFormattingRuleExcel(cond: CondFormatCondition, rng: string, prop: BooleanCellTag) {
+  return {
+    tag: "CondFormatRule",
+    condition: cond,
+    cellLocs: [U.Conversion.simpleToASRange(rangeFromExcel(rng))],
+    condFormat: {
+      // $FlowFixMe
+    tag: prop,
+    contents: []
     }
   };
-  return asRule;
+}
+
+function makeExpressionExcel(rule: string) {
+  return {
+    tag: "Expression",
+    expression: rule,
+    language: "Excel"
+  };
+}
+
+export function makeCustomCondFormattingFontRuleExcel(rng: string, prop: BooleanCellTag, rule: string): CondFormatRule {
+  let cond = {
+    tag: 'CustomExpressionCondition',
+    contents: makeExpressionExcel(rule)
+  };
+  return makeCondFormattingRuleExcel(cond, rng, prop);;
+}
+
+export function makeNoXpCondFormattingFontRuleExcel(rng: string, prop: BooleanCellTag, xpType: NoExpressionsType): CondFormatRule {
+  let cond = {
+    tag: 'NoExpressionsCondition',
+    contents: xpType
+  };
+    return makeCondFormattingRuleExcel(cond, rng, prop);
+}
+
+export function makeOneXpCondFormattingFontRuleExcel(rng: string, prop: BooleanCellTag, rule: string, xpType: OneExpressionType): CondFormatRule {
+  let cond = {
+    tag: 'OneExpressionCondition',
+    contents: [xpType, makeExpressionExcel(rule)]
+  };
+  return makeCondFormattingRuleExcel(cond, rng, prop);
+}
+
+export function makeTwoXpCondFormattingFontRuleExcel(rng: string, prop: BooleanCellTag, rule1: string, rule2: string, xpType: TwoExpressionsType): CondFormatRule {
+  let cond = {
+    tag: 'TwoExpressionsCondition',
+    // $FlowFixMe TODO: check if we actuallly want this
+    contents: [xpType, makeExpressionExcel(rule1), makeExpressionExcel(rule2)]
+  };
+  return makeCondFormattingRuleExcel(cond, rng, prop);
 }
 
 export function valueD(val: number): ValueD {
@@ -480,7 +523,7 @@ export function shouldHaveProp(loc: string, prop: string): Prf {
   });
 }
 
-export function shouldNotHaveProp(loc: string, prop: ASCellProp): Prf {
+export function shouldNotHaveProp(loc: string, prop: string): Prf {
   return messageShouldSatisfy(loc, (cs) => {
     logDebug(`${loc} cell should have prop ${prop}`);
 
