@@ -1,4 +1,6 @@
-import {ChartTypes} from '../../Constants';
+import Constants from '../../Constants';
+
+let {ChartTypes} = Constants;
 
 export default {
     // ASCell -> Maybe JSVal

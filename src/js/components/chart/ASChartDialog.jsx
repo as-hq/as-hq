@@ -1,26 +1,29 @@
 import React from 'react';
 import {Dialog, TextField, DropDownMenu} from 'material-ui';
-import {List, ListDivider, ListItem} from 'material-ui';
-import {Table, TableHeader, TableRow, TableHeaderColumn, TableBody} from 'material-ui';
+import {List, ListDivider, ListItem, SelectableList} from 'material-ui';
+import {Table, TableHeader, TableRow, TableRowColumn, TableHeaderColumn, TableBody} from 'material-ui';
 
 import {Just, Nothing} from '../../AS/Maybe';
 
-import {ChartTypes} from '../../Constants';
+import Constants from '../../Constants';
 import U from '../../AS/Util';
-import CellStore from '../../stores/CellStore';
+import CellStore from '../../stores/ASCellStore';
 import SelStore from '../../stores/ASSelectionStore';
-import ASButton from '../basic-controls/ASButton';
-import ASChart from './ASChart';
+import SheetStore from '../../stores/ASSheetStateStore';
+import ASButton from '../basic-controls/ASButton.jsx';
+import ASChart from './ASChart.jsx';
 import CU from './ChartUtils';
+
+let {ChartTypes} = Constants;
 
 export default React.createClass({
 
   getInitialState() {
     return {
-      valueRange: SelStore.getActiveSelection();,
+      valueRange: SelStore.getActiveSelection(),
       plotLabelRange: null,
-      xLabelRange: null
-      chartType: ChartTypes.Bar,
+      xLabelRange: null,
+      chartType: ChartTypes.Bar
     };
   },
 
@@ -30,23 +33,30 @@ export default React.createClass({
   },
 
   _getSourceValues() {
-    let vals = this._excelRefToVals(this.refs.valueRangeInput.getValue());
-    // can't polar-plot multidimensional data, so check the data
-    return CU.isCartesian(this.state.chartType) ? vals : CU.reduceNestedArray(vals);
+    if (this.refs.valueRangeInput) {
+       let vals = this._excelRefToVals(this.refs.valueRangeInput.getValue());
+      // can't polar-plot multidimensional data, so check the data
+      return CU.isCartesian(this.state.chartType) ? vals : CU.reduceNestedArray(vals);
+    } else { return null; }
   },
 
   _getXLabels() {
-    let xLabels = this._excelRefToVals(this.refs.xLabelRangeInput.getValue());
-    let {tl, br} = this.state.valueRange;
-    // polar plots don't have x-axis labels for obvious reasons
-    return CU.isCartesian(this.state.chartType) ?
-            (xLabels || CU.takeNat(br.row - tl.row)) :
-            null;
+    if (this.refs.xLabelRangeInput) {
+      let xLabels = this._excelRefToVals(this.refs.xLabelRangeInput.getValue());
+      let {tl, br} = this.state.valueRange;
+      // polar plots don't have x-axis labels for obvious reasons
+      return CU.isCartesian(this.state.chartType) ?
+              (xLabels || CU.takeNat(br.row - tl.row)) :
+              null;
+    } else { return null; }
   },
 
   _getPlotLabels() {
-    let {tl, br} = this.state.valueRange;
-    return this.state.plotLabels || CU.repeat(null, br.col - tl.col);
+    if (this.refs.labelRangeInput && ) {
+      let plotLabels = this._excelRefToVals(this.refs.labelRangeInput.getValue());
+      let {tl, br} = this.state.valueRange;
+      return plotLabels || CU.repeat(null, br.col - tl.col);
+    } else { return null; }
   },
 
   _generateContext() {
@@ -58,7 +68,11 @@ export default React.createClass({
     };
   },
 
-  _getInitialRange() { return U.Conversion.rangeToExcel(SelStore.getActiveSelection()); },
+  _getInitialRange() {
+    let sel = SelStore.getActiveSelection();
+    if (!! sel){ return U.Conversion.rangeToExcel(sel); }
+    else { return ''; }
+  },
 
   _onSubmitCreate() {
     this.props.onCreate({
@@ -78,39 +92,40 @@ export default React.createClass({
 
 // kind of repetitive, these event listeners...
   _onSourceChange() {
-    let str = this.refs.valueRangeInput.getValue();
-    if (U.parsing.isValidExcelRef(str)) {
-      let rng = U.conversion.excelToRange(str);
-      this.setState({valueRange: rng});
-    } else {
-      this.refs.valueRangeInput.errorText = "Please enter a valid A1:B2 style reference."
+    if (this.refs.valueRangeInput) {
+      let str = this.refs.valueRangeInput.getValue();
+      if (U.parsing.isValidExcelRef(str)) {
+        let rng = U.conversion.excelToRange(str);
+        this.setState({valueRange: rng});
+      } else {
+        this.refs.valueRangeInput.errorText = "Please enter a valid A1:B2 style reference."
+      }
     }
   },
 
   _onLabelChange() {
-    let str = this.refs.labelRangeInput.getValue();
-    if (U.parsing.isValidExcelRef(str)) {
-      let rng = U.conversion.excelToRange(str);
-      this.setState({plotLabelRange: rng});
-    } else {
-      this.refs.labelRangeInput.errorText = "Please enter a valid A1:B2 style reference."
+    if (this.refs.labelRangeInput) {
+      let str = this.refs.labelRangeInput.getValue();
+      if (U.parsing.isValidExcelRef(str)) {
+        let rng = U.conversion.excelToRange(str);
+        this.setState({plotLabelRange: rng});
+      } else {
+        this.refs.labelRangeInput.errorText = "Please enter a valid A1:B2 style reference."
+      }
     }
   },
 
   _onXLabelChange() {
-    let str = this.refs.xLabelRangeInput.getValue();
-    if (U.parsing.isValidExcelRef(str)) {
-      let rng = U.conversion.excelToRange(str);
-      this.setState({xLabelRange: rng});
-    } else {
-      this.refs.xLabelRangeInput.errorText = "Please enter a valid A1:B2 style reference."
+    if (this.refs.xLabelRangeInput) {
+      let str = this.refs.xLabelRangeInput.getValue();
+      if (U.parsing.isValidExcelRef(str)) {
+        let rng = U.conversion.excelToRange(str);
+        this.setState({xLabelRange: rng});
+      } else {
+        this.refs.xLabelRangeInput.errorText = "Please enter a valid A1:B2 style reference."
+      }
     }
   },
-
-  dialogActions: [
-    {text: 'Cancel'},
-    {text: 'Create', onTouchTap: this._onSubmitCreate}
-  ],
 
   listItems: [
     {text: 'Line', payload: ChartTypes.Line, icon: null},
@@ -125,7 +140,10 @@ export default React.createClass({
     return (
       <Dialog
         title="Chart Editor"
-        actions={this.dialogActions}
+        actions={[
+          {text: 'Cancel'},
+          {text: 'Create', onTouchTap: this._onSubmitCreate}
+        ]}
         open={this.props.open}
         onRequestClose={this.props.onRequestClose}>
 
@@ -159,7 +177,7 @@ export default React.createClass({
                       ref="xLabelRangeInput"
                       hintText="X-axis Label Range"
                       errorStyle={{color:'orange'}}
-                      onChange={this._onXLabelChange()} />
+                      onChange={this._onXLabelChange()} />,
                     <br />
                   ]
                 ) : null}
@@ -168,13 +186,13 @@ export default React.createClass({
                   subheader="Chart types"
                   valueLink={{value: this.state.chartType, requestChange: this._onChartTypeChange}} >
                   {this.listItems.map((item) => {
-                    return (
+                    return ([
                       <ListItem
                         primaryText={item.text}
                         leftIcon={item.icon}
-                        value={item.payload} />
+                        value={item.payload} />,
                       <ListDivider inset={true} />
-                    );
+                    ]);
                   })}
                 </SelectableList>
               </TableRowColumn>
@@ -183,14 +201,14 @@ export default React.createClass({
                 <ASChart
                   ref="generatedChart"
                   valueRange={this.state.valueRange}
-                  sheetId={CellStore.getCurrentSheet().sheetId}
+                  sheetId={SheetStore.getCurrentSheet().sheetId}
                   chartContext={this._generateContext()} />
               </TableRowColumn>
 
             </TableRow>
           </TableBody>
-
-
+        </Table>
+      </Dialog>
     );
   }
 

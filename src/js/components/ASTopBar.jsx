@@ -21,7 +21,7 @@ import ASMenuBar from './menu-bar/ASMenuBar.jsx';
 import ASSpreadsheet from './ASSpreadsheet.jsx';
 
 import FileImportDialog from '../AS/FileImportDialog';
-
+import ASChartDialog from './chart/ASChartDialog.jsx';
 
 type ASTopBarProps = {
   toggleEvalHeader: Callback;
@@ -112,6 +112,17 @@ export default class ASTopBar extends React.Component<{}, ASTopBarProps, ASTopBa
             })
           ]},
 
+          {title: 'Insert', menuItems: [
+            simple({
+              title: 'Chart',
+              callback() {
+                self.setState({
+                  chartOpen: true
+                });
+              }
+            })
+          ]},
+
           {title: 'Code', menuItems: [
             simple({
               title: 'Toggle header',
@@ -139,7 +150,7 @@ export default class ASTopBar extends React.Component<{}, ASTopBarProps, ASTopBa
 
   _onCondFormatClose() {
     this.setState({condFormattingOpen: false});
-  },
+  }
 
   _onChartClose() {
     this.setState({chartOpen: false});

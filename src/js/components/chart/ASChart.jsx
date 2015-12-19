@@ -1,12 +1,12 @@
 import React from 'react';
 import Chart from 'react-chartjs';
 
-import {ChartTypes} from '../../Constants';
-import CellStore from '../../stores/CellStore';
+import Constants from '../../Constants';
+import CellStore from '../../stores/ASCellStore';
 import {isContainedInLocs} from '../../AS/utils/Location';
 import CU from './ChartUtils';
 
-Chart.defaults.global.responsive = true;
+let {ChartTypes} = Constants;
 
 export default React.createClass({
 
@@ -133,7 +133,8 @@ export default React.createClass({
   },
 
   render() {
-    return <Chart[this.props.chartContext.chartType]
+    let ChartConstructor = Chart[this.props.chartContext.chartType];
+    return <ChartConstructor
               data={this.state.data}
               options={this.props.chartContext.options} />;
   }
