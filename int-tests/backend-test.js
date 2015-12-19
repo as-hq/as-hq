@@ -2437,8 +2437,9 @@ describe('backend', () => {
         });
       });
 
-      // TODO: timchu 12/17/15, these tests are not comprehensive.
-      // They do not test when a user enters an expression to the predefined functions!
+      // TODO: timchu 12/17/15, these tests do not comprehensively test if
+      // cond formatting condtions in predefined functions like Geq shift
+      // properly.
       describe('Testing predefined in functions in Conditional Formatting', () => {
         it ('formats bold on IsNotEmpty properly', (done) => {
           _do([
@@ -2465,7 +2466,7 @@ describe('backend', () => {
             shouldHaveProp('A9', 'Bold'),
             exec(done)
           ]);
-        });
+        })
         it ('formats bold on GreaterThan properly, and correctly evaluates expression passed into GreaterThan', (done) => {
           _do([
             python('A1', 'range(10)'),
@@ -2592,7 +2593,7 @@ describe('backend', () => {
             exec(done)
           ]);
         });
-        // TODO: timchu, this test does not pass.
+        // TODO: timchu 12/17/15, the below test does not pass.
         xit ('should not format cells in GreaterThan cond formatting if the expression passed in or the value in the cell being formatted is an error', (done) => {
           _do([
             python('A1', '=1'), // ERROR
