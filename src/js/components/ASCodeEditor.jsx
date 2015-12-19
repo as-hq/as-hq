@@ -4,9 +4,9 @@ import ActionCreator from '../actions/ASCodeEditorActionCreators';
 import Constants from '../Constants';
 
 import {AppBar, Toolbar, ToolbarGroup, FlatButton, TextField, DropDownMenu, Styles} from 'material-ui';
-import FileInput from './ASFileImportButton.jsx';
 import ASCellPropsToggleButton from './basic-controls/ASCellPropsToggleButton.jsx';
 import ASCellPropsColorSetButton from './basic-controls/ASCellPropsColorSetButton.jsx';
+import ASLanguageMenu from './basic-controls/ASLanguageMenu.jsx';
 
 require('brace/mode/python');
 require('brace/mode/r');
@@ -15,18 +15,6 @@ require('brace/mode/mysql');
 require('brace/mode/java');
 require('brace/mode/c_cpp');
 require('brace/theme/monokai');
-
-let languages = [];
-for (var key in Constants.Languages) {
-  languages.push({
-    payload: Constants.Languages[key],
-    text: Constants.Languages[key]
-  });
-}
-
-function languageIndex(lang) {
-  return languages.map((l) => l.text).indexOf(lang);
-}
 
 export default React.createClass({
 
@@ -52,7 +40,7 @@ export default React.createClass({
 
   _onSelectLanguage(e, selectedIndex, menuItem) {
     //notify editor to change
-    this.props.onSelectLanguage(menuItem.payload);
+    this.props.onSelectLanguage(menuItem); 
   },
 
   _onBlurVarName() {
@@ -66,16 +54,9 @@ export default React.createClass({
   render() {
     let {language, theme, value, width, height} = this.props;
     let mode = Constants.AceMode[language];
-    // TODO: make this CSS better/put the import in the right place; this is just a skeleton
-    // counterpoint: don't give a crap about this because these buttons are all temporary anyway
-    // and crappy CSS is probably sufficient? (Alex 11/18)
-    let fileInputStyle = {
-      top: '5px'
-    };
 
     return (
       <div>
-
         <Toolbar
           style={{backgroundColor: Styles.Colors.grey700, height:'60px'}}
           showMenuIconButton={false} >
@@ -91,16 +72,14 @@ export default React.createClass({
                 fontFamily: 'Roboto, sans-serif'
               }}
               onBlur={this._onBlurVarName} />
-            <DropDownMenu
-              selectedIndex={languageIndex(language)}
-              menuItems={languages}
-              onChange={this._onSelectLanguage}
-              underlineStyle={{ display: 'none' }}
+            <ASLanguageMenu 
+              onSelectLanguage={this._onSelectLanguage}
+              language={language}
               style={{
                 marginTop: 'auto',
                 marginLeft: '40px',
                 marginBottom: 'auto'
-              }}/>
+            }} />
             <ASCellPropsToggleButton propTag="Bold" iconClassName="format_bold" style={{
               position: 'relative',
               marginLeft: '0px',

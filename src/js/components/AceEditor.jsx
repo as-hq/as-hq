@@ -57,7 +57,7 @@ module.exports = React.createClass({
       theme  : 'monokai',
       height : '100px',
       width  : '100%',
-      fontSize   : 12,
+      fontSize   : 25,
       showGutter : true,
       onLoad     : null,
       // These props say that the editor starts at minLines lines

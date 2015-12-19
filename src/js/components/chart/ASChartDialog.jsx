@@ -24,27 +24,55 @@ export default React.createClass({
     };
   },
 
-  _generateContext() {
+  _excelRefToVals(xp) {
     let cs = CellStore.getCells(this.state.valueRange);
-    let vals = cs.map((col) => { return col.map(CU._cellToJSVal); }),
+    return cs.map((col) => { return col.map(CU.cellToJSVal); });
+  },
+
+  _getSourceValues() {
+    let vals = this._excelRefToVals(this.refs.valueRangeInput.getValue());
     // can't polar-plot multidimensional data, so check the data
-    let checkedVals = CU.isCartesian(this.state.chartType) ? vals : CU.reduceNestedArray(vals);
+    return CU.isCartesian(this.state.chartType) ? vals : CU.reduceNestedArray(vals);
+  },
+
+  _getXLabels() {
+    let xLabels = this._excelRefToVals(this.refs.xLabelRangeInput.getValue());
+    let {tl, br} = this.state.valueRange;
     // polar plots don't have x-axis labels for obvious reasons
-    let xLabels = CU.isCartesian(this.state.chartType) ?
-        (xLabels || CU.takeNat(this.state.values[0].length)) :
-        null;
-    let plotLabels = this.state.plotLabels || _repeat(null, this.state.values.length);
+    return CU.isCartesian(this.state.chartType) ?
+            (xLabels || CU.takeNat(br.row - tl.row)) :
+            null;
+  },
+
+  _getPlotLabels() {
+    let {tl, br} = this.state.valueRange;
+    return this.state.plotLabels || CU.repeat(null, br.col - tl.col);
+  },
+
+  _generateContext() {
     return {
       chartType: this.state.chartType,
-      values: checkedVals,
-      xLabels: xLabels,
-      plotLabels: plotLabels
+      values: this._getSourceValues(),
+      xLabels: this._getXLabels(),
+      plotLabels: this._getPlotLabels()
     };
   },
 
   _getInitialRange() { return U.Conversion.rangeToExcel(SelStore.getActiveSelection()); },
 
-  _onSubmitCreate() { this.props.onCreate(this.refs.generatedChart); },
+  _onSubmitCreate() {
+    this.props.onCreate({
+      id: U.Render.getUniqueId(),
+      elem: this.refs.generatedChart,
+      width: 500,
+      height: 300,
+      offsetX: 0,
+      offsetY: 0,
+      left: 50,
+      top: 50,
+      loc: null
+    });
+  },
 
   _onChartTypeChange(chartType) { this.setState({chartType: chartType}); },
 
@@ -81,7 +109,7 @@ export default React.createClass({
 
   dialogActions: [
     {text: 'Cancel'},
-    {text: 'Create', onTouchTap: this._onSubmitCreate, ref: 'create'}
+    {text: 'Create', onTouchTap: this._onSubmitCreate}
   ],
 
   listItems: [
@@ -125,7 +153,7 @@ export default React.createClass({
                   errorStyle={{color:'orange'}}
                   onChange={this._onLabelChange()} />
                 <br />
-                {CU._isCartesian(this.state.chartType) ? (
+                {CU.isCartesian(this.state.chartType) ? (
                   [
                     <TextField
                       ref="xLabelRangeInput"

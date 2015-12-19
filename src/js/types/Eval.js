@@ -31,6 +31,7 @@ export type ValueI = {
   contents: number;
 };
 
+
 export type ValueD = {
   tag: 'ValueD';
   contents: number;

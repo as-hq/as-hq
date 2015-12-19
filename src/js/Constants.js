@@ -171,7 +171,8 @@ var Constants = Object.assign({
     Drag: "Drag",
     Decouple: "Decouple",
     SetCondFormatRules: "SetCondFormatRules",
-    SetRowColProp: "SetRowColProp"
+    SetRowColProp: "SetRowColProp",
+    "ImportCSV": "ImportCSV"
   },
 
   CursorPosition:{

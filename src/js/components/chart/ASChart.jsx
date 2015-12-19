@@ -52,12 +52,12 @@ export default React.createClass({
 
   // ChartContext -> ChartData
   _contextToData(ctx) {
-    if (CU._isCartesian(ctx.chartType)) {
+    if (CU.isCartesian(ctx.chartType)) {
       return {
         labels: ctx.xLabels,
         datasets: _generateCartesianDatasets(ctx)
       };
-    } else if (CU._isPolar(ctx.chartType)) {
+    } else if (CU.isPolar(ctx.chartType)) {
       return _generatePolarDatasets(ctx);
     }
   },
