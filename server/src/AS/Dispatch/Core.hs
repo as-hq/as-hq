@@ -110,7 +110,9 @@ runDispatchCycle state cs descSetting src ctf = do
 
 makeReplyMessageFromCellsFromCommit :: Either ASExecError ASCommit -> ASServerMessage
 makeReplyMessageFromCellsFromCommit (Left err) = makeErrorMessage err Update
-makeReplyMessageFromCellsFromCommit (Right comm) = ServerMessage Update Success (PayloadSheetUpdate $ sheetUpdateFromCommit comm)
+makeReplyMessageFromCellsFromCommit (Right comm) = makeReplyMessageFromCells Update $ updatedCells $ sheetUpdateFromCommit comm
+-- ServerMessage Update Success (PayloadSheetUpdate $ )
+-- ::ALEX::
 
 -- takes an old context, inserts the new values necessary for this round of eval, and evals using the new context.
 -- this seems conceptually better than letting each round of dispatch produce a new context, 

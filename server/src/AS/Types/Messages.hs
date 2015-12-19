@@ -213,7 +213,7 @@ makeErrorMessage e a = ServerMessage a (Failure (generateErrorMessage e)) (Paylo
 -- | When you have a list of cells from an eval request, this function constructs
 -- the message to send back. 
 makeReplyMessageFromCells :: ASAction -> [ASCell] -> ASServerMessage
-makeReplyMessageFromCells action cells = ServerMessage action Success (PayloadSheetUpdate $ SheetUpdate cells [] [] [])
+makeReplyMessageFromCells action cells = ServerMessage action Success (PayloadCL cells) -- PayloadSheetUpdate $ SheetUpdate cells [] [] [])
 
 -- getBadLocs :: [ASReference] -> [Maybe ASCell] -> [ASReference]
 -- getBadLocs locs mcells = map fst $ filter (\(l,c)->isNothing c) (zip locs mcells)

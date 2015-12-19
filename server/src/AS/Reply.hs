@@ -64,6 +64,14 @@ broadcastFiltered state _ msg = broadcastFiltered' state msg
 -- ::ALEX:: holy shit this is terrible
 -- | Assumes message is not failure message. (Also assumes the payload is either cells or locations.)
 broadcastFiltered' :: MVar ServerState -> ASServerMessage -> IO ()
+broadcastFiltered' state msg@(ServerMessage _ _ (PayloadCL cells)) = do 
+  State ucs _ _ _ <- readMVar state
+  mapM_ (sendFilteredCells msg cells) ucs
+
+broadcastFiltered' state msg@(ServerMessage _ _ (PayloadLL locs)) = do 
+  State ucs _ _ _ <- readMVar state
+  mapM_ (sendFilteredLocs msg locs) ucs
+
 broadcastFiltered' state msg@(ServerMessage _ _ (PayloadSheetUpdate sheetUpdate)) = do 
   State ucs _ _ _ <- readMVar state
   mapM_ (sendFilteredSheetUpdate msg sheetUpdate) ucs
