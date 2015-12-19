@@ -403,7 +403,7 @@ describe('backend', () => {
       });
 
       describe('python', () => {
-        fit('should evaluate at all', (done) => {
+        it ('should evaluate at all', (done) => {
           _do([
             python('A1', '1 + 1'),
             shouldBe('A1', valueI(2)),
