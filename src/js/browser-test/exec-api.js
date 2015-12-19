@@ -339,15 +339,16 @@ export function setCondFormattingRules(rules: Array<CondFormatRule>): Prf {
     API.setCondFormattingRules(rules);
   });
 }
+
 function makeCondFormattingRuleExcel(cond: CondFormatCondition, rng: string, prop: BooleanCellTag) {
   return {
     tag: "CondFormatRule",
     condition: cond,
     cellLocs: [U.Conversion.simpleToASRange(rangeFromExcel(rng))],
+    // $FlowFixMe
     condFormat: {
-      // $FlowFixMe
-    tag: prop,
-    contents: []
+      tag: prop,
+      contents: []
     }
   };
 }
@@ -387,7 +388,7 @@ export function makeOneXpCondFormattingFontRuleExcel(rng: string, prop: BooleanC
 export function makeTwoXpCondFormattingFontRuleExcel(rng: string, prop: BooleanCellTag, rule1: string, rule2: string, xpType: TwoExpressionsType): CondFormatRule {
   let cond = {
     tag: 'TwoExpressionsCondition',
-    // $FlowFixMe TODO: check if we actuallly want this
+    // $FlowFixMe
     contents: [xpType, makeExpressionExcel(rule1), makeExpressionExcel(rule2)]
   };
   return makeCondFormattingRuleExcel(cond, rng, prop);
