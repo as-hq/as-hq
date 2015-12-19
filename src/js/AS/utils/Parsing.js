@@ -21,6 +21,12 @@ let Parsing = {
   prefixOp: ['(', '='],
   postfixOp: [')'],
 
+  isValidExcelRef(xp: string): boolean {
+    let regIdx      = /^!?\$?[A-Za-z]+\$?[0-9]+$/,
+        regRng      = /^!?\$?[A-Za-z]+(\$?[0-9]+)?:\$?[A-Za-z]+(\$?[0-9]+)?$/;
+    return regIdx.test(xp) || regRng.test(xp);
+  },
+
   // counts the char : as part of a word.
   getExtendedWordRange(session: AESession, r: number, c: number): AEWordRange {
     let immWordRange = session.getWordRange(r, c),

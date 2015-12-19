@@ -17,6 +17,7 @@ import SheetStateStore from '../stores/ASSheetStateStore';
 
 import ASCondFormattingDialog from './dialogs/ASCondFormattingDialog.jsx';
 import ASMenuBar from './menu-bar/ASMenuBar.jsx';
+import ASSpreadsheet from './ASSpreadsheet.jsx';
 
 type ASTopBarProps = {
   toggleEvalHeader: Callback;
@@ -56,6 +57,10 @@ export default class ASTopBar extends React.Component<{}, ASTopBarProps, ASTopBa
         <ASCondFormattingDialog
           open={this.state.condFormattingOpen}
           onRequestClose={this._onCondFormatClose.bind(this)} />
+        <ASChartDialog
+          open={this.state.chartOpen}
+          onRequestClose={this._onChartClose}
+          onCreate={ASSpreadsheet.addOverlay} />
         <ASMenuBar menus={[
           {title: 'File', menuItems: [
             simple({
@@ -108,8 +113,10 @@ export default class ASTopBar extends React.Component<{}, ASTopBarProps, ASTopBa
   }
 
   _onCondFormatClose() {
-    this.setState({
-      condFormattingOpen: false
-    });
+    this.setState({condFormattingOpen: false});
+  },
+
+  _onChartClose() {
+    this.setState({chartOpen: false});
   }
 }

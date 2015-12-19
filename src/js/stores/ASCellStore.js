@@ -20,6 +20,8 @@ import type {
   ASUserId
 } from '../types/User';
 
+import _ from 'lodash';
+
 import {logDebug} from '../AS/Logger';
 
 import Dispatcher from '../Dispatcher';
@@ -333,6 +335,17 @@ const ASCellStore = Object.assign({}, BaseStore, {
     else {
       return null;
     }
+  },
+
+  getCells({tl, br}: NakedRange): Array<Array<?ASCell>> {
+    let sheetId = SheetStateStore.getCurrentSheet().sheetId;
+    return _.range(tl.col, br.col).map((c) => {
+      return _.range(tl.row, br.row).map((r) => {
+        return (this.locationExists(c, r, sheetId)) ?
+                _data.allCells[sheetId][c][r] :
+                null;
+      });
+    });
   }
 });
 

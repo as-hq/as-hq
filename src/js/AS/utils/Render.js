@@ -215,9 +215,12 @@ export default {
           imageHeight  = ct[i].imageHeight;
         }
       }
+      let imageSource = Constants.getHostStaticUrl() + "/images/" + cv.imagePath;
+      // onMouseUp doesn't work inside draggable
+      let elem = <Image src={imageSource} draggable="false" width="100%" height="100%" alt="Error rendering image." />
       return {
         id: self.getUniqueId(),
-        src: Constants.getHostStaticUrl() + "/images/" + cv.imagePath,
+        elem: elem,
         width: imageWidth,
         height: imageHeight,
         offsetX: imageOffsetX,

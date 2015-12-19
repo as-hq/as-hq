@@ -1,43 +1,82 @@
 import React from 'react';
 import {Dialog, TextField, DropDownMenu} from 'material-ui';
+import {List, ListDivider, ListItem} from 'material-ui';
 import {Table, TableHeader, TableRow, TableHeaderColumn, TableBody} from 'material-ui';
 
 import {Just, Nothing} from '../../AS/Maybe';
 
 import {ChartTypes} from '../../Constants';
+import U from '../../AS/Util';
 import CellStore from '../../stores/CellStore';
+import SelStore from '../../stores/ASSelectionStore';
 import ASButton from '../basic-controls/ASButton';
-import ListSelector from './ASListSelector';
 import ASChart from './ASChart';
+import CU from './ChartUtils';
 
 export default React.createClass({
 
   getInitialState() {
     return {
-      chartType: null
+      valueRange: SelStore.getActiveSelection();,
+      plotLabelRange: null,
+      xLabelRange: null
+      chartType: ChartTypes.Bar,
     };
   },
 
-  _onSubmitCreate() {
-    // TODO
+  _generateContext() {
+    let cs = CellStore.getCells(this.state.valueRange);
+    let vals = cs.map((col) => { return col.map(CU._cellToJSVal); }),
+    // can't polar-plot multidimensional data, so check the data
+    let checkedVals = CU.isCartesian(this.state.chartType) ? vals : CU.reduceNestedArray(vals);
+    // polar plots don't have x-axis labels for obvious reasons
+    let xLabels = CU.isCartesian(this.state.chartType) ?
+        (xLabels || CU.takeNat(this.state.values[0].length)) :
+        null;
+    let plotLabels = this.state.plotLabels || _repeat(null, this.state.values.length);
+    return {
+      chartType: this.state.chartType,
+      values: checkedVals,
+      xLabels: xLabels,
+      plotLabels: plotLabels
+    };
   },
 
-  _getInitialRange() {
-    // TODO
+  _getInitialRange() { return U.Conversion.rangeToExcel(SelStore.getActiveSelection()); },
+
+  _onSubmitCreate() { this.props.onCreate(this.refs.generatedChart); },
+
+  _onChartTypeChange(chartType) { this.setState({chartType: chartType}); },
+
+// kind of repetitive, these event listeners...
+  _onSourceChange() {
+    let str = this.refs.valueRangeInput.getValue();
+    if (U.parsing.isValidExcelRef(str)) {
+      let rng = U.conversion.excelToRange(str);
+      this.setState({valueRange: rng});
+    } else {
+      this.refs.valueRangeInput.errorText = "Please enter a valid A1:B2 style reference."
+    }
   },
 
-  _onChartSelectionChange(chartType) { this.setState({chartType: chartType}); },
-
-  _onDataChange(evt) {
-    // TODO
+  _onLabelChange() {
+    let str = this.refs.labelRangeInput.getValue();
+    if (U.parsing.isValidExcelRef(str)) {
+      let rng = U.conversion.excelToRange(str);
+      this.setState({plotLabelRange: rng});
+    } else {
+      this.refs.labelRangeInput.errorText = "Please enter a valid A1:B2 style reference."
+    }
   },
 
-  _onLabelChange(evt) {
-    // TODO
-  },
-
-  _onXLabelChange(evt) {
-    // TODO
+  _onXLabelChange() {
+    let str = this.refs.xLabelRangeInput.getValue();
+    if (U.parsing.isValidExcelRef(str)) {
+      let rng = U.conversion.excelToRange(str);
+      this.setState({xLabelRange: rng});
+    } else {
+      this.refs.xLabelRangeInput.errorText = "Please enter a valid A1:B2 style reference."
+    }
   },
 
   dialogActions: [
@@ -66,8 +105,7 @@ export default React.createClass({
           fixedHeader={true}>
           <TableHeader>
             <TableRow>
-              <TableHeaderColumn>Chart Type</TableHeaderColumn>
-              <TableHeaderColumn>Properties</TableHeaderColumn>
+              <TableHeaderColumn>Options</TableHeaderColumn>
               <TableHeaderColumn>Preview</TableHeaderColumn>
             </TableRow>
           </TableHeader>
@@ -76,33 +114,49 @@ export default React.createClass({
 
               <TableRowColumn>
                 <TextField
+                  ref="valueRangeInput"
                   defaultValue={this._getInitialRange()}
                   hintText="Data Range"
-                  onChange={this._onDataChange} />
+                  onChange={this._onSourceChange()} />
                 <br />
                 <TextField
-                  hintText="Label Range"
-                  onChange={this._onLabelChange} />
+                  ref="labelRangeInput"
+                  hintText="Dataset Label Range"
+                  errorStyle={{color:'orange'}}
+                  onChange={this._onLabelChange()} />
                 <br />
-                {this._isCartesian(this.state.chartType) ? (
+                {CU._isCartesian(this.state.chartType) ? (
                   [
                     <TextField
-                      hintText="X Label Range"
-                      onChange={this._onXLabelChange} />
+                      ref="xLabelRangeInput"
+                      hintText="X-axis Label Range"
+                      errorStyle={{color:'orange'}}
+                      onChange={this._onXLabelChange()} />
                     <br />
                   ]
                 ) : null}
-                <ListSelector
-                  items={this.listItems}
-                  onSelectionChange={this._onChartSelectionChange} />
+
+                <SelectableList
+                  subheader="Chart types"
+                  valueLink={{value: this.state.chartType, requestChange: this._onChartTypeChange}} >
+                  {this.listItems.map((item) => {
+                    return (
+                      <ListItem
+                        primaryText={item.text}
+                        leftIcon={item.icon}
+                        value={item.payload} />
+                      <ListDivider inset={true} />
+                    );
+                  })}
+                </SelectableList>
               </TableRowColumn>
 
               <TableRowColumn>
                 <ASChart
-                  chartType={this.state.chartType}
-                  cells={this._getCells()}
-                  xLabels={this._getXLabels()}
-                  plotLabels={this._getPlotLabels()} />
+                  ref="generatedChart"
+                  valueRange={this.state.valueRange}
+                  sheetId={CellStore.getCurrentSheet().sheetId}
+                  chartContext={this._generateContext()} />
               </TableRowColumn>
 
             </TableRow>
