@@ -348,11 +348,11 @@ const ASCellStore = Object.assign({}, BaseStore, {
     });
   },
 
-  getValues(rng: NakedRange): Array<Array<string | number>> {
+  getValues(rng: NakedRange): Array<Array<string|number>> {
     return this.getCells(rng).map((cs) => cs.map(this.cellToJSVal));
   },
 
-  cellToJSVal(c: ASCell): string | number {
+  cellToJSVal(c: ASCell): ?(string|number) {
     switch (c.cellValue.tag) {
       case "ValueI":
       case "ValueD":

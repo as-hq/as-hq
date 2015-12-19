@@ -19,6 +19,7 @@ import type {
 } from '../types/State';
 
 import {logDebug, logError} from '../AS/Logger';
+import {catMaybes} from '../AS/Maybe';
 
 import _ from 'lodash';
 
@@ -692,16 +693,32 @@ export default React.createClass({
   In particular, if a cell with an overlay is deleted, the newOverlay will be null (nothing added) and the old one will be deleted.
   That location-based update and state change is done here.
   */
-  addCellSourcedOverlay(cell: ASCell) { this.addOverlay(this.getImageOverlayForCell(cell)); },
-
-  addOverlay(newOverlay) {
-    let overlays = this.state.overlays,
-        locs = overlays.map((o) => o.loc).filter((loc) => { return !!loc; });
-    for (var i = 0 ; i < locs.length; i++) {
-      if (U.Render.locEquals(locs[i], cell.cellLocation)) { overlays.splice(i,1); }
+  addCellSourcedOverlay(cell: ASCell) {
+    let imageOverlay = this.getImageOverlayForCell(cell);
+    if (imageOverlay === null || imageOverlay === undefined) {
+      return;
     }
-    if (newOverlay != null) { overlays.push(newOverlay); }
-    this.setState({overlays});
+
+    this.addOverlay(imageOverlay, cell);
+  },
+
+  addOverlay(newOverlay: ?ASOverlaySpec, cell?: ASCell) {
+    let overlays = this.state.overlays,
+        locs = catMaybes(overlays.map((o) => o.loc));
+
+    locs.forEach((loc, i) => {
+      if (cell !== null && cell !== undefined) {
+        if (U.Render.locEquals(loc, cell.cellLocation)) {
+          overlays.splice(i,1);
+        }
+      }
+    });
+
+    if (newOverlay != null) {
+      overlays.push(newOverlay);
+    }
+
+    this.setState({overlays: overlays});
   },
 
 

@@ -28,6 +28,7 @@ type ASTopBarProps = {
 };
 
 type ASTopBarState = {
+  chartOpen: boolean;
   condFormattingOpen: boolean;
 };
 

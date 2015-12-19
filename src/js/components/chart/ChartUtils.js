@@ -1,14 +1,25 @@
+/* @flow */
+
+import type {
+  ASCell
+} from '../../types/Eval';
+
+import type {
+  ASChartType,
+  ASCartesianChartType,
+  ASPolarChartType
+} from './types';
+
 import Constants from '../../Constants';
 
 let {ChartTypes} = Constants;
 
 export default {
     // ASCell -> Maybe JSVal
-  cellToJSVal(c) {
+  cellToJSVal(c: ASCell): ?(string|number) {
     switch (c.cellValue.tag) {
       case "ValueI":
       case "ValueD":
-      case "ValueB":
       case "ValueS":
         return c.cellValue.contents;
       default:
@@ -16,26 +27,29 @@ export default {
     };
   },
 
-  isCartesian(chartType) { return [ChartTypes.Line, ChartTypes.Bar, ChartTypes.Radar].includes(chartType); },
+  isCartesian(chartType: ASChartType): boolean {
+    return [ChartTypes.Line, ChartTypes.Bar, ChartTypes.Radar].includes(chartType);
+  },
 
-  isPolar(chartType) { return [ChartTypes.PolarArea, ChartTypes.Pie, ChartTypes.Doughnut].includes(chartType); },
+  isPolar(chartType: ASChartType): boolean {
+    return [ChartTypes.PolarArea, ChartTypes.Pie, ChartTypes.Doughnut].includes(chartType);
+  },
 
   // a -> Int -> [a]
-  repeat(val, n) {
+  repeat<T>(val: T, n: number): Array<T> {
     return Array(...Array(n)).map(() => val);
   },
 
   // Int -> [Nat]
-  takeNat(n) {
+  takeNat<T>(n: number): Array<number> {
     return Array.from(new Array(n), (x,i) => i+1)
   },
 
-  // [[a]] -> ThrowsError a
-  reduceNestedArray(arr) {
+  // [[a]] -> ThrowsError [a]
+  reduceNestedArray<T>(arr: Array<Array<T>>): Array<T> {
     console.assert(arr.constructor === Array && arr.every((elem) => { return elem.constructor === Array; }));
     console.assert(arr.length == 1 || arr.every((subArr) => { return subArr.length == 1; }));
     if (arr.length == 1) return arr[0];
     else return arr.map((elem) => { return elem[0]; });
-  },
-
+  }
 }
