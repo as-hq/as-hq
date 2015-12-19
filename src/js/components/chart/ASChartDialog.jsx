@@ -23,13 +23,12 @@ import type {
 import React from 'react';
 import {Dialog, TextField, DropDownMenu} from 'material-ui';
 // $FlowFixMe: Too lazy to add ~14 things to declarations
-import {List, ListDivider, ListItem, SelectableList} from 'material-ui';
-// $FlowFixMe: Too lazy to add ~14 things to declarations
-import {Table, TableHeader, TableRow, TableRowColumn, TableHeaderColumn, TableBody} from 'material-ui';
+import {List, Divider, ListItem} from 'material-ui';
 
 import {Just, Nothing} from '../../AS/Maybe';
 
 import Constants from '../../Constants';
+import _Styles from '../../styles/chart/ASChartDialog';
 import U from '../../AS/Util';
 import CellStore from '../../stores/ASCellStore';
 import SelStore from '../../stores/ASSelectionStore';
@@ -39,6 +38,9 @@ import ASChart from './ASChart.jsx';
 import CU from './ChartUtils';
 
 let {ChartTypes} = Constants;
+
+import { SelectableContainerEnhance } from 'material-ui/lib/hoc/selectable-enhance';
+let SelectableList = SelectableContainerEnhance(List);
 
 type ASChartDialogProps = {
   onCreate: (ele: ASOverlaySpec) => void;
@@ -67,12 +69,9 @@ export default class ASChartDialog extends React.Component<{}, ASChartDialogProp
     super(props);
 
     let sel = SelStore.getActiveSelection();
-    if (!sel) {
-      throw new Error('There\'s not even a selection');
-    }
 
     this.state = {
-      valueRange: sel.range,
+      valueRange: sel ? sel.range : {tl: {col: 1, row: 1}, br: {col: 1, row: 1}},
       plotLabelRange: null,
       xLabelRange: null,
       chartType: 'Bar'
@@ -177,7 +176,7 @@ export default class ASChartDialog extends React.Component<{}, ASChartDialogProp
     }
   } */
 
-// kind of repetitive, these event listeners...
+// #needsrefactor kind of repetitive, these event listeners...
   _onSourceChange() {
     if (this.refs.valueRangeInput) {
       let str = this.refs.valueRangeInput.getValue();
@@ -215,77 +214,78 @@ export default class ASChartDialog extends React.Component<{}, ASChartDialogProp
   }
 
   render(): React.Element {
+    let {open, onRequestClose} = this.props;
+    let {chartType, valueRange} = this.state;
+
     return (
       <Dialog
         title="Chart Editor"
         actions={[
           {text: 'Cancel'},
-          {text: 'Create', onTouchTap: this._onSubmitCreate}
+          {text: 'Create', onTouchTap: this._onSubmitCreate.bind(this)}
         ]}
-        open={this.props.open}
-        onRequestClose={this.props.onRequestClose}>
+        open={open}
+        onRequestClose={onRequestClose}>
 
-        <Table
-          fixedHeader={true}>
-          <TableHeader>
-            <TableRow>
-              <TableHeaderColumn>Options</TableHeaderColumn>
-              <TableHeaderColumn>Preview</TableHeaderColumn>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            <TableRow>
-
-              <TableRowColumn>
-                <TextField
-                  ref="valueRangeInput"
-                  defaultValue={this._getInitialRangeExpression()}
-                  hintText="Data Range"
-                  onChange={this._onSourceChange()} />
-                <br />
-                <TextField
-                  ref="labelRangeInput"
-                  hintText="Dataset Label Range"
-                  errorStyle={{color:'orange'}}
-                  onChange={this._onLabelChange()} />
-                <br />
-                {CU.isCartesian(this.state.chartType) ? (
-                  [
-                    <TextField
-                      ref="xLabelRangeInput"
-                      hintText="X-axis Label Range"
-                      errorStyle={{color:'orange'}}
-                      onChange={this._onXLabelChange()} />,
-                    <br />
-                  ]
-                ) : null}
-
-                <SelectableList
-                  subheader="Chart types"
-                  valueLink={{value: this.state.chartType, requestChange: this._onChartTypeChange}} >
-                  {LIST_ITEMS.map((item) => {
-                    return ([
-                      <ListItem
-                        primaryText={item.text}
-                        leftIcon={item.icon}
-                        value={item.payload} />,
-                      <ListDivider inset={true} />
-                    ]);
-                  })}
-                </SelectableList>
-              </TableRowColumn>
-
-              <TableRowColumn>
-                <ASChart
-                  ref="generatedChart"
-                  valueRange={this.state.valueRange}
-                  sheetId={SheetStore.getCurrentSheet().sheetId}
-                  chartContext={this._generateContext()} />
-              </TableRowColumn>
-
-            </TableRow>
-          </TableBody>
-        </Table>
+        <table>
+          <tr>
+            <th>Options</th>
+            <th>Preview</th>
+          </tr>
+          <tr>
+            <td colSpan="1">
+              <TextField
+                ref="valueRangeInput"
+                defaultValue={this._getInitialRangeExpression()}
+                hintText="Data Range"
+                onChange={this._onSourceChange.bind(this)}
+                style={_Styles.inputs} />
+              <br />
+              <TextField
+                ref="labelRangeInput"
+                hintText="Dataset Label Range"
+                errorStyle={{color:'orange'}}
+                onChange={this._onLabelChange.bind(this)}
+                style={_Styles.inputs} />
+              <br />
+              {CU.isCartesian(chartType) ? (
+                [
+                  <TextField
+                    ref="xLabelRangeInput"
+                    hintText="X-axis Label Range"
+                    errorStyle={{color:'orange'}}
+                    onChange={this._onXLabelChange.bind(this)}
+                    style={_Styles.inputs} />,
+                  <br />
+                ]
+              ) : null}
+            </td>
+            <td>
+              <ASChart
+                ref="generatedChart"
+                valueRange={valueRange}
+                sheetId={SheetStore.getCurrentSheet().sheetId}
+                chartContext={this._generateContext()} />
+            </td>
+          </tr>
+          <tr colSpan="1">
+            <td>
+              <SelectableList
+                subheader="Chart types"
+                valueLink={{value: chartType, requestChange: this._onChartTypeChange.bind(this)}} >
+                {LIST_ITEMS.map((item) => {
+                  return ([
+                    <ListItem
+                      primaryText={item.text}
+                      leftIcon={item.icon}
+                      value={item.payload} />,
+                    <Divider inset={true} />
+                  ]);
+                })}
+              </SelectableList>
+            </td>
+          </tr>
+        </table>
       </Dialog>
     );
   }
