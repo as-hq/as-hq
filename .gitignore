@@ -26,7 +26,7 @@ server/eval_files/**/headers/*.*
 !server/eval_files/**/headers/dummy
 
 server/static/images/*
-server/logs/*
+server/static/logs/*
 !server/static/images/dummy
 !server/static/dummy
 !server/static/file-input-handler.py
