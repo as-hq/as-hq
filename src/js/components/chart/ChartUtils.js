@@ -38,6 +38,14 @@ export default {
     } else return "DefaultLabel";
   },
 
+  generatePlotLabels(n: number): Array<string> {
+    return this.takeNat(n).map((i) => `Plot${i}`)
+  },
+
+  generateXLabels(n: number): Array<string> {
+    return this.takeNat(n).map((i) => i.toString());
+  },
+
   isCartesian(chartType: ASChartType): boolean {
     return ["Line", "Bar", "Radar"].includes(chartType);
   },
@@ -55,20 +63,34 @@ export default {
   takeNat<T>(n: number): Array<number> {
     return Array.from(new Array(n), (x,i) => i+1)
   },
+  
+  isVector<T>(arr:Array<Array<T>>): boolean {
+    let isVVector = arr.length == 1,
+        isHVector = arr.every((elem) => elem.length == 1);
+    return isVVector || isHVector;
+  },
 
-  // [[a]] -> ThrowsError [a]
-  reduceNestedArrayStr(arr: Array<Array<string>>): Array<string> {
-    console.assert(arr.constructor === Array && arr.every((elem) => { return elem.constructor === Array; }));
-    console.assert(arr.length == 1 || arr.every((subArr) => { return subArr.length == 1; }));
-    if (arr.length == 1) return arr[0];
-    else return arr.map((elem) => { return elem[0]; });
+  reduceNestedArrayStr(arr: Array<Array<string>>): ?Array<string> {
+    let isVVector = arr.length == 1,
+        isHVector = arr.every((elem) => elem.length == 1);
+    if (isVVector || isHVector) {
+      if (arr.length == 1) return arr[0];
+      else return arr.map((elem) => { return elem[0]; });
+    } else {
+      // console.error("Array passed in to reduceNestedArray was not even one-dimensional");
+      return null;
+    }
   },
 
   // wtf flow... can't make this a polymorphic function
-  reduceNestedArrayNum(arr: Array<Array<number>>): Array<number> {
-    console.assert(arr.constructor === Array && arr.every((elem) => { return elem.constructor === Array; }));
-    console.assert(arr.length == 1 || arr.every((subArr) => { return subArr.length == 1; }));
-    if (arr.length == 1) return arr[0];
-    else return arr.map((elem) => { return elem[0]; });
+  reduceNestedArrayNum(arr: Array<Array<number>>): ?Array<number> {
+
+    if (this.isVector(arr)) {
+      if (arr.length == 1) return arr[0];
+      else return arr.map((elem) => { return elem[0]; });
+    } else {
+      // console.error("Array passed in to reduceNestedArray was not even one-dimensional");
+      return null;
+    }
   }
 }

@@ -35,10 +35,9 @@ type ASChartProps = {
 };
 
 type ASChartState = {
-  data: ?ASChartData;
+  data: ASChartData;
   valueRange: NakedRange;
   sheetId: string;
-  chartType: ASChartType;
 };
 
 export default class ASChart extends React.Component<{}, ASChartProps, ASChartState> {
@@ -46,10 +45,9 @@ export default class ASChart extends React.Component<{}, ASChartProps, ASChartSt
     super(props);
 
     this.state = {
-      data: null,
+      data: this._contextToData(this.props.chartContext),
       valueRange: props.valueRange,
-      sheetId: props.sheetId,
-      chartType: 'Bar'
+      sheetId: props.sheetId
     };
   }
 
@@ -67,10 +65,9 @@ export default class ASChart extends React.Component<{}, ASChartProps, ASChartSt
     let newState = {
       data: chartData,
       valueRange: newProps.valueRange,
-      sheetId: newProps.sheetId,
-      chartType: newProps.chartContext.chartType,
+      sheetId: newProps.sheetId
     };
-    this.replaceState(newState);
+    this.setState(newState);
   }
 
   // data binding
@@ -80,21 +77,19 @@ export default class ASChart extends React.Component<{}, ASChartProps, ASChartSt
   }
 
   _updateData(cs: Array<ASCell>) {
-    if (this.state.data) {
-      let newData = this.state.data;
-      cs.forEach((c) => {
-        let {col, row} = this._getRelativeIndex(c.cellLocation.index);
-        let val = CU.cellToChartVal(c);
-        // cartesian data case
-        if (newData.datasets !== null && newData.datasets !== undefined) {
-          newData.datasets[col].data[row] = val;
-        } else if (newData instanceof Array) {
-          let insertIdx = Math.max(col, row);
-          newData[col].value = val;
-        }
-      });
-      this.setState({data: newData});
-    }
+    let newData = this.state.data;
+    cs.forEach((c) => {
+      let {col, row} = this._getRelativeIndex(c.cellLocation.index);
+      let val = CU.cellToChartVal(c);
+      // cartesian data case
+      if (newData.datasets !== null && newData.datasets !== undefined) {
+        newData.datasets[col].data[row] = val;
+      } else if (newData instanceof Array) {
+        let insertIdx = Math.max(col, row);
+        newData[col].value = val;
+      }
+    });
+    this.setState({data: newData});
   }
 
   // ChartContext -> ChartData
@@ -132,6 +127,7 @@ export default class ASChart extends React.Component<{}, ASChartProps, ASChartSt
 
   // ChartContext -> [PolarDataset]
   _generatePolarDatasets(ctx: ASChartContext): Array<PolarDataset> {
+    console.log("generating polar datasets with context: " + JSON.stringify(ctx));
     let datasets = [];
     const {values, plotLabels} = ctx;
     if (values !== null && values !== undefined && plotLabels !== null && plotLabels !== undefined) {
@@ -183,10 +179,9 @@ export default class ASChart extends React.Component<{}, ASChartProps, ASChartSt
 
   // ASCell -> Bool
   _isListening(c: ASCell): boolean {
-    return isContainedInLocs(c.cellLocation.index.col,
-                             c.cellLocation.index.row,
-                             [this.props.valueRange])
-        && c.cellLocation.sheetId == this.props.sheetId;
+    let {index, sheetId} = c.cellLocation;
+    return isContainedInLocs(index.col, index.row, [this.props.valueRange])
+        && sheetId == this.props.sheetId;
   }
 
   render(): React.Element {

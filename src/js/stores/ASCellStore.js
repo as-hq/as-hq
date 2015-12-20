@@ -339,8 +339,8 @@ const ASCellStore = Object.assign({}, BaseStore, {
 
   getCells({tl, br}: NakedRange): Array<Array<?ASCell>> {
     let sheetId = SheetStateStore.getCurrentSheet().sheetId;
-    return _.range(tl.col, br.col).map((c) => {
-      return _.range(tl.row, br.row).map((r) => {
+    return _.range(tl.col, br.col+1).map((c) => {
+      return _.range(tl.row, br.row+1).map((r) => {
         return (this.locationExists(c, r, sheetId)) ?
                 _data.allCells[sheetId][c][r] :
                 null;
