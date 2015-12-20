@@ -44,6 +44,9 @@ let {ChartTypes} = Constants;
 import { SelectableContainerEnhance } from 'material-ui/lib/hoc/selectable-enhance';
 let SelectableList = SelectableContainerEnhance(List);
 
+type ChartDialogRef = "valueRangeInput" | "plotLabelRangeInput" | "xLabelRangeInput";
+type ErrorMessages = { [key: ChartDialogRef]: string };
+
 type ASChartDialogProps = {
   onCreate: (ele: ASOverlaySpec) => void;
   open: bool;
@@ -55,12 +58,8 @@ type ASChartDialogState = {
   plotLabelRange: ?NakedRange;
   xLabelRange: ?NakedRange;
   chartType: ASChartType;
-  errorMessages: {
-    valueRangeInput: ?string,
-    plotLabelRangeInput: ?string,
-    xLabelRangeInput: ?string
-  }
 };
+
 
 const LIST_ITEMS = [
   {text: 'Bar', payload: 'Bar', icon: null},
@@ -81,9 +80,9 @@ export default class ASChartDialog extends React.Component<{}, ASChartDialogProp
       xLabelRange: null,
       chartType: 'Bar',
       errorMessages: {
-        valueRangeInput: null,
-        plotLabelRangeInput: null,
-        xLabelRangeInput: null
+        valueRangeInput: '',
+        plotLabelRangeInput: '',
+        xLabelRangeInput: ''
       }
     };
   }
@@ -171,41 +170,51 @@ export default class ASChartDialog extends React.Component<{}, ASChartDialogProp
     this.setState({chartType: chartType});
   }
 
-  _onRangeInputChange(ref: string, stateField: string): Callback {
+  _onRangeInputChange(ref: ChartDialogRef, stateField: string): Callback {
     return () => {
       if (this.refs[ref]) {
         let str = this.refs[ref].getValue();
-        if (U.Parsing.isValidExcelRef(str)) {
+        let newState = {};
+        if (U.Parsing.isFiniteExcelRef(str)) { // doesn't work with A:A right now, because that's not doable on frontend.
           let rng = U.Conversion.excelToRange(str);
-          let newState = {};
           newState[stateField] = rng;
-          this.setState(newState);
-          this._setErrorText(ref, null);
         } else {
-          this._setErrorText(ref, "Please enter a valid A1:B2 style reference.");
+          newState[stateField] = null;
         }
+        this.setState(newState);
       }
     };
   }
 
-  _setErrorText(inputRef: string, msg: ?string) {
-    let msgs = this.state.errorMessages;
-    msgs[inputRef] = msg;
-    this.setState({errorMessages: msgs});
-  }
-
-  _checkConfiguration() {
+  _checkConfigurationErrors(): ErrorMessages {
     let {valueRange, chartType} = this.state;
-    let failCallbacks = [
-      [valueRange === null, () => {console.error("the data range is null.")}],
-      [CU.isPolar(chartType) && !CU.isVector(valueRange), () => {this._setErrorText("valueRangeInput", "Please enter a one-dimensional range for Polar charts.")}]
-    ]
+    let errorMessages = {};
+
+    // check for certain conditions
+    if (valueRange === null || valueRange === undefined)
+      { errorMessages['valueRangeInput'] = "No selection."; }
+    else if (CU.isPolar(chartType) && !CU.isVectorReference(valueRange))
+      { errorMessages['valueRangeInput'] = "Please enter a one-dimensional range for polar charts."; }
+
+    // text field sanitization
+    ['valueRangeInput', 'plotLabelRangeInput', 'xLabelRangeInput']
+      .forEach((ref) => {
+        if (this.refs[ref]) {
+          let inputValue = this.refs[ref].getValue();
+          if (!U.Parsing.isFiniteExcelRef(inputValue) && !U.Parsing.isWhitespace(inputValue))
+            { errorMessages[ref] = "Please enter a valid A1:B2 style reference."; }
+        }
+    });
+
+    return errorMessages;
   }
 
   render(): React.Element {
     let {open, onRequestClose} = this.props;
     let {chartType, valueRange} = this.state;
-    let shouldRenderPreview = this._checkConfiguration();
+    let errorMessages = this._checkConfigurationErrors();
+    let shouldRenderPreview = Object.keys(errorMessages).length == 0;
+    console.log("Chart config errors: " + JSON.stringify(errorMessages));
 
     return (
       <Dialog
@@ -228,12 +237,14 @@ export default class ASChartDialog extends React.Component<{}, ASChartDialogProp
                 ref="valueRangeInput"
                 defaultValue={this._getInitialRangeExpression()}
                 hintText="Data Range"
+                errorText={errorMessages.valueRangeInput || ''}
                 onChange={this._onRangeInputChange("valueRangeInput", "valueRange").bind(this)}
                 style={_Styles.inputs} />
               <br />
               <TextField
                 ref="plotLabelRangeInput"
                 hintText="Dataset Label Range"
+                errorText={errorMessages.plotLabelRangeInput || ''}
                 errorStyle={{color:'orange'}}
                 onChange={this._onRangeInputChange("plotLabelRangeInput", "plotLabelRange").bind(this)}
                 style={_Styles.inputs} />
@@ -243,6 +254,7 @@ export default class ASChartDialog extends React.Component<{}, ASChartDialogProp
                   <TextField
                     ref="xLabelRangeInput"
                     hintText="X-axis Label Range"
+                    errorText={errorMessages.xLabelRangeInput || ''}
                     errorStyle={{color:'orange'}}
                     onChange={this._onRangeInputChange("xLabelRangeInput", "xLabelRange").bind(this)}
                     style={_Styles.inputs} />,
@@ -251,7 +263,7 @@ export default class ASChartDialog extends React.Component<{}, ASChartDialogProp
               ) : null}
             </td>
             <td>
-              {shouldRenderPreview ? (
+              {(shouldRenderPreview && valueRange) ? (
                 [
                   <ASChart
                     ref="generatedChart"
@@ -259,7 +271,7 @@ export default class ASChartDialog extends React.Component<{}, ASChartDialogProp
                     sheetId={SheetStore.getCurrentSheet().sheetId}
                     chartContext={this._generateContext()} />
                 ]
-              ) : "No selection."}
+              ) : "Incorrect chart configuration. "}
             </td>
           </tr>
           <tr colSpan="1">

@@ -1,7 +1,8 @@
 /* @flow */
 
 import type {
-  ASCell
+  ASCell,
+  NakedRange
 } from '../../types/Eval';
 
 import type {
@@ -63,11 +64,16 @@ export default {
   takeNat<T>(n: number): Array<number> {
     return Array.from(new Array(n), (x,i) => i+1)
   },
-  
+
   isVector<T>(arr:Array<Array<T>>): boolean {
     let isVVector = arr.length == 1,
         isHVector = arr.every((elem) => elem.length == 1);
     return isVVector || isHVector;
+  },
+
+  isVectorReference(rng: NakedRange): boolean {
+    let {tl, br} = rng;
+    return (tl.row == br.row) || (tl.col == br.col);
   },
 
   reduceNestedArrayStr(arr: Array<Array<string>>): ?Array<string> {
