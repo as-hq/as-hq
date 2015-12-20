@@ -2,11 +2,7 @@ import React from 'react';
 import AceEditor from './AceEditor.jsx';
 import ActionCreator from '../actions/ASCodeEditorActionCreators';
 import Constants from '../Constants';
-
-import {AppBar, Toolbar, ToolbarGroup, FlatButton, TextField, DropDownMenu, Styles} from 'material-ui';
-import ASCellPropsToggleButton from './basic-controls/ASCellPropsToggleButton.jsx';
-import ASCellPropsColorSetButton from './basic-controls/ASCellPropsColorSetButton.jsx';
-import ASLanguageMenu from './basic-controls/ASLanguageMenu.jsx';
+import Toolbar from './toolbar/Toolbar.jsx';
 
 require('brace/mode/python');
 require('brace/mode/r');
@@ -57,48 +53,7 @@ export default React.createClass({
 
     return (
       <div>
-        <Toolbar
-          style={{backgroundColor: Styles.Colors.grey700, height:'60px'}}
-          showMenuIconButton={false} >
-            <TextField
-              ref="varNameField"
-              hintText="varName"
-              style={{
-                position: 'relative',
-                left: '-5px',
-                fontFamily: '"Lucida Console", Monaco, monospace'
-              }}
-              floatingLabelStyle={{
-                fontFamily: 'Roboto, sans-serif'
-              }}
-              onBlur={this._onBlurVarName} />
-            <ASLanguageMenu 
-              onSelectLanguage={this._onSelectLanguage}
-              language={language}
-              style={{
-                marginTop: 'auto',
-                marginLeft: '40px',
-                marginBottom: 'auto'
-            }} />
-            <ASCellPropsToggleButton propTag="Bold" iconClassName="format_bold" style={{
-              position: 'relative',
-              marginLeft: '0px',
-              top: '5px'
-            }} />
-            <ASCellPropsToggleButton propTag="Italic" iconClassName="format_italic" style={{
-              position: 'relative',
-              marginLeft: '0px',
-              top: '5px'
-            }} />
-            <ASCellPropsColorSetButton propTag="TextColor" style={{
-              position: 'relative',
-              marginLeft: '20px'
-            }} />
-            <ASCellPropsColorSetButton propTag="FillColor" style={{
-              position: 'relative',
-              marginLeft: '0px'
-            }} />
-        </Toolbar>
+        <Toolbar />
         <AceEditor
           ref="editor"
           handleEditorFocus={this.props.handleEditorFocus}

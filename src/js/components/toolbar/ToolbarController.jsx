@@ -8,11 +8,13 @@ import type {
 } from '../../types/Eval';
 
 import React, {PropTypes} from 'react';
+import _ from 'lodash';
 
 import U from '../../AS/Util';
 let {
   Conversion: TC
 } = U;
+
 
 import API from '../../actions/ASApiActionCreators';
 import CellStore from '../../stores/ASCellStore';
@@ -53,15 +55,26 @@ export default React.createClass({
     CellStore.removeChangeListener(this._onActiveCellChange);
   },
 
+  // Keep track of previous state so that we don't send redundant messages
+  getInitialState() {
+    return {
+      activeCell: null, 
+      activeCellProp: null
+    }
+  },
+
   /* 
     When the active selection or cell change, get the active cell's prop via the propTag and tell the
     underlying control to change its state based on that prop. For example, change loc to A5; if A5 is bold, 
-    the bold button needs to be pushed in.
+    the bold button needs to be pushed in. Only send update if something relevant changed.
   */
   _onActiveCellChange() {
     let ac = CellStore.getActiveCell(),
         prop = (ac != null) ? U.Cell.getPropByTag(this.props.propTag, ac) : null;
-    this.props.setControlStateFromCellProp(prop);
+    // Only send updates to control if something changed
+    if (!_.isEqual(prop, this.state.activeCellProp) || !_.isEqual(ac, this.state.activeCell)) {
+      this.props.setControlStateFromCellProp(prop);
+    }
   },
 
   /*
