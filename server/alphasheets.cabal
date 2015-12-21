@@ -74,6 +74,7 @@ library
                        AS.Types.Messages
                        AS.Types.Network
                        AS.Types.Bar
+                       AS.Types.BarProps
                        AS.Types.Sheets
                        AS.Types.User
                        AS.Users

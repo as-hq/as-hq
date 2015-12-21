@@ -7,6 +7,7 @@ import AS.Window
 import AS.Types.DB (ASCommit)
 import AS.Types.Cell
 import AS.Types.Bar
+import AS.Types.BarProps
 import AS.Types.Sheets
 import AS.Types.Excel (indexToExcel)
 import AS.Types.Locations

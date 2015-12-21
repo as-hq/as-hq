@@ -9,7 +9,8 @@ import AS.Types.DB hiding (Clear)
 import AS.Types.Eval
 import AS.Types.Commits
 import AS.Types.CondFormat
-import qualified AS.Types.Bar as B
+import AS.Types.Bar
+import qualified AS.Types.BarProps as BP
 
 import AS.Handlers.Eval
 import AS.Eval.CondFormat
@@ -244,14 +245,14 @@ handleSetBarProp uc state (PayloadSetBarProp bInd prop) = do
   conn <- dbConn <$> readMVar state
   let sid = userSheetId uc
   mOldProps <- DB.getBarProps conn bInd
-  let oldProps = maybe B.emptyProps id mOldProps
-      newProps = B.setProp prop oldProps
-      newRc    = B.Bar bInd newProps
+  let oldProps = maybe BP.emptyProps id mOldProps
+      newProps = BP.setProp prop oldProps
+      newRc    = Bar bInd newProps
       oldRcs   = case mOldProps of
                       Nothing -> []
-                      Just _ -> [B.Bar bInd oldProps]
+                      Just _ -> [Bar bInd oldProps]
   DB.setBar conn newRc
-  -- Add the B.barProps to the commit.
+  -- Add the barProps to the commit.
   time <- getASTime
   let bardiff = BarDiff { beforeBars = oldRcs, afterBars = [newRc]}
       commit = Commit { barDiff = bardiff, cellDiff = CellDiff { beforeCells = [], afterCells = [] }, commitDescriptorDiff = DescriptorDiff { addedDescriptors = [], removedDescriptors = [] }, time = time}

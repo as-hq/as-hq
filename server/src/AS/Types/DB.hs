@@ -166,7 +166,7 @@ data RedisKeyType =
   | PopCommitType 
   | LastMessageType 
   | CFRulesType 
-  | BarPropsType 
+  | BarType2 -- BarType is alreadry taken in Bar.hs :( Either this or renaming all these to SheetRangesKeyType etc. ...
   | AllWorkbooksType 
   | AllSheetsType
   | VolatileLocsType
@@ -183,7 +183,7 @@ data RedisKey :: RedisKeyType -> * where
   PopCommitKey    :: CommitSource -> RedisKey PopCommitType
   LastMessageKey  :: CommitSource -> RedisKey LastMessageType
   CFRulesKey      :: ASSheetId -> RedisKey CFRulesType
-  BarPropsKey     :: BarIndex -> RedisKey BarPropsType
+  BarKey          :: BarIndex -> RedisKey BarType2
   AllWorkbooksKey :: RedisKey AllWorkbooksType 
   AllSheetsKey    :: RedisKey AllSheetsType
   VolatileLocsKey :: RedisKey VolatileLocsType
@@ -200,7 +200,7 @@ instance Show2 (RedisKey a) where
     PopCommitKey c                    -> (keyPrefix PopCommitType) ++ show c
     LastMessageKey c                  -> (keyPrefix LastMessageType) ++ show c
     CFRulesKey sid                    -> (keyPrefix CFRulesType) ++ T.unpack sid
-    BarPropsKey (BarIndex sid t ind)  -> (keyPrefix BarPropsType) ++ (T.unpack sid) ++ keyPartDelimiter ++ (show t) ++ keyPartDelimiter ++ (show ind) -- #refactor this show
+    BarKey (BarIndex sid t ind)  -> (keyPrefix BarType2) ++ (T.unpack sid) ++ keyPartDelimiter ++ (show t) ++ keyPartDelimiter ++ (show ind) -- #refactor this show
     AllWorkbooksKey                   -> keyPrefix AllWorkbooksType
     AllSheetsKey                      -> keyPrefix AllSheetsType
     VolatileLocsKey                   -> keyPrefix VolatileLocsType
@@ -215,8 +215,8 @@ instance Read2 (RedisKey RangeType) where
       rkey = case (read typeStr :: RedisKeyType) of 
         RangeType -> RangeKey (read2 idxStr :: ASIndex) (read2 dimsStr :: Dimensions)
 
-instance Read2 (RedisKey BarPropsType) where
-    read2 s = BarPropsKey (BarIndex sid typ ind)
+instance Read2 (RedisKey BarType2) where
+    read2 s = BarKey (BarIndex sid typ ind)
       where
         [typeStr, keyStr] = splitOn keyTypeSeparator s
         [sidStr, typStr, indStr] = splitOn keyPartDelimiter keyStr
@@ -243,7 +243,7 @@ keyPatternBySheet kt sid =
     LastMessageType -> sid' ++ "*"
 
 barPropsKeyPattern :: ASSheetId -> BarType -> String
-barPropsKeyPattern sid typ = (keyPrefix BarPropsType) ++ (T.unpack sid) ++ keyPartDelimiter ++ (show typ) ++ "*"
+barPropsKeyPattern sid typ = (keyPrefix BarType2) ++ (T.unpack sid) ++ keyPartDelimiter ++ (show typ) ++ "*"
 
 toRedisFormat :: RedisKey a -> B.ByteString
 toRedisFormat = BC.pack . show2

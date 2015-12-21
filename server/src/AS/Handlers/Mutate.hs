@@ -9,7 +9,7 @@ import AS.Types.Eval
 import AS.Types.Commits
 
 import AS.DB.Internal as DI
-import qualified AS.Types.Bar as B
+import AS.Types.Bar
 import qualified Data.Text as T
 
 import AS.Parsing.Substitutions
@@ -49,49 +49,49 @@ handleMutateSheet uc state (PayloadMutate mutateType) = do
   broadcastFiltered state uc updateMsg
 
 -- | For a mutate, maps the old row and column to the new row and column.
-barIndexMap :: MutateType -> B.BarIndex -> Maybe B.BarIndex
-barIndexMap (InsertCol c') bar@(B.BarIndex sid typ bari) =
+barIndexMap :: MutateType -> BarIndex -> Maybe BarIndex
+barIndexMap (InsertCol c') bar@(BarIndex sid typ bari) =
   case typ of
-       B.ColumnType -> Just $ B.BarIndex sid typ (if bari >= c' then bari+1 else bari)
-       B.RowType -> Just bar
-barIndexMap (InsertRow r') bar@(B.BarIndex sid typ bari) =
+       ColumnType -> Just $ BarIndex sid typ (if bari >= c' then bari+1 else bari)
+       RowType -> Just bar
+barIndexMap (InsertRow r') bar@(BarIndex sid typ bari) =
   case typ of
-       B.ColumnType -> Just bar
-       B.RowType -> Just $ B.BarIndex sid typ (if bari >= r' then bari+1 else bari)
-barIndexMap (DeleteCol c') bar@(B.BarIndex sid typ bari) =
+       ColumnType -> Just bar
+       RowType -> Just $ BarIndex sid typ (if bari >= r' then bari+1 else bari)
+barIndexMap (DeleteCol c') bar@(BarIndex sid typ bari) =
   case typ of
-       B.ColumnType | bari == c' -> Nothing
-                     | otherwise -> Just $ B.BarIndex sid typ (if bari >= c' then bari-1 else bari)
-       B.RowType -> Just bar
-barIndexMap (DeleteRow r') bar@(B.BarIndex sid typ bari) =
+       ColumnType | bari == c' -> Nothing
+                     | otherwise -> Just $ BarIndex sid typ (if bari >= c' then bari-1 else bari)
+       RowType -> Just bar
+barIndexMap (DeleteRow r') bar@(BarIndex sid typ bari) =
   case typ of
-       B.ColumnType -> Just bar
-       B.RowType | bari == r' ->  Nothing
-                  | otherwise -> Just $ B.BarIndex sid typ (if bari >= r' then bari-1 else bari)
+       ColumnType -> Just bar
+       RowType | bari == r' ->  Nothing
+                  | otherwise -> Just $ BarIndex sid typ (if bari >= r' then bari-1 else bari)
 
-barIndexMap (DragCol oldC newC) bar@(B.BarIndex sid typ bari) =
+barIndexMap (DragCol oldC newC) bar@(BarIndex sid typ bari) =
   case typ of
-       B.ColumnType
+       ColumnType
          | bari < min oldC newC -> Just bar
          | bari > max oldC newC -> Just bar
-         | bari == oldC         -> Just $ B.BarIndex sid typ newC
-         | oldC < newC       -> Just $ B.BarIndex sid typ (bari-1) -- here on we assume c is strictly between oldC and newC
-         | oldC > newC       -> Just $ B.BarIndex sid typ (bari+1)
-       B.RowType -> Just bar
-barIndexMap (DragRow oldR newR) bar@(B.BarIndex sid typ bari) =
+         | bari == oldC         -> Just $ BarIndex sid typ newC
+         | oldC < newC       -> Just $ BarIndex sid typ (bari-1) -- here on we assume c is strictly between oldC and newC
+         | oldC > newC       -> Just $ BarIndex sid typ (bari+1)
+       RowType -> Just bar
+barIndexMap (DragRow oldR newR) bar@(BarIndex sid typ bari) =
   case typ of
-       B.ColumnType -> Just bar
-       B.RowType
+       ColumnType -> Just bar
+       RowType
          | bari < min oldR newR -> Just bar
          | bari > max oldR newR -> Just bar
-         | bari == oldR         -> Just $ B.BarIndex sid typ newR
-         | oldR < newR       -> Just $ B.BarIndex sid typ (bari-1)-- here on we assume r is strictly between oldR and newR
-         | oldR > newR       -> Just $ B.BarIndex sid typ (bari+1)
+         | bari == oldR         -> Just $ BarIndex sid typ newR
+         | oldR < newR       -> Just $ BarIndex sid typ (bari-1)-- here on we assume r is strictly between oldR and newR
+         | oldR > newR       -> Just $ BarIndex sid typ (bari+1)
   -- case oldR == newR can't happen because oldR < r < newR since third pattern-match
 
 -- #needsrefactor can probably be condensed with lenses somehow? 
-barMap :: MutateType -> B.Bar -> Maybe B.Bar
-barMap mt (B.Bar bInd bProps) = fmap (\bInd' -> B.Bar bInd' bProps) (barIndexMap mt bInd)
+barMap :: MutateType -> Bar -> Maybe Bar
+barMap mt (Bar bInd bProps) = fmap (\bInd' -> Bar bInd' bProps) (barIndexMap mt bInd)
 
 cellLocMap :: MutateType -> (ASIndex -> Maybe ASIndex)
 cellLocMap (InsertCol c') (Index sid (c, r)) = Just $ Index sid (if c >= c' then c+1 else c, r)
