@@ -1,5 +1,4 @@
 #include "graph.h"
-#include <hiredis/hiredis.h>
 #include <boost/regex.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/algorithm/string/regex.hpp>

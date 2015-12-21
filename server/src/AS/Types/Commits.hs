@@ -42,6 +42,17 @@ data CommitSource = CommitSource { srcSheetId :: ASSheetId, srcUserId :: ASUserI
 
 type CommitTransform = ASCommit -> ASCommit
 
+-- Represents a set of collections of a sheet. 
+data SheetUpdate = SheetUpdate { updatedCells :: [ASCell]
+                               , updatedRowCols :: [RowCol]
+                               , updatedRangeDescriptors :: [RangeDescriptor] 
+                               , updatedCondFormatRules :: [CondFormatRule] }
+                               deriving (Show, Read, Generic)
+
+sheetUpdateFromCommit :: ASCommit -> SheetUpdate
+sheetUpdateFromCommit (Commit (RowColDiff _ rcs) (CellDiff _ cs) (DescriptorDiff _ ds)) = SheetUpdate cs rcs ds []
+
+
 instance FromJSON ASTime
 instance ToJSON ASTime
 instance FromJSON ASCommit
@@ -50,6 +61,9 @@ instance FromJSON CellDiff
 instance ToJSON CellDiff
 instance FromJSON BarDiff
 instance ToJSON BarDiff
+
+instance FromJSON SheetUpdate
+instance ToJSON SheetUpdate
 
 instance Serialize ASTime
 instance Serialize ASCommit
