@@ -84,10 +84,16 @@ export type FromCellProp = {
 
 export type Bar = {
   tag: 'Bar';
-  barType: BarType;
-  barIndex: number;
+  barIndex: BarIndex;
   barProps: Array<BarProp>;
 };
+
+export type BarIndex = {
+  tag: 'BarIndex'; 
+  barSheetId: string;
+  barType: BarType;  
+  barNumber: number; 
+}
 
 export type ASInitConnection = {
   tag: 'ASInitConnection';

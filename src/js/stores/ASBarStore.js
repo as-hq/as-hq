@@ -1,5 +1,7 @@
 /* @flow */
 
+// Bar means row or col
+
 import {logDebug} from '../AS/Logger';
 
 import Dispatcher from '../Dispatcher';
@@ -13,8 +15,8 @@ import type {
 } from '../types/Messages';
 
 let _data = {
-  initColumns: ([]: Array<Bar>),
-  initRows: ([]: Array<Bar>)
+  columns: ([]: Array<Bar>),
+  rows: ([]: Array<Bar>)
 };
 
 const ASInitBarPropsStore = Object.assign({}, BaseStore, {
@@ -24,21 +26,23 @@ const ASInitBarPropsStore = Object.assign({}, BaseStore, {
     switch (action._type) {
       case 'GOT_OPEN':
         let initBars = action.initBars,
-            initCols = initBars.filter((irc) => irc.barType == 'ColumnType'),
-            initRows = initBars.filter((irc) => irc.barType == 'RowType');
-        ASInitBarPropsStore._setInitColumns(initCols);
-        ASInitBarPropsStore._setInitRows(initRows);
+            cols = initBars.filter((irc) => irc.barIndex.barType == 'ColumnType'),
+            rows = initBars.filter((irc) => irc.barIndex.barType == 'RowType');
+        ASInitBarPropsStore._setColumns(cols);
+        ASInitBarPropsStore._setRows(rows);
         ASInitBarPropsStore.emitChange();
         break;
     }
   }),
 
-  getInitColumnWidths(): Array<[number,number]> {
-    return this._getInitDimensions(_data.initColumns);
+  // for each col with a width prop, returns (col number, width)
+  getColumnWidths(): Array<[number,number]> {
+    return this._getInitDimensions(_data.columns);
   },
 
-  getInitRowHeights(): Array<[number,number]> {
-    return this._getInitDimensions(_data.initRows);
+  // for each row with a height prop, returns (row number, height)
+  getRowHeights(): Array<[number,number]> {
+    return this._getInitDimensions(_data.rows);
   },
 
   _getInitDimensions(rowsOrCols: Array<Bar>): Array<[number,number]> {
@@ -47,9 +51,9 @@ const ASInitBarPropsStore = Object.assign({}, BaseStore, {
       let dimInd = barProps.map(({tag}) => tag).indexOf('Dimension');
       if (dimInd >= 0) {
         let dimensionProp = barProps[dimInd];
-        switch (dimensionProp.tag) {
+        switch (dimensionProp.tag) { // so this flows
           case 'Dimension':
-            dims.push([barIndex, dimensionProp.contents]);
+            dims.push([barIndex.barNumber, dimensionProp.contents]);
             break;
         }
       }
@@ -58,12 +62,12 @@ const ASInitBarPropsStore = Object.assign({}, BaseStore, {
     return dims;
   },
 
-  _setInitColumns(initCols: Array<Bar>) {
-    _data.initColumns = initCols;
+  _setColumns(cols: Array<Bar>) {
+    _data.columns = cols;
   },
 
-  _setInitRows(initRows: Array<Bar>) {
-    _data.initRows = initRows;
+  _setRows(rows: Array<Bar>) {
+    _data.rows = rows;
   }
 });
 
