@@ -254,15 +254,14 @@ export type PayloadCondFormat = {
   condFormatRules: Array<CondFormatRule>;
 };
 
-export type PayloadCondFormatResult = {
-  tag: 'PayloadCondFormatResult';
-  condFormatCellsUpdated: Array<ASCell>;
-  condFormatRulesResult: Array<CondFormatRule>;
-};
-
 export type PayloadSetBarProp = {
   tag: 'PayloadSetBarProp';
   contents: [BarIndex, BarProp];
+};
+
+export type PayloadSheetUpdate = {
+  tag: 'PayloadSheetUpdate'; 
+  contents: SheetUpdate;
 };
 
 export type CondFormatRule = {
@@ -327,8 +326,9 @@ export type ASBackendPayload =
   | PayloadDrag
   | PayloadFind
   | PayloadCondFormat
-  | PayloadCondFormatResult
-  | PayloadSetBarProp;
+  | PayloadSetBarProp
+  | PayloadSheetUpdate;
+>>>>>>> 22fc2bc... dummy commit
 
 export type ASBackendTime = {
   tag: 'Time';
@@ -342,6 +342,14 @@ export type ASBackendCommit = {
   tag: 'ASCommit';
   cellDiff: ASCellDiff;
   time: ASBackendTime;
+};
+
+export type SheetUpdate = {
+  tag: 'SheetUpdate'; 
+  updatedCells: Array<ASCell>;
+  updatedRowCols: Array<RowCol>;
+  // updatedRangeDescriptors: 
+  updatedCondFormatRules: Array<CondFormatRule>;
 };
 
 export type ASCellDiff = {
@@ -427,19 +435,19 @@ export type RedoResponse = {
 
 export type UpdateResponse = {
   action: 'Update';
-  payload: PayloadN | PayloadCL | PayloadSS | PayloadWBS | PayloadWorkbookSheets;
+  payload: PayloadSheetUpdate; 
   result: ASBackendResult;
 };
 
 export type GetResponse = {
   action: 'Get';
-  payload: PayloadCL;
+  payload: PayloadSheetUpdate;
   result: ASBackendResult;
 };
 
 export type UpdateWindowResponse = {
   action: 'UpdateWindow';
-  payload: PayloadCL;
+  payload: PayloadSheetUpdate;
   result: ASBackendResult;
 };
 
@@ -481,7 +489,7 @@ export type FindResponse = {
 
 export type SetCondFormatResponse = {
   action: 'SetCondFormatRules';
-  payload: PayloadCondFormatResult;
+  payload: PayloadSheetUpdate;
   result: ASBackendResult;
 };
 

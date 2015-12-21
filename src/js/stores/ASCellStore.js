@@ -72,12 +72,6 @@ const ASCellStore = Object.assign({}, BaseStore, {
         ASCellStore.updateCells(action.commit.cellDiff.afterCells);
         ASCellStore.emitChange();
         break;
-      case 'GOT_UPDATED_CELLS':
-        _data.lastUpdatedCells = [];
-        ASCellStore.updateCells(action.updatedCells);
-        // logDebug("Last updated cells: " + JSON.stringify(_data.lastUpdatedCells));
-        ASCellStore.emitChange();
-        break;
       /*
         The cells have been fetched from the server for a get request (for example, when scrolling)
         We now need to update the store based on these new values

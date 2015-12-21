@@ -220,25 +220,13 @@ export default React.createClass({
     });
 
     this.refs.spreadsheet.updateCellValues(updatedCellsOnSheet);
-    //toast the error of at least one value in the cell
-    let err;
-    for (let i = 0; i < updatedCellsOnSheet.length; ++i) {
-      let cell = updatedCellsOnSheet[i],
-          val = cell.cellValue;
-      if (val.tag == "ValueError" || val.tag == "ValueExcelError") {
-        err = this.getErrorMessage(val);
-        break;
-      }
-    }
 
-    err = err || SheetStateStore.getExternalError();
-
-    if (!!err && !SheetStateStore.shouldSuppressErrors()) {
+    // ::ALEX:: should definitely be moved somewhere else
+    let err = SheetStateStore.getExternalError();
+    if (err != null) {
       this.setToast(err, "Error");
     }
-
     SheetStateStore.setExternalError(null);
-    SheetStateStore.stopSuppressingErrors();
   },
 
   // _onReplChange() {

@@ -82,7 +82,6 @@ var Constants = Object.assign({
     CELL_CHANGED: null,
     RANGE_CHANGED: null,
     SCROLLED: null,
-    GOT_UPDATED_CELLS: null,
     GOT_UNDO:null,
     GOT_REDO:null,
     GOT_SELECTION:null,
@@ -172,7 +171,7 @@ var Constants = Object.assign({
     Decouple: "Decouple",
     SetCondFormatRules: "SetCondFormatRules",
     SetBarProp: "SetBarProp",
-    "ImportCSV": "ImportCSV"
+    ImportCSV: "ImportCSV"
   },
 
   CursorPosition:{

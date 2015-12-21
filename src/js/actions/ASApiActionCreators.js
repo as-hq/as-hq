@@ -111,6 +111,18 @@ wss.onmessage = (event: MessageEvent) => {
         currentCbs.fulfill(msg);
         isRunningTest = false;
       }
+    } else if (msg.result.tag == "DecoupleDuringEval") {
+      Dispatcher.dispatch({
+        _type: 'EVAL_TRIED_TO_DECOUPLE'
+      });
+
+      // ::ALEX:: clean up
+      if (isRunningTest && (!uiTestMode || (msg.action != 'UpdateWindow' && msg.action != 'Open')) && currentCbs) {
+        // sometimes we want to test whether it errors, so it fulfills anyways!
+        logDebug('Fulfilling due to decouple message');
+        currentCbs.fulfill(msg);
+        isRunningTest = false;
+      }
     } else {
       if (isRunningTest && (!uiTestMode || (msg.action != 'UpdateWindow' && msg.action != 'Open')) && currentCbs) {
         logDebug('Fulfilled server message normally');
@@ -119,148 +131,117 @@ wss.onmessage = (event: MessageEvent) => {
       }
 
       switch (msg.action) {
-      case "New":
-        if (msg.payload.tag === "PayloadWorkbookSheets") {
+        // case 'New':
+        //   if (msg.payload.tag === "PayloadWorkbookSheets") {
+        //     Dispatcher.dispatch({
+        //       _type: 'GOT_NEW_WORKBOOKS',
+        //       workbooks: msg.payload.contents
+        //     });
+        //   }
+        //   break;
+        case 'NoAction':
+        case 'Acknowledge':
+          break;
+        case 'Open':
           Dispatcher.dispatch({
-            _type: 'GOT_NEW_WORKBOOKS',
-            workbooks: msg.payload.contents
+            _type: 'GOT_OPEN',
+            expressions: msg.payload.initHeaderExpressions,
+            initRowCols: msg.payload.initRowCols
           });
-        }
-        break;
-      case "NoAction":
-        break;
-      case "Acknowledge":
-        break;
-      case "Open":
-        Dispatcher.dispatch({
-          _type: 'GOT_OPEN',
-          expressions: msg.payload.initHeaderExpressions,
-          initBars: msg.payload.initBars
-        });
-        Dispatcher.dispatch({
-          _type: 'GOT_UPDATED_RULES',
-          rules: msg.payload.initCondFormatRules
-        });
-        break;
-      case "Undo":
-        Dispatcher.dispatch({
-          _type: 'GOT_UNDO',
-          commit: msg.payload.contents
-        });
-        break;
-      case "Redo":
-        Dispatcher.dispatch({
-          _type: 'GOT_REDO',
-          commit: msg.payload.contents
-        });
-       break;
-      case "Update":
-        if (msg.result.tag === "DecoupleDuringEval") {
           Dispatcher.dispatch({
-            _type: 'EVAL_TRIED_TO_DECOUPLE',
+            _type: 'GOT_UPDATED_RULES',
+            rules: msg.payload.initCondFormatRules
           });
-        } else if (msg.payload.tag === "PayloadCL") {
+          break;
+        case 'Undo':
           Dispatcher.dispatch({
-            _type: 'GOT_UPDATED_CELLS',
-            updatedCells: msg.payload.contents
+            _type: 'GOT_UNDO',
+            commit: msg.payload.contents
           });
-        } else if (msg.payload.tag === "PayloadWorkbookSheets") {
+          break;
+        case 'Redo':
           Dispatcher.dispatch({
-            _type: 'GOT_UPDATED_WORKBOOKS',
-            workbooks: msg.payload.contents
+            _type: 'GOT_REDO',
+            commit: msg.payload.contents
           });
-        }
-        break;
-      case "Get":
-        Dispatcher.dispatch({
-          _type: 'FETCHED_CELLS',
-          newCells: msg.payload.contents
-        });
-        break;
-      case 'SetCondFormatRules':
-        Dispatcher.dispatch({
-          _type: 'FETCHED_CELLS',
-          newCells: msg.payload.condFormatCellsUpdated
-        });
-        Dispatcher.dispatch({
-          _type: 'GOT_UPDATED_RULES',
-          rules: msg.payload.condFormatRulesResult
-        });
-        break;
-      //Functionally equivalent to "Get", but useful to be able to distinguish for tests
-      case "UpdateWindow":
-        Dispatcher.dispatch({
-          _type: 'FETCHED_CELLS',
-          newCells: msg.payload.contents
-        });
-        break;
-      case "Clear":
-        if (msg.payload.tag === "PayloadS") {
+         break;
+        case 'SetCondFormatRules': 
+        case 'Update':
+        case 'Get':
+        case 'UpdateWindow':
+          if (msg.payload.contents.updatedCells.length > 0) {
+            Dispatcher.dispatch({
+              _type: 'FETCHED_CELLS',
+              newCells: msg.payload.contents.updatedCells
+            });
+          }
+          // rules
+          // ::ALEX:: wrong for now. null check is wrong
+          if (msg.payload.contents.updatedCondFormatRules.length > 0) {
+            Dispatcher.dispatch({
+              _type: 'GOT_UPDATED_RULES',
+              rules: msg.payload.contents.updatedCondFormatRules
+            });
+          }
+          break;
+        case 'Clear':
+          if (msg.payload.tag === "PayloadS") {
+            Dispatcher.dispatch({
+              _type: 'CLEARED_SHEET',
+              sheetId: msg.payload.contents.sheetId
+            });
+          } else {
+            Dispatcher.dispatch({
+              _type: 'CLEARED'
+            });
+          }
+          break;
+        case 'JumpSelect':
           Dispatcher.dispatch({
-            _type: 'CLEARED_SHEET',
-            sheetId: msg.payload.contents.sheetId
+            _type: 'GOT_SELECTION',
+            newSelection: msg.payload
           });
-        } else {
+          break;
+        case 'Delete':
+          if (msg.payload.tag === "PayloadDelete") {
+            Dispatcher.dispatch({
+              _type: 'DELETED_LOCS',
+              deletedRange: msg.payload.contents[0],
+              updatedCells: msg.payload.contents[1]
+            });
+          }
+          break;
+        case 'EvaluateRepl':
           Dispatcher.dispatch({
-            _type: 'CLEARED'
+            _type: 'GOT_REPL_RESPONSE',
+            response: msg.payload.contents
           });
-        }
-        break;
-      case "JumpSelect":
-        Dispatcher.dispatch({
-          _type: 'GOT_SELECTION',
-          newSelection: msg.payload
-        });
-        break;
-      case "Delete":
-        if (msg.result.tag === "DecoupleDuringEval") {
+          break;
+        case 'EvaluateHeader':
           Dispatcher.dispatch({
-            _type: 'EVAL_TRIED_TO_DECOUPLE'
+            _type: 'GOT_EVAL_HEADER_RESPONSE',
+            response: msg.payload.contents
           });
-        } else if (msg.payload.tag === "PayloadDelete") {
+          break;
+        case 'Find':
+          // TODO
+        /*
+          let toClientLoc = function(x) {
+            return {row:x.index[1],col:x.index[0]};
+          };
+          let clientLocs = msg.payload.contents.map(toClientLoc);
+          logDebug("GOT BACK FIND RESPONSE: " + JSON.stringify(clientLocs));
           Dispatcher.dispatch({
-            _type: 'DELETED_LOCS',
-            deletedRange: msg.payload.contents[0],
-            updatedCells: msg.payload.contents[1]
-          });
-        } else if (msg.payload.tag === "PayloadWorkbookSheets") {
+            _type: 'GOT_FIND',
+            findLocs:clientLocs
+          }); */
+          break;
+        case 'Import':
           Dispatcher.dispatch({
-            _type: 'DELETED_WORKBOOKS',
-            workbooks: msg.payload.contents
+            _type: 'GOT_IMPORT',
+            newCells: msg.payload.contents
           });
-        } // no case for PayloadWB ??
-        break;
-      case "EvaluateRepl":
-        Dispatcher.dispatch({
-          _type: 'GOT_REPL_RESPONSE',
-          response: msg.payload.contents
-        });
-        break;
-      case "EvaluateHeader":
-        Dispatcher.dispatch({
-          _type: 'GOT_EVAL_HEADER_RESPONSE',
-          response: msg.payload.contents
-        });
-        break;
-      case "Find":
-        // TODO
-      /*
-        let toClientLoc = function(x) {
-          return {row:x.index[1],col:x.index[0]};
-        };
-        let clientLocs = msg.payload.contents.map(toClientLoc);
-        logDebug("GOT BACK FIND RESPONSE: " + JSON.stringify(clientLocs));
-        Dispatcher.dispatch({
-          _type: 'GOT_FIND',
-          findLocs:clientLocs
-        }); */
-        break;
-      case "Import":
-        Dispatcher.dispatch({
-          _type: 'GOT_IMPORT',
-          newCells: msg.payload.contents
-        });
-        break;
+          break;
       }
     }
   }

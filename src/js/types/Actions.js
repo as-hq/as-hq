@@ -36,11 +36,6 @@ export type ScrolledAction = {
   vWindow: ASViewingWindow;
 };
 
-export type GotUpdatedCellsAction = {
-  _type: 'GOT_UPDATED_CELLS';
-  updatedCells: Array<ASCell>;
-};
-
 export type GotOpenAction = {
   _type: 'GOT_OPEN';
   expressions: Array<ASExpression>;
@@ -198,7 +193,6 @@ export type ASAction =
   | GotNewWorkbooksAction
   | DeletedWorkbooksAction
   | ScrolledAction
-  | GotUpdatedCellsAction
   | GotOpenAction
   | GotUndoAction
   | GotRedoAction
