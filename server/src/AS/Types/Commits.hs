@@ -5,8 +5,8 @@ module AS.Types.Commits where
 import AS.Types.Cell
 import AS.Types.Eval
 import AS.Types.CondFormat
+import AS.Types.Updates
 
-import Prelude
 import GHC.Generics
 import Data.Aeson hiding (Success)
 import Data.List
@@ -19,25 +19,21 @@ import AS.Types.Bar
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Version Control
 
-data ASTime = Time {day :: String, hour :: Int, minute :: Int, sec :: Int} deriving (Show, Read, Eq, Generic)
-
 -- NORM: never expand this type; always modify it using the records.
-data CellDiff = CellDiff { beforeCells :: [ASCell]
-                         , afterCells :: [ASCell] }
-                         deriving (Show, Read, Generic)
 
-data BarDiff = BarDiff { beforeBars :: [Bar]
-                       , afterBars :: [Bar] }
-                       deriving (Show, Read, Generic)
+type CellDiff = Diff ASCell 
+type BarDiff = Diff Bar
 
-emptyBarDiff :: BarDiff
-emptyBarDiff = BarDiff [] []
+data ASTime = Time {day :: String, hour :: Int, minute :: Int, sec :: Int} deriving (Show, Read, Eq, Generic)
 
 data ASCommit = Commit { barDiff :: BarDiff
                        , cellDiff :: CellDiff
                        , commitDescriptorDiff :: DescriptorDiff
                        , time :: ASTime }
                        deriving (Show, Read, Generic)
+
+type CellUpdate = Update ASCell ASReference
+type RowColUpdate = Update RowCol ASReference
 
 data CommitSource = CommitSource { srcSheetId :: ASSheetId, srcUserId :: ASUserId }
 
@@ -47,7 +43,8 @@ type CommitTransform = ASCommit -> ASCommit
 data SheetUpdate = SheetUpdate { updatedCells :: [ASCell]
                                , updatedRowCols :: [RowCol]
                                , updatedRangeDescriptors :: [RangeDescriptor] 
-                               , updatedCondFormatRules :: [CondFormatRule] }
+                               , updatedCondFormatRules :: [CondFormatRule]
+                               }
                                deriving (Show, Read, Generic)
 
 sheetUpdateFromCommit :: ASCommit -> SheetUpdate

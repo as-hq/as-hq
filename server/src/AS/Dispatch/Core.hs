@@ -242,21 +242,21 @@ removeMaybeDescriptorFromContext descriptor ctx = ctx { descriptorDiff = ddiff' 
     ddiff = descriptorDiff ctx
     ddiff' = case descriptor of
       Nothing -> ddiff
-      Just d -> removeDescriptor ddiff d
+      Just d -> removeValue ddiff d
 
 -- Helper function that removes multiple descriptors from the ddiff of the context. 
 removeMultipleDescriptorsFromContext :: [RangeDescriptor] -> PureEvalTransform
 removeMultipleDescriptorsFromContext descriptors ctx = ctx { descriptorDiff = ddiffWithRemovedDescriptors }
   where
     ddiff = descriptorDiff ctx
-    ddiffWithRemovedDescriptors = L.foldl' removeDescriptor ddiff descriptors
+    ddiffWithRemovedDescriptors = L.foldl' removeValue ddiff descriptors
 
 -- Helper function  that adds a descriptor to the ddiff of a context
-addDescriptorToContext :: RangeDescriptor -> PureEvalTransform
-addDescriptorToContext descriptor ctx = ctx { descriptorDiff = ddiff' }
+addValueToContext :: RangeDescriptor -> PureEvalTransform
+addValueToContext descriptor ctx = ctx { descriptorDiff = ddiff' }
   where
     ddiff  =  descriptorDiff ctx
-    ddiff' = addDescriptor ddiff descriptor
+    ddiff' = addValue ddiff descriptor
 
 -- Helper function that adds cells to a context, by merging them to addedCells and the map (with priority).
 addCellsToContext :: [ASCell] -> PureEvalTransform
@@ -317,7 +317,7 @@ addCurFatCellToContext conn idx maybeFatCell ctx = do
   let ctx' = removeMultipleDescriptorsFromContext newlyRemovedDescriptors $ addCellsToContext decoupledCells ctx
   let ctx'' = case maybeFatCell of
                 Nothing -> ctx'
-                Just (FatCell _ descriptor) -> addDescriptorToContext descriptor ctx'
+                Just (FatCell _ descriptor) -> addValueToContext descriptor ctx'
   return (ctx'', decoupledCells)
 
 

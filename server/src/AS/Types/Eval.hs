@@ -10,6 +10,7 @@ import AS.Types.CellProps
 import AS.Types.Locations
 import AS.Types.Errors
 import AS.Types.Cell
+import AS.Types.Updates
 import qualified Data.List as L
 
 import GHC.Generics
@@ -45,16 +46,11 @@ data EvalContext = EvalContext { contextMap :: ValMap
                                deriving (Show, Read, Eq)
 
 -- NORM: never expand this type. always modify and access it using the records.
-data DescriptorDiff = DescriptorDiff { addedDescriptors :: [RangeDescriptor]
-                                     , removedDescriptors :: [RangeDescriptor] } 
-                                     deriving (Show, Read, Eq, Generic)
+type DescriptorDiff = Diff RangeDescriptor
 
 
 emptyContext :: EvalContext
-emptyContext = EvalContext M.empty [] (DescriptorDiff [] [])
-
-emptyDiff :: DescriptorDiff
-emptyDiff = DescriptorDiff [] [] 
+emptyContext = EvalContext M.empty [] emptyDiff
 
 -- ephemeral types produced by eval 
 -- that will expand in createListCells
@@ -136,19 +132,6 @@ isCoupled c = case (cellExpression c) of
 isEvaluable :: ASCell -> Bool
 isEvaluable c = isFatCellHead c || (not $ isCoupled c)
 
--- Given the descriptorDiff, add a descriptor to the descriptorDiff. It it's already in removedDescriptors, remove it from that list and don't add it to 
--- addedDescriptors. This maintains the invariant that the same rangeDescriptor is never in both the added and removed lists. 
-addDescriptor :: DescriptorDiff -> RangeDescriptor -> DescriptorDiff
-addDescriptor ddiff d = if (inRemoved d) 
-  then ddiff { removedDescriptors = L.delete d (removedDescriptors ddiff) } 
-  else ddiff { addedDescriptors = d:(addedDescriptors ddiff) } 
-    where inRemoved x = L.elem x (removedDescriptors ddiff)
-
-removeDescriptor :: DescriptorDiff -> RangeDescriptor -> DescriptorDiff
-removeDescriptor ddiff d = if (inAdded d)
-  then ddiff { addedDescriptors = L.delete d (addedDescriptors ddiff) } 
-  else ddiff { removedDescriptors = d:(removedDescriptors ddiff) } 
-    where inAdded x = L.elem x (addedDescriptors ddiff)
 
 ----------------------------------------------------------------------------------------------------------------------
 -- Instances
