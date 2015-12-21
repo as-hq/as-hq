@@ -9,7 +9,7 @@ import AS.Types.Eval
 import AS.Types.Commits
 
 import AS.DB.Internal as DI
-import qualified AS.Types.Bar as RP
+import qualified AS.Types.Bar as B
 import qualified Data.Text as T
 
 import AS.Parsing.Substitutions
@@ -49,44 +49,44 @@ handleMutateSheet uc state (PayloadMutate mutateType) = do
   broadcastFiltered state uc updateMsg
 
 -- | For a mutate, maps the old row and column to the new row and column.
-barMap :: MutateType -> RP.Bar -> Maybe RP.Bar
-barMap (InsertCol c') rc@(RP.Bar rct rci rcp) =
+barMap :: MutateType -> B.Bar -> Maybe B.Bar
+barMap (InsertCol c') rc@(B.Bar rct rci rcp) =
   case rct of
-       RP.ColumnType -> Just $ RP.Bar rct (if rci >= c' then rci+1 else rci) rcp
-       RP.RowType -> Just rc
-barMap (InsertRow r') rc@(RP.Bar rct rci rcp) =
+       B.ColumnType -> Just $ B.Bar rct (if rci >= c' then rci+1 else rci) rcp
+       B.RowType -> Just rc
+barMap (InsertRow r') rc@(B.Bar rct rci rcp) =
   case rct of
-       RP.ColumnType -> Just rc
-       RP.RowType -> Just $ RP.Bar rct (if rci >= r' then rci+1 else rci) rcp
-barMap (DeleteCol c') rc@(RP.Bar rct rci rcp) =
+       B.ColumnType -> Just rc
+       B.RowType -> Just $ B.Bar rct (if rci >= r' then rci+1 else rci) rcp
+barMap (DeleteCol c') rc@(B.Bar rct rci rcp) =
   case rct of
-       RP.ColumnType | rci == c' -> Nothing
-                     | otherwise -> Just $ RP.Bar rct (if rci >= c' then rci-1 else rci) rcp
-       RP.RowType -> Just rc
-barMap (DeleteRow r') rc@(RP.Bar rct rci rcp) =
+       B.ColumnType | rci == c' -> Nothing
+                     | otherwise -> Just $ B.Bar rct (if rci >= c' then rci-1 else rci) rcp
+       B.RowType -> Just rc
+barMap (DeleteRow r') rc@(B.Bar rct rci rcp) =
   case rct of
-       RP.ColumnType -> Just rc
-       RP.RowType | rci == r' ->  Nothing
-                  | otherwise -> Just $ RP.Bar rct (if rci >= r' then rci-1 else rci) rcp
+       B.ColumnType -> Just rc
+       B.RowType | rci == r' ->  Nothing
+                  | otherwise -> Just $ B.Bar rct (if rci >= r' then rci-1 else rci) rcp
 
-barMap (DragCol oldC newC) rc@(RP.Bar rct rci rcp) =
+barMap (DragCol oldC newC) rc@(B.Bar rct rci rcp) =
   case rct of
-       RP.ColumnType
+       B.ColumnType
          | rci < min oldC newC -> Just rc
          | rci > max oldC newC -> Just rc
-         | rci == oldC         -> Just $ RP.Bar rct newC rcp
-         | oldC < newC       -> Just $ RP.Bar rct (rci-1) rcp -- here on we assume c is strictly between oldC and newC
-         | oldC > newC       -> Just $ RP.Bar rct (rci+1) rcp
-       RP.RowType -> Just rc
-barMap (DragRow oldR newR) rc@(RP.Bar rct rci rcp) =
+         | rci == oldC         -> Just $ B.Bar rct newC rcp
+         | oldC < newC       -> Just $ B.Bar rct (rci-1) rcp -- here on we assume c is strictly between oldC and newC
+         | oldC > newC       -> Just $ B.Bar rct (rci+1) rcp
+       B.RowType -> Just rc
+barMap (DragRow oldR newR) rc@(B.Bar rct rci rcp) =
   case rct of
-       RP.ColumnType -> Just rc
-       RP.RowType
+       B.ColumnType -> Just rc
+       B.RowType
          | rci < min oldR newR -> Just rc
          | rci > max oldR newR -> Just rc
-         | rci == oldR         -> Just $ RP.Bar rct newR rcp
-         | oldR < newR       -> Just $ RP.Bar rct (rci-1) rcp-- here on we assume r is strictly between oldR and newR
-         | oldR > newR       -> Just $ RP.Bar rct (rci+1) rcp
+         | rci == oldR         -> Just $ B.Bar rct newR rcp
+         | oldR < newR       -> Just $ B.Bar rct (rci-1) rcp-- here on we assume r is strictly between oldR and newR
+         | oldR > newR       -> Just $ B.Bar rct (rci+1) rcp
   -- case oldR == newR can't happen because oldR < r < newR since third pattern-match
 
 cellLocMap :: MutateType -> (ASIndex -> Maybe ASIndex)

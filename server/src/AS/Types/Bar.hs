@@ -17,7 +17,10 @@ import Control.Monad (liftM, ap)
 
 data BarType = ColumnType | RowType deriving (Show, Read, Eq, Generic)
 
-data Bar = Bar {barType :: BarType, barIndex :: Int, barProps :: ASBarProps} deriving (Show, Read, Eq, Generic)
+-- Uniquely identifies a row or column in a sheet. 
+data BarIndex = BarIndex { barSheetId :: ASSheeetId, barType :: BarType, barNumber :: Int } deriving (Show, Read, Eq, Generic)
+
+data Bar = Bar {barIndex :: BarIndex, barProps :: ASBarProps} deriving (Show, Read, Eq, Generic)
 
 data BarPropType = DimensionProp | FromCellProp CP.CellPropType deriving (Show, Read, Eq, Generic, Ord)
 
@@ -68,11 +71,15 @@ instance ToJSON BarProp
 instance FromJSON BarType
 instance ToJSON BarType
 
+instance FromJSON BarIndex
+instance ToJSON BarIndex
+
 instance FromJSON Bar
 instance ToJSON Bar
 
 instance Serialize BarType
 instance Serialize BarProp
+instance Serialize BarIndex
 instance Serialize Bar
 instance Serialize ASBarProps
 instance Serialize BarPropType

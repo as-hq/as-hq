@@ -9,7 +9,7 @@ import AS.Types.DB hiding (Clear)
 import AS.Types.Eval
 import AS.Types.Commits
 import AS.Types.CondFormat
-import qualified AS.Types.Bar as RP
+import qualified AS.Types.Bar as B
 
 import AS.Handlers.Eval
 import AS.Eval.CondFormat
@@ -238,22 +238,20 @@ handleSetCondFormatRules uc state (PayloadCondFormat rules) = do
   either (const $ return ()) onFormatSuccess errOrCells
   broadcastFiltered state uc $ makeCondFormatMessage errOrCells rules
 
--- The type here is slightly wrong. This payload should really only indicate whether we're passed
--- a row or a column, the index of this row/col, and a *single* prop to modify. For now, this is
--- just the simplest type we can work with. 
+-- #needsrefactor Should eventually merge with handleSetProp. 
 handleSetBarProp :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
-handleSetBarProp uc state (PayloadSetBarProp rct ind prop) = do 
+handleSetBarProp uc state (PayloadSetBarProp bInd prop) = do 
   conn <- dbConn <$> readMVar state
   let sid = userSheetId uc
-  mOldProps <- DB.getBarProps conn sid rct ind
-  let oldProps = maybe RP.emptyProps id mOldProps
-      newProps = RP.setProp prop oldProps
-      newRc    = RP.Bar rct ind newProps
+  mOldProps <- DB.getBarProps conn bInd
+  let oldProps = maybe B.emptyProps id mOldProps
+      newProps = B.setProp prop oldProps
+      newRc    = B.Bar (rct ind newProps
       oldRcs   = case mOldProps of
                       Nothing -> []
-                      Just _ -> [RP.Bar rct ind oldProps]
+                      Just _ -> [B.Bar rct ind oldProps]
   DB.setBarProps conn sid newRc
-  -- Add the RP.barProps to the commit.
+  -- Add the B.barProps to the commit.
   time <- getASTime
   let rcdiff = BarDiff { beforeBars = oldRcs, afterBars = [newRc]}
       commit = Commit { barDiff = rcdiff, cellDiff = CellDiff { beforeCells = [], afterCells = [] }, commitDescriptorDiff = DescriptorDiff { addedDescriptors = [], removedDescriptors = [] }, time = time}
