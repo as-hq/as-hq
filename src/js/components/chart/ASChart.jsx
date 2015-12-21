@@ -70,10 +70,22 @@ export default class ASChart extends React.Component<{}, ASChartProps, ASChartSt
     this.setState(newState);
   }
 
+  // ASCell -> Bool
+  _isListening(c: ASCell): boolean {
+    let {index, sheetId} = c.cellLocation;
+    return isContainedInLocs(index.col, index.row, [this.props.valueRange])
+        && sheetId == this.props.sheetId;
+  }
+
   // data binding
   _onDataChange() {
     let filteredCells = CellStore.getLastUpdatedCells().filter(this._isListening.bind(this));
     this._updateData(filteredCells);
+  }
+
+  _getRelativeIndex(idx: NakedIndex): NakedIndex {
+    let {tl} = this.props.valueRange;
+    return {col: idx.col - tl.col, row: idx.row - tl.row};
   }
 
   _updateData(cs: Array<ASCell>) {
@@ -82,11 +94,11 @@ export default class ASChart extends React.Component<{}, ASChartProps, ASChartSt
       let {col, row} = this._getRelativeIndex(c.cellLocation.index);
       let val = CU.cellToChartVal(c);
       // cartesian data case
-      if (newData.datasets !== null && newData.datasets !== undefined) {
+      if (CU.isCartesian(this.props.chartContext.chartType) && newData.datasets) {
         newData.datasets[col].data[row] = val;
-      } else if (newData instanceof Array) {
+      } else {
         let insertIdx = Math.max(col, row);
-        newData[col].value = val;
+        newData[insertIdx].value = val;
       }
     });
     this.setState({data: newData});
@@ -171,18 +183,6 @@ export default class ASChart extends React.Component<{}, ASChartProps, ASChartSt
           highlight: `rgba(${r},${g},${b},0.5)`
         };
     };
-  }
-
-  _getRelativeIndex(idx: NakedIndex): NakedIndex {
-    let {tl} = this.props.valueRange;
-    return {col: idx.col - tl.col, row: idx.row - tl.row};
-  }
-
-  // ASCell -> Bool
-  _isListening(c: ASCell): boolean {
-    let {index, sheetId} = c.cellLocation;
-    return isContainedInLocs(index.col, index.row, [this.props.valueRange])
-        && sheetId == this.props.sheetId;
   }
 
   render(): React.Element {

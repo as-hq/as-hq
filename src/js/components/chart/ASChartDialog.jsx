@@ -24,6 +24,7 @@ import type {
 } from './types';
 
 import React from 'react';
+import ReactDOM from 'react-dom';
 import {Dialog, TextField, DropDownMenu} from 'material-ui';
 // $FlowFixMe: Too lazy to add ~14 things to declarations
 import {List, Divider, ListItem} from 'material-ui';
@@ -158,17 +159,29 @@ export default class ASChartDialog extends React.Component<{}, ASChartDialogProp
   }
 
   _onSubmitCreate() {
-    this.props.onCreate({
-      id: U.Render.getUniqueId(),
-      elem: this.refs.generatedChart,
-      width: 500,
-      height: 300,
-      offsetX: 0,
-      offsetY: 0,
-      left: 50,
-      top: 50,
-      loc: null
-    });
+    const {valueRange} = this.state;
+    let errorMessages = this._checkConfigurationErrors();
+    let hasError = Object.keys(errorMessages).length > 0;
+    if (valueRange !== null && valueRange !== undefined && !hasError) {
+      let ctx = this._generateContext();
+      let sheetId = SheetStore.getCurrentSheet().sheetId;
+      this.props.onCreate({
+        id: U.Render.getUniqueId(),
+        renderElem: () => {return (<ASChart
+                                      ref="chart"
+                                      valueRange={valueRange}
+                                      sheetId={sheetId}
+                                      chartContext={ctx} />) ;},
+        width: 500,
+        height: 300,
+        offsetX: 0,
+        offsetY: 0,
+        left: 50,
+        top: 50,
+        loc: null
+      });
+      this.props.onRequestClose();
+    }
   }
 
   _onChartTypeChange(e: SyntheticEvent, chartType: ASChartType) {
@@ -221,7 +234,7 @@ export default class ASChartDialog extends React.Component<{}, ASChartDialogProp
     let {chartType, valueRange, showLegend} = this.state;
     let errorMessages = this._checkConfigurationErrors();
     let shouldRenderPreview = Object.keys(errorMessages).length == 0;
-    let ChartLegend = this.refs.generatedChart ? this.refs.generatedChart.generateLegend() : <div />;
+    // let ChartLegend = this.refs.generatedChart ? this.refs.generatedChart.generateLegend() : <div />;
     console.log("Chart config errors: " + JSON.stringify(errorMessages));
 
     return (
@@ -290,9 +303,7 @@ export default class ASChartDialog extends React.Component<{}, ASChartDialogProp
               ref="generatedChart"
               valueRange={valueRange}
               sheetId={SheetStore.getCurrentSheet().sheetId}
-              chartContext={this._generateContext()} >
-                <ChartLegend />
-            </ASChart>
+              chartContext={this._generateContext()} />
           ]
         ) : "Incorrect chart configuration. " }
       </Dialog>

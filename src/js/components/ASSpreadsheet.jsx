@@ -674,10 +674,9 @@ export default React.createClass({
       // Return the overlay spec, and note that the overlay shouldn't be in view if the point isn't
       // Compute the overlay element. The "draggable=false" is needed for a silly HTML5 reason.
       let imageSrc = Constants.getHostStaticUrl() + "/images/" + imagePath;
-      let elem = (<Image src={imageSrc} draggable="false" width="100%" height="100%" alt="Error rendering image." />);
       return {
         id: U.Render.getUniqueId(),
-        elem: elem,
+        renderElem: () => { return (<Image src={imageSrc} draggable="false" width="100%" height="100%" alt="Error rendering image." />); },
         width: imageWidth,
         height: imageHeight,
         offsetX: imageOffsetX,
@@ -1113,6 +1112,7 @@ export default React.createClass({
           {this.state.overlays.map((overlay) =>
             <ASOverlay key={overlay.id}
                        overlay={overlay}
+                       children={overlay.renderElem()}
                        scrollPixels={self.state.scrollPixels}
                        isVisible={self.isVisible} />
           )}

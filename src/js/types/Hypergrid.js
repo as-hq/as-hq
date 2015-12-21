@@ -13,7 +13,7 @@ export type CellBorder = FourTuple<?Pair<Pair<number>>>;
 
 export type ASOverlaySpec = {
   id: string;
-  elem: ReactElement;
+  renderElem: () => ReactElement | HTMLElement;
   width: number;
   height: number;
   offsetX: number;

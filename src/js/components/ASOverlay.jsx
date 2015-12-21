@@ -4,6 +4,7 @@ let Draggable = require('react-draggable');
 let ReactDOM = require('react-dom');
 import API from '../actions/ASApiActionCreators';
 import CellStore from '../stores/ASCellStore';
+import {Paper} from 'material-ui';
 
 /*
 Image props have important  metadata about the size and position of an image. The offsets are computed relative to
@@ -28,8 +29,10 @@ export default React.createClass({
 
   /* Upon drag or resize, update the backend metadata about the image */
   updateImageProps(prop) {
-    let rng = {tl: this.props.overlay.loc.index, br: this.props.overlay.loc.index};
-    API.setProp(prop, rng);
+    if (this.props.overlay.loc) {
+      let rng = {tl: this.props.overlay.loc.index, br: this.props.overlay.loc.index};
+      API.setProp(prop, rng);
+    }
   },
 
   /* Called when we stop dragging the image. We produce the new image props (by adding to offsets) and update backend */
@@ -86,7 +89,7 @@ export default React.createClass({
       zIndex: 5,
       resize: 'auto',
       overflow: 'hidden',
-      border: "solid 2px black",
+      background: 'white'
     };
 
     /*
@@ -100,9 +103,11 @@ export default React.createClass({
           start={{x: 0, y: 0}}
           zIndex={100}
           onStop={this._onStop}>
-          <div style={baseStyle} ref="overlay" >
-            {this.props.overlay.elem}
-          </div>
+          <Paper zdepth={5} rounded={true}>
+            <div style={baseStyle} ref="overlay" >
+              {this.props.children}
+            </div>
+          </Paper>
         </Draggable>
       </div>
     );
