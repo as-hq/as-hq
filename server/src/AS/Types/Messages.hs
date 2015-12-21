@@ -101,12 +101,7 @@ data ASPayload =
   | PayloadMutate MutateType
   | PayloadDrag {initialRange :: ASRange, dragRange :: ASRange}
   | PayloadCondFormat { condFormatRules :: [CondFormatRule] }
-<<<<<<< HEAD
-  | PayloadCondFormatResult { condFormatRulesResult :: [CondFormatRule], condFormatCellsUpdated :: [ASCell] }
   | PayloadSetBarProp BarIndex BarProp
-=======
-  | PayloadSetRowColProp RowColType Int RowColProp
->>>>>>> 5e30591... makeReplyMessageFromCells
   | PayloadCSV {csvIndex :: ASIndex, csvLang :: ASLanguage, csvFileName :: String}
   | PayloadSheetUpdate SheetUpdate
   deriving (Show, Read, Generic)
