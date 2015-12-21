@@ -35,7 +35,7 @@ import SheetStateStore from '../stores/ASSheetStateStore';
 import SelectionStore from '../stores/ASSelectionStore';
 import FindStore from '../stores/ASFindStore';
 import ExpStore from '../stores/ASExpStore';
-import InitRowColPropsStore from '../stores/ASInitRowColPropsStore.js';
+import InitBarPropsStore from '../stores/ASInitBarPropsStore.js';
 
 import U from '../AS/Util';
 let {
@@ -107,7 +107,7 @@ export default React.createClass({
   componentDidMount() {
     // Be able to respond to events from ExpStore
     ExpStore.addChangeListener(this._onExpressionChange);
-    InitRowColPropsStore.addChangeListener(this._onInitRowColPropsChange);
+    InitBarPropsStore.addChangeListener(this._onInitBarPropsChange);
     // Hypergrid initialization
     document.addEventListener('polymer-ready', () => {
       this.props.onReady();
@@ -1013,9 +1013,9 @@ export default React.createClass({
     }
   },
 
-  _onInitRowColPropsChange() {
-    let initColWidths  = InitRowColPropsStore.getInitColumnWidths(),
-        initRowHeights = InitRowColPropsStore.getInitRowHeights(),
+  _onInitBarPropsChange() {
+    let initColWidths  = InitBarPropsStore.getInitColumnWidths(),
+        initRowHeights = InitBarPropsStore.getInitRowHeights(),
         hg = this._getHypergrid();
 
     //column index on DB is 1-indexed, while for hypergrid it's 0-indexed.

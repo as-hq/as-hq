@@ -68,9 +68,9 @@ export type MutateType =
   | DragCol
   | DragRow;
 
-export type RowColType = 'ColumnType' | 'RowType';
+export type BarType = 'ColumnType' | 'RowType';
 
-export type RowColProp = Dimension | FromCellProp;
+export type BarProp = Dimension | FromCellProp;
 
 export type Dimension = {
   tag: 'Dimension';
@@ -82,11 +82,11 @@ export type FromCellProp = {
   contents: ASCellProp;
 };
 
-export type RowCol = {
-  tag: 'RowCol';
-  rowColType: RowColType;
-  rowColIndex: number;
-  rowColProps: Array<RowColProp>;
+export type Bar = {
+  tag: 'Bar';
+  barType: BarType;
+  barIndex: number;
+  barProps: Array<BarProp>;
 };
 
 export type ASInitConnection = {
@@ -170,7 +170,7 @@ export type PayloadOpen = {
   tag: 'PayloadOpen';
   initHeaderExpressions: Array<ASExpression>;
   initCondFormatRules: Array<CondFormatRule>;
-  initRowCols: Array<RowCol>;
+  initBars: Array<Bar>;
 };
 
 export type PayloadR = {
@@ -254,9 +254,9 @@ export type PayloadCondFormatResult = {
   condFormatRulesResult: Array<CondFormatRule>;
 };
 
-export type PayloadSetRowColProp = {
-  tag: 'PayloadSetRowColProp';
-  contents: [RowColType, number, RowColProp];
+export type PayloadSetBarProp = {
+  tag: 'PayloadSetBarProp';
+  contents: [BarType, number, BarProp];
 };
 
 export type CondFormatRule = {
@@ -322,7 +322,7 @@ export type ASBackendPayload =
   | PayloadFind
   | PayloadCondFormat
   | PayloadCondFormatResult
-  | PayloadSetRowColProp;
+  | PayloadSetBarProp;
 
 export type ASBackendTime = {
   tag: 'Time';
@@ -380,7 +380,7 @@ export type ASMessageAction =
   | 'Undo' | 'Redo'
   | 'Clear'
   | 'UpdateWindow'
-  | 'SetRowColProp'
+  | 'SetBarProp'
   | 'SetProp' | 'ToggleProp'
   | 'Repeat'
   | 'BugReport'

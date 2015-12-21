@@ -22,7 +22,7 @@ import type {
   ASBackendWorkbookSheet,
   ASMessageAction,
   ASServerMessage,
-  RowCol,
+  Bar,
 } from './Messages';
 
 export type GotFailureAction = {
@@ -44,7 +44,7 @@ export type GotUpdatedCellsAction = {
 export type GotOpenAction = {
   _type: 'GOT_OPEN';
   expressions: Array<ASExpression>;
-  initRowCols: Array<RowCol>;
+  initBars: Array<Bar>;
 };
 
 export type GotUndoAction = {

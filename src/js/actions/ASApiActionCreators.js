@@ -135,7 +135,7 @@ wss.onmessage = (event: MessageEvent) => {
         Dispatcher.dispatch({
           _type: 'GOT_OPEN',
           expressions: msg.payload.initHeaderExpressions,
-          initRowCols: msg.payload.initRowCols
+          initBars: msg.payload.initBars
         });
         Dispatcher.dispatch({
           _type: 'GOT_UPDATED_RULES',
@@ -455,13 +455,13 @@ export default {
   },
 
   setColumnWidth(col: number, width: number) {
-    let msg = U.Conversion.makeClientMessage(Constants.ServerActions.SetRowColProp, "PayloadSetRowColProp",
+    let msg = U.Conversion.makeClientMessage(Constants.ServerActions.SetBarProp, "PayloadSetBarProp",
       ['ColumnType', col, {tag: 'Dimension', contents: width}]);
     this.send(msg);
   },
 
   setRowHeight(row: number, height: number) {
-    let msg = U.Conversion.makeClientMessage(Constants.ServerActions.SetRowColProp, "PayloadSetRowColProp",
+    let msg = U.Conversion.makeClientMessage(Constants.ServerActions.SetBarProp, "PayloadSetBarProp",
       ['RowType', row, {tag: 'Dimension', contents: height}]);
     this.send(msg);
   },

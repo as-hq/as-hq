@@ -8,27 +8,27 @@ import BaseStore from './BaseStore';
 import Util from '../AS/Util';
 
 import type {
-  RowCol,
-  RowColProp
+  Bar,
+  BarProp
 } from '../types/Messages';
 
 let _data = {
-  initColumns: ([]: Array<RowCol>),
-  initRows: ([]: Array<RowCol>)
+  initColumns: ([]: Array<Bar>),
+  initRows: ([]: Array<Bar>)
 };
 
-const ASInitRowColPropsStore = Object.assign({}, BaseStore, {
+const ASInitBarPropsStore = Object.assign({}, BaseStore, {
 
   /* This function describes the actions of the ASReplStore upon recieving a message from Dispatcher */
   dispatcherIndex: Dispatcher.register(function (action) {
     switch (action._type) {
       case 'GOT_OPEN':
-        let initRowCols = action.initRowCols,
-            initCols = initRowCols.filter((irc) => irc.rowColType == 'ColumnType'),
-            initRows = initRowCols.filter((irc) => irc.rowColType == 'RowType');
-        ASInitRowColPropsStore._setInitColumns(initCols);
-        ASInitRowColPropsStore._setInitRows(initRows);
-        ASInitRowColPropsStore.emitChange();
+        let initBars = action.initBars,
+            initCols = initBars.filter((irc) => irc.barType == 'ColumnType'),
+            initRows = initBars.filter((irc) => irc.barType == 'RowType');
+        ASInitBarPropsStore._setInitColumns(initCols);
+        ASInitBarPropsStore._setInitRows(initRows);
+        ASInitBarPropsStore.emitChange();
         break;
     }
   }),
@@ -41,15 +41,15 @@ const ASInitRowColPropsStore = Object.assign({}, BaseStore, {
     return this._getInitDimensions(_data.initRows);
   },
 
-  _getInitDimensions(rowsOrCols: Array<RowCol>): Array<[number,number]> {
+  _getInitDimensions(rowsOrCols: Array<Bar>): Array<[number,number]> {
     let dims = []; 
-    rowsOrCols.forEach(({rowColIndex, rowColProps}) => {
-      let dimInd = rowColProps.map(({tag}) => tag).indexOf('Dimension');
+    rowsOrCols.forEach(({barIndex, barProps}) => {
+      let dimInd = barProps.map(({tag}) => tag).indexOf('Dimension');
       if (dimInd >= 0) {
-        let dimensionProp = rowColProps[dimInd];
+        let dimensionProp = barProps[dimInd];
         switch (dimensionProp.tag) {
           case 'Dimension':
-            dims.push([rowColIndex, dimensionProp.contents]);
+            dims.push([barIndex, dimensionProp.contents]);
             break;
         }
       }
@@ -58,13 +58,13 @@ const ASInitRowColPropsStore = Object.assign({}, BaseStore, {
     return dims;
   },
 
-  _setInitColumns(initCols: Array<RowCol>) {
+  _setInitColumns(initCols: Array<Bar>) {
     _data.initColumns = initCols;
   },
 
-  _setInitRows(initRows: Array<RowCol>) {
+  _setInitRows(initRows: Array<Bar>) {
     _data.initRows = initRows;
   }
 });
 
-export default ASInitRowColPropsStore;
+export default ASInitBarPropsStore;
