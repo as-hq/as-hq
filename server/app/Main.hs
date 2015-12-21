@@ -1,17 +1,13 @@
 {-# LANGUAGE OverloadedStrings, QuasiQuotes, DataKinds #-}
 
 module Main where
-
+ 
 import AS.Config.Settings as S
 
 import AS.Types.Messages
 import AS.Types.Network
-import AS.Types.Locations
-import AS.Types.DB hiding (Clear)
-import AS.Types.Cell
 
-import AS.Users
-import AS.Clients
+import AS.Clients()
 import AS.Logging
 import AS.Window
 import AS.Util (sendMessage)
@@ -27,7 +23,7 @@ import Prelude
 import System.Environment (getArgs)
 
 import Control.Exception
-import Control.Monad (forM_, forever, when)
+import Control.Monad (forever, when)
 import Control.Concurrent
 import Control.Monad.IO.Class (liftIO)
 
@@ -36,17 +32,17 @@ import Data.Maybe
 import qualified Data.Text as T
 import qualified Data.ByteString.Lazy.Char8 as B
 import qualified Data.List as L
-import Text.Read (readMaybe)
-import Text.ParserCombinators.Parsec (parse)
+
+-- often want to use these while debugging
+-- import Text.Read (readMaybe)
+-- import Text.ParserCombinators.Parsec (parse)
 
 import qualified Network.WebSockets as WS
 import qualified Database.Redis as R
 
 -- EitherT
-import Control.Monad.Trans.Class
 import Control.Monad.Trans.Either
 
-import qualified Foreign.R as R
 import Language.R.Instance as R
 import Language.R.QQ
 
@@ -94,9 +90,10 @@ initApp = do
   return (conn, ports, states)
 
 -- |  for debugging. Only called if isDebug is true.
+-- initDebug :: R.Connection -> MVar ServerState -> IO ()
+-- initDebug conn state = 
 initDebug :: R.Connection -> MVar ServerState -> IO ()
-initDebug conn state = do
-  return ()
+initDebug = const $ const $ return ()
 
 application :: MVar ServerState -> WS.ServerApp
 application state pending = do
@@ -114,7 +111,7 @@ handleFirstMessage state conn msg =
       catch (initClient user state) (handleRuntimeException user state)
     Just m@(ClientMessage Acknowledge (PayloadDaemonInit (ASInitDaemonConnection _ _))) -> do -- first message is daemon init
       initClient (initDaemonFromMessageAndConn m conn) state
-    otherwise -> do -- first message is neither
+    _ -> do -- first message is neither
       putStrLn "First message not an initialization message"
       sendMessage (failureMessage "Cannot connect") conn
 
@@ -133,7 +130,7 @@ preprocess conn state = do
   logDir <- getServerLogDir
   fileContents <- Prelude.readFile (logDir ++ "client_messages")
   let fileLinesWithNumbers = zip (L.lines fileContents) [1..]
-      nonemptyNumberedFileLines =  filter (\(l, i) -> (l /= "") && (head l) /= '#') fileLinesWithNumbers
+      nonemptyNumberedFileLines =  filter (\(l, _) -> (l /= "") && (head l) /= '#') fileLinesWithNumbers
 
   mapM_ (\[(msg,i), (sid, _), (uid, _)] -> do 
     putStrLn ("PROCESSING LINE " ++ (show i) ++ ": " ++ msg ++ "\n" ++ sid ++ "\n" ++ uid)
@@ -196,7 +193,6 @@ purgeZombies state = do
 onDisconnect' :: (Client c) => c -> MVar ServerState -> SomeException -> IO ()
 onDisconnect' user state _ = do 
   onDisconnect user state
-  logDir <- getServerLogDir
   printWithTime "ZOMBIE KILLED!! [mgao machine gun sounds]\n"
 
 processMessage :: (Client c) => c -> MVar ServerState -> ASClientMessage -> IO ()
