@@ -455,8 +455,10 @@ export default {
   },
 
   setColumnWidth(col: number, width: number) {
-    let msg = U.Conversion.makeClientMessage(Constants.ServerActions.SetBarProp, "PayloadSetBarProp",
-      ['ColumnType', col, {tag: 'Dimension', contents: width}]);
+    let sid = SheetStateStore.getCurrentSheet().sheetId, 
+        msg = U.Conversion.makeClientMessage(Constants.ServerActions.SetBarProp, "PayloadSetBarProp",
+      [{tag: 'BarIndex', barSheetId: sid, barType: 'ColumnType', barNumber: col}, 
+      {tag: 'Dimension', contents: width}]);
     this.send(msg);
   },
 
