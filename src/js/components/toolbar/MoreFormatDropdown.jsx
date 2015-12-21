@@ -4,13 +4,16 @@ import {Styles, FontIcon} from 'material-ui';
 
 import ToolbarController from './ToolbarController.jsx';
 import ToolbarButton from './ToolbarButton.jsx';
-import DropDownMenu from './DropDownMenu.jsx';
+import MenuController from './MenuController.jsx';
 
 
 export default React.createClass({
 
+  /*************************************************************************************************************************/
+  // Prop and state methods
+
   propTypes: {
-    tooltipId: React.PropTypes.string.isRequired,
+
   },
 
   getDefaultProps() {
@@ -31,20 +34,32 @@ export default React.createClass({
   // Sub-component generation
 
   menuProps: [
+    {tag: 'MenuItem', primaryText: 'Automatic', value: 'Automatic'},
+    {tag: 'MenuItem', primaryText: 'Plain Text', value: 'Plain Text'},
+    {tag: 'Divider', style:{marginTop: 5, marginBottom: 5}},
     {tag: 'MenuItem', primaryText: 'Number', value: 'Number', secondaryText: '1000.12'},
     {tag: 'MenuItem', primaryText: 'Percent', value: 'Percent', secondaryText: '10.12%'},
-    {tag: 'Divider', style:{marginTop: 5, marginBottom: 5}}
+    {tag: 'MenuItem', primaryText: 'Scientific', value: 'Scientific', secondaryText: '1.01E+03'},
+    {tag: 'Divider', style:{marginTop: 5, marginBottom: 5}},
+    {tag: 'MenuItem', primaryText: 'Financial', value: 'Financial', secondaryText: '(1000.12)'},
+    {tag: 'MenuItem', primaryText: 'Currency', value: 'Currency', secondaryText: '$1000.12'},
+    {tag: 'Divider', style:{marginTop: 5, marginBottom: 5}},
+
   ],
 
+  /*
+  The button element has a tooltip, doesn't change color when pushed, and has a dropdown arrow */
   getButton() {
     return (
       <ToolbarButton 
         ref="button"
-        tooltipId={this.props.tooltipId}
         tooltip={"More formats"}
-        iconName={"plus_one"}
+        iconName={"wb_sunny"}
         onClick={this._onButtonClick}
-        showTooltip={!this.state.menuVisible} />
+        usePushState={false}
+        showTooltip={!this.state.menuVisible}
+        includeDropdownArrow={true}
+        width={55} />
     );
   },
 
@@ -58,7 +73,7 @@ export default React.createClass({
   },
 
   getValueFromProp(p) {
-    return p.propTag;
+    return "Number"; //p.propTag;
   },
 
   // How should the button itself (icon, etc) change for this component if the value of the menu does 
@@ -72,13 +87,12 @@ export default React.createClass({
   /* When the button is clicked, make the menu visible if it already isn't and vice versa. This will automatically
   make the tooltip disappear */
   _onButtonClick(e) {
-    console.log("menu is visible");
     this.setState({ menuVisible: !this.state.menuVisible});
     this.refs.menu.toggleMenuVisible();
   },
 
   /* 
-    Prop passed to DropDownMenu
+    Prop passed to MenuController
     When a menu item is clicked, update the button and controller, then call a state change callback to update backend 
   */
   _onMenuClick(nextValue) {
@@ -88,7 +102,7 @@ export default React.createClass({
   },
 
   /* 
-    Prop passed down to DropDownMenu
+    Prop passed down to MenuController
   */
   _onMenuClose() {
     this.setState({menuVisible: false});
@@ -101,7 +115,6 @@ export default React.createClass({
   /* Update backend given the nextState (the updated value of the menu) and the active range */
   _setBackendCellProp(nextState, rng) {
     console.log("Setting backend via api");
-    return;
   },
 
 
@@ -115,13 +128,13 @@ export default React.createClass({
   /*************************************************************************************************************************/
   //Render
 
-
   render() {
     let button = this.getButton(),
         menuProps = this.menuProps;
     let dropdown = 
-      <DropDownMenu 
+      <MenuController 
         ref="menu"
+        toolbarControlWidth={55}
         menuProps={menuProps} 
         toolbarControl={button} 
         initialCheckedValue="Number"

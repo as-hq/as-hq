@@ -10,6 +10,10 @@ beside one another, and can handle checks next to selected items in the menu.
 
 export default React.createClass({
 
+  mixins: [
+    require('react-clickaway')
+  ],
+
   /*************************************************************************************************************************/
   // Prop and state methods
 
@@ -28,7 +32,7 @@ export default React.createClass({
     menuProps: React.PropTypes.array.isRequired,
     shouldCheckSelection: React.PropTypes.boolean,
     initialCheckedValue: React.PropTypes.string,
-    toolbarControlWidth: React.PropTypes.number,
+    toolbarControlWidth: React.PropTypes.number.isRequired,
     toolbarControlHeight: React.PropTypes.number,
     menuWidth: React.PropTypes.number, 
     menuMaxHeight: React.PropTypes.number,
@@ -38,11 +42,12 @@ export default React.createClass({
 
   getDefaultProps() {
     return {
+      toolbarControlHeight: 36,
       shouldCheckSelection: true,
       initialCheckedValue: '',
       width: 36,
       height: 36,
-      menuWidth: 300,
+      menuWidth: 200,
       menuMaxHeight: 400,
       onMenuClick: (e, item) => {},
       onMenuClose: () => {}
@@ -76,6 +81,7 @@ export default React.createClass({
   // When an item is clicked, update checkedValue state and call the callback
   _onMenuClick(e, item) {
     let nextValue = item.props.value; 
+    console.log("clicked on item with value " + nextValue);
     if (this.props.shouldCheckSelection) {
       this.setState({checkedValue: nextValue});
     }
@@ -83,7 +89,7 @@ export default React.createClass({
   },
 
   // Menu not visible on esc key
-  _onEscKeyDown(e) {
+  _onMenuRequestClose(e) {
     this.setState({menuVisible: false});
     this.props.onMenuClose();
   },
@@ -95,15 +101,17 @@ export default React.createClass({
   // Automatically handles checking. Example of propSet: {tag: 'MenuItem', primaryText: 'Number' ... }
   getMenu() {
     let checkedValue = this.state.checkedValue;
-    let menuItems = this.props.menuProps.map((propSet) => {
-      if (this.props.shouldCheckSelection && propSet.value === checkedValue) {
+    let menuItems = this.props.menuProps.map((p) => {
+      let propSet = p;
+      // If you should have checks, the value matches the checked value in state, and there's no default left icon, render check
+      if (this.props.shouldCheckSelection && propSet.value === checkedValue && propSet.leftIcon == null) {
         propSet.checked = true;
         propSet.insetChildren = false;
       } else if (this.props.shouldCheckSelection) {
         propSet.insetChildren = true;
         propSet.checked = false;
       } 
-      if (propSet.tag == 'MenuItem') {
+      if (propSet.tag === 'MenuItem') {
         return React.createElement(MenuItem, propSet)
       } else {
         return React.createElement(Divider, propSet)
@@ -115,14 +123,19 @@ export default React.createClass({
         width={this.props.menuWidth} 
         maxHeight={this.props.menuMaxHeight} 
         onItemTouchTap={this._onMenuClick}
-        onEscKeyDown={this._onEscKeyDown}>
+        onEscKeyDown={this._onMenuRequestClose}>
           {menuItems}
       </Menu>
     );
   },
 
-  // <MenuItem primaryText="Number" value="Number" secondaryText="hi" />
-  //       <MenuItem insetChildren={true} primaryText="Percent" value="Percent" secondaryText="hi" />
+  /*************************************************************************************************************************/
+  // Click away
+
+  // Don't show menu when user clicks away
+  componentClickAway() {
+    this.setState({menuVisible: false});
+  },
 
   /*************************************************************************************************************************/
   // Styling and rendering
@@ -132,13 +145,15 @@ export default React.createClass({
       bottomControlStyle: {
         position: 'absolute', 
         display: 'inline-block', // this sets it just to the right of the button
-        marginLeft:-this.props.width, // this moves it back to the left edge of the button
-        top: this.props.height, // this moves it to right below the button, and depends on toolbarHeight for accuracy
+        marginLeft:-this.props.toolbarControlWidth, 
+        // ^ this moves it back to the left edge of the toolbar control; counter-act inline-block
+        top: '50%',
+        height: this.props.toolbarControlHeight,
+        transform: 'translateY(50%)',
+        // ^ Note that the toolbar control's bottom is at toolbarHeight/2 + controlHeight/2. The above transform puts
+        // the top of the menu at this location. 
         zIndex: 50 // needed to display over the editor/sheet
       },
-      menuStyle: {
-
-      }
     };
   },
 
@@ -149,7 +164,7 @@ export default React.createClass({
     return (
       <span>
         {this.props.toolbarControl}
-        <div style={bottomControlStyle} >
+        <div style={bottomControlStyle}>
           {menu}
         </div>
       </span>

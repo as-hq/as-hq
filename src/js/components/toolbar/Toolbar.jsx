@@ -1,15 +1,15 @@
 import React from 'react';
+import {Toolbar, Styles} from 'material-ui';
+import {IconMenu, MenuItem, IconButton} from 'material-ui';
+
 import API from '../../actions/ASApiActionCreators';
 import Constants from '../../Constants';
 
-import {Toolbar, Styles} from 'material-ui';
-import {IconMenu, MenuItem, IconButton} from 'material-ui';
-let Tooltip = require("react-tooltip");
-
 import ToolbarButton from './ToolbarButton.jsx';
 import VaryPropButton from './VaryPropButton.jsx';
-
 import MoreFormatDropdown from './MoreFormatDropdown.jsx';
+import FontPicker from './FontPicker.jsx';
+import FontSizePicker from './FontSizePicker.jsx';
 
 export default React.createClass({
 
@@ -22,7 +22,7 @@ export default React.createClass({
 
   getDefaultProps() {
     return {
-      toolbarHeight: 40
+      toolbarHeight: 70
     };
   },
 
@@ -30,6 +30,9 @@ export default React.createClass({
   // Render
 
   render() {
+
+    // Because we're using inline-block, the height should all be the same for the elements on the toolbar, otherwise things
+    // screw up because CSS. This is a reasonable restriction anyway, so I'm not debugging it further (Ritesh 12/17)
 
     let toolbarStyle = {
       backgroundColor: Styles.Colors.grey700, 
@@ -50,20 +53,20 @@ export default React.createClass({
       width: 2
     };
 
-    // Common id of tooltip for all toolbar components
-    let tooltipId = "button";
-    
+    let shiftRight = <div style={{display: 'inline-block', marginLeft: 30, position: 'relative'}} />;
+
     return (
-      <Toolbar style={toolbarStyle}>
+      <div style={toolbarStyle} >
 
-        <ToolbarButton tooltipId={tooltipId} iconName="print" tooltip="Print (Ctrl+P)" usePushState={false}
+        {shiftRight}
+       
+        <ToolbarButton iconName="print" tooltip="Print (Ctrl+P)" usePushState={false}
           onClick={() => {}} />
-
-        <ToolbarButton tooltipId={tooltipId} iconName="undo" tooltip="Undo (Ctrl+Z)" usePushState={false}
+        <ToolbarButton iconName="undo" tooltip="Undo (Ctrl+Z)" usePushState={false}
           onClick={(state) => {API.undo()}} />
-        <ToolbarButton tooltipId={tooltipId} iconName="redo" tooltip="Redo (Ctrl+Y)" usePushState={false}
+        <ToolbarButton iconName="redo" tooltip="Redo (Ctrl+Y)" usePushState={false}
           onClick={(state) => {API.redo()}} />
-        <ToolbarButton tooltipId={tooltipId} iconName="format_paint" tooltip="Paint format" usePushState={false}
+        <ToolbarButton iconName="format_paint" tooltip="Paint format" usePushState={false}
           onClick={() => {}} />
 
 
@@ -71,57 +74,54 @@ export default React.createClass({
 
         <VaryPropButton
           propTag="Money"
-          tooltipId={tooltipId}
           tooltip="Format as currency"
           iconName="attach_money"  />
-
         <VaryPropButton
           propTag="Percentage"
-          tooltipId={tooltipId}
           tooltip="Format as percent"
           iconName="create" />
-
-        <ToolbarButton tooltipId={tooltipId} iconName="zoom_in" tooltip="Decrease decimal places" usePushState={false}
+        <ToolbarButton iconName="zoom_in" tooltip="Decrease decimal places" usePushState={false}
           onClick={() => {}}/>
-        <ToolbarButton tooltipId={tooltipId} iconName="zoom_out" tooltip="Increase decimal places" usePushState={false}
+        <ToolbarButton iconName="zoom_out" tooltip="Increase decimal places" usePushState={false}
           onClick={() => {}}/>
-
-        <MoreFormatDropdown tooltipId={tooltipId} />
+        <MoreFormatDropdown />
         
 
         <div style={separatorStyle} />
 
-       
+        <FontPicker />
+
+        <div style={separatorStyle} />
+
+        <FontSizePicker />
+
         <div style={separatorStyle} />
 
         <VaryPropButton
           propTag="Bold"
-          tooltipId={tooltipId}
           tooltip="Bold (Ctrl+B)"
           iconName="format_bold" />
         <VaryPropButton
           propTag="Italic"
-          tooltipId={tooltipId}
           tooltip="Italic (Ctrl+I)"
           iconName="format_italic" />
         <VaryPropButton
           propTag="Strikethrough"
-          tooltipId={tooltipId}
           tooltip="Strikethrough (Alt+Shift+5)"
           iconName="strikethrough_s" />
 
         
-      
         <div style={separatorStyle} />
 
-        <Tooltip 
-          id="button" 
-          place="bottom"
-          type="info"
-          effect="solid"
-          offset="{'top': 10, 'left': 0}" />
-      </Toolbar>
+        <ToolbarButton iconName="link" tooltip="Insert link (Ctrl+K)" usePushState={false}
+          onClick={() => {}}/>
+        <ToolbarButton iconName="comment" tooltip="Insert comment (Ctrl+Alt+M)" usePushState={false}
+          onClick={() => {}}/>
+        <ToolbarButton iconName="poll" tooltip="Insert chart..." usePushState={false}
+          onClick={() => {}}/>
 
+       
+      </div>
     );
   }
 

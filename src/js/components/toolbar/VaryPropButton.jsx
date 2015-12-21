@@ -23,7 +23,6 @@ export default React.createClass({
   /* We need the propTag (Bold), and props to pass down to the button control */
   propTypes: {
     propTag: React.PropTypes.string.isRequired,
-    tooltipId: React.PropTypes.string.isRequired,
     tooltip: React.PropTypes.string.isRequired,
     iconName: React.PropTypes.string.isRequired,
   },
@@ -58,7 +57,7 @@ export default React.createClass({
   },
 
   render() {
-    let {iconName, tooltipId, tooltip, buttonControl} = this.props;
+    let {iconName, tooltip, buttonControl} = this.props;
 
     // Define the button control, and note that we always show the tooltip for this component
     let button = 
@@ -66,7 +65,6 @@ export default React.createClass({
         ref="button"
         onClick={this._onClick}  
         iconName={iconName}
-        tooltipId={tooltipId}
         tooltip={tooltip} />;
 
     return (
