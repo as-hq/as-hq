@@ -13,7 +13,7 @@ import AS.Types.Commits
 import AS.Types.Locations
 import AS.Types.Eval
 import AS.Types.CellProps
-import AS.Types.RowColProps
+import AS.Types.Bar
 
 import Debug.Trace
 
@@ -183,7 +183,7 @@ data RedisKey :: RedisKeyType -> * where
   PopCommitKey    :: CommitSource -> RedisKey PopCommitType
   LastMessageKey  :: CommitSource -> RedisKey LastMessageType
   CFRulesKey      :: ASSheetId -> RedisKey CFRulesType
-  RCPropsKey      :: ASSheetId -> RowColType -> Int -> RedisKey RCPropsType
+  RCPropsKey      :: ASSheetId -> BarType -> Int -> RedisKey RCPropsType
   AllWorkbooksKey :: RedisKey AllWorkbooksType 
   AllSheetsKey    :: RedisKey AllSheetsType
   VolatileLocsKey :: RedisKey VolatileLocsType
@@ -221,7 +221,7 @@ instance Read2 (RedisKey RCPropsType) where
         [typeStr, keyStr] = splitOn keyTypeSeparator s
         [sidStr, rctStr, indStr] = splitOn keyPartDelimiter keyStr
         sid = T.pack sidStr
-        rct = read rctStr :: RowColType
+        rct = read rctStr :: BarType
         ind = read indStr :: Int
 
 instance Show CommitSource where
@@ -242,7 +242,7 @@ keyPatternBySheet kt sid =
     PopCommitType   -> sid' ++ "*"
     LastMessageType -> sid' ++ "*"
 
-rcPropsKeyPattern :: ASSheetId -> RowColType -> String
+rcPropsKeyPattern :: ASSheetId -> BarType -> String
 rcPropsKeyPattern sid rct = (keyPrefix RCPropsType) ++ (T.unpack sid) ++ keyPartDelimiter ++ (show rct) ++ "*"
 
 toRedisFormat :: RedisKey a -> B.ByteString

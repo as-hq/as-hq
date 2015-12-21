@@ -4,7 +4,7 @@ module AS.DB.API where
 
 import Prelude
 import AS.Types.Cell
-import qualified AS.Types.RowColProps as RP
+import qualified AS.Types.Bar as RP
 import AS.Types.Messages
 import AS.Types.DB
 import AS.Types.CellProps
@@ -430,28 +430,28 @@ setCondFormattingRules conn sid rules = runRedis conn $ do
 
 -- TODO: eventually should extend to record generic row/col formats, like default font in the column, 
 -- rather than just its width. 
-getRowColProps :: Connection -> ASSheetId -> RP.RowColType -> Int -> IO (Maybe RP.ASRowColProps)
-getRowColProps conn sid rct ind  = runRedis conn $ do 
+getBarProps :: Connection -> ASSheetId -> RP.BarType -> Int -> IO (Maybe RP.ASBarProps)
+getBarProps conn sid rct ind  = runRedis conn $ do 
   Right msg <- get . toRedisFormat $ RCPropsKey sid rct ind
   return $ decodeMaybe =<< msg
 
-setRowColProps :: Connection -> ASSheetId -> RP.RowCol -> IO ()
-setRowColProps conn sid (RP.RowCol rct ind props) = do
+setBarProps :: Connection -> ASSheetId -> RP.Bar -> IO ()
+setBarProps conn sid (RP.Bar rct ind props) = do
   runRedis conn $ set (toRedisFormat $ RCPropsKey sid rct ind) (S.encode props)
   return ()
 
-deleteRowColProps :: Connection -> ASSheetId -> RP.RowCol -> IO ()
-deleteRowColProps conn sid (RP.RowCol rct ind _) = do
+deleteBarProps :: Connection -> ASSheetId -> RP.Bar -> IO ()
+deleteBarProps conn sid (RP.Bar rct ind _) = do
   runRedis conn $ del [toRedisFormat $ RCPropsKey sid rct ind]
   return ()
 
-replaceRowCols :: Connection -> ASSheetId -> [RP.RowCol] -> [RP.RowCol] -> IO()
-replaceRowCols conn sid fromRowCols toRowCols = do
-  mapM_ (deleteRowColProps conn sid) fromRowCols
-  mapM_ (setRowColProps conn sid) toRowCols
+replaceBars :: Connection -> ASSheetId -> [RP.Bar] -> [RP.Bar] -> IO()
+replaceBars conn sid fromBars toBars = do
+  mapM_ (deleteBarProps conn sid) fromBars
+  mapM_ (setBarProps conn sid) toBars
 
-getRowColsInSheet :: Connection -> ASSheetId -> IO [RP.RowCol]
-getRowColsInSheet conn sid = do 
+getBarsInSheet :: Connection -> ASSheetId -> IO [RP.Bar]
+getBarsInSheet conn sid = do 
   let readKey k = read2 (BC.unpack k) :: RedisKey RCPropsType
       extractInd :: RedisKey RCPropsType -> Int
       extractInd (RCPropsKey _ _ ind) = ind
@@ -459,14 +459,14 @@ getRowColsInSheet conn sid = do
   mRowKeys <- fromRight <$> runRedis conn (keys $ BC.pack $ rcPropsKeyPattern sid RP.RowType)
   let colInds = map (extractInd . readKey) mColKeys
       rowInds = map (extractInd . readKey) mRowKeys
-  colProps <- mapM (getRowColProps conn sid RP.ColumnType) colInds
-  rowProps <- mapM (getRowColProps conn sid RP.RowType) rowInds
-  let cols = map (\(x, Just y) -> RP.RowCol RP.ColumnType x y) $ filter (isJust . snd) $ zip colInds colProps
-      rows = map (\(x, Just y) -> RP.RowCol RP.RowType x y) $ filter (isJust . snd) $ zip rowInds rowProps
+  colProps <- mapM (getBarProps conn sid RP.ColumnType) colInds
+  rowProps <- mapM (getBarProps conn sid RP.RowType) rowInds
+  let cols = map (\(x, Just y) -> RP.Bar RP.ColumnType x y) $ filter (isJust . snd) $ zip colInds colProps
+      rows = map (\(x, Just y) -> RP.Bar RP.RowType x y) $ filter (isJust . snd) $ zip rowInds rowProps
   return $ union cols rows
 
-deleteRowColsInSheet :: Connection -> ASSheetId -> IO ()
-deleteRowColsInSheet conn sid = do
+deleteBarsInSheet :: Connection -> ASSheetId -> IO ()
+deleteBarsInSheet conn sid = do
   colKeys <- fromRight <$> runRedis conn (keys $ BC.pack $ rcPropsKeyPattern sid RP.ColumnType)
   rowKeys <- fromRight <$> runRedis conn (keys $ BC.pack $ rcPropsKeyPattern sid RP.RowType)
   runRedis conn $ del (colKeys ++ rowKeys)

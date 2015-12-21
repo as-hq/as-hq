@@ -75,7 +75,7 @@ instance Client ASUserClient where
       Drag               -> handleDrag user state payload
       Decouple           -> handleDecouple user state payload
       SetCondFormatRules -> handleSetCondFormatRules user state payload
-      SetRowColProp      -> handleSetRowColProp user state payload
+      SetBarProp      -> handleSetBarProp user state payload
       ImportCSV          -> handleCSVImport user state payload
       where payload = clientPayload message
       -- Undo         -> handleToggleProp user state (PayloadTags [StreamTag (Stream NoSource 1000)] (Index (T.pack "TEST_SHEET_ID2") (1,1)))

@@ -9,7 +9,7 @@ import AS.Types.DB hiding (Clear)
 import AS.Types.Eval
 import AS.Types.Commits
 import AS.Types.CondFormat
-import qualified AS.Types.RowColProps as RP
+import qualified AS.Types.Bar as RP
 
 import AS.Handlers.Eval
 import AS.Eval.CondFormat
@@ -73,8 +73,8 @@ handleOpen uc state (PayloadS (Sheet sid _ _)) = do
   condFormatRules <- DB.getCondFormattingRules conn sid
   let xps = map (\(str, lang) -> Expression str lang) (zip headers langs)
   -- get column props
-  rowColProps <- DB.getRowColsInSheet conn sid
-  sendToOriginal uc $ ServerMessage Open Success $ PayloadOpen xps condFormatRules rowColProps
+  barProps <- DB.getBarsInSheet conn sid
+  sendToOriginal uc $ ServerMessage Open Success $ PayloadOpen xps condFormatRules barProps
 
 -- NOTE: doesn't send back blank cells. This means that if, e.g., there are cells that got blanked
 -- in the database, those blank cells will not get passed to the user (and those cells don't get
@@ -241,24 +241,24 @@ handleSetCondFormatRules uc state (PayloadCondFormat rules) = do
 -- The type here is slightly wrong. This payload should really only indicate whether we're passed
 -- a row or a column, the index of this row/col, and a *single* prop to modify. For now, this is
 -- just the simplest type we can work with. 
-handleSetRowColProp :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
-handleSetRowColProp uc state (PayloadSetRowColProp rct ind prop) = do 
+handleSetBarProp :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
+handleSetBarProp uc state (PayloadSetBarProp rct ind prop) = do 
   conn <- dbConn <$> readMVar state
   let sid = userSheetId uc
-  mOldProps <- DB.getRowColProps conn sid rct ind
+  mOldProps <- DB.getBarProps conn sid rct ind
   let oldProps = maybe RP.emptyProps id mOldProps
       newProps = RP.setProp prop oldProps
-      newRc    = RP.RowCol rct ind newProps
+      newRc    = RP.Bar rct ind newProps
       oldRcs   = case mOldProps of
                       Nothing -> []
-                      Just _ -> [RP.RowCol rct ind oldProps]
-  DB.setRowColProps conn sid newRc
-  -- Add the RP.rowColProps to the commit.
+                      Just _ -> [RP.Bar rct ind oldProps]
+  DB.setBarProps conn sid newRc
+  -- Add the RP.barProps to the commit.
   time <- getASTime
-  let rcdiff = RowColDiff { beforeRowCols = oldRcs, afterRowCols = [newRc]}
-      commit = Commit { rowColDiff = rcdiff, cellDiff = CellDiff { beforeCells = [], afterCells = [] }, commitDescriptorDiff = DescriptorDiff { addedDescriptors = [], removedDescriptors = [] }, time = time}
+  let rcdiff = BarDiff { beforeBars = oldRcs, afterBars = [newRc]}
+      commit = Commit { barDiff = rcdiff, cellDiff = CellDiff { beforeCells = [], afterCells = [] }, commitDescriptorDiff = DescriptorDiff { addedDescriptors = [], removedDescriptors = [] }, time = time}
   DT.updateDBWithCommit conn (userCommitSource uc) commit
-  sendToOriginal uc $ ServerMessage SetRowColProp Success (PayloadN ())
+  sendToOriginal uc $ ServerMessage SetBarProp Success (PayloadN ())
 
 -- #anand used for importing binary alphasheets files (making a separate REST server for alphasheets
   -- import/export seems overkill given that it's a temporarily needed solution)

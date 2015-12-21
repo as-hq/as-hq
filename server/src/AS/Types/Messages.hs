@@ -6,7 +6,7 @@ import AS.Window
 
 import AS.Types.DB (ASCommit)
 import AS.Types.Cell
-import AS.Types.RowColProps
+import AS.Types.Bar
 import AS.Types.Sheets
 import AS.Types.Excel (indexToExcel)
 import AS.Types.Locations
@@ -52,7 +52,7 @@ data ASAction =
   | Clear
   | UpdateWindow
   | SetProp | ToggleProp
-  | SetRowColProp
+  | SetBarProp
   | Repeat
   | BugReport
   | JumpSelect
@@ -92,7 +92,7 @@ data ASPayload =
   | PayloadPaste {copyRange :: ASRange, copyTo :: ASRange}
   | PayloadProp {prop :: CellProp, tagRange :: ASRange}
   | PayloadXp ASExpression
-  | PayloadOpen {initHeaderExpressions :: [ASExpression], initCondFormatRules :: [CondFormatRule], initRowCols :: [RowCol]}
+  | PayloadOpen {initHeaderExpressions :: [ASExpression], initCondFormatRules :: [CondFormatRule], initBars :: [Bar]}
   | PayloadReplValue ASReplValue
   | PayloadValue CompositeValue
   | PayloadList QueryList
@@ -101,7 +101,7 @@ data ASPayload =
   | PayloadDrag {initialRange :: ASRange, dragRange :: ASRange}
   | PayloadCondFormat { condFormatRules :: [CondFormatRule] }
   | PayloadCondFormatResult { condFormatRulesResult :: [CondFormatRule], condFormatCellsUpdated :: [ASCell] }
-  | PayloadSetRowColProp RowColType Int RowColProp
+  | PayloadSetBarProp BarType Int BarProp
   | PayloadCSV {csvIndex :: ASIndex, csvLang :: ASLanguage, csvFileName :: String}
   deriving (Show, Read, Generic)
 

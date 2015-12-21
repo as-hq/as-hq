@@ -47,7 +47,7 @@ updateDBWithContext conn src ctx ctf = do
 -- conversions
 
 -- || evalContextToCommit gives empty rowcols.
--- | Commit uses rowCols in sheet as both before and after rowcols.
+-- | Commit uses bars in sheet as both before and after rowcols.
 -- TODO: timchu, 12/14/15. This could be refactored to split off didDecouple
 -- and Commit. But we're not because of DB latency.
 evalContextToCommit :: Connection -> EvalContext -> IO CommitWithInfo
@@ -55,7 +55,7 @@ evalContextToCommit conn (EvalContext mp cells ddiff) = do
   mbcells <- DB.getCells conn (map cellLocation cells)
   time <- getASTime
   let cdiff   = CellDiff { beforeCells = (catMaybes mbcells), afterCells = cells}
-      rcdiff  = RowColDiff { beforeRowCols = [], afterRowCols = [] }
+      rcdiff  = BarDiff { beforeBars = [], afterBars = [] }
       commit  = Commit rcdiff cdiff ddiff time
       rd      = removedDescriptors ddiff
       didDecouple = any isDecouplePair $ zip mbcells cells
@@ -110,7 +110,7 @@ undo conn src = do
     Just c@(Commit rcdiff cdiff ddiff t) -> do
       deleteLocsPropagated conn (map cellLocation $ afterCells cdiff) (addedDescriptors ddiff)
       setCellsPropagated conn (beforeCells cdiff) (removedDescriptors ddiff)
-      DB.replaceRowCols conn (srcSheetId src) (afterRowCols rcdiff) (beforeRowCols rcdiff)
+      DB.replaceBars conn (srcSheetId src) (afterBars rcdiff) (beforeBars rcdiff)
       return $ Just c
 
 redo :: Connection -> CommitSource -> IO (Maybe ASCommit)
@@ -129,7 +129,7 @@ redo conn src = do
     Just c@(Commit rcdiff cdiff ddiff t) -> do
       deleteLocsPropagated conn (map cellLocation $ beforeCells cdiff) (removedDescriptors ddiff)
       setCellsPropagated conn (afterCells cdiff) (addedDescriptors ddiff)
-      DB.replaceRowCols conn (srcSheetId src) (beforeRowCols rcdiff) (afterRowCols rcdiff)
+      DB.replaceBars conn (srcSheetId src) (beforeBars rcdiff) (afterBars rcdiff)
       return $ Just c
 
 pushCommit :: Connection -> CommitSource -> ASCommit -> IO ()
@@ -151,14 +151,14 @@ pushCommitWithInfo conn src commit =
 updateDBWithCommit :: Connection -> CommitSource -> ASCommit -> IO ()
 updateDBWithCommit conn src c@(Commit rcdiff cdiff ddiff time) = do 
   -- update cells
-  let arc = afterRowCols rcdiff
+  let arc = afterBars rcdiff
       af = afterCells cdiff
   DB.setCells conn af
   deleteLocs conn $ map cellLocation $ filter isEmptyCell af
   mapM_ (setDescriptor conn) (addedDescriptors ddiff)
   mapM_ (deleteDescriptor conn) (removedDescriptors ddiff)
   -- update Rows and Columns in sheet
-  DB.replaceRowCols conn (srcSheetId src) (beforeRowCols rcdiff) (afterRowCols rcdiff)
+  DB.replaceBars conn (srcSheetId src) (beforeBars rcdiff) (afterBars rcdiff)
   pushCommit conn src c
 
 -- Each commit source has a temp commit, used for decouple warnings

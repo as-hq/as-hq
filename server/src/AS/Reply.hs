@@ -21,7 +21,7 @@ import Control.Concurrent
 sheetsInPayload :: ASPayload -> [ASSheetId]
 sheetsInPayload (PayloadDelete rng cells) = (rangeSheetId rng):(map (locSheetId . cellLocation) cells)
 sheetsInPayload (PayloadS (Sheet sid _ _)) = [sid]
--- TODO: timchu 12/14/15, sheetsInPayload does not have RowColProps!
+-- TODO: timchu 12/14/15, sheetsInPayload does not have BarProps!
 sheetsInPayload (PayloadCommit (Commit _ cdiff _ _)) = (map getSheet bf) ++ (map getSheet af)
   where
     bf = beforeCells cdiff

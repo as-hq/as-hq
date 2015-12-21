@@ -13,7 +13,7 @@ import qualified Data.Text as T
 
 import Data.Serialize (Serialize)
 
-import AS.Types.RowColProps
+import AS.Types.Bar
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Version Control
@@ -25,14 +25,14 @@ data CellDiff = CellDiff { beforeCells :: [ASCell]
                          , afterCells :: [ASCell] }
                          deriving (Show, Read, Generic)
 
-data RowColDiff = RowColDiff { beforeRowCols :: [RowCol]
-                             , afterRowCols :: [RowCol] }
+data BarDiff = BarDiff { beforeBars :: [Bar]
+                             , afterBars :: [Bar] }
                              deriving (Show, Read, Generic)
 
-emptyRowColDiff :: RowColDiff
-emptyRowColDiff = RowColDiff [] []
+emptyBarDiff :: BarDiff
+emptyBarDiff = BarDiff [] []
 
-data ASCommit = Commit { rowColDiff :: RowColDiff
+data ASCommit = Commit { barDiff :: BarDiff
                        , cellDiff :: CellDiff
                        , commitDescriptorDiff :: DescriptorDiff
                        , time :: ASTime }
@@ -48,13 +48,13 @@ instance FromJSON ASCommit
 instance ToJSON ASCommit
 instance FromJSON CellDiff
 instance ToJSON CellDiff
-instance FromJSON RowColDiff
-instance ToJSON RowColDiff
+instance FromJSON BarDiff
+instance ToJSON BarDiff
 
 instance Serialize ASTime
 instance Serialize ASCommit
 instance Serialize CellDiff
-instance Serialize RowColDiff
+instance Serialize BarDiff
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Helpers
@@ -77,5 +77,5 @@ generateCommitFromCells cells = do
   time <- getASTime
   let cdiff = CellDiff { beforeCells = [], afterCells = cells }
       ddiff = DescriptorDiff { addedDescriptors = [], removedDescriptors = [] }
-  return $ Commit emptyRowColDiff cdiff ddiff time
+  return $ Commit emptyBarDiff cdiff ddiff time
 
