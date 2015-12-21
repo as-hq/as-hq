@@ -171,7 +171,8 @@ export default class ASChartDialog extends React.Component<{}, ASChartDialogProp
                                       ref="chart"
                                       valueRange={valueRange}
                                       sheetId={sheetId}
-                                      chartContext={ctx} />) ;},
+                                      chartContext={ctx}
+                                      redraw={false} />); },
         width: 500,
         height: 300,
         offsetX: 0,
@@ -303,7 +304,8 @@ export default class ASChartDialog extends React.Component<{}, ASChartDialogProp
               ref="generatedChart"
               valueRange={valueRange}
               sheetId={SheetStore.getCurrentSheet().sheetId}
-              chartContext={this._generateContext()} />
+              chartContext={this._generateContext()}
+              redraw={true} />
           ]
         ) : "Incorrect chart configuration. " }
       </Dialog>

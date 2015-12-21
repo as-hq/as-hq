@@ -1,5 +1,16 @@
+/* @flow */
+
+import type {
+  ASCellProp
+} from '../types/Eval';
+
+import type {
+  ASOverlaySpec
+} from '../types/Hypergrid';
+
 import React from 'react';
 import Constants from '../Constants';
+// $FlowFixMe too lazy to declare this import rn
 let Draggable = require('react-draggable');
 let ReactDOM = require('react-dom');
 import API from '../actions/ASApiActionCreators';
@@ -20,23 +31,40 @@ for not scrolling over the column and row headers (what we want is a restricted 
 currently stops the images from going up too high) -- Ritesh 12/16
 */
 
-export default React.createClass({
+type ASOverlayProps = {
+  scrollPixels: HGPoint;
+  overlay: ASOverlaySpec;
+  children: ReactElement
+};
 
-  propTypes: {
-    scrollPixels: React.PropTypes.object.isRequired,
-    overlay: React.PropTypes.object.isRequired
-  },
+type ASOverlayState = {};
+
+type EventDetail = {
+  position: {top: string, left: string}
+};
+
+export default class ASOverlay extends React.Component<{}, ASOverlayProps, ASOverlayState> {
+
+  constructor(props: ASOverlayProps) {
+    super(props);
+
+    this.state = {};
+  }
+
+  componentWillUnmount() {
+    console.error("Overlay unmounted!");
+  }
 
   /* Upon drag or resize, update the backend metadata about the image */
-  updateImageProps(prop) {
+  updateImageProps(prop: ASCellProp) {
     if (this.props.overlay.loc) {
       let rng = {tl: this.props.overlay.loc.index, br: this.props.overlay.loc.index};
       API.setProp(prop, rng);
     }
-  },
+  }
 
   /* Called when we stop dragging the image. We produce the new image props (by adding to offsets) and update backend */
-  _onStop(e, detail) {
+  _onStop(e: SyntheticEvent, detail: EventDetail) {
     // ImageData shouldn't leak into this part of the code; should probably
     // create an ImageData type with imageOffsetX, etc., and pass that around,
     // and only insert tag: "ImageData" in the API. (Alex 12/15)
@@ -51,13 +79,13 @@ export default React.createClass({
     if (detail.position.left !== 0 || detail.position.top !== 0) {
       this.updateImageProps(prop);
     }
-  },
+  }
 
   /*
   This is called after resizing and dragging, but will only do something nontrivial for resizing. It will get
   the new node, and compute the new prop based on the new width/height. This will then be sent to backend as an update.
   */
-  _onMouseUp(e) {
+  _onMouseUp(e: SyntheticEvent) {
     let node = ReactDOM.findDOMNode(this.refs.overlay);
     if (node !== null) {
       let {width,height} = node.style,
@@ -72,20 +100,22 @@ export default React.createClass({
         this.updateImageProps(tagValue);
       }
     }
-  },
+  }
 
-  render() {
+  render(): React.Element {
     /*
     Compute div style based on metadata, allow for resizing, have a nice border
     We are passed scroll state from the spreadsheet (how much the sheet is scrolled in X and Y directions, in pixels)
     We account for that in computing top and left, in addition to keeping track of offsets (from user dragging)
     */
+    let {overlay, scrollPixels, children} = this.props;
+    let {width, height, top, left, offsetX, offsetY} = overlay;
     let baseStyle = {
       position: 'absolute',
-      width: this.props.overlay.width,
-      height: this.props.overlay.height,
-      top: this.props.overlay.top + this.props.overlay.offsetY - parseFloat(this.props.scrollPixels.y),
-      left: this.props.overlay.left + this.props.overlay.offsetX - parseFloat(this.props.scrollPixels.x),
+      width: width,
+      height: height,
+      top: top + offsetY - scrollPixels.y,
+      left: left + offsetX - scrollPixels.x,
       zIndex: 5,
       resize: 'auto',
       overflow: 'hidden',
@@ -97,21 +127,19 @@ export default React.createClass({
     work within Draggable, so it's in a separate div
     */
     return (
-      <div onMouseUp={this._onMouseUp}>
+      <Paper zDepth={5} onMouseUp={this._onMouseUp.bind(this)}>
         <Draggable
           moveOnStartChange={false}
           start={{x: 0, y: 0}}
           zIndex={100}
-          onStop={this._onStop}>
-          <Paper zdepth={5} rounded={true}>
-            <div style={baseStyle} ref="overlay" >
-              {this.props.children}
-            </div>
-          </Paper>
+          onStop={this._onStop.bind(this)}>
+          <div style={baseStyle} ref="overlay" >
+            {children}
+          </div>
         </Draggable>
-      </div>
+      </Paper>
     );
 
   }
 
-});
+}

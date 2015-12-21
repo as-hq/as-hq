@@ -32,12 +32,11 @@ type ASChartProps = {
   chartContext: ASChartContext;
   valueRange: NakedRange;
   sheetId: string;
+  redraw: boolean;
 };
 
 type ASChartState = {
   data: ASChartData;
-  valueRange: NakedRange;
-  sheetId: string;
 };
 
 export default class ASChart extends React.Component<{}, ASChartProps, ASChartState> {
@@ -46,28 +45,22 @@ export default class ASChart extends React.Component<{}, ASChartProps, ASChartSt
 
     this.state = {
       data: this._contextToData(this.props.chartContext),
-      valueRange: props.valueRange,
-      sheetId: props.sheetId
     };
   }
 
   componentDidMount() {
-    CellStore.addChangeListener(this._onDataChange);
+    CellStore.addChangeListener(this._onDataChange.bind(this));
   }
 
   componentWillUnmount() {
-    CellStore.removeChangeListener(this._onDataChange);
+    console.error("Chart unmounted!");
+    CellStore.removeChangeListener(this._onDataChange.bind(this));
   }
 
   componentWillReceiveProps(newProps: ASChartProps) {
-    // reconstruct chart with options here
-    let chartData = this._contextToData(newProps.chartContext);
-    let newState = {
-      data: chartData,
-      valueRange: newProps.valueRange,
-      sheetId: newProps.sheetId
-    };
-    this.setState(newState);
+    let {chartContext, valueRange, sheetId} = newProps;
+    let chartData = this._contextToData(chartContext);
+    this.setState({data: chartData});
   }
 
   // ASCell -> Bool
@@ -93,7 +86,7 @@ export default class ASChart extends React.Component<{}, ASChartProps, ASChartSt
     cs.forEach((c) => {
       let {col, row} = this._getRelativeIndex(c.cellLocation.index);
       let val = CU.cellToChartVal(c);
-      // cartesian data case
+      // update the datastructure depending on the chart type
       if (CU.isCartesian(this.props.chartContext.chartType) && newData.datasets) {
         newData.datasets[col].data[row] = val;
       } else {
@@ -101,6 +94,7 @@ export default class ASChart extends React.Component<{}, ASChartProps, ASChartSt
         newData[insertIdx].value = val;
       }
     });
+    console.log("updated chart data!");
     this.setState({data: newData});
   }
 
@@ -187,9 +181,17 @@ export default class ASChart extends React.Component<{}, ASChartProps, ASChartSt
 
   render(): React.Element {
     let ChartConstructor = Chart[this.props.chartContext.chartType];
-    return <ChartConstructor
-              data={this.state.data}
-              options={this.props.chartContext.options}
-              redraw/>;
+    let {data} = this.state;
+    let {redraw, chartContext} = this.props;
+    return redraw ?
+          (<ChartConstructor
+              data={data}
+              options={chartContext.options}
+              redraw />
+              ) :
+          (<ChartConstructor
+              data={data}
+              options={chartContext.options} />
+          );
   }
 }
