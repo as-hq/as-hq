@@ -146,7 +146,7 @@ wss.onmessage = (event: MessageEvent) => {
           Dispatcher.dispatch({
             _type: 'GOT_OPEN',
             expressions: msg.payload.initHeaderExpressions,
-            initRowCols: msg.payload.initRowCols
+            initBars: msg.payload.initBars
           });
           Dispatcher.dispatch({
             _type: 'GOT_UPDATED_RULES',

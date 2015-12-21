@@ -328,7 +328,6 @@ export type ASBackendPayload =
   | PayloadCondFormat
   | PayloadSetBarProp
   | PayloadSheetUpdate;
->>>>>>> 22fc2bc... dummy commit
 
 export type ASBackendTime = {
   tag: 'Time';
@@ -347,7 +346,7 @@ export type ASBackendCommit = {
 export type SheetUpdate = {
   tag: 'SheetUpdate'; 
   updatedCells: Array<ASCell>;
-  updatedRowCols: Array<RowCol>;
+  updatedBars: Array<Bar>;
   // updatedRangeDescriptors: 
   updatedCondFormatRules: Array<CondFormatRule>;
 };
