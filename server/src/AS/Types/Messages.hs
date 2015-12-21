@@ -101,7 +101,7 @@ data ASPayload =
   | PayloadDrag {initialRange :: ASRange, dragRange :: ASRange}
   | PayloadCondFormat { condFormatRules :: [CondFormatRule] }
   | PayloadCondFormatResult { condFormatRulesResult :: [CondFormatRule], condFormatCellsUpdated :: [ASCell] }
-  | PayloadSetBarProp BarType Int BarProp
+  | PayloadSetBarProp BarIndex BarProp
   | PayloadCSV {csvIndex :: ASIndex, csvLang :: ASLanguage, csvFileName :: String}
   deriving (Show, Read, Generic)
 

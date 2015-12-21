@@ -246,15 +246,15 @@ handleSetBarProp uc state (PayloadSetBarProp bInd prop) = do
   mOldProps <- DB.getBarProps conn bInd
   let oldProps = maybe B.emptyProps id mOldProps
       newProps = B.setProp prop oldProps
-      newRc    = B.Bar (rct ind newProps
+      newRc    = B.Bar bInd newProps
       oldRcs   = case mOldProps of
                       Nothing -> []
-                      Just _ -> [B.Bar rct ind oldProps]
-  DB.setBarProps conn sid newRc
+                      Just _ -> [B.Bar bInd oldProps]
+  DB.setBar conn newRc
   -- Add the B.barProps to the commit.
   time <- getASTime
-  let rcdiff = BarDiff { beforeBars = oldRcs, afterBars = [newRc]}
-      commit = Commit { barDiff = rcdiff, cellDiff = CellDiff { beforeCells = [], afterCells = [] }, commitDescriptorDiff = DescriptorDiff { addedDescriptors = [], removedDescriptors = [] }, time = time}
+  let bardiff = BarDiff { beforeBars = oldRcs, afterBars = [newRc]}
+      commit = Commit { barDiff = bardiff, cellDiff = CellDiff { beforeCells = [], afterCells = [] }, commitDescriptorDiff = DescriptorDiff { addedDescriptors = [], removedDescriptors = [] }, time = time}
   DT.updateDBWithCommit conn (userCommitSource uc) commit
   sendToOriginal uc $ ServerMessage SetBarProp Success (PayloadN ())
 

@@ -166,7 +166,7 @@ data RedisKeyType =
   | PopCommitType 
   | LastMessageType 
   | CFRulesType 
-  | RCPropsType 
+  | BarPropsType 
   | AllWorkbooksType 
   | AllSheetsType
   | VolatileLocsType
@@ -183,7 +183,7 @@ data RedisKey :: RedisKeyType -> * where
   PopCommitKey    :: CommitSource -> RedisKey PopCommitType
   LastMessageKey  :: CommitSource -> RedisKey LastMessageType
   CFRulesKey      :: ASSheetId -> RedisKey CFRulesType
-  RCPropsKey      :: ASSheetId -> BarType -> Int -> RedisKey RCPropsType
+  BarPropsKey     :: BarIndex -> RedisKey BarPropsType
   AllWorkbooksKey :: RedisKey AllWorkbooksType 
   AllSheetsKey    :: RedisKey AllSheetsType
   VolatileLocsKey :: RedisKey VolatileLocsType
@@ -191,19 +191,19 @@ data RedisKey :: RedisKeyType -> * where
 
 instance Show2 (RedisKey a) where
   show2 k = case k of 
-    SheetRangesKey sid      -> (keyPrefix SheetRangesType) ++ T.unpack sid
-    SheetKey sid            -> (keyPrefix SheetType) ++ T.unpack sid
-    WorkbookKey wname       -> (keyPrefix WorkbookType) ++ wname
-    EvalHeaderKey sid lang  -> (keyPrefix EvalHeaderType) ++ (T.unpack sid) ++ keyPartDelimiter ++ (show lang)
-    TempCommitKey c         -> (keyPrefix TempCommitType) ++ show c
-    PushCommitKey c         -> (keyPrefix PushCommitType) ++ show c
-    PopCommitKey c          -> (keyPrefix PopCommitType) ++ show c
-    LastMessageKey c        -> (keyPrefix LastMessageType) ++ show c
-    CFRulesKey sid          -> (keyPrefix CFRulesType) ++ T.unpack sid
-    RCPropsKey sid rct ind  -> (keyPrefix RCPropsType) ++ (T.unpack sid) ++ keyPartDelimiter ++ (show rct) ++ keyPartDelimiter ++ (show ind) -- #refactor this show
-    AllWorkbooksKey         -> keyPrefix AllWorkbooksType
-    AllSheetsKey            -> keyPrefix AllSheetsType
-    VolatileLocsKey         -> keyPrefix VolatileLocsType
+    SheetRangesKey sid                -> (keyPrefix SheetRangesType) ++ T.unpack sid
+    SheetKey sid                      -> (keyPrefix SheetType) ++ T.unpack sid
+    WorkbookKey wname                 -> (keyPrefix WorkbookType) ++ wname
+    EvalHeaderKey sid lang            -> (keyPrefix EvalHeaderType) ++ (T.unpack sid) ++ keyPartDelimiter ++ (show lang)
+    TempCommitKey c                   -> (keyPrefix TempCommitType) ++ show c
+    PushCommitKey c                   -> (keyPrefix PushCommitType) ++ show c
+    PopCommitKey c                    -> (keyPrefix PopCommitType) ++ show c
+    LastMessageKey c                  -> (keyPrefix LastMessageType) ++ show c
+    CFRulesKey sid                    -> (keyPrefix CFRulesType) ++ T.unpack sid
+    BarPropsKey (BarIndex sid t ind)  -> (keyPrefix BarPropsType) ++ (T.unpack sid) ++ keyPartDelimiter ++ (show t) ++ keyPartDelimiter ++ (show ind) -- #refactor this show
+    AllWorkbooksKey                   -> keyPrefix AllWorkbooksType
+    AllSheetsKey                      -> keyPrefix AllSheetsType
+    VolatileLocsKey                   -> keyPrefix VolatileLocsType
     RedisRangeKey (RangeKey idx dims) -> (keyPrefix RangeType) ++ (show2 idx) ++ keyPartDelimiter ++ (show2 dims)
 
 -- value-dependent instances mothafucka!
@@ -215,13 +215,13 @@ instance Read2 (RedisKey RangeType) where
       rkey = case (read typeStr :: RedisKeyType) of 
         RangeType -> RangeKey (read2 idxStr :: ASIndex) (read2 dimsStr :: Dimensions)
 
-instance Read2 (RedisKey RCPropsType) where
-    read2 s = RCPropsKey sid rct ind
+instance Read2 (RedisKey BarPropsType) where
+    read2 s = BarPropsKey (BarIndex sid typ ind)
       where
         [typeStr, keyStr] = splitOn keyTypeSeparator s
-        [sidStr, rctStr, indStr] = splitOn keyPartDelimiter keyStr
+        [sidStr, typStr, indStr] = splitOn keyPartDelimiter keyStr
         sid = T.pack sidStr
-        rct = read rctStr :: BarType
+        typ = read typStr :: BarType
         ind = read indStr :: Int
 
 instance Show CommitSource where
@@ -242,8 +242,8 @@ keyPatternBySheet kt sid =
     PopCommitType   -> sid' ++ "*"
     LastMessageType -> sid' ++ "*"
 
-rcPropsKeyPattern :: ASSheetId -> BarType -> String
-rcPropsKeyPattern sid rct = (keyPrefix RCPropsType) ++ (T.unpack sid) ++ keyPartDelimiter ++ (show rct) ++ "*"
+barPropsKeyPattern :: ASSheetId -> BarType -> String
+barPropsKeyPattern sid typ = (keyPrefix BarPropsType) ++ (T.unpack sid) ++ keyPartDelimiter ++ (show typ) ++ "*"
 
 toRedisFormat :: RedisKey a -> B.ByteString
 toRedisFormat = BC.pack . show2

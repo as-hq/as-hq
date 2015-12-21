@@ -26,8 +26,8 @@ data CellDiff = CellDiff { beforeCells :: [ASCell]
                          deriving (Show, Read, Generic)
 
 data BarDiff = BarDiff { beforeBars :: [Bar]
-                             , afterBars :: [Bar] }
-                             deriving (Show, Read, Generic)
+                       , afterBars :: [Bar] }
+                       deriving (Show, Read, Generic)
 
 emptyBarDiff :: BarDiff
 emptyBarDiff = BarDiff [] []

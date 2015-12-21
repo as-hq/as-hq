@@ -4,10 +4,11 @@ module AS.Types.Bar where
 
 import qualified AS.Types.CellProps as CP
 
+import AS.Types.Sheets
+
 import GHC.Generics
 import Data.Aeson
 
-import Data.Serialize (Serialize)
 import Data.Aeson.Types (Parser)
 import Data.Serialize (Serialize)
 import Data.Maybe
@@ -18,7 +19,7 @@ import Control.Monad (liftM, ap)
 data BarType = ColumnType | RowType deriving (Show, Read, Eq, Generic)
 
 -- Uniquely identifies a row or column in a sheet. 
-data BarIndex = BarIndex { barSheetId :: ASSheeetId, barType :: BarType, barNumber :: Int } deriving (Show, Read, Eq, Generic)
+data BarIndex = BarIndex { barSheetId :: ASSheetId, barType :: BarType, barNumber :: Int } deriving (Show, Read, Eq, Generic)
 
 data Bar = Bar {barIndex :: BarIndex, barProps :: ASBarProps} deriving (Show, Read, Eq, Generic)
 
@@ -59,7 +60,8 @@ emptyProps = ASBarProps M.empty
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Instances
 
--- Just to get this to compile. We're never actually gettting passed these from frontend. 
+-- ::ALEX:: needs to be refactored
+-- ::ALEX:: split off BarProps and Bar.hs
 instance FromJSON ASBarProps where
   parseJSON v = return emptyProps
 instance ToJSON ASBarProps where
