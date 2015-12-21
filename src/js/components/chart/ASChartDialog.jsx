@@ -19,13 +19,16 @@ import type {
   ASPolarChartType,
   ASChartContext,
   ASPolarValues,
-  ASCartesianValues
+  ASCartesianValues,
+  ASChartOptions
 } from './types';
 
 import React from 'react';
 import {Dialog, TextField, DropDownMenu} from 'material-ui';
 // $FlowFixMe: Too lazy to add ~14 things to declarations
 import {List, Divider, ListItem} from 'material-ui';
+// $FlowFixMe: Too lazy to add ~14 things to declarations
+import {Toggle} from 'material-ui';
 
 import {Just, Nothing} from '../../AS/Maybe';
 
@@ -58,6 +61,7 @@ type ASChartDialogState = {
   plotLabelRange: ?NakedRange;
   xLabelRange: ?NakedRange;
   chartType: ASChartType;
+  showLegend: boolean;
 };
 
 
@@ -83,7 +87,8 @@ export default class ASChartDialog extends React.Component<{}, ASChartDialogProp
         valueRangeInput: '',
         plotLabelRangeInput: '',
         xLabelRangeInput: ''
-      }
+      },
+      showLegend: true
     };
   }
 
@@ -176,7 +181,7 @@ export default class ASChartDialog extends React.Component<{}, ASChartDialogProp
         let str = this.refs[ref].getValue();
         let newState = {};
         if (U.Parsing.isFiniteExcelRef(str)) { // doesn't work with A:A right now, because that's not doable on frontend.
-          let rng = U.Conversion.excelToRange(str);
+          let rng = U.Location.orientRange(U.Conversion.excelToRange(str));
           newState[stateField] = rng;
         } else {
           newState[stateField] = null;
@@ -185,6 +190,8 @@ export default class ASChartDialog extends React.Component<{}, ASChartDialogProp
       }
     };
   }
+
+  _onToggleLegend(e: SyntheticEvent, value: boolean) { this.setState({showLegend: value}); }
 
   _checkConfigurationErrors(): ErrorMessages {
     let {valueRange, chartType} = this.state;
@@ -211,9 +218,10 @@ export default class ASChartDialog extends React.Component<{}, ASChartDialogProp
 
   render(): React.Element {
     let {open, onRequestClose} = this.props;
-    let {chartType, valueRange} = this.state;
+    let {chartType, valueRange, showLegend} = this.state;
     let errorMessages = this._checkConfigurationErrors();
     let shouldRenderPreview = Object.keys(errorMessages).length == 0;
+    let ChartLegend = this.refs.generatedChart ? this.refs.generatedChart.generateLegend() : <div />;
     console.log("Chart config errors: " + JSON.stringify(errorMessages));
 
     return (
@@ -224,74 +232,69 @@ export default class ASChartDialog extends React.Component<{}, ASChartDialogProp
           {text: 'Create', onTouchTap: this._onSubmitCreate.bind(this)}
         ]}
         open={open}
-        onRequestClose={onRequestClose}>
+        onRequestClose={onRequestClose} >
 
-        <table>
-          <tr>
-            <th>Options</th>
-            <th>Preview</th>
-          </tr>
-          <tr>
-            <td colSpan="1">
-              <TextField
-                ref="valueRangeInput"
-                defaultValue={this._getInitialRangeExpression()}
-                hintText="Data Range"
-                errorText={errorMessages.valueRangeInput || ''}
-                onChange={this._onRangeInputChange("valueRangeInput", "valueRange").bind(this)}
-                style={_Styles.inputs} />
-              <br />
-              <TextField
-                ref="plotLabelRangeInput"
-                hintText="Dataset Label Range"
-                errorText={errorMessages.plotLabelRangeInput || ''}
-                errorStyle={{color:'orange'}}
-                onChange={this._onRangeInputChange("plotLabelRangeInput", "plotLabelRange").bind(this)}
-                style={_Styles.inputs} />
-              <br />
-              {CU.isCartesian(chartType) ? (
-                [
-                  <TextField
-                    ref="xLabelRangeInput"
-                    hintText="X-axis Label Range"
-                    errorText={errorMessages.xLabelRangeInput || ''}
-                    errorStyle={{color:'orange'}}
-                    onChange={this._onRangeInputChange("xLabelRangeInput", "xLabelRange").bind(this)}
-                    style={_Styles.inputs} />,
-                  <br />
-                ]
-              ) : null}
-            </td>
-            <td>
-              {(shouldRenderPreview && valueRange) ? (
-                [
-                  <ASChart
-                    ref="generatedChart"
-                    valueRange={valueRange}
-                    sheetId={SheetStore.getCurrentSheet().sheetId}
-                    chartContext={this._generateContext()} />
-                ]
-              ) : "Incorrect chart configuration. "}
-            </td>
-          </tr>
-          <tr colSpan="1">
-            <td>
-              <SelectableList
-                subheader="Chart types"
-                valueLink={{value: chartType, requestChange: this._onChartTypeChange.bind(this)}} >
-                {LIST_ITEMS.map((item) => {
-                  return ([
-                    <ListItem
-                      primaryText={item.text}
-                      leftIcon={item.icon}
-                      value={item.payload} />,
-                    <Divider inset={true} />
-                  ]);
-                })}
-              </SelectableList>
-            </td>
-          </tr>
-        </table>
+        <TextField
+          ref="valueRangeInput"
+          defaultValue={this._getInitialRangeExpression()}
+          hintText="Data Range"
+          errorText={errorMessages.valueRangeInput || ''}
+          onChange={this._onRangeInputChange("valueRangeInput", "valueRange").bind(this)}
+          style={_Styles.inputs} />
+        <br />
+
+        <TextField
+          ref="plotLabelRangeInput"
+          hintText="Dataset Label Range"
+          errorText={errorMessages.plotLabelRangeInput || ''}
+          errorStyle={{color:'orange'}}
+          onChange={this._onRangeInputChange("plotLabelRangeInput", "plotLabelRange").bind(this)}
+          style={_Styles.inputs} />
+        <br />
+
+        {CU.isCartesian(chartType) ? (
+          [
+            <TextField
+              ref="xLabelRangeInput"
+              hintText="X-axis Label Range"
+              errorText={errorMessages.xLabelRangeInput || ''}
+              errorStyle={{color:'orange'}}
+              onChange={this._onRangeInputChange("xLabelRangeInput", "xLabelRange").bind(this)}
+              style={_Styles.inputs} />,
+            <br />
+          ]
+        ) : null}
+
+        <Toggle
+          label="Show legend"
+          defaultToggled={true}
+          onToggled={this._onToggleLegend.bind(this)} />
+
+        <SelectableList
+          valueLink={{value: chartType, requestChange: this._onChartTypeChange.bind(this)}}
+          style={_Styles.inputs} >
+          {LIST_ITEMS.map((item) => {
+            return ([
+              <ListItem
+                primaryText={item.text}
+                leftIcon={item.icon}
+                value={item.payload} />,
+              <Divider />
+                ]);
+              })}
+        </SelectableList>
+
+        {(shouldRenderPreview && valueRange) ? (
+          [
+            <ASChart
+              ref="generatedChart"
+              valueRange={valueRange}
+              sheetId={SheetStore.getCurrentSheet().sheetId}
+              chartContext={this._generateContext()} >
+                <ChartLegend />
+            </ASChart>
+          ]
+        ) : "Incorrect chart configuration. " }
       </Dialog>
     );
   }

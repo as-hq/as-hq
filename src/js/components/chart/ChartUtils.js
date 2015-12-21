@@ -8,12 +8,26 @@ import type {
 import type {
   ASChartType,
   ASCartesianChartType,
-  ASPolarChartType
+  ASPolarChartType,
+  RGBColor
 } from './types';
 
 import Constants from '../../Constants';
 
 let {ChartTypes} = Constants;
+let colorIndex = 0;
+const colors = [
+  {r:0, g:137, b:123},
+  {r:216, g:27, b:96 },
+  {r:94, g:53, b:177},
+  {r:97, g:97, b:97},
+  {r:229, g:57, b:53},
+  {r:142, g:36, b:170},
+  {r:67, g:160, b:71},
+  {r:84, g:110, b:122},
+  {r:57, g:73, b:171},
+  {r:244, g:81, b:30}
+];
 
 export default {
   cellToChartVal(c: ?ASCell): number {
@@ -31,8 +45,10 @@ export default {
   cellToLabel(c: ?ASCell): string {
     if (c !== null && c !== undefined) {
       switch (c.cellValue.tag) {
+        case "ValueI":
+        case "ValueD":
         case "ValueS":
-          return c.cellValue.contents;
+          return c.cellValue.contents.toString();
         default:
           return "DefaultLabel";
       };
@@ -62,7 +78,7 @@ export default {
 
   // Int -> [Nat]
   takeNat<T>(n: number): Array<number> {
-    return Array.from(new Array(n), (x,i) => i+1)
+    return Array.from(new Array(n), (x,i) => i+1);
   },
 
   isVector<T>(arr:Array<Array<T>>): boolean {
@@ -98,5 +114,10 @@ export default {
       // console.error("Array passed in to reduceNestedArray was not even one-dimensional");
       return null;
     }
+  },
+
+  generateRGB(): RGBColor {
+    colorIndex = (colorIndex + 1) % colors.length;
+    return colors[colorIndex];
   }
 }

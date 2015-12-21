@@ -115,7 +115,8 @@ var Constants = Object.assign({
     PARTIAL_REF_CHANGE_WITH_TEXTBOX:null,
     ESC_PRESSED:null,
     BACKEND_UPDATED_AND_CELLS_CHANGED: null,
-    EVAL_TRIED_TO_DECOUPLE: null
+    EVAL_TRIED_TO_DECOUPLE: null,
+    ADD_OVERLAY: null
   }),
 
   ActionSources: keyMirror({

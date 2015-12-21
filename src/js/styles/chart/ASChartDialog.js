@@ -2,7 +2,7 @@
 
 export default {
   inputs: {
-    width: '400px',
-    paddingLeft: '10px'
+    width: '200px',
+    paddingLeft: '0px'
   }
 };

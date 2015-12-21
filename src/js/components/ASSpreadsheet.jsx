@@ -37,6 +37,7 @@ import SelectionStore from '../stores/ASSelectionStore';
 import FindStore from '../stores/ASFindStore';
 import ExpStore from '../stores/ASExpStore';
 import InitRowColPropsStore from '../stores/ASInitRowColPropsStore.js';
+import OverlayStore from '../stores/ASOverlayStore';
 
 import U from '../AS/Util';
 let {
@@ -109,6 +110,7 @@ export default React.createClass({
     // Be able to respond to events from ExpStore
     ExpStore.addChangeListener(this._onExpressionChange);
     InitRowColPropsStore.addChangeListener(this._onInitRowColPropsChange);
+    OverlayStore.addChangeListener(this._onOverlaysChange);
     // Hypergrid initialization
     document.addEventListener('polymer-ready', () => {
       this.props.onReady();
@@ -695,14 +697,11 @@ export default React.createClass({
   */
   addCellSourcedOverlay(cell: ASCell) {
     let imageOverlay = this.getImageOverlayForCell(cell);
-    if (imageOverlay === null || imageOverlay === undefined) {
-      return;
-    }
-
+    if (imageOverlay === null || imageOverlay === undefined) return;
     this.addOverlay(imageOverlay, cell);
   },
 
-  addOverlay(newOverlay: ?ASOverlaySpec, cell?: ASCell) {
+  addOverlay(newOverlay: ASOverlaySpec, cell?: ASCell) {
     let overlays = this.state.overlays,
         locs = catMaybes(overlays.map((o) => o.loc));
 
@@ -714,11 +713,15 @@ export default React.createClass({
       }
     });
 
-    if (newOverlay != null) {
-      overlays.push(newOverlay);
-    }
-
+    overlays.push(newOverlay);
     this.setState({overlays: overlays});
+  },
+
+  _onOverlaysChange() {
+    let overlays = OverlayStore.getAll();
+    overlays.forEach((overlay) => {
+      this.addOverlay(overlay);
+    });
   },
 
 

@@ -144,30 +144,31 @@ export default class ASChart extends React.Component<{}, ASChartProps, ASChartSt
 
   // ChartType -> GraphicOptions
   _generateDatasetGraphicOptions(chartType: ASChartType) {
+    let {r,g,b} = CU.generateRGB();
     switch(chartType) {
       case ChartTypes.Line:
       case ChartTypes.Radar:
          return {
-          fillColor: "rgba(220,220,220,0.2)",
-          strokeColor: "rgba(220,220,220,1)",
-          pointColor: "rgba(220,220,220,1)",
+          fillColor: `rgba(${r},${g},${b},0.2)`,
+          strokeColor: `rgba(${r},${g},${b},1)`,
+          pointColor: `rgba(${r},${g},${b},1)`,
           pointStrokeColor: "#fff",
           pointHighlightFill: "#fff",
-          pointHighlightStroke: "rgba(220,220,220,1)"
+          pointHighlightStroke: `rgba(${r},${g},${b},1)`
         };
       case ChartTypes.Bar:
         return {
-          fillColor: "rgba(220,220,220,0.5)",
-          strokeColor: "rgba(220,220,220,0.8)",
-          highlightFill: "rgba(220,220,220,0.75)",
-          highlightStroke: "rgba(220,220,220,1)"
+          fillColor: `rgba(${r},${g},${b},0.5)`,
+          strokeColor: `rgba(${r},${g},${b},0.8)`,
+          highlightFill: `rgba(${r},${g},${b},0.75)`,
+          highlightStroke: `rgba(${r},${g},${b},1)`
         };
       case ChartTypes.PolarArea:
       case ChartTypes.Pie:
       case ChartTypes.Doughnut:
         return {
-          color:"#F7464A",
-          highlight: "#FF5A5E"
+          color:`rgba(${r},${g},${b},0.8)`,
+          highlight: `rgba(${r},${g},${b},0.5)`
         };
     };
   }
@@ -188,6 +189,7 @@ export default class ASChart extends React.Component<{}, ASChartProps, ASChartSt
     let ChartConstructor = Chart[this.props.chartContext.chartType];
     return <ChartConstructor
               data={this.state.data}
-              options={this.props.chartContext.options} />;
+              options={this.props.chartContext.options}
+              redraw/>;
   }
 }

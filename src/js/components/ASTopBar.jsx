@@ -14,11 +14,11 @@ import React from 'react';
 
 import API from '../actions/ASApiActionCreators';
 import SheetStateStore from '../stores/ASSheetStateStore';
+import OverlayActions from '../actions/ASOverlayActionCreators';
 import Constants from '../Constants';
 
 import ASCondFormattingDialog from './dialogs/ASCondFormattingDialog.jsx';
 import ASMenuBar from './menu-bar/ASMenuBar.jsx';
-import ASSpreadsheet from './ASSpreadsheet.jsx';
 
 import FileImportDialog from '../AS/FileImportDialog';
 import ASChartDialog from './chart/ASChartDialog.jsx';
@@ -55,6 +55,7 @@ export default class ASTopBar extends React.Component<{}, ASTopBarProps, ASTopBa
   }
 
   render(): React.Element {
+
     let self = this;
 
     let testAlphaSheets =
@@ -77,7 +78,7 @@ export default class ASTopBar extends React.Component<{}, ASTopBarProps, ASTopBa
         <ASChartDialog
           open={this.state.chartOpen}
           onRequestClose={this._onChartClose.bind(this)}
-          onCreate={ASSpreadsheet.addOverlay} />
+          onCreate={OverlayActions.add} />
         <ASMenuBar menus={[
           {title: 'File', menuItems: [
             simple({

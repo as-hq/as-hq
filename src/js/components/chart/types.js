@@ -7,7 +7,7 @@ export type ASPolarChartType = 'PolarArea' | 'Pie' | 'Doughnut';
 export type ASChartType =
   ASCartesianChartType | ASPolarChartType;
 
-export type ASChartOptions = {};// TODO
+export type ASChartOptions = { [key: string]: string };
 
 export type ASChartContext = {
   chartType: ASChartType;
@@ -57,3 +57,9 @@ export type ASChartData = ASCartesianData | ASPolarData;
 
 export type ASCartesianValues = Array<Array<number>>;
 export type ASPolarValues = Array<number>;
+
+export type RGBColor = {
+  r: number,
+  g: number,
+  b: number
+};
