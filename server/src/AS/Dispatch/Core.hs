@@ -104,13 +104,13 @@ runDispatchCycle state cs descSetting src ctf = do
     Left _ -> G.recompute conn -- #needsrefactor. Overkill. But recording all cells that might have changed is a PITA. (Alex 11/20)
     _      -> return ()
 
-  let msg = makeUpdateMessageFromCommit errOrCommit
+  let msg = makeReplyMessageFromCellsFromCommit errOrCommit
   printObj "made message: " msg
   return msg
 
-makeUpdateMessageFromCommit :: Either ASExecError ASCommit -> ASServerMessage
-makeUpdateMessageFromCommit (Left err) = makeErrorMessage err Update
-makeUpdateMessageFromCommit (Right comm) = ServerMessage Update Success (PayloadCL $ afterCells $ cellDiff comm)
+makeReplyMessageFromCellsFromCommit :: Either ASExecError ASCommit -> ASServerMessage
+makeReplyMessageFromCellsFromCommit (Left err) = makeErrorMessage err Update
+makeReplyMessageFromCellsFromCommit (Right comm) = ServerMessage Update Success (PayloadSheetUpdate $ sheetUpdateFromCommit comm)
 
 -- takes an old context, inserts the new values necessary for this round of eval, and evals using the new context.
 -- this seems conceptually better than letting each round of dispatch produce a new context, 

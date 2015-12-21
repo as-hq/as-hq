@@ -89,7 +89,7 @@ handleUpdateWindow cid state (PayloadW w) = do
   (flip catch) (badCellsHandler (dbConn curState) user') (do
     let newLocs = getScrolledLocs oldWindow w
     mcells <- DB.getCells (dbConn curState) $ concat $ map rangeToIndices newLocs
-    sendToOriginal user' $ makeUpdateWindowMessage (catMaybes mcells)
+    sendToOriginal user' $ makeReplyMessageFromCells UpdateWindow $ catMaybes mcells
     US.modifyUser (updateWindow w) user' state)
 
 -- | If a message is failing to parse from the server, undo the last commit (the one that added
@@ -106,7 +106,7 @@ handleGet :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
 handleGet uc state (PayloadLL locs) = do
   curState <- readMVar state
   mcells <- DB.getCells (dbConn curState) locs
-  sendToOriginal uc (makeGetMessage $ catMaybes mcells)
+  sendToOriginal uc (makeReplyMessageFromCells Get $ catMaybes mcells)
 handleGet uc state (PayloadList Sheets) = do
   curState <- readMVar state
   ss <- DB.getAllSheets (dbConn curState)

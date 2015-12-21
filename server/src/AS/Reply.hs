@@ -48,10 +48,10 @@ sendFilteredLocs msg locs uc = do
       msg'  = msg { serverPayload = PayloadLL locs' }
   sendMessage msg' (userConn uc)
 
-sendFilteredCondFormatResults :: ASServerMessage -> [ASCell] -> ASUserClient -> IO ()
-sendFilteredCondFormatResults msg cells uc = do
-  let cells' = intersectViewingWindow cells (userWindow uc)
-      msg'   = msg { serverPayload = (serverPayload msg) { condFormatCellsUpdated = cells' } }
+sendFilteredSheetUpdate :: ASServerMessage -> SheetUpdate -> ASUserClient -> IO ()
+sendFilteredSheetUpdate msg (SheetUpdate cs rcs ds cfrs) uc = do
+  let cells' = intersectViewingWindow cs (userWindow uc)
+      msg'  = msg { serverPayload = PayloadSheetUpdate $ SheetUpdate cells' rcs ds cfrs }
   sendMessage msg' (userConn uc)
 
 -- | Given a message (commit, cells, etc), only send (to each user) the cells in their viewing window. 
@@ -61,19 +61,12 @@ broadcastFiltered _ orig msg@(ServerMessage _ (Failure _) _) = sendToOriginal or
 broadcastFiltered _ orig msg@(ServerMessage _ (DecoupleDuringEval) _) = sendToOriginal orig msg
 broadcastFiltered state _ msg = broadcastFiltered' state msg
 
+-- ::ALEX:: holy shit this is terrible
 -- | Assumes message is not failure message. (Also assumes the payload is either cells or locations.)
 broadcastFiltered' :: MVar ServerState -> ASServerMessage -> IO ()
-broadcastFiltered' state msg@(ServerMessage _ _ (PayloadCL cells)) = do 
+broadcastFiltered' state msg@(ServerMessage _ _ (PayloadSheetUpdate sheetUpdate)) = do 
   State ucs _ _ _ <- readMVar state
-  mapM_ (sendFilteredCells msg cells) ucs
-
-broadcastFiltered' state msg@(ServerMessage _ _ (PayloadLL locs)) = do 
-  State ucs _ _ _ <- readMVar state
-  mapM_ (sendFilteredLocs msg locs) ucs
-
-broadcastFiltered' state msg@(ServerMessage _ _ (PayloadCondFormatResult _ cells)) = do 
-  State ucs _ _ _ <- readMVar state
-  mapM_ (sendFilteredCondFormatResults msg cells) ucs
+  mapM_ (sendFilteredSheetUpdate msg sheetUpdate) ucs
 
 sendToOriginal :: ASUserClient -> ASServerMessage -> IO ()
 sendToOriginal uc msg = sendMessage msg (userConn uc)

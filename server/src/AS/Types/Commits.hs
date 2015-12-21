@@ -4,6 +4,7 @@ module AS.Types.Commits where
 
 import AS.Types.Cell
 import AS.Types.Eval
+import AS.Types.CondFormat
 
 import Prelude
 import GHC.Generics
@@ -50,7 +51,7 @@ data SheetUpdate = SheetUpdate { updatedCells :: [ASCell]
                                deriving (Show, Read, Generic)
 
 sheetUpdateFromCommit :: ASCommit -> SheetUpdate
-sheetUpdateFromCommit (Commit (RowColDiff _ rcs) (CellDiff _ cs) (DescriptorDiff _ ds)) = SheetUpdate cs rcs ds []
+sheetUpdateFromCommit (Commit (RowColDiff _ rcs) (CellDiff _ cs) (DescriptorDiff _ ds) _) = SheetUpdate cs rcs ds []
 
 
 instance FromJSON ASTime
@@ -69,6 +70,7 @@ instance Serialize ASTime
 instance Serialize ASCommit
 instance Serialize CellDiff
 instance Serialize BarDiff
+instance Serialize SheetUpdate
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Helpers

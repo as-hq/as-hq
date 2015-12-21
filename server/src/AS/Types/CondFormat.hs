@@ -3,7 +3,6 @@
 --TODO: timchu, can clean up these imports.
 module AS.Types.CondFormat where
 
-import AS.Types.DB (ASCommit)
 import AS.Types.Cell
 import AS.Types.Locations
 import AS.Types.CellProps

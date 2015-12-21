@@ -4,7 +4,7 @@ module AS.Types.Messages where
 
 import AS.Window
 
-import AS.Types.DB (ASCommit)
+import AS.Types.Commits
 import AS.Types.Cell
 import AS.Types.Bar
 import AS.Types.BarProps
@@ -101,9 +101,14 @@ data ASPayload =
   | PayloadMutate MutateType
   | PayloadDrag {initialRange :: ASRange, dragRange :: ASRange}
   | PayloadCondFormat { condFormatRules :: [CondFormatRule] }
+<<<<<<< HEAD
   | PayloadCondFormatResult { condFormatRulesResult :: [CondFormatRule], condFormatCellsUpdated :: [ASCell] }
   | PayloadSetBarProp BarIndex BarProp
+=======
+  | PayloadSetRowColProp RowColType Int RowColProp
+>>>>>>> 5e30591... makeReplyMessageFromCells
   | PayloadCSV {csvIndex :: ASIndex, csvLang :: ASLanguage, csvFileName :: String}
+  | PayloadSheetUpdate SheetUpdate
   deriving (Show, Read, Generic)
 
 data ASReplValue = ReplValue {replValue :: ASValue, replLang :: ASLanguage} deriving (Show, Read, Eq, Generic)
@@ -205,44 +210,39 @@ generateErrorMessage e = case e of
   _                           -> show e
 
 
--- | Creates a server message from an ASExecError. Used in makeUpdateMessage and  makeDeleteMessage.
+-- | Creates a server message from an ASExecError. Used in makeReplyMessageFromCells and  makeDeleteMessage.
 makeErrorMessage :: ASExecError -> ASAction -> ASServerMessage
 makeErrorMessage DecoupleAttempt a = ServerMessage a DecoupleDuringEval (PayloadN ())
 makeErrorMessage e a = ServerMessage a (Failure (generateErrorMessage e)) (PayloadN ())
 
 -- | When you have a list of cells from an eval request, this function constructs
--- the message to send back.
-makeUpdateMessage :: Either ASExecError [ASCell] -> ASServerMessage
-makeUpdateMessage (Left err) = makeErrorMessage err Update
-makeUpdateMessage (Right cells) = ServerMessage Update Success (PayloadCL cells)
+-- the message to send back. 
+makeReplyMessageFromCells :: ASAction -> [ASCell] -> ASServerMessage
+makeReplyMessageFromCells action cells = ServerMessage action Success (PayloadSheetUpdate $ SheetUpdate cells [] [] [])
 
 -- getBadLocs :: [ASReference] -> [Maybe ASCell] -> [ASReference]
 -- getBadLocs locs mcells = map fst $ filter (\(l,c)->isNothing c) (zip locs mcells)
 
 -- | Poorly named. When you have a list of cells from a get request, this function constructs
 -- the message to send back.
-makeGetMessage :: [ASCell] -> ASServerMessage
-makeGetMessage cells = changeMessageAction Get $ makeUpdateMessage (Right cells)
 
-makeUpdateWindowMessage :: [ASCell] -> ASServerMessage
-makeUpdateWindowMessage cells = changeMessageAction UpdateWindow $ makeUpdateMessage (Right cells)
-
+-- ::ALEX:: no longer make it a matter of 
 -- | Makes a delete message from an Update message and a list of locs to delete
 makeDeleteMessage :: ASRange -> ASServerMessage -> ASServerMessage
 makeDeleteMessage _ s@(ServerMessage _ (Failure _) _) = s
 makeDeleteMessage _ s@(ServerMessage _ (DecoupleDuringEval) _) = ServerMessage Delete DecoupleDuringEval (PayloadN ())
-makeDeleteMessage deleteLocs s@(ServerMessage _ _ (PayloadCL cells)) = ServerMessage Delete Success payload
+makeDeleteMessage deleteLocs (ServerMessage _ _ (PayloadSheetUpdate (SheetUpdate cells _ _ _))) = ServerMessage Delete Success payload
   where locsCells = zip (map cellLocation cells) cells
         cells'    = map snd $ filter (\(l, _) -> not $ rangeContainsIndex deleteLocs l) locsCells
         payload   = PayloadDelete deleteLocs cells'
         -- remove the sels from the update that we know are blank from the deleted locs
 
--- handle failure cases like makeUpdateMessage
+-- handle failure cases like makeReplyMessageFromCells
 -- otherwise: send payload CondFormatResult.
 makeCondFormatMessage :: Either ASExecError [ASCell] -> [CondFormatRule] -> ASServerMessage
 makeCondFormatMessage (Left err) _ = makeErrorMessage err SetCondFormatRules
 makeCondFormatMessage (Right cells) rules = ServerMessage SetCondFormatRules Success payload
-  where payload = PayloadCondFormatResult rules cells
+  where payload = PayloadSheetUpdate $ SheetUpdate cells [] [] rules
 
 changeMessageAction :: ASAction -> ASServerMessage -> ASServerMessage
 changeMessageAction a (ServerMessage _ r p) = ServerMessage a r p
