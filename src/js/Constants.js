@@ -171,7 +171,7 @@ var Constants = Object.assign({
     Drag: "Drag",
     Decouple: "Decouple",
     SetCondFormatRules: "SetCondFormatRules",
-    SetRowColProp: "SetRowColProp",
+    SetBarProp: "SetBarProp",
     "ImportCSV": "ImportCSV"
   },
 

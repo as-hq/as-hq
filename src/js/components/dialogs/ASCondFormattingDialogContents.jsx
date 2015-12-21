@@ -26,7 +26,12 @@ function showRule(rule: CondFormatRule): string {
       map(Util.Conversion.asLocationToSimple).
       map((r) => Util.Conversion.rangeToExcel(r))
   );
-  let cond    = rule.condition.expression;
+  let cond = "";
+
+  // #incomplete need to address all the different types of possible rules.
+  if (rule.condition.tag === 'CustomExpressionCondition') { 
+    cond = rule.condition.contents.expression;
+  }
 
   return `${rngsStr}: ${cond}`;
 }
