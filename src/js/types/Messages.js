@@ -68,9 +68,9 @@ export type MutateType =
   | DragCol
   | DragRow;
 
-export type RowColType = 'ColumnType' | 'RowType';
+export type BarType = 'ColumnType' | 'RowType';
 
-export type RowColProp = Dimension | FromCellProp;
+export type BarProp = Dimension | FromCellProp;
 
 export type Dimension = {
   tag: 'Dimension';
@@ -82,12 +82,18 @@ export type FromCellProp = {
   contents: ASCellProp;
 };
 
-export type RowCol = {
-  tag: 'RowCol';
-  rowColType: RowColType;
-  rowColIndex: number;
-  rowColProps: Array<RowColProp>;
+export type Bar = {
+  tag: 'Bar';
+  barIndex: BarIndex;
+  barProps: Array<BarProp>;
 };
+
+export type BarIndex = {
+  tag: 'BarIndex'; 
+  barSheetId: string;
+  barType: BarType;  
+  barNumber: number; 
+}
 
 export type ASInitConnection = {
   tag: 'ASInitConnection';
@@ -170,7 +176,7 @@ export type PayloadOpen = {
   tag: 'PayloadOpen';
   initHeaderExpressions: Array<ASExpression>;
   initCondFormatRules: Array<CondFormatRule>;
-  initRowCols: Array<RowCol>;
+  initBars: Array<Bar>;
 };
 
 export type PayloadR = {
@@ -254,17 +260,43 @@ export type PayloadCondFormatResult = {
   condFormatRulesResult: Array<CondFormatRule>;
 };
 
-export type PayloadSetRowColProp = {
-  tag: 'PayloadSetRowColProp';
-  contents: [RowColType, number, RowColProp];
+export type PayloadSetBarProp = {
+  tag: 'PayloadSetBarProp';
+  contents: [BarIndex, BarProp];
 };
 
 export type CondFormatRule = {
   tag: 'CondFormatRule';
   condFormat: ASCellProp;
-  condition: ASExpression;
+  condition: CondFormatCondition;
   cellLocs: Array<ASRange>;
 };
+
+export type CondFormatCondition = NoExpressionsCondition | OneExpressionCondition | TwoExpressionsCondition | CustomExpressionCondition;
+
+export type NoExpressionsCondition = {
+  tag: 'NoExpressionsCondition';
+  contents: NoExpressionsType;
+}
+
+export type OneExpressionCondition = {
+  tag: 'OneExpressionCondition';
+  contents: [OneExpressionType, ASExpression];
+}
+
+export type TwoExpressionsCondition = {
+  tag: 'TwoExpressionsCondition';
+  contents: [TwoExpressionsType, ASExpression, ASExpression];
+}
+
+export type CustomExpressionCondition = {
+  tag: 'CustomExpressionCondition';
+  contents: ASExpression;
+}
+
+export type NoExpressionsType  = 'IsEmpty' | 'IsNotEmpty';
+export type OneExpressionType  = 'GreaterThan' | 'Equals' | 'Geq' | 'Leq' | 'LessThan' | 'NotEquals';
+export type TwoExpressionsType = 'IsBetween' | 'IsNotBetween';
 
 export type ASBackendPayload =
   PayloadN
@@ -296,7 +328,7 @@ export type ASBackendPayload =
   | PayloadFind
   | PayloadCondFormat
   | PayloadCondFormatResult
-  | PayloadSetRowColProp;
+  | PayloadSetBarProp;
 
 export type ASBackendTime = {
   tag: 'Time';
@@ -354,7 +386,7 @@ export type ASMessageAction =
   | 'Undo' | 'Redo'
   | 'Clear'
   | 'UpdateWindow'
-  | 'SetRowColProp'
+  | 'SetBarProp'
   | 'SetProp' | 'ToggleProp'
   | 'Repeat'
   | 'BugReport'

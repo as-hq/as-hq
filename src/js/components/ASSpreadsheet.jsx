@@ -35,7 +35,7 @@ import SheetStateStore from '../stores/ASSheetStateStore';
 import SelectionStore from '../stores/ASSelectionStore';
 import FindStore from '../stores/ASFindStore';
 import ExpStore from '../stores/ASExpStore';
-import InitRowColPropsStore from '../stores/ASInitRowColPropsStore.js';
+import BarStore from '../stores/ASBarStore.js';
 
 import U from '../AS/Util';
 let {
@@ -107,7 +107,7 @@ export default React.createClass({
   componentDidMount() {
     // Be able to respond to events from ExpStore
     ExpStore.addChangeListener(this._onExpressionChange);
-    InitRowColPropsStore.addChangeListener(this._onInitRowColPropsChange);
+    BarStore.addChangeListener(this._onBarPropsChange);
     // Hypergrid initialization
     document.addEventListener('polymer-ready', () => {
       this.props.onReady();
@@ -166,10 +166,12 @@ export default React.createClass({
           }
         },
         'fin-double-click': function (event) {
-          // TODO: double clicking inside blue box has diff behavior
-          ExpStore.setClickType(Constants.ClickType.DOUBLE_CLICK);
-          self.refs.textbox.updateTextBox(ExpStore.getExpression());
-          self.props.setFocus('textbox');
+          // should only fire when double click is inside grid
+          if (event.detail.gridCell.y >= 0 && event.detail.gridCell.x >= 0) {
+            ExpStore.setClickType(Constants.ClickType.DOUBLE_CLICK);
+            self.refs.textbox.updateTextBox(ExpStore.getExpression());
+            self.props.setFocus('textbox');
+          }
         }
       });
 
@@ -399,7 +401,7 @@ export default React.createClass({
         }
       }
       return rr;
-    },
+    };
 
     model.handleMouseDown = (grid, evt) => {
       if (evt.primitiveEvent.detail.primitiveEvent.shiftKey) { // shift+click
@@ -417,9 +419,9 @@ export default React.createClass({
           this.dragSelectionOrigin = {col: evt.gridCell.x, row: evt.gridCell.y};
         } else if (model.featureChain) {
           // If the mouse is placed inside column header (not on a divider), we want to keep some extra state ourselves
-          if (model.featureChain.isFixedRow(grid,evt) && hg.overColumnDivider(evt) === -1) {
+          if (self._clickIsInColumnHeader(evt)) {
            self.clickedColNum = evt.gridCell.x;
-          } else if (model.featureChain.isFixedColumn(grid,evt) && hg.overRowDivider(evt) === -1) {
+          } else if (self._clickIsInRowHeader(evt)) {
             self.clickedRowNum = evt.gridCell.y;
           }
           model.featureChain.handleMouseDown(grid, evt);
@@ -601,6 +603,18 @@ export default React.createClass({
       // row index on DB is 1-indexed, while for hypergrid it's 0-indexed.
       this.resizedRowNum = null;
     }
+  },
+
+  _clickIsInColumnHeader(evt: HGMouseEvent): boolean {
+    let hg = this._getHypergrid(),
+        model = hg.getBehavior();
+    return (model.featureChain.isFixedRow(hg, evt) && hg.overColumnDivider(evt) === -1);
+  },
+
+  _clickIsInRowHeader(evt: HGMouseEvent): boolean {
+    let hg = this._getHypergrid(),
+        model = hg.getBehavior();
+    return (model.featureChain.isFixedColumn(hg, evt) && hg.overRowDivider(evt) === -1);
   },
 
   // expects that the current sheet has already been set
@@ -999,14 +1013,14 @@ export default React.createClass({
     }
   },
 
-  _onInitRowColPropsChange() {
-    let initColWidths  = InitRowColPropsStore.getInitColumnWidths(),
-        initRowHeights = InitRowColPropsStore.getInitRowHeights(),
+  _onBarPropsChange() {
+    let colWidths  = BarStore.getColumnWidths(),
+        rowHeights = BarStore.getRowHeights(),
         hg = this._getHypergrid();
 
     //column index on DB is 1-indexed, while for hypergrid it's 0-indexed.
-    initColWidths.map((prop) => hg.setColumnWidth(prop[0]-1, prop[1]));
-    initRowHeights.map((prop) => hg.setRowHeight(prop[0]-1, prop[1]));
+    colWidths.map((prop) => hg.setColumnWidth(prop[0]-1, prop[1]));
+    rowHeights.map((prop) => hg.setRowHeight(prop[0]-1, prop[1]));
   },
 
 

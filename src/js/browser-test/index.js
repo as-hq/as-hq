@@ -228,7 +228,7 @@ function pressPaste() {
 
 function doubleClick() {
   return exec(() => {
-    hypergrid().canvas.dispatchEvent(new CustomEvent('fin-double-click', { detail: {} }));
+    hypergrid().canvas.dispatchEvent(new CustomEvent('fin-double-click', { detail: { gridCell: {x: 0, y: 0} } }));
   });
 }
 

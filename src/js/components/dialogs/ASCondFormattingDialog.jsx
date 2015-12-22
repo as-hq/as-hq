@@ -10,10 +10,11 @@ import type {
 
 import React from 'react';
 
-import {Dialog} from 'material-ui';
+import {Dialog, FlatButton} from 'material-ui';
 
 import ASButton from '../basic-controls/ASButton.jsx';
 import RuleDialog from './ASCondFormattingRuleDialog.jsx';
+import Contents from './ASCondFormattingDialogContents.jsx';
 
 import API from '../../actions/ASApiActionCreators';
 import CFStore from '../../stores/ASCondFormatStore';
@@ -38,46 +39,27 @@ export default React.createClass({
     };
   },
 
-  _showRule(rule: CondFormatRule): string {
-    // #needsrefactor why the hell do I have to do .map((r) => Util.rangeToExcel(r)) instead of
-    // .map(Util.rangeToExcel) ???
-    let rngsStr = Util.String.toSentence(
-      rule.cellLocs.
-        map(Util.Conversion.asLocationToSimple).
-        map((r) => Util.Conversion.rangeToExcel(r))
-    );
-        // cond    = rule.condition.expression;
-
-    return rngsStr + ": ";
-  },
-
   render(): ReactElement {
     let {open, onRequestClose} = this.props;
     let {rules, openRule} = this.state;
+
+    let newRuleAction =
+      <FlatButton
+        label="New rule"
+        secondary={true}
+        onTouchTap={this._onCreateRule} />;
 
     return (
       <div>
         <Dialog
           open={open}
           onRequestClose={onRequestClose}
-          title="Conditional formatting">
-          <ASButton
-            label="New rule"
-            onMouseUp={this._onCreateRule} />
-          {rules.map((rule, idx) =>
-            <div>
-              <div>{this._showRule(rule)}</div>
-              <ASButton
-                onMouseUp={this._onEditRule(idx)}
-                label="Edit"
-                selectable={false} />
-              <ASButton
-                primary={true}
-                onMouseUp={this._onDeleteRule(idx)}
-                label="Delete"
-                selectable={false} />
-            </div>
-          )}
+          title="Conditional formatting"
+          actions={[newRuleAction]} >
+          <Contents
+            rules={rules}
+            onEditRule={this._onEditRule}
+            onDeleteRule={this._onDeleteRule} />
         </Dialog>
         <RuleDialog
           onSubmitRule={this._onSubmitRule(-2)}

@@ -15,7 +15,8 @@ import type {
 } from '../../types/Eval';
 
 import type {
-  CondFormatRule
+  CondFormatRule,
+  CondFormatCondition
 } from '../../types/Messages';
 
 import type {
@@ -244,7 +245,9 @@ export default React.createClass({
     return [U.Conversion.simpleToASRange(U.Conversion.excelToRange(this.refs.range.getValue()))];
   },
 
-  _getExpressionFromForm(): ASExpression {
+  // TODO: add support for all the different types of conditional formats. For
+  // now, this only shows custom stuff.
+  _getConditionFromForm(): CondFormatCondition {
     let language = 'Excel';
 
     switch (this._getConditionMenuItem()) {
@@ -257,10 +260,13 @@ export default React.createClass({
     }
 
     return {
-      tag: 'Expression',
-      expression: this.refs.conditionField.getValue(),
-      language: language
-    }
+      tag: 'CustomExpressionCondition',
+        contents: {
+        tag: 'Expression',
+        expression: this.refs.conditionField.getValue(),
+        language: language
+      }
+    };
   },
 
   _getCellPropFromForm(): ASCellProp {
@@ -284,7 +290,7 @@ export default React.createClass({
     return {
       tag: 'CondFormatRule',
       cellLocs: this._getCellLocsFromForm(),
-      condition: this._getExpressionFromForm(),
+      condition: this._getConditionFromForm(),
       condFormat: this._getCellPropFromForm()
     };
   },

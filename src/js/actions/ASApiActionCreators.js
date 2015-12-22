@@ -40,7 +40,8 @@ import type {
   ASServerMessage,
   ASClientMessage,
   ASAPICallbackPair,
-  CondFormatRule
+  CondFormatRule,
+  CondFormatCondition
 } from '../types/Messages';
 
 import type {
@@ -89,7 +90,7 @@ wss.onmessage = (event: MessageEvent) => {
   logDebug("Client received data from server: " + event.data.toString());
 
   if (event.data instanceof Blob) {
-    console.log("Received binary data from server.");
+    logDebug("Received binary data from server.");
     let fName = SheetStateStore.getCurrentSheet().sheetId + ".as";
     // #anand event.data typecasts to Blob, because we already checked the instance above
     // and flow doesn't understand that event.data is type DOMString | Blob | ...
@@ -112,6 +113,7 @@ wss.onmessage = (event: MessageEvent) => {
       }
     } else {
       if (isRunningTest && (!uiTestMode || (msg.action != 'UpdateWindow' && msg.action != 'Open')) && currentCbs) {
+        logDebug('Fulfilled server message normally');
         currentCbs.fulfill(msg);
         isRunningTest = false;
       }
@@ -133,7 +135,7 @@ wss.onmessage = (event: MessageEvent) => {
         Dispatcher.dispatch({
           _type: 'GOT_OPEN',
           expressions: msg.payload.initHeaderExpressions,
-          initRowCols: msg.payload.initRowCols
+          initBars: msg.payload.initBars
         });
         Dispatcher.dispatch({
           _type: 'GOT_UPDATED_RULES',
@@ -453,13 +455,15 @@ export default {
   },
 
   setColumnWidth(col: number, width: number) {
-    let msg = U.Conversion.makeClientMessage(Constants.ServerActions.SetRowColProp, "PayloadSetRowColProp",
-      ['ColumnType', col, {tag: 'Dimension', contents: width}]);
+    let sid = SheetStateStore.getCurrentSheet().sheetId, 
+        msg = U.Conversion.makeClientMessage(Constants.ServerActions.SetBarProp, "PayloadSetBarProp",
+      [{tag: 'BarIndex', barSheetId: sid, barType: 'ColumnType', barNumber: col}, 
+      {tag: 'Dimension', contents: width}]);
     this.send(msg);
   },
 
   setRowHeight(row: number, height: number) {
-    let msg = U.Conversion.makeClientMessage(Constants.ServerActions.SetRowColProp, "PayloadSetRowColProp",
+    let msg = U.Conversion.makeClientMessage(Constants.ServerActions.SetBarProp, "PayloadSetBarProp",
       ['RowType', row, {tag: 'Dimension', contents: height}]);
     this.send(msg);
   },
