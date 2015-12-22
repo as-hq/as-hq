@@ -192,15 +192,6 @@ wss.onmessage = (event: MessageEvent) => {
         newSelection: msg.payload
       });
       break;
-    case 'Delete':
-      if (msg.payload.tag === "PayloadDelete") {
-        Dispatcher.dispatch({
-          _type: 'DELETED_LOCS',
-          deletedRange: msg.payload.contents[0],
-          updatedCells: msg.payload.contents[1]
-        });
-      }
-      break;
     case 'EvaluateRepl':
       Dispatcher.dispatch({
         _type: 'GOT_REPL_RESPONSE',
@@ -210,7 +201,7 @@ wss.onmessage = (event: MessageEvent) => {
     case 'EvaluateHeader':
       Dispatcher.dispatch({
         _type: 'GOT_EVAL_HEADER_RESPONSE',
-        response: msg.payload.contents
+        response: msg.payload.contents[0]
       });
       break;
     case 'Find':

@@ -92,7 +92,6 @@ var Constants = Object.assign({
     RECEIVED_ERROR: null,
     RECEIVED_SHEET: null,
     RECEIVED_WORKBOOK: null,
-    DELETED_LOCS: null,
     REPL_LEFT:null,
     EVAL_HEADER_UPDATED:null,
     GOT_REPL_RESP:null,

@@ -9,6 +9,7 @@ import type {
   NakedRange,
   ASLocation,
   ASRange,
+  ASLanguage,
   ASIndex,
   ASSheet,
   ASValue,
@@ -215,11 +216,6 @@ export type PayloadCommit = {
   contents: ASBackendCommit;
 };
 
-export type PayloadDelete = {
-  tag: 'PayloadDelete';
-  contents: [ASRange, Array<ASCell>];
-};
-
 export type PayloadXp = {
   tag: 'PayloadXp';
   contents: ASExpression;
@@ -247,7 +243,7 @@ export type PayloadFind = {
 
 export type PayloadValue = {
   tag: 'PayloadValue';
-  contents: ASCompositeValue;
+  contents: [ASCompositeValue, ASLanguage];
 };
 
 export type PayloadCondFormat = {
@@ -316,7 +312,6 @@ export type ASBackendPayload =
   | PayloadU
   | PayloadE
   | PayloadCommit
-  | PayloadDelete
   | PayloadPaste
   | PayloadProp
   | PayloadXp
@@ -482,12 +477,6 @@ export type JumpSelectResponse = {
   result: ASBackendResult;
 };
 
-export type DeleteResponse = {
-  action: 'Delete';
-  payload: PayloadDelete | PayloadWorkbookSheets;
-  result: ASBackendResult;
-};
-
 export type EvaluateReplResponse = {
   action: 'EvaluateRepl';
   payload: PayloadReplValue;
@@ -533,7 +522,6 @@ export type ASServerMessage =
   | UpdateWindowResponse
   | ClearResponse
   | JumpSelectResponse
-  | DeleteResponse
   | EvaluateReplResponse
   | EvaluateHeaderResponse
   | FindResponse

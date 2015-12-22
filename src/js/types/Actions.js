@@ -88,12 +88,6 @@ export type GotUpdatedRulesAction = {
   rules: Array<CondFormatRule>;
 };
 
-export type DeletedLocsAction = {
-  _type: 'DELETED_LOCS';
-  deletedRange: ASRange;
-  updatedCells: Array<ASCell>;
-};
-
 export type ReplLeftAction = {
   _type: 'REPL_LEFT';
   lang: ASLanguage;
@@ -203,7 +197,6 @@ export type ASAction =
   | ImportAction
   | ClearedAction
   | ClearedSheetAction
-  | DeletedLocsAction
   | ReplLeftAction
   | GotReplResponseAction
   | GotEvalHeaderResponseAction

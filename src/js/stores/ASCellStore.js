@@ -131,12 +131,6 @@ const ASCellStore = Object.assign({}, BaseStore, {
         }
 
         break;
-      case 'DELETED_LOCS':
-        _data.lastUpdatedCells = [];
-        ASCellStore.removeLocations([action.deletedRange]); 
-        ASCellStore.updateCells(action.updatedCells);
-        ASCellStore.emitChange();
-        break;
       case 'GOT_IMPORT':
         _data.lastUpdatedCells = [];
         let sheetId = action.newCells[0].cellLocation.sheetId; // assumes all imported cells are within the same sheet, which should be true.
