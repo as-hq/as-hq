@@ -34,10 +34,14 @@ broadcastFiltered' state msg@(ServerMessage _ _ (PayloadSheetUpdate sheetUpdate)
   State ucs _ _ _ <- readMVar state
   mapM_ (sendFilteredSheetUpdate msg sheetUpdate) ucs
 
+-- We are NOT filtering the cells we're deleting; we can't let frontend learn what cells got deleted lazily
+-- since blank cells don't get saved in the database. Thus, if a cell gets blanked out, the user needs to know immediately. 
+-- (We do filter by sheet though.)
 sendFilteredSheetUpdate :: ASServerMessage -> SheetUpdate -> ASUserClient -> IO ()
 sendFilteredSheetUpdate msg (SheetUpdate (Update cs locs) rcs ds cfrs) uc = do
-  let cells' = intersectViewingWindow cs (userWindow uc)
-      locs'  = locs -- should run intersectViewingWindowLocs on this, but that's only implemented for [ASIndex] for now. 
+  let sid    = userSheetId uc
+      cells' = intersectViewingWindow cs (userWindow uc)
+      locs'  = filter ((==) sid . refSheetId) locs 
       msg'   = msg { serverPayload = PayloadSheetUpdate $ SheetUpdate (Update cells' locs') rcs ds cfrs }
   sendMessage msg' (userConn uc)
 

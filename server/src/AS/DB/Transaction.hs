@@ -151,14 +151,14 @@ pushCommitWithInfo conn src commit =
 -- Do the writes to the DB
 updateDBWithCommit :: Connection -> CommitSource -> ASCommit -> IO ()
 updateDBWithCommit conn src c@(Commit bardiff cdiff ddiff time) = do 
-  -- update cells
-  let arc = afterVals bardiff
-      af = afterVals cdiff
+  -- update the cells 
+  let af = afterVals cdiff
   DB.setCells conn af
+  -- don't save blank cells in the database; in fact, we should delete any that are there. 
   deleteLocs conn $ map cellLocation $ filter isEmptyCell af
   mapM_ (setDescriptor conn) (afterVals ddiff)
   mapM_ (deleteDescriptor conn) (beforeVals ddiff)
-  -- update Rows and Columns in sheet
+  -- update the rows and columns in sheet
   DB.replaceBars conn (beforeVals bardiff) (afterVals bardiff)
   pushCommit conn src c
 
