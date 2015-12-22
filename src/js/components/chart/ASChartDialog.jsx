@@ -167,14 +167,16 @@ export default class ASChartDialog extends React.Component<{}, ASChartDialogProp
       let sheetId = SheetStore.getCurrentSheet().sheetId;
       this.props.onCreate({
         id: U.Render.getUniqueId(),
-        renderElem: () => {return (<ASChart
-                                      ref="chart"
-                                      valueRange={valueRange}
-                                      sheetId={sheetId}
-                                      chartContext={ctx}
-                                      redraw={false} />); },
-        width: 500,
-        height: 300,
+        renderElem: (style) =>
+          { return (<ASChart
+                      ref="chart"
+                      valueRange={valueRange}
+                      sheetId={sheetId}
+                      chartContext={ctx}
+                      chartStyle={style}
+                      redraw={false} />); },
+        initWidth: 500,
+        initHeight: 300,
         offsetX: 0,
         offsetY: 0,
         left: 50,
@@ -305,6 +307,7 @@ export default class ASChartDialog extends React.Component<{}, ASChartDialogProp
               valueRange={valueRange}
               sheetId={SheetStore.getCurrentSheet().sheetId}
               chartContext={this._generateContext()}
+              chartStyle={{width: "1000px", height: "100px"}}
               redraw={true} />
           ]
         ) : "Incorrect chart configuration. " }
