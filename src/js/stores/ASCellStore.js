@@ -57,28 +57,11 @@ const ASCellStore = Object.assign({}, BaseStore, {
     logDebug('Store received action', action);
     switch (action._type) {
       /*
-        On an UNDO/REDO/UPDATE_CELLS, update the viewing window in the store based on the commit and
-        send a change event to spreadsheet, which will rerender
-      */
-      case 'GOT_UNDO':
-        logDebug("action undo");
-        _data.lastUpdatedCells = [];
-        ASCellStore.removeCells(action.commit.cellDiff.afterCells);
-        ASCellStore.updateCells(action.commit.cellDiff.beforeCells);
-        ASCellStore.emitChange();
-        break;
-      case 'GOT_REDO':
-        _data.lastUpdatedCells = [];
-        ASCellStore.removeCells(action.commit.cellDiff.beforeCells);
-        ASCellStore.updateCells(action.commit.cellDiff.afterCells);
-        ASCellStore.emitChange();
-        break;
-      /*
         The cells have been fetched from the server for a get request (for example, when scrolling)
         We now need to update the store based on these new values
         Called from Dispatcher, fired by API response from server
       */
-      case 'UPDATED_CELLS':
+      case 'GOT_UPDATED_CELLS':
         _data.lastUpdatedCells = [];
         ASCellStore.removeLocations(action.oldLocs);
         ASCellStore.updateCells(action.newCells);

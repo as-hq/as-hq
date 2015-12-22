@@ -24,6 +24,7 @@ import type {
   ASMessageAction,
   ASServerMessage,
   Bar,
+  BarIndex
 } from './Messages';
 
 export type GotFailureAction = {
@@ -40,7 +41,6 @@ export type ScrolledAction = {
 export type GotOpenAction = {
   _type: 'GOT_OPEN';
   expressions: Array<ASExpression>;
-  initBars: Array<Bar>;
 };
 
 export type GotUndoAction = {
@@ -58,10 +58,16 @@ export type GotSelectionAction = {
   newSelection: PayloadSelection;
 };
 
-export type UpdatedCellsAction = {
-  _type: 'UPDATED_CELLS';
+export type GotUpdatedCellsAction = {
+  _type: 'GOT_UPDATED_CELLS';
   newCells: Array<ASCell>;
   oldLocs: Array<ASLocation>;
+};
+
+export type GotUpdatedBarsAction = {
+  _type: 'GOT_UPDATED_BARS';
+  newBars: Array<Bar>;
+  oldBarLocs: Array<BarIndex>;
 };
 
 export type ImportAction = {
@@ -193,7 +199,8 @@ export type ASAction =
   | GotUndoAction
   | GotRedoAction
   | GotSelectionAction
-  | UpdatedCellsAction
+  | GotUpdatedCellsAction
+  | GotUpdatedBarsAction
   | ImportAction
   | ClearedAction
   | ClearedSheetAction

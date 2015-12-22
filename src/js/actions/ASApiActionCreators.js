@@ -41,7 +41,8 @@ import type {
   ASClientMessage,
   ASAPICallbackPair,
   CondFormatRule,
-  CondFormatCondition
+  CondFormatCondition,
+  SheetUpdate
 } from '../types/Messages';
 
 import type {
@@ -144,14 +145,10 @@ wss.onmessage = (event: MessageEvent) => {
     case 'Acknowledge':
       break;
     case 'Open':
+      dispatchSheetUpdate(msg.payload.initSheetUpdate);
       Dispatcher.dispatch({
         _type: 'GOT_OPEN',
         expressions: msg.payload.initHeaderExpressions,
-        initBars: msg.payload.initBars
-      });
-      Dispatcher.dispatch({
-        _type: 'GOT_UPDATED_RULES',
-        rules: msg.payload.initCondFormatRules
       });
       break;
     case 'Undo':
@@ -160,19 +157,7 @@ wss.onmessage = (event: MessageEvent) => {
     case 'UpdateSheet':
     case 'Get':
     case 'UpdateWindow':
-      Dispatcher.dispatch({
-        _type: 'UPDATED_CELLS',
-        newCells: msg.payload.contents.cellUpdates.newVals, 
-        oldLocs: msg.payload.contents.cellUpdates.oldKeys
-      });
-      // rules
-      // ::ALEX:: wrong for now. null check is wrong
-      // if (msg.payload.contents.updatedCondFormatRules.length > 0) {
-      //   Dispatcher.dispatch({
-      //     _type: 'GOT_UPDATED_RULES',
-      //     rules: msg.payload.contents.updatedCondFormatRules
-      //   });
-      // }
+      dispatchSheetUpdate(msg.payload.contents);
       break;
     case 'Clear':
       if (msg.payload.tag === "PayloadS") {
@@ -225,6 +210,28 @@ wss.onmessage = (event: MessageEvent) => {
       break;
   }
 };
+
+function dispatchSheetUpdate(sheetUpdate: SheetUpdate) { 
+  Dispatcher.dispatch({
+    _type: 'GOT_UPDATED_CELLS',
+    newCells: sheetUpdate.cellUpdates.newVals, 
+    oldLocs: sheetUpdate.cellUpdates.oldKeys
+  });
+
+  Dispatcher.dispatch({
+    _type: 'GOT_UPDATED_BARS',
+    newBars: sheetUpdate.barUpdates.newVals, 
+    oldBarLocs: sheetUpdate.barUpdates.oldKeys
+  });
+
+  // #incomplete very, very wrong right now. just a hack to make it work, mostly. 
+  if (sheetUpdate.condFormatRulesUpdates.newVals.length > 0) {
+    Dispatcher.dispatch({
+      _type: 'GOT_UPDATED_RULES',
+      rules: sheetUpdate.condFormatRulesUpdates.newVals
+    });
+  }
+}
 
 wss.onopen = (evt) => {
   logDebug('WebSockets open');

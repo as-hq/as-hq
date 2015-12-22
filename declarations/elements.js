@@ -106,8 +106,8 @@ declare class HGBehaviorElement extends HTMLElement {
   swapColumns: (c1: number, c2: number) => void;
   featureChain: HGFeatureChainElement;
 
-  _setColumnWidth(columnIndex: number, columnWidth: number): void;
-  setRowHeight: (rowNum: number, height: number) => void;
+  _setColumnWidth(columnIndex: number, columnWidth: ?number): void;
+  setRowHeight: (rowNum: number, height: ?number) => void;
 
   setCursor(grid: HGElement): void;
   setValue(x: number, y: number, val: string): void;
@@ -157,6 +157,8 @@ declare class HGElement extends HTMLElement {
 
   clearSelections(): void;
 
+  resolveProperty(prop: string): any;
+
   getBehavior(): HGBehaviorElement;
   getBoundsOfCell(cell: HGPoint): HGRectangle;
   getDataBounds(): HGRectangle;
@@ -174,10 +176,10 @@ declare class HGElement extends HTMLElement {
   setHScrollValue(x: number): void;
   setVScrollValue(y: number): void;
 
-  setColumnWidth: (columnIndex: number, columnWidth: number) => void;
+  setColumnWidth: (columnIndex: number, columnWidth: ?number) => void;
   getColumnWidth: (columnIndex: number) => number;
 
-  setRowHeight: (rowIndex: number, rowHeight: number) => void;
+  setRowHeight: (rowIndex: number, rowHeight: ?number) => void;
   getRowHeight: (rowIndex: number) => number;
 
   repaint(): void;

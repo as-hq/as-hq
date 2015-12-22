@@ -177,8 +177,7 @@ export type PayloadInit = {
 export type PayloadOpen = {
   tag: 'PayloadOpen';
   initHeaderExpressions: Array<ASExpression>;
-  initCondFormatRules: Array<CondFormatRule>;
-  initBars: Array<Bar>;
+  initSheetUpdate: SheetUpdate;
 };
 
 export type PayloadR = {
@@ -343,7 +342,7 @@ export type SheetUpdate = {
   tag: 'SheetUpdate'; 
   cellUpdates: CellUpdate;
   barUpdates: BarUpdate;
-  condFormatRulesUpdate: CondFormatRuleUpdate;
+  condFormatRulesUpdates: CondFormatRuleUpdate;
   //#incomplete updatedRangeDescriptors: DescriptorUpdate;
 };
 
