@@ -78,8 +78,10 @@ handleOpen uc state (PayloadS (Sheet sid _ _)) = do
   condFormatRules <- DB.getCondFormattingRules conn sid
   let xps = map (\(str, lang) -> Expression str lang) (zip headers langs)
   -- get column props
-  barProps <- DB.getBarsInSheet conn sid
-  sendToOriginal uc $ ServerMessage Open Success $ PayloadOpen xps condFormatRules barProps
+  bars <- DB.getBarsInSheet conn sid
+
+  let sheetUpdate = SheetUpdate emptyUpdate (Update bars []) emptyUpdate (Update condFormatRules [])
+  sendToOriginal uc $ ServerMessage Open Success $ PayloadOpen xps sheetUpdate
 
 -- NOTE: doesn't send back blank cells. This means that if, e.g., there are cells that got blanked
 -- in the database, those blank cells will not get passed to the user (and those cells don't get
@@ -220,15 +222,13 @@ handleSetBarProp uc state (PayloadSetBarProp bInd prop) = do
   mOldProps <- DB.getBarProps conn bInd
   let oldProps = maybe BP.emptyProps id mOldProps
       newProps = BP.setProp prop oldProps
-      newRc    = Bar bInd newProps
-      oldRcs   = case mOldProps of
-                      Nothing -> []
-                      Just _ -> [Bar bInd oldProps]
-  DB.setBar conn newRc
-  -- Add the barProps to the commit.
+      newBar   = Bar bInd newProps
+      oldBar   = Bar bInd oldProps
+  DB.setBar conn newBar
+  -- Commit barProps.
   time <- getASTime
-  let bardiff = Diff { beforeVals = oldRcs, afterVals = [newRc]}
-      commit = Commit { barDiff = bardiff, cellDiff = Diff { beforeVals = [], afterVals = [] }, rangeDescriptorDiff = Diff { afterVals = [], beforeVals = [] }, time = time}
+  let bd     = Diff { beforeVals = [oldBar], afterVals = [newBar] }
+      commit = Commit bd emptyDiff emptyDiff time
   DT.updateDBWithCommit conn (userCommitSource uc) commit
   sendToOriginal uc $ ServerMessage SetBarProp Success (PayloadN ())
 

@@ -92,7 +92,7 @@ data ASPayload =
   | PayloadPaste {copyRange :: ASRange, copyTo :: ASRange}
   | PayloadProp {prop :: CellProp, tagRange :: ASRange}
   | PayloadXp ASExpression
-  | PayloadOpen {initHeaderExpressions :: [ASExpression], initCondFormatRules :: [CondFormatRule], initBars :: [Bar]}
+  | PayloadOpen {initHeaderExpressions :: [ASExpression], initSheetUpdate :: SheetUpdate}
   | PayloadValue CompositeValue ASLanguage
   | PayloadList QueryList
   | PayloadText {text :: String}
@@ -229,7 +229,7 @@ makeReplyMessageFromCells action cells = ServerMessage action Success $ PayloadS
 
 -- handle failure cases like makeReplyMessageFromCells
 -- otherwise: send payload CondFormatResult.
--- #needsrefactor will probably be obselesced soon
+-- #needsrefactor will probably be obsolesced soon
 makeCondFormatMessage :: Either ASExecError [ASCell] -> [CondFormatRule] -> ASServerMessage
 makeCondFormatMessage (Left err) _ = makeErrorMessage err SetCondFormatRules
 makeCondFormatMessage (Right cells) rules = ServerMessage SetCondFormatRules Success payload
