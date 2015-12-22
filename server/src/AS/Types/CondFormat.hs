@@ -35,7 +35,9 @@ data CondFormatRule = CondFormatRule { cellLocs :: [ASRange],
 
 -- Timchu, 12/21/15. The types have been refactored from the previous types from 12/16/15.
 -- Each Condition, GreaterThan, IsBetween, ... is part of an ADT called CondFormatCondition
--- Each Condition is currently an instance of OneExpressionCondition or NoExpressionCondition or TwoExpressionCondition
+-- Each Condition (besides for CustomCondition) is currently an instance of
+-- OneExpressionCondition or NoExpressionCondition or TwoExpressionCondition
+
 -- Note: This is MVP, text expressions and date expressions have not yet been implemented.
 -- Each data type in typeclass OneExpressionCondition has a symbolTableLookup1 function
 -- , which takes a value of that type to a (ASValue -> ASValue -> EitherTExec ASCell).
@@ -55,37 +57,42 @@ data CondFormatRule = CondFormatRule { cellLocs :: [ASRange],
 -- CondFormatCondition is an instance of Condition, which has a checker
 -- that evaluates to CheckerNone or CheckerOne or CheckerTwo, depending on the Condition.
 
+-- TODO: timchu, rectify names of the Custom, GreaterThan, ... constructors.
+
 data CondFormatCondition =
-  GreaterThanCondition GreaterThan
-  | LessThanCondition LessThan
-  | GeqCondition Geq
-  | LeqCondition Leq
-  | EqualsCondition Equals
-  | NotEqualsCondition NotEquals
-  | IsEmptyCondition IsEmpty
-  | IsNotEmptyCondition IsNotEmpty
-  | IsBetweenCondition IsBetween
-  | IsNotBetweenCondition IsNotBetween
+  CustomCondition CustomCondition
+  | GreaterThanCondition GreaterThanCondition
+  | LessThanCondition LessThanCondition
+  | GeqCondition GeqCondition
+  | LeqCondition LeqCondition
+  | EqualsCondition EqualsCondition
+  | NotEqualsCondition NotEqualsCondition
+  | IsEmptyCondition IsEmptyCondition
+  | IsNotEmptyCondition IsNotEmptyCondition
+  | IsBetweenCondition IsBetweenCondition
+  | IsNotBetweenCondition IsNotBetweenCondition
   deriving (Show, Read, Generic, Eq)
 
 
-data GreaterThan = GreaterThan ASExpression  deriving (Show, Read, Generic, Eq)
-data LessThan = LessThan ASExpression  deriving (Show, Read, Generic, Eq)
-data Geq = Geq ASExpression  deriving (Show, Read, Generic, Eq)
-data Leq = Leq ASExpression  deriving (Show, Read, Generic, Eq)
-data Equals = Equals ASExpression  deriving (Show, Read, Generic, Eq)
-data NotEquals = NotEquals ASExpression  deriving (Show, Read, Generic, Eq)
-data IsEmpty = IsEmpty deriving (Show, Read, Generic, Eq)
-data IsNotEmpty = IsNotEmpty deriving (Show, Read, Generic, Eq)
-data IsBetween = IsBetween ASExpression ASExpression deriving (Show, Read, Generic, Eq)
-data IsNotBetween = IsNotBetween ASExpression ASExpression deriving (Show, Read, Generic, Eq)
+data CustomCondition = Custom ASExpression deriving (Show, Read, Generic, Eq)
+data GreaterThanCondition = GreaterThan ASExpression  deriving (Show, Read, Generic, Eq)
+data LessThanCondition = LessThan ASExpression  deriving (Show, Read, Generic, Eq)
+data GeqCondition = Geq ASExpression  deriving (Show, Read, Generic, Eq)
+data LeqCondition = Leq ASExpression  deriving (Show, Read, Generic, Eq)
+data EqualsCondition = Equals ASExpression  deriving (Show, Read, Generic, Eq)
+data NotEqualsCondition = NotEquals ASExpression  deriving (Show, Read, Generic, Eq)
+data IsEmptyCondition = IsEmpty deriving (Show, Read, Generic, Eq)
+data IsNotEmptyCondition = IsNotEmpty deriving (Show, Read, Generic, Eq)
+data IsBetweenCondition = IsBetween ASExpression ASExpression deriving (Show, Read, Generic, Eq)
+data IsNotBetweenCondition = IsNotBetween ASExpression ASExpression deriving (Show, Read, Generic, Eq)
 
 -- | TODO: timchu, 12/21/15. There is a fair amount of reptition in the code in 
 -- all the Inequality Conditions, the Between Conditions, etc...
 -- I assume there's a better way to do this.
 
--- Establishes an instance of condition for each possible CondFormatCondition
+-- Establishes an instance of Condition for each possible CondFormatCondition
 instance Condition CondFormatCondition where
+  checker (CustomCondition x) = checkerCustom x
   checker (GreaterThanCondition x) = checkerOne x
   checker (LessThanCondition x) = checkerOne x
   checker (GeqCondition x) = checkerOne x
@@ -98,55 +105,61 @@ instance Condition CondFormatCondition where
   checker (IsNotBetweenCondition x) = checkerTwo x
   --TODO: fill in more functions.
 
--- | Establishes the Inequality types as instances of OneExpressionCondition.
+-- | Establishes CustomCondition as an instance of CustomExpressionCondition.
+-- NOTE: only CustomCondition is an instance of CustomExpressionCondition,
+-- but this logic is present to mirror the logic of the other expressions.
+instance CustomExpressionCondition CustomCondition where
+  getCustomXp (Custom xp) = xp
+
+-- | Establishes the Inequality Conditions as instances of OneExpressionCondition.
 -- Establishes the symbols corresponding to the inequality condition types.
 -- chckerOne is automatically defined given getXp and symbolTableLookup1
-instance OneExpressionCondition GreaterThan where
+instance OneExpressionCondition GreaterThanCondition where
   symbolTableLookup1 (GreaterThan _) = (>)
   getXp (GreaterThan xp) = xp
-instance OneExpressionCondition LessThan where
+instance OneExpressionCondition LessThanCondition where
   symbolTableLookup1 (LessThan _) = (<)
   getXp (LessThan xp) = xp
-instance OneExpressionCondition Geq where
+instance OneExpressionCondition GeqCondition where
   symbolTableLookup1 (Geq _) = (>=)
   getXp (Geq xp) = xp
-instance OneExpressionCondition Leq where
+instance OneExpressionCondition LeqCondition where
   symbolTableLookup1 (Leq _) = (<=)
   getXp (Leq xp) = xp
-instance OneExpressionCondition Equals where
+instance OneExpressionCondition EqualsCondition where
   symbolTableLookup1 (Equals _) = (==)
   getXp (Equals xp) = xp
-instance OneExpressionCondition NotEquals where
+instance OneExpressionCondition NotEqualsCondition where
   symbolTableLookup1 (NotEquals _) = (/=)
   getXp (NotEquals xp) = xp
 
--- | Establishes IsEmpty, IsNotEmpty as instances of NoExpressionCondition.
+-- | Establishes IsEmptyCondition, IsNotEmptyCondition as instances of NoExpressionCondition.
 -- Establishes the symbols corresponding to the condition types IsEmpty and IsNotEmpty.
 -- checkerNone is automatically defined given symbolTableLookup0.
-instance NoExpressionCondition IsEmpty where
+instance NoExpressionCondition IsEmptyCondition where
   symbolTableLookup0 IsEmpty = (NoValue == )
-instance NoExpressionCondition IsNotEmpty where
+instance NoExpressionCondition IsNotEmptyCondition where
   symbolTableLookup0 IsNotEmpty = (NoValue /= )
 
--- | Establishes IsBetween, IsNotBetween as instances of TwoExpressionCondition.
+-- | Establishes IsBetweenCondition, IsNotBetweenCondition as instances of TwoExpressionCondition.
 -- Establishes the symbols corresponding to the condition types IsBetween and IsNotBetween.
 -- checkerTwo is automatically defined given symbolTableLookup2, getFstXp, getSndXp.
-instance TwoExpressionCondition IsBetween where
+instance TwoExpressionCondition IsBetweenCondition where
   symbolTableLookup2 (IsBetween _ _ ) = isBetween
   getFstXp (IsBetween a _) = a
   getSndXp (IsBetween _ b) = b
-instance TwoExpressionCondition IsNotBetween where
+instance TwoExpressionCondition IsNotBetweenCondition where
   symbolTableLookup2 (IsNotBetween _ _) v v1 v2 = not $ isBetween  v v1 v2
   getFstXp (IsNotBetween a _) = a
   getSndXp (IsNotBetween _ b) = b
 
 
--- | Defines the ordering used in GreaterThan, IsBetween, ...
+-- | Defines the ordering used in GreaterThanCondition, IsBetweenCondition, ...
 -- This ordering is only used in CondFormat thus far. Hence it is in this file.
 -- TODO: timchu, 12/17/15. this Ord is not exactly right. Should be the same as
 -- the ordering on Evalues. This has not been vetted for completeness or tested
 -- for correctness.
--- This is a temporary hack. Defining these ineqs should be done in one place
+-- This is temporary. Defining these ineqs should be done in one place in the codebase
 -- and implemented for both ASValues and EValues.
 instance Ord ASValue where
   -- TODO: is this right?
@@ -180,10 +193,23 @@ isBetween value a1 a2 = value >= min a1 a2 && max a1 a2 >= value
 
 -- symbolTableLookupN takes an NExpressionType to function with N variables.
 -- Checker is a function taking in an instance of NExpressionCondition,
--- an ASValue of a cell that the conditional format is evaluated on, and an eval function (ASExpression -> EitherTExec ASValue), which returns a bool to determine whether the cond format condition has been satisfied or not.
+-- an ASValue of a cell that the conditional format is evaluated on,
+-- and an eval function (ASExpression -> EitherTExec ASValue),
+-- and returns a bool to determine whether the cond format condition has been satisfied or not.
 
 class Condition a where
   checker :: a -> ASValue -> (ASExpression -> EitherTExec ASValue) -> EitherTExec Bool
+
+-- TODO: timchu, this type class is not necessary since only customExpressionCondition is an instance of it,
+-- but it is here so that the code for CustomExpression matches the rest of the logic.
+class CustomExpressionCondition a where
+  checkerCustom :: a -> ASValue -> (ASExpression -> EitherTExec ASValue) -> EitherTExec Bool
+  getCustomXp :: a -> ASExpression
+  checkerCustom s _ evalXp = do
+    v <- evalXp $ getCustomXp s
+    if v == ValueB True
+       then return True
+       else return False
 
 class NoExpressionCondition a where
   symbolTableLookup0 :: a -> (ASValue -> Bool)
@@ -209,43 +235,46 @@ class TwoExpressionCondition a where
     [val1, val2] <- mapM evalXp [getFstXp s, getSndXp s]
     return $ (symbolTableLookup2 s) val val1 val2
 
+instance ToJSON CustomCondition
+instance FromJSON CustomCondition
+instance Serialize CustomCondition
 
-instance ToJSON GreaterThan
-instance FromJSON GreaterThan
-instance Serialize GreaterThan
+instance ToJSON GreaterThanCondition
+instance FromJSON GreaterThanCondition
+instance Serialize GreaterThanCondition
 
-instance ToJSON LessThan
-instance FromJSON LessThan
-instance Serialize LessThan
+instance ToJSON LessThanCondition
+instance FromJSON LessThanCondition
+instance Serialize LessThanCondition
 
-instance ToJSON Geq
-instance FromJSON Geq
-instance Serialize Geq
+instance ToJSON GeqCondition
+instance FromJSON GeqCondition
+instance Serialize GeqCondition
 
-instance ToJSON Leq
-instance FromJSON Leq
-instance Serialize Leq
+instance ToJSON LeqCondition
+instance FromJSON LeqCondition
+instance Serialize LeqCondition
 
-instance ToJSON Equals
-instance FromJSON Equals
-instance Serialize Equals
+instance ToJSON EqualsCondition
+instance FromJSON EqualsCondition
+instance Serialize EqualsCondition
 
-instance ToJSON NotEquals
-instance FromJSON NotEquals
-instance Serialize NotEquals
+instance ToJSON NotEqualsCondition
+instance FromJSON NotEqualsCondition
+instance Serialize NotEqualsCondition
 
-instance ToJSON IsEmpty
-instance FromJSON IsEmpty
-instance Serialize IsEmpty
+instance ToJSON IsEmptyCondition
+instance FromJSON IsEmptyCondition
+instance Serialize IsEmptyCondition
 
-instance ToJSON IsNotEmpty
-instance FromJSON IsNotEmpty
-instance Serialize IsNotEmpty
+instance ToJSON IsNotEmptyCondition
+instance FromJSON IsNotEmptyCondition
+instance Serialize IsNotEmptyCondition
 
-instance ToJSON IsBetween
-instance FromJSON IsBetween
-instance Serialize IsBetween
+instance ToJSON IsBetweenCondition
+instance FromJSON IsBetweenCondition
+instance Serialize IsBetweenCondition
 
-instance ToJSON IsNotBetween
-instance FromJSON IsNotBetween
-instance Serialize IsNotBetween
+instance ToJSON IsNotBetweenCondition
+instance FromJSON IsNotBetweenCondition
+instance Serialize IsNotBetweenCondition
