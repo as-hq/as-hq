@@ -119,6 +119,7 @@ library
                      , cassava
                      , hashmap
                      , hashable
+                     , unordered-containers
   default-language:    Haskell2010
   default-extensions:  QuasiQuotes
                        FlexibleContexts
@@ -151,6 +152,7 @@ executable alphasheets-exe
                      , parsec
                      , cassava
                      , vector
+                     , unordered-containers
   PkgConfig-Depends:   python
   c-sources:           src/AS/Kernels/Python/cdefs.c
   default-language:    Haskell2010
