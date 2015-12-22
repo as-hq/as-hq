@@ -144,7 +144,7 @@ wss.on("connection", function(ws) {
         var cells = parsed.payload.contents.map(fakeCellFromASLoc);
         msg = toServerMessageFormat("NoAction", "PayloadCL", cells);
       } else if (parsed.payload.tag === 'PayloadList') {
-        var msg = toServerMessageFormat('Update', 'PayloadWorkbookSheets', fakeWorkbookSheets());
+        var msg = toServerMessageFormat('UpdateSheet', 'PayloadWorkbookSheets', fakeWorkbookSheets());
       }
     } else if (parsed.action === "Evaluate") { // WTF is this code?? (Alex 11/24)
       var cell = null;

@@ -14,9 +14,13 @@ import React from 'react';
 
 import API from '../actions/ASApiActionCreators';
 import SheetStateStore from '../stores/ASSheetStateStore';
+import Constants from '../Constants';
 
 import ASCondFormattingDialog from './dialogs/ASCondFormattingDialog.jsx';
 import ASMenuBar from './menu-bar/ASMenuBar.jsx';
+
+import FileImportDialog from '../AS/FileImportDialog';
+
 
 type ASTopBarProps = {
   toggleEvalHeader: Callback;
@@ -51,6 +55,18 @@ export default class ASTopBar extends React.Component<{}, ASTopBarProps, ASTopBa
   render(): React.Element {
     let self = this;
 
+    let testAlphaSheets =
+      Constants.isProduction
+        ? []
+        : [(
+          simple({
+            title: 'Test AlphaSheets',
+            callback() {
+              window.test();
+            }
+          })
+        )];
+
     return (
       <span>
         <ASCondFormattingDialog
@@ -61,7 +77,14 @@ export default class ASTopBar extends React.Component<{}, ASTopBarProps, ASTopBa
             simple({
               title: 'Open',
               callback() {
-                alert("To open a saved AlphaSheets sheet, drag it onto the spreadsheet on this page. (Cut us some slack, this is an MVP.)");
+                alert("To open a saved AlphaSheets sheet, drag it onto the spreadsheet on this page.");
+              }
+            }),
+
+            simple({
+              title: 'Import CSV',
+              callback() {
+                FileImportDialog.openFileDialog(false, FileImportDialog.importCSVCallback);
               }
             }),
 
@@ -100,7 +123,9 @@ export default class ASTopBar extends React.Component<{}, ASTopBarProps, ASTopBa
                 let bugReport = window.prompt("Please describe the bug you encountered.","");
                 API.bugReport(bugReport);
               }
-            })
+            }),
+
+            ...testAlphaSheets
           ]}
         ]} />
       </span>

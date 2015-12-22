@@ -10,8 +10,13 @@ import type {
   ASIndex,
   ASRange,
   ASCell,
-  ASLanguage
+  ASLanguage,
 } from './Eval';
+
+import type { 
+  BarIndex, 
+  Bar
+} from './Messages';
 
 export type ASViewingWindow = {
   range: NakedRange;
@@ -29,7 +34,8 @@ export type ASClientExpression = {
   language: ASLanguage;
 };
 
-export type ASCellGrid =
-  Dict<Array<Array<ASCell>>>;
+export type ASCellGrid = Dict<Array<Array<ASCell>>>;
+
+export type ASBarLines = { [key: BarIndex]: Bar }; // please help me think of a better name
 
 export type ASCursorStyle = 'auto' | 'crosshair' | 'move';

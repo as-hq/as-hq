@@ -82,18 +82,16 @@ var Constants = Object.assign({
     CELL_CHANGED: null,
     RANGE_CHANGED: null,
     SCROLLED: null,
-    GOT_UPDATED_CELLS: null,
     GOT_UNDO:null,
     GOT_REDO:null,
     GOT_SELECTION:null,
-    FETCHED_CELLS:null,
+    GOT_UPDATED_CELLS:null,
     CLEARED: null,
     CLEARED_SHEET: null,
     GOT_UPDATED_WORKBOOKS: null,
     RECEIVED_ERROR: null,
     RECEIVED_SHEET: null,
     RECEIVED_WORKBOOK: null,
-    DELETED_LOCS: null,
     REPL_LEFT:null,
     EVAL_HEADER_UPDATED:null,
     GOT_REPL_RESP:null,
@@ -171,7 +169,8 @@ var Constants = Object.assign({
     Drag: "Drag",
     Decouple: "Decouple",
     SetCondFormatRules: "SetCondFormatRules",
-    SetRowColProp: "SetRowColProp"
+    SetBarProp: "SetBarProp",
+    ImportCSV: "ImportCSV"
   },
 
   CursorPosition:{

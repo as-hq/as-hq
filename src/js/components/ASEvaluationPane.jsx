@@ -38,6 +38,7 @@ import ExpActionCreator from '../actions/ASExpActionCreators';
 import U from '../AS/Util';
 import Shortcuts from '../AS/Shortcuts';
 
+
 let {
   Shortcut: ShortcutUtils,
   Clipboard: ClipboardUtils,
@@ -54,8 +55,8 @@ import * as BrowserTests from '../browser-test/index';
 // import Repl from './repl/Repl.jsx'
 import EvalHeader from './eval-header/EvalHeader.jsx'
 import ResizableRightPanel from './repl/ResizableRightPanel.jsx'
-import ASFindBar from './ASFindBar.jsx'
-import ASFindModal from './ASFindModal.jsx'
+import ASFindBar from './ASFindBar.jsx';
+import ASFindModal from './ASFindModal.jsx';
 import FindAction from '../actions/ASFindActionCreators';
 
 type ASEvalPaneState = {
@@ -182,7 +183,7 @@ export default React.createClass({
     ExpStore.setLanguage(lang);
     this.setState({ defaultLanguage: lang, currentLanguage: lang });
     this.setFocus(SheetStateStore.getFocus());
-  },
+  }, 
 
   _onSetVarName(name: string) {
     logDebug('var name set to', name);
@@ -208,6 +209,7 @@ export default React.createClass({
     // changed, but the server returned an error. Ideally we'd create an
     // an error message store to handle this, but we're probably
     // going to do away with external errors entirely at some point, making it moot.
+    // #needsrefactor
     this._onCellsChange();
   },
 
@@ -219,25 +221,13 @@ export default React.createClass({
     });
 
     this.refs.spreadsheet.updateCellValues(updatedCellsOnSheet);
-    //toast the error of at least one value in the cell
-    let err;
-    for (let i = 0; i < updatedCellsOnSheet.length; ++i) {
-      let cell = updatedCellsOnSheet[i],
-          val = cell.cellValue;
-      if (val.tag == "ValueError") {
-        err = this.getErrorMessage(val);
-        break;
-      }
-    }
 
-    err = err || SheetStateStore.getExternalError();
-
-    if (!!err && !SheetStateStore.shouldSuppressErrors()) {
+    // #needsrefactor error handlers should probably get their own store
+    let err = SheetStateStore.getExternalError();
+    if (err != null) {
       this.setToast(err, "Error");
     }
-
     SheetStateStore.setExternalError(null);
-    SheetStateStore.stopSuppressingErrors();
   },
 
   // _onReplChange() {
@@ -491,6 +481,7 @@ export default React.createClass({
   // Deal with selection change from grid
 
   _onSelectionChange(sel: ASSelection) {
+
     let {range, origin} = sel,
         userIsTyping = ExpStore.getUserIsTyping(),
         cell = CellStore.getCell(origin);
@@ -737,16 +728,16 @@ export default React.createClass({
   /* Find bar and modal */
 
   closeFindBar() {
-    this.setState({showFindBar:false});
+    this.setState({showFindBar: false});
   },
   closeFindModal() {
-    this.setState({showFindModal:false});
+    this.setState({showFindModal: false});
   },
   onFindBarEnter() {
       API.find(FindStore.getFindText());
   },
   openFindModal() {
-    this.setState({showFindBar:false, showFindModal: true});
+    this.setState({showFindBar: false, showFindModal: true});
   },
   onFindBarNext() {
     FindAction.incrementSelection();

@@ -106,8 +106,8 @@ declare class HGBehaviorElement extends HTMLElement {
   swapColumns: (c1: number, c2: number) => void;
   featureChain: HGFeatureChainElement;
 
-  _setColumnWidth(columnIndex: number, columnWidth: number): void;
-  setRowHeight: (rowNum: number, height: number) => void;
+  _setColumnWidth(columnIndex: number, columnWidth: ?number): void;
+  setRowHeight: (rowNum: number, height: ?number) => void;
 
   setCursor(grid: HGElement): void;
   setValue(x: number, y: number, val: string): void;
@@ -140,11 +140,13 @@ declare class HGMouseEvent {
   gridCell: HGPoint;
   mousePoint: HGPoint;
   primitiveEvent: HGPrimitiveMouseEvent;
+  detail: any;
 }
 
 declare class HGElement extends HTMLElement {
   hScrollValue: number;
   vScrollValue: number;
+  autoScrollAcceleration: boolean;
   renderer: HGRendererElement;
 
   addFinEventListener(
@@ -154,6 +156,8 @@ declare class HGElement extends HTMLElement {
   addGlobalProperties(props: mixed): void;
 
   clearSelections(): void;
+
+  resolveProperty(prop: string): any;
 
   getBehavior(): HGBehaviorElement;
   getBoundsOfCell(cell: HGPoint): HGRectangle;
@@ -172,10 +176,10 @@ declare class HGElement extends HTMLElement {
   setHScrollValue(x: number): void;
   setVScrollValue(y: number): void;
 
-  setColumnWidth: (columnIndex: number, columnWidth: number) => void;
+  setColumnWidth: (columnIndex: number, columnWidth: ?number) => void;
   getColumnWidth: (columnIndex: number) => number;
 
-  setRowHeight: (rowIndex: number, rowHeight: number) => void;
+  setRowHeight: (rowIndex: number, rowHeight: ?number) => void;
   getRowHeight: (rowIndex: number) => number;
 
   repaint(): void;

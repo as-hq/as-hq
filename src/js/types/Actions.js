@@ -2,6 +2,7 @@
 
 import type {
   ASIndex,
+  ASLocation,
   ASRange,
   ASCell,
   ASExpression,
@@ -22,7 +23,8 @@ import type {
   ASBackendWorkbookSheet,
   ASMessageAction,
   ASServerMessage,
-  RowCol,
+  Bar,
+  BarIndex
 } from './Messages';
 
 export type GotFailureAction = {
@@ -36,15 +38,9 @@ export type ScrolledAction = {
   vWindow: ASViewingWindow;
 };
 
-export type GotUpdatedCellsAction = {
-  _type: 'GOT_UPDATED_CELLS';
-  updatedCells: Array<ASCell>;
-};
-
 export type GotOpenAction = {
   _type: 'GOT_OPEN';
   expressions: Array<ASExpression>;
-  initRowCols: Array<RowCol>;
 };
 
 export type GotUndoAction = {
@@ -62,9 +58,16 @@ export type GotSelectionAction = {
   newSelection: PayloadSelection;
 };
 
-export type FetchedCellsAction = {
-  _type: 'FETCHED_CELLS';
+export type GotUpdatedCellsAction = {
+  _type: 'GOT_UPDATED_CELLS';
   newCells: Array<ASCell>;
+  oldLocs: Array<ASLocation>;
+};
+
+export type GotUpdatedBarsAction = {
+  _type: 'GOT_UPDATED_BARS';
+  newBars: Array<Bar>;
+  oldBarLocs: Array<BarIndex>;
 };
 
 export type ImportAction = {
@@ -89,12 +92,6 @@ export type GotUpdatedWorkbooksAction = {
 export type GotUpdatedRulesAction = {
   _type: 'GOT_UPDATED_RULES';
   rules: Array<CondFormatRule>;
-};
-
-export type DeletedLocsAction = {
-  _type: 'DELETED_LOCS';
-  deletedRange: ASRange;
-  updatedCells: Array<ASCell>;
 };
 
 export type ReplLeftAction = {
@@ -198,16 +195,15 @@ export type ASAction =
   | GotNewWorkbooksAction
   | DeletedWorkbooksAction
   | ScrolledAction
-  | GotUpdatedCellsAction
   | GotOpenAction
   | GotUndoAction
   | GotRedoAction
   | GotSelectionAction
-  | FetchedCellsAction
+  | GotUpdatedCellsAction
+  | GotUpdatedBarsAction
   | ImportAction
   | ClearedAction
   | ClearedSheetAction
-  | DeletedLocsAction
   | ReplLeftAction
   | GotReplResponseAction
   | GotEvalHeaderResponseAction

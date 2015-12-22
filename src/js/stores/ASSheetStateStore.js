@@ -37,7 +37,6 @@ import type {
 type SheetStateStoreData = {
   userId: ASUserId;
   decoupleAttempt: boolean;
-  suppressErrors: boolean;
   xscroll: number;
   yscroll: number;
   openSheets: Array<ASSheet>;
@@ -55,7 +54,6 @@ type SheetStateStoreData = {
 let _data: SheetStateStoreData = {
   userId: "TEST_USER_ID",
   decoupleAttempt: false,
-  suppressErrors: false,
   xscroll: 0,
   yscroll: 0,
   openSheets: [],
@@ -98,9 +96,6 @@ const ASSheetStateStore = Object.assign({}, BaseStore, {
         _data.decoupleAttempt = true;
         ASSheetStateStore.emitChange();
         break;
-      case 'FETCHED_CELLS':
-        _data.suppressErrors = true; // don't show errors when fetching cells. will get set to false at end of emitChange()
-        break;
       /*
         This action is sent to Dispatcher by the ASSpreadsheet action creator on a scroll event
         It gets previous scroll state from the store and then uses the API to send a "get cells" message to server
@@ -117,9 +112,6 @@ const ASSheetStateStore = Object.assign({}, BaseStore, {
           ReplStore.advanceLine();
         }
         ASSheetStateStore.emitChange();
-        break;
-      case 'GOT_IMPORT':
-        _data.suppressErrors = true; // don't show errors when fetching cells. will get set to false at end of emitChange()
         break;
     }
   }),
@@ -295,14 +287,6 @@ const ASSheetStateStore = Object.assign({}, BaseStore, {
 
   getViewingWindow() {
     return _data.viewingWindow;
-  },
-
-  shouldSuppressErrors() {
-    return _data.suppressErrors;
-  },
-
-  stopSuppressingErrors() {
-    _data.suppressErrors = false;
   }
 });
 
