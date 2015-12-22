@@ -10,6 +10,7 @@ import AS.Types.Eval
 import AS.Types.Commits
 import AS.Types.CondFormat
 import AS.Types.Bar
+import AS.Types.Updates
 import qualified AS.Types.BarProps as BP
 
 import AS.Handlers.Eval
@@ -110,16 +111,16 @@ handleGet uc state (PayloadLL locs) = do
 handleGet uc state (PayloadList Sheets) = do
   curState <- readMVar state
   ss <- DB.getAllSheets (dbConn curState)
-  sendToOriginal uc $ ServerMessage Update Success (PayloadSS ss)
+  sendToOriginal uc $ ServerMessage UpdateSheet Success (PayloadSS ss)
 handleGet uc state (PayloadList Workbooks) = do
   curState <- readMVar state
   ws <- DB.getAllWorkbooks (dbConn curState)
-  sendToOriginal uc $ ServerMessage Update Success (PayloadWBS ws)
+  sendToOriginal uc $ ServerMessage UpdateSheet Success (PayloadWBS ws)
 handleGet uc state (PayloadList WorkbookSheets) = do
   curState <- readMVar state
   wss <- DB.getAllWorkbookSheets (dbConn curState)
   printWithTime $ "getting all workbooks: "  ++ (show wss)
-  sendToOriginal uc $ ServerMessage Update Success (PayloadWorkbookSheets wss)
+  sendToOriginal uc $ ServerMessage UpdateSheet Success (PayloadWorkbookSheets wss)
 
 handleDelete :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
 -- these handlers are DEPRECATED
@@ -133,6 +134,7 @@ handleDelete :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
 --  DB.deleteWorkbook conn (workbookName workbook)
 --  broadcast state $ ServerMessage Delete Success p
 --  return ()
+-- ::ALEX:: still gotta fix this guy
 handleDelete uc state (PayloadR rng) = do
   let locs = rangeToIndices rng
       badFormats = [ValueFormat Date]
@@ -174,11 +176,12 @@ handleClear client state payload = case payload of
 handleUndo :: ASUserClient -> MVar ServerState -> IO ()
 handleUndo uc state = do
   conn <- dbConn <$> readMVar state
+  printWithTime "right before commit"
   commit <- DT.undo conn (userCommitSource uc)
   let msg = case commit of
               Nothing -> failureMessage "Too far back"
-              Just c  -> ServerMessage Undo Success (PayloadCommit c)
-  broadcast state msg
+              Just c  -> DP.makeReplyMessageFromCommit $ Right $ flipCommit c
+  broadcastFiltered state uc msg
   printWithTime "Server processed undo"
 
 handleRedo :: ASUserClient -> MVar ServerState -> IO ()
@@ -187,8 +190,8 @@ handleRedo uc state = do
   commit <- DT.redo conn (userCommitSource uc)
   let msg = case commit of
               Nothing -> failureMessage "Too far forwards"
-              Just c  -> ServerMessage Redo Success (PayloadCommit c)
-  broadcast state msg
+              Just c  -> DP.makeReplyMessageFromCommit $ Right c
+  broadcastFiltered state uc msg
   printWithTime "Server processed redo"
 
 -- Drag/autofill
@@ -254,8 +257,8 @@ handleSetBarProp uc state (PayloadSetBarProp bInd prop) = do
   DB.setBar conn newRc
   -- Add the barProps to the commit.
   time <- getASTime
-  let bardiff = BarDiff { beforeBars = oldRcs, afterBars = [newRc]}
-      commit = Commit { barDiff = bardiff, cellDiff = CellDiff { beforeCells = [], afterCells = [] }, commitDescriptorDiff = DescriptorDiff { addedDescriptors = [], removedDescriptors = [] }, time = time}
+  let bardiff = Diff { beforeVals = oldRcs, afterVals = [newRc]}
+      commit = Commit { barDiff = bardiff, cellDiff = Diff { beforeVals = [], afterVals = [] }, rangeDescriptorDiff = Diff { afterVals = [], beforeVals = [] }, time = time}
   DT.updateDBWithCommit conn (userCommitSource uc) commit
   sendToOriginal uc $ ServerMessage SetBarProp Success (PayloadN ())
 

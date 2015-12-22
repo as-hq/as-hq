@@ -19,6 +19,7 @@ import AS.Types.Network
 import AS.Types.Commits
 import AS.Types.Eval
 import AS.Types.DB
+import AS.Types.Updates
 
 import AS.Dispatch.Expanding        as DE
 import AS.DB.Eval
@@ -104,15 +105,14 @@ runDispatchCycle state cs descSetting src ctf = do
     Left _ -> G.recompute conn -- #needsrefactor. Overkill. But recording all cells that might have changed is a PITA. (Alex 11/20)
     _      -> return ()
 
-  let msg = makeReplyMessageFromCellsFromCommit errOrCommit
+  let msg = makeReplyMessageFromCommit errOrCommit
   printObj "made message: " msg
   return msg
 
-makeReplyMessageFromCellsFromCommit :: Either ASExecError ASCommit -> ASServerMessage
-makeReplyMessageFromCellsFromCommit (Left err) = makeErrorMessage err Update
-makeReplyMessageFromCellsFromCommit (Right comm) = makeReplyMessageFromCells Update $ updatedCells $ sheetUpdateFromCommit comm
--- ServerMessage Update Success (PayloadSheetUpdate $ )
--- ::ALEX::
+makeReplyMessageFromCommit :: Either ASExecError ASCommit -> ASServerMessage
+makeReplyMessageFromCommit (Left err) = makeErrorMessage err UpdateSheet
+makeReplyMessageFromCommit (Right comm) = ServerMessage UpdateSheet Success $ PayloadSheetUpdate $ sheetUpdateFromCommit comm
+-- ::ALEX:: put in the proper place
 
 -- takes an old context, inserts the new values necessary for this round of eval, and evals using the new context.
 -- this seems conceptually better than letting each round of dispatch produce a new context, 
@@ -246,10 +246,10 @@ removeMaybeDescriptorFromContext descriptor ctx = ctx { descriptorDiff = ddiff' 
 
 -- Helper function that removes multiple descriptors from the ddiff of the context. 
 removeMultipleDescriptorsFromContext :: [RangeDescriptor] -> PureEvalTransform
-removeMultipleDescriptorsFromContext descriptors ctx = ctx { descriptorDiff = ddiffWithRemovedDescriptors }
+removeMultipleDescriptorsFromContext descriptors ctx = ctx { descriptorDiff = ddiffWithbeforeVals }
   where
     ddiff = descriptorDiff ctx
-    ddiffWithRemovedDescriptors = L.foldl' removeValue ddiff descriptors
+    ddiffWithbeforeVals = L.foldl' removeValue ddiff descriptors
 
 -- Helper function  that adds a descriptor to the ddiff of a context
 addValueToContext :: RangeDescriptor -> PureEvalTransform
@@ -305,16 +305,16 @@ addCurFatCellToContext conn idx maybeFatCell ctx = do
   -- The newly created cell(s) may have caused decouplings, which we're going to deal with. 
   -- First, we get a possible fatcell created, from which we get the newly removed descriptors, if any
   -- We need to remove the ones that intersect our newly produced cell/fatcell (they're decoupled now)
-  newlyRemovedDescriptors <- lift $ case maybeFatCell of
+  newlybeforeVals <- lift $ case maybeFatCell of
     Nothing -> DX.getFatCellIntersections conn ctx (Left [idx])
     Just (FatCell _ descriptor) -> DX.getFatCellIntersections conn ctx (Right [descriptorKey descriptor])
-  printObjT "GOT DECOUPLED DESCRIPTORS" newlyRemovedDescriptors
+  printObjT "GOT DECOUPLED DESCRIPTORS" newlybeforeVals
   -- The locations we have to decouple can be constructed from the range keys
   -- Then, given the locs, we get the cells that we have to decouple from the DB and then change their expressions
   -- to be decoupled (by using the value of the cell)
-  let decoupledLocs = concat $ map (rangeKeyToIndices . descriptorKey) newlyRemovedDescriptors
+  let decoupledLocs = concat $ map (rangeKeyToIndices . descriptorKey) newlybeforeVals
   decoupledCells <- lift $ ((map DI.toDecoupled) . catMaybes) <$> getCellsWithContext conn ctx decoupledLocs
-  let ctx' = removeMultipleDescriptorsFromContext newlyRemovedDescriptors $ addCellsToContext decoupledCells ctx
+  let ctx' = removeMultipleDescriptorsFromContext newlybeforeVals $ addCellsToContext decoupledCells ctx
   let ctx'' = case maybeFatCell of
                 Nothing -> ctx'
                 Just (FatCell _ descriptor) -> addValueToContext descriptor ctx'

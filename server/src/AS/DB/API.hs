@@ -12,6 +12,7 @@ import AS.Types.CellProps
 import AS.Types.Errors
 import AS.Types.Eval
 import AS.Types.CondFormat
+import AS.Types.Updates
 
 import qualified AS.Config.Settings as Settings
 import AS.Util as U
@@ -191,11 +192,11 @@ getRangeDescriptorsInSheet conn sid = do
 
 getRangeDescriptorsInSheetWithContext :: Connection -> EvalContext -> ASSheetId -> IO [RangeDescriptor]
 getRangeDescriptorsInSheetWithContext conn ctx@(EvalContext _ _ ddiff) sid = do
-  printObj "removed descriptors in getRangeDescriptorsInSheetWithContext " $ removedDescriptors ddiff
+  printObj "removed descriptors in getRangeDescriptorsInSheetWithContext " $ beforeVals ddiff
   dbKeys <- DI.getRangeKeysInSheet conn sid
-  let dbKeys' = dbKeys \\ (map descriptorKey $ removedDescriptors ddiff)
+  let dbKeys' = dbKeys \\ (map descriptorKey $ beforeVals ddiff)
   dbDescriptors <- map fromJust <$> mapM (getRangeDescriptor conn) dbKeys' 
-  return $ (addedDescriptors ddiff) ++ dbDescriptors
+  return $ (afterVals ddiff) ++ dbDescriptors
 
 -- If the range descriptor associated with a range key is in the context, return it. Else, return Nothing. 
 getRangeDescriptorUsingContext :: Connection -> EvalContext -> RangeKey -> IO (Maybe RangeDescriptor)
@@ -205,8 +206,8 @@ getRangeDescriptorUsingContext conn (EvalContext _ _ ddiff) rKey = if (isJust in
     Nothing -> getRangeDescriptor conn rKey
     Just d -> return $ Just d
   where
-    inRemoved = find (\d -> descriptorKey d == rKey) (removedDescriptors ddiff)
-    inAdded = find (\d -> descriptorKey d == rKey) (addedDescriptors ddiff)
+    inRemoved = find (\d -> descriptorKey d == rKey) (beforeVals ddiff)
+    inAdded = find (\d -> descriptorKey d == rKey) (afterVals ddiff)
 
 ----------------------------------------------------------------------------------------------------------------------
 -- WorkbookSheets (for frontend API)

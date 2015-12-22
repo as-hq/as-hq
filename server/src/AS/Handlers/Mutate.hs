@@ -7,6 +7,7 @@ import AS.Types.User
 import AS.Types.Excel hiding (dbConn)
 import AS.Types.Eval
 import AS.Types.Commits
+import AS.Types.Updates
 
 import AS.DB.Internal as DI
 import AS.Types.Bar
@@ -22,8 +23,8 @@ import AS.Logging
 import Control.Concurrent
 import Data.Maybe
 
-injectBarDiffIntoCommit :: BarDiff -> ASCommit -> ASCommit
-injectBarDiffIntoCommit bard c = c { barDiff = bard }
+injectDiffIntoCommit :: BarDiff -> ASCommit -> ASCommit
+injectDiffIntoCommit bard c = c { barDiff = bard }
 
 handleMutateSheet :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
 handleMutateSheet uc state (PayloadMutate mutateType) = do
@@ -42,8 +43,8 @@ handleMutateSheet uc state (PayloadMutate mutateType) = do
   oldBars <- DB.getBarsInSheet conn sid
   let newBars = mapMaybe (barMap mutateType) oldBars
   DB.replaceBars conn oldBars newBars
-  let bardiff = BarDiff { beforeBars = oldBars, afterBars = newBars }
-      commitTransform = injectBarDiffIntoCommit bardiff
+  let bardiff = Diff { beforeVals = oldBars, afterVals = newBars }
+      commitTransform = injectDiffIntoCommit bardiff
   printObj "Commit Transform in Handle Mutate Sheet" bardiff
   updateMsg <- runDispatchCycle state updatedCells DescendantsWithParent (userCommitSource uc) commitTransform
   broadcastFiltered state uc updateMsg

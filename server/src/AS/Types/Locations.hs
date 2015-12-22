@@ -104,9 +104,11 @@ instance NFData ASPointer           where rnf = genericRnf
 instance NFData ASRange             where rnf = genericRnf
 instance NFData ASReference         where rnf = genericRnf
 
-instance Serialize ASIndex 
 instance Serialize Dimensions
+instance Serialize ASIndex 
 instance Serialize ASRange
+instance Serialize ASPointer
+instance Serialize ASReference
 
 instance Hashable ASIndex
 

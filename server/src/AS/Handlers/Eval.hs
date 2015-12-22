@@ -61,6 +61,6 @@ handleDecouple uc state payload = do
     Nothing -> return ()
     Just c -> do
       updateDBWithCommit conn src c
-      let msg = ServerMessage Update Success $ PayloadSheetUpdate $ sheetUpdateFromCommit c
+      let msg = ServerMessage UpdateSheet Success $ PayloadSheetUpdate $ sheetUpdateFromCommit c
       broadcastFiltered state uc msg
 

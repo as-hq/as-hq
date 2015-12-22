@@ -15,6 +15,7 @@ import AS.Types.Errors
 import AS.Types.Eval
 import AS.Types.CellProps
 import AS.Types.CondFormat
+import AS.Types.Updates 
 
 import GHC.Generics
 import Data.Aeson hiding (Success)
@@ -46,7 +47,7 @@ data ASAction =
   | Import | Export | ImportCSV
   | Open | Close
   | Evaluate | EvaluateRepl | EvaluateHeader
-  | Update
+  | UpdateSheet
   | Get | Delete
   | Copy | Cut | CopyForced
   | Undo | Redo
@@ -213,7 +214,7 @@ makeErrorMessage e a = ServerMessage a (Failure (generateErrorMessage e)) (Paylo
 -- | When you have a list of cells from an eval request, this function constructs
 -- the message to send back. 
 makeReplyMessageFromCells :: ASAction -> [ASCell] -> ASServerMessage
-makeReplyMessageFromCells action cells = ServerMessage action Success $ PayloadSheetUpdate $ SheetUpdate cells [] [] []
+makeReplyMessageFromCells action cells = ServerMessage action Success $ PayloadSheetUpdate $ SheetUpdate (Update cells []) emptyUpdate emptyUpdate emptyUpdate
 
 -- getBadLocs :: [ASReference] -> [Maybe ASCell] -> [ASReference]
 -- getBadLocs locs mcells = map fst $ filter (\(l,c)->isNothing c) (zip locs mcells)
@@ -226,7 +227,7 @@ makeReplyMessageFromCells action cells = ServerMessage action Success $ PayloadS
 makeDeleteMessage :: ASRange -> ASServerMessage -> ASServerMessage
 makeDeleteMessage _ s@(ServerMessage _ (Failure _) _) = s
 makeDeleteMessage _ s@(ServerMessage _ (DecoupleDuringEval) _) = ServerMessage Delete DecoupleDuringEval (PayloadN ())
-makeDeleteMessage deleteLocs (ServerMessage _ _ (PayloadSheetUpdate (SheetUpdate cells _ _ _))) = ServerMessage Delete Success payload
+makeDeleteMessage deleteLocs (ServerMessage _ _ (PayloadSheetUpdate (SheetUpdate (Update cells _) _ _ _))) = ServerMessage Delete Success payload
   where locsCells = zip (map cellLocation cells) cells
         cells'    = map snd $ filter (\(l, _) -> not $ rangeContainsIndex deleteLocs l) locsCells
         payload   = PayloadDelete deleteLocs cells'
@@ -237,7 +238,7 @@ makeDeleteMessage deleteLocs (ServerMessage _ _ (PayloadSheetUpdate (SheetUpdate
 makeCondFormatMessage :: Either ASExecError [ASCell] -> [CondFormatRule] -> ASServerMessage
 makeCondFormatMessage (Left err) _ = makeErrorMessage err SetCondFormatRules
 makeCondFormatMessage (Right cells) rules = ServerMessage SetCondFormatRules Success payload
-  where payload = PayloadSheetUpdate $ SheetUpdate cells [] [] rules
+  where payload = PayloadSheetUpdate $ SheetUpdate (Update cells []) emptyUpdate emptyUpdate (Update rules [])
 
 changeMessageAction :: ASAction -> ASServerMessage -> ASServerMessage
 changeMessageAction a (ServerMessage _ r p) = ServerMessage a r p

@@ -2,6 +2,7 @@ module AS.Reply (broadcast, broadcastFiltered, broadcastFiltered', sendToOrigina
 
 import AS.Types.Cell
 import AS.Types.Commits
+import AS.Types.Updates
 import AS.Types.Network
 import AS.Types.Messages
 import AS.Types.User
@@ -24,8 +25,8 @@ sheetsInPayload (PayloadS (Sheet sid _ _)) = [sid]
 -- TODO: timchu 12/14/15, sheetsInPayload does not have BarProps!
 sheetsInPayload (PayloadCommit (Commit _ cdiff _ _)) = (map getSheet bf) ++ (map getSheet af)
   where
-    bf = beforeCells cdiff
-    af = afterCells cdiff
+    bf = beforeVals cdiff
+    af = afterVals cdiff
     getSheet = locSheetId . cellLocation
 sheetsInPayload (PayloadN ()) = []
 
@@ -48,10 +49,11 @@ sendFilteredLocs msg locs uc = do
       msg'  = msg { serverPayload = PayloadLL locs' }
   sendMessage msg' (userConn uc)
 
+-- ::ALEX:: actually implement
 sendFilteredSheetUpdate :: ASServerMessage -> SheetUpdate -> ASUserClient -> IO ()
-sendFilteredSheetUpdate msg (SheetUpdate cs rcs ds cfrs) uc = do
+sendFilteredSheetUpdate msg (SheetUpdate (Update cs locs) rcs ds cfrs) uc = do
   let cells' = intersectViewingWindow cs (userWindow uc)
-      msg'  = msg { serverPayload = PayloadSheetUpdate $ SheetUpdate cells' rcs ds cfrs }
+      msg'  = msg { serverPayload = PayloadSheetUpdate $ SheetUpdate (Update cells' locs) rcs ds cfrs }
   sendMessage msg' (userConn uc)
 
 -- | Given a message (commit, cells, etc), only send (to each user) the cells in their viewing window. 
