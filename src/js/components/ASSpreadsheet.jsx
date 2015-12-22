@@ -458,22 +458,19 @@ export default React.createClass({
       }
     };
 
-    //  For now, double-clicks don't get saved to backend. We need a way to tell whether the
-    //  mouse clicked off a cell, which will probably involve counting pixels; deprioritizing
-    //  this for now. (Alex 12/7)
-    //  model.onDoubleClick = (grid, evt) => {
-    //   if (model.featureChain) {
-    //       model.featureChain.handleDoubleClick(grid, evt);
-    //       model.setCursor(grid);
-    //   }
+     model.onDoubleClick = (grid, evt) => {
+      if (model.featureChain) {
+          model.featureChain.handleDoubleClick(grid, evt);
+          model.setCursor(grid);
+      }
 
-    //   // ::TODO:: need to do a check here!!
-    //   self.clickedColNum = evt.gridCell.x;
-    //   self.clickedRowNum = evt.gridCell.y;
-
-    //   self.finishColumnResize();
-    //   self.finishRowResize();
-    // };
+      // for now, double-clicking rows doesn't size it automatically
+      
+      if (self._clickedCellIsInColumnHeader(evt.gridCell)) {
+        self.clickedColNum = evt.gridCell.x;
+        self.finishColumnResize();
+      }
+    };
 
     model.onMouseDrag = (grid, evt) => {
       let selOrigin = this.dragSelectionOrigin;
