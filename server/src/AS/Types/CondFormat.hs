@@ -38,6 +38,7 @@ data CondFormatCondition =
   GreaterThanCondition GreaterThan
   | IsEmptyCondition IsEmpty
   deriving (Show, Read, Generic, Eq)
+
 data GreaterThan = GreaterThan ASExpression  deriving (Show, Read, Generic, Eq)
 data IsEmpty = IsEmpty deriving (Show, Read, Generic, Eq)
 
