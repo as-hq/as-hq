@@ -129,6 +129,7 @@ export default {
   },
 
   expandingTypeToRenderConfig(config: HGRendererConfig, etype: ExpandingType): HGRendererConfig {
+    config.bgSelColor = '#64B5F6';
     switch (etype) {
       case "List":
         config.bgColor = Constants.Colors.cornsilk;
