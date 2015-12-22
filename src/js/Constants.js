@@ -51,6 +51,7 @@ var Constants = Object.assign({
   isRemote: true,
   promptUser: false,
   showConnectionLost: true,
+  shouldReconnect: true,
 
   // event name triggered from store, listened to by views
   CHANGE_EVENT: 'change',
