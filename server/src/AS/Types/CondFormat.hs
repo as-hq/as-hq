@@ -22,6 +22,7 @@ import qualified Data.Text as T
 instance ToJSON CondFormatRule
 instance FromJSON CondFormatRule
 
+-- Custom ToJSON and FromJSON on CondFormatConditions becuase the frontend and backend types differ.
 instance ToJSON CondFormatCondition where
   toJSON = makeObj
     where
@@ -32,10 +33,6 @@ instance ToJSON CondFormatCondition where
              OneExpressionCondition t xp -> object ["tag" .= show t, "expression" .= xp]
              TwoExpressionsCondition t xp1 xp2 -> object ["tag" .= show t, "expressions" .= [xp1, xp2]]
 
-
--- Example of a CondFormatObject is
--- {tag: "IsBetween"
--- expressions: [ASExpression , ASExpression]}
 instance FromJSON CondFormatCondition where
  parseJSON (Object v) =
    case HML.lookup "tag" v of
@@ -56,7 +53,7 @@ instance FromJSON CondFormatCondition where
               oneExpressionParser :: Object -> Parser CondFormatCondition
               oneExpressionParser s =  OneExpressionCondition <$> s .: "tag" <*> s .: "expression"
               twoExpressionsParser  :: Object -> Parser CondFormatCondition
-              twoExpressionsParser s = do 
+              twoExpressionsParser s = do
                 list <- s .: "expressions"
                 let e1 = head list
                     e2 = last list
@@ -75,67 +72,14 @@ data CondFormatRule = CondFormatRule { cellLocs :: [ASRange],
 
 -- TODO: Timchu, 12/14/15. This is MVP; does not have date expressions or text expressions.
 -- CustomExpressions are separate from OneExpresssionConditions since
--- OneExpressionConditions work by evaluating the expression in the condition, then applying the
+-- OneExpressionConditions evalute the expression in the condition, then applying the
 -- relevant function (example: GreaterThan) to the value in the cell.
-
---data CondFormatCondition = GT GreaterThan | IE IsEmpty -- | CE CustomExpression | IB IsBetween
---data GreaterThan = GreaterThan ASExpression
---
---data OneXPTag = GreaterThan
---data NoXPTag = IsEmpty
 data CondFormatCondition =
     CustomExpressionCondition ASExpression
   | NoExpressionsCondition NoExpressionsType
   | OneExpressionCondition OneExpressionType ASExpression
   | TwoExpressionsCondition TwoExpressionsType ASExpression ASExpression
    deriving (Show, Read, Generic, Eq)
---
----- BEGIN TIM REFACTOR
---instance ConditionOne GreaterThan where
---symbolTableLookUp1 (GreaterThan _) = (>=)
---getXp (GreaterThan xp) = xp
---
---instance Condition GreaterThan where
---checker = checkerOne
---
---instance ConditionOne GreaterThan where
---symbolTableLookUp1 GreaterThan _ = (>=)
---getXp GreaterThan s = s
---
---instance ConditionZero IsEmpty where
---symbolTableLookup0 IsEmpty = ((==) NoValue)
---
---instance Condition IsEmpty
---checker = CheckerZero
---
---
---
---class Condition a where
---  checker :: a -> ASValue -> (ASExpression -> EitherTExec ASValue) -> EitherTExec Bool
---
---class Condition a => NoExpressionCondition a where
---  symbolTableLookup1 :: a -> (ASValue -> ASValue -> Bool)
---  checkerZero :: a -> ASValue -> EitherTExec Bool
---  checkerZero s val = do
---    return $ (symbolTableLookup1 s) val
---
---class Condition a => OneExpressionCondition a where
---  symbolTableLookup1 :: a -> (ASValue -> ASValue -> Bool)
---  getXp :: a -> ASExpression
---  checkerOne :: a -> ASValue -> (ASExpression -> EitherTExec ASValue) -> EitherTExec Bool
---  checkerOne s evalXp val = do
---    val1 <- evalXp $ getExpression a
---    return $ (symbolTableLookup1 s) val val1
---
---class Condition a => TwoExpressionCondition a where
---  symbolTableLookup2 :: a -> (ASValue -> ASValue -> ASValue -> Bool)
---  getFstXp :: a -> EitherTExec ASValue
---  getSndXp :: a -> EitherTExec ASValue
---  checkerTwo :: a -> ASValue -> (ASExpression -> EitherTExec ASValue) EitherTExec Bool
---  checkerTwo s val = do
---    val1 <- evalXp $ getFstXp t
---    val2 <- evalXp $ getSndXp t
---    return $ (symbolTableLookup2 s) val val1 val2
 
 data OneExpressionType = GreaterThan | Equals | Geq | Leq | LessThan | NotEquals
   deriving (Show, Read, Generic, Eq)
