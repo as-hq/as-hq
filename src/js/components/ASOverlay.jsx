@@ -37,10 +37,10 @@ currently stops the images from going up too high) -- Ritesh 12/16
 type ASOverlayProps = {
   scrollPixels: HGPoint;
   overlay: ASOverlaySpec;
-  children: ReactElement
 };
 
 type ASOverlayState = {
+  resizing: boolean,
   width: number,
   height: number
 };
@@ -56,6 +56,7 @@ export default class ASOverlay extends React.Component<{}, ASOverlayProps, ASOve
 
     let {overlay: {initWidth, initHeight}} = props;
     this.state = {
+      resizing: false,
       width: initWidth,
       height: initHeight
     };
@@ -74,51 +75,47 @@ export default class ASOverlay extends React.Component<{}, ASOverlayProps, ASOve
   }
 
   /* Called when we stop dragging the image. We produce the new image props (by adding to offsets) and update backend */
-  _onStop(e: SyntheticEvent, detail: EventDetail) {
+  _onDragStop(e: SyntheticEvent, {position}: EventDetail) {
     // ImageData shouldn't leak into this part of the code; should probably
     // create an ImageData type with imageOffsetX, etc., and pass that around,
     // and only insert tag: "ImageData" in the API. (Alex 12/15)
+    let {overlay: {offsetX, offsetY}} = this.props;
+    let {width, height} = this.state;
     let prop = {
       tag: "ImageData",
-      imageOffsetX: parseFloat(detail.position.left) + this.props.overlay.offsetX,
-      imageOffsetY: parseFloat(detail.position.top) + this.props.overlay.offsetY,
-      imageWidth: this.props.overlay.width,
-      imageHeight: this.props.overlay.height
+      imageOffsetX: parseFloat(position.left) + offsetX,
+      imageOffsetY: parseFloat(position.top) + offsetY,
+      imageWidth: width,
+      imageHeight: height
     };
 
-    if (detail.position.left !== 0 || detail.position.top !== 0) {
+    if (position.left !== 0 || position.top !== 0) {
       this.updateImageProps(prop);
     }
   }
 
+  _onResizeStart(e: SyntheticEvent, size: any) {
+    console.log("resize start!");
+    this.setState({resizing: true});
+  }
+
   _onResizeStop(e: SyntheticEvent, {size: {width, height}}: any) {
     console.log("ON RESIZE STOP!");
+    this.setState({resizing: false});
+    let {overlay: {offsetX, offsetY}} = this.props;
+    let tagValue = {
+      tag: "ImageData",
+      imageOffsetX: offsetX,
+      imageOffsetY: offsetY,
+      imageWidth: width,
+      imageHeight: height
+    };
+    this.updateImageProps(tagValue);
   }
 
-  _onResize(e: SyntheticEvent, {element, size}: any) {
-    this.setState({width: size.width, height: size.height});
+  _onResize(e: SyntheticEvent, {size: {width, height}}: any) {
+    this.setState({width: width, height: height});
   }
-
-  /*
-  This is called after resizing and dragging, but will only do something nontrivial for resizing. It will get
-  the new node, and compute the new prop based on the new width/height. This will then be sent to backend as an update.
-  */
-  // _onMouseUp(e: SyntheticEvent) {
-  //   let node = ReactDOM.findDOMNode(this.refs.overlay);
-  //   if (node !== null) {
-  //     let {width,height} = node.style,
-  //         tagValue = {
-  //           tag: "ImageData",
-  //           imageOffsetX: this.props.overlay.offsetX,
-  //           imageOffsetY: this.props.overlay.offsetY,
-  //           imageWidth: parseFloat(width),
-  //           imageHeight: parseFloat(height)
-  //         };
-  //     if (tagValue.imageWidth !== this.props.overlay.width || tagValue.imageHeight !== this.props.overlay.height) {
-  //       this.updateImageProps(tagValue);
-  //     }
-  //   }
-  // }
 
   render(): React.Element {
     /*
@@ -126,9 +123,9 @@ export default class ASOverlay extends React.Component<{}, ASOverlayProps, ASOve
     We are passed scroll state from the spreadsheet (how much the sheet is scrolled in X and Y directions, in pixels)
     We account for that in computing top and left, in addition to keeping track of offsets (from user dragging)
     */
-    let {overlay, scrollPixels, children} = this.props;
+    let {overlay, scrollPixels} = this.props;
     let {top, left, offsetX, offsetY} = overlay;
-    let {width, height} = this.state;
+    let {width, height, resizing} = this.state;
     let baseStyle = {
       position: 'absolute',
       width: width,
@@ -139,31 +136,29 @@ export default class ASOverlay extends React.Component<{}, ASOverlayProps, ASOve
       background: 'white'
     };
 
-    console.log(`WIDTH: ${width}, HEIGHT: ${height}`);
+    console.log(`AM RESIZING: ${resizing}`);
 
-    /*
-    Render something if the image should be in view, as dictated by the props. Unfortunately, onMouseUp doesn't seem to
-    work within Draggable, so it's in a separate div
-    */
     return (
-      // <Paper zDepth={5} onMouseUp={this._onMouseUp.bind(this)}>
-      //   <Draggable
-      //     moveOnStartChange={false}
-      //     start={{x: 0, y: 0}}
-      //     zIndex={100}
-      //     onStop={this._onStop.bind(this)} >
-        <div style={baseStyle} >
-          <Resizable
-            className="box"
-            height={height}
-            width={width}
-            onResize={this._onResize.bind(this)}
-            onResizeStop={this._onResizeStop.bind(this)} >
-              <span>{overlay.renderElem({width: width, height: height})}</span>
-          </Resizable>
-        </div>
-      //   </Draggable>
-      // </Paper>
+        <Draggable
+          moveOnStartChange={false}
+          start={{x: 0, y: 0}}
+          zIndex={100}
+          onStop={this._onDragStop.bind(this)}
+          disabled={resizing} >
+
+            <div style={baseStyle} >
+              <Resizable
+                className="box"
+                height={height}
+                width={width}
+                onResize={this._onResize.bind(this)}
+                onResizeStart={this._onResizeStart.bind(this)}
+                onResizeStop={this._onResizeStop.bind(this)} >
+                  <span>{overlay.renderElem({width: width, height: height})}</span>
+              </Resizable>
+            </div>
+
+        </Draggable>
     );
 
   }

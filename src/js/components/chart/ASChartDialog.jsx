@@ -45,6 +45,7 @@ import CU from './ChartUtils';
 
 let {ChartTypes} = Constants;
 
+// $FlowFixMe: Too lazy to add ~14 things to declarations
 import { SelectableContainerEnhance } from 'material-ui/lib/hoc/selectable-enhance';
 let SelectableList = SelectableContainerEnhance(List);
 

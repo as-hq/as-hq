@@ -8,6 +8,10 @@ import type {
 } from '../../types/Eval';
 
 import type {
+  Style
+} from '../../types/Render';
+
+import type {
   ASChartType,
   ASChartContext,
   ASChartData,
@@ -16,6 +20,7 @@ import type {
 } from './types';
 
 import React from 'react';
+// $FlowFixMe too lazy to declare this import rn
 import Chart from 'react-chartjs';
 
 import Constants from '../../Constants';
@@ -30,6 +35,7 @@ let {ChartTypes} = Constants;
 
 type ASChartProps = {
   chartContext: ASChartContext;
+  chartStyle: Style;
   valueRange: NakedRange;
   sheetId: string;
   redraw: boolean;
@@ -57,30 +63,10 @@ export default class ASChart extends React.Component<{}, ASChartProps, ASChartSt
     CellStore.removeChangeListener(this._onDataChange.bind(this));
   }
 
-  componentWillReceiveProps(newProps: ASChartProps) {
-    // let {chartContext, valueRange, sheetId} = newProps;
-    // let chartData = this._contextToData(chartContext);
-    // this.setState({data: chartData});
-    // this.refs.baseChart.getChart().resize();
-    let {chartStyle: {width, height}} = this.props;
-    this._resize(width, height);
-    // this._getChart().resize();
-  }
-
   _getChart(): HTMLElement {
     return this.refs.baseChart.getChart();
   }
 
-  _resize(width: number, height: number) {
-    console.log(`resizing chart with ${width},  ${height}`);
-    // let canvas = this.refs.baseChart.getCanvass();
-    // let ctx = canvas.getContext('2d');
-    // ctx.width = width;
-    // ctx.height = height;
-    this._getChart().render();
-  }
-
-  // ASCell -> Bool
   _isListening(c: ASCell): boolean {
     let {index, sheetId} = c.cellLocation;
     return isContainedInLocs(index.col, index.row, [this.props.valueRange])
@@ -181,7 +167,7 @@ export default class ASChart extends React.Component<{}, ASChartProps, ASChartSt
         };
       case ChartTypes.Bar:
         return {
-          fillColor: `rgba(${r},${g},${b},0.5)`,
+          fillColor: `rgba(${r},${g},${b},0.9)`,
           strokeColor: `rgba(${r},${g},${b},0.8)`,
           highlightFill: `rgba(${r},${g},${b},0.75)`,
           highlightStroke: `rgba(${r},${g},${b},1)`
@@ -197,20 +183,18 @@ export default class ASChart extends React.Component<{}, ASChartProps, ASChartSt
   }
 
   render(): React.Element {
-    let {chartStyle: {width, height}} = this.props;
-    console.log(`Rendering chart with width: ${width}, height: ${height}`);
     let ChartConstructor = Chart[this.props.chartContext.chartType];
     let {data} = this.state;
-    let {redraw, chartContext} = this.props;
-    let pixelRatio = window.devicePixelRatio || 1;
+    let {redraw, chartContext, chartStyle} = this.props;
 
     return (<ChartConstructor
               ref='baseChart'
-              width={width / pixelRatio}
-              height={height / pixelRatio}
+              style={chartStyle}
               data={data}
               options={chartContext.options}
               redraw={redraw} />
     );
+
+    // return <image src="http://i.imgur.com/CE4r5vR.jpg" height={height} width={width} />;
   }
 }

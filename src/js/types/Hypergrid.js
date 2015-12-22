@@ -4,6 +4,10 @@ import type {
   ASIndex
 } from '../types/Eval';
 
+import type {
+  Style
+} from '../types/Render';
+
 import React from 'react';
 
 type FourTuple<T> = [T,T,T,T];
@@ -13,9 +17,9 @@ export type CellBorder = FourTuple<?Pair<Pair<number>>>;
 
 export type ASOverlaySpec = {
   id: string;
-  renderElem: () => ReactElement;
-  width: number;
-  height: number;
+  renderElem: (style: Style) => ReactElement;
+  initWidth: number;
+  initHeight: number;
   offsetX: number;
   offsetY: number;
   left: number;

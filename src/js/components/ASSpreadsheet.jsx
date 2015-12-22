@@ -676,9 +676,11 @@ export default React.createClass({
       let imageSrc = Constants.getHostStaticUrl() + "/images/" + imagePath;
       return {
         id: U.Render.getUniqueId(),
-        renderElem: () => { return (<Image src={imageSrc} draggable="false" width="100%" height="100%" alt="Error rendering image." />); },
-        width: imageWidth,
-        height: imageHeight,
+        renderElem: (style) => {
+          return (<Image src={imageSrc} draggable="false" style={style} alt="Error rendering image." />);
+        },
+        initWidth: imageWidth,
+        initHeight: imageHeight,
         offsetX: imageOffsetX,
         offsetY: imageOffsetY,
         left: point.x,
@@ -1112,7 +1114,6 @@ export default React.createClass({
           {this.state.overlays.map((overlay) =>
             <ASOverlay key={overlay.id}
                        overlay={overlay}
-                       children={overlay.renderElem()}
                        scrollPixels={self.state.scrollPixels}
                        isVisible={self.isVisible} />
           )}
