@@ -5,6 +5,8 @@ import type {
   ASSelection
 } from '../types/Eval';
 
+export type Style = { [key: string]: (string|number) };
+
 export type DragCorner = {
   dragX: number;
   dragY: number;
@@ -18,7 +20,7 @@ export type SelectionRect = {
 };
 
 export type RenderParams = {
-  mode: ?string, 
+  mode: ?string,
   deps: Array<NakedRange>,
   cellWidth: number,
   selection: ?ASSelection,
@@ -27,9 +29,7 @@ export type RenderParams = {
   dragRect: ?NakedRange,
   shouldRenderSquareBox: boolean,
   boxWidth: number,
-  topLeftBox: ?HGPoint, 
-  dragCorner: ?DragCorner, 
+  topLeftBox: ?HGPoint,
+  dragCorner: ?DragCorner,
   draggedBoxSelection: ?ASSelection
 };
-
-

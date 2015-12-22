@@ -19,6 +19,7 @@ import type {
 } from '../types/State';
 
 import {logDebug, logError} from '../AS/Logger';
+import {catMaybes} from '../AS/Maybe';
 
 import _ from 'lodash';
 
@@ -36,6 +37,7 @@ import SelectionStore from '../stores/ASSelectionStore';
 import FindStore from '../stores/ASFindStore';
 import ExpStore from '../stores/ASExpStore';
 import BarStore from '../stores/ASBarStore.js';
+import OverlayStore from '../stores/ASOverlayStore';
 
 import U from '../AS/Util';
 let {
@@ -108,6 +110,7 @@ export default React.createClass({
     // Be able to respond to events from ExpStore
     ExpStore.addChangeListener(this._onExpressionChange);
     BarStore.addChangeListener(this._onBarPropsChange);
+    OverlayStore.addChangeListener(this._onOverlaysChange);
     // Hypergrid initialization
     document.addEventListener('polymer-ready', () => {
       this.props.onReady();
@@ -685,12 +688,13 @@ export default React.createClass({
       // Return the overlay spec, and note that the overlay shouldn't be in view if the point isn't
       // Compute the overlay element. The "draggable=false" is needed for a silly HTML5 reason.
       let imageSrc = Constants.getHostStaticUrl() + "/images/" + imagePath;
-      let elem = (<Image src={imageSrc} draggable="false" width="100%" height="100%" alt="Error rendering image." />);
       return {
         id: U.Render.getUniqueId(),
-        elem: elem,
-        width: imageWidth,
-        height: imageHeight,
+        renderElem: (style) => {
+          return (<Image src={imageSrc} draggable="false" style={style} alt="Error rendering image." />);
+        },
+        initWidth: imageWidth,
+        initHeight: imageHeight,
         offsetX: imageOffsetX,
         offsetY: imageOffsetY,
         left: point.x,
@@ -706,16 +710,33 @@ export default React.createClass({
   In particular, if a cell with an overlay is deleted, the newOverlay will be null (nothing added) and the old one will be deleted.
   That location-based update and state change is done here.
   */
-  addCellSourcedOverlay(cell: ASCell) { this.addOverlay(this.getImageOverlayForCell(cell)); },
+  addCellSourcedOverlay(cell: ASCell) {
+    let imageOverlay = this.getImageOverlayForCell(cell);
+    if (imageOverlay === null || imageOverlay === undefined) return;
+    this.addOverlay(imageOverlay, cell);
+  },
 
-  addOverlay(newOverlay) {
+  addOverlay(newOverlay: ASOverlaySpec, cell?: ASCell) {
     let overlays = this.state.overlays,
-        locs = overlays.map((o) => o.loc).filter((loc) => { return !!loc; });
-    for (var i = 0 ; i < locs.length; i++) {
-      if (U.Render.locEquals(locs[i], cell.cellLocation)) { overlays.splice(i,1); }
-    }
-    if (newOverlay != null) { overlays.push(newOverlay); }
-    this.setState({overlays});
+        locs = catMaybes(overlays.map((o) => o.loc));
+
+    locs.forEach((loc, i) => {
+      if (cell !== null && cell !== undefined) {
+        if (U.Render.locEquals(loc, cell.cellLocation)) {
+          overlays.splice(i,1);
+        }
+      }
+    });
+
+    overlays.push(newOverlay);
+    this.setState({overlays: overlays});
+  },
+
+  _onOverlaysChange() {
+    let overlays = OverlayStore.getAll();
+    overlays.forEach((overlay) => {
+      this.addOverlay(overlay);
+    });
   },
 
 
