@@ -86,6 +86,7 @@ export default {
           config.fgColor = Conversion.colorToHtml(prop.contents);
           break;
         case "FillColor":
+          config.bgSelColor = '#64B5F6';
           config.bgColor = Conversion.colorToHtml(prop.contents);
           break;
         case "TopAlign": // not implemented yet
