@@ -34,17 +34,16 @@ data CondFormatRule = CondFormatRule { cellLocs :: [ASRange],
                                        condFormat :: CellProp } deriving (Show, Read, Generic, Eq)
 
 -- Timchu, 12/21/15. The types have been refactored from the previous types from 12/16/15.
--- Each Condition, GreaterThan, IsBetween, ... is part of an ADT called CondFormatCondition
--- Each Condition (besides for CustomCondition) is currently an instance of
--- OneExpressionCondition or NoExpressionCondition or TwoExpressionCondition
+-- Each Condition, GreaterThanCondition, IsBetweenCondition, ... is part of an ADT called CondFormatCondition
+-- Each Condition is currently an instance of
+-- CustomCondition or OneExpressionCondition or NoExpressionCondition or TwoExpressionCondition
 
--- Note: This is MVP, text expressions and date expressions have not yet been implemented.
 -- Each data type in typeclass OneExpressionCondition has a symbolTableLookup1 function
 -- , which takes a value of that type to a (ASValue -> ASValue -> EitherTExec ASCell).
--- For example, GreaterThan goes to >=.
+-- For example, GreaterThanCondition goes to >=.
 -- Analagously, each data type in typeclass NoExpressionCondition has a symbolTableLookup0
 --, which takes a value of that type to a (ASValue -> EitherTExec ASCell)
--- For example, IsEmpty goes to (NoValue ==)
+-- For example, IsEmptyCondition goes to (NoValue ==)
 --
 -- Each data type in OneExpressionCondition has a checkerOne function based on the symbolTableLookup
 -- and the expressions entered into the conditional formatting criterion that takes in a
@@ -57,6 +56,7 @@ data CondFormatRule = CondFormatRule { cellLocs :: [ASRange],
 -- CondFormatCondition is an instance of Condition, which has a checker
 -- that evaluates to CheckerNone or CheckerOne or CheckerTwo, depending on the Condition.
 
+-- Note: This is MVP, text expressions and date expressions have not yet been implemented.
 -- TODO: timchu, rectify names of the Custom, GreaterThan, ... constructors.
 
 data CondFormatCondition =
