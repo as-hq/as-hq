@@ -17,8 +17,8 @@ import Constants from '../../Constants';
 let {ChartTypes} = Constants;
 let colorIndex = 0;
 const colors = [
-  {r:0, g:137, b:123},
   {r:216, g:27, b:96 },
+  {r:0, g:137, b:123},
   {r:94, g:53, b:177},
   {r:97, g:97, b:97},
   {r:229, g:57, b:53},

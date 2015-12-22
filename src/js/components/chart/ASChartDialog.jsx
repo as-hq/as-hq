@@ -87,11 +87,6 @@ class ASChartDialog extends React.Component<{}, ASChartDialogProps, ASChartDialo
       plotLabelRange: null,
       xLabelRange: null,
       chartType: 'Bar',
-      errorMessages: {
-        valueRangeInput: '',
-        plotLabelRangeInput: '',
-        xLabelRangeInput: ''
-      },
       showLegend: true
     };
   }
@@ -168,7 +163,7 @@ class ASChartDialog extends React.Component<{}, ASChartDialogProps, ASChartDialo
   }
 
   _onSubmitCreate() {
-    const {valueRange} = this.state;
+    const {valueRange, showLegend} = this.state;
     let errorMessages = this._checkConfigurationErrors();
     let hasError = Object.keys(errorMessages).length > 0;
     if (valueRange !== null && valueRange !== undefined && !hasError) {
@@ -183,6 +178,7 @@ class ASChartDialog extends React.Component<{}, ASChartDialogProps, ASChartDialo
                       sheetId={sheetId}
                       chartContext={ctx}
                       chartStyle={style}
+                      showLegend={showLegend}
                       redraw={false} />); },
         initWidth: 500,
         initHeight: 300,
@@ -276,6 +272,7 @@ class ASChartDialog extends React.Component<{}, ASChartDialogProps, ASChartDialo
             errorStyle={{color:'orange'}}
             onChange={this._onRangeInputChange("plotLabelRangeInput", "plotLabelRange").bind(this)}
             style={_Styles.inputs} />
+
           <br />
 
           {CU.isCartesian(chartType) ? (
@@ -330,10 +327,14 @@ class ASChartDialog extends React.Component<{}, ASChartDialogProps, ASChartDialo
                 sheetId={SheetStore.getCurrentSheet().sheetId}
                 chartContext={this._generateContext()}
                 chartStyle={{width: "100%", height: "100%"}}
+                showLegend={showLegend}
                 redraw={true} />
             ]
-          ) : "Incorrect chart configuration. " }
+          ) : [
+            <h2>Incorrect chart configuration.</h2>
+          ]}
         </div>
+
       </Dialog>
     );
   }

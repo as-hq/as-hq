@@ -39,6 +39,7 @@ type ASChartProps = {
   valueRange: NakedRange;
   sheetId: string;
   redraw: boolean;
+  showLegend: boolean;
 };
 
 type ASChartState = {
@@ -63,7 +64,15 @@ export default class ASChart extends React.Component<{}, ASChartProps, ASChartSt
     CellStore.removeChangeListener(this._onDataChange.bind(this));
   }
 
-  _getChart(): HTMLElement {
+  componentWillReceiveProps(newProps: ASChartProps) {
+    let {chartContext} = newProps;
+    if (chartContext !== this.props.chartContext) {
+      let chartData = this._contextToData(chartContext);
+      this.setState({data: chartData});
+    }
+  }
+
+  _getChart(): Chart {
     return this.refs.baseChart.getChart();
   }
 
@@ -182,19 +191,41 @@ export default class ASChart extends React.Component<{}, ASChartProps, ASChartSt
     };
   }
 
+  _generateLegendMarkup(): string {
+    let legend = this._getChart().generateLegend();
+    return {__html: legend};
+  }
+
+  _isMounted(): boolean {
+    return (!! this.refs.baseChart);
+  }
+
   render(): React.Element {
     let ChartConstructor = Chart[this.props.chartContext.chartType];
     let {data} = this.state;
-    let {redraw, chartContext, chartStyle} = this.props;
+    let {redraw, chartContext, chartStyle, showLegend} = this.props;
 
-    return (<ChartConstructor
-              ref='baseChart'
-              style={chartStyle}
-              data={data}
-              options={chartContext.options}
-              redraw={redraw} />
+    return (
+        <ChartConstructor
+          ref='baseChart'
+          style={chartStyle}
+          data={data}
+          options={chartContext.options}
+          redraw={redraw} />
     );
+      // I can't get the CSS for the legend to work,
+      // so 80/20.
 
-    // return <image src="http://i.imgur.com/CE4r5vR.jpg" height={height} width={width} />;
+        // {showLegend && this._isMounted() ?
+        //   <div
+        //     dangerouslySetInnerHTML={this._generateLegendMarkup()}
+        //     style={{
+        //       position: 'absolute',
+        //       top: '10px',
+        //       left: '10px',
+        //       zIndex: 10
+        //     }} />
+        //   : []
+        // }
   }
 }
