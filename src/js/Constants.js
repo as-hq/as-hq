@@ -85,7 +85,7 @@ var Constants = Object.assign({
     GOT_UNDO:null,
     GOT_REDO:null,
     GOT_SELECTION:null,
-    FETCHED_CELLS:null,
+    UPDATED_CELLS:null,
     CLEARED: null,
     CLEARED_SHEET: null,
     GOT_UPDATED_WORKBOOKS: null,

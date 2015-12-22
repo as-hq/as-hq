@@ -482,7 +482,7 @@ export function messageShouldSatisfy(loc: string, fn: (cs: Array<ASCell>) => voi
           return;
         }
 
-        let {contents: {updatedCells: cs}} = payload;
+        let {contents: {cellUpdates: {newVals: cs}}} = payload;
         fn(cs);
 
         fulfill();
@@ -603,7 +603,7 @@ export function shouldBeL(locs: Array<string>, vals: Array<ASValue>): Prf {
           return;
         }
 
-        let cellValues = result.payload.contents.updatedCells.map((x) => x.cellValue);
+        let cellValues = result.payload.contents.cellUpdates.newVals.map((x) => x.cellValue);
 
         expect(_.
             zip(cellValues, vals).

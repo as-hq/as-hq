@@ -5,6 +5,7 @@ import type {
   NakedRange,
   ASIndex,
   ASRange,
+  ASLocation,
   ASSheet,
   ASCell,
   ASLanguage,
@@ -77,8 +78,9 @@ const ASCellStore = Object.assign({}, BaseStore, {
         We now need to update the store based on these new values
         Called from Dispatcher, fired by API response from server
       */
-      case 'FETCHED_CELLS':
+      case 'UPDATED_CELLS':
         _data.lastUpdatedCells = [];
+        ASCellStore.removeLocations(action.oldLocs);
         ASCellStore.updateCells(action.newCells);
         // logDebug("Last updated cells: " + JSON.stringify(_data.lastUpdatedCells));
         ASCellStore.emitChange();
@@ -131,8 +133,7 @@ const ASCellStore = Object.assign({}, BaseStore, {
         break;
       case 'DELETED_LOCS':
         _data.lastUpdatedCells = [];
-        let locs = U.Conversion.rangeToASIndices(action.deletedRange.range);
-        ASCellStore.removeIndices(locs);
+        ASCellStore.removeLocations([action.deletedRange]); 
         ASCellStore.updateCells(action.updatedCells);
         ASCellStore.emitChange();
         break;
@@ -298,9 +299,9 @@ const ASCellStore = Object.assign({}, BaseStore, {
     _data.lastUpdatedCells.push(emptyCell);
   },
 
-  // Remove cells at a list of ASIndices.
-  removeIndices(locs) {
-    locs.forEach((l) => this.removeIndex(l), this);
+  // Remove cells at a list of ASLocation's.
+  removeLocations(locs: Array<ASLocation>) {
+    U.Conversion.asLocsToASIndices(locs).forEach((i) => this.removeIndex(i), this);
   },
 
   clearSheetCacheById(sheetId) {

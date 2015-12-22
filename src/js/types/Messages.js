@@ -7,6 +7,7 @@ import type {
 
 import type {
   NakedRange,
+  ASLocation,
   ASRange,
   ASIndex,
   ASSheet,
@@ -345,10 +346,29 @@ export type ASBackendCommit = {
 
 export type SheetUpdate = {
   tag: 'SheetUpdate'; 
-  updatedCells: Array<ASCell>;
-  updatedBars: Array<Bar>;
-  // updatedRangeDescriptors: 
-  updatedCondFormatRules: Array<CondFormatRule>;
+  cellUpdates: CellUpdate;
+  barUpdates: BarUpdate;
+  condFormatRulesUpdate: CondFormatRuleUpdate;
+  //#incomplete updatedRangeDescriptors: DescriptorUpdate;
+};
+
+export type CellUpdate = { 
+  tag: 'Update'; 
+  newVals: Array<ASCell>;
+  oldKeys: Array<ASLocation>;
+};
+
+export type BarUpdate = { 
+  tag: 'Update'; 
+  newVals: Array<Bar>;
+  oldKeys: Array<BarIndex>;
+};
+
+// #incomplete currently dysfunctional
+export type CondFormatRuleUpdate = { 
+  tag: 'Update'; 
+  newVals: Array<CondFormatRule>;
+  oldKeys: Array<any>;
 };
 
 export type ASCellDiff = {
@@ -387,7 +407,7 @@ export type ASMessageAction =
   | 'Open' | 'Close'
   | 'Evaluate' | 'EvaluateRepl' | 'EvaluateHeader'
   | 'Decouple'
-  | 'Update'
+  | 'UpdateSheet'
   | 'Get' | 'Delete'
   | 'Copy' | 'Cut' | 'CopyForced'
   | 'Undo' | 'Redo'
@@ -422,18 +442,18 @@ export type OpenResponse = {
 
 export type UndoResponse = {
   action: 'Undo';
-  payload: PayloadCommit;
+  payload: PayloadSheetUpdate;
   result: ASBackendResult;
 };
 
 export type RedoResponse = {
   action: 'Redo';
-  payload: PayloadCommit;
+  payload: PayloadSheetUpdate;
   result: ASBackendResult;
 };
 
 export type UpdateResponse = {
-  action: 'Update';
+  action: 'UpdateSheet';
   payload: PayloadSheetUpdate; 
   result: ASBackendResult;
 };

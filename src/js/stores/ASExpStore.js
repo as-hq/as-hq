@@ -100,7 +100,7 @@ const ASExpStore = Object.assign({}, BaseStore, {
       case 'GOT_UNDO':
       case 'GOT_REDO':
       case 'DELETED_LOCS':
-      case 'FETCHED_CELLS':
+      case 'UPDATED_CELLS':
         Dispatcher.waitFor([CellStore.dispatcherIndex]);
         SelectionStore.withActiveSelection(({origin}) => {
           let cell = CellStore.getCell(origin);

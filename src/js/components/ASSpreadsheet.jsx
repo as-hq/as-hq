@@ -1005,7 +1005,7 @@ export default React.createClass({
         this.refs.textbox.hideTextBox();
         break;
       // put focus on grid on get
-      case Constants.ActionTypes.FETCHED_CELLS:
+      case Constants.ActionTypes.UPDATED_CELLS:
         this.props.setFocus('grid');
         break;
       default:

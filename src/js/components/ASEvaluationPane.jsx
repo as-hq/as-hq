@@ -209,6 +209,7 @@ export default React.createClass({
     // changed, but the server returned an error. Ideally we'd create an
     // an error message store to handle this, but we're probably
     // going to do away with external errors entirely at some point, making it moot. 
+    // #needsrefactor
     this._onCellsChange();
   },
 
@@ -221,7 +222,7 @@ export default React.createClass({
 
     this.refs.spreadsheet.updateCellValues(updatedCellsOnSheet);
 
-    // ::ALEX:: should definitely be moved somewhere else
+    // #needsrefactor error handlers should probably get their own store
     let err = SheetStateStore.getExternalError();
     if (err != null) {
       this.setToast(err, "Error");

@@ -2,6 +2,7 @@
 
 import type {
   ASIndex,
+  ASLocation,
   ASRange,
   ASCell,
   ASExpression,
@@ -57,9 +58,10 @@ export type GotSelectionAction = {
   newSelection: PayloadSelection;
 };
 
-export type FetchedCellsAction = {
-  _type: 'FETCHED_CELLS';
+export type UpdatedCellsAction = {
+  _type: 'UPDATED_CELLS';
   newCells: Array<ASCell>;
+  oldLocs: Array<ASLocation>;
 };
 
 export type ImportAction = {
@@ -197,7 +199,7 @@ export type ASAction =
   | GotUndoAction
   | GotRedoAction
   | GotSelectionAction
-  | FetchedCellsAction
+  | UpdatedCellsAction
   | ImportAction
   | ClearedAction
   | ClearedSheetAction
