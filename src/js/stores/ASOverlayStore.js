@@ -43,6 +43,10 @@ const ASOverlayStore = Object.assign({}, BaseStore, {
 
   getAll(): Array<ASOverlaySpec> {
     return Object.keys(_data.overlays).map((key) => _data.overlays[key]);
+  },
+
+  deleteById(id: string) {
+    delete _data[id];
   }
 });
 

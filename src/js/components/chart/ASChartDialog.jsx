@@ -30,6 +30,8 @@ import {Dialog, TextField, DropDownMenu} from 'material-ui';
 import {List, Divider, ListItem} from 'material-ui';
 // $FlowFixMe: Too lazy to add ~14 things to declarations
 import {Toggle} from 'material-ui';
+import ThemeManager from 'material-ui/lib/styles/theme-manager';
+import LightTheme from 'material-ui/lib/styles/raw-themes/light-raw-theme';
 
 import {Just, Nothing} from '../../AS/Maybe';
 
@@ -76,7 +78,7 @@ const LIST_ITEMS = [
   {text: 'Doughnut', payload: 'Doughnut', icon: null},
 ];
 
-export default class ASChartDialog extends React.Component<{}, ASChartDialogProps, ASChartDialogState> {
+class ASChartDialog extends React.Component<{}, ASChartDialogProps, ASChartDialogState> {
   constructor(props: ASChartDialogProps) {
     super(props);
 
@@ -100,6 +102,12 @@ export default class ASChartDialog extends React.Component<{}, ASChartDialogProp
       if (sel !== null && sel !== undefined) {
         this.setState({valueRange: sel.range});
       }
+    };
+  }
+
+  getChildContext() {
+    return {
+      muiTheme: ThemeManager.getMuiTheme(LightTheme)
     };
   }
 
@@ -251,69 +259,88 @@ export default class ASChartDialog extends React.Component<{}, ASChartDialogProp
         open={open}
         onRequestClose={onRequestClose} >
 
-        <TextField
-          ref="valueRangeInput"
-          defaultValue={this._getInitialRangeExpression()}
-          hintText="Data Range"
-          errorText={errorMessages.valueRangeInput || ''}
-          onChange={this._onRangeInputChange("valueRangeInput", "valueRange").bind(this)}
-          style={_Styles.inputs} />
-        <br />
+        <div style={_Styles.settingsPanel}>
+          <TextField
+            ref="valueRangeInput"
+            defaultValue={this._getInitialRangeExpression()}
+            hintText="Data Range"
+            errorText={errorMessages.valueRangeInput || ''}
+            onChange={this._onRangeInputChange("valueRangeInput", "valueRange").bind(this)}
+            style={_Styles.inputs} />
+          <br />
 
-        <TextField
-          ref="plotLabelRangeInput"
-          hintText="Dataset Label Range"
-          errorText={errorMessages.plotLabelRangeInput || ''}
-          errorStyle={{color:'orange'}}
-          onChange={this._onRangeInputChange("plotLabelRangeInput", "plotLabelRange").bind(this)}
-          style={_Styles.inputs} />
-        <br />
+          <TextField
+            ref="plotLabelRangeInput"
+            hintText="Dataset Label Range"
+            errorText={errorMessages.plotLabelRangeInput || ''}
+            errorStyle={{color:'orange'}}
+            onChange={this._onRangeInputChange("plotLabelRangeInput", "plotLabelRange").bind(this)}
+            style={_Styles.inputs} />
+          <br />
 
-        {CU.isCartesian(chartType) ? (
-          [
-            <TextField
-              ref="xLabelRangeInput"
-              hintText="X-axis Label Range"
-              errorText={errorMessages.xLabelRangeInput || ''}
-              errorStyle={{color:'orange'}}
-              onChange={this._onRangeInputChange("xLabelRangeInput", "xLabelRange").bind(this)}
-              style={_Styles.inputs} />,
-            <br />
-          ]
-        ) : null}
+          {CU.isCartesian(chartType) ? (
+            [
+              <TextField
+                ref="xLabelRangeInput"
+                hintText="X-axis Label Range"
+                errorText={errorMessages.xLabelRangeInput || ''}
+                errorStyle={{color:'orange'}}
+                onChange={this._onRangeInputChange("xLabelRangeInput", "xLabelRange").bind(this)}
+                style={_Styles.inputs} />,
+              <br />
+            ]
+          ) : null}
 
-        <Toggle
-          label="Show legend"
-          defaultToggled={true}
-          onToggled={this._onToggleLegend.bind(this)} />
+          <br />
 
-        <SelectableList
-          valueLink={{value: chartType, requestChange: this._onChartTypeChange.bind(this)}}
-          style={_Styles.inputs} >
-          {LIST_ITEMS.map((item) => {
-            return ([
-              <ListItem
-                primaryText={item.text}
-                leftIcon={item.icon}
-                value={item.payload} />,
-              <Divider />
-                ]);
-              })}
-        </SelectableList>
+          <Toggle
+            label="Show legend"
+            defaultToggled={true}
+            onToggled={this._onToggleLegend.bind(this)}
+            labelStyle={_Styles.toggles} />
 
-        {(shouldRenderPreview && valueRange) ? (
-          [
-            <ASChart
-              ref="generatedChart"
-              valueRange={valueRange}
-              sheetId={SheetStore.getCurrentSheet().sheetId}
-              chartContext={this._generateContext()}
-              chartStyle={{width: "1000px", height: "100px"}}
-              redraw={true} />
-          ]
-        ) : "Incorrect chart configuration. " }
+          <br />
+
+          <SelectableList
+            valueLink={{value: chartType, requestChange: this._onChartTypeChange.bind(this)}}
+            style={_Styles.inputs} >
+            {LIST_ITEMS.map((item) => {
+              return ([
+                <ListItem
+                  primaryText={item.text}
+                  leftIcon={item.icon}
+                  value={item.payload} />,
+                <Divider />
+                  ]);
+                })}
+          </SelectableList>
+        </div>
+
+        <div style={_Styles.divider.root}>
+          <div style={_Styles.divider.inner}>
+          </div>
+        </div>
+
+        <div style={_Styles.previewPanel}>
+          {(shouldRenderPreview && valueRange) ? (
+            [
+              <ASChart
+                ref="generatedChart"
+                valueRange={valueRange}
+                sheetId={SheetStore.getCurrentSheet().sheetId}
+                chartContext={this._generateContext()}
+                chartStyle={{width: "100%", height: "100%"}}
+                redraw={true} />
+            ]
+          ) : "Incorrect chart configuration. " }
+        </div>
       </Dialog>
     );
   }
-
 }
+
+ASChartDialog.childContextTypes = {
+  muiTheme: React.PropTypes.object
+};
+
+export default ASChartDialog;
