@@ -11,63 +11,88 @@ import Util from '../AS/Util';
 
 import type {
   Bar,
-  BarProp
+  BarProp,
+  BarIndex,
+  BarType,
 } from '../types/Messages';
 
+import type {
+  ASBarLines
+} from '../types/State';
+
 let _data = {
-  columns: ([]: Array<Bar>),
-  rows: ([]: Array<Bar>)
+  bars: ({}: ASBarLines),
+  lastUpdatedBars: ([]: Array<Bar>)
 };
+
+// Dict that takes in a RowType/ColumnType and maps to ordered pairs of row/col indices and their heights/widths (null if not set)
+type BarDimensions = { [key: BarType]: Array<[number,?number]> }; 
 
 const ASInitBarPropsStore = Object.assign({}, BaseStore, {
 
   /* This function describes the actions of the ASReplStore upon recieving a message from Dispatcher */
   dispatcherIndex: Dispatcher.register(function (action) {
     switch (action._type) {
-      case 'GOT_OPEN':
-        let initBars = action.initBars,
-            cols = initBars.filter((irc) => irc.barIndex.barType == 'ColumnType'),
-            rows = initBars.filter((irc) => irc.barIndex.barType == 'RowType');
-        ASInitBarPropsStore._setColumns(cols);
-        ASInitBarPropsStore._setRows(rows);
+      case 'GOT_UPDATED_BARS':
+        _data.lastUpdatedBars = []; 
+
+        let newBars = action.newBars;
+        ASInitBarPropsStore._updateBars(newBars);
+
+        let oldBarLocs = action.oldBarLocs;
+        ASInitBarPropsStore._removeBarsAt(oldBarLocs);
+
         ASInitBarPropsStore.emitChange();
         break;
     }
   }),
 
-  // for each col with a width prop, returns (col number, width)
-  getColumnWidths(): Array<[number,number]> {
-    return this._getInitDimensions(_data.columns);
-  },
-
-  // for each row with a height prop, returns (row number, height)
-  getRowHeights(): Array<[number,number]> {
-    return this._getInitDimensions(_data.rows);
-  },
-
-  _getInitDimensions(rowsOrCols: Array<Bar>): Array<[number,number]> {
-    let dims = []; 
-    rowsOrCols.forEach(({barIndex, barProps}) => {
+  _getDimensions(bars: Array<Bar>): BarDimensions {
+    let dims = {'RowType': [], 'ColumnType': []};
+    bars.forEach(({barIndex, barProps}) => {
       let dimInd = barProps.map(({tag}) => tag).indexOf('Dimension');
       if (dimInd >= 0) {
         let dimensionProp = barProps[dimInd];
         switch (dimensionProp.tag) { // so this flows
           case 'Dimension':
-            dims.push([barIndex.barNumber, dimensionProp.contents]);
+            dims[barIndex.barType].push([barIndex.barNumber, dimensionProp.contents]);
             break;
         }
+      } else { 
+        dims[barIndex.barType].push([barIndex.barNumber, null]);
       }
     });
 
     return dims;
   },
 
-  _setColumns(cols: Array<Bar>) {
-    _data.columns = cols;
+  getLastUpdatedBarsDimensions(): BarDimensions { 
+    return this._getDimensions(_data.lastUpdatedBars);
   },
 
-  _setRows(rows: Array<Bar>) {
-    _data.rows = rows;
+  _updateBars(bars: Array<Bar>) {
+    bars.forEach((b) => _data.bars[b.barIndex] = b); 
+    _data.lastUpdatedBars = _data.lastUpdatedBars.concat(bars);
+  },
+
+  _removeBarsAt(barInds: Array<BarIndex>) {
+    barInds.forEach((i) => {
+      if (_data.bars[i] != null) {
+        delete _data.bars[i]; 
+      }
+    });
+
+    _data.lastUpdatedBars = _data.lastUpdatedBars.concat(this._blankBarsAt(barInds));
+  },
+
+  _blankBarsAt(inds: Array<BarIndex>): Array<Bar> { 
+    return inds.map((i) => {
+      return {
+        tag: 'Bar', 
+        barIndex: i, 
+        barProps: []
+      };
+    });
   }
 });
 

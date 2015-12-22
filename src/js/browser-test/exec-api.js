@@ -477,12 +477,12 @@ export function messageShouldSatisfy(loc: string, fn: (cs: Array<ASCell>) => voi
         }
 
         let {payload} = result;
-        if (payload.tag !== 'PayloadCL') {
+        if (payload.tag !== 'PayloadSheetUpdate') {
           reject();
           return;
         }
 
-        let {contents: cs} = payload;
+        let {contents: {cellUpdates: {newVals: cs}}} = payload;
         fn(cs);
 
         fulfill();
@@ -598,12 +598,12 @@ export function shouldBeL(locs: Array<string>, vals: Array<ASValue>): Prf {
       API.getIndices(locs.map(asIndex));
     }, {
       fulfill: (result: ?ASServerMessage) => {
-        if (! result || result.payload.tag !== 'PayloadCL') {
+        if (! result || result.payload.tag !== 'PayloadSheetUpdate') {
           reject();
           return;
         }
 
-        let cellValues = result.payload.contents.map((x) => x.cellValue);
+        let cellValues = result.payload.contents.cellUpdates.newVals.map((x) => x.cellValue);
 
         expect(_.
             zip(cellValues, vals).

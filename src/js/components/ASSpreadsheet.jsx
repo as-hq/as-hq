@@ -1026,7 +1026,7 @@ export default React.createClass({
         this.refs.textbox.hideTextBox();
         break;
       // put focus on grid on get
-      case Constants.ActionTypes.FETCHED_CELLS:
+      case Constants.ActionTypes.GOT_UPDATED_CELLS:
         this.props.setFocus('grid');
         break;
       default:
@@ -1035,13 +1035,14 @@ export default React.createClass({
   },
 
   _onBarPropsChange() {
-    let colWidths  = BarStore.getColumnWidths(),
-        rowHeights = BarStore.getRowHeights(),
-        hg = this._getHypergrid();
+    let dims = BarStore.getLastUpdatedBarsDimensions(), 
+        hg = this._getHypergrid(), 
+        defaultColumnWidth = hg.resolveProperty('defaultColumnWidth'),
+        defaultRowHeight = hg.resolveProperty('defaultRowHeight');
 
-    //column index on DB is 1-indexed, while for hypergrid it's 0-indexed.
-    colWidths.map((prop) => hg.setColumnWidth(prop[0]-1, prop[1]));
-    rowHeights.map((prop) => hg.setRowHeight(prop[0]-1, prop[1]));
+    // columns/rows in backend are 1-indexed, hypergrid's are 0-indexed. 
+    dims['ColumnType'].map(([ind, width]) => hg.setColumnWidth(ind-1, width || defaultColumnWidth));
+    dims['RowType'].map(([ind, height]) => hg.setRowHeight(ind-1, height || defaultRowHeight));
   },
 
 
