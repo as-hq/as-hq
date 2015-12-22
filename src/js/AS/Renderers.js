@@ -90,11 +90,11 @@ export default {
     if (_renderParams.selectionRect == null) {
       return false;
     }
-    let {x, y, width, height} = _renderParams.selectionRect;
-    return (this.withinSegment(pX, x, width) && (this.withinSegment(pY, y, 0) ||
-                                                 this.withinSegment(pY, y+height, 0)))
-        || (this.withinSegment(pY, y, width) && (this.withinSegment(pX, x, 0) ||
-                                                 this.withinSegment(pX, x+width, 0)));
+    let {origin, extent} = _renderParams.selectionRect;
+    return (this.withinSegment(pX, origin.x, extent.x) && (this.withinSegment(pY, origin.y, 0) ||
+                                                 this.withinSegment(pY, origin.y + extent.y, 0)))
+        || (this.withinSegment(pY, origin.y, extent.y) && (this.withinSegment(pX, origin.x, 0) ||
+                                                 this.withinSegment(pX, origin.x + extent.x, 0)));
   },
 
   underline(config: HGRendererConfig, gc: GraphicsContext, text: string, x: number, y: number, thickness: number) {
@@ -182,16 +182,17 @@ export default {
       halignOffset = Math.max(0, halignOffset);
       valignOffset = valignOffset + Math.ceil(height / 2);
 
-      //fill background only if our bgColor is populated
-      if (this.config.bgColor) {
-          gc.fillStyle = this.config.bgColor;
-          gc.fillRect(x, y, width, height);
+      //fill background only if our bgColor is populated or we are a selected cell
+      if (this.config.bgColor || this.config.isSelected) {
+        gc.fillStyle = this.config.isSelected ? this.config.bgSelColor : this.config.bgColor;
+        gc.fillRect(x, y, width, height);
       }
 
       //draw text
-      if (gc.fillStyle !== this.config.fgColor) {
-          gc.fillStyle = this.config.fgColor;
-          gc.strokeStyle = this.config.fgColor;
+      var fillColor = this.config.isSelected ? this.config.fgSelColor : this.config.fgColor;
+      if (gc.fillStyle !== fillColor) {
+        gc.fillStyle = fillColor;
+        gc.strokeStyle = fillColor;
       }
 
       if (val !== null) {
@@ -243,91 +244,29 @@ export default {
   }: HGRendererObject),
 
   selectionRenderer(gc: GraphicsContext) {
-    var grid = this.getGrid();
-    if (_renderParams.selection == null) return;
+    if (_renderParams.selection === null || _renderParams.selection === undefined) return;
+    let {selection: {range, origin}} = _renderParams;
 
-    var {origin, range} = _renderParams.selection;
-    var selection = {origin: {x: range.tl.col - 1, y: range.tl.row - 1},
-                 extent: {x: range.br.col - range.tl.col, y: range.br.row - range.tl.row }};
-    var mouseDown = selection.origin;
+    let rect = Util.Canvas.drawRect(range, this, gc);
+    _renderParams.selectionRect = rect;
 
-    var visibleColumns = this.getVisibleColumns();
-    var visibleRows = this.getVisibleRows();
-    var fixedColCount = grid.getFixedColumnCount();
-    var fixedRowCount = grid.getFixedRowCount();
-    var lastVisibleColumn = visibleColumns[visibleColumns.length - 1];
-    var lastVisibleRow = visibleRows[visibleRows.length - 1];
-    var scrollX = grid.getHScrollValue();
-    var scrollY = grid.getVScrollValue();
-
-    var extent = selection.extent;
-
-    var dpOX = Math.min(mouseDown.x, mouseDown.x + extent.x) + fixedColCount;
-    var dpOY = Math.min(mouseDown.y, mouseDown.y + extent.y) + fixedRowCount;
-
-    var originX = origin.col + fixedColCount - scrollX - 1;
-    var originY = origin.row + fixedRowCount - scrollY - 1;
-    var originCellBounds = this._getBoundsOfCell(originX, originY);
-
-    //lets check if our selection rectangle is scrolled outside of the visible area
-    if (dpOX - 1 > lastVisibleColumn) {
-        return; //the top of our rectangle is below visible
-    }
-    if (dpOY - 1 > lastVisibleRow) {
-        return; //the left of our rectangle is to the right of being visible
-    }
-
-    var dpEX = Math.max(mouseDown.x, mouseDown.x + extent.x);
-    dpEX = Math.min(dpEX, 1 + lastVisibleColumn) + 2;
-
-    var dpEY = Math.max(mouseDown.y, mouseDown.y + extent.y);
-    dpEY = Math.min(dpEY, 1 + lastVisibleRow) + 2;
-
-    var o = this._getBoundsOfCell(dpOX - scrollX, dpOY - scrollY).origin;
-    var ox = Math.round((o.x === undefined) ? grid.getFixedColumnsWidth() : o.x);
-    var oy = Math.round((o.y === undefined) ? grid.getFixedRowsHeight() : o.y);
-    // var ow = o.width;
-    // var oh = o.height;
-    var e = this._getBoundsOfCell(dpEX - scrollX, dpEY - scrollY).origin;
-    var ex = Math.round((e.x === undefined) ? grid.getFixedColumnsWidth() : e.x);
-    var ey = Math.round((e.y === undefined) ? grid.getFixedRowsHeight() : e.y);
-    // var ew = e.width;
-    // var eh = e.height;
-    var x = Math.min(ox, ex);
-    var y = Math.min(oy, ey);
-    var width = 1 + ex - ox;
-    var height = 1 + ey - oy;
-    if (x === ex) {
-        width = ox - ex;
-    }
-    if (y === ey) {
-        height = oy - ey;
-    }
-    if (width * height < 1) {
-        //if we are only a skinny line, don't render anything
-        return;
-    }
-
-    _renderParams.selectionRect = {x: x, y: y, width: width, height: height};
-    gc.rect(x, y, width, height);
+    // optionally draw copy/cut ants
     gc.lineWidth = 1;
-    // gc.fillStyle = 'rgba(0, 0, 0, 0.2)';
-    // gc.fill();
     if (_renderParams.mode === null) {
       gc.strokeStyle = 'blue';
-    } else if (_renderParams.mode === 'cut' || _renderParams.mode === 'copy') {
+    } else if ((_renderParams.mode === 'cut' || _renderParams.mode === 'copy') && !!rect) {
       gc.strokeStyle = _renderParams.mode === 'cut' ? 'red' : 'blue';
       gc.stroke();
-      gc.rect(x, y, width, height);
+      gc.rect(rect.origin.x, rect.origin.y, rect.extent.x, rect.extent.y);
       gc.strokeStyle = 'white';
       gc.setLineDash(this.focusLineStep[Math.floor(10 * (Date.now() / 300 % 1)) % this.focusLineStep.length]);
     }
     gc.stroke();
     gc.closePath();
+
+    // // draw origin rectangle
     gc.beginPath();
-    gc.rect(originCellBounds.origin.x, originCellBounds.origin.y,
-            originCellBounds.extent.x+1,
-            originCellBounds.extent.y+1);
+    Util.Canvas.drawRect({tl: origin, br: origin}, this, gc);
     gc.strokeStyle = 'blue';
     gc.lineWidth = 1;
     gc.stroke();

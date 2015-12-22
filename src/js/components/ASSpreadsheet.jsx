@@ -1061,7 +1061,7 @@ export default React.createClass({
           cell = CellStore.getCell({col: col, row: row});
 
       // tag-based cell styling
-      if (!! cell) {
+      if (cell !== null && cell !== undefined) {
         U.Render.valueToRenderConfig(config, cell.cellValue);
         if (cell.cellExpression.expandingType) {
           U.Render.expandingTypeToRenderConfig(config, cell.cellExpression.expandingType);
