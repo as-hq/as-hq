@@ -169,7 +169,8 @@ export default React.createClass({
           }
         },
         'fin-double-click': function (event) {
-          // should only fire when double click is inside grid
+          // should only fire when double click is inside grid. According to event.detail.gridCell here, 
+          // the top left grid cell is (0,0) which is different from e.g. the event in model.handleMouseDown.  
           if (event.detail.gridCell.y >= 0 && event.detail.gridCell.x >= 0) {
             ExpStore.setClickType(Constants.ClickType.DOUBLE_CLICK);
             self.refs.textbox.updateTextBox(ExpStore.getExpression());
@@ -410,6 +411,8 @@ export default React.createClass({
       return rr;
     };
 
+    // note: evt.gridCell in all these functions seem to think the coordinates of the top left cell is 
+    // (1,1) rather than (0,0). 
     model.handleMouseDown = (grid, evt) => {
       if (evt.primitiveEvent.detail.primitiveEvent.shiftKey) { // shift+click
         let {origin} = this.getSelectionArea(),
@@ -425,11 +428,12 @@ export default React.createClass({
           // dragging selections
           this.dragSelectionOrigin = {col: evt.gridCell.x, row: evt.gridCell.y};
         } else if (model.featureChain) {
+          let clickedCell = evt.gridCell; 
           // If the mouse is placed inside column header (not on a divider), we want to keep some extra state ourselves
-          if (self._clickIsInColumnHeader(evt)) {
-           self.clickedColNum = evt.gridCell.x;
-          } else if (self._clickIsInRowHeader(evt)) {
-            self.clickedRowNum = evt.gridCell.y;
+          if (self._clickedCellIsInColumnHeader(clickedCell)) {
+           self.clickedColNum = clickedCell.x;
+          } else if (self._clickedCellIsInRowHeader(clickedCell)) {
+            self.clickedRowNum = clickedCell.y;
           }
           model.featureChain.handleMouseDown(grid, evt);
           model.setCursor(grid);
@@ -612,16 +616,15 @@ export default React.createClass({
     }
   },
 
-  _clickIsInColumnHeader(evt: HGMouseEvent): boolean {
-    let hg = this._getHypergrid(),
-        model = hg.getBehavior();
-    return (model.featureChain.isFixedRow(hg, evt) && hg.overColumnDivider(evt) === -1);
+  // note: evt.gridCell from the mouse-click functions from model (hg.getBehavior()) seem to be 1-indexed 
+  // (the coordinates of the top left cell are  (1,1) rather than (0,0)). The below two functions are only
+  // assumed to work on mouse functions on model, NOT for e.g. fin-double-click events where the top left cell is (0,0). Umm......
+  _clickedCellIsInColumnHeader(clickedCell: HGPoint): boolean {
+    return (clickedCell.x >= 1 && clickedCell.y <= 0); // == 0? ==-1? not entirely sure
   },
 
-  _clickIsInRowHeader(evt: HGMouseEvent): boolean {
-    let hg = this._getHypergrid(),
-        model = hg.getBehavior();
-    return (model.featureChain.isFixedColumn(hg, evt) && hg.overRowDivider(evt) === -1);
+  _clickedCellIsInRowHeader(clickedCell: HGPoint): boolean {
+    return (clickedCell.x >= 0 && clickedCell.y >= 1); // == 0? ==-1? not entirely sure
   },
 
   // expects that the current sheet has already been set
