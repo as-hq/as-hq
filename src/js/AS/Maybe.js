@@ -54,3 +54,13 @@ export function Nothing<T>(): Maybe<T> {
 export function using<T>(a: ?T): Callback<Callback<T>> {
   return (cb: Callback<T>) => Just(a).fmap_(cb);
 }
+
+export function catMaybes<T>(arr: Array<?T>): Array<T> {
+  let ret: Array<T> = [];
+  arr.forEach((ele) => {
+    if (ele !== null && ele !== undefined) {
+      ret.push(ele);
+    }
+  });
+  return ret;
+}

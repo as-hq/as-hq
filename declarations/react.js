@@ -482,3 +482,5 @@ declare class ReactLink<T> {
 declare module 'react-dom' {
   declare function findDOMNode(): HTMLElement;
 }
+
+declare class Image extends ReactComponent { }

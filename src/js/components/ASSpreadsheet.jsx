@@ -19,6 +19,7 @@ import type {
 } from '../types/State';
 
 import {logDebug, logError} from '../AS/Logger';
+import {catMaybes} from '../AS/Maybe';
 
 import _ from 'lodash';
 
@@ -36,6 +37,7 @@ import SelectionStore from '../stores/ASSelectionStore';
 import FindStore from '../stores/ASFindStore';
 import ExpStore from '../stores/ASExpStore';
 import BarStore from '../stores/ASBarStore.js';
+import OverlayStore from '../stores/ASOverlayStore';
 
 import U from '../AS/Util';
 let {
@@ -108,6 +110,7 @@ export default React.createClass({
     // Be able to respond to events from ExpStore
     ExpStore.addChangeListener(this._onExpressionChange);
     BarStore.addChangeListener(this._onBarPropsChange);
+    OverlayStore.addChangeListener(this._onOverlaysChange);
     // Hypergrid initialization
     document.addEventListener('polymer-ready', () => {
       this.props.onReady();
@@ -117,7 +120,7 @@ export default React.createClass({
           model = hg.getBehavior();
       this.getInitialData();
 
-      hg.autoScrollAcceleration = false; 
+      hg.autoScrollAcceleration = false;
       let callbacks = ({
         /*
           Call onSelectionChange method in eval pane to deal with selection change
@@ -131,32 +134,32 @@ export default React.createClass({
           let scroll = self.getScroll();
           if (event.detail.oldValue <= event.detail.value) {
             let newScrollPixels = {
-              x: self.state.scrollPixels.x + hg.getColumnWidth(event.detail.oldValue), 
+              x: self.state.scrollPixels.x + hg.getColumnWidth(event.detail.oldValue),
               y: self.state.scrollPixels.y
             };
             self.setState({scrollPixels: newScrollPixels, scroll: scroll});
           } else {
             let newScrollPixels = {
-              x: self.state.scrollPixels.x - hg.getColumnWidth(event.detail.value), 
+              x: self.state.scrollPixels.x - hg.getColumnWidth(event.detail.value),
               y: self.state.scrollPixels.y
             };
             self.setState({scrollPixels: newScrollPixels, scroll: scroll});
           }
           if ((self.getScroll()).x % 20 === 0) {
-            ActionCreator.scroll(self.getViewingWindow()); 
+            ActionCreator.scroll(self.getViewingWindow());
           }
         },
         'fin-scroll-y': function (event) {
           let scroll = self.getScroll();
           if (event.detail.oldValue <= event.detail.value) {
             let newScrollPixels = {
-              y: self.state.scrollPixels.y + hg.getRowHeight(event.detail.oldValue), 
+              y: self.state.scrollPixels.y + hg.getRowHeight(event.detail.oldValue),
               x: self.state.scrollPixels.x
             };
             self.setState({scrollPixels: newScrollPixels, scroll: scroll});
           } else {
             let newScrollPixels = {
-              y: self.state.scrollPixels.y - hg.getRowHeight(event.detail.value), 
+              y: self.state.scrollPixels.y - hg.getRowHeight(event.detail.value),
               x: self.state.scrollPixels.x
             };
             self.setState({scrollPixels: newScrollPixels, scroll: scroll});
@@ -644,7 +647,7 @@ export default React.createClass({
           display = U.Render.showValue(c.cellValue);
       model.setValue(gridCol, gridRow, display.toString());
       // Update our list of overlays if we have an image
-      self.updateOverlays(c);
+      self.addCellSourcedOverlay(c);
     });
 
     model.changed(); // causes hypergrid to show updated values
@@ -654,9 +657,9 @@ export default React.createClass({
   /*************************************************************************************************************************/
   // Dealing with image creation and updating
 
-  /* 
+  /*
   Given a cell that has a ValueImage tag, get the corresponding overlay from the info in that cell. This involves
-  extracting out offset and size information from the cell. We also need to take scrolling into account to render the 
+  extracting out offset and size information from the cell. We also need to take scrolling into account to render the
   picture initially in the correct place. We use Hypergrid methods to return an Overlay object.
   Note that we don't account for scroll here. The scroll state is passed as a prop to Overlay, which will deal with the scroll
   */
@@ -664,8 +667,8 @@ export default React.createClass({
     let {col, row} =  cell.cellLocation.index,
         p =  finRect.point.create(col, row),
         point = this._getHypergrid().getBoundsOfCell(p).origin;
-    /* 
-    Define default parameters, and fill them in with values from the cell information. 
+    /*
+    Define default parameters, and fill them in with values from the cell information.
     If the image was resized or dragged, its metadata would have been modified and updateCellValues would be called,
     which calls this function. Here, we produce the up-to-date overlay based on current offsets and size
     */
@@ -683,39 +686,57 @@ export default React.createClass({
     }  else {
       let imagePath = cell.cellValue.imagePath;
       // Return the overlay spec, and note that the overlay shouldn't be in view if the point isn't
+      // Compute the overlay element. The "draggable=false" is needed for a silly HTML5 reason.
+      let imageSrc = Constants.getHostStaticUrl() + "/images/" + imagePath;
       return {
         id: U.Render.getUniqueId(),
-        src: Constants.getHostStaticUrl() + "/images/" + imagePath,
-        width: imageWidth,
-        height: imageHeight,
+        renderElem: (style) => {
+          return (<Image src={imageSrc} draggable="false" style={style} alt="Error rendering image." />);
+        },
+        initWidth: imageWidth,
+        initHeight: imageHeight,
         offsetX: imageOffsetX,
         offsetY: imageOffsetY,
-        left: point.x, 
+        left: point.x,
         top:  point.y,
         loc: cell.cellLocation
       };
     }
   },
 
-  /* 
-  As part of our state, we store a list of overlay objects. When a cell produces an overlay, we want to update this list. 
-  If there's already an overlay at that location, we want to replace it with the new one (so that propagation works!). 
+  /*
+  As part of our state, we store a list of overlay objects. When a cell produces an overlay, we want to update this list.
+  If there's already an overlay at that location, we want to replace it with the new one (so that propagation works!).
   In particular, if a cell with an overlay is deleted, the newOverlay will be null (nothing added) and the old one will be deleted.
-  That location-based update and state change is done here. 
+  That location-based update and state change is done here.
   */
-  updateOverlays(cell: ASCell) {
-    let newOverlay = this.getImageOverlayForCell(cell),
-        overlays = this.state.overlays,
-        locs = overlays.map((o) => o.loc);
-    for (var i = 0 ; i < locs.length; i++) {
-      if (U.Render.locEquals(locs[i], cell.cellLocation)) {
-        overlays.splice(i,1);
+  addCellSourcedOverlay(cell: ASCell) {
+    let imageOverlay = this.getImageOverlayForCell(cell);
+    if (imageOverlay === null || imageOverlay === undefined) return;
+    this.addOverlay(imageOverlay, cell);
+  },
+
+  addOverlay(newOverlay: ASOverlaySpec, cell?: ASCell) {
+    let overlays = this.state.overlays,
+        locs = catMaybes(overlays.map((o) => o.loc));
+
+    locs.forEach((loc, i) => {
+      if (cell !== null && cell !== undefined) {
+        if (U.Render.locEquals(loc, cell.cellLocation)) {
+          overlays.splice(i,1);
+        }
       }
-    }
-    if (newOverlay != null) {
-      overlays.push(newOverlay);
-    }
-   this.setState({overlays});
+    });
+
+    overlays.push(newOverlay);
+    this.setState({overlays: overlays});
+  },
+
+  _onOverlaysChange() {
+    let overlays = OverlayStore.getAll();
+    overlays.forEach((overlay) => {
+      this.addOverlay(overlay);
+    });
   },
 
 

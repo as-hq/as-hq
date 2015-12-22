@@ -1,200 +1,233 @@
+/* @flow */
+
+import type {
+  NakedIndex,
+  NakedRange,
+  ASIndex,
+  ASCell
+} from '../../types/Eval';
+
+import type {
+  Style
+} from '../../types/Render';
+
+import type {
+  ASChartType,
+  ASChartContext,
+  ASChartData,
+  CartesianDataset,
+  PolarDataset
+} from './types';
+
 import React from 'react';
+// $FlowFixMe too lazy to declare this import rn
 import Chart from 'react-chartjs';
 
-import {ChartTypes} from '../../Constants';
-import CellStore from '../../stores/CellStore';
-import {isContainedInLocs} from '../../AS/utils/Location';
+import Constants from '../../Constants';
+import CellStore from '../../stores/ASCellStore';
+import SheetStateStore from '../../stores/ASSheetStateStore';
+import U from '../../AS/Util';
+import CU from './ChartUtils';
 
-Chart.defaults.global.responsive = true;
+let {Location: {isContainedInLocs}} = U;
 
-export default React.createClass({
+let {ChartTypes} = Constants;
 
-  getInitialState() {
-    return {
-      data: null,
-      range: null,
-      sheetId: null,
-      chartType: null,
-      chartOptions: null
-    }
-  },
+type ASChartProps = {
+  chartContext: ASChartContext;
+  chartStyle: Style;
+  valueRange: NakedRange;
+  sheetId: string;
+  redraw: boolean;
+  showLegend: boolean;
+};
+
+type ASChartState = {
+  data: ASChartData;
+};
+
+export default class ASChart extends React.Component<{}, ASChartProps, ASChartState> {
+  constructor(props: ASChartProps) {
+    super(props);
+
+    this.state = {
+      data: this._contextToData(this.props.chartContext),
+    };
+  }
 
   componentDidMount() {
-    CellStore.addChangeListener(this._onDataChange);
-  },
+    CellStore.addChangeListener(this._onDataChange.bind(this));
+  }
 
   componentWillUnmount() {
-    CellStore.removeChangeListener(this._onDataChange);
-  },
+    console.error("Chart unmounted!");
+    CellStore.removeChangeListener(this._onDataChange.bind(this));
+  }
 
-  componentWillReceiveProps(newProps) {
-    // reconstruct chart with options here
-    let chartContext = _generateContext(newProps.chartType, newProps.cells, newProps.xLabels, newProps.plotLabels);
-    let chartData = _contextToData(chartContext);
-    let newState = {
-      data: chartData,
-      range: newProps.range,
-      sheetId: newProps.sheetId,
-      chartType: newProps.chartType,
-    };
-    this.replaceState(newState);
-  },
+  componentWillReceiveProps(newProps: ASChartProps) {
+    let {chartContext} = newProps;
+    if (chartContext !== this.props.chartContext) {
+      let chartData = this._contextToData(chartContext);
+      this.setState({data: chartData});
+    }
+  }
+
+  _getChart(): Chart {
+    return this.refs.baseChart.getChart();
+  }
+
+  _isListening(c: ASCell): boolean {
+    let {index, sheetId} = c.cellLocation;
+    return isContainedInLocs(index.col, index.row, [this.props.valueRange])
+        && sheetId == this.props.sheetId;
+  }
 
   // data binding
   _onDataChange() {
-    let filteredCells = CellStore.getLastUpdatedCells().filter(_isListening);
+    let filteredCells = CellStore.getLastUpdatedCells().filter(this._isListening.bind(this));
     this._updateData(filteredCells);
-  },
+  }
 
-  _updateData(cs) {
+  _getRelativeIndex(idx: NakedIndex): NakedIndex {
+    let {tl} = this.props.valueRange;
+    return {col: idx.col - tl.col, row: idx.row - tl.row};
+  }
+
+  _updateData(cs: Array<ASCell>) {
     let newData = this.state.data;
     cs.forEach((c) => {
-      let {col, row} = _getRelativeIndex(c.cellLocation.index);
-      let val = _cellToJSVal(cellValue);
-      newData.datasets[col].data[row] = val;
+      let {col, row} = this._getRelativeIndex(c.cellLocation.index);
+      let val = CU.cellToChartVal(c);
+      // update the datastructure depending on the chart type
+      if (CU.isCartesian(this.props.chartContext.chartType) && newData.datasets) {
+        newData.datasets[col].data[row] = val;
+      } else {
+        let insertIdx = Math.max(col, row);
+        newData[insertIdx].value = val;
+      }
     });
+    console.log("updated chart data!");
     this.setState({data: newData});
-  },
-
-  // ChartType -> [[ASCell]] -> Maybe [XLabel] -> Maybe [PlotLabel] -> ChartContext
-  _generateContext(chartType, cs, xLabels, plotLabels) {
-    if _isCartesian(chartType) {
-      return {
-        chartType: chartType,
-        values: cs.map((col) => { return col.map(_cellToJSVal); }),
-        xLabels: xLabels || _takeNat(cs[0].length),
-        plotLabels: plotLabels || _repeat(null, cs.length)
-      };
-    } else if _isPolar(chartType) {
-      return {
-        chartType: chartType,
-        // can't polar plot multi-dimensional data, so reduce the array.
-        values: _reduceNestedArray(cs).map(_cellToJSVal),
-        plotLabels: plotLabels || _repeat(null, cs.length)
-      };
-    }
-  },
+  }
 
   // ChartContext -> ChartData
-  _contextToData(ctx) {
-    if (_isCartesian(ctx.chartType)) {
+  _contextToData(ctx: ASChartContext): ASChartData {
+    console.log("Contexttodata: " + JSON.stringify(ctx));
+    const {xLabels} = ctx;
+    if (CU.isCartesian(ctx.chartType) && xLabels !== null && xLabels !== undefined) {
       return {
-        labels: ctx.xLabels,
-        datasets: _generateCartesianDatasets(ctx)
+        labels: xLabels,
+        datasets: this._generateCartesianDatasets(ctx)
       };
-    } else if (_isPolar(ctx.chartType)) {
-      return _generatePolarDatasets(ctx);
-    }
-  },
+    } else if (CU.isPolar(ctx.chartType)) {
+      return this._generatePolarDatasets(ctx);
+    } else throw new Error("Not even cartesian or polar: " + JSON.stringify(ctx.chartType));
+  }
 
   // #needsrefactor I want an either type here.
   // the next two functions are quite repetitive, but they do return different types...
 
   // ChartContext -> [CartesianDataset]
-  _generateCartesianDatasets(ctx) {
-    let datasets = Array(ctx.values.length);
-    for (var i=0; i<ctx.values.length; i++) {
-      datasets[i] = _generateDatasetGraphicOptions(ctx.chartType)
-        .assign({
-          label: ctx.plotLabels[i],
-          data: ctx.values[i]
-        });
-    } return datasets;
-  },
+  _generateCartesianDatasets(ctx: ASChartContext): Array<CartesianDataset> {
+    let datasets = [];
+    const {values, plotLabels} = ctx;
+    if (values !== null && values !== undefined && plotLabels !== null && plotLabels !== undefined) {
+      for (var i = 0; i < values.length; i++) {
+        // $FlowFixMe can't declare object.assign...
+        datasets.push(Object.assign(this._generateDatasetGraphicOptions(ctx.chartType), {
+            label: plotLabels[i],
+            data: values[i]
+          }
+        ));
+      } return datasets;
+    } else throw new Error("Couldn't generate cartesian datasets");
+  }
 
   // ChartContext -> [PolarDataset]
-  _generatePolarDatasets(ctx) {
-    let datasets = Array(ctx.values.length);
-    for (var i=0; i<ctx.values.length; i++) {
-      datasets[i] = _generateDatasetGraphicOptions(ctx.chartType)
-        .assign({
-          label: ctx.plotLabels[i],
-          value: ctx.values[i]
-        });
-    } return datasets;
-  },
+  _generatePolarDatasets(ctx: ASChartContext): Array<PolarDataset> {
+    console.log("generating polar datasets with context: " + JSON.stringify(ctx));
+    let datasets = [];
+    const {values, plotLabels} = ctx;
+    if (values !== null && values !== undefined && plotLabels !== null && plotLabels !== undefined) {
+      for (var i=0; i<values.length; i++) {
+        // $FlowFixMe fuck you object.assign
+        datasets.push(Object.assign(this._generateDatasetGraphicOptions(ctx.chartType), {
+            label: plotLabels[i],
+            value: values[i]
+          }
+        ));
+      } return datasets;
+    } else throw new Error("Couldn't generate polar datasets");
+  }
 
   // ChartType -> GraphicOptions
-  _generateDatasetGraphicOptions(chartType) {
+  _generateDatasetGraphicOptions(chartType: ASChartType) {
+    let {r,g,b} = CU.generateRGB();
     switch(chartType) {
       case ChartTypes.Line:
       case ChartTypes.Radar:
          return {
-          fillColor: "rgba(220,220,220,0.2)",
-          strokeColor: "rgba(220,220,220,1)",
-          pointColor: "rgba(220,220,220,1)",
+          fillColor: `rgba(${r},${g},${b},0.2)`,
+          strokeColor: `rgba(${r},${g},${b},1)`,
+          pointColor: `rgba(${r},${g},${b},1)`,
           pointStrokeColor: "#fff",
           pointHighlightFill: "#fff",
-          pointHighlightStroke: "rgba(220,220,220,1)"
+          pointHighlightStroke: `rgba(${r},${g},${b},1)`
         };
       case ChartTypes.Bar:
         return {
-          fillColor: "rgba(220,220,220,0.5)",
-          strokeColor: "rgba(220,220,220,0.8)",
-          highlightFill: "rgba(220,220,220,0.75)",
-          highlightStroke: "rgba(220,220,220,1)"
+          fillColor: `rgba(${r},${g},${b},0.9)`,
+          strokeColor: `rgba(${r},${g},${b},0.8)`,
+          highlightFill: `rgba(${r},${g},${b},0.75)`,
+          highlightStroke: `rgba(${r},${g},${b},1)`
         };
       case ChartTypes.PolarArea:
       case ChartTypes.Pie:
       case ChartTypes.Doughnut:
         return {
-          color:"#F7464A",
-          highlight: "#FF5A5E"
+          color:`rgba(${r},${g},${b},0.8)`,
+          highlight: `rgba(${r},${g},${b},0.5)`
         };
     };
-  },
-
-  _isCartesian(chartType) { return [ChartTypes.Line, ChartTypes.Bar, ChartTypes.Radar].includes(chartType); },
-
-  _isPolar(chartType) { return [ChartTypes.PolarArea, ChartTypes.Pie, ChartTypes.Doughnut].includes(chartType); },
-
-  _getRelativeIndex(idx) {
-    let {tl} = this.state.range;
-    return {col: idx.col - tl.col, row: idx.row - tl.row};
-  },
-
-  // a -> Int -> [a]
-  _repeat(val, n) {
-    return Array(...Array(n)).map(() => val);
-  },
-
-  // Int -> [Nat]
-  _takeNat(n) {
-    return Array.from(new Array(n), (x,i) => i+1)
-  },
-
-  // [[a]] -> ThrowsError a
-  _reduceNestedArray(arr) {
-    console.assert(arr.constructor === Array && arr.every((elem) => { return elem.constructor === Array; }));
-    console.assert(arr.length == 1 || arr.every((subArr) => { return subArr.length == 1; }));
-    if (arr.length == 1) return arr[0];
-    else return arr.map((elem) => { return elem[0]; });
-  },
-
-  // ASCell -> Maybe JSVal
-  _cellToJSVal(c) {
-    switch (c.cellValue.tag) {
-      case "ValueI":
-      case "ValueD":
-      case "ValueB":
-        return c.cellValue.contents;
-      default:
-        console.error("Cannot chart non-numeric value.");
-        return null;
-    };
-  },
-
-  // ASCell -> Bool
-  _isListening(c) {
-    return isContainedInLocs(c.cellLocation.index.col,
-                             c.cellLocation.index.row,
-                             [this.state.range])
-        && c.cellLocation.sheetId == this.state.sheetId;
-  },
-
-  setChartType(t) { this.setState({chartType: t}); },
-
-  render() {
-    return <Chart[this.state.chartType] data={this.state.data} options={this.state.chartOptions} />;
   }
-});
+
+// not necessary until legends need to work.
+
+  // _generateLegendMarkup(): string {
+  //   let legend = this._getChart().generateLegend();
+  //   return {__html: legend};
+  // }
+  //
+  // _isMounted(): boolean {
+  //   return (!! this.refs.baseChart);
+  // }
+
+  render(): React.Element {
+    let ChartConstructor = Chart[this.props.chartContext.chartType];
+    let {data} = this.state;
+    let {redraw, chartContext, chartStyle, showLegend} = this.props;
+
+    return (
+        <ChartConstructor
+          ref='baseChart'
+          style={chartStyle}
+          data={data}
+          options={chartContext.options}
+          redraw={redraw} />
+    );
+      // I can't get the CSS for the legend to work,
+      // so 80/20.
+
+        // {showLegend && this._isMounted() ?
+        //   <div
+        //     dangerouslySetInnerHTML={this._generateLegendMarkup()}
+        //     style={{
+        //       position: 'absolute',
+        //       top: '10px',
+        //       left: '10px',
+        //       zIndex: 10
+        //     }} />
+        //   : []
+        // }
+  }
+}
