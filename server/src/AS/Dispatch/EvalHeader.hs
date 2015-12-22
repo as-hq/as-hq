@@ -17,10 +17,11 @@ import Control.Monad.Trans.Either
 
 -- this file is for future kernel-based repl methods
 
+-- #needsrefactor shouldn't return the value, not the message
 runEvalHeader :: ASSheetId -> ASExpression -> IO ASServerMessage
 runEvalHeader sid xp = do
     let lang = language xp
     val <- runEitherT $ R.evaluateHeader xp
     return $ case val of 
-        Left e -> ServerMessage EvaluateHeader (Failure $ generateErrorMessage e) (PayloadValue . CellValue $ execErrorToValueError e)
-        Right v -> ServerMessage EvaluateHeader Success (PayloadValue v)
+        Left e -> ServerMessage EvaluateHeader (Failure $ generateErrorMessage e) (PayloadValue (CellValue $ execErrorToValueError e) lang)
+        Right v -> ServerMessage EvaluateHeader Success (PayloadValue v lang)

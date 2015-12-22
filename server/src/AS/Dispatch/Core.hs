@@ -62,13 +62,13 @@ type PureEvalTransform = EvalContext -> EvalContext
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Debugging
 
-testDispatch :: MVar ServerState -> ASLanguage -> Coord -> String -> IO ASServerMessage
-testDispatch state lang crd str = runDispatchCycle state [cell] DescendantsWithParent src id
-  where 
-    cell = Cell (Index sid crd) (Expression str Python) NoValue emptyProps
-    src = CommitSource sid uid
-    sid = T.pack "sheetid"
-    uid = T.pack "userid"
+-- testDispatch :: MVar ServerState -> ASLanguage -> Coord -> String -> IO ASServerMessage
+-- testDispatch state lang crd str = runDispatchCycle state [cell] DescendantsWithParent src id
+--   where 
+--     cell = Cell (Index sid crd) (Expression str Python) NoValue emptyProps
+--     src = CommitSource sid uid
+--     sid = T.pack "sheetid"
+--     uid = T.pack "userid"
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Exposed functions / regular eval route
@@ -84,9 +84,8 @@ testDispatch state lang crd str = runDispatchCycle state [cell] DescendantsWithP
 -- the cells getting evaluated. We pull the rest from the DB.
 
 
-runDispatchCycle :: MVar ServerState -> [ASCell] -> DescendantsSetting -> CommitSource -> CommitTransform -> IO ASServerMessage
+runDispatchCycle :: MVar ServerState -> [ASCell] -> DescendantsSetting -> CommitSource -> CommitTransform -> IO (Either ASExecError ASCommit)
 runDispatchCycle state cs descSetting src ctf = do
-  printObj "run dispatch cycle with cells: " cs
   roots <- EM.evalMiddleware cs
   conn <- dbConn <$> readMVar state
   errOrCommit <- runEitherT $ do
@@ -101,18 +100,8 @@ runDispatchCycle state cs descSetting src ctf = do
     finalCells <- EE.evalEndware state (addedCells ctxAfterDispatch) src roots ctxAfterDispatch
     let ctx = ctxAfterDispatch { addedCells = finalCells }
     DT.updateDBWithContext conn src ctx ctf
-  case errOrCommit of 
-    Left _ -> G.recompute conn -- #needsrefactor. Overkill. But recording all cells that might have changed is a PITA. (Alex 11/20)
-    _      -> return ()
-
-  let msg = makeReplyMessageFromCommit errOrCommit
-  printObj "made message: " msg
-  return msg
-
-makeReplyMessageFromCommit :: Either ASExecError ASCommit -> ASServerMessage
-makeReplyMessageFromCommit (Left err) = makeErrorMessage err UpdateSheet
-makeReplyMessageFromCommit (Right comm) = ServerMessage UpdateSheet Success $ PayloadSheetUpdate $ sheetUpdateFromCommit comm
--- ::ALEX:: put in the proper place
+  either (const $ G.recompute conn) (const $ return ()) errOrCommit 
+  return errOrCommit
 
 -- takes an old context, inserts the new values necessary for this round of eval, and evals using the new context.
 -- this seems conceptually better than letting each round of dispatch produce a new context, 

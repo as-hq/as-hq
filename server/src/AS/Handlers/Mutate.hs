@@ -46,8 +46,8 @@ handleMutateSheet uc state (PayloadMutate mutateType) = do
   let bardiff = Diff { beforeVals = oldBars, afterVals = newBars }
       commitTransform = injectDiffIntoCommit bardiff
   printObj "Commit Transform in Handle Mutate Sheet" bardiff
-  updateMsg <- runDispatchCycle state updatedCells DescendantsWithParent (userCommitSource uc) commitTransform
-  broadcastFiltered state uc updateMsg
+  errOrCommit <- runDispatchCycle state updatedCells DescendantsWithParent (userCommitSource uc) commitTransform
+  broadcastFiltered state uc $ makeReplyMessageFromErrOrCommit errOrCommit
 
 -- | For a mutate, maps the old row and column to the new row and column.
 barIndexMap :: MutateType -> BarIndex -> Maybe BarIndex

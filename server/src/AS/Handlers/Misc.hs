@@ -14,8 +14,10 @@ import AS.Types.Updates
 import qualified AS.Types.BarProps as BP
 
 import AS.Handlers.Eval
-import AS.Eval.CondFormat
 import AS.Handlers.Paste
+import AS.Handlers.Delete
+
+import AS.Eval.CondFormat
 
 import AS.Window
 import AS.Logging
@@ -50,16 +52,17 @@ import Control.Monad.Trans.Either
 handleAcknowledge :: ASUserClient -> IO ()
 handleAcknowledge uc = WS.sendTextData (userConn uc) ("ACK" :: T.Text)
 
-handleNew :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
-handleNew uc state (PayloadWorkbookSheets (wbs:[])) = do
-  conn <- dbConn <$> readMVar state
-  wbs' <- DB.createWorkbookSheet conn wbs
-  broadcast state $ ServerMessage New Success (PayloadWorkbookSheets [wbs'])
-handleNew uc state (PayloadWB wb) = do
-  conn <- dbConn <$> readMVar state
-  wb' <- DB.createWorkbook conn (workbookSheets wb)
-  broadcast state $ ServerMessage New Success (PayloadWB wb')
-  return () -- TODO determine whether users should be notified
+-- #needsrefactor currently incomplete, and inactive. 
+-- handleNew :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
+-- handleNew uc state (PayloadWorkbookSheets (wbs:[])) = do
+--   conn <- dbConn <$> readMVar state
+--   wbs' <- DB.createWorkbookSheet conn wbs
+--   broadcastTo state (wsSheets wbs') $ ServerMessage New Success (PayloadWorkbookSheets [wbs'])
+-- handleNew uc state (PayloadWB wb) = do
+--   conn <- dbConn <$> readMVar state
+--   wb' <- DB.createWorkbook conn (workbookSheets wb)
+--   broadcastTo state (wsSheets wb') $ ServerMessage New Success (PayloadWB wb')
+--   return () -- TODO determine whether users should be notified
 
 handleOpen :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
 handleOpen uc state (PayloadS (Sheet sid _ _)) = do
@@ -122,39 +125,6 @@ handleGet uc state (PayloadList WorkbookSheets) = do
   printWithTime $ "getting all workbooks: "  ++ (show wss)
   sendToOriginal uc $ ServerMessage UpdateSheet Success (PayloadWorkbookSheets wss)
 
-handleDelete :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
--- these handlers are DEPRECATED
---handleDelete uc state p@(PayloadWorkbookSheets (wbs:[])) = do
---  conn <- dbConn <$> readMVar state
---  DB.deleteWorkbookSheet conn wbs
---  broadcast state $ ServerMessage Delete Success p
---  return ()
---handleDelete uc state p@(PayloadWB workbook) = do
---  conn <- dbConn <$> readMVar state
---  DB.deleteWorkbook conn (workbookName workbook)
---  broadcast state $ ServerMessage Delete Success p
---  return ()
--- ::ALEX:: still gotta fix this guy
-handleDelete uc state (PayloadR rng) = do
-  let locs = rangeToIndices rng
-      badFormats = [ValueFormat Date]
-      -- ^ Deleting a cell keeps some of the formats but deletes others. This is the current list of
-      -- formats to remove upon deletion. 
-  conn <- dbConn <$> readMVar state
-  -- []
-  blankedCells <- DB.getBlankedCellsAt conn locs -- need to know the formats at the old locations
-  let removeBadFormat p c = if (hasProp p (cellProps c)) then removeCellProp (propType p) c else c
-      -- ^ CellProp -> ASCell -> ASCell
-      removeBadFormats ps = foldl' (.) id (map removeBadFormat ps)
-      -- ^ [CellProp] -> ASCell -> ASCell
-      blankedCells' = map (removeBadFormats badFormats) blankedCells
-  updateMsg <- DP.runDispatchCycle state blankedCells' DescendantsWithParent (userCommitSource uc) id
-  let msg = makeDeleteMessage rng updateMsg
-  case (serverResult msg) of  
-    Failure _ -> sendToOriginal uc msg
-    DecoupleDuringEval -> sendToOriginal uc msg
-    otherwise -> broadcast state msg
-
 -- Had relevance back when UserClients could have multiple windows, which never made sense anyway.
 -- (Alex 11/3)
 handleClose :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
@@ -166,12 +136,12 @@ handleClear client state payload = case payload of
     conn <- dbConn <$> readMVar state
     DB.clear conn
     G.clear
-    broadcast state $ ServerMessage Clear Success $ PayloadN ()
+    broadcastTo state [] $ ServerMessage Clear Success $ PayloadN ()
   PayloadS (Sheet sid _ _) -> do
     conn <- dbConn <$> readMVar state
     DB.clearSheet conn sid
     G.recompute conn
-    broadcast state $ ServerMessage Clear Success payload
+    broadcastTo state [sid] $ ServerMessage Clear Success payload
 
 handleUndo :: ASUserClient -> MVar ServerState -> IO ()
 handleUndo uc state = do
@@ -180,7 +150,7 @@ handleUndo uc state = do
   commit <- DT.undo conn (userCommitSource uc)
   let msg = case commit of
               Nothing -> failureMessage "Too far back"
-              Just c  -> DP.makeReplyMessageFromCommit $ Right $ flipCommit c
+              Just c  -> makeReplyMessageFromCommit $ flipCommit c
   broadcastFiltered state uc msg
   printWithTime "Server processed undo"
 
@@ -190,7 +160,7 @@ handleRedo uc state = do
   commit <- DT.redo conn (userCommitSource uc)
   let msg = case commit of
               Nothing -> failureMessage "Too far forwards"
-              Just c  -> DP.makeReplyMessageFromCommit $ Right c
+              Just c  -> makeReplyMessageFromCommit c
   broadcastFiltered state uc msg
   printWithTime "Server processed redo"
 
@@ -200,8 +170,8 @@ handleDrag uc state (PayloadDrag selRng dragRng) = do
   conn <- dbConn <$> readMVar state
   nCells <- IU.getCellsRect conn selRng dragRng
   let newCells = (IU.getMappedFormulaCells selRng dragRng nCells) ++ (IU.getMappedPatternGroups selRng dragRng nCells)
-  msg' <- DP.runDispatchCycle state newCells DescendantsWithParent (userCommitSource uc) id
-  broadcastFiltered state uc msg'
+  errOrCommit <- DP.runDispatchCycle state newCells DescendantsWithParent (userCommitSource uc) id
+  broadcastFiltered state uc $ makeReplyMessageFromErrOrCommit errOrCommit
 
 handleRepeat :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
 handleRepeat uc state (PayloadSelection range origin) = do

@@ -1,9 +1,10 @@
 {-# LANGUAGE DeriveGeneric #-}
 
+-- #needsrefactor -- should be renamed to ExcelErrors
+
 module AS.Types.Errors where
 
 import AS.Types.Locations
-import AS.Types.User
 
 import GHC.Generics
 import Data.Aeson

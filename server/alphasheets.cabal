@@ -35,6 +35,7 @@ library
                        AS.Eval.Core
                        AS.Eval.Endware
                        AS.Eval.Middleware
+                       AS.Handlers.Delete
                        AS.Handlers.Eval
                        AS.Handlers.JumpSelect
                        AS.Handlers.Misc
