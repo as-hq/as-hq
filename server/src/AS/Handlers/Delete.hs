@@ -24,8 +24,8 @@ handleDelete uc state (PayloadR rng) = do
   conn <- dbConn <$> readMVar state
   blankedCells <- map removeBadFormats <$> getBlankedCellsAt conn (rangeToIndices rng) -- need to know the formats at the old locations
   errOrCommit <- runDispatchCycle state blankedCells DescendantsWithParent (userCommitSource uc) id
-  let errOrDleteUpdate = fmap ((modifyUpdateForDelete rng) . sheetUpdateFromCommit) errOrCommit
-  broadcastFiltered state uc $ makeReplyMessageFromErrOrUpdate errOrDleteUpdate
+  let errOrDeleteUpdate = fmap ((modifyUpdateForDelete rng) . sheetUpdateFromCommit) errOrCommit
+  broadcastFiltered state uc $ makeReplyMessageFromErrOrUpdate errOrDeleteUpdate
 
 -- Deleting a cell keeps some of the formats but deletes others. This is the current list of formats
 -- to remove upon deletion. 
