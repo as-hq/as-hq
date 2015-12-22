@@ -61,34 +61,33 @@ data CondFormatRule = CondFormatRule { cellLocs :: [ASRange],
 
 data CondFormatCondition =
   CustomCondition CustomCondition
+  | IsEmptyCondition IsEmptyCondition
+  | IsNotEmptyCondition IsNotEmptyCondition
   | GreaterThanCondition GreaterThanCondition
   | LessThanCondition LessThanCondition
   | GeqCondition GeqCondition
   | LeqCondition LeqCondition
   | EqualsCondition EqualsCondition
   | NotEqualsCondition NotEqualsCondition
-  | IsEmptyCondition IsEmptyCondition
-  | IsNotEmptyCondition IsNotEmptyCondition
   | IsBetweenCondition IsBetweenCondition
   | IsNotBetweenCondition IsNotBetweenCondition
   deriving (Show, Read, Generic, Eq)
 
 
 data CustomCondition = Custom ASExpression deriving (Show, Read, Generic, Eq)
+data IsEmptyCondition = IsEmpty deriving (Show, Read, Generic, Eq)
+data IsNotEmptyCondition = IsNotEmpty deriving (Show, Read, Generic, Eq)
 data GreaterThanCondition = GreaterThan ASExpression  deriving (Show, Read, Generic, Eq)
 data LessThanCondition = LessThan ASExpression  deriving (Show, Read, Generic, Eq)
 data GeqCondition = Geq ASExpression  deriving (Show, Read, Generic, Eq)
 data LeqCondition = Leq ASExpression  deriving (Show, Read, Generic, Eq)
 data EqualsCondition = Equals ASExpression  deriving (Show, Read, Generic, Eq)
 data NotEqualsCondition = NotEquals ASExpression  deriving (Show, Read, Generic, Eq)
-data IsEmptyCondition = IsEmpty deriving (Show, Read, Generic, Eq)
-data IsNotEmptyCondition = IsNotEmpty deriving (Show, Read, Generic, Eq)
 data IsBetweenCondition = IsBetween ASExpression ASExpression deriving (Show, Read, Generic, Eq)
 data IsNotBetweenCondition = IsNotBetween ASExpression ASExpression deriving (Show, Read, Generic, Eq)
 
 -- | TODO: timchu, 12/21/15. There is a fair amount of reptition in the code in 
 -- all the Inequality Conditions, the Between Conditions, etc...
--- I assume there's a better way to do this.
 
 -- Establishes an instance of Condition for each possible CondFormatCondition
 instance Condition CondFormatCondition where
@@ -111,8 +110,16 @@ instance Condition CondFormatCondition where
 instance CustomExpressionCondition CustomCondition where
   getCustomXp (Custom xp) = xp
 
+-- | Establishes IsEmptyCondition, IsNotEmptyCondition as instances of NoExpressionCondition.
+-- Establishes the symbolTableLookup corresponding to the condition types IsEmpty and IsNotEmpty.
+-- checkerNone is automatically defined given symbolTableLookup0.
+instance NoExpressionCondition IsEmptyCondition where
+  symbolTableLookup0 IsEmpty = (NoValue == )
+instance NoExpressionCondition IsNotEmptyCondition where
+  symbolTableLookup0 IsNotEmpty = (NoValue /= )
+
 -- | Establishes the Inequality Conditions as instances of OneExpressionCondition.
--- Establishes the symbols corresponding to the inequality condition types.
+-- Establishes the symbolTableLookup corresponding to the inequality condition types.
 -- chckerOne is automatically defined given getXp and symbolTableLookup1
 instance OneExpressionCondition GreaterThanCondition where
   symbolTableLookup1 (GreaterThan _) = (>)
@@ -133,16 +140,8 @@ instance OneExpressionCondition NotEqualsCondition where
   symbolTableLookup1 (NotEquals _) = (/=)
   getXp (NotEquals xp) = xp
 
--- | Establishes IsEmptyCondition, IsNotEmptyCondition as instances of NoExpressionCondition.
--- Establishes the symbols corresponding to the condition types IsEmpty and IsNotEmpty.
--- checkerNone is automatically defined given symbolTableLookup0.
-instance NoExpressionCondition IsEmptyCondition where
-  symbolTableLookup0 IsEmpty = (NoValue == )
-instance NoExpressionCondition IsNotEmptyCondition where
-  symbolTableLookup0 IsNotEmpty = (NoValue /= )
-
 -- | Establishes IsBetweenCondition, IsNotBetweenCondition as instances of TwoExpressionCondition.
--- Establishes the symbols corresponding to the condition types IsBetween and IsNotBetween.
+-- Establishes the symbolTableLookup corresponding to the condition types IsBetween and IsNotBetween.
 -- checkerTwo is automatically defined given symbolTableLookup2, getFstXp, getSndXp.
 instance TwoExpressionCondition IsBetweenCondition where
   symbolTableLookup2 (IsBetween _ _ ) = isBetween
