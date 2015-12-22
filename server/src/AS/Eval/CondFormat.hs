@@ -1,4 +1,4 @@
-module AS.Eval.CondFormat (conditionallyFormatCells) where
+module AS.Eval.CondFormat where
 
 import AS.DB.API as DB
 import AS.DB.Eval
@@ -46,29 +46,14 @@ ruleToCellTransform conn sid ctx cfr@(CondFormatRule rngs condFormatCondition fo
     Nothing -> return c
     Just rng -> do
       let tl = getTopLeft rng
+          eval = evalXp conn sid ctx
           offset = getIndicesOffset tl l
-      mc <- meetsCondition conn sid ctx condFormatCondition offset v
+          shiftXp = shiftExpression offset
+          shiftAndEvalXp = eval . shiftXp
+      mc <- checker condFormatCondition v shiftAndEvalXp
       if mc
          then return $ Cell l e v (setCondFormatProp format ps)
          else return c
-
-meetsCondition :: Connection -> ASSheetId -> EvalContext -> CondFormatCondition -> Offset -> ASValue -> EitherTExec Bool
-meetsCondition conn sid ctx condFormatCondition offset v = do
-  let shiftXp = shiftExpression offset
-      eval = evalXp conn sid ctx
-      shiftAndEvalXp = eval . shiftXp
-  case condFormatCondition of
-       CustomExpressionCondition xp -> do
-         val <- shiftAndEvalXp xp
-         return $ val == (ValueB True)
-       NoExpressionsCondition eType ->
-         return $ (symbolTableLookup0 eType) v
-       OneExpressionCondition eType xp -> do
-         val <- shiftAndEvalXp xp
-         return $ (symbolTableLookup1 eType) v val
-       TwoExpressionsCondition eType xpOne xpTwo -> do
-         [valOne, valTwo] <- mapM shiftAndEvalXp [xpOne, xpTwo]
-         return $ (symbolTableLookup2 eType) v valOne valTwo
 
 evalXp :: Connection -> ASSheetId -> EvalContext -> ASExpression -> EitherTExec ASValue
 evalXp conn sid ctx xp@(Expression str lang) = do

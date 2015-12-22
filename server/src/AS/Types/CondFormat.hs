@@ -5,6 +5,7 @@ module AS.Types.CondFormat where
 
 import AS.Types.DB (ASCommit)
 import AS.Types.Cell
+import AS.Types.Eval
 import AS.Types.Locations
 import AS.Types.CellProps
 -- apparently used for FromJSON on ADTs
@@ -24,71 +25,90 @@ instance FromJSON CondFormatRule
 
 -- Custom ToJSON and FromJSON on CondFormatConditions becuase the frontend and backend types differ.
 instance ToJSON CondFormatCondition where
-  toJSON = makeObj
-    where
-      makeObj :: CondFormatCondition -> Value
-      makeObj cfc =
-        case cfc of
-             NoExpressionsCondition t -> object ["tag" .= show t]
-             OneExpressionCondition t xp -> object ["tag" .= show t, "expression" .= xp]
-             TwoExpressionsCondition t xp1 xp2 -> object ["tag" .= show t, "expressions" .= [xp1, xp2]]
-
 instance FromJSON CondFormatCondition where
- parseJSON (Object v) =
-   case HML.lookup "tag" v of
-        Just (String "CustomExpressionCondition") -> CustomExpressionCondition <$> v.:"expression"
-        Just (String "GreaterThan") -> oneExpressionParser v
-        Just (String "Equals") -> oneExpressionParser v
-        Just (String "LessThan") -> oneExpressionParser v
-        Just (String "NotEquals") -> oneExpressionParser v
-        Just (String "Leq") -> oneExpressionParser v
-        Just (String "Geq") -> oneExpressionParser v
-        Just (String "IsBetween") -> twoExpressionsParser v
-        Just (String "IsNotBetween") -> twoExpressionsParser v
-        Just (String "IsEmpty") -> noExpressionsParser v
-        Just (String "IsNotEmpty") -> noExpressionsParser v
-        where
-              noExpressionsParser  :: Object -> Parser CondFormatCondition
-              noExpressionsParser s = NoExpressionsCondition <$> s .: "tag"
-              oneExpressionParser :: Object -> Parser CondFormatCondition
-              oneExpressionParser s =  OneExpressionCondition <$> s .: "tag" <*> s .: "expression"
-              twoExpressionsParser  :: Object -> Parser CondFormatCondition
-              twoExpressionsParser s = do
-                list <- s .: "expressions"
-                let e1 = head list
-                    e2 = last list
-                TwoExpressionsCondition <$> s .: "tag" <*> return e1 <*> return e2
-                -- TwoExpressionsCondition <$> s .: "tag" <*> s .: "expressionOne" <*> s .: "expressionTwo"
 instance Serialize CondFormatRule
 instance Serialize CondFormatCondition
-instance Serialize TwoExpressionsType
-instance Serialize OneExpressionType
-instance Serialize NoExpressionsType
 
 
 data CondFormatRule = CondFormatRule { cellLocs :: [ASRange],
                                        condition :: CondFormatCondition,
                                        condFormat :: CellProp } deriving (Show, Read, Generic, Eq)
 
--- TODO: Timchu, 12/14/15. This is MVP; does not have date expressions or text expressions.
--- CustomExpressions are separate from OneExpresssionConditions since
--- OneExpressionConditions evalute the expression in the condition, then applying the
--- relevant function (example: GreaterThan) to the value in the cell.
 data CondFormatCondition =
-    CustomExpressionCondition ASExpression
-  | NoExpressionsCondition NoExpressionsType
-  | OneExpressionCondition OneExpressionType ASExpression
-  | TwoExpressionsCondition TwoExpressionsType ASExpression ASExpression
-   deriving (Show, Read, Generic, Eq)
-
-data OneExpressionType = GreaterThan | Equals | Geq | Leq | LessThan | NotEquals
+  GreaterThanCondition GreaterThan
+  | IsEmptyCondition IsEmpty
   deriving (Show, Read, Generic, Eq)
+data GreaterThan = GreaterThan ASExpression  deriving (Show, Read, Generic, Eq)
+data IsEmpty = IsEmpty deriving (Show, Read, Generic, Eq)
 
-data NoExpressionsType = IsEmpty | IsNotEmpty
-  deriving (Show, Read, Generic, Eq)
+instance ToJSON GreaterThan
+instance FromJSON GreaterThan
+instance ToJSON IsEmpty
+instance FromJSON IsEmpty
+instance Serialize IsEmpty
+instance Serialize GreaterThan
 
-data TwoExpressionsType = IsBetween | IsNotBetween
-  deriving (Show, Read, Generic, Eq)
+
+-- Timchu, 12/21/15. The types have been refactored from the previous types from 12/16/15.
+-- ConditionalFormattingConditions is split into all possible conditions.
+-- Each condition is an instance  of conditionNone, conditionOne, conditionTwo
+-- depending on what the input type to the conditional formatting condition is.
+-- Note: This is MVP, text expressions and date expressions have not yet been
+-- implemented.
+-- Each data type in typeclass ConditionOne has a symbolTableLookup1 function 
+-- that takes a value of that type to a (ASValue -> ASValue -> EitherTExec ASCell).
+-- For example, GreaterThan goes to >=.
+--
+-- Each data type in ConditionOne then has a checkerOne function that takes in
+-- an 
+--    ASValue -> EitherTExec Bool (essentially, an eval function that is passed in),
+--    Value (value of the cell that is being checked with the condition)
+--    A member of that data type
+--    These give enough information to take a member of the data type to the appropriate bool.
+-- An analagous thing occurs for ConditionNone and  ConditionTwo.
+-- Then CondFormatCondition is an instance of Condition, which has a checker
+-- that evaluates to CheckerNone or CheckerOne or CheckerTwo, depending on the Condition.
+
+instance ConditionOne GreaterThan where
+  symbolTableLookup1 (GreaterThan _) = (>)
+  getXp (GreaterThan xp) = xp
+
+-- | TODO: timchu, 12/21/15. I assume there's a better way to do this.
+-- TODO: timchu, 12/21/15. Figure out how to case within instances!
+instance Condition CondFormatCondition where
+  checker (GreaterThanCondition x) = checkerOne x
+  checker (IsEmptyCondition x) = checkerNone x
+  --TODO: fill in more functions.
+
+instance ConditionNone IsEmpty where
+  symbolTableLookup0 IsEmpty = (NoValue == )
+
+class Condition a where
+  checker :: a -> ASValue -> (ASExpression -> EitherTExec ASValue) -> EitherTExec Bool
+
+class ConditionNone a where
+  symbolTableLookup0 :: a -> (ASValue -> Bool)
+  checkerNone :: a -> ASValue -> (ASExpression -> EitherTExec ASValue) -> EitherTExec Bool
+  -- TODO: Timchu, 12/21. This implementation seems suboptimal. Don't need to pass in an Eval for this case.
+  checkerNone s val _ =
+    return $ (symbolTableLookup0 s) val
+
+class ConditionOne a where
+  symbolTableLookup1 :: a -> (ASValue -> ASValue -> Bool)
+  getXp :: a -> ASExpression
+  checkerOne :: a -> ASValue -> (ASExpression -> EitherTExec ASValue) -> EitherTExec Bool
+  checkerOne s val evalXp = do
+    val1 <- evalXp $ getXp s
+    return $ (symbolTableLookup1 s) val val1
+
+class ConditionTwo a where
+  symbolTableLookup2 :: a -> (ASValue -> ASValue -> ASValue -> Bool)
+  getFstXp :: a -> ASExpression
+  getSndXp :: a -> ASExpression
+  checkerTwo :: a -> ASValue -> (ASExpression -> EitherTExec ASValue) -> EitherTExec Bool
+  checkerTwo s val evalXp = do
+    [val1, val2] <- mapM evalXp [getFstXp s, getSndXp s]
+    return $ (symbolTableLookup2 s) val val1 val2
 
 -- TODO: timchu, 12/17/15. this Ord is not exactly right. Should be the same as
 -- the ordering on Evalues. This has not been vetted for completeness or tested
@@ -121,37 +141,6 @@ instance Ord ASValue where
 
 
 -- symbolTableLookupN takes an NExpressionType to function with N variables.
-symbolTableLookup0 :: NoExpressionsType -> (ASValue -> Bool)
-symbolTableLookup0 net =
-  case net of
-       IsEmpty    -> (==) NoValue
-       IsNotEmpty -> (/=) NoValue
-
-symbolTableLookup1 :: OneExpressionType -> (ASValue -> ASValue -> Bool)
-symbolTableLookup1 oet =
-  case oet of
-       GreaterThan -> (>)
-       Geq         -> (>=)
-       LessThan    -> (<)
-       Leq         -> (<=)
-       Equals      -> (==)
-       NotEquals   -> (/=)
-
 -- tests if value is between a1 and a2 inclusive. Uses the Ord defined on ASValue above.
 isBetween :: ASValue -> ASValue -> ASValue -> Bool
 isBetween value a1 a2 = value >= min a1 a2 && max a1 a2 >= value
-
-symbolTableLookup2 :: TwoExpressionsType -> (ASValue -> ASValue -> ASValue -> Bool)
-symbolTableLookup2 tet value a1 a2 =
-  case tet of
-       IsBetween ->  isBetween value a1 a2
-       IsNotBetween ->  not $ isBetween value a1 a2
-
-instance ToJSON OneExpressionType
-instance FromJSON OneExpressionType
-
-instance ToJSON NoExpressionsType
-instance FromJSON NoExpressionsType
-
-instance ToJSON TwoExpressionsType
-instance FromJSON TwoExpressionsType
