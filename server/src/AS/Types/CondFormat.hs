@@ -23,17 +23,7 @@ instance ToJSON CondFormatRule
 instance FromJSON CondFormatRule
 
 instance ToJSON CondFormatCondition where
-  toJSON (OneExpressionCondition GreaterThan xp) = object [ "tag" .= String "GreaterThan", "expression" .= xp ]
-  toJSON (OneExpressionCondition Equals xp) = object [ "tag" .= String "Equals", "expression" .= xp ]
-  toJSON (OneExpressionCondition LessThan xp) = object [ "tag" .= String "LessThan", "expression" .= xp ]
-  toJSON (OneExpressionCondition Geq xp) = object [ "tag" .= String "Geq", "expression" .= xp ]
-  toJSON (OneExpressionCondition NotEquals xp) = object [ "tag" .= String "NotEquals", "expression" .= xp ]
-  toJSON (OneExpressionCondition Leq xp) = object [ "tag" .= String "Leq", "expression" .= xp ]
-  toJSON (TwoExpressionsCondition IsBetween xp1 xp2) = object [ "tag" .= String "IsBetween", "expressions" .= [xp1, xp2]]
-  toJSON (TwoExpressionsCondition IsNotBetween xp1 xp2) = object [ "tag" .= String "IsNotBetween", "expressions" .= [xp1, xp2]]
-  toJSON (NoExpressionsCondition IsEmpty) = object [ "tag" .= String "IsEmpty"]
-  toJSON (NoExpressionsCondition IsNotEmpty) = object [ "tag" .= String "IsNotEmpty"]
-  -- TODO: timchu, could truncate this pretty easily.
+  toJSON = makeObj
     where
       makeObj :: CondFormatCondition -> Value
       makeObj cfc =
