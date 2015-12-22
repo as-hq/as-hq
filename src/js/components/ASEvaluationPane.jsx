@@ -29,6 +29,7 @@ import SelectionStore from '../stores/ASSelectionStore';
 import EvalHeaderStore from '../stores/ASEvalHeaderStore';
 import FindStore from '../stores/ASFindStore';
 import ExpStore from '../stores/ASExpStore';
+import ToolbarStore from '../stores/ASToolbarStore';
 
 import API from '../actions/ASApiActionCreators';
 // import ReplActionCreator from '../actions/ASReplActionCreators';
@@ -60,8 +61,6 @@ import ASFindModal from './ASFindModal.jsx';
 import FindAction from '../actions/ASFindActionCreators';
 
 type ASEvalPaneState = {
-  defaultLanguage: ASLanguage;
-  currentLanguage: ASLanguage;
   replLanguage: ASLanguage;
   varName: string;
   focus: ?ASFocusType;
@@ -89,8 +88,6 @@ export default React.createClass({
   /* React method for getting the initial state */
   getInitialState(): ASEvalPaneState {
     return {
-      defaultLanguage: Constants.Languages.Excel, // the language displayed on a blank cell
-      currentLanguage: Constants.Languages.Excel, // the language currently displayed
       replLanguage: Constants.Languages.Python,
       varName: '',
       focus: null,
@@ -117,6 +114,7 @@ export default React.createClass({
     CellStore.addChangeListener(this._onCellsChange);
     SheetStateStore.addChangeListener(this._onSheetStateChange);
     FindStore.addChangeListener(this._onFindChange);
+    ToolbarStore.addChangeListener(this._onToggleLanguage)
     // ReplStore.addChangeListener(this._onReplChange);
     EvalHeaderStore.addChangeListener(this._onEvalHeaderUpdate);
     ExpStore.addChangeListener(this._onExpChange);
@@ -134,6 +132,7 @@ export default React.createClass({
     CellStore.removeChangeListener(this._onCellsChange);
     SheetStateStore.addChangeListener(this._onSheetStateChange);
     FindStore.removeChangeListener(this._onFindChange);
+    ToolbarStore.addChangeListener(this._onToggleLanguage)
     // ReplStore.removeChangeListener(this._onReplChange);
     ExpStore.removeChangeListener(this._onExpChange);
   },
@@ -179,11 +178,13 @@ export default React.createClass({
   /***************************************************************************************************************************/
   // Some basic on change handlers
 
-  selectLanguage(lang: ASLanguage) {
-    ExpStore.setLanguage(lang);
-    this.setState({ defaultLanguage: lang, currentLanguage: lang });
-    this.setFocus(SheetStateStore.getFocus());
-  }, 
+  // This is called when the toolbar store updates. If the update was due to a language toggle (shortcut or dropdown)
+  // then set focus correctly
+  _onToggleLanguage() {
+    if (ToolbarStore.getOrigin() === Constants.ActionTypes.LANGUAGE_TOGGLED){
+      this.setFocus(SheetStateStore.getFocus());
+    }
+  },
 
   _onSetVarName(name: string) {
     logDebug('var name set to', name);
@@ -405,9 +406,10 @@ export default React.createClass({
       this.refs.spreadsheet.repaint(); // render immediately
     } else { // Not from AS
       if (containsPlain) {
+        let lang = ExpStore.getLanguage();
         let plain = e.clipboardData.getData("text/plain"),
             vals = ClipboardUtils.plainStringToVals(plain),
-            cells = ClipboardUtils.externalStringsToASCells(sel.origin, vals, this.state.currentLanguage),
+            cells = ClipboardUtils.externalStringsToASCells(sel.origin, vals, lang),
             concatCells = U.Array.concatAll(cells);
         API.pasteSimple(concatCells);
         // The normal eval handling will make the paste show up
@@ -462,7 +464,7 @@ export default React.createClass({
       logDebug("Will change selection and eval cell.");
       let xpObj = {
             expression: ExpStore.getExpression(),
-            language: this.state.currentLanguage
+            language: ExpStore.getLanguage()
           };
       // Hypergrid automatically changes the selection when you arrive here through
       // left, right, down, or up.
@@ -524,28 +526,22 @@ export default React.createClass({
       }
 
       SelectionStore.setActiveSelection(sel, expression, language);
+      ExpStore.setLanguage(language);
       ExpActionCreator.handleSelChange(expression);
       this.hideToast();
       this.showAnyErrors(val);
-      if (this.state.currentLanguage !== language) {
-        this.setState({currentLanguage: language});
-      }
-      ExpStore.setLanguage(language);
     } else if (changeSelToNewCell) {
       logDebug("Selected empty cell to move to");
       SelectionStore.setActiveSelection(sel, "", null);
       this.refs.spreadsheet.repaint();
+      ExpStore.setLanguage(ExpStore.getDefaultLanguage());
       ExpActionCreator.handleSelChange('');
-      if (this.state.currentLanguage !== this.state.defaultLanguage) {
-        this.setState({currentLanguage: this.state.defaultLanguage});
-      }
-      ExpStore.setLanguage(this.state.defaultLanguage);
       this.hideToast();
     } else if (changeSelWhileTypingNoInsert) { //click away while not parsable
       logDebug("Change sel while typing no insert");
       let xpObj = {
           expression: ExpStore.getExpression(),
-          language: this.state.currentLanguage
+          language: ExpStore.getLanguage()
       };
       // Eval needs to be called with the current activeSel;
       // Otherwise the eval result shows up in the new sel
@@ -625,7 +621,7 @@ export default React.createClass({
         API.evaluate(origin, xpObj);
       }
     }
-    this.setState({defaultLanguage: xpObj.language});
+    ExpStore.setDefaultLanguage(xpObj.language);
   },
 
   openSheet(sheet: ASSheet) {
@@ -773,8 +769,9 @@ export default React.createClass({
   },
 
   render() {
-    let {expression, currentLanguage, focus} = this.state,
+    let {expression, focus} = this.state,
         highlightFind = this.state.showFindBar || this.state.showFindModal;
+    let currentLanguage = ExpStore.getLanguage();
 
     // highlightFind is for the spreadsheet to know when to highlight found locs
     // display the find bar or modal based on state
@@ -792,7 +789,6 @@ export default React.createClass({
           handleEditorFocus={this._handleEditorFocus}
           maxLines={this._getCodeEditorMaxLines()}
           language={currentLanguage}
-          onSelectLanguage={this.selectLanguage}
           onSetVarName={this._onSetVarName}
           onDeferredKey={this._onEditorDeferredKey}
           value={expression}

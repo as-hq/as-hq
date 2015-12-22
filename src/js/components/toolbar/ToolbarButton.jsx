@@ -20,7 +20,7 @@ export default React.createClass({
     We keep the following props:
       1/2) size of the button
       3) spacing (marginLeft)
-      4) onClick callback
+      4) onClick callback function (e, nextState) => {}
       5) iconName: name of the material-ui icon used for the FontIcon (print, home, etc)
       6) iconElement: HTML Element of the icon itself can be passed; overrides iconName if not null
       7) tooltip: actual message underneath button (ex. Print (Ctrl+P))
@@ -38,9 +38,9 @@ export default React.createClass({
     iconName: React.PropTypes.string, 
     iconElement: React.PropTypes.object, 
     tooltip: React.PropTypes.string, 
-    usePushState: React.PropTypes.boolean,
-    showTooltip: React.PropTypes.boolean,
-    includeDropdownArrow: React.PropTypes.boolean,
+    usePushState: React.PropTypes.bool,
+    showTooltip: React.PropTypes.bool,
+    includeDropdownArrow: React.PropTypes.bool,
     arrowSize: React.PropTypes.number
   },
 
@@ -49,7 +49,7 @@ export default React.createClass({
       width: 36,
       height: 36,
       spacing: 0,
-      onClick: (state) => {},
+      onClick: (e, state) => {},
       iconName: 'home',
       iconElement: null,
       usePushState: true,
@@ -74,13 +74,13 @@ export default React.createClass({
 
   // Update internal state and tell parent about it. Separator shouldn't be visible when pushed
   _onClick(e) {
+    console.log("Toolbar button onclick");
     if (this.props.usePushState) {
-      console.log("\n\npushing");
       let nextState = !this.state.pushed;
       this.setState({pushed: nextState});
-      this.props.onClick(nextState);
+      this.props.onClick(e, nextState);
     } else {
-      this.props.onClick(this.state.pushed);
+      this.props.onClick(e, this.state.pushed);
     }
   },
 
@@ -165,7 +165,7 @@ export default React.createClass({
           place="bottom"
           type="info"
           effect="solid"          
-          offset="{'top': 10, 'left': 0}" />
+          offset={{'top': 10, 'left': 0}} />
       </span>
     : <FlatButton 
         hoverColor={hoverColor}

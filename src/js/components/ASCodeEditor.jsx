@@ -23,21 +23,12 @@ export default React.createClass({
 
   getDefaultProps() {
     return {
-      language: Constants.Languages.Python,
       theme: 'monokai'
     };
   },
 
-  // RE: the "SUBMIT BUG REPORT" button. It's temporary. It does not actually belong in
-  // ASCodeEdtior (AT ALL!) but this is the simplest place to stick it for now. Also,
-
   /*************************************************************************************************************************/
   // Change handlers
-
-  _onSelectLanguage(e, selectedIndex, menuItem) {
-    //notify editor to change
-    this.props.onSelectLanguage(menuItem); 
-  },
 
   _onBlurVarName() {
     let varName = this.refs.varNameField.getValue();
@@ -50,10 +41,9 @@ export default React.createClass({
   render() {
     let {language, theme, value, width, height} = this.props;
     let mode = Constants.AceMode[language];
-
     return (
       <div>
-        <Toolbar />
+        <Toolbar/>
         <AceEditor
           ref="editor"
           handleEditorFocus={this.props.handleEditorFocus}

@@ -26,18 +26,19 @@ This store is for holding common data for three-way data flow between grid, text
 
 // TODO: Add a new datatype for constants?
 let _data : {
-    xpChangeOrigin : ?string,
-    lastCursorPosition: ?string,
-    deps: Array<NakedRange>,
-    expression: string,
-    language : ?ASLanguage,
-    cursorPos: ?number, // currently only relevant for grid
-    lastRef : ?string,
-    refInsertionBypass: boolean,
-    userIsTyping: boolean,
-    doEditorCallback: boolean,
-    doTextBoxCallback: boolean,
-    clickType: ?string
+  xpChangeOrigin : ?string,
+  lastCursorPosition: ?string,
+  deps: Array<NakedRange>,
+  expression: string,
+  language : ASLanguage,
+  defaultLanguage: ASLanguage,
+  cursorPos: ?number, // currently only relevant for grid
+  lastRef : ?string,
+  refInsertionBypass: boolean,
+  userIsTyping: boolean,
+  doEditorCallback: boolean,
+  doTextBoxCallback: boolean,
+  clickType: ?string
 } =  {
 
   xpChangeOrigin: null,
@@ -46,13 +47,14 @@ let _data : {
   deps: [],
 
   expression: '',
-  language: null,
+  language: Constants.Languages.Excel,
+  defaultLanguage: Constants.Languages.Excel,
   cursorPos: null,
 
   lastRef: null,
   refInsertionBypass: false,
 
-  userIsTyping:false,
+  userIsTyping: false,
 
   doEditorCallback: true,
   doTextBoxCallback: true,
@@ -95,7 +97,7 @@ const ASExpStore = Object.assign({}, BaseStore, {
         ASExpStore.setXpChangeOrigin(action._type);
         ASExpStore.emitChange();
         break;
-
+      
       // Also need to update after some "Eval"-type events
       case 'GOT_UNDO':
       case 'GOT_REDO':
@@ -183,12 +185,20 @@ const ASExpStore = Object.assign({}, BaseStore, {
     _data.lastRef=excel;
   },
 
-  getLanguage(): ?ASLanguage {
+  getLanguage(): ASLanguage {
     return _data.language;
   },
 
   setLanguage(lang) {
     _data.language = lang;
+  },
+
+  getDefaultLanguage(): ASLanguage {
+    return _data.defaultLanguage;
+  },
+
+  setDefaultLanguage(lang) {
+    _data.defaultLanguage = lang;
   },
 
   getClickType() : ?string {
@@ -238,6 +248,11 @@ const ASExpStore = Object.assign({}, BaseStore, {
 
   /**************************************************************************************************************************/
   // Update helpers
+
+  toggleLanguage(lang: ASLanguage) {
+    this.setLanguage(lang);
+    this.setDefaultLanguage(lang);
+  },
 
   // Checks if you're newly adding text to a cell with a % in it.
   shouldHandlePercentFormat() {

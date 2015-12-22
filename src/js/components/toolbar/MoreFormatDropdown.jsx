@@ -4,34 +4,10 @@ import {Styles, FontIcon} from 'material-ui';
 
 import ToolbarController from './ToolbarController.jsx';
 import ToolbarButton from './ToolbarButton.jsx';
-import MenuController from './MenuController.jsx';
+import GenerateToolbarComponentWithMenu from './GenerateToolbarComponentWithMenu.jsx';
 
 
 export default React.createClass({
-
-  /*************************************************************************************************************************/
-  // Prop and state methods
-
-  propTypes: {
-
-  },
-
-  getDefaultProps() {
-    return {
-      
-    };
-  },
-
-  /* We keep track of menu visiblility (needed for tooltip visibility) and the propTag used */
-  getInitialState() {
-    return {
-      menuVisible: false,
-      propTag: 'Money',
-    }
-  },
-
-  /*************************************************************************************************************************/
-  // Sub-component generation
 
   menuProps: [
     {tag: 'MenuItem', primaryText: 'Automatic', value: 'Automatic'},
@@ -44,109 +20,53 @@ export default React.createClass({
     {tag: 'MenuItem', primaryText: 'Financial', value: 'Financial', secondaryText: '(1000.12)'},
     {tag: 'MenuItem', primaryText: 'Currency', value: 'Currency', secondaryText: '$1000.12'},
     {tag: 'Divider', style:{marginTop: 5, marginBottom: 5}},
-
   ],
 
-  /*
-  The button element has a tooltip, doesn't change color when pushed, and has a dropdown arrow */
-  getButton() {
-    return (
-      <ToolbarButton 
-        ref="button"
-        tooltip={"More formats"}
-        iconName={"wb_sunny"}
-        onClick={this._onButtonClick}
-        usePushState={false}
-        showTooltip={!this.state.menuVisible}
-        includeDropdownArrow={true}
-        width={55} />
-    );
+  toolbarControlProps() {
+    return {
+      tooltip: "More formats",
+      iconName: "wb_sunny",
+      usePushState: false,
+      showTooltip: true,
+      includeDropdownArrow: true,
+      width: 55
+    };
   },
 
   /*************************************************************************************************************************/
-  // Helper methods
+  // Helper methods to pass to generator
 
-  // This component deals with many propTags at once. Which one the toolbarController applies is dictated by the menu's
-  // selected item. This converts from that value to the appropriate propTag. "Value" refers to the uid's used by the menu.
-  getPropTagFromValue(v) {
-    return v;
+  // When the active cell changes to a new cell, get the new menu value that should be selected/checked 
+  _getMenuValueFromCell(cell) {
+    return "Number"; 
   },
 
-  getValueFromProp(p) {
-    return "Number"; //p.propTag;
+  _propagateControlStateChange(nextValue, rng) {
+    // TODO: case on value, call some API function
+    console.log("Propagating state change to backend");
   },
 
-  // How should the button itself (icon, etc) change for this component if the value of the menu does 
-  updateButtonGivenValue(v) {
-    return;
-  },
-
-  /*************************************************************************************************************************/
-  // Respond to events
-
-  /* When the button is clicked, make the menu visible if it already isn't and vice versa. This will automatically
-  make the tooltip disappear */
-  _onButtonClick(e) {
-    this.setState({ menuVisible: !this.state.menuVisible});
-    this.refs.menu.toggleMenuVisible();
-  },
-
-  /* 
-    Prop passed to MenuController
-    When a menu item is clicked, update the button and controller, then call a state change callback to update backend 
-  */
-  _onMenuClick(nextValue) {
-    this.updateButtonGivenValue(nextValue);
-    let tag = this.getPropTagFromValue(nextValue);
-    this.setState({propTag: tag}, this.refs.controller.onControlStateChange(nextValue));
-  },
-
-  /* 
-    Prop passed down to MenuController
-  */
-  _onMenuClose() {
-    this.setState({menuVisible: false});
-    this.refs.button.setPushState(false);
-  },
-
-  /*************************************************************************************************************************/
-  // ToolbarController callbacks
-
-  /* Update backend given the nextState (the updated value of the menu) and the active range */
-  _setBackendCellProp(nextState, rng) {
-    console.log("Setting backend via api");
-  },
-
-
-  /* When the activeCell changes, update the menu with a new value, and update the button as well */
-  _setControlStateFromCellProp(prop) {
-    let menuValue = this.getValueFromProp(prop);
-    this.refs.menu.setMenuValue(menuValue);
-    this.updateButtonGivenValue(menuValue);
+  // Update the toolbar control props given a the menu visibility, menuValue, and current toolbarProps.
+  _toolbarControlPropTransform(menuVisible, menuValue, toolbarControlProps) {
+    toolbarControlProps.showTooltip = !menuVisible;
+    return toolbarControlProps;
   },
 
   /*************************************************************************************************************************/
   //Render
 
   render() {
-    let button = this.getButton(),
-        menuProps = this.menuProps;
-    let dropdown = 
-      <MenuController 
-        ref="menu"
-        toolbarControlWidth={55}
-        menuProps={menuProps} 
-        toolbarControl={button} 
-        initialCheckedValue="Number"
-        onMenuClick={this._onMenuClick}
-        onMenuClose={this._onMenuClose} />;
+    let ButtonWithMenu = GenerateToolbarComponentWithMenu(ToolbarButton);
     return (
-      <ToolbarController 
-        ref="controller"
-        propTag={this.state.propTag}
-        setControlStateFromCellProp={this._setControlStateFromCellProp}
-        setBackendCellProp={this._setBackendCellProp}
-        control={dropdown} />
+      <ButtonWithMenu
+        toolbarControlProps={this.toolbarControlProps()}
+        menuProps={this.menuProps}
+        getMenuValueFromCell={this._getMenuValueFromCell}
+        toolbarControlPropTransform={this._toolbarControlPropTransform}
+        propagateControlStateChange={this._propagateControlStateChange}
+        initialValue="Number"
+        menuWidth={320}
+        id="MoreFormatDropdown" />
     );
   }
 

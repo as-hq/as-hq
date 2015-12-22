@@ -8,8 +8,9 @@ import Constants from '../../Constants';
 import ToolbarButton from './ToolbarButton.jsx';
 import VaryPropButton from './VaryPropButton.jsx';
 import MoreFormatDropdown from './MoreFormatDropdown.jsx';
-import FontPicker from './FontPicker.jsx';
 import FontSizePicker from './FontSizePicker.jsx';
+import FontPicker from './FontPicker.jsx';
+import LanguagePicker from './LanguagePicker.jsx';
 
 export default React.createClass({
 
@@ -22,8 +23,32 @@ export default React.createClass({
 
   getDefaultProps() {
     return {
-      toolbarHeight: 70
+      toolbarHeight: 40
     };
+  },
+
+  getStyles() {
+    return {
+      // Because we're using inline-block, the height should all be the same for the elements on the toolbar, otherwise things
+      // screw up because CSS. This is a reasonable restriction anyway, so I'm not debugging it further (Ritesh 12/17)
+      toolbarStyle: {
+        backgroundColor: Styles.Colors.grey700, 
+        width: '100%', 
+        position: 'relative', 
+        height: this.props.toolbarHeight // height of toolbar
+      },
+      // Used to create a separating element between parts of toolbar
+      // There is a ToolbarSeparator in material-ui but it didn't quite fit the bill; a simple div we control is better
+      separatorStyle: {
+        backgroundColor: Styles.Colors.grey900,
+        display: 'inline-block', 
+        height: this.props.toolbarHeight,
+        marginLeft: 10, // equal separation distance on both sides
+        marginRight: 10,
+        verticalAlign: 'top', // we want the separator to span the height of the whole pane
+        width: 2
+      }
+    }
   },
 
   /*************************************************************************************************************************/
@@ -31,29 +56,8 @@ export default React.createClass({
 
   render() {
 
-    // Because we're using inline-block, the height should all be the same for the elements on the toolbar, otherwise things
-    // screw up because CSS. This is a reasonable restriction anyway, so I'm not debugging it further (Ritesh 12/17)
-
-    let toolbarStyle = {
-      backgroundColor: Styles.Colors.grey700, 
-      width: '100%', 
-      position: 'relative', 
-      height: this.props.toolbarHeight // height of toolbar
-    };
-
-    // Used to create a separating element between parts of toolbar
-    // There is a ToolbarSeparator in material-ui but it didn't quite fit the bill; a simple div we control is better
-    let separatorStyle = {
-      backgroundColor: Styles.Colors.grey900,
-      display: 'inline-block', 
-      height: this.props.toolbarHeight,
-      marginLeft: 10, // equal separation distance on both sides
-      marginRight: 10,
-      verticalAlign: 'top', // we want the separator to span the height of the whole pane
-      width: 2
-    };
-
-    let shiftRight = <div style={{display: 'inline-block', marginLeft: 30, position: 'relative'}} />;
+    let {toolbarStyle, separatorStyle} = this.getStyles();
+    let shiftRight = <div style={{display: 'inline-block', marginLeft: 50, position: 'relative'}} />;
 
     return (
       <div style={toolbarStyle} >
@@ -88,14 +92,13 @@ export default React.createClass({
         
 
         <div style={separatorStyle} />
-
+        <LanguagePicker language={this.props.language} onSelectLanguage={this.props.onSelectLanguage}/>
+        <div style={separatorStyle} />
         <FontPicker />
-
         <div style={separatorStyle} />
-
         <FontSizePicker />
-
         <div style={separatorStyle} />
+
 
         <VaryPropButton
           propTag="Bold"
@@ -120,10 +123,8 @@ export default React.createClass({
         <ToolbarButton iconName="poll" tooltip="Insert chart..." usePushState={false}
           onClick={() => {}}/>
 
-       
       </div>
     );
   }
 
-  
 });

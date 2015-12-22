@@ -43,7 +43,7 @@ export default {
     Dispatcher.dispatch({
      _type: Constants.ActionTypes.PARTIAL_REF_CHANGE_WITH_EDITOR,
       xpStr: xpStr,
-      excelStr:excelStr
+      excelStr: excelStr
     });
   },
 
@@ -51,14 +51,14 @@ export default {
     Dispatcher.dispatch({
      _type: Constants.ActionTypes.PARTIAL_REF_CHANGE_WITH_TEXTBOX,
       xpStr: xpStr,
-      excelStr:excelStr
+      excelStr: excelStr
     });
   },
 
   handlePartialRefGrid(excelStr) {
     Dispatcher.dispatch({
      _type: Constants.ActionTypes.PARTIAL_REF_CHANGE_WITH_GRID,
-      excelStr:excelStr
+      excelStr: excelStr
     });
   },
 

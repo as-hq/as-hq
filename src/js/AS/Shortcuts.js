@@ -20,6 +20,7 @@ import ASEvalPane from '../components/ASEvaluationPane.jsx';
 
 import ExpStore from '../stores/ASExpStore';
 import ExpActionCreator from '../actions/ASExpActionCreators';
+import ToolbarActionCreator from '../actions/ASToolbarActionCreators';
 
 export default {
   addShortcuts(evalPane: ASEvalPane) {
@@ -40,7 +41,7 @@ export default {
     SU.add('common', 'cell_eval', 'Ctrl+Enter', (wildcard: string) => {
       let xpObj = {
         expression: self._getRawEditor().getValue(),
-        language: self.state.currentLanguage
+        language: ExpStore.getLanguage()
       };
       self.setFocus('grid');
       self.handleEvalRequest(xpObj, null, null);
@@ -48,7 +49,7 @@ export default {
     SU.add('common', 'cell_eval_up', 'Shift+Enter', (wildcard: string) => {
       let xpObj = {
         expression: self._getRawEditor().getValue(),
-        language: self.state.currentLanguage
+        language: ExpStore.getLanguage()
       };
       self.setFocus('grid');
       self.handleEvalRequest(xpObj, 0, -1);
@@ -56,7 +57,7 @@ export default {
     SU.add('common', 'cell_eval_left', 'Shift+Tab', (wildcard: string) => {
       let xpObj = {
         expression: self._getRawEditor().getValue(),
-        language: self.state.currentLanguage
+        language: ExpStore.getLanguage()
       };
       self.setFocus('grid');
       self.handleEvalRequest(xpObj, -1, 0);
@@ -64,7 +65,7 @@ export default {
     SU.add('common', 'cell_eval_arrayformula', 'Ctrl+Shift+Enter', (wildcard: string) => {
       // Always eval and stay put, but only sometimes add brackets
       let editorValue = self._getRawEditor().getValue();
-      if (self.state.currentLanguage == Constants.Languages.Excel) {
+      if (ExpStore.getLanguage() == Constants.Languages.Excel) {
         if (editorValue[0]==='=') {
           editorValue = '{' + editorValue + '}';
           self._getRawEditor().setValue(editorValue);
@@ -72,25 +73,27 @@ export default {
       }
       let xpObj = {
         expression: editorValue,
-        language: self.state.currentLanguage
+        language: ExpStore.getLanguage()
       };
       self.setFocus('grid');
       self.handleEvalRequest(xpObj, 0, 0);
     });
 
-    SU.add('common', 'set_language', 'Ctrl+1/2/3/4/5/6/7/8/9', (wildcard: string) => {
+    SU.add('common', 'set_language', 'Ctrl+1/2/3/4', (wildcard: string) => {
+      // Upon a shortcut, call toggle language, which will update the ExpStore's language and 
+      // inform the language dropdown in the toolbar of an update
       switch(wildcard) {
           case '1':
-            self.selectLanguage(Constants.Languages.Excel);
+            ToolbarActionCreator.toggleLanguage(Constants.Languages.Excel);
             break;
           case '2':
-            self.selectLanguage(Constants.Languages.Python);
+            ToolbarActionCreator.toggleLanguage(Constants.Languages.Python);
             break;
           case '3':
-            self.selectLanguage(Constants.Languages.R);
+            ToolbarActionCreator.toggleLanguage(Constants.Languages.R);
             break;
           case '4':
-            self.selectLanguage(Constants.Languages.SQL);
+            ToolbarActionCreator.toggleLanguage(Constants.Languages.SQL);
             break;
         }
     });
@@ -366,7 +369,7 @@ export default {
           ExpActionCreator.handleEditorChange(xp);
           let xpObj = {
             expression: self._getRawEditor().getValue(),
-            language: self.state.currentLanguage
+            language: ExpStore.getLanguage()
           };
           self.setFocus('grid');
           self.handleEvalRequest(xpObj, null, null);
@@ -377,7 +380,7 @@ export default {
     SU.add('grid', 'grid_enter', 'Enter', (wildcard: string) => {
       let xpObj = {
         expression: self._getRawEditor().getValue(),
-        language: self.state.currentLanguage
+        language: ExpStore.getLanguage()
       };
       self.handleEvalRequest(xpObj, 0, 1);
     });
@@ -385,7 +388,7 @@ export default {
     SU.add('grid', 'grid_eval_right', 'Tab', (wildcard: string) => {
       let xpObj = {
         expression: self._getRawEditor().getValue(),
-        language: self.state.currentLanguage
+        language: ExpStore.getLanguage()
       };
       self.handleEvalRequest(xpObj, 1, 0);
     });
@@ -428,7 +431,7 @@ export default {
     SU.add('textbox', 'textbox_enter', 'Enter', (wildcard: string) => {
       let xpObj = {
         expression: self._getRawEditor().getValue(),
-        language: self.state.currentLanguage
+        language: ExpStore.getLanguage()
       };
       self.setFocus('grid');
       self.handleEvalRequest(xpObj, 0, 1);
@@ -437,7 +440,7 @@ export default {
     SU.add('textbox', 'textbox_eval_right', 'Tab', (wildcard: string) => {
       let xpObj = {
         expression: self._getRawEditor().getValue(),
-        language: self.state.currentLanguage
+        language: ExpStore.getLanguage()
       };
       self.setFocus('grid');
       self.handleEvalRequest(xpObj, 1, 0);

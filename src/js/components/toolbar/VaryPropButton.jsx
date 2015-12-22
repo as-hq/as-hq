@@ -6,6 +6,12 @@ import type {
   ASCellProp
 } from '../../types/Eval';
 
+import U from '../../AS/Util';
+let {
+  Conversion: TC
+} = U;
+
+
 import React, {PropTypes} from 'react';
 
 import Util from '../../AS/Util';
@@ -20,6 +26,8 @@ This component is for things like the Bold and Italic buttons on the Toolbar
 
 export default React.createClass({
 
+  // NOTE: why money/percent don't work? They have formatType in their cellProps, not tag (like Bold). The filtering in Util.getPropByTag fails.
+
   /* We need the propTag (Bold), and props to pass down to the button control */
   propTypes: {
     propTag: React.PropTypes.string.isRequired,
@@ -28,7 +36,7 @@ export default React.createClass({
   },
 
   /* When the control updates, toggle the prop in the backend */
-  _setBackendCellProp(nextState: boolean, rng: NakedRange) {
+  _propagateControlStateChange(nextState: boolean, rng: NakedRange) {
     console.log("setting backend");
     // TODO: Not quite the right function to call here
     switch (this.props.propTag) {
@@ -44,14 +52,17 @@ export default React.createClass({
     }
   },
 
-  /* When the prop updates due to store change, push the button if the prop corresponding to our tag isn't null */
-  _setControlStateFromCellProp(prop: ?ASCellProp) {
-    console.log("setting state due to store update", prop, prop != null);
+  /* When the cell updates due to store change, push the button if the prop corresponding to our tag isn't null */
+  _setControlStateFromCell(cell) {
+    let prop = (cell != null) ? U.Cell.getPropByTag(this.props.propTag, cell) : null;
+    if (this.props.propTag === "Bold"){
+      console.log("got prop ", prop);
+    }
     this.refs.button.setPushState(prop != null);
   },
 
   /* Method that the child control will call after updating its internal state */
-  _onClick(nextState: boolean) {
+  _onClick(e, nextState) {
     console.log("in on click in toggle");
     this.refs.controller.onControlStateChange(nextState);
   },
@@ -70,9 +81,8 @@ export default React.createClass({
     return (
       <ToolbarController
         ref="controller"
-        propTag={this.props.propTag}
-        setControlStateFromCellProp={this._setControlStateFromCellProp}
-        setBackendCellProp={this._setBackendCellProp}
+        setControlStateFromCell={this._setControlStateFromCell}
+        propagateControlStateChange={this._propagateControlStateChange}
         control={button} />
     );
   }

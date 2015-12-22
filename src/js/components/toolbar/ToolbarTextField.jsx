@@ -4,8 +4,6 @@ import {Styles, FontIcon} from 'material-ui';
 
 import ToolbarController from './ToolbarController.jsx';
 import ToolbarButton from './ToolbarButton.jsx';
-import MenuController from './MenuController.jsx';
-
 import DropDownArrow from 'material-ui/lib/svg-icons/navigation/arrow-drop-down';
 
 let Tooltip = require("react-tooltip");
@@ -16,9 +14,8 @@ export default React.createClass({
   /*************************************************************************************************************************/
   // Prop and state methods
 
-  /* We need the initial text value, onClick callback, size props, tooltip hint, and should we show tooltip */
   /* We need the following props
-    1) initialDisplayValue to be shown in the text field
+    1) displayValue to be shown in the text field
     2) onClick callback
     3,4,5) size params
     6) tooltip to display as hint
@@ -26,13 +23,13 @@ export default React.createClass({
     8) arrowSize: size of the arrow icon (square)
   */
   propTypes: {
-    initialDisplayValue: React.PropTypes.string.isRequired,
+    displayValue: React.PropTypes.string.isRequired,
     onClick: React.PropTypes.func,
     width: React.PropTypes.number,
     height: React.PropTypes.number,
     spacing: React.PropTypes.number,
     tooltip: React.PropTypes.string,
-    showTooltip: React.PropTypes.boolean,
+    showTooltip: React.PropTypes.bool,
     arrowSize: React.PropTypes.number
   },
 
@@ -45,35 +42,6 @@ export default React.createClass({
       showTooltip: true,
       arrowSize: 15
     };
-  },
-
-  /* Keep track of display value and whether the associated dropdown would be active or not (parity) */
-  getInitialState() {
-    return {
-      displayValue: this.props.initialDisplayValue,
-      active: false
-    };
-  },
-
-  /*************************************************************************************************************************/
-  // Event handling
-
-  _onClick(e) {
-    e.preventDefault();
-    let nextActive = !this.state.active;
-    this.setState({active: nextActive});
-    this.props.onClick(nextActive);
-  },
-
-  // Upon parent request, update displayed value state
-  setDisplayValue(value) {
-    console.log("setting display value for textfield: " + value);
-    this.setState({displayValue: value});
-  },
-
-  // Similar to above
-  setActive(active) {
-    this.setState({active: active});
   },
 
   /*************************************************************************************************************************/
@@ -107,7 +75,7 @@ export default React.createClass({
       },
       underline: { // underline should be horizontally centered, a bit above the bottom
         position: 'absolute',
-        borderTop: `solid 2px ${Styles.Colors.grey50}`,
+        borderTop: `solid 1px ${Styles.Colors.grey500}`,
         bottom: '20%',
         width: '80%',
         left: '10%'
@@ -125,9 +93,9 @@ export default React.createClass({
     if (this.props.showTooltip) {
       return (
         <span style={styles.span}>
-          <div style={styles.outer} onClick={this._onClick} data-for={this.props.tooltip} data-tip={this.props.tooltip} >
+          <div style={styles.outer} onClick={this.props.onClick} data-for={this.props.tooltip} data-tip={this.props.tooltip} >
             <div style={styles.label}>
-              {this.state.displayValue}
+              {this.props.displayValue}
             </div>
             <DropDownArrow style={styles.arrow}/>
             <div style={styles.underline}/>
@@ -139,14 +107,14 @@ export default React.createClass({
             place="bottom"
             type="info"
             effect="solid"          
-            offset="{'top': 10, 'left': 0}" />
+            offset={{'top': 10, 'left': 0}} />
         </span>
       );
     } else {
       return (
-        <div style={styles.outer} onClick={this._onClick} >
+        <div style={styles.outer} onClick={this.props.onClick} >
           <div style={styles.label}>
-            {this.state.displayValue}
+            {this.props.displayValue}
           </div>
           <DropDownArrow style={styles.arrow}/>
           <div style={styles.underline}/>

@@ -5,44 +5,61 @@ import {Styles, FontIcon} from 'material-ui';
 import ToolbarController from './ToolbarController.jsx';
 import ToolbarTextField from './ToolbarTextField.jsx';
 import GenerateToolbarComponentWithMenu from './GenerateToolbarComponentWithMenu.jsx';
-
+import ExpStore from '../../stores/ASExpStore';
+import ToolbarActionCreator from '../../actions/ASToolbarActionCreators';
+import ToolbarStore from '../../stores/ASToolbarStore';
 
 export default React.createClass({
 
   /*************************************************************************************************************************/
   // Sub-component generation
 
-  fonts: [
-    {name: 'Arial', family: 'Arial'},
-    {name: 'Times New Roman', family: 'Times New Roman'},
+  getInitialState() {
+    return  {
+      language: ExpStore.getDefaultLanguage()
+    }
+  },
+
+  languages: [
+    {name: 'Excel', shortcut: 'Ctrl+1'},
+    {name: 'Python', shortcut: 'Ctrl+2'},
+    {name: 'SQL', shortcut: 'Ctrl+3'},
+    {name: 'R', shortcut: 'Ctrl+4'},
   ],
 
-  // Return a bunch of menu items, where each font is styled using its actual font, and an extra item for more fonts
+  // Return a bunch of menu items
   getMenuProps() {
-    let menuItems = this.fonts.map((font) => {
-      return {tag: 'MenuItem', primaryText: font.name, style: {fontFamily: font.family}, value: font.name};
+    let menuItems = this.languages.map((lang) => {
+      return {tag: 'MenuItem', primaryText: lang.name, secondaryText: lang.shortcut, value: lang.name};
     });
-    let moreFontIcon = <FontIcon style={{backgroundColor: Styles.Colors.grey50}} className="material-icons"> {"add_box"} </FontIcon>;
-    menuItems.push({
-      tag: 'MenuItem', 
-      leftFontIcon: moreFontIcon, 
-      primaryText: "More Fonts", 
-      value: "",
-      onTouchTap: this._onMoreFonts});
     return menuItems;
   },
 
   toolbarControlProps() {
     return {
-      displayValue: "Arial",
-      tooltip: "Fonts",
+      displayValue: this.state.language,
+      tooltip: "Languages",
       showTooltip: true,
-      width: 200
+      width: 85
     };
   },
 
-  _onMoreFonts(e, index) {
-    console.log("MORE FONTS CALLBACK");
+  /*************************************************************************************************************************/
+  // Mounting (we listen to toggle language changes from the toolbar store, and rerender if the language changed)
+  // This happens when user presses Ctrl + 1, etc; toggles the  language from an external source
+
+  componentDidMount() {
+    ToolbarStore.addChangeListener(this._onToggleLanguage);
+  },
+
+  componentWillUnmount() {
+    ToolbarStore.removeChangeListener(this._onToggleLanguage);
+  },
+
+  _onToggleLanguage() {
+    if (ExpStore.getLanguage() !== this.state.language) {
+      this.setState({language: ExpStore.getLanguage()});
+    }
   },
 
   /*************************************************************************************************************************/
@@ -50,12 +67,17 @@ export default React.createClass({
 
   // When the active cell changes to a new cell, get the new menu value that should be selected/checked 
   _getMenuValueFromCell(cell) {
-    return "Arial"; // TODO: something like cell.cellProps.font.fontName
+    console.log("Language picker cell ", cell)
+    if (cell == null) {
+      return ExpStore.getDefaultLanguage();
+    } else {
+      return cell.cellExpression.language;
+    }
   },
 
   _propagateControlStateChange(nextValue, rng) {
-    // TODO: case on value, call some API function
-    console.log("Propagating state change to backend: " + nextValue);
+    console.log("Propagating language change: " + nextValue);
+    ToolbarActionCreator.toggleLanguage(nextValue);
   },
 
   // Update the toolbar control props given a the menu visibility, menuValue, and current toolbarProps.
@@ -77,9 +99,9 @@ export default React.createClass({
         getMenuValueFromCell={this._getMenuValueFromCell}
         toolbarControlPropTransform={this._toolbarControlPropTransform}
         propagateControlStateChange={this._propagateControlStateChange}
-        initialValue="Arial"
+        initialValue={this.state.language}
         menuWidth={65} 
-        id="FontPicker" />
+        id="LanguagePicker" />
     );
   }
 

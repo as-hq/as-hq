@@ -4,110 +4,68 @@ import {Styles, FontIcon} from 'material-ui';
 
 import ToolbarController from './ToolbarController.jsx';
 import ToolbarTextField from './ToolbarTextField.jsx';
-import MenuController from './MenuController.jsx';
+import GenerateToolbarComponentWithMenu from './GenerateToolbarComponentWithMenu.jsx';
+
 
 export default React.createClass({
-
-  /* We keep track of menu visiblility (needed for tooltip visibility) and the propTag used */
-  getInitialState() {
-    return {
-      menuVisible: false
-    }
-  },
 
   /*************************************************************************************************************************/
   // Sub-component generation
 
-  fontSize: [6, 7, 8, 9, 10, 11, 12, 14, 18, 24, 36],
+  fontSizes: [6, 7, 8, 9, 10, 11, 12, 14, 18, 24, 36],
 
   getMenuProps() {
-    return this.fontSize.map((size) => {
+    return this.fontSizes.map((size) => {
       return {tag: 'MenuItem', primaryText: `${size}`, value: `${size}`};
     });
   },
 
-  getFontSizeField() {
-    return (
-      <ToolbarTextField 
-        ref="textfield"
-        tooltip={"Font size"}
-        onClick={this._onTextFieldClick}
-        showTooltip={!this.state.menuVisible}
-        width={45} />
-    );
+  toolbarControlProps() {
+    return {
+      tooltip: "Font size",
+      displayValue: '10',
+      showTooltip: true,
+      width: 45
+    };
   },
 
   /*************************************************************************************************************************/
-  // Respond to events
+  // Helper methods to pass to generator
 
-  /* When the textfield is clicked, make the menu visible if it already isn't and vice versa. This will automatically
-  make the tooltip disappear */
-  _onTextFieldClick(e) {
-    this.setState({ menuVisible: !this.state.menuVisible});
-    this.refs.menu.toggleMenuVisible();
+  // When the active cell changes to a new cell, get the new menu value that should be selected/checked 
+  _getMenuValueFromCell(cell) {
+    return "10"; // TODO: something like cell.cellProps.font.fontSize
   },
 
-  /* 
-    Prop passed to MenuController
-    When a menu item is clicked, update the button and controller, then call a state change callback to update backend 
-  */
-  _onMenuClick(nextValue) {
-    this.refs.textfield.setDisplayValue(nextValue);
-    this.refs.controller.onControlStateChange(nextValue);
+  _propagateControlStateChange(nextValue, rng) {
+    // TODO: case on value, call some API function
+    console.log("Propagating state change to backend: " + nextValue);
   },
 
-  /* Given a font prop, extract the value (font size) from it */
-  getValueFromProp(p) {
-    return "10";
-  },
-
-  /* 
-    Prop passed down to MenuController
-  */
-  _onMenuClose() {
-    this.setState({menuVisible: false});
-    this.refs.textfield.setActive(false);
-  },
-
-  /*************************************************************************************************************************/
-  // ToolbarController callbacks
-
-  /* Update backend given the nextState (the updated value of the menu) and the active range */
-  _setBackendCellProp(nextState, rng) {
-    console.log("Setting backend via api");
-  },
-
-
-  /* When the activeCell changes, update the menu with a new value, and update the button as well */
-  _setControlStateFromCellProp(prop) {
-    let menuValue = this.getValueFromProp(prop);
-    this.refs.menu.setMenuValue(menuValue);
-    this.refs.textfield.setDisplayValue(menuValue);
+  // Update the toolbar control props given a the menu visibility, menuValue, and current toolbarProps.
+  _toolbarControlPropTransform(menuVisible, menuValue, toolbarControlProps) {
+    toolbarControlProps.showTooltip = !menuVisible;
+    toolbarControlProps.displayValue = menuValue;
+    return toolbarControlProps;
   },
 
   /*************************************************************************************************************************/
   //Render
 
   render() {
-    let fontField = this.getFontSizeField(),
-        menuProps = this.getMenuProps();
-    let dropdown = 
-      <MenuController 
-        ref="menu"
-        toolbarControlWidth={45}
-        menuProps={menuProps} 
-        toolbarControl={fontField} 
-        initialCheckedValue="10"
-        onMenuClick={this._onMenuClick}
-        onMenuClose={this._onMenuClose} />;
+    let ButtonWithMenu = GenerateToolbarComponentWithMenu(ToolbarTextField);
     return (
-      <ToolbarController 
-        ref="controller"
-        propTag="Font"
-        setControlStateFromCellProp={this._setControlStateFromCellProp}
-        setBackendCellProp={this._setBackendCellProp}
-        control={dropdown} />
+      <ButtonWithMenu
+        toolbarControlProps={this.toolbarControlProps()}
+        menuProps={this.getMenuProps()}
+        getMenuValueFromCell={this._getMenuValueFromCell}
+        toolbarControlPropTransform={this._toolbarControlPropTransform}
+        propagateControlStateChange={this._propagateControlStateChange}
+        initialValue="10"
+        menuWidth={65} 
+        id="FontSizePicker" />
     );
   }
 
 });
+
