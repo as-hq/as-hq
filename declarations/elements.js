@@ -49,6 +49,8 @@ declare class GraphicsContext {
 declare class HGRendererConfig {
   fgColor: string;
   bgColor: string;
+  bgSelColor: ?string;
+  fgSelColor: ?string;
   font: string;
   halign: string;
   value: string;
