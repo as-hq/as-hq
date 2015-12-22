@@ -363,11 +363,15 @@ export default React.createClass({
         self = this;
     hg.addGlobalProperties(this.gridProperties);
 
+    // Calling setColumnWidth on hypergrid should make an API call to the backend to remember the changed
+    // column width; we're overriding hypergrid's default setColumnWidth to do so. If we want to change the
+    // column width without making an API call, use model._setColumnWidth
     hg.setColumnWidth = (columnIndex, columnWidth) => {
         self.resizedColNum = columnIndex;
         model._setColumnWidth(columnIndex, columnWidth);
     },
 
+    // Ditto
     hg.setRowHeight = (rowIndex, rowHeight) => {
         self.resizedRowNum = rowIndex;
         model.setRowHeight(rowIndex, rowHeight);
@@ -560,13 +564,13 @@ export default React.createClass({
           if (self.draggingCol) {
             self.draggingCol = false;
             if (self.clickedColNum != null) {
-              API.dragCol(self.clickedColNum, evt.gridCell.x);
+              API.dragCol(self.clickedColNum, Math.max(1, evt.gridCell.x)); // evt.gridCell.x can go negative...
             }
             self.clickedColNum = null;
           } else if (self.draggingRow) {
             self.draggingRow = false;
             if (self.clickedRowNum != null) {
-              API.dragRow(self.clickedRowNum, evt.gridCell.y);
+              API.dragRow(self.clickedRowNum, Math.max(1, evt.gridCell.y));
             }
             self.clickedRowNum = null;
           }
@@ -1037,12 +1041,13 @@ export default React.createClass({
   _onBarPropsChange() {
     let dims = BarStore.getLastUpdatedBarsDimensions(), 
         hg = this._getHypergrid(), 
+        model = hg.getBehavior(),
         defaultColumnWidth = hg.resolveProperty('defaultColumnWidth'),
         defaultRowHeight = hg.resolveProperty('defaultRowHeight');
 
     // columns/rows in backend are 1-indexed, hypergrid's are 0-indexed. 
-    dims['ColumnType'].map(([ind, width]) => hg.setColumnWidth(ind-1, width || defaultColumnWidth));
-    dims['RowType'].map(([ind, height]) => hg.setRowHeight(ind-1, height || defaultRowHeight));
+    dims['ColumnType'].map(([ind, width]) => model._setColumnWidth(ind-1, width || defaultColumnWidth));
+    dims['RowType'].map(([ind, height]) => model.setRowHeight(ind-1, height || defaultRowHeight));
   },
 
 
