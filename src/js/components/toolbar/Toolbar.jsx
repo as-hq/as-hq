@@ -11,6 +11,7 @@ import MoreFormatDropdown from './MoreFormatDropdown.jsx';
 import FontSizePicker from './FontSizePicker.jsx';
 import FontPicker from './FontPicker.jsx';
 import LanguagePicker from './LanguagePicker.jsx';
+import ColorPicker from './ColorPicker.jsx';
 
 export default React.createClass({
 
@@ -32,7 +33,7 @@ export default React.createClass({
       // Because we're using inline-block, the height should all be the same for the elements on the toolbar, otherwise things
       // screw up because CSS. This is a reasonable restriction anyway, so I'm not debugging it further (Ritesh 12/17)
       toolbarStyle: {
-        backgroundColor: Styles.Colors.grey700, 
+        backgroundColor: Styles.Colors.grey800, 
         width: '100%', 
         position: 'relative', 
         height: this.props.toolbarHeight // height of toolbar
@@ -73,7 +74,6 @@ export default React.createClass({
         <ToolbarButton iconName="format_paint" tooltip="Paint format" usePushState={false}
           onClick={() => {}} />
 
-
         <div style={separatorStyle} />
 
         <VaryPropButton
@@ -90,7 +90,6 @@ export default React.createClass({
           onClick={() => {}}/>
         <MoreFormatDropdown />
         
-
         <div style={separatorStyle} />
         <LanguagePicker language={this.props.language} onSelectLanguage={this.props.onSelectLanguage}/>
         <div style={separatorStyle} />
@@ -98,7 +97,6 @@ export default React.createClass({
         <div style={separatorStyle} />
         <FontSizePicker />
         <div style={separatorStyle} />
-
 
         <VaryPropButton
           propTag="Bold"
@@ -112,8 +110,13 @@ export default React.createClass({
           propTag="Strikethrough"
           tooltip="Strikethrough (Alt+Shift+5)"
           iconName="strikethrough_s" />
-
+        <ColorPicker propTag="TextColor" iconName="text_format" tooltip="Text color" />
         
+        <div style={separatorStyle} />
+
+        <ColorPicker propTag="FillColor" iconName="format_color_fill" tooltip="Fill color" />
+        <ColorPicker propTag="BorderColor" iconName="border_color" tooltip="Border color" />
+
         <div style={separatorStyle} />
 
         <ToolbarButton iconName="link" tooltip="Insert link (Ctrl+K)" usePushState={false}

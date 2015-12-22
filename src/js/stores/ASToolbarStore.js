@@ -21,11 +21,12 @@ const ASToolbarStore = Object.assign({}, BaseStore, {
         break;
       default:
         // Keep track of uid  of last open dropdown
-        if (action.visible) {
+        if (!action.visible) {
           _data.lastClickedId = null;
         } else {
           _data.lastClickedId = action.id;
         }
+        debugger;
         ASToolbarStore.emitChange();
     }
   }),

@@ -4,8 +4,7 @@ import MenuItem from 'material-ui/lib/menus/menu-item';
 import Divider from 'material-ui/lib/divider';
 
 import ToolbarController from './ToolbarController.jsx';
-import ToolbarStore from '../../stores/ASToolbarStore';
-import ToolbarActionCreator from '../../actions/ASToolbarActionCreators';
+import MenuController from './MenuController.jsx';
 
 let GenerateToolbarComponentWithMenu = function(ToolbarComponent) {
 
@@ -58,30 +57,6 @@ let GenerateToolbarComponentWithMenu = function(ToolbarComponent) {
       },
 
       /*************************************************************************************************************************/
-      // Mounting
-
-      // We have a toolbar store to make sure that at most one dropdown is open at a time. 
-
-      componentDidMount() {
-        ToolbarStore.addChangeListener(this._onDropdownClicked);
-      },
-
-      componentWillUnmount() {
-        ToolbarStore.removeChangeListener(this._onDropdownClicked);
-      },
-
-      // When the store has a change event, some dropdown was clicked. If it's not this dropdown, and this dropdown is visible, 
-      // make it not visible. 
-      _onDropdownClicked() {
-        let lastClickedId = ToolbarStore.getLastClickedId();
-        if (lastClickedId !== this.props.id && this.state.menuVisible) {
-          let {menuValue, toolbarControlProps} = this.state;
-          let newToolbarControlProps = this.props.toolbarControlPropTransform(false, menuValue, toolbarControlProps);
-          this.setState({menuVisible: false, toolbarControlProps: newToolbarControlProps});
-        }
-      },
-
-      /*************************************************************************************************************************/
       // Menu generation
 
       // The tag is used to generate the type of element, and the props are used to generate a MenuItem/Divider etc. 
@@ -128,15 +103,13 @@ let GenerateToolbarComponentWithMenu = function(ToolbarComponent) {
         let newToolbarControlProps = this.props.toolbarControlPropTransform(false, nextValue, toolbarControlProps);
         this.setState({menuVisible: false, menuValue: nextValue, toolbarControlProps: newToolbarControlProps});
         console.log("clicked on item with value " + nextValue);
-        this.refs.controller.onControlStateChange(nextValue);
-        ToolbarActionCreator.click(false, this.props.id);
+        this.refs.menuController.refs.controller.onControlStateChange(nextValue);
       },
 
       _onMenuClose() {
         let {toolbarControlProps, menuValue} = this.state;
         let newToolbarControlProps = this.props.toolbarControlPropTransform(false, menuValue, toolbarControlProps);
         this.setState({menuVisible: false, toolbarControlProps: newToolbarControlProps});
-        ToolbarActionCreator.click(false, this.props.id);
       },
 
       /*************************************************************************************************************************/
@@ -159,7 +132,6 @@ let GenerateToolbarComponentWithMenu = function(ToolbarComponent) {
         let {toolbarControlProps, menuValue} = this.state;
         let newToolbarControlProps = this.props.toolbarControlPropTransform(menuVisible, menuValue, toolbarControlProps);
         this.setState({menuVisible: menuVisible, toolbarControlProps: newToolbarControlProps});
-        ToolbarActionCreator.click(menuVisible, this.props.id);
       },
 
       /*************************************************************************************************************************/
@@ -175,53 +147,27 @@ let GenerateToolbarComponentWithMenu = function(ToolbarComponent) {
       },
 
       /*************************************************************************************************************************/
-      // Styling and rendering
-
-      getStyles() {
-        let width = this.props.toolbarControlProps.width == null ? 100 : this.props.toolbarControlProps.width;
-        let height = this.props.toolbarControlProps.height == null ? 36 : this.props.toolbarControlProps.height;
-        return {
-          // Styling element for the menu
-          menuStyle: {
-            position: 'absolute', 
-            display: 'inline-block', // this sets it just to the right of the button
-            marginLeft:-width, 
-            // ^ this moves it back to the left edge of the toolbar control; counter-act inline-block
-            top: '50%',
-            height: height,
-            transform: 'translateY(50%)',
-            // ^ Note that the toolbar control's bottom is at toolbarHeight/2 + controlHeight/2. The above transform puts
-            // the top of the menu at this location. 
-            zIndex: 50 // needed to display over the editor/sheet
-          },
-        };
-      },
+      // Rendering
 
       // Generate a menu element using menuProps, then generate a toolbarComponent by using the given class along with 
       // this.props.toolbarControlProps. Put them together with some styling, and pass it off to ToolbarController, which 
       // monitors listening to the relevant stores for us. 
       render() {
-        let {menuStyle} = this.getStyles(),
-            menuElement = this.state.menuVisible ? this.getMenu() : null;
+        let menuElement = this.state.menuVisible ? this.getMenu() : null;
         let toolbarComponent = 
           <ToolbarComponent 
             {...this.state.toolbarControlProps} 
             onClick={this._onToolbarControlClick} 
             ref="toolbarControl"/>;
-        let toolbarComponentWithMenu = 
-          <span>
-            {toolbarComponent}
-            <div style={menuStyle}>
-              {menuElement}
-            </div>
-          </span>;
-
         return (
-           <ToolbarController 
-              ref="controller"
-              setControlStateFromCell={this._setControlStateFromCell}
-              propagateControlStateChange={this.props.propagateControlStateChange}
-              control={toolbarComponentWithMenu}/>
+          <MenuController
+            ref="menuController"            
+            toolbarComponent={toolbarComponent}
+            menuComponent={menuElement}
+            propagateControlStateChange={this.props.propagateControlStateChange}
+            setControlStateFromCell={this._setControlStateFromCell}
+            id={this.props.id}
+            onMenuShouldClose={this._onMenuClose}/>
         );
       }
   });

@@ -29,6 +29,8 @@ export default React.createClass({
          the button should be pushed in if the active cell/selection is bold
       9) Should we show the tooltip
       10) Should we include a dropdown arrow inside the button? This wouldn't do anything by itself if clicked.
+      11) Size of that arrow
+      12) Color of the icon
   */
   propTypes: {
     width: React.PropTypes.number, 
@@ -41,21 +43,23 @@ export default React.createClass({
     usePushState: React.PropTypes.bool,
     showTooltip: React.PropTypes.bool,
     includeDropdownArrow: React.PropTypes.bool,
-    arrowSize: React.PropTypes.number
+    arrowSize: React.PropTypes.number,
+    iconColor: React.PropTypes.string
   },
 
   getDefaultProps() {
     return {
       width: 36,
       height: 36,
-      spacing: 0,
+      spacing: 2,
       onClick: (e, state) => {},
       iconName: 'home',
       iconElement: null,
       usePushState: true,
       showTooltip: true,
       includeDropdownArrow: false,
-      arrowSize: 15
+      arrowSize: 15,
+      iconColor: Styles.Colors.grey50
     };
   },
 
@@ -113,6 +117,7 @@ export default React.createClass({
       iconStyle: { 
         position: 'absolute',
         top: '50%',
+        color: this.props.iconColor,
         left: this.props.includeDropdownArrow ? `calc(50% - ${this.props.arrowSize/2.0 + 'px'})` : '50%',
         transform: 'translate(-50%, -50%)'
       },
