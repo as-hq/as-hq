@@ -14,13 +14,13 @@ import SheetStateStore from '../../stores/ASSheetStateStore';
 import SelectionStore from '../../stores/ASSelectionStore';
 
 /*
-This component is a higher-order-component built for 
+This component is a higher-order-component built for
 easy communication between stores and controls that monitor cell state (props, lang, etc)
 */
 
 export default React.createClass({
 
-  /* We need to know the control, how to update control state if stores change, and how to update backend if 
+  /* We need to know the control, how to update control state if stores change, and how to update backend if
   control changes */
   propTypes: {
     setControlStateFromCell: React.PropTypes.func.isRequired,
@@ -38,9 +38,9 @@ export default React.createClass({
     CellStore.removeChangeListener(this._onActiveCellChange);
   },
 
-  /* 
-    When the active selection or cell change, tell the underlying control to change its state based on that cell. 
-    For example, change loc to A5; if A5 is bold, the bold button needs to be pushed in. 
+  /*
+    When the active selection or cell change, tell the underlying control to change its state based on that cell.
+    For example, change loc to A5; if A5 is bold, the bold button needs to be pushed in.
   */
   _onActiveCellChange() {
     let ac = CellStore.getActiveCell();
@@ -49,19 +49,18 @@ export default React.createClass({
   },
 
   /*
-    When the control's state changes, bubble up here and use that state and the current active selection to 
+    When the control's state changes, bubble up here and use that state and the current active selection to
     change state on backend. For example, user presses bold button while A5 is selected -> API message to change prop, which
-    in turn will cause the cell to become bold. 
+    in turn will cause the cell to become bold.
   */
-  onControlStateChange(nextState) {
-    console.log("control about to set backend");
+  onControlStateChange(nextState: any) {
     SelectionStore.withActiveSelection(({range: activeRange}) => {
       this.props.propagateControlStateChange(nextState, activeRange);
     });
   },
 
   // Simply render the control
-  render() {
+  render(): React.Element {
     return this.props.control;
   }
 });
