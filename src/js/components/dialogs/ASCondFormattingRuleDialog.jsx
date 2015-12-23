@@ -163,10 +163,11 @@ function convertStyleToClient(ruleStyle: ASCellProp): ({
 
 function convertToClient(rule: ?CondFormatRule): DialogCondFormatRule {
   if (rule === null || rule === undefined) { // Default
-    let sel = SelectionStore.getActiveSelection();
-    if (!sel) {
-      throw new Error('No selection in store');
-    }
+    let sel = SelectionStore.getActiveSelection() || {
+      range: {
+        tl: {row: 1, col: 1}, br: {row: 1, col: 1}
+      }
+    };
 
     return ({
       range: sel.range,
@@ -295,6 +296,7 @@ export default class ASCondFormattingDialog
     return ({
       value: lens.get(self.state),
       requestChange(newValue: T) {
+        console.log('request change');
         lens.set(self.state, newValue);
       }
     });
@@ -320,6 +322,7 @@ export default class ASCondFormattingDialog
     return this.linkStateLens({
       get: (state: RuleDialogState) => state.rule[varName],
       set: (state: RuleDialogState, val: any) => {
+        console.log('setting state', state, varName, val);
         self.setState({ rule: { ...self.state.rule, [varName]: val } });
       }
     });

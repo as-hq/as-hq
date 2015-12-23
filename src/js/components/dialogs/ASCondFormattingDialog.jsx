@@ -61,7 +61,7 @@ export default class ASCondFormattingDialog
       <FlatButton
         label="New rule"
         secondary={true}
-        onTouchTap={this._onCreateRule} />;
+        onTouchTap={this._onCreateRule.bind(this)} />;
 
     return (
       <div>
@@ -72,19 +72,19 @@ export default class ASCondFormattingDialog
           actions={[newRuleAction]} >
           <Contents
             rules={rules}
-            onEditRule={this._onEditRule}
-            onDeleteRule={this._onDeleteRule} />
+            onEditRule={this._onEditRule.bind(this)}
+            onDeleteRule={this._onDeleteRule.bind(this)} />
         </Dialog>
         <RuleDialog
-          onSubmitRule={this._onSubmitRule(-2)}
+          onSubmitRule={this._onSubmitRule(-2).bind(this)}
           open={openRule === -2}
-          onRequestClose={this._onCloseRule(-2)}/>
+          onRequestClose={this._onCloseRule(-2).bind(this)}/>
         {rules.map((rule, idx) =>
           <RuleDialog
             initialRule={rule}
-            onSubmitRule={this._onSubmitRule(idx)}
+            onSubmitRule={this._onSubmitRule(idx).bind(this)}
             open={openRule === idx}
-            onRequestClose={this._onCloseRule(idx)}
+            onRequestClose={this._onCloseRule(idx).bind(this)}
           />
         )}
       </div>
