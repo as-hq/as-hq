@@ -436,7 +436,7 @@ export type ASMessageAction =
   | 'Acknowledge'
   | 'SetInitialSheet'
   | 'Find'
-  | 'New' | 'Import' | 'Export'
+  | 'New' | 'Import' | 'Export' | 'ImportCSV'
   | 'Open' | 'Close'
   | 'Evaluate' | 'EvaluateRepl' | 'EvaluateHeader'
   | 'Decouple'
