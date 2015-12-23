@@ -99,22 +99,45 @@ function convertConditionToClient(ruleCondition: CondFormatCondition): ({
   expr1: string;
   expr2: string;
 }) {
-  let def = ({ expr1: '', expr2: '' });
+  let ret = { expr1: '', expr2: '' };
   switch (ruleCondition.tag) {
-    case 'OneExpressionCondition':
-      let [serverType, {expression}] = ruleCondition.contents;
-      switch (serverType) {
-        case 'GreaterThan':
-          return ({ ...def, conditionType: 'greater_than', expr1: expression });
-        case 'LessThan':
-          return ({ ...def, conditionType: 'less_than', expr1: expression });
+    case 'GreaterThanCondition':
+      return ({
+        ...ret,
+        conditionType: 'greater_than',
+        expr1: ruleCondition.contents.expression
+      });
+    case 'LessThanCondition':
+      return ({
+        ...ret,
+        conditionType: 'less_than',
+        expr1: ruleCondition.contents.expression
+      });
+    case 'IsBetweenCondition':
+      return ({
+        conditionType: 'between',
+        expr1: ruleCondition.contents[0].expression,
+        expr2: ruleCondition.contents[1].expression
+      });
+    case 'CustomCondition':
+      switch (ruleCondition.contents.language) {
+        case 'Python':
+          return ({
+            ...ret,
+            conditionType: 'satisfies_python',
+            expr1: ruleCondition.contents.expression
+          });
+        case 'Excel':
+          return ({
+            ...ret,
+            conditionType: 'satisfies_excel',
+            expr1: ruleCondition.contents.expression
+          });
         default:
-          throw new Error('Unimplemented');
+          throw new Error('Unsupported language in conditional formatting');
       }
-    case 'TwoExpressionsCondition':
-      let [st, xp1, xp2] = ruleCondition.contents;
-      let {expression: exp1} = xp1;
-      let {expression: exp2} = xp2;
+    default:
+      throw new Error('Unsupported language in conditional formatting');
   }
 }
 
@@ -180,7 +203,43 @@ function convertStyleToServer(rule: DialogCondFormatRule): ASCellProp {
 }
 
 function convertConditionToServer(rule: DialogCondFormatRule): CondFormatCondition {
-
+  switch (rule.conditionType) {
+    case 'satisfies_python':
+    case 'satisfies_excel':
+      return ({
+        tag: 'CustomCondition',
+        contents: {
+          expression: rule.expr1,
+          language: rule.conditionType === 'satisfies_python' ? 'Python' : 'Excel'
+        }
+      });
+    case 'greater_than':
+      return ({
+        tag: 'GreaterThanCondition',
+        contents: {
+          expression: rule.expr1,
+          language: 'Excel'
+        }
+      })
+    case 'less_than':
+      return ({
+        tag: 'LessThanCondition',
+        contents: {
+          expression: rule.expr1,
+          language: 'Excel'
+        }
+      })
+    case 'between':
+      return ({
+        tag: 'IsBetweenCondition',
+        contents: [
+          { expression: rule.expr1, language: 'Excel' },
+          { expression: rule.expr2, language: 'Excel' }
+        ]
+      })
+    default:
+      throw new Error('Unsupported condition');
+  }
 }
 
 function convertToServer(rule: DialogCondFormatRule): CondFormatRule {
@@ -220,7 +279,7 @@ function showStyleColorField(rule: DialogCondFormatRule): boolean {
   }
 }
 
-export class ASCondFormattingDialog
+export default class ASCondFormattingDialog
   extends React.Component<{}, RuleDialogProps, RuleDialogState>
 {
   constructor(props: RuleDialogProps) {
@@ -322,115 +381,10 @@ export class ASCondFormattingDialog
         {_.range(7).map(() => <br />)}
       </Dialog>
     );
-<<<<<<< HEAD
   }
-=======
-  },
-
-  _onChangeCondition(evt: any, idx: number, menuItem: MenuItemRequest) {
-    this.setState({
-      showConditionTextField: this._showTextField(menuItem.payload)
-    });
-  },
-
-  _onChangeStyle(evt: any, idx: number, menuItem: MenuItemRequest) {
-    this.setState({
-      showStyleColorField: this._showColorField(menuItem.payload)
-    });
-  },
-
-  _showTextField(menuItemText: ?string): boolean {
-    switch (menuItemText) {
-      case 'cell_empty':
-      case 'cell_not_empty':
-        return false;
-      default:
-        return true;
-    }
-  },
-
-  _showColorField(menuItemText: ?string): boolean {
-    switch (menuItemText) {
-      case 'bg_color':
-      case 'text_color':
-        return true;
-      default:
-        return false;
-    }
-  },
-
-  _getConditionMenuItem(): string {
-    if (this.refs.condition) {
-      return this.refs.condition.getPayload();
-    } else {
-      return this.getInitialConditionMenuPayload();
-    }
-  },
-
-  _getStyleMenuItem(): string {
-    if (this.refs.style) {
-      return this.refs.style.getPayload();
-    } else {
-      return this.getInitialStyleMenuPayload();
-    }
-  },
-
-  _getCellLocsFromForm(): Array<ASRange> {
-    return [U.Conversion.simpleToASRange(U.Conversion.excelToRange(this.refs.range.getValue()))];
-  },
-
-  // TODO: add support for all the different types of conditional formats. For
-  // now, this only shows custom stuff.
-  _getConditionFromForm(): CondFormatCondition {
-    let language = 'Excel';
-
-    switch (this._getConditionMenuItem()) {
-      case 'python_matcher':
-        language = 'Python';
-        break;
-      default:
-        language = 'Excel';
-        break;
-    }
-
-    return {
-      tag: 'CustomExpressionCondition',
-        contents: {
-        expression: this.refs.conditionField.getValue(),
-        language: language
-      }
-    };
-  },
-
-  _getCellPropFromForm(): ASCellProp {
-    switch (this._getStyleMenuItem()) {
-      case 'bold':
-        return { tag: 'Bold', contents: [] };
-      case 'italic':
-        return { tag: 'Italic', contents: [] };
-      case 'underline':
-        return { tag: 'Underline', contents: [] };
-      case 'bg_color':
-        return { tag: 'FillColor', contents: this.refs.colorPicker.getValue() };
-      case 'text_color':
-        return { tag: 'TextColor', contents: this.refs.colorPicker.getValue() };
-      default:
-        return { tag: 'Bold', contents: [] }; //unreachable
-    }
-  },
-
-  _getRuleFromForm(): CondFormatRule {
-    return {
-      tag: 'CondFormatRule',
-      cellLocs: this._getCellLocsFromForm(),
-      condition: this._getConditionFromForm(),
-      condFormat: this._getCellPropFromForm()
-    };
-  },
->>>>>>> condformatNew
 
   _onClickSubmit() {
     this.props.onSubmitRule(convertToServer(this.state.rule));
     this.props.onRequestClose();
   }
-};
+}

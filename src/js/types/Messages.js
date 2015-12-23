@@ -256,7 +256,7 @@ export type PayloadSetBarProp = {
 };
 
 export type PayloadSheetUpdate = {
-  tag: 'PayloadSheetUpdate'; 
+  tag: 'PayloadSheetUpdate';
   contents: SheetUpdate;
 };
 
@@ -267,7 +267,8 @@ export type CondFormatRule = {
   cellLocs: Array<ASRange>;
 };
 
-export type CondFormatCondition = CustomCondition
+export type CondFormatCondition =
+  CustomCondition
   | GreaterThanCondition
   | LessThanCondition
   | GeqCondition
@@ -318,7 +319,7 @@ export type IsEmptyCondition = {
 };
 
 export type IsNotEmptyCondition = {
-  tag 'IsNotEmptyCondition';
+  tag: 'IsNotEmptyCondition';
 };
 
 export type IsBetweenCondition = {
@@ -377,28 +378,28 @@ export type ASBackendCommit = {
 };
 
 export type SheetUpdate = {
-  tag: 'SheetUpdate'; 
+  tag: 'SheetUpdate';
   cellUpdates: CellUpdate;
   barUpdates: BarUpdate;
   condFormatRulesUpdates: CondFormatRuleUpdate;
   //#incomplete updatedRangeDescriptors: DescriptorUpdate;
 };
 
-export type CellUpdate = { 
-  tag: 'Update'; 
+export type CellUpdate = {
+  tag: 'Update';
   newVals: Array<ASCell>;
   oldKeys: Array<ASLocation>;
 };
 
-export type BarUpdate = { 
-  tag: 'Update'; 
+export type BarUpdate = {
+  tag: 'Update';
   newVals: Array<Bar>;
   oldKeys: Array<BarIndex>;
 };
 
 // #incomplete currently dysfunctional
-export type CondFormatRuleUpdate = { 
-  tag: 'Update'; 
+export type CondFormatRuleUpdate = {
+  tag: 'Update';
   newVals: Array<CondFormatRule>;
   oldKeys: Array<any>;
 };
@@ -486,7 +487,7 @@ export type RedoResponse = {
 
 export type UpdateResponse = {
   action: 'UpdateSheet';
-  payload: PayloadSheetUpdate; 
+  payload: PayloadSheetUpdate;
   result: ASBackendResult;
 };
 
