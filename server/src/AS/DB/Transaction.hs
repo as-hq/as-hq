@@ -6,6 +6,7 @@ import AS.Types.Cell
 import AS.Types.DB
 import AS.Types.Eval
 import AS.Types.Errors
+import AS.Types.Updates
 
 import AS.DB.API as DB
 import qualified AS.DB.Graph as G
@@ -54,10 +55,10 @@ evalContextToCommit :: Connection -> EvalContext -> IO CommitWithInfo
 evalContextToCommit conn (EvalContext mp cells ddiff) = do
   mbcells <- DB.getCells conn (map cellLocation cells)
   time <- getASTime
-  let cdiff   = CellDiff { beforeCells = (catMaybes mbcells), afterCells = cells}
-      bardiff  = BarDiff { beforeBars = [], afterBars = [] }
+  let cdiff   = Diff { beforeVals = (catMaybes mbcells), afterVals = cells }
+      bardiff = emptyDiff
       commit  = Commit bardiff cdiff ddiff time
-      rd      = removedDescriptors ddiff
+      rd      = beforeVals ddiff
       didDecouple = any isDecouplePair $ zip mbcells cells
       -- determines whether to send a decouple message.
       -- we send a decouple message if there are any decoupled, *visible* cells remaining on the spreadsheet.
@@ -108,9 +109,9 @@ undo conn src = do
   case commit of
     Nothing -> return Nothing
     Just c@(Commit bardiff cdiff ddiff t) -> do
-      deleteLocsPropagated conn (map cellLocation $ afterCells cdiff) (addedDescriptors ddiff)
-      setCellsPropagated conn (beforeCells cdiff) (removedDescriptors ddiff)
-      DB.replaceBars conn (afterBars bardiff) (beforeBars bardiff)
+      deleteLocsPropagated conn (map cellLocation $ afterVals cdiff) (afterVals ddiff)
+      setCellsPropagated conn (beforeVals cdiff) (beforeVals ddiff)
+      DB.replaceBars conn (afterVals bardiff) (beforeVals bardiff)
       return $ Just c
 
 redo :: Connection -> CommitSource -> IO (Maybe ASCommit)
@@ -127,9 +128,9 @@ redo conn src = do
   case commit of
     Nothing -> return Nothing
     Just c@(Commit bardiff cdiff ddiff t) -> do
-      deleteLocsPropagated conn (map cellLocation $ beforeCells cdiff) (removedDescriptors ddiff)
-      setCellsPropagated conn (afterCells cdiff) (addedDescriptors ddiff)
-      DB.replaceBars conn (beforeBars bardiff) (afterBars bardiff)
+      deleteLocsPropagated conn (map cellLocation $ beforeVals cdiff) (beforeVals ddiff)
+      setCellsPropagated conn (afterVals cdiff) (afterVals ddiff)
+      DB.replaceBars conn (beforeVals bardiff) (afterVals bardiff)
       return $ Just c
 
 pushCommit :: Connection -> CommitSource -> ASCommit -> IO ()
@@ -150,15 +151,15 @@ pushCommitWithInfo conn src commit =
 -- Do the writes to the DB
 updateDBWithCommit :: Connection -> CommitSource -> ASCommit -> IO ()
 updateDBWithCommit conn src c@(Commit bardiff cdiff ddiff time) = do 
-  -- update cells
-  let arc = afterBars bardiff
-      af = afterCells cdiff
+  -- update the cells 
+  let af = afterVals cdiff
   DB.setCells conn af
+  -- don't save blank cells in the database; in fact, we should delete any that are there. 
   deleteLocs conn $ map cellLocation $ filter isEmptyCell af
-  mapM_ (setDescriptor conn) (addedDescriptors ddiff)
-  mapM_ (deleteDescriptor conn) (removedDescriptors ddiff)
-  -- update Rows and Columns in sheet
-  DB.replaceBars conn (beforeBars bardiff) (afterBars bardiff)
+  mapM_ (setDescriptor conn) (afterVals ddiff)
+  mapM_ (deleteDescriptor conn) (beforeVals ddiff)
+  -- update the rows and columns in sheet
+  DB.replaceBars conn (beforeVals bardiff) (afterVals bardiff)
   pushCommit conn src c
 
 -- Each commit source has a temp commit, used for decouple warnings

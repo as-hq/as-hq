@@ -3,26 +3,16 @@
 --TODO: timchu, can clean up these imports.
 module AS.Types.CondFormat where
 
-import AS.Types.DB (ASCommit)
 import AS.Types.Cell
 import AS.Types.Locations
 import AS.Types.CellProps
+import AS.Types.Updates
 
 import GHC.Generics
 import Data.Aeson hiding (Success)
 import Data.Aeson.Types (defaultOptions)
 import Data.Serialize (Serialize)
 import qualified Data.Text as T
-
-
-instance ToJSON CondFormatRule
-instance FromJSON CondFormatRule
-
-instance Serialize CondFormatRule
-instance Serialize CondFormatCondition
-instance Serialize TwoExpressionsType
-instance Serialize OneExpressionType
-instance Serialize NoExpressionsType
 
 
 data CondFormatRule = CondFormatRule { cellLocs :: [ASRange],
@@ -107,6 +97,11 @@ symbolTableLookup2 tet value a1 a2 =
        IsBetween ->  isBetween value a1 a2
        IsNotBetween ->  not $ isBetween value a1 a2
 
+type CondFormatRuleUpdate = Update CondFormatRule () -- #incomplete not yet implemented
+
+instance ToJSON CondFormatRule
+instance FromJSON CondFormatRule
+
 instance ToJSON CondFormatCondition
 instance FromJSON CondFormatCondition
 
@@ -118,3 +113,13 @@ instance FromJSON NoExpressionsType
 
 instance ToJSON TwoExpressionsType
 instance FromJSON TwoExpressionsType
+
+instance ToJSON CondFormatRuleUpdate
+instance FromJSON CondFormatRuleUpdate
+
+instance Serialize CondFormatRule
+instance Serialize CondFormatCondition
+instance Serialize TwoExpressionsType
+instance Serialize OneExpressionType
+instance Serialize NoExpressionsType
+instance Serialize CondFormatRuleUpdate

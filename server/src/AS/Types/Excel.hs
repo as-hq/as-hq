@@ -8,11 +8,10 @@
 
 module AS.Types.Excel where
 
-import AS.Types.Cell
 import AS.Types.CellProps
 import AS.Types.Locations
-import AS.Types.Errors
 import AS.Types.Eval
+import AS.Types.Errors
 import AS.Types.Sheets
 
 import Prelude

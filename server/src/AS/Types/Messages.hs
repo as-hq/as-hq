@@ -4,7 +4,7 @@ module AS.Types.Messages where
 
 import AS.Window
 
-import AS.Types.DB (ASCommit)
+import AS.Types.Commits
 import AS.Types.Cell
 import AS.Types.Bar
 import AS.Types.BarProps
@@ -15,6 +15,7 @@ import AS.Types.Errors
 import AS.Types.Eval
 import AS.Types.CellProps
 import AS.Types.CondFormat
+import AS.Types.Updates 
 
 import GHC.Generics
 import Data.Aeson hiding (Success)
@@ -46,7 +47,7 @@ data ASAction =
   | Import | Export | ImportCSV
   | Open | Close
   | Evaluate | EvaluateRepl | EvaluateHeader
-  | Update
+  | UpdateSheet
   | Get | Delete
   | Copy | Cut | CopyForced
   | Undo | Redo
@@ -88,22 +89,19 @@ data ASPayload =
   | PayloadWorkbookSheets [WorkbookSheet]
   | PayloadW ASWindow
   | PayloadU ASUserId
-  | PayloadCommit ASCommit
-  | PayloadDelete ASRange [ASCell]
   | PayloadPaste {copyRange :: ASRange, copyTo :: ASRange}
   | PayloadProp {prop :: CellProp, tagRange :: ASRange}
   | PayloadXp ASExpression
-  | PayloadOpen {initHeaderExpressions :: [ASExpression], initCondFormatRules :: [CondFormatRule], initBars :: [Bar]}
-  | PayloadReplValue ASReplValue
-  | PayloadValue CompositeValue
+  | PayloadOpen {initHeaderExpressions :: [ASExpression], initSheetUpdate :: SheetUpdate}
+  | PayloadValue CompositeValue ASLanguage
   | PayloadList QueryList
   | PayloadText {text :: String}
   | PayloadMutate MutateType
   | PayloadDrag {initialRange :: ASRange, dragRange :: ASRange}
   | PayloadCondFormat { condFormatRules :: [CondFormatRule] }
-  | PayloadCondFormatResult { condFormatRulesResult :: [CondFormatRule], condFormatCellsUpdated :: [ASCell] }
   | PayloadSetBarProp BarIndex BarProp
   | PayloadCSV {csvIndex :: ASIndex, csvLang :: ASLanguage, csvFileName :: String}
+  | PayloadSheetUpdate SheetUpdate
   deriving (Show, Read, Generic)
 
 data ASReplValue = ReplValue {replValue :: ASValue, replLang :: ASLanguage} deriving (Show, Read, Eq, Generic)
@@ -194,7 +192,8 @@ instance Serialize ASInitDaemonConnection
 --------------------------------------------------------------------------------------------------------------
 -- Helpers
 
--- | Not fully implemented yet
+
+-- #incomplete #needsrefactor incorrectly located
 generateErrorMessage :: ASExecError -> String
 generateErrorMessage e = case e of
   CircularDepError circDepLoc -> "Circular dependecy detected in cell " ++ (indexToExcel circDepLoc)
@@ -205,44 +204,33 @@ generateErrorMessage e = case e of
   _                           -> show e
 
 
--- | Creates a server message from an ASExecError. Used in makeUpdateMessage and  makeDeleteMessage.
+-- | Creates a server message from an ASExecError. Used in makeReplyMessageFromCells and  makeDeleteMessage.
+-- #needsrefactor when makeCondFormatMessage goes, this can probably go too
 makeErrorMessage :: ASExecError -> ASAction -> ASServerMessage
 makeErrorMessage DecoupleAttempt a = ServerMessage a DecoupleDuringEval (PayloadN ())
 makeErrorMessage e a = ServerMessage a (Failure (generateErrorMessage e)) (PayloadN ())
 
--- | When you have a list of cells from an eval request, this function constructs
--- the message to send back.
-makeUpdateMessage :: Either ASExecError [ASCell] -> ASServerMessage
-makeUpdateMessage (Left err) = makeErrorMessage err Update
-makeUpdateMessage (Right cells) = ServerMessage Update Success (PayloadCL cells)
+makeReplyMessageFromUpdate :: SheetUpdate -> ASServerMessage
+makeReplyMessageFromUpdate update = ServerMessage UpdateSheet Success $ PayloadSheetUpdate update
 
--- getBadLocs :: [ASReference] -> [Maybe ASCell] -> [ASReference]
--- getBadLocs locs mcells = map fst $ filter (\(l,c)->isNothing c) (zip locs mcells)
+makeReplyMessageFromCommit :: ASCommit -> ASServerMessage
+makeReplyMessageFromCommit = makeReplyMessageFromUpdate . sheetUpdateFromCommit
 
--- | Poorly named. When you have a list of cells from a get request, this function constructs
--- the message to send back.
-makeGetMessage :: [ASCell] -> ASServerMessage
-makeGetMessage cells = changeMessageAction Get $ makeUpdateMessage (Right cells)
+makeReplyMessageFromErrOrUpdate :: Either ASExecError SheetUpdate -> ASServerMessage
+makeReplyMessageFromErrOrUpdate (Left err) = makeErrorMessage err UpdateSheet
+makeReplyMessageFromErrOrUpdate (Right update) = makeReplyMessageFromUpdate update
 
-makeUpdateWindowMessage :: [ASCell] -> ASServerMessage
-makeUpdateWindowMessage cells = changeMessageAction UpdateWindow $ makeUpdateMessage (Right cells)
+makeReplyMessageFromErrOrCommit :: Either ASExecError ASCommit -> ASServerMessage
+makeReplyMessageFromErrOrCommit = makeReplyMessageFromErrOrUpdate . (fmap sheetUpdateFromCommit)
 
--- | Makes a delete message from an Update message and a list of locs to delete
-makeDeleteMessage :: ASRange -> ASServerMessage -> ASServerMessage
-makeDeleteMessage _ s@(ServerMessage _ (Failure _) _) = s
-makeDeleteMessage _ s@(ServerMessage _ (DecoupleDuringEval) _) = ServerMessage Delete DecoupleDuringEval (PayloadN ())
-makeDeleteMessage deleteLocs s@(ServerMessage _ _ (PayloadCL cells)) = ServerMessage Delete Success payload
-  where locsCells = zip (map cellLocation cells) cells
-        cells'    = map snd $ filter (\(l, _) -> not $ rangeContainsIndex deleteLocs l) locsCells
-        payload   = PayloadDelete deleteLocs cells'
-        -- remove the sels from the update that we know are blank from the deleted locs
+-- | Pass in a list of cells and an action, and this function constructs the message for updating those cells. 
+makeReplyMessageFromCells :: ASAction -> [ASCell] -> ASServerMessage
+makeReplyMessageFromCells action cells = ServerMessage action Success $ PayloadSheetUpdate $ SheetUpdate (Update cells []) emptyUpdate emptyUpdate emptyUpdate
 
--- handle failure cases like makeUpdateMessage
+-- handle failure cases like makeReplyMessageFromCells
 -- otherwise: send payload CondFormatResult.
+-- #needsrefactor will probably be obsolesced soon
 makeCondFormatMessage :: Either ASExecError [ASCell] -> [CondFormatRule] -> ASServerMessage
 makeCondFormatMessage (Left err) _ = makeErrorMessage err SetCondFormatRules
 makeCondFormatMessage (Right cells) rules = ServerMessage SetCondFormatRules Success payload
-  where payload = PayloadCondFormatResult rules cells
-
-changeMessageAction :: ASAction -> ASServerMessage -> ASServerMessage
-changeMessageAction a (ServerMessage _ r p) = ServerMessage a r p
+  where payload = PayloadSheetUpdate $ SheetUpdate (Update cells []) emptyUpdate emptyUpdate (Update rules [])

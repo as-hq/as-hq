@@ -17,6 +17,7 @@ import Control.Monad.Trans.Either
 
 -- this file is for future kernel-based repl methods
 
+-- #needsrefactor should return the value, not the message
 runReplDispatch :: ASSheetId -> ASExpression -> IO ASServerMessage
 runReplDispatch sid xp = do
     let lang = language xp
@@ -24,6 +25,5 @@ runReplDispatch sid xp = do
     -- to fix it. (Alex 12/4)
     val <- runEitherT $ R.evaluateLanguageRepl "" xp 
     return $ case val of 
-        (Right (CellValue v)) -> ServerMessage EvaluateRepl Success (PayloadReplValue $ ReplValue v lang)
-        (Left e) -> ServerMessage EvaluateRepl (Failure $ generateErrorMessage e) (PayloadReplValue $ ReplValue (execErrorToValueError e) lang)
-        _ ->  ServerMessage EvaluateRepl (Failure "Could not return composite value in REPL.") (PayloadReplValue $ ReplValue (execErrorToValueError APIError) lang)
+        Left e -> ServerMessage EvaluateHeader (Failure $ generateErrorMessage e) (PayloadValue (CellValue $ execErrorToValueError e) lang)
+        Right v -> ServerMessage EvaluateHeader Success (PayloadValue v lang)

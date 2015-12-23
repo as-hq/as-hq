@@ -1,6 +1,7 @@
 setup.py
 AS/__init__.py
 AS/errors.py
+AS/hidden.py
 AS/iterable.py
 AS/samples.py
 AS/stdlib.py

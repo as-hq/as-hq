@@ -35,6 +35,7 @@ library
                        AS.Eval.Core
                        AS.Eval.Endware
                        AS.Eval.Middleware
+                       AS.Handlers.Delete
                        AS.Handlers.Eval
                        AS.Handlers.JumpSelect
                        AS.Handlers.Misc
@@ -62,6 +63,8 @@ library
                        AS.Parsing.Substitutions
                        AS.Reply
                        AS.Types.Common
+                       AS.Types.Bar
+                       AS.Types.BarProps
                        AS.Types.Cell
                        AS.Types.CellProps
                        AS.Types.Commits
@@ -73,10 +76,11 @@ library
                        AS.Types.Locations
                        AS.Types.Messages
                        AS.Types.Network
-                       AS.Types.Bar
-                       AS.Types.BarProps
+                       AS.Types.RangeDescriptor
                        AS.Types.Sheets
+                       AS.Types.Updates
                        AS.Types.User
+                       AS.Types.Values
                        AS.Users
                        AS.Util
                        AS.Window

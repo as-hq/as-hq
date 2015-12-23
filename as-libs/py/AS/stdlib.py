@@ -2,14 +2,13 @@ import numpy as np
 import pandas as pd
 import random
 from AS.iterable import ASIterable
+from AS.hidden import Hidden
 import json
 import cPickle
+import base64
 
 def arr(lst):
 	return ASIterable(lst)
-
-def hide(lst): 
-	return ASIterable(lst).hide()
 
 def space(lst, sp):
 	lst2 = map((lambda x: prefixPush(x, ["" for _ in range(sp)])), lst)
@@ -48,6 +47,20 @@ def rand(m=1,n=1,upperbound=1):
 	elif m==1 and n==1:
 		return np.random_sample*random.randint(1,upperbound)
 	else: return ASIterable(np.random.rand(m,n)*random.randint(1,upperbound))
+
+def hide(val, name='HIDDEN'):
+	if isinstance(val, Hidden):
+		return val
+	elif isinstance(val, ASIterable) and val.hidden:
+		return val
+	else:
+		return Hidden(val, name)
+
+def unhide(val):
+	if isinstance(val, Hidden) or isinstance(val, ASIterable):
+		return val.unhide()
+	else:
+	 return val
 
 #----------------------------------------------------------------------------------------------------------------------------------------------
 #-- Serialization
@@ -95,7 +108,7 @@ def serialize(val):
 
 	elif isinstance(val, ASIterable): 
 		if val.hidden or val.arr.ndim > 2:
-			name = 'HIDDEN RANGE'
+			name = 'HIDDEN LIST'
 			if val.name:
 				name = val.name
 			return json.dumps(generalSerialize(val, name))
@@ -103,6 +116,9 @@ def serialize(val):
 			vals = [serializeListElem(e) for e in val.toList()]
 			sVal = {'tag': 'Expanding', 'expandingType': 'List', 'listVals': vals}
 			return json.dumps(sVal)
+
+	elif isinstance(val, Hidden):
+		return json.dumps(generalSerialize(val, val.name))
 
 	else: 
 		try:
@@ -125,7 +141,7 @@ def serializeListElem(val):
 		return generalSerialize(val, 'GENERIC')
 
 def generalSerialize(val, name):
-	sval = 'cPickle.loads(' + json.dumps(cPickle.dumps(val)) + ')' # because newline escaping for cPickle bullshit
+	sval = 'cPickle.loads(base64.b64decode(\"' + base64.b64encode(cPickle.dumps(val)) + '\"))' 
 	return {'tag': 'CellValue', 
 				  'cellValueType': 'Serialized', 
 				  'serializedValue': sval, 
