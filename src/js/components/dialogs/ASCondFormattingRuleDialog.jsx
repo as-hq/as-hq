@@ -332,6 +332,10 @@ export default class ASCondFormattingRuleDialog
     });
   }
 
+  clearState() {
+    this.setState({ rule: convertToClient() });
+  }
+
   render() {
     let {initialRule, open, onRequestClose} = this.props;
 
@@ -395,6 +399,7 @@ export default class ASCondFormattingRuleDialog
   }
 
   _onClickSubmit() {
+    this.clearState();
     this.props.onSubmitRule(convertToServer(this.state.rule));
     this.props.onRequestClose();
   }

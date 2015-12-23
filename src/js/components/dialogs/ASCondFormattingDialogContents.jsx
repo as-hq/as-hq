@@ -1,7 +1,12 @@
 /* @flow */
 
 import type {
-  CondFormatRule
+  ASCellProp
+} from '../../types/Eval';
+
+import type {
+  CondFormatRule,
+  CondFormatCondition
 } from '../../types/Messages';
 
 import React from 'react';
@@ -18,6 +23,38 @@ type ASCondFormattingDialogContentsProps = {
   onDeleteRule: (ruleIdx: number) => () => void;
 };
 
+function conditionDescriptor(condition: CondFormatCondition): string {
+  switch (condition.tag) {
+    case 'CustomCondition':
+      return `satisfies ${condition.contents.language} expression ${condition.contents.expression}`;
+    case 'LessThanCondition':
+      return `less than ${condition.contents.expression}`;
+    case 'GreaterThanCondition':
+      return `greater than ${condition.contents.expression}`;
+    case 'IsBetweenCondition':
+      return `between ${condition.contents[0].expression} and ${condition.contents[1].expression}`;
+    default:
+      throw new Error('Unsupported condition');
+  }
+}
+
+function styleDescriptor(prop: ASCellProp): string {
+  switch (prop.tag) {
+    case 'Bold':
+      return 'bold cell';
+    case 'Italic':
+      return 'italicize cell';
+    case 'Underline':
+      return 'underline cell';
+    case 'TextColor':
+      return `make text ${prop.contents}`;
+    case 'FillColor':
+      return `make background ${prop.contents}`;
+    default:
+      throw new Error('Unsupported style');
+  }
+}
+
 function showRule(rule: CondFormatRule): string {
   // #needsrefactor why the hell do I have to do .map((r) => Util.rangeToExcel(r)) instead of
   // .map(Util.rangeToExcel) ???
@@ -26,14 +63,14 @@ function showRule(rule: CondFormatRule): string {
       map(Util.Conversion.asLocationToSimple).
       map((r) => Util.Conversion.rangeToExcel(r))
   );
-  let cond = "";
 
-  // #incomplete need to address all the different types of possible rules.
-  if (rule.condition.tag === 'CustomExpressionCondition') { 
-    cond = rule.condition.contents.expression;
-  }
+  let {condition, condFormat} = rule;
 
-  return `${rngsStr}: ${cond}`;
+  return `${rngsStr}: if cell ${
+    conditionDescriptor(condition)
+  }, ${
+    styleDescriptor(condFormat)
+  }`;
 }
 
 function ASCondFormattingRuleLabel(
