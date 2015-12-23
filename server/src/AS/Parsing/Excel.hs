@@ -77,6 +77,7 @@ indexMatch = do
 outOfBoundsMatch :: Parser ExRef
 outOfBoundsMatch = string "#REF!" >> return ExOutOfBounds
 
+-- r is rightmost column.
 colRangeMatch :: Parser ExColRange
 colRangeMatch = do
   tl <- indexMatch
@@ -98,7 +99,7 @@ refMatch = do
   point <- optionMaybe $ try pointer
   (sh, wb) <- option (Nothing, Nothing) $ try sheetWorkbookMatch
   rng <- optionMaybe $ try rangeMatch 
-  colrng <- optionMaybe $ try colRangeMatch 
+  colrng <- optionMaybe $ try colRangeMatch
   idx <- optionMaybe $ try indexMatch
   ofb <- optionMaybe $ try outOfBoundsMatch
   case point of 
@@ -109,11 +110,13 @@ refMatch = do
         Nothing -> fail "expected index reference when using pointer syntax"
     Nothing -> case rng of 
       Just rng' -> return $ ExRangeRef rng' sh wb
-      Nothing -> case idx of 
-        Just idx' -> return $ ExLocRef idx' sh wb
-        Nothing -> case ofb of  
-          Just ofb' -> return ExOutOfBounds
-          Nothing -> fail "expected valid excel A1:B4 format reference"
+      Nothing -> case colrng of
+        Just colrng' -> return $ ExColRangeRef colrng' sh wb
+        Nothing -> case idx of 
+          Just idx' -> return $ ExLocRef idx' sh wb
+          Nothing -> case ofb of  
+            Just ofb' -> return ExOutOfBounds
+            Nothing -> fail "expected valid excel A1:B4 format reference"
 
 
 ------------------------------------------------------------------------------------------------------------------------------------------------
