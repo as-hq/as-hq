@@ -27,13 +27,16 @@ import type {
   ASServerMessage,
   CondFormatRule,
   CondFormatCondition,
-  CustomExpressionCondition,
-  NoExpressionsCondition,
-  OneExpressionCondition,
-  TwoExpressionsCondition,
-  NoExpressionsType,
-  OneExpressionType,
-  TwoExpressionsType
+  CustomCondition,
+  GreaterThanCondition,
+  LessThanCondition,
+  GeqCondition,
+  LeqCondition,
+  EqualsCondition,
+  NotEqualsCondition,
+  IsEmptyCondition,
+  IsNotEmptyCondition,
+  IsBetweenCondition,
 } from '../types/Messages';
 
 import type {
@@ -363,33 +366,88 @@ function makeExpressionExcel(rule: string) {
 
 export function makeCustomCondFormattingFontRuleExcel(rng: string, prop: BooleanCellTag, rule: string): CondFormatRule {
   let cond = {
-    tag: 'CustomExpressionCondition',
+    tag: 'CustomCondition',
     contents: makeExpressionExcel(rule)
   };
   return makeCondFormattingRuleExcel(cond, rng, prop);;
 }
 
-export function makeNoXpCondFormattingFontRuleExcel(rng: string, prop: BooleanCellTag, xpType: NoExpressionsType): CondFormatRule {
+export function makeGreaterThanCondFormattingFontRuleExcel (rng: string, prop: BooleanCellTag, rule:  string) : CondFormatRule {
   let cond = {
-    tag: 'NoExpressionsCondition',
-    contents: xpType
+    tag: 'GreaterThanCondition',
+    contents: makeExpressionExcel(rule)
+  }
+  return makeCondFormattingRuleExcel(cond, rng, prop)
+}
+
+export function makeLessThanCondFormattingFontRuleExcel (rng: string, prop: BooleanCellTag, rule:  string) : CondFormatRule {
+  let cond = {
+    tag: 'LessThanCondition',
+    contents: makeExpressionExcel(rule)
+  }
+  return makeCondFormattingRuleExcel(cond, rng, prop)
+}
+
+export function makeEqualsCondFormattingFontRuleExcel (rng: string, prop: BooleanCellTag, rule:  string) : CondFormatRule {
+  let cond = {
+    tag: 'EqualsCondition',
+    contents: makeExpressionExcel(rule)
+  }
+  return makeCondFormattingRuleExcel(cond, rng, prop)
+}
+
+export function makeGeqCondFormattingFontRuleExcel (rng: string, prop: BooleanCellTag, rule:  string) : CondFormatRule {
+  let cond = {
+    tag: 'GeqCondition',
+    contents: makeExpressionExcel(rule)
+  }
+  return makeCondFormattingRuleExcel(cond, rng, prop)
+}
+
+export function makeLeqCondFormattingFontRuleExcel (rng: string, prop: BooleanCellTag, rule:  string) : CondFormatRule {
+  let cond = {
+    tag: 'LeqCondition',
+    contents: makeExpressionExcel(rule)
+  }
+  return makeCondFormattingRuleExcel(cond, rng, prop)
+}
+
+export function makeNotEqualsCondFormattingFontRuleExcel (rng: string, prop: BooleanCellTag, rule:  string) : CondFormatRule {
+  let cond = {
+    tag: 'NotEqualsCondition',
+    contents: makeExpressionExcel(rule)
+  }
+  return makeCondFormattingRuleExcel(cond, rng, prop)
+}
+
+export function makeIsEmptyCondFormattingFontRuleExcel(rng: string, prop: BooleanCellTag): CondFormatRule {
+  let cond = {
+    tag: 'IsEmptyCondition',
+    contents: []
   };
   return makeCondFormattingRuleExcel(cond, rng, prop);
 }
 
-export function makeOneXpCondFormattingFontRuleExcel(rng: string, prop: BooleanCellTag, rule: string, xpType: OneExpressionType): CondFormatRule {
+export function makeIsNotEmptyCondFormattingFontRuleExcel(rng: string, prop: BooleanCellTag): CondFormatRule {
   let cond = {
-    tag: 'OneExpressionCondition',
-    contents: [xpType, makeExpressionExcel(rule)]
+    tag: 'IsNotEmptyCondition',
+    contents: []
   };
   return makeCondFormattingRuleExcel(cond, rng, prop);
 }
 
-export function makeTwoXpCondFormattingFontRuleExcel(rng: string, prop: BooleanCellTag, rule1: string, rule2: string, xpType: TwoExpressionsType): CondFormatRule {
+export function makeIsBetweenCondFormattingFontRuleExcel(rng: string, prop: BooleanCellTag, rule1: string, rule2: string): CondFormatRule {
   let cond = {
-    tag: 'TwoExpressionsCondition',
-    // $FlowFixMe
-    contents: [xpType, makeExpressionExcel(rule1), makeExpressionExcel(rule2)]
+    tag: 'IsBetweenCondition',
+    contents: [makeExpressionExcel(rule1), makeExpressionExcel(rule2)]
+  };
+  return makeCondFormattingRuleExcel(cond, rng, prop);
+}
+
+export function makeIsNotBetweenCondFormattingFontRuleExcel(rng: string, prop: BooleanCellTag, rule1: string, rule2: string): CondFormatRule {
+  let cond = {
+    tag: 'IsNotBetweenCondition',
+    contents: [makeExpressionExcel(rule1), makeExpressionExcel(rule2)]
   };
   return makeCondFormattingRuleExcel(cond, rng, prop);
 }

@@ -89,10 +89,10 @@ export type Bar = {
 };
 
 export type BarIndex = {
-  tag: 'BarIndex'; 
+  tag: 'BarIndex';
   barSheetId: string;
-  barType: BarType;  
-  barNumber: number; 
+  barType: BarType;
+  barNumber: number;
 }
 
 export type ASInitConnection = {
@@ -272,31 +272,69 @@ export type CondFormatRule = {
   cellLocs: Array<ASRange>;
 };
 
-export type CondFormatCondition = NoExpressionsCondition | OneExpressionCondition | TwoExpressionsCondition | CustomExpressionCondition;
+export type CondFormatCondition = CustomCondition
+  | GreaterThanCondition
+  | LessThanCondition
+  | GeqCondition
+  | LeqCondition
+  | EqualsCondition
+  | NotEqualsCondition
+  | IsEmptyCondition
+  | IsNotEmptyCondition
+  | IsBetweenCondition
+  | IsNotBetweenCondition;
 
-export type NoExpressionsCondition = {
-  tag: 'NoExpressionsCondition';
-  contents: NoExpressionsType;
-}
-
-export type OneExpressionCondition = {
-  tag: 'OneExpressionCondition';
-  contents: [OneExpressionType, ASExpression];
-}
-
-export type TwoExpressionsCondition = {
-  tag: 'TwoExpressionsCondition';
-  contents: [TwoExpressionsType, ASExpression, ASExpression];
-}
-
-export type CustomExpressionCondition = {
-  tag: 'CustomExpressionCondition';
+export type CustomCondition = {
+  tag: 'CustomCondition';
   contents: ASExpression;
 }
+export type GreaterThanCondition = {
+  tag: 'GreaterThanCondition';
+  contents: ASExpression;
+};
 
-export type NoExpressionsType  = 'IsEmpty' | 'IsNotEmpty';
-export type OneExpressionType  = 'GreaterThan' | 'Equals' | 'Geq' | 'Leq' | 'LessThan' | 'NotEquals';
-export type TwoExpressionsType = 'IsBetween' | 'IsNotBetween';
+export type LessThanCondition = {
+  tag: 'LessThanCondition';
+  contents: ASExpression;
+};
+
+export type GeqCondition = {
+  tag: 'GeqCondition';
+  contents: ASExpression;
+};
+
+export type LeqCondition = {
+  tag: 'LeqCondition';
+  contents: ASExpression;
+};
+
+export type EqualsCondition = {
+  tag: 'EqualsCondition';
+  contents: ASExpression;
+};
+
+export type NotEqualsCondition = {
+  tag: 'NotEqualsCondition';
+  contents: ASExpression;
+};
+
+export type IsEmptyCondition = {
+  tag: 'IsEmptyCondition';
+};
+
+export type IsNotEmptyCondition = {
+  tag 'IsNotEmptyCondition';
+};
+
+export type IsBetweenCondition = {
+  tag: 'IsBetweenCondition';
+  contents: [ASExpression, ASExpression];
+};
+
+export type IsNotBetweenCondition = {
+  tag: 'IsBetweenCondition';
+  contents: [ASExpression, ASExpression];
+};
 
 export type ASBackendPayload =
   PayloadN

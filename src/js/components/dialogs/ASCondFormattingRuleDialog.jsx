@@ -262,7 +262,6 @@ export default React.createClass({
     return {
       tag: 'CustomExpressionCondition',
         contents: {
-        tag: 'Expression',
         expression: this.refs.conditionField.getValue(),
         language: language
       }
