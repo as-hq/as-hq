@@ -87,7 +87,7 @@ data IsBetweenCondition = IsBetween ASExpression ASExpression deriving (Show, Re
 data IsNotBetweenCondition = IsNotBetween ASExpression ASExpression deriving (Show, Read, Generic, Eq)
 
 -- | TODO: timchu, 12/21/15. There is a fair amount of reptition in the code in 
--- all the Inequality Conditions, the Between Conditions, etc...
+-- the Inequality Conditions, the Between Conditions, etc...
 
 -- Establishes an instance of Condition for each possible CondFormatCondition
 instance Condition CondFormatCondition where
