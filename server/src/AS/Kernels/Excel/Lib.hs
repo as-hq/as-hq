@@ -1734,7 +1734,7 @@ eAmpersand c e = do
   val2 <- getRequired f 2 e :: ThrowsError EValue
   let makeString :: (EValue, Int) -> ThrowsError String
       makeString (x,i) = case x of
-                 EValueE s -> Left $ ArgType f "non-error value" "err"
+                 EValueE s -> Left $ ArgType f i "non-error value" "err"
                  otherwise -> Right $ showE x
   [str1, str2] <- mapM makeString (zip [val1, val2] [1,2])
   stringResult $ str1 ++ str2
