@@ -162,9 +162,8 @@ DAG::DAGResponse DAG::getProperDescendants(const vector<DAG::Vertex>& locs){
 
   for (const auto& loc: locs) {
     if (!visited[loc]){
-      if (fromToAdjList.count(loc)) { // so that the fromToAdjList key isn't created if there's nothing there
-        for (const auto& toLoc : fromToAdjList[loc]){
-          if (!visited[toLoc]) {
+      if (hasImmediateDescendants) {
+        for (const auto& toLoc : getImmediateDescendants(loc)){
             DAG::depthFirstSearch(toLoc,visited,order);
           }
         }
