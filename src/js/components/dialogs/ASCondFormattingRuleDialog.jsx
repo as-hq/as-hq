@@ -345,7 +345,7 @@ export default class ASCondFormattingRuleDialog
         ref="mainDialog"
         actions={[
           { text: 'Cancel' },
-          { text: 'Submit', onTouchTap: this._onClickSubmit, ref: 'submit' }
+          { text: 'Submit', onTouchTap: this._onClickSubmit.bind(this), ref: 'submit' }
         ]}
         title="Edit conditional formatting rule"
         open={open}
