@@ -8,9 +8,14 @@ export default React.createClass({
   },
 
   render(): ReactElement {
-    let {value, defaultValue, ...etc} = this.props;
+    let {value, defaultValue, valueLink, ...etc} = this.props;
 
-    return (
+    return this.props.valueLink ? (
+      <input
+        type="color"
+        valueLink={valueLink}
+        {...etc} />
+    ) : (
       <input
         ref="colorPicker"
         type="color"

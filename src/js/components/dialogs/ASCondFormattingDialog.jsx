@@ -23,23 +23,37 @@ import Util from '../../AS/Util';
 
 import _ from 'lodash';
 
-export default React.createClass({
-  componentDidMount() {
-    CFStore.addChangeListener(this._onRulesChange);
-  },
+type ASCondFormattingDialogProps = {
+  open: boolean;
+  onRequestClose: Callback;
+};
 
-  componentWillUnmount() {
-    CFStore.removeChangeListener(this._onRulesChange);
-  },
+type ASCondFormattingDialogState = {
+  rules: Array<CondFormatRule>;
+  openRule: number;
+};
 
-  getInitialState() {
-    return {
-      rules: ([]: Array<CondFormatRule>),
+export default class ASCondFormattingDialog
+  extends React.Component<{}, ASCondFormattingDialogProps, ASCondFormattingDialogState>
+{
+  constructor(props: ASCondFormattingDialogProps) {
+    super(props);
+
+    this.state = {
+      rules: [],
       openRule: -1
     };
-  },
+  }
 
-  render(): ReactElement {
+  componentDidMount() {
+    CFStore.addChangeListener(this._onRulesChange.bind(this));
+  }
+
+  componentWillUnmount() {
+    CFStore.removeChangeListener(this._onRulesChange.bind(this));
+  }
+
+  render(): React.Element {
     let {open, onRequestClose} = this.props;
     let {rules, openRule} = this.state;
 
@@ -75,11 +89,11 @@ export default React.createClass({
         )}
       </div>
     );
-  },
+  }
 
   _onCreateRule() {
     this.setState({ openRule: -2 });
-  },
+  }
 
   _onEditRule(ruleIdx: number): Callback {
     return () => {
@@ -87,7 +101,7 @@ export default React.createClass({
         openRule: ruleIdx
       });
     };
-  },
+  }
 
   _onDeleteRule(ruleIdx: number): Callback {
     return () => {
@@ -95,7 +109,7 @@ export default React.createClass({
       rules.splice(ruleIdx, 1);
       API.setCondFormattingRules(rules);
     };
-  },
+  }
 
   _onSubmitRule(ruleIdx: number): Callback<CondFormatRule> {
     if (ruleIdx === -2) {
@@ -107,7 +121,7 @@ export default React.createClass({
         this._updateRule(ruleIdx, newRule);
       };
     }
-  },
+  }
 
   _onCloseRule(ruleIdx: number): Callback {
     return () => {
@@ -115,23 +129,23 @@ export default React.createClass({
         openRule: -1
       });
     };
-  },
+  }
 
   _updateRule(ruleIdx: number, newRule: CondFormatRule) {
     let rules = _.cloneDeep(CFStore.getRules());
     rules[ruleIdx] = newRule;
     API.setCondFormattingRules(rules);
-  },
+  }
 
   _createRule(newRule: CondFormatRule) {
     let rules = _.cloneDeep(CFStore.getRules());
     rules.push(newRule);
     API.setCondFormattingRules(rules);
-  },
+  }
 
   _onRulesChange() {
     this.setState({
       rules: CFStore.getRules()
     });
   }
-});
+}

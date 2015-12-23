@@ -5,10 +5,12 @@ import type {
 } from '../../AS/Maybe';
 
 import type {
-  Callback
+  Callback,
+  Lens
 } from '../../types/Base';
 
 import type {
+  NakedRange,
   ASRange,
   ASExpression,
   ASCellProp
@@ -30,110 +32,242 @@ import {Dialog, TextField, DropDownMenu} from 'material-ui';
 
 import {Just, Nothing} from '../../AS/Maybe';
 
-import SelectField from '../basic-controls/ASSelectField.jsx';
 import ASColorPicker from '../basic-controls/ASColorPicker.jsx';
 
 import API from '../../actions/ASApiActionCreators';
 import CFStore from '../../stores/ASCondFormatStore';
 import SelectionStore from '../../stores/ASSelectionStore';
+import SheetStateStore from '../../stores/ASSheetStateStore';
 
 import U from '../../AS/Util';
 let {
   Conversion: TC
 } = U;
 
-type StyleMenuItem = 'bold' | 'italic' | 'underline' | 'bg_color' | 'text_color';
+type ConditionMenuItem = 'greater_than'
+  | 'less_than'
+  | 'between'
+  | 'satisfies_python'
+  | 'satisfies_excel';
+
+type StyleMenuItem = 'bold'
+  | 'italic'
+  | 'underline'
+  | 'bg_color'
+  | 'text_color';
 
 type RuleDialogProps = {
   initialRule: ?CondFormatRule;
   open: boolean;
-  onRequestClose: () => void;
+  onRequestClose: Callback;
+  onSubmitRule: Callback<CondFormatRule>;
 };
 
-export default React.createClass({
-  conditionMenuItems: [
-    { payload: 'python_matcher', text: 'Cell satisfies Python expression' },
-    { payload: 'excel_matcher', text: 'Cell satisfies Excel expression' }
-  ],
+type DialogCondFormatRule = {
+  range: NakedRange;
+  conditionType: ConditionMenuItem;
+  expr1: string;
+  expr2: string;
+  style: StyleMenuItem;
+  styleColor: string;
+};
 
-  stylingMenuItems: [
-    { payload: 'bold', text: 'Bold' },
-    { payload: 'italic', text: 'Italic' },
-    { payload: 'underline', text: 'Underline' },
-    { payload: 'bg_color', text: 'Background color' },
-    { payload: 'text_color', text: 'Text color' }
-  ],
+type RuleDialogState = {
+  rule: DialogCondFormatRule;
+};
 
-  getInitialConditionMenuValue(): number {
-    return Just(this.props.initialRule)
-      .fmap(({condition}) => condition)
-      .fmap(({language}) => language)
-      .fmap((language) => {
-        switch (language) {
-          case 'Python': return 0;
-          case 'Excel': return 1;
-        }
-      })
-      .out() || 0;
-  },
+const CONDITION_MENU_ITEMS = [
+  { payload: 'greater_than', text: 'Cell is greater than' },
+  { payload: 'less_than', text: 'Cell is less than' },
+  { payload: 'between', text: 'Cell is between' },
+  { payload: 'satisfies_python', text: 'Cell satisfies Python expression' },
+  { payload: 'satisfies_excel', text: 'Cell satisfies Excel expression' }
+];
 
-  getInitialConditionMenuPayload(): string {
-    return this.conditionMenuItems[this.getInitialConditionMenuValue()].payload;
-  },
+const STYLING_MENU_ITEMS = [
+  { payload: 'bold', text: 'Bold' },
+  { payload: 'italic', text: 'Italic' },
+  { payload: 'underline', text: 'Underline' },
+  { payload: 'bg_color', text: 'Background color' },
+  { payload: 'text_color', text: 'Text color' }
+]
 
-  getInitialStyleMenuValue(): number {
-    return Just(this.props.initialRule)
-      .fmap(({condFormat}) => condFormat)
-      .fmap(({tag}) => {
-        switch (tag) {
-          case 'Bold': return 0;
-          case 'Italic': return 1;
-          case 'Underline': return 2;
-          case 'FillColor': return 3;
-          case 'TextColor': return 4;
-          default: return undefined;
-        }
-      })
-      .out() || 0;
-  },
+const DEFAULT_COLOR = '#000000';
 
-  getInitialStyleMenuPayload(): string {
-    return this.stylingMenuItems[this.getInitialStyleMenuValue()].payload;
-  },
-
-  getInitialColorPickerColor(): string {
-    let initRule = this.props.initialRule;
-    if (initRule != null) {
-      let format = initRule.condFormat;
-      if (format.tag === 'FillColor' || format.tag === 'TextColor') {
-        return U.Conversion.colorToHtml(format.contents);
+function convertConditionToClient(ruleCondition: CondFormatCondition): ({
+  conditionType: ConditionMenuItem;
+  expr1: string;
+  expr2: string;
+}) {
+  let def = ({ expr1: '', expr2: '' });
+  switch (ruleCondition.tag) {
+    case 'OneExpressionCondition':
+      let [serverType, {expression}] = ruleCondition.contents;
+      switch (serverType) {
+        case 'GreaterThan':
+          return ({ ...def, conditionType: 'greater_than', expr1: expression });
+        case 'LessThan':
+          return ({ ...def, conditionType: 'less_than', expr1: expression });
+        default:
+          throw new Error('Unimplemented');
       }
+    case 'TwoExpressionsCondition':
+      let [st, xp1, xp2] = ruleCondition.contents;
+      let {expression: exp1} = xp1;
+      let {expression: exp2} = xp2;
+  }
+}
+
+function convertStyleToClient(ruleStyle: ASCellProp): ({
+  style: StyleMenuItem;
+  styleColor: string;
+}) {
+  switch (ruleStyle.tag) {
+    case 'Bold':
+      return ({ style: 'bold', styleColor: DEFAULT_COLOR });
+    case 'Italic':
+      return ({ style: 'italic', styleColor: DEFAULT_COLOR });
+    case 'Underline':
+      return ({ style: 'underline', styleColor: DEFAULT_COLOR });
+    case 'TextColor':
+      return ({ style: 'text_color', styleColor: ruleStyle.contents });
+    case 'FillColor':
+      return ({ style: 'bg_color', styleColor: ruleStyle.contents });
+    default:
+      throw new Error('Unknown boolean cell style prop');
+  }
+}
+
+function convertToClient(rule: ?CondFormatRule): DialogCondFormatRule {
+  if (rule === null || rule === undefined) { // Default
+    let sel = SelectionStore.getActiveSelection();
+    if (!sel) {
+      throw new Error('No selection in store');
     }
-    return "#000000";
-  },
 
-  getInitialRange(): string {
-    let activeSel = SelectionStore.getActiveSelection(),
-        curSelStr = (activeSel != null) ? U.Conversion.rangeToExcel(activeSel.range) : '';
+    return ({
+      range: sel.range,
+      conditionType: 'greater_than',
+      expr1: '',
+      expr2: '',
+      style: 'bold',
+      styleColor: DEFAULT_COLOR
+    });
+  } else {
+    return ({
+      range: rule.cellLocs[0].range,
+      ...convertConditionToClient(rule.condition),
+      ...convertStyleToClient(rule.condFormat)
+    });
+  }
+}
 
-    return Just(this.props.initialRule)
-      .fmap(({cellLocs}) => cellLocs)
-      .fmap(([firstLoc]) => firstLoc)
-      .fmap(({range}) => range)
-      .fmap(x => U.Conversion.rangeToExcel(x))
-      .out() || curSelStr;
-  },
+function convertStyleToServer(rule: DialogCondFormatRule): ASCellProp {
+  switch (rule.style) {
+    case 'bold':
+      return ({ tag: 'Bold', contents: [] });
+    case 'italic':
+      return ({ tag: 'Italic', contents: [] });
+    case 'underline':
+      return ({ tag: 'Underline', contents: [] });
+    case 'text_color':
+      return ({ tag: 'TextColor', contents: rule.styleColor });
+    case 'bg_color':
+      return ({ tag: 'FillColor', contents: rule.styleColor });
+    default:
+      throw new Error('Condition nonexistent');
+  }
+}
 
-  getInitialState() {
-    return {
-      showConditionTextField: this._showTextField(this._getConditionMenuItem()),
-      showStyleColorField: this._showColorField(this._getStyleMenuItem())
+function convertConditionToServer(rule: DialogCondFormatRule): CondFormatCondition {
+
+}
+
+function convertToServer(rule: DialogCondFormatRule): CondFormatRule {
+  return ({
+    tag: 'CondFormatRule',
+    condFormat: convertStyleToServer(rule),
+    condition: convertConditionToServer(rule),
+    cellLocs: [{
+      tag: 'range',
+      sheetId: SheetStateStore.getCurrentSheet().sheetId , // TODO: get current sheet id
+      range: rule.range
+    }]
+  });
+}
+
+function shownTextFieldCount(rule: DialogCondFormatRule): number {
+  switch (rule.conditionType) {
+    case 'satisfies_excel':
+    case 'satisfies_python':
+    case 'greater_than':
+    case 'less_than':
+      return 1;
+    case 'between':
+      return 2;
+    default:
+      return 0;
+  }
+}
+
+function showStyleColorField(rule: DialogCondFormatRule): boolean {
+  switch (rule.style) {
+    case 'bg_color':
+    case 'text_color':
+      return true;
+    default:
+      return false;
+  }
+}
+
+export class ASCondFormattingDialog
+  extends React.Component<{}, RuleDialogProps, RuleDialogState>
+{
+  constructor(props: RuleDialogProps) {
+    super(props);
+
+    this.state = {
+      rule: convertToClient(props.initialRule)
     };
-  },
+  }
+
+  linkStateLens<T>(lens: Lens<RuleDialogState, T>): ReactValueLink {
+    let self = this;
+    return ({
+      value: lens.get(self.state),
+      requestChange(newValue: T) {
+        lens.set(self.state, newValue);
+      }
+    });
+  }
+
+  linkRuleRangeState(): ReactValueLink {
+    let self = this;
+
+    return this.linkStateLens({
+      get: (state: RuleDialogState) => TC.rangeToExcel(state.rule.range),
+      set: (state: RuleDialogState, val: string) => {
+        self.setState({ rule: { ...self.state.rule,
+          range: TC.excelToRange(val)
+        }});
+      }
+    });
+  }
+
+  // TextField, DropDownMenu both support this
+  linkRuleState(varName: $Keys<DialogCondFormatRule>): ReactValueLink {
+    let self = this;
+
+    return this.linkStateLens({
+      get: (state: RuleDialogState) => state.rule[varName],
+      set: (state: RuleDialogState, val: any) => {
+        self.setState({ rule: { ...self.state.rule, [varName]: val } });
+      }
+    });
+  }
 
   render() {
     let {initialRule, open, onRequestClose} = this.props;
-    let {showConditionTextField, showStyleColorField} = this.state;
 
     let standardStyling = {
       width: '400px',
@@ -151,152 +285,47 @@ export default React.createClass({
         open={open}
         onRequestClose={onRequestClose}>
         <TextField
-          ref="range"
-          defaultValue={this.getInitialRange()}
           style={standardStyling}
-          hintText="Range" />
+          hintText="Range"
+          valueLink={this.linkRuleRangeState()} />
         <br />
-        <SelectField
-          ref="condition"
-          defaultValue={this.getInitialConditionMenuValue()}
+        <DropDownMenu
           style={standardStyling}
-          menuItems={this.conditionMenuItems}
-          onChange={this._onChangeCondition} />
+          menuItems={CONDITION_MENU_ITEMS}
+          valueLink={this.linkRuleState('conditionType')} />
         <br />
-        {showConditionTextField ? (
+        {shownTextFieldCount(this.state.rule) >= 1 ? (
           [
             <TextField
-              ref="conditionField"
-              defaultValue={
-                Just(initialRule)
-                  .fmap(({condition}) => condition)
-                  .fmap(({expression}) => expression)
-                  .out() || ''
-              }
               style={standardStyling}
-              hintText="Value or formula"/>,
+              hintText="Value or formula"
+              valueLink={this.linkRuleState('expr1')} />,
             <br />
           ]
         ) : null}
-        <SelectField
-          ref="style"
-          defaultValue={this.getInitialStyleMenuValue()}
+        {shownTextFieldCount(this.state.rule) >= 2 ? (
+          [
+            <TextField
+              style={standardStyling}
+              hintText="Value or formula"
+              valueLink={this.linkRuleState('expr2')} />,
+            <br />
+          ]
+        ) : null}
+        <DropDownMenu
           style={standardStyling}
-          menuItems={this.stylingMenuItems}
-          onChange={this._onChangeStyle} />
+          menuItems={STYLING_MENU_ITEMS}
+          valueLink={this.linkRuleState('style')} />
         <br />
-        {showStyleColorField ?
-          <ASColorPicker ref="colorPicker"
-                         defaultValue={this.getInitialColorPickerColor()} /> : null}
+        {showStyleColorField(this.state.rule) ?
+          <ASColorPicker valueLink={this.linkRuleState('styleColor')} /> : null}
         {_.range(7).map(() => <br />)}
       </Dialog>
     );
-  },
-
-  _onChangeCondition(evt: any, idx: number, menuItem: MenuItemRequest) {
-    this.setState({
-      showConditionTextField: this._showTextField(menuItem.payload)
-    });
-  },
-
-  _onChangeStyle(evt: any, idx: number, menuItem: MenuItemRequest) {
-    this.setState({
-      showStyleColorField: this._showColorField(menuItem.payload)
-    });
-  },
-
-  _showTextField(menuItemText: ?string): boolean {
-    switch (menuItemText) {
-      case 'cell_empty':
-      case 'cell_not_empty':
-        return false;
-      default:
-        return true;
-    }
-  },
-
-  _showColorField(menuItemText: ?string): boolean {
-    switch (menuItemText) {
-      case 'bg_color':
-      case 'text_color':
-        return true;
-      default:
-        return false;
-    }
-  },
-
-  _getConditionMenuItem(): string {
-    if (this.refs.condition) {
-      return this.refs.condition.getPayload();
-    } else {
-      return this.getInitialConditionMenuPayload();
-    }
-  },
-
-  _getStyleMenuItem(): string {
-    if (this.refs.style) {
-      return this.refs.style.getPayload();
-    } else {
-      return this.getInitialStyleMenuPayload();
-    }
-  },
-
-  _getCellLocsFromForm(): Array<ASRange> {
-    return [U.Conversion.simpleToASRange(U.Conversion.excelToRange(this.refs.range.getValue()))];
-  },
-
-  // TODO: add support for all the different types of conditional formats. For
-  // now, this only shows custom stuff.
-  _getConditionFromForm(): CondFormatCondition {
-    let language = 'Excel';
-
-    switch (this._getConditionMenuItem()) {
-      case 'python_matcher':
-        language = 'Python';
-        break;
-      default:
-        language = 'Excel';
-        break;
-    }
-
-    return {
-      tag: 'CustomExpressionCondition',
-        contents: {
-        tag: 'Expression',
-        expression: this.refs.conditionField.getValue(),
-        language: language
-      }
-    };
-  },
-
-  _getCellPropFromForm(): ASCellProp {
-    switch (this._getStyleMenuItem()) {
-      case 'bold':
-        return { tag: 'Bold', contents: [] };
-      case 'italic':
-        return { tag: 'Italic', contents: [] };
-      case 'underline':
-        return { tag: 'Underline', contents: [] };
-      case 'bg_color':
-        return { tag: 'FillColor', contents: this.refs.colorPicker.getValue() };
-      case 'text_color':
-        return { tag: 'TextColor', contents: this.refs.colorPicker.getValue() };
-      default:
-        return { tag: 'Bold', contents: [] }; //unreachable
-    }
-  },
-
-  _getRuleFromForm(): CondFormatRule {
-    return {
-      tag: 'CondFormatRule',
-      cellLocs: this._getCellLocsFromForm(),
-      condition: this._getConditionFromForm(),
-      condFormat: this._getCellPropFromForm()
-    };
-  },
+  }
 
   _onClickSubmit() {
-    this.props.onSubmitRule(this._getRuleFromForm());
+    this.props.onSubmitRule(convertToServer(this.state.rule));
     this.props.onRequestClose();
   }
-});
+};
