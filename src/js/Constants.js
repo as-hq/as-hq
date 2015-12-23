@@ -51,6 +51,7 @@ var Constants = Object.assign({
   isRemote: true,
   promptUser: false,
   showConnectionLost: true,
+  shouldReconnect: true,
 
   // event name triggered from store, listened to by views
   CHANGE_EVENT: 'change',
@@ -114,6 +115,8 @@ var Constants = Object.assign({
     ESC_PRESSED:null,
     BACKEND_UPDATED_AND_CELLS_CHANGED: null,
     EVAL_TRIED_TO_DECOUPLE: null,
+    DROPDOWN_CLICKED: null,
+    LANGUAGE_TOGGLED: null,
     ADD_OVERLAY: null
   }),
 

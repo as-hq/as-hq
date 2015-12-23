@@ -4,6 +4,10 @@ import type {
   NakedRange
 } from '../../types/Eval';
 
+import type {
+  PXRectangle
+} from '../../types/Render';
+
 export default {
   // The below two methods draw three sides of the rectangle
   drawDottedHorizontal(
@@ -42,7 +46,7 @@ export default {
     gc.stroke();
   },
 
-  drawRect: (rng: NakedRange, renderer: HGRendererElement, gc: GraphicsContext) => {
+  drawRect (rng: NakedRange, renderer: HGRendererElement, gc: GraphicsContext): ?PXRectangle {
     let grid = renderer.getGrid(),
         fixedColCount = grid.getFixedColumnCount(),
         fixedRowCount = grid.getFixedRowCount(),
@@ -53,8 +57,8 @@ export default {
         lastVisibleColumn = renderer.getVisibleColumns().slice(-1)[0],
         lastVisibleRow = renderer.getVisibleRows().slice(-1)[0];
 
-    let tlX = rng.tl.col - 1 + fixedColCount,
-        tlY = rng.tl.row - 1 + fixedRowCount,
+    let tlX = Math.max(rng.tl.col - 1, firstVisibleColumn) + fixedColCount,
+        tlY = Math.max(rng.tl.row - 1, firstVisibleRow) + fixedRowCount,
         brX = Math.min(rng.br.col - 1, lastVisibleColumn) + fixedColCount,
         brY = Math.min(rng.br.row - 1, lastVisibleRow) + fixedRowCount,
         tl = renderer._getBoundsOfCell(tlX - scrollX, tlY - scrollY),
@@ -69,6 +73,7 @@ export default {
         return;
     }
     gc.rect(oX, oY, eX, eY);
+    return {origin: {x: oX, y: oY}, extent: {x: eX, y: eY}};
   },
 
   wrapText(

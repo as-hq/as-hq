@@ -763,7 +763,9 @@ describe('backend', () => {
             it ('preserves dimensions upon hiding and unhiding', (done) => {
               _do([
                 python('A1', 'hide([[1,2]])'),
-                python('A3', 'A1.unhide()'),
+                python('A2', 'A1.unhide()'),
+                python('A3', 'unhide(A1)'),
+                shouldBe('B2', valueI(2)),
                 shouldBe('B3', valueI(2)),
                 exec(done)
               ]);

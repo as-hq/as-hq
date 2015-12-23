@@ -169,7 +169,8 @@ export default React.createClass({
           }
         },
         'fin-double-click': function (event) {
-          // should only fire when double click is inside grid
+          // should only fire when double click is inside grid. According to event.detail.gridCell here, 
+          // the top left grid cell is (0,0) which is different from e.g. the event in model.handleMouseDown.  
           if (event.detail.gridCell.y >= 0 && event.detail.gridCell.x >= 0) {
             ExpStore.setClickType(Constants.ClickType.DOUBLE_CLICK);
             self.refs.textbox.updateTextBox(ExpStore.getExpression());
@@ -363,11 +364,15 @@ export default React.createClass({
         self = this;
     hg.addGlobalProperties(this.gridProperties);
 
+    // Calling setColumnWidth on hypergrid should make an API call to the backend to remember the changed
+    // column width; we're overriding hypergrid's default setColumnWidth to do so. If we want to change the
+    // column width without making an API call, use model._setColumnWidth
     hg.setColumnWidth = (columnIndex, columnWidth) => {
         self.resizedColNum = columnIndex;
         model._setColumnWidth(columnIndex, columnWidth);
     },
 
+    // Ditto
     hg.setRowHeight = (rowIndex, rowHeight) => {
         self.resizedRowNum = rowIndex;
         model.setRowHeight(rowIndex, rowHeight);
@@ -406,6 +411,8 @@ export default React.createClass({
       return rr;
     };
 
+    // note: evt.gridCell in all these functions seem to think the coordinates of the top left cell is 
+    // (1,1) rather than (0,0). 
     model.handleMouseDown = (grid, evt) => {
       if (evt.primitiveEvent.detail.primitiveEvent.shiftKey) { // shift+click
         let {origin} = this.getSelectionArea(),
@@ -421,11 +428,12 @@ export default React.createClass({
           // dragging selections
           this.dragSelectionOrigin = {col: evt.gridCell.x, row: evt.gridCell.y};
         } else if (model.featureChain) {
+          let clickedCell = evt.gridCell; 
           // If the mouse is placed inside column header (not on a divider), we want to keep some extra state ourselves
-          if (self._clickIsInColumnHeader(evt)) {
-           self.clickedColNum = evt.gridCell.x;
-          } else if (self._clickIsInRowHeader(evt)) {
-            self.clickedRowNum = evt.gridCell.y;
+          if (self._clickedCellIsInColumnHeader(clickedCell)) {
+           self.clickedColNum = clickedCell.x;
+          } else if (self._clickedCellIsInRowHeader(clickedCell)) {
+            self.clickedRowNum = clickedCell.y;
           }
           model.featureChain.handleMouseDown(grid, evt);
           model.setCursor(grid);
@@ -450,22 +458,19 @@ export default React.createClass({
       }
     };
 
-    //  For now, double-clicks don't get saved to backend. We need a way to tell whether the
-    //  mouse clicked off a cell, which will probably involve counting pixels; deprioritizing
-    //  this for now. (Alex 12/7)
-    //  model.onDoubleClick = (grid, evt) => {
-    //   if (model.featureChain) {
-    //       model.featureChain.handleDoubleClick(grid, evt);
-    //       model.setCursor(grid);
-    //   }
+     model.onDoubleClick = (grid, evt) => {
+      if (model.featureChain) {
+          model.featureChain.handleDoubleClick(grid, evt);
+          model.setCursor(grid);
+      }
 
-    //   // ::TODO:: need to do a check here!!
-    //   self.clickedColNum = evt.gridCell.x;
-    //   self.clickedRowNum = evt.gridCell.y;
-
-    //   self.finishColumnResize();
-    //   self.finishRowResize();
-    // };
+      // for now, double-clicking rows doesn't size it automatically
+      
+      if (self._clickedCellIsInColumnHeader(evt.gridCell)) {
+        self.clickedColNum = evt.gridCell.x;
+        self.finishColumnResize();
+      }
+    };
 
     model.onMouseDrag = (grid, evt) => {
       let selOrigin = this.dragSelectionOrigin;
@@ -560,13 +565,13 @@ export default React.createClass({
           if (self.draggingCol) {
             self.draggingCol = false;
             if (self.clickedColNum != null) {
-              API.dragCol(self.clickedColNum, evt.gridCell.x);
+              API.dragCol(self.clickedColNum, Math.max(1, evt.gridCell.x)); // evt.gridCell.x can go negative...
             }
             self.clickedColNum = null;
           } else if (self.draggingRow) {
             self.draggingRow = false;
             if (self.clickedRowNum != null) {
-              API.dragRow(self.clickedRowNum, evt.gridCell.y);
+              API.dragRow(self.clickedRowNum, Math.max(1, evt.gridCell.y));
             }
             self.clickedRowNum = null;
           }
@@ -608,16 +613,15 @@ export default React.createClass({
     }
   },
 
-  _clickIsInColumnHeader(evt: HGMouseEvent): boolean {
-    let hg = this._getHypergrid(),
-        model = hg.getBehavior();
-    return (model.featureChain.isFixedRow(hg, evt) && hg.overColumnDivider(evt) === -1);
+  // note: evt.gridCell from the mouse-click functions from model (hg.getBehavior()) seem to be 1-indexed 
+  // (the coordinates of the top left cell are  (1,1) rather than (0,0)). The below two functions are only
+  // assumed to work on mouse functions on model, NOT for e.g. fin-double-click events where the top left cell is (0,0). Umm......
+  _clickedCellIsInColumnHeader(clickedCell: HGPoint): boolean {
+    return (clickedCell.x >= 1 && clickedCell.y <= 0); // == 0? ==-1? not entirely sure
   },
 
-  _clickIsInRowHeader(evt: HGMouseEvent): boolean {
-    let hg = this._getHypergrid(),
-        model = hg.getBehavior();
-    return (model.featureChain.isFixedColumn(hg, evt) && hg.overRowDivider(evt) === -1);
+  _clickedCellIsInRowHeader(clickedCell: HGPoint): boolean {
+    return (clickedCell.x <= 0 && clickedCell.y >= 1); // == 0? ==-1? not entirely sure
   },
 
   // expects that the current sheet has already been set
@@ -1037,12 +1041,13 @@ export default React.createClass({
   _onBarPropsChange() {
     let dims = BarStore.getLastUpdatedBarsDimensions(), 
         hg = this._getHypergrid(), 
+        model = hg.getBehavior(),
         defaultColumnWidth = hg.resolveProperty('defaultColumnWidth'),
         defaultRowHeight = hg.resolveProperty('defaultRowHeight');
 
     // columns/rows in backend are 1-indexed, hypergrid's are 0-indexed. 
-    dims['ColumnType'].map(([ind, width]) => hg.setColumnWidth(ind-1, width || defaultColumnWidth));
-    dims['RowType'].map(([ind, height]) => hg.setRowHeight(ind-1, height || defaultRowHeight));
+    dims['ColumnType'].map(([ind, width]) => model._setColumnWidth(ind-1, width || defaultColumnWidth));
+    dims['RowType'].map(([ind, height]) => model.setRowHeight(ind-1, height || defaultRowHeight));
   },
 
 
@@ -1061,7 +1066,7 @@ export default React.createClass({
           cell = CellStore.getCell({col: col, row: row});
 
       // tag-based cell styling
-      if (!! cell) {
+      if (cell !== null && cell !== undefined) {
         U.Render.valueToRenderConfig(config, cell.cellValue);
         if (cell.cellExpression.expandingType) {
           U.Render.expandingTypeToRenderConfig(config, cell.cellExpression.expandingType);
