@@ -412,6 +412,10 @@ exRefToASRef sid exRef = case exRef of
   ExOutOfBounds -> OutOfBounds
   ExLocRef (ExIndex _ c r) sn wn -> IndexRef $ Index sid' (colStrToInt c, read r :: Int)
     where sid' = maybe sid id (sheetIdFromContext sn wn)
+  ExColRangeRef (ExColRange f (ExCol _ c2)) sn wn -> ColRangeRef $ ColRange sid' (tl, colStrToInt c2)
+    where
+      sid' = maybe sid id (sheetIdFromContext sn wn)
+      IndexRef (Index  _ tl) = exRefToASRef sid' $ ExLocRef f sn Nothing
   ExRangeRef (ExRange f s) sn wn -> RangeRef $ Range sid' (tl, br)
     where
       sid' = maybe sid id (sheetIdFromContext sn wn)
@@ -428,10 +432,18 @@ asRefToExRef (IndexRef (Index sid (a,b))) = ExLocRef idx sname Nothing
 asRefToExRef (PointerRef (Pointer sid (a,b))) = ExPointerRef idx sname Nothing
   where idx = ExIndex REL_REL (intToColStr a) (show b)
         sname = sheetIdToSheetName sid
-asRefToExRef (RangeRef (Range s (i1, i2))) = ExRangeRef rng Nothing Nothing
+asRefToExRef (ColRangeRef (ColRange sid (i1,c2))) = ExColRangeRef colrng sname Nothing
   where
-    ExLocRef i1' _ _ = asRefToExRef . IndexRef $ Index s i1
-    ExLocRef i2' _ _ = asRefToExRef . IndexRef $ Index s i2
+    sname = sheetIdToSheetName sid
+    ExLocRef i1' _ _ = asRefToExRef . IndexRef $ Index sid i1
+    c2' = ExCol REL (intToColStr c2)
+    colrng = ExColRange i1' c2'
+    -- Why are there two nothings in the ExRangeRef?
+asRefToExRef (RangeRef (Range sid (i1, i2))) = ExRangeRef rng sname Nothing
+  where
+    sname = sheetIdToSheetName sid
+    ExLocRef i1' _ _ = asRefToExRef . IndexRef $ Index sid i1
+    ExLocRef i2' _ _ = asRefToExRef . IndexRef $ Index sid i2
     rng = ExRange i1' i2'
 
 -- #incomplete we should actually be looking in the db. For now, with the current UX of
