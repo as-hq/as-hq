@@ -45,6 +45,7 @@ library
                        AS.Handlers.Import
                        AS.InferenceUtils
                        AS.Kernels.Python.Eval
+                       AS.Kernels.Python.EvalPrime
                        AS.Kernels.Python.Pyfi
                        AS.Kernels.Python.Str
                        AS.Kernels.Excel.Eval

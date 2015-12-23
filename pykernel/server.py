@@ -1,6 +1,41 @@
 import getpass
 import sys
 import traceback
+from traitlets import Instance, Type, Any, List
+
+import zmq
+
+class ASKernel(ASPyKernelBase):
+
+	def __init__(self):
+		# init python eval shell
+		self.shell = Instance('IPython.core.interactiveshell.InteractiveShellABC', allow_none=True)
+		# init zmq
+		self.context = zmq.Context()
+		self.socket = context.socket(zmq.REP)
+		self.socket.bind("tcp://*:20000")
+
+	# KernelMessage -> KernelResponse
+	def processMessage(self, msg):
+
+
+if __name__ == '__main__':
+	print("\nPython kernel started.\n")
+	# init AS kernel instance
+	kernel = ASKernel()
+
+	while True:
+	    #  Wait for next request from client
+	    message = socket.recv_json()
+	    print("Received request: %s" % message)
+
+	    #  Send reply back to client
+	    socket.send(b"World")
+
+### kernel base
+import getpass
+import sys
+import traceback
 
 from IPython.core import release
 from ipython_genutils.py3compat import builtin_mod, PY3
@@ -12,12 +47,8 @@ from ipykernel.kernelbase import Kernel as KernelBase
 from ipykernel.serialize import serialize_object, unpack_apply_message
 from ipykernel.zmqshell import ZMQInteractiveShell
 
-if __name__ == "__main__":
-  kernel = ASPythonKernel()
-  kernel.start()
-  
 
-class ASPythonKernel(KernelBase):
+class ASPyKernelBase(KernelBase):
     shell = Instance('IPython.core.interactiveshell.InteractiveShellABC',
                      allow_none=True)
     shell_class = Type(ZMQInteractiveShell)
@@ -39,7 +70,7 @@ class ASPythonKernel(KernelBase):
     _sys_eval_input = Any()
 
     def __init__(self, **kwargs):
-        super(ASPythonKernel, self).__init__(**kwargs)
+        super(ASPyKernelBase, self).__init__(**kwargs)
 
         # Initialize the InteractiveShell subclass
         self.shell = self.shell_class.instance(parent=self,
@@ -117,13 +148,13 @@ class ASPythonKernel(KernelBase):
 
     def start(self):
         self.shell.exit_now = False
-        super(ASPythonKernel, self).start()
+        super(ASPyKernelBase, self).start()
 
     def set_parent(self, ident, parent):
         """Overridden from parent to tell the display hook and output streams
         about the parent message.
         """
-        super(ASPythonKernel, self).set_parent(ident, parent)
+        super(ASPyKernelBase, self).set_parent(ident, parent)
         self.shell.set_parent(parent)
 
     def _forward_input(self, allow_stdin=False):
@@ -350,3 +381,13 @@ class ASPythonKernel(KernelBase):
     def do_clear(self):
         self.shell.reset(False)
         return dict(status='ok')
+
+
+# This exists only for backwards compatibility - use ASPyKernelBase instead
+
+class Kernel(ASPyKernelBase):
+    def __init__(self, *args, **kwargs):
+        import warnings
+        warnings.warn('Kernel is a deprecated alias of ipykernel.ipkernel.ASPyKernelBase',
+                      DeprecationWarning)
+        super(Kernel, self).__init__(*args, **kwargs)

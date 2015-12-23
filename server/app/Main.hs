@@ -7,7 +7,7 @@ import AS.Config.Settings as S
 import AS.Types.Messages
 import AS.Types.Network
 
-import AS.Clients()
+import AS.Clients
 import AS.Logging
 import AS.Window
 import AS.Util (sendMessage)
@@ -17,7 +17,8 @@ import AS.DB.Graph as G
 import AS.DB.Internal as DI
 import AS.Users as US
 import AS.Handlers.Misc (handleImportBinary)
-import AS.Kernels.Python.Eval as KP
+import qualified AS.Kernels.Python.Eval as KP
+import qualified AS.Kernels.Python.EvalPrime as EP
 
 import Prelude
 import System.Environment (getArgs)
@@ -90,10 +91,10 @@ initApp = do
   return (conn, ports, states)
 
 -- |  for debugging. Only called if isDebug is true.
--- initDebug :: R.Connection -> MVar ServerState -> IO ()
--- initDebug conn state = 
 initDebug :: R.Connection -> MVar ServerState -> IO ()
-initDebug = const $ const $ return ()
+initDebug conn state = do
+  putStrLn . show =<< (runEitherT $ EP.evaluate "1+1")
+  return ()
 
 application :: MVar ServerState -> WS.ServerApp
 application state pending = do
