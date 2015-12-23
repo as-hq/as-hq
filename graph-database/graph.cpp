@@ -52,9 +52,17 @@ void DAG::updateDAG(DAG::Vertex toLoc, const DAG::VertexSet& fromLocs) {
     // if oldFl is a pointer, convert to index and delete toLoc from the index's dependencies
     // To clarify with an example, when D5=@C5 is entered, D5's ancestor is Pointer C5 and Index C5's descendant is D5.
     // When you want to update D5's ancestors, you have to delete Index C5 -> D5 from fromTo, and not Pointer C5 -> D5, which doesn't exist.
-    // Similar logic exists for ranges;  there's a symmetry between updating and replacing.
+    // Similar logic exists for ranges and colRanges;  there's a symmetry between updating and replacing.
     if (oldFl.getLocationType() == Location::LocationType::POINTER) {
       fromToAdjList[oldFl.pointerToIndex()].erase(toLoc);
+    } else if (oldFl.getLocationType() == Location::LocationType::COLRANGE) {
+      vector<Column> columns;
+      int minRow;
+      oldFl.colRangeToMinRowAndColumns(minRow, columns); // minRow and columns have the data in colRange
+        // TODO: timchu, 12/21/15. Use a helper function to delete minRow from col if the only index in it is erased.
+      for (const auto& column: columns){
+        fromColTo[column][minRow].erase(toLoc);
+      }
     } else if (oldFl.getLocationType() == Location::LocationType::RANGE) {
       vector<Location> indices;
       oldFl.rangeToIndices(indices); // indices now has the decomposed Indices
@@ -89,6 +97,13 @@ void DAG::updateDAG(DAG::Vertex toLoc, const DAG::VertexSet& fromLocs) {
     */
     if (fl.getLocationType() == Location::LocationType::POINTER) {
       fromToAdjList[fl.pointerToIndex()].insert(toLoc);
+    } else if (fl.getLocationType() == Location::LocationType::COLRANGE) {
+      vector<Column> columns;
+      int minRow;
+      fl.colRangeToMinRowAndColumns(minRow, columns); // minRow and columns have the data in colRange
+      for (const auto& column: columns){
+        fromColTo[column][minRow].erase(toLoc);
+      }
     } else if (fl.getLocationType() == Location::LocationType::RANGE) {
       vector<Location> indices;
       fl.rangeToIndices(indices); // indices now has the decomposed range

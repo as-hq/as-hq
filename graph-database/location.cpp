@@ -35,18 +35,26 @@ void Location::rangeToIndices(vector<Location>& indices) const {
   }
 };
 
+void Location::colRangeToMinRowAndColumns(int& minRow, vector<Column>& columns) const {
+  cout << "HAHAHA" << endl;
+};
 /***********************************************************************************************************************/
 // Hash function of Location for map data structures 
 
 namespace std {
-  template <>
-  struct hash<Location> {
-      size_t operator()(const Location& l) const {
-        return hash_value(l); // using the friend boost hash
-      }
-  };
+  size_t hash<Location>::operator()(const Location& l) const {
+    return hash_value(l); // using the friend boost hash
+  }
 }
 
+/***********************************************************************************************************************/
+// Hash function of Column for map data structures 
+
+namespace std {
+  size_t hash<Column>::operator()(const Column& c) const {
+    return hash_value(c); // using the friend boost hash
+  }
+}
 /***********************************************************************************************************************/
 // To and from string methods for Location
 
@@ -54,7 +62,7 @@ namespace std {
   Make an index/pointer regex and a range regex and try to match both
   Throw error if no parse
 */
-Location fromString(string str) {
+Location fromString(const string& str) {
   string prefix = "^([IPR])\\" + refDelimiter + "(.*)\\" + refDelimiter;
   string index = "\\(([0-9]+),([0-9]+)\\)$";
   string range = "\\(\\(([0-9]+),([0-9]+)\\),\\(([0-9]+),([0-9]+)\\)\\)$";
@@ -89,24 +97,24 @@ Location fromString(string str) {
 }
 
 string toString(const Location& l) {
-    string middle = refDelimiter + l.getSheetName() + refDelimiter;
-    string location;
-    int tlCol = l.getTlCol(); 
-    int tlRow = l.getTlRow();
-    int brRow = l.getBrRow();
-    int brCol = l.getBrCol();
-    switch(l.getLocationType()) {
-      case Location::LocationType::INDEX:
-        location = "(" + to_string(tlCol) + "," + to_string(tlRow) + ")";
-        return "I" + middle + location;
-        break;
-      case Location::LocationType::POINTER:
-        location = "(" + to_string(tlCol) + "," + to_string(tlRow) + ")";
-        return "P" + middle + location;
-        break;
-      case Location::LocationType::RANGE: 
-        location = "((" +  to_string(tlCol) + "," + to_string(tlRow) + "),(" + to_string(brCol) + "," + to_string(brRow) + "))";
-        return "R" + middle + location;
-        break;
-    }
-  };
+  string middle = refDelimiter + l.getSheetName() + refDelimiter;
+  string location;
+  int tlCol = l.getTlCol(); 
+  int tlRow = l.getTlRow();
+  int brRow = l.getBrRow();
+  int brCol = l.getBrCol();
+  switch(l.getLocationType()) {
+    case Location::LocationType::INDEX:
+      location = "(" + to_string(tlCol) + "," + to_string(tlRow) + ")";
+      return "I" + middle + location;
+      break;
+    case Location::LocationType::POINTER:
+      location = "(" + to_string(tlCol) + "," + to_string(tlRow) + ")";
+      return "P" + middle + location;
+      break;
+    case Location::LocationType::RANGE: 
+      location = "((" +  to_string(tlCol) + "," + to_string(tlRow) + "),(" + to_string(brCol) + "," + to_string(brRow) + "))";
+      return "R" + middle + location;
+      break;
+  }
+};
