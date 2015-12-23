@@ -7,6 +7,7 @@ import AS.Types.User
 import AS.Types.Excel hiding (dbConn)
 import AS.Types.Eval
 import AS.Types.Commits
+import AS.Types.Updates
 
 import AS.DB.Internal as DI
 import AS.Types.Bar
@@ -22,31 +23,38 @@ import AS.Logging
 import Control.Concurrent
 import Data.Maybe
 
-injectBarDiffIntoCommit :: BarDiff -> ASCommit -> ASCommit
-injectBarDiffIntoCommit bard c = c { barDiff = bard }
+injectDiffIntoCommit :: BarDiff -> ASCommit -> ASCommit
+injectDiffIntoCommit bd c = c { barDiff = bd }
 
 handleMutateSheet :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
 handleMutateSheet uc state (PayloadMutate mutateType) = do
   let sid = userSheetId uc
   conn <- dbConn <$> readMVar state
+  -- update cells 
   oldCells <- DB.getCellsInSheet conn (userSheetId uc)
   let newCells = map (cellMap mutateType) oldCells
-      oldCellsNewCells = zip oldCells newCells
-      oldCellsNewCells' = filter (\(c, c') -> (Just c /= c')) oldCellsNewCells
-      -- ^ don't update cells that haven't changed
-      newCells' = mapMaybe snd oldCellsNewCells'
-      blankedCells = blankCellsAt $ map (cellLocation . fst) oldCellsNewCells'
+      (oldCells', newCells') = keepUnequal $ zip oldCells newCells
+      blankedCells = blankCellsAt $ map cellLocation oldCells'
       updatedCells = mergeCells newCells' blankedCells -- eval blanks at the old cell locations, re-eval at new locs
-  printObj "newCells" newCells
-  -- barProps update. TODO: timchu, refactor oldBars and newBars
+  
+  -- update barProps
   oldBars <- DB.getBarsInSheet conn sid
-  let newBars = mapMaybe (barMap mutateType) oldBars
-  DB.replaceBars conn oldBars newBars
-  let bardiff = BarDiff { beforeBars = oldBars, afterBars = newBars }
-      commitTransform = injectBarDiffIntoCommit bardiff
-  printObj "Commit Transform in Handle Mutate Sheet" bardiff
-  updateMsg <- runDispatchCycle state updatedCells DescendantsWithParent (userCommitSource uc) commitTransform
-  broadcastFiltered state uc updateMsg
+  let newBars = map (barMap mutateType) oldBars
+      (oldBars', newBars') = keepUnequal $ zip oldBars newBars
+  DB.replaceBars conn oldBars' newBars'
+
+  -- propagate changes
+  let bardiff = Diff { beforeVals = oldBars', afterVals = newBars' }
+      commitTransform = injectDiffIntoCommit bardiff
+  errOrCommit <- runDispatchCycle state updatedCells DescendantsWithParent (userCommitSource uc) commitTransform
+  broadcastFiltered state uc $ makeReplyMessageFromErrOrCommit errOrCommit
+
+keepUnequal :: (Eq a) => [(a, Maybe a)] -> ([a], [a])
+keepUnequal x = (ls1, ls2) 
+  where 
+    unequals = filter (\(c, c') -> (Just c /= c')) x
+    ls1 = map      fst unequals
+    ls2 = mapMaybe snd unequals
 
 -- | For a mutate, maps the old row and column to the new row and column.
 barIndexMap :: MutateType -> BarIndex -> Maybe BarIndex

@@ -3,31 +3,18 @@
 --TODO: timchu, can clean up these imports.
 module AS.Types.CondFormat where
 
-import AS.Types.DB (ASCommit)
 import AS.Types.Cell
 import AS.Types.Eval
 import AS.Types.Locations
 import AS.Types.CellProps
--- apparently used for FromJSON on ADTs
-import qualified Data.HashMap.Strict as HML
-import qualified Data.Text.Lazy as TL
 import Data.List
+import AS.Types.Updates
 
 import GHC.Generics
 import Data.Aeson hiding (Success)
 import Data.Aeson.Types
 import Data.Serialize (Serialize)
 import qualified Data.Text as T
-
-
-instance ToJSON CondFormatRule
-instance FromJSON CondFormatRule
-
-instance ToJSON CondFormatCondition
-instance FromJSON CondFormatCondition
-instance Serialize CondFormatRule
-instance Serialize CondFormatCondition
-
 
 data CondFormatRule = CondFormatRule { cellLocs :: [ASRange],
                                        condition :: CondFormatCondition,
@@ -233,6 +220,20 @@ class TwoExpressionCondition a where
   checkerTwo s val evalXp = do
     [val1, val2] <- mapM evalXp [getFstXp s, getSndXp s]
     return $ (symbolTableLookup2 s) val val1 val2
+
+type CondFormatRuleUpdate = Update CondFormatRule () -- #incomplete not yet implemented
+
+instance ToJSON CondFormatRule
+instance FromJSON CondFormatRule
+instance Serialize CondFormatRule
+
+instance ToJSON CondFormatCondition
+instance FromJSON CondFormatCondition
+instance Serialize CondFormatCondition
+
+instance ToJSON CondFormatRuleUpdate
+instance FromJSON CondFormatRuleUpdate
+instance Serialize CondFormatRuleUpdate
 
 instance ToJSON CustomCondition
 instance FromJSON CustomCondition

@@ -35,7 +35,7 @@ parseValue lang = readOutput . (parse (value lang) "")
 value :: ASLanguage -> Parser CompositeValue
 value lang = 
       CellValue <$> try (asValue lang)
-  <|> (try $ parseComposite lang)
+  <|> try (parseComposite lang)
 
 asValue :: ASLanguage -> Parser ASValue
 asValue lang =
@@ -96,7 +96,7 @@ complain = fail "could not parse complex/object/json value"
 
 parseComposite :: ASLanguage -> Parser CompositeValue
 parseComposite lang = 
-      f =<< (try $ json lang) 
+      f =<< try (json lang) 
   <|> complain
   where f js = case (js .$> "tag") of 
             Just tag -> case (extractCompositeValue tag js) of 
@@ -135,23 +135,13 @@ extractExpanding js =
     _ -> Nothing
 
 extractSerialized :: JSON -> Maybe ASValue
-extractSerialized js = case (js .$> "serializedValue") of 
-  Just s -> case (js .$> "displayName") of 
-    Just n -> Just $ ValueSerialized s n
-    _ -> Nothing
-  _ -> Nothing
+extractSerialized js = ValueSerialized <$> (js .$> "serializedValue") <*> (js .$> "displayName")
 
 extractImage :: JSON -> Maybe ASValue
-extractImage js = case (js .$> "imagePath") of 
-  Just path -> Just $ ValueImage path
-  _ -> Nothing
+extractImage js = ValueImage <$> (js .$> "imagePath")  
 
 extractError :: JSON -> Maybe ASValue
-extractError js = case (js .$> "errorMsg") of 
-  Just emsg -> case (js .$> "errorType") of
-    Just etype -> Just $ ValueError emsg etype
-    _ -> Nothing
-  _ -> Nothing
+extractError js = ValueError <$> (js .$> "errorMsg") <*> (js .$> "errorType") 
 
 extractCollection :: JSON -> JSONKey -> Maybe Collection
 extractCollection js key = case (js .> key) of 

@@ -4,14 +4,14 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE BangPatterns #-}
 
 module AS.Types.Excel where
 
-import AS.Types.Cell
 import AS.Types.CellProps
 import AS.Types.Locations
-import AS.Types.Errors
 import AS.Types.Eval
+import AS.Types.Errors
 import AS.Types.Sheets
 
 import Prelude
@@ -234,9 +234,13 @@ type ExtractArg a = (String -> Int -> [EEntity] -> ThrowsError a)
 class EType a where
   -- | Can the entity be cast into type a? Implemented by all instances.
   extractType :: (EEntity -> Maybe a)
-  -- | If the argument exists and is of the right type, return that type. Else return an error.
-  getRequired :: String -> ExtractArg a
-  getRequired typeName f i entities
+
+    -- getRequired is getRequired' with the type passed in as the first argument.
+    -- It gets implemented for each instance of EType.
+  getRequired :: ExtractArg a
+    -- | If the argument exists and is of the right type, return that type. Else return an error.
+  getRequired' :: String -> ExtractArg a
+  getRequired' typeName f i entities
     | length entities < i = Left $ RequiredArgMissing f i
     | otherwise = case (extractType entity) of
         Nothing -> Left $ ArgType f i typeName (getType entity)
@@ -244,20 +248,22 @@ class EType a where
         where
           entity = entities!!(i-1)
   -- | Same as above, but allow for a default value (optional argument)
-  getOptional :: String -> a -> ExtractArg a
-  getOptional typeName defaultVal f i entities
+  getOptional :: a -> ExtractArg a
+  getOptional' :: String -> a -> ExtractArg a
+  getOptional' typeName defaultVal f i entities
     | length entities < i = Right defaultVal
     -- | If the value is missing, return default
     -- | Must be the correct type if it exists as an argument
     | otherwise = case (entities!!(i-1)) of
       EntityVal EMissing -> Right defaultVal
-      otherwise -> getRequired typeName f i entities
+      otherwise -> getRequired' typeName f i entities
   -- | Same as above, but no default value (just return Nothing if the argument doesn't exist)
-  getOptionalMaybe :: String -> ExtractArg (Maybe a)
-  getOptionalMaybe typeName f i entities
+  getOptionalMaybe :: ExtractArg (Maybe a)
+  getOptionalMaybe' :: String -> ExtractArg (Maybe a)
+  getOptionalMaybe' typeName f i entities
     | length entities < i = Right Nothing
     | otherwise = do
-        entity <- getRequired typeName f i entities
+        entity <- getRequired' typeName f i entities
         return $ Just entity
 
 -- NOTE: treating index refs as 1x1 matrices if they're replaced, but some functions still want numerics, for example, not 1x1 matrices
@@ -267,16 +273,25 @@ instance EType Bool where
   extractType (EntityMatrix (EMatrix 1 1 v)) = extractType $ EntityVal $ V.head v
   extractType (EntityVal (EValueB b)) = Just b
   extractType _ = Nothing
+  getRequired = getRequired' "bool"
+  getOptional = getOptional' "bool"
+  getOptionalMaybe = getOptionalMaybe' "bool"
 
 instance EType EValue where
   extractType (EntityMatrix (EMatrix 1 1 v)) = extractType $ EntityVal $ V.head v
   extractType (EntityVal v) = Just v
   extractType _ = Nothing
+  getRequired = getRequired' "value"
+  getOptional = getOptional' "value"
+  getOptionalMaybe = getOptionalMaybe' "value"
 
 instance EType String where
   extractType (EntityMatrix (EMatrix 1 1 v)) = extractType $ EntityVal $ V.head v
   extractType (EntityVal (EValueS s)) = Just s
   extractType _ = Nothing
+  getRequired = getRequired' "string"
+  getOptional = getOptional' "string"
+  getOptionalMaybe = getOptionalMaybe' "string"
 
 instance EType ERef where
   extractType (EntityRef r) = Just r
@@ -287,36 +302,52 @@ instance EType Integer where
   extractType (EntityVal (EValueNum (Formatted (EValueD d) _))) = Just $ floor d
   extractType (EntityVal (EValueNum (Formatted (EValueI i) _))) = Just i
   extractType _ = Nothing
+  getRequired = getRequired' "int"
+  getOptional = getOptional' "int"
+  getOptionalMaybe = getOptionalMaybe' "int"
 
 instance EType Int where
   extractType (EntityMatrix (EMatrix 1 1 v)) = extractType $ EntityVal $ V.head v
   extractType (EntityVal (EValueNum (Formatted (EValueD d) _))) = Just $ floor d
   extractType (EntityVal (EValueNum (Formatted (EValueI i) _))) = Just $ fromIntegral i
   extractType _ = Nothing
+  getRequired = getRequired' "int"
+  getOptional = getOptional' "int"
+  getOptionalMaybe = getOptionalMaybe' "int"
 
 instance EType Double where
   extractType (EntityMatrix (EMatrix 1 1 v)) = extractType $ EntityVal $ V.head v
   extractType (EntityVal (EValueNum (Formatted (EValueD d) _))) = Just d
   extractType (EntityVal (EValueNum (Formatted (EValueI i) _))) = Just $ fromIntegral i
   extractType _ = Nothing
+  getRequired = getRequired' "double"
+  getOptional = getOptional' "double"
+  getOptionalMaybe = getOptionalMaybe' "double"
 
 instance EType EMatrix where
   extractType (EntityMatrix m) = Just m
   extractType _ = Nothing
+  getRequired = getRequired' "matrix"
+  getOptional = getOptional' "matrix"
+  getOptionalMaybe = getOptionalMaybe' "matrix"
 
 
 instance EType EFormattedNumeric where
   extractType (EntityMatrix (EMatrix 1 1 v)) = extractType $ EntityVal $ V.head v
   extractType (EntityVal (EValueNum n)) = Just n
   extractType _ = Nothing
+  getRequired = getRequired' "numeric"
+  getOptional = getOptional' "numeric"
+  getOptionalMaybe = getOptionalMaybe' "numeric"
 
 -- | Print the type, useful for error messages
 getType :: EEntity -> String
 getType (EntityRef _) = "ref"
 getType (EntityVal (EValueS _)) = "string"
 getType (EntityVal (EValueNum (Formatted (EValueI _) _))) = "int"
-getType (EntityVal (EValueNum _)) = "numeric"
+getType (EntityVal (EValueNum _)) = "double"
 getType (EntityVal (EValueB _)) = "bool"
+getType (EntityVal (EValueE _)) = "err"
 getType (EntityMatrix m) = "matrix"
 getType (EntityVal v) = "value"
 

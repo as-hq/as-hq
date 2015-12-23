@@ -33,8 +33,8 @@ handleEval uc state payload  = do
   conn <- dbConn <$> readMVar state
   oldTags <- getPropsAt conn (map cellLocation cells)
   let cells' = map (\(c, ps) -> c { cellProps = ps }) (zip cells oldTags)
-  msg' <- runDispatchCycle state cells' DescendantsWithParent (userCommitSource uc) id
-  broadcastFiltered state uc msg'
+  errOrCommit <- runDispatchCycle state cells' DescendantsWithParent (userCommitSource uc) id
+  broadcastFiltered state uc $ makeReplyMessageFromErrOrCommit errOrCommit
 
 handleEvalRepl :: ASUserClient -> ASPayload -> IO ()
 handleEvalRepl uc (PayloadXp xp) = do
@@ -61,6 +61,5 @@ handleDecouple uc state payload = do
     Nothing -> return ()
     Just c -> do
       updateDBWithCommit conn src c
-      let msg = ServerMessage Update Success (PayloadCL (afterCells . cellDiff $ c))
-      broadcastFiltered state uc msg
+      broadcastFiltered state uc $ makeReplyMessageFromCommit c
 
