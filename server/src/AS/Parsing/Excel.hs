@@ -80,6 +80,7 @@ outOfBoundsMatch = string "#REF!" >> return ExOutOfBounds
 colRangeMatch :: Parser ExColRange
 colRangeMatch = do
   tl <- indexMatch
+  colon
   dol  <- optionMaybe dollar
   r <- many1 letter
   return $ ExColRange tl (ExCol (readSingleRef dol) r)
