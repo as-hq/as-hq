@@ -328,7 +328,7 @@ export type IsBetweenCondition = {
 };
 
 export type IsNotBetweenCondition = {
-  tag: 'IsBetweenCondition';
+  tag: 'IsNotBetweenCondition';
   contents: [ASExpression, ASExpression];
 };
 
