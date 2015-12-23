@@ -621,7 +621,7 @@ export default React.createClass({
   },
 
   _clickedCellIsInRowHeader(clickedCell: HGPoint): boolean {
-    return (clickedCell.x >= 0 && clickedCell.y >= 1); // == 0? ==-1? not entirely sure
+    return (clickedCell.x <= 0 && clickedCell.y >= 1); // == 0? ==-1? not entirely sure
   },
 
   // expects that the current sheet has already been set
