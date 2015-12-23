@@ -76,6 +76,7 @@ export default class ASCondFormattingDialog
             onDeleteRule={this._onDeleteRule.bind(this)} />
         </Dialog>
         <RuleDialog
+          variantRange={true}
           onSubmitRule={this._onSubmitRule(-2).bind(this)}
           open={openRule === -2}
           onRequestClose={this._onCloseRule(-2).bind(this)}/>

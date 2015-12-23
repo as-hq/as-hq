@@ -28,11 +28,12 @@ import type {
 import _ from 'lodash';
 
 import React, {PropTypes} from 'react';
-import {Dialog, TextField, DropDownMenu} from 'material-ui';
+import {Dialog, TextField} from 'material-ui';
 
 import {Just, Nothing} from '../../AS/Maybe';
 
 import ASColorPicker from '../basic-controls/ASColorPicker.jsx';
+import ASDropdownMenu from '../basic-controls/ASDropdownMenu.jsx';
 
 import API from '../../actions/ASApiActionCreators';
 import CFStore from '../../stores/ASCondFormatStore';
@@ -57,14 +58,15 @@ type StyleMenuItem = 'bold'
   | 'text_color';
 
 type RuleDialogProps = {
-  initialRule: ?CondFormatRule;
+  initialRule?: CondFormatRule;
+  variantRange?: boolean;
   open: boolean;
   onRequestClose: Callback;
   onSubmitRule: Callback<CondFormatRule>;
 };
 
 type DialogCondFormatRule = {
-  range: NakedRange;
+  range: string;
   conditionType: ConditionMenuItem;
   expr1: string;
   expr2: string;
@@ -163,14 +165,8 @@ function convertStyleToClient(ruleStyle: ASCellProp): ({
 
 function convertToClient(rule: ?CondFormatRule): DialogCondFormatRule {
   if (rule === null || rule === undefined) { // Default
-    let sel = SelectionStore.getActiveSelection() || {
-      range: {
-        tl: {row: 1, col: 1}, br: {row: 1, col: 1}
-      }
-    };
-
     return ({
-      range: sel.range,
+      range: '',
       conditionType: 'greater_than',
       expr1: '',
       expr2: '',
@@ -179,7 +175,7 @@ function convertToClient(rule: ?CondFormatRule): DialogCondFormatRule {
     });
   } else {
     return ({
-      range: rule.cellLocs[0].range,
+      range: TC.rangeToExcel(rule.cellLocs[0].range),
       ...convertConditionToClient(rule.condition),
       ...convertStyleToClient(rule.condFormat)
     });
@@ -251,7 +247,7 @@ function convertToServer(rule: DialogCondFormatRule): CondFormatRule {
     cellLocs: [{
       tag: 'range',
       sheetId: SheetStateStore.getCurrentSheet().sheetId , // TODO: get current sheet id
-      range: rule.range
+      range: TC.excelToRange(rule.range)
     }]
   });
 }
@@ -280,7 +276,7 @@ function showStyleColorField(rule: DialogCondFormatRule): boolean {
   }
 }
 
-export default class ASCondFormattingDialog
+export default class ASCondFormattingRuleDialog
   extends React.Component<{}, RuleDialogProps, RuleDialogState>
 {
   constructor(props: RuleDialogProps) {
@@ -291,6 +287,27 @@ export default class ASCondFormattingDialog
     };
   }
 
+  componentDidMount() {
+    SelectionStore.addChangeListener(this._onChangeDefaultSelection.bind(this));
+  }
+
+  componentWillUnmount() {
+    SelectionStore.removeChangeListener(this._onChangeDefaultSelection.bind(this));
+  }
+
+  _onChangeDefaultSelection() {
+    let sel = SelectionStore.getActiveSelection();
+
+    if (sel && this.props.variantRange) {
+      let self = this;
+      let {range} = sel;
+
+      this.setState({
+        rule: { ...self.state.rule, range: TC.rangeToExcel(range) }
+      });
+    }
+  }
+
   linkStateLens<T>(lens: Lens<RuleDialogState, T>): ReactValueLink {
     let self = this;
     return ({
@@ -298,19 +315,6 @@ export default class ASCondFormattingDialog
       requestChange(newValue: T) {
         console.log('request change');
         lens.set(self.state, newValue);
-      }
-    });
-  }
-
-  linkRuleRangeState(): ReactValueLink {
-    let self = this;
-
-    return this.linkStateLens({
-      get: (state: RuleDialogState) => TC.rangeToExcel(state.rule.range),
-      set: (state: RuleDialogState, val: string) => {
-        self.setState({ rule: { ...self.state.rule,
-          range: TC.excelToRange(val)
-        }});
       }
     });
   }
@@ -349,10 +353,9 @@ export default class ASCondFormattingDialog
         <TextField
           style={standardStyling}
           hintText="Range"
-          valueLink={this.linkRuleRangeState()} />
+          valueLink={this.linkRuleState('range')} />
         <br />
-        <DropDownMenu
-          style={standardStyling}
+        <ASDropdownMenu
           menuItems={CONDITION_MENU_ITEMS}
           valueLink={this.linkRuleState('conditionType')} />
         <br />
@@ -374,13 +377,18 @@ export default class ASCondFormattingDialog
             <br />
           ]
         ) : null}
-        <DropDownMenu
-          style={standardStyling}
+        <ASDropdownMenu
           menuItems={STYLING_MENU_ITEMS}
           valueLink={this.linkRuleState('style')} />
+        {
+          showStyleColorField(this.state.rule)
+            ? [
+              <br />,
+              <ASColorPicker valueLink={this.linkRuleState('styleColor')} />
+            ]
+            : null
+        }
         <br />
-        {showStyleColorField(this.state.rule) ?
-          <ASColorPicker valueLink={this.linkRuleState('styleColor')} /> : null}
         {_.range(7).map(() => <br />)}
       </Dialog>
     );
