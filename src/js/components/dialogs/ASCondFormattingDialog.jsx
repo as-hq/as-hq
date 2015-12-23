@@ -63,13 +63,19 @@ export default class ASCondFormattingDialog
         secondary={true}
         onTouchTap={this._onCreateRule.bind(this)} />;
 
+    let doneAction =
+      <FlatButton
+        label="Done"
+        secondary={true}
+        onTouchTap={this.props.onRequestClose} />;
+
     return (
       <div>
         <Dialog
           open={open}
           onRequestClose={onRequestClose}
           title="Conditional formatting"
-          actions={[newRuleAction]} >
+          actions={[newRuleAction, doneAction]} >
           <Contents
             rules={rules}
             onEditRule={this._onEditRule.bind(this)}
