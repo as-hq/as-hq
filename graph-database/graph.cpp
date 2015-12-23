@@ -20,8 +20,8 @@ bool DAG::cycleCheck(const Vertex& loc, unordered_map<Vertex,bool>& visited, uno
     visited[loc] = true;
     rec_stack[loc] = true;
 
-    if (fromToAdjList.count(loc)) { // so that the fromToAdjList key isn't created if there's nothing there
-      for (const auto& toLoc : fromToAdjList[loc]) {
+    if (hasImmediateDesc(loc)){
+      for (const auto& toLoc : getImmediateDesc(loc)) {
         if (!visited[toLoc] && DAG::cycleCheck(toLoc, visited, rec_stack)) {
           return true;
         }
@@ -30,7 +30,6 @@ bool DAG::cycleCheck(const Vertex& loc, unordered_map<Vertex,bool>& visited, uno
         }
       }
     }
-
   }
   rec_stack[loc] = false;
   return false;
@@ -119,8 +118,8 @@ void DAG::updateDAG(DAG::Vertex toLoc, const DAG::VertexSet& fromLocs) {
 
 /* Given a location, current visited state, current (reverse) topological order, do one more layer of the DFS and recurse */
 void DAG::depthFirstSearch (const DAG::Vertex& loc, unordered_map<DAG::Vertex,bool>& visited, vector<DAG::Vertex>& order){
-  if (fromToAdjList.count(loc)) { // so that the fromToAdjList key isn't created if there's nothing there
-    for (const auto& toLoc : fromToAdjList[loc]){
+  if (hasImmediateDesc(loc)) { // so that keys aren't created if there's nothing there.
+    for (const auto& toLoc : getImmediateDesc(loc)){
       if (!visited[toLoc]) {
         DAG::depthFirstSearch(toLoc,visited,order);
       }

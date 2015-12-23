@@ -50,10 +50,13 @@ private:
   AdjacencyList prevCache;
   ColNeighbors fromColTo;
 
-  /* Fills the second argument vector with the immediate descendants in the graph of the first argument. */
-  void fillImmediateDescendants(const Vertex& loc, vector<Vertex>& locs);
+  /* Fills the locs vector with the immediate descendants loc.
+   * Immediate descendants of loc are a mix of descendants referenced as part of a
+   * range, pointer, or index expression (in the fromToAdjList), and the colRange
+   * descendants (in the fromColTo map). */
+  void fillImmDesc(const Vertex& loc, vector<Vertex>& locs);
   void depthFirstSearch(const Vertex& loc, unordered_map<Vertex,bool>& visited, vector<Vertex>& order);
   bool cycleCheck(const Vertex& loc, unordered_map<Vertex,bool>& visited, unordered_map<Vertex,bool>& rec_stack);
 };
 
-#endif /* GRAPH_H */ 
+#endif /* GRAPH_H */
