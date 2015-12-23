@@ -13,6 +13,29 @@ void DAG::clearDAG() {
   fromToAdjList.clear();
 }
 
+/************ Helper methods for finding immediate descendant. *****/
+
+VertexSet findColDescendants(DAG::Vertex loc){
+  VertexSet a;
+  int r = getRowNum(loc);
+  Column column = getColumn(loc);
+  if (fromColumnTo.count(column) > 0) { // Don't create column key in fromColumnTo if column is not present.
+    for (const auto& p : fromColumnTo[column]) {
+      if (p.first() <= r) {
+        VertexSet v  = p.second();
+        a.insert(v.begin(), v.end());
+      }
+    }
+  }
+}
+
+VertexSEt getImmediateDesc(DAG::Vertex loc) {
+  VertexSet a;
+  if (fromToAdjList.count(loc) > 0) { 
+    a = fromToAdjList[loc];
+  }
+  return findColDescendants(loc).insert(a.begin(), a.end());
+}
 /****************************************************************************************************************************************/
 
 bool DAG::cycleCheck(const Vertex& loc, unordered_map<Vertex,bool>& visited, unordered_map<Vertex,bool>& rec_stack) {
@@ -162,7 +185,7 @@ DAG::DAGResponse DAG::getProperDescendants(const vector<DAG::Vertex>& locs){
 
   for (const auto& loc: locs) {
     if (!visited[loc]){
-      if (hasImmediateDescendants) {
+      if (hasImmediateDesc(loc)) {
         for (const auto& toLoc : getImmediateDescendants(loc)){
             DAG::depthFirstSearch(toLoc,visited,order);
           }
