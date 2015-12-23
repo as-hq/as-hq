@@ -4,7 +4,7 @@ import {Styles, FontIcon} from 'material-ui';
 
 import ToolbarController from './ToolbarController.jsx';
 import ToolbarButton from './ToolbarButton.jsx';
-import GenerateToolbarComponentWithMenu from './GenerateToolbarComponentWithMenu.jsx';
+import GenerateToolbarMenu from './GenerateToolbarMenu.jsx';
 
 
 export default React.createClass({
@@ -56,7 +56,7 @@ export default React.createClass({
   //Render
 
   render() {
-    let ButtonWithMenu = GenerateToolbarComponentWithMenu(ToolbarButton);
+    let ButtonWithMenu = GenerateToolbarMenu(ToolbarButton);
     return (
       <ButtonWithMenu
         toolbarControlProps={this.toolbarControlProps()}

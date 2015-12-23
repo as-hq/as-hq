@@ -12,6 +12,9 @@ import FontSizePicker from './FontSizePicker.jsx';
 import FontPicker from './FontPicker.jsx';
 import LanguagePicker from './LanguagePicker.jsx';
 import ColorPicker from './ColorPicker.jsx';
+import HAlignPicker from './HAlignPicker.jsx';
+import VAlignPicker from './VAlignPicker.jsx';
+
 
 export default React.createClass({
 
@@ -116,6 +119,8 @@ export default React.createClass({
 
         <ColorPicker propTag="FillColor" iconName="format_color_fill" tooltip="Fill color" />
         <ColorPicker propTag="BorderColor" iconName="border_color" tooltip="Border color" />
+        <HAlignPicker />
+        <VAlignPicker />
 
         <div style={separatorStyle} />
 
@@ -125,6 +130,8 @@ export default React.createClass({
           onClick={() => {}}/>
         <ToolbarButton iconName="poll" tooltip="Insert chart..." usePushState={false}
           onClick={() => {}}/>
+        <ToolbarButton iconName="functions" tooltip="Functions" usePushState={false}
+          onClick={(e, state) => {window.open('http://alphasheets.com');}}/>
 
       </div>
     );

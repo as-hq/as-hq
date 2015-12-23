@@ -40,7 +40,7 @@ export default React.createClass({
     return {
       toolbarWidth: 100, 
       toolbarHeight: 36
-    }
+    };
   },
 
   /*************************************************************************************************************************/
@@ -87,7 +87,6 @@ export default React.createClass({
   // inform the parent, which will update its state and then render the menu invisible.
   _onDropdownClicked() {
     let lastClickedId = ToolbarStore.getLastClickedId();
-    debugger;
     if (lastClickedId !== this.props.id && this._menuVisible()) {
       this.props.onMenuShouldClose();
     }

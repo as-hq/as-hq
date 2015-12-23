@@ -13,7 +13,6 @@ let {
 
 import MenuController from './MenuController.jsx';
 import ToolbarButton from './ToolbarButton.jsx';
-import GenerateToolbarComponentWithMenu from './GenerateToolbarComponentWithMenu.jsx';
 
 export default React.createClass({
 

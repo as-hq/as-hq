@@ -7,7 +7,6 @@ import type {
 } from '../../types/Eval';
 
 import React, {PropTypes} from 'react';
-import _ from 'lodash';
 
 import API from '../../actions/ASApiActionCreators';
 import CellStore from '../../stores/ASCellStore';
@@ -39,24 +38,14 @@ export default React.createClass({
     CellStore.removeChangeListener(this._onActiveCellChange);
   },
 
-  // Keep track of previous state so that we don't send redundant messages
-  getInitialState() {
-    return {
-      activeCell: null
-    }
-  },
-
   /* 
     When the active selection or cell change, tell the underlying control to change its state based on that cell. 
-    For example, change loc to A5; if A5 is bold, the bold button needs to be pushed in. Only send update if something relevant changed.
+    For example, change loc to A5; if A5 is bold, the bold button needs to be pushed in. 
   */
   _onActiveCellChange() {
     let ac = CellStore.getActiveCell();
-    // Only send updates to control if the active cell changed
-    if (!_.isEqual(ac, this.state.activeCell)) {
-      this.setState({activeCell: ac});
-      this.props.setControlStateFromCell(ac);
-    }
+    this.setState({activeCell: ac});
+    this.props.setControlStateFromCell(ac);
   },
 
   /*

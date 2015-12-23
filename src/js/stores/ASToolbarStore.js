@@ -26,7 +26,6 @@ const ASToolbarStore = Object.assign({}, BaseStore, {
         } else {
           _data.lastClickedId = action.id;
         }
-        debugger;
         ASToolbarStore.emitChange();
     }
   }),

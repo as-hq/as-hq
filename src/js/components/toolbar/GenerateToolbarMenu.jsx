@@ -6,7 +6,7 @@ import Divider from 'material-ui/lib/divider';
 import ToolbarController from './ToolbarController.jsx';
 import MenuController from './MenuController.jsx';
 
-let GenerateToolbarComponentWithMenu = function(ToolbarComponent) {
+let GenerateToolbarMenu = function(ToolbarComponent) {
 
   return React.createClass({
 
@@ -26,6 +26,9 @@ let GenerateToolbarComponentWithMenu = function(ToolbarComponent) {
           6) Initial value in menu
           7) Width: menu width
           8) Max height, will scroll if height > max height
+          9) Should we check selections
+          10) Id used for uniqueness of dropdowns
+          11) Width of toolbar control, for styling
       */
       propTypes: {
         toolbarControlProps: React.PropTypes.object.isRequired,
@@ -37,14 +40,16 @@ let GenerateToolbarComponentWithMenu = function(ToolbarComponent) {
         menuWidth: React.PropTypes.number,
         menuMaxHeight: React.PropTypes.number,
         menuShouldCheckSelections: React.PropTypes.bool,
-        id: React.PropTypes.string.isRequired
+        id: React.PropTypes.string.isRequired,
+        toolbarControlWidth: React.PropTypes.number
       },
 
       getDefaultProps() {
         return {
           menuWidth: 65,
           menuMaxHeight: 400,
-          menuShouldCheckSelections: true
+          menuShouldCheckSelections: true,
+          toolbarControlWidth: 100
         }
       },
 
@@ -65,6 +70,7 @@ let GenerateToolbarComponentWithMenu = function(ToolbarComponent) {
         let checkedValue = this.state.menuValue;
         let menuItems = this.props.menuProps.map((propSet) => {
           let valueMatch =  propSet.value === checkedValue;
+          propSet.key = propSet.value;
           // If you should have checks, the value matches the checked value in state, and there's no default left icon, render check
           if (!this.props.menuShouldCheckSelections) {
           } else if (propSet.leftIcon == null) {
@@ -167,13 +173,14 @@ let GenerateToolbarComponentWithMenu = function(ToolbarComponent) {
             propagateControlStateChange={this.props.propagateControlStateChange}
             setControlStateFromCell={this._setControlStateFromCell}
             id={this.props.id}
-            onMenuShouldClose={this._onMenuClose}/>
+            onMenuShouldClose={this._onMenuClose}
+            toolbarWidth={this.props.toolbarControlWidth} />
         );
       }
   });
 }
 
-export default GenerateToolbarComponentWithMenu;
+export default GenerateToolbarMenu;
 
 
 

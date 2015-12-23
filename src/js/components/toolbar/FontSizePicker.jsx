@@ -4,7 +4,7 @@ import {Styles, FontIcon} from 'material-ui';
 
 import ToolbarController from './ToolbarController.jsx';
 import ToolbarTextField from './ToolbarTextField.jsx';
-import GenerateToolbarComponentWithMenu from './GenerateToolbarComponentWithMenu.jsx';
+import GenerateToolbarMenu from './GenerateToolbarMenu.jsx';
 
 
 export default React.createClass({
@@ -53,7 +53,7 @@ export default React.createClass({
   //Render
 
   render() {
-    let ButtonWithMenu = GenerateToolbarComponentWithMenu(ToolbarTextField);
+    let ButtonWithMenu = GenerateToolbarMenu(ToolbarTextField);
     return (
       <ButtonWithMenu
         toolbarControlProps={this.toolbarControlProps()}
@@ -63,6 +63,7 @@ export default React.createClass({
         propagateControlStateChange={this._propagateControlStateChange}
         initialValue="10"
         menuWidth={65} 
+        toolbarControlWidth={45}
         id="FontSizePicker" />
     );
   }

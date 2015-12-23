@@ -2,47 +2,39 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import {Styles, FontIcon} from 'material-ui';
 
-import ToolbarController from './ToolbarController.jsx';
-import ToolbarTextField from './ToolbarTextField.jsx';
+import ToolbarButton from './ToolbarButton.jsx';
 import GenerateToolbarMenu from './GenerateToolbarMenu.jsx';
-
 
 export default React.createClass({
 
   /*************************************************************************************************************************/
   // Sub-component generation
 
-  fonts: [
-    {name: 'Arial', family: 'Arial'},
-    {name: 'Times New Roman', family: 'Times New Roman'},
-  ],
-
-  // Return a bunch of menu items, where each font is styled using its actual font, and an extra item for more fonts
+  // Return a bunch of menu items
   getMenuProps() {
-    let menuItems = this.fonts.map((font) => {
-      return {tag: 'MenuItem', primaryText: font.name, style: {fontFamily: font.family}, value: font.name};
-    });
-    let moreFontIcon = <FontIcon style={{backgroundColor: Styles.Colors.grey50}} className="material-icons"> {"add_box"} </FontIcon>;
-    menuItems.push({
-      tag: 'MenuItem', 
-      leftFontIcon: moreFontIcon, 
-      primaryText: "More Fonts", 
-      value: "",
-      onTouchTap: this._onMoreFonts});
+    let genIcon = (iconName) => {
+      return <FontIcon 
+        style={{backgroundColor: Styles.Colors.grey50, color: Styles.Colors.grey800}} 
+        className="material-icons"> 
+          {iconName} 
+        </FontIcon>;
+    };
+    let menuItems = [
+      {tag: 'MenuItem', primaryText: 'Left', value: 'left', rightIcon: genIcon('format_align_left')},
+      {tag: 'MenuItem', primaryText: 'Center', value: 'center', rightIcon: genIcon('format_align_center')},
+      {tag: 'MenuItem', primaryText: 'Right', value: 'right', rightIcon: genIcon('format_align_right')},
+    ];
     return menuItems;
   },
 
   toolbarControlProps() {
     return {
-      displayValue: "Arial",
-      tooltip: "Fonts",
-      showTooltip: true,
-      width: 200
+      iconName: 'format_align_left',
+      tooltip: 'Horizontal align',
+      usePushState: false,
+      includeDropdownArrow: true,
+      showTooltip: true
     };
-  },
-
-  _onMoreFonts(e, index) {
-    console.log("MORE FONTS CALLBACK");
   },
 
   /*************************************************************************************************************************/
@@ -50,18 +42,20 @@ export default React.createClass({
 
   // When the active cell changes to a new cell, get the new menu value that should be selected/checked 
   _getMenuValueFromCell(cell) {
-    return "Arial"; // TODO: something like cell.cellProps.font.fontName
+    console.log("\n\n\nHAlign picker cell ", cell)
+    return 'left'; // TODO: eventually cell.cellProps.halign
   },
 
   _propagateControlStateChange(nextValue, rng) {
-    // TODO: case on value, call some API function
-    console.log("Propagating state change to backend: " + nextValue);
+    console.log("Propagating language change: " + nextValue);
+    return; // TODO: eventually some API call
   },
 
   // Update the toolbar control props given a the menu visibility, menuValue, and current toolbarProps.
+  // In this case, we want the icon to reflect the menu choice.
   _toolbarControlPropTransform(menuVisible, menuValue, toolbarControlProps) {
     toolbarControlProps.showTooltip = !menuVisible;
-    toolbarControlProps.displayValue = menuValue;
+    toolbarControlProps.iconName = 'format_align_' + menuValue;
     return toolbarControlProps;
   },
 
@@ -69,7 +63,7 @@ export default React.createClass({
   //Render
 
   render() {
-    let ButtonWithMenu = GenerateToolbarMenu(ToolbarTextField);
+    let ButtonWithMenu = GenerateToolbarMenu(ToolbarButton);
     return (
       <ButtonWithMenu
         toolbarControlProps={this.toolbarControlProps()}
@@ -77,10 +71,9 @@ export default React.createClass({
         getMenuValueFromCell={this._getMenuValueFromCell}
         toolbarControlPropTransform={this._toolbarControlPropTransform}
         propagateControlStateChange={this._propagateControlStateChange}
-        initialValue="Arial"
+        initialValue={'left'}
         menuWidth={65} 
-        toolbarControlWidth={200}
-        id="FontPicker" />
+        id="HAlignPicker" />
     );
   }
 

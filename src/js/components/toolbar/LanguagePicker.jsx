@@ -4,7 +4,7 @@ import {Styles, FontIcon} from 'material-ui';
 
 import ToolbarController from './ToolbarController.jsx';
 import ToolbarTextField from './ToolbarTextField.jsx';
-import GenerateToolbarComponentWithMenu from './GenerateToolbarComponentWithMenu.jsx';
+import GenerateToolbarMenu from './GenerateToolbarMenu.jsx';
 import ExpStore from '../../stores/ASExpStore';
 import ToolbarActionCreator from '../../actions/ASToolbarActionCreators';
 import ToolbarStore from '../../stores/ASToolbarStore';
@@ -91,7 +91,7 @@ export default React.createClass({
   //Render
 
   render() {
-    let ButtonWithMenu = GenerateToolbarComponentWithMenu(ToolbarTextField);
+    let ButtonWithMenu = GenerateToolbarMenu(ToolbarTextField);
     return (
       <ButtonWithMenu
         toolbarControlProps={this.toolbarControlProps()}
@@ -101,6 +101,7 @@ export default React.createClass({
         propagateControlStateChange={this._propagateControlStateChange}
         initialValue={this.state.language}
         menuWidth={65} 
+        toolbarControlWidth={85}
         id="LanguagePicker" />
     );
   }
