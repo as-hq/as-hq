@@ -1,3 +1,4 @@
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DefaultSignatures #-}
 
@@ -5,26 +6,28 @@ module AS.Types.Cell
   ( module AS.Types.Cell
   , module AS.Types.Locations
   , module AS.Types.CellProps
+  , module AS.Types.Values
   ) where
 
 import AS.Types.Locations
+import AS.Types.RangeDescriptor
 import AS.Types.CellProps
 import AS.Types.Errors
 import AS.Types.Common
+import AS.Types.Updates
+import AS.Types.Values
 
 import GHC.Generics
 import Data.Aeson
 import Data.List
+import qualified Data.Map as M 
 
-import qualified Data.Map as M
 import Data.Serialize (Serialize)
 import Data.Aeson.Types (Parser)
 import Control.DeepSeq
 import Control.DeepSeq.Generics (genericRnf)
 
 data ASLanguage = R | Python | OCaml | CPP | Java | SQL | Excel deriving (Show, Read, Eq, Generic)
-
-data ExpandingType = List | RList | RDataFrame | NPArray | NPMatrix | PDataFrame | PSeries deriving (Show, Read, Eq, Generic)
 
 data ASExpression =
     Expression { expression :: String, language :: ASLanguage }
@@ -39,32 +42,20 @@ xpLanguage :: ASExpression -> ASLanguage
 xpLanguage (Expression _ lang) = lang
 xpLanguage (Coupled _ lang _ _) = lang
 
--- exactly the values that can be contained in a single cell
-data ASValue =
-    NoValue
-  | ValueNaN  
-  | ValueInf 
-  | ValueS String
-  | ValueI Integer
-  | ValueD Double
-  | ValueB Bool
-  | ValueImage { imagePath :: String }
-  | ValueError { errorMsg :: String, errorType :: String }
-  | ValueSerialized { serializedValue :: String, displayName :: String  }
-  deriving (Show, Read, Eq, Generic)
-
-
 data ASCell = Cell { cellLocation :: ASIndex
                    , cellExpression :: ASExpression
                    , cellValue :: ASValue
                    , cellProps :: ASCellProps } 
                    deriving (Read, Show, Eq, Generic)
 
--- range keys are used to access range descriptors, which relay metadata about a range of cells
--- e.g. for embedded lists and objects
-data RangeKey = RangeKey { keyIndex :: ASIndex
-                         , keyDimensions :: Dimensions } 
-                         deriving (Show, Read, Eq, Generic)
+-- NORM: never expand this type; always modify it using the records. (So we don't confuse 
+-- before and after accidentally.)
+type CellDiff = Diff ASCell 
+type CellUpdate = Update ASCell ASReference
+
+instance HasKey ASCell where
+  type KeyType ASCell = ASReference
+  key = IndexRef . cellLocation
 
 instance ToJSON ASExpression where
   toJSON (Expression xp lang) = object ["expression" .= xp,
@@ -86,24 +77,20 @@ instance FromJSON ASExpression where
 instance ToJSON ASCell
 instance FromJSON ASCell
 
+instance FromJSON CellDiff
+instance ToJSON CellDiff
+
+instance FromJSON CellUpdate
+instance ToJSON CellUpdate
+
 instance ToJSON ASLanguage
 instance FromJSON ASLanguage
 
-instance ToJSON ASValue
-instance FromJSON ASValue
-
-instance FromJSON ExpandingType
-instance ToJSON ExpandingType
-
-instance ToJSON RangeKey
-instance FromJSON RangeKey
-
-instance Serialize ASCell 
-instance Serialize ASValue
+instance Serialize ASCell
+instance Serialize CellDiff
+instance Serialize CellUpdate
 instance Serialize ASExpression
-instance Serialize RangeKey
 instance Serialize ASLanguage
-instance Serialize ExpandingType
 
 
 ----------------------------------------------------------------------------------------------------------------------------------------------

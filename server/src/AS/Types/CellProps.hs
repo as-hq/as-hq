@@ -130,16 +130,17 @@ data StreamSource = StreamB Bloomberg | NoSource deriving (Show, Read, Eq, Gener
 data Stream = Stream {streamSource :: StreamSource, streamFreq :: Int} deriving (Show, Read, Eq, Generic)
 -- A stream just needs a source and a frequency
 
--- Kind of a hack. The frontend only ever sends backend empty props -- it should be refactored to not
--- send back a cell at all, and ASCellProps should not actually be FromJSON.
+-- Frontend should actually *really* pass CellProps to backend. It currently does because frontend sends backend
+-- a cell to do eval, which has an ASCellProps field. It is always blank though and always should be blank. Currently
+-- defining this as a hack just to get it to compile -- the correcdt solution is to make this an error and have 
+-- frontend stop sending ASCell's. 
 instance FromJSON ASCellProps where
   parseJSON v = return emptyProps
+instance ToJSON ASCellProps where
+  toJSON (ASCellProps m cm) = toJSON $ M.elems $ M.union cm m
 
 instance FromJSON CellProp
 instance ToJSON CellProp
-
-instance ToJSON ASCellProps where
-  toJSON (ASCellProps m cm) = toJSON $ M.elems $ M.union cm m
 
 instance FromJSON VAlignType
 instance ToJSON VAlignType

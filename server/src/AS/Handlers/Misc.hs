@@ -8,11 +8,16 @@ import AS.Types.User
 import AS.Types.DB hiding (Clear)
 import AS.Types.Eval
 import AS.Types.Commits
-import qualified AS.Types.RowColProps as RP
+import AS.Types.CondFormat
+import AS.Types.Bar
+import AS.Types.Updates
+import qualified AS.Types.BarProps as BP
 
 import AS.Handlers.Eval
-import AS.Eval.CondFormat
 import AS.Handlers.Paste
+import AS.Handlers.Delete
+
+import AS.Eval.CondFormat
 
 import AS.Window
 import AS.Logging
@@ -47,16 +52,17 @@ import Control.Monad.Trans.Either
 handleAcknowledge :: ASUserClient -> IO ()
 handleAcknowledge uc = WS.sendTextData (userConn uc) ("ACK" :: T.Text)
 
-handleNew :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
-handleNew uc state (PayloadWorkbookSheets (wbs:[])) = do
-  conn <- dbConn <$> readMVar state
-  wbs' <- DB.createWorkbookSheet conn wbs
-  broadcast state $ ServerMessage New Success (PayloadWorkbookSheets [wbs'])
-handleNew uc state (PayloadWB wb) = do
-  conn <- dbConn <$> readMVar state
-  wb' <- DB.createWorkbook conn (workbookSheets wb)
-  broadcast state $ ServerMessage New Success (PayloadWB wb')
-  return () -- TODO determine whether users should be notified
+-- #needsrefactor currently incomplete, and inactive. 
+-- handleNew :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
+-- handleNew uc state (PayloadWorkbookSheets (wbs:[])) = do
+--   conn <- dbConn <$> readMVar state
+--   wbs' <- DB.createWorkbookSheet conn wbs
+--   broadcastTo state (wsSheets wbs') $ ServerMessage New Success (PayloadWorkbookSheets [wbs'])
+-- handleNew uc state (PayloadWB wb) = do
+--   conn <- dbConn <$> readMVar state
+--   wb' <- DB.createWorkbook conn (workbookSheets wb)
+--   broadcastTo state (wsSheets wb') $ ServerMessage New Success (PayloadWB wb')
+--   return () -- TODO determine whether users should be notified
 
 handleOpen :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
 handleOpen uc state (PayloadS (Sheet sid _ _)) = do
@@ -72,8 +78,10 @@ handleOpen uc state (PayloadS (Sheet sid _ _)) = do
   condFormatRules <- DB.getCondFormattingRules conn sid
   let xps = map (\(str, lang) -> Expression str lang) (zip headers langs)
   -- get column props
-  rowColProps <- DB.getRowColsInSheet conn sid
-  sendToOriginal uc $ ServerMessage Open Success $ PayloadOpen xps condFormatRules rowColProps
+  bars <- DB.getBarsInSheet conn sid
+
+  let sheetUpdate = SheetUpdate emptyUpdate (Update bars []) emptyUpdate (Update condFormatRules [])
+  sendToOriginal uc $ ServerMessage Open Success $ PayloadOpen xps sheetUpdate
 
 -- NOTE: doesn't send back blank cells. This means that if, e.g., there are cells that got blanked
 -- in the database, those blank cells will not get passed to the user (and those cells don't get
@@ -87,7 +95,7 @@ handleUpdateWindow cid state (PayloadW w) = do
   (flip catch) (badCellsHandler (dbConn curState) user') (do
     let newLocs = getScrolledLocs oldWindow w
     mcells <- DB.getCells (dbConn curState) $ concat $ map rangeToIndices newLocs
-    sendToOriginal user' $ makeUpdateWindowMessage (catMaybes mcells)
+    sendToOriginal user' $ makeReplyMessageFromCells UpdateWindow $ catMaybes mcells
     US.modifyUser (updateWindow w) user' state)
 
 -- | If a message is failing to parse from the server, undo the last commit (the one that added
@@ -104,52 +112,20 @@ handleGet :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
 handleGet uc state (PayloadLL locs) = do
   curState <- readMVar state
   mcells <- DB.getCells (dbConn curState) locs
-  sendToOriginal uc (makeGetMessage $ catMaybes mcells)
+  sendToOriginal uc (makeReplyMessageFromCells Get $ catMaybes mcells)
 handleGet uc state (PayloadList Sheets) = do
   curState <- readMVar state
   ss <- DB.getAllSheets (dbConn curState)
-  sendToOriginal uc $ ServerMessage Update Success (PayloadSS ss)
+  sendToOriginal uc $ ServerMessage UpdateSheet Success (PayloadSS ss)
 handleGet uc state (PayloadList Workbooks) = do
   curState <- readMVar state
   ws <- DB.getAllWorkbooks (dbConn curState)
-  sendToOriginal uc $ ServerMessage Update Success (PayloadWBS ws)
+  sendToOriginal uc $ ServerMessage UpdateSheet Success (PayloadWBS ws)
 handleGet uc state (PayloadList WorkbookSheets) = do
   curState <- readMVar state
   wss <- DB.getAllWorkbookSheets (dbConn curState)
   printWithTime $ "getting all workbooks: "  ++ (show wss)
-  sendToOriginal uc $ ServerMessage Update Success (PayloadWorkbookSheets wss)
-
-handleDelete :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
--- these handlers are DEPRECATED
---handleDelete uc state p@(PayloadWorkbookSheets (wbs:[])) = do
---  conn <- dbConn <$> readMVar state
---  DB.deleteWorkbookSheet conn wbs
---  broadcast state $ ServerMessage Delete Success p
---  return ()
---handleDelete uc state p@(PayloadWB workbook) = do
---  conn <- dbConn <$> readMVar state
---  DB.deleteWorkbook conn (workbookName workbook)
---  broadcast state $ ServerMessage Delete Success p
---  return ()
-handleDelete uc state (PayloadR rng) = do
-  let locs = rangeToIndices rng
-      badFormats = [ValueFormat Date]
-      -- ^ Deleting a cell keeps some of the formats but deletes others. This is the current list of
-      -- formats to remove upon deletion. 
-  conn <- dbConn <$> readMVar state
-  -- []
-  blankedCells <- DB.getBlankedCellsAt conn locs -- need to know the formats at the old locations
-  let removeBadFormat p c = if (hasProp p (cellProps c)) then removeCellProp (propType p) c else c
-      -- ^ CellProp -> ASCell -> ASCell
-      removeBadFormats ps = foldl' (.) id (map removeBadFormat ps)
-      -- ^ [CellProp] -> ASCell -> ASCell
-      blankedCells' = map (removeBadFormats badFormats) blankedCells
-  updateMsg <- DP.runDispatchCycle state blankedCells' DescendantsWithParent (userCommitSource uc) id
-  let msg = makeDeleteMessage rng updateMsg
-  case (serverResult msg) of  
-    Failure _ -> sendToOriginal uc msg
-    DecoupleDuringEval -> sendToOriginal uc msg
-    otherwise -> broadcast state msg
+  sendToOriginal uc $ ServerMessage UpdateSheet Success (PayloadWorkbookSheets wss)
 
 -- Had relevance back when UserClients could have multiple windows, which never made sense anyway.
 -- (Alex 11/3)
@@ -162,21 +138,22 @@ handleClear client state payload = case payload of
     conn <- dbConn <$> readMVar state
     DB.clear conn
     G.clear
-    broadcast state $ ServerMessage Clear Success $ PayloadN ()
+    broadcastTo state [] $ ServerMessage Clear Success $ PayloadN ()
   PayloadS (Sheet sid _ _) -> do
     conn <- dbConn <$> readMVar state
     DB.clearSheet conn sid
     G.recompute conn
-    broadcast state $ ServerMessage Clear Success payload
+    broadcastTo state [sid] $ ServerMessage Clear Success payload
 
 handleUndo :: ASUserClient -> MVar ServerState -> IO ()
 handleUndo uc state = do
   conn <- dbConn <$> readMVar state
+  printWithTime "right before commit"
   commit <- DT.undo conn (userCommitSource uc)
   let msg = case commit of
               Nothing -> failureMessage "Too far back"
-              Just c  -> ServerMessage Undo Success (PayloadCommit c)
-  broadcast state msg
+              Just c  -> makeReplyMessageFromCommit $ flipCommit c
+  broadcastFiltered state uc msg
   printWithTime "Server processed undo"
 
 handleRedo :: ASUserClient -> MVar ServerState -> IO ()
@@ -185,8 +162,8 @@ handleRedo uc state = do
   commit <- DT.redo conn (userCommitSource uc)
   let msg = case commit of
               Nothing -> failureMessage "Too far forwards"
-              Just c  -> ServerMessage Redo Success (PayloadCommit c)
-  broadcast state msg
+              Just c  -> makeReplyMessageFromCommit c
+  broadcastFiltered state uc msg
   printWithTime "Server processed redo"
 
 -- Drag/autofill
@@ -195,8 +172,8 @@ handleDrag uc state (PayloadDrag selRng dragRng) = do
   conn <- dbConn <$> readMVar state
   nCells <- IU.getCellsRect conn selRng dragRng
   let newCells = (IU.getMappedFormulaCells selRng dragRng nCells) ++ (IU.getMappedPatternGroups selRng dragRng nCells)
-  msg' <- DP.runDispatchCycle state newCells DescendantsWithParent (userCommitSource uc) id
-  broadcastFiltered state uc msg'
+  errOrCommit <- DP.runDispatchCycle state newCells DescendantsWithParent (userCommitSource uc) id
+  broadcastFiltered state uc $ makeReplyMessageFromErrOrCommit errOrCommit
 
 handleRepeat :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
 handleRepeat uc state (PayloadSelection range origin) = do
@@ -237,25 +214,23 @@ handleSetCondFormatRules uc state (PayloadCondFormat rules) = do
   either (const $ return ()) onFormatSuccess errOrCells
   broadcastFiltered state uc $ makeCondFormatMessage errOrCells rules
 
--- The type here is slightly wrong. This payload should really only indicate whether we're passed
--- a row or a column, the index of this row/col, and a *single* prop to modify. For now, this is
--- just the simplest type we can work with. 
-handleSetRowColProp :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
-handleSetRowColProp uc state (PayloadSetRowColProp rct ind prop) = do 
+-- #needsrefactor Should eventually merge with handleSetProp. 
+handleSetBarProp :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
+handleSetBarProp uc state (PayloadSetBarProp bInd prop) = do 
   conn <- dbConn <$> readMVar state
   let sid = userSheetId uc
-  mOldProps <- DB.getRowColProps conn sid rct ind
-  let oldProps = maybe RP.emptyProps id mOldProps
-      newProps = RP.setProp prop oldProps
-      newRc    = RP.RowCol rct ind newProps
-  DB.setRowColProps conn sid newRc
-
-  -- Add the RP.rowColProps to the commit. 
+  mOldProps <- DB.getBarProps conn bInd
+  let oldProps = maybe BP.emptyProps id mOldProps
+      newProps = BP.setProp prop oldProps
+      newBar   = Bar bInd newProps
+      oldBar   = Bar bInd oldProps
+  DB.setBar conn newBar
+  -- Commit barProps.
   time <- getASTime
-  let rcdiff = RowColDiff { beforeRowCols = [], afterRowCols = [newRc]}
-      commit = Commit { rowColDiff = rcdiff, cellDiff = CellDiff { beforeCells = [], afterCells = [] }, commitDescriptorDiff = DescriptorDiff { addedDescriptors = [], removedDescriptors = [] }, time = time}
+  let bd     = Diff { beforeVals = [oldBar], afterVals = [newBar] }
+      commit = Commit bd emptyDiff emptyDiff time
   DT.updateDBWithCommit conn (userCommitSource uc) commit
-  sendToOriginal uc $ ServerMessage SetRowColProp Success (PayloadN ())
+  sendToOriginal uc $ ServerMessage SetBarProp Success (PayloadN ())
 
 -- #anand used for importing binary alphasheets files (making a separate REST server for alphasheets
   -- import/export seems overkill given that it's a temporarily needed solution)

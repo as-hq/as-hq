@@ -30,15 +30,15 @@ handleCopy uc state (PayloadPaste from to) = do
   putStrLn $ "IN HANDLE COPY"
   conn <- dbConn <$> readMVar state
   toCells <- getCopyCells conn from to
-  msg' <- runDispatchCycle state toCells DescendantsWithParent (userCommitSource uc) id
-  broadcastFiltered state uc msg'
+  errOrCommit <- runDispatchCycle state toCells DescendantsWithParent (userCommitSource uc) id
+  broadcastFiltered state uc $ makeReplyMessageFromErrOrCommit errOrCommit
 
 handleCut :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
 handleCut uc state (PayloadPaste from to) = do
   conn <- dbConn <$> readMVar state
   newCells <- getCutCells conn from to
-  msg' <- runDispatchCycle state newCells DescendantsWithParent (userCommitSource uc) id
-  broadcastFiltered state uc msg'
+  errOrCommit <- runDispatchCycle state newCells DescendantsWithParent (userCommitSource uc) id
+  broadcastFiltered state uc $ makeReplyMessageFromErrOrCommit errOrCommit
 
 
 ----------------------------------------------------------------------------------------------------------------------------------------------

@@ -43,8 +43,7 @@ handleCSVImport uc state (PayloadCSV ind lang s) = do
       commit <- generateCommitFromCells cells
       DT.updateDBWithCommit conn src commit
       -- send list of cells back to frontend
-      let msg = ServerMessage Update Success (PayloadCL cells)
-      broadcastFiltered state uc msg
+      broadcastFiltered state uc $ makeReplyMessageFromCells UpdateSheet cells
 
 -- Map a function over a 2D vector
 map2D :: (a -> b) -> V.Vector (V.Vector a) -> V.Vector (V.Vector b)
@@ -71,8 +70,3 @@ csvValue lang s = case PR.parseValue lang s of
   Left e -> ValueS s
   Right (Expanding _) -> ValueError "Couldn't parse value" "CSVParse"
   Right (CellValue v) -> v
-
-            
-
-
-

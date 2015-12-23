@@ -37,12 +37,15 @@ data ASIndex = Index {locSheetId :: ASSheetId, index :: Coord}
   deriving (Show, Read, Eq, Generic, Ord)
 data ASPointer = Pointer {pointerSheetId :: ASSheetId, pointerIndex :: Coord} 
   deriving (Show, Read, Eq, Generic, Ord)
-
--- ALWAYS (Col, Row)
-data ASRange = Range {rangeSheetId :: ASSheetId, range :: (Coord, Coord)} 
+data ASRange = Range {rangeSheetId :: ASSheetId, range :: (Coord, Coord)} -- ALWAYS (Col, Row)
   deriving (Show, Read, Eq, Generic, Ord)
 data ASReference = IndexRef ASIndex | RangeRef ASRange | PointerRef ASPointer | OutOfBounds 
   deriving (Show, Read, Eq, Generic, Ord)
+
+refSheetId :: ASReference -> ASSheetId
+refSheetId (IndexRef   i) = locSheetId     i
+refSheetId (RangeRef   r) = rangeSheetId   r
+refSheetId (PointerRef p) = pointerSheetId p
 
 instance ToJSON ASIndex where
   toJSON (Index sid (c,r)) = object ["tag"     .= ("index" :: String),
@@ -104,9 +107,11 @@ instance NFData ASPointer           where rnf = genericRnf
 instance NFData ASRange             where rnf = genericRnf
 instance NFData ASReference         where rnf = genericRnf
 
-instance Serialize ASIndex 
 instance Serialize Dimensions
+instance Serialize ASIndex 
 instance Serialize ASRange
+instance Serialize ASPointer
+instance Serialize ASReference
 
 instance Hashable ASIndex
 

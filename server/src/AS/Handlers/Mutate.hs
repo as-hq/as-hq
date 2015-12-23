@@ -7,9 +7,10 @@ import AS.Types.User
 import AS.Types.Excel hiding (dbConn)
 import AS.Types.Eval
 import AS.Types.Commits
+import AS.Types.Updates
 
 import AS.DB.Internal as DI
-import qualified AS.Types.RowColProps as RP
+import AS.Types.Bar
 import qualified Data.Text as T
 
 import AS.Parsing.Substitutions
@@ -22,72 +23,83 @@ import AS.Logging
 import Control.Concurrent
 import Data.Maybe
 
-injectRowColDiffIntoCommit :: RowColDiff -> ASCommit -> ASCommit
-injectRowColDiffIntoCommit rcd c = c { rowColDiff = rcd }
+injectDiffIntoCommit :: BarDiff -> ASCommit -> ASCommit
+injectDiffIntoCommit bd c = c { barDiff = bd }
 
 handleMutateSheet :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
 handleMutateSheet uc state (PayloadMutate mutateType) = do
   let sid = userSheetId uc
   conn <- dbConn <$> readMVar state
+  -- update cells 
   oldCells <- DB.getCellsInSheet conn (userSheetId uc)
   let newCells = map (cellMap mutateType) oldCells
-      oldCellsNewCells = zip oldCells newCells
-      oldCellsNewCells' = filter (\(c, c') -> (Just c /= c')) oldCellsNewCells
-      -- ^ don't update cells that haven't changed
-      newCells' = mapMaybe snd oldCellsNewCells'
-      blankedCells = blankCellsAt $ map (cellLocation . fst) oldCellsNewCells'
+      (oldCells', newCells') = keepUnequal $ zip oldCells newCells
+      blankedCells = blankCellsAt $ map cellLocation oldCells'
       updatedCells = mergeCells newCells' blankedCells -- eval blanks at the old cell locations, re-eval at new locs
-  printObj "newCells" newCells
-  -- rowColProps update. TODO: timchu, refactor oldRowCols and newRowCols
-  oldRowCols <- DB.getRowColsInSheet conn sid
-  let newRowCols = mapMaybe (rowColMap mutateType) oldRowCols
-  DB.replaceRowCols conn sid oldRowCols newRowCols
-  let rcdiff = RowColDiff { beforeRowCols = oldRowCols, afterRowCols = newRowCols }
-      commitTransform = injectRowColDiffIntoCommit rcdiff
-  printObj "Commit Transform in Handle Mutate Sheet" rcdiff
-  updateMsg <- runDispatchCycle state updatedCells DescendantsWithParent (userCommitSource uc) commitTransform
-  broadcastFiltered state uc updateMsg
+  
+  -- update barProps
+  oldBars <- DB.getBarsInSheet conn sid
+  let newBars = map (barMap mutateType) oldBars
+      (oldBars', newBars') = keepUnequal $ zip oldBars newBars
+  DB.replaceBars conn oldBars' newBars'
+
+  -- propagate changes
+  let bardiff = Diff { beforeVals = oldBars', afterVals = newBars' }
+      commitTransform = injectDiffIntoCommit bardiff
+  errOrCommit <- runDispatchCycle state updatedCells DescendantsWithParent (userCommitSource uc) commitTransform
+  broadcastFiltered state uc $ makeReplyMessageFromErrOrCommit errOrCommit
+
+keepUnequal :: (Eq a) => [(a, Maybe a)] -> ([a], [a])
+keepUnequal x = (ls1, ls2) 
+  where 
+    unequals = filter (\(c, c') -> (Just c /= c')) x
+    ls1 = map      fst unequals
+    ls2 = mapMaybe snd unequals
 
 -- | For a mutate, maps the old row and column to the new row and column.
-rowColMap :: MutateType -> RP.RowCol -> Maybe RP.RowCol
-rowColMap (InsertCol c') rc@(RP.RowCol rct rci rcp) =
-  case rct of
-       RP.ColumnType -> Just $ RP.RowCol rct (if rci >= c' then rci+1 else rci) rcp
-       RP.RowType -> Just rc
-rowColMap (InsertRow r') rc@(RP.RowCol rct rci rcp) =
-  case rct of
-       RP.ColumnType -> Just rc
-       RP.RowType -> Just $ RP.RowCol rct (if rci >= r' then rci+1 else rci) rcp
-rowColMap (DeleteCol c') rc@(RP.RowCol rct rci rcp) =
-  case rct of
-       RP.ColumnType | rci == c' -> Nothing
-                     | otherwise -> Just $ RP.RowCol rct (if rci >= c' then rci-1 else rci) rcp
-       RP.RowType -> Just rc
-rowColMap (DeleteRow r') rc@(RP.RowCol rct rci rcp) =
-  case rct of
-       RP.ColumnType -> Just rc
-       RP.RowType | rci == r' ->  Nothing
-                  | otherwise -> Just $ RP.RowCol rct (if rci >= r' then rci-1 else rci) rcp
+barIndexMap :: MutateType -> BarIndex -> Maybe BarIndex
+barIndexMap (InsertCol c') bar@(BarIndex sid typ bari) =
+  case typ of
+       ColumnType -> Just $ BarIndex sid typ (if bari >= c' then bari+1 else bari)
+       RowType -> Just bar
+barIndexMap (InsertRow r') bar@(BarIndex sid typ bari) =
+  case typ of
+       ColumnType -> Just bar
+       RowType -> Just $ BarIndex sid typ (if bari >= r' then bari+1 else bari)
+barIndexMap (DeleteCol c') bar@(BarIndex sid typ bari) =
+  case typ of
+       ColumnType | bari == c' -> Nothing
+                     | otherwise -> Just $ BarIndex sid typ (if bari >= c' then bari-1 else bari)
+       RowType -> Just bar
+barIndexMap (DeleteRow r') bar@(BarIndex sid typ bari) =
+  case typ of
+       ColumnType -> Just bar
+       RowType | bari == r' ->  Nothing
+                  | otherwise -> Just $ BarIndex sid typ (if bari >= r' then bari-1 else bari)
 
-rowColMap (DragCol oldC newC) rc@(RP.RowCol rct rci rcp) =
-  case rct of
-       RP.ColumnType
-         | rci < min oldC newC -> Just rc
-         | rci > max oldC newC -> Just rc
-         | rci == oldC         -> Just $ RP.RowCol rct newC rcp
-         | oldC < newC       -> Just $ RP.RowCol rct (rci-1) rcp -- here on we assume c is strictly between oldC and newC
-         | oldC > newC       -> Just $ RP.RowCol rct (rci+1) rcp
-       RP.RowType -> Just rc
-rowColMap (DragRow oldR newR) rc@(RP.RowCol rct rci rcp) =
-  case rct of
-       RP.ColumnType -> Just rc
-       RP.RowType
-         | rci < min oldR newR -> Just rc
-         | rci > max oldR newR -> Just rc
-         | rci == oldR         -> Just $ RP.RowCol rct newR rcp
-         | oldR < newR       -> Just $ RP.RowCol rct (rci-1) rcp-- here on we assume r is strictly between oldR and newR
-         | oldR > newR       -> Just $ RP.RowCol rct (rci+1) rcp
+barIndexMap (DragCol oldC newC) bar@(BarIndex sid typ bari) =
+  case typ of
+       ColumnType
+         | bari < min oldC newC -> Just bar
+         | bari > max oldC newC -> Just bar
+         | bari == oldC         -> Just $ BarIndex sid typ newC
+         | oldC < newC       -> Just $ BarIndex sid typ (bari-1) -- here on we assume c is strictly between oldC and newC
+         | oldC > newC       -> Just $ BarIndex sid typ (bari+1)
+       RowType -> Just bar
+barIndexMap (DragRow oldR newR) bar@(BarIndex sid typ bari) =
+  case typ of
+       ColumnType -> Just bar
+       RowType
+         | bari < min oldR newR -> Just bar
+         | bari > max oldR newR -> Just bar
+         | bari == oldR         -> Just $ BarIndex sid typ newR
+         | oldR < newR       -> Just $ BarIndex sid typ (bari-1)-- here on we assume r is strictly between oldR and newR
+         | oldR > newR       -> Just $ BarIndex sid typ (bari+1)
   -- case oldR == newR can't happen because oldR < r < newR since third pattern-match
+
+-- #needsrefactor can probably be condensed with lenses somehow? 
+barMap :: MutateType -> Bar -> Maybe Bar
+barMap mt (Bar bInd bProps) = fmap (\bInd' -> Bar bInd' bProps) (barIndexMap mt bInd)
 
 cellLocMap :: MutateType -> (ASIndex -> Maybe ASIndex)
 cellLocMap (InsertCol c') (Index sid (c, r)) = Just $ Index sid (if c >= c' then c+1 else c, r)

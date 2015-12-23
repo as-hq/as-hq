@@ -3,7 +3,6 @@
 module AS.Window
   ( ASWindow(..)
   , intersectViewingWindow
-  , intersectViewingWindowLocs
   , getScrolledLocs
   ) where
 
@@ -54,10 +53,6 @@ inViewingWindow (Window wSheetId (tlc, tlr) (brc, brr)) (Index cSheetId (col,row
 
 intersectViewingWindow :: [ASCell] -> ASWindow -> [ASCell]
 intersectViewingWindow cells vw = filter ((inViewingWindow vw) . cellLocation) cells
-
--- new function, so that we don't have to do the extra filter/lookup by using just one
-intersectViewingWindowLocs :: [ASIndex] -> ASWindow -> [ASIndex]
-intersectViewingWindowLocs locs vw = filter (inViewingWindow vw) locs
 
 -- | Computes set difference of window 2 minus window 1. Represented as a union of ASRange's. 
 getScrolledLocs :: ASWindow -> ASWindow -> [ASRange]

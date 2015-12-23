@@ -827,7 +827,7 @@ getSheetPrefix :: String -> String
 getSheetPrefix "" = ""
 getSheetPrefix s = s ++ "!"
 
--- | Helper for address; produces $A$1 format string from col num, row num, and relative/absolute type
+-- | Helper for address; produces R1C1 format string from col num, row num, and relative/absolute type
 refToStringRC :: Col -> Row -> Int -> ThrowsError String
 refToStringRC col row 1 = Right $ "R" ++ (show row) ++ "C" ++ (show col)
 refToStringRC col row 2 = Right $ "R" ++ (show row) ++ "C[" ++ (show col) ++ "]"

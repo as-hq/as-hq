@@ -276,7 +276,7 @@ class ASIterable(object):
             return str({ "name": self.name, "lst": self.toList()})
         else: return str({"lst": self.toList()})
 
-    def hide(self, name="[HIDDEN LIST]"):
+    def hide(self, name="HIDDEN LIST"):
         self.name = name
         self.hidden = True
         return self

@@ -19,6 +19,7 @@ import AS.Types.Network
 import AS.Types.Commits
 import AS.Types.Eval
 import AS.Types.DB
+import AS.Types.Updates
 
 import AS.Dispatch.Expanding        as DE
 import AS.DB.Eval
@@ -61,13 +62,13 @@ type PureEvalTransform = EvalContext -> EvalContext
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Debugging
 
-testDispatch :: MVar ServerState -> ASLanguage -> Coord -> String -> IO ASServerMessage
-testDispatch state lang crd str = runDispatchCycle state [cell] DescendantsWithParent src id
-  where 
-    cell = Cell (Index sid crd) (Expression str Python) NoValue emptyProps
-    src = CommitSource sid uid
-    sid = T.pack "sheetid"
-    uid = T.pack "userid"
+-- testDispatch :: MVar ServerState -> ASLanguage -> Coord -> String -> IO ASServerMessage
+-- testDispatch state lang crd str = runDispatchCycle state [cell] DescendantsWithParent src id
+--   where 
+--     cell = Cell (Index sid crd) (Expression str Python) NoValue emptyProps
+--     src = CommitSource sid uid
+--     sid = T.pack "sheetid"
+--     uid = T.pack "userid"
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Exposed functions / regular eval route
@@ -83,9 +84,8 @@ testDispatch state lang crd str = runDispatchCycle state [cell] DescendantsWithP
 -- the cells getting evaluated. We pull the rest from the DB.
 
 
-runDispatchCycle :: MVar ServerState -> [ASCell] -> DescendantsSetting -> CommitSource -> CommitTransform -> IO ASServerMessage
+runDispatchCycle :: MVar ServerState -> [ASCell] -> DescendantsSetting -> CommitSource -> CommitTransform -> IO (Either ASExecError ASCommit)
 runDispatchCycle state cs descSetting src ctf = do
-  printObj "run dispatch cycle with cells: " cs
   roots <- EM.evalMiddleware cs
   conn <- dbConn <$> readMVar state
   errOrCommit <- runEitherT $ do
@@ -100,17 +100,8 @@ runDispatchCycle state cs descSetting src ctf = do
     finalCells <- EE.evalEndware state (addedCells ctxAfterDispatch) src roots ctxAfterDispatch
     let ctx = ctxAfterDispatch { addedCells = finalCells }
     DT.updateDBWithContext conn src ctx ctf
-  case errOrCommit of 
-    Left _ -> G.recompute conn -- #needsrefactor. Overkill. But recording all cells that might have changed is a PITA. (Alex 11/20)
-    _      -> return ()
-
-  let msg = makeUpdateMessageFromCommit errOrCommit
-  printObj "made message: " msg
-  return msg
-
-makeUpdateMessageFromCommit :: Either ASExecError ASCommit -> ASServerMessage
-makeUpdateMessageFromCommit (Left err) = makeErrorMessage err Update
-makeUpdateMessageFromCommit (Right comm) = ServerMessage Update Success (PayloadCL $ afterCells $ cellDiff comm)
+  either (const $ G.recompute conn) (const $ return ()) errOrCommit 
+  return errOrCommit
 
 -- takes an old context, inserts the new values necessary for this round of eval, and evals using the new context.
 -- this seems conceptually better than letting each round of dispatch produce a new context, 
@@ -240,21 +231,21 @@ removeMaybeDescriptorFromContext descriptor ctx = ctx { descriptorDiff = ddiff' 
     ddiff = descriptorDiff ctx
     ddiff' = case descriptor of
       Nothing -> ddiff
-      Just d -> removeDescriptor ddiff d
+      Just d -> removeValue ddiff d
 
 -- Helper function that removes multiple descriptors from the ddiff of the context. 
 removeMultipleDescriptorsFromContext :: [RangeDescriptor] -> PureEvalTransform
-removeMultipleDescriptorsFromContext descriptors ctx = ctx { descriptorDiff = ddiffWithRemovedDescriptors }
+removeMultipleDescriptorsFromContext descriptors ctx = ctx { descriptorDiff = ddiffWithbeforeVals }
   where
     ddiff = descriptorDiff ctx
-    ddiffWithRemovedDescriptors = L.foldl' removeDescriptor ddiff descriptors
+    ddiffWithbeforeVals = L.foldl' removeValue ddiff descriptors
 
 -- Helper function  that adds a descriptor to the ddiff of a context
-addDescriptorToContext :: RangeDescriptor -> PureEvalTransform
-addDescriptorToContext descriptor ctx = ctx { descriptorDiff = ddiff' }
+addValueToContext :: RangeDescriptor -> PureEvalTransform
+addValueToContext descriptor ctx = ctx { descriptorDiff = ddiff' }
   where
     ddiff  =  descriptorDiff ctx
-    ddiff' = addDescriptor ddiff descriptor
+    ddiff' = addValue ddiff descriptor
 
 -- Helper function that adds cells to a context, by merging them to addedCells and the map (with priority).
 addCellsToContext :: [ASCell] -> PureEvalTransform
@@ -303,19 +294,19 @@ addCurFatCellToContext conn idx maybeFatCell ctx = do
   -- The newly created cell(s) may have caused decouplings, which we're going to deal with. 
   -- First, we get a possible fatcell created, from which we get the newly removed descriptors, if any
   -- We need to remove the ones that intersect our newly produced cell/fatcell (they're decoupled now)
-  newlyRemovedDescriptors <- lift $ case maybeFatCell of
+  newlybeforeVals <- lift $ case maybeFatCell of
     Nothing -> DX.getFatCellIntersections conn ctx (Left [idx])
     Just (FatCell _ descriptor) -> DX.getFatCellIntersections conn ctx (Right [descriptorKey descriptor])
-  printObjT "GOT DECOUPLED DESCRIPTORS" newlyRemovedDescriptors
+  printObjT "GOT DECOUPLED DESCRIPTORS" newlybeforeVals
   -- The locations we have to decouple can be constructed from the range keys
   -- Then, given the locs, we get the cells that we have to decouple from the DB and then change their expressions
   -- to be decoupled (by using the value of the cell)
-  let decoupledLocs = concat $ map (rangeKeyToIndices . descriptorKey) newlyRemovedDescriptors
+  let decoupledLocs = concat $ map (rangeKeyToIndices . descriptorKey) newlybeforeVals
   decoupledCells <- lift $ ((map DI.toDecoupled) . catMaybes) <$> getCellsWithContext conn ctx decoupledLocs
-  let ctx' = removeMultipleDescriptorsFromContext newlyRemovedDescriptors $ addCellsToContext decoupledCells ctx
+  let ctx' = removeMultipleDescriptorsFromContext newlybeforeVals $ addCellsToContext decoupledCells ctx
   let ctx'' = case maybeFatCell of
                 Nothing -> ctx'
-                Just (FatCell _ descriptor) -> addDescriptorToContext descriptor ctx'
+                Just (FatCell _ descriptor) -> addValueToContext descriptor ctx'
   return (ctx'', decoupledCells)
 
 

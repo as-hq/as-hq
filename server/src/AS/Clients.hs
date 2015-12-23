@@ -7,6 +7,7 @@ import AS.Types.Eval
 import AS.Types.DB hiding (Clear)
 
 import AS.Handlers.Mutate
+import AS.Handlers.Delete
 import AS.Handlers.Paste
 import AS.Handlers.Props
 import AS.Handlers.Eval
@@ -50,7 +51,7 @@ instance Client ASUserClient where
     storeLastMessage redisConn message (userCommitSource user)
     case (clientAction message) of
       Acknowledge        -> handleAcknowledge user
-      New                -> handleNew user state payload
+      -- New                -> handleNew user state payload -- temporarly disabled
       Open               -> handleOpen user state payload
       Close              -> handleClose user state payload
       UpdateWindow       -> handleUpdateWindow (sessionId user) state payload
@@ -75,7 +76,7 @@ instance Client ASUserClient where
       Drag               -> handleDrag user state payload
       Decouple           -> handleDecouple user state payload
       SetCondFormatRules -> handleSetCondFormatRules user state payload
-      SetRowColProp      -> handleSetRowColProp user state payload
+      SetBarProp      -> handleSetBarProp user state payload
       ImportCSV          -> handleCSVImport user state payload
       where payload = clientPayload message
       -- Undo         -> handleToggleProp user state (PayloadTags [StreamTag (Stream NoSource 1000)] (Index (T.pack "TEST_SHEET_ID2") (1,1)))
@@ -108,9 +109,7 @@ instance Client ASDaemonClient where
         redisConn <- dbConn <$> readMVar state
         oldTags <- getPropsAt redisConn (map cellLocation cells)
         let cells' = map (\(c, ps) -> c { cellProps = ps }) (zip cells oldTags)
-        msg' <- runDispatchCycle state cells' DescendantsWithParent (CommitSource sid uid) id
-        case msg' of 
-          ServerMessage _ (Failure _) _ -> return ()
-          otherwise                     -> broadcastFiltered' state msg'
+        errOrCommit <- runDispatchCycle state cells' DescendantsWithParent (CommitSource sid uid) id
+        either (const $ return ()) ((broadcastFiltered' state) . makeReplyMessageFromCommit) errOrCommit
 -- Handlers take message payloads and send the response to the client(s)
 

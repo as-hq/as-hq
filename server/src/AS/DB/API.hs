@@ -4,12 +4,15 @@ module AS.DB.API where
 
 import Prelude
 import AS.Types.Cell
-import qualified AS.Types.RowColProps as RP
+import AS.Types.Bar
+import AS.Types.BarProps (BarProp, ASBarProps) 
 import AS.Types.Messages
 import AS.Types.DB
 import AS.Types.CellProps
 import AS.Types.Errors
 import AS.Types.Eval
+import AS.Types.CondFormat
+import AS.Types.Updates
 
 import qualified AS.Config.Settings as Settings
 import AS.Util as U
@@ -189,11 +192,11 @@ getRangeDescriptorsInSheet conn sid = do
 
 getRangeDescriptorsInSheetWithContext :: Connection -> EvalContext -> ASSheetId -> IO [RangeDescriptor]
 getRangeDescriptorsInSheetWithContext conn ctx@(EvalContext _ _ ddiff) sid = do
-  printObj "removed descriptors in getRangeDescriptorsInSheetWithContext " $ removedDescriptors ddiff
+  printObj "removed descriptors in getRangeDescriptorsInSheetWithContext " $ beforeVals ddiff
   dbKeys <- DI.getRangeKeysInSheet conn sid
-  let dbKeys' = dbKeys \\ (map descriptorKey $ removedDescriptors ddiff)
+  let dbKeys' = dbKeys \\ (map descriptorKey $ beforeVals ddiff)
   dbDescriptors <- map fromJust <$> mapM (getRangeDescriptor conn) dbKeys' 
-  return $ (addedDescriptors ddiff) ++ dbDescriptors
+  return $ (afterVals ddiff) ++ dbDescriptors
 
 -- If the range descriptor associated with a range key is in the context, return it. Else, return Nothing. 
 getRangeDescriptorUsingContext :: Connection -> EvalContext -> RangeKey -> IO (Maybe RangeDescriptor)
@@ -203,8 +206,8 @@ getRangeDescriptorUsingContext conn (EvalContext _ _ ddiff) rKey = if (isJust in
     Nothing -> getRangeDescriptor conn rKey
     Just d -> return $ Just d
   where
-    inRemoved = find (\d -> descriptorKey d == rKey) (removedDescriptors ddiff)
-    inAdded = find (\d -> descriptorKey d == rKey) (addedDescriptors ddiff)
+    inRemoved = find (\d -> descriptorKey d == rKey) (beforeVals ddiff)
+    inAdded = find (\d -> descriptorKey d == rKey) (afterVals ddiff)
 
 ----------------------------------------------------------------------------------------------------------------------
 -- WorkbookSheets (for frontend API)
@@ -429,44 +432,44 @@ setCondFormattingRules conn sid rules = runRedis conn $ do
 
 -- TODO: eventually should extend to record generic row/col formats, like default font in the column, 
 -- rather than just its width. 
-getRowColProps :: Connection -> ASSheetId -> RP.RowColType -> Int -> IO (Maybe RP.ASRowColProps)
-getRowColProps conn sid rct ind  = runRedis conn $ do 
-  Right msg <- get . toRedisFormat $ RCPropsKey sid rct ind
+getBarProps :: Connection -> BarIndex -> IO (Maybe ASBarProps)
+getBarProps conn bInd  = runRedis conn $ do 
+  Right msg <- get . toRedisFormat $ BarKey bInd
   return $ decodeMaybe =<< msg
 
-setRowColProps :: Connection -> ASSheetId -> RP.RowCol -> IO ()
-setRowColProps conn sid (RP.RowCol rct ind props) = do
-  runRedis conn $ set (toRedisFormat $ RCPropsKey sid rct ind) (S.encode props)
+setBar :: Connection -> Bar -> IO ()
+setBar conn (Bar bInd props) = do
+  runRedis conn $ set (toRedisFormat $ BarKey bInd) (S.encode props)
   return ()
 
-deleteRowColProps :: Connection -> ASSheetId -> RP.RowCol -> IO ()
-deleteRowColProps conn sid (RP.RowCol rct ind _) = do
-  runRedis conn $ del [toRedisFormat $ RCPropsKey sid rct ind]
+deleteBarAt :: Connection -> BarIndex -> IO ()
+deleteBarAt conn bInd = do
+  runRedis conn $ del [toRedisFormat $ BarKey bInd]
   return ()
 
-replaceRowCols :: Connection -> ASSheetId -> [RP.RowCol] -> [RP.RowCol] -> IO()
-replaceRowCols conn sid fromRowCols toRowCols = do
-  mapM_ (deleteRowColProps conn sid) fromRowCols
-  mapM_ (setRowColProps conn sid) toRowCols
+replaceBars :: Connection -> [Bar] -> [Bar] -> IO()
+replaceBars conn fromBars toBars = do
+  mapM_ ((deleteBarAt conn) . barIndex) fromBars
+  mapM_ (setBar conn) toBars
 
-getRowColsInSheet :: Connection -> ASSheetId -> IO [RP.RowCol]
-getRowColsInSheet conn sid = do 
-  let readKey k = read2 (BC.unpack k) :: RedisKey RCPropsType
-      extractInd :: RedisKey RCPropsType -> Int
-      extractInd (RCPropsKey _ _ ind) = ind
-  mColKeys <- fromRight <$> runRedis conn (keys $ BC.pack $ rcPropsKeyPattern sid RP.ColumnType)
-  mRowKeys <- fromRight <$> runRedis conn (keys $ BC.pack $ rcPropsKeyPattern sid RP.RowType)
+getBarsInSheet :: Connection -> ASSheetId -> IO [Bar]
+getBarsInSheet conn sid = do 
+  let readKey k = read2 (BC.unpack k) :: RedisKey BarType2
+      extractInd :: RedisKey BarType2 -> BarIndex
+      extractInd (BarKey ind) = ind
+  mColKeys <- fromRight <$> runRedis conn (keys $ BC.pack $ barPropsKeyPattern sid ColumnType)
+  mRowKeys <- fromRight <$> runRedis conn (keys $ BC.pack $ barPropsKeyPattern sid RowType)
   let colInds = map (extractInd . readKey) mColKeys
       rowInds = map (extractInd . readKey) mRowKeys
-  colProps <- mapM (getRowColProps conn sid RP.ColumnType) colInds
-  rowProps <- mapM (getRowColProps conn sid RP.RowType) rowInds
-  let cols = map (\(x, Just y) -> RP.RowCol RP.ColumnType x y) $ filter (isJust . snd) $ zip colInds colProps
-      rows = map (\(x, Just y) -> RP.RowCol RP.RowType x y) $ filter (isJust . snd) $ zip rowInds rowProps
+  colProps <- mapM (getBarProps conn) colInds
+  rowProps <- mapM (getBarProps conn) rowInds
+  let cols = map (\(colInd, Just props) -> Bar colInd props) $ filter (isJust . snd) $ zip colInds colProps
+      rows = map (\(rowInd, Just props) -> Bar rowInd props) $ filter (isJust . snd) $ zip rowInds rowProps
   return $ union cols rows
 
-deleteRowColsInSheet :: Connection -> ASSheetId -> IO ()
-deleteRowColsInSheet conn sid = do
-  colKeys <- fromRight <$> runRedis conn (keys $ BC.pack $ rcPropsKeyPattern sid RP.ColumnType)
-  rowKeys <- fromRight <$> runRedis conn (keys $ BC.pack $ rcPropsKeyPattern sid RP.RowType)
+deleteBarsInSheet :: Connection -> ASSheetId -> IO ()
+deleteBarsInSheet conn sid = do
+  colKeys <- fromRight <$> runRedis conn (keys $ BC.pack $ barPropsKeyPattern sid ColumnType)
+  rowKeys <- fromRight <$> runRedis conn (keys $ BC.pack $ barPropsKeyPattern sid RowType)
   runRedis conn $ del (colKeys ++ rowKeys)
   return ()
