@@ -313,7 +313,6 @@ export default class ASCondFormattingRuleDialog
     return ({
       value: lens.get(self.state),
       requestChange(newValue: T) {
-        console.log('request change');
         lens.set(self.state, newValue);
       }
     });
@@ -326,7 +325,6 @@ export default class ASCondFormattingRuleDialog
     return this.linkStateLens({
       get: (state: RuleDialogState) => state.rule[varName],
       set: (state: RuleDialogState, val: any) => {
-        console.log('setting state', state, varName, val);
         self.setState({ rule: { ...self.state.rule, [varName]: val } });
       }
     });
