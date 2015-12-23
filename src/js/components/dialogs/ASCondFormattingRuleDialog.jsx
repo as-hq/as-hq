@@ -322,7 +322,112 @@ export class ASCondFormattingDialog
         {_.range(7).map(() => <br />)}
       </Dialog>
     );
+<<<<<<< HEAD
   }
+=======
+  },
+
+  _onChangeCondition(evt: any, idx: number, menuItem: MenuItemRequest) {
+    this.setState({
+      showConditionTextField: this._showTextField(menuItem.payload)
+    });
+  },
+
+  _onChangeStyle(evt: any, idx: number, menuItem: MenuItemRequest) {
+    this.setState({
+      showStyleColorField: this._showColorField(menuItem.payload)
+    });
+  },
+
+  _showTextField(menuItemText: ?string): boolean {
+    switch (menuItemText) {
+      case 'cell_empty':
+      case 'cell_not_empty':
+        return false;
+      default:
+        return true;
+    }
+  },
+
+  _showColorField(menuItemText: ?string): boolean {
+    switch (menuItemText) {
+      case 'bg_color':
+      case 'text_color':
+        return true;
+      default:
+        return false;
+    }
+  },
+
+  _getConditionMenuItem(): string {
+    if (this.refs.condition) {
+      return this.refs.condition.getPayload();
+    } else {
+      return this.getInitialConditionMenuPayload();
+    }
+  },
+
+  _getStyleMenuItem(): string {
+    if (this.refs.style) {
+      return this.refs.style.getPayload();
+    } else {
+      return this.getInitialStyleMenuPayload();
+    }
+  },
+
+  _getCellLocsFromForm(): Array<ASRange> {
+    return [U.Conversion.simpleToASRange(U.Conversion.excelToRange(this.refs.range.getValue()))];
+  },
+
+  // TODO: add support for all the different types of conditional formats. For
+  // now, this only shows custom stuff.
+  _getConditionFromForm(): CondFormatCondition {
+    let language = 'Excel';
+
+    switch (this._getConditionMenuItem()) {
+      case 'python_matcher':
+        language = 'Python';
+        break;
+      default:
+        language = 'Excel';
+        break;
+    }
+
+    return {
+      tag: 'CustomExpressionCondition',
+        contents: {
+        expression: this.refs.conditionField.getValue(),
+        language: language
+      }
+    };
+  },
+
+  _getCellPropFromForm(): ASCellProp {
+    switch (this._getStyleMenuItem()) {
+      case 'bold':
+        return { tag: 'Bold', contents: [] };
+      case 'italic':
+        return { tag: 'Italic', contents: [] };
+      case 'underline':
+        return { tag: 'Underline', contents: [] };
+      case 'bg_color':
+        return { tag: 'FillColor', contents: this.refs.colorPicker.getValue() };
+      case 'text_color':
+        return { tag: 'TextColor', contents: this.refs.colorPicker.getValue() };
+      default:
+        return { tag: 'Bold', contents: [] }; //unreachable
+    }
+  },
+
+  _getRuleFromForm(): CondFormatRule {
+    return {
+      tag: 'CondFormatRule',
+      cellLocs: this._getCellLocsFromForm(),
+      condition: this._getConditionFromForm(),
+      condFormat: this._getCellPropFromForm()
+    };
+  },
+>>>>>>> condformatNew
 
   _onClickSubmit() {
     this.props.onSubmitRule(convertToServer(this.state.rule));
