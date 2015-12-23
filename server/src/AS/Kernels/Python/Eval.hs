@@ -1,7 +1,7 @@
 {-# LANGUAGE QuasiQuotes #-}
 module AS.Kernels.Python.Eval where
 
-import AS.Kernels.Common
+import AS.Kernels.Internal
 import AS.Kernels.LanguageUtils
 import AS.Kernels.Python.Pyfi
 
