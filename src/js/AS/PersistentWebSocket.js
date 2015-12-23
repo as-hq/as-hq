@@ -13,6 +13,7 @@ import type {
 let ws = WebSocket;
 
 import {logDebug} from './Logger';
+import Constants from '../Constants.js'
 
 const TIMEOUT = 100; // number of timeout intervals to go
 const INTERVAL = 50; // number of ms in an interval
@@ -80,13 +81,15 @@ class PersistentWebSocket {
 
       let {onmessage, onopen} = this._client;
 
-      logDebug('Reconnecting...');
-      this._beforereconnect();
+      if (Constants.shouldReconnect) {
+        logDebug('Reconnecting...');
+        this._beforereconnect();
 
-      this._client = new ws(this._url);
-      this._client.onmessage = onmessage;
-      this._client.onopen = onopen;
-      this._dcCount = 0;
+        this._client = new ws(this._url);
+        this._client.onmessage = onmessage;
+        this._client.onopen = onopen;
+        this._dcCount = 0;
+      }
     }
   }
 

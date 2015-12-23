@@ -19,6 +19,7 @@ import type {
 } from '../types/State';
 
 import {logDebug, logError} from '../AS/Logger';
+import {catMaybes} from '../AS/Maybe';
 
 import _ from 'lodash';
 
@@ -35,7 +36,8 @@ import SheetStateStore from '../stores/ASSheetStateStore';
 import SelectionStore from '../stores/ASSelectionStore';
 import FindStore from '../stores/ASFindStore';
 import ExpStore from '../stores/ASExpStore';
-import InitRowColPropsStore from '../stores/ASInitRowColPropsStore.js';
+import BarStore from '../stores/ASBarStore.js';
+import OverlayStore from '../stores/ASOverlayStore';
 
 import U from '../AS/Util';
 let {
@@ -107,7 +109,8 @@ export default React.createClass({
   componentDidMount() {
     // Be able to respond to events from ExpStore
     ExpStore.addChangeListener(this._onExpressionChange);
-    InitRowColPropsStore.addChangeListener(this._onInitRowColPropsChange);
+    BarStore.addChangeListener(this._onBarPropsChange);
+    OverlayStore.addChangeListener(this._onOverlaysChange);
     // Hypergrid initialization
     document.addEventListener('polymer-ready', () => {
       this.props.onReady();
@@ -116,8 +119,8 @@ export default React.createClass({
           hg = this._getHypergrid(),
           model = hg.getBehavior();
       this.getInitialData();
-      
-      hg.autoScrollAcceleration = false; 
+
+      hg.autoScrollAcceleration = false;
       let callbacks = ({
         /*
           Call onSelectionChange method in eval pane to deal with selection change
@@ -131,13 +134,13 @@ export default React.createClass({
           let scroll = self.getScroll();
           if (event.detail.oldValue <= event.detail.value) {
             let newScrollPixels = {
-              x: self.state.scrollPixels.x + hg.getColumnWidth(event.detail.oldValue), 
+              x: self.state.scrollPixels.x + hg.getColumnWidth(event.detail.oldValue),
               y: self.state.scrollPixels.y
             };
             self.setState({scrollPixels: newScrollPixels, scroll: scroll});
           } else {
             let newScrollPixels = {
-              x: self.state.scrollPixels.x - hg.getColumnWidth(event.detail.value), 
+              x: self.state.scrollPixels.x - hg.getColumnWidth(event.detail.value),
               y: self.state.scrollPixels.y
             };
             self.setState({scrollPixels: newScrollPixels, scroll: scroll});
@@ -150,13 +153,13 @@ export default React.createClass({
           let scroll = self.getScroll();
           if (event.detail.oldValue <= event.detail.value) {
             let newScrollPixels = {
-              y: self.state.scrollPixels.y + hg.getRowHeight(event.detail.oldValue), 
+              y: self.state.scrollPixels.y + hg.getRowHeight(event.detail.oldValue),
               x: self.state.scrollPixels.x
             };
             self.setState({scrollPixels: newScrollPixels, scroll: scroll});
           } else {
             let newScrollPixels = {
-              y: self.state.scrollPixels.y - hg.getRowHeight(event.detail.value), 
+              y: self.state.scrollPixels.y - hg.getRowHeight(event.detail.value),
               x: self.state.scrollPixels.x
             };
             self.setState({scrollPixels: newScrollPixels, scroll: scroll});
@@ -166,10 +169,13 @@ export default React.createClass({
           }
         },
         'fin-double-click': function (event) {
-          // TODO: double clicking inside blue box has diff behavior
-          ExpStore.setClickType(Constants.ClickType.DOUBLE_CLICK);
-          self.refs.textbox.updateTextBox(ExpStore.getExpression());
-          self.props.setFocus('textbox');
+          // should only fire when double click is inside grid. According to event.detail.gridCell here, 
+          // the top left grid cell is (0,0) which is different from e.g. the event in model.handleMouseDown.  
+          if (event.detail.gridCell.y >= 0 && event.detail.gridCell.x >= 0) {
+            ExpStore.setClickType(Constants.ClickType.DOUBLE_CLICK);
+            self.refs.textbox.updateTextBox(ExpStore.getExpression());
+            self.props.setFocus('textbox');
+          }
         }
       });
 
@@ -358,11 +364,15 @@ export default React.createClass({
         self = this;
     hg.addGlobalProperties(this.gridProperties);
 
+    // Calling setColumnWidth on hypergrid should make an API call to the backend to remember the changed
+    // column width; we're overriding hypergrid's default setColumnWidth to do so. If we want to change the
+    // column width without making an API call, use model._setColumnWidth
     hg.setColumnWidth = (columnIndex, columnWidth) => {
         self.resizedColNum = columnIndex;
         model._setColumnWidth(columnIndex, columnWidth);
     },
 
+    // Ditto
     hg.setRowHeight = (rowIndex, rowHeight) => {
         self.resizedRowNum = rowIndex;
         model.setRowHeight(rowIndex, rowHeight);
@@ -399,8 +409,10 @@ export default React.createClass({
         }
       }
       return rr;
-    },
+    };
 
+    // note: evt.gridCell in all these functions seem to think the coordinates of the top left cell is 
+    // (1,1) rather than (0,0). 
     model.handleMouseDown = (grid, evt) => {
       if (evt.primitiveEvent.detail.primitiveEvent.shiftKey) { // shift+click
         let {origin} = this.getSelectionArea(),
@@ -416,11 +428,12 @@ export default React.createClass({
           // dragging selections
           this.dragSelectionOrigin = {col: evt.gridCell.x, row: evt.gridCell.y};
         } else if (model.featureChain) {
+          let clickedCell = evt.gridCell; 
           // If the mouse is placed inside column header (not on a divider), we want to keep some extra state ourselves
-          if (model.featureChain.isFixedRow(grid,evt) && hg.overColumnDivider(evt) === -1) {
-           self.clickedColNum = evt.gridCell.x;
-          } else if (model.featureChain.isFixedColumn(grid,evt) && hg.overRowDivider(evt) === -1) {
-            self.clickedRowNum = evt.gridCell.y;
+          if (self._clickedCellIsInColumnHeader(clickedCell)) {
+           self.clickedColNum = clickedCell.x;
+          } else if (self._clickedCellIsInRowHeader(clickedCell)) {
+            self.clickedRowNum = clickedCell.y;
           }
           model.featureChain.handleMouseDown(grid, evt);
           model.setCursor(grid);
@@ -445,22 +458,19 @@ export default React.createClass({
       }
     };
 
-    //  For now, double-clicks don't get saved to backend. We need a way to tell whether the
-    //  mouse clicked off a cell, which will probably involve counting pixels; deprioritizing
-    //  this for now. (Alex 12/7)
-    //  model.onDoubleClick = (grid, evt) => {
-    //   if (model.featureChain) {
-    //       model.featureChain.handleDoubleClick(grid, evt);
-    //       model.setCursor(grid);
-    //   }
+     model.onDoubleClick = (grid, evt) => {
+      if (model.featureChain) {
+          model.featureChain.handleDoubleClick(grid, evt);
+          model.setCursor(grid);
+      }
 
-    //   // ::TODO:: need to do a check here!!
-    //   self.clickedColNum = evt.gridCell.x;
-    //   self.clickedRowNum = evt.gridCell.y;
-
-    //   self.finishColumnResize();
-    //   self.finishRowResize();
-    // };
+      // for now, double-clicking rows doesn't size it automatically
+      
+      if (self._clickedCellIsInColumnHeader(evt.gridCell)) {
+        self.clickedColNum = evt.gridCell.x;
+        self.finishColumnResize();
+      }
+    };
 
     model.onMouseDrag = (grid, evt) => {
       let selOrigin = this.dragSelectionOrigin;
@@ -555,13 +565,13 @@ export default React.createClass({
           if (self.draggingCol) {
             self.draggingCol = false;
             if (self.clickedColNum != null) {
-              API.dragCol(self.clickedColNum, evt.gridCell.x);
+              API.dragCol(self.clickedColNum, Math.max(1, evt.gridCell.x)); // evt.gridCell.x can go negative...
             }
             self.clickedColNum = null;
           } else if (self.draggingRow) {
             self.draggingRow = false;
             if (self.clickedRowNum != null) {
-              API.dragRow(self.clickedRowNum, evt.gridCell.y);
+              API.dragRow(self.clickedRowNum, Math.max(1, evt.gridCell.y));
             }
             self.clickedRowNum = null;
           }
@@ -603,6 +613,17 @@ export default React.createClass({
     }
   },
 
+  // note: evt.gridCell from the mouse-click functions from model (hg.getBehavior()) seem to be 1-indexed 
+  // (the coordinates of the top left cell are  (1,1) rather than (0,0)). The below two functions are only
+  // assumed to work on mouse functions on model, NOT for e.g. fin-double-click events where the top left cell is (0,0). Umm......
+  _clickedCellIsInColumnHeader(clickedCell: HGPoint): boolean {
+    return (clickedCell.x >= 1 && clickedCell.y <= 0); // == 0? ==-1? not entirely sure
+  },
+
+  _clickedCellIsInRowHeader(clickedCell: HGPoint): boolean {
+    return (clickedCell.x >= 0 && clickedCell.y >= 1); // == 0? ==-1? not entirely sure
+  },
+
   // expects that the current sheet has already been set
   getInitialData() {
     API.openSheet(SheetStateStore.getCurrentSheet());
@@ -630,7 +651,7 @@ export default React.createClass({
           display = U.Render.showValue(c.cellValue);
       model.setValue(gridCol, gridRow, display.toString());
       // Update our list of overlays if we have an image
-      self.updateOverlays(c);
+      self.addCellSourcedOverlay(c);
     });
 
     model.changed(); // causes hypergrid to show updated values
@@ -640,9 +661,9 @@ export default React.createClass({
   /*************************************************************************************************************************/
   // Dealing with image creation and updating
 
-  /* 
+  /*
   Given a cell that has a ValueImage tag, get the corresponding overlay from the info in that cell. This involves
-  extracting out offset and size information from the cell. We also need to take scrolling into account to render the 
+  extracting out offset and size information from the cell. We also need to take scrolling into account to render the
   picture initially in the correct place. We use Hypergrid methods to return an Overlay object.
   Note that we don't account for scroll here. The scroll state is passed as a prop to Overlay, which will deal with the scroll
   */
@@ -650,8 +671,8 @@ export default React.createClass({
     let {col, row} =  cell.cellLocation.index,
         p =  finRect.point.create(col, row),
         point = this._getHypergrid().getBoundsOfCell(p).origin;
-    /* 
-    Define default parameters, and fill them in with values from the cell information. 
+    /*
+    Define default parameters, and fill them in with values from the cell information.
     If the image was resized or dragged, its metadata would have been modified and updateCellValues would be called,
     which calls this function. Here, we produce the up-to-date overlay based on current offsets and size
     */
@@ -669,39 +690,57 @@ export default React.createClass({
     }  else {
       let imagePath = cell.cellValue.imagePath;
       // Return the overlay spec, and note that the overlay shouldn't be in view if the point isn't
+      // Compute the overlay element. The "draggable=false" is needed for a silly HTML5 reason.
+      let imageSrc = Constants.getHostStaticUrl() + "/images/" + imagePath;
       return {
         id: U.Render.getUniqueId(),
-        src: Constants.getHostStaticUrl() + "/images/" + imagePath,
-        width: imageWidth,
-        height: imageHeight,
+        renderElem: (style) => {
+          return (<Image src={imageSrc} draggable="false" style={style} alt="Error rendering image." />);
+        },
+        initWidth: imageWidth,
+        initHeight: imageHeight,
         offsetX: imageOffsetX,
         offsetY: imageOffsetY,
-        left: point.x, 
+        left: point.x,
         top:  point.y,
         loc: cell.cellLocation
       };
     }
   },
 
-  /* 
-  As part of our state, we store a list of overlay objects. When a cell produces an overlay, we want to update this list. 
-  If there's already an overlay at that location, we want to replace it with the new one (so that propagation works!). 
+  /*
+  As part of our state, we store a list of overlay objects. When a cell produces an overlay, we want to update this list.
+  If there's already an overlay at that location, we want to replace it with the new one (so that propagation works!).
   In particular, if a cell with an overlay is deleted, the newOverlay will be null (nothing added) and the old one will be deleted.
-  That location-based update and state change is done here. 
+  That location-based update and state change is done here.
   */
-  updateOverlays(cell: ASCell) {
-    let newOverlay = this.getImageOverlayForCell(cell),
-        overlays = this.state.overlays,
-        locs = overlays.map((o) => o.loc);
-    for (var i = 0 ; i < locs.length; i++) {
-      if (U.Render.locEquals(locs[i], cell.cellLocation)) {
-        overlays.splice(i,1);
+  addCellSourcedOverlay(cell: ASCell) {
+    let imageOverlay = this.getImageOverlayForCell(cell);
+    if (imageOverlay === null || imageOverlay === undefined) return;
+    this.addOverlay(imageOverlay, cell);
+  },
+
+  addOverlay(newOverlay: ASOverlaySpec, cell?: ASCell) {
+    let overlays = this.state.overlays,
+        locs = catMaybes(overlays.map((o) => o.loc));
+
+    locs.forEach((loc, i) => {
+      if (cell !== null && cell !== undefined) {
+        if (U.Render.locEquals(loc, cell.cellLocation)) {
+          overlays.splice(i,1);
+        }
       }
-    }
-    if (newOverlay != null) {
-      overlays.push(newOverlay);
-    }
-   this.setState({overlays});
+    });
+
+    overlays.push(newOverlay);
+    this.setState({overlays: overlays});
+  },
+
+  _onOverlaysChange() {
+    let overlays = OverlayStore.getAll();
+    overlays.forEach((overlay) => {
+      this.addOverlay(overlay);
+    });
   },
 
 
@@ -991,7 +1030,7 @@ export default React.createClass({
         this.refs.textbox.hideTextBox();
         break;
       // put focus on grid on get
-      case Constants.ActionTypes.FETCHED_CELLS:
+      case Constants.ActionTypes.GOT_UPDATED_CELLS:
         this.props.setFocus('grid');
         break;
       default:
@@ -999,14 +1038,16 @@ export default React.createClass({
     }
   },
 
-  _onInitRowColPropsChange() {
-    let initColWidths  = InitRowColPropsStore.getInitColumnWidths(),
-        initRowHeights = InitRowColPropsStore.getInitRowHeights(),
-        hg = this._getHypergrid();
+  _onBarPropsChange() {
+    let dims = BarStore.getLastUpdatedBarsDimensions(), 
+        hg = this._getHypergrid(), 
+        model = hg.getBehavior(),
+        defaultColumnWidth = hg.resolveProperty('defaultColumnWidth'),
+        defaultRowHeight = hg.resolveProperty('defaultRowHeight');
 
-    //column index on DB is 1-indexed, while for hypergrid it's 0-indexed.
-    initColWidths.map((prop) => hg.setColumnWidth(prop[0]-1, prop[1]));
-    initRowHeights.map((prop) => hg.setRowHeight(prop[0]-1, prop[1]));
+    // columns/rows in backend are 1-indexed, hypergrid's are 0-indexed. 
+    dims['ColumnType'].map(([ind, width]) => model._setColumnWidth(ind-1, width || defaultColumnWidth));
+    dims['RowType'].map(([ind, height]) => model.setRowHeight(ind-1, height || defaultRowHeight));
   },
 
 
@@ -1025,7 +1066,7 @@ export default React.createClass({
           cell = CellStore.getCell({col: col, row: row});
 
       // tag-based cell styling
-      if (!! cell) {
+      if (cell !== null && cell !== undefined) {
         U.Render.valueToRenderConfig(config, cell.cellValue);
         if (cell.cellExpression.expandingType) {
           U.Render.expandingTypeToRenderConfig(config, cell.cellExpression.expandingType);

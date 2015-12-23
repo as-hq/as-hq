@@ -7,7 +7,9 @@ import type {
 
 import type {
   NakedRange,
+  ASLocation,
   ASRange,
+  ASLanguage,
   ASIndex,
   ASSheet,
   ASValue,
@@ -68,9 +70,9 @@ export type MutateType =
   | DragCol
   | DragRow;
 
-export type RowColType = 'ColumnType' | 'RowType';
+export type BarType = 'ColumnType' | 'RowType';
 
-export type RowColProp = Dimension | FromCellProp;
+export type BarProp = Dimension | FromCellProp;
 
 export type Dimension = {
   tag: 'Dimension';
@@ -82,12 +84,18 @@ export type FromCellProp = {
   contents: ASCellProp;
 };
 
-export type RowCol = {
-  tag: 'RowCol';
-  rowColType: RowColType;
-  rowColIndex: number;
-  rowColProps: Array<RowColProp>;
+export type Bar = {
+  tag: 'Bar';
+  barIndex: BarIndex;
+  barProps: Array<BarProp>;
 };
+
+export type BarIndex = {
+  tag: 'BarIndex'; 
+  barSheetId: string;
+  barType: BarType;  
+  barNumber: number; 
+}
 
 export type ASInitConnection = {
   tag: 'ASInitConnection';
@@ -169,8 +177,7 @@ export type PayloadInit = {
 export type PayloadOpen = {
   tag: 'PayloadOpen';
   initHeaderExpressions: Array<ASExpression>;
-  initCondFormatRules: Array<CondFormatRule>;
-  initRowCols: Array<RowCol>;
+  initSheetUpdate: SheetUpdate;
 };
 
 export type PayloadR = {
@@ -208,11 +215,6 @@ export type PayloadCommit = {
   contents: ASBackendCommit;
 };
 
-export type PayloadDelete = {
-  tag: 'PayloadDelete';
-  contents: [ASRange, Array<ASCell>];
-};
-
 export type PayloadXp = {
   tag: 'PayloadXp';
   contents: ASExpression;
@@ -240,7 +242,7 @@ export type PayloadFind = {
 
 export type PayloadValue = {
   tag: 'PayloadValue';
-  contents: ASCompositeValue;
+  contents: [ASCompositeValue, ASLanguage];
 };
 
 export type PayloadCondFormat = {
@@ -248,23 +250,48 @@ export type PayloadCondFormat = {
   condFormatRules: Array<CondFormatRule>;
 };
 
-export type PayloadCondFormatResult = {
-  tag: 'PayloadCondFormatResult';
-  condFormatCellsUpdated: Array<ASCell>;
-  condFormatRulesResult: Array<CondFormatRule>;
+export type PayloadSetBarProp = {
+  tag: 'PayloadSetBarProp';
+  contents: [BarIndex, BarProp];
 };
 
-export type PayloadSetRowColProp = {
-  tag: 'PayloadSetRowColProp';
-  contents: [RowColType, number, RowColProp];
+export type PayloadSheetUpdate = {
+  tag: 'PayloadSheetUpdate'; 
+  contents: SheetUpdate;
 };
 
 export type CondFormatRule = {
   tag: 'CondFormatRule';
   condFormat: ASCellProp;
-  condition: ASExpression;
+  condition: CondFormatCondition;
   cellLocs: Array<ASRange>;
 };
+
+export type CondFormatCondition = NoExpressionsCondition | OneExpressionCondition | TwoExpressionsCondition | CustomExpressionCondition;
+
+export type NoExpressionsCondition = {
+  tag: 'NoExpressionsCondition';
+  contents: NoExpressionsType;
+}
+
+export type OneExpressionCondition = {
+  tag: 'OneExpressionCondition';
+  contents: [OneExpressionType, ASExpression];
+}
+
+export type TwoExpressionsCondition = {
+  tag: 'TwoExpressionsCondition';
+  contents: [TwoExpressionsType, ASExpression, ASExpression];
+}
+
+export type CustomExpressionCondition = {
+  tag: 'CustomExpressionCondition';
+  contents: ASExpression;
+}
+
+export type NoExpressionsType  = 'IsEmpty' | 'IsNotEmpty';
+export type OneExpressionType  = 'GreaterThan' | 'Equals' | 'Geq' | 'Leq' | 'LessThan' | 'NotEquals';
+export type TwoExpressionsType = 'IsBetween' | 'IsNotBetween';
 
 export type ASBackendPayload =
   PayloadN
@@ -284,7 +311,6 @@ export type ASBackendPayload =
   | PayloadU
   | PayloadE
   | PayloadCommit
-  | PayloadDelete
   | PayloadPaste
   | PayloadProp
   | PayloadXp
@@ -295,8 +321,8 @@ export type ASBackendPayload =
   | PayloadDrag
   | PayloadFind
   | PayloadCondFormat
-  | PayloadCondFormatResult
-  | PayloadSetRowColProp;
+  | PayloadSetBarProp
+  | PayloadSheetUpdate;
 
 export type ASBackendTime = {
   tag: 'Time';
@@ -310,6 +336,33 @@ export type ASBackendCommit = {
   tag: 'ASCommit';
   cellDiff: ASCellDiff;
   time: ASBackendTime;
+};
+
+export type SheetUpdate = {
+  tag: 'SheetUpdate'; 
+  cellUpdates: CellUpdate;
+  barUpdates: BarUpdate;
+  condFormatRulesUpdates: CondFormatRuleUpdate;
+  //#incomplete updatedRangeDescriptors: DescriptorUpdate;
+};
+
+export type CellUpdate = { 
+  tag: 'Update'; 
+  newVals: Array<ASCell>;
+  oldKeys: Array<ASLocation>;
+};
+
+export type BarUpdate = { 
+  tag: 'Update'; 
+  newVals: Array<Bar>;
+  oldKeys: Array<BarIndex>;
+};
+
+// #incomplete currently dysfunctional
+export type CondFormatRuleUpdate = { 
+  tag: 'Update'; 
+  newVals: Array<CondFormatRule>;
+  oldKeys: Array<any>;
 };
 
 export type ASCellDiff = {
@@ -348,13 +401,13 @@ export type ASMessageAction =
   | 'Open' | 'Close'
   | 'Evaluate' | 'EvaluateRepl' | 'EvaluateHeader'
   | 'Decouple'
-  | 'Update'
+  | 'UpdateSheet'
   | 'Get' | 'Delete'
   | 'Copy' | 'Cut' | 'CopyForced'
   | 'Undo' | 'Redo'
   | 'Clear'
   | 'UpdateWindow'
-  | 'SetRowColProp'
+  | 'SetBarProp'
   | 'SetProp' | 'ToggleProp'
   | 'Repeat'
   | 'BugReport'
@@ -383,31 +436,31 @@ export type OpenResponse = {
 
 export type UndoResponse = {
   action: 'Undo';
-  payload: PayloadCommit;
+  payload: PayloadSheetUpdate;
   result: ASBackendResult;
 };
 
 export type RedoResponse = {
   action: 'Redo';
-  payload: PayloadCommit;
+  payload: PayloadSheetUpdate;
   result: ASBackendResult;
 };
 
 export type UpdateResponse = {
-  action: 'Update';
-  payload: PayloadN | PayloadCL | PayloadSS | PayloadWBS | PayloadWorkbookSheets;
+  action: 'UpdateSheet';
+  payload: PayloadSheetUpdate; 
   result: ASBackendResult;
 };
 
 export type GetResponse = {
   action: 'Get';
-  payload: PayloadCL;
+  payload: PayloadSheetUpdate;
   result: ASBackendResult;
 };
 
 export type UpdateWindowResponse = {
   action: 'UpdateWindow';
-  payload: PayloadCL;
+  payload: PayloadSheetUpdate;
   result: ASBackendResult;
 };
 
@@ -420,12 +473,6 @@ export type ClearResponse = {
 export type JumpSelectResponse = {
   action: 'JumpSelect';
   payload: PayloadSelection;
-  result: ASBackendResult;
-};
-
-export type DeleteResponse = {
-  action: 'Delete';
-  payload: PayloadDelete | PayloadWorkbookSheets;
   result: ASBackendResult;
 };
 
@@ -449,7 +496,7 @@ export type FindResponse = {
 
 export type SetCondFormatResponse = {
   action: 'SetCondFormatRules';
-  payload: PayloadCondFormatResult;
+  payload: PayloadSheetUpdate;
   result: ASBackendResult;
 };
 
@@ -474,7 +521,6 @@ export type ASServerMessage =
   | UpdateWindowResponse
   | ClearResponse
   | JumpSelectResponse
-  | DeleteResponse
   | EvaluateReplResponse
   | EvaluateHeaderResponse
   | FindResponse

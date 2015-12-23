@@ -209,7 +209,8 @@ export default React.createClass({
     // This is a terrible, terrible hack to show an error message when no cells have
     // changed, but the server returned an error. Ideally we'd create an
     // an error message store to handle this, but we're probably
-    // going to do away with external errors entirely at some point, making it moot. 
+    // going to do away with external errors entirely at some point, making it moot.
+    // #needsrefactor
     this._onCellsChange();
   },
 
@@ -221,25 +222,13 @@ export default React.createClass({
     });
 
     this.refs.spreadsheet.updateCellValues(updatedCellsOnSheet);
-    //toast the error of at least one value in the cell
-    let err;
-    for (let i = 0; i < updatedCellsOnSheet.length; ++i) {
-      let cell = updatedCellsOnSheet[i],
-          val = cell.cellValue;
-      if (val.tag == "ValueError" || val.tag == "ValueExcelError") {
-        err = this.getErrorMessage(val);
-        break;
-      }
-    }
 
-    err = err || SheetStateStore.getExternalError();
-
-    if (!!err && !SheetStateStore.shouldSuppressErrors()) {
+    // #needsrefactor error handlers should probably get their own store
+    let err = SheetStateStore.getExternalError();
+    if (err != null) {
       this.setToast(err, "Error");
     }
-
     SheetStateStore.setExternalError(null);
-    SheetStateStore.stopSuppressingErrors();
   },
 
   // _onReplChange() {
@@ -298,18 +287,10 @@ export default React.createClass({
     this.refs.snackbarError.show();
   },
 
-  // I think this is equivalent to the toast being hidden, but not sure -- RITESH
-  toastIsHidden() : boolean {
-    let {toastMessage, toastAction} = this.state;
-    return (toastMessage == "") && (toastAction === "hide");
-  },
-
   hideToast() {
-    // Only hide a toast (and cause a rerender) if toast isn't already hidden
-    if (!this.toastIsHidden()) {
-      this.setState({toastMessage: "", toastAction: "hide"});
+    if (this.refs.snackbarError.state.open) {
+      this.refs.snackbarError.dismiss();
     }
-    this.refs.snackbarError.dismiss();
   },
 
   _handleToastTap(e: SyntheticTouchEvent) {

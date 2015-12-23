@@ -42,7 +42,10 @@ describe('backend', () => {
     setUrl,
 
     setCondFormattingRules,
-    makeCondFormattingRuleFontExcel,
+    makeCustomCondFormattingFontRuleExcel,
+    makeNoXpCondFormattingFontRuleExcel,
+    makeOneXpCondFormattingFontRuleExcel,
+    makeTwoXpCondFormattingFontRuleExcel,
 
     python,
     r,
@@ -103,16 +106,16 @@ describe('backend', () => {
       ]);
     });
 
-    it('clears a sheet', () => {
+    it ('clears a sheet', () => {
     });
 
-    it('creates a new sheet', () => {
+    it ('creates a new sheet', () => {
     });
 
-    it('creates a new workbook', () => {
+    it ('creates a new workbook', () => {
     });
 
-    it('gets cells', () => {
+    it ('gets cells', () => {
     });
   });
 
@@ -120,7 +123,7 @@ describe('backend', () => {
     beforeAll((done) => {
       _do([
         logP('Initializing...'),
-        init(),
+        init (),
         logP('Opening sheet...'),
         openSheet(),
         logP('Syncing window...'),
@@ -133,7 +136,7 @@ describe('backend', () => {
     beforeEach((done) => {
       _do([
         logP('Clearing sheet...'),
-        clear(), // every it() starts with a clear spreadsheet
+        clear(), // every it () starts with a clear spreadsheet
         logP('Finished preparing.'),
         logP('==========================STARTING TEST=========================='),
         exec(done)
@@ -143,7 +146,7 @@ describe('backend', () => {
     describe('eval', () => {
 
       describe('inference', () => {
-        it('should extend 2-elem arithmetic sequence', (done) => {
+        it ('should extend 2-elem arithmetic sequence', (done) => {
           _do([
             excel('A1', '1'),
             python('A2', '3'),
@@ -154,7 +157,7 @@ describe('backend', () => {
           ]);
         });
 
-        it('should not escape excel strings', (done) => {
+        it ('should not escape excel strings', (done) => {
           _do([
             excel('A1', 'jan'),
             excel('A2', 'feb'),
@@ -168,7 +171,7 @@ describe('backend', () => {
 
       describe('decoupling', () => {
 
-        it('should decouple a single value and send message', (done) => {
+        it ('should decouple a single value and send message', (done) => {
           _do([
             python('A1', 'range(5)'),
             python('A2', '44'),
@@ -180,7 +183,7 @@ describe('backend', () => {
           ]);
         });
 
-        it('should decouple when replacing head with a smaller range and send message', (done) => {
+        it ('should decouple when replacing head with a smaller range and send message', (done) => {
           _do([
             python('A1', 'range(5)'),
             r('A1', 'c(4,5)'),
@@ -191,7 +194,7 @@ describe('backend', () => {
           ]);
         });
 
-        it('should decouple when replacing middle of object and send message', (done) => {
+        it ('should decouple when replacing middle of object and send message', (done) => {
           _do([
             python('A1', '[[1,2],[3,4],[5,6]]'),
             python('A2', 'range(2)'),
@@ -208,7 +211,7 @@ describe('backend', () => {
 
         // this test actually passes if you run it by hand
         // but we currently don't have a monadic or function.
-        xit('should decouple one list or the other when they intersect nondeterministically', (done) => {
+        xit ('should decouple one list or the other when they intersect nondeterministically', (done) => {
           _do([
             python('A1', '2'),
             python('C1', 'range(A1)'),
@@ -223,7 +226,7 @@ describe('backend', () => {
           ]);
         });
 
-        it('should not send decouple message when replacing list of same size', (done) => {
+        it ('should not send decouple message when replacing list of same size', (done) => {
           _do([
             python('A1', 'range(5)'),
             r('A1', 'c(3,4,5,6,7)'),
@@ -233,7 +236,7 @@ describe('backend', () => {
           ]);
         });
 
-        it('should not send decouple message when deleting list', (done) => {
+        it ('should not send decouple message when deleting list', (done) => {
           _do([
             python('A1', 'range(5)'),
             delete_('A1:A5'),
@@ -243,7 +246,7 @@ describe('backend', () => {
         });
 
         // Note: where "bitch" = "cell with descendants"
-        it('should not fuck bitches during decouple after having eaten them', (done) => {
+        it ('should not fuck bitches during decouple after having eaten them', (done) => {
           _do([
             python('A2', '5'),
             python('B2', 'A2 * 10'),
@@ -262,7 +265,7 @@ describe('backend', () => {
 
         describe('overwrite power', () => {
 
-          it('should have overwrite power on any descendants inside itself', (done) => {
+          it ('should have overwrite power on any descendants inside itself', (done) => {
             _do([
               python('A2', '2'),
               python('B2', 'A2+1'),
@@ -279,7 +282,7 @@ describe('backend', () => {
             ]);
           });
 
-          it('should have overwrite power on immediate descendants inside itself', (done) => {
+          it ('should have overwrite power on immediate descendants inside itself', (done) => {
             _do([
               python('A1', '69'),
               python('A2', 'A1'),
@@ -293,7 +296,7 @@ describe('backend', () => {
             ]);
           });
 
-          it('should give all fat cells created overwrite power', (done) => {
+          it ('should give all fat cells created overwrite power', (done) => {
             _do([
               python('A2', '1'),
               python('B2', 'range(A2)'),
@@ -313,7 +316,7 @@ describe('backend', () => {
             ]);
           });
 
-          it('should have overwrite power on immediate descendants inside itself', (done) => {
+          it ('should have overwrite power on immediate descendants inside itself', (done) => {
             _do([
               python('A1', '69'),
               python('A2', 'A1'),
@@ -331,7 +334,7 @@ describe('backend', () => {
 
         describe('circular dependency catching', () => {
 
-          it('should be a circ dep if the head expression refers to a cell in the expansion', (done) => {
+          it ('should be a circ dep if the head expression refers to a cell in the expansion', (done) => {
             _do([
               python('A2', '5'),
               shouldError(python('A1', 'range(A2)')),
@@ -339,7 +342,7 @@ describe('backend', () => {
             ]);
           });
 
-          it('more complicated circ dep when the list expands', (done) => {
+          it ('more complicated circ dep when the list expands', (done) => {
             _do([
               python('A2', '1'),
               python('B2', 'A2+1'),
@@ -354,7 +357,7 @@ describe('backend', () => {
 
         describe('pointers', () => {
 
-          it('should shrink if their references are smaller', (done) => {
+          it ('should shrink if their references are smaller', (done) => {
             _do([
               python('A1', 'range(5)'),
               python('B2','@A1'),
@@ -369,7 +372,7 @@ describe('backend', () => {
             ]);
           });
 
-          it('should change if the object they reference updates', (done) => {
+          it ('should change if the object they reference updates', (done) => {
             _do([
               python('B1', 'range(5)'),
               python('C1', '@B1'),
@@ -384,7 +387,7 @@ describe('backend', () => {
             ]);
           });
 
-          it('should dereference if their reference is decoupled by small list', (done) => {
+          it ('should dereference if their reference is decoupled by small list', (done) => {
             _do([
               python('A1', 'range(5)'),
               python('B2', '@A3'),
@@ -400,7 +403,7 @@ describe('backend', () => {
       });
 
       describe('python', () => {
-        it('should evaluate at all', (done) => {
+        it ('should evaluate at all', (done) => {
           _do([
             python('A1', '1 + 1'),
             shouldBe('A1', valueI(2)),
@@ -408,7 +411,7 @@ describe('backend', () => {
           ]);
         });
 
-        it('should evaluate two cells, dependent', (done) => {
+        it ('should evaluate two cells, dependent', (done) => {
           _do([
             python('A1', '1 + 1'),
             python('A2', 'A1 + 1'),
@@ -418,7 +421,7 @@ describe('backend', () => {
           ]);
         });
 
-        it('should evaluate a range and expand it', (done) => {
+        it ('should evaluate a range and expand it', (done) => {
           _do([
             python('A1', 'range(10)'),
             _forM_(_.range(10), (i) => {
@@ -428,7 +431,7 @@ describe('backend', () => {
           ]);
         });
 
-        it('should fail to evaluate a circular dependency', (done) => {
+        it ('should fail to evaluate a circular dependency', (done) => {
           _do([
             python('A1', '1+1'),
             python('B1', 'A1+1'),
@@ -440,7 +443,7 @@ describe('backend', () => {
           ]);
         });
 
-        it('should successfully update diamond dependencies', (done) => {
+        it ('should successfully update diamond dependencies', (done) => {
           _do([
             python('A1', '1'),
             python('A2', 'A1'),
@@ -452,7 +455,7 @@ describe('backend', () => {
           ]);
         });
 
-        it('should delete ancestors that are overwritten by ranges', (done) => {
+        it ('should delete ancestors that are overwritten by ranges', (done) => {
           _do([
             python('A1', '1'),
             python('A2', 'A1'),
@@ -464,7 +467,7 @@ describe('backend', () => {
           ]);
         });
 
-        it('should not give a circular dependency in this contrived example', (done) => {
+        it ('should not give a circular dependency in this contrived example', (done) => {
           _do([
             python('A1', '1'),
             python('B1', 'range(A1)'),
@@ -476,7 +479,7 @@ describe('backend', () => {
           ]);
         });
 
-        it('should not give weird floating point rounding problems on parse', (done) => {
+        it ('should not give weird floating point rounding problems on parse', (done) => {
           _do([
             python('A1', '0.07'),
             shouldBeExact('A1', valueD(0.07)),
@@ -484,7 +487,7 @@ describe('backend', () => {
           ]);
         });
 
-        it('should rollback ancestors set in failed evals', (done) => {
+        it ('should rollback ancestors set in failed evals', (done) => {
           _do([
             python('A1', '1'),
             python('A2', '=A1+A2'), // should fail and NOT save anything to graph db. (Until we make circular deps not failed evals in which case this must change again)
@@ -495,7 +498,7 @@ describe('backend', () => {
           ]);
         });
 
-        it('should correctly parse dependencies in graph-db', (done) => {
+        it ('should correctly parse dependencies in graph-db', (done) => {
           _do([
             python('A1', '1'),
             python('A3', '"A1"'),
@@ -506,7 +509,7 @@ describe('backend', () => {
           ]);
         });
 
-        it('should fail to evaluate a circular dependency arising from a range cell', (done) => {
+        it ('should fail to evaluate a circular dependency arising from a range cell', (done) => {
           _do([
             python('A5', '5'),
             python('C5', 'A5 + 10'),
@@ -517,7 +520,7 @@ describe('backend', () => {
           ]);
         });
 
-        it('range dependencies get updated', (done) => {
+        it ('range dependencies get updated', (done) => {
           _do([
             python('A1', 'range(2)'),
             python('B2', 'A2 + 1'),
@@ -527,7 +530,7 @@ describe('backend', () => {
           ]);
         });
 
-        it('sophisticated range dependencies work as expected', (done) => {
+        it ('sophisticated range dependencies work as expected', (done) => {
           _do([
             python('A1', 'range(102,110)'),
             python('C3', 'range(A3, A3+3)'),
@@ -539,7 +542,7 @@ describe('backend', () => {
           ]);
         });
 
-        it('should evaluate to an error when there is one', (done) => {
+        it ('should evaluate to an error when there is one', (done) => {
           _do([
             python('A1', '1 + "a"'),
             shouldBeError('A1'),
@@ -547,7 +550,7 @@ describe('backend', () => {
           ]);
         });
 
-        it('should evaluate negative floats', (done) => {
+        it ('should evaluate negative floats', (done) => {
           _do([
             python('A1', '-1.5'),
             python('A2', 'A1+3'),
@@ -556,7 +559,7 @@ describe('backend', () => {
           ]);
         });
 
-        it('should reference ancestors of dependencies introduced by list cells in round 2 evals', (done) => {
+        it ('should reference ancestors of dependencies introduced by list cells in round 2 evals', (done) => {
           _do([
             python('B3', '5'),
             excel('C3', '=SUM(A3:B3)'),
@@ -566,7 +569,7 @@ describe('backend', () => {
           ]);
         });
 
-        it('should evaluate None correctly', (done) => {
+        it ('should evaluate None correctly', (done) => {
           _do([
             python('A1', '[1,2,3,None]'),
             python('B1', 'A1:A4.reversed()'),
@@ -575,7 +578,7 @@ describe('backend', () => {
           ]);
         });
 
-        xit('plots shit', (done) => {
+        xit ('plots shit', (done) => {
           _do([
             python('A1', 'import matplotlib.pyplot as plt; plt.plot([1,2,3])'),
             shouldBeImage('A1'),
@@ -587,7 +590,7 @@ describe('backend', () => {
 
         describe('ASIterable', () => {
           describe('1D ranges', () => {
-            it('should act like lists when vertical', (done) => {
+            it ('should act like lists when vertical', (done) => {
               _do([
                 python('A1', 'range(10)'),
                 python('B1', 'A1:A10[2]'),
@@ -597,7 +600,7 @@ describe('backend', () => {
               ]);
             });
 
-            it('initialized to strings works', (done) => {
+            it ('initialized to strings works', (done) => {
               _do([
                 python('A1', '"Hey"'),
                 python('A2', '"There"'),
@@ -609,7 +612,7 @@ describe('backend', () => {
           });
 
           describe('2D ranges', () => {
-            it('can be accesed like 2D lists', (done) => {
+            it ('can be accesed like 2D lists', (done) => {
               _do([
                 python('B2', '5'),
                 python('A1', 'B1:D4[1][0]'),
@@ -618,7 +621,7 @@ describe('backend', () => {
               ]);
             });
 
-            it('can be iterated over like 2D lists', (done) => {
+            it ('can be iterated over like 2D lists', (done) => {
               _do([
                 python('A1', '5'),
                 python('A2', '6'),
@@ -630,7 +633,7 @@ describe('backend', () => {
               ]);
             });
 
-            it('cannot be summed over with sum', (done) => {
+            it ('cannot be summed over with sum', (done) => {
               _do([
                 python('A1', '5'),
                 python('A2', '6'),
@@ -642,7 +645,7 @@ describe('backend', () => {
               ]);
             });
 
-            it('can be initialized to strings', (done) => {
+            it ('can be initialized to strings', (done) => {
               _do([
                 python('A1', '"Hey"'),
                 python('A2', '"There"'),
@@ -656,7 +659,7 @@ describe('backend', () => {
           });
 
           describe('ASIterables initialization', () => {
-            it('works over 1D lists', (done) => {
+            it ('works over 1D lists', (done) => {
               _do([
                 python('A1', 'arr([1, 2, 3])'),
                 python('A2', 'A1:A3[1]'),
@@ -665,7 +668,7 @@ describe('backend', () => {
               ]);
             });
 
-            it('works over 1D lists of strings', (done) => {
+            it ('works over 1D lists of strings', (done) => {
               _do([
                 python('A1', 'arr(["howdy", "there", "pardner"])'),
                 python('A2', 'A1:A3[1]'),
@@ -674,7 +677,7 @@ describe('backend', () => {
               ]);
             });
 
-            it('works over 2D lists', (done) => {
+            it ('works over 2D lists', (done) => {
               _do([
                 python('A1', 'arr([[1, 2], [3]])'),
                 python('A2', 'A1:A3[1]'),
@@ -683,7 +686,7 @@ describe('backend', () => {
               ]);
             });
 
-            it('works over 1D lists of strings', (done) => {
+            it ('works over 1D lists of strings', (done) => {
               _do([
                 python('A1', 'arr(["howdy", "there", "pardner"])'),
                 python('B1', 'A1:A3[1]'),
@@ -692,7 +695,7 @@ describe('backend', () => {
               ]);
             });
 
-            it('works over 2D lists of strings', (done) => {
+            it ('works over 2D lists of strings', (done) => {
               _do([
                 python('A1', 'arr([["howdy", "there", "pardner"], ["how", "are", "you?"]])'),
                 python('D1', 'A1:B2[1][0]'),
@@ -701,7 +704,7 @@ describe('backend', () => {
               ]);
             });
 
-            it('works over numpy arrays', (done) => {
+            it ('works over numpy arrays', (done) => {
               _do([
                 python('A1', 'import numpy as np;\narr(np.array([[1,2],[3,4]]))'),
                 python('C1', 'A1:B2[1][0]'),
@@ -710,7 +713,7 @@ describe('backend', () => {
               ]);
             });
 
-            it('works over ASIterables', (done) => {
+            it ('works over ASIterables', (done) => {
               _do([
                 python('A1', 'arr([arr([1,2]),[3,4]])'),
                 python('C1', 'A1:B2[1][0]'),
@@ -719,7 +722,7 @@ describe('backend', () => {
               ]);
             });
 
-            it('fails over a 3D list', (done) => {
+            it ('fails over a 3D list', (done) => {
               _do([
                 python('A1', 'arr([[[[1]]]])'),
                 shouldBeError('A1'),
@@ -729,7 +732,7 @@ describe('backend', () => {
           });
 
           describe('Hiding and unhiding', () => {
-            it('can be hidden and unhidden', (done) => {
+            it ('can be hidden and unhidden', (done) => {
               _do([
                 python('A1', '5'), python('A2', '6'), python('A3', '7'),
                 python('B1', 'A1:A3.hide()'),
@@ -740,7 +743,7 @@ describe('backend', () => {
               ]);
             });
 
-            it('can be operated on while hidden', (done) => {
+            it ('can be operated on while hidden', (done) => {
               _do([
                 python('A1', '5'), python('A2', '6'), python('A3', '7'),
                 python('B1', 'A1:A3.hide()'),
@@ -750,10 +753,12 @@ describe('backend', () => {
               ]);
             });
 
-            it('preserves dimensions upon hiding and unhiding', (done) => {
+            it ('preserves dimensions upon hiding and unhiding', (done) => {
               _do([
                 python('A1', 'hide([[1,2]])'),
-                python('A3', 'A1.unhide()'),
+                python('A2', 'A1.unhide()'),
+                python('A3', 'unhide(A1)'),
+                shouldBe('B2', valueI(2)),
                 shouldBe('B3', valueI(2)),
                 exec(done)
               ]);
@@ -761,7 +766,7 @@ describe('backend', () => {
           });
 
           describe('Misc perks', () => {
-            it('can be transposed', (done) => {
+            it ('can be transposed', (done) => {
               _do([
                 python('A1', '5'), python('A2', '6'), python('B1', '7'), python('B2', '8'),
                 python('C1', 'A1:B2.transpose()'),
@@ -770,7 +775,7 @@ describe('backend', () => {
               ]);
             });
 
-            it('can be summed', (done) => {
+            it ('can be summed', (done) => {
               _do([
                 python('A1', '5'), python('A2', '6'), python('B1', '7'), python('B2', '8'),
                 python('C1', 'A1:B2.sum()'),
@@ -779,7 +784,7 @@ describe('backend', () => {
               ]);
             });
 
-            it('can be sorted', (done) => {
+            it ('can be sorted', (done) => {
               _do([
                 python('A1', '7'), python('A2', '5'), python('A3', '6'),
                 python('C1', 'A1:A3.sorted()'),
@@ -788,7 +793,7 @@ describe('backend', () => {
               ]);
             });
 
-            it('can be reversed', (done) => {
+            it ('can be reversed', (done) => {
               _do([
                 python('A1', '7'), python('A2', '5'), python('A3', '6'),
                 python('C1', 'A1:A3.reversed()'),
@@ -797,7 +802,7 @@ describe('backend', () => {
               ]);
             });
 
-            it('can be appended as a 2D list', (done) => {
+            it ('can be appended as a 2D list', (done) => {
               _do([
                 python('A1', '[[1,2],[3,4]]'),
                 python('A3', 'l = A1:B2\nl.append([5,6])\nl'),
@@ -806,7 +811,7 @@ describe('backend', () => {
               ]);
             });
 
-            it('can be sorted and reversed and transposed in succession', (done) => {
+            it ('can be sorted and reversed and transposed in succession', (done) => {
               _do([
                 python('A1', '7'), python('A2', '5'), python('A3', '6'),
                 python('B1', 'A1:A3.sorted().reversed().transpose()'),
@@ -819,7 +824,7 @@ describe('backend', () => {
       });
 
       describe('r', () => {
-        it('should evaluate at all', (done) => {
+        it ('should evaluate at all', (done) => {
           _do([
             r('A1', '1 + 1'),
             shouldBe('A1', valueI(2)),
@@ -827,7 +832,7 @@ describe('backend', () => {
           ]);
         });
 
-        it('should evaluate a range and expand it', (done) => {
+        it ('should evaluate a range and expand it', (done) => {
           _do([
             r('A1', '1:10'),
             _forM_(_.range(10), (i) => {
@@ -837,7 +842,7 @@ describe('backend', () => {
           ]);
         });
 
-        it('should evaluate a double', (done) => {
+        it ('should evaluate a double', (done) => {
           _do([
             r('A1', '1.23'),
             shouldBe('A1', valueD(1.23)),
@@ -845,7 +850,7 @@ describe('backend', () => {
           ]);
         });
 
-        it('should evaluate lists correctly', (done) => {
+        it ('should evaluate lists correctly', (done) => {
           _do([
             r('A1', 'list(a=1,b=2)'),
             r('C1', '@A1$a'),
@@ -854,7 +859,7 @@ describe('backend', () => {
           ]);
         });
 
-        it('should evaluate a symbol correctly', (done) => {
+        it ('should evaluate a symbol correctly', (done) => {
           _do([
             r('A1', 'as.symbol(123)'),
             shouldBe('A1', valueS('123')),
@@ -862,7 +867,7 @@ describe('backend', () => {
           ]);
         });
 
-        it('should evaluate list dependencies', (done) => {
+        it ('should evaluate list dependencies', (done) => {
           _do([
             r('A1', 'c(1,2,3,4)'),
             r('B1', 'typeof(A4)'),
@@ -873,7 +878,7 @@ describe('backend', () => {
           ]);
         });
 
-        it('plots shit', (done) => {
+        it ('plots shit', (done) => {
           _do([
             r('A1','qplot(x=\'x\',y=\'y\',data=data.frame(c(1,2)))'),
             shouldBeImage('A1'),
@@ -884,7 +889,7 @@ describe('backend', () => {
 
       describe('excelfunctions', () => {
         // This test won't work until double equality is fixed.
-        xit('CORREL', (done) => {
+        xit ('CORREL', (done) => {
             _do([
                 excel('A1', 'Data1'),
                 excel('A2', '3'),
@@ -909,7 +914,7 @@ describe('backend', () => {
                 exec(done)
             ]);
         });
-        it('SUM', (done) => {
+        it ('SUM', (done) => {
           _do([
             excel('A1', '-5'),
             excel('A2', '15'),
@@ -928,7 +933,7 @@ describe('backend', () => {
             exec(done)
           ]);
         });
-        it('COVAR', (done) => {
+        it ('COVAR', (done) => {
           _do([
               excel('A1', 'Data1'),
               excel('A2', '3'),
@@ -951,7 +956,7 @@ describe('backend', () => {
               exec(done)
           ]);
         });
-        xit('MATCH', (done) => {
+        xit ('MATCH', (done) => {
             _do([
                 excel('A1', 'Product'),
                 excel('A2', 'Bananas'),
@@ -983,7 +988,7 @@ describe('backend', () => {
       });
 
       describe('excel', () => {
-        it('should evaluate sums', (done) => {
+        it ('should evaluate sums', (done) => {
           _do([
             python('A1', 'range(10)'),
             excel('B1', '=A1+A2'),
@@ -992,7 +997,7 @@ describe('backend', () => {
           ]);
         });
 
-        it('should treat blanks as zeroes for arithmetic operations', (done) => {
+        it ('should treat blanks as zeroes for arithmetic operations', (done) => {
           _do([
             python('A1', '5'),
             excel('B1', '=A2+A3'),
@@ -1007,7 +1012,7 @@ describe('backend', () => {
           ]);
         });
 
-        it('should evaluate a literal', (done) => {
+        it ('should evaluate a literal', (done) => {
           _do([
             excel('A1', '1'),
             shouldBe('A1', valueI(1)),
@@ -1015,7 +1020,7 @@ describe('backend', () => {
           ]);
         });
 
-        it('should evaluate a string literal verbatim', (done) => {
+        it ('should evaluate a string literal verbatim', (done) => {
           _do([
             excel('A1', '"hello"hello"hello"'),
             shouldBe('A1', valueS("\"hello\"hello\"hello\"")),
@@ -1023,7 +1028,7 @@ describe('backend', () => {
           ]);
         });
 
-        it('should include quotes in string literal with quotes', (done) => {
+        it ('should include quotes in string literal with quotes', (done) => {
           _do([
             excel('A1', '"hello"'),
             shouldBe('A1', valueS("\"hello\"")),
@@ -1031,7 +1036,7 @@ describe('backend', () => {
           ]);
         });
 
-        it('should evaluate entire expression', (done) => {
+        it ('should evaluate entire expression', (done) => {
           _do([
             excel('A1', '=SUM(1,2)ASDF"sadf'), //and not just match =SUM(1,2) and equal 3
             shouldBeError('A1'),
@@ -1039,7 +1044,7 @@ describe('backend', () => {
           ]);
         });
 
-        it('should evaluate nested formulas', (done) => {
+        it ('should evaluate nested formulas', (done) => {
           _do([
             excel('A1', '=SUM(1,SUM(2,3))'),
             shouldBe('A1', valueI(6)),
@@ -1047,7 +1052,7 @@ describe('backend', () => {
           ]);
         });
 
-        it('should recognize functions no matter how they are capitalized', (done) => {
+        it ('should recognize functions no matter how they are capitalized', (done) => {
           _do([
             excel('A1', '1'),
             excel('A2', '2'),
@@ -1057,7 +1062,7 @@ describe('backend', () => {
           ]);
         });
 
-        it('should recognize true and false no matter how they are capitalized', (done) => {
+        it ('should recognize true and false no matter how they are capitalized', (done) => {
           _do([
             excel('A1', 'TrUe'),
             excel('A2', 'false'),
@@ -1067,7 +1072,7 @@ describe('backend', () => {
           ]);
         });
 
-        it('should recognize emptry strings', (done) => {
+        it ('should recognize emptry strings', (done) => {
           _do([
             excel('A1', '   '),
             shouldBe('A1', valueS('   ')),
@@ -1075,7 +1080,7 @@ describe('backend', () => {
           ]);
         });
 
-        it('recognizes - and + prefix operators', (done) => {
+        it ('recognizes - and + prefix operators', (done) => {
           _do([
             excel('A1', '=++--+-2'),
             shouldBe('A1', valueI(-2)),
@@ -1084,7 +1089,7 @@ describe('backend', () => {
         });
 
         describe('abs', () => {
-          it('should evaluate', (done) => {
+          it ('should evaluate', (done) => {
             _do([
               python('A1', 'range(10)'),
               excel('B1', '=abs(A2)'),
@@ -1093,7 +1098,7 @@ describe('backend', () => {
             ]);
           });
 
-          it('should scalarize', (done) => {
+          it ('should scalarize', (done) => {
             _do([
               python('A1', 'range(10)'),
               excel('B1', '=abs(A$1:A$10)'),
@@ -1108,7 +1113,7 @@ describe('backend', () => {
         });
 
         describe('equals', () => {
-          it('should eval 1=1', (done) => {
+          it ('should eval 1=1', (done) => {
             _do([
               python('A1', '1'),
               excel('B1', '=A1=1'),
@@ -1117,7 +1122,7 @@ describe('backend', () => {
             ]);
           });
 
-          it('should array-ize', (done) => {
+          it ('should array-ize', (done) => {
             _do([
               python('A1', 'range(2)'),
               excel('B1', '{=A1:A2=1}'),
@@ -1128,7 +1133,7 @@ describe('backend', () => {
         });
 
         describe('exponentiation', () => {
-          it('should evaluate integer exponentiation', (done) => {
+          it ('should evaluate integer exponentiation', (done) => {
             _do([
               python('A1', '10'),
               excel('B1', '=A1^2'),
@@ -1137,7 +1142,7 @@ describe('backend', () => {
             ]);
           });
 
-          it('should not raise 0 to the 0', (done) => {
+          it ('should not raise 0 to the 0', (done) => {
             _do([
               python('A1', '0'),
               excel('B1', '=A1^0'),
@@ -1146,7 +1151,7 @@ describe('backend', () => {
             ]);
           });
 
-          it('should allow negative numbers to be exponentiated with integers', (done) => {
+          it ('should allow negative numbers to be exponentiated with integers', (done) => {
             _do([
               excel('A1', '=(-2)^(-2)'),
               shouldBe('A1', valueD(0.25)),
@@ -1154,7 +1159,7 @@ describe('backend', () => {
             ]);
           });
 
-          it('should not allow negative numbers to be exponentiated with floats', (done) => {
+          it ('should not allow negative numbers to be exponentiated with floats', (done) => {
             _do([
               excel('A1', '=(-2)^(-2.0)'),
               shouldBeError('A1'),
@@ -1163,7 +1168,7 @@ describe('backend', () => {
           });
         });
 
-        it('should parse dollars adjacent to operators correctly', (done) => {
+        it ('should parse dollars adjacent to operators correctly', (done) => {
           _do([
             excel('A1', '2'),
             excel('A2', '1'),
@@ -1173,7 +1178,7 @@ describe('backend', () => {
           ]);
         });
 
-        it('should parse floating points correctly', (done) => {
+        it ('should parse floating points correctly', (done) => {
           _do([
             excel('A1', '.25'),
             shouldBe('A1', valueD(0.25)),
@@ -1188,7 +1193,7 @@ describe('backend', () => {
 
 
       describe('A:A and  1:1 parsing tests', () => {
-        xit('A:A should display ranges properly', (done) => {
+        xit ('A:A should display ranges properly', (done) => {
           _do([
             python('A1', '[range(10)]'),
             python('B1', 'A:A'),
@@ -1199,7 +1204,7 @@ describe('backend', () => {
             exec(done)
           ]);
         });
-        xit('A2:A should display ranges properly', (done) => {
+        xit ('A2:A should display ranges properly', (done) => {
           _do([
             python('A1', '[range(10)]'),
             python('B1', 'A2:A'),
@@ -1208,7 +1213,7 @@ describe('backend', () => {
             exec(done)
           ]);
         });
-        xit('A2:B should display ranges properly', (done) => {
+        xit ('A2:B should display ranges properly', (done) => {
           _do([
             python('A1', '[range(10)]'),
             python('B1', 'A:A'),
@@ -1224,7 +1229,7 @@ describe('backend', () => {
             exec(done)
           ]);
         });
-        xit('A:B should display ranges properly', (done) => {
+        xit ('A:B should display ranges properly', (done) => {
           _do([
             python('A1', '[range(10)]'),
             python('B1', 'A2:A'),
@@ -1242,7 +1247,7 @@ describe('backend', () => {
             exec(done)
           ]);
         });
-        xit('1:1 should display ranges properly', (done) => {
+        xit ('1:1 should display ranges properly', (done) => {
           _do([
             python('A1', '[range(10)]'),
             python('B1', '1:1'),
@@ -1251,7 +1256,7 @@ describe('backend', () => {
             exec(done)
           ]);
         });
-        xit('Deleting ranges should work with A:A parsing', (done) => {
+        xit ('Deleting ranges should work with A:A parsing', (done) => {
           _do([
             python('A1', '[range(10)]'),
             delete_('A1'),
@@ -1270,7 +1275,7 @@ describe('backend', () => {
           ]);
         });
 
-        xit('should do undo for A:A', (done) => {
+        xit ('should do undo for A:A', (done) => {
           _do([
             python('A1', 'range(10)'),
             python('B1', 'A:A'),
@@ -1282,7 +1287,7 @@ describe('backend', () => {
             exec(done)
           ]);
         });
-        xit('should redo on Ctrl+Y after undo for A:A', (done) => {
+        xit ('should redo on Ctrl+Y after undo for A:A', (done) => {
           _do([
             //TODO: timchu
             python('A1', 'range(10)'),
@@ -1294,7 +1299,7 @@ describe('backend', () => {
 
       describe('row/col insertion, deletion, and swapping', () => {
         describe('row insertion', () => {
-          it('should move cells to correct locations', (done) => {
+          it ('should move cells to correct locations', (done) => {
             _do([
               python('A1', '10'), python('A2', '11'), python('A3', '12'),
               insertRow(2),
@@ -1306,7 +1311,7 @@ describe('backend', () => {
             ]);
           });
 
-          it('should shift references appropriately', (done) => {
+          it ('should shift references appropriately', (done) => {
             _do([
               python('A1', '10'), python('A2', 'A1+1'), python('A3', 'A2+1'), python('A4', 'A3+1'),
               insertRow(2),
@@ -1317,7 +1322,7 @@ describe('backend', () => {
             ]);
           });
 
-          it('should shift range references appropriately', (done) => {
+          it ('should shift range references appropriately', (done) => {
             _do([
               python('A1', '[range(10)]'),
               excel('A2', '=SUM(A1:J1)'),
@@ -1327,7 +1332,7 @@ describe('backend', () => {
             ]);
           });
 
-          it('should decouple lists when it destroys it', (done) => {
+          it ('should decouple lists when it destroys it', (done) => {
             _do([
               python('A1', 'range(10)'),
               insertRow(3),
@@ -1341,7 +1346,7 @@ describe('backend', () => {
             ]);
           });
 
-          it('should not decouple lists when it does not destroy it', (done) => {
+          it ('should not decouple lists when it does not destroy it', (done) => {
             _do([
               python('A1', 'range(10)'),
               insertRow(1),
@@ -1354,7 +1359,7 @@ describe('backend', () => {
         });
 
         describe('row deletion', () => {
-          it('should move cells to correct locations', (done) => {
+          it ('should move cells to correct locations', (done) => {
             _do([
               python('A1', '10'), python('A2', '11'), python('A3', '12'),
               deleteRow(2),
@@ -1364,7 +1369,7 @@ describe('backend', () => {
             ]);
           });
 
-          it('should shift references appropriately', (done) => {
+          it ('should shift references appropriately', (done) => {
             _do([
               python('A1', '10'), python('A2', 'A1+1'), python('A3', 'A2+1'), python('A4', 'A3+1'),
               deleteRow(2),
@@ -1375,7 +1380,7 @@ describe('backend', () => {
             ]);
           });
 
-          it('should shift range references appropriately', (done) => {
+          it ('should shift range references appropriately', (done) => {
             _do([
               python('A2', '[range(10)]'),
               excel('A3', '=SUM(A2:J2)'),
@@ -1386,7 +1391,7 @@ describe('backend', () => {
             ]);
           });
 
-          it('should decouple lists when it destroys it', (done) => {
+          it ('should decouple lists when it destroys it', (done) => {
             _do([
               python('A1', 'range(10)'),
               deleteRow(3),
@@ -1397,7 +1402,7 @@ describe('backend', () => {
             ]);
           });
 
-          it('should not decouple lists when it does not destroy it', (done) => {
+          it ('should not decouple lists when it does not destroy it', (done) => {
             _do([
               python('A1', 'range(10)'),
               deleteRow(11),
@@ -1409,7 +1414,7 @@ describe('backend', () => {
         });
 
         describe('row drag', () => {
-          it('should move cells to correct locations when dragging left-to-right', (done) => {
+          it ('should move cells to correct locations when dragging left-to-right', (done) => {
             _do([
               python('A1', '10'), python('A2', '11'), python('A3', '12'),
               dragRow(1,3),
@@ -1420,7 +1425,7 @@ describe('backend', () => {
             ]);
           });
 
-          it('should move cells to correct locations when dragging right-to-left', (done) => {
+          it ('should move cells to correct locations when dragging right-to-left', (done) => {
             _do([
               python('A1', '10'), python('A2', '11'), python('A3', '12'),
               dragRow(3,1),
@@ -1431,7 +1436,7 @@ describe('backend', () => {
             ]);
           });
 
-          it('should shift references appropriately', (done) => {
+          it ('should shift references appropriately', (done) => {
             _do([
               python('A1', '10'), python('A2', 'A1+2'), python('A3', 'A2+3'), python('A4', 'A3+4'),
               dragRow(2,4), //1,2,3,4 --> 1,3,4,2
@@ -1442,7 +1447,7 @@ describe('backend', () => {
             ]);
           });
 
-          it('should shift range references appropriately', (done) => {
+          it ('should shift range references appropriately', (done) => {
             _do([
               python('A1', '0'), python('A2', '1'), python('B1', '3'), python('B2', '4'),
               excel('A5', '=SUM(A1:B2)'),
@@ -1452,7 +1457,7 @@ describe('backend', () => {
             ]);
           });
 
-          it('should decouple lists when it destroys it', (done) => {
+          it ('should decouple lists when it destroys it', (done) => {
             _do([
               python('A1', 'range(10)'),
               dragRow(3,1),
@@ -1473,7 +1478,7 @@ describe('backend', () => {
             ]);
           });
 
-          it('should not decouple lists when it does not destroy it', (done) => {
+          it ('should not decouple lists when it does not destroy it', (done) => {
             _do([
               python('A1', '[range(3)]'),
               dragRow(1,2),
@@ -1490,7 +1495,7 @@ describe('backend', () => {
         });
 
         describe('column insertion', () => {
-          it('should move cells to correct locations', (done) => {
+          it ('should move cells to correct locations', (done) => {
             _do([
               python('A1', '10'), python('B1', '11'), python('C1', '12'),
               insertCol(2),
@@ -1502,7 +1507,7 @@ describe('backend', () => {
             ]);
           });
 
-          it('should shift references appropriately', (done) => {
+          it ('should shift references appropriately', (done) => {
             _do([
               python('A1', '10'), python('B1', 'A1+1'), python('C1', 'B1+1'), python('D1', 'C1+1'),
               insertCol(2),
@@ -1513,7 +1518,7 @@ describe('backend', () => {
             ]);
           });
 
-          it('should shift range references appropriately', (done) => {
+          it ('should shift range references appropriately', (done) => {
             _do([
               python('A1', 'range(10)'),
               excel('B1', '=SUM(A1:A10)'),
@@ -1523,7 +1528,7 @@ describe('backend', () => {
             ]);
           });
 
-          it('should decouple lists when it destroys it', (done) => {
+          it ('should decouple lists when it destroys it', (done) => {
             _do([
               python('A1', '[range(10)]'),
               insertCol(3),
@@ -1537,7 +1542,7 @@ describe('backend', () => {
             ]);
           });
 
-          it('should not decouple lists when it does not destroy it', (done) => {
+          it ('should not decouple lists when it does not destroy it', (done) => {
             _do([
               python('A1', '[range(10)]'),
               insertCol(1),
@@ -1551,7 +1556,7 @@ describe('backend', () => {
         });
 
         describe('column deletion', () => {
-          it('should move cells to correct locations', (done) => {
+          it ('should move cells to correct locations', (done) => {
             _do([
               python('A1', '10'), python('B1', '11'), python('C1', '12'),
               deleteCol(2),
@@ -1561,7 +1566,7 @@ describe('backend', () => {
             ]);
           });
 
-          it('should shift references appropriately', (done) => {
+          it ('should shift references appropriately', (done) => {
             _do([
               python('A1', '10'), python('B1', 'A1+1'), python('C1', 'B1+1'), python('D1', 'C1+1'),
               deleteCol(2),
@@ -1572,7 +1577,7 @@ describe('backend', () => {
             ]);
           });
 
-          it('should shift range references appropriately', (done) => {
+          it ('should shift range references appropriately', (done) => {
             _do([
               python('B1', 'range(10)'),
               excel('C1', '=SUM(B1:B10)'),
@@ -1583,7 +1588,7 @@ describe('backend', () => {
             ]);
           });
 
-          it('should decouple lists when it destroys it', (done) => {
+          it ('should decouple lists when it destroys it', (done) => {
             _do([
               python('A1', '[range(10)]'),
               deleteCol(3),
@@ -1594,7 +1599,7 @@ describe('backend', () => {
             ]);
           });
 
-          it('should not decouple lists when it does not destroy it', (done) => {
+          it ('should not decouple lists when it does not destroy it', (done) => {
             _do([
               python('A1', '[range(10)]'),
               deleteCol(11),
@@ -1606,7 +1611,7 @@ describe('backend', () => {
         });
 
        describe('column drag', () => {
-          it('should move cells to correct locations when dragging up-to-down', (done) => {
+          it ('should move cells to correct locations when dragging up-to-down', (done) => {
             _do([
               python('A1', '10'), python('B1', '11'), python('C1', '12'),
               dragCol(1,3),
@@ -1617,7 +1622,7 @@ describe('backend', () => {
             ]);
           });
 
-          it('should move cells to correct locations when dragging down-to-up', (done) => {
+          it ('should move cells to correct locations when dragging down-to-up', (done) => {
             _do([
               python('A1', '10'), python('B1', '11'), python('C1', '12'),
               dragCol(3, 1),
@@ -1628,7 +1633,7 @@ describe('backend', () => {
             ]);
           });
 
-          it('should shift references appropriately', (done) => {
+          it ('should shift references appropriately', (done) => {
             _do([
               python('A1', '10'), python('B1', 'A1+2'), python('C1', 'B1+3'), python('D1', 'C1+4'),
               dragCol(2,4), //1,2,3,4 --> 1,3,4,2
@@ -1639,7 +1644,7 @@ describe('backend', () => {
             ]);
           });
 
-          it('should shift references appropriately in succession', (done) => {
+          it ('should shift references appropriately in succession', (done) => {
             _do([
               python('A1', '10'),
               python('B1', 'A1'),
@@ -1650,7 +1655,7 @@ describe('backend', () => {
             ]);
           });
 
-          it('should shift range references appropriately', (done) => {
+          it ('should shift range references appropriately', (done) => {
             _do([
               python('A1', '0'), python('A2', '1'), python('B1', '3'), python('B2', '4'),
               excel('E1', '=SUM(A1:B2)'),
@@ -1660,7 +1665,7 @@ describe('backend', () => {
             ]);
           });
 
-          it('should decouple lists when it destroys it', (done) => {
+          it ('should decouple lists when it destroys it', (done) => {
             _do([
               python('A1', '[range(10)]'),
               dragCol(3,1),
@@ -1681,7 +1686,7 @@ describe('backend', () => {
             ]);
           });
 
-          it('should not decouple lists when it does not destroy it', (done) => {
+          it ('should not decouple lists when it does not destroy it', (done) => {
             _do([
               python('A1', 'range(3)'),
               dragCol(1,2),
@@ -1699,7 +1704,7 @@ describe('backend', () => {
       });
 
       describe('general', () => {
-        it('should do multi language eval', (done) => {
+        it ('should do multi language eval', (done) => {
           _do([
             python('A1', '10'),
             r('B1', '1:A1'),
@@ -1710,7 +1715,7 @@ describe('backend', () => {
           ]);
         });
 
-        it('should shrink a range based on a dependency', (done) => {
+        it ('should shrink a range based on a dependency', (done) => {
           _do([
             python('A1', '10'),
             python('B1', 'range(A1)'),
@@ -1729,7 +1734,7 @@ describe('backend', () => {
     });
 
     describe('eval header', () => {
-      it('lets you declare global variables', (done) => {
+      it ('lets you declare global variables', (done) => {
         _do([
           pythonEvalHeader('a=1'),
           python('A1', 'a+1'),
@@ -1738,7 +1743,7 @@ describe('backend', () => {
         ]);
       });
 
-      it('lets you declare global functions', (done) => {
+      it ('lets you declare global functions', (done) => {
         _do([
           pythonEvalHeader('def sq(x):\n\treturn x**2'),
           python('A1', 'sq(2)'),
@@ -1747,7 +1752,7 @@ describe('backend', () => {
         ]);
       });
 
-      it('lets you make imports', (done) => {
+      it ('lets you make imports', (done) => {
         _do([
           pythonEvalHeader('import numpy as np'),
           python('A1', 'np.array([[1,2],[3,4]]).tolist()'),
@@ -1756,7 +1761,7 @@ describe('backend', () => {
         ]);
       });
 
-      it('allows you to continue evaluating after a failure', (done) => {
+      it ('allows you to continue evaluating after a failure', (done) => {
         _do([
           rEvalHeader("x=read.table(\"test.csv\", sep=\",\")"),
           r('A1', '3'),
@@ -1768,7 +1773,7 @@ describe('backend', () => {
 
     describe('cell transforms', () => {
       describe('copy/paste', () => {
-        it('should copy and paste', (done) => {
+        it ('should copy and paste', (done) => {
           _do([
             python('A1', '1'),
             copy('A1', 'A2'),
@@ -1777,7 +1782,7 @@ describe('backend', () => {
           ]);
         });
 
-        it('should copy and paste a reference', (done) => {
+        it ('should copy and paste a reference', (done) => {
           _do([
             python('A1', '1'),
             python('A2', '2'),
@@ -1788,7 +1793,7 @@ describe('backend', () => {
           ]);
         });
 
-        it('should handle $A1 references', (done) => {
+        it ('should handle $A1 references', (done) => {
           _do([
             python('A1', '1'),
             python('B1', '$A1'),
@@ -1798,7 +1803,7 @@ describe('backend', () => {
           ]);
         });
 
-        it('should copy and paste a range reference', (done) => {
+        it ('should copy and paste a range reference', (done) => {
           _do([
             python('A1', 'range(10)'),
             python('B1', '[x ** 2 for x in range(10)]'),
@@ -1809,12 +1814,12 @@ describe('backend', () => {
           ]);
         });
 
-        it('should re-evaluate copy/paste selections composed of only list heads', (done) => {
+        it ('should re-evaluate copy/paste selections composed of only list heads', (done) => {
           _do([
             python('A1', '"John Smith"'),
             python('A2', '"Alex Zhu"'),
             python('A3', '"Bob Ghandi"'),
-            python('B1', '[A1.split()]'),
+            python('B1', '[A1.split ()]'),
             copy('B1', 'B2:B3'),
             shouldBe('C2', valueS("Zhu")),
             shouldBe('C3', valueS("Ghandi")),
@@ -1822,7 +1827,7 @@ describe('backend', () => {
           ]);
         });
 
-        it('should tessellate a range', (done) => {
+        it ('should tessellate a range', (done) => {
           let cs = {
             '00': 0,
             '10': 1,
@@ -1846,7 +1851,7 @@ describe('backend', () => {
           ]);
         });
 
-        it('should copy a cell down', (done) => {
+        it ('should copy a cell down', (done) => {
           _do([
             python('A1', 'range(10)'),
             python('B1', 'A1*2'),
@@ -1858,7 +1863,7 @@ describe('backend', () => {
           ]);
         });
 
-        it('can copy a range onto another and decouple', (done) => {
+        it ('can copy a range onto another and decouple', (done) => {
           _do([
             python('B1', 'range(1)'),
             python('C1', 'range(2)'),
@@ -1870,7 +1875,7 @@ describe('backend', () => {
           ]);
         });
 
-        it('should trigger eval when a cell is copied into a dependency', (done) => {
+        it ('should trigger eval when a cell is copied into a dependency', (done) => {
           _do([
             python('A1', '1'),
             python('B1', '2'),
@@ -1882,7 +1887,7 @@ describe('backend', () => {
           ]);
         });
 
-        it('should refuse to copy to create a circular dependency', (done) => {
+        it ('should refuse to copy to create a circular dependency', (done) => {
           _do([
             python('D1', '5'),
             python('C1', 'D1'),
@@ -1895,7 +1900,7 @@ describe('backend', () => {
           ]);
         });
 
-        it('should refuse to copy out of bounds', (done) => {
+        it ('should refuse to copy out of bounds', (done) => {
           _do([
             python('A2', 'A1+1'),
             copy('A2', 'A1'),
@@ -1904,7 +1909,7 @@ describe('backend', () => {
           ]);
         });
 
-        it('should not save cells that go out of bounds', (done) => {
+        it ('should not save cells that go out of bounds', (done) => {
           _do([
             // fun fact, the below works
             // python('A0', '0'),
@@ -1918,7 +1923,7 @@ describe('backend', () => {
           ]);
         });
 
-        it('should copy expressions with both a list and a dependency to the list', (done) => {
+        it ('should copy expressions with both a list and a dependency to the list', (done) => {
           _do([
             python('A1', 'range(10)'),
             python('B1', 'A1:A10.sum()'),
@@ -1928,7 +1933,7 @@ describe('backend', () => {
           ]);
         });
 
-        it('should successfully copy out of bounds expressions', (done) => {
+        it ('should successfully copy out of bounds expressions', (done) => {
           _do([
             python('A2', 'A1+1'),
             copy('A2', 'A1'),
@@ -1938,7 +1943,7 @@ describe('backend', () => {
           ]);
         });
 
-        it('should not shift quoted excel references', (done) => {
+        it ('should not shift quoted excel references', (done) => {
           _do([
             python('B1', '"there"'),
             python('A2', '"A1"+A1'),
@@ -1953,7 +1958,7 @@ describe('backend', () => {
           ]);
         });
 
-        it('should not shift quoted excel references with escaped chars', (done) => {
+        it ('should not shift quoted excel references with escaped chars', (done) => {
           _do([
             python('B1', '"there"'),
 
@@ -1964,7 +1969,7 @@ describe('backend', () => {
           ]);
         });
 
-        it('should not shift excel literals', (done) => {
+        it ('should not shift excel literals', (done) => {
           _do([
             excel('A1', 'A1"A1"'),
             copy('A1','B1'),
@@ -1974,7 +1979,7 @@ describe('backend', () => {
         });
 
 
-        it('should successfully copy and paste cells that depend on each other', (done) => {
+        it ('should successfully copy and paste cells that depend on each other', (done) => {
           _do([
             python('A1', '1'),
             python('A2', 'A1 + 1'),
@@ -1989,7 +1994,7 @@ describe('backend', () => {
           ]);
         });
 
-        it('should copy an entire list without decoupling it', (done) => {
+        it ('should copy an entire list without decoupling it', (done) => {
           _do([
             python('A1', 'range(10)'),
             copy('A1:A10', 'B1:B10'),
@@ -1998,7 +2003,7 @@ describe('backend', () => {
           ]);
         });
 
-        it('should decouple a partial list while copying it', (done) => {
+        it ('should decouple a partial list while copying it', (done) => {
           _do([
             python('A1', 'range(10)'),
             copy('A1:A2', 'B1:B2'),
@@ -2007,7 +2012,7 @@ describe('backend', () => {
           ]);
         });
 
-        it('should copy blank cells', (done) => {
+        it ('should copy blank cells', (done) => {
           _do([
             python('A1', '1'),
             python('B2', '2'),
@@ -2019,7 +2024,7 @@ describe('backend', () => {
       });
 
       describe('delete', () => {
-        it('should remove date formatting on delete but keep the rest', (done) => {
+        it ('should remove date formatting on delete but keep the rest', (done) => {
           _do([
             excel('A1', '12/12/12'),
             excel('A2', '$100'),
@@ -2034,7 +2039,7 @@ describe('backend', () => {
       });
 
       describe('cut/paste', () => {
-        it('should cut properly', (done) => {
+        it ('should cut properly', (done) => {
           _do([
             python('A1', '1 + 1'),
             python('B1', 'A1 + 1'),
@@ -2051,7 +2056,7 @@ describe('backend', () => {
           ]);
         });
 
-        it('should cut properly with blank cells', (done) => {
+        it ('should cut properly with blank cells', (done) => {
           _do([
             python('A1', '1 + 1'),
             python('B1', 'A1 + 1'),
@@ -2068,7 +2073,7 @@ describe('backend', () => {
           ]);
         });
 
-        it('should cut ranges and pointers to those ranges properly', (done) => {
+        it ('should cut ranges and pointers to those ranges properly', (done) => {
           _do([
             python('A1', 'range(1)'),
             python('B1', '@A1'),
@@ -2082,7 +2087,7 @@ describe('backend', () => {
           ]);
         });
 
-        it('should only shift dependencies in the cut region', (done) => {
+        it ('should only shift dependencies in the cut region', (done) => {
           _do([
             python('E1', '10'),
             python('A1', '1 + E1'),
@@ -2094,7 +2099,7 @@ describe('backend', () => {
           ]);
         });
 
-        it('should only shift dependencies entirely contained in the cut region for ranges', (done) => {
+        it ('should only shift dependencies entirely contained in the cut region for ranges', (done) => {
           _do([
             python('A1', '10'), python('A2', '11'), python('A3', '12'),
             python('A4', 'sum(A1:A3)'),
@@ -2106,7 +2111,7 @@ describe('backend', () => {
           ]);
         });
 
-        it('should shift absolute index references within the cut region', (done) => {
+        it ('should shift absolute index references within the cut region', (done) => {
           _do([
             python('A1', '10'), python('A2', '$A$1+5'),
             cut('A1:A2', 'B1:B2'),
@@ -2115,7 +2120,7 @@ describe('backend', () => {
           ]);
         });
 
-        it('should shift absolute range references within the cut region', (done) => {
+        it ('should shift absolute range references within the cut region', (done) => {
           _do([
             python('A1', '10'), python('A2', '11'), python('A3', '12'),
             python('A4', 'sum($A$1:$A$3)'),
@@ -2125,7 +2130,7 @@ describe('backend', () => {
           ]);
         });
 
-        it('should shift index references in descendant cells', (done) => {
+        it ('should shift index references in descendant cells', (done) => {
           _do([
             python('A1', '10'), python('A2', '11'), python('A3', '$A$1'),
             cut('A1:A2', 'B1:B2'),
@@ -2134,7 +2139,7 @@ describe('backend', () => {
           ]);
         });
 
-        it('should only shift references in range of cut', (done) => {
+        it ('should only shift references in range of cut', (done) => {
           _do([
             python('A1', '10'), python('A2', '11'), python('A4', 'sum($A$2:A3)'),
             cut('A1:A2', 'B1:B2'),
@@ -2143,7 +2148,7 @@ describe('backend', () => {
           ]);
         });
 
-        it('should not re-eval the head of a fat cell', (done) => {
+        it ('should not re-eval the head of a fat cell', (done) => {
           _do([
             python('A1', 'range(10)'),
             cut('A1', 'B1'),
@@ -2155,7 +2160,7 @@ describe('backend', () => {
         });
 
         // known to fail. should work after eval refactor.
-        xit('pointer to decoupled cells from cut return errors', (done) => {
+        xit ('pointer to decoupled cells from cut return errors', (done) => {
           _do([
             python('A1', 'range(10)'),
             python('C1', '@A1'),
@@ -2166,7 +2171,7 @@ describe('backend', () => {
           ]);
         });
 
-        it('should cut/paste entire ranges', (done) => {
+        it ('should cut/paste entire ranges', (done) => {
           _do([
             python('A1', 'range(10)'),
             cut('A1:A10', 'B1:B10'),
@@ -2176,7 +2181,7 @@ describe('backend', () => {
           ]);
         });
 
-        it('should not save cells that go out of bounds', (done) => {
+        it ('should not save cells that go out of bounds', (done) => {
           _do([
             // fun fact, the below works
             // python('A0', '0'),
@@ -2192,7 +2197,7 @@ describe('backend', () => {
       });
 
       describe('repeat', () => {
-        it('should repeat eval on Ctrl+Y', (done) => {
+        it ('should repeat eval on Ctrl+Y', (done) => {
           _do([
             python('A1', '1'),
             repeat('A2:A10', 'A2'),
@@ -2201,7 +2206,7 @@ describe('backend', () => {
           ]);
         });
 
-        it('should repeat copy on Ctrl+Y', (done) => {
+        it ('should repeat copy on Ctrl+Y', (done) => {
           _do([
             python('A2', 'A1+1'),
             python('B1', '1'),
@@ -2214,7 +2219,7 @@ describe('backend', () => {
 
         // #anand this test fails for me because the server receives an
         // Acknowledge message shortly after the delete??
-        xit('should repeat delete on Ctrl+Y', (done) => {
+        xit ('should repeat delete on Ctrl+Y', (done) => {
           _do([
             python('A1', 'range(10)'),
             python('B1', '1'),
@@ -2226,7 +2231,7 @@ describe('backend', () => {
           ]);
         });
 
-        it('should redo on Ctrl+Y after undo', (done) => {
+        it ('should redo on Ctrl+Y after undo', (done) => {
           _do([
             python('A1', 'range(10)'),
             undo(),
@@ -2239,7 +2244,7 @@ describe('backend', () => {
     });
 
     describe('delete', () => {
-      it('should replace a decoupled blank cell with a blank cell', (done) => {
+      it ('should replace a decoupled blank cell with a blank cell', (done) => {
         _do([
           python('A1', '[[None, 2],[3,4]]'),
           delete_('A1'),
@@ -2252,7 +2257,7 @@ describe('backend', () => {
 
     describe('toggling props', () => {
       describe('bolding', () => {
-        it('should bold blocks of cells at once', (done) => {
+        it ('should bold blocks of cells at once', (done) => {
           _do([
             python('A1', '1'),
             python('A2', '2'),
@@ -2263,7 +2268,7 @@ describe('backend', () => {
           ]);
         });
 
-        it('should make all cells in range bold if at least one is not', (done) => {
+        it ('should make all cells in range bold if at least one is not', (done) => {
           _do([
             python('A1', '1'),
             python('A2', '2'),
@@ -2275,7 +2280,7 @@ describe('backend', () => {
           ]);
         });
 
-        it('should unbold all cells in range if all are bold', (done) => {
+        it ('should unbold all cells in range if all are bold', (done) => {
           _do([
             python('A1', '1'),
             python('A2', '2'),
@@ -2288,7 +2293,7 @@ describe('backend', () => {
           ]);
         });
 
-        it('should bold blank cells', (done) => {
+        it ('should bold blank cells', (done) => {
           _do([
             toggleProp('A1', 'Bold'),
             python('A1', '1'),
@@ -2297,7 +2302,7 @@ describe('backend', () => {
           ]);
         });
 
-        it('should stay bold after a delete', (done) => {
+        it ('should stay bold after a delete', (done) => {
           _do([
             python('A1', '1'),
             toggleProp('A1', 'Bold'),
@@ -2307,7 +2312,7 @@ describe('backend', () => {
           ]);
         });
 
-        it('should not stay bold after a cut', (done) => {
+        it ('should not stay bold after a cut', (done) => {
           _do([
             python('A1', '1'),
             toggleProp('A1', 'Bold'),
@@ -2319,7 +2324,7 @@ describe('backend', () => {
       });
 
       describe('setting props', () => {
-        it('should format blocks of cells at once', (done) => {
+        it ('should format blocks of cells at once', (done) => {
           _do([
             python('A1', '1'),
             python('A2', '2'),
@@ -2330,7 +2335,7 @@ describe('backend', () => {
           ]);
         });
 
-        it('should format blank cells', (done) => {
+        it ('should format blank cells', (done) => {
           _do([
             setFormat('A1', 'Money'),
             python('A1', '1'),
@@ -2339,7 +2344,7 @@ describe('backend', () => {
           ]);
         });
 
-        it('should call the API prop setters successfully', (done) => {
+        it ('should call the API prop setters successfully', (done) => {
           _do([
             python('A1', 'range(10)'),
             setTextColor('A1', 'red'),
@@ -2365,77 +2370,257 @@ describe('backend', () => {
     });
 
     describe('conditional formatting', () => {
-      it('should format cells already present', (done) => {
-        _do([
-          python('A1', 'range(10)'),
-          setCondFormattingRules([
-            makeCondFormattingRuleFontExcel("A1:A10", "Italic", "=A1<6"),
-          ]),
-          shouldHaveProp('A6', 'Italic'),
-          shouldNotHaveProp('A7', 'Italic'),
-          exec(done)
-        ]);
+      describe('basic functionality', () => {
+        it ('should format cells already present', (done) => {
+          _do([
+            python('A1', 'range(10)'),
+            setCondFormattingRules([
+              makeCustomCondFormattingFontRuleExcel("A1:A10", "Italic", "=A1<6"),
+            ]),
+            shouldHaveProp('A6', 'Italic'),
+            shouldNotHaveProp('A7', 'Italic'),
+            exec(done)
+          ]);
+        });
+
+        it ('should format newly added cells', (done) => {
+          _do([
+            setCondFormattingRules([
+              makeCustomCondFormattingFontRuleExcel("A1:A10", "Italic", "=A1>5"),
+            ]),
+            python('A1', 'range(10)'),
+            shouldHaveProp('A7', 'Italic'),
+            shouldNotHaveProp('A6', 'Italic'),
+            exec(done)
+          ]);
+        });
+
+        it ('should apply multiple rules simultaneously', (done) => {
+          _do([
+            python('A1', 'range(10)'),
+            python('B1', 'range(10)'),
+            setCondFormattingRules([
+              makeCustomCondFormattingFontRuleExcel("B1:B10", "Bold", "=B1>4"),
+              makeCustomCondFormattingFontRuleExcel("A1:B10", "Italic", "=A1>5"),
+            ]),
+            shouldHaveProp('B10', 'Italic'),
+            shouldHaveProp('B10', 'Bold'),
+            shouldHaveProp('A10', 'Italic'),
+            shouldNotHaveProp('A10', 'Bold'),
+            exec(done)
+          ]);
+        });
+
+        it ('should revert formats bold when a rule is deleted (1)', (done) => {
+          _do([
+            python('A1', 'range(10)'),
+            setCondFormattingRules([
+              makeCustomCondFormattingFontRuleExcel("A1:A10", "Italic", "=A1<6"),
+            ]),
+            shouldHaveProp('A6', 'Italic'),
+            setCondFormattingRules([]),
+            shouldNotHaveProp('A6', 'Italic'),
+            exec(done)
+          ]);
+        });
+
+        it ('should revert formats bold when a rule is deleted (2)', (done) => {
+          _do([
+            python('A1', 'range(10)'),
+            toggleProp('A6', 'Italic'),
+            setCondFormattingRules([
+              makeCustomCondFormattingFontRuleExcel("A1:A10", "Italic", "=A1<6"),
+            ]),
+            shouldHaveProp('A6', 'Italic'),
+            setCondFormattingRules([]),
+            shouldHaveProp('A6', 'Italic'),
+            exec(done)
+          ]);
+        });
       });
 
-      it('should format newly added cells', (done) => {
-        _do([
-          setCondFormattingRules([
-            makeCondFormattingRuleFontExcel("A1:A10", "Italic", "=A1>5"),
-          ]),
-          python('A1', 'range(10)'),
-          shouldHaveProp('A7', 'Italic'),
-          shouldNotHaveProp('A6', 'Italic'),
-          exec(done)
-        ]);
-      });
+      // TODO: timchu 12/17/15, these tests do not comprehensively test if
+      // cond formatting condtions in predefined functions like Geq shift
+      // properly.
+      describe('Testing predefined in functions in Conditional Formatting', () => {
+        it ('formats bold on IsNotEmpty properly', (done) => {
+          _do([
+            python('A1', 'range(5)'),
+            setCondFormattingRules([
+              makeNoXpCondFormattingFontRuleExcel("A1:A10", "Bold", "IsNotEmpty"),
+            ]),
+            shouldHaveProp('A5', 'Bold'),
+            shouldNotHaveProp('A6', 'Bold'),
+            shouldHaveProp('A1', 'Bold'),
+            shouldNotHaveProp('A9', 'Bold'),
+            exec(done)
+          ]);
+        });
+        it ('formats bold on IsEmpty properly', (done) => {
+          _do([
+            python('A1', 'range(5)'),
+            setCondFormattingRules([
+              makeNoXpCondFormattingFontRuleExcel("A1:A10", "Bold", "IsEmpty"),
+            ]),
+            shouldNotHaveProp('A5', 'Bold'),
+            shouldHaveProp('A6', 'Bold'),
+            shouldNotHaveProp('A1', 'Bold'),
+            shouldHaveProp('A9', 'Bold'),
+            exec(done)
+          ]);
+        })
+        it ('formats bold on GreaterThan properly, and correctly evaluates expression passed into GreaterThan', (done) => {
+          _do([
+            python('A1', 'range(10)'),
+            setCondFormattingRules([
+              makeOneXpCondFormattingFontRuleExcel("A1:A10", "Bold", "=$A$2+$A$3+$A$4", "GreaterThan"),
+            ]),
+            shouldHaveProp('A9', 'Bold'),
+            shouldHaveProp('A8', 'Bold'),
+            shouldNotHaveProp('A7', 'Bold'),
+            shouldNotHaveProp('A6', 'Bold'),
+            shouldNotHaveProp('A5', 'Bold'),
 
-      it('should apply multiple rules simultaneously', (done) => {
-        _do([
-          python('A1', 'range(10)'),
-          python('B1', 'range(10)'),
-          setCondFormattingRules([
-            makeCondFormattingRuleFontExcel("B1:B10", "Bold", "=B1>4"),
-            makeCondFormattingRuleFontExcel("A1:B10", "Italic", "=A1>5"),
-          ]),
-          shouldHaveProp('B10', 'Italic'),
-          shouldHaveProp('B10', 'Bold'),
-          shouldHaveProp('A10', 'Italic'),
-          shouldNotHaveProp('A10', 'Bold'),
-          exec(done)
-        ]);
-      });
-
-      it('should revert formats when a rule is deleted (1)', (done) => {
-        _do([
-          python('A1', 'range(10)'),
-          setCondFormattingRules([
-            makeCondFormattingRuleFontExcel("A1:A10", "Italic", "=A1<6"),
-          ]),
-          shouldHaveProp('A6', 'Italic'),
-          setCondFormattingRules([]),
-          shouldNotHaveProp('A6', 'Italic'),
-          exec(done)
-        ]);
-      });
-
-      it('should revert formats when a rule is deleted (2)', (done) => {
-        _do([
-          python('A1', 'range(10)'),
-          toggleProp('A6', 'Italic'),
-          setCondFormattingRules([
-            makeCondFormattingRuleFontExcel("A1:A10", "Italic", "=A1<6"),
-          ]),
-          shouldHaveProp('A6', 'Italic'),
-          setCondFormattingRules([]),
-          shouldHaveProp('A6', 'Italic'),
-          exec(done)
-        ]);
+            shouldNotHaveProp('A2', 'Bold'),
+            shouldNotHaveProp('A3', 'Bold'),
+            shouldNotHaveProp('A4', 'Bold'),
+            exec(done)
+          ]);
+        });
+        it ('formats bold on LessThan properly', (done) => {
+          _do([
+            python('A1', 'range(10)'),
+            setCondFormattingRules([
+              makeOneXpCondFormattingFontRuleExcel("A1:A10", "Bold", "6", "LessThan"),
+            ]),
+            shouldNotHaveProp('A9', 'Bold'),
+            shouldNotHaveProp('A8', 'Bold'),
+            shouldNotHaveProp('A7', 'Bold'),
+            shouldHaveProp('A6', 'Bold'),
+            shouldHaveProp('A5', 'Bold'),
+            exec(done)
+          ]);
+        });
+        it ('formats bold on Equals properly', (done) => {
+          _do([
+            python('A1', 'range(10)'),
+            setCondFormattingRules([
+              makeOneXpCondFormattingFontRuleExcel("A1:A10", "Bold", "6", "Equals"),
+            ]),
+            shouldNotHaveProp('A9', 'Bold'),
+            shouldNotHaveProp('A8', 'Bold'),
+            shouldHaveProp('A7', 'Bold'),
+            shouldNotHaveProp('A6', 'Bold'),
+            shouldNotHaveProp('A5', 'Bold'),
+            exec(done)
+          ]);
+        });
+        it ('formats bold on Geq properly', (done) => {
+          _do([
+            python('A1', 'range(10)'),
+            setCondFormattingRules([
+             makeOneXpCondFormattingFontRuleExcel("A1:A10", "Bold", "=$A$3+$A$2+$A$4", "Geq"),
+            ]),
+            shouldHaveProp('A9', 'Bold'),
+            shouldHaveProp('A8', 'Bold'),
+            shouldHaveProp('A7', 'Bold'),
+            shouldNotHaveProp('A6', 'Bold'),
+            shouldNotHaveProp('A5', 'Bold'),
+            exec(done)
+          ]);
+        });
+        it ('formats bold on Leq properly', (done) => {
+          _do([
+            python('A1', 'range(10)'),
+            setCondFormattingRules([
+             makeOneXpCondFormattingFontRuleExcel("A1:A10", "Bold", "6", "Leq"),
+            ]),
+            shouldNotHaveProp('A9', 'Bold'),
+            shouldNotHaveProp('A8', 'Bold'),
+            shouldHaveProp('A7', 'Bold'),
+            shouldHaveProp('A6', 'Bold'),
+            shouldHaveProp('A5', 'Bold'),
+            exec(done)
+          ]);
+        });
+        it ('formats bold on NotEquals properly', (done) => {
+          _do([
+            python('A1', 'range(10)'),
+            setCondFormattingRules([
+             makeOneXpCondFormattingFontRuleExcel("A1:A10", "Bold", "6", "NotEquals"),
+            ]),
+            shouldHaveProp('A9', 'Bold'),
+            shouldHaveProp('A8', 'Bold'),
+            shouldNotHaveProp('A7', 'Bold'),
+            shouldHaveProp('A6', 'Bold'),
+            shouldHaveProp('A5', 'Bold'),
+            exec(done)
+          ]);
+        });
+        it ('formats bold on IsBetween properly', (done) => {
+          _do([
+            python('A1', '1'),
+            python('A2', '4'),
+            python('A3', '2'),
+            python('A4', '5'),
+            python('B5', '3'),
+            setCondFormattingRules([
+             makeTwoXpCondFormattingFontRuleExcel("A1:B5", "Bold", "2", "4", "IsBetween"),
+            ]),
+            shouldNotHaveProp('A1', 'Bold'),
+            shouldHaveProp('A2', 'Bold'),
+            shouldHaveProp('A3', 'Bold'),
+            shouldNotHaveProp('A4', 'Bold'),
+            shouldNotHaveProp('A5', 'Bold'),
+            shouldHaveProp('B5', 'Bold'),
+            exec(done)
+          ]);
+        });
+        it ('formats bold on IsNotBetween properly', (done) => {
+          _do([
+            python('A1', '1'),
+            python('A2', '4'),
+            python('A3', '2'),
+            python('A4', '5'),
+            python('B5', '3'),
+            setCondFormattingRules([
+             makeTwoXpCondFormattingFontRuleExcel("A1:B5", "Bold", "2", "4", "IsNotBetween"),
+            ]),
+            shouldHaveProp('A1', 'Bold'),
+            shouldNotHaveProp('A2', 'Bold'),
+            shouldNotHaveProp('A3', 'Bold'),
+            shouldHaveProp('A4', 'Bold'),
+            shouldHaveProp('A5', 'Bold'),
+            shouldNotHaveProp('B5', 'Bold'),
+            exec(done)
+          ]);
+        });
+        // TODO: timchu 12/17/15, the below test does not pass.
+        xit ('should not format cells in GreaterThan cond formatting if the expression passed in or the value in the cell being formatted is an error', (done) => {
+          _do([
+            python('A1', '=1'), // ERROR
+            excel('A2', '1/0'), // ERROR
+            python('A4', '4'),
+            python('B1', '1'),
+            setCondFormattingRules([
+              makeOneXpCondFormattingFontRuleExcel("A1:A10", "Bold", "0", "GreaterThan"),
+              makeOneXpCondFormattingFontRuleExcel("B1:B10", "Bold", "$A$4", "GreaterThan"),
+            ]),
+            shouldNotHaveProp('A3', 'Bold'),
+            shouldNotHaveProp('A1', 'Bold'),
+            shouldNotHaveProp('A2', 'Bold'),
+            shouldNotHaveProp('A4', 'Bold'),
+            shouldNotHaveProp('B1', 'Bold'),
+            shouldNotHaveProp('B3', 'Bold'),
+            exec(done)
+          ]);
+        });
       });
     });
 
     describe('vcs', () => {
       describe('undo', () => {
-        it('should undo a simple request', (done) => {
+        it ('should undo a simple request', (done) => {
           _do([
             python('A1', '10'),
             undo(),
@@ -2444,7 +2629,7 @@ describe('backend', () => {
           ]);
         });
 
-        it('should undo a range request', (done) => {
+        it ('should undo a range request', (done) => {
           _do([
             python('A1', 'range(10)'),
             undo(),
@@ -2455,7 +2640,7 @@ describe('backend', () => {
           ]);
         });
 
-        it('should undo a dependency cleanly', (done) => {
+        it ('should undo a dependency cleanly', (done) => {
           _do([
             python('A1', '1+1'),
             python('B1', 'A1+1'),
@@ -2468,7 +2653,7 @@ describe('backend', () => {
           ]);
         });
 
-        it('should undo a copy', (done) => {
+        it ('should undo a copy', (done) => {
           _do([
             python('A1', '1 + 1'),
             python('B1', 'A1 + 1'),
@@ -2481,7 +2666,7 @@ describe('backend', () => {
           ]);
         });
 
-        it('should undo a cut', (done) => {
+        it ('should undo a cut', (done) => {
           _do([
             python('A1', '1 + 1'),
             python('B1', 'A1 + 1'),
@@ -2498,7 +2683,7 @@ describe('backend', () => {
       });
 
       describe('redo', () => {
-        it('should undo and redo a simple request', (done) => {
+        it ('should undo and redo a simple request', (done) => {
           _do([
             python('A1', '1 + 1'),
             undo(),
@@ -2508,7 +2693,7 @@ describe('backend', () => {
           ]);
         });
 
-        it('should undo and redo a range request', (done) => {
+        it ('should undo and redo a range request', (done) => {
           _do([
             python('A1', 'range(10)'),
             undo(),
@@ -2520,7 +2705,7 @@ describe('backend', () => {
           ]);
         });
 
-        it('should undo and redo series of dependencies', (done) => {
+        it ('should undo and redo series of dependencies', (done) => {
           _do([
             python('A1', '1 + 1'),
             python('B1', 'A1 + 1'),
@@ -2538,7 +2723,7 @@ describe('backend', () => {
           ]);
         });
 
-        it('should undo and redo copy and paste', (done) => {
+        it ('should undo and redo copy and paste', (done) => {
           _do([
             python('A1', '1 + 1'),
             python('A2', 'A1 + 1'),
@@ -2553,7 +2738,7 @@ describe('backend', () => {
           ]);
         });
 
-        it('should undo and redo cut and paste', (done) => {
+        it ('should undo and redo cut and paste', (done) => {
           _do([
             python('A1', '1 + 1'),
             python('A2', 'A1 + 1'),
@@ -2572,7 +2757,7 @@ describe('backend', () => {
       });
 
       describe('list cell behavior on copy/paste', () => {
-        it('undoing should delete list key and not cause crashes', (done) => {
+        it ('undoing should delete list key and not cause crashes', (done) => {
           // based off a crash that actually happened
           _do([
             python('A1', 'range(10)'),
@@ -2589,7 +2774,7 @@ describe('backend', () => {
     });
 
     describe('pointer syntax', () => {
-      it('references python lists', (done) => {
+      it ('references python lists', (done) => {
         _do([
           python('A1', 'range(3)'),
           python('B1', '@A1.sum()'),
@@ -2598,7 +2783,7 @@ describe('backend', () => {
           ]);
       });
 
-      it('references r lists ', (done) => {
+      it ('references r lists ', (done) => {
         _do([
           r('A1', 'c(1,2)'),
           r('B1', 'c(3,4)'),
@@ -2608,7 +2793,7 @@ describe('backend', () => {
           ]);
       });
 
-      it('references dataframes', (done) => {
+      it ('references dataframes', (done) => {
         _do([
           r('A1', 'data.frame(a=c(1,2))'),
           python('C1', '@A1.T'),
@@ -2617,7 +2802,7 @@ describe('backend', () => {
           ]);
       });
 
-      it('references series', (done) => {
+      it ('references series', (done) => {
         _do([
           python('A1', 'pd.Series([1,2,3])'),
           r('B1', '@A1'),
@@ -2626,7 +2811,7 @@ describe('backend', () => {
           ]);
       });
 
-      it('references np matrices', (done) => {
+      it ('references np matrices', (done) => {
         _do([
           python('A1', 'np.matrix([[1,2],[3,4]])'),
           python('C1', '@A1 * 2'),
@@ -2635,7 +2820,7 @@ describe('backend', () => {
           ]);
       });
 
-      it('embeds dictionaries', (done) => {
+      it ('embeds dictionaries', (done) => {
         _do([
           python('A1', '{\'a\':1, \'b\':[1,2,3], \'c\': \'SHIT\'}'),
           shouldBeSerialized('A1'),
@@ -2645,7 +2830,7 @@ describe('backend', () => {
           ]);
       });
 
-      it('python NaNs', (done) => {
+      it ('python NaNs', (done) => {
         _do([
           python('A1', 'np.nan'),
           shouldBe('A1', valueNaN()),
@@ -2653,7 +2838,7 @@ describe('backend', () => {
           ]);
       });
 
-      it('python Infs', (done) => {
+      it ('python Infs', (done) => {
         _do([
           python('A1', 'np.inf'),
           shouldBe('A1', valueInf()),
@@ -2661,7 +2846,7 @@ describe('backend', () => {
           ]);
       });
 
-      xit('converts NaNs', (done) => {
+      xit ('converts NaNs', (done) => {
         _do([
           python('A1', 'np.nan'),
           r('B1', 'A1 + 1'),
@@ -2673,7 +2858,7 @@ describe('backend', () => {
           ]);
       });
 
-      xit('converts Infs', (done) => {
+      xit ('converts Infs', (done) => {
         _do([
           python('A1', 'np.inf'),
           r('B1', 'A1 + 1'),
@@ -2685,7 +2870,7 @@ describe('backend', () => {
           ]);
       });
 
-      it('should something something something critch bug', (done) => {
+      it ('should something something something critch bug', (done) => {
         _do([
           python('A1', 'range(10)'),
           python('C1', '@A1'),
@@ -2698,7 +2883,7 @@ describe('backend', () => {
     });
 
     describe('dependencies on expanding cells', () => {
-      it('throws error on incorrect pointer ref', (done) => {
+      it ('throws error on incorrect pointer ref', (done) => {
         _do([
           python('A1', 'range(10)'),
           python('B1', '@A1'),
@@ -2708,7 +2893,7 @@ describe('backend', () => {
           exec(done)
           ]);
       });
-      it('deletes fat cell heads properly', (done) => {
+      it ('deletes fat cell heads properly', (done) => {
         _do([
           python('A1', 'range(10)'),
           delete_('A1'),
@@ -2717,7 +2902,7 @@ describe('backend', () => {
           exec(done)
           ]);
       });
-      it('propagates overwritten expanded cells', (done) => {
+      it ('propagates overwritten expanded cells', (done) => {
         _do([
           python('A1', 'range(10)'),
           python('B1', '@A1'),
@@ -2730,7 +2915,7 @@ describe('backend', () => {
     });
 
     describe('arbitrary datatype embedding in python', () => {
-      it('embeds lists of dicts', (done) => {
+      it ('embeds lists of dicts', (done) => {
         _do([
           python('A1', '[{\'a\': 1}, {\'b\': 2}]'),
           shouldBeSerialized('A2'),
@@ -2739,7 +2924,7 @@ describe('backend', () => {
           exec(done)
           ]);
       });
-      it('embeds multidimensional lists', (done) => {
+      it ('embeds multidimensional lists', (done) => {
         _do([
           python('A1', '[[[1]]]'),
           shouldBeSerialized('A1'),
@@ -2748,14 +2933,14 @@ describe('backend', () => {
           exec(done)
           ]);
       });
-      it('embeds arbitrary cell-defined objects', (done) => {
+      it ('embeds arbitrary cell-defined objects', (done) => {
         _do([
           python('A1', 'class A(object):\n\tdef __init__(self):\n\t\tself.x = 5\nA()'),
           shouldBeSerialized('A1'),
           exec(done)
           ]);
       });
-      it('lets you reference cell-defined objects', (done) => {
+      it ('lets you reference cell-defined objects', (done) => {
         _do([
           python('A1', 'class A(object):\n\tdef __init__(self):\n\t\tself.x = 5\nA()'),
           python('B1', 'A1.x'),
@@ -2763,14 +2948,14 @@ describe('backend', () => {
           exec(done)
           ]);
       });
-      xit('expands high-dimensional lists when possible', (done) => {
+      xit ('expands high-dimensional lists when possible', (done) => {
         _do([
           python('A1', '[[[1]], [[2]]]'),
           shouldBeSerialized('A2'),
           exec(done)
           ]);
       });
-      it('lets you make numpy arrays with dtype=dict', (done) => {
+      it ('lets you make numpy arrays with dtype=dict', (done) => {
         _do([
           python('A1', 'np.array([1, {\'a\': 1}])'),
           shouldBeSerialized('A2'),
@@ -2779,14 +2964,14 @@ describe('backend', () => {
           exec(done)
           ]);
       });
-      xit('lets you import scikit datasets', (done) => {
+      xit ('lets you import scikit datasets', (done) => {
         _do([
           python('A1', 'from sklearn import datsets\ndatasets.load_iris()'),
           shouldBeSerialized('A1'),
           exec(done)
           ]);
       });
-      xit('references scikit datasets properly', (done) => {
+      xit ('references scikit datasets properly', (done) => {
         _do([
           python('A1', 'from sklearn import datasets\ndatasets.load_iris()'),
           python('B1', 'A1.data'),
@@ -2805,7 +2990,7 @@ describe('backend', () => {
         API.unsetUITestMode();
       });
 
-      it('restores connections after failure', (done) => {
+      it ('restores connections after failure', (done) => {
         _do([
           exec(() => {
             API.withWS((pws) => {

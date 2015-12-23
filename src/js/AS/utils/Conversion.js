@@ -177,7 +177,7 @@ let CU = {
     } else {
       throw new Error('Does not support workbooks yet');
     }
-  },
+  }, 
 
   indexToRange(ind: NakedIndex): NakedRange {
     return { tl: ind, br: ind };
@@ -210,6 +210,29 @@ let CU = {
       }
     }
     return inds;
+  },
+
+  asRangeToASIndices(rng: ASRange): Array<ASIndex> {
+    let inds = [], 
+        {range, sheetId} = rng;
+    for (var r = range.tl.row; r <= range.br.row; r++) {
+      for (var c = range.tl.col; c <= range.br.col; c++) {
+        inds.push(this.simpleToASIndex({row: r, col: c}, sheetId));
+      }
+    }
+    return inds;
+  },
+
+  asLocsToASIndices(locs: Array<ASLocation>): Array<ASIndex> { 
+    let indicesList = locs.map((l) => { 
+      switch (l.tag) { 
+        case 'range': return this.asRangeToASIndices(l); 
+        case 'index': return [l]; 
+        default: throw "tag invalid in a location passed into asLocsToASIndices"; 
+      }
+    });
+
+    return [].concat.apply([], indicesList);
   },
 
   excelToIndex(dollarRef: string): NakedIndex {

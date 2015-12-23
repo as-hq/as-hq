@@ -51,6 +51,7 @@ var Constants = Object.assign({
   isRemote: true,
   promptUser: false,
   showConnectionLost: true,
+  shouldReconnect: true,
 
   // event name triggered from store, listened to by views
   CHANGE_EVENT: 'change',
@@ -82,18 +83,16 @@ var Constants = Object.assign({
     CELL_CHANGED: null,
     RANGE_CHANGED: null,
     SCROLLED: null,
-    GOT_UPDATED_CELLS: null,
     GOT_UNDO:null,
     GOT_REDO:null,
     GOT_SELECTION:null,
-    FETCHED_CELLS:null,
+    GOT_UPDATED_CELLS:null,
     CLEARED: null,
     CLEARED_SHEET: null,
     GOT_UPDATED_WORKBOOKS: null,
     RECEIVED_ERROR: null,
     RECEIVED_SHEET: null,
     RECEIVED_WORKBOOK: null,
-    DELETED_LOCS: null,
     REPL_LEFT:null,
     EVAL_HEADER_UPDATED:null,
     GOT_REPL_RESP:null,
@@ -117,7 +116,8 @@ var Constants = Object.assign({
     BACKEND_UPDATED_AND_CELLS_CHANGED: null,
     EVAL_TRIED_TO_DECOUPLE: null,
     DROPDOWN_CLICKED: null,
-    LANGUAGE_TOGGLED: null
+    LANGUAGE_TOGGLED: null,
+    ADD_OVERLAY: null
   }),
 
   ActionSources: keyMirror({
@@ -173,8 +173,8 @@ var Constants = Object.assign({
     Drag: "Drag",
     Decouple: "Decouple",
     SetCondFormatRules: "SetCondFormatRules",
-    SetRowColProp: "SetRowColProp",
-    "ImportCSV": "ImportCSV"
+    SetBarProp: "SetBarProp",
+    ImportCSV: "ImportCSV"
   },
 
   CursorPosition:{
@@ -187,6 +187,15 @@ var Constants = Object.assign({
     DOUBLE_CLICK: "DOUBLE_CLICK",
     CLICK: "CLICK"
   },
+
+  ChartTypes: keyMirror({
+    Line: null,
+    Bar: null,
+    Radar: null,
+    PolarArea: null,
+    Pie: null,
+    Doughnut: null
+  }),
 
   Colors: {"aliceblue":"#f0f8ff","antiquewhite":"#faebd7","aqua":"#00ffff","aquamarine":"#7fffd4","azure":"#f0ffff",
         "beige":"#f5f5dc","bisque":"#ffe4c4","black":"#000000","blanchedalmond":"#ffebcd","blue":"#0000ff","blueviolet":"#8a2be2","brown":"#a52a2a","burlywood":"#deb887",

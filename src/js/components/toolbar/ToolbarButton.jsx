@@ -6,6 +6,7 @@ import DropDownArrow from 'material-ui/lib/svg-icons/navigation/arrow-drop-down'
 let Tooltip = require("react-tooltip");
 
 
+
 /*
 This component displays an icon in a button
 It also has the ability to display a tooltip (blurb of what the button does upon hovering)
@@ -126,9 +127,9 @@ export default React.createClass({
       iconStyle: { 
         position: 'absolute',
         top: '50%',
-        color: this.state.hovered ? Styles.Colors.grey50 : this.props.iconColor,
         left: this.props.includeDropdownArrow ? `calc(50% - ${this.props.arrowSize/2.0 + 'px'})` : '50%',
-        transform: 'translate(-50%, -50%)'
+        transform: 'translate(-50%, -50%)',
+        color: this.state.hovered ? Styles.Colors.grey50 : this.props.iconColor,
       },
       // An arrow, the left edge of which is arrowSize from the right border
       arrowStyle: {

@@ -14,6 +14,12 @@ export default React.createClass({
   /*************************************************************************************************************************/
   // Prop and state methods
 
+  getInitialState() {
+    return {
+      cursor: 'auto' // cursor icon over text field
+    }
+  },
+
   /* We need the following props
     1) displayValue to be shown in the text field
     2) onClick callback
@@ -45,6 +51,13 @@ export default React.createClass({
   },
 
   /*************************************************************************************************************************/
+  // Responding to events
+
+  _onMouseOver(e) {
+    this.setState({cursor: 'pointer'});
+  },
+
+  /*************************************************************************************************************************/
   // Styles and rendering
 
   getStyles() {
@@ -56,6 +69,7 @@ export default React.createClass({
         transform: 'translateY(-50%)', 
         width: this.props.width, 
         height: this.props.height,
+        cursor: this.state.cursor,
         marginLeft: this.props.spacing, // spacing 
       },
       arrow: { // arrow should be towards the right
@@ -63,7 +77,7 @@ export default React.createClass({
         fill: Styles.Colors.grey50,
         width: this.props.arrowSize,
         right: '10%',
-        top: '25%',
+        top: '25%'
       },
       label: { // the label should be vertically centered, decent font size, a bit to the left
         position: 'absolute',
@@ -92,12 +106,12 @@ export default React.createClass({
     // The tooltip itself uses the tooltip as a uid an implements a delay
     if (this.props.showTooltip) {
       return (
-        <span style={styles.span}>
+        <span style={styles.span} onMouseOver={this._onMouseOver}>
           <div style={styles.outer} onClick={this.props.onClick} data-for={this.props.tooltip} data-tip={this.props.tooltip} >
             <div style={styles.label}>
               {this.props.displayValue}
             </div>
-            <DropDownArrow style={styles.arrow}/>
+            <DropDownArrow style={styles.arrow} />
             <div style={styles.underline}/>
           </div>
           <Tooltip 

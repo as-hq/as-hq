@@ -14,19 +14,21 @@ import React from 'react';
 
 import API from '../actions/ASApiActionCreators';
 import SheetStateStore from '../stores/ASSheetStateStore';
+import OverlayActions from '../actions/ASOverlayActionCreators';
 import Constants from '../Constants';
 
 import ASCondFormattingDialog from './dialogs/ASCondFormattingDialog.jsx';
 import ASMenuBar from './menu-bar/ASMenuBar.jsx';
 
 import FileImportDialog from '../AS/FileImportDialog';
-
+import ASChartDialog from './chart/ASChartDialog.jsx';
 
 type ASTopBarProps = {
   toggleEvalHeader: Callback;
 };
 
 type ASTopBarState = {
+  chartOpen: boolean;
   condFormattingOpen: boolean;
 };
 
@@ -49,10 +51,11 @@ export default class ASTopBar extends React.Component<{}, ASTopBarProps, ASTopBa
   constructor(props: ASTopBarProps) {
     super(props);
 
-    this.state = { condFormattingOpen: false };
+    this.state = { condFormattingOpen: false, chartOpen: false };
   }
 
   render(): React.Element {
+
     let self = this;
 
     let testAlphaSheets =
@@ -72,6 +75,10 @@ export default class ASTopBar extends React.Component<{}, ASTopBarProps, ASTopBa
         <ASCondFormattingDialog
           open={this.state.condFormattingOpen}
           onRequestClose={this._onCondFormatClose.bind(this)} />
+        <ASChartDialog
+          open={this.state.chartOpen}
+          onRequestClose={this._onChartClose.bind(this)}
+          onCreate={OverlayActions.add} />
         <ASMenuBar menus={[
           {title: 'File', menuItems: [
             simple({
@@ -107,6 +114,17 @@ export default class ASTopBar extends React.Component<{}, ASTopBarProps, ASTopBa
             })
           ]},
 
+          {title: 'Insert', menuItems: [
+            simple({
+              title: 'Chart',
+              callback() {
+                self.setState({
+                  chartOpen: true
+                });
+              }
+            })
+          ]},
+
           {title: 'Code', menuItems: [
             simple({
               title: 'Toggle header',
@@ -133,8 +151,10 @@ export default class ASTopBar extends React.Component<{}, ASTopBarProps, ASTopBa
   }
 
   _onCondFormatClose() {
-    this.setState({
-      condFormattingOpen: false
-    });
+    this.setState({condFormattingOpen: false});
+  }
+
+  _onChartClose() {
+    this.setState({chartOpen: false});
   }
 }

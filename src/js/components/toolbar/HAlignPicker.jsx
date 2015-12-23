@@ -14,7 +14,7 @@ export default React.createClass({
   getMenuProps() {
     let genIcon = (iconName) => {
       return <FontIcon 
-        style={{backgroundColor: Styles.Colors.grey50, color: Styles.Colors.grey800}} 
+        style={{backgroundColor: Styles.Colors.grey400, color: Styles.Colors.grey800}} 
         className="material-icons"> 
           {iconName} 
         </FontIcon>;
@@ -33,7 +33,9 @@ export default React.createClass({
       tooltip: 'Horizontal align',
       usePushState: false,
       includeDropdownArrow: true,
-      showTooltip: true
+      showTooltip: true,
+      spacing: 7,
+      width: 41
     };
   },
 

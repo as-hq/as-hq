@@ -85,18 +85,8 @@ export default React.createClass({
 
   getStyles() {
     return {
-      paperStyle: {
-        position: 'relative', 
-        width: 270, 
-        height: 150, 
-        backgroundColor: Styles.Colors.grey50,
-        textAlign: 'center'
-      },
       colorPickerStyle:{
         position: 'absolute',
-        top: 30,
-        left: 10,
-        right: 10,
         width: 245
       }
     };
@@ -108,12 +98,13 @@ export default React.createClass({
       <ToolbarButton
         usePushState={false}
         spacing={7}
+        width={43}
+        showTooltip={!this.state.pickerVisible}
         iconName={this.props.iconName}
         includeDropdownArrow={true}
         tooltip={this.props.tooltip}
-        onClick={this._onButtonClick}
-        iconColor={this.state.color} />;
-    let colorPicker = this.state.pickerVisible ? <Paper zDepth={1} style={paperStyle}>
+        onClick={this._onButtonClick} />;
+    let colorPicker = this.state.pickerVisible ? 
         <div style={colorPickerStyle} >
           <ColorPicker
             onChangeComplete={this.handleColorChange}
@@ -121,8 +112,7 @@ export default React.createClass({
             position="top"
             display='top'
             type="compact" />
-        </div>
-      </Paper> : null;
+        </div> : null;
     return (
       <MenuController
         ref="menuController"

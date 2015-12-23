@@ -5,6 +5,7 @@ import type {
   NakedRange,
   ASIndex,
   ASRange,
+  ASLocation,
   ASSheet,
   ASCell,
   ASLanguage,
@@ -19,6 +20,8 @@ import type {
 import type {
   ASUserId
 } from '../types/User';
+
+import _ from 'lodash';
 
 import {logDebug} from '../AS/Logger';
 
@@ -56,35 +59,13 @@ const ASCellStore = Object.assign({}, BaseStore, {
     logDebug('Store received action', action);
     switch (action._type) {
       /*
-        On an UNDO/REDO/UPDATE_CELLS, update the viewing window in the store based on the commit and
-        send a change event to spreadsheet, which will rerender
-      */
-      case 'GOT_UNDO':
-        logDebug("action undo");
-        _data.lastUpdatedCells = [];
-        ASCellStore.removeCells(action.commit.cellDiff.afterCells);
-        ASCellStore.updateCells(action.commit.cellDiff.beforeCells);
-        ASCellStore.emitChange();
-        break;
-      case 'GOT_REDO':
-        _data.lastUpdatedCells = [];
-        ASCellStore.removeCells(action.commit.cellDiff.beforeCells);
-        ASCellStore.updateCells(action.commit.cellDiff.afterCells);
-        ASCellStore.emitChange();
-        break;
-      case 'GOT_UPDATED_CELLS':
-        _data.lastUpdatedCells = [];
-        ASCellStore.updateCells(action.updatedCells);
-        // logDebug("Last updated cells: " + JSON.stringify(_data.lastUpdatedCells));
-        ASCellStore.emitChange();
-        break;
-      /*
         The cells have been fetched from the server for a get request (for example, when scrolling)
         We now need to update the store based on these new values
         Called from Dispatcher, fired by API response from server
       */
-      case 'FETCHED_CELLS':
+      case 'GOT_UPDATED_CELLS':
         _data.lastUpdatedCells = [];
+        ASCellStore.removeLocations(action.oldLocs);
         ASCellStore.updateCells(action.newCells);
         // logDebug("Last updated cells: " + JSON.stringify(_data.lastUpdatedCells));
         ASCellStore.emitChange();
@@ -134,13 +115,6 @@ const ASCellStore = Object.assign({}, BaseStore, {
           ASCellStore.emitChange();
         }
 
-        break;
-      case 'DELETED_LOCS':
-        _data.lastUpdatedCells = [];
-        let locs = U.Conversion.rangeToASIndices(action.deletedRange.range);
-        ASCellStore.removeIndices(locs);
-        ASCellStore.updateCells(action.updatedCells);
-        ASCellStore.emitChange();
         break;
       case 'GOT_IMPORT':
         _data.lastUpdatedCells = [];
@@ -304,9 +278,9 @@ const ASCellStore = Object.assign({}, BaseStore, {
     _data.lastUpdatedCells.push(emptyCell);
   },
 
-  // Remove cells at a list of ASIndices.
-  removeIndices(locs) {
-    locs.forEach((l) => this.removeIndex(l), this);
+  // Remove cells at a list of ASLocation's.
+  removeLocations(locs: Array<ASLocation>) {
+    U.Conversion.asLocsToASIndices(locs).forEach((i) => this.removeIndex(i), this);
   },
 
   clearSheetCacheById(sheetId) {
@@ -333,6 +307,28 @@ const ASCellStore = Object.assign({}, BaseStore, {
     else {
       return null;
     }
+  },
+
+  getCells({tl, br}: NakedRange): Array<Array<?ASCell>> {
+    let sheetId = SheetStateStore.getCurrentSheet().sheetId;
+    return _.range(tl.col, br.col+1).map((c) => {
+      return _.range(tl.row, br.row+1).map((r) => {
+        return (this.locationExists(c, r, sheetId)) ?
+                _data.allCells[sheetId][c][r] :
+                null;
+      });
+    });
+  },
+
+  cellToJSVal(c: ASCell): ?(string|number) {
+    switch (c.cellValue.tag) {
+      case "ValueI":
+      case "ValueD":
+      case "ValueS":
+        return c.cellValue.contents;
+      default:
+        return null;
+    };
   }
 });
 
