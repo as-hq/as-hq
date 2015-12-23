@@ -286,18 +286,10 @@ export default React.createClass({
     this.refs.snackbarError.show();
   },
 
-  // I think this is equivalent to the toast being hidden, but not sure -- RITESH
-  toastIsHidden() : boolean {
-    let {toastMessage, toastAction} = this.state;
-    return (toastMessage == "") && (toastAction === "hide");
-  },
-
   hideToast() {
-    // Only hide a toast (and cause a rerender) if toast isn't already hidden
-    if (!this.toastIsHidden()) {
-      this.setState({toastMessage: "", toastAction: "hide"});
+    if (this.refs.snackbarError.state.open) {
+      this.refs.snackbarError.dismiss();
     }
-    this.refs.snackbarError.dismiss();
   },
 
   _handleToastTap(e: SyntheticTouchEvent) {
