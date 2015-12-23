@@ -308,7 +308,7 @@ export default class ASCondFormattingRuleDialog
     }
   }
 
-  linkStateLens<T>(lens: Lens<RuleDialogState, T>): ReactValueLink {
+  linkStateLens<T>(lens: Lens<RuleDialogState, T>): ReactLink<T> {
     let self = this;
     return ({
       value: lens.get(self.state),
@@ -319,7 +319,7 @@ export default class ASCondFormattingRuleDialog
   }
 
   // TextField, DropDownMenu both support this
-  linkRuleState(varName: $Keys<DialogCondFormatRule>): ReactValueLink {
+  linkRuleState(varName: $Keys<DialogCondFormatRule>): ReactLink {
     let self = this;
 
     return this.linkStateLens({
