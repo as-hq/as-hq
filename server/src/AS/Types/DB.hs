@@ -41,6 +41,7 @@ data GraphWriteRequest = SetRelations | Recompute | Clear deriving (Show)
 
 -- Graph input for functions like getDescendants can be indexes or ranges. Getting the descendants 
 -- of a range = descendants of decomposed indices in ranges
+-- TODO: timchu, I don't think I need this. This is only needed for fat cell expansions, not getAncestors?
 data GraphReadInput  = IndexInput ASIndex | RangeInput ASRange
 
 -- The output of a graph descendant can only be an index (currently)
@@ -103,6 +104,9 @@ instance (Show2 ASPointer) where
 instance (Show2 ASRange) where 
   show2 (Range sid a) = 'R':refDelimiter:(T.unpack sid) ++ (refDelimiter:(show a))
 
+instance (Show2 ASColRange) where 
+  show2 (ColRange sid a) = 'C':refDelimiter:(T.unpack sid) ++ (refDelimiter:(show a))
+
 instance (Show2 GraphReadInput) where
   show2 (IndexInput i) = show2 i
   show2 (RangeInput r) = show2 r
@@ -113,6 +117,7 @@ instance (Show2 GraphDescendant) where
 instance (Show2 ASReference) where
   show2 (IndexRef il) = show2 il 
   show2 (RangeRef rl) = show2 rl
+  show2 (ColRangeRef cr) = show2 cr
   show2 (PointerRef p) = show2 p
   show2 (OutOfBounds) = "OUTOFBOUNDS"
 

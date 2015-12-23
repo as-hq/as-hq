@@ -35,13 +35,20 @@ import Database.Redis (Connection)
 -- | Excel Location Parsing
 
 -- reference locking
+data SingleRefType = ABS | REL deriving (Eq)
 data RefType = ABS_ABS | ABS_REL | REL_ABS | REL_REL deriving (Eq)
 
 data ExLoc   = ExIndex {refType :: RefType, col :: String, row :: String} 
   deriving (Eq)
-data ExRange = ExRange {first :: ExLoc, second :: ExLoc} deriving (Eq)
+data ExCol = ExCol { singleRefType :: SingleRefType, col2 :: String}
+  deriving (Eq)
+data ExColRange = ExColRange {firstCoord :: ExLoc, secondCol :: ExCol}
+  deriving (Eq)
+data ExRange = ExRange {first :: ExLoc, second :: ExLoc}
+   deriving (Eq)
 data ExRef   = 
     ExLocRef {exLoc :: ExLoc, locSheet :: Maybe SheetName, locWorkbook :: Maybe WorkbookName}
+  | ExColRangeRef {exColRange :: ExColRange, colRangeSheet :: Maybe SheetName, colRangeWorkbook :: Maybe WorkbookName}
   | ExRangeRef {exRange :: ExRange, rangeSheet :: Maybe SheetName, rangeWorkbook :: Maybe WorkbookName}
   | ExPointerRef {pointerLoc :: ExLoc, pointerSheet :: Maybe SheetName, pointerWorkbook :: Maybe WorkbookName}
   | ExOutOfBounds 
@@ -56,11 +63,13 @@ instance Ref ExRef where
   sheetRef a = case a of 
     ExLocRef _ _ _ -> locSheet a
     ExRangeRef _ _ _ -> rangeSheet a
+    ExColRangeRef _ _ _ -> colRangeSheet a
     ExPointerRef _ _ _ -> pointerSheet a
     ExOutOfBounds -> Nothing
   workbookRef a = case a of 
     ExLocRef _ _ _ -> locWorkbook a
     ExRangeRef _ _ _ -> rangeWorkbook a
+    ExColRangeRef _ _ _ -> colRangeWorkbook a
     ExPointerRef _ _ _ -> pointerWorkbook a
     ExOutOfBounds -> Nothing
 
@@ -70,8 +79,16 @@ instance Show ExRef where
     in case a of 
       ExOutOfBounds                -> "#REF!"
       ExLocRef l _ _               -> prefix ++ (show l)
-      ExRangeRef (ExRange f s) _ _ -> prefix ++ (show f) ++ ":" ++ (show s)
+      ExColRangeRef (ExColRange tl r) _ _ -> prefix ++ (show tl) ++ ":" ++ (show r)
+      ExRangeRef (ExRange tl br) _ _ -> prefix ++ (show tl) ++ ":" ++ (show br)
       ExPointerRef l _ _           -> '@':prefix ++ (show l)
+
+instance Show ExCol where
+  show (ExCol t c) = d1 ++ c
+    where
+      d1 = case t of
+        ABS -> "$"
+        REL -> ""
 
 instance Show ExLoc where
   show (ExIndex rType c r) = d1 ++ c ++ d2 ++ r

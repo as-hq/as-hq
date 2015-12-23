@@ -18,6 +18,11 @@ import AS.Util
 -------------------------------------------------------------------------------------------------------------------------------------------------
 -- Parsers to match special excel characters
 
+readSingleRef :: Maybe Char -> SingleRefType
+readSingleRef d1 = case d1 of
+  Nothing -> REL
+  Just _ -> ABS
+
 readRefType :: Maybe Char -> Maybe Char -> RefType 
 readRefType d1 d2 = case d1 of
   Nothing -> case d2 of 
@@ -44,7 +49,7 @@ pointer = char  '@'
 
 -- matches a valid sheet name
 nameMatch :: Parser (Maybe String)
-nameMatch = (many $ noneOf ['!','$','@',':',' ']) >>= (\q -> exc >> return (rdName q))
+nameMatch = many ( noneOf ['!','$','@',':',' ']) >>= (\q -> exc >> return (rdName q))
   where 
     rdName "" = Nothing
     rdName s = Just s
@@ -72,6 +77,13 @@ indexMatch = do
 outOfBoundsMatch :: Parser ExRef
 outOfBoundsMatch = string "#REF!" >> return ExOutOfBounds
 
+colRangeMatch :: Parser ExColRange
+colRangeMatch = do
+  tl <- indexMatch
+  dol  <- optionMaybe dollar
+  r <- many1 letter
+  return $ ExColRange tl (ExCol (readSingleRef dol) r)
+
 -- | matches index:index
 rangeMatch :: Parser ExRange
 rangeMatch = do
@@ -85,6 +97,7 @@ refMatch = do
   point <- optionMaybe $ try pointer
   (sh, wb) <- option (Nothing, Nothing) $ try sheetWorkbookMatch
   rng <- optionMaybe $ try rangeMatch 
+  colrng <- optionMaybe $ try colRangeMatch 
   idx <- optionMaybe $ try indexMatch
   ofb <- optionMaybe $ try outOfBoundsMatch
   case point of 
