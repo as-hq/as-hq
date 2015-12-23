@@ -27,7 +27,7 @@ export default React.createClass({
 
   getDefaultProps() {
     return {
-      toolbarHeight: 40
+      toolbarHeight: 50
     };
   },
 

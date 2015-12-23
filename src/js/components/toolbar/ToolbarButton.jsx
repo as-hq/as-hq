@@ -59,7 +59,7 @@ export default React.createClass({
       showTooltip: true,
       includeDropdownArrow: false,
       arrowSize: 15,
-      iconColor: Styles.Colors.grey50
+      iconColor: Styles.Colors.grey500
     };
   },
 
@@ -69,7 +69,8 @@ export default React.createClass({
   */
   getInitialState() {
     return {
-      pushed: false
+      pushed: false,
+      hovered: false
     }
   },
 
@@ -95,6 +96,14 @@ export default React.createClass({
     }
   },
 
+  _onMouseEnter(e) {
+    this.setState({hovered: true});
+  },
+
+  _onMouseLeave(e) {
+    this.setState({hovered: false});
+  },
+
   /*************************************************************************************************************************/
   // Styles and rendering
 
@@ -117,7 +126,7 @@ export default React.createClass({
       iconStyle: { 
         position: 'absolute',
         top: '50%',
-        color: this.props.iconColor,
+        color: this.state.hovered ? Styles.Colors.grey50 : this.props.iconColor,
         left: this.props.includeDropdownArrow ? `calc(50% - ${this.props.arrowSize/2.0 + 'px'})` : '50%',
         transform: 'translate(-50%, -50%)'
       },
@@ -157,9 +166,10 @@ export default React.createClass({
         <FlatButton 
           data-for={this.props.tooltip}
           data-tip={this.props.tooltip}
-          hoverColor={hoverColor}
           style={buttonStyle}
-          onClick={this._onClick}>
+          onClick={this._onClick}
+          onMouseLeave={this._onMouseLeave}
+          onMouseEnter={this._onMouseEnter}>
           {iconElement}
           {arrowElement}
         </FlatButton>
@@ -173,9 +183,10 @@ export default React.createClass({
           offset={{'top': 10, 'left': 0}} />
       </span>
     : <FlatButton 
-        hoverColor={hoverColor}
         style={buttonStyle}
-        onClick={this._onClick}>
+        onClick={this._onClick}
+        onMouseLeave={this._onMouseLeave}
+        onMouseEnter={this._onMouseEnter}>
         {iconElement}
         {arrowElement}
       </FlatButton>;
