@@ -737,7 +737,7 @@ export default React.createClass({
     // highlightFind is for the spreadsheet to know when to highlight found locs
     // display the find bar or modal based on state
     let leftEvalPane =
-      <div style={{height: '100%'}}>
+      <div style={{display: 'flex', flexDirection: 'column', height: '100%'}}>
         {this.state.showFindBar ? <ASFindBar onEnter={this.onFindBarEnter}
                                              onNext={this.onFindBarNext}
                                              onPrev={this.onFindBarPrev}
