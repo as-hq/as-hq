@@ -66,6 +66,13 @@ export default {
     Dispatcher.dispatch({
      _type: Constants.ActionTypes.ESC_PRESSED
     });
+  },
+
+  handleToggleLanguage(lang) {
+    Dispatcher.dispatch({
+     _type: Constants.ActionTypes.LANGUAGE_TOGGLED,
+     lang: lang
+    });
   }
 
 };

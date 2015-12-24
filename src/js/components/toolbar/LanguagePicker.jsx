@@ -6,8 +6,8 @@ import ToolbarController from './ToolbarController.jsx';
 import ToolbarTextField from './ToolbarTextField.jsx';
 import GenerateToolbarMenu from './GenerateToolbarMenu.jsx';
 import ExpStore from '../../stores/ASExpStore';
-import ToolbarActionCreator from '../../actions/ASToolbarActionCreators';
-import ToolbarStore from '../../stores/ASToolbarStore';
+import ExpActionCreator from '../../actions/ASExpActionCreators.js';
+
 
 export default React.createClass({
 
@@ -45,15 +45,15 @@ export default React.createClass({
   },
 
   /*************************************************************************************************************************/
-  // Mounting (we listen to toggle language changes from the toolbar store, and rerender if the language changed)
+  // Mounting (we listen to toggle language changes from the ExpStore, and rerender if the language changed)
   // This happens when user presses Ctrl + 1, etc; toggles the  language from an external source
 
   componentDidMount() {
-    ToolbarStore.addChangeListener(this._onToggleLanguage);
+    ExpStore.addChangeListener(this._onToggleLanguage);
   },
 
   componentWillUnmount() {
-    ToolbarStore.removeChangeListener(this._onToggleLanguage);
+    ExpStore.removeChangeListener(this._onToggleLanguage);
   },
 
   _onToggleLanguage() {
@@ -77,7 +77,7 @@ export default React.createClass({
 
   _propagateControlStateChange(nextValue, rng) {
     console.log("Propagating language change: " + nextValue);
-    ToolbarActionCreator.toggleLanguage(nextValue);
+    ExpActionCreator.handleToggleLanguage(nextValue);
   },
 
   // Update the toolbar control props given a the menu visibility, menuValue, and current toolbarProps.

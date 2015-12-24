@@ -2376,7 +2376,7 @@ describe('backend', () => {
       });
     });
 
-    fdescribe('conditional formatting', () => {
+    xdescribe('conditional formatting', () => {
       describe('basic functionality', () => {
         it ('should format cells already present', (done) => {
           _do([

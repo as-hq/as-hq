@@ -20,7 +20,6 @@ import ASEvalPane from '../components/ASEvaluationPane.jsx';
 
 import ExpStore from '../stores/ASExpStore';
 import ExpActionCreator from '../actions/ASExpActionCreators';
-import ToolbarActionCreator from '../actions/ASToolbarActionCreators';
 
 export default {
   addShortcuts(evalPane: ASEvalPane) {
@@ -84,16 +83,16 @@ export default {
       // inform the language dropdown in the toolbar of an update
       switch(wildcard) {
           case '1':
-            ToolbarActionCreator.toggleLanguage(Constants.Languages.Excel);
+            ExpActionCreator.handleToggleLanguage(Constants.Languages.Excel);
             break;
           case '2':
-            ToolbarActionCreator.toggleLanguage(Constants.Languages.Python);
+            ExpActionCreator.handleToggleLanguage(Constants.Languages.Python);
             break;
           case '3':
-            ToolbarActionCreator.toggleLanguage(Constants.Languages.R);
+            ExpActionCreator.handleToggleLanguage(Constants.Languages.R);
             break;
           case '4':
-            ToolbarActionCreator.toggleLanguage(Constants.Languages.SQL);
+            ExpActionCreator.handleToggleLanguage(Constants.Languages.SQL);
             break;
         }
     });
