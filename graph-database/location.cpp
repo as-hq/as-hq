@@ -96,11 +96,13 @@ Column getColumnOfIndex(const Location& loc) {
   Throw error if no parse
 */
 Location fromString(string str) {
-  string prefix = "^([IPR])\\" + refDelimiter + "(.*)\\" + refDelimiter;
+  string prefix = "^([IPRC])\\" + refDelimiter + "(.*)\\" + refDelimiter;
   string index = "\\(([0-9]+),([0-9]+)\\)$";
   string range = "\\(\\(([0-9]+),([0-9]+)\\),\\(([0-9]+),([0-9]+)\\)\\)$";
+  string colRange = "\\(\\(([0-9]+),([0-9]+)\\),([0-9]+)\\)$";
   boost::regex indexPattern(prefix + index);
   boost::regex rangePattern(prefix + range);
+  boost::regex colRangePattern(prefix + colRange);
   boost::smatch r;
   if (boost::regex_search(str, r, indexPattern)) {
     string type(r[1].first, r[1].second);
@@ -112,6 +114,16 @@ Location fromString(string str) {
       return Location(Location::LocationType::INDEX,sheet,stoi(col),stoi(row),0,0);
     } else if (type == "P") {
       return Location(Location::LocationType::POINTER,sheet,stoi(col),stoi(row),0,0);
+    }
+  } else if (boost::regex_search(str, r, colRangePattern)) {
+    cout << "Testing" << endl;
+    string type(r[1].first, r[1].second);
+    string sheet(r[2].first, r[2].second);
+    string col(r[3].first, r[3].second);
+    string row(r[4].first, r[4].second);
+    string col2(r[5].first, r[5].second);
+    if (type == "C") {
+      return Location(Location::LocationType::COLRANGE,sheet,stoi(col),stoi(row),stoi(col2),0);
     }
   } else if (boost::regex_search(str, r, rangePattern)) {
     string type(r[1].first, r[1].second);
@@ -147,7 +159,7 @@ string toString(const Location& l) {
       break;
     case Location::LocationType::COLRANGE:
       location = "((" +  to_string(tlCol) + "," + to_string(tlRow) + "),(" + to_string(brCol) + "))";
-      return "R" + middle + location;
+      return "C" + middle + location;
       break;
     case Location::LocationType::RANGE:
       location = "((" +  to_string(tlCol) + "," + to_string(tlRow) + "),(" + to_string(brCol) + "," + to_string(brRow) + "))";
