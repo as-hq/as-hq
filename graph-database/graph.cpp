@@ -6,35 +6,64 @@
 
 using namespace std;
 
+/**** PRINTING *****/
+void printIndex(const Location& location){
+  cout << "Index: " << location.getTlCol() << "," << location.getTlRow() << endl;
+}
+
+template<typename T1>
+void print(const string& s, const T1&  t){
+  cout << s << ":  "<< t << endl;
+}
+
+void printColumn(const Column& column){
+  cout << "Column: " << column.getColumnNumber() << "," <<  column.getSheetName() << endl;
+}
+
+void printSet(DAG::VertexSet vs){
+  for (const auto& v : vs){
+    printIndex(v);
+  }
+}
+
+
 /****************************************************************************************************************************************/
 
 void DAG::clearDAG() {
   toFromAdjList.clear();
   fromToAdjList.clear();
+  fromColumnTo.clear();
 }
 
 /************ Helper methods for finding immediate descendant. *****/
 
-VertexSet findColDescendants(DAG::Vertex loc){
+/*** TEMPORARY TO HELP DEBUGGING ***/
+// Only apply this to indices.
+DAG::VertexSet DAG::findColDescendants(const DAG::Vertex& loc){
   VertexSet a;
-  int r = getRowNum(loc);
-  Column column = getColumn(loc);
-  if (fromColumnTo.count(column) > 0) { // Don't create column key in fromColumnTo if column is not present.
+  int r = getRowNumOfIndex(loc);
+  Column column = getColumnOfIndex(loc);
+  // Don't create column key in fromColumnTo if column is not present.
+  if (fromColumnTo.count(column) > 0) {
     for (const auto& p : fromColumnTo[column]) {
-      if (p.first() <= r) {
-        VertexSet v  = p.second();
+      if (p.first <= r) {
+        VertexSet v  = p.second;
         a.insert(v.begin(), v.end());
       }
     }
   }
+  return  a;
 }
 
-VertexSEt getImmediateDesc(DAG::Vertex loc) {
+// Only apply this to indices.
+DAG::VertexSet DAG::getImmediateDesc(const DAG::Vertex& loc) {
   VertexSet a;
-  if (fromToAdjList.count(loc) > 0) { 
+  if (fromToAdjList.count(loc) > 0) { // Don't create loc key if fromToAdjList doesn't have loc.
     a = fromToAdjList[loc];
   }
-  return findColDescendants(loc).insert(a.begin(), a.end());
+  VertexSet s = findColDescendants(loc);
+  s.insert(a.begin(), a.end());
+  return s;
 }
 /****************************************************************************************************************************************/
 
@@ -43,14 +72,12 @@ bool DAG::cycleCheck(const Vertex& loc, unordered_map<Vertex,bool>& visited, uno
     visited[loc] = true;
     rec_stack[loc] = true;
 
-    if (hasImmediateDesc(loc)){
-      for (const auto& toLoc : getImmediateDesc(loc)) {
-        if (!visited[toLoc] && DAG::cycleCheck(toLoc, visited, rec_stack)) {
-          return true;
-        }
-        else if (rec_stack[toLoc]) {
-          return true;
-        }
+    for (const auto& toLoc : getImmediateDesc(loc)) {
+      if (!visited[toLoc] && DAG::cycleCheck(toLoc, visited, rec_stack)) {
+        return true;
+      }
+      else if (rec_stack[toLoc]) {
+        return true;
       }
     }
   }
@@ -63,6 +90,47 @@ bool DAG::containsCycle(const DAG::Vertex& start) {
   return cycleCheck(start, visited, rec_stack);
 }
 
+/***** Map helper functions for inserts and deletes ********/
+// TDOO: timchu, move these.
+
+template <typename T1, typename T2>
+bool inMap(const T1& t, std::unordered_map<T1, T2>& tMap) {
+  return (tMap.count(t) > 0);
+}
+
+template<typename T1, typename T2, typename T3>
+// Erases an element from a nested map.
+void eraseFromMapOfMap (const T1& t1,
+                        const T2& t2,
+                        const T3& t3,
+                        unordered_map<T1, unordered_map<T2, unordered_set<T3>>>& m
+                        ) {
+  m[t1][t2].erase(t3);
+  if  (m[t1].empty()) {
+    m[t1].erase(t2);
+    if (m.empty()) {
+      m.erase(t1);
+    }
+  }
+}
+
+template<typename T1, typename T2, typename T3>
+void addToMapOfMap (const T1& t1,
+                    const T2& t2,
+                    const T3& t3,
+                    unordered_map<T1, unordered_map<T2, unordered_set<T3>>>& m
+                    ) {
+  if (!inMap(t1, m) || !inMap(t2, m[t1])) {
+    unordered_set<T3> s;
+    s.insert(t3);
+    unordered_map<T2, unordered_set<T3>> innerMap;
+    innerMap[t2] = s;
+    m[t1] = innerMap;
+  }
+  else{
+    m[t1][t2].insert(t3);
+  }
+}
 
 /****************************************************************************************************************************************/
 
@@ -78,12 +146,11 @@ void DAG::updateDAG(DAG::Vertex toLoc, const DAG::VertexSet& fromLocs) {
     if (oldFl.getLocationType() == Location::LocationType::POINTER) {
       fromToAdjList[oldFl.pointerToIndex()].erase(toLoc);
     } else if (oldFl.getLocationType() == Location::LocationType::COLRANGE) {
-      vector<Column> columns;
       int minRow;
+      vector<Column> columns;
       oldFl.colRangeToMinRowAndColumns(minRow, columns); // minRow and columns have the data in colRange
-        // TODO: timchu, 12/21/15. Use a helper function to delete minRow from col if the only index in it is erased.
       for (const auto& column: columns){
-        fromColTo[column][minRow].erase(toLoc);
+        eraseFromMapOfMap(column, minRow, toLoc, fromColumnTo);
       }
     } else if (oldFl.getLocationType() == Location::LocationType::RANGE) {
       vector<Location> indices;
@@ -120,11 +187,11 @@ void DAG::updateDAG(DAG::Vertex toLoc, const DAG::VertexSet& fromLocs) {
     if (fl.getLocationType() == Location::LocationType::POINTER) {
       fromToAdjList[fl.pointerToIndex()].insert(toLoc);
     } else if (fl.getLocationType() == Location::LocationType::COLRANGE) {
-      vector<Column> columns;
       int minRow;
+      vector<Column> columns;
       fl.colRangeToMinRowAndColumns(minRow, columns); // minRow and columns have the data in colRange
       for (const auto& column: columns){
-        fromColTo[column][minRow].erase(toLoc);
+        addToMapOfMap(column, minRow, toLoc, fromColumnTo);
       }
     } else if (fl.getLocationType() == Location::LocationType::RANGE) {
       vector<Location> indices;
@@ -141,11 +208,9 @@ void DAG::updateDAG(DAG::Vertex toLoc, const DAG::VertexSet& fromLocs) {
 
 /* Given a location, current visited state, current (reverse) topological order, do one more layer of the DFS and recurse */
 void DAG::depthFirstSearch (const DAG::Vertex& loc, unordered_map<DAG::Vertex,bool>& visited, vector<DAG::Vertex>& order){
-  if (hasImmediateDesc(loc)) { // so that keys aren't created if there's nothing there.
-    for (const auto& toLoc : getImmediateDesc(loc)){
-      if (!visited[toLoc]) {
-        DAG::depthFirstSearch(toLoc,visited,order);
-      }
+  for (const auto& toLoc : getImmediateDesc(loc)){
+    if (!visited[toLoc]) {
+      DAG::depthFirstSearch(toLoc,visited,order);
     }
   }
   order.push_back(loc);
@@ -185,16 +250,12 @@ DAG::DAGResponse DAG::getProperDescendants(const vector<DAG::Vertex>& locs){
 
   for (const auto& loc: locs) {
     if (!visited[loc]){
-      if (hasImmediateDesc(loc)) {
-        for (const auto& toLoc : getImmediateDescendants(loc)){
-            DAG::depthFirstSearch(toLoc,visited,order);
-          }
-        }
+      for (const auto& toLoc : getImmediateDesc(loc)){
+        DAG::depthFirstSearch(toLoc,visited,order);
       }
       visited[loc] = true;
     }
   }
-
   reverse(order.begin(),order.end());
   return {order,DAG::DAGStatus::OK};
 }
@@ -223,7 +284,7 @@ bool DAG::operator==(const DAG& rhs) {
 
 /****************************************************************************************************************************************/
 // Printing
-
+//
 void printVec2(vector<vector<int>> in) {
   for (const auto& elem : in) {
     cout << endl;

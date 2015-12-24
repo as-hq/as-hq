@@ -6,7 +6,7 @@
 #include "location.h"
 
 using namespace std;
-string refDelimiter = "/"; 
+string refDelimiter = "/";
 
 /***********************************************************************************************************************/
 // Class methods
@@ -36,10 +36,15 @@ void Location::rangeToIndices(vector<Location>& indices) const {
 };
 
 void Location::colRangeToMinRowAndColumns(int& minRow, vector<Column>& columns) const {
-  cout << "HAHAHA" << endl;
+  if (type == LocationType::COLRANGE) {
+    for (int i = tlCol; i <= brCol; ++i){
+      columns.push_back(Column(sheetName,i));
+    }
+  }
+  minRow = tlRow;
 };
 /***********************************************************************************************************************/
-// Hash function of Location for map data structures 
+// Hash function of Location for map data structures
 
 namespace std {
   size_t hash<Location>::operator()(const Location& l) const {
@@ -55,14 +60,42 @@ namespace std {
     return hash_value(c); // using the friend boost hash
   }
 }
+
+/***********************************************************************************************************************/
+// Helper functions for getting features of locations.
+// INTENDED ONLY FOR INDEX.
+int getRowNumOfIndex(const Location& loc) {
+  if (loc.getLocationType() == Location::LocationType::INDEX) {
+    return loc.getTlRow();
+  }
+  cout << "Attempted to get row num of non-index location. Actual tlrow: " <<  loc.getTlRow() <<  endl;
+  throw "Attempted to get row num of non-index";
+}
+
+int getColumnNumOfIndex(const Location& loc) {
+  if (loc.getLocationType() == Location::LocationType::INDEX) {
+    return loc.getTlCol();
+  }
+  cout << "Attempted to get Column num of non-index" << endl;
+  throw "Attempted to get Column num of non-index";
+}
+
+Column getColumnOfIndex(const Location& loc) {
+  if (loc.getLocationType() == Location::LocationType::INDEX) {
+    return Column(loc.getSheetName(), getColumnNumOfIndex(loc));
+  }
+  cout << "Attempted to get Column of non-index" << endl;
+  throw "Attempted to get Column of non-index";
+}
+
 /***********************************************************************************************************************/
 // To and from string methods for Location
 
-/* 
+/*
   Make an index/pointer regex and a range regex and try to match both
   Throw error if no parse
 */
-Location fromString(const string& str) {
+Location fromString(string str) {
   string prefix = "^([IPR])\\" + refDelimiter + "(.*)\\" + refDelimiter;
   string index = "\\(([0-9]+),([0-9]+)\\)$";
   string range = "\\(\\(([0-9]+),([0-9]+)\\),\\(([0-9]+),([0-9]+)\\)\\)$";
@@ -91,7 +124,7 @@ Location fromString(const string& str) {
     if (type == "R") {
       return Location(Location::LocationType::RANGE,sheet,stoi(col),stoi(row),stoi(col2),stoi(row2));
     }
-  } 
+  }
   cout << "Could not parse string into location " << str << endl;
   throw "Could not parse string into location";
 }
@@ -99,7 +132,7 @@ Location fromString(const string& str) {
 string toString(const Location& l) {
   string middle = refDelimiter + l.getSheetName() + refDelimiter;
   string location;
-  int tlCol = l.getTlCol(); 
+  int tlCol = l.getTlCol();
   int tlRow = l.getTlRow();
   int brRow = l.getBrRow();
   int brCol = l.getBrCol();
@@ -112,7 +145,11 @@ string toString(const Location& l) {
       location = "(" + to_string(tlCol) + "," + to_string(tlRow) + ")";
       return "P" + middle + location;
       break;
-    case Location::LocationType::RANGE: 
+    case Location::LocationType::COLRANGE:
+      location = "((" +  to_string(tlCol) + "," + to_string(tlRow) + "),(" + to_string(brCol) + "))";
+      return "R" + middle + location;
+      break;
+    case Location::LocationType::RANGE:
       location = "((" +  to_string(tlCol) + "," + to_string(tlRow) + "),(" + to_string(brCol) + "," + to_string(brRow) + "))";
       return "R" + middle + location;
       break;

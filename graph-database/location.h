@@ -12,7 +12,7 @@ using namespace std;
 class Column {
 public:
   Column() {};
-  Column(const int col, const string& sheetName): _sheetName(sheetName), _columnNumber(col) {};
+  Column(const string& sheet, const int col): _sheetName(sheet), _columnNumber(col) {};
 
   bool operator==(const Column& rhs) const {
     return (_columnNumber == rhs.getColumnNumber()
@@ -115,12 +115,24 @@ private:
   string sheetName;
   /* All locations have all four coordinates, replace br with (0,0) for non-ranges */
   /* Replace brRow with 0 for colRange */
-  int tlCol; 
+  int tlCol;
   int tlRow;
   int brCol;
   int brRow;
 };
 
+/******************** Helper functions for isolating features of index *****************/
+int getRowNumOfIndex(const Location& loc);
+int getColumnNumOfIndex(const Location& loc);
+Column getColumnOfIndex(const Location& loc);
+
+
+/********************* String conversion helpers *************************************/
+Location fromString(string str);
+string toString(const Location& l);
+
+
+/********************* Hash functions for Locations and Columns **********************/
 namespace std {
   template <>
   struct hash<Location> {
@@ -133,6 +145,4 @@ namespace std {
   };
 }
 
-Location fromString(const string& str);
-string toString(const Location& l);
 #endif /* LOCATION_H */ 

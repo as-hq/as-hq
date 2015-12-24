@@ -6,7 +6,7 @@
 #include <unistd.h>
 #include <unordered_map>
 #include <unordered_set>
-#include "location.cpp"
+#include "location.h"
 
 using namespace std;
 
@@ -44,19 +44,20 @@ public:
   int recomputeDAG();
   bool operator==(const DAG& rhs);
 
-private:
   AdjacencyList toFromAdjList;
   AdjacencyList fromToAdjList;
   AdjacencyList prevCache;
-  ColNeighbors fromColTo;
+  ColNeighbors fromColumnTo;
 
   /* Fills the locs vector with the immediate descendants loc.
    * Immediate descendants of loc are a mix of descendants referenced as part of a
    * range, pointer, or index expression (in the fromToAdjList), and the colRange
    * descendants (in the fromColTo map). */
-  void fillImmDesc(const Vertex& loc, vector<Vertex>& locs);
+  VertexSet getImmediateDesc(const Vertex& loc);
+  VertexSet findColDescendants(const Vertex& loc);
   void depthFirstSearch(const Vertex& loc, unordered_map<Vertex,bool>& visited, vector<Vertex>& order);
   bool cycleCheck(const Vertex& loc, unordered_map<Vertex,bool>& visited, unordered_map<Vertex,bool>& rec_stack);
+private:
 };
 
 #endif /* GRAPH_H */

@@ -1,6 +1,6 @@
 #define BOOST_TEST_MODULE graph_test
 #include <boost/test/included/unit_test.hpp>
-#include "graph.cpp"
+#include "graph.h"
 #include <time.h>    
 
 using namespace std;
@@ -9,9 +9,18 @@ Location a1 = Location(Location::LocationType::INDEX,"",1,1,0,0);
 Location a2 = Location(Location::LocationType::INDEX,"",1,2,0,0);
 Location b1 = Location(Location::LocationType::INDEX,"",2,1,0,0);
 Location b2 = Location(Location::LocationType::INDEX,"",2,2,0,0);
+Location c1 = Location(Location::LocationType::INDEX,"",3,1,0,0);
+Location c2 = Location(Location::LocationType::INDEX,"",3,2,0,0);
 
 Location a1b1 = Location(Location::LocationType::RANGE,"",1,1,2,1);
 Location a1a3 = Location(Location::LocationType::RANGE,"",1,1,1,3);
+
+Location a1a = Location(Location::LocationType::COLRANGE,"",1,1,1,0);
+Location a2a = Location(Location::LocationType::COLRANGE,"",1,2,1,0);
+Location a1b = Location(Location::LocationType::COLRANGE,"",1,1,2,0);
+Location a1c = Location(Location::LocationType::COLRANGE,"",1,1,3,0);
+Location b1b = Location(Location::LocationType::COLRANGE,"",2,1,2,0);
+Location c1c = Location(Location::LocationType::COLRANGE,"",3,1,3,0);
 
 Location pa1 = Location(Location::LocationType::POINTER,"",1,1,0,0);
 Location pa2 = Location(Location::LocationType::POINTER,"",1,2,0,0);
@@ -94,23 +103,129 @@ BOOST_AUTO_TEST_SUITE_END()
 
 /****************************************************************************************************************************************/
 
+BOOST_AUTO_TEST_SUITE(columnRanges)
+
+BOOST_AUTO_TEST_CASE(columnCircularDependencies){
+  DAG d;
+  d.updateDAG(a1, {a1a});
+	BOOST_CHECK(d.containsCycle(a1));
+
+  d.clearDAG();
+  d.updateDAG(a1, {a2a});
+	BOOST_CHECK(!d.containsCycle(a1));
+
+  d.clearDAG();
+  d.updateDAG(a2, {a1a});
+	BOOST_CHECK(d.containsCycle(a1));
+
+  d.clearDAG();
+  d.updateDAG(a2, {b1b});
+	BOOST_CHECK(!d.containsCycle(a1));
+
+  d.clearDAG();
+  d.updateDAG(b1, {a1c});
+	BOOST_CHECK(d.containsCycle(b1));
+
+  d.clearDAG();
+  d.updateDAG(c1, {a2a});
+  d.updateDAG(a1, {b1,b2,c1});
+	BOOST_CHECK(!d.containsCycle(a1));
+	BOOST_CHECK(!d.containsCycle(c1));
+
+  d.clearDAG();
+  d.updateDAG(c1, {a1a});
+  d.updateDAG(c2, {c1});
+  d.updateDAG(a1, {b2,c2});
+  d.updateDAG(b2, {b1});
+  d.updateDAG(b1, {c1c});
+	BOOST_CHECK(d.containsCycle(a1));
+	BOOST_CHECK(d.containsCycle(b1));
+	BOOST_CHECK(d.containsCycle(b2));
+	BOOST_CHECK(d.containsCycle(c1));
+	BOOST_CHECK(d.containsCycle(c2));
+  d.updateDAG(c1, {b2});
+	BOOST_CHECK(!d.containsCycle(a1));
+	BOOST_CHECK(d.containsCycle(c2));
+	BOOST_CHECK(d.containsCycle(b1));
+	BOOST_CHECK(d.containsCycle(b2));
+	BOOST_CHECK(d.containsCycle(c1));
+
+  d.clearDAG();
+  d.updateDAG(c1, {a2a});
+  d.updateDAG(a1, {c1c});
+	BOOST_CHECK(!d.containsCycle(a2));
+	BOOST_CHECK(!d.containsCycle(c1));
+
+  d.clearDAG();
+  d.updateDAG(c1, {a2a});
+  d.updateDAG(a2, {c1c});
+	BOOST_CHECK(d.containsCycle(a2));
+	BOOST_CHECK(d.containsCycle(c1));
+}
+
+BOOST_AUTO_TEST_CASE(settingAncestors){
+  DAG d;
+  d.updateDAG(a1, {a2a});
+  d.updateDAG(b1, {a2a});
+  std::cout << "should be 1,1 and 2,1"  << endl;
+  for (const auto& loc : d.getImmediateDesc(a2)) {
+    std :: cout << loc.getTlCol() << "," << loc.getTlRow() << std::endl;
+  }
+  d.updateDAG(a1, {b1});
+  std::cout << "should be 2,1"  << endl;
+  for (const auto& loc : d.getImmediateDesc(a2)) {
+    std :: cout << loc.getTlCol() << "," << loc.getTlRow() << std::endl;
+  }
+  std::cout << "should be 1,1" << endl;
+  for (const auto& loc : d.getImmediateDesc(b1)) {
+    std :: cout << loc.getTlCol() << "," << loc.getTlRow() << std::endl;
+  }
+}
+
+BOOST_AUTO_TEST_CASE(columnDescendants){
+}
+
+BOOST_AUTO_TEST_CASE(fromColumnTo_UpdatesProperlyOnDelete){
+}
+
+BOOST_AUTO_TEST_CASE(creatingAndThenDeletingColumnDependenciesDoesntChangeFromTo){
+}
+
+BOOST_AUTO_TEST_CASE(rollbackWorks){
+}
+
+BOOST_AUTO_TEST_CASE(basicDescendantsWork) {
+  DAG d;
+  std :: cout << "Testing basic descendants " << endl;
+  d.updateDAG(a1, {a2, b1});
+  d.updateDAG(b1, {a2, b1});
+  std::cout << "should be 1,1 and 2,1" << endl;
+  for (const auto& loc : d.getImmediateDesc(a2)) {
+    std :: cout << loc.getTlCol() << "," << loc.getTlRow() << std::endl;
+  }
+  cout << "Done testing " << endl;
+}
+
+BOOST_AUTO_TEST_SUITE_END()
+
+
 BOOST_AUTO_TEST_SUITE(cycles)
 
 BOOST_AUTO_TEST_CASE(notAlwaysCycle) {
-	DAG d; 
+	DAG d;
 	d.updateDAG(a1, {a2});
 	BOOST_CHECK(!d.containsCycle(a1));
 }
 
 BOOST_AUTO_TEST_CASE(pointerCycle) {
-	DAG d; 
+	DAG d;
 	d.updateDAG(a1, {pa2});
 	d.updateDAG(a2, {pa1});
 	BOOST_CHECK(d.containsCycle(a1));
 }
 
 BOOST_AUTO_TEST_CASE(containsCycleInTriangle) {
-	DAG d; 
+	DAG d;
 	d.updateDAG(a2, {a1});
 	d.updateDAG(b1, {a2});
 	d.updateDAG(a1, {b1});
