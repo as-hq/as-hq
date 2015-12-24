@@ -21,7 +21,8 @@ const ASCondFormatStore = Object.assign({}, BaseStore, {
   dispatcherIndex: Dispatcher.register(function (action) {
     switch (action._type) {
       case 'GOT_UPDATED_RULES':
-        ASCondFormatStore._setRules(action.rules);
+        ASCondFormatStore._deleteRules(action.oldRuleIds);
+        ASCondFormatStore._updateRules(action.newRules);
         ASCondFormatStore.emitChange();
         break;
     }
@@ -31,8 +32,15 @@ const ASCondFormatStore = Object.assign({}, BaseStore, {
     return _data.rules;
   },
 
-  _setRules(rules: Array<CondFormatRule>) {
-    _data.rules = rules;
+  // ::ALEX:: keep the order here good
+  _updateRules(rules: Array<CondFormatRule>) {
+    // delete overlaps, then add all of them in
+    this._deleteRules(rules.map(({condFormatRuleId}) => condFormatRuleId));
+    _data.rules = _data.rules.concat(rules);
+  },
+
+  _deleteRules(ruleIds: Array<string>) {
+    _data.rules = _data.rules.filter((r) => !ruleIds.includes(r.condFormatRuleId));
   }
 });
 

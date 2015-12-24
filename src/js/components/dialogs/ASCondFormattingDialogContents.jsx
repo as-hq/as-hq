@@ -19,8 +19,8 @@ import ASButton from '../basic-controls/ASButton.jsx';
 
 type ASCondFormattingDialogContentsProps = {
   rules: Array<CondFormatRule>;
-  onEditRule: (ruleIdx: number) => () => void;
-  onDeleteRule: (ruleIdx: number) => () => void;
+  onEditRule: (ruleId: string) => () => void;
+  onDeleteRule: (ruleId: string) => () => void;
 };
 
 function conditionDescriptor(condition: CondFormatCondition): string {
@@ -97,13 +97,13 @@ export default function ASCondFormattingDialogContents(
           <ASCondFormattingRuleLabel ruleTitle={showRule(rule)} />
           <ASButton
             style={_Styles.buttons}
-            onMouseUp={onEditRule(idx)}
+            onMouseUp={onEditRule(rule.condFormatRuleId)}
             label="Edit"
             selectable={false} />
           <ASButton
             style={_Styles.buttons}
             primary={true}
-            onMouseUp={onDeleteRule(idx)}
+            onMouseUp={onDeleteRule(rule.condFormatRuleId)}
             label="Delete"
             selectable={false} />
         </div>

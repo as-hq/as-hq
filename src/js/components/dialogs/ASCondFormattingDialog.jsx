@@ -30,7 +30,7 @@ type ASCondFormattingDialogProps = {
 
 type ASCondFormattingDialogState = {
   rules: Array<CondFormatRule>;
-  openRule: number;
+  openRule: string;
 };
 
 export default class ASCondFormattingDialog
@@ -41,7 +41,7 @@ export default class ASCondFormattingDialog
 
     this.state = {
       rules: [],
-      openRule: -1
+      openRule: "closed"
     };
   }
 
@@ -83,15 +83,15 @@ export default class ASCondFormattingDialog
         </Dialog>
         <RuleDialog
           variantRange={true}
-          onSubmitRule={this._onSubmitRule(-2).bind(this)}
-          open={openRule === -2}
-          onRequestClose={this._onCloseRule(-2).bind(this)}/>
-        {rules.map((rule, idx) =>
+          onSubmitRule={this._onSubmitRule("create").bind(this)}
+          open={openRule === "create"}
+          onRequestClose={this._onCloseRule("create").bind(this)}/>
+        {rules.map((rule) =>
           <RuleDialog
             initialRule={rule}
-            onSubmitRule={this._onSubmitRule(idx).bind(this)}
-            open={openRule === idx}
-            onRequestClose={this._onCloseRule(idx).bind(this)}
+            onSubmitRule={this._onSubmitRule(rule.condFormatRuleId).bind(this)}
+            open={openRule === rule.condFormatRuleId}
+            onRequestClose={this._onCloseRule(rule.condFormatRuleId).bind(this)}
           />
         )}
       </div>
@@ -99,55 +99,49 @@ export default class ASCondFormattingDialog
   }
 
   _onCreateRule() {
-    this.setState({ openRule: -2 });
+    this.setState({ openRule: "create" });
   }
 
-  _onEditRule(ruleIdx: number): Callback {
+  _onEditRule(ruleId: string): Callback {
     return () => {
       this.setState({
-        openRule: ruleIdx
+        openRule: ruleId
       });
     };
   }
 
-  _onDeleteRule(ruleIdx: number): Callback {
+  _onDeleteRule(ruleId: string): Callback {
     return () => {
-      let rules = _.cloneDeep(CFStore.getRules());
-      rules.splice(ruleIdx, 1);
-      API.updateCondFormattingRules(rules, []); //::ALEX::
+      API.removeCondFormattingRule(ruleId); 
     };
   }
 
-  _onSubmitRule(ruleIdx: number): Callback<CondFormatRule> {
-    if (ruleIdx === -2) {
+  _onSubmitRule(ruleId: string): Callback<CondFormatRule> {
+    if (ruleId === "create") {
       return (newRule) => {
         this._createRule(newRule);
       };
     } else {
       return (newRule) => {
-        this._updateRule(ruleIdx, newRule);
+        this._updateRule(newRule);
       };
     }
   }
 
-  _onCloseRule(ruleIdx: number): Callback {
+  _onCloseRule(ruleId: string): Callback {
     return () => {
       this.setState({
-        openRule: -1
+        openRule: "closed"
       });
     };
   }
 
-  _updateRule(ruleIdx: number, newRule: CondFormatRule) {
-    let rules = _.cloneDeep(CFStore.getRules());
-    rules[ruleIdx] = newRule;
-    API.updateCondFormattingRules(rules, []);
+  _updateRule(newRule: CondFormatRule) {
+    API.updateCondFormattingRule(newRule); 
   }
 
   _createRule(newRule: CondFormatRule) {
-    let rules = _.cloneDeep(CFStore.getRules());
-    rules.push(newRule);
-    API.updateCondFormattingRules(rules, []);
+    API.updateCondFormattingRule(newRule); 
   }
 
   _onRulesChange() {

@@ -226,13 +226,11 @@ function dispatchSheetUpdate(sheetUpdate: SheetUpdate) {
     oldBarLocs: sheetUpdate.barUpdates.oldKeys
   });
 
-  // #incomplete very, very wrong right now. just a hack to make it work, mostly. 
-  if (sheetUpdate.condFormatRulesUpdates.newVals.length > 0) {
-    Dispatcher.dispatch({
-      _type: 'GOT_UPDATED_RULES',
-      rules: sheetUpdate.condFormatRulesUpdates.newVals
-    });
-  }
+  Dispatcher.dispatch({
+    _type: 'GOT_UPDATED_RULES',
+    newRules: sheetUpdate.condFormatRulesUpdates.newVals,
+    oldRuleIds: sheetUpdate.condFormatRulesUpdates.oldKeys,
+  });
 }
 
 wss.onopen = (evt) => {
@@ -649,6 +647,31 @@ export default {
     this.send(msg);
   },
 
+  updateCondFormattingRule(rule: CondFormatRule) {
+    let msg = U.Conversion.makeClientMessageRaw(Constants.ServerActions.UpdateCondFormatRules, {
+      tag: "PayloadCondFormatUpdate",
+      contents: { 
+        tag: 'Update', 
+        newVals: [rule], 
+        oldKeys: []
+      }
+    });
+    this.send(msg);
+  },
+
+  removeCondFormattingRule(ruleId: string) {
+    let msg = U.Conversion.makeClientMessageRaw(Constants.ServerActions.UpdateCondFormatRules, {
+      tag: "PayloadCondFormatUpdate",
+      contents: { 
+        tag: 'Update', 
+        newVals: [], 
+        oldKeys: [ruleId]
+      }
+    });
+    this.send(msg);
+  },
+
+  // maybe want to deprecate the below in favor of the above two? 
   updateCondFormattingRules(newRules: Array<CondFormatRule>, oldRuleIds: Array<string>) {
     let msg = U.Conversion.makeClientMessageRaw(Constants.ServerActions.UpdateCondFormatRules, {
       tag: "PayloadCondFormatUpdate",
