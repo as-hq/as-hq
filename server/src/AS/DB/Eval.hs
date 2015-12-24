@@ -15,6 +15,7 @@ import qualified Data.ByteString.Char8 as BC
 import qualified Data.Map as M
 
 import Database.Redis hiding (decode)
+import Data.List
 import Control.Monad
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.Either
@@ -59,8 +60,46 @@ referenceToCompositeValue conn ctx (RangeRef r) = return . Expanding . VList . M
     indToVal ind = cellValue $ (contextMap ctx) M.! ind
     vals    = map (map indToVal) indices
 
+
+-- TODO: timchu, 12/23/15. What's the right place to put this?
+-- | Helper methods for colRangeWithContextToIndices
+-- gets all the indices in the DB corresponding to a particular column number.
+-- TODO: timchu, the implementation of this is REALLY STUPID. Gets all cells and then filter!
+getCol :: ASIndex -> Col
+getCol (Index _ (column, _)) = column
+
+lookUpDBIndicesByCol :: Connection -> ASSheetId -> Col -> IO [ASIndex]
+lookUpDBIndicesByCol conn sid column =  do
+  allCells <- DB.getCellsInSheet conn sid
+  let allIndices = map cellLocation allCells
+  return $ filter (\ind -> (getCol ind == column)) allIndices
+
+-- gets all the indices in the EvalContext corresponding to a particular column number.
+evalContextIndicesByCol :: EvalContext -> ASSheetId -> Col -> [ASIndex]
+evalContextIndicesByCol (EvalContext _ addedCells _) sid column =
+  let indicesInCtx = map cellLocation addedCells in
+      filter (\ind -> (getCol ind == column)) indicesInCtx
+
+-- Uses the evalcontext and column range to extract the indices used in a column range.
+-- Note; this is agnostic as to whether the EvalContext contains blank cells.
+colRangeWithContextToIndices :: Connection -> EvalContext -> ASColRange -> IO [ASIndex]
+colRangeWithContextToIndices conn ctx (ColRange sid ((l, t), r)) = do
+  let indicesByCol :: Col -> IO[ASIndex]
+      indicesByCol column = do
+        let ctxIndices = evalContextIndicesByCol ctx sid column
+        dbIndices <- lookUpDBIndicesByCol conn sid column
+        return $ union dbIndices ctxIndices
+      maxRowInCol :: [ASIndex] -> Row
+      maxRowInCol indices = maximum rowList where
+        rowList = map (row.index) indices
+  listOfIndicesByColumn <- mapM indicesByCol [l..r] -- listOfIndicesByColumn :: [[ASIndex]]
+  let maxRowInCols = maximum (map maxRowInCol (listOfIndicesByColumn))
+  return $ rangeToIndices (Range sid ((l, t), (maxRowInCols, r)))
+
+
 refToIndices :: Connection -> ASReference -> EitherTExec [ASIndex]
 refToIndices conn (IndexRef i) = return [i]
+refToIndices conn (ColRangeRef cr) = lift $ colRangeWithContextToIndices conn emptyContext cr
 refToIndices conn (RangeRef r) = return $ rangeToIndices r
 refToIndices conn (PointerRef p) = do
   let index = pointerToIndex p 
@@ -77,6 +116,7 @@ refToIndices conn (PointerRef p) = do
 refToIndicesWithContextDuringEval :: Connection -> EvalContext -> ASReference -> EitherTExec [ASIndex]
 refToIndicesWithContextDuringEval conn _ (IndexRef i) = return [i]
 refToIndicesWithContextDuringEval conn _ (RangeRef r) = return $ rangeToIndices r
+refToIndicesWithContextDuringEval conn ctx (ColRangeRef r) = lift $ colRangeWithContextToIndices conn ctx r
 refToIndicesWithContextDuringEval conn (EvalContext mp _ _) (PointerRef p) = do
   let index = pointerToIndex p
   case (M.lookup index mp) of 
@@ -96,6 +136,7 @@ refToIndicesWithContextDuringEval conn (EvalContext mp _ _) (PointerRef p) = do
 refToIndicesWithContextBeforeEval :: Connection -> EvalContext -> ASReference -> IO [ASIndex]
 refToIndicesWithContextBeforeEval conn _ (IndexRef i) = return [i]
 refToIndicesWithContextBeforeEval conn _ (RangeRef r) = return $ rangeToIndices r
+refToIndicesWithContextBeforeEval conn ctx (ColRangeRef r) = colRangeWithContextToIndices conn ctx r
 refToIndicesWithContextBeforeEval conn (EvalContext mp _ _) (PointerRef p) = do
   let index = pointerToIndex p
   case (M.lookup index mp) of 

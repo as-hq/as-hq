@@ -27,6 +27,7 @@ data CompositeCell = Single ASCell | Fat FatCell
 type ValMap = M.Map ASIndex ASCell
 
 -- This should be thought of as a mini spreadsheet used by eval as a cache (which can be updated)
+-- descriptorDiff is used to keep track of whether a decouple is caused during eval.
 data EvalContext = EvalContext { contextMap :: ValMap
                                , addedCells :: [ASCell]
                                , descriptorDiff :: DescriptorDiff }
