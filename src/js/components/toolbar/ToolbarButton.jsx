@@ -176,7 +176,7 @@ export default React.createClass({
         </FlatButton>
         <Tooltip 
           id={this.props.tooltip}
-          delayHide={300}
+          delayHide={50}
           delayShow={300}
           place="bottom"
           type="info"

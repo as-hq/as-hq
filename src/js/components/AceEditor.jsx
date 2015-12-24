@@ -12,8 +12,7 @@ var ace = require('brace');
 var React = require('react');
 
 function onPropsSet(editor, props) {
-  editor.getSession().setMode('ace/mode/'+props.mode);
-  editor.setTheme('ace/theme/'+props.theme);
+  editor.setTheme('ace/theme/' + props.theme);
   editor.setFontSize(props.fontSize);
   editor.renderer.setShowGutter(props.showGutter);
   editor.setOption('maxLines', props.maxLines);
@@ -34,7 +33,6 @@ module.exports = React.createClass({
   propTypes: {
     handleEditorFocus: React.PropTypes.func.isRequired,
     onDeferredKey: React.PropTypes.func.isRequired,
-    mode  : React.PropTypes.string,
     theme : React.PropTypes.string,
     name : React.PropTypes.string,
     height : React.PropTypes.string,
@@ -53,7 +51,6 @@ module.exports = React.createClass({
   getDefaultProps() {
     return {
       name   : 'brace-editor',
-      mode   : 'python',
       theme  : 'monokai',
       height : '100px',
       width  : '100%',
@@ -71,6 +68,13 @@ module.exports = React.createClass({
     };
   },
 
+  // Keep track of language
+  getInitialState() {
+    return {
+      language: Constants.Languages.Excel
+    }
+  },
+
   componentDidMount() {
     // Respond to changes from ExpStore, focus, changes, and keydowns
     ExpStore.addChangeListener(this._onExpressionChange);
@@ -82,7 +86,22 @@ module.exports = React.createClass({
     this.editor.setOptions({
      enableBasicAutocompletion: true
     });
+    this._updateMode(this.state.language);
     onPropsSet(this.editor, this.props);
+  },
+
+  // When the component is about to update (after the initial render), update the mode of the editor as well
+  // This has the effect of enabling autocomplete/syntax highlighting for that language, among other things
+  componentWillUpdate(nextProps, nextState) {
+    if (nextState.language !== this.state.language) {
+      this._updateMode(nextState.language);
+    }
+  },
+
+  _updateMode(lang) {
+    if (this.editor) {
+      this.editor.getSession().setMode('ace/mode/' + Constants.AceMode[lang]);
+    }
   },
 
   componentWillUnmount() {
@@ -164,7 +183,7 @@ module.exports = React.createClass({
 
   /*
   Case on the origin in the ExpStore, which is the reason for this expression update
-  Most of the cases just call updateValue
+  Most of the cases just call updateValue and update the language as well
   */
   _onExpressionChange() {
     let xpChangeOrigin = ExpStore.getXpChangeOrigin();
@@ -178,6 +197,13 @@ module.exports = React.createClass({
       case Constants.ActionTypes.ESC_PRESSED:
       case Constants.ActionTypes.BACKEND_UPDATED_AND_CELLS_CHANGED:
         this.updateValue();
+        if (ExpStore.getLanguage() !== this.state.language) {
+          this.setState({langauge: ExpStore.getLanguage()});
+        }
+        break;
+      // When the user toggles the language by shortcut/toolbar, update language state, which will also update mode
+      case Constants.ActionTypes.LANGUAGE_TOGGLED:
+        this.setState({language: ExpStore.getLanguage()});
         break;
       default:
         // don't need to do anything on EDITOR_CHANGED

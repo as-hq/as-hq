@@ -83,7 +83,6 @@ export default React.createClass({
   getDefaultProps() {
     return {
       behavior: 'default',
-      language: Constants.Languages.Excel,
       onReady() { }
     };
   },
@@ -1033,6 +1032,9 @@ export default React.createClass({
       case Constants.ActionTypes.GOT_UPDATED_CELLS:
         this.props.setFocus('grid');
         break;
+      case Constants.ActionTypes.LANGUAGE_TOGGLED:
+        this.refs.textbox.updateLanguage();
+        break;
       default:
         break;
     }
@@ -1100,7 +1102,7 @@ export default React.createClass({
   // Render
 
   render(): ReactElement {
-    let {behavior, width, height, language} = this.props; //should also have onReady
+    let {behavior, width, height} = this.props; //should also have onReady
     let style = {width: width, height: height, cursor: this.state.cursorStyle};
     let outerStyle = {width:"100%",
                      height:"calc(100% - 50px)",
@@ -1142,13 +1144,12 @@ export default React.createClass({
                             restoreFocus={this._restoreFocus}/>
 
           <Textbox
-                   ref="textbox"
-                   mode={Constants.AceMode[language]}
-                   scroll={self.state.scroll}
-                   onDeferredKey={this.props.onTextBoxDeferredKey}
-                   hideToast={this.props.hideToast}
-                   position={this.getTextboxPosition}
-                   setFocus={this.props.setFocus} />
+            ref="textbox"
+            scroll={self.state.scroll}
+            onDeferredKey={this.props.onTextBoxDeferredKey}
+            hideToast={this.props.hideToast}
+            position={this.getTextboxPosition}
+            setFocus={this.props.setFocus} />
 
         </div>
       </Dropzone>

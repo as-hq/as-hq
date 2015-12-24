@@ -28,30 +28,20 @@ export default React.createClass({
   },
 
   /*************************************************************************************************************************/
-  // Change handlers
-
-  _onBlurVarName() {
-    let varName = this.refs.varNameField.getValue();
-    this.props.onSetVarName(varName);
-  },
-
-  /*************************************************************************************************************************/
   // Render
 
   render() {
-    let {language, theme, value, width, height} = this.props;
-    let mode = Constants.AceMode[language];
+    let {theme, value, width, height} = this.props;
     return (
       <div>
         <Toolbar/>
         <AceEditor
           ref="editor"
           handleEditorFocus={this.props.handleEditorFocus}
-          mode={mode}
-          language={language}
           hideToast={this.props.hideToast}
           theme={theme}
-          width={width} height={height}
+          width={width} 
+          height={height}
           maxLines={this.props.maxLines}
           setFocus={this.props.setFocus}
           onDeferredKey={this.props.onDeferredKey} />
