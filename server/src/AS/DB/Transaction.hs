@@ -56,20 +56,23 @@ evalContextToCommit :: Connection -> EvalContext -> IO CommitWithInfo
 evalContextToCommit conn (EvalContext mp cells ddiff) = do
   mbcells <- DB.getCells conn (map cellLocation cells)
   time <- getASTime
-  printObj "mbcells" mbcells
-  printObj "cells" cells
   let cdiff   = Diff { beforeVals = (catMaybes mbcells), afterVals = cells }
-      commit  = (emptyCommitWithTime time) { cellDiff = cdiff }
-      rd      = beforeVals ddiff
+      commit  = (emptyCommitWithTime time) { cellDiff = cdiff, rangeDescriptorDiff = ddiff }
       didDecouple = any isDecouplePair $ zip mbcells cells
       -- determines whether to send a decouple message.
       -- we send a decouple message if there are any decoupled, *visible* cells remaining on the spreadsheet.
       -- i.e. deleting an entire range will not cause a decouple message, but deleting part of it will because 
-      -- decoupled cells remain visible on the sheet.
+      -- decoupled cells remain visible on the sheet. 
+      -- 
+      -- NOTE: if (not $ isBlank acell) for some acell, then: 
+      --   * if the entire list was not deleted, then there's going to be some nonblank, noncoupled acell paired with 
+      --     a coupled bcell. 
+      --   * if the entire list was deleted, then not $ isBlank acell will be false for the entire list, so no decouple
+      --     message gets sent. 
       isDecouplePair (mbcell, acell) = case mbcell of 
         Nothing -> False
         Just bcell -> (isCoupled bcell) && (not $ isCoupled acell) && (not $ isBlank acell)
-  printWithTime $ "DEALING WITH DECOUPLING OF DESCRIPTORS " ++ (show rd)
+  printObj "DEALING WITH DECOUPLING OF DESCRIPTORS " $ beforeVals ddiff
   return $ CommitWithInfo commit didDecouple
 
 ----------------------------------------------------------------------------------------------------------------------
