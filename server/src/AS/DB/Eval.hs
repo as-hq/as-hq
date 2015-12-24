@@ -59,7 +59,8 @@ referenceToCompositeValue conn ctx (PointerRef p) = do
 referenceToCompositeValue conn ctx (ColRangeRef cr) = do
   indices <- colRangeWithContextToIndicesRowMajor2D conn ctx cr
   let indToVal ind = cellValue $ (contextMap ctx) M.! ind
-      vals    = map (map indToVal) indices
+      vals'    = map (map indToVal) indices
+      vals = cleanEmptysFromEndOfListOfLists vals'
   return . Expanding . VList . M $ vals
 referenceToCompositeValue conn ctx (RangeRef r) = return . Expanding . VList . M $ vals
   where
@@ -71,15 +72,31 @@ referenceToCompositeValue conn ctx (RangeRef r) = return . Expanding . VList . M
 -- TODO: timchu, 12/23/15. What's the right place to put this?
 -- | Helper methods for colRangeWithContextToIndices
 -- gets all the indices in the DB corresponding to a particular column number.
--- TODO: timchu, the implementation of this is REALLY STUPID. Gets all cells and then filter!
+-- TODO: timchu, the implementation of this is REALLY STUPID. Gets all cells
+-- and then filter!
 getCol :: ASIndex -> Col
 getCol (Index _ (column, _)) = column
 
+trailingEmpties :: [ASValue] -> Int
+trailingEmpties ls = length $ takeWhile (== NoValue) $ reverse ls
+-- Must return a rectangular range.
+cleanEmptysFromEndOfListOfLists :: [[ASValue]] -> [[ASValue]]
+cleanEmptysFromEndOfListOfLists lls = finalLists 
+  where
+    minEmptiesAtEndOfLists = minimum $ map trailingEmpties lls
+    dropFromEnd :: Int -> [a] -> [a]
+    dropFromEnd i = reverse.((drop i).reverse)
+    finalLists = map (dropFromEnd minEmptiesAtEndOfLists) lls
+
+-- TODO: timchu, need the DB lookup at beginning of dispatch to get the context,
+-- don't need DB lookup for list interpolation during Eval. RIght now, I'm
+-- doing the DB lookup in all cases.
 lookUpDBIndicesByCol :: Connection -> ASSheetId -> Col -> IO [ASIndex]
 lookUpDBIndicesByCol conn sid column =  do
   allCells <- DB.getCellsInSheet conn sid
   let allIndices = map cellLocation allCells
   return $ filter (\ind -> (getCol ind == column)) allIndices
+
 
 -- gets all the indices in the EvalContext corresponding to a particular column number.
 evalContextIndicesByCol :: EvalContext -> ASSheetId -> Col -> [ASIndex]
