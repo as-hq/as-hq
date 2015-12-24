@@ -61,13 +61,13 @@ ruleToCellTransform conn sid ctx cfr@(CondFormatRule _ rngs condFormatCondition 
 evalXp :: Connection -> ASSheetId -> EvalContext -> ASExpression -> EitherTExec ASValue
 evalXp conn sid ctx xp@(Expression str lang) = do
   let dummyLoc = Index sid (-1,-1) -- #needsrefactor sucks. evaluateLanguage should take in a Maybe index. Until then
-      valMap = contextMap ctx
+      valMap = virtualCellsMap ctx
       deps = getDependencies sid xp -- #needsrefactor will compress these all to indices
   depInds <- concat <$> mapM (refToIndices conn) deps
   let depIndsToGet = filter (not . (flip M.member) valMap) depInds
   cells <- lift $ DB.getPossiblyBlankCells conn depIndsToGet
   let valMap' = insertMultiple valMap depIndsToGet cells
-      ctx' = ctx { contextMap = valMap' }
+      ctx' = ctx { virtualCellsMap = valMap' }
   (Formatted res _) <- evaluateLanguage conn dummyLoc ctx' xp
   case res of
     Expanding expandingValue -> left $ CondFormattingError ("Tried to apply conditional formatting rule" ++ str ++ "but got ExpandingValue error with expandingValue:  " ++ show expandingValue)

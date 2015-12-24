@@ -164,10 +164,10 @@ getCellsToEval conn ctx locs = possiblyThrowException =<< (lift $ getCellsWithCo
 getModifiedContext :: Connection -> [ASReference] -> EvalTransform
 getModifiedContext conn ancs oldContext = do
    ancIndices <-  lift $ concat <$> mapM (refToIndicesWithContextBeforeEval conn oldContext) ancs 
-   let nonContextAncIndices = filter (not . (flip M.member (contextMap oldContext))) ancIndices
+   let nonContextAncIndices = filter (not . (flip M.member (virtualCellsMap oldContext))) ancIndices
    cells <- lift $ DB.getPossiblyBlankCells conn nonContextAncIndices
-   let oldMap = contextMap oldContext
-       newContext = oldContext { contextMap = insertMultiple oldMap nonContextAncIndices cells }
+   let oldMap = virtualCellsMap oldContext
+       newContext = oldContext { virtualCellsMap = insertMultiple oldMap nonContextAncIndices cells }
    return newContext
 
 retrieveValue :: Maybe CompositeCell -> CompositeValue
@@ -202,7 +202,7 @@ evalChainWithException conn cells ctx =
 evalChain :: Connection -> [ASCell] -> EvalTransform
 evalChain conn cells ctx = evalChain' conn cells'' ctx
   where 
-    hasCoupledCounterpartInMap c = case (cellLocation c) `M.lookup` (contextMap ctx) of
+    hasCoupledCounterpartInMap c = case (cellLocation c) `M.lookup` (virtualCellsMap ctx) of
       Nothing -> False
       Just c' -> (isCoupled c') && (not $ isFatCellHead c')
     cells' = filter isEvaluable cells
@@ -249,10 +249,10 @@ addValueToContext descriptor ctx = ctx { descriptorDiff = ddiff' }
 
 -- Helper function that adds cells to a context, by merging them to addedCells and the map (with priority).
 addCellsToContext :: [ASCell] -> PureEvalTransform
-addCellsToContext cells ctx = ctx { contextMap = newMap, addedCells = newAddedCells}
+addCellsToContext cells ctx = ctx { virtualCellsMap = newMap, addedCells = newAddedCells}
   where
     newAddedCells = mergeCells cells (addedCells ctx)
-    newMap   = insertMultiple (contextMap ctx) (map cellLocation cells) cells
+    newMap   = insertMultiple (virtualCellsMap ctx) (map cellLocation cells) cells
 
 
 -- Deal with a possible shrink list. The ASCell passed in is a descendant during dispatch. 
@@ -261,7 +261,7 @@ addCellsToContext cells ctx = ctx { contextMap = newMap, addedCells = newAddedCe
 -- in the corresponding objectfor now and propagate those changes. 
 -- The composite value returned by the previous eval chain will then write over this object in contextInsert 
 -- Example: if range(10) becomes range(5) because of an upstream change, blank out A1:A10. 
--- The cv in the previous evalChain has the coupled range(5) cells and will replace the contextMap. 
+-- The cv in the previous evalChain has the coupled range(5) cells and will replace the virtualCellsMap. 
 -- Essentially, this transform exists because you should delete an object before overwriting 
 -- Returns the new context and the blanked out indices, if any
 delPrevFatCellFromContext :: Connection -> ASCell -> EvalTransformWithInfo (Maybe [ASIndex])
@@ -285,7 +285,7 @@ delPrevFatCellFromContext conn c@(Cell idx xp _ _) ctx = case xp of
 -- (1) generates the range descriptors to remove, if any, from the new cell/fatcell produced during eval, 
 -- and removes these descriptors from context
 -- (2) gets the cells decoupled by the new cell/fatcell produced during eval, if any, and merges them into the
--- addedCells of the context as well as the contextMap
+-- addedCells of the context as well as the virtualCellsMap
 -- (3) add a descriptor to the context if a fatcell is produced
 -- Note that the index passed in is the old location, and the maybe fatcell is the compositeValue from eval
 -- Returns the new context and the decoupled cells caused by the possible fat cell
@@ -339,7 +339,7 @@ contextInsert conn c@(Cell idx xp _ ps) (Formatted cv f) ctx = do
       printWithTimeT "\nrunning expanded cells transform"
       let blankCells = case blankedIndices of 
                         Nothing -> []
-                        Just inds -> map ((M.!) (contextMap ctxWithEvalCells)) inds
+                        Just inds -> map ((M.!) (virtualCellsMap ctxWithEvalCells)) inds
           dispatchCells = mergeCells newCellsFromEval $ mergeCells decoupledCells blankCells
       dispatch conn dispatchCells ctxWithEvalCells ProperDescendants
       -- ^ propagate the descendants of the expanded cells (except for the list head)

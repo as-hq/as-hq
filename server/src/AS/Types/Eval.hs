@@ -24,10 +24,10 @@ import Control.Monad.Trans.Either
 data FatCell = FatCell { expandedCells :: [ASCell], descriptor :: RangeDescriptor } deriving (Show, Read)
 data CompositeCell = Single ASCell | Fat FatCell
 
-type ValMap = M.Map ASIndex ASCell
+type CellMap = M.Map ASIndex ASCell
 
 -- This should be thought of as a mini spreadsheet used by eval as a cache (which can be updated)
-data EvalContext = EvalContext { contextMap :: ValMap
+data EvalContext = EvalContext { virtualCellsMap :: CellMap
                                , addedCells :: [ASCell]
                                , descriptorDiff :: DescriptorDiff }
                                deriving (Show, Read, Eq)

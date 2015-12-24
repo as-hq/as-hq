@@ -39,7 +39,7 @@ referenceToCompositeValue :: Connection -> EvalContext -> ASReference -> IO Comp
 referenceToCompositeValue _ (EvalContext mp _ _) (IndexRef i) = return $ CellValue . cellValue $ mp M.! i 
 referenceToCompositeValue conn ctx (PointerRef p) = do 
   let idx = pointerToIndex p
-  let mp = contextMap ctx
+  let mp = virtualCellsMap ctx
   let cell = mp M.! idx
   case (cellExpression cell) of
     Expression _ _ -> error "Pointer to normal expression!" 
@@ -49,14 +49,14 @@ referenceToCompositeValue conn ctx (PointerRef p) = do
         Nothing -> error "Couldn't find range descriptor of coupled expression!"
         Just descriptor -> do 
           let indices = rangeKeyToIndices rKey
-              cells  = map ((contextMap ctx) M.!) indices
+              cells  = map ((virtualCellsMap ctx) M.!) indices
               fatCell = FatCell cells descriptor
           printObj "REF TO COMPOSITE DESCRIPTOR: " descriptor
           return $ DE.recomposeCompositeValue fatCell
 referenceToCompositeValue conn ctx (RangeRef r) = return . Expanding . VList . M $ vals
   where
     indices = rangeToIndicesRowMajor2D r
-    indToVal ind = cellValue $ (contextMap ctx) M.! ind
+    indToVal ind = cellValue $ (virtualCellsMap ctx) M.! ind
     vals    = map (map indToVal) indices
 
 refToIndices :: Connection -> ASReference -> EitherTExec [ASIndex]

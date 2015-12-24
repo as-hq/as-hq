@@ -22,9 +22,6 @@ data Update a b = Update { newVals :: [a], oldKeys :: [b] } deriving (Show, Read
 diffToUpdate :: (HasKey a, Eq (KeyType a)) => Diff a -> Update a (KeyType a)
 diffToUpdate (Diff after before) = Update after ((map key before) \\ (map key after))
 
--- Given the descriptorDiff, add a descriptor to the descriptorDiff. It it's already in beforeVals, remove it from that list and don't add it to 
--- afterVals. This maintains the invariant that the same rangeDescriptor is never in both the added and removed lists. 
-
 -- Assumes beforeVals is a subset of the thing you're taking a diff of. 
 addValue :: (Eq a) => Diff a -> a -> Diff a
 addValue diff d = if (inRemoved d) 
