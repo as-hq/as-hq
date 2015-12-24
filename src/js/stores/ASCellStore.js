@@ -262,11 +262,14 @@ const ASCellStore = Object.assign({}, BaseStore, {
   },
 
   setErrors(c: ASCell) {
-    let { cellValue: cv, cellLocation: cl } = c;
+    this.unsetErrors(c);
+
+    const { cellValue: cv, cellExpression: cxp, cellLocation: cl } = c;
     switch (cv.tag) {
       case 'ValueError':
         _data.allErrors.push({
           location: cl.index,
+          language: cxp.language,
           msg: cv.errorMsg
         });
         break;
@@ -277,7 +280,7 @@ const ASCellStore = Object.assign({}, BaseStore, {
 
   unsetErrors(c: ASCell) {
     _data.allErrors = _data.allErrors.filter(
-      ({ location }) => ! _.isEqual(c.cellLocation, location)
+      ({ location }) => ! _.isEqual(c.cellLocation.index, location)
     );
   },
 
@@ -289,7 +292,7 @@ const ASCellStore = Object.assign({}, BaseStore, {
     if (!_data.allCells[sheetId][col]) _data.allCells[sheetId][col] = [];
     _data.allCells[sheetId][col][row] = c;
 
-    this.setError(c);
+    this.setErrors(c);
   },
 
   // Replace cells with empty ones
@@ -309,7 +312,7 @@ const ASCellStore = Object.assign({}, BaseStore, {
 
     _data.lastUpdatedCells.push(emptyCell);
 
-    this.unsetError(emptyCell);
+    this.unsetErrors(emptyCell);
   },
 
   // Remove cells at a list of ASLocation's.

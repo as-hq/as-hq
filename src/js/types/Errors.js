@@ -1,7 +1,8 @@
 /* @flow */
 
 import type {
-  NakedIndex
+  NakedIndex,
+  ASLanguage
 } from './Eval';
 
 export type ASExecError = {
@@ -16,5 +17,6 @@ export type ASExcelExecError = {
 
 export type ASClientError = {
   location: NakedIndex;
+  language: ?ASLanguage;
   msg: string;
 };

@@ -26,6 +26,11 @@ let LocationUtils = {
             br: LocationUtils.getSafeIndex(rng.br)};
   },
 
+  indexIsInRange(idx: NakedIndex, rng: NakedRange): boolean {
+    const {row, col} = idx;
+    return LocationUtils._isContainedInLoc(col, row, rng);
+  },
+
   _isContainedInLoc(col: number, row: number, loc: NakedRange): boolean {
     let {tl, br} = loc;
     return (col >= tl.col && col <= br.col &&
