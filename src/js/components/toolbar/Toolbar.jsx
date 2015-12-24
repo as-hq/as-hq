@@ -36,19 +36,20 @@ export default React.createClass({
       // Because we're using inline-block, the height should all be the same for the elements on the toolbar, otherwise things
       // screw up because CSS. This is a reasonable restriction anyway, so I'm not debugging it further (Ritesh 12/17)
       toolbarStyle: {
-        backgroundColor: Styles.Colors.grey800, 
-        width: '100%', 
-        position: 'relative', 
+        backgroundColor: '#333333',
+        width: '100%',
+        position: 'relative',
         height: this.props.toolbarHeight // height of toolbar
       },
       // Used to create a separating element between parts of toolbar
       // There is a ToolbarSeparator in material-ui but it didn't quite fit the bill; a simple div we control is better
       separatorStyle: {
-        backgroundColor: Styles.Colors.grey900,
-        display: 'inline-block', 
+        display: 'inline-block',
         height: this.props.toolbarHeight,
         marginLeft: 10, // equal separation distance on both sides
         marginRight: 10,
+        backgroundColor: '#202020',
+        boxShadow: '0px 0px 1px 0px rgba(255, 255, 255, 0.35)',
         verticalAlign: 'top', // we want the separator to span the height of the whole pane
         width: 2
       }
@@ -67,7 +68,7 @@ export default React.createClass({
       <div style={toolbarStyle} >
 
         {shiftRight}
-       
+
         <ToolbarButton iconName="print" tooltip="Print (Ctrl+P)" usePushState={false}
           onClick={() => {}} />
         <ToolbarButton iconName="undo" tooltip="Undo (Ctrl+Z)" usePushState={false}
@@ -92,7 +93,7 @@ export default React.createClass({
         <ToolbarButton iconName="zoom_out" tooltip="Increase decimal places" usePushState={false}
           onClick={() => {}}/>
         <MoreFormatDropdown />
-        
+
         <div style={separatorStyle} />
         <LanguagePicker language={this.props.language} onSelectLanguage={this.props.onSelectLanguage}/>
         <div style={separatorStyle} />
@@ -114,7 +115,7 @@ export default React.createClass({
           tooltip="Strikethrough (Alt+Shift+5)"
           iconName="strikethrough_s" />
         <ColorPicker propTag="TextColor" iconName="text_format" tooltip="Text color" />
-        
+
         <div style={separatorStyle} />
 
         <ColorPicker propTag="FillColor" iconName="format_color_fill" tooltip="Fill color" />
