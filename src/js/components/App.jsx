@@ -4,6 +4,12 @@ import React, {PropTypes} from 'react';
 import ASTreeNav from './ASTreeNav.jsx';
 import ASEvaluationPane from './ASEvaluationPane.jsx';
 import ASTopBar from './ASTopBar.jsx';
+import ASErrorPane from './ASErrorPane.jsx';
+
+import U from '../AS/Util';
+const {
+  Conversion: TC
+} = U;
 
 import {AppCanvas, LeftNav, Paper, Styles} from 'material-ui';
 import API from '../actions/ASApiActionCreators';
@@ -34,8 +40,6 @@ export default React.createClass({
 
   getInitialState() {
     return {
-      activeDocumentTab: 'test',
-      activeRibbonTab: 'Home',
       currentPane: 'eval',
       /* object passed from splash pane specifying initial params: opened sheet, etc */
       initEvalInfo: {}
@@ -70,8 +74,11 @@ export default React.createClass({
       <div style={{width:"100%",height:"100%"}} >
         <ASTopBar toggleEvalHeader={this._toggleEvalHeader} />
         <div style={{width: '100%', height: '100%'}}>
-          <div style={{display: 'inline-block', width: '100%', height:'100%',verticalAlign:'top'}}>
+          <div style={{display: 'inline-block', width: '100%', height: '80%', verticalAlign:'top'}}>
             <ASEvaluationPane behavior="default" ref="evalPane" initInfo={this.state.initEvalInfo} height='100%'/>
+          </div>
+          <div style={{display: 'inline-block', width: '100%', height: '20%'}}>
+            <ASErrorPane onRequestSelect={this._handleRequestSelect}/>
           </div>
         </div>
       </div>
@@ -88,41 +95,9 @@ export default React.createClass({
     this.refs.evalPane.toggleEvalHeader();
   },
 
-  _onDocumentTabChange(tabKey) {
-    this.setState({ activeDocumentTab: tabKey });
-  },
-
-  _onRibbonTabChange(tabTitle) {
-    this.setState({ activeRibbonTab: tabTitle });
-  },
-
-  _onAlphaButtonTap() {
-    this.refs.leftNav.toggle();
-  },
-
-  _onPaneChange(pane, initInfo) {
-    switch(pane) {
-      case 'eval':
-        this.setState({ currentPane: pane, initEvalInfo: initInfo });
-        break;
-    }
-  },
-
-  _onDocumentOpen(sheet) {
-    //TODO add sheet name to tabs
-    this.refs.evalPane.openSheet(sheet);
-    // logDebug('App on document open', sheet.sheetId);
-  },
-
-  _onSheetCreate() {
-    //TODO
-    logDebug('Created sheet');
-    API.createSheet();
-  },
-
-  _onWorkbookCreate() {
-    //TODO
-    logDebug('Created workbook');
-    API.createWorkbook();
+  _handleRequestSelect(idx) {
+    let rng = TC.indexToRange(idx);
+    let sel = { origin: idx, range: rng };
+    this.refs.evalPane.getASSpreadsheet().select(sel);
   }
 });

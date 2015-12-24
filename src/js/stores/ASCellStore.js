@@ -1,6 +1,10 @@
 /* @flow */
 
 import type {
+  ASClientError
+} from '../types/Errors';
+
+import type {
   NakedIndex,
   NakedRange,
   ASIndex,
@@ -44,11 +48,13 @@ Private variable keeping track of a viewing window (cached) of cells. Stores:
 
 type CellStoreData = {
   allCells: ASCellGrid;
+  allErrors: Array<ASClientError>;
   lastUpdatedCells: Array<ASCell>;
 };
 
 let _data: CellStoreData = {
   allCells: {},
+  allErrors: [],
   lastUpdatedCells: []
 };
 
@@ -84,7 +90,7 @@ const ASCellStore = Object.assign({}, BaseStore, {
               cellsToRemove.push(cell);
             });
           });
-      }
+        }
 
         // remove possibly null cells
         cellsToRemove = cellsToRemove.filter((cell) => !!cell);
@@ -251,13 +257,42 @@ const ASCellStore = Object.assign({}, BaseStore, {
     this.removeCells(removedCells);
   },
 
+  getAllErrors(): Array<ASClientError> {
+    return _data.allErrors;
+  },
+
+  setErrors(c: ASCell) {
+    this.unsetErrors(c);
+
+    const { cellValue: cv, cellExpression: cxp, cellLocation: cl } = c;
+    switch (cv.tag) {
+      case 'ValueError':
+        _data.allErrors.push({
+          location: cl.index,
+          language: cxp.language,
+          msg: cv.errorMsg
+        });
+        break;
+      default:
+        return;
+    }
+  },
+
+  unsetErrors(c: ASCell) {
+    _data.allErrors = _data.allErrors.filter(
+      ({ location }) => ! _.isEqual(c.cellLocation.index, location)
+    );
+  },
+
   /* Set an ASCell */
-  setCell(c) {
+  setCell(c) { //error here
     let {col, row} = c.cellLocation.index,
         sheetId = c.cellLocation.sheetId;
     if (!_data.allCells[sheetId]) _data.allCells[sheetId] = [];
     if (!_data.allCells[sheetId][col]) _data.allCells[sheetId][col] = [];
     _data.allCells[sheetId][col][row] = c;
+
+    this.setErrors(c);
   },
 
   // Replace cells with empty ones
@@ -268,7 +303,7 @@ const ASCellStore = Object.assign({}, BaseStore, {
   },
 
   // Remove a cell at an ASIndex
-  removeIndex(loc: ASIndex) {
+  removeIndex(loc: ASIndex) { //error here
     let sheetId = loc.sheetId,
         emptyCell = U.Conversion.makeEmptyCell(loc);
     if (this.locationExists(loc.index.col, loc.index.row, sheetId)) {
@@ -276,6 +311,8 @@ const ASCellStore = Object.assign({}, BaseStore, {
     }
 
     _data.lastUpdatedCells.push(emptyCell);
+
+    this.unsetErrors(emptyCell);
   },
 
   // Remove cells at a list of ASLocation's.
