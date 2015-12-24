@@ -1730,11 +1730,11 @@ instance ShowE EValue where
 eAmpersand :: EFunc
 eAmpersand c e = do
   let f = "&"
-  val1 <- getRequired f 1 (trace' "Value of E is " e) :: ThrowsError EValue
+  val1 <- getRequired f 1 e :: ThrowsError EValue
   val2 <- getRequired f 2 e :: ThrowsError EValue
   let makeString :: (EValue, Int) -> ThrowsError String
       makeString (x,i) = case x of
-                 EValueE s -> Left $ ArgType f (trace' "HOO HOO HA HA" i) "non-error value" "err"
+                 EValueE s -> Left $ ArgType f i "non-error value" "err"
                  otherwise -> Right $ showE x
   [str1, str2] <- mapM makeString (zip [val1, val2] [1,2])
   stringResult $ str1 ++ str2
