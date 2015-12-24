@@ -114,10 +114,9 @@ export default React.createClass({
     CellStore.addChangeListener(this._onCellsChange);
     SheetStateStore.addChangeListener(this._onSheetStateChange);
     FindStore.addChangeListener(this._onFindChange);
-    ToolbarStore.addChangeListener(this._onToggleLanguage)
-    // ReplStore.addChangeListener(this._onReplChange);
     EvalHeaderStore.addChangeListener(this._onEvalHeaderUpdate);
     ExpStore.addChangeListener(this._onExpChange);
+    // ReplStore.addChangeListener(this._onReplChange);
     Shortcuts.addShortcuts(this);
 
     BrowserTests.install(window, this);
@@ -131,9 +130,8 @@ export default React.createClass({
     API.close();
     CellStore.removeChangeListener(this._onCellsChange);
     SheetStateStore.addChangeListener(this._onSheetStateChange);
-    FindStore.removeChangeListener(this._onFindChange);
-    ToolbarStore.addChangeListener(this._onToggleLanguage)
     // ReplStore.removeChangeListener(this._onReplChange);
+    FindStore.removeChangeListener(this._onFindChange);
     ExpStore.removeChangeListener(this._onExpChange);
   },
 
@@ -177,14 +175,6 @@ export default React.createClass({
 
   /***************************************************************************************************************************/
   // Some basic on change handlers
-
-  // This is called when the toolbar store updates. If the update was due to a language toggle (shortcut or dropdown)
-  // then set focus correctly
-  _onToggleLanguage() {
-    if (ToolbarStore.getOrigin() === Constants.ActionTypes.LANGUAGE_TOGGLED){
-      this.setFocus(SheetStateStore.getFocus());
-    }
-  },
 
   _onSetVarName(name: string) {
     logDebug('var name set to', name);
@@ -239,6 +229,10 @@ export default React.createClass({
   _onExpChange() {
     if (ExpStore.getLastRef() === null) {
       ExpStore.disableRefInsertionBypass();
+    }
+    // If the language was toggled (shortcut or dropdown) then set focus correctly
+    if (ExpStore.getXpChangeOrigin() === Constants.ActionTypes.LANGUAGE_TOGGLED){
+      this.setFocus(SheetStateStore.getFocus());
     }
   },
 
@@ -769,7 +763,6 @@ export default React.createClass({
           ref='editorPane'
           handleEditorFocus={this._handleEditorFocus}
           maxLines={this._getCodeEditorMaxLines()}
-          language={currentLanguage}
           onSetVarName={this._onSetVarName}
           onDeferredKey={this._onEditorDeferredKey}
           value={expression}
@@ -778,7 +771,6 @@ export default React.createClass({
           width="100%" height={this.getEditorHeight()} />
         <ASSpreadsheet
           ref='spreadsheet'
-          language={currentLanguage}
           setFocus={this.setFocus}
           highlightFind={highlightFind}
           onNavKeyDown={this._onGridNavKeyDown}

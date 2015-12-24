@@ -1,9 +1,10 @@
-import {logDebug} from '../AS/Logger';
-
 import React from 'react';
-import Constants from '../Constants';
+let TextareaAutosize = require('react-autosize-textarea');
+let ace = require('brace');
 
+import Constants from '../Constants';
 import U from '../AS/Util';
+import {logDebug} from '../AS/Logger';
 
 import CellStore from '../stores/ASCellStore';
 import SheetStateStore from '../stores/ASSheetStateStore';
@@ -11,14 +12,10 @@ import SelectionStore from '../stores/ASSelectionStore';
 import ExpStore from '../stores/ASExpStore';
 import ExpActionCreator from '../actions/ASExpActionCreators.js';
 
-let TextareaAutosize = require('react-autosize-textarea');
-
-var ace = require('brace');
-
 export default React.createClass({
 
   /**************************************************************************************************************************/
-  // React  methods
+  // React methods
 
   propTypes: {
     onDeferredKey: React.PropTypes.func.isRequired,
@@ -28,6 +25,7 @@ export default React.createClass({
   getInitialState() {
     return {
       isVisible: false,
+      language: Constants.Languages.Excel,
       renderTrigger: false // WTF we have to do this I feel so dirty
     };
   },
@@ -39,16 +37,29 @@ export default React.createClass({
     this.editor.getSession().on('change', this._onChange);
     this.editor.container.addEventListener('keydown',this._onKeyDown,true);
     this.showCursor();
-    // TODO: add a lang prop or something
-    this.editor.getSession().setMode('ace/mode/' + this.props.mode);
     this.editor.setFontSize(12);
+    this._updateMode(this.state.language);
     this.editor.setOption('maxLines', Infinity);
     this.editor.renderer.setShowGutter(false); // no line numbers
     this.editor.getSession().setUseWrapMode(true); // no word wrap
   },
 
   componentWillReceiveProps(nextProps) {
-    this.editor.getSession().setMode('ace/mode/' + nextProps.mode);
+
+  },
+
+  // When the component is about to update (after the initial render), update the mode of the editor as well
+  // This has the effect of enabling autocomplete/syntax highlighting for that language, among other things
+  componentWillUpdate(nextProps, nextState) {
+    if (nextState.language !== this.state.language) {
+      this._updateMode(nextState.language);
+    }
+  },
+
+  _updateMode(lang) {
+    if (this.editor) {
+      this.editor.getSession().setMode('ace/mode/' + Constants.AceMode[lang]);
+    }
   },
 
   /**************************************************************************************************************************/
@@ -61,8 +72,8 @@ export default React.createClass({
     if (!this.state.isVisible) { //will be visible after update, put cursor in textbox
       this.showCursor();
     }
-
     this.setState({isVisible: true});
+    this.updateLanguage();
     this.editor.setValue(xpStr);
     if (cursorPos != null) {
       this.editor.moveCursorTo(0, cursorPos);
@@ -71,7 +82,15 @@ export default React.createClass({
   },
 
   hideTextBox() {
-    this.setState({isVisible:false});
+    this.setState({isVisible: false});
+  },
+
+  // Make sure that the language and consequently the mode of the textbox is in sync with the ExpStore
+  updateLanguage() {
+    let lang = ExpStore.getLanguage();
+    if (this.state.language !== lang) {
+      this.setState({language: lang});
+    }
   },
 
   showCursor() {
@@ -103,21 +122,17 @@ export default React.createClass({
 
   insertRef(newRef) {
     let lastRef = ExpStore.getLastRef();
-    logDebug("Inserting ref in textbox " + newRef);
-    logDebug("Expression before insertion: " + this.editor.getValue());
     ExpStore.setDoTextBoxCallback(false);
     if (lastRef !== null) {
       U.Parsing.deleteLastRef(this.editor,lastRef);
     }
     this.editor.getSession().insert(this.editor.getCursorPosition(),newRef);
-    logDebug("New textbox xp: " + this.editor.getValue());
   },
 
   /**************************************************************************************************************************/
   // Respond to events from ace
 
   _onKeyDown(e) {
-    logDebug("\n\nTEXTBOX KEYDOWN");
     if (U.Shortcut.textboxShouldDeferKey(e)) {
       // console.log("TEXTBOX DEFERRING KEY");
       U.Key.killEvent(e);
@@ -126,7 +141,6 @@ export default React.createClass({
         // onChange will call an action creator
         // you want an onchange to fire here
       ExpStore.setDoTextBoxCallback(true);
-      logDebug("textbox will fire action creator", e);
     }
   },
 
@@ -135,7 +149,6 @@ export default React.createClass({
   _onChange(e) {
     if (ExpStore.getDoTextBoxCallback()) {
       let xpStr = this.editor.getValue();
-      logDebug("Textbox change new string: " + xpStr);
       ExpActionCreator.handleTextBoxChange(xpStr);
     }
     this.setState({renderTrigger: !this.state.renderTrigger});
@@ -143,7 +156,6 @@ export default React.createClass({
 
   _onFocus(e) {
     this.props.hideToast();
-    logDebug("FOCUS ON TEXTBOX");
     this.props.setFocus('textbox');
     ExpStore.setLastCursorPosition(Constants.CursorPosition.TEXTBOX);
     ExpStore.setLastRef(null);
@@ -155,24 +167,20 @@ export default React.createClass({
   // Render
 
   render() {
-      let baseStyle = {
-                     display:'block',
-                     position:'absolute',
-                     // height of each line in the editor, add 5 to give some leeway at top and bottom
-                     lineHeight: this.props.position() ? this.props.position().extent.y + 5 + "px" : "20px",
-                     top: this.props.position() ? this.props.position().origin.y : null,
-                     left: this.props.position() ? this.props.position().origin.x : null,
-                     zIndex: 5,
-                     width: this.getWidth(),
-                     // height is a function of lineHeight and maxLines, see ace virtual renderer
-                     border: "solid 2px black",
-                     visibility: this.state.isVisible ? 'visible' : 'hidden'
-                     };
-
-    return (
-      <div id={'textbox'}
-           style={baseStyle} />
-    );
+    let baseStyle = {
+      display:'block',
+      position:'absolute',
+      // height of each line in the editor, add 5 to give some leeway at top and bottom
+      lineHeight: this.props.position() ? this.props.position().extent.y + 5 + "px" : "20px",
+      top: this.props.position() ? this.props.position().origin.y : null,
+      left: this.props.position() ? this.props.position().origin.x : null,
+      zIndex: 5,
+      width: this.getWidth(),
+      // height is a function of lineHeight and maxLines, see ace virtual renderer
+      border: "solid 2px black",
+      visibility: this.state.isVisible ? 'visible' : 'hidden'
+    };
+    return (<div id={'textbox'} style={baseStyle} />);
   }
 
 });

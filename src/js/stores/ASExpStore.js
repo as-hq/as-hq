@@ -68,17 +68,17 @@ const ASExpStore = Object.assign({}, BaseStore, {
   dispatcherIndex: Dispatcher.register(function (action) {
     logDebug("Exp Store detected dispatcher payload");
     switch (action._type) {
-      case 'EDITOR_CHANGED':
-      case 'TEXTBOX_CHANGED':
+      case Constants.ActionTypes.EDITOR_CHANGED:
+      case Constants.ActionTypes.TEXTBOX_CHANGED:
         ASExpStore.updateStoreNormalTyping(action._type, action.xpStr);
         break;
-      case 'GRID_KEY_PRESSED':
+      case Constants.ActionTypes.GRID_KEY_PRESSED:
         ASExpStore.updateStoreNormalTyping(action._type, action.xpStr, action.cursorPos);
         break;
-      case 'NORMAL_SEL_CHANGED':
+      case Constants.ActionTypes.NORMAL_SEL_CHANGED:
         ASExpStore.updateStoreSelChange(action.xpStr);
         break;
-      case 'PARTIAL_REF_CHANGE_WITH_GRID':
+      case Constants.ActionTypes.PARTIAL_REF_CHANGE_WITH_GRID:
         let curXpStr = ASExpStore.getExpression(),
             lastRef = ASExpStore.getLastRef(),
             newXpStr = lastRef ?
@@ -86,27 +86,33 @@ const ASExpStore = Object.assign({}, BaseStore, {
               curXpStr + action.excelStr;
         ASExpStore.updatePartialRef(action._type, newXpStr, action.excelStr);
         break;
-      case 'PARTIAL_REF_CHANGE_WITH_EDITOR':
-      case 'PARTIAL_REF_CHANGE_WITH_TEXTBOX':
+      case Constants.ActionTypes.PARTIAL_REF_CHANGE_WITH_EDITOR:
+      case Constants.ActionTypes.PARTIAL_REF_CHANGE_WITH_TEXTBOX:
         ASExpStore.updatePartialRef(action._type,action.xpStr,action.excelStr);
         break;
-      case 'ESC_PRESSED':
-        logDebug("Exp store found ESC");
+      case Constants.ActionTypes.ESC_PRESSED:
         ASExpStore.setExpression("");
         ASExpStore.setUserIsTyping(false);
         ASExpStore.setXpChangeOrigin(action._type);
         ASExpStore.emitChange();
         break;
-      
       // Also need to update after some "Eval"-type events
-      case 'GOT_UNDO':
-      case 'GOT_REDO':
-      case 'GOT_UPDATED_CELLS':
+      case Constants.ActionTypes.GOT_UNDO:
+      case Constants.ActionTypes.GOT_REDO:
+      case Constants.ActionTypes.GOT_UPDATED_CELLS:
         Dispatcher.waitFor([CellStore.dispatcherIndex]);
         SelectionStore.withActiveSelection(({origin}) => {
           let cell = CellStore.getCell(origin);
           ASExpStore.updateOnBackendChange(cell);
         });
+        break;
+      // This action is called when the toolbar's language picker or a shortcut toggles a language. 
+      // In this case, we want the default language to reflect this user change, in addition to the current language.
+      case Constants.ActionTypes.LANGUAGE_TOGGLED:
+        ASExpStore.setLanguage(action.lang);
+        ASExpStore.setDefaultLanguage(action.lang);
+        ASExpStore.setXpChangeOrigin(action._type);
+        ASExpStore.emitChange();
         break;
       default:
         break;
@@ -243,11 +249,6 @@ const ASExpStore = Object.assign({}, BaseStore, {
 
   /**************************************************************************************************************************/
   // Update helpers
-
-  toggleLanguage(lang: ASLanguage) {
-    this.setLanguage(lang);
-    this.setDefaultLanguage(lang);
-  },
 
   // Checks if you're newly adding text to a cell with a % in it.
   shouldHandlePercentFormat() {

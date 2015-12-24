@@ -1,7 +1,6 @@
 import {logDebug} from '../AS/Logger';
 
 import React, {PropTypes} from 'react';
-import ASActionBar from './ASActionBar.jsx';
 import ASTreeNav from './ASTreeNav.jsx';
 import ASEvaluationPane from './ASEvaluationPane.jsx';
 import ASTopBar from './ASTopBar.jsx';
