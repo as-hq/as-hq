@@ -2167,14 +2167,13 @@ describe('backend', () => {
           ]);
         });
 
-        // known to fail. should work after eval refactor.
-        xit ('pointer to decoupled cells from cut return errors', (done) => {
+        it ('pointer to decoupled cells from cut gives error', (done) => {
           _do([
             python('A1', 'range(10)'),
             python('C1', '@A1'),
             cut('A1', 'B1'),
             decouple(),
-            shouldBeError('A5'),
+            shouldBeError('C1'),
             exec(done)
           ]);
         });
@@ -2761,6 +2760,21 @@ describe('backend', () => {
             ),
             shouldBeNothing('A1'),
             shouldBeNothing('A2'),
+            exec(done)
+          ]);
+        });
+
+        it ('should undo and redo a conditional format', (done) => {
+          _do([
+            python('A1', 'range(10)'),
+            updateCondFormattingRule(
+              makeCustomCondFormattingFontRuleExcel("A1:A10", "Italic", "=A1<6")
+            ),
+            shouldHaveProp('A6', 'Italic'),
+            undo(),
+            shouldNotHaveProp('A6', 'Italic'),
+            redo(),
+            shouldHaveProp('A6', 'Italic'),
             exec(done)
           ]);
         });
