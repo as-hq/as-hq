@@ -91,6 +91,7 @@ library
                      , aeson
                      , monad-control
                      , parsec
+                     , lens
                      , split
                      , strict
                      , directory

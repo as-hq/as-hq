@@ -27,12 +27,11 @@ type CellMap = M.Map ASIndex ASCell
 
 -- This should be thought of as a mini spreadsheet used by eval as a cache (which can be updated)
 data EvalContext = EvalContext { virtualCellsMap :: CellMap
-                               , updateAfterEval :: SheetUpdate
-                               , descriptorDiff :: DescriptorDiff }
+                               , updateAfterEval :: SheetUpdate }
                                deriving (Show, Read, Eq)
 
 emptyContext :: EvalContext
-emptyContext = EvalContext M.empty (SheetUpdate emptyUpdate emptyUpdate emptyUpdate emptyUpdate) emptyDiff
+emptyContext = EvalContext M.empty (SheetUpdate emptyUpdate emptyUpdate emptyUpdate emptyUpdate)
 
 data DescendantsSetting = ProperDescendants | DescendantsWithParent deriving (Show, Read, Eq)
 data AncestrySetting = SetAncestry | DontSetAncestry deriving (Show, Read, Eq)

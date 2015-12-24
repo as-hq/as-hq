@@ -92,14 +92,14 @@ runDispatchCycle state cs descSetting src ctf = do
   errOrCommit <- runEitherT $ do
     printWithTimeT $ "about to start dispatch"
     let initialEvalMap = M.fromList $ zip (map cellLocation cs) cs
-        initialContext = EvalContext initialEvalMap (sheetUpdateFromCommit $ emptyCommitWithTime time) emptyDiff
+        initialContext = EvalContext initialEvalMap (sheetUpdateFromCommit $ emptyCommitWithTime time)
     -- you must insert the roots into the initial context, because getCells.ToEval will give you cells to evaluate that
     -- are only in the context or in the DB (in that order of prececdence). IF neither, you won't get anything. 
     -- this maintains the invariant that context always contains the most up-to-date, complete information. 
     ctxAfterDispatch <- dispatch conn roots initialContext descSetting
     printWithTimeT "finished dispatch"
     finalCells <- EE.evalEndware state src ctxAfterDispatch
-    let ctx = ctxAfterDispatch { updateAfterEval = (updateAfterEval ctx) { cellUpdates = Update finalCells [] } } -- #lens
+    let ctx = ctxAfterDispatch { updateAfterEval = (updateAfterEval ctxAfterDispatch) { cellUpdates = Update finalCells [] } } -- #lens
     DT.updateDBWithContext conn src ctx ctf
   either (const $ G.recompute conn) (const $ return ()) errOrCommit 
   return errOrCommit
@@ -225,27 +225,29 @@ evalChain' conn (c@(Cell loc xp val ps):cs) ctx = do
   ----------------------------------------------------------------------------------------------------------------------------------------------
   -- Context modification
 
+-- ::ALEX:: #needsrefactor
 -- Helper function that removes a maybe descriptor from a context and returns the updated context. 
 removeMaybeDescriptorFromContext :: Maybe RangeDescriptor -> PureEvalTransform
-removeMaybeDescriptorFromContext descriptor ctx = ctx { descriptorDiff = ddiff' }
+removeMaybeDescriptorFromContext descriptor ctx = ctx { updateAfterEval = (updateAfterEval ctx) { descriptorUpdates = ddiff' } }
   where 
-    ddiff = descriptorDiff ctx
+    ddiff = descriptorUpdates $ updateAfterEval ctx
     ddiff' = case descriptor of
       Nothing -> ddiff
-      Just d -> removeValue ddiff d
+      Just d -> removeKey ddiff (key d)
 
+-- ::ALEX:: #needsrefactor
 -- Helper function that removes multiple descriptors from the ddiff of the context. 
 removeMultipleDescriptorsFromContext :: [RangeDescriptor] -> PureEvalTransform
-removeMultipleDescriptorsFromContext descriptors ctx = ctx { descriptorDiff = ddiffWithbeforeVals }
+removeMultipleDescriptorsFromContext descriptors ctx = ctx { updateAfterEval = (updateAfterEval ctx) { descriptorUpdates = ddiffWithbeforeVals } }
   where
-    ddiff = descriptorDiff ctx
-    ddiffWithbeforeVals = L.foldl' removeValue ddiff descriptors
+    ddiff = descriptorUpdates $ updateAfterEval ctx
+    ddiffWithbeforeVals = L.foldl' removeKey ddiff (map key descriptors)
 
 -- Helper function  that adds a descriptor to the ddiff of a context
 addValueToContext :: RangeDescriptor -> PureEvalTransform
-addValueToContext descriptor ctx = ctx { descriptorDiff = ddiff' }
+addValueToContext descriptor ctx = ctx { updateAfterEval = (updateAfterEval ctx) { descriptorUpdates = ddiff' } }
   where
-    ddiff  =  descriptorDiff ctx
+    ddiff  = descriptorUpdates $ updateAfterEval ctx
     ddiff' = addValue ddiff descriptor
 
 -- Helper function that adds cells to a context, by merging them to addedCells and the map (with priority).

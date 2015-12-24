@@ -23,17 +23,17 @@ diffToUpdate :: (HasKey a, Eq (KeyType a)) => Diff a -> Update a (KeyType a)
 diffToUpdate (Diff after before) = Update after ((map key before) \\ (map key after))
 
 -- Assumes beforeVals is a subset of the thing you're taking a diff of. 
-addValue :: (Eq a) => Diff a -> a -> Diff a
-addValue diff d = if (inRemoved d) 
-  then diff { beforeVals = L.delete d (beforeVals diff) }
-  else diff { afterVals = d:(afterVals diff) } 
-    where inRemoved x = x `L.elem` (beforeVals diff)
+addValue :: (HasKey a, Eq (KeyType a)) => Update a (KeyType a) -> a -> Update a (KeyType a)
+addValue update d = if (inRemoved $ key d) 
+  then update { oldKeys = L.delete (key d) (oldKeys update) }
+  else update { newVals = d:(newVals update) } 
+    where inRemoved x = x `L.elem` (oldKeys update)
 
-removeValue :: (Eq a) => Diff a -> a -> Diff a
-removeValue diff d = if (inAdded d)
-  then diff { afterVals = L.delete d (afterVals diff) } 
-  else diff { beforeVals = d:(beforeVals diff) } 
-    where inAdded x = x `L.elem` (afterVals diff)
+removeKey :: (HasKey a, Eq (KeyType a)) => Update a (KeyType a) -> (KeyType a) -> Update a (KeyType a)
+removeKey update d = if (inAdded d)
+    then update { newVals = L.filter ((/=) d . key) (newVals update) } 
+  else update { oldKeys = d:(oldKeys update) } 
+    where inAdded x = x `L.elem` (map key $ newVals update)
 
 emptyDiff :: Diff a
 emptyDiff = Diff [] []
