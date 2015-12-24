@@ -338,14 +338,13 @@ setSheet conn sheet = do
 clearSheet :: Connection -> ASSheetId -> IO ()
 clearSheet conn sid = 
   let sheetRangesKey = toRedisFormat $ SheetRangesKey sid
-      cfRulesKey = toRedisFormat $ CFRulesKey sid
       evalHeaderKeys = map (toRedisFormat . (EvalHeaderKey sid)) Settings.headerLangs
       rangeKeys = map (toRedisFormat . RedisRangeKey) <$> DI.getRangeKeysInSheet conn sid
-      pluralKeyTypes = [PushCommitType, PopCommitType, TempCommitType, LastMessageType]
+      pluralKeyTypes = [BarType2, PushCommitType, PopCommitType, TempCommitType, LastMessageType, CFRuleType]
       pluralKeys = (evalHeaderKeys ++) . concat <$> mapM (DI.getKeysInSheetByType conn sid) pluralKeyTypes
   in runRedis conn $ do
     pluralKeys <- liftIO pluralKeys
-    del $ sheetRangesKey : cfRulesKey : pluralKeys
+    del $ sheetRangesKey : pluralKeys
     liftIO $ deleteLocsInSheet conn sid
 
 ----------------------------------------------------------------------------------------------------------------------
@@ -415,23 +414,31 @@ getLastMessage conn src = runRedis conn $ do
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Conditional formatting handlers
 
-getCondFormattingRules :: Connection -> ASSheetId -> IO [CondFormatRule] 
-getCondFormattingRules conn sid = runRedis conn $ do 
-  Right msg <- get . toRedisFormat $ CFRulesKey sid
-  case (decodeMaybe =<< msg) of 
-    Just rules -> return rules
-    Nothing -> return []
+getCondFormattingRules :: Connection -> ASSheetId -> [CondFormatRuleId] -> IO [CondFormatRule] 
+getCondFormattingRules conn sid cfids = runRedis conn $ do 
+  Right msgs <- mget $ map (toRedisFormat . CFRuleKey sid) cfids
+  return $ mapMaybe decodeMaybe $ catMaybes msgs 
+
+-- some replication with the above...
+getCondFormattingRulesInSheet :: Connection -> ASSheetId -> IO [CondFormatRule]
+getCondFormattingRulesInSheet conn sid = do 
+  keys <- DI.getKeysInSheetByType conn sid CFRuleType
+  Right msgs <- runRedis conn $ mget keys
+  return $ mapMaybe decodeMaybe $ catMaybes msgs 
 
 setCondFormattingRules :: Connection -> ASSheetId -> [CondFormatRule] -> IO ()
 setCondFormattingRules conn sid rules = runRedis conn $ do
-  set (toRedisFormat $ CFRulesKey sid) (S.encode rules)
+  let cfids        = map condFormatRuleId rules 
+      makeKey      = toRedisFormat . CFRuleKey sid
+      keys         = map makeKey cfids
+      encodedRules = map S.encode rules 
+  mset $ zip keys encodedRules
   return ()
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Row/col getters/setters
 
--- TODO: eventually should extend to record generic row/col formats, like default font in the column, 
--- rather than just its width. 
+-- #needsrefactor why are we storing the props and not the index too? (conceptually simpler otherwise)
 getBarProps :: Connection -> BarIndex -> IO (Maybe ASBarProps)
 getBarProps conn bInd  = runRedis conn $ do 
   Right msg <- get . toRedisFormat $ BarKey bInd
@@ -457,15 +464,9 @@ getBarsInSheet conn sid = do
   let readKey k = read2 (BC.unpack k) :: RedisKey BarType2
       extractInd :: RedisKey BarType2 -> BarIndex
       extractInd (BarKey ind) = ind
-  mColKeys <- fromRight <$> runRedis conn (keys $ BC.pack $ barPropsKeyPattern sid ColumnType)
-  mRowKeys <- fromRight <$> runRedis conn (keys $ BC.pack $ barPropsKeyPattern sid RowType)
-  let colInds = map (extractInd . readKey) mColKeys
-      rowInds = map (extractInd . readKey) mRowKeys
-  colProps <- mapM (getBarProps conn) colInds
-  rowProps <- mapM (getBarProps conn) rowInds
-  let cols = map (\(colInd, Just props) -> Bar colInd props) $ filter (isJust . snd) $ zip colInds colProps
-      rows = map (\(rowInd, Just props) -> Bar rowInd props) $ filter (isJust . snd) $ zip rowInds rowProps
-  return $ union cols rows
+  inds <- map (extractInd . readKey) <$> DI.getKeysInSheetByType conn sid BarType2
+  props <- mapM (getBarProps conn) inds
+  return $ map (\(ind, Just props) -> Bar ind props) $ filter (isJust . snd) $ zip inds props
 
 deleteBarsInSheet :: Connection -> ASSheetId -> IO ()
 deleteBarsInSheet conn sid = do

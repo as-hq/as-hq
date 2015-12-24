@@ -16,7 +16,10 @@ import Data.Aeson.Types
 import Data.Serialize (Serialize)
 import qualified Data.Text as T
 
-data CondFormatRule = CondFormatRule { cellLocs :: [ASRange],
+type CondFormatRuleId = T.Text
+
+data CondFormatRule = CondFormatRule { condFormatRuleId :: CondFormatRuleId,
+                                       cellLocs :: [ASRange], 
                                        condition :: CondFormatCondition,
                                        condFormat :: CellProp } deriving (Show, Read, Generic, Eq)
 

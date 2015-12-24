@@ -75,7 +75,7 @@ handleOpen uc state (PayloadS (Sheet sid _ _)) = do
   let langs = [Python, R] -- should probably make list of langs a const somewhere...
   headers         <- mapM (getEvalHeader conn sid) langs
   -- get conditional formatting data to send back to user user
-  condFormatRules <- DB.getCondFormattingRules conn sid
+  condFormatRules <- DB.getCondFormattingRulesInSheet conn sid
   let xps = map (\(str, lang) -> Expression str lang) (zip headers langs)
   -- get column props
   bars <- DB.getBarsInSheet conn sid
@@ -205,7 +205,7 @@ handleSetCondFormatRules uc state (PayloadCondFormat rules) = do
   conn <- dbConn <$> readMVar state
   let src = userCommitSource uc
       sid = srcSheetId src
-  oldRules <- DB.getCondFormattingRules conn sid
+  oldRules <- DB.getCondFormattingRulesInSheet conn sid
   let symDiff = (union rules oldRules) \\ (intersect rules oldRules)
       locs = concatMap rangeToIndices $ concatMap cellLocs symDiff
   cells <- DB.getPossiblyBlankCells conn locs
