@@ -6,6 +6,7 @@ import AS.Types.Cell
 import AS.Types.Errors
 import AS.Types.Eval
 import AS.Types.DB
+import AS.Util
 import qualified AS.Dispatch.Expanding as DE
 
 import qualified AS.DB.API as DB
@@ -54,6 +55,12 @@ referenceToCompositeValue conn ctx (PointerRef p) = do
               fatCell = FatCell cells descriptor
           printObj "REF TO COMPOSITE DESCRIPTOR: " descriptor
           return $ DE.recomposeCompositeValue fatCell
+-- TODO: timchu, 12/23/15. Code duplication between colRange and range cases.
+referenceToCompositeValue conn ctx (ColRangeRef r) = return . Expanding . VList . M $ vals
+  where
+    indices = colRangeToIndicesRowMajor2D r
+    indToVal ind = cellValue $ (contextMap ctx) M.! ind
+    vals    = map (map indToVal) indices
 referenceToCompositeValue conn ctx (RangeRef r) = return . Expanding . VList . M $ vals
   where
     indices = rangeToIndicesRowMajor2D r
@@ -80,10 +87,10 @@ evalContextIndicesByCol (EvalContext _ addedCells _) sid column =
   let indicesInCtx = map cellLocation addedCells in
       filter (\ind -> (getCol ind == column)) indicesInCtx
 
--- Uses the evalcontext and column range to extract the indices used in a column range.
+-- Uses the evalcontext and column range to extract the range equivalent to the ColumnRange
 -- Note; this is agnostic as to whether the EvalContext contains blank cells.
-colRangeWithContextToIndices :: Connection -> EvalContext -> ASColRange -> IO [ASIndex]
-colRangeWithContextToIndices conn ctx (ColRange sid ((l, t), r)) = do
+colRangeWithContextToRange :: Connection -> EvalContext -> ASColRange -> IO ASRange
+colRangeWithContextToRange conn ctx c@(ColRange sid ((l, t), r)) = do
   let indicesByCol :: Col -> IO[ASIndex]
       indicesByCol column = do
         let ctxIndices = evalContextIndicesByCol ctx sid column
@@ -92,9 +99,17 @@ colRangeWithContextToIndices conn ctx (ColRange sid ((l, t), r)) = do
       maxRowInCol :: [ASIndex] -> Row
       maxRowInCol indices = maximum rowList where
         rowList = map (row.index) indices
+      s = id (trace' "ColRange expanded is : " c)
   listOfIndicesByColumn <- mapM indicesByCol [l..r] -- listOfIndicesByColumn :: [[ASIndex]]
-  let maxRowInCols = maximum (map maxRowInCol (listOfIndicesByColumn))
-  return $ rangeToIndices (Range sid ((l, t), (maxRowInCols, r)))
+  let maxRowInCols = maximum (map maxRowInCol ((trace' "List of indices from ColRange: " listOfIndicesByColumn)))
+  return $ Range sid ((l, t), (r, maxRowInCols))
+
+-- Uses the evalcontext and column range to extract the indices used in a column range.
+-- Note; this is agnostic as to whether the EvalContext contains blank cells.
+colRangeWithContextToIndicesRowMajor2D :: Connection -> EvalContext -> ASColRange -> IO [ASIndex]
+colRangeWithContextToIndicesRowMajor2D conn ctx c = do
+  underlyingRange <- colRangeWithContextToRange conn ctx c
+  return $ rangeToIndicesRowMajor2D underlyingRange
 
 
 refToIndices :: Connection -> ASReference -> EitherTExec [ASIndex]

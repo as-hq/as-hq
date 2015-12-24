@@ -188,25 +188,25 @@ rangeToIndices (Range sheet (ul, lr)) = [Index sheet (x,y) | y <- [starty..endy]
     endy = max (row ul) (row lr)
 
 rangeContainsIndex :: ASRange -> ASIndex -> Bool
-rangeContainsIndex (Range sid1 ((x1,y1),(x2,y2))) idx = and [ 
+rangeContainsIndex (Range sid1 ((x1,y1),(x2,y2))) idx = and [
   sid1 == sid2, x >= x1, x <= x2, y >= y1, y <= y2 ]
     where
-      (x,y,sid2) = case idx of 
+      (x,y,sid2) = case idx of
         Index sid2 (x,y) -> (x,y,sid2)
 
 rangeContainsRange :: ASRange -> ASRange -> Bool
-rangeContainsRange (Range sid1 ((x1, y1), (x2, y2))) (Range sid2 ((x1', y1'), (x2', y2'))) = and [ 
+rangeContainsRange (Range sid1 ((x1, y1), (x2, y2))) (Range sid2 ((x1', y1'), (x2', y2'))) = and [
   sid1 == sid2, x1 <= x1', x2 >= x2', y1 <= y1', y2 >= y2']
 
 -- Probably needs case for columns
 rangeContainsRef :: ASRange -> ASReference -> Bool
-rangeContainsRef r ref = case ref of 
+rangeContainsRef r ref = case ref of
   IndexRef i  -> rangeContainsIndex r i
   PointerRef p -> rangeContainsIndex r (pointerToIndex p)
   RangeRef r' -> rangeContainsRange r r'
   -- TODO: timchu, should never contain columns?
   ColRangeRef r' -> False
-  OutOfBounds -> False 
+  OutOfBounds -> False
 
 orientRange :: ASRange -> ASRange
 orientRange (Range sid (tl, br)) = Range sid (tl',br')
