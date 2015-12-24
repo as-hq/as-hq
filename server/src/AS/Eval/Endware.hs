@@ -20,11 +20,11 @@ import Database.Redis as R
 import Control.Concurrent
 
 
--- | Here, we apply a stack of endwares for producing tags post-eval e.g. streaming or conditional formatting
+-- | Here, we apply a stack of endwares for producing tags post-eval, from e.g. streaming or conditional formatting
 evalEndware :: MVar ServerState -> CommitSource -> EvalContext -> EitherTExec [ASCell]
 evalEndware state (CommitSource sid uid) ctx = do 
   conn <- lift $ dbConn <$> readMVar state
-  let cells0 = newVals . cellUpdates . updateAfterEval $ ctx
+  let cells0 = newCellsInContext ctx
       cells1 = changeExcelExpressions cells0
   mapM_ (lift . DM.possiblyCreateDaemon state uid) cells0
   rules <- lift $ DB.getCondFormattingRulesInSheet conn sid 

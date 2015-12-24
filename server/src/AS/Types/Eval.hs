@@ -42,6 +42,16 @@ data AncestrySetting = SetAncestry | DontSetAncestry deriving (Show, Read, Eq)
 --getListType :: ListKey -> String
 --getListType key = last parts
 --  where parts = splitBy keyPartDelimiter key
+
+newCellsInContext :: EvalContext -> [ASCell]
+newCellsInContext = newVals . cellUpdates . updateAfterEval
+
+newRangeDescriptorsInContext :: EvalContext -> [RangeDescriptor]
+newRangeDescriptorsInContext = newVals . descriptorUpdates . updateAfterEval
+
+oldRangeKeysInContext :: EvalContext -> [RangeKey]
+oldRangeKeysInContext = oldKeys . descriptorUpdates . updateAfterEval
+
 indexIsHead :: ASIndex -> RangeKey -> Bool
 indexIsHead idx (RangeKey idx' _) = idx == idx'
 

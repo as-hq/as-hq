@@ -228,7 +228,7 @@ evalChain' conn (c@(Cell loc xp val ps):cs) ctx = do
 -- ::ALEX:: #needsrefactor
 -- Helper function that removes a maybe descriptor from a context and returns the updated context. 
 removeMaybeDescriptorFromContext :: Maybe RangeDescriptor -> PureEvalTransform
-removeMaybeDescriptorFromContext descriptor ctx = ctx { updateAfterEval = (updateAfterEval ctx) { descriptorUpdates = ddiff' } }
+removeMaybeDescriptorFromContext descriptor ctx = ctx { updateAfterEval = (updateAfterEval ctx) { descriptorUpdates = ddiff' } } -- #lens
   where 
     ddiff = descriptorUpdates $ updateAfterEval ctx
     ddiff' = case descriptor of
@@ -238,14 +238,14 @@ removeMaybeDescriptorFromContext descriptor ctx = ctx { updateAfterEval = (updat
 -- ::ALEX:: #needsrefactor
 -- Helper function that removes multiple descriptors from the ddiff of the context. 
 removeMultipleDescriptorsFromContext :: [RangeDescriptor] -> PureEvalTransform
-removeMultipleDescriptorsFromContext descriptors ctx = ctx { updateAfterEval = (updateAfterEval ctx) { descriptorUpdates = ddiffWithbeforeVals } }
+removeMultipleDescriptorsFromContext descriptors ctx = ctx { updateAfterEval = (updateAfterEval ctx) { descriptorUpdates = ddiffWithbeforeVals } } -- #lens
   where
     ddiff = descriptorUpdates $ updateAfterEval ctx
     ddiffWithbeforeVals = L.foldl' removeKey ddiff (map key descriptors)
 
 -- Helper function  that adds a descriptor to the ddiff of a context
 addValueToContext :: RangeDescriptor -> PureEvalTransform
-addValueToContext descriptor ctx = ctx { updateAfterEval = (updateAfterEval ctx) { descriptorUpdates = ddiff' } }
+addValueToContext descriptor ctx = ctx { updateAfterEval = (updateAfterEval ctx) { descriptorUpdates = ddiff' } } -- #lens
   where
     ddiff  = descriptorUpdates $ updateAfterEval ctx
     ddiff' = addValue ddiff descriptor
@@ -254,7 +254,7 @@ addValueToContext descriptor ctx = ctx { updateAfterEval = (updateAfterEval ctx)
 addCellsToContext :: [ASCell] -> PureEvalTransform
 addCellsToContext cells ctx = ctx { virtualCellsMap = newMap, updateAfterEval = (updateAfterEval ctx) { cellUpdates = Update newAddedCells [] } } -- #lens
   where
-    newAddedCells = mergeCells cells (newVals . cellUpdates . updateAfterEval $ ctx)
+    newAddedCells = mergeCells cells (newCellsInContext ctx)
     newMap   = insertMultiple (virtualCellsMap ctx) (map cellLocation cells) cells
 
 
