@@ -6,6 +6,27 @@ export default {
     width: '100%'
   },
 
+  showAllContainer: {
+    display: 'block',
+    position: 'absolute',
+    right: 0,
+    height: '32px',
+    zIndex: 100000
+  },
+
+  showAllLabel: {
+    display: 'inline-block',
+    color: '#ffffff',
+    lineHeight: '32px',
+    paddingRight: '10px'
+  },
+
+  showAllCheckbox: {
+    display: 'inline-block',
+    marginLeft: '10px',
+    marginRight: '20px'
+  },
+
   table: {
 
   },

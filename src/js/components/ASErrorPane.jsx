@@ -1,7 +1,8 @@
 /* @flow */
 
 import type {
-  Callback
+  Callback,
+  Lens
 } from '../types/Base';
 
 import type {
@@ -69,11 +70,41 @@ export default class ASErrorPane
     SelectionStore.removeChangeListener(this._handleSelectionChange.bind(this));
   }
 
+  linkStateLens<T>(lens: Lens<ASErrorPaneState, T>): ReactLink<T> {
+    let self = this;
+    return ({
+      value: lens.get(self.state),
+      requestChange(newValue: T) {
+        lens.set(self.state, newValue);
+      }
+    });
+  }
+
+  linkState(str: $Keys<ASErrorPaneState>): ReactLink {
+    let self = this;
+
+    return this.linkStateLens({
+      get(state: ASErrorPaneState) { return state[str]; },
+      set(state: ASErrorPaneState, val: any) {
+        self.setState({ [str]: val });
+      }
+    });
+  }
+
   render(): React.Element {
     let errors = this._getCurrentErrorList();
 
     return (
       <Paper style={_Styles.root}>
+        <div style={_Styles.showAllContainer}>
+          <div style={_Styles.showAllLabel}>
+            Show only errors from current cell
+          </div>
+          <input
+            type="checkbox"
+            style={_Styles.showAllCheckbox}
+            checkedLink={this.linkState('onlyCurrentCell')} />
+        </div>
         <Table
           height="100%"
           fixedHeader={true}
