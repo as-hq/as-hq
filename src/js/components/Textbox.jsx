@@ -180,7 +180,9 @@ export default React.createClass({
       border: "solid 2px black",
       visibility: this.state.isVisible ? 'visible' : 'hidden'
     };
-    return (<div id={'textbox'} style={baseStyle} />);
+    return (
+      <div id={'textbox'} style={baseStyle} />
+    );
   }
 
 });
