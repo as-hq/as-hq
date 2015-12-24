@@ -53,8 +53,8 @@ filterBy f filt l = map snd $ filter (\(fe, _) -> filt fe) $ zip (map f l) l
 fromRight :: Either a b -> b
 fromRight (Right a) = a
 
-decodeMaybe :: (S.Serialize a) => B.ByteString -> Maybe a
-decodeMaybe b = either (const Nothing) Just (S.decode b)
+maybeDecode :: (S.Serialize a) => B.ByteString -> Maybe a
+maybeDecode b = either (const Nothing) Just (S.decode b)
 
 nub' :: (Eq a, Ord a) => [a] -> [a]
 nub' xs = map fst $ M.toList . M.fromList $ zip xs (repeat ())

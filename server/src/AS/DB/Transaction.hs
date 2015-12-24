@@ -30,7 +30,7 @@ import Control.Monad.Trans.Class
 import Control.Concurrent
 import Control.Applicative
 
-data CommitWithInfo = CommitWithInfo { baseCommit :: ASCommit, didDecouple :: Bool }
+data CommitWithInfo = CommitWithInfo { baseCommit :: ASCommit, didDecouple :: Bool } deriving (Show)
 
 ----------------------------------------------------------------------------------------------------------------------
 -- top-level functions
@@ -56,6 +56,8 @@ evalContextToCommit :: Connection -> EvalContext -> IO CommitWithInfo
 evalContextToCommit conn (EvalContext mp cells ddiff) = do
   mbcells <- DB.getCells conn (map cellLocation cells)
   time <- getASTime
+  printObj "mbcells" mbcells
+  printObj "cells" cells
   let cdiff   = Diff { beforeVals = (catMaybes mbcells), afterVals = cells }
       commit  = (emptyCommitWithTime time) { cellDiff = cdiff }
       rd      = beforeVals ddiff
@@ -103,7 +105,7 @@ undo conn src = do
       popKey = toRedisFormat . PopCommitKey $ src
   mCommit <- runRedis conn $ do
     Right commit <- rpoplpush pushKey popKey
-    return $ decodeMaybe =<< commit
+    return $ maybeDecode =<< commit
   maybe (return Nothing) (liftA2 (>>) (applyUpdateToDBPropagated conn . sheetUpdateFromCommit . flipCommit) (return . Just)) mCommit
 
 redo :: Connection -> CommitSource -> IO (Maybe ASCommit)
@@ -115,7 +117,7 @@ redo conn src = do
     case result of
       Just commit -> do
         rpush pushKey [commit]
-        return $ decodeMaybe commit
+        return $ maybeDecode commit
       _ -> return Nothing
   maybe (return Nothing) (liftA2 (>>) (applyUpdateToDBPropagated conn . sheetUpdateFromCommit) (return . Just)) mCommit
 
@@ -166,7 +168,7 @@ updateDBWithCommit conn src c = do
 getTempCommit :: Connection -> CommitSource -> IO (Maybe ASCommit)
 getTempCommit conn src = do 
   maybeBStr <- runRedis conn $ fromRight <$> get (toRedisFormat . TempCommitKey $ src)
-  return $ decodeMaybe =<< maybeBStr
+  return $ maybeDecode =<< maybeBStr
   
 setTempCommit :: Connection  -> CommitSource -> ASCommit -> IO ()
 setTempCommit conn src c = do 

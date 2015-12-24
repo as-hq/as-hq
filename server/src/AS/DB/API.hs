@@ -86,7 +86,7 @@ getCells :: Connection -> [ASIndex] -> IO [Maybe ASCell]
 getCells _ [] = return []
 getCells conn locs = runRedis conn $ do
   sCells <- map fromRight <$> mapM (get . S.encode) locs
-  return $ map (decodeMaybe =<<) sCells
+  return $ map (maybeDecode =<<) sCells
 
 setCells :: Connection -> [ASCell] -> IO ()
 setCells _ [] = return ()
@@ -118,7 +118,7 @@ deleteLocsInSheet :: Connection -> ASSheetId -> IO ()
 deleteLocsInSheet conn sid = runRedis conn $ do
   Right ks <- keys $ BC.pack $ "*" ++ (T.unpack sid) ++ "*"
   let locKeys = catMaybes $ map readLocKey ks
-      readLocKey k = case (decodeMaybe k) of 
+      readLocKey k = case (maybeDecode k) of 
         Just (Index _ _) -> Just k
         _ -> Nothing
   del locKeys
@@ -128,7 +128,7 @@ getCellsByKeyPattern :: Connection -> String -> IO [ASCell]
 getCellsByKeyPattern conn pattern = do
   ks <- DI.getKeysByPattern conn pattern
   let locs = catMaybes $ map readLoc ks
-      readLoc k = case (decodeMaybe k) of 
+      readLoc k = case (maybeDecode k) of 
         Just l@(Index _ _) -> Just l
         _ -> Nothing
   return locs
@@ -183,7 +183,7 @@ fatCellsInRange conn rng = do
 getRangeDescriptor :: Connection -> RangeKey -> IO (Maybe RangeDescriptor)
 getRangeDescriptor conn key = runRedis conn $ do 
   Right desc <- get . toRedisFormat $ RedisRangeKey key
-  return $ decodeMaybe =<< desc
+  return $ maybeDecode =<< desc
 
 getRangeDescriptorsInSheet :: Connection -> ASSheetId -> IO [RangeDescriptor]
 getRangeDescriptorsInSheet conn sid = do
@@ -352,7 +352,7 @@ clearSheet conn sid =
 
 getVolatileLocs :: Connection -> IO [ASIndex]
 getVolatileLocs conn = runRedis conn $ do
-  vl <- (map decodeMaybe) . fromRight <$> (smembers $ toRedisFormat VolatileLocsKey)
+  vl <- (map maybeDecode) . fromRight <$> (smembers $ toRedisFormat VolatileLocsKey)
   if any isNothing vl 
     then error "Error decoding volatile locs!!!"
     else return $ map fromJust vl
@@ -407,7 +407,7 @@ storeLastMessage conn msg src = case (clientAction msg) of
 getLastMessage :: Connection -> CommitSource -> IO ASClientMessage
 getLastMessage conn src = runRedis conn $ do 
   msg <- fromRight <$> get (toRedisFormat $ LastMessageKey src)
-  return $ case (decodeMaybe =<< msg) of 
+  return $ case (maybeDecode =<< msg) of 
     Just m@(ClientMessage _ _) -> m
     _ -> ClientMessage NoAction (PayloadN ())
 
@@ -415,16 +415,17 @@ getLastMessage conn src = runRedis conn $ do
 -- Conditional formatting handlers
 
 getCondFormattingRules :: Connection -> ASSheetId -> [CondFormatRuleId] -> IO [CondFormatRule] 
-getCondFormattingRules conn sid cfids = runRedis conn $ do 
-  Right msgs <- mget $ map (toRedisFormat . CFRuleKey sid) cfids
-  return $ mapMaybe decodeMaybe $ catMaybes msgs 
+getCondFormattingRules conn sid cfids = do 
+  let keys = map (toRedisFormat . CFRuleKey sid) cfids
+  eitherMsg <- runRedis conn $ mget keys
+  return $ either (const []) (mapMaybe maybeDecode . catMaybes) eitherMsg
 
 -- some replication with the above...
 getCondFormattingRulesInSheet :: Connection -> ASSheetId -> IO [CondFormatRule]
 getCondFormattingRulesInSheet conn sid = do 
   keys <- DI.getKeysInSheetByType conn sid CFRuleType
-  Right msgs <- runRedis conn $ mget keys
-  return $ mapMaybe decodeMaybe $ catMaybes msgs 
+  eitherMsg <- runRedis conn $ mget keys
+  return $ either (const []) (mapMaybe maybeDecode . catMaybes) eitherMsg
 
 deleteCondFormattingRules :: Connection -> ASSheetId -> [CondFormatRuleId] -> IO ()
 deleteCondFormattingRules conn sid cfids = (runRedis conn $ del $ map (toRedisFormat . CFRuleKey sid) cfids) >> return ()
@@ -432,7 +433,7 @@ deleteCondFormattingRules conn sid cfids = (runRedis conn $ del $ map (toRedisFo
 setCondFormattingRules :: Connection -> ASSheetId -> [CondFormatRule] -> IO ()
 setCondFormattingRules conn sid rules = runRedis conn $ do
   let cfids        = map condFormatRuleId rules 
-      makeKey      = toRedisFormat . CFRuleKey sid
+      makeKey      = toRedisFormat . CFRuleKey sid 
       keys         = map makeKey cfids
       encodedRules = map S.encode rules 
   mset $ zip keys encodedRules
@@ -442,10 +443,11 @@ setCondFormattingRules conn sid rules = runRedis conn $ do
 -- Row/col getters/setters
 
 -- #needsrefactor why are we storing the props and not the index too? (conceptually simpler otherwise)
+-- #needsrefactor should be consistent about whether our getters and setters take in a single key or lists of keys.
 getBarProps :: Connection -> BarIndex -> IO (Maybe ASBarProps)
 getBarProps conn bInd  = runRedis conn $ do 
   Right msg <- get . toRedisFormat $ BarKey bInd
-  return $ decodeMaybe =<< msg
+  return $ maybeDecode =<< msg
 
 setBar :: Connection -> Bar -> IO ()
 setBar conn (Bar bInd props) = do
