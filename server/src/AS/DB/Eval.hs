@@ -56,11 +56,11 @@ referenceToCompositeValue conn ctx (PointerRef p) = do
           printObj "REF TO COMPOSITE DESCRIPTOR: " descriptor
           return $ DE.recomposeCompositeValue fatCell
 -- TODO: timchu, 12/23/15. Code duplication between colRange and range cases.
-referenceToCompositeValue conn ctx (ColRangeRef r) = return . Expanding . VList . M $ vals
-  where
-    indices = colRangeToIndicesRowMajor2D r
-    indToVal ind = cellValue $ (contextMap ctx) M.! ind
-    vals    = map (map indToVal) indices
+referenceToCompositeValue conn ctx (ColRangeRef cr) = do
+  indices <- colRangeWithContextToIndicesRowMajor2D conn ctx cr
+  let indToVal ind = cellValue $ (contextMap ctx) M.! ind
+      vals    = map (map indToVal) indices
+  return . Expanding . VList . M $ vals
 referenceToCompositeValue conn ctx (RangeRef r) = return . Expanding . VList . M $ vals
   where
     indices = rangeToIndicesRowMajor2D r
@@ -106,11 +106,15 @@ colRangeWithContextToRange conn ctx c@(ColRange sid ((l, t), r)) = do
 
 -- Uses the evalcontext and column range to extract the indices used in a column range.
 -- Note; this is agnostic as to whether the EvalContext contains blank cells.
-colRangeWithContextToIndicesRowMajor2D :: Connection -> EvalContext -> ASColRange -> IO [ASIndex]
+colRangeWithContextToIndicesRowMajor2D :: Connection -> EvalContext -> ASColRange -> IO [[ASIndex]]
 colRangeWithContextToIndicesRowMajor2D conn ctx c = do
   underlyingRange <- colRangeWithContextToRange conn ctx c
   return $ rangeToIndicesRowMajor2D underlyingRange
 
+colRangeWithContextToIndices :: Connection -> EvalContext -> ASColRange -> IO [ASIndex]
+colRangeWithContextToIndices conn ctx c = do
+  underlyingRange <- colRangeWithContextToRange conn ctx c
+  return $ rangeToIndices underlyingRange
 
 refToIndices :: Connection -> ASReference -> EitherTExec [ASIndex]
 refToIndices conn (IndexRef i) = return [i]
