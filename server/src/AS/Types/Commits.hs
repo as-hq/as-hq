@@ -21,9 +21,10 @@ import Data.Serialize (Serialize)
 
 data ASTime = Time {day :: String, hour :: Int, minute :: Int, sec :: Int} deriving (Show, Read, Eq, Generic)
 
-data ASCommit = Commit { barDiff :: BarDiff
-                       , cellDiff :: CellDiff
+data ASCommit = Commit { cellDiff :: CellDiff
+                       , barDiff :: BarDiff
                        , rangeDescriptorDiff :: DescriptorDiff
+                       , condFormatRulesDiff :: CondFormatRuleDiff
                        , time :: ASTime }
                        deriving (Show, Read, Generic)
 
@@ -32,11 +33,12 @@ data CommitSource = CommitSource { srcSheetId :: ASSheetId, srcUserId :: ASUserI
 type CommitTransform = ASCommit -> ASCommit
 
 flipCommit :: ASCommit -> ASCommit
-flipCommit (Commit bd cd rdd time) = Commit bd' cd' rdd' time 
+flipCommit (Commit cd bd rdd cfrd time) = Commit cd' bd' rdd' cfrd' time 
   where 
-    bd'  = flipDiff bd
-    cd'  = flipDiff cd 
-    rdd' = flipDiff rdd 
+    cd'   = flipDiff cd 
+    bd'   = flipDiff bd
+    rdd'  = flipDiff rdd 
+    cfrd' = flipDiff cfrd 
 
 -- Represents a set of collections of a sheet. 
 data SheetUpdate = SheetUpdate { cellUpdates :: CellUpdate
@@ -47,12 +49,12 @@ data SheetUpdate = SheetUpdate { cellUpdates :: CellUpdate
                                deriving (Show, Read, Generic)
 
 sheetUpdateFromCommit :: ASCommit -> SheetUpdate
-sheetUpdateFromCommit (Commit bd cd rdd t0) = SheetUpdate cu bu rdu cfu
+sheetUpdateFromCommit (Commit cd bd rdd cfrd _) = SheetUpdate cu bu rdu cfru
   where 
-    bu  = diffToUpdate bd 
-    cu  = diffToUpdate cd 
-    rdu = diffToUpdate rdd
-    cfu = Update [] [] -- #incomplete conditional formatting updates have not been implemented yet 
+    cu   = diffToUpdate cd 
+    bu   = diffToUpdate bd 
+    rdu  = diffToUpdate rdd
+    cfru = diffToUpdate cfrd
 
 
 instance FromJSON ASTime
@@ -84,9 +86,14 @@ instance Serialize SheetUpdate
 getASTime :: IO ASTime
 getASTime = return $ Time "hi" 1 2 3
 
+emptyTime = Time "hi" 1 2 3
+
+emptyCommitWithTime :: ASTime -> ASCommit
+emptyCommitWithTime = Commit emptyDiff emptyDiff emptyDiff emptyDiff
+
 generateCommitFromCells :: [ASCell] -> IO ASCommit
 generateCommitFromCells cells = do 
   time <- getASTime
   let cdiff = Diff { beforeVals = [], afterVals = cells }
-  return $ Commit emptyDiff cdiff emptyDiff time
+  return $ Commit cdiff emptyDiff emptyDiff emptyDiff time
 

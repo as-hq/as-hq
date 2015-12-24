@@ -56,8 +56,7 @@ evalContextToCommit conn (EvalContext mp cells ddiff) = do
   mbcells <- DB.getCells conn (map cellLocation cells)
   time <- getASTime
   let cdiff   = Diff { beforeVals = (catMaybes mbcells), afterVals = cells }
-      bardiff = emptyDiff
-      commit  = Commit bardiff cdiff ddiff time
+      commit  = (emptyCommitWithTime time) { cellDiff = cdiff }
       rd      = beforeVals ddiff
       didDecouple = any isDecouplePair $ zip mbcells cells
       -- determines whether to send a decouple message.
@@ -108,7 +107,7 @@ undo conn src = do
     return $ decodeMaybe =<< commit
   case commit of
     Nothing -> return Nothing
-    Just c@(Commit bardiff cdiff ddiff t) -> do
+    Just c@(Commit cdiff bardiff ddiff cfrdiff t) -> do
       deleteLocsPropagated conn (map cellLocation $ afterVals cdiff) (afterVals ddiff)
       setCellsPropagated conn (beforeVals cdiff) (beforeVals ddiff)
       DB.replaceBars conn (afterVals bardiff) (beforeVals bardiff)
@@ -127,7 +126,7 @@ redo conn src = do
       _ -> return Nothing
   case commit of
     Nothing -> return Nothing
-    Just c@(Commit bardiff cdiff ddiff t) -> do
+    Just c@(Commit cdiff bardiff ddiff cfrdiff t) -> do -- ::ALEX:: implement cond format and split into applyUpdate
       deleteLocsPropagated conn (map cellLocation $ beforeVals cdiff) (beforeVals ddiff)
       setCellsPropagated conn (afterVals cdiff) (afterVals ddiff)
       DB.replaceBars conn (beforeVals bardiff) (afterVals bardiff)
@@ -149,8 +148,9 @@ pushCommitWithInfo conn src commit =
     else updateDBWithCommit conn src (baseCommit commit)
 
 -- Do the writes to the DB
+-- ::ALEX:: cond format stuff
 updateDBWithCommit :: Connection -> CommitSource -> ASCommit -> IO ()
-updateDBWithCommit conn src c@(Commit bardiff cdiff ddiff time) = do 
+updateDBWithCommit conn src c@(Commit cdiff bardiff ddiff cfrdiff time) = do 
   -- update the cells 
   let af = afterVals cdiff
   DB.setCells conn af

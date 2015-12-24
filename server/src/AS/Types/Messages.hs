@@ -60,7 +60,7 @@ data ASAction =
   | JumpSelect
   | MutateSheet
   | Drag
-  | SetCondFormatRules
+  | UpdateCondFormatRules
   | Decouple
   deriving (Show, Read, Eq, Generic)
 
@@ -98,7 +98,7 @@ data ASPayload =
   | PayloadText {text :: String}
   | PayloadMutate MutateType
   | PayloadDrag {initialRange :: ASRange, dragRange :: ASRange}
-  | PayloadCondFormat { condFormatRules :: [CondFormatRule] }
+  | PayloadCondFormatUpdate CondFormatRuleUpdate
   | PayloadSetBarProp BarIndex BarProp
   | PayloadCSV {csvIndex :: ASIndex, csvLang :: ASLanguage, csvFileName :: String}
   | PayloadSheetUpdate SheetUpdate
@@ -231,6 +231,6 @@ makeReplyMessageFromCells action cells = ServerMessage action Success $ PayloadS
 -- otherwise: send payload CondFormatResult.
 -- #needsrefactor will probably be obsolesced soon
 makeCondFormatMessage :: Either ASExecError [ASCell] -> [CondFormatRule] -> ASServerMessage
-makeCondFormatMessage (Left err) _ = makeErrorMessage err SetCondFormatRules
-makeCondFormatMessage (Right cells) rules = ServerMessage SetCondFormatRules Success payload
+makeCondFormatMessage (Left err) _ = makeErrorMessage err UpdateCondFormatRules
+makeCondFormatMessage (Right cells) rules = ServerMessage UpdateCondFormatRules Success payload
   where payload = PayloadSheetUpdate $ SheetUpdate (Update cells []) emptyUpdate emptyUpdate (Update rules [])

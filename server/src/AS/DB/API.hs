@@ -426,6 +426,9 @@ getCondFormattingRulesInSheet conn sid = do
   Right msgs <- runRedis conn $ mget keys
   return $ mapMaybe decodeMaybe $ catMaybes msgs 
 
+deleteCondFormattingRules :: Connection -> ASSheetId -> [CondFormatRuleId] -> IO ()
+deleteCondFormattingRules conn sid cfids = (runRedis conn $ del $ map (toRedisFormat . CFRuleKey sid) cfids) >> return ()
+
 setCondFormattingRules :: Connection -> ASSheetId -> [CondFormatRule] -> IO ()
 setCondFormattingRules conn sid rules = runRedis conn $ do
   let cfids        = map condFormatRuleId rules 

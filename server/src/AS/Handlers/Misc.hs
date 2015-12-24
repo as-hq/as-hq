@@ -200,19 +200,21 @@ handleBugReport uc (PayloadText report) = do
   logBugReport report (userCommitSource uc)
   WS.sendTextData (userConn uc) ("ACK" :: T.Text)
 
-handleSetCondFormatRules :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
-handleSetCondFormatRules uc state (PayloadCondFormat rules) = do
+handleUpdateCondFormatRules :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
+handleUpdateCondFormatRules uc state (PayloadCondFormatUpdate (Update newRules oldRuleIds)) = do
   conn <- dbConn <$> readMVar state
-  let src = userCommitSource uc
+  let src = userCommitSource uc 
       sid = srcSheetId src
-  oldRules <- DB.getCondFormattingRulesInSheet conn sid
-  let symDiff = (union rules oldRules) \\ (intersect rules oldRules)
-      locs = concatMap rangeToIndices $ concatMap cellLocs symDiff
-  cells <- DB.getPossiblyBlankCells conn locs
-  errOrCells <- runEitherT $ conditionallyFormatCells conn sid cells rules emptyContext
-  let onFormatSuccess cs = DB.setCondFormattingRules conn sid rules >> DB.setCells conn cs
-  either (const $ return ()) onFormatSuccess errOrCells
-  broadcastFiltered state uc $ makeCondFormatMessage errOrCells rules
+  oldRules <- DB.getCondFormattingRules conn sid oldRuleIds
+  allRules <- DB.getCondFormattingRulesInSheet conn sid 
+  let updatedLocs = concatMap rangeToIndices $ concatMap cellLocs $ union newRules oldRules
+  cells <- DB.getPossiblyBlankCells conn updatedLocs
+  errOrCells <- runEitherT $ conditionallyFormatCells conn sid cells allRules emptyContext
+  either (const $ return ()) (\cs -> do  
+    DB.setCondFormattingRules conn sid newRules
+    DB.deleteCondFormattingRules conn sid oldRuleIds
+    DB.setCells conn cs) errOrCells
+  broadcastFiltered state uc $ makeCondFormatMessage errOrCells newRules
 
 -- #needsrefactor Should eventually merge with handleSetProp. 
 handleSetBarProp :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
@@ -228,14 +230,14 @@ handleSetBarProp uc state (PayloadSetBarProp bInd prop) = do
   -- Commit barProps.
   time <- getASTime
   let bd     = Diff { beforeVals = [oldBar], afterVals = [newBar] }
-      commit = Commit bd emptyDiff emptyDiff time
+      commit = (emptyCommitWithTime time) { barDiff = bd }
   DT.updateDBWithCommit conn (userCommitSource uc) commit
   sendToOriginal uc $ ServerMessage SetBarProp Success (PayloadN ())
 
 -- #anand used for importing binary alphasheets files (making a separate REST server for alphasheets
-  -- import/export seems overkill given that it's a temporarily needed solution)
-  -- so we just send alphasheets files as binary data over websockets and immediately load
-  -- into the current sheet.
+-- import/export seems overkill given that it's a temporarily needed solution)
+-- so we just send alphasheets files as binary data over websockets and immediately load
+-- into the current sheet.
 handleImportBinary :: (Client c) => c -> MVar ServerState -> BL.ByteString -> IO ()
 handleImportBinary c state bin = do
   redisConn <- dbConn <$> readMVar state

@@ -26,7 +26,10 @@ import Data.Maybe
 import AS.Logging
 
 
--- The cells passed into conditionallyFormatCell should contain the most recent values for the cells.
+-- | Conditionally formats the cells based on the set of rules passed in -- all conditional formatting originally
+-- in the cells go away. 
+-- 
+-- Note: The cells passed into conditionallyFormatCell should contain the most recent values for the cells.
 -- In particular, if this was called through an eval, the values of ASCell should
 -- agree with the values in EvalContext. If not, they should be the most recent values in the DB.
 -- timchu, 12/17/15.

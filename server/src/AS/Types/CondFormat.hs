@@ -1,3 +1,4 @@
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE DeriveGeneric #-}
 
 --TODO: timchu, can clean up these imports.
@@ -224,7 +225,12 @@ class TwoExpressionCondition a where
     [val1, val2] <- mapM evalXp [getFstXp s, getSndXp s]
     return $ (symbolTableLookup2 s) val val1 val2
 
-type CondFormatRuleUpdate = Update CondFormatRule () -- #incomplete not yet implemented
+type CondFormatRuleDiff = Diff CondFormatRule
+type CondFormatRuleUpdate = Update CondFormatRule CondFormatRuleId
+
+instance HasKey CondFormatRule where
+  type KeyType CondFormatRule = CondFormatRuleId
+  key = condFormatRuleId
 
 instance ToJSON CondFormatRule
 instance FromJSON CondFormatRule
