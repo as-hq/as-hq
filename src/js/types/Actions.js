@@ -91,7 +91,8 @@ export type GotUpdatedWorkbooksAction = {
 
 export type GotUpdatedRulesAction = {
   _type: 'GOT_UPDATED_RULES';
-  rules: Array<CondFormatRule>;
+  newRules: Array<CondFormatRule>;
+  oldRuleIds: Array<string>;
 };
 
 export type ReplLeftAction = {

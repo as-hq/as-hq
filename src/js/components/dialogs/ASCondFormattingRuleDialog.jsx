@@ -66,6 +66,7 @@ type RuleDialogProps = {
 };
 
 type DialogCondFormatRule = {
+  id: string; 
   range: string;
   conditionType: ConditionMenuItem;
   expr1: string;
@@ -166,6 +167,7 @@ function convertStyleToClient(ruleStyle: ASCellProp): ({
 function convertToClient(rule: ?CondFormatRule): DialogCondFormatRule {
   if (rule === null || rule === undefined) { // Default
     return ({
+      id: "CFRID" + U.Render.getUniqueId(),
       range: '',
       conditionType: 'greater_than',
       expr1: '',
@@ -175,6 +177,7 @@ function convertToClient(rule: ?CondFormatRule): DialogCondFormatRule {
     });
   } else {
     return ({
+      id: rule.condFormatRuleId,
       range: TC.rangeToExcel(rule.cellLocs[0].range),
       ...convertConditionToClient(rule.condition),
       ...convertStyleToClient(rule.condFormat)
@@ -242,6 +245,7 @@ function convertConditionToServer(rule: DialogCondFormatRule): CondFormatConditi
 function convertToServer(rule: DialogCondFormatRule): CondFormatRule {
   return ({
     tag: 'CondFormatRule',
+    condFormatRuleId: rule.id, 
     condFormat: convertStyleToServer(rule),
     condition: convertConditionToServer(rule),
     cellLocs: [{

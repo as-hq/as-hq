@@ -170,7 +170,7 @@ var Constants = Object.assign({
     MutateSheet: "MutateSheet",
     Drag: "Drag",
     Decouple: "Decouple",
-    SetCondFormatRules: "SetCondFormatRules",
+    UpdateCondFormatRules: "UpdateCondFormatRules",
     SetBarProp: "SetBarProp",
     ImportCSV: "ImportCSV"
   },

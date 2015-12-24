@@ -14,6 +14,7 @@ import type {
   NakedIndex,
   ASIndex,
   ASRange,
+
   ASSelection,
   ASLanguage,
   ASExpression,
@@ -42,7 +43,8 @@ import type {
   ASAPICallbackPair,
   CondFormatRule,
   CondFormatCondition,
-  SheetUpdate
+  SheetUpdate,
+  CondFormatRuleUpdate
 } from '../types/Messages';
 
 import type {
@@ -153,7 +155,7 @@ wss.onmessage = (event: MessageEvent) => {
       break;
     case 'Undo':
     case 'Redo':
-    case 'SetCondFormatRules': 
+    case 'UpdateCondFormatRules': 
     case 'UpdateSheet':
     case 'Get':
     case 'UpdateWindow':
@@ -224,13 +226,11 @@ function dispatchSheetUpdate(sheetUpdate: SheetUpdate) {
     oldBarLocs: sheetUpdate.barUpdates.oldKeys
   });
 
-  // #incomplete very, very wrong right now. just a hack to make it work, mostly. 
-  if (sheetUpdate.condFormatRulesUpdates.newVals.length > 0) {
-    Dispatcher.dispatch({
-      _type: 'GOT_UPDATED_RULES',
-      rules: sheetUpdate.condFormatRulesUpdates.newVals
-    });
-  }
+  Dispatcher.dispatch({
+    _type: 'GOT_UPDATED_RULES',
+    newRules: sheetUpdate.condFormatRulesUpdates.newVals,
+    oldRuleIds: sheetUpdate.condFormatRulesUpdates.oldKeys,
+  });
 }
 
 wss.onopen = (evt) => {
@@ -647,10 +647,39 @@ export default {
     this.send(msg);
   },
 
-  setCondFormattingRules(condFormatRules: Array<CondFormatRule>) {
-    let msg = U.Conversion.makeClientMessageRaw(Constants.ServerActions.SetCondFormatRules, {
-      tag: "PayloadCondFormat",
-      condFormatRules: condFormatRules
+  updateCondFormattingRule(rule: CondFormatRule) {
+    let msg = U.Conversion.makeClientMessageRaw(Constants.ServerActions.UpdateCondFormatRules, {
+      tag: "PayloadCondFormatUpdate",
+      contents: { 
+        tag: 'Update', 
+        newVals: [rule], 
+        oldKeys: []
+      }
+    });
+    this.send(msg);
+  },
+
+  removeCondFormattingRule(ruleId: string) {
+    let msg = U.Conversion.makeClientMessageRaw(Constants.ServerActions.UpdateCondFormatRules, {
+      tag: "PayloadCondFormatUpdate",
+      contents: { 
+        tag: 'Update', 
+        newVals: [], 
+        oldKeys: [ruleId]
+      }
+    });
+    this.send(msg);
+  },
+
+  // maybe want to deprecate the below in favor of the above two? 
+  updateCondFormattingRules(newRules: Array<CondFormatRule>, oldRuleIds: Array<string>) {
+    let msg = U.Conversion.makeClientMessageRaw(Constants.ServerActions.UpdateCondFormatRules, {
+      tag: "PayloadCondFormatUpdate",
+      contents: { 
+        tag: 'Update', 
+        newVals: newRules, 
+        oldKeys: oldRuleIds
+      }
     });
     this.send(msg);
   },
