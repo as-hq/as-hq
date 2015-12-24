@@ -37,12 +37,6 @@ export default React.createClass({
     SheetStateStore.setCurrentSheetById(sheetId);
     SheetStateStore.setUserId(userId);
     API.initialize();
-
-    setInterval(() => {
-      this.setState({
-        memory: window.performance.memory
-      });
-    }, 5000);
   },
 
   getInitialState() {
