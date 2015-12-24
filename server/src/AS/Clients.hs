@@ -43,7 +43,7 @@ instance Client ASUserClient where
   handleClientMessage user state message = do 
     -- second arg is supposed to be sheet id; temporary hack is to always set userId = sheetId
     -- on frontend. 
-    unless (clientAction message == Acknowledge) $ do 
+    unless (clientAction message `elem` [Acknowledge, UpdateWindow, Open]) $ do 
       logClientMessage (show message) (userCommitSource user)
       putStrLn "=========================================================="
       printObj "Message" (show message)
