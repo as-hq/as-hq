@@ -236,6 +236,10 @@ instance ToJSON CondFormatRule
 instance FromJSON CondFormatRule
 instance Serialize CondFormatRule
 
+instance ToJSON CondFormatRuleDiff
+instance FromJSON CondFormatRuleDiff
+instance Serialize CondFormatRuleDiff
+
 instance ToJSON CondFormatCondition
 instance FromJSON CondFormatCondition
 instance Serialize CondFormatCondition

@@ -47,6 +47,7 @@ import qualified Network.WebSockets as WS
 
 import Control.Concurrent
 import Control.Exception
+import Control.Applicative
 import Control.Monad.Trans.Either
 
 handleAcknowledge :: ASUserClient -> IO ()
@@ -201,20 +202,21 @@ handleBugReport uc (PayloadText report) = do
   WS.sendTextData (userConn uc) ("ACK" :: T.Text)
 
 handleUpdateCondFormatRules :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
-handleUpdateCondFormatRules uc state (PayloadCondFormatUpdate (Update newRules oldRuleIds)) = do
+handleUpdateCondFormatRules uc state (PayloadCondFormatUpdate u@(Update updatedRules deleteRuleIds)) = do
   conn <- dbConn <$> readMVar state
   let src = userCommitSource uc 
       sid = srcSheetId src
-  oldRules <- DB.getCondFormattingRules conn sid oldRuleIds
-  allRules <- DB.getCondFormattingRulesInSheet conn sid 
-  let updatedLocs = concatMap rangeToIndices $ concatMap cellLocs $ union newRules oldRules
+  rulesToDelete <- DB.getCondFormattingRules conn sid deleteRuleIds
+  oldRules <- DB.getCondFormattingRulesInSheet conn sid
+  let allRules = unionBy (\x y -> condFormatRuleId x == condFormatRuleId y) updatedRules oldRules -- old rules updated by new ones
+      allRules' = filter (not . (flip elem) deleteRuleIds . condFormatRuleId) allRules             -- now with deleted rules removed
+      updatedLocs = concatMap rangeToIndices $ concatMap cellLocs $ union updatedRules rulesToDelete
   cells <- DB.getPossiblyBlankCells conn updatedLocs
-  errOrCells <- runEitherT $ conditionallyFormatCells conn sid cells allRules emptyContext
-  either (const $ return ()) (\cs -> do  
-    DB.setCondFormattingRules conn sid newRules
-    DB.deleteCondFormattingRules conn sid oldRuleIds
-    DB.setCells conn cs) errOrCells
-  broadcastFiltered state uc $ makeCondFormatMessage errOrCells newRules
+  errOrCells <- runEitherT $ conditionallyFormatCells conn sid cells allRules' emptyContext
+  time <- getASTime
+  let errOrCommit = fmap (\cs -> Commit (Diff cs cells) emptyDiff emptyDiff (Diff updatedRules rulesToDelete) time) errOrCells
+  either (const $ return ()) (DT.updateDBWithCommit conn src) errOrCommit
+  broadcastFiltered state uc $ makeReplyMessageFromErrOrCommit errOrCommit
 
 -- #needsrefactor Should eventually merge with handleSetProp. 
 handleSetBarProp :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()

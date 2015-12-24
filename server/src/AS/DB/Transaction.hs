@@ -106,15 +106,17 @@ undo :: Connection -> CommitSource -> IO (Maybe ASCommit)
 undo conn src = do
   let pushKey = toRedisFormat . PushCommitKey $ src
       popKey = toRedisFormat . PopCommitKey $ src
+      sid = srcSheetId src
   mCommit <- runRedis conn $ do
     Right commit <- rpoplpush pushKey popKey
     return $ maybeDecode =<< commit
-  maybe (return Nothing) (liftA2 (>>) (applyUpdateToDBPropagated conn . sheetUpdateFromCommit . flipCommit) (return . Just)) mCommit
+  maybe (return Nothing) (liftA2 (>>) (applyUpdateToDBPropagated conn sid . sheetUpdateFromCommit . flipCommit) (return . Just)) mCommit
 
 redo :: Connection -> CommitSource -> IO (Maybe ASCommit)
 redo conn src = do
   let pushKey = toRedisFormat . PushCommitKey $ src
       popKey = toRedisFormat . PopCommitKey $ src
+      sid = srcSheetId src
   mCommit <- runRedis conn $ do
     Right result <- lpop popKey
     case result of
@@ -122,27 +124,31 @@ redo conn src = do
         rpush pushKey [commit]
         return $ maybeDecode commit
       _ -> return Nothing
-  maybe (return Nothing) (liftA2 (>>) (applyUpdateToDBPropagated conn . sheetUpdateFromCommit) (return . Just)) mCommit
+  maybe (return Nothing) (liftA2 (>>) (applyUpdateToDBPropagated conn sid . sheetUpdateFromCommit) (return . Just)) mCommit
 
-applyUpdateToDB :: Connection -> SheetUpdate -> IO ()
+applyUpdateToDB :: Connection -> ASSheetId -> SheetUpdate -> IO ()
 applyUpdateToDB = applyUpdateToDBMaybePropagated False 
 
-applyUpdateToDBPropagated :: Connection -> SheetUpdate -> IO ()
+applyUpdateToDBPropagated :: Connection -> ASSheetId -> SheetUpdate -> IO ()
 applyUpdateToDBPropagated = applyUpdateToDBMaybePropagated True
 
 -- internal function 
-applyUpdateToDBMaybePropagated :: Bool -> Connection -> SheetUpdate -> IO ()
-applyUpdateToDBMaybePropagated shouldPropagate conn (SheetUpdate cu bu du cfru) = do 
-  let (setCells', deleteLocs') = if shouldPropagate then (setCellsPropagated, deleteLocsPropagated) else (setCells, deleteLocs)
+-- #needsrefactor sheet id is only used for conditional formatting rules, and should be a part of 
+-- conditional formatting rules. 
+applyUpdateToDBMaybePropagated :: Bool -> Connection -> ASSheetId -> SheetUpdate -> IO ()
+applyUpdateToDBMaybePropagated shouldPropagate conn sid (SheetUpdate cu bu du cfru) = do 
+  let fromIndexRef (IndexRef i) = i
+      (setCells', deleteLocs') = if shouldPropagate then (setCellsPropagated, deleteLocsPropagated) else (setCells, deleteLocs)
       (emptyCells, nonEmptyCells) = L.partition isEmptyCell $ newVals cu 
   setCells' conn nonEmptyCells
   -- don't save blank cells in the database; in fact, we should delete any that are there. 
-  deleteLocs' conn $ (map cellLocation emptyCells) -- ::ALEX:: $ oldKeys cu
+  deleteLocs' conn $ (map cellLocation emptyCells) ++ (map fromIndexRef $ oldKeys cu) -- ::ALEX:: should change the type of ASCell's key from ASReference to a new type
   mapM_ (deleteBarAt conn)      (oldKeys bu)
   mapM_ (setBar conn)           (newVals bu)
   mapM_ (deleteDescriptor conn) (oldKeys du)
   mapM_ (setDescriptor conn)    (newVals du)
-  -- ::ALEX:: condformatting shit
+  deleteCondFormattingRules conn sid $ oldKeys cfru
+  setCondFormattingRules conn sid $ newVals cfru
 
 pushCommit :: Connection -> CommitSource -> ASCommit -> IO ()
 pushCommit conn src c = runRedis conn $ do
@@ -160,10 +166,9 @@ pushCommitWithInfo conn src commit =
     else updateDBWithCommit conn src (baseCommit commit)
 
 -- Do the writes to the DB
--- ::ALEX:: cond format stuff
 updateDBWithCommit :: Connection -> CommitSource -> ASCommit -> IO ()
 updateDBWithCommit conn src c = do 
-  applyUpdateToDB conn (sheetUpdateFromCommit c)
+  applyUpdateToDB conn (srcSheetId src) (sheetUpdateFromCommit c)
   pushCommit conn src c
 
 -- Each commit source has a temp commit, used for decouple warnings

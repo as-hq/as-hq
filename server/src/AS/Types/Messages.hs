@@ -226,11 +226,3 @@ makeReplyMessageFromErrOrCommit = makeReplyMessageFromErrOrUpdate . (fmap sheetU
 -- | Pass in a list of cells and an action, and this function constructs the message for updating those cells. 
 makeReplyMessageFromCells :: ASAction -> [ASCell] -> ASServerMessage
 makeReplyMessageFromCells action cells = ServerMessage action Success $ PayloadSheetUpdate $ SheetUpdate (Update cells []) emptyUpdate emptyUpdate emptyUpdate
-
--- handle failure cases like makeReplyMessageFromCells
--- otherwise: send payload CondFormatResult.
--- #needsrefactor will probably be obsolesced soon
-makeCondFormatMessage :: Either ASExecError [ASCell] -> [CondFormatRule] -> ASServerMessage
-makeCondFormatMessage (Left err) _ = makeErrorMessage err UpdateCondFormatRules
-makeCondFormatMessage (Right cells) rules = ServerMessage UpdateCondFormatRules Success payload
-  where payload = PayloadSheetUpdate $ SheetUpdate (Update cells []) emptyUpdate emptyUpdate (Update rules [])
