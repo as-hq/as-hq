@@ -114,7 +114,7 @@ export default class ASCondFormattingDialog
     return () => {
       let rules = _.cloneDeep(CFStore.getRules());
       rules.splice(ruleIdx, 1);
-      API.setCondFormattingRules(rules);
+      API.updateCondFormattingRules(rules, []); //::ALEX::
     };
   }
 
@@ -141,13 +141,13 @@ export default class ASCondFormattingDialog
   _updateRule(ruleIdx: number, newRule: CondFormatRule) {
     let rules = _.cloneDeep(CFStore.getRules());
     rules[ruleIdx] = newRule;
-    API.setCondFormattingRules(rules);
+    API.updateCondFormattingRules(rules, []);
   }
 
   _createRule(newRule: CondFormatRule) {
     let rules = _.cloneDeep(CFStore.getRules());
     rules.push(newRule);
-    API.setCondFormattingRules(rules);
+    API.updateCondFormattingRules(rules, []);
   }
 
   _onRulesChange() {

@@ -41,7 +41,7 @@ describe('backend', () => {
     setFormat,
     setUrl,
 
-    setCondFormattingRules,
+    updateCondFormattingRules,
     makeCustomCondFormattingFontRuleExcel,
     makeGreaterThanCondFormattingFontRuleExcel,
     makeLessThanCondFormattingFontRuleExcel,
@@ -2381,7 +2381,7 @@ describe('backend', () => {
         it ('should format cells already present', (done) => {
           _do([
             python('A1', 'range(10)'),
-            setCondFormattingRules([
+            updateCondFormattingRules([
               makeCustomCondFormattingFontRuleExcel("A1:A10", "Italic", "=A1<6"),
             ]),
             shouldHaveProp('A6', 'Italic'),
@@ -2392,7 +2392,7 @@ describe('backend', () => {
 
         it ('should format newly added cells', (done) => {
           _do([
-            setCondFormattingRules([
+            updateCondFormattingRules([
               makeCustomCondFormattingFontRuleExcel("A1:A10", "Italic", "=A1>5"),
             ]),
             python('A1', 'range(10)'),
@@ -2406,7 +2406,7 @@ describe('backend', () => {
           _do([
             python('A1', 'range(10)'),
             python('B1', 'range(10)'),
-            setCondFormattingRules([
+            updateCondFormattingRules([
               makeCustomCondFormattingFontRuleExcel("B1:B10", "Bold", "=B1>4"),
               makeCustomCondFormattingFontRuleExcel("A1:B10", "Italic", "=A1>5"),
             ]),
@@ -2421,11 +2421,11 @@ describe('backend', () => {
         it ('should revert formats bold when a rule is deleted (1)', (done) => {
           _do([
             python('A1', 'range(10)'),
-            setCondFormattingRules([
+            updateCondFormattingRules([
               makeCustomCondFormattingFontRuleExcel("A1:A10", "Italic", "=A1<6"),
             ]),
             shouldHaveProp('A6', 'Italic'),
-            setCondFormattingRules([]),
+            updateCondFormattingRules([]),
             shouldNotHaveProp('A6', 'Italic'),
             exec(done)
           ]);
@@ -2435,11 +2435,11 @@ describe('backend', () => {
           _do([
             python('A1', 'range(10)'),
             toggleProp('A6', 'Italic'),
-            setCondFormattingRules([
+            updateCondFormattingRules([
               makeCustomCondFormattingFontRuleExcel("A1:A10", "Italic", "=A1<6"),
             ]),
             shouldHaveProp('A6', 'Italic'),
-            setCondFormattingRules([]),
+            updateCondFormattingRules([]),
             shouldHaveProp('A6', 'Italic'),
             exec(done)
           ]);
@@ -2453,7 +2453,7 @@ describe('backend', () => {
         it ('formats bold on IsNotEmptyCondition properly', (done) => {
           _do([
             python('A1', 'range(5)'),
-            setCondFormattingRules([
+            updateCondFormattingRules([
               makeIsNotEmptyCondFormattingFontRuleExcel("A1:A10", "Bold"),
             ]),
             shouldHaveProp('A5', 'Bold'),
@@ -2466,7 +2466,7 @@ describe('backend', () => {
         it ('formats bold on IsEmptyCondition properly', (done) => {
           _do([
             python('A1', 'range(5)'),
-            setCondFormattingRules([
+            updateCondFormattingRules([
               makeIsEmptyCondFormattingFontRuleExcel("A1:A10", "Bold"),
             ]),
             shouldNotHaveProp('A5', 'Bold'),
@@ -2479,7 +2479,7 @@ describe('backend', () => {
         it ('formats bold on GreaterThanCondition properly, and correctly evaluates expression passed into GreaterThanCondition', (done) => {
           _do([
             python('A1', 'range(10)'),
-            setCondFormattingRules([
+            updateCondFormattingRules([
               makeGreaterThanCondFormattingFontRuleExcel("A1:A10", "Bold", "=$A$2+$A$3+$A$4"),
             ]),
             shouldHaveProp('A9', 'Bold'),
@@ -2497,7 +2497,7 @@ describe('backend', () => {
         it ('formats bold on LessThanCondition properly', (done) => {
           _do([
             python('A1', 'range(10)'),
-            setCondFormattingRules([
+            updateCondFormattingRules([
               makeLessThanCondFormattingFontRuleExcel("A1:A10", "Bold", "6"),
             ]),
             shouldNotHaveProp('A9', 'Bold'),
@@ -2511,7 +2511,7 @@ describe('backend', () => {
         it ('formats bold on EqualsCondition properly', (done) => {
           _do([
             python('A1', 'range(10)'),
-            setCondFormattingRules([
+            updateCondFormattingRules([
               makeEqualsCondFormattingFontRuleExcel("A1:A10", "Bold", "6"),
             ]),
             shouldNotHaveProp('A9', 'Bold'),
@@ -2525,7 +2525,7 @@ describe('backend', () => {
         it ('formats bold on GeqCondition properly', (done) => {
           _do([
             python('A1', 'range(10)'),
-            setCondFormattingRules([
+            updateCondFormattingRules([
              makeGeqCondFormattingFontRuleExcel("A1:A10", "Bold", "=$A$3+$A$2+$A$4"),
             ]),
             shouldHaveProp('A9', 'Bold'),
@@ -2539,7 +2539,7 @@ describe('backend', () => {
         it ('formats bold on LeqCondition properly', (done) => {
           _do([
             python('A1', 'range(10)'),
-            setCondFormattingRules([
+            updateCondFormattingRules([
              makeLeqCondFormattingFontRuleExcel("A1:A10", "Bold", "6"),
             ]),
             shouldNotHaveProp('A9', 'Bold'),
@@ -2553,7 +2553,7 @@ describe('backend', () => {
         it ('formats bold on NotEqualsCondition properly', (done) => {
           _do([
             python('A1', 'range(10)'),
-            setCondFormattingRules([
+            updateCondFormattingRules([
              makeNotEqualsCondFormattingFontRuleExcel("A1:A10", "Bold", "6"),
             ]),
             shouldHaveProp('A9', 'Bold'),
@@ -2571,7 +2571,7 @@ describe('backend', () => {
             python('A3', '2'),
             python('A4', '5'),
             python('B5', '3'),
-            setCondFormattingRules([
+            updateCondFormattingRules([
              makeIsBetweenCondFormattingFontRuleExcel("A1:B5", "Bold", "2", "4"),
             ]),
             shouldNotHaveProp('A1', 'Bold'),
@@ -2590,7 +2590,7 @@ describe('backend', () => {
             python('A3', '2'),
             python('A4', '5'),
             python('B5', '3'),
-            setCondFormattingRules([
+            updateCondFormattingRules([
              makeIsNotBetweenCondFormattingFontRuleExcel("A1:B5", "Bold", "2", "4"),
             ]),
             shouldHaveProp('A1', 'Bold'),
@@ -2609,7 +2609,7 @@ describe('backend', () => {
             excel('A2', '1/0'), // ERROR
             python('A4', '4'),
             python('B1', '1'),
-            setCondFormattingRules([
+            updateCondFormattingRules([
               makeGreaterThanCondFormattingFontRuleExcel("A1:A10", "Bold", "0"),
               makeGreaterThanCondFormattingFontRuleExcel("B1:B10", "Bold", "$A$4"),
             ]),

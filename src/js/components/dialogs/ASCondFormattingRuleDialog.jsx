@@ -242,6 +242,7 @@ function convertConditionToServer(rule: DialogCondFormatRule): CondFormatConditi
 function convertToServer(rule: DialogCondFormatRule): CondFormatRule {
   return ({
     tag: 'CondFormatRule',
+    condFormatRuleId: U.Render.getUniqueId(), // ::ALEX::
     condFormat: convertStyleToServer(rule),
     condition: convertConditionToServer(rule),
     cellLocs: [{

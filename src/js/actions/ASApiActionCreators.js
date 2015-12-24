@@ -14,6 +14,7 @@ import type {
   NakedIndex,
   ASIndex,
   ASRange,
+
   ASSelection,
   ASLanguage,
   ASExpression,
@@ -42,7 +43,8 @@ import type {
   ASAPICallbackPair,
   CondFormatRule,
   CondFormatCondition,
-  SheetUpdate
+  SheetUpdate,
+  CondFormatRuleUpdate
 } from '../types/Messages';
 
 import type {
@@ -153,7 +155,7 @@ wss.onmessage = (event: MessageEvent) => {
       break;
     case 'Undo':
     case 'Redo':
-    case 'SetCondFormatRules': 
+    case 'UpdateCondFormatRules': 
     case 'UpdateSheet':
     case 'Get':
     case 'UpdateWindow':
@@ -647,10 +649,14 @@ export default {
     this.send(msg);
   },
 
-  setCondFormattingRules(condFormatRules: Array<CondFormatRule>) {
-    let msg = U.Conversion.makeClientMessageRaw(Constants.ServerActions.SetCondFormatRules, {
-      tag: "PayloadCondFormat",
-      condFormatRules: condFormatRules
+  updateCondFormattingRules(newRules: Array<CondFormatRule>, oldRuleIds: Array<string>) {
+    let msg = U.Conversion.makeClientMessageRaw(Constants.ServerActions.UpdateCondFormatRules, {
+      tag: "PayloadCondFormatUpdate",
+      contents: { 
+        tag: 'Update', 
+        newVals: newRules, 
+        oldKeys: oldRuleIds
+      }
     });
     this.send(msg);
   },
