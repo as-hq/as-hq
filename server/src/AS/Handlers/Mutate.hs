@@ -23,9 +23,6 @@ import AS.Logging
 import Control.Concurrent
 import Data.Maybe
 
-injectDiffIntoCommit :: BarDiff -> ASCommit -> ASCommit
-injectDiffIntoCommit bd c = c { barDiff = bd }
-
 handleMutateSheet :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
 handleMutateSheet uc state (PayloadMutate mutateType) = do
   let sid = userSheetId uc
@@ -41,11 +38,9 @@ handleMutateSheet uc state (PayloadMutate mutateType) = do
   oldBars <- DB.getBarsInSheet conn sid
   let newBars = map (barMap mutateType) oldBars
       (oldBars', newBars') = keepUnequal $ zip oldBars newBars
-  DB.replaceBars conn oldBars' newBars'
-
   -- propagate changes
-  let bardiff = Diff { beforeVals = oldBars', afterVals = newBars' }
-      commitTransform = injectDiffIntoCommit bardiff
+  let bd = Diff { beforeVals = oldBars', afterVals = newBars' }
+      commitTransform = \commit -> commit { barDiff = bd }
   errOrCommit <- runDispatchCycle state updatedCells DescendantsWithParent (userCommitSource uc) commitTransform
   broadcastFiltered state uc $ makeReplyMessageFromErrOrCommit errOrCommit
 

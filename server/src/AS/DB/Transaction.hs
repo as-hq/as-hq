@@ -28,6 +28,7 @@ import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Trans.Either
 import Control.Monad.Trans.Class
 import Control.Concurrent
+import Control.Applicative
 
 data CommitWithInfo = CommitWithInfo { baseCommit :: ASCommit, didDecouple :: Bool }
 
@@ -74,21 +75,19 @@ evalContextToCommit conn (EvalContext mp cells ddiff) = do
 
   -- | Makes sure everything is synced -- the listKeys and ancestors in graph db should reflect 
 -- the cell changes that happen as a result of setting the cells. 
-setCellsPropagated :: Connection -> [ASCell] -> [RangeDescriptor] -> IO ()
-setCellsPropagated conn cells descs = 
+setCellsPropagated :: Connection -> [ASCell] -> IO ()
+setCellsPropagated conn cells = 
   let roots = filter isEvaluable cells
   in do
     setCells conn cells
     G.setCellsAncestorsForce roots
-    mapM_ (setDescriptor conn) descs
 
 -- | Makes sure everything is synced -- the listKeys and ancestors in graph db should reflect 
 -- the cell changes that happen as a result of deleting the cells. 
-deleteLocsPropagated :: Connection -> [ASIndex] -> [RangeDescriptor] -> IO ()
-deleteLocsPropagated conn locs descs = do
+deleteLocsPropagated :: Connection -> [ASIndex] -> IO ()
+deleteLocsPropagated conn locs = do
   deleteLocs conn locs
   G.removeAncestorsAtForced locs
-  mapM_ (deleteDescriptor conn) descs
 
 -- Commits
 
@@ -102,35 +101,43 @@ undo :: Connection -> CommitSource -> IO (Maybe ASCommit)
 undo conn src = do
   let pushKey = toRedisFormat . PushCommitKey $ src
       popKey = toRedisFormat . PopCommitKey $ src
-  commit <- runRedis conn $ do
+  mCommit <- runRedis conn $ do
     Right commit <- rpoplpush pushKey popKey
     return $ decodeMaybe =<< commit
-  case commit of
-    Nothing -> return Nothing
-    Just c@(Commit cdiff bardiff ddiff cfrdiff t) -> do
-      deleteLocsPropagated conn (map cellLocation $ afterVals cdiff) (afterVals ddiff)
-      setCellsPropagated conn (beforeVals cdiff) (beforeVals ddiff)
-      DB.replaceBars conn (afterVals bardiff) (beforeVals bardiff)
-      return $ Just c
+  maybe (return Nothing) (liftA2 (>>) (applyUpdateToDBPropagated conn . sheetUpdateFromCommit . flipCommit) (return . Just)) mCommit
 
 redo :: Connection -> CommitSource -> IO (Maybe ASCommit)
 redo conn src = do
   let pushKey = toRedisFormat . PushCommitKey $ src
       popKey = toRedisFormat . PopCommitKey $ src
-  commit <- runRedis conn $ do
+  mCommit <- runRedis conn $ do
     Right result <- lpop popKey
     case result of
       Just commit -> do
         rpush pushKey [commit]
         return $ decodeMaybe commit
       _ -> return Nothing
-  case commit of
-    Nothing -> return Nothing
-    Just c@(Commit cdiff bardiff ddiff cfrdiff t) -> do -- ::ALEX:: implement cond format and split into applyUpdate
-      deleteLocsPropagated conn (map cellLocation $ beforeVals cdiff) (beforeVals ddiff)
-      setCellsPropagated conn (afterVals cdiff) (afterVals ddiff)
-      DB.replaceBars conn (beforeVals bardiff) (afterVals bardiff)
-      return $ Just c
+  maybe (return Nothing) (liftA2 (>>) (applyUpdateToDBPropagated conn . sheetUpdateFromCommit) (return . Just)) mCommit
+
+applyUpdateToDB :: Connection -> SheetUpdate -> IO ()
+applyUpdateToDB = applyUpdateToDBMaybePropagated False 
+
+applyUpdateToDBPropagated :: Connection -> SheetUpdate -> IO ()
+applyUpdateToDBPropagated = applyUpdateToDBMaybePropagated True
+
+-- internal function 
+applyUpdateToDBMaybePropagated :: Bool -> Connection -> SheetUpdate -> IO ()
+applyUpdateToDBMaybePropagated shouldPropagate conn (SheetUpdate cu bu du cfru) = do 
+  let (setCells', deleteLocs') = if shouldPropagate then (setCellsPropagated, deleteLocsPropagated) else (setCells, deleteLocs)
+      (emptyCells, nonEmptyCells) = L.partition isEmptyCell $ newVals cu 
+  setCells' conn nonEmptyCells
+  -- don't save blank cells in the database; in fact, we should delete any that are there. 
+  deleteLocs' conn $ (map cellLocation emptyCells) -- ::ALEX:: $ oldKeys cu
+  mapM_ (deleteBarAt conn)      (oldKeys bu)
+  mapM_ (setBar conn)           (newVals bu)
+  mapM_ (deleteDescriptor conn) (oldKeys du)
+  mapM_ (setDescriptor conn)    (newVals du)
+  -- ::ALEX:: condformatting shit
 
 pushCommit :: Connection -> CommitSource -> ASCommit -> IO ()
 pushCommit conn src c = runRedis conn $ do
@@ -150,16 +157,8 @@ pushCommitWithInfo conn src commit =
 -- Do the writes to the DB
 -- ::ALEX:: cond format stuff
 updateDBWithCommit :: Connection -> CommitSource -> ASCommit -> IO ()
-updateDBWithCommit conn src c@(Commit cdiff bardiff ddiff cfrdiff time) = do 
-  -- update the cells 
-  let af = afterVals cdiff
-  DB.setCells conn af
-  -- don't save blank cells in the database; in fact, we should delete any that are there. 
-  deleteLocs conn $ map cellLocation $ filter isEmptyCell af
-  mapM_ (setDescriptor conn) (afterVals ddiff)
-  mapM_ (deleteDescriptor conn) (beforeVals ddiff)
-  -- update the rows and columns in sheet
-  DB.replaceBars conn (beforeVals bardiff) (afterVals bardiff)
+updateDBWithCommit conn src c = do 
+  applyUpdateToDB conn (sheetUpdateFromCommit c)
   pushCommit conn src c
 
 -- Each commit source has a temp commit, used for decouple warnings
