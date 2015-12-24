@@ -6,6 +6,7 @@ import type {
 } from '../types/Base';
 
 import type {
+  NakedIndex,
   ASSelection
 } from '../types/Eval';
 
@@ -16,11 +17,17 @@ import type {
 import React from 'react';
 
 import {Paper} from 'material-ui';
+// $FlowFixMe: need to create declarations for all of these, but it's complicated.
 import Table from 'material-ui/lib/table/table';
+// $FlowFixMe: need to create declarations for all of these, but it's complicated.
 import TableBody from 'material-ui/lib/table/table-body';
+// $FlowFixMe: need to create declarations for all of these, but it's complicated.
 import TableHeader from 'material-ui/lib/table/table-header';
+// $FlowFixMe: need to create declarations for all of these, but it's complicated.
 import TableHeaderColumn from 'material-ui/lib/table/table-header-column';
+// $FlowFixMe: need to create declarations for all of these, but it's complicated.
 import TableRow from 'material-ui/lib/table/table-row';
+// $FlowFixMe: need to create declarations for all of these, but it's complicated.
 import TableRowColumn from 'material-ui/lib/table/table-row-column';
 
 import U from '../AS/Util';
