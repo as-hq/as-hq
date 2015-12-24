@@ -39,8 +39,8 @@ handleMutateSheet uc state (PayloadMutate mutateType) = do
   let newBars = map (barMap mutateType) oldBars
       (oldBars', newBars') = keepUnequal $ zip oldBars newBars
   -- propagate changes
-  let bd = Diff { beforeVals = oldBars', afterVals = newBars' }
-      commitTransform = \commit -> commit { barDiff = bd }
+  let bu = Update { oldKeys = map barIndex oldBars', newVals = newBars' }
+      commitTransform = \update -> update { barUpdates = bu }
   errOrCommit <- runDispatchCycle state updatedCells DescendantsWithParent (userCommitSource uc) commitTransform
   broadcastFiltered state uc $ makeReplyMessageFromErrOrCommit errOrCommit
 

@@ -84,8 +84,8 @@ type PureEvalTransform = EvalContext -> EvalContext
 -- the cells getting evaluated. We pull the rest from the DB.
 
 
-runDispatchCycle :: MVar ServerState -> [ASCell] -> DescendantsSetting -> CommitSource -> CommitTransform -> IO (Either ASExecError ASCommit)
-runDispatchCycle state cs descSetting src ctf = do
+runDispatchCycle :: MVar ServerState -> [ASCell] -> DescendantsSetting -> CommitSource -> UpdateTransform -> IO (Either ASExecError ASCommit)
+runDispatchCycle state cs descSetting src updateTransform = do
   roots <- EM.evalMiddleware cs
   conn <- dbConn <$> readMVar state
   time <- getASTime 
@@ -98,9 +98,10 @@ runDispatchCycle state cs descSetting src ctf = do
     -- this maintains the invariant that context always contains the most up-to-date, complete information. 
     ctxAfterDispatch <- dispatch conn roots initialContext descSetting
     printWithTimeT "finished dispatch"
-    finalCells <- EE.evalEndware state src ctxAfterDispatch
-    let ctx = ctxAfterDispatch { updateAfterEval = (updateAfterEval ctxAfterDispatch) { cellUpdates = Update finalCells [] } } -- #lens
-    DT.updateDBWithContext conn src ctx ctf
+    let transformedCtx = ctxAfterDispatch { updateAfterEval = updateTransform (updateAfterEval ctxAfterDispatch) } -- #lenses
+    finalCells <- EE.evalEndware state src transformedCtx
+    let ctx = transformedCtx { updateAfterEval = (updateAfterEval transformedCtx) { cellUpdates = Update finalCells [] } } -- #lens
+    DT.updateDBWithContext conn src ctx
   either (const $ G.recompute conn) (const $ return ()) errOrCommit 
   return errOrCommit
 

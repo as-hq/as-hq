@@ -30,7 +30,7 @@ data ASCommit = Commit { cellDiff :: CellDiff
 
 data CommitSource = CommitSource { srcSheetId :: ASSheetId, srcUserId :: ASUserId }
 
-type CommitTransform = ASCommit -> ASCommit
+type UpdateTransform = SheetUpdate -> SheetUpdate
 
 flipCommit :: ASCommit -> ASCommit
 flipCommit (Commit cd bd rdd cfrd time) = Commit cd' bd' rdd' cfrd' time 

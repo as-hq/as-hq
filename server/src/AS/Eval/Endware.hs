@@ -20,7 +20,7 @@ import Database.Redis as R
 import Control.Concurrent
 
 
--- | Here, we apply a stack of endwares for producing tags post-eval, from e.g. streaming or conditional formatting
+-- | Here, we apply a stack of endwares for setting props post-eval, from e.g. streaming or conditional formatting
 evalEndware :: MVar ServerState -> CommitSource -> EvalContext -> EitherTExec [ASCell]
 evalEndware state (CommitSource sid uid) ctx = do 
   conn <- lift $ dbConn <$> readMVar state
