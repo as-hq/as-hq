@@ -32,11 +32,16 @@ const ASCondFormatStore = Object.assign({}, BaseStore, {
     return _data.rules;
   },
 
-  // ::ALEX:: keep the order here good
+  // #needsrefactor yes Michael I know I'm using indices etc. etc. 
   _updateRules(rules: Array<CondFormatRule>) {
-    // delete overlaps, then add all of them in
-    this._deleteRules(rules.map(({condFormatRuleId}) => condFormatRuleId));
-    _data.rules = _data.rules.concat(rules);
+    rules.forEach((r) => { 
+      let rIndex = _data.rules.map(({condFormatRuleId}) => condFormatRuleId).indexOf(r.condFormatRuleId);
+      if (rIndex >= 0) {
+        _data.rules[rIndex] = r; 
+      } else { 
+        _data.rules.push(r);
+      }
+    });
   },
 
   _deleteRules(ruleIds: Array<string>) {
