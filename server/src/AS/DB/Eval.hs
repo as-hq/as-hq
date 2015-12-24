@@ -25,7 +25,7 @@ import Control.Monad.Trans.Either
 -- looks up cells in the given context, then in the database, in that precedence order
 -- this function is order-preserving
 getCellsWithContext :: Connection -> EvalContext -> [ASIndex] -> IO [Maybe ASCell]
-getCellsWithContext conn (EvalContext mp _ _) locs = map replaceWithContext <$> zip locs <$> DB.getCells conn locs
+getCellsWithContext conn (EvalContext { virtualCellsMap = mp }) locs = map replaceWithContext <$> zip locs <$> DB.getCells conn locs
   where
     replaceWithContext (l, c) = case (M.lookup l mp) of 
       Just foundCell -> Just foundCell
@@ -36,7 +36,7 @@ getCellsWithContext conn (EvalContext mp _ _) locs = map replaceWithContext <$> 
 
 -- used by lookUpRef
 referenceToCompositeValue :: Connection -> EvalContext -> ASReference -> IO CompositeValue
-referenceToCompositeValue _ (EvalContext mp _ _) (IndexRef i) = return $ CellValue . cellValue $ mp M.! i 
+referenceToCompositeValue _ (EvalContext { virtualCellsMap = mp }) (IndexRef i) = return $ CellValue . cellValue $ mp M.! i 
 referenceToCompositeValue conn ctx (PointerRef p) = do 
   let idx = pointerToIndex p
   let mp = virtualCellsMap ctx
@@ -77,7 +77,7 @@ refToIndices conn (PointerRef p) = do
 refToIndicesWithContextDuringEval :: Connection -> EvalContext -> ASReference -> EitherTExec [ASIndex]
 refToIndicesWithContextDuringEval conn _ (IndexRef i) = return [i]
 refToIndicesWithContextDuringEval conn _ (RangeRef r) = return $ rangeToIndices r
-refToIndicesWithContextDuringEval conn (EvalContext mp _ _) (PointerRef p) = do
+refToIndicesWithContextDuringEval conn (EvalContext { virtualCellsMap = mp }) (PointerRef p) = do -- #record
   let index = pointerToIndex p
   case (M.lookup index mp) of 
     Just (Cell _ (Coupled _ _ _ rKey) _ _) -> return $ rangeKeyToIndices rKey
@@ -96,7 +96,7 @@ refToIndicesWithContextDuringEval conn (EvalContext mp _ _) (PointerRef p) = do
 refToIndicesWithContextBeforeEval :: Connection -> EvalContext -> ASReference -> IO [ASIndex]
 refToIndicesWithContextBeforeEval conn _ (IndexRef i) = return [i]
 refToIndicesWithContextBeforeEval conn _ (RangeRef r) = return $ rangeToIndices r
-refToIndicesWithContextBeforeEval conn (EvalContext mp _ _) (PointerRef p) = do
+refToIndicesWithContextBeforeEval conn (EvalContext { virtualCellsMap = mp }) (PointerRef p) = do -- #record
   let index = pointerToIndex p
   case (M.lookup index mp) of 
     Just (Cell _ (Coupled _ _ _ rKey) _ _) -> return $ rangeKeyToIndices rKey

@@ -191,7 +191,7 @@ getRangeDescriptorsInSheet conn sid = do
   map fromJust <$> mapM (getRangeDescriptor conn) keys
 
 getRangeDescriptorsInSheetWithContext :: Connection -> EvalContext -> ASSheetId -> IO [RangeDescriptor]
-getRangeDescriptorsInSheetWithContext conn ctx@(EvalContext _ _ ddiff) sid = do
+getRangeDescriptorsInSheetWithContext conn ctx@(EvalContext _ _ ddiff) sid = do -- #record
   printObj "removed descriptors in getRangeDescriptorsInSheetWithContext " $ beforeVals ddiff
   dbKeys <- DI.getRangeKeysInSheet conn sid
   let dbKeys' = dbKeys \\ (map descriptorKey $ beforeVals ddiff)
@@ -200,7 +200,7 @@ getRangeDescriptorsInSheetWithContext conn ctx@(EvalContext _ _ ddiff) sid = do
 
 -- If the range descriptor associated with a range key is in the context, return it. Else, return Nothing. 
 getRangeDescriptorUsingContext :: Connection -> EvalContext -> RangeKey -> IO (Maybe RangeDescriptor)
-getRangeDescriptorUsingContext conn (EvalContext _ _ ddiff) rKey = if (isJust inRemoved)
+getRangeDescriptorUsingContext conn (EvalContext _ _ ddiff) rKey = if (isJust inRemoved) -- #record
   then return Nothing 
   else case inAdded of
     Nothing -> getRangeDescriptor conn rKey

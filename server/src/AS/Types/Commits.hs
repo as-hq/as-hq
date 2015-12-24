@@ -3,10 +3,10 @@
 module AS.Types.Commits where
 
 import AS.Types.Cell
-import AS.Types.Eval
 import AS.Types.CondFormat
 import AS.Types.Updates
 import AS.Types.Bar
+import AS.Types.RangeDescriptor
 
 import GHC.Generics
 import Data.Aeson hiding (Success)
@@ -46,7 +46,7 @@ data SheetUpdate = SheetUpdate { cellUpdates :: CellUpdate
                                , descriptorUpdates :: DescriptorUpdate 
                                , condFormatRulesUpdates :: CondFormatRuleUpdate
                                }
-                               deriving (Show, Read, Generic)
+                               deriving (Eq, Show, Read, Generic)
 
 sheetUpdateFromCommit :: ASCommit -> SheetUpdate
 sheetUpdateFromCommit (Commit cd bd rdd cfrd _) = SheetUpdate cu bu rdu cfru

@@ -53,7 +53,8 @@ updateDBWithContext conn src ctx ctf = do
 -- TODO: timchu, 12/14/15. This could be refactored to split off didDecouple
 -- and Commit. But we're not because of DB latency.
 evalContextToCommit :: Connection -> EvalContext -> IO CommitWithInfo
-evalContextToCommit conn (EvalContext mp cells ddiff) = do
+evalContextToCommit conn (EvalContext mp update ddiff) = do
+  let cells = newVals $ cellUpdates update
   mbcells <- DB.getCells conn (map cellLocation cells)
   time <- getASTime
   let cdiff   = Diff { beforeVals = (catMaybes mbcells), afterVals = cells }

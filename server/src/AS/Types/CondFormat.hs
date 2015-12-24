@@ -5,9 +5,9 @@
 module AS.Types.CondFormat where
 
 import AS.Types.Cell
-import AS.Types.Eval
 import AS.Types.Locations
 import AS.Types.CellProps
+import AS.Types.Errors
 import Data.List
 import AS.Types.Updates
 

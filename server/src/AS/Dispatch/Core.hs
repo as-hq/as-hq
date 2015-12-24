@@ -88,17 +88,18 @@ runDispatchCycle :: MVar ServerState -> [ASCell] -> DescendantsSetting -> Commit
 runDispatchCycle state cs descSetting src ctf = do
   roots <- EM.evalMiddleware cs
   conn <- dbConn <$> readMVar state
+  time <- getASTime 
   errOrCommit <- runEitherT $ do
     printWithTimeT $ "about to start dispatch"
     let initialEvalMap = M.fromList $ zip (map cellLocation cs) cs
-        initialContext = EvalContext initialEvalMap [] emptyDiff
-    -- you must insert the roots into the initial context, because getCellsToEval will give you cells to evaluate that
+        initialContext = EvalContext initialEvalMap (sheetUpdateFromCommit $ emptyCommitWithTime time) emptyDiff
+    -- you must insert the roots into the initial context, because getCells.ToEval will give you cells to evaluate that
     -- are only in the context or in the DB (in that order of prececdence). IF neither, you won't get anything. 
     -- this maintains the invariant that context always contains the most up-to-date, complete information. 
     ctxAfterDispatch <- dispatch conn roots initialContext descSetting
     printWithTimeT "finished dispatch"
-    finalCells <- EE.evalEndware state (addedCells ctxAfterDispatch) src roots ctxAfterDispatch
-    let ctx = ctxAfterDispatch { addedCells = finalCells }
+    finalCells <- EE.evalEndware state src ctxAfterDispatch
+    let ctx = ctxAfterDispatch { updateAfterEval = (updateAfterEval ctx) { cellUpdates = Update finalCells [] } } -- #lens
     DT.updateDBWithContext conn src ctx ctf
   either (const $ G.recompute conn) (const $ return ()) errOrCommit 
   return errOrCommit
@@ -249,9 +250,9 @@ addValueToContext descriptor ctx = ctx { descriptorDiff = ddiff' }
 
 -- Helper function that adds cells to a context, by merging them to addedCells and the map (with priority).
 addCellsToContext :: [ASCell] -> PureEvalTransform
-addCellsToContext cells ctx = ctx { virtualCellsMap = newMap, addedCells = newAddedCells}
+addCellsToContext cells ctx = ctx { virtualCellsMap = newMap, updateAfterEval = (updateAfterEval ctx) { cellUpdates = Update newAddedCells [] } } -- #lens
   where
-    newAddedCells = mergeCells cells (addedCells ctx)
+    newAddedCells = mergeCells cells (newVals . cellUpdates . updateAfterEval $ ctx)
     newMap   = insertMultiple (virtualCellsMap ctx) (map cellLocation cells) cells
 
 

@@ -12,12 +12,11 @@ import AS.Types.Locations
 import AS.Types.RangeDescriptor
 import AS.Types.Errors
 import AS.Types.Cell
+import AS.Types.Commits
 import AS.Types.Updates
 
 import qualified Data.List as L
 import qualified Data.Map as M
-
-import Control.Monad.Trans.Either
 
 
 -- For internal use only. Represents a "cell" that takes up numerous cells (e.g., range(10)).
@@ -28,14 +27,12 @@ type CellMap = M.Map ASIndex ASCell
 
 -- This should be thought of as a mini spreadsheet used by eval as a cache (which can be updated)
 data EvalContext = EvalContext { virtualCellsMap :: CellMap
-                               , addedCells :: [ASCell]
+                               , updateAfterEval :: SheetUpdate
                                , descriptorDiff :: DescriptorDiff }
                                deriving (Show, Read, Eq)
 
 emptyContext :: EvalContext
-emptyContext = EvalContext M.empty [] emptyDiff
-
-type EitherTExec = EitherT ASExecError IO
+emptyContext = EvalContext M.empty (SheetUpdate emptyUpdate emptyUpdate emptyUpdate emptyUpdate) emptyDiff
 
 data DescendantsSetting = ProperDescendants | DescendantsWithParent deriving (Show, Read, Eq)
 data AncestrySetting = SetAncestry | DontSetAncestry deriving (Show, Read, Eq)

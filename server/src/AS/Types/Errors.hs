@@ -12,6 +12,7 @@ import Data.Aeson
 -- memory
 import Control.DeepSeq
 import Control.DeepSeq.Generics (genericRnf)
+import Control.Monad.Trans.Either
 
 -- | TODO: create custom show instance that takes REF/NA/VALUE etc into account
 data EError =
@@ -114,6 +115,8 @@ data ASExecError =
   | HighDimensionalValue
   | APIError
   deriving (Show, Read, Eq, Generic)
+
+type EitherTExec = EitherT ASExecError IO
 
 instance ToJSON ASExecError
 instance FromJSON ASExecError
