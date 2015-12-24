@@ -167,7 +167,7 @@ function convertStyleToClient(ruleStyle: ASCellProp): ({
 function convertToClient(rule: ?CondFormatRule): DialogCondFormatRule {
   if (rule === null || rule === undefined) { // Default
     return ({
-      id: "CFRID" + U.Render.getUniqueId(),
+      id: "CFRID" + U.Render.getUniqueId(), // can probably use a less dumb id -- alex 12/24
       range: '',
       conditionType: 'greater_than',
       expr1: '',
