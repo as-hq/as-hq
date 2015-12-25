@@ -441,16 +441,15 @@ setCondFormattingRules conn sid rules = runRedis conn $ do
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Row/col getters/setters
 
--- #needsrefactor why are we storing the props and not the index too? (conceptually simpler otherwise)
 -- #needsrefactor should be consistent about whether our getters and setters take in a single key or lists of keys.
-getBarProps :: Connection -> BarIndex -> IO (Maybe ASBarProps)
-getBarProps conn bInd  = runRedis conn $ do 
+getBar :: Connection -> BarIndex -> IO (Maybe Bar)
+getBar conn bInd  = runRedis conn $ do 
   Right msg <- get . toRedisFormat $ BarKey bInd
   return $ maybeDecode =<< msg
 
 setBar :: Connection -> Bar -> IO ()
-setBar conn (Bar bInd props) = do
-  runRedis conn $ set (toRedisFormat $ BarKey bInd) (S.encode props)
+setBar conn bar = do
+  runRedis conn $ set (toRedisFormat $ BarKey (barIndex bar)) (S.encode bar)
   return ()
 
 deleteBarAt :: Connection -> BarIndex -> IO ()
@@ -469,8 +468,7 @@ getBarsInSheet conn sid = do
       extractInd :: RedisKey BarType2 -> BarIndex
       extractInd (BarKey ind) = ind
   inds <- map (extractInd . readKey) <$> DI.getKeysInSheetByType conn sid BarType2
-  props <- mapM (getBarProps conn) inds
-  return $ map (\(ind, Just props) -> Bar ind props) $ filter (isJust . snd) $ zip inds props
+  catMaybes <$> mapM (getBar conn) inds
 
 deleteBarsInSheet :: Connection -> ASSheetId -> IO ()
 deleteBarsInSheet conn sid = do

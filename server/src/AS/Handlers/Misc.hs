@@ -222,10 +222,8 @@ handleUpdateCondFormatRules uc state (PayloadCondFormatUpdate u@(Update updatedR
 handleSetBarProp :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
 handleSetBarProp uc state (PayloadSetBarProp bInd prop) = do 
   conn <- dbConn <$> readMVar state
-  let sid = userSheetId uc
-  mOldProps <- DB.getBarProps conn bInd
-  let oldProps = maybe BP.emptyProps id mOldProps
-      newProps = BP.setProp prop oldProps
+  oldProps <- maybe BP.emptyProps barProps <$> DB.getBar conn bInd
+  let newProps = BP.setProp prop oldProps
       newBar   = Bar bInd newProps
       oldBar   = Bar bInd oldProps
   DB.setBar conn newBar
