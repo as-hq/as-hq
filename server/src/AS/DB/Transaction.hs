@@ -30,38 +30,41 @@ import Control.Monad.Trans.Class
 import Control.Concurrent
 import Control.Applicative
 
-data CommitWithInfo = CommitWithInfo { baseCommit :: ASCommit, didDecouple :: Bool } deriving (Show)
+data CommitWithDecoupleInfo = CommitWithDecoupleInfo { baseCommit :: ASCommit, didDecouple :: Bool } deriving (Show)
 
 ----------------------------------------------------------------------------------------------------------------------
 -- top-level functions
 
--- commiTransform is a function to be applied to the commit produced by evalContextToCommit
+-- commiTransform is a function to be applied to the commit produced by evalContextToCommitWithDecoupleInfo
 updateDBWithContext :: Connection -> CommitSource -> EvalContext -> EitherTExec ASCommit
 updateDBWithContext conn src ctx = do
-  commitWithInfo <- lift $ evalContextToCommit conn ctx
-  let finalCommit = baseCommit $ commitWithInfo
-  lift $ pushCommitWithInfo conn src (commitWithInfo { baseCommit = finalCommit })
-  if (didDecouple commitWithInfo)
+  commitWithDecoupleInfo <- lift $ evalContextToCommitWithDecoupleInfo conn (srcSheetId src) ctx
+  let finalCommit = baseCommit $ commitWithDecoupleInfo
+  lift $ pushCommitWithInfo conn src (commitWithDecoupleInfo { baseCommit = finalCommit })
+  if (didDecouple commitWithDecoupleInfo)
     then left DecoupleAttempt
     else return finalCommit
 
 ----------------------------------------------------------------------------------------------------------------------
 -- conversions
 
--- || evalContextToCommit gives empty rowcols.
--- | Commit uses bars in sheet as both before and after rowcols.
--- TODO: timchu, 12/14/15. This could be refactored to split off didDecouple
--- and Commit. But we're not because of DB latency.
-evalContextToCommit :: Connection -> EvalContext -> IO CommitWithInfo
-evalContextToCommit conn (EvalContext mp update) = do
-  let cells = newVals $ cellUpdates update
-  mbcells <- DB.getCells conn (map cellLocation cells)
-  oldRangeDescriptors <- catMaybes <$> mapM (getRangeDescriptor conn) (oldKeys $ descriptorUpdates update)
-  time <- getASTime
-  let cdiff = Diff { beforeVals = (catMaybes mbcells), afterVals = cells }
-      ddiff = Diff { beforeVals = oldRangeDescriptors, afterVals = newVals $ descriptorUpdates update }
-      commit  = (emptyCommitWithTime time) { cellDiff = cdiff, rangeDescriptorDiff = ddiff }
-      didDecouple = any isDecouplePair $ zip mbcells cells
+-- The logic for getting the decouple info should ideally be separate from 
+-- the one for generating the commit, but by batching them together we get to make one fewer call to 
+-- the DB. (Alex 12/24)
+evalContextToCommitWithDecoupleInfo :: Connection -> ASSheetId -> EvalContext -> IO CommitWithDecoupleInfo
+evalContextToCommitWithDecoupleInfo conn sid (EvalContext mp (SheetUpdate cu bu du cfru)) = do
+  bdiff  <- updateToDiff bu $ fmap catMaybes . mapM (DB.getBar conn)
+  ddiff  <- updateToDiff du $ fmap catMaybes . mapM (DB.getRangeDescriptor conn)
+  cfdiff <- updateToDiff cfru $ DB.getCondFormattingRules conn sid
+  time   <- getASTime
+  -- Doing this manually here instead of using updateToDiff, because we need mOldCells for didDecouple
+  let deletedLocs = refsToIndices (oldKeys cu)
+      newCells    = newVals cu
+  mOldCells <- DB.getCells conn $ L.union (map cellLocation newCells) deletedLocs
+  let cdiff = Diff { beforeVals = catMaybes mOldCells, afterVals = newCells }
+      commit = (emptyCommitWithTime time) { cellDiff = cdiff, rangeDescriptorDiff = ddiff }
+      didDecouple = any isDecouplePair $ zip mOldCells newCells
+      -- the locations in each pair in (zip mOldCells newCells) are the same
       -- determines whether to send a decouple message.
       -- we send a decouple message if there are any decoupled, *visible* cells remaining on the spreadsheet.
       -- i.e. deleting an entire range will not cause a decouple message, but deleting part of it will because 
@@ -75,8 +78,7 @@ evalContextToCommit conn (EvalContext mp update) = do
       isDecouplePair (mbcell, acell) = case mbcell of 
         Nothing -> False
         Just bcell -> (isCoupled bcell) && (not $ isCoupled acell) && (not $ isBlank acell)
-  printObj "DEALING WITH DECOUPLING OF DESCRIPTORS " $ beforeVals ddiff
-  return $ CommitWithInfo commit didDecouple
+  return $ CommitWithDecoupleInfo commit didDecouple
 
 ----------------------------------------------------------------------------------------------------------------------
 -- low-level API
@@ -97,14 +99,12 @@ deleteLocsPropagated conn locs = do
   deleteLocs conn locs
   G.removeAncestorsAtForced locs
 
+----------------------------------------------------------------------------------------------------------------------
 -- Commits
 
--- TODO: need to deal with large commit sizes and max number of commits
--- TODO: need to delete blank cells from the DB. (Otherwise e.g. if you delete a
--- a huge range, you're going to have all those cells in the DB doing nothing.)
-
+-- #incomplete need to deal with large commit sizes and max number of commits
 -- | Return a commit if possible (not possible if you undo past the beginning of time, etc)
--- | Update the DB so that there's always a source of truth (ie we will initEval undo to all relevant users)
+-- Update the DB so that there's always a source of truth (ie we will initEval undo to all relevant users)
 undo :: Connection -> CommitSource -> IO (Maybe ASCommit)
 undo conn src = do
   let pushKey = toRedisFormat . PushCommitKey $ src
@@ -136,16 +136,14 @@ applyUpdateToDBPropagated :: Connection -> ASSheetId -> SheetUpdate -> IO ()
 applyUpdateToDBPropagated = applyUpdateToDBMaybePropagated True
 
 -- internal function 
--- #needsrefactor sheet id is only used for conditional formatting rules, and should be a part of 
--- conditional formatting rules. 
+-- #needsrefactor sheet id is only used for conditional formatting rules, and should be a part of conditional formatting rules. 
 applyUpdateToDBMaybePropagated :: Bool -> Connection -> ASSheetId -> SheetUpdate -> IO ()
 applyUpdateToDBMaybePropagated shouldPropagate conn sid (SheetUpdate cu bu du cfru) = do 
-  let fromIndexRef (IndexRef i) = i
-      (setCells', deleteLocs') = if shouldPropagate then (setCellsPropagated, deleteLocsPropagated) else (setCells, deleteLocs)
+  let (setCells', deleteLocs') = if shouldPropagate then (setCellsPropagated, deleteLocsPropagated) else (setCells, deleteLocs)
       (emptyCells, nonEmptyCells) = L.partition isEmptyCell $ newVals cu 
   setCells' conn nonEmptyCells
   -- don't save blank cells in the database; in fact, we should delete any that are there. 
-  deleteLocs' conn $ (map cellLocation emptyCells) ++ (map fromIndexRef $ oldKeys cu) -- ::ALEX:: should change the type of ASCell's key from ASReference to a new type
+  deleteLocs' conn $ (map cellLocation emptyCells) ++ (refsToIndices $ oldKeys cu)
   mapM_ (deleteBarAt conn)      (oldKeys bu)
   mapM_ (setBar conn)           (newVals bu)
   mapM_ (deleteDescriptor conn) (oldKeys du)
@@ -162,7 +160,7 @@ pushCommit conn src c = runRedis conn $ do
     del [popKey]
   return ()
 
-pushCommitWithInfo :: Connection -> CommitSource -> CommitWithInfo -> IO ()
+pushCommitWithInfo :: Connection -> CommitSource -> CommitWithDecoupleInfo -> IO ()
 pushCommitWithInfo conn src commit =
   if didDecouple commit
     then setTempCommit conn src (baseCommit commit)

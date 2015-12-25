@@ -40,3 +40,9 @@ emptyDiff = Diff [] []
 
 emptyUpdate :: Update a b
 emptyUpdate = Update [] []
+
+updateToDiff :: (HasKey a, Eq (KeyType a)) => Update a (KeyType a) -> ([KeyType a] -> IO [a]) -> IO (Diff a)
+updateToDiff (Update nv ok) dbGetter = do 
+  oldValues <- dbGetter ok
+  overWrittenValues <- dbGetter $ map key nv
+  return $ Diff { afterVals = nv, beforeVals = L.unionBy (\x y -> key x == key y) overWrittenValues oldValues }
