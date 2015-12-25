@@ -38,7 +38,7 @@ data CommitWithDecoupleInfo = CommitWithDecoupleInfo { baseCommit :: ASCommit, d
 -- commiTransform is a function to be applied to the commit produced by evalContextToCommitWithDecoupleInfo
 updateDBWithContext :: Connection -> CommitSource -> EvalContext -> EitherTExec ASCommit
 updateDBWithContext conn src ctx = do
-  commitWithDecoupleInfo <- lift $ evalContextToCommitWithDecoupleInfo conn (srcSheetId src) $ trace' "ctx" ctx
+  commitWithDecoupleInfo <- lift $ evalContextToCommitWithDecoupleInfo conn (srcSheetId src) ctx
   lift $ pushCommitWithDecoupleInfo conn src commitWithDecoupleInfo
   if (didDecouple commitWithDecoupleInfo)
     then left DecoupleAttempt

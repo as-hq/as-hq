@@ -174,39 +174,39 @@ between lower upper x = (x >= lower) && (x <= upper)
 
 fatCellGotMutated :: MutateType -> RangeKey -> Bool
 fatCellGotMutated (InsertCol c) (RangeKey (Index _ (tlc, _)) dims) = between (tlc + 1) (tlc + (width dims) - 1) c
-fatCellGotMutated (InsertRow r) (RangeKey (Index _ (_, tlr)) dims) = between (tlr + 1) (tlr + (height dims) - 1) r
+fatCellGotMutated (InsertRow r) (RangeKey (Index _ (_, tld)) dims) = between (tld + 1) (tld + (height dims) - 1) r
 
 fatCellGotMutated (DeleteCol c) (RangeKey (Index _ (tlc, _)) dims) = between tlc (tlc + (width dims) - 1) c
-fatCellGotMutated (DeleteRow r) (RangeKey (Index _ (_, tlr)) dims) = between tlr (tlr + (height dims) - 1) r
+fatCellGotMutated (DeleteRow r) (RangeKey (Index _ (_, tld)) dims) = between tld (tld + (height dims) - 1) r
 
 fatCellGotMutated (DragCol c1 c2) (RangeKey (Index _ (tlc, _)) dims) = case (width dims) of 
-  1 -> False -- if width of the dragged col area was 1, then nothing happened.
+  1 -> False -- if width of the dragged col area was 1, then happeneds.
   _ -> or [
       between tlc (tlc + (width dims) - 1) c1
     , between (tlc + 1) (tlc + (width dims) - 1) c2 
     ]
 
-fatCellGotMutated (DragRow r1 r2) (RangeKey (Index _ (_, tlr)) dims) = case (height dims) of 
+fatCellGotMutated (DragRow r1 r2) (RangeKey (Index _ (_, tld)) dims) = case (height dims) of 
   1 -> False -- if height of the dragged row area was 1, then nothing happened.
   _ -> or [ 
-      between tlr (tlr + (height dims) - 1) r1 
-    , between (tlr + 1) (tlr + (height dims) - 1) r2 
+      between tld (tld + (height dims) - 1) r1 
+    , between (tld + 1) (tld + (height dims) - 1) r2 
     ]
 
 -- #incomplete not actually correct for dragging columns; in sheets, if we drag B to F, and the range was from A1:D4, 
 -- the new ranges become A1:A4, B1:C4, and F1:F4 (or something like that). 
 rangeMap :: MutateType -> (ASRange -> [ASRange])
-rangeMap mt@(DeleteCol c) rng@(Range sid ((tlr, tlc), (blr, blc)))
+rangeMap mt@(DeleteCol c) rng@(Range sid ((tlc, tlr), (blc, blr)))
   | tlc > blc            = error "improperly oriented range passed into rangeMap"
-  | tlc == c && blc == c = [] 
-  | tlc == c             = [Range sid ((tlr, tlc+1), (blr, blc))]
-  | blc == c             = [Range sid ((tlr, tlc), (blr, blc-1))]
+  | tlc == c && blc == c = []
+  | tlc == c             = [Range sid ((tlc, tlr), (blc-1, blr))] -- not ((tlc+1, tlr), (blc, blr)) since the cols gets shifted
+  | blc == c             = [Range sid ((tlc, tlr), (blc-1, blr))]
   | otherwise            = rangeMap' mt rng
-rangeMap mt@(DeleteRow r) rng@(Range sid ((tlr, tlc), (blr, blc)))
+rangeMap mt@(DeleteRow r) rng@(Range sid ((tlc, tlr), (blc, blr)))
   | tlr > blr            = error "improperly oriented range passed into rangeMap"
   | tlr == r && blr == r = [] 
-  | tlr == r             = [Range sid ((tlr+1, tlc), (blr, blc))]
-  | blr == r             = [Range sid ((tlr, tlc), (blr-1, blc))]
+  | tlr == r             = [Range sid ((tlc, tlr), (blc, blr-1))]
+  | blr == r             = [Range sid ((tlc, tlr), (blc, blr-1))]
   | otherwise            = rangeMap' mt rng
 rangeMap mt rng = rangeMap' mt rng
 
@@ -215,7 +215,7 @@ rangeMap mt rng = rangeMap' mt rng
 rangeMap' :: MutateType -> (ASRange -> [ASRange])
 rangeMap' mt (Range sid (c1, c2)) = [orientRange $ Range sid (c1', c2')]
   where
-    Just (Index _ c1') = trace' ((show mt) ++ (show c1)) $ indexMap mt (Index sid c1)
+    Just (Index _ c1') = indexMap mt (Index sid c1)
     Just (Index _ c2') = indexMap mt (Index sid c2)
 
 -- #lens
