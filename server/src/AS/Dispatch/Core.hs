@@ -82,8 +82,6 @@ type PureEvalTransform = EvalContext -> EvalContext
 -- assumes all evaled cells are in the same sheet
 -- the only information we're really passed in from the cells is the locations and the expressions of
 -- the cells getting evaluated. We pull the rest from the DB.
-
-
 runDispatchCycle :: MVar ServerState -> [ASCell] -> DescendantsSetting -> CommitSource -> UpdateTransform -> IO (Either ASExecError ASCommit)
 runDispatchCycle state cs descSetting src updateTransform = do
   roots <- EM.evalMiddleware cs
@@ -92,7 +90,7 @@ runDispatchCycle state cs descSetting src updateTransform = do
   errOrCommit <- runEitherT $ do
     printWithTimeT $ "about to start dispatch"
     let initialEvalMap = M.fromList $ zip (map cellLocation cs) cs
-        initialContext = EvalContext initialEvalMap (sheetUpdateFromCommit $ emptyCommitWithTime time)
+        initialContext = EvalContext initialEvalMap (sheetUpdateFromCommit $ emptyCommitWithTime time) 
     -- you must insert the roots into the initial context, because getCells.ToEval will give you cells to evaluate that
     -- are only in the context or in the DB (in that order of prececdence). IF neither, you won't get anything. 
     -- this maintains the invariant that context always contains the most up-to-date, complete information. 
@@ -100,7 +98,7 @@ runDispatchCycle state cs descSetting src updateTransform = do
     printWithTimeT "finished dispatch"
     let transformedCtx = ctxAfterDispatch { updateAfterEval = updateTransform (updateAfterEval ctxAfterDispatch) } -- #lenses
     finalCells <- EE.evalEndware state src transformedCtx
-    let ctx = transformedCtx { updateAfterEval = (updateAfterEval transformedCtx) { cellUpdates = Update finalCells [] } } -- #lens
+    let ctx = transformedCtx { updateAfterEval = (updateAfterEval transformedCtx) { cellUpdates = (cellUpdates . updateAfterEval $ transformedCtx) { newVals = finalCells } } } -- #lens
     DT.updateDBWithContext conn src ctx
   either (const $ G.recompute conn) (const $ return ()) errOrCommit 
   return errOrCommit
@@ -226,7 +224,7 @@ evalChain' conn (c@(Cell loc xp val ps):cs) ctx = do
   ----------------------------------------------------------------------------------------------------------------------------------------------
   -- Context modification
 
--- ::ALEX:: #needsrefactor
+-- #needsrefactor the maybe logic sholdn't be dealt with here
 -- Helper function that removes a maybe descriptor from a context and returns the updated context. 
 removeMaybeDescriptorFromContext :: Maybe RangeDescriptor -> PureEvalTransform
 removeMaybeDescriptorFromContext descriptor ctx = ctx { updateAfterEval = (updateAfterEval ctx) { descriptorUpdates = ddiff' } } -- #lens
@@ -236,7 +234,6 @@ removeMaybeDescriptorFromContext descriptor ctx = ctx { updateAfterEval = (updat
       Nothing -> ddiff
       Just d -> removeKey ddiff (key d)
 
--- ::ALEX:: #needsrefactor
 -- Helper function that removes multiple descriptors from the ddiff of the context. 
 removeMultipleDescriptorsFromContext :: [RangeDescriptor] -> PureEvalTransform
 removeMultipleDescriptorsFromContext descriptors ctx = ctx { updateAfterEval = (updateAfterEval ctx) { descriptorUpdates = ddiffWithbeforeVals } } -- #lens

@@ -8,6 +8,7 @@ import AS.Types.Excel hiding (dbConn)
 import AS.Types.Eval
 import AS.Types.Commits
 import AS.Types.Updates
+import AS.Types.CondFormat
 
 import AS.DB.Internal as DI
 import AS.Types.Bar
@@ -33,15 +34,19 @@ handleMutateSheet uc state (PayloadMutate mutateType) = do
       (oldCells', newCells') = keepUnequal $ zip oldCells newCells
       blankedCells = blankCellsAt $ map cellLocation oldCells'
       updatedCells = mergeCells newCells' blankedCells -- eval blanks at the old cell locations, re-eval at new locs
-  
   -- update barProps
   oldBars <- DB.getBarsInSheet conn sid
   let newBars = map (barMap mutateType) oldBars
       (oldBars', newBars') = keepUnequal $ zip oldBars newBars
+      bu = Update { oldKeys = map barIndex oldBars', newVals = newBars' }
+  -- update conditional formatting rules
+  oldCondFormatRules <- DB.getCondFormattingRulesInSheet conn sid
+  let newCondFormatRules = map (condFormattingRulesMap mutateType) oldCondFormatRules
+      (oldCondFormatRules', newCondFormatRules') = keepUnequal $ zip oldCondFormatRules newCondFormatRules
+      cfru = Update { oldKeys = map condFormatRuleId oldCondFormatRules', newVals = newCondFormatRules' }
   -- propagate changes
-  let bu = Update { oldKeys = map barIndex oldBars', newVals = newBars' }
-      commitTransform = \update -> update { barUpdates = bu }
-  errOrCommit <- runDispatchCycle state updatedCells DescendantsWithParent (userCommitSource uc) commitTransform
+  let updateTransform = \update -> update { barUpdates = bu, condFormatRulesUpdates = cfru }
+  errOrCommit <- runDispatchCycle state updatedCells DescendantsWithParent (userCommitSource uc) updateTransform
   broadcastFiltered state uc $ makeReplyMessageFromErrOrCommit errOrCommit
 
 keepUnequal :: (Eq a) => [(a, Maybe a)] -> ([a], [a])
@@ -92,29 +97,29 @@ barIndexMap (DragRow oldR newR) bar@(BarIndex sid typ bari) =
          | oldR > newR       -> Just $ BarIndex sid typ (bari+1)
   -- case oldR == newR can't happen because oldR < r < newR since third pattern-match
 
--- #needsrefactor can probably be condensed with lenses somehow? 
+-- #lens
 barMap :: MutateType -> Bar -> Maybe Bar
 barMap mt (Bar bInd bProps) = fmap (\bInd' -> Bar bInd' bProps) (barIndexMap mt bInd)
 
-cellLocMap :: MutateType -> (ASIndex -> Maybe ASIndex)
-cellLocMap (InsertCol c') (Index sid (c, r)) = Just $ Index sid (if c >= c' then c+1 else c, r)
-cellLocMap (InsertRow r') (Index sid (c, r)) = Just $ Index sid (c, if r >= r' then r+1 else r)
-cellLocMap (DeleteCol c') i@(Index sid (c, r))
+indexMap :: MutateType -> (ASIndex -> Maybe ASIndex)
+indexMap (InsertCol c') (Index sid (c, r)) = Just $ Index sid (if c >= c' then c+1 else c, r)
+indexMap (InsertRow r') (Index sid (c, r)) = Just $ Index sid (c, if r >= r' then r+1 else r)
+indexMap (DeleteCol c') i@(Index sid (c, r))
   | c == c'  = Nothing
   | c > c'   = Just $ Index sid (c-1, r)
   | c < c'   = Just i
-cellLocMap (DeleteRow r') i@(Index sid (c, r))
+indexMap (DeleteRow r') i@(Index sid (c, r))
   | r == r'  = Nothing
   | r > r'   = Just $ Index sid (c, r-1)
   | r < r'   = Just i
-cellLocMap (DragCol oldC newC) i@(Index sid (c, r)) -- DragCol 3 1 : (123) -> (312)
+indexMap (DragCol oldC newC) i@(Index sid (c, r)) -- DragCol 3 1 : (123) -> (312)
   | c < min oldC newC = Just i
   | c > max oldC newC = Just i
   | c == oldC         = Just $ Index sid (newC, r) 
   | oldC < newC       = Just $ Index sid (c-1, r) -- here on we assume c is strictly between oldC and newC
   | oldC > newC       = Just $ Index sid (c+1, r)
   -- case oldC == newC can't happen because oldC < c < newC since third pattern-match
-cellLocMap (DragRow oldR newR) i@(Index sid (c, r))
+indexMap (DragRow oldR newR) i@(Index sid (c, r))
   | r < min oldR newR = Just i
   | r > max oldR newR = Just i
   | r == oldR         = Just $ Index sid (c, newR)
@@ -127,7 +132,7 @@ refMap mt ExOutOfBounds = ExOutOfBounds
 refMap mt er@(ExLocRef (ExIndex rt _ _) ls lw) = er'
   where -- feels kinda ugly... 
     IndexRef ind = exRefToASRef (T.pack "") er
-    er' = case (cellLocMap mt ind) of 
+    er' = case (indexMap mt ind) of 
       Nothing -> ExOutOfBounds
       Just newRefLoc -> ExLocRef ei' ls lw
         where
@@ -146,7 +151,7 @@ expressionMap :: MutateType -> (ASExpression -> ASExpression)
 expressionMap mt = replaceRefs (show . (refMap mt))
 
 cellMap :: MutateType -> (ASCell -> Maybe ASCell)
-cellMap mt c@(Cell loc xp v ps) = case ((cellLocMap mt) loc) of 
+cellMap mt c@(Cell loc xp v ps) = case ((indexMap mt) loc) of 
   Nothing -> Nothing 
   Just loc' -> Just $ sanitizeMutateCell mt loc $ Cell loc' ((expressionMap mt) xp) v ps 
 
@@ -162,7 +167,7 @@ sanitizeMutateCell mt oldLoc c = cell'
     Just rk = cellToRangeKey c
     cell' = if fatCellGotMutated mt rk
       then DI.toDecoupled c
-      else c { cellExpression = (cellExpression c) { cRangeKey = rk { keyIndex = fromJust $ cellLocMap mt (keyIndex rk) } } } 
+      else c { cellExpression = (cellExpression c) { cRangeKey = rk { keyIndex = fromJust $ indexMap mt (keyIndex rk) } } } 
 
 between :: Int -> Int -> Int -> Bool
 between lower upper x = (x >= lower) && (x <= upper)
@@ -187,3 +192,50 @@ fatCellGotMutated (DragRow r1 r2) (RangeKey (Index _ (_, tlr)) dims) = case (hei
       between tlr (tlr + (height dims) - 1) r1 
     , between (tlr + 1) (tlr + (height dims) - 1) r2 
     ]
+
+-- #incomplete not actually correct for dragging columns; in sheets, if we drag B to F, and the range was from A1:D4, 
+-- the new ranges become A1:A4, B1:C4, and F1:F4 (or something like that). 
+rangeMap :: MutateType -> (ASRange -> [ASRange])
+rangeMap mt@(DeleteCol c) rng@(Range sid ((tlr, tlc), (blr, blc)))
+  | tlc > blc            = error "improperly oriented range passed into rangeMap"
+  | tlc == c && blc == c = [] 
+  | tlc == c             = [Range sid ((tlr, tlc+1), (blr, blc))]
+  | blc == c             = [Range sid ((tlr, tlc), (blr, blc-1))]
+  | otherwise            = rangeMap' mt rng
+rangeMap mt@(DeleteRow r) rng@(Range sid ((tlr, tlc), (blr, blc)))
+  | tlr > blr            = error "improperly oriented range passed into rangeMap"
+  | tlr == r && blr == r = [] 
+  | tlr == r             = [Range sid ((tlr+1, tlc), (blr, blc))]
+  | blr == r             = [Range sid ((tlr, tlc), (blr-1, blc))]
+  | otherwise            = rangeMap' mt rng
+rangeMap mt rng = rangeMap' mt rng
+
+-- Assumes none of the boundaries of the range got deleted, in which case the indexMap's should
+-- never be Nothing. 
+rangeMap' :: MutateType -> (ASRange -> [ASRange])
+rangeMap' mt (Range sid (c1, c2)) = [orientRange $ Range sid (c1', c2')]
+  where
+    Just (Index _ c1') = trace' ((show mt) ++ (show c1)) $ indexMap mt (Index sid c1)
+    Just (Index _ c2') = indexMap mt (Index sid c2)
+
+-- #lens
+condFormattingRulesMap :: MutateType -> CondFormatRule -> Maybe CondFormatRule
+condFormattingRulesMap mt cfr = cfr'
+  where 
+    cellLocs' = concatMap (rangeMap mt) (cellLocs cfr)
+    condition' = condFormatConditionMap mt (condition cfr)
+    cfr' = if null cellLocs' then Nothing else Just $ cfr { cellLocs = cellLocs', condition = condition' }
+
+-- #lens
+condFormatConditionMap :: MutateType -> CondFormatCondition -> CondFormatCondition
+condFormatConditionMap mt (CustomCondition (Custom xp)) = CustomCondition $ Custom (expressionMap mt xp)
+condFormatConditionMap mt (IsEmptyCondition IsEmpty) = IsEmptyCondition IsEmpty
+condFormatConditionMap mt (IsNotEmptyCondition IsNotEmpty) = IsNotEmptyCondition IsNotEmpty
+condFormatConditionMap mt (GreaterThanCondition (GreaterThan xp)) = GreaterThanCondition $ GreaterThan (expressionMap mt xp) 
+condFormatConditionMap mt (LessThanCondition (LessThan xp)) = LessThanCondition $ LessThan (expressionMap mt xp) 
+condFormatConditionMap mt (GeqCondition (Geq xp)) = GeqCondition $ Geq (expressionMap mt xp) 
+condFormatConditionMap mt (LeqCondition (Leq xp)) = LeqCondition $ Leq (expressionMap mt xp) 
+condFormatConditionMap mt (EqualsCondition (Equals xp)) = EqualsCondition $ Equals (expressionMap mt xp) 
+condFormatConditionMap mt (NotEqualsCondition (NotEquals xp)) = NotEqualsCondition $ NotEquals (expressionMap mt xp) 
+condFormatConditionMap mt (IsBetweenCondition (IsBetween xp1 xp2)) = IsBetweenCondition $ IsBetween (expressionMap mt xp1) (expressionMap mt xp2)
+condFormatConditionMap mt (IsNotBetweenCondition (IsNotBetween xp1 xp2)) = IsNotBetweenCondition $ IsNotBetween (expressionMap mt xp1) (expressionMap mt xp2)

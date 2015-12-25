@@ -208,11 +208,10 @@ handleUpdateCondFormatRules uc state (PayloadCondFormatUpdate u@(Update updatedR
       sid = srcSheetId src
   rulesToDelete <- DB.getCondFormattingRules conn sid deleteRuleIds
   oldRules <- DB.getCondFormattingRulesInSheet conn sid
-  let allRules = unionBy (\x y -> condFormatRuleId x == condFormatRuleId y) updatedRules oldRules -- old rules updated by new ones
-      allRules' = filter (not . (flip elem) deleteRuleIds . condFormatRuleId) allRules             -- now with deleted rules removed
+  let allRulesUpdated = applyUpdate u oldRules
       updatedLocs = concatMap rangeToIndices $ concatMap cellLocs $ union updatedRules rulesToDelete
   cells <- DB.getPossiblyBlankCells conn updatedLocs
-  errOrCells <- runEitherT $ conditionallyFormatCells conn sid cells allRules' emptyContext
+  errOrCells <- runEitherT $ conditionallyFormatCells conn sid cells allRulesUpdated emptyContext
   time <- getASTime
   let errOrCommit = fmap (\cs -> Commit (Diff cs cells) emptyDiff emptyDiff (Diff updatedRules rulesToDelete) time) errOrCells
   either (const $ return ()) (DT.updateDBWithCommit conn src) errOrCommit

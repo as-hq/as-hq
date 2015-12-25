@@ -5,6 +5,7 @@
 module AS.Types.Updates where
 
 import GHC.Generics
+import Control.Applicative (liftA2)
 import Data.List as L
 
 class HasKey a where 
@@ -35,6 +36,9 @@ removeKey update d = if (inAdded d)
   else update { oldKeys = d:(oldKeys update) } 
     where inAdded x = x `L.elem` (map key $ newVals update)
 
+applyUpdate :: (HasKey a, Eq (KeyType a)) => Update a (KeyType a) -> [a] -> [a]
+applyUpdate (Update nvs oks) as = L.unionBy (\x y -> key x == key y) nvs (filter (not . (flip elem) oks . key) as) 
+
 emptyDiff :: Diff a
 emptyDiff = Diff [] []
 
@@ -42,7 +46,7 @@ emptyUpdate :: Update a b
 emptyUpdate = Update [] []
 
 updateToDiff :: (HasKey a, Eq (KeyType a)) => Update a (KeyType a) -> ([KeyType a] -> IO [a]) -> IO (Diff a)
-updateToDiff (Update nv ok) dbGetter = do 
-  oldValues <- dbGetter ok
-  overWrittenValues <- dbGetter $ map key nv
-  return $ Diff { afterVals = nv, beforeVals = L.unionBy (\x y -> key x == key y) overWrittenValues oldValues }
+updateToDiff (Update nvs oks) dbGetter = do 
+  oldValues <- dbGetter oks
+  overWrittenValues <- dbGetter $ map key nvs
+  return $ Diff { afterVals = nvs, beforeVals = L.unionBy (\x y -> key x == key y) overWrittenValues oldValues }

@@ -42,8 +42,9 @@ removeBadFormats :: ASCell -> ASCell
 removeBadFormats = removeFormats badFormats
 
 -- | Adds the range among the list of locations to delete, and remove all the update cells located within in range. 
+-- #lens
 modifyUpdateForDelete :: ASRange -> SheetUpdate -> SheetUpdate
 modifyUpdateForDelete rng (SheetUpdate (Update cs locs) bs ds cfs) = SheetUpdate (Update cs' locs') bs ds cfs 
   where 
     locs' = (RangeRef rng):locs
-    cs'   = filter (liftA2 (||) isEmptyCell (not . rangeContainsIndex rng . cellLocation)) cs
+    cs'   = filter (not . liftA2 (&&) isEmptyCell (rangeContainsIndex rng . cellLocation)) cs

@@ -9,7 +9,8 @@ import AS.Types.Errors
 import AS.Types.Updates
 
 import AS.Eval.CondFormat
-import AS.Util as U
+import AS.Util
+import AS.Logging
 import AS.DB.API as DB
 import AS.Daemon as DM
 
@@ -26,9 +27,11 @@ evalEndware state (CommitSource sid uid) ctx = do
   conn <- lift $ dbConn <$> readMVar state
   let cells0 = newCellsInContext ctx
       cells1 = changeExcelExpressions cells0
+      blankedCells = blankCellsAt (refsToIndices . oldKeys . cellUpdates . updateAfterEval $ ctx)
   mapM_ (lift . DM.possiblyCreateDaemon state uid) cells0
-  rules <- lift $ DB.getCondFormattingRulesInSheet conn sid 
-  cells2 <- conditionallyFormatCells conn sid cells1 rules ctx
+  oldRules <- lift $ DB.getCondFormattingRulesInSheet conn sid 
+  let updatedRules = applyUpdate (condFormatRulesUpdates $ updateAfterEval ctx) oldRules
+  cells2 <- conditionallyFormatCells conn sid (cells1 ++ blankedCells) updatedRules ctx
   return cells2
    
 ----------------------------------------------------------------------------------------------------------------------------------------------

@@ -38,12 +38,11 @@ data CommitWithDecoupleInfo = CommitWithDecoupleInfo { baseCommit :: ASCommit, d
 -- commiTransform is a function to be applied to the commit produced by evalContextToCommitWithDecoupleInfo
 updateDBWithContext :: Connection -> CommitSource -> EvalContext -> EitherTExec ASCommit
 updateDBWithContext conn src ctx = do
-  commitWithDecoupleInfo <- lift $ evalContextToCommitWithDecoupleInfo conn (srcSheetId src) ctx
-  let finalCommit = baseCommit $ commitWithDecoupleInfo
-  lift $ pushCommitWithInfo conn src (commitWithDecoupleInfo { baseCommit = finalCommit })
+  commitWithDecoupleInfo <- lift $ evalContextToCommitWithDecoupleInfo conn (srcSheetId src) $ trace' "ctx" ctx
+  lift $ pushCommitWithDecoupleInfo conn src commitWithDecoupleInfo
   if (didDecouple commitWithDecoupleInfo)
     then left DecoupleAttempt
-    else return finalCommit
+    else return $ baseCommit commitWithDecoupleInfo
 
 ----------------------------------------------------------------------------------------------------------------------
 -- conversions
@@ -59,10 +58,10 @@ evalContextToCommitWithDecoupleInfo conn sid (EvalContext mp (SheetUpdate cu bu 
   time   <- getASTime
   -- Doing this manually here instead of using updateToDiff, because we need mOldCells for didDecouple
   let deletedLocs = refsToIndices (oldKeys cu)
-      newCells    = newVals cu
-  mOldCells <- DB.getCells conn $ L.union (map cellLocation newCells) deletedLocs
+      newCells    = L.union (newVals cu) (blankCellsAt deletedLocs)
+  mOldCells <- DB.getCells conn $ map cellLocation newCells
   let cdiff = Diff { beforeVals = catMaybes mOldCells, afterVals = newCells }
-      commit = (emptyCommitWithTime time) { cellDiff = cdiff, rangeDescriptorDiff = ddiff }
+      commit = Commit cdiff bdiff ddiff cfdiff time
       didDecouple = any isDecouplePair $ zip mOldCells newCells
       -- the locations in each pair in (zip mOldCells newCells) are the same
       -- determines whether to send a decouple message.
@@ -128,7 +127,6 @@ redo conn src = do
         return $ maybeDecode commit
       _ -> return Nothing
   maybe (return Nothing) (liftA2 (>>) (applyUpdateToDBPropagated conn sid . sheetUpdateFromCommit) (return . Just)) mCommit
-
 applyUpdateToDB :: Connection -> ASSheetId -> SheetUpdate -> IO ()
 applyUpdateToDB = applyUpdateToDBMaybePropagated False 
 
@@ -138,18 +136,20 @@ applyUpdateToDBPropagated = applyUpdateToDBMaybePropagated True
 -- internal function 
 -- #needsrefactor sheet id is only used for conditional formatting rules, and should be a part of conditional formatting rules. 
 applyUpdateToDBMaybePropagated :: Bool -> Connection -> ASSheetId -> SheetUpdate -> IO ()
-applyUpdateToDBMaybePropagated shouldPropagate conn sid (SheetUpdate cu bu du cfru) = do 
+applyUpdateToDBMaybePropagated shouldPropagate conn sid u@(SheetUpdate cu bu du cfru) = do 
   let (setCells', deleteLocs') = if shouldPropagate then (setCellsPropagated, deleteLocsPropagated) else (setCells, deleteLocs)
-      (emptyCells, nonEmptyCells) = L.partition isEmptyCell $ newVals cu 
-  setCells' conn nonEmptyCells
+      allUpdatedCells = L.unionBy isColocated (newVals cu) (blankCellsAt . refsToIndices $ oldKeys cu)
+      (emptyCells, nonEmptyCells) = L.partition isEmptyCell allUpdatedCells
   -- don't save blank cells in the database; in fact, we should delete any that are there. 
-  deleteLocs' conn $ (map cellLocation emptyCells) ++ (refsToIndices $ oldKeys cu)
+  deleteLocs' conn $ (map cellLocation emptyCells)
+  setCells' conn nonEmptyCells
   mapM_ (deleteBarAt conn)      (oldKeys bu)
   mapM_ (setBar conn)           (newVals bu)
   mapM_ (deleteDescriptor conn) (oldKeys du)
   mapM_ (setDescriptor conn)    (newVals du)
   deleteCondFormattingRules conn sid $ oldKeys cfru
   setCondFormattingRules conn sid $ newVals cfru
+  printObj "applied update to database" u
 
 pushCommit :: Connection -> CommitSource -> ASCommit -> IO ()
 pushCommit conn src c = runRedis conn $ do
@@ -160,11 +160,11 @@ pushCommit conn src c = runRedis conn $ do
     del [popKey]
   return ()
 
-pushCommitWithInfo :: Connection -> CommitSource -> CommitWithDecoupleInfo -> IO ()
-pushCommitWithInfo conn src commit =
-  if didDecouple commit
-    then setTempCommit conn src (baseCommit commit)
-    else updateDBWithCommit conn src (baseCommit commit)
+pushCommitWithDecoupleInfo :: Connection -> CommitSource -> CommitWithDecoupleInfo -> IO ()
+pushCommitWithDecoupleInfo conn src commitWithInfo =
+  if didDecouple commitWithInfo
+    then setTempCommit conn src (baseCommit commitWithInfo)
+    else updateDBWithCommit conn src (baseCommit commitWithInfo)
 
 -- Do the writes to the DB
 updateDBWithCommit :: Connection -> CommitSource -> ASCommit -> IO ()
