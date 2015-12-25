@@ -55,12 +55,13 @@ main = R.withEmbeddedR R.defaultConfig $ do
   -- initializations
   putStrLn "STARTING APP"
   (conn, ports, states) <- initApp
-  G.recompute conn
-  putStrLn "RECOMPUTED DAG"
 
   if isDebug -- set in Settings.hs
     then initDebug conn (head states)
     else return ()
+
+  G.recompute conn
+  putStrLn "RECOMPUTED DAG"
   putStrLn $ "server started on ports " ++ (show ports)
   mapM_ (\(port, state) -> WS.runServer S.wsAddress port $ application state) (zip ports states)
   putStrLn $ "DONE WITH MAIN"
@@ -93,7 +94,8 @@ initApp = do
 -- |  for debugging. Only called if isDebug is true.
 initDebug :: R.Connection -> MVar ServerState -> IO ()
 initDebug conn state = do
-  putStrLn . show =<< (runEitherT $ EP.evaluate "1+1")
+  putStrLn "\n\n Evaluating debug statements..."
+  putStrLn . show =<< (runEitherT $ EP.evaluate "INIT_SHEET_ID" "1+1")
   return ()
 
 application :: MVar ServerState -> WS.ServerApp

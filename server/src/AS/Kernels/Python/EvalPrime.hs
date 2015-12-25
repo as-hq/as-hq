@@ -30,28 +30,49 @@ import Control.Monad.Trans.Either
 ---------------------------------------------------------------------------------
 -- this portion is a drop-in replacement for Eval
 
-data KernelAction = EvalLocal | EvalGlobal deriving (Generic)
-data KernelMessage = KernelMessage { action :: KernelAction, code :: String } deriving (Generic)
-data KernelResponse = KernelResponse { value :: Maybe String, stdOutput :: String, stdErr :: String } deriving (Generic)
+data EvalScope = Local | Global deriving (Generic)
+data KernelMessage = 
+    EvaluateRequest { scope :: EvalScope, envSheetId :: ASSheetId, code :: String } 
+  | GetStatusRequest ASSheetId
+  | AutocompleteRequest { envSheetId' :: ASSheetId, completeString :: String }
+  deriving (Generic)
 
-instance ToJSON KernelAction
+data KernelResponse = 
+    EvaluateReply { value :: Maybe String, stdOutput :: Maybe String, stdErr :: Maybe String } 
+  | GetStatusReply -- TODO
+  | AutocompleteReply -- TODO
+  deriving (Generic)
+
+instance ToJSON EvalScope
 
 instance ToJSON KernelMessage where
-  toJSON (KernelMessage action code) = object ["action" .= action, "code" .= code]
+  toJSON msg = case msg of 
+    EvaluateRequest scope sid code -> object  [ "type" .= ("evaluate" :: String)
+                                              , "scope" .= scope
+                                              , "sheetId" .= sid
+                                              , "code" .= code]
+    GetStatusRequest sid -> object  [ "type" .= ("get_status" :: String)
+                                    , "sheetId" .= sid]
+    AutocompleteRequest sid str -> object [ "type" .= ("autocomplete" :: String)
+                                          , "sheetId" .= sid
+                                          , "complete_str" .= str]
 
 instance FromJSON KernelResponse where
   parseJSON (Object v) = do
-    val <- (v .:? "value") 
-    KernelResponse val <$> v .: "stdOutput" <*> v .: "stdErr"
+    val <- v .: "type" :: (Parser String)
+    case val of 
+      "evaluate" -> EvaluateReply <$> v .:? "value" <*> v .:? "stdOput" <*> v .:? "stdErr"
+      "get_status" -> return GetStatusReply -- TODO
+      "autocomplete" -> return AutocompleteReply -- TODO
 
-evaluate = evaluateWithAction EvalLocal
-evaluateHeader = evaluateWithAction EvalGlobal
+evaluate = evaluateWithScope Local
+evaluateHeader = evaluateWithScope Global
 
-evaluateWithAction :: KernelAction -> String -> EitherTExec CompositeValue
-evaluateWithAction action code = do
-  resp <- sendMessage $ KernelMessage action code
-  case (value resp) of 
-    Nothing -> error "didn't get a value"
+evaluateWithScope :: EvalScope -> ASSheetId -> String -> EitherTExec CompositeValue
+evaluateWithScope scope sid code = do
+  (EvaluateReply v out err) <- sendMessage $ EvaluateRequest scope sid code
+  case v of 
+    Nothing -> error "didn't get a value" -- TODO
     Just v -> hoistEither $ R.parseValue Python v
 
 sendMessage :: KernelMessage -> EitherTExec KernelResponse
@@ -64,7 +85,3 @@ sendMessage msg = do
   case resp of 
     Left e -> left $ EvaluationError e
     Right r -> return r
-
-
----------------------------------------------------------------------------------
--- this portion is for when we refactor ValueError and the types we return to frontend
