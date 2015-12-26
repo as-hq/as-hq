@@ -117,6 +117,10 @@ export default class ASOverlay extends React.Component<{}, ASOverlayProps, ASOve
     this.setState({width: width, height: height});
   }
 
+  _shouldUpdateDrag(e: SyntheticEvent, coreEvent: any) {
+    return !this.state.resizing;
+  }
+
   render(): React.Element {
     /*
     Compute div style based on metadata, allow for resizing, have a nice border
@@ -125,7 +129,7 @@ export default class ASOverlay extends React.Component<{}, ASOverlayProps, ASOve
     */
     let {overlay, scrollPixels} = this.props;
     let {top, left, offsetX, offsetY} = overlay;
-    let {width, height, resizing} = this.state;
+    let {width, height} = this.state;
     let baseStyle = {
       position: 'absolute',
       width: width,
@@ -136,15 +140,13 @@ export default class ASOverlay extends React.Component<{}, ASOverlayProps, ASOve
       background: 'white'
     };
 
-    console.log(`AM RESIZING: ${resizing}`);
-
     return (
         <Draggable
           moveOnStartChange={false}
           start={{x: 0, y: 0}}
           zIndex={100}
           onStop={this._onDragStop.bind(this)}
-          disabled={resizing} >
+          onDrag={this._shouldUpdateDrag.bind(this)} >
 
             <div style={baseStyle} >
               <Resizable

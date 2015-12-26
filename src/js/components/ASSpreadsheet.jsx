@@ -694,7 +694,7 @@ export default React.createClass({
       return {
         id: U.Render.getUniqueId(),
         renderElem: (style) => {
-          return (<Image src={imageSrc} draggable="false" style={style} alt="Error rendering image." />);
+          return (<image src={imageSrc} draggable="false" style={style} alt="Error rendering image." />);
         },
         initWidth: imageWidth,
         initHeight: imageHeight,
