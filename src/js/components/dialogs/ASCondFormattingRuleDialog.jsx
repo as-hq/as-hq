@@ -45,6 +45,8 @@ let {
   Conversion: TC
 } = U;
 
+import _Styles from '../../styles/dialogs/ASCondFormattingDialog';
+
 type ConditionMenuItem = 'greater_than'
   | 'less_than'
   | 'between'
@@ -349,11 +351,6 @@ export default class ASCondFormattingRuleDialog
   render() {
     let {initialRule, open, onRequestClose} = this.props;
 
-    let standardStyling = {
-      width: '400px',
-      paddingLeft: '24px'
-    };
-
     return (
       <Dialog
         ref="mainDialog"
@@ -365,18 +362,19 @@ export default class ASCondFormattingRuleDialog
         open={open}
         onRequestClose={onRequestClose}>
         <TextField
-          style={standardStyling}
+          style={_Styles.formTextFields}
           hintText="Range"
           valueLink={this.linkRuleState('range')} />
         <br />
         <ASDropdownMenu
+          style={_Styles.formDropdowns}
           menuItems={CONDITION_MENU_ITEMS}
           valueLink={this.linkRuleState('conditionType')} />
         <br />
         {shownTextFieldCount(this.state.rule) >= 1 ? (
           [
             <TextField
-              style={standardStyling}
+              style={_Styles.formTextFields}
               hintText="Value or formula"
               valueLink={this.linkRuleState('expr1')} />,
             <br />
@@ -385,20 +383,24 @@ export default class ASCondFormattingRuleDialog
         {shownTextFieldCount(this.state.rule) >= 2 ? (
           [
             <TextField
-              style={standardStyling}
+              style={_Styles.formTextFields}
               hintText="Value or formula"
               valueLink={this.linkRuleState('expr2')} />,
             <br />
           ]
         ) : null}
         <ASDropdownMenu
+          style={_Styles.formDropdowns}
           menuItems={STYLING_MENU_ITEMS}
           valueLink={this.linkRuleState('style')} />
         {
           showStyleColorField(this.state.rule)
             ? [
               <br />,
-              <ASColorPicker valueLink={this.linkRuleState('styleColor')} />
+              <br />,
+              <ASColorPicker
+                style={_Styles.formColorPicker}
+                valueLink={this.linkRuleState('styleColor')} />
             ]
             : null
         }

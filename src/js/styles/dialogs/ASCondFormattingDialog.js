@@ -36,5 +36,18 @@ export default {
     float: 'right',
     marginTop: '10px',
     marginBottom: '10px'
+  },
+
+  formDropdowns: {
+    width: '400px'
+  },
+
+  formTextFields: {
+    width: '400px',
+    paddingLeft: '24px'
+  },
+
+  formColorPicker: {
+    marginLeft: '24px'
   }
 }
