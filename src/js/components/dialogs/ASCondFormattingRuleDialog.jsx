@@ -66,7 +66,7 @@ type RuleDialogProps = {
 };
 
 type DialogCondFormatRule = {
-  id: string; 
+  id: string;
   range: string;
   conditionType: ConditionMenuItem;
   expr1: string;
@@ -245,7 +245,7 @@ function convertConditionToServer(rule: DialogCondFormatRule): CondFormatConditi
 function convertToServer(rule: DialogCondFormatRule): CondFormatRule {
   return ({
     tag: 'CondFormatRule',
-    condFormatRuleId: rule.id, 
+    condFormatRuleId: rule.id,
     condFormat: convertStyleToServer(rule),
     condition: convertConditionToServer(rule),
     cellLocs: [{
@@ -299,6 +299,18 @@ export default class ASCondFormattingRuleDialog
     SelectionStore.removeChangeListener(this._onChangeDefaultSelection.bind(this));
   }
 
+  componentWillReceiveProps(nextProps: RuleDialogProps) {
+    if (this._shouldRefresh(nextProps)) {
+      this.setState({
+        rule: convertToClient(nextProps.initialRule)
+      });
+    }
+  }
+
+  _shouldRefresh(nextProps: RuleDialogProps): boolean {
+    return (! this.props.open && nextProps.open);
+  }
+
   _onChangeDefaultSelection() {
     let sel = SelectionStore.getActiveSelection();
 
@@ -332,10 +344,6 @@ export default class ASCondFormattingRuleDialog
         self.setState({ rule: { ...self.state.rule, [varName]: val } });
       }
     });
-  }
-
-  clearState() {
-    this.setState({ rule: convertToClient() });
   }
 
   render() {
@@ -401,7 +409,6 @@ export default class ASCondFormattingRuleDialog
   }
 
   _onClickSubmit() {
-    this.clearState();
     this.props.onSubmitRule(convertToServer(this.state.rule));
     this.props.onRequestClose();
   }

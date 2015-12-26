@@ -44,7 +44,7 @@ import _Styles from '../styles/ASErrorPane';
 import _ from 'lodash';
 
 type ASErrorPaneProps = {
-  style: {[key: string]: any};
+  style?: {[key: string]: any};
   onRequestSelect: Callback<NakedIndex>;
   open: boolean;
 };
