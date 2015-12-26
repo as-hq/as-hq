@@ -57,10 +57,9 @@ referenceToCompositeValue conn ctx (PointerRef p) = do
           return $ DE.recomposeCompositeValue fatCell
 -- TODO: This is not the best way to do it: takes column cells, converts to indices, then converts back to values.....
 referenceToCompositeValue conn ctx (ColRangeRef cr) = do
-  printObj "IN COL RANGE EXPANSION BEFORE FAIL" 1
   return . Expanding . VList . M $ vals
   where
-    indices = colRangeWithContextToIndicesRowMajor2D conn ctx (trace' "COLRANGE IN REF TO COMPOSIE VALUE\n \n" cr)
+    indices = colRangeWithContextToIndicesRowMajor2D conn ctx cr
     -- The only case where the index is not in the context is when the current dispatch
     -- created new cells in the bottom of a column whose colRange is being evaluated.
     indToVal ind = case (M.member ind $ contextMap ctx) of
@@ -123,30 +122,32 @@ colRangeWithDBAndContextToRange conn ctx c@(ColRange sid ((l, t), r)) = do
         return $ unionBy equalIndex ctxCells dbCells
       maxRowWithNonBlanksInCol :: [ASCell] -> Row
       maxRowWithNonBlanksInCol cells = maximum rowList where
-        rowList = map getRow $ removeEmptyCellsFromEndOfList (Data.List.sortBy (compareCellByRow) cells)
-  listOfCellsByCol <- mapM cellsByCol [l..r] -- listOfIndicesByColumn :: [[ASIndex]]
+        cellsSortedByRows =  Data.List.sortBy (compareCellByRow) cells
+        rowList = map getRow $ removeEmptyCellsFromEndOfList $ cellsSortedByRows
+  listOfCellsByCol <- mapM cellsByCol [l..r] -- :: [[ASIndex]]
   let maxRowInCols = maximum (map maxRowWithNonBlanksInCol listOfCellsByCol)
-  return $ Range sid ((l, t), (r,(trace' "MAX ROW IN COLS: " maxRowInCols)))
+  return $ Range sid ((l, t), (r, maxRowInCols))
 
--- blatant code duplication.
+-- TODO: timchu 12/26/15. blatant code duplication.
 colRangeWithContextToRange :: Connection -> EvalContext -> ASColRange -> ASRange
 colRangeWithContextToRange conn ctx c@(ColRange sid ((l, t), r)) =
   let cellsByCol :: Col -> [ASCell]
-      ctx' = trace' "GOT TO EVAL CONTEXT IN COLRANGEWITHCONTEXT TO RANGE" ctx
-      cellsByCol column = evalContextCellsByCol ctx' sid column
+      cellsByCol column = evalContextCellsByCol ctx sid column
+      -- must sort cells by row in order for removeEmptyCellsAtEndOfList to work
       maxRowWithNonBlanksInCol :: [ASCell] -> Row
       maxRowWithNonBlanksInCol cells = maximum rowList where
-        rowList = map getRow $ removeEmptyCellsFromEndOfList $ trace' "CELLS TO SORT: "  (Data.List.sortBy (compareCellByRow) cells)
-      listOfCellsByCol = map cellsByCol [l..r] -- listOfIndicesByColumn :: [[ASIndex]]
+        cellsSortedByRows =  Data.List.sortBy (compareCellByRow) cells
+        rowList = map getRow $ removeEmptyCellsFromEndOfList $ cellsSortedByRows
+      listOfCellsByCol = map cellsByCol [l..r] -- :: [[ASIndex]]
       maxRowInCols = maximum (map maxRowWithNonBlanksInCol listOfCellsByCol)
    in
-   Range sid ((l, t), (r,(trace' "MAX ROW IN COLS: " maxRowInCols)))
+   Range sid ((l, t), (r, maxRowInCols))
 
 -- TODO: timchu, leave very clear comments about where these are used!
 -- Uses the evalcontext and column range to extract the indices used in a column range.
 -- For use in evaluateLanguage.
 colRangeWithContextToIndicesRowMajor2D :: Connection -> EvalContext -> ASColRange -> [[ASIndex]]
-colRangeWithContextToIndicesRowMajor2D conn ctx c = rangeToIndicesRowMajor2D $ (trace' "UNDERLYING RANGE IN EVAL: " $ colRangeWithContextToRange conn ctx c)
+colRangeWithContextToIndicesRowMajor2D conn ctx c = rangeToIndicesRowMajor2D $ colRangeWithContextToRange conn ctx c
 
 -- For use in conditional formatting and shortCircuit.
 -- TODO: TIMCHU, STOP POINT 12/25. THERES ANA ERROR IN HERE SOMEWHERE
@@ -155,8 +156,7 @@ colRangeWithContextToIndicesRowMajor2D conn ctx c = rangeToIndicesRowMajor2D $ (
 colRangeWithDBAndContextToIndices :: Connection -> EvalContext -> ASColRange -> IO [ASIndex]
 colRangeWithDBAndContextToIndices conn ctx@(EvalContext vmap _ _) c = do
   underlyingRange <- colRangeWithDBAndContextToRange conn ctx c
-  printObj "COLRANGE TO INDICES \n \n \n" $ rangeToIndices underlyingRange
-  return $ rangeToIndices (trace' "UNDERLYING RANGE:  " underlyingRange)
+  return $ rangeToIndices underlyingRange
 
 --
 ---- TODO: timchu, 12/25/15. Never used.
@@ -184,12 +184,8 @@ refToIndices conn (PointerRef p) = do
 -- so in the pointer case, we need to check the evalContext first for changes that might have happened during eval
 refToIndicesWithContextDuringEval :: Connection -> EvalContext -> ASReference -> EitherTExec [ASIndex]
 refToIndicesWithContextDuringEval conn _ (IndexRef i) = return [i]
-refToIndicesWithContextDuringEval conn ctx@(EvalContext mp _ _) (RangeRef r) = do
-  printObjT "\n\n\n CONTEXT DURING RANGETOINDICESDURINGEVAL: : " $ map index $ M.keys mp
-  return $ rangeToIndices r
-refToIndicesWithContextDuringEval conn ctx@(EvalContext mp _ _) (ColRangeRef r) = do
-  printObjT "\n\n\n CONTEXT DURING REFTOINDICESWITHCONTEXTDURINGEVAL: " $ map index $ M.keys mp
-  lift $ colRangeWithDBAndContextToIndices conn ctx r
+refToIndicesWithContextDuringEval conn ctx@(EvalContext mp _ _) (RangeRef r) = return $ rangeToIndices r
+refToIndicesWithContextDuringEval conn ctx@(EvalContext mp _ _) (ColRangeRef r) = lift $ colRangeWithDBAndContextToIndices conn ctx r
 refToIndicesWithContextDuringEval conn (EvalContext mp _ _) (PointerRef p) = do
   let index = pointerToIndex p
   case (M.lookup index mp) of 

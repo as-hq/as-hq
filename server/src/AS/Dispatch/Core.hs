@@ -123,9 +123,7 @@ dispatch conn roots oldContext descSetting = do
   ancLocs        <- G.getImmediateAncestors $ indicesToGraphReadInput descLocs
   printObjT "Got ancestor locs" ancLocs
   -- The initial lookup cache has the ancestors of all descendants
-  printObjT "OLD EVAL CTX DURING EVAL CHAIN WITH DISPATCH BEFORE EVALCHAIN : " $ map index $ M.keys $ contextMap oldContext
   modifiedContext <- getModifiedContext conn ancLocs oldContext
-  printObjT "EVAL CTX DURING EVAL CHAIN WITH DISPATCH BEFORE EVALCHAIN : " $ map index $ M.keys $ contextMap modifiedContext
   printWithTimeT "Created initial context"  -- ++ (show modifiedContext)
   printWithTimeT "Starting eval chain"
   evalChainWithException conn cellsToEval modifiedContext -- start with current cells, then go through descendants
@@ -194,7 +192,6 @@ evalChainWithException conn cells ctx =
         printObj "Runtime exception caught" (e :: SomeException)
         return $ Left RuntimeEvalException
   in do
-    printObjT "EVAL CTX DURING EVAL CHAIN WITH EXCEPTION BEFORE EVALUATING : " $ map index $ M.keys $ contextMap ctx
     result <- liftIO $ catch (runEitherT $ evalChain conn cells ctx) whenCaught
     hoistEither result
 
@@ -216,14 +213,13 @@ evalChain' :: Connection -> [ASCell] -> EvalTransform
 evalChain' _ [] ctx = printWithTimeT "empty evalchain" >> return ctx
 evalChain' conn (c@(Cell loc xp val ps):cs) ctx = do
   printWithTimeT $ "running eval chain with cells: " ++ (show (c:cs))
-  printObjT "EVAL CTX DURING EVAL CHAIN' BEFORE EVALUATING : " $ map index $ M.keys $ contextMap ctx
   let getEvalResult expression = EC.evaluateLanguage conn loc ctx expression
   cvf <- case xp of 
-    Expression _ _         ->  getEvalResult (trace' "EXPRESSION" xp)
+    Expression _ _         ->  getEvalResult xp
     Coupled str lang _ key -> if (isFatCellHead c)
-      then getEvalResult $ (trace' "EXPRESSION IN COUPLED: " $ Expression str lang)
-      else return $ (trace' "ELSE IN COUPLED EXPRESSION" $Formatted (CellValue val) (formatType <$> getProp ValueFormatProp ps) )
-  newContext <- contextInsert conn c (trace' "CVF IS :- " cvf) ctx
+      then getEvalResult $ Expression str lang
+      else return $ Formatted (CellValue val) (formatType <$> getProp ValueFormatProp ps)
+  newContext <- contextInsert conn c cvf ctx
   evalChain conn cs newContext
 
   ----------------------------------------------------------------------------------------------------------------------------------------------

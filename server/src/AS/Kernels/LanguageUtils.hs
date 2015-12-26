@@ -215,9 +215,7 @@ addCompileCmd OCaml cmd = do
 
 
 lookUpRef :: Connection -> ASLanguage -> EvalContext -> ASReference -> IO String
-lookUpRef conn lang context ref = do
-  printObj "\n\n\n GOT TO LOOKUP REF" 1
-  showValue (trace' "LANG IN LOOKUP REF" lang) <$> DV.referenceToCompositeValue conn context ref
+lookUpRef conn lang context ref = showValue lang <$> DV.referenceToCompositeValue conn context ref
 
   
 -- | Replaces all the Excel references in an expression with the valuesMap corresponding to them.
@@ -235,8 +233,8 @@ insertValues conn sheetid ctx xp =
           contextStmt = "setGlobals("++(show context) ++")\n"
           evalStmt = "result = serialize(db(\'" ++ newExp ++ "\'))"
       return $ contextStmt ++ evalStmt
-    _ -> expression <$> replaceRefsIO exRefToStringEval (trace' "XP IN INSERTVALUES" xp)
-      where exRefToStringEval = (lookUpRef conn lang (trace' "CTX IN INSERTVALUES" ctx)) . (exRefToASRef sheetid) -- ExRef -> String. (Takes in ExRef, returns the ASValue corresponding to it, as a string.)
+    _ -> expression <$> replaceRefsIO exRefToStringEval xp
+      where exRefToStringEval = (lookUpRef conn lang ctx) . (exRefToASRef sheetid) -- ExRef -> String. (Takes in ExRef, returns the ASValue corresponding to it, as a string.)
 
 -----------------------------------------------------------------------------------------------------------------------
 -- | File management

@@ -52,9 +52,7 @@ evaluateLanguage :: Connection -> ASIndex -> EvalContext -> ASExpression -> Eith
 evaluateLanguage conn idx@(Index sid _) ctx xp@(Expression str lang) = catchEitherT $ do
   printWithTimeT "Starting eval code"
   printObjT "eval language with cells in context: " (contextMap ctx)
-  printObjT  "MAYBE SHORT CIRCUIT0 : " $ 1
   maybeShortCircuit <- possiblyShortCircuit conn sid ctx xp
-  printObjT  "MAYBE SHORT CIRCUIT1 : " $ maybeShortCircuit
   case maybeShortCircuit of
     Just e -> return . return . CellValue $ e -- short-circuited, return this error
     Nothing -> case lang of
@@ -67,7 +65,7 @@ evaluateLanguage conn idx@(Index sid _) ctx xp@(Expression str lang) = catchEith
         xpWithValuesSubstituted <- lift $ insertValues conn sid ctx xp
         return <$> execEvalInLang header lang xpWithValuesSubstituted 
         -- ^ didn't short-circuit, proceed with eval as usual
-evaluateLanguage _ _ _ (Coupled _ _ _ _) = left (trace' "WILL NOT EVALUATE" WillNotEvaluate)
+evaluateLanguage _ _ _ (Coupled _ _ _ _) = left WillNotEvaluate
 
 -- no catchEitherT here for now, but that's because we're obsolescing Repl for now. (Alex ~11/10)
 evaluateLanguageRepl :: String -> ASExpression -> EitherTExec CompositeValue
@@ -107,7 +105,6 @@ possiblyShortCircuit :: Connection -> ASSheetId -> EvalContext -> ASExpression -
 possiblyShortCircuit conn sheetid ctx xp = do 
   let depRefs        = getDependencies sheetid xp -- :: [ASReference]
   let depInds = concat <$> mapM (refToIndicesWithContextDuringEval conn ctx) depRefs
-  printObjT " \n \n \n \n \n SHORT CIRCUIT BEFORE ANYTHING HAPPENS AFTER LETS " 1
   bimapEitherT' (Just . onRefToIndicesFailure) (onRefToIndicesSuccess ctx xp) depInds
 
 -- When eval's ref to indices fails, we want the error message to be in the actual cell. Possibly short circuit will
@@ -117,6 +114,7 @@ onRefToIndicesFailure PointerToNormalCell = ValueError "Pointer to normal cell" 
 onRefToIndicesFailure IndexOfPointerNonExistant = ValueError "Index of pointer doesn't exist" "EvalError"
 onRefToIndicesFailure _ = ValueError "Some eval error" "EvalError"
 
+-- TODO; timchu, 12/26/15. Why did this work for pointers, when EvalContext wasn't always complete? My workaround with defaultCells is really hacky.
 onRefToIndicesSuccess :: EvalContext -> ASExpression -> [ASIndex] -> Maybe ASValue
 onRefToIndicesSuccess ctx xp depInds = listToMaybe $ catMaybes $ flip map (zip depInds values) $ \(i, v) -> case v of
   NoValue                 -> handleNoValueInLang lang i
