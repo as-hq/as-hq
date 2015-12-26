@@ -25,6 +25,7 @@ export type MenuSpec = {
 
 export type ASMenuBarProps = {
   menus: Array<MenuSpec>;
+  style: {[key: string]: any};
 };
 
 export type ASMenuBarState = {

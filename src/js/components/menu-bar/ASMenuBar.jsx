@@ -27,11 +27,11 @@ export default class ASMenuBar extends React.Component<{}, ASMenuBarProps, ASMen
   }
 
   render(): React.Element {
-    let {menus} = this.props;
+    let {menus, style} = this.props;
     let {currentMenuIdx} = this.state;
 
     return (
-      <div style={_Styles.root}>
+      <div style={{..._Styles.root, ...style}}>
         { menus.map((menu, idx) =>
           <ASMenu
             open={currentMenuIdx === idx}
