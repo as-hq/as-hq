@@ -16,6 +16,8 @@ import qualified Data.Text as T
 import AS.Types.Eval
 import AS.Types.Excel (indexToExcel)
 import AS.Types.Cell
+import AS.Types.CellProps
+import AS.Util
 
 import AS.Kernels.LanguageUtils
 import AS.Kernels.Python.Eval as KP
@@ -50,7 +52,9 @@ evaluateLanguage :: Connection -> ASIndex -> EvalContext -> ASExpression -> Eith
 evaluateLanguage conn idx@(Index sid _) ctx xp@(Expression str lang) = catchEitherT $ do
   printWithTimeT "Starting eval code"
   printObjT "eval language with cells in context: " (contextMap ctx)
+  printObjT  "MAYBE SHORT CIRCUIT0 : " $ 1
   maybeShortCircuit <- possiblyShortCircuit conn sid ctx xp
+  printObjT  "MAYBE SHORT CIRCUIT1 : " $ maybeShortCircuit
   case maybeShortCircuit of
     Just e -> return . return . CellValue $ e -- short-circuited, return this error
     Nothing -> case lang of
@@ -63,7 +67,7 @@ evaluateLanguage conn idx@(Index sid _) ctx xp@(Expression str lang) = catchEith
         xpWithValuesSubstituted <- lift $ insertValues conn sid ctx xp
         return <$> execEvalInLang header lang xpWithValuesSubstituted 
         -- ^ didn't short-circuit, proceed with eval as usual
-evaluateLanguage _ _ _ (Coupled _ _ _ _) = left WillNotEvaluate
+evaluateLanguage _ _ _ (Coupled _ _ _ _) = left (trace' "WILL NOT EVALUATE" WillNotEvaluate)
 
 -- no catchEitherT here for now, but that's because we're obsolescing Repl for now. (Alex ~11/10)
 evaluateLanguageRepl :: String -> ASExpression -> EitherTExec CompositeValue
@@ -103,6 +107,7 @@ possiblyShortCircuit :: Connection -> ASSheetId -> EvalContext -> ASExpression -
 possiblyShortCircuit conn sheetid ctx xp = do 
   let depRefs        = getDependencies sheetid xp -- :: [ASReference]
   let depInds = concat <$> mapM (refToIndicesWithContextDuringEval conn ctx) depRefs
+  printObjT " \n \n \n \n \n SHORT CIRCUIT BEFORE ANYTHING HAPPENS AFTER LETS " 1
   bimapEitherT' (Just . onRefToIndicesFailure) (onRefToIndicesSuccess ctx xp) depInds
 
 -- When eval's ref to indices fails, we want the error message to be in the actual cell. Possibly short circuit will
@@ -119,7 +124,8 @@ onRefToIndicesSuccess ctx xp depInds = listToMaybe $ catMaybes $ flip map (zip d
   otherwise               -> Nothing 
   where
     lang           = xpLanguage xp
-    values         = map (cellValue . ((contextMap ctx) M.!)) depInds
+    defaultCell    = Cell (Index "" (-1, -1)) (Expression "" Excel) NoValue emptyProps
+    values         = map (cellValue . (flip (M.findWithDefault defaultCell) (contextMap ctx))) depInds
 
 
 -- | Nothing if it's OK to pass in NoValue, appropriate ValueError if not.
