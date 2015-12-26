@@ -23,7 +23,13 @@ export default {
     lineHeight: '20px',
     paddingTop: '0px',
     marginTop: '18px',
-    marginBottom: '18px'
+    marginBottom: '18px',
+
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    paddingRight: '20px',
+    width: '500px'
   },
 
   buttons: {

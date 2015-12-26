@@ -308,7 +308,7 @@ export default class ASCondFormattingRuleDialog
   }
 
   _shouldRefresh(nextProps: RuleDialogProps): boolean {
-    return (! this.props.open && nextProps.open);
+    return (! this.props.variantRange && ! this.props.open && nextProps.open);
   }
 
   _onChangeDefaultSelection() {
