@@ -82,16 +82,21 @@ export default class ASTopBar extends React.Component<{}, ASTopBarProps, ASTopBa
         <div style={{
           position: 'absolute',
           display: 'block',
-          width: '50px',
-          color: '#ffffff',
-          fontWeight: '600',
+          width: '60px',
+          height: '60px',
+          color: 'rgba(255, 255, 255, 0.72)',
+          backgroundColor: '#242424',
+          boxShadow: '0px 0px 15px 2px #000000',
+          borderRadius: '50%',
+          fontWeight: '500',
           textAlign: 'center',
-          fontSize: '16pt',
+          fontSize: '28pt',
           fontStyle: 'italic',
           fontFamily: 'Georgia, serif',
           top: 0,
           left: 0,
-          lineHeight: '36px'
+          lineHeight: '50px',
+          zIndex: '100000'
         }}>
           α
         </div>
