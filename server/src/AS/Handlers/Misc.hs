@@ -47,6 +47,7 @@ import qualified Network.WebSockets as WS
 
 import Control.Concurrent
 import Control.Exception
+import Control.Applicative
 import Control.Monad.Trans.Either
 
 handleAcknowledge :: ASUserClient -> IO ()
@@ -75,7 +76,7 @@ handleOpen uc state (PayloadS (Sheet sid _ _)) = do
   let langs = [Python, R] -- should probably make list of langs a const somewhere...
   headers         <- mapM (getEvalHeader conn sid) langs
   -- get conditional formatting data to send back to user user
-  condFormatRules <- DB.getCondFormattingRules conn sid
+  condFormatRules <- DB.getCondFormattingRulesInSheet conn sid
   let xps = map (\(str, lang) -> Expression str lang) (zip headers langs)
   -- get column props
   bars <- DB.getBarsInSheet conn sid
@@ -200,42 +201,42 @@ handleBugReport uc (PayloadText report) = do
   logBugReport report (userCommitSource uc)
   WS.sendTextData (userConn uc) ("ACK" :: T.Text)
 
-handleSetCondFormatRules :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
-handleSetCondFormatRules uc state (PayloadCondFormat rules) = do
+handleUpdateCondFormatRules :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
+handleUpdateCondFormatRules uc state (PayloadCondFormatUpdate u@(Update updatedRules deleteRuleIds)) = do
   conn <- dbConn <$> readMVar state
-  let src = userCommitSource uc
+  let src = userCommitSource uc 
       sid = srcSheetId src
-  oldRules <- DB.getCondFormattingRules conn sid
-  let symDiff = (union rules oldRules) \\ (intersect rules oldRules)
-      locs = concatMap rangeToIndices $ concatMap cellLocs symDiff
-  cells <- DB.getPossiblyBlankCells conn locs
-  errOrCells <- runEitherT $ conditionallyFormatCells conn sid cells rules emptyContext
-  let onFormatSuccess cs = DB.setCondFormattingRules conn sid rules >> DB.setCells conn cs
-  either (const $ return ()) onFormatSuccess errOrCells
-  broadcastFiltered state uc $ makeCondFormatMessage errOrCells rules
+  rulesToDelete <- DB.getCondFormattingRules conn sid deleteRuleIds
+  oldRules <- DB.getCondFormattingRulesInSheet conn sid
+  let allRulesUpdated = applyUpdate u oldRules
+      updatedLocs = concatMap rangeToIndices $ concatMap cellLocs $ union updatedRules rulesToDelete
+  cells <- DB.getPossiblyBlankCells conn updatedLocs
+  errOrCells <- runEitherT $ conditionallyFormatCells conn sid cells allRulesUpdated emptyContext
+  time <- getASTime
+  let errOrCommit = fmap (\cs -> Commit (Diff cs cells) emptyDiff emptyDiff (Diff updatedRules rulesToDelete) time) errOrCells
+  either (const $ return ()) (DT.updateDBWithCommit conn src) errOrCommit
+  broadcastFiltered state uc $ makeReplyMessageFromErrOrCommit errOrCommit
 
 -- #needsrefactor Should eventually merge with handleSetProp. 
 handleSetBarProp :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
 handleSetBarProp uc state (PayloadSetBarProp bInd prop) = do 
   conn <- dbConn <$> readMVar state
-  let sid = userSheetId uc
-  mOldProps <- DB.getBarProps conn bInd
-  let oldProps = maybe BP.emptyProps id mOldProps
-      newProps = BP.setProp prop oldProps
+  oldProps <- maybe BP.emptyProps barProps <$> DB.getBar conn bInd
+  let newProps = BP.setProp prop oldProps
       newBar   = Bar bInd newProps
       oldBar   = Bar bInd oldProps
   DB.setBar conn newBar
   -- Commit barProps.
   time <- getASTime
   let bd     = Diff { beforeVals = [oldBar], afterVals = [newBar] }
-      commit = Commit bd emptyDiff emptyDiff time
+      commit = (emptyCommitWithTime time) { barDiff = bd }
   DT.updateDBWithCommit conn (userCommitSource uc) commit
   sendToOriginal uc $ ServerMessage SetBarProp Success (PayloadN ())
 
 -- #anand used for importing binary alphasheets files (making a separate REST server for alphasheets
-  -- import/export seems overkill given that it's a temporarily needed solution)
-  -- so we just send alphasheets files as binary data over websockets and immediately load
-  -- into the current sheet.
+-- import/export seems overkill given that it's a temporarily needed solution)
+-- so we just send alphasheets files as binary data over websockets and immediately load
+-- into the current sheet.
 handleImportBinary :: (Client c) => c -> MVar ServerState -> BL.ByteString -> IO ()
 handleImportBinary c state bin = do
   redisConn <- dbConn <$> readMVar state

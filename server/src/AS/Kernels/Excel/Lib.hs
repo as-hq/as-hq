@@ -577,8 +577,8 @@ collapseNumeric' f c e = do
 zipNumericSum2 :: (EFormattedNumeric -> EFormattedNumeric -> EFormattedNumeric) -> String -> EFunc
 zipNumericSum2 zipper name c e = do
   -- | Make sure that there are two arguments, both matrices
-  (EMatrix c1 r1 v1) <- getRequired "matrix" name 1 e :: ThrowsError EMatrix
-  (EMatrix c2 r2 v2) <- getRequired "matrix" name 2 e :: ThrowsError EMatrix
+  (EMatrix c1 r1 v1) <- getRequired name 1 e :: ThrowsError EMatrix
+  (EMatrix c2 r2 v2) <- getRequired name 2 e :: ThrowsError EMatrix
   -- | Throw error if dimensions don't match
   if ((c1,r1) /= (c2,r2))
     then Left $ NA $ "Arguments for " ++ name ++ " had different sizes"
@@ -594,9 +594,9 @@ zipNumericSum2 zipper name c e = do
 ifFunc :: String ->  Context -> [EEntity] -> ThrowsError (V.Vector EValue)
 ifFunc f c e = do
   -- | We want refs because we may need to resize later (Excel sucks)
-  critRange <- getRequired "ref" f 1 e :: ThrowsError ERef
-  criteria <- getRequired "value" f 2 e :: ThrowsError EValue
-  valRange <- getOptional "ref" critRange f 3 e :: ThrowsError ERef
+  critRange <- getRequired f 1 e :: ThrowsError ERef
+  criteria <- getRequired f 2 e :: ThrowsError EValue
+  valRange <- getOptional critRange f 3 e :: ThrowsError ERef
   -- | Make sure that the criteria range and sum range have the same dimension before replacing refs
   let valRange' = matchDimension critRange valRange
   -- | refToEntity will throw an error if any ASValue cannot be mapped to an Excel value
@@ -618,9 +618,9 @@ ifsFunc f e = do
   if (length e < 3)
     then Left $ NumArgs f 3 (length e)
     else Right ()
-  (EMatrix _ _ valVec) <- getRequired "matrix" f 1 e :: ThrowsError EMatrix
-  criteriaMatrices <- mapM (\n -> getRequired "matrix" f n e) [2*arg | arg<-[1..(length e) `div` 2]]
-  criteria <- mapM (\n -> getRequired "value" f n e) [2*arg+1 | arg<-[1..(length e-1) `div` 2]]
+  (EMatrix _ _ valVec) <- getRequired f 1 e :: ThrowsError EMatrix
+  criteriaMatrices <- mapM (\n -> getRequired f n e) [2*arg | arg<-[1..(length e) `div` 2]]
+  criteria <- mapM (\n -> getRequired f n e) [2*arg+1 | arg<-[1..(length e-1) `div` 2]]
   let matches =  map matchLambda criteria -- [EValue -> Bool]
   let dims = map matrixDim criteriaMatrices
   if (allTheSame dims) -- make sure that all ranges have the same dimension
@@ -780,9 +780,9 @@ eIfError c r = do
 eIf :: EFunc
 eIf c e = do
   let f = "if"
-  b <- getRequired "bool" f 1 e :: ThrowsError Bool
-  v1 <- getRequired "value" f 2 e :: ThrowsError EValue
-  v2 <- getRequired "value" f 3 e :: ThrowsError EValue
+  b <- getRequired f 1 e :: ThrowsError Bool
+  v1 <- getRequired f 2 e :: ThrowsError EValue
+  v2 <- getRequired f 3 e :: ThrowsError EValue
   if b
     then valToResult v1
     else valToResult v2
@@ -790,7 +790,7 @@ eIf c e = do
 -- | Returns the logical inverse of its only argument
 eNot :: EFunc
 eNot c e = do
-  b <- (getRequired "bool" "not" 1 e)::(ThrowsError Bool)
+  b <- (getRequired "not" 1 e)::(ThrowsError Bool)
   valToResult $ EValueB (not b)
 
 -- | Returns the logical and of its args, ignoring non-logical arguments/values within matrices
@@ -809,11 +809,11 @@ eOr = collapseBool (||)
 eAddress :: EFunc
 eAddress c e = do
   let f  = "address"
-  row <- getRequired "int" f 1 e :: ThrowsError Int
-  col <- getRequired "int" f 2 e :: ThrowsError Int
-  refType <- getOptional "int" 1 f 3 e :: ThrowsError Int
-  a1Bool <- getOptional "bool" True f 4 e :: ThrowsError Bool
-  sheet <- getOptional "string" "" f 5 e :: ThrowsError String
+  row <- getRequired f 1 e :: ThrowsError Int
+  col <- getRequired f 2 e :: ThrowsError Int
+  refType <- getOptional 1 f 3 e :: ThrowsError Int
+  a1Bool <- getOptional True f 4 e :: ThrowsError Bool
+  sheet <- getOptional "" f 5 e :: ThrowsError String
   if a1Bool -- A1 format reference
     then do
       ref <- refToString col row refType
@@ -853,7 +853,7 @@ intToCol = intToColStr -- from AS.Util
 eColumn :: EFunc
 eColumn c e = do
   -- curLoc is always an index (you evaluate from within a cell)
-  (ERef loc) <- getOptional "ref" (ERef (IndexRef $ curLoc c)) "column" 1 e :: ThrowsError ERef
+  (ERef loc) <- getOptional (ERef (IndexRef $ curLoc c)) "column" 1 e :: ThrowsError ERef
   case loc of
     IndexRef (Index _ (a,b)) -> valToResult $ EValueNum $ return $ EValueI $ fromIntegral a
     PointerRef _ -> Left $ REF $ "Can't convert pointer to entity"
@@ -866,7 +866,7 @@ eColumn c e = do
 eRow :: EFunc
 eRow c e = do
   -- curLoc is always an index (you evaluate from within a cell)
-  (ERef loc) <- getOptional "ref" (ERef (IndexRef $ curLoc c)) "row" 1 e :: ThrowsError ERef
+  (ERef loc) <- getOptional (ERef (IndexRef $ curLoc c)) "row" 1 e :: ThrowsError ERef
   case loc of
     IndexRef (Index _ (a,b)) -> valToResult $ EValueNum $ return $ EValueI $ fromIntegral b
     PointerRef _ -> Left $ REF $ "Can't convert pointer to entity"
@@ -879,8 +879,8 @@ eRow c e = do
 -- | If the reference is fed into another function, that function will replace the reference (via DB/context) if necessary
 eIndirect :: EFunc
 eIndirect c e = do
-  refString <- getRequired "string" "indirect" 1 e :: ThrowsError String
-  a1Bool <- getOptional "bool" True "indirect" 2 e :: ThrowsError Bool
+  refString <- getRequired "indirect" 1 e :: ThrowsError String
+  a1Bool <- getOptional True "indirect" 2 e :: ThrowsError Bool
   case (stringToLoc a1Bool (locSheetId $ curLoc c) refString) of
     Nothing -> Left $ REF "Indirect did not refer to valid reference as first argument"
     Just loc -> return $ EntityRef (ERef loc)
@@ -912,11 +912,11 @@ stringToLoc False sid str = case parse (r1c1 sid) "" str of
 -- | Takes a reference, height/width/col/row parameters, and returns an offsetted reference
 eOffset :: EFunc
 eOffset c e = do
-  (ERef loc) <- getRequired "ref" "offset" 1 e :: ThrowsError ERef
-  rows <- getRequired "int" "offset" 2 e :: ThrowsError Int
-  cols <- getRequired "int" "offset" 3 e :: ThrowsError Int
-  height <- getOptional "int" (getHeight loc) "offset" 4 e :: ThrowsError Int
-  width <- getOptional "int" (getWidth loc) "offset" 5 e :: ThrowsError Int
+  (ERef loc) <- getRequired "offset" 1 e :: ThrowsError ERef
+  rows <- getRequired "offset" 2 e :: ThrowsError Int
+  cols <- getRequired "offset" 3 e :: ThrowsError Int
+  height <- getOptional (getHeight loc) "offset" 4 e :: ThrowsError Int
+  width <- getOptional (getWidth loc) "offset" 5 e :: ThrowsError Int
   let (a,b) = topLeftLoc loc
   let tl = (a+cols,b+rows)
   let loc' = case (height,width) of
@@ -941,14 +941,14 @@ coordIsSafe (a,b) = a > 0 && b > 0
 -- | Return NA if no match
 eMatch :: EFunc
 eMatch c e = do
-  lookupVal <- getRequired "value" "match" 1 e :: ThrowsError EValue
-  lookupRange <- getRequired "matrix" "match" 2 e :: ThrowsError EMatrix
+  lookupVal <- getRequired "match" 1 e :: ThrowsError EValue
+  lookupRange <- getRequired "match" 2 e :: ThrowsError EMatrix
   vec <- case (to1D lookupRange) of
     Nothing -> Left $ VAL "Lookup range for MATCH cannot be two dimensional"
     Just v -> if (V.null v)
       then Left $ VAL "Lookup range for MATCH cannot be empty"
       else return v
-  lookupType <- getOptional "int" 1 "match" 3 e :: ThrowsError Int
+  lookupType <- getOptional 1 "match" 3 e :: ThrowsError Int
   let matcher = matchLambda lookupVal :: (EValue -> Bool)
   case lookupType of
     -- | Type 0 enables regex
@@ -972,9 +972,9 @@ eMatch c e = do
 -- | Has a "reference mode" and a "value mode", currently only doing value mode
 eIndex :: EFunc
 eIndex c e = do
-  arr <- getRequired "matrix" "index" 1 e :: ThrowsError EMatrix
-  row <- getOptionalMaybe "int" "index" 2 e :: ThrowsError (Maybe Int)
-  col <- getOptionalMaybe "int" "index" 3 e :: ThrowsError (Maybe Int)
+  arr <- getRequired "index" 1 e :: ThrowsError EMatrix
+  row <- getOptionalMaybe "index" 2 e :: ThrowsError (Maybe Int)
+  col <- getOptionalMaybe "index" 3 e :: ThrowsError (Maybe Int)
   (row',col') <- case (row,col) of
     (Nothing,Nothing) -> Left $ VAL "Not enough arguments for Index"
     (a,b) -> Right (f a, f b)
@@ -1002,17 +1002,17 @@ indexOrSlice m@(EMatrix nCol nRow v) row col
 -- | Transpose a matrix
 eTranspose :: EFunc
 eTranspose c e = do
-  m <- getRequired "matrix" "transpose" 1 e :: ThrowsError EMatrix
+  m <- getRequired "transpose" 1 e :: ThrowsError EMatrix
   let mT = matrixTranspose m
   return $ EntityMatrix $ EMatrix (emRows m) (emCols m) (content mT)
 
 eVlookup :: EFunc
 eVlookup c e = do 
   let f = "vlookup"
-  lookupVal <- getRequired "value" f 1 e :: ThrowsError EValue
-  m <- getRequired "matrix" f 2 e :: ThrowsError EMatrix
-  colNum <- getRequired "int" f 3 e :: ThrowsError Int
-  approx <- getOptional "bool" True f 4 e :: ThrowsError Bool
+  lookupVal <- getRequired f 1 e :: ThrowsError EValue
+  m <- getRequired f 2 e :: ThrowsError EMatrix
+  colNum <- getRequired f 3 e :: ThrowsError Int
+  approx <- getOptional True f 4 e :: ThrowsError Bool
   let lstCols = transpose $ matrixTo2DList m 
   let len = length lstCols
   if len < 1
@@ -1051,7 +1051,7 @@ getElemFromCol m@(EMatrix c _ _) colNum i
 -- | If a function takes in a numeric value and returns a double, this is a convenient wrapper
 oneArgDouble :: (Num a) => String -> (Double -> Double) -> EFunc
 oneArgDouble name f c e = do
-  num <- getRequired "numeric" name 1 e :: ThrowsError EFormattedNumeric
+  num <- getRequired name 1 e :: ThrowsError EFormattedNumeric
   let ans = case orig num of
                 EValueI i -> f (fromIntegral i)
                 EValueD d -> f d
@@ -1060,7 +1060,7 @@ oneArgDouble name f c e = do
 -- | Absolute value
 eAbs :: EFunc
 eAbs c e = do
-  num <- getRequired "numeric" "abs" 1 e :: ThrowsError EFormattedNumeric
+  num <- getRequired "abs" 1 e :: ThrowsError EFormattedNumeric
   valToResult $ EValueNum (abs num)
 
 eExp :: EFunc
@@ -1073,13 +1073,13 @@ ePi c e = do
 
 eSqrtPi :: EFunc
 eSqrtPi c e = do
-  num <- getRequired "numeric" "abs" 1 e :: ThrowsError EFormattedNumeric
+  num <- getRequired "abs" 1 e :: ThrowsError EFormattedNumeric
   eSqrt c [EntityVal $ EValueNum $ num * (return $ EValueD pi)]
 
 -- Need to implement an error if negative numbers provided, so this isn't just oneArgDouble
 eSqrt :: EFunc
 eSqrt c e = do
-  formattedNum <- getRequired "numeric" "sqrt" 1 e :: ThrowsError EFormattedNumeric
+  formattedNum <- getRequired "sqrt" 1 e :: ThrowsError EFormattedNumeric
   let num = orig formattedNum
   if num < EValueD 0 
     then Left $ SqrtNegative $ fromJust $ extractType $ EntityVal $ EValueNum formattedNum
@@ -1206,8 +1206,8 @@ eAverage c e = do
 -- | Large(array,k) = kth largest number in array
 eLarge :: EFunc
 eLarge c e = do
-  (EMatrix c r v) <- getRequired "matrix" "large" 1 e :: ThrowsError EMatrix
-  k <- getRequired "int" "large" 2 e :: ThrowsError Int
+  (EMatrix c r v) <- getRequired "large" 1 e :: ThrowsError EMatrix
+  k <- getRequired "large" 2 e :: ThrowsError Int
   let nums = filterNum v
   if (V.null nums)
     then Left $ NA $ "Large received no numeric values in range"
@@ -1259,10 +1259,10 @@ eCountIfs c e =  do
 
 eBinomDist ::  EFunc
 eBinomDist c e = do
-  succ'  <- getRequired "int" "binom.dist" 1 e   :: ThrowsError Int
-  trials <- getRequired "int" "binom.dist" 2 e  :: ThrowsError Int
-  p' <- getRequired "double" "binom.dist" 3 e :: ThrowsError Double
-  cum <- getRequired "bool" "binom.dist" 4 e :: ThrowsError Bool
+  succ'  <- getRequired "binom.dist" 1 e   :: ThrowsError Int
+  trials <- getRequired "binom.dist" 2 e  :: ThrowsError Int
+  p' <- getRequired "binom.dist" 3 e :: ThrowsError Double
+  cum <- getRequired "binom.dist" 4 e :: ThrowsError Bool
   p <- checkProb p'
   succ <- checkNumberBinom succ' trials
   let dist = SDB.binomial trials p
@@ -1272,10 +1272,10 @@ eBinomDist c e = do
 
 eNormDist :: EFunc
 eNormDist c e = do
-  x <- getRequired "double" "normdist" 1 e :: ThrowsError Double
-  mu <- getRequired "double" "normdist" 2 e :: ThrowsError Double
-  stdev <- getRequired "double" "normdist" 3 e :: ThrowsError Double
-  cum <- getRequired "bool" "normdist" 4 e :: ThrowsError Bool
+  x <- getRequired "normdist" 1 e :: ThrowsError Double
+  mu <- getRequired "normdist" 2 e :: ThrowsError Double
+  stdev <- getRequired "normdist" 3 e :: ThrowsError Double
+  cum <- getRequired "normdist" 4 e :: ThrowsError Bool
   if stdev < 0
     then Left $ NUM "Standard deviation for NORMDIST is less than zero"
     else do
@@ -1286,9 +1286,9 @@ eNormDist c e = do
 
 eNormInv :: EFunc
 eNormInv c e = do
-  p' <- getRequired "double" "norminv" 1 e :: ThrowsError Double
-  mu <- getRequired "double" "norminv" 2 e :: ThrowsError Double
-  stdev <- getRequired "double" "norminv" 3 e :: ThrowsError Double
+  p' <- getRequired "norminv" 1 e :: ThrowsError Double
+  mu <- getRequired "norminv" 2 e :: ThrowsError Double
+  stdev <- getRequired "norminv" 3 e :: ThrowsError Double
   if stdev < 0
     then Left $ NUM "Standard deviation for NORMINV is less than zero"
     else do
@@ -1370,8 +1370,8 @@ mode xs = case m of
 
 eCorrel :: EFunc
 eCorrel c e = do
-  (EMatrix _ _ arr1) <- getRequired "matrix" "correl" 1 e  :: ThrowsError EMatrix
-  (EMatrix _ _ arr2) <- getRequired "matrix" "correl" 2 e  :: ThrowsError EMatrix
+  (EMatrix _ _ arr1) <- getRequired "correl" 1 e  :: ThrowsError EMatrix
+  (EMatrix _ _ arr2) <- getRequired "correl" 2 e  :: ThrowsError EMatrix
   if (V.length arr1 /= V.length arr2)
     then Left $ NA $ "Arguments for CORREL had different lengths"
     else do
@@ -1392,8 +1392,8 @@ ePearson = eCorrel
 
 eCoVar :: EFunc
 eCoVar c e = do 
-  (EMatrix _ _ arr1) <- getRequired "matrix" "covar" 1 e  :: ThrowsError EMatrix
-  (EMatrix _ _ arr2) <- getRequired "matrix" "covar" 2 e  :: ThrowsError EMatrix
+  (EMatrix _ _ arr1) <- getRequired "covar" 1 e  :: ThrowsError EMatrix
+  (EMatrix _ _ arr2) <- getRequired "covar" 2 e  :: ThrowsError EMatrix
   if (V.length arr1 /= V.length arr2)
     then Left $ NA $ "Arguments for COVAR had different lengths"
     else do
@@ -1406,9 +1406,9 @@ eCoVar c e = do
 -- | Generic function for ranking. Second argument takes a "rank group" [(element,naive rank)] and returns [(element, actual rank)]
 genericRank ::  String -> ([(EFormattedNumeric,Int)] -> [(EFormattedNumeric,EValue)]) -> EFunc
 genericRank f rankGroup c e = do
-  x <- getRequired "numeric" f 1 e :: ThrowsError EFormattedNumeric
-  (EMatrix _ _ v) <- getRequired "matrix" f 2 e :: ThrowsError EMatrix
-  order <- getOptional "int" 0 f 3 e :: ThrowsError Int
+  x <- getRequired f 1 e :: ThrowsError EFormattedNumeric
+  (EMatrix _ _ v) <- getRequired f 2 e :: ThrowsError EMatrix
+  order <- getOptional 0 f 3 e :: ThrowsError Int
   let lst = V.toList $ filterNum v
   -- | In Excel, default is high to low
   let sorted = if (order /= 0)
@@ -1446,8 +1446,8 @@ groupAvg group = zip (map fst group) (repeat commonRank)
 eSlope :: EFunc
 eSlope c e = do
   let f = "slope"
-  (EMatrix _ _ v1) <- getRequired "matrix" f 1 e :: ThrowsError EMatrix
-  (EMatrix _ _ v2) <- getRequired "matrix" f 2 e :: ThrowsError EMatrix
+  (EMatrix _ _ v1) <- getRequired f 1 e :: ThrowsError EMatrix
+  (EMatrix _ _ v2) <- getRequired f 2 e :: ThrowsError EMatrix
   if (V.length v1 /= V.length v2) || V.length v1 == 0 || V.length v2 == 0
     then Left $ NA "Invalid dimensions for SLOPE arguments"
     else do
@@ -1510,12 +1510,12 @@ findStr pat str = findStrHelp pat str 0
 textFind :: Bool -> EFunc
 textFind caseSensitive c e = do
   let f = "find"
-  findText' <- getRequired "string" f 1 e :: ThrowsError String
-  withinText' <- getRequired "string" f 2 e :: ThrowsError String
+  findText' <- getRequired f 1 e :: ThrowsError String
+  withinText' <- getRequired f 2 e :: ThrowsError String
   let findText = normString caseSensitive findText'
   let withinText = normString caseSensitive withinText'
   -- | Optional starting position, starting from 1 (default)
-  startNum <- getOptional "int" 1 f 3 e :: ThrowsError Int
+  startNum <- getOptional 1 f 3 e :: ThrowsError Int
   if startNum <= 0 || startNum >= (length withinText)
     then Left $ VAL "Starting position out of bounds for FIND"
     else do 
@@ -1541,35 +1541,35 @@ eSearch = textFind False
 -- | Find the length of a string
 eLen :: EFunc
 eLen c e = do
-  str <- getRequired "string" "len" 1 e :: ThrowsError String
+  str <- getRequired "len" 1 e :: ThrowsError String
   intToResult $ length str
 
 -- |  Convert text to lowercase
 eLower ::  EFunc
 eLower c e = do
-  str <- getRequired "string" "len" 1 e :: ThrowsError String
+  str <- getRequired "len" 1 e :: ThrowsError String
   stringResult $ map toLower str
 
 -- |  Convert text to uppercase
 eUpper ::  EFunc
 eUpper c e = do
-  str <- getRequired "string" "len" 1 e :: ThrowsError String
+  str <- getRequired "len" 1 e :: ThrowsError String
   stringResult $ map toUpper str
 
 -- | Repeat a string n times
 eRept ::  EFunc
 eRept c e = do
   let f = "rept"
-  str <- getRequired "string" f 1 e :: ThrowsError String
-  n <- getRequired "int" f 2 e :: ThrowsError Int
+  str <- getRequired f 1 e :: ThrowsError String
+  n <- getRequired f 2 e :: ThrowsError Int
   stringResult $ concat $ replicate n str
 
 -- | Rightmost characters of a string
 eRight :: EFunc
 eRight c e = do
   let f =  "right"
-  str <- getRequired "string" f 1 e :: ThrowsError String
-  n <- getOptional "int" 1 f 2 e :: ThrowsError Int
+  str <- getRequired f 1 e :: ThrowsError String
+  n <- getOptional 1 f 2 e :: ThrowsError Int
   if n < 0
     then Left $ VAL "Number of right characters cannot be negative for RIGHT"
     else do
@@ -1582,19 +1582,19 @@ excelTrim str = subRegex (mkRegex "\\s\\s+") str " "
 -- | Trim whitespace from a string
 eTrim :: EFunc
 eTrim c e = do
-  str <- getRequired "string" "trim" 1 e :: ThrowsError String
+  str <- getRequired "trim" 1 e :: ThrowsError String
   stringResult $ T.unpack $ T.strip $ T.pack $ excelTrim str
 
 -- | Substitute new string for old string in larger string
 eSubstitute :: EFunc
 eSubstitute c e = do
   let f = "substitute"
-  str <- getRequired "string" f 1 e :: ThrowsError String
-  old <- getRequired "string" f 2 e :: ThrowsError String
-  new <- getRequired "string" f 3 e :: ThrowsError String
-  n <- getOptional "int" 0 f 4 e :: ThrowsError Int -- which occurrence of old to replace (default = all)
+  str <- getRequired f 1 e :: ThrowsError String
+  old <- getRequired f 2 e :: ThrowsError String
+  new <- getRequired f 3 e :: ThrowsError String
+  n <- getOptional 0 f 4 e :: ThrowsError Int -- which occurrence of old to replace (default = all)
   if n == 0
-    then if (not $ null old) 
+    then if (not $ null old)
       then stringResult $ SU.replace old new str
       else stringResult str
     else do
@@ -1615,7 +1615,7 @@ replaceBlanksWithZeroes = map blankToZero
 
 numPrefix' :: String -> (EFormattedNumeric -> EFormattedNumeric) -> EFunc
 numPrefix' name f c e = do 
-  a <- getRequired "numeric" name 1 e :: ThrowsError EFormattedNumeric
+  a <- getRequired name 1 e :: ThrowsError EFormattedNumeric
   valToResult $ EValueNum $ f a
 
 numPrefix :: String -> (EFormattedNumeric -> EFormattedNumeric) -> EFunc
@@ -1623,8 +1623,8 @@ numPrefix name f c e = numPrefix' name f c (replaceBlanksWithZeroes e)
 
 numInfix' :: String -> (EFormattedNumeric -> EFormattedNumeric -> EFormattedNumeric) -> EFunc
 numInfix' name f c e = do 
-  a <- getRequired "numeric" name 1 e :: ThrowsError EFormattedNumeric
-  b <- getRequired "numeric" name 2 e :: ThrowsError EFormattedNumeric
+  a <- getRequired name 1 e :: ThrowsError EFormattedNumeric
+  b <- getRequired name 2 e :: ThrowsError EFormattedNumeric
   valToResult $ EValueNum $ f a b
 
 numInfix :: String -> (EFormattedNumeric -> EFormattedNumeric -> EFormattedNumeric) -> EFunc
@@ -1656,8 +1656,8 @@ isNonnegative (Formatted (EValueI a) _) = (a >= 0)
 
 eDivide' :: EFunc
 eDivide' c e = do
-  a <- getRequired "numeric" "/" 1 e :: ThrowsError EFormattedNumeric
-  b <- getRequired "numeric" "/" 2 e :: ThrowsError EFormattedNumeric
+  a <- getRequired "/" 1 e :: ThrowsError EFormattedNumeric
+  b <- getRequired "/" 2 e :: ThrowsError EFormattedNumeric
   if (isZero b)
     then Left DIV0
     else valToResult $ EValueNum $ a / b
@@ -1667,8 +1667,8 @@ eDivide c e = eDivide' c (replaceBlanksWithZeroes e)
 
 ePower' :: EFunc
 ePower' c e = do
-  a <- getRequired "numeric" "^" 1 e :: ThrowsError EFormattedNumeric
-  b <- getRequired "numeric" "^" 2 e :: ThrowsError EFormattedNumeric
+  a <- getRequired "^" 1 e :: ThrowsError EFormattedNumeric
+  b <- getRequired "^" 2 e :: ThrowsError EFormattedNumeric
   if (isZero a && isZero b) 
     then Left ZeroToTheZero
     else case orig b of 
@@ -1682,8 +1682,8 @@ ePower c e = ePower' c (replaceBlanksWithZeroes e)
 
 boolInfix :: String -> (EValue -> EValue -> Bool) -> EFunc
 boolInfix name f c e = do 
-  a <- getRequired "value" name 1 e :: ThrowsError EValue
-  b <- getRequired "value" name 2 e :: ThrowsError EValue
+  a <- getRequired name 1 e :: ThrowsError EValue
+  b <- getRequired name 2 e :: ThrowsError EValue
   valToResult $ EValueB $ f a b
 
 eEquals :: EFunc
@@ -1707,18 +1707,34 @@ eLessE = boolInfix "<=" (<=)
 eSpace :: EFunc
 eSpace c e = do
   let f = "intersect(space)"
-  (ERef l1) <- getRequired "ref" f 1 e :: ThrowsError ERef
-  (ERef l2) <- getRequired "ref" f 2 e :: ThrowsError ERef
+  (ERef l1) <- getRequired f 1 e :: ThrowsError ERef
+  (ERef l2) <- getRequired f 2 e :: ThrowsError ERef
   case (locIntersect l1 l2) of
     Nothing ->  Left $ CannotIntersectRefs
     Just l -> locToResult l
 
+class ShowE a where
+  showE :: a -> String
+
+instance ShowE EValue where
+  showE (EValueB True) = "TRUE"
+  showE (EValueB False) = "FALSE"
+  showE (EValueS s) = s
+  showE (EValueNum (Formatted (EValueD d) _)) = show d
+  showE (EValueNum (Formatted (EValueI i) _)) = show i
+  showE EBlank = ""
+  -- TODO: timchu, 12/17. showE for EValueE and EMissing is not correct, but currently isn't used.
+  showE EMissing = "#ERROR!"
+  showE (EValueE s) = "#ERROR!"
+
 eAmpersand :: EFunc
 eAmpersand c e = do
   let f = "&"
-  str1 <- getRequired "string" f 1 e :: ThrowsError String
-  str2 <- getRequired "string" f 2 e :: ThrowsError String
+  val1 <- getRequired f 1 e :: ThrowsError EValue
+  val2 <- getRequired f 2 e :: ThrowsError EValue
+  let makeString :: (EValue, Int) -> ThrowsError String
+      makeString (x,i) = case x of
+                 EValueE s -> Left $ ArgType f i "non-error value" "err"
+                 otherwise -> Right $ showE x
+  [str1, str2] <- mapM makeString (zip [val1, val2] [1,2])
   stringResult $ str1 ++ str2
-
---------------------------------------------------------------------------------------------------------------
-

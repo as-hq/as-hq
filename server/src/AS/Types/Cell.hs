@@ -25,6 +25,7 @@ import qualified Data.Map as M
 import Data.Serialize (Serialize)
 import Data.Aeson.Types (Parser)
 import Control.DeepSeq
+import Control.Applicative ((<$>))
 import Control.DeepSeq.Generics (genericRnf)
 
 data ASLanguage = R | Python | OCaml | CPP | Java | SQL | Excel deriving (Show, Read, Eq, Generic)
@@ -107,13 +108,13 @@ isBlank _ = False
 
 -- checks if a cell is actually "empty", in the sense that it has no props and no expression.
 isEmptyCell :: ASCell -> Bool
-isEmptyCell c = (null . underlyingProps $ cellProps c) && (null . xpString $ cellExpression c)
+isEmptyCell = and <$> sequence [null . underlyingProps . cellProps, null . condFormatProps . cellProps, null . xpString . cellExpression]
 
 mergeCells :: [ASCell] -> [ASCell] -> [ASCell]
 mergeCells c1 c2 = map snd $ M.toList $ M.union (toMap c1) (toMap c2)
-
-toMap :: [ASCell] -> M.Map ASIndex ASCell
-toMap cs = M.fromList $ zip (map cellLocation cs) cs
+  where 
+    toMap :: [ASCell] -> M.Map ASIndex ASCell
+    toMap cs = M.fromList $ zip (map cellLocation cs) cs
 
 -- | Returns a list of blank cells at the given locations. For now, the language doesn't matter, 
 -- because blank cells sent to the frontend don't get their languages saved. 

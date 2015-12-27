@@ -49,13 +49,13 @@ import Database.Redis (Connection)
 evaluateLanguage :: Connection -> ASIndex -> EvalContext -> ASExpression -> EitherTExec (Formatted CompositeValue)
 evaluateLanguage conn idx@(Index sid _) ctx xp@(Expression str lang) = catchEitherT $ do
   printWithTimeT "Starting eval code"
-  printObjT "eval language with cells in context: " (contextMap ctx)
+  printObjT "eval language with cells in context: " (virtualCellsMap ctx)
   maybeShortCircuit <- possiblyShortCircuit conn sid ctx xp
   case maybeShortCircuit of
     Just e -> return . return . CellValue $ e -- short-circuited, return this error
     Nothing -> case lang of
       Excel -> do 
-        KE.evaluate conn str idx (contextMap ctx)
+        KE.evaluate conn str idx (virtualCellsMap ctx)
         -- Excel needs current location and un-substituted expression, and needs the formatted values for
         -- loading the initial entities
       otherwise -> do 
@@ -119,7 +119,7 @@ onRefToIndicesSuccess ctx xp depInds = listToMaybe $ catMaybes $ flip map (zip d
   otherwise               -> Nothing 
   where
     lang           = xpLanguage xp
-    values         = map (cellValue . ((contextMap ctx) M.!)) depInds
+    values         = map (cellValue . ((virtualCellsMap ctx) M.!)) depInds
 
 
 -- | Nothing if it's OK to pass in NoValue, appropriate ValueError if not.

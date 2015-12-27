@@ -6,9 +6,11 @@ import AS.Types.Commits
 import AS.Types.Network
 import AS.Types.Eval
 import AS.Types.Errors
+import AS.Types.Updates
 
 import AS.Eval.CondFormat
-import AS.Util as U
+import AS.Util
+import AS.Logging
 import AS.DB.API as DB
 import AS.Daemon as DM
 
@@ -19,18 +21,17 @@ import Database.Redis as R
 import Control.Concurrent
 
 
--- | Here, we apply a stack of endwares.
--- | Endware for producing tags post-eval e.g. streaming or styling
--- | Examples: green(x) in python -> produces styled value with string in output -> string parsed to Color tag
--- | Bloomberg(x) in java -> produces json with stream specs -> converted to Stream tag, kickoff daemon
-
-evalEndware :: MVar ServerState -> [ASCell] -> CommitSource -> [ASCell] -> EvalContext -> EitherTExec [ASCell]
-evalEndware state finalCells (CommitSource sid uid) origCells ctx = do 
+-- | Here, we apply a stack of endwares for setting props post-eval, from e.g. streaming or conditional formatting
+evalEndware :: MVar ServerState -> CommitSource -> EvalContext -> EitherTExec [ASCell]
+evalEndware state (CommitSource sid uid) ctx = do 
   conn <- lift $ dbConn <$> readMVar state
-  mapM_ (\c -> lift $ DM.possiblyCreateDaemon state uid c) origCells
-  let cells1 = changeExcelExpressions finalCells
-  rules <- lift $ DB.getCondFormattingRules conn sid 
-  cells2 <- conditionallyFormatCells conn sid cells1 rules ctx
+  let cells0 = newCellsInContext ctx
+      cells1 = changeExcelExpressions cells0
+      blankedCells = blankCellsAt (refsToIndices . oldKeys . cellUpdates . updateAfterEval $ ctx)
+  mapM_ (lift . DM.possiblyCreateDaemon state uid) cells0
+  oldRules <- lift $ DB.getCondFormattingRulesInSheet conn sid 
+  let updatedRules = applyUpdate (condFormatRulesUpdates $ updateAfterEval ctx) oldRules
+  cells2 <- conditionallyFormatCells conn sid (cells1 ++ blankedCells) updatedRules ctx
   return cells2
    
 ----------------------------------------------------------------------------------------------------------------------------------------------

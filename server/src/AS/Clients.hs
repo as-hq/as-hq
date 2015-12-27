@@ -43,41 +43,41 @@ instance Client ASUserClient where
   handleClientMessage user state message = do 
     -- second arg is supposed to be sheet id; temporary hack is to always set userId = sheetId
     -- on frontend. 
-    unless (clientAction message == Acknowledge) $ do 
+    unless (clientAction message `elem` [Acknowledge, UpdateWindow, Open]) $ do 
       logClientMessage (show message) (userCommitSource user)
       putStrLn "=========================================================="
       printObj "Message" (show message)
     redisConn <- dbConn <$> readMVar state
     storeLastMessage redisConn message (userCommitSource user)
     case (clientAction message) of
-      Acknowledge        -> handleAcknowledge user
+      Acknowledge           -> handleAcknowledge user
       -- New                -> handleNew user state payload -- temporarly disabled
-      Open               -> handleOpen user state payload
-      Close              -> handleClose user state payload
-      UpdateWindow       -> handleUpdateWindow (sessionId user) state payload
-      Import             -> handleImport user state payload
-      Export             -> handleExport user state payload
-      Evaluate           -> handleEval user state payload
-      EvaluateRepl       -> handleEvalRepl user payload
-      EvaluateHeader     -> handleEvalHeader user state payload
-      Get                -> handleGet user state payload
-      Delete             -> handleDelete user state payload
-      Clear              -> handleClear user state payload
-      Undo               -> handleUndo user state
-      Redo               -> handleRedo user state
-      Copy               -> handleCopy user state payload
-      Cut                -> handleCut user state payload
-      ToggleProp         -> handleToggleProp user state payload
-      SetProp            -> handleSetProp user state payload
-      Repeat             -> handleRepeat user state payload
-      BugReport          -> handleBugReport user payload
-      JumpSelect         -> handleJumpSelect user state payload
-      MutateSheet        -> handleMutateSheet user state payload
-      Drag               -> handleDrag user state payload
-      Decouple           -> handleDecouple user state payload
-      SetCondFormatRules -> handleSetCondFormatRules user state payload
-      SetBarProp      -> handleSetBarProp user state payload
-      ImportCSV          -> handleCSVImport user state payload
+      Open                  -> handleOpen user state payload
+      Close                 -> handleClose user state payload
+      UpdateWindow          -> handleUpdateWindow (sessionId user) state payload
+      Import                -> handleImport user state payload
+      Export                -> handleExport user state payload
+      Evaluate              -> handleEval user state payload
+      EvaluateRepl          -> handleEvalRepl user payload
+      EvaluateHeader        -> handleEvalHeader user state payload
+      Get                   -> handleGet user state payload
+      Delete                -> handleDelete user state payload
+      Clear                 -> handleClear user state payload
+      Undo                  -> handleUndo user state
+      Redo                  -> handleRedo user state
+      Copy                  -> handleCopy user state payload
+      Cut                   -> handleCut user state payload
+      ToggleProp            -> handleToggleProp user state payload
+      SetProp               -> handleSetProp user state payload
+      Repeat                -> handleRepeat user state payload
+      BugReport             -> handleBugReport user payload
+      JumpSelect            -> handleJumpSelect user state payload
+      MutateSheet           -> handleMutateSheet user state payload
+      Drag                  -> handleDrag user state payload
+      Decouple              -> handleDecouple user state payload
+      UpdateCondFormatRules -> handleUpdateCondFormatRules user state payload
+      SetBarProp            -> handleSetBarProp user state payload
+      ImportCSV             -> handleCSVImport user state payload
       where payload = clientPayload message
       -- Undo         -> handleToggleProp user state (PayloadTags [StreamTag (Stream NoSource 1000)] (Index (T.pack "TEST_SHEET_ID2") (1,1)))
       -- ^^ above is to test streaming when frontend hasn't been implemented yet

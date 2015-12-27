@@ -18,14 +18,14 @@ import AS.Reply
 import Data.List
 
 import Control.Concurrent
+import Control.Applicative
 
 handleDelete :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
 handleDelete uc state (PayloadR rng) = do
   conn <- dbConn <$> readMVar state
   blankedCells <- map removeBadFormats <$> getBlankedCellsAt conn (rangeToIndices rng) -- need to know the formats at the old locations
-  errOrCommit <- runDispatchCycle state blankedCells DescendantsWithParent (userCommitSource uc) id
-  let errOrDeleteUpdate = fmap ((modifyUpdateForDelete rng) . sheetUpdateFromCommit) errOrCommit
-  broadcastFiltered state uc $ makeReplyMessageFromErrOrUpdate errOrDeleteUpdate
+  errOrCommit <- runDispatchCycle state blankedCells DescendantsWithParent (userCommitSource uc) (modifyUpdateForDelete rng)
+  broadcastFiltered state uc $ makeReplyMessageFromErrOrCommit errOrCommit
 
 -- Deleting a cell keeps some of the formats but deletes others. This is the current list of formats
 -- to remove upon deletion. 
@@ -42,8 +42,9 @@ removeBadFormats :: ASCell -> ASCell
 removeBadFormats = removeFormats badFormats
 
 -- | Adds the range among the list of locations to delete, and remove all the update cells located within in range. 
+-- #lens
 modifyUpdateForDelete :: ASRange -> SheetUpdate -> SheetUpdate
 modifyUpdateForDelete rng (SheetUpdate (Update cs locs) bs ds cfs) = SheetUpdate (Update cs' locs') bs ds cfs 
   where 
     locs' = (RangeRef rng):locs
-    cs'   = filter (not . (rangeContainsIndex rng) . cellLocation) cs
+    cs'   = filter (not . liftA2 (&&) isEmptyCell (rangeContainsIndex rng . cellLocation)) cs
