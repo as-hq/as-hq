@@ -4,6 +4,7 @@ import AS.Types.Cell
 import AS.Types.Network
 import AS.Types.Messages
 import AS.Types.User
+import AS.Types.Commits
 
 import AS.DB.API
 
@@ -32,13 +33,13 @@ handleToggleProp uc state p rng = do
       setCells conn nonEmptyCells
       deleteLocs conn $ map cellLocation emptyCells
       mapM_ (removePropEndware state p) nonEmptyCells
-      broadcastFiltered state uc $ makeReplyMessageFromCells cells'
+      sendSheetUpdate uc $ sheetUpdateFromCells cells'
     else do
       let cells' = map (\(Cell l e v ps) -> Cell l e v (setProp p ps)) cellsWithoutProp
       conn <- dbConn <$> readMVar state
       setCells conn cells'
       mapM_ (setPropEndware state p) cells'
-      broadcastFiltered state uc $ makeReplyMessageFromCells cells'
+      sendSheetUpdate uc $ sheetUpdateFromCells cells'
     -- don't HAVE to send back the entire cells, but that's an optimization for a later time. 
     -- Said toad. (Alex 11/7)
 
@@ -58,4 +59,4 @@ handleSetProp uc state prop rng = do
   cells <- getPossiblyBlankCells (dbConn curState) locs
   let cells' = map (\(Cell l e v oldProps) -> Cell l e v (setProp prop oldProps)) cells
   setCells (dbConn curState) cells'
-  broadcastFiltered state uc $ makeReplyMessageFromCells cells'
+  sendSheetUpdate uc $ sheetUpdateFromCells cells'

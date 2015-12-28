@@ -44,11 +44,10 @@ data ServerAction =
   | AskDecouple
   | SetInitialProperties SheetUpdate [ASExpression] -- list of expressions in header
   | ShowFailureMessage String
-  | UpdateSheet SheetUpdate
+  | UpdateSheet SheetUpdate 
   | ClearSheet ASSheetId
   | MakeSelection Selection
   | LoadImportedCells [ASCell] -- cells to add to sheet
-  | ApplyCommit SheetUpdate -- an update, not a commit, is passed back
   | ShowHeaderResult CompositeValue
   deriving (Show, Read, Eq, Generic)
 
@@ -136,6 +135,8 @@ generateErrorMessage e = case e of
   ExpressionNotEvaluable      -> "Expression not does not contain evaluable statement."
   ExecError                   -> "Error while evaluating expression."
   SyntaxError                 -> "Syntax error."
+  TooFarBack                  -> "Too far back"
+  TooFarForwards              -> "Too far forwards"
   _                           -> show e
 
 
@@ -144,20 +145,3 @@ generateErrorMessage e = case e of
 makeErrorMessage :: ASExecError -> ASServerMessage
 makeErrorMessage DecoupleAttempt = ServerMessage AskDecouple
 makeErrorMessage e = ServerMessage $ ShowFailureMessage $ generateErrorMessage e
-
-makeReplyMessageFromUpdate :: SheetUpdate -> ASServerMessage
-makeReplyMessageFromUpdate update = ServerMessage $ UpdateSheet update
-
-makeReplyMessageFromCommit :: ASCommit -> ASServerMessage
-makeReplyMessageFromCommit = makeReplyMessageFromUpdate . sheetUpdateFromCommit
-
-makeReplyMessageFromErrOrUpdate :: Either ASExecError SheetUpdate -> ASServerMessage
-makeReplyMessageFromErrOrUpdate (Left err) = makeErrorMessage err
-makeReplyMessageFromErrOrUpdate (Right update) = makeReplyMessageFromUpdate update
-
-makeReplyMessageFromErrOrCommit :: Either ASExecError ASCommit -> ASServerMessage
-makeReplyMessageFromErrOrCommit = makeReplyMessageFromErrOrUpdate . (fmap sheetUpdateFromCommit)
-
--- | Pass in a list of cells and an action, and this function constructs the message for updating those cells. 
-makeReplyMessageFromCells :: [ASCell] -> ASServerMessage
-makeReplyMessageFromCells cells = makeReplyMessageFromUpdate $ SheetUpdate (Update cells []) emptyUpdate emptyUpdate emptyUpdate

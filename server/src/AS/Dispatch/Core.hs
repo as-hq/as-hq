@@ -82,7 +82,7 @@ type PureEvalTransform = EvalContext -> EvalContext
 -- assumes all evaled cells are in the same sheet
 -- the only information we're really passed in from the cells is the locations and the expressions of
 -- the cells getting evaluated. We pull the rest from the DB.
-runDispatchCycle :: MVar ServerState -> [ASCell] -> DescendantsSetting -> CommitSource -> UpdateTransform -> IO (Either ASExecError ASCommit)
+runDispatchCycle :: MVar ServerState -> [ASCell] -> DescendantsSetting -> CommitSource -> UpdateTransform -> IO (Either ASExecError SheetUpdate)
 runDispatchCycle state cs descSetting src updateTransform = do
   roots <- EM.evalMiddleware cs
   conn <- dbConn <$> readMVar state
@@ -101,7 +101,7 @@ runDispatchCycle state cs descSetting src updateTransform = do
     let ctx = transformedCtx { updateAfterEval = (updateAfterEval transformedCtx) { cellUpdates = (cellUpdates . updateAfterEval $ transformedCtx) { newVals = finalCells } } } -- #lens
     DT.updateDBWithContext conn src ctx
   either (const $ G.recompute conn) (const $ return ()) errOrCommit 
-  return errOrCommit
+  return . fmap sheetUpdateFromCommit $ errOrCommit
 
 -- takes an old context, inserts the new values necessary for this round of eval, and evals using the new context.
 -- this seems conceptually better than letting each round of dispatch produce a new context, 

@@ -27,8 +27,8 @@ handleEval uc state xp ind  = do
   conn <- dbConn <$> readMVar state
   oldProps <- getPropsAt conn ind
   let cell = Cell ind xp NoValue oldProps
-  errOrCommit <- runDispatchCycle state [cell] DescendantsWithParent (userCommitSource uc) id
-  broadcastFiltered state uc $ makeReplyMessageFromErrOrCommit errOrCommit
+  errOrUpdate <- runDispatchCycle state [cell] DescendantsWithParent (userCommitSource uc) id
+  broadcastErrOrUpdate state uc errOrUpdate
 
 -- not maintaining right now (Alex 12/28)
 -- handleEvalRepl :: ASUserClient -> ASPayload -> IO ()
@@ -56,5 +56,5 @@ handleDecouple uc state = do
     Nothing -> return ()
     Just c -> do
       updateDBWithCommit conn src c
-      broadcastFiltered state uc $ makeReplyMessageFromCommit c
+      broadcastSheetUpdate state $ sheetUpdateFromCommit c
 

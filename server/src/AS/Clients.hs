@@ -110,6 +110,7 @@ instance Client ASDaemonClient where
         conn <- dbConn <$> readMVar state
         oldProps <- getPropsAt conn ind
         let cell = Cell ind xp NoValue oldProps
-        errOrCommit <- runDispatchCycle state [cell] DescendantsWithParent (daemonCommitSource dm) id
-        either (const $ return ()) ((broadcastFiltered' state) . makeReplyMessageFromCommit) errOrCommit
-      -- difference here being that it can't take back a failure message
+        errOrUpdate <- runDispatchCycle state [cell] DescendantsWithParent (daemonCommitSource dm) id
+        either (const $ return ()) (broadcastSheetUpdate state) errOrUpdate
+      -- difference between this and handleEval being that it can't take back a failure message. 
+      -- yes, code replication, whatever. 

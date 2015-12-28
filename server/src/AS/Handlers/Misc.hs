@@ -83,13 +83,15 @@ handleOpen uc state sid = do
   -- get column props
   bars <- DB.getBarsInSheet conn sid
 
-  let sheetUpdate = SheetUpdate emptyUpdate (Update bars []) emptyUpdate (Update condFormatRules [])
+  let sheetUpdate = SheetUpdate emptyUpdate (Update bars []) emptyUpdate (Update condFormatRules []) -- #exposed
   sendToOriginal uc $ ServerMessage $ SetInitialProperties sheetUpdate xps
 
 -- NOTE: doesn't send back blank cells. This means that if, e.g., there are cells that got blanked
 -- in the database, those blank cells will not get passed to the user (and those cells don't get
 -- deleted on frontend), meaning we have to ensure that deleted cells are manually wiped from the
 -- frontend store the moment they get deleted.
+-- 
+-- Also, might want to eventually send back things besides cells as well. 
 handleUpdateWindow :: ClientId -> MVar ServerState -> ASWindow -> IO ()
 handleUpdateWindow cid state w = do
   curState <- readMVar state
@@ -98,7 +100,7 @@ handleUpdateWindow cid state w = do
   (flip catch) (badCellsHandler (dbConn curState) user') (do
     let newLocs = getScrolledLocs oldWindow w
     mcells <- DB.getCells (dbConn curState) $ concat $ map rangeToIndices newLocs
-    sendToOriginal user' $ makeReplyMessageFromCells $ catMaybes mcells
+    sendSheetUpdate user' $ sheetUpdateFromCells $ catMaybes mcells
     US.modifyUser (updateWindow w) user' state)
 
 -- | If a message is failing to parse from the server, undo the last commit (the one that added
@@ -115,7 +117,7 @@ handleGet :: ASUserClient -> MVar ServerState -> [ASIndex] -> IO ()
 handleGet uc state locs = do
   curState <- readMVar state
   mcells <- DB.getCells (dbConn curState) locs
-  sendToOriginal uc (makeReplyMessageFromCells $ catMaybes mcells)
+  sendSheetUpdate uc $ sheetUpdateFromCells $ catMaybes mcells
 -- handleGet uc state (PayloadList Sheets) = do
 --   curState <- readMVar state
 --   ss <- DB.getAllSheets (dbConn curState)
@@ -148,21 +150,15 @@ handleUndo uc state = do
   conn <- dbConn <$> readMVar state
   printWithTime "right before commit"
   commit <- DT.undo conn (userCommitSource uc)
-  let msg = case commit of
-              Nothing -> failureMessage "Too far back"
-              Just c  -> makeReplyMessageFromCommit $ flipCommit c
-  broadcastFiltered state uc msg
-  printWithTime "Server processed undo"
+  let errOrUpdate = maybe (Left TooFarBack) (Right . sheetUpdateFromCommit . flipCommit) commit
+  broadcastErrOrUpdate state uc errOrUpdate
 
 handleRedo :: ASUserClient -> MVar ServerState -> IO ()
 handleRedo uc state = do
   conn <- dbConn <$> readMVar state
   commit <- DT.redo conn (userCommitSource uc)
-  let msg = case commit of
-              Nothing -> failureMessage "Too far forwards"
-              Just c  -> makeReplyMessageFromCommit c
-  broadcastFiltered state uc msg
-  printWithTime "Server processed redo"
+  let errOrUpdate = maybe (Left TooFarForwards) (Right . sheetUpdateFromCommit) commit
+  broadcastErrOrUpdate state uc errOrUpdate
 
 -- Drag/autofill
 handleDrag :: ASUserClient -> MVar ServerState -> ASRange -> ASRange -> IO ()
@@ -170,8 +166,8 @@ handleDrag uc state selRng dragRng = do
   conn <- dbConn <$> readMVar state
   nCells <- IU.getCellsRect conn selRng dragRng
   let newCells = (IU.getMappedFormulaCells selRng dragRng nCells) ++ (IU.getMappedPatternGroups selRng dragRng nCells)
-  errOrCommit <- DP.runDispatchCycle state newCells DescendantsWithParent (userCommitSource uc) id
-  broadcastFiltered state uc $ makeReplyMessageFromErrOrCommit errOrCommit
+  errOrUpdate <- DP.runDispatchCycle state newCells DescendantsWithParent (userCommitSource uc) id
+  broadcastErrOrUpdate state uc errOrUpdate
 
 handleRepeat :: ASUserClient -> MVar ServerState -> Selection -> IO ()
 handleRepeat uc state selection = return () -- do
@@ -213,7 +209,7 @@ handleUpdateCondFormatRules uc state u@(Update updatedRules deleteRuleIds) = do
   time <- getASTime
   let errOrCommit = fmap (\cs -> Commit (Diff cs cells) emptyDiff emptyDiff (Diff updatedRules rulesToDelete) time) errOrCells
   either (const $ return ()) (DT.updateDBWithCommit conn src) errOrCommit
-  broadcastFiltered state uc $ makeReplyMessageFromErrOrCommit errOrCommit
+  broadcastErrOrUpdate state uc $ fmap sheetUpdateFromCommit errOrCommit
 
 -- #needsrefactor Should eventually merge with handleSetProp. 
 handleSetBarProp :: ASUserClient -> MVar ServerState -> BarIndex -> BarProp -> IO ()

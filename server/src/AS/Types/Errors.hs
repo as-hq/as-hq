@@ -114,6 +114,8 @@ data ASExecError =
   | SyntaxError
   | HighDimensionalValue
   | APIError
+  | TooFarForwards
+  | TooFarBack
   deriving (Show, Read, Eq, Generic)
 
 type EitherTExec = EitherT ASExecError IO

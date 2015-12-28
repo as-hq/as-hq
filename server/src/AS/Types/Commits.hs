@@ -56,6 +56,8 @@ sheetUpdateFromCommit (Commit cd bd rdd cfrd _) = SheetUpdate cu bu rdu cfru
     rdu  = diffToUpdate rdd
     cfru = diffToUpdate cfrd
 
+sheetUpdateFromCells :: [ASCell] -> SheetUpdate
+sheetUpdateFromCells cs = SheetUpdate (Update cs []) emptyUpdate emptyUpdate emptyUpdate
 
 instance FromJSON ASTime
 instance ToJSON ASTime
