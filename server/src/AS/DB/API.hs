@@ -408,7 +408,8 @@ getLastMessage conn src = runRedis conn $ do
   msg <- fromRight <$> get (toRedisFormat $ LastMessageKey src)
   return $ case (maybeDecode =<< msg) of 
     Just m@(ClientMessage _ _) -> m
-    _ -> ClientMessage NoAction (PayloadN ())
+    -- _ -> ClientMessage NoAction (PayloadN ())
+    -- ::ALEX::
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Conditional formatting handlers

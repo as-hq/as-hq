@@ -82,7 +82,7 @@ handleOpen uc state (PayloadS (Sheet sid _ _)) = do
   bars <- DB.getBarsInSheet conn sid
 
   let sheetUpdate = SheetUpdate emptyUpdate (Update bars []) emptyUpdate (Update condFormatRules [])
-  sendToOriginal uc $ ServerMessage Open Success $ PayloadOpen xps sheetUpdate
+  sendToOriginal uc $ ServerMessage $ SetInitialProperties sheetUpdate xps
 
 -- NOTE: doesn't send back blank cells. This means that if, e.g., there are cells that got blanked
 -- in the database, those blank cells will not get passed to the user (and those cells don't get
@@ -96,7 +96,7 @@ handleUpdateWindow cid state (PayloadW w) = do
   (flip catch) (badCellsHandler (dbConn curState) user') (do
     let newLocs = getScrolledLocs oldWindow w
     mcells <- DB.getCells (dbConn curState) $ concat $ map rangeToIndices newLocs
-    sendToOriginal user' $ makeReplyMessageFromCells UpdateWindow $ catMaybes mcells
+    sendToOriginal user' $ makeReplyMessageFromCells $ catMaybes mcells
     US.modifyUser (updateWindow w) user' state)
 
 -- | If a message is failing to parse from the server, undo the last commit (the one that added
@@ -113,25 +113,26 @@ handleGet :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
 handleGet uc state (PayloadLL locs) = do
   curState <- readMVar state
   mcells <- DB.getCells (dbConn curState) locs
-  sendToOriginal uc (makeReplyMessageFromCells Get $ catMaybes mcells)
-handleGet uc state (PayloadList Sheets) = do
-  curState <- readMVar state
-  ss <- DB.getAllSheets (dbConn curState)
-  sendToOriginal uc $ ServerMessage UpdateSheet Success (PayloadSS ss)
-handleGet uc state (PayloadList Workbooks) = do
-  curState <- readMVar state
-  ws <- DB.getAllWorkbooks (dbConn curState)
-  sendToOriginal uc $ ServerMessage UpdateSheet Success (PayloadWBS ws)
-handleGet uc state (PayloadList WorkbookSheets) = do
-  curState <- readMVar state
-  wss <- DB.getAllWorkbookSheets (dbConn curState)
-  printWithTime $ "getting all workbooks: "  ++ (show wss)
-  sendToOriginal uc $ ServerMessage UpdateSheet Success (PayloadWorkbookSheets wss)
+  sendToOriginal uc (makeReplyMessageFromCells $ catMaybes mcells)
+-- handleGet uc state (PayloadList Sheets) = do
+--   curState <- readMVar state
+--   ss <- DB.getAllSheets (dbConn curState)
+--   sendToOriginal uc $ ServerMessage UpdateSheet Success (PayloadSS ss)
+-- handleGet uc state (PayloadList Workbooks) = do
+--   curState <- readMVar state
+--   ws <- DB.getAllWorkbooks (dbConn curState)
+--   sendToOriginal uc $ ServerMessage UpdateSheet Success (PayloadWBS ws)
+-- handleGet uc state (PayloadList WorkbookSheets) = do
+--   curState <- readMVar state
+--   wss <- DB.getAllWorkbookSheets (dbConn curState)
+--   printWithTime $ "getting all workbooks: "  ++ (show wss)
+--   sendToOriginal uc $ ServerMessage UpdateSheet Success (PayloadWorkbookSheets wss)
+-- Will uncomment when we're actually using this code; in the meantime let's not bother to maintain it. (12/28)
 
 -- Had relevance back when UserClients could have multiple windows, which never made sense anyway.
 -- (Alex 11/3)
-handleClose :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
-handleClose _ _ _ = return ()
+-- handleClose :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
+-- handleClose _ _ _ = return ()
 
 handleClear :: (Client c) => c  -> MVar ServerState -> ASPayload -> IO ()
 handleClear client state payload = case payload of 
@@ -139,12 +140,12 @@ handleClear client state payload = case payload of
     conn <- dbConn <$> readMVar state
     DB.clear conn
     G.clear
-    broadcastTo state [] $ ServerMessage Clear Success $ PayloadN ()
+    broadcastTo state [] $ ServerMessage ClearAll
   PayloadS (Sheet sid _ _) -> do
     conn <- dbConn <$> readMVar state
     DB.clearSheet conn sid
     G.recompute conn
-    broadcastTo state [sid] $ ServerMessage Clear Success payload
+    broadcastTo state [sid] $ ServerMessage $ ClearSheet sid
 
 handleUndo :: ASUserClient -> MVar ServerState -> IO ()
 handleUndo uc state = do
@@ -191,7 +192,7 @@ handleRepeat uc state (PayloadSelection range origin) = do
       handleCopy uc state (PayloadPaste from range)
     Delete -> handleDelete uc state (PayloadR range)
     Undo -> handleRedo uc state
-    otherwise -> sendToOriginal uc $ ServerMessage Repeat (Failure "Repeat not supported for this action") (PayloadN ())
+    otherwise -> sendToOriginal uc $ failureMessage "Repeat not supported for this action"
 
 -- | For now, all this does is acknowledge that a bug report got sent. The actual contents
 -- of the bug report (part of the payload) are output to the server log in handleClientMessage,
@@ -231,7 +232,7 @@ handleSetBarProp uc state (PayloadSetBarProp bInd prop) = do
   let bd     = Diff { beforeVals = [oldBar], afterVals = [newBar] }
       commit = (emptyCommitWithTime time) { barDiff = bd }
   DT.updateDBWithCommit conn (userCommitSource uc) commit
-  sendToOriginal uc $ ServerMessage SetBarProp Success (PayloadN ())
+  sendToOriginal uc $ ServerMessage NoAction
 
 -- #anand used for importing binary alphasheets files (making a separate REST server for alphasheets
 -- import/export seems overkill given that it's a temporarily needed solution)
@@ -242,11 +243,11 @@ handleImportBinary c state bin = do
   redisConn <- dbConn <$> readMVar state
   case (DS.decodeLazy bin :: Either String ExportData) of
     Left s ->
-      let msg = ServerMessage Import (Failure $ "could not process binary file, decode error: " ++ s) (PayloadN ())
+      let msg = failureMessage $ "could not process binary file, decode error: " ++ s
       in U.sendMessage msg (conn c)
     Right exported -> do
       DX.importData redisConn exported
-      let msg = ServerMessage Import Success (PayloadCL $ exportCells exported)
+      let msg = ServerMessage $ LoadImportedCells $ exportCells exported
       U.sendMessage msg (conn c)
 
 handleExport :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()

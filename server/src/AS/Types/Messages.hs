@@ -5,6 +5,7 @@ module AS.Types.Messages where
 import AS.Window
 
 import AS.Types.Commits
+import AS.Types.Selection
 import AS.Types.Cell
 import AS.Types.Bar
 import AS.Types.BarProps
@@ -29,25 +30,37 @@ data ASClientMessage = ClientMessage {
   clientPayload :: ASPayload
 } deriving (Show, Read, Generic)
 
+-- ::ALEX:: swap names
 data ASServerMessage = ServerMessage {
-  serverAction :: ASAction,
-  serverResult :: ASResult,
-  serverPayload :: ASPayload
+  serverAction :: ServerAction
 } deriving (Show, Read, Generic)
 
 -- maybe move to Util?
 failureMessage :: String -> ASServerMessage
-failureMessage s = ServerMessage NoAction (Failure s) (PayloadN ())
+failureMessage s = ServerMessage $ ShowFailureMessage s
+
+-- the constructors (i.e. the first words) are verbs telling client what action to take
+data ServerAction = 
+    NoAction
+  | AskDecouple
+  | SetInitialProperties SheetUpdate [ASExpression] -- list of expressions in header
+  | ShowFailureMessage String
+  | UpdateSheet SheetUpdate
+  | ClearSheet ASSheetId
+  | ClearAll
+  | MakeSelection Selection
+  | LoadImportedCells [ASCell] -- cells to add to sheet
+  | ApplyCommit SheetUpdate -- an update, not a commit, is passed back
+  | ShowHeaderResult CompositeValue
+  deriving (Show, Read, Eq, Generic)
 
 data ASAction =
-    NoAction
-  | Acknowledge
+    Acknowledge
   | SetInitialSheet
   | New
   | Import | Export | ImportCSV
   | Open | Close
   | Evaluate | EvaluateRepl | EvaluateHeader
-  | UpdateSheet
   | Get | Delete
   | Copy | Cut | CopyForced
   | Undo | Redo
@@ -133,17 +146,12 @@ instance FromJSON ASClientMessage where
                            v .: "payload"
   parseJSON _          = fail "client message JSON attributes missing"
 
-instance ToJSON ASServerMessage where
-  toJSON (ServerMessage action result payload) = object ["action" .= action,
-                                                        "result" .= result,
-                                                        "payload" .= payload]
 
-instance FromJSON ASServerMessage where
-  parseJSON (Object v) = ServerMessage <$>
-                           v .: "action" <*>
-                           v .: "result" <*>
-                           v .: "payload"
-  parseJSON _          = fail "server message JSON attributes missing"
+instance FromJSON ASServerMessage
+instance ToJSON ASServerMessage
+
+instance FromJSON ServerAction
+instance ToJSON ServerAction
 
 instance ToJSON ASPayload where
   toJSON (PayloadWorkbookSheets wbs) = object ["tag" .= ("PayloadWorkbookSheets" :: String),
@@ -206,23 +214,23 @@ generateErrorMessage e = case e of
 
 -- | Creates a server message from an ASExecError. Used in makeReplyMessageFromCells and  makeDeleteMessage.
 -- #needsrefactor when makeCondFormatMessage goes, this can probably go too
-makeErrorMessage :: ASExecError -> ASAction -> ASServerMessage
-makeErrorMessage DecoupleAttempt a = ServerMessage a DecoupleDuringEval (PayloadN ())
-makeErrorMessage e a = ServerMessage a (Failure (generateErrorMessage e)) (PayloadN ())
+makeErrorMessage :: ASExecError -> ASServerMessage
+makeErrorMessage DecoupleAttempt = ServerMessage AskDecouple
+makeErrorMessage e = ServerMessage $ ShowFailureMessage $ generateErrorMessage e
 
 makeReplyMessageFromUpdate :: SheetUpdate -> ASServerMessage
-makeReplyMessageFromUpdate update = ServerMessage UpdateSheet Success $ PayloadSheetUpdate update
+makeReplyMessageFromUpdate update = ServerMessage $ UpdateSheet update
 
 makeReplyMessageFromCommit :: ASCommit -> ASServerMessage
 makeReplyMessageFromCommit = makeReplyMessageFromUpdate . sheetUpdateFromCommit
 
 makeReplyMessageFromErrOrUpdate :: Either ASExecError SheetUpdate -> ASServerMessage
-makeReplyMessageFromErrOrUpdate (Left err) = makeErrorMessage err UpdateSheet
+makeReplyMessageFromErrOrUpdate (Left err) = makeErrorMessage err
 makeReplyMessageFromErrOrUpdate (Right update) = makeReplyMessageFromUpdate update
 
 makeReplyMessageFromErrOrCommit :: Either ASExecError ASCommit -> ASServerMessage
 makeReplyMessageFromErrOrCommit = makeReplyMessageFromErrOrUpdate . (fmap sheetUpdateFromCommit)
 
 -- | Pass in a list of cells and an action, and this function constructs the message for updating those cells. 
-makeReplyMessageFromCells :: ASAction -> [ASCell] -> ASServerMessage
-makeReplyMessageFromCells action cells = ServerMessage action Success $ PayloadSheetUpdate $ SheetUpdate (Update cells []) emptyUpdate emptyUpdate emptyUpdate
+makeReplyMessageFromCells :: [ASCell] -> ASServerMessage
+makeReplyMessageFromCells cells = makeReplyMessageFromUpdate $ SheetUpdate (Update cells []) emptyUpdate emptyUpdate emptyUpdate

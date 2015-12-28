@@ -49,16 +49,18 @@ instance Client ASUserClient where
       printObj "Message" (show message)
     redisConn <- dbConn <$> readMVar state
     storeLastMessage redisConn message (userCommitSource user)
+    -- everything commented out here is a thing we are temporarily not supporting, because we only partially implemented them
+    -- but don't want to maintain them
     case (clientAction message) of
       Acknowledge           -> handleAcknowledge user
-      -- New                -> handleNew user state payload -- temporarly disabled
+      -- New                -> handleNew user state payload
       Open                  -> handleOpen user state payload
-      Close                 -> handleClose user state payload
+      -- Close                 -> handleClose user state payload -- temporar
       UpdateWindow          -> handleUpdateWindow (sessionId user) state payload
       Import                -> handleImport user state payload
       Export                -> handleExport user state payload
       Evaluate              -> handleEval user state payload
-      EvaluateRepl          -> handleEvalRepl user payload
+      -- EvaluateRepl          -> handleEvalRepl user payload
       EvaluateHeader        -> handleEvalHeader user state payload
       Get                   -> handleGet user state payload
       Delete                -> handleDelete user state payload
@@ -71,7 +73,7 @@ instance Client ASUserClient where
       SetProp               -> handleSetProp user state payload
       Repeat                -> handleRepeat user state payload
       BugReport             -> handleBugReport user payload
-      JumpSelect            -> handleJumpSelect user state payload
+      -- JumpSelect            -> handleJumpSelect user state payload
       MutateSheet           -> handleMutateSheet user state payload
       Drag                  -> handleDrag user state payload
       Decouple              -> handleDecouple user state payload

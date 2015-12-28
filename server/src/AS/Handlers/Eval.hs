@@ -36,11 +36,12 @@ handleEval uc state payload  = do
   errOrCommit <- runDispatchCycle state cells' DescendantsWithParent (userCommitSource uc) id
   broadcastFiltered state uc $ makeReplyMessageFromErrOrCommit errOrCommit
 
-handleEvalRepl :: ASUserClient -> ASPayload -> IO ()
-handleEvalRepl uc (PayloadXp xp) = do
-  let sid = userSheetId uc
-  msg' <- runReplDispatch sid xp
-  sendToOriginal uc msg'
+-- not maintaining right now (Alex 12/28)
+-- handleEvalRepl :: ASUserClient -> ASPayload -> IO ()
+-- handleEvalRepl uc (PayloadXp xp) = do
+--   let sid = userSheetId uc
+--   msg' <- runReplDispatch sid xp
+--   sendToOriginal uc msg'
 
 handleEvalHeader :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
 handleEvalHeader uc state (PayloadXp xp@(Expression str lang)) = do

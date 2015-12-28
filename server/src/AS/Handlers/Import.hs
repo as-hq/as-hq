@@ -43,7 +43,7 @@ handleCSVImport uc state (PayloadCSV ind lang s) = do
       commit <- generateCommitFromCells cells
       DT.updateDBWithCommit conn src commit
       -- send list of cells back to frontend
-      broadcastFiltered state uc $ makeReplyMessageFromCells UpdateSheet cells
+      broadcastFiltered state uc $ ServerMessage $ LoadImportedCells cells
 
 -- Map a function over a 2D vector
 map2D :: (a -> b) -> V.Vector (V.Vector a) -> V.Vector (V.Vector b)

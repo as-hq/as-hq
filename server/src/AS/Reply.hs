@@ -21,16 +21,17 @@ broadcastTo state sids message = do
       affectedUsers = map fst $ filter (\(_, sid) ->  sid `elem` sids) ucsSheetIds
   (flip mapM_) affectedUsers $ \(UserClient _ conn _ _) -> sendMessage message conn
 
+-- ::ALEX::
 -- | Given a message that's either a failure or updatea message, only send (to each user) the cells in their viewing window. 
 -- Unless there was a failure, in which case send the failure message back to the original user. 
 broadcastFiltered :: MVar ServerState -> ASUserClient -> ASServerMessage -> IO ()
-broadcastFiltered _ orig msg@(ServerMessage _ (Failure _) _) = sendToOriginal orig msg
-broadcastFiltered _ orig msg@(ServerMessage _ (DecoupleDuringEval) _) = sendToOriginal orig msg
+broadcastFiltered _ orig msg@(ServerMessage (ShowFailureMessage _)) = sendToOriginal orig msg
+broadcastFiltered _ orig msg@(ServerMessage AskDecouple) = sendToOriginal orig msg
 broadcastFiltered state _ msg = broadcastFiltered' state msg
 
 -- | Assumes message is not failure message. (Also assumes the payload is a sheet update.)
 broadcastFiltered' :: MVar ServerState -> ASServerMessage -> IO ()
-broadcastFiltered' state msg@(ServerMessage _ _ (PayloadSheetUpdate sheetUpdate)) = do 
+broadcastFiltered' state msg@(ServerMessage (UpdateSheet sheetUpdate)) = do 
   State ucs _ _ _ <- readMVar state
   mapM_ (sendFilteredSheetUpdate msg sheetUpdate) ucs
 
@@ -42,7 +43,7 @@ sendFilteredSheetUpdate msg (SheetUpdate (Update cs locs) rcs ds cfrs) uc = do
   let sid    = userSheetId uc
       cells' = intersectViewingWindow cs (userWindow uc)
       locs'  = filter ((==) sid . refSheetId) locs 
-      msg'   = msg { serverPayload = PayloadSheetUpdate $ SheetUpdate (Update cells' locs') rcs ds cfrs }
+      msg'   = msg { serverAction = UpdateSheet $ SheetUpdate (Update cells' locs') rcs ds cfrs }
   sendMessage msg' (userConn uc)
 
 sendToOriginal :: ASUserClient -> ASServerMessage -> IO ()
