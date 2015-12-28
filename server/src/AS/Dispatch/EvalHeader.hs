@@ -18,10 +18,10 @@ import Control.Monad.Trans.Either
 -- this file is for future kernel-based repl methods
 
 -- #needsrefactor shouldn't return the value, not the message
-runEvalHeader :: ASSheetId -> ASExpression -> IO ASServerMessage
+runEvalHeader :: ASSheetId -> ASExpression -> IO ClientMessage
 runEvalHeader sid xp = do
     let lang = language xp
     val <- runEitherT $ R.evaluateHeader xp
     return $ case val of 
         Left e -> failureMessage $ generateErrorMessage e
-        Right v -> ServerMessage $ ShowHeaderResult v
+        Right v -> ClientMessage $ ShowHeaderResult v

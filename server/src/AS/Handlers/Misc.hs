@@ -60,11 +60,11 @@ handleAcknowledge uc = WS.sendTextData (userConn uc) ("ACK" :: T.Text)
 -- handleNew uc state (PayloadWorkbookSheets (wbs:[])) = do
 --   conn <- dbConn <$> readMVar state
 --   wbs' <- DB.createWorkbookSheet conn wbs
---   broadcastTo state (wsSheets wbs') $ ServerMessage New Success (PayloadWorkbookSheets [wbs'])
+--   broadcastTo state (wsSheets wbs') $ ClientMessage New Success (PayloadWorkbookSheets [wbs'])
 -- handleNew uc state (PayloadWB wb) = do
 --   conn <- dbConn <$> readMVar state
 --   wb' <- DB.createWorkbook conn (workbookSheets wb)
---   broadcastTo state (wsSheets wb') $ ServerMessage New Success (PayloadWB wb')
+--   broadcastTo state (wsSheets wb') $ ClientMessage New Success (PayloadWB wb')
 --   return () -- TODO determine whether users should be notified
 
 handleOpen :: ASUserClient -> MVar ServerState -> ASSheetId -> IO ()
@@ -84,7 +84,7 @@ handleOpen uc state sid = do
   bars <- DB.getBarsInSheet conn sid
 
   let sheetUpdate = SheetUpdate emptyUpdate (Update bars []) emptyUpdate (Update condFormatRules []) -- #exposed
-  sendToOriginal uc $ ServerMessage $ SetInitialProperties sheetUpdate xps
+  sendToOriginal uc $ ClientMessage $ SetInitialProperties sheetUpdate xps
 
 -- NOTE: doesn't send back blank cells. This means that if, e.g., there are cells that got blanked
 -- in the database, those blank cells will not get passed to the user (and those cells don't get
@@ -121,16 +121,16 @@ handleGet uc state locs = do
 -- handleGet uc state (PayloadList Sheets) = do
 --   curState <- readMVar state
 --   ss <- DB.getAllSheets (dbConn curState)
---   sendToOriginal uc $ ServerMessage UpdateSheet Success (PayloadSS ss)
+--   sendToOriginal uc $ ClientMessage UpdateSheet Success (PayloadSS ss)
 -- handleGet uc state (PayloadList Workbooks) = do
 --   curState <- readMVar state
 --   ws <- DB.getAllWorkbooks (dbConn curState)
---   sendToOriginal uc $ ServerMessage UpdateSheet Success (PayloadWBS ws)
+--   sendToOriginal uc $ ClientMessage UpdateSheet Success (PayloadWBS ws)
 -- handleGet uc state (PayloadList WorkbookSheets) = do
 --   curState <- readMVar state
 --   wss <- DB.getAllWorkbookSheets (dbConn curState)
 --   printWithTime $ "getting all workbooks: "  ++ (show wss)
---   sendToOriginal uc $ ServerMessage UpdateSheet Success (PayloadWorkbookSheets wss)
+--   sendToOriginal uc $ ClientMessage UpdateSheet Success (PayloadWorkbookSheets wss)
 -- Will uncomment when we're actually using this code; in the meantime let's not bother to maintain it. (12/28)
 
 -- Had relevance back when UserClients could have multiple windows, which never made sense anyway.
@@ -143,7 +143,7 @@ handleClear client state sid = do
   conn <- dbConn <$> readMVar state
   DB.clearSheet conn sid
   G.recompute conn
-  broadcastTo state [sid] $ ServerMessage $ ClearSheet sid
+  broadcastTo state [sid] $ ClientMessage $ ClearSheet sid
 
 handleUndo :: ASUserClient -> MVar ServerState -> IO ()
 handleUndo uc state = do
@@ -172,7 +172,7 @@ handleDrag uc state selRng dragRng = do
 handleRepeat :: ASUserClient -> MVar ServerState -> Selection -> IO ()
 handleRepeat uc state selection = return () -- do
   -- conn <- dbConn <$> readMVar state
-  -- ClientMessage lastAction lastPayload <- DB.getLastMessage conn (userCommitSource uc)
+  -- ServerMessage lastAction lastPayload <- DB.getLastMessage conn (userCommitSource uc)
   -- printObj "Got last thing for repeat: " (lastAction, lastPayload)
   -- case lastAction of
   --   Evaluate -> do
@@ -188,7 +188,7 @@ handleRepeat uc state selection = return () -- do
   -- temporarily disabling until we implement this for realsies (Alex 12/28)
 
 -- | For now, all this does is acknowledge that a bug report got sent. The actual contents
--- of the bug report (part of the payload) are output to the server log in handleClientMessage,
+-- of the bug report (part of the payload) are output to the server log in handleServerMessage,
 -- which is where we want it end up anyway, for now. (Alex 10/28/15)
 handleBugReport :: ASUserClient -> String -> IO ()
 handleBugReport uc report = do
@@ -225,7 +225,7 @@ handleSetBarProp uc state bInd prop = do
   let bd     = Diff { beforeVals = [oldBar], afterVals = [newBar] }
       commit = (emptyCommitWithTime time) { barDiff = bd }
   DT.updateDBWithCommit conn (userCommitSource uc) commit
-  sendToOriginal uc $ ServerMessage NoAction
+  sendToOriginal uc $ ClientMessage NoAction
 
 -- #anand used for importing binary alphasheets files (making a separate REST server for alphasheets
 -- import/export seems overkill given that it's a temporarily needed solution)
@@ -240,7 +240,7 @@ handleImportBinary c state bin = do
       in U.sendMessage msg (conn c)
     Right exported -> do
       DX.importData redisConn exported
-      let msg = ServerMessage $ LoadImportedCells $ exportCells exported
+      let msg = ClientMessage $ LoadImportedCells $ exportCells exported
       U.sendMessage msg (conn c)
 
 handleExport :: ASUserClient -> MVar ServerState -> ASSheetId -> IO ()

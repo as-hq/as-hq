@@ -45,7 +45,7 @@ handleToggleProp uc state p rng = do
 
 setPropEndware :: MVar ServerState -> CellProp -> ASCell -> IO ()
 setPropEndware state (StreamInfo s) c = modifyDaemon state s (cellLocation c) evalMsg
-  where evalMsg = ClientMessage $ Evaluate (cellExpression c) (cellLocation c)
+  where evalMsg = ServerMessage $ Evaluate (cellExpression c) (cellLocation c)
 setPropEndware _ _ _ = return ()
 
 removePropEndware :: MVar ServerState -> CellProp -> ASCell -> IO ()

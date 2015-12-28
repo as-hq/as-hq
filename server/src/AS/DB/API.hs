@@ -383,9 +383,9 @@ canAccess conn uid loc = canAccessSheet conn uid (locSheetId loc)
 canAccessAll :: Connection -> ASUserId -> [ASIndex] -> IO Bool
 canAccessAll conn uid locs = all id <$> mapM (canAccess conn uid) locs
 
-isPermissibleMessage :: ASUserId -> Connection -> ASClientMessage -> IO Bool
+isPermissibleMessage :: ASUserId -> Connection -> ServerMessage -> IO Bool
 isPermissibleMessage uid conn _ = return True
--- (ClientMessage _ payload) = case payload of 
+-- (ServerMessage _ payload) = case payload of 
 --   PayloadCL cells -> canAccessAll conn uid (map cellLocation cells)
 --   PayloadLL locs -> canAccessAll conn uid locs
 --   PayloadS sheet -> canAccessSheet conn uid (sheetId sheet)
@@ -398,18 +398,18 @@ isPermissibleMessage uid conn _ = return True
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Repeat handlers
 
-storeLastMessage :: Connection -> ASClientMessage -> CommitSource -> IO () 
-storeLastMessage conn msg src = case (clientAction msg) of 
+storeLastMessage :: Connection -> ServerMessage -> CommitSource -> IO () 
+storeLastMessage conn msg src = case (serverAction msg) of 
   Repeat _ -> return ()
   _ -> runRedis conn (set (toRedisFormat $ LastMessageKey src) (S.encode msg)) >> return ()
 
-getLastMessage :: Connection -> CommitSource -> IO ASClientMessage
+getLastMessage :: Connection -> CommitSource -> IO ServerMessage
 getLastMessage conn src = error "Currently not implemented"
  -- runRedis conn $ do 
  --  msg <- fromRight <$> get (toRedisFormat $ LastMessageKey src)
  --  return $ case (maybeDecode =<< msg) of 
  --    Just m -> m
- --    -- _ -> ClientMessage NoAction (PayloadN ())
+ --    -- _ -> ServerMessage NoAction (PayloadN ())
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Conditional formatting handlers

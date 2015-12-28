@@ -105,11 +105,11 @@ application state pending = do
 
 handleFirstMessage ::  MVar ServerState -> WS.Connection -> B.ByteString -> IO ()
 handleFirstMessage state conn msg =
-  case (decode msg :: Maybe ASClientMessage) of
-    Just (ClientMessage (Initialize cuid csid)) -> do -- first mesage is user init
+  case (decode msg :: Maybe ServerMessage) of
+    Just (ServerMessage (Initialize cuid csid)) -> do -- first mesage is user init
       user <- initUser conn cuid csid
       catch (initClient user state) (handleRuntimeException user state)
-    Just (ClientMessage (InitializeDaemon parentId parentLoc)) -> do -- first message is daemon init
+    Just (ServerMessage (InitializeDaemon parentId parentLoc)) -> do -- first message is daemon init
       let daemon = initDaemonFromMessageAndConn conn parentId parentLoc
       initClient daemon state
     _ -> do -- first message is neither
@@ -119,7 +119,7 @@ handleFirstMessage state conn msg =
 shouldPreprocess :: Bool
 shouldPreprocess = False
 
--- | For debugging purposes. Reads in a list of ClientMessages from a file and processes them, as though
+-- | For debugging purposes. Reads in a list of ServerMessages from a file and processes them, as though
 -- sent from a frontend. 
 preprocess :: WS.Connection -> MVar ServerState -> IO () 
 preprocess conn state = do
@@ -159,7 +159,7 @@ talk client state = forever $ do
   dmsg <- WS.receiveDataMessage (conn client)
   case dmsg of 
     WS.Binary b -> handleImportBinary client state b
-    WS.Text msg -> case (eitherDecode msg :: Either String ASClientMessage) of
+    WS.Text msg -> case (eitherDecode msg :: Either String ServerMessage) of
       Right m -> processMessage client state m
       Left s -> printWithTime ("SERVER ERROR: unable to decode message " 
                                ++ (show msg) 
@@ -192,12 +192,12 @@ onDisconnect' user state _ = do
   onDisconnect user state
   printWithTime "ZOMBIE KILLED!! [mgao machine gun sounds]\n"
 
-processMessage :: (Client c) => c -> MVar ServerState -> ASClientMessage -> IO ()
+processMessage :: (Client c) => c -> MVar ServerState -> ServerMessage -> IO ()
 processMessage client state message = do
   dbConnection <- fmap dbConn (readMVar state) -- state stores connection to db; pull it out
   isPermissible <- DB.isPermissibleMessage (ownerName client) dbConnection message
   if (isPermissible || isDebug)
-    then handleClientMessage client state message
+    then handleServerMessage client state message
     else sendMessage (failureMessage "Insufficient permissions") (conn client)
 
 onDisconnect :: (Client c) => c -> MVar ServerState -> IO ()

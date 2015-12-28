@@ -7,7 +7,7 @@ module AS.Logging
   , printObjT
   , printDebug
   , printDebugT
-  , logClientMessage
+  , logServerMessage
   , logError
   , logBugReport
   ) where
@@ -74,8 +74,8 @@ writeToASLogWithMetadata logRootName msg (CommitSource sid uid) = do
 serverLogsRoot :: String
 serverLogsRoot = "server_log_"
 
-logClientMessage :: String -> CommitSource -> IO ()
-logClientMessage msg src = do 
+logServerMessage :: String -> CommitSource -> IO ()
+logServerMessage msg src = do 
   -- master log
   writeToASLogWithMetadata serverLogsRoot msg src
   -- log for just the sheet

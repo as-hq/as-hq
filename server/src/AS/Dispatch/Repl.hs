@@ -19,12 +19,12 @@ module AS.Dispatch.Repl where
 -- -- this file is for future kernel-based repl methods
 
 -- -- #needsrefactor should return the value, not the message
--- runReplDispatch :: ASSheetId -> ASExpression -> IO ASServerMessage
+-- runReplDispatch :: ASSheetId -> ASExpression -> IO ClientMessage
 -- runReplDispatch sid xp = do
 --     let lang = language xp
 --     -- "" for header right now because the repl is out of commission for now, so I'm not going
 --     -- to fix it. (Alex 12/4)
 --     val <- runEitherT $ R.evaluateLanguageRepl "" xp 
 --     return $ case val of 
---         Left e -> ServerMessage EvaluateHeader (Failure $ generateErrorMessage e) (PayloadValue (CellValue $ execErrorToValueError e) lang)
---         Right v -> ServerMessage EvaluateHeader Success (PayloadValue v lang)
+--         Left e -> ClientMessage EvaluateHeader (Failure $ generateErrorMessage e) (PayloadValue (CellValue $ execErrorToValueError e) lang)
+--         Right v -> ClientMessage EvaluateHeader Success (PayloadValue v lang)

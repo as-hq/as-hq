@@ -25,21 +25,20 @@ import Data.Serialize (Serialize)
 import qualified Data.Text as T
 
 
-data ASClientMessage = ClientMessage {
-  clientAction :: ClientAction
-} deriving (Show, Read, Generic)
-
--- ::ALEX:: swap names
-data ASServerMessage = ServerMessage {
+data ServerMessage = ServerMessage {
   serverAction :: ServerAction
 } deriving (Show, Read, Generic)
 
+data ClientMessage = ClientMessage {
+  clientAction :: ClientAction
+} deriving (Show, Read, Generic)
+
 -- maybe move to Util?
-failureMessage :: String -> ASServerMessage
-failureMessage s = ServerMessage $ ShowFailureMessage s
+failureMessage :: String -> ClientMessage
+failureMessage s = ClientMessage $ ShowFailureMessage s
 
 -- the constructors (i.e. the first words) are verbs telling client what action to take
-data ServerAction = 
+data ClientAction = 
     NoAction
   | AskDecouple
   | SetInitialProperties SheetUpdate [ASExpression] -- list of expressions in header
@@ -51,7 +50,7 @@ data ServerAction =
   | ShowHeaderResult CompositeValue
   deriving (Show, Read, Eq, Generic)
 
-data ClientAction =
+data ServerAction =
     Acknowledge
   | Initialize {connUserId :: ASUserId, connSheetId :: ASSheetId}
   | InitializeDaemon {parentUserId :: ASUserId, parentLoc :: ASIndex}
@@ -102,25 +101,25 @@ data MutateType = InsertCol { insertColNum :: Int } | InsertRow { insertRowNum :
 
 -- The format Frontend uses for both client->server and server->client is
 -- { messageUserId: blah, action: blah, result: blah, payload: blah }
-instance ToJSON ASClientMessage
-instance FromJSON ASClientMessage
+instance ToJSON ServerMessage
+instance FromJSON ServerMessage
 
-instance ToJSON ASServerMessage
-instance FromJSON ASServerMessage
-
-instance ToJSON ServerAction
-instance FromJSON ServerAction
+instance ToJSON ClientMessage
+instance FromJSON ClientMessage
 
 instance ToJSON ClientAction
 instance FromJSON ClientAction
 
+instance ToJSON ServerAction
+instance FromJSON ServerAction
+
 instance ToJSON MutateType
 instance FromJSON MutateType
 
-instance Serialize ASServerMessage
-instance Serialize ASClientMessage
-instance Serialize ServerAction
+instance Serialize ClientMessage
+instance Serialize ServerMessage
 instance Serialize ClientAction
+instance Serialize ServerAction
 instance Serialize MutateType
 -- are legit.
 --------------------------------------------------------------------------------------------------------------
@@ -142,6 +141,6 @@ generateErrorMessage e = case e of
 
 -- | Creates a server message from an ASExecError. Used in makeReplyMessageFromCells and  makeDeleteMessage.
 -- #needsrefactor when makeCondFormatMessage goes, this can probably go too
-makeErrorMessage :: ASExecError -> ASServerMessage
-makeErrorMessage DecoupleAttempt = ServerMessage AskDecouple
-makeErrorMessage e = ServerMessage $ ShowFailureMessage $ generateErrorMessage e
+makeErrorMessage :: ASExecError -> ClientMessage
+makeErrorMessage DecoupleAttempt = ClientMessage AskDecouple
+makeErrorMessage e = ClientMessage $ ShowFailureMessage $ generateErrorMessage e

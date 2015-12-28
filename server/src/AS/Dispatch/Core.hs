@@ -62,7 +62,7 @@ type PureEvalTransform = EvalContext -> EvalContext
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Debugging
 
--- testDispatch :: MVar ServerState -> ASLanguage -> Coord -> String -> IO ASServerMessage
+-- testDispatch :: MVar ServerState -> ASLanguage -> Coord -> String -> IO ClientMessage
 -- testDispatch state lang crd str = runDispatchCycle state [cell] DescendantsWithParent src id
 --   where 
 --     cell = Cell (Index sid crd) (Expression str Python) NoValue emptyProps

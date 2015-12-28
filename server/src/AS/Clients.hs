@@ -30,7 +30,7 @@ import Control.Monad (when)
 -------------------------------------------------------------------------------------------------------------------------
 -- ASUserClient is a client
 
-shouldLogAction :: ClientAction -> Bool
+shouldLogAction :: ServerAction -> Bool
 shouldLogAction Acknowledge      = False
 shouldLogAction (UpdateWindow _) = False
 shouldLogAction (Open _)         = False
@@ -46,18 +46,18 @@ instance Client ASUserClient where
   removeClient uc s@(State ucs dcs dbc port)
     | uc `elem` ucs = State (L.delete uc ucs) dcs dbc port
     | otherwise = s
-  handleClientMessage user state message = do 
+  handleServerMessage user state message = do 
     -- second arg is supposed to be sheet id; temporary hack is to always set userId = sheetId
     -- on frontend. 
-    when (shouldLogAction $ clientAction message) $ do 
-      logClientMessage (show message) (userCommitSource user)
+    when (shouldLogAction $ serverAction message) $ do 
+      logServerMessage (show message) (userCommitSource user)
       putStrLn "=========================================================="
       printObj "Message" (show message)
     redisConn <- dbConn <$> readMVar state
     storeLastMessage redisConn message (userCommitSource user)
     -- everything commented out here is a thing we are temporarily not supporting, because we only partially implemented them
     -- but don't want to maintain them (Alex 12/28)
-    case (clientAction message) of
+    case (serverAction message) of
       Acknowledge                 -> handleAcknowledge user
       -- New                -> handleNew user state payload
       Open sid                    -> handleOpen user state sid
@@ -102,7 +102,7 @@ instance Client ASDaemonClient where
   removeClient dc s@(State ucs dcs dbc port)
     | dc `elem` dcs = State ucs (L.delete dc dcs) dbc port
     | otherwise = s
-  handleClientMessage daemon state message = case (clientAction message) of
+  handleServerMessage daemon state message = case (serverAction message) of
     Evaluate xp loc -> handleEval' daemon state xp loc
     where 
       handleEval' :: ASDaemonClient -> MVar ServerState -> ASExpression -> ASIndex -> IO ()

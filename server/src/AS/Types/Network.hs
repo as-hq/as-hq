@@ -41,7 +41,7 @@ class Client c where
   clientId :: c -> ClientId
   addClient :: c -> ServerState -> ServerState
   removeClient :: c -> ServerState -> ServerState
-  handleClientMessage :: c -> MVar ServerState -> ASClientMessage -> IO ()
+  handleServerMessage :: c -> MVar ServerState -> ServerMessage -> IO ()
 
 -- the actual implementations of these in UserClient and DaemonClient will appear in Client.hs
 

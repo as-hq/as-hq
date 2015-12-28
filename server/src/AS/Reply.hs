@@ -15,7 +15,7 @@ import Control.Concurrent
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Sending message to user client(s)
 
-broadcastTo :: MVar ServerState -> [ASSheetId] -> ASServerMessage -> IO ()
+broadcastTo :: MVar ServerState -> [ASSheetId] -> ClientMessage -> IO ()
 broadcastTo state sids message = do
   (State ucs _ _ _) <- readMVar state
   let ucsSheetIds = zip ucs (map userSheetId ucs)
@@ -45,7 +45,7 @@ filterSheetUpdate (SheetUpdate (Update cs locs) rcs ds cfrs) win = update
     update = SheetUpdate (Update cells' locs') rcs ds cfrs
 
 sendSheetUpdate :: ASUserClient -> SheetUpdate -> IO ()
-sendSheetUpdate uc update = sendMessage (ServerMessage $ UpdateSheet update) (userConn uc)
+sendSheetUpdate uc update = sendMessage (ClientMessage $ UpdateSheet update) (userConn uc)
 
-sendToOriginal :: ASUserClient -> ASServerMessage -> IO ()
+sendToOriginal :: ASUserClient -> ClientMessage -> IO ()
 sendToOriginal uc msg = sendMessage msg (userConn uc)

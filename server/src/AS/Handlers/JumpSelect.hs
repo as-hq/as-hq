@@ -126,4 +126,4 @@ module AS.Handlers.JumpSelect where -- (handleJumpSelect) where
 --     let (newSel', newOrigin) = case newSel of 
 --                               RangeRef r@(Range _ _) -> (r, origin)
 --                               IndexRef i@(Index _ ind) -> (Range sid (ind,ind), i)
---     sendToOriginal uc $ ServerMessage JumpSelect Success (PayloadSelection newSel' newOrigin)
+--     sendToOriginal uc $ ClientMessage JumpSelect Success (PayloadSelection newSel' newOrigin)
