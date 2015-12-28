@@ -6,6 +6,7 @@ import AS.Types.Network
 import AS.Types.Messages
 import AS.Types.Eval
 import AS.Types.Commits
+import AS.Types.Selection
 import AS.Types.Updates
 
 import AS.Util
@@ -20,11 +21,12 @@ import Data.List
 import Control.Concurrent
 import Control.Applicative
 
-handleDelete :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
-handleDelete uc state (PayloadR rng) = do
+handleDelete :: ASUserClient -> MVar ServerState -> Selection -> IO ()
+handleDelete uc state sel = do
   conn <- dbConn <$> readMVar state
-  blankedCells <- map removeBadFormats <$> getBlankedCellsAt conn (rangeToIndices rng) -- need to know the formats at the old locations
-  errOrCommit <- runDispatchCycle state blankedCells DescendantsWithParent (userCommitSource uc) (modifyUpdateForDelete rng)
+  inds <- indicesInSelection sel
+  blankedCells <- map removeBadFormats <$> getBlankedCellsAt conn inds -- need to know the formats at the old locations
+  errOrCommit <- runDispatchCycle state blankedCells DescendantsWithParent (userCommitSource uc) (modifyUpdateForDelete sel)
   broadcastFiltered state uc $ makeReplyMessageFromErrOrCommit errOrCommit
 
 -- Deleting a cell keeps some of the formats but deletes others. This is the current list of formats
@@ -43,8 +45,12 @@ removeBadFormats = removeFormats badFormats
 
 -- | Adds the range among the list of locations to delete, and remove all the update cells located within in range. 
 -- #lens
-modifyUpdateForDelete :: ASRange -> SheetUpdate -> SheetUpdate
-modifyUpdateForDelete rng (SheetUpdate (Update cs locs) bs ds cfs) = SheetUpdate (Update cs' locs') bs ds cfs 
+modifyUpdateForDelete :: Selection -> SheetUpdate -> SheetUpdate
+modifyUpdateForDelete sel (SheetUpdate (Update cs locs) bs ds cfs) = SheetUpdate (Update cs' locs') bs ds cfs 
   where 
-    locs' = (RangeRef rng):locs
-    cs'   = filter (not . liftA2 (&&) isEmptyCell (rangeContainsIndex rng . cellLocation)) cs
+    rngs = selectedRanges sel
+    locs' = (map RangeRef rngs) ++ locs
+    cellContainedInRange r = rangeContainsIndex r . cellLocation 
+    cellContainedInRngs = or <$> sequence (map cellContainedInRange rngs)
+    cs'   = filter (not . liftA2 (&&) isEmptyCell cellContainedInRngs) cs
+-- #incomplete the type here should NOT be Selection. It should be a yet-to-be implemented type representing finite lists of cells

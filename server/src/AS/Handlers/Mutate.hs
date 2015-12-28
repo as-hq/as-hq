@@ -24,8 +24,8 @@ import AS.Logging
 import Control.Concurrent
 import Data.Maybe
 
-handleMutateSheet :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
-handleMutateSheet uc state (PayloadMutate mutateType) = do
+handleMutateSheet :: ASUserClient -> MVar ServerState -> MutateType -> IO ()
+handleMutateSheet uc state mutateType = do
   let sid = userSheetId uc
   conn <- dbConn <$> readMVar state
   -- update cells 

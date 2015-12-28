@@ -20,14 +20,14 @@ import qualified Data.ByteString.Lazy as BL
 import qualified AS.DB.Transaction as DT 
 
 -- used for importing arbitrary files 
-handleImport :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
-handleImport uc state msg = return () -- TODO
+-- handleImport :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
+-- handleImport uc state msg = return () -- TODO
 
 -- Simply update the DB with the CSV data, and do a "trivial" parsing eval. No propagation/dispatch for an initial import.
 -- Frontend already put the file in the static folder, and all cells created will have the default language passed in
-handleCSVImport :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
-handleCSVImport uc state (PayloadCSV ind lang s) = do 
-  csvData <- BL.readFile $ "static/" ++ s
+handleCSVImport :: ASUserClient -> MVar ServerState -> ASIndex -> ASLanguage -> String -> IO ()
+handleCSVImport uc state ind lang fileName = do 
+  csvData <- BL.readFile $ "static/" ++ fileName
   conn <- dbConn <$> readMVar state
   let src = userCommitSource uc
   let decoded = CSV.decode CSV.NoHeader csvData :: Either String (V.Vector (V.Vector String))

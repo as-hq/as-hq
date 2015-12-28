@@ -42,7 +42,7 @@ getDaemonName loc = (show loc) ++ "daemon"
 getConnByLoc :: ASIndex -> MVar ServerState -> IO (Maybe WS.Connection)
 getConnByLoc loc state = do 
   (State users daemons _ _) <- readMVar state
-  let daemon = L.filter (\(DaemonClient l _ _) -> (l == loc)) daemons
+  let daemon = L.filter ((==) loc . daemonLoc) daemons
   case daemon of 
     [] -> return Nothing
     d -> return $ Just $ daemonConn $  L.head d 
@@ -56,7 +56,7 @@ getStreamPropFromExpression _ = Nothing
 -- | Creates a streaming daemon for this cell if one of the tags is a streaming tag. 
 possiblyCreateDaemon :: MVar ServerState -> ASUserId -> ASCell -> IO ()
 possiblyCreateDaemon state owner cell@(Cell loc xp val props) = do 
-  let msg = ClientMessage Evaluate (PayloadCL [cell])
+  let msg = ClientMessage (Evaluate xp loc)
   case getProp StreamInfoProp props of 
     Nothing -> do 
       let maybeTag = getStreamPropFromExpression xp
@@ -79,7 +79,7 @@ createDaemon state s loc msg = do -- msg is the message that the daemon will sen
     else do 
       runDetached (Just name) def $ do 
         let daemonId = T.pack $ getDaemonName loc
-        let initMsg = ClientMessage Acknowledge (PayloadDaemonInit (ASInitDaemonConnection daemonId loc))
+        let initMsg = ClientMessage $ InitializeDaemon daemonId loc
         port <- appPort <$> readMVar state
         WS.runClient S.wsAddress port "/" $ \conn -> do 
           U.sendMessage initMsg conn

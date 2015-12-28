@@ -106,11 +106,12 @@ application state pending = do
 handleFirstMessage ::  MVar ServerState -> WS.Connection -> B.ByteString -> IO ()
 handleFirstMessage state conn msg =
   case (decode msg :: Maybe ASClientMessage) of
-    Just m@(ClientMessage Acknowledge (PayloadInit (ASInitConnection _ _))) -> do -- first mesage is user init
-      user <- initUserFromMessageAndConn m conn
+    Just (ClientMessage (Initialize cuid csid)) -> do -- first mesage is user init
+      user <- initUser conn cuid csid
       catch (initClient user state) (handleRuntimeException user state)
-    Just m@(ClientMessage Acknowledge (PayloadDaemonInit (ASInitDaemonConnection _ _))) -> do -- first message is daemon init
-      initClient (initDaemonFromMessageAndConn m conn) state
+    Just (ClientMessage (InitializeDaemon parentId parentLoc)) -> do -- first message is daemon init
+      let daemon = initDaemonFromMessageAndConn conn parentId parentLoc
+      initClient daemon state
     _ -> do -- first message is neither
       putStrLn "First message not an initialization message"
       sendMessage (failureMessage "Cannot connect") conn
@@ -122,10 +123,6 @@ shouldPreprocess = False
 -- sent from a frontend. 
 preprocess :: WS.Connection -> MVar ServerState -> IO () 
 preprocess conn state = do
-  -- clear everything at the beginning
-  let tempUc = UserClient (T.pack "") conn (Window (T.pack "") (-1,-1) (-1,-1)) (T.pack "")
-  processMessage tempUc state (ClientMessage Clear (PayloadN ()))
-
   -- prepare the preprocessing
   logDir <- getServerLogDir
   fileContents <- Prelude.readFile (logDir ++ "client_messages")

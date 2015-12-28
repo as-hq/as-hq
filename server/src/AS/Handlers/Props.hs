@@ -15,8 +15,8 @@ import Data.List
 import Control.Concurrent
 
 -- | Used only for flag props. 
-handleToggleProp :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
-handleToggleProp uc state (PayloadProp p rng) = do
+handleToggleProp :: ASUserClient -> MVar ServerState -> CellProp -> ASRange -> IO ()
+handleToggleProp uc state p rng = do
   let locs = rangeToIndices rng
       pt   =  propType p
   conn <- dbConn <$> readMVar state
@@ -44,15 +44,15 @@ handleToggleProp uc state (PayloadProp p rng) = do
 
 setPropEndware :: MVar ServerState -> CellProp -> ASCell -> IO ()
 setPropEndware state (StreamInfo s) c = modifyDaemon state s (cellLocation c) evalMsg
-  where evalMsg = ClientMessage Evaluate (PayloadCL [c])
+  where evalMsg = ClientMessage $ Evaluate (cellExpression c) (cellLocation c)
 setPropEndware _ _ _ = return ()
 
 removePropEndware :: MVar ServerState -> CellProp -> ASCell -> IO ()
 removePropEndware state (StreamInfo s) c = removeDaemon (cellLocation c) state
 removePropEndware _ _ _ = return ()
 
-handleSetProp :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
-handleSetProp uc state (PayloadProp prop rng) = do
+handleSetProp :: ASUserClient -> MVar ServerState -> CellProp -> ASRange -> IO ()
+handleSetProp uc state prop rng = do
   curState <- readMVar state
   let locs = rangeToIndices rng
   cells <- getPossiblyBlankCells (dbConn curState) locs

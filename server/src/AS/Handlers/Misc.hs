@@ -10,6 +10,8 @@ import AS.Types.Eval
 import AS.Types.Commits
 import AS.Types.CondFormat
 import AS.Types.Bar
+import AS.Types.BarProps (BarProp)
+import AS.Types.Selection
 import AS.Types.Updates
 import qualified AS.Types.BarProps as BP
 
@@ -65,8 +67,8 @@ handleAcknowledge uc = WS.sendTextData (userConn uc) ("ACK" :: T.Text)
 --   broadcastTo state (wsSheets wb') $ ServerMessage New Success (PayloadWB wb')
 --   return () -- TODO determine whether users should be notified
 
-handleOpen :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
-handleOpen uc state (PayloadS (Sheet sid _ _)) = do
+handleOpen :: ASUserClient -> MVar ServerState -> ASSheetId -> IO ()
+handleOpen uc state sid = do 
   -- update state
   conn <- dbConn <$> readMVar state
   let makeNewWindow (UserClient uid c _ sid) = UserClient uid c startWindow sid
@@ -88,8 +90,8 @@ handleOpen uc state (PayloadS (Sheet sid _ _)) = do
 -- in the database, those blank cells will not get passed to the user (and those cells don't get
 -- deleted on frontend), meaning we have to ensure that deleted cells are manually wiped from the
 -- frontend store the moment they get deleted.
-handleUpdateWindow :: ClientId -> MVar ServerState -> ASPayload -> IO ()
-handleUpdateWindow cid state (PayloadW w) = do
+handleUpdateWindow :: ClientId -> MVar ServerState -> ASWindow -> IO ()
+handleUpdateWindow cid state w = do
   curState <- readMVar state
   let (Just user') = US.getUserByClientId cid curState -- user' is to get latest user on server; if this fails then somehow your connection isn't stored in the state
   let oldWindow = userWindow user'
@@ -109,8 +111,8 @@ badCellsHandler conn uc e = do
   DT.undo conn (userCommitSource uc)
   return ()
 
-handleGet :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
-handleGet uc state (PayloadLL locs) = do
+handleGet :: ASUserClient -> MVar ServerState -> [ASIndex] -> IO ()
+handleGet uc state locs = do
   curState <- readMVar state
   mcells <- DB.getCells (dbConn curState) locs
   sendToOriginal uc (makeReplyMessageFromCells $ catMaybes mcells)
@@ -134,18 +136,12 @@ handleGet uc state (PayloadLL locs) = do
 -- handleClose :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
 -- handleClose _ _ _ = return ()
 
-handleClear :: (Client c) => c  -> MVar ServerState -> ASPayload -> IO ()
-handleClear client state payload = case payload of 
-  PayloadN () -> do
-    conn <- dbConn <$> readMVar state
-    DB.clear conn
-    G.clear
-    broadcastTo state [] $ ServerMessage ClearAll
-  PayloadS (Sheet sid _ _) -> do
-    conn <- dbConn <$> readMVar state
-    DB.clearSheet conn sid
-    G.recompute conn
-    broadcastTo state [sid] $ ServerMessage $ ClearSheet sid
+handleClear :: (Client c) => c  -> MVar ServerState -> ASSheetId -> IO ()
+handleClear client state sid = do
+  conn <- dbConn <$> readMVar state
+  DB.clearSheet conn sid
+  G.recompute conn
+  broadcastTo state [sid] $ ServerMessage $ ClearSheet sid
 
 handleUndo :: ASUserClient -> MVar ServerState -> IO ()
 handleUndo uc state = do
@@ -169,41 +165,42 @@ handleRedo uc state = do
   printWithTime "Server processed redo"
 
 -- Drag/autofill
-handleDrag :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
-handleDrag uc state (PayloadDrag selRng dragRng) = do
+handleDrag :: ASUserClient -> MVar ServerState -> ASRange -> ASRange -> IO ()
+handleDrag uc state selRng dragRng = do
   conn <- dbConn <$> readMVar state
   nCells <- IU.getCellsRect conn selRng dragRng
   let newCells = (IU.getMappedFormulaCells selRng dragRng nCells) ++ (IU.getMappedPatternGroups selRng dragRng nCells)
   errOrCommit <- DP.runDispatchCycle state newCells DescendantsWithParent (userCommitSource uc) id
   broadcastFiltered state uc $ makeReplyMessageFromErrOrCommit errOrCommit
 
-handleRepeat :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
-handleRepeat uc state (PayloadSelection range origin) = do
-  conn <- dbConn <$> readMVar state
-  ClientMessage lastAction lastPayload <- DB.getLastMessage conn (userCommitSource uc)
-  printObj "Got last thing for repeat: " (lastAction, lastPayload)
-  case lastAction of
-    Evaluate -> do
-      let PayloadCL ((Cell l e v ts):[]) = lastPayload
-          cells = map (\l' -> Cell l' e v ts) (rangeToIndices range)
-      handleEval uc state (PayloadCL cells)
-    Copy -> do
-      let PayloadPaste from to = lastPayload
-      handleCopy uc state (PayloadPaste from range)
-    Delete -> handleDelete uc state (PayloadR range)
-    Undo -> handleRedo uc state
-    otherwise -> sendToOriginal uc $ failureMessage "Repeat not supported for this action"
+handleRepeat :: ASUserClient -> MVar ServerState -> Selection -> IO ()
+handleRepeat uc state selection = return () -- do
+  -- conn <- dbConn <$> readMVar state
+  -- ClientMessage lastAction lastPayload <- DB.getLastMessage conn (userCommitSource uc)
+  -- printObj "Got last thing for repeat: " (lastAction, lastPayload)
+  -- case lastAction of
+  --   Evaluate -> do
+  --     let PayloadCL ((Cell l e v ts):[]) = lastPayload
+  --         cells = map (\l' -> Cell l' e v ts) (rangeToIndices range)
+  --     handleEval uc state (PayloadCL cells)
+  --   Copy -> do
+  --     let PayloadPaste from to = lastPayload
+  --     handleCopy uc state (PayloadPaste from range)
+  --   Delete -> handleDelete uc state (PayloadR range)
+  --   Undo -> handleRedo uc state
+  --   otherwise -> sendToOriginal uc $ failureMessage "Repeat not supported for this action"
+  -- temporarily disabling until we implement this for realsies (Alex 12/28)
 
 -- | For now, all this does is acknowledge that a bug report got sent. The actual contents
 -- of the bug report (part of the payload) are output to the server log in handleClientMessage,
 -- which is where we want it end up anyway, for now. (Alex 10/28/15)
-handleBugReport :: ASUserClient -> ASPayload -> IO ()
-handleBugReport uc (PayloadText report) = do
+handleBugReport :: ASUserClient -> String -> IO ()
+handleBugReport uc report = do
   logBugReport report (userCommitSource uc)
   WS.sendTextData (userConn uc) ("ACK" :: T.Text)
 
-handleUpdateCondFormatRules :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
-handleUpdateCondFormatRules uc state (PayloadCondFormatUpdate u@(Update updatedRules deleteRuleIds)) = do
+handleUpdateCondFormatRules :: ASUserClient -> MVar ServerState -> CondFormatRuleUpdate -> IO ()
+handleUpdateCondFormatRules uc state u@(Update updatedRules deleteRuleIds) = do
   conn <- dbConn <$> readMVar state
   let src = userCommitSource uc 
       sid = srcSheetId src
@@ -219,8 +216,8 @@ handleUpdateCondFormatRules uc state (PayloadCondFormatUpdate u@(Update updatedR
   broadcastFiltered state uc $ makeReplyMessageFromErrOrCommit errOrCommit
 
 -- #needsrefactor Should eventually merge with handleSetProp. 
-handleSetBarProp :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
-handleSetBarProp uc state (PayloadSetBarProp bInd prop) = do 
+handleSetBarProp :: ASUserClient -> MVar ServerState -> BarIndex -> BarProp -> IO ()
+handleSetBarProp uc state bInd prop = do 
   conn <- dbConn <$> readMVar state
   oldProps <- maybe BP.emptyProps barProps <$> DB.getBar conn bInd
   let newProps = BP.setProp prop oldProps
@@ -250,8 +247,8 @@ handleImportBinary c state bin = do
       let msg = ServerMessage $ LoadImportedCells $ exportCells exported
       U.sendMessage msg (conn c)
 
-handleExport :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
-handleExport uc state (PayloadS (Sheet sid _ _))  = do
+handleExport :: ASUserClient -> MVar ServerState -> ASSheetId -> IO ()
+handleExport uc state sid  = do
   conn  <- dbConn <$> readMVar state
   exported <- DX.exportData conn sid
   WS.sendBinaryData (userConn uc) (DS.encodeLazy exported)
