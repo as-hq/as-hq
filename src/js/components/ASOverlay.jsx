@@ -117,7 +117,7 @@ export default class ASOverlay extends React.Component<{}, ASOverlayProps, ASOve
     this.setState({width: width, height: height});
   }
 
-  _shouldUpdateDrag(e: SyntheticEvent, coreEvent: any) {
+  _shouldUpdateDrag(e: SyntheticEvent, coreEvent: any): boolean {
     return !this.state.resizing;
   }
 
