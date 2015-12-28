@@ -77,16 +77,41 @@ indexMatch = do
 outOfBoundsMatch :: Parser ExRef
 outOfBoundsMatch = string "#REF!" >> return ExOutOfBounds
 
--- r is rightmost column.
-colRangeMatch :: Parser ExColRange
-colRangeMatch = do
+--helper for A:A parsing.
+colMatch :: Parser ExCol
+colMatch = do
+  dol  <- optionMaybe dollar
+  rcol <- many1 letter
+  return $ ExCol (readSingleRef dol) rcol
+
+-- rcol is the right column.
+-- Parses A1:A
+colRangeA1ToAMatch :: Parser ExColRange
+colRangeA1ToAMatch = do
   tl <- indexMatch
   colon
-  dol  <- optionMaybe dollar
-  r <- many1 letter
-  return $ ExColRange tl (ExCol (readSingleRef dol) r)
+  r <- colMatch
+  return $ ExColRange tl r
+
+-- Parses A:A as A$1:A
+colRangeAToAMatch :: Parser ExColRange
+colRangeAToAMatch = do
+  a  <- optionMaybe dollar
+  lcol <- many1 letter
+  colon
+  r <- colMatch
+  return $ ExColRange (ExIndex (readRefType a (Just '$')) lcol "1")  r
+
+-- checks for both A:A and A1:A.
+colRangeMatch :: Parser ExColRange
+colRangeMatch = do
+  colrng1 <- optionMaybe $ try colRangeAToAMatch
+  case colrng1 of
+    Just a2a -> return a2a
+    Nothing -> colRangeA1ToAMatch
 
 -- | matches index:index
+--
 rangeMatch :: Parser ExRange
 rangeMatch = do
   tl <- indexMatch
