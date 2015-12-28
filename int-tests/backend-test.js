@@ -1199,107 +1199,350 @@ describe('backend', () => {
       });
 
 
-      describe('A:A and  1:1 parsing tests', () => {
-        xit ('A:A should display ranges properly', (done) => {
-          _do([
-            python('A1', '[range(10)]'),
-            python('B1', 'A:A'),
-            python('C1', 'A1:A'),
-            shouldBe('B9', valueI(8)),
-            shouldBe('B10', valueI(9)),
-            shouldBe('C10', valueI(9)),
-            exec(done)
-          ]);
+      describe('A:A parsing tests', () => {
+        describe('Display', () => {
+          // TODO: create 1:1 parsing tests.
+          // TODO: timchu, A:A has not been implemented yet.
+          xit ('should display A:A properly', (done) => {
+            _do([
+              python('A1', 'range(10)'),
+              python('B1', 'A:A'),
+              shouldBe('B1', valueI(0)),
+              shouldBe('B10', valueI(9)),
+              exec(done)
+            ]);
+          });
+          it ('should display A2:A properly', (done) => {
+            _do([
+              python('A1', 'range(10)'),
+              python('B1', 'A2:A'),
+              shouldBe('B1', valueI(1)),
+              shouldBe('B4', valueI(4)),
+              shouldBe('B9', valueI(9)),
+              //shouldBe('B10', noValue()),
+              exec(done)
+            ]);
+          });
+          it ('should display B2:B properly', (done) => {
+            _do([
+              python('B1', 'range(10)'),
+              python('A1', 'B2:B'),
+              shouldBe('A1', valueI(1)),
+              shouldBe('A4', valueI(4)),
+              //shouldBe('B9', noValue()),
+              exec(done)
+            ]);
+          });
+          it ('should parse 2D ranges properly in A:A parsing', (done) => {
+            _do([
+              python('F1', '[[2*x + y for x in range(5)] for y in range(5)]'),
+              python('A1', 'F1:J'),
+              shouldBe('A1', valueI(0)),
+              shouldBe('B1', valueI(2)),
+              shouldBe('E1', valueI(8)),
+              shouldBe('A2', valueI(1)),
+              shouldBe('A3', valueI(2)),
+              shouldBe('A4', valueI(3)),
+              shouldBe('A5', valueI(4)),
+              shouldBe('E5', valueI(12)),
+              exec(done)
+            ]);
+          });
+          //TODO: timchu, current parsing requires the first column be < the second column.
+          xit ('should display E1:A properly', (done) => {
+            _do([
+              python('A1', '[[x + 2*y for x in range(5)] for y in range(5)]'),
+              python('F1', 'E1:A'),
+              shouldBe('A1', valueI(0)),
+              shouldBe('A2', valueI(1)),
+              shouldBe('A3', valueI(2)),
+              shouldBe('A4', valueI(3)),
+              shouldBe('A5', valueI(4)),
+              shouldBe('B1', valueI(2)),
+              shouldBe('E1', valueI(8)),
+              shouldBe('E5', 12),
+              exec(done)
+              ]);
+          });
+          // TODO: timchu, current prasing requires the number to be in the first item.
+          xit ('should display E:A1 properly', (done) => {
+            _do([
+              python('A1', '[[x + 2*y for x in range(5)] for y in range(5)]'),
+              python('F1', 'E:A1'),
+              shouldBe('A1', valueI(0)),
+              shouldBe('A2', valueI(1)),
+              shouldBe('A3', valueI(2)),
+              shouldBe('A4', valueI(3)),
+              shouldBe('A5', valueI(4)),
+              shouldBe('B1', valueI(2)),
+              shouldBe('E1', valueI(8)),
+              shouldBe('E5', valueI(12)),
+              exec(done)
+              ]);
+          });
+          xit ('should display A:E properly', (done) => {
+            _do([
+              python('A1', '[[x + 2*y for x in range(5)] for y in range(5)]'),
+              python('F1', 'A:E'),
+              shouldBe('A1', valueI(0)),
+              shouldBe('A2', valueI(1)),
+              shouldBe('A3', valueI(2)),
+              shouldBe('A4', valueI(3)),
+              shouldBe('A5', valueI(4)),
+              shouldBe('B1', valueI(2)),
+              shouldBe('E1', valueI(8)),
+              shouldBe('E5', valueI(12)),
+              exec(done)
+              ]);
+          });
+          xit ('should display E:A properly', (done) => {
+            _do([
+              python('A1', '[[x + 2*y for x in range(5)] for y in range(5)]'),
+              pyfhon('F1', 'E:A'),
+              shouldBe('A1', valueI(0)),
+              shouldBe('A2', valueI(1)),
+              shouldBe('A3', valueI(2)),
+              shouldBe('A4', valueI(3)),
+              shouldBe('A5', valueI(4)),
+              shouldBe('B1', valueI(2)),
+              shouldBe('E1', valueI(8)),
+              shouldBe('E5', valueI(12)),
+              exec(done)
+              ]);
+          });
+          // TODO: timchu, reference shifting not yet implemented
+          xit ('should shift references for A2:$B appropriately', (done) => {
+            _do([
+              ]);
+          });
+          xit ('should display =A1:A properly in Excel', (done) => {
+            _do([
+                //TODO: timchu
+              ]);
+          });
+          xit ('should display A:B properly', (done) => {
+            _do([
+              python('A1', '[range(10)]'),
+              python('B1', 'A2:A'),
+              python('B10', '1'),
+              python('C1', 'A:B'),
+              shouldBe('B9', valueI(9)),
+              shouldBe('C1', valueI(2)),
+              shouldBe('D1', valueI(2)),
+              shouldBe('C7', valueI(3)),
+              shouldBe('D7', valueI(3)),
+              shouldBe('C8', valueI(7)),
+              shouldBe('D8', valueI(7)),
+              shouldBe('C10', noValue()),
+              shouldBe('D10', noValue()),
+              exec(done)
+            ]);
+          });
+          xit ('should display 1:1 properly', (done) => {
+            _do([
+              python('A1', '[range(10)]'),
+              python('B1', '1:1'),
+              shouldBe('B1', valueI(0)),
+              shouldBe('B2', noValue()),
+              exec(done)
+            ]);
+          });
         });
-        xit ('A2:A should display ranges properly', (done) => {
+        it ('should change A:A when an item in column A changes', (done) => {
           _do([
-            python('A1', '[range(10)]'),
-            python('B1', 'A2:A'),
+            python('A1', '1'),
+            python('A2', '2'),
+            python('B1', 'A1:A'),
             shouldBe('B1', valueI(1)),
-            shouldBe('B9', valueI(9)),
-            exec(done)
-          ]);
-        });
-        xit ('A2:B should display ranges properly', (done) => {
-          _do([
-            python('A1', '[range(10)]'),
-            python('B1', 'A:A'),
-            python('C1', 'A2:B'),
-            shouldBe('C1', valueI(1)),
-            shouldBe('D1', valueI(1)),
-            shouldBe('C7', valueI(7)),
-            shouldBe('D7', valueI(7)),
-            shouldBe('C8', valueI(8)),
-            shouldBe('D8', valueI(8)),
-            shouldBe('C9', valueI(9)),
-            shouldBe('D9', valueI(9)),
-            exec(done)
-          ]);
-        });
-        xit ('A:B should display ranges properly', (done) => {
-          _do([
-            python('A1', '[range(10)]'),
-            python('B1', 'A2:A'),
-            python('B10', '1'),
-            python('C1', 'A:B'),
-            shouldBe('B9', valueI(9)),
-            shouldBe('C1', valueI(2)),
-            shouldBe('D1', valueI(2)),
-            shouldBe('C7', valueI(3)),
-            shouldBe('D7', valueI(3)),
-            shouldBe('C8', valueI(7)),
-            shouldBe('D8', valueI(7)),
-            shouldBe('C10', noValue()),
-            shouldBe('D10', noValue()),
-            exec(done)
-          ]);
-        });
-        xit ('1:1 should display ranges properly', (done) => {
-          _do([
-            python('A1', '[range(10)]'),
-            python('B1', '1:1'),
+            shouldBe('B2', valueI(2)),
+            python('A1', '0'),
             shouldBe('B1', valueI(0)),
-            shouldBe('B2', noValue()),
+            shouldBe('B2', valueI(2)),
             exec(done)
           ]);
         });
-        xit ('Deleting ranges should work with A:A parsing', (done) => {
+        it ('should expand A2:A when a the column size of A increases.', (done) => {
           _do([
-            python('A1', '[range(10)]'),
+            python('A1', 'range(10)'),
+            python('B1', 'A2:A'),
+            python('A20', '0'),
+            shouldBe('B1', valueI(1)),
+            shouldBe('B4', valueI(4)),
+            shouldBe('B9', valueI(9)),
+            shouldBe('B19', valueI(0)),
+            exec(done)
+          ]);
+        });
+        it ('should contract A2:A when a the column size of A decreases.', (done) => {
+          _do([
+            python('A1', '1'),
+            python('A3', '3'),
+            python('A5', '5'),
+            python ('B1', 'A1:A'),
+            delete_('A5'),
+            delete_('A1'),
+            // shouldBeNothing?
+            shouldBe('B1', noValue()),
+            shouldBe('B2', noValue()),
+            shouldBe('B3', valueI(3)),
+            shouldBeNothing('B4'),
+            shouldBeNothing('B5'),
+            exec(done)
+          ]);
+        });
+        // TODO: timchu, bug: can't delete last item in column.
+        xit ('should collapse B1=A:A when the last element in A:A is deleted', (done) => {
+          _do([
+            python('A1', '1'),
+            python('A3', '3'),
+            python('A5', '5'),
+            python ('B1', 'A1:A'),
             delete_('A1'),
             delete_('A3'),
-            delete_('A4'),
             delete_('A5'),
-            delete_('A8'),
-            delete_('A9'),
-            python('B1', 'A:A'),
-            shouldBe('B1', noValue()),
-            shouldBe('B2', valueI(1)),
-            shouldBe('B3', noValue()),
-            shouldBe('B9', noValue()),
-            shouldBe('B10', valueI(9)),
+            // shouldBeNothing?
+            shouldBeNothing('B1'),
+            shouldBeNothing('B2'),
+            shouldBeNothing('B3'),
+            shouldBeNothing('B4'),
+            shouldBeNothing('B5'),
             exec(done)
           ]);
         });
+        // TODO: timchu, this test might be stupid.
+        it ('should display A:A when a range in A is decoupled', (done) => {
+          _do([
+              python('A1', 'range(10)'),
+              python('B1', 'A1:A'),
+              python('A1', '-100'),
+              decouple(),
+              python('A12', '100'),
+              shouldBe('B1', valueI(-100)),
+              shouldBe('B2', valueI(1)),
+              shouldBe('A12', valueI(100)),
+              exec(done)
+          ]);
+        });
+        // TODO: timchu, why doesn't this work?
+        it ('should decouple B1=A1:A upon insert of item into B1', (done) => {
+          _do([
+              python('A1', 'range(10)'),
+              python('B1', 'A1:A'),
+              python('B1', '3'),
+              decouple(),
+              python('A12', '100'),
+              shouldBe('B1', valueI(3)),
+              shouldBe('B4', valueI(3)),
+              shouldBe('B10', valueI(9)),
+              shouldBe('A12', valueI(100)),
+              // TOOD: timchu, is shoudlBeNothing correct?
+              shouldBeNothing('B12'),
 
-        xit ('should do undo for A:A', (done) => {
+              // B2 should no longer update on change in A2.
+              python('A2', '100'),
+              decouple(),
+              shouldBe('B2', valueI(1)),
+              shouldBe('A2', valueI(100)),
+              exec(done)
+          ]);
+        });
+        xit ('should expand B1 if B1=A1:A when A is  empty, and then an item is added to element A.', (done) => {
+          _do([
+              // TODO: timchu. This does not work!
+          ]);
+        });
+        xit ('should not decouple B1=A1:A upon insert of item into B1 if told not to', (done) => {
+          _do([
+              // TODO: timchu. Not sure how to tell it not to decouple.
+          ]);
+        });
+        // TODO: timchu. Copy and paste doesn't work.
+        xit ('should copy/paste A1:A expressions', (done) => {
           _do([
             python('A1', 'range(10)'),
-            python('B1', 'A:A'),
+            python('B1', 'A1:A'),
+            copy('B1', 'C1'),
+            shouldBe('C1', valueI(0)),
+            shouldBe('C10', valueI(9)),
+          ]);
+        });
+        // TODO: timchu. Cut and paste doesn't work.
+        xit ('should cut/paste A1:A expressions', (done) => {
+          _do([
+            python('A1', 'range(10)'),
+            python('B1', 'A1:A'),
+            python('C2', '5'),
+            cut('B1', 'D1'),
+            shouldBe('D2', valueI(5)),
+            shouldBeNothing('D2'),
+            shouldBeNothing('B1'),
+            shouldBeNothing('B2'),
+            shouldBeNothing('B10'),
+          ]);
+        });
+        it ('should undo for A1:A', (done) => {
+          _do([
+            python('A1', 'range(10)'),
+            python('B1', 'A1:A'),
             undo(),
-            shouldBe('B1', noValue()),
-            shouldBe('B4', noValue()),
-            shouldBe('B10', noValue()),
-            shouldBe('A1', noValue()),
+            shouldBeNothing('B1'),
+            shouldBeNothing('B4'),
+            shouldBeNothing('B10'),
+            shouldBe('A1', valueI(0)),
             exec(done)
           ]);
         });
-        xit ('should redo on Ctrl+Y after undo for A:A', (done) => {
+        it ('should redo on after undo for A1:A', (done) => {
           _do([
-            //TODO: timchu
             python('A1', 'range(10)'),
-            shouldBe('A1', 1),
+            python('B1', 'A1:A'),
+            undo(),
+            redo(),
+            shouldBe('B1', valueI(0)),
+            shouldBe('B4', valueI(3)),
+            shouldBe('B10', valueI(9)),
+            shouldBe('A1', valueI(0)),
             exec(done)
+          ]);
+        });
+        xit ('should undo decoupling of A1:A', (done) => {
+          _do([
+              // TODO: timchu. Not sure about syntax here.
+          ]);
+        });
+        xit ('should redo decoupling of A1:A', (done) => {
+          _do([
+              // TODO: timchu. Not sure about syntax here.
+          ]);
+        });
+        it ('should catch circular dependencies for A1:A', (done) => {
+          _do([
+            shouldError(
+              python('A5', 'A1:A')
+            ),
+            python('A1', '1'),
+            python('A2', '2'),
+            python('A3', '3'),
+            python('B1', 'A2:A'),
+            shouldError(
+              python('A5', 'B2')
+            ),
+            python('A1', 'B2'),
+            shouldBe('A1', valueI(3)),
+            delete_('A3'),
+            python('A5', 'B2'),
+            shouldBe('A5', noValue()),
+            exec(done)
+          ]);
+        });
+        xit ('should be able to do complicated undos', (done) => {
+          _do([
+              // TODO: timchu
+            ]);
+        });
+        xit ('should be able to do complicated redos', (done) => {
+          _do([
+              // TODO: timchu
             ]);
         });
       });
