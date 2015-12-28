@@ -86,7 +86,7 @@ getCells :: Connection -> [ASIndex] -> IO [Maybe ASCell]
 getCells _ [] = return []
 getCells conn locs = runRedis conn $ do
   sCells <- map fromRight <$> mapM (get . S.encode) locs
-  return $ map (decodeMaybe =<<) sCells
+  return $ map (maybeDecode =<<) sCells
 
 setCells :: Connection -> [ASCell] -> IO ()
 setCells _ [] = return ()
@@ -118,7 +118,7 @@ deleteLocsInSheet :: Connection -> ASSheetId -> IO ()
 deleteLocsInSheet conn sid = runRedis conn $ do
   Right ks <- keys $ BC.pack $ "*" ++ (T.unpack sid) ++ "*"
   let locKeys = catMaybes $ map readLocKey ks
-      readLocKey k = case (decodeMaybe k) of 
+      readLocKey k = case (maybeDecode k) of 
         Just (Index _ _) -> Just k
         _ -> Nothing
   del locKeys
@@ -128,7 +128,7 @@ getCellsByKeyPattern :: Connection -> String -> IO [ASCell]
 getCellsByKeyPattern conn pattern = do
   ks <- DI.getKeysByPattern conn pattern
   let locs = catMaybes $ map readLoc ks
-      readLoc k = case (decodeMaybe k) of 
+      readLoc k = case (maybeDecode k) of 
         Just l@(Index _ _) -> Just l
         _ -> Nothing
   return locs
@@ -183,7 +183,7 @@ fatCellsInRange conn rng = do
 getRangeDescriptor :: Connection -> RangeKey -> IO (Maybe RangeDescriptor)
 getRangeDescriptor conn key = runRedis conn $ do 
   Right desc <- get . toRedisFormat $ RedisRangeKey key
-  return $ decodeMaybe =<< desc
+  return $ maybeDecode =<< desc
 
 getRangeDescriptorsInSheet :: Connection -> ASSheetId -> IO [RangeDescriptor]
 getRangeDescriptorsInSheet conn sid = do
@@ -191,23 +191,22 @@ getRangeDescriptorsInSheet conn sid = do
   map fromJust <$> mapM (getRangeDescriptor conn) keys
 
 getRangeDescriptorsInSheetWithContext :: Connection -> EvalContext -> ASSheetId -> IO [RangeDescriptor]
-getRangeDescriptorsInSheetWithContext conn ctx@(EvalContext _ _ ddiff) sid = do
-  printObj "removed descriptors in getRangeDescriptorsInSheetWithContext " $ beforeVals ddiff
+getRangeDescriptorsInSheetWithContext conn ctx sid = do -- #lens
   dbKeys <- DI.getRangeKeysInSheet conn sid
-  let dbKeys' = dbKeys \\ (map descriptorKey $ beforeVals ddiff)
+  let dbKeys' = dbKeys \\ (oldRangeKeysInContext ctx)
   dbDescriptors <- map fromJust <$> mapM (getRangeDescriptor conn) dbKeys' 
-  return $ (afterVals ddiff) ++ dbDescriptors
+  return $ (newRangeDescriptorsInContext ctx) ++ dbDescriptors
 
 -- If the range descriptor associated with a range key is in the context, return it. Else, return Nothing. 
 getRangeDescriptorUsingContext :: Connection -> EvalContext -> RangeKey -> IO (Maybe RangeDescriptor)
-getRangeDescriptorUsingContext conn (EvalContext _ _ ddiff) rKey = if (isJust inRemoved)
+getRangeDescriptorUsingContext conn ctx rKey = if (isJust inRemoved) -- #lens
   then return Nothing 
   else case inAdded of
     Nothing -> getRangeDescriptor conn rKey
     Just d -> return $ Just d
   where
-    inRemoved = find (\d -> descriptorKey d == rKey) (beforeVals ddiff)
-    inAdded = find (\d -> descriptorKey d == rKey) (afterVals ddiff)
+    inRemoved = find (\d -> d == rKey) (oldRangeKeysInContext ctx)
+    inAdded = find (\d -> descriptorKey d == rKey) (newRangeDescriptorsInContext ctx)
 
 ----------------------------------------------------------------------------------------------------------------------
 -- WorkbookSheets (for frontend API)
@@ -338,14 +337,13 @@ setSheet conn sheet = do
 clearSheet :: Connection -> ASSheetId -> IO ()
 clearSheet conn sid = 
   let sheetRangesKey = toRedisFormat $ SheetRangesKey sid
-      cfRulesKey = toRedisFormat $ CFRulesKey sid
       evalHeaderKeys = map (toRedisFormat . (EvalHeaderKey sid)) Settings.headerLangs
       rangeKeys = map (toRedisFormat . RedisRangeKey) <$> DI.getRangeKeysInSheet conn sid
-      pluralKeyTypes = [PushCommitType, PopCommitType, TempCommitType, LastMessageType]
+      pluralKeyTypes = [BarType2, PushCommitType, PopCommitType, TempCommitType, LastMessageType, CFRuleType]
       pluralKeys = (evalHeaderKeys ++) . concat <$> mapM (DI.getKeysInSheetByType conn sid) pluralKeyTypes
   in runRedis conn $ do
     pluralKeys <- liftIO pluralKeys
-    del $ sheetRangesKey : cfRulesKey : pluralKeys
+    del $ sheetRangesKey : pluralKeys
     liftIO $ deleteLocsInSheet conn sid
 
 ----------------------------------------------------------------------------------------------------------------------
@@ -353,7 +351,7 @@ clearSheet conn sid =
 
 getVolatileLocs :: Connection -> IO [ASIndex]
 getVolatileLocs conn = runRedis conn $ do
-  vl <- (map decodeMaybe) . fromRight <$> (smembers $ toRedisFormat VolatileLocsKey)
+  vl <- (map maybeDecode) . fromRight <$> (smembers $ toRedisFormat VolatileLocsKey)
   if any isNothing vl 
     then error "Error decoding volatile locs!!!"
     else return $ map fromJust vl
@@ -408,38 +406,50 @@ storeLastMessage conn msg src = case (clientAction msg) of
 getLastMessage :: Connection -> CommitSource -> IO ASClientMessage
 getLastMessage conn src = runRedis conn $ do 
   msg <- fromRight <$> get (toRedisFormat $ LastMessageKey src)
-  return $ case (decodeMaybe =<< msg) of 
+  return $ case (maybeDecode =<< msg) of 
     Just m@(ClientMessage _ _) -> m
     _ -> ClientMessage NoAction (PayloadN ())
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Conditional formatting handlers
 
-getCondFormattingRules :: Connection -> ASSheetId -> IO [CondFormatRule] 
-getCondFormattingRules conn sid = runRedis conn $ do 
-  Right msg <- get . toRedisFormat $ CFRulesKey sid
-  case (decodeMaybe =<< msg) of 
-    Just rules -> return rules
-    Nothing -> return []
+getCondFormattingRules :: Connection -> ASSheetId -> [CondFormatRuleId] -> IO [CondFormatRule] 
+getCondFormattingRules conn sid cfids = do 
+  let keys = map (toRedisFormat . CFRuleKey sid) cfids
+  eitherMsg <- runRedis conn $ mget keys
+  return $ either (const []) (mapMaybe maybeDecode . catMaybes) eitherMsg
+
+-- some replication with the above...
+getCondFormattingRulesInSheet :: Connection -> ASSheetId -> IO [CondFormatRule]
+getCondFormattingRulesInSheet conn sid = do 
+  keys <- DI.getKeysInSheetByType conn sid CFRuleType
+  eitherMsg <- runRedis conn $ mget keys
+  return $ either (const []) (mapMaybe maybeDecode . catMaybes) eitherMsg
+
+deleteCondFormattingRules :: Connection -> ASSheetId -> [CondFormatRuleId] -> IO ()
+deleteCondFormattingRules conn sid cfids = (runRedis conn $ del $ map (toRedisFormat . CFRuleKey sid) cfids) >> return ()
 
 setCondFormattingRules :: Connection -> ASSheetId -> [CondFormatRule] -> IO ()
 setCondFormattingRules conn sid rules = runRedis conn $ do
-  set (toRedisFormat $ CFRulesKey sid) (S.encode rules)
+  let cfids        = map condFormatRuleId rules 
+      makeKey      = toRedisFormat . CFRuleKey sid 
+      keys         = map makeKey cfids
+      encodedRules = map S.encode rules 
+  mset $ zip keys encodedRules
   return ()
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Row/col getters/setters
 
--- TODO: eventually should extend to record generic row/col formats, like default font in the column, 
--- rather than just its width. 
-getBarProps :: Connection -> BarIndex -> IO (Maybe ASBarProps)
-getBarProps conn bInd  = runRedis conn $ do 
+-- #needsrefactor should be consistent about whether our getters and setters take in a single key or lists of keys.
+getBar :: Connection -> BarIndex -> IO (Maybe Bar)
+getBar conn bInd  = runRedis conn $ do 
   Right msg <- get . toRedisFormat $ BarKey bInd
-  return $ decodeMaybe =<< msg
+  return $ maybeDecode =<< msg
 
 setBar :: Connection -> Bar -> IO ()
-setBar conn (Bar bInd props) = do
-  runRedis conn $ set (toRedisFormat $ BarKey bInd) (S.encode props)
+setBar conn bar = do
+  runRedis conn $ set (toRedisFormat $ BarKey (barIndex bar)) (S.encode bar)
   return ()
 
 deleteBarAt :: Connection -> BarIndex -> IO ()
@@ -457,15 +467,8 @@ getBarsInSheet conn sid = do
   let readKey k = read2 (BC.unpack k) :: RedisKey BarType2
       extractInd :: RedisKey BarType2 -> BarIndex
       extractInd (BarKey ind) = ind
-  mColKeys <- fromRight <$> runRedis conn (keys $ BC.pack $ barPropsKeyPattern sid ColumnType)
-  mRowKeys <- fromRight <$> runRedis conn (keys $ BC.pack $ barPropsKeyPattern sid RowType)
-  let colInds = map (extractInd . readKey) mColKeys
-      rowInds = map (extractInd . readKey) mRowKeys
-  colProps <- mapM (getBarProps conn) colInds
-  rowProps <- mapM (getBarProps conn) rowInds
-  let cols = map (\(colInd, Just props) -> Bar colInd props) $ filter (isJust . snd) $ zip colInds colProps
-      rows = map (\(rowInd, Just props) -> Bar rowInd props) $ filter (isJust . snd) $ zip rowInds rowProps
-  return $ union cols rows
+  inds <- map (extractInd . readKey) <$> DI.getKeysInSheetByType conn sid BarType2
+  catMaybes <$> mapM (getBar conn) inds
 
 deleteBarsInSheet :: Connection -> ASSheetId -> IO ()
 deleteBarsInSheet conn sid = do

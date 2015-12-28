@@ -38,10 +38,9 @@ setDescriptor conn descriptor =
       sadd sheetRangesKey [rangeKey']
       return ()
 
-deleteDescriptor :: Connection -> RangeDescriptor -> IO ()
-deleteDescriptor conn d = 
-  let rangeKey       = descriptorKey d
-      rangeKey'      = toRedisFormat . RedisRangeKey $ rangeKey 
+deleteDescriptor :: Connection -> RangeKey -> IO ()
+deleteDescriptor conn rangeKey = 
+  let rangeKey'      = toRedisFormat . RedisRangeKey $ rangeKey
       sheetRangesKey = toRedisFormat . SheetRangesKey . rangeKeyToSheetId $ rangeKey
   in runRedis conn $ do
     del [rangeKey']

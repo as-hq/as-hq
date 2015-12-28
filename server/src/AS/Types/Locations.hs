@@ -177,6 +177,15 @@ rangeContainsRect (Range _ ((x,y),(x2,y2))) ((x',y'),(x2',y2')) = tl && br
     tl = (x' >= x) && (y' >= y)
     br = (x2' <= x2) && (y2' <= y2)
 
+-- #needsrefactor we should use a better type than ASReference for this... since this really only makes sense
+-- when the ASReference passed in is an index or a range
+refsToIndices :: [ASReference] -> [ASIndex]
+refsToIndices = concatMap refToIndices
+  where 
+    refToIndices :: ASReference -> [ASIndex]
+    refToIndices (IndexRef i) = [i] 
+    refToIndices (RangeRef r) = rangeToIndices r
+
 -- | Range at ((1,1), (2,2)) --> [(1,1), (2, 1), (1, 2), (2, 2)]
 -- Produces a flattened row-major array of locations.
 rangeToIndices :: ASRange -> [ASIndex]

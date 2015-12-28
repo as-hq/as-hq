@@ -82,24 +82,24 @@ type PureEvalTransform = EvalContext -> EvalContext
 -- assumes all evaled cells are in the same sheet
 -- the only information we're really passed in from the cells is the locations and the expressions of
 -- the cells getting evaluated. We pull the rest from the DB.
-
-
-runDispatchCycle :: MVar ServerState -> [ASCell] -> DescendantsSetting -> CommitSource -> CommitTransform -> IO (Either ASExecError ASCommit)
-runDispatchCycle state cs descSetting src ctf = do
+runDispatchCycle :: MVar ServerState -> [ASCell] -> DescendantsSetting -> CommitSource -> UpdateTransform -> IO (Either ASExecError ASCommit)
+runDispatchCycle state cs descSetting src updateTransform = do
   roots <- EM.evalMiddleware cs
   conn <- dbConn <$> readMVar state
+  time <- getASTime 
   errOrCommit <- runEitherT $ do
     printWithTimeT $ "about to start dispatch"
     let initialEvalMap = M.fromList $ zip (map cellLocation cs) cs
-        initialContext = EvalContext initialEvalMap [] emptyDiff
-    -- you must insert the roots into the initial context, because getCellsToEval will give you cells to evaluate that
+        initialContext = EvalContext initialEvalMap (sheetUpdateFromCommit $ emptyCommitWithTime time) 
+    -- you must insert the roots into the initial context, because getCells.ToEval will give you cells to evaluate that
     -- are only in the context or in the DB (in that order of prececdence). IF neither, you won't get anything. 
     -- this maintains the invariant that context always contains the most up-to-date, complete information. 
     ctxAfterDispatch <- dispatch conn roots initialContext descSetting
     printWithTimeT "finished dispatch"
-    finalCells <- EE.evalEndware state (addedCells ctxAfterDispatch) src roots ctxAfterDispatch
-    let ctx = ctxAfterDispatch { addedCells = finalCells }
-    DT.updateDBWithContext conn src ctx ctf
+    let transformedCtx = ctxAfterDispatch { updateAfterEval = updateTransform (updateAfterEval ctxAfterDispatch) } -- #lenses
+    finalCells <- EE.evalEndware state src transformedCtx
+    let ctx = transformedCtx { updateAfterEval = (updateAfterEval transformedCtx) { cellUpdates = (cellUpdates . updateAfterEval $ transformedCtx) { newVals = finalCells } } } -- #lens
+    DT.updateDBWithContext conn src ctx
   either (const $ G.recompute conn) (const $ return ()) errOrCommit 
   return errOrCommit
 
@@ -165,10 +165,10 @@ getCellsToEval conn ctx locs = possiblyThrowException =<< (lift $ getCellsWithCo
 getModifiedContext :: Connection -> [ASReference] -> EvalTransform
 getModifiedContext conn ancs oldContext = do
    ancIndices <-  lift $ concat <$> mapM (refToIndicesWithContextBeforeEval conn oldContext) ancs 
-   let nonContextAncIndices = filter (not . (flip M.member (contextMap oldContext))) ancIndices
+   let nonContextAncIndices = filter (not . (flip M.member (virtualCellsMap oldContext))) ancIndices
    cells <- lift $ DB.getPossiblyBlankCells conn nonContextAncIndices
-   let oldMap = contextMap oldContext
-       newContext = oldContext { contextMap = insertMultiple oldMap nonContextAncIndices cells }
+   let oldMap = virtualCellsMap oldContext
+       newContext = oldContext { virtualCellsMap = insertMultiple oldMap nonContextAncIndices cells }
    return newContext
 
 retrieveValue :: Maybe CompositeCell -> CompositeValue
@@ -203,7 +203,7 @@ evalChainWithException conn cells ctx =
 evalChain :: Connection -> [ASCell] -> EvalTransform
 evalChain conn cells ctx = evalChain' conn cells'' ctx
   where 
-    hasCoupledCounterpartInMap c = case (cellLocation c) `M.lookup` (contextMap ctx) of
+    hasCoupledCounterpartInMap c = case (cellLocation c) `M.lookup` (virtualCellsMap ctx) of
       Nothing -> False
       Just c' -> (isCoupled c') && (not $ isFatCellHead c')
     cells' = filter isEvaluable cells
@@ -225,35 +225,36 @@ evalChain' conn (c@(Cell loc xp val ps):cs) ctx = do
   ----------------------------------------------------------------------------------------------------------------------------------------------
   -- Context modification
 
+-- #needsrefactor the maybe logic sholdn't be dealt with here
 -- Helper function that removes a maybe descriptor from a context and returns the updated context. 
 removeMaybeDescriptorFromContext :: Maybe RangeDescriptor -> PureEvalTransform
-removeMaybeDescriptorFromContext descriptor ctx = ctx { descriptorDiff = ddiff' }
+removeMaybeDescriptorFromContext descriptor ctx = ctx { updateAfterEval = (updateAfterEval ctx) { descriptorUpdates = ddiff' } } -- #lens
   where 
-    ddiff = descriptorDiff ctx
+    ddiff = descriptorUpdates $ updateAfterEval ctx
     ddiff' = case descriptor of
       Nothing -> ddiff
-      Just d -> removeValue ddiff d
+      Just d -> removeKey ddiff (key d)
 
 -- Helper function that removes multiple descriptors from the ddiff of the context. 
 removeMultipleDescriptorsFromContext :: [RangeDescriptor] -> PureEvalTransform
-removeMultipleDescriptorsFromContext descriptors ctx = ctx { descriptorDiff = ddiffWithbeforeVals }
+removeMultipleDescriptorsFromContext descriptors ctx = ctx { updateAfterEval = (updateAfterEval ctx) { descriptorUpdates = ddiffWithbeforeVals } } -- #lens
   where
-    ddiff = descriptorDiff ctx
-    ddiffWithbeforeVals = L.foldl' removeValue ddiff descriptors
+    ddiff = descriptorUpdates $ updateAfterEval ctx
+    ddiffWithbeforeVals = L.foldl' removeKey ddiff (map key descriptors)
 
 -- Helper function  that adds a descriptor to the ddiff of a context
 addValueToContext :: RangeDescriptor -> PureEvalTransform
-addValueToContext descriptor ctx = ctx { descriptorDiff = ddiff' }
+addValueToContext descriptor ctx = ctx { updateAfterEval = (updateAfterEval ctx) { descriptorUpdates = ddiff' } } -- #lens
   where
-    ddiff  =  descriptorDiff ctx
+    ddiff  = descriptorUpdates $ updateAfterEval ctx
     ddiff' = addValue ddiff descriptor
 
 -- Helper function that adds cells to a context, by merging them to addedCells and the map (with priority).
 addCellsToContext :: [ASCell] -> PureEvalTransform
-addCellsToContext cells ctx = ctx { contextMap = newMap, addedCells = newAddedCells}
+addCellsToContext cells ctx = ctx { virtualCellsMap = newMap, updateAfterEval = (updateAfterEval ctx) { cellUpdates = Update newAddedCells [] } } -- #lens
   where
-    newAddedCells = mergeCells cells (addedCells ctx)
-    newMap   = insertMultiple (contextMap ctx) (map cellLocation cells) cells
+    newAddedCells = mergeCells cells (newCellsInContext ctx)
+    newMap   = insertMultiple (virtualCellsMap ctx) (map cellLocation cells) cells
 
 
 -- Deal with a possible shrink list. The ASCell passed in is a descendant during dispatch. 
@@ -262,7 +263,7 @@ addCellsToContext cells ctx = ctx { contextMap = newMap, addedCells = newAddedCe
 -- in the corresponding objectfor now and propagate those changes. 
 -- The composite value returned by the previous eval chain will then write over this object in contextInsert 
 -- Example: if range(10) becomes range(5) because of an upstream change, blank out A1:A10. 
--- The cv in the previous evalChain has the coupled range(5) cells and will replace the contextMap. 
+-- The cv in the previous evalChain has the coupled range(5) cells and will replace the virtualCellsMap. 
 -- Essentially, this transform exists because you should delete an object before overwriting 
 -- Returns the new context and the blanked out indices, if any
 delPrevFatCellFromContext :: Connection -> ASCell -> EvalTransformWithInfo (Maybe [ASIndex])
@@ -286,7 +287,7 @@ delPrevFatCellFromContext conn c@(Cell idx xp _ _) ctx = case xp of
 -- (1) generates the range descriptors to remove, if any, from the new cell/fatcell produced during eval, 
 -- and removes these descriptors from context
 -- (2) gets the cells decoupled by the new cell/fatcell produced during eval, if any, and merges them into the
--- addedCells of the context as well as the contextMap
+-- addedCells of the context as well as the virtualCellsMap
 -- (3) add a descriptor to the context if a fatcell is produced
 -- Note that the index passed in is the old location, and the maybe fatcell is the compositeValue from eval
 -- Returns the new context and the decoupled cells caused by the possible fat cell
@@ -340,7 +341,7 @@ contextInsert conn c@(Cell idx xp _ ps) (Formatted cv f) ctx = do
       printWithTimeT "\nrunning expanded cells transform"
       let blankCells = case blankedIndices of 
                         Nothing -> []
-                        Just inds -> map ((M.!) (contextMap ctxWithEvalCells)) inds
+                        Just inds -> map ((M.!) (virtualCellsMap ctxWithEvalCells)) inds
           dispatchCells = mergeCells newCellsFromEval $ mergeCells decoupledCells blankCells
       dispatch conn dispatchCells ctxWithEvalCells ProperDescendants
       -- ^ propagate the descendants of the expanded cells (except for the list head)

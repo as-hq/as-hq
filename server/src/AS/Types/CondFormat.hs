@@ -1,12 +1,13 @@
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE DeriveGeneric #-}
 
 --TODO: timchu, can clean up these imports.
 module AS.Types.CondFormat where
 
 import AS.Types.Cell
-import AS.Types.Eval
 import AS.Types.Locations
 import AS.Types.CellProps
+import AS.Types.Errors
 import Data.List
 import AS.Types.Updates
 
@@ -16,7 +17,10 @@ import Data.Aeson.Types
 import Data.Serialize (Serialize)
 import qualified Data.Text as T
 
-data CondFormatRule = CondFormatRule { cellLocs :: [ASRange],
+type CondFormatRuleId = T.Text
+
+data CondFormatRule = CondFormatRule { condFormatRuleId :: CondFormatRuleId,
+                                       cellLocs :: [ASRange], 
                                        condition :: CondFormatCondition,
                                        condFormat :: CellProp } deriving (Show, Read, Generic, Eq)
 
@@ -221,11 +225,20 @@ class TwoExpressionCondition a where
     [val1, val2] <- mapM evalXp [getFstXp s, getSndXp s]
     return $ (symbolTableLookup2 s) val val1 val2
 
-type CondFormatRuleUpdate = Update CondFormatRule () -- #incomplete not yet implemented
+type CondFormatRuleDiff = Diff CondFormatRule
+type CondFormatRuleUpdate = Update CondFormatRule CondFormatRuleId
+
+instance HasKey CondFormatRule where
+  type KeyType CondFormatRule = CondFormatRuleId
+  key = condFormatRuleId
 
 instance ToJSON CondFormatRule
 instance FromJSON CondFormatRule
 instance Serialize CondFormatRule
+
+instance ToJSON CondFormatRuleDiff
+instance FromJSON CondFormatRuleDiff
+instance Serialize CondFormatRuleDiff
 
 instance ToJSON CondFormatCondition
 instance FromJSON CondFormatCondition

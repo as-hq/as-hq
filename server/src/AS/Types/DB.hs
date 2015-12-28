@@ -14,6 +14,7 @@ import AS.Types.Locations
 import AS.Types.Eval
 import AS.Types.CellProps
 import AS.Types.Bar
+import AS.Types.CondFormat (CondFormatRuleId)
 
 import Debug.Trace
 
@@ -175,7 +176,7 @@ data RedisKeyType =
   | PushCommitType 
   | PopCommitType 
   | LastMessageType 
-  | CFRulesType 
+  | CFRuleType 
   | BarType2 -- BarType is alreadry taken in Bar.hs :( Either this or renaming all these to SheetRangesKeyType etc. ...
   | AllWorkbooksType 
   | AllSheetsType
@@ -192,7 +193,7 @@ data RedisKey :: RedisKeyType -> * where
   PushCommitKey   :: CommitSource -> RedisKey PushCommitType
   PopCommitKey    :: CommitSource -> RedisKey PopCommitType
   LastMessageKey  :: CommitSource -> RedisKey LastMessageType
-  CFRulesKey      :: ASSheetId -> RedisKey CFRulesType
+  CFRuleKey       :: ASSheetId -> CondFormatRuleId -> RedisKey CFRuleType
   BarKey          :: BarIndex -> RedisKey BarType2
   AllWorkbooksKey :: RedisKey AllWorkbooksType 
   AllSheetsKey    :: RedisKey AllSheetsType
@@ -209,8 +210,8 @@ instance Show2 (RedisKey a) where
     PushCommitKey c                   -> (keyPrefix PushCommitType) ++ show c
     PopCommitKey c                    -> (keyPrefix PopCommitType) ++ show c
     LastMessageKey c                  -> (keyPrefix LastMessageType) ++ show c
-    CFRulesKey sid                    -> (keyPrefix CFRulesType) ++ T.unpack sid
-    BarKey (BarIndex sid t ind)  -> (keyPrefix BarType2) ++ (T.unpack sid) ++ keyPartDelimiter ++ (show t) ++ keyPartDelimiter ++ (show ind) -- #refactor this show
+    CFRuleKey sid cfid                -> (keyPrefix CFRuleType) ++ T.unpack sid ++ T.unpack cfid
+    BarKey (BarIndex sid t ind)       -> (keyPrefix BarType2) ++ (T.unpack sid) ++ keyPartDelimiter ++ (show t) ++ keyPartDelimiter ++ (show ind) -- #refactor this show
     AllWorkbooksKey                   -> keyPrefix AllWorkbooksType
     AllSheetsKey                      -> keyPrefix AllSheetsType
     VolatileLocsKey                   -> keyPrefix VolatileLocsType
@@ -251,6 +252,8 @@ keyPatternBySheet kt sid =
     PushCommitType  -> sid' ++ "*"
     PopCommitType   -> sid' ++ "*"
     LastMessageType -> sid' ++ "*"
+    CFRuleType      -> sid' ++ "*"
+    BarType2        -> sid' ++ "*"
 
 barPropsKeyPattern :: ASSheetId -> BarType -> String
 barPropsKeyPattern sid typ = (keyPrefix BarType2) ++ (T.unpack sid) ++ keyPartDelimiter ++ (show typ) ++ "*"

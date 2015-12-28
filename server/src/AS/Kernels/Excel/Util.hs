@@ -32,7 +32,7 @@ matrixTo2DList (EMatrix c r v) = (V.toList firstRow):otherRows
 matrixIndex :: Coord -> EMatrix -> EValue
 matrixIndex (c,r) (EMatrix numCols numRows v) = (V.!) v (r*numCols+c)
 
--- | Cast ASValue (from ValMap) to an Excel entity. 
+-- | Cast ASValue (from CellMap) to an Excel entity. 
 asValueToEntity :: Formatted ASValue -> Maybe EEntity
 asValueToEntity v = case (toEValue v) of
   Nothing -> Nothing

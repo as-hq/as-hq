@@ -26,7 +26,10 @@ import Data.Maybe
 import AS.Logging
 
 
--- The cells passed into conditionallyFormatCell should contain the most recent values for the cells.
+-- | Conditionally formats the cells based on the set of rules passed in -- all conditional formatting originally
+-- in the cells go away. 
+-- 
+-- Note: The cells passed into conditionallyFormatCell should contain the most recent values for the cells.
 -- In particular, if this was called through an eval, the values of ASCell should
 -- agree with the values in EvalContext. If not, they should be the most recent values in the DB.
 -- timchu, 12/17/15.
@@ -40,7 +43,7 @@ conditionallyFormatCells conn origSid cells rules ctx = do
 -- #needsrefactor will eventually have to change ranges to refs in CondFormatRule
 -- Requires that v is the most up to date ASValue at location l whenever this function is called.
 ruleToCellTransform :: Connection -> ASSheetId -> EvalContext -> CondFormatRule -> (ASCell -> EitherTExec ASCell)
-ruleToCellTransform conn sid ctx cfr@(CondFormatRule rngs condFormatCondition format) c@(Cell l e v ps) = do
+ruleToCellTransform conn sid ctx cfr@(CondFormatRule _ rngs condFormatCondition format) c@(Cell l e v ps) = do
   let containingRange = find (flip rangeContainsIndex l) rngs
   case containingRange of
     Nothing -> return c
@@ -58,13 +61,13 @@ ruleToCellTransform conn sid ctx cfr@(CondFormatRule rngs condFormatCondition fo
 evalXp :: Connection -> ASSheetId -> EvalContext -> ASExpression -> EitherTExec ASValue
 evalXp conn sid ctx xp@(Expression str lang) = do
   let dummyLoc = Index sid (-1,-1) -- #needsrefactor sucks. evaluateLanguage should take in a Maybe index. Until then
-      valMap = contextMap ctx
+      valMap = virtualCellsMap ctx
       deps = getDependencies sid xp -- #needsrefactor will compress these all to indices
   depInds <- concat <$> mapM (refToIndices conn) deps
   let depIndsToGet = filter (not . (flip M.member) valMap) depInds
   cells <- lift $ DB.getPossiblyBlankCells conn depIndsToGet
   let valMap' = insertMultiple valMap depIndsToGet cells
-      ctx' = ctx { contextMap = valMap' }
+      ctx' = ctx { virtualCellsMap = valMap' }
   (Formatted res _) <- evaluateLanguage conn dummyLoc ctx' xp
   case res of
     Expanding expandingValue -> left $ CondFormattingError ("Tried to apply conditional formatting rule" ++ str ++ "but got ExpandingValue error with expandingValue:  " ++ show expandingValue)
