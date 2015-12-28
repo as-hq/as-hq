@@ -73,12 +73,12 @@ referenceToCompositeValue conn ctx (RangeRef r) = return . Expanding . VList . M
     vals    = map (map indToVal) indices
 
 
--- TODO: timchu, 12/23/15. Relocate this to a different file.
 -- | Helper methods for colRangeWithContextToIndices
 -- gets all the indices in the DB corresponding to a particular column number.
 -- TODO: timchu, the implementation of this is REALLY STUPID. Gets all cells
 -- and then filter!
 
+-- TODO: timchu, 12/23/15. Relocate this to a different file.
 getCol :: ASCell -> Col
 getCol (Cell (Index _ (column, _)) _ _ _) = column
 
