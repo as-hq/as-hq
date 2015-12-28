@@ -77,7 +77,7 @@ indexMatch = do
 outOfBoundsMatch :: Parser ExRef
 outOfBoundsMatch = string "#REF!" >> return ExOutOfBounds
 
---helper for A:A parsing.
+--matches $A type things.
 colMatch :: Parser ExCol
 colMatch = do
   dol  <- optionMaybe dollar
@@ -85,7 +85,7 @@ colMatch = do
   return $ ExCol (readSingleRef dol) rcol
 
 -- rcol is the right column.
--- Parses A1:A
+-- Matches A1:A type things.
 colRangeA1ToAMatch :: Parser ExColRange
 colRangeA1ToAMatch = do
   tl <- indexMatch
@@ -102,7 +102,7 @@ colRangeAToAMatch = do
   r <- colMatch
   return $ ExColRange (ExIndex (readRefType a (Just '$')) lcol "1")  r
 
--- checks for both A:A and A1:A.
+-- checks for matches to both both A:A and A1:A.
 colRangeMatch :: Parser ExColRange
 colRangeMatch = do
   colrng1 <- optionMaybe $ try colRangeAToAMatch
