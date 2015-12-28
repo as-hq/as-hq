@@ -12,7 +12,8 @@ from traitlets import Instance, Type, Any, List
 from ipykernel.comm import CommManager
 from ipykernel.kernelbase import Kernel as KernelBase
 from ipykernel.serialize import serialize_object, unpack_apply_message
-from ipykernel.zmqshell import ZMQInteractiveShell
+
+from .shell import ASShell
 
 #-----------------------------------------------------------------------------
 #  Kernel
@@ -61,7 +62,7 @@ class ASKernel(object):
     # self.shells[sheetId].run_cell(...) 
 
   def handleIncoming(self):
-    recv_message = self.socket.recv()
+    recv_message = self.socket.recvJson()
     reply_message = self.processMessage(recv_message)
     self.socket.send(reply_message)
 
