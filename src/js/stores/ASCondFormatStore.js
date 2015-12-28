@@ -21,7 +21,8 @@ const ASCondFormatStore = Object.assign({}, BaseStore, {
   dispatcherIndex: Dispatcher.register(function (action) {
     switch (action._type) {
       case 'GOT_UPDATED_RULES':
-        ASCondFormatStore._setRules(action.rules);
+        ASCondFormatStore._deleteRules(action.oldRuleIds);
+        ASCondFormatStore._updateRules(action.newRules);
         ASCondFormatStore.emitChange();
         break;
     }
@@ -31,8 +32,20 @@ const ASCondFormatStore = Object.assign({}, BaseStore, {
     return _data.rules;
   },
 
-  _setRules(rules: Array<CondFormatRule>) {
-    _data.rules = rules;
+  // #needsrefactor yes Michael I know I'm using indices etc. etc. 
+  _updateRules(rules: Array<CondFormatRule>) {
+    rules.forEach((r) => { 
+      let rIndex = _data.rules.map(({condFormatRuleId}) => condFormatRuleId).indexOf(r.condFormatRuleId);
+      if (rIndex >= 0) {
+        _data.rules[rIndex] = r; 
+      } else { 
+        _data.rules.push(r);
+      }
+    });
+  },
+
+  _deleteRules(ruleIds: Array<string>) {
+    _data.rules = _data.rules.filter((r) => !ruleIds.includes(r.condFormatRuleId));
   }
 });
 

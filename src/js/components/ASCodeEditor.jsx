@@ -31,17 +31,25 @@ export default React.createClass({
   // Render
 
   render() {
-    let {theme, value, width, height} = this.props;
+    const {theme, value, width, height} = this.props;
+    const outerStyle = {
+      display: 'flex',
+      flexDirection: 'column',
+      flexGrow: 0,
+      flexShrink: 0,
+      flexBasis: 'auto'
+    };
+
     return (
-      <div>
-        <Toolbar/>
+      <div style={outerStyle}>
+        <Toolbar />
         <AceEditor
           ref="editor"
           handleEditorFocus={this.props.handleEditorFocus}
           hideToast={this.props.hideToast}
           theme={theme}
-          width={width} 
-          height={height}
+          width="100%"
+          height="100%"
           maxLines={this.props.maxLines}
           setFocus={this.props.setFocus}
           onDeferredKey={this.props.onDeferredKey} />

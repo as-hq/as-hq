@@ -337,15 +337,22 @@ export function setUrl(rng: string, urlLink: string): Prf {
   });
 }
 
-export function setCondFormattingRules(rules: Array<CondFormatRule>): Prf {
+export function updateCondFormattingRule(rule: CondFormatRule): Prf {
   return apiExec(() => {
-    API.setCondFormattingRules(rules);
+    API.updateCondFormattingRule(rule);
+  });
+}
+
+export function removeCondFormattingRule(ruleId: string): Prf {
+  return apiExec(() => {
+    API.removeCondFormattingRule(ruleId);
   });
 }
 
 function makeCondFormattingRuleExcel(cond: CondFormatCondition, rng: string, prop: BooleanCellTag) {
   return {
     tag: "CondFormatRule",
+    condFormatRuleId: U.Render.getUniqueId(), 
     condition: cond,
     cellLocs: [U.Conversion.simpleToASRange(rangeFromExcel(rng))],
     // $FlowFixMe

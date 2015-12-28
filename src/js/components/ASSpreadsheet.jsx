@@ -168,8 +168,8 @@ export default React.createClass({
           }
         },
         'fin-double-click': function (event) {
-          // should only fire when double click is inside grid. According to event.detail.gridCell here, 
-          // the top left grid cell is (0,0) which is different from e.g. the event in model.handleMouseDown.  
+          // should only fire when double click is inside grid. According to event.detail.gridCell here,
+          // the top left grid cell is (0,0) which is different from e.g. the event in model.handleMouseDown.
           if (event.detail.gridCell.y >= 0 && event.detail.gridCell.x >= 0) {
             ExpStore.setClickType(Constants.ClickType.DOUBLE_CLICK);
             self.refs.textbox.updateTextBox(ExpStore.getExpression());
@@ -410,8 +410,8 @@ export default React.createClass({
       return rr;
     };
 
-    // note: evt.gridCell in all these functions seem to think the coordinates of the top left cell is 
-    // (1,1) rather than (0,0). 
+    // note: evt.gridCell in all these functions seem to think the coordinates of the top left cell is
+    // (1,1) rather than (0,0).
     model.handleMouseDown = (grid, evt) => {
       if (evt.primitiveEvent.detail.primitiveEvent.shiftKey) { // shift+click
         let {origin} = this.getSelectionArea(),
@@ -427,7 +427,7 @@ export default React.createClass({
           // dragging selections
           this.dragSelectionOrigin = {col: evt.gridCell.x, row: evt.gridCell.y};
         } else if (model.featureChain) {
-          let clickedCell = evt.gridCell; 
+          let clickedCell = evt.gridCell;
           // If the mouse is placed inside column header (not on a divider), we want to keep some extra state ourselves
           if (self._clickedCellIsInColumnHeader(clickedCell)) {
            self.clickedColNum = clickedCell.x;
@@ -464,7 +464,7 @@ export default React.createClass({
       }
 
       // for now, double-clicking rows doesn't size it automatically
-      
+
       if (self._clickedCellIsInColumnHeader(evt.gridCell)) {
         self.clickedColNum = evt.gridCell.x;
         self.finishColumnResize();
@@ -612,7 +612,7 @@ export default React.createClass({
     }
   },
 
-  // note: evt.gridCell from the mouse-click functions from model (hg.getBehavior()) seem to be 1-indexed 
+  // note: evt.gridCell from the mouse-click functions from model (hg.getBehavior()) seem to be 1-indexed
   // (the coordinates of the top left cell are  (1,1) rather than (0,0)). The below two functions are only
   // assumed to work on mouse functions on model, NOT for e.g. fin-double-click events where the top left cell is (0,0). Umm......
   _clickedCellIsInColumnHeader(clickedCell: HGPoint): boolean {
@@ -694,7 +694,7 @@ export default React.createClass({
       return {
         id: U.Render.getUniqueId(),
         renderElem: (style) => {
-          return (<Image src={imageSrc} draggable="false" style={style} alt="Error rendering image." />);
+          return (<image src={imageSrc} draggable="false" style={style} alt="Error rendering image." />);
         },
         initWidth: imageWidth,
         initHeight: imageHeight,
@@ -1041,13 +1041,13 @@ export default React.createClass({
   },
 
   _onBarPropsChange() {
-    let dims = BarStore.getLastUpdatedBarsDimensions(), 
-        hg = this._getHypergrid(), 
+    let dims = BarStore.getLastUpdatedBarsDimensions(),
+        hg = this._getHypergrid(),
         model = hg.getBehavior(),
         defaultColumnWidth = hg.resolveProperty('defaultColumnWidth'),
         defaultRowHeight = hg.resolveProperty('defaultRowHeight');
 
-    // columns/rows in backend are 1-indexed, hypergrid's are 0-indexed. 
+    // columns/rows in backend are 1-indexed, hypergrid's are 0-indexed.
     dims['ColumnType'].map(([ind, width]) => model._setColumnWidth(ind-1, width || defaultColumnWidth));
     dims['RowType'].map(([ind, height]) => model.setRowHeight(ind-1, height || defaultRowHeight));
   },
@@ -1103,12 +1103,33 @@ export default React.createClass({
 
   render(): ReactElement {
     let {behavior, width, height} = this.props; //should also have onReady
-    let style = {width: width, height: height, cursor: this.state.cursorStyle};
-    let outerStyle = {width:"100%",
-                     height:"calc(100% - 50px)",
-                     position:'relative',
-                     overflow: 'hidden',
-                     cursor: this.state.cursorStyle};
+
+    const outerStyle = {
+      position: 'relative',
+      display: 'flex',
+      overflow: 'hidden',
+      cursor: this.state.cursorStyle,
+      flexGrow: 1,
+      flexShrink: 1,
+      flexBasis: 'auto'
+    };
+
+    const sheetContainerStyle = {
+      display: 'flex',
+      flexDirection: 'column',
+      flexGrow: 1,
+      flexShrink: 1,
+      flexBasis: 'auto'
+    };
+
+    const sheetStyle = {
+      flexGrow: 1,
+      flexShrink: 1,
+      width: '100%',
+      height: '100%',
+      cursor: 'auto'
+    };
+
     let behaviorElement;
     let self = this;
     switch (behavior) {
@@ -1123,9 +1144,9 @@ export default React.createClass({
     return (
       // NOTE: the 50px is for the scrollbar to show up.
       <Dropzone onDrop={this.props.onFileDrop} disableClick={true} style={outerStyle}>
-        <div ref="sheet" style={outerStyle} >
+        <div ref="sheet" style={sheetContainerStyle} >
           <fin-hypergrid
-            style={style}
+            style={sheetStyle}
             ref="hypergrid"
             onKeyDown={this._onKeyDown}
             onKeyUp={this._onKeyUp}

@@ -4,6 +4,13 @@ import React, {PropTypes} from 'react';
 import ASTreeNav from './ASTreeNav.jsx';
 import ASEvaluationPane from './ASEvaluationPane.jsx';
 import ASTopBar from './ASTopBar.jsx';
+import ASBottomBar from './ASBottomBar.jsx';
+import ASErrorPane from './ASErrorPane.jsx';
+
+import U from '../AS/Util';
+const {
+  Conversion: TC
+} = U;
 
 import {AppCanvas, LeftNav, Paper, Styles} from 'material-ui';
 import API from '../actions/ASApiActionCreators';
@@ -34,11 +41,11 @@ export default React.createClass({
 
   getInitialState() {
     return {
-      activeDocumentTab: 'test',
-      activeRibbonTab: 'Home',
       currentPane: 'eval',
       /* object passed from splash pane specifying initial params: opened sheet, etc */
-      initEvalInfo: {}
+      initEvalInfo: {},
+      errorPaneOpen: true,
+      memory: 0
     }
   },
 
@@ -60,22 +67,35 @@ export default React.createClass({
   /* Core render method for the whole app */
 
   render() {
-
-    let leftNavMenuItems = [
-      { route: 'all-files', text: 'All files' },
-      { route: 'logout', text: 'Log out' }
-    ];
+    let {errorPaneOpen} = this.state;
 
     return (
       <div style={{width:"100%",height:"100%"}} >
         <ASTopBar toggleEvalHeader={this._toggleEvalHeader} />
-        <div style={{width: '100%', height: '100%'}}>
-          <div style={{display: 'inline-block', width: '100%', height:'100%',verticalAlign:'top'}}>
+        <div style={{width: '100%', height: '100%'}}> {/* supposed to be calc(100%-72px)*/}
+          <div style={{
+            display: 'inline-block',
+            width: '100%',
+            height: errorPaneOpen ? '80%' : '100%',
+            verticalAlign:'top'
+          }} >
             <ASEvaluationPane behavior="default" ref="evalPane" initInfo={this.state.initEvalInfo} height='100%'/>
           </div>
+          <div style={{
+            display: 'inline-block',
+            width: '100%',
+            height: errorPaneOpen ? '20%' : '0',
+            overflow: 'hidden'
+          }}>
+            <ASErrorPane open={errorPaneOpen} onRequestSelect={this._handleRequestSelect}/>
+          </div>
         </div>
+        {
+          /*<div style={{width: '100%', height: '36px'}}>
+            <ASBottomBar toggleErrorPane={this._toggleErrorPane} />
+          </div>*/
+        }
       </div>
-
     );
   },
 
@@ -88,41 +108,15 @@ export default React.createClass({
     this.refs.evalPane.toggleEvalHeader();
   },
 
-  _onDocumentTabChange(tabKey) {
-    this.setState({ activeDocumentTab: tabKey });
+  _toggleErrorPane() {
+    this.setState({
+      errorPaneOpen: ! this.state.errorPaneOpen
+    });
   },
 
-  _onRibbonTabChange(tabTitle) {
-    this.setState({ activeRibbonTab: tabTitle });
-  },
-
-  _onAlphaButtonTap() {
-    this.refs.leftNav.toggle();
-  },
-
-  _onPaneChange(pane, initInfo) {
-    switch(pane) {
-      case 'eval':
-        this.setState({ currentPane: pane, initEvalInfo: initInfo });
-        break;
-    }
-  },
-
-  _onDocumentOpen(sheet) {
-    //TODO add sheet name to tabs
-    this.refs.evalPane.openSheet(sheet);
-    // logDebug('App on document open', sheet.sheetId);
-  },
-
-  _onSheetCreate() {
-    //TODO
-    logDebug('Created sheet');
-    API.createSheet();
-  },
-
-  _onWorkbookCreate() {
-    //TODO
-    logDebug('Created workbook');
-    API.createWorkbook();
+  _handleRequestSelect(idx) {
+    let rng = TC.indexToRange(idx);
+    let sel = { origin: idx, range: rng };
+    this.refs.evalPane.getASSpreadsheet().select(sel);
   }
 });

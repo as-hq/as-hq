@@ -79,7 +79,28 @@ export default class ASTopBar extends React.Component<{}, ASTopBarProps, ASTopBa
           open={this.state.chartOpen}
           onRequestClose={this._onChartClose.bind(this)}
           onCreate={OverlayActions.add} />
-        <ASMenuBar menus={[
+        <div style={{
+          position: 'absolute',
+          display: 'block',
+          width: '60px',
+          height: '60px',
+          color: 'rgba(255, 255, 255, 0.72)',
+          backgroundColor: '#242424',
+          boxShadow: '0px 0px 15px 2px #000000',
+          borderRadius: '50%',
+          fontWeight: '500',
+          textAlign: 'center',
+          fontSize: '28pt',
+          fontStyle: 'italic',
+          fontFamily: 'Georgia, serif',
+          top: 0,
+          left: 0,
+          lineHeight: '50px',
+          zIndex: '100000'
+        }}>
+          α
+        </div>
+        <ASMenuBar style={{paddingLeft: '50px'}} menus={[
           {title: 'File', menuItems: [
             simple({
               title: 'Open',

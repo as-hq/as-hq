@@ -45,6 +45,8 @@ let {
   Conversion: TC
 } = U;
 
+import _Styles from '../../styles/dialogs/ASCondFormattingDialog';
+
 type ConditionMenuItem = 'greater_than'
   | 'less_than'
   | 'between'
@@ -66,6 +68,7 @@ type RuleDialogProps = {
 };
 
 type DialogCondFormatRule = {
+  id: string;
   range: string;
   conditionType: ConditionMenuItem;
   expr1: string;
@@ -166,6 +169,7 @@ function convertStyleToClient(ruleStyle: ASCellProp): ({
 function convertToClient(rule: ?CondFormatRule): DialogCondFormatRule {
   if (rule === null || rule === undefined) { // Default
     return ({
+      id: "CFRID" + U.Render.getUniqueId(), // can probably use a less dumb id -- alex 12/24
       range: '',
       conditionType: 'greater_than',
       expr1: '',
@@ -175,6 +179,7 @@ function convertToClient(rule: ?CondFormatRule): DialogCondFormatRule {
     });
   } else {
     return ({
+      id: rule.condFormatRuleId,
       range: TC.rangeToExcel(rule.cellLocs[0].range),
       ...convertConditionToClient(rule.condition),
       ...convertStyleToClient(rule.condFormat)
@@ -242,6 +247,7 @@ function convertConditionToServer(rule: DialogCondFormatRule): CondFormatConditi
 function convertToServer(rule: DialogCondFormatRule): CondFormatRule {
   return ({
     tag: 'CondFormatRule',
+    condFormatRuleId: rule.id,
     condFormat: convertStyleToServer(rule),
     condition: convertConditionToServer(rule),
     cellLocs: [{
@@ -295,6 +301,18 @@ export default class ASCondFormattingRuleDialog
     SelectionStore.removeChangeListener(this._onChangeDefaultSelection.bind(this));
   }
 
+  componentWillReceiveProps(nextProps: RuleDialogProps) {
+    if (this._shouldRefresh(nextProps)) {
+      this.setState({
+        rule: convertToClient(nextProps.initialRule)
+      });
+    }
+  }
+
+  _shouldRefresh(nextProps: RuleDialogProps): boolean {
+    return (! this.props.variantRange && ! this.props.open && nextProps.open);
+  }
+
   _onChangeDefaultSelection() {
     let sel = SelectionStore.getActiveSelection();
 
@@ -330,17 +348,8 @@ export default class ASCondFormattingRuleDialog
     });
   }
 
-  clearState() {
-    this.setState({ rule: convertToClient() });
-  }
-
   render() {
     let {initialRule, open, onRequestClose} = this.props;
-
-    let standardStyling = {
-      width: '400px',
-      paddingLeft: '24px'
-    };
 
     return (
       <Dialog
@@ -353,18 +362,19 @@ export default class ASCondFormattingRuleDialog
         open={open}
         onRequestClose={onRequestClose}>
         <TextField
-          style={standardStyling}
+          style={_Styles.formTextFields}
           hintText="Range"
           valueLink={this.linkRuleState('range')} />
         <br />
         <ASDropdownMenu
+          style={_Styles.formDropdowns}
           menuItems={CONDITION_MENU_ITEMS}
           valueLink={this.linkRuleState('conditionType')} />
         <br />
         {shownTextFieldCount(this.state.rule) >= 1 ? (
           [
             <TextField
-              style={standardStyling}
+              style={_Styles.formTextFields}
               hintText="Value or formula"
               valueLink={this.linkRuleState('expr1')} />,
             <br />
@@ -373,20 +383,24 @@ export default class ASCondFormattingRuleDialog
         {shownTextFieldCount(this.state.rule) >= 2 ? (
           [
             <TextField
-              style={standardStyling}
+              style={_Styles.formTextFields}
               hintText="Value or formula"
               valueLink={this.linkRuleState('expr2')} />,
             <br />
           ]
         ) : null}
         <ASDropdownMenu
+          style={_Styles.formDropdowns}
           menuItems={STYLING_MENU_ITEMS}
           valueLink={this.linkRuleState('style')} />
         {
           showStyleColorField(this.state.rule)
             ? [
               <br />,
-              <ASColorPicker valueLink={this.linkRuleState('styleColor')} />
+              <br />,
+              <ASColorPicker
+                style={_Styles.formColorPicker}
+                valueLink={this.linkRuleState('styleColor')} />
             ]
             : null
         }
@@ -397,7 +411,6 @@ export default class ASCondFormattingRuleDialog
   }
 
   _onClickSubmit() {
-    this.clearState();
     this.props.onSubmitRule(convertToServer(this.state.rule));
     this.props.onRequestClose();
   }

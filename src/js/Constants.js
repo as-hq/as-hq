@@ -73,9 +73,7 @@ var Constants = Object.assign({
   gridXOffset: 25, // margin between left edge of div and cells
   gridYOffset: 22, // '' top edge ''
 
-  editorHeight: 60,
-  codeBarHeight:60,
-  topbarTotalHeight: 200, // height of everything except pane
+  editorHeight: 200,
 
   // Each time you add an action, add it here... They should be past-tense
   ActionTypes: keyMirror({
@@ -172,7 +170,7 @@ var Constants = Object.assign({
     MutateSheet: "MutateSheet",
     Drag: "Drag",
     Decouple: "Decouple",
-    SetCondFormatRules: "SetCondFormatRules",
+    UpdateCondFormatRules: "UpdateCondFormatRules",
     SetBarProp: "SetBarProp",
     ImportCSV: "ImportCSV"
   },

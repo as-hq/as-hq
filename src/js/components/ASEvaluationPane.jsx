@@ -252,25 +252,13 @@ export default React.createClass({
     this.setState({ testMode: false });
   },
 
+  getASSpreadsheet(): ASSpreadsheet {
+    return this.refs.spreadsheet;
+  },
+
 
   /**************************************************************************************************************************/
   // Error handling
-
-  getErrorMessage(cv: ASValue): ?string {
-    if (cv.tag === "ValueError") {
-      return cv.errorMsg;
-    } else if (cv.tag === "ValueExcelError") {
-      return cv.contents.tag; // ValueExcelError should become a part of ValueError eventually
-    }
-    return null;
-  },
-
-  showAnyErrors(cv: ASValue) {
-    let err = this.getErrorMessage(cv);
-    if (err) {
-      this.setToast(err, "Error");
-    }
-  },
 
   setToast(msg: string, action?: string) {
     // possibly truncate message
@@ -504,7 +492,6 @@ export default React.createClass({
       ExpStore.setLanguage(language);
       ExpActionCreator.handleSelChange(expression);
       this.hideToast();
-      this.showAnyErrors(val);
     } else if (changeSelToNewCell) {
       logDebug("Selected empty cell to move to");
       SelectionStore.setActiveSelection(sel, "", null);
@@ -524,7 +511,6 @@ export default React.createClass({
       if (cell && cell.cellExpression) {
         let {expression, language} = cell.cellExpression;
         SelectionStore.setActiveSelection(sel, expression, language);
-        this.showAnyErrors(cell.cellValue);
       } else {
          SelectionStore.setActiveSelection(sel, "", null);
          this.hideToast();
@@ -751,7 +737,7 @@ export default React.createClass({
     // highlightFind is for the spreadsheet to know when to highlight found locs
     // display the find bar or modal based on state
     let leftEvalPane =
-      <div style={{height: '100%'}}>
+      <div style={{display: 'flex', flexDirection: 'column', height: '100%'}}>
         {this.state.showFindBar ? <ASFindBar onEnter={this.onFindBarEnter}
                                              onNext={this.onFindBarNext}
                                              onPrev={this.onFindBarPrev}

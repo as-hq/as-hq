@@ -245,9 +245,9 @@ export type PayloadValue = {
   contents: [ASCompositeValue, ASLanguage];
 };
 
-export type PayloadCondFormat = {
-  tag: 'PayloadCondFormat';
-  condFormatRules: Array<CondFormatRule>;
+export type PayloadCondFormatUpdate = {
+  tag: 'PayloadCondFormatUpdate';
+  contents: CondFormatRuleUpdate;
 };
 
 export type PayloadSetBarProp = {
@@ -262,6 +262,7 @@ export type PayloadSheetUpdate = {
 
 export type CondFormatRule = {
   tag: 'CondFormatRule';
+  condFormatRuleId: string; 
   condFormat: ASCellProp;
   condition: CondFormatCondition;
   cellLocs: Array<ASRange>;
@@ -359,7 +360,7 @@ export type ASBackendPayload =
   | PayloadMutate
   | PayloadDrag
   | PayloadFind
-  | PayloadCondFormat
+  | PayloadCondFormatUpdate
   | PayloadSetBarProp
   | PayloadSheetUpdate;
 
@@ -453,7 +454,7 @@ export type ASMessageAction =
   | 'JumpSelect'
   | 'MutateSheet'
   | 'Drag'
-  | 'CondFormat' | 'SetCondFormatRules';
+  | 'CondFormat' | 'UpdateCondFormatRules';
 
 export type NoActionResponse = {
   action: 'NoAction';
@@ -534,7 +535,7 @@ export type FindResponse = {
 };
 
 export type SetCondFormatResponse = {
-  action: 'SetCondFormatRules';
+  action: 'UpdateCondFormatRules';
   payload: PayloadSheetUpdate;
   result: ASBackendResult;
 };
