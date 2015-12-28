@@ -217,7 +217,7 @@ let CU = {
         {range, sheetId} = rng;
     for (var r = range.tl.row; r <= range.br.row; r++) {
       for (var c = range.tl.col; c <= range.br.col; c++) {
-        inds.push(this.simpleToASIndex({row: r, col: c}, sheetId));
+        inds.push(CU.simpleToASIndex({row: r, col: c}, sheetId));
       }
     }
     return inds;
@@ -226,7 +226,7 @@ let CU = {
   asLocsToASIndices(locs: Array<ASLocation>): Array<ASIndex> { 
     let indicesList = locs.map((l) => { 
       switch (l.tag) { 
-        case 'range': return this.asRangeToASIndices(l); 
+        case 'range': return CU.asRangeToASIndices(l); 
         case 'index': return [l]; 
         default: throw "tag invalid in a location passed into asLocsToASIndices"; 
       }

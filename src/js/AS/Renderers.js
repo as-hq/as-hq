@@ -27,7 +27,8 @@ let _renderParams : RenderParams = {
   draggedBoxSelection: null
 };
 
-export default {
+// I suspect this file should get split up
+const Renderers = {
 
   /*************************************************************************************************************************/
   // Getter and setters for blue box
@@ -91,10 +92,10 @@ export default {
       return false;
     }
     let {origin, extent} = _renderParams.selectionRect;
-    return (this.withinSegment(pX, origin.x, extent.x) && (this.withinSegment(pY, origin.y, 0) ||
-                                                 this.withinSegment(pY, origin.y + extent.y, 0)))
-        || (this.withinSegment(pY, origin.y, extent.y) && (this.withinSegment(pX, origin.x, 0) ||
-                                                 this.withinSegment(pX, origin.x + extent.x, 0)));
+    return (Renderers.withinSegment(pX, origin.x, extent.x) && (Renderers.withinSegment(pY, origin.y, 0) ||
+                                                 Renderers.withinSegment(pY, origin.y + extent.y, 0)))
+        || (Renderers.withinSegment(pY, origin.y, extent.y) && (Renderers.withinSegment(pX, origin.x, 0) ||
+                                                 Renderers.withinSegment(pX, origin.x + extent.x, 0)));
   },
 
   underline(config: HGRendererConfig, gc: GraphicsContext, text: string, x: number, y: number, thickness: number) {
@@ -401,5 +402,6 @@ export default {
       }
     }
   }
+};
 
-}
+export default Renderers;
