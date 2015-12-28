@@ -1,4 +1,6 @@
-from IPython.core.interactiveshell import InteractiveShell
+import sys
+import ast
+from IPython.core.interactiveshell import InteractiveShell, ExecutionResult, softspace
 from IPython.core.prompts import PromptManager
 
 #-----------------------------------------------------------------------------
@@ -203,16 +205,19 @@ class ASShell(InteractiveShell):
         raise ValueError("Interactivity was %r" % interactivity)
 
     try:
+      # the target namespace builds up for every line of cell code, 
+      # and is initially empty if run_cell is specified as running in isolated mode.
+        target_ns = {} if isolated else self.user_ns
         for i, node in enumerate(to_run_exec):
             mod = ast.Module([node])
             code = compiler(mod, cell_name, "exec")
-            if self.run_code(code, result):
+            if self.run_code(code, target_ns, result):
                 return True
 
         for i, node in enumerate(to_run_interactive):
             mod = ast.Interactive([node])
             code = compiler(mod, cell_name, "single")
-            if self.run_code(code, result):
+            if self.run_code(code, target_ns, result):
                 return True
 
         # Flush softspace
@@ -236,7 +241,7 @@ class ASShell(InteractiveShell):
 
     return False
 
-  def run_code(self, code_obj, result=None, isolated=False):
+  def run_code(self, code_obj, target_ns, result=None):
     """Execute a code object.
 
     When an exception occurs, self.showtraceback() is called to display a
@@ -265,8 +270,7 @@ class ASShell(InteractiveShell):
     try:
         try:
             self.hooks.pre_run_code_hook()
-            #rprint('Running code', repr(code_obj)) # dbg
-            exec(code_obj, self.user_global_ns, self.user_ns)
+            exec(code_obj, self.user_global_ns, target_ns)
         finally:
             # Reset our crash handler in place
             sys.excepthook = old_excepthook
