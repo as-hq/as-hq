@@ -56,6 +56,7 @@ keepUnequal x = (ls1, ls2)
     ls1 = map      fst unequals
     ls2 = mapMaybe snd unequals
 
+-- #lenses
 -- | For a mutate, maps the old row and column to the new row and column.
 barIndexMap :: MutateType -> BarIndex -> Maybe BarIndex
 barIndexMap (InsertCol c') bar@(BarIndex sid typ bari) =
