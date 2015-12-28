@@ -60,10 +60,11 @@ referenceToCompositeValue conn ctx (ColRangeRef cr) = do
   return . Expanding . VList . M $ vals
   where
     indices = colRangeWithContextToIndicesRowMajor2D conn ctx cr
-    -- The only case where the index is not in the context is when the current dispatch
-    -- created new cells in the bottom of a column whose colRange is being evaluated.
-    indToVal ind = case (M.member ind $ contextMap ctx) of
-                        True -> cellValue $ (contextMap ctx) M.! ind
+    -- The only case where the index is not in the virtualCellsMap is when the
+    -- current dispatch created new cells in the bottom of a column whose
+    -- colRange is being evaluated.
+    indToVal ind = case (M.member ind $ virtualCellsMap ctx) of
+                        True -> cellValue $ (virtualCellsMap ctx) M.! ind
                         False -> NoValue
     vals    = map (map indToVal) indices
 referenceToCompositeValue conn ctx (RangeRef r) = return . Expanding . VList . M $ vals
@@ -100,9 +101,9 @@ lookUpDBCellsByCol conn sid column =  do
 -- filters for the indices in the EvalContext corresponding to a particular column number.
 -- TODO: timchu, doesn't filter by sheet.
 evalContextCellsByCol :: EvalContext -> ASSheetId -> Col -> [ASCell]
-evalContextCellsByCol (EvalContext valMap _ _) sid column =
+evalContextCellsByCol (EvalContext virtualCellsMap _) sid column =
   filter (\c -> (getCol c == column)) $ cellsInCtx where
-    cellsInCtx = M.elems valMap
+    cellsInCtx = M.elems virtualCellsMap
 
 equalIndex :: ASCell -> ASCell -> Bool
 equalIndex cell1 cell2 = (cellLocation cell1) == (cellLocation cell2)
@@ -154,8 +155,8 @@ colRangeWithContextToIndicesRowMajor2D conn ctx c = rangeToIndicesRowMajor2D $ c
 -- AM I IN THE WORLD WHERE I KNOW ENOUGH TO DEBUG THIS?
 -- AFTER THIS
 colRangeWithDBAndContextToIndices :: Connection -> EvalContext -> ASColRange -> IO [ASIndex]
-colRangeWithDBAndContextToIndices conn ctx@(EvalContext vmap _ _) c = do
-  underlyingRange <- colRangeWithDBAndContextToRange conn ctx c
+colRangeWithDBAndContextToIndices conn ctx cr = do
+  underlyingRange <- colRangeWithDBAndContextToRange conn ctx cr
   return $ rangeToIndices underlyingRange
 
 --
