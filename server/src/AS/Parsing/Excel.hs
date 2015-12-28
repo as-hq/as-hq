@@ -105,9 +105,9 @@ colRangeAToAMatch = do
 -- checks for matches to both both A:A and A1:A.
 colRangeMatch :: Parser ExColRange
 colRangeMatch = do
-  colrng1 <- optionMaybe $ try colRangeAToAMatch
-  case colrng1 of
-    Just a2a -> return a2a
+  colrngAToA <- optionMaybe $ try colRangeAToAMatch
+  case colrngAToA of
+    Just a -> return a
     Nothing -> colRangeA1ToAMatch
 
 -- | matches index:index

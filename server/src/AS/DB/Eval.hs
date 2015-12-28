@@ -111,6 +111,16 @@ equalIndex cell1 cell2 = (cellLocation cell1) == (cellLocation cell2)
 compareCellByRow:: ASCell -> ASCell -> Ordering
 compareCellByRow c1 c2  = compare (row $ index $ cellLocation c1) (row $ index $ cellLocation c2)
 
+-- gives the maximum non-blnak row of a list of cells. Used in colRange interpolation.
+maxNonBlankRow :: [ASCell] -> Row
+maxNonBlankRow cells = maximum rowList where
+  cellsSortedByRows =  Data.List.sortBy (compareCellByRow) cells
+  rowList = map getRow $ removeEmptyCellsFromEndOfList $ cellsSortedByRows
+
+-- gives the maximum non-blank row in a list of list of cells. Used in colRange interpolation.
+maxNonBlankRowInListOfLists :: [[ASCell]] -> Row
+maxNonBlankRowInListOfLists ll = maximum (map maxNonBlankRow ll)
+
 -- Uses the evalcontext, DB, and column range to extract the range equivalent to the ColumnRange
 -- Note; this is inefficient, as I convert cells to indices, and later in eval they're reconverted to cells. 
 -- Note: I actually don't know the best way to go directly to colRanges.
@@ -121,26 +131,22 @@ colRangeWithDBAndContextToRange conn ctx c@(ColRange sid ((l, t), r)) = do
         let ctxCells = evalContextCellsByCol ctx sid column
         dbCells <- lookUpDBCellsByCol conn sid column
         return $ unionBy equalIndex ctxCells dbCells
-      maxRowWithNonBlanksInCol :: [ASCell] -> Row
-      maxRowWithNonBlanksInCol cells = maximum rowList where
-        cellsSortedByRows =  Data.List.sortBy (compareCellByRow) cells
-        rowList = map getRow $ removeEmptyCellsFromEndOfList $ cellsSortedByRows
+      startCol = min l r
+      endCol = max l r
   listOfCellsByCol <- mapM cellsByCol [l..r] -- :: [[ASIndex]]
-  let maxRowInCols = maximum (map maxRowWithNonBlanksInCol listOfCellsByCol)
+  let maxRowInCols = maxNonBlankRowInListOfLists listOfCellsByCol
   return $ Range sid ((l, t), (r, maxRowInCols))
 
--- TODO: timchu 12/26/15. blatant code duplication.
+-- TODO: timchu 12/26/15. blatant code duplication. Don't know how to unduplicate further.
 colRangeWithContextToRange :: Connection -> EvalContext -> ASColRange -> ASRange
 colRangeWithContextToRange conn ctx c@(ColRange sid ((l, t), r)) =
   let cellsByCol :: Col -> [ASCell]
       cellsByCol column = evalContextCellsByCol ctx sid column
       -- must sort cells by row in order for removeEmptyCellsAtEndOfList to work
-      maxRowWithNonBlanksInCol :: [ASCell] -> Row
-      maxRowWithNonBlanksInCol cells = maximum rowList where
-        cellsSortedByRows =  Data.List.sortBy (compareCellByRow) cells
-        rowList = map getRow $ removeEmptyCellsFromEndOfList $ cellsSortedByRows
+      startCol = min l r
+      endCol = max l r
       listOfCellsByCol = map cellsByCol [l..r] -- :: [[ASIndex]]
-      maxRowInCols = maximum (map maxRowWithNonBlanksInCol listOfCellsByCol)
+      maxRowInCols = maxNonBlankRowInListOfLists listOfCellsByCol
    in
    Range sid ((l, t), (r, maxRowInCols))
 
