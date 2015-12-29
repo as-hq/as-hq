@@ -9,6 +9,7 @@ let ace = require('brace');
 import Constants from '../Constants';
 import U from '../AS/Util';
 import {logDebug} from '../AS/Logger';
+import {maybe} from '../AS/Maybe';
 
 import CellStore from '../stores/ASCellStore';
 import SheetStateStore from '../stores/ASSheetStateStore';
@@ -124,7 +125,7 @@ export default class Textbox
       let xp = this.editor.getValue(),
           rows = xp.split("\n"),
           longestStr = rows.reduce(function (a, b) { return a.length > b.length ? a : b; }),
-          extentX = Number(maybe("0", (pos) => pos.extent.x, this.props.position())); 
+          extentX = maybe(0, (pos) => pos.extent.x, this.props.position()); 
       return Math.max(extentX, (longestStr.length)*7);
     } else {
       return 0;
@@ -205,15 +206,6 @@ export default class Textbox
     return (
       <div id={'textbox'} style={baseStyle} />
     );
-  }
-}
-
-// ::ALEX:: write full version
-function maybe(nothingVal: ?string, justFunc: ((pos: HGRectangle) => (string|number)), maybeVal: ?HGRectangle): ?string { 
-  if (maybeVal != null) { 
-    return String(justFunc(maybeVal)); 
-  } else {
-    return nothingVal; 
   }
 }
 

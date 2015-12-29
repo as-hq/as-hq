@@ -15,7 +15,8 @@ import type {
 
 import type {
   ASCursorStyle,
-  ASViewingWindow
+  ASViewingWindow,
+  ASFocusType
 } from '../types/State';
 
 import {logDebug, logError} from '../AS/Logger';
@@ -60,41 +61,81 @@ import Dropzone from 'react-dropzone';
 
 let finRect: HGRectangleElement = (document.createElement('fin-rectangle'): any);
 
-export default React.createClass({
+type ASSpreadsheetDefaultProps = {
+  behavior: string; 
+  onReady: () => void; 
+};
 
+type ASSpreadsheetProps = {
+  onTextBoxDeferredKey: (e: SyntheticKeyboardEvent) => void; 
+  hideToast: () => void; 
+  setFocus: (elem: ASFocusType) => void; 
+  onReady: () => void; 
+  onTextBoxDeferredKey: (e: SyntheticKeyboardEvent) => void; 
+  onFileDrop: (files: Array<File>) => void; 
+  onSelectionChange: (sel: ASSelection) => void; 
+  onNavKeyDown: (e: SyntheticKeyboardEvent) => void; 
+  behavior: string; 
+  width?: string; 
+  height?: string; 
+};
+
+type ASSpreadsheetState = {
+  scroll: HGPoint;
+  scrollPixels: HGPoint;
+  overlays: Array<ASOverlaySpec>;
+  cursorStyle: ASCursorStyle;
+  selectionDraggable: boolean;
+};
+
+// REPL stuff is getting temporarily phased out in favor of an Eval Header file. (Alex 11/12)
+export default class ASSpreadsheet
+  extends React.Component<ASSpreadsheetDefaultProps, ASSpreadsheetProps, ASSpreadsheetState>
+{
   /*************************************************************************************************************************/
   // Non-rendering state
 
-  mousePosition: (null: ?HGPoint),
-  mouseDownInBox: false,
-  dragSelectionOrigin: (null: ?NakedIndex),
+  mousePosition: ?HGPoint;
+  mouseDownInBox: boolean;
+  dragSelectionOrigin: ?NakedIndex;
+
+  draggingCol: boolean;
+  draggingRow: boolean;
+  clickedColNum: ?number;
+  clickedRowNum: ?number;
+  resizedColNum: ?number;
+  resizedRowNum: ?number;
+
+  gridProperties: {
+    editorActivationKeys: Array<any>, 
+    scrollbarHoverOff: string,
+    columnAutosizing: boolean
+  };
 
   /*************************************************************************************************************************/
   // React methods
 
-  propTypes: {
-    onSelectionChange: React.PropTypes.func.isRequired,
-    onTextBoxDeferredKey: React.PropTypes.func.isRequired,
-    onNavKeyDown: React.PropTypes.func.isRequired,
-    setFocus: React.PropTypes.func.isRequired
-  },
+  constructor(props: ASSpreadsheetDefaultProps) {
+    super(props);
 
-  // TODO: do we actually need behavior??
-  getDefaultProps() {
-    return {
-      behavior: 'default',
-      onReady() { }
-    };
-  },
+    this.mousePosition = null; 
+    this.mouseDownInBox = false; 
+    this.dragSelectionOrigin = null; 
 
-  getInitialState(): ({
-    scroll: HGPoint;
-    scrollPixels: HGPoint;
-    overlays: Array<ASOverlaySpec>;
-    cursorStyle: ASCursorStyle;
-    selectionDraggable: boolean;
-  }) {
-    return {
+    this.draggingCol = false;
+    this.draggingRow = false;
+    this.clickedColNum = null;
+    this.clickedRowNum = null;
+    this.resizedColNum = null;
+    this.resizedRowNum = null;
+
+    this.gridProperties = {
+      editorActivationKeys: [], 
+      scrollbarHoverOff: 'visible',
+      columnAutosizing: true
+    }
+
+    this.state = {
       // keep scroll values in state so overlays autoscroll with grid
       scroll: { x: 0, y: 0 },
       scrollPixels: { x: 0, y: 0},
@@ -102,14 +143,13 @@ export default React.createClass({
       cursorStyle: 'auto',
       selectionDraggable: false
     };
-  },
-
+  }
 
   componentDidMount() {
     // Be able to respond to events from ExpStore
-    ExpStore.addChangeListener(this._onExpressionChange);
-    BarStore.addChangeListener(this._onBarPropsChange);
-    OverlayStore.addChangeListener(this._onOverlaysChange);
+    ExpStore.addChangeListener(this._onExpressionChange.bind(this));
+    BarStore.addChangeListener(this._onBarPropsChange.bind(this));
+    OverlayStore.addChangeListener(this._onOverlaysChange.bind(this));
     // Hypergrid initialization
     document.addEventListener('polymer-ready', () => {
       this.props.onReady();
@@ -195,168 +235,9 @@ export default React.createClass({
         columnAutosizing: false
       });
     });
-  },
+  }
 
-  componentWillUnmount() {
-    ExpStore.removeChangeListener(this._onExpressionChange);
-  },
-
-  /*************************************************************************************************************************/
-  // Handle mouse events by overriding hypergrid default
-
-  getCoordsFromMouseEvent(grid: HGElement, evt: HGMouseEvent): HGPoint {
-    let {x, y} = evt.mousePoint,
-        point = finRect.point.create(evt.gridCell.x, evt.gridCell.y),
-        {origin} = grid.getBoundsOfCell(point),
-        pX = origin.x + x,
-        pY = origin.y + y;
-    return {x: pX, y: pY};
-  },
-
-  drawDraggedSelection(dragOrigin: NakedIndex, selRange: NakedRange, targetX: number, targetY: number) {
-    let dX = targetX - dragOrigin.col,
-        dY = targetY - dragOrigin.row;
-    let range = U.Location.offsetRange(selRange, dY, dX);
-    Render.setDragRect(range);
-  },
-
-  // Is the mouse location inside a blue box
-  insideBox(event: HGMouseEvent): boolean {
-    let {x, y} = event.primitiveEvent.detail.mouse,
-       topLeftBox = Render.getTopLeftBox(),
-       boxWidth   = Render.getBoxWidth();
-    return U.Location.mouseLocIsContainedInBox(x,y,topLeftBox,boxWidth);
-  },
-
-  // Semi-recursive function via timeouts -- this is how hypergrid does it
-  // Need to scroll even if no mouse event, but you're at the edge of the grid
-  scrollWithDraggables(grid: HGElement) {
-    if (this.mouseDownInBox || this.dragSelectionOrigin !== null) {
-
-      let mousePos = this.mousePosition;
-      if (! mousePos) {
-        logDebug('No mouse position');
-        return;
-      }
-
-      let {x, y} = mousePos,
-          b = grid.getDataBounds(),
-          numFixedColumns = grid.getFixedColumnCount(),
-          numFixedRows = grid.getFixedRowCount(),
-          dragEndInFixedAreaX = x < numFixedColumns,
-          dragEndInFixedAreaY = y < numFixedRows;
-      let xOffset = 0,
-          yOffset = 0;
-      if (x > b.origin.x + b.extent.x) {
-        xOffset = 1;
-      } else if (x < b.origin.x) {
-        xOffset = -1;
-      }
-      if (y > b.origin.y + b.extent.y) {
-        yOffset = 1;
-      } else if (y < b.origin.y) {
-        yOffset = -1;
-      }
-      let dragCellOffsetX = dragEndInFixedAreaX ? 0 : xOffset,
-          dragCellOffsetY = dragEndInFixedAreaY ? 0 : yOffset;
-      if (xOffset !== 0 || yOffset !== 0) {
-        grid.scrollBy(xOffset, yOffset);
-        grid.repaint();
-      }
-      // The below number affects scrolling rate, not sure what it should be
-      setTimeout(this.scrollWithDraggables.bind(this, grid), 5000);
-    }
-  },
-
-  /*************************************************************************************************************************/
-  // Default getter methods, relating to location/scrolling/selection
-
-  _getHypergrid(): HGElement {
-    return React.findDOMNode(this.refs.hypergrid);
-  },
-
-  _getBehavior(): HGBehaviorElement {
-    return this._getHypergrid().getBehavior();
-  },
-
-  _getSheetDOMNode() {
-    return ReactDOM.findDOMNode(this.refs.sheet);
-  },
-
-  getSelectionArea(): ASSelection {
-    let hg = this._getHypergrid(),
-        selection = hg.getSelectionModel().getSelections()[0],
-        ul = selection.origin,
-        range = U.Location.orientRange({
-                  tl: {row:  ul.y + 1,
-                       col:  ul.x + 1},
-                  br: {row: ul.y + selection.height() + 1,
-                       col: ul.x + selection.width() + 1}
-                }),
-        sel = {
-          range: range,
-          origin: {row: ul.y + 1, col: ul.x + 1}
-        };
-    return sel;
-  },
-
-  getScroll(): HGPoint {
-    let hg = this._getHypergrid();
-    return {x: hg.hScrollValue, y: hg.vScrollValue};
-  },
-
-  getViewingWindow(): ASViewingWindow {
-    let hg = this._getHypergrid(),
-        [vs, hs] = [hg.vScrollValue, hg.hScrollValue],
-        [cols, rows] = [hg.getVisibleColumns(), hg.getVisibleRows()];
-        let colLength = cols.length, rowLength = rows.length;
-        // This might fail on the initial load, since getVisibleColumns() and
-        // getVisibleRows() might return nothing, ergo the below hack.
-        if (colLength == 0) colLength = 20;
-        if (rowLength == 0) rowLength = 30;
-    return { range: {tl: {row: vs+1, col: hs+1},
-                     br: {row: vs + rowLength - 1, col: hs + colLength - 1}} };
-    // getVisibleColumns and getVisibleRows were manually modified to show one more
-    // column/row than what hypergrid says is visible (...since they're actually visible)
-    // but that messed with the boundaries shown here, which is why we're subtracting 1
-    // from rowLength and colLength.
-  },
-
-  isVisible(col: number, row: number): boolean { // faster than accessing hypergrid properties
-    return (this.state.scroll.x <= col && col <= this.state.scroll.x+Constants.numVisibleCols) &&
-           (this.state.scroll.y <= row && row <= this.state.scroll.y+Constants.numVisibleRows);
-  },
-
-  getVisibleRows(): number {
-
-    return this._getHypergrid().getVisibleRows().length;
-  },
-
-  getTextboxPosition(): ?HGRectangle {
-    let scroll = this.state.scroll;
-    let activeSelection = SelectionStore.getActiveSelection();
-    if (activeSelection) {
-      let {col, row} = activeSelection.origin,
-          point = finRect.point.create(col - scroll.x, row - scroll.y);
-      return this._getHypergrid().getBoundsOfCell(point);
-    } else {
-      return null;
-    }
-  },
-
-
-  /*************************************************************************************************************************/
-  // Hypergrid initialization
-
-  draggingCol: false,
-  draggingRow: false,
-  clickedColNum: (null: ?number),
-  clickedRowNum: (null: ?number),
-  resizedColNum: (null: ?number),
-  resizedRowNum: (null: ?number),
-
-  /* Initial a sheet with blank entries */
-  initialize() {
+  initialize() { 
     let hg = this._getHypergrid(),
         model = hg.getBehavior(),
         renderer = hg.getRenderer(),
@@ -369,13 +250,13 @@ export default React.createClass({
     hg.setColumnWidth = (columnIndex, columnWidth) => {
         self.resizedColNum = columnIndex;
         model._setColumnWidth(columnIndex, columnWidth);
-    },
+    }
 
     // Ditto
     hg.setRowHeight = (rowIndex, rowHeight) => {
         self.resizedRowNum = rowIndex;
         model.setRowHeight(rowIndex, rowHeight);
-    },
+    }
 
     // This overrides the swapping of columns in hypergrid's internal state
     // Keeps the animation, but don't change state = column headers stay same, data stays same
@@ -397,7 +278,7 @@ export default React.createClass({
         }
       }
       return rc;
-    },
+    };
 
     renderer.getVisibleRows = () => {
       let rr = renderer.renderedRows.slice(0);
@@ -588,7 +469,158 @@ export default React.createClass({
     // Namely, the blue box will show up
     ExpStore.setClickType(Constants.ClickType.CLICK);
     this.select({origin: ind, range: {tl: ind, br: ind}}, false);
-  },
+  }
+
+  componentWillUnmount() {
+    ExpStore.removeChangeListener(this._onExpressionChange.bind(this));
+  }
+
+  /*************************************************************************************************************************/
+  // Handle mouse events by overriding hypergrid default
+
+  getCoordsFromMouseEvent(grid: HGElement, evt: HGMouseEvent): HGPoint {
+    let {x, y} = evt.mousePoint,
+        point = finRect.point.create(evt.gridCell.x, evt.gridCell.y),
+        {origin} = grid.getBoundsOfCell(point),
+        pX = origin.x + x,
+        pY = origin.y + y;
+    return {x: pX, y: pY};
+  }
+
+  drawDraggedSelection(dragOrigin: NakedIndex, selRange: NakedRange, targetX: number, targetY: number) {
+    let dX = targetX - dragOrigin.col,
+        dY = targetY - dragOrigin.row;
+    let range = U.Location.offsetRange(selRange, dY, dX);
+    Render.setDragRect(range);
+  }
+
+  // Is the mouse location inside a blue box
+  insideBox(event: HGMouseEvent): boolean {
+    let {x, y} = event.primitiveEvent.detail.mouse,
+       topLeftBox = Render.getTopLeftBox(),
+       boxWidth   = Render.getBoxWidth();
+    return U.Location.mouseLocIsContainedInBox(x,y,topLeftBox,boxWidth);
+  }
+
+  // Semi-recursive function via timeouts -- this is how hypergrid does it
+  // Need to scroll even if no mouse event, but you're at the edge of the grid
+  scrollWithDraggables(grid: HGElement) {
+    if (this.mouseDownInBox || this.dragSelectionOrigin !== null) {
+
+      let mousePos = this.mousePosition;
+      if (! mousePos) {
+        logDebug('No mouse position');
+        return;
+      }
+
+      let {x, y} = mousePos,
+          b = grid.getDataBounds(),
+          numFixedColumns = grid.getFixedColumnCount(),
+          numFixedRows = grid.getFixedRowCount(),
+          dragEndInFixedAreaX = x < numFixedColumns,
+          dragEndInFixedAreaY = y < numFixedRows;
+      let xOffset = 0,
+          yOffset = 0;
+      if (x > b.origin.x + b.extent.x) {
+        xOffset = 1;
+      } else if (x < b.origin.x) {
+        xOffset = -1;
+      }
+      if (y > b.origin.y + b.extent.y) {
+        yOffset = 1;
+      } else if (y < b.origin.y) {
+        yOffset = -1;
+      }
+      let dragCellOffsetX = dragEndInFixedAreaX ? 0 : xOffset,
+          dragCellOffsetY = dragEndInFixedAreaY ? 0 : yOffset;
+      if (xOffset !== 0 || yOffset !== 0) {
+        grid.scrollBy(xOffset, yOffset);
+        grid.repaint();
+      }
+      // The below number affects scrolling rate, not sure what it should be
+      setTimeout(this.scrollWithDraggables.bind(this, grid), 5000);
+    }
+  }
+
+  /*************************************************************************************************************************/
+  // Default getter methods, relating to location/scrolling/selection
+
+  _getHypergrid(): HGElement {
+    return React.findDOMNode(this.refs.hypergrid);
+  }
+
+  _getBehavior(): HGBehaviorElement {
+    return this._getHypergrid().getBehavior();
+  }
+
+  _getSheetDOMNode() {
+    return ReactDOM.findDOMNode(this.refs.sheet);
+  }
+
+  getSelectionArea(): ASSelection {
+    let hg = this._getHypergrid(),
+        selection = hg.getSelectionModel().getSelections()[0],
+        ul = selection.origin,
+        range = U.Location.orientRange({
+                  tl: {row:  ul.y + 1,
+                       col:  ul.x + 1},
+                  br: {row: ul.y + selection.height() + 1,
+                       col: ul.x + selection.width() + 1}
+                }),
+        sel = {
+          range: range,
+          origin: {row: ul.y + 1, col: ul.x + 1}
+        };
+    return sel;
+  }
+
+  getScroll(): HGPoint {
+    let hg = this._getHypergrid();
+    return {x: hg.hScrollValue, y: hg.vScrollValue};
+  }
+
+  getViewingWindow(): ASViewingWindow {
+    let hg = this._getHypergrid(),
+        [vs, hs] = [hg.vScrollValue, hg.hScrollValue],
+        [cols, rows] = [hg.getVisibleColumns(), hg.getVisibleRows()];
+        let colLength = cols.length, rowLength = rows.length;
+        // This might fail on the initial load, since getVisibleColumns() and
+        // getVisibleRows() might return nothing, ergo the below hack.
+        if (colLength == 0) colLength = 20;
+        if (rowLength == 0) rowLength = 30;
+    return { range: {tl: {row: vs+1, col: hs+1},
+                     br: {row: vs + rowLength - 1, col: hs + colLength - 1}} };
+    // getVisibleColumns and getVisibleRows were manually modified to show one more
+    // column/row than what hypergrid says is visible (...since they're actually visible)
+    // but that messed with the boundaries shown here, which is why we're subtracting 1
+    // from rowLength and colLength.
+  }
+
+  isVisible(col: number, row: number): boolean { // faster than accessing hypergrid properties
+    return (this.state.scroll.x <= col && col <= this.state.scroll.x+Constants.numVisibleCols) &&
+           (this.state.scroll.y <= row && row <= this.state.scroll.y+Constants.numVisibleRows);
+  }
+
+  getVisibleRows(): number {
+
+    return this._getHypergrid().getVisibleRows().length;
+  }
+
+  getTextboxPosition(): ?HGRectangle {
+    let scroll = this.state.scroll;
+    let activeSelection = SelectionStore.getActiveSelection();
+    if (activeSelection) {
+      let {col, row} = activeSelection.origin,
+          point = finRect.point.create(col - scroll.x, row - scroll.y);
+      return this._getHypergrid().getBoundsOfCell(point);
+    } else {
+      return null;
+    }
+  }
+
+
+  /*************************************************************************************************************************/
+  // Hypergrid initialization
 
   finishColumnResize() {
     let col = this.resizedColNum;
@@ -599,7 +631,7 @@ export default React.createClass({
       // column index on DB is 1-indexed, while for hypergrid it's 0-indexed.
       this.resizedColNum = null;
     }
-  },
+  }
 
   finishRowResize() {
     let row = this.resizedRowNum;
@@ -610,30 +642,24 @@ export default React.createClass({
       // row index on DB is 1-indexed, while for hypergrid it's 0-indexed.
       this.resizedRowNum = null;
     }
-  },
+  }
 
   // note: evt.gridCell from the mouse-click functions from model (hg.getBehavior()) seem to be 1-indexed
   // (the coordinates of the top left cell are  (1,1) rather than (0,0)). The below two functions are only
   // assumed to work on mouse functions on model, NOT for e.g. fin-double-click events where the top left cell is (0,0). Umm......
   _clickedCellIsInColumnHeader(clickedCell: HGPoint): boolean {
     return (clickedCell.x >= 1 && clickedCell.y <= 0); // == 0? ==-1? not entirely sure
-  },
+  }
 
   _clickedCellIsInRowHeader(clickedCell: HGPoint): boolean {
     return (clickedCell.x <= 0 && clickedCell.y >= 1); // == 0? ==-1? not entirely sure
-  },
+  }
 
   // expects that the current sheet has already been set
   getInitialData() {
     API.openSheet(SheetStateStore.getCurrentSheet());
     ActionCreator.scroll(this.getViewingWindow());
-  },
-
-  gridProperties: {
-    editorActivationKeys: ([]: Array<any>), // disable column picker
-    scrollbarHoverOff: 'visible',
-    columnAutosizing: true
-  },
+  }
 
   /*************************************************************************************************************************/
   // Hypergrid update display
@@ -655,7 +681,7 @@ export default React.createClass({
 
     model.changed(); // causes hypergrid to show updated values
     CellStore.resetLastUpdatedCells();
-  },
+  }
 
   /*************************************************************************************************************************/
   // Dealing with image creation and updating
@@ -705,7 +731,7 @@ export default React.createClass({
         loc: cell.cellLocation
       };
     }
-  },
+  }
 
   /*
   As part of our state, we store a list of overlay objects. When a cell produces an overlay, we want to update this list.
@@ -717,7 +743,7 @@ export default React.createClass({
     let imageOverlay = this.getImageOverlayForCell(cell);
     if (imageOverlay === null || imageOverlay === undefined) return;
     this.addOverlay(imageOverlay, cell);
-  },
+  }
 
   addOverlay(newOverlay: ASOverlaySpec, cell?: ASCell) {
     let overlays = this.state.overlays,
@@ -733,14 +759,14 @@ export default React.createClass({
 
     overlays.push(newOverlay);
     this.setState({overlays: overlays});
-  },
+  }
 
   _onOverlaysChange() {
     let overlays = OverlayStore.getAll();
     overlays.forEach((overlay) => {
       this.addOverlay(overlay);
     });
-  },
+  }
 
 
   /*************************************************************************************************************************/
@@ -748,11 +774,11 @@ export default React.createClass({
 
   repaint() {
     this._getHypergrid().repaint();
-  },
+  }
 
   setFocus() {
     this._getHypergrid().takeFocus();
-  },
+  }
 
   // do not call before polymer is ready.
   select(unsafeSelection: ASSelection, shouldScroll: boolean = true) {
@@ -805,37 +831,37 @@ export default React.createClass({
     }
     this.repaint();
     this.props.onSelectionChange(safeSelection);
-  },
+  }
 
   rowVisible(loc: NakedIndex): boolean {
     let vWindow = this.getViewingWindow();
     return (vWindow.range.tl.row <= loc.row && loc.row <= vWindow.range.br.row);
-  },
+  }
 
   columnVisible(loc: NakedIndex): boolean {
     let vWindow = this.getViewingWindow();
     return (vWindow.range.tl.col <= loc.col && loc.col <= vWindow.range.br.col);
-  },
+  }
 
   scrollVForBottomEdge(row: number): number {
     let hg = this._getHypergrid();
     let vWindow = this.getViewingWindow();
     return hg.getVScrollValue() + row - vWindow.range.br.row + 2;
-  },
+  }
 
   scrollVForTopEdge(row: number): number {
     return row - 1;
-  },
+  }
 
   scrollHForRightEdge(col: number): number {
     let hg = this._getHypergrid();
     let vWindow = this.getViewingWindow();
     return hg.getHScrollValue() + col - vWindow.range.br.col;
-  },
+  }
 
   scrollHForLeftEdge(col: number): number {
     return col - 1;
-  },
+  }
 
   _getNewScroll(oldSel: ?ASSelection, newSel: ASSelection): HGPoint {
     let hg = this._getHypergrid();
@@ -885,7 +911,7 @@ export default React.createClass({
     }
 
     return {x: scrollH, y: scrollV};
-  },
+  }
 
   shiftSelectionArea(dc: number, dr: number) {
     let sel = SelectionStore.getActiveSelection();
@@ -897,7 +923,7 @@ export default React.createClass({
     let origin = {row: sel.origin.row + dr, col: sel.origin.col + dc};
     let range = {tl: origin, br: origin};
     this.select({range: range, origin: origin});
-  },
+  }
 
   scrollTo(x: number, y: number) {
     let hg = this._getHypergrid();
@@ -906,7 +932,7 @@ export default React.createClass({
       hg.setHScrollValue(x);
       ActionCreator.scroll(this.getViewingWindow());
     }
-  },
+  }
 
   /*************************************************************************************************************************/
   // Handling events
@@ -959,17 +985,17 @@ export default React.createClass({
       }
       this.props.onNavKeyDown(e);
     }
-  },
+  }
 
   _onKeyUp(e: SyntheticKeyboardEvent) {
     e.persist();
-  },
+  }
 
   onTextBoxDeferredKey(e: SyntheticKeyboardEvent) {
     if (e.ctrlKey) { // only for ctrl+arrowkeys
       ShortcutUtils.tryShortcut(e, 'grid');
     }
-  },
+  }
 
   _onFocus(e: SyntheticEvent) {
     /*
@@ -984,11 +1010,11 @@ export default React.createClass({
     } else {
       this.props.setFocus('grid');
     }
-  },
+  }
 
   _restoreFocus() {
       this.props.setFocus(SheetStateStore.getFocus());
-  },
+  }
 
   /*************************************************************************************************************************/
   // Respond to change evt from ExpStore
@@ -1038,7 +1064,7 @@ export default React.createClass({
       default:
         break;
     }
-  },
+  }
 
   _onBarPropsChange() {
     let dims = BarStore.getLastUpdatedBarsDimensions(),
@@ -1050,7 +1076,7 @@ export default React.createClass({
     // columns/rows in backend are 1-indexed, hypergrid's are 0-indexed.
     dims['ColumnType'].map(([ind, width]) => model._setColumnWidth(ind-1, width || defaultColumnWidth));
     dims['RowType'].map(([ind, height]) => model.setRowHeight(ind-1, height || defaultRowHeight));
-  },
+  }
 
 
   /*************************************************************************************************************************/
@@ -1085,7 +1111,7 @@ export default React.createClass({
       renderer.config = config;
       return renderer;
     }
-  },
+  }
 
   setRenderers() {
     this.setCellRenderer();
@@ -1096,7 +1122,7 @@ export default React.createClass({
     renderer.addExtraRenderer(Render.draggingRenderer);
     renderer.addExtraRenderer(Render.cornerBoxRenderer);
     renderer.startAnimator();
-  },
+  }
 
   /*************************************************************************************************************************/
   // Render
@@ -1148,9 +1174,9 @@ export default React.createClass({
           <fin-hypergrid
             style={sheetStyle}
             ref="hypergrid"
-            onKeyDown={this._onKeyDown}
-            onKeyUp={this._onKeyUp}
-            onFocus={this._onFocus}>
+            onKeyDown={this._onKeyDown.bind(this)}
+            onKeyUp={this._onKeyUp.bind(this)}
+            onFocus={this._onFocus.bind(this)}>
               {behaviorElement}
           </fin-hypergrid>
 
@@ -1162,18 +1188,31 @@ export default React.createClass({
           )}
 
           <ASRightClickMenu ref="rightClickMenu"
-                            restoreFocus={this._restoreFocus}/>
+                            restoreFocus={this._restoreFocus.bind(this)}/>
 
           <Textbox
             ref="textbox"
             scroll={self.state.scroll}
             onDeferredKey={this.props.onTextBoxDeferredKey}
             hideToast={this.props.hideToast}
-            position={this.getTextboxPosition}
+            position={this.getTextboxPosition.bind(this)}
             setFocus={this.props.setFocus} />
 
         </div>
       </Dropzone>
     );
   }
-});
+}
+
+// TODO: is behavior actually needed?
+ASSpreadsheet.defaultProps = {
+  behavior: 'default',
+  onReady() { }
+}
+
+ASSpreadsheet.propTypes = {
+  onSelectionChange: React.PropTypes.func.isRequired,
+  onTextBoxDeferredKey: React.PropTypes.func.isRequired,
+  onNavKeyDown: React.PropTypes.func.isRequired,
+  setFocus: React.PropTypes.func.isRequired
+}

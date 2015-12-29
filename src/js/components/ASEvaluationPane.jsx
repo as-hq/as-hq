@@ -88,21 +88,8 @@ export default class ASEvalPane
   /***************************************************************************************************************************/
   // React methods
 
-  constructor(props: ASEvalPaneDefaultProps) {
+  constructor(props: ASEvalPaneProps) {
     super(props);
-
-    window.addEventListener('copy',this.handleCopyEvent);
-    window.addEventListener('paste',this.handlePasteEvent);
-    window.addEventListener('cut',this.handleCutEvent);
-    CellStore.addChangeListener(this._onCellsChange);
-    SheetStateStore.addChangeListener(this._onSheetStateChange);
-    FindStore.addChangeListener(this._onFindChange);
-    EvalHeaderStore.addChangeListener(this._onEvalHeaderUpdate);
-    ExpStore.addChangeListener(this._onExpChange);
-    // ReplStore.addChangeListener(this._onReplChange);
-    Shortcuts.addShortcuts(this);
-
-    BrowserTests.install(window, this);
 
     this.state = {
       replLanguage: Constants.Languages.Python,
@@ -124,17 +111,32 @@ export default class ASEvalPane
     };
   }
 
+  componentDidMount() { 
+    window.addEventListener('copy', this.handleCopyEvent.bind(this));
+    window.addEventListener('paste', this.handlePasteEvent.bind(this));
+    window.addEventListener('cut', this.handleCutEvent.bind(this));
+    CellStore.addChangeListener(this._onCellsChange.bind(this));
+    SheetStateStore.addChangeListener(this._onSheetStateChange.bind(this));
+    FindStore.addChangeListener(this._onFindChange.bind(this));
+    EvalHeaderStore.addChangeListener(this._onEvalHeaderUpdate.bind(this));
+    ExpStore.addChangeListener(this._onExpChange.bind(this));
+    Shortcuts.addShortcuts(this);
+    // ReplStore.addChangeListener(this._onReplChange.bind(this));
+
+    BrowserTests.install(window, this);
+  }
+
   /* Make sure that the evaluation pane can receive change events from the evaluation store */
   componentWillUnmount() {
-    window.removeEventListener('copy',this.handleCopyEvent);
-    window.removeEventListener('paste',this.handlePasteEvent);
-    window.removeEventListener('cut',this.handleCutEvent);
+    window.removeEventListener('copy',this.handleCopyEvent.bind(this));
+    window.removeEventListener('paste',this.handlePasteEvent).bind(this);
+    window.removeEventListener('cut',this.handleCutEvent.bind(this));
     API.close();
-    CellStore.removeChangeListener(this._onCellsChange);
-    SheetStateStore.addChangeListener(this._onSheetStateChange);
+    CellStore.removeChangeListener(this._onCellsChange.bind(this));
+    SheetStateStore.addChangeListener(this._onSheetStateChange.bind(this));
     // ReplStore.removeChangeListener(this._onReplChange);
-    FindStore.removeChangeListener(this._onFindChange);
-    ExpStore.removeChangeListener(this._onExpChange);
+    FindStore.removeChangeListener(this._onFindChange.bind(this));
+    ExpStore.removeChangeListener(this._onExpChange.bind(this));
   }
 
 
@@ -389,13 +391,13 @@ export default class ASEvalPane
 
   handleCutEvent(e: SyntheticClipboardEvent) {
     if (this._isGridActive()) {
-      this.handleCopyTypeEventForGrid(e,true);
+      this.handleCopyTypeEventForGrid(e, true);
     }
   }
 
   handleCopyEvent(e: SyntheticClipboardEvent) {
     if (this._isGridActive()) {
-      this.handleCopyTypeEventForGrid(e,false);
+      this.handleCopyTypeEventForGrid(e, false);
     }
   }
 
@@ -742,38 +744,38 @@ export default class ASEvalPane
     // display the find bar or modal based on state
     let leftEvalPane =
       <div style={{display: 'flex', flexDirection: 'column', height: '100%'}}>
-        {this.state.showFindBar ? <ASFindBar onEnter={this.onFindBarEnter}
-                                             onNext={this.onFindBarNext}
-                                             onPrev={this.onFindBarPrev}
-                                             onClose={this.closeFindBar}
-                                             onModal={this.openFindModal}/> : null}
+        {this.state.showFindBar ? <ASFindBar onEnter={this.onFindBarEnter.bind(this)}
+                                             onNext={this.onFindBarNext.bind(this)}
+                                             onPrev={this.onFindBarPrev.bind(this)}
+                                             onClose={this.closeFindBar.bind(this)}
+                                             onModal={this.openFindModal.bind(this)}/> : null}
         {this.state.showFindModal ? <ASFindModal initialSelection={0}
-                                                 onClose={this.closeFindModal} /> : null}
+                                                 onClose={this.closeFindModal.bind(this)} /> : null}
         <ASCodeEditor
           ref='editorPane'
-          handleEditorFocus={this._handleEditorFocus}
+          handleEditorFocus={this._handleEditorFocus.bind(this)}
           maxLines={this._getCodeEditorMaxLines()}
-          onSetVarName={this._onSetVarName}
-          onDeferredKey={this._onEditorDeferredKey}
+          onSetVarName={this._onSetVarName.bind(this)}
+          onDeferredKey={this._onEditorDeferredKey.bind(this)}
           value={expression}
-          hideToast={this.hideToast}
-          setFocus={this.setFocus}
+          hideToast={this.hideToast.bind(this)}
+          setFocus={this.setFocus.bind(this)}
           width="100%" height={this.getEditorHeight()} />
         <ASSpreadsheet
           ref='spreadsheet'
-          setFocus={this.setFocus}
+          setFocus={this.setFocus.bind(this)}
           highlightFind={highlightFind}
-          onNavKeyDown={this._onGridNavKeyDown}
-          onTextBoxDeferredKey={this._onTextBoxDeferredKey}
-          onSelectionChange={this._onSelectionChange}
-          onFileDrop={this._onFileDrop}
-          hideToast={this.hideToast}
+          onNavKeyDown={this._onGridNavKeyDown.bind(this)}
+          onTextBoxDeferredKey={this._onTextBoxDeferredKey.bind(this)}
+          onSelectionChange={this._onSelectionChange.bind(this)}
+          onFileDrop={this._onFileDrop.bind(this)}
+          hideToast={this.hideToast.bind(this)}
           width="100%"
           height={`calc(100% - ${this.getEditorHeight()})`}  />
         <Snackbar ref="snackbarError"
                   message={this.state.toastMessage}
                   action={this.state.toastAction}
-                  onActionTouchTap={this._handleToastTap} />
+                  onActionTouchTap={this._handleToastTap.bind(this)} />
       </div>;
 
     // let sidebarContent = <Repl
@@ -788,8 +790,8 @@ export default class ASEvalPane
       ref="evalHeader"
       evalHeaderLanguage={this.state.evalHeaderLanguage}
       evalHeaderValue={EvalHeaderStore.getEvalHeaderExp(this.state.evalHeaderLanguage)}
-      onEvalHeaderLanguageChange={this._onEvalHeaderLanguageChange}
-      onSubmitEvalHeader={this._onSubmitEvalHeader} />;
+      onEvalHeaderLanguageChange={this._onEvalHeaderLanguageChange.bind(this)}
+      onSubmitEvalHeader={this._onSubmitEvalHeader.bind(this)} />;
 
     return (
       <ResizableRightPanel leftComp={leftEvalPane} sidebar={sidebarContent} docked={this.state.evalHeaderOpen} />
