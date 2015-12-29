@@ -167,10 +167,20 @@ shiftExRef o exRef = case exRef of
         exRef' = case shiftedInds of 
           (ExLocRef f' _ _, ExLocRef s' _ _) -> exRef { exRange = ExRange f' s' }
           _ -> ExOutOfBounds
+  -- TODO: timchu, have not implemented out of bounds handling.
+  ExColRangeRef (ExColRange f s@(ExCol srType c) ) sh wb -> exRef' 
+      where
+        shiftedInd = shiftExRef o (ExLocRef f sh wb)
+        shiftedF = exLoc shiftedInd
+        -- TODO: timchu, the below line feels like it could go in its own well-labeled function.
+        shiftedS = ExCol srType $ intToColStr $ shiftSingleCol (dX o) srType c
+        exRef' = exRef { exColRange = ExColRange shiftedF shiftedS }
+
   ExPointerRef l sh wb -> exRef { pointerLoc = l' }
       where ExLocRef l' _ _ = shiftExRef o (ExLocRef l sh wb)
 
 -- shifts absolute references too
+-- TODO: timchu, 12/29/15. Massive code duplication????
 shiftExRefForced :: Offset -> ExRef -> ExRef
 shiftExRefForced o exRef = case exRef of
   ExOutOfBounds -> ExOutOfBounds
@@ -188,6 +198,14 @@ shiftExRefForced o exRef = case exRef of
         exRef' = case shiftedInds of 
           (ExLocRef f' _ _, ExLocRef s' _ _) -> exRef { exRange = ExRange f' s' }
           _ -> ExOutOfBounds
+  -- TODO: timchu, have not implemented out of bounds handling.
+  ExColRangeRef (ExColRange f s@(ExCol srType c) ) sh wb -> exRef' 
+      where
+        shiftedInd = shiftExRef o (ExLocRef f sh wb)
+        shiftedF = exLoc shiftedInd
+        -- TODO: timchu, the below line feels like it could go in its own well-labeled function.
+        shiftedS = ExCol srType $ intToColStr $ shiftSingleCol (dX o) REL c
+        exRef' = exRef { exColRange = ExColRange shiftedF shiftedS }
   ExPointerRef l sh wb -> exRef { pointerLoc = l' }
       where ExLocRef l' _ _ = shiftExRefForced o (ExLocRef l sh wb)
 
@@ -211,6 +229,12 @@ shiftRow dR rType r = newRVal
       REL_ABS -> 0
       REL_REL -> dR )
 
+shiftSingleCol :: Int -> SingleRefType -> String -> Int
+shiftSingleCol dC srType c = newSCVal
+  where scVal = colStrToInt c
+        newSCVal = scVal + (case srType of
+          ABS -> 0
+          REL -> dC )
 ----------------------------------------------------------------------------------------------------------------------------------
 -- Functions for excel sheet loading
 
