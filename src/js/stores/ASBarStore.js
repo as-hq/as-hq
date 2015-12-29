@@ -28,7 +28,7 @@ let _data = {
 // Dict that takes in a RowType/ColumnType and maps to ordered pairs of row/col indices and their heights/widths (null if not set)
 type BarDimensions = { [key: BarType]: Array<[number,?number]> }; 
 
-const ASInitBarPropsStore = Object.assign({}, BaseStore, {
+const ASBarStore = Object.assign({}, BaseStore, {
 
   /* This function describes the actions of the ASReplStore upon recieving a message from Dispatcher */
   dispatcherIndex: Dispatcher.register(function (action) {
@@ -37,12 +37,12 @@ const ASInitBarPropsStore = Object.assign({}, BaseStore, {
         _data.lastUpdatedBars = []; 
 
         let newBars = action.newBars;
-        ASInitBarPropsStore._updateBars(newBars);
+        ASBarStore._updateBars(newBars);
 
         let oldBarLocs = action.oldBarLocs;
-        ASInitBarPropsStore._removeBarsAt(oldBarLocs);
+        ASBarStore._removeBarsAt(oldBarLocs);
 
-        ASInitBarPropsStore.emitChange();
+        ASBarStore.emitChange();
         break;
     }
   }),
@@ -67,7 +67,7 @@ const ASInitBarPropsStore = Object.assign({}, BaseStore, {
   },
 
   getLastUpdatedBarsDimensions(): BarDimensions { 
-    return this._getDimensions(_data.lastUpdatedBars);
+    return ASBarStore._getDimensions(_data.lastUpdatedBars);
   },
 
   _updateBars(bars: Array<Bar>) {
@@ -82,7 +82,7 @@ const ASInitBarPropsStore = Object.assign({}, BaseStore, {
       }
     });
 
-    _data.lastUpdatedBars = _data.lastUpdatedBars.concat(this._blankBarsAt(barInds));
+    _data.lastUpdatedBars = _data.lastUpdatedBars.concat(ASBarStore._blankBarsAt(barInds));
   },
 
   _blankBarsAt(inds: Array<BarIndex>): Array<Bar> { 
@@ -96,4 +96,4 @@ const ASInitBarPropsStore = Object.assign({}, BaseStore, {
   }
 });
 
-export default ASInitBarPropsStore;
+export default ASBarStore;

@@ -12,7 +12,7 @@ require('brace/mode/java');
 require('brace/mode/c_cpp');
 require('brace/theme/monokai');
 
-export default React.createClass({
+const ASCodeEditor = React.createClass({
 
   /*************************************************************************************************************************/
   // React methods
@@ -31,7 +31,7 @@ export default React.createClass({
   // Render
 
   render() {
-    const {theme, value, width, height} = this.props;
+    const {theme, value, width, height} = ASCodeEditor.props;
     const outerStyle = {
       display: 'flex',
       flexDirection: 'column',
@@ -45,14 +45,14 @@ export default React.createClass({
         <Toolbar />
         <AceEditor
           ref="editor"
-          handleEditorFocus={this.props.handleEditorFocus}
-          hideToast={this.props.hideToast}
+          handleEditorFocus={ASCodeEditor.props.handleEditorFocus}
+          hideToast={ASCodeEditor.props.hideToast}
           theme={theme}
           width="100%"
           height="100%"
-          maxLines={this.props.maxLines}
-          setFocus={this.props.setFocus}
-          onDeferredKey={this.props.onDeferredKey} />
+          maxLines={ASCodeEditor.props.maxLines}
+          setFocus={ASCodeEditor.props.setFocus}
+          onDeferredKey={ASCodeEditor.props.onDeferredKey} />
       </div>
     );
   },
@@ -61,3 +61,5 @@ export default React.createClass({
     window.test();
   }
 });
+
+export default ASCodeEditor;

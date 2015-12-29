@@ -63,17 +63,17 @@ const ASFindStore = Object.assign({}, BaseStore, {
     return _data.findLocs;
   },
   increment() {
-    if (this.getFindTotal() !== 0) {
-      let n = this.getFindTotal(),
-          p = this.getFindPos()+1;
-      this.setFindPos(((p % n) + n) % n); // fucking js
+    if (ASFindStore.getFindTotal() !== 0) {
+      let n = ASFindStore.getFindTotal(),
+          p = ASFindStore.getFindPos()+1;
+      ASFindStore.setFindPos(((p % n) + n) % n); // fucking js
     }
   },
   decrement() {
-    if (this.getFindTotal() !== 0) {
-      let n = this.getFindTotal(),
-          p = this.getFindPos()-1;
-      this.setFindPos(((p % n) + n) % n);
+    if (ASFindStore.getFindTotal() !== 0) {
+      let n = ASFindStore.getFindTotal(),
+          p = ASFindStore.getFindPos()-1;
+      ASFindStore.setFindPos(((p % n) + n) % n);
     }
   }
 
