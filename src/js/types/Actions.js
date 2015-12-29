@@ -24,7 +24,7 @@ import type {
   PayloadSelection,
   ASBackendWorkbookSheet,
   ASMessageAction,
-  ASServerMessage
+  ClientMessage
 } from './Messages';
 
 import type {

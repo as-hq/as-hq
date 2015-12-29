@@ -414,12 +414,12 @@ export type ASClientWindow = {
   sheetId: string;
 };
 
-export type ASClientMessage = {
+export type ServerMessage = {
   action: ASMessageAction;
   payload: ASBackendPayload;
 };
 
-export type ASServerMessage =
+export type ClientMessage =
   NoActionResponse
   | NewResponse
   | OpenResponse
@@ -436,6 +436,6 @@ export type ASServerMessage =
   | SetCondFormatResponse;
 
 export type ASAPICallbackPair = {
-  fulfill: (msg: ?ASServerMessage) => void;
-  reject: (msg: ?ASServerMessage) => void;
+  fulfill: (msg: ?ClientMessage) => void;
+  reject: (msg: ?ClientMessage) => void;
 };

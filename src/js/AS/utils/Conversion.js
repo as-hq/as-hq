@@ -30,7 +30,7 @@ import type {
   ASBackendWorkbookSheet,
   ASClientWindow,
   ASMessageAction,
-  ASClientMessage
+  ServerMessage
 } from '../../types/Messages';
 
 import Location from './Location';
@@ -47,7 +47,7 @@ let CU = {
     action: ASMessageAction,
     payloadTag: string,
     payloadContents: any
-  ): ASClientMessage {
+  ): ServerMessage {
     return CU.makeClientMessageRaw(action, { "tag": payloadTag,
                                                "contents": payloadContents });
   },
@@ -55,7 +55,7 @@ let CU = {
   makeClientMessageRaw(
     action: ASMessageAction,
     payload: any
-  ): ASClientMessage {
+  ): ServerMessage {
     return { "action": action, "payload": payload };
   },
 

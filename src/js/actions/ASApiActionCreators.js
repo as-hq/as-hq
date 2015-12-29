@@ -38,8 +38,8 @@ import type {
   EvaluateHeaderResponse,
   ASBackendResult,
   ASBackendPayload,
-  ASServerMessage,
-  ASClientMessage,
+  ClientMessage,
+  ServerMessage,
   ASAPICallbackPair,
 } from '../types/Messages';
 
@@ -109,7 +109,7 @@ wss.onmessage = (event: MessageEvent) => {
     return; 
   }
 
-  let msg: ASServerMessage = JSON.parse(event.data);
+  let msg: ClientMessage = JSON.parse(event.data);
   if (msg.result.tag === "Failure") {
     Dispatcher.dispatch({
       _type: 'GOT_FAILURE',
@@ -244,7 +244,7 @@ wss.onopen = (evt) => {
 };
 
 export default {
-  send(msg: ASClientMessage) {
+  send(msg: ServerMessage) {
     logDebug(`Queueing ${msg.action} message`);
     wss.waitForConnection((innerClient: WebSocket) => {
       logDebug(`Sending ${msg.action} message`);
@@ -263,7 +263,7 @@ export default {
   },
 
   initMessage() {
-    let msg: ASClientMessage = U.Conversion.makeClientMessage(Constants.ServerActions.Acknowledge,
+    let msg: ServerMessage = U.Conversion.makeClientMessage(Constants.ServerActions.Acknowledge,
       "PayloadInit",
       {"connUserId": SheetStateStore.getUserId(),
         "connSheetId": SheetStateStore.getCurrentSheet().sheetId});
@@ -272,7 +272,7 @@ export default {
   },
 
   ackMessage(innerClient: WebSocket) {
-    let msg: ASClientMessage = U.Conversion.makeClientMessage(Constants.ServerActions.Acknowledge,
+    let msg: ServerMessage = U.Conversion.makeClientMessage(Constants.ServerActions.Acknowledge,
       'PayloadN', []);
     innerClient.send(JSON.stringify(msg));
   },
@@ -358,7 +358,7 @@ export default {
   },
 
   decouple() {
-    let msg: ASClientMessage = U.Conversion.makeClientMessage(Constants.ServerActions.Decouple,
+    let msg: ServerMessage = U.Conversion.makeClientMessage(Constants.ServerActions.Decouple,
       "PayloadN", []);
     this.send(msg);
   },

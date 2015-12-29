@@ -24,7 +24,7 @@ import type {
 } from '../types/Eval';
 
 import type {
-  ASServerMessage
+  ClientMessage
 } from '../types/Messages';
 
 import type {
@@ -538,7 +538,7 @@ export function messageShouldSatisfy(loc: string, fn: (cs: Array<ASCell>) => voi
     API.test(() => {
       API.getIndices([ asIndex(loc) ]);
     }, {
-      fulfill: (result: ?ASServerMessage) => {
+      fulfill: (result: ?ClientMessage) => {
         if (! result) {
           reject();
           return;
@@ -665,7 +665,7 @@ export function shouldBeL(locs: Array<string>, vals: Array<ASValue>): Prf {
     API.test(() => {
       API.getIndices(locs.map(asIndex));
     }, {
-      fulfill: (result: ?ASServerMessage) => {
+      fulfill: (result: ?ClientMessage) => {
         if (! result || result.payload.tag !== 'PayloadSheetUpdate') {
           reject();
           return;
