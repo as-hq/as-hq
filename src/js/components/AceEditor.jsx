@@ -18,8 +18,7 @@ import type {
   ASLanguage
 } from '../types/Eval';
 
-// ::ALEX:: wtf??
-// $FlowFixMe
+// $FlowFixMe somehow Flow isn't recognizing these?
 var ace = require('brace');
 var React = require('react');
 
@@ -78,7 +77,7 @@ type AceEditorState = {
 export default class AceEditor
   extends React.Component<AceEditorDefaultProps, AceEditorProps, AceEditorState>
 {
-  editor: any; //::ALEX::
+  editor: any; 
 
   /*************************************************************************************************************************/
   // React methods

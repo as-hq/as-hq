@@ -45,7 +45,7 @@ export default class Textbox
 {
   /**************************************************************************************************************************/
   // React methods
-  editor: any; 
+  editor: any; //decided that it's not worth flowing this 
 
   constructor(props: TextboxProps) {
     super(props);
