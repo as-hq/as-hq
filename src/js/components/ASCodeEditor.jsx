@@ -1,36 +1,35 @@
+/* @flow */
+
 import React from 'react';
 import AceEditor from './AceEditor.jsx';
 import ActionCreator from '../actions/ASCodeEditorActionCreators';
 import Constants from '../Constants';
 import Toolbar from './toolbar/Toolbar.jsx';
 
-require('brace/mode/python');
-require('brace/mode/r');
-require('brace/mode/ocaml');
-require('brace/mode/mysql');
-require('brace/mode/java');
-require('brace/mode/c_cpp');
-require('brace/theme/monokai');
+import type {
+  ASFocusType
+} from '../types/State';
 
-const ASCodeEditor = React.createClass({
+type ASCodeEditorProps = { 
+  handleEditorFocus: () => void; 
+  hideToast: () => void; 
+  setFocus: (elem: ASFocusType) => void; 
+  onDeferredKey: (e: SyntheticKeyboardEvent) => void; 
+  maxLines: number; 
+  theme?: string; // ::ALEX::
+  value: string; 
+  width: string; 
+  height: string; 
+}
 
-  /*************************************************************************************************************************/
-  // React methods
+export default class ASCodeEditor
+  extends React.Component<{}, ASCodeEditorProps, {}>
+{
+  constructor(props: ASCodeEditorProps) {
+    super(props);
+  }
 
-  propTypes: {
-    onDeferredKey: React.PropTypes.func.isRequired
-  },
-
-  getDefaultProps() {
-    return {
-      theme: 'monokai'
-    };
-  },
-
-  /*************************************************************************************************************************/
-  // Render
-
-  render() {
+  render(): React.Element {
     const {theme, value, width, height} = this.props;
     const outerStyle = {
       display: 'flex',
@@ -55,11 +54,15 @@ const ASCodeEditor = React.createClass({
           onDeferredKey={this.props.onDeferredKey} />
       </div>
     );
-  },
-
-  _onTest() {
-    window.test();
   }
-});
+}
+
+ASCodeEditor.propTypes = {
+  onDeferredKey: React.PropTypes.func.isRequired
+};
+
+ASCodeEditor.defaultProps = {
+  theme: 'monokai'
+};
 
 export default ASCodeEditor;

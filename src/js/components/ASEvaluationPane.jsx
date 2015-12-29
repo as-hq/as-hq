@@ -18,6 +18,7 @@ import {logDebug, logError, isTesting} from '../AS/Logger';
 
 import React from 'react';
 import ReactDOM from 'react-dom';
+import AceEditor from './AceEditor.jsx';
 import ASCodeEditor from './ASCodeEditor.jsx';
 import ASSpreadsheet from './ASSpreadsheet.jsx';
 import Render from '../AS/Renderers';
@@ -148,7 +149,7 @@ export default React.createClass({
     return this.refs.editorPane.refs.editor.getRawEditor();
   },
 
-  _getEditorComponent(): ASCodeEditor {
+  _getEditorComponent(): AceEditor {
     return this.refs.editorPane.refs.editor;
   },
 
