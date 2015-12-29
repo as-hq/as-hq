@@ -1248,11 +1248,11 @@ describe('backend', () => {
               exec(done)
             ]);
           });
-          //TODO: timchu, current parsing requires the first column be < the second column.
-          xit ('should display J1:F properly', (done) => {
+          //TODO: timchu, I think this should work.... list interp and ancestor decoupling would tell me so.
+          it ('should display J1:F properly', (done) => {
             _do([
               python('F1', '[[2*x + y for x in range(5)] for y in range(5)]'),
-              python('A1', 'J1:J'),
+              python('A1', 'J1:F'),
               shouldBe('A1', valueI(0)),
               shouldBe('A2', valueI(1)),
               shouldBe('A3', valueI(2)),
@@ -1260,7 +1260,7 @@ describe('backend', () => {
               shouldBe('A5', valueI(4)),
               shouldBe('B1', valueI(2)),
               shouldBe('E1', valueI(8)),
-              shouldBe('E5', 12),
+              shouldBe('E5', valueI(12)),
               exec(done)
               ]);
           });
@@ -1295,10 +1295,10 @@ describe('backend', () => {
               exec(done)
               ]);
           });
-          xit ('should display J:F properly', (done) => {
+          it ('should display J:F properly', (done) => {
             _do([
-              python('J1', '[[2*x + y for x in range(5)] for y in range(5)]'),
-              pyfhon('A1', 'J:F'),
+              python('F1', '[[2*x + y for x in range(5)] for y in range(5)]'),
+              python('A1', 'J:F'),
               shouldBe('A1', valueI(0)),
               shouldBe('A2', valueI(1)),
               shouldBe('A3', valueI(2)),
@@ -1471,25 +1471,48 @@ describe('backend', () => {
           ]);
         });
         // TODO: timchu. Copy and paste doesn't work.
-        xit ('should copy/paste A1:A expressions', (done) => {
+        it ('should copy/paste A1:A expressions', (done) => {
           _do([
             python('A1', 'range(10)'),
-            python('B1', 'A1:A'),
-            copy('B1', 'C1'),
-            shouldBe('C1', valueI(0)),
-            shouldBe('C10', valueI(9)),
+            python('B1', 'A2:A'),
+            copy('B1', 'C2'),
+            shouldBe('C2', valueI(3)),
+            shouldBe('C8', valueI(9)),
+            shouldBeNothing('C9'),
             exec(done)
           ]);
         });
-        // TODO: timchu. Cut and paste doesn't work.
-        xit ('should cut/paste A1:A expressions', (done) => {
+        it ('should copy/paste A1:A expressions and respect absolute references', (done) => {
+          _do([
+            python('A1', 'range(10)'),
+            python('B1', '$A$2:$A'),
+            copy('B1', 'D11'),
+            shouldBe('D11', valueI(1)),
+            shouldBe('D19', valueI(9)),
+            shouldBeNothing('D20'),
+            exec(done)
+          ]);
+        });
+        it ('should treat A:A like A$1:A during copy and paste', (done) => {
+          _do([
+            python('A1', 'range(10)'),
+            python('B1', 'A:A'),
+            copy('B1', 'B11'),
+            shouldBe('B11', valueI(0)),
+            shouldBe('B20', valueI(9)),
+            exec(done)
+          ]);
+        });
+        // TODO: timchu, provide tests for half-absolute references.
+        // TODO: timchu, references B:$A should never show on a copy paste from A:$A. Should automatically re-form into $A:B
+        it ('should cut/paste A1:A expressions without shifting references', (done) => {
           _do([
             python('A1', 'range(10)'),
             python('B1', 'A1:A'),
-            python('C2', '5'),
-            cut('B1', 'D1'),
-            shouldBe('D2', valueI(5)),
-            shouldBeNothing('D2'),
+            cut('B1:B10', 'C2'),
+            shouldBe('C2', valueI(0)),
+            shouldBe('C3', valueI(1)),
+            shouldBe('C11', valueI(9)),
             shouldBeNothing('B1'),
             shouldBeNothing('B2'),
             shouldBeNothing('B10'),
