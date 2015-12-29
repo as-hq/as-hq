@@ -16,16 +16,21 @@ import type {
   ASViewingWindow
 } from './State';
 
+import type { 
+  CondFormatRule
+} from './CondFormat';
+
 import type {
-  CondFormatRule,
-  ASBackendCommit,
   PayloadSelection,
   ASBackendWorkbookSheet,
   ASMessageAction,
-  ASServerMessage,
+  ASServerMessage
+} from './Messages';
+
+import type {
   Bar,
   BarIndex
-} from './Messages';
+} from './Bar';
 
 export type GotFailureAction = {
   _type: 'GOT_FAILURE';
@@ -41,16 +46,6 @@ export type ScrolledAction = {
 export type GotOpenAction = {
   _type: 'GOT_OPEN';
   expressions: Array<ASExpression>;
-};
-
-export type GotUndoAction = {
-  _type: 'GOT_UNDO';
-  commit: ASBackendCommit;
-};
-
-export type GotRedoAction = {
-  _type: 'GOT_REDO';
-  commit: ASBackendCommit;
 };
 
 export type GotSelectionAction = {
@@ -197,8 +192,6 @@ export type ASAction =
   | DeletedWorkbooksAction
   | ScrolledAction
   | GotOpenAction
-  | GotUndoAction
-  | GotRedoAction
   | GotSelectionAction
   | GotUpdatedCellsAction
   | GotUpdatedBarsAction
