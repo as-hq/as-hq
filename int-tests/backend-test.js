@@ -1200,11 +1200,10 @@ describe('backend', () => {
       });
 
 
-      describe('A:A parsing tests', () => {
+      fdescribe('A:A parsing tests', () => {
         describe('Display', () => {
           // TODO: create 1:1 parsing tests.
-          // TODO: timchu, A:A has not been implemented yet.
-          xit ('should display A:A properly', (done) => {
+          it ('should display A:A properly', (done) => {
             _do([
               python('A1', 'range(10)'),
               python('B1', 'A:A'),
@@ -1220,7 +1219,7 @@ describe('backend', () => {
               shouldBe('B1', valueI(1)),
               shouldBe('B4', valueI(4)),
               shouldBe('B9', valueI(9)),
-              //shouldBe('B10', noValue()),
+              shouldBeNothing('B10'),
               exec(done)
             ]);
           });
@@ -1230,11 +1229,11 @@ describe('backend', () => {
               python('A1', 'B2:B'),
               shouldBe('A1', valueI(1)),
               shouldBe('A4', valueI(4)),
-              //shouldBe('B9', noValue()),
+              shouldBeNothing('A10'),
               exec(done)
             ]);
           });
-          it ('should parse 2D ranges properly in A:A parsing', (done) => {
+          it ('should display F1:J properly', (done) => {
             _do([
               python('F1', '[[2*x + y for x in range(5)] for y in range(5)]'),
               python('A1', 'F1:J'),
@@ -1250,10 +1249,10 @@ describe('backend', () => {
             ]);
           });
           //TODO: timchu, current parsing requires the first column be < the second column.
-          xit ('should display E1:A properly', (done) => {
+          xit ('should display J1:F properly', (done) => {
             _do([
-              python('A1', '[[x + 2*y for x in range(5)] for y in range(5)]'),
-              python('F1', 'E1:A'),
+              python('F1', '[[2*x + y for x in range(5)] for y in range(5)]'),
+              python('A1', 'J1:J'),
               shouldBe('A1', valueI(0)),
               shouldBe('A2', valueI(1)),
               shouldBe('A3', valueI(2)),
@@ -1266,10 +1265,10 @@ describe('backend', () => {
               ]);
           });
           // TODO: timchu, current prasing requires the number to be in the first item.
-          xit ('should display E:A1 properly', (done) => {
+          xit ('should display J:F1 properly', (done) => {
             _do([
-              python('A1', '[[x + 2*y for x in range(5)] for y in range(5)]'),
-              python('F1', 'E:A1'),
+              python('F1', '[[2*x + y for x in range(5)] for y in range(5)]'),
+              python('A1', 'J:F1'),
               shouldBe('A1', valueI(0)),
               shouldBe('A2', valueI(1)),
               shouldBe('A3', valueI(2)),
@@ -1281,10 +1280,10 @@ describe('backend', () => {
               exec(done)
               ]);
           });
-          xit ('should display A:E properly', (done) => {
+          it ('should display F:J properly', (done) => {
             _do([
-              python('A1', '[[x + 2*y for x in range(5)] for y in range(5)]'),
-              python('F1', 'A:E'),
+              python('F1', '[[2*x + y for x in range(5)] for y in range(5)]'),
+              python('A1', 'F:J'),
               shouldBe('A1', valueI(0)),
               shouldBe('A2', valueI(1)),
               shouldBe('A3', valueI(2)),
@@ -1296,10 +1295,10 @@ describe('backend', () => {
               exec(done)
               ]);
           });
-          xit ('should display E:A properly', (done) => {
+          xit ('should display J:F properly', (done) => {
             _do([
-              python('A1', '[[x + 2*y for x in range(5)] for y in range(5)]'),
-              pyfhon('F1', 'E:A'),
+              python('J1', '[[2*x + y for x in range(5)] for y in range(5)]'),
+              pyfhon('A1', 'J:F'),
               shouldBe('A1', valueI(0)),
               shouldBe('A2', valueI(1)),
               shouldBe('A3', valueI(2)),
@@ -1314,28 +1313,35 @@ describe('backend', () => {
           // TODO: timchu, reference shifting not yet implemented
           xit ('should shift references for A2:$B appropriately', (done) => {
             _do([
+              exec(done)
               ]);
           });
           xit ('should display =A1:A properly in Excel', (done) => {
             _do([
                 //TODO: timchu
+              exec(done)
               ]);
           });
-          xit ('should display A:B properly', (done) => {
+          // TODO: timchu, right now an empty range displays as a range of one cell with value NoValue.
+          it ('should display an empty A:A as a range with one cell of value NoValue', (done) => {
             _do([
-              python('A1', '[range(10)]'),
+              python('A1', '10'),
               python('B1', 'A2:A'),
-              python('B10', '1'),
+              shouldBe('B1', noValue()),
+              shouldBeNothing('B2'),
+              shouldBeNothing('A2'),
+              exec(done)
+            ]);
+          });
+          it ('should display an empty A:B as a single row of length 2 with NoValue in each cell.', (done) => {
+            _do([
               python('C1', 'A:B'),
-              shouldBe('B9', valueI(9)),
-              shouldBe('C1', valueI(2)),
-              shouldBe('D1', valueI(2)),
-              shouldBe('C7', valueI(3)),
-              shouldBe('D7', valueI(3)),
-              shouldBe('C8', valueI(7)),
-              shouldBe('D8', valueI(7)),
-              shouldBe('C10', noValue()),
-              shouldBe('D10', noValue()),
+              shouldBe('C1', noValue()),
+              shouldBe('D1', noValue()),
+              shouldBeNothing('A1'),
+              shouldBeNothing('B1'),
+              shouldBeNothing('C2'),
+              shouldBeNothing('D2'),
               exec(done)
             ]);
           });
@@ -1392,7 +1398,7 @@ describe('backend', () => {
           ]);
         });
         // TODO: timchu, bug: can't delete last item in column.
-        xit ('should collapse B1=A:A when the last element in A:A is deleted', (done) => {
+        it ('should collapse B1=A:A into a one-item cell with value NoValue when the last element in A:A is deleted', (done) => {
           _do([
             python('A1', '1'),
             python('A3', '3'),
@@ -1402,7 +1408,7 @@ describe('backend', () => {
             delete_('A3'),
             delete_('A5'),
             // shouldBeNothing?
-            shouldBeNothing('B1'),
+            shouldBe('B1', noValue()),
             shouldBeNothing('B2'),
             shouldBeNothing('B3'),
             shouldBeNothing('B4'),
@@ -1447,14 +1453,21 @@ describe('backend', () => {
               exec(done)
           ]);
         });
-        xit ('should expand B1 if B1=A1:A when A is  empty, and then an item is added to element A.', (done) => {
-          _do([
-              // TODO: timchu. This does not work!
-          ]);
-        });
         xit ('should not decouple B1=A1:A upon insert of item into B1 if told not to', (done) => {
           _do([
               // TODO: timchu. Not sure how to tell it not to decouple.
+            exec(done)
+          ]);
+        });
+        it ('should expand B1 if B1=A1:A when A is empty, and then an item is added to element A.', (done) => {
+          _do([
+            python('B1', 'A1:A'),
+            python('A2', '1'),
+            shouldBe('A2', valueI(1)),
+            shouldBe('B2', valueI(1)),
+            shouldBeNothing('A1'),
+            shouldBe('B1', noValue()),
+            exec(done)
           ]);
         });
         // TODO: timchu. Copy and paste doesn't work.
@@ -1465,6 +1478,7 @@ describe('backend', () => {
             copy('B1', 'C1'),
             shouldBe('C1', valueI(0)),
             shouldBe('C10', valueI(9)),
+            exec(done)
           ]);
         });
         // TODO: timchu. Cut and paste doesn't work.
@@ -1479,9 +1493,10 @@ describe('backend', () => {
             shouldBeNothing('B1'),
             shouldBeNothing('B2'),
             shouldBeNothing('B10'),
+            exec(done)
           ]);
         });
-        it ('should undo for A1:A', (done) => {
+        it ('should undo creation of A1:A', (done) => {
           _do([
             python('A1', 'range(10)'),
             python('B1', 'A1:A'),
@@ -1493,7 +1508,23 @@ describe('backend', () => {
             exec(done)
           ]);
         });
-        it ('should redo on after undo for A1:A', (done) => {
+        it ('should undo change in A on A1:A', (done) => {
+          _do([
+            python('A1', '1'),
+            python('A2', '2'),
+            python('B1', 'A1:A'),
+            python('A3', '3'),
+            undo(),
+            shouldBe('A1', valueI(1)),
+            shouldBe('B1', valueI(1)),
+            shouldBe('A2', valueI(2)),
+            shouldBe('B2', valueI(2)),
+            shouldBeNothing('A3'),
+            shouldBeNothing('B3'),
+            exec(done)
+          ]);
+        });
+        it ('should redo properly after undo creation of A1:A', (done) => {
           _do([
             python('A1', 'range(10)'),
             python('B1', 'A1:A'),
@@ -1506,14 +1537,33 @@ describe('backend', () => {
             exec(done)
           ]);
         });
+        it ('should redo change in A on A1:A', (done) => {
+          _do([
+            python('A1', '1'),
+            python('A2', '2'),
+            python('B1', 'A1:A'),
+            python('A3', '3'),
+            undo(),
+            redo(),
+            shouldBe('A1', valueI(1)),
+            shouldBe('B1', valueI(1)),
+            shouldBe('A2', valueI(2)),
+            shouldBe('B2', valueI(2)),
+            shouldBe('A3', valueI(3)),
+            shouldBe('B3', valueI(3)),
+            exec(done)
+          ]);
+        });
         xit ('should undo decoupling of A1:A', (done) => {
           _do([
               // TODO: timchu. Not sure about syntax here.
+            exec(done)
           ]);
         });
         xit ('should redo decoupling of A1:A', (done) => {
           _do([
               // TODO: timchu. Not sure about syntax here.
+            exec(done)
           ]);
         });
         it ('should catch circular dependencies for A1:A', (done) => {
@@ -1539,11 +1589,13 @@ describe('backend', () => {
         xit ('should be able to do complicated undos', (done) => {
           _do([
               // TODO: timchu
+            exec(done)
             ]);
         });
         xit ('should be able to do complicated redos', (done) => {
           _do([
               // TODO: timchu
+            exec(done)
             ]);
         });
       });
