@@ -16,14 +16,18 @@ type ASCodeEditorProps = {
   setFocus: (elem: ASFocusType) => void; 
   onDeferredKey: (e: SyntheticKeyboardEvent) => void; 
   maxLines: number; 
-  theme?: string; // ::ALEX::
+  theme: string; 
   value: string; 
   width: string; 
   height: string; 
 }
 
+type ASCodeEditorDefaultProps = {
+  theme: string;
+};
+
 export default class ASCodeEditor
-  extends React.Component<{}, ASCodeEditorProps, {}>
+  extends React.Component<ASCodeEditorDefaultProps, ASCodeEditorProps, {}>
 {
   constructor(props: ASCodeEditorProps) {
     super(props);
@@ -64,5 +68,3 @@ ASCodeEditor.propTypes = {
 ASCodeEditor.defaultProps = {
   theme: 'monokai'
 };
-
-export default ASCodeEditor;
