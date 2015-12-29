@@ -28,16 +28,6 @@ import type {
 
 import type {
   Direction,
-  OpenResponse,
-  UndoResponse, // TODO: when 582 is fixed, eliminate this and sum type
-  RedoResponse,
-  GetResponse,
-  UpdateWindowResponse,
-  JumpSelectResponse,
-  EvaluateReplResponse,
-  EvaluateHeaderResponse,
-  ASBackendResult,
-  ASBackendPayload,
   ClientMessage,
   ServerMessage,
   ASAPICallbackPair,
@@ -109,12 +99,12 @@ wss.onmessage = (event: MessageEvent) => {
     return; 
   }
 
-  let msg: ClientMessage = JSON.parse(event.data);
-  if (msg.result.tag === "Failure") {
+  let msg: ClientMessage = JSON.parse(event.data), 
+      action = msg.clientAction;
+  if (action.tag === "ShowFailureMessage") {
     Dispatcher.dispatch({
       _type: 'GOT_FAILURE',
-      action: msg.action,
-      errorMsg: msg.result.failDesc
+      errorMsg: action.contents
     });
 
     if (isRunningTest && currentCbs) {
@@ -127,74 +117,56 @@ wss.onmessage = (event: MessageEvent) => {
     return; 
   }
 
-  if (isRunningTest && (!uiTestMode || (msg.action != 'UpdateWindow' && msg.action != 'Open')) && currentCbs) {
+  if (isRunningTest && (!uiTestMode || (action.tag != 'SetInitialProperties')) && currentCbs) {
     logDebug('Fulfilled server message normally');
     currentCbs.fulfill(msg);
     isRunningTest = false;
   }
 
-  if (msg.result.tag == "DecoupleDuringEval") {
+  if (action.tag == "AskDecouple") {
     Dispatcher.dispatch({
       _type: 'EVAL_TRIED_TO_DECOUPLE'
     });
     return; 
   }
 
-  switch (msg.action) {
+  switch (action.tag) {
     // case 'New':
-    //   if (msg.payload.tag === "PayloadWorkbookSheets") {
+    //   if (action.payload.tag === "PayloadWorkbookSheets") {
     //     Dispatcher.dispatch({
     //       _type: 'GOT_NEW_WORKBOOKS',
-    //       workbooks: msg.payload.contents
+    //       workbooks: action.payload.contents
     //     });
     //   }
     //   break;
     case 'NoAction':
-    case 'Acknowledge':
       break;
-    case 'Open':
-      dispatchSheetUpdate(msg.payload.initSheetUpdate);
+    case 'SetInitialProperties':
+      dispatchSheetUpdate(action.contents[0]); 
       Dispatcher.dispatch({
         _type: 'GOT_OPEN',
-        expressions: msg.payload.initHeaderExpressions,
+        expressions: action.contents[1],
       });
       break;
-    case 'Undo':
-    case 'Redo':
-    case 'UpdateCondFormatRules': 
     case 'UpdateSheet':
-    case 'Get':
-    case 'UpdateWindow':
-      dispatchSheetUpdate(msg.payload.contents);
+      dispatchSheetUpdate(action.contents);
       break;
-    case 'Clear':
-      if (msg.payload.tag === "PayloadS") {
-        Dispatcher.dispatch({
-          _type: 'CLEARED_SHEET',
-          sheetId: msg.payload.contents.sheetId
-        });
-      } else {
-        Dispatcher.dispatch({
-          _type: 'CLEARED'
-        });
-      }
+    case 'ClearSheet':
+      Dispatcher.dispatch({
+        _type: 'CLEARED_SHEET',
+        sheetId: action.contents
+      });
       break;
-    case 'JumpSelect':
+    case 'MakeSelection':
       Dispatcher.dispatch({
         _type: 'GOT_SELECTION',
-        newSelection: msg.payload
+        newSelection: action.contents
       });
       break;
-    case 'EvaluateRepl':
-      Dispatcher.dispatch({
-        _type: 'GOT_REPL_RESPONSE',
-        response: msg.payload.contents
-      });
-      break;
-    case 'EvaluateHeader':
+    case 'ShowHeaderResult':
       Dispatcher.dispatch({
         _type: 'GOT_EVAL_HEADER_RESPONSE',
-        response: msg.payload.contents[0]
+        response: action.contents
       });
       break;
     case 'Find':
@@ -203,17 +175,17 @@ wss.onmessage = (event: MessageEvent) => {
       let toClientLoc = function(x) {
         return {row:x.index[1],col:x.index[0]};
       };
-      let clientLocs = msg.payload.contents.map(toClientLoc);
+      let clientLocs = action.payload.contents.map(toClientLoc);
       logDebug("GOT BACK FIND RESPONSE: " + JSON.stringify(clientLocs));
       Dispatcher.dispatch({
         _type: 'GOT_FIND',
         findLocs:clientLocs
       }); */
       break;
-    case 'Import':
+    case 'LoadImportedCells':
       Dispatcher.dispatch({
         _type: 'GOT_IMPORT',
-        newCells: msg.payload.contents
+        newCells: action.contents
       });
       break;
   }
@@ -263,7 +235,7 @@ export default {
   },
 
   initMessage() {
-    let msg: ServerMessage = U.Conversion.makeClientMessage(Constants.ServerActions.Acknowledge,
+    let msg: ServerMessage = U.Conversion.makeServerMessage(Constants.ServerActions.Acknowledge,
       "PayloadInit",
       {"connUserId": SheetStateStore.getUserId(),
         "connSheetId": SheetStateStore.getCurrentSheet().sheetId});
@@ -272,7 +244,7 @@ export default {
   },
 
   ackMessage(innerClient: WebSocket) {
-    let msg: ServerMessage = U.Conversion.makeClientMessage(Constants.ServerActions.Acknowledge,
+    let msg: ServerMessage = U.Conversion.makeServerMessage(Constants.ServerActions.Acknowledge,
       'PayloadN', []);
     innerClient.send(JSON.stringify(msg));
   },
@@ -296,7 +268,7 @@ export default {
   /* Sending admin-related requests to the server */
 
   getWorkbooks() {
-    let msg = U.Conversion.makeClientMessage('Get', 'PayloadList', 'WorkbookSheets');
+    let msg = U.Conversion.makeServerMessage('Get', 'PayloadList', 'WorkbookSheets');
     this.send(msg);
   },
 
@@ -306,7 +278,7 @@ export default {
   },
 
   export(sheet: ASSheet) {
-    let msg = U.Conversion.makeClientMessage('Export', 'PayloadS', sheet);
+    let msg = U.Conversion.makeServerMessage('Export', 'PayloadS', sheet);
     this.send(msg);
   },
 
@@ -317,7 +289,7 @@ export default {
 
   importCSV(origin: NakedIndex, lang: ASLanguage, fileName: string) {
     let asIndex = U.Conversion.simpleToASIndex(origin);
-    let msg = U.Conversion.makeClientMessageRaw(Constants.ServerActions.ImportCSV, {
+    let msg = U.Conversion.makeServerMessageRaw(Constants.ServerActions.ImportCSV, {
       tag: "PayloadCSV",
       csvIndex: asIndex,
       csvLang: lang,
@@ -333,14 +305,14 @@ export default {
   evaluate(origin: NakedIndex, xpObj: ASClientExpression) {
     let asIndex = U.Conversion.simpleToASIndex(origin),
         asCell = U.Conversion.makeEvalCell(asIndex, xpObj),
-        msg = U.Conversion.makeClientMessage(Constants.ServerActions.Evaluate,
+        msg = U.Conversion.makeServerMessage(Constants.ServerActions.Evaluate,
                                           "PayloadCL",
                                           [asCell]);
     this.send(msg);
   },
 
   evaluateHeader(expression: string, language: ASLanguage) {
-    let msg = U.Conversion.makeClientMessage(Constants.ServerActions.EvalHeader, "PayloadXp", {
+    let msg = U.Conversion.makeServerMessage(Constants.ServerActions.EvalHeader, "PayloadXp", {
       tag: "Expression",
       expression: expression,
       language: language
@@ -349,7 +321,7 @@ export default {
   },
 
   evaluateRepl(xpObj: ASExpression) {
-    let msg = U.Conversion.makeClientMessage(Constants.ServerActions.Repl, "PayloadXp", {
+    let msg = U.Conversion.makeServerMessage(Constants.ServerActions.Repl, "PayloadXp", {
       tag: "Expression",
       expression: xpObj.expression,
       language: xpObj.language
@@ -358,7 +330,7 @@ export default {
   },
 
   decouple() {
-    let msg: ServerMessage = U.Conversion.makeClientMessage(Constants.ServerActions.Decouple,
+    let msg: ServerMessage = U.Conversion.makeServerMessage(Constants.ServerActions.Decouple,
       "PayloadN", []);
     this.send(msg);
   },
@@ -366,25 +338,25 @@ export default {
   /* Sending undo/redo/clear messages to the server */
 
   undo() {
-    let msg = U.Conversion.makeClientMessage(Constants.ServerActions.Undo, "PayloadN", []);;
+    let msg = U.Conversion.makeServerMessage(Constants.ServerActions.Undo, "PayloadN", []);;
     this.send(msg);
   },
   redo() {
-    let msg = U.Conversion.makeClientMessage(Constants.ServerActions.Redo, "PayloadN", []);
+    let msg = U.Conversion.makeServerMessage(Constants.ServerActions.Redo, "PayloadN", []);
     this.send(msg);
   },
   clear() {
-    let msg = U.Conversion.makeClientMessage(Constants.ServerActions.Clear, "PayloadN", []);
+    let msg = U.Conversion.makeServerMessage(Constants.ServerActions.Clear, "PayloadN", []);
     this.send(msg);
   },
   clearSheet() {
-    let msg = U.Conversion.makeClientMessage(Constants.ServerActions.Clear,
+    let msg = U.Conversion.makeServerMessage(Constants.ServerActions.Clear,
                                    "PayloadS",
                                    SheetStateStore.getCurrentSheet());
     this.send(msg);
   },
   find(findText: string) {
-    let msg = U.Conversion.makeClientMessageRaw(Constants.ServerActions.Find, {
+    let msg = U.Conversion.makeServerMessageRaw(Constants.ServerActions.Find, {
       tag: "PayloadFind",
       findText: findText,
       matchWithCase:false,
@@ -400,7 +372,7 @@ export default {
     isShifted: boolean,
     direction: Direction
   ) {
-    let msg = U.Conversion.makeClientMessageRaw(Constants.ServerActions.JumpSelect, {
+    let msg = U.Conversion.makeServerMessageRaw(Constants.ServerActions.JumpSelect, {
       tag: "PayloadJump",
       isShifted: isShifted,
       jumpRange: U.Conversion.simpleToASRange(range),
@@ -410,7 +382,7 @@ export default {
     this.send(msg);
   },
   bugReport(report: string) {
-    let msg = U.Conversion.makeClientMessageRaw(Constants.ServerActions.BugReport, {
+    let msg = U.Conversion.makeServerMessageRaw(Constants.ServerActions.BugReport, {
       tag: "PayloadText",
       text: report,
     });
@@ -418,31 +390,31 @@ export default {
   },
 
   deleteIndices(locs: Array<ASIndex>) {
-    let msg = U.Conversion.makeClientMessage(Constants.ServerActions.Delete, "PayloadLL", locs);
+    let msg = U.Conversion.makeServerMessage(Constants.ServerActions.Delete, "PayloadLL", locs);
     this.send(msg);
   },
 
   deleteRange(rng: ASRange) {
-    let msg = U.Conversion.makeClientMessage(Constants.ServerActions.Delete, "PayloadR", rng);
+    let msg = U.Conversion.makeServerMessage(Constants.ServerActions.Delete, "PayloadR", rng);
     this.send(msg);
   },
 
   setColumnWidth(col: number, width: number) {
     let sid = SheetStateStore.getCurrentSheet().sheetId, 
-        msg = U.Conversion.makeClientMessage(Constants.ServerActions.SetBarProp, "PayloadSetBarProp",
+        msg = U.Conversion.makeServerMessage(Constants.ServerActions.SetBarProp, "PayloadSetBarProp",
       [{tag: 'BarIndex', barSheetId: sid, barType: 'ColumnType', barNumber: col}, 
       {tag: 'Dimension', contents: width}]);
     this.send(msg);
   },
 
   setRowHeight(row: number, height: number) {
-    let msg = U.Conversion.makeClientMessage(Constants.ServerActions.SetBarProp, "PayloadSetBarProp",
+    let msg = U.Conversion.makeServerMessage(Constants.ServerActions.SetBarProp, "PayloadSetBarProp",
       ['RowType', row, {tag: 'Dimension', contents: height}]);
     this.send(msg);
   },
 
   toggleProp(prop: ASCellProp, rng: NakedRange) {
-    let msg = U.Conversion.makeClientMessageRaw(Constants.ServerActions.ToggleProp, {
+    let msg = U.Conversion.makeServerMessageRaw(Constants.ServerActions.ToggleProp, {
       "tag": "PayloadProp",
       "prop": prop,
       "tagRange": U.Conversion.simpleToASRange(rng)
@@ -451,7 +423,7 @@ export default {
   },
 
   setProp(prop: ASCellProp, rng: NakedRange) {
-    let msg = U.Conversion.makeClientMessageRaw(Constants.ServerActions.SetProp, {
+    let msg = U.Conversion.makeServerMessageRaw(Constants.ServerActions.SetProp, {
       "tag": "PayloadProp",
       "prop": prop,
       "tagRange": U.Conversion.simpleToASRange(rng)
@@ -524,7 +496,7 @@ export default {
   },
 
   drag(activeRng: NakedRange, dragRng: NakedRange) {
-    let msg = U.Conversion.makeClientMessageRaw(Constants.ServerActions.Drag, {
+    let msg = U.Conversion.makeServerMessageRaw(Constants.ServerActions.Drag, {
       tag: "PayloadDrag",
       initialRange: U.Conversion.simpleToASRange(activeRng),
       dragRange: U.Conversion.simpleToASRange(dragRng)
@@ -533,7 +505,7 @@ export default {
   },
 
   copy(fromRng: ASRange, toRng: ASRange) {
-    let msg = U.Conversion.makeClientMessageRaw(Constants.ServerActions.Copy, {
+    let msg = U.Conversion.makeServerMessageRaw(Constants.ServerActions.Copy, {
       tag: "PayloadPaste",
       copyRange: fromRng,
       copyTo: toRng
@@ -542,7 +514,7 @@ export default {
   },
 
   cut(fromRng: ASRange, toRng: ASRange) {
-    let msg = U.Conversion.makeClientMessageRaw(Constants.ServerActions.Cut, {
+    let msg = U.Conversion.makeServerMessageRaw(Constants.ServerActions.Cut, {
       tag: "PayloadPaste",
       copyRange: fromRng,
       copyTo: toRng
@@ -551,22 +523,22 @@ export default {
   },
 
   pasteSimple(cells: Array<ASCell>) {
-    let msg = U.Conversion.makeClientMessage(Constants.ServerActions.Evaluate, "PayloadCL", cells);
+    let msg = U.Conversion.makeServerMessage(Constants.ServerActions.Evaluate, "PayloadCL", cells);
     this.send(msg);
   },
 
   getIndices(locs: Array<ASIndex>) {
-    let msg = U.Conversion.makeClientMessage(Constants.ServerActions.Get, "PayloadLL", locs);
+    let msg = U.Conversion.makeServerMessage(Constants.ServerActions.Get, "PayloadLL", locs);
     this.send(msg);
   },
 
   getRange(rng: ASRange) {
-    let msg = U.Conversion.makeClientMessage(Constants.ServerActions.Get, "PayloadR", rng);
+    let msg = U.Conversion.makeServerMessage(Constants.ServerActions.Get, "PayloadR", rng);
     this.send(msg);
   },
 
   repeat(sel: ASSelection) {
-    let msg = U.Conversion.makeClientMessageRaw(Constants.ServerActions.Repeat, {
+    let msg = U.Conversion.makeServerMessageRaw(Constants.ServerActions.Repeat, {
       tag: "PayloadSelection",
       selectionRange: U.Conversion.simpleToASRange(sel.range),
       selectionOrigin: U.Conversion.simpleToASIndex(sel.origin)
@@ -579,7 +551,7 @@ export default {
       tag: "InsertCol",
       insertColNum: c
     };
-    let msg = U.Conversion.makeClientMessage(Constants.ServerActions.MutateSheet, "PayloadMutate", mutateType);
+    let msg = U.Conversion.makeServerMessage(Constants.ServerActions.MutateSheet, "PayloadMutate", mutateType);
     this.send(msg);
   },
 
@@ -588,7 +560,7 @@ export default {
       tag: "InsertRow",
       insertRowNum: r
     };
-    let msg = U.Conversion.makeClientMessage(Constants.ServerActions.MutateSheet, "PayloadMutate", mutateType);
+    let msg = U.Conversion.makeServerMessage(Constants.ServerActions.MutateSheet, "PayloadMutate", mutateType);
     this.send(msg);
   },
 
@@ -597,7 +569,7 @@ export default {
       tag: "DeleteCol",
       deleteColNum: c
     };
-    let msg = U.Conversion.makeClientMessage(Constants.ServerActions.MutateSheet, "PayloadMutate", mutateType);
+    let msg = U.Conversion.makeServerMessage(Constants.ServerActions.MutateSheet, "PayloadMutate", mutateType);
     this.send(msg);
   },
 
@@ -606,7 +578,7 @@ export default {
       tag: "DeleteRow",
       deleteRowNum: r
     };
-    let msg = U.Conversion.makeClientMessage(Constants.ServerActions.MutateSheet, "PayloadMutate", mutateType);
+    let msg = U.Conversion.makeServerMessage(Constants.ServerActions.MutateSheet, "PayloadMutate", mutateType);
     this.send(msg);
   },
 
@@ -616,7 +588,7 @@ export default {
       oldColNum: c1,
       newColNum: c2
     };
-    let msg = U.Conversion.makeClientMessage(Constants.ServerActions.MutateSheet, "PayloadMutate", mutateType);
+    let msg = U.Conversion.makeServerMessage(Constants.ServerActions.MutateSheet, "PayloadMutate", mutateType);
     this.send(msg);
   },
 
@@ -626,20 +598,20 @@ export default {
       oldRowNum: r1,
       newRowNum: r2
     };
-    let msg = U.Conversion.makeClientMessage(Constants.ServerActions.MutateSheet, "PayloadMutate", mutateType);
+    let msg = U.Conversion.makeServerMessage(Constants.ServerActions.MutateSheet, "PayloadMutate", mutateType);
     this.send(msg);
   },
 
   // @optional mySheet
   openSheet(mySheet?: ASSheet) {
     let sheet = mySheet || SheetStateStore.getCurrentSheet(),
-        msg = U.Conversion.makeClientMessage(Constants.ServerActions.Open, "PayloadS", sheet);
+        msg = U.Conversion.makeServerMessage(Constants.ServerActions.Open, "PayloadS", sheet);
     this.send(msg);
   },
 
   createSheet() {
     let wbs = U.Conversion.makeWorkbookSheet();
-    let msg = U.Conversion.makeClientMessage(Constants.ServerActions.New,
+    let msg = U.Conversion.makeServerMessage(Constants.ServerActions.New,
       "PayloadWorkbookSheets",
       [wbs]);
     this.send(msg);
@@ -647,14 +619,14 @@ export default {
 
   createWorkbook() {
     let wb = U.Conversion.makeWorkbook();
-    let msg = U.Conversion.makeClientMessage(Constants.ServerActions.New,
+    let msg = U.Conversion.makeServerMessage(Constants.ServerActions.New,
       "PayloadWB",
       wb);
     this.send(msg);
   },
 
   updateCondFormattingRule(rule: CondFormatRule) {
-    let msg = U.Conversion.makeClientMessageRaw(Constants.ServerActions.UpdateCondFormatRules, {
+    let msg = U.Conversion.makeServerMessageRaw(Constants.ServerActions.UpdateCondFormatRules, {
       tag: "PayloadCondFormatUpdate",
       contents: { 
         tag: 'Update', 
@@ -666,7 +638,7 @@ export default {
   },
 
   removeCondFormattingRule(ruleId: string) {
-    let msg = U.Conversion.makeClientMessageRaw(Constants.ServerActions.UpdateCondFormatRules, {
+    let msg = U.Conversion.makeServerMessageRaw(Constants.ServerActions.UpdateCondFormatRules, {
       tag: "PayloadCondFormatUpdate",
       contents: { 
         tag: 'Update', 
@@ -679,7 +651,7 @@ export default {
 
   // maybe want to deprecate the below in favor of the above two? 
   updateCondFormattingRules(newRules: Array<CondFormatRule>, oldRuleIds: Array<string>) {
-    let msg = U.Conversion.makeClientMessageRaw(Constants.ServerActions.UpdateCondFormatRules, {
+    let msg = U.Conversion.makeServerMessageRaw(Constants.ServerActions.UpdateCondFormatRules, {
       tag: "PayloadCondFormatUpdate",
       contents: { 
         tag: 'Update', 
@@ -691,7 +663,7 @@ export default {
   },
 
   updateViewingWindow(vWindow: ASClientWindow) {
-    let msg = U.Conversion.makeClientMessage(Constants.ServerActions.UpdateWindow,
+    let msg = U.Conversion.makeServerMessage(Constants.ServerActions.UpdateWindow,
       "PayloadW",
       vWindow);
     this.send(msg);

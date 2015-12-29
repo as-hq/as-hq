@@ -26,7 +26,6 @@ import type {
 } from '../../types/State';
 
 import type {
-  PayloadSelection,
   ASBackendWorkbookSheet,
   ASClientWindow,
   ASMessageAction,
@@ -43,16 +42,16 @@ let CU = {
   /**************************************************************************************************************************/
   /* Type constructors */
 
-  makeClientMessage(
+  makeServerMessage(
     action: ASMessageAction,
     payloadTag: string,
     payloadContents: any
   ): ServerMessage {
-    return CU.makeClientMessageRaw(action, { "tag": payloadTag,
+    return CU.makeServerMessageRaw(action, { "tag": payloadTag,
                                                "contents": payloadContents });
   },
 
-  makeClientMessageRaw(
+  makeServerMessageRaw(
     action: ASMessageAction,
     payload: any
   ): ServerMessage {
@@ -279,10 +278,6 @@ let CU = {
 
   asLocationToSimple(loc: ASLocation): NakedRange {
     return (loc.tag === 'index') ? {tl: loc.index, br: loc.index} : loc.range;
-  },
-
-  asSelectionToSimple(sel: PayloadSelection): ASSelection {
-    return {range: sel.selectionRange.range, origin: sel.selectionOrigin.index};
   },
 
   colorToHtml(str: string): string {

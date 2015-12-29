@@ -23,13 +23,13 @@ import type {
   NakedRange,
   ASLocation,
   ASRange,
+  ASSelection,
   ASLanguage,
   ASIndex,
   ASSheet,
   ASValue,
   ASCompositeValue,
   ASExpression,
-  ASReplValue,
   ASWorkbook,
   ASCellProp,
   ASCell,
@@ -202,11 +202,6 @@ export type PayloadXp = {
   contents: ASExpression;
 };
 
-export type PayloadReplValue = {
-  tag: 'PayloadReplValue';
-  contents: ASReplValue;
-};
-
 export type PayloadList = {
   tag: 'PayloadList';
   contents: QueryList;
@@ -262,7 +257,6 @@ export type ASBackendPayload =
   | PayloadPaste
   | PayloadProp
   | PayloadXp
-  | PayloadReplValue
   | PayloadList
   | PayloadText
   | PayloadMutate
@@ -325,90 +319,6 @@ export type ASMessageAction =
   | 'Drag'
   | 'CondFormat' | 'UpdateCondFormatRules';
 
-export type NoActionResponse = {
-  action: 'NoAction';
-  payload: PayloadN;
-  result: ASBackendResult; // it only ever gets this with a failure.
-};
-
-export type NewResponse = {
-  action: 'New';
-  payload: PayloadWorkbookSheets | PayloadWB;
-  result: ASBackendResult;
-};
-
-export type OpenResponse = {
-  action: 'Open';
-  payload: PayloadOpen;
-  result: ASBackendResult;
-};
-
-export type UndoResponse = {
-  action: 'Undo';
-  payload: PayloadSheetUpdate;
-  result: ASBackendResult;
-};
-
-export type RedoResponse = {
-  action: 'Redo';
-  payload: PayloadSheetUpdate;
-  result: ASBackendResult;
-};
-
-export type UpdateResponse = {
-  action: 'UpdateSheet';
-  payload: PayloadSheetUpdate;
-  result: ASBackendResult;
-};
-
-export type GetResponse = {
-  action: 'Get';
-  payload: PayloadSheetUpdate;
-  result: ASBackendResult;
-};
-
-export type UpdateWindowResponse = {
-  action: 'UpdateWindow';
-  payload: PayloadSheetUpdate;
-  result: ASBackendResult;
-};
-
-export type ClearResponse = {
-  action: 'Clear';
-  payload: PayloadS | PayloadN;
-  result: ASBackendResult;
-};
-
-export type JumpSelectResponse = {
-  action: 'JumpSelect';
-  payload: PayloadSelection;
-  result: ASBackendResult;
-};
-
-export type EvaluateReplResponse = {
-  action: 'EvaluateRepl';
-  payload: PayloadReplValue;
-  result: ASBackendResult;
-};
-
-export type EvaluateHeaderResponse = {
-  action: 'EvaluateHeader';
-  payload: PayloadValue;
-  result: ASBackendResult;
-};
-
-export type FindResponse = {
-  action: 'Find';
-  payload: PayloadFind;
-  result: ASBackendResult;
-};
-
-export type SetCondFormatResponse = {
-  action: 'UpdateCondFormatRules';
-  payload: PayloadSheetUpdate;
-  result: ASBackendResult;
-};
-
 export type ASClientWindow = {
   window: NakedRange;
   sheetId: string;
@@ -419,23 +329,66 @@ export type ServerMessage = {
   payload: ASBackendPayload;
 };
 
-export type ClientMessage =
-  NoActionResponse
-  | NewResponse
-  | OpenResponse
-  | UndoResponse
-  | RedoResponse
-  | UpdateResponse
-  | GetResponse
-  | UpdateWindowResponse
-  | ClearResponse
-  | JumpSelectResponse
-  | EvaluateReplResponse
-  | EvaluateHeaderResponse
-  | FindResponse
-  | SetCondFormatResponse;
-
 export type ASAPICallbackPair = {
   fulfill: (msg: ?ClientMessage) => void;
   reject: (msg: ?ClientMessage) => void;
 };
+
+export type ClientMessage = { 
+  tag: "ClientMessage"; 
+  clientAction: ClientAction; 
+}
+
+export type ClientAction = 
+    NoAction
+  | AskDecouple
+  | SetInitialProperties
+  | ShowFailureMessage
+  | UpdateSheet 
+  | ClearSheet
+  | MakeSelection
+  | LoadImportedCells
+  | ShowHeaderResult;
+
+export type NoAction = { 
+  tag: "NoAction"; 
+}
+
+export type AskDecouple = { 
+  tag: "AskDecouple"; 
+}
+
+export type SetInitialProperties = { 
+  tag: "SetInitialProperties"; 
+  contents: [SheetUpdate, Array<ASExpression>];
+}
+
+export type ShowFailureMessage = { 
+  tag: "ShowFailureMessage"; 
+  contents: string; 
+}
+
+export type UpdateSheet = { 
+  tag: "UpdateSheet"; 
+  contents: SheetUpdate; 
+}
+
+export type ClearSheet = { 
+  tag: "ClearSheet"; 
+  contents: string; 
+}
+
+export type MakeSelection = { 
+  tag: "MakeSelection"; 
+  contents: ASSelection; // ::ALEx:: need to sync with backend
+}
+
+export type LoadImportedCells = { 
+  tag: "LoadImportedCells"; 
+  contents: Array<ASCell>;
+}
+
+export type ShowHeaderResult = { 
+  tag: "ShowHeaderResult"; 
+  contents: ASCompositeValue;
+}

@@ -540,17 +540,20 @@ export function messageShouldSatisfy(loc: string, fn: (cs: Array<ASCell>) => voi
     }, {
       fulfill: (result: ?ClientMessage) => {
         if (! result) {
+          console.log("Null message received from server");
           reject();
           return;
         }
 
-        let {payload} = result;
-        if (payload.tag !== 'PayloadSheetUpdate') {
+        let {clientAction} = result;
+        // ::ALEX::
+        if (clientAction.tag !== 'SheetUpdate') {
+          console.log("Message was not a sheet update");
           reject();
           return;
         }
 
-        let {contents: {cellUpdates: {newVals: cs}}} = payload;
+        let {contents: {cellUpdates: {newVals: cs}}} = clientAction;
         fn(cs);
 
         fulfill();

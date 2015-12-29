@@ -39,7 +39,7 @@ const ASSelectionStore = Object.assign({}, BaseStore, {
   dispatcherIndex: Dispatcher.register((action) => {
     switch (action._type) {
       case 'GOT_SELECTION':
-        ASSelectionStore.setActiveSelection(U.Conversion.asSelectionToSimple(action.newSelection), "", null);
+        ASSelectionStore.setActiveSelection(action.newSelection, "", null);
         break;
     }
   }),

@@ -8,8 +8,8 @@ import type {
   ASExpression,
   ASValue,
   ASCompositeValue,
-  ASLanguage,
-  ASReplValue
+  ASSelection,
+  ASLanguage
 } from './Eval';
 
 import type {
@@ -21,7 +21,6 @@ import type {
 } from './CondFormat';
 
 import type {
-  PayloadSelection,
   ASBackendWorkbookSheet,
   ASMessageAction,
   ClientMessage
@@ -34,7 +33,6 @@ import type {
 
 export type GotFailureAction = {
   _type: 'GOT_FAILURE';
-  action: ASMessageAction;
   errorMsg: string;
 };
 
@@ -50,7 +48,7 @@ export type GotOpenAction = {
 
 export type GotSelectionAction = {
   _type: 'GOT_SELECTION';
-  newSelection: PayloadSelection;
+  newSelection: ASSelection;
 };
 
 export type GotUpdatedCellsAction = {
@@ -90,16 +88,11 @@ export type GotUpdatedRulesAction = {
   oldRuleIds: Array<string>;
 };
 
-export type ReplLeftAction = {
-  _type: 'REPL_LEFT';
-  lang: ASLanguage;
-  value: string;
-};
-
-export type GotReplResponseAction = {
-  _type: 'GOT_REPL_RESPONSE';
-  response: ASReplValue;
-};
+// export type ReplLeftAction = {
+//   _type: 'REPL_LEFT';
+//   lang: ASLanguage;
+//   value: string;
+// };
 
 export type GotEvalHeaderResponseAction = {
   _type: 'GOT_EVAL_HEADER_RESPONSE';
@@ -187,9 +180,9 @@ export type WorkbookAction =
 export type ASAction =
   GotFailureAction
   | GotUpdatedWorkbooksAction
-  | GotUpdatedRulesAction
   | GotNewWorkbooksAction
   | DeletedWorkbooksAction
+  | GotUpdatedRulesAction
   | ScrolledAction
   | GotOpenAction
   | GotSelectionAction
@@ -198,8 +191,8 @@ export type ASAction =
   | ImportAction
   | ClearedAction
   | ClearedSheetAction
-  | ReplLeftAction
-  | GotReplResponseAction
+  // | ReplLeftAction
+  // | GotReplResponseAction
   | GotEvalHeaderResponseAction
   | GotFindAction
   | FindIncrementedAction
