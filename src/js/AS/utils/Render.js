@@ -22,8 +22,9 @@ import Conversion from './Conversion';
 import LocationUtils from './Location';
 import Format from './Format';
 import shortid from 'shortid';
+import U from '../Util';
 
-export default {
+const Render = {
   safeExtractContentsFromValue(cv: ASValue): string {
     switch (cv.tag) {
       case 'NoValue':
@@ -47,7 +48,7 @@ export default {
   /* Used to know what to display on the sheet */
   showValue(cv: ASValue, isRepl: boolean = false): (string|number) {
     // logDebug("In show value: " + JSON.stringify(cv));
-    let self = this;
+    let self = Render;
     switch (cv.tag) {
       case "NoValue":
         return "";
@@ -78,7 +79,7 @@ export default {
   },
 
   propsToRenderConfig(config: HGRendererConfig, props: Array<ASCellProp>): HGRendererConfig {
-    let self = this;
+    let self = Render;
     for (var i=0; i<props.length; i++) {
       let prop = props[i];
       switch (prop.tag) {
@@ -172,7 +173,7 @@ export default {
   getBordersForInteriorCell(col: number, row: number, rng: NakedRange): CellBorder {
     let {tl, br} = rng;
     if (LocationUtils.isIndex(rng) && (col === tl.col && row === tl.row)) {
-      return this.getPaintedBordersForSingleCell();
+      return Render.getPaintedBordersForSingleCell();
     } else {
       let borders: CellBorder = [null,null,null,null];
       if (col === tl.col) // left intersection
@@ -187,13 +188,12 @@ export default {
     }
   },
 
-// determines borders of a cell to be painted, given that it falls somewhere within a list of locs
-// returns a list of edges that can be painted in any order
-// each edge is a 2-length array [start, end]
-// executed by graphicscontext.moveTo(startx, starty) -> graphicscontext.lineTo(endx, endy)
+  // determines borders of a cell to be painted, given that it falls somewhere within a list of locs
+  // returns a list of edges that can be painted in any order
+  // each edge is a 2-length array [start, end]
+  // executed by graphicscontext.moveTo(startx, starty) -> graphicscontext.lineTo(endx, endy)
   getPaintedBorders(col: number, row: number, rngs: Array<NakedRange>): Array<CellBorder> {
-    let result = rngs.map((rng) => this.getBordersForInteriorCell(col, row, rng), this);
-    return this.concatAll(result);
+    return rngs.map((rng) => Render.getBordersForInteriorCell(col, row, rng), Render);; 
   },
 
   getUniqueId(): string {
@@ -220,3 +220,5 @@ export default {
     return (row-scrollY)* Constants.cellHeightPx + Constants.gridYOffset + "px";
   }
 };
+
+export default Render;

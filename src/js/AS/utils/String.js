@@ -33,7 +33,7 @@ let StringUtils = {
 
   removeEmptyLines(str: string): string {
     var lines = str.split("\n");
-    var filtered = lines.filter(this.isWhitespace);
+    var filtered = lines.filter(StringUtils.isWhitespace);
     return filtered.join("\n");
   },
 

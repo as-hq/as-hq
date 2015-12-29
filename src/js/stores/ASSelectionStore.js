@@ -69,7 +69,7 @@ const ASSelectionStore = Object.assign({}, BaseStore, {
   },
 
   withActiveSelection<T>(cb: (sel: ASSelection) => T): ?T {
-    return Just(this.getActiveSelection()).fmap(cb).out();
+    return Just(ASSelectionStore.getActiveSelection()).fmap(cb).out();
   },
 });
 

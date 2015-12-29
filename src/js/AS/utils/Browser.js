@@ -1,11 +1,13 @@
 /* @flow */
 
-export default {
+const Browser = {
   isMac(): boolean {
     return window.navigator.platform.toUpperCase().indexOf('MAC') >= 0;
   },
 
   metaKeyName(): string {
-    return this.isMac() ? "⌘" : "Ctrl"; 
+    return Browser.isMac() ? "⌘" : "Ctrl"; 
   }
 };
+
+export default Browser;

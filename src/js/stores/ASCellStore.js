@@ -147,12 +147,12 @@ const ASCellStore = Object.assign({}, BaseStore, {
 
   getActiveCell() {
     return SelectionStore.withActiveSelection(({origin}) => {
-      return this.getCell(origin);
+      return ASCellStore.getCell(origin);
     });
   },
 
   setActiveCellDependencies(deps) {
-    let cell = this.getActiveCell();
+    let cell = ASCellStore.getActiveCell();
     Render.setDependencies(deps);
     if (!cell || !cell.cellExpression) {
       return;
@@ -161,7 +161,7 @@ const ASCellStore = Object.assign({}, BaseStore, {
   },
 
   getActiveCellDependencies() {
-    let cell = this.getActiveCell();
+    let cell = ASCellStore.getActiveCell();
     if (cell) {
       return (cell.cellExpression.dependencies);
     } else {
@@ -170,7 +170,7 @@ const ASCellStore = Object.assign({}, BaseStore, {
   },
 
   getParentList(loc: NakedIndex) {
-    let cell = this.getCell(loc);
+    let cell = ASCellStore.getCell(loc);
     if (cell) {
       let cProps = cell.cellProps;
       if (cProps) {
@@ -205,28 +205,27 @@ const ASCellStore = Object.assign({}, BaseStore, {
   /**************************************************************************************************************************/
   /* Copy paste helpers */
 
-   // Converts a range to a row major list of lists of values,
-   getRowMajorCellValues(rng) {
-     if (U.Location.isIndex(rng)) {
-      let cell = this.getCell(rng.tl);
-      return [[cell ? cell.cellValue.contents : '']];
-     } else {
-      let {tl, br} = rng,
-          height = br.row - tl.row + 1,
-          length = br.col - tl.col + 1,
-          self = this,
-          rowMajorValues = U.Array.make2DArrayOf("", height, length);
-      for (let i = 0; i < height; ++i) {
-        let currentRow = tl.row + i;
-        rowMajorValues[i] = rowMajorValues[i].map(function(value, index) {
-            let currentColumn = tl.col + index,
-                cell = self.getCell({col: currentColumn, row: currentRow});
-            return cell ? cell.cellValue.contents : "";
-        });
-      }
-      return rowMajorValues;
-     }
-   },
+  // Converts a range to a row major list of lists of values, represented by their underlying strings. 
+  getRowMajorCellValues(rng): Array<Array<string>> {
+    let {tl, br} = rng,
+        height = br.row - tl.row + 1,
+        length = br.col - tl.col + 1,
+        self = ASCellStore,
+        rowMajorValues = U.Array.make2DArrayOf("", height, length); //
+    for (let i = 0; i < height; ++i) {
+      let currentRow = tl.row + i;
+      rowMajorValues[i] = rowMajorValues[i].map(function(value, index) {
+          let currentColumn = tl.col + index,
+              cell = self.getCell({col: currentColumn, row: currentRow});
+          if (cell != null) {
+            return String(U.Render.showValue(cell.cellValue));
+          } else { 
+            return "";
+          };
+      });
+    }
+    return rowMajorValues;
+  },
 
 
   /**************************************************************************************************************************/
@@ -248,13 +247,13 @@ const ASCellStore = Object.assign({}, BaseStore, {
     let removedCells = [];
     cells.forEach((c) => {
       if (!U.Cell.isEmptyCell(c)) {
-        this.setCell(c);
+        ASCellStore.setCell(c);
         _data.lastUpdatedCells.push(c);
       } else {
         removedCells.push(c); // filter out all the blank cells passed back from the store
       }
-    }, this);
-    this.removeCells(removedCells);
+    }, ASCellStore);
+    ASCellStore.removeCells(removedCells);
   },
 
   getAllErrors(): Array<ASClientError> {
@@ -262,7 +261,7 @@ const ASCellStore = Object.assign({}, BaseStore, {
   },
 
   setErrors(c: ASCell) {
-    this.unsetErrors(c);
+    ASCellStore.unsetErrors(c);
 
     const { cellValue: cv, cellExpression: cxp, cellLocation: cl } = c;
     switch (cv.tag) {
@@ -292,13 +291,13 @@ const ASCellStore = Object.assign({}, BaseStore, {
     if (!_data.allCells[sheetId][col]) _data.allCells[sheetId][col] = [];
     _data.allCells[sheetId][col][row] = c;
 
-    this.setErrors(c);
+    ASCellStore.setErrors(c);
   },
 
   // Replace cells with empty ones
   removeCells(cells: Array<ASCell>) {
     cells.forEach((cell) => {
-      this.removeIndex(cell.cellLocation);
+      ASCellStore.removeIndex(cell.cellLocation);
     });
   },
 
@@ -306,18 +305,18 @@ const ASCellStore = Object.assign({}, BaseStore, {
   removeIndex(loc: ASIndex) { //error here
     let sheetId = loc.sheetId,
         emptyCell = U.Conversion.makeEmptyCell(loc);
-    if (this.locationExists(loc.index.col, loc.index.row, sheetId)) {
+    if (ASCellStore.locationExists(loc.index.col, loc.index.row, sheetId)) {
       delete _data.allCells[sheetId][loc.index.col][loc.index.row];
     }
 
     _data.lastUpdatedCells.push(emptyCell);
 
-    this.unsetErrors(emptyCell);
+    ASCellStore.unsetErrors(emptyCell);
   },
 
   // Remove cells at a list of ASLocation's.
   removeLocations(locs: Array<ASLocation>) {
-    U.Conversion.asLocsToASIndices(locs).forEach((i) => this.removeIndex(i), this);
+    U.Conversion.asLocsToASIndices(locs).forEach((i) => ASCellStore.removeIndex(i), ASCellStore);
   },
 
   clearSheetCacheById(sheetId) {
@@ -333,13 +332,13 @@ const ASCellStore = Object.assign({}, BaseStore, {
 
   isNonBlankCell(col, row, mySheetId?: string) {
     let sheetId = mySheetId || SheetStateStore.getCurrentSheet().sheetId;
-    return this.locationExists(col, row, sheetId) && _data.allCells[sheetId][col][row].cellExpression.expression != "";
+    return ASCellStore.locationExists(col, row, sheetId) && _data.allCells[sheetId][col][row].cellExpression.expression != "";
   },
 
   // @optional mySheetId
   getCell({col, row}: NakedIndex): ?ASCell {
     let sheetId = SheetStateStore.getCurrentSheet().sheetId;
-    if (this.locationExists(col, row, sheetId))
+    if (ASCellStore.locationExists(col, row, sheetId))
       return _data.allCells[sheetId][col][row];
     else {
       return null;
@@ -350,7 +349,7 @@ const ASCellStore = Object.assign({}, BaseStore, {
     let sheetId = SheetStateStore.getCurrentSheet().sheetId;
     return _.range(tl.col, br.col+1).map((c) => {
       return _.range(tl.row, br.row+1).map((r) => {
-        return (this.locationExists(c, r, sheetId)) ?
+        return (ASCellStore.locationExists(c, r, sheetId)) ?
                 _data.allCells[sheetId][c][r] :
                 null;
       });

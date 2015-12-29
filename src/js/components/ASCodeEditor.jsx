@@ -12,7 +12,7 @@ require('brace/mode/java');
 require('brace/mode/c_cpp');
 require('brace/theme/monokai');
 
-export default React.createClass({
+const ASCodeEditor = React.createClass({
 
   /*************************************************************************************************************************/
   // React methods
@@ -61,3 +61,5 @@ export default React.createClass({
     window.test();
   }
 });
+
+export default ASCodeEditor;

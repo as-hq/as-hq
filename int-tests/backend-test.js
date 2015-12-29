@@ -1248,7 +1248,6 @@ describe('backend', () => {
               exec(done)
             ]);
           });
-          //TODO: timchu, I think this should work.... list interp and ancestor decoupling would tell me so.
           it ('should display J1:F properly', (done) => {
             _do([
               python('F1', '[[2*x + y for x in range(5)] for y in range(5)]'),
