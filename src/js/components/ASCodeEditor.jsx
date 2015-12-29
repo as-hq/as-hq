@@ -31,7 +31,7 @@ const ASCodeEditor = React.createClass({
   // Render
 
   render() {
-    const {theme, value, width, height} = ASCodeEditor.props;
+    const {theme, value, width, height} = this.props;
     const outerStyle = {
       display: 'flex',
       flexDirection: 'column',
@@ -45,14 +45,14 @@ const ASCodeEditor = React.createClass({
         <Toolbar />
         <AceEditor
           ref="editor"
-          handleEditorFocus={ASCodeEditor.props.handleEditorFocus}
-          hideToast={ASCodeEditor.props.hideToast}
+          handleEditorFocus={this.props.handleEditorFocus}
+          hideToast={this.props.hideToast}
           theme={theme}
           width="100%"
           height="100%"
-          maxLines={ASCodeEditor.props.maxLines}
-          setFocus={ASCodeEditor.props.setFocus}
-          onDeferredKey={ASCodeEditor.props.onDeferredKey} />
+          maxLines={this.props.maxLines}
+          setFocus={this.props.setFocus}
+          onDeferredKey={this.props.onDeferredKey} />
       </div>
     );
   },
