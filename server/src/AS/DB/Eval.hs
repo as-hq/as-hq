@@ -27,7 +27,7 @@ import Control.Monad.Trans.Either
 -- looks up cells in the given context, then in the database, in that precedence order
 -- this function is order-preserving
 getCellsWithContext :: Connection -> EvalContext -> [ASIndex] -> IO [Maybe ASCell]
-getCellsWithContext conn (EvalContext { virtualCellsMap = mp }) locs = map replaceWithContext <$> zip locs <$> DB.getCells conn locs
+getCellsWithContext conn EvalContext { virtualCellsMap = mp } locs = map replaceWithContext <$> zip locs <$> DB.getCells conn locs
   where
     replaceWithContext (l, c) = case (M.lookup l mp) of 
       Just foundCell -> Just foundCell
@@ -112,10 +112,15 @@ compareCellByRow:: ASCell -> ASCell -> Ordering
 compareCellByRow c1 c2  = compare (row $ index $ cellLocation c1) (row $ index $ cellLocation c2)
 
 -- gives the maximum non-blnak row of a list of cells. Used in colRange interpolation.
+-- if the list contains only NoValues, return 0.
 maxNonBlankRow :: [ASCell] -> Row
-maxNonBlankRow cells = maximum rowList where
-  cellsSortedByRows =  Data.List.sortBy (compareCellByRow) cells
-  rowList = map getRow $ removeEmptyCellsFromEndOfList $ cellsSortedByRows
+maxNonBlankRow cells =
+  let cellsSortedByRows =  Data.List.sortBy (compareCellByRow) cells
+      rowListWithEmptiesRemovedFromEnd = map getRow $ removeEmptyCellsFromEndOfList $ cellsSortedByRows
+   in
+   case rowListWithEmptiesRemovedFromEnd of
+        [] -> 0
+        otherwise  -> maximum rowListWithEmptiesRemovedFromEnd
 
 -- gives the maximum non-blank row in a list of list of cells. Used in colRange interpolation.
 maxNonBlankRowInListOfLists :: [[ASCell]] -> Row
@@ -133,11 +138,16 @@ colRangeWithDBAndContextToRange conn ctx c@(ColRange sid ((l, t), r)) = do
         return $ unionBy equalIndex ctxCells dbCells
       startCol = min l r
       endCol = max l r
-  listOfCellsByCol <- mapM cellsByCol [l..r] -- :: [[ASIndex]]
+  listOfCellsByCol <- mapM cellsByCol [startCol..endCol] -- :: [[ASIndex]]
   let maxRowInCols = maxNonBlankRowInListOfLists listOfCellsByCol
-  return $ Range sid ((l, t), (r, maxRowInCols))
+  -- TODO: timchu,code duplication.
+  -- handles the case if maxRowInCols  is smaller than the top of the colRange.
+  if (maxRowInCols < t)
+     then return $ Range sid ((startCol, t), (endCol, t))
+     else return $ Range sid ((startCol, t), (endCol, maxRowInCols))
 
 -- TODO: timchu 12/26/15. blatant code duplication. Don't know how to unduplicate further.
+-- Ummm, return a maybeRange???? What do I return if there's nothing there? For now, some arbitrary thing.
 colRangeWithContextToRange :: Connection -> EvalContext -> ASColRange -> ASRange
 colRangeWithContextToRange conn ctx c@(ColRange sid ((l, t), r)) =
   let cellsByCol :: Col -> [ASCell]
@@ -145,10 +155,12 @@ colRangeWithContextToRange conn ctx c@(ColRange sid ((l, t), r)) =
       -- must sort cells by row in order for removeEmptyCellsAtEndOfList to work
       startCol = min l r
       endCol = max l r
-      listOfCellsByCol = map cellsByCol [l..r] -- :: [[ASIndex]]
+      listOfCellsByCol = map cellsByCol [startCol..endCol] -- :: [[ASIndex]]
       maxRowInCols = maxNonBlankRowInListOfLists listOfCellsByCol
    in
-   Range sid ((l, t), (r, maxRowInCols))
+   if (maxRowInCols < t)
+      then Range sid ((startCol, t), (endCol, t))
+      else Range sid ((startCol, t), (endCol, maxRowInCols))
 
 -- TODO: timchu, leave very clear comments about where these are used!
 -- Uses the evalcontext and column range to extract the indices used in a column range.
