@@ -31,13 +31,13 @@ type TextboxProps = {
   onDeferredKey: (e: SyntheticKeyboardEvent) => void; 
   hideToast: () => void; 
   setFocus: (elem: ASFocusType) => void; 
-}
+};
 
 type TextboxState = {
   isVisible: boolean; 
   language: ASLanguage; 
   renderTrigger: boolean;
-}
+};
 
 export default class Textbox
   extends React.Component<TextboxDefaultProps, TextboxProps, TextboxState>
