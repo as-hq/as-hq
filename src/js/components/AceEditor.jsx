@@ -257,10 +257,6 @@ export default class AceEditor
 }
 
 AceEditor.propTypes = {
-  handleEditorFocus: React.PropTypes.func.isRequired,
-  hideToast: React.PropTypes.func.isRequired,
-  onDeferredKey: React.PropTypes.func.isRequired,
-  theme : React.PropTypes.string,
   name : React.PropTypes.string,
   height : React.PropTypes.string,
   width : React.PropTypes.string,
