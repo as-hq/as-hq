@@ -143,38 +143,6 @@ var Constants = Object.assign({
     'SQL': 'mysql'
   },
 
-  ServerActions: {
-    NoAction: "NoAction",
-    Acknowledge: "Acknowledge",
-    Evaluate: "Evaluate",
-    Get: "Get",
-    Delete: "Delete",
-    Undo: "Undo",
-    Redo: "Redo",
-    Clear: "Clear",
-    Copy: "Copy",
-    Cut: "Cut",
-    Repeat: "Repeat",
-    UpdateWindow: "UpdateWindow",
-    Open: "Open",
-    Close: "Close",
-    Import: "Import",
-    Repl: "EvaluateRepl",
-    EvalHeader: "EvaluateHeader",
-    New: "New",
-    Find: "Find",
-    BugReport: "BugReport",
-    ToggleProp: "ToggleProp",
-    SetProp: "SetProp",
-    JumpSelect: "JumpSelect",
-    MutateSheet: "MutateSheet",
-    Drag: "Drag",
-    Decouple: "Decouple",
-    UpdateCondFormatRules: "UpdateCondFormatRules",
-    SetBarProp: "SetBarProp",
-    ImportCSV: "ImportCSV"
-  },
-
   CursorPosition:{
     GRID: "GRID",
     TEXTBOX: "TEXTBOX",

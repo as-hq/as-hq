@@ -23,13 +23,13 @@ import type {
   NakedRange,
   ASLocation,
   ASRange,
+  ASSelection,
   ASLanguage,
   ASIndex,
   ASSheet,
   ASValue,
   ASCompositeValue,
   ASExpression,
-  ASReplValue,
   ASWorkbook,
   ASCellProp,
   ASCell,
@@ -37,7 +37,8 @@ import type {
 } from './Eval';
 
 import type {
-  ASViewingWindow
+  ASViewingWindow,
+  ASClientExpression
 } from './State';
 
 import type {
@@ -202,11 +203,6 @@ export type PayloadXp = {
   contents: ASExpression;
 };
 
-export type PayloadReplValue = {
-  tag: 'PayloadReplValue';
-  contents: ASReplValue;
-};
-
 export type PayloadList = {
   tag: 'PayloadList';
   contents: QueryList;
@@ -262,7 +258,6 @@ export type ASBackendPayload =
   | PayloadPaste
   | PayloadProp
   | PayloadXp
-  | PayloadReplValue
   | PayloadList
   | PayloadText
   | PayloadMutate
@@ -286,156 +281,231 @@ export type ASBackendWorkbookSheet = {
   wsSheets: Array<ASSheet>;
 };
 
-export type Success = {
-  tag: 'Success';
-};
-
-export type Failure = {
-  tag: 'Failure';
-  failDesc: string;
-};
-
-export type NoResult = {
-  tag: 'NoResult';
-};
-
-export type ASBackendResult = Success | Failure | NoResult;
-
-export type ASMessageAction =
-  'NoAction'
-  | 'Acknowledge'
-  | 'SetInitialSheet'
-  | 'Find'
-  | 'New' | 'Import' | 'Export' | 'ImportCSV'
-  | 'Open' | 'Close'
-  | 'Evaluate' | 'EvaluateRepl' | 'EvaluateHeader'
-  | 'Decouple'
-  | 'UpdateSheet'
-  | 'Get' | 'Delete'
-  | 'Copy' | 'Cut' | 'CopyForced'
-  | 'Undo' | 'Redo'
-  | 'Clear'
-  | 'UpdateWindow'
-  | 'SetBarProp'
-  | 'SetProp' | 'ToggleProp'
-  | 'Repeat'
-  | 'BugReport'
-  | 'JumpSelect'
-  | 'MutateSheet'
-  | 'Drag'
-  | 'CondFormat' | 'UpdateCondFormatRules';
-
-export type NoActionResponse = {
-  action: 'NoAction';
-  payload: PayloadN;
-  result: ASBackendResult; // it only ever gets this with a failure.
-};
-
-export type NewResponse = {
-  action: 'New';
-  payload: PayloadWorkbookSheets | PayloadWB;
-  result: ASBackendResult;
-};
-
-export type OpenResponse = {
-  action: 'Open';
-  payload: PayloadOpen;
-  result: ASBackendResult;
-};
-
-export type UndoResponse = {
-  action: 'Undo';
-  payload: PayloadSheetUpdate;
-  result: ASBackendResult;
-};
-
-export type RedoResponse = {
-  action: 'Redo';
-  payload: PayloadSheetUpdate;
-  result: ASBackendResult;
-};
-
-export type UpdateResponse = {
-  action: 'UpdateSheet';
-  payload: PayloadSheetUpdate;
-  result: ASBackendResult;
-};
-
-export type GetResponse = {
-  action: 'Get';
-  payload: PayloadSheetUpdate;
-  result: ASBackendResult;
-};
-
-export type UpdateWindowResponse = {
-  action: 'UpdateWindow';
-  payload: PayloadSheetUpdate;
-  result: ASBackendResult;
-};
-
-export type ClearResponse = {
-  action: 'Clear';
-  payload: PayloadS | PayloadN;
-  result: ASBackendResult;
-};
-
-export type JumpSelectResponse = {
-  action: 'JumpSelect';
-  payload: PayloadSelection;
-  result: ASBackendResult;
-};
-
-export type EvaluateReplResponse = {
-  action: 'EvaluateRepl';
-  payload: PayloadReplValue;
-  result: ASBackendResult;
-};
-
-export type EvaluateHeaderResponse = {
-  action: 'EvaluateHeader';
-  payload: PayloadValue;
-  result: ASBackendResult;
-};
-
-export type FindResponse = {
-  action: 'Find';
-  payload: PayloadFind;
-  result: ASBackendResult;
-};
-
-export type SetCondFormatResponse = {
-  action: 'UpdateCondFormatRules';
-  payload: PayloadSheetUpdate;
-  result: ASBackendResult;
-};
-
 export type ASClientWindow = {
   window: NakedRange;
   sheetId: string;
 };
 
-export type ASClientMessage = {
-  action: ASMessageAction;
-  payload: ASBackendPayload;
+export type ServerMessage = {
+  serverAction: ServerAction;
 };
 
-export type ASServerMessage =
-  NoActionResponse
-  | NewResponse
-  | OpenResponse
-  | UndoResponse
-  | RedoResponse
-  | UpdateResponse
-  | GetResponse
-  | UpdateWindowResponse
-  | ClearResponse
-  | JumpSelectResponse
-  | EvaluateReplResponse
-  | EvaluateHeaderResponse
-  | FindResponse
-  | SetCondFormatResponse;
+export type ServerAction = 
+    Initialize
+  | InitializeDaemon
+  | Open
+  | UpdateWindow
+  | Export
+  | Evaluate
+  | EvaluateHeader
+  | Get
+  | Delete
+  | ClearSheetServer
+  | Undo
+  | Redo
+  | Copy
+  | Cut
+  | ToggleProp
+  | SetProp
+  | Repeat
+  | BugReport
+  | MutateSheet
+  | Drag
+  | Decouple
+  | UpdateCondFormatRules
+  | SetBarProp
+  | ImportCSV;
+
+export type Initialize = {
+  tag: "Initialize";
+  connUserId: string; 
+  connSheetId: string; 
+};
+
+export type InitializeDaemon = {
+  tag: "InitializeDaemon";
+  parentUserId: string; 
+  parentLoc: ASIndex; 
+};
+
+export type Open = {
+  tag: "Open";
+  contents: string; 
+};
+
+export type UpdateWindow = {
+  tag: "UpdateWindow";
+  contents: ASClientWindow; 
+};
+
+export type Export = {
+  tag: "Export";
+  contents: string;
+};
+
+export type Evaluate = {
+  tag: "Evaluate";
+  evalXp:  ASClientExpression; // #needsrefactor should just make this ASExpression
+  evalLoc: ASIndex; 
+};
+
+export type EvaluateHeader = {
+  tag: "EvaluateHeader";
+  contents: ASExpression;
+};
+
+export type Get = {
+  tag: "Get";
+  contents: Array<ASIndex>;
+};
+
+export type Delete = {
+  tag: "Delete";
+  contents: ASRange; 
+};
+
+export type ClearSheetServer = {
+  tag: "ClearSheetServer";
+  contents: string; 
+};
+
+export type Undo = {
+  tag: "Undo";
+  contents: Array<any>; // really want a type for [], but don't know how to 
+};
+
+export type Redo = {
+  tag: "Redo";
+  contents: Array<any>; // really want a type for [], but don't know how to 
+};
+
+export type Copy = {
+  tag: "Copy";
+  copyFrom: ASRange; 
+  copyTo: ASRange; 
+};
+
+export type Cut = {
+  tag: "Cut";
+  cutFrom: ASRange; 
+  cutTo: ASRange; 
+};
+
+export type ToggleProp = {
+  tag: "ToggleProp";
+  contents: [ASCellProp, ASRange]; 
+};
+
+export type SetProp = {
+  tag: "SetProp";
+  contents: [ASCellProp, ASRange]; 
+};
+
+export type Repeat = {
+  tag: "Repeat";
+  contents: ASSelection;
+};
+
+export type BugReport = {
+  tag: "BugReport";
+  contents: string; 
+};
+
+export type MutateSheet = {
+  tag: "MutateSheet";
+  contents: MutateType; 
+};
+
+export type Drag = {
+  tag: "Drag";
+  initialRange: ASRange;  
+  dragRange: ASRange; 
+};
+
+export type Decouple = {
+  tag: "Decouple";
+  contents: Array<any>; // really want a type for [], but don't know how to 
+};
+
+export type UpdateCondFormatRules = {
+  tag: "UpdateCondFormatRules";
+  contents: CondFormatRuleUpdate; 
+};
+
+export type SetBarProp = {
+  tag: "SetBarProp";
+  contents: [BarIndex, BarProp];
+};
+
+export type ImportCSV = {
+  tag: "ImportCSV";
+  csvIndex: ASIndex; 
+  csvLang: ASLanguage; 
+  csvFileName: string; 
+};
 
 export type ASAPICallbackPair = {
-  fulfill: (msg: ?ASServerMessage) => void;
-  reject: (msg: ?ASServerMessage) => void;
+  fulfill: (msg: ?ClientMessage) => void;
+  reject: (msg: ?ClientMessage) => void;
 };
+
+export type ClientMessage = { 
+  tag: "ClientMessage"; 
+  clientAction: ClientAction; 
+}
+
+export type ClientAction = 
+    NoAction
+  | AskDecouple
+  | SetInitialProperties
+  | ShowFailureMessage
+  | UpdateSheet 
+  | ClearSheet
+  | MakeSelection
+  | LoadImportedCells
+  | ShowHeaderResult;
+
+export type NoAction = { 
+  tag: "NoAction"; 
+  contents: Array<any>; // really want a type for [], but don't know how to 
+}
+
+export type AskDecouple = { 
+  tag: "AskDecouple"; 
+  contents: Array<any>; // really want a type for [], but don't know how to 
+}
+
+export type SetInitialProperties = { 
+  tag: "SetInitialProperties"; 
+  contents: [SheetUpdate, Array<ASExpression>];
+}
+
+export type ShowFailureMessage = { 
+  tag: "ShowFailureMessage"; 
+  contents: string; 
+}
+
+export type UpdateSheet = { 
+  tag: "UpdateSheet"; 
+  contents: SheetUpdate; 
+}
+
+export type ClearSheet = { 
+  tag: "ClearSheet"; 
+  contents: string; 
+}
+
+export type MakeSelection = { 
+  tag: "MakeSelection"; 
+  contents: ASSelection; 
+}
+
+export type LoadImportedCells = { 
+  tag: "LoadImportedCells"; 
+  contents: Array<ASCell>;
+}
+
+export type ShowHeaderResult = { 
+  tag: "ShowHeaderResult"; 
+  contents: ASCompositeValue;
+}

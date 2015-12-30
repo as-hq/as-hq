@@ -29,6 +29,7 @@ export type ASClientWindow = {
   sheetId: string;
 };
 
+// It is actually absurd that this type exists. cellDependencies should be removed from ASExpression. 
 export type ASClientExpression = {
   expression: string;
   language: ASLanguage;

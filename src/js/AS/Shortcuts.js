@@ -297,7 +297,7 @@ export default {
     SU.add('grid', 'grid_delete', 'Del/Backspace', (wildcard: string) => {
       SelectionStore.withActiveSelection((sel) => {
         let rng = sel.range;
-        API.deleteRange(U.Conversion.simpleToASRange(rng));
+        API.deleteRange(rng);
       });
     });
     SU.add('grid', 'grid_undo', 'Ctrl+Z', (wildcard: string) => {

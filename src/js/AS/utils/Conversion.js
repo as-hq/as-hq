@@ -26,11 +26,9 @@ import type {
 } from '../../types/State';
 
 import type {
-  PayloadSelection,
   ASBackendWorkbookSheet,
   ASClientWindow,
-  ASMessageAction,
-  ASClientMessage
+  ServerMessage
 } from '../../types/Messages';
 
 import Location from './Location';
@@ -42,22 +40,6 @@ import SheetStateStore from '../../stores/ASSheetStateStore';
 let CU = {
   /**************************************************************************************************************************/
   /* Type constructors */
-
-  makeClientMessage(
-    action: ASMessageAction,
-    payloadTag: string,
-    payloadContents: any
-  ): ASClientMessage {
-    return CU.makeClientMessageRaw(action, { "tag": payloadTag,
-                                               "contents": payloadContents });
-  },
-
-  makeClientMessageRaw(
-    action: ASMessageAction,
-    payload: any
-  ): ASClientMessage {
-    return { "action": action, "payload": payload };
-  },
 
   makeEvalCell(asIndex: ASIndex, xpObj: ASClientExpression): ASCell {
     return  {
@@ -279,10 +261,6 @@ let CU = {
 
   asLocationToSimple(loc: ASLocation): NakedRange {
     return (loc.tag === 'index') ? {tl: loc.index, br: loc.index} : loc.range;
-  },
-
-  asSelectionToSimple(sel: PayloadSelection): ASSelection {
-    return {range: sel.selectionRange.range, origin: sel.selectionOrigin.index};
   },
 
   colorToHtml(str: string): string {
