@@ -132,7 +132,7 @@ export default class ASSpreadsheet
     this.gridProperties = {
       editorActivationKeys: [],
       scrollbarHoverOff: 'visible',
-      columnAutosizing: true,
+      columnAutosizing: false,
       defaultFixedColumnWidth: 35,
       defaultColumnWidth: 100
     }
