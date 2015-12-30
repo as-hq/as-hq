@@ -280,53 +280,170 @@ export type ASBackendWorkbookSheet = {
   wsSheets: Array<ASSheet>;
 };
 
-export type Success = {
-  tag: 'Success';
-};
-
-export type Failure = {
-  tag: 'Failure';
-  failDesc: string;
-};
-
-export type NoResult = {
-  tag: 'NoResult';
-};
-
-export type ASBackendResult = Success | Failure | NoResult;
-
-export type ASMessageAction =
-  'NoAction'
-  | 'Acknowledge'
-  | 'SetInitialSheet'
-  | 'Find'
-  | 'New' | 'Import' | 'Export' | 'ImportCSV'
-  | 'Open' | 'Close'
-  | 'Evaluate' | 'EvaluateRepl' | 'EvaluateHeader'
-  | 'Decouple'
-  | 'UpdateSheet'
-  | 'Get' | 'Delete'
-  | 'Copy' | 'Cut' | 'CopyForced'
-  | 'Undo' | 'Redo'
-  | 'Clear'
-  | 'UpdateWindow'
-  | 'SetBarProp'
-  | 'SetProp' | 'ToggleProp'
-  | 'Repeat'
-  | 'BugReport'
-  | 'JumpSelect'
-  | 'MutateSheet'
-  | 'Drag'
-  | 'CondFormat' | 'UpdateCondFormatRules';
-
 export type ASClientWindow = {
   window: NakedRange;
   sheetId: string;
 };
 
 export type ServerMessage = {
-  action: ASMessageAction;
-  payload: ASBackendPayload;
+  serverAction: ServerAction;
+};
+
+export type ServerAction = 
+    Acknowledge
+  | Initialize
+  | InitializeDaemon
+  | Open
+  | UpdateWindow
+  | Export
+  | Evaluate
+  | EvaluateHeader
+  | Get
+  | Delete
+  | ClearSheetServer
+  | Undo
+  | Redo
+  | Copy
+  | Cut
+  | ToggleProp
+  | SetProp
+  | Repeat
+  | BugReport
+  | MutateSheet
+  | Drag
+  | Decouple
+  | Decouple
+  | UpdateCondFormatRules
+  | SetBarProp
+  | ImportCSV;
+
+export type Acknowledge = {
+  tag: "Acknowledge";
+};
+
+export type Initialize = {
+  tag: "Initialize";
+  connUserId: string; 
+  connSheetId: string; 
+};
+
+export type InitializeDaemon = {
+  tag: "InitializeDaemon";
+  parentUserId: string; 
+  parentLoc: ASIndex; 
+};
+
+export type Open = {
+  tag: "Open";
+  contents: string; 
+};
+
+export type UpdateWindow = {
+  tag: "UpdateWindow";
+  contents: ASViewingWindow; 
+};
+
+ export type Export = {
+  tag: "Export";
+  contents: string;
+};
+
+ export type Evaluate = {
+  tag: "Evaluate";
+  evalXp:  ASExpression; 
+  evalLoc: ASIndex; 
+};
+
+ export type EvaluateHeader = {
+  tag: "EvaluateHeader";
+  contents: ASExpression;
+};
+
+ export type Get = {
+  tag: "Get";
+  contents: [ASIndex];
+};
+
+ export type Delete = {
+  tag: "Delete";
+  contents: ASSelection; 
+};
+
+ export type ClearSheetServer = {
+  tag: "ClearSheetServer";
+  contents: string; 
+};
+
+ export type Undo = {
+  tag: "Undo";
+};
+
+ export type Redo = {
+  tag: "Redo";
+};
+
+ export type Copy = {
+  tag: "Copy";
+  copyFrom: ASRange; 
+  copyTo: ASRange; 
+};
+
+ export type Cut = {
+  tag: "Cut";
+  cutFrom: ASRange; 
+  cutTo: ASRange; 
+};
+
+export type ToggleProp = {
+  tag: "ToggleProp";
+  contents: [ASCellProp, ASRange]; 
+};
+
+export type SetProp = {
+  tag: "SetProp";
+  contents: [ASCellProp, ASRange]; 
+};
+
+export type Repeat = {
+  tag: "Repeat";
+  contents: ASSelection;
+};
+
+export type BugReport = {
+  tag: "BugReport";
+  contents: string; 
+};
+
+export type MutateSheet = {
+  tag: "MutateSheet";
+  contents: MutateType; 
+};
+
+export type Drag = {
+  tag: "Drag";
+  initialRange: ASRange;  
+  dragRange: ASRange; 
+};
+
+export type Decouple = {
+  tag: "Decouple";
+};
+
+export type UpdateCondFormatRules = {
+  tag: "UpdateCondFormatRules";
+  contents: CondFormatRuleUpdate; 
+};
+
+export type SetBarProp = {
+  tag: "SetBarProp";
+  contents: [BarIndex, BarProp];
+};
+
+export type ImportCSV = {
+  tag: "ImportCSV";
+  csvIndex: ASIndex; 
+  csvLang: ASLanguage; 
+  csvFileName: string; 
 };
 
 export type ASAPICallbackPair = {

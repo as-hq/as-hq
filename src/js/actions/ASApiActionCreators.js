@@ -217,14 +217,14 @@ wss.onopen = (evt) => {
 
 export default {
   send(msg: ServerMessage) {
-    logDebug(`Queueing ${msg.action} message`);
+    logDebug(`Queueing ${msg.serverAction} message`);
     wss.waitForConnection((innerClient: WebSocket) => {
-      logDebug(`Sending ${msg.action} message`);
+      logDebug(`Sending ${msg.serverAction} message`);
       logDebug(JSON.stringify(msg));
       innerClient.send(JSON.stringify(msg));
 
       /* for testing */
-      if (msg.action === 'Acknowledge' && isRunningTest && currentCbs) {
+      if (msg.serverAction === 'Acknowledge' && isRunningTest && currentCbs) {
         isRunningTest = false;
         currentCbs.fulfill();
       } else if (isRunningSyncTest && currentCbs) {

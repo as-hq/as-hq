@@ -22,7 +22,6 @@ import type {
 
 import type {
   ASBackendWorkbookSheet,
-  ASMessageAction,
   ClientMessage
 } from './Messages';
 

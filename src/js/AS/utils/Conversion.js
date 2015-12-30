@@ -28,7 +28,6 @@ import type {
 import type {
   ASBackendWorkbookSheet,
   ASClientWindow,
-  ASMessageAction,
   ServerMessage
 } from '../../types/Messages';
 
@@ -43,18 +42,18 @@ let CU = {
   /* Type constructors */
 
   makeServerMessage(
-    action: ASMessageAction,
+    action: any,
     payloadTag: string,
     payloadContents: any
-  ): ServerMessage {
+  ): any {
     return CU.makeServerMessageRaw(action, { "tag": payloadTag,
                                                "contents": payloadContents });
   },
 
   makeServerMessageRaw(
-    action: ASMessageAction,
+    action: any,
     payload: any
-  ): ServerMessage {
+  ): any {
     return { "action": action, "payload": payload };
   },
 
