@@ -129,7 +129,7 @@ instance FromJSON Dimensions
 instance NFData ASIndex             where rnf = genericRnf
 instance NFData ASPointer           where rnf = genericRnf
 instance NFData ASRange             where rnf = genericRnf
-instance NFData ASColRange             where rnf = genericRnf
+instance NFData ASColRange          where rnf = genericRnf
 instance NFData ASReference         where rnf = genericRnf
 
 instance Serialize Dimensions

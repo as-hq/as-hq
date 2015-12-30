@@ -93,6 +93,7 @@ removeEmptyCellsFromEndOfList :: [ASCell] -> [ASCell]
 removeEmptyCellsFromEndOfList ls = reverse $ drop (numTrailingEmptyCells ls) $ reverse ls
 
 -- TODO: timchu, need the DB lookup at beginning of dispatch to get the context,
+-- This is inefficient. Filters all cells in the sheet and checks if it's in a column.
 lookUpDBCellsByCol :: Connection -> ASSheetId -> Col -> IO [ASCell]
 lookUpDBCellsByCol conn sid column =  do
   allCells <- DB.getCellsInSheet conn sid
@@ -111,10 +112,11 @@ equalIndex cell1 cell2 = (cellLocation cell1) == (cellLocation cell2)
 compareCellByRow:: ASCell -> ASCell -> Ordering
 compareCellByRow c1 c2  = compare (row $ index $ cellLocation c1) (row $ index $ cellLocation c2)
 
--- gives the maximum non-blnak row of a list of cells. Used in colRange interpolation.
+-- gives the maximum non-blank row of a list of cells. Used in colRange interpolation.
 -- if the list contains only NoValues, return 0.
 maxNonBlankRow :: [ASCell] -> Row
 maxNonBlankRow cells =
+  -- must sort cells by row in order for removeEmptyCellsAtEndOfList to work
   let cellsSortedByRows =  Data.List.sortBy (compareCellByRow) cells
       rowListWithEmptiesRemovedFromEnd = map getRow $ removeEmptyCellsFromEndOfList $ cellsSortedByRows
    in
@@ -127,8 +129,9 @@ maxNonBlankRowInListOfLists :: [[ASCell]] -> Row
 maxNonBlankRowInListOfLists ll = maximum (map maxNonBlankRow ll)
 
 -- Uses the evalcontext, DB, and column range to extract the range equivalent to the ColumnRange
--- Note; this is inefficient, as I convert cells to indices, and later in eval they're reconverted to cells. 
--- Note: I actually don't know the best way to go directly to colRanges.
+-- Note; this is inefficient, as I convert cells to indices, and later in eval they're reconverted to cells.
+-- Note: I actually don't know the best way to do this directly.
+-- Only used in getModifiedContext
 colRangeWithDBAndContextToRange :: Connection -> EvalContext -> ASColRange -> IO ASRange
 colRangeWithDBAndContextToRange conn ctx c@(ColRange sid ((l, t), r)) = do
   let cellsByCol :: Col -> IO [ASCell]
@@ -147,12 +150,12 @@ colRangeWithDBAndContextToRange conn ctx c@(ColRange sid ((l, t), r)) = do
      else return $ Range sid ((startCol, t), (endCol, maxRowInCols))
 
 -- TODO: timchu 12/26/15. blatant code duplication. Don't know how to unduplicate further.
--- Ummm, return a maybeRange???? What do I return if there's nothing there? For now, some arbitrary thing.
+-- If there is nothing in the ColRange ((l, t), r), result of this function is equivalent to the range
+-- Range((l,t),(r,t))
 colRangeWithContextToRange :: Connection -> EvalContext -> ASColRange -> ASRange
 colRangeWithContextToRange conn ctx c@(ColRange sid ((l, t), r)) =
   let cellsByCol :: Col -> [ASCell]
       cellsByCol column = evalContextCellsByCol ctx sid column
-      -- must sort cells by row in order for removeEmptyCellsAtEndOfList to work
       startCol = min l r
       endCol = max l r
       listOfCellsByCol = map cellsByCol [startCol..endCol] -- :: [[ASIndex]]
@@ -169,16 +172,14 @@ colRangeWithContextToIndicesRowMajor2D :: Connection -> EvalContext -> ASColRang
 colRangeWithContextToIndicesRowMajor2D conn ctx c = rangeToIndicesRowMajor2D $ colRangeWithContextToRange conn ctx c
 
 -- For use in conditional formatting and shortCircuit.
--- TODO: TIMCHU, STOP POINT 12/25. THERES ANA ERROR IN HERE SOMEWHERE
--- AM I IN THE WORLD WHERE I KNOW ENOUGH TO DEBUG THIS?
--- AFTER THIS
+-- TODO: timchu, 12/29/15. Haven't checked that anything works with cond format.
 colRangeWithDBAndContextToIndices :: Connection -> EvalContext -> ASColRange -> IO [ASIndex]
 colRangeWithDBAndContextToIndices conn ctx cr = do
   underlyingRange <- colRangeWithDBAndContextToRange conn ctx cr
   return $ rangeToIndices underlyingRange
 
---
----- TODO: timchu, 12/25/15. Never used.
+
+---- TODO: timchu, 12/25/15. Never used. Delete this if never needs to be used.
 --colRangeWithContextToIndices :: Connection -> EvalContext -> ASColRange -> [ASIndex]
 --colRangeWithContextToIndices conn ctx c = rangeToIndices $ colRangeWithContextToRange conn ctx c
 
@@ -199,6 +200,7 @@ refToIndices conn (PointerRef p) = do
 
 -- TODO: timchu, 12/25/15. Only used in shortcircuit? Not sure if I need a DB lookup in this case.
 -- converts ref to indices using the evalContext, then the DB, in that order.
+
 -- because our evalContext might contain information the DB doesn't (e.g. decoupling)
 -- so in the pointer case, we need to check the evalContext first for changes that might have happened during eval
 refToIndicesWithContextDuringEval :: Connection -> EvalContext -> ASReference -> EitherTExec [ASIndex]
