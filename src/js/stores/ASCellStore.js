@@ -62,7 +62,7 @@ const ASCellStore = Object.assign({}, BaseStore, {
 
   /* This function describes the actions of the ASCellStore upon recieving a message from Dispatcher */
   dispatcherIndex: Dispatcher.register((action) => {
-    logDebug('Store received action', action);
+    logDebug('Cell store received action', action);
     switch (action._type) {
       /*
         The cells have been fetched from the server for a get request (for example, when scrolling)

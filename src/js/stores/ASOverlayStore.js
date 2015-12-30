@@ -28,7 +28,7 @@ let _data: OverlayStoreData = {
 
 const ASOverlayStore = Object.assign({}, BaseStore, {
   dispatcherIndex: Dispatcher.register((action) => {
-    logDebug('Store received action', action);
+    logDebug('Overlay store received action', action);
     switch (action._type) {
       case 'ADD_OVERLAY':
         ASOverlayStore.add(action.overlay);

@@ -83,7 +83,7 @@ let _data: SheetStateStoreData = {
 
 const ASSheetStateStore = Object.assign({}, BaseStore, {
   dispatcherIndex: Dispatcher.register((action) => {
-    logDebug('Store received action', action);
+    logDebug('Sheet state store received action', action);
     switch (action._type) {
       case 'FIND_INCREMENTED':
         break;
