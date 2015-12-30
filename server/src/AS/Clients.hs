@@ -30,11 +30,15 @@ import Control.Monad (when)
 -------------------------------------------------------------------------------------------------------------------------
 -- ASUserClient is a client
 
-shouldLogAction :: ServerAction -> Bool
-shouldLogAction Acknowledge      = False
-shouldLogAction (UpdateWindow _) = False
-shouldLogAction (Open _)         = False
-shouldLogAction  _               = True
+shouldLogMessage :: ServerMessage -> Bool
+shouldLogMessage (ServerMessage Acknowledge)      = False
+shouldLogMessage (ServerMessage (UpdateWindow _)) = False
+shouldLogMessage (ServerMessage (Open _))         = False
+shouldLogMessage _                                = True
+
+shouldPrintMessage :: ServerMessage -> Bool
+shouldPrintMessage (ServerMessage Acknowledge) = False
+shouldPrintMessage _                           = True
 
 instance Client ASUserClient where
   conn = userConn
@@ -49,10 +53,10 @@ instance Client ASUserClient where
   handleServerMessage user state message = do 
     -- second arg is supposed to be sheet id; temporary hack is to always set userId = sheetId
     -- on frontend. 
-    when (shouldLogAction $ serverAction message) $ do 
-      logServerMessage (show message) (userCommitSource user)
+    when (shouldLogMessage message) $ logServerMessage (show message) (userCommitSource user)
+    when (shouldPrintMessage message) $ do 
       putStrLn "=========================================================="
-    printObj "Message" (show message)
+      printObj "Message" (show message)
     redisConn <- dbConn <$> readMVar state
     storeLastMessage redisConn message (userCommitSource user)
     -- everything commented out here is a thing we are temporarily not supporting, because we only partially implemented them
