@@ -1,5 +1,7 @@
 import sys
 import ast
+import copy
+
 from IPython.core.interactiveshell import InteractiveShell, ExecutionResult, softspace
 from IPython.core.prompts import PromptManager
 from IPython.utils.py3compat import builtin_mod
@@ -49,8 +51,7 @@ class ASShell(InteractiveShell):
 #-----------------------------------------------------------------------------
 
   def init_sheet_ns(self, sheet_id):
-    print "INITIALIZNG sheet ns with global: ", self.user_global_ns
-    self.sheet_nss[sheet_id] = self.user_global_ns
+    self.sheet_nss[sheet_id] = copy.copy(self.user_global_ns)
 
 #-----------------------------------------------------------------------------
 #  Evaluation

@@ -9,7 +9,7 @@ import AS.Kernels.Python.Pyfi
 
 import qualified AS.Parsing.Read as R
 
-import AS.Types.Cell
+import AS.Types.Cell hiding (Cell)
 import AS.Types.Eval
 import AS.Types.Errors
 import AS.Types.Sheets
@@ -30,7 +30,7 @@ import Control.Monad.Trans.Either
 ---------------------------------------------------------------------------------
 -- this portion is a drop-in replacement for Eval
 
-data EvalScope = Local | Global deriving (Generic)
+data EvalScope = Header | Cell deriving (Generic)
 data KernelMessage = 
     EvaluateRequest { scope :: EvalScope, envSheetId :: ASSheetId, code :: String } 
   | GetStatusRequest ASSheetId
@@ -38,7 +38,7 @@ data KernelMessage =
   deriving (Generic)
 
 data KernelResponse = 
-    EvaluateReply { value :: Maybe String, stdOutput :: Maybe String, stdErr :: Maybe String } 
+    EvaluateReply { value :: Maybe String, eval_error :: Maybe String, display :: Maybe String } 
   | GetStatusReply -- TODO
   | AutocompleteReply -- TODO
   deriving (Generic)
@@ -49,30 +49,32 @@ instance ToJSON KernelMessage where
   toJSON msg = case msg of 
     EvaluateRequest scope sid code -> object  [ "type" .= ("evaluate" :: String)
                                               , "scope" .= scope
-                                              , "sheetId" .= sid
+                                              , "sheet_id" .= sid
                                               , "code" .= code]
     GetStatusRequest sid -> object  [ "type" .= ("get_status" :: String)
-                                    , "sheetId" .= sid]
+                                    , "sheet_id" .= sid]
     AutocompleteRequest sid str -> object [ "type" .= ("autocomplete" :: String)
-                                          , "sheetId" .= sid
+                                          , "sheet_id" .= sid
                                           , "complete_str" .= str]
 
 instance FromJSON KernelResponse where
   parseJSON (Object v) = do
     val <- v .: "type" :: (Parser String)
     case val of 
-      "evaluate" -> EvaluateReply <$> v .:? "value" <*> v .:? "stdOput" <*> v .:? "stdErr"
+      "evaluate" -> EvaluateReply <$> v .:? "value" <*> v .:? "error" <*> v .:? "display"
       "get_status" -> return GetStatusReply -- TODO
       "autocomplete" -> return AutocompleteReply -- TODO
 
-evaluate = evaluateWithScope Local
-evaluateHeader = evaluateWithScope Global
+evaluate = evaluateWithScope Cell
+evaluateHeader = evaluateWithScope Header
 
 evaluateWithScope :: EvalScope -> ASSheetId -> String -> EitherTExec CompositeValue
 evaluateWithScope scope sid code = do
-  (EvaluateReply v out err) <- sendMessage $ EvaluateRequest scope sid code
+  (EvaluateReply v err disp) <- sendMessage $ EvaluateRequest scope sid code
   case v of 
-    Nothing -> error "didn't get a value" -- TODO
+    Nothing -> case err of 
+      Just e -> return . CellValue $ ValueError e ""
+      Nothing -> error "fucked up"
     Just v -> hoistEither $ R.parseValue Python v
 
 sendMessage :: KernelMessage -> EitherTExec KernelResponse

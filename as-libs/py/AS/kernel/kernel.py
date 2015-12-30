@@ -1,4 +1,5 @@
 import zmq
+import json
 
 from .shell import ASShell
 
@@ -19,7 +20,7 @@ class ASKernel(object):
     self.url = "tcp://" + host + ":" + str(port)
     self.socket.bind(self.url)
     
-  def get_initial_ns():
+  def get_initial_ns(self):
     from AS.stdlib import *
     import matplotlib._pylab_helpers
     return locals()
@@ -27,20 +28,29 @@ class ASKernel(object):
   def handle_incoming(self):
     recvMsg = self.socket.recvJson()
     replyMsg = self.process_message(recvMsg)
-    self.socket.send(replyMsg)
+    self.socket.send(json.dumps(replyMsg))
 
-  # KernelMessage -> KernelResponse
   def process_message(self, msg):
     if msg['type'] is 'evaluate_cell':
-      result = self.shell.run_cell(msg['code'], msg['sheet_id'])
+      result = None
+      if msg['scope'] is 'Header':
+        result = self.shell.run_header(msg['code'], msg['sheet_id'])
+      elif msg['scope'] is 'Cell':
+        result = self.shell.run_cell(msg['code'], msg['sheet_id'])
       return self.exec_result_to_msg(result)
-    if msg['type'] is 'evaluate_header':
-      result = self.shell.run_header(msg['code'], msg['sheet_id'])
-      return self.exec_result_to_msg(result)
+
     elif msg['type'] is 'get_status':
       raise NotImplementedError
+
     elif msg['type'] is 'autocomplete':
       raise NotImplementedError
 
   def exec_result_to_msg(self, result):
-    raise NotImplementedError
+    reply = {}
+    result_dict = result.__dict__
+    if 'result' in result_dict:
+      reply['value'] = result_dict['result']
+    if 'error_in_exec' in result_dict:
+      reply['error'] = result_dict['error_in_exec']
+    return reply
+
