@@ -119,12 +119,10 @@ onRefToIndicesSuccess :: EvalContext -> ASExpression -> [ASIndex] -> Maybe ASVal
 onRefToIndicesSuccess ctx xp depInds = listToMaybe $ catMaybes $ flip map (zip depInds values) $ \(i, v) -> case v of
   NoValue                 -> handleNoValueInLang lang i
   ve@(ValueError _ _)     -> handleErrorInLang lang ve
-  otherwise               -> Nothing 
+  otherwise               -> Nothing
   where
     lang           = xpLanguage xp
-    -- TODO: timchu, this sucks! Separate cellValue . ..... into its own function. Propagate everywhere it's used.
-    defaultCell    = Cell (Index "" (-1, -1)) (Expression "" Excel) NoValue emptyProps
-    values         = map (cellValue . (flip (M.findWithDefault defaultCell) (virtualCellsMap ctx))) depInds
+    values         = map (maybe NoValue cellValue . (`M.lookup` (virtualCellsMap ctx))) depInds```
 
 
 -- | Nothing if it's OK to pass in NoValue, appropriate ValueError if not.
