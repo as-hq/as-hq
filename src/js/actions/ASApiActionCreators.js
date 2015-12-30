@@ -30,7 +30,10 @@ import type {
   Direction,
   ClientMessage,
   ServerMessage,
+  ServerAction,
   ASAPICallbackPair,
+  ClearSheetServer,
+  Undo
 } from '../types/Messages';
 
 import type {
@@ -215,8 +218,9 @@ wss.onopen = (evt) => {
   logDebug('WebSockets open');
 };
 
-export default {
-  send(msg: ServerMessage) {
+const API = {
+  send(action: ServerAction) {
+    let msg = {serverAction: action}; //::ALEX::
     logDebug(`Queueing ${msg.serverAction} message`);
     wss.waitForConnection((innerClient: WebSocket) => {
       logDebug(`Sending ${msg.serverAction} message`);
@@ -235,17 +239,17 @@ export default {
   },
 
   initMessage() {
-    let msg: ServerMessage = U.Conversion.makeServerMessage(Constants.ServerActions.Acknowledge,
-      "PayloadInit",
-      {"connUserId": SheetStateStore.getUserId(),
-        "connSheetId": SheetStateStore.getCurrentSheet().sheetId});
-    // logDebug("Sending init message: " + JSON.stringify(msg));
-    this.send(msg);
+    let msg = { 
+      tag: "Initialize", 
+      connUserId: SheetStateStore.getUserId(),
+      connSheetIcdddd: SheetStateStore.getCurrentSheet().sheetId
+    };
+
+    API.send(msg);
   },
 
   ackMessage(innerClient: WebSocket) {
-    let msg: ServerMessage = U.Conversion.makeServerMessage(Constants.ServerActions.Acknowledge,
-      'PayloadN', []);
+    let msg = { serverAction: { tag: "Acknowledge", contents: [] } }; // ::ALEX::  
     innerClient.send(JSON.stringify(msg));
   },
 
@@ -268,8 +272,9 @@ export default {
   /* Sending admin-related requests to the server */
 
   getWorkbooks() {
-    let msg = U.Conversion.makeServerMessage('Get', 'PayloadList', 'WorkbookSheets');
-    this.send(msg);
+    // Not supporting right now (Alex 12/29)
+    // let msg = U.Conversion.makeServerMessage('Get', 'PayloadList', 'WorkbookSheets');
+    // API.send(msg);
   },
 
   close() {
@@ -278,8 +283,11 @@ export default {
   },
 
   export(sheet: ASSheet) {
-    let msg = U.Conversion.makeServerMessage('Export', 'PayloadS', sheet);
-    this.send(msg);
+    let msg = { 
+      tag: "Export", 
+      contents: sheet.sheetId
+    }; 
+    API.send(msg);
   },
 
   import(file: File) {
@@ -289,146 +297,171 @@ export default {
 
   importCSV(origin: NakedIndex, lang: ASLanguage, fileName: string) {
     let asIndex = U.Conversion.simpleToASIndex(origin);
-    let msg = U.Conversion.makeServerMessageRaw(Constants.ServerActions.ImportCSV, {
-      tag: "PayloadCSV",
+    let msg = {
+      tag: "ImportCSV", 
       csvIndex: asIndex,
       csvLang: lang,
       csvFileName: fileName
-    });
-    this.send(msg);
+    };
+
+    API.send(msg);
   },
 
   // ************************************************************************************************************************
   /* Sending an eval request to the server */
 
   /* This function is called by handleEvalRequest in the eval pane */
-  evaluate(origin: NakedIndex, xpObj: ASClientExpression) {
+  evaluate(origin: NakedIndex, xp: ASClientExpression) {
     let asIndex = U.Conversion.simpleToASIndex(origin),
-        asCell = U.Conversion.makeEvalCell(asIndex, xpObj),
-        msg = U.Conversion.makeServerMessage(Constants.ServerActions.Evaluate,
-                                          "PayloadCL",
-                                          [asCell]);
-    this.send(msg);
+        msg = { 
+          tag: "Evaluate", 
+          evalXp: xp,
+          evalLoc: asIndex
+        }; 
+    API.send(msg);
   },
 
   evaluateHeader(expression: string, language: ASLanguage) {
-    let msg = U.Conversion.makeServerMessage(Constants.ServerActions.EvalHeader, "PayloadXp", {
-      tag: "Expression",
+    let msg = {
+      tag: "EvalHeader", 
       expression: expression,
       language: language
-    });
-    this.send(msg);
+    };
+    API.send(msg);
   },
 
-  evaluateRepl(xpObj: ASExpression) {
-    let msg = U.Conversion.makeServerMessage(Constants.ServerActions.Repl, "PayloadXp", {
-      tag: "Expression",
-      expression: xpObj.expression,
-      language: xpObj.language
-    });
-    this.send(msg);
-  },
+  // Currently not supporting (Alex 12/29)
+  // evaluateRepl(xpObj: ASExpression) {
+  //   let msg = U.Conversion.makeServerMessage(Constants.ServerActions.Repl, "PayloadXp", {
+  //     tag: "Expression",
+  //     expression: xpObj.expression,
+  //     language: xpObj.language
+  //   });
+  //   API.send(msg);
+  // },
 
   decouple() {
-    let msg: ServerMessage = U.Conversion.makeServerMessage(Constants.ServerActions.Decouple,
-      "PayloadN", []);
-    this.send(msg);
+    let msg = { tag: "Decouple" };
+    API.send(msg);
   },
   /**************************************************************************************************************************/
   /* Sending undo/redo/clear messages to the server */
 
   undo() {
-    let msg = U.Conversion.makeServerMessage(Constants.ServerActions.Undo, "PayloadN", []);;
-    this.send(msg);
-  },
-  redo() {
-    let msg = U.Conversion.makeServerMessage(Constants.ServerActions.Redo, "PayloadN", []);
-    this.send(msg);
-  },
-  clear() {
-    let msg = U.Conversion.makeServerMessage(Constants.ServerActions.Clear, "PayloadN", []);
-    this.send(msg);
-  },
-  clearSheet() {
-    let msg = U.Conversion.makeServerMessage(Constants.ServerActions.Clear,
-                                   "PayloadS",
-                                   SheetStateStore.getCurrentSheet());
-    this.send(msg);
-  },
-  find(findText: string) {
-    let msg = U.Conversion.makeServerMessageRaw(Constants.ServerActions.Find, {
-      tag: "PayloadFind",
-      findText: findText,
-      matchWithCase:false,
-      matchType:0,
-      currentSheet: "INIT_SHEET_ID",
-      matchFullContents:false
-    });
-    this.send(msg);
-  },
-  jumpSelect(
-    range: NakedRange,
-    origin: NakedIndex,
-    isShifted: boolean,
-    direction: Direction
-  ) {
-    let msg = U.Conversion.makeServerMessageRaw(Constants.ServerActions.JumpSelect, {
-      tag: "PayloadJump",
-      isShifted: isShifted,
-      jumpRange: U.Conversion.simpleToASRange(range),
-      jumpOrigin: U.Conversion.simpleToASIndex(origin),
-      jumpDirection: "D" + direction
-    });
-    this.send(msg);
-  },
-  bugReport(report: string) {
-    let msg = U.Conversion.makeServerMessageRaw(Constants.ServerActions.BugReport, {
-      tag: "PayloadText",
-      text: report,
-    });
-    this.send(msg);
+    let msg: Undo = {
+      tag: "Undo"
+    };
+    API.send(msg);
   },
 
-  deleteIndices(locs: Array<ASIndex>) {
-    let msg = U.Conversion.makeServerMessage(Constants.ServerActions.Delete, "PayloadLL", locs);
-    this.send(msg);
+  redo() {
+    let msg = {
+      tag: "Redo", 
+    };
+    API.send(msg);
+  },
+
+  clearSheet() {
+    let sid = SheetStateStore.getCurrentSheet().sheetId, 
+        msg: ClearSheetServer = {
+          tag: "ClearSheetServer", 
+          contents: sid
+        };
+    API.send(msg);
+  },
+
+  find(findText: string) {
+    // Currently not supporting -- Alex. (12/29)
+    // let msg = {
+    //   tag: "Find", 
+    //   contents: {
+    //     tag: "PayloadFind",
+    //     findText: findText,
+    //     matchWithCase:false,
+    //     matchType:0,
+    //     currentSheet: "INIT_SHEET_ID",
+    //     matchFullContents:false
+    //   }
+    // });
+    // API.send(msg);
+  },
+
+  jumpSelect(range: NakedRange, origin: NakedIndex, isShifted: boolean, direction: Direction) {
+    // Currently not supporting -- Alex. (12/29)
+    // let msg = {
+    //   tag: "JumpSelect", 
+    //   contents: {
+    //     tag: "PayloadJump",
+    //     isShifted: isShifted,
+    //     jumpRange: U.Conversion.simpleToASRange(range),
+    //     jumpOrigin: U.Conversion.simpleToASIndex(origin),
+    //     jumpDirection: "D" + direction
+    //   }
+    // });
+    // API.send(msg);
+  },
+
+  bugReport(report: string) {
+    let msg = {
+      tag: "BugReport", 
+      contents: report
+    };
+
+    API.send(msg);
   },
 
   deleteRange(rng: ASRange) {
-    let msg = U.Conversion.makeServerMessage(Constants.ServerActions.Delete, "PayloadR", rng);
-    this.send(msg);
+    let msg = {
+      tag: "Delete", 
+      contents: rng
+    };
+    API.send(msg);
   },
 
   setColumnWidth(col: number, width: number) {
     let sid = SheetStateStore.getCurrentSheet().sheetId, 
-        msg = U.Conversion.makeServerMessage(Constants.ServerActions.SetBarProp, "PayloadSetBarProp",
-      [{tag: 'BarIndex', barSheetId: sid, barType: 'ColumnType', barNumber: col}, 
-      {tag: 'Dimension', contents: width}]);
-    this.send(msg);
+        msg = {
+          tag: "SetBarProp", 
+          contents: [
+            {tag: 'BarIndex', barSheetId: sid, barType: 'ColumnType', barNumber: col}, 
+            {tag: 'Dimension', contents: width}
+          ]
+        };
+
+    API.send(msg);
   },
 
   setRowHeight(row: number, height: number) {
-    let msg = U.Conversion.makeServerMessage(Constants.ServerActions.SetBarProp, "PayloadSetBarProp",
-      ['RowType', row, {tag: 'Dimension', contents: height}]);
-    this.send(msg);
+    let sid = SheetStateStore.getCurrentSheet().sheetId, 
+        msg = {
+          tag: "SetBarProp", 
+          contents: [
+            {tag: 'BarIndex', barSheetId: sid, barType: 'RowType', barNumber: row}, 
+            {tag: 'Dimension', contents: height}
+          ]
+        };
+        
+    API.send(msg);
   },
 
   toggleProp(prop: ASCellProp, rng: NakedRange) {
-    let msg = U.Conversion.makeServerMessageRaw(Constants.ServerActions.ToggleProp, {
-      "tag": "PayloadProp",
-      "prop": prop,
-      "tagRange": U.Conversion.simpleToASRange(rng)
-    });
-    this.send(msg);
+    let msg = {
+      tag: "ToggleProp", 
+      contents: [prop, U.Conversion.simpleToASRange(rng)]
+    };
+
+    API.send(msg);
   },
 
+  // #needsrefactor should privatize, and expose only the functions that construct the prop too, 
+  // e.g. setTextColor. 
   setProp(prop: ASCellProp, rng: NakedRange) {
-    let msg = U.Conversion.makeServerMessageRaw(Constants.ServerActions.SetProp, {
-      "tag": "PayloadProp",
-      "prop": prop,
-      "tagRange": U.Conversion.simpleToASRange(rng)
-    });
-    this.send(msg);
+    let msg = {
+      tag: "SetProp", 
+      contents: [prop, U.Conversion.simpleToASRange(rng)]
+    };
+
+    API.send(msg);
   },
 
   setTextColor(contents: string, rng: NakedRange) {
@@ -496,54 +529,66 @@ export default {
   },
 
   drag(activeRng: NakedRange, dragRng: NakedRange) {
-    let msg = U.Conversion.makeServerMessageRaw(Constants.ServerActions.Drag, {
-      tag: "PayloadDrag",
+    let msg = {
+      tag: "Drag", 
       initialRange: U.Conversion.simpleToASRange(activeRng),
       dragRange: U.Conversion.simpleToASRange(dragRng)
-    });
-    this.send(msg);
+    };
+
+    API.send(msg);
   },
 
   copy(fromRng: ASRange, toRng: ASRange) {
-    let msg = U.Conversion.makeServerMessageRaw(Constants.ServerActions.Copy, {
-      tag: "PayloadPaste",
+    let msg = {
+      tag: "Copy", 
       copyRange: fromRng,
       copyTo: toRng
-    });
-    this.send(msg);
+    };
+    API.send(msg);
   },
 
   cut(fromRng: ASRange, toRng: ASRange) {
-    let msg = U.Conversion.makeServerMessageRaw(Constants.ServerActions.Cut, {
-      tag: "PayloadPaste",
-      copyRange: fromRng,
-      copyTo: toRng
-    });
-    this.send(msg);
+    let msg = {
+      tag: "Cut", 
+      cutRange: fromRng,
+      cutTo: toRng
+    };
+    API.send(msg);
   },
 
   pasteSimple(cells: Array<ASCell>) {
-    let msg = U.Conversion.makeServerMessage(Constants.ServerActions.Evaluate, "PayloadCL", cells);
-    this.send(msg);
+    let msg = {
+      tag: "Evaluate", 
+      contents: cells
+    };
+    API.send(msg);
   },
 
   getIndices(locs: Array<ASIndex>) {
-    let msg = U.Conversion.makeServerMessage(Constants.ServerActions.Get, "PayloadLL", locs);
-    this.send(msg);
+    let msg = {
+      tag: "Get", 
+      contents: locs
+    };
+    API.send(msg);
   },
 
   getRange(rng: ASRange) {
-    let msg = U.Conversion.makeServerMessage(Constants.ServerActions.Get, "PayloadR", rng);
-    this.send(msg);
+    let msg = {
+      tag: "Get", 
+      contents: rng
+    };
+    API.send(msg);
   },
 
   repeat(sel: ASSelection) {
-    let msg = U.Conversion.makeServerMessageRaw(Constants.ServerActions.Repeat, {
-      tag: "PayloadSelection",
-      selectionRange: U.Conversion.simpleToASRange(sel.range),
-      selectionOrigin: U.Conversion.simpleToASIndex(sel.origin)
-    });
-    this.send(msg);
+    // temporarily not maintaining (Alex 12/29)
+    // let msg = {
+    //   tag: "Repeat", 
+    //   contents:  {
+    //     selectionRange: U.Conversion.simpleToASRange(sel.range),
+    //     selectionOrigin: U.Conversion.simpleToASIndex(sel.origin)
+    // });
+    // API.send(msg);
   },
 
   insertCol(c: number) {
@@ -551,8 +596,11 @@ export default {
       tag: "InsertCol",
       insertColNum: c
     };
-    let msg = U.Conversion.makeServerMessage(Constants.ServerActions.MutateSheet, "PayloadMutate", mutateType);
-    this.send(msg);
+    let msg = {
+      tag: "MutateSheet", 
+      contents: mutateType
+    };
+    API.send(msg);
   },
 
   insertRow(r: number) {
@@ -560,8 +608,11 @@ export default {
       tag: "InsertRow",
       insertRowNum: r
     };
-    let msg = U.Conversion.makeServerMessage(Constants.ServerActions.MutateSheet, "PayloadMutate", mutateType);
-    this.send(msg);
+    let msg = {
+      tag: "MutateSheet", 
+      contents: mutateType
+    };
+    API.send(msg);
   },
 
   deleteCol(c: number) {
@@ -569,8 +620,11 @@ export default {
       tag: "DeleteCol",
       deleteColNum: c
     };
-    let msg = U.Conversion.makeServerMessage(Constants.ServerActions.MutateSheet, "PayloadMutate", mutateType);
-    this.send(msg);
+    let msg = {
+      tag: "MutateSheet", 
+      contents: mutateType
+    };
+    API.send(msg);
   },
 
   deleteRow(r: number) {
@@ -578,8 +632,11 @@ export default {
       tag: "DeleteRow",
       deleteRowNum: r
     };
-    let msg = U.Conversion.makeServerMessage(Constants.ServerActions.MutateSheet, "PayloadMutate", mutateType);
-    this.send(msg);
+    let msg = {
+      tag: "MutateSheet", 
+      contents: mutateType
+    };
+    API.send(msg);
   },
 
   dragCol(c1: number, c2: number) {
@@ -588,8 +645,11 @@ export default {
       oldColNum: c1,
       newColNum: c2
     };
-    let msg = U.Conversion.makeServerMessage(Constants.ServerActions.MutateSheet, "PayloadMutate", mutateType);
-    this.send(msg);
+    let msg = {
+      tag: "MutateSheet", 
+      contents: mutateType
+    };
+    API.send(msg);
   },
 
   dragRow(r1: number, r2: number) {
@@ -598,75 +658,65 @@ export default {
       oldRowNum: r1,
       newRowNum: r2
     };
-    let msg = U.Conversion.makeServerMessage(Constants.ServerActions.MutateSheet, "PayloadMutate", mutateType);
-    this.send(msg);
+    let msg = {
+      tag: "MutateSheet", 
+      contents: mutateType
+    };
+    API.send(msg);
   },
 
   // @optional mySheet
   openSheet(mySheet?: ASSheet) {
     let sheet = mySheet || SheetStateStore.getCurrentSheet(),
-        msg = U.Conversion.makeServerMessage(Constants.ServerActions.Open, "PayloadS", sheet);
-    this.send(msg);
+        msg = {
+          tag: "Open", 
+          contents: sheet.sheetId
+        };
+    API.send(msg);
   },
 
   createSheet() {
-    let wbs = U.Conversion.makeWorkbookSheet();
-    let msg = U.Conversion.makeServerMessage(Constants.ServerActions.New,
-      "PayloadWorkbookSheets",
-      [wbs]);
-    this.send(msg);
+    // Currently not supporting. (Alex 12/29)
+    // let wbs = U.Conversion.makeWorkbookSheet();
+    // let msg = U.Conversion.makeServerMessage(Constants.ServerActions.New,
+    //   "PayloadWorkbookSheets",
+    //   [wbs]);
+    // API.send(msg);
   },
 
   createWorkbook() {
-    let wb = U.Conversion.makeWorkbook();
-    let msg = U.Conversion.makeServerMessage(Constants.ServerActions.New,
-      "PayloadWB",
-      wb);
-    this.send(msg);
+    // Not supporting now (Alex 12/29)
+    // let wb = U.Conversion.makeWorkbook();
+    // let msg = U.Conversion.makeServerMessage(Constants.ServerActions.New,
+    //   "PayloadWB",
+    //   wb);
+    // API.send(msg);
   },
 
   updateCondFormattingRule(rule: CondFormatRule) {
-    let msg = U.Conversion.makeServerMessageRaw(Constants.ServerActions.UpdateCondFormatRules, {
-      tag: "PayloadCondFormatUpdate",
-      contents: { 
-        tag: 'Update', 
-        newVals: [rule], 
-        oldKeys: []
-      }
-    });
-    this.send(msg);
+    let msg = {
+      tag: "UpdateCondFormatRules", 
+      newVals: [rule], 
+      oldKeys: []
+    };
+    API.send(msg);
   },
 
   removeCondFormattingRule(ruleId: string) {
-    let msg = U.Conversion.makeServerMessageRaw(Constants.ServerActions.UpdateCondFormatRules, {
-      tag: "PayloadCondFormatUpdate",
-      contents: { 
-        tag: 'Update', 
-        newVals: [], 
-        oldKeys: [ruleId]
-      }
-    });
-    this.send(msg);
-  },
-
-  // maybe want to deprecate the below in favor of the above two? 
-  updateCondFormattingRules(newRules: Array<CondFormatRule>, oldRuleIds: Array<string>) {
-    let msg = U.Conversion.makeServerMessageRaw(Constants.ServerActions.UpdateCondFormatRules, {
-      tag: "PayloadCondFormatUpdate",
-      contents: { 
-        tag: 'Update', 
-        newVals: newRules, 
-        oldKeys: oldRuleIds
-      }
-    });
-    this.send(msg);
+    let msg = {
+      tag: "UpdateCondFormatRules", 
+      newVals: [], 
+      oldKeys: [ruleId]
+    };
+    API.send(msg);
   },
 
   updateViewingWindow(vWindow: ASClientWindow) {
-    let msg = U.Conversion.makeServerMessage(Constants.ServerActions.UpdateWindow,
-      "PayloadW",
-      vWindow);
-    this.send(msg);
+    let msg = { 
+      tag: "UpdateWindow", 
+      contents: vWindow
+    }; 
+    API.send(msg);
   },
 
 
@@ -699,3 +749,5 @@ export default {
     uiTestMode = false;
   }
 };
+
+export default API;

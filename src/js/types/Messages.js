@@ -37,7 +37,8 @@ import type {
 } from './Eval';
 
 import type {
-  ASViewingWindow
+  ASViewingWindow,
+  ASClientExpression
 } from './State';
 
 import type {
@@ -319,6 +320,7 @@ export type ServerAction =
 
 export type Acknowledge = {
   tag: "Acknowledge";
+  contents: Array<any>; // really want a type for [], but don't know how to 
 };
 
 export type Initialize = {
@@ -340,55 +342,57 @@ export type Open = {
 
 export type UpdateWindow = {
   tag: "UpdateWindow";
-  contents: ASViewingWindow; 
+  contents: ASClientWindow; 
 };
 
- export type Export = {
+export type Export = {
   tag: "Export";
   contents: string;
 };
 
- export type Evaluate = {
+export type Evaluate = {
   tag: "Evaluate";
-  evalXp:  ASExpression; 
+  evalXp:  ASClientExpression; // #needsrefactor should just make this ASExpression
   evalLoc: ASIndex; 
 };
 
- export type EvaluateHeader = {
+export type EvaluateHeader = {
   tag: "EvaluateHeader";
   contents: ASExpression;
 };
 
- export type Get = {
+export type Get = {
   tag: "Get";
   contents: [ASIndex];
 };
 
- export type Delete = {
+export type Delete = {
   tag: "Delete";
   contents: ASSelection; 
 };
 
- export type ClearSheetServer = {
+export type ClearSheetServer = {
   tag: "ClearSheetServer";
   contents: string; 
 };
 
- export type Undo = {
+export type Undo = {
   tag: "Undo";
+  contents: Array<any>; // really want a type for [], but don't know how to 
 };
 
- export type Redo = {
+export type Redo = {
   tag: "Redo";
+  contents: Array<any>; // really want a type for [], but don't know how to 
 };
 
- export type Copy = {
+export type Copy = {
   tag: "Copy";
   copyFrom: ASRange; 
   copyTo: ASRange; 
 };
 
- export type Cut = {
+export type Cut = {
   tag: "Cut";
   cutFrom: ASRange; 
   cutTo: ASRange; 
@@ -469,10 +473,12 @@ export type ClientAction =
 
 export type NoAction = { 
   tag: "NoAction"; 
+  contents: Array<any>; // really want a type for [], but don't know how to 
 }
 
 export type AskDecouple = { 
   tag: "AskDecouple"; 
+  contents: Array<any>; // really want a type for [], but don't know how to 
 }
 
 export type SetInitialProperties = { 

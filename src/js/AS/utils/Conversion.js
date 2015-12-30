@@ -41,22 +41,6 @@ let CU = {
   /**************************************************************************************************************************/
   /* Type constructors */
 
-  makeServerMessage(
-    action: any,
-    payloadTag: string,
-    payloadContents: any
-  ): any {
-    return CU.makeServerMessageRaw(action, { "tag": payloadTag,
-                                               "contents": payloadContents });
-  },
-
-  makeServerMessageRaw(
-    action: any,
-    payload: any
-  ): any {
-    return { "action": action, "payload": payload };
-  },
-
   makeEvalCell(asIndex: ASIndex, xpObj: ASClientExpression): ASCell {
     return  {
       "cellLocation": asIndex,
