@@ -1,79 +1,46 @@
-import getpass
-import sys
-import traceback
 import zmq
-
-from IPython.core import release
-from IPython.core.interactiveshell import InteractiveShell
-from ipython_genutils.py3compat import builtin_mod, PY3
-from IPython.utils.tokenutil import token_at_cursor, line_at_cursor
-from traitlets import Instance, Type, Any, List
-
-from ipykernel.comm import CommManager
-from ipykernel.kernelbase import Kernel as KernelBase
-from ipykernel.serialize import serialize_object, unpack_apply_message
 
 from .shell import ASShell
 
-#-----------------------------------------------------------------------------
-#  Kernel
-#-----------------------------------------------------------------------------
 
 class ASKernel(object):
 
-  def __init__(self):
-    # init python eval shell
-    self.base_ns = self.getInitialNs()
-    # shells with independent namespaces, indexed by sheetid
-    self.shells = {} 
-    # init zmq
+  def __init__(self, host='localhost', port=20000):
+    self.init_shell()
+    self.init_zmq(host, port)
+
+  def init_shell(self):
+    ns = self.get_initial_ns()
+    self.shell = ASShell(ns)
+
+  def init_zmq(self, host, port):
     context = zmq.Context()
     self.socket = context.socket(zmq.REP)
-    self.socket.bind("tcp://*:20000")
-
-  def getInitialNs():
+    self.url = "tcp://" + host + ":" + str(port)
+    self.socket.bind(self.url)
+    
+  def get_initial_ns():
     from AS.stdlib import *
-    from AS.ui.styling import *
-    # from AS.tests.min import *
-    from AS.instruments.ETF import ETF
-    from AS.instruments.Stock import Stock
-    from AS.ui.plot import *
-    #import json
-    # from AS.excel.pycel.excelcompiler import *
-    # from AS.excel.pycel.excellib import * # mapping from excel to python
-    from sys import exc_info
-    from AS.iterable import ASIterable
-
-    import json
     import matplotlib._pylab_helpers
     return locals()
 
-  def createShell(namespace, sheetId):
-    raise NotImplementedError
-
-  # String -> SheetId -> ExecutionResult
-  def run(code, sheetId):
-    raise NotImplementedError
-    # self.shells[sheetId].run_cell(...) 
-
-  # String -> SheetId -> ExecutionResult
-  def run_isolated(code, sheetId):
-    raise NotImplementedError
-    # self.shells[sheetId].run_cell(...) 
-
-  def handleIncoming(self):
-    recv_message = self.socket.recvJson()
-    reply_message = self.processMessage(recv_message)
-    self.socket.send(reply_message)
+  def handle_incoming(self):
+    recvMsg = self.socket.recvJson()
+    replyMsg = self.process_message(recvMsg)
+    self.socket.send(replyMsg)
 
   # KernelMessage -> KernelResponse
-  def processMessage(self, msg):
-    resp = {}
-    if msg['type'] is 'evaluate':
-      if msg['scope'] is 'Local':
-        raise NotImplementedError
+  def process_message(self, msg):
+    if msg['type'] is 'evaluate_cell':
+      result = self.shell.run_cell(msg['code'], msg['sheet_id'])
+      return self.exec_result_to_msg(result)
+    if msg['type'] is 'evaluate_header':
+      result = self.shell.run_header(msg['code'], msg['sheet_id'])
+      return self.exec_result_to_msg(result)
     elif msg['type'] is 'get_status':
       raise NotImplementedError
     elif msg['type'] is 'autocomplete':
       raise NotImplementedError
 
+  def exec_result_to_msg(self, result):
+    raise NotImplementedError

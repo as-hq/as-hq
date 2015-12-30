@@ -2,21 +2,75 @@ import sys
 import ast
 from IPython.core.interactiveshell import InteractiveShell, ExecutionResult, softspace
 from IPython.core.prompts import PromptManager
-
-#-----------------------------------------------------------------------------
-#  Shell
-#-----------------------------------------------------------------------------
+from IPython.utils.py3compat import builtin_mod
 
 class ASShell(InteractiveShell):
+
+#-----------------------------------------------------------------------------
+#  Single initialization
+#-----------------------------------------------------------------------------
+
+  def init_create_namespaces(self, user_module=None, user_ns=None):
+
+        # Create the namespace where the user will operate.  user_ns is
+        # normally the only one used, and it is passed to the exec calls as
+        # the locals argument.  But we do carry a user_global_ns namespace
+        # given as the exec 'globals' argument,  This is useful in embedding
+        # situations where the ipython shell opens in a context where the
+        # distinction between locals and globals is meaningful.  For
+        # non-embedded contexts, it is just the same object as the user_ns dict.
+        if (user_ns is not None) or (user_module is not None):
+            self.default_user_namespaces = False
+        self.user_module, self.user_ns = self.prepare_user_module(user_module, user_ns)
+
+        # A record of hidden variables we have added to the user namespace, so
+        # we can list later only variables defined in actual interactive use.
+        self.user_ns_hidden = {}
+
+        # This is the cache used for 'main' namespaces
+        self._main_mod_cache = {}
+
+        # The set of namespaces corresponding to sheets
+        self.sheet_nss = {}
+
+        # A table holding all the namespaces IPython deals with, so that
+        # introspection facilities can search easily.
+        self.ns_table = {'user_global':self.user_module.__dict__,
+                         'user_local':self.user_ns,
+                         'builtin':builtin_mod.__dict__
+                         }
+
   def init_prompts(self):
     self.prompt_manager = PromptManager(shell=self, parent=self)
     self.configurables.append(self.prompt_manager)
 
-  def run_cell(self, raw_cell, store_history=False, silent=False, shell_futures=True, isolated=False):
-    """Run a complete IPython cell.
+#-----------------------------------------------------------------------------
+#  Run-time initialization
+#-----------------------------------------------------------------------------
+
+  def init_sheet_ns(self, sheet_id):
+    print "INITIALIZNG sheet ns with global: ", self.user_global_ns
+    self.sheet_nss[sheet_id] = self.user_global_ns
+
+#-----------------------------------------------------------------------------
+#  Evaluation
+#-----------------------------------------------------------------------------
+  
+  def run_header(self, raw_header, sheet_id):
+    # self.init_sheet_ns(sheet_id)
+    return self.run_block(raw_header, sheet_id, isolated=False)
+
+  def run_cell(self, raw_cell, sheet_id):
+    return self.run_block(raw_cell, sheet_id, isolated=True)
+
+  def run_block(self, raw_cell, sheet_id, store_history=False, silent=False, shell_futures=True, isolated=False):
+    """
+    Run a complete code block.
 
     Parameters
     ----------
+    sheet_id: str
+      The namespace id to run the cell against.
     raw_cell : str
       The code (including IPython code such as %magic functions) to run.
     store_history : bool
@@ -26,13 +80,13 @@ class ASShell(InteractiveShell):
     silent : bool
       If True, avoid side-effects, such as implicit displayhooks and
       and logging.  silent=True forces store_history=False.
-    isolated: bool
-      If True, run code in the user namespace without adding to it.
     shell_futures : bool
       If True, the code will share future statements with the interactive
       shell. It will both be affected by previous __future__ imports, and
       any __future__ imports in the code will affect the shell. If False,
       __future__ imports are not shared in either direction.
+    isolated: bool
+      If True, run code in the user namespace without adding to it.
 
     Returns
     -------
@@ -43,7 +97,7 @@ class ASShell(InteractiveShell):
     if (not raw_cell) or raw_cell.isspace():
         return result
     
-    if silent:
+    if silent or isolated:
         store_history = False
 
     if store_history:
@@ -135,6 +189,7 @@ class ASShell(InteractiveShell):
             interactivity = "none" if silent else self.ast_node_interactivity
             self.run_ast_nodes(code_ast.body, 
                                 cell_name,
+                                sheet_id,
                                 interactivity=interactivity, 
                                 compiler=compiler, 
                                 result=result,
@@ -157,7 +212,7 @@ class ASShell(InteractiveShell):
 
     return result
 
-  def run_ast_nodes(self, nodelist, cell_name, interactivity='last_expr',
+  def run_ast_nodes(self, nodelist, cell_name, sheet_id, interactivity='last_expr',
                     compiler=compile, result=None, isolated=False):
     """Run a sequence of AST nodes. The execution mode depends on the
     interactivity parameter.
@@ -169,6 +224,8 @@ class ASShell(InteractiveShell):
     cell_name : str
       Will be passed to the compiler as the filename of the cell. Typically
       the value returned by ip.compile.cache(cell).
+    sheet_id : str
+      the sheetid to run the cell in.
     interactivity : str
       'all', 'last', 'last_expr' or 'none', specifying which nodes should be
       run interactively (displaying output from expressions). 'last_expr'
@@ -207,19 +264,23 @@ class ASShell(InteractiveShell):
     try:
       # the target namespace builds up for every line of cell code, 
       # and is initially empty if run_cell is specified as running in isolated mode.
-        target_ns = {} if isolated else self.user_ns
+        sheet_ns = self.sheet_nss[sheet_id]
+        target_ns = {} if isolated else sheet_ns
+        source_ns = sheet_ns
         for i, node in enumerate(to_run_exec):
             mod = ast.Module([node])
             code = compiler(mod, cell_name, "exec")
-            if self.run_code(code, target_ns, result):
+            if self.run_code(code, source_ns, target_ns, result):
                 return True
 
         for i, node in enumerate(to_run_interactive):
             mod = ast.Interactive([node])
             code = compiler(mod, cell_name, "single")
-            if self.run_code(code, target_ns, result):
+            if self.run_code(code, source_ns, target_ns, result):
                 return True
-
+        if not isolated:
+          # add the newly created variables back into the sheet namespace
+          self.sheet_nss[sheet_id] = target_ns
         # Flush softspace
         if softspace(sys.stdout, 0):
             print()
@@ -241,7 +302,7 @@ class ASShell(InteractiveShell):
 
     return False
 
-  def run_code(self, code_obj, target_ns, result=None):
+  def run_code(self, code_obj, source_ns, target_ns, result=None):
     """Execute a code object.
 
     When an exception occurs, self.showtraceback() is called to display a
@@ -251,6 +312,10 @@ class ASShell(InteractiveShell):
     ----------
     code_obj : code object
       A compiled code object, to be executed
+    source_ns : dict
+      the source namespace to run exec() against
+    target_ns : dict
+      the target namespace to inject newly created variables into
     result : ExecutionResult, optional
       An object to store exceptions that occur during execution.
 
@@ -270,7 +335,7 @@ class ASShell(InteractiveShell):
     try:
         try:
             self.hooks.pre_run_code_hook()
-            exec(code_obj, self.user_global_ns, target_ns)
+            exec(code_obj, source_ns, target_ns)
         finally:
             # Reset our crash handler in place
             sys.excepthook = old_excepthook

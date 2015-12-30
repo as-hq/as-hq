@@ -3,7 +3,6 @@
 #-----------------------------------------------------------------------------
 
 # from AS.kernel.kernel import ASKernel
-from IPython.core.interactiveshell import InteractiveShell
 from AS.kernel.shell import ASShell
 
 if __name__ == '__main__':
@@ -11,8 +10,15 @@ if __name__ == '__main__':
   # init AS kernel instance
   # kernel = ASKernel()
   shell = ASShell(user_ns={'a':1,'b':2})
-  shell.run_cell('c=a+b\nc')
-  shell.run_cell('d=c+d\nd')
+
+  shell.init_sheet_ns('sheetid')
+
+  result = shell.run_header('c=a+b', 'sheetid')
+  shell.init_sheet_ns('sheetid2')
+  result = shell.run_cell('c+b', 'sheetid2')
+
+  print result.__dict__
+  # shell.run_cell('d=c+b\nd')
   # result2 = shell.run_cell('c', isolated=True)
   # print result
   # print result2
