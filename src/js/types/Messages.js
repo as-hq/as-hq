@@ -291,8 +291,7 @@ export type ServerMessage = {
 };
 
 export type ServerAction = 
-    Acknowledge
-  | Initialize
+    Initialize
   | InitializeDaemon
   | Open
   | UpdateWindow
@@ -313,15 +312,9 @@ export type ServerAction =
   | MutateSheet
   | Drag
   | Decouple
-  | Decouple
   | UpdateCondFormatRules
   | SetBarProp
   | ImportCSV;
-
-export type Acknowledge = {
-  tag: "Acknowledge";
-  contents: Array<any>; // really want a type for [], but don't know how to 
-};
 
 export type Initialize = {
   tag: "Initialize";
@@ -363,12 +356,12 @@ export type EvaluateHeader = {
 
 export type Get = {
   tag: "Get";
-  contents: [ASIndex];
+  contents: Array<ASIndex>;
 };
 
 export type Delete = {
   tag: "Delete";
-  contents: ASSelection; 
+  contents: ASRange; 
 };
 
 export type ClearSheetServer = {
@@ -431,6 +424,7 @@ export type Drag = {
 
 export type Decouple = {
   tag: "Decouple";
+  contents: Array<any>; // really want a type for [], but don't know how to 
 };
 
 export type UpdateCondFormatRules = {
@@ -503,7 +497,7 @@ export type ClearSheet = {
 
 export type MakeSelection = { 
   tag: "MakeSelection"; 
-  contents: ASSelection; // ::ALEx:: need to sync with backend
+  contents: ASSelection; 
 }
 
 export type LoadImportedCells = { 

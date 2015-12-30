@@ -33,7 +33,10 @@ import type {
   ServerAction,
   ASAPICallbackPair,
   ClearSheetServer,
-  Undo
+  UpdateWindow, 
+  SetProp, 
+  Delete,
+  ToggleProp
 } from '../types/Messages';
 
 import type {
@@ -219,7 +222,7 @@ wss.onopen = (evt) => {
 };
 
 const API = {
-  send(action: ServerAction) {
+  sendMessageWithAction(action: ServerAction) {
     let msg = {serverAction: action}; //::ALEX::
     logDebug(`Queueing ${msg.serverAction} message`);
     wss.waitForConnection((innerClient: WebSocket) => {
@@ -228,7 +231,7 @@ const API = {
       innerClient.send(JSON.stringify(msg));
 
       /* for testing */
-      if (msg.serverAction === 'Acknowledge' && isRunningTest && currentCbs) {
+      if ((msg.serverAction.tag === 'Acknowledge' || msg.serverAction.tag === 'Initialize') && isRunningTest && currentCbs) {
         isRunningTest = false;
         currentCbs.fulfill();
       } else if (isRunningSyncTest && currentCbs) {
@@ -242,10 +245,10 @@ const API = {
     let msg = { 
       tag: "Initialize", 
       connUserId: SheetStateStore.getUserId(),
-      connSheetIcdddd: SheetStateStore.getCurrentSheet().sheetId
+      connSheetId: SheetStateStore.getCurrentSheet().sheetId
     };
 
-    API.send(msg);
+    API.sendMessageWithAction(msg);
   },
 
   ackMessage(innerClient: WebSocket) {
@@ -274,7 +277,7 @@ const API = {
   getWorkbooks() {
     // Not supporting right now (Alex 12/29)
     // let msg = U.Conversion.makeServerMessage('Get', 'PayloadList', 'WorkbookSheets');
-    // API.send(msg);
+    // API.sendMessageWithAction(msg);
   },
 
   close() {
@@ -287,7 +290,7 @@ const API = {
       tag: "Export", 
       contents: sheet.sheetId
     }; 
-    API.send(msg);
+    API.sendMessageWithAction(msg);
   },
 
   import(file: File) {
@@ -304,7 +307,7 @@ const API = {
       csvFileName: fileName
     };
 
-    API.send(msg);
+    API.sendMessageWithAction(msg);
   },
 
   // ************************************************************************************************************************
@@ -318,16 +321,19 @@ const API = {
           evalXp: xp,
           evalLoc: asIndex
         }; 
-    API.send(msg);
+    API.sendMessageWithAction(msg);
   },
 
   evaluateHeader(expression: string, language: ASLanguage) {
     let msg = {
-      tag: "EvalHeader", 
-      expression: expression,
-      language: language
+      tag: "EvaluateHeader",
+      contents: {
+        tag: "ASExpression", 
+        expression: expression,
+        language: language
+      }
     };
-    API.send(msg);
+    API.sendMessageWithAction(msg);
   },
 
   // Currently not supporting (Alex 12/29)
@@ -337,28 +343,34 @@ const API = {
   //     expression: xpObj.expression,
   //     language: xpObj.language
   //   });
-  //   API.send(msg);
+  //   API.sendMessageWithAction(msg);
   // },
 
   decouple() {
-    let msg = { tag: "Decouple" };
-    API.send(msg);
+    let msg = { 
+      tag: "Decouple", 
+      contents: [] 
+    };
+
+    API.sendMessageWithAction(msg);
   },
   /**************************************************************************************************************************/
   /* Sending undo/redo/clear messages to the server */
 
   undo() {
-    let msg: Undo = {
-      tag: "Undo"
+    let msg = {
+      tag: "Undo", 
+      contents: []
     };
-    API.send(msg);
+    API.sendMessageWithAction(msg);
   },
 
   redo() {
     let msg = {
       tag: "Redo", 
+      contents: []
     };
-    API.send(msg);
+    API.sendMessageWithAction(msg);
   },
 
   clearSheet() {
@@ -367,7 +379,7 @@ const API = {
           tag: "ClearSheetServer", 
           contents: sid
         };
-    API.send(msg);
+    API.sendMessageWithAction(msg);
   },
 
   find(findText: string) {
@@ -383,7 +395,7 @@ const API = {
     //     matchFullContents:false
     //   }
     // });
-    // API.send(msg);
+    // API.sendMessageWithAction(msg);
   },
 
   jumpSelect(range: NakedRange, origin: NakedIndex, isShifted: boolean, direction: Direction) {
@@ -398,7 +410,7 @@ const API = {
     //     jumpDirection: "D" + direction
     //   }
     // });
-    // API.send(msg);
+    // API.sendMessageWithAction(msg);
   },
 
   bugReport(report: string) {
@@ -407,15 +419,15 @@ const API = {
       contents: report
     };
 
-    API.send(msg);
+    API.sendMessageWithAction(msg);
   },
 
-  deleteRange(rng: ASRange) {
-    let msg = {
+  deleteRange(rng: NakedRange) {
+    let msg: Delete = {
       tag: "Delete", 
-      contents: rng
+      contents: U.Conversion.simpleToASRange(rng)
     };
-    API.send(msg);
+    API.sendMessageWithAction(msg);
   },
 
   setColumnWidth(col: number, width: number) {
@@ -428,7 +440,7 @@ const API = {
           ]
         };
 
-    API.send(msg);
+    API.sendMessageWithAction(msg);
   },
 
   setRowHeight(row: number, height: number) {
@@ -441,27 +453,27 @@ const API = {
           ]
         };
         
-    API.send(msg);
+    API.sendMessageWithAction(msg);
   },
 
   toggleProp(prop: ASCellProp, rng: NakedRange) {
-    let msg = {
+    let msg: ToggleProp = {
       tag: "ToggleProp", 
       contents: [prop, U.Conversion.simpleToASRange(rng)]
     };
 
-    API.send(msg);
+    API.sendMessageWithAction(msg);
   },
 
   // #needsrefactor should privatize, and expose only the functions that construct the prop too, 
   // e.g. setTextColor. 
   setProp(prop: ASCellProp, rng: NakedRange) {
-    let msg = {
+    let msg: SetProp = {
       tag: "SetProp", 
       contents: [prop, U.Conversion.simpleToASRange(rng)]
     };
 
-    API.send(msg);
+    API.sendMessageWithAction(msg);
   },
 
   setTextColor(contents: string, rng: NakedRange) {
@@ -535,33 +547,35 @@ const API = {
       dragRange: U.Conversion.simpleToASRange(dragRng)
     };
 
-    API.send(msg);
+    API.sendMessageWithAction(msg);
   },
 
   copy(fromRng: ASRange, toRng: ASRange) {
     let msg = {
       tag: "Copy", 
-      copyRange: fromRng,
+      copyFrom: fromRng,
       copyTo: toRng
     };
-    API.send(msg);
+    API.sendMessageWithAction(msg);
   },
 
   cut(fromRng: ASRange, toRng: ASRange) {
     let msg = {
       tag: "Cut", 
-      cutRange: fromRng,
+      cutFrom: fromRng,
       cutTo: toRng
     };
-    API.send(msg);
+    API.sendMessageWithAction(msg);
   },
 
   pasteSimple(cells: Array<ASCell>) {
-    let msg = {
-      tag: "Evaluate", 
-      contents: cells
-    };
-    API.send(msg);
+    // ::ALEX::
+    // let msg = {
+    //   tag: "Evaluate", 
+    //   contents: cells
+    // };
+
+    // API.sendMessageWithAction(msg);
   },
 
   getIndices(locs: Array<ASIndex>) {
@@ -569,15 +583,7 @@ const API = {
       tag: "Get", 
       contents: locs
     };
-    API.send(msg);
-  },
-
-  getRange(rng: ASRange) {
-    let msg = {
-      tag: "Get", 
-      contents: rng
-    };
-    API.send(msg);
+    API.sendMessageWithAction(msg);
   },
 
   repeat(sel: ASSelection) {
@@ -588,7 +594,7 @@ const API = {
     //     selectionRange: U.Conversion.simpleToASRange(sel.range),
     //     selectionOrigin: U.Conversion.simpleToASIndex(sel.origin)
     // });
-    // API.send(msg);
+    // API.sendMessageWithAction(msg);
   },
 
   insertCol(c: number) {
@@ -600,7 +606,7 @@ const API = {
       tag: "MutateSheet", 
       contents: mutateType
     };
-    API.send(msg);
+    API.sendMessageWithAction(msg);
   },
 
   insertRow(r: number) {
@@ -612,7 +618,7 @@ const API = {
       tag: "MutateSheet", 
       contents: mutateType
     };
-    API.send(msg);
+    API.sendMessageWithAction(msg);
   },
 
   deleteCol(c: number) {
@@ -624,7 +630,7 @@ const API = {
       tag: "MutateSheet", 
       contents: mutateType
     };
-    API.send(msg);
+    API.sendMessageWithAction(msg);
   },
 
   deleteRow(r: number) {
@@ -636,7 +642,7 @@ const API = {
       tag: "MutateSheet", 
       contents: mutateType
     };
-    API.send(msg);
+    API.sendMessageWithAction(msg);
   },
 
   dragCol(c1: number, c2: number) {
@@ -649,7 +655,7 @@ const API = {
       tag: "MutateSheet", 
       contents: mutateType
     };
-    API.send(msg);
+    API.sendMessageWithAction(msg);
   },
 
   dragRow(r1: number, r2: number) {
@@ -662,7 +668,7 @@ const API = {
       tag: "MutateSheet", 
       contents: mutateType
     };
-    API.send(msg);
+    API.sendMessageWithAction(msg);
   },
 
   // @optional mySheet
@@ -672,7 +678,7 @@ const API = {
           tag: "Open", 
           contents: sheet.sheetId
         };
-    API.send(msg);
+    API.sendMessageWithAction(msg);
   },
 
   createSheet() {
@@ -681,7 +687,7 @@ const API = {
     // let msg = U.Conversion.makeServerMessage(Constants.ServerActions.New,
     //   "PayloadWorkbookSheets",
     //   [wbs]);
-    // API.send(msg);
+    // API.sendMessageWithAction(msg);
   },
 
   createWorkbook() {
@@ -690,33 +696,39 @@ const API = {
     // let msg = U.Conversion.makeServerMessage(Constants.ServerActions.New,
     //   "PayloadWB",
     //   wb);
-    // API.send(msg);
+    // API.sendMessageWithAction(msg);
   },
 
   updateCondFormattingRule(rule: CondFormatRule) {
     let msg = {
       tag: "UpdateCondFormatRules", 
-      newVals: [rule], 
-      oldKeys: []
+      contents: {
+        tag: "Update",
+        newVals: [rule], 
+        oldKeys: []
+      }
     };
-    API.send(msg);
+    API.sendMessageWithAction(msg);
   },
 
   removeCondFormattingRule(ruleId: string) {
     let msg = {
       tag: "UpdateCondFormatRules", 
-      newVals: [], 
-      oldKeys: [ruleId]
+      contents: { 
+        tag: "Update", 
+        newVals: [], 
+        oldKeys: [ruleId]
+      }
     };
-    API.send(msg);
+    API.sendMessageWithAction(msg);
   },
 
   updateViewingWindow(vWindow: ASClientWindow) {
-    let msg = { 
+    let msg: UpdateWindow = { 
       tag: "UpdateWindow", 
       contents: vWindow
     }; 
-    API.send(msg);
+    API.sendMessageWithAction(msg);
   },
 
 

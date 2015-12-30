@@ -281,7 +281,7 @@ export function decouple(): Prf {
 
 export function delete_(rng: string): Prf {
   return apiExec(() => {
-    API.deleteRange(U.Conversion.simpleToASRange(rangeFromExcel(rng)));
+    API.deleteRange(rangeFromExcel(rng));
   });
 }
 
@@ -524,13 +524,14 @@ export function responseShouldSatisfy<A>(prf: Prf<A>, fn: (a: A) => boolean): Pr
       expect(fn(result)).toBe(true);
       fulfill();
     }).catch((error) => {
+      console.log("Failure in responseShouldSatisfy.", error)
       reject(error);
     });
   });
 }
 
 export function shouldError(prf: Prf): Prf {
-  return responseShouldSatisfy(prf, ({ result: { tag } }) => tag === 'Failure');
+  return responseShouldSatisfy(prf, ({ clientAction: { tag } }) => tag === 'ShowFailureMessage');
 }
 
 export function messageShouldSatisfy(loc: string, fn: (cs: Array<ASCell>) => void): Prf {
@@ -546,9 +547,8 @@ export function messageShouldSatisfy(loc: string, fn: (cs: Array<ASCell>) => voi
         }
 
         let {clientAction} = result;
-        // ::ALEX::
-        if (clientAction.tag !== 'SheetUpdate') {
-          console.log("Message was not a sheet update");
+        if (clientAction.tag !== 'UpdateSheet') {
+          console.log("Message was not a sheet update. This is what it was: ", clientAction);
           reject();
           return;
         }
@@ -669,12 +669,13 @@ export function shouldBeL(locs: Array<string>, vals: Array<ASValue>): Prf {
       API.getIndices(locs.map(asIndex));
     }, {
       fulfill: (result: ?ClientMessage) => {
-        if (! result || result.payload.tag !== 'PayloadSheetUpdate') {
+        if (result == null || result.clientAction.tag !== 'UpdateSheet') {
+          console.log("result tag is not a SheetUpdate; instead, it was", result); 
           reject();
           return;
         }
 
-        let cellValues = result.payload.contents.cellUpdates.newVals.map((x) => x.cellValue);
+        let cellValues = result.clientAction.contents.cellUpdates.newVals.map((x) => x.cellValue);
 
         expect(_.
             zip(cellValues, vals).
