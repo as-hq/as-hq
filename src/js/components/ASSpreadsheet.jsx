@@ -54,30 +54,30 @@ import ASRightClickMenu from './basic-controls/ASRightClickMenu.jsx';
 import ASOverlay from './ASOverlay.jsx';
 import Textbox from './Textbox.jsx'
 
-import rowHeaderMenuItems from './menus/RowHeaderMenuItems.jsx';
-import columnHeaderMenuItems from './menus/ColumnHeaderMenuItems.jsx';
 // $FlowFixMe: this module clearly exists, but flow can't find it??!
 import Dropzone from 'react-dropzone';
+
+import hgPatches from '../hg-patches/index';
 
 let finRect: HGRectangleElement = (document.createElement('fin-rectangle'): any);
 
 type ASSpreadsheetDefaultProps = {
-  behavior: string; 
-  onReady: () => void; 
+  behavior: string;
+  onReady: () => void;
 };
 
 type ASSpreadsheetProps = {
-  onTextBoxDeferredKey: (e: SyntheticKeyboardEvent) => void; 
-  hideToast: () => void; 
-  setFocus: (elem: ASFocusType) => void; 
-  onReady: () => void; 
-  onTextBoxDeferredKey: (e: SyntheticKeyboardEvent) => void; 
-  onFileDrop: (files: Array<File>) => void; 
-  onSelectionChange: (sel: ASSelection) => void; 
-  onNavKeyDown: (e: SyntheticKeyboardEvent) => void; 
-  behavior: string; 
-  width?: string; 
-  height?: string; 
+  onTextBoxDeferredKey: (e: SyntheticKeyboardEvent) => void;
+  hideToast: () => void;
+  setFocus: (elem: ASFocusType) => void;
+  onReady: () => void;
+  onTextBoxDeferredKey: (e: SyntheticKeyboardEvent) => void;
+  onFileDrop: (files: Array<File>) => void;
+  onSelectionChange: (sel: ASSelection) => void;
+  onNavKeyDown: (e: SyntheticKeyboardEvent) => void;
+  behavior: string;
+  width?: string;
+  height?: string;
 };
 
 type ASSpreadsheetState = {
@@ -107,7 +107,7 @@ export default class ASSpreadsheet
   resizedRowNum: ?number;
 
   gridProperties: {
-    editorActivationKeys: Array<any>, 
+    editorActivationKeys: Array<any>,
     scrollbarHoverOff: string,
     columnAutosizing: boolean
   };
@@ -118,9 +118,9 @@ export default class ASSpreadsheet
   constructor(props: ASSpreadsheetDefaultProps) {
     super(props);
 
-    this.mousePosition = null; 
-    this.mouseDownInBox = false; 
-    this.dragSelectionOrigin = null; 
+    this.mousePosition = null;
+    this.mouseDownInBox = false;
+    this.dragSelectionOrigin = null;
 
     this.draggingCol = false;
     this.draggingRow = false;
@@ -130,9 +130,11 @@ export default class ASSpreadsheet
     this.resizedRowNum = null;
 
     this.gridProperties = {
-      editorActivationKeys: [], 
+      editorActivationKeys: [],
       scrollbarHoverOff: 'visible',
-      columnAutosizing: true
+      columnAutosizing: true,
+      defaultFixedColumnWidth: 35,
+      defaultColumnWidth: 100
     }
 
     this.state = {
@@ -150,321 +152,20 @@ export default class ASSpreadsheet
     ExpStore.addChangeListener(this._onExpressionChange.bind(this));
     BarStore.addChangeListener(this._onBarPropsChange.bind(this));
     OverlayStore.addChangeListener(this._onOverlaysChange.bind(this));
+
     // Hypergrid initialization
     document.addEventListener('polymer-ready', () => {
       this.props.onReady();
-      this.initialize();
-      let self = this,
-          hg = this._getHypergrid(),
-          model = hg.getBehavior();
+      this.initHypergrid();
       this.getInitialData();
-
-      hg.autoScrollAcceleration = false;
-      let callbacks = ({
-        /*
-          Call onSelectionChange method in eval pane to deal with selection change
-          Need to also figure out the expression to render in the editor
-        */
-        'fin-selection-changed': function (event) {
-          ExpStore.setClickType(Constants.ClickType.CLICK);
-          self.props.onSelectionChange(self.getSelectionArea());
-        },
-        'fin-scroll-x': function (event) {
-          let scroll = self.getScroll();
-          if (event.detail.oldValue <= event.detail.value) {
-            let newScrollPixels = {
-              x: self.state.scrollPixels.x + hg.getColumnWidth(event.detail.oldValue),
-              y: self.state.scrollPixels.y
-            };
-            self.setState({scrollPixels: newScrollPixels, scroll: scroll});
-          } else {
-            let newScrollPixels = {
-              x: self.state.scrollPixels.x - hg.getColumnWidth(event.detail.value),
-              y: self.state.scrollPixels.y
-            };
-            self.setState({scrollPixels: newScrollPixels, scroll: scroll});
-          }
-          if ((self.getScroll()).x % 20 === 0) {
-            ActionCreator.scroll(self.getViewingWindow());
-          }
-        },
-        'fin-scroll-y': function (event) {
-          let scroll = self.getScroll();
-          if (event.detail.oldValue <= event.detail.value) {
-            let newScrollPixels = {
-              y: self.state.scrollPixels.y + hg.getRowHeight(event.detail.oldValue),
-              x: self.state.scrollPixels.x
-            };
-            self.setState({scrollPixels: newScrollPixels, scroll: scroll});
-          } else {
-            let newScrollPixels = {
-              y: self.state.scrollPixels.y - hg.getRowHeight(event.detail.value),
-              x: self.state.scrollPixels.x
-            };
-            self.setState({scrollPixels: newScrollPixels, scroll: scroll});
-          }
-          if ((self.getScroll()).y % 20 === 0) {
-            ActionCreator.scroll(self.getViewingWindow());
-          }
-        },
-        'fin-double-click': function (event) {
-          // should only fire when double click is inside grid. According to event.detail.gridCell here,
-          // the top left grid cell is (0,0) which is different from e.g. the event in model.handleMouseDown.
-          if (event.detail.gridCell.y >= 0 && event.detail.gridCell.x >= 0) {
-            ExpStore.setClickType(Constants.ClickType.DOUBLE_CLICK);
-            self.refs.textbox.updateTextBox(ExpStore.getExpression());
-            self.props.setFocus('textbox');
-          }
-        }
-      });
-
-      let externalCallbacks = {
-      };
-
-      _.forEach(callbacks, (v, k) => {
-        hg.addFinEventListener(k, v);
-      });
-
-      _.forEach(externalCallbacks, (v, k) => {
-        hg.addEventListener(k, v);
-      });
-
-      hg.addGlobalProperties({
-        defaultFixedColumnWidth: 35,
-        defaultColumnWidth: 100,
-        columnAutosizing: false
-      });
     });
   }
 
-  initialize() { 
-    let hg = this._getHypergrid(),
-        model = hg.getBehavior(),
-        renderer = hg.getRenderer(),
-        self = this;
-    hg.addGlobalProperties(this.gridProperties);
+  initHypergrid() {
+    hgPatches.forEach((patch) => { patch(this); });
 
-    // Calling setColumnWidth on hypergrid should make an API call to the backend to remember the changed
-    // column width; we're overriding hypergrid's default setColumnWidth to do so. If we want to change the
-    // column width without making an API call, use model._setColumnWidth
-    hg.setColumnWidth = (columnIndex, columnWidth) => {
-        self.resizedColNum = columnIndex;
-        model._setColumnWidth(columnIndex, columnWidth);
-    }
-
-    // Ditto
-    hg.setRowHeight = (rowIndex, rowHeight) => {
-        self.resizedRowNum = rowIndex;
-        model.setRowHeight(rowIndex, rowHeight);
-    }
-
-    // This overrides the swapping of columns in hypergrid's internal state
-    // Keeps the animation, but don't change state = column headers stay same, data stays same
-    model.swapColumns = (src, tar) => {};
-    model.getColumnCount = () => { return Constants.numCols; };
-    model.getRowCount = () => { return Constants.numRows; };
-    model.getValue = (x, y) => { return ''; };
-    model.getCellEditorAt = (x, y) => { return null; };
-
-    // Overriding the renderer's getVisibleColumns() and getVisibleRows(), because they're off by 1...
-    renderer.getVisibleColumns = () => {
-      // normally getVisibleColumns() just returns renderer.renderedColumns
-      let rc = renderer.renderedColumns.slice(0);
-      if (rc.length > 0) {
-        let last = rc[rc.length - 1];
-        if (!isNaN(last)) {
-          rc.push(last + 1);
-          // rc.push(last + 2);
-        }
-      }
-      return rc;
-    };
-
-    renderer.getVisibleRows = () => {
-      let rr = renderer.renderedRows.slice(0);
-      if (rr.length > 0) {
-        let last = rr[rr.length - 1];
-        if (!isNaN(last)) {
-          rr.push(last + 1);
-        }
-      }
-      return rr;
-    };
-
-    // note: evt.gridCell in all these functions seem to think the coordinates of the top left cell is
-    // (1,1) rather than (0,0).
-    model.handleMouseDown = (grid, evt) => {
-      if (evt.primitiveEvent.detail.primitiveEvent.shiftKey) { // shift+click
-        let {origin} = this.getSelectionArea(),
-            newBr = {col: evt.gridCell.x, row: evt.gridCell.y},
-            newSel = {origin: origin, range: U.Location.orientRange({tl: origin, br: newBr})};
-        this.select(newSel, false);
-      } else {
-        let {x, y} = this.getCoordsFromMouseEvent(grid, evt);
-        if (this.insideBox(evt) && !evt.primitiveEvent.detail.isRightClick) {
-          // dragging blue box
-          this.mouseDownInBox = true;
-        } else if (Render.isOnSelectionEdge(x, y)) {
-          // dragging selections
-          this.dragSelectionOrigin = {col: evt.gridCell.x, row: evt.gridCell.y};
-        } else if (model.featureChain) {
-          let clickedCell = evt.gridCell;
-          // If the mouse is placed inside column header (not on a divider), we want to keep some extra state ourselves
-          if (self._clickedCellIsInColumnHeader(clickedCell)) {
-           self.clickedColNum = clickedCell.x;
-          } else if (self._clickedCellIsInRowHeader(clickedCell)) {
-            self.clickedRowNum = clickedCell.y;
-          }
-          model.featureChain.handleMouseDown(grid, evt);
-          model.setCursor(grid);
-        }
-      }
-    };
-
-    model.onMouseMove = (grid, evt) => {
-      let {x, y} = this.getCoordsFromMouseEvent(grid, evt);
-      if (this.insideBox(evt)) {
-        this.setState({cursorStyle:'crosshair'});
-      } else if (Render.isOnSelectionEdge(x, y)) {
-        this.setState({cursorStyle: 'move'});
-      } else {
-        if (this.state.cursorStyle !== 'auto') {
-          self.setState({cursorStyle:'auto'});
-        }
-        if (model.featureChain) {
-          model.featureChain.handleMouseMove(grid, evt);
-          model.setCursor(grid);
-        }
-      }
-    };
-
-     model.onDoubleClick = (grid, evt) => {
-      if (model.featureChain) {
-          model.featureChain.handleDoubleClick(grid, evt);
-          model.setCursor(grid);
-      }
-
-      // for now, double-clicking rows doesn't size it automatically
-
-      if (self._clickedCellIsInColumnHeader(evt.gridCell)) {
-        self.clickedColNum = evt.gridCell.x;
-        self.finishColumnResize();
-      }
-    };
-
-    model.onMouseDrag = (grid, evt) => {
-      let selOrigin = this.dragSelectionOrigin;
-      if (!! selOrigin) {
-        // range dragging
-        let {x, y} = this.getCoordsFromMouseEvent(grid, evt);
-        let {range} = this.getSelectionArea();
-        this.drawDraggedSelection(selOrigin, range, evt.gridCell.x, evt.gridCell.y);
-        this.mousePosition = {x: evt.primitiveEvent.detail.mouse.x,
-                              y: evt.primitiveEvent.detail.mouse.y};
-        this.scrollWithDraggables(grid);
-        this.repaint();
-      } else if (this.mouseDownInBox && !evt.primitiveEvent.detail.isRightClick) {
-        // box dragging
-        let {x,y} = evt.gridCell; // accounts for scrolling
-        Render.setDragCorner({dragX: x, dragY: y});
-        this.mousePosition = {x: evt.primitiveEvent.detail.mouse.x,
-                              y: evt.primitiveEvent.detail.mouse.y};
-        this.scrollWithDraggables(grid);
-        this.repaint(); // show dotted lines
-      } else if (model.featureChain) {
-        // If we've mouse down'ed on a column header, we're now dragging a column
-        if (self.clickedColNum !== null) {
-          self.draggingCol = true;
-        } else if (self.clickedRowNum !== null) {
-          self.draggingRow = true;
-        }
-        // do default
-        model.featureChain.handleMouseDrag(grid, evt);
-        model.setCursor(grid);
-      }
-    };
-
-    model.onMouseUp = (grid, evt) => {
-      let {which} = evt.primitiveEvent.detail.primitiveEvent;
-
-      if (which === 3) { // right click
-        /* x, y: against the page, for rendering the dropdown */
-        /* relCol, relRow: cell coordinates, relative to top left of element, not A1 */
-          /* for example if we are scrolled to A24 at top, A25 is 1 not 25 */
-        let {
-          gridCell: {x: relCol, y: relRow},
-          primitiveEvent: {detail: {primitiveEvent: {offsetX: x, offsetY: y}}}
-        } = evt;
-        if (relCol !== 0 || relRow !== 0) { // right click on a row header
-          let [col, row] =
-            [relCol + hg.getHScrollValue(), relRow + hg.getVScrollValue()];
-          this.refs.rightClickMenu.openAt(x, y,
-            (col != 0)
-              ? columnHeaderMenuItems(col)
-              : rowHeaderMenuItems(row)
-          );
-        }
-      } else {
-        if (this.dragSelectionOrigin !== null) {
-          this.dragSelectionOrigin = null;
-          if (Render.getDragRect() === null) {
-            return;
-          }
-          let {x, y} = this.getCoordsFromMouseEvent(grid, evt);
-          let sel = this.getSelectionArea();
-          let newSelRange = Render.getDragRect(),
-              fromRange = U.Conversion.simpleToASRange(sel.range);
-          if (newSelRange != null) {
-            let toRange = U.Conversion.simpleToASRange(newSelRange),
-                newSel = {range: newSelRange, origin: newSelRange.tl};
-            this.select(newSel, false);
-            Render.setDragRect(null);
-            self.repaint();
-            API.cut(fromRange, toRange);
-          }
-        } else if (Render.getDragCorner() !== null) {
-          let dottedSel = Render.getDottedSelection();
-          Render.setDragCorner(null);
-          self.mouseDownInBox = false;
-          // Do nothing if the mouseup isn't in the right column or row
-          if (dottedSel != null && dottedSel.range !== null) {
-            let activeSelection = SelectionStore.getActiveSelection();
-            if (!! activeSelection) {
-              API.drag(activeSelection.range, dottedSel.range);
-              self.select(dottedSel,true);
-            }
-          }
-        } else if (model.featureChain) {
-          model.featureChain.handleMouseUp(grid, evt);
-          model.setCursor(grid);
-
-          Render.setDragCorner(null);
-          self.mouseDownInBox = false;
-
-          // Clean up dragging a column, and send an API message to backend to swap data
-          if (self.draggingCol) {
-            self.draggingCol = false;
-            if (self.clickedColNum != null) {
-              API.dragCol(self.clickedColNum, Math.max(1, evt.gridCell.x)); // evt.gridCell.x can go negative...
-            }
-            self.clickedColNum = null;
-          } else if (self.draggingRow) {
-            self.draggingRow = false;
-            if (self.clickedRowNum != null) {
-              API.dragRow(self.clickedRowNum, Math.max(1, evt.gridCell.y));
-            }
-            self.clickedRowNum = null;
-          }
-
-          // Ditto for resizing
-          self.finishColumnResize();
-          self.finishRowResize();
-        }
-      }
-    };
-
-    this.setRenderers();
     let ind = {row: 1, col: 1};
+
     // This will make the first selection have properties of a click
     // Namely, the blue box will show up
     ExpStore.setClickType(Constants.ClickType.CLICK);
@@ -1076,52 +777,6 @@ export default class ASSpreadsheet
     // columns/rows in backend are 1-indexed, hypergrid's are 0-indexed.
     dims['ColumnType'].map(([ind, width]) => model._setColumnWidth(ind-1, width || defaultColumnWidth));
     dims['RowType'].map(([ind, height]) => model.setRowHeight(ind-1, height || defaultRowHeight));
-  }
-
-
-  /*************************************************************************************************************************/
-  // Renderers
-
-  setCellRenderer() {
-    let model = this._getBehavior(),
-        cellProvider = model.getCellProvider(),
-        hg = this._getHypergrid(),
-        self = this;
-    cellProvider.getCell = function(config) {
-      let renderer = Render.defaultCellRenderer,
-          col = config.x + 1,
-          row = config.y + 1,
-          cell = CellStore.getCell({col: col, row: row});
-
-      // tag-based cell styling
-      if (cell !== null && cell !== undefined) {
-        U.Render.valueToRenderConfig(config, cell.cellValue);
-        if (cell.cellExpression.expandingType) {
-          U.Render.expandingTypeToRenderConfig(config, cell.cellExpression.expandingType);
-        }
-
-        // props take highest precedence
-        if (cell.cellProps.length > 0) { // props take higher precedence
-          U.Render.propsToRenderConfig(config, cell.cellProps);
-        }
-      } else {
-        config.halign = 'center';
-      }
-
-      renderer.config = config;
-      return renderer;
-    }
-  }
-
-  setRenderers() {
-    this.setCellRenderer();
-
-    let renderer = this._getHypergrid().getRenderer();
-    renderer.addExtraRenderer(Render.selectionRenderer);
-    renderer.addExtraRenderer(Render.dependencyRenderer);
-    renderer.addExtraRenderer(Render.draggingRenderer);
-    renderer.addExtraRenderer(Render.cornerBoxRenderer);
-    renderer.startAnimator();
   }
 
   /*************************************************************************************************************************/
