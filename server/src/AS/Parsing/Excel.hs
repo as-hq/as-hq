@@ -84,13 +84,22 @@ colMatch = do
   rcol <- many1 letter
   return $ ExCol (readSingleRef dol) rcol
 
--- rcol is the right column.
+-- | Cases for colRange matching
+
 -- Matches A1:A type things.
 colRangeA1ToAMatch :: Parser ExColRange
 colRangeA1ToAMatch = do
   tl <- indexMatch
   colon
   r <- colMatch
+  return $ ExColRange tl r
+
+-- Matches A:A1 type things.
+colRangeAToA1Match :: Parser ExColRange
+colRangeAToA1Match = do
+  r <- colMatch
+  colon
+  tl <- indexMatch
   return $ ExColRange tl r
 
 -- Parses A:A as A$1:A
@@ -105,10 +114,14 @@ colRangeAToAMatch = do
 -- checks for matches to both both A:A and A1:A.
 colRangeMatch :: Parser ExColRange
 colRangeMatch = do
-  colrngAToA <- optionMaybe $ try colRangeAToAMatch
-  case colrngAToA of
+  -- order matters. AToA must be tried after AToA1
+  colrngAToA1 <- optionMaybe $ try colRangeAToA1Match
+  colrngA1ToA <- optionMaybe $ try colRangeA1ToAMatch
+  case colrngAToA1 of
     Just a -> return a
-    Nothing -> colRangeA1ToAMatch
+    Nothing -> case colrngA1ToA of
+           Just a -> return a
+           Nothing -> colRangeAToAMatch
 
 -- | matches index:index
 --
