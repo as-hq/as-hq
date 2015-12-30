@@ -24,7 +24,7 @@ var React = require('react');
 
 function onPropsSet(editor, props) {
   editor.setTheme('ace/theme/' + props.theme);
-  editor.setFontSize(props.fontSize);
+  // editor.setFontSize(props.fontSize);
   editor.renderer.setShowGutter(props.showGutter);
   editor.setOption('maxLines', props.maxLines);
   editor.setOption('minLines', props.minLines);
@@ -45,7 +45,7 @@ type AceEditorProps = {
   name: string;
   height: string;
   width: string;
-  fontSize: number;
+  // fontSize: number; (Anand made this font larger; restoring it back to original for now. Alex 12/30)
   showGutter: boolean;
   onLoad: ?((editor: any) => void); 
   minLines: number;
@@ -60,7 +60,7 @@ type AceEditorDefaultProps = {
   theme: string;
   height: string;
   width: string;
-  fontSize: number;
+  // fontSize: number;
   showGutter: boolean;
   onLoad: ?((editor: any) => void); 
   minLines: number;
@@ -259,7 +259,7 @@ AceEditor.propTypes = {
   name : React.PropTypes.string,
   height : React.PropTypes.string,
   width : React.PropTypes.string,
-  fontSize : React.PropTypes.number,
+  // fontSize : React.PropTypes.number,  (Anand made this font larger; restoring it back to original for now. Alex 12/30)
   showGutter : React.PropTypes.bool,
   onLoad: React.PropTypes.func,
   minLines : React.PropTypes.number,
@@ -274,7 +274,7 @@ AceEditor.defaultProps = {
   theme  : 'monokai',
   height : '100px',
   width  : '100%',
-  fontSize   : 25,
+  // fontSize   : 25,  (Anand made this font larger; restoring it back to original for now. Alex 12/30)
   showGutter : true,
   onLoad     : null,
   // These props say that the editor starts at minLines lines
