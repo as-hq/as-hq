@@ -24,7 +24,10 @@ import type {
 } from '../types/Eval';
 
 import type {
-  ASServerMessage,
+  ASServerMessage
+} from '../types/Messages';
+
+import type {
   CondFormatRule,
   CondFormatCondition,
   CustomCondition,
@@ -37,7 +40,7 @@ import type {
   IsEmptyCondition,
   IsNotEmptyCondition,
   IsBetweenCondition,
-} from '../types/Messages';
+} from '../types/CondFormat';
 
 import type {
   ASTestLanguage,
@@ -355,8 +358,8 @@ function makeCondFormattingRuleExcel(cond: CondFormatCondition, rng: string, pro
     condFormatRuleId: U.Render.getUniqueId(), 
     condition: cond,
     cellLocs: [U.Conversion.simpleToASRange(rangeFromExcel(rng))],
-    // $FlowFixMe
     condFormat: {
+      // $FlowFixMe
       tag: prop,
       contents: []
     }

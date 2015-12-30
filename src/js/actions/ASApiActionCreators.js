@@ -41,11 +41,17 @@ import type {
   ASServerMessage,
   ASClientMessage,
   ASAPICallbackPair,
+} from '../types/Messages';
+
+import type {
   CondFormatRule,
-  CondFormatCondition,
+  CondFormatCondition
+} from '../types/CondFormat';
+
+import type {
   SheetUpdate,
   CondFormatRuleUpdate
-} from '../types/Messages';
+} from '../types/Updates';
 
 import type {
   ASClientWindow,

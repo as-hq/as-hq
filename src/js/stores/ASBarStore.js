@@ -14,7 +14,7 @@ import type {
   BarProp,
   BarIndex,
   BarType,
-} from '../types/Messages';
+} from '../types/Bar';
 
 import type {
   ASBarLines

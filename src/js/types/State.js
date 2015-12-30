@@ -16,7 +16,7 @@ import type {
 import type { 
   BarIndex, 
   Bar
-} from './Messages';
+} from './Bar';
 
 export type ASViewingWindow = {
   range: NakedRange;

@@ -5,6 +5,20 @@ import type {
   ASExcelExecError
 } from './Errors';
 
+import type { 
+  SheetUpdate, 
+  CellUpdate, 
+  BarUpdate, 
+  CondFormatRuleUpdate
+} from './Updates';
+
+import type { 
+  Bar, 
+  BarIndex, 
+  BarType, 
+  BarProp
+} from './Bar';
+
 import type {
   NakedRange,
   ASLocation,
@@ -69,33 +83,6 @@ export type MutateType =
   | DeleteRow
   | DragCol
   | DragRow;
-
-export type BarType = 'ColumnType' | 'RowType';
-
-export type BarProp = Dimension | FromCellProp;
-
-export type Dimension = {
-  tag: 'Dimension';
-  contents: number;
-};
-
-export type FromCellProp = {
-  tag: 'FromCellProp';
-  contents: ASCellProp;
-};
-
-export type Bar = {
-  tag: 'Bar';
-  barIndex: BarIndex;
-  barProps: Array<BarProp>;
-};
-
-export type BarIndex = {
-  tag: 'BarIndex';
-  barSheetId: string;
-  barType: BarType;
-  barNumber: number;
-}
 
 export type ASInitConnection = {
   tag: 'ASInitConnection';
@@ -210,11 +197,6 @@ export type PayloadE = {
   contents: ASExecError;
 };
 
-export type PayloadCommit = {
-  tag: 'PayloadCommit';
-  contents: ASBackendCommit;
-};
-
 export type PayloadXp = {
   tag: 'PayloadXp';
   contents: ASExpression;
@@ -260,79 +242,6 @@ export type PayloadSheetUpdate = {
   contents: SheetUpdate;
 };
 
-export type CondFormatRule = {
-  tag: 'CondFormatRule';
-  condFormatRuleId: string; 
-  condFormat: ASCellProp;
-  condition: CondFormatCondition;
-  cellLocs: Array<ASRange>;
-};
-
-export type CondFormatCondition =
-  CustomCondition
-  | GreaterThanCondition
-  | LessThanCondition
-  | GeqCondition
-  | LeqCondition
-  | EqualsCondition
-  | NotEqualsCondition
-  | IsEmptyCondition
-  | IsNotEmptyCondition
-  | IsBetweenCondition
-  | IsNotBetweenCondition;
-
-export type CustomCondition = {
-  tag: 'CustomCondition';
-  contents: ASExpression;
-}
-export type GreaterThanCondition = {
-  tag: 'GreaterThanCondition';
-  contents: ASExpression;
-};
-
-export type LessThanCondition = {
-  tag: 'LessThanCondition';
-  contents: ASExpression;
-};
-
-export type GeqCondition = {
-  tag: 'GeqCondition';
-  contents: ASExpression;
-};
-
-export type LeqCondition = {
-  tag: 'LeqCondition';
-  contents: ASExpression;
-};
-
-export type EqualsCondition = {
-  tag: 'EqualsCondition';
-  contents: ASExpression;
-};
-
-export type NotEqualsCondition = {
-  tag: 'NotEqualsCondition';
-  contents: ASExpression;
-};
-
-export type IsEmptyCondition = {
-  tag: 'IsEmptyCondition';
-};
-
-export type IsNotEmptyCondition = {
-  tag: 'IsNotEmptyCondition';
-};
-
-export type IsBetweenCondition = {
-  tag: 'IsBetweenCondition';
-  contents: [ASExpression, ASExpression];
-};
-
-export type IsNotBetweenCondition = {
-  tag: 'IsNotBetweenCondition';
-  contents: [ASExpression, ASExpression];
-};
-
 export type ASBackendPayload =
   PayloadN
   | PayloadInit
@@ -350,7 +259,6 @@ export type ASBackendPayload =
   | PayloadW
   | PayloadU
   | PayloadE
-  | PayloadCommit
   | PayloadPaste
   | PayloadProp
   | PayloadXp
@@ -370,45 +278,6 @@ export type ASBackendTime = {
   hour: number;
   minute: number;
   sec: number;
-};
-
-export type ASBackendCommit = {
-  tag: 'ASCommit';
-  cellDiff: ASCellDiff;
-  time: ASBackendTime;
-};
-
-export type SheetUpdate = {
-  tag: 'SheetUpdate';
-  cellUpdates: CellUpdate;
-  barUpdates: BarUpdate;
-  condFormatRulesUpdates: CondFormatRuleUpdate;
-  //#incomplete updatedRangeDescriptors: DescriptorUpdate;
-};
-
-export type CellUpdate = {
-  tag: 'Update';
-  newVals: Array<ASCell>;
-  oldKeys: Array<ASLocation>;
-};
-
-export type BarUpdate = {
-  tag: 'Update';
-  newVals: Array<Bar>;
-  oldKeys: Array<BarIndex>;
-};
-
-// #incomplete currently dysfunctional
-export type CondFormatRuleUpdate = {
-  tag: 'Update';
-  newVals: Array<CondFormatRule>;
-  oldKeys: Array<any>;
-};
-
-export type ASCellDiff = {
-  tag: 'CellDiff';
-  beforeCells: Array<ASCell>;
-  afterCells: Array<ASCell>;
 };
 
 export type ASBackendWorkbookSheet = {
