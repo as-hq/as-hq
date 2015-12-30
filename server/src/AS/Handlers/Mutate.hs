@@ -24,8 +24,8 @@ import AS.Logging
 import Control.Concurrent
 import Data.Maybe
 
-handleMutateSheet :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
-handleMutateSheet uc state (PayloadMutate mutateType) = do
+handleMutateSheet :: ASUserClient -> MVar ServerState -> MutateType -> IO ()
+handleMutateSheet uc state mutateType = do
   let sid = userSheetId uc
   conn <- dbConn <$> readMVar state
   -- update cells 
@@ -46,8 +46,8 @@ handleMutateSheet uc state (PayloadMutate mutateType) = do
       cfru = Update { oldKeys = map condFormatRuleId oldCondFormatRules', newVals = newCondFormatRules' }
   -- propagate changes
   let updateTransform = \update -> update { barUpdates = bu, condFormatRulesUpdates = cfru }
-  errOrCommit <- runDispatchCycle state updatedCells DescendantsWithParent (userCommitSource uc) updateTransform
-  broadcastFiltered state uc $ makeReplyMessageFromErrOrCommit errOrCommit
+  errOrUpdate <- runDispatchCycle state updatedCells DescendantsWithParent (userCommitSource uc) updateTransform
+  broadcastErrOrUpdate state uc errOrUpdate
 
 keepUnequal :: (Eq a) => [(a, Maybe a)] -> ([a], [a])
 keepUnequal x = (ls1, ls2) 
@@ -56,6 +56,7 @@ keepUnequal x = (ls1, ls2)
     ls1 = map      fst unequals
     ls2 = mapMaybe snd unequals
 
+-- #lenses
 -- | For a mutate, maps the old row and column to the new row and column.
 barIndexMap :: MutateType -> BarIndex -> Maybe BarIndex
 barIndexMap (InsertCol c') bar@(BarIndex sid typ bari) =

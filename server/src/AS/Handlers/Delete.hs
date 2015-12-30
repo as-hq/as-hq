@@ -6,6 +6,7 @@ import AS.Types.Network
 import AS.Types.Messages
 import AS.Types.Eval
 import AS.Types.Commits
+import AS.Types.Selection
 import AS.Types.Updates
 
 import AS.Util
@@ -20,12 +21,13 @@ import Data.List
 import Control.Concurrent
 import Control.Applicative
 
-handleDelete :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
-handleDelete uc state (PayloadR rng) = do
+handleDelete :: ASUserClient -> MVar ServerState -> ASRange -> IO ()
+handleDelete uc state rng = do
   conn <- dbConn <$> readMVar state
-  blankedCells <- map removeBadFormats <$> getBlankedCellsAt conn (rangeToIndices rng) -- need to know the formats at the old locations
-  errOrCommit <- runDispatchCycle state blankedCells DescendantsWithParent (userCommitSource uc) (modifyUpdateForDelete rng)
-  broadcastFiltered state uc $ makeReplyMessageFromErrOrCommit errOrCommit
+  let inds = rangeToIndices rng
+  blankedCells <- map removeBadFormats <$> getBlankedCellsAt conn inds -- need to know the formats at the old locations
+  errOrUpdate <- runDispatchCycle state blankedCells DescendantsWithParent (userCommitSource uc) (modifyUpdateForDelete rng)
+  broadcastErrOrUpdate state uc errOrUpdate
 
 -- Deleting a cell keeps some of the formats but deletes others. This is the current list of formats
 -- to remove upon deletion. 
@@ -46,5 +48,9 @@ removeBadFormats = removeFormats badFormats
 modifyUpdateForDelete :: ASRange -> SheetUpdate -> SheetUpdate
 modifyUpdateForDelete rng (SheetUpdate (Update cs locs) bs ds cfs) = SheetUpdate (Update cs' locs') bs ds cfs 
   where 
-    locs' = (RangeRef rng):locs
-    cs'   = filter (not . liftA2 (&&) isEmptyCell (rangeContainsIndex rng . cellLocation)) cs
+    rngs  = [rng] 
+    locs' = (map RangeRef rngs) ++ locs
+    cellContainedInRange r = rangeContainsIndex r . cellLocation 
+    cellContainedInRngs = or <$> sequence (map cellContainedInRange rngs)
+    cs'   = filter (not . liftA2 (&&) isEmptyCell cellContainedInRngs) cs
+-- #incomplete the type here should NOT be Selection. It should be a yet-to-be implemented type representing finite lists of cells

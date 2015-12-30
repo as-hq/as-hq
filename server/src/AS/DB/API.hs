@@ -153,10 +153,8 @@ getPossiblyBlankCells conn locs = do
     Just c' -> c'
     Nothing -> blankCellAt l) (zip locs cells)
 
-getPropsAt :: Connection -> [ASIndex] -> IO [ASCellProps]
-getPropsAt conn locs = do 
-  cells <- getPossiblyBlankCells conn locs
-  return $ map cellProps cells
+getPropsAt :: Connection -> ASIndex -> IO ASCellProps
+getPropsAt conn ind = cellProps <$> getPossiblyBlankCell conn ind
 
 ----------------------------------------------------------------------------------------------------------------------
 -- Locations
@@ -385,30 +383,33 @@ canAccess conn uid loc = canAccessSheet conn uid (locSheetId loc)
 canAccessAll :: Connection -> ASUserId -> [ASIndex] -> IO Bool
 canAccessAll conn uid locs = all id <$> mapM (canAccess conn uid) locs
 
-isPermissibleMessage :: ASUserId -> Connection -> ASClientMessage -> IO Bool
-isPermissibleMessage uid conn (ClientMessage _ payload) = case payload of 
-  PayloadCL cells -> canAccessAll conn uid (map cellLocation cells)
-  PayloadLL locs -> canAccessAll conn uid locs
-  PayloadS sheet -> canAccessSheet conn uid (sheetId sheet)
-  PayloadW window -> canAccessSheet conn uid (windowSheetId window)
-  PayloadProp _ rng -> canAccessAll conn uid (rangeToIndices rng)
-  _ -> return True
+isPermissibleMessage :: ASUserId -> Connection -> ServerMessage -> IO Bool
+isPermissibleMessage uid conn _ = return True
+-- (ServerMessage _ payload) = case payload of 
+--   PayloadCL cells -> canAccessAll conn uid (map cellLocation cells)
+--   PayloadLL locs -> canAccessAll conn uid locs
+--   PayloadS sheet -> canAccessSheet conn uid (sheetId sheet)
+--   PayloadW window -> canAccessSheet conn uid (windowSheetId window)
+--   PayloadProp _ rng -> canAccessAll conn uid (rangeToIndices rng)
+--   _ -> return True
+-- commenting out 12/28 -- Alex
 
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Repeat handlers
 
-storeLastMessage :: Connection -> ASClientMessage -> CommitSource -> IO () 
-storeLastMessage conn msg src = case (clientAction msg) of 
-  Repeat -> return ()
+storeLastMessage :: Connection -> ServerMessage -> CommitSource -> IO () 
+storeLastMessage conn msg src = case (serverAction msg) of 
+  Repeat _ -> return ()
   _ -> runRedis conn (set (toRedisFormat $ LastMessageKey src) (S.encode msg)) >> return ()
 
-getLastMessage :: Connection -> CommitSource -> IO ASClientMessage
-getLastMessage conn src = runRedis conn $ do 
-  msg <- fromRight <$> get (toRedisFormat $ LastMessageKey src)
-  return $ case (maybeDecode =<< msg) of 
-    Just m@(ClientMessage _ _) -> m
-    _ -> ClientMessage NoAction (PayloadN ())
+getLastMessage :: Connection -> CommitSource -> IO ServerMessage
+getLastMessage conn src = error "Currently not implemented"
+ -- runRedis conn $ do 
+ --  msg <- fromRight <$> get (toRedisFormat $ LastMessageKey src)
+ --  return $ case (maybeDecode =<< msg) of 
+ --    Just m -> m
+ --    -- _ -> ServerMessage NoAction (PayloadN ())
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Conditional formatting handlers

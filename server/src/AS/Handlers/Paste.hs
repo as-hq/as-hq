@@ -25,20 +25,20 @@ import Control.Concurrent
 import Database.Redis (Connection)
 import Control.Monad ((>=>))
 
-handleCopy :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
-handleCopy uc state (PayloadPaste from to) = do
+handleCopy :: ASUserClient -> MVar ServerState -> ASRange -> ASRange -> IO ()
+handleCopy uc state from to = do
   putStrLn $ "IN HANDLE COPY"
   conn <- dbConn <$> readMVar state
   toCells <- getCopyCells conn from to
-  errOrCommit <- runDispatchCycle state toCells DescendantsWithParent (userCommitSource uc) id
-  broadcastFiltered state uc $ makeReplyMessageFromErrOrCommit errOrCommit
+  errOrUpdate <- runDispatchCycle state toCells DescendantsWithParent (userCommitSource uc) id
+  broadcastErrOrUpdate state uc errOrUpdate
 
-handleCut :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
-handleCut uc state (PayloadPaste from to) = do
+handleCut :: ASUserClient -> MVar ServerState -> ASRange -> ASRange -> IO ()
+handleCut uc state from to = do
   conn <- dbConn <$> readMVar state
   newCells <- getCutCells conn from to
-  errOrCommit <- runDispatchCycle state newCells DescendantsWithParent (userCommitSource uc) id
-  broadcastFiltered state uc $ makeReplyMessageFromErrOrCommit errOrCommit
+  errOrUpdate <- runDispatchCycle state newCells DescendantsWithParent (userCommitSource uc) id
+  broadcastErrOrUpdate state uc errOrUpdate
 
 
 ----------------------------------------------------------------------------------------------------------------------------------------------

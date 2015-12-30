@@ -41,14 +41,14 @@ class Client c where
   clientId :: c -> ClientId
   addClient :: c -> ServerState -> ServerState
   removeClient :: c -> ServerState -> ServerState
-  handleClientMessage :: c -> MVar ServerState -> ASClientMessage -> IO ()
+  handleServerMessage :: c -> MVar ServerState -> ServerMessage -> IO ()
 
 -- the actual implementations of these in UserClient and DaemonClient will appear in Client.hs
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- User client
 
-data ASUserClient = UserClient {userId :: ASUserId, userConn :: WS.Connection, userWindow :: ASWindow, sessionId :: ClientId}
+data ASUserClient = UserClient { userId :: ASUserId, userConn :: WS.Connection, userWindow :: ASWindow, sessionId :: ClientId }
 
 instance Eq ASUserClient where
   c1 == c2 = (sessionId c1) == (sessionId c2)
@@ -62,18 +62,21 @@ userCommitSource (UserClient uid _ (Window sid _ _) _) = CommitSource sid uid
 updateWindow :: ASWindow -> ASUserClient -> ASUserClient
 updateWindow w (UserClient uid conn _ sid) = UserClient uid conn w sid
 
-initUserFromMessageAndConn :: ASClientMessage -> WS.Connection -> IO ASUserClient
-initUserFromMessageAndConn (ClientMessage _ (PayloadInit (ASInitConnection uid sid))) c = do
+initUser :: WS.Connection -> ASUserId -> ASSheetId -> IO ASUserClient
+initUser c uid sid = do
     time <- getCurrentTime
     return $ UserClient uid c (Window sid (-1,-1) (-1,-1)) $ pack ((show uid) ++ (show time))
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Daemons
 
-data ASDaemonClient = DaemonClient {daemonLoc :: ASIndex, daemonConn :: WS.Connection, daemonOwner :: ASUserId}
+data ASDaemonClient = DaemonClient { daemonConn :: WS.Connection, daemonOwner :: ASUserId, daemonLoc :: ASIndex }
 
 instance Eq ASDaemonClient where
   c1 == c2 = (daemonLoc c1) == (daemonLoc c2)
 
-initDaemonFromMessageAndConn :: ASClientMessage -> WS.Connection -> ASDaemonClient
-initDaemonFromMessageAndConn (ClientMessage _ (PayloadDaemonInit (ASInitDaemonConnection uid loc))) c = DaemonClient loc c uid
+daemonCommitSource :: ASDaemonClient -> CommitSource
+daemonCommitSource (DaemonClient _ uid (Index sid _)) = CommitSource sid uid
+
+initDaemonFromMessageAndConn :: WS.Connection ->  ASUserId -> ASIndex -> ASDaemonClient
+initDaemonFromMessageAndConn c uid loc = DaemonClient c uid loc

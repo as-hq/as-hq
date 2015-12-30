@@ -22,14 +22,14 @@ def getList(x):
     else: return x
 
 def plot(x,y=None,name=None):
-    if y is None:
-        return plotObj(x)
     xlist = getList(x)
-    ylist = getList(y)
-    plt.plot(xlist,ylist)
-    plt.grid(True)
-    plt.title(name)
-    return savePlot(plt, name)
+    if y is None:
+        plt.plot(xlist, range(len(xlist)))
+    else:
+        ylist = getList(y)
+        plt.plot(xlist,ylist)
+        plt.grid(True)
+        plt.title(name)
 
 def bar(x,y,name):
     xlist, ylist = getList(x,y)
