@@ -55,6 +55,14 @@ export function using<T>(a: ?T): Callback<Callback<T>> {
   return (cb: Callback<T>) => Just(a).fmap_(cb);
 }
 
+export function maybe<U, T>(nothingVal: U, justFunc: ((x: T) => U), maybeVal: ?T): U { 
+  if (maybeVal != null) { 
+    return justFunc(maybeVal); 
+  } else {
+    return nothingVal; 
+  }
+}
+
 export function catMaybes<T>(arr: Array<?T>): Array<T> {
   let ret: Array<T> = [];
   arr.forEach((ele) => {

@@ -19,7 +19,7 @@ import type {
 import type {
   CondFormatRule,
   CondFormatCondition
-} from '../../types/Messages';
+} from '../../types/CondFormat';
 
 import type {
   MenuItemRequest

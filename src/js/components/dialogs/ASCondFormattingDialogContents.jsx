@@ -7,7 +7,7 @@ import type {
 import type {
   CondFormatRule,
   CondFormatCondition
-} from '../../types/Messages';
+} from '../../types/CondFormat';
 
 import React from 'react';
 

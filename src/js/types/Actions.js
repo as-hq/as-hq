@@ -8,28 +8,30 @@ import type {
   ASExpression,
   ASValue,
   ASCompositeValue,
-  ASLanguage,
-  ASReplValue
+  ASSelection,
+  ASLanguage
 } from './Eval';
 
 import type {
   ASViewingWindow
 } from './State';
 
+import type { 
+  CondFormatRule
+} from './CondFormat';
+
 import type {
-  CondFormatRule,
-  ASBackendCommit,
-  PayloadSelection,
   ASBackendWorkbookSheet,
-  ASMessageAction,
-  ASServerMessage,
+  ClientMessage
+} from './Messages';
+
+import type {
   Bar,
   BarIndex
-} from './Messages';
+} from './Bar';
 
 export type GotFailureAction = {
   _type: 'GOT_FAILURE';
-  action: ASMessageAction;
   errorMsg: string;
 };
 
@@ -43,19 +45,9 @@ export type GotOpenAction = {
   expressions: Array<ASExpression>;
 };
 
-export type GotUndoAction = {
-  _type: 'GOT_UNDO';
-  commit: ASBackendCommit;
-};
-
-export type GotRedoAction = {
-  _type: 'GOT_REDO';
-  commit: ASBackendCommit;
-};
-
 export type GotSelectionAction = {
   _type: 'GOT_SELECTION';
-  newSelection: PayloadSelection;
+  newSelection: ASSelection;
 };
 
 export type GotUpdatedCellsAction = {
@@ -95,16 +87,11 @@ export type GotUpdatedRulesAction = {
   oldRuleIds: Array<string>;
 };
 
-export type ReplLeftAction = {
-  _type: 'REPL_LEFT';
-  lang: ASLanguage;
-  value: string;
-};
-
-export type GotReplResponseAction = {
-  _type: 'GOT_REPL_RESPONSE';
-  response: ASReplValue;
-};
+// export type ReplLeftAction = {
+//   _type: 'REPL_LEFT';
+//   lang: ASLanguage;
+//   value: string;
+// };
 
 export type GotEvalHeaderResponseAction = {
   _type: 'GOT_EVAL_HEADER_RESPONSE';
@@ -192,21 +179,19 @@ export type WorkbookAction =
 export type ASAction =
   GotFailureAction
   | GotUpdatedWorkbooksAction
-  | GotUpdatedRulesAction
   | GotNewWorkbooksAction
   | DeletedWorkbooksAction
+  | GotUpdatedRulesAction
   | ScrolledAction
   | GotOpenAction
-  | GotUndoAction
-  | GotRedoAction
   | GotSelectionAction
   | GotUpdatedCellsAction
   | GotUpdatedBarsAction
   | ImportAction
   | ClearedAction
   | ClearedSheetAction
-  | ReplLeftAction
-  | GotReplResponseAction
+  // | ReplLeftAction
+  // | GotReplResponseAction
   | GotEvalHeaderResponseAction
   | GotFindAction
   | FindIncrementedAction
