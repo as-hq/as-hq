@@ -217,6 +217,7 @@ rangeContainsRef r ref = case ref of
   ColRangeRef r' -> False
   OutOfBounds -> False
 
+-- #Question, timchu, 12/29/15. Can we use this in exRefToASRef, for consistency?
 orientRange :: ASRange -> ASRange
 orientRange (Range sid (tl, br)) = Range sid (tl',br')
   where

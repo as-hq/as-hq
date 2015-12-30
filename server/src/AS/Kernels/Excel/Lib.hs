@@ -278,6 +278,7 @@ evalArrayFormula c f@(Basic (Fun name fs)) = do
   fDes <- getFunc name
   -- curLoc is always an index (you evaluate from within a cell)
   let s = shName (IndexRef $ curLoc c)
+  --  This is a name duplication with a function in Handlers/Mutate.hs.
   refMap <- unexpectedRefMap c (getUnexpectedRefs s f)
   checkNumArgs name (maxNumArgs fDes) (length fs)
   case refMap of
