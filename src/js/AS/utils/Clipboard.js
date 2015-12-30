@@ -11,6 +11,10 @@ import type {
 	ASCell
 } from '../../types/Eval';
 
+import type { 
+  EvalInstruction
+} from '../../types/Messages';
+
 import {logDebug} from '../Logger';
 
 import CellStore from '../../stores/ASCellStore';
@@ -139,31 +143,31 @@ const Clipboard = {
     }
   },
 
-  _arrayToASCells(ind: NakedIndex, language: ASLanguage):
-	 	(i: number) => (v: string, j: number) => ASCell {
+  _arrayToEvalInstructions(ind: NakedIndex, language: ASLanguage):
+	 	(i: number) => (v: string, j: number) => EvalInstruction {
     let self = Clipboard;
      return (i) => {
        return (v, j) => {
         let asIndex = TC.simpleToASIndex(Location.shiftIndex(ind, i, j)),
             xpObj = { expression: self.externalStringToExpression(v, language),
                       language: language} ;
-         return TC.makeEvalCell(asIndex, xpObj);
+         return TC.makeEvalInstruction(asIndex, xpObj);
        };
      };
    },
 
-  _rowValuesToASCells(ind: NakedIndex, language: ASLanguage):
-	  (values: Array<string>, i: number) => Array<ASCell> {
+  _rowValuesToEvalInstructions(ind: NakedIndex, language: ASLanguage):
+	  (values: Array<string>, i: number) => Array<EvalInstruction> {
     var self = Clipboard;
     return (values, i) => {
-      return values.map(self._arrayToASCells(ind, language)(i));
+      return values.map(self._arrayToEvalInstructions(ind, language)(i));
     };
   },
 
   // takes in a set of locations and the values at those locations,
-  externalStringsToASCells(ind: NakedIndex, strs: Array<Array<string>>, language: ASLanguage):
-	 	Array<Array<ASCell>> {
-    return strs.map(Clipboard._rowValuesToASCells(ind, language));
+  externalStringsToEvalInstructions(ind: NakedIndex, strs: Array<Array<string>>, language: ASLanguage):
+	 	Array<Array<EvalInstruction>> {
+    return strs.map(Clipboard._rowValuesToEvalInstructions(ind, language));
   }
 }
 

@@ -28,7 +28,8 @@ import type {
 import type {
   ASBackendWorkbookSheet,
   ASClientWindow,
-  ServerMessage
+  ServerMessage, 
+  EvalInstruction
 } from '../../types/Messages';
 
 import Location from './Location';
@@ -41,20 +42,12 @@ let CU = {
   /**************************************************************************************************************************/
   /* Type constructors */
 
-  makeEvalCell(asIndex: ASIndex, xpObj: ASClientExpression): ASCell {
+  makeEvalInstruction(asIndex: ASIndex, xpObj: ASClientExpression): EvalInstruction {
     return  {
-      "cellLocation": asIndex,
-      "cellExpression": {
-        "tag": "Expression",
-        "expression": xpObj.expression,
-        "language": xpObj.language
-      },
-      "cellValue":{
-        "tag": "NoValue",
-        "contents": []
-      },
-      "cellProps": []
-    };
+      tag: "EvalInstruction", 
+      evalXp: xpObj, 
+      evalLoc: asIndex
+    }; 
   },
 
   makeEmptyCell(asIndex?: ASIndex): ASCell {

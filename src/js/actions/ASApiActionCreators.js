@@ -36,7 +36,9 @@ import type {
   UpdateWindow,
   SetProp,
   Delete,
-  ToggleProp
+  ToggleProp,
+  Evaluate, 
+  EvalInstruction
 } from '../types/Messages';
 
 import type {
@@ -316,10 +318,13 @@ const API = {
   /* This function is called by handleEvalRequest in the eval pane */
   evaluate(origin: NakedIndex, xp: ASClientExpression) {
     let asIndex = U.Conversion.simpleToASIndex(origin),
-        msg = {
+        msg: Evaluate = {
           tag: "Evaluate",
-          evalXp: xp,
-          evalLoc: asIndex
+          contents: [{ 
+            tag: "EvalInstruction", 
+            evalXp: xp, 
+            evalLoc: U.Conversion.simpleToASIndex(origin)
+          }]
         };
     API.sendMessageWithAction(msg);
   },
@@ -568,14 +573,13 @@ const API = {
     API.sendMessageWithAction(msg);
   },
 
-  pasteSimple(cells: Array<ASCell>) {
-    // ::ALEX::
-    // let msg = {
-    //   tag: "Evaluate",
-    //   contents: cells
-    // };
+  pasteSimple(evalInstructions: Array<EvalInstruction>) {
+    let msg = {
+      tag: "Evaluate",
+      contents: evalInstructions
+    };
 
-    // API.sendMessageWithAction(msg);
+    API.sendMessageWithAction(msg);
   },
 
   getIndices(locs: Array<ASIndex>) {

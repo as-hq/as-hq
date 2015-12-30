@@ -343,10 +343,15 @@ export type Export = {
   contents: string;
 };
 
+export type EvalInstruction = {
+  tag: "EvalInstruction";
+  evalXp:  ASClientExpression; 
+  evalLoc: ASIndex; 
+};
+
 export type Evaluate = {
   tag: "Evaluate";
-  evalXp:  ASClientExpression; // #needsrefactor should just make this ASExpression
-  evalLoc: ASIndex; 
+  contents: Array<EvalInstruction>;
 };
 
 export type EvaluateHeader = {

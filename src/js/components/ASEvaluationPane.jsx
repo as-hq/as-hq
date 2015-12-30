@@ -376,9 +376,9 @@ export default class ASEvalPane
         let lang = ExpStore.getLanguage();
         let plain = e.clipboardData.getData("text/plain"),
             vals = ClipboardUtils.plainStringToVals(plain),
-            cells = ClipboardUtils.externalStringsToASCells(sel.origin, vals, lang),
-            concatCells = U.Array.concatAll(cells);
-        API.pasteSimple(concatCells);
+            evalInstructions2d = ClipboardUtils.externalStringsToEvalInstructions(sel.origin, vals, lang),
+            evalInstructions = U.Array.concatAll(evalInstructions2d);
+        API.pasteSimple(evalInstructions);
         // The normal eval handling will make the paste show up
       } else {
         // TODO: Not handling html conversion for now
