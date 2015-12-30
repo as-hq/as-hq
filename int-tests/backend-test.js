@@ -1199,7 +1199,6 @@ describe('backend', () => {
 
       });
 
-
       fdescribe('A:A parsing tests', () => {
         describe('Display', () => {
           // TODO: create 1:1 parsing tests.
@@ -2586,7 +2585,8 @@ describe('backend', () => {
         });
       });
 
-      describe('repeat', () => {
+      // Currently not supporting (Alex 12/29)
+      xdescribe('repeat', () => {
         it ('should repeat eval on Ctrl+Y', (done) => {
           _do([
             python('A1', '1'),
@@ -3486,7 +3486,7 @@ describe('backend', () => {
         API.unsetUITestMode();
       });
 
-      it ('restores connections after failure', (done) => {
+      xit ('restores connections after failure', (done) => {
         _do([
           exec(() => {
             API.withWS((pws) => {
@@ -3507,5 +3507,4 @@ describe('backend', () => {
       });
     });
   });
-
 });

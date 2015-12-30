@@ -12,6 +12,8 @@ import type {
   ASSelection
 } from '../types/Eval';
 
+import CellStore from '../stores/ASCellStore';
+
 let _renderParams : RenderParams = {
   mode: null, // null mode indicates normal behavior; any other string indicates otherwise
   deps: [],
@@ -243,6 +245,31 @@ const Renderers = {
       this.config.minWidth = this.config.minWidth + 2 * (iconWidth);
     }
   }: HGRendererObject),
+
+  getCellRenderer(config: HGRendererConfig): HGRendererObject {
+    let renderer = Renderers.defaultCellRenderer,
+        col = config.x + 1,
+        row = config.y + 1,
+        cell = CellStore.getCell({col: col, row: row});
+
+    // tag-based cell styling
+    if (cell !== null && cell !== undefined) {
+      Util.Render.valueToRenderConfig(config, cell.cellValue);
+      if (cell.cellExpression.expandingType) {
+        Util.Render.expandingTypeToRenderConfig(config, cell.cellExpression.expandingType);
+      }
+
+      // props take highest precedence
+      if (cell.cellProps.length > 0) { // props take higher precedence
+        Util.Render.propsToRenderConfig(config, cell.cellProps);
+      }
+    } else {
+      config.halign = 'center';
+    }
+
+    renderer.config = config;
+    return renderer;
+  },
 
   selectionRenderer(gc: GraphicsContext) {
     if (_renderParams.selection === null || _renderParams.selection === undefined) return;
