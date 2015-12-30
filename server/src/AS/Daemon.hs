@@ -42,7 +42,7 @@ getDaemonName loc = (show loc) ++ "daemon"
 getConnByLoc :: ASIndex -> MVar ServerState -> IO (Maybe WS.Connection)
 getConnByLoc loc state = do 
   (State users daemons _ _) <- readMVar state
-  let daemon = L.filter (\(DaemonClient l _ _) -> (l == loc)) daemons
+  let daemon = L.filter ((==) loc . daemonLoc) daemons
   case daemon of 
     [] -> return Nothing
     d -> return $ Just $ daemonConn $  L.head d 
@@ -56,7 +56,7 @@ getStreamPropFromExpression _ = Nothing
 -- | Creates a streaming daemon for this cell if one of the tags is a streaming tag. 
 possiblyCreateDaemon :: MVar ServerState -> ASUserId -> ASCell -> IO ()
 possiblyCreateDaemon state owner cell@(Cell loc xp val props) = do 
-  let msg = ClientMessage Evaluate (PayloadCL [cell])
+  let msg = ServerMessage (Evaluate xp loc)
   case getProp StreamInfoProp props of 
     Nothing -> do 
       let maybeTag = getStreamPropFromExpression xp
@@ -68,7 +68,7 @@ possiblyCreateDaemon state owner cell@(Cell loc xp val props) = do
 -- | Creates a streaming daemon to regularly update the cell at a location. 
 -- Does so by creating client that talks to server, pinging it with the regularity 
 -- specified by the user. 
-createDaemon :: MVar ServerState -> Stream -> ASIndex -> ASClientMessage -> IO ()
+createDaemon :: MVar ServerState -> Stream -> ASIndex -> ServerMessage -> IO ()
 createDaemon state s loc msg = do -- msg is the message that the daemon will send to the server regularly
   putStrLn $ "POTENTIALLY CREATING A daemon"
   let name = getDaemonName loc
@@ -79,14 +79,14 @@ createDaemon state s loc msg = do -- msg is the message that the daemon will sen
     else do 
       runDetached (Just name) def $ do 
         let daemonId = T.pack $ getDaemonName loc
-        let initMsg = ClientMessage Acknowledge (PayloadDaemonInit (ASInitDaemonConnection daemonId loc))
+        let initMsg = ServerMessage $ InitializeDaemon daemonId loc
         port <- appPort <$> readMVar state
         WS.runClient S.wsAddress port "/" $ \conn -> do 
           U.sendMessage initMsg conn
           regularlyReEval s loc msg conn -- is an eval message on the cell
       putStrLn $ "DONE WITH createDaemon"
 
-regularlyReEval :: Stream -> ASIndex -> ASClientMessage -> WS.Connection -> IO ()
+regularlyReEval :: Stream -> ASIndex -> ServerMessage -> WS.Connection -> IO ()
 regularlyReEval (Stream src x) loc msg conn = forever $ do 
   U.sendMessage msg conn
   threadDelay (1000*x) -- microseconds to milliseconds
@@ -102,5 +102,5 @@ removeDaemon loc state = do
 
 -- | Replaces state and stream of daemon at loc, if it exists. If not, create daemon at that location. 
 -- (Ideal implementation would look more like modifyUser, but this works for now.)
-modifyDaemon :: MVar ServerState -> Stream -> ASIndex -> ASClientMessage-> IO ()
+modifyDaemon :: MVar ServerState -> Stream -> ASIndex -> ServerMessage-> IO ()
 modifyDaemon state stream loc msg = (removeDaemon loc state) >> (createDaemon state stream loc msg)

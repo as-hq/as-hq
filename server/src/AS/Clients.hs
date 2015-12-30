@@ -25,10 +25,16 @@ import qualified Data.List as L
 import qualified Data.Text as T
 
 import Control.Concurrent
-import Control.Monad (unless)
+import Control.Monad (when)
 
 -------------------------------------------------------------------------------------------------------------------------
 -- ASUserClient is a client
+
+shouldLogAction :: ServerAction -> Bool
+shouldLogAction Acknowledge      = False
+shouldLogAction (UpdateWindow _) = False
+shouldLogAction (Open _)         = False
+shouldLogAction  _               = True
 
 instance Client ASUserClient where
   conn = userConn
@@ -40,45 +46,47 @@ instance Client ASUserClient where
   removeClient uc s@(State ucs dcs dbc port)
     | uc `elem` ucs = State (L.delete uc ucs) dcs dbc port
     | otherwise = s
-  handleClientMessage user state message = do 
+  handleServerMessage user state message = do 
     -- second arg is supposed to be sheet id; temporary hack is to always set userId = sheetId
     -- on frontend. 
-    unless (clientAction message `elem` [Acknowledge, UpdateWindow, Open]) $ do 
-      logClientMessage (show message) (userCommitSource user)
+    when (shouldLogAction $ serverAction message) $ do 
+      logServerMessage (show message) (userCommitSource user)
       putStrLn "=========================================================="
-      printObj "Message" (show message)
+    printObj "Message" (show message)
     redisConn <- dbConn <$> readMVar state
     storeLastMessage redisConn message (userCommitSource user)
-    case (clientAction message) of
-      Acknowledge           -> handleAcknowledge user
-      -- New                -> handleNew user state payload -- temporarly disabled
-      Open                  -> handleOpen user state payload
-      Close                 -> handleClose user state payload
-      UpdateWindow          -> handleUpdateWindow (sessionId user) state payload
-      Import                -> handleImport user state payload
-      Export                -> handleExport user state payload
-      Evaluate              -> handleEval user state payload
-      EvaluateRepl          -> handleEvalRepl user payload
-      EvaluateHeader        -> handleEvalHeader user state payload
-      Get                   -> handleGet user state payload
-      Delete                -> handleDelete user state payload
-      Clear                 -> handleClear user state payload
-      Undo                  -> handleUndo user state
-      Redo                  -> handleRedo user state
-      Copy                  -> handleCopy user state payload
-      Cut                   -> handleCut user state payload
-      ToggleProp            -> handleToggleProp user state payload
-      SetProp               -> handleSetProp user state payload
-      Repeat                -> handleRepeat user state payload
-      BugReport             -> handleBugReport user payload
-      JumpSelect            -> handleJumpSelect user state payload
-      MutateSheet           -> handleMutateSheet user state payload
-      Drag                  -> handleDrag user state payload
-      Decouple              -> handleDecouple user state payload
-      UpdateCondFormatRules -> handleUpdateCondFormatRules user state payload
-      SetBarProp            -> handleSetBarProp user state payload
-      ImportCSV             -> handleCSVImport user state payload
-      where payload = clientPayload message
+    -- everything commented out here is a thing we are temporarily not supporting, because we only partially implemented them
+    -- but don't want to maintain them (Alex 12/28)
+    case (serverAction message) of
+      Acknowledge                 -> handleAcknowledge user
+      Initialize _ _              -> handleInitialize user 
+      -- New                -> handleNew user state payload
+      Open sid                    -> handleOpen user state sid
+      -- Close                 -> handleClose user state payload
+      UpdateWindow win            -> handleUpdateWindow (sessionId user) state win
+      -- Import                -> handleImport user state payload
+      Export sid                  -> handleExport user state sid
+      Evaluate xp loc             -> handleEval user state xp loc
+      -- EvaluateRepl          -> handleEvalRepl user payload
+      EvaluateHeader xp           -> handleEvalHeader user state xp
+      Get locs                    -> handleGet user state locs
+      Delete sel                  -> handleDelete user state sel
+      ClearSheetServer sid        -> handleClear user state sid
+      Undo                        -> handleUndo user state
+      Redo                        -> handleRedo user state
+      Copy from to                -> handleCopy user state from to
+      Cut from to                 -> handleCut user state from to
+      ToggleProp prop rng         -> handleToggleProp user state prop rng
+      SetProp prop rng            -> handleSetProp user state prop rng
+      Repeat sel                  -> handleRepeat user state sel
+      BugReport report            -> handleBugReport user report
+      -- JumpSelect            -> handleJumpSelect user state payload
+      MutateSheet mutateType      -> handleMutateSheet user state mutateType
+      Drag selRng dragRng         -> handleDrag user state selRng dragRng
+      Decouple                    -> handleDecouple user state
+      UpdateCondFormatRules cfru  -> handleUpdateCondFormatRules user state cfru
+      SetBarProp bInd prop        -> handleSetBarProp user state bInd prop
+      ImportCSV ind lang fileName -> handleCSVImport user state ind lang fileName
       -- Undo         -> handleToggleProp user state (PayloadTags [StreamTag (Stream NoSource 1000)] (Index (T.pack "TEST_SHEET_ID2") (1,1)))
       -- ^^ above is to test streaming when frontend hasn't been implemented yet
 
@@ -95,21 +103,15 @@ instance Client ASDaemonClient where
   removeClient dc s@(State ucs dcs dbc port)
     | dc `elem` dcs = State ucs (L.delete dc dcs) dbc port
     | otherwise = s
-  handleClientMessage daemon state message = case (clientAction message) of
-    Evaluate -> handleEval' daemon state (clientPayload message)
+  handleServerMessage daemon state message = case (serverAction message) of
+    Evaluate xp loc -> handleEval' daemon state xp loc
     where 
-      handleEval' :: ASDaemonClient -> MVar ServerState -> ASPayload -> IO ()
-      handleEval' dm@(DaemonClient (Index sid _ ) _ uid) state payload  = do
-        let cells = case payload of 
-                      PayloadCL cells' -> cells'
-        -- The PayloadCL is sort of a misnomer; it's only really being used as a wrapper around the
-        -- expression to evaluate and the location of evaluation. In particular, the value passed in the cells
-        -- are irrelevant, and there are no tags passed in, so we have to get the tags from the database
-        -- manually. 
-        redisConn <- dbConn <$> readMVar state
-        oldTags <- getPropsAt redisConn (map cellLocation cells)
-        let cells' = map (\(c, ps) -> c { cellProps = ps }) (zip cells oldTags)
-        errOrCommit <- runDispatchCycle state cells' DescendantsWithParent (CommitSource sid uid) id
-        either (const $ return ()) ((broadcastFiltered' state) . makeReplyMessageFromCommit) errOrCommit
--- Handlers take message payloads and send the response to the client(s)
-
+      handleEval' :: ASDaemonClient -> MVar ServerState -> ASExpression -> ASIndex -> IO ()
+      handleEval' dm state xp ind  = do
+        conn <- dbConn <$> readMVar state
+        oldProps <- getPropsAt conn ind
+        let cell = Cell ind xp NoValue oldProps
+        errOrUpdate <- runDispatchCycle state [cell] DescendantsWithParent (daemonCommitSource dm) id
+        either (const $ return ()) (broadcastSheetUpdate state) errOrUpdate
+      -- difference between this and handleEval being that it can't take back a failure message. 
+      -- yes, code replication, whatever. 
