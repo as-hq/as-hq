@@ -106,11 +106,11 @@ instance FromJSON ASReference
                             --Note: r stands for right, not row.
 instance ToJSON ASColRange where
   toJSON (ColRange sid ((c,r),c2)) = object["tag" .= ("colRange" :: String),
-                                          "sheetId" .= sid,
-                                          "colRange" .= object[
-                                            "tl" .= object ["row" .=r,
-                                                            "col" .= c],
-                                            "r"  .= object ["col" .= c2]]]
+                                            "sheetId" .= sid,
+                                            "colRange" .= object[
+                                              "tl" .= object ["row" .=r,
+                                                              "col" .= c],
+                                              "r"  .= object ["col" .= c2]]]
 -- TODO: timchu, check that this actually works.
 instance FromJSON ASColRange where
   parseJSON (Object v) = do

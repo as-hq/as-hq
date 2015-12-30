@@ -438,7 +438,7 @@ asRefToExRef (ColRangeRef (ColRange sid (i1,c2))) = ExColRangeRef colrng sname N
     ExLocRef i1' _ _ = asRefToExRef . IndexRef $ Index sid i1
     c2' = ExCol REL (intToColStr c2)
     colrng = ExColRange i1' c2'
-    -- Why are there two nothings in the ExRangeRef?
+    -- #TempQuestion: Why are there two nothings in the ExRangeRef?
 asRefToExRef (RangeRef (Range sid (i1, i2))) = ExRangeRef rng sname Nothing
   where
     sname = sheetIdToSheetName sid
