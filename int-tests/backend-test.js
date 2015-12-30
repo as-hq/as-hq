@@ -1203,6 +1203,7 @@ describe('backend', () => {
       fdescribe('A:A parsing tests', () => {
         describe('Display', () => {
           // TODO: create 1:1 parsing tests.
+          // TODO: activate the commented out F:J1 = F1:J, J:F = F:J, J:$F tests.
           it ('should display A:A properly', (done) => {
             _do([
               python('A1', 'range(10)'),
@@ -1245,6 +1246,7 @@ describe('backend', () => {
               shouldBe('A4', valueI(3)),
               shouldBe('A5', valueI(4)),
               shouldBe('E5', valueI(12)),
+              //expressionShouldBe('E5', "F1:J"),
               exec(done)
             ]);
           });
@@ -1260,11 +1262,12 @@ describe('backend', () => {
               shouldBe('B1', valueI(2)),
               shouldBe('E1', valueI(8)),
               shouldBe('E5', valueI(12)),
+              //expressionShouldBe('E5', "F1:J"),
               exec(done)
               ]);
           });
           // TODO: timchu, current prasing requires the number to be in the first item.
-          xit ('should display J:F1 properly', (done) => {
+          it ('should display J:F1 properly', (done) => {
             _do([
               python('F1', '[[2*x + y for x in range(5)] for y in range(5)]'),
               python('A1', 'J:F1'),
@@ -1276,6 +1279,7 @@ describe('backend', () => {
               shouldBe('B1', valueI(2)),
               shouldBe('E1', valueI(8)),
               shouldBe('E5', valueI(12)),
+              //expressionShouldBe('E5', "F1:J"),
               exec(done)
               ]);
           });
@@ -1291,6 +1295,7 @@ describe('backend', () => {
               shouldBe('B1', valueI(2)),
               shouldBe('E1', valueI(8)),
               shouldBe('E5', valueI(12)),
+              //expressionShouldBe('E5', "F:J"),
               exec(done)
               ]);
           });
@@ -1306,6 +1311,39 @@ describe('backend', () => {
               shouldBe('B1', valueI(2)),
               shouldBe('E1', valueI(8)),
               shouldBe('E5', valueI(12)),
+              //expressionShouldBe('E5', "F:J"),
+              exec(done)
+              ]);
+          });
+          it ('should display $F:J properly', (done) => {
+            _do([
+              python('F1', '[[2*x + y for x in range(5)] for y in range(5)]'),
+              python('A1', 'J:F'),
+              shouldBe('A1', valueI(0)),
+              shouldBe('A2', valueI(1)),
+              shouldBe('A3', valueI(2)),
+              shouldBe('A4', valueI(3)),
+              shouldBe('A5', valueI(4)),
+              shouldBe('B1', valueI(2)),
+              shouldBe('E1', valueI(8)),
+              shouldBe('E5', valueI(12)),
+              //expressionShouldBe('E5', "$F:J"),
+              exec(done)
+              ]);
+          });
+          it ('should display J:$F properly', (done) => {
+            _do([
+              python('F1', '[[2*x + y for x in range(5)] for y in range(5)]'),
+              python('A1', 'J:F'),
+              shouldBe('A1', valueI(0)),
+              shouldBe('A2', valueI(1)),
+              shouldBe('A3', valueI(2)),
+              shouldBe('A4', valueI(3)),
+              shouldBe('A5', valueI(4)),
+              shouldBe('B1', valueI(2)),
+              shouldBe('E1', valueI(8)),
+              shouldBe('E5', valueI(12)),
+              //expressionShouldBe('E5', "$F:J"),
               exec(done)
               ]);
           });
@@ -1429,7 +1467,6 @@ describe('backend', () => {
               exec(done)
           ]);
         });
-        // TODO: timchu, why doesn't this work?
         it ('should decouple B1=A1:A upon insert of item into B1', (done) => {
           _do([
               python('A1', 'range(10)'),
@@ -1469,156 +1506,171 @@ describe('backend', () => {
             exec(done)
           ]);
         });
-        // TODO: timchu. Copy and paste doesn't work.
-        it ('should copy/paste A1:A expressions', (done) => {
-          _do([
-            python('A1', 'range(10)'),
-            python('B1', 'A2:A'),
-            copy('B1', 'C2'),
-            shouldBe('C2', valueI(3)),
-            shouldBe('C8', valueI(9)),
-            shouldBeNothing('C9'),
-            exec(done)
-          ]);
-        });
-        it ('should copy/paste A1:A expressions and respect absolute references', (done) => {
-          _do([
-            python('A1', 'range(10)'),
-            python('B1', '$A$2:$A'),
-            copy('B1', 'D11'),
-            shouldBe('D11', valueI(1)),
-            shouldBe('D19', valueI(9)),
-            shouldBeNothing('D20'),
-            exec(done)
-          ]);
-        });
-        it ('should treat A:A like A$1:A during copy and paste', (done) => {
-          _do([
-            python('A1', 'range(10)'),
-            python('B1', 'A:A'),
-            copy('B1', 'B11'),
-            shouldBe('B11', valueI(0)),
-            shouldBe('B20', valueI(9)),
-            exec(done)
-          ]);
-        });
         // TODO: timchu, provide tests for half-absolute references.
-        // TODO: timchu, references B:$A should never show on a copy paste from A:$A. Should automatically re-form into $A:B
-        it ('should cut/paste A1:A expressions without shifting references', (done) => {
-          _do([
-            python('A1', 'range(10)'),
-            python('B1', 'A1:A'),
-            cut('B1:B10', 'C2'),
-            shouldBe('C2', valueI(0)),
-            shouldBe('C3', valueI(1)),
-            shouldBe('C11', valueI(9)),
-            shouldBeNothing('B1'),
-            shouldBeNothing('B2'),
-            shouldBeNothing('B10'),
-            exec(done)
-          ]);
-        });
-        it ('should undo creation of A1:A', (done) => {
-          _do([
-            python('A1', 'range(10)'),
-            python('B1', 'A1:A'),
-            undo(),
-            shouldBeNothing('B1'),
-            shouldBeNothing('B4'),
-            shouldBeNothing('B10'),
-            shouldBe('A1', valueI(0)),
-            exec(done)
-          ]);
-        });
-        it ('should undo change in A on A1:A', (done) => {
-          _do([
-            python('A1', '1'),
-            python('A2', '2'),
-            python('B1', 'A1:A'),
-            python('A3', '3'),
-            undo(),
-            shouldBe('A1', valueI(1)),
-            shouldBe('B1', valueI(1)),
-            shouldBe('A2', valueI(2)),
-            shouldBe('B2', valueI(2)),
-            shouldBeNothing('A3'),
-            shouldBeNothing('B3'),
-            exec(done)
-          ]);
-        });
-        it ('should redo properly after undo creation of A1:A', (done) => {
-          _do([
-            python('A1', 'range(10)'),
-            python('B1', 'A1:A'),
-            undo(),
-            redo(),
-            shouldBe('B1', valueI(0)),
-            shouldBe('B4', valueI(3)),
-            shouldBe('B10', valueI(9)),
-            shouldBe('A1', valueI(0)),
-            exec(done)
-          ]);
-        });
-        it ('should redo change in A on A1:A', (done) => {
-          _do([
-            python('A1', '1'),
-            python('A2', '2'),
-            python('B1', 'A1:A'),
-            python('A3', '3'),
-            undo(),
-            redo(),
-            shouldBe('A1', valueI(1)),
-            shouldBe('B1', valueI(1)),
-            shouldBe('A2', valueI(2)),
-            shouldBe('B2', valueI(2)),
-            shouldBe('A3', valueI(3)),
-            shouldBe('B3', valueI(3)),
-            exec(done)
-          ]);
-        });
-        xit ('should undo decoupling of A1:A', (done) => {
-          _do([
-              // TODO: timchu. Not sure about syntax here.
-            exec(done)
-          ]);
-        });
-        xit ('should redo decoupling of A1:A', (done) => {
-          _do([
-              // TODO: timchu. Not sure about syntax here.
-            exec(done)
-          ]);
-        });
-        it ('should catch circular dependencies for A1:A', (done) => {
-          _do([
-            shouldError(
-              python('A5', 'A1:A')
-            ),
-            python('A1', '1'),
-            python('A2', '2'),
-            python('A3', '3'),
-            python('B1', 'A2:A'),
-            shouldError(
-              python('A5', 'B2')
-            ),
-            python('A1', 'B2'),
-            shouldBe('A1', valueI(3)),
-            delete_('A3'),
-            python('A5', 'B2'),
-            shouldBe('A5', noValue()),
-            exec(done)
-          ]);
-        });
-        xit ('should be able to do complicated undos', (done) => {
-          _do([
-              // TODO: timchu
-            exec(done)
+        // For example: A:$A when moved one over should turn into $A:B
+        describe('Copy Cut and Paste in A:A', () => {
+          it ('should copy/paste A1:A expressions', (done) => {
+            _do([
+              python('A1', 'range(10)'),
+              python('B1', 'A2:A'),
+              copy('B1', 'C2'),
+              shouldBe('C2', valueI(3)),
+              shouldBe('C8', valueI(9)),
+              shouldBeNothing('C9'),
+              exec(done)
             ]);
-        });
-        xit ('should be able to do complicated redos', (done) => {
-          _do([
-              // TODO: timchu
-            exec(done)
+          });
+          it ('should copy/paste A1:A expressions and respect absolute references', (done) => {
+            _do([
+              python('A1', 'range(10)'),
+              python('B1', '$A$2:$A'),
+              copy('B1', 'D11'),
+              shouldBe('D11', valueI(1)),
+              shouldBe('D19', valueI(9)),
+              shouldBeNothing('D20'),
+              exec(done)
             ]);
+          });
+          it ('should treat A:A like A$1:A during copy and paste', (done) => {
+            _do([
+              python('A1', 'range(10)'),
+              python('B1', 'A:A'),
+              copy('B1', 'B11'),
+              shouldBe('B11', valueI(0)),
+              shouldBe('B20', valueI(9)),
+              exec(done)
+            ]);
+          });
+          it ('should cut/paste A1:A expressions without shifting references', (done) => {
+            _do([
+              python('A1', 'range(10)'),
+              python('B1', 'A1:A'),
+              cut('B1:B10', 'C2'),
+              shouldBe('C2', valueI(0)),
+              shouldBe('C3', valueI(1)),
+              shouldBe('C11', valueI(9)),
+              shouldBeNothing('B1'),
+              shouldBeNothing('B2'),
+              shouldBeNothing('B10'),
+              exec(done)
+            ]);
+          });
+          it ('Absolute and relative expressions should shift on copy paste of A:A', (done) => {
+            _do([
+              python('A1', '1'),
+              python('C1', 'A:$A'),
+              copy('C1', 'D1'),
+              // TODO: timchu, the below should work.
+              //expressionShouldBe('C1', "$A:B"),
+              exec(done)
+            ]);
+          });
+        });
+        describe('Undo and Redo in A:A', () => {
+          it ('should undo creation of A1:A', (done) => {
+            _do([
+              python('A1', 'range(10)'),
+              python('B1', 'A1:A'),
+              undo(),
+              shouldBeNothing('B1'),
+              shouldBeNothing('B4'),
+              shouldBeNothing('B10'),
+              shouldBe('A1', valueI(0)),
+              exec(done)
+            ]);
+          });
+          it ('should undo change in A on A1:A', (done) => {
+            _do([
+              python('A1', '1'),
+              python('A2', '2'),
+              python('B1', 'A1:A'),
+              python('A3', '3'),
+              undo(),
+              shouldBe('A1', valueI(1)),
+              shouldBe('B1', valueI(1)),
+              shouldBe('A2', valueI(2)),
+              shouldBe('B2', valueI(2)),
+              shouldBeNothing('A3'),
+              shouldBeNothing('B3'),
+              exec(done)
+            ]);
+          });
+          it ('should redo properly after undo creation of A1:A', (done) => {
+            _do([
+              python('A1', 'range(10)'),
+              python('B1', 'A1:A'),
+              undo(),
+              redo(),
+              shouldBe('B1', valueI(0)),
+              shouldBe('B4', valueI(3)),
+              shouldBe('B10', valueI(9)),
+              shouldBe('A1', valueI(0)),
+              exec(done)
+            ]);
+          });
+          it ('should redo change in A on A1:A', (done) => {
+            _do([
+              python('A1', '1'),
+              python('A2', '2'),
+              python('B1', 'A1:A'),
+              python('A3', '3'),
+              undo(),
+              redo(),
+              shouldBe('A1', valueI(1)),
+              shouldBe('B1', valueI(1)),
+              shouldBe('A2', valueI(2)),
+              shouldBe('B2', valueI(2)),
+              shouldBe('A3', valueI(3)),
+              shouldBe('B3', valueI(3)),
+              exec(done)
+            ]);
+          });
+          xit ('should undo decoupling of A1:A', (done) => {
+            _do([
+                // TODO: timchu. Not sure about syntax here.
+              exec(done)
+            ]);
+          });
+          xit ('should redo decoupling of A1:A', (done) => {
+            _do([
+                // TODO: timchu. Not sure about syntax here.
+              exec(done)
+            ]);
+          });
+          xit ('should be able to do complicated undos', (done) => {
+            _do([
+                // TODO: timchu
+              exec(done)
+              ]);
+          });
+          xit ('should be able to do complicated redos', (done) => {
+            _do([
+                // TODO: timchu
+              exec(done)
+              ]);
+          });
+        });
+        describe('Circular Dependencies', () => {
+          it ('should catch circular dependencies and not catch non-circular-dependencies for A:A', (done) => {
+            _do([
+              shouldError(
+                python('A5', 'A:A')
+              ),
+              python('A1', '1'),
+              python('A2', '2'),
+              python('A3', '3'),
+              python('B1', 'A2:A'),
+              shouldError(
+                python('A5', 'B2')
+              ),
+              python('A1', 'B2'),
+              shouldBe('A1', valueI(3)),
+              delete_('A3'),
+              python('A5', 'B2'),
+              shouldBe('A5', noValue()),
+              exec(done)
+            ]);
+          });
         });
       });
 
