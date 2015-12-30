@@ -59,7 +59,7 @@ data ServerAction =
   -- | Import 
   -- | JumpSelect {jumpRange :: ASRange, jumpOrigin :: ASIndex, isShifted :: Bool, jumpDirection :: Direction}
   | Export ASSheetId
-  | Evaluate { evalXp :: ASExpression, evalLoc :: ASIndex }
+  | Evaluate [EvalInstruction]
   | EvaluateHeader ASExpression
   | Get [ASIndex]
   | Delete ASRange
@@ -87,6 +87,9 @@ data ServerAction =
 --   WorkbookSheets
 --   deriving (Show, Read, Eq, Generic)
 
+-- Indicates where to eval and what to eval
+data EvalInstruction = EvalInstruction { evalXp :: ASExpression, evalLoc :: ASIndex } deriving (Show, Read, Eq, Generic)
+
 data MutateType = InsertCol { insertColNum :: Int } | InsertRow { insertRowNum :: Int } |
                   DeleteCol { deleteColNum :: Int } | DeleteRow { deleteRowNum :: Int } |
                   DragCol { oldColNum :: Int, newColNum :: Int } | DragRow { oldRowNum :: Int, newRowNum :: Int }
@@ -113,6 +116,9 @@ instance FromJSON ClientAction
 instance ToJSON ServerAction
 instance FromJSON ServerAction
 
+instance ToJSON EvalInstruction
+instance FromJSON EvalInstruction
+
 instance ToJSON MutateType
 instance FromJSON MutateType
 
@@ -120,6 +126,7 @@ instance Serialize ClientMessage
 instance Serialize ServerMessage
 instance Serialize ClientAction
 instance Serialize ServerAction
+instance Serialize EvalInstruction
 instance Serialize MutateType
 -- are legit.
 --------------------------------------------------------------------------------------------------------------

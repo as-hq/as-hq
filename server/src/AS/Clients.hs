@@ -70,7 +70,7 @@ instance Client ASUserClient where
       UpdateWindow win            -> handleUpdateWindow (sessionId user) state win
       -- Import                -> handleImport user state payload
       Export sid                  -> handleExport user state sid
-      Evaluate xp loc             -> handleEval user state xp loc
+      Evaluate xpsAndIndices      -> handleEval user state xpsAndIndices
       -- EvaluateRepl          -> handleEvalRepl user payload
       EvaluateHeader xp           -> handleEvalHeader user state xp
       Get locs                    -> handleGet user state locs
@@ -108,14 +108,16 @@ instance Client ASDaemonClient where
     | dc `elem` dcs = State ucs (L.delete dc dcs) dbc port
     | otherwise = s
   handleServerMessage daemon state message = case (serverAction message) of
-    Evaluate xp loc -> handleEval' daemon state xp loc
+    Evaluate xpsAndIndices -> handleEval' daemon state xpsAndIndices
     where 
-      handleEval' :: ASDaemonClient -> MVar ServerState -> ASExpression -> ASIndex -> IO ()
-      handleEval' dm state xp ind  = do
+      handleEval' :: ASDaemonClient -> MVar ServerState -> [EvalInstruction] -> IO ()
+      handleEval' dm state evalInstructions  = do
+        let xps  = map evalXp evalInstructions
+            inds = map evalLoc evalInstructions 
         conn <- dbConn <$> readMVar state
-        oldProps <- getPropsAt conn ind
-        let cell = Cell ind xp NoValue oldProps
-        errOrUpdate <- runDispatchCycle state [cell] DescendantsWithParent (daemonCommitSource dm) id
+        oldProps <- mapM (getPropsAt conn) inds
+        let cells = map (\(xp, ind, props) -> Cell ind xp NoValue props) $ zip3 xps inds oldProps
+        errOrUpdate <- runDispatchCycle state cells DescendantsWithParent (daemonCommitSource dm) id
         either (const $ return ()) (broadcastSheetUpdate state) errOrUpdate
       -- difference between this and handleEval being that it can't take back a failure message. 
       -- yes, code replication, whatever. 

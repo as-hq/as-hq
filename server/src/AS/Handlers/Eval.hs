@@ -22,12 +22,14 @@ import Control.Concurrent
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Eval handler
 
-handleEval :: ASUserClient -> MVar ServerState -> ASExpression -> ASIndex -> IO ()
-handleEval uc state xp ind  = do
+handleEval :: ASUserClient -> MVar ServerState -> [EvalInstruction] -> IO ()
+handleEval uc state evalInstructions  = do
+  let xps  = map evalXp evalInstructions
+      inds = map evalLoc evalInstructions
   conn <- dbConn <$> readMVar state
-  oldProps <- getPropsAt conn ind
-  let cell = Cell ind xp NoValue oldProps
-  errOrUpdate <- runDispatchCycle state [cell] DescendantsWithParent (userCommitSource uc) id
+  oldProps <- mapM (getPropsAt conn) inds
+  let cells = map (\(xp, ind, props) -> Cell ind xp NoValue props) $ zip3 xps inds oldProps
+  errOrUpdate <- runDispatchCycle state cells DescendantsWithParent (userCommitSource uc) id
   broadcastErrOrUpdate state uc errOrUpdate
 
 -- not maintaining right now (Alex 12/28)

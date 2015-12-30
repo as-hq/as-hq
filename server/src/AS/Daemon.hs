@@ -56,7 +56,7 @@ getStreamPropFromExpression _ = Nothing
 -- | Creates a streaming daemon for this cell if one of the tags is a streaming tag. 
 possiblyCreateDaemon :: MVar ServerState -> ASUserId -> ASCell -> IO ()
 possiblyCreateDaemon state owner cell@(Cell loc xp val props) = do 
-  let msg = ServerMessage (Evaluate xp loc)
+  let msg = ServerMessage $ Evaluate [EvalInstruction xp loc]
   case getProp StreamInfoProp props of 
     Nothing -> do 
       let maybeTag = getStreamPropFromExpression xp
