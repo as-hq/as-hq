@@ -16,6 +16,7 @@ data Selection = Selection { activeIndex :: ASIndex, selectedRanges :: [ASRange]
 indicesInSelection :: Selection -> IO [ASIndex]
 indicesInSelection = return . concatMap rangeToIndices . selectedRanges 
 
-instance FromJSON Selection
+-- #needsrefactor currently, only ranges are getting passed in. We should really be adding support for selections. 
 instance ToJSON Selection
+instance FromJSON Selection
 instance Serialize Selection

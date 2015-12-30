@@ -52,8 +52,12 @@ import Control.Exception
 import Control.Applicative
 import Control.Monad.Trans.Either
 
+-- Used solely for acknowledging keepalive messages sent from the frontend. 
 handleAcknowledge :: ASUserClient -> IO ()
-handleAcknowledge uc = WS.sendTextData (userConn uc) ("ACK" :: T.Text)
+handleAcknowledge = handleInitialize 
+
+handleInitialize :: ASUserClient -> IO ()
+handleInitialize uc = WS.sendTextData (userConn uc) ("ACK" :: T.Text)
 
 -- #needsrefactor currently incomplete, and inactive. 
 -- handleNew :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()

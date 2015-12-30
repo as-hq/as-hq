@@ -52,32 +52,32 @@ data ClientAction =
 
 data ServerAction =
     Acknowledge
-  | Initialize {connUserId :: ASUserId, connSheetId :: ASSheetId}
-  | InitializeDaemon {parentUserId :: ASUserId, parentLoc :: ASIndex}
+  | Initialize { connUserId :: ASUserId, connSheetId :: ASSheetId }
+  | InitializeDaemon { parentUserId :: ASUserId, parentLoc :: ASIndex }
   | Open ASSheetId
   | UpdateWindow ASWindow
   -- | Import 
   -- | JumpSelect {jumpRange :: ASRange, jumpOrigin :: ASIndex, isShifted :: Bool, jumpDirection :: Direction}
   | Export ASSheetId
-  | Evaluate ASExpression ASIndex
+  | Evaluate { evalXp :: ASExpression, evalLoc :: ASIndex }
   | EvaluateHeader ASExpression
   | Get [ASIndex]
-  | Delete Selection
+  | Delete ASRange
   | ClearSheetServer ASSheetId
   | Undo 
   | Redo 
-  | Copy ASRange ASRange
-  | Cut  ASRange ASRange
+  | Copy { copyFrom :: ASRange, copyTo :: ASRange }
+  | Cut  { cutFrom :: ASRange, cutTo :: ASRange }
   | ToggleProp CellProp ASRange
   | SetProp CellProp ASRange
   | Repeat Selection
   | BugReport String
   | MutateSheet MutateType
-  | Drag {initialRange :: ASRange, dragRange :: ASRange}
+  | Drag { initialRange :: ASRange, dragRange :: ASRange }
   | Decouple
   | UpdateCondFormatRules CondFormatRuleUpdate
   | SetBarProp BarIndex BarProp
-  | ImportCSV {csvIndex :: ASIndex, csvLang :: ASLanguage, csvFileName :: String}
+  | ImportCSV { csvIndex :: ASIndex, csvLang :: ASLanguage, csvFileName :: String }
   deriving (Show, Read, Eq, Generic)
 
 -- for open, close dialogs

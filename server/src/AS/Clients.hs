@@ -52,13 +52,14 @@ instance Client ASUserClient where
     when (shouldLogAction $ serverAction message) $ do 
       logServerMessage (show message) (userCommitSource user)
       putStrLn "=========================================================="
-      printObj "Message" (show message)
+    printObj "Message" (show message)
     redisConn <- dbConn <$> readMVar state
     storeLastMessage redisConn message (userCommitSource user)
     -- everything commented out here is a thing we are temporarily not supporting, because we only partially implemented them
     -- but don't want to maintain them (Alex 12/28)
     case (serverAction message) of
       Acknowledge                 -> handleAcknowledge user
+      Initialize _ _              -> handleInitialize user 
       -- New                -> handleNew user state payload
       Open sid                    -> handleOpen user state sid
       -- Close                 -> handleClose user state payload

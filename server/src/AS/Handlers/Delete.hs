@@ -21,12 +21,12 @@ import Data.List
 import Control.Concurrent
 import Control.Applicative
 
-handleDelete :: ASUserClient -> MVar ServerState -> Selection -> IO ()
-handleDelete uc state sel = do
+handleDelete :: ASUserClient -> MVar ServerState -> ASRange -> IO ()
+handleDelete uc state rng = do
   conn <- dbConn <$> readMVar state
-  inds <- indicesInSelection sel
+  let inds = rangeToIndices rng
   blankedCells <- map removeBadFormats <$> getBlankedCellsAt conn inds -- need to know the formats at the old locations
-  errOrUpdate <- runDispatchCycle state blankedCells DescendantsWithParent (userCommitSource uc) (modifyUpdateForDelete sel)
+  errOrUpdate <- runDispatchCycle state blankedCells DescendantsWithParent (userCommitSource uc) (modifyUpdateForDelete rng)
   broadcastErrOrUpdate state uc errOrUpdate
 
 -- Deleting a cell keeps some of the formats but deletes others. This is the current list of formats
@@ -45,10 +45,10 @@ removeBadFormats = removeFormats badFormats
 
 -- | Adds the range among the list of locations to delete, and remove all the update cells located within in range. 
 -- #lens
-modifyUpdateForDelete :: Selection -> SheetUpdate -> SheetUpdate
-modifyUpdateForDelete sel (SheetUpdate (Update cs locs) bs ds cfs) = SheetUpdate (Update cs' locs') bs ds cfs 
+modifyUpdateForDelete :: ASRange -> SheetUpdate -> SheetUpdate
+modifyUpdateForDelete rng (SheetUpdate (Update cs locs) bs ds cfs) = SheetUpdate (Update cs' locs') bs ds cfs 
   where 
-    rngs = selectedRanges sel
+    rngs  = [rng] 
     locs' = (map RangeRef rngs) ++ locs
     cellContainedInRange r = rangeContainsIndex r . cellLocation 
     cellContainedInRngs = or <$> sequence (map cellContainedInRange rngs)

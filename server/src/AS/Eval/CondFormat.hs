@@ -49,17 +49,17 @@ ruleToCellTransform conn sid ctx cfr@(CondFormatRule _ rngs condFormatCondition 
     Nothing -> return c
     Just rng -> do
       let tl = getTopLeft rng
-          eval = evalXp conn sid ctx
+          eval = evaluateExpression conn sid ctx
           offset = getIndicesOffset tl l
           shiftXp = shiftExpression offset
-          shiftAndEvalXp = eval . shiftXp
-      mc <- checker condFormatCondition v shiftAndEvalXp
+          shiftAndEvaluateExpression = eval . shiftXp
+      mc <- checker condFormatCondition v shiftAndEvaluateExpression
       if mc
          then return $ Cell l e v (setCondFormatProp format ps)
          else return c
 
-evalXp :: Connection -> ASSheetId -> EvalContext -> ASExpression -> EitherTExec ASValue
-evalXp conn sid ctx xp@(Expression str lang) = do
+evaluateExpression :: Connection -> ASSheetId -> EvalContext -> ASExpression -> EitherTExec ASValue
+evaluateExpression conn sid ctx xp@(Expression str lang) = do
   let dummyLoc = Index sid (-1,-1) -- #needsrefactor sucks. evaluateLanguage should take in a Maybe index. Until then
       valMap = virtualCellsMap ctx
       deps = getDependencies sid xp -- #needsrefactor will compress these all to indices
