@@ -1944,7 +1944,7 @@ describe('backend', () => {
           _do([
             excel('A1', '10'),
             updateCondFormattingRule(
-              makeIsEmptyCondFormattingFontRuleExcel("A1:A10", "Bold"),
+              makeIsEmptyCondFormattingFontRuleExcel("A1:A10", "Bold")
             ),
             shouldNotHaveProp('A1', 'Bold'),
             delete_('A1'), 
@@ -2377,7 +2377,7 @@ describe('backend', () => {
           _do([
             python('A1', 'range(5)'),
             updateCondFormattingRule(
-              makeIsEmptyCondFormattingFontRuleExcel("A1:A10", "Bold"),
+              makeIsEmptyCondFormattingFontRuleExcel("A1:A10", "Bold")
             ),
             shouldNotHaveProp('A5', 'Bold'),
             shouldHaveProp('A6', 'Bold'),
