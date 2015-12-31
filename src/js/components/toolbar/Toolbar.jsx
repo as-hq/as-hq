@@ -1,5 +1,9 @@
+/* @flow */
+
 import React from 'react';
+// $FlowFixMe: need to create declarations for all of these, but it's complicated.
 import {Toolbar, Styles} from 'material-ui';
+// $FlowFixMe: need to create declarations for all of these, but it's complicated.
 import {IconMenu, MenuItem, IconButton} from 'material-ui';
 
 import API from '../../actions/ASApiActionCreators';
@@ -15,23 +19,42 @@ import ColorPicker from './ColorPicker.jsx';
 import HAlignPicker from './HAlignPicker.jsx';
 import VAlignPicker from './VAlignPicker.jsx';
 
+import type {
+  NakedRange,
+  NakedIndex,
+  ASLanguage,
+  ASExpression,
+  ASValue,
+  ASSheet,
+  ASCellProp,
+  VAlignType,
+  HAlignType
+} from '../../types/Eval';
 
-export default React.createClass({
+
+type ToolbarProps = {
+  toolbarHeight: number; 
+};
+
+type ToolbarDefaultProps = {
+  toolbarHeight: number; 
+};
+
+type ToolbarState = {};
+
+export default class ASToolbar
+  extends React.Component<ToolbarDefaultProps, ToolbarProps, ToolbarState>
+{
+
+  constructor(props: ToolbarProps) {
+    super(props);
+  }
 
   /*************************************************************************************************************************/
   // React methods
 
-  propTypes: {
-    toolbarHeight: React.PropTypes.number
-  },
-
-  getDefaultProps() {
-    return {
-      toolbarHeight: 50
-    };
-  },
-
-  getStyles() {
+  // #needsrefactor should go into global styles folder...
+  getStyles(): any {
     return {
       // Because we're using inline-block, the height should all be the same for the elements on the toolbar, otherwise things
       // screw up because CSS. This is a reasonable restriction anyway, so I'm not debugging it further (Ritesh 12/17)
@@ -54,12 +77,12 @@ export default React.createClass({
         width: 2
       }
     }
-  },
+  }
 
   /*************************************************************************************************************************/
   // Render
 
-  render() {
+  render(): React.Element {
 
     let {toolbarStyle, separatorStyle} = this.getStyles();
     let shiftRight = <div style={{display: 'inline-block', marginLeft: 50, position: 'relative'}} />;
@@ -95,7 +118,7 @@ export default React.createClass({
         <MoreFormatDropdown />
 
         <div style={separatorStyle} />
-        <LanguagePicker language={this.props.language} onSelectLanguage={this.props.onSelectLanguage}/>
+        <LanguagePicker />
         <div style={separatorStyle} />
         <FontPicker />
         <div style={separatorStyle} />
@@ -137,5 +160,14 @@ export default React.createClass({
       </div>
     );
   }
+}
 
-});
+
+
+ASToolbar.defaultProps = {
+  toolbarHeight: 50
+};
+
+ASToolbar.propTypes = {
+  toolbarHeight: React.PropTypes.number
+};
