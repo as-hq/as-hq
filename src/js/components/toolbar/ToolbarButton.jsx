@@ -162,7 +162,6 @@ export default class ToolbarButton
     };
   }
 
-  render() {
   render(): React.Element {
     let {pushedColor, buttonStyle, iconStyle, arrowStyle, arrowSepStyle} = this.getStyles();
     if (this.state.pushed) {
