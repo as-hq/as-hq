@@ -12,7 +12,6 @@ import ExpActionCreator from '../../actions/ASExpActionCreators.js';
 
 import type {
   MenuProps,
-  LanguageMenuOption, 
   ToolbarControlProps
 } from '../../types/Toolbar';
 
@@ -22,6 +21,10 @@ import type {
   ASCell
 } from '../../types/Eval';
 
+type LanguageMenuOption = { 
+  name: string; 
+  shortcut: string; 
+};
 
 type LanguagePickerProps = {
 };
