@@ -1,55 +1,70 @@
+/* @flow */
+
 import React from 'react';
 import AceEditor from './AceEditor.jsx';
 import ActionCreator from '../actions/ASCodeEditorActionCreators';
 import Constants from '../Constants';
 import Toolbar from './toolbar/Toolbar.jsx';
 
-require('brace/mode/python');
-require('brace/mode/r');
-require('brace/mode/ocaml');
-require('brace/mode/mysql');
-require('brace/mode/java');
-require('brace/mode/c_cpp');
-require('brace/theme/monokai');
+import type {
+  ASFocusType
+} from '../types/State';
 
-export default React.createClass({
+type ASCodeEditorProps = { 
+  handleEditorFocus: () => void; 
+  hideToast: () => void; 
+  setFocus: (elem: ASFocusType) => void; 
+  onDeferredKey: (e: SyntheticKeyboardEvent) => void; 
+  maxLines: number; 
+  theme: string; 
+  value: string; 
+  width: string; 
+  height: string; 
+}
 
-  /*************************************************************************************************************************/
-  // React methods
+type ASCodeEditorDefaultProps = {
+  theme: string;
+};
 
-  propTypes: {
-    onDeferredKey: React.PropTypes.func.isRequired
-  },
+export default class ASCodeEditor
+  extends React.Component<ASCodeEditorDefaultProps, ASCodeEditorProps, {}>
+{
+  constructor(props: ASCodeEditorProps) {
+    super(props);
+  }
 
-  getDefaultProps() {
-    return {
-      theme: 'monokai'
+  render(): React.Element {
+    const {theme, value, width, height} = this.props;
+    const outerStyle = {
+      display: 'flex',
+      flexDirection: 'column',
+      flexGrow: 0,
+      flexShrink: 0,
+      flexBasis: 'auto'
     };
-  },
 
-  /*************************************************************************************************************************/
-  // Render
-
-  render() {
-    let {theme, value, width, height} = this.props;
     return (
-      <div>
-        <Toolbar/>
+      <div style={outerStyle}>
+        <Toolbar />
         <AceEditor
           ref="editor"
           handleEditorFocus={this.props.handleEditorFocus}
           hideToast={this.props.hideToast}
           theme={theme}
-          width={width} 
-          height={height}
+          width="100%"
+          height="100%"
           maxLines={this.props.maxLines}
           setFocus={this.props.setFocus}
           onDeferredKey={this.props.onDeferredKey} />
       </div>
     );
-  },
-
-  _onTest() {
-    window.test();
   }
-});
+}
+
+ASCodeEditor.propTypes = {
+  onDeferredKey: React.PropTypes.func.isRequired
+};
+
+ASCodeEditor.defaultProps = {
+  theme: 'monokai'
+};

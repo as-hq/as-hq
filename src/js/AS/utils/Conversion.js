@@ -26,11 +26,10 @@ import type {
 } from '../../types/State';
 
 import type {
-  PayloadSelection,
   ASBackendWorkbookSheet,
   ASClientWindow,
-  ASMessageAction,
-  ASClientMessage
+  ServerMessage, 
+  EvalInstruction
 } from '../../types/Messages';
 
 import Location from './Location';
@@ -43,36 +42,12 @@ let CU = {
   /**************************************************************************************************************************/
   /* Type constructors */
 
-  makeClientMessage(
-    action: ASMessageAction,
-    payloadTag: string,
-    payloadContents: any
-  ): ASClientMessage {
-    return CU.makeClientMessageRaw(action, { "tag": payloadTag,
-                                               "contents": payloadContents });
-  },
-
-  makeClientMessageRaw(
-    action: ASMessageAction,
-    payload: any
-  ): ASClientMessage {
-    return { "action": action, "payload": payload };
-  },
-
-  makeEvalCell(asIndex: ASIndex, xpObj: ASClientExpression): ASCell {
+  makeEvalInstruction(asIndex: ASIndex, xpObj: ASClientExpression): EvalInstruction {
     return  {
-      "cellLocation": asIndex,
-      "cellExpression": {
-        "tag": "Expression",
-        "expression": xpObj.expression,
-        "language": xpObj.language
-      },
-      "cellValue":{
-        "tag": "NoValue",
-        "contents": []
-      },
-      "cellProps": []
-    };
+      tag: "EvalInstruction", 
+      evalXp: xpObj, 
+      evalLoc: asIndex
+    }; 
   },
 
   makeEmptyCell(asIndex?: ASIndex): ASCell {
@@ -217,7 +192,7 @@ let CU = {
         {range, sheetId} = rng;
     for (var r = range.tl.row; r <= range.br.row; r++) {
       for (var c = range.tl.col; c <= range.br.col; c++) {
-        inds.push(this.simpleToASIndex({row: r, col: c}, sheetId));
+        inds.push(CU.simpleToASIndex({row: r, col: c}, sheetId));
       }
     }
     return inds;
@@ -226,7 +201,7 @@ let CU = {
   asLocsToASIndices(locs: Array<ASLocation>): Array<ASIndex> { 
     let indicesList = locs.map((l) => { 
       switch (l.tag) { 
-        case 'range': return this.asRangeToASIndices(l); 
+        case 'range': return CU.asRangeToASIndices(l); 
         case 'index': return [l]; 
         default: throw "tag invalid in a location passed into asLocsToASIndices"; 
       }
@@ -279,10 +254,6 @@ let CU = {
 
   asLocationToSimple(loc: ASLocation): NakedRange {
     return (loc.tag === 'index') ? {tl: loc.index, br: loc.index} : loc.range;
-  },
-
-  asSelectionToSimple(sel: PayloadSelection): ASSelection {
-    return {range: sel.selectionRange.range, origin: sel.selectionOrigin.index};
   },
 
   colorToHtml(str: string): string {

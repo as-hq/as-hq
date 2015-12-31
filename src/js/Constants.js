@@ -73,9 +73,7 @@ var Constants = Object.assign({
   gridXOffset: 25, // margin between left edge of div and cells
   gridYOffset: 22, // '' top edge ''
 
-  editorHeight: 60,
-  codeBarHeight:60,
-  topbarTotalHeight: 200, // height of everything except pane
+  editorHeight: 200,
 
   // Each time you add an action, add it here... They should be past-tense
   ActionTypes: keyMirror({
@@ -143,38 +141,6 @@ var Constants = Object.assign({
     'Python': 'python',
     'R': 'r',
     'SQL': 'mysql'
-  },
-
-  ServerActions: {
-    NoAction: "NoAction",
-    Acknowledge: "Acknowledge",
-    Evaluate: "Evaluate",
-    Get: "Get",
-    Delete: "Delete",
-    Undo: "Undo",
-    Redo: "Redo",
-    Clear: "Clear",
-    Copy: "Copy",
-    Cut: "Cut",
-    Repeat: "Repeat",
-    UpdateWindow: "UpdateWindow",
-    Open: "Open",
-    Close: "Close",
-    Import: "Import",
-    Repl: "EvaluateRepl",
-    EvalHeader: "EvaluateHeader",
-    New: "New",
-    Find: "Find",
-    BugReport: "BugReport",
-    ToggleProp: "ToggleProp",
-    SetProp: "SetProp",
-    JumpSelect: "JumpSelect",
-    MutateSheet: "MutateSheet",
-    Drag: "Drag",
-    Decouple: "Decouple",
-    UpdateCondFormatRules: "UpdateCondFormatRules",
-    SetBarProp: "SetBarProp",
-    ImportCSV: "ImportCSV"
   },
 
   CursorPosition:{

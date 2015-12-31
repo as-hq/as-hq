@@ -68,17 +68,17 @@ const ASExpStore = Object.assign({}, BaseStore, {
   dispatcherIndex: Dispatcher.register(function (action) {
     logDebug("Exp Store detected dispatcher payload");
     switch (action._type) {
-      case Constants.ActionTypes.EDITOR_CHANGED:
-      case Constants.ActionTypes.TEXTBOX_CHANGED:
+      case 'EDITOR_CHANGED':
+      case 'TEXTBOX_CHANGED':
         ASExpStore.updateStoreNormalTyping(action._type, action.xpStr);
         break;
-      case Constants.ActionTypes.GRID_KEY_PRESSED:
+      case 'GRID_KEY_PRESSED':
         ASExpStore.updateStoreNormalTyping(action._type, action.xpStr, action.cursorPos);
         break;
-      case Constants.ActionTypes.NORMAL_SEL_CHANGED:
+      case 'NORMAL_SEL_CHANGED':
         ASExpStore.updateStoreSelChange(action.xpStr);
         break;
-      case Constants.ActionTypes.PARTIAL_REF_CHANGE_WITH_GRID:
+      case 'PARTIAL_REF_CHANGE_WITH_GRID':
         let curXpStr = ASExpStore.getExpression(),
             lastRef = ASExpStore.getLastRef(),
             newXpStr = lastRef ?
@@ -86,29 +86,29 @@ const ASExpStore = Object.assign({}, BaseStore, {
               curXpStr + action.excelStr;
         ASExpStore.updatePartialRef(action._type, newXpStr, action.excelStr);
         break;
-      case Constants.ActionTypes.PARTIAL_REF_CHANGE_WITH_EDITOR:
-      case Constants.ActionTypes.PARTIAL_REF_CHANGE_WITH_TEXTBOX:
+      case 'PARTIAL_REF_CHANGE_WITH_EDITOR':
+      case 'PARTIAL_REF_CHANGE_WITH_TEXTBOX':
         ASExpStore.updatePartialRef(action._type,action.xpStr,action.excelStr);
         break;
-      case Constants.ActionTypes.ESC_PRESSED:
+      case 'ESC_PRESSED':
         ASExpStore.setExpression("");
         ASExpStore.setUserIsTyping(false);
         ASExpStore.setXpChangeOrigin(action._type);
         ASExpStore.emitChange();
         break;
       // Also need to update after some "Eval"-type events
-      case Constants.ActionTypes.GOT_UNDO:
-      case Constants.ActionTypes.GOT_REDO:
-      case Constants.ActionTypes.GOT_UPDATED_CELLS:
+      case 'GOT_UNDO':
+      case 'GOT_REDO':
+      case 'GOT_UPDATED_CELLS':
         Dispatcher.waitFor([CellStore.dispatcherIndex]);
         SelectionStore.withActiveSelection(({origin}) => {
           let cell = CellStore.getCell(origin);
           ASExpStore.updateOnBackendChange(cell);
         });
         break;
-      // This action is called when the toolbar's language picker or a shortcut toggles a language. 
+      // This action is called when the toolbar's language picker or a shortcut toggles a language.
       // In this case, we want the default language to reflect this user change, in addition to the current language.
-      case Constants.ActionTypes.LANGUAGE_TOGGLED:
+      case 'LANGUAGE_TOGGLED':
         ASExpStore.setLanguage(action.lang);
         ASExpStore.setDefaultLanguage(action.lang);
         ASExpStore.setXpChangeOrigin(action._type);
@@ -225,20 +225,38 @@ const ASExpStore = Object.assign({}, BaseStore, {
   // Inserting ref helpers
 
   editorCanInsertRef(editor) : boolean {
-    return this.getLastCursorPosition() === Constants.CursorPosition.EDITOR ?
-      _data.refInsertionBypass || Util.Parsing.canInsertCellRef(editor,this.getLastRef()) : false;
+    if ((ASExpStore.getLastCursorPosition() === Constants.CursorPosition.EDITOR)) {
+      if (_data.refInsertionBypass) {
+        return true;
+      }
+
+      let lastRef = ASExpStore.getLastRef();
+      if (lastRef != null) {
+        return Util.Parsing.canInsertCellRef(editor, lastRef);
+      }
+    }
+    return false;
   },
 
   textBoxCanInsertRef(editor) : boolean {
-    return this.getLastCursorPosition() === Constants.CursorPosition.TEXTBOX ?
-      _data.refInsertionBypass || Util.Parsing.canInsertCellRef(editor,this.getLastRef()) : false;
+    if ((ASExpStore.getLastCursorPosition() === Constants.CursorPosition.TEXTBOX)) {
+      if (_data.refInsertionBypass) {
+        return true;
+      }
+
+      let lastRef = ASExpStore.getLastRef();
+      if (lastRef != null) {
+        return Util.Parsing.canInsertCellRef(editor, lastRef);
+      }
+    }
+    return false;
   },
 
   gridCanInsertRef() : boolean {
     let gridCanInsertRef = false;
-    if (this.getLastCursorPosition() === Constants.CursorPosition.GRID) {
-      let xp = this.getExpression(),
-          lRef = this.getLastRef();
+    if (ASExpStore.getLastCursorPosition() === Constants.CursorPosition.GRID) {
+      let xp = ASExpStore.getExpression(),
+          lRef = ASExpStore.getLastRef();
       gridCanInsertRef = lRef ?
         Util.Parsing.canInsertCellRefAfterPrefix(xp.substring(0,xp.length-lRef.length)) :
         Util.Parsing.canInsertCellRefAfterPrefix(xp);
@@ -253,56 +271,56 @@ const ASExpStore = Object.assign({}, BaseStore, {
   // Checks if you're newly adding text to a cell with a % in it.
   shouldHandlePercentFormat() {
     let percentProp = {tag: "ValueFormat", formatType: 'Percentage'},
-        wasTyping = this.getUserIsTyping(),
+        wasTyping = ASExpStore.getUserIsTyping(),
         cell = CellStore.getActiveCell();
     return (!wasTyping && cell != undefined && Util.Cell.cellHasProp(percentProp, cell));
   },
 
   updateStoreNormalTyping(type, xpStr, cursorPos) {
-    this.setXpChangeOrigin(type);
-    this.setExpression(xpStr);
-    this.setCursorPos(cursorPos);
-    this.setUserIsTyping(true);
-    this.setLastRef(null); // no longer have a "last ref"
-    let lang = this.getLanguage(),
+    ASExpStore.setXpChangeOrigin(type);
+    ASExpStore.setExpression(xpStr);
+    ASExpStore.setCursorPos(cursorPos);
+    ASExpStore.setUserIsTyping(true);
+    ASExpStore.setLastRef(null); // no longer have a "last ref"
+    let lang = ASExpStore.getLanguage(),
         deps = Util.Parsing.parseDependencies(xpStr, lang);
     logDebug("DEPS: " + JSON.stringify(deps));
     CellStore.setActiveCellDependencies(deps);
-    this.emitChange();
+    ASExpStore.emitChange();
   },
 
   updateStoreSelChange(xpStr : string) {
-    this.setUserIsTyping(false);
-    this.setXpChangeOrigin(Constants.ActionTypes.NORMAL_SEL_CHANGED);
-    this.setExpression(xpStr);
-    this.setLastRef(null); // no longer have a "last ref"
-    this.emitChange();
+    ASExpStore.setUserIsTyping(false);
+    ASExpStore.setXpChangeOrigin(Constants.ActionTypes.NORMAL_SEL_CHANGED);
+    ASExpStore.setExpression(xpStr);
+    ASExpStore.setLastRef(null); // no longer have a "last ref"
+    ASExpStore.emitChange();
   },
 
   updatePartialRef(type : string, xpStr : string, excelStr : string) {
-    this.setXpChangeOrigin(type);
-    this.setLastRef(excelStr);
-    this.setExpression(xpStr);
-    let lang = this.getLanguage();
+    ASExpStore.setXpChangeOrigin(type);
+    ASExpStore.setLastRef(excelStr);
+    ASExpStore.setExpression(xpStr);
+    let lang = ASExpStore.getLanguage();
     CellStore.setActiveCellDependencies(Util.Parsing.parseDependencies(xpStr, lang));
-    this.emitChange();
+    ASExpStore.emitChange();
   },
 
   updateOnBackendChange(cell : ?ASCell) {
     // Only do these changes if the user isn't typing (has evalled)
     // Needed bc eval broadcasts to all users, but we don't want to do these things (like changing the expression) for all users
-    if (!this.getUserIsTyping()) {
+    if (!ASExpStore.getUserIsTyping()) {
       if (cell != null) {
         if (cell.cellExpression != null) {
-          this.setExpression(cell.cellExpression.expression);
+          ASExpStore.setExpression(cell.cellExpression.expression);
         }
       } else {
-        this.setExpression('');
+        ASExpStore.setExpression('');
       }
-      this.setUserIsTyping(false);
-      this.setXpChangeOrigin(Constants.ActionTypes.BACKEND_UPDATED_AND_CELLS_CHANGED);
-      this.setLastRef(null);
-      this.emitChange();
+      ASExpStore.setUserIsTyping(false);
+      ASExpStore.setXpChangeOrigin(Constants.ActionTypes.BACKEND_UPDATED_AND_CELLS_CHANGED);
+      ASExpStore.setLastRef(null);
+      ASExpStore.emitChange();
     }
   }
 

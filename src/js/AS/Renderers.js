@@ -12,6 +12,8 @@ import type {
   ASSelection
 } from '../types/Eval';
 
+import CellStore from '../stores/ASCellStore';
+
 let _renderParams : RenderParams = {
   mode: null, // null mode indicates normal behavior; any other string indicates otherwise
   deps: [],
@@ -27,7 +29,8 @@ let _renderParams : RenderParams = {
   draggedBoxSelection: null
 };
 
-export default {
+// I suspect this file should get split up
+const Renderers = {
 
   /*************************************************************************************************************************/
   // Getter and setters for blue box
@@ -91,10 +94,10 @@ export default {
       return false;
     }
     let {origin, extent} = _renderParams.selectionRect;
-    return (this.withinSegment(pX, origin.x, extent.x) && (this.withinSegment(pY, origin.y, 0) ||
-                                                 this.withinSegment(pY, origin.y + extent.y, 0)))
-        || (this.withinSegment(pY, origin.y, extent.y) && (this.withinSegment(pX, origin.x, 0) ||
-                                                 this.withinSegment(pX, origin.x + extent.x, 0)));
+    return (Renderers.withinSegment(pX, origin.x, extent.x) && (Renderers.withinSegment(pY, origin.y, 0) ||
+                                                 Renderers.withinSegment(pY, origin.y + extent.y, 0)))
+        || (Renderers.withinSegment(pY, origin.y, extent.y) && (Renderers.withinSegment(pX, origin.x, 0) ||
+                                                 Renderers.withinSegment(pX, origin.x + extent.x, 0)));
   },
 
   underline(config: HGRendererConfig, gc: GraphicsContext, text: string, x: number, y: number, thickness: number) {
@@ -242,6 +245,31 @@ export default {
       this.config.minWidth = this.config.minWidth + 2 * (iconWidth);
     }
   }: HGRendererObject),
+
+  getCellRenderer(config: HGRendererConfig): HGRendererObject {
+    let renderer = Renderers.defaultCellRenderer,
+        col = config.x + 1,
+        row = config.y + 1,
+        cell = CellStore.getCell({col: col, row: row});
+
+    // tag-based cell styling
+    if (cell !== null && cell !== undefined) {
+      Util.Render.valueToRenderConfig(config, cell.cellValue);
+      if (cell.cellExpression.expandingType) {
+        Util.Render.expandingTypeToRenderConfig(config, cell.cellExpression.expandingType);
+      }
+
+      // props take highest precedence
+      if (cell.cellProps.length > 0) { // props take higher precedence
+        Util.Render.propsToRenderConfig(config, cell.cellProps);
+      }
+    } else {
+      config.halign = 'center';
+    }
+
+    renderer.config = config;
+    return renderer;
+  },
 
   selectionRenderer(gc: GraphicsContext) {
     if (_renderParams.selection === null || _renderParams.selection === undefined) return;
@@ -401,5 +429,6 @@ export default {
       }
     }
   }
+};
 
-}
+export default Renderers;

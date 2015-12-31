@@ -44,14 +44,16 @@ import _Styles from '../styles/ASErrorPane';
 import _ from 'lodash';
 
 type ASErrorPaneProps = {
-  style: {[key: string]: any};
+  style?: {[key: string]: any};
   onRequestSelect: Callback<NakedIndex>;
+  open: boolean;
 };
 
 type ASErrorPaneState = {
   currentSelection: ?ASSelection;
   errors: Array<ASClientError>;
   onlyCurrentCell: boolean;
+  selectedRow: number;
 };
 
 export default class ASErrorPane
@@ -63,7 +65,8 @@ export default class ASErrorPane
     this.state = {
       currentSelection: null,
       errors: [],
-      onlyCurrentCell: true
+      onlyCurrentCell: true,
+      selectedRow: -1
     };
   }
 
@@ -100,10 +103,15 @@ export default class ASErrorPane
 
   render(): React.Element {
     let errors = this._getCurrentErrorList();
+    let {open} = this.props;
+    let {selectedRow} = this.state;
 
     return (
       <Paper style={_Styles.root}>
-        <div style={_Styles.showAllContainer}>
+        <div style={{
+          ..._Styles.showAllContainer,
+          ...(open ? { } : { display: 'none' })
+        }}>
           <div style={_Styles.showAllLabel}>
             Show only errors from current cell
           </div>
@@ -137,12 +145,13 @@ export default class ASErrorPane
           <TableBody
             displayRowCheckbox={false}
             stripedRows={true}
-            selectable={false}
+            selectable={true}
             style={_Styles.tbody}>
             {errors.map(({location, language, msg}, rowIdx) =>
               <TableRow
                 style={_Styles.tr(rowIdx)}
-                displayBorder={false}>
+                displayBorder={false}
+                selected={selectedRow === rowIdx} >
                 {[
                   TC.rangeToExcel(TC.indexToRange(location)),
                   language,
@@ -187,5 +196,8 @@ export default class ASErrorPane
     console.log('request select', location);
 
     this.props.onRequestSelect(location);
+    this.setState({
+      selectedRow: row
+    });
   }
 }

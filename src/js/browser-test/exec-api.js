@@ -24,7 +24,10 @@ import type {
 } from '../types/Eval';
 
 import type {
-  ASServerMessage,
+  ClientMessage
+} from '../types/Messages';
+
+import type {
   CondFormatRule,
   CondFormatCondition,
   CustomCondition,
@@ -37,7 +40,7 @@ import type {
   IsEmptyCondition,
   IsNotEmptyCondition,
   IsBetweenCondition,
-} from '../types/Messages';
+} from '../types/CondFormat';
 
 import type {
   ASTestLanguage,
@@ -278,7 +281,7 @@ export function decouple(): Prf {
 
 export function delete_(rng: string): Prf {
   return apiExec(() => {
-    API.deleteRange(U.Conversion.simpleToASRange(rangeFromExcel(rng)));
+    API.deleteRange(rangeFromExcel(rng));
   });
 }
 
@@ -355,8 +358,8 @@ function makeCondFormattingRuleExcel(cond: CondFormatCondition, rng: string, pro
     condFormatRuleId: U.Render.getUniqueId(), 
     condition: cond,
     cellLocs: [U.Conversion.simpleToASRange(rangeFromExcel(rng))],
-    // $FlowFixMe
     condFormat: {
+      // $FlowFixMe
       tag: prop,
       contents: []
     }
@@ -521,13 +524,14 @@ export function responseShouldSatisfy<A>(prf: Prf<A>, fn: (a: A) => boolean): Pr
       expect(fn(result)).toBe(true);
       fulfill();
     }).catch((error) => {
+      console.log("Failure in responseShouldSatisfy.", error)
       reject(error);
     });
   });
 }
 
 export function shouldError(prf: Prf): Prf {
-  return responseShouldSatisfy(prf, ({ result: { tag } }) => tag === 'Failure');
+  return responseShouldSatisfy(prf, ({ clientAction: { tag } }) => tag === 'ShowFailureMessage');
 }
 
 export function messageShouldSatisfy(loc: string, fn: (cs: Array<ASCell>) => void): Prf {
@@ -535,19 +539,21 @@ export function messageShouldSatisfy(loc: string, fn: (cs: Array<ASCell>) => voi
     API.test(() => {
       API.getIndices([ asIndex(loc) ]);
     }, {
-      fulfill: (result: ?ASServerMessage) => {
+      fulfill: (result: ?ClientMessage) => {
         if (! result) {
+          console.log("Null message received from server");
           reject();
           return;
         }
 
-        let {payload} = result;
-        if (payload.tag !== 'PayloadSheetUpdate') {
+        let {clientAction} = result;
+        if (clientAction.tag !== 'UpdateSheet') {
+          console.log("Message was not a sheet update. This is what it was: ", clientAction);
           reject();
           return;
         }
 
-        let {contents: {cellUpdates: {newVals: cs}}} = payload;
+        let {contents: {cellUpdates: {newVals: cs}}} = clientAction;
         fn(cs);
 
         fulfill();
@@ -662,13 +668,14 @@ export function shouldBeL(locs: Array<string>, vals: Array<ASValue>): Prf {
     API.test(() => {
       API.getIndices(locs.map(asIndex));
     }, {
-      fulfill: (result: ?ASServerMessage) => {
-        if (! result || result.payload.tag !== 'PayloadSheetUpdate') {
+      fulfill: (result: ?ClientMessage) => {
+        if (result == null || result.clientAction.tag !== 'UpdateSheet') {
+          console.log("result tag is not a SheetUpdate; instead, it was", result); 
           reject();
           return;
         }
 
-        let cellValues = result.payload.contents.cellUpdates.newVals.map((x) => x.cellValue);
+        let cellValues = result.clientAction.contents.cellUpdates.newVals.map((x) => x.cellValue);
 
         expect(_.
             zip(cellValues, vals).

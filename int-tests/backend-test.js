@@ -1199,112 +1199,6 @@ describe('backend', () => {
 
       });
 
-
-      describe('A:A and  1:1 parsing tests', () => {
-        xit ('A:A should display ranges properly', (done) => {
-          _do([
-            python('A1', '[range(10)]'),
-            python('B1', 'A:A'),
-            python('C1', 'A1:A'),
-            shouldBe('B9', valueI(8)),
-            shouldBe('B10', valueI(9)),
-            shouldBe('C10', valueI(9)),
-            exec(done)
-          ]);
-        });
-        xit ('A2:A should display ranges properly', (done) => {
-          _do([
-            python('A1', '[range(10)]'),
-            python('B1', 'A2:A'),
-            shouldBe('B1', valueI(1)),
-            shouldBe('B9', valueI(9)),
-            exec(done)
-          ]);
-        });
-        xit ('A2:B should display ranges properly', (done) => {
-          _do([
-            python('A1', '[range(10)]'),
-            python('B1', 'A:A'),
-            python('C1', 'A2:B'),
-            shouldBe('C1', valueI(1)),
-            shouldBe('D1', valueI(1)),
-            shouldBe('C7', valueI(7)),
-            shouldBe('D7', valueI(7)),
-            shouldBe('C8', valueI(8)),
-            shouldBe('D8', valueI(8)),
-            shouldBe('C9', valueI(9)),
-            shouldBe('D9', valueI(9)),
-            exec(done)
-          ]);
-        });
-        xit ('A:B should display ranges properly', (done) => {
-          _do([
-            python('A1', '[range(10)]'),
-            python('B1', 'A2:A'),
-            python('B10', '1'),
-            python('C1', 'A:B'),
-            shouldBe('B9', valueI(9)),
-            shouldBe('C1', valueI(2)),
-            shouldBe('D1', valueI(2)),
-            shouldBe('C7', valueI(3)),
-            shouldBe('D7', valueI(3)),
-            shouldBe('C8', valueI(7)),
-            shouldBe('D8', valueI(7)),
-            shouldBe('C10', noValue()),
-            shouldBe('D10', noValue()),
-            exec(done)
-          ]);
-        });
-        xit ('1:1 should display ranges properly', (done) => {
-          _do([
-            python('A1', '[range(10)]'),
-            python('B1', '1:1'),
-            shouldBe('B1', valueI(0)),
-            shouldBe('B2', noValue()),
-            exec(done)
-          ]);
-        });
-        xit ('Deleting ranges should work with A:A parsing', (done) => {
-          _do([
-            python('A1', '[range(10)]'),
-            delete_('A1'),
-            delete_('A3'),
-            delete_('A4'),
-            delete_('A5'),
-            delete_('A8'),
-            delete_('A9'),
-            python('B1', 'A:A'),
-            shouldBe('B1', noValue()),
-            shouldBe('B2', valueI(1)),
-            shouldBe('B3', noValue()),
-            shouldBe('B9', noValue()),
-            shouldBe('B10', valueI(9)),
-            exec(done)
-          ]);
-        });
-
-        xit ('should do undo for A:A', (done) => {
-          _do([
-            python('A1', 'range(10)'),
-            python('B1', 'A:A'),
-            undo(),
-            shouldBe('B1', noValue()),
-            shouldBe('B4', noValue()),
-            shouldBe('B10', noValue()),
-            shouldBe('A1', noValue()),
-            exec(done)
-          ]);
-        });
-        xit ('should redo on Ctrl+Y after undo for A:A', (done) => {
-          _do([
-            //TODO: timchu
-            python('A1', 'range(10)'),
-            shouldBe('A1', 1),
-            exec(done)
-            ]);
-        });
-      });
-
       describe('row/col insertion, deletion, and swapping', () => {
         describe('row insertion', () => {
           it ('should move cells to correct locations', (done) => {
@@ -2038,9 +1932,23 @@ describe('backend', () => {
             excel('A2', '$100'),
             excel('A3', '50%'),
             delete_('A1'), delete_('A2'), delete_('A3'),
+            shouldBeNothing('A1'), shouldBeNothing('A2'), shouldBeNothing('A3'), 
             shouldNotHaveProp('A1', 'ValueFormat'),
             shouldHaveProp('A2', 'ValueFormat', 'Money'),
             shouldHaveProp('A3', 'ValueFormat', 'Percent'),
+            exec(done)
+          ]);
+        });
+
+        it ('should conditionally format a freshly deleted cell', (done) => {
+          _do([
+            excel('A1', '10'),
+            updateCondFormattingRule(
+              makeIsEmptyCondFormattingFontRuleExcel("A1:A10", "Bold"),
+            ),
+            shouldNotHaveProp('A1', 'Bold'),
+            delete_('A1'), 
+            shouldHaveProp('A1', 'Bold'),
             exec(done)
           ]);
         });
@@ -2203,7 +2111,8 @@ describe('backend', () => {
         });
       });
 
-      describe('repeat', () => {
+      // Currently not supporting (Alex 12/29)
+      xdescribe('repeat', () => {
         it ('should repeat eval on Ctrl+Y', (done) => {
           _do([
             python('A1', '1'),
@@ -2446,10 +2355,10 @@ describe('backend', () => {
         });
       });
 
-      // TODO: timchu 12/17/15, these tests do not comprehensively test if
+      // #incomplete timchu 12/17/15, these tests do not comprehensively test if
       // cond formatting condtions in predefined functions like GeqCondition shift
       // properly.
-      describe('Testing predefined in functions in Conditional Formatting', () => {
+      describe('Predefined functions in conditional formatting', () => {
         it ('formats bold on IsNotEmptyCondition properly', (done) => {
           _do([
             python('A1', 'range(5)'),
@@ -2463,6 +2372,7 @@ describe('backend', () => {
             exec(done)
           ]);
         });
+
         it ('formats bold on IsEmptyCondition properly', (done) => {
           _do([
             python('A1', 'range(5)'),
@@ -2475,7 +2385,8 @@ describe('backend', () => {
             shouldHaveProp('A9', 'Bold'),
             exec(done)
           ]);
-        })
+        }); 
+
         it ('formats bold on GreaterThanCondition properly, and correctly evaluates expression passed into GreaterThanCondition', (done) => {
           _do([
             python('A1', 'range(10)'),
@@ -2508,6 +2419,7 @@ describe('backend', () => {
             exec(done)
           ]);
         });
+
         it ('formats bold on EqualsCondition properly', (done) => {
           _do([
             python('A1', 'range(10)'),
@@ -2522,6 +2434,7 @@ describe('backend', () => {
             exec(done)
           ]);
         });
+
         it ('formats bold on GeqCondition properly', (done) => {
           _do([
             python('A1', 'range(10)'),
@@ -2536,6 +2449,7 @@ describe('backend', () => {
             exec(done)
           ]);
         });
+
         it ('formats bold on LeqCondition properly', (done) => {
           _do([
             python('A1', 'range(10)'),
@@ -2550,6 +2464,7 @@ describe('backend', () => {
             exec(done)
           ]);
         });
+
         it ('formats bold on NotEqualsCondition properly', (done) => {
           _do([
             python('A1', 'range(10)'),
@@ -2564,6 +2479,7 @@ describe('backend', () => {
             exec(done)
           ]);
         });
+
         it ('formats bold on IsBetweenCondition properly', (done) => {
           _do([
             python('A1', '1'),
@@ -2583,6 +2499,7 @@ describe('backend', () => {
             exec(done)
           ]);
         });
+
         it ('formats bold on IsNotBetweenCondition properly', (done) => {
           _do([
             python('A1', '1'),
@@ -2602,6 +2519,19 @@ describe('backend', () => {
             exec(done)
           ]);
         });
+
+        it ('formats bold on IsNotBetweenCondition properly for variable expressions', (done) => {
+          _do([
+            python('A1', 'range(10)'),
+            updateCondFormattingRule(
+              makeIsNotBetweenCondFormattingFontRuleExcel("A1:A10", "Bold", "=(A2+1)/2-0.01", "5") // floating point equality problems :(
+            ),
+            shouldHaveProp('A2', 'Bold'),    // 1 >= 3/2 is false
+            shouldNotHaveProp('A3', 'Bold'), // 2 >= (3+1)/2 - 0.01 is true
+            exec(done)
+          ]);
+        });
+
         // TODO: timchu 12/17/15, the below test does not pass.
         xit ('should not format cells in GreaterThanCondition cond formatting if the expression passed in or the value in the cell being formatted is an error', (done) => {
           _do([
@@ -2624,6 +2554,74 @@ describe('backend', () => {
             exec(done)
           ]);
         });
+      });
+
+      describe('Updating on mutation', () => {
+        it ('shifts formatting rules on column drag', (done) => {
+          _do([
+            python('A1', 'range(5)'),
+            updateCondFormattingRule(
+              makeIsNotEmptyCondFormattingFontRuleExcel("A1:A10", "Bold")
+            ),
+            shouldHaveProp('A5', 'Bold'),
+            dragCol(1, 2), 
+            shouldNotHaveProp('A5', 'Bold'),
+            shouldHaveProp('B5', 'Bold'),
+            python('B6', '1'),
+            shouldHaveProp('B6', 'Bold'),
+            exec(done)
+          ]);
+        });
+
+        it ('shifts conditional formatting expressions on column drag', (done) => {
+          _do([
+            updateCondFormattingRule(
+              makeIsNotBetweenCondFormattingFontRuleExcel("A1:A10", "Bold", "=(A2+1)/2 - 0.01", "5")
+            ),
+            insertRow(1),
+            dragCol(1, 2), 
+            python('B2', 'range(10)'),
+            shouldHaveProp('B3', 'Bold'), 
+            shouldNotHaveProp('B4', 'Bold'),
+            exec(done)
+          ]);
+        });
+
+        it ('handles deleted columns correctly', (done) => {
+          _do([
+            python('B1', 'range(5)'),
+            updateCondFormattingRule(
+              makeIsNotEmptyCondFormattingFontRuleExcel("A1:C10", "Bold")
+            ),
+            deleteCol(3),
+            deleteCol(1),
+            shouldHaveProp('A5', 'Bold'), 
+            shouldNotHaveProp('A6', 'Bold'), 
+            python('A6', '1'),
+            shouldHaveProp('A6', 'Bold'),
+            exec(done)
+          ]);
+        });
+
+        it ('handles deleted rows correctly', (done) => {
+          _do([
+            python('A2', '[range(3)]'),
+            updateCondFormattingRule(
+              makeIsNotEmptyCondFormattingFontRuleExcel("A1:D10", "Bold")
+            ),
+            deleteRow(10),
+            deleteRow(1),
+            shouldHaveProp('C1', 'Bold'), 
+            shouldNotHaveProp('D1', 'Bold'),
+            python('D1', '1'), 
+            shouldHaveProp('D1', 'Bold'),
+            python('A8', '1'), 
+            python('A9', '1'), 
+            shouldHaveProp('A8', 'Bold'),
+            shouldNotHaveProp('A9', 'Bold'),
+            exec(done)
+          ]);
+        })
       });
     });
 
@@ -3014,7 +3012,7 @@ describe('backend', () => {
         API.unsetUITestMode();
       });
 
-      it ('restores connections after failure', (done) => {
+      xit ('restores connections after failure', (done) => {
         _do([
           exec(() => {
             API.withWS((pws) => {
@@ -3035,5 +3033,4 @@ describe('backend', () => {
       });
     });
   });
-
 });

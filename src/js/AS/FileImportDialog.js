@@ -19,7 +19,7 @@ It will then send these files to our file handling Python server via HTTP on bac
 You have the option of also specifying a callback after the HTTP succeeds.
 */
 
-export default {
+const FileImportDialog = {
 
   // Get the URL to POST a file to, casing on remote
   getStaticUrl(): string {
@@ -63,7 +63,7 @@ export default {
     fileSelector.addEventListener("change", (evt) => {
       evt.preventDefault();
       let files = evt.target.files;
-      let req = request.post(this.getStaticUrl());
+      let req = request.post(FileImportDialog.getStaticUrl());
       for (var i = 0; i < files.length; i++) {
         let file = files[i];
         req.attach(file.name, file);
@@ -86,3 +86,5 @@ export default {
   }
 
 };
+
+export default FileImportDialog;

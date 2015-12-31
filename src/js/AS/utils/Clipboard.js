@@ -11,6 +11,10 @@ import type {
 	ASCell
 } from '../../types/Eval';
 
+import type { 
+  EvalInstruction
+} from '../../types/Messages';
+
 import {logDebug} from '../Logger';
 
 import CellStore from '../../stores/ASCellStore';
@@ -19,7 +23,7 @@ import SheetStateStore from '../../stores/ASSheetStateStore';
 import Location from './Location';
 import TC from './Conversion';
 
-export default {
+const Clipboard = {
 
 	/* Generates AS-based html from a list of list of values */
 	valsToHtml(vals: Array<Array<string>>, rng: NakedRange): string {
@@ -78,7 +82,7 @@ export default {
 		logDebug("CONVERTING PLAIN STRING TO VALS: " + s);
 		let rows = s.split('\n'),
 			vals = [],
-			self = this;
+			self = Clipboard;
 		rows.forEach(function(row) {
       vals.push(row.split('\t'));
 		});
@@ -111,12 +115,12 @@ export default {
     if (lang == "Excel") {
       return str;
     } else {
-      if (this._isPlainNumber(str, lang)) {
+      if (Clipboard._isPlainNumber(str, lang)) {
         return str;
       } else if (str.toUpperCase() == "TRUE") {
-        return this.externalStringToBool(true, lang);
+        return Clipboard.externalStringToBool(true, lang);
       } else if (str.toUpperCase() == "FALSE") {
-        return this.externalStringToBool(false, lang);
+        return Clipboard.externalStringToBool(false, lang);
       } else {
         return JSON.stringify(str);
       }
@@ -139,30 +143,32 @@ export default {
     }
   },
 
-  _arrayToASCells(ind: NakedIndex, language: ASLanguage):
-	 	(i: number) => (v: string, j: number) => ASCell {
-    let self = this;
+  _arrayToEvalInstructions(ind: NakedIndex, language: ASLanguage):
+	 	(i: number) => (v: string, j: number) => EvalInstruction {
+    let self = Clipboard;
      return (i) => {
        return (v, j) => {
         let asIndex = TC.simpleToASIndex(Location.shiftIndex(ind, i, j)),
             xpObj = { expression: self.externalStringToExpression(v, language),
                       language: language} ;
-         return TC.makeEvalCell(asIndex, xpObj);
+         return TC.makeEvalInstruction(asIndex, xpObj);
        };
      };
    },
 
-  _rowValuesToASCells(ind: NakedIndex, language: ASLanguage):
-	  (values: Array<string>, i: number) => Array<ASCell> {
-    var self = this;
+  _rowValuesToEvalInstructions(ind: NakedIndex, language: ASLanguage):
+	  (values: Array<string>, i: number) => Array<EvalInstruction> {
+    var self = Clipboard;
     return (values, i) => {
-      return values.map(self._arrayToASCells(ind, language)(i));
+      return values.map(self._arrayToEvalInstructions(ind, language)(i));
     };
   },
 
   // takes in a set of locations and the values at those locations,
-  externalStringsToASCells(ind: NakedIndex, strs: Array<Array<string>>, language: ASLanguage):
-	 	Array<Array<ASCell>> {
-    return strs.map(this._rowValuesToASCells(ind, language));
+  externalStringsToEvalInstructions(ind: NakedIndex, strs: Array<Array<string>>, language: ASLanguage):
+	 	Array<Array<EvalInstruction>> {
+    return strs.map(Clipboard._rowValuesToEvalInstructions(ind, language));
   }
 }
+
+export default Clipboard;

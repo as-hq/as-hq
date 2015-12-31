@@ -15,7 +15,8 @@ import type {
 
 import type {
   ASCursorStyle,
-  ASViewingWindow
+  ASViewingWindow,
+  ASFocusType
 } from '../types/State';
 
 import {logDebug, logError} from '../AS/Logger';
@@ -53,48 +54,90 @@ import ASRightClickMenu from './basic-controls/ASRightClickMenu.jsx';
 import ASOverlay from './ASOverlay.jsx';
 import Textbox from './Textbox.jsx'
 
-import rowHeaderMenuItems from './menus/RowHeaderMenuItems.jsx';
-import columnHeaderMenuItems from './menus/ColumnHeaderMenuItems.jsx';
 // $FlowFixMe: this module clearly exists, but flow can't find it??!
 import Dropzone from 'react-dropzone';
 
+import hgPatches from '../hg-patches/index';
+
 let finRect: HGRectangleElement = (document.createElement('fin-rectangle'): any);
 
-export default React.createClass({
+type ASSpreadsheetDefaultProps = {
+  behavior: string;
+  onReady: () => void;
+};
 
+type ASSpreadsheetProps = {
+  onTextBoxDeferredKey: (e: SyntheticKeyboardEvent) => void;
+  hideToast: () => void;
+  setFocus: (elem: ASFocusType) => void;
+  onReady: () => void;
+  onTextBoxDeferredKey: (e: SyntheticKeyboardEvent) => void;
+  onFileDrop: (files: Array<File>) => void;
+  onSelectionChange: (sel: ASSelection) => void;
+  onNavKeyDown: (e: SyntheticKeyboardEvent) => void;
+  behavior: string;
+  width?: string;
+  height?: string;
+};
+
+type ASSpreadsheetState = {
+  scroll: HGPoint;
+  scrollPixels: HGPoint;
+  overlays: Array<ASOverlaySpec>;
+  cursorStyle: ASCursorStyle;
+  selectionDraggable: boolean;
+};
+
+// REPL stuff is getting temporarily phased out in favor of an Eval Header file. (Alex 11/12)
+export default class ASSpreadsheet
+  extends React.Component<ASSpreadsheetDefaultProps, ASSpreadsheetProps, ASSpreadsheetState>
+{
   /*************************************************************************************************************************/
   // Non-rendering state
 
-  mousePosition: (null: ?HGPoint),
-  mouseDownInBox: false,
-  dragSelectionOrigin: (null: ?NakedIndex),
+  mousePosition: ?HGPoint;
+  mouseDownInBox: boolean;
+  dragSelectionOrigin: ?NakedIndex;
+
+  draggingCol: boolean;
+  draggingRow: boolean;
+  clickedColNum: ?number;
+  clickedRowNum: ?number;
+  resizedColNum: ?number;
+  resizedRowNum: ?number;
+
+  gridProperties: {
+    editorActivationKeys: Array<any>,
+    scrollbarHoverOff: string,
+    columnAutosizing: boolean
+  };
 
   /*************************************************************************************************************************/
   // React methods
 
-  propTypes: {
-    onSelectionChange: React.PropTypes.func.isRequired,
-    onTextBoxDeferredKey: React.PropTypes.func.isRequired,
-    onNavKeyDown: React.PropTypes.func.isRequired,
-    setFocus: React.PropTypes.func.isRequired
-  },
+  constructor(props: ASSpreadsheetDefaultProps) {
+    super(props);
 
-  // TODO: do we actually need behavior??
-  getDefaultProps() {
-    return {
-      behavior: 'default',
-      onReady() { }
-    };
-  },
+    this.mousePosition = null;
+    this.mouseDownInBox = false;
+    this.dragSelectionOrigin = null;
 
-  getInitialState(): ({
-    scroll: HGPoint;
-    scrollPixels: HGPoint;
-    overlays: Array<ASOverlaySpec>;
-    cursorStyle: ASCursorStyle;
-    selectionDraggable: boolean;
-  }) {
-    return {
+    this.draggingCol = false;
+    this.draggingRow = false;
+    this.clickedColNum = null;
+    this.clickedRowNum = null;
+    this.resizedColNum = null;
+    this.resizedRowNum = null;
+
+    this.gridProperties = {
+      editorActivationKeys: [],
+      scrollbarHoverOff: 'visible',
+      columnAutosizing: false,
+      defaultFixedColumnWidth: 35,
+      defaultColumnWidth: 100
+    }
+
+    this.state = {
       // keep scroll values in state so overlays autoscroll with grid
       scroll: { x: 0, y: 0 },
       scrollPixels: { x: 0, y: 0},
@@ -102,104 +145,36 @@ export default React.createClass({
       cursorStyle: 'auto',
       selectionDraggable: false
     };
-  },
-
+  }
 
   componentDidMount() {
     // Be able to respond to events from ExpStore
-    ExpStore.addChangeListener(this._onExpressionChange);
-    BarStore.addChangeListener(this._onBarPropsChange);
-    OverlayStore.addChangeListener(this._onOverlaysChange);
+    ExpStore.addChangeListener(this._onExpressionChange.bind(this));
+    BarStore.addChangeListener(this._onBarPropsChange.bind(this));
+    OverlayStore.addChangeListener(this._onOverlaysChange.bind(this));
+
     // Hypergrid initialization
     document.addEventListener('polymer-ready', () => {
       this.props.onReady();
-      this.initialize();
-      let self = this,
-          hg = this._getHypergrid(),
-          model = hg.getBehavior();
+      this.initHypergrid();
       this.getInitialData();
-
-      hg.autoScrollAcceleration = false;
-      let callbacks = ({
-        /*
-          Call onSelectionChange method in eval pane to deal with selection change
-          Need to also figure out the expression to render in the editor
-        */
-        'fin-selection-changed': function (event) {
-          ExpStore.setClickType(Constants.ClickType.CLICK);
-          self.props.onSelectionChange(self.getSelectionArea());
-        },
-        'fin-scroll-x': function (event) {
-          let scroll = self.getScroll();
-          if (event.detail.oldValue <= event.detail.value) {
-            let newScrollPixels = {
-              x: self.state.scrollPixels.x + hg.getColumnWidth(event.detail.oldValue),
-              y: self.state.scrollPixels.y
-            };
-            self.setState({scrollPixels: newScrollPixels, scroll: scroll});
-          } else {
-            let newScrollPixels = {
-              x: self.state.scrollPixels.x - hg.getColumnWidth(event.detail.value),
-              y: self.state.scrollPixels.y
-            };
-            self.setState({scrollPixels: newScrollPixels, scroll: scroll});
-          }
-          if ((self.getScroll()).x % 20 === 0) {
-            ActionCreator.scroll(self.getViewingWindow());
-          }
-        },
-        'fin-scroll-y': function (event) {
-          let scroll = self.getScroll();
-          if (event.detail.oldValue <= event.detail.value) {
-            let newScrollPixels = {
-              y: self.state.scrollPixels.y + hg.getRowHeight(event.detail.oldValue),
-              x: self.state.scrollPixels.x
-            };
-            self.setState({scrollPixels: newScrollPixels, scroll: scroll});
-          } else {
-            let newScrollPixels = {
-              y: self.state.scrollPixels.y - hg.getRowHeight(event.detail.value),
-              x: self.state.scrollPixels.x
-            };
-            self.setState({scrollPixels: newScrollPixels, scroll: scroll});
-          }
-          if ((self.getScroll()).y % 20 === 0) {
-            ActionCreator.scroll(self.getViewingWindow());
-          }
-        },
-        'fin-double-click': function (event) {
-          // should only fire when double click is inside grid. According to event.detail.gridCell here, 
-          // the top left grid cell is (0,0) which is different from e.g. the event in model.handleMouseDown.  
-          if (event.detail.gridCell.y >= 0 && event.detail.gridCell.x >= 0) {
-            ExpStore.setClickType(Constants.ClickType.DOUBLE_CLICK);
-            self.refs.textbox.updateTextBox(ExpStore.getExpression());
-            self.props.setFocus('textbox');
-          }
-        }
-      });
-
-      let externalCallbacks = {
-      };
-
-      _.forEach(callbacks, (v, k) => {
-        hg.addFinEventListener(k, v);
-      });
-
-      _.forEach(externalCallbacks, (v, k) => {
-        hg.addEventListener(k, v);
-      });
-
-      hg.addGlobalProperties({
-        defaultFixedColumnWidth: 35,
-        defaultColumnWidth: 100,
-        columnAutosizing: false
-      });
     });
-  },
+  }
+
+  initHypergrid() {
+    hgPatches.forEach((patch) => { patch(this); });
+
+    let ind = {row: 1, col: 1};
+
+    // This will make the first selection have properties of a click
+    // Namely, the blue box will show up
+    ExpStore.setClickType(Constants.ClickType.CLICK);
+    this.select({origin: ind, range: {tl: ind, br: ind}}, false);
+  }
 
   componentWillUnmount() {
-    ExpStore.removeChangeListener(this._onExpressionChange);
-  },
+    ExpStore.removeChangeListener(this._onExpressionChange.bind(this));
+  }
 
   /*************************************************************************************************************************/
   // Handle mouse events by overriding hypergrid default
@@ -211,14 +186,14 @@ export default React.createClass({
         pX = origin.x + x,
         pY = origin.y + y;
     return {x: pX, y: pY};
-  },
+  }
 
   drawDraggedSelection(dragOrigin: NakedIndex, selRange: NakedRange, targetX: number, targetY: number) {
     let dX = targetX - dragOrigin.col,
         dY = targetY - dragOrigin.row;
     let range = U.Location.offsetRange(selRange, dY, dX);
     Render.setDragRect(range);
-  },
+  }
 
   // Is the mouse location inside a blue box
   insideBox(event: HGMouseEvent): boolean {
@@ -226,7 +201,7 @@ export default React.createClass({
        topLeftBox = Render.getTopLeftBox(),
        boxWidth   = Render.getBoxWidth();
     return U.Location.mouseLocIsContainedInBox(x,y,topLeftBox,boxWidth);
-  },
+  }
 
   // Semi-recursive function via timeouts -- this is how hypergrid does it
   // Need to scroll even if no mouse event, but you're at the edge of the grid
@@ -266,22 +241,18 @@ export default React.createClass({
       // The below number affects scrolling rate, not sure what it should be
       setTimeout(this.scrollWithDraggables.bind(this, grid), 5000);
     }
-  },
+  }
 
   /*************************************************************************************************************************/
   // Default getter methods, relating to location/scrolling/selection
 
   _getHypergrid(): HGElement {
     return React.findDOMNode(this.refs.hypergrid);
-  },
+  }
 
   _getBehavior(): HGBehaviorElement {
     return this._getHypergrid().getBehavior();
-  },
-
-  _getSheetDOMNode() {
-    return ReactDOM.findDOMNode(this.refs.sheet);
-  },
+  }
 
   getSelectionArea(): ASSelection {
     let hg = this._getHypergrid(),
@@ -298,12 +269,12 @@ export default React.createClass({
           origin: {row: ul.y + 1, col: ul.x + 1}
         };
     return sel;
-  },
+  }
 
   getScroll(): HGPoint {
     let hg = this._getHypergrid();
     return {x: hg.hScrollValue, y: hg.vScrollValue};
-  },
+  }
 
   getViewingWindow(): ASViewingWindow {
     let hg = this._getHypergrid(),
@@ -320,17 +291,17 @@ export default React.createClass({
     // column/row than what hypergrid says is visible (...since they're actually visible)
     // but that messed with the boundaries shown here, which is why we're subtracting 1
     // from rowLength and colLength.
-  },
+  }
 
   isVisible(col: number, row: number): boolean { // faster than accessing hypergrid properties
     return (this.state.scroll.x <= col && col <= this.state.scroll.x+Constants.numVisibleCols) &&
            (this.state.scroll.y <= row && row <= this.state.scroll.y+Constants.numVisibleRows);
-  },
+  }
 
   getVisibleRows(): number {
 
     return this._getHypergrid().getVisibleRows().length;
-  },
+  }
 
   getTextboxPosition(): ?HGRectangle {
     let scroll = this.state.scroll;
@@ -342,253 +313,11 @@ export default React.createClass({
     } else {
       return null;
     }
-  },
+  }
 
 
   /*************************************************************************************************************************/
   // Hypergrid initialization
-
-  draggingCol: false,
-  draggingRow: false,
-  clickedColNum: (null: ?number),
-  clickedRowNum: (null: ?number),
-  resizedColNum: (null: ?number),
-  resizedRowNum: (null: ?number),
-
-  /* Initial a sheet with blank entries */
-  initialize() {
-    let hg = this._getHypergrid(),
-        model = hg.getBehavior(),
-        renderer = hg.getRenderer(),
-        self = this;
-    hg.addGlobalProperties(this.gridProperties);
-
-    // Calling setColumnWidth on hypergrid should make an API call to the backend to remember the changed
-    // column width; we're overriding hypergrid's default setColumnWidth to do so. If we want to change the
-    // column width without making an API call, use model._setColumnWidth
-    hg.setColumnWidth = (columnIndex, columnWidth) => {
-        self.resizedColNum = columnIndex;
-        model._setColumnWidth(columnIndex, columnWidth);
-    },
-
-    // Ditto
-    hg.setRowHeight = (rowIndex, rowHeight) => {
-        self.resizedRowNum = rowIndex;
-        model.setRowHeight(rowIndex, rowHeight);
-    },
-
-    // This overrides the swapping of columns in hypergrid's internal state
-    // Keeps the animation, but don't change state = column headers stay same, data stays same
-    model.swapColumns = (src, tar) => {};
-    model.getColumnCount = () => { return Constants.numCols; };
-    model.getRowCount = () => { return Constants.numRows; };
-    model.getValue = (x, y) => { return ''; };
-    model.getCellEditorAt = (x, y) => { return null; };
-
-    // Overriding the renderer's getVisibleColumns() and getVisibleRows(), because they're off by 1...
-    renderer.getVisibleColumns = () => {
-      // normally getVisibleColumns() just returns renderer.renderedColumns
-      let rc = renderer.renderedColumns.slice(0);
-      if (rc.length > 0) {
-        let last = rc[rc.length - 1];
-        if (!isNaN(last)) {
-          rc.push(last + 1);
-          // rc.push(last + 2);
-        }
-      }
-      return rc;
-    },
-
-    renderer.getVisibleRows = () => {
-      let rr = renderer.renderedRows.slice(0);
-      if (rr.length > 0) {
-        let last = rr[rr.length - 1];
-        if (!isNaN(last)) {
-          rr.push(last + 1);
-        }
-      }
-      return rr;
-    };
-
-    // note: evt.gridCell in all these functions seem to think the coordinates of the top left cell is 
-    // (1,1) rather than (0,0). 
-    model.handleMouseDown = (grid, evt) => {
-      if (evt.primitiveEvent.detail.primitiveEvent.shiftKey) { // shift+click
-        let {origin} = this.getSelectionArea(),
-            newBr = {col: evt.gridCell.x, row: evt.gridCell.y},
-            newSel = {origin: origin, range: U.Location.orientRange({tl: origin, br: newBr})};
-        this.select(newSel, false);
-      } else {
-        let {x, y} = this.getCoordsFromMouseEvent(grid, evt);
-        if (this.insideBox(evt) && !evt.primitiveEvent.detail.isRightClick) {
-          // dragging blue box
-          this.mouseDownInBox = true;
-        } else if (Render.isOnSelectionEdge(x, y)) {
-          // dragging selections
-          this.dragSelectionOrigin = {col: evt.gridCell.x, row: evt.gridCell.y};
-        } else if (model.featureChain) {
-          let clickedCell = evt.gridCell; 
-          // If the mouse is placed inside column header (not on a divider), we want to keep some extra state ourselves
-          if (self._clickedCellIsInColumnHeader(clickedCell)) {
-           self.clickedColNum = clickedCell.x;
-          } else if (self._clickedCellIsInRowHeader(clickedCell)) {
-            self.clickedRowNum = clickedCell.y;
-          }
-          model.featureChain.handleMouseDown(grid, evt);
-          model.setCursor(grid);
-        }
-      }
-    };
-
-    model.onMouseMove = (grid, evt) => {
-      let {x, y} = this.getCoordsFromMouseEvent(grid, evt);
-      if (this.insideBox(evt)) {
-        this.setState({cursorStyle:'crosshair'});
-      } else if (Render.isOnSelectionEdge(x, y)) {
-        this.setState({cursorStyle: 'move'});
-      } else {
-        if (this.state.cursorStyle !== 'auto') {
-          self.setState({cursorStyle:'auto'});
-        }
-        if (model.featureChain) {
-          model.featureChain.handleMouseMove(grid, evt);
-          model.setCursor(grid);
-        }
-      }
-    };
-
-     model.onDoubleClick = (grid, evt) => {
-      if (model.featureChain) {
-          model.featureChain.handleDoubleClick(grid, evt);
-          model.setCursor(grid);
-      }
-
-      // for now, double-clicking rows doesn't size it automatically
-      
-      if (self._clickedCellIsInColumnHeader(evt.gridCell)) {
-        self.clickedColNum = evt.gridCell.x;
-        self.finishColumnResize();
-      }
-    };
-
-    model.onMouseDrag = (grid, evt) => {
-      let selOrigin = this.dragSelectionOrigin;
-      if (!! selOrigin) {
-        // range dragging
-        let {x, y} = this.getCoordsFromMouseEvent(grid, evt);
-        let {range} = this.getSelectionArea();
-        this.drawDraggedSelection(selOrigin, range, evt.gridCell.x, evt.gridCell.y);
-        this.mousePosition = {x: evt.primitiveEvent.detail.mouse.x,
-                              y: evt.primitiveEvent.detail.mouse.y};
-        this.scrollWithDraggables(grid);
-        this.repaint();
-      } else if (this.mouseDownInBox && !evt.primitiveEvent.detail.isRightClick) {
-        // box dragging
-        let {x,y} = evt.gridCell; // accounts for scrolling
-        Render.setDragCorner({dragX: x, dragY: y});
-        this.mousePosition = {x: evt.primitiveEvent.detail.mouse.x,
-                              y: evt.primitiveEvent.detail.mouse.y};
-        this.scrollWithDraggables(grid);
-        this.repaint(); // show dotted lines
-      } else if (model.featureChain) {
-        // If we've mouse down'ed on a column header, we're now dragging a column
-        if (self.clickedColNum !== null) {
-          self.draggingCol = true;
-        } else if (self.clickedRowNum !== null) {
-          self.draggingRow = true;
-        }
-        // do default
-        model.featureChain.handleMouseDrag(grid, evt);
-        model.setCursor(grid);
-      }
-    };
-
-    model.onMouseUp = (grid, evt) => {
-      let {which} = evt.primitiveEvent.detail.primitiveEvent;
-
-      if (which === 3) { // right click
-        /* x, y: against the page, for rendering the dropdown */
-        /* relCol, relRow: cell coordinates, relative to top left of element, not A1 */
-          /* for example if we are scrolled to A24 at top, A25 is 1 not 25 */
-        let {
-          gridCell: {x: relCol, y: relRow},
-          primitiveEvent: {detail: {primitiveEvent: {offsetX: x, offsetY: y}}}
-        } = evt;
-        if (relCol !== 0 || relRow !== 0) { // right click on a row header
-          let [col, row] =
-            [relCol + hg.getHScrollValue(), relRow + hg.getVScrollValue()];
-          this.refs.rightClickMenu.openAt(x, y,
-            (col != 0)
-              ? columnHeaderMenuItems(col)
-              : rowHeaderMenuItems(row)
-          );
-        }
-      } else {
-        if (this.dragSelectionOrigin !== null) {
-          this.dragSelectionOrigin = null;
-          if (Render.getDragRect() === null) {
-            return;
-          }
-          let {x, y} = this.getCoordsFromMouseEvent(grid, evt);
-          let sel = this.getSelectionArea();
-          let newSelRange = Render.getDragRect(),
-              fromRange = U.Conversion.simpleToASRange(sel.range);
-          if (newSelRange != null) {
-            let toRange = U.Conversion.simpleToASRange(newSelRange),
-                newSel = {range: newSelRange, origin: newSelRange.tl};
-            this.select(newSel, false);
-            Render.setDragRect(null);
-            self.repaint();
-            API.cut(fromRange, toRange);
-          }
-        } else if (Render.getDragCorner() !== null) {
-          let dottedSel = Render.getDottedSelection();
-          Render.setDragCorner(null);
-          self.mouseDownInBox = false;
-          // Do nothing if the mouseup isn't in the right column or row
-          if (dottedSel != null && dottedSel.range !== null) {
-            let activeSelection = SelectionStore.getActiveSelection();
-            if (!! activeSelection) {
-              API.drag(activeSelection.range, dottedSel.range);
-              self.select(dottedSel,true);
-            }
-          }
-        } else if (model.featureChain) {
-          model.featureChain.handleMouseUp(grid, evt);
-          model.setCursor(grid);
-
-          Render.setDragCorner(null);
-          self.mouseDownInBox = false;
-
-          // Clean up dragging a column, and send an API message to backend to swap data
-          if (self.draggingCol) {
-            self.draggingCol = false;
-            if (self.clickedColNum != null) {
-              API.dragCol(self.clickedColNum, Math.max(1, evt.gridCell.x)); // evt.gridCell.x can go negative...
-            }
-            self.clickedColNum = null;
-          } else if (self.draggingRow) {
-            self.draggingRow = false;
-            if (self.clickedRowNum != null) {
-              API.dragRow(self.clickedRowNum, Math.max(1, evt.gridCell.y));
-            }
-            self.clickedRowNum = null;
-          }
-
-          // Ditto for resizing
-          self.finishColumnResize();
-          self.finishRowResize();
-        }
-      }
-    };
-
-    this.setRenderers();
-    let ind = {row: 1, col: 1};
-    // This will make the first selection have properties of a click
-    // Namely, the blue box will show up
-    ExpStore.setClickType(Constants.ClickType.CLICK);
-    this.select({origin: ind, range: {tl: ind, br: ind}}, false);
-  },
 
   finishColumnResize() {
     let col = this.resizedColNum;
@@ -599,7 +328,7 @@ export default React.createClass({
       // column index on DB is 1-indexed, while for hypergrid it's 0-indexed.
       this.resizedColNum = null;
     }
-  },
+  }
 
   finishRowResize() {
     let row = this.resizedRowNum;
@@ -610,30 +339,24 @@ export default React.createClass({
       // row index on DB is 1-indexed, while for hypergrid it's 0-indexed.
       this.resizedRowNum = null;
     }
-  },
+  }
 
-  // note: evt.gridCell from the mouse-click functions from model (hg.getBehavior()) seem to be 1-indexed 
+  // note: evt.gridCell from the mouse-click functions from model (hg.getBehavior()) seem to be 1-indexed
   // (the coordinates of the top left cell are  (1,1) rather than (0,0)). The below two functions are only
   // assumed to work on mouse functions on model, NOT for e.g. fin-double-click events where the top left cell is (0,0). Umm......
   _clickedCellIsInColumnHeader(clickedCell: HGPoint): boolean {
     return (clickedCell.x >= 1 && clickedCell.y <= 0); // == 0? ==-1? not entirely sure
-  },
+  }
 
   _clickedCellIsInRowHeader(clickedCell: HGPoint): boolean {
     return (clickedCell.x <= 0 && clickedCell.y >= 1); // == 0? ==-1? not entirely sure
-  },
+  }
 
   // expects that the current sheet has already been set
   getInitialData() {
     API.openSheet(SheetStateStore.getCurrentSheet());
     ActionCreator.scroll(this.getViewingWindow());
-  },
-
-  gridProperties: {
-    editorActivationKeys: ([]: Array<any>), // disable column picker
-    scrollbarHoverOff: 'visible',
-    columnAutosizing: true
-  },
+  }
 
   /*************************************************************************************************************************/
   // Hypergrid update display
@@ -655,7 +378,7 @@ export default React.createClass({
 
     model.changed(); // causes hypergrid to show updated values
     CellStore.resetLastUpdatedCells();
-  },
+  }
 
   /*************************************************************************************************************************/
   // Dealing with image creation and updating
@@ -694,7 +417,7 @@ export default React.createClass({
       return {
         id: U.Render.getUniqueId(),
         renderElem: (style) => {
-          return (<Image src={imageSrc} draggable="false" style={style} alt="Error rendering image." />);
+          return (<image src={imageSrc} draggable="false" style={style} alt="Error rendering image." />);
         },
         initWidth: imageWidth,
         initHeight: imageHeight,
@@ -705,7 +428,7 @@ export default React.createClass({
         loc: cell.cellLocation
       };
     }
-  },
+  }
 
   /*
   As part of our state, we store a list of overlay objects. When a cell produces an overlay, we want to update this list.
@@ -717,7 +440,7 @@ export default React.createClass({
     let imageOverlay = this.getImageOverlayForCell(cell);
     if (imageOverlay === null || imageOverlay === undefined) return;
     this.addOverlay(imageOverlay, cell);
-  },
+  }
 
   addOverlay(newOverlay: ASOverlaySpec, cell?: ASCell) {
     let overlays = this.state.overlays,
@@ -733,14 +456,14 @@ export default React.createClass({
 
     overlays.push(newOverlay);
     this.setState({overlays: overlays});
-  },
+  }
 
   _onOverlaysChange() {
     let overlays = OverlayStore.getAll();
     overlays.forEach((overlay) => {
       this.addOverlay(overlay);
     });
-  },
+  }
 
 
   /*************************************************************************************************************************/
@@ -748,11 +471,11 @@ export default React.createClass({
 
   repaint() {
     this._getHypergrid().repaint();
-  },
+  }
 
   setFocus() {
     this._getHypergrid().takeFocus();
-  },
+  }
 
   // do not call before polymer is ready.
   select(unsafeSelection: ASSelection, shouldScroll: boolean = true) {
@@ -805,37 +528,37 @@ export default React.createClass({
     }
     this.repaint();
     this.props.onSelectionChange(safeSelection);
-  },
+  }
 
   rowVisible(loc: NakedIndex): boolean {
     let vWindow = this.getViewingWindow();
     return (vWindow.range.tl.row <= loc.row && loc.row <= vWindow.range.br.row);
-  },
+  }
 
   columnVisible(loc: NakedIndex): boolean {
     let vWindow = this.getViewingWindow();
     return (vWindow.range.tl.col <= loc.col && loc.col <= vWindow.range.br.col);
-  },
+  }
 
   scrollVForBottomEdge(row: number): number {
     let hg = this._getHypergrid();
     let vWindow = this.getViewingWindow();
     return hg.getVScrollValue() + row - vWindow.range.br.row + 2;
-  },
+  }
 
   scrollVForTopEdge(row: number): number {
     return row - 1;
-  },
+  }
 
   scrollHForRightEdge(col: number): number {
     let hg = this._getHypergrid();
     let vWindow = this.getViewingWindow();
     return hg.getHScrollValue() + col - vWindow.range.br.col;
-  },
+  }
 
   scrollHForLeftEdge(col: number): number {
     return col - 1;
-  },
+  }
 
   _getNewScroll(oldSel: ?ASSelection, newSel: ASSelection): HGPoint {
     let hg = this._getHypergrid();
@@ -885,7 +608,7 @@ export default React.createClass({
     }
 
     return {x: scrollH, y: scrollV};
-  },
+  }
 
   shiftSelectionArea(dc: number, dr: number) {
     let sel = SelectionStore.getActiveSelection();
@@ -897,7 +620,7 @@ export default React.createClass({
     let origin = {row: sel.origin.row + dr, col: sel.origin.col + dc};
     let range = {tl: origin, br: origin};
     this.select({range: range, origin: origin});
-  },
+  }
 
   scrollTo(x: number, y: number) {
     let hg = this._getHypergrid();
@@ -906,7 +629,7 @@ export default React.createClass({
       hg.setHScrollValue(x);
       ActionCreator.scroll(this.getViewingWindow());
     }
-  },
+  }
 
   /*************************************************************************************************************************/
   // Handling events
@@ -959,17 +682,17 @@ export default React.createClass({
       }
       this.props.onNavKeyDown(e);
     }
-  },
+  }
 
   _onKeyUp(e: SyntheticKeyboardEvent) {
     e.persist();
-  },
+  }
 
   onTextBoxDeferredKey(e: SyntheticKeyboardEvent) {
     if (e.ctrlKey) { // only for ctrl+arrowkeys
       ShortcutUtils.tryShortcut(e, 'grid');
     }
-  },
+  }
 
   _onFocus(e: SyntheticEvent) {
     /*
@@ -984,11 +707,11 @@ export default React.createClass({
     } else {
       this.props.setFocus('grid');
     }
-  },
+  }
 
   _restoreFocus() {
       this.props.setFocus(SheetStateStore.getFocus());
-  },
+  }
 
   /*************************************************************************************************************************/
   // Respond to change evt from ExpStore
@@ -1038,77 +761,52 @@ export default React.createClass({
       default:
         break;
     }
-  },
+  }
 
   _onBarPropsChange() {
-    let dims = BarStore.getLastUpdatedBarsDimensions(), 
-        hg = this._getHypergrid(), 
+    let dims = BarStore.getLastUpdatedBarsDimensions(),
+        hg = this._getHypergrid(),
         model = hg.getBehavior(),
         defaultColumnWidth = hg.resolveProperty('defaultColumnWidth'),
         defaultRowHeight = hg.resolveProperty('defaultRowHeight');
 
-    // columns/rows in backend are 1-indexed, hypergrid's are 0-indexed. 
+    // columns/rows in backend are 1-indexed, hypergrid's are 0-indexed.
     dims['ColumnType'].map(([ind, width]) => model._setColumnWidth(ind-1, width || defaultColumnWidth));
     dims['RowType'].map(([ind, height]) => model.setRowHeight(ind-1, height || defaultRowHeight));
-  },
-
-
-  /*************************************************************************************************************************/
-  // Renderers
-
-  setCellRenderer() {
-    let model = this._getBehavior(),
-        cellProvider = model.getCellProvider(),
-        hg = this._getHypergrid(),
-        self = this;
-    cellProvider.getCell = function(config) {
-      let renderer = Render.defaultCellRenderer,
-          col = config.x + 1,
-          row = config.y + 1,
-          cell = CellStore.getCell({col: col, row: row});
-
-      // tag-based cell styling
-      if (cell !== null && cell !== undefined) {
-        U.Render.valueToRenderConfig(config, cell.cellValue);
-        if (cell.cellExpression.expandingType) {
-          U.Render.expandingTypeToRenderConfig(config, cell.cellExpression.expandingType);
-        }
-
-        // props take highest precedence
-        if (cell.cellProps.length > 0) { // props take higher precedence
-          U.Render.propsToRenderConfig(config, cell.cellProps);
-        }
-      } else {
-        config.halign = 'center';
-      }
-
-      renderer.config = config;
-      return renderer;
-    }
-  },
-
-  setRenderers() {
-    this.setCellRenderer();
-
-    let renderer = this._getHypergrid().getRenderer();
-    renderer.addExtraRenderer(Render.selectionRenderer);
-    renderer.addExtraRenderer(Render.dependencyRenderer);
-    renderer.addExtraRenderer(Render.draggingRenderer);
-    renderer.addExtraRenderer(Render.cornerBoxRenderer);
-    renderer.startAnimator();
-  },
+  }
 
   /*************************************************************************************************************************/
   // Render
 
   render(): ReactElement {
     let {behavior, width, height} = this.props; //should also have onReady
-    let style = {width: width, height: height, cursor: this.state.cursorStyle};
-    let outerStyle = {width:"100%",
-                     height:"calc(100% - 50px)",
-                     position:'relative',
-                     overflow: 'hidden',
-                     cursor: this.state.cursorStyle};
+
+    const outerStyle = {
+      position: 'relative',
+      display: 'flex',
+      overflow: 'hidden',
+      cursor: this.state.cursorStyle,
+      flexGrow: 1,
+      flexShrink: 1,
+      flexBasis: 'auto'
+    };
+
+    const sheetContainerStyle = {
+      display: 'flex',
+      flexDirection: 'column',
+      flexGrow: 1,
+      flexShrink: 1,
+      flexBasis: 'auto'
+    };
+
+    const sheetStyle = {
+      flexGrow: 1,
+      flexShrink: 1,
+      width: '100%',
+      height: '100%',
+      cursor: 'auto'
+    };
+
     let behaviorElement;
     let self = this;
     switch (behavior) {
@@ -1123,13 +821,13 @@ export default React.createClass({
     return (
       // NOTE: the 50px is for the scrollbar to show up.
       <Dropzone onDrop={this.props.onFileDrop} disableClick={true} style={outerStyle}>
-        <div ref="sheet" style={outerStyle} >
+        <div ref="sheet" style={sheetContainerStyle} >
           <fin-hypergrid
-            style={style}
+            style={sheetStyle}
             ref="hypergrid"
-            onKeyDown={this._onKeyDown}
-            onKeyUp={this._onKeyUp}
-            onFocus={this._onFocus}>
+            onKeyDown={this._onKeyDown.bind(this)}
+            onKeyUp={this._onKeyUp.bind(this)}
+            onFocus={this._onFocus.bind(this)}>
               {behaviorElement}
           </fin-hypergrid>
 
@@ -1141,18 +839,31 @@ export default React.createClass({
           )}
 
           <ASRightClickMenu ref="rightClickMenu"
-                            restoreFocus={this._restoreFocus}/>
+                            restoreFocus={this._restoreFocus.bind(this)}/>
 
           <Textbox
             ref="textbox"
             scroll={self.state.scroll}
             onDeferredKey={this.props.onTextBoxDeferredKey}
             hideToast={this.props.hideToast}
-            position={this.getTextboxPosition}
+            position={this.getTextboxPosition.bind(this)}
             setFocus={this.props.setFocus} />
 
         </div>
       </Dropzone>
     );
   }
-});
+}
+
+// TODO: is behavior actually needed?
+ASSpreadsheet.defaultProps = {
+  behavior: 'default',
+  onReady() { }
+}
+
+ASSpreadsheet.propTypes = {
+  onSelectionChange: React.PropTypes.func.isRequired,
+  onTextBoxDeferredKey: React.PropTypes.func.isRequired,
+  onNavKeyDown: React.PropTypes.func.isRequired,
+  setFocus: React.PropTypes.func.isRequired
+}

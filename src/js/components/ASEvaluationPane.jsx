@@ -18,6 +18,7 @@ import {logDebug, logError, isTesting} from '../AS/Logger';
 
 import React from 'react';
 import ReactDOM from 'react-dom';
+import AceEditor from './AceEditor.jsx';
 import ASCodeEditor from './ASCodeEditor.jsx';
 import ASSpreadsheet from './ASSpreadsheet.jsx';
 import Render from '../AS/Renderers';
@@ -60,6 +61,10 @@ import ASFindBar from './ASFindBar.jsx';
 import ASFindModal from './ASFindModal.jsx';
 import FindAction from '../actions/ASFindActionCreators';
 
+type ASEvalPaneDefaultProps = {};
+
+type ASEvalPaneProps = {};
+
 type ASEvalPaneState = {
   replLanguage: ASLanguage;
   varName: string;
@@ -76,18 +81,17 @@ type ASEvalPaneState = {
   testMode: boolean;
 };
 
-
 // REPL stuff is getting temporarily phased out in favor of an Eval Header file. (Alex 11/12)
-
-export default React.createClass({
-
-
+export default class ASEvalPane
+  extends React.Component<ASEvalPaneDefaultProps, ASEvalPaneProps, ASEvalPaneState>
+{
   /***************************************************************************************************************************/
   // React methods
 
-  /* React method for getting the initial state */
-  getInitialState(): ASEvalPaneState {
-    return {
+  constructor(props: ASEvalPaneProps) {
+    super(props);
+
+    this.state = {
       replLanguage: Constants.Languages.Python,
       varName: '',
       focus: null,
@@ -105,35 +109,35 @@ export default React.createClass({
       showFindModal:false,
       testMode: false
     };
-  },
+  }
 
-  componentDidMount() {
-    window.addEventListener('copy',this.handleCopyEvent);
-    window.addEventListener('paste',this.handlePasteEvent);
-    window.addEventListener('cut',this.handleCutEvent);
-    CellStore.addChangeListener(this._onCellsChange);
-    SheetStateStore.addChangeListener(this._onSheetStateChange);
-    FindStore.addChangeListener(this._onFindChange);
-    EvalHeaderStore.addChangeListener(this._onEvalHeaderUpdate);
-    ExpStore.addChangeListener(this._onExpChange);
-    // ReplStore.addChangeListener(this._onReplChange);
+  componentDidMount() { 
+    window.addEventListener('copy', this.handleCopyEvent.bind(this));
+    window.addEventListener('paste', this.handlePasteEvent.bind(this));
+    window.addEventListener('cut', this.handleCutEvent.bind(this));
+    CellStore.addChangeListener(this._onCellsChange.bind(this));
+    SheetStateStore.addChangeListener(this._onSheetStateChange.bind(this));
+    FindStore.addChangeListener(this._onFindChange.bind(this));
+    EvalHeaderStore.addChangeListener(this._onEvalHeaderUpdate.bind(this));
+    ExpStore.addChangeListener(this._onExpChange.bind(this));
     Shortcuts.addShortcuts(this);
+    // ReplStore.addChangeListener(this._onReplChange.bind(this));
 
     BrowserTests.install(window, this);
-  },
+  }
 
   /* Make sure that the evaluation pane can receive change events from the evaluation store */
   componentWillUnmount() {
-    window.removeEventListener('copy',this.handleCopyEvent);
-    window.removeEventListener('paste',this.handlePasteEvent);
-    window.removeEventListener('cut',this.handleCutEvent);
+    window.removeEventListener('copy',this.handleCopyEvent.bind(this));
+    window.removeEventListener('paste',this.handlePasteEvent).bind(this);
+    window.removeEventListener('cut',this.handleCutEvent.bind(this));
     API.close();
-    CellStore.removeChangeListener(this._onCellsChange);
-    SheetStateStore.addChangeListener(this._onSheetStateChange);
+    CellStore.removeChangeListener(this._onCellsChange.bind(this));
+    SheetStateStore.addChangeListener(this._onSheetStateChange.bind(this));
     // ReplStore.removeChangeListener(this._onReplChange);
-    FindStore.removeChangeListener(this._onFindChange);
-    ExpStore.removeChangeListener(this._onExpChange);
-  },
+    FindStore.removeChangeListener(this._onFindChange.bind(this));
+    ExpStore.removeChangeListener(this._onExpChange.bind(this));
+  }
 
 
   /***************************************************************************************************************************/
@@ -142,36 +146,36 @@ export default React.createClass({
   _getSpreadsheet(): HGElement {
     let ele: HGElement = (ReactDOM.findDOMNode(this.refs.spreadsheet.refs.hypergrid): any);
     return ele;
-  },
+  }
 
   _getRawEditor(): AERawClass {
     return this.refs.editorPane.refs.editor.getRawEditor();
-  },
+  }
 
-  _getEditorComponent(): ASCodeEditor {
+  _getEditorComponent(): AceEditor {
     return this.refs.editorPane.refs.editor;
-  },
+  }
 
   _getDomEditor(): AEElement {
     let ele: AEElement = (ReactDOM.findDOMNode(this.refs.editorPane.refs.editor): any);
     return ele;
-  },
+  }
 
   // _getReplEditor() {
   //   return this.refs.repl.refs.editor.getRawEditor();
-  // },
+  // }
 
   _getEvalHeaderEditor(): AERawClass {
     return this.refs.evalHeader.refs.editor.getRawEditor();
-  },
+  }
 
   _getTextbox(): Textbox {
     return this.refs.spreadsheet.refs.textbox;
-  },
+  }
 
   _getRawTextbox(): AERawClass {
     return this.refs.spreadsheet.refs.textbox.getRawEditor();
-  },
+  }
 
   /***************************************************************************************************************************/
   // Some basic on change handlers
@@ -180,7 +184,7 @@ export default React.createClass({
     logDebug('var name set to', name);
     this.setState({ varName: name });
     //TODO: set var name on backend
-  },
+  }
 
   _onSheetStateChange() {
     logDebug("Eval pane detected spreadsheet change from store");
@@ -202,7 +206,7 @@ export default React.createClass({
     // going to do away with external errors entirely at some point, making it moot.
     // #needsrefactor
     this._onCellsChange();
-  },
+  }
 
 
   _onCellsChange() {
@@ -219,12 +223,12 @@ export default React.createClass({
       this.setToast(err, "Error");
     }
     SheetStateStore.setExternalError(null);
-  },
+  }
 
   // _onReplChange() {
   //   logDebug("Eval pane detected event change from repl store");
   //   this.setState({replSubmittedLanguage:ReplStore.getSubmittedLanguage()})
-  // },
+  // }
 
   _onExpChange() {
     if (ExpStore.getLastRef() === null) {
@@ -234,7 +238,7 @@ export default React.createClass({
     if (ExpStore.getXpChangeOrigin() === Constants.ActionTypes.LANGUAGE_TOGGLED){
       this.setFocus(SheetStateStore.getFocus());
     }
-  },
+  }
 
   _onEvalHeaderUpdate() {
     let msg = EvalHeaderStore.getDispMessage();
@@ -242,19 +246,19 @@ export default React.createClass({
       this.setToast(msg);
     }
     this._getEvalHeaderEditor().focus();
-  },
+  }
 
   enableTestMode() {
     this.setState({ testMode: true });
-  },
+  }
 
   disableTestMode() {
     this.setState({ testMode: false });
-  },
+  }
 
   getASSpreadsheet(): ASSpreadsheet {
     return this.refs.spreadsheet;
-  },
+  }
 
 
   /**************************************************************************************************************************/
@@ -267,18 +271,18 @@ export default React.createClass({
     }
     this.setState({toastMessage: msg, toastAction: action});
     this.refs.snackbarError.show();
-  },
+  }
 
   hideToast() {
     if (this.refs.snackbarError.state.open) {
       this.refs.snackbarError.dismiss();
     }
-  },
+  }
 
   _handleToastTap(e: SyntheticTouchEvent) {
     // TODO
     return;
-  },
+  }
 
   /**************************************************************************************************************************/
   /* Copy paste handling */
@@ -314,7 +318,7 @@ export default React.createClass({
       e.clipboardData.setData("text/html",html);
       e.clipboardData.setData("text/plain",plain);
     }
-  },
+  }
 
   handlePasteEventForGrid(e: SyntheticClipboardEvent) {
     // KeyUtils.killEvent(e);
@@ -372,40 +376,40 @@ export default React.createClass({
         let lang = ExpStore.getLanguage();
         let plain = e.clipboardData.getData("text/plain"),
             vals = ClipboardUtils.plainStringToVals(plain),
-            cells = ClipboardUtils.externalStringsToASCells(sel.origin, vals, lang),
-            concatCells = U.Array.concatAll(cells);
-        API.pasteSimple(concatCells);
+            evalInstructions2d = ClipboardUtils.externalStringsToEvalInstructions(sel.origin, vals, lang),
+            evalInstructions = U.Array.concatAll(evalInstructions2d);
+        API.pasteSimple(evalInstructions);
         // The normal eval handling will make the paste show up
       } else {
         // TODO: Not handling html conversion for now
         // Not sure if getData is smart enough to do that for you
       }
     }
-  },
+  }
 
   /* TODO: handle other copy/paste events; from editor and textbox */
 
   handleCutEvent(e: SyntheticClipboardEvent) {
     if (this._isGridActive()) {
-      this.handleCopyTypeEventForGrid(e,true);
+      this.handleCopyTypeEventForGrid(e, true);
     }
-  },
+  }
 
   handleCopyEvent(e: SyntheticClipboardEvent) {
     if (this._isGridActive()) {
-      this.handleCopyTypeEventForGrid(e,false);
+      this.handleCopyTypeEventForGrid(e, false);
     }
-  },
+  }
 
   handlePasteEvent(e: SyntheticClipboardEvent) {
     if (this._isGridActive()) {
       this.handlePasteEventForGrid(e);
     }
-  },
+  }
 
   _isGridActive(): boolean {
     return (document.activeElement.tagName == "FIN-HYPERGRID");
-  },
+  }
 
 
   /**************************************************************************************************************************/
@@ -415,7 +419,7 @@ export default React.createClass({
     logDebug("Editor deferred key");
     ShortcutUtils.tryShortcut(e, 'common');
     ShortcutUtils.tryShortcut(e, 'editor');
-  },
+  }
 
   _onGridNavKeyDown(e: SyntheticKeyboardEvent) {
     // should only get called if left, right, down, or up was pressed
@@ -439,18 +443,18 @@ export default React.createClass({
       // and then you press a nav key
       // Shouldn't happen anymore -- RITESH
     }
-  },
+  }
 
   _onTextBoxDeferredKey(e: SyntheticKeyboardEvent) {
     logDebug("Textbox key not visible");
     ShortcutUtils.tryShortcut(e, 'common');
     ShortcutUtils.tryShortcut(e, 'textbox');
-  },
+  }
 
   // /* Callback from Repl component */
   // _onReplDeferredKey(e) {
   //   ShortcutUtils.tryShortcut(e, 'repl');
-  // },
+  // }
 
 
   /**************************************************************************************************************************/
@@ -537,7 +541,7 @@ export default React.createClass({
     } else {
       console.assert(false);
     }
-  },
+  }
 
   /**************************************************************************************************************************/
   // Handle an eval request
@@ -583,19 +587,19 @@ export default React.createClass({
       }
     }
     ExpStore.setDefaultLanguage(xpObj.language);
-  },
+  }
 
   openSheet(sheet: ASSheet) {
     SheetStateStore.setCurrentSheet(sheet);
     this.refs.spreadsheet.initializeBlank();
     this.refs.spreadsheet.getInitialData();
-  },
+  }
 
   // /* When a REPl request is made, first update the store and then send the request to the backend */
   // handleReplRequest(xpObj) {
   //   ReplActionCreator.storeReplExpression(this.state.replLanguage,this._replValue());
   //   API.evaluateRepl(xpObj);
-  // },
+  // }
 
   /**************************************************************************************************************************/
   /* Focus */
@@ -613,30 +617,30 @@ export default React.createClass({
     if (elem != this.state.focus) {
       this.setState({focus: elem});
     }
-  },
+  }
 
   _handleEditorFocus() { // need to remove blinking cursor from textbox
     this.refs.spreadsheet.refs.textbox.editor.renderer.$cursorLayer.hideCursor();
-  },
+  }
 
   _getCodeEditorMaxLines(): number {
     return (this.state.focus == 'editor') ? 10 : 3;
-  },
+  }
 
   /**************************************************************************************************************************/
   /* REPL handling methods */
 
   // _replValue() {
   //   return this._getReplEditor().getValue();
-  // },
+  // }
 
   _evalHeaderValue(): string {
     return this._getEvalHeaderEditor().getValue();
-  },
+  }
 
   _toggleRepl() {
     logDebug('Not implemented.'); // TODO
-  },
+  }
   // /* Method for tucking in/out the REPL. */
   // _toggleRepl() {
   //   /* Save expression in store if repl is about to close */
@@ -646,7 +650,7 @@ export default React.createClass({
   //     this._getReplEditor().focus();
   //   }
   //   this.setState({replOpen: !this.state.replOpen});
-  // },
+  // }
 
   toggleEvalHeader() {
     /* Save expression in store if repl is about to close */
@@ -658,12 +662,12 @@ export default React.createClass({
       this._getEvalHeaderEditor().focus();
     }
     this.setState({evalHeaderOpen: !this.state.evalHeaderOpen});
-  },
+  }
 
   _submitDebug() {
     let bugReport = window.prompt("Please describe the bug you encountered.","");
     API.bugReport(bugReport);
-  },
+  }
 
   // /*  When the REPL language changes, set state, save current text value, and set the next text value of the REPL editor */
   // _onReplLanguageChange(e,index,menuItem) {
@@ -673,7 +677,7 @@ export default React.createClass({
   //   ReplStore.setLanguage(newLang);
   //   // logDebug("REPL lang changed from " + this.state.replLanguage + " to " + newLang + ", new value: "+ newValue);
   //   this.setState({replLanguage:newLang});
-  // },
+  // }
 
   _onEvalHeaderLanguageChange(e: {}, index: number, menuItem: { payload: ASLanguage; }) {
     // If e is ever actually used, we will notice and remove the {} annotation.
@@ -683,51 +687,53 @@ export default React.createClass({
     let newValue = EvalHeaderStore.getEvalHeaderExp(newLang);
     EvalHeaderStore.setLanguage(newLang);
     this.setState({evalHeaderLanguage: newLang});
-  },
+  }
 
   _onSubmitEvalHeader() {
     let lang       = this.state.evalHeaderLanguage,
         expression = this._evalHeaderValue();
 
     API.evaluateHeader(expression, lang);
-  },
+  }
 
   /**************************************************************************************************************************/
   /* Find bar and modal */
 
   closeFindBar() {
     this.setState({showFindBar: false});
-  },
+  }
   closeFindModal() {
     this.setState({showFindModal: false});
-  },
+  }
   onFindBarEnter() {
       API.find(FindStore.getFindText());
-  },
+  }
   openFindModal() {
     this.setState({showFindBar: false, showFindModal: true});
-  },
+  }
   onFindBarNext() {
     FindAction.incrementSelection();
-  },
+  }
   onFindBarPrev() {
     FindAction.decrementSelection();
-  },
+  }
   _onFindChange() {
     this.refs.spreadsheet.repaint();
-  },
+  }
 
   /**************************************************************************************************************************/
   /* File management */
 
-  _onFileDrop(files: Array<File>) { API.import(files[0]); },
+  _onFileDrop(files: Array<File>) { 
+    API.import(files[0]); 
+  }
 
   /**************************************************************************************************************************/
   // Render
 
   getEditorHeight(): string { // for future use in resize events
     return Constants.editorHeight + "px";
-  },
+  }
 
   render() {
     let {expression, focus} = this.state,
@@ -737,39 +743,39 @@ export default React.createClass({
     // highlightFind is for the spreadsheet to know when to highlight found locs
     // display the find bar or modal based on state
     let leftEvalPane =
-      <div style={{height: '100%'}}>
-        {this.state.showFindBar ? <ASFindBar onEnter={this.onFindBarEnter}
-                                             onNext={this.onFindBarNext}
-                                             onPrev={this.onFindBarPrev}
-                                             onClose={this.closeFindBar}
-                                             onModal={this.openFindModal}/> : null}
+      <div style={{display: 'flex', flexDirection: 'column', height: '100%'}}>
+        {this.state.showFindBar ? <ASFindBar onEnter={this.onFindBarEnter.bind(this)}
+                                             onNext={this.onFindBarNext.bind(this)}
+                                             onPrev={this.onFindBarPrev.bind(this)}
+                                             onClose={this.closeFindBar.bind(this)}
+                                             onModal={this.openFindModal.bind(this)}/> : null}
         {this.state.showFindModal ? <ASFindModal initialSelection={0}
-                                                 onClose={this.closeFindModal} /> : null}
+                                                 onClose={this.closeFindModal.bind(this)} /> : null}
         <ASCodeEditor
           ref='editorPane'
-          handleEditorFocus={this._handleEditorFocus}
+          handleEditorFocus={this._handleEditorFocus.bind(this)}
           maxLines={this._getCodeEditorMaxLines()}
-          onSetVarName={this._onSetVarName}
-          onDeferredKey={this._onEditorDeferredKey}
+          onSetVarName={this._onSetVarName.bind(this)}
+          onDeferredKey={this._onEditorDeferredKey.bind(this)}
           value={expression}
-          hideToast={this.hideToast}
-          setFocus={this.setFocus}
+          hideToast={this.hideToast.bind(this)}
+          setFocus={this.setFocus.bind(this)}
           width="100%" height={this.getEditorHeight()} />
         <ASSpreadsheet
           ref='spreadsheet'
-          setFocus={this.setFocus}
+          setFocus={this.setFocus.bind(this)}
           highlightFind={highlightFind}
-          onNavKeyDown={this._onGridNavKeyDown}
-          onTextBoxDeferredKey={this._onTextBoxDeferredKey}
-          onSelectionChange={this._onSelectionChange}
-          onFileDrop={this._onFileDrop}
-          hideToast={this.hideToast}
+          onNavKeyDown={this._onGridNavKeyDown.bind(this)}
+          onTextBoxDeferredKey={this._onTextBoxDeferredKey.bind(this)}
+          onSelectionChange={this._onSelectionChange.bind(this)}
+          onFileDrop={this._onFileDrop.bind(this)}
+          hideToast={this.hideToast.bind(this)}
           width="100%"
           height={`calc(100% - ${this.getEditorHeight()})`}  />
         <Snackbar ref="snackbarError"
                   message={this.state.toastMessage}
                   action={this.state.toastAction}
-                  onActionTouchTap={this._handleToastTap} />
+                  onActionTouchTap={this._handleToastTap.bind(this)} />
       </div>;
 
     // let sidebarContent = <Repl
@@ -784,12 +790,12 @@ export default React.createClass({
       ref="evalHeader"
       evalHeaderLanguage={this.state.evalHeaderLanguage}
       evalHeaderValue={EvalHeaderStore.getEvalHeaderExp(this.state.evalHeaderLanguage)}
-      onEvalHeaderLanguageChange={this._onEvalHeaderLanguageChange}
-      onSubmitEvalHeader={this._onSubmitEvalHeader} />;
+      onEvalHeaderLanguageChange={this._onEvalHeaderLanguageChange.bind(this)}
+      onSubmitEvalHeader={this._onSubmitEvalHeader.bind(this)} />;
 
     return (
       <ResizableRightPanel content={leftEvalPane} sidebar={sidebarContent} sidebarVisible={this.state.evalHeaderOpen} />
     );
   }
 
-});
+}

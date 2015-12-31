@@ -2,7 +2,7 @@
 
 import type {
   CondFormatRule
-} from '../types/Messages';
+} from '../types/CondFormat';
 
 import {logDebug} from '../AS/Logger';
 

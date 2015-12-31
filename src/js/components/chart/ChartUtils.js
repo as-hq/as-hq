@@ -29,7 +29,7 @@ const colors = [
   {r:244, g:81, b:30}
 ];
 
-export default {
+const ChartUtils = {
   cellToChartVal(c: ?ASCell): number {
     if (c !== null && c !== undefined) {
       switch (c.cellValue.tag) {
@@ -56,11 +56,11 @@ export default {
   },
 
   generatePlotLabels(n: number): Array<string> {
-    return this.takeNat(n).map((i) => `Plot${i}`)
+    return ChartUtils.takeNat(n).map((i) => `Plot${i}`)
   },
 
   generateXLabels(n: number): Array<string> {
-    return this.takeNat(n).map((i) => i.toString());
+    return ChartUtils.takeNat(n).map((i) => i.toString());
   },
 
   isCartesian(chartType: ASChartType): boolean {
@@ -107,7 +107,7 @@ export default {
   // wtf flow... can't make this a polymorphic function
   reduceNestedArrayNum(arr: Array<Array<number>>): ?Array<number> {
 
-    if (this.isVector(arr)) {
+    if (ChartUtils.isVector(arr)) {
       if (arr.length == 1) return arr[0];
       else return arr.map((elem) => { return elem[0]; });
     } else {
@@ -121,3 +121,5 @@ export default {
     return colors[colorIndex];
   }
 }
+
+export default ChartUtils;
