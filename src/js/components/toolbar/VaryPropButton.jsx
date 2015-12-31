@@ -39,6 +39,10 @@ export default class VaryPropButton
   // NOTE: why money/percent don't work? They have formatType in their cellProps, not tag (like Bold). The filtering in Util.getPropByTag fails.
   /* We need the propTag (Bold), and props to pass down to the button control */
   /* When the control updates, toggle the prop in the backend */
+  constructor(props: VaryPropButtonProps) {
+    super(props);
+  }
+
   _propagateControlStateChange(nextState: VaryPropButtonState, rng: NakedRange) {
     console.log("setting backend");
     // TODO: Not quite the right function to call here

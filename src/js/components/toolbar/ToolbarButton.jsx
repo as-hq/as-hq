@@ -1,8 +1,13 @@
+/* @flow */
+
 import React from 'react';
 
 import {Styles, FontIcon} from 'material-ui';
+// $FlowFixMe
 const FlatButton = require('material-ui/lib/flat-button');
+// $FlowFixMe
 import DropDownArrow from 'material-ui/lib/svg-icons/navigation/arrow-drop-down';
+// $FlowFixMe
 let Tooltip = require("react-tooltip");
 
 
@@ -12,7 +17,44 @@ This component displays an icon in a button
 It also has the ability to display a tooltip (blurb of what the button does upon hovering)
 */
 
-export default React.createClass({
+type ToolbarButtonDefaultProps = {
+  width: number;
+  height: number;
+  spacing: number; 
+  onClick: (e: SyntheticMouseEvent, state: any) => void; 
+  iconName: string; 
+  iconElement: ?React.Element;
+  tooltip: string; 
+  usePushState: boolean;
+  showTooltip: boolean;
+  includeDropdownArrow: boolean;
+  arrowSize: number;
+  iconColor: string;
+};
+
+type ToolbarButtonProps = {
+  width: number;
+  height: number;
+  spacing: number; 
+  onClick: (e: SyntheticMouseEvent, state: any) => void; // #needsrefactor only any because type of second arg depends on a prop...
+  iconName: string; 
+  iconElement: ?React.Element;
+  tooltip: string; 
+  usePushState: boolean;
+  showTooltip: boolean;
+  includeDropdownArrow: boolean;
+  arrowSize: number;
+  iconColor: string;
+};
+
+type ToolbarButtonState = {
+  pushed: boolean; 
+  hovered: boolean; 
+};
+
+export default class ToolbarButton
+  extends React.Component<ToolbarButtonDefaultProps, ToolbarButtonProps, ToolbarButtonState>
+{
 
   /*************************************************************************************************************************/
   // React methods
@@ -33,53 +75,26 @@ export default React.createClass({
       11) Size of that arrow
       12) Color of the icon
   */
-  propTypes: {
-    width: React.PropTypes.number, 
-    height: React.PropTypes.number,
-    spacing: React.PropTypes.number, 
-    onClick: React.PropTypes.func, 
-    iconName: React.PropTypes.string, 
-    iconElement: React.PropTypes.object, 
-    tooltip: React.PropTypes.string, 
-    usePushState: React.PropTypes.bool,
-    showTooltip: React.PropTypes.bool,
-    includeDropdownArrow: React.PropTypes.bool,
-    arrowSize: React.PropTypes.number,
-    iconColor: React.PropTypes.string
-  },
-
-  getDefaultProps() {
-    return {
-      width: 36,
-      height: 36,
-      spacing: 2,
-      onClick: (e, state) => {},
-      iconName: 'home',
-      iconElement: null,
-      usePushState: true,
-      showTooltip: true,
-      includeDropdownArrow: false,
-      arrowSize: 15,
-      iconColor: Styles.Colors.grey500
-    };
-  },
 
   /* 
     We keep the following state:
       1) pushed; is the button pushed?
   */
-  getInitialState() {
-    return {
-      pushed: false,
+
+  constructor(props: ToolbarButtonProps) {
+    super(props);
+
+    this.state = { 
+      pushed: false, 
       hovered: false
     }
-  },
+  }
 
   /*************************************************************************************************************************/
   // Respond to events
 
   // Update internal state and tell parent about it. Separator shouldn't be visible when pushed
-  _onClick(e) {
+  _onClick(e: SyntheticMouseEvent) {
     console.log("Toolbar button onclick");
     if (this.props.usePushState) {
       let nextState = !this.state.pushed;
@@ -88,27 +103,27 @@ export default React.createClass({
     } else {
       this.props.onClick(e, this.state.pushed);
     }
-  },
+  }
 
   // Push the button (upon parent's request) 
-  setPushState(shouldBePushed) {
+  setPushState(shouldBePushed: boolean) {
     if (this.props.usePushState) {
       this.setState({pushed: shouldBePushed});
     }
-  },
+  }
 
-  _onMouseEnter(e) {
+  _onMouseEnter(e: SyntheticMouseEvent) {
     this.setState({hovered: true});
-  },
+  }
 
-  _onMouseLeave(e) {
+  _onMouseLeave(e: SyntheticMouseEvent) {
     this.setState({hovered: false});
-  },
+  }
 
   /*************************************************************************************************************************/
   // Styles and rendering
 
-  getStyles() {
+  getStyles(): any {
     return {
       hoverColor: Styles.Colors.pink300,
       pushedColor: Styles.Colors.green300,
@@ -141,10 +156,9 @@ export default React.createClass({
         transform: 'translate(0%, -50%)'
       }
     };
-  },
+  }
 
-
-  render() {
+  render(): React.Element {
     let {hoverColor, pushedColor, buttonStyle, iconStyle, arrowStyle, arrowSepStyle} = this.getStyles();
     if (this.state.pushed) {
       buttonStyle.backgroundColor = pushedColor;
@@ -196,4 +210,34 @@ export default React.createClass({
   }
 
   
-});
+}
+
+ToolbarButton.propTypes = {
+  width: React.PropTypes.number, 
+  height: React.PropTypes.number,
+  spacing: React.PropTypes.number, 
+  onClick: React.PropTypes.func, 
+  iconName: React.PropTypes.string, 
+  iconElement: React.PropTypes.object, 
+  tooltip: React.PropTypes.string, 
+  usePushState: React.PropTypes.bool,
+  showTooltip: React.PropTypes.bool,
+  includeDropdownArrow: React.PropTypes.bool,
+  arrowSize: React.PropTypes.number,
+  iconColor: React.PropTypes.string
+};
+
+ToolbarButton.defaultProps = {
+  width: 36,
+  height: 36,
+  spacing: 2,
+  onClick: (e, state) => {},
+  iconName: 'home',
+  iconElement: null,
+  usePushState: true,
+  tooltip: "",
+  showTooltip: true,
+  includeDropdownArrow: false,
+  arrowSize: 15,
+  iconColor: Styles.Colors.grey500
+};
