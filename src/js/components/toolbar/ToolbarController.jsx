@@ -2,7 +2,6 @@
 
 import type {
   NakedRange,
-  ASIndex,
   ASCell
 } from '../../types/Eval';
 
@@ -18,25 +17,37 @@ This component is a higher-order-component built for
 easy communication between stores and controls that monitor cell state (props, lang, etc)
 */
 
-export default React.createClass({
+type ToolbarControllerProps = {
+  setControlStateFromCell: (activeCell: ?ASCell) => void; 
+  propagateControlStateChange: (nextState: any, activerange: NakedRange) => void;
+  control: React.Element; 
+};
 
-  /* We need to know the control, how to update control state if stores change, and how to update backend if
-  control changes */
-  propTypes: {
-    setControlStateFromCell: React.PropTypes.func.isRequired,
-    propagateControlStateChange: React.PropTypes.func.isRequired,
-    control: React.PropTypes.object.isRequired
-  },
+type ToolbarControllerDefaultProps = {
+};
+
+type ToolbarControllerState = {
+  activeCell: ?ASCell; 
+};
+
+
+export default class ToolbarController
+  extends React.Component<ToolbarControllerDefaultProps, ToolbarControllerProps, ToolbarControllerState>
+{
+
+  constructor(props: ToolbarController) {
+    super(props);
+  }
 
   componentDidMount() {
     SelectionStore.addChangeListener(this._onActiveCellChange);
     CellStore.addChangeListener(this._onActiveCellChange);
-  },
+  }
 
   componentWillUnmount() {
     SelectionStore.removeChangeListener(this._onActiveCellChange);
     CellStore.removeChangeListener(this._onActiveCellChange);
-  },
+  }
 
   /*
     When the active selection or cell change, tell the underlying control to change its state based on that cell.
@@ -46,7 +57,7 @@ export default React.createClass({
     let ac = CellStore.getActiveCell();
     this.setState({activeCell: ac});
     this.props.setControlStateFromCell(ac);
-  },
+  }
 
   /*
     When the control's state changes, bubble up here and use that state and the current active selection to
@@ -57,10 +68,18 @@ export default React.createClass({
     SelectionStore.withActiveSelection(({range: activeRange}) => {
       this.props.propagateControlStateChange(nextState, activeRange);
     });
-  },
+  }
 
   // Simply render the control
   render(): React.Element {
     return this.props.control;
   }
-});
+}
+
+/* We need to know the control, how to update control state if stores change, and how to update backend if
+control changes */
+ToolbarController.propTypes = {
+  setControlStateFromCell: React.PropTypes.func.isRequired,
+  propagateControlStateChange: React.PropTypes.func.isRequired,
+  control: React.PropTypes.object.isRequired
+};

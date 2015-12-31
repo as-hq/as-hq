@@ -46,6 +46,10 @@ export default class ASToolbar
   extends React.Component<ToolbarDefaultProps, ToolbarProps, ToolbarState>
 {
 
+  constructor(props: ToolbarProps) {
+    super(props);
+  }
+
   /*************************************************************************************************************************/
   // React methods
 

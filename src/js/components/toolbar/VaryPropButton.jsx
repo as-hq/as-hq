@@ -61,7 +61,7 @@ export default class VaryPropButton
   }
 
   /* When the cell updates due to store change, push the button if the prop corresponding to our tag isn't null */
-  _setControlStateFromCell(cell: ASCell) {
+  _setControlStateFromCell(cell: ?ASCell) {
     let prop = (cell != null) ? U.Cell.getPropByTag(this.props.propTag, cell) : null;
     if (this.props.propTag === "Bold"){
       console.log("got prop ", prop);
