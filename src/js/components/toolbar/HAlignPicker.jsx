@@ -94,9 +94,9 @@ export default class HAlignPicker
       <ButtonWithMenu
         toolbarControlProps={this.toolbarControlProps()}
         menuProps={this.getMenuProps()}
-        getMenuValueFromCell={this._getMenuValueFromCell}
-        toolbarControlPropTransform={this._toolbarControlPropTransform}
-        propagateControlStateChange={this._propagateControlStateChange}
+        getMenuValueFromCell={this._getMenuValueFromCell.bind(this)}
+        toolbarControlPropTransform={this._toolbarControlPropTransform.bind(this)}
+        propagateControlStateChange={this._propagateControlStateChange.bind(this)}
         initialValue={'left'}
         menuWidth={65} 
         id="HAlignPicker" />
