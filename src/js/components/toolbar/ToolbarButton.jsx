@@ -1,5 +1,10 @@
 /* @flow */
 
+import type {
+  ASCell,
+  ASRange
+} from '../../types/Eval';
+
 import React from 'react';
 
 import {Styles, FontIcon} from 'material-ui';
