@@ -7,11 +7,16 @@ export type Font = {
   family: string; 
 };
 
+export type LanguageMenuOption = { 
+  name: string; 
+  shortcut: string; 
+};
+
 export type ToolbarControlProps = {
   displayValue: string; 
   tooltip: string; 
   showTooltip: boolean; 
-  width: 200; 
+  width: number; 
 };
 
 export type MenuProps = {

@@ -180,7 +180,7 @@ export type ASLanguage = 'Python' | 'R' | 'SQL' | 'Excel';
 
 export type ASExpression = {
   expression: string;
-  language: ?ASLanguage;
+  language: ?ASLanguage; // ::ALEX:: why is this an ?ASLanguage ??? 
   expandingType?: ExpandingType;
   rangeKey?: string;
   dependencies?: Array<NakedRange>;

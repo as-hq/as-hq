@@ -1,3 +1,5 @@
+/* @flow */
+
 import React from 'react';
 import ReactDOM from 'react-dom';
 import {Styles, FontIcon} from 'material-ui';
@@ -8,97 +10,124 @@ import GenerateToolbarMenu from './GenerateToolbarMenu.jsx';
 import ExpStore from '../../stores/ASExpStore';
 import ExpActionCreator from '../../actions/ASExpActionCreators.js';
 
+import type {
+  MenuProps,
+  LanguageMenuOption, 
+  ToolbarControlProps
+} from '../../types/Toolbar';
 
-export default React.createClass({
+import type {
+  ASLanguage, 
+  NakedRange, 
+  ASCell
+} from '../../types/Eval';
 
+
+type LanguagePickerProps = {
+};
+
+type LanguagePickerDefaultProps = {
+};
+
+type LanguagePickerState = {
+  language: ASLanguage;
+};
+
+export default class LanguagePicker
+  extends React.Component<LanguagePickerDefaultProps, LanguagePickerProps, LanguagePickerState>
+{
   /*************************************************************************************************************************/
   // Sub-component generation
 
-  getInitialState() {
-    return  {
+  languages: Array<LanguageMenuOption>;
+
+  constructor(props: LanguagePickerProps) {
+    super(props);
+
+    this.state = { 
       language: ExpStore.getDefaultLanguage()
     }
-  },
 
-  languages: [
-    {name: 'Excel', shortcut: 'Ctrl+1'},
-    {name: 'Python', shortcut: 'Ctrl+2'},
-    {name: 'SQL', shortcut: 'Ctrl+3'},
-    {name: 'R', shortcut: 'Ctrl+4'},
-  ],
+    this.languages = [
+      {name: 'Excel', shortcut: 'Ctrl+1'},
+      {name: 'Python', shortcut: 'Ctrl+2'},
+      {name: 'SQL', shortcut: 'Ctrl+3'},
+      {name: 'R', shortcut: 'Ctrl+4'},
+    ];
+  }
 
   // Return a bunch of menu items
-  getMenuProps() {
+  getMenuProps(): Array<MenuProps> {
     let menuItems = this.languages.map((lang) => {
       return {tag: 'MenuItem', primaryText: lang.name, secondaryText: lang.shortcut, value: lang.name};
     });
     return menuItems;
-  },
+  }
 
-  toolbarControlProps() {
+  toolbarControlProps(): ToolbarControlProps {
     return {
       displayValue: this.state.language,
       tooltip: "Languages",
       showTooltip: true,
       width: 85
     };
-  },
+  }
 
   /*************************************************************************************************************************/
   // Mounting (we listen to toggle language changes from the ExpStore, and rerender if the language changed)
   // This happens when user presses Ctrl + 1, etc; toggles the  language from an external source
 
   componentDidMount() {
-    ExpStore.addChangeListener(this._onToggleLanguage);
-  },
+    ExpStore.addChangeListener(this._onToggleLanguage.bind(this));
+  }
 
   componentWillUnmount() {
-    ExpStore.removeChangeListener(this._onToggleLanguage);
-  },
+    ExpStore.removeChangeListener(this._onToggleLanguage.bind(this));
+  }
 
   _onToggleLanguage() {
     if (ExpStore.getLanguage() !== this.state.language) {
       this.setState({language: ExpStore.getLanguage()});
     }
-  },
+  }
 
   /*************************************************************************************************************************/
   // Helper methods to pass to generator
 
   // When the active cell changes to a new cell, get the new menu value that should be selected/checked 
-  _getMenuValueFromCell(cell) {
+  _getMenuValueFromCell(cell: ASCell): ASLanguage {
     console.log("Language picker cell ", cell)
-    if (cell == null) {
-      return ExpStore.getDefaultLanguage();
-    } else {
+    if (cell != null && cell.cellExpression.language != null) { // #cellrefactor ()
       return cell.cellExpression.language;
+    } else {
+      return ExpStore.getDefaultLanguage();
     }
-  },
+  }
 
-  _propagateControlStateChange(nextValue, rng) {
+  _propagateControlStateChange(nextValue: string, rng: NakedRange) {
     console.log("Propagating language change: " + nextValue);
     ExpActionCreator.handleToggleLanguage(nextValue);
-  },
+  }
 
   // Update the toolbar control props given a the menu visibility, menuValue, and current toolbarProps.
-  _toolbarControlPropTransform(menuVisible, menuValue, toolbarControlProps) {
+  _toolbarControlPropTransform(menuVisible: boolean, menuValue: string, toolbarControlProps: ToolbarControlProps): ToolbarControlProps {
     toolbarControlProps.showTooltip = !menuVisible;
     toolbarControlProps.displayValue = menuValue;
     return toolbarControlProps;
-  },
+  }
 
   /*************************************************************************************************************************/
   //Render
 
-  render() {
+  render(): React.Element {
     let ButtonWithMenu = GenerateToolbarMenu(ToolbarTextField);
     return (
       <ButtonWithMenu
         toolbarControlProps={this.toolbarControlProps()}
         menuProps={this.getMenuProps()}
-        getMenuValueFromCell={this._getMenuValueFromCell}
-        toolbarControlPropTransform={this._toolbarControlPropTransform}
-        propagateControlStateChange={this._propagateControlStateChange}
+        getMenuValueFromCell={this._getMenuValueFromCell.bind(this)}
+        toolbarControlPropTransform={this._toolbarControlPropTransform.bind(this)}
+        propagateControlStateChange={this._propagateControlStateChange.bind(this)}
         initialValue={this.state.language}
         menuWidth={65} 
         toolbarControlWidth={85}
@@ -106,6 +135,4 @@ export default React.createClass({
     );
   }
 
-});
-
-
+}
