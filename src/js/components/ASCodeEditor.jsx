@@ -4,7 +4,6 @@ import React from 'react';
 import AceEditor from './AceEditor.jsx';
 import ActionCreator from '../actions/ASCodeEditorActionCreators';
 import Constants from '../Constants';
-import Toolbar from './toolbar/Toolbar.jsx';
 
 import type {
   ASFocusType
@@ -45,7 +44,6 @@ export default class ASCodeEditor
 
     return (
       <div style={outerStyle}>
-        <Toolbar />
         <AceEditor
           ref="editor"
           handleEditorFocus={this.props.handleEditorFocus}

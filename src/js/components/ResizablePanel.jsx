@@ -9,7 +9,7 @@ const config = {
   separatorSize: 6,
   minSize: 45,
   maxSize: 80,
-  defaultSize: '65%'
+  defaultSize: '70%'
 };
 
 
@@ -24,9 +24,9 @@ export default React.createClass({
       // The relevant dimension of the content. For example, if side = 'right', this would be the width of the content. 
       // If the side was 'top', it would be the height of the content, which would be below the sidebar. 
       // The units are in percent relative to the whole resizable panel
-      contentSize: '100%',
+      contentSize: this.props.sidebarVisible ? config.defaultSize : '100%',
       // Keeps track of the content size during closes of the sidebar, so that it "remembers" its last size upon reopening
-      lastContentSize: config.defaultLeft
+      lastContentSize: config.defaultSize
     };
   },
 

@@ -56,7 +56,7 @@ import * as BrowserTests from '../browser-test/index';
 
 // import Repl from './repl/Repl.jsx'
 import EvalHeader from './eval-header/EvalHeader.jsx'
-import ResizableRightPanel from './ResizablePanel.jsx'
+import ResizablePanel from './ResizablePanel.jsx'
 import ASFindBar from './ASFindBar.jsx';
 import ASFindModal from './ASFindModal.jsx';
 import FindAction from '../actions/ASFindActionCreators';
@@ -794,7 +794,7 @@ export default class ASEvalPane
       onSubmitEvalHeader={this._onSubmitEvalHeader.bind(this)} />;
 
     return (
-      <ResizableRightPanel content={leftEvalPane} sidebar={sidebarContent} sidebarVisible={this.state.evalHeaderOpen} />
+      <ResizablePanel content={leftEvalPane} sidebar={sidebarContent} sidebarVisible={this.state.evalHeaderOpen} />
     );
   }
 

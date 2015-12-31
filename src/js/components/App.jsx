@@ -4,8 +4,9 @@ import React, {PropTypes} from 'react';
 import ASTreeNav from './ASTreeNav.jsx';
 import ASEvaluationPane from './ASEvaluationPane.jsx';
 import ASTopBar from './ASTopBar.jsx';
-import ASBottomBar from './ASBottomBar.jsx';
+import ResizablePanel from './ResizablePanel.jsx'
 import ASErrorPane from './ASErrorPane.jsx';
+import Toolbar from './toolbar/Toolbar.jsx';
 
 import U from '../AS/Util';
 const {
@@ -42,7 +43,7 @@ export default React.createClass({
   getInitialState() {
     return {
       currentPane: 'eval',
-      /* object passed from splash pane specifying initial params: opened sheet, etc */
+      // object passed from splash pane specifying initial params: opened sheet, etc 
       initEvalInfo: {},
       errorPaneOpen: true,
       memory: 0
@@ -68,33 +69,19 @@ export default React.createClass({
 
   render() {
     let {errorPaneOpen} = this.state;
+    let evalPane = 
+        <ASEvaluationPane behavior="default" ref="evalPane" initInfo={this.state.initEvalInfo} height='100%'/>;
+    let errorPane = 
+      <ASErrorPane open={errorPaneOpen} onRequestSelect={this._handleRequestSelect}/>;
+
 
     return (
       <div style={{width:"100%",height:"100%"}} >
         <ASTopBar toggleEvalHeader={this._toggleEvalHeader} />
+        <Toolbar />
         <div style={{width: '100%', height: '100%'}}> {/* supposed to be calc(100%-72px)*/}
-          <div style={{
-            display: 'inline-block',
-            width: '100%',
-            height: errorPaneOpen ? '80%' : '100%',
-            verticalAlign:'top'
-          }} >
-            <ASEvaluationPane behavior="default" ref="evalPane" initInfo={this.state.initEvalInfo} height='100%'/>
-          </div>
-          <div style={{
-            display: 'inline-block',
-            width: '100%',
-            height: errorPaneOpen ? '20%' : '0',
-            overflow: 'hidden'
-          }}>
-            <ASErrorPane open={errorPaneOpen} onRequestSelect={this._handleRequestSelect}/>
-          </div>
+          <ResizablePanel content={evalPane} sidebar={errorPane} sidebarVisible={errorPaneOpen} side="bottom" />
         </div>
-        {
-          /*<div style={{width: '100%', height: '36px'}}>
-            <ASBottomBar toggleErrorPane={this._toggleErrorPane} />
-          </div>*/
-        }
       </div>
     );
   },
