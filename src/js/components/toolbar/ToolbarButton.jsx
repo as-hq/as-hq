@@ -187,9 +187,9 @@ export default class ToolbarButton
           data-for={this.props.tooltip}
           data-tip={this.props.tooltip}
           style={buttonStyle}
-          onClick={this._onClick}
-          onMouseLeave={this._onMouseLeave}
-          onMouseEnter={this._onMouseEnter}>
+          onClick={this._onClick.bind(this)}
+          onMouseLeave={this._onMouseLeave.bind(this)}
+          onMouseEnter={this._onMouseEnter.bind(this)}>
           {iconElement}
           {arrowElement}
         </FlatButton>
@@ -205,8 +205,8 @@ export default class ToolbarButton
     : <FlatButton 
         style={buttonStyle}
         onClick={this._onClick}
-        onMouseLeave={this._onMouseLeave}
-        onMouseEnter={this._onMouseEnter}>
+        onMouseLeave={this._onMouseLeave.bind(this)}
+        onMouseEnter={this._onMouseEnter.bind(this)}>
         {iconElement}
         {arrowElement}
       </FlatButton>;

@@ -40,13 +40,13 @@ export default class ToolbarController
   }
 
   componentDidMount() {
-    SelectionStore.addChangeListener(this._onActiveCellChange);
-    CellStore.addChangeListener(this._onActiveCellChange);
+    SelectionStore.addChangeListener(this._onActiveCellChange.bind(this));
+    CellStore.addChangeListener(this._onActiveCellChange.bind(this));
   }
 
   componentWillUnmount() {
-    SelectionStore.removeChangeListener(this._onActiveCellChange);
-    CellStore.removeChangeListener(this._onActiveCellChange);
+    SelectionStore.removeChangeListener(this._onActiveCellChange.bind(this));
+    CellStore.removeChangeListener(this._onActiveCellChange.bind(this));
   }
 
   /*

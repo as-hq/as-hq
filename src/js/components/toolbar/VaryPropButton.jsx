@@ -82,15 +82,15 @@ export default class VaryPropButton
     let button = 
       <ToolbarButton
         ref="button"
-        onClick={this._onClick}  
+        onClick={this._onClick.bind(this)}  
         iconName={iconName}
         tooltip={tooltip} />;
 
     return (
       <ToolbarController
         ref="controller"
-        setControlStateFromCell={this._setControlStateFromCell}
-        propagateControlStateChange={this._propagateControlStateChange}
+        setControlStateFromCell={this._setControlStateFromCell.bind(this)}
+        propagateControlStateChange={this._propagateControlStateChange.bind(this)}
         control={button} />
     );
   }
