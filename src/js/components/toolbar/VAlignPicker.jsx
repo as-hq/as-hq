@@ -101,5 +101,4 @@ export default class VAlignPicker
         id="VAlignPicker" />
     );
   }
-
 }
