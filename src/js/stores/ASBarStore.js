@@ -66,6 +66,7 @@ const ASBarStore = Object.assign({}, BaseStore, {
     return dims;
   },
 
+  // #incomplete must also filter by sheet
   getLastUpdatedBarsDimensions(): BarDimensions { 
     return ASBarStore._getDimensions(_data.lastUpdatedBars);
   },
