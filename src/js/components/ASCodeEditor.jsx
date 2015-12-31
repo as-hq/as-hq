@@ -3,6 +3,7 @@
 import React from 'react';
 import AceEditor from './AceEditor.jsx';
 import ActionCreator from '../actions/ASCodeEditorActionCreators';
+import ExpStore from '../stores/ASExpStore';
 import Constants from '../Constants';
 import Toolbar from './toolbar/Toolbar.jsx';
 
