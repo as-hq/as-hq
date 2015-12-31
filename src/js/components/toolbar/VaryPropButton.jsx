@@ -13,6 +13,7 @@ let {
 
 
 import React, {PropTypes} from 'react';
+import {Styles} from 'material-ui';
 
 import Util from '../../AS/Util';
 import API from '../../actions/ASApiActionCreators';
@@ -35,6 +36,12 @@ export default React.createClass({
     iconName: React.PropTypes.string.isRequired,
   },
 
+  getInitialState() {
+    return {
+      iconColor: Styles.Colors.grey500
+    }
+  },
+
   /* When the control updates, toggle the prop in the backend */
   _propagateControlStateChange(nextState: boolean, rng: NakedRange) {
     console.log("setting backend");
@@ -55,10 +62,15 @@ export default React.createClass({
   /* When the cell updates due to store change, push the button if the prop corresponding to our tag isn't null */
   _setControlStateFromCell(cell) {
     let prop = (cell != null) ? U.Cell.getPropByTag(this.props.propTag, cell) : null;
-    if (this.props.propTag === "Bold"){
-      console.log("got prop ", prop);
-    }
     this.refs.button.setPushState(prop != null);
+    // We want the bold button's icon to be black upon a bold cell, default color otherwise
+    if (this.props.propTag === "Bold"){
+      if (prop != null) {
+        this.setState({iconColor: Styles.Colors.grey900});
+      } else {
+        this.setState({iconColor: Styles.Colors.grey500});
+      }
+    }
   },
 
   /* Method that the child control will call after updating its internal state */
@@ -76,7 +88,8 @@ export default React.createClass({
         ref="button"
         onClick={this._onClick}  
         iconName={iconName}
-        tooltip={tooltip} />;
+        tooltip={tooltip}
+        iconColor={this.state.iconColor} />;
 
     return (
       <ToolbarController

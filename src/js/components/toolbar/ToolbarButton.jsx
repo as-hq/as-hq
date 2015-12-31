@@ -110,8 +110,7 @@ export default React.createClass({
 
   getStyles() {
     return {
-      hoverColor: Styles.Colors.pink300,
-      pushedColor: Styles.Colors.green300,
+      pushedColor: Styles.Colors.pink300,
       buttonStyle: {
         display: 'inline-block', // buttons should stack horizontally
         position: 'relative', 
@@ -145,7 +144,7 @@ export default React.createClass({
 
 
   render() {
-    let {hoverColor, pushedColor, buttonStyle, iconStyle, arrowStyle, arrowSepStyle} = this.getStyles();
+    let {pushedColor, buttonStyle, iconStyle, arrowStyle, arrowSepStyle} = this.getStyles();
     if (this.state.pushed) {
       buttonStyle.backgroundColor = pushedColor;
     }
