@@ -13,10 +13,12 @@ export type LanguageMenuOption = {
 };
 
 export type ToolbarControlProps = {
-  displayValue: string; 
+  displayValue?: string; 
   tooltip: string; 
   showTooltip: boolean; 
   width: number; 
+  iconName?: string; 
+  includeDropdownArrow?: boolean; 
 };
 
 export type MenuProps = {

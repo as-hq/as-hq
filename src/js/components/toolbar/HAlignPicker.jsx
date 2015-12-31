@@ -1,3 +1,5 @@
+/* @flow */
+
 import React from 'react';
 import ReactDOM from 'react-dom';
 import {Styles, FontIcon} from 'material-ui';
@@ -5,13 +7,35 @@ import {Styles, FontIcon} from 'material-ui';
 import ToolbarButton from './ToolbarButton.jsx';
 import GenerateToolbarMenu from './GenerateToolbarMenu.jsx';
 
-export default React.createClass({
+import type {
+  ToolbarControlProps, 
+  MenuProps
+} from '../../types/Toolbar';
+
+import type {
+  NakedRange,
+  ASCell
+} from '../../types/Eval';
+
+type HAlignPickerDefaultProps = {};
+
+type HAlignPickerProps = {};
+
+type HAlignPickerState = {};
+
+export default class HAlignPicker
+  extends React.Component<HAlignPickerDefaultProps, HAlignPickerProps, HAlignPickerState>
+{
+
+  constructor(props: HAlignPickerProps) {
+    super(props);
+  }
 
   /*************************************************************************************************************************/
   // Sub-component generation
 
   // Return a bunch of menu items
-  getMenuProps() {
+  getMenuProps(): Array<MenuProps> {
     let genIcon = (iconName) => {
       return <FontIcon 
         style={{backgroundColor: Styles.Colors.grey400, color: Styles.Colors.grey800}} 
@@ -25,9 +49,9 @@ export default React.createClass({
       {tag: 'MenuItem', primaryText: 'Right', value: 'right', rightIcon: genIcon('format_align_right')},
     ];
     return menuItems;
-  },
+  }
 
-  toolbarControlProps() {
+  toolbarControlProps(): ToolbarControlProps {
     return {
       iconName: 'format_align_left',
       tooltip: 'Horizontal align',
@@ -37,34 +61,34 @@ export default React.createClass({
       spacing: 7,
       width: 41
     };
-  },
+  }
 
   /*************************************************************************************************************************/
   // Helper methods to pass to generator
 
   // When the active cell changes to a new cell, get the new menu value that should be selected/checked 
-  _getMenuValueFromCell(cell) {
+  _getMenuValueFromCell(cell: ASCell): string {
     console.log("\n\n\nHAlign picker cell ", cell)
     return 'left'; // TODO: eventually cell.cellProps.halign
-  },
+  }
 
-  _propagateControlStateChange(nextValue, rng) {
+  _propagateControlStateChange(nextValue: string, rng: NakedRange) {
     console.log("Propagating language change: " + nextValue);
     return; // TODO: eventually some API call
-  },
+  }
 
   // Update the toolbar control props given a the menu visibility, menuValue, and current toolbarProps.
   // In this case, we want the icon to reflect the menu choice.
-  _toolbarControlPropTransform(menuVisible, menuValue, toolbarControlProps) {
+  _toolbarControlPropTransform(menuVisible: boolean, menuValue: string, toolbarControlProps: ToolbarControlProps): ToolbarControlProps {
     toolbarControlProps.showTooltip = !menuVisible;
     toolbarControlProps.iconName = 'format_align_' + menuValue;
     return toolbarControlProps;
-  },
+  }
 
   /*************************************************************************************************************************/
   //Render
 
-  render() {
+  render(): React.Element {
     let ButtonWithMenu = GenerateToolbarMenu(ToolbarButton);
     return (
       <ButtonWithMenu
@@ -78,7 +102,4 @@ export default React.createClass({
         id="HAlignPicker" />
     );
   }
-
-});
-
-
+}
