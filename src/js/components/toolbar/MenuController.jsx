@@ -1,6 +1,11 @@
+/* @flow */
+
 import React from 'react';
+// $FlowFixMe
 import Menu from 'material-ui/lib/menus/menu';
+// $FlowFixMe
 import MenuItem from 'material-ui/lib/menus/menu-item';
+// $FlowFixMe
 import ToolbarButton from 'material-ui/lib/divider';
 
 import ToolbarController from './ToolbarController.jsx';
@@ -161,7 +166,7 @@ MenuController.propTypes =  {
   onMenuShouldClose: React.PropTypes.func.isRequired
 };
 
-MenuController.defaultTypes = {
+MenuController.defaultProps = {
   toolbarWidth: 100, 
   toolbarHeight: 36
 };
