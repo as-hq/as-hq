@@ -20,6 +20,7 @@ export default React.createClass({
     return {
       x: 0,
       y: 0,
+      clickAwayBuffer: false,
       expanded: false,
       menuItems: []
     };
@@ -32,7 +33,9 @@ export default React.createClass({
   },
 
   componentClickAway() {
-    if (this.state.expanded) {
+    if (this.state.clickAwayBuffer) {
+      this.setState({ clickAwayBuffer: false });
+    } else if (this.state.expanded) {
       this.close();
     }
   },
@@ -41,6 +44,7 @@ export default React.createClass({
     this.setState({
       x: x,
       y: y,
+      clickAwayBuffer: true,
       expanded: true,
       menuItems: menuItems
     });
@@ -49,7 +53,7 @@ export default React.createClass({
   close() {
     if (this.state.expanded) {
       this.props.restoreFocus(); // so the focus goes back to spreadsheet after menu closes
-      this.setState({ expanded: false });
+      this.setState({ clickAwayBuffer: false, expanded: false });
     }
   },
 
