@@ -25,9 +25,9 @@ server/eval_files/**/headers/*.*
 !server/eval_files/**/template_repl.*
 !server/eval_files/**/headers/dummy
 
-server/static/images/*
+server/static/*/*
+server/static/*
 !server/static/images/dummy
-!server/static/dummy
 !server/static/file-input-handler.py
 
 graph-database/server

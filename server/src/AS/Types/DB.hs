@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, DataKinds, KindSignatures, GADTs #-}
+{-# LANGUAGE OverloadedStrings, DataKinds, KindSignatures, GADTs, DeriveGeneric #-}
 
 module AS.Types.DB
   ( module AS.Types.DB
@@ -17,6 +17,8 @@ import AS.Types.CondFormat (CondFormatRuleId)
 
 import Debug.Trace
 
+import GHC.Generics
+import Data.List.Split (splitOn)
 import Data.List.Split (splitOn)
 import qualified Data.Text as T 
 import qualified Data.List as L
